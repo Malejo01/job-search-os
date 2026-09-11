@@ -48,6 +48,7 @@ ci.yml
   unit-contract   → pnpm test
   integration     → services: postgres (pgvector/pgvector:pg16) → pnpm test:integration
   build           → next build sin base ni claves (SKIP_APP_ROLE_CHECK=1)
+  secrets         → gitleaks sobre toda la historia (falla si encuentra algo; sin allowlists)
   e2e             → Postgres + migrate + seed (usuario con contraseña de CI) + next start + Playwright (4 flujos, worker demo); traces como artifact si falla
   evals           → if: paths prompts/** evals/** → subset de 14 llamadas con tope de costo; sin secret GEMINI_API_KEY se saltea con aviso (nunca falla el build)
   build           → pnpm build

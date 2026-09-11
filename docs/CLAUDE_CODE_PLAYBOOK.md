@@ -146,15 +146,21 @@ y no cambies prompt_version en el código hasta que yo apruebe.
 ## Variables de entorno (`.env.local`, nunca en el repo)
 
 ```
-DATABASE_URL=                 # Supabase (pooler, modo transaction) o local: postgres://postgres:postgres@localhost:54322/jobsearch
+# Supabase (pooler, modo transaction) o local: postgres://postgres:postgres@localhost:54322/jobsearch
+DATABASE_URL=
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=    # solo server; crons y webhooks
+# solo server; crons y webhooks
+SUPABASE_SERVICE_ROLE_KEY=
 GEMINI_API_KEY=
-ANTHROPIC_API_KEY=            # opcional en fase 1 (juez y fallback)
-CRON_SECRET=                  # random de 32+ chars; Vercel lo manda en el header Authorization
-RESEND_WEBHOOK_SECRET=        # bloque 4
-INGEST_DOMAIN=                # bloque 4, ej. ingest.<tu-dominio>
+# opcional en fase 1 (juez y fallback)
+ANTHROPIC_API_KEY=
+# random de 32+ chars; Vercel lo manda en el header Authorization
+CRON_SECRET=
+# bloque 4
+RESEND_WEBHOOK_SECRET=
+# bloque 4, ej. ingest.<tu-dominio>
+INGEST_DOMAIN=
 ```
 
 ## Qué hacer vos, no Claude Code

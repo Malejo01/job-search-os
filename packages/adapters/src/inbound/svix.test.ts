@@ -15,7 +15,9 @@ describe("verifySvix", () => {
       verifySvix({ ...headers, "svix-signature": `v1,AAAA v1,${good}` }, body, secret, now),
     ).toEqual({ ok: true });
     expect(verifySvix(headers, body + " ", secret, now).ok).toBe(false); // el cuerpo crudo importa
-    expect(verifySvix(headers, body, "whsec_b3Ryby1zZWNyZXRv", now).ok).toBe(false);
+    // Otro secreto (calculado, no literal: un literal con prefijo whsec_ dispara escáneres)
+    const otherSecret = "whsec_" + Buffer.from("otro-secreto").toString("base64");
+    expect(verifySvix(headers, body, otherSecret, now).ok).toBe(false);
   });
 
   it("rechaza sin secreto, sin headers o fuera de la tolerancia de 5 min", () => {

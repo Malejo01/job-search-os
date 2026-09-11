@@ -42,6 +42,14 @@ Repaso con ojo de auditor: qué quedó a medias, qué tiene tests débiles, qué
 19. **Rate limit de inbound por usuario (100/hora) sin test de tiempo real.** Está probado en integración con conteo, no con la ventana móvil bajo carga.
 20. **`evals/reports/` versionados en git.** Ya son 12 archivos JSON; van a crecer con cada corrida. Decidir si se ignoran (y se guardan en `llm_calls`) o se conservan solo los de decisión.
 
+## Lección del primer push (2026-09-11)
+
+El repo se publicó sin pasar antes un escáner de secretos local. GitGuardian avisó sobre el commit inicial; la revisión (comparar cada valor real de `.env.local` contra el árbol versionado, `git grep` por patrones, `git check-ignore`) mostró que era un falso positivo: URLs de Postgres de Docker/CI con `user:password@localhost`, la contraseña de desarrollo del E2E y un literal `whsec_` en un test. Salió bien esta vez; la próxima puede no salir. Reglas que quedan:
+
+- **Antes de publicar cualquier repo se corre un escáner offline**: `pnpm secrets:scan` (gitleaks vía Docker, modo git, sobre toda la historia). Si encuentra algo, se resuelve antes del push.
+- **El CI tiene el job `secrets`** (gitleaks sobre toda la historia, falla en rojo). Sin archivos de excepción (`.gitguardian.yaml` o allowlists): silenciar `ci.yml` o los helpers hoy es un punto ciego mañana, justo donde van a vivir las credenciales. Los falsos positivos se marcan por incidente en el panel del escáner.
+- Nada de literales con prefijo de secreto real en tests (`whsec_`, `sk-`, `npg_`): se calculan en el test.
+
 ## Lo que está bien y no hace falta tocar
 
 - `packages/pipeline`: 201 tests, tests primero, sin I/O. Dedup, prefiltro, `decide()`, estados, skills, plan, pre-score y feedback cubiertos.

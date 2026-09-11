@@ -34,7 +34,8 @@
     "plan:build": "pnpm --filter @job-search-os/adapters plan:build",
     "e2e": "pnpm --filter @job-search-os/web e2e",
     "skills:extract": "pnpm --filter @job-search-os/adapters skills:extract",
-    "worker:requeue": "pnpm --filter @job-search-os/adapters worker:requeue"
+    "worker:requeue": "pnpm --filter @job-search-os/adapters worker:requeue",
+    "secrets:scan": "docker run --rm -v \"$(pwd -W 2>/dev/null || pwd):/repo\" zricethezav/gitleaks:latest detect --source /repo --redact --exit-code 2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -7,6 +7,17 @@ on:
 # docs/TESTING_STRATEGY.md §CI. Todo corre sin claves salvo `evals`, que se saltea con aviso
 # si el secret GEMINI_API_KEY no está (nunca rompe el build por falta de key).
 jobs:
+  # Escáner de secretos (gitleaks) sobre toda la historia: falla si encuentra algo. Lección del
+  # 2026-09-11 (docs/AUDITORIA_2026-09-11.md): nunca publicar sin pasar esto antes.
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   lint-typecheck:
     runs-on: ubuntu-latest
     steps:

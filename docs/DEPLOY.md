@@ -52,7 +52,7 @@ Consecuencia: el `vercel.json` actual (`0 */6 * * *` y `15 */6 * * *`) **no desp
 
 Local, antes de tocar Vercel:
 
-1. `git remote add origin <repo GitHub>` y `git push -u origin main` (los workflows `ci.yml` y `cron.yml` viven ahí).
+1. **Antes de publicar**: `pnpm secrets:scan` (gitleaks sobre toda la historia; necesita Docker) tiene que terminar sin hallazgos. Después `git remote add origin <repo GitHub>` y `git push -u origin main` (los workflows `ci.yml` y `cron.yml` viven ahí; el job `secrets` repite el escaneo en cada push).
 2. En GitHub › Settings › Secrets and variables › Actions: secret `CRON_SECRET` (generalo: `openssl rand -hex 32`; es el mismo valor que va a Vercel), secret `GEMINI_API_KEY` (opcional: solo para que los PRs corran evals), variable `APP_URL` (la URL de producción, la cargás después del paso 6).
 3. Neon: `pnpm db:migrate` (usa `DATABASE_URL_UNPOOLED` de tu `.env.local`; ya está al día hasta 0009) y el seed del usuario, UNA vez, local: `SEED_USER_EMAIL=tu@email SEED_USER_PASSWORD=<contraseña> pnpm db:seed`. Esas dos variables NO van a Vercel.
 
