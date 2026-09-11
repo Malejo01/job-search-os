@@ -1,0 +1,40 @@
+{
+  "name": "@job-search-os/web",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "e2e": "playwright test",
+    "clean": "rimraf .next"
+  },
+  "dependencies": {
+    "@job-search-os/adapters": "workspace:*",
+    "@job-search-os/db": "workspace:*",
+    "@job-search-os/pipeline": "workspace:*",
+    "@job-search-os/prompts": "workspace:*",
+    "@modelcontextprotocol/server": "^2.0.0",
+    "drizzle-orm": "^0.45.2",
+    "framer-motion": "13.2.0",
+    "mcp-handler": "2.1.1",
+    "next": "15.5.25",
+    "next-auth": "5.0.0-beta.32",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "zod": "^4.6.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^22.20.2",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "postcss": "^8.5.28",
+    "postgres": "^3.4.9",
+    "rimraf": "^6.0.1",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3"
+  }
+}

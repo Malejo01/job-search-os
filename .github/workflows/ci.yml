@@ -1,0 +1,130 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# docs/TESTING_STRATEGY.md §CI. Todo corre sin claves salvo `evals`, que se saltea con aviso
+# si el secret GEMINI_API_KEY no está (nunca rompe el build por falta de key).
+jobs:
+  lint-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint && pnpm typecheck
+
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env: { POSTGRES_PASSWORD: postgres }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:migrate && pnpm test:integration
+
+  build:
+    # next build sin base ni claves: las páginas son dinámicas; el chequeo del rol corre en runtime
+    runs-on: ubuntu-latest
+    env:
+      SKIP_APP_ROLE_CHECK: "1"
+      AUTH_SECRET: ci-build-only-not-a-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @job-search-os/web build
+
+  evals:
+    # Solo en PRs que tocan prompts o el harness. Subset (14 llamadas) con tope de costo;
+    # sin GEMINI_API_KEY se saltea con aviso, no falla.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      EVALS_PROMPT: evaluate_job@v1
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - id: changed
+        run: |
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -Eq '^(packages/prompts|evals)/'; then
+            echo run=true >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::evals: sin cambios en packages/prompts ni evals, no se corre"
+          fi
+      - if: steps.changed.outputs.run == 'true' && env.GEMINI_API_KEY == ''
+        run: echo "::warning title=evals salteados::GEMINI_API_KEY no está configurada como secret del repo; los evals no corrieron. Configurala en Settings › Secrets para que el PR mida el prompt."
+      - if: steps.changed.outputs.run == 'true' && env.GEMINI_API_KEY != ''
+        uses: pnpm/action-setup@v4
+      - if: steps.changed.outputs.run == 'true' && env.GEMINI_API_KEY != ''
+        uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - if: steps.changed.outputs.run == 'true' && env.GEMINI_API_KEY != ''
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm evals run --prompt "$EVALS_PROMPT" --subset --runs 1 --concurrency 1 --db none --yes --max-usd 0.5 --max-minutes 20
+
+  e2e:
+    # Playwright: los 4 flujos de docs/TESTING_STRATEGY.md contra Postgres + worker en modo demo (sin LLM)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env: { POSTGRES_PASSWORD: postgres }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      CI: "1"
+      DB_TARGET: local
+      DATABASE_URL_LOCAL: postgres://postgres:postgres@localhost:5432/postgres
+      DATABASE_URL_APP_LOCAL: postgres://jobsearch_app:jobsearch_app@localhost:5432/postgres
+      AUTH_SECRET: ci-e2e-only-not-a-secret
+      MCP_TOKEN: ci-e2e-only-not-a-secret
+      SEED_USER_EMAIL: mauro@job-search-os.local
+      SEED_USER_PASSWORD: dev-password-local
+      E2E_EMAIL: mauro@job-search-os.local
+      E2E_PASSWORD: dev-password-local
+      LLM_DAILY_CAP_USD: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:migrate:local && pnpm db:seed:local
+      - run: pnpm --filter @job-search-os/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @job-search-os/web build
+      - run: pnpm --filter @job-search-os/web e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: apps/web/test-results/
+          retention-days: 7

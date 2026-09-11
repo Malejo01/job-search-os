@@ -1,0 +1,47 @@
+# Dependencias y builds
+node_modules/
+.next/
+out/
+dist/
+build/
+.turbo/
+coverage/
+*.tsbuildinfo
+
+# Entorno y secretos (CLAUDE.md §6: nunca commitear .env*)
+.env
+.env.*
+.env*.local
+.env.txt
+!.env.example
+
+# Sistema / editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Playwright / tests
+playwright-report/
+test-results/
+
+# Vercel
+.vercel
+
+# Config local de herramientas (Claude Code launch.json)
+.claude/
+
+# Playwright
+apps/web/test-results/
+apps/web/playwright-report/
+
+# Datos reales del usuario (el repo trae un dataset de ejemplo; ver README "Dataset de ejemplo y datos privados")
+fixtures-private/
+# Reportes de evals: contienen la salida cruda del modelo sobre el golden real → privados
+evals/reports/*.json

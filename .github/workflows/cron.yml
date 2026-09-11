@@ -1,0 +1,66 @@
+name: cron
+# Cron externo (docs/DEPLOY.md, JS-019): Vercel Hobby solo permite crons diarios, así que la
+# ingesta y la evaluación se disparan desde acá cada 6 h contra los endpoints protegidos por
+# CRON_SECRET. Mismo patrón que EventBridge → HTTP del ADR-007. Falla ruidosamente: cualquier
+# respuesta que no sea 2xx con { "ok": true } marca el workflow en rojo (y GitHub avisa por mail).
+on:
+  schedule:
+    - cron: "0 */6 * * *" # UTC: 00, 06, 12, 18 → 21, 03, 09, 15 hora Argentina
+    - cron: "30 6 * * 1" # lunes 06:30 UTC (03:30 AR): snapshot de mercado + plan de formación, sin LLM
+  workflow_dispatch:
+    inputs:
+      step:
+        description: "ingest | evaluate | both | market"
+        default: both
+        type: choice
+        options: [ingest, evaluate, both, market]
+
+concurrency:
+  group: cron
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      APP_URL: ${{ vars.APP_URL }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      # El schedule semanal corre solo el paso market; el de 6 h, ingesta + evaluación
+      STEP: ${{ github.event.inputs.step || (github.event.schedule == '30 6 * * 1' && 'market' || 'both') }}
+    steps:
+      - name: Verificar configuración
+        run: |
+          if [ -z "$APP_URL" ]; then echo "::error::Falta la variable APP_URL (Settings › Variables), ej. https://job-search-os.vercel.app"; exit 1; fi
+          if [ -z "$CRON_SECRET" ]; then echo "::error::Falta el secret CRON_SECRET (el mismo valor que en Vercel)"; exit 1; fi
+
+      - name: Ingesta Get on Board
+        if: env.STEP == 'ingest' || env.STEP == 'both'
+        run: |
+          set -o pipefail
+          body=$(curl --silent --show-error --fail-with-body --max-time 120 \
+            -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/ingest-getonboard") || { echo "::error::ingest: el endpoint no respondió 2xx"; echo "$body"; exit 1; }
+          echo "$body" | jq .
+          echo "$body" | jq -e '.ok == true' > /dev/null || { echo "::error::ingest: la respuesta no trae ok:true"; exit 1; }
+
+      - name: Evaluar cola
+        if: env.STEP == 'evaluate' || env.STEP == 'both'
+        run: |
+          set -o pipefail
+          body=$(curl --silent --show-error --fail-with-body --max-time 300 \
+            -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/evaluate") || { echo "::error::evaluate: el endpoint no respondió 2xx"; echo "$body"; exit 1; }
+          echo "$body" | jq .
+          echo "$body" | jq -e '.ok == true' > /dev/null || { echo "::error::evaluate: la respuesta no trae ok:true"; exit 1; }
+          if [ "$(echo "$body" | jq -r '.stopped // empty')" = "cap" ]; then
+            echo "::warning::evaluate: el worker se frenó por LLM_DAILY_CAP_USD; quedan mensajes pending"
+          fi
+          failed=$(echo "$body" | jq -r '.failed // 0')
+          if [ "$failed" != "0" ]; then echo "::warning::evaluate: $failed evaluaciones fallaron (ver errors en la salida)"; fi
+
+      - name: Snapshot de mercado y plan de formación
+        if: env.STEP == 'market'
+        run: |
+          set -o pipefail
+          body=$(curl --silent --show-error --fail-with-body --max-time 120             -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/market") || { echo "::error::market: el endpoint no respondió 2xx"; echo "$body"; exit 1; }
+          echo "$body" | jq .
+          echo "$body" | jq -e '.ok == true' > /dev/null || { echo "::error::market: la respuesta no trae ok:true"; exit 1; }

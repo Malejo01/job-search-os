@@ -1,0 +1,25 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "evals"
+
+# pnpm 11: scripts postinstall bloqueados salvo lista explícita
+allowBuilds:
+  "@tailwindcss/oxide": true
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
+  # deps nativas opcionales de testcontainers (ssh2): no hacen falta
+  cpu-features: false
+  protobufjs: false
+  ssh2: false
+
+minimumReleaseAgeExclude:
+  - "@types/node@22.20.2"
+  - "@ai-sdk/anthropic@4.0.52"
+  - "@ai-sdk/gateway@4.0.78"
+  - "@ai-sdk/google@4.0.67"
+  - "@ai-sdk/provider-utils@5.0.39"
+  - "@ai-sdk/provider@4.0.13"
+  - ai@7.0.97
+  - zod@4.6.1

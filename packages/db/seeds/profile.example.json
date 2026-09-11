@@ -1,0 +1,33 @@
+{
+  "_nota": "Perfil de EJEMPLO para el repo público. Los datos reales van en fixtures-private/profile.json con este mismo formato; el seed los usa si existen.",
+  "profile": {
+    "display_name": "Usuario de ejemplo",
+    "headline": "AI Engineer / Fullstack",
+    "location_country": "AR",
+    "location_city": "Córdoba",
+    "remote_only": true,
+    "work_auth": {
+      "us": false,
+      "eu": false
+    },
+    "years_total": 5,
+    "years_enterprise": 2,
+    "english_cefr": "B2",
+    "salary_floor_usd": 2000,
+    "max_weekly_hours": 40,
+    "timezone": "America/Argentina/Cordoba",
+    "profile_summary": "AI Engineer / Fullstack con ~5 años de experiencia (2 en entorno enterprise), en Argentina; solo remoto. Viene de producto web y en los últimos dos años construye sistemas con LLMs para clientes chicos y medianos.\n\nFUERTE (nivel productivo, con proyectos en producción): RAG con embeddings y pgvector; agentes con tool calling y human-in-the-loop; prompt engineering; integración con proveedores de LLM (Gemini, Claude, OpenAI); TypeScript, React, Next.js; SQL/PostgreSQL; REST APIs; Python para scripts y pipelines de datos; desarrollo asistido por IA con arnés de tests.\n\nINTERMEDIO (lo usó en producción, no lo sostiene como stack principal): Node.js con NestJS; Docker para desarrollo y despliegues simples; GitHub Actions; testing automatizado; AWS (S3, Lambda, RDS) en un proyecto; evaluación de sistemas no determinísticos con golden datasets.\n\nBAJO O NULO: Kubernetes, microservicios a escala y observabilidad avanzada; .NET; ML clásico (fine-tuning, PyTorch, MLOps); herramientas de nicho fuera de su carril (Snowflake, Salesforce, IAM, SEO como especialidad).\n\nInglés B2: lee, escribe y sostiene reuniones técnicas; conversación fluida con esfuerzo. Sin autorización laboral en EE.UU. ni Europa.\n\nProyectos en producción: un asistente RAG sobre documentación interna, un pipeline de clasificación multimodal y este sistema (Job Search OS: pipeline con evaluación LLM, dedup determinista y evals contra un golden set)."
+  },
+  "talent_platforms": [
+    {
+      "name": "Turing",
+      "url": "https://www.turing.com",
+      "status": "pendiente"
+    },
+    {
+      "name": "HireLATAM",
+      "url": "https://hirelatam.com",
+      "status": "pendiente"
+    }
+  ]
+}

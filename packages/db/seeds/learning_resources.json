@@ -1,0 +1,104 @@
+{
+  "_schema": {
+    "skill": "slug de seeds/skills.json",
+    "title": "nombre del curso/recurso",
+    "provider": "DataCamp | Anthropic Academy | AWS Skill Builder | Microsoft Learn | Google Cloud Skills Boost | docs | libro | otro",
+    "url": "link directo",
+    "hours": "horas estimadas (entero) o null",
+    "cost_usd": "0 si es gratis o está incluido en una suscripción que ya se paga",
+    "target_level": "nivel al que lleva (1 básico · 2 productivo · 3 fuerte)",
+    "approved": "true = entra al plan; false = propuesto, pendiente de aprobar (los del LLM llegan con false)"
+  },
+  "resources": [
+    {
+      "skill": "ci_cd",
+      "title": "GitHub Actions: Continuous Integration (docs + guías oficiales)",
+      "provider": "docs",
+      "url": "https://docs.github.com/actions/use-cases-and-examples/building-and-testing",
+      "hours": 8,
+      "cost_usd": 0,
+      "target_level": 2,
+      "approved": true
+    },
+    {
+      "skill": "aws",
+      "title": "AWS Cloud Practitioner Essentials",
+      "provider": "AWS Skill Builder",
+      "url": "https://skillbuilder.aws/learn/94T2BEN85A/aws-cloud-practitioner-essentials",
+      "hours": 6,
+      "cost_usd": 0,
+      "target_level": 1,
+      "approved": true
+    },
+    {
+      "skill": "aws",
+      "title": "AWS Technical Essentials",
+      "provider": "AWS Skill Builder",
+      "url": "https://skillbuilder.aws/learn/RCB5VE6WFE/aws-technical-essentials",
+      "hours": 4,
+      "cost_usd": 0,
+      "target_level": 2,
+      "approved": true
+    },
+    {
+      "skill": "docker",
+      "title": "Introduction to Docker",
+      "provider": "DataCamp",
+      "url": "https://www.datacamp.com/courses/introduction-to-docker",
+      "hours": 4,
+      "cost_usd": 0,
+      "target_level": 1,
+      "approved": true
+    },
+    {
+      "skill": "docker",
+      "title": "Containerization and Virtualization with Docker and Kubernetes",
+      "provider": "DataCamp",
+      "url": "https://www.datacamp.com/tracks/containerization-and-virtualization-with-docker-and-kubernetes",
+      "hours": 13,
+      "cost_usd": 0,
+      "target_level": 2,
+      "approved": true
+    },
+    {
+      "skill": "python_backend",
+      "title": "Introduction to FastAPI",
+      "provider": "DataCamp",
+      "url": "https://www.datacamp.com/courses/introduction-to-fastapi",
+      "hours": 4,
+      "cost_usd": 0,
+      "target_level": 2,
+      "approved": true
+    },
+    {
+      "skill": "agents",
+      "title": "Building with the Claude Agent SDK",
+      "provider": "Anthropic Academy",
+      "url": "https://anthropic.skilljar.com/",
+      "hours": 3,
+      "cost_usd": 0,
+      "target_level": 3,
+      "approved": true
+    },
+    {
+      "skill": "mcp",
+      "title": "Introduction to Model Context Protocol",
+      "provider": "Anthropic Academy",
+      "url": "https://anthropic.skilljar.com/introduction-to-model-context-protocol",
+      "hours": 3,
+      "cost_usd": 0,
+      "target_level": 3,
+      "approved": true
+    },
+    {
+      "skill": "observability",
+      "title": "OpenTelemetry: getting started (Node.js)",
+      "provider": "docs",
+      "url": "https://opentelemetry.io/docs/languages/js/getting-started/nodejs/",
+      "hours": 4,
+      "cost_usd": 0,
+      "target_level": 1,
+      "approved": true
+    }
+  ]
+}

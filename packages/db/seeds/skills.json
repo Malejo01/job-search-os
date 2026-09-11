@@ -1,0 +1,742 @@
+[
+  {
+    "slug": "aws",
+    "name": "AWS",
+    "category": "cloud",
+    "aliases": [
+      "amazon web services",
+      "lambda",
+      "s3",
+      "eks",
+      "bedrock",
+      "sagemaker",
+      "ec2",
+      "beanstalk",
+      "eventbridge",
+      "step functions",
+      "kinesis",
+      "glue",
+      "athena",
+      "aws lambda"
+    ],
+    "closure_hours": 40
+  },
+  {
+    "slug": "azure",
+    "name": "Azure",
+    "category": "cloud",
+    "aliases": [
+      "azure openai",
+      "azure ai foundry",
+      "aks",
+      "azure aml",
+      "azure devops"
+    ],
+    "closure_hours": 40
+  },
+  {
+    "slug": "gcp",
+    "name": "Google Cloud",
+    "category": "cloud",
+    "aliases": [
+      "gcp",
+      "vertex ai",
+      "vertex"
+    ],
+    "closure_hours": 40
+  },
+  {
+    "slug": "docker",
+    "name": "Docker",
+    "category": "infra",
+    "aliases": [
+      "containers",
+      "contenedores"
+    ],
+    "closure_hours": 16
+  },
+  {
+    "slug": "kubernetes",
+    "name": "Kubernetes",
+    "category": "infra",
+    "aliases": [
+      "k8s",
+      "eks",
+      "aks",
+      "gke"
+    ],
+    "closure_hours": 40
+  },
+  {
+    "slug": "ci_cd",
+    "name": "CI/CD",
+    "category": "infra",
+    "aliases": [
+      "github actions",
+      "jenkins",
+      "argocd",
+      "azure devops pipelines",
+      "gitlab ci",
+      "release management"
+    ],
+    "closure_hours": 16
+  },
+  {
+    "slug": "iac",
+    "name": "Infraestructura como código",
+    "category": "infra",
+    "aliases": [
+      "terraform",
+      "cdk",
+      "aws cdk",
+      "sst",
+      "pulumi"
+    ],
+    "closure_hours": 24
+  },
+  {
+    "slug": "testing",
+    "name": "Testing automatizado",
+    "category": "testing",
+    "aliases": [
+      "unit testing",
+      "integration testing",
+      "e2e",
+      "jest",
+      "vitest",
+      "playwright",
+      "pytest",
+      "tdd"
+    ],
+    "closure_hours": 24
+  },
+  {
+    "slug": "llm_evals",
+    "name": "Evaluación de sistemas LLM",
+    "category": "testing",
+    "aliases": [
+      "evals",
+      "eval harness",
+      "llm-as-judge",
+      "golden dataset",
+      "promptfoo",
+      "dspy",
+      "regression testing de prompts",
+      "eval harnesses",
+      "golden datasets",
+      "evals de llm"
+    ],
+    "closure_hours": 24
+  },
+  {
+    "slug": "observability",
+    "name": "Observabilidad",
+    "category": "infra",
+    "aliases": [
+      "logging",
+      "tracing",
+      "alerting",
+      "monitoring",
+      "opentelemetry",
+      "datadog",
+      "sentry"
+    ],
+    "closure_hours": 16
+  },
+  {
+    "slug": "rag",
+    "name": "RAG",
+    "category": "ai_core",
+    "aliases": [
+      "retrieval augmented generation",
+      "retrieval",
+      "vector search"
+    ],
+    "closure_hours": 0
+  },
+  {
+    "slug": "agents",
+    "name": "Agentes / workflows agénticos",
+    "category": "ai_core",
+    "aliases": [
+      "agentic ai",
+      "multi-agent",
+      "agent workflows",
+      "task decomposition",
+      "agent chaining",
+      "orquestación de agentes",
+      "agentes",
+      "agent frameworks",
+      "multi-paso",
+      "multi-step",
+      "stateful agents",
+      "agentic"
+    ],
+    "closure_hours": 0
+  },
+  {
+    "slug": "tool_calling",
+    "name": "Tool use / function calling",
+    "category": "ai_core",
+    "aliases": [
+      "function calling",
+      "tool use",
+      "structured outputs",
+      "tool-use",
+      "tool calling"
+    ],
+    "closure_hours": 0
+  },
+  {
+    "slug": "mcp",
+    "name": "MCP",
+    "category": "ai_core",
+    "aliases": [
+      "model context protocol",
+      "a2a",
+      "acp"
+    ],
+    "closure_hours": 0
+  },
+  {
+    "slug": "prompt_engineering",
+    "name": "Prompt engineering",
+    "category": "ai_core",
+    "aliases": [
+      "system prompts",
+      "prompt design"
+    ],
+    "closure_hours": 0
+  },
+  {
+    "slug": "guardrails",
+    "name": "Guardrails / prompt injection",
+    "category": "ai_core",
+    "aliases": [
+      "prompt injection",
+      "policy layers",
+      "human-in-the-loop",
+      "hitl",
+      "mitigación de alucinaciones"
+    ],
+    "closure_hours": 0
+  },
+  {
+    "slug": "vector_db",
+    "name": "Vector DBs",
+    "category": "datos",
+    "aliases": [
+      "pgvector",
+      "pinecone",
+      "faiss",
+      "weaviate",
+      "chroma",
+      "embeddings"
+    ],
+    "closure_hours": 8
+  },
+  {
+    "slug": "langchain",
+    "name": "LangChain / LangGraph",
+    "category": "framework",
+    "aliases": [
+      "langgraph",
+      "llamaindex",
+      "semantic kernel",
+      "autogen",
+      "crewai"
+    ],
+    "closure_hours": 16
+  },
+  {
+    "slug": "litellm",
+    "name": "LiteLLM",
+    "category": "llm_ops",
+    "aliases": [],
+    "closure_hours": 4
+  },
+  {
+    "slug": "fine_tuning",
+    "name": "Fine-tuning",
+    "category": "ai_core",
+    "aliases": [
+      "lora",
+      "qlora",
+      "peft",
+      "rlhf",
+      "dpo",
+      "unsloth",
+      "deepspeed"
+    ],
+    "closure_hours": 80
+  },
+  {
+    "slug": "pytorch",
+    "name": "PyTorch / TensorFlow",
+    "category": "framework",
+    "aliases": [
+      "tensorflow",
+      "jax",
+      "hugging face",
+      "huggingface"
+    ],
+    "closure_hours": 80
+  },
+  {
+    "slug": "mlops",
+    "name": "MLOps",
+    "category": "llm_ops",
+    "aliases": [
+      "mlflow",
+      "kubeflow",
+      "aiops",
+      "model monitoring",
+      "drift"
+    ],
+    "closure_hours": 40
+  },
+  {
+    "slug": "python",
+    "name": "Python",
+    "category": "lenguaje",
+    "aliases": [],
+    "closure_hours": 0
+  },
+  {
+    "slug": "python_backend",
+    "name": "Python backend (FastAPI/Django/Flask)",
+    "category": "framework",
+    "aliases": [
+      "fastapi",
+      "django",
+      "flask",
+      "sqlalchemy",
+      "pydantic",
+      "alembic"
+    ],
+    "closure_hours": 24
+  },
+  {
+    "slug": "typescript",
+    "name": "TypeScript",
+    "category": "lenguaje",
+    "aliases": [
+      "ts"
+    ],
+    "closure_hours": 0
+  },
+  {
+    "slug": "nodejs",
+    "name": "Node.js",
+    "category": "framework",
+    "aliases": [
+      "node",
+      "express"
+    ],
+    "closure_hours": 8
+  },
+  {
+    "slug": "nestjs",
+    "name": "NestJS",
+    "category": "framework",
+    "aliases": [
+      "nest"
+    ],
+    "closure_hours": 16
+  },
+  {
+    "slug": "react",
+    "name": "React",
+    "category": "framework",
+    "aliases": [
+      "react.js"
+    ],
+    "closure_hours": 0
+  },
+  {
+    "slug": "nextjs",
+    "name": "Next.js",
+    "category": "framework",
+    "aliases": [
+      "next",
+      "app router",
+      "ssr",
+      "isr"
+    ],
+    "closure_hours": 0
+  },
+  {
+    "slug": "angular",
+    "name": "Angular",
+    "category": "framework",
+    "aliases": [
+      "angular 20"
+    ],
+    "closure_hours": 24
+  },
+  {
+    "slug": "vue",
+    "name": "Vue",
+    "category": "framework",
+    "aliases": [
+      "nuxt"
+    ],
+    "closure_hours": 24
+  },
+  {
+    "slug": "react_native",
+    "name": "React Native",
+    "category": "framework",
+    "aliases": [
+      "expo"
+    ],
+    "closure_hours": 16
+  },
+  {
+    "slug": "dotnet",
+    "name": ".NET / C#",
+    "category": "framework",
+    "aliases": [
+      ".net core",
+      "c#",
+      "ef core",
+      "entity framework",
+      "asp.net",
+      ".net",
+      "dotnet"
+    ],
+    "closure_hours": 60
+  },
+  {
+    "slug": "java",
+    "name": "Java",
+    "category": "lenguaje",
+    "aliases": [
+      "spring",
+      "spring boot"
+    ],
+    "closure_hours": 60
+  },
+  {
+    "slug": "go",
+    "name": "Go",
+    "category": "lenguaje",
+    "aliases": [
+      "golang"
+    ],
+    "closure_hours": 40
+  },
+  {
+    "slug": "sql",
+    "name": "SQL / PostgreSQL",
+    "category": "datos",
+    "aliases": [
+      "postgres",
+      "postgresql",
+      "sql server",
+      "query plans",
+      "planes de ejecución"
+    ],
+    "closure_hours": 0
+  },
+  {
+    "slug": "nosql",
+    "name": "NoSQL",
+    "category": "datos",
+    "aliases": [
+      "mongodb",
+      "mongoose",
+      "dynamodb",
+      "redis"
+    ],
+    "closure_hours": 16
+  },
+  {
+    "slug": "supabase",
+    "name": "Supabase",
+    "category": "datos",
+    "aliases": [],
+    "closure_hours": 0
+  },
+  {
+    "slug": "vercel",
+    "name": "Vercel",
+    "category": "cloud",
+    "aliases": [],
+    "closure_hours": 0
+  },
+  {
+    "slug": "microservices",
+    "name": "Microservicios",
+    "category": "framework",
+    "aliases": [
+      "bff",
+      "distributed systems",
+      "arquitecturas distribuidas",
+      "event driven",
+      "distribuidas",
+      "distributed",
+      "arquitectura distribuida"
+    ],
+    "closure_hours": 24
+  },
+  {
+    "slug": "clean_architecture",
+    "name": "Clean / Hexagonal Architecture",
+    "category": "framework",
+    "aliases": [
+      "hexagonal",
+      "ports and adapters",
+      "puertos y adaptadores",
+      "ddd"
+    ],
+    "closure_hours": 16
+  },
+  {
+    "slug": "rest_apis",
+    "name": "REST APIs",
+    "category": "framework",
+    "aliases": [
+      "rest",
+      "webhooks",
+      "api design",
+      "rate limiting",
+      "auth"
+    ],
+    "closure_hours": 0
+  },
+  {
+    "slug": "etl",
+    "name": "Pipelines de datos / ETL",
+    "category": "datos",
+    "aliases": [
+      "data pipelines",
+      "etl",
+      "data engineering",
+      "pipelines de datos",
+      "data pipeline"
+    ],
+    "closure_hours": 0
+  },
+  {
+    "slug": "snowflake",
+    "name": "Snowflake / Databricks",
+    "category": "datos",
+    "aliases": [
+      "databricks",
+      "data warehouse",
+      "spark",
+      "kafka"
+    ],
+    "closure_hours": 24
+  },
+  {
+    "slug": "n8n",
+    "name": "n8n / automatización",
+    "category": "framework",
+    "aliases": [
+      "zapier",
+      "make",
+      "automation workflows"
+    ],
+    "closure_hours": 0
+  },
+  {
+    "slug": "ai_coding_tools",
+    "name": "Herramientas de IA para desarrollar",
+    "category": "ai_core",
+    "aliases": [
+      "claude code",
+      "cursor",
+      "copilot",
+      "codex",
+      "gemini cli",
+      "factory",
+      "droid",
+      "ai coding assistants",
+      "codigo ai",
+      "código ai",
+      "coding assistants"
+    ],
+    "closure_hours": 0
+  },
+  {
+    "slug": "multimodal",
+    "name": "Modelos multimodales",
+    "category": "ai_core",
+    "aliases": [
+      "vision",
+      "image generation",
+      "video generation",
+      "computer vision"
+    ],
+    "closure_hours": 16
+  },
+  {
+    "slug": "seo",
+    "name": "SEO técnico",
+    "category": "dominio",
+    "aliases": [
+      "core web vitals",
+      "lighthouse",
+      "json-ld",
+      "hreflang",
+      "gtm",
+      "ga4"
+    ],
+    "closure_hours": 16
+  },
+  {
+    "slug": "growth_marketing",
+    "name": "Growth / marketing",
+    "category": "dominio",
+    "aliases": [
+      "paid media",
+      "cro",
+      "lifecycle",
+      "funnels",
+      "revops",
+      "gtm",
+      "growth",
+      "marketing"
+    ],
+    "closure_hours": 16
+  },
+  {
+    "slug": "payments",
+    "name": "Medios de pago",
+    "category": "dominio",
+    "aliases": [
+      "iso 8583",
+      "pci dss",
+      "tokenización",
+      "cards",
+      "tarjetas",
+      "payments"
+    ],
+    "closure_hours": 40
+  },
+  {
+    "slug": "iam",
+    "name": "IAM / identidad",
+    "category": "dominio",
+    "aliases": [
+      "okta",
+      "oidc",
+      "jwt",
+      "sailpoint",
+      "saviynt",
+      "iga",
+      "entra id",
+      "rbac",
+      "sod",
+      "identity"
+    ],
+    "closure_hours": 24
+  },
+  {
+    "slug": "security",
+    "name": "Ciberseguridad",
+    "category": "dominio",
+    "aliases": [
+      "red-teaming",
+      "owasp",
+      "seguridad",
+      "security",
+      "ciberseguridad"
+    ],
+    "closure_hours": 40
+  },
+  {
+    "slug": "english_intermediate",
+    "name": "Inglés intermedio (B1-B2)",
+    "category": "idioma",
+    "aliases": [
+      "upper-intermediate",
+      "conversational english"
+    ],
+    "closure_hours": 0
+  },
+  {
+    "slug": "english_fluent",
+    "name": "Inglés avanzado/fluido (C1+)",
+    "category": "idioma",
+    "aliases": [
+      "fluent",
+      "excellent english",
+      "highest level",
+      "proficient",
+      "native"
+    ],
+    "closure_hours": 200
+  },
+  {
+    "slug": "client_facing",
+    "name": "Client-facing / explicar a no técnicos",
+    "category": "soft",
+    "aliases": [
+      "discovery",
+      "stakeholders",
+      "communication",
+      "documentación para no técnicos"
+    ],
+    "closure_hours": 0
+  },
+  {
+    "slug": "leadership",
+    "name": "Liderazgo técnico / gestión de personas",
+    "category": "soft",
+    "aliases": [
+      "mentoring",
+      "tech lead",
+      "people management",
+      "referente técnico",
+      "gestión de personas",
+      "gestion de personas",
+      "liderazgo"
+    ],
+    "closure_hours": 40
+  },
+  {
+    "slug": "salesforce",
+    "name": "Salesforce / CRM",
+    "category": "dominio",
+    "aliases": [
+      "apollo",
+      "hubspot",
+      "crm"
+    ],
+    "closure_hours": 16
+  },
+  {
+    "slug": "amazon_connect",
+    "name": "Amazon Connect / contact center",
+    "category": "dominio",
+    "aliases": [
+      "lex",
+      "cxe"
+    ],
+    "closure_hours": 40
+  },
+  {
+    "slug": "analytics",
+    "name": "Product analytics",
+    "category": "datos",
+    "aliases": [
+      "mixpanel",
+      "amplitude",
+      "event tracking"
+    ],
+    "closure_hours": 8
+  },
+  {
+    "slug": "accessibility",
+    "name": "Accesibilidad (WCAG)",
+    "category": "framework",
+    "aliases": [
+      "wcag",
+      "a11y"
+    ],
+    "closure_hours": 8
+  }
+]

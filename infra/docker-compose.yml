@@ -1,0 +1,36 @@
+# Entorno local: Postgres 16 + pgvector. LocalStack (S3, SQS) queda comentado hasta fase 3.
+# Uso: pnpm db:up · pnpm db:down · pnpm db:reset (borra datos) · pnpm db:psql
+name: job-search-os
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: jso-postgres
+    restart: unless-stopped
+    ports: ["54322:5432"]
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: jobsearch
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d jobsearch"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # se habilita en fase 3, ver docs/AWS_MIGRATION_PLAN.md (tests de adapters S3/SQS)
+  # localstack:
+  #   image: localstack/localstack:3
+  #   container_name: jso-localstack
+  #   ports: ["4566:4566"]
+  #   environment:
+  #     SERVICES: s3,sqs
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -sf http://localhost:4566/_localstack/health || exit 1"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 10
+
+volumes:
+  pgdata:

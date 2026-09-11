@@ -1,0 +1,108 @@
+"use client";
+
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTransition } from "react";
+
+type Option = { value: string; label: string };
+
+/**
+ * Filtros de la lista (JS-015). Client component solo por la interactividad: cada cambio
+ * reescribe la URL (search params) y el Server Component vuelve a consultar. Sin estado propio.
+ */
+export function JobFilters({
+  value,
+  sources,
+  statuses,
+}: {
+  value: { score: string; fuente: string; estado: string; desde: string };
+  sources: Option[];
+  statuses: Option[];
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [pending, startTransition] = useTransition();
+
+  const set = (key: string, v: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (v) params.set(key, v);
+    else params.delete(key);
+    const qs = params.toString();
+    startTransition(() => router.replace(qs ? `${pathname}?${qs}` : pathname));
+  };
+  const hasFilters = Boolean(value.score || value.fuente || value.estado || value.desde);
+  const select =
+    "rounded-md border border-zinc-300 bg-white px-2 py-2 text-sm text-zinc-800 min-w-0";
+
+  return (
+    <form
+      className={`grid grid-cols-2 gap-2 sm:grid-cols-5 ${pending ? "opacity-60" : ""}`}
+      onSubmit={(e) => e.preventDefault()}
+      aria-label="Filtros"
+    >
+      <label className="flex flex-col gap-1 text-xs text-zinc-600">
+        Score mín.
+        <select
+          className={select}
+          value={value.score}
+          onChange={(e) => set("score", e.target.value)}
+        >
+          <option value="">cualquiera</option>
+          <option value="9">≥ 9</option>
+          <option value="7">≥ 7</option>
+          <option value="5">≥ 5</option>
+        </select>
+      </label>
+      <label className="flex flex-col gap-1 text-xs text-zinc-600">
+        Fuente
+        <select
+          className={select}
+          value={value.fuente}
+          onChange={(e) => set("fuente", e.target.value)}
+        >
+          <option value="">todas</option>
+          {sources.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="flex flex-col gap-1 text-xs text-zinc-600">
+        Estado
+        <select
+          className={select}
+          value={value.estado}
+          onChange={(e) => set("estado", e.target.value)}
+        >
+          <option value="">activas</option>
+          <option value="todas">todas</option>
+          {statuses.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="flex flex-col gap-1 text-xs text-zinc-600">
+        Desde
+        <input
+          type="date"
+          className={select}
+          value={value.desde}
+          onChange={(e) => set("desde", e.target.value)}
+        />
+      </label>
+      <div className="flex items-end">
+        <button
+          type="button"
+          disabled={!hasFilters}
+          onClick={() => startTransition(() => router.replace(pathname))}
+          className="w-full rounded-md border border-zinc-300 px-2 py-2 text-sm text-zinc-700 disabled:opacity-40"
+        >
+          Limpiar
+        </button>
+      </div>
+    </form>
+  );
+}

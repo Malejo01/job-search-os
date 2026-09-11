@@ -1,0 +1,422 @@
+{
+  "data": [
+    {
+      "id": "senior-full-stack-engineer-go-react-native-california-injury-group-apc-remote",
+      "type": "job",
+      "attributes": {
+        "title": "Senior Full-Stack Engineer (Go + Next.JS + React Native)",
+        "description_headline": "Qualifications and requirements",
+        "description": "<ul><li>5+ years of full-stack experience; strong in Go (or deep TypeScript experience and proven ability to pick up Go fast).</li><li>Solid React/Next.js; React Native experience is a major plus.</li><li>Comfortable with webhook-driven / telephony / event-based systems — you've debugged async flows across service boundaries.</li><li>Able to read and navigate a large, unfamiliar codebase independently.</li><li>Strong SQL and comfort operating PostgreSQL in production.</li><li>English C1+ written and spoken.</li><li>Based in Latin America with at least 6 hours of overlap with US Pacific time.</li></ul>",
+        "projects": "<p>California Injury Group, APC (CIG Law) is a growing personal injury law firm in Los Angeles. We built our own all-in-one practice platform in-house — CRM and case management, a complete VoIP phone system (web softphone + iOS and Android apps), SMS/MMS, fax, email pipelines, e-signature, trust accounting, and AI-powered document processing. The entire firm runs on it every day.</p><p>You'll be our first full-time engineer, working directly with the firm's owner — no PM layer, no ticket bureaucracy. The product has real daily users (our staff) who report bugs and request features constantly, so your work ships fast and gets used immediately.</p><p>The stack: Go backend (REST API, PostgreSQL, Redis, webhook-driven telephony), Next.js/React/TypeScript web, React Native (Expo) with CallKit and VoIP push, Telnyx Call Control/WebRTC/SMS/fax, Microsoft 365 integrations, LLM pipelines (Anthropic), Linux/PM2/Caddy/S3 infrastructure.</p>",
+        "functions_headline": "Job functions",
+        "functions": "<ul><li>Fix bugs at the root cause: triage reports from live users, trace them through the full stack, and fix the underlying problem — not the symptom.</li><li>Harden reliability: improve test coverage, observability, and error handling across a system built at high velocity.</li><li>Ship features: case-opening automation, workflow tooling, telephony improvements, AI-assisted document workflows.</li><li>Own production: deploys, database migrations, and occasional on-call for critical issues.</li></ul>",
+        "benefits_headline": "Conditions",
+        "benefits": "<ul><li>USD $3,500–$5,500/month depending on experience (full-time contractor).</li><li>Fully remote, long-term position; direct hire with no agency in the middle.</li><li>Hiring process: application with screening questions → 30-minute video call → paid trial project (about one week, a real item from our backlog, paid pro-rated at your monthly rate) → offer.</li></ul>",
+        "desirable_headline": "Desirable skills",
+        "desirable": "<ul><li>Telnyx or Twilio programmable voice/messaging experience.</li><li>Expo native modules / config plugins.</li><li>Experience building LLM-powered features.</li><li>Legal, medical, or insurance domain exposure.</li></ul>",
+        "remote": true,
+        "remote_modality": "fully_remote",
+        "remote_zone": null,
+        "countries": ["Remote"],
+        "lang": "en",
+        "rejected_reasons": [],
+        "category_name": "Programming",
+        "perks": ["remote_full"],
+        "min_salary": 3500,
+        "max_salary": 5500,
+        "published_at": 1787938276,
+        "response_time_in_days": { "min": 2, "max": 2 },
+        "applications_count": 242,
+        "location_regions": { "data": [] },
+        "location_tenants": { "data": [] },
+        "location_cities": { "data": [] },
+        "modality": {
+          "data": {
+            "id": "1",
+            "type": "modality",
+            "attributes": { "name": "Full time", "locale_key": "full_time" }
+          }
+        },
+        "seniority": {
+          "data": {
+            "id": "4",
+            "type": "seniority",
+            "attributes": { "name": "Senior", "locale_key": "senior" }
+          }
+        },
+        "tags": {
+          "data": [
+            {
+              "id": "go",
+              "type": "tag",
+              "attributes": {
+                "name": "Go",
+                "keywords": "Golang, Go Chi, Echo, Gin, Godep, Go, Go Frameworks, Go Modules, Go High Level, GoInstant"
+              }
+            },
+            {
+              "id": "typescript",
+              "type": "tag",
+              "attributes": { "name": "TypeScript", "keywords": "Typesafe" }
+            },
+            {
+              "id": "react",
+              "type": "tag",
+              "attributes": {
+                "name": "React",
+                "keywords": "ReactJS, React-Native, GatsbyJS, react.js, React JS, React.ts, React Web, React 18, React ES6, React Community, React Programming, React.js"
+              }
+            },
+            {
+              "id": "react-native",
+              "type": "tag",
+              "attributes": {
+                "name": "React Native",
+                "keywords": "React Native, Reactnative, react_native, ReactNative, React-Native"
+              }
+            },
+            {
+              "id": "postgresql",
+              "type": "tag",
+              "attributes": {
+                "name": "PostgreSQL",
+                "keywords": "postgres, psql, postgre, Postgres, Postgres SQL, POSGRESQL, Postgres Extensions, PostgreSQL PL/pgSQL, PostgreSQL Queries, PostgreSQL Optimization, PostGIS, PL/pgSQL, PLpgSQL"
+              }
+            },
+            {
+              "id": "sql",
+              "type": "tag",
+              "attributes": {
+                "name": "SQL",
+                "keywords": "PL SQL, SQLServer, SQL server, SPSQL, SP SQL, SQL Coding, SQL DB2, SQL Oracle, SQL RDMS, SQL400"
+              }
+            },
+            {
+              "id": "webhooks",
+              "type": "tag",
+              "attributes": { "name": "Webhooks", "keywords": "Web Hooks, Webhook" }
+            },
+            {
+              "id": "telephony",
+              "type": "tag",
+              "attributes": {
+                "name": "Telephony",
+                "keywords": "Telephone Communication, Telephone Systems, Telephony Systems, Telephony Services, Telefonia, Telefónica IP, Telefonía"
+              }
+            },
+            {
+              "id": "next-js",
+              "type": "tag",
+              "attributes": {
+                "name": "Next.js",
+                "keywords": "Next JS, NextJS, Next.js 13, Next.js Frontend, Next"
+              }
+            },
+            {
+              "id": "large-language-models",
+              "type": "tag",
+              "attributes": {
+                "name": "Large Language Models",
+                "keywords": "LLM, Large Language Model"
+              }
+            }
+          ]
+        },
+        "company": {
+          "data": {
+            "id": "california-injury-group-apc",
+            "type": "company",
+            "attributes": {
+              "name": "California Injury Group, APC",
+              "description": "California Injury Group is a Los Angeles personal injury law firm that built its own all-in-one practice platform (CRM, VoIP phone system, mobile apps, e-signature, AI document processing). We're hiring our first full-time engineer to own it.",
+              "long_description": "",
+              "projects": null,
+              "benefits": "<ul><li>USD $3,500–$5,500/month depending on experience (full-time contractor).</li><li>Fully remote, long-term position; direct hire with no agency in the middle.</li><li>Hiring process: application with screening questions → 30-minute video call → paid trial project (about one week, a real item from our backlog, paid pro-rated at your monthly rate) → offer.</li></ul>",
+              "web": "http://ciglaw.com",
+              "twitter": null,
+              "github": null,
+              "facebook": null,
+              "angellist": null,
+              "country": "US",
+              "response_time_in_days": { "min": 2, "max": 2 },
+              "logo": "https://getonbrd-prod.s3.amazonaws.com/uploads/users/logo/20406/logo-512.png"
+            }
+          }
+        }
+      },
+      "links": {
+        "public_url": "https://www.getonbrd.com/jobs/senior-full-stack-engineer-go-react-native-california-injury-group-apc-remote"
+      }
+    },
+    {
+      "id": "qa-funcional-senior-microsoft-dynamics-365-cs-bc-tecnologia-remote",
+      "type": "job",
+      "attributes": {
+        "title": "QA Funcional Senior – Microsoft Dynamics 365 Cs",
+        "description_headline": "Requisitos indispensables",
+        "description": "<ul><li>Experiencia comprobable como QA Funcional Senior en proyectos de software empresariales.</li><li>Experiencia en pruebas funcionales sobre plataformas CRM, Customer Service o soluciones similares.</li><li>Conocimiento de procesos de atención al cliente, postventa y gestión de casos.</li><li>Experiencia en diseño y ejecución de casos de prueba, matrices de cobertura y trazabilidad.</li><li>Experiencia en pruebas de regresión y validaciones end-to-end.</li><li>Experiencia realizando pruebas sobre APIs REST.</li><li>Conocimiento en pruebas de aplicaciones web y móviles Android/iOS.</li><li>Capacidad para analizar reglas de negocio y escenarios funcionales complejos.</li><li>Experiencia gestionando requerimientos y defectos mediante Jira y Confluence.</li><li>Manejo de herramientas de gestión de pruebas como Xray, Zephyr o TestRail.</li><li>Experiencia en automatización UI utilizando herramientas como Playwright, Cypress o Selenium.</li><li>Experiencia en automatización de APIs mediante Postman, REST Assured o Karate DSL.</li><li>Conocimiento en validaciones de Data Quality.</li><li>Manejo de control de versiones mediante Git, GitHub o GitLab.</li><li>Conocimientos de programación en Python, Java, JavaScript o lenguajes similares.</li><li>Experiencia trabajando bajo lineamientos de un QA Tech Lead.</li></ul>",
+        "projects": "<div>En BC Tecnología buscamos un/a QA Funcional Senior para participar en un programa de implementación de Microsoft Dynamics 365 Customer Service, asegurando la calidad funcional durante todo el ciclo de desarrollo y pruebas.</div><div>El rol tendrá foco en pruebas funcionales, validaciones end-to-end, gestión de defectos, acompañamiento UAT y automatización de regresiones, trabajando en conjunto con equipos de Desarrollo, Integraciones, Data y Negocio, bajo los lineamientos del QA Tech Lead.</div>",
+        "functions_headline": "Principales responsabilidades",
+        "functions": "<ul><li>Analizar requerimientos funcionales, historias de usuario y criterios de aceptación.</li><li>Diseñar, documentar, ejecutar y mantener casos de prueba funcionales y de regresión.</li><li>Validar flujos end-to-end asociados a procesos de atención al cliente y postventa.</li><li>Ejecutar pruebas sobre aplicaciones web, APIs, integraciones, aplicaciones móviles y componentes de datos.</li><li>Identificar, registrar, documentar, realizar seguimiento y revalidar defectos.</li><li>Elaborar reportes técnicos y ejecutivos relacionados con avances, cobertura y resultados de pruebas.</li><li>Coordinar pruebas con equipos de Desarrollo, Integraciones, Data y áreas de negocio.</li><li>Participar y acompañar pruebas UAT con usuarios finales.</li><li>Validar correcciones y asegurar la no regresión de funcionalidades existentes.</li><li>Diseñar y mantener matrices de cobertura y trazabilidad de pruebas.</li><li>Automatizar pruebas de regresión UI y API.</li><li>Integrar pruebas automatizadas dentro de pipelines CI/CD.</li><li>Apoyar la estimación, planificación y seguimiento de las actividades de QA.</li><li>Participar activamente en ceremonias Agile y reuniones de seguimiento.</li><li>Contribuir a la mejora continua de procesos, herramientas y estándares de calidad.</li></ul>",
+        "benefits_headline": "",
+        "benefits": "",
+        "desirable_headline": "Requisitos adicionales",
+        "desirable": "<ul><li>Al menos 5 años de experiencia en QA funcional y automatización.</li><li>Experiencia comprobable en proyectos con Microsoft Dynamics 365 Customer Service.</li><li>Conocimiento de Microsoft Power Platform y Power Automate.</li><li>Experiencia en pruebas de soluciones omnicanal o Contact Center.</li><li>Experiencia en pruebas de WMS, BI o plataformas integradas.</li><li>Conocimiento de herramientas de monitoreo y reporting como Grafana, Prometheus, InfluxDB o Allure.</li><li>Experiencia trabajando con metodologías ágiles Scrum o Kanban.</li><li>Certificación ISTQB Foundation o Agile Tester.</li></ul>",
+        "remote": true,
+        "remote_modality": "fully_remote",
+        "remote_zone": null,
+        "countries": ["Remote"],
+        "lang": "lang_not_specified",
+        "rejected_reasons": [],
+        "category_name": "SysAdmin / DevOps / QA",
+        "perks": ["remote_full"],
+        "min_salary": null,
+        "max_salary": null,
+        "published_at": 1789011730,
+        "response_time_in_days": { "min": null, "max": null },
+        "applications_count": 17,
+        "location_regions": { "data": [] },
+        "location_tenants": { "data": [] },
+        "location_cities": { "data": [] },
+        "modality": {
+          "data": {
+            "id": "1",
+            "type": "modality",
+            "attributes": { "name": "Full time", "locale_key": "full_time" }
+          }
+        },
+        "seniority": {
+          "data": {
+            "id": "4",
+            "type": "seniority",
+            "attributes": { "name": "Senior", "locale_key": "senior" }
+          }
+        },
+        "tags": {
+          "data": [
+            {
+              "id": "functional-testing",
+              "type": "tag",
+              "attributes": { "name": "Functional Testing", "keywords": null }
+            },
+            {
+              "id": "regression-testing",
+              "type": "tag",
+              "attributes": {
+                "name": "Regression Testing",
+                "keywords": "Regresión Testing, Regressions, Regression Algorithms, Regression Methods, Regression Analysis, Regression Models, Regression"
+              }
+            },
+            {
+              "id": "test-automation",
+              "type": "tag",
+              "attributes": {
+                "name": "Test Automation",
+                "keywords": "Testing Automation, Test Automation Scripts, Test Automation Scripting, Test Automation Design, Test Automation Framework, Test Automation Strategy, TestComplete"
+              }
+            },
+            {
+              "id": "api-testing",
+              "type": "tag",
+              "attributes": { "name": "API Testing", "keywords": "API Simulation, API Mocking" }
+            },
+            {
+              "id": "ui-testing",
+              "type": "tag",
+              "attributes": { "name": "UI Testing", "keywords": null }
+            },
+            {
+              "id": "jira",
+              "type": "tag",
+              "attributes": {
+                "name": "Jira",
+                "keywords": "JIRA Atlassian, JIRA XRay, Jira API, Jira Administration, Jira Agile, Jira Align, Jira Core"
+              }
+            },
+            { "id": "xray", "type": "tag", "attributes": { "name": "Xray", "keywords": "X Ray" } },
+            { "id": "git", "type": "tag", "attributes": { "name": "Git", "keywords": "" } },
+            {
+              "id": "python",
+              "type": "tag",
+              "attributes": {
+                "name": "Python",
+                "keywords": "Django, Jython, Cheetah, Flask, Jinja2, bottle, itty, NumPy, SciPy, phyton, pyton, Pytohn, Python 2.7, Python 2, Python 3.10, Python 3, Pyhton, Python Automation, Python Script, Python Programming, Python Scripting, Python Testing"
+              }
+            },
+            {
+              "id": "microsoft-dynamics-365",
+              "type": "tag",
+              "attributes": {
+                "name": "Microsoft Dynamics 365",
+                "keywords": "Microsoft Dynamics 365 CE, Microsoft Dynamics 365 CRM, Microsoft Dynamics 365 Finance & Operations, Microsoft Dynamics CRM, Microsoft Dynamics AX"
+              }
+            }
+          ]
+        },
+        "company": {
+          "data": {
+            "id": "bctecnologia",
+            "type": "company",
+            "attributes": {
+              "name": "BC Tecnología",
+              "description": "Somos una consultora de TI con personal experto en diferentes áreas de tecnología.",
+              "long_description": "<p>Somos una consultora de Servicios IT. Administramos portafolio, desarrollamos proyectos, realizamos outsourcing y selección de profesionales.</p><p>Creamos equipos de trabajos ágiles para áreas de Infraestructura Tecnología, Desarrollo de Software y Unidades de Negocio, en clientes de servicios financieros, seguros, retail y gobierno.</p><p>Desde hace 6 años diseñamos soluciones acorde a las necesidades de nuestros clientes. Nuestras principales áreas de negocio son:</p><p>- Consultoría y diseño de soluciones.<br>- Formación de equipos de trabajo, outsourcing de personal.<br>- Desarrollo de proyectos.<br>- Servicios de soporte y administración IT </p><p>Tenemos un enfoque claro en el cliente, metodologías ágiles, cambio organizacional y desarrollo de productos. </p>",
+              "projects": "<div>En BC Tecnología gestionamos portafolios, desarrollamos proyectos y ofrecemos servicios de outsourcing y selección de profesionales para clientes de sectores como servicios financieros, seguros, retail y gobierno. Participarás en iniciativas estratégicas de transformación digital para LATAM Airlines, una organización líder en la industria aeronáutica, en un entorno que combina trabajo remoto con presencia ocasional en oficina. Serás parte de la Gerencia de Arquitectura, colaborando en la definición de la arquitectura empresarial y su evolución ante cambios tecnológicos y de negocio, asegurando alineación con la estrategia corporativa y con estándares de gobernanza.</div>",
+              "benefits": "<div>En BC Tecnología promovemos un ambiente de trabajo colaborativo que valora el compromiso y el aprendizaje constante. Nuestra cultura se orienta al crecimiento profesional a través de la integración y el intercambio de conocimientos entre equipos.</div><div>La modalidad híbrida que ofrecemos, ubicada en Las Condes, permite combinar la flexibilidad del trabajo remoto con la colaboración presencial, facilitando un mejor equilibrio y dinamismo laboral.</div><div>Participarás en proyectos innovadores con clientes de alto nivel y sectores diversos, en un entorno que fomenta la inclusión, el respeto y el desarrollo técnico y profesional.</div>",
+              "web": "http://www.bctecnologia.com",
+              "twitter": "",
+              "github": "",
+              "facebook": "",
+              "angellist": "",
+              "country": "CL",
+              "response_time_in_days": { "min": 1, "max": 7 },
+              "logo": "https://getonbrd-prod.s3.amazonaws.com/uploads/users/logo/9458/Copia_de_logo.png"
+            }
+          }
+        }
+      },
+      "links": {
+        "public_url": "https://www.getonbrd.com/jobs/qa-funcional-senior-microsoft-dynamics-365-cs-bc-tecnologia-remote"
+      }
+    },
+    {
+      "id": "qa-funcional-senior-microsoft-dynamics-365-latam-bc-tecnologia-remote",
+      "type": "job",
+      "attributes": {
+        "title": "QA Funcional Senior Microsoft Dynamics 365 (LATAM)",
+        "description_headline": "Requisitos indispensables",
+        "description": "<ul><li>Experiencia comprobable como QA Funcional Senior en proyectos de software empresariales.</li><li>Experiencia en pruebas funcionales sobre plataformas CRM, Customer Service o soluciones similares.</li><li>Conocimiento de procesos de atención al cliente, postventa y gestión de casos.</li><li>Experiencia en diseño y ejecución de casos de prueba, matrices de cobertura y trazabilidad.</li><li>Experiencia en pruebas de regresión y validaciones end-to-end.</li><li>Experiencia realizando pruebas de APIs REST.</li><li>Conocimiento en pruebas de aplicaciones web y móviles Android/iOS.</li><li>Capacidad para analizar reglas de negocio y escenarios funcionales complejos.</li><li>Experiencia gestionando requerimientos y defectos mediante Jira y Confluence.</li><li>Manejo de herramientas de gestión de pruebas como Xray, Zephyr o TestRail.</li><li>Experiencia en automatización UI utilizando herramientas como Playwright, Cypress o Selenium.</li><li>Experiencia en automatización de APIs mediante Postman, REST Assured o Karate DSL.</li><li>Conocimiento en validaciones de Data Quality.</li><li>Manejo de control de versiones mediante Git, GitHub o GitLab.</li><li>Conocimientos de programación en Python, Java, JavaScript o lenguajes similares.</li><li>Experiencia trabajando bajo lineamientos de un QA Tech Lead.</li></ul><div><strong>Competencias</strong></div><ul><li>Alto nivel de rigurosidad y atención al detalle.</li><li>Pensamiento analítico y orientación a la calidad.</li><li>Capacidad para comprender procesos de negocio complejos.</li><li>Comunicación efectiva con equipos técnicos y áreas de negocio.</li><li>Capacidad de trabajo colaborativo.</li><li>Proactividad y autonomía.</li><li>Responsabilidad y compromiso con los resultados.</li><li>Capacidad para trabajar bajo presión y cumplir plazos.</li></ul><div><strong>Perfil esperado</strong></div><div>Profesional QA Senior con sólida experiencia funcional y conocimientos de automatización, idealmente con experiencia comprobable en Microsoft Dynamics 365 Customer Service, CRM y procesos de atención al cliente, capaz de participar transversalmente en todo el ciclo de calidad, desde el análisis de requerimientos hasta la automatización y liberación a producción.</div>",
+        "projects": "<div>Buscamos un/a QA Funcional Senior responsable de asegurar la calidad funcional dentro de un programa de implementación de Microsoft Dynamics 365 Customer Service, participando durante todo el ciclo de desarrollo y pruebas.</div><div>El rol tendrá foco en el diseño y ejecución de pruebas funcionales, validación de procesos end-to-end, gestión de defectos, acompañamiento de pruebas UAT y automatización de regresiones. Trabajará de manera coordinada con equipos de Desarrollo, Integraciones, Data y Negocio, bajo los lineamientos del QA Tech Lead.</div>",
+        "functions_headline": "Principales responsabilidades",
+        "functions": "<ul><li>Analizar requerimientos funcionales, historias de usuario y criterios de aceptación.</li><li>Diseñar, documentar, ejecutar y mantener casos de prueba funcionales y de regresión.</li><li>Validar flujos end-to-end asociados a procesos de atención al cliente y postventa.</li><li>Ejecutar pruebas sobre aplicaciones web, APIs, integraciones, aplicaciones móviles y componentes de datos.</li><li>Identificar, registrar, documentar, realizar seguimiento y revalidar defectos.</li><li>Elaborar reportes técnicos y ejecutivos relacionados con avances, cobertura y resultados de pruebas.</li><li>Coordinar pruebas con equipos de Desarrollo, Integraciones, Data y áreas de negocio.</li><li>Participar y acompañar pruebas UAT con usuarios finales.</li><li>Validar correcciones y asegurar la no regresión de funcionalidades existentes.</li><li>Diseñar y mantener matrices de cobertura y trazabilidad de pruebas.</li><li>Automatizar pruebas de regresión UI y API.</li><li>Integrar pruebas automatizadas dentro de pipelines CI/CD.</li><li>Apoyar la estimación, planificación y seguimiento de las actividades de QA.</li><li>Participar activamente en ceremonias Agile y reuniones de seguimiento.</li><li>Contribuir a la mejora continua de procesos, herramientas y estándares de calidad.</li></ul>",
+        "benefits_headline": "",
+        "benefits": "",
+        "desirable_headline": "Conocimientos deseables",
+        "desirable": "<ul><li>Al menos 5 años de experiencia en QA funcional y automatización.</li><li>Experiencia comprobable en proyectos con Microsoft Dynamics 365 Customer Service.</li><li>Conocimiento de Microsoft Power Platform y Power Automate.</li><li>Experiencia en pruebas de soluciones omnicanal o Contact Center.</li><li>Experiencia en pruebas de WMS, BI o plataformas integradas.</li><li>Conocimiento de herramientas de monitoreo y reporting como Grafana, Prometheus, InfluxDB o Allure.</li><li>Experiencia trabajando con metodologías ágiles Scrum o Kanban.</li><li>Certificación ISTQB Foundation o Agile Tester.</li></ul>",
+        "remote": true,
+        "remote_modality": "fully_remote",
+        "remote_zone": null,
+        "countries": ["Remote"],
+        "lang": "lang_not_specified",
+        "rejected_reasons": [],
+        "category_name": "SysAdmin / DevOps / QA",
+        "perks": ["remote_full"],
+        "min_salary": null,
+        "max_salary": null,
+        "published_at": 1788993676,
+        "response_time_in_days": { "min": null, "max": null },
+        "applications_count": 22,
+        "location_regions": { "data": [] },
+        "location_tenants": { "data": [] },
+        "location_cities": { "data": [] },
+        "modality": {
+          "data": {
+            "id": "1",
+            "type": "modality",
+            "attributes": { "name": "Full time", "locale_key": "full_time" }
+          }
+        },
+        "seniority": {
+          "data": {
+            "id": "4",
+            "type": "seniority",
+            "attributes": { "name": "Senior", "locale_key": "senior" }
+          }
+        },
+        "tags": {
+          "data": [
+            {
+              "id": "functional-testing",
+              "type": "tag",
+              "attributes": { "name": "Functional Testing", "keywords": null }
+            },
+            {
+              "id": "api-testing",
+              "type": "tag",
+              "attributes": { "name": "API Testing", "keywords": "API Simulation, API Mocking" }
+            },
+            {
+              "id": "microsoft-dynamics-365",
+              "type": "tag",
+              "attributes": {
+                "name": "Microsoft Dynamics 365",
+                "keywords": "Microsoft Dynamics 365 CE, Microsoft Dynamics 365 CRM, Microsoft Dynamics 365 Finance & Operations, Microsoft Dynamics CRM, Microsoft Dynamics AX"
+              }
+            },
+            {
+              "id": "test-automation",
+              "type": "tag",
+              "attributes": {
+                "name": "Test Automation",
+                "keywords": "Testing Automation, Test Automation Scripts, Test Automation Scripting, Test Automation Design, Test Automation Framework, Test Automation Strategy, TestComplete"
+              }
+            },
+            {
+              "id": "crm",
+              "type": "tag",
+              "attributes": {
+                "name": "CRM",
+                "keywords": "CRMs, CRM Software, CRM Systems, Client Relationship Management, Customer Relationship Management, Customer Relations, Customer Management"
+              }
+            },
+            {
+              "id": "jira",
+              "type": "tag",
+              "attributes": {
+                "name": "Jira",
+                "keywords": "JIRA Atlassian, JIRA XRay, Jira API, Jira Administration, Jira Agile, Jira Align, Jira Core"
+              }
+            },
+            {
+              "id": "test-management",
+              "type": "tag",
+              "attributes": { "name": "Test Management", "keywords": "" }
+            },
+            {
+              "id": "python",
+              "type": "tag",
+              "attributes": {
+                "name": "Python",
+                "keywords": "Django, Jython, Cheetah, Flask, Jinja2, bottle, itty, NumPy, SciPy, phyton, pyton, Pytohn, Python 2.7, Python 2, Python 3.10, Python 3, Pyhton, Python Automation, Python Script, Python Programming, Python Scripting, Python Testing"
+              }
+            },
+            {
+              "id": "javascript",
+              "type": "tag",
+              "attributes": {
+                "name": "JavaScript",
+                "keywords": "EcmaScript, ES6, ES8, Java Script, React, Vue, Angular, Backbone, Marionette, Ember, Node, Node.js, Nodejs, JS, JavaScript Vanilla, JScript.net"
+              }
+            },
+            { "id": "git", "type": "tag", "attributes": { "name": "Git", "keywords": "" } }
+          ]
+        },
+        "company": {
+          "data": {
+            "id": "bctecnologia",
+            "type": "company",
+            "attributes": {
+              "name": "BC Tecnología",
+              "description": "Somos una consultora de TI con personal experto en diferentes áreas de tecnología.",
+              "long_description": "<p>Somos una consultora de Servicios IT. Administramos portafolio, desarrollamos proyectos, realizamos outsourcing y selección de profesionales.</p><p>Creamos equipos de trabajos ágiles para áreas de Infraestructura Tecnología, Desarrollo de Software y Unidades de Negocio, en clientes de servicios financieros, seguros, retail y gobierno.</p><p>Desde hace 6 años diseñamos soluciones acorde a las necesidades de nuestros clientes. Nuestras principales áreas de negocio son:</p><p>- Consultoría y diseño de soluciones.<br>- Formación de equipos de trabajo, outsourcing de personal.<br>- Desarrollo de proyectos.<br>- Servicios de soporte y administración IT </p><p>Tenemos un enfoque claro en el cliente, metodologías ágiles, cambio organizacional y desarrollo de productos. </p>",
+              "projects": "<div>En BC Tecnología gestionamos portafolios, desarrollamos proyectos y ofrecemos servicios de outsourcing y selección de profesionales para clientes de sectores como servicios financieros, seguros, retail y gobierno. Participarás en iniciativas estratégicas de transformación digital para LATAM Airlines, una organización líder en la industria aeronáutica, en un entorno que combina trabajo remoto con presencia ocasional en oficina. Serás parte de la Gerencia de Arquitectura, colaborando en la definición de la arquitectura empresarial y su evolución ante cambios tecnológicos y de negocio, asegurando alineación con la estrategia corporativa y con estándares de gobernanza.</div>",
+              "benefits": "<div>En BC Tecnología promovemos un ambiente de trabajo colaborativo que valora el compromiso y el aprendizaje constante. Nuestra cultura se orienta al crecimiento profesional a través de la integración y el intercambio de conocimientos entre equipos.</div><div>La modalidad híbrida que ofrecemos, ubicada en Las Condes, permite combinar la flexibilidad del trabajo remoto con la colaboración presencial, facilitando un mejor equilibrio y dinamismo laboral.</div><div>Participarás en proyectos innovadores con clientes de alto nivel y sectores diversos, en un entorno que fomenta la inclusión, el respeto y el desarrollo técnico y profesional.</div>",
+              "web": "http://www.bctecnologia.com",
+              "twitter": "",
+              "github": "",
+              "facebook": "",
+              "angellist": "",
+              "country": "CL",
+              "response_time_in_days": { "min": 1, "max": 7 },
+              "logo": "https://getonbrd-prod.s3.amazonaws.com/uploads/users/logo/9458/Copia_de_logo.png"
+            }
+          }
+        }
+      },
+      "links": {
+        "public_url": "https://www.getonbrd.com/jobs/qa-funcional-senior-microsoft-dynamics-365-latam-bc-tecnologia-remote"
+      }
+    }
+  ],
+  "meta": { "page": 1, "per_page": 3, "total_pages": 65 }
+}

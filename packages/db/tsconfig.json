@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": [
+    "schema.ts",
+    "drizzle.config.ts",
+    "vitest.integration.config.ts",
+    "src/**/*.ts",
+    "seeds/**/*.json",
+    "vitest.integration.cloud.config.ts"
+  ]
+}

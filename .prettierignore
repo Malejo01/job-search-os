@@ -1,0 +1,17 @@
+node_modules
+.next
+.turbo
+dist
+coverage
+pnpm-lock.yaml
+next-env.d.ts
+# Documentación y datos: fuera del alcance del formateador
+docs/
+*.md
+evals/fixtures/
+evals/reports/
+packages/db/seeds/
+packages/db/drizzle/
+.github/workflows/
+# schema.ts se copia tal cual desde la doc (JS-003); conserva su layout compacto
+packages/db/schema.ts

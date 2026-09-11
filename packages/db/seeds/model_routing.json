@@ -1,0 +1,8 @@
+[
+  {"task":"evaluate_job","provider":"google","model":"gemini-3.5-flash","fallback_model":"claude-haiku-4-5","temperature":0,"max_tokens":2048,"thinking_level":"minimal","input_usd_per_mtok":1.5,"output_usd_per_mtok":9,"fallback_input_usd_per_mtok":1,"fallback_output_usd_per_mtok":5},
+  {"task":"extract_skills","provider":"google","model":"gemini-3.5-flash","fallback_model":"claude-haiku-4-5","temperature":0,"max_tokens":4096,"thinking_level":"minimal","input_usd_per_mtok":1.5,"output_usd_per_mtok":9,"fallback_input_usd_per_mtok":1,"fallback_output_usd_per_mtok":5},
+  {"task":"parse_email_fallback","provider":"google","model":"gemini-3.1-flash-lite","fallback_model":null,"temperature":0,"max_tokens":1024,"thinking_level":"minimal","input_usd_per_mtok":0.25,"output_usd_per_mtok":1.5,"fallback_input_usd_per_mtok":null,"fallback_output_usd_per_mtok":null},
+  {"task":"judge_calibration","provider":"anthropic","model":"claude-sonnet-5","fallback_model":null,"temperature":0,"max_tokens":2048,"thinking_level":null,"input_usd_per_mtok":2,"output_usd_per_mtok":10,"fallback_input_usd_per_mtok":null,"fallback_output_usd_per_mtok":null},
+  {"task":"recruiter_message","provider":"anthropic","model":"claude-sonnet-5","fallback_model":"gemini-3.5-flash","temperature":0.4,"max_tokens":800,"thinking_level":null,"input_usd_per_mtok":2,"output_usd_per_mtok":10,"fallback_input_usd_per_mtok":1.5,"fallback_output_usd_per_mtok":9},
+  {"task":"skill_interview","provider":"anthropic","model":"claude-sonnet-5","fallback_model":"gemini-3.5-flash","temperature":0.3,"max_tokens":1500,"thinking_level":null,"input_usd_per_mtok":2,"output_usd_per_mtok":10,"fallback_input_usd_per_mtok":1.5,"fallback_output_usd_per_mtok":9}
+]

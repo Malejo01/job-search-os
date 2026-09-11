@@ -1,0 +1,37 @@
+{
+  "name": "@job-search-os/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./schema.ts",
+    "./password": "./src/password.ts",
+    "./src/migrate": "./src/migrate.ts",
+    "./seeds/*": "./seeds/*"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/migrate.ts",
+    "db:seed": "tsx src/seed.ts",
+    "db:sql": "tsx src/sql.ts",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:integration:cloud": "vitest run --config vitest.integration.cloud.config.ts"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.2",
+    "postgres": "^3.4.9",
+    "@job-search-os/pipeline": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.2",
+    "drizzle-kit": "^0.31.10",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3",
+    "@testcontainers/postgresql": "^12.1.0",
+    "vitest": "^4.1.11"
+  }
+}
