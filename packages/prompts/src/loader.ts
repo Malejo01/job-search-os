@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -16,11 +16,51 @@ export type Prompt = {
 };
 
 export type PromptError =
-  | { kind: "not_found"; ref: string }
+  | { kind: "not_found"; ref: string; dir?: string }
   | { kind: "bad_frontmatter"; ref: string; detail: string }
   | { kind: "missing_var"; ref: string; vars: string[] };
 
-const PROMPTS_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+/**
+ * Dónde están los .md. En local y en tests, al lado del paquete. En Vercel el código queda
+ * empaquetado lejos de `packages/prompts` (import.meta.url apunta al chunk), así que también se
+ * busca relativo al directorio de trabajo; next.config incluye los .md en el bundle con
+ * `outputFileTracingIncludes`. PROMPTS_DIR en el entorno fuerza una ruta.
+ */
+export function promptDirCandidates(
+  cwd: string = process.cwd(),
+  moduleDir: string = safeModuleDir(),
+): string[] {
+  const list = [
+    process.env.PROMPTS_DIR,
+    moduleDir ? resolve(moduleDir, "..") : undefined,
+    resolve(cwd, "packages/prompts"),
+    resolve(cwd, "../../packages/prompts"),
+    resolve(cwd, "../packages/prompts"),
+  ].filter((d): d is string => Boolean(d));
+  return [...new Set(list)];
+}
+
+function safeModuleDir(): string {
+  try {
+    return dirname(fileURLToPath(import.meta.url));
+  } catch {
+    return "";
+  }
+}
+
+/** Primer candidato que tiene prompts (*.md con versión); si ninguno, el primero (el error lo dice). */
+export function resolvePromptsDir(candidates: string[] = promptDirCandidates()): string {
+  for (const dir of candidates) {
+    try {
+      if (existsSync(dir) && readdirSync(dir).some((f) => /\.v\d+(?:\.\d+)*\.md$/.test(f))) return dir;
+    } catch {
+      // candidato ilegible: probar el siguiente
+    }
+  }
+  return candidates[0] ?? ".";
+}
+
+const PROMPTS_DIR = resolvePromptsDir();
 
 /** "evaluate_job@v1" → "evaluate_job.v1.md" */
 export function promptFileName(ref: string): string {
@@ -51,7 +91,7 @@ export function loadPrompt(
   try {
     source = readFileSync(join(dir, promptFileName(ref)), "utf8");
   } catch {
-    return { ok: false, error: { kind: "not_found", ref } };
+    return { ok: false, error: { kind: "not_found", ref, dir } };
   }
   const parsed = parseFrontmatter(source);
   if (!parsed) {

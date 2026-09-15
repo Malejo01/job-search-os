@@ -12,6 +12,10 @@ if (process.env.NODE_ENV !== "production" && !process.env.DB_TARGET) {
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Los packages del monorepo se consumen como TypeScript fuente
+  // Los prompts se leen del disco en runtime: sin esto no viajan en el bundle serverless de Vercel
+  outputFileTracingIncludes: {
+    "/**": ["../../packages/prompts/*.md"],
+  },
   transpilePackages: [
     "@job-search-os/adapters",
     "@job-search-os/db",

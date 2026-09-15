@@ -55,7 +55,14 @@ jobs:
             echo "::warning::evaluate: el worker se frenó por LLM_DAILY_CAP_USD; quedan mensajes pending"
           fi
           failed=$(echo "$body" | jq -r '.failed // 0')
+          retried=$(echo "$body" | jq -r '.retried // 0')
+          evaluated=$(echo "$body" | jq -r '.evaluated // 0')
           if [ "$failed" != "0" ]; then echo "::warning::evaluate: $failed evaluaciones fallaron (ver errors en la salida)"; fi
+          # Ruidoso: si tomó mensajes y no evaluó ninguno, algo está roto (prompt, modelo, key), no es mala suerte
+          if [ "$evaluated" = "0" ] && [ $((failed + retried)) -gt 0 ]; then
+            echo "::error::evaluate: 0 evaluadas y $((failed + retried)) con error; primer error: $(echo "$body" | jq -r '.errors[0].error // "?"')"
+            exit 1
+          fi
 
       - name: Snapshot de mercado y plan de formación
         if: env.STEP == 'market'

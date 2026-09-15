@@ -6,6 +6,8 @@ import {
   promptFileName,
   renderPrompt,
   templateVars,
+  promptDirCandidates,
+  resolvePromptsDir,
 } from "./loader";
 
 describe("prompts loader", () => {
@@ -38,7 +40,7 @@ describe("prompts loader", () => {
 
   it("falla con not_found si el prompt no existe", () => {
     const r = loadPrompt("no_existe@v1");
-    expect(r).toEqual({ ok: false, error: { kind: "not_found", ref: "no_existe@v1" } });
+    expect(r).toMatchObject({ ok: false, error: { kind: "not_found", ref: "no_existe@v1" } });
   });
 
   it("renderPrompt interpola y falla si falta una variable", () => {
@@ -56,5 +58,27 @@ describe("prompts loader", () => {
     expect(promptFileName("evaluate_job@v1.1")).toBe("evaluate_job.v1.1.md");
     const r = loadPrompt("evaluate_job@v1.1");
     expect(r.ok && r.value.output).toBe("EvaluationV11Schema");
+  });
+});
+
+describe("resolvePromptsDir (bundle serverless)", () => {
+  it("encuentra los prompts relativo al cwd cuando el módulo quedó empaquetado en otro lado", async () => {
+    const { resolve } = await import("node:path");
+    const repoRoot = resolve(__dirname, "../../..");
+    // Como en Vercel: cwd = apps/web y el módulo en un chunk sin prompts al lado
+    const candidates = promptDirCandidates(
+      resolve(repoRoot, "apps/web"),
+      resolve(repoRoot, "apps/web/.next/server/chunks"),
+    );
+    const dir = resolvePromptsDir(candidates);
+    expect(dir).toBe(resolve(repoRoot, "packages/prompts"));
+    expect(loadPrompt("evaluate_job@v1.3.1", dir).ok).toBe(true);
+  });
+
+  it("sin prompts en ningún candidato devuelve el primero y loadPrompt dice dónde buscó", () => {
+    const dir = resolvePromptsDir(["/no/existe", "/tampoco"]);
+    expect(dir).toBe("/no/existe");
+    const r = loadPrompt("evaluate_job@v1.3.1", dir);
+    expect(r).toMatchObject({ ok: false, error: { kind: "not_found", dir: "/no/existe" } });
   });
 });
