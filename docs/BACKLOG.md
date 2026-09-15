@@ -124,11 +124,11 @@ Tickets de 1–3 hs. `deps` = tickets que deben estar done. Estado: `todo` · `d
 
 - **2026-09-11 · FK `profiles.user_id → users.id` diferida** (ADR-010, JS-014). El aislamiento lo dan las policies RLS por `user_id`; la FK solo suma integridad referencial. Cerrarla: migración con `.references(() => users.id)` en `profiles.userId` (Docker y Neon ya tienen la fila de `users`) e insertar el usuario en los tests de integración (`worker.integration.test.ts`, `rls.integration.test.ts`). Decisión de Mauro: esperar; no bloquea el deploy.
 
-### JS-019 · Deploy a Vercel + Neon prod 🟡 en curso (2026-09-11)
+### JS-019 · Deploy a Vercel + Neon prod ✅ done 2026-09-15
 `deps:` JS-018 · `est:` 1 h
 - Proyecto Vercel, envs, cron activo, migraciones aplicadas en Neon (ADR-009), `GET /api/health`.
 - **Acepta:** producción evaluando ofertas de GoB sola.
-- Hecho: `GET /api/health` (base + rol sin BYPASSRLS, 503 con motivo), `docs/DEPLOY.md` con variables, pasos y los límites del plan Hobby (cron una vez por día, ±59 min, 300 s). Pendiente de Mauro: elegir cómo correr el cron (opciones en DEPLOY.md) y crear el proyecto en Vercel; `vercel.json` sigue con `*/6` y NO despliega en Hobby hasta decidir.
+- Hecho: `GET /api/health` (base + rol sin BYPASSRLS, 503 con motivo), `docs/DEPLOY.md` con variables, pasos y los límites del plan Hobby. **Desplegado el 2026-09-15**: proyecto `job-search-os` (root `apps/web`, Node 22), repo de GitHub conectado (push a `main` despliega), variables cargadas por CLI, migraciones y seed en Neon, producción en `https://job-search-os-kohl.vercel.app` y cron de GitHub Actions con `APP_URL`. Falta el DNS del subdominio propio (registro en DEPLOY.md).
 
 ## Bloque 4 — Ingesta por email (semana 2)
 

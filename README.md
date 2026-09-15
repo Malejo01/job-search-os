@@ -57,7 +57,7 @@ Otros comandos: `pnpm ingest:getonboard --local`, `pnpm market:snapshot --local`
 | 1 · Fundaciones (JS-001–007) | ✅ |
 | 2 · Pipeline: dedup, prefiltro, decide, ingesta GoB, cola y worker (JS-008–013) | ✅ |
 | 3 · UI: auth, lista, detalle, cola de JD (JS-014–017) | ✅ |
-| CI, deploy, cron (JS-018, JS-019) | ✅ CI y cron en Actions · 🟡 proyecto Vercel pendiente (checklist en `docs/DEPLOY.md`) |
+| CI, deploy, cron (JS-018, JS-019) | ✅ CI y cron en Actions · ✅ desplegado en Vercel + Neon el 2026-09-15 (estado y DNS en `docs/DEPLOY.md`) |
 | 4 · Email entrante (JS-020–023) | ✅ JS-023 alta manual · ✅ JS-020 webhook Resend firmado, storage y cola manual (falta DNS + secrets) · ⏳ JS-021/022 parsers (necesitan emails reales) |
 | 5 · Inteligencia | ✅ JS-034 plan, JS-035 MCP, JS-036 feedback loop (`/applications`), adelantos de JS-030/031 sin LLM · ⏳ JS-032/033 perfil verificable y entrevista dirigida |
 | Calibración del evaluador | ✅ cerrada 2026-09-11: prompt `evaluate_job@v1.3.1`, `gemini-3.1-flash-lite` primario (fallback 3.5-flash), USD 0,0013 por evaluación; números en `docs/LLM_COSTOS.md`, ADR-011. Lo que sigue se calibra con `/applications` (JS-036) |

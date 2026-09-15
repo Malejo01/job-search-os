@@ -48,6 +48,28 @@ Consecuencia: el `vercel.json` actual (`0 */6 * * *` y `15 */6 * * *`) **no desp
 | `LLM_DEMO` | preview | `1` para evaluar con el modelo falso (sin gasto) |
 | `RESEND_WEBHOOK_SECRET`, `INGEST_DOMAIN` | bloque 4 | |
 
+## Estado del deploy (2026-09-15)
+
+| Qué | Valor |
+|---|---|
+| Proyecto Vercel | `job-search-os` (equipo `lizarraga-mauros-projects`), root `apps/web`, framework Next.js, Node 22 |
+| Producción | `https://job-search-os-kohl.vercel.app` (ojo: `job-search-os.vercel.app` es de otro proyecto) |
+| Dominio propio | `busquedalaboral.malejo.com.ar` agregado y verificado en Vercel; **falta el registro DNS** (abajo) |
+| Git | repo `Malejo01/job-search-os` conectado: cada push a `main` despliega a producción |
+| Variables | prod: `DATABASE_URL`, `DATABASE_URL_APP`, `AUTH_SECRET`, `CRON_SECRET`, `GEMINI_API_KEY`, `MCP_TOKEN`, `LLM_DAILY_CAP_USD=2`; preview: las tres primeras + `LLM_DEMO=1` |
+| GitHub | secrets `CRON_SECRET` y `GEMINI_API_KEY`; variable `APP_URL` |
+| Base | Neon: migraciones hasta 0010 + policies, seed con el usuario real y el golden privado |
+
+### DNS del subdominio (lo carga Mauro en el panel del dominio)
+
+El dominio usa los nameservers `ns1.dns-parking.com` / `ns2.dns-parking.com` (Hostinger), así que el registro va ahí, no en Vercel:
+
+| Tipo | Nombre | Valor | TTL |
+|---|---|---|---|
+| CNAME | `busquedalaboral` | `d77eaa0dc004e381.vercel-dns-017.com.` | automático (o 300) |
+
+Alternativa si el panel no acepta CNAME en ese nombre: registro A a `216.198.79.1`. Verificar con `npx vercel domains inspect busquedalaboral.malejo.com.ar` o `nslookup -type=CNAME busquedalaboral.malejo.com.ar 8.8.8.8`; cuando resuelva, Vercel emite el certificado solo y hay que cambiar `APP_URL` en GitHub a `https://busquedalaboral.malejo.com.ar`.
+
 ## Checklist de Mauro (en orden, de una)
 
 Local, antes de tocar Vercel:
