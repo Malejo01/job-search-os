@@ -52,7 +52,8 @@ function safeModuleDir(): string {
 export function resolvePromptsDir(candidates: string[] = promptDirCandidates()): string {
   for (const dir of candidates) {
     try {
-      if (existsSync(dir) && readdirSync(dir).some((f) => /\.v\d+(?:\.\d+)*\.md$/.test(f))) return dir;
+      if (existsSync(dir) && readdirSync(dir).some((f) => /\.v\d+(?:\.\d+)*\.md$/.test(f)))
+        return dir;
     } catch {
       // candidato ilegible: probar el siguiente
     }
