@@ -50,28 +50,22 @@ Consecuencia: el `vercel.json` actual (`0 */6 * * *` y `15 */6 * * *`) **no desp
 | `RESEND_API_KEY` | prod | también usada para mandar el email de "olvidé mi contraseña" (JS-045, ADR-012) |
 | `EMAIL_FROM` | opcional | remitente del email de recuperación; vacío usa el sandbox `onboarding@resend.dev` |
 
-## Estado del deploy (2026-09-15)
+## Estado del deploy (2026-09-17)
 
 | Qué | Valor |
 |---|---|
 | Proyecto Vercel | `job-search-os` (equipo `lizarraga-mauros-projects`), root `apps/web`, framework Next.js, Node 22 |
-| Producción | `https://job-search-os-kohl.vercel.app` (ojo: `job-search-os.vercel.app` es de otro proyecto) |
-| Dominio propio | `busquedalaboral.malejo.com.ar` agregado y verificado en Vercel; **falta el registro DNS** (abajo) |
+| Producción | `https://busquedalaboral.malejo.com.ar` (certificado Let's Encrypt emitido por Vercel). `https://job-search-os-kohl.vercel.app` sigue sirviendo la misma app en paralelo (ojo: `job-search-os.vercel.app` es de otro proyecto) |
 | Git | repo `Malejo01/job-search-os` conectado: cada push a `main` despliega a producción |
-| Variables | prod: `DATABASE_URL`, `DATABASE_URL_APP`, `AUTH_SECRET`, `CRON_SECRET`, `GEMINI_API_KEY`, `MCP_TOKEN`, `LLM_DAILY_CAP_USD=2`; preview: las tres primeras + `LLM_DEMO=1` |
-| GitHub | secrets `CRON_SECRET` y `GEMINI_API_KEY`; variable `APP_URL` |
-| Base | Neon: migraciones hasta 0011 + policies, seed con el usuario real y el golden privado |
-| Pendiente | `RESEND_API_KEY` no está cargada (ni local ni Vercel): "olvidé mi contraseña" (JS-045) crea el token pero no manda el mail hasta que se cargue |
+| Variables | prod: `DATABASE_URL`, `DATABASE_URL_APP`, `AUTH_SECRET`, `CRON_SECRET`, `GEMINI_API_KEY`, `MCP_TOKEN`, `RESEND_API_KEY`, `LLM_DAILY_CAP_USD=2`; preview: `DATABASE_URL`, `DATABASE_URL_APP`, `AUTH_SECRET` + `LLM_DEMO=1` |
+| GitHub | secrets `CRON_SECRET` y `GEMINI_API_KEY`; variable (no secret) `APP_URL=https://busquedalaboral.malejo.com.ar` |
+| Base | Neon: migraciones hasta 0011 + policies, seed con el usuario real y el golden privado. Las migraciones NO corren en el deploy: después de mergear una, `pnpm db:migrate` a mano |
 
-### DNS del subdominio (lo carga Mauro en el panel del dominio)
+### DNS de malejo.com.ar (Vercel DNS)
 
-El dominio usa los nameservers `ns1.dns-parking.com` / `ns2.dns-parking.com` (Hostinger), así que el registro va ahí, no en Vercel:
+Desde el 2026-09-17 el dominio completo está delegado en NIC.ar a `ns1.vercel-dns.com` / `ns2.vercel-dns.com`: los registros se manejan en Vercel (`npx vercel dns ls malejo.com.ar`), no en Hostinger. Registro del subdominio: `busquedalaboral CNAME cname.vercel-dns.com.` (además del wildcard `*` ALIAS por defecto). El apex y `www` los sirve el proyecto `portfolio-2026`.
 
-| Tipo | Nombre | Valor | TTL |
-|---|---|---|---|
-| CNAME | `busquedalaboral` | `d77eaa0dc004e381.vercel-dns-017.com.` | automático (o 300) |
-
-Alternativa si el panel no acepta CNAME en ese nombre: registro A a `216.198.79.1`. Verificar con `npx vercel domains inspect busquedalaboral.malejo.com.ar` o `nslookup -type=CNAME busquedalaboral.malejo.com.ar 8.8.8.8`; cuando resuelva, Vercel emite el certificado solo y hay que cambiar `APP_URL` en GitHub a `https://busquedalaboral.malejo.com.ar`.
+**Lección del cambio de nameservers:** propagada la delegación, Vercel no activó la zona solo. Tenía el dominio como `serviceType: external` con los nameservers viejos cacheados y sus servidores respondían REFUSED, así que `malejo.com.ar` entero (portfolio incluido) quedó sin resolver ("lame delegation" en 8.8.8.8 y 1.1.1.1). Lo destrabó `MSYS_NO_PATHCONV=1 npx vercel api /v4/domains/malejo.com.ar/verify -X POST`, que pasó la zona a `zeit.world`. El certificado del subdominio tampoco se emitió solo: `npx vercel certs issue busquedalaboral.malejo.com.ar`. Si se vuelve a mover un dominio a Vercel DNS, verificar con DNS-over-HTTPS (`https://dns.google/resolve?name=<dominio>&type=A`) apenas propaga, sin esperar el aviso de Vercel.
 
 ## Checklist de Mauro (en orden, de una)
 
@@ -129,7 +123,7 @@ Endpoint: `https://<app>/api/mcp` (Streamable HTTP, sin OAuth). Token compartido
 - **Claude en el celular / claude.ai** (Settings › Connectors › Add custom connector): nombre `Job Search OS`, URL `https://<app>/api/mcp?token=<MCP_TOKEN>`, sin OAuth. El token viaja en la URL porque el conector no permite headers; queda en los logs de Vercel, por eso es rotable: cambiás `MCP_TOKEN` y volvés a cargar el conector.
 - **Claude Code**: `claude mcp add --transport http job-search-os https://<app>/api/mcp --header "Authorization: Bearer <MCP_TOKEN>"`.
 - **Claude Desktop**: mismo conector que claude.ai (Settings › Connectors), o `mcp-remote` con el header.
-- Prueba rápida: `curl -H "Authorization: Bearer <MCP_TOKEN>" -H "content-type: application/json" -H "accept: application/json, text/event-stream" -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' https://<app>/api/mcp` devuelve las seis herramientas; sin token, 401.
+- Prueba rápida: `curl -H "Authorization: Bearer <MCP_TOKEN>" -H "content-type: application/json" -H "accept: application/json, text/event-stream" -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' https://<app>/api/mcp` devuelve las siete herramientas; sin token, 401.
 
 ## Pasos (detalle)
 
