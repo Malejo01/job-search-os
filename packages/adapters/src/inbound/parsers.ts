@@ -1,4 +1,5 @@
 import type { RawJob } from "@job-search-os/pipeline";
+import { linkedinParser } from "./linkedin";
 
 /**
  * Parsers de email por remitente (JS-021 LinkedIn, JS-022 Get on Board y genérico). Contrato:
@@ -30,5 +31,7 @@ export function chooseParserName(fromAddress: string): EmailParser["name"] {
   return "generic";
 }
 
-/** Registro de parsers implementados. Vacío hasta JS-021/022: todo va a la cola manual. */
-export const EMAIL_PARSERS: Partial<Record<EmailParser["name"], EmailParser>> = {};
+/** Registro de parsers implementados. Lo que no tiene parser va a la cola manual. */
+export const EMAIL_PARSERS: Partial<Record<EmailParser["name"], EmailParser>> = {
+  linkedin: linkedinParser,
+};
