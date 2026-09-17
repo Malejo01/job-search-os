@@ -9,6 +9,7 @@
     ".": "./src/index.ts",
     "./schema": "./schema.ts",
     "./password": "./src/password.ts",
+    "./password-reset-token": "./src/password-reset-token.ts",
     "./src/migrate": "./src/migrate.ts",
     "./seeds/*": "./seeds/*"
   },
@@ -18,6 +19,7 @@
     "db:migrate": "tsx src/migrate.ts",
     "db:seed": "tsx src/seed.ts",
     "db:sql": "tsx src/sql.ts",
+    "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:integration:cloud": "vitest run --config vitest.integration.cloud.config.ts"
   },

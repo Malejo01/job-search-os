@@ -47,6 +47,8 @@ Consecuencia: el `vercel.json` actual (`0 */6 * * *` y `15 */6 * * *`) **no desp
 | `LLM_CALL_TIMEOUT_MS` | opcional | default 90000 |
 | `LLM_DEMO` | preview | `1` para evaluar con el modelo falso (sin gasto) |
 | `RESEND_WEBHOOK_SECRET`, `INGEST_DOMAIN` | bloque 4 | |
+| `RESEND_API_KEY` | prod | también usada para mandar el email de "olvidé mi contraseña" (JS-045, ADR-012) |
+| `EMAIL_FROM` | opcional | remitente del email de recuperación; vacío usa el sandbox `onboarding@resend.dev` |
 
 ## Estado del deploy (2026-09-15)
 
@@ -58,7 +60,8 @@ Consecuencia: el `vercel.json` actual (`0 */6 * * *` y `15 */6 * * *`) **no desp
 | Git | repo `Malejo01/job-search-os` conectado: cada push a `main` despliega a producción |
 | Variables | prod: `DATABASE_URL`, `DATABASE_URL_APP`, `AUTH_SECRET`, `CRON_SECRET`, `GEMINI_API_KEY`, `MCP_TOKEN`, `LLM_DAILY_CAP_USD=2`; preview: las tres primeras + `LLM_DEMO=1` |
 | GitHub | secrets `CRON_SECRET` y `GEMINI_API_KEY`; variable `APP_URL` |
-| Base | Neon: migraciones hasta 0010 + policies, seed con el usuario real y el golden privado |
+| Base | Neon: migraciones hasta 0011 + policies, seed con el usuario real y el golden privado |
+| Pendiente | `RESEND_API_KEY` no está cargada (ni local ni Vercel): "olvidé mi contraseña" (JS-045) crea el token pero no manda el mail hasta que se cargue |
 
 ### DNS del subdominio (lo carga Mauro en el panel del dominio)
 
@@ -99,6 +102,14 @@ Cron:
 8. En GitHub cargá la variable `APP_URL` con la URL del paso 6 (sin barra final).
 9. Actions › cron › Run workflow (step: both). Tiene que terminar en verde y mostrar el JSON de la ingesta y de la evaluación. Si falla, el error dice cuál de los dos endpoints y por qué.
 10. Al día siguiente: `pnpm llm:spend` y `/jobs` con ofertas nuevas de Get on Board.
+
+## Email saliente para "olvidé mi contraseña" (JS-045): qué configura Mauro
+
+No hace falta el dominio de ingesta ni nada de lo del bloque 4: alcanza con una cuenta de Resend
+(plan free) y su API key.
+
+1. Resend › API Keys → crear una y cargarla como `RESEND_API_KEY` en `.env.local` y en Vercel (prod). Si ya se cargó una para el bloque 4 (inbound), es la misma key: sirve para las dos cosas.
+2. Sin un dominio propio verificado en Resend, dejar `EMAIL_FROM` vacío: el mail sale de `onboarding@resend.dev`, que **solo entrega al email con el que te registraste en Resend**. Si ese email no es el mismo que `SEED_USER_EMAIL`, "olvidé mi contraseña" va a fallar en silencio (el token se crea, el mail no llega) — usar el mismo email en ambos, o verificar un dominio propio en Resend y setear `EMAIL_FROM`.
 
 ## Email entrante con Resend (JS-020): qué configura Mauro
 

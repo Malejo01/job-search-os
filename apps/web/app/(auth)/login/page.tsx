@@ -1,6 +1,10 @@
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { signIn } from "@/auth";
+import { hasAnyUser } from "@/lib/setup";
+
+// Igual que /setup: el gate hacia /setup depende de una lectura de la base en cada visita.
+export const dynamic = "force-dynamic";
 
 /** Login con email + contraseña (Server Action; sin JS de cliente). Un solo usuario, sin registro. */
 async function login(formData: FormData): Promise<void> {
@@ -20,9 +24,10 @@ async function login(formData: FormData): Promise<void> {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; reset?: string }>;
 }) {
-  const { error } = await searchParams;
+  if (!(await hasAnyUser())) redirect("/setup");
+  const { error, reset } = await searchParams;
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-6">
       <div>
@@ -50,6 +55,9 @@ export default async function LoginPage({
             className="rounded-md border border-zinc-300 px-3 py-2 text-base"
           />
         </label>
+        {reset ? (
+          <p className="text-sm text-emerald-700">Contraseña actualizada. Ya podés entrar.</p>
+        ) : null}
         {error ? (
           <p role="alert" className="text-sm text-red-700">
             Email o contraseña incorrectos.
@@ -62,6 +70,9 @@ export default async function LoginPage({
           Entrar
         </button>
       </form>
+      <a href="/forgot-password" className="text-sm text-zinc-600 underline">
+        Olvidé mi contraseña
+      </a>
     </main>
   );
 }

@@ -1,5 +1,8 @@
-// Sin @job-search-os/db: su env.ts usa import.meta y Playwright transpila a CJS. Solo schema + postgres.
+// Sin @job-search-os/db: su env.ts usa import.meta y Playwright transpila a CJS. Solo schema,
+// postgres y los helpers de contraseña (password.ts y password-reset-token.ts solo usan node:crypto).
 import * as s from "@job-search-os/db/schema";
+import { hashPassword } from "@job-search-os/db/password";
+import { generateResetToken } from "@job-search-os/db/password-reset-token";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { execSync } from "node:child_process";
@@ -87,6 +90,34 @@ export async function deleteJob(jobId: string): Promise<void> {
   const { db, close } = ownerDb();
   try {
     await db.delete(s.jobs).where(eq(s.jobs.id, jobId));
+  } finally {
+    await close();
+  }
+}
+
+/** Inserta un token de reset ya vencido/vigente para el usuario seed; devuelve el valor en claro. */
+export async function createPasswordResetToken(
+  options: { expired?: boolean } = {},
+): Promise<string> {
+  const { db, close } = ownerDb();
+  try {
+    const now = options.expired ? new Date(Date.now() - 2 * 60 * 60 * 1000) : new Date();
+    const { token, tokenHash, expiresAt } = generateResetToken(now);
+    await db.insert(s.passwordResetTokens).values({ userId: E2E_USER_ID, tokenHash, expiresAt });
+    return token;
+  } finally {
+    await close();
+  }
+}
+
+/** Devuelve la contraseña del usuario seed al valor original (la UI la cambia en el test de reset). */
+export async function restoreSeedPassword(): Promise<void> {
+  const { db, close } = ownerDb();
+  try {
+    await db
+      .update(s.users)
+      .set({ passwordHash: hashPassword(E2E_PASSWORD) })
+      .where(eq(s.users.id, E2E_USER_ID));
   } finally {
     await close();
   }
