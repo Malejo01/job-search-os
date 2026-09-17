@@ -14,12 +14,18 @@ let container: StartedPostgreSqlContainer | null = null;
 let conn: ReturnType<typeof createDb>;
 const logger = pino({ level: "silent" });
 
-const event = (emailId: string, to = "u_a0000000@ingest.test"): ResendReceivedEvent => ({
+const SIN_PARSER = "Equipo de Talento <jobs@example.com>";
+
+const event = (
+  emailId: string,
+  to = "u_a0000000@ingest.test",
+  from = "LinkedIn Job Alerts <jobalerts-noreply@linkedin.com>",
+): ResendReceivedEvent => ({
   type: "email.received",
   created_at: "2026-09-11T20:00:00.000Z",
   data: {
     email_id: emailId,
-    from: "LinkedIn Job Alerts <jobalerts-noreply@linkedin.com>",
+    from,
     to: [to],
     cc: [],
     bcc: [],
@@ -62,9 +68,9 @@ afterAll(async () => {
 describe("handleInboundEmail", () => {
   it("guarda el crudo, la fila y manda a cola manual cuando no hay parser; el reintento es idempotente", async () => {
     const deps = { db: conn.db, storage: pgBlobStorage(conn.db), logger };
-    const raw = JSON.stringify(event("em_1"));
+    const raw = JSON.stringify(event("em_1", undefined, SIN_PARSER));
     const out = await handleInboundEmail(
-      event("em_1"),
+      event("em_1", undefined, SIN_PARSER),
       { html: "<p>hola</p>", text: "hola", headers: null },
       raw,
       deps,
@@ -82,7 +88,7 @@ describe("handleInboundEmail", () => {
       .from(s.inboundEmails)
       .where(eq(s.inboundEmails.id, out.inboundId));
     expect(row).toMatchObject({
-      fromAddress: expect.stringContaining("linkedin.com"),
+      fromAddress: expect.stringContaining("example.com"),
       parser: "none",
     });
     const blob = await deps.storage.get(row!.rawRef);
@@ -92,8 +98,28 @@ describe("handleInboundEmail", () => {
       content: { text: "hola" },
     });
 
-    const again = await handleInboundEmail(event("em_1"), null, raw, deps);
+    const again = await handleInboundEmail(event("em_1", undefined, SIN_PARSER), null, raw, deps);
     expect(again).toMatchObject({ kind: "duplicate", inboundId: out.inboundId });
+  });
+
+  it("con parser pero estructura desconocida también va a cola manual, sin inventar ofertas (JS-021)", async () => {
+    const deps = { db: conn.db, storage: pgBlobStorage(conn.db), logger };
+    // remitente de LinkedIn, pero el HTML no es una alerta con tarjetas de aviso
+    const out = await handleInboundEmail(
+      event("em_4"),
+      { html: "<p>Tenés una nueva recomendación</p>", text: null, headers: null },
+      JSON.stringify(event("em_4")),
+      deps,
+    );
+    expect(out).toMatchObject({ kind: "stored", parser: "linkedin", jobsExtracted: 0 });
+    if (out.kind !== "stored") return;
+    expect(out.error).toMatch(/cola manual/i);
+    const [row] = await conn.db
+      .select()
+      .from(s.inboundEmails)
+      .where(eq(s.inboundEmails.id, out.inboundId));
+    expect(row).toMatchObject({ parser: "linkedin", jobsExtracted: 0 });
+    expect(row!.error).toMatch(/cola manual/i);
   });
 
   it("ignora destinatarios que no son de ningún usuario y aplica rate limit por hora", async () => {
