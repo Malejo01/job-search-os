@@ -58,6 +58,27 @@ describe("linkedinParser: cobertura de las alertas reales", () => {
     expect(total).toBe(17);
   });
 
+  it("recomendaciones: mismo parser, ancla distinta, 4 avisos", () => {
+    const res = linkedinParser.parse(
+      email(
+        fixture("recomendaciones-cuatro-avisos.html"),
+        "Northwind Labs busca personal en IA generativa",
+      ),
+    );
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.jobs).toHaveLength(4);
+    expect(res.jobs.map((j) => [j.companyRaw, j.modality])).toEqual([
+      ["Northwind Labs", "remoto"],
+      ["Contoso Cloud", "hibrido"], // el formato de recomendaciones sí trae híbridos
+      ["Fabrikam", "remoto"],
+      ["Tailwind Traders", "desconocida"], // esta tarjeta viene sin modalidad
+    ]);
+    // el asunto no trae «búsqueda»: la toma del cuerpo y deja claro que no es una alerta
+    expect(res.jobs[0]!.source.name).toBe("recomendaciones «IA generativa»");
+    expect(res.jobs.every((j) => j.countriesAllowed === null && j.jdText === null)).toBe(true);
+  });
+
   it("reconoce varios badges en la misma tarjeta", () => {
     const res = linkedinParser.parse(email(fixture("alerta-dos-badges.html")));
     expect(res.ok).toBe(true);
@@ -197,13 +218,11 @@ describe("linkedinParser: falla cerrado", () => {
     expect(res.reason).toMatch(/Empresa · Ubicación/i);
   });
 
-  it("manda a la cola manual un email de LinkedIn que no es una alerta con tarjetas", () => {
-    for (const f of ["no-es-alerta-digest-empresa.html", "no-es-alerta-recordatorio.html"]) {
-      const res = linkedinParser.parse(email(fixture(f)));
-      expect(res.ok).toBe(false);
-      if (res.ok) return;
-      expect(res.reason).toMatch(/tarjeta/i);
-    }
+  it("manda a la cola manual el email de empleos guardados (gap conocido, ver BACKLOG)", () => {
+    const res = linkedinParser.parse(email(fixture("no-es-alerta-recordatorio.html")));
+    expect(res.ok).toBe(false);
+    if (res.ok) return;
+    expect(res.reason).toMatch(/tarjeta/i);
   });
 
   it("falla si el email no trae HTML", () => {
