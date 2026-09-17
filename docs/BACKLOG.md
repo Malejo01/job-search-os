@@ -90,6 +90,13 @@ Tickets de 1–3 hs. `deps` = tickets que deben estar done. Estado: `todo` · `d
 - ~~Supabase Auth~~ Auth.js con Credentials (ADR-010; email+password, un solo usuario creado por el seed con `SEED_USER_EMAIL`/`SEED_USER_PASSWORD`). Layout con nav: Ofertas · Pendientes de JD · Postulaciones · Mercado (placeholder). La app se conecta con `DATABASE_URL_APP` y verifica que el rol no pueda saltear RLS; cada request corre con `SET LOCAL app.user_id` (`lib/db.ts#withUser`).
 - **Acepta:** login funciona; sin sesión redirige. Probado en Docker: `/jobs` sin sesión → `/login`; contraseña incorrecta muestra error; correcta → `/jobs` con nav; con el rol dueño la app falla con `AppRoleError`.
 
+### JS-045 · Recuperar contraseña por email y setup inicial ✅ done 2026-09-16
+`deps:` JS-014 · `est:` 1.5 h
+- Pedido directo de Mauro, fuera de la secuencia del backlog. `password_reset_tokens` (token de 32 bytes, se guarda hasheado sha256, vence en 1 h, un solo uso; RLS: lectura abierta como `users`, escritura por dueño vía `withUser`). Envío por Resend REST (`packages/adapters/src/email/resend.ts`, sandbox `onboarding@resend.dev` sin dominio propio verificado). `/forgot-password` y `/reset-password` públicas (`auth.config.ts`); nunca revela si el email existe. Detalle en ADR-012.
+- **Setup inicial** (toca ADR-010, ver aclaración en ADR-012): `/setup` reemplaza el `pnpm db:seed` manual por una pantalla, pero SOLO mientras `users` está vacía — no es registro público. Doble candado: `hasAnyUser()` en la app + policy RLS `users_bootstrap_insert` (`WITH CHECK (NOT EXISTS (SELECT 1 FROM users))`). `/login` rebota a `/setup` sin usuario y viceversa; crear la cuenta deja logueado.
+- **Acepta:** login con link "Olvidé mi contraseña"; pedir el link no dice si el email existe; el link vence en 1 h y no sirve dos veces; contraseña nueva exige 8+ caracteres y confirmación; con la tabla `users` vacía, `/login` lleva a `/setup` y crear la cuenta loguea directo; con un usuario ya creado, `/setup` no deja crear otro. Tests: unit (`password-reset-token.test.ts`, `email/resend.test.ts`), e2e (`05-recuperar-contrasena.spec.ts`, `06-setup-inicial.spec.ts`).
+- Queda fuera: `RESEND_API_KEY` todavía no está cargada (ni local ni en Vercel) — sin ella el token se crea pero no se manda el mail; rate limit de pedidos por email/IP (hoy no hay, un solo usuario).
+
 ### JS-015 · Lista de ofertas ✅ done 2026-09-11
 `deps:` JS-013, JS-014 · `est:` 2 h
 - Server Component: tabla/cards con score, empresa, título, fuente, estado, `location_ok`, flags; filtros por score mín, fuente, estado, fecha (search params). Ordena por score desc, fecha desc.

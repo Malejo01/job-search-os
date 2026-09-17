@@ -17,6 +17,14 @@ export const authConfig = {
       if (pathname.startsWith("/login")) {
         return loggedIn ? Response.redirect(new URL("/jobs", request.nextUrl)) : true;
       }
+      // Recuperación de contraseña y setup inicial (JS-045): se usan sin sesión activa.
+      if (
+        pathname.startsWith("/forgot-password") ||
+        pathname.startsWith("/reset-password") ||
+        pathname.startsWith("/setup")
+      ) {
+        return true;
+      }
       return loggedIn;
     },
     jwt({ token, user }) {

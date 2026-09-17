@@ -41,6 +41,20 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [uniqueIndex("users_email").on(t.email)]);
 
+// Recuperación de contraseña (JS-045): token de un solo uso, se guarda hasheado (sha256);
+// el valor en claro solo vive en el link del email. TTL corto (packages/db/src/password-reset-token.ts).
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("password_reset_tokens_hash").on(t.tokenHash),
+  index("password_reset_tokens_user").on(t.userId),
+]);
+
 export const profiles = pgTable("profiles", {
   userId: uuid("user_id").primaryKey(), // = auth.users.id
   displayName: text("display_name").notNull(),

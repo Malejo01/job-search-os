@@ -12,6 +12,26 @@ CREATE POLICY "users_read" ON "users" FOR SELECT USING (true);
 DROP POLICY IF EXISTS "users_self_update" ON "users";
 CREATE POLICY "users_self_update" ON "users" FOR UPDATE
   USING (id = auth.uid()) WITH CHECK (id = auth.uid());
+-- Setup inicial (JS-045/ADR-012): crear EL usuario cuando todavía no hay ninguno (reemplaza el
+-- paso manual de `pnpm db:seed`). No es registro público: en cuanto existe una fila, este check
+-- es siempre falso y la puerta queda cerrada para siempre (doble candado con `hasAnyUser()` en la app).
+DROP POLICY IF EXISTS "users_bootstrap_insert" ON "users";
+CREATE POLICY "users_bootstrap_insert" ON "users" FOR INSERT
+  WITH CHECK (NOT EXISTS (SELECT 1 FROM users));
+
+-- password_reset_tokens (JS-045): mismo caso que users_read. Consumir el link llega SIN sesión
+-- (no hay app.user_id todavía), así que necesitamos poder buscar por token_hash antes de saber
+-- de quién es; el valor en claro nunca se guarda, así que leer la fila no alcanza para nada.
+-- Insert/update sí van con dueño: para entonces ya resolvimos el user_id (withUser).
+ALTER TABLE "password_reset_tokens" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "password_reset_tokens" FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "password_reset_tokens_read" ON "password_reset_tokens";
+CREATE POLICY "password_reset_tokens_read" ON "password_reset_tokens" FOR SELECT USING (true);
+DROP POLICY IF EXISTS "password_reset_tokens_insert" ON "password_reset_tokens";
+CREATE POLICY "password_reset_tokens_insert" ON "password_reset_tokens" FOR INSERT WITH CHECK (user_id = auth.uid());
+DROP POLICY IF EXISTS "password_reset_tokens_update" ON "password_reset_tokens";
+CREATE POLICY "password_reset_tokens_update" ON "password_reset_tokens" FOR UPDATE
+  USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 ALTER TABLE "profiles" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "profiles" FORCE ROW LEVEL SECURITY;
