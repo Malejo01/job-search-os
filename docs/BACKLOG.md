@@ -152,7 +152,11 @@ Tickets de 1–3 hs. `deps` = tickets que deben estar done. Estado: `todo` · `d
 - **Aptitudes y candidatos no están en las alertas**: no se inventan, quedan null. Vienen en otros formatos de email de LinkedIn (JS-022 o después).
 - **Falla cerrado, email entero**: sin HTML, sin tarjetas o con una tarjeta que no se entiende → `{ ok: false }` y a la cola manual. No hay extracción parcial.
 - Fixtures anonimizadas en `inbound/fixtures/linkedin/` (5 alertas reales + 2 negativos), solo el fragmento del aviso: sin nombre, email, titular del perfil ni tokens de tracking; empresas y títulos ficticios. Los `.eml` crudos quedan en `fixtures-private/email/`. `.prettierignore` las excluye para que el formateo no altere lo que prueban.
-- **Acepta:** 9 tests unitarios. Validado además contra los 16 emails reales: 17 de 17 avisos extraídos con campos correctos; los 2 emails de LinkedIn que no son alertas (digest de empresa y recordatorio de postulación) caen en la cola manual.
+- **Acepta:** 28 tests unitarios sobre 10 fixtures (8 alertas con 17 avisos + 2 negativos), **cobertura 100 %** de `linkedin.ts` en líneas, sentencias, funciones y ramas (`pnpm --filter @job-search-os/adapters test:coverage`). Validado contra los 16 emails reales: 17 de 17 avisos extraídos con campos correctos. Flujo real probado de punta a punta con un `.eml` original contra la base local (`handleInboundEmail`, el mismo código del webhook): la oferta queda en `pendiente_jd` con título, empresa, ubicación, modalidad, badges y URL canónica correctos.
+- **Ojo con la ubicación de las alertas:** LinkedIn muestra la zona de búsqueda del usuario ("Argentina", "Salta"), no los países desde los que contrata el aviso. Por eso `countriesAllowed` queda null y la decisión real se toma al evaluar con la JD pegada; no confiar en `locationRaw` como si fuera el país del puesto.
+- **Gaps conocidos (otros formatos de email de LinkedIn, hoy en cola manual):**
+  - *Recomendaciones* ("Amplía tu búsqueda", `jobs-noreply@`): mismas tarjetas pero bajo `JOBS_POSTING_SECTION-job-cards`; trae avisos nuevos y casos de modalidad Híbrido. **Barato de cubrir, recomendado.** Pendiente de decisión de Mauro.
+  - *Empleos guardados* ("Solicita tus empleos guardados"): anclas `featured-saved-job` / `other-saved-jobs-job-card-N`, varias tarjetas sin modalidad. Son avisos que el usuario ya guardó, así que entrarían casi todos como duplicado: **se deja como gap**.
 ### JS-022 · Parser Get on Board (email) y genérico
 `deps:` JS-020 · `est:` 1.5 h
 ### JS-023 · Ingesta manual (URL + texto) ✅ done 2026-09-11

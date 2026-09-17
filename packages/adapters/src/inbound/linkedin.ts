@@ -81,12 +81,11 @@ function tarjetaARawJob(card: string, sourceName: string): RawJob | { error: str
   const iEmpresa = lineas.findIndex((l) => l.includes(" · "));
   if (iEmpresa < 1) return { error: `tarjeta ${externalId} sin línea "Empresa · Ubicación"` };
 
-  const [empresa, ubicacion] = lineas[iEmpresa]!.split(" · ");
+  // la línea tiene " · " (lo garantiza el findIndex), así que empresa y ubicación no van vacías;
+  // si hubiera más de un separador, lo extra es parte de la ubicación
+  const [empresa = "", ...resto] = lineas[iEmpresa]!.split(" · ");
   const title = lineas[iEmpresa - 1]!;
-  if (!empresa?.trim() || !ubicacion?.trim() || !title) {
-    return { error: `tarjeta ${externalId} sin empresa, ubicación o título` };
-  }
-  const { locationRaw, modality } = partirUbicacion(ubicacion);
+  const { locationRaw, modality } = partirUbicacion(resto.join(" · "));
 
   return {
     source: {
