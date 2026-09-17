@@ -15,3 +15,6 @@ packages/db/drizzle/
 .github/workflows/
 # schema.ts se copia tal cual desde la doc (JS-003); conserva su layout compacto
 packages/db/schema.ts
+
+# HTML de emails reales capturado tal cual: reformatearlo cambiaría lo que prueban los parsers
+packages/adapters/src/inbound/fixtures/
