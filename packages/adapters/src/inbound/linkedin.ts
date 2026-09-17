@@ -2,10 +2,16 @@ import type { Modality, RawJob } from "@job-search-os/pipeline";
 import type { EmailParser, InboundEmailContent, ParseResult } from "./parsers";
 
 /**
- * Parser de alertas de empleo de LinkedIn (JS-021). Cada aviso viene en una tarjeta marcada con
- * `data-test-id="job-card"`, con el id en el link a /jobs/view/<id>/ y una línea
- * "Empresa · Ubicación (Modalidad)". La alerta NO trae la descripción: `jdText` queda null y la
- * oferta cae en pendiente_jd.
+ * Parser de emails de empleo de LinkedIn (JS-021). Cubre dos formatos, que comparten la misma
+ * tarjeta y solo cambian el ancla:
+ *   - alertas de empleo → `data-test-id="job-card"`
+ *   - recomendaciones ("Amplía tu búsqueda") → `...JOBS_POSTING_SECTION-job-cards"`
+ * En ambos, el id está en el link a /jobs/view/<id>/ y hay una línea "Empresa · Ubicación
+ * (Modalidad)". Ninguno trae la descripción: `jdText` queda null y la oferta cae en pendiente_jd.
+ *
+ * Sigue en cola manual el email de "empleos guardados" (`featured-saved-job` /
+ * `other-saved-jobs-job-card-N`): son avisos que el usuario ya guardó, entrarían casi todos como
+ * duplicado y varias tarjetas vienen sin modalidad. Ver el gap anotado en docs/BACKLOG.md.
  *
  * Falla cerrado: si el HTML no tiene tarjetas, o si una tarjeta no se entiende, devuelve
  * `{ ok: false }` y el email entero va a la cola manual. Nunca se extrae a medias ni se
@@ -67,10 +73,18 @@ function partirUbicacion(texto: string): { locationRaw: string; modality: Modali
   };
 }
 
-/** `«AI Engineer»: ...` → `alerta «AI Engineer»`; sin alerta en el asunto, nombre genérico. */
-function nombreFuente(subject: string | null): string {
-  const alerta = subject ? /«([^»]+)»/.exec(subject)?.[1] : null;
-  return alerta ? `alerta «${alerta}»` : "alerta de LinkedIn";
+/**
+ * Nombre legible de la fuente: `alerta «AI Engineer»` o `recomendaciones «IA generativa»`.
+ * La búsqueda entre comillas angulares está en el asunto (alertas) o en el cuerpo
+ * (recomendaciones); sin ella, queda solo el formato.
+ */
+function nombreFuente(
+  formato: "alerta" | "recomendaciones",
+  subject: string | null,
+  html: string,
+): string {
+  const busqueda = /«([^»]+)»/.exec(subject ?? "")?.[1] ?? /«([^»<]+)»/.exec(html)?.[1];
+  return busqueda ? `${formato} «${busqueda}»` : `${formato} de LinkedIn`;
 }
 
 function tarjetaARawJob(card: string, sourceName: string): RawJob | { error: string } {
@@ -123,8 +137,9 @@ export const linkedinParser: EmailParser = {
   parse(email: InboundEmailContent): ParseResult {
     if (!email.html) return { ok: false, reason: "email de LinkedIn sin HTML: cola manual" };
 
+    const formato = email.html.includes('data-test-id="job-card"') ? "alerta" : "recomendaciones";
     const tarjetas = email.html
-      .split(/data-test-id="job-card"/)
+      .split(/data-test-id="(?:job-card|[^"]*JOBS_POSTING_SECTION-job-cards)"/)
       .slice(1)
       // el split corta dentro del <td>: descartamos lo que queda de sus atributos
       .map((c) => c.slice(c.indexOf(">") + 1));
@@ -133,7 +148,7 @@ export const linkedinParser: EmailParser = {
     }
 
     const jobs: RawJob[] = [];
-    const sourceName = nombreFuente(email.subject);
+    const sourceName = nombreFuente(formato, email.subject, email.html);
     for (const card of tarjetas) {
       const res = tarjetaARawJob(card, sourceName);
       if ("error" in res) return { ok: false, reason: `${res.error}: cola manual` };
