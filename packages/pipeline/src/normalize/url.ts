@@ -68,7 +68,13 @@ export function canonicalUrl(raw: string): Result<string, UrlError> {
   return ok(`${url.protocol}//${host}${path}${query}`);
 }
 
-/** LinkedIn: `currentJobId=N`, `/jobs/view/N`, `/comm/jobs/view/N` o `/jobs/view/slug-N` → `/jobs/view/N`. */
+/**
+ * LinkedIn: `currentJobId=N`, `/jobs/view/N`, `/comm/jobs/view/N` o `/jobs/view/slug-N` → `/jobs/view/N`.
+ * Forma canónica INTENCIONAL: `https://linkedin.com/jobs/view/<id>`, sin `www`, sin subdominio de
+ * país y sin barra final. El dedup compara esta cadena exacta (clave fuerte por URL) contra lo ya
+ * guardado en `jobs.canonical_url`: cambiarla haría que los avisos nuevos no crucen con los viejos.
+ * No es algo a "corregir" (ADR-013).
+ */
 function canonicalLinkedIn(host: string, url: URL): string | null {
   if (host !== "linkedin.com" && !host.endsWith(".linkedin.com")) return null;
 
