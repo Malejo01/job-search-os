@@ -51,6 +51,11 @@ export default async function InboxPage() {
                 {r.from} · {formatDate(r.receivedAt.toISOString())} · parser {r.parser ?? "none"} ·{" "}
                 {r.jobs ?? 0} avisos
               </p>
+              <p className="mt-1 text-xs">
+                <Link href={`/inbox/${r.id}`} className="text-blue-700 underline">
+                  Ver contenido
+                </Link>
+              </p>
               {r.error ? (
                 <p className="mt-1 text-xs text-amber-900">
                   {r.error}{" "}
