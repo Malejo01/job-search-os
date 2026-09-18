@@ -39,4 +39,5 @@ como identidad.
   error visible y reversible; la fusión errónea no lo era.
 - Test de regresión con los dos casos reales anonimizados en
   `packages/pipeline/src/dedup/fixtures/regressions.json` (originales en `fixtures-private/recovery/`).
-- Pendiente fuera de este ADR: mostrar `posible_duplicado` en la UI con acción "fusionar" manual.
+- Pendiente fuera de este ADR: mostrar `posible_duplicado` en la UI con fusión manual (JS-025) y guardar el crudo de toda carga para que ninguna fusión pueda perder texto (JS-024).
+- **Forma canónica de LinkedIn (intencional, no corregir):** `canonicalUrl` guarda `https://linkedin.com/jobs/view/<id>`, sin `www`, sin subdominio de país y sin barra final. Es a propósito: la clave fuerte por URL compara esa cadena exacta, y así un aviso visto como `www.linkedin.com/jobs/view/<id>/`, `ar.linkedin.com/...`, `/comm/jobs/view/...` o `?currentJobId=<id>` cae en el mismo job. Si se cambiara la forma, los jobs ya guardados dejarían de coincidir con los nuevos y se duplicarían (confirmado con tráfico real el 2026-09-18: Empresa S (golden id 24) y la alerta de LinkedIn se cruzaron por URL).
