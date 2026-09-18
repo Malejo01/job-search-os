@@ -22,8 +22,14 @@ export type RawJob = {
     /** Id en la fuente (slug de GoB, id de LinkedIn) */
     externalId: string | null;
     url: string | null;
-    /** Referencia al crudo guardado (path en storage) si existe */
+    /** Referencia al crudo ya guardado (el email entero, por ejemplo). Si está, la ingesta la usa. */
     rawRef: string | null;
+    /**
+     * Payload tal como llegó de la fuente, antes de mapear o limpiar (item de la API, input
+     * manual). La ingesta lo guarda en raw_blobs antes de procesar (JS-024). Sin esto ni rawRef,
+     * se guarda el RawJob mismo.
+     */
+    original?: { contentType: string; body: string } | null;
   };
   title: string;
   companyRaw: string;
@@ -78,7 +84,14 @@ export function rawJobFromManual(input: ManualJobInput, now = new Date()): RawJo
   const url = input.url?.trim() || null;
   const location = input.locationRaw?.trim() || null;
   return {
-    source: { kind: "manual", name: "manual", externalId: null, url, rawRef: null },
+    source: {
+      kind: "manual",
+      name: "manual",
+      externalId: null,
+      url,
+      rawRef: null,
+      original: { contentType: "application/json", body: JSON.stringify(input) },
+    },
     title: input.title.trim(),
     companyRaw: input.company.trim(),
     locationRaw: location ?? (input.modality === "remoto" ? "remoto (sin país indicado)" : null),
