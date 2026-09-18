@@ -6,6 +6,7 @@ export {
   type DedupDecision,
   type DedupOptions,
   type DedupReason,
+  type PossibleDuplicate,
   type RecentJob,
 } from "./dedup";
 export {

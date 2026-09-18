@@ -85,4 +85,4 @@ Buscar trabajo remoto en IA/desarrollo consume 1–2 horas diarias de trabajo re
 - Portales de carrera de dos empresas grandes e Indeed: 0/8 aplicables. Desactivadas.
 - Badge "X de Y aptitudes coinciden": 3/4 → analizar; 1/10 → descartar.
 - Excepción a la regla "Lead → descartar": Empresa L Lead AI Engineer con 2 candidatos y match agéntico alto se puntuó 5 y se aplicó. Regla ajustada: Lead/Manager cap 5 si ≤ 5 candidatos y disciplina ai_engineer; cap 3 en el resto.
-- Misma empresa, distinto rol (Empresa F ×2) NO es duplicado. Duplicado = misma empresa + título similar, o texto compartido > 90%.
+- Misma empresa, distinto rol (Empresa F ×2) NO es duplicado. Duplicado = misma URL, mismo id de la fuente, mismo JD o texto compartido > 90%. Misma empresa + título similar solo marca posible duplicado (ADR-013).
