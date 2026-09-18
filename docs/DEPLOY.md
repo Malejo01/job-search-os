@@ -116,11 +116,13 @@ Dominio de ingesta: `ingest.malejo.com.ar`. Dirección del usuario: `u_a0000000@
 3. `INGEST_DOMAIN=ingest.malejo.com.ar` en Vercel y `profiles.inbound_address` actualizado con un **UPDATE puntual** (NO correr `pnpm db:seed` contra producción: reescribiría el perfil y el golden).
 4. Verificado en producción: sin firma → 401; con firma inválida → 401; con firma válida y destinatario inexistente → 200 `unknown_recipient` sin escribir nada.
 
-**Falta para recibir de verdad:**
+5. **Recepción habilitada:** recibir necesita un **MX aparte** del de envío, sobre `ingest.malejo.com.ar` (no sobre `send.ingest`) y con la prioridad más baja del subdominio: `ingest MX 10 inbound-smtp.sa-east-1.amazonaws.com`. Cargado con `npx vercel dns add malejo.com.ar ingest MX inbound-smtp.sa-east-1.amazonaws.com 10`. Resend no lo revalida solo: se fuerza con `POST https://api.resend.com/domains/<id>/verify` (con `RESEND_API_KEY`) y después `GET /domains/<id>` tiene que mostrar `status: verified` y el registro `Receiving` en `verified`.
+6. **Reenvío de Gmail configurado** (2026-09-18): filtro que manda las alertas de LinkedIn y Get on Board a `u_a0000000@ingest.malejo.com.ar`. Gmail pide confirmar la dirección; **esta variante del mail no trae código, trae un link**, y llega al propio sistema: se lee desde `/inbox` › "Ver contenido" › sección "Links".
+7. Pendiente de comprobar con tráfico real: que una alerta de LinkedIn entre parseada (JS-021) y sus ofertas queden en pendientes de JD.
 
-5. Resend › el dominio › **Receiving / Enable receiving**: recibir necesita un **MX aparte**, distinto del de envío, sobre `ingest.malejo.com.ar` (no sobre `send.ingest`). Resend lo muestra al habilitarlo; tiene que quedar con la prioridad más baja del subdominio. Cargarlo con `npx vercel dns add malejo.com.ar ingest MX <valor> <prioridad>`.
-6. En Gmail: filtro que reenvía las alertas (LinkedIn, Get on Board) a `u_a0000000@ingest.malejo.com.ar`. Gmail pide confirmar la dirección de reenvío: el mail de confirmación llega al webhook y queda en `/inbox` (cola manual) con el código.
-7. Prueba final: mandar un mail cualquiera a la dirección; en `/inbox` aparece. Una alerta de LinkedIn tiene que entrar parseada (JS-021), no a la cola manual.
+### Leer un email entrante
+
+`/inbox` lista lo que llegó y cada fila linkea a `/inbox/<id>`, que muestra los links, el texto y el HTML del email (guardado en `raw_blobs`). El HTML va dentro de un `iframe` con `sandbox` vacío: es contenido no confiable, así que no se inyecta en la página. Sirve para decidir, cuando algo cae en cola manual, si se carga a mano o si conviene escribir un parser para esa fuente.
 
 Límites del plan Free de Resend: 3.000 emails/mes, 100/día, retención 30 días (el crudo queda igual en `raw_blobs`, no depende de la retención).
 

@@ -12,7 +12,7 @@ Alta manual (UI/MCP) ┼─► dedup ─► prefiltro ─► cola ─► worker 
 Email (bloque 4) ····┘      (14 días)  (reglas)         (o modo demo/offline)     └─ MCP: /api/mcp (7 tools)
 ```
 
-- **Ingesta**: Get on Board por API pública cada 6 h (GitHub Actions → `/api/cron/*`), alta manual desde la UI o desde Claude vía MCP. Email entrante (Resend) es el bloque 4, en curso.
+- **Ingesta**: Get on Board por API pública cada 6 h (GitHub Actions → `/api/cron/*`), alta manual desde la UI o desde Claude vía MCP, y **email entrante**: las alertas reenviadas a `u_<id>@ingest.<dominio>` entran por webhook firmado de Resend, se guardan crudas y pasan por el parser de la fuente. Lo que ninguna reconoce queda en `/inbox`, donde se puede leer el email entero para decidir si se carga a mano o si merece un parser nuevo.
 - **Pipeline puro** (`packages/pipeline`, sin I/O, 190 tests): normalización, dedup por URL / empresa+título / similitud de JD, prefiltro por reglas del perfil, `decide()` (cap de título, penalizaciones verificables, tabla de acción), máquina de estados de la oferta, skills por alias determinista, agenda de mercado, plan de formación y pre-score offline.
 - **Evaluador LLM**: Vercel AI SDK con ruteo por tabla `model_routing` (Gemini 3.5 Flash con `thinking_level: minimal`, fallback Claude Haiku 4.5), prompts versionados en Markdown, salida JSON validada con Zod. Harness de evals contra un golden set de 34 ofertas reales con métricas de aceptación (MAE, recall de bloqueadores, precisión de riesgos).
 - **Modo offline**: si no hay créditos, cada oferta muestra igual un pre-score determinista (skills de la JD × tu nivel, riesgos del prefiltro, salario), marcado como "pre". Modo demo del worker (`--demo`) para ver el flujo entero sin LLM.
@@ -58,7 +58,7 @@ Otros comandos: `pnpm ingest:getonboard --local`, `pnpm market:snapshot --local`
 | 2 · Pipeline: dedup, prefiltro, decide, ingesta GoB, cola y worker (JS-008–013) | ✅ |
 | 3 · UI: auth, lista, detalle, cola de JD (JS-014–017) | ✅ |
 | CI, deploy, cron (JS-018, JS-019) | ✅ CI y cron en Actions · ✅ desplegado en Vercel + Neon el 2026-09-15 (estado y DNS en `docs/DEPLOY.md`) |
-| 4 · Email entrante (JS-020–023) | ✅ JS-023 alta manual · ✅ JS-020 webhook Resend firmado, storage y cola manual (falta DNS + secrets) · ⏳ JS-021/022 parsers (necesitan emails reales) |
+| 4 · Email entrante (JS-020–023) | ✅ JS-023 alta manual · ✅ JS-020 recepción andando en producción (Resend sobre `ingest.malejo.com.ar`, webhook firmado, `/inbox` con el contenido del email) · ✅ JS-021 parser de LinkedIn (alertas y recomendaciones) · ⏳ JS-022 Get on Board y genérico |
 | 5 · Inteligencia | ✅ JS-034 plan, JS-035 MCP, JS-036 feedback loop (`/applications`), adelantos de JS-030/031 sin LLM · ⏳ JS-032/033 perfil verificable y entrevista dirigida |
 | Calibración del evaluador | ✅ cerrada 2026-09-11: prompt `evaluate_job@v1.3.1`, `gemini-3.1-flash-lite` primario (fallback 3.5-flash), USD 0,0013 por evaluación; números en `docs/LLM_COSTOS.md`, ADR-011. Lo que sigue se calibra con `/applications` (JS-036) |
 

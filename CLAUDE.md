@@ -10,6 +10,9 @@ Leé `docs/PRD.md` y `docs/ARCHITECTURE.md` antes de tocar cualquier cosa. Las d
 4. `pnpm lint && pnpm typecheck && pnpm test` verdes antes de abrir PR.
 5. PR con: qué hace, cómo se probó, qué queda fuera. Sin merge automático; Mauro revisa.
 6. Nunca hacer commit de `.env*`, credenciales, ni fixtures con datos personales del usuario.
+7. Contra producción (Neon): migraciones sí (`pnpm db:migrate`), **seed no**. `pnpm db:seed` reescribe perfil y golden; para cambiar un dato puntual va un `UPDATE` puntual.
+8. Datos reales del usuario (emails `.eml`, golden, perfil) viven en `fixtures-private/`, que está en `.gitignore`. Las fixtures públicas se derivan de ahí: solo el fragmento necesario, sin nombre, email, titular de perfil ni tokens de tracking, y con empresas y títulos ficticios. Van en `.prettierignore` si son HTML capturado, para que el formateo no altere lo que prueban.
+9. Docker Desktop en la máquina de Mauro se abre a mano y se cae solo: antes de correr integración, e2e o `pnpm secrets:scan`, pedirle que lo abra en vez de intentar arrancarlo. Si no está, esos tests quedan para el CI, que levanta su propio Postgres.
 
 ## Reglas de arquitectura (no negociables)
 
@@ -20,6 +23,8 @@ Leé `docs/PRD.md` y `docs/ARCHITECTURE.md` antes de tocar cualquier cosa. Las d
 - Modelos LLM se leen de `model_routing`; nunca hardcodear un nombre de modelo fuera de `seeds/model_routing.json`.
 - Server Components por defecto; `"use client"` solo para interactividad real. Framer Motion solo en client components.
 - Migraciones con `drizzle-kit generate`; nunca editar SQL generado a mano salvo para policies RLS (van en `packages/db/rls/*.sql`).
+- Los parsers de email **fallan cerrado**: si la estructura no es la esperada devuelven `{ ok: false }` y el email entero va a la cola manual. Nunca extracción parcial ni campos inventados. Lo que el email no dice queda `null` — en particular `countriesAllowed`, para que el prefiltro marque riesgo de ubicación en vez de asumir "cualquier país".
+- Contenido que viene de afuera (HTML de emails) nunca se inyecta en la página: va en un `iframe` con `sandbox` vacío.
 
 ## Stack fijo
 
