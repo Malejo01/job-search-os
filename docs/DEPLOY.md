@@ -105,14 +105,22 @@ No hace falta el dominio de ingesta ni nada de lo del bloque 4: alcanza con una 
 1. Resend › API Keys → crear una y cargarla como `RESEND_API_KEY` en `.env.local` y en Vercel (prod). Si ya se cargó una para el bloque 4 (inbound), es la misma key: sirve para las dos cosas.
 2. Sin un dominio propio verificado en Resend, dejar `EMAIL_FROM` vacío: el mail sale de `onboarding@resend.dev`, que **solo entrega al email con el que te registraste en Resend**. Si ese email no es el mismo que `SEED_USER_EMAIL`, "olvidé mi contraseña" va a fallar en silencio (el token se crea, el mail no llega) — usar el mismo email en ambos, o verificar un dominio propio en Resend y setear `EMAIL_FROM`.
 
-## Email entrante con Resend (JS-020): qué configura Mauro
+## Email entrante con Resend (JS-020)
 
-1. Resend › Domains › Add domain: `ingest.<tu-dominio>` (subdominio: no toca el DNS del dominio principal). Resend muestra los registros **MX** (y TXT de verificación) para cargar en el DNS de tu dominio. Esperar a que figure verificado.
-2. Resend › Webhooks › Add: URL `https://<app>/api/inbound`, evento **`email.received`**. Copiar el signing secret (`whsec_…`) → variable `RESEND_WEBHOOK_SECRET` en Vercel.
-3. Resend › API Keys → `RESEND_API_KEY` en Vercel (el webhook solo trae metadatos; el cuerpo se pide con `GET /emails/receiving/{id}`).
-4. Variable `INGEST_DOMAIN=ingest.<tu-dominio>` en Vercel y **volver a correr el seed** (`pnpm db:seed`) para que `profiles.inbound_address` quede como `u_a0000000@ingest.<tu-dominio>`.
-5. En Gmail: filtro que reenvía las alertas (LinkedIn, Get on Board) a esa dirección. Gmail pide confirmar la dirección de reenvío: el mail de confirmación llega al webhook y queda en `/inbox` (cola manual) con el código.
-6. Prueba: mandar un mail cualquiera a la dirección; en `/inbox` aparece con `sin parser: cola manual`. Sin firma válida el endpoint responde 401 y no guarda nada.
+Dominio de ingesta: `ingest.malejo.com.ar`. Dirección del usuario: `u_a0000000@ingest.malejo.com.ar`.
+
+**Hecho (2026-09-17):**
+
+1. Resend › Domains › Add domain `ingest.malejo.com.ar`, y sus registros de **envío** cargados en la zona de Vercel (`npx vercel dns ls malejo.com.ar`): `send.ingest` MX `10 feedback-smtp.sa-east-1.amazonses.com.`, `send.ingest` TXT SPF y `resend._domainkey.ingest` TXT DKIM. Resuelven en 8.8.8.8.
+2. Resend › Webhooks: endpoint `https://busquedalaboral.malejo.com.ar/api/inbound`, evento `email.received`. Su signing secret está en `RESEND_WEBHOOK_SECRET` (Vercel, producción). `RESEND_API_KEY` ya estaba (el webhook solo trae metadatos; el cuerpo se pide con `GET /emails/receiving/{id}`).
+3. `INGEST_DOMAIN=ingest.malejo.com.ar` en Vercel y `profiles.inbound_address` actualizado con un **UPDATE puntual** (NO correr `pnpm db:seed` contra producción: reescribiría el perfil y el golden).
+4. Verificado en producción: sin firma → 401; con firma inválida → 401; con firma válida y destinatario inexistente → 200 `unknown_recipient` sin escribir nada.
+
+**Falta para recibir de verdad:**
+
+5. Resend › el dominio › **Receiving / Enable receiving**: recibir necesita un **MX aparte**, distinto del de envío, sobre `ingest.malejo.com.ar` (no sobre `send.ingest`). Resend lo muestra al habilitarlo; tiene que quedar con la prioridad más baja del subdominio. Cargarlo con `npx vercel dns add malejo.com.ar ingest MX <valor> <prioridad>`.
+6. En Gmail: filtro que reenvía las alertas (LinkedIn, Get on Board) a `u_a0000000@ingest.malejo.com.ar`. Gmail pide confirmar la dirección de reenvío: el mail de confirmación llega al webhook y queda en `/inbox` (cola manual) con el código.
+7. Prueba final: mandar un mail cualquiera a la dirección; en `/inbox` aparece. Una alerta de LinkedIn tiene que entrar parseada (JS-021), no a la cola manual.
 
 Límites del plan Free de Resend: 3.000 emails/mes, 100/día, retención 30 días (el crudo queda igual en `raw_blobs`, no depende de la retención).
 
