@@ -492,3 +492,79 @@ describe("riesgo de ubicación en TODOS los caminos de entrada (Empresa AB/Empre
     for (const m of await q.dequeue(EVALUATE_QUEUE, 50)) await q.ack(m.id);
   });
 });
+
+describe("ingesta: dedup no fusiona por empresa+título (ADR-013)", () => {
+  const deps = () => ({ db: conn.db, userId: USER, rules: criteria as never, logger });
+
+  it("dos avisos de la misma consultora con título que normaliza igual → dos jobs, JD intactos, el segundo marcado", async () => {
+    const loyalty = await ingestRawJob(
+      raw({
+        externalId: "dq-loyalty",
+        companyRaw: "Consultora Delta",
+        title: "Senior Quality Engineering (Loyalty & Benefits, Manual/API Testing)",
+        jdText:
+          "QA manual y API para el módulo de Loyalty & Benefits de un banco. Postman, Xray, JIRA.",
+      }),
+      deps(),
+    );
+    const biometric = await ingestRawJob(
+      raw({
+        externalId: "dq-biometric",
+        companyRaw: "Consultora Delta",
+        title: "Senior Quality Engineering (Biometric)",
+        jdText:
+          "QA de la plataforma biométrica y onboarding digital de un banco: liveness, OCR de DNI, métricas FAR/FRR.",
+      }),
+      deps(),
+    );
+    expect(loyalty).toMatchObject({ action: "inserted", possibleDuplicateOf: null });
+    // Con JD en los dos, el texto distinto desmiente al título: ni siquiera se marca
+    expect(biometric).toMatchObject({ action: "inserted", possibleDuplicateOf: null });
+    expect(biometric.jobId).not.toBe(loyalty.jobId);
+    const [a] = await conn.db.select().from(s.jobs).where(eq(s.jobs.id, loyalty.jobId));
+    expect(a?.jdText).toContain("Loyalty");
+  });
+
+  it("sin JD que desmienta, empresa+título parecido → insert con duplicate_of_id y flag posible_duplicado", async () => {
+    const first = await ingestRawJob(
+      raw({ externalId: "dq-alert", companyRaw: "Hooli", title: "Data Engineer", jdText: null }),
+      deps(),
+    );
+    const second = await ingestRawJob(
+      raw({
+        externalId: "dq-manual",
+        companyRaw: "Hooli",
+        title: "Senior Data Engineer",
+        jdText: "Hooli busca Data Engineer: pipelines en Spark y dbt sobre Snowflake.",
+      }),
+      deps(),
+    );
+    expect(second).toMatchObject({ action: "inserted", possibleDuplicateOf: first.jobId });
+    const [row] = await conn.db.select().from(s.jobs).where(eq(s.jobs.id, second.jobId));
+    expect(row?.duplicateOfId).toBe(first.jobId);
+    expect(row?.flags).toContain("posible_duplicado");
+  });
+
+  it("mismo JD con otra URL y otro título → merge por jd_hash", async () => {
+    const jd = "Aviso republicado: plataforma de pagos, TypeScript y Postgres. Remoto LATAM.";
+    const first = await ingestRawJob(
+      raw({
+        externalId: "dq-hash-1",
+        companyRaw: "Pagos SA",
+        title: "Backend Engineer",
+        jdText: jd,
+      }),
+      deps(),
+    );
+    const second = await ingestRawJob(
+      raw({
+        externalId: "dq-hash-2",
+        companyRaw: "Pagos SA",
+        title: "Software Engineer (Payments)",
+        jdText: `  ${jd.toUpperCase()} `,
+      }),
+      deps(),
+    );
+    expect(second).toMatchObject({ action: "merged", jobId: first.jobId, reason: "jd_hash" });
+  });
+});

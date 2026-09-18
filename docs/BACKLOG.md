@@ -54,6 +54,7 @@ Tickets de 1–3 hs. `deps` = tickets que deben estar done. Estado: `todo` · `d
 `deps:` JS-007 · `est:` 2 h · `estado:` done (2026-09-10)
 - `dedup(candidate, recentJobs)` → `{kind:'merge', jobId} | {kind:'insert'}` según ADR-006. Jaccard de título, shingles 5-gramas de JD.
 - **Acepta:** `dedup_pairs` del golden pasan; flag `volume_recruiting` en el par 19/20.
+- **Fix 2026-09-18 (ADR-013):** empresa+título dejó de fusionar (fusionó dos avisos distintos de una consultora y el JD de uno pisó al otro). Ahora fusionan URL, external_id, `jd_hash` o texto ≥ 0.9; empresa+título solo marca `posible_duplicado` + `duplicate_of_id`. Regresiones en `packages/pipeline/src/dedup/fixtures/regressions.json`.
 
 ### JS-009 · Test de integración RLS
 `deps:` JS-003 · `est:` 1 h · `estado:` done (2026-09-10; adelantado por el hallazgo de RLS: FORCE + rol jobsearch_app + control negativo)
@@ -162,7 +163,7 @@ Tickets de 1–3 hs. `deps` = tickets que deben estar done. Estado: `todo` · `d
 `deps:` JS-020 · `est:` 1.5 h
 ### JS-023 · Ingesta manual (URL + texto) ✅ done 2026-09-11
 `deps:` JS-017 · `est:` 1 h
-- `/jobs/new` (formulario, Server Action) y tool MCP `add_job`: mismo `ingestRawJob` que las fuentes automáticas (dedup 14 días por URL o empresa+título, prefiltro, cola si trae JD; sin JD queda en pendientes de JD), fuente `manual`, bajo RLS (policy `companies_insert` para crear la empresa). Probado: alta por UI (pendiente de JD) y por MCP (insert y luego merge por URL).
+- `/jobs/new` (formulario, Server Action) y tool MCP `add_job`: mismo `ingestRawJob` que las fuentes automáticas (dedup 14 días por URL o JD; empresa+título solo marca posible duplicado desde ADR-013, prefiltro, cola si trae JD; sin JD queda en pendientes de JD), fuente `manual`, bajo RLS (policy `companies_insert` para crear la empresa). Probado: alta por UI (pendiente de JD) y por MCP (insert y luego merge por URL).
 
 ## Bloque 5 — Inteligencia (semanas 3–6)
 

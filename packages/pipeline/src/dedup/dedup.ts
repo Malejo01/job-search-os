@@ -1,11 +1,16 @@
 import { jaccard, shingleSimilarity } from "./similarity";
 
 /**
- * Dedup determinista (ADR-006), antes del prefiltro y sin LLM:
- * 1. Clave fuerte: misma canonical_url o mismo external_id de la misma fuente → merge.
- * 2. Clave blanda: misma empresa normalizada + Jaccard de título ≥ 0.6 + ventana de 14 días → merge.
- * 3. Texto: JD en ambos con similitud de shingles ≥ 0.9 → merge aunque el título difiera,
+ * Dedup determinista (ADR-006, criterio de fusión revisado por ADR-013), antes del prefiltro y
+ * sin LLM. Solo fusiona cuando algo identifica al aviso, no por parecido de nombre:
+ * 1. Clave fuerte: misma canonical_url, mismo external_id de la misma fuente o mismo hash del JD
+ *    → merge.
+ * 2. Texto: JD en ambos con similitud de shingles ≥ 0.9 → merge aunque el título difiera,
  *    con flag volume_recruiting (caso golden 19/20).
+ * 3. Empresa normalizada igual + Jaccard de título ≥ 0.6 + ventana de 14 días, sin URL ni JD que
+ *    lo confirmen → insert marcado como posible duplicado (`possibleDuplicateOf`). Ya no fusiona:
+ *    una consultora publica varios "Senior X Engineering (área)" que normalizan igual (ADR-013).
+ *    Si los dos traen JD y el texto no llega al umbral, el texto desmiente al título y no se marca.
  * 4. Si no, insert (caso golden 6/7: misma empresa, Jaccard < 0.6).
  * Fusionar (lo hace el adapter con la decisión): agregar la fuente a job_sources, conservar
  * la fecha más antigua y el texto más largo.
@@ -20,6 +25,8 @@ export type DedupCandidate = {
   titleTokens: readonly string[];
   /** textShingles(jd_text); null si no hay JD */
   jdShingles?: readonly string[] | null;
+  /** Hash del JD normalizado (jobs.jd_hash); null si no hay JD */
+  jdHash?: string | null;
   /** Fecha de la fuente que trae el candidato (posted_at o ahora). */
   seenAt: Date | string;
 };
@@ -32,14 +39,17 @@ export type RecentJob = {
   companyNormalized: string;
   titleTokens: readonly string[];
   jdShingles?: readonly string[] | null;
+  jdHash?: string | null;
   firstSeenAt: Date | string;
 };
 
-export type DedupReason = "url" | "external_id" | "company_title" | "jd_text";
+export type DedupReason = "url" | "external_id" | "jd_hash" | "jd_text";
+
+export type PossibleDuplicate = { jobId: string; reason: "company_title"; similarity: number };
 
 export type DedupDecision =
   | { kind: "merge"; jobId: string; reason: DedupReason; similarity: number; flags: string[] }
-  | { kind: "insert" };
+  | { kind: "insert"; possibleDuplicateOf?: PossibleDuplicate };
 
 export type DedupOptions = {
   windowDays?: number;
@@ -76,39 +86,37 @@ export function dedup(
     if (key && job.externalIds?.includes(key)) {
       return { kind: "merge", jobId: job.id, reason: "external_id", similarity: 1, flags: [] };
     }
+    if (candidate.jdHash && job.jdHash === candidate.jdHash) {
+      return { kind: "merge", jobId: job.id, reason: "jd_hash", similarity: 1, flags: [] };
+    }
   }
 
-  // 2 y 3. Claves blandas dentro de la ventana; se queda con el candidato más parecido
+  // 2 y 3. Dentro de la ventana: el texto fusiona; empresa+título solo marca
   const seenAt = toMs(candidate.seenAt);
   let best: Extract<DedupDecision, { kind: "merge" }> | null = null;
+  let hint: PossibleDuplicate | null = null;
   for (const job of recentJobs) {
     if (Math.abs(seenAt - toMs(job.firstSeenAt)) > opt.windowDays * DAY_MS) continue;
 
-    if (job.companyNormalized === candidate.companyNormalized) {
-      const titleSim = jaccard(candidate.titleTokens, job.titleTokens);
-      if (titleSim >= opt.titleThreshold && (!best || titleSim > best.similarity)) {
-        best = {
-          kind: "merge",
-          jobId: job.id,
-          reason: "company_title",
-          similarity: titleSim,
-          flags: [],
-        };
-      }
+    const bothHaveJd = Boolean(candidate.jdShingles?.length && job.jdShingles?.length);
+    const textSim = bothHaveJd ? shingleSimilarity(candidate.jdShingles!, job.jdShingles!) : 0;
+    if (bothHaveJd && textSim >= opt.textThreshold && (!best || textSim > best.similarity)) {
+      best = {
+        kind: "merge",
+        jobId: job.id,
+        reason: "jd_text",
+        similarity: textSim,
+        flags: ["volume_recruiting"],
+      };
     }
 
-    if (candidate.jdShingles?.length && job.jdShingles?.length) {
-      const textSim = shingleSimilarity(candidate.jdShingles, job.jdShingles);
-      if (textSim >= opt.textThreshold && (!best || textSim > best.similarity)) {
-        best = {
-          kind: "merge",
-          jobId: job.id,
-          reason: "jd_text",
-          similarity: textSim,
-          flags: ["volume_recruiting"],
-        };
+    if (!bothHaveJd && job.companyNormalized === candidate.companyNormalized) {
+      const titleSim = jaccard(candidate.titleTokens, job.titleTokens);
+      if (titleSim >= opt.titleThreshold && (!hint || titleSim > hint.similarity)) {
+        hint = { jobId: job.id, reason: "company_title", similarity: titleSim };
       }
     }
   }
-  return best ?? { kind: "insert" };
+  if (best) return best;
+  return hint ? { kind: "insert", possibleDuplicateOf: hint } : { kind: "insert" };
 }

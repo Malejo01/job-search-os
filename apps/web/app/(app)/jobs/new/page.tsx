@@ -83,8 +83,9 @@ export default async function NewJobPage({
         </div>
       </form>
       <p className="text-xs text-zinc-500">
-        Si el link o la empresa + título ya existen en los últimos 14 días, se fusiona con la oferta
-        existente en vez de duplicarla. El prefiltro determinista decide si va a evaluación.
+        Si el link o la descripción ya existen en los últimos 14 días, se fusiona con la oferta
+        existente en vez de duplicarla. Si solo coinciden empresa y título, se guarda aparte marcada
+        como posible duplicado. El prefiltro determinista decide si va a evaluación.
       </p>
     </section>
   );

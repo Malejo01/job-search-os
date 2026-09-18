@@ -24,7 +24,8 @@ import type { Logger } from "../logger";
 /**
  * Ingesta de un RawJob para un usuario: normaliza → dedup contra los últimos 14 días →
  * (merge: suma la fuente, conserva fecha más antigua y texto más largo) | (insert: empresa,
- * prefiltro, estado, cola de evaluación si hay JD). Toda la lógica de decisión está en
+ * prefiltro, estado, cola de evaluación si hay JD; si dedup lo marcó como posible duplicado,
+ * `duplicate_of_id` + flag `posible_duplicado`, sin fusionar: ADR-013). Toda la lógica de decisión está en
  * packages/pipeline; acá solo hay I/O y orquestación. Corre como servicio (dueño con
  * BYPASSRLS) y filtra por user_id explícito (ARCHITECTURE §4).
  */
@@ -54,6 +55,8 @@ export type IngestOutcome =
       status: JobStatus;
       prefilterReason: string | null;
       enqueued: boolean;
+      /** Job parecido (misma empresa y título) que dedup no se animó a fusionar */
+      possibleDuplicateOf: string | null;
     };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -71,6 +74,7 @@ async function loadRecentJobs(db: Db, userId: string, since: Date): Promise<Rece
       companyRaw: s.jobs.companyRaw,
       titleNormalized: s.jobs.titleNormalized,
       jdShingles: s.jobs.jdShingles,
+      jdHash: s.jobs.jdHash,
       firstSeenAt: s.jobs.firstSeenAt,
     })
     .from(s.jobs)
@@ -101,6 +105,7 @@ async function loadRecentJobs(db: Db, userId: string, since: Date): Promise<Rece
     companyNormalized: normalizeCompany(r.companyRaw),
     titleTokens: r.titleNormalized.split(" ").filter(Boolean),
     jdShingles: r.jdShingles,
+    jdHash: r.jdHash,
     firstSeenAt: r.firstSeenAt,
   }));
 }
@@ -136,6 +141,7 @@ export async function ingestRawJob(raw: RawJob, deps: IngestDeps): Promise<Inges
   const url = raw.source.url ? canonicalUrl(raw.source.url) : null;
   const canonical = url?.ok ? url.value : null;
   const shingles = raw.jdText ? textShingles(raw.jdText) : null;
+  const hash = raw.jdText ? jdHash(raw.jdText) : null;
   const seenAt = raw.postedAt ?? now;
 
   const recent = await loadRecentJobs(db, userId, since);
@@ -147,6 +153,7 @@ export async function ingestRawJob(raw: RawJob, deps: IngestDeps): Promise<Inges
       companyNormalized: normalizeCompany(raw.companyRaw),
       titleTokens: titleTokens(raw.title),
       jdShingles: shingles,
+      jdHash: hash,
       seenAt,
     },
     recent,
@@ -249,9 +256,11 @@ export async function ingestRawJob(raw: RawJob, deps: IngestDeps): Promise<Inges
   );
 
   let status: JobStatus = transition("nueva", pre.pass ? "prefilter_pass" : "prefilter_discard");
-  const flags = pre.pass
-    ? [...pre.flags, ...(pre.cap !== null ? [`title_cap:${pre.cap}`] : [])]
-    : [];
+  const possibleDuplicateOf = decision.possibleDuplicateOf?.jobId ?? null;
+  const flags = [
+    ...(pre.pass ? [...pre.flags, ...(pre.cap !== null ? [`title_cap:${pre.cap}`] : [])] : []),
+    ...(possibleDuplicateOf ? ["posible_duplicado"] : []),
+  ];
   if (pre.pass && !raw.jdText) status = transition(status, "needs_jd");
 
   const [inserted] = await db
@@ -275,13 +284,14 @@ export async function ingestRawJob(raw: RawJob, deps: IngestDeps): Promise<Inges
       candidatesCount: raw.candidatesCount,
       badges: raw.badges,
       jdText: raw.jdText,
-      jdHash: raw.jdText ? jdHash(raw.jdText) : null,
+      jdHash: hash,
       jdShingles: shingles,
       postedAt: raw.postedAt,
       firstSeenAt: seenAt,
       status,
       prefilterReason: pre.pass ? null : `${pre.reason}: ${pre.detail}`,
       flags,
+      duplicateOfId: possibleDuplicateOf,
     })
     .returning({ id: s.jobs.id });
   const jobId = inserted!.id;
@@ -305,7 +315,14 @@ export async function ingestRawJob(raw: RawJob, deps: IngestDeps): Promise<Inges
     enqueued = true;
   }
   log.info(
-    { job_id: jobId, status, prefilter: pre.pass ? "pass" : pre.reason, enqueued },
+    {
+      job_id: jobId,
+      status,
+      prefilter: pre.pass ? "pass" : pre.reason,
+      enqueued,
+      possible_duplicate_of: possibleDuplicateOf,
+      title_similarity: decision.possibleDuplicateOf?.similarity,
+    },
     "ingest: insert",
   );
   return {
@@ -314,6 +331,7 @@ export async function ingestRawJob(raw: RawJob, deps: IngestDeps): Promise<Inges
     status,
     prefilterReason: pre.pass ? null : pre.reason,
     enqueued,
+    possibleDuplicateOf,
   };
 }
 

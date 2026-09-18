@@ -1,9 +1,11 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import golden from "../../../../evals/fixtures/golden.json";
 import { normalizeCompany } from "../normalize/company";
 import { titleTokens } from "../normalize/title";
 import { dedup, type DedupCandidate, type RecentJob } from "./dedup";
 import { textShingles } from "./similarity";
+import regressions from "./fixtures/regressions.json";
 
 type GoldenJob = {
   id: number;
@@ -123,13 +125,16 @@ describe("dedup: claves fuertes y blandas", () => {
     expect(otherSource).toEqual({ kind: "insert" });
   });
 
-  it("misma empresa + Jaccard de título ≥ 0.6 dentro de 14 días → merge por company_title", () => {
+  it("misma empresa + Jaccard de título ≥ 0.6 sin URL ni JD que lo confirmen → insert marcado como posible duplicado", () => {
     const similar: GoldenJob = { ...acme, titulo: "Senior AI Engineer (Remote)" };
     const r = dedup(candidateFrom(similar), [recent]);
-    expect(r).toMatchObject({ kind: "merge", jobId: "job-900", reason: "company_title" });
+    expect(r).toMatchObject({
+      kind: "insert",
+      possibleDuplicateOf: { jobId: "job-900", reason: "company_title" },
+    });
   });
 
-  it("misma empresa, título similar, pero fuera de la ventana de 14 días → insert", () => {
+  it("misma empresa, título similar, pero fuera de la ventana de 14 días → insert sin marca", () => {
     const old: RecentJob = { ...recent, firstSeenAt: "2026-08-01T12:00:00Z" };
     expect(dedup(candidateFrom(acme), [old])).toEqual({ kind: "insert" });
   });
@@ -139,7 +144,7 @@ describe("dedup: claves fuertes y blandas", () => {
     expect(dedup(candidateFrom(other), [recent])).toEqual({ kind: "insert" });
   });
 
-  it("sin jobs recientes → insert; elige el más similar si hay varios candidatos", () => {
+  it("sin jobs recientes → insert; la marca de posible duplicado apunta al más similar", () => {
     expect(dedup(candidateFrom(acme), [])).toEqual({ kind: "insert" });
     const weaker: RecentJob = {
       ...recent,
@@ -147,6 +152,83 @@ describe("dedup: claves fuertes y blandas", () => {
       titleTokens: ["ai", "engineer", "platform", "cloud"],
     };
     const r = dedup(candidateFrom(acme), [weaker, recent]);
-    expect(r).toMatchObject({ kind: "merge", jobId: "job-900" });
+    expect(r).toMatchObject({ kind: "insert", possibleDuplicateOf: { jobId: "job-900" } });
+  });
+
+  it("mismo hash de JD → merge por jd_hash aunque URL y título difieran", () => {
+    const withHash: RecentJob = { ...recent, jdHash: "abc" };
+    const other: GoldenJob = { ...acme, empresa: "Otra", titulo: "Backend Dev" };
+    const r = dedup({ ...candidateFrom(other, { url: "https://otra.example/1" }), jdHash: "abc" }, [
+      withHash,
+    ]);
+    expect(r).toMatchObject({ kind: "merge", jobId: "job-900", reason: "jd_hash" });
+  });
+
+  it("empresa+título iguales y JD de los dos que no se parecen → insert sin marca: el texto desmiente", () => {
+    const a = fromGolden(acme, { jd: jdFromStack(acme) });
+    const b = candidateFrom(acme, {
+      jd: "Rol de soporte presencial con turnos rotativos, atención de mesa de ayuda y carga de tickets.",
+    });
+    expect(dedup(b, [a])).toEqual({ kind: "insert" });
+  });
+});
+
+/** Igual que jdHash() de packages/adapters: sha256 del texto sin mayúsculas ni espacios repetidos. */
+const sha = (text: string) =>
+  createHash("sha256").update(text.trim().replace(/\s+/g, " ").toLowerCase()).digest("hex");
+
+type RegressionSide = {
+  sourceKind: string;
+  externalId: string | null;
+  company: string;
+  title: string;
+  url: string;
+  seenAt: string;
+  jd: string | null;
+};
+
+const asRecent = (side: RegressionSide): RecentJob => ({
+  id: "existing",
+  canonicalUrl: side.url,
+  externalIds: side.externalId ? [`${side.sourceKind}:${side.externalId}`] : [],
+  companyNormalized: normalizeCompany(side.company),
+  titleTokens: titleTokens(side.title),
+  jdShingles: side.jd ? textShingles(side.jd) : null,
+  jdHash: side.jd ? sha(side.jd) : null,
+  firstSeenAt: side.seenAt,
+});
+
+const asCandidate = (side: RegressionSide): DedupCandidate => ({
+  canonicalUrl: side.url,
+  sourceKind: side.sourceKind,
+  externalId: side.externalId,
+  companyNormalized: normalizeCompany(side.company),
+  titleTokens: titleTokens(side.title),
+  jdShingles: side.jd ? textShingles(side.jd) : null,
+  jdHash: side.jd ? sha(side.jd) : null,
+  seenAt: side.seenAt,
+});
+
+describe("dedup: regresiones de producción (fixtures/regressions.json)", () => {
+  it.each(regressions.cases.map((c) => [c.id, c] as const))("%s", (_id, c) => {
+    // En los dos órdenes de llegada: el resultado no puede depender de cuál entró primero
+    for (const [first, second] of [
+      [c.a, c.b],
+      [c.b, c.a],
+    ] as const) {
+      const r = dedup(asCandidate(second), [asRecent(first)]);
+      if (c.expected === "duplicate")
+        expect(r).toMatchObject({ kind: "merge", jobId: "existing", reason: c.reason });
+      else if (c.expected === "possible_duplicate")
+        expect(r).toMatchObject({ kind: "insert", possibleDuplicateOf: { jobId: "existing" } });
+      else expect(r).toMatchObject({ kind: "insert" });
+    }
+  });
+
+  it("consultora-qa: los dos títulos normalizan igual (es lo que disparó la fusión) y aun así no se fusionan", () => {
+    const c = regressions.cases.find((x) => x.id === "consultora-qa-2026-09-18")!;
+    expect(titleTokens(c.a.title)).toEqual(titleTokens(c.b.title));
+    const r = dedup(asCandidate(c.b), [asRecent(c.a)]);
+    expect(r.kind).toBe("insert");
   });
 });

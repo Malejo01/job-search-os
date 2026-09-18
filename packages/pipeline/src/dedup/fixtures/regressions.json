@@ -1,0 +1,98 @@
+{
+  "_nota": "Casos reales de dedup que salieron mal en producción, anonimizados (CLAUDE.md regla 8): empresa, URLs y títulos ficticios pero con la misma forma que el original; JD reducidas al fragmento que importa. Los originales están en fixtures-private/recovery/.",
+  "cases": [
+    {
+      "id": "consultora-qa-2026-09-18",
+      "descripcion": "Misma consultora, dos avisos QA con el mismo título base y el área en el paréntesis. normalizeTitle tira el paréntesis y los dos quedan en 'quality engineering' (Jaccard 1). Se fusionaron y el JD más largo pisó al otro.",
+      "expected": "distinct",
+      "a": {
+        "sourceKind": "manual",
+        "externalId": null,
+        "company": "Consultora Delta",
+        "title": "Senior Quality Engineering (Loyalty & Benefits, Manual/API Testing)",
+        "url": "https://careers.consultora-delta.example/jobs/8398689-senior-quality-engineering",
+        "seenAt": "2026-09-18T02:55:17Z",
+        "jd": "This is the job: In the Banking & Financial Services industry, we are actively seeking a Senior Quality Engineering (Manual/API Testing) to join our team dedicated to testing the bank's Loyalty & Benefits module: business rules, point accumulation and tier transitions for web and mobile channels. This is you: Bachelor's degree or advanced student in Systems Engineering, Computer Science, or related fields. Proven experience in API testing using Postman. Solid experience designing and executing manual test cases using Xray Test Management and managing defect lifecycles in JIRA. Hands-on experience working in Agile environments (Scrum, Kanban). This is your role: Validate point accumulation, rule execution, and tier level transitions across incoming banking transactions. Conduct functional testing within the Salesforce platform context. Locations: Buenos Aires. Remote status: Hybrid. Technology: QA. Seniority: Senior-level."
+      },
+      "b": {
+        "sourceKind": "manual",
+        "externalId": null,
+        "company": "Consultora Delta",
+        "title": "Senior Quality Engineering (Biometric)",
+        "url": "https://careers.consultora-delta.example/jobs/8398718-senior-quality-engineering",
+        "seenAt": "2026-09-18T02:55:23Z",
+        "jd": "This is the job: In the Banking & Financial Services industry, we are actively seeking a Senior Quality Engineering (Biometric) to join our team dedicated to ensuring the quality and security of the bank's biometric platform and digital onboarding solutions: capture SDKs, liveness detection and document verification (OCR). This is you: Bachelor's degree or advanced student in Systems Engineering, Computer Science, or related fields. 3+ years of software quality assurance experience specializing in biometric identity verification systems. Proven experience managing and executing test cases with Xray Test Management and managing defect lifecycles in JIRA. Hands-on experience working with Agile methodologies (Scrum, Kanban). This is your role: Design and execute test suites for biometric rule engines. Conduct Liveness and Presentation Attack Detection (PAD) testing. Monitor biometric metrics (FAR, FRR, EER). Locations: Buenos Aires. Technology: QA. Seniority: Senior-level."
+      }
+    },
+    {
+      "id": "gob-ai-founding-2026-09-15",
+      "descripcion": "Misma empresa en Get on Board, dos slugs distintos: 'Founding Senior AI Engineer' y 'Senior AI Engineer'. Tokens 'founding ai engineer' vs 'ai engineer' → Jaccard 0.67 ≥ 0.6 y se fusionaron aunque son dos búsquedas con requisitos distintos.",
+      "expected": "distinct",
+      "a": {
+        "sourceKind": "getonboard_api",
+        "externalId": "senior-ai-engineer-empresa-n-remote-42c5",
+        "company": "Empresa N",
+        "title": "Senior AI Engineer",
+        "url": "https://www.getonbrd.com/jobs/senior-ai-engineer-empresa-n-remote-42c5",
+        "seenAt": "2026-09-15T12:42:45Z",
+        "jd": "6+ years of experience in software engineering, with a strong focus on shipping production-grade machine learning and AI systems. C1 English level or higher. Deep proficiency in Python. Hands-on experience orchestrating coding agents within real engineering workflows. Strong working knowledge of Model Context Protocol mechanics and tool calls. Experience building LLM evaluation pipelines with golden datasets and LLM-as-judge."
+      },
+      "b": {
+        "sourceKind": "getonboard_api",
+        "externalId": "founding-senior-ai-engineer-empresa-n-remote-2d03",
+        "company": "Empresa N",
+        "title": "Founding Senior AI Engineer",
+        "url": "https://www.getonbrd.com/jobs/founding-senior-ai-engineer-empresa-n-remote-2d03",
+        "seenAt": "2026-09-14T23:43:23Z",
+        "jd": "5+ years of software engineering experience, with 2+ years of deep experience working with agentic workflows. C1 English level or higher. Proven hands-on experience designing and building multi-agent systems. Strong fundamentals in distributed systems and software architecture. Build and optimize the core reasoning and execution layers of the autonomous agent platform."
+      }
+    },
+    {
+      "id": "mismo-aviso-otra-url",
+      "descripcion": "Control positivo: el mismo aviso republicado con otra URL y el cuerpo idéntico salvo espacios y mayúsculas → mismo job por hash del JD.",
+      "expected": "duplicate",
+      "reason": "jd_hash",
+      "a": {
+        "sourceKind": "manual",
+        "externalId": null,
+        "company": "Consultora Delta",
+        "title": "Senior Quality Engineering (Loyalty & Benefits, Manual/API Testing)",
+        "url": "https://careers.consultora-delta.example/jobs/8398689-senior-quality-engineering",
+        "seenAt": "2026-09-18T02:55:17Z",
+        "jd": "We are looking for a Senior QA to test the Loyalty & Benefits module of a bank. Postman, Xray, JIRA. Hybrid, Buenos Aires."
+      },
+      "b": {
+        "sourceKind": "email_linkedin",
+        "externalId": "4400000001",
+        "company": "Consultora Delta",
+        "title": "Senior QA Engineer - Loyalty",
+        "url": "https://linkedin.com/jobs/view/4400000001",
+        "seenAt": "2026-09-19T10:00:00Z",
+        "jd": "We are looking for a  Senior QA to test the Loyalty & Benefits module of a bank.\nPostman, Xray, JIRA.  Hybrid, Buenos Aires. "
+      }
+    },
+    {
+      "id": "alerta-sin-jd-vs-carga-manual",
+      "descripcion": "Misma empresa y mismo título, una sin JD (alerta de LinkedIn) y otra cargada con otra URL: no hay URL ni JD que confirmen → insert, marcado como posible duplicado del anterior para revisarlo a mano.",
+      "expected": "possible_duplicate",
+      "a": {
+        "sourceKind": "email_linkedin",
+        "externalId": "4400000002",
+        "company": "Acme Labs",
+        "title": "AI Engineer",
+        "url": "https://linkedin.com/jobs/view/4400000002",
+        "seenAt": "2026-09-10T12:00:00Z",
+        "jd": null
+      },
+      "b": {
+        "sourceKind": "manual",
+        "externalId": null,
+        "company": "Acme Labs",
+        "title": "Senior AI Engineer (Remote)",
+        "url": "https://acme-labs.example/careers/ai-engineer",
+        "seenAt": "2026-09-11T12:00:00Z",
+        "jd": "Buscamos AI Engineer con experiencia en RAG y MCP."
+      }
+    }
+  ]
+}

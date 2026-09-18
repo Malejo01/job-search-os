@@ -1,6 +1,6 @@
 # ADR-006: Criterio de deduplicación
 
-**Status:** Accepted · **Date:** 2026-09-09
+**Status:** Accepted, punto 2 reemplazado por [ADR-013](013-dedup-exige-url-o-jd.md) (2026-09-18) · **Date:** 2026-09-09
 
 ## Context
 4 alertas de LinkedIn → 12 avisos, 3 únicos. Empresa Q publicó el mismo aviso con dos títulos. Empresa F publicó dos roles distintos (no duplicados). El criterio ya resuelto en Qué Pinta Salta (Jaccard acotado) es reusable.
