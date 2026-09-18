@@ -18,14 +18,16 @@ import {
   type Term,
 } from "@job-search-os/pipeline";
 import { syncJobSkillsFromText } from "../skills/sync";
-import { and, eq, gte, inArray } from "drizzle-orm";
+import { pgBlobStorage, type BlobStorage } from "../storage/blob";
+import { and, eq, gte, inArray, isNotNull, sql, type SQL } from "drizzle-orm";
 import type { Logger } from "../logger";
 
 /**
  * Ingesta de un RawJob para un usuario: normaliza → dedup contra los últimos 14 días →
  * (merge: suma la fuente, conserva fecha más antigua y texto más largo) | (insert: empresa,
  * prefiltro, estado, cola de evaluación si hay JD; si dedup lo marcó como posible duplicado,
- * `duplicate_of_id` + flag `posible_duplicado`, sin fusionar: ADR-013). Toda la lógica de decisión está en
+ * `duplicate_of_id` + flag `posible_duplicado`, sin fusionar: ADR-013). Antes de todo, el crudo
+ * de la carga va a raw_blobs y cada job_sources apunta a él (JS-024). Toda la lógica de decisión está en
  * packages/pipeline; acá solo hay I/O y orquestación. Corre como servicio (dueño con
  * BYPASSRLS) y filtra por user_id explícito (ARCHITECTURE §4).
  */
@@ -40,6 +42,8 @@ export type IngestDeps = {
   windowDays?: number;
   /** Taxonomía compilada (loadTaxonomy): si está, job_skills se rellena desde la JD sin LLM (pre-score offline). */
   taxonomy?: readonly Term[];
+  /** Dónde va el crudo (JS-024). Por defecto raw_blobs en la misma conexión. */
+  storage?: BlobStorage;
 };
 
 export type IngestOutcome =
@@ -110,6 +114,56 @@ async function loadRecentJobs(db: Db, userId: string, since: Date): Promise<Rece
   }));
 }
 
+/** Misma fuente: mismo tipo y mismo id externo o, si no tiene, la misma URL. */
+function sameSourceKey(raw: RawJob): SQL {
+  if (raw.source.externalId) return eq(s.jobSources.externalId, raw.source.externalId);
+  if (raw.source.url) return eq(s.jobSources.url, raw.source.url);
+  return sql`false`;
+}
+
+/**
+ * Crudo de la carga (JS-024), antes de dedup y de cualquier escritura en jobs: el payload
+ * original de la fuente o, si el adapter no lo trae, el RawJob tal como entró. Si ya viene
+ * guardado (el email entero), se usa esa ref. Si esta misma fuente ya llegó con exactamente el
+ * mismo contenido (el cron de GoB re-trae los mismos avisos cada 6 h), se reusa el blob.
+ */
+async function persistRaw(
+  db: Db,
+  storage: BlobStorage,
+  userId: string,
+  raw: RawJob,
+): Promise<string> {
+  if (raw.source.rawRef) return raw.source.rawRef;
+  const { original, ...source } = raw.source;
+  const payload = original ?? {
+    contentType: "application/json",
+    body: JSON.stringify({ ...raw, source }),
+  };
+  const seen = await db
+    .select({ rawRef: s.jobSources.rawRef })
+    .from(s.jobSources)
+    .innerJoin(s.jobs, eq(s.jobs.id, s.jobSources.jobId))
+    .where(
+      and(
+        eq(s.jobs.userId, userId),
+        eq(s.jobSources.kind, raw.source.kind),
+        sameSourceKey(raw),
+        isNotNull(s.jobSources.rawRef),
+      ),
+    );
+  for (const { rawRef } of seen) {
+    const blob = await storage.get(rawRef!);
+    if (blob && blob.body === payload.body && blob.contentType === payload.contentType)
+      return rawRef!;
+  }
+  return storage.put({
+    userId,
+    kind: `ingest_${raw.source.kind}`,
+    contentType: payload.contentType,
+    body: payload.body,
+  });
+}
+
 async function upsertCompany(db: Db, companyRaw: string): Promise<string | null> {
   const nameNormalized = normalizeCompany(companyRaw);
   if (!nameNormalized) return null;
@@ -144,6 +198,9 @@ export async function ingestRawJob(raw: RawJob, deps: IngestDeps): Promise<Inges
   const hash = raw.jdText ? jdHash(raw.jdText) : null;
   const seenAt = raw.postedAt ?? now;
 
+  // JS-024: el crudo primero; si algo de lo que sigue falla, igual queda guardado
+  const rawRef = await persistRaw(db, deps.storage ?? pgBlobStorage(db), userId, raw);
+
   const recent = await loadRecentJobs(db, userId, since);
   const decision = dedup(
     {
@@ -173,30 +230,39 @@ export async function ingestRawJob(raw: RawJob, deps: IngestDeps): Promise<Inges
       .limit(1);
     if (!existing) throw new Error(`dedup apuntó a un job inexistente: ${decision.jobId}`);
 
-    const already = await db
-      .select({ id: s.jobSources.id })
+    // Misma fuente ya registrada: con el mismo crudo no se agrega nada; sin crudo (anterior a
+    // JS-024) se completa; con un crudo propio distinto (el aviso cambió) va una fila nueva, así
+    // ninguna versión queda sin acceso. Un crudo externo (el email entero) no cuenta como versión.
+    const sameSource = await db
+      .select({ id: s.jobSources.id, rawRef: s.jobSources.rawRef })
       .from(s.jobSources)
       .where(
         and(
           eq(s.jobSources.jobId, existing.id),
           eq(s.jobSources.kind, raw.source.kind),
-          raw.source.externalId
-            ? eq(s.jobSources.externalId, raw.source.externalId)
-            : eq(s.jobSources.url, raw.source.url ?? ""),
+          sameSourceKey(raw),
         ),
-      )
-      .limit(1);
-    const sourceAdded = already.length === 0;
-    if (sourceAdded) {
+      );
+    const legacy = sameSource.find((x) => x.rawRef === null);
+    const known =
+      sameSource.some((x) => x.rawRef === rawRef) ||
+      (Boolean(raw.source.rawRef) && sameSource.length > 0 && !legacy);
+    let sourceAdded = false;
+    if (known) {
+      // nada que agregar
+    } else if (legacy) {
+      await db.update(s.jobSources).set({ rawRef }).where(eq(s.jobSources.id, legacy.id));
+    } else {
       await db.insert(s.jobSources).values({
         jobId: existing.id,
         kind: raw.source.kind,
         sourceName: raw.source.name,
         externalId: raw.source.externalId,
         url: raw.source.url,
-        rawRef: raw.source.rawRef,
+        rawRef,
         seenAt,
       });
+      sourceAdded = true;
     }
 
     // Fusión (ADR-006): fecha más antigua, texto más largo, flags acumulados
@@ -302,7 +368,7 @@ export async function ingestRawJob(raw: RawJob, deps: IngestDeps): Promise<Inges
     sourceName: raw.source.name,
     externalId: raw.source.externalId,
     url: raw.source.url,
-    rawRef: raw.source.rawRef,
+    rawRef,
     seenAt,
   });
 

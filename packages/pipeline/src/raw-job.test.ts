@@ -56,3 +56,21 @@ describe("rawJobFromManual: la carga manual (UI y MCP) no se salta el riesgo de 
     expect(parseModality("cualquier cosa")).toBe("desconocida");
   });
 });
+
+describe("rawJobFromManual: crudo original (JS-024)", () => {
+  it("conserva el input tal cual llegó (sin trim), para guardarlo en raw_blobs antes de procesar", () => {
+    const input: ManualJobInput = {
+      ...base,
+      url: "  https://example.com/jobs/1  ",
+      title: "  AI Engineer ",
+      jdText: "  Texto pegado con espacios al borde.\r\n",
+    };
+    const raw = rawJobFromManual(input);
+    expect(raw.title).toBe("AI Engineer");
+    expect(raw.source.original).toEqual({
+      contentType: "application/json",
+      body: JSON.stringify(input),
+    });
+    expect(JSON.parse(raw.source.original!.body)).toEqual(input);
+  });
+});

@@ -164,12 +164,15 @@ Tickets de 1–3 hs. `deps` = tickets que deben estar done. Estado: `todo` · `d
 ### JS-023 · Ingesta manual (URL + texto) ✅ done 2026-09-11
 `deps:` JS-017 · `est:` 1 h
 - `/jobs/new` (formulario, Server Action) y tool MCP `add_job`: mismo `ingestRawJob` que las fuentes automáticas (dedup 14 días por URL o JD; empresa+título solo marca posible duplicado desde ADR-013, prefiltro, cola si trae JD; sin JD queda en pendientes de JD), fuente `manual`, bajo RLS (policy `companies_insert` para crear la empresa). Probado: alta por UI (pendiente de JD) y por MCP (insert y luego merge por URL).
-### JS-024 · Guardar el crudo de toda carga en `raw_blobs`, sea cual sea la vía
-`deps:` JS-020, JS-023 · `est:` 2 h · `estado:` todo (prioridad alta; nació del incidente de dedup del 2026-09-18, ADR-013)
+
+### JS-024 · Guardar el crudo de toda carga en `raw_blobs`, sea cual sea la vía
+`deps:` JS-020, JS-023 · `est:` 2 h · `estado:` doing (2026-09-18; nació del incidente de dedup, ADR-013)
 - **Por qué:** una fusión errónea pisó el JD de un aviso (Empresa E, ver ADR-013) y solo se recuperó porque Neon guarda 6 h de historial. Fue suerte, no una garantía del sistema.
 - **Estado actual:** solo la ingesta por email guarda el crudo (`raw_blobs` + `inbound_emails.raw_ref`). No lo guardan la carga manual (`/jobs/new` y MCP `add_job`, `rawRef: null` en `rawJobFromManual`), Get on Board (`rawRef: null` en `sources/getonboard.ts`), ni el JD pegado después en pendientes de JD (`apps/web/lib/pending-jd.ts`). Además, fusionar conserva "el texto más largo" y descarta el otro sin dejar rastro.
 - **Hacer:** antes de normalizar o hacer dedup, guardar el payload original en `raw_blobs`: el input manual como JSON, el item de la API de GoB y el JD pegado. `job_sources.raw_ref` apunta al blob. Al fusionar, el JD que no queda en `jobs.jd_text` sigue accesible por la `raw_ref` de su fuente.
 - **Acepta:** test de integración por vía (manual, MCP, GoB, pendiente de JD) donde cada `job_sources` tiene `raw_ref` que resuelve a un blob con el texto original; test de merge donde se recuperan los dos JD desde sus fuentes.
+- **Implementado (2026-09-18):** `RawJob.source.original` lleva el payload tal como llegó (input manual sin trim, item de la API de GoB con su HTML). `ingestRawJob` lo guarda en `raw_blobs` (`kind = ingest_<fuente>`) **antes del dedup**; si el adapter no trae payload, guarda el RawJob mismo, así ninguna vía queda sin crudo. Cada `job_sources.raw_ref` apunta al blob. Si la misma fuente vuelve con el mismo contenido (el cron de GoB re-trae los avisos cada 6 h) se reusa el blob y no se agrega fila; si el contenido cambió, va una fila nueva con su blob; una fuente anterior a JS-024 sin crudo se completa la próxima vez que llega. El JD pegado en pendientes (`attachJdText`, ahora en adapters) se guarda crudo (`kind = jd_pegada`) en una fuente propia "JD pegada". **Hueco que apareció:** la ingesta por email guardaba el email pero no lo enlazaba en los avisos extraídos (`raw_ref` null); ahora cada aviso apunta al crudo del email. Tests: unitarios (manual y GoB conservan el original) y 8 de integración en `packages/adapters/src/ingest/raw.integration.test.ts`.
+- **Fuera de alcance:** los jobs cargados antes de JS-024 no tienen crudo (no hay de dónde sacarlo); los de GoB se completan solos mientras sigan publicados.
 
 ### JS-025 · UI de `posible_duplicado` con fusión manual
 `deps:` JS-008 (ADR-013), JS-016 · `est:` 2 h · `estado:` todo (para más adelante)
