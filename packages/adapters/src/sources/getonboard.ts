@@ -203,6 +203,7 @@ export function mapGobJob(item: GobJobItem, categorySlug: string): RawJob {
       externalId: item.id,
       url: item.links?.public_url ?? `https://www.getonbrd.com/jobs/${item.id}`,
       rawRef: null,
+      original: { contentType: "application/json", body: JSON.stringify(item) },
     },
     title: a.title.trim(),
     companyRaw: a.company?.data?.attributes?.name?.trim() || a.company?.data?.id || "desconocida",

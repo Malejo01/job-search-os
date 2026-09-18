@@ -22,6 +22,7 @@ describe("Get on Board: contrato con la respuesta real grabada (2026-09-10)", ()
       externalId: first.id,
       url: first.links?.public_url,
       rawRef: null,
+      original: { contentType: "application/json", body: expect.any(String) },
     });
     expect(raw.title).toBe(first.attributes.title);
     expect(raw.companyRaw).toBe(first.attributes.company?.data?.attributes?.name);
@@ -227,5 +228,14 @@ describe("fetchGetOnBoardJobs (fetch inyectado)", () => {
     expect(decodeURIComponent(u)).toContain(
       '["company","tags","modality","seniority","location_tenants"]',
     );
+  });
+});
+
+describe("Get on Board: crudo original (JS-024)", () => {
+  it("conserva el item de la API tal cual llegó, antes de mapear y limpiar el HTML", () => {
+    const raw = mapGobJob(first, "programming");
+    expect(JSON.parse(raw.source.original!.body)).toEqual(first);
+    // El JD mapeado es texto plano; el original conserva el HTML de la API
+    expect(raw.source.original!.body).toContain(JSON.stringify(first.attributes.description));
   });
 });

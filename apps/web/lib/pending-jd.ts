@@ -1,12 +1,10 @@
 import {
+  attachJdText,
   createPgQueue,
   enqueueEvaluationWith,
-  jdHash,
-  loadTaxonomy,
-  syncJobSkillsFromText,
+  normalizePastedJd,
 } from "@job-search-os/adapters";
 import { schema as s } from "@job-search-os/db";
-import { textShingles } from "@job-search-os/pipeline";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { withUser } from "./db";
 
@@ -77,27 +75,21 @@ export class JdTooShortError extends Error {
   }
 }
 
-/** Guarda la JD pegada (texto, hash, shingles) y encola la evaluación. Idempotente en la cola. */
+/**
+ * Guarda la JD pegada (crudo en raw_blobs + fuente "JD pegada", texto, hash, shingles, skills) y
+ * encola la evaluación. Idempotente en la cola.
+ */
 export async function attachJd(userId: string, jobId: string, text: string): Promise<void> {
-  const jd = text.replace(/\r\n/g, "\n").trim();
-  if (jd.length < MIN_JD_CHARS) throw new JdTooShortError();
-  await withUser(userId, async (tx) => {
-    const updated = await tx
-      .update(s.jobs)
-      .set({
-        jdText: jd,
-        jdHash: jdHash(jd),
-        jdShingles: textShingles(jd),
-        updatedAt: new Date(),
-      })
-      .where(eq(s.jobs.id, jobId))
-      .returning({ id: s.jobs.id, status: s.jobs.status });
-    if (!updated.length) throw new Error("oferta inexistente");
-    // Skills desde la JD (pre-score offline y mercado), sin LLM
-    await syncJobSkillsFromText(tx, jobId, jd, await loadTaxonomy(tx));
-    // Cola con RLS: job_queue.user_id = auth.uid(); el worker (rol dueño) la toma después
-    await enqueueEvaluationWith(tx, createPgQueue(tx))(jobId, userId);
-  });
+  if (normalizePastedJd(text).length < MIN_JD_CHARS) throw new JdTooShortError();
+  await withUser(userId, (tx) =>
+    attachJdText(tx, {
+      userId,
+      jobId,
+      text,
+      // Cola con RLS: job_queue.user_id = auth.uid(); el worker (rol dueño) la toma después
+      enqueueEvaluation: enqueueEvaluationWith(tx, createPgQueue(tx)),
+    }),
+  );
 }
 
 /** Texto para Claude in Chrome: extraer la JD completa del aviso abierto. */

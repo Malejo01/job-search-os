@@ -130,7 +130,9 @@ export async function handleInboundEmail(
       if (!criteria) {
         error = "usuario sin criterios activos";
       } else {
-        const summary = await ingestBatch(parsed.jobs, {
+        // Cada aviso extraído apunta al crudo del email (JS-024)
+        const jobs = parsed.jobs.map((j) => ({ ...j, source: { ...j.source, rawRef } }));
+        const summary = await ingestBatch(jobs, {
           db,
           userId,
           rules: criteria.rules as CriteriaRules,
