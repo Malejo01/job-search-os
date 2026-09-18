@@ -19,7 +19,7 @@ import {
 } from "@job-search-os/pipeline";
 import { syncJobSkillsFromText } from "../skills/sync";
 import { pgBlobStorage, type BlobStorage } from "../storage/blob";
-import { and, eq, gte, inArray, isNotNull, sql, type SQL } from "drizzle-orm";
+import { and, eq, gte, inArray, isNotNull, or, sql, type SQL } from "drizzle-orm";
 import type { Logger } from "../logger";
 
 /**
@@ -69,8 +69,21 @@ export function jdHash(text: string): string {
   return createHash("sha256").update(text.trim().replace(/\s+/g, " ").toLowerCase()).digest("hex");
 }
 
-/** Jobs del usuario en la ventana de dedup, con sus claves externas. */
-async function loadRecentJobs(db: Db, userId: string, since: Date): Promise<RecentJob[]> {
+/**
+ * Jobs del usuario en la ventana de dedup, con sus claves externas. Los que comparten clave
+ * fuerte (misma URL canónica o mismo id de la fuente) entran aunque sean más viejos que la
+ * ventana: es el mismo aviso, y `jobs_user_url` ni siquiera permite insertarlo de nuevo.
+ */
+async function loadRecentJobs(
+  db: Db,
+  userId: string,
+  since: Date,
+  strong: {
+    canonicalUrl: string | null;
+    sourceKind: RawJob["source"]["kind"];
+    externalId: string | null;
+  },
+): Promise<RecentJob[]> {
   const rows = await db
     .select({
       id: s.jobs.id,
@@ -82,7 +95,29 @@ async function loadRecentJobs(db: Db, userId: string, since: Date): Promise<Rece
       firstSeenAt: s.jobs.firstSeenAt,
     })
     .from(s.jobs)
-    .where(and(eq(s.jobs.userId, userId), gte(s.jobs.firstSeenAt, since)));
+    .where(
+      and(
+        eq(s.jobs.userId, userId),
+        or(
+          gte(s.jobs.firstSeenAt, since),
+          strong.canonicalUrl ? eq(s.jobs.canonicalUrl, strong.canonicalUrl) : undefined,
+          strong.externalId
+            ? inArray(
+                s.jobs.id,
+                db
+                  .select({ id: s.jobSources.jobId })
+                  .from(s.jobSources)
+                  .where(
+                    and(
+                      eq(s.jobSources.kind, strong.sourceKind),
+                      eq(s.jobSources.externalId, strong.externalId),
+                    ),
+                  ),
+              )
+            : undefined,
+        ),
+      ),
+    );
   if (!rows.length) return [];
   const sources = await db
     .select({
@@ -201,7 +236,11 @@ export async function ingestRawJob(raw: RawJob, deps: IngestDeps): Promise<Inges
   // JS-024: el crudo primero; si algo de lo que sigue falla, igual queda guardado
   const rawRef = await persistRaw(db, deps.storage ?? pgBlobStorage(db), userId, raw);
 
-  const recent = await loadRecentJobs(db, userId, since);
+  const recent = await loadRecentJobs(db, userId, since, {
+    canonicalUrl: canonical,
+    sourceKind: raw.source.kind,
+    externalId: raw.source.externalId,
+  });
   const decision = dedup(
     {
       canonicalUrl: canonical,

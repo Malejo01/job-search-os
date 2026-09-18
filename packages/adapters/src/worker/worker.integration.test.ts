@@ -568,3 +568,44 @@ describe("ingesta: dedup no fusiona por empresa+título (ADR-013)", () => {
     expect(second).toMatchObject({ action: "merged", jobId: first.jobId, reason: "jd_hash" });
   });
 });
+
+describe("ingesta: clave fuerte fuera de la ventana de 14 días", () => {
+  it("la misma URL vista hace 30 días → merge, no insert (antes chocaba con jobs_user_url)", async () => {
+    const deps = { db: conn.db, userId: USER, rules: criteria as never, logger };
+    const old = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const first = await ingestRawJob(
+      raw({
+        externalId: "win-old-1",
+        companyRaw: "Ventana SA",
+        jdText: "JD vieja RAG",
+        postedAt: old,
+      }),
+      deps,
+    );
+    expect(first.action).toBe("inserted");
+    // Mismo aviso por otra vía (sin external_id de GoB), 30 días después
+    const again = await ingestRawJob(
+      raw({
+        externalId: "win-old-1",
+        companyRaw: "Ventana SA",
+        jdText: "JD vieja RAG",
+        postedAt: new Date(),
+        source: {
+          kind: "manual",
+          name: "manual",
+          externalId: null,
+          url: "https://www.getonbrd.com/jobs/win-old-1",
+          rawRef: null,
+        },
+      }),
+      deps,
+    );
+    expect(again).toMatchObject({ action: "merged", jobId: first.jobId, reason: "url" });
+    // Y por id de la fuente, también fuera de la ventana
+    const byId = await ingestRawJob(
+      raw({ externalId: "win-old-1", companyRaw: "Ventana SA", jdText: "JD vieja RAG" }),
+      deps,
+    );
+    expect(byId).toMatchObject({ action: "merged", jobId: first.jobId });
+  });
+});
