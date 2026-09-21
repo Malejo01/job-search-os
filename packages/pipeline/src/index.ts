@@ -4,6 +4,7 @@ export * from "./normalize";
 export * from "./evaluation";
 export * from "./decide";
 export * from "./status";
+export * from "./status-correction";
 export * from "./dedup";
 export * from "./prefilter";
 export * from "./skills";

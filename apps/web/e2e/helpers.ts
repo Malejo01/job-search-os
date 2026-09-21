@@ -110,6 +110,47 @@ export async function queueStatus(jobId: string): Promise<string | null> {
   }
 }
 
+/** Evaluación mínima del modelo demo para una oferta (la corrección de estado exige que exista). */
+export async function createEvaluation(jobId: string): Promise<void> {
+  const { db, close } = ownerDb();
+  try {
+    await db.insert(s.evaluations).values({
+      jobId,
+      userId: E2E_USER_ID,
+      criteriaVersion: 1,
+      promptVersion: "evaluate_job@e2e",
+      model: "fake",
+      hadFullJd: true,
+      score: 7,
+      locationOk: "ok",
+      modality: "remoto",
+      discipline: "ai_engineer",
+      matchFuerte: [],
+      gaps: [],
+      bloqueadoresDuros: [],
+      senalesPositivas: [],
+      veredicto: "Evaluación de prueba (e2e).",
+      accion: "aplicar",
+    });
+  } finally {
+    await close();
+  }
+}
+
+/** Postulación de una oferta (null si no hay). */
+export async function applicationOf(jobId: string): Promise<{ outcome: string | null } | null> {
+  const { db, close } = ownerDb();
+  try {
+    const [row] = await db
+      .select({ outcome: s.applications.outcome })
+      .from(s.applications)
+      .where(eq(s.applications.jobId, jobId));
+    return row ?? null;
+  } finally {
+    await close();
+  }
+}
+
 export async function jobStatus(jobId: string): Promise<string | null> {
   const { db, close } = ownerDb();
   try {

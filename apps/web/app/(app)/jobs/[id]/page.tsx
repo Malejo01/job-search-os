@@ -18,6 +18,7 @@ import { requireUserId } from "@/lib/session";
 import { changeStatusAction, humanScoreAction } from "./actions";
 import { AutoRefresh } from "../auto-refresh";
 import { ApplyButton } from "./apply-button";
+import { StatusCorrection } from "./status-correction";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,7 @@ const ERRORS: Record<string, string> = {
   evento: "Evento desconocido.",
   transicion: "Esa transición no vale desde el estado actual (la página estaba desactualizada).",
   score: "El score humano va de 0 a 10 en pasos de 0,5.",
+  correccion: "Esa corrección no vale desde el estado actual (la página estaba desactualizada).",
 };
 
 /** Detalle de una oferta (JS-016): evaluación completa, fuentes, acciones de estado y score humano. */
@@ -161,6 +163,9 @@ export default async function JobDetailPage({
           </p>
         ) : null}
       </section>
+      {job.corrections.length ? (
+        <StatusCorrection jobId={job.id} current={job.status} targets={job.corrections} />
+      ) : null}
 
       {ev ? (
         <>

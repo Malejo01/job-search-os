@@ -1,6 +1,9 @@
 import { schema as s } from "@job-search-os/db";
 import {
+  applicationEffect,
   availableEvents,
+  correctionTargets,
+  correctStatus,
   transition,
   type Adjustment,
   type ApplicationOutcome,
@@ -74,6 +77,8 @@ export type JobDetail = {
   events: JobEvent[];
   /** Evaluación en cola o en curso (JS-027): la página se actualiza sola hasta que termine. */
   evaluating: boolean;
+  /** Estados a los que se puede corregir a mano (JS-028); vacío si no hay nada que corregir. */
+  corrections: JobStatus[];
 };
 
 /** Eventos que puede disparar la persona desde la UI (el resto los dispara el pipeline). */
@@ -186,6 +191,10 @@ export async function getJobDetail(userId: string, jobId: string): Promise<JobDe
         : null,
       events: availableEvents(job.status).filter((e) => MANUAL_EVENTS.includes(e)),
       evaluating: Boolean(queued?.evaluating),
+      corrections: correctionTargets(job.status, {
+        hasEvaluation: Boolean(ev),
+        hasJd: Boolean(job.jdText?.trim()),
+      }),
     };
   });
 }
@@ -234,6 +243,65 @@ export async function applyJobEvent(
         .where(and(eq(s.applications.jobId, jobId), eq(s.applications.userId, userId)));
     }
     return next;
+  });
+}
+
+/**
+ * Corrección manual de estado (JS-028): valida con correctStatus() (pipeline) y deja la
+ * postulación coherente con el estado corregido. No pasa por transition() porque no es un
+ * evento de la oferta sino el arreglo de uno mal marcado.
+ */
+export async function correctJobStatus(
+  userId: string,
+  jobId: string,
+  to: JobStatus,
+): Promise<{ from: JobStatus; to: JobStatus }> {
+  return withUser(userId, async (tx) => {
+    const [job] = await tx
+      .select({ status: s.jobs.status, jdText: s.jobs.jdText })
+      .from(s.jobs)
+      .where(eq(s.jobs.id, jobId))
+      .limit(1);
+    if (!job) throw new Error("oferta inexistente");
+    const [ev] = await tx
+      .select({ id: s.evaluations.id })
+      .from(s.evaluations)
+      .where(eq(s.evaluations.jobId, jobId))
+      .limit(1);
+    // Lanza InvalidCorrectionError si la corrección no vale
+    const next = correctStatus(job.status, to, {
+      hasEvaluation: Boolean(ev),
+      hasJd: Boolean(job.jdText?.trim()),
+    });
+    const now = new Date();
+    await tx.update(s.jobs).set({ status: next, updatedAt: now }).where(eq(s.jobs.id, jobId));
+
+    const mine = and(eq(s.applications.jobId, jobId), eq(s.applications.userId, userId));
+    const effect = applicationEffect(next);
+    if (effect.kind === "remove") {
+      await tx.delete(s.applications).where(mine);
+    } else {
+      const [existing] = await tx
+        .select({ id: s.applications.id })
+        .from(s.applications)
+        .where(mine)
+        .limit(1);
+      if (existing) {
+        await tx
+          .update(s.applications)
+          .set({ outcome: effect.outcome, outcomeAt: effect.outcome ? now : null })
+          .where(mine);
+      } else if (effect.kind === "ensure") {
+        await tx.insert(s.applications).values({
+          jobId,
+          userId,
+          appliedAt: now,
+          outcome: effect.outcome,
+          outcomeAt: effect.outcome ? now : null,
+        });
+      }
+    }
+    return { from: job.status, to: next };
   });
 }
 
