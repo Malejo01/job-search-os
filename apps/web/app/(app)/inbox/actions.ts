@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { deleteInbound, dismissInbound, markInboundSeen, restoreInbound } from "@/lib/inbox-list";
 import { requireUserId } from "@/lib/session";
 
@@ -11,6 +12,7 @@ async function run(formData: FormData, fn: (userId: string, id: string) => Promi
   if (!id) return;
   await fn(userId, id);
   revalidatePath("/inbox");
+  revalidatePath(`/inbox/${id}`);
 }
 
 export async function markSeenAction(formData: FormData): Promise<void> {
@@ -27,4 +29,6 @@ export async function restoreAction(formData: FormData): Promise<void> {
 
 export async function deleteAction(formData: FormData): Promise<void> {
   await run(formData, deleteInbound);
+  // Desde el detalle (JS-039) ya no queda nada que mostrar: vuelve a la lista
+  if (formData.get("volver") === "1") redirect("/inbox");
 }

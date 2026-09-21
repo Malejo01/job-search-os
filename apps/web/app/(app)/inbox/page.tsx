@@ -2,8 +2,7 @@ import Link from "next/link";
 import { inboxVolume, listInbox, parseInboxView, type InboxView } from "@/lib/inbox-list";
 import { formatDate } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
-import { dismissAction, markSeenAction, restoreAction } from "./actions";
-import { DeleteButton } from "./delete-button";
+import { EmailActions } from "./email-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -21,8 +20,6 @@ const EMPTY: Record<InboxView, string> = {
   todos:
     "Todavía no llegó ningún email. Reenviá las alertas a tu dirección de ingesta (perfil › inbound_address).",
 };
-
-const small = "rounded border border-zinc-300 px-2 py-1 text-zinc-700";
 
 /**
  * Emails entrantes (JS-020, JS-038): lo que llegó a ingest.<dominio>, qué parser lo tomó y qué
@@ -109,30 +106,7 @@ export default async function InboxPage({
                 <Link href={`/inbox/${r.id}`} className="text-blue-700 underline">
                   Ver contenido
                 </Link>
-                {r.seen || r.dismissed ? (
-                  <form action={restoreAction}>
-                    <input type="hidden" name="id" value={r.id} />
-                    <button type="submit" className={small}>
-                      Volver a pendientes
-                    </button>
-                  </form>
-                ) : (
-                  <>
-                    <form action={markSeenAction}>
-                      <input type="hidden" name="id" value={r.id} />
-                      <button type="submit" className={small}>
-                        Marcar visto
-                      </button>
-                    </form>
-                    <form action={dismissAction}>
-                      <input type="hidden" name="id" value={r.id} />
-                      <button type="submit" className={small} title="Esta fuente no me sirve">
-                        No me sirve
-                      </button>
-                    </form>
-                  </>
-                )}
-                <DeleteButton id={r.id} subject={r.subject} />
+                <EmailActions id={r.id} subject={r.subject} seen={r.seen} dismissed={r.dismissed} />
               </div>
             </li>
           ))}

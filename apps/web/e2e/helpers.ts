@@ -157,12 +157,17 @@ export async function createInboundEmail(options: {
   from?: string;
   parser?: string;
   error?: string | null;
+  html?: string | null;
+  text?: string | null;
 }): Promise<{ id: string; rawRef: string }> {
   const { db, close } = ownerDb();
   try {
     const body = JSON.stringify({
       event: { data: { subject: options.subject } },
-      content: { text: "hola", html: null },
+      content: {
+        text: options.text === undefined ? "hola" : options.text,
+        html: options.html ?? null,
+      },
     });
     const [blob] = await db
       .insert(s.rawBlobs)
