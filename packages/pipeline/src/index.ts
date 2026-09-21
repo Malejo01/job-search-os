@@ -5,6 +5,7 @@ export * from "./evaluation";
 export * from "./decide";
 export * from "./status";
 export * from "./status-correction";
+export * from "./inbox-volume";
 export * from "./dedup";
 export * from "./prefilter";
 export * from "./skills";

@@ -186,39 +186,61 @@ Tickets de 1–3 hs. `deps` = tickets que deben estar done. Estado: `todo` · `d
 
 Ordenado por impacto. Un ticket por rama, tests antes del código.
 
-### JS-026 · Ir a la oferta original y confirmar la postulación (P0.1)
-`deps:` JS-015, JS-016 · `est:` 2 h · `estado:` doing
+### JS-026 · Ir a la oferta original y confirmar la postulación (P0.1) ✅ done 2026-09-21
+`deps:` JS-015, JS-016 · `est:` 2 h · `estado:` done
 - En `/jobs`, cada card tiene "Ver oferta ↗" (pestaña nueva) hacia `canonical_url` o, si no hay, la URL de alguna fuente. En el detalle, "Postular ↗" destacado.
 - Al volver a la pestaña de la app después de abrir la oferta, un diálogo pregunta "¿Te postulaste a esta oferta?". "Sí" dispara el evento `apply` existente (transition() + fila en `applications`); "No" no hace nada.
 - **Alcance:** es una **confirmación manual en el momento justo**, no detección de postulación. La app no ve el sitio externo; lo único automático es *cuándo* se pregunta.
 - **Acepta:** e2e `07-ver-oferta-postular.spec.ts` (link en lista y detalle, "Sí" deja `aplicada` en la base, "No" no cambia nada, aviso sin link no muestra botones).
 - **Comportamiento esperado, no es bug (verificado 2026-09-21):** las ofertas del golden no tienen URL (el dataset no la trae), así que no muestran "Ver oferta" ni "Postular". En la base local de Mauro las 17 ofertas de LinkedIn sin botón eran todas del golden; las de ingesta real tenían botón y abrían bien. Tampoco es bug que una oferta vencida del lado de LinkedIn abra su página con "No longer accepting applications": el link es correcto y la oferta ya cerró.
+- **LinkedIn puede fallar de forma transitoria (verificado 2026-09-21):** "No se ha podido cargar la página. Es probable que el ID indicado no sea válido o se haya eliminado" apareció al abrir ofertas con IDs válidos, que después abrieron bien con sesión real. Ese mensaje **no siempre significa que la oferta caducó** ni que el link esté mal armado. Antes de tocar código: reprobar más tarde y comparar el ID con el `href` del email original (en `raw_blobs`).
 
-### JS-027 · Pegar JD evalúa al instante (P0.2)
-`deps:` JS-017, JS-013, JS-026 · `est:` 2 h · `estado:` doing
+### JS-027 · Pegar JD evalúa al instante (P0.2) ✅ done 2026-09-21
+`deps:` JS-017, JS-013, JS-026 · `est:` 2 h · `estado:` done
 - Guardar el JD dispara la evaluación en el momento, sin esperar al cron de 6 h.
 - Mientras evalúa, la oferta aparece en `/jobs` como "evaluando" (no desaparece).
 - Cuando termina, la vista se actualiza sola (poll corto o revalidación).
 - **Implementado (2026-09-21):** al guardar el JD (UI, MCP `paste_jd`, y también las cargas manuales con JD completo por `/jobs/new` y `add_job`) se llama a `evaluateJobNow` en `after()`. Reclama **el mensaje de esa oferta** con `FOR UPDATE SKIP LOCKED` (si el cron ya lo tiene, no evalúa dos veces), respeta `LLM_DAILY_CAP_USD` antes de tocar la cola y cierra el mensaje igual que el worker: ok → done; falla → reintento con backoff para el cron. En `/jobs` lo que tiene evaluación en cola o en curso sale **arriba**, marcado "Evaluando…", **aunque haya filtro de score** (antes quedaba al final por no tener score, o fuera del filtro, y parecía ausente). La lista y el detalle se refrescan cada 3 s mientras haya algo evaluándose, durante 3 min como máximo. Tests: 4 de integración (`evaluateJobNow`: reclamo, no doble evaluación con el cron, tope de gasto, falla del modelo) y e2e 02 (evaluada sin correr el worker) y 08 (evaluando visible con filtro y actualización sin recargar). En e2e la app corre con `LLM_DEMO=1`.
 
-### JS-028 · Corregir un estado mal marcado (P1.1)
-`deps:` JS-016 · `est:` 2 h · `estado:` doing
+### JS-028 · Corregir un estado mal marcado (P1.1) ✅ done 2026-09-21
+`deps:` JS-016 · `est:` 2 h · `estado:` done
 - Desde el detalle, cambiar el estado a mano después de haberlo marcado, con confirmación ("¿seguro que querés cambiar el estado de X a Y?"). Respeta la máquina de estados con una corrección explícita, sin escribir `jobs.status` directo.
 - **Implementado (2026-09-21):** la corrección no es un evento más, sino una operación aparte con reglas puras en `packages/pipeline/src/status-correction.ts`. Solo se corrige **desde** estados que marca la persona (aplicada, entrevista, oferta, rechazada, rechazo automático, descartada, cerrada) y **hacia** estados posteriores a la evaluación, siempre que la oferta tenga evaluación. Una cerrada desde la cola de JD, sin evaluación, solo vuelve a `pendiente_jd`. La postulación acompaña al estado corregido: a aplicada, entrevista, oferta o rechazos se asegura la fila con su resultado; a evaluada o descartada se **borra la registrada por error**, para no ensuciar la calibración (JS-036); a cerrada se marca `cerrada_antes` si existía. UI: "Corregir estado" en el detalle, con selector y `confirm()`. Se loguea `from`/`to`. Tests: 6 unitarios y el e2e `09-corregir-estado.spec.ts`.
 
-### JS-029 · Filtro de score libre (P1.2)
-`deps:` JS-015 · `est:` 1 h · `estado:` doing
+### JS-029 · Filtro de score libre (P1.2) ✅ done 2026-09-21
+`deps:` JS-015 · `est:` 1 h · `estado:` done
 - El score mínimo pasa de una lista fija a un selector de 0 a 9, de a un punto.
 - **Implementado (2026-09-21):** `<select>` con "cualquiera" y de ≥ 0 a ≥ 9. Es un select y no un slider: cada cambio reescribe la URL y recarga la lista, y en el celular un slider dispararía una navegación por cada paso. `parseJobFilters` acepta solo enteros de 0 a 9; cualquier otro valor en la URL (12, -1, 6.5, abc) se ignora y queda sin filtro. Test: e2e `10-filtro-score.spec.ts`.
 
 ### JS-038 · Acciones y volumen en `/inbox` (P1.3)
-`deps:` JS-020 · `est:` 3 h · `estado:` todo
+`deps:` JS-020 · `est:` 3 h · `estado:` doing
 - Por fila: "no me sirve esta fuente" (descartar), marcar como visto y eliminar. Descartados y vistos salen de la vista por defecto pero quedan en la base; solo "eliminar" borra.
 - **Volumen:** contador visible (recibidos en 24 h, cuántos sin parser) y aviso cuando se dispara respecto del promedio. Además, registrar los rechazos por el límite de 100/hora, que hoy descartan el email sin guardarlo ni avisar.
+- **Implementado (2026-09-21):**
+  - **Migración 0012:** `inbound_emails.seen_at` y `dismissed_at`, y la tabla `inbound_rejections` (usuario y hora, RLS forzado). Es solo aditiva: **correr `pnpm db:migrate` contra Neon antes de deployar**, porque el código nuevo lee esas columnas.
+  - **Vistas en `/inbox`:** Pendientes (por defecto: ni vistos ni descartados), Vistos, Descartados y Todos, con conteos. Acciones por fila: "Marcar visto", "No me sirve", "Volver a pendientes" y "Eliminar" (con `confirm()`).
+  - **Eliminar:** borra la fila, y el crudo **solo si ningún aviso lo usa como fuente** (`job_sources.raw_ref`, JS-024). Si lo usa, el crudo queda.
+  - **Volumen:** arriba se ve "N en 24 h · M sin parser · promedio X/día". `assessInboxVolume` (pipeline, puro) avisa en tres casos:
+    - hubo rechazos por el límite (esos emails se perdieron);
+    - un pico de 30 o más en 24 h que supera 3 veces el promedio de los 7 días anteriores;
+    - 20 o más sin parser que son al menos el 80 % del total: el caso de un filtro de Gmail que reenvía todo el correo.
+  - **Rechazos:** el webhook cuenta los que corta el límite en `inbound_rejections`, una fila por usuario y hora.
+  - **Tests:** 6 unitarios; la integración del webhook cuenta 2 rechazos en la misma hora; un chequeo nuevo exige RLS forzado en **toda** tabla con `user_id`; e2e `11-inbox.spec.ts`.
+- **Fuera de alcance:** "No me sirve" actúa sobre ese email, no silencia al remitente para los próximos. Si hace falta, sería un ticket aparte.
 
 ### JS-039 · Vista de email unificada con acciones arriba (P2)
 `deps:` JS-038 · `est:` 2 h · `estado:` todo
 - Al abrir un email desde `/inbox`, mostrarlo como en un cliente de correo (texto y HTML combinados de forma legible, sin pestañas separadas) con la barra de acciones de JS-038 arriba. El HTML sigue en un `iframe` con `sandbox` vacío.
+
+### JS-046 · Aviso "esta oferta puede estar cerrada" (futuro, baja prioridad)
+`deps:` JS-026, JS-028 · `est:` 2 h · `estado:` todo (para más adelante)
+- Surge del diagnóstico de links del 2026-09-21: de las ofertas de LinkedIn en producción, 4 estaban cerradas del lado de LinkedIn y la persona recién se enteraba al abrirlas.
+- Mostrar en la card y en el detalle un chip "Puede estar cerrada" **antes** del click, solo con señales permitidas:
+  - **ADR-004 prohíbe código que navegue LinkedIn**, así que no se consulta la página ni el endpoint público de LinkedIn para saber si cerró. Mis consultas del diagnóstico fueron manuales y puntuales, no algo a automatizar.
+  - **Get on Board:** es su API oficial. Si un aviso deja de aparecer en el listado de su categoría, se marca como posiblemente cerrado.
+  - **LinkedIn:** solo señales indirectas. Una es la antigüedad (por ejemplo, más de 30 días desde que se vio sin que la persona lo haya abierto); otra, que el JD pegado contenga "No longer accepting applications".
+  - **Reporte de la persona:** un botón "Este link no funciona / ya cerró" que la cierra con el evento `close`, reversible con JS-028.
+- **Acepta:** el chip aparece con cada señal; nunca se cierra sola una oferta solo por antigüedad (es aviso, no decisión); ninguna llamada a dominios de LinkedIn en el código.
 
 ## Bloque 5 — Inteligencia (semanas 3–6)
 

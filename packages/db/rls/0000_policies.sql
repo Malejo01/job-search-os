@@ -129,6 +129,13 @@ DROP POLICY IF EXISTS "inbound_emails_owner" ON "inbound_emails";
 CREATE POLICY "inbound_emails_owner" ON "inbound_emails" FOR ALL
   USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
+-- JS-038: rechazos del webhook por el límite horario (migración 0012)
+ALTER TABLE "inbound_rejections" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "inbound_rejections" FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "inbound_rejections_owner" ON "inbound_rejections";
+CREATE POLICY "inbound_rejections_owner" ON "inbound_rejections" FOR ALL
+  USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+
 ALTER TABLE "job_sources" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "job_sources" FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "job_sources_via_job" ON "job_sources";

@@ -87,6 +87,14 @@ export async function handleInboundEmail(
   const count = countRows[0]?.count ?? 0;
   if (count >= (deps.hourlyLimit ?? 100)) {
     log.warn({ user_id: userId, count }, "inbound: rate limit por usuario");
+    // El email no se guarda (es el punto del límite), pero queda contado para que /inbox
+    // avise en vez de perderlo en silencio (JS-038). Una fila por usuario y hora.
+    await db.execute(sql`
+      INSERT INTO inbound_rejections (user_id, window_start, rejected, last_at)
+      VALUES (${userId}, date_trunc('hour', ${now.toISOString()}::timestamptz), 1, ${now.toISOString()}::timestamptz)
+      ON CONFLICT (user_id, window_start)
+      DO UPDATE SET rejected = inbound_rejections.rejected + 1, last_at = excluded.last_at
+    `);
     return { kind: "rate_limited", userId };
   }
 
