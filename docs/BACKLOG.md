@@ -192,6 +192,7 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - Al volver a la pestaña de la app después de abrir la oferta, un diálogo pregunta "¿Te postulaste a esta oferta?". "Sí" dispara el evento `apply` existente (transition() + fila en `applications`); "No" no hace nada.
 - **Alcance:** es una **confirmación manual en el momento justo**, no detección de postulación. La app no ve el sitio externo; lo único automático es *cuándo* se pregunta.
 - **Acepta:** e2e `07-ver-oferta-postular.spec.ts` (link en lista y detalle, "Sí" deja `aplicada` en la base, "No" no cambia nada, aviso sin link no muestra botones).
+- **Comportamiento esperado, no es bug (verificado 2026-09-21):** las ofertas del golden no tienen URL (el dataset no la trae), así que no muestran "Ver oferta" ni "Postular". En la base local de Mauro las 17 ofertas de LinkedIn sin botón eran todas del golden; las de ingesta real tenían botón y abrían bien. Tampoco es bug que una oferta vencida del lado de LinkedIn abra su página con "No longer accepting applications": el link es correcto y la oferta ya cerró.
 
 ### JS-027 · Pegar JD evalúa al instante (P0.2)
 `deps:` JS-017, JS-013, JS-026 · `est:` 2 h · `estado:` doing
@@ -206,8 +207,9 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Implementado (2026-09-21):** la corrección no es un evento más, sino una operación aparte con reglas puras en `packages/pipeline/src/status-correction.ts`. Solo se corrige **desde** estados que marca la persona (aplicada, entrevista, oferta, rechazada, rechazo automático, descartada, cerrada) y **hacia** estados posteriores a la evaluación, siempre que la oferta tenga evaluación. Una cerrada desde la cola de JD, sin evaluación, solo vuelve a `pendiente_jd`. La postulación acompaña al estado corregido: a aplicada, entrevista, oferta o rechazos se asegura la fila con su resultado; a evaluada o descartada se **borra la registrada por error**, para no ensuciar la calibración (JS-036); a cerrada se marca `cerrada_antes` si existía. UI: "Corregir estado" en el detalle, con selector y `confirm()`. Se loguea `from`/`to`. Tests: 6 unitarios y el e2e `09-corregir-estado.spec.ts`.
 
 ### JS-029 · Filtro de score libre (P1.2)
-`deps:` JS-015 · `est:` 1 h · `estado:` todo
+`deps:` JS-015 · `est:` 1 h · `estado:` doing
 - El score mínimo pasa de una lista fija a un selector de 0 a 9, de a un punto.
+- **Implementado (2026-09-21):** `<select>` con "cualquiera" y de ≥ 0 a ≥ 9. Es un select y no un slider: cada cambio reescribe la URL y recarga la lista, y en el celular un slider dispararía una navegación por cada paso. `parseJobFilters` acepta solo enteros de 0 a 9; cualquier otro valor en la URL (12, -1, 6.5, abc) se ignora y queda sin filtro. Test: e2e `10-filtro-score.spec.ts`.
 
 ### JS-038 · Acciones y volumen en `/inbox` (P1.3)
 `deps:` JS-020 · `est:` 3 h · `estado:` todo
