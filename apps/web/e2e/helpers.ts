@@ -41,6 +41,8 @@ export async function createJob(options: {
   title: string;
   status: "pendiente_jd" | "evaluada" | "prefiltrada";
   jdText?: string | null;
+  /** URL de la publicación: `null` = aviso sin link (no debe haber botón "Ver oferta"). */
+  canonicalUrl?: string | null;
 }): Promise<string> {
   const { db, close } = ownerDb();
   try {
@@ -51,7 +53,10 @@ export async function createJob(options: {
         companyRaw: "E2E Testing SA",
         title: options.title,
         titleNormalized: options.title.toLowerCase(),
-        canonicalUrl: `https://example.com/e2e/${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        canonicalUrl:
+          options.canonicalUrl === undefined
+            ? `https://example.com/e2e/${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+            : options.canonicalUrl,
         locationRaw: "Remoto (Argentina)",
         modality: "remoto",
         status: options.status,
@@ -64,7 +69,7 @@ export async function createJob(options: {
       jobId: job!.id,
       kind: "email_linkedin",
       sourceName: "e2e",
-      url: `https://example.com/e2e/${job!.id}`,
+      url: options.canonicalUrl === null ? null : `https://example.com/e2e/${job!.id}`,
       seenAt: new Date(),
     });
     return job!.id;

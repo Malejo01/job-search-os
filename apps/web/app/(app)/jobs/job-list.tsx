@@ -44,10 +44,13 @@ export function JobList({ rows }: { rows: JobListRow[] }) {
 function JobCard({ job }: { job: JobListRow }) {
   const tone = scoreTone(job.score);
   return (
-    <Link
-      href={`/jobs/${job.id}`}
-      className="flex gap-3 rounded-lg border border-zinc-200 bg-white p-3 hover:border-zinc-400"
-    >
+    <div className="relative flex gap-3 rounded-lg border border-zinc-200 bg-white p-3 hover:border-zinc-400">
+      {/* El link al detalle cubre toda la card; el link a la oferta va encima (z-10) */}
+      <Link
+        href={`/jobs/${job.id}`}
+        className="absolute inset-0 rounded-lg"
+        aria-label={`Abrir el detalle de ${job.title}`}
+      />
       {job.score === null && job.preScore !== null ? (
         <div
           className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-md border-2 border-dashed border-zinc-400 text-zinc-700"
@@ -121,9 +124,22 @@ function JobCard({ job }: { job: JobListRow }) {
             ))}
         </div>
       </div>
-      <time className="shrink-0 text-[11px] text-zinc-400" dateTime={job.firstSeenAt}>
-        {formatDate(job.postedAt ?? job.firstSeenAt)}
-      </time>
-    </Link>
+      <div className="flex shrink-0 flex-col items-end gap-2">
+        <time className="text-[11px] text-zinc-400" dateTime={job.firstSeenAt}>
+          {formatDate(job.postedAt ?? job.firstSeenAt)}
+        </time>
+        {job.url ? (
+          <a
+            href={job.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="relative z-10 rounded-md border border-zinc-300 px-2 py-1 text-[11px] text-zinc-700 hover:border-zinc-500 hover:text-zinc-900"
+            title="Abrir la publicación original en una pestaña nueva"
+          >
+            Ver oferta ↗
+          </a>
+        ) : null}
+      </div>
+    </div>
   );
 }

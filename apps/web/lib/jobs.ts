@@ -28,6 +28,8 @@ export type JobListRow = {
   status: JobStatus;
   locationRaw: string | null;
   modality: string | null;
+  /** Link a la publicación original (canonical_url o, si no hay, la URL de alguna fuente). */
+  url: string | null;
   firstSeenAt: string;
   postedAt: string | null;
   flags: string[];
@@ -89,6 +91,7 @@ export async function listJobs(userId: string, filters: JobFilters): Promise<Job
       .select({
         jobId: s.jobSources.jobId,
         kinds: sql<string[]>`array_agg(distinct ${s.jobSources.kind}::text)`.as("kinds"),
+        url: sql<string | null>`min(${s.jobSources.url})`.as("url"),
       })
       .from(s.jobSources)
       .groupBy(s.jobSources.jobId)
@@ -113,6 +116,8 @@ export async function listJobs(userId: string, filters: JobFilters): Promise<Job
         status: s.jobs.status,
         locationRaw: s.jobs.locationRaw,
         modality: s.jobs.modality,
+        canonicalUrl: s.jobs.canonicalUrl,
+        sourceUrl: sources.url,
         salaryMaxUsd: s.jobs.salaryMaxUsd,
         firstSeenAt: s.jobs.firstSeenAt,
         postedAt: s.jobs.postedAt,
@@ -146,6 +151,7 @@ export async function listJobs(userId: string, filters: JobFilters): Promise<Job
       status: r.status,
       locationRaw: r.locationRaw,
       modality: r.modality,
+      url: r.canonicalUrl ?? r.sourceUrl ?? null,
       firstSeenAt: r.firstSeenAt.toISOString(),
       postedAt: r.postedAt?.toISOString() ?? null,
       flags: r.flags ?? [],

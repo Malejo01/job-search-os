@@ -16,6 +16,7 @@ import {
 } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import { changeStatusAction, humanScoreAction } from "./actions";
+import { ApplyButton } from "./apply-button";
 
 export const dynamic = "force-dynamic";
 
@@ -124,6 +125,10 @@ export default async function JobDetailPage({
 
       {/* Acciones de estado: Server Actions + transition(); solo los eventos válidos desde el estado actual */}
       <section aria-label="Estado" className="flex flex-wrap gap-2">
+        {/* Ir a la publicación original; al volver pregunta si hubo postulación (confirmación manual) */}
+        {job.url ? (
+          <ApplyButton jobId={job.id} url={job.url} canApply={job.events.includes("apply")} />
+        ) : null}
         {job.events.map((event) => (
           <form key={event} action={changeStatusAction}>
             <input type="hidden" name="jobId" value={job.id} />
