@@ -6,8 +6,9 @@ import { createJob, deleteJob, jobStatus, login } from "./helpers";
  * mano si hubo postulación. La confirmación es manual: la app no ve el sitio externo y no
  * detecta nada por su cuenta.
  */
-// Misma app: el popup carga sin depender de internet
-const OFERTA_URL = "http://localhost:3000/api/health";
+// Misma app: el popup carga sin depender de internet. Una URL por oferta (jobs_user_url es único).
+const OFERTA_URL = "http://localhost:3000/api/health?oferta=link-externo";
+const OTRA_URL = "http://localhost:3000/api/health?oferta=sin-postular";
 
 let conUrl: string;
 let sinUrl: string;
@@ -25,7 +26,7 @@ test.describe("Flujo 7: ir a la oferta original y confirmar la postulación", ()
       title: `E2E sin postular ${Date.now()}`,
       status: "evaluada",
       jdText: "JD de prueba para responder que no.",
-      canonicalUrl: OFERTA_URL,
+      canonicalUrl: OTRA_URL,
     });
     sinUrl = await createJob({
       title: `E2E sin link ${Date.now()}`,
@@ -35,7 +36,7 @@ test.describe("Flujo 7: ir a la oferta original y confirmar la postulación", ()
     });
   });
   test.afterAll(async () => {
-    for (const id of [conUrl, paraNo, sinUrl]) await deleteJob(id);
+    for (const id of [conUrl, paraNo, sinUrl]) if (id) await deleteJob(id);
   });
 
   /** Abre la oferta, cierra la pestaña y vuelve a la app: ahí aparece el diálogo. */
@@ -46,6 +47,10 @@ test.describe("Flujo 7: ir a la oferta original y confirmar la postulación", ()
     ]);
     await popup.close();
     await page.bringToFront();
+    // En un navegador real, volver a la pestaña de la app dispara `focus` y `visibilitychange`.
+    // Chromium headless deja todas las pestañas visibles y con foco, así que ese evento no llega
+    // solo: se simula lo que el navegador manda al volver.
+    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
     return popup;
   }
 
@@ -58,8 +63,8 @@ test.describe("Flujo 7: ir a la oferta original y confirmar la postulación", ()
     await expect(link).toHaveAttribute("target", "_blank");
     await expect(link).toHaveAttribute("rel", /noopener/);
 
-    // La card sigue llevando al detalle: el link externo no se traga el click
-    await card.getByText("E2E link externo").click();
+    // La card sigue llevando al detalle: un link cubre toda la card, debajo del de la oferta
+    await card.getByRole("link", { name: /abrir el detalle/i }).click();
     await expect(page).toHaveURL(new RegExp(`/jobs/${conUrl}`));
   });
 
