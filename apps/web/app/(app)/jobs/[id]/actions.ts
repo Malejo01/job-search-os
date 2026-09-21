@@ -1,9 +1,10 @@
 "use server";
 
-import { JOB_EVENTS, type JobEvent } from "@job-search-os/pipeline";
+import { JOB_EVENTS, JOB_STATUSES, type JobEvent, type JobStatus } from "@job-search-os/pipeline";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { applyJobEvent, MANUAL_EVENTS, saveHumanScore } from "@/lib/job-detail";
+import { createLogger } from "@job-search-os/adapters";
+import { applyJobEvent, correctJobStatus, MANUAL_EVENTS, saveHumanScore } from "@/lib/job-detail";
 import { requireUserId } from "@/lib/session";
 
 /** Server Actions del detalle (JS-016). Validan la entrada y delegan en lib/job-detail (transition()). */
@@ -46,4 +47,26 @@ export async function humanScoreAction(formData: FormData): Promise<void> {
     throw e;
   }
   revalidatePath(`/jobs/${jobId}`);
+}
+
+/** Corrección manual de un estado mal marcado (JS-028). La confirmación la pide el cliente. */
+export async function correctStatusAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const jobId = String(formData.get("jobId") ?? "");
+  const to = String(formData.get("to") ?? "") as JobStatus;
+  if (!jobId || !(JOB_STATUSES as readonly string[]).includes(to)) {
+    redirect(`/jobs/${jobId}?error=correccion`);
+  }
+  try {
+    const { from } = await correctJobStatus(userId, jobId, to);
+    createLogger({ user_id: userId, job_id: jobId }).info({ from, to }, "estado corregido a mano");
+  } catch (e) {
+    if (e instanceof Error && e.name === "InvalidCorrectionError") {
+      redirect(`/jobs/${jobId}?error=correccion`);
+    }
+    throw e;
+  }
+  revalidatePath(`/jobs/${jobId}`);
+  revalidatePath("/jobs");
+  revalidatePath("/applications");
 }
