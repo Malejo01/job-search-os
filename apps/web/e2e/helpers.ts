@@ -7,7 +7,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { execSync } from "node:child_process";
 import { resolve } from "node:path";
-import { eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import type { Page } from "@playwright/test";
 
 /** Credenciales del usuario seed local (pnpm db:seed --local con SEED_USER_EMAIL/PASSWORD). */
@@ -73,6 +73,38 @@ export async function createJob(options: {
       seenAt: new Date(),
     });
     return job!.id;
+  } finally {
+    await close();
+  }
+}
+
+/** Deja la oferta con un mensaje pendiente en la cola de evaluación, como si recién se hubiera pegado el JD. */
+export async function enqueueEvaluation(jobId: string): Promise<void> {
+  const { db, close } = ownerDb();
+  try {
+    await db.insert(s.jobQueue).values({
+      queue: "evaluate_job",
+      userId: E2E_USER_ID,
+      payload: { jobId },
+      runAfter: new Date(),
+      maxAttempts: 3,
+    });
+  } finally {
+    await close();
+  }
+}
+
+/** Estado del mensaje de evaluación de una oferta en job_queue (null si no hay). */
+export async function queueStatus(jobId: string): Promise<string | null> {
+  const { db, close } = ownerDb();
+  try {
+    const [row] = await db
+      .select({ status: s.jobQueue.status })
+      .from(s.jobQueue)
+      .where(
+        and(eq(s.jobQueue.queue, "evaluate_job"), sql`${s.jobQueue.payload}->>'jobId' = ${jobId}`),
+      );
+    return row?.status ?? null;
   } finally {
     await close();
   }

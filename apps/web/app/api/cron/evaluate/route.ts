@@ -1,16 +1,7 @@
 import { createDb, requireDatabaseUrl } from "@job-search-os/db";
-import {
-  cachedRouteSource,
-  createDemoLlm,
-  createLlmClient,
-  createLogger,
-  createPgQueue,
-  createProviderRegistry,
-  drizzleCallSink,
-  drizzleRouteSource,
-  runEvaluateWorker,
-} from "@job-search-os/adapters";
+import { createLogger, createPgQueue, runEvaluateWorker } from "@job-search-os/adapters";
 import { NextResponse } from "next/server";
+import { serviceLlm } from "@/lib/llm-service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,16 +21,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   const { db, close } = createDb(requireDatabaseUrl({ purpose: "service" }), { max: 2 });
   const logger = createLogger({ cron: "evaluate" });
   try {
-    // LLM_DEMO=1 (previews sin key): evaluaciones falsas con model = "fake", badge DEMO en la UI
-    const llm =
-      process.env.LLM_DEMO === "1"
-        ? createDemoLlm({ calls: drizzleCallSink(db) })
-        : createLlmClient({
-            routes: cachedRouteSource(drizzleRouteSource(db)),
-            calls: drizzleCallSink(db),
-            providers: createProviderRegistry(),
-            logger,
-          });
+    const llm = serviceLlm(db, logger);
     const summary = await runEvaluateWorker(
       { db, llm, queue: createPgQueue(db), logger },
       { limit: 20 },

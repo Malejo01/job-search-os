@@ -304,3 +304,56 @@ export async function runEvaluateWorker(
   }
   return summary;
 }
+
+export type EvaluateNowResult =
+  { ran: true; outcome: EvaluateOutcome } | { ran: false; reason: "cap" | "not_pending" };
+
+/**
+ * Evaluación inmediata de un job recién encolado (JS-027: pegar JD evalúa al instante, sin
+ * esperar al cron). Mismos guardarraíles que el worker: tope de gasto de 24 h antes de tocar la
+ * cola, reclamo del mensaje con SKIP LOCKED (si el cron ya lo tiene, no evalúa dos veces) y el
+ * mismo cierre del mensaje: ok/skipped → done, falla → reintento con backoff para el cron.
+ */
+export async function evaluateJobNow(
+  jobId: string,
+  deps: EvaluateDeps,
+  options: { dailyCapUsd?: number } = {},
+): Promise<EvaluateNowResult> {
+  const log = deps.logger.child({ job_id: jobId });
+  const dailyCapUsd = options.dailyCapUsd ?? dailyCapFromEnv();
+  if (dailyCapUsd > 0) {
+    const spend = await spendLast24h(deps.db, deps.now);
+    if (spend.usd >= dailyCapUsd) {
+      log.warn(
+        { spend_usd_24h: spend.usd, cap_usd: dailyCapUsd },
+        "evaluación inmediata frenada por el tope de gasto: queda para el cron",
+      );
+      return { ran: false, reason: "cap" };
+    }
+  }
+  const msg = await deps.queue.claimForJob<EvaluatePayload>(EVALUATE_QUEUE, jobId);
+  if (!msg) return { ran: false, reason: "not_pending" };
+
+  let outcome: EvaluateOutcome;
+  try {
+    outcome = await evaluateJobById(jobId, deps);
+  } catch (e) {
+    outcome = {
+      ok: false,
+      jobId,
+      error: e instanceof Error ? e.message : String(e),
+      retry: "retry",
+    };
+  }
+  if (outcome.ok || outcome.retry === "skipped") await deps.queue.ack(msg.id);
+  else if (!outcome.ok && outcome.error.startsWith("aborted:"))
+    await deps.queue.release(msg.id, outcome.error);
+  else if (outcome.retry === "failed")
+    await deps.queue.fail(msg.id, outcome.error, { final: true });
+  else await deps.queue.fail(msg.id, outcome.error);
+  log.info(
+    { ok: outcome.ok, ...(outcome.ok ? { score: outcome.score } : { error: outcome.error }) },
+    "evaluación inmediata",
+  );
+  return { ran: true, outcome };
+}

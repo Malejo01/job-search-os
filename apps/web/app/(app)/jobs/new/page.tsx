@@ -2,6 +2,8 @@ import Link from "next/link";
 import { createManualJobAction } from "./actions";
 
 export const dynamic = "force-dynamic";
+// Con JD completo la evaluación corre en `after` dentro de esta invocación (JS-027)
+export const maxDuration = 120;
 
 const input = "rounded-md border border-zinc-300 px-3 py-2 text-base";
 

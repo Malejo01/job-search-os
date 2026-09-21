@@ -31,6 +31,8 @@ export default defineConfig({
     url: "http://localhost:3000/api/health",
     reuseExistingServer: !isCi,
     timeout: 120_000,
-    env: { DB_TARGET: "local" },
+    // LLM_DEMO: la evaluación inmediata al pegar JD (JS-027) usa el LLM falso, nunca uno real.
+    // Ojo local: con un `next dev` ya levantado se reusa ese server y su env (sin LLM_DEMO).
+    env: { DB_TARGET: "local", LLM_DEMO: "1" },
   },
 });

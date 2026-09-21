@@ -2,14 +2,14 @@ import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testconta
 import { applyMigrations } from "@job-search-os/db/src/migrate";
 import { createDb, schema as s } from "@job-search-os/db";
 import criteria from "@job-search-os/db/seeds/criteria.example.json";
-import { eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import pino from "pino";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createFakeLlm } from "../llm/fake";
 import { createPgQueue, enqueueEvaluationWith, EVALUATE_QUEUE } from "../queue/pg-queue";
 import { ingestRawJob } from "../ingest/ingest-job";
 import { rawJobFromManual, type RawJob } from "@job-search-os/pipeline";
-import { evaluateJobById, runEvaluateWorker } from "./evaluate-job";
+import { evaluateJobById, evaluateJobNow, runEvaluateWorker } from "./evaluate-job";
 
 /**
  * JS-013 · Cola con SKIP LOCKED + worker con FakeLlm (sin red). Postgres real:
@@ -607,5 +607,124 @@ describe("ingesta: clave fuerte fuera de la ventana de 14 días", () => {
       deps,
     );
     expect(byId).toMatchObject({ action: "merged", jobId: first.jobId });
+  });
+});
+
+describe("evaluación inmediata al pegar JD (JS-027)", () => {
+  /** Oferta con JD recién encolada, como la deja "pegar JD". */
+  async function queued(externalId: string) {
+    const q = createPgQueue(conn.db);
+    const out = await ingestRawJob(
+      raw({
+        externalId,
+        companyRaw: `Ahora ${externalId}`,
+        jdText: `JD ${externalId}: agentes con RAG y MCP en TypeScript.`,
+      }),
+      {
+        db: conn.db,
+        userId: USER,
+        rules: criteria as never,
+        logger,
+        enqueueEvaluation: enqueueEvaluationWith(conn.db, q),
+      },
+    );
+    expect(out).toMatchObject({ action: "inserted", enqueued: true });
+    return { q, jobId: out.jobId };
+  }
+  async function messageOf(jobId: string) {
+    const [row] = await conn.db
+      .select({ status: s.jobQueue.status, attempts: s.jobQueue.attempts })
+      .from(s.jobQueue)
+      .where(
+        and(eq(s.jobQueue.queue, EVALUATE_QUEUE), sql`${s.jobQueue.payload}->>'jobId' = ${jobId}`),
+      );
+    return row;
+  }
+
+  it("reclama el mensaje de esa oferta, evalúa y lo cierra: el cron ya no lo ve", async () => {
+    const { q, jobId } = await queued("now-1");
+    const llm = createFakeLlm({ evaluate_job: fakeEvaluation });
+    const r = await evaluateJobNow(
+      jobId,
+      { db: conn.db, llm, queue: q, logger },
+      { dailyCapUsd: 0 },
+    );
+    expect(r).toMatchObject({ ran: true, outcome: { ok: true, jobId } });
+    expect(llm.calls).toHaveLength(1);
+    const [job] = await conn.db.select().from(s.jobs).where(eq(s.jobs.id, jobId));
+    expect(job?.status).toBe("evaluada");
+    expect(await messageOf(jobId)).toMatchObject({ status: "done" });
+  });
+
+  it("si el cron ya tomó el mensaje, no evalúa dos veces", async () => {
+    const { q, jobId } = await queued("now-2");
+    // Simula al cron con el mensaje en proceso
+    await conn.db
+      .update(s.jobQueue)
+      .set({ status: "processing", lockedAt: new Date() })
+      .where(sql`${s.jobQueue.payload}->>'jobId' = ${jobId}`);
+    const llm = createFakeLlm({ evaluate_job: fakeEvaluation });
+    const r = await evaluateJobNow(
+      jobId,
+      { db: conn.db, llm, queue: q, logger },
+      { dailyCapUsd: 0 },
+    );
+    expect(r).toEqual({ ran: false, reason: "not_pending" });
+    expect(llm.calls).toHaveLength(0);
+    await conn.db
+      .update(s.jobQueue)
+      .set({ status: "done" })
+      .where(sql`${s.jobQueue.payload}->>'jobId' = ${jobId}`);
+  });
+
+  it("con el tope de gasto superado no llama al modelo y deja el mensaje para el cron", async () => {
+    const { q, jobId } = await queued("now-3");
+    await conn.db.insert(s.llmCalls).values({
+      userId: USER,
+      task: "evaluate_job",
+      model: "gemini-now-cap",
+      promptVersion: "evaluate_job@v1",
+      tokensIn: 1000,
+      tokensOut: 2000,
+      tokensReasoning: 0,
+      latencyMs: 1,
+      costUsd: 5,
+      ok: true,
+    });
+    const llm = createFakeLlm({ evaluate_job: fakeEvaluation });
+    const r = await evaluateJobNow(
+      jobId,
+      { db: conn.db, llm, queue: q, logger },
+      { dailyCapUsd: 2 },
+    );
+    expect(r).toEqual({ ran: false, reason: "cap" });
+    expect(llm.calls).toHaveLength(0);
+    expect(await messageOf(jobId)).toMatchObject({ status: "pending", attempts: 0 });
+    await conn.db.delete(s.llmCalls).where(eq(s.llmCalls.model, "gemini-now-cap"));
+    await conn.db
+      .update(s.jobQueue)
+      .set({ status: "done" })
+      .where(sql`${s.jobQueue.payload}->>'jobId' = ${jobId}`);
+  });
+
+  it("si el modelo falla, el mensaje vuelve a la cola para que el cron reintente", async () => {
+    const { q, jobId } = await queued("now-4");
+    const down = createFakeLlm(
+      {},
+      { failWith: { kind: "generation_failed", task: "evaluate_job", detail: "503" } },
+    );
+    const r = await evaluateJobNow(
+      jobId,
+      { db: conn.db, llm: down, queue: q, logger },
+      { dailyCapUsd: 0 },
+    );
+    expect(r).toMatchObject({ ran: true, outcome: { ok: false, retry: "retry" } });
+    expect(await messageOf(jobId)).toMatchObject({ status: "pending", attempts: 1 });
+    const [job] = await conn.db.select().from(s.jobs).where(eq(s.jobs.id, jobId));
+    expect(job?.status).toBe("prefiltrada");
+    await conn.db
+      .update(s.jobQueue)
+      .set({ status: "done" })
+      .where(sql`${s.jobQueue.payload}->>'jobId' = ${jobId}`);
   });
 });

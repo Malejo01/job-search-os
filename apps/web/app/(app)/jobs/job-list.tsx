@@ -51,7 +51,16 @@ function JobCard({ job }: { job: JobListRow }) {
         className="absolute inset-0 rounded-lg"
         aria-label={`Abrir el detalle de ${job.title}`}
       />
-      {job.score === null && job.preScore !== null ? (
+      {job.evaluating ? (
+        <div
+          className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-md border-2 border-sky-300 text-sky-700"
+          aria-label="evaluando"
+          title="El modelo está evaluando esta oferta; la lista se actualiza sola"
+        >
+          <span className="animate-pulse text-lg font-semibold leading-none">…</span>
+          <span className="text-[10px] uppercase">score</span>
+        </div>
+      ) : job.score === null && job.preScore !== null ? (
         <div
           className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-md border-2 border-dashed border-zinc-400 text-zinc-700"
           aria-label={`pre-score ${job.preScore}`}
@@ -85,9 +94,15 @@ function JobCard({ job }: { job: JobListRow }) {
               DEMO
             </span>
           ) : null}
-          <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-zinc-700">
-            {STATUS_LABELS[job.status] ?? job.status}
-          </span>
+          {job.evaluating ? (
+            <span className="rounded bg-sky-100 px-1.5 py-0.5 font-medium text-sky-800">
+              Evaluando…
+            </span>
+          ) : (
+            <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-zinc-700">
+              {STATUS_LABELS[job.status] ?? job.status}
+            </span>
+          )}
           {job.sources.map((k) => (
             <span key={k} className="rounded bg-sky-50 px-1.5 py-0.5 text-sky-800">
               {SOURCE_LABELS[k] ?? k}

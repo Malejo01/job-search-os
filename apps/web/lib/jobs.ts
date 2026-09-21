@@ -1,6 +1,6 @@
 import { schema as s } from "@job-search-os/db";
 import { JOB_STATUSES, type JobStatus } from "@job-search-os/pipeline";
-import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, or, sql } from "drizzle-orm";
 import { withUser } from "./db";
 import { ACTIVE_STATUSES } from "./labels";
 import { preScoresFor } from "./prescore";
@@ -43,7 +43,18 @@ export type JobListRow = {
   model: string | null;
   /** Pre-score determinista (sin LLM) cuando no hay evaluación; null si ya hay score o no aplica. */
   preScore: number | null;
+  /** Tiene la evaluación en curso o en cola (JS-027): se muestra arriba como "evaluando". */
+  evaluating: boolean;
 };
+
+/**
+ * Oferta con un mensaje de evaluación pendiente o en proceso (job_queue tiene RLS: solo las del
+ * usuario). Es lo que pasa entre pegar el JD y que el modelo responda. Se usa en consultas sobre
+ * `jobs`: la columna va calificada a mano porque en una consulta de una sola tabla drizzle la
+ * escribe como `"id"` y, dentro de la subconsulta, eso sería el id de job_queue.
+ */
+export const evaluatingSql = () =>
+  sql<boolean>`exists (select 1 from job_queue q where q.queue = 'evaluate_job' and q.status in ('pending', 'processing') and q.payload->>'jobId' = "jobs"."id"::text)`;
 
 const SOURCE_KINDS = new Set<string>(s.sourceKind.enumValues);
 
@@ -103,7 +114,10 @@ export async function listJobs(userId: string, filters: JobFilters): Promise<Job
         : filters.status
           ? eq(s.jobs.status, filters.status)
           : inArray(s.jobs.status, [...ACTIVE_STATUSES]),
-      filters.scoreMin !== null ? gte(latest.score, filters.scoreMin) : undefined,
+      // Lo que se está evaluando se ve aunque el filtro de score lo dejaría afuera (todavía no tiene score)
+      filters.scoreMin !== null
+        ? or(gte(latest.score, filters.scoreMin), evaluatingSql())
+        : undefined,
       filters.source ? sql`${filters.source} = any(${sources.kinds})` : undefined,
       filters.since ? gte(s.jobs.firstSeenAt, new Date(`${filters.since}T00:00:00Z`)) : undefined,
     ].filter((c): c is NonNullable<typeof c> => c !== undefined);
@@ -129,12 +143,17 @@ export async function listJobs(userId: string, filters: JobFilters): Promise<Job
         riesgos: latest.riesgos,
         bloqueadores: latest.bloqueadores,
         model: latest.model,
+        evaluating: evaluatingSql(),
       })
       .from(s.jobs)
       .leftJoin(latest, eq(latest.jobId, s.jobs.id))
       .leftJoin(sources, eq(sources.jobId, s.jobs.id))
       .where(conds.length ? and(...conds) : undefined)
-      .orderBy(sql`${latest.score} desc nulls last`, desc(s.jobs.firstSeenAt))
+      .orderBy(
+        sql`${evaluatingSql()} desc`,
+        sql`${latest.score} desc nulls last`,
+        desc(s.jobs.firstSeenAt),
+      )
       .limit(LIST_LIMIT);
 
     // Pre-score solo para las que todavía no tienen evaluación y no están descartadas
@@ -163,6 +182,7 @@ export async function listJobs(userId: string, filters: JobFilters): Promise<Job
       bloqueadores: r.bloqueadores ?? [],
       model: r.model,
       preScore: pre.get(r.id)?.score ?? null,
+      evaluating: Boolean(r.evaluating),
     }));
   });
 }

@@ -2,13 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { evaluateInBackground } from "@/lib/evaluate-now";
 import { applyJobEvent } from "@/lib/job-detail";
 import { attachJd } from "@/lib/pending-jd";
 import { requireUserId } from "@/lib/session";
 
 const PAGE = "/jobs/pending-jd";
 
-/** Pegar JD → guarda jd_text y encola la evaluación (JS-017). */
+/** Pegar JD → guarda jd_text, encola y evalúa al instante en segundo plano (JS-017, JS-027). */
 export async function pasteJdAction(formData: FormData): Promise<void> {
   const userId = await requireUserId();
   const jobId = String(formData.get("jobId") ?? "");
@@ -20,6 +21,7 @@ export async function pasteJdAction(formData: FormData): Promise<void> {
     if (e instanceof Error && e.name === "JdTooShortError") redirect(`${PAGE}?error=corta`);
     throw e;
   }
+  evaluateInBackground(userId, jobId);
   revalidatePath(PAGE);
   revalidatePath("/jobs");
   redirect(`${PAGE}?ok=${jobId}`);

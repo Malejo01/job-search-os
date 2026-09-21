@@ -9,6 +9,7 @@ import {
 } from "@job-search-os/pipeline";
 import { and, desc, eq } from "drizzle-orm";
 import { withUser } from "./db";
+import { evaluatingSql } from "./jobs";
 import { preScoresFor, type PreScoreView } from "./prescore";
 
 /**
@@ -71,6 +72,8 @@ export type JobDetail = {
   application: { appliedAt: string | null; outcome: string | null } | null;
   /** Eventos manuales válidos desde el estado actual (para los botones). */
   events: JobEvent[];
+  /** Evaluación en cola o en curso (JS-027): la página se actualiza sola hasta que termine. */
+  evaluating: boolean;
 };
 
 /** Eventos que puede disparar la persona desde la UI (el resto los dispara el pipeline). */
@@ -88,6 +91,10 @@ export async function getJobDetail(userId: string, jobId: string): Promise<JobDe
   return withUser(userId, async (tx) => {
     const [job] = await tx.select().from(s.jobs).where(eq(s.jobs.id, jobId)).limit(1);
     if (!job) return null;
+    const [queued] = await tx
+      .select({ evaluating: evaluatingSql() })
+      .from(s.jobs)
+      .where(eq(s.jobs.id, jobId));
     const sources = await tx
       .select({
         kind: s.jobSources.kind,
@@ -178,6 +185,7 @@ export async function getJobDetail(userId: string, jobId: string): Promise<JobDe
         ? { appliedAt: app.appliedAt?.toISOString() ?? null, outcome: app.outcome }
         : null,
       events: availableEvents(job.status).filter((e) => MANUAL_EVENTS.includes(e)),
+      evaluating: Boolean(queued?.evaluating),
     };
   });
 }

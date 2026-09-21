@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { evaluateInBackground } from "@/lib/evaluate-now";
 import { ingestManualJob, parseModality } from "@/lib/ingest-manual";
 import { requireUserId } from "@/lib/session";
 
@@ -31,6 +32,8 @@ export async function createManualJobAction(formData: FormData): Promise<void> {
     const msg = e instanceof Error ? e.message : String(e);
     redirect(`/jobs/new?error=${encodeURIComponent(msg.slice(0, 120))}`);
   }
+  // Con JD completo se evalúa ya (JS-027); si no quedó nada encolado, no hace nada
+  if (str("jdText")) evaluateInBackground(userId, outcome.jobId);
   revalidatePath("/jobs");
   revalidatePath("/jobs/pending-jd");
   redirect(`/jobs/${outcome.jobId}?nueva=${outcome.action}`);

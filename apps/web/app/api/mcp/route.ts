@@ -6,11 +6,13 @@ import { listJobs } from "@/lib/jobs";
 import { getMarket } from "@/lib/market";
 import { mcpTokenOk, resolveMcpUserId } from "@/lib/mcp-user";
 import { ingestManualJob, parseModality } from "@/lib/ingest-manual";
+import { evaluateInBackground } from "@/lib/evaluate-now";
 import { attachJd, listPendingJd } from "@/lib/pending-jd";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+// paste_jd y add_job evalúan al instante en `after` dentro de esta invocación (JS-027)
+export const maxDuration = 120;
 
 /**
  * Servidor MCP propio (JS-035): la cola y las ofertas desde el chat de Claude, sin abrir la UI.
@@ -121,14 +123,15 @@ const handler = createMcpHandler(
       {
         title: "Pegar descripción del puesto",
         description:
-          "Guarda la JD completa de una oferta pendiente (mínimo 200 caracteres) y encola su evaluación. La evaluación aparece cuando corre el worker.",
+          "Guarda la JD completa de una oferta pendiente (mínimo 200 caracteres) y la evalúa al instante (en segundos aparece con score en la app; si el tope diario de LLM está superado, queda para el cron).",
         inputSchema: z.object({ id: z.string().uuid(), text: z.string().min(200) }),
       },
       async ({ id, text: jd }) => {
         const userId = await resolveMcpUserId();
         try {
           await attachJd(userId, id, jd);
-          return text({ id, saved: true, chars: jd.trim().length, next: "encolada para evaluar" });
+          evaluateInBackground(userId, id);
+          return text({ id, saved: true, chars: jd.trim().length, next: "evaluando ahora" });
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
           return { content: [{ type: "text", text: `no se pudo: ${msg}` }], isError: true };
@@ -170,6 +173,8 @@ const handler = createMcpHandler(
             salaryMaxUsd: a.salary_max_usd ?? null,
             candidatesCount: a.candidates ?? null,
           });
+          // Con JD completo se evalúa ya; si no quedó nada encolado, no hace nada
+          if (a.jd_text) evaluateInBackground(userId, out.jobId);
           return text(out);
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
