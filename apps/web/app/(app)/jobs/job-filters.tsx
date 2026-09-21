@@ -5,6 +5,8 @@ import { useTransition } from "react";
 
 type Option = { value: string; label: string };
 
+const SCORE_STEPS = Array.from({ length: 10 }, (_, n) => n);
+
 /**
  * Filtros de la lista (JS-015). Client component solo por la interactividad: cada cambio
  * reescribe la URL (search params) y el Server Component vuelve a consultar. Sin estado propio.
@@ -48,9 +50,12 @@ export function JobFilters({
           onChange={(e) => set("score", e.target.value)}
         >
           <option value="">cualquiera</option>
-          <option value="9">≥ 9</option>
-          <option value="7">≥ 7</option>
-          <option value="5">≥ 5</option>
+          {/* JS-029: de 0 a 9, de a un punto (un select y no un slider: cada cambio reescribe la URL) */}
+          {SCORE_STEPS.map((n) => (
+            <option key={n} value={String(n)}>
+              ≥ {n}
+            </option>
+          ))}
         </select>
       </label>
       <label className="flex flex-col gap-1 text-xs text-zinc-600">

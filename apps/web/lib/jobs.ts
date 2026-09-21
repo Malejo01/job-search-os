@@ -11,7 +11,7 @@ import { preScoresFor } from "./prescore";
  * para poder pasarlo a los client components de la lista.
  */
 export type JobFilters = {
-  /** Score mínimo de la última evaluación; null = sin filtro. */
+  /** Score mínimo de la última evaluación, entero de 0 a 9 (JS-029); null = sin filtro. */
   scoreMin: number | null;
   /** Fuente (job_sources.kind); null = todas. */
   source: string | null;
@@ -63,12 +63,13 @@ export function parseJobFilters(params: Record<string, string | string[] | undef
     const v = params[k];
     return (Array.isArray(v) ? v[0] : v) ?? "";
   };
-  const score = Number(one("score"));
+  const score = one("score");
   const source = one("fuente");
   const status = one("estado");
   const since = one("desde");
   return {
-    scoreMin: one("score") !== "" && Number.isFinite(score) ? score : null,
+    // Solo enteros de 0 a 9 (lo que ofrece el selector); cualquier otra cosa en la URL = sin filtro
+    scoreMin: /^[0-9]$/.test(score) ? Number(score) : null,
     source: SOURCE_KINDS.has(source) ? source : null,
     status:
       status === "todas"
