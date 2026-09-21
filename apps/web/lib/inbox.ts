@@ -16,6 +16,9 @@ export type InboundEmailDetail = {
   jobsExtracted: number | null;
   error: string | null;
   receivedAt: Date;
+  /** JS-038: estado en /inbox, para las acciones del detalle. */
+  seen: boolean;
+  dismissed: boolean;
   html: string | null;
   text: string | null;
   /** Links del email, para poder abrirlos sin depender del HTML embebido. */
@@ -81,6 +84,8 @@ export async function getInboundEmail(
       jobsExtracted: row.jobsExtracted,
       error: row.error,
       receivedAt: row.receivedAt,
+      seen: row.seenAt !== null,
+      dismissed: row.dismissedAt !== null,
       html,
       text: plano || null,
       links: extraerLinks(plano, html),

@@ -212,8 +212,8 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - El score mínimo pasa de una lista fija a un selector de 0 a 9, de a un punto.
 - **Implementado (2026-09-21):** `<select>` con "cualquiera" y de ≥ 0 a ≥ 9. Es un select y no un slider: cada cambio reescribe la URL y recarga la lista, y en el celular un slider dispararía una navegación por cada paso. `parseJobFilters` acepta solo enteros de 0 a 9; cualquier otro valor en la URL (12, -1, 6.5, abc) se ignora y queda sin filtro. Test: e2e `10-filtro-score.spec.ts`.
 
-### JS-038 · Acciones y volumen en `/inbox` (P1.3)
-`deps:` JS-020 · `est:` 3 h · `estado:` doing
+### JS-038 · Acciones y volumen en `/inbox` (P1.3) ✅ done 2026-09-21
+`deps:` JS-020 · `est:` 3 h · `estado:` done (PR #12; migración 0012 aplicada en Neon 2026-09-21 23:50 UTC, antes del deploy)
 - Por fila: "no me sirve esta fuente" (descartar), marcar como visto y eliminar. Descartados y vistos salen de la vista por defecto pero quedan en la base; solo "eliminar" borra.
 - **Volumen:** contador visible (recibidos en 24 h, cuántos sin parser) y aviso cuando se dispara respecto del promedio. Además, registrar los rechazos por el límite de 100/hora, que hoy descartan el email sin guardarlo ni avisar.
 - **Implementado (2026-09-21):**
@@ -229,8 +229,14 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Fuera de alcance:** "No me sirve" actúa sobre ese email, no silencia al remitente para los próximos. Si hace falta, sería un ticket aparte.
 
 ### JS-039 · Vista de email unificada con acciones arriba (P2)
-`deps:` JS-038 · `est:` 2 h · `estado:` todo
+`deps:` JS-038 · `est:` 2 h · `estado:` doing
 - Al abrir un email desde `/inbox`, mostrarlo como en un cliente de correo (texto y HTML combinados de forma legible, sin pestañas separadas) con la barra de acciones de JS-038 arriba. El HTML sigue en un `iframe` con `sandbox` vacío.
+- **Implementado (2026-09-21):**
+  - **Encabezado:** asunto, remitente, fecha y estado, con las **mismas acciones que la lista** (`EmailActions`, compartido). Eliminar desde el detalle vuelve a `/inbox`.
+  - **Un solo cuerpo:** el HTML si existe, si no el texto. El texto plano y los links quedan plegados ("Ver como texto plano", "Links del email"), como el "ver original" de un cliente de correo.
+  - **Legibilidad en el celular:** al HTML se le antepone CSS dentro del mismo iframe (viewport, imágenes y tablas al ancho).
+  - **Seguridad:** el iframe sigue con `sandbox` vacío, así que los links del HTML no se abren desde adentro; por eso están listados aparte.
+  - **Tests:** e2e `12-email-detalle.spec.ts`.
 
 ### JS-046 · Aviso "esta oferta puede estar cerrada" (futuro, baja prioridad)
 `deps:` JS-026, JS-028 · `est:` 2 h · `estado:` todo (para más adelante)
