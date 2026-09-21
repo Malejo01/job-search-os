@@ -400,4 +400,15 @@ export const inboundEmails = pgTable("inbound_emails", {
   jobsExtracted: integer("jobs_extracted").default(0),
   error: text("error"),
   receivedAt: timestamp("received_at", { withTimezone: true }).defaultNow().notNull(),
+  seenAt: timestamp("seen_at", { withTimezone: true }),          // JS-038: marcado como visto
+  dismissedAt: timestamp("dismissed_at", { withTimezone: true }), // JS-038: "no me sirve"
 });
+
+// JS-038: emails que el webhook rechazó por el límite horario (no se guardan; esto los cuenta)
+export const inboundRejections = pgTable("inbound_rejections", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull(),
+  windowStart: timestamp("window_start", { withTimezone: true }).notNull(), // hora truncada
+  rejected: integer("rejected").notNull().default(0),
+  lastAt: timestamp("last_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [uniqueIndex("inbound_rejections_user_window").on(t.userId, t.windowStart)]);

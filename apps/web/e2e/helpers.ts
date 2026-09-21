@@ -151,6 +151,126 @@ export async function applicationOf(jobId: string): Promise<{ outcome: string | 
   }
 }
 
+/** Email entrante del usuario seed con su crudo en raw_blobs (como lo deja el webhook). */
+export async function createInboundEmail(options: {
+  subject: string;
+  from?: string;
+  parser?: string;
+  error?: string | null;
+}): Promise<{ id: string; rawRef: string }> {
+  const { db, close } = ownerDb();
+  try {
+    const body = JSON.stringify({
+      event: { data: { subject: options.subject } },
+      content: { text: "hola", html: null },
+    });
+    const [blob] = await db
+      .insert(s.rawBlobs)
+      .values({
+        userId: E2E_USER_ID,
+        kind: "inbound_email",
+        contentType: "application/json",
+        body,
+        bytes: body.length,
+      })
+      .returning({ id: s.rawBlobs.id });
+    const rawRef = `pg:${blob!.id}`;
+    const [row] = await db
+      .insert(s.inboundEmails)
+      .values({
+        userId: E2E_USER_ID,
+        fromAddress: options.from ?? "Remitente E2E <e2e@example.com>",
+        subject: options.subject,
+        rawRef,
+        parser: options.parser ?? "none",
+        jobsExtracted: 0,
+        error:
+          options.error === undefined
+            ? "sin parser para este remitente: cola manual"
+            : options.error,
+        receivedAt: new Date(),
+      })
+      .returning({ id: s.inboundEmails.id });
+    return { id: row!.id, rawRef };
+  } finally {
+    await close();
+  }
+}
+
+/** Fila de inbound_emails (null si se borró) y si su crudo sigue existiendo. */
+export async function inboundState(
+  id: string,
+  rawRef: string,
+): Promise<{ row: { seenAt: Date | null; dismissedAt: Date | null } | null; blob: boolean }> {
+  const { db, close } = ownerDb();
+  try {
+    const [row] = await db
+      .select({ seenAt: s.inboundEmails.seenAt, dismissedAt: s.inboundEmails.dismissedAt })
+      .from(s.inboundEmails)
+      .where(eq(s.inboundEmails.id, id));
+    const [blob] = await db
+      .select({ id: s.rawBlobs.id })
+      .from(s.rawBlobs)
+      .where(eq(s.rawBlobs.id, rawRef.replace(/^pg:/, "")));
+    return { row: row ?? null, blob: Boolean(blob) };
+  } finally {
+    await close();
+  }
+}
+
+/** Hace que una oferta tenga como fuente el crudo de un email (como un aviso extraído de él). */
+export async function linkJobToRaw(jobId: string, rawRef: string): Promise<void> {
+  const { db, close } = ownerDb();
+  try {
+    await db.update(s.jobSources).set({ rawRef }).where(eq(s.jobSources.jobId, jobId));
+  } finally {
+    await close();
+  }
+}
+
+/** Registra emails rechazados por el límite horario en la hora actual. */
+export async function addInboundRejections(n: number): Promise<void> {
+  const { db, close } = ownerDb();
+  try {
+    const hour = new Date();
+    hour.setUTCMinutes(0, 0, 0);
+    await db
+      .insert(s.inboundRejections)
+      .values({ userId: E2E_USER_ID, windowStart: hour, rejected: n })
+      .onConflictDoUpdate({
+        target: [s.inboundRejections.userId, s.inboundRejections.windowStart],
+        set: { rejected: sql`${s.inboundRejections.rejected} + ${n}` },
+      });
+  } finally {
+    await close();
+  }
+}
+
+/** Borra los emails de prueba cuyo asunto contiene `fragment`, con sus crudos. */
+export async function deleteInboundEmails(fragment: string): Promise<void> {
+  const { db, close } = ownerDb();
+  try {
+    const rows = await db
+      .delete(s.inboundEmails)
+      .where(sql`${s.inboundEmails.subject} like ${`%${fragment}%`}`)
+      .returning({ rawRef: s.inboundEmails.rawRef });
+    for (const r of rows)
+      await db.delete(s.rawBlobs).where(eq(s.rawBlobs.id, r.rawRef.replace(/^pg:/, "")));
+  } finally {
+    await close();
+  }
+}
+
+/** Limpia los rechazos del usuario seed (para no afectar otros tests). */
+export async function clearInboundRejections(): Promise<void> {
+  const { db, close } = ownerDb();
+  try {
+    await db.delete(s.inboundRejections).where(eq(s.inboundRejections.userId, E2E_USER_ID));
+  } finally {
+    await close();
+  }
+}
+
 export async function jobStatus(jobId: string): Promise<string | null> {
   const { db, close } = ownerDb();
   try {

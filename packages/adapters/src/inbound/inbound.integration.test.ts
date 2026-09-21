@@ -131,5 +131,17 @@ describe("handleInboundEmail", () => {
       hourlyLimit: 1,
     });
     expect(limited).toMatchObject({ kind: "rate_limited", userId: USER });
+    const again = await handleInboundEmail(event("em_5"), null, JSON.stringify(event("em_5")), {
+      ...deps,
+      hourlyLimit: 1,
+    });
+    expect(again).toMatchObject({ kind: "rate_limited", userId: USER });
+    // JS-038: los rechazados no se guardan, pero quedan contados por usuario y hora
+    const rejections = await conn.db
+      .select()
+      .from(s.inboundRejections)
+      .where(eq(s.inboundRejections.userId, USER));
+    expect(rejections).toHaveLength(1);
+    expect(rejections[0]?.rejected).toBe(2);
   });
 });

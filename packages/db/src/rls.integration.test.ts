@@ -86,6 +86,21 @@ describe("RLS entre usuarios (JS-009)", () => {
     ]);
   });
 
+  it("toda tabla con user_id tiene RLS activo y forzado (regla de CLAUDE.md, incluye tablas nuevas)", async () => {
+    const rows = await owner<{ relname: string; rls: boolean; force: boolean }[]>`
+      select c.relname, c.relrowsecurity as rls, c.relforcerowsecurity as force
+      from pg_class c
+      join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public'
+      where c.relkind = 'r'
+        and exists (
+          select 1 from information_schema.columns col
+          where col.table_schema = 'public' and col.table_name = c.relname and col.column_name = 'user_id'
+        )
+      order by c.relname`;
+    expect(rows.map((r) => r.relname)).toContain("inbound_rejections");
+    expect(rows.filter((r) => !r.rls || !r.force).map((r) => r.relname)).toEqual([]);
+  });
+
   it("el rol de la app no es dueño ni saltea RLS", async () => {
     const [role] =
       await owner`select rolbypassrls, rolsuper from pg_roles where rolname = 'jobsearch_app'`;
