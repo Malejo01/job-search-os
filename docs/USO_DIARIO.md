@@ -15,7 +15,7 @@ Escrito para Mauro dentro de dos semanas, cuando no se acuerde de nada. Cubre el
 | 1 | Mail | Mirá si GitHub avisó que el workflow `cron` falló (solo escribe cuando falla). Si no hay mail, el cron corrió. | 10 s |
 | 2 | `/jobs` | Lista ordenada por score. Filtrá por acción "aplicar" y score ≥ 7. Las cajas punteadas "pre" son ofertas sin evaluar todavía (pre-score sin LLM): no las tomes como definitivas. | 5 min |
 | 3 | `/jobs/[id]` | Abrí cada candidata: bloqueadores en rojo (frenan), riesgos en ámbar (avisan, sobre todo ubicación). Si vas a postular, hacelo en el sitio de la oferta y después "Marcar aplicada". Si el score te parece mal, cargá tu score humano: sirve para calibrar. | 2 min por oferta |
-| 4 | `/jobs/pending-jd` | Ofertas que llegaron sin descripción completa (máximo 10 en pantalla). Abrí el aviso, copiá el snippet para Claude in Chrome, pegá la JD, guardar. Se encola sola y aparece evaluada en la próxima corrida del cron (o al toque si corrés el worker a mano). Límite humano: ≤ 5 JDs por día. | 1–2 min por JD |
+| 4 | `/jobs/pending-jd` | Ofertas que llegaron sin descripción completa (máximo 10 en pantalla). Abrí el aviso, copiá el snippet para Claude in Chrome, pegá la JD, guardar. Se evalúa al instante: la oferta aparece arriba en `/jobs` como "Evaluando…" y en segundos se actualiza sola con el score (si el tope diario de LLM está superado, queda para el cron). Límite humano: ≤ 5 JDs por día. | 1–2 min por JD |
 | 5 | `/inbox` | Emails que llegaron y el sistema no pudo parsear (cola manual). Cada uno tiene link a "cargar a mano". Hasta que existan los parsers de LinkedIn y Get on Board (JS-021/022), acá cae todo lo que entra por email. | 1 min |
 | 6 | `/applications` | Cuando una empresa responde: cambiá el resultado (entrevista, rechazo humano, rechazo automático por ubicación, oferta). También se actualiza solo si cambiás el estado desde el detalle. Arriba tenés la tasa de respuesta por banda de score y las "sorpresas". | 30 s |
 
@@ -90,7 +90,7 @@ Modo demo (sin gastar): `pnpm worker:evaluate --local --demo` evalúa con heurí
 |---|---|---|
 | Mail de GitHub: `cron` en rojo | El log del job dice qué endpoint no respondió `ok: true` | Si es `evaluate` con `stopped: cap`, es el tope de gasto: revisá `pnpm llm:spend`. Si es 401, `CRON_SECRET` de GitHub no coincide con el de Vercel. Si es 500, `GET /api/health` en la app dice si la base o el rol están mal. |
 | Una oferta quedó "prefiltrada" sin evaluar | Está en la cola pero el worker no corrió, o la cola tiene un mensaje viejo | `pnpm worker:evaluate`. Si el worker dice `failed`, el error queda en la salida. |
-| La JD pegada no aparece evaluada | El worker corre cada 6 h | `pnpm worker:evaluate`, o esperá al cron. |
+| La JD pegada no aparece evaluada | Se pasó el tope diario de LLM (`LLM_DAILY_CAP_USD`) o el modelo falló: el mensaje quedó en la cola para el cron | `pnpm worker:evaluate`, o esperá al cron. El error queda en `job_queue.last_error`. |
 | Todo con badge DEMO | La app está con `LLM_DEMO=1` | Sacalo de las variables de Vercel (solo va en previews). |
 | Emails que no llegan a `/inbox` | Resend › Emails muestra si recibió; Resend › Webhooks muestra si el POST a `/api/inbound` dio 401 (secret) o 500 (base) | Ver `docs/DEPLOY.md`, sección Resend. |
 | "sin firma" o 401 en el webhook | `RESEND_WEBHOOK_SECRET` en Vercel no es el del webhook | Copiar el `whsec_...` de Resend. |

@@ -194,10 +194,11 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Acepta:** e2e `07-ver-oferta-postular.spec.ts` (link en lista y detalle, "Sí" deja `aplicada` en la base, "No" no cambia nada, aviso sin link no muestra botones).
 
 ### JS-027 · Pegar JD evalúa al instante (P0.2)
-`deps:` JS-017, JS-013 · `est:` 2 h · `estado:` todo
+`deps:` JS-017, JS-013, JS-026 · `est:` 2 h · `estado:` doing
 - Guardar el JD dispara la evaluación en el momento, sin esperar al cron de 6 h.
 - Mientras evalúa, la oferta aparece en `/jobs` como "evaluando" (no desaparece).
 - Cuando termina, la vista se actualiza sola (poll corto o revalidación).
+- **Implementado (2026-09-21):** al guardar el JD (UI, MCP `paste_jd`, y también las cargas manuales con JD completo por `/jobs/new` y `add_job`) se llama a `evaluateJobNow` en `after()`. Reclama **el mensaje de esa oferta** con `FOR UPDATE SKIP LOCKED` (si el cron ya lo tiene, no evalúa dos veces), respeta `LLM_DAILY_CAP_USD` antes de tocar la cola y cierra el mensaje igual que el worker: ok → done; falla → reintento con backoff para el cron. En `/jobs` lo que tiene evaluación en cola o en curso sale **arriba**, marcado "Evaluando…", **aunque haya filtro de score** (antes quedaba al final por no tener score, o fuera del filtro, y parecía ausente). La lista y el detalle se refrescan cada 3 s mientras haya algo evaluándose, durante 3 min como máximo. Tests: 4 de integración (`evaluateJobNow`: reclamo, no doble evaluación con el cron, tope de gasto, falla del modelo) y e2e 02 (evaluada sin correr el worker) y 08 (evaluando visible con filtro y actualización sin recargar). En e2e la app corre con `LLM_DEMO=1`.
 
 ### JS-028 · Corregir un estado mal marcado (P1.1)
 `deps:` JS-016 · `est:` 2 h · `estado:` todo

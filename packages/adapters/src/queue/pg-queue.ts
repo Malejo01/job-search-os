@@ -28,6 +28,15 @@ export interface Queue {
     queue: string,
     limit: number,
   ): Promise<QueueMessage<T>[]>;
+  /**
+   * Toma el mensaje pendiente de UN job (evaluar al pegar JD, JS-027) y lo marca `processing`,
+   * con SKIP LOCKED: si el cron ya lo tiene, devuelve null y no hay doble evaluación. Ignora
+   * run_after: la persona acaba de pegar el JD y lo quiere ahora.
+   */
+  claimForJob<T extends Record<string, unknown>>(
+    queue: string,
+    jobId: string,
+  ): Promise<QueueMessage<T> | null>;
   ack(id: string): Promise<void>;
   /**
    * Marca el intento fallido: reintenta con backoff si quedan intentos, si no `failed`.
@@ -92,6 +101,38 @@ export function createPgQueue(db: Db): Queue {
         attempts: r.attempts,
         maxAttempts: r.max_attempts,
       }));
+    },
+
+    async claimForJob<T extends Record<string, unknown>>(queue: string, jobId: string) {
+      const rows = await db.execute<{
+        id: string;
+        queue: string;
+        user_id: string | null;
+        payload: T;
+        attempts: number;
+        max_attempts: number;
+      }>(sql`
+        UPDATE job_queue SET status = 'processing', locked_at = now(), attempts = attempts + 1, updated_at = now()
+        WHERE id = (
+          SELECT id FROM job_queue
+          WHERE queue = ${queue} AND status = 'pending' AND payload->>'jobId' = ${jobId}
+          ORDER BY created_at
+          FOR UPDATE SKIP LOCKED
+          LIMIT 1
+        )
+        RETURNING id, queue, user_id, payload, attempts, max_attempts
+      `);
+      const r = [...rows][0];
+      return r
+        ? {
+            id: r.id,
+            queue: r.queue,
+            userId: r.user_id,
+            payload: r.payload,
+            attempts: r.attempts,
+            maxAttempts: r.max_attempts,
+          }
+        : null;
     },
 
     async ack(id) {

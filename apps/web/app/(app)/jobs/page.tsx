@@ -4,6 +4,7 @@ import { listJobs, LIST_LIMIT, parseJobFilters } from "@/lib/jobs";
 import { SOURCE_LABELS, STATUS_LABELS } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import Link from "next/link";
+import { AutoRefresh } from "./auto-refresh";
 import { JobFilters } from "./job-filters";
 import { JobList } from "./job-list";
 
@@ -49,6 +50,7 @@ export default async function JobsPage({
       ) : (
         <JobList rows={rows} />
       )}
+      <AutoRefresh active={rows.some((r) => r.evaluating)} />
     </section>
   );
 }

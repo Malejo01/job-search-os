@@ -16,6 +16,7 @@ import {
 } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import { changeStatusAction, humanScoreAction } from "./actions";
+import { AutoRefresh } from "../auto-refresh";
 import { ApplyButton } from "./apply-button";
 
 export const dynamic = "force-dynamic";
@@ -70,6 +71,12 @@ export default async function JobDetailPage({
           {ERRORS[error] ?? "Algo falló."}
         </p>
       ) : null}
+      {job.evaluating ? (
+        <p role="status" className="rounded-md bg-sky-50 px-3 py-2 text-sm text-sky-900">
+          Evaluando con el modelo… la página se actualiza sola cuando termine.
+        </p>
+      ) : null}
+      <AutoRefresh active={job.evaluating} />
 
       <header className="flex gap-3">
         <div

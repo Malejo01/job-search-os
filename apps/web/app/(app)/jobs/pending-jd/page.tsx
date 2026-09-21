@@ -6,6 +6,8 @@ import { closeJobAction, pasteJdAction } from "./actions";
 import { CopyButton } from "./copy-button";
 
 export const dynamic = "force-dynamic";
+// La evaluación inmediata al pegar JD (JS-027) corre en `after` dentro de esta invocación
+export const maxDuration = 120;
 
 const ERRORS: Record<string, string> = {
   corta: "La descripción es muy corta (mínimo 200 caracteres): pegá el aviso completo.",
@@ -38,11 +40,15 @@ export default async function PendingJdPage({
       ) : null}
       {ok ? (
         <p role="status" className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-          JD guardada y evaluación encolada. Aparece en{" "}
+          JD guardada: evaluando ahora. En unos segundos la ves con score en{" "}
           <Link href={`/jobs/${ok}`} className="underline">
             el detalle
           </Link>{" "}
-          cuando corre el worker (cron; local: <code>pnpm worker:evaluate --local</code>).
+          y en{" "}
+          <Link href="/jobs" className="underline">
+            Ofertas
+          </Link>
+          , que se actualizan solas.
         </p>
       ) : null}
 
