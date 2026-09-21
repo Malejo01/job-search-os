@@ -7,8 +7,9 @@ import { createJob, deleteJob, jobStatus, login } from "./helpers";
  * detecta nada por su cuenta.
  */
 // Misma app: el popup carga sin depender de internet. Una URL por oferta (jobs_user_url es único).
-const OFERTA_URL = "http://localhost:3000/api/health?oferta=link-externo";
-const OTRA_URL = "http://localhost:3000/api/health?oferta=sin-postular";
+const BASE_URL = process.env.E2E_BASE_URL ?? "http://localhost:3100";
+const OFERTA_URL = `${BASE_URL}/api/health?oferta=link-externo`;
+const OTRA_URL = `${BASE_URL}/api/health?oferta=sin-postular`;
 
 let conUrl: string;
 let sinUrl: string;
