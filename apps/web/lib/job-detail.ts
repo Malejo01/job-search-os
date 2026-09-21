@@ -48,6 +48,8 @@ export type JobDetail = {
   company: string;
   status: JobStatus;
   locationRaw: string | null;
+  /** Link a la publicación original (canonical_url o, si no hay, la URL de alguna fuente). */
+  url: string | null;
   countriesAllowed: string[] | null;
   modality: string | null;
   contractType: string | null;
@@ -127,6 +129,7 @@ export async function getJobDetail(userId: string, jobId: string): Promise<JobDe
       company: job.companyRaw,
       status: job.status,
       locationRaw: job.locationRaw,
+      url: job.canonicalUrl ?? sources.find((x) => x.url)?.url ?? null,
       countriesAllowed: job.countriesAllowed,
       modality: job.modality,
       contractType: job.contractType,
