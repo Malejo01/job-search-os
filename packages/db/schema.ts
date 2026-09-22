@@ -412,3 +412,12 @@ export const inboundRejections = pgTable("inbound_rejections", {
   rejected: integer("rejected").notNull().default(0),
   lastAt: timestamp("last_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [uniqueIndex("inbound_rejections_user_window").on(t.userId, t.windowStart)]);
+
+// Lo que la persona decidió sobre un dominio remitente en el aviso de fuga del filtro (JS-048)
+export const inboundSenderDomains = pgTable("inbound_sender_domains", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull(),
+  domain: text("domain").notNull(),          // dominio base: banco.com.ar
+  verdict: text("verdict").notNull(),        // empleo | no_empleo
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [uniqueIndex("inbound_sender_domains_user_domain").on(t.userId, t.domain)]);
