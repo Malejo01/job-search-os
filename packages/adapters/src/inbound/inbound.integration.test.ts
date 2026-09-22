@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { applyMigrations } from "@job-search-os/db/src/migrate";
 import { createDb, schema as s } from "@job-search-os/db";
@@ -120,6 +122,54 @@ describe("handleInboundEmail", () => {
       .where(eq(s.inboundEmails.id, out.inboundId));
     expect(row).toMatchObject({ parser: "linkedin", jobsExtracted: 0 });
     expect(row!.error).toMatch(/cola manual/i);
+  });
+
+  it("notificación social de LinkedIn: se guarda como no relevante, descartada y con su crudo (JS-050)", async () => {
+    const deps = { db: conn.db, storage: pgBlobStorage(conn.db), logger };
+    const ev = event("em_social_1", undefined, "LinkedIn <messages-noreply@linkedin.com>");
+    const out = await handleInboundEmail(
+      ev,
+      { html: "<p>Una persona de tu red es popular</p>", text: null, headers: null },
+      JSON.stringify(ev),
+      deps,
+    );
+    expect(out).toMatchObject({
+      kind: "stored",
+      parser: "linkedin_social",
+      jobsExtracted: 0,
+      error: null,
+    });
+    if (out.kind !== "stored") return;
+    const [row] = await conn.db
+      .select()
+      .from(s.inboundEmails)
+      .where(eq(s.inboundEmails.id, out.inboundId));
+    expect(row).toMatchObject({ parser: "linkedin_social", error: null });
+    expect(row!.dismissedAt).not.toBeNull();
+    expect(await deps.storage.get(row!.rawRef)).not.toBeNull();
+  });
+
+  it("si una notificación social trae tarjetas de aviso, queda pendiente para revisar la regla (JS-050)", async () => {
+    const deps = { db: conn.db, storage: pgBlobStorage(conn.db), logger };
+    const html = readFileSync(resolve(__dirname, "fixtures/linkedin/alerta-un-aviso.html"), "utf8");
+    const ev = event("em_social_2", undefined, "LinkedIn <invitations@linkedin.com>");
+    const out = await handleInboundEmail(
+      ev,
+      { html, text: null, headers: null },
+      JSON.stringify(ev),
+      deps,
+    );
+    expect(out).toMatchObject({ kind: "stored", parser: "linkedin_social", jobsExtracted: 0 });
+    if (out.kind !== "stored") return;
+    expect(out.error).toMatch(/revisar la regla/);
+    const [row] = await conn.db
+      .select()
+      .from(s.inboundEmails)
+      .where(eq(s.inboundEmails.id, out.inboundId));
+    // No se descarta ni se ingesta: la persona lo ve en Pendientes y decide
+    expect(row!.dismissedAt).toBeNull();
+    const jobs = await conn.db.select({ id: s.jobs.id }).from(s.jobs);
+    expect(jobs).toHaveLength(0);
   });
 
   it("ignora destinatarios que no son de ningún usuario y aplica rate limit por hora", async () => {

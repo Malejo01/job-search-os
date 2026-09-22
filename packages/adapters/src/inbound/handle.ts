@@ -6,7 +6,13 @@ import type { Logger } from "../logger";
 import { enqueueEvaluationWith } from "../queue/pg-queue";
 import { loadTaxonomy } from "../skills/sync";
 import type { BlobStorage } from "../storage/blob";
-import { chooseParserName, EMAIL_PARSERS, type InboundEmailContent } from "./parsers";
+import {
+  chooseParserName,
+  EMAIL_PARSERS,
+  linkedinSenderKind,
+  type InboundEmailContent,
+} from "./parsers";
+import { linkedinParser } from "./linkedin";
 import type { ReceivedEmailContent, ResendReceivedEvent } from "./resend";
 
 /**
@@ -38,6 +44,9 @@ export type InboundOutcome =
     };
 
 export const MANUAL_QUEUE_REASON = "sin parser para este remitente: cola manual";
+
+/** Valor de `inbound_emails.parser` para el ruido social de LinkedIn (JS-050). */
+export const LINKEDIN_SOCIAL_PARSER = "linkedin_social";
 
 export async function handleInboundEmail(
   event: ResendReceivedEvent,
@@ -110,8 +119,29 @@ export async function handleInboundEmail(
   let jobsExtracted = 0;
   let error: string | null = null;
   let parserUsed: string | null = null;
+  let dismissedAt: Date | null = null;
 
-  if (!parser) {
+  if (linkedinSenderKind(event.data.from) === "social") {
+    // JS-050: ruido social de LinkedIn. Se guarda (con su crudo) ya descartado, así no ensucia
+    // Pendientes ni la cola manual y se puede revisar. Si trae tarjetas de aviso, LinkedIn cambió
+    // el formato: no se ingesta ni se descarta, queda en Pendientes para revisar la regla.
+    parserUsed = LINKEDIN_SOCIAL_PARSER;
+    const cards = content?.html
+      ? linkedinParser.parse({
+          from: event.data.from,
+          to: recipients,
+          subject: event.data.subject ?? null,
+          html: content.html,
+          text: content.text,
+          receivedAt: now,
+        })
+      : null;
+    if (cards?.ok && cards.jobs.length) {
+      error = `notificación social de LinkedIn con ${cards.jobs.length} tarjetas de aviso: revisar la regla de remitentes (no se cargaron)`;
+    } else {
+      dismissedAt = now;
+    }
+  } else if (!parser) {
     error = MANUAL_QUEUE_REASON;
   } else if (!content) {
     error = "sin cuerpo del email (falta RESEND_API_KEY para pedirlo): cola manual";
@@ -166,6 +196,7 @@ export async function handleInboundEmail(
       jobsExtracted,
       error,
       receivedAt: now,
+      dismissedAt,
     })
     .returning({ id: s.inboundEmails.id });
   log.info(
