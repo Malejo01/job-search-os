@@ -140,6 +140,7 @@ Endpoint: `https://<app>/api/mcp` (Streamable HTTP, sin OAuth). Token compartido
 1. Proyecto Vercel apuntando al repo, root directory `apps/web`, framework Next.js, `pnpm install` desde la raíz del monorepo (Vercel detecta el workspace).
 2. Cargar las variables de la tabla. `DB_TARGET` no se define (la nube es el default fuera de `next dev`).
 3. Migraciones: `pnpm db:migrate` contra `DATABASE_URL_UNPOOLED` antes del primer deploy y en cada PR que agregue migraciones (paso manual o job de Actions con el secret; `docs/TESTING_STRATEGY.md`). Aplica también `rls/0000_policies.sql`.
+   - **Salvaguarda (2026-09-22):** contra una base remota, `db:migrate` y `db:seed` piden escribir `si` antes de tocar nada. Sin terminal (un agente o un script) no corren, salvo con `CONFIRM_PRODUCTION=si` explícito. Para la base local: `pnpm db:migrate:local` o `DB_TARGET=local`. Nació de una migración pensada para Docker que se aplicó en producción sin revisión (JS-048, migración 0013).
 4. Seed del usuario: `SEED_USER_EMAIL=... SEED_USER_PASSWORD=... pnpm db:seed` (una vez; idempotente).
 5. Deploy. `GET /api/health` responde `{ ok: true, db: "ok" }`; si el rol de `DATABASE_URL_APP` puede saltear RLS responde 503 con el motivo.
 6. Cron según la opción elegida arriba.

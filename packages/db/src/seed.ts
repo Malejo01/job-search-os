@@ -12,6 +12,7 @@ import skillsSeed from "../seeds/skills.json";
 import learningResourcesSeed from "../seeds/learning_resources.json";
 import { createDb, type Db } from "./client";
 import { loadFixture } from "./fixtures";
+import { confirmRemoteTarget } from "./confirm-remote";
 import { describeDatabaseUrl, loadLocalEnv, requireDatabaseUrl } from "./env";
 
 /**
@@ -544,6 +545,11 @@ async function main(): Promise<void> {
   const userId = process.env.SEED_USER_ID ?? DEFAULT_SEED_USER_ID;
   const url = requireDatabaseUrl({ purpose: "migration" });
   console.log(`→ ${describeDatabaseUrl(url)}`);
+  // El seed reescribe perfil y golden: contra producción, solo confirmando (CLAUDE.md, regla 7)
+  if (!(await confirmRemoteTarget(url, { action: "sembrar (reescribe perfil y golden)" }))) {
+    console.error("db:seed cancelado: no se tocó la base.");
+    process.exit(1);
+  }
   const { db, close } = createDb(url);
   try {
     await seedCatalog(db);
