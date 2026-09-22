@@ -1,5 +1,6 @@
 import type { RawJob } from "@job-search-os/pipeline";
 import { getonboardParser } from "./getonboard";
+import { indeedParser } from "./indeed";
 import { linkedinParser } from "./linkedin";
 
 /**
@@ -19,7 +20,7 @@ export type InboundEmailContent = {
 export type ParseResult = { ok: true; jobs: RawJob[] } | { ok: false; reason: string };
 
 export type EmailParser = {
-  name: "linkedin" | "getonboard" | "generic";
+  name: "linkedin" | "getonboard" | "indeed" | "generic";
   parse(email: InboundEmailContent): ParseResult;
 };
 
@@ -56,6 +57,7 @@ export function chooseParserName(fromAddress: string): EmailParser["name"] {
   const domain = (/@([^>\s]+)/.exec(addr)?.[1] ?? addr).trim();
   if (domain.endsWith("linkedin.com")) return "linkedin";
   if (domain.endsWith("getonbrd.com") || domain.endsWith("getonboard.com")) return "getonboard";
+  if (domain === "indeed.com" || domain.endsWith(".indeed.com")) return "indeed";
   return "generic";
 }
 
@@ -70,4 +72,5 @@ export function chooseParserName(fromAddress: string): EmailParser["name"] {
 export const EMAIL_PARSERS: Partial<Record<EmailParser["name"], EmailParser>> = {
   linkedin: linkedinParser,
   getonboard: getonboardParser,
+  indeed: indeedParser,
 };
