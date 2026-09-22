@@ -1,5 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { createInboundEmail, deleteInboundEmails, inboundState, login } from "./helpers";
+import {
+  clearSenderVerdicts,
+  createInboundEmail,
+  deleteInboundEmails,
+  inboundState,
+  login,
+  senderVerdict,
+} from "./helpers";
 
 /**
  * Flujo 12 (JS-039): el email se lee como en un cliente de correo (un solo cuerpo, no texto y
@@ -10,6 +17,7 @@ test.describe("Flujo 12: vista de email unificada con acciones arriba", () => {
 
   test.afterAll(async () => {
     await deleteInboundEmails(String(tag));
+    await clearSenderVerdicts(String(tag));
   });
 
   test("HTML en un solo cuerpo aislado, acciones arriba, visto al abrir y eliminar desde el detalle", async ({
@@ -92,5 +100,28 @@ test.describe("Flujo 12: vista de email unificada con acciones arriba", () => {
     const row = (await inboundState(email.id, email.rawRef)).row;
     expect(row?.dismissedAt).not.toBeNull();
     expect(row?.seenAt).toBeNull();
+  });
+
+  test("remitente no esperado: explica que no se guardó el cuerpo y deja marcar el dominio como fuente de empleo (JS-051)", async ({
+    page,
+  }) => {
+    const dominio = `reclutadora-${tag}.example`;
+    const email = await createInboundEmail({
+      subject: `E2E sin cuerpo ${tag}`,
+      from: `Talento <talento@mail.${dominio}>`,
+      redacted: true,
+      error:
+        "remitente no esperado: por privacidad se guardó solo remitente, asunto y fecha, sin el cuerpo",
+    });
+    await login(page);
+    await page.goto(`/inbox/${email.id}`);
+    await expect(page.getByRole("heading", { name: `E2E sin cuerpo ${tag}` })).toBeVisible();
+    const aviso = page.getByRole("region", { name: "Cuerpo no guardado" });
+    await expect(aviso).toContainText("Por privacidad no se guardó el cuerpo");
+    await expect(page.locator('iframe[title="Contenido del email"]')).toHaveCount(0);
+
+    await aviso.getByRole("button", { name: `Marcar ${dominio} como fuente de empleo` }).click();
+    await expect(aviso).toContainText(`Los próximos emails de ${dominio} se guardan completos`);
+    expect(await senderVerdict(dominio)).toBe("empleo");
   });
 });

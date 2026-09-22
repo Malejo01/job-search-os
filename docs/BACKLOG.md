@@ -276,6 +276,19 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Tests:** unitarios de `linkedinSenderKind` (los 5 remitentes, mayúsculas, remitente desconocido y dominios que imitan a LinkedIn); 2 de integración del webhook (se guarda descartado con su crudo; con tarjetas queda pendiente y no se ingesta); e2e de la etiqueta en `/inbox`.
 - **Fuera de alcance:** los 12 emails sociales que ya estaban en la base no se reprocesan (ya estaban descartados a mano).
 
+### JS-051 · Privacidad: de remitentes no esperados se guarda solo remitente, asunto y fecha ✅ done 2026-09-22
+`deps:` JS-020, JS-048 · `est:` 1.5 h · `estado:` done (pedido de Mauro, 2026-09-22; prioridad sobre seguir buscando la causa del reenvío de GitHub)
+- **Por qué:** si el reenvío de Gmail vuelve a mandar correo personal (pasó el 2026-09-18..21 con banco y streaming, y el 22/9 con notificaciones de GitHub), su contenido quedaba guardado entero en `raw_blobs`: códigos, resets de contraseña, resúmenes bancarios. La protección tiene que valer aunque el filtro falle.
+- **Regla (`isExpectedSender`, pipeline):** se guarda completo solo lo que viene de una fuente esperada (`EXPECTED_SOURCE_DOMAINS`: LinkedIn, incluidos sus remitentes sociales; Get on Board; Indeed) o de un dominio que la persona marcó como fuente de empleo (JS-048), con cualquier subdominio. "No es de empleo" no habilita nada.
+- **El webhook, para cualquier otro remitente,** guarda en `raw_blobs` solo `email_id` (para la idempotencia), remitente, destinatarios, asunto y fecha, con `content: null` y el motivo en `redacted`. Ni cuerpo ni nombres de adjuntos. La fila de `inbound_emails` queda con el error "remitente no esperado…" y no pasa por ningún parser.
+- **UI:** el detalle de un email sin cuerpo explica por qué y ofrece "Marcar <dominio> como fuente de empleo"; desde ahí, los próximos de ese dominio se guardan completos. El aviso de fuga (JS-048) y el volumen siguen funcionando igual, porque usan remitente y fecha.
+- Indeed pasa a ser fuente esperada: ya no avisa como fuga.
+- **Tests:** unitarios de `senderHost` e `isExpectedSender` (incluido un dominio que imita a LinkedIn); 3 de integración del webhook (remitente no esperado sin cuerpo ni adjuntos y con idempotencia; dominio marcado como empleo se guarda completo; "no es de empleo" sigue sin cuerpo); e2e del detalle.
+- **Fuera de alcance:**
+  - Los emails de remitentes no esperados que ya estaban guardados completos no se tocan: borrarles el cuerpo es una escritura en producción aparte.
+  - El route handler igual pide el cuerpo a la API de Resend; se descarta en memoria y no se guarda.
+  - Resend conserva los emails recibidos 30 días en su panel.
+
 ### JS-047 · Parser de alertas de Indeed (propuesto)
 `deps:` JS-022 · `est:` 1.5 h · `estado:` todo (propuesto, sin priorizar)
 - Es la fuente sin parser que más emails de empleo trae: 4 en producción al 2026-09-21 (`match.indeed.com`), hoy en la cola manual. `canonicalUrl` ya reduce las URLs de Indeed al parámetro `jk`. Mismo contrato que LinkedIn y Get on Board: fixtures anonimizadas y fallar cerrado.

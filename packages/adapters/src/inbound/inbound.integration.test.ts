@@ -7,7 +7,7 @@ import { eq } from "drizzle-orm";
 import pino from "pino";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { pgBlobStorage } from "../storage/blob";
-import { handleInboundEmail, MANUAL_QUEUE_REASON } from "./handle";
+import { handleInboundEmail, MANUAL_QUEUE_REASON, UNEXPECTED_SENDER_REASON } from "./handle";
 import type { ResendReceivedEvent } from "./resend";
 
 /** JS-020: email entrante → crudo en storage + fila en inbound_emails + despacho (cola manual sin parser). */
@@ -68,7 +68,7 @@ afterAll(async () => {
 });
 
 describe("handleInboundEmail", () => {
-  it("guarda el crudo, la fila y manda a cola manual cuando no hay parser; el reintento es idempotente", async () => {
+  it("remitente no esperado: guarda solo remitente, asunto y fecha, sin el cuerpo (JS-051); el reintento es idempotente", async () => {
     const deps = { db: conn.db, storage: pgBlobStorage(conn.db), logger };
     const raw = JSON.stringify(event("em_1", undefined, SIN_PARSER));
     const out = await handleInboundEmail(
@@ -82,7 +82,7 @@ describe("handleInboundEmail", () => {
       userId: USER,
       parser: null,
       jobsExtracted: 0,
-      error: MANUAL_QUEUE_REASON,
+      error: UNEXPECTED_SENDER_REASON,
     });
     if (out.kind !== "stored") return;
     const [row] = await conn.db
@@ -91,17 +91,71 @@ describe("handleInboundEmail", () => {
       .where(eq(s.inboundEmails.id, out.inboundId));
     expect(row).toMatchObject({
       fromAddress: expect.stringContaining("example.com"),
+      subject: "AI Engineer: 3 nuevas ofertas",
       parser: "none",
     });
     const blob = await deps.storage.get(row!.rawRef);
     expect(blob?.contentType).toBe("application/json");
-    expect(JSON.parse(blob!.body)).toMatchObject({
-      event: { data: { email_id: "em_1" } },
-      content: { text: "hola" },
+    const stored = JSON.parse(blob!.body);
+    expect(stored).toMatchObject({
+      event: { data: { email_id: "em_1", subject: "AI Engineer: 3 nuevas ofertas" } },
+      content: null,
+      redacted: expect.stringContaining("remitente no esperado"),
     });
+    // Ni el cuerpo ni los adjuntos (sus nombres también pueden ser sensibles)
+    expect(blob!.body).not.toContain("hola");
+    expect(stored.event.data.attachments).toBeUndefined();
 
     const again = await handleInboundEmail(event("em_1", undefined, SIN_PARSER), null, raw, deps);
     expect(again).toMatchObject({ kind: "duplicate", inboundId: out.inboundId });
+  });
+
+  it("un dominio marcado como fuente de empleo se guarda completo (JS-051)", async () => {
+    const deps = { db: conn.db, storage: pgBlobStorage(conn.db), logger };
+    await conn.db
+      .insert(s.inboundSenderDomains)
+      .values({ userId: USER, domain: "reclutadora.example", verdict: "empleo" });
+    const ev = event("em_marcado", undefined, "Talento <talento@mail.reclutadora.example>");
+    const out = await handleInboundEmail(
+      ev,
+      {
+        html: "<p>Tenemos una búsqueda para vos</p>",
+        text: "Tenemos una búsqueda para vos",
+        headers: null,
+      },
+      JSON.stringify(ev),
+      deps,
+    );
+    expect(out).toMatchObject({ kind: "stored", error: MANUAL_QUEUE_REASON });
+    if (out.kind !== "stored") return;
+    const [row] = await conn.db
+      .select()
+      .from(s.inboundEmails)
+      .where(eq(s.inboundEmails.id, out.inboundId));
+    const blob = await deps.storage.get(row!.rawRef);
+    expect(JSON.parse(blob!.body)).toMatchObject({
+      content: { text: "Tenemos una búsqueda para vos" },
+    });
+  });
+
+  it("marcado como «no es de empleo» sigue sin guardar el cuerpo (JS-051)", async () => {
+    const deps = { db: conn.db, storage: pgBlobStorage(conn.db), logger };
+    await conn.db
+      .insert(s.inboundSenderDomains)
+      .values({ userId: USER, domain: "banco.example", verdict: "no_empleo" });
+    const ev = event("em_no_empleo", undefined, "Banco <avisos@banco.example>");
+    const out = await handleInboundEmail(
+      ev,
+      { html: "<p>Tu código es 123456</p>", text: "Tu código es 123456", headers: null },
+      JSON.stringify(ev),
+      deps,
+    );
+    if (out.kind !== "stored") throw new Error(out.kind);
+    const [row] = await conn.db
+      .select()
+      .from(s.inboundEmails)
+      .where(eq(s.inboundEmails.id, out.inboundId));
+    expect((await deps.storage.get(row!.rawRef))!.body).not.toContain("123456");
   });
 
   it("con parser pero estructura desconocida también va a cola manual, sin inventar ofertas (JS-021)", async () => {
