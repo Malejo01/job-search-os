@@ -8,8 +8,17 @@
  * Puro: recibe los remitentes agrupados por host y devuelve los dominios sospechosos.
  */
 
-/** Dominios con parser (y todos sus remitentes, también los sociales de LinkedIn, JS-050). */
-export const EXPECTED_SOURCE_DOMAINS = ["linkedin.com", "getonbrd.com", "getonboard.com"] as const;
+/**
+ * Fuentes de empleo esperadas: las que tienen parser (con todos sus remitentes, también los
+ * sociales de LinkedIn, JS-050) e Indeed, que está en el filtro de Gmail aunque todavía no tenga
+ * parser (JS-047). No avisan como fuga (JS-048) y se guardan completas (JS-051).
+ */
+export const EXPECTED_SOURCE_DOMAINS = [
+  "linkedin.com",
+  "getonbrd.com",
+  "getonboard.com",
+  "indeed.com",
+] as const;
 
 /** Segundos niveles de país: `mails.banco.com.ar` → `banco.com.ar`, no `com.ar`. */
 const SECOND_LEVEL = new Set(["com", "net", "org", "gob", "gov", "edu", "co", "ac", "mil"]);
@@ -21,6 +30,28 @@ export function baseDomain(host: string): string {
   const [sld, tld] = labels.slice(-2);
   const keep = tld!.length === 2 && SECOND_LEVEL.has(sld!) ? 3 : 2;
   return labels.slice(-keep).join(".");
+}
+
+/** Host del remitente: "Banco <a@mails.banco.com.ar>" → "mails.banco.com.ar"; "" si no hay arroba. */
+export function senderHost(fromAddress: string): string {
+  const addr = (/<([^>]+)>/.exec(fromAddress)?.[1] ?? fromAddress).trim().toLowerCase();
+  const at = addr.lastIndexOf("@");
+  return at < 0 ? "" : addr.slice(at + 1).replace(/[>\s]+$/, "");
+}
+
+/**
+ * Remitente esperado (JS-051): una fuente de empleo conocida o un dominio que la persona marcó
+ * como fuente de empleo. Solo de estos el webhook guarda el email completo; del resto, solo
+ * remitente, asunto y fecha.
+ */
+export function isExpectedSender(fromAddress: string, userJobDomains: readonly string[]): boolean {
+  const host = senderHost(fromAddress);
+  if (!host) return false;
+  const domain = baseDomain(host);
+  return (
+    (EXPECTED_SOURCE_DOMAINS as readonly string[]).includes(domain) ||
+    userJobDomains.includes(domain)
+  );
 }
 
 export type SenderCategory = "banco" | "streaming" | "e-commerce";

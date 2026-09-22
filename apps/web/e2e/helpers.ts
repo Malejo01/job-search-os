@@ -163,16 +163,27 @@ export async function createInboundEmail(options: {
   dismissed?: boolean;
   /** Fecha de llegada (por defecto, ahora). */
   receivedAt?: Date;
+  /** Llega de un remitente no esperado: sin cuerpo guardado (JS-051). */
+  redacted?: boolean;
 }): Promise<{ id: string; rawRef: string }> {
   const { db, close } = ownerDb();
   try {
-    const body = JSON.stringify({
-      event: { data: { subject: options.subject } },
-      content: {
-        text: options.text === undefined ? "hola" : options.text,
-        html: options.html ?? null,
-      },
-    });
+    const body = JSON.stringify(
+      options.redacted
+        ? {
+            event: { data: { subject: options.subject } },
+            content: null,
+            redacted:
+              "remitente no esperado: por privacidad se guardó solo remitente, asunto y fecha, sin el cuerpo",
+          }
+        : {
+            event: { data: { subject: options.subject } },
+            content: {
+              text: options.text === undefined ? "hola" : options.text,
+              html: options.html ?? null,
+            },
+          },
+    );
     const [blob] = await db
       .insert(s.rawBlobs)
       .values({

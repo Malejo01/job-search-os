@@ -18,6 +18,8 @@ export async function senderVerdictAction(formData: FormData): Promise<void> {
   if (!domain || !(SENDER_VERDICTS as readonly string[]).includes(verdict)) return;
   await setSenderVerdict(userId, domain, verdict as SenderVerdict);
   revalidatePath("/inbox");
+  // También desde el detalle de un email sin cuerpo (JS-051)
+  revalidatePath("/inbox/[id]", "page");
 }
 
 /** La confirmación (con la cantidad) la pide el cliente. Devuelve cuántos borró. */

@@ -1,6 +1,7 @@
 import { pgBlobStorage } from "@job-search-os/adapters";
 import { schema as s } from "@job-search-os/db";
-import { eq } from "drizzle-orm";
+import { baseDomain, senderHost } from "@job-search-os/pipeline";
+import { and, eq } from "drizzle-orm";
 import { withUser } from "./db";
 
 /**
@@ -23,6 +24,12 @@ export type InboundEmailDetail = {
   text: string | null;
   /** Links del email, para poder abrirlos sin depender del HTML embebido. */
   links: string[];
+  /** JS-051: remitente no esperado, se guardó sin cuerpo. El motivo, o null si está completo. */
+  redacted: string | null;
+  /** Dominio base del remitente, para marcarlo como fuente de empleo. */
+  senderDomain: string | null;
+  /** El dominio ya está marcado como fuente de empleo: los próximos se guardan completos. */
+  senderIsJobSource: boolean;
 };
 
 /** Texto visible de un HTML, para cuando el email no trae parte de texto plano. */
@@ -64,18 +71,34 @@ export async function getInboundEmail(
     const blob = await pgBlobStorage(tx).get(row.rawRef);
     let html: string | null = null;
     let text: string | null = null;
+    let redacted: string | null = null;
     if (blob) {
       try {
         const parsed = JSON.parse(blob.body) as {
           content?: { html?: string | null; text?: string | null } | null;
+          redacted?: string;
         };
         html = parsed.content?.html ?? null;
         text = parsed.content?.text ?? null;
+        redacted = parsed.redacted ?? null;
       } catch {
         text = blob.body; // crudo no-JSON: se muestra tal cual
       }
     }
     const plano = text ?? (html ? htmlAPlano(html) : "");
+    const host = senderHost(row.fromAddress);
+    const senderDomain = host ? baseDomain(host) : null;
+    const [verdict] = senderDomain
+      ? await tx
+          .select({ verdict: s.inboundSenderDomains.verdict })
+          .from(s.inboundSenderDomains)
+          .where(
+            and(
+              eq(s.inboundSenderDomains.userId, userId),
+              eq(s.inboundSenderDomains.domain, senderDomain),
+            ),
+          )
+      : [];
     return {
       id: row.id,
       from: row.fromAddress,
@@ -89,6 +112,9 @@ export async function getInboundEmail(
       html,
       text: plano || null,
       links: extraerLinks(plano, html),
+      redacted,
+      senderDomain,
+      senderIsJobSource: verdict?.verdict === "empleo",
     };
   });
 }

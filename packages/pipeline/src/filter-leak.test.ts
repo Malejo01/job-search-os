@@ -3,6 +3,8 @@ import {
   baseDomain,
   detectFilterLeaks,
   EXPECTED_SOURCE_DOMAINS,
+  isExpectedSender,
+  senderHost,
   senderCategory,
   type SenderHost,
 } from "./filter-leak";
@@ -172,5 +174,51 @@ describe("detectFilterLeaks", () => {
       "netflix.com",
       "github.com",
     ]);
+  });
+});
+
+/**
+ * JS-051 · Red de seguridad de privacidad: el webhook guarda completo solo lo de remitentes
+ * esperados. De cualquier otro, solo remitente, asunto y fecha, por si el reenvío de Gmail
+ * vuelve a mandar correo personal (banco, códigos, resets de contraseña).
+ */
+describe("senderHost", () => {
+  it.each([
+    ["LinkedIn <jobalerts-noreply@linkedin.com>", "linkedin.com"],
+    ["notifications@GitHub.com", "github.com"],
+    ['"Banco" <avisos@mails.bancoejemplo.com.ar>', "mails.bancoejemplo.com.ar"],
+    ["sin arroba", ""],
+  ])("%s → %s", (from, host) => {
+    expect(senderHost(from)).toBe(host);
+  });
+});
+
+describe("isExpectedSender", () => {
+  it("LinkedIn (también sus remitentes sociales), Get on Board e Indeed son esperados", () => {
+    for (const from of [
+      "LinkedIn <jobalerts-noreply@linkedin.com>",
+      "LinkedIn <messages-noreply@linkedin.com>",
+      "x@e.linkedin.com",
+      "Get on Board <no-reply@getonbrd.com>",
+      '"Indeed" <donotreply@match.indeed.com>',
+    ]) {
+      expect(isExpectedSender(from, [])).toBe(true);
+    }
+  });
+
+  it("lo que la persona marcó como fuente de empleo también es esperado, con sus subdominios", () => {
+    expect(isExpectedSender("x@avenga.teamtailor-mail.com", ["teamtailor-mail.com"])).toBe(true);
+  });
+
+  it("todo lo demás no: banco, GitHub, una persona, un remitente ilegible", () => {
+    for (const from of [
+      "Banco <avisos@mails.bancoejemplo.com.ar>",
+      "notifications@github.com",
+      "francisco@consultora.example",
+      "sin arroba",
+      "Falso <jobalerts-noreply@linkedin.com.example.org>",
+    ]) {
+      expect(isExpectedSender(from, [])).toBe(false);
+    }
   });
 });

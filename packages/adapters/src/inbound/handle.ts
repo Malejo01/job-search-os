@@ -1,5 +1,5 @@
 import { schema as s, type Db } from "@job-search-os/db";
-import type { CriteriaRules } from "@job-search-os/pipeline";
+import { isExpectedSender, type CriteriaRules } from "@job-search-os/pipeline";
 import { and, desc, eq, gte, like, sql } from "drizzle-orm";
 import { ingestBatch } from "../ingest/ingest-job";
 import type { Logger } from "../logger";
@@ -44,6 +44,10 @@ export type InboundOutcome =
     };
 
 export const MANUAL_QUEUE_REASON = "sin parser para este remitente: cola manual";
+
+/** Remitente no esperado (JS-051): se guardó solo remitente, asunto y fecha. */
+export const UNEXPECTED_SENDER_REASON =
+  "remitente no esperado: por privacidad se guardó solo remitente, asunto y fecha, sin el cuerpo";
 
 /** Valor de `inbound_emails.parser` para el ruido social de LinkedIn (JS-050). */
 export const LINKEDIN_SOCIAL_PARSER = "linkedin_social";
@@ -107,11 +111,44 @@ export async function handleInboundEmail(
     return { kind: "rate_limited", userId };
   }
 
+  // JS-051: red de seguridad de privacidad. Si el reenvío de Gmail manda correo personal (banco,
+  // códigos, resets de contraseña), no se guarda su contenido: completo solo lo de remitentes
+  // esperados (fuentes de empleo conocidas o dominios marcados como fuente de empleo). Del resto,
+  // solo remitente, destinatarios, asunto, fecha y el email_id (idempotencia); ni cuerpo ni
+  // nombres de adjuntos.
+  const jobDomains = await db
+    .select({ domain: s.inboundSenderDomains.domain })
+    .from(s.inboundSenderDomains)
+    .where(
+      and(eq(s.inboundSenderDomains.userId, userId), eq(s.inboundSenderDomains.verdict, "empleo")),
+    );
+  const expected = isExpectedSender(
+    event.data.from,
+    jobDomains.map((d) => d.domain),
+  );
   const rawRef = await deps.storage.put({
     userId,
     kind: "inbound_email",
     contentType: "application/json",
-    body: JSON.stringify({ event: JSON.parse(rawBody), content }),
+    body: JSON.stringify(
+      expected
+        ? { event: JSON.parse(rawBody), content }
+        : {
+            event: {
+              type: event.type,
+              created_at: event.created_at,
+              data: {
+                email_id: event.data.email_id,
+                from: event.data.from,
+                to: event.data.to,
+                received_for: event.data.received_for,
+                subject: event.data.subject ?? null,
+              },
+            },
+            content: null,
+            redacted: UNEXPECTED_SENDER_REASON,
+          },
+    ),
   });
 
   const parserName = chooseParserName(event.data.from);
@@ -121,7 +158,9 @@ export async function handleInboundEmail(
   let parserUsed: string | null = null;
   let dismissedAt: Date | null = null;
 
-  if (linkedinSenderKind(event.data.from) === "social") {
+  if (!expected) {
+    error = UNEXPECTED_SENDER_REASON;
+  } else if (linkedinSenderKind(event.data.from) === "social") {
     // JS-050: ruido social de LinkedIn. Se guarda (con su crudo) ya descartado, así no ensucia
     // Pendientes ni la cola manual y se puede revisar. Si trae tarjetas de aviso, LinkedIn cambió
     // el formato: no se ingesta ni se descarta, queda en Pendientes para revisar la regla.

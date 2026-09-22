@@ -5,6 +5,7 @@ import { markInboundSeen } from "@/lib/inbox-list";
 import { formatDate, parserLabel } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import { EmailActions } from "../email-actions";
+import { senderVerdictAction } from "../leak-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -71,7 +72,36 @@ export default async function InboundEmailPage({ params }: { params: Promise<{ i
         />
       </header>
 
-      {email.html ? (
+      {email.redacted ? (
+        // JS-051: remitente no esperado. El contenido nunca se guardó, por privacidad
+        <section
+          aria-label="Cuerpo no guardado"
+          className="flex flex-col gap-2 rounded-lg border border-zinc-300 bg-zinc-50 p-3 text-sm text-zinc-700"
+        >
+          <p>
+            Por privacidad no se guardó el cuerpo: el remitente no es una fuente de empleo esperada.
+            Solo quedan el remitente, el asunto y la fecha.
+          </p>
+          {email.senderDomain ? (
+            email.senderIsJobSource ? (
+              <p className="text-xs text-emerald-800">
+                Los próximos emails de {email.senderDomain} se guardan completos. Este queda así.
+              </p>
+            ) : (
+              <form action={senderVerdictAction}>
+                <input type="hidden" name="domain" value={email.senderDomain} />
+                <input type="hidden" name="verdict" value="empleo" />
+                <button
+                  type="submit"
+                  className="rounded border border-zinc-400 bg-white px-2 py-1 text-xs"
+                >
+                  Marcar {email.senderDomain} como fuente de empleo
+                </button>
+              </form>
+            )
+          ) : null}
+        </section>
+      ) : email.html ? (
         <iframe
           title="Contenido del email"
           sandbox=""
