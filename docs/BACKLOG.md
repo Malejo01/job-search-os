@@ -232,6 +232,7 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
   - **Rechazos:** el webhook cuenta los que corta el límite en `inbound_rejections`, una fila por usuario y hora.
   - **Tests:** 6 unitarios; la integración del webhook cuenta 2 rechazos en la misma hora; un chequeo nuevo exige RLS forzado en **toda** tabla con `user_id`; e2e `11-inbox.spec.ts`.
 - **Fuera de alcance:** "No me sirve" actúa sobre ese email, no silencia al remitente para los próximos. Si hace falta, sería un ticket aparte.
+- **Hueco que mostró el uso real (2026-09-21):** el filtro de Gmail tenía la condición mal escrita (`from:(from:(` duplicado) y reenviaba correo que no es de empleo: banco, streaming, GitHub, cursos. Llegaron 27 de 55 emails así y **el aviso no saltó**, porque el volumen era bajo (unos 13 por día, lejos del mínimo de 20 sin parser). Contar volumen no alcanza: la señal es el remitente, no la cantidad. Sigue en JS-048.
 
 ### JS-039 · Vista de email unificada con acciones arriba (P2)
 `deps:` JS-038 · `est:` 2 h · `estado:` done (2026-09-21)
@@ -247,6 +248,17 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 ### JS-047 · Parser de alertas de Indeed (propuesto)
 `deps:` JS-022 · `est:` 1.5 h · `estado:` todo (propuesto, sin priorizar)
 - Es la fuente sin parser que más emails de empleo trae: 4 en producción al 2026-09-21 (`match.indeed.com`), hoy en la cola manual. `canonicalUrl` ya reduce las URLs de Indeed al parámetro `jk`. Mismo contrato que LinkedIn y Get on Board: fixtures anonimizadas y fallar cerrado.
+
+### JS-048 · Alerta de "posible fuga del filtro" por dominio nuevo en `/inbox`
+`deps:` JS-038, JS-022 · `est:` 2 h · `estado:` todo (pedido de Mauro, 2026-09-22)
+- **Por qué:** ver el hueco anotado en JS-038. Un filtro de reenvío mal configurado se nota primero por **quién** manda, no por cuánto llega: con el primer email del banco ya había motivo para avisar.
+- **Qué:** si en las últimas 48 h llegó un email de un dominio **que nunca se vio antes** y que **no es una fuente de empleo esperada**, `/inbox` muestra un aviso propio, "Posible fuga del filtro de reenvío", separado del de volumen alto. Salta con un solo email.
+  - El aviso lista cada dominio nuevo con su cantidad y la fecha del primero, más un link a esos emails.
+  - **Fuentes esperadas:** los dominios con parser (LinkedIn, Get on Board) más los que la persona marque a mano como fuente de empleo (acción nueva "Es fuente de empleo" en el aviso). Los que marque como "No es de empleo" dejan de avisar, pero siguen contando como no esperados.
+  - **Categoría orientativa:** una lista corta y explícita de dominios de bancos, streaming y e-commerce le pone la etiqueta ("banco", "streaming"…) para que se note la gravedad. Lo que no está en la lista dice "dominio nuevo": no se lee el contenido para clasificar.
+  - **Borrado en lote:** el aviso ofrece "Eliminar todos los de este dominio", con confirmación. Es la acción que hizo falta el 2026-09-22 con los emails del banco.
+- **Dónde:** función pura en `packages/pipeline` (recibe los dominios de 48 h, los vistos antes y las fuentes esperadas, y devuelve los dominios sospechosos) con tests primero, igual que `assessInboxVolume`.
+- **Acepta:** con los datos reales del 2026-09-19 al 21, el aviso habría saltado con el primer email de Santander, y con los de Netflix, Duolingo, etc., cada uno el día que llegó. Un dominio con parser o marcado como fuente de empleo no avisa nunca. Un dominio ya visto antes de las 48 h no vuelve a avisar.
 
 ### JS-046 · Aviso "esta oferta puede estar cerrada" (futuro, baja prioridad)
 `deps:` JS-026, JS-028 · `est:` 2 h · `estado:` todo (para más adelante)
