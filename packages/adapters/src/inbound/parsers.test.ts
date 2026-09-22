@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { baseDomain, EXPECTED_SOURCE_DOMAINS } from "@job-search-os/pipeline";
 import { chooseParserName, linkedinSenderKind } from "./parsers";
 
 /**
@@ -31,5 +32,19 @@ describe("linkedinSenderKind", () => {
     expect(linkedinSenderKind("Falso <messages-noreply@linkedin.com.example.org>")).toBeNull();
     expect(linkedinSenderKind("Banco <messages-noreply@banco.example>")).toBeNull();
     expect(chooseParserName("Banco <messages-noreply@banco.example>")).toBe("generic");
+  });
+});
+
+describe("fuentes esperadas de JS-048", () => {
+  it("todo dominio que tiene parser propio es una fuente esperada (no avisa como fuga)", () => {
+    for (const from of [
+      "x@linkedin.com",
+      "x@e.linkedin.com",
+      "x@getonbrd.com",
+      "x@getonboard.com",
+    ]) {
+      expect(chooseParserName(from)).not.toBe("generic");
+      expect(EXPECTED_SOURCE_DOMAINS).toContain(baseDomain(from.split("@")[1]!));
+    }
   });
 });

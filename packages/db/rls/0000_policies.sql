@@ -136,6 +136,13 @@ DROP POLICY IF EXISTS "inbound_rejections_owner" ON "inbound_rejections";
 CREATE POLICY "inbound_rejections_owner" ON "inbound_rejections" FOR ALL
   USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
+-- JS-048: decisiones por dominio remitente del aviso de fuga del filtro
+ALTER TABLE "inbound_sender_domains" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "inbound_sender_domains" FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "inbound_sender_domains_owner" ON "inbound_sender_domains";
+CREATE POLICY "inbound_sender_domains_owner" ON "inbound_sender_domains" FOR ALL
+  USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+
 ALTER TABLE "job_sources" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "job_sources" FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "job_sources_via_job" ON "job_sources";
