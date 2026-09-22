@@ -276,9 +276,17 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Tests:** unitarios de `linkedinSenderKind` (los 5 remitentes, mayúsculas, remitente desconocido y dominios que imitan a LinkedIn); 2 de integración del webhook (se guarda descartado con su crudo; con tarjetas queda pendiente y no se ingesta); e2e de la etiqueta en `/inbox`.
 - **Fuera de alcance:** los 12 emails sociales que ya estaban en la base no se reprocesan (ya estaban descartados a mano).
 
-### JS-047 · Parser de alertas de Indeed (propuesto)
-`deps:` JS-022 · `est:` 1.5 h · `estado:` todo (propuesto, sin priorizar)
+### JS-047 · Parser de alertas de Indeed ✅ done 2026-09-22
+`deps:` JS-022 · `est:` 1.5 h · `estado:` done
 - Es la fuente sin parser que más emails de empleo trae: 4 en producción al 2026-09-21 (`match.indeed.com`), hoy en la cola manual. `canonicalUrl` ya reduce las URLs de Indeed al parámetro `jk`. Mismo contrato que LinkedIn y Get on Board: fixtures anonimizadas y fallar cerrado.
+- **Implementado (2026-09-22), `inbound/indeed.ts`:** el email de "empleo compatible" de `donotreply@match.indeed.com`. Un aviso por email, con el asunto "<Título> en <Empresa>" (5 de 5 emails reales).
+  - **Qué extrae:** título (`<h2><a class="strong-text-link">`), empresa y ubicación (los dos `<p>` siguientes), y los bloques opcionales "Tipo de empleo" y "Sueldo". "Desde casa" = remoto; cualquier otra ubicación, modalidad `desconocida`.
+  - **Id del aviso:** los links van envueltos en `cts.indeed.com/v3/<gzip en base64>`; el `jk` se saca **decodificando el token localmente, sin navegar**. La URL queda `https://ar.indeed.com/viewjob?jk=<jk>`, que `canonicalUrl` reduce al `jk`, así cruza con una carga manual del mismo aviso.
+  - **No inventa:** el sueldo viene sin moneda ("$1.045,00 - $3.232,58 por mes"), así que va como nota y no como USD. La vista previa de la descripción está recortada: `jdText` null → pendiente de JD. `countriesAllowed` null.
+  - **Falla cerrado:** sin HTML, sin título, con más de un aviso, sin `jk`, o si el asunto no es "<título> en <empresa>" (acepta prefijo de reenvío).
+  - **Fuente:** `kind = email_generic`, nombre "Indeed (email)". El enum de Postgres no tiene `email_indeed`, y agregarlo sería una migración en producción solo por una etiqueta.
+  - **Bug atrapado antes de producción:** en los emails reales "Sueldo" y "Tipo de empleo" comparten sección, sin separador entre ellos. El primer corte del bloque se llevaba el contrato dentro del sueldo. La fixture se rehízo con la estructura real (verificada contra el email del 2026-09-18) y el bloque termina en el próximo `<h3>`.
+  - **Tests:** 18 unitarios sobre 4 fixtures anonimizadas (textos ficticios, tokens de tracking sintéticos), con 98 % de líneas; 1 de integración (webhook → aviso enlazado al crudo). Validado contra el email real de `fixtures-private/`.
 
 ### JS-048 · Alerta de "posible fuga del filtro" por dominio nuevo en `/inbox` ✅ done 2026-09-22
 `deps:` JS-038, JS-022 · `est:` 2 h · `estado:` done (pedido de Mauro, 2026-09-22; migración 0013 ya aplicada en Neon el 2026-09-22 ~05:03 UTC)
