@@ -229,13 +229,14 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Fuera de alcance:** "No me sirve" actúa sobre ese email, no silencia al remitente para los próximos. Si hace falta, sería un ticket aparte.
 
 ### JS-039 · Vista de email unificada con acciones arriba (P2)
-`deps:` JS-038 · `est:` 2 h · `estado:` doing
+`deps:` JS-038 · `est:` 2 h · `estado:` done (2026-09-21)
 - Al abrir un email desde `/inbox`, mostrarlo como en un cliente de correo (texto y HTML combinados de forma legible, sin pestañas separadas) con la barra de acciones de JS-038 arriba. El HTML sigue en un `iframe` con `sandbox` vacío.
 - **Implementado (2026-09-21):**
   - **Encabezado:** asunto, remitente, fecha y estado, con las **mismas acciones que la lista** (`EmailActions`, compartido). Eliminar desde el detalle vuelve a `/inbox`.
   - **Un solo cuerpo:** el HTML si existe, si no el texto. El texto plano y los links quedan plegados ("Ver como texto plano", "Links del email"), como el "ver original" de un cliente de correo.
   - **Legibilidad en el celular:** al HTML se le antepone CSS dentro del mismo iframe (viewport, imágenes y tablas al ancho).
   - **Seguridad:** el iframe sigue con `sandbox` vacío, así que los links del HTML no se abren desde adentro; por eso están listados aparte.
+  - **Abrirlo lo marca visto** (pedido de Mauro en la revisión), salvo que esté descartado. "No me sirve" sigue disponible en un email visto, y "Volver a pendientes" desde el detalle vuelve a `/inbox` (quedarse lo remarcaría visto).
   - **Tests:** e2e `12-email-detalle.spec.ts`.
 
 ### JS-046 · Aviso "esta oferta puede estar cerrada" (futuro, baja prioridad)

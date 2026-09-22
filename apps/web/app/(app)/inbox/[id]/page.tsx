@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getInboundEmail } from "@/lib/inbox";
+import { markInboundSeen } from "@/lib/inbox-list";
 import { formatDate } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import { EmailActions } from "../email-actions";
@@ -20,6 +21,7 @@ img{max-width:100%;height:auto}table{max-width:100%!important;width:auto}td,th{w
  * Un email entrante como en un cliente de correo (JS-020, JS-039): encabezado, acciones arriba
  * (las mismas que la lista de /inbox) y un solo cuerpo. Si hay HTML se muestra el HTML; si no,
  * el texto. El texto plano y los links quedan plegados como alternativa ("ver original").
+ * Abrirlo lo marca visto, como en un cliente de correo.
  *
  * El HTML del email es contenido NO confiable: va dentro de un iframe con `sandbox` vacío, sin
  * scripts, sin formularios y sin poder navegar la página que lo contiene. Por eso sus links no
@@ -30,6 +32,11 @@ export default async function InboundEmailPage({ params }: { params: Promise<{ i
   const { id } = await params;
   const email = await getInboundEmail(userId, id);
   if (!email) notFound();
+  // Abrirlo es leerlo: sale de pendientes. No pisa un "no me sirve" ni la fecha de un visto previo.
+  if (!email.seen && !email.dismissed) {
+    await markInboundSeen(userId, email.id);
+    email.seen = true;
+  }
 
   return (
     <article className="flex flex-col gap-3">

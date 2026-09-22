@@ -25,6 +25,8 @@ export async function dismissAction(formData: FormData): Promise<void> {
 
 export async function restoreAction(formData: FormData): Promise<void> {
   await run(formData, restoreInbound);
+  // Desde el detalle, quedarse lo volvería a marcar visto: vuelve a la lista
+  if (formData.get("volver") === "1") redirect("/inbox");
 }
 
 export async function deleteAction(formData: FormData): Promise<void> {

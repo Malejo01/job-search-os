@@ -12,7 +12,7 @@ test.describe("Flujo 12: vista de email unificada con acciones arriba", () => {
     await deleteInboundEmails(String(tag));
   });
 
-  test("HTML en un solo cuerpo aislado, acciones arriba, visto y eliminar desde el detalle", async ({
+  test("HTML en un solo cuerpo aislado, acciones arriba, visto al abrir y eliminar desde el detalle", async ({
     page,
   }) => {
     const email = await createInboundEmail({
@@ -45,13 +45,18 @@ test.describe("Flujo 12: vista de email unificada con acciones arriba", () => {
     const yCuerpo = (await cuerpo.boundingBox())!.y;
     expect(yAcciones).toBeLessThan(yCuerpo);
 
-    // Marcar visto desde el detalle: se queda en el detalle y cambia a "Volver a pendientes"
-    await acciones.getByRole("button", { name: "Marcar visto" }).click();
+    // Abrirlo lo marcó visto: sale de pendientes; "No me sirve" sigue disponible
     await expect(acciones.getByRole("button", { name: "Volver a pendientes" })).toBeVisible();
-    await expect(page).toHaveURL(new RegExp(`/inbox/${email.id}`));
+    await expect(acciones.getByRole("button", { name: "No me sirve" })).toBeVisible();
     expect((await inboundState(email.id, email.rawRef)).row?.seenAt).not.toBeNull();
 
+    // Volver a pendientes desde el detalle: vuelve a la lista (quedarse lo remarcaría visto)
+    await acciones.getByRole("button", { name: "Volver a pendientes" }).click();
+    await expect(page).toHaveURL(/\/inbox$/);
+    expect((await inboundState(email.id, email.rawRef)).row?.seenAt).toBeNull();
+
     // Eliminar desde el detalle: confirma y vuelve a /inbox
+    await page.goto(`/inbox/${email.id}`);
     page.once("dialog", (d) => d.accept());
     await acciones.getByRole("button", { name: "Eliminar" }).click();
     await expect(page).toHaveURL(/\/inbox$/);
@@ -68,5 +73,24 @@ test.describe("Flujo 12: vista de email unificada con acciones arriba", () => {
     await page.goto(`/inbox/${email.id}`);
     await expect(page.locator('iframe[title="Contenido del email"]')).toHaveCount(0);
     await expect(page.getByText(`Hola, este email vino solo en texto ${tag}.`)).toBeVisible();
+  });
+
+  test("abrir un email descartado no lo marca visto", async ({ page }) => {
+    const subject = `E2E descartado ${tag}`;
+    const email = await createInboundEmail({ subject, text: "x" });
+    await login(page);
+    await page.goto("/inbox");
+    await page
+      .getByRole("listitem")
+      .filter({ hasText: subject })
+      .getByRole("button", { name: "No me sirve" })
+      .click();
+    await expect(page.getByRole("listitem").filter({ hasText: subject })).toHaveCount(0);
+
+    await page.goto(`/inbox/${email.id}`);
+    await expect(page.getByRole("heading", { name: subject })).toBeVisible();
+    const row = (await inboundState(email.id, email.rawRef)).row;
+    expect(row?.dismissedAt).not.toBeNull();
+    expect(row?.seenAt).toBeNull();
   });
 });
