@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { inboxVolume, listInbox, parseInboxView, type InboxView } from "@/lib/inbox-list";
-import { formatDate } from "@/lib/labels";
+import { formatDate, parserLabel } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import { BulkBar } from "./bulk-bar";
 import { EmailActions } from "./email-actions";
@@ -106,7 +106,7 @@ export default async function InboxPage({
                 </p>
               </div>
               <p className="truncate pl-6 text-xs text-zinc-600">
-                {r.from} · {formatDate(r.receivedAt.toISOString())} · parser {r.parser ?? "none"} ·{" "}
+                {r.from} · {formatDate(r.receivedAt.toISOString())} · {parserLabel(r.parser)} ·{" "}
                 {r.jobs ?? 0} avisos
                 {r.dismissed ? " · no me sirve" : r.seen ? " · visto" : ""}
               </p>

@@ -159,6 +159,8 @@ export async function createInboundEmail(options: {
   error?: string | null;
   html?: string | null;
   text?: string | null;
+  /** Llega ya descartado (ruido social de LinkedIn, JS-050). */
+  dismissed?: boolean;
 }): Promise<{ id: string; rawRef: string }> {
   const { db, close } = ownerDb();
   try {
@@ -194,6 +196,7 @@ export async function createInboundEmail(options: {
             ? "sin parser para este remitente: cola manual"
             : options.error,
         receivedAt: new Date(),
+        dismissedAt: options.dismissed ? new Date() : null,
       })
       .returning({ id: s.inboundEmails.id });
     return { id: row!.id, rawRef };

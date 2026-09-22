@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getInboundEmail } from "@/lib/inbox";
 import { markInboundSeen } from "@/lib/inbox-list";
-import { formatDate } from "@/lib/labels";
+import { formatDate, parserLabel } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import { EmailActions } from "../email-actions";
 
@@ -49,7 +49,7 @@ export default async function InboundEmailPage({ params }: { params: Promise<{ i
         <div className="text-xs text-zinc-600">
           <p className="break-all">{email.from}</p>
           <p>
-            {formatDate(email.receivedAt.toISOString())} · parser {email.parser ?? "none"} ·{" "}
+            {formatDate(email.receivedAt.toISOString())} · {parserLabel(email.parser)} ·{" "}
             {email.jobsExtracted ?? 0} avisos
             {email.dismissed ? " · no me sirve" : email.seen ? " · visto" : ""}
           </p>

@@ -256,6 +256,19 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **"No me sirve", aclarado:** solo guarda `dismissed_at`. No borra el email ni su crudo, no toca avisos y no silencia al remitente para los próximos. "Volver a pendientes" lo revierte.
 - **Tests:** e2e `13-inbox-seleccion.spec.ts`: visto y "no me sirve" en lote, eliminar en lote con una sola confirmación (cancelar no borra; el crudo con aviso se conserva) y "seleccionar todos" por pestaña.
 
+### JS-050 · Ruido social de LinkedIn: "no relevante" por remitente ✅ done 2026-09-22
+`deps:` JS-021, JS-038 · `est:` 1 h · `estado:` done (regla acordada con Mauro, 2026-09-22; va antes de JS-025)
+- **Por qué:** de los 22 emails de LinkedIn en producción, 12 eran ruido social (artículos, cursos, "es popular en tu red", invitaciones, "apareciste en 20 búsquedas"). Llegan del mismo dominio que las alertas, así que JS-048 no los cubre, y caían en la cola manual como "estructura no reconocida".
+- **Regla (determinista, por la dirección exacta del remitente):**
+  - `jobalerts-noreply@` y `jobs-noreply@` → parser de LinkedIn, como hasta ahora.
+  - `messages-noreply@`, `invitations@` y `notifications-noreply@` → se **guardan** con su crudo, con `parser = 'linkedin_social'` y ya descartados. En `/inbox` se ven en Descartados como "no relevante: notificación social de LinkedIn" y se recuperan con "Volver a pendientes".
+  - Cualquier otro remitente de `linkedin.com` → el camino de siempre: parser y, si falla, cola manual.
+- **Por qué por remitente y no por asunto:** las alertas siempre tienen el asunto `«Búsqueda»: Empresa - Puesto publicado el M/D/AA` (7 de 7), pero `jobs-noreply@` también trae avisos con asuntos variados ("Nuevos empleos similares a…", "X busca personal para…"). Filtrar por asunto habría perdido 3 emails con 7 avisos reales. El remitente separa los 22 casos sin excepción.
+- **Red de seguridad (pedido de Mauro):** si LinkedIn cambia una notificación social y empieza a traer tarjetas de aviso, el email **no** se descarta ni se ingesta: queda en Pendientes con el error "notificación social de LinkedIn con N tarjetas de aviso: revisar la regla de remitentes". Así el cambio se ve.
+- `linkedin_social` no cuenta como "sin parser" en el aviso de volumen (JS-038) y no cuenta como fuga del filtro en JS-048: el remitente es conocido.
+- **Tests:** unitarios de `linkedinSenderKind` (los 5 remitentes, mayúsculas, remitente desconocido y dominios que imitan a LinkedIn); 2 de integración del webhook (se guarda descartado con su crudo; con tarjetas queda pendiente y no se ingesta); e2e de la etiqueta en `/inbox`.
+- **Fuera de alcance:** los 12 emails sociales que ya estaban en la base no se reprocesan (ya estaban descartados a mano).
+
 ### JS-047 · Parser de alertas de Indeed (propuesto)
 `deps:` JS-022 · `est:` 1.5 h · `estado:` todo (propuesto, sin priorizar)
 - Es la fuente sin parser que más emails de empleo trae: 4 en producción al 2026-09-21 (`match.indeed.com`), hoy en la cola manual. `canonicalUrl` ya reduce las URLs de Indeed al parámetro `jk`. Mismo contrato que LinkedIn y Get on Board: fixtures anonimizadas y fallar cerrado.
@@ -265,7 +278,7 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Por qué:** ver el hueco anotado en JS-038. Un filtro de reenvío mal configurado se nota primero por **quién** manda, no por cuánto llega: con el primer email del banco ya había motivo para avisar.
 - **Qué:** si en las últimas 48 h llegó un email de un dominio **que nunca se vio antes** y que **no es una fuente de empleo esperada**, `/inbox` muestra un aviso propio, "Posible fuga del filtro de reenvío", separado del de volumen alto. Salta con un solo email.
   - El aviso lista cada dominio nuevo con su cantidad y la fecha del primero, más un link a esos emails.
-  - **Fuentes esperadas:** los dominios con parser (LinkedIn, Get on Board) más los que la persona marque a mano como fuente de empleo (acción nueva "Es fuente de empleo" en el aviso). Los que marque como "No es de empleo" dejan de avisar, pero siguen contando como no esperados.
+  - **Fuentes esperadas:** los dominios con parser (LinkedIn, Get on Board), incluidos los remitentes conocidos de LinkedIn, también los sociales de JS-050, que no son una fuga, más los que la persona marque a mano como fuente de empleo (acción nueva "Es fuente de empleo" en el aviso). Los que marque como "No es de empleo" dejan de avisar, pero siguen contando como no esperados.
   - **Categoría orientativa:** una lista corta y explícita de dominios de bancos, streaming y e-commerce le pone la etiqueta ("banco", "streaming"…) para que se note la gravedad. Lo que no está en la lista dice "dominio nuevo": no se lee el contenido para clasificar.
   - **Borrado en lote:** el aviso ofrece "Eliminar todos los de este dominio", con confirmación. Es la acción que hizo falta el 2026-09-22 con los emails del banco.
 - **Dónde:** función pura en `packages/pipeline` (recibe los dominios de 48 h, los vistos antes y las fuentes esperadas, y devuelve los dominios sospechosos) con tests primero, igual que `assessInboxVolume`.

@@ -89,3 +89,12 @@ export function formatDate(iso: string | null): string {
   if (!iso) return "";
   return new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "short" });
 }
+
+/**
+ * Cómo se muestra `inbound_emails.parser` en /inbox. El ruido social de LinkedIn (JS-050) se
+ * guarda con su propio valor y ya descartado: se lee como "no relevante", no como un parser.
+ */
+export function parserLabel(parser: string | null): string {
+  if (parser === "linkedin_social") return "no relevante: notificación social de LinkedIn";
+  return `parser ${parser ?? "none"}`;
+}

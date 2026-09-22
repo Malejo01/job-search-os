@@ -105,4 +105,26 @@ test.describe("Flujo 11: acciones y volumen en /inbox", () => {
     await page.reload();
     await expect(aviso(page)).toContainText("3 emails rechazados por el límite");
   });
+
+  test("el ruido social de LinkedIn llega a Descartados como «no relevante», sin «cargar a mano» (JS-050)", async ({
+    page,
+  }) => {
+    await createInboundEmail({
+      subject: `E2E social ${tag}`,
+      from: "LinkedIn <messages-noreply@linkedin.com>",
+      parser: "linkedin_social",
+      error: null,
+      dismissed: true,
+    });
+    await login(page);
+    await page.goto("/inbox");
+    await expect(fila(page, `E2E social ${tag}`)).toHaveCount(0);
+    await pestaña(page, "Descartados").click();
+    const row = fila(page, `E2E social ${tag}`);
+    await expect(row).toContainText("no relevante: notificación social de LinkedIn");
+    await expect(row).not.toContainText("parser linkedin_social");
+    await expect(row.getByRole("link", { name: "cargar a mano" })).toHaveCount(0);
+    // Se puede recuperar como cualquier descartado
+    await expect(row.getByRole("button", { name: "Volver a pendientes" })).toBeVisible();
+  });
 });
