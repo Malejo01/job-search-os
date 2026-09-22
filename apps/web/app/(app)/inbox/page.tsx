@@ -2,6 +2,7 @@ import Link from "next/link";
 import { inboxVolume, listInbox, parseInboxView, type InboxView } from "@/lib/inbox-list";
 import { formatDate } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
+import { BulkBar } from "./bulk-bar";
 import { EmailActions } from "./email-actions";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +26,7 @@ const EMPTY: Record<InboxView, string> = {
  * Emails entrantes (JS-020, JS-038): lo que llegó a ingest.<dominio>, qué parser lo tomó y qué
  * pasó. Por defecto se ven los pendientes; "visto" y "no me sirve" los sacan de esa vista sin
  * borrarlos. Arriba, el volumen de las últimas 24 h y un aviso si algo se sale de lo normal.
+ * Con las casillas se actúa en lote sobre los emails de la pestaña (JS-049).
  */
 export default async function InboxPage({
   searchParams,
@@ -75,6 +77,8 @@ export default async function InboxPage({
         ))}
       </nav>
 
+      <BulkBar total={counts[view]} shown={rows.length} />
+
       {rows.length === 0 ? (
         <p className="rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500">
           {EMPTY[view]}
@@ -88,21 +92,33 @@ export default async function InboxPage({
                 r.dismissed || r.seen ? "opacity-75" : ""
               }`}
             >
-              <p className="truncate font-medium text-zinc-900">{r.subject ?? "(sin asunto)"}</p>
-              <p className="truncate text-xs text-zinc-600">
+              <div className="flex items-start gap-2">
+                {/* Selección múltiple (JS-049): la lee BulkBar desde el DOM */}
+                <input
+                  type="checkbox"
+                  data-inbox-select=""
+                  value={r.id}
+                  aria-label={`Seleccionar «${r.subject ?? "(sin asunto)"}»`}
+                  className="mt-0.5 h-4 w-4 shrink-0"
+                />
+                <p className="min-w-0 truncate font-medium text-zinc-900">
+                  {r.subject ?? "(sin asunto)"}
+                </p>
+              </div>
+              <p className="truncate pl-6 text-xs text-zinc-600">
                 {r.from} · {formatDate(r.receivedAt.toISOString())} · parser {r.parser ?? "none"} ·{" "}
                 {r.jobs ?? 0} avisos
                 {r.dismissed ? " · no me sirve" : r.seen ? " · visto" : ""}
               </p>
               {r.error ? (
-                <p className="mt-1 text-xs text-amber-900">
+                <p className="mt-1 pl-6 text-xs text-amber-900">
                   {r.error}{" "}
                   <Link href="/jobs/new" className="underline">
                     cargar a mano
                   </Link>
                 </p>
               ) : null}
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+              <div className="mt-2 flex flex-wrap items-center gap-2 pl-6 text-xs">
                 <Link href={`/inbox/${r.id}`} className="text-blue-700 underline">
                   Ver contenido
                 </Link>

@@ -245,6 +245,17 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
   - **Abrirlo lo marca visto** (pedido de Mauro en la revisión), salvo que esté descartado. "No me sirve" sigue disponible en un email visto, y "Volver a pendientes" desde el detalle vuelve a `/inbox` (quedarse lo remarcaría visto).
   - **Tests:** e2e `12-email-detalle.spec.ts`.
 
+### JS-049 · Selección múltiple en `/inbox` ✅ done 2026-09-22
+`deps:` JS-038 · `est:` 1.5 h · `estado:` done (pedido de Mauro, 2026-09-22; va antes de JS-048)
+- **Por qué:** el filtro de Gmail mal escrito dejó pasar 27 emails que no son de empleo (banco, GitHub, streaming). Borrarlos de a uno, con un diálogo por email, era demasiada fricción, y va a volver a pasar cada vez que el filtro se escape, hasta que esté JS-048.
+- **Implementado:**
+  - Casilla por fila y "Seleccionar todos", que marca **solo las filas de la pestaña actual** (Pendientes, Vistos, Descartados o Todos). Si la pestaña tiene más de las 50 que se muestran, lo dice.
+  - Barra de acciones (`role="toolbar"`) que aparece solo con algo seleccionado: "Marcar visto", "No me sirve", "Eliminar" y "Cancelar selección".
+  - **Eliminar en lote:** una sola confirmación con la cantidad ("¿Eliminar 25 emails?"), todo en una transacción y con la misma regla que de a uno: el crudo que un aviso usa como fuente se conserva.
+  - Las funciones de `lib/inbox-list.ts` aceptan uno o varios ids (con tope de 200 y solo uuids válidos; RLS limita al usuario). "Marcar visto" y "No me sirve" conservan la fecha de la primera vez.
+- **"No me sirve", aclarado:** solo guarda `dismissed_at`. No borra el email ni su crudo, no toca avisos y no silencia al remitente para los próximos. "Volver a pendientes" lo revierte.
+- **Tests:** e2e `13-inbox-seleccion.spec.ts`: visto y "no me sirve" en lote, eliminar en lote con una sola confirmación (cancelar no borra; el crudo con aviso se conserva) y "seleccionar todos" por pestaña.
+
 ### JS-047 · Parser de alertas de Indeed (propuesto)
 `deps:` JS-022 · `est:` 1.5 h · `estado:` todo (propuesto, sin priorizar)
 - Es la fuente sin parser que más emails de empleo trae: 4 en producción al 2026-09-21 (`match.indeed.com`), hoy en la cola manual. `canonicalUrl` ya reduce las URLs de Indeed al parámetro `jk`. Mismo contrato que LinkedIn y Get on Board: fixtures anonimizadas y fallar cerrado.
