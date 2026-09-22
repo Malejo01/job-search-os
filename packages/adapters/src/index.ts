@@ -4,6 +4,7 @@ export { createLogger, type Logger } from "./logger";
 export * from "./sources/getonboard";
 export * from "./ingest/ingest-job";
 export * from "./ingest/attach-jd";
+export * from "./ingest/merge-duplicate";
 export * from "./ingest/run-getonboard";
 export * from "./queue/pg-queue";
 export * from "./worker/evaluate-job";

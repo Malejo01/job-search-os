@@ -18,3 +18,10 @@ export {
   textShingles,
   words,
 } from "./similarity";
+export {
+  planDuplicateMerge,
+  POSSIBLE_DUPLICATE_FLAG,
+  type DuplicateCandidate,
+  type DuplicateMergeError,
+  type DuplicateMergePlan,
+} from "./manual-merge";
