@@ -1,4 +1,5 @@
 import type { RawJob } from "@job-search-os/pipeline";
+import { getonboardParser } from "./getonboard";
 import { linkedinParser } from "./linkedin";
 
 /**
@@ -31,7 +32,15 @@ export function chooseParserName(fromAddress: string): EmailParser["name"] {
   return "generic";
 }
 
-/** Registro de parsers implementados. Lo que no tiene parser va a la cola manual. */
+/**
+ * Registro de parsers implementados. Lo que no tiene parser va a la cola manual.
+ *
+ * `generic` queda sin registrar a propósito (JS-022): no hay una estructura común que se pueda
+ * extraer sin inventar campos (ninguno de los emails reales trae JobPosting en JSON-LD ni
+ * microdata), y registrarlo cambiaría `parser = 'none'`, que es lo que cuenta la alarma de
+ * volumen "sin parser" de /inbox (JS-038). Cada fuente nueva lleva su parser propio.
+ */
 export const EMAIL_PARSERS: Partial<Record<EmailParser["name"], EmailParser>> = {
   linkedin: linkedinParser,
+  getonboard: getonboardParser,
 };
