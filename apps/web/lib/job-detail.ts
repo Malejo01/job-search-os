@@ -4,13 +4,15 @@ import {
   availableEvents,
   correctionTargets,
   correctStatus,
+  planDuplicateMerge,
+  POSSIBLE_DUPLICATE_FLAG,
   transition,
   type Adjustment,
   type ApplicationOutcome,
   type JobEvent,
   type JobStatus,
 } from "@job-search-os/pipeline";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { withUser } from "./db";
 import { evaluatingSql } from "./jobs";
 import { preScoresFor, type PreScoreView } from "./prescore";
@@ -79,7 +81,13 @@ export type JobDetail = {
   evaluating: boolean;
   /** Estados a los que se puede corregir a mano (JS-028); vacío si no hay nada que corregir. */
   corrections: JobStatus[];
+  /** Marcada `posible_duplicado` (ADR-013): la oferta parecida y si se puede fusionar (JS-025). */
+  possibleDuplicateOf: (DuplicateRef & { canMerge: boolean }) | null;
+  /** Ofertas marcadas como posible duplicado de esta. */
+  possibleDuplicates: DuplicateRef[];
 };
+
+export type DuplicateRef = { id: string; title: string; company: string; status: JobStatus };
 
 /** Eventos que puede disparar la persona desde la UI (el resto los dispara el pipeline). */
 export const MANUAL_EVENTS: readonly JobEvent[] = [
@@ -130,6 +138,57 @@ export async function getJobDetail(userId: string, jobId: string): Promise<JobDe
             ])
           ).get(job.id) ?? null)
         : null;
+    // Posibles duplicados (JS-025): la marca es el flag; el puntero solo lo usa también el golden
+    const history = sql<boolean>`(
+      exists (select 1 from evaluations e where e.job_id = "jobs"."id")
+      or exists (select 1 from applications a where a.job_id = "jobs"."id")
+    )`;
+    const refCols = {
+      id: s.jobs.id,
+      title: s.jobs.title,
+      company: s.jobs.companyRaw,
+      status: s.jobs.status,
+      duplicateOfId: s.jobs.duplicateOfId,
+      firstSeenAt: s.jobs.firstSeenAt,
+      flags: s.jobs.flags,
+      canonicalUrl: s.jobs.canonicalUrl,
+      jdLength: sql<number>`coalesce(length("jobs"."jd_text"), 0)::int`,
+      hasHistory: history,
+    };
+    const flagged = (job.flags ?? []).includes(POSSIBLE_DUPLICATE_FLAG);
+    const [self] = flagged
+      ? await tx.select(refCols).from(s.jobs).where(eq(s.jobs.id, job.id))
+      : [];
+    const [other] =
+      flagged && job.duplicateOfId
+        ? await tx.select(refCols).from(s.jobs).where(eq(s.jobs.id, job.duplicateOfId))
+        : [];
+    const dupsOfThis = await tx
+      .select({
+        id: s.jobs.id,
+        title: s.jobs.title,
+        company: s.jobs.companyRaw,
+        status: s.jobs.status,
+      })
+      .from(s.jobs)
+      .where(
+        and(
+          eq(s.jobs.duplicateOfId, job.id),
+          sql`${POSSIBLE_DUPLICATE_FLAG} = any(${s.jobs.flags})`,
+        ),
+      );
+    const toCandidate = (r: typeof self) => ({ ...r!, flags: r!.flags ?? [] });
+    const possibleDuplicateOf =
+      self && other
+        ? {
+            id: other.id,
+            title: other.title,
+            company: other.company,
+            status: other.status,
+            canMerge: planDuplicateMerge(toCandidate(self), toCandidate(other)).ok,
+          }
+        : null;
+
     const decision = (ev?.decision ?? null) as {
       adjustments?: Adjustment[];
       accion_sugerida?: string;
@@ -195,6 +254,8 @@ export async function getJobDetail(userId: string, jobId: string): Promise<JobDe
         hasEvaluation: Boolean(ev),
         hasJd: Boolean(job.jdText?.trim()),
       }),
+      possibleDuplicateOf,
+      possibleDuplicates: dupsOfThis,
     };
   });
 }

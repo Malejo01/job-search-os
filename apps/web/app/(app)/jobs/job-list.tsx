@@ -130,8 +130,13 @@ function JobCard({ job }: { job: JobListRow }) {
               +{job.riesgos.length - 2} riesgos
             </span>
           ) : null}
+          {job.flags.includes("posible_duplicado") ? (
+            <span className="rounded bg-amber-100 px-1.5 py-0.5 font-medium text-amber-900">
+              posible duplicado
+            </span>
+          ) : null}
           {job.flags
-            .filter((f) => !f.startsWith("title_cap:"))
+            .filter((f) => !f.startsWith("title_cap:") && f !== "posible_duplicado")
             .map((f) => (
               <span key={f} className="rounded bg-zinc-50 px-1.5 py-0.5 text-zinc-500">
                 {f.replace("domain_keyword:", "dominio: ")}

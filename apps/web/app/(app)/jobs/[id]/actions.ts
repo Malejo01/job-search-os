@@ -4,6 +4,8 @@ import { JOB_EVENTS, JOB_STATUSES, type JobEvent, type JobStatus } from "@job-se
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createLogger } from "@job-search-os/adapters";
+import { dismissDuplicate, mergeDuplicate } from "@/lib/duplicates";
+import { evaluateInBackground } from "@/lib/evaluate-now";
 import { applyJobEvent, correctJobStatus, MANUAL_EVENTS, saveHumanScore } from "@/lib/job-detail";
 import { requireUserId } from "@/lib/session";
 
@@ -69,4 +71,37 @@ export async function correctStatusAction(formData: FormData): Promise<void> {
   revalidatePath(`/jobs/${jobId}`);
   revalidatePath("/jobs");
   revalidatePath("/applications");
+}
+
+/** Fusión manual de un posible duplicado (JS-025). La confirmación la pide el cliente. */
+export async function mergeDuplicateAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const jobId = String(formData.get("jobId") ?? "");
+  let survivorId: string;
+  try {
+    const out = await mergeDuplicate(userId, jobId);
+    survivorId = out.survivorId;
+    createLogger({ user_id: userId, job_id: out.survivorId }).info(
+      { absorbed_id: out.absorbedId, enqueued: out.enqueued },
+      "posible duplicado fusionado a mano",
+    );
+    // El que queda recibió la JD que le faltaba: se evalúa ya, como al pegarla (JS-027)
+    if (out.enqueued) evaluateInBackground(userId, out.survivorId);
+  } catch (e) {
+    if (e instanceof Error && e.name === "DuplicateMergeFailure") {
+      redirect(`/jobs/${jobId}?error=fusion`);
+    }
+    throw e;
+  }
+  revalidatePath("/jobs");
+  redirect(`/jobs/${survivorId}`);
+}
+
+/** "No son la misma" (JS-025): saca la marca de posible duplicado. */
+export async function dismissDuplicateAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const jobId = String(formData.get("jobId") ?? "");
+  await dismissDuplicate(userId, jobId);
+  revalidatePath(`/jobs/${jobId}`);
+  revalidatePath("/jobs");
 }

@@ -1,6 +1,6 @@
 import { schema as s } from "@job-search-os/db";
 import { JOB_STATUSES } from "@job-search-os/pipeline";
-import { listJobs, LIST_LIMIT, parseJobFilters } from "@/lib/jobs";
+import { countPossibleDuplicates, listJobs, LIST_LIMIT, parseJobFilters } from "@/lib/jobs";
 import { SOURCE_LABELS, STATUS_LABELS } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import Link from "next/link";
@@ -19,7 +19,10 @@ export default async function JobsPage({
   const userId = await requireUserId();
   const params = await searchParams;
   const filters = parseJobFilters(params);
-  const rows = await listJobs(userId, filters);
+  const [rows, duplicates] = await Promise.all([
+    listJobs(userId, filters),
+    countPossibleDuplicates(userId),
+  ]);
 
   return (
     <section className="flex flex-col gap-3">
@@ -33,6 +36,23 @@ export default async function JobsPage({
           </Link>
         </p>
       </div>
+      {/* Posibles duplicados (JS-025): se revisan a mano, desde el detalle */}
+      {filters.duplicates ? (
+        <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          Viendo solo posibles duplicados ·{" "}
+          <Link href="/jobs" className="underline">
+            ver todas
+          </Link>
+        </p>
+      ) : duplicates > 0 ? (
+        <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <Link href="/jobs?duplicados=1" className="underline">
+            {duplicates === 1
+              ? "1 posible duplicado para revisar"
+              : `${duplicates} posibles duplicados para revisar`}
+          </Link>
+        </p>
+      ) : null}
       <JobFilters
         value={{
           score: filters.scoreMin === null ? "" : String(filters.scoreMin),

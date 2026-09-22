@@ -59,6 +59,7 @@ const handler = createMcpHandler(
           source: null,
           status: (status as JobStatus | "todas" | undefined) ?? null,
           since: null,
+          duplicates: false,
         });
         return text(
           rows.slice(0, limit).map((r) => ({
