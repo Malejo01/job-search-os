@@ -181,11 +181,18 @@ Tickets de 1–3 hs. `deps` = tickets que deben estar done. Estado: `todo` · `d
 - **Bug que destapó el CI (ya existía):** `loadRecentJobs` solo traía los jobs de los últimos 14 días, así que un aviso con la misma URL o el mismo id de la fuente visto antes no se detectaba, y el insert chocaba con el índice único `jobs_user_url` (el aviso fallaba en `errors` de la ingesta). Ahora la URL canónica y el id externo se buscan en jobs de cualquier fecha; empresa+título y texto siguen limitados a la ventana. Revisado en producción el 2026-09-18: **ningún caso real**. Las 3 alertas de LinkedIn procesadas y todas las corridas del cron de GoB desde el deploy dieron `errors: []`; además, el job más viejo es del 2026-09-07, así que nada había salido todavía de la ventana. El primer momento en que podía fallar era el **2026-09-21 15:00 UTC**; este fix tiene que estar deployado antes.
 - **Deploy:** llegó 2 h 46 min después de la fecha límite (2026-09-21 15:00 UTC). En esa ventana entró 1 alerta de LinkedIn sin errores y no corrió el cron: cero fallas reales.
 
-### JS-025 · UI de `posible_duplicado` con fusión manual
-`deps:` JS-008 (ADR-013), JS-016 · `est:` 2 h · `estado:` todo (para más adelante)
+### JS-025 · UI de `posible_duplicado` con fusión manual ✅ done 2026-09-22
+`deps:` JS-008 (ADR-013), JS-016 · `est:` 2 h · `estado:` done
 - Desde ADR-013, empresa + título parecido no fusiona: inserta con `jobs.duplicate_of_id` y flag `posible_duplicado`. Hoy eso no se ve en ningún lado.
 - Mostrar el flag en la lista y en el detalle, con link a la oferta parecida y un botón "fusionar" que haga lo mismo que el merge automático (fuentes a `job_sources`, fecha más antigua), más "no son la misma", que limpia la marca.
 - **Acepta:** fusionar a mano no pierde ningún JD (depende de JS-024); descartar la marca la saca de la lista de posibles duplicados.
+- **Implementado (2026-09-22):**
+  - **Regla (pipeline, `planDuplicateMerge`):** queda la oferta con historia propia (evaluación o postulación). Si ninguna tiene, queda el original (al que apunta la marca). **Si las dos tienen, no se fusiona** (decisión de Mauro): se perdería una evaluación completa; quedan "No son la misma" o descartar una a mano. Además exige el flag: el puntero solo no alcanza, porque el golden usa `duplicate_of_id` para `volume_recruiting`.
+  - **Fusión (adapters, `mergePossibleDuplicate`, en una transacción con RLS):** las fuentes del absorbido pasan al que queda **con su crudo** (JS-024), así que ningún JD se pierde. Aplica las mismas reglas que la fusión automática: fecha más antigua, JD más largo (con hash, shingles y skills) y flags acumulados sin `posible_duplicado`. Hereda la URL si no tenía, repunta otras marcas y borra la evaluación pendiente del absorbido. Si el absorbido se está evaluando, se rechaza la fusión. Si el que queda esperaba JD y la recibe, se evalúa enseguida (como en JS-027).
+  - **"No son la misma":** saca el flag y el puntero.
+  - **UI:** en `/jobs`, aviso "N posibles duplicados para revisar" con filtro `?duplicados=1` (cualquier estado) y etiqueta "posible duplicado" en la card. En el detalle del marcado, la sección "Posible duplicado" con link a la parecida, "Fusionar" (con confirmación) y "No son la misma"; si no se puede fusionar, explica por qué y no ofrece el botón. En la original, la lista de sus posibles duplicados.
+  - **Tests:** 10 unitarios de la regla, 6 de integración (caso real, ningún JD perdido, evaluación al recibir JD, las dos con historia, sin marca, "no son la misma") y e2e `14-posible-duplicado.spec.ts` (3 flujos).
+  - **Producción al 2026-09-22:** hay 1 caso marcado y las dos ofertas ya están evaluadas, así que la pantalla ofrece solo "No son la misma".
 
 ## Bloque 4b — Mejoras del uso real (reporte de Mauro, 2026-09-21)
 

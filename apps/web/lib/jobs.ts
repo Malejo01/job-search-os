@@ -19,6 +19,8 @@ export type JobFilters = {
   status: JobStatus | "todas" | null;
   /** first_seen_at ≥ fecha (YYYY-MM-DD); null = sin filtro. */
   since: string | null;
+  /** Solo las marcadas `posible_duplicado` (JS-025), en cualquier estado salvo que se elija uno. */
+  duplicates: boolean;
 };
 
 export type JobListRow = {
@@ -78,6 +80,7 @@ export function parseJobFilters(params: Record<string, string | string[] | undef
           ? (status as JobStatus)
           : null,
     since: /^\d{4}-\d{2}-\d{2}$/.test(since) ? since : null,
+    duplicates: one("duplicados") === "1",
   };
 }
 
@@ -110,7 +113,7 @@ export async function listJobs(userId: string, filters: JobFilters): Promise<Job
       .as("src");
 
     const conds = [
-      filters.status === "todas"
+      filters.status === "todas" || (filters.duplicates && !filters.status)
         ? undefined
         : filters.status
           ? eq(s.jobs.status, filters.status)
@@ -121,6 +124,7 @@ export async function listJobs(userId: string, filters: JobFilters): Promise<Job
         : undefined,
       filters.source ? sql`${filters.source} = any(${sources.kinds})` : undefined,
       filters.since ? gte(s.jobs.firstSeenAt, new Date(`${filters.since}T00:00:00Z`)) : undefined,
+      filters.duplicates ? sql`'posible_duplicado' = any(${s.jobs.flags})` : undefined,
     ].filter((c): c is NonNullable<typeof c> => c !== undefined);
 
     const rows = await tx
@@ -185,5 +189,16 @@ export async function listJobs(userId: string, filters: JobFilters): Promise<Job
       preScore: pre.get(r.id)?.score ?? null,
       evaluating: Boolean(r.evaluating),
     }));
+  });
+}
+
+/** Cuántas ofertas marcadas `posible_duplicado` hay para revisar (JS-025). */
+export async function countPossibleDuplicates(userId: string): Promise<number> {
+  return withUser(userId, async (tx) => {
+    const [row] = await tx
+      .select({ n: sql<number>`count(*)::int` })
+      .from(s.jobs)
+      .where(sql`'posible_duplicado' = any(${s.jobs.flags})`);
+    return row?.n ?? 0;
   });
 }

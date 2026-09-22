@@ -335,3 +335,37 @@ export function runDemoWorker(): string {
     timeout: 120_000,
   });
 }
+
+/** Marca `dupId` como posible duplicado de `origId`, como lo deja la ingesta (ADR-013). */
+export async function markPossibleDuplicate(dupId: string, origId: string): Promise<void> {
+  const { db, close } = ownerDb();
+  try {
+    await db
+      .update(s.jobs)
+      .set({ duplicateOfId: origId, flags: ["posible_duplicado"] })
+      .where(eq(s.jobs.id, dupId));
+  } finally {
+    await close();
+  }
+}
+
+/** Estado de una oferta para verificar una fusión: null si se borró. */
+export async function jobMergeState(
+  jobId: string,
+): Promise<{ flags: string[]; duplicateOfId: string | null; sources: number } | null> {
+  const { db, close } = ownerDb();
+  try {
+    const [job] = await db
+      .select({ flags: s.jobs.flags, duplicateOfId: s.jobs.duplicateOfId })
+      .from(s.jobs)
+      .where(eq(s.jobs.id, jobId));
+    if (!job) return null;
+    const sources = await db
+      .select({ id: s.jobSources.id })
+      .from(s.jobSources)
+      .where(eq(s.jobSources.jobId, jobId));
+    return { flags: job.flags ?? [], duplicateOfId: job.duplicateOfId, sources: sources.length };
+  } finally {
+    await close();
+  }
+}

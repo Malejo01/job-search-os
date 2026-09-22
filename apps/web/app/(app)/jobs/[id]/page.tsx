@@ -15,9 +15,10 @@ import {
   STATUS_LABELS,
 } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
-import { changeStatusAction, humanScoreAction } from "./actions";
+import { changeStatusAction, dismissDuplicateAction, humanScoreAction } from "./actions";
 import { AutoRefresh } from "../auto-refresh";
 import { ApplyButton } from "./apply-button";
+import { MergeButton } from "./merge-button";
 import { StatusCorrection } from "./status-correction";
 
 export const dynamic = "force-dynamic";
@@ -41,6 +42,8 @@ const ERRORS: Record<string, string> = {
   transicion: "Esa transición no vale desde el estado actual (la página estaba desactualizada).",
   score: "El score humano va de 0 a 10 en pasos de 0,5.",
   correccion: "Esa corrección no vale desde el estado actual (la página estaba desactualizada).",
+  fusion:
+    "No se pudo fusionar: las ofertas cambiaron (una ya tiene evaluación o postulación, o se está evaluando). Recargá y revisá.",
 };
 
 /** Detalle de una oferta (JS-016): evaluación completa, fuentes, acciones de estado y score humano. */
@@ -165,6 +168,70 @@ export default async function JobDetailPage({
       </section>
       {job.corrections.length ? (
         <StatusCorrection jobId={job.id} current={job.status} targets={job.corrections} />
+      ) : null}
+
+      {/* Posible duplicado (JS-025, ADR-013): parecido por empresa y título, sin nada que lo identifique */}
+      {job.possibleDuplicateOf ? (
+        <section
+          aria-label="Posible duplicado"
+          className="flex flex-col gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm"
+        >
+          <h2 className="font-semibold text-amber-900">Posible duplicado</h2>
+          <p className="text-amber-900">
+            Se parece a{" "}
+            <Link href={`/jobs/${job.possibleDuplicateOf.id}`} className="underline">
+              {job.possibleDuplicateOf.title}
+            </Link>{" "}
+            ({job.possibleDuplicateOf.company} ·{" "}
+            {STATUS_LABELS[job.possibleDuplicateOf.status] ?? job.possibleDuplicateOf.status}):
+            misma empresa y título parecido, pero sin URL ni JD en común. Si es el mismo aviso,
+            fusionalas; si no, sacá la marca.
+          </p>
+          {job.possibleDuplicateOf.canMerge ? null : (
+            <p className="text-xs text-amber-900">
+              Las dos ofertas tienen evaluación o postulación: no se fusionan para no perder
+              ninguna. Si son la misma, descartá una a mano.
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {job.possibleDuplicateOf.canMerge ? (
+              <MergeButton jobId={job.id} otherTitle={job.possibleDuplicateOf.title} />
+            ) : null}
+            <form action={dismissDuplicateAction}>
+              <input type="hidden" name="jobId" value={job.id} />
+              <button
+                type="submit"
+                className="rounded-md border border-zinc-400 bg-white px-3 py-2 text-sm text-zinc-800"
+              >
+                No son la misma
+              </button>
+            </form>
+          </div>
+        </section>
+      ) : null}
+      {job.possibleDuplicates.length ? (
+        <section
+          aria-label="Posibles duplicados de esta oferta"
+          className="rounded-md border border-amber-200 p-3 text-sm"
+        >
+          <h2 className="font-semibold text-amber-900">
+            {job.possibleDuplicates.length === 1
+              ? "Hay 1 posible duplicado de esta oferta"
+              : `Hay ${job.possibleDuplicates.length} posibles duplicados de esta oferta`}
+          </h2>
+          <ul className="mt-1 list-disc pl-5">
+            {job.possibleDuplicates.map((d) => (
+              <li key={d.id}>
+                <Link href={`/jobs/${d.id}`} className="underline">
+                  {d.title}
+                </Link>{" "}
+                <span className="text-xs text-zinc-500">
+                  {STATUS_LABELS[d.status] ?? d.status} · se revisa desde su detalle
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
 
       {ev ? (
