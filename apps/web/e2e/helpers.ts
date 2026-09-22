@@ -161,6 +161,8 @@ export async function createInboundEmail(options: {
   text?: string | null;
   /** Llega ya descartado (ruido social de LinkedIn, JS-050). */
   dismissed?: boolean;
+  /** Fecha de llegada (por defecto, ahora). */
+  receivedAt?: Date;
 }): Promise<{ id: string; rawRef: string }> {
   const { db, close } = ownerDb();
   try {
@@ -195,7 +197,7 @@ export async function createInboundEmail(options: {
           options.error === undefined
             ? "sin parser para este remitente: cola manual"
             : options.error,
-        receivedAt: new Date(),
+        receivedAt: options.receivedAt ?? new Date(),
         dismissedAt: options.dismissed ? new Date() : null,
       })
       .returning({ id: s.inboundEmails.id });
@@ -368,6 +370,37 @@ export async function jobMergeState(
       .from(s.jobSources)
       .where(eq(s.jobSources.jobId, jobId));
     return { flags: job.flags ?? [], duplicateOfId: job.duplicateOfId, sources: sources.length };
+  } finally {
+    await close();
+  }
+}
+
+/** Decisión guardada sobre un dominio remitente (JS-048), o null. */
+export async function senderVerdict(domain: string): Promise<string | null> {
+  const { db, close } = ownerDb();
+  try {
+    const [row] = await db
+      .select({ verdict: s.inboundSenderDomains.verdict })
+      .from(s.inboundSenderDomains)
+      .where(
+        and(
+          eq(s.inboundSenderDomains.userId, E2E_USER_ID),
+          eq(s.inboundSenderDomains.domain, domain),
+        ),
+      );
+    return row?.verdict ?? null;
+  } finally {
+    await close();
+  }
+}
+
+/** Borra las decisiones sobre dominios que contienen `fragment` (limpieza de los e2e). */
+export async function clearSenderVerdicts(fragment: string): Promise<void> {
+  const { db, close } = ownerDb();
+  try {
+    await db
+      .delete(s.inboundSenderDomains)
+      .where(sql`${s.inboundSenderDomains.domain} like ${`%${fragment}%`}`);
   } finally {
     await close();
   }
