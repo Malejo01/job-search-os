@@ -280,8 +280,8 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 `deps:` JS-022 · `est:` 1.5 h · `estado:` todo (propuesto, sin priorizar)
 - Es la fuente sin parser que más emails de empleo trae: 4 en producción al 2026-09-21 (`match.indeed.com`), hoy en la cola manual. `canonicalUrl` ya reduce las URLs de Indeed al parámetro `jk`. Mismo contrato que LinkedIn y Get on Board: fixtures anonimizadas y fallar cerrado.
 
-### JS-048 · Alerta de "posible fuga del filtro" por dominio nuevo en `/inbox`
-`deps:` JS-038, JS-022 · `est:` 2 h · `estado:` todo (pedido de Mauro, 2026-09-22)
+### JS-048 · Alerta de "posible fuga del filtro" por dominio nuevo en `/inbox` ✅ done 2026-09-22
+`deps:` JS-038, JS-022 · `est:` 2 h · `estado:` done (pedido de Mauro, 2026-09-22; migración 0013 ya aplicada en Neon el 2026-09-22 ~05:03 UTC)
 - **Por qué:** ver el hueco anotado en JS-038. Un filtro de reenvío mal configurado se nota primero por **quién** manda, no por cuánto llega: con el primer email del banco ya había motivo para avisar.
 - **Qué:** si en las últimas 48 h llegó un email de un dominio **que nunca se vio antes** y que **no es una fuente de empleo esperada**, `/inbox` muestra un aviso propio, "Posible fuga del filtro de reenvío", separado del de volumen alto. Salta con un solo email.
   - El aviso lista cada dominio nuevo con su cantidad y la fecha del primero, más un link a esos emails.
@@ -290,6 +290,12 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
   - **Borrado en lote:** el aviso ofrece "Eliminar todos los de este dominio", con confirmación. Es la acción que hizo falta el 2026-09-22 con los emails del banco.
 - **Dónde:** función pura en `packages/pipeline` (recibe los dominios de 48 h, los vistos antes y las fuentes esperadas, y devuelve los dominios sospechosos) con tests primero, igual que `assessInboxVolume`.
 - **Acepta:** con los datos reales del 2026-09-19 al 21, el aviso habría saltado con el primer email de Santander, y con los de Netflix, Duolingo, etc., cada uno el día que llegó. Un dominio con parser o marcado como fuente de empleo no avisa nunca. Un dominio ya visto antes de las 48 h no vuelve a avisar.
+- **Implementado (2026-09-22):**
+  - **Regla pura** `detectFilterLeaks` (pipeline): agrupa remitentes por dominio base (`mails.` y `comunicaciones.` de un banco son un solo dominio, con los segundos niveles de país como `com.ar`), y avisa si el primer email del dominio es de las últimas 48 h, no es fuente esperada (`EXPECTED_SOURCE_DOMAINS`: LinkedIn, incluidos sus remitentes sociales, y Get on Board) y la persona no lo marcó. Categoría orientativa por el **comienzo** del nombre del dominio contra una lista explícita (así "stackoverflow" no cae en streaming); lo que no está dice "dominio nuevo".
+  - **Tabla `inbound_sender_domains`** (migración 0013, RLS forzado): la decisión de la persona por dominio, `empleo` o `no_empleo`.
+  - **UI en `/inbox`:** aviso rojo propio, "Posible fuga del filtro de reenvío", separado del de volumen (los dos con `aria-label`). Por dominio: etiqueta, cantidad y fecha, "Ver" (filtra la lista por ese dominio, `?dominio=`), "Es fuente de empleo", "No es de empleo" y "Eliminar todos", con una sola confirmación con la cantidad. Se borra en tandas con la misma regla que de a uno: el crudo con aviso queda.
+  - **Tests:** 20 unitarios (dominio base, categorías, la regla y el escenario del 2026-09-18) más un chequeo en adapters de que todo dominio con parser es fuente esperada; e2e `15-fuga-filtro.spec.ts` (3 flujos).
+  - **Validado contra producción el 2026-09-22 (solo lectura):** al deployar, el aviso muestra `github.com` (3 emails desde el 22/9 04:46 UTC, **después** de corregir el filtro) y `devups.io` (1). No muestra Indeed, Teamtailor ni Google, que se vieron por primera vez hace más de 48 h.
 
 ### JS-046 · Aviso "esta oferta puede estar cerrada" (futuro, baja prioridad)
 `deps:` JS-026, JS-028 · `est:` 2 h · `estado:` todo (para más adelante)

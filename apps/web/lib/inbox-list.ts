@@ -39,6 +39,8 @@ export const INBOX_LIMIT = 50;
 export async function listInbox(
   userId: string,
   view: InboxView,
+  /** Solo estos emails (los de un dominio, JS-048); undefined = todos. */
+  only?: string[],
 ): Promise<{ rows: InboxRow[]; counts: Record<InboxView, number> }> {
   return withUser(userId, async (tx) => {
     const rows = await tx
@@ -54,7 +56,12 @@ export async function listInbox(
         dismissedAt: s.inboundEmails.dismissedAt,
       })
       .from(s.inboundEmails)
-      .where(VIEW_WHERE[view])
+      .where(
+        and(
+          VIEW_WHERE[view],
+          only ? (only.length ? inArray(s.inboundEmails.id, only) : sql`false`) : undefined,
+        ),
+      )
       .orderBy(desc(s.inboundEmails.receivedAt))
       .limit(INBOX_LIMIT);
     const [c] = await tx

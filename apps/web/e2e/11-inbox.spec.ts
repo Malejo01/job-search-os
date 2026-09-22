@@ -25,7 +25,8 @@ test.describe("Flujo 11: acciones y volumen en /inbox", () => {
       .getByRole("navigation", { name: "Vistas" })
       .getByRole("link", { name: new RegExp(`^${nombre}`) });
   // Next.js agrega su propio anunciador de rutas con role="alert": el aviso se busca en <main>
-  const aviso = (page: Page) => page.getByRole("main").getByRole("alert");
+  const aviso = (page: Page) =>
+    page.getByRole("main").getByRole("alert", { name: "Volumen fuera de lo normal" });
 
   test.afterAll(async () => {
     await clearInboundRejections();
