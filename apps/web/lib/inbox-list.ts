@@ -1,6 +1,6 @@
 import { schema as s } from "@job-search-os/db";
 import { assessInboxVolume, type InboxVolume } from "@job-search-os/pipeline";
-import { and, desc, eq, gte, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { withUser } from "./db";
 
 /**
@@ -115,51 +115,91 @@ export async function inboxVolume(userId: string, now = new Date()): Promise<Inb
   });
 }
 
-const mine = (id: string) => eq(s.inboundEmails.id, id);
+/** Tope por acción en lote: la vista muestra INBOX_LIMIT filas, esto deja margen. */
+export const BULK_LIMIT = 200;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export async function markInboundSeen(userId: string, id: string): Promise<void> {
-  await withUser(userId, (tx) =>
-    tx.update(s.inboundEmails).set({ seenAt: new Date() }).where(mine(id)),
-  );
+/** Ids válidos y sin repetir; lo que no es un uuid se ignora (RLS ya limita al usuario). */
+export function cleanIds(ids: readonly string[]): string[] {
+  return [...new Set(ids.filter((id) => UUID.test(id)))].slice(0, BULK_LIMIT);
 }
 
-export async function dismissInbound(userId: string, id: string): Promise<void> {
-  await withUser(userId, (tx) =>
-    tx.update(s.inboundEmails).set({ dismissedAt: new Date() }).where(mine(id)),
-  );
+const these = (ids: string[]) => inArray(s.inboundEmails.id, ids);
+
+/** Visto (JS-038, en lote JS-049). Un email ya visto conserva la fecha de la primera vez. */
+export async function markInboundSeen(userId: string, ids: string | string[]): Promise<number> {
+  const list = cleanIds([ids].flat());
+  if (!list.length) return 0;
+  return withUser(userId, async (tx) => {
+    const rows = await tx
+      .update(s.inboundEmails)
+      .set({ seenAt: sql`coalesce(${s.inboundEmails.seenAt}, now())` })
+      .where(these(list))
+      .returning({ id: s.inboundEmails.id });
+    return rows.length;
+  });
+}
+
+/** "No me sirve": solo marca `dismissed_at`; no borra nada y se revierte con restoreInbound. */
+export async function dismissInbound(userId: string, ids: string | string[]): Promise<number> {
+  const list = cleanIds([ids].flat());
+  if (!list.length) return 0;
+  return withUser(userId, async (tx) => {
+    const rows = await tx
+      .update(s.inboundEmails)
+      .set({ dismissedAt: sql`coalesce(${s.inboundEmails.dismissedAt}, now())` })
+      .where(these(list))
+      .returning({ id: s.inboundEmails.id });
+    return rows.length;
+  });
 }
 
 /** Vuelve a pendientes: saca las marcas de visto y de descartado. */
-export async function restoreInbound(userId: string, id: string): Promise<void> {
-  await withUser(userId, (tx) =>
-    tx.update(s.inboundEmails).set({ seenAt: null, dismissedAt: null }).where(mine(id)),
-  );
+export async function restoreInbound(userId: string, ids: string | string[]): Promise<number> {
+  const list = cleanIds([ids].flat());
+  if (!list.length) return 0;
+  return withUser(userId, async (tx) => {
+    const rows = await tx
+      .update(s.inboundEmails)
+      .set({ seenAt: null, dismissedAt: null })
+      .where(these(list))
+      .returning({ id: s.inboundEmails.id });
+    return rows.length;
+  });
 }
 
 /**
- * Borra el email. Su crudo se borra solo si nadie más lo usa: los avisos extraídos de ese email
- * lo tienen como fuente (job_sources.raw_ref, JS-024) y perderlo dejaría esos avisos sin
- * evidencia. Devuelve si el crudo se borró.
+ * Borra los emails, en una sola transacción. El crudo de cada uno se borra solo si nadie más lo
+ * usa: los avisos extraídos de ese email lo tienen como fuente (job_sources.raw_ref, JS-024) y
+ * perderlo dejaría esos avisos sin evidencia.
  */
-export async function deleteInbound(userId: string, id: string): Promise<{ rawDeleted: boolean }> {
+export async function deleteInbound(
+  userId: string,
+  ids: string | string[],
+): Promise<{ deleted: number; rawDeleted: number }> {
+  const list = cleanIds([ids].flat());
+  if (!list.length) return { deleted: 0, rawDeleted: 0 };
   return withUser(userId, async (tx) => {
-    const [row] = await tx
+    const rows = await tx
       .delete(s.inboundEmails)
-      .where(mine(id))
+      .where(these(list))
       .returning({ rawRef: s.inboundEmails.rawRef });
-    if (!row) return { rawDeleted: false };
-    const [usedByJob] = await tx
-      .select({ id: s.jobSources.id })
-      .from(s.jobSources)
-      .where(eq(s.jobSources.rawRef, row.rawRef))
-      .limit(1);
-    const [usedByEmail] = await tx
-      .select({ id: s.inboundEmails.id })
-      .from(s.inboundEmails)
-      .where(eq(s.inboundEmails.rawRef, row.rawRef))
-      .limit(1);
-    if (usedByJob || usedByEmail || !row.rawRef.startsWith("pg:")) return { rawDeleted: false };
-    await tx.delete(s.rawBlobs).where(eq(s.rawBlobs.id, row.rawRef.slice(3)));
-    return { rawDeleted: true };
+    let rawDeleted = 0;
+    for (const rawRef of new Set(rows.map((r) => r.rawRef))) {
+      const [usedByJob] = await tx
+        .select({ id: s.jobSources.id })
+        .from(s.jobSources)
+        .where(eq(s.jobSources.rawRef, rawRef))
+        .limit(1);
+      const [usedByEmail] = await tx
+        .select({ id: s.inboundEmails.id })
+        .from(s.inboundEmails)
+        .where(eq(s.inboundEmails.rawRef, rawRef))
+        .limit(1);
+      if (usedByJob || usedByEmail || !rawRef.startsWith("pg:")) continue;
+      await tx.delete(s.rawBlobs).where(eq(s.rawBlobs.id, rawRef.slice(3)));
+      rawDeleted += 1;
+    }
+    return { deleted: rows.length, rawDeleted };
   });
 }
