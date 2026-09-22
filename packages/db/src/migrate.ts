@@ -3,6 +3,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { createDb } from "./client";
+import { confirmRemoteTarget } from "./confirm-remote";
 import {
   dbTarget,
   describeDatabaseUrl,
@@ -53,12 +54,18 @@ export async function applyMigrations(url: string, options: ApplyOptions = {}): 
 
 /**
  * Uso: pnpm db:migrate (nube: DATABASE_URL_UNPOOLED, dueño) · pnpm db:migrate:local (Docker).
+ * Contra la nube pide escribir "si" (o CONFIRM_PRODUCTION=si sin terminal): ver confirm-remote.ts.
  * En Neon la contraseña de jobsearch_app la carga Mauro (DATABASE_URL_APP); acá no se toca.
  */
 async function main(): Promise<void> {
   loadLocalEnv();
   const url = requireDatabaseUrl({ purpose: "migration" });
   console.log(`→ ${describeDatabaseUrl(url)}`);
+  // Salvaguarda: contra una base remota (producción) hay que confirmar con "si" (2026-09-22)
+  if (!(await confirmRemoteTarget(url, { action: "migrar" }))) {
+    console.error("db:migrate cancelado: no se tocó la base.");
+    process.exit(1);
+  }
   await applyMigrations(url, {
     localAppPassword: dbTarget() === "local" ? LOCAL_APP_ROLE_PASSWORD : undefined,
   });
