@@ -359,6 +359,20 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 
 ## Bloque 6 — Plataforma (después)
 
+### JS-054 · Orden de prioridad en la lista: score y despues riesgos
+`deps:` JS-052 · `est:` 1 h · `estado:` todo (no bloquea)
+- Con las penalizaciones de `decide()` corregidas (JS-052), los riesgos pasan a ser el unico canal de viabilidad: dos ofertas con el mismo score ya no se diferencian por el score.
+- Ordenar la lista por score descendente y, dentro de cada score, por cantidad de riesgos ascendente (menos riesgos primero).
+- **Acepta:** dos ofertas con score 7, una con 1 riesgo y otra con 3, salen en ese orden; el orden es estable y se testea sin LLM.
+
+### JS-055 · Subir risks_recall y blockers_precision
+`deps:` JS-052 · `est:` a estimar · `estado:` todo
+- Medido el 2026-09-24 sobre las 36 del golden con `evaluate_job@v1.3.2`: `risks_recall` 64 % y `blockers_precision` 63 %, los dos contra un umbral de 100 %.
+- Sube de prioridad por JS-052: si el score deja de penalizar inglés y años, la viabilidad viaja entera por los riesgos. Un riesgo que el modelo no emite ahora no lo compensa nadie.
+- `blockers_precision` baja sobre todo por bloqueadores que el modelo inventa fuera de la lista cerrada (tipo `otro`) y por bloqueadores de disciplina sobre roles que si estan en el carril.
+- Mirar tambien `location_risk_recall` (38 %): el modelo devuelve `ok` donde la referencia dice `riesgo`.
+- **Acepta:** a definir cuando entre, con una corrida completa antes y despues.
+
 ### JS-053 · Agente de postulaciones con revisión humana
 `deps:` JS-035, JS-032 · `est:` a estimar · `estado:` todo (no ahora)
 - Surge del 2026-09-23, al corregir el evaluador (JS-052): el perfil declara "agentes con tool calling" como fuerte y no hay ningún agente propio en producción que lo respalde. El perfil pasó a declararlo MEDIO.
