@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 import type { Evaluation } from "@job-search-os/pipeline";
 import { goldenJobs } from "./golden";
 import { criteriaRules } from "./golden";
@@ -72,7 +73,9 @@ export function recomputeReport(report: Report): RecomputeResult {
 
 export function recomputeFiles(paths: string[]): string[] {
   const lines: string[] = [];
-  for (const path of paths) {
+  for (const given of paths) {
+    // Mismas rutas que `compare`: relativas al directorio desde donde se invocó pnpm, no al package
+    const path = resolve(process.env.INIT_CWD ?? process.cwd(), given);
     const before = JSON.parse(readFileSync(path, "utf8")) as Report;
     const old = { ...before.metrics };
     const { report, notes } = recomputeReport(JSON.parse(readFileSync(path, "utf8")) as Report);

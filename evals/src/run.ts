@@ -629,6 +629,7 @@ async function runEvalsWith(options: RunOptions, env: RunEnv): Promise<Report> {
       human_risks: job.human_risks,
       human_discipline: job.disciplina,
       human_action: job.accion,
+      anchor_source: job.anchor_source ?? "human",
       human_location_ok: job.location_ok,
       human_location_ok_clean: job.human_location_ok,
       model_score: modelScore,

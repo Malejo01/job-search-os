@@ -17,6 +17,12 @@ export type JobRow = {
   human_risks: string[];
   human_discipline: string;
   human_action: string;
+  /**
+   * De dónde sale el ancla: "human" (Mauro a mano) o "assisted" (puntuada con una rúbrica fija y
+   * revisada por él, JS-052). Ausente = "human". Un ancla assisted es evidencia más débil para
+   * juzgar al modelo: donde la rúbrica repite una regla de decide(), coincide por construcción.
+   */
+  anchor_source?: "human" | "assisted";
   /** location_ok como lo anotó Mauro (mezclaba modalidad). Referencia para v1. */
   human_location_ok: string;
   /** Ubicación pura (definición v1.1). Referencia para v1.1+. */
@@ -69,6 +75,8 @@ export type Metrics = {
   false_discard: number;
   /** Variante por acción: ancla ≥ piso que termina en "descartar" aunque el score no baje. */
   false_discard_action: number;
+  /** Piso usado para false_discard (thresholds.guardar), para poder reproducir el número. */
+  apply_floor: number;
   /** Jobs con ubicación humana riesgo o no donde el modelo devolvió EXACTAMENTE el mismo valor. */
   location_risk_recall: number | null;
   /** Métrica vieja (indulgente): riesgo y no valen como equivalentes. */
@@ -291,6 +299,7 @@ export function computeMetrics(
     false_apply: falseApply,
     false_discard: falseDiscard,
     false_discard_action: falseDiscardAction,
+    apply_floor: applyFloor,
     location_risk_recall: ratio(riskyExact, risky.length),
     location_risk_recall_any: ratio(riskyAny, risky.length),
     unstable_ratio: ratio(ok.filter((r) => r.unstable).length, ok.length) ?? 0,
@@ -335,4 +344,14 @@ export function checkThresholds(m: Metrics): { name: string; ok: boolean; value:
     });
   }
   return checks;
+}
+
+/** Filas partidas por origen del ancla, para leer las métricas separadas (JS-052). */
+export function splitByAnchorSource<T extends { anchor_source?: "human" | "assisted" }>(
+  rows: readonly T[],
+): { human: T[]; assisted: T[] } {
+  return {
+    human: rows.filter((r) => (r.anchor_source ?? "human") === "human"),
+    assisted: rows.filter((r) => r.anchor_source === "assisted"),
+  };
 }

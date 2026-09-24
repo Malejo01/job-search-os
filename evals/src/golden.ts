@@ -78,6 +78,8 @@ export type GoldenJob = {
   human_risks: string[];
   /** Ubicación pura (definición v1.1): ok | riesgo | no. Ancla para prompts >= v1.1. */
   human_location_ok: string;
+  /** "human" (a mano) o "assisted" (rúbrica fija revisada por Mauro, JS-052). Ausente = human. */
+  anchor_source?: "human" | "assisted";
   score_nota?: string;
   accion: string;
   estado: string;

@@ -10,6 +10,7 @@ import {
   median,
   promptVersionNumber,
   sameAction,
+  splitByAnchorSource,
   type JobRow,
 } from "./metrics";
 
@@ -276,5 +277,43 @@ describe("false_discard (JS-052): el error que más cuesta", () => {
       (c) => c.name,
     );
     expect(names).toContain("false_discard = 0");
+  });
+});
+
+describe("anchor_source (JS-052): métricas separadas por origen del ancla", () => {
+  it("splitByAnchorSource parte las filas en human y assisted", () => {
+    const rows = [
+      row({ id: 1, anchor_source: "human" }),
+      row({ id: 2, anchor_source: "assisted" }),
+      row({ id: 3 }), // sin campo: cuenta como human (los 26 originales)
+    ];
+    const s = splitByAnchorSource(rows);
+    expect(s.human.map((r) => r.id)).toEqual([1, 3]);
+    expect(s.assisted.map((r) => r.id)).toEqual([2]);
+  });
+
+  it("las métricas por origen se calculan sobre cada subconjunto", () => {
+    const rows = [
+      // human: el modelo acierta
+      row({
+        id: 1,
+        anchor_source: "human",
+        human_score_match: 7,
+        model_score: 7,
+        model_score_final: 7,
+      }),
+      // assisted: el modelo la hunde bajo el piso
+      row({
+        id: 2,
+        anchor_source: "assisted",
+        human_score_match: 6.5,
+        model_score: 3,
+        model_score_final: 3,
+      }),
+    ];
+    const s = splitByAnchorSource(rows);
+    expect(computeMetrics(s.human, "human_score_match").false_discard).toBe(0);
+    expect(computeMetrics(s.assisted, "human_score_match").false_discard).toBe(1);
+    expect(computeMetrics(rows, "human_score_match").false_discard).toBe(1);
   });
 });

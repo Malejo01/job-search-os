@@ -2,8 +2,8 @@
  "meta": {
   "descripcion": "Golden dataset de EJEMPLO: 36 ofertas reales analizadas a mano por Mauro Lizárraga entre 2026-09-07 y 2026-09-09, con empresas anonimizadas (Empresa A…AB, identidad estable entre registros) y sin datos de la situación laboral del autor. Los casos de frontera (disciplina, ubicación, modalidad, título, duplicados) son los originales. human_score es la referencia. Ofertas con human_score null no se usan para MAE pero sí para disciplina/bloqueadores. Los datos reales viven en fixtures-private/ (no versionado).",
   "perfil_referencia": "Perfil de ejemplo: AI Engineer / Fullstack en Argentina, solo remoto, ~5 años, inglés intermedio, sin autorización laboral en EE.UU. ni Europa, piso salarial y horas máximas genéricos (seeds *.example.json).",
-  "version": "2026-09-23",
-  "notas_campos": "ubicacion_raw (2026-09-10): texto de ubicación tal como figuraba en el aviso; es lo único sobre ubicación que entra al prompt. paises y location_ok son la referencia humana. human_score_match (2026-09-10): score de MATCH puro según el prompt v1.1 (sin descontar por bloqueadores ni ubicación); human_score se conserva para comparar con reportes v1. human_blockers y human_risks: bloqueadores y riesgos con la definición v1.1. human_location_ok (2026-09-10): ubicación pura según el prompt v1.1 (ok = AR explícito o work from anywhere; riesgo = remoto sin AR listado / LATAM sin países / lista fuera del aviso; no = AR excluido o lista sin AR). La modalidad no entra: se mide en modalidad y bloqueadores. location_ok original se conserva para reportes v1. jd (2026-09-23, JS-052): JD recortada del aviso (mision + responsabilidades + requisitos) solo en los ids 35 y 36; con jd el harness marca had_full_jd=true. El resto sigue con el resumen de campos y had_full_jd=false."
+  "version": "2026-09-24",
+  "notas_campos": "ubicacion_raw (2026-09-10): texto de ubicación tal como figuraba en el aviso; es lo único sobre ubicación que entra al prompt. paises y location_ok son la referencia humana. human_score_match (2026-09-10): score de MATCH puro según el prompt v1.1 (sin descontar por bloqueadores ni ubicación); human_score se conserva para comparar con reportes v1. human_blockers y human_risks: bloqueadores y riesgos con la definición v1.1. human_location_ok (2026-09-10): ubicación pura según el prompt v1.1 (ok = AR explícito o work from anywhere; riesgo = remoto sin AR listado / LATAM sin países / lista fuera del aviso; no = AR excluido o lista sin AR). La modalidad no entra: se mide en modalidad y bloqueadores. location_ok original se conserva para reportes v1. jd (2026-09-23, JS-052): JD recortada del aviso (mision + responsabilidades + requisitos) solo en los ids 35 y 36; con jd el harness marca had_full_jd=true. El resto sigue con el resumen de campos y had_full_jd=false. anchor_source (2026-09-24, JS-052): 'human' = puntuada a mano por Mauro; 'assisted' = puntuada por Claude con una rubrica fija y revisada por Mauro. Las metricas se pueden leer separadas por origen: un ancla assisted es evidencia mas debil para juzgar al modelo, y donde la rubrica usa la misma regla que decide() (tope 4 por disciplina) coincide por construccion."
  },
  "jobs": [
   {
@@ -70,7 +70,7 @@
    "candidatos": null,
    "badges": [],
    "human_score": null,
-   "human_score_match": 8,
+   "human_score_match": 4,
    "human_blockers": [
     "años requeridos ≥ 8 (8)"
    ],
@@ -78,11 +78,12 @@
     "salario no publicado",
     "empresa de staffing"
    ],
-   "score_nota": "no puntuada; match alto, gap estructural de años. Corrección 2026-09-11: acción guardar → descartar; con los ejes separados un bloqueador duro (8+ años) es descarte.",
+   "score_nota": "no puntuada; match alto, gap estructural de años. Corrección 2026-09-11: acción guardar → descartar; con los ejes separados un bloqueador duro (8+ años) es descarte. Re-puntuada el 2026-09-24 (JS-052) a ciegas contra el perfil real: human_score_match 8 -> 4 (codigo D). Rubrica fija: stack central 50%, requisitos de IA 20% (neutral 7 si el rol no exige IA), disciplina 20% con tope 4 fuera del carril, seniority 10% (mid 8 / senior 5 / staff 2). anchor_source=assisted: puntuada por Claude con esa rubrica y revisada por Mauro.",
    "accion": "descartar",
    "estado": "evaluada",
    "location_ok": "ok",
-   "human_location_ok": "ok"
+   "human_location_ok": "ok",
+   "anchor_source": "assisted"
   },
   {
    "id": 2,
@@ -147,7 +148,8 @@
    "accion": "descartar",
    "estado": "descartada",
    "location_ok": "no",
-   "human_location_ok": "ok"
+   "human_location_ok": "ok",
+   "anchor_source": "human"
   },
   {
    "id": 3,
@@ -226,7 +228,8 @@
    "accion": "guardar",
    "estado": "evaluada",
    "location_ok": "no",
-   "human_location_ok": "no"
+   "human_location_ok": "no",
+   "anchor_source": "human"
   },
   {
    "id": 4,
@@ -289,7 +292,8 @@
    "accion": "descartar",
    "estado": "descartada",
    "location_ok": "ok",
-   "human_location_ok": "ok"
+   "human_location_ok": "ok",
+   "anchor_source": "human"
   },
   {
    "id": 5,
@@ -341,7 +345,8 @@
    "estado": "descartada",
    "location_ok": "no",
    "human_location_ok": "no",
-   "notas": "Ruido: keyword AI en nice-to-have"
+   "notas": "Ruido: keyword AI en nice-to-have",
+   "anchor_source": "human"
   },
   {
    "id": 6,
@@ -404,7 +409,7 @@
    "candidatos": 196,
    "badges": [],
    "human_score": 6,
-   "human_score_match": 6,
+   "human_score_match": 5,
    "human_blockers": [],
    "human_risks": [
     "muchos candidatos (196)"
@@ -412,7 +417,9 @@
    "accion": "guardar",
    "estado": "postulada",
    "location_ok": "ok",
-   "human_location_ok": "ok"
+   "human_location_ok": "ok",
+   "anchor_source": "assisted",
+   "score_nota": " Re-puntuada el 2026-09-24 (JS-052) a ciegas contra el perfil real: human_score_match 6 -> 5 (codigo H). Rubrica fija: stack central 50%, requisitos de IA 20% (neutral 7 si el rol no exige IA), disciplina 20% con tope 4 fuera del carril, seniority 10% (mid 8 / senior 5 / staff 2). anchor_source=assisted: puntuada por Claude con esa rubrica y revisada por Mauro."
   },
   {
    "id": 7,
@@ -482,7 +489,9 @@
    "estado": "postulada",
    "location_ok": "ok",
    "human_location_ok": "ok",
-   "notas": "NO es duplicado de id 6"
+   "notas": "NO es duplicado de id 6",
+   "anchor_source": "assisted",
+   "score_nota": " Re-puntuada el 2026-09-24 (JS-052) a ciegas contra el perfil real: human_score_match 6.5 -> 6.5 (codigo B). Rubrica fija: stack central 50%, requisitos de IA 20% (neutral 7 si el rol no exige IA), disciplina 20% con tope 4 fuera del carril, seniority 10% (mid 8 / senior 5 / staff 2). anchor_source=assisted: puntuada por Claude con esa rubrica y revisada por Mauro."
   },
   {
    "id": 8,
@@ -541,7 +550,8 @@
    "accion": "descartar",
    "estado": "descartada",
    "location_ok": "no",
-   "human_location_ok": "ok"
+   "human_location_ok": "ok",
+   "anchor_source": "human"
   },
   {
    "id": 9,
@@ -614,7 +624,8 @@
    "accion": "descartar",
    "estado": "descartada",
    "location_ok": "riesgo",
-   "human_location_ok": "riesgo"
+   "human_location_ok": "riesgo",
+   "anchor_source": "human"
   },
   {
    "id": 10,
@@ -678,7 +689,8 @@
    "accion": "guardar",
    "estado": "evaluada",
    "location_ok": "ok",
-   "human_location_ok": "ok"
+   "human_location_ok": "ok",
+   "anchor_source": "human"
   },
   {
    "id": 11,
@@ -728,7 +740,7 @@
    "candidatos": 23,
    "badges": [],
    "human_score": 3,
-   "human_score_match": 3,
+   "human_score_match": 4,
    "human_blockers": [
     "disciplina distinta (ai_evaluation)"
    ],
@@ -739,7 +751,9 @@
    "estado": "evaluada",
    "location_ok": "ok",
    "human_location_ok": "ok",
-   "notas": "Piden 7-8 años"
+   "notas": "Piden 7-8 años",
+   "anchor_source": "assisted",
+   "score_nota": " Re-puntuada el 2026-09-24 (JS-052) a ciegas contra el perfil real: human_score_match 3 -> 4 (codigo F). Rubrica fija: stack central 50%, requisitos de IA 20% (neutral 7 si el rol no exige IA), disciplina 20% con tope 4 fuera del carril, seniority 10% (mid 8 / senior 5 / staff 2). anchor_source=assisted: puntuada por Claude con esa rubrica y revisada por Mauro."
   },
   {
    "id": 12,
@@ -808,7 +822,8 @@
    "estado": "descartada",
    "location_ok": "ok",
    "human_location_ok": "ok",
-   "notas": "Frontera del carril ML"
+   "notas": "Frontera del carril ML",
+   "anchor_source": "human"
   },
   {
    "id": 13,
@@ -876,7 +891,8 @@
    "estado": "postulada",
    "location_ok": "ok",
    "human_location_ok": "ok",
-   "notas": "Excepción al cap de título: ≤5 candidatos + ai_engineer → cap 5"
+   "notas": "Excepción al cap de título: ≤5 candidatos + ai_engineer → cap 5",
+   "anchor_source": "human"
   },
   {
    "id": 14,
@@ -950,7 +966,8 @@
    "estado": "descartada",
    "location_ok": "no",
    "human_location_ok": "ok",
-   "notas": "Ancla: cumplo IA, fallo infra"
+   "notas": "Ancla: cumplo IA, fallo infra",
+   "anchor_source": "human"
   },
   {
    "id": 15,
@@ -1025,7 +1042,8 @@
    "accion": "descartar",
    "estado": "evaluada",
    "location_ok": "riesgo",
-   "human_location_ok": "riesgo"
+   "human_location_ok": "riesgo",
+   "anchor_source": "human"
   },
   {
    "id": 16,
@@ -1078,16 +1096,18 @@
    "candidatos": 14,
    "badges": [],
    "human_score": 7,
-   "human_score_match": 7,
+   "human_score_match": 6.5,
    "human_blockers": [],
    "human_risks": [
     "salario no publicado"
    ],
-   "accion": "aplicar",
+   "accion": "guardar",
    "estado": "cerrada",
    "location_ok": "riesgo",
    "human_location_ok": "ok",
-   "notas": "Corrección 2026-09-11: human_location_ok pasa de riesgo a ok porque el aviso dice 'Argentina (remoto)' y la regla del golden es AR explícito = ok; el riesgo venía de paises: null, anotación posterior que el evaluador no podía ver."
+   "notas": "Corrección 2026-09-11: human_location_ok pasa de riesgo a ok porque el aviso dice 'Argentina (remoto)' y la regla del golden es AR explícito = ok; el riesgo venía de paises: null, anotación posterior que el evaluador no podía ver.",
+   "anchor_source": "assisted",
+   "score_nota": " Re-puntuada el 2026-09-24 (JS-052) a ciegas contra el perfil real: human_score_match 7 -> 6.5 (codigo J). Rubrica fija: stack central 50%, requisitos de IA 20% (neutral 7 si el rol no exige IA), disciplina 20% con tope 4 fuera del carril, seniority 10% (mid 8 / senior 5 / staff 2). anchor_source=assisted: puntuada por Claude con esa rubrica y revisada por Mauro. Accion recalculada con el score nuevo y la tabla de decision del prompt: aplicar -> guardar."
   },
   {
    "id": 17,
@@ -1155,7 +1175,8 @@
    "accion": "descartar",
    "estado": "descartada",
    "location_ok": "riesgo",
-   "human_location_ok": "riesgo"
+   "human_location_ok": "riesgo",
+   "anchor_source": "human"
   },
   {
    "id": 18,
@@ -1220,7 +1241,8 @@
    "estado": "descartada",
    "location_ok": "ok",
    "human_location_ok": "ok",
-   "notas": "Patrón local: IA sobre stack tradicional senior"
+   "notas": "Patrón local: IA sobre stack tradicional senior",
+   "anchor_source": "human"
   },
   {
    "id": 19,
@@ -1286,7 +1308,8 @@
    "accion": "descartar",
    "estado": "descartada",
    "location_ok": "ok",
-   "human_location_ok": "ok"
+   "human_location_ok": "ok",
+   "anchor_source": "human"
   },
   {
    "id": 20,
@@ -1334,7 +1357,8 @@
    "location_ok": "ok",
    "human_location_ok": "ok",
    "duplicate_of": 19,
-   "notas": ">90% texto compartido, distinto título"
+   "notas": ">90% texto compartido, distinto título",
+   "anchor_source": "human"
   },
   {
    "id": 21,
@@ -1389,7 +1413,8 @@
    "accion": "descartar",
    "estado": "descartada",
    "location_ok": "no",
-   "human_location_ok": "ok"
+   "human_location_ok": "ok",
+   "anchor_source": "human"
   },
   {
    "id": 22,
@@ -1440,7 +1465,8 @@
    "accion": "descartar",
    "estado": "descartada",
    "location_ok": "no",
-   "human_location_ok": "ok"
+   "human_location_ok": "ok",
+   "anchor_source": "human"
   },
   {
    "id": 23,
@@ -1492,7 +1518,8 @@
    "accion": "descartar",
    "estado": "descartada",
    "location_ok": "no",
-   "human_location_ok": "ok"
+   "human_location_ok": "ok",
+   "anchor_source": "human"
   },
   {
    "id": 24,
@@ -1554,7 +1581,7 @@
     "66% sin experiencia"
    ],
    "human_score": 5.5,
-   "human_score_match": 5.5,
+   "human_score_match": 6,
    "human_blockers": [],
    "human_risks": [
     "salario no publicado",
@@ -1563,7 +1590,9 @@
    "accion": "guardar",
    "estado": "evaluada",
    "location_ok": "ok",
-   "human_location_ok": "ok"
+   "human_location_ok": "ok",
+   "anchor_source": "assisted",
+   "score_nota": " Re-puntuada el 2026-09-24 (JS-052) a ciegas contra el perfil real: human_score_match 5.5 -> 6 (codigo C). Rubrica fija: stack central 50%, requisitos de IA 20% (neutral 7 si el rol no exige IA), disciplina 20% con tope 4 fuera del carril, seniority 10% (mid 8 / senior 5 / staff 2). anchor_source=assisted: puntuada por Claude con esa rubrica y revisada por Mauro."
   },
   {
    "id": 25,
@@ -1614,7 +1643,8 @@
    "accion": "descartar",
    "estado": "descartada_prefiltro",
    "location_ok": "ok",
-   "human_location_ok": "ok"
+   "human_location_ok": "ok",
+   "anchor_source": "human"
   },
   {
    "id": 26,
@@ -1666,7 +1696,8 @@
    "accion": "descartar",
    "estado": "descartada",
    "location_ok": "no",
-   "human_location_ok": "ok"
+   "human_location_ok": "ok",
+   "anchor_source": "human"
   },
   {
    "id": 27,
@@ -1718,7 +1749,8 @@
    "accion": "descartar",
    "estado": "descartada",
    "location_ok": "no",
-   "human_location_ok": "ok"
+   "human_location_ok": "ok",
+   "anchor_source": "human"
   },
   {
    "id": 28,
@@ -1779,17 +1811,19 @@
     "Crecimiento rápido"
    ],
    "human_score": 7.5,
-   "human_score_match": 7.5,
+   "human_score_match": 6.5,
    "human_blockers": [],
    "human_risks": [
     "salario no publicado",
     "muchos candidatos (191)"
    ],
-   "accion": "aplicar",
+   "accion": "guardar",
    "estado": "postulada",
    "location_ok": "ok",
    "human_location_ok": "ok",
-   "notas": "Allowlist: 'Agent Architect' no es Architect"
+   "notas": "Allowlist: 'Agent Architect' no es Architect",
+   "anchor_source": "assisted",
+   "score_nota": " Re-puntuada el 2026-09-24 (JS-052) a ciegas contra el perfil real: human_score_match 7.5 -> 6.5 (codigo I). Rubrica fija: stack central 50%, requisitos de IA 20% (neutral 7 si el rol no exige IA), disciplina 20% con tope 4 fuera del carril, seniority 10% (mid 8 / senior 5 / staff 2). anchor_source=assisted: puntuada por Claude con esa rubrica y revisada por Mauro. Accion recalculada con el score nuevo y la tabla de decision del prompt: aplicar -> guardar."
   },
   {
    "id": 29,
@@ -1860,7 +1894,8 @@
    "accion": "descartar",
    "estado": "evaluada",
    "location_ok": "riesgo",
-   "human_location_ok": "ok"
+   "human_location_ok": "ok",
+   "anchor_source": "human"
   },
   {
    "id": 30,
@@ -1912,7 +1947,7 @@
     "En busca de personal"
    ],
    "human_score": 7,
-   "human_score_match": 7,
+   "human_score_match": 7.5,
    "human_blockers": [],
    "human_risks": [
     "salario no publicado",
@@ -1921,7 +1956,9 @@
    "accion": "aplicar",
    "estado": "postulada",
    "location_ok": "ok",
-   "human_location_ok": "ok"
+   "human_location_ok": "ok",
+   "anchor_source": "assisted",
+   "score_nota": " Re-puntuada el 2026-09-24 (JS-052) a ciegas contra el perfil real: human_score_match 7 -> 7.5 (codigo E). Rubrica fija: stack central 50%, requisitos de IA 20% (neutral 7 si el rol no exige IA), disciplina 20% con tope 4 fuera del carril, seniority 10% (mid 8 / senior 5 / staff 2). anchor_source=assisted: puntuada por Claude con esa rubrica y revisada por Mauro."
   },
   {
    "id": 31,
@@ -1964,7 +2001,8 @@
    "estado": "cerrada",
    "location_ok": "riesgo",
    "human_location_ok": "riesgo",
-   "notas": "Alertas semanales llegan vencidas"
+   "notas": "Alertas semanales llegan vencidas",
+   "anchor_source": "human"
   },
   {
    "id": 32,
@@ -2032,7 +2070,7 @@
     "Adelántate a solicitar"
    ],
    "human_score": 6,
-   "human_score_match": 8,
+   "human_score_match": 5,
    "human_blockers": [],
    "human_risks": [
     "país del candidato no listado",
@@ -2041,7 +2079,9 @@
    "accion": "guardar",
    "estado": "postulada",
    "location_ok": "no",
-   "human_location_ok": "no"
+   "human_location_ok": "no",
+   "anchor_source": "assisted",
+   "score_nota": " Re-puntuada el 2026-09-24 (JS-052) a ciegas contra el perfil real: human_score_match 8 -> 5 (codigo A). Rubrica fija: stack central 50%, requisitos de IA 20% (neutral 7 si el rol no exige IA), disciplina 20% con tope 4 fuera del carril, seniority 10% (mid 8 / senior 5 / staff 2). anchor_source=assisted: puntuada por Claude con esa rubrica y revisada por Mauro."
   },
   {
    "id": 33,
@@ -2103,7 +2143,8 @@
    "accion": "aplicar",
    "estado": "postulada",
    "location_ok": "ok",
-   "human_location_ok": "ok"
+   "human_location_ok": "ok",
+   "anchor_source": "human"
   },
   {
    "id": 34,
@@ -2157,17 +2198,19 @@
    "candidatos": null,
    "badges": [],
    "human_score": 7,
-   "human_score_match": 7,
+   "human_score_match": 6,
    "human_blockers": [],
    "human_risks": [
     "LATAM/remoto sin países explícitos",
     "salario no publicado"
    ],
-   "accion": "aplicar",
+   "accion": "guardar",
    "estado": "cerrada",
    "location_ok": "riesgo",
    "human_location_ok": "riesgo",
-   "notas": "LATAM sin países explícitos: riesgo de ubicación"
+   "notas": "LATAM sin países explícitos: riesgo de ubicación",
+   "anchor_source": "assisted",
+   "score_nota": " Re-puntuada el 2026-09-24 (JS-052) a ciegas contra el perfil real: human_score_match 7 -> 6 (codigo G). Rubrica fija: stack central 50%, requisitos de IA 20% (neutral 7 si el rol no exige IA), disciplina 20% con tope 4 fuera del carril, seniority 10% (mid 8 / senior 5 / staff 2). anchor_source=assisted: puntuada por Claude con esa rubrica y revisada por Mauro. Accion recalculada con el score nuevo y la tabla de decision del prompt: aplicar -> guardar."
   },
   {
    "id": 35,
@@ -2234,7 +2277,8 @@
    "accion": "descartar",
    "estado": "evaluada",
    "location_ok": "ok",
-   "human_location_ok": "ok"
+   "human_location_ok": "ok",
+   "anchor_source": "human"
   },
   {
    "id": 36,
@@ -2298,7 +2342,8 @@
    "accion": "aplicar",
    "estado": "aplicada",
    "location_ok": "ok",
-   "human_location_ok": "ok"
+   "human_location_ok": "ok",
+   "anchor_source": "human"
   }
  ],
  "dedup_pairs": [

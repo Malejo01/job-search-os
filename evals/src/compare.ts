@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { anchorFor, computeMetrics, splitByAnchorSource } from "./metrics";
 import type { Report } from "./run";
 
 /** Rutas relativas al directorio desde donde se invocó pnpm (INIT_CWD), no al package. */
@@ -12,6 +13,38 @@ const fmt = (v: number | null | undefined, digits = 2) =>
   v === null || v === undefined ? "n/a" : v.toFixed(digits);
 const pct = (v: number | null | undefined) =>
   v === null || v === undefined ? "n/a" : `${(v * 100).toFixed(0)}%`;
+
+/**
+ * Métricas separadas por origen del ancla (JS-052). Un ancla "assisted" (rúbrica fija revisada por
+ * Mauro) es evidencia más débil que una puntuada a mano: si una mejora aparece solo del lado
+ * assisted, conviene mirarla dos veces antes de promover.
+ */
+function byAnchorSource(a: Report, b: Report, A: string, B: string): string[] {
+  const sa = splitByAnchorSource(a.jobs);
+  const sb = splitByAnchorSource(b.jobs);
+  if (!sa.assisted.length && !sb.assisted.length) return [];
+  const anchorA = anchorFor(a.meta.prompt);
+  const anchorB = anchorFor(b.meta.prompt);
+  const floorA = a.metrics.apply_floor ?? undefined;
+  const floorB = b.metrics.apply_floor ?? undefined;
+  const out = [
+    "Por origen del ancla (human = puntuada a mano; assisted = rúbrica fija revisada):",
+    `| origen | n | score_mae ${A} | score_mae ${B} | false_discard ${A} | false_discard ${B} | action_acc ${A} | action_acc ${B} |`,
+    "|---|---|---|---|---|---|---|---|",
+  ];
+  for (const origen of ["human", "assisted"] as const) {
+    const ra = sa[origen];
+    const rb = sb[origen];
+    if (!ra.length && !rb.length) continue;
+    const mA = computeMetrics(ra, anchorA, floorA);
+    const mB = computeMetrics(rb, anchorB, floorB);
+    out.push(
+      `| ${origen} | ${ra.length} | ${fmt(mA.score_mae)} | ${fmt(mB.score_mae)} | ${mA.false_discard} | ${mB.false_discard} | ${pct(mA.action_acc)} | ${pct(mB.action_acc)} |`,
+    );
+  }
+  out.push("");
+  return out;
+}
 
 /** Diff legible entre dos reportes: métricas lado a lado y jobs cuya decisión o score cambió. */
 export function compareReports(a: Report, b: Report): string {
@@ -39,6 +72,7 @@ export function compareReports(a: Report, b: Report): string {
     `| tokens in/out | ${a.meta.tokens_in}/${a.meta.tokens_out} | ${b.meta.tokens_in}/${b.meta.tokens_out} |`,
     `| costo USD | ${fmt(a.meta.cost_usd, 4)} | ${fmt(b.meta.cost_usd, 4)} |`,
     "",
+    ...byAnchorSource(a, b, A, B),
     "Jobs con cambio de acción o |Δscore| ≥ 1 entre reportes (humano = human_score / human_score_match):",
     "| id | empresa | humano | A | B | acción A → B |",
     "|---|---|---|---|---|---|",
