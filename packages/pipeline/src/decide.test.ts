@@ -394,3 +394,48 @@ describe("decide(): años de otra disciplina (JS-052)", () => {
     expect(d.bloqueadores.filter((b) => /otro dominio/i.test(b))).toHaveLength(1);
   });
 });
+
+describe("decide(): reglas nuevas con criterios viejos (orden de deploy)", () => {
+  // Si el codigo nuevo sale antes del UPDATE de evaluation_criteria.rules, las reglas de JS-052
+  // no existen todavia. Eso tiene que degradar, no tirar el worker abajo.
+  const viejas = { ...rules } as Record<string, unknown>;
+  delete viejas.allowed_disciplines;
+  delete viejas.discipline_cap_score;
+  delete viejas.years_gap;
+  delete viejas.english_risk_from;
+  const sinReglas = viejas as unknown as CriteriaRules;
+
+  it("sin allowed_disciplines no bloquea por disciplina ni rompe", () => {
+    const d = decide({ ...base, disciplina: "creative_production" }, sinReglas, {
+      candidateEnglishCefr: "B1",
+      candidateYearsTotal: 2,
+    });
+    expect(d.bloqueadores).toEqual([]);
+    expect(d.scoreFinal).toBe(8);
+    expect(d.accion).toBe("aplicar");
+  });
+
+  it("una lista vacía es configuración inválida, no 'todo bloquea'", () => {
+    const vacia = { ...rules, allowed_disciplines: [] };
+    expect(decide({ ...base, disciplina: "ml_engineer" }, vacia).bloqueadores).toEqual([]);
+  });
+
+  it("sin la lista tampoco BORRA el bloqueador del modelo: B4 necesita el campo tipado", () => {
+    // Ventana de deploy: codigo nuevo + rules viejas. Perder un bloqueador seria peor que no
+    // tener la regla nueva. Con la lista cargada si se cae (es el caso Niuro, testeado arriba).
+    const d = decide(
+      { ...base, disciplina: "fullstack", bloqueadores_duros: ["disciplina distinta (creativa)"] },
+      sinReglas,
+    );
+    expect(d.bloqueadores).toEqual(["disciplina distinta (creativa)"]);
+    expect(d.accion).toBe("descartar");
+  });
+
+  it("sin english_risk_from ni years_gap tampoco agrega riesgos", () => {
+    const d = decide({ ...base, ingles_requerido: "avanzado", years_required: 5 }, sinReglas, {
+      candidateEnglishCefr: "B1",
+      candidateYearsTotal: 2,
+    });
+    expect(d.riesgos).toEqual([]);
+  });
+});

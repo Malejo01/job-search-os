@@ -79,6 +79,16 @@ const FLAG_TO_RISK: Record<string, { text: string; already: RegExp }> = {
 
 const clamp = (n: number) => Math.max(0, Math.min(10, n));
 
+/**
+ * Las reglas de JS-052 viven en evaluation_criteria.rules, que se actualiza aparte del deploy.
+ * Si el código sale primero, la lista no existe todavía: la regla queda apagada en vez de tirar
+ * el worker abajo. Una lista vacía es configuración inválida, no "todo bloquea".
+ */
+const disciplinasPermitidas = (rules: CriteriaRules): string[] | null => {
+  const lista = rules.allowed_disciplines;
+  return Array.isArray(lista) && lista.length > 0 ? lista : null;
+};
+
 /** Un bloqueador de disciplina, lo escriba el modelo o el código. */
 const IS_DISCIPLINE_BLOCKER = /disciplina distinta/i;
 
@@ -154,10 +164,12 @@ export function decide(
    * development" no son 2 años de experiencia que el candidato tenga: son de otro oficio. El
    * modelo extrae el dominio y la disciplina; acá se decide si el candidato puede tenerlos.
    */
+  const permitidas = disciplinasPermitidas(rules);
   const yearsDiscipline = evaluation.years_discipline;
   if (
+    permitidas !== null &&
     yearsDiscipline !== null &&
-    !rules.allowed_disciplines.includes(yearsDiscipline) &&
+    !permitidas.includes(yearsDiscipline) &&
     !bloqueadores.some((b) => /otro dominio/i.test(b))
   ) {
     bloqueadores.push(`años en otro dominio (${evaluation.years_domain ?? yearsDiscipline})`);
@@ -201,12 +213,12 @@ export function decide(
    * perfil: si no está permitida, bloqueador y tope de score; si está permitida, un bloqueador de
    * disciplina del modelo es una contradicción y se cae.
    */
-  const disciplinaPermitida = rules.allowed_disciplines.includes(evaluation.disciplina);
+  const disciplinaPermitida = permitidas === null || permitidas.includes(evaluation.disciplina);
   if (!disciplinaPermitida) {
     if (!bloqueadores.some((b) => IS_DISCIPLINE_BLOCKER.test(b))) {
       bloqueadores.push(`disciplina distinta (${evaluation.disciplina})`);
     }
-    if (score > rules.discipline_cap_score) {
+    if (rules.discipline_cap_score !== undefined && score > rules.discipline_cap_score) {
       adjustments.push({
         rule: "discipline_cap",
         delta: rules.discipline_cap_score - score,
@@ -214,7 +226,8 @@ export function decide(
       });
       score = rules.discipline_cap_score;
     }
-  } else {
+  } else if (permitidas !== null) {
+    // Sin lista configurada no hay con qué contradecir al modelo: se respeta lo que dijo.
     for (let i = bloqueadores.length - 1; i >= 0; i--) {
       if (IS_DISCIPLINE_BLOCKER.test(bloqueadores[i]!)) bloqueadores.splice(i, 1);
     }
