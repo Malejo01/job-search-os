@@ -373,6 +373,25 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Primero `location_risk_recall` (38 %)**: el modelo devuelve `ok` donde la referencia dice `riesgo`. Es la de mayor costo real: los dos rechazos documentados de Mauro (Strider, AgileEngine) fueron por ubicacion, asi que este 38 % ya se pago en postulaciones perdidas.
 - **Acepta:** a definir cuando entre, con una corrida completa antes y despues.
 
+### JS-057 · Re-evaluar no mueve el estado
+`deps:` JS-052 · `est:` 2 h · `estado:` todo
+- Surge del 2026-09-24: `pnpm worker:requeue --job <id>` sobre una oferta en `aplicada` no hace nada. `requeue-cli` filtra `status === "evaluada"` y la manda a `skipped`; si igual llegara, `evaluateJobById` corta en `canTransition(job.status, "evaluated")` antes de la llamada al LLM. **No cambia `status`, `applications` ni `applied_at` — porque no ejecuta nada.** El worker no menciona `applications` en ninguna linea: solo inserta en `evaluations` y actualiza `jobs.status`.
+- El problema real es que **esas evaluaciones quedan con el prompt y el perfil viejos**, y alimentan `market_summary`. Al 2026-09-24 hay ofertas en `aplicada` evaluadas con v1.3.1 y el perfil de "~4 años".
+- **Alcance:**
+  - `status.ts`: `evaluated` no mueve el estado en `aplicada`, `entrevista` y `oferta` (la transicion devuelve el mismo estado). Re-evaluar es leer de nuevo, no retroceder en el embudo.
+  - `requeue-cli`: los ids pasados explicitamente con `--job` se aceptan en esos estados; el camino masivo por `--model` **sigue restringido a `evaluada`**, para no re-evaluar el embudo entero sin querer.
+  - Tests: re-evaluar una `aplicada` la deja en `aplicada`, escribe una `evaluations` nueva y **no toca `applications.applied_at` ni `applications.outcome`**.
+- **Acepta:** `--job a8b70138…` (Steuart) re-evalua y la oferta sigue en `aplicada` con su fecha de postulacion intacta; `--model gemini-3.5-flash` sigue omitiendo lo que no esta en `evaluada`.
+
+### JS-058 · Que la promocion de un prompt no pueda quedar a medias
+`deps:` JS-052 · `est:` 3 h · `estado:` todo
+- Surge del 2026-09-24: el PR #23 mergeo `evaluate_job.v1.3.2.md`, las reglas de `decide()` y los criterios v2, pero `DEFAULT_PROMPT_VERSIONS.evaluate_job` quedo en `v1.3.1`. Produccion deployo bien y siguio evaluando con el prompt viejo. Se descubrio de casualidad, mirando el codigo antes de correr el requeue; si no, se re-evaluaban ~40 ofertas con el prompt equivocado.
+- Una promocion tiene **tres patas** y ninguna avisa si falta otra: (1) el archivo `.md`, (2) el puntero en `client.ts`, (3) los criterios activos en `evaluation_criteria.rules` con los campos que las reglas nuevas necesitan.
+- **Propuesta, las dos cosas:**
+  - **Test en CI (el guardarrail).** Marcar en el frontmatter del prompt `estado: vigente | candidato | retirado`. Un test verifica que hay **exactamente un `vigente` por tarea** y que `DEFAULT_PROMPT_VERSIONS` apunta a ese. Asi un prompt candidato puede vivir en el repo sin promoverse (que es justo lo que hizo v1.3.2 durante dos dias), y olvidarse de mover el puntero rompe el build. No se deriva de "la version mas alta": eso promoveria cualquier experimento por el solo hecho de existir.
+  - **`pnpm prompt:promote <task@vN>` (la parte operativa).** Cambia el frontmatter y el puntero, y **verifica contra la base** que los criterios activos tengan las claves que el prompt y `decide()` necesitan (hoy: `allowed_disciplines`, `discipline_cap_score`, `english_risk_from`, `years_gap`). Si faltan, falla y dice cual. Solo lectura contra la base; no escribe criterios.
+- **Acepta:** con el puntero en una version y el frontmatter en otra, `pnpm test` falla nombrando las dos; `prompt:promote` falla si los criterios activos no tienen las claves nuevas.
+
 ### JS-056 · Tope de score por cantidad de gaps must
 `deps:` JS-052 · `est:` 2 h · `estado:` todo (no bloquea)
 - Surge de Oowlish (golden id 9) el 2026-09-24: el modelo le puso **5 con seis gaps must** (NestJS, Vue, MongoDB, Redis, Terraform, AWS Beanstalk). Lo que la mantenia en `descartar` era la suma de `cloud_must_penalty` + `english_fluent_penalty`, o sea una casualidad: la penalizacion de infraestructura estaba tapando un sobre-score del modelo, no midiendo viabilidad. Al sacar la de ingles (JS-052, opcion C) el disfraz se adelgaza.
