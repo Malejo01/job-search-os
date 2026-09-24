@@ -60,7 +60,7 @@ Otros comandos: `pnpm ingest:getonboard --local`, `pnpm market:snapshot --local`
 | CI, deploy, cron (JS-018, JS-019) | ✅ CI y cron en Actions · ✅ desplegado en Vercel + Neon el 2026-09-15 (estado y DNS en `docs/DEPLOY.md`) |
 | 4 · Email entrante (JS-020–023) | ✅ JS-023 alta manual · ✅ JS-020 recepción andando en producción (Resend sobre `ingest.malejo.com.ar`, webhook firmado, `/inbox` con el contenido del email) · ✅ JS-021 parser de LinkedIn (alertas y recomendaciones) · ⏳ JS-022 Get on Board y genérico |
 | 5 · Inteligencia | ✅ JS-034 plan, JS-035 MCP, JS-036 feedback loop (`/applications`), adelantos de JS-030/031 sin LLM · ⏳ JS-032/033 perfil verificable y entrevista dirigida |
-| Calibración del evaluador | ✅ cerrada 2026-09-11: prompt `evaluate_job@v1.3.1`, `gemini-3.1-flash-lite` primario (fallback 3.5-flash), USD 0,0013 por evaluación; números en `docs/LLM_COSTOS.md`, ADR-011. Lo que sigue se calibra con `/applications` (JS-036) |
+| Calibración del evaluador | ✅ cerrada 2026-09-11: prompt `evaluate_job@v1.3.2` (desde el 2026-09-24, JS-052), `gemini-3.1-flash-lite` primario (fallback 3.5-flash), USD 0,0013 por evaluación; números en `docs/LLM_COSTOS.md`, ADR-011. Lo que sigue se calibra con `/applications` (JS-036) |
 
 Deuda registrada (en `docs/BACKLOG.md`): FK `profiles.user_id → users.id` diferida; `ANTHROPIC_API_KEY` sin probar en vivo; niveles de skills autodeclarados hasta la entrevista dirigida; métrica de costo del PRD a ajustar con el costo real.
 

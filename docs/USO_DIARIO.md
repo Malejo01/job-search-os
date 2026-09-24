@@ -71,7 +71,7 @@ pnpm market:snapshot && pnpm plan:build
 Recalcula mercado y plan ahora.
 
 ```bash
-pnpm evals run --prompt evaluate_job@v1.3.1 --subset --runs 1 --concurrency 1 --db cloud --label <nombre>
+pnpm evals run --prompt evaluate_job@v1.3.2 --subset --runs 1 --concurrency 1 --db cloud --label <nombre>
 ```
 Solo si tocás el prompt: 14 llamadas (~USD 0,02 con flash-lite, ~0,10 con 3.5-flash). Muestra el costo estimado y frena si supera `--max-usd` (default 1). La calibración está cerrada: lo que sigue se mide en `/applications` con postulaciones reales, no contra el golden.
 
