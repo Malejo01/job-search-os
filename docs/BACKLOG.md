@@ -370,8 +370,15 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - Medido el 2026-09-24 sobre las 36 del golden con `evaluate_job@v1.3.2`: `risks_recall` 64 % y `blockers_precision` 63 %, los dos contra un umbral de 100 %.
 - Sube de prioridad por JS-052: si el score deja de penalizar inglés y años, la viabilidad viaja entera por los riesgos. Un riesgo que el modelo no emite ahora no lo compensa nadie.
 - `blockers_precision` baja sobre todo por bloqueadores que el modelo inventa fuera de la lista cerrada (tipo `otro`) y por bloqueadores de disciplina sobre roles que si estan en el carril.
-- Mirar tambien `location_risk_recall` (38 %): el modelo devuelve `ok` donde la referencia dice `riesgo`.
+- **Primero `location_risk_recall` (38 %)**: el modelo devuelve `ok` donde la referencia dice `riesgo`. Es la de mayor costo real: los dos rechazos documentados de Mauro (Strider, AgileEngine) fueron por ubicacion, asi que este 38 % ya se pago en postulaciones perdidas.
 - **Acepta:** a definir cuando entre, con una corrida completa antes y despues.
+
+### JS-056 · Tope de score por cantidad de gaps must
+`deps:` JS-052 · `est:` 2 h · `estado:` todo (no bloquea)
+- Surge de Oowlish (golden id 9) el 2026-09-24: el modelo le puso **5 con seis gaps must** (NestJS, Vue, MongoDB, Redis, Terraform, AWS Beanstalk). Lo que la mantenia en `descartar` era la suma de `cloud_must_penalty` + `english_fluent_penalty`, o sea una casualidad: la penalizacion de infraestructura estaba tapando un sobre-score del modelo, no midiendo viabilidad. Al sacar la de ingles (JS-052, opcion C) el disfraz se adelgaza.
+- Regla nueva en `decide()`: con N o mas gaps `must` del stack central, tope de score. Parametrizada en `CriteriaRules` para poder moverla sin deploy.
+- **Como medir N:** `pnpm evals recompute` sobre las corridas ya guardadas, barriendo N = 3, 4, 5, 6. **Primero sobre las anclas `human` (26)**, que son la evidencia no circular; las `assisted` solo como control. Se elige el N mas chico que no empeore `false_apply` ni `action_acc` en las human.
+- **Acepta:** el id 9 vuelve a `descartar` por la regla de gaps y no por la penalizacion de cloud; `false_apply` sigue en 0 sobre las human.
 
 ### JS-053 · Agente de postulaciones con revisión humana
 `deps:` JS-035, JS-032 · `est:` a estimar · `estado:` todo (no ahora)
