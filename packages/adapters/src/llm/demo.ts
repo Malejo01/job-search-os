@@ -85,6 +85,9 @@ export function demoEvaluation(vars: Vars): Record<string, unknown> {
     disciplina: has(text, "data scientist", "machine learning engineer", "ml engineer")
       ? "ml_engineer"
       : "ai_engineer",
+    // v1.3.2: los años vienen con su dominio y su disciplina
+    years_domain: years === null ? null : "desarrollo de software",
+    years_discipline: years === null ? null : "ai_engineer",
     ingles_requerido: has(text, "inglés avanzado", "english advanced", "fluent english", "c1")
       ? "avanzado"
       : has(text, "inglés", "english")
