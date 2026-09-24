@@ -29,8 +29,10 @@ function byAnchorSource(a: Report, b: Report, A: string, B: string): string[] {
   const floorB = b.metrics.apply_floor ?? undefined;
   const out = [
     "Por origen del ancla (human = puntuada a mano; assisted = rúbrica fija revisada):",
-    `| origen | n | score_mae ${A} | score_mae ${B} | false_discard ${A} | false_discard ${B} | action_acc ${A} | action_acc ${B} |`,
-    "|---|---|---|---|---|---|---|---|",
+    `| origen | n | score_mae A→B | false_discard A→B | false_apply A→B | action_acc A→B |`,
+    "|---|---|---|---|---|---|",
+    `| (A = ${A}) | | | | | |`,
+    `| (B = ${B}) | | | | | |`,
   ];
   for (const origen of ["human", "assisted"] as const) {
     const ra = sa[origen];
@@ -39,7 +41,7 @@ function byAnchorSource(a: Report, b: Report, A: string, B: string): string[] {
     const mA = computeMetrics(ra, anchorA, floorA);
     const mB = computeMetrics(rb, anchorB, floorB);
     out.push(
-      `| ${origen} | ${ra.length} | ${fmt(mA.score_mae)} | ${fmt(mB.score_mae)} | ${mA.false_discard} | ${mB.false_discard} | ${pct(mA.action_acc)} | ${pct(mB.action_acc)} |`,
+      `| **${origen}** | ${ra.length} | ${fmt(mA.score_mae)} → ${fmt(mB.score_mae)} | ${mA.false_discard} → ${mB.false_discard} | ${mA.false_apply} → ${mB.false_apply} | ${pct(mA.action_acc)} → ${pct(mB.action_acc)} |`,
     );
   }
   out.push("");
