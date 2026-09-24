@@ -1,6 +1,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 import type { Evaluation } from "@job-search-os/pipeline";
 import { goldenJobs } from "./golden";
+import { criteriaRules } from "./golden";
 import { anchorFor, checkThresholds, computeMetrics } from "./metrics";
 import { productionDecision, type JobReport, type Report } from "./run";
 
@@ -18,6 +20,8 @@ function reconstructRaw(j: JobReport): Evaluation | null {
     score: j.model_score,
     confianza: (j.confianza as Evaluation["confianza"]) ?? "media",
     years_required: null,
+    years_domain: null,
+    years_discipline: null,
     location_ok: (j.model_location_ok as Evaluation["location_ok"]) ?? "ok",
     modalidad: "desconocida",
     disciplina: (j.model_discipline as Evaluation["disciplina"]) ?? "otra",
@@ -54,13 +58,14 @@ export function recomputeReport(report: Report): RecomputeResult {
     const { action, decision } = productionDecision(golden, raw, j.model_score);
     j.model_action = action;
     j.decision = decision;
+    j.model_score_final = decision?.score_final ?? null;
   }
   if (partial) {
     notes.push(
       "reporte sin model_raw: decide() se aplicó sin years_required ni ingles_requerido (bloqueador por años ≥ 8, penalización 5–7 años e inglés no se pudieron reproducir)",
     );
   }
-  report.metrics = computeMetrics(report.jobs, anchor);
+  report.metrics = computeMetrics(report.jobs, anchor, criteriaRules.thresholds.guardar);
   report.thresholds = checkThresholds(report.metrics);
   report.meta.recomputed = `${new Date().toISOString().slice(0, 10)}: métricas por tipo, ubicación exacta y decide() de producción${partial ? " (parcial)" : ""}`;
   return { report, partial, notes };
@@ -68,7 +73,9 @@ export function recomputeReport(report: Report): RecomputeResult {
 
 export function recomputeFiles(paths: string[]): string[] {
   const lines: string[] = [];
-  for (const path of paths) {
+  for (const given of paths) {
+    // Mismas rutas que `compare`: relativas al directorio desde donde se invocó pnpm, no al package
+    const path = resolve(process.env.INIT_CWD ?? process.cwd(), given);
     const before = JSON.parse(readFileSync(path, "utf8")) as Report;
     const old = { ...before.metrics };
     const { report, notes } = recomputeReport(JSON.parse(readFileSync(path, "utf8")) as Report);
@@ -79,7 +86,7 @@ export function recomputeFiles(paths: string[]): string[] {
     const both = (k: keyof typeof m) =>
       `${pct(old[k] as number | null)} → ${pct(m[k] as number | null)}`;
     lines.push(
-      `${report.meta.prompt} × ${report.meta.model}: mae ${old.score_mae?.toFixed(2)} → ${m.score_mae?.toFixed(2)} · blockers_recall ${both("blockers_recall")} · blockers_precision ${both("blockers_precision")} · risks_recall ${both("risks_recall")} · action_acc ${both("action_acc")} · false_apply ${old.false_apply} → ${m.false_apply} · location ${both("location_risk_recall")}`,
+      `${report.meta.prompt} × ${report.meta.model}: mae ${old.score_mae?.toFixed(2)} → ${m.score_mae?.toFixed(2)} · blockers_recall ${both("blockers_recall")} · blockers_precision ${both("blockers_precision")} · risks_recall ${both("risks_recall")} · action_acc ${both("action_acc")} · false_apply ${old.false_apply} → ${m.false_apply} · false_discard ${old.false_discard ?? "n/a"} → ${m.false_discard} · location ${both("location_risk_recall")}`,
     );
     for (const n of notes) lines.push(`  nota: ${n}`);
   }

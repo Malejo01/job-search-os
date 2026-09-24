@@ -40,7 +40,7 @@ const evaluation = {
 const fake = () => createFakeLlm({ evaluate_job: evaluation });
 
 describe("runEvals: subset y presupuesto", () => {
-  it("--subset corre solo los 14 jobs ancla y marca el reporte", async () => {
+  it("--subset corre solo los 16 jobs ancla y marca el reporte", async () => {
     const client = fake();
     const report = await runEvals({
       prompt: "evaluate_job@v1.1",
@@ -53,7 +53,7 @@ describe("runEvals: subset y presupuesto", () => {
     });
     expect(report.jobs.map((j) => j.id)).toEqual(ANCHOR_IDS);
     expect(report.meta.subset).toBe(true);
-    expect(client.calls).toHaveLength(14);
+    expect(client.calls).toHaveLength(16);
     expect(report.metrics.anchor).toBe("human_score_match");
   });
 
@@ -89,7 +89,7 @@ describe("runEvals: subset y presupuesto", () => {
       outDir: "",
       client: fake(),
     });
-    expect(forced.jobs).toHaveLength(34);
+    expect(forced.jobs).toHaveLength(36);
     await expect(
       runEvals({
         prompt: "evaluate_job@v1.1",
@@ -108,11 +108,11 @@ describe("runEvals: guardarraíles de costo", () => {
     // seeds/model_routing.json: gemini-3.5-flash 1.5 in / 9 out por millón, thinking minimal
     const measured = MEASURED_TOKENS_PER_CALL["gemini-3.5-flash:minimal"]!;
     const e = estimateRunCost({ subset: true, runs: 1, model: "gemini-3.5-flash" });
-    expect(e.calls).toBe(14);
+    expect(e.calls).toBe(16);
     expect(e.tokensOutPerCall).toBe(measured.out);
     expect(e.source).toContain("medido");
-    expect(e.usd).toBeCloseTo((14 * (measured.in * 1.5 + measured.out * 9)) / 1e6, 9);
-    expect(estimateRunCost({ runs: 3 }).calls).toBe(102);
+    expect(e.usd).toBeCloseTo((16 * (measured.in * 1.5 + measured.out * 9)) / 1e6, 9);
+    expect(estimateRunCost({ runs: 3 }).calls).toBe(108);
     // Sin medición para ese thinking: supuesto conservador (el caso caro), y lo dice
     const high = estimateRunCost({
       subset: true,
@@ -128,7 +128,7 @@ describe("runEvals: guardarraíles de costo", () => {
       { subset: true, runs: 1, model: "gemini-3.5-flash" },
       { in: 2000, out: 300, source: "historia" },
     );
-    expect(hist.usd).toBeCloseTo((14 * (2000 * 1.5 + 300 * 9)) / 1e6, 9);
+    expect(hist.usd).toBeCloseTo((16 * (2000 * 1.5 + 300 * 9)) / 1e6, 9);
     // Modelo sin tarifa (override --model): no se puede estimar
     expect(estimateRunCost({ runs: 1, ids: [1], model: "otro-modelo" }).usd).toBeNull();
   });

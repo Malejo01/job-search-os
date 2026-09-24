@@ -64,6 +64,12 @@ export type GoldenJob = {
   senales: string[];
   candidatos: number | null;
   badges: string[];
+  /**
+   * JD recortada del aviso (misión + responsabilidades + requisitos), solo en los casos donde el
+   * resumen de campos no alcanza para reproducir el error: la disciplina por requisitos y el nivel
+   * de inglés se leen del texto, no de un campo ya masticado. Con `jd`, had_full_jd = true.
+   */
+  jd?: string | null;
   human_score: number | null;
   /** Score de match puro (definición v1.1). Ancla para prompts >= v1.1. */
   human_score_match: number | null;
@@ -72,6 +78,8 @@ export type GoldenJob = {
   human_risks: string[];
   /** Ubicación pura (definición v1.1): ok | riesgo | no. Ancla para prompts >= v1.1. */
   human_location_ok: string;
+  /** "human" (a mano) o "assisted" (rúbrica fija revisada por Mauro, JS-052). Ausente = human. */
+  anchor_source?: "human" | "assisted";
   score_nota?: string;
   accion: string;
   estado: string;
@@ -122,7 +130,7 @@ export const profile: ProfileForPrompt = {
  * son la referencia humana que el modelo tiene que reproducir, no leer.
  */
 export function goldenToJob(j: GoldenJob): JobForPrompt {
-  const jd = [
+  const resumen = [
     j.nivel ? `Nivel: ${j.nivel}` : null,
     j.anos !== null ? `Años de experiencia requeridos: ${j.anos}` : null,
     j.ingles !== "no_menciona" ? `Inglés: ${j.ingles}` : null,
@@ -130,6 +138,8 @@ export function goldenToJob(j: GoldenJob): JobForPrompt {
   ]
     .filter(Boolean)
     .join("\n");
+  // Con jd, el modelo lee el aviso de verdad (ids 35 y 36); si no, el resumen de campos.
+  const jd = j.jd?.trim() ? j.jd.trim() : resumen;
   return {
     title: j.titulo,
     companyRaw: j.empresa,
@@ -148,9 +158,12 @@ export function goldenToJob(j: GoldenJob): JobForPrompt {
   };
 }
 
-/** Variables del prompt para una oferta del golden. had_full_jd=false: es un resumen, no la JD. */
+/**
+ * Variables del prompt para una oferta del golden. had_full_jd=false salvo que la oferta traiga
+ * `jd`: en ese caso el modelo está leyendo el aviso de verdad y puede inferir must del texto.
+ */
 export function goldenVars(j: GoldenJob): Record<string, string | boolean> {
   const vars = buildEvaluateJobVars({ profile, rules: criteriaRules, job: goldenToJob(j) });
-  vars.had_full_jd = false;
+  vars.had_full_jd = Boolean(j.jd?.trim());
   return vars;
 }

@@ -1,47 +1,2441 @@
 {
-  "meta": {
-    "descripcion": "Golden dataset de EJEMPLO: 34 ofertas reales analizadas a mano por Mauro Lizárraga entre 2026-09-07 y 2026-09-09, con empresas anonimizadas (Empresa A…AB, identidad estable entre registros) y sin datos de la situación laboral del autor. Los casos de frontera (disciplina, ubicación, modalidad, título, duplicados) son los originales. human_score es la referencia. Ofertas con human_score null no se usan para MAE pero sí para disciplina/bloqueadores. Los datos reales viven en fixtures-private/ (no versionado).",
-    "perfil_referencia": "Perfil de ejemplo: AI Engineer / Fullstack en Argentina, solo remoto, ~5 años, inglés intermedio, sin autorización laboral en EE.UU. ni Europa, piso salarial y horas máximas genéricos (seeds *.example.json).",
-    "version": "2026-09-09",
-    "notas_campos": "ubicacion_raw (2026-09-10): texto de ubicación tal como figuraba en el aviso; es lo único sobre ubicación que entra al prompt. paises y location_ok son la referencia humana. human_score_match (2026-09-10): score de MATCH puro según el prompt v1.1 (sin descontar por bloqueadores ni ubicación); human_score se conserva para comparar con reportes v1. human_blockers y human_risks: bloqueadores y riesgos con la definición v1.1. human_location_ok (2026-09-10): ubicación pura según el prompt v1.1 (ok = AR explícito o work from anywhere; riesgo = remoto sin AR listado / LATAM sin países / lista fuera del aviso; no = AR excluido o lista sin AR). La modalidad no entra: se mide en modalidad y bloqueadores. location_ok original se conserva para reportes v1."
+ "meta": {
+  "descripcion": "Golden dataset de EJEMPLO: 36 ofertas reales analizadas a mano por Mauro Lizárraga entre 2026-09-07 y 2026-09-09, con empresas anonimizadas (Empresa A…AB, identidad estable entre registros) y sin datos de la situación laboral del autor. Los casos de frontera (disciplina, ubicación, modalidad, título, duplicados) son los originales. human_score es la referencia. Ofertas con human_score null no se usan para MAE pero sí para disciplina/bloqueadores. Los datos reales viven en fixtures-private/ (no versionado).",
+  "perfil_referencia": "Perfil de ejemplo: AI Engineer / Fullstack en Argentina, solo remoto, ~5 años, inglés intermedio, sin autorización laboral en EE.UU. ni Europa, piso salarial y horas máximas genéricos (seeds *.example.json).",
+  "version": "2026-09-24",
+  "notas_campos": "ubicacion_raw (2026-09-10): texto de ubicación tal como figuraba en el aviso; es lo único sobre ubicación que entra al prompt. paises y location_ok son la referencia humana. human_score_match (2026-09-10): score de MATCH puro según el prompt v1.1 (sin descontar por bloqueadores ni ubicación); human_score se conserva para comparar con reportes v1. human_blockers y human_risks: bloqueadores y riesgos con la definición v1.1. human_location_ok (2026-09-10): ubicación pura según el prompt v1.1 (ok = AR explícito o work from anywhere; riesgo = remoto sin AR listado / LATAM sin países / lista fuera del aviso; no = AR excluido o lista sin AR). La modalidad no entra: se mide en modalidad y bloqueadores. location_ok original se conserva para reportes v1. jd (2026-09-23, JS-052): JD recortada del aviso (mision + responsabilidades + requisitos) solo en los ids 35 y 36; con jd el harness marca had_full_jd=true. El resto sigue con el resumen de campos y had_full_jd=false. anchor_source (2026-09-24, JS-052): 'human' = puntuada a mano por Mauro; 'assisted' = puntuada por Claude con una rubrica fija y revisada por Mauro. Las metricas se pueden leer separadas por origen: un ancla assisted es evidencia mas debil para juzgar al modelo, y donde la rubrica usa la misma regla que decide() (tope 4 por disciplina) coincide por construccion."
+ },
+ "jobs": [
+  {
+   "id": 1,
+   "empresa": "Empresa A",
+   "titulo": "AI Developer / Senior LLM Engineer — AI orchestration layer",
+   "fuente": "linkedin_inbound_recruiter",
+   "fecha": "2026-09-07",
+   "ubicacion": "Remoto, cliente en Argentina",
+   "ubicacion_raw": "Remoto, cliente en Argentina (contacto directo de recruiter)",
+   "paises": [
+    "AR"
+   ],
+   "modalidad": "remoto",
+   "contrato": "contrato 6 meses",
+   "salario": null,
+   "anos": 8,
+   "nivel": "Staff",
+   "disciplina": "ai_engineer",
+   "ingles": "no_menciona",
+   "tipo_empresa": "staffing",
+   "stack": [
+    "Python",
+    ".NET/C#",
+    "EF Core",
+    "React",
+    "LiteLLM",
+    "MCP",
+    "Jira",
+    "Jenkins",
+    "AWS",
+    "EKS",
+    "OIDC/JWT",
+    "Okta"
+   ],
+   "match": [
+    "MCP",
+    "RAG",
+    "function calling",
+    "human-in-the-loop",
+    "policy layers",
+    "React",
+    "Python",
+    "multi-provider",
+    "español"
+   ],
+   "gaps": [
+    "8+ años",
+    "LiteLLM",
+    "AWS/EKS",
+    "Jenkins",
+    "Okta/OIDC",
+    ".NET profundo",
+    "mentoría"
+   ],
+   "bloqueadores": [
+    "8+ años (Staff)"
+   ],
+   "senales": [
+    "recruiter proactivo",
+    "match agéntico alto",
+    "cliente AR"
+   ],
+   "candidatos": null,
+   "badges": [],
+   "human_score": null,
+   "human_score_match": 4,
+   "human_blockers": [
+    "años requeridos ≥ 8 (8)"
+   ],
+   "human_risks": [
+    "salario no publicado",
+    "empresa de staffing"
+   ],
+   "score_nota": "no puntuada; match alto, gap estructural de años. Corrección 2026-09-11: acción guardar → descartar; con los ejes separados un bloqueador duro (8+ años) es descarte. Re-puntuada el 2026-09-24 (JS-052) a ciegas contra el perfil real: human_score_match 8 -> 4 (codigo D). Rubrica fija: stack central 50%, requisitos de IA 20% (neutral 7 si el rol no exige IA), disciplina 20% con tope 4 fuera del carril, seniority 10% (mid 8 / senior 5 / staff 2). anchor_source=assisted: puntuada por Claude con esa rubrica y revisada por Mauro.",
+   "accion": "descartar",
+   "estado": "evaluada",
+   "location_ok": "ok",
+   "human_location_ok": "ok",
+   "anchor_source": "assisted"
   },
-  "jobs": [
-    {"id":1,"empresa":"Empresa A","titulo":"AI Developer / Senior LLM Engineer — AI orchestration layer","fuente":"linkedin_inbound_recruiter","fecha":"2026-09-07","ubicacion":"Remoto, cliente en Argentina","ubicacion_raw":"Remoto, cliente en Argentina (contacto directo de recruiter)","paises":["AR"],"modalidad":"remoto","contrato":"contrato 6 meses","salario":null,"anos":8,"nivel":"Staff","disciplina":"ai_engineer","ingles":"no_menciona","tipo_empresa":"staffing","stack":["Python",".NET/C#","EF Core","React","LiteLLM","MCP","Jira","Jenkins","AWS","EKS","OIDC/JWT","Okta"],"match":["MCP","RAG","function calling","human-in-the-loop","policy layers","React","Python","multi-provider","español"],"gaps":["8+ años","LiteLLM","AWS/EKS","Jenkins","Okta/OIDC",".NET profundo","mentoría"],"bloqueadores":["8+ años (Staff)"],"senales":["recruiter proactivo","match agéntico alto","cliente AR"],"candidatos":null,"badges":[],"human_score":null,"human_score_match":8,"human_blockers":["años requeridos ≥ 8 (8)"],"human_risks":["salario no publicado","empresa de staffing"],"score_nota":"no puntuada; match alto, gap estructural de años. Corrección 2026-09-11: acción guardar → descartar; con los ejes separados un bloqueador duro (8+ años) es descarte.","accion":"descartar","estado":"evaluada","location_ok":"ok","human_location_ok":"ok"},
-    {"id":2,"empresa":"Empresa B","titulo":"Desarrollador Fullstack Junior/Junior+ (Python/Web)","fuente":"email_alerta_antigua","fecha":"2026-09-07","ubicacion":"CABA","ubicacion_raw":"CABA","paises":["AR"],"modalidad":"presencial","contrato":"indefinido","salario":null,"anos":null,"nivel":"Junior","disciplina":"fullstack","ingles":"no","tipo_empresa":"desconocido","stack":["Python","FastAPI","SQLAlchemy","Pydantic","Alembic","React/Vue","PostgreSQL","Salesforce REST"],"match":["Python","PostgreSQL","React","ETL PDF/Excel","cola de revisión → dashboard"],"gaps":["FastAPI","SQLAlchemy","Salesforce","testing formal"],"bloqueadores":["presencial CABA","nivel junior"],"senales":["trampa de atención en la JD (consulta SQL en la carta)"],"candidatos":null,"badges":[],"human_score":3,"human_score_match":5,"human_blockers":["modalidad presencial"],"human_risks":["salario no publicado","empresa desconocida"],"accion":"descartar","estado":"descartada","location_ok":"no","human_location_ok":"ok"},
-    {"id":3,"empresa":"Empresa C","titulo":"Software Engineer (Angular + SEO/Marketing) — Remote LATAM","fuente":"linkedin_alerta_antigua","fecha":"2026-09-07","ubicacion":"Salta (remoto)","ubicacion_raw":"Argentina (remoto)","paises":["BO","BR","CA","CO","CR","CL","DO","EC","HN","IN","PK","PE","PA","US","UY"],"modalidad":"remoto","contrato":"talent network","salario":null,"anos":2,"nivel":"Engineer","disciplina":"frontend","ingles":"avanzado","tipo_empresa":"consultora","stack":["Angular","SSR Angular","SEO técnico","Core Web Vitals","GTM","GA4","CI/CD"],"match":["Angular (1 año)","TypeScript","Scrum","Cursor/Claude Code nice-to-have"],"gaps":["inglés avanzado","SEO técnico","SSR Angular","CI/CD"],"bloqueadores":["Argentina no listada","inglés fluido en red","40 hs (conflicto Tuki)"],"senales":["AWS Premier partner, capabilities con Claude Code/n8n","proceso asincrónico"],"candidatos":27,"badges":["67% sin experiencia"],"human_score":5,"human_score_match":5,"human_blockers":[],"human_risks":["país del candidato no listado","salario no publicado"],"accion":"guardar","estado":"evaluada","location_ok":"no","human_location_ok":"no"},
-    {"id":4,"empresa":"Empresa D","titulo":"Fullstack Developer Semi-SR | Angular + Node.js","fuente":"linkedin_alerta_antigua","fecha":"2026-09-07","ubicacion":"Buenos Aires (remoto)","ubicacion_raw":"Buenos Aires (remoto)","paises":["AR"],"modalidad":"remoto","contrato":"dependencia","salario":null,"anos":4,"nivel":"Semi-Senior","disciplina":"fullstack","ingles":"no","tipo_empresa":"consultora","stack":["Angular 20+","TypeScript","Node.js","NestJS","REST","microservicios","BFF","Docker"],"match":["TypeScript","REST","Node básico"],"gaps":["4+ años Angular 20+","NestJS","Docker","microservicios/BFF","cero IA"],"bloqueadores":[],"senales":["empresa sólida","prepaga familiar","clases de inglés"],"candidatos":168,"badges":["74% sin experiencia"],"human_score":4,"human_score_match":4,"human_blockers":[],"human_risks":["salario no publicado","muchos candidatos (168)"],"accion":"descartar","estado":"descartada","location_ok":"ok","human_location_ok":"ok"},
-    {"id":5,"empresa":"Empresa E","titulo":"Project Manager","fuente":"email_alerta_antigua","fecha":"2026-09-07","ubicacion":"Cracovia","ubicacion_raw":"Cracovia","paises":["PL"],"modalidad":"presencial","contrato":null,"salario":null,"anos":7,"nivel":"PM","disciplina":"project_management","ingles":"avanzado","tipo_empresa":"consultora","stack":["Jira","Confluence","M365","PMP/PRINCE2"],"match":[],"gaps":["todo"],"bloqueadores":["no técnico","presencial Polonia","7+ años PM"],"senales":[],"candidatos":null,"badges":[],"human_score":1,"human_score_match":1,"human_blockers":["modalidad presencial","disciplina distinta (project_management)"],"human_risks":["salario no publicado"],"accion":"descartar","estado":"descartada","location_ok":"no","human_location_ok":"no","notas":"Ruido: keyword AI en nice-to-have"},
-    {"id":6,"empresa":"Empresa F","titulo":"Senior Full-Stack Engineer — .NET y React","fuente":"getonboard","fecha":"2026-09-07","ubicacion":"Remoto (5 países)","ubicacion_raw":"Remoto (Chile, Argentina, Perú, Colombia, México)","paises":["CL","AR","PE","CO","MX"],"modalidad":"remoto","contrato":"honorarios","salario":{"min":3600,"max":3600,"periodo":"mensual"},"anos":5,"nivel":"Senior","disciplina":"fullstack","ingles":"no","tipo_empresa":"startup","stack":[".NET/C#","React","Python","Clean Architecture","testing","observabilidad","SQL query plans"],"match":["React","Python","aprender rápido","Claude Code con arnés","enfoque agéntico con tests","documentar deuda técnica"],"gaps":[".NET profundo","Clean Architecture formal","testing como entregable","diagnóstico performance","5+ años"],"bloqueadores":[],"senales":["Argentina explícita","salario publicado","sin inglés","valoran Claude Code/Cursor con arnés"],"candidatos":196,"badges":[],"human_score":6,"human_score_match":6,"human_blockers":[],"human_risks":["muchos candidatos (196)"],"accion":"guardar","estado":"postulada","location_ok":"ok","human_location_ok":"ok"},
-    {"id":7,"empresa":"Empresa F","titulo":"Senior Full-Stack Software Engineer — React y Python (onboarding)","fuente":"getonboard","fecha":"2026-09-07","ubicacion":"Remoto (5 países)","ubicacion_raw":"Remoto (Chile, Argentina, Perú, Colombia, México)","paises":["CL","AR","PE","CO","MX"],"modalidad":"remoto","contrato":"honorarios","salario":{"min":3600,"max":3600,"periodo":"mensual"},"anos":6,"nivel":"Senior","disciplina":"fullstack","ingles":"no","tipo_empresa":"startup","stack":["React","Python (Django/Flask/FastAPI)","máquinas de estado","testing unit/int/E2E","hexagonal deseable","Mixpanel deseable","Claude Code/Cursor/MCP deseable"],"match":["flujos con estados explícitos (QPS)","coordinar sin autoridad (Tuki)","React","Python","MCP y Claude Code"],"gaps":["6+ años","testing","hexagonal formal","Python backend profundo","Mixpanel","referente frontend"],"bloqueadores":[],"senales":["MCP por nombre","Python en vez de .NET"],"candidatos":264,"badges":[],"human_score":6.5,"human_score_match":6.5,"human_blockers":[],"human_risks":["muchos candidatos (264)"],"accion":"guardar","estado":"postulada","location_ok":"ok","human_location_ok":"ok","notas":"NO es duplicado de id 6"},
-    {"id":8,"empresa":"Empresa G","titulo":"Front-end Developer React / Next.JS (SEO)","fuente":"getonboard","fecha":"2026-09-08","ubicacion":"Buenos Aires (híbrido)","ubicacion_raw":"Buenos Aires (híbrido)","paises":["AR"],"modalidad":"hibrido","contrato":"contractor","salario":null,"anos":4,"nivel":"Senior","disciplina":"frontend","ingles":"no","tipo_empresa":"consultora","stack":["React","Next.js","SSR/ISR","SEO técnico","Core Web Vitals","GTM","GA4","Ads","CI/CD"],"match":["React/Next.js","SSR","canonical/hreflang/sitemap"],"gaps":["SEO en alto tráfico","ads","CI/CD"],"bloqueadores":["híbrido Buenos Aires"],"senales":[],"candidatos":31,"badges":[],"human_score":2,"human_score_match":4,"human_blockers":["modalidad híbrida"],"human_risks":["salario no publicado"],"accion":"descartar","estado":"descartada","location_ok":"no","human_location_ok":"ok"},
-    {"id":9,"empresa":"Empresa H","titulo":"Full Stack Engineer (Vue + Nest)","fuente":"linkedin_alerta_antigua","fecha":"2026-09-08","ubicacion":"Buenos Aires (remoto)","ubicacion_raw":"Buenos Aires (remoto) / LATAM","paises":["AR","LATAM"],"modalidad":"remoto","contrato":null,"salario":null,"anos":null,"nivel":"Engineer","disciplina":"fullstack","ingles":"avanzado","tipo_empresa":"consultora","stack":["NestJS","MongoDB","Vue","Tanstack","Redis","GitHub Actions","AWS Beanstalk","Terraform","Vercel/Supabase deseable"],"match":["Vercel + Supabase","ownership","trade-offs de costo","IA para acelerar"],"gaps":["NestJS","MongoDB","Vue","Tanstack","Redis","AWS Beanstalk","Terraform","CI/CD","inglés"],"bloqueadores":["stack core ajeno"],"senales":["GPTW","programa de inglés","clientes US/EU","filtran candidatos con IA"],"candidatos":74,"badges":["76% entry level"],"human_score":4,"human_score_match":4,"human_blockers":[],"human_risks":["LATAM/remoto sin países explícitos","salario no publicado"],"accion":"descartar","estado":"descartada","location_ok":"riesgo","human_location_ok":"riesgo"},
-    {"id":10,"empresa":"Plataforma → Empresa I","titulo":"AI Engineer — Generative AI (Remote) / Senior LLM Engineer","fuente":"linkedin_alerta_nueva","fecha":"2026-09-08","ubicacion":"Work from Anywhere","ubicacion_raw":"Work from Anywhere","paises":["*"],"modalidad":"remoto","contrato":"full-time (probable por hora)","salario":null,"anos":null,"nivel":"Senior","disciplina":"ai_engineer","ingles":"avanzado","tipo_empresa":"staffing","stack":["Python","SQL","LangChain","RAG","prompt engineering","agent frameworks","embeddings","vector DBs","AWS/Azure/GCP"],"match":["RAG","prompt engineering","agentes","embeddings/vector DBs","Python","SQL"],"gaps":["LangChain en producción","cloud","inglés"],"bloqueadores":[],"senales":["11 candidatos día 1","pool de Empresa I"],"candidatos":11,"badges":["3 de 4 aptitudes coinciden"],"human_score":5.5,"human_score_match":5.5,"human_blockers":[],"human_risks":["salario no publicado","empresa de staffing"],"accion":"guardar","estado":"evaluada","location_ok":"ok","human_location_ok":"ok"},
-    {"id":11,"empresa":"Empresa J","titulo":"Senior AI/ML Engineer (evaluación de sistemas de IA)","fuente":"linkedin_alerta_nueva","fecha":"2026-09-08","ubicacion":"Argentina (remoto)","ubicacion_raw":"Argentina (remoto)","paises":["AR"],"modalidad":"remoto","contrato":"long-term","salario":null,"anos":4,"nivel":"Senior","disciplina":"ai_evaluation","ingles":"no_menciona","tipo_empresa":"consultora","stack":["eval harnesses","golden datasets","LLM-as-judge","estadística en muestras chicas","drift","healthcare deseable","red-teaming deseable"],"match":["banco de 40 preguntas Tuki (lejano)","rigor estadístico docente"],"gaps":["4+ años en eval ML/LLM","eval frameworks","healthcare","red-teaming"],"bloqueadores":["rol de auditoría/QA de IA"],"senales":["empresa sólida","beneficios"],"candidatos":23,"badges":[],"human_score":3,"human_score_match":3,"human_blockers":["disciplina distinta (ai_evaluation)"],"human_risks":["salario no publicado"],"accion":"descartar","estado":"evaluada","location_ok":"ok","human_location_ok":"ok","notas":"Piden 7-8 años"},
-    {"id":12,"empresa":"Empresa K","titulo":"Senior LLM Engineer (Training, Evaluation, Production, Agentic RAG)","fuente":"linkedin_alerta_nueva","fecha":"2026-09-08","ubicacion":"Argentina (remoto)","ubicacion_raw":"Argentina (remoto)","paises":["AR","PK","IN"],"modalidad":"remoto","contrato":"por obra","salario":null,"anos":4,"nivel":"Senior","disciplina":"ml_engineer","ingles":"nativo","tipo_empresa":"producto","stack":["fine-tuning","LoRA/QLoRA/PEFT","PyTorch/TensorFlow","Hugging Face","Docker/K8s","Azure AML/AKS","DeepSpeed/Ray","MLflow","Unsloth","Pinecone/FAISS"],"match":["RAG","vector DBs","Python"],"gaps":["fine-tuning","PyTorch","K8s","Azure","MLOps"],"bloqueadores":["título STEM exigido","4+ años como ML Engineer","2 años continuos mismo empleador","inglés máximo nivel","ML Engineer"],"senales":[],"candidatos":12,"badges":[],"human_score":2,"human_score_match":2,"human_blockers":["disciplina distinta (ml_engineer)"],"human_risks":["salario no publicado"],"accion":"descartar","estado":"descartada","location_ok":"ok","human_location_ok":"ok","notas":"Frontera del carril ML"},
-    {"id":13,"empresa":"Empresa L","titulo":"Lead AI Engineer","fuente":"linkedin_alerta_nueva","fecha":"2026-09-08","ubicacion":"Argentina (remoto)","ubicacion_raw":"Argentina (remoto)","paises":["AR"],"modalidad":"remoto","contrato":"dependencia","salario":null,"anos":null,"nivel":"Lead","disciplina":"ai_engineer","ingles":"intermedio","tipo_empresa":"consultora","stack":["Python/Java/C#/Go","FastAPI/Streamlit","OpenAI/Anthropic/Bedrock/Gemini","LangChain/LangGraph/Semantic Kernel","RAG","vector DBs","MCP/A2A/ACP","Azure OpenAI/Bedrock/Vertex","MLOps","guardrails y prompt injection"],"match":["chatbots/agent workflows (Tuki)","RAG, orquestación, tool calling","MCP","guardrails","3 providers","explicar a no técnicos"],"gaps":["Lead","LangChain/LangGraph","cloud AI platforms","MLOps/observabilidad","inglés"],"bloqueadores":["Lead (mitigado)"],"senales":["2 postulantes","Empresa L contrató de DataCamp","clases de inglés"],"candidatos":2,"badges":[],"human_score":5,"human_score_match":5,"human_blockers":[],"human_risks":["salario no publicado"],"accion":"guardar","estado":"postulada","location_ok":"ok","human_location_ok":"ok","notas":"Excepción al cap de título: ≤5 candidatos + ai_engineer → cap 5"},
-    {"id":14,"empresa":"Empresa M","titulo":"AI Platform Engineer Sr","fuente":"linkedin_alerta_nueva","fecha":"2026-09-08","ubicacion":"Argentina (híbrido, visitas CABA)","ubicacion_raw":"Argentina (híbrido, visitas a CABA)","paises":["AR"],"modalidad":"hibrido","contrato":"dependencia L-V 9-18","salario":null,"anos":5,"nivel":"Senior","disciplina":"ai_engineer","ingles":"no_menciona","tipo_empresa":"consultora","stack":["Python","Node/TS","REST","microservicios","Docker/K8s","AWS","testing","CI/CD","Gemini/Claude/Bedrock/OpenAI","RAG","Vertex/LangChain deseable","Terraform deseable"],"match":["RAG y Agentic (deseables)","3 de 4 providers","prompt engineering","function calling","Node/TS","REST"],"gaps":["5+ años backend","Docker/K8s (must)","AWS (must)","testing (must)","CI/CD (must)"],"bloqueadores":["4 de 9 excluyentes","híbrido CABA","horario fijo"],"senales":["cumplo todo lo deseable de IA"],"candidatos":10,"badges":["80% sin experiencia"],"human_score":4.5,"human_score_match":5.5,"human_blockers":["modalidad híbrida"],"human_risks":["salario no publicado"],"accion":"descartar","estado":"descartada","location_ok":"no","human_location_ok":"ok","notas":"Ancla: cumplo IA, fallo infra"},
-    {"id":15,"empresa":"Empresa N","titulo":"Senior CXE Engineer (Amazon Connect)","fuente":"linkedin_alerta_nueva","fecha":"2026-09-08","ubicacion":"Argentina (remoto)","ubicacion_raw":"Argentina (remoto); aviso: Canada; US; LATAM","paises":["CA","US","LATAM"],"modalidad":"remoto","contrato":"dependencia USD","salario":null,"anos":7,"nivel":"Senior","disciplina":"ai_engineer","ingles":"avanzado","tipo_empresa":"consultora","stack":["Amazon Connect 2+ años","Bedrock/Claude","Lex","AWS CDK","Lambda","EventBridge","Step Functions","DynamoDB","Kinesis","Glue/Athena","GitHub Actions","Jest/Vitest/Playwright","WCAG"],"match":["prompt engineering","tool calling","multi-agente","Bedrock/Claude"],"gaps":["7+ años","Amazon Connect","stack AWS serverless","IaC","CI/CD","testing","WCAG"],"bloqueadores":["7+ años","80% Amazon Connect"],"senales":["AWS Premier + Claude Partner","agentic AI estratégico","USD","contacto Mariano Paporello"],"candidatos":61,"badges":[],"human_score":2.5,"human_score_match":3,"human_blockers":[],"human_risks":["LATAM/remoto sin países explícitos","salario no publicado"],"accion":"descartar","estado":"evaluada","location_ok":"riesgo","human_location_ok":"riesgo"},
-    {"id":16,"empresa":"Empresa O","titulo":"Artificial Intelligence Engineer ID87374 (Agentic AI Engineer)","fuente":"linkedin_alerta_nueva","fecha":"2026-09-08","ubicacion":"Argentina (remoto)","ubicacion_raw":"Argentina (remoto)","paises":null,"modalidad":"remoto","contrato":null,"salario":null,"anos":4,"nivel":"Engineer","disciplina":"ai_engineer","ingles":"intermedio","tipo_empresa":"consultora","stack":["Python avanzado","REST","pipelines de datos","OpenAI/Anthropic APIs","RAG","vector DBs","Git","Jenkins/CI-CD","testing","code quality","release management"],"match":["4+ años","software builders not researchers","RAG y vector DBs","pipelines (QPS)","guardrails","upper-intermediate alcanzable"],"gaps":["CI/CD, testing, release management (must)"],"bloqueadores":[],"senales":["'not a research position'","inglés más accesible","14 candidatos 64% sin exp","Inc 5000"],"candidatos":14,"badges":[],"human_score":7,"human_score_match":7,"human_blockers":[],"human_risks":["salario no publicado"],"accion":"aplicar","estado":"cerrada","location_ok":"riesgo","human_location_ok":"ok","notas":"Corrección 2026-09-11: human_location_ok pasa de riesgo a ok porque el aviso dice 'Argentina (remoto)' y la regla del golden es AR explícito = ok; el riesgo venía de paises: null, anotación posterior que el evaluador no podía ver."},
-    {"id":17,"empresa":"Empresa N","titulo":"AI/ML Engineering Manager","fuente":"linkedin_alerta_nueva","fecha":"2026-09-08","ubicacion":"Argentina (remoto, 25% viajes)","ubicacion_raw":"Argentina (remoto, 25% viajes); aviso: Canada; US; LATAM","paises":["CA","US","LATAM"],"modalidad":"remoto","contrato":"dependencia USD","salario":null,"anos":10,"nivel":"Manager","disciplina":"ml_engineer","ingles":"avanzado","tipo_empresa":"consultora","stack":["gestión de personas","SageMaker","LoRA/QLoRA/PEFT","RLHF/DPO","PyTorch/TF/JAX","Spark/Kafka","Kubeflow","MLflow","RAG/MCP/HITL"],"match":["RAG","MCP","HITL","multi-provider","pgvector"],"gaps":["10+ años","gestión","stack ML"],"bloqueadores":["10+ años","Manager","ML Engineer"],"senales":[],"candidatos":129,"badges":[],"human_score":1,"human_score_match":1,"human_blockers":["años requeridos ≥ 8 (10)","disciplina distinta (ml_engineer)"],"human_risks":["LATAM/remoto sin países explícitos","salario no publicado","muchos candidatos (129)"],"accion":"descartar","estado":"descartada","location_ok":"riesgo","human_location_ok":"riesgo"},
-    {"id":18,"empresa":"Empresa P","titulo":"Tech Lead .NET","fuente":"linkedin_alerta_nueva","fecha":"2026-09-08","ubicacion":"Argentina (remoto)","ubicacion_raw":"Argentina (remoto)","paises":["AR"],"modalidad":"remoto","contrato":"dependencia","salario":null,"anos":5,"nivel":"Tech Lead","disciplina":"backend","ingles":"no","tipo_empresa":"consultora","stack":[".NET Core 5+ años","EF Core","SQL Server","Docker","distribuidas","LLM APIs","prompt engineering","RAG","Semantic Kernel/LangGraph/n8n","prompt injection"],"match":["toda la capa IA","control de costos de tokens"],"gaps":["5+ años .NET","EF Core","SQL Server","Docker","liderazgo"],"bloqueadores":["5+ años .NET Core","Tech Lead"],"senales":["DataCamp, inglés, certificaciones pagadas"],"candidatos":76,"badges":["1 de 5 aptitudes coinciden"],"human_score":2,"human_score_match":2,"human_blockers":[],"human_risks":["salario no publicado"],"accion":"descartar","estado":"descartada","location_ok":"ok","human_location_ok":"ok","notas":"Patrón local: IA sobre stack tradicional senior"},
-    {"id":19,"empresa":"Empresa Q","titulo":"Full Stack Developer (AWS, Docker y Kubernetes)","fuente":"indeed","fecha":"2026-09-08","ubicacion":"Desde casa, residencia AR","ubicacion_raw":"Desde casa, residencia en Argentina","paises":["AR"],"modalidad":"remoto","contrato":"indefinido 48 hs","salario":{"min":1600,"max":2000,"periodo":"mensual"},"anos":5,"nivel":"Senior","disciplina":"fullstack","ingles":"no","tipo_empresa":"producto","stack":["React/Angular","Node/Python","AWS","K8s","Docker","Cloudflare","Design System","testing","seguridad"],"match":["React","Node/Python","REST","SQL/NoSQL"],"gaps":["AWS/K8s/Docker","Cloudflare Workers","5+ años","liderazgo"],"bloqueadores":["salario bajo mercado","48 hs","empresa 2.7 estrellas"],"senales":[],"candidatos":null,"badges":[],"human_score":2.5,"human_score_match":4,"human_blockers":["salario bajo el piso (1600-2000 USD/mes)","jornada 48 hs"],"human_risks":[],"accion":"descartar","estado":"descartada","location_ok":"ok","human_location_ok":"ok"},
-    {"id":20,"empresa":"Empresa Q","titulo":"Full Stack Programador IA","fuente":"indeed","fecha":"2026-09-08","ubicacion":"Desde casa, residencia AR","ubicacion_raw":"Desde casa, residencia en Argentina","paises":["AR"],"modalidad":"remoto","contrato":"indefinido 48 hs","salario":{"min":1600,"max":2000,"periodo":"mensual"},"anos":5,"nivel":"Senior","disciplina":"fullstack","ingles":"no","tipo_empresa":"producto","stack":["idéntico a 19 + 'código AI' sin tecnología concreta"],"match":[],"gaps":[],"bloqueadores":["duplicado de 19"],"senales":[],"candidatos":null,"badges":[],"human_score":2.5,"human_score_match":4,"human_blockers":["salario bajo el piso (1600-2000 USD/mes)","jornada 48 hs"],"human_risks":[],"accion":"descartar","estado":"descartada","location_ok":"ok","human_location_ok":"ok","duplicate_of":19,"notas":">90% texto compartido, distinto título"},
-    {"id":21,"empresa":"Empresa R","titulo":"IAM Engineer — SailPoint IIQ — Senior","fuente":"careers_site_a","fecha":"2026-09-08","ubicacion":"CABA","ubicacion_raw":"CABA","paises":["AR"],"modalidad":"presencial","contrato":null,"salario":null,"anos":3,"nivel":"Senior","disciplina":"ciberseguridad","ingles":"no_menciona","tipo_empresa":"consultora","stack":["SailPoint IIQ","IGA","RBAC","SoD","BeanShell","ServiceNow"],"match":["REST","Python scripting"],"gaps":["todo"],"bloqueadores":["IAM","CABA"],"senales":[],"candidatos":null,"badges":[],"human_score":0.5,"human_score_match":0.5,"human_blockers":["modalidad presencial","disciplina distinta (ciberseguridad)"],"human_risks":["salario no publicado"],"accion":"descartar","estado":"descartada","location_ok":"no","human_location_ok":"ok"},
-    {"id":22,"empresa":"Empresa R","titulo":"IAM Engineer — Saviynt — Senior","fuente":"careers_site_a","fecha":"2026-09-08","ubicacion":"CABA","ubicacion_raw":"CABA","paises":["AR"],"modalidad":"presencial","contrato":null,"salario":null,"anos":3,"nivel":"Senior","disciplina":"ciberseguridad","ingles":"avanzado","tipo_empresa":"consultora","stack":["Saviynt","IGA","JML","REST/JSON","ServiceNow/JIRA"],"match":[],"gaps":["todo"],"bloqueadores":["IAM","CABA"],"senales":[],"candidatos":null,"badges":[],"human_score":0.5,"human_score_match":0.5,"human_blockers":["modalidad presencial","disciplina distinta (ciberseguridad)"],"human_risks":["salario no publicado"],"accion":"descartar","estado":"descartada","location_ok":"no","human_location_ok":"ok"},
-    {"id":23,"empresa":"Empresa R","titulo":"Microsoft Teams Junior Technical Lead","fuente":"careers_site_a","fecha":"2026-09-08","ubicacion":"CABA","ubicacion_raw":"CABA","paises":["AR"],"modalidad":"presencial","contrato":null,"salario":null,"anos":3,"nivel":"Junior Technical Lead","disciplina":"administracion_plataformas","ingles":"no_menciona","tipo_empresa":"consultora","stack":["Teams Admin Center","PowerShell","Entra ID","Exchange Online","SPF/DKIM/DMARC","ServiceNow"],"match":[],"gaps":["todo"],"bloqueadores":["administración M365","CABA"],"senales":[],"candidatos":null,"badges":[],"human_score":0.5,"human_score_match":0.5,"human_blockers":["modalidad presencial","disciplina distinta (administracion_plataformas)"],"human_risks":["salario no publicado"],"accion":"descartar","estado":"descartada","location_ok":"no","human_location_ok":"ok"},
-    {"id":24,"empresa":"Empresa S","titulo":"AI Engineer (GenAI)","fuente":"linkedin_alerta_nueva","fecha":"2026-09-08","ubicacion":"Argentina (remoto)","ubicacion_raw":"Argentina (remoto)","paises":["CO","AR"],"modalidad":"remoto","contrato":null,"salario":null,"anos":null,"nivel":"Engineer","disciplina":"ai_engineer","ingles":"avanzado","tipo_empresa":"consultora","stack":[".NET","React/Angular","Azure AI Foundry","agentes","evals y regression testing","AI coding assistants experto (must)","Azure DevOps CI/CD","microservicios","RAG deseable","Semantic Kernel deseable","Streamlit deseable"],"match":["agent fundamentals","AI coding assistants experto","rigor en sistemas no determinísticos","React","RAG y documentos (Tuki)","banco de evaluación"],"gaps":[".NET (must)","Azure AI Foundry","Azure DevOps","evals automatizados","microservicios","inglés excelente"],"bloqueadores":[],"senales":["no piden años","Argentina explícita","herramientas IA como must-have"],"candidatos":143,"badges":["66% sin experiencia"],"human_score":5.5,"human_score_match":5.5,"human_blockers":[],"human_risks":["salario no publicado","muchos candidatos (143)"],"accion":"guardar","estado":"evaluada","location_ok":"ok","human_location_ok":"ok"},
-    {"id":25,"empresa":"Empresa T","titulo":"Programa de Referidos — Software Developer","fuente":"careers_site_b","fecha":"2026-09-08","ubicacion":"AR","ubicacion_raw":"Argentina","paises":["AR"],"modalidad":"desconocida","contrato":null,"salario":null,"anos":null,"nivel":"Developer","disciplina":"fullstack","ingles":"no","tipo_empresa":"producto","stack":["Node","React","NoSQL"],"match":["Node","React"],"gaps":["sin IA"],"bloqueadores":["solo referidos internos","#LI-DNI"],"senales":[],"candidatos":null,"badges":[],"human_score":null,"human_score_match":null,"human_blockers":[],"human_risks":["salario no publicado","solo referidos internos"],"score_nota":"no aplicable","accion":"descartar","estado":"descartada_prefiltro","location_ok":"ok","human_location_ok":"ok"},
-    {"id":26,"empresa":"Empresa U","titulo":"Business Owner Lead — Activación de Cuenta","fuente":"careers_site_b","fecha":"2026-09-08","ubicacion":"AR","ubicacion_raw":"Argentina","paises":["AR"],"modalidad":"hibrido","contrato":null,"salario":null,"anos":null,"nivel":"Lead","disciplina":"negocio","ingles":"no","tipo_empresa":"producto","stack":["growth","funnels","cash in/out","medios de pago","CRM"],"match":[],"gaps":["todo"],"bloqueadores":["negocio/growth","Lead","híbrido"],"senales":[],"candidatos":null,"badges":[],"human_score":0.5,"human_score_match":0.5,"human_blockers":["modalidad híbrida","disciplina distinta (negocio)"],"human_risks":["salario no publicado"],"accion":"descartar","estado":"descartada","location_ok":"no","human_location_ok":"ok"},
-    {"id":27,"empresa":"Empresa U","titulo":"Sr Software Architect (Tarjetas)","fuente":"careers_site_b","fecha":"2026-09-08","ubicacion":"AR","ubicacion_raw":"Argentina","paises":["AR"],"modalidad":"hibrido","contrato":null,"salario":null,"anos":null,"nivel":"Sr Architect","disciplina":"arquitectura","ingles":"no","tipo_empresa":"producto","stack":["dominio Tarjetas (excluyente)","ISO 8583","tokenización","PCI DSS","microservicios","ADRs"],"match":[],"gaps":["medios de pago"],"bloqueadores":["Tarjetas excluyente","Architect Sr","híbrido"],"senales":[],"candidatos":null,"badges":[],"human_score":1,"human_score_match":1,"human_blockers":["modalidad híbrida"],"human_risks":["salario no publicado"],"accion":"descartar","estado":"descartada","location_ok":"no","human_location_ok":"ok"},
-    {"id":28,"empresa":"Empresa V","titulo":"Agent Architect","fuente":"linkedin_alerta_nueva","fecha":"2026-09-09","ubicacion":"Argentina (remoto) — anywhere in home country","ubicacion_raw":"Argentina (remoto) — work from anywhere in your home country","paises":["*"],"modalidad":"remoto","contrato":"dependencia","salario":null,"anos":3,"nivel":"Agent Architect (técnico)","disciplina":"ai_engineer","ingles":"avanzado","tipo_empresa":"startup","stack":["multi-agent workflows","task decomposition","state management","tool use","RAG","eval frameworks (LLM-as-judge, promptfoo, DSPy)","Python/JSON/APIs","multimodal imagen/video","discovery con clientes"],"match":["multi-agent","RAG","evaluación rigurosa","3 LLMs","traducir intención a ejecución","explicar a no técnicos","discovery (Municipalidad)","agentes sin framework"],"gaps":["promptfoo/DSPy","generación imagen/video","dominio publicitario","inglés client-facing"],"bloqueadores":[],"senales":["3+ años","'patterns matter more than framework'","crecimiento 76%","25 días PTO"],"candidatos":191,"badges":["En busca de personal","Crecimiento rápido"],"human_score":7.5,"human_score_match":7.5,"human_blockers":[],"human_risks":["salario no publicado","muchos candidatos (191)"],"accion":"aplicar","estado":"postulada","location_ok":"ok","human_location_ok":"ok","notas":"Allowlist: 'Agent Architect' no es Architect"},
-    {"id":29,"empresa":"Empresa W","titulo":"AI ML Senior Engineer","fuente":"linkedin_alerta_nueva","fecha":"2026-09-09","ubicacion":"Argentina — remote, 1st week from office (no especificada)","ubicacion_raw":"Argentina — remote, 1st week from office (oficina no especificada)","paises":["AR"],"modalidad":"remoto","contrato":null,"salario":{"min":5000,"max":5000,"periodo":"mensual","nota":"pagado en ARS"},"anos":null,"nivel":"Senior","disciplina":"ai_engineer","ingles":"no_menciona","tipo_empresa":"staffing","stack":[".NET/C#","Python","Azure OpenAI","Azure","Agentic AI","RAG","REST","microservicios"],"match":["Agentic AI y RAG","LLMs en apps enterprise","Python"],"gaps":[".NET fuerte (must)","Azure (must)","microservicios"],"bloqueadores":["oficina sin especificar","USD pagado en ARS"],"senales":["USD 5000"],"candidatos":45,"badges":["En busca de personal","Solicitud sencilla","67% sin experiencia"],"human_score":3.5,"human_score_match":3.5,"human_blockers":["primera semana en oficina, sin especificar dónde"],"human_risks":["empresa de staffing","USD pagado en ARS"],"accion":"descartar","estado":"evaluada","location_ok":"riesgo","human_location_ok":"ok"},
-    {"id":30,"empresa":"Empresa X","titulo":"Senior AI Engineer — Growth","fuente":"linkedin_alerta_nueva","fecha":"2026-09-09","ubicacion":"Argentina (remoto)","ubicacion_raw":"Argentina (remoto)","paises":["*"],"modalidad":"remoto","contrato":"dependencia","salario":null,"anos":3,"nivel":"Senior","disciplina":"ai_engineer","ingles":"avanzado","tipo_empresa":"producto","stack":["automation workflows/agentic","REST, webhooks, auth, errores","LLM APIs: structured outputs, tool use, chaining","growth/marketing","monitoring y audit logging","documentación para dominio"],"match":["integraciones API a escala (QPS)","structured outputs, tool use","'every agent action traceable'","documentar para otros","proyecto de pagos en Stellar","spec sin arquitecto"],"gaps":["growth/marketing","inglés","data warehouse/event tracking"],"bloqueadores":[],"senales":["'apply even if you don't fully meet'","3+ años"],"candidatos":105,"badges":["En busca de personal"],"human_score":7,"human_score_match":7,"human_blockers":[],"human_risks":["salario no publicado","muchos candidatos (105)"],"accion":"aplicar","estado":"postulada","location_ok":"ok","human_location_ok":"ok"},
-    {"id":31,"empresa":"Empresa Y","titulo":"AI Engineer / Sales & Marketing Systems","fuente":"linkedin_alerta_nueva","fecha":"2026-09-09","ubicacion":"Argentina (remoto)","ubicacion_raw":"Argentina (remoto)","paises":null,"modalidad":"remoto","contrato":"jornada completa","salario":null,"anos":null,"nivel":"Engineer","disciplina":"ai_engineer","ingles":"no_menciona","tipo_empresa":"desconocido","stack":[],"match":[],"gaps":[],"bloqueadores":["cerrada en <24 hs"],"senales":[],"candidatos":25,"badges":["1 de 10 aptitudes coinciden"],"human_score":null,"human_score_match":null,"human_blockers":[],"human_risks":["LATAM/remoto sin países explícitos","salario no publicado","empresa desconocida"],"score_nota":"no evaluada, cerrada","accion":"descartar","estado":"cerrada","location_ok":"riesgo","human_location_ok":"riesgo","notas":"Alertas semanales llegan vencidas"},
-    {"id":32,"empresa":"Empresa Z","titulo":"Software Engineer, GTM AI — Python","fuente":"linkedin_busqueda_directa","fecha":"2026-09-09","ubicacion":"Argentina (remoto) en LinkedIn; original: US, BR, CA","ubicacion_raw":"Argentina (remoto) en LinkedIn; aviso original: United States; Brazil; Canada","paises":["US","BR","CA"],"modalidad":"remoto","contrato":"dependencia","salario":null,"anos":2,"nivel":"Engineer","disciplina":"ai_engineer","ingles":"avanzado","tipo_empresa":"producto","stack":["Python backend (FastAPI/Flask)","agentes stateful multi-paso","model-agnostic","tool-use","LLM internals","testing de sistemas no determinísticos","Docker/K8s","CI/CD","integraciones a escala","SQL","observabilidad","Salesforce/Apollo deseable","ArgoCD deseable"],"match":["agentes stateful, no wrappers","multi-provider","tool-use y fallos del modelo","'assert output == expected doesn't work'","integraciones (QPS)","SQL","fault tolerance","2+ años"],"gaps":["K8s producción","CI/CD","observabilidad","FastAPI/Flask","GTM/RevOps"],"bloqueadores":["Argentina fuera de países del original"],"senales":["0 candidatos, 3 minutos","2+ años","empresa rentable"],"candidatos":0,"badges":["Adelántate a solicitar"],"human_score":6,"human_score_match":8,"human_blockers":[],"human_risks":["país del candidato no listado","salario no publicado"],"accion":"guardar","estado":"postulada","location_ok":"no","human_location_ok":"no"},
-    {"id":33,"empresa":"Empresa AA (vía plataforma en LinkedIn)","titulo":"Agentic AI Expert (LinkedIn: 'AI Engineer (Remote)')","fuente":"linkedin_busqueda_directa","fecha":"2026-09-09","ubicacion":"Work from Anywhere","ubicacion_raw":"Work from Anywhere","paises":["*"],"modalidad":"remoto","contrato":"contractor por hora","salario":{"min":70,"max":126,"periodo":"hora"},"anos":null,"nivel":"Expert","disciplina":"ai_engineer","ingles":"avanzado","tipo_empresa":"staffing","stack":["delegar tareas multi-paso a agentes","Claude Code/Cursor/Copilot/Codex/Gemini CLI","evaluar código generado","comparar salidas entre IAs","documentar procesos reproducibles","prompt engineering","refactoring"],"match":["forma de trabajo diaria","Claude Code con CLAUDE.md y ramas","agente que descartó su propia recomendación","README con deuda técnica","comparación Claude/Gemini/Cursor/v0"],"gaps":["inglés hablado excepcional"],"bloqueadores":[],"senales":["'no prior AI experience required'","sin cloud/K8s/años/.NET","tarifa más alta","4 candidatos"],"candidatos":4,"badges":[],"human_score":8,"human_score_match":8,"human_blockers":[],"human_risks":["empresa de staffing"],"accion":"aplicar","estado":"postulada","location_ok":"ok","human_location_ok":"ok"},
-    {"id":34,"empresa":"Empresa AB","titulo":"AI Engineer","fuente":"remote_rocketship","fecha":"2026-09-08","ubicacion":"LATAM (100% remote)","ubicacion_raw":"LATAM (100% remote)","paises":null,"modalidad":"remoto","contrato":"long-term 40h","salario":null,"anos":3,"nivel":"Engineer","disciplina":"ai_engineer","ingles":"avanzado","tipo_empresa":"producto","stack":["Python","SQL/PostgreSQL","REST","AWS Lambda","LLM/agentes/RAG","ETL","Snowflake (must)","computer vision nice","Databricks deseable","civil/geoespacial deseable"],"match":["3+ años","AI en producción","shipping AI en productos existentes","ETL (QPS)","Python, SQL","multimodal ~ CV","QA/QC con IA"],"gaps":["Snowflake (must)","AWS Lambda/S3","inglés fuerte","geoespacial","título en Computación"],"bloqueadores":[],"senales":["'shipping AI features into existing products'"],"candidatos":null,"badges":[],"human_score":7,"human_score_match":7,"human_blockers":[],"human_risks":["LATAM/remoto sin países explícitos","salario no publicado"],"accion":"aplicar","estado":"cerrada","location_ok":"riesgo","human_location_ok":"riesgo","notas":"LATAM sin países explícitos: riesgo de ubicación"}
+  {
+   "id": 2,
+   "empresa": "Empresa B",
+   "titulo": "Desarrollador Fullstack Junior/Junior+ (Python/Web)",
+   "fuente": "email_alerta_antigua",
+   "fecha": "2026-09-07",
+   "ubicacion": "CABA",
+   "ubicacion_raw": "CABA",
+   "paises": [
+    "AR"
+   ],
+   "modalidad": "presencial",
+   "contrato": "indefinido",
+   "salario": null,
+   "anos": null,
+   "nivel": "Junior",
+   "disciplina": "fullstack",
+   "ingles": "no",
+   "tipo_empresa": "desconocido",
+   "stack": [
+    "Python",
+    "FastAPI",
+    "SQLAlchemy",
+    "Pydantic",
+    "Alembic",
+    "React/Vue",
+    "PostgreSQL",
+    "Salesforce REST"
+   ],
+   "match": [
+    "Python",
+    "PostgreSQL",
+    "React",
+    "ETL PDF/Excel",
+    "cola de revisión → dashboard"
+   ],
+   "gaps": [
+    "FastAPI",
+    "SQLAlchemy",
+    "Salesforce",
+    "testing formal"
+   ],
+   "bloqueadores": [
+    "presencial CABA",
+    "nivel junior"
+   ],
+   "senales": [
+    "trampa de atención en la JD (consulta SQL en la carta)"
+   ],
+   "candidatos": null,
+   "badges": [],
+   "human_score": 3,
+   "human_score_match": 5,
+   "human_blockers": [
+    "modalidad presencial"
+   ],
+   "human_risks": [
+    "salario no publicado",
+    "empresa desconocida"
+   ],
+   "accion": "descartar",
+   "estado": "descartada",
+   "location_ok": "no",
+   "human_location_ok": "ok",
+   "anchor_source": "human"
+  },
+  {
+   "id": 3,
+   "empresa": "Empresa C",
+   "titulo": "Software Engineer (Angular + SEO/Marketing) — Remote LATAM",
+   "fuente": "linkedin_alerta_antigua",
+   "fecha": "2026-09-07",
+   "ubicacion": "Salta (remoto)",
+   "ubicacion_raw": "Argentina (remoto)",
+   "paises": [
+    "BO",
+    "BR",
+    "CA",
+    "CO",
+    "CR",
+    "CL",
+    "DO",
+    "EC",
+    "HN",
+    "IN",
+    "PK",
+    "PE",
+    "PA",
+    "US",
+    "UY"
+   ],
+   "modalidad": "remoto",
+   "contrato": "talent network",
+   "salario": null,
+   "anos": 2,
+   "nivel": "Engineer",
+   "disciplina": "frontend",
+   "ingles": "avanzado",
+   "tipo_empresa": "consultora",
+   "stack": [
+    "Angular",
+    "SSR Angular",
+    "SEO técnico",
+    "Core Web Vitals",
+    "GTM",
+    "GA4",
+    "CI/CD"
+   ],
+   "match": [
+    "Angular (1 año)",
+    "TypeScript",
+    "Scrum",
+    "Cursor/Claude Code nice-to-have"
+   ],
+   "gaps": [
+    "inglés avanzado",
+    "SEO técnico",
+    "SSR Angular",
+    "CI/CD"
+   ],
+   "bloqueadores": [
+    "Argentina no listada",
+    "inglés fluido en red",
+    "40 hs (conflicto Tuki)"
+   ],
+   "senales": [
+    "AWS Premier partner, capabilities con Claude Code/n8n",
+    "proceso asincrónico"
+   ],
+   "candidatos": 27,
+   "badges": [
+    "67% sin experiencia"
+   ],
+   "human_score": 5,
+   "human_score_match": 5,
+   "human_blockers": [],
+   "human_risks": [
+    "país del candidato no listado",
+    "salario no publicado"
+   ],
+   "accion": "guardar",
+   "estado": "evaluada",
+   "location_ok": "no",
+   "human_location_ok": "no",
+   "anchor_source": "human"
+  },
+  {
+   "id": 4,
+   "empresa": "Empresa D",
+   "titulo": "Fullstack Developer Semi-SR | Angular + Node.js",
+   "fuente": "linkedin_alerta_antigua",
+   "fecha": "2026-09-07",
+   "ubicacion": "Buenos Aires (remoto)",
+   "ubicacion_raw": "Buenos Aires (remoto)",
+   "paises": [
+    "AR"
+   ],
+   "modalidad": "remoto",
+   "contrato": "dependencia",
+   "salario": null,
+   "anos": 4,
+   "nivel": "Semi-Senior",
+   "disciplina": "fullstack",
+   "ingles": "no",
+   "tipo_empresa": "consultora",
+   "stack": [
+    "Angular 20+",
+    "TypeScript",
+    "Node.js",
+    "NestJS",
+    "REST",
+    "microservicios",
+    "BFF",
+    "Docker"
+   ],
+   "match": [
+    "TypeScript",
+    "REST",
+    "Node básico"
+   ],
+   "gaps": [
+    "4+ años Angular 20+",
+    "NestJS",
+    "Docker",
+    "microservicios/BFF",
+    "cero IA"
+   ],
+   "bloqueadores": [],
+   "senales": [
+    "empresa sólida",
+    "prepaga familiar",
+    "clases de inglés"
+   ],
+   "candidatos": 168,
+   "badges": [
+    "74% sin experiencia"
+   ],
+   "human_score": 4,
+   "human_score_match": 4,
+   "human_blockers": [],
+   "human_risks": [
+    "salario no publicado",
+    "muchos candidatos (168)"
+   ],
+   "accion": "descartar",
+   "estado": "descartada",
+   "location_ok": "ok",
+   "human_location_ok": "ok",
+   "anchor_source": "human"
+  },
+  {
+   "id": 5,
+   "empresa": "Empresa E",
+   "titulo": "Project Manager",
+   "fuente": "email_alerta_antigua",
+   "fecha": "2026-09-07",
+   "ubicacion": "Cracovia",
+   "ubicacion_raw": "Cracovia",
+   "paises": [
+    "PL"
+   ],
+   "modalidad": "presencial",
+   "contrato": null,
+   "salario": null,
+   "anos": 7,
+   "nivel": "PM",
+   "disciplina": "project_management",
+   "ingles": "avanzado",
+   "tipo_empresa": "consultora",
+   "stack": [
+    "Jira",
+    "Confluence",
+    "M365",
+    "PMP/PRINCE2"
+   ],
+   "match": [],
+   "gaps": [
+    "todo"
+   ],
+   "bloqueadores": [
+    "no técnico",
+    "presencial Polonia",
+    "7+ años PM"
+   ],
+   "senales": [],
+   "candidatos": null,
+   "badges": [],
+   "human_score": 1,
+   "human_score_match": 1,
+   "human_blockers": [
+    "modalidad presencial",
+    "disciplina distinta (project_management)"
+   ],
+   "human_risks": [
+    "salario no publicado"
+   ],
+   "accion": "descartar",
+   "estado": "descartada",
+   "location_ok": "no",
+   "human_location_ok": "no",
+   "notas": "Ruido: keyword AI en nice-to-have",
+   "anchor_source": "human"
+  },
+  {
+   "id": 6,
+   "empresa": "Empresa F",
+   "titulo": "Senior Full-Stack Engineer — .NET y React",
+   "fuente": "getonboard",
+   "fecha": "2026-09-07",
+   "ubicacion": "Remoto (5 países)",
+   "ubicacion_raw": "Remoto (Chile, Argentina, Perú, Colombia, México)",
+   "paises": [
+    "CL",
+    "AR",
+    "PE",
+    "CO",
+    "MX"
+   ],
+   "modalidad": "remoto",
+   "contrato": "honorarios",
+   "salario": {
+    "min": 3600,
+    "max": 3600,
+    "periodo": "mensual"
+   },
+   "anos": 5,
+   "nivel": "Senior",
+   "disciplina": "fullstack",
+   "ingles": "no",
+   "tipo_empresa": "startup",
+   "stack": [
+    ".NET/C#",
+    "React",
+    "Python",
+    "Clean Architecture",
+    "testing",
+    "observabilidad",
+    "SQL query plans"
+   ],
+   "match": [
+    "React",
+    "Python",
+    "aprender rápido",
+    "Claude Code con arnés",
+    "enfoque agéntico con tests",
+    "documentar deuda técnica"
+   ],
+   "gaps": [
+    ".NET profundo",
+    "Clean Architecture formal",
+    "testing como entregable",
+    "diagnóstico performance",
+    "5+ años"
+   ],
+   "bloqueadores": [],
+   "senales": [
+    "Argentina explícita",
+    "salario publicado",
+    "sin inglés",
+    "valoran Claude Code/Cursor con arnés"
+   ],
+   "candidatos": 196,
+   "badges": [],
+   "human_score": 6,
+   "human_score_match": 5,
+   "human_blockers": [],
+   "human_risks": [
+    "muchos candidatos (196)"
+   ],
+   "accion": "guardar",
+   "estado": "postulada",
+   "location_ok": "ok",
+   "human_location_ok": "ok",
+   "anchor_source": "assisted",
+   "score_nota": " Re-puntuada el 2026-09-24 (JS-052) a ciegas contra el perfil real: human_score_match 6 -> 5 (codigo H). Rubrica fija: stack central 50%, requisitos de IA 20% (neutral 7 si el rol no exige IA), disciplina 20% con tope 4 fuera del carril, seniority 10% (mid 8 / senior 5 / staff 2). anchor_source=assisted: puntuada por Claude con esa rubrica y revisada por Mauro."
+  },
+  {
+   "id": 7,
+   "empresa": "Empresa F",
+   "titulo": "Senior Full-Stack Software Engineer — React y Python (onboarding)",
+   "fuente": "getonboard",
+   "fecha": "2026-09-07",
+   "ubicacion": "Remoto (5 países)",
+   "ubicacion_raw": "Remoto (Chile, Argentina, Perú, Colombia, México)",
+   "paises": [
+    "CL",
+    "AR",
+    "PE",
+    "CO",
+    "MX"
+   ],
+   "modalidad": "remoto",
+   "contrato": "honorarios",
+   "salario": {
+    "min": 3600,
+    "max": 3600,
+    "periodo": "mensual"
+   },
+   "anos": 6,
+   "nivel": "Senior",
+   "disciplina": "fullstack",
+   "ingles": "no",
+   "tipo_empresa": "startup",
+   "stack": [
+    "React",
+    "Python (Django/Flask/FastAPI)",
+    "máquinas de estado",
+    "testing unit/int/E2E",
+    "hexagonal deseable",
+    "Mixpanel deseable",
+    "Claude Code/Cursor/MCP deseable"
+   ],
+   "match": [
+    "flujos con estados explícitos (QPS)",
+    "coordinar sin autoridad (Tuki)",
+    "React",
+    "Python",
+    "MCP y Claude Code"
+   ],
+   "gaps": [
+    "6+ años",
+    "testing",
+    "hexagonal formal",
+    "Python backend profundo",
+    "Mixpanel",
+    "referente frontend"
+   ],
+   "bloqueadores": [],
+   "senales": [
+    "MCP por nombre",
+    "Python en vez de .NET"
+   ],
+   "candidatos": 264,
+   "badges": [],
+   "human_score": 6.5,
+   "human_score_match": 6.5,
+   "human_blockers": [],
+   "human_risks": [
+    "muchos candidatos (264)"
+   ],
+   "accion": "guardar",
+   "estado": "postulada",
+   "location_ok": "ok",
+   "human_location_ok": "ok",
+   "notas": "NO es duplicado de id 6",
+   "anchor_source": "assisted",
+   "score_nota": " Re-puntuada el 2026-09-24 (JS-052) a ciegas contra el perfil real: human_score_match 6.5 -> 6.5 (codigo B). Rubrica fija: stack central 50%, requisitos de IA 20% (neutral 7 si el rol no exige IA), disciplina 20% con tope 4 fuera del carril, seniority 10% (mid 8 / senior 5 / staff 2). anchor_source=assisted: puntuada por Claude con esa rubrica y revisada por Mauro."
+  },
+  {
+   "id": 8,
+   "empresa": "Empresa G",
+   "titulo": "Front-end Developer React / Next.JS (SEO)",
+   "fuente": "getonboard",
+   "fecha": "2026-09-08",
+   "ubicacion": "Buenos Aires (híbrido)",
+   "ubicacion_raw": "Buenos Aires (híbrido)",
+   "paises": [
+    "AR"
+   ],
+   "modalidad": "hibrido",
+   "contrato": "contractor",
+   "salario": null,
+   "anos": 4,
+   "nivel": "Senior",
+   "disciplina": "frontend",
+   "ingles": "no",
+   "tipo_empresa": "consultora",
+   "stack": [
+    "React",
+    "Next.js",
+    "SSR/ISR",
+    "SEO técnico",
+    "Core Web Vitals",
+    "GTM",
+    "GA4",
+    "Ads",
+    "CI/CD"
+   ],
+   "match": [
+    "React/Next.js",
+    "SSR",
+    "canonical/hreflang/sitemap"
+   ],
+   "gaps": [
+    "SEO en alto tráfico",
+    "ads",
+    "CI/CD"
+   ],
+   "bloqueadores": [
+    "híbrido Buenos Aires"
+   ],
+   "senales": [],
+   "candidatos": 31,
+   "badges": [],
+   "human_score": 2,
+   "human_score_match": 4,
+   "human_blockers": [
+    "modalidad híbrida"
+   ],
+   "human_risks": [
+    "salario no publicado"
+   ],
+   "accion": "descartar",
+   "estado": "descartada",
+   "location_ok": "no",
+   "human_location_ok": "ok",
+   "anchor_source": "human"
+  },
+  {
+   "id": 9,
+   "empresa": "Empresa H",
+   "titulo": "Full Stack Engineer (Vue + Nest)",
+   "fuente": "linkedin_alerta_antigua",
+   "fecha": "2026-09-08",
+   "ubicacion": "Buenos Aires (remoto)",
+   "ubicacion_raw": "Buenos Aires (remoto) / LATAM",
+   "paises": [
+    "AR",
+    "LATAM"
+   ],
+   "modalidad": "remoto",
+   "contrato": null,
+   "salario": null,
+   "anos": null,
+   "nivel": "Engineer",
+   "disciplina": "fullstack",
+   "ingles": "avanzado",
+   "tipo_empresa": "consultora",
+   "stack": [
+    "NestJS",
+    "MongoDB",
+    "Vue",
+    "Tanstack",
+    "Redis",
+    "GitHub Actions",
+    "AWS Beanstalk",
+    "Terraform",
+    "Vercel/Supabase deseable"
+   ],
+   "match": [
+    "Vercel + Supabase",
+    "ownership",
+    "trade-offs de costo",
+    "IA para acelerar"
+   ],
+   "gaps": [
+    "NestJS",
+    "MongoDB",
+    "Vue",
+    "Tanstack",
+    "Redis",
+    "AWS Beanstalk",
+    "Terraform",
+    "CI/CD",
+    "inglés"
+   ],
+   "bloqueadores": [
+    "stack core ajeno"
+   ],
+   "senales": [
+    "GPTW",
+    "programa de inglés",
+    "clientes US/EU",
+    "filtran candidatos con IA"
+   ],
+   "candidatos": 74,
+   "badges": [
+    "76% entry level"
+   ],
+   "human_score": 4,
+   "human_score_match": 4,
+   "human_blockers": [],
+   "human_risks": [
+    "LATAM/remoto sin países explícitos",
+    "salario no publicado"
+   ],
+   "accion": "descartar",
+   "estado": "descartada",
+   "location_ok": "riesgo",
+   "human_location_ok": "riesgo",
+   "anchor_source": "human"
+  },
+  {
+   "id": 10,
+   "empresa": "Plataforma → Empresa I",
+   "titulo": "AI Engineer — Generative AI (Remote) / Senior LLM Engineer",
+   "fuente": "linkedin_alerta_nueva",
+   "fecha": "2026-09-08",
+   "ubicacion": "Work from Anywhere",
+   "ubicacion_raw": "Work from Anywhere",
+   "paises": [
+    "*"
+   ],
+   "modalidad": "remoto",
+   "contrato": "full-time (probable por hora)",
+   "salario": null,
+   "anos": null,
+   "nivel": "Senior",
+   "disciplina": "ai_engineer",
+   "ingles": "avanzado",
+   "tipo_empresa": "staffing",
+   "stack": [
+    "Python",
+    "SQL",
+    "LangChain",
+    "RAG",
+    "prompt engineering",
+    "agent frameworks",
+    "embeddings",
+    "vector DBs",
+    "AWS/Azure/GCP"
+   ],
+   "match": [
+    "RAG",
+    "prompt engineering",
+    "agentes",
+    "embeddings/vector DBs",
+    "Python",
+    "SQL"
+   ],
+   "gaps": [
+    "LangChain en producción",
+    "cloud",
+    "inglés"
+   ],
+   "bloqueadores": [],
+   "senales": [
+    "11 candidatos día 1",
+    "pool de Empresa I"
+   ],
+   "candidatos": 11,
+   "badges": [
+    "3 de 4 aptitudes coinciden"
+   ],
+   "human_score": 5.5,
+   "human_score_match": 5.5,
+   "human_blockers": [],
+   "human_risks": [
+    "salario no publicado",
+    "empresa de staffing"
+   ],
+   "accion": "guardar",
+   "estado": "evaluada",
+   "location_ok": "ok",
+   "human_location_ok": "ok",
+   "anchor_source": "human"
+  },
+  {
+   "id": 11,
+   "empresa": "Empresa J",
+   "titulo": "Senior AI/ML Engineer (evaluación de sistemas de IA)",
+   "fuente": "linkedin_alerta_nueva",
+   "fecha": "2026-09-08",
+   "ubicacion": "Argentina (remoto)",
+   "ubicacion_raw": "Argentina (remoto)",
+   "paises": [
+    "AR"
+   ],
+   "modalidad": "remoto",
+   "contrato": "long-term",
+   "salario": null,
+   "anos": 4,
+   "nivel": "Senior",
+   "disciplina": "ai_evaluation",
+   "ingles": "no_menciona",
+   "tipo_empresa": "consultora",
+   "stack": [
+    "eval harnesses",
+    "golden datasets",
+    "LLM-as-judge",
+    "estadística en muestras chicas",
+    "drift",
+    "healthcare deseable",
+    "red-teaming deseable"
+   ],
+   "match": [
+    "banco de 40 preguntas Tuki (lejano)",
+    "rigor estadístico docente"
+   ],
+   "gaps": [
+    "4+ años en eval ML/LLM",
+    "eval frameworks",
+    "healthcare",
+    "red-teaming"
+   ],
+   "bloqueadores": [
+    "rol de auditoría/QA de IA"
+   ],
+   "senales": [
+    "empresa sólida",
+    "beneficios"
+   ],
+   "candidatos": 23,
+   "badges": [],
+   "human_score": 3,
+   "human_score_match": 4,
+   "human_blockers": [
+    "disciplina distinta (ai_evaluation)"
+   ],
+   "human_risks": [
+    "salario no publicado"
+   ],
+   "accion": "descartar",
+   "estado": "evaluada",
+   "location_ok": "ok",
+   "human_location_ok": "ok",
+   "notas": "Piden 7-8 años",
+   "anchor_source": "assisted",
+   "score_nota": " Re-puntuada el 2026-09-24 (JS-052) a ciegas contra el perfil real: human_score_match 3 -> 4 (codigo F). Rubrica fija: stack central 50%, requisitos de IA 20% (neutral 7 si el rol no exige IA), disciplina 20% con tope 4 fuera del carril, seniority 10% (mid 8 / senior 5 / staff 2). anchor_source=assisted: puntuada por Claude con esa rubrica y revisada por Mauro."
+  },
+  {
+   "id": 12,
+   "empresa": "Empresa K",
+   "titulo": "Senior LLM Engineer (Training, Evaluation, Production, Agentic RAG)",
+   "fuente": "linkedin_alerta_nueva",
+   "fecha": "2026-09-08",
+   "ubicacion": "Argentina (remoto)",
+   "ubicacion_raw": "Argentina (remoto)",
+   "paises": [
+    "AR",
+    "PK",
+    "IN"
+   ],
+   "modalidad": "remoto",
+   "contrato": "por obra",
+   "salario": null,
+   "anos": 4,
+   "nivel": "Senior",
+   "disciplina": "ml_engineer",
+   "ingles": "nativo",
+   "tipo_empresa": "producto",
+   "stack": [
+    "fine-tuning",
+    "LoRA/QLoRA/PEFT",
+    "PyTorch/TensorFlow",
+    "Hugging Face",
+    "Docker/K8s",
+    "Azure AML/AKS",
+    "DeepSpeed/Ray",
+    "MLflow",
+    "Unsloth",
+    "Pinecone/FAISS"
+   ],
+   "match": [
+    "RAG",
+    "vector DBs",
+    "Python"
+   ],
+   "gaps": [
+    "fine-tuning",
+    "PyTorch",
+    "K8s",
+    "Azure",
+    "MLOps"
+   ],
+   "bloqueadores": [
+    "título STEM exigido",
+    "4+ años como ML Engineer",
+    "2 años continuos mismo empleador",
+    "inglés máximo nivel",
+    "ML Engineer"
+   ],
+   "senales": [],
+   "candidatos": 12,
+   "badges": [],
+   "human_score": 2,
+   "human_score_match": 2,
+   "human_blockers": [
+    "disciplina distinta (ml_engineer)"
+   ],
+   "human_risks": [
+    "salario no publicado"
+   ],
+   "accion": "descartar",
+   "estado": "descartada",
+   "location_ok": "ok",
+   "human_location_ok": "ok",
+   "notas": "Frontera del carril ML",
+   "anchor_source": "human"
+  },
+  {
+   "id": 13,
+   "empresa": "Empresa L",
+   "titulo": "Lead AI Engineer",
+   "fuente": "linkedin_alerta_nueva",
+   "fecha": "2026-09-08",
+   "ubicacion": "Argentina (remoto)",
+   "ubicacion_raw": "Argentina (remoto)",
+   "paises": [
+    "AR"
+   ],
+   "modalidad": "remoto",
+   "contrato": "dependencia",
+   "salario": null,
+   "anos": null,
+   "nivel": "Lead",
+   "disciplina": "ai_engineer",
+   "ingles": "intermedio",
+   "tipo_empresa": "consultora",
+   "stack": [
+    "Python/Java/C#/Go",
+    "FastAPI/Streamlit",
+    "OpenAI/Anthropic/Bedrock/Gemini",
+    "LangChain/LangGraph/Semantic Kernel",
+    "RAG",
+    "vector DBs",
+    "MCP/A2A/ACP",
+    "Azure OpenAI/Bedrock/Vertex",
+    "MLOps",
+    "guardrails y prompt injection"
+   ],
+   "match": [
+    "chatbots/agent workflows (Tuki)",
+    "RAG, orquestación, tool calling",
+    "MCP",
+    "guardrails",
+    "3 providers",
+    "explicar a no técnicos"
+   ],
+   "gaps": [
+    "Lead",
+    "LangChain/LangGraph",
+    "cloud AI platforms",
+    "MLOps/observabilidad",
+    "inglés"
+   ],
+   "bloqueadores": [
+    "Lead (mitigado)"
+   ],
+   "senales": [
+    "2 postulantes",
+    "Empresa L contrató de DataCamp",
+    "clases de inglés"
+   ],
+   "candidatos": 2,
+   "badges": [],
+   "human_score": 5,
+   "human_score_match": 5,
+   "human_blockers": [],
+   "human_risks": [
+    "salario no publicado"
+   ],
+   "accion": "guardar",
+   "estado": "postulada",
+   "location_ok": "ok",
+   "human_location_ok": "ok",
+   "notas": "Excepción al cap de título: ≤5 candidatos + ai_engineer → cap 5",
+   "anchor_source": "human"
+  },
+  {
+   "id": 14,
+   "empresa": "Empresa M",
+   "titulo": "AI Platform Engineer Sr",
+   "fuente": "linkedin_alerta_nueva",
+   "fecha": "2026-09-08",
+   "ubicacion": "Argentina (híbrido, visitas CABA)",
+   "ubicacion_raw": "Argentina (híbrido, visitas a CABA)",
+   "paises": [
+    "AR"
+   ],
+   "modalidad": "hibrido",
+   "contrato": "dependencia L-V 9-18",
+   "salario": null,
+   "anos": 5,
+   "nivel": "Senior",
+   "disciplina": "ai_engineer",
+   "ingles": "no_menciona",
+   "tipo_empresa": "consultora",
+   "stack": [
+    "Python",
+    "Node/TS",
+    "REST",
+    "microservicios",
+    "Docker/K8s",
+    "AWS",
+    "testing",
+    "CI/CD",
+    "Gemini/Claude/Bedrock/OpenAI",
+    "RAG",
+    "Vertex/LangChain deseable",
+    "Terraform deseable"
+   ],
+   "match": [
+    "RAG y Agentic (deseables)",
+    "3 de 4 providers",
+    "prompt engineering",
+    "function calling",
+    "Node/TS",
+    "REST"
+   ],
+   "gaps": [
+    "5+ años backend",
+    "Docker/K8s (must)",
+    "AWS (must)",
+    "testing (must)",
+    "CI/CD (must)"
+   ],
+   "bloqueadores": [
+    "4 de 9 excluyentes",
+    "híbrido CABA",
+    "horario fijo"
+   ],
+   "senales": [
+    "cumplo todo lo deseable de IA"
+   ],
+   "candidatos": 10,
+   "badges": [
+    "80% sin experiencia"
+   ],
+   "human_score": 4.5,
+   "human_score_match": 5.5,
+   "human_blockers": [
+    "modalidad híbrida"
+   ],
+   "human_risks": [
+    "salario no publicado"
+   ],
+   "accion": "descartar",
+   "estado": "descartada",
+   "location_ok": "no",
+   "human_location_ok": "ok",
+   "notas": "Ancla: cumplo IA, fallo infra",
+   "anchor_source": "human"
+  },
+  {
+   "id": 15,
+   "empresa": "Empresa N",
+   "titulo": "Senior CXE Engineer (Amazon Connect)",
+   "fuente": "linkedin_alerta_nueva",
+   "fecha": "2026-09-08",
+   "ubicacion": "Argentina (remoto)",
+   "ubicacion_raw": "Argentina (remoto); aviso: Canada; US; LATAM",
+   "paises": [
+    "CA",
+    "US",
+    "LATAM"
+   ],
+   "modalidad": "remoto",
+   "contrato": "dependencia USD",
+   "salario": null,
+   "anos": 7,
+   "nivel": "Senior",
+   "disciplina": "ai_engineer",
+   "ingles": "avanzado",
+   "tipo_empresa": "consultora",
+   "stack": [
+    "Amazon Connect 2+ años",
+    "Bedrock/Claude",
+    "Lex",
+    "AWS CDK",
+    "Lambda",
+    "EventBridge",
+    "Step Functions",
+    "DynamoDB",
+    "Kinesis",
+    "Glue/Athena",
+    "GitHub Actions",
+    "Jest/Vitest/Playwright",
+    "WCAG"
+   ],
+   "match": [
+    "prompt engineering",
+    "tool calling",
+    "multi-agente",
+    "Bedrock/Claude"
+   ],
+   "gaps": [
+    "7+ años",
+    "Amazon Connect",
+    "stack AWS serverless",
+    "IaC",
+    "CI/CD",
+    "testing",
+    "WCAG"
+   ],
+   "bloqueadores": [
+    "7+ años",
+    "80% Amazon Connect"
+   ],
+   "senales": [
+    "AWS Premier + Claude Partner",
+    "agentic AI estratégico",
+    "USD",
+    "contacto Mariano Paporello"
+   ],
+   "candidatos": 61,
+   "badges": [],
+   "human_score": 2.5,
+   "human_score_match": 3,
+   "human_blockers": [],
+   "human_risks": [
+    "LATAM/remoto sin países explícitos",
+    "salario no publicado"
+   ],
+   "accion": "descartar",
+   "estado": "evaluada",
+   "location_ok": "riesgo",
+   "human_location_ok": "riesgo",
+   "anchor_source": "human"
+  },
+  {
+   "id": 16,
+   "empresa": "Empresa O",
+   "titulo": "Artificial Intelligence Engineer ID87374 (Agentic AI Engineer)",
+   "fuente": "linkedin_alerta_nueva",
+   "fecha": "2026-09-08",
+   "ubicacion": "Argentina (remoto)",
+   "ubicacion_raw": "Argentina (remoto)",
+   "paises": null,
+   "modalidad": "remoto",
+   "contrato": null,
+   "salario": null,
+   "anos": 4,
+   "nivel": "Engineer",
+   "disciplina": "ai_engineer",
+   "ingles": "intermedio",
+   "tipo_empresa": "consultora",
+   "stack": [
+    "Python avanzado",
+    "REST",
+    "pipelines de datos",
+    "OpenAI/Anthropic APIs",
+    "RAG",
+    "vector DBs",
+    "Git",
+    "Jenkins/CI-CD",
+    "testing",
+    "code quality",
+    "release management"
+   ],
+   "match": [
+    "4+ años",
+    "software builders not researchers",
+    "RAG y vector DBs",
+    "pipelines (QPS)",
+    "guardrails",
+    "upper-intermediate alcanzable"
+   ],
+   "gaps": [
+    "CI/CD, testing, release management (must)"
+   ],
+   "bloqueadores": [],
+   "senales": [
+    "'not a research position'",
+    "inglés más accesible",
+    "14 candidatos 64% sin exp",
+    "Inc 5000"
+   ],
+   "candidatos": 14,
+   "badges": [],
+   "human_score": 7,
+   "human_score_match": 6.5,
+   "human_blockers": [],
+   "human_risks": [
+    "salario no publicado"
+   ],
+   "accion": "guardar",
+   "estado": "cerrada",
+   "location_ok": "riesgo",
+   "human_location_ok": "ok",
+   "notas": "Corrección 2026-09-11: human_location_ok pasa de riesgo a ok porque el aviso dice 'Argentina (remoto)' y la regla del golden es AR explícito = ok; el riesgo venía de paises: null, anotación posterior que el evaluador no podía ver.",
+   "anchor_source": "assisted",
+   "score_nota": " Re-puntuada el 2026-09-24 (JS-052) a ciegas contra el perfil real: human_score_match 7 -> 6.5 (codigo J). Rubrica fija: stack central 50%, requisitos de IA 20% (neutral 7 si el rol no exige IA), disciplina 20% con tope 4 fuera del carril, seniority 10% (mid 8 / senior 5 / staff 2). anchor_source=assisted: puntuada por Claude con esa rubrica y revisada por Mauro. Accion recalculada con el score nuevo y la tabla de decision del prompt: aplicar -> guardar."
+  },
+  {
+   "id": 17,
+   "empresa": "Empresa N",
+   "titulo": "AI/ML Engineering Manager",
+   "fuente": "linkedin_alerta_nueva",
+   "fecha": "2026-09-08",
+   "ubicacion": "Argentina (remoto, 25% viajes)",
+   "ubicacion_raw": "Argentina (remoto, 25% viajes); aviso: Canada; US; LATAM",
+   "paises": [
+    "CA",
+    "US",
+    "LATAM"
+   ],
+   "modalidad": "remoto",
+   "contrato": "dependencia USD",
+   "salario": null,
+   "anos": 10,
+   "nivel": "Manager",
+   "disciplina": "ml_engineer",
+   "ingles": "avanzado",
+   "tipo_empresa": "consultora",
+   "stack": [
+    "gestión de personas",
+    "SageMaker",
+    "LoRA/QLoRA/PEFT",
+    "RLHF/DPO",
+    "PyTorch/TF/JAX",
+    "Spark/Kafka",
+    "Kubeflow",
+    "MLflow",
+    "RAG/MCP/HITL"
+   ],
+   "match": [
+    "RAG",
+    "MCP",
+    "HITL",
+    "multi-provider",
+    "pgvector"
+   ],
+   "gaps": [
+    "10+ años",
+    "gestión",
+    "stack ML"
+   ],
+   "bloqueadores": [
+    "10+ años",
+    "Manager",
+    "ML Engineer"
+   ],
+   "senales": [],
+   "candidatos": 129,
+   "badges": [],
+   "human_score": 1,
+   "human_score_match": 1,
+   "human_blockers": [
+    "años requeridos ≥ 8 (10)",
+    "disciplina distinta (ml_engineer)"
+   ],
+   "human_risks": [
+    "LATAM/remoto sin países explícitos",
+    "salario no publicado",
+    "muchos candidatos (129)"
+   ],
+   "accion": "descartar",
+   "estado": "descartada",
+   "location_ok": "riesgo",
+   "human_location_ok": "riesgo",
+   "anchor_source": "human"
+  },
+  {
+   "id": 18,
+   "empresa": "Empresa P",
+   "titulo": "Tech Lead .NET",
+   "fuente": "linkedin_alerta_nueva",
+   "fecha": "2026-09-08",
+   "ubicacion": "Argentina (remoto)",
+   "ubicacion_raw": "Argentina (remoto)",
+   "paises": [
+    "AR"
+   ],
+   "modalidad": "remoto",
+   "contrato": "dependencia",
+   "salario": null,
+   "anos": 5,
+   "nivel": "Tech Lead",
+   "disciplina": "backend",
+   "ingles": "no",
+   "tipo_empresa": "consultora",
+   "stack": [
+    ".NET Core 5+ años",
+    "EF Core",
+    "SQL Server",
+    "Docker",
+    "distribuidas",
+    "LLM APIs",
+    "prompt engineering",
+    "RAG",
+    "Semantic Kernel/LangGraph/n8n",
+    "prompt injection"
+   ],
+   "match": [
+    "toda la capa IA",
+    "control de costos de tokens"
+   ],
+   "gaps": [
+    "5+ años .NET",
+    "EF Core",
+    "SQL Server",
+    "Docker",
+    "liderazgo"
+   ],
+   "bloqueadores": [
+    "5+ años .NET Core",
+    "Tech Lead"
+   ],
+   "senales": [
+    "DataCamp, inglés, certificaciones pagadas"
+   ],
+   "candidatos": 76,
+   "badges": [
+    "1 de 5 aptitudes coinciden"
+   ],
+   "human_score": 2,
+   "human_score_match": 2,
+   "human_blockers": [],
+   "human_risks": [
+    "salario no publicado"
+   ],
+   "accion": "descartar",
+   "estado": "descartada",
+   "location_ok": "ok",
+   "human_location_ok": "ok",
+   "notas": "Patrón local: IA sobre stack tradicional senior",
+   "anchor_source": "human"
+  },
+  {
+   "id": 19,
+   "empresa": "Empresa Q",
+   "titulo": "Full Stack Developer (AWS, Docker y Kubernetes)",
+   "fuente": "indeed",
+   "fecha": "2026-09-08",
+   "ubicacion": "Desde casa, residencia AR",
+   "ubicacion_raw": "Desde casa, residencia en Argentina",
+   "paises": [
+    "AR"
+   ],
+   "modalidad": "remoto",
+   "contrato": "indefinido 48 hs",
+   "salario": {
+    "min": 1600,
+    "max": 2000,
+    "periodo": "mensual"
+   },
+   "anos": 5,
+   "nivel": "Senior",
+   "disciplina": "fullstack",
+   "ingles": "no",
+   "tipo_empresa": "producto",
+   "stack": [
+    "React/Angular",
+    "Node/Python",
+    "AWS",
+    "K8s",
+    "Docker",
+    "Cloudflare",
+    "Design System",
+    "testing",
+    "seguridad"
+   ],
+   "match": [
+    "React",
+    "Node/Python",
+    "REST",
+    "SQL/NoSQL"
+   ],
+   "gaps": [
+    "AWS/K8s/Docker",
+    "Cloudflare Workers",
+    "5+ años",
+    "liderazgo"
+   ],
+   "bloqueadores": [
+    "salario bajo mercado",
+    "48 hs",
+    "empresa 2.7 estrellas"
+   ],
+   "senales": [],
+   "candidatos": null,
+   "badges": [],
+   "human_score": 2.5,
+   "human_score_match": 4,
+   "human_blockers": [
+    "salario bajo el piso (1600-2000 USD/mes)",
+    "jornada 48 hs"
+   ],
+   "human_risks": [],
+   "accion": "descartar",
+   "estado": "descartada",
+   "location_ok": "ok",
+   "human_location_ok": "ok",
+   "anchor_source": "human"
+  },
+  {
+   "id": 20,
+   "empresa": "Empresa Q",
+   "titulo": "Full Stack Programador IA",
+   "fuente": "indeed",
+   "fecha": "2026-09-08",
+   "ubicacion": "Desde casa, residencia AR",
+   "ubicacion_raw": "Desde casa, residencia en Argentina",
+   "paises": [
+    "AR"
+   ],
+   "modalidad": "remoto",
+   "contrato": "indefinido 48 hs",
+   "salario": {
+    "min": 1600,
+    "max": 2000,
+    "periodo": "mensual"
+   },
+   "anos": 5,
+   "nivel": "Senior",
+   "disciplina": "fullstack",
+   "ingles": "no",
+   "tipo_empresa": "producto",
+   "stack": [
+    "idéntico a 19 + 'código AI' sin tecnología concreta"
+   ],
+   "match": [],
+   "gaps": [],
+   "bloqueadores": [
+    "duplicado de 19"
+   ],
+   "senales": [],
+   "candidatos": null,
+   "badges": [],
+   "human_score": 2.5,
+   "human_score_match": 4,
+   "human_blockers": [
+    "salario bajo el piso (1600-2000 USD/mes)",
+    "jornada 48 hs"
+   ],
+   "human_risks": [],
+   "accion": "descartar",
+   "estado": "descartada",
+   "location_ok": "ok",
+   "human_location_ok": "ok",
+   "duplicate_of": 19,
+   "notas": ">90% texto compartido, distinto título",
+   "anchor_source": "human"
+  },
+  {
+   "id": 21,
+   "empresa": "Empresa R",
+   "titulo": "IAM Engineer — SailPoint IIQ — Senior",
+   "fuente": "careers_site_a",
+   "fecha": "2026-09-08",
+   "ubicacion": "CABA",
+   "ubicacion_raw": "CABA",
+   "paises": [
+    "AR"
+   ],
+   "modalidad": "presencial",
+   "contrato": null,
+   "salario": null,
+   "anos": 3,
+   "nivel": "Senior",
+   "disciplina": "ciberseguridad",
+   "ingles": "no_menciona",
+   "tipo_empresa": "consultora",
+   "stack": [
+    "SailPoint IIQ",
+    "IGA",
+    "RBAC",
+    "SoD",
+    "BeanShell",
+    "ServiceNow"
+   ],
+   "match": [
+    "REST",
+    "Python scripting"
+   ],
+   "gaps": [
+    "todo"
+   ],
+   "bloqueadores": [
+    "IAM",
+    "CABA"
+   ],
+   "senales": [],
+   "candidatos": null,
+   "badges": [],
+   "human_score": 0.5,
+   "human_score_match": 0.5,
+   "human_blockers": [
+    "modalidad presencial",
+    "disciplina distinta (ciberseguridad)"
+   ],
+   "human_risks": [
+    "salario no publicado"
+   ],
+   "accion": "descartar",
+   "estado": "descartada",
+   "location_ok": "no",
+   "human_location_ok": "ok",
+   "anchor_source": "human"
+  },
+  {
+   "id": 22,
+   "empresa": "Empresa R",
+   "titulo": "IAM Engineer — Saviynt — Senior",
+   "fuente": "careers_site_a",
+   "fecha": "2026-09-08",
+   "ubicacion": "CABA",
+   "ubicacion_raw": "CABA",
+   "paises": [
+    "AR"
+   ],
+   "modalidad": "presencial",
+   "contrato": null,
+   "salario": null,
+   "anos": 3,
+   "nivel": "Senior",
+   "disciplina": "ciberseguridad",
+   "ingles": "avanzado",
+   "tipo_empresa": "consultora",
+   "stack": [
+    "Saviynt",
+    "IGA",
+    "JML",
+    "REST/JSON",
+    "ServiceNow/JIRA"
+   ],
+   "match": [],
+   "gaps": [
+    "todo"
+   ],
+   "bloqueadores": [
+    "IAM",
+    "CABA"
+   ],
+   "senales": [],
+   "candidatos": null,
+   "badges": [],
+   "human_score": 0.5,
+   "human_score_match": 0.5,
+   "human_blockers": [
+    "modalidad presencial",
+    "disciplina distinta (ciberseguridad)"
+   ],
+   "human_risks": [
+    "salario no publicado"
+   ],
+   "accion": "descartar",
+   "estado": "descartada",
+   "location_ok": "no",
+   "human_location_ok": "ok",
+   "anchor_source": "human"
+  },
+  {
+   "id": 23,
+   "empresa": "Empresa R",
+   "titulo": "Microsoft Teams Junior Technical Lead",
+   "fuente": "careers_site_a",
+   "fecha": "2026-09-08",
+   "ubicacion": "CABA",
+   "ubicacion_raw": "CABA",
+   "paises": [
+    "AR"
+   ],
+   "modalidad": "presencial",
+   "contrato": null,
+   "salario": null,
+   "anos": 3,
+   "nivel": "Junior Technical Lead",
+   "disciplina": "administracion_plataformas",
+   "ingles": "no_menciona",
+   "tipo_empresa": "consultora",
+   "stack": [
+    "Teams Admin Center",
+    "PowerShell",
+    "Entra ID",
+    "Exchange Online",
+    "SPF/DKIM/DMARC",
+    "ServiceNow"
+   ],
+   "match": [],
+   "gaps": [
+    "todo"
+   ],
+   "bloqueadores": [
+    "administración M365",
+    "CABA"
+   ],
+   "senales": [],
+   "candidatos": null,
+   "badges": [],
+   "human_score": 0.5,
+   "human_score_match": 0.5,
+   "human_blockers": [
+    "modalidad presencial",
+    "disciplina distinta (administracion_plataformas)"
+   ],
+   "human_risks": [
+    "salario no publicado"
+   ],
+   "accion": "descartar",
+   "estado": "descartada",
+   "location_ok": "no",
+   "human_location_ok": "ok",
+   "anchor_source": "human"
+  },
+  {
+   "id": 24,
+   "empresa": "Empresa S",
+   "titulo": "AI Engineer (GenAI)",
+   "fuente": "linkedin_alerta_nueva",
+   "fecha": "2026-09-08",
+   "ubicacion": "Argentina (remoto)",
+   "ubicacion_raw": "Argentina (remoto)",
+   "paises": [
+    "CO",
+    "AR"
+   ],
+   "modalidad": "remoto",
+   "contrato": null,
+   "salario": null,
+   "anos": null,
+   "nivel": "Engineer",
+   "disciplina": "ai_engineer",
+   "ingles": "avanzado",
+   "tipo_empresa": "consultora",
+   "stack": [
+    ".NET",
+    "React/Angular",
+    "Azure AI Foundry",
+    "agentes",
+    "evals y regression testing",
+    "AI coding assistants experto (must)",
+    "Azure DevOps CI/CD",
+    "microservicios",
+    "RAG deseable",
+    "Semantic Kernel deseable",
+    "Streamlit deseable"
+   ],
+   "match": [
+    "agent fundamentals",
+    "AI coding assistants experto",
+    "rigor en sistemas no determinísticos",
+    "React",
+    "RAG y documentos (Tuki)",
+    "banco de evaluación"
+   ],
+   "gaps": [
+    ".NET (must)",
+    "Azure AI Foundry",
+    "Azure DevOps",
+    "evals automatizados",
+    "microservicios",
+    "inglés excelente"
+   ],
+   "bloqueadores": [],
+   "senales": [
+    "no piden años",
+    "Argentina explícita",
+    "herramientas IA como must-have"
+   ],
+   "candidatos": 143,
+   "badges": [
+    "66% sin experiencia"
+   ],
+   "human_score": 5.5,
+   "human_score_match": 6,
+   "human_blockers": [],
+   "human_risks": [
+    "salario no publicado",
+    "muchos candidatos (143)"
+   ],
+   "accion": "guardar",
+   "estado": "evaluada",
+   "location_ok": "ok",
+   "human_location_ok": "ok",
+   "anchor_source": "assisted",
+   "score_nota": " Re-puntuada el 2026-09-24 (JS-052) a ciegas contra el perfil real: human_score_match 5.5 -> 6 (codigo C). Rubrica fija: stack central 50%, requisitos de IA 20% (neutral 7 si el rol no exige IA), disciplina 20% con tope 4 fuera del carril, seniority 10% (mid 8 / senior 5 / staff 2). anchor_source=assisted: puntuada por Claude con esa rubrica y revisada por Mauro."
+  },
+  {
+   "id": 25,
+   "empresa": "Empresa T",
+   "titulo": "Programa de Referidos — Software Developer",
+   "fuente": "careers_site_b",
+   "fecha": "2026-09-08",
+   "ubicacion": "AR",
+   "ubicacion_raw": "Argentina",
+   "paises": [
+    "AR"
+   ],
+   "modalidad": "desconocida",
+   "contrato": null,
+   "salario": null,
+   "anos": null,
+   "nivel": "Developer",
+   "disciplina": "fullstack",
+   "ingles": "no",
+   "tipo_empresa": "producto",
+   "stack": [
+    "Node",
+    "React",
+    "NoSQL"
+   ],
+   "match": [
+    "Node",
+    "React"
+   ],
+   "gaps": [
+    "sin IA"
+   ],
+   "bloqueadores": [
+    "solo referidos internos",
+    "#LI-DNI"
+   ],
+   "senales": [],
+   "candidatos": null,
+   "badges": [],
+   "human_score": null,
+   "human_score_match": null,
+   "human_blockers": [],
+   "human_risks": [
+    "salario no publicado",
+    "solo referidos internos"
+   ],
+   "score_nota": "no aplicable",
+   "accion": "descartar",
+   "estado": "descartada_prefiltro",
+   "location_ok": "ok",
+   "human_location_ok": "ok",
+   "anchor_source": "human"
+  },
+  {
+   "id": 26,
+   "empresa": "Empresa U",
+   "titulo": "Business Owner Lead — Activación de Cuenta",
+   "fuente": "careers_site_b",
+   "fecha": "2026-09-08",
+   "ubicacion": "AR",
+   "ubicacion_raw": "Argentina",
+   "paises": [
+    "AR"
+   ],
+   "modalidad": "hibrido",
+   "contrato": null,
+   "salario": null,
+   "anos": null,
+   "nivel": "Lead",
+   "disciplina": "negocio",
+   "ingles": "no",
+   "tipo_empresa": "producto",
+   "stack": [
+    "growth",
+    "funnels",
+    "cash in/out",
+    "medios de pago",
+    "CRM"
+   ],
+   "match": [],
+   "gaps": [
+    "todo"
+   ],
+   "bloqueadores": [
+    "negocio/growth",
+    "Lead",
+    "híbrido"
+   ],
+   "senales": [],
+   "candidatos": null,
+   "badges": [],
+   "human_score": 0.5,
+   "human_score_match": 0.5,
+   "human_blockers": [
+    "modalidad híbrida",
+    "disciplina distinta (negocio)"
+   ],
+   "human_risks": [
+    "salario no publicado"
+   ],
+   "accion": "descartar",
+   "estado": "descartada",
+   "location_ok": "no",
+   "human_location_ok": "ok",
+   "anchor_source": "human"
+  },
+  {
+   "id": 27,
+   "empresa": "Empresa U",
+   "titulo": "Sr Software Architect (Tarjetas)",
+   "fuente": "careers_site_b",
+   "fecha": "2026-09-08",
+   "ubicacion": "AR",
+   "ubicacion_raw": "Argentina",
+   "paises": [
+    "AR"
+   ],
+   "modalidad": "hibrido",
+   "contrato": null,
+   "salario": null,
+   "anos": null,
+   "nivel": "Sr Architect",
+   "disciplina": "arquitectura",
+   "ingles": "no",
+   "tipo_empresa": "producto",
+   "stack": [
+    "dominio Tarjetas (excluyente)",
+    "ISO 8583",
+    "tokenización",
+    "PCI DSS",
+    "microservicios",
+    "ADRs"
+   ],
+   "match": [],
+   "gaps": [
+    "medios de pago"
+   ],
+   "bloqueadores": [
+    "Tarjetas excluyente",
+    "Architect Sr",
+    "híbrido"
+   ],
+   "senales": [],
+   "candidatos": null,
+   "badges": [],
+   "human_score": 1,
+   "human_score_match": 1,
+   "human_blockers": [
+    "modalidad híbrida"
+   ],
+   "human_risks": [
+    "salario no publicado"
+   ],
+   "accion": "descartar",
+   "estado": "descartada",
+   "location_ok": "no",
+   "human_location_ok": "ok",
+   "anchor_source": "human"
+  },
+  {
+   "id": 28,
+   "empresa": "Empresa V",
+   "titulo": "Agent Architect",
+   "fuente": "linkedin_alerta_nueva",
+   "fecha": "2026-09-09",
+   "ubicacion": "Argentina (remoto) — anywhere in home country",
+   "ubicacion_raw": "Argentina (remoto) — work from anywhere in your home country",
+   "paises": [
+    "*"
+   ],
+   "modalidad": "remoto",
+   "contrato": "dependencia",
+   "salario": null,
+   "anos": 3,
+   "nivel": "Agent Architect (técnico)",
+   "disciplina": "ai_engineer",
+   "ingles": "avanzado",
+   "tipo_empresa": "startup",
+   "stack": [
+    "multi-agent workflows",
+    "task decomposition",
+    "state management",
+    "tool use",
+    "RAG",
+    "eval frameworks (LLM-as-judge, promptfoo, DSPy)",
+    "Python/JSON/APIs",
+    "multimodal imagen/video",
+    "discovery con clientes"
+   ],
+   "match": [
+    "multi-agent",
+    "RAG",
+    "evaluación rigurosa",
+    "3 LLMs",
+    "traducir intención a ejecución",
+    "explicar a no técnicos",
+    "discovery (Municipalidad)",
+    "agentes sin framework"
+   ],
+   "gaps": [
+    "promptfoo/DSPy",
+    "generación imagen/video",
+    "dominio publicitario",
+    "inglés client-facing"
+   ],
+   "bloqueadores": [],
+   "senales": [
+    "3+ años",
+    "'patterns matter more than framework'",
+    "crecimiento 76%",
+    "25 días PTO"
+   ],
+   "candidatos": 191,
+   "badges": [
+    "En busca de personal",
+    "Crecimiento rápido"
+   ],
+   "human_score": 7.5,
+   "human_score_match": 6.5,
+   "human_blockers": [],
+   "human_risks": [
+    "salario no publicado",
+    "muchos candidatos (191)"
+   ],
+   "accion": "guardar",
+   "estado": "postulada",
+   "location_ok": "ok",
+   "human_location_ok": "ok",
+   "notas": "Allowlist: 'Agent Architect' no es Architect",
+   "anchor_source": "assisted",
+   "score_nota": " Re-puntuada el 2026-09-24 (JS-052) a ciegas contra el perfil real: human_score_match 7.5 -> 6.5 (codigo I). Rubrica fija: stack central 50%, requisitos de IA 20% (neutral 7 si el rol no exige IA), disciplina 20% con tope 4 fuera del carril, seniority 10% (mid 8 / senior 5 / staff 2). anchor_source=assisted: puntuada por Claude con esa rubrica y revisada por Mauro. Accion recalculada con el score nuevo y la tabla de decision del prompt: aplicar -> guardar."
+  },
+  {
+   "id": 29,
+   "empresa": "Empresa W",
+   "titulo": "AI ML Senior Engineer",
+   "fuente": "linkedin_alerta_nueva",
+   "fecha": "2026-09-09",
+   "ubicacion": "Argentina — remote, 1st week from office (no especificada)",
+   "ubicacion_raw": "Argentina — remote, 1st week from office (oficina no especificada)",
+   "paises": [
+    "AR"
+   ],
+   "modalidad": "remoto",
+   "contrato": null,
+   "salario": {
+    "min": 5000,
+    "max": 5000,
+    "periodo": "mensual",
+    "nota": "pagado en ARS"
+   },
+   "anos": null,
+   "nivel": "Senior",
+   "disciplina": "ai_engineer",
+   "ingles": "no_menciona",
+   "tipo_empresa": "staffing",
+   "stack": [
+    ".NET/C#",
+    "Python",
+    "Azure OpenAI",
+    "Azure",
+    "Agentic AI",
+    "RAG",
+    "REST",
+    "microservicios"
+   ],
+   "match": [
+    "Agentic AI y RAG",
+    "LLMs en apps enterprise",
+    "Python"
+   ],
+   "gaps": [
+    ".NET fuerte (must)",
+    "Azure (must)",
+    "microservicios"
+   ],
+   "bloqueadores": [
+    "oficina sin especificar",
+    "USD pagado en ARS"
+   ],
+   "senales": [
+    "USD 5000"
+   ],
+   "candidatos": 45,
+   "badges": [
+    "En busca de personal",
+    "Solicitud sencilla",
+    "67% sin experiencia"
+   ],
+   "human_score": 3.5,
+   "human_score_match": 3.5,
+   "human_blockers": [
+    "primera semana en oficina, sin especificar dónde"
+   ],
+   "human_risks": [
+    "empresa de staffing",
+    "USD pagado en ARS"
+   ],
+   "accion": "descartar",
+   "estado": "evaluada",
+   "location_ok": "riesgo",
+   "human_location_ok": "ok",
+   "anchor_source": "human"
+  },
+  {
+   "id": 30,
+   "empresa": "Empresa X",
+   "titulo": "Senior AI Engineer — Growth",
+   "fuente": "linkedin_alerta_nueva",
+   "fecha": "2026-09-09",
+   "ubicacion": "Argentina (remoto)",
+   "ubicacion_raw": "Argentina (remoto)",
+   "paises": [
+    "*"
+   ],
+   "modalidad": "remoto",
+   "contrato": "dependencia",
+   "salario": null,
+   "anos": 3,
+   "nivel": "Senior",
+   "disciplina": "ai_engineer",
+   "ingles": "avanzado",
+   "tipo_empresa": "producto",
+   "stack": [
+    "automation workflows/agentic",
+    "REST, webhooks, auth, errores",
+    "LLM APIs: structured outputs, tool use, chaining",
+    "growth/marketing",
+    "monitoring y audit logging",
+    "documentación para dominio"
+   ],
+   "match": [
+    "integraciones API a escala (QPS)",
+    "structured outputs, tool use",
+    "'every agent action traceable'",
+    "documentar para otros",
+    "proyecto de pagos en Stellar",
+    "spec sin arquitecto"
+   ],
+   "gaps": [
+    "growth/marketing",
+    "inglés",
+    "data warehouse/event tracking"
+   ],
+   "bloqueadores": [],
+   "senales": [
+    "'apply even if you don't fully meet'",
+    "3+ años"
+   ],
+   "candidatos": 105,
+   "badges": [
+    "En busca de personal"
+   ],
+   "human_score": 7,
+   "human_score_match": 7.5,
+   "human_blockers": [],
+   "human_risks": [
+    "salario no publicado",
+    "muchos candidatos (105)"
+   ],
+   "accion": "aplicar",
+   "estado": "postulada",
+   "location_ok": "ok",
+   "human_location_ok": "ok",
+   "anchor_source": "assisted",
+   "score_nota": " Re-puntuada el 2026-09-24 (JS-052) a ciegas contra el perfil real: human_score_match 7 -> 7.5 (codigo E). Rubrica fija: stack central 50%, requisitos de IA 20% (neutral 7 si el rol no exige IA), disciplina 20% con tope 4 fuera del carril, seniority 10% (mid 8 / senior 5 / staff 2). anchor_source=assisted: puntuada por Claude con esa rubrica y revisada por Mauro."
+  },
+  {
+   "id": 31,
+   "empresa": "Empresa Y",
+   "titulo": "AI Engineer / Sales & Marketing Systems",
+   "fuente": "linkedin_alerta_nueva",
+   "fecha": "2026-09-09",
+   "ubicacion": "Argentina (remoto)",
+   "ubicacion_raw": "Argentina (remoto)",
+   "paises": null,
+   "modalidad": "remoto",
+   "contrato": "jornada completa",
+   "salario": null,
+   "anos": null,
+   "nivel": "Engineer",
+   "disciplina": "ai_engineer",
+   "ingles": "no_menciona",
+   "tipo_empresa": "desconocido",
+   "stack": [],
+   "match": [],
+   "gaps": [],
+   "bloqueadores": [
+    "cerrada en <24 hs"
+   ],
+   "senales": [],
+   "candidatos": 25,
+   "badges": [
+    "1 de 10 aptitudes coinciden"
+   ],
+   "human_score": null,
+   "human_score_match": null,
+   "human_blockers": [],
+   "human_risks": [
+    "LATAM/remoto sin países explícitos",
+    "salario no publicado",
+    "empresa desconocida"
+   ],
+   "score_nota": "no evaluada, cerrada",
+   "accion": "descartar",
+   "estado": "cerrada",
+   "location_ok": "riesgo",
+   "human_location_ok": "riesgo",
+   "notas": "Alertas semanales llegan vencidas",
+   "anchor_source": "human"
+  },
+  {
+   "id": 32,
+   "empresa": "Empresa Z",
+   "titulo": "Software Engineer, GTM AI — Python",
+   "fuente": "linkedin_busqueda_directa",
+   "fecha": "2026-09-09",
+   "ubicacion": "Argentina (remoto) en LinkedIn; original: US, BR, CA",
+   "ubicacion_raw": "Argentina (remoto) en LinkedIn; aviso original: United States; Brazil; Canada",
+   "paises": [
+    "US",
+    "BR",
+    "CA"
+   ],
+   "modalidad": "remoto",
+   "contrato": "dependencia",
+   "salario": null,
+   "anos": 2,
+   "nivel": "Engineer",
+   "disciplina": "ai_engineer",
+   "ingles": "avanzado",
+   "tipo_empresa": "producto",
+   "stack": [
+    "Python backend (FastAPI/Flask)",
+    "agentes stateful multi-paso",
+    "model-agnostic",
+    "tool-use",
+    "LLM internals",
+    "testing de sistemas no determinísticos",
+    "Docker/K8s",
+    "CI/CD",
+    "integraciones a escala",
+    "SQL",
+    "observabilidad",
+    "Salesforce/Apollo deseable",
+    "ArgoCD deseable"
+   ],
+   "match": [
+    "agentes stateful, no wrappers",
+    "multi-provider",
+    "tool-use y fallos del modelo",
+    "'assert output == expected doesn't work'",
+    "integraciones (QPS)",
+    "SQL",
+    "fault tolerance",
+    "2+ años"
+   ],
+   "gaps": [
+    "K8s producción",
+    "CI/CD",
+    "observabilidad",
+    "FastAPI/Flask",
+    "GTM/RevOps"
+   ],
+   "bloqueadores": [
+    "Argentina fuera de países del original"
+   ],
+   "senales": [
+    "0 candidatos, 3 minutos",
+    "2+ años",
+    "empresa rentable"
+   ],
+   "candidatos": 0,
+   "badges": [
+    "Adelántate a solicitar"
+   ],
+   "human_score": 6,
+   "human_score_match": 5,
+   "human_blockers": [],
+   "human_risks": [
+    "país del candidato no listado",
+    "salario no publicado"
+   ],
+   "accion": "guardar",
+   "estado": "postulada",
+   "location_ok": "no",
+   "human_location_ok": "no",
+   "anchor_source": "assisted",
+   "score_nota": " Re-puntuada el 2026-09-24 (JS-052) a ciegas contra el perfil real: human_score_match 8 -> 5 (codigo A). Rubrica fija: stack central 50%, requisitos de IA 20% (neutral 7 si el rol no exige IA), disciplina 20% con tope 4 fuera del carril, seniority 10% (mid 8 / senior 5 / staff 2). anchor_source=assisted: puntuada por Claude con esa rubrica y revisada por Mauro."
+  },
+  {
+   "id": 33,
+   "empresa": "Empresa AA (vía plataforma en LinkedIn)",
+   "titulo": "Agentic AI Expert (LinkedIn: 'AI Engineer (Remote)')",
+   "fuente": "linkedin_busqueda_directa",
+   "fecha": "2026-09-09",
+   "ubicacion": "Work from Anywhere",
+   "ubicacion_raw": "Work from Anywhere",
+   "paises": [
+    "*"
+   ],
+   "modalidad": "remoto",
+   "contrato": "contractor por hora",
+   "salario": {
+    "min": 70,
+    "max": 126,
+    "periodo": "hora"
+   },
+   "anos": null,
+   "nivel": "Expert",
+   "disciplina": "ai_engineer",
+   "ingles": "avanzado",
+   "tipo_empresa": "staffing",
+   "stack": [
+    "delegar tareas multi-paso a agentes",
+    "Claude Code/Cursor/Copilot/Codex/Gemini CLI",
+    "evaluar código generado",
+    "comparar salidas entre IAs",
+    "documentar procesos reproducibles",
+    "prompt engineering",
+    "refactoring"
+   ],
+   "match": [
+    "forma de trabajo diaria",
+    "Claude Code con CLAUDE.md y ramas",
+    "agente que descartó su propia recomendación",
+    "README con deuda técnica",
+    "comparación Claude/Gemini/Cursor/v0"
+   ],
+   "gaps": [
+    "inglés hablado excepcional"
+   ],
+   "bloqueadores": [],
+   "senales": [
+    "'no prior AI experience required'",
+    "sin cloud/K8s/años/.NET",
+    "tarifa más alta",
+    "4 candidatos"
+   ],
+   "candidatos": 4,
+   "badges": [],
+   "human_score": 8,
+   "human_score_match": 8,
+   "human_blockers": [],
+   "human_risks": [
+    "empresa de staffing"
+   ],
+   "accion": "aplicar",
+   "estado": "postulada",
+   "location_ok": "ok",
+   "human_location_ok": "ok",
+   "anchor_source": "human"
+  },
+  {
+   "id": 34,
+   "empresa": "Empresa AB",
+   "titulo": "AI Engineer",
+   "fuente": "remote_rocketship",
+   "fecha": "2026-09-08",
+   "ubicacion": "LATAM (100% remote)",
+   "ubicacion_raw": "LATAM (100% remote)",
+   "paises": null,
+   "modalidad": "remoto",
+   "contrato": "long-term 40h",
+   "salario": null,
+   "anos": 3,
+   "nivel": "Engineer",
+   "disciplina": "ai_engineer",
+   "ingles": "avanzado",
+   "tipo_empresa": "producto",
+   "stack": [
+    "Python",
+    "SQL/PostgreSQL",
+    "REST",
+    "AWS Lambda",
+    "LLM/agentes/RAG",
+    "ETL",
+    "Snowflake (must)",
+    "computer vision nice",
+    "Databricks deseable",
+    "civil/geoespacial deseable"
+   ],
+   "match": [
+    "3+ años",
+    "AI en producción",
+    "shipping AI en productos existentes",
+    "ETL (QPS)",
+    "Python, SQL",
+    "multimodal ~ CV",
+    "QA/QC con IA"
+   ],
+   "gaps": [
+    "Snowflake (must)",
+    "AWS Lambda/S3",
+    "inglés fuerte",
+    "geoespacial",
+    "título en Computación"
+   ],
+   "bloqueadores": [],
+   "senales": [
+    "'shipping AI features into existing products'"
+   ],
+   "candidatos": null,
+   "badges": [],
+   "human_score": 7,
+   "human_score_match": 6,
+   "human_blockers": [],
+   "human_risks": [
+    "LATAM/remoto sin países explícitos",
+    "salario no publicado"
+   ],
+   "accion": "guardar",
+   "estado": "cerrada",
+   "location_ok": "riesgo",
+   "human_location_ok": "riesgo",
+   "notas": "LATAM sin países explícitos: riesgo de ubicación",
+   "anchor_source": "assisted",
+   "score_nota": " Re-puntuada el 2026-09-24 (JS-052) a ciegas contra el perfil real: human_score_match 7 -> 6 (codigo G). Rubrica fija: stack central 50%, requisitos de IA 20% (neutral 7 si el rol no exige IA), disciplina 20% con tope 4 fuera del carril, seniority 10% (mid 8 / senior 5 / staff 2). anchor_source=assisted: puntuada por Claude con esa rubrica y revisada por Mauro. Accion recalculada con el score nuevo y la tabla de decision del prompt: aplicar -> guardar."
+  },
+  {
+   "id": 35,
+   "empresa": "Empresa AC",
+   "titulo": "GenAI Creator",
+   "fuente": "email_linkedin",
+   "fecha": "2026-09-21",
+   "ubicacion": "Argentina (remoto)",
+   "ubicacion_raw": "Argentina",
+   "paises": [
+    "AR"
+   ],
+   "modalidad": "remoto",
+   "contrato": null,
+   "salario": null,
+   "anos": 2,
+   "nivel": null,
+   "disciplina": "creative_production",
+   "ingles": "avanzado",
+   "tipo_empresa": "startup",
+   "stack": [
+    "GenAI (ChatGPT, Midjourney, Adobe Firefly, Gemini)",
+    "Adobe Creative Cloud",
+    "prompting y seleccion de modelos",
+    "workflows y agentes creativos",
+    "desarrollo creativo publicitario",
+    "experiencia en agencia (deseable)"
+   ],
+   "match": [
+    "prompt engineering",
+    "workflows con LLM",
+    "discovery con clientes"
+   ],
+   "gaps": [
+    "Adobe Creative Cloud",
+    "desarrollo creativo publicitario",
+    "experiencia en agencia",
+    "ingles avanzado con clientes"
+   ],
+   "bloqueadores": [
+    "disciplina creativa/publicitaria",
+    "anos de publicidad, no de desarrollo"
+   ],
+   "senales": [
+    "remoto desde Argentina",
+    "pide 2-3 anos"
+   ],
+   "candidatos": null,
+   "badges": [
+    "Crecimiento rapido"
+   ],
+   "jd": "About Us\n\nAt Empresa AC, we are building the AI Operating System for marketing - the only enterprise platform that aggregates every leading AI model, enforces enterprise-grade governance, and turns creative production savings into media growth. Our work moves brands from creative brief to live, on-brand, performance-tested campaigns in minutes - across every market, channel and language - without sacrificing legal, IT or brand control.\n\nYour mission\n\nBring the craft of advertising together with the speed of GenAI. You build and operate agentic and nodal creative workflows - connecting insight, concept, copy, imagery and video into scalable systems - so our creative teams and clients can move from idea to finished advertising faster, without losing quality or strategic grounding.\n\nYou work day-to-day under the direction of Art Directors and Creative Directors, bringing deep hands-on fluency in GenAI tools and workflows to their briefs. You're not setting creative vision - you're the person in the room who knows how to make the technology deliver on it.\n\nThis track is for people who go deep on the systems side - building, scaling, and governing the agents, workflows, and creative infrastructure that creative teams and clients rely on. Creative sensibility still matters (they need to understand what \"good creative output\" means to build for it), but the growth path is technical leadership and architecture, not creative direction.\n\nKey Responsibilities\n\nDiscovery & Requirements\n\nMeet with clients, creative teams, and stakeholders to understand workflows, challenges, and operational requirements\nFacilitate workflow audits and capability assessments\nIdentify where GenAI, agents, or automation can meaningfully improve quality, efficiency, or scale\nTranslate operational challenges into technical implementation plans\n\nAgent, Workflow & System Architecture\n\nDesign and build production-grade prompts, workflows, agents, and creative systems\nDevelop repeatable, scalable frameworks that support multiple brands, markets, and channels\nOwn workflow governance, quality control, and reliability of deployed systems\nEstablish technical standards and best practices for how agents and workflows are built and maintained\n\nEnablement & Technical Adoption\n\nLead training, workshops, and office hours to help teams adopt new systems\nOwn technical documentation, playbooks, and guides for internal and client use\nSupport change management as new tools and workflows roll out\nAct as the technical authority on GenAI capabilities, limitations, and constraints\n\nPlatform Evaluation & Technical Innovation\n\nEvaluate emerging AI models, platforms, and tooling for technical fit and scalability\nStress-test new capabilities and provide structured, technical feedback to Product and Engineering\nIdentify architectural improvements to existing agents, workflows, and systems\nRepresent the technical roadmap for creative technology internally\n\nWhat We're Looking For\n\n2-3 years' experience in advertising creative development\nExperience with GenAI tools such as ChatGPT, Midjourney, Adobe Firefly, Gemini etc.\nExperience with GenAI techniques such as model selection & prompting\nAny experience using GenAI to deliver real-world advertising creative\nProficiency in Adobe Creative Cloud\nGood personal communication and management skills\nPreference for candidates who have prior agency experience\nStrong written English skills, allowing you to communicate effectively with clients and team\nAccess to a reliable computer with an internet connection exceeding 40 Mbps\nA collaborative and team-oriented attitude with optimism about the role of GenAI in creativity\n\nWhat Growth Looks Like\n\nArt Director: owns creative direction across projects, sets visual/conceptual standards, mentors on craft.\nCreative Director: sets creative vision across accounts or brands, owns creative quality at scale.\nHead of Creative: sets the creative bar and point of view for the organization.\n\nYour Benefits\n\n25 days PTO plus public holidays\nRemote-first, flexibility to work anywhere from your home country.\nHealth insurance / private medical cover\nMonthly stipend towards wellness, fitness, and learning and development\nEnhanced parental leave policies, whether you become a parent through birth, adoption or surrogacy",
+   "human_score": 3.5,
+   "human_score_match": 3.5,
+   "human_blockers": [
+    "disciplina distinta (creative_production)",
+    "años en otro dominio (advertising creative development)"
+   ],
+   "human_risks": [
+    "salario no publicado",
+    "inglés avanzado exigido (candidato B1)"
+   ],
+   "score_nota": "Agregada el 2026-09-23 (JS-052). v1.3.1 le dio 7.5 y 'aplicar': clasificó ai_engineer por la misión y las responsabilidades, llenas de 'agents' y 'workflows', en vez de por los requisitos (2-3 años en advertising creative development, Adobe CC, agencia) y por la carrera (Art Director -> Creative Director). Los 2 años son de publicidad, no de desarrollo. La IA es la herramienta, no la disciplina. La JD del golden es la completa del aviso (About Us + responsabilidades + requisitos + carrera): con la recortada el caso es mas facil de lo que fue en produccion.",
+   "accion": "descartar",
+   "estado": "evaluada",
+   "location_ok": "ok",
+   "human_location_ok": "ok",
+   "anchor_source": "human"
+  },
+  {
+   "id": 36,
+   "empresa": "Empresa AD",
+   "titulo": "Software Developer (AI)",
+   "fuente": "getonboard_api",
+   "fecha": "2026-09-23",
+   "ubicacion": "Remoto (work from anywhere)",
+   "ubicacion_raw": "Remoto (fully remote, work from anywhere)",
+   "paises": [
+    "*"
+   ],
+   "modalidad": "remoto",
+   "contrato": "Full time",
+   "salario": {
+    "min": 3200,
+    "max": 4500,
+    "periodo": "mensual"
+   },
+   "anos": 3,
+   "nivel": null,
+   "disciplina": "fullstack",
+   "ingles": "avanzado",
+   "tipo_empresa": "producto",
+   "stack": [
+    "JavaScript/TypeScript",
+    "Python (deseable)",
+    "APIs, web apps e integraciones",
+    "desarrollo asistido por IA (Claude, Cursor, Copilot)",
+    "LMS o plataformas de entrenamiento (bonus)",
+    "solapamiento 4 h con US Eastern"
+   ],
+   "match": [
+    "TypeScript",
+    "APIs y web apps",
+    "desarrollo asistido por IA",
+    "documentacion",
+    "comunicacion con equipos no tecnicos"
+   ],
+   "gaps": [
+    "LMS o plataformas de entrenamiento",
+    "manufactura o industrias reguladas"
+   ],
+   "bloqueadores": [],
+   "senales": [
+    "salario publicado sobre el piso",
+    "pocos candidatos",
+    "foco en desarrollo asistido por IA"
+   ],
+   "candidatos": 6,
+   "badges": [],
+   "jd": "The role\n\nWe're hiring a remote developer to own the customization of our training app. You'll learn the platform quickly, then build what our teams need to train and onboard people. Over time, you'll take on other internal tools and automations.\n\nAI-assisted development is central to how we work. You'll use AI tools to write and ship better code faster, while also turning real-world needs into reliable solutions.\n\n- Learn our training app inside and out, then customize and extend it\n- Build features, integrations, and automations with AI coding tools like Claude, Cursor, Copilot, and Grok\n- Turn rough requests from the plant and office teams into working solutions\n- Document your work so others can use it and maintain it\n- Give regular, clear progress updates\n\nWhat we're looking for\n\n- 3+ years of professional software development\n- Strong, proven skill with AI-assisted coding: you know how to prompt, check, and fix AI-generated code\n- A track record of quickly learning unfamiliar platforms and codebases\n- Experience with APIs, web apps, and integrations (JavaScript/TypeScript or Python preferred)\n- Excellent written English and consistent communication\n- Able to overlap at least 4 hours a day with US Eastern Time\n- Bonus: experience with LMS or training platforms, or with manufacturing or regulated industries",
+   "human_score": 8.5,
+   "human_score_match": 8.5,
+   "human_blockers": [],
+   "human_risks": [
+    "inglés avanzado exigido (candidato B1)",
+    "solapamiento de 4 horas con US Eastern Time"
+   ],
+   "score_nota": "Agregada el 2026-09-23 (JS-052) como caso de inglés. v1.3.1 leyó 'Excellent written English and consistent communication' como intermedio: es avanzado. El match es correcto y el score se mantiene alto; el inglés va como riesgo, nunca como bloqueador. Disciplina fijada por Mauro el 2026-09-24: fullstack. Es customizar una app de capacitacion e integraciones usando herramientas de IA, no construir sistemas con LLM.",
+   "accion": "aplicar",
+   "estado": "aplicada",
+   "location_ok": "ok",
+   "human_location_ok": "ok",
+   "anchor_source": "human"
+  }
+ ],
+ "dedup_pairs": [
+  {
+   "a": 19,
+   "b": 20,
+   "expected": "duplicate",
+   "reason": "misma empresa, >90% texto, título distinto"
+  },
+  {
+   "a": 6,
+   "b": 7,
+   "expected": "distinct",
+   "reason": "misma empresa, roles distintos, Jaccard título < 0.6"
+  },
+  {
+   "a": 15,
+   "b": 17,
+   "expected": "distinct",
+   "reason": "misma empresa, roles distintos"
+  },
+  {
+   "a": 21,
+   "b": 22,
+   "expected": "distinct",
+   "reason": "misma línea, herramienta distinta"
+  }
+ ],
+ "prefilter_expectations": {
+  "descripcion": "Con SOLO los campos disponibles en un email de alerta (título, empresa, ubicación, modalidad, badges, candidatos), el prefiltro debe descartar estos ids sin LLM.",
+  "must_discard": [
+   2,
+   5,
+   8,
+   17,
+   21,
+   22,
+   23,
+   26,
+   27
   ],
-  "dedup_pairs": [{"a":19,"b":20,"expected":"duplicate","reason":"misma empresa, >90% texto, título distinto"},{"a":6,"b":7,"expected":"distinct","reason":"misma empresa, roles distintos, Jaccard título < 0.6"},{"a":15,"b":17,"expected":"distinct","reason":"misma empresa, roles distintos"},{"a":21,"b":22,"expected":"distinct","reason":"misma línea, herramienta distinta"}],
-  "prefilter_expectations": {"descripcion":"Con SOLO los campos disponibles en un email de alerta (título, empresa, ubicación, modalidad, badges, candidatos), el prefiltro debe descartar estos ids sin LLM.","must_discard":[2,5,8,17,21,22,23,26,27],"must_cap_5_not_discard":[13],"must_pass":[6,7,10,16,24,28,30,32,33,34],"discard_by_badge":[18,31]},
-  "market_agenda_2026_09": {"gaps":{"cloud_aws_azure_gcp":12,"ingles_fluido_o_excelente":9,"anos_5_o_mas":9,"ci_cd":8,"testing_automatizado":7,"docker_kubernetes":7,"dotnet_profundo":4,"langchain_langgraph":4,"python_backend_frameworks":3,"observabilidad":3,"clean_architecture":2,"nestjs":2,"seo_tecnico":2,"snowflake":1,"litellm":1,"okta_oidc":1},"diferenciales":{"rag":6,"agentic_ai_con_contencion":6,"function_calling_tool_use":5,"ai_coding_tools":4,"mcp_explicito":4,"client_facing":4,"multi_provider":3,"etl":3,"evaluar_no_deterministicos":3,"vercel_supabase":2,"trazabilidad_agentes":2}}
+  "must_cap_5_not_discard": [
+   13
+  ],
+  "must_pass": [
+   6,
+   7,
+   10,
+   16,
+   24,
+   28,
+   30,
+   32,
+   33,
+   34
+  ],
+  "discard_by_badge": [
+   18,
+   31
+  ]
+ },
+ "market_agenda_2026_09": {
+  "gaps": {
+   "cloud_aws_azure_gcp": 12,
+   "ingles_fluido_o_excelente": 9,
+   "anos_5_o_mas": 9,
+   "ci_cd": 8,
+   "testing_automatizado": 7,
+   "docker_kubernetes": 7,
+   "dotnet_profundo": 4,
+   "langchain_langgraph": 4,
+   "python_backend_frameworks": 3,
+   "observabilidad": 3,
+   "clean_architecture": 2,
+   "nestjs": 2,
+   "seo_tecnico": 2,
+   "snowflake": 1,
+   "litellm": 1,
+   "okta_oidc": 1
+  },
+  "diferenciales": {
+   "rag": 6,
+   "agentic_ai_con_contencion": 6,
+   "function_calling_tool_use": 5,
+   "ai_coding_tools": 4,
+   "mcp_explicito": 4,
+   "client_facing": 4,
+   "multi_provider": 3,
+   "etl": 3,
+   "evaluar_no_deterministicos": 3,
+   "vercel_supabase": 2,
+   "trazabilidad_agentes": 2
+  }
+ }
 }
