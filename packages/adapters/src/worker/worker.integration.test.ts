@@ -54,6 +54,9 @@ const fakeEvaluation = {
   score: 8,
   confianza: "alta",
   years_required: 4,
+  // v1.3.2: el schema los exige; sin esto el worker devuelve ok:false por validación
+  years_domain: "desarrollo de software",
+  years_discipline: "ai_engineer",
   location_ok: "ok",
   modalidad: "remoto",
   disciplina: "ai_engineer",
