@@ -209,3 +209,72 @@ describe("bloqueadores y riesgos por tipo (harness endurecido 2026-09-11)", () =
     expect(r.precision).toBeNull(); // el modelo solo dijo salario, que no cuenta
   });
 });
+
+describe("false_discard (JS-052): el error que más cuesta", () => {
+  // El umbral real de postulación de Mauro es 5, no 7: una oferta que el modelo deja bajo 5
+  // termina en descartar y no la ve nunca. Contarlas importa más que afinar el 7.
+  it("cuenta las ofertas con ancla ≥ 5 que el modelo deja bajo 5", () => {
+    const m = computeMetrics(
+      [
+        // ancla 6.5, el modelo la deja en 4.5 → falso descarte
+        row({ id: 6, human_score_match: 6.5, model_score: 4.5, model_score_final: 4.5 }),
+        // ancla 7, el modelo la baja pero queda en 5 → no es falso descarte
+        row({ id: 16, human_score_match: 7, model_score: 5, model_score_final: 5 }),
+        // ancla 3: que quede abajo está bien
+        row({ id: 11, human_score_match: 3, model_score: 2, model_score_final: 2 }),
+        // ancla 7 con score alto: sin problema
+        row({ id: 28, human_score_match: 7, model_score: 7.5, model_score_final: 7.5 }),
+      ],
+      "human_score_match",
+    );
+    expect(m.false_discard).toBe(1);
+  });
+
+  it("mide sobre el score final de decide(), no sobre el crudo del modelo", () => {
+    // El modelo dice 7,5 pero un cap de disciplina lo deja en 4: para Mauro desapareció igual
+    const m = computeMetrics(
+      [row({ id: 35, human_score_match: 6, model_score: 7.5, model_score_final: 4 })],
+      "human_score_match",
+    );
+    expect(m.false_discard).toBe(1);
+  });
+
+  it("sin score final cae al crudo del modelo (reportes viejos)", () => {
+    const m = computeMetrics(
+      [row({ id: 7, human_score_match: 6.5, model_score: 4, model_score_final: undefined })],
+      "human_score_match",
+    );
+    expect(m.false_discard).toBe(1);
+  });
+
+  it("false_discard_action (informativa): ancla ≥ 5 que termina en descartar aunque el score no baje", () => {
+    const m = computeMetrics(
+      [
+        // score 6 pero bloqueador → descartar: el score no lo dice, la acción sí
+        row({
+          id: 30,
+          human_score_match: 7,
+          model_score: 6,
+          model_score_final: 6,
+          model_action: "descartar",
+        }),
+      ],
+      "human_score_match",
+    );
+    expect(m.false_discard).toBe(0);
+    expect(m.false_discard_action).toBe(1);
+  });
+
+  it("el umbral es configurable (thresholds.guardar de CriteriaRules)", () => {
+    const rows = [row({ id: 1, human_score_match: 7, model_score: 5.5, model_score_final: 5.5 })];
+    expect(computeMetrics(rows, "human_score_match").false_discard).toBe(0);
+    expect(computeMetrics(rows, "human_score_match", 6).false_discard).toBe(1);
+  });
+
+  it("checkThresholds exige false_discard = 0", () => {
+    const names = checkThresholds(computeMetrics([row({})], "human_score_match")).map(
+      (c) => c.name,
+    );
+    expect(names).toContain("false_discard = 0");
+  });
+});

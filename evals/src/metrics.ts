@@ -23,6 +23,11 @@ export type JobRow = {
   human_location_ok_clean: string;
   /** Mediana del score entre corridas; null si todas fallaron. */
   model_score: number | null;
+  /**
+   * Score después de decide() (cap de título, cap de disciplina, penalizaciones). Es el que cruza
+   * los umbrales y el que se ve en la UI. Los reportes viejos no lo traen: se cae a model_score.
+   */
+  model_score_final?: number | null;
   scores: number[];
   model_blockers: string[];
   /** Riesgos (prompt v1.1+); vacío con v1. */
@@ -57,6 +62,13 @@ export type Metrics = {
   discipline_acc: number | null;
   action_acc: number | null;
   false_apply: number;
+  /**
+   * Ofertas con ancla humana ≥ el piso (thresholds.guardar, 5) que el modelo deja por debajo:
+   * desaparecen de la lista y Mauro no las ve nunca. Es el error más caro (JS-052).
+   */
+  false_discard: number;
+  /** Variante por acción: ancla ≥ piso que termina en "descartar" aunque el score no baje. */
+  false_discard_action: number;
   /** Jobs con ubicación humana riesgo o no donde el modelo devolvió EXACTAMENTE el mismo valor. */
   location_risk_recall: number | null;
   /** Métrica vieja (indulgente): riesgo y no valen como equivalentes. */
@@ -73,6 +85,7 @@ export const UNSTABLE_RANGE = 1.5;
  */
 export const BLOCKER_TYPES = [
   "disciplina",
+  "dominio_anos",
   "anos",
   "modalidad",
   "autorizacion",
@@ -90,6 +103,8 @@ const fold = (s: string) =>
 
 export function classifyBlocker(text: string): BlockerType {
   const t = fold(text);
+  // Antes que disciplina y que anos: "anos en otro dominio" matchea a los dos y es otra cosa.
+  if (/otro dominio|otra disciplina/.test(t)) return "dominio_anos";
   if (
     /disciplina|ml engineer|machine learning|evaluaci|ciberseg|data scien|project manag|administraci/.test(
       t,
@@ -113,6 +128,7 @@ export const RISK_TYPES = [
   "candidatos",
   "empresa_desconocida",
   "ingles",
+  "anos",
   "otro",
 ] as const;
 export type RiskType = (typeof RISK_TYPES)[number];
@@ -200,7 +216,14 @@ export const anchorLocation = (r: JobRow, anchor: Anchor): string =>
 export const anchorBlockers = (r: JobRow, anchor: Anchor): string[] =>
   anchor === "human_score" ? r.human_blockers_legacy : r.human_blockers;
 
-export function computeMetrics(rows: JobRow[], anchor: Anchor = "human_score"): Metrics {
+/** Piso de postulación por defecto: thresholds.guardar de CriteriaRules. */
+export const DEFAULT_APPLY_FLOOR = 5;
+
+export function computeMetrics(
+  rows: JobRow[],
+  anchor: Anchor = "human_score",
+  applyFloor: number = DEFAULT_APPLY_FLOOR,
+): Metrics {
   const ok = rows.filter((r) => r.model_score !== null);
   const pickAnchor = (r: JobRow) =>
     anchor === "human_score" ? r.human_score : r.human_score_match;
@@ -223,6 +246,14 @@ export function computeMetrics(rows: JobRow[], anchor: Anchor = "human_score"): 
 
   const disciplineHit = ok.filter((r) => r.model_discipline === r.human_discipline).length;
   const actionHit = ok.filter((r) => sameAction(r.model_action ?? "", r.human_action)).length;
+
+  const finalScore = (r: JobRow) => r.model_score_final ?? r.model_score;
+  const overFloor = ok.filter((r) => pickAnchor(r) !== null && pickAnchor(r)! >= applyFloor);
+  const falseDiscard = overFloor.filter((r) => {
+    const f = finalScore(r);
+    return f !== null && f !== undefined && f < applyFloor;
+  }).length;
+  const falseDiscardAction = overFloor.filter((r) => r.model_action === "descartar").length;
 
   const falseApply = ok.filter(
     (r) =>
@@ -258,6 +289,8 @@ export function computeMetrics(rows: JobRow[], anchor: Anchor = "human_score"): 
     discipline_acc: ratio(disciplineHit, ok.length),
     action_acc: ratio(actionHit, ok.length),
     false_apply: falseApply,
+    false_discard: falseDiscard,
+    false_discard_action: falseDiscardAction,
     location_risk_recall: ratio(riskyExact, risky.length),
     location_risk_recall_any: ratio(riskyAny, risky.length),
     unstable_ratio: ratio(ok.filter((r) => r.unstable).length, ok.length) ?? 0,
@@ -286,6 +319,7 @@ export function checkThresholds(m: Metrics): { name: string; ok: boolean; value:
     },
     { name: "action_acc ≥ 85%", ok: (m.action_acc ?? 0) >= 0.85, value: pct(m.action_acc) },
     { name: "false_apply = 0", ok: m.false_apply === 0, value: String(m.false_apply) },
+    { name: "false_discard = 0", ok: m.false_discard === 0, value: String(m.false_discard) },
     {
       name: "location_risk_recall = 100%",
       ok: m.location_risk_recall === 1,

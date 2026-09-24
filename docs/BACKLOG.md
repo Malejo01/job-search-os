@@ -359,6 +359,13 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 
 ## Bloque 6 — Plataforma (después)
 
+### JS-053 · Agente de postulaciones con revisión humana
+`deps:` JS-035, JS-032 · `est:` a estimar · `estado:` todo (no ahora)
+- Surge del 2026-09-23, al corregir el evaluador (JS-052): el perfil declara "agentes con tool calling" como fuerte y no hay ningún agente propio en producción que lo respalde. El perfil pasó a declararlo MEDIO.
+- Agente dentro de Job Search OS que use como tools `get_job`, el perfil y el CV para redactar cartas de presentación y respuestas a recruiters, **siempre con revisión humana antes de enviar**.
+- ADR-004 sigue vigente: el agente redacta, no postula ni navega LinkedIn. Nada se manda solo.
+- **Acepta:** a definir cuando entre. Sirve además como evidencia verificable para el propio perfil.
+
 ### JS-040 · SST y migración 3a (workers a Lambda)
 ### JS-041 · Onboarding de terceros, BYOK, planes
 ### JS-042 · Recruiter CRM y follow-ups

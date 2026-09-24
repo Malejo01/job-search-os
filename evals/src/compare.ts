@@ -32,6 +32,8 @@ export function compareReports(a: Report, b: Report): string {
     `| discipline_acc | ${pct(ma.discipline_acc)} | ${pct(mb.discipline_acc)} |`,
     `| action_acc | ${pct(ma.action_acc)} | ${pct(mb.action_acc)} |`,
     `| false_apply | ${ma.false_apply} | ${mb.false_apply} |`,
+    `| **false_discard** | ${ma.false_discard} | ${mb.false_discard} |`,
+    `| false_discard_action (informativa) | ${ma.false_discard_action} | ${mb.false_discard_action} |`,
     `| location_risk_recall | ${pct(ma.location_risk_recall)} | ${pct(mb.location_risk_recall)} |`,
     `| unstable | ${pct(ma.unstable_ratio)} | ${pct(mb.unstable_ratio)} |`,
     `| tokens in/out | ${a.meta.tokens_in}/${a.meta.tokens_out} | ${b.meta.tokens_in}/${b.meta.tokens_out} |`,

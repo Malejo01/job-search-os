@@ -124,6 +124,8 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
   const decision = decide(evaluation, rules, {
     titleCap: titleCapFromFlags(job.flags),
     prefilterFlags: job.flags ?? [],
+    candidateEnglishCefr: profile.englishCefr,
+    candidateYearsTotal: profile.yearsTotal,
   });
 
   const [row] = await db
@@ -138,6 +140,8 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
       score: decision.scoreFinal,
       scoreModel: decision.scoreModel,
       yearsRequired: evaluation.years_required,
+      yearsDomain: evaluation.years_domain,
+      yearsDiscipline: evaluation.years_discipline,
       locationOk: evaluation.location_ok,
       modality: evaluation.modalidad,
       discipline: evaluation.disciplina,
