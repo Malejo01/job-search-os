@@ -383,6 +383,17 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
   - Tests: re-evaluar una `aplicada` la deja en `aplicada`, escribe una `evaluations` nueva y **no toca `applications.applied_at` ni `applications.outcome`**.
 - **Acepta:** `--job a8b70138…` (Steuart) re-evalua y la oferta sigue en `aplicada` con su fecha de postulacion intacta; `--model gemini-3.5-flash` sigue omitiendo lo que no esta en `evaluada`.
 
+### JS-059 · Separar el presupuesto de evals del de produccion
+`deps:` JS-052 · `est:` 3 h · `estado:` todo
+- **Pasó el 2026-09-24:** las dos validaciones completas de JS-052 (256 llamadas, USD 2,25) consumieron `LLM_DAILY_CAP_USD` y, horas después, el worker se frenó con las 49 ofertas reales encoladas: `FRENADO por tope de gasto: USD 2,2600 en 24 h ≥ LLM_DAILY_CAP_USD=2`. El tope hizo lo que tenia que hacer, pero **calibrar el evaluador bloqueó evaluar ofertas**, que son dos cosas distintas con urgencias distintas.
+- Hoy `spendLast24h` suma **todas** las `llm_calls` de las ultimas 24 h contra un unico tope, y lo consultan tanto el worker como el harness de evals. Las corridas de evals ya se marcan aparte (`task = eval:<version>`, JS-011), asi que el dato para separarlos ya esta en la tabla.
+- **Propuesta:**
+  - `spendLast24h` recibe un ambito: `produccion` (excluye `task LIKE 'eval:%'`) o `evals` (solo `eval:%`).
+  - Dos topes: `LLM_DAILY_CAP_USD` para el worker y los caminos de producto, y `LLM_EVALS_DAILY_CAP_USD` para el harness. Una calibracion cara ya no puede dejar sin evaluar las ofertas del dia.
+  - **Un tope global de seguridad** `LLM_TOTAL_DAILY_CAP_USD` que cuenta todo y frena cualquiera de los dos caminos. Sin esto, partir el presupuesto en dos solo duplica el techo, que es lo contrario de lo que se busco despues del 2026-09-10.
+  - El mensaje de freno dice **cual** de los tres topes salto y cuanto falta para que la ventana movil libere.
+- **Acepta:** con una corrida completa de evals recien terminada, `pnpm worker:evaluate` procesa la cola igual; con el tope global agotado, los dos caminos frenan y el log nombra el tope global. Tests sobre `spendLast24h` con filas `eval:*` y de produccion mezcladas.
+
 ### JS-058 · Que la promocion de un prompt no pueda quedar a medias
 `deps:` JS-052 · `est:` 3 h · `estado:` todo
 - Surge del 2026-09-24: el PR #23 mergeo `evaluate_job.v1.3.2.md`, las reglas de `decide()` y los criterios v2, pero `DEFAULT_PROMPT_VERSIONS.evaluate_job` quedo en `v1.3.1`. Produccion deployo bien y siguio evaluando con el prompt viejo. Se descubrio de casualidad, mirando el codigo antes de correr el requeue; si no, se re-evaluaban ~40 ofertas con el prompt equivocado.
