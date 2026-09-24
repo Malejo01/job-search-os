@@ -30,6 +30,7 @@ import {
   goldenMeta,
   goldenPrefilter,
   goldenVars,
+  profile,
   type GoldenJob,
 } from "./golden";
 import {
@@ -47,10 +48,11 @@ import {
 
 /**
  * Jobs ancla: definen las fronteras (ML vs AI engineer, Lead con excepción, riesgo de
- * ubicación, .NET periférico vs central, match alto sin stack pesado). Con --subset --runs 1
- * son 14 llamadas en vez de 102: para iterar una hipótesis, no para validar.
+ * ubicación, .NET periférico vs central, match alto sin stack pesado, y desde JS-052 la
+ * disciplina por requisitos y el nivel de inglés). Con --subset --runs 1 son 16 llamadas en vez
+ * de 108: para iterar una hipótesis, no para validar.
  */
-export const ANCHOR_IDS = [1, 6, 7, 11, 12, 13, 14, 16, 24, 28, 30, 32, 33, 34];
+export const ANCHOR_IDS = [1, 6, 7, 11, 12, 13, 14, 16, 24, 28, 30, 32, 33, 34, 35, 36];
 
 /** Tope de llamadas por corrida salvo --force. Las corridas completas quedan para la validación final. */
 export const DEFAULT_CALL_BUDGET = 150;
@@ -197,6 +199,8 @@ export function productionDecision(
   const d = decide({ ...rep, score: modelScore }, criteriaRules, {
     titleCap: pre.cap,
     prefilterFlags: pre.flags,
+    candidateEnglishCefr: profile.englishCefr,
+    candidateYearsTotal: profile.yearsTotal,
   });
   return {
     action: d.accion,
@@ -625,9 +629,11 @@ async function runEvalsWith(options: RunOptions, env: RunEnv): Promise<Report> {
       human_risks: job.human_risks,
       human_discipline: job.disciplina,
       human_action: job.accion,
+      anchor_source: job.anchor_source ?? "human",
       human_location_ok: job.location_ok,
       human_location_ok_clean: job.human_location_ok,
       model_score: modelScore,
+      model_score_final: decision?.score_final ?? null,
       scores,
       delta: modelScore !== null && humanAnchor !== null ? modelScore - humanAnchor : null,
       model_blockers: rep?.bloqueadores_duros ?? [],
@@ -646,7 +652,7 @@ async function runEvalsWith(options: RunOptions, env: RunEnv): Promise<Report> {
     };
   });
 
-  const metrics = computeMetrics(jobReports, anchor);
+  const metrics = computeMetrics(jobReports, anchor, criteriaRules.thresholds.guardar);
   const okJobs = jobReports.filter((j) => j.model_score !== null);
   const missedBlockers: MissedBlocker[] = okJobs
     .filter((j) => anchorBlockers(j, anchor).length > 0 && !j.model_blockers.length)
@@ -767,6 +773,8 @@ export function formatReport(report: Report): string {
     `| discipline_acc | ${pct(m.discipline_acc)} | ≥ 90% |`,
     `| action_acc | ${pct(m.action_acc)} | ≥ 85% |`,
     `| false_apply | ${m.false_apply} | 0 |`,
+    `| false_discard (ancla ≥ 5, el modelo lo deja abajo) | ${m.false_discard} | 0 |`,
+    `| false_discard_action (ancla ≥ 5 → descartar) | ${m.false_discard_action} | informativo |`,
     `| location_risk_recall (valor exacto) | ${pct(m.location_risk_recall)} | 100% |`,
     `| location_risk_recall_any (vieja: riesgo ≡ no) | ${pct(m.location_risk_recall_any)} | informativo |`,
     `| unstable | ${pct(m.unstable_ratio)} | ≤ 10% |`,

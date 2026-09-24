@@ -11,7 +11,7 @@ export const jobStatus = pgEnum("job_status", [
 ]);
 export const modality = pgEnum("modality", ["remoto", "hibrido", "presencial", "desconocida"]);
 export const discipline = pgEnum("discipline", [
-  "ai_engineer", "ml_engineer", "ai_evaluation", "fullstack", "frontend", "backend", "devops",
+  "ai_engineer", "ml_engineer", "ai_evaluation", "creative_production", "fullstack", "frontend", "backend", "devops",
   "data", "ciberseguridad", "negocio", "project_management", "administracion_plataformas", "arquitectura", "otra",
 ]);
 export const locationOk = pgEnum("location_ok", ["ok", "riesgo", "no"]);
@@ -92,9 +92,14 @@ export type CriteriaRules = {
   title_cap_score_if_few_candidates: { max_candidates: number; cap: number; disciplines: string[] }; // {5, 5, ["ai_engineer"]}
   max_years_hard: number;               // 8
   years_penalty: { from: number; to: number; penalty: number }; // 5-7 → -2
+  // Gap contra los años del candidato (JS-052): por defecto solo riesgo, null desactiva el escalón
+  years_gap: { risk_from: number | null; penalty_from: number | null; penalty: number; blocker_from: number | null };
   ml_engineer_keywords: string[];       // fine-tuning, lora, peft, pytorch, tensorflow, sagemaker
   ai_eval_keywords: string[];           // eval harness, llm-as-judge, red-teaming, golden dataset
   other_discipline_keywords: string[];  // iam, sailpoint, seo, growth, pmp ...
+  allowed_disciplines: string[];        // disciplinas del perfil; fuera de la lista = bloqueador (JS-052)
+  discipline_cap_score: number;         // 4: tope del score con disciplina distinta
+  english_risk_from: "basico" | "intermedio" | "avanzado" | "nativo"; // "avanzado": desde ahí es riesgo
   cloud_must_penalty: number;           // -1
   english_fluent_penalty: number;       // -1
   easy_apply_penalty: number;           // 0 (solo flag)
@@ -176,6 +181,8 @@ export const evaluations = pgTable("evaluations", {
   hadFullJd: boolean("had_full_jd").notNull(),
   score: real("score").notNull(),
   yearsRequired: integer("years_required"),
+  yearsDomain: text("years_domain"),                    // v1.3.2: de QUÉ son esos años, texto del aviso
+  yearsDiscipline: discipline("years_discipline"),      // v1.3.2: a qué disciplina pertenecen
   locationOk: locationOk("location_ok").notNull(),
   modality: modality("modality").notNull(),
   discipline: discipline("discipline").notNull(),

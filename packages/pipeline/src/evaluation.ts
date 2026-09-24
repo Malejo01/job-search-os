@@ -8,6 +8,8 @@ export const DISCIPLINES = [
   "ai_engineer",
   "ml_engineer",
   "ai_evaluation",
+  /** La IA es herramienta de otro oficio: publicidad, diseño, video, marketing creativo (JS-052). */
+  "creative_production",
   "fullstack",
   "frontend",
   "backend",
@@ -60,6 +62,17 @@ export const EvaluationV11OutputSchema = EvaluationV1OutputSchema.omit({ gaps: t
   riesgos: z.array(z.string()),
 });
 
+/**
+ * v1.3.2 (JS-052): los años vienen con su dominio. `years_required` solo decía "2" y el evaluador
+ * comparaba 2 años de publicidad con 2 años de desarrollo. Ahora el modelo dice de QUÉ son esos
+ * años (`years_domain`, texto del aviso) y a qué disciplina pertenecen (`years_discipline`), y el
+ * código decide si el candidato puede tenerlos.
+ */
+export const EvaluationV12OutputSchema = EvaluationV11OutputSchema.extend({
+  years_domain: z.string().nullable(),
+  years_discipline: z.enum(DISCIPLINES).nullable(),
+});
+
 /** gaps de v1 (string) → {skill, nivel: "must"}; los tipados pasan tal cual. */
 const GapTolerantSchema = z.union([
   z.string().transform((skill): Gap => ({ skill, nivel: "must" })),
@@ -69,6 +82,9 @@ const GapTolerantSchema = z.union([
 export const EvaluationSchema = EvaluationV1OutputSchema.omit({ gaps: true }).extend({
   gaps: z.array(GapTolerantSchema),
   riesgos: z.array(z.string()).default([]),
+  /** v1.3.2+; en versiones anteriores queda null y las reglas de dominio no corren. */
+  years_domain: z.string().nullable().default(null),
+  years_discipline: z.enum(DISCIPLINES).nullable().default(null),
 });
 
 export type Evaluation = z.output<typeof EvaluationSchema>;
@@ -84,12 +100,20 @@ export function outputSchemaFor(promptRef: string): z.ZodType<Evaluation, unknow
         ...e,
         gaps: toGaps(e.gaps),
         riesgos: [] as string[],
+        years_domain: null,
+        years_discipline: null,
       }));
     case "v1.1":
     case "v1.2":
     case "v1.3":
     case "v1.3.1":
-      return EvaluationV11OutputSchema;
+      return EvaluationV11OutputSchema.transform((e) => ({
+        ...e,
+        years_domain: null,
+        years_discipline: null,
+      }));
+    case "v1.3.2":
+      return EvaluationV12OutputSchema;
     default:
       throw new Error(`sin schema de salida para ${promptRef}`);
   }
