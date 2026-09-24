@@ -71,7 +71,7 @@ describe("createLlmClient.generateStructured", () => {
     if (!r.ok) return;
     expect(r.value.object).toEqual({ score: 7, veredicto: "bien" });
     expect(r.value.model).toBe("modelo-primario");
-    expect(r.value.promptVersion).toBe("evaluate_job@v1.3.1");
+    expect(r.value.promptVersion).toBe("evaluate_job@v1.3.2");
     expect(r.value.usedFallback).toBe(false);
     expect(seenPrompt).toContain("perfil");
     expect(seenPrompt).toContain("had_full_jd: false");
@@ -83,7 +83,7 @@ describe("createLlmClient.generateStructured", () => {
       jobId: "j1",
       task: "evaluate_job",
       model: "modelo-primario",
-      promptVersion: "evaluate_job@v1.3.1",
+      promptVersion: "evaluate_job@v1.3.2",
       tokensIn: 1000,
       tokensOut: 100,
       ok: true,
