@@ -183,7 +183,7 @@ describe("worker de evaluación (FakeLlm)", () => {
     const llm = createFakeLlm({ evaluate_job: fakeEvaluation }, { model: "fake-gemini" });
     const summary = await runEvaluateWorker({ db: conn.db, llm, queue: q, logger }, { limit: 5 });
     expect(summary.evaluated).toBe(1);
-    expect(llm.calls[0]?.ctx.promptVersion).toBe("evaluate_job@v1.3.1");
+    expect(llm.calls[0]?.ctx.promptVersion).toBe("evaluate_job@v1.3.2");
     expect(llm.calls[0]?.vars.job).toContain("RAG, agentes y MCP");
 
     const jobId = out.jobId;
@@ -193,7 +193,7 @@ describe("worker de evaluación (FakeLlm)", () => {
     expect(ev).toMatchObject({
       userId: USER,
       model: "fake-gemini",
-      promptVersion: "evaluate_job@v1.3.1",
+      promptVersion: "evaluate_job@v1.3.2",
       score: 7, // 8 del modelo − 1 por gap must de cloud (decide)
       scoreModel: 8,
       accion: "aplicar",
