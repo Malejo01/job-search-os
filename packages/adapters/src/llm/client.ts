@@ -21,7 +21,7 @@ import type {
  * (playbook, Prompt C), no un efecto colateral de otro ticket.
  */
 export const DEFAULT_PROMPT_VERSIONS: Record<string, PromptRef> = {
-  evaluate_job: "evaluate_job@v1.3.1",
+  evaluate_job: "evaluate_job@v1.3.2",
 };
 
 /**
