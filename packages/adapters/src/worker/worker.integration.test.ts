@@ -418,7 +418,9 @@ describe("re-evaluar sin mover el estado (JS-057)", () => {
         raw({
           externalId: `reeval-${estado}`,
           companyRaw: `Reeval ${estado} SA`,
-          jdText: "AI Engineer remoto para Argentina: RAG, agentes y MCP con TypeScript.",
+          // JD distinta por caso: la ingesta deduplica por hash de JD, y con la misma los tres
+          // casos se fusionaban en una sola oferta
+          jdText: `AI Engineer remoto para Argentina (${estado}): RAG, agentes y MCP con TypeScript.`,
         }),
         {
           db: conn.db,
