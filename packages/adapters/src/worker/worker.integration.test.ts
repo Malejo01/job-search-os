@@ -407,6 +407,103 @@ describe("worker: jobs que ya no pueden evaluarse", () => {
   });
 });
 
+describe("re-evaluar sin mover el estado (JS-057)", () => {
+  // Una oferta ya postulada se re-evalúa cuando cambian el prompt o el perfil (sus evaluaciones
+  // alimentan market_summary), pero el embudo no retrocede y la postulación no se toca.
+  it.each(["aplicada", "entrevista", "oferta"] as const)(
+    "en %s: evaluación nueva, mismo estado, postulación intacta",
+    async (estado) => {
+      const q = createPgQueue(conn.db);
+      const out = await ingestRawJob(
+        raw({
+          externalId: `reeval-${estado}`,
+          companyRaw: `Reeval ${estado} SA`,
+          // JD distinta por caso: la ingesta deduplica por hash de JD, y con la misma los tres
+          // casos se fusionaban en una sola oferta
+          jdText: `AI Engineer remoto para Argentina (${estado}): RAG, agentes y MCP con TypeScript.`,
+        }),
+        {
+          db: conn.db,
+          userId: USER,
+          rules: criteria as never,
+          logger,
+          enqueueEvaluation: enqueueEvaluationWith(conn.db, q),
+        },
+      );
+      const llm = createFakeLlm({ evaluate_job: fakeEvaluation });
+      const first = await evaluateJobById(out.jobId, { db: conn.db, llm, queue: q, logger });
+      expect(first).toMatchObject({ ok: true, status: "evaluada" });
+
+      // La persona postuló y cargó el resultado
+      const appliedAt = new Date("2026-09-20T15:00:00Z");
+      const outcomeAt = new Date("2026-09-22T12:00:00Z");
+      await conn.db.update(s.jobs).set({ status: estado }).where(eq(s.jobs.id, out.jobId));
+      await conn.db.insert(s.applications).values({
+        jobId: out.jobId,
+        userId: USER,
+        appliedAt,
+        channel: "linkedin",
+        outcome: "entrevista",
+        outcomeAt,
+        outcomeNote: "nota de la persona",
+      });
+
+      // Re-evaluación con otro prompt/perfil
+      const second = await evaluateJobById(out.jobId, { db: conn.db, llm, queue: q, logger });
+      expect(second).toMatchObject({ ok: true, status: estado });
+
+      const [job] = await conn.db
+        .select({ status: s.jobs.status })
+        .from(s.jobs)
+        .where(eq(s.jobs.id, out.jobId));
+      expect(job?.status).toBe(estado);
+
+      const evals = await conn.db
+        .select({ id: s.evaluations.id })
+        .from(s.evaluations)
+        .where(eq(s.evaluations.jobId, out.jobId));
+      expect(evals).toHaveLength(2);
+
+      const [app] = await conn.db
+        .select()
+        .from(s.applications)
+        .where(eq(s.applications.jobId, out.jobId));
+      expect(app).toMatchObject({
+        appliedAt,
+        channel: "linkedin",
+        outcome: "entrevista",
+        outcomeAt,
+        outcomeNote: "nota de la persona",
+      });
+      for (const m of await q.dequeue(EVALUATE_QUEUE, 50)) await q.ack(m.id);
+    },
+  );
+
+  it("lo terminal se sigue salteando sin llamar al modelo", async () => {
+    const q = createPgQueue(conn.db);
+    const out = await ingestRawJob(
+      raw({
+        externalId: "reeval-descartada",
+        companyRaw: "Reeval descartada SA",
+        jdText: "AI Engineer remoto para Argentina: RAG y agentes.",
+      }),
+      {
+        db: conn.db,
+        userId: USER,
+        rules: criteria as never,
+        logger,
+        enqueueEvaluation: enqueueEvaluationWith(conn.db, q),
+      },
+    );
+    await conn.db.update(s.jobs).set({ status: "descartada" }).where(eq(s.jobs.id, out.jobId));
+    const llm = createFakeLlm({ evaluate_job: fakeEvaluation });
+    const r = await evaluateJobById(out.jobId, { db: conn.db, llm, queue: q, logger });
+    expect(r).toMatchObject({ ok: false, retry: "skipped" });
+    expect(llm.calls).toHaveLength(0);
+    for (const m of await q.dequeue(EVALUATE_QUEUE, 50)) await q.ack(m.id);
+  });
+});
+
 describe("riesgo de ubicación en TODOS los caminos de entrada (Empresa AB/Empresa O)", () => {
   // El modelo dice location_ok = ok y no lista riesgos: el riesgo tiene que venir del prefiltro
   const blindLlm = () =>

@@ -44,13 +44,21 @@ const TRANSITIONS: Record<JobStatus, Partial<Record<JobEvent, JobStatus>>> = {
   prefiltrada: { needs_jd: "pendiente_jd", evaluated: "evaluada" },
   pendiente_jd: { evaluated: "evaluada" },
   evaluada: { apply: "aplicada", discard: "descartada", evaluated: "evaluada" },
-  aplicada: { auto_reject: "rechazo_automatico", reject: "rechazada", interview: "entrevista" },
-  entrevista: { offer: "oferta", reject: "rechazada" },
+  // `evaluated` desde aplicada, entrevista y oferta no mueve el estado (JS-057): re-evaluar es leer
+  // de nuevo con otro prompt o perfil, no retroceder en el embudo. No agrega botones: la UI solo
+  // ofrece MANUAL_EVENTS y `evaluated` lo dispara únicamente el worker.
+  aplicada: {
+    auto_reject: "rechazo_automatico",
+    reject: "rechazada",
+    interview: "entrevista",
+    evaluated: "aplicada",
+  },
+  entrevista: { offer: "oferta", reject: "rechazada", evaluated: "entrevista" },
   descartada_prefiltro: {},
   descartada: {},
   rechazo_automatico: {},
   rechazada: {},
-  oferta: {},
+  oferta: { evaluated: "oferta" },
   cerrada: {},
 };
 
@@ -80,4 +88,19 @@ export function canTransition(status: JobStatus, event: JobEvent): boolean {
 export function availableEvents(status: JobStatus): JobEvent[] {
   const own = Object.keys(TRANSITIONS[status] ?? {}) as JobEvent[];
   return status === "cerrada" ? own : [...own, "close"];
+}
+
+/**
+ * Qué se puede re-encolar para evaluar de nuevo (JS-057). El requeue masivo (`--model`) toca solo
+ * `evaluada`, para no re-evaluar el embudo entero sin querer; con `--job` explícito también lo
+ * que ya tiene una postulación en curso, cuyas evaluaciones alimentan market_summary. Lo terminal
+ * (descartada, rechazada, cerrada) y lo que nunca se evaluó no entra en ningún caso.
+ */
+export const REQUEUE_STATUSES = {
+  bulk: ["evaluada"],
+  explicit: ["evaluada", "aplicada", "entrevista", "oferta"],
+} as const satisfies Record<string, readonly JobStatus[]>;
+
+export function requeueAllowed(status: JobStatus, mode: "bulk" | "explicit"): boolean {
+  return (REQUEUE_STATUSES[mode] as readonly JobStatus[]).includes(status);
 }
