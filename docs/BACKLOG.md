@@ -373,8 +373,8 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Primero `location_risk_recall` (38 %)**: el modelo devuelve `ok` donde la referencia dice `riesgo`. Es la de mayor costo real: los dos rechazos documentados de Mauro (Strider, AgileEngine) fueron por ubicacion, asi que este 38 % ya se pago en postulaciones perdidas.
 - **Acepta:** a definir cuando entre, con una corrida completa antes y despues.
 
-### JS-057 · Re-evaluar no mueve el estado
-`deps:` JS-052 · `est:` 2 h · `estado:` todo
+### JS-057 · Re-evaluar no mueve el estado ✅ done 2026-09-26
+`deps:` JS-052 · `est:` 2 h · `estado:` done
 - Surge del 2026-09-24: `pnpm worker:requeue --job <id>` sobre una oferta en `aplicada` no hace nada. `requeue-cli` filtra `status === "evaluada"` y la manda a `skipped`; si igual llegara, `evaluateJobById` corta en `canTransition(job.status, "evaluated")` antes de la llamada al LLM. **No cambia `status`, `applications` ni `applied_at` — porque no ejecuta nada.** El worker no menciona `applications` en ninguna linea: solo inserta en `evaluations` y actualiza `jobs.status`.
 - El problema real es que **esas evaluaciones quedan con el prompt y el perfil viejos**, y alimentan `market_summary`. Al 2026-09-24 hay ofertas en `aplicada` evaluadas con v1.3.1 y el perfil de "~4 años".
 - **Alcance:**
@@ -382,6 +382,12 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
   - `requeue-cli`: los ids pasados explicitamente con `--job` se aceptan en esos estados; el camino masivo por `--model` **sigue restringido a `evaluada`**, para no re-evaluar el embudo entero sin querer.
   - Tests: re-evaluar una `aplicada` la deja en `aplicada`, escribe una `evaluations` nueva y **no toca `applications.applied_at` ni `applications.outcome`**.
 - **Acepta:** `--job a8b70138…` (Steuart) re-evalua y la oferta sigue en `aplicada` con su fecha de postulacion intacta; `--model gemini-3.5-flash` sigue omitiendo lo que no esta en `evaluada`.
+- **Implementado (2026-09-26):**
+  - **Maquina de estados** (`pipeline/status.ts`): `evaluated` es un bucle sobre si mismo en `aplicada`, `entrevista` y `oferta`. No agrega botones: la UI filtra por `MANUAL_EVENTS` y `evaluated` lo dispara solo el worker. Lo terminal (`descartada`, `rechazada`, `rechazo_automatico`, `cerrada`, `descartada_prefiltro`) sigue sin poder re-evaluarse.
+  - **`REQUEUE_STATUSES` / `requeueAllowed(status, mode)`**: `bulk` (`--model`) = solo `evaluada`; `explicit` (`--job`) = `evaluada`, `aplicada`, `entrevista`, `oferta`. Un test cruza las dos reglas: todo lo re-encolable, el worker lo evalua sin cambiarle el estado.
+  - **`requeue-cli`**: elige el modo segun el flag y el mensaje de omitido dice por que (masivo vs terminal).
+  - **Tests:** 13 unitarios en `status.test.ts`; integracion (Testcontainers): en `aplicada`, `entrevista` y `oferta` la re-evaluacion escribe una `evaluations` nueva, deja el estado igual y **no toca `applied_at`, `channel`, `outcome`, `outcome_at` ni `outcome_note`**; una `descartada` se saltea sin llamar al modelo.
+  - **Pendiente operativo:** re-encolar Steuart y las otras 3 que quedaron con v1.3.1, **despues del deploy**: el cron corre con el codigo deployado y, con el viejo, las saltearia.
 
 ### JS-058 · Que la promocion de un prompt no pueda quedar a medias
 `deps:` JS-052 · `est:` 3 h · `estado:` todo
