@@ -10,6 +10,13 @@ test.describe("Flujo 1: login → lista con filtros", () => {
 
     await login(page);
     await expect(page.getByRole("heading", { name: "Ofertas" })).toBeVisible();
+    // Por defecto la lista muestra solo lo sin revisar (JS-061)
+    await expect(page.getByLabel("Estado")).toHaveValue("");
+
+    // Este flujo prueba el filtro de score, no el de estado: con "todas" hay datos con score alto
+    // aunque en la semilla del e2e ninguno esté sin revisar
+    await page.getByLabel("Estado").selectOption("todas");
+    await expect(page).toHaveURL(/estado=todas/);
 
     // Filtro por score mínimo: cambia la URL y la lista solo muestra scores ≥ 7
     await page.getByLabel("Score mín.").selectOption("7");
@@ -36,5 +43,8 @@ test.describe("Flujo 1: login → lista con filtros", () => {
     await expect(page.getByLabel("Score mín.")).toHaveValue("7");
     await page.getByRole("button", { name: "Limpiar" }).click();
     await expect(page).not.toHaveURL(/score=/);
+    // Limpiar vuelve al default, que es "sin revisar"
+    await expect(page).not.toHaveURL(/estado=/);
+    await expect(page.getByLabel("Estado")).toHaveValue("");
   });
 });
