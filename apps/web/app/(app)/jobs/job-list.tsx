@@ -20,7 +20,7 @@ import {
  * las transiciones cuando cambian los filtros. Los datos vienen ya resueltos del servidor.
  * Un riesgo se ve (chip ámbar), no frena; un bloqueador frena (chip rojo).
  */
-export function JobList({ rows }: { rows: JobListRow[] }) {
+export function JobList({ rows, query = "" }: { rows: JobListRow[]; query?: string }) {
   return (
     <motion.ul layout className="flex flex-col gap-2">
       <AnimatePresence initial={false}>
@@ -33,7 +33,7 @@ export function JobList({ rows }: { rows: JobListRow[] }) {
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.18 }}
           >
-            <JobCard job={job} />
+            <JobCard job={job} query={query} />
           </motion.li>
         ))}
       </AnimatePresence>
@@ -41,13 +41,14 @@ export function JobList({ rows }: { rows: JobListRow[] }) {
   );
 }
 
-function JobCard({ job }: { job: JobListRow }) {
+/** `query`: los filtros de la lista, para que el detalle sepa volver y calcular "siguiente" (JS-061). */
+function JobCard({ job, query }: { job: JobListRow; query: string }) {
   const tone = scoreTone(job.score);
   return (
     <div className="relative flex gap-3 rounded-lg border border-zinc-200 bg-white p-3 hover:border-zinc-400">
       {/* El link al detalle cubre toda la card; el link a la oferta va encima (z-10) */}
       <Link
-        href={`/jobs/${job.id}`}
+        href={`/jobs/${job.id}${query}`}
         className="absolute inset-0 rounded-lg"
         aria-label={`Abrir el detalle de ${job.title}`}
       />
