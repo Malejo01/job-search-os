@@ -16,7 +16,7 @@ export function JobFilters({
   sources,
   statuses,
 }: {
-  value: { score: string; fuente: string; estado: string; desde: string };
+  value: { score: string; fuente: string; estado: string; desde: string; periodo: string };
   sources: Option[];
   statuses: Option[];
 }) {
@@ -29,16 +29,22 @@ export function JobFilters({
     const params = new URLSearchParams(searchParams.toString());
     if (v) params.set(key, v);
     else params.delete(key);
+    // El atajo y la fecha manual son dos formas de lo mismo: elegir una limpia la otra, así
+    // nunca hay dos límites compitiendo sin que se vea cuál gana (JS-061).
+    if (key === "periodo" && v) params.delete("desde");
+    if (key === "desde" && v) params.delete("periodo");
     const qs = params.toString();
     startTransition(() => router.replace(qs ? `${pathname}?${qs}` : pathname));
   };
-  const hasFilters = Boolean(value.score || value.fuente || value.estado || value.desde);
+  const hasFilters = Boolean(
+    value.score || value.fuente || value.estado || value.desde || value.periodo,
+  );
   const select =
     "rounded-md border border-zinc-300 bg-white px-2 py-2 text-sm text-zinc-800 min-w-0";
 
   return (
     <form
-      className={`grid grid-cols-2 gap-2 sm:grid-cols-5 ${pending ? "opacity-60" : ""}`}
+      className={`grid grid-cols-2 gap-2 sm:grid-cols-6 ${pending ? "opacity-60" : ""}`}
       onSubmit={(e) => e.preventDefault()}
       aria-label="Filtros"
     >
@@ -80,13 +86,27 @@ export function JobFilters({
           value={value.estado}
           onChange={(e) => set("estado", e.target.value)}
         >
-          <option value="">activas</option>
+          {/* JS-061: por defecto solo lo que todavía no tiene una acción tomada */}
+          <option value="">sin revisar</option>
+          <option value="activas">activas</option>
           <option value="todas">todas</option>
           {statuses.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
             </option>
           ))}
+        </select>
+      </label>
+      <label className="flex flex-col gap-1 text-xs text-zinc-600">
+        Período
+        <select
+          className={select}
+          value={value.periodo}
+          onChange={(e) => set("periodo", e.target.value)}
+        >
+          <option value="">todas</option>
+          <option value="hoy">hoy</option>
+          <option value="semana">esta semana</option>
         </select>
       </label>
       <label className="flex flex-col gap-1 text-xs text-zinc-600">

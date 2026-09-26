@@ -39,7 +39,8 @@ export async function login(page: Page): Promise<void> {
 /** Inserta una oferta del usuario seed con estado y JD dados; devuelve el id. */
 export async function createJob(options: {
   title: string;
-  status: "pendiente_jd" | "evaluada" | "prefiltrada";
+  /** `aplicada`: ya tiene una acción tomada; la lista sin revisar (JS-061) no la muestra. */
+  status: "pendiente_jd" | "evaluada" | "prefiltrada" | "aplicada";
   jdText?: string | null;
   /** URL de la publicación: `null` = aviso sin link (no debe haber botón "Ver oferta"). */
   canonicalUrl?: string | null;
@@ -111,7 +112,14 @@ export async function queueStatus(jobId: string): Promise<string | null> {
 }
 
 /** Evaluación mínima del modelo demo para una oferta (la corrección de estado exige que exista). */
-export async function createEvaluation(jobId: string): Promise<void> {
+/**
+ * Evaluación falsa. Por defecto score 7 y `aplicar` (lo que asumen los flujos viejos); JS-061
+ * necesita scores altos para ordenar sus ofertas arriba de todo y acciones que no sean verdes.
+ */
+export async function createEvaluation(
+  jobId: string,
+  options: { score?: number; accion?: "aplicar" | "guardar" | "descartar" } = {},
+): Promise<void> {
   const { db, close } = ownerDb();
   try {
     await db.insert(s.evaluations).values({
@@ -121,7 +129,7 @@ export async function createEvaluation(jobId: string): Promise<void> {
       promptVersion: "evaluate_job@e2e",
       model: "fake",
       hadFullJd: true,
-      score: 7,
+      score: options.score ?? 7,
       locationOk: "ok",
       modality: "remoto",
       discipline: "ai_engineer",
@@ -130,7 +138,7 @@ export async function createEvaluation(jobId: string): Promise<void> {
       bloqueadoresDuros: [],
       senalesPositivas: [],
       veredicto: "Evaluación de prueba (e2e).",
-      accion: "aplicar",
+      accion: options.accion ?? "aplicar",
     });
   } finally {
     await close();

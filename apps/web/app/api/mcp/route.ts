@@ -57,8 +57,11 @@ const handler = createMcpHandler(
         const rows = await listJobs(userId, {
           scoreMin: score_min ?? null,
           source: null,
-          status: (status as JobStatus | "todas" | undefined) ?? null,
+          // Default "activas" explícito: en la UI `null` pasó a ser "sin revisar" (JS-061), pero la
+          // tool MCP conserva su contrato documentado (fuera de alcance de ese ticket).
+          status: (status as JobStatus | "todas" | undefined) ?? "activas",
           since: null,
+          periodo: null,
           duplicates: false,
         });
         return text(

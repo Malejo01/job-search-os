@@ -2,6 +2,7 @@ import type { JobEvent } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getJobDetail } from "@/lib/job-detail";
+import { jobNeighbors, listQuery, parseJobFilters } from "@/lib/jobs";
 import {
   ACTION_LABELS,
   DEMO_BADGE_CLASSES,
@@ -19,6 +20,7 @@ import { changeStatusAction, dismissDuplicateAction, humanScoreAction } from "./
 import { AutoRefresh } from "../auto-refresh";
 import { ApplyButton } from "./apply-button";
 import { MergeButton } from "./merge-button";
+import { ReviewNav } from "./review-nav";
 import { StatusCorrection } from "./status-correction";
 
 export const dynamic = "force-dynamic";
@@ -52,12 +54,20 @@ export default async function JobDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const userId = await requireUserId();
   const { id } = await params;
-  const { error } = await searchParams;
-  const job = await getJobDetail(userId, id);
+  const sp = await searchParams;
+  const error = typeof sp.error === "string" ? sp.error : undefined;
+  // Los filtros de la lista viajan en la URL del detalle (JS-061): "volver" y "siguiente" los
+  // respetan, y el orden sale de la misma consulta que la lista.
+  const filters = parseJobFilters(sp);
+  const query = listQuery(filters);
+  const [job, around] = await Promise.all([
+    getJobDetail(userId, id),
+    jobNeighbors(userId, id, filters),
+  ]);
   if (!job) notFound();
   const ev = job.evaluation;
   const tone = scoreTone(ev?.score ?? null);
@@ -68,9 +78,11 @@ export default async function JobDetailPage({
 
   return (
     <article className="flex flex-col gap-4">
-      <Link href="/jobs" className="text-xs text-zinc-500 hover:underline">
-        ← Ofertas
-      </Link>
+      <ReviewNav
+        backHref={`/jobs${query}`}
+        prevHref={around.prev ? `/jobs/${around.prev}${query}` : null}
+        nextHref={around.next ? `/jobs/${around.next}${query}` : null}
+      />
       {error ? (
         <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
           {ERRORS[error] ?? "Algo falló."}
