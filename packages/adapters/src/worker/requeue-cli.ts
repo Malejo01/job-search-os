@@ -5,11 +5,14 @@ import {
   requireDatabaseUrl,
   schema as s,
 } from "@job-search-os/db";
+import { requeueAllowed, type JobStatus } from "@job-search-os/pipeline";
 import { desc, eq, inArray, or, sql } from "drizzle-orm";
 import { createPgQueue, enqueueEvaluationWith, EVALUATE_QUEUE } from "../queue/pg-queue";
 
 /**
  * Re-encola ofertas YA evaluadas para volver a evaluarlas con el modelo real (gasta LLM).
+ * Con --model solo toca `evaluada`; con --job también aplicada, entrevista y oferta, que se
+ * re-evalúan sin moverles el estado ni tocar la postulación (JS-057).
  *   pnpm worker:requeue [--local] (--model fake | --job <uuid o prefijo> [--job ...]) [--force]
  * Sin --force solo lista lo que haría y el costo estimado; con --force encola (idempotente: si ya
  * hay un mensaje pending para ese job no duplica). Después: pnpm worker:evaluate [--local].
@@ -73,8 +76,12 @@ async function main(): Promise<void> {
       .from(s.jobs)
       .innerJoin(latest, eq(latest.jobId, s.jobs.id))
       .where(where);
-    const candidates = rows.filter((r) => r.status === "evaluada");
-    const skipped = rows.filter((r) => r.status !== "evaluada");
+    // --model es masivo: solo `evaluada`. --job es una decisión explícita sobre ofertas puntuales:
+    // también las que ya tienen una postulación en curso, que se re-evalúan sin moverles el
+    // estado (JS-057). Lo terminal no entra en ningún caso.
+    const mode = model ? "bulk" : "explicit";
+    const candidates = rows.filter((r) => requeueAllowed(r.status as JobStatus, mode));
+    const skipped = rows.filter((r) => !requeueAllowed(r.status as JobStatus, mode));
 
     const [route] = await db
       .select({
@@ -102,7 +109,9 @@ async function main(): Promise<void> {
     );
     for (const r of skipped) {
       console.log(
-        `  omitido ${r.id.slice(0, 8)} (${r.status}): solo se re-evalúa lo que está en 'evaluada'`,
+        mode === "bulk"
+          ? `  omitido ${r.id.slice(0, 8)} (${r.status}): el requeue masivo solo toca 'evaluada'; para esta usá --job`
+          : `  omitido ${r.id.slice(0, 8)} (${r.status}): estado terminal o sin evaluar, no se re-evalúa`,
       );
     }
     if (candidates.length === 0) {
