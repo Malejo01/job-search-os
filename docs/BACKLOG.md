@@ -373,8 +373,8 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Primero `location_risk_recall` (38 %)**: el modelo devuelve `ok` donde la referencia dice `riesgo`. Es la de mayor costo real: los dos rechazos documentados de Mauro (Strider, AgileEngine) fueron por ubicacion, asi que este 38 % ya se pago en postulaciones perdidas.
 - **Acepta:** a definir cuando entre, con una corrida completa antes y despues.
 
-### JS-061 · Flujo de revision: ocultar lo ya decidido, ir de a una y ver el avance
-`deps:` JS-015, JS-029 · `est:` 5 h · `estado:` todo (UX, no bloquea)
+### JS-061 · Flujo de revision: ocultar lo ya decidido, ir de a una y ver el avance ✅ done 2026-09-26
+`deps:` JS-015, JS-029 · `est:` 5 h · `estado:` done
 - **Uso real (Mauro, 2026-09-26):** entra, ve las ofertas del dia o de la semana y quiere recorrerlas de mayor a menor score, salteando las que ya tienen una accion tomada, hasta terminar todas las verdes de ese periodo. Hoy tiene que rastrear a mano cuales ya recorrio.
 - **Lo que ya existe (no reimplementar):** `/jobs` ordena por score desc y despues `first_seen` desc; el filtro Estado ofrece `activas` / `todas` / un estado puntual, y `estado=evaluada` ya da exactamente "sin accion tomada"; hay un filtro `Desde` (date picker sobre `first_seen`) y un score minimo (JS-029). **El problema es el default:** `activas` (`ACTIVE_STATUSES` en `apps/web/lib/labels.ts`) incluye `aplicada`, `entrevista` y `oferta`, que son justo las ya recorridas. `descartada`, `cerrada` y `rechazada` ya quedan ocultas.
 - **Alcance:**
@@ -385,6 +385,14 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
   - **Un solo lugar para el orden.** La lista y "siguiente" usan la misma funcion de orden, con `id` como desempate estable; si no, "siguiente" saltea o repite ofertas con el mismo score. Y **JS-054** (dentro del mismo score, menos riesgos primero) va a cambiar ese orden: que cambie en un solo lugar.
 - **Fuera de alcance:** el default de la tool MCP `list_jobs` (sigue en `activas`); guardar la preferencia de filtros entre sesiones.
 - **Acepta:** entrar a `/jobs` sin parametros muestra solo `evaluada` por score desc; con `hoy`, solo lo que entro hoy en hora de Salta; postular la primera y apretar "siguiente" lleva a la segunda del orden; el indicador cuenta bien una verde ya aplicada y una verde todavia en `evaluada`; el atajo no se dispara escribiendo en un input. Los e2e que asumen que `/jobs` muestra ofertas `aplicada` por default se actualizan en el mismo PR.
+- **Implementado (2026-09-26):**
+  - **Regla pura** `packages/pipeline/src/review.ts` (25 tests): `startOfDayInZone` y `periodStart` con la zona como parametro (sin offset fijo: respeta horario de verano), semana desde el lunes, `resolveSince` (atajo + `Desde`, gana el mas reciente), `reviewProgress` con `ACTED_STATUSES` explicitos y `neighbors`.
+  - **Lista:** default "sin revisar" = `evaluada` **o lo que se esta evaluando** (sin eso el e2e de JS-027 se rompia: una oferta recien pegada no se veia). `activas` y `todas` quedan en el mismo select. Elegir un periodo limpia el `Desde` y viceversa.
+  - **Orden en un solo lugar:** `jobNeighbors` corre la misma `listJobs` con `include: <id actual>`, asi la oferta que se acaba de descartar sigue ubicada en su lugar del orden. Desempate estable por `id`.
+  - **Detalle:** `ReviewNav` (el unico `"use client"`) con anterior/siguiente y atajos `j`/`n`/`k`; los filtros viajan en la URL del detalle.
+  - **MCP:** `list_jobs` pasa `activas` explicito para no cambiar su contrato.
+  - **Limite conocido:** si hay mas de 100 ofertas sin revisar y la actual cae despues de la 100 (`LIST_LIMIT`), "siguiente" queda deshabilitado en vez de adivinar.
+  - **E2E** flujo 16 (3 tests): default y "todas", avance medido en deltas, periodo que limpia el `Desde`, y "siguiente" despues de descartar.
 
 ### JS-057 · Re-evaluar no mueve el estado
 `deps:` JS-052 · `est:` 2 h · `estado:` todo
