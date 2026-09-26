@@ -5,6 +5,8 @@ import {
   InvalidTransitionError,
   JOB_STATUSES,
   transition,
+  REQUEUE_STATUSES,
+  requeueAllowed,
 } from "./status";
 
 describe("transition (máquina de estados de jobs.status)", () => {
@@ -55,5 +57,71 @@ describe("transition (máquina de estados de jobs.status)", () => {
     expect(availableEvents("evaluada")).toEqual(["apply", "discard", "evaluated", "close"]);
     expect(availableEvents("cerrada")).toEqual([]);
     expect(availableEvents("aplicada")).toContain("auto_reject");
+  });
+});
+
+describe("re-evaluar no mueve el estado (JS-057)", () => {
+  // Re-evaluar es leer de nuevo, no retroceder en el embudo: una oferta postulada, en entrevista
+  // o con oferta sigue ahí aunque el prompt o el perfil cambien.
+  it.each(["aplicada", "entrevista", "oferta"] as const)(
+    "%s + evaluated → queda igual",
+    (status) => {
+      expect(canTransition(status, "evaluated")).toBe(true);
+      expect(transition(status, "evaluated")).toBe(status);
+    },
+  );
+
+  it.each([
+    "descartada",
+    "rechazada",
+    "rechazo_automatico",
+    "cerrada",
+    "descartada_prefiltro",
+  ] as const)("%s no se re-evalúa: el embudo ya terminó", (status) => {
+    expect(canTransition(status, "evaluated")).toBe(false);
+    expect(() => transition(status, "evaluated")).toThrow(InvalidTransitionError);
+  });
+
+  it("evaluated no es un evento que la persona dispare: no agrega botones en la UI", () => {
+    // La UI filtra availableEvents por MANUAL_EVENTS; evaluated lo dispara solo el worker
+    expect(availableEvents("aplicada")).toContain("evaluated");
+    expect(REQUEUE_STATUSES.explicit).toContain("aplicada");
+  });
+});
+
+describe("requeueAllowed: qué se puede re-encolar (JS-057)", () => {
+  it("el requeue masivo (--model) sigue restringido a evaluada", () => {
+    expect(requeueAllowed("evaluada", "bulk")).toBe(true);
+    for (const status of ["aplicada", "entrevista", "oferta", "descartada", "cerrada"] as const) {
+      expect(requeueAllowed(status, "bulk"), status).toBe(false);
+    }
+  });
+
+  it("con --job explícito también aplicada, entrevista y oferta", () => {
+    for (const status of ["evaluada", "aplicada", "entrevista", "oferta"] as const) {
+      expect(requeueAllowed(status, "explicit"), status).toBe(true);
+    }
+  });
+
+  it("con --job explícito tampoco lo terminal ni lo que todavía no se evaluó", () => {
+    for (const status of [
+      "descartada",
+      "rechazada",
+      "rechazo_automatico",
+      "cerrada",
+      "descartada_prefiltro",
+      "nueva",
+      "prefiltrada",
+      "pendiente_jd",
+    ] as const) {
+      expect(requeueAllowed(status, "explicit"), status).toBe(false);
+    }
+  });
+
+  it("todo lo que se puede re-encolar, el worker lo puede evaluar sin cambiarle el estado", () => {
+    for (const status of REQUEUE_STATUSES.explicit) {
+      expect(canTransition(status, "evaluated"), status).toBe(true);
+      expect(transition(status, "evaluated"), status).toBe(status);
+    }
   });
 });
