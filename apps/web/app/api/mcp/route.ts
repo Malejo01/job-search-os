@@ -8,6 +8,8 @@ import { mcpTokenOk, resolveMcpUserId } from "@/lib/mcp-user";
 import { ingestManualJob, parseModality } from "@/lib/ingest-manual";
 import { evaluateInBackground } from "@/lib/evaluate-now";
 import { attachJd, listPendingJd } from "@/lib/pending-jd";
+import { answersFromBank, approveAnswer, candidateProfile, saveFormAnswers } from "@/lib/applicant";
+import { ANSWER_LANGS } from "@job-search-os/adapters";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,9 +21,17 @@ export const maxDuration = 120;
  * Streamable HTTP en /api/mcp, token compartido (lib/mcp-user.ts). Reutiliza las mismas
  * funciones que la UI (withUser + RLS; jobs.status solo vía transition()). El MCP nunca
  * postula ni navega LinkedIn (ADR-004): solo lee, cambia estados y recibe JD pegadas.
+ * JS-053: contexto para responder formularios. Claude redacta en el chat; el servidor no llama
+ * a ningún modelo, y las respuestas fijas (sueldo, disponibilidad, links) las da el código.
  */
 const text = (data: unknown) => ({
   content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
+});
+const failed = (e: unknown) => ({
+  content: [
+    { type: "text" as const, text: `no se pudo: ${e instanceof Error ? e.message : String(e)}` },
+  ],
+  isError: true,
 });
 
 const handler = createMcpHandler(
@@ -214,8 +224,93 @@ const handler = createMcpHandler(
         });
       },
     );
+
+    server.registerTool(
+      "get_candidate_profile",
+      {
+        title: "Perfil para responder un formulario",
+        description:
+          "Todo lo necesario para responder un formulario de postulación: perfil (resumen, años, inglés, ubicación), hechos verificables (proyecto, afirmación, métrica, fuente, verificable | autodeclarado) y respuestas fijas (disponibilidad, contratación, derecho a trabajar, links). Reglas: no afirmes nada que no esté en `facts` ni en `profile`; lo `autodeclarado` no se presenta como verificado; las respuestas fijas y el sueldo se copian textuales, no se redactan. Con job_id, `salary` es el monto a pedir para esa oferta (kind 'pedir'); si kind es part_time, no_normalizable, bajo_piso o piso_inconsistente NO hay número: avisale a la persona y no inventes uno.",
+        inputSchema: z.object({ job_id: z.string().uuid().optional() }),
+      },
+      async ({ job_id }) => {
+        const userId = await resolveMcpUserId();
+        try {
+          return text(await candidateProfile(userId, job_id ?? null));
+        } catch (e) {
+          return failed(e);
+        }
+      },
+    );
+
+    server.registerTool(
+      "list_answers",
+      {
+        title: "Banco de respuestas aprobadas",
+        description:
+          "Respuestas que la persona ya aprobó en formularios anteriores. Con query, las que comparten palabras con la pregunta (más coincidencias primero); sin query, las más recientes. Cada una trae source_job_id (oferta donde se aprobó) y fechas. Reutilizá una solo si la pregunta es la misma; si hay que adaptarla, es una respuesta nueva que la persona tiene que aprobar.",
+        inputSchema: z.object({
+          query: z.string().optional(),
+          lang: z.enum(ANSWER_LANGS).optional(),
+          limit: z.number().int().min(1).max(50).default(20),
+        }),
+      },
+      async ({ query, lang, limit }) => {
+        const userId = await resolveMcpUserId();
+        return text(await answersFromBank(userId, { query, lang, limit }));
+      },
+    );
+
+    server.registerTool(
+      "save_answer",
+      {
+        title: "Guardar una respuesta aprobada",
+        description:
+          "Guarda en el banco una respuesta que la persona aprobó EXPLÍCITAMENTE en el chat. No la llames con borradores ni con respuestas que no te confirmó. Si ya había una para la misma pregunta (normalizada) en el mismo idioma, la reemplaza. job_id: la oferta donde se aprobó, si hay una.",
+        inputSchema: z.object({
+          question: z.string().min(3),
+          answer: z.string().min(1),
+          lang: z.enum(ANSWER_LANGS),
+          job_id: z.string().uuid().optional(),
+        }),
+      },
+      async ({ question, answer, lang, job_id }) => {
+        const userId = await resolveMcpUserId();
+        try {
+          return text(
+            await approveAnswer(userId, { question, answer, lang, jobId: job_id ?? null }),
+          );
+        } catch (e) {
+          return failed(e);
+        }
+      },
+    );
+
+    server.registerTool(
+      "save_application_answers",
+      {
+        title: "Guardar el formulario de una oferta",
+        description:
+          "Guarda las preguntas y respuestas finales del formulario de una oferta, en orden, tal como la persona las va a enviar. Reemplaza entero lo guardado antes para esa oferta. NO postula ni marca la oferta como aplicada: para eso está set_status con apply, después de que la persona envíe el formulario por su cuenta (ADR-004).",
+        inputSchema: z.object({
+          job_id: z.string().uuid(),
+          qa: z
+            .array(z.object({ question: z.string().min(1), answer: z.string().min(1) }))
+            .min(1)
+            .max(60),
+        }),
+      },
+      async ({ job_id, qa }) => {
+        const userId = await resolveMcpUserId();
+        try {
+          return text(await saveFormAnswers(userId, job_id, qa));
+        } catch (e) {
+          return failed(e);
+        }
+      },
+    );
   },
-  { serverInfo: { name: "job-search-os", version: "0.1.0" } },
+  { serverInfo: { name: "job-search-os", version: "0.2.0" } },
 );
 
 async function guarded(req: Request): Promise<Response> {
