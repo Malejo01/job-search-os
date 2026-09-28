@@ -10,6 +10,7 @@ export {
 export {
   FACT_VERIFICATION,
   parseApplicantFile,
+  PENDING,
   planFactsSync,
   type ApplicantFile,
   type FactInput,

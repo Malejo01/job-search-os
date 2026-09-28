@@ -11,3 +11,4 @@ export {
   type DbTarget,
 } from "./env";
 export { loadFixture, type FixtureName, type LoadedFixture } from "./fixtures";
+export { confirmRemoteTarget, isRemoteDatabase } from "./confirm-remote";
