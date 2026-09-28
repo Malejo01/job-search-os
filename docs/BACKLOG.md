@@ -370,8 +370,12 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - Medido el 2026-09-24 sobre las 36 del golden con `evaluate_job@v1.3.2`: `risks_recall` 64 % y `blockers_precision` 63 %, los dos contra un umbral de 100 %.
 - Sube de prioridad por JS-052: si el score deja de penalizar inglés y años, la viabilidad viaja entera por los riesgos. Un riesgo que el modelo no emite ahora no lo compensa nadie.
 - `blockers_precision` baja sobre todo por bloqueadores que el modelo inventa fuera de la lista cerrada (tipo `otro`) y por bloqueadores de disciplina sobre roles que si estan en el carril.
-- **Primero `location_risk_recall` (38 %)**: el modelo devuelve `ok` donde la referencia dice `riesgo`. Es la de mayor costo real: los dos rechazos documentados de Mauro (Strider, AgileEngine) fueron por ubicacion, asi que este 38 % ya se pago en postulaciones perdidas.
+- **Primero `location_risk_recall` (38 %)**: el modelo devuelve `ok` donde la referencia dice `riesgo`. Es la de mayor costo real: los dos rechazos reales documentados fueron por ubicacion, asi que este 38 % ya se pago en postulaciones perdidas.
 - **Acepta:** a definir cuando entre, con una corrida completa antes y despues.
+- **Traspaso (2026-09-28), para el que lo tome:**
+  - **Arranca por `location_risk_recall` (38 %).** Es la metrica con costo real: los dos rechazos reales documentados fueron por ubicacion. Ver `evals/README.md` para correr el subset antes y despues de cada cambio.
+  - **Empresa AD (golden id 36) perdio con `evaluate_job@v1.3.2` el riesgo de solapamiento horario** ("Able to overlap at least 4 hours a day with US Eastern Time") que v1.3.1 si reportaba. Esta en la JD y en `human_risks` del golden. Entra en el alcance de este ticket. Ojo al medirlo: `classifyRisk` (`evals/src/metrics.ts`) no tiene un tipo para horario y lo cuenta como `otro`; conviene sumar un tipo `horario` para que `risks_recall` lo muestre por separado.
+  - **Dato para calibracion (JS-036), no para este ticket:** una oferta postulada fuera del golden paso de 7 `aplicar` a 4,5 `descartar` al re-evaluarla con el perfil corregido (score del modelo 8 → 5,5). Sigue postulada (JS-057). Si llega el rechazo, es evidencia de que la re-evaluacion acierta; el id esta en la memoria del proyecto, no aca.
 
 ### JS-061 · Flujo de revision: ocultar lo ya decidido, ir de a una y ver el avance ✅ done 2026-09-26
 `deps:` JS-015, JS-029 · `est:` 5 h · `estado:` done
@@ -397,18 +401,18 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 ### JS-057 · Re-evaluar no mueve el estado ✅ done 2026-09-26
 `deps:` JS-052 · `est:` 2 h · `estado:` done
 - Surge del 2026-09-24: `pnpm worker:requeue --job <id>` sobre una oferta en `aplicada` no hace nada. `requeue-cli` filtra `status === "evaluada"` y la manda a `skipped`; si igual llegara, `evaluateJobById` corta en `canTransition(job.status, "evaluated")` antes de la llamada al LLM. **No cambia `status`, `applications` ni `applied_at` — porque no ejecuta nada.** El worker no menciona `applications` en ninguna linea: solo inserta en `evaluations` y actualiza `jobs.status`.
-- El problema real es que **esas evaluaciones quedan con el prompt y el perfil viejos**, y alimentan `market_summary`. Al 2026-09-24 hay ofertas en `aplicada` evaluadas con v1.3.1 y el perfil de "~4 años".
+- El problema real es que **esas evaluaciones quedan con el prompt y el perfil viejos**, y alimentan `market_summary`. Al 2026-09-24 hay ofertas en `aplicada` evaluadas con v1.3.1 y el perfil anterior.
 - **Alcance:**
   - `status.ts`: `evaluated` no mueve el estado en `aplicada`, `entrevista` y `oferta` (la transicion devuelve el mismo estado). Re-evaluar es leer de nuevo, no retroceder en el embudo.
   - `requeue-cli`: los ids pasados explicitamente con `--job` se aceptan en esos estados; el camino masivo por `--model` **sigue restringido a `evaluada`**, para no re-evaluar el embudo entero sin querer.
   - Tests: re-evaluar una `aplicada` la deja en `aplicada`, escribe una `evaluations` nueva y **no toca `applications.applied_at` ni `applications.outcome`**.
-- **Acepta:** `--job a8b70138…` (Steuart) re-evalua y la oferta sigue en `aplicada` con su fecha de postulacion intacta; `--model gemini-3.5-flash` sigue omitiendo lo que no esta en `evaluada`.
+- **Acepta:** `--job a8b70138…` (Empresa AD, golden id 36) re-evalua y la oferta sigue en `aplicada` con su fecha de postulacion intacta; `--model gemini-3.5-flash` sigue omitiendo lo que no esta en `evaluada`.
 - **Implementado (2026-09-26):**
   - **Maquina de estados** (`pipeline/status.ts`): `evaluated` es un bucle sobre si mismo en `aplicada`, `entrevista` y `oferta`. No agrega botones: la UI filtra por `MANUAL_EVENTS` y `evaluated` lo dispara solo el worker. Lo terminal (`descartada`, `rechazada`, `rechazo_automatico`, `cerrada`, `descartada_prefiltro`) sigue sin poder re-evaluarse.
   - **`REQUEUE_STATUSES` / `requeueAllowed(status, mode)`**: `bulk` (`--model`) = solo `evaluada`; `explicit` (`--job`) = `evaluada`, `aplicada`, `entrevista`, `oferta`. Un test cruza las dos reglas: todo lo re-encolable, el worker lo evalua sin cambiarle el estado.
   - **`requeue-cli`**: elige el modo segun el flag y el mensaje de omitido dice por que (masivo vs terminal).
   - **Tests:** 13 unitarios en `status.test.ts`; integracion (Testcontainers): en `aplicada`, `entrevista` y `oferta` la re-evaluacion escribe una `evaluations` nueva, deja el estado igual y **no toca `applied_at`, `channel`, `outcome`, `outcome_at` ni `outcome_note`**; una `descartada` se saltea sin llamar al modelo.
-  - **Pendiente operativo:** re-encolar Steuart y las otras 3 que quedaron con v1.3.1, **despues del deploy**: el cron corre con el codigo deployado y, con el viejo, las saltearia.
+  - **Pendiente operativo:** re-encolar Empresa AD y las otras 3 que quedaron con v1.3.1, **despues del deploy**: el cron corre con el codigo deployado y, con el viejo, las saltearia.
 
 ### JS-059 · Separar el presupuesto de evals del de produccion
 `deps:` JS-052 · `est:` 3 h · `estado:` todo
@@ -432,7 +436,7 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 
 ### JS-056 · Tope de score por cantidad de gaps must
 `deps:` JS-052 · `est:` 2 h · `estado:` todo (no bloquea)
-- Surge de Oowlish (golden id 9) el 2026-09-24: el modelo le puso **5 con seis gaps must** (NestJS, Vue, MongoDB, Redis, Terraform, AWS Beanstalk). Lo que la mantenia en `descartar` era la suma de `cloud_must_penalty` + `english_fluent_penalty`, o sea una casualidad: la penalizacion de infraestructura estaba tapando un sobre-score del modelo, no midiendo viabilidad. Al sacar la de ingles (JS-052, opcion C) el disfraz se adelgaza.
+- Surge de Empresa H (golden id 9) el 2026-09-24: el modelo le puso **5 con seis gaps must** (NestJS, Vue, MongoDB, Redis, Terraform, AWS Beanstalk). Lo que la mantenia en `descartar` era la suma de `cloud_must_penalty` + `english_fluent_penalty`, o sea una casualidad: la penalizacion de infraestructura estaba tapando un sobre-score del modelo, no midiendo viabilidad. Al sacar la de ingles (JS-052, opcion C) el disfraz se adelgaza.
 - Regla nueva en `decide()`: con N o mas gaps `must` del stack central, tope de score. Parametrizada en `CriteriaRules` para poder moverla sin deploy.
 - **Como medir N:** `pnpm evals recompute` sobre las corridas ya guardadas, barriendo N = 3, 4, 5, 6. **Primero sobre las anclas `human` (26)**, que son la evidencia no circular; las `assisted` solo como control. Se elige el N mas chico que no empeore `false_apply` ni `action_acc` en las human.
 - **Acepta:** el id 9 vuelve a `descartar` por la regla de gaps y no por la penalizacion de cloud; `false_apply` sigue en 0 sobre las human.
