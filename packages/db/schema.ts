@@ -428,3 +428,58 @@ export const inboundSenderDomains = pgTable("inbound_sender_domains", {
   verdict: text("verdict").notNull(),        // empleo | no_empleo
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [uniqueIndex("inbound_sender_domains_user_domain").on(t.userId, t.domain)]);
+
+// ─────────────────────────────────────────────────────────────
+// Contexto para responder formularios de postulación (JS-053). Lo lee Claude por MCP; el
+// servidor no llama a ningún modelo. Los datos reales se cargan con `pnpm applicant:sync`.
+// ─────────────────────────────────────────────────────────────
+// Hechos verificables del perfil: lo único que se puede afirmar en un formulario
+export const candidateFacts = pgTable("candidate_facts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull(),
+  key: text("key").notNull(),                  // estable: applicant:sync hace upsert por esta clave
+  project: text("project").notNull(),
+  claim: text("claim").notNull(),
+  metric: text("metric"),
+  source: text("source").notNull(),            // url o de dónde sale el dato
+  verification: text("verification").notNull().default("verificable"), // verificable | autodeclarado
+  active: boolean("active").notNull().default(true),
+  sort: integer("sort").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [uniqueIndex("candidate_facts_user_key").on(t.userId, t.key)]);
+
+// Respuestas fijas que no redacta un modelo. Sueldo, ubicación e inglés se leen de profiles.
+export const applicationSettings = pgTable("application_settings", {
+  userId: uuid("user_id").primaryKey(),
+  availability: text("availability"),
+  contract: text("contract"),                  // modalidad de contratación y plataformas de pago
+  workAuthorization: text("work_authorization"),
+  links: jsonb("links").$type<{ linkedin?: string; github?: string; portfolio?: string; cv?: string }>()
+    .notNull().default({}),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Respuestas aprobadas por la persona, reutilizables entre postulaciones
+export const answerBank = pgTable("answer_bank", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull(),
+  question: text("question").notNull(),
+  questionNormalized: text("question_normalized").notNull(), // normalizeQuestion (pipeline)
+  answer: text("answer").notNull(),
+  lang: text("lang").notNull(),                // es | en
+  sourceJobId: uuid("source_job_id").references(() => jobs.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [uniqueIndex("answer_bank_user_question_lang").on(t.userId, t.questionNormalized, t.lang)]);
+
+// Lo que efectivamente se respondió en el formulario de una oferta (se reemplaza entero)
+export const applicationAnswers = pgTable("application_answers", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull(),
+  jobId: uuid("job_id").notNull().references(() => jobs.id, { onDelete: "cascade" }),
+  position: integer("position").notNull(),
+  question: text("question").notNull(),
+  answer: text("answer").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [uniqueIndex("application_answers_job_position").on(t.jobId, t.position)]);
