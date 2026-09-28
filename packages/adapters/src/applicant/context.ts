@@ -28,6 +28,36 @@ async function jobExists(db: Db, userId: string, jobId: string): Promise<boolean
   return Boolean(row);
 }
 
+/**
+ * Lo que no está cargado se dice explícitamente: una lista vacía o un null los lee el modelo
+ * como "no hay restricciones" y completa con lo que se le ocurre.
+ */
+export const NO_FACTS = {
+  marca: "sin_hechos_cargados",
+  instruccion:
+    "No hay hechos del perfil cargados. No afirmes experiencia, proyectos, métricas ni logros: pedile a la persona que los cargue con pnpm applicant:sync o que te los dicte.",
+} as const;
+export const NO_FIXED_ANSWERS = {
+  marca: "sin_respuestas_fijas_cargadas",
+  instruccion:
+    "No hay respuestas fijas cargadas (disponibilidad, contratación, derecho a trabajar, links). Preguntáselas a la persona; no las redactes.",
+} as const;
+export const NOT_LOADED = "SIN CARGAR: preguntale a la persona, no lo redactes";
+
+type Fact = {
+  project: string;
+  claim: string;
+  metric: string | null;
+  source: string;
+  verification: string;
+};
+type FixedAnswers = {
+  availability: string;
+  contract: string;
+  work_authorization: string;
+  links: { linkedin?: string; github?: string; portfolio?: string; cv?: string };
+};
+
 export type CandidateProfile = {
   profile: {
     headline: string | null;
@@ -41,19 +71,8 @@ export type CandidateProfile = {
     max_weekly_hours: number | null;
     summary: string | null;
   };
-  facts: {
-    project: string;
-    claim: string;
-    metric: string | null;
-    source: string;
-    verification: string;
-  }[];
-  fixed_answers: {
-    availability: string | null;
-    contract: string | null;
-    work_authorization: string | null;
-    links: { linkedin?: string; github?: string; portfolio?: string; cv?: string };
-  };
+  facts: Fact[] | typeof NO_FACTS;
+  fixed_answers: FixedAnswers | typeof NO_FIXED_ANSWERS;
   /** Con job_id: para esa oferta. Sin job_id: como si no publicara rango. */
   salary: SalaryAsk & { job_id: string | null };
 };
@@ -128,13 +147,15 @@ export async function getCandidateProfile(
       max_weekly_hours: p.maxWeeklyHours,
       summary: p.profileSummary,
     },
-    facts,
-    fixed_answers: {
-      availability: settings?.availability ?? null,
-      contract: settings?.contract ?? null,
-      work_authorization: settings?.workAuthorization ?? null,
-      links: settings?.links ?? {},
-    },
+    facts: facts.length > 0 ? facts : NO_FACTS,
+    fixed_answers: settings
+      ? {
+          availability: settings.availability ?? NOT_LOADED,
+          contract: settings.contract ?? NOT_LOADED,
+          work_authorization: settings.workAuthorization ?? NOT_LOADED,
+          links: settings.links,
+        }
+      : NO_FIXED_ANSWERS,
     salary: {
       ...salaryAsk(job, {
         profileFloorUsd: p.salaryFloorUsd,
