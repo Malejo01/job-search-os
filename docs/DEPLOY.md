@@ -128,12 +128,13 @@ Límites del plan Free de Resend: 3.000 emails/mes, 100/día, retención 30 día
 
 ## Servidor MCP propio (JS-035): cómo conectarlo desde Claude
 
-Endpoint: `https://<app>/api/mcp` (Streamable HTTP, sin OAuth). Token compartido `MCP_TOKEN`, aceptado como `Authorization: Bearer <token>` o como `?token=<token>` en la URL. Herramientas: `list_pending_jd`, `list_jobs`, `get_job`, `set_status`, `paste_jd`, `add_job` (ingesta manual), `market_summary`. Nunca postula ni navega LinkedIn: lee, cambia estados por `transition()` y recibe JD pegadas.
+Endpoint: `https://<app>/api/mcp` (Streamable HTTP, sin OAuth). Token compartido `MCP_TOKEN`, aceptado como `Authorization: Bearer <token>` o como `?token=<token>` en la URL. Herramientas: `list_pending_jd`, `list_jobs`, `get_job`, `set_status`, `paste_jd`, `add_job` (ingesta manual), `market_summary`, y para formularios de postulación (JS-053) `get_candidate_profile`, `list_answers`, `save_answer`, `save_application_answers`. Nunca postula ni navega LinkedIn: lee, cambia estados por `transition()`, recibe JD pegadas y guarda respuestas que la persona aprobó.
+- **Hechos y respuestas fijas (JS-053):** no se editan por MCP. Después de migrar la 0015, `pnpm applicant:sync` (muestra el diff) y `pnpm applicant:sync --apply` (confirma con `si` contra Neon) desde `fixtures-private/applicant.json`.
 
 - **Claude en el celular / claude.ai** (Settings › Connectors › Add custom connector): nombre `Job Search OS`, URL `https://<app>/api/mcp?token=<MCP_TOKEN>`, sin OAuth. El token viaja en la URL porque el conector no permite headers; queda en los logs de Vercel, por eso es rotable: cambiás `MCP_TOKEN` y volvés a cargar el conector.
 - **Claude Code**: `claude mcp add --transport http job-search-os https://<app>/api/mcp --header "Authorization: Bearer <MCP_TOKEN>"`.
 - **Claude Desktop**: mismo conector que claude.ai (Settings › Connectors), o `mcp-remote` con el header.
-- Prueba rápida: `curl -H "Authorization: Bearer <MCP_TOKEN>" -H "content-type: application/json" -H "accept: application/json, text/event-stream" -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' https://<app>/api/mcp` devuelve las siete herramientas; sin token, 401.
+- Prueba rápida: `curl -H "Authorization: Bearer <MCP_TOKEN>" -H "content-type: application/json" -H "accept: application/json, text/event-stream" -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' https://<app>/api/mcp` devuelve las once herramientas; sin token, 401.
 
 ## Pasos (detalle)
 

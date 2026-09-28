@@ -442,11 +442,22 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Acepta:** el id 9 vuelve a `descartar` por la regla de gaps y no por la penalizacion de cloud; `false_apply` sigue en 0 sobre las human.
 
 ### JS-053 · Agente de postulaciones con revisión humana
-`deps:` JS-035, JS-032 · `est:` a estimar · `estado:` todo (no ahora)
-- Surge del 2026-09-23, al corregir el evaluador (JS-052): el perfil declara "agentes con tool calling" como fuerte y no hay ningún agente propio en producción que lo respalde. El perfil pasó a declararlo MEDIO.
-- Agente dentro de Job Search OS que use como tools `get_job`, el perfil y el CV para redactar cartas de presentación y respuestas a recruiters, **siempre con revisión humana antes de enviar**.
-- ADR-004 sigue vigente: el agente redacta, no postula ni navega LinkedIn. Nada se manda solo.
-- **Acepta:** a definir cuando entre. Sirve además como evidencia verificable para el propio perfil.
+`deps:` JS-035 (JS-032 queda reemplazado en versión liviana por `candidate_facts`) · `estado:` Fase 1 ✅ done 2026-09-28 · Fase 2 todo
+- Surge del 2026-09-23, al corregir el evaluador (JS-052): responder formularios de postulación sin un contexto verificable lleva a afirmar cosas que el perfil no respalda.
+- ADR-004 sigue vigente en las dos fases: se redacta, no se postula ni se navega LinkedIn. Nada se manda solo.
+
+**Fase 1 · Contexto por MCP, sin LLM en el servidor (done).** Claude (chat) responde formularios de postulación con el contexto de la app en vez de su memoria; la persona aprueba cada respuesta.
+- **Tablas (migración 0015, RLS de dueño):** `candidate_facts` (proyecto, afirmación, métrica, fuente obligatoria, `verificable | autodeclarado`, activo), `application_settings` (disponibilidad, contratación, derecho a trabajar, links; sueldo, ubicación e inglés se leen de `profiles`), `answer_bank` (pregunta normalizada + idioma únicos, oferta de origen) y `application_answers` (formulario final por oferta, se reemplaza entero). En `answer_bank` y `application_answers` la policy exige además que la oferta sea del usuario: la FK se chequea como dueño de la tabla y no pasa por RLS.
+- **Tools MCP:** `get_candidate_profile(job_id?)`, `list_answers(query?, lang?)` (con `source_job_id` y fechas), `save_answer`, `save_application_answers(job_id, qa[])`. Ninguna escribe hechos del perfil: los carga la persona con `pnpm applicant:sync` desde `fixtures-private/applicant.json` (diff sin `--apply`, confirmación contra base remota, no carga un archivo con `COMPLETAR`, lo que sale del archivo se desactiva).
+- **Sueldo a pedir (`salaryAsk`, pipeline), en este orden:** `part_time` (menos de 30 h semanales o título con part-time, part time, fractional, medio tiempo, media jornada: solo marca) → `no_normalizable` (por hora, anual, montos sin período, nota en pesos u otra moneda, nota con montos sin moneda) → `piso_inconsistente` (el piso de `profiles` y el de los criterios activos no coinciden) → `bajo_piso` (todo el rango bajo el piso) → `pedir` max(mínimo, piso), o el piso si no hay rango. Solo `pedir` trae número.
+- **Piso:** configurable en `profiles.salary_floor_usd` y en `salary_floor_usd_monthly` de los criterios activos; se cambia siempre en los dos a la vez (si no, la tool devuelve `piso_inconsistente`). El valor real no está en el repo. En el evaluador no mueve ninguna acción del golden por sí solo: `decide()` y el prefiltro no usan el piso; lo usan el prompt (vía perfil) y el pre-score sin LLM.
+- **Probado:** 53 tests de pipeline (normalización, orden del banco, sueldo, archivo y plan de sincronización), 15 de integración de adapters (tools y `applicant:sync`) y el caso JS-053 en `rls.integration.test.ts` (B no ve nada de A y no cuelga filas propias de una oferta de A).
+
+**Fase 2 · Parseo del formulario y agente en la app (todo, sin implementar).**
+- Pegar el formulario (texto o HTML) en el detalle de la oferta; un parser determinista separa preguntas y tipo de campo (texto, opción, número), y falla cerrado a "pegalo por partes" si no reconoce la estructura. El HTML pegado se muestra solo en `iframe` con `sandbox` vacío.
+- Tarea LLM `draft_application_answers` registrada en `model_routing`, prompt versionado en `packages/prompts`: recibe preguntas + `get_candidate_profile` + `list_answers` y devuelve borradores con la fuente de cada afirmación (clave de `candidate_facts`). Las respuestas fijas y el sueldo no pasan por el modelo.
+- UI de revisión: cada respuesta se aprueba, edita o descarta; al aprobar va a `answer_bank`, y el formulario final a `application_answers`. Botón "copiar todo"; nunca "enviar".
+- **Acepta (Fase 2):** con un formulario de ejemplo anonimizado, ninguna respuesta afirma algo sin clave de `candidate_facts` que la respalde (test sobre la salida del prompt con el LLM falso) y las respuestas fijas salen idénticas a `application_settings`.
 
 ### JS-040 · SST y migración 3a (workers a Lambda)
 ### JS-041 · Onboarding de terceros, BYOK, planes
