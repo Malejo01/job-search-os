@@ -7,3 +7,13 @@ export {
   type SalaryFloors,
   type SalaryJob,
 } from "./salary";
+export {
+  FACT_VERIFICATION,
+  parseApplicantFile,
+  planFactsSync,
+  type ApplicantFile,
+  type FactInput,
+  type FactRow,
+  type FactsSyncPlan,
+  type FactVerification,
+} from "./applicant-file";
