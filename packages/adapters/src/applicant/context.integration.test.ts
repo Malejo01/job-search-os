@@ -10,6 +10,9 @@ import {
   ApplicantFailure,
   getCandidateProfile,
   listAnswers,
+  NO_FACTS,
+  NO_FIXED_ANSWERS,
+  NOT_LOADED,
   saveAnswer,
   saveApplicationAnswers,
 } from "./context";
@@ -112,12 +115,13 @@ describe("getCandidateProfile", () => {
       location: { city: "Ciudad Ejemplo", country: "AR" },
       english_cefr: "C1",
     });
+    if (!Array.isArray(out.facts)) throw new Error("se esperaban hechos cargados");
     expect(out.facts.map((f) => f.claim)).toEqual(["Primero", "Segundo"]);
     expect(out.facts[0]).toMatchObject({ metric: "80+", verification: "autodeclarado" });
     expect(out.fixed_answers).toEqual({
       availability: "Inmediata",
-      contract: null,
-      work_authorization: null,
+      contract: NOT_LOADED,
+      work_authorization: NOT_LOADED,
       links: { github: "https://github.com/ejemplo" },
     });
     expect(out.salary).toEqual({
@@ -165,6 +169,38 @@ describe("getCandidateProfile", () => {
     await expect(getCandidateProfile(conn.db, { userId: OTHER })).rejects.toThrow(
       /profile_not_found/,
     );
+  });
+
+  it("sin hechos ni respuestas fijas cargados → marcas explícitas, no listas ni campos vacíos", async () => {
+    const EMPTY = "d0000000-0000-4000-8000-000000000053";
+    await conn.db.insert(s.profiles).values({
+      userId: EMPTY,
+      displayName: "Vacío",
+      locationCountry: "AR",
+      inboundAddress: "u_d053@ingest.test",
+    });
+    const out = await getCandidateProfile(conn.db, { userId: EMPTY });
+    expect(out.facts).toEqual(NO_FACTS);
+    expect(out.fixed_answers).toEqual(NO_FIXED_ANSWERS);
+    expect(JSON.stringify(out)).toContain("sin_hechos_cargados");
+  });
+
+  it("respuestas fijas cargadas a medias → el campo que falta dice que no está cargado", async () => {
+    const PARTIAL = "e0000000-0000-4000-8000-000000000053";
+    await conn.db.insert(s.profiles).values({
+      userId: PARTIAL,
+      displayName: "Parcial",
+      locationCountry: "AR",
+      inboundAddress: "u_e053@ingest.test",
+    });
+    await conn.db.insert(s.applicationSettings).values({ userId: PARTIAL, contract: "Contractor" });
+    const out = await getCandidateProfile(conn.db, { userId: PARTIAL });
+    expect(out.fixed_answers).toEqual({
+      availability: NOT_LOADED,
+      contract: "Contractor",
+      work_authorization: NOT_LOADED,
+      links: {},
+    });
   });
 });
 

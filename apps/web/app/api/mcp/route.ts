@@ -230,7 +230,7 @@ const handler = createMcpHandler(
       {
         title: "Perfil para responder un formulario",
         description:
-          "Todo lo necesario para responder un formulario de postulación: perfil (resumen, años, inglés, ubicación), hechos verificables (proyecto, afirmación, métrica, fuente, verificable | autodeclarado) y respuestas fijas (disponibilidad, contratación, derecho a trabajar, links). Reglas: no afirmes nada que no esté en `facts` ni en `profile`; lo `autodeclarado` no se presenta como verificado; las respuestas fijas y el sueldo se copian textuales, no se redactan. Con job_id, `salary` es el monto a pedir para esa oferta (kind 'pedir'); si kind es part_time, no_normalizable, bajo_piso o piso_inconsistente NO hay número: avisale a la persona y no inventes uno.",
+          "Todo lo necesario para responder un formulario de postulación: perfil (resumen, años, inglés, ubicación), hechos verificables (proyecto, afirmación, métrica, fuente, verificable | autodeclarado) y respuestas fijas (disponibilidad, contratación, derecho a trabajar, links). Reglas: no afirmes nada que no esté en `facts` ni en `profile`; lo `autodeclarado` no se presenta como verificado; las respuestas fijas y el sueldo se copian textuales, no se redactan. Con job_id, `salary` es el monto a pedir para esa oferta (kind 'pedir'); si kind es part_time, no_normalizable, bajo_piso o piso_inconsistente NO hay número: avisale a la persona y no inventes uno. Si `facts` trae la marca 'sin_hechos_cargados', `fixed_answers` trae 'sin_respuestas_fijas_cargadas' o un campo dice 'SIN CARGAR', ese dato no existe: no lo completes vos, preguntáselo a la persona.",
         inputSchema: z.object({ job_id: z.string().uuid().optional() }),
       },
       async ({ job_id }) => {
