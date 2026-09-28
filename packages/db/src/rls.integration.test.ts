@@ -98,6 +98,7 @@ describe("RLS entre usuarios (JS-009)", () => {
         )
       order by c.relname`;
     expect(rows.map((r) => r.relname)).toContain("inbound_rejections");
+    expect(rows.map((r) => r.relname)).toContain("application_answers");
     expect(rows.filter((r) => !r.rls || !r.force).map((r) => r.relname)).toEqual([]);
   });
 
@@ -148,6 +149,61 @@ describe("RLS entre usuarios (JS-009)", () => {
     }
   });
 
+  it("JS-053: contexto de postulaciones aislado, y B no cuelga filas propias de una oferta de A", async () => {
+    const a = asUser(A);
+    const b = asUser(B);
+    const tables = [
+      "candidate_facts",
+      "application_settings",
+      "answer_bank",
+      "application_answers",
+    ];
+    try {
+      const jobA = await a.run(async (tx) => {
+        const [job] = await tx<{ id: string }[]>`select id from jobs limit 1`;
+        await tx`insert into candidate_facts (user_id, key, project, claim, source)
+                 values (${A}, 'k1', 'Proyecto', 'Afirmación', 'https://example.test')`;
+        await tx`insert into application_settings (user_id, availability) values (${A}, 'inmediata')`;
+        await tx`insert into answer_bank (user_id, question, question_normalized, answer, lang, source_job_id)
+                 values (${A}, 'Q?', 'q', 'R', 'es', ${job!.id})`;
+        await tx`insert into application_answers (user_id, job_id, position, question, answer)
+                 values (${A}, ${job!.id}, 0, 'Q?', 'R')`;
+        return job!.id;
+      });
+
+      for (const t of tables) {
+        const [mine] = await a.run((tx) => tx`select count(*)::int as n from ${tx(t)}`);
+        expect(mine!.n, t).toBe(1);
+        const [theirs] = await b.run((tx) => tx`select count(*)::int as n from ${tx(t)}`);
+        expect(theirs!.n, t).toBe(0);
+      }
+
+      // La FK sola lo dejaría pasar (se chequea como dueño): lo frena el EXISTS de la policy
+      await expect(
+        b.run(
+          (tx) => tx`insert into application_answers (user_id, job_id, position, question, answer)
+                     values (${B}, ${jobA}, 0, 'Q?', 'R')`,
+        ),
+      ).rejects.toThrow(/row-level security/);
+      await expect(
+        b.run(
+          (
+            tx,
+          ) => tx`insert into answer_bank (user_id, question, question_normalized, answer, lang, source_job_id)
+                     values (${B}, 'Q?', 'q', 'R', 'es', ${jobA})`,
+        ),
+      ).rejects.toThrow(/row-level security/);
+      // Sin oferta de origen, B sí guarda en su propio banco
+      await b.run(
+        (tx) => tx`insert into answer_bank (user_id, question, question_normalized, answer, lang)
+                   values (${B}, 'Q?', 'q', 'R', 'es')`,
+      );
+    } finally {
+      await a.close();
+      await b.close();
+    }
+  });
+
   it("control negativo: sin la policy de jobs, B SÍ ve las filas de A (el test mide algo)", async () => {
     const b = asUser(B);
     try {
@@ -171,6 +227,9 @@ describe("RLS entre usuarios (JS-009)", () => {
   });
 
   it("limpieza como dueño (bypass): borra lo que insertó A", async () => {
+    for (const t of ["candidate_facts", "application_settings", "answer_bank"]) {
+      await owner`delete from ${owner(t)} where user_id in (${A}, ${B})`;
+    }
     await owner`delete from jobs where user_id = ${A}`;
     await owner`delete from profiles where user_id = ${A}`;
     const [left] = await owner`select count(*)::int as n from jobs where user_id = ${A}`;

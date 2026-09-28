@@ -143,6 +143,37 @@ DROP POLICY IF EXISTS "inbound_sender_domains_owner" ON "inbound_sender_domains"
 CREATE POLICY "inbound_sender_domains_owner" ON "inbound_sender_domains" FOR ALL
   USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
+-- JS-053: contexto para responder formularios de postulación (migración 0015)
+ALTER TABLE "candidate_facts" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "candidate_facts" FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "candidate_facts_owner" ON "candidate_facts";
+CREATE POLICY "candidate_facts_owner" ON "candidate_facts" FOR ALL
+  USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+
+ALTER TABLE "application_settings" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "application_settings" FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "application_settings_owner" ON "application_settings";
+CREATE POLICY "application_settings_owner" ON "application_settings" FOR ALL
+  USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+
+-- La FK a jobs se chequea como dueño de la tabla y no pasa por RLS: sin el EXISTS, se podría
+-- colgar una fila propia de una oferta ajena. Por eso el dueño de la fila Y el de la oferta.
+ALTER TABLE "answer_bank" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "answer_bank" FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "answer_bank_owner" ON "answer_bank";
+CREATE POLICY "answer_bank_owner" ON "answer_bank" FOR ALL
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid() AND ("answer_bank".source_job_id IS NULL OR EXISTS (
+    SELECT 1 FROM jobs j WHERE j.id = "answer_bank".source_job_id AND j.user_id = auth.uid())));
+
+ALTER TABLE "application_answers" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "application_answers" FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "application_answers_owner" ON "application_answers";
+CREATE POLICY "application_answers_owner" ON "application_answers" FOR ALL
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid() AND EXISTS (
+    SELECT 1 FROM jobs j WHERE j.id = "application_answers".job_id AND j.user_id = auth.uid()));
+
 ALTER TABLE "job_sources" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "job_sources" FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "job_sources_via_job" ON "job_sources";

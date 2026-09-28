@@ -20,7 +20,8 @@
     "skills:extract": "tsx src/skills/cli.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "worker:requeue": "tsx src/worker/requeue-cli.ts",
-    "test:coverage": "vitest run --coverage.enabled --coverage.provider=v8 --coverage.reporter=text"
+    "test:coverage": "vitest run --coverage.enabled --coverage.provider=v8 --coverage.reporter=text",
+    "applicant:sync": "tsx src/applicant/cli.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.52",

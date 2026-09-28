@@ -30,6 +30,7 @@ Con el servidor MCP conectado (`docs/DEPLOY.md`, sección MCP) podés hacer todo
 - "Cargá esta oferta de LinkedIn: ..." → `add_job` (título, empresa, URL, ubicación, modalidad, JD si la tenés). Pasa por dedup y prefiltro igual que todo.
 - "Marcá la de Empresa X como aplicada" → `set_status`.
 - "¿Qué pide el mercado?" → `market_summary`.
+- "Ayudame con el formulario de la oferta X: <preguntas>" → `get_candidate_profile` con el id de la oferta (perfil, hechos con su fuente, respuestas fijas y el sueldo a pedir) y `list_answers` (lo que ya aprobaste antes). Claude redacta, vos aprobás; lo aprobado va con `save_answer` y el formulario final con `save_application_answers`. Postular lo hacés vos; después, `set_status` con apply.
 
 ## Qué corre solo y cuándo
 
