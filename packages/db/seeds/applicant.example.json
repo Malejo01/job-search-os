@@ -1,0 +1,38 @@
+{
+  "_nota": "Datos FICTICIOS para el repo público (JS-053). Los reales van en fixtures-private/applicant.json con este formato y se cargan con `pnpm applicant:sync`. source es obligatorio; verification: verificable (hay dónde comprobarlo) o autodeclarado (solo lo dice la persona). Un hecho que se saca del archivo queda desactivado, no se borra.",
+  "settings": {
+    "availability": "A convenir con cada empresa.",
+    "contract": "Contractor, con pago por una plataforma de contratación internacional.",
+    "work_authorization": "Trabajo remoto como contractor desde mi país de residencia; no necesito sponsorship.",
+    "links": {
+      "github": "https://github.com/usuario-ejemplo",
+      "portfolio": "https://portfolio.example.com"
+    }
+  },
+  "facts": [
+    {
+      "key": "tienda-busqueda",
+      "project": "Tienda de ejemplo",
+      "claim": "Reemplacé el buscador por búsqueda semántica con embeddings.",
+      "metric": "+12 % de conversión en búsqueda",
+      "source": "https://portfolio.example.com/tienda",
+      "verification": "verificable"
+    },
+    {
+      "key": "bot-soporte",
+      "project": "Bot de soporte de ejemplo",
+      "claim": "Asistente con recuperación sobre la base de conocimiento, con derivación a una persona.",
+      "metric": null,
+      "source": "https://github.com/usuario-ejemplo/bot-soporte",
+      "verification": "verificable"
+    },
+    {
+      "key": "charlas-comunidad",
+      "project": "Comunidad de ejemplo",
+      "claim": "Di charlas introductorias sobre desarrollo web.",
+      "metric": "5 charlas",
+      "source": "Registro propio",
+      "verification": "autodeclarado"
+    }
+  ]
+}

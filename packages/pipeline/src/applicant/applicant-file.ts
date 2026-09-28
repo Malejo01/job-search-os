@@ -60,6 +60,17 @@ export type ApplicantFile = {
   facts: FactInput[];
 };
 
+/** Marca de hueco en el borrador: applicant:sync no carga un archivo que la tenga. */
+export const PENDING = "COMPLETAR";
+
+function pendingPaths(value: unknown, path: string[] = []): string[] {
+  if (typeof value === "string") return value.includes(PENDING) ? [path.join(".")] : [];
+  if (value && typeof value === "object") {
+    return Object.entries(value).flatMap(([k, v]) => pendingPaths(v, [...path, k]));
+  }
+  return [];
+}
+
 export function parseApplicantFile(input: unknown): Result<ApplicantFile, string[]> {
   const parsed = fileSchema.safeParse(input);
   if (!parsed.success) {
@@ -69,6 +80,9 @@ export function parseApplicantFile(input: unknown): Result<ApplicantFile, string
   const seen = new Set<string>();
   const dup = facts.map((f) => f.key).filter((k) => (seen.has(k) ? true : (seen.add(k), false)));
   if (dup.length) return err(dup.map((k) => `clave repetida en facts: ${k}`));
+  // Un borrador con huecos marcados no se carga: mejor ningún hecho que uno a medio escribir
+  const pending = pendingPaths(parsed.data);
+  if (pending.length) return err(pending.map((p) => `${p}: falta completar (${PENDING})`));
   return ok({
     settings: {
       availability: settings.availability ?? null,

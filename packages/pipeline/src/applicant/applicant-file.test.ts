@@ -84,6 +84,21 @@ describe("parseApplicantFile (JS-053)", () => {
     expect(r).toEqual({ ok: false, error: ["clave repetida en facts: a"] });
   });
 
+  it("un borrador con COMPLETAR no se carga, y el error dice dónde", () => {
+    const r = parseApplicantFile({
+      ...valid,
+      settings: { availability: "COMPLETAR: fecha" },
+      facts: [{ key: "a", project: "P", claim: "C", source: "COMPLETAR url" }],
+    });
+    expect(r).toEqual({
+      ok: false,
+      error: [
+        "settings.availability: falta completar (COMPLETAR)",
+        "facts.0.source: falta completar (COMPLETAR)",
+      ],
+    });
+  });
+
   it("links tienen que ser URLs", () => {
     expect(parseApplicantFile({ ...valid, settings: { links: { github: "no es url" } } }).ok).toBe(
       false,

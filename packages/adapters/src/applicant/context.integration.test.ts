@@ -2,7 +2,9 @@ import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testconta
 import { applyMigrations } from "@job-search-os/db/src/migrate";
 import { createDb, schema as s } from "@job-search-os/db";
 import criteria from "@job-search-os/db/seeds/criteria.example.json";
-import { and, eq } from "drizzle-orm";
+import example from "@job-search-os/db/seeds/applicant.example.json";
+import { parseApplicantFile, type ApplicantFile } from "@job-search-os/pipeline";
+import { and, asc, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   ApplicantFailure,
@@ -11,6 +13,7 @@ import {
   saveAnswer,
   saveApplicationAnswers,
 } from "./context";
+import { syncApplicant } from "./sync";
 
 /**
  * JS-053 · Lo que hay detrás de las tools MCP get_candidate_profile, list_answers, save_answer y
@@ -319,5 +322,75 @@ describe("saveApplicationAnswers", () => {
     });
     await conn.db.delete(s.jobs).where(eq(s.jobs.id, jobId));
     expect(await answersOf(jobId)).toEqual([]);
+  });
+});
+
+describe("syncApplicant (pnpm applicant:sync)", () => {
+  const SYNC_USER = "c0000000-0000-4000-8000-000000000053";
+  const file = (): ApplicantFile => {
+    const r = parseApplicantFile(example);
+    if (!r.ok) throw new Error(r.error.join("; "));
+    return r.value;
+  };
+  const facts = () =>
+    conn.db
+      .select({ key: s.candidateFacts.key, active: s.candidateFacts.active })
+      .from(s.candidateFacts)
+      .where(eq(s.candidateFacts.userId, SYNC_USER))
+      .orderBy(asc(s.candidateFacts.key));
+
+  it("el ejemplo del repo es válido", () => {
+    expect(file().facts.length).toBeGreaterThan(0);
+  });
+
+  it("sin --apply muestra el plan y no escribe nada", async () => {
+    const r = await syncApplicant(conn.db, { userId: SYNC_USER, file: file(), apply: false });
+    expect(r.applied).toBe(false);
+    expect(r.facts.insert).toHaveLength(file().facts.length);
+    expect(r.settings).toEqual({
+      changed: ["availability", "contract", "workAuthorization", "links"],
+      created: true,
+    });
+    expect(await facts()).toEqual([]);
+  });
+
+  it("aplica, y correrlo de nuevo no cambia nada", async () => {
+    await syncApplicant(conn.db, { userId: SYNC_USER, file: file(), apply: true });
+    expect((await facts()).every((f) => f.active)).toBe(true);
+    const again = await syncApplicant(conn.db, { userId: SYNC_USER, file: file(), apply: false });
+    expect(again.facts).toMatchObject({ insert: [], update: [], deactivate: [] });
+    expect(again.settings.changed).toEqual([]);
+  });
+
+  it("un hecho que sale del archivo se desactiva; si vuelve, se reactiva", async () => {
+    const full = file();
+    const [gone, ...rest] = full.facts;
+    await syncApplicant(conn.db, {
+      userId: SYNC_USER,
+      file: { ...full, facts: rest },
+      apply: true,
+    });
+    expect((await facts()).find((f) => f.key === gone!.key)).toEqual({
+      key: gone!.key,
+      active: false,
+    });
+    const back = await syncApplicant(conn.db, { userId: SYNC_USER, file: full, apply: true });
+    expect(back.facts.update).toEqual([{ key: gone!.key, fact: gone, fields: ["active"] }]);
+    expect((await facts()).every((f) => f.active)).toBe(true);
+  });
+
+  it("cambiar una respuesta fija actualiza solo ese campo", async () => {
+    const full = file();
+    const r = await syncApplicant(conn.db, {
+      userId: SYNC_USER,
+      file: { ...full, settings: { ...full.settings, availability: "En 2 semanas" } },
+      apply: true,
+    });
+    expect(r.settings).toEqual({ changed: ["availability"], created: false });
+    const [row] = await conn.db
+      .select()
+      .from(s.applicationSettings)
+      .where(eq(s.applicationSettings.userId, SYNC_USER));
+    expect(row).toMatchObject({ availability: "En 2 semanas", contract: full.settings.contract });
   });
 });
