@@ -177,7 +177,7 @@ export function decide(
 
   /**
    * Gap de años contra el perfil (JS-052). Las reglas de arriba son absolutas y siguen mandando;
-   * esto solo agrega contexto verificable ("pide 5, tenés 2"). Por defecto es riesgo y nada más:
+   * esto solo agrega contexto verificable ("pide 5, tenés 3"). Por defecto es riesgo y nada más:
    * penalizar o bloquear por gap contradecía la referencia humana del golden (ids 6, 7, 30, 34).
    * Si ya hay bloqueador de años, el riesgo sobra.
    */
@@ -208,8 +208,8 @@ export function decide(
 
   /**
    * Disciplina (JS-052). El prompt la clasifica, pero hasta v1.3.1 también escribía el bloqueador
-   * a mano y se lo salteaba (Empresa V (golden id 35)) o lo inventaba sobre algo que no es disciplina
-   * (Empresa AE: "disciplina distinta (lead)"). Acá manda el campo tipado contra las disciplinas del
+   * a mano y se lo salteaba (Empresa V, golden id 35) o lo inventaba sobre algo que no es disciplina
+   * (una oferta en produccion: "disciplina distinta (lead)"). Acá manda el campo tipado contra las disciplinas del
    * perfil: si no está permitida, bloqueador y tope de score; si está permitida, un bloqueador de
    * disciplina del modelo es una contradicción y se cae.
    */

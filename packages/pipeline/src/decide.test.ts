@@ -199,8 +199,8 @@ describe("decide(): disciplina fuera del perfil (JS-052)", () => {
     }
   });
 
-  it("B4: bloqueador de disciplina que contradice al campo disciplina → se descarta (falso positivo Empresa AE)", () => {
-    // Empresa AE en producción: score 7, disciplina fullstack, bloqueador "disciplina distinta (lead)".
+  it("B4: bloqueador de disciplina que contradice al campo disciplina → se descarta (falso positivo de produccion)", () => {
+    // Caso de producción: score 7, disciplina fullstack, bloqueador "disciplina distinta (lead)".
     // "lead" es seniority, no disciplina: el campo tipado manda.
     const d = decide(
       {
@@ -223,19 +223,19 @@ describe("decide(): disciplina fuera del perfil (JS-052)", () => {
 });
 
 describe("decide(): inglés exigido por encima del candidato (JS-052)", () => {
-  it("avanzado con candidato con nivel menor → riesgo explícito, además de la penalización de −1", () => {
+  it("avanzado con candidato B2 → riesgo explícito, además de la penalización de −1", () => {
     const d = decide({ ...base, ingles_requerido: "avanzado" }, rules, {
-      candidateEnglishCefr: "B1",
+      candidateEnglishCefr: "B2",
     });
-    expect(d.riesgos).toEqual(["inglés requerido avanzado, el candidato tiene B1"]);
+    expect(d.riesgos).toEqual(["inglés requerido avanzado, el candidato tiene B2"]);
     expect(d.scoreFinal).toBe(7);
-    expect(d.accion).toBe("aplicar"); // el riesgo no frena: Empresa AD sigue en aplicar
+    expect(d.accion).toBe("aplicar"); // el riesgo no frena: Empresa AD (golden 36) sigue en aplicar
     expect(d.bloqueadores).toEqual([]);
   });
 
-  it("nativo con candidato con nivel menor → riesgo", () => {
+  it("nativo con candidato B2 → riesgo", () => {
     const d = decide({ ...base, ingles_requerido: "nativo" }, rules, {
-      candidateEnglishCefr: "B1",
+      candidateEnglishCefr: "B2",
     });
     expect(d.riesgos).toHaveLength(1);
   });
@@ -246,7 +246,7 @@ describe("decide(): inglés exigido por encima del candidato (JS-052)", () => {
         .riesgos,
     ).toEqual([]);
     expect(
-      decide({ ...base, ingles_requerido: "intermedio" }, rules, { candidateEnglishCefr: "B1" })
+      decide({ ...base, ingles_requerido: "intermedio" }, rules, { candidateEnglishCefr: "B2" })
         .riesgos,
     ).toEqual([]);
   });
@@ -260,18 +260,18 @@ describe("decide(): inglés exigido por encima del candidato (JS-052)", () => {
       {
         ...base,
         ingles_requerido: "avanzado",
-        riesgos: ["Nivel de inglés del candidato (B1) es inferior al requerido (C1)"],
+        riesgos: ["Nivel de inglés del candidato (B2) es inferior al requerido (C1)"],
       },
       rules,
-      { candidateEnglishCefr: "B1" },
+      { candidateEnglishCefr: "B2" },
     );
     expect(d.riesgos).toHaveLength(1);
   });
 });
 
 describe("decide(): gap de años contra el perfil (JS-052)", () => {
-  // Las reglas absolutas (≥ 8 bloquea, 5–7 resta 2) no se
-  // tocan: son su propio criterio en el golden. El gap solo agrega un riesgo, nunca baja el score.
+  // Las reglas absolutas (≥ 8 bloquea, 5–7 resta 2) no se tocan: son el criterio del golden.
+  // El gap solo agrega un riesgo, nunca baja el score.
   const ctx = { candidateYearsTotal: 2 };
 
   it("gap ≥ 1 → riesgo con el texto del gap, sin tocar el score ni la acción", () => {
@@ -359,7 +359,7 @@ describe("decide(): años de otra disciplina (JS-052)", () => {
     expect(d.bloqueadores).toContain("años en otro dominio (ml_engineer)");
   });
 
-  it("años de una disciplina del perfil no bloquean (Empresa AD: software development)", () => {
+  it("años de una disciplina del perfil no bloquean (Empresa AD, golden 36: software development)", () => {
     const d = decide(
       {
         ...base,
@@ -369,7 +369,7 @@ describe("decide(): años de otra disciplina (JS-052)", () => {
         years_discipline: "fullstack",
       },
       rules,
-      { candidateYearsTotal: 2, candidateEnglishCefr: "B1" },
+      { candidateYearsTotal: 2, candidateEnglishCefr: "B2" },
     );
     expect(d.bloqueadores).toEqual([]);
     expect(d.accion).toBe("aplicar");
@@ -407,7 +407,7 @@ describe("decide(): reglas nuevas con criterios viejos (orden de deploy)", () =>
 
   it("sin allowed_disciplines no bloquea por disciplina ni rompe", () => {
     const d = decide({ ...base, disciplina: "creative_production" }, sinReglas, {
-      candidateEnglishCefr: "B1",
+      candidateEnglishCefr: "B2",
       candidateYearsTotal: 2,
     });
     expect(d.bloqueadores).toEqual([]);
@@ -422,7 +422,7 @@ describe("decide(): reglas nuevas con criterios viejos (orden de deploy)", () =>
 
   it("sin la lista tampoco BORRA el bloqueador del modelo: B4 necesita el campo tipado", () => {
     // Ventana de deploy: codigo nuevo + rules viejas. Perder un bloqueador seria peor que no
-    // tener la regla nueva. Con la lista cargada si se cae (es el caso Empresa AE, testeado arriba).
+    // tener la regla nueva. Con la lista cargada si se cae (es el caso de produccion, testeado arriba).
     const d = decide(
       { ...base, disciplina: "fullstack", bloqueadores_duros: ["disciplina distinta (creativa)"] },
       sinReglas,
@@ -433,7 +433,7 @@ describe("decide(): reglas nuevas con criterios viejos (orden de deploy)", () =>
 
   it("sin english_risk_from ni years_gap tampoco agrega riesgos", () => {
     const d = decide({ ...base, ingles_requerido: "avanzado", years_required: 5 }, sinReglas, {
-      candidateEnglishCefr: "B1",
+      candidateEnglishCefr: "B2",
       candidateYearsTotal: 2,
     });
     expect(d.riesgos).toEqual([]);
