@@ -374,8 +374,44 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Acepta:** a definir cuando entre, con una corrida completa antes y despues.
 - **Traspaso (2026-09-28), para el que lo tome:**
   - **Arranca por `location_risk_recall` (38 %).** Es la metrica con costo real: los dos rechazos reales documentados fueron por ubicacion. Ver `evals/README.md` para correr el subset antes y despues de cada cambio.
-  - **Empresa AD (golden id 36) perdio con `evaluate_job@v1.3.2` el riesgo de solapamiento horario** ("Able to overlap at least 4 hours a day with US Eastern Time") que v1.3.1 si reportaba. Esta en la JD y en `human_risks` del golden. Entra en el alcance de este ticket. Ojo al medirlo: `classifyRisk` (`evals/src/metrics.ts`) no tiene un tipo para horario y lo cuenta como `otro`; conviene sumar un tipo `horario` para que `risks_recall` lo muestre por separado.
+  - **Empresa AD (golden id 36) perdio con `evaluate_job@v1.3.2` el riesgo de solapamiento horario** (al menos 4 horas diarias de solapamiento con US Eastern) que v1.3.1 si reportaba. Esta en la JD y en `human_risks` del golden. Entra en el alcance de este ticket. Ojo al medirlo: `classifyRisk` (`evals/src/metrics.ts`) no tiene un tipo para horario y lo cuenta como `otro`; conviene sumar un tipo `horario` para que `risks_recall` lo muestre por separado.
   - **Dato para calibracion (JS-036), no para este ticket:** una oferta postulada fuera del golden paso de 7 `aplicar` a 4,5 `descartar` al re-evaluarla con el perfil corregido (score del modelo 8 → 5,5). Sigue postulada (JS-057). Si llega el rechazo, es evidencia de que la re-evaluacion acierta; el id esta en la memoria del proyecto, no aca.
+
+### JS-062 · Reescribir la historia publica para sacar datos privados
+`deps:` JS-055 (limpieza de archivos, PR #31) · `est:` 1 h + espera de soporte · `estado:` todo — **no antes de que se mergee el PR #32**
+- **Por que:** entre el 2026-09-24 y el 26 entraron a `main` nombres reales de empresas, resultados de postulacion y datos del perfil real (anios, nivel de ingles, skills), contra la regla del repo publico. El PR #31 los saco de los archivos; siguen en la historia y en las refs de los PRs.
+- **Commits afectados** (por SHA, al 2026-09-28):
+  - Mensaje de commit con datos: `a3f8862` (squash del PR #23) y `f7025c7`.
+  - Contenido con datos: introducido en `a3f8862`, `1f7cf84` y `f7025c7`, y heredado por todos los commits siguientes hasta `36475b6`, que lo limpia. Las JD textuales de los golden 35 y 36 tambien entran en `a3f8862`.
+  - Cambian de SHA **20 commits de `main`**, desde `a3f8862` hasta `7817a96` (mas los que se mergeen antes de reescribir). No hay tags.
+- **Cuando:** una sola vez, cuando no quede ninguna rama abierta basada en `main`. Al 2026-09-28 la unica es `feat/JS-053-contexto-postulaciones` (PR #32, otra sesion), que contiene `a3f8862`: reescribir antes le cambia la base. `feat/JS-047-parser-indeed` es anterior y no se ve afectada (conviene borrarla aparte).
+- **Como** (con `git filter-repo`, la herramienta que recomienda GitHub; los reemplazos viven en `fixtures-private/`, no en el repo):
+  1. Confirmar que no hay PRs abiertos ni trabajo sin pushear en ningun clon o worktree.
+  2. `pip install git-filter-repo`
+  3. Clon limpio y aislado: `git clone --single-branch --branch main https://github.com/Malejo01/job-search-os.git js-os-rewrite` y `cd js-os-rewrite`.
+  4. `git filter-repo --replace-text <repo>/fixtures-private/rewrite-replacements.txt --replace-message <repo>/fixtures-private/rewrite-replacements.txt`
+  5. **Verificar antes de pushear:** `git log --all --format=%B | grep -iF -f <repo>/fixtures-private/rewrite-patrones.txt` y `git grep -iF -f <repo>/fixtures-private/rewrite-patrones.txt $(git rev-list --all)` tienen que dar cero; `pnpm install && pnpm lint && pnpm typecheck && pnpm test` en verde.
+  6. `git remote add origin https://github.com/Malejo01/job-search-os.git` y `git push --force origin main` (filter-repo saca el remoto a proposito).
+  7. En cada clon y worktree: `git fetch origin && git checkout main && git reset --hard origin/main`, y borrar las ramas locales viejas. **Destructivo para trabajo local sin pushear:** revisar antes.
+  8. Mandar el pedido a soporte de GitHub (texto en `fixtures-private/`) y borrar desde la web las revisiones viejas de las descripciones de los PRs editados.
+- **Impacto:**
+  - Vercel redeploya `main`: mismo codigo, solo cambian comentarios, docs y el golden. Verificar `success`.
+  - Los PRs cerrados siguen mostrando los commits viejos por su `refs/pull/N/head`: del #23 al ultimo abierto antes de reescribir (al 2026-09-28, del #23 al #32), mas el #5 que ya estaba pendiente. Eso solo lo purga soporte.
+  - Base de datos y produccion: sin impacto.
+- **Ojo con el prompt en produccion:** `packages/prompts/evaluate_job.v1.3.2.md` cita como ejemplo una frase textual del aviso del golden 35, que tambien esta en las versiones viejas del golden. La lista de reemplazos **la excluye a proposito**: si no, la reescritura cambiaria el prompt vigente sin pasar por evals. Para sacarla de todos lados, primero publicar un `v1.3.3` con el ejemplo parafraseado y validado (subset + promocion, JS-058) y recien despues sumar la frase a la lista.
+- **Acepta:** los dos greps del paso 5 dan cero sobre la historia nueva; CI y deploy de `main` en verde; soporte confirma la purga de las refs.
+
+### JS-063 · Guarda local: ningun nombre real en commits, pushes ni PRs
+`deps:` — · `est:` 3 h · `estado:` todo
+- **Por que:** la regla del repo publico se rompio dos veces (2026-09-18 y 2026-09-24/26) y las dos por descuido al redactar, no por falta de regla. Hace falta una red que lo ataje sola. Un barrido a mano ademas fallo por distinguir mayusculas: se escapo un identificador en minuscula con un nombre real en un test.
+- **Regla, antes que la herramienta:** commits, PRs, docs y tests se redactan con alias desde el principio ("Empresa X (golden id N)"). El hook es la red, no el metodo.
+- **Alcance:**
+  - **Hook `pre-push`** versionado (por ejemplo `.githooks/pre-push`, activado con `git config core.hooksPath .githooks`). Lee los nombres reales de `fixtures-private/empresas.map.json` (las claves) y, si existe, una lista privada extra `fixtures-private/deny-list.txt` para datos del perfil (anios, nivel de ingles, empleador). Revisa las lineas agregadas de `git diff <remoto>..<local>`, los mensajes de `git log <remoto>..<local>` y el nombre de la rama. Coincidencia **sin distinguir mayusculas** y por palabra completa. Si encuentra algo, falla mostrando archivo y linea con el nombre enmascarado.
+  - **Sin `fixtures-private/`** (un clon del repo publico): avisa y deja pasar, no bloquea a terceros.
+  - **Chequeo de PRs:** un script (por ejemplo `pnpm pr:check --title "…" --body-file …`, o un `pnpm pr:create` que lo envuelva) que corre el mismo matcher sobre titulo y descripcion antes de `gh pr create`, y tambien antes de `gh pr edit`.
+  - Un solo matcher compartido por el hook y el script, con tests.
+- **Fuera de alcance:** reescribir la historia (JS-062) y el pedido a soporte.
+- **Acepta:** un push con un nombre real en un comentario, en un mensaje de commit o en un identificador en minuscula falla; sin `fixtures-private/` avisa y pasa; `pr:check` bloquea un titulo o una descripcion con un nombre real; los tests del matcher cubren mayusculas, palabra completa y enmascarado.
 
 ### JS-061 · Flujo de revision: ocultar lo ya decidido, ir de a una y ver el avance ✅ done 2026-09-26
 `deps:` JS-015, JS-029 · `est:` 5 h · `estado:` done

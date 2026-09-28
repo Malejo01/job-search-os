@@ -335,7 +335,7 @@ describe("decide(): gap de años contra el perfil (JS-052)", () => {
 
 describe("decide(): años de otra disciplina (JS-052)", () => {
   it("años de una disciplina ajena al perfil → bloqueador con el dominio del aviso", () => {
-    // Empresa V (golden id 35): "2-3 years' experience in advertising creative development"
+    // Empresa V (golden id 35): pide 2-3 años en desarrollo creativo publicitario
     const d = decide(
       {
         ...base,

@@ -40,16 +40,20 @@ describe("golden → prompt", () => {
   });
 
   it("con jd (ids 35 y 36): entra el texto del aviso y had_full_jd=true", () => {
-    const pencil = goldenJobs.find((x) => x.id === 35)!;
-    const job = goldenToJob(pencil);
-    // Los requisitos tienen que llegar al modelo: son los que definen la disciplina
-    expect(job.jdText).toContain("2-3 years' experience in advertising creative development");
+    const golden35 = goldenJobs.find((x) => x.id === 35)!;
+    const job = goldenToJob(golden35);
+    // Los requisitos tienen que llegar al modelo: son los que definen la disciplina. Se buscan
+    // marcas presentes en las dos versiones (la completa del golden privado y la parafraseada
+    // del público), no oraciones textuales del aviso.
+    expect(job.jdText).toMatch(/2-3 years/);
+    expect(job.jdText).toMatch(/advertising/i);
     expect(job.jdText).toContain("Proficiency in Adobe Creative Cloud");
     expect(job.jdText).not.toContain("Stack y requisitos");
-    expect(goldenVars(pencil).had_full_jd).toBe(true);
+    expect(goldenVars(golden35).had_full_jd).toBe(true);
 
-    const steuart = goldenJobs.find((x) => x.id === 36)!;
-    expect(goldenToJob(steuart).jdText).toContain("Excellent written English");
-    expect(goldenVars(steuart).had_full_jd).toBe(true);
+    const golden36 = goldenJobs.find((x) => x.id === 36)!;
+    expect(goldenToJob(golden36).jdText).toContain("Excellent written English");
+    expect(goldenToJob(golden36).jdText).toMatch(/US Eastern/);
+    expect(goldenVars(golden36).had_full_jd).toBe(true);
   });
 });
