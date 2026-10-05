@@ -15,6 +15,7 @@ export default tseslint.config(
       "**/coverage/**",
       "**/next-env.d.ts",
       "**/drizzle/**",
+      ".claude/**", // config local de agentes y sus worktrees: no es código del repo
     ],
   },
   js.configs.recommended,
