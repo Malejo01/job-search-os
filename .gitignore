@@ -45,3 +45,7 @@ apps/web/playwright-report/
 fixtures-private/
 # Reportes de evals: contienen la salida cruda del modelo sobre el golden real → privados
 evals/reports/*.json
+
+# Agent Family (configuración local del equipo de agentes; no se publica)
+CLAUDE.local.md
+ops/
