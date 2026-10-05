@@ -365,6 +365,19 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - Ordenar la lista por score descendente y, dentro de cada score, por cantidad de riesgos ascendente (menos riesgos primero).
 - **Acepta:** dos ofertas con score 7, una con 1 riesgo y otra con 3, salen en ese orden; el orden es estable y se testea sin LLM.
 
+### JS-063 · Guarda local: ningun nombre real en commits, pushes ni PRs
+`deps:` — · `est:` 3 h · `estado:` todo · **prioridad: antes que JS-055** (decision 2026-09-28)
+- **Por que:** la regla del repo publico se rompio dos veces (2026-09-18 y 2026-09-24/26) y las dos por descuido al redactar, no por falta de regla. Hace falta una red que lo ataje sola. Un barrido a mano ademas fallo por distinguir mayusculas: se escapo un identificador en minuscula con un nombre real en un test.
+- **Regla, antes que la herramienta:** commits, PRs, docs y tests se redactan con alias desde el principio ("Empresa X (golden id N)"). El hook es la red, no el metodo.
+- **Alcance:**
+  - **Hook `pre-push`** versionado (por ejemplo `.githooks/pre-push`, activado con `git config core.hooksPath .githooks`). Lee los nombres reales de `fixtures-private/empresas.map.json` (las claves) y, si existe, una lista privada extra `fixtures-private/deny-list.txt` para datos del perfil (anios, nivel de ingles, empleador). Revisa las lineas agregadas de `git diff <remoto>..<local>`, los mensajes de `git log <remoto>..<local>` y el nombre de la rama. Coincidencia **sin distinguir mayusculas** y por palabra completa. Si encuentra algo, falla mostrando archivo y linea con el nombre enmascarado.
+  - **Sin `fixtures-private/`** (un clon del repo publico): avisa y deja pasar, no bloquea a terceros.
+  - **Chequeo de PRs:** un script (por ejemplo `pnpm pr:check --title "…" --body-file …`, o un `pnpm pr:create` que lo envuelva) que corre el mismo matcher sobre titulo y descripcion antes de `gh pr create`, y tambien antes de `gh pr edit`.
+  - Un solo matcher compartido por el hook y el script, con tests.
+- **Evals y golden (contexto para no confundir resultados):** los evals de CI corren contra el golden **publico**, que tiene las JD de los golden 35 y 36 recortadas y parafraseadas. Las decisiones de calibracion se miden contra el golden **privado** (JD completa y perfil real), en una corrida local. Un verde de CI no reemplaza esa corrida. Aparte: hoy el job de CI corre `evaluate_job@v1` y no la version vigente (ver JS-058).
+- **Fuera de alcance:** reescribir la historia (JS-062) y el pedido a soporte.
+- **Acepta:** un push con un nombre real en un comentario, en un mensaje de commit o en un identificador en minuscula falla; sin `fixtures-private/` avisa y pasa; `pr:check` bloquea un titulo o una descripcion con un nombre real; los tests del matcher cubren mayusculas, palabra completa y enmascarado.
+
 ### JS-055 · Subir risks_recall y blockers_precision
 `deps:` JS-052 · `est:` a estimar · `estado:` todo
 - Medido el 2026-09-24 sobre las 36 del golden con `evaluate_job@v1.3.2`: `risks_recall` 64 % y `blockers_precision` 63 %, los dos contra un umbral de 100 %.
@@ -374,8 +387,24 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Acepta:** a definir cuando entre, con una corrida completa antes y despues.
 - **Traspaso (2026-09-28), para el que lo tome:**
   - **Arranca por `location_risk_recall` (38 %).** Es la metrica con costo real: los dos rechazos reales documentados fueron por ubicacion. Ver `evals/README.md` para correr el subset antes y despues de cada cambio.
-  - **Empresa AD (golden id 36) perdio con `evaluate_job@v1.3.2` el riesgo de solapamiento horario** ("At least 4 hours of daily overlap with US Eastern Time") que v1.3.1 si reportaba. Esta en la JD y en `human_risks` del golden. Entra en el alcance de este ticket. Ojo al medirlo: `classifyRisk` (`evals/src/metrics.ts`) no tiene un tipo para horario y lo cuenta como `otro`; conviene sumar un tipo `horario` para que `risks_recall` lo muestre por separado.
+  - **Empresa AD (golden id 36) perdio con `evaluate_job@v1.3.2` el riesgo de solapamiento horario** (al menos 4 horas diarias de solapamiento con US Eastern) que v1.3.1 si reportaba. Esta en la JD y en `human_risks` del golden. Entra en el alcance de este ticket. Ojo al medirlo: `classifyRisk` (`evals/src/metrics.ts`) no tiene un tipo para horario y lo cuenta como `otro`; conviene sumar un tipo `horario` para que `risks_recall` lo muestre por separado.
+  - **Va despues de JS-063** (decision 2026-09-28): primero la guarda de nombres, despues este ticket.
+  - **La proxima version del prompt sale de aca** y tambien reescribe el ejemplo de `v1.3.2` que cita frases textuales del aviso del golden 35 (ver JS-062). Una sola corrida de evals para los dos cambios. El texto del aviso no se cita en ningun lado: ni en el prompt nuevo, ni en docs, ni en commits.
   - **Dato para calibracion (JS-036), no para este ticket:** una oferta postulada fuera del golden paso de 7 `aplicar` a 4,5 `descartar` al re-evaluarla con el perfil corregido (score del modelo 8 → 5,5). Sigue postulada (JS-057). Si llega el rechazo, es evidencia de que la re-evaluacion acierta; el id esta en la memoria del proyecto, no aca.
+
+### JS-062 · Reescribir la historia publica para sacar datos privados ✅ done 2026-09-28
+`deps:` JS-055 (limpieza de archivos, PR #31) · `est:` 1 h + espera de soporte · `estado:` done (queda la purga de refs, que depende de soporte)
+- **Por que:** entre el 2026-09-24 y el 26 entraron a `main` nombres reales de empresas, resultados de postulacion y datos del perfil real (anios, nivel de ingles, skills), contra la regla del repo publico. El PR #31 los saco de los archivos; seguian en la historia y en las refs de los PRs.
+- **Que se hizo (2026-09-28):**
+  - `main` se reescribio una sola vez con `git filter-repo` (`--replace-text` y `--replace-message`) en un clon limpio y aislado. La lista de reemplazos, los patrones de verificacion y el detalle de los commits afectados viven en `fixtures-private/`, no en el repo.
+  - Cambiaron de SHA los ultimos 20 commits de `main`; los anteriores quedaron igual. No hay tags.
+  - Verificado antes del push: barrido sin distinguir mayusculas en cero sobre los mensajes y el contenido de toda la historia nueva, y `pnpm lint && pnpm typecheck && pnpm test` en verde. Push con `--force-with-lease`; el deploy de `main` quedo en `success`.
+  - **Orden real:** se reescribio antes de mergear el PR #32 (la nota "no antes del #32" quedo vieja). El #32 se rebaseo despues sobre el `main` nuevo, con los mismos parches (verificado con `git range-diff`, 2026-10-05).
+- **JD de los golden 35 y 36 (decision 2026-10-05):** la reescritura solo les cambio el nombre de la empresa y algunas frases. El texto se parafraseo despues con un commit normal en el golden publico. No se reescribe la historia otra vez por esto.
+- **Prompt en produccion (decision 2026-09-28):** `packages/prompts/evaluate_job.v1.3.2.md` cita como ejemplo frases del aviso del golden 35. **`v1.3.2` no se toca**: la reescritura las excluyo a proposito, porque cambiarlas modificaba el prompt en produccion sin evals. Se reescriben en la proxima version del prompt (la que salga de JS-055), con **una sola corrida de evals que cubra los dos cambios**: el ejemplo reescrito y las mejoras de riesgos.
+- **Pendiente (lo hace Mauro):** mandar el pedido a soporte de GitHub para purgar las refs de los PRs anteriores a la reescritura (texto y lista en `fixtures-private/`) y borrar desde la web las revisiones viejas de las descripciones de PR que se editaron.
+- **Impacto:** base de datos y produccion, ninguno; el deploy cambio solo comentarios, docs y el golden.
+- **Acepta:** barrido en cero sobre la historia nueva ✅; CI y deploy de `main` en verde ✅; soporte confirma la purga de las refs (pendiente).
 
 ### JS-061 · Flujo de revision: ocultar lo ya decidido, ir de a una y ver el avance ✅ done 2026-09-26
 `deps:` JS-015, JS-029 · `est:` 5 h · `estado:` done
@@ -433,6 +462,15 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
   - **Test en CI (el guardarrail).** Marcar en el frontmatter del prompt `estado: vigente | candidato | retirado`. Un test verifica que hay **exactamente un `vigente` por tarea** y que `DEFAULT_PROMPT_VERSIONS` apunta a ese. Asi un prompt candidato puede vivir en el repo sin promoverse (que es justo lo que hizo v1.3.2 durante dos dias), y olvidarse de mover el puntero rompe el build. No se deriva de "la version mas alta": eso promoveria cualquier experimento por el solo hecho de existir.
   - **`pnpm prompt:promote <task@vN>` (la parte operativa).** Cambia el frontmatter y el puntero, y **verifica contra la base** que los criterios activos tengan las claves que el prompt y `decide()` necesitan (hoy: `allowed_disciplines`, `discipline_cap_score`, `english_risk_from`, `years_gap`). Si faltan, falla y dice cual. Solo lectura contra la base; no escribe criterios.
 - **Acepta:** con el puntero en una version y el frontmatter en otra, `pnpm test` falla nombrando las dos; `prompt:promote` falla si los criterios activos no tienen las claves nuevas.
+
+### JS-064 · `evals recompute` con las anclas actuales del golden, separadas por origen
+`deps:` JS-052 · `est:` 2 h · `estado:` todo
+- Surge del 2026-09-28 (JS-053): al alinear los criterios privados con los activos, `recompute` informó una mejora de `action_acc` que mezclaba anclas. `recomputeReport` recalcula la acción del modelo con el golden y los criterios actuales, pero `human_action`, `human_score_match` y `anchor_source` quedan como estaban en el reporte guardado. Una oferta re-puntuada después de la corrida se comparó contra su acción humana vieja, y el número no distinguía anclas `human` de `assisted`.
+- **Propuesta:**
+  - `recompute` vuelve a leer del golden actual `human_score`, `human_score_match`, `accion`, `human_blockers`, `human_risks`, `human_location_ok` y `anchor_source`, y lista cada ancla que cambió respecto del reporte ("ancla actualizada: id N, acción X → Y").
+  - La salida separa las métricas por origen del ancla (`human` y `assisted`), como ya hace `compare` con `splitByAnchorSource`. Las `human` son la evidencia no circular; las `assisted` quedan como control.
+  - `--anclas-del-reporte` reproduce el cálculo viejo, para comparar con números ya publicados.
+- **Acepta:** test con un reporte cuya acción humana difiere de la del golden actual: `recompute` usa la del golden y lo avisa. La salida muestra `action_acc`, `false_apply` y `false_discard` por separado para `human` y `assisted`.
 
 ### JS-056 · Tope de score por cantidad de gaps must
 `deps:` JS-052 · `est:` 2 h · `estado:` todo (no bloquea)
