@@ -63,10 +63,10 @@
       },
       "b": {
         "sourceKind": "email_linkedin",
-        "externalId": "4400000001",
+        "externalId": "0000123401",
         "company": "Consultora Delta",
         "title": "Senior QA Engineer - Loyalty",
-        "url": "https://linkedin.com/jobs/view/4400000001",
+        "url": "https://linkedin.com/jobs/view/0000123401",
         "seenAt": "2026-09-19T10:00:00Z",
         "jd": "We are looking for a  Senior QA to test the Loyalty & Benefits module of a bank.\nPostman, Xray, JIRA.  Hybrid, Buenos Aires. "
       }
@@ -77,10 +77,10 @@
       "expected": "possible_duplicate",
       "a": {
         "sourceKind": "email_linkedin",
-        "externalId": "4400000002",
+        "externalId": "0000123402",
         "company": "Acme Labs",
         "title": "AI Engineer",
-        "url": "https://linkedin.com/jobs/view/4400000002",
+        "url": "https://linkedin.com/jobs/view/0000123402",
         "seenAt": "2026-09-10T12:00:00Z",
         "jd": null
       },

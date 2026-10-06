@@ -30,8 +30,8 @@ const token = (url: string) =>
 
 describe("jobKeyFromTracker", () => {
   it("saca host y jk del token del tracker", () => {
-    const href = `https://cts.indeed.com/v3/${token("https://ar.indeed.com/rc/clk?jk=0123456789abcdef&from=x&tk=y")}`;
-    expect(jobKeyFromTracker(href)).toEqual({ host: "ar.indeed.com", jk: "0123456789abcdef" });
+    const href = `https://cts.indeed.com/v3/${token("https://ar.indeed.com/rc/clk?jk=0000abcdef012345&from=x&tk=y")}`;
+    expect(jobKeyFromTracker(href)).toEqual({ host: "ar.indeed.com", jk: "0000abcdef012345" });
   });
 
   it("un token sin aviso (pausar, mala coincidencia) o ilegible no da nada", () => {
@@ -45,9 +45,9 @@ describe("jobKeyFromTracker", () => {
   });
 
   it("un link directo al aviso también sirve", () => {
-    expect(jobKeyFromTracker("https://ar.indeed.com/viewjob?jk=a1b2c3d4e5f60718")).toEqual({
+    expect(jobKeyFromTracker("https://ar.indeed.com/viewjob?jk=0000c3d4e5f60718")).toEqual({
       host: "ar.indeed.com",
-      jk: "a1b2c3d4e5f60718",
+      jk: "0000c3d4e5f60718",
     });
   });
 });
@@ -62,8 +62,8 @@ describe("indeedParser", () => {
       source: {
         kind: "email_generic",
         name: "Indeed (email)",
-        externalId: "0123456789abcdef",
-        url: "https://ar.indeed.com/viewjob?jk=0123456789abcdef",
+        externalId: "0000abcdef012345",
+        url: "https://ar.indeed.com/viewjob?jk=0000abcdef012345",
         rawRef: null,
       },
       title: "Analista de Datos",
@@ -92,8 +92,8 @@ describe("indeedParser", () => {
       salaryMinUsd: null,
       salaryMaxUsd: null,
       salaryPeriod: null,
-      salaryNote: "Sueldo según Indeed: $1.045,00 - $3.232,58 por mes (moneda no indicada)",
-      source: { externalId: "fedcba9876543210" },
+      salaryNote: "Sueldo según Indeed: $1.000,00 - $3.000,00 por mes (moneda no indicada)",
+      source: { externalId: "0000ba9876543210" },
     });
   });
 
@@ -123,7 +123,7 @@ describe("indeedParser", () => {
     const res = parse("indeed-tiempo-completo.html", "Analista de Datos en Empresa Ficticia");
     if (!res.ok) throw new Error(res.reason);
     expect(canonicalUrl(res.jobs[0]!.source.url!)).toEqual(
-      canonicalUrl("https://ar.indeed.com/viewjob?jk=0123456789abcdef&from=serp&vjs=3"),
+      canonicalUrl("https://ar.indeed.com/viewjob?jk=0000abcdef012345&from=serp&vjs=3"),
     );
   });
 

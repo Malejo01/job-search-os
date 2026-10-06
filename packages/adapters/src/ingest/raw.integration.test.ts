@@ -220,7 +220,7 @@ describe("JS-024: crudo por vía de ingesta", () => {
   it("JD pegado en pendientes: el texto pegado queda en raw_blobs y en una fuente propia", async () => {
     const pending = await ingestRawJob(
       rawJobFromManual({
-        url: "https://linkedin.com/jobs/view/4400000099",
+        url: "https://linkedin.com/jobs/view/0000123499",
         title: "Platform Engineer",
         company: "Empresa P",
         locationRaw: "Remoto (Argentina)",

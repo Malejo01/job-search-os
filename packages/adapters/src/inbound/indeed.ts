@@ -4,7 +4,7 @@ import type { EmailParser, InboundEmailContent, ParseResult } from "./parsers";
 
 /**
  * Parser de Indeed (JS-047): el email de "empleo compatible" que manda
- * donotreply@match.indeed.com. Un aviso por email, con el asunto "<Título> en <Empresa>".
+ * remitente "donotreply" del dominio match de Indeed. Un aviso por email, con el asunto "<Título> en <Empresa>".
  * Estructura (5 de 5 emails reales, 2026-09-17..22):
  *   - `<h2><a class="strong-text-link">Título</a></h2>`, y después dos `<p>`: empresa y ubicación.
  *   - Bloques opcionales `<h3 class="h3-md">Sueldo</h3>` y `<h3 class="h3-md">Tipo de empleo</h3>`,

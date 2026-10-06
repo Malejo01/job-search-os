@@ -101,8 +101,8 @@ describe("linkedinParser: alertas de empleo", () => {
     expect(job.badges).toEqual(["Solicitud sencilla"]);
     expect(job.source).toMatchObject({
       kind: "email_linkedin",
-      externalId: "4400000001",
-      url: "https://www.linkedin.com/jobs/view/4400000001/",
+      externalId: "0000123401",
+      url: "https://www.linkedin.com/jobs/view/0000123401/",
     });
     expect(job.source.name).toBe("alerta «AI Engineer»");
   });
@@ -233,7 +233,7 @@ describe("linkedinParser: falla cerrado", () => {
   it("falla el email entero si una tarjeta no se entiende, en vez de extraer a medias", () => {
     // el id aparece en el link del logo y en el del título: hay que sacar los dos
     const html = fixture("alerta-dos-avisos.html").replaceAll(
-      "https://www.linkedin.com/comm/jobs/view/4400000002/",
+      "https://www.linkedin.com/comm/jobs/view/0000123402/",
       "https://www.linkedin.com/comm/jobs/collections/",
     );
     const res = linkedinParser.parse(email(html));
