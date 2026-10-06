@@ -95,7 +95,7 @@ describe("JS-047: email de Indeed por el webhook", () => {
     const [job] = await conn.db
       .select()
       .from(s.jobs)
-      .where(eq(s.jobs.canonicalUrl, "https://ar.indeed.com/viewjob?jk=fedcba9876543210"));
+      .where(eq(s.jobs.canonicalUrl, "https://ar.indeed.com/viewjob?jk=0000ba9876543210"));
     expect(job).toMatchObject({
       title: "Soporte Técnico – Guardias Remotas",
       companyRaw: "Empresa Norte IT",

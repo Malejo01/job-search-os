@@ -6,7 +6,7 @@ import { confirmRemoteTarget, isRemoteDatabase } from "./confirm-remote";
  * migración pensada para Docker terminó en producción. Contra una base remota ahora hay que
  * confirmar escribiendo "si"; sin terminal para preguntar, no corre.
  */
-const NEON = "postgres://dueño:x@ep-algo-123.sa-east-1.aws.neon.tech/jobsearch";
+const NEON = "postgres://usuario:x@ep-ejemplo-123.sa-east-1.aws.neon.example/jobsearch";
 const LOCAL = "postgres://postgres:postgres@localhost:54322/jobsearch";
 
 describe("isRemoteDatabase", () => {
@@ -37,7 +37,7 @@ describe("confirmRemoteTarget", () => {
     expect(await confirmRemoteTarget(NEON, { ...base, ask })).toBe(true);
     expect(ask).toHaveBeenCalledWith(expect.stringContaining("Vas a migrar PRODUCCIÓN"));
     expect(ask).toHaveBeenCalledWith(
-      expect.stringContaining("ep-algo-123.sa-east-1.aws.neon.tech"),
+      expect.stringContaining("ep-ejemplo-123.sa-east-1.aws.neon.example"),
     );
     expect(await confirmRemoteTarget(NEON, { ...base, ask: async () => " SI " })).toBe(true);
   });

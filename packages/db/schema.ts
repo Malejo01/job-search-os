@@ -234,7 +234,7 @@ export const contacts = pgTable("contacts", {
 export const talentPlatforms = pgTable("talent_platforms", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull(),
-  name: text("name").notNull(),             // HireLATAM, Simera, Turing ...
+  name: text("name").notNull(),             // nombre de la plataforma (ej.: Plataforma A)
   url: text("url"),
   status: text("status").notNull(),         // pendiente, perfil_cargado, en_proceso, activo, descartada
   profileUpdatedAt: date("profile_updated_at"),

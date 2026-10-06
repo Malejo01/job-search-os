@@ -173,7 +173,9 @@ describe("bloqueadores y riesgos por tipo (harness endurecido 2026-09-11)", () =
     expect(classifyBlocker("disciplina distinta (ai_evaluation)")).toBe("disciplina");
     expect(classifyBlocker("Modalidad híbrida (visitas a CABA)")).toBe("modalidad");
     expect(classifyBlocker("Requiere autorización de trabajo en EE.UU.")).toBe("autorizacion");
-    expect(classifyBlocker("Salario publicado por debajo del piso (USD 1500)")).toBe("salario");
+    expect(classifyBlocker("Salario publicado por debajo del piso (monto sintético)")).toBe(
+      "salario",
+    );
     expect(classifyBlocker("Jornada de 48 horas")).toBe("jornada");
     expect(classifyBlocker("Rol de liderazgo (Lead)")).toBe("otro");
     expect(classifyBlocker("Inglés avanzado requerido")).toBe("otro");

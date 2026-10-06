@@ -210,7 +210,7 @@ describe("saveAnswer + listAnswers", () => {
     const first = await saveAnswer(conn.db, {
       userId: USER,
       question: "What are your salary expectations?",
-      answer: "USD 1500",
+      answer: "A convenir",
       lang: "en",
       jobId,
       now: () => new Date("2026-09-20T10:00:00Z"),
@@ -220,7 +220,7 @@ describe("saveAnswer + listAnswers", () => {
     const second = await saveAnswer(conn.db, {
       userId: USER,
       question: "what are your SALARY expectations*",
-      answer: "USD 1500 por mes",
+      answer: "A convenir, por mes",
       lang: "en",
       now: () => new Date("2026-09-21T10:00:00Z"),
     });
@@ -230,7 +230,7 @@ describe("saveAnswer + listAnswers", () => {
     expect(only).toEqual({
       id: first.id,
       question: "what are your SALARY expectations*",
-      answer: "USD 1500 por mes",
+      answer: "A convenir, por mes",
       lang: "en",
       source_job_id: null,
       created_at: "2026-09-20T10:00:00.000Z",
@@ -243,7 +243,7 @@ describe("saveAnswer + listAnswers", () => {
     await saveAnswer(conn.db, {
       userId: USER,
       question: "What are your salary expectations?",
-      answer: "USD 1500 mensuales",
+      answer: "A convenir, mensual",
       lang: "es",
       jobId,
     });

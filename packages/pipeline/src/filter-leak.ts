@@ -32,7 +32,7 @@ export function baseDomain(host: string): string {
   return labels.slice(-keep).join(".");
 }
 
-/** Host del remitente: "Banco <a@mails.banco.com.ar>" → "mails.banco.com.ar"; "" si no hay arroba. */
+/** Host del remitente: "Banco <a@mails.banco.example>" → "mails.banco.example"; "" si no hay arroba. */
 export function senderHost(fromAddress: string): string {
   const addr = (/<([^>]+)>/.exec(fromAddress)?.[1] ?? fromAddress).trim().toLowerCase();
   const at = addr.lastIndexOf("@");

@@ -13,8 +13,8 @@ import {
 const fixture = page as unknown as GobPage;
 const first = fixture.data[0]!;
 
-describe("Get on Board: contrato con la respuesta real grabada (2026-09-10)", () => {
-  it("mapea un item real a RawJob", () => {
+describe("Get on Board: contrato con una respuesta de ejemplo con la estructura de la API", () => {
+  it("mapea un item de ejemplo a RawJob", () => {
     const raw = mapGobJob(first, "programming");
     expect(raw.source).toEqual({
       kind: "getonboard_api",

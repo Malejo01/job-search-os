@@ -3,12 +3,12 @@ import { err, ok } from "../result";
 import { canonicalUrl } from "./url";
 
 describe("canonicalUrl", () => {
-  const LI = "https://linkedin.com/jobs/view/4123456789";
+  const LI = "https://linkedin.com/jobs/view/0000123456";
 
   it("LinkedIn: currentJobId en búsqueda → /jobs/view/{id}", () => {
     expect(
       canonicalUrl(
-        "https://www.linkedin.com/jobs/search/?currentJobId=4123456789&keywords=ai%20engineer&refresh=true",
+        "https://www.linkedin.com/jobs/search/?currentJobId=0000123456&keywords=ai%20engineer&refresh=true",
       ),
     ).toEqual(ok(LI));
   });
@@ -16,19 +16,19 @@ describe("canonicalUrl", () => {
   it("LinkedIn: /jobs/view/{id}/ con tracking → limpio", () => {
     expect(
       canonicalUrl(
-        "https://www.linkedin.com/jobs/view/4123456789/?refId=abc&trackingId=xyz&utm_source=email",
+        "https://www.linkedin.com/jobs/view/0000123456/?refId=abc&trackingId=xyz&utm_source=email",
       ),
     ).toEqual(ok(LI));
   });
 
   it("LinkedIn: links de email (/comm/jobs/view) y slugs con id al final", () => {
-    expect(canonicalUrl("https://www.linkedin.com/comm/jobs/view/4123456789?trk=eml-jobs")).toEqual(
+    expect(canonicalUrl("https://www.linkedin.com/comm/jobs/view/0000123456?trk=eml-jobs")).toEqual(
       ok(LI),
     );
     expect(
-      canonicalUrl("https://www.linkedin.com/jobs/view/senior-ai-engineer-at-acme-4123456789"),
+      canonicalUrl("https://www.linkedin.com/jobs/view/senior-ai-engineer-at-acme-0000123456"),
     ).toEqual(ok(LI));
-    expect(canonicalUrl("https://ar.linkedin.com/jobs/view/4123456789")).toEqual(ok(LI));
+    expect(canonicalUrl("https://ar.linkedin.com/jobs/view/0000123456")).toEqual(ok(LI));
   });
 
   it("quita utm_* y otros params de tracking, conserva el resto ordenado", () => {
