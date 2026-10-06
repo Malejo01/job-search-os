@@ -16,6 +16,7 @@ export default tseslint.config(
       "**/next-env.d.ts",
       "**/drizzle/**",
       ".claude/**", // config local de agentes y sus worktrees: no es código del repo
+      "ops/**", // estado y borradores del equipo de agentes: no versionado, no es código
     ],
   },
   js.configs.recommended,
