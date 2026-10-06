@@ -16,7 +16,7 @@ describe("modo demo (FakeLlm contra la cola real)", () => {
     const calls = memoryCallSink();
     const llm = createDemoLlm({ calls });
     const job =
-      "AI Engineer remoto para LATAM. RAG, agentes, Python, TypeScript, MCP. Deseable AWS. 5 años. Salario USD 4000.";
+      "AI Engineer remoto para LATAM. RAG, agentes, Python, TypeScript, MCP. Deseable AWS. 6 años. Salario a convenir.";
     for (const ref of ["evaluate_job@v1", "evaluate_job@v1.1", "evaluate_job@v1.2"] as const) {
       const r = await llm.generateStructured("evaluate_job", outputSchemaFor(ref), vars(job), {
         promptVersion: ref,

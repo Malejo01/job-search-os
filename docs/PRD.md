@@ -77,7 +77,7 @@ Buscar trabajo remoto en IA/desarrollo consume 1–2 horas diarias de trabajo re
 - Las mejores ofertas (7–8) piden 3–4 años, no exigen cloud enterprise y valoran rigor sobre sistemas no determinísticos. Son startups/producto, no consultoras.
 - Consultoras grandes (Empresa L, Empresa J, Empresa A, Empresa N): 7–10 años.
 - Mercado local argentino: IA como capa sobre stack senior tradicional (.NET/Angular/Java). Internacional: la IA sola alcanza.
-- Dos rechazos automáticos por ubicación en "LATAM remoto" sin países explícitos (Empresa AB, Empresa O).
+- Los avisos "LATAM remoto" sin países explícitos son un riesgo de ubicación recurrente: hay que verificarlos antes de postular.
 - Ofertas de IA en Argentina remoto se cierran en 24 hs. Alertas semanales llegan vencidas.
 - 4 alertas de LinkedIn → 12 avisos, 3 únicos.
 - Búsqueda directa con filtros "24 hs + remoto + <10 solicitantes": 27 resultados donde la alerta mostraba 3.

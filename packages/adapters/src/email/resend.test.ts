@@ -28,7 +28,7 @@ describe("sendEmail", () => {
   it("usa el from explícito si se pasa", async () => {
     const fetchImpl = vi.fn().mockResolvedValue({ ok: true } as Response);
     await sendEmail(
-      { to: "a@b.com", subject: "s", html: "h", from: "Custom <custom@example.com>" },
+      { to: "a@example.com", subject: "s", html: "h", from: "Custom <custom@example.com>" },
       "key",
       fetchImpl,
     );
@@ -43,7 +43,7 @@ describe("sendEmail", () => {
       text: () => Promise.resolve("dominio no verificado"),
     } as unknown as Response);
     await expect(
-      sendEmail({ to: "a@b.com", subject: "s", html: "h" }, "key", fetchImpl),
+      sendEmail({ to: "a@example.com", subject: "s", html: "h" }, "key", fetchImpl),
     ).rejects.toThrow(/HTTP 422.*dominio no verificado/);
   });
 });

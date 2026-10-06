@@ -10,7 +10,7 @@ import { deleteInbound } from "./inbox-list";
  * Todo con el rol de la app y RLS.
  */
 
-/** Host del remitente en SQL: "Banco <a@mails.banco.com.ar>" → "mails.banco.com.ar". */
+/** Host del remitente en SQL: "Banco <a@mails.banco.example>" → "mails.banco.example". */
 const HOST_SQL = sql<string>`lower(split_part(regexp_replace(${s.inboundEmails.fromAddress}, '^.*<([^>]+)>.*$', '\\1'), '@', 2))`;
 
 export const SENDER_VERDICTS = ["empleo", "no_empleo"] as const;

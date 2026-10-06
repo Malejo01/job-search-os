@@ -30,7 +30,7 @@ describe("baseDomain", () => {
     ["comunicaciones.bancoejemplo.com.ar", "bancoejemplo.com.ar"],
     ["join.netflix.com", "netflix.com"],
     ["match.indeed.com", "indeed.com"],
-    ["avenga.teamtailor-mail.com", "teamtailor-mail.com"],
+    ["empresa-norte.ats-ejemplo.test", "ats-ejemplo.test"],
     ["getonbrd.com", "getonbrd.com"],
     ["mail.ejemplo.co.uk", "ejemplo.co.uk"],
     ["noticias.ejemplo.com.br", "ejemplo.com.br"],
@@ -186,7 +186,7 @@ describe("senderHost", () => {
   it.each([
     ["LinkedIn <jobalerts-noreply@linkedin.com>", "linkedin.com"],
     ["notifications@GitHub.com", "github.com"],
-    ['"Banco" <avisos@mails.bancoejemplo.com.ar>', "mails.bancoejemplo.com.ar"],
+    ['"Banco" <avisos@mails.bancoejemplo.example>', "mails.bancoejemplo.example"],
     ["sin arroba", ""],
   ])("%s → %s", (from, host) => {
     expect(senderHost(from)).toBe(host);
@@ -207,12 +207,12 @@ describe("isExpectedSender", () => {
   });
 
   it("lo que la persona marcó como fuente de empleo también es esperado, con sus subdominios", () => {
-    expect(isExpectedSender("x@avenga.teamtailor-mail.com", ["teamtailor-mail.com"])).toBe(true);
+    expect(isExpectedSender("x@empresa-norte.ats-ejemplo.test", ["ats-ejemplo.test"])).toBe(true);
   });
 
   it("todo lo demás no: banco, GitHub, una persona, un remitente ilegible", () => {
     for (const from of [
-      "Banco <avisos@mails.bancoejemplo.com.ar>",
+      "Banco <avisos@mails.bancoejemplo.example>",
       "notifications@github.com",
       "francisco@consultora.example",
       "sin arroba",

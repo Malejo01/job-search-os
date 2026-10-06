@@ -223,19 +223,24 @@ describe("decide(): disciplina fuera del perfil (JS-052)", () => {
 });
 
 describe("decide(): inglés exigido por encima del candidato (JS-052)", () => {
-  it("avanzado con candidato B2 → riesgo explícito, además de la penalización de −1", () => {
+  // Perfil ficticio: su nivel queda por debajo de "avanzado" y "nativo".
+  const PERFIL_FICTICIO = { english: "B2" };
+
+  it("avanzado con candidato por debajo de lo exigido → riesgo explícito, además de la penalización de −1", () => {
     const d = decide({ ...base, ingles_requerido: "avanzado" }, rules, {
-      candidateEnglishCefr: "B2",
+      candidateEnglishCefr: PERFIL_FICTICIO.english,
     });
-    expect(d.riesgos).toEqual(["inglés requerido avanzado, el candidato tiene B2"]);
+    expect(d.riesgos).toEqual([
+      `inglés requerido avanzado, el candidato tiene ${PERFIL_FICTICIO.english}`,
+    ]);
     expect(d.scoreFinal).toBe(7);
     expect(d.accion).toBe("aplicar"); // el riesgo no frena: Empresa AD (golden 36) sigue en aplicar
     expect(d.bloqueadores).toEqual([]);
   });
 
-  it("nativo con candidato B2 → riesgo", () => {
+  it("nativo con candidato por debajo de lo exigido → riesgo", () => {
     const d = decide({ ...base, ingles_requerido: "nativo" }, rules, {
-      candidateEnglishCefr: "B2",
+      candidateEnglishCefr: PERFIL_FICTICIO.english,
     });
     expect(d.riesgos).toHaveLength(1);
   });
@@ -246,8 +251,9 @@ describe("decide(): inglés exigido por encima del candidato (JS-052)", () => {
         .riesgos,
     ).toEqual([]);
     expect(
-      decide({ ...base, ingles_requerido: "intermedio" }, rules, { candidateEnglishCefr: "B2" })
-        .riesgos,
+      decide({ ...base, ingles_requerido: "intermedio" }, rules, {
+        candidateEnglishCefr: PERFIL_FICTICIO.english,
+      }).riesgos,
     ).toEqual([]);
   });
 
@@ -263,7 +269,7 @@ describe("decide(): inglés exigido por encima del candidato (JS-052)", () => {
         riesgos: ["Nivel de inglés del candidato (B2) es inferior al requerido (C1)"],
       },
       rules,
-      { candidateEnglishCefr: "B2" },
+      { candidateEnglishCefr: PERFIL_FICTICIO.english },
     );
     expect(d.riesgos).toHaveLength(1);
   });

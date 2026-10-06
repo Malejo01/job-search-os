@@ -68,7 +68,7 @@ export const EvaluationSchema = z.object({
 |---|---|---|
 | 33 Empresa AA | 8 | Match total sin stack pesado; inglés hablado como único gap |
 | 28 Empresa V | 7.5 | "Agent Architect" es rol técnico (allowlist); tesis > stack |
-| 16 Empresa O | 7 | Perfecto en papel; rechazo por ubicación → `location_ok: riesgo` |
+| 16 Empresa O | 7 | Perfecto en papel; ubicación sin países explícitos → `location_ok: riesgo` |
 | 30 Empresa X | 7 | Trazabilidad de agentes; gap de dominio (growth), no de stack |
 | 34 Empresa AB | 7 | Snowflake must-have como gap real; ubicación riesgo |
 | 7 / 6 Empresa F | 6.5 / 6 | Mismo empleador, roles distintos; años 5–6 penalizan |

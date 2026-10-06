@@ -17,7 +17,7 @@
   "english_fluent_penalty": 1,
   "easy_apply_penalty": 0,
   "skills_match_badge": { "analyze_from": 0.6, "discard_below": 0.4 },
-  "salary_floor_usd_monthly": 2000,
+  "salary_floor_usd_monthly": 3000,
   "max_weekly_hours": 40,
   "thresholds": { "personalizado": 9, "aplicar": 7, "guardar": 5 }
 }
