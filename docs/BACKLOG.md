@@ -365,8 +365,38 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - Ordenar la lista por score descendente y, dentro de cada score, por cantidad de riesgos ascendente (menos riesgos primero).
 - **Acepta:** dos ofertas con score 7, una con 1 riesgo y otra con 3, salen en ese orden; el orden es estable y se testea sin LLM.
 
-### JS-063 · Guarda local: ningun nombre real en commits, pushes ni PRs
-`deps:` — · `est:` 3 h · `estado:` todo · **prioridad: antes que JS-055** (decision 2026-09-28)
+### JS-066 · Limpieza de privacidad del arbol publico (sin reescribir historia) ✅ done 2026-10-06
+`deps:` — · `est:` M · `estado:` done (ronda 01): el barrido del arbol da 0 hallazgos
+- **Por que:** el barrido del arbol versionado (HEAD) marca datos que no deberian estar en un repo publico: IDs de avisos con formato real en fixtures, una fixture capturada de la API de una fuente, montos y un nivel de ingles en tests, y una plataforma real en un ejemplo de perfil.
+- **Que:**
+  - IDs de avisos de las fixtures de parsers con prefijo ficticio `0000`: LinkedIn numerico; Indeed `jk` hexadecimal de 16;
+  - la fixture de la fuente reescrita con datos inventados, con la misma estructura;
+  - montos y piso salarial de los tests ficticios, con los montos relativos al piso;
+  - dominios reservados (`.example`, `.test`) en emails y URLs de ejemplo;
+  - docs sin resultados de postulaciones reales.
+- **Acepta:** el barrido del arbol (`--tree`) da 0 hallazgos y los tests prueban lo mismo que antes.
+
+### JS-075 · Golden publico sin datos de postulaciones reales ✅ done 2026-10-06
+`deps:` — · `est:` M · `estado:` done (ronda 01)
+- **Que:**
+  - afuera: estados de postulacion y montos;
+  - fechas: ficticias;
+  - titulos: genericos, conservando las palabras de las que depende el prefiltro;
+  - salarios sinteticos solo si un eval los necesita;
+  - `meta`: neutro.
+- **Acepta:** la decision del prefiltro es la misma para cada id antes y despues; `golden.test.ts` en verde.
+
+### JS-065 · Seed con datos de ejemplo aunque exista `fixtures-private/`
+`deps:` — · `est:` 1 h · `estado:` todo · **prioridad: antes de cualquier ronda de qa o ux-ui sobre la base de desarrollo** (nuevo, 2026-10-05)
+- **Por que:** `loadFixture` (`packages/db/src/fixtures.ts:25`) usa la version privada de cada fixture si el archivo existe, sin forma de evitarlo. Por eso `db:seed --local` carga los datos privados en la base de desarrollo de Docker, que tiene que tener datos ficticios: la usan los tests, los e2e y la revision de UI.
+- **Que:**
+  - una variable de entorno (por ejemplo `SEED_FIXTURES=example`) o un flag `--example` que haga que `loadFixture` ignore `fixtures-private/` y use siempre `PUBLIC_PATHS`;
+  - el seed avisa en el log que fuente uso, como ya hace (`seed.ts:58`).
+- **Tests:** con el switch puesto, `loadFixture` devuelve `source: "example"` aunque exista el archivo privado (se simula con un directorio temporal). Sin el switch, el comportamiento no cambia.
+- **Fuera de alcance:** el seed contra la nube (sigue igual, con confirmacion).
+
+### JS-063 · Guarda local: ningun nombre real en commits, pushes ni PRs ✅ done 2026-10-06
+`deps:` — · `est:` 3 h · `estado:` done (ronda 01): matcher y modos versionados en `scripts/privacy-scan.mjs` con `--tree` y tests con patrones ficticios. Fuera: el hook `pre-push` versionado (`core.hooksPath`) y un `pr:check` en `package.json`; hoy los cubren el hook local y el script de PR · **prioridad: antes que JS-055** (decision 2026-09-28)
 - **Por que:** la regla del repo publico se rompio dos veces (2026-09-18 y 2026-09-24/26) y las dos por descuido al redactar, no por falta de regla. Hace falta una red que lo ataje sola. Un barrido a mano ademas fallo por distinguir mayusculas: se escapo un identificador en minuscula con un nombre real en un test.
 - **Regla, antes que la herramienta:** commits, PRs, docs y tests se redactan con alias desde el principio ("Empresa X (golden id N)"). El hook es la red, no el metodo.
 - **Alcance:**
@@ -383,14 +413,14 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - Medido el 2026-09-24 sobre las 36 del golden con `evaluate_job@v1.3.2`: `risks_recall` 64 % y `blockers_precision` 63 %, los dos contra un umbral de 100 %.
 - Sube de prioridad por JS-052: si el score deja de penalizar inglés y años, la viabilidad viaja entera por los riesgos. Un riesgo que el modelo no emite ahora no lo compensa nadie.
 - `blockers_precision` baja sobre todo por bloqueadores que el modelo inventa fuera de la lista cerrada (tipo `otro`) y por bloqueadores de disciplina sobre roles que si estan en el carril.
-- **Primero `location_risk_recall` (38 %)**: el modelo devuelve `ok` donde la referencia dice `riesgo`. Es la de mayor costo real: los dos rechazos reales documentados fueron por ubicacion, asi que este 38 % ya se pago en postulaciones perdidas.
+- **Primero `location_risk_recall` (38 %)**: el modelo devuelve `ok` donde la referencia dice `riesgo`. Es la de mayor costo: un riesgo de ubicacion que no se emite termina en postulaciones que no prosperan.
 - **Acepta:** a definir cuando entre, con una corrida completa antes y despues.
 - **Traspaso (2026-09-28), para el que lo tome:**
-  - **Arranca por `location_risk_recall` (38 %).** Es la metrica con costo real: los dos rechazos reales documentados fueron por ubicacion. Ver `evals/README.md` para correr el subset antes y despues de cada cambio.
+  - **Arranca por `location_risk_recall` (38 %).** Es la metrica con mas costo (ver arriba). Ver `evals/README.md` para correr el subset antes y despues de cada cambio.
   - **Empresa AD (golden id 36) perdio con `evaluate_job@v1.3.2` el riesgo de solapamiento horario** (al menos 4 horas diarias de solapamiento con US Eastern) que v1.3.1 si reportaba. Esta en la JD y en `human_risks` del golden. Entra en el alcance de este ticket. Ojo al medirlo: `classifyRisk` (`evals/src/metrics.ts`) no tiene un tipo para horario y lo cuenta como `otro`; conviene sumar un tipo `horario` para que `risks_recall` lo muestre por separado.
   - **Va despues de JS-063** (decision 2026-09-28): primero la guarda de nombres, despues este ticket.
   - **La proxima version del prompt sale de aca** y tambien reescribe el ejemplo de `v1.3.2` que cita frases textuales del aviso del golden 35 (ver JS-062). Una sola corrida de evals para los dos cambios. El texto del aviso no se cita en ningun lado: ni en el prompt nuevo, ni en docs, ni en commits.
-  - **Dato para calibracion (JS-036), no para este ticket:** una oferta postulada fuera del golden paso de 7 `aplicar` a 4,5 `descartar` al re-evaluarla con el perfil corregido (score del modelo 8 → 5,5). Sigue postulada (JS-057). Si llega el rechazo, es evidencia de que la re-evaluacion acierta; el id esta en la memoria del proyecto, no aca.
+  - **Datos para calibracion (JS-036):** hay casos fuera del golden que cambiaron de accion al re-evaluarlos con el perfil corregido. El detalle es privado y no va en el repo.
 
 ### JS-062 · Reescribir la historia publica para sacar datos privados ✅ done 2026-09-28
 `deps:` JS-055 (limpieza de archivos, PR #31) · `est:` 1 h + espera de soporte · `estado:` done (queda la purga de refs, que depende de soporte)
