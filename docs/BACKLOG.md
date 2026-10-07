@@ -386,8 +386,8 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
   - `meta`: neutro.
 - **Acepta:** la decision del prefiltro es la misma para cada id antes y despues; `golden.test.ts` en verde.
 
-### JS-065 · Seed con datos de ejemplo aunque exista `fixtures-private/`
-`deps:` — · `est:` 1 h · `estado:` todo · **prioridad: antes de cualquier ronda de qa o ux-ui sobre la base de desarrollo** (nuevo, 2026-10-05)
+### JS-065 · Seed con datos de ejemplo aunque exista `fixtures-private/` ✅ done 2026-10-07
+`deps:` — · `est:` 1 h · `estado:` done (ronda 03, PR #38): `SEED_FIXTURES=example`; un valor invalido corta antes de escribir
 - **Por que:** `loadFixture` (`packages/db/src/fixtures.ts:25`) usa la version privada de cada fixture si el archivo existe, sin forma de evitarlo. Por eso `db:seed --local` carga los datos privados en la base de desarrollo de Docker, que tiene que tener datos ficticios: la usan los tests, los e2e y la revision de UI.
 - **Que:**
   - una variable de entorno (por ejemplo `SEED_FIXTURES=example`) o un flag `--example` que haga que `loadFixture` ignore `fixtures-private/` y use siempre `PUBLIC_PATHS`;
@@ -409,7 +409,7 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Acepta:** un push con un nombre real en un comentario, en un mensaje de commit o en un identificador en minuscula falla; sin `fixtures-private/` avisa y pasa; `pr:check` bloquea un titulo o una descripcion con un nombre real; los tests del matcher cubren mayusculas, palabra completa y enmascarado.
 
 ### JS-055 · Subir risks_recall y blockers_precision
-`deps:` JS-052 · `est:` a estimar · `estado:` todo
+`deps:` JS-052 · `est:` a estimar · `estado:` en curso. Parte de codigo done 2026-10-07 (ronda 04, PR #39): una regla de region ajena en el prefiltro que solo suma `location_risk`, sin mejora medible en el golden; la perdida de ubicacion es del modelo o de descartes previos del prefiltro. Sigue la parte de prompt (corrida paga)
 - Medido el 2026-09-24 sobre las 36 del golden con `evaluate_job@v1.3.2`: `risks_recall` 64 % y `blockers_precision` 63 %, los dos contra un umbral de 100 %.
 - Sube de prioridad por JS-052: si el score deja de penalizar inglés y años, la viabilidad viaja entera por los riesgos. Un riesgo que el modelo no emite ahora no lo compensa nadie.
 - `blockers_precision` baja sobre todo por bloqueadores que el modelo inventa fuera de la lista cerrada (tipo `otro`) y por bloqueadores de disciplina sobre roles que si estan en el carril.
@@ -515,7 +515,7 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Acepta:** `recompute` sobre un reporte guardado muestra las dos cifras de ubicacion, el recall por tipo y el aviso de hash; tests en verde.
 
 ### JS-074 · Prompt `evaluate_job` v1.3.3 sin el literal de un aviso real
-`deps:` — · `est:` S + corrida · `estado:` en curso (ronda 02, 2026-10-07): version escrita, sin promover
+`deps:` — · `est:` S + corrida · `estado:` en curso. v1.3.3 medida el 2026-10-07 (1 corrida): empeora metricas estrictas contra v1.3.2 (MAE, `blockers_recall`, `blockers_precision`, `discipline_acc`), no se promueve. v1.3.4 (ronda 05) vuelve a anclar la disciplina de produccion creativa; falta medirla con 3 corridas
 - **Por que:** el ejemplo de mision contra requisitos de v1.3.2 cita frases de un aviso real; una busqueda las identifica. Es el prompt de produccion.
 - **Que:** v1.3.3 = v1.3.2 con ese ejemplo reescrito de cero en otro dominio, con la misma ensenanza (la disciplina sale de los requisitos). No se promueve sin medir.
 - **Acepta:** 1 corrida completa (36 casos, ≈ USD 0,36) + `recompute` y `compare` contra la de v1.3.2 sin empeorar `action_acc`, `false_apply` ni `discipline_acc` en las anclas `human`. Recien ahi se promueve (decision de Mauro).
@@ -525,6 +525,20 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Por que:** el job `evals` de CI corre `evaluate_job@v1`, no la version de produccion. Un PR que cambia el prompt vigente o el golden se mide contra una version vieja (ver tambien JS-058).
 - **Que:** `pnpm evals run --prompt vigente` resuelve a la version que usa produccion; `ci.yml` pasa a `EVALS_PROMPT: vigente`, con el costo por corrida estimado antes de aplicarlo.
 - **Acepta:** el log del job muestra la version vigente; el costo por corrida queda anotado en el PR.
+
+### JS-069 · MCP: token solo por Bearer y contenido externo marcado como no confiable ✅ done 2026-10-07
+`deps:` JS-035 · `est:` M · `estado:` done (ronda 03, PR #38)
+- **Que se hizo:** token solo por `Authorization: Bearer` (`?token=` solo con `MCP_ALLOW_QUERY_TOKEN=1`), comparacion en tiempo constante; las tools que devuelven contenido externo lo envuelven en un bloque de dato no confiable; las de escritura piden confirmacion explicita en el chat; esquemas Zod en adapters y ninguna tool acepta `userId` de la entrada; e2e de autenticacion.
+
+### JS-068 · Endpoints: health opaco, CRON_SECRET en tiempo constante y reset de contrasena con URL fija ✅ done 2026-10-07
+`deps:` — · `est:` S · `estado:` done (ronda 03, PR #38)
+- **Que se hizo:** `/api/health` devuelve un 503 sin detalle; los tres crons comparan `CRON_SECRET` en tiempo constante; el reset usa `AUTH_URL` (o `NEXT_PUBLIC_APP_URL`) y nunca `Host`, invalida todos los tokens del usuario al consumir uno y manda `Referrer-Policy: no-referrer`.
+
+### JS-079 · Consumir el token de reset de forma atomica
+`deps:` JS-068 · `est:` S · `estado:` todo (nuevo, 2026-10-07)
+- **Por que:** `checkResetToken` corre fuera de la transaccion que cambia la contrasena, asi que dos pedidos concurrentes con el mismo token pueden pasar el chequeo (ya existia antes de JS-068).
+- **Que:** consumir el token con `UPDATE ... WHERE used_at IS NULL AND expires_at > now() RETURNING` dentro de la misma transaccion; si no devuelve fila, falla.
+- **Acepta:** test de integracion con dos consumos concurrentes del mismo token: uno gana, el otro recibe "used".
 
 ### JS-078 · El barrido `--pre-push` informa cuando pasa
 `deps:` JS-063 · `est:` S · `estado:` todo (2026-10-06)
@@ -540,7 +554,7 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Acepta:** el id 9 vuelve a `descartar` por la regla de gaps y no por la penalizacion de cloud; `false_apply` sigue en 0 sobre las human.
 
 ### JS-053 · Agente de postulaciones con revisión humana
-`deps:` JS-035 (JS-032 queda reemplazado en versión liviana por `candidate_facts`) · `estado:` Fase 1 ✅ done 2026-09-28 · Fase 2 todo
+`deps:` JS-035 (JS-032 queda reemplazado en versión liviana por `candidate_facts`) · `estado:` Fase 1 ✅ done 2026-09-28 · Fase 2 ✅ done 2026-10-07 (ronda 04, PR #39) sin persistir borradores sin aprobar; falta la prueba manual
 - Surge del 2026-09-23, al corregir el evaluador (JS-052): responder formularios de postulación sin un contexto verificable lleva a afirmar cosas que el perfil no respalda.
 - ADR-004 sigue vigente en las dos fases: se redacta, no se postula ni se navega LinkedIn. Nada se manda solo.
 
