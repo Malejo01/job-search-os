@@ -267,6 +267,94 @@ describe("prefilter: reglas una por una", () => {
     expect(r.pass && r.flags).toContain("many_candidates");
   });
 
+  describe("avisos que no son IT (títulos de otros oficios, bases de RR. HH.)", () => {
+    const run = (title: string) =>
+      prefilter({ title, companyRaw: "Empresa Demo SA", modality: "remoto" }, rules);
+
+    it.each([
+      ["Administrativo/a", "administrativ"],
+      ["Asistente Administrativa", "administrativ"],
+      ["ADMINISTRATIVO(A) contable", "administrativ"],
+      ["Administrativ@ de compras", "administrativ"],
+      ["Auxiliar Contable", "auxiliar contable"],
+      ["Recepcionista", "recepcionista"],
+      ["Cajero/a", "cajer"],
+      ["Vendedor(a) de mostrador", "vendedor"],
+      ["Vendedora", "vendedor"],
+      ["Atención al Cliente", "atencion al cliente"],
+      ["Operador de Call Center", "call center"],
+      ["Operario de planta", "operari"],
+      ["Repositor/a", "repositor"],
+      ["Chofer de reparto", "chofer"],
+      ["Mozo / Moza", "moz"],
+      ["Abogado/a laboralista", "abogad"],
+    ])("otro oficio: %s → disciplina_distinta", (title, stem) => {
+      const r = run(title);
+      expect(r).toMatchObject({ pass: false, reason: "disciplina_distinta" });
+      expect(!r.pass && r.detail).toBe(`título fuera de IT: '${stem}'`);
+    });
+
+    it.each([
+      "Cargá tu CV",
+      "Dejanos tu CV",
+      "Envianos tu CV - Empresa Demo SA",
+      "Base de talentos",
+      "Búsquedas generales",
+      "Postulación espontánea",
+      "Talent Pool",
+    ])("base genérica de RR. HH.: %s → disciplina_distinta", (title) => {
+      const r = run(title);
+      expect(r).toMatchObject({ pass: false, reason: "disciplina_distinta" });
+      expect(!r.pass && r.detail).toMatch(/^título fuera de IT: /);
+    });
+
+    it("la base de RR. HH. descarta siempre, aunque mencione IT", () => {
+      expect(run("Cargá tu CV — perfiles IT")).toMatchObject({ pass: false });
+      expect(run("Talent Pool Developer")).toMatchObject({ pass: false });
+      expect(run("Base de talentos de AI Engineers")).toMatchObject({ pass: false });
+    });
+
+    it.each([
+      "Vendedor de insumos informáticos",
+      "Abogado/a en derecho informático",
+      "Administrativo para empresa de servicios informáticos",
+      "Vendedora de equipos de informática",
+    ])("'informático' no es señal IT por sí sola: %s", (title) => {
+      expect(run(title)).toMatchObject({ pass: false, reason: "disciplina_distinta" });
+    });
+
+    it.each([
+      "Analista informático",
+      "Técnico informático",
+      "Desarrollador/a Full Stack para área administrativa",
+      "Ingeniero/a de Software — Sistemas de ventas",
+      "AI Engineer — Customer Support",
+      "Data Analyst — Contabilidad",
+      "Diseñador/a gráfico con IA generativa",
+      "Editor/a de video con IA",
+      "Vendedor/a de soluciones de IA",
+      "DevOps para sistema de recepcionistas",
+      "Data Analyst — Recepción de pedidos con recepcionista",
+      "Backend Developer — Call Center",
+      "Soporte técnico / Atención al cliente",
+      "Help Desk – atención al cliente",
+      "Administrativo/a de sistemas",
+      "Soporte IT — Operario de planta",
+    ])("no descarta con señal IT o de IA: %s", (title) => {
+      expect(run(title)).toMatchObject({ pass: true });
+    });
+
+    it("acentos y mayúsculas no importan", () => {
+      expect(run("RECEPCIONISTA")).toMatchObject({ pass: false });
+      expect(run("Atencion al cliente")).toMatchObject({ pass: false });
+    });
+
+    it("no matchea dentro de otra palabra", () => {
+      expect(run("Mozilla Add-ons Reviewer").pass).toBe(true);
+      expect(run("Administrative Assistant AI").pass).toBe(true);
+    });
+  });
+
   it("el orden de las razones es determinista: modalidad antes que título", () => {
     const r = prefilter({ ...base, title: "Engineering Manager", modality: "presencial" }, rules);
     expect(r).toMatchObject({ pass: false, reason: "modalidad_no_remota" });
