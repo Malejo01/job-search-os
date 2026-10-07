@@ -19,6 +19,8 @@ import { requireUserId } from "@/lib/session";
 import { changeStatusAction, dismissDuplicateAction, humanScoreAction } from "./actions";
 import { AutoRefresh } from "../auto-refresh";
 import { ApplyButton } from "./apply-button";
+import { getSavedFormAnswers } from "./form-data";
+import { FormReview } from "./form-review";
 import { MergeButton } from "./merge-button";
 import { ReviewNav } from "./review-nav";
 import { StatusCorrection } from "./status-correction";
@@ -64,9 +66,10 @@ export default async function JobDetailPage({
   // respetan, y el orden sale de la misma consulta que la lista.
   const filters = parseJobFilters(sp);
   const query = listQuery(filters);
-  const [job, around] = await Promise.all([
+  const [job, around, savedForm] = await Promise.all([
     getJobDetail(userId, id),
     jobNeighbors(userId, id, filters),
+    getSavedFormAnswers(userId, id),
   ]);
   if (!job) notFound();
   const ev = job.evaluation;
@@ -424,6 +427,33 @@ export default async function JobDetailPage({
           ) : null}
         </p>
       )}
+
+      {/* Formulario de postulación (JS-053, fase 2): se pega, se revisa y se copia; la app no envía nada */}
+      <section
+        aria-label="Formulario de postulación"
+        className="rounded-md border border-zinc-200 p-3 text-sm"
+      >
+        <h2 className="font-semibold">Formulario de postulación</h2>
+        <p className="mb-2 text-xs text-zinc-500">
+          Pegá las preguntas, revisá los borradores y copiá lo aprobado. Nada se envía desde acá.
+        </p>
+        {savedForm.length ? (
+          <details className="mb-2 rounded-md bg-zinc-50 p-2">
+            <summary className="cursor-pointer text-xs font-semibold">
+              Respuestas guardadas ({savedForm.length})
+            </summary>
+            <dl className="mt-1 flex flex-col gap-1 text-xs">
+              {savedForm.map((qa, i) => (
+                <div key={i}>
+                  <dt className="font-medium text-zinc-800">{qa.question}</dt>
+                  <dd className="whitespace-pre-wrap text-zinc-600">{qa.answer}</dd>
+                </div>
+              ))}
+            </dl>
+          </details>
+        ) : null}
+        <FormReview jobId={job.id} />
+      </section>
 
       <section className="text-sm">
         <h2 className="font-semibold">Fuentes</h2>
