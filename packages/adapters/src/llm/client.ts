@@ -18,10 +18,11 @@ import type {
 
 /**
  * Versión de prompt vigente por tarea. Cambiarla es una decisión de Mauro
- * (playbook, Prompt C), no un efecto colateral de otro ticket.
+ * (playbook, Prompt C), no un efecto colateral de otro ticket. Se promueve con 3 corridas
+ * contra 3 de la vigente y las tolerancias de promoción (v1.3.4: 2026-10-07, JS-074).
  */
 export const DEFAULT_PROMPT_VERSIONS: Record<string, PromptRef> = {
-  evaluate_job: "evaluate_job@v1.3.2",
+  evaluate_job: "evaluate_job@v1.3.4",
   draft_application_answers: "draft_application_answers@v1",
 };
 

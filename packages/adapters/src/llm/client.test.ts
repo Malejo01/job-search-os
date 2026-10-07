@@ -2,7 +2,7 @@ import pino from "pino";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { memoryCallSink } from "./calls";
-import { createLlmClient } from "./client";
+import { createLlmClient, DEFAULT_PROMPT_VERSIONS } from "./client";
 import { createFakeLlm } from "./fake";
 import { cachedRouteSource, staticRouteSource } from "./router";
 import type { GenerateFn, ProviderRegistry, RouteConfig } from "./types";
@@ -71,7 +71,8 @@ describe("createLlmClient.generateStructured", () => {
     if (!r.ok) return;
     expect(r.value.object).toEqual({ score: 7, veredicto: "bien" });
     expect(r.value.model).toBe("modelo-primario");
-    expect(r.value.promptVersion).toBe("evaluate_job@v1.3.2");
+    // La versión vigente sale de la constante: promover un prompt no rompe este test
+    expect(r.value.promptVersion).toBe(DEFAULT_PROMPT_VERSIONS.evaluate_job);
     expect(r.value.usedFallback).toBe(false);
     expect(seenPrompt).toContain("perfil");
     expect(seenPrompt).toContain("had_full_jd: false");
@@ -83,7 +84,7 @@ describe("createLlmClient.generateStructured", () => {
       jobId: "j1",
       task: "evaluate_job",
       model: "modelo-primario",
-      promptVersion: "evaluate_job@v1.3.2",
+      promptVersion: DEFAULT_PROMPT_VERSIONS.evaluate_job,
       tokensIn: 1000,
       tokensOut: 100,
       ok: true,
