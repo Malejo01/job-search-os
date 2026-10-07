@@ -30,6 +30,12 @@ function fromEmail(j: GoldenJob): PrefilterInput {
   };
 }
 const byId = (id: number) => fromEmail(jobs.find((j) => j.id === id)!);
+// prettier-ignore
+const PASS_BEFORE: boolean[] = [
+  true, false, false, true, false, true, true, false, true, true, false, true, true, false,
+  true, true, false, false, true, true, false, false, false, true, true, false, false, true,
+  true, true, false, true, true, true, true, true,
+];
 
 describe("prefilter: expectativas del golden (sin LLM)", () => {
   it.each(expectations.must_discard)("descarta id %i sin LLM", (id) => {
@@ -165,6 +171,95 @@ describe("prefilter: reglas una por una", () => {
     expect(ok.pass && ok.flags).not.toContain("location_risk");
     const anywhere = prefilter({ ...base, locationRaw: "Work from Anywhere" }, rules);
     expect(anywhere.pass && anywhere.flags).not.toContain("location_risk");
+  });
+
+  describe("ubicación: reglas de riesgo del aviso (JS-055), solo agregan el flag", () => {
+    const flagsFor = (locationRaw: string) => {
+      const r = prefilter({ ...base, locationRaw }, rules);
+      expect(r.pass, locationRaw).toBe(true);
+      return r.pass ? r.flags : [];
+    };
+
+    it.each([
+      "US-based",
+      "Remoto (EE.UU.)",
+      "United States",
+      "Remote, USA only",
+      "Norteamérica (remoto)",
+      "Americas",
+      "Europe (remote)",
+      "EMEA",
+      "Canada",
+    ])("región o país extranjero sin Argentina → location_risk: %s", (loc) => {
+      expect(flagsFor(loc)).toContain("location_risk");
+    });
+
+    it("región ajena que menciona Argentina no marca", () => {
+      expect(flagsFor("Argentina o US (remoto)")).not.toContain("location_risk");
+      expect(flagsFor("Americas, incluida Argentina")).not.toContain("location_risk");
+    });
+
+    it("el huso horario de EE.UU. es riesgo de horario, no de ubicación: no marca", () => {
+      expect(flagsFor("Argentina (remoto), overlap con US Eastern time")).not.toContain(
+        "location_risk",
+      );
+      expect(flagsFor("Argentina (remoto), horario EST")).not.toContain("location_risk");
+    });
+
+    it("'aviso:' no es un formato de las fuentes: no marca", () => {
+      expect(flagsFor("Argentina (remoto); aviso: Canada; US; LATAM")).not.toContain(
+        "location_risk",
+      );
+    });
+
+    it.each([
+      "Remoto (Argentina)",
+      "Work from anywhere",
+      "Argentina (remoto)",
+      "Argentina (remoto) — trabajo desde tu propio país",
+      "Remoto (Chile, Argentina, Perú, Colombia, México)",
+      "Buenos Aires, Argentina (remoto, husos horarios de Latinoamérica)",
+      "Remoto, con un cliente de ejemplo en Argentina",
+    ])("lo que hoy no marca sigue sin marcarse: %s", (loc) => {
+      expect(flagsFor(loc)).not.toContain("location_risk");
+    });
+
+    it("nunca descarta ni cambia el cap: solo suma el flag", () => {
+      const sin = prefilter({ ...base, locationRaw: "Argentina (remoto)" }, rules);
+      const con = prefilter({ ...base, locationRaw: "US-based" }, rules);
+      expect(sin.pass && con.pass).toBe(true);
+      if (sin.pass && con.pass) {
+        expect(con.cap).toBe(sin.cap);
+        expect(con.flags.filter((f) => f !== "location_risk")).toEqual(sin.flags);
+      }
+    });
+
+    it("golden público: ninguna referencia 'ok' queda marcada por la regla nueva", () => {
+      const flagged = (id: number) => {
+        const r = prefilter(byId(id), rules);
+        return r.pass && r.flags.includes("location_risk");
+      };
+      // 3, 17 y 31 los descarta el prefiltro por otra regla (disciplina, título, badge) antes de
+      // llegar a la ubicación: el descarte no lleva flags
+      expect(prefilter(byId(3), rules)).toMatchObject({
+        pass: false,
+        reason: "disciplina_distinta",
+      });
+      expect(prefilter(byId(17), rules)).toMatchObject({ pass: false, reason: "titulo_blocklist" });
+      expect(prefilter(byId(31), rules)).toMatchObject({ pass: false, reason: "badge_aptitudes" });
+      const okIds = (golden.jobs as (GoldenJob & { human_location_ok: string })[])
+        .filter((j) => j.human_location_ok === "ok")
+        .map((j) => j.id);
+      // El 4 ("Ciudad (remoto)" sin país) ya lo marcaba la regla de remoto sin país, no las nuevas
+      expect(okIds.filter(flagged)).toEqual([4]);
+    });
+
+    it("no regresión: ninguna oferta del golden público cambia de pass", () => {
+      // Vector de pass registrado antes de las reglas nuevas (ids en orden).
+      const expected = PASS_BEFORE;
+      const actual = jobs.map((j) => prefilter(byId(j.id), rules).pass);
+      expect(actual).toEqual(expected);
+    });
   });
 
   it("candidatos ≥ 100 → flag many_candidates, no descarta", () => {
