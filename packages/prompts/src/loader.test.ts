@@ -61,6 +61,18 @@ describe("prompts loader", () => {
   });
 });
 
+describe("evaluate_job@v1.3.3", () => {
+  it("carga con las mismas variables y salida que v1.3.2", () => {
+    const a = loadPrompt("evaluate_job@v1.3.2");
+    const b = loadPrompt("evaluate_job@v1.3.3");
+    expect(a.ok && b.ok).toBe(true);
+    if (!a.ok || !b.ok) return;
+    expect(b.value.task).toBe(a.value.task);
+    expect(b.value.output).toBe(a.value.output);
+    expect(templateVars(b.value.template).sort()).toEqual(templateVars(a.value.template).sort());
+  });
+});
+
 describe("resolvePromptsDir (bundle serverless)", () => {
   it("encuentra los prompts relativo al cwd cuando el módulo quedó empaquetado en otro lado", async () => {
     const { resolve } = await import("node:path");
