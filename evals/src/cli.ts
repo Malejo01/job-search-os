@@ -1,7 +1,7 @@
-import { createInterface } from "node:readline/promises";
 import { loadLocalEnv } from "@job-search-os/db";
 import type { PromptRef } from "@job-search-os/prompts";
 import { compareReports, loadReport } from "./compare";
+import { checkEstimate } from "./cost-guard";
 import { recomputeFiles } from "./recompute";
 import { generateFromEnv } from "@job-search-os/adapters";
 import {
@@ -23,8 +23,11 @@ import {
  * --prompt vigente = la versión de DEFAULT_PROMPT_VERSIONS (la que usa producción)
  *
  * Guardarraíles de costo: antes de la primera llamada se muestra el costo estimado
- * (llamadas × tokens promedio × tarifa de model_routing); si supera --max-usd pide confirmación
- * (o aborta sin terminal, salvo --yes). La corrida tiene tope duro de --max-minutes y Ctrl+C /
+ * (llamadas × tokens promedio × tarifa de model_routing); si supera --max-usd, o no hay tarifa
+ * para estimar, aborta SIEMPRE: --yes se acepta (el CI lo pasa) pero no anula el tope; para gastar
+ * más se sube --max-usd. Durante la corrida se acumula el costo real y, antes de cada llamada, si
+ * lo gastado + lo en vuelo + una llamada más supera --max-usd, se corta, se guarda el reporte
+ * marcado como cortado y sale con error. La corrida tiene tope duro de --max-minutes y Ctrl+C /
  * SIGTERM cancelan las llamadas en curso y salen: no quedan procesos reintentando solos.
  */
 function parseArgs(argv: string[]): {
@@ -46,31 +49,15 @@ function parseArgs(argv: string[]): {
   return { command, flags, rest };
 }
 
-async function confirmCost(estimate: CostEstimate, maxUsd: number, yes: boolean) {
+/** Muestra el estimado y aborta si no cumple el tope. Sin prompt y sin excepciones (JS-080). */
+function enforceEstimate(estimate: CostEstimate, maxUsd: number): void {
   const usd =
     estimate.usd === null ? "sin tarifa en model_routing" : `USD ${estimate.usd.toFixed(3)}`;
   process.stderr.write(
     `costo estimado: ${usd} (${estimate.calls} llamadas × ~${estimate.tokensInPerCall} in / ~${estimate.tokensOutPerCall} out, thinking incluido; fuente: ${estimate.source})\n`,
   );
-  if (estimate.usd === null) {
-    if (yes) return;
-    throw new Error(
-      "no hay tarifa para estimar el costo; cargá input/output_usd_per_mtok en seeds/model_routing.json o confirmá con --yes",
-    );
-  }
-  if (estimate.usd <= maxUsd || yes) return;
-  if (!process.stdin.isTTY) {
-    throw new Error(
-      `el costo estimado USD ${estimate.usd.toFixed(3)} supera --max-usd ${maxUsd} y no hay terminal para confirmar: pasá --yes o subí --max-usd`,
-    );
-  }
-  const rl = createInterface({ input: process.stdin, output: process.stderr });
-  const answer = (await rl.question(`supera --max-usd ${maxUsd}. ¿Seguir? [s/N] `))
-    .trim()
-    .toLowerCase();
-  rl.close();
-  if (answer !== "s" && answer !== "si" && answer !== "sí")
-    throw new Error("corrida cancelada por costo");
+  const check = checkEstimate(estimate, maxUsd);
+  if (!check.ok) throw new Error(check.reason);
 }
 
 async function main(): Promise<void> {
@@ -96,11 +83,11 @@ async function main(): Promise<void> {
       generate: generateFromEnv(),
     };
     if (flags.local === "true") options.db = "local";
-    await confirmCost(
-      await estimateRunCostWithHistory(options),
-      Number(flags["max-usd"] ?? 1),
-      flags.yes === "true",
-    );
+    const maxUsd = Number(flags["max-usd"] ?? 1);
+    const estimate = await estimateRunCostWithHistory(options);
+    enforceEstimate(estimate, maxUsd);
+    // enforceEstimate garantiza usd != null; el costo esperado por llamada alimenta el tope en vuelo
+    const expectedCallUsd = estimate.calls > 0 ? (estimate.usd ?? 0) / estimate.calls : 0;
 
     // Tope duro de la corrida + señales: nada queda vivo reintentando después de esto
     const controller = new AbortController();
@@ -119,7 +106,12 @@ async function main(): Promise<void> {
     process.once("SIGTERM", () => onSignal("SIGTERM"));
 
     try {
-      const report = await runEvals({ ...options, signal: controller.signal });
+      const report = await runEvals({
+        ...options,
+        signal: controller.signal,
+        maxUsd,
+        expectedCallUsd,
+      });
       console.log(formatReport(report));
       if (report.meta.calls > 0 && report.meta.calls_failed === report.meta.calls) {
         throw new Error(

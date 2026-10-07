@@ -25,6 +25,7 @@ import { createDb, requireDatabaseUrl, type DbTarget } from "@job-search-os/db";
 import { decide, outputSchemaFor, type Adjustment, type Evaluation } from "@job-search-os/pipeline";
 import type { PromptRef } from "@job-search-os/prompts";
 import routingSeed from "../../packages/db/seeds/model_routing.json";
+import { createSpendGuard, cutLine, type SpendGuard } from "./cost-guard";
 import {
   criteriaHash,
   criteriaRules,
@@ -145,6 +146,14 @@ export type RunOptions = {
   generate?: GenerateFn;
   /** Cancela la corrida (SIGINT/SIGTERM, tope de minutos): aborta llamadas en curso y no arranca nuevas. */
   signal?: AbortSignal;
+  /**
+   * Tope de gasto de la corrida (--max-usd). Antes de lanzar cada llamada (y cada reintento) se
+   * exige que lo gastado + lo en vuelo + una llamada más entre; si no, la corrida se corta, guarda
+   * el reporte marcado (meta.cut_by_budget) y termina con RunAbortedError. Sin valor: sin tope.
+   */
+  maxUsd?: number;
+  /** Costo esperado por llamada (del estimado); se cuenta para lo en vuelo y para costos null. */
+  expectedCallUsd?: number;
   /** Inyectable en tests. */
   client?: LlmClient;
   sleep?: (ms: number) => Promise<void>;
@@ -287,6 +296,13 @@ export type Report = {
     tokens_reasoning: number;
     cost_usd: number | null;
     duration_ms: number;
+    /** Presente solo si la corrida se cortó por --max-usd: el reporte es parcial, no comparable. */
+    cut_by_budget?: {
+      max_usd: number;
+      spent_usd: number;
+      calls_done: number;
+      calls_planned: number;
+    };
   };
   metrics: Metrics;
   thresholds: ReturnType<typeof checkThresholds>;
@@ -464,16 +480,23 @@ async function evaluateOnce(
   sleep: (ms: number) => Promise<void>,
   signal?: AbortSignal,
   ctx: { recordTask?: string; label?: string } = {},
-): Promise<{ ok: true; value: Evaluation } | { ok: false; error: string }> {
+  guard?: SpendGuard,
+): Promise<{ ok: true; value: Evaluation } | { ok: false; error: string; cut?: true }> {
   const schema = outputSchemaFor(prompt);
   let lastError = "";
   for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
     if (signal?.aborted) throw new RunAbortedError(abortReason(signal));
+    // Cada intento se factura: el tope también corta los reintentos
+    if (guard && !guard.canStart())
+      return { ok: false, error: "cortada por tope de gasto", cut: true };
+    guard?.started();
     const r = await client.generateStructured("evaluate_job", schema, goldenVars(job), {
       promptVersion: prompt,
       signal,
       ...ctx,
     });
+    // Una llamada fallida no informa costo: cuenta el esperado (puede haberse facturado)
+    guard?.finished(r.ok ? r.value.costUsd : null);
     if (r.ok) return { ok: true, value: r.value.object };
     if (r.error.kind === "aborted" && signal?.aborted)
       throw new RunAbortedError(abortReason(signal));
@@ -512,11 +535,12 @@ async function mapWithConcurrency<T, R>(
   items: T[],
   concurrency: number,
   fn: (item: T, index: number) => Promise<R>,
+  shouldStop: () => boolean = () => false,
 ): Promise<R[]> {
   const results: R[] = new Array(items.length);
   let next = 0;
   const workers = Array.from({ length: Math.max(1, concurrency) }, async () => {
-    while (next < items.length) {
+    while (next < items.length && !shouldStop()) {
       const i = next++;
       results[i] = await fn(items[i]!, i);
     }
@@ -622,14 +646,27 @@ async function runEvalsWith(options: RunOptions, env: RunEnv): Promise<Report> {
     Array.from({ length: options.runs }, (_, run) => ({ job, run })),
   );
   let done = 0;
-  const results = await mapWithConcurrency(units, options.concurrency, async ({ job }) => {
-    const r = await evaluateOnce(client, job, options.prompt, sleep, options.signal, ctx);
-    done++;
-    if (done % 10 === 0 || done === units.length) {
-      process.stderr.write(`  ${done}/${units.length} llamadas\n`);
-    }
-    return { jobId: job.id, r };
-  });
+  const guard =
+    options.maxUsd === undefined
+      ? undefined
+      : createSpendGuard(options.maxUsd, options.expectedCallUsd ?? 0);
+  let cut = false;
+  const rawResults = await mapWithConcurrency(
+    units,
+    options.concurrency,
+    async ({ job }) => {
+      const r = await evaluateOnce(client, job, options.prompt, sleep, options.signal, ctx, guard);
+      if ("cut" in r) cut = true;
+      done++;
+      if (done % 10 === 0 || done === units.length) {
+        process.stderr.write(`  ${done}/${units.length} llamadas\n`);
+      }
+      return { jobId: job.id, r };
+    },
+    () => cut,
+  );
+  // Unidades que no se lanzaron por el corte quedan como huecos; las cortadas al reintentar, sin resultado
+  const results = rawResults.filter((x) => x && !("cut" in x.r));
 
   const jobReports: JobReport[] = jobs.map((job) => {
     const own = results.filter((x) => x.jobId === job.id).map((x) => x.r);
@@ -750,6 +787,16 @@ async function runEvalsWith(options: RunOptions, env: RunEnv): Promise<Report> {
       tokens_reasoning: tokensReasoning,
       cost_usd: costs.length ? costs.reduce((a, b) => a + b, 0) : null,
       duration_ms: Date.now() - startedAt,
+      ...(cut && guard && options.maxUsd !== undefined
+        ? {
+            cut_by_budget: {
+              max_usd: options.maxUsd,
+              spent_usd: guard.spent(),
+              calls_done: guard.finishedCount(),
+              calls_planned: plannedCalls,
+            },
+          }
+        : {}),
     },
     metrics,
     thresholds: checkThresholds(metrics),
@@ -768,13 +815,21 @@ async function runEvalsWith(options: RunOptions, env: RunEnv): Promise<Report> {
     const suffix =
       (options.subset ? "_subset" : "") +
       (route.thinkingLevel ? `_${route.thinkingLevel}` : "") +
-      (options.label ? `_${options.label}` : "");
+      (options.label ? `_${options.label}` : "") +
+      // Un reporte parcial no puede pisar a uno completo del mismo día y configuración
+      (report.meta.cut_by_budget ? "_cortado" : "");
     const file = join(
       dir,
       `${report.meta.date.slice(0, 10)}_${route.model}_${version}${suffix}.json`,
     );
     writeFileSync(file, JSON.stringify(report, null, 2) + "\n");
     process.stderr.write(`reporte: ${file}\n`);
+  }
+  if (report.meta.cut_by_budget) {
+    const c = report.meta.cut_by_budget;
+    throw new RunAbortedError(
+      `tope de gasto --max-usd ${c.max_usd}: gastado USD ${c.spent_usd.toFixed(4)} en ${c.calls_done}/${c.calls_planned} llamadas; reporte parcial guardado, no comparable`,
+    );
   }
   return report;
 }
@@ -786,6 +841,7 @@ export function formatReport(report: Report): string {
   const anchorLabel = m.anchor === "human_score" ? "human_score (v1)" : "human_score_match (v1.1+)";
   const lines = [
     `== ${report.meta.prompt} × ${report.meta.model}${report.meta.thinking ? ` [thinking ${report.meta.thinking}]` : ""}${report.meta.label ? ` (${report.meta.label})` : ""} · ${report.meta.runs} corrida(s) · ${report.meta.calls} llamadas (${report.meta.calls_failed} fallidas) · ${report.meta.tokens_in} in / ${report.meta.tokens_out} out (${report.meta.tokens_reasoning} thinking) · USD ${report.meta.cost_usd === null ? "?" : report.meta.cost_usd.toFixed(3)} · ${(report.meta.duration_ms / 1000).toFixed(0)} s · ancla: ${anchorLabel}`,
+    ...cutLine(report),
     "",
     "| métrica | valor | umbral |",
     "|---|---|---|",

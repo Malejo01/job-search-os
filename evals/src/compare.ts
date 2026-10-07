@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { anchorFor, computeMetrics, splitByAnchorSource } from "./metrics";
+import { cutLine } from "./cost-guard";
 import type { Report } from "./run";
 
 /** Rutas relativas al directorio desde donde se invocó pnpm (INIT_CWD), no al package. */
@@ -66,8 +67,12 @@ export function compareReports(a: Report, b: Report): string {
   const B = `${b.meta.prompt} × ${b.meta.model}${b.meta.label ? ` (${b.meta.label})` : ""}`;
   const ma = a.metrics;
   const mb = b.metrics;
+  const cutWarnings = [a, b].flatMap((r, i) =>
+    cutLine(r).map((l) => `${i === 0 ? "A" : "B"}: ${l}`),
+  );
   const lines = [
     ...warning,
+    ...(cutWarnings.length ? [...cutWarnings, ""] : []),
     `| métrica | ${A} | ${B} |`,
     "|---|---|---|",
     `| ancla del score | ${ma.anchor ?? "human_score"} | ${mb.anchor ?? "human_score"} |`,

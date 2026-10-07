@@ -515,7 +515,7 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Acepta:** `recompute` sobre un reporte guardado muestra las dos cifras de ubicacion, el recall por tipo y el aviso de hash; tests en verde.
 
 ### JS-074 · Prompt `evaluate_job` v1.3.3 sin el literal de un aviso real
-`deps:` — · `est:` S + corrida · `estado:` en curso. v1.3.3 medida el 2026-10-07 (1 corrida): empeora metricas estrictas contra v1.3.2 (MAE, `blockers_recall`, `blockers_precision`, `discipline_acc`), no se promueve. v1.3.4 (ronda 05) vuelve a anclar la disciplina de produccion creativa; falta medirla con 3 corridas
+`deps:` — · `est:` S + corrida · `estado:` en curso. v1.3.3 medida el 2026-10-07 (1 corrida): empeora metricas estrictas contra v1.3.2 (MAE, `blockers_recall`, `blockers_precision`, `discipline_acc`), no se promueve. v1.3.4 (ronda 05, PR #41) vuelve a anclar la disciplina de produccion creativa; esta en el repo sin promover y se mide con 3 corridas contra 3 de v1.3.2 (criterio de promocion de 2026-10-08: `blockers_recall` sin bajar, `blockers_precision` hasta -5 pp, `discipline_acc` hasta -3 pp, `score_mae` hasta +0,15, sobre la media de 3 corridas)
 - **Por que:** el ejemplo de mision contra requisitos de v1.3.2 cita frases de un aviso real; una busqueda las identifica. Es el prompt de produccion.
 - **Que:** v1.3.3 = v1.3.2 con ese ejemplo reescrito de cero en otro dominio, con la misma ensenanza (la disciplina sale de los requisitos). No se promueve sin medir.
 - **Acepta:** 1 corrida completa (36 casos, ≈ USD 0,36) + `recompute` y `compare` contra la de v1.3.2 sin empeorar `action_acc`, `false_apply` ni `discipline_acc` en las anclas `human`. Recien ahi se promueve (decision de Mauro).
@@ -545,6 +545,60 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Por que:** cuando no encuentra nada, `scripts/privacy-scan.mjs --pre-push` no imprime nada, asi que no se distingue "paso" de "no corrio".
 - **Que:** imprimir `pre-push: OK (N commits)` al pasar.
 - **Acepta:** test por CLI con un repo temporal que verifica el mensaje y el conteo; con hallazgos, el mensaje de error no cambia.
+
+### JS-080 · El tope `--max-usd` de evals corta siempre
+`deps:` — · `est:` S · `estado:` en curso (ronda 08, 2026-10-08)
+- **Por que:** en `evals/src/cli.ts` la condicion para arrancar era `usd <= maxUsd || yes`: con `--yes` el tope no frenaba, y el CI corre con `--yes --max-usd 0.5`. Ademas el tope solo miraba el estimado: durante la corrida no cortaba nada.
+- **Que:** si el estimado supera `--max-usd`, aborta siempre (con o sin `--yes`); durante la corrida, antes de cada llamada, si lo gastado mas lo esperado supera el tope, corta y guarda un reporte parcial marcado.
+- **Acepta:** tests sin llamadas pagas (generador falso): con `--yes` y estimado sobre el tope, sale con error; una corrida que se pasaria corta antes. El corte es aproximado: las llamadas en vuelo se reservan con el costo esperado, asi que el exceso posible queda acotado a lo que cuesten de mas esas llamadas.
+
+### JS-081 · Metricas por corrida en el reporte de evals
+`deps:` — · `est:` S · `estado:` todo (2026-10-07)
+- **Por que:** con `--runs 3`, disciplina, bloqueadores y accion salen de una corrida representativa; no hay media ni rango por corrida, asi que no se puede medir la dispersion para decidir una promocion.
+- **Que:** `metrics_per_run` en el reporte y `compare` mostrando media y rango.
+- **Acepta:** un reporte de 3 corridas trae las metricas de cada una; `compare` muestra media y rango.
+
+### JS-082 · Prefiltro: avisos que no son IT ✅ done 2026-10-07
+`deps:` — · `est:` S · `estado:` done (ronda 06, PR #42)
+- Bases genericas de RR. HH. ("carga tu CV", "base general", "talent pool") descartan siempre; otros oficios (administrativo, ventas, atencion al cliente...) descartan salvo senal IT en el titulo. "Informatico" solo no es senal IT. En codigo, no en `CriteriaRules`. Golden privado: misma cantidad de descartes que antes.
+
+### JS-083 · Dedup: empresa vacia o generica no marca `posible_duplicado` ✅ done 2026-10-07
+`deps:` — · `est:` XS · `estado:` done (ronda 06, PR #42)
+- `isGenericCompany` en `dedup.ts`: la regla de empresa + titulo no marca si la empresa esta vacia o es "confidencial", "importante empresa", "desconocida", etc. Diagnostico con casos inventados en `dedup/diagnostico.test.ts`.
+
+### JS-084 · Medir las causas de `posible_duplicado`
+`deps:` JS-083 · `est:` S · `estado:` todo (2026-10-07)
+- **Que:** con el snapshot, agregados por fuente (email vs API), por empresa generica y por similitud (1,0 vs 0,6-0,99). Grupos de menos de 5 como "<5". Decide cual de JS-085/086/087 va primero.
+- **Acepta:** informe con los agregados y la fecha del snapshot.
+
+### JS-085 · Dedup sin JD: desmentir el titulo con otro campo
+`deps:` JS-084 · `est:` M · `estado:` todo (2026-10-07)
+- En alertas sin JD, comparar tambien ubicacion, modalidad o URL base antes de marcar; o marcar solo con similitud 1,0 y la misma fuente.
+- **Acepta:** tests con casos inventados; los pares del golden no cambian.
+
+### JS-086 · `normalizeCompany`: sufijos `labs` y `group`
+`deps:` — · `est:` S · `estado:` todo (2026-10-07)
+- "Empresa X Labs" y "Empresa X Group" colapsan y marcan. Quitar el sufijo solo si queda un nombre de 2 o mas tokens, o sacarlos de la lista. Toca `companies.name_normalized`: puede pedir migracion de datos (decision de Mauro).
+- **Acepta:** test de normalizacion; el golden publico no cambia de identidad de empresa.
+
+### JS-087 · Dedup: umbral de titulo con 4 tokens y uno distinto
+`deps:` JS-084 · `est:` S · `estado:` todo (2026-10-07)
+- Jaccard 0,6 marca roles distintos con 4 tokens y uno distinto. Subir el umbral a mas de 0,6 o exigir 3 o mas tokens en comun.
+- **Acepta:** probado contra el golden y los casos de `diagnostico.test.ts`.
+
+### JS-088 · Adapters de Remote OK, We Work Remotely, Himalayas y Torre ✅ done 2026-10-07
+`deps:` — · `est:` M · `estado:` done (ronda 07, PR #43)
+- Adapters puros con fixtures inventadas y tests sin red, `kind: "other"` + `externalId` con prefijo, no conectados al cron. Incluye el arreglo de `htmlToText`: una entidad numerica fuera de rango ya no corta la corrida de Get on Board.
+
+### JS-089 · Verificar formatos y conectar las fuentes nuevas
+`deps:` JS-088 · `est:` M · `estado:` todo (2026-10-07)
+- **Que:** verificar cada formato contra la fuente real (lista en `docs/sources/*.md`), revisar terminos de uso, migracion del enum `source_kind` con las fuentes que pasen, y conectarlas al cron detras de un flag apagado. Torre, solo si los terminos permiten uso automatizado. Himalayas, solo con el periodo del salario verificado.
+- **Acepta:** cada fuente conectada con su formato verificado y el flag apagado por defecto.
+
+### JS-090 · `htmlToText`: entidades con nombre
+`deps:` — · `est:` XS · `estado:` todo (2026-10-07)
+- Solo decodifica unas pocas (`amp`, `lt`, `nbsp`...): `&eacute;` y similares quedan crudas. Ampliar la tabla cuando una fuente real las traiga.
+- **Acepta:** test con las entidades nuevas.
 
 ### JS-056 · Tope de score por cantidad de gaps must
 `deps:` JS-052 · `est:` 2 h · `estado:` todo (no bloquea)
