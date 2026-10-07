@@ -7,10 +7,15 @@ import { jaccard, shingleSimilarity } from "./similarity";
  *    → merge.
  * 2. Texto: JD en ambos con similitud de shingles ≥ 0.9 → merge aunque el título difiera,
  *    con flag volume_recruiting (caso golden 19/20).
- * 3. Empresa normalizada igual + Jaccard de título ≥ 0.6 + ventana de 14 días, sin URL ni JD que
+ * 3. Empresa normalizada igual + Jaccard de título > 0.6 + ventana de 14 días, sin URL ni JD que
  *    lo confirmen → insert marcado como posible duplicado (`possibleDuplicateOf`). Ya no fusiona:
  *    una consultora publica varios "Senior X Engineering (área)" que normalizan igual (ADR-013).
  *    Si los dos traen JD y el texto no llega al umbral, el texto desmiente al título y no se marca.
+ *    Tampoco se marca si los dos tienen modalidad conocida y distinta, o ubicación normalizada
+ *    distinta (JS-085); con alguna desconocida se comporta como antes.
+ *    El umbral es estricto (JS-087): 4 tokens con 1 distinto da 0.6 justo y eran roles distintos.
+ *    Exigir además ≥ 3 tokens en común no sirve: no cambia ese caso (3 en común de 5 = 0.6) y
+ *    dejaría de marcar títulos de 2 tokens idénticos, que el golden y los tests siguen marcando.
  * 4. Si no, insert (caso golden 6/7: misma empresa, Jaccard < 0.6).
  * Fusionar (lo hace el adapter con la decisión): agregar la fuente a job_sources, conservar
  * la fecha más antigua y el texto más largo.
@@ -29,6 +34,10 @@ export type DedupCandidate = {
   jdHash?: string | null;
   /** Fecha de la fuente que trae el candidato (posted_at o ahora). */
   seenAt: Date | string;
+  /** remoto | hibrido | presencial | desconocida; null/ausente = desconocida (JS-085) */
+  modality?: string | null;
+  /** normalizeLocation(location_raw); null si no hay ubicación (JS-085) */
+  locationKey?: string | null;
 };
 
 export type RecentJob = {
@@ -41,6 +50,8 @@ export type RecentJob = {
   jdShingles?: readonly string[] | null;
   jdHash?: string | null;
   firstSeenAt: Date | string;
+  modality?: string | null;
+  locationKey?: string | null;
 };
 
 export type DedupReason = "url" | "external_id" | "jd_hash" | "jd_text";
@@ -89,6 +100,17 @@ const GENERIC_COMPANIES = new Set([
 
 export function isGenericCompany(companyNormalized: string): boolean {
   return !companyNormalized.trim() || GENERIC_COMPANIES.has(companyNormalized.trim());
+}
+
+const isKnownModality = (m: string) => m !== "desconocida" && m !== "unknown";
+
+/** Los dos valores se conocen y son distintos. Con alguno desconocido no desmiente nada. */
+function differ(
+  a: string | null | undefined,
+  b: string | null | undefined,
+  isKnown: (v: string) => boolean = () => true,
+): boolean {
+  return Boolean(a && b && isKnown(a) && isKnown(b) && a !== b);
 }
 
 export function externalKey(sourceKind?: string | null, externalId?: string | null): string | null {
@@ -141,7 +163,12 @@ export function dedup(
       job.companyNormalized === candidate.companyNormalized
     ) {
       const titleSim = jaccard(candidate.titleTokens, job.titleTokens);
-      if (titleSim >= opt.titleThreshold && (!hint || titleSim > hint.similarity)) {
+      if (
+        titleSim > opt.titleThreshold &&
+        !differ(candidate.modality, job.modality, isKnownModality) &&
+        !differ(candidate.locationKey, job.locationKey) &&
+        (!hint || titleSim > hint.similarity)
+      ) {
         hint = { jobId: job.id, reason: "company_title", similarity: titleSim };
       }
     }

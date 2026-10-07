@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { normalizeCompany } from "../normalize/company";
+import { normalizeLocation } from "../normalize/location";
 import { normalizeTitle, titleTokens } from "../normalize/title";
 import { dedup, isGenericCompany, type DedupCandidate, type RecentJob } from "./dedup";
 import { textShingles } from "./similarity";
@@ -107,10 +108,14 @@ describe("H3: títulos cortos (parcial)", () => {
     expect(sim("Backend Developer Python", "Backend Developer Java")).toBe(0);
   });
 
-  it("4 tokens con 1 distinto: 0,6, marca roles distintos", () => {
-    expect(sim("Backend Developer Python Django", "Backend Developer Python Flask")).toBeCloseTo(
-      0.6,
-    );
+  it("4 tokens con 1 distinto: 0,6 justo, ya no marca (JS-087: el umbral es estricto)", () => {
+    expect(sim("Backend Developer Python Django", "Backend Developer Python Flask")).toBe(0);
+  });
+
+  it("5 tokens con 1 distinto: 0,67, sigue marcando", () => {
+    expect(
+      sim("Backend Developer Python Django Celery", "Backend Developer Python Django Flask"),
+    ).toBeCloseTo(4 / 6);
   });
 
   it("seniority y modalidad se quitan: 'Sr. ... (Remote)' y 'Jr ...' son idénticos (1,0)", () => {
@@ -157,6 +162,51 @@ describe("H4: avisos sin JD, p. ej. alertas por email (confirmada, por diseño)"
       canonicalUrl: "https://ejemplo.test/a?t=2",
     };
     expect(dedup(c, [r])).toMatchObject({ kind: "insert", possibleDuplicateOf: { jobId: "a" } });
+  });
+});
+
+describe("JS-085: modalidad y ubicación desmienten al título sin JD", () => {
+  const withPlace = <T extends DedupCandidate | RecentJob>(
+    x: T,
+    modality: string | null,
+    place: string | null,
+  ): T => ({ ...x, modality, locationKey: normalizeLocation(place) });
+  const rec = (modality: string | null, place: string | null) =>
+    withPlace(stored("a", "Empresa A", "Python Developer"), modality, place);
+  const cand = (modality: string | null, place: string | null) =>
+    withPlace(candidate("Empresa A", "Python Developer"), modality, place);
+
+  it("modalidad conocida y distinta: no marca", () => {
+    expect(flagged(cand("remoto", null), [rec("presencial", null)])).toBe(false);
+  });
+
+  it("ubicación conocida y distinta: no marca", () => {
+    expect(flagged(cand(null, "Córdoba"), [rec(null, "Rosario (Remoto)")])).toBe(false);
+  });
+
+  it("misma modalidad y misma ubicación (con otra grafía): marca", () => {
+    expect(flagged(cand("hibrido", "Córdoba"), [rec("hibrido", "cordoba (Híbrido)")])).toBe(true);
+  });
+
+  it.each([null, undefined, "desconocida"])(
+    "modalidad %j de un lado: se comporta como hoy",
+    (m) => {
+      expect(flagged(cand("remoto", null), [rec(m as string | null, null)])).toBe(true);
+      expect(flagged(cand(m as string | null, null), [rec("remoto", null)])).toBe(true);
+    },
+  );
+
+  it("ubicación desconocida de un lado: marca como hoy", () => {
+    expect(flagged(cand(null, "Córdoba"), [rec(null, null)])).toBe(true);
+    expect(flagged(cand(null, null), [rec(null, "Córdoba")])).toBe(true);
+  });
+
+  it("sin los campos nuevos (como antes): marca", () => {
+    expect(
+      flagged(candidate("Empresa A", "Python Developer"), [
+        stored("a", "Empresa A", "Python Developer"),
+      ]),
+    ).toBe(true);
   });
 });
 
