@@ -66,6 +66,31 @@ export const DEDUP_DEFAULTS: Required<DedupOptions> = {
 const DAY_MS = 24 * 60 * 60 * 1000;
 const toMs = (d: Date | string) => (d instanceof Date ? d : new Date(d)).getTime();
 
+/**
+ * Empresas que no identifican a nadie (avisos anónimos): dos avisos "Empresa confidencial" no son
+ * de la misma empresa, así que la regla 3 no marca por empresa+título. Sobre `normalizeCompany`.
+ */
+const GENERIC_COMPANIES = new Set([
+  "confidencial",
+  "empresa confidencial",
+  "confidential",
+  "confidential company",
+  "importante empresa",
+  "importante consultora",
+  "empresa",
+  "consultora",
+  "anonimo",
+  // Get on Board mapea la empresa ausente a "desconocida"
+  "desconocida",
+  "desconocido",
+  "unknown",
+  "empresa lider",
+]);
+
+export function isGenericCompany(companyNormalized: string): boolean {
+  return !companyNormalized.trim() || GENERIC_COMPANIES.has(companyNormalized.trim());
+}
+
 export function externalKey(sourceKind?: string | null, externalId?: string | null): string | null {
   return sourceKind && externalId ? `${sourceKind}:${externalId}` : null;
 }
@@ -110,7 +135,11 @@ export function dedup(
       };
     }
 
-    if (!bothHaveJd && job.companyNormalized === candidate.companyNormalized) {
+    if (
+      !bothHaveJd &&
+      !isGenericCompany(candidate.companyNormalized) &&
+      job.companyNormalized === candidate.companyNormalized
+    ) {
       const titleSim = jaccard(candidate.titleTokens, job.titleTokens);
       if (titleSim >= opt.titleThreshold && (!hint || titleSim > hint.similarity)) {
         hint = { jobId: job.id, reason: "company_title", similarity: titleSim };

@@ -37,6 +37,62 @@ export type PrefilterOptions = {
 const NON_REMOTE_IN_TEXT = /\b(hibrid[oa]|hybrid|presencial|on[\s-]?site|in[\s-]?office)\b/;
 const AI_TITLE =
   /\b(ai|ia|llm|llms|gen\s?ai|genai|agentic|agents?|agente|inteligencia artificial)\b/;
+
+// Sufijo de género/plural en títulos en español: "administrativo/a", "vendedor(a)", "administrativ@".
+// Sobre texto ya pasado por foldText; "/a" y "(a)" quedan como separador y el "a" suelto matchea.
+const GENDER = "(?:[oa]s?|@)?";
+const word = (body: string) => new RegExp(`(?<![a-z0-9])${body}(?![a-z0-9])`);
+
+/**
+ * Títulos de otros oficios (lista conservadora, a propósito en código y no en CriteriaRules:
+ * las reglas de la base las cambia el dueño de la instancia con un UPDATE y esto tiene que andar sin tocar la base).
+ * `label` es lo que se muestra en el detail.
+ */
+const NON_IT_TITLE: readonly { label: string; re: RegExp }[] = [
+  { label: "administrativ", re: word(`administrativ${GENDER}`) },
+  { label: "auxiliar contable", re: word("auxiliar\\s+contables?") },
+  { label: "recepcionista", re: word("recepcionistas?") },
+  { label: "cajer", re: word(`cajer${GENDER}`) },
+  { label: "vendedor", re: word("vendedor(?:es|as?|@)?") },
+  { label: "atencion al cliente", re: word("atencion\\s+al\\s+cliente") },
+  { label: "call center", re: word("call\\s?center") },
+  { label: "operari", re: word(`operari${GENDER}`) },
+  { label: "repositor", re: word("repositor(?:es|as?|@)?") },
+  { label: "chofer", re: word("chofer(?:es)?") },
+  { label: "moz", re: word(`moz${GENDER}`) },
+  { label: "abogad", re: word(`abogad${GENDER}`) },
+];
+
+/**
+ * Bases genéricas de RR. HH. ("cargá tu CV", "talent pool"): no son un aviso. Descartan SIEMPRE,
+ * aunque el título mencione IT ("Cargá tu CV — perfiles IT"): no entran en la excepción IT_SIGNAL.
+ */
+const HR_POOL_TITLE: readonly { label: string; re: RegExp }[] = [
+  {
+    label: "base de CV",
+    re: word(
+      "(?:carga|cargue|deja|dejanos|envia|envianos|manda|mandanos|subi|ingresa|ingrese|registra|registrate|sumate)\\s+(?:tu|su)\\s+(?:cv|curriculum)",
+    ),
+  },
+  { label: "base de talentos", re: word("(?:base|banco)\\s+de\\s+(?:talentos|cvs?|curriculums?)") },
+  {
+    label: "base general",
+    re: word("base\\s+general(?:\\s+de\\s+(?:cv|talentos|postulantes))?"),
+  },
+  { label: "talent pool", re: word("talent\\s+pool") },
+  { label: "búsquedas generales", re: word("busquedas?\\s+generales") },
+  { label: "postulación espontánea", re: word("postulacion(?:es)?\\s+espontanea") },
+];
+
+/**
+ * Señal IT en el título: si está, un título de otro oficio no descarta ("Desarrollador/a Full
+ * Stack para área administrativa"). "informático/a" solo NO es señal: sí lo es "analista/técnico
+ * informático".
+ */
+const IT_SIGNAL_WORDS = word(
+  "(?:developers?|desarrollador(?:es|as?)?|programador(?:es|as?)?|engineers?|ingenier[oa]s?\\s+de\\s+(?:software|datos)|software|data|datos|devops|sre|qa|testers?|full\\s?-?stack|front\\s?-?end|back\\s?-?end|sysadmin|sistemas|help\\s?desk|soporte\\s+tecnico|redes|cloud|ciberseguridad|(?:soporte|analista|tecnico|area|equipo)\\s+(?:de\\s+)?it|analista\\s+funcional|analista\\s+programador(?:es|as?)?|(?:tecnic[oa]|analista)\\s+informatic[oa])",
+);
+const hasItSignal = (title: string) => IT_SIGNAL_WORDS.test(title) || AI_TITLE.test(title);
 const REMOTE_NO_COUNTRY = /\b(latam|latinoam[eé]rica|remote|remoto|anywhere)\b/;
 const ANYWHERE = /\b(anywhere|worldwide|global)\b/;
 const FOREIGN_REGION =
@@ -102,6 +158,26 @@ export function prefilter(
       reason: "disciplina_distinta",
       detail: `keyword '${adjacent}' en el título`,
     };
+  }
+  // Avisos que no son IT. Las bases de RR. HH. descartan siempre; los otros oficios, salvo que el
+  // título tenga señal IT o de IA.
+  const hrPool = HR_POOL_TITLE.find((p) => p.re.test(title));
+  if (hrPool) {
+    return {
+      pass: false,
+      reason: "disciplina_distinta",
+      detail: `título fuera de IT: '${hrPool.label}'`,
+    };
+  }
+  if (!hasItSignal(title)) {
+    const nonIt = NON_IT_TITLE.find((p) => p.re.test(title));
+    if (nonIt) {
+      return {
+        pass: false,
+        reason: "disciplina_distinta",
+        detail: `título fuera de IT: '${nonIt.label}'`,
+      };
+    }
   }
   const domain = containsKeyword(title, rules.other_discipline_keywords);
   if (domain) {
