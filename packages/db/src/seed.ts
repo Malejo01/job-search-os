@@ -55,7 +55,7 @@ const profileSeed = profileFx.data;
 const criteriaSeed = criteriaFx.data;
 const skillLevelsSeed = skillLevelsFx.data;
 console.log(
-  `datos del usuario: ${profileFx.source === "private" ? "fixtures-private/ (reales)" : "seeds de EJEMPLO"} · golden: ${goldenFx.source} (${goldenFx.path})`,
+  `datos del usuario: ${profileFx.source === "private" ? "fixtures-private/ (reales)" : "seeds de EJEMPLO"}${process.env.SEED_FIXTURES?.trim() === "example" ? " (SEED_FIXTURES=example)" : ""} · golden: ${goldenFx.source} (${goldenFx.path})`,
 );
 
 /** UUID fijo del usuario hasta que exista el auth user real (JS-014/JS-019). */

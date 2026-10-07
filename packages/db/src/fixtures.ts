@@ -20,9 +20,19 @@ const PUBLIC_PATHS: Record<FixtureName, string> = {
 
 export type LoadedFixture<T> = { data: T; source: "private" | "example"; path: string };
 
-export function loadFixture<T>(name: FixtureName): LoadedFixture<T> {
-  const privatePath = resolve(ROOT, "fixtures-private", `${name}.json`);
-  const path = existsSync(privatePath) ? privatePath : resolve(ROOT, PUBLIC_PATHS[name]);
+/**
+ * `SEED_FIXTURES=example` ignora `fixtures-private/` y usa siempre los archivos de ejemplo (JS-065).
+ * Cualquier otro valor no vacío es un error: un typo no debe cargar datos reales en silencio.
+ * `root` es solo para tests.
+ */
+export function loadFixture<T>(name: FixtureName, root: string = ROOT): LoadedFixture<T> {
+  const mode = process.env.SEED_FIXTURES?.trim();
+  if (mode && mode !== "example") {
+    throw new Error(`SEED_FIXTURES inválido: "${mode}". El único valor aceptado es "example".`);
+  }
+  const privatePath = resolve(root, "fixtures-private", `${name}.json`);
+  const path =
+    mode !== "example" && existsSync(privatePath) ? privatePath : resolve(root, PUBLIC_PATHS[name]);
   return {
     data: JSON.parse(readFileSync(path, "utf8")) as T,
     source: path === privatePath ? "private" : "example",
