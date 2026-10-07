@@ -21,7 +21,8 @@ export const authConfig = {
       if (
         pathname.startsWith("/forgot-password") ||
         pathname.startsWith("/reset-password") ||
-        pathname.startsWith("/setup")
+        pathname.startsWith("/setup") ||
+        pathname.startsWith("/register")
       ) {
         return true;
       }
