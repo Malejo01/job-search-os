@@ -141,7 +141,7 @@ export function renderPrompt(
 /** Lista los prompts disponibles en el directorio (para CLI y evals). */
 export function listPrompts(dir: string = PROMPTS_DIR): PromptRef[] {
   return readdirSync(dir)
-    .filter((f) => /^[a-z0-9_]+\.v\d+(?:\.\d+)?\.md$/.test(f))
+    .filter((f) => /^[a-z0-9_]+\.v\d+(?:\.\d+)*\.md$/.test(f)) // v1, v1.1 y v1.3.1
     .map((f) => f.replace(/\.md$/, "").replace(/\.(v\d)/, "@$1") as PromptRef)
     .sort();
 }

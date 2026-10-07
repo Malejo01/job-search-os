@@ -72,13 +72,14 @@ jobs:
       - run: pnpm --filter @job-search-os/web build
 
   evals:
-    # Solo en PRs que tocan prompts o el harness. Subset (14 llamadas) con tope de costo;
+    # Solo en PRs que tocan prompts o el harness. Subset (16 llamadas) con la versión vigente
+    # de evaluate_job (DEFAULT_PROMPT_VERSIONS), ~USD 0,16 por corrida, con tope de costo;
     # sin GEMINI_API_KEY se saltea con aviso, no falla.
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     env:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      EVALS_PROMPT: evaluate_job@v1
+      EVALS_PROMPT: vigente
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
