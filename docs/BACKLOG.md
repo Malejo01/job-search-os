@@ -616,8 +616,55 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - `scope="col"` en los `<th>`; etiquetas `sr-only` para nivel y demanda en la lista compacta; decir en la ayuda que los candidatos salen de las ultimas ofertas y no del rango de semanas.
 - **Acepta:** auditoria de accesibilidad sin hallazgos en `/market`.
 
+### JS-091 · Registro por invitacion ✅ done 2026-10-07
+`deps:` — · `est:` M · `estado:` done (ronda 11, PR #47)
+- Tabla `invitations` (solo el hash del codigo, vence a los 14 dias), creacion solo para `ADMIN_EMAILS`, `/register` con pre-chequeo antes de scrypt y alta atomica por funcion `SECURITY DEFINER` (`register_with_invitation`). Policies `TO CURRENT_USER` para no depender de `BYPASSRLS` del duenio.
+
+### JS-092 · Borrado de cuenta ✅ done 2026-10-07
+`deps:` JS-091 · `est:` M · `estado:` done (ronda 11, PR #47)
+- `/settings` → "Eliminar mi cuenta": una transaccion borra al usuario de todas las tablas de `packages/db/src/user-tables.ts` (test que falla si aparece una tabla con duenio fuera de la lista). La sesion de un usuario borrado falla cerrada.
+
+### JS-093 · Tope de costo LLM por usuario ✅ done 2026-10-07
+`deps:` — · `est:` S · `estado:` done (ronda 11, PR #47)
+- `LLM_USER_DAILY_CAP_USD` ademas del global; el worker pospone 1 h a un usuario topeado y sigue con los demas; evaluar al instante y los borradores tambien lo chequean.
+
+### JS-097 · Borradores de politica de privacidad y terminos ✅ done 2026-10-07 (borrador)
+`deps:` — · `est:` M · `estado:` done como borrador (ronda 12, PR #48); falta la revision legal
+- Politica (ley 25.326) y terminos de la beta en `apps/web/content/legal/`, inventario de datos por proveedor en `docs/legal/datos-por-proveedor.md`, paginas `/privacidad` y `/terminos` con parser de Markdown sin dependencias.
+
+### JS-103 · `users` legible solo por su duenio
+`deps:` JS-091 · `est:` S · `estado:` en curso (ronda 14)
+- **Por que:** `users_read USING (true)`: con registro por invitacion, el rol de la app puede leer email y hash de todos.
+- **Que:** funciones `SECURITY DEFINER` para lo que necesita leer `users` sin sesion (login, existencia, `/setup`, MCP); `users_read` a `id = auth.uid()` en un paso posterior al deploy, para que la migracion sea compatible con el codigo anterior.
+- **Acepta:** test de RLS con el rol de la app: un usuario no lee la fila de otro; el login sigue funcionando.
+
+### JS-104 · El prefiltro usa el pais del perfil
+`deps:` JS-094 · `est:` S · `estado:` todo (2026-10-07)
+- Ningun llamador de `prefilter` pasa `userCountry`, asi que siempre usa AR. Pasar `profiles.location_country` en la ingesta; sin pais cargado, marcar riesgo.
+- **Acepta:** test con un perfil de otro pais.
+
+### JS-105 · Tope por usuario: cerrar los huecos
+`deps:` JS-093 · `est:` S · `estado:` todo (2026-10-07)
+- `capGuard` obligatorio en `draftApplicationAnswers`; aviso de tope en `jobs/new`, `jobs/[id]` y el MCP; `spendCapReason` exportado desde `llm/index.ts`.
+- **Acepta:** typecheck falla si un llamador no pasa el guard; las tres pantallas muestran el aviso.
+
+### JS-106 · Terminos publicos y aceptacion en el registro
+`deps:` JS-091, JS-097 · `est:` S · `estado:` en curso (ronda 14)
+- `/privacidad` y `/terminos` publicas; casilla obligatoria en `/register` validada en el servidor; fecha y version aceptadas guardadas en `users`.
+- **Acepta:** registro sin aceptar → error; la aceptacion queda guardada con la version.
+
+### JS-107 · Retencion y logs sin datos de terceros
+`deps:` — · `est:` S · `estado:` todo (2026-10-07)
+- Ningun proceso purga `raw_blobs`, `inbound_emails`, tokens de reseteo vencidos ni logs; los logs de la ingesta incluyen el remitente de cada email.
+- **Que:** purga programada con plazos a decidir; sacar el remitente de los logs o dejar solo su dominio.
+- **Acepta:** test de la purga; ningun log de la ingesta lleva el email completo del remitente.
+
+### JS-094 · Onboarding guiado del perfil
+`deps:` JS-091 · `est:` M · `estado:` en curso (ronda 14)
+- Un invitado sin perfil completo (pais, resumen, criterios) solo accede al onboarding, que crea los criterios por defecto. Sin esto no puede evaluar nada.
+
 ### JS-102 · Cachear los candidatos a skill de `/market`
-`deps:` JS-031 · `est:` S · `estado:` todo (2026-10-07; necesario antes de la beta)
+`deps:` JS-031 · `est:` S · `estado:` parcial (rondas 13 y 14): cache por usuario de 1 h hecho; la invalidacion en la ingesta de la app y el borrado va en la 14; falta medir el render
 - **Por que:** `getMarket` trae y tokeniza los JD de las ultimas 300 ofertas en cada request (`force-dynamic`). Con varios usuarios es CPU y base por cada visita.
 - **Que:** calcular los candidatos una vez por usuario y guardarlos (en el snapshot semanal de mercado o en cache por usuario con invalidacion al ingerir ofertas); `/market` solo los lee. Verificar indice `(user_id, created_at)` en `jobs`.
 - **Acepta:** `/market` no lee `jd_text`; test de que los candidatos se recalculan al cambiar las ofertas; tiempo de render medido antes y despues.
