@@ -308,6 +308,20 @@ describe("prefilter: reglas una por una", () => {
       expect(!r.pass && r.detail).toMatch(/^título fuera de IT: /);
     });
 
+    it.each([
+      ["Ingresá tu CV - Base general", "base de CV"],
+      ["Registrá tu CV", "base de CV"],
+      ["Registrate tu CV en Empresa Demo SA", "base de CV"],
+      ["Sumate tu CV", "base de CV"],
+      ["Sumate a nuestra base general", "base general"],
+      ["Base general de postulantes", "base general"],
+      ["Base General de CV - Empresa Demo SA", "base general"],
+    ])("base genérica de RR. HH.: %s → '%s'", (title, label) => {
+      const r = run(title);
+      expect(r).toMatchObject({ pass: false, reason: "disciplina_distinta" });
+      expect(!r.pass && r.detail).toBe(`título fuera de IT: '${label}'`);
+    });
+
     it("la base de RR. HH. descarta siempre, aunque mencione IT", () => {
       expect(run("Cargá tu CV — perfiles IT")).toMatchObject({ pass: false });
       expect(run("Talent Pool Developer")).toMatchObject({ pass: false });

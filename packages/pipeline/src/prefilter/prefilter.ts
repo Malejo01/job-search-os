@@ -71,10 +71,14 @@ const HR_POOL_TITLE: readonly { label: string; re: RegExp }[] = [
   {
     label: "base de CV",
     re: word(
-      "(?:carga|cargue|deja|dejanos|envia|envianos|manda|mandanos|subi)\\s+(?:tu|su)\\s+(?:cv|curriculum)",
+      "(?:carga|cargue|deja|dejanos|envia|envianos|manda|mandanos|subi|ingresa|ingrese|registra|registrate|sumate)\\s+(?:tu|su)\\s+(?:cv|curriculum)",
     ),
   },
   { label: "base de talentos", re: word("(?:base|banco)\\s+de\\s+(?:talentos|cvs?|curriculums?)") },
+  {
+    label: "base general",
+    re: word("base\\s+general(?:\\s+de\\s+(?:cv|talentos|postulantes))?"),
+  },
   { label: "talent pool", re: word("talent\\s+pool") },
   { label: "búsquedas generales", re: word("busquedas?\\s+generales") },
   { label: "postulación espontánea", re: word("postulacion(?:es)?\\s+espontanea") },
