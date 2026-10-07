@@ -15,6 +15,9 @@ const nextConfig: NextConfig = {
   // Los prompts se leen del disco en runtime: sin esto no viajan en el bundle serverless de Vercel
   outputFileTracingIncludes: {
     "/**": ["../../packages/prompts/*.md"],
+    // Textos legales que /privacidad y /terminos leen del disco en runtime
+    "/privacidad": ["./content/legal/*.md"],
+    "/terminos": ["./content/legal/*.md"],
   },
   // El token del reset viaja en la query: que no salga en el Referer hacia otros sitios (SEC-05).
   async headers() {
