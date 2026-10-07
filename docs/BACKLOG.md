@@ -342,7 +342,12 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - UI: caja punteada "pre" en la lista y sección "Pre-evaluación determinista · sin LLM" en el detalle (riesgos, tenés / te faltan / sin nivel, cobertura, ajustes). MCP `list_jobs` devuelve `pre_score_sin_llm`.
 
 ### JS-030 · Extracción y normalización de skills por oferta
+`estado:` parcial (ronda 10, PR #45, 2026-10-07)
+- Candidatos a skill nueva deterministas (`skillCandidates`: terminos tecnicos frecuentes en los JD que no estan en la taxonomia, sin stopwords, IDs ni nombres de las empresas de las ofertas) y contrato de la tarea `extract_skills` (`normalizeExtracted`: lo conocido contra lo propuesto; falla cerrado y nunca toca la taxonomia). Falta el backfill con LLM (JS-100).
+
 ### JS-031 · Snapshot semanal de mercado y página /market
+`estado:` done en lo movil (ronda 10, PR #45, 2026-10-07)
+- `/market` usable en el celular: tarjetas en gaps, diferenciales y en crecimiento; fila compacta en la tabla completa; formulario y `summary` de 44 px; seccion de candidatos a skill nueva. Pendiente: cache de candidatos (JS-102) y accesibilidad (JS-101).
 ### JS-032 · Perfil verificable: ingesta CV/LinkedIn PDF/portfolio/GitHub
 ### JS-033 · Entrevista dirigida por skill y niveles 0–3
 ### JS-034 · Gap analysis y plan de formación ✅ done 2026-09-11 (versión determinista)
@@ -514,11 +519,11 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
   - tabla de tokens de `run.ts` actualizada (estimacion, no eleccion de modelo).
 - **Acepta:** `recompute` sobre un reporte guardado muestra las dos cifras de ubicacion, el recall por tipo y el aviso de hash; tests en verde.
 
-### JS-074 · Prompt `evaluate_job` v1.3.3 sin el literal de un aviso real
-`deps:` — · `est:` S + corrida · `estado:` en curso. v1.3.3 medida el 2026-10-07 (1 corrida): empeora metricas estrictas contra v1.3.2 (MAE, `blockers_recall`, `blockers_precision`, `discipline_acc`), no se promueve. v1.3.4 (ronda 05, PR #41) vuelve a anclar la disciplina de produccion creativa; esta en el repo sin promover y se mide con 3 corridas contra 3 de v1.3.2 (criterio de promocion de 2026-10-08: `blockers_recall` sin bajar, `blockers_precision` hasta -5 pp, `discipline_acc` hasta -3 pp, `score_mae` hasta +0,15, sobre la media de 3 corridas)
+### JS-074 · Prompt `evaluate_job` sin el literal de un aviso real ✅ done 2026-10-07
+`deps:` — · `est:` S + corrida · `estado:` done. v1.3.3 (2026-10-07, 1 corrida) empeoraba metricas estrictas y no se promovio. **v1.3.4 promovida el 2026-10-07** con 3 corridas contra 3 de v1.3.2 del mismo dia (criterio: `blockers_recall` sin bajar, `blockers_precision` hasta -5 pp, `discipline_acc` hasta -3 pp, `score_mae` hasta +0,15, sobre la media): recall igual, precision -2,8 pp, disciplina +2,8 pp, MAE +0,11. Produccion deja de tener el literal del aviso real
 - **Por que:** el ejemplo de mision contra requisitos de v1.3.2 cita frases de un aviso real; una busqueda las identifica. Es el prompt de produccion.
-- **Que:** v1.3.3 = v1.3.2 con ese ejemplo reescrito de cero en otro dominio, con la misma ensenanza (la disciplina sale de los requisitos). No se promueve sin medir.
-- **Acepta:** 1 corrida completa (36 casos, ≈ USD 0,36) + `recompute` y `compare` contra la de v1.3.2 sin empeorar `action_acc`, `false_apply` ni `discipline_acc` en las anclas `human`. Recien ahi se promueve (decision de Mauro).
+- **Que se hizo:** v1.3.3 reescribio el ejemplo de cero en otro dominio y perdio el ancla de produccion creativa; v1.3.4 la recupero con un ejemplo inventado del mismo tipo. Se promovio v1.3.4.
+- **Criterio aplicado:** 3 corridas de la candidata contra 3 de la vigente, el mismo dia y con el mismo codigo, sobre la media (tolerancias en el estado). Plan original: 1 corrida de v1.3.3; se reemplazo porque con una sola corrida de la vigente la comparacion salia al reves.
 
 ### JS-077 · Los evals de CI miden el prompt vigente
 `deps:` JS-067 (CLI) · `est:` S · `estado:` ✅ done 2026-10-07 (ronda 02): `--prompt vigente` en el CLI y `EVALS_PROMPT: vigente` en `ci.yml` (≈ USD 0,16 por corrida de CI, contra ≈ 0,09 con v1)
@@ -546,8 +551,8 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Que:** imprimir `pre-push: OK (N commits)` al pasar.
 - **Acepta:** test por CLI con un repo temporal que verifica el mensaje y el conteo; con hallazgos, el mensaje de error no cambia.
 
-### JS-080 · El tope `--max-usd` de evals corta siempre
-`deps:` — · `est:` S · `estado:` en curso (ronda 08, 2026-10-08)
+### JS-080 · El tope `--max-usd` de evals corta siempre ✅ done 2026-10-07
+`deps:` — · `est:` S · `estado:` done (ronda 08, PR #44)
 - **Por que:** en `evals/src/cli.ts` la condicion para arrancar era `usd <= maxUsd || yes`: con `--yes` el tope no frenaba, y el CI corre con `--yes --max-usd 0.5`. Ademas el tope solo miraba el estimado: durante la corrida no cortaba nada.
 - **Que:** si el estimado supera `--max-usd`, aborta siempre (con o sin `--yes`); durante la corrida, antes de cada llamada, si lo gastado mas lo esperado supera el tope, corta y guarda un reporte parcial marcado.
 - **Acepta:** tests sin llamadas pagas (generador falso): con `--yes` y estimado sobre el tope, sale con error; una corrida que se pasaria corta antes. El corte es aproximado: las llamadas en vuelo se reservan con el costo esperado, asi que el exceso posible queda acotado a lo que cuesten de mas esas llamadas.
@@ -594,6 +599,28 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 `deps:` JS-088 · `est:` M · `estado:` todo (2026-10-07)
 - **Que:** verificar cada formato contra la fuente real (lista en `docs/sources/*.md`), revisar terminos de uso, migracion del enum `source_kind` con las fuentes que pasen, y conectarlas al cron detras de un flag apagado. Torre, solo si los terminos permiten uso automatizado. Himalayas, solo con el periodo del salario verificado.
 - **Acepta:** cada fuente conectada con su formato verificado y el flag apagado por defecto.
+
+### JS-099 · Navegacion en el celular
+`deps:` — · `est:` S · `estado:` todo (2026-10-07)
+- **Por que:** a 375 px la barra de navegacion se corta y "Mercado" y "Plan" quedan fuera de pantalla.
+- **Que:** navegacion que entre en 375 px (scroll horizontal con indicador, o menu).
+- **Acepta:** e2e o captura a 375 px con todas las secciones alcanzables.
+
+### JS-100 · Backfill de skills con `extract_skills`
+`deps:` JS-030 · `est:` S + corrida · `estado:` todo (2026-10-07)
+- **Que:** agregar `packages/prompts/extract_skills.v1.md`, correr el backfill sobre los JD con estimado aprobado (≈ USD 0,006 por JD) y revisar las propuestas antes de sumarlas a la taxonomia.
+- **Acepta:** propuestas revisadas a mano; la taxonomia solo crece con aprobacion.
+
+### JS-101 · `/market`: accesibilidad
+`deps:` — · `est:` S · `estado:` todo (2026-10-07)
+- `scope="col"` en los `<th>`; etiquetas `sr-only` para nivel y demanda en la lista compacta; decir en la ayuda que los candidatos salen de las ultimas ofertas y no del rango de semanas.
+- **Acepta:** auditoria de accesibilidad sin hallazgos en `/market`.
+
+### JS-102 · Cachear los candidatos a skill de `/market`
+`deps:` JS-031 · `est:` S · `estado:` todo (2026-10-07; necesario antes de la beta)
+- **Por que:** `getMarket` trae y tokeniza los JD de las ultimas 300 ofertas en cada request (`force-dynamic`). Con varios usuarios es CPU y base por cada visita.
+- **Que:** calcular los candidatos una vez por usuario y guardarlos (en el snapshot semanal de mercado o en cache por usuario con invalidacion al ingerir ofertas); `/market` solo los lee. Verificar indice `(user_id, created_at)` en `jobs`.
+- **Acepta:** `/market` no lee `jd_text`; test de que los candidatos se recalculan al cambiar las ofertas; tiempo de render medido antes y despues.
 
 ### JS-090 · `htmlToText`: entidades con nombre
 `deps:` — · `est:` XS · `estado:` todo (2026-10-07)

@@ -5,6 +5,7 @@ import criteria from "@job-search-os/db/seeds/criteria.example.json";
 import { and, eq, sql } from "drizzle-orm";
 import pino from "pino";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { DEFAULT_PROMPT_VERSIONS } from "../llm/client";
 import { createFakeLlm } from "../llm/fake";
 import { createPgQueue, enqueueEvaluationWith, EVALUATE_QUEUE } from "../queue/pg-queue";
 import { ingestRawJob } from "../ingest/ingest-job";
@@ -183,7 +184,7 @@ describe("worker de evaluación (FakeLlm)", () => {
     const llm = createFakeLlm({ evaluate_job: fakeEvaluation }, { model: "fake-gemini" });
     const summary = await runEvaluateWorker({ db: conn.db, llm, queue: q, logger }, { limit: 5 });
     expect(summary.evaluated).toBe(1);
-    expect(llm.calls[0]?.ctx.promptVersion).toBe("evaluate_job@v1.3.2");
+    expect(llm.calls[0]?.ctx.promptVersion).toBe(DEFAULT_PROMPT_VERSIONS.evaluate_job);
     expect(llm.calls[0]?.vars.job).toContain("RAG, agentes y MCP");
 
     const jobId = out.jobId;
@@ -193,7 +194,7 @@ describe("worker de evaluación (FakeLlm)", () => {
     expect(ev).toMatchObject({
       userId: USER,
       model: "fake-gemini",
-      promptVersion: "evaluate_job@v1.3.2",
+      promptVersion: DEFAULT_PROMPT_VERSIONS.evaluate_job,
       score: 7, // 8 del modelo − 1 por gap must de cloud (decide)
       scoreModel: 8,
       accion: "aplicar",

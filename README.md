@@ -60,7 +60,7 @@ Otros comandos: `pnpm ingest:getonboard --local`, `pnpm market:snapshot --local`
 | CI, deploy, cron (JS-018, JS-019) | ✅ CI y cron en Actions · ✅ desplegado en Vercel + Neon el 2026-09-15 (estado y DNS en `docs/DEPLOY.md`) |
 | 4 · Email entrante (JS-020–023) | ✅ JS-023 alta manual · ✅ JS-020 recepción andando en producción (Resend sobre `ingest.malejo.com.ar`, webhook firmado, `/inbox` con el contenido del email) · ✅ JS-021 parser de LinkedIn (alertas y recomendaciones) · ⏳ JS-022 Get on Board y genérico |
 | 5 · Inteligencia | ✅ JS-034 plan, JS-035 MCP, JS-036 feedback loop (`/applications`), adelantos de JS-030/031 sin LLM · ⏳ JS-032/033 perfil verificable y entrevista dirigida |
-| Calibración del evaluador | ✅ cerrada 2026-09-11: prompt `evaluate_job@v1.3.2` (desde el 2026-09-24, JS-052), `gemini-3.1-flash-lite` primario (fallback 3.5-flash), USD 0,0013 por evaluación; números en `docs/LLM_COSTOS.md`, ADR-011. Lo que sigue se calibra con `/applications` (JS-036) |
+| Calibración del evaluador | ✅ cerrada 2026-09-11: prompt `evaluate_job@v1.3.4` (desde el 2026-10-07, JS-074; antes v1.3.2 desde el 2026-09-24, JS-052), `gemini-3.1-flash-lite` primario (fallback 3.5-flash), USD 0,0013 por evaluación; números en `docs/LLM_COSTOS.md`, ADR-011. Lo que sigue se calibra con `/applications` (JS-036) |
 
 Deuda registrada (en `docs/BACKLOG.md`): FK `profiles.user_id → users.id` diferida; `ANTHROPIC_API_KEY` sin probar en vivo; niveles de skills autodeclarados hasta la entrevista dirigida; métrica de costo del PRD a ajustar con el costo real.
 
@@ -76,7 +76,7 @@ Deuda registrada (en `docs/BACKLOG.md`): FK `profiles.user_id → users.id` dife
 | [docs/DEPLOY.md](docs/DEPLOY.md) | Checklist de deploy, variables, cron en Actions, cómo conectar el MCP | Al desplegar |
 | [docs/USO_DIARIO.md](docs/USO_DIARIO.md) | El día típico: qué pantallas mirar, qué comandos correr, qué corre solo, qué hacer cuando falla | Cada día de búsqueda |
 | [docs/AUDITORIA_2026-09-11.md](docs/AUDITORIA_2026-09-11.md) | Qué quedó a medias, tests débiles, decisiones sin ADR, deudas urgentes, priorizado | Antes del deploy y al planificar |
-| [docs/EVALUATOR_PROMPT_v1.md](docs/EVALUATOR_PROMPT_v1.md) + [packages/prompts/](packages/prompts/) | Prompt del evaluador (v1 → v1.3.1; producción v1.3.1), criterios, JSON de salida | Al tocar scoring |
+| [docs/EVALUATOR_PROMPT_v1.md](docs/EVALUATOR_PROMPT_v1.md) + [packages/prompts/](packages/prompts/) | Prompt del evaluador (v1 → v1.3.4; producción v1.3.4), criterios, JSON de salida | Al tocar scoring |
 | [evals/](evals/) | Golden dataset de ejemplo (34 ofertas reales anonimizadas) y harness | Al cambiar prompt o modelo |
 | [docs/TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md) | Pirámide de tests, qué se testea y cómo | Antes de escribir código |
 | [docs/AWS_MIGRATION_PLAN.md](docs/AWS_MIGRATION_PLAN.md) | Cómo pasa de Vercel+Neon a AWS sin reescribir | Fase 3 |
