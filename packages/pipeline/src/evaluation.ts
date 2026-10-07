@@ -113,6 +113,7 @@ export function outputSchemaFor(promptRef: string): z.ZodType<Evaluation, unknow
         years_discipline: null,
       }));
     case "v1.3.2":
+    case "v1.3.3": // mismo schema; solo cambian ejemplos del prompt (JS-074)
       return EvaluationV12OutputSchema;
     default:
       throw new Error(`sin schema de salida para ${promptRef}`);

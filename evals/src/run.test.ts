@@ -1,5 +1,21 @@
 import { createFakeLlm, DEFAULT_PROMPT_VERSIONS } from "@job-search-os/adapters";
+import { outputSchemaFor } from "@job-search-os/pipeline";
+import { listPrompts } from "@job-search-os/prompts";
 import { describe, expect, it } from "vitest";
+
+describe("cobertura de versiones de evaluate_job", () => {
+  // v1.3.3 se versionó sin registrar su schema y la corrida falló antes de llamar al modelo:
+  // todo prompt evaluate_job del repo tiene que tener schema de salida.
+  const versions = listPrompts().filter((ref) => ref.startsWith("evaluate_job@"));
+
+  it("hay versiones para revisar", () => {
+    expect(versions.length).toBeGreaterThan(0);
+  });
+
+  it.each(versions)("%s tiene schema de salida", (ref) => {
+    expect(() => outputSchemaFor(ref)).not.toThrow();
+  });
+});
 import { criteriaHash } from "./golden";
 import {
   ANCHOR_IDS,
