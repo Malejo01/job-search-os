@@ -1,5 +1,4 @@
-import { schema as s } from "@job-search-os/db";
-import { eq } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { auth, signOut } from "@/auth";
 import { getAppDb } from "@/lib/db";
@@ -13,12 +12,10 @@ import { getAppDb } from "@/lib/db";
 export async function GET(): Promise<Response> {
   const id = (await auth())?.user?.id;
   if (!id) redirect("/login");
-  const [user] = await getAppDb()
-    .select({ id: s.users.id })
-    .from(s.users)
-    .where(eq(s.users.id, id))
-    .limit(1);
-  if (user) redirect("/jobs");
+  const [row] = (await getAppDb().execute(
+    sql`select user_exists(${id}::uuid) as ok`,
+  )) as unknown as { ok: boolean }[];
+  if (row?.ok) redirect("/jobs");
   await signOut({ redirectTo: "/login" }); // lanza el redirect de Next
   return new Response(null, { status: 204 });
 }

@@ -1,15 +1,17 @@
-import { schema as s } from "@job-search-os/db";
 import { verifyPassword } from "@job-search-os/db/password";
-import { eq } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { authConfig } from "./auth.config";
 import { getAppDb } from "./lib/db";
 
+/** Hash scrypt válido que ninguna contraseña verifica (sal y hash en cero): solo iguala el costo del login. */
+const DUMMY_PASSWORD_HASH = `scrypt$${"0".repeat(32)}$${"0".repeat(128)}`;
+
 /**
  * Auth.js con un solo proveedor en fase 1: email + contraseña (ADR-010). El lookup del
- * usuario corre con el rol de la app: la policy `users_read` permite leer users sin sesión
- * (no hay registro público, un solo usuario). Nunca se loguea la contraseña.
+ * usuario llega sin sesión: se resuelve con auth_user_by_email (SECURITY DEFINER, rls/0003), porque
+ * el rol de la app no puede leer filas ajenas de users. Nunca se loguea la contraseña.
  */
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -25,18 +27,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           .toLowerCase();
         const password = String(credentials?.password ?? "");
         if (!email || !password) return null;
-        const [user] = await getAppDb()
-          .select({
-            id: s.users.id,
-            email: s.users.email,
-            name: s.users.name,
-            hash: s.users.passwordHash,
-          })
-          .from(s.users)
-          .where(eq(s.users.email, email))
-          .limit(1);
-        if (!user || !verifyPassword(password, user.hash)) return null;
-        return { id: user.id, email: user.email, name: user.name ?? undefined };
+        const [user] = (await getAppDb().execute(
+          sql`select id, password_hash from auth_user_by_email(${email})`,
+        )) as unknown as { id: string; password_hash: string | null }[];
+        // Con email inexistente se verifica igual contra un hash de relleno: el tiempo de respuesta
+        // no distingue "no existe" de "contraseña incorrecta" (enumeración de cuentas).
+        const passwordOk = verifyPassword(password, user?.password_hash ?? DUMMY_PASSWORD_HASH);
+        if (!user || !passwordOk) return null;
+        return { id: user.id, email };
       },
     }),
   ],

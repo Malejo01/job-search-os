@@ -15,6 +15,7 @@ import {
   type InvitationStatus,
   type RegistrationInput,
 } from "./invitations-core";
+import { validateTermsAcceptance } from "./terms";
 
 /** Registro por invitación (JS-091): superficie pública, ver packages/db/rls/0001_invitations.sql. */
 
@@ -123,7 +124,7 @@ export class InvalidInvitationError extends Error {
 }
 
 export class InvalidRegistrationError extends Error {
-  constructor(readonly reason: "email" | "password" | "name") {
+  constructor(readonly reason: "email" | "password" | "name" | "terminos") {
     super(`registro inválido: ${reason}`);
     this.name = "InvalidRegistrationError";
   }
@@ -137,18 +138,23 @@ function isUniqueViolation(error: unknown): boolean {
 }
 
 /**
- * Canje + alta del usuario en UNA llamada atómica (register_with_invitation, SECURITY DEFINER):
+ * Canje + alta del usuario en UNA llamada atómica (register_with_invitation_v2, SECURITY DEFINER):
  * si algo falla, la invitación no queda gastada. Error genérico para inexistente / usada /
  * vencida / de otro email / email ya registrado: quien prueba códigos no aprende nada.
+ * `termsAccepted` es el valor crudo de la casilla: sin aceptar no se registra (JS-106) y se guarda
+ * la versión vigente de los términos junto con la fecha.
  */
 export async function registerWithInvitation(
   input: RegistrationInput,
+  termsAccepted: unknown,
 ): Promise<{ userId: string }> {
   const check = validateRegistration(input);
   if (!check.ok) {
     if (check.reason === "code") throw new InvalidInvitationError();
     throw new InvalidRegistrationError(check.reason);
   }
+  const terms = validateTermsAcceptance(termsAccepted);
+  if (!terms.ok) throw new InvalidRegistrationError(terms.reason);
   const codeHash = hashInvitationCode(input.code);
   const email = normalizeEmail(input.email);
   // Pre-chequeo barato (solo lectura): un código que no sirve no gasta scrypt
@@ -161,9 +167,9 @@ export async function registerWithInvitation(
   let userId: string | null;
   try {
     const rows = (await getAppDb().execute(
-      sql`select register_with_invitation(
+      sql`select register_with_invitation_v2(
         ${codeHash}, ${email}, ${passwordHash},
-        ${input.name?.trim() || null}, ${ingestDomain}) as user_id`,
+        ${input.name?.trim() || null}, ${ingestDomain}, ${terms.version}) as user_id`,
     )) as unknown as { user_id: string | null }[];
     userId = rows[0]?.user_id ?? null;
   } catch (error) {

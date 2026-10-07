@@ -5,6 +5,7 @@ import {
   registerWithInvitation,
 } from "@/lib/invitations";
 import { INVALID_INVITATION_MESSAGE } from "@/lib/invitations-core";
+import { LegalPage } from "@/lib/legal";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,7 @@ const ERROR_MESSAGE: Record<string, string> = {
   no_coincide: "Las contraseñas no coinciden.",
   email: "El email no es válido.",
   nombre: "El nombre es demasiado largo (máximo 100 caracteres).",
+  terminos: "Para crear la cuenta tenés que aceptar los términos y la política de privacidad.",
   invitacion: `Hubo un problema: ${INVALID_INVITATION_MESSAGE}.`,
 };
 
@@ -33,12 +35,12 @@ async function register(formData: FormData): Promise<void> {
   const back = `/register?code=${encodeURIComponent(code)}`;
   if (password !== confirm) redirect(`${back}&error=no_coincide`);
   try {
-    await registerWithInvitation({ code, email, password, name });
+    await registerWithInvitation({ code, email, password, name }, formData.get("terms"));
   } catch (error) {
     if (error instanceof InvalidInvitationError) redirect(`${back}&error=invitacion`);
     if (error instanceof InvalidRegistrationError) {
       redirect(
-        `${back}&error=${{ password: "corta", name: "nombre", email: "email" }[error.reason]}`,
+        `${back}&error=${{ password: "corta", name: "nombre", email: "email", terminos: "terminos" }[error.reason]}`,
       );
     }
     throw error;
@@ -116,6 +118,22 @@ export default async function RegisterPage({
             required
             className="rounded-md border border-zinc-300 px-3 py-2 text-base"
           />
+        </label>
+        <details className="rounded-md border border-zinc-200 p-3 text-sm">
+          <summary className="cursor-pointer font-medium">Leer los términos</summary>
+          <div className="mt-3">
+            <LegalPage name="terminos" />
+          </div>
+        </details>
+        <details className="rounded-md border border-zinc-200 p-3 text-sm">
+          <summary className="cursor-pointer font-medium">Leer la política de privacidad</summary>
+          <div className="mt-3">
+            <LegalPage name="privacidad" />
+          </div>
+        </details>
+        <label className="flex items-start gap-2 text-sm">
+          <input name="terms" type="checkbox" required className="mt-1 h-4 w-4" />
+          <span>Leí y acepto los términos y la política de privacidad.</span>
         </label>
         {error ? (
           <p role="alert" className="text-sm text-red-700">

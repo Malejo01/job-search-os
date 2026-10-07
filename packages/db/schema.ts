@@ -38,6 +38,9 @@ export const users = pgTable("users", {
   email: text("email").notNull(),
   name: text("name"),
   passwordHash: text("password_hash"),
+  // Aceptación de términos (JS-106): fecha y versión vigente al registrarse; NULL = cuenta anterior.
+  termsAcceptedAt: timestamp("terms_accepted_at", { withTimezone: true }),
+  termsVersion: text("terms_version"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [uniqueIndex("users_email").on(t.email)]);
