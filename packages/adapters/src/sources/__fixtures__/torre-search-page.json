@@ -1,0 +1,84 @@
+{
+  "total": 6,
+  "size": 20,
+  "offset": 0,
+  "results": [
+    {
+      "id": "aB3dE5fG",
+      "objective": "Full Stack Developer",
+      "type": "full-time-employment",
+      "organizations": [{ "name": "Empresa X" }],
+      "locations": ["Worldwide"],
+      "remote": true,
+      "compensation": {
+        "minAmount": 3000,
+        "maxAmount": 4500,
+        "currency": "USD",
+        "periodicity": "monthly"
+      },
+      "skills": [{ "name": "TypeScript" }, { "name": "React" }],
+      "created": "2026-10-05T12:00:00.000Z",
+      "deadline": "2026-11-05T12:00:00.000Z",
+      "description": "<p>Desarrollo de producto.</p><ul><li>React</li><li>Node</li></ul>"
+    },
+    {
+      "id": "hJ7kL9mN",
+      "objective": "QA Engineer",
+      "type": "full-time-employment",
+      "organizations": [{ "name": "Empresa Y" }],
+      "locations": ["Buenos Aires, Argentina"],
+      "remote": true,
+      "compensation": null,
+      "skills": [{ "name": "Playwright" }],
+      "created": "2026-10-04T12:00:00.000Z",
+      "deadline": null
+    },
+    {
+      "id": "pQ1rS3tU",
+      "objective": "Product Designer",
+      "type": "freelance-gigs",
+      "organizations": [{ "name": "Empresa Z" }],
+      "locations": ["Brazil", "Mexico"],
+      "remote": true,
+      "compensation": {
+        "minAmount": 2000,
+        "maxAmount": 2800,
+        "currency": "EUR",
+        "periodicity": "monthly"
+      },
+      "skills": [],
+      "created": "2026-10-03T12:00:00.000Z",
+      "deadline": null
+    },
+    {
+      "id": "vW5xY7zA",
+      "objective": "Support Engineer",
+      "type": "full-time-employment",
+      "organizations": [{ "name": "Empresa W" }],
+      "locations": [],
+      "remote": true,
+      "compensation": null,
+      "skills": [],
+      "created": "2026-10-02T12:00:00.000Z",
+      "deadline": null
+    },
+    {
+      "id": "bC9dE1fG",
+      "objective": "Data Engineer",
+      "type": "full-time-employment",
+      "organizations": [{ "name": "Empresa V" }],
+      "locations": ["Hybrid - Lima, Peru"],
+      "remote": false,
+      "compensation": null,
+      "skills": [{ "name": "SQL" }],
+      "created": "2026-10-01T12:00:00.000Z",
+      "deadline": null
+    },
+    {
+      "objective": "Resultado roto sin id",
+      "organizations": [{ "name": "Empresa U" }],
+      "remote": true,
+      "created": "2026-10-01T10:00:00.000Z"
+    }
+  ]
+}

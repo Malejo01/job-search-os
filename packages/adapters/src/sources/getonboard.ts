@@ -123,7 +123,7 @@ export function htmlToText(html: string | null | undefined): string {
           code[1]?.toLowerCase() === "x"
             ? parseInt(code.slice(2), 16)
             : parseInt(code.slice(1), 10);
-        return Number.isFinite(n) ? String.fromCodePoint(n) : m;
+        return Number.isInteger(n) && n >= 0 && n <= 0x10ffff ? String.fromCodePoint(n) : m;
       }
       return ENTITIES[code.toLowerCase()] ?? m;
     })

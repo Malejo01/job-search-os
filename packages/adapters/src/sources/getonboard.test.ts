@@ -134,6 +134,12 @@ describe("htmlToText", () => {
     ).toBe("- +6 años de experiencia.\n- Inglés & más\nFin.");
     expect(htmlToText(null)).toBe("");
   });
+
+  it("entidad numérica fuera de rango queda como texto en vez de tirar", () => {
+    expect(htmlToText("a &#99999999; b &#x110000; c &#233;")).toBe(
+      "a &#99999999; b &#x110000; c é",
+    );
+  });
 });
 
 describe("fetchGetOnBoardJobs (fetch inyectado)", () => {
