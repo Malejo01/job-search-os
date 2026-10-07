@@ -1,6 +1,6 @@
 import { schema as s } from "@job-search-os/db";
-import { buildAgenda, type MarketAgenda } from "@job-search-os/pipeline";
-import { and, desc, eq, gte, lte } from "drizzle-orm";
+import { buildAgenda, skillCandidates, type MarketAgenda } from "@job-search-os/pipeline";
+import { and, desc, eq, gte, isNotNull, lte } from "drizzle-orm";
 import { withUser } from "./db";
 
 /**
@@ -13,7 +13,11 @@ export type MarketView = {
   agenda: MarketAgenda;
   skills: Record<string, { name: string; category: string; closureHours: number | null }>;
   levelsKnown: number;
+  /** Términos frecuentes fuera de la taxonomía (`skillCandidates` sobre los últimos 300 JD). */
+  candidates: SkillCandidate[];
 };
+
+export type SkillCandidate = { term: string; count: number };
 
 export type MarketRange = { from: string | null; to: string | null };
 
@@ -65,6 +69,34 @@ export async function getMarket(userId: string, range: MarketRange): Promise<Mar
       ]),
     );
 
+    // Candidatos: términos frecuentes en los JD recientes que la taxonomía no cubre (propuesta).
+    const taxonomyRows = await tx
+      .select({ slug: s.skills.slug, name: s.skills.name, aliases: s.skills.aliases })
+      .from(s.skills);
+    const jdRows = await tx
+      .select({
+        jdText: s.jobs.jdText,
+        companyRaw: s.jobs.companyRaw,
+        companyName: s.companies.nameNormalized,
+      })
+      .from(s.jobs)
+      .leftJoin(s.companies, eq(s.companies.id, s.jobs.companyId))
+      .where(isNotNull(s.jobs.jdText))
+      .orderBy(desc(s.jobs.createdAt))
+      .limit(300);
+    // Los nombres de empresa no son skills: se excluyen de los candidatos.
+    const exclude = [
+      ...new Set(
+        jdRows.flatMap((j) => [j.companyRaw, j.companyName].filter((n): n is string => !!n)),
+      ),
+    ];
+    const candidateOptions = { limit: 15, exclude };
+    const candidates = skillCandidates(
+      jdRows.flatMap((j) => (j.jdText ? [j.jdText] : [])),
+      taxonomyRows,
+      candidateOptions,
+    ).map(({ term, count }) => ({ term, count }));
+
     if (!weekStart) {
       return {
         weekStart,
@@ -72,6 +104,7 @@ export async function getMarket(userId: string, range: MarketRange): Promise<Mar
         agenda: buildAgenda([], levelRows),
         skills,
         levelsKnown: levelRows.length,
+        candidates,
       };
     }
     const rows = await tx
@@ -91,6 +124,7 @@ export async function getMarket(userId: string, range: MarketRange): Promise<Mar
       agenda: buildAgenda(rows, levelRows),
       skills,
       levelsKnown: levelRows.length,
+      candidates,
     };
   });
 }
