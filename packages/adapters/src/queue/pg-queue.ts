@@ -47,8 +47,11 @@ export interface Queue {
     error: string,
     options?: { retryInSeconds?: number; final?: boolean },
   ): Promise<"retry" | "failed">;
-  /** Devuelve UN mensaje a `pending` sin consumir intento (el worker no llegó a procesarlo: tope de gasto, señal). */
-  release(id: string, note: string): Promise<void>;
+  /**
+   * Devuelve UN mensaje a `pending` sin consumir intento (el worker no llegó a procesarlo: tope de
+   * gasto, señal). `runAfter` lo pospone (tope por usuario: que no vuelva a ocupar el lote).
+   */
+  release(id: string, note: string, options?: { runAfter?: Date }): Promise<void>;
   /** Devuelve a `pending` los `processing` colgados hace más de `olderThanSeconds` (worker caído). */
   requeueStale(queue: string, olderThanSeconds: number): Promise<number>;
   stats(queue: string): Promise<Record<string, number>>;
@@ -165,13 +168,13 @@ export function createPgQueue(db: Db): Queue {
       return exhausted ? "failed" : "retry";
     },
 
-    async release(id, note) {
+    async release(id, note, options = {}) {
       await db
         .update(s.jobQueue)
         .set({
           status: "pending",
           attempts: sql`greatest(${s.jobQueue.attempts} - 1, 0)`,
-          runAfter: new Date(),
+          runAfter: options.runAfter ?? new Date(),
           lockedAt: null,
           lastError: note.slice(0, 2000),
           updatedAt: new Date(),

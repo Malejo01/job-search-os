@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CAP_MESSAGES } from "@/lib/evaluate-now";
 import { formatDate, SOURCE_LABELS } from "@/lib/labels";
 import { CLAUDE_IN_CHROME_SNIPPET, listPendingJd, PENDING_LIMIT } from "@/lib/pending-jd";
 import { requireUserId } from "@/lib/session";
@@ -18,10 +19,11 @@ const ERRORS: Record<string, string> = {
 export default async function PendingJdPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; ok?: string }>;
+  searchParams: Promise<{ error?: string; ok?: string; cap?: string }>;
 }) {
   const userId = await requireUserId();
-  const { error, ok } = await searchParams;
+  const { error, ok, cap } = await searchParams;
+  const capMessage = cap === "user" || cap === "global" ? CAP_MESSAGES[cap] : null;
   const rows = await listPendingJd(userId);
 
   return (
@@ -36,6 +38,11 @@ export default async function PendingJdPage({
       {error ? (
         <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
           {ERRORS[error] ?? "Algo falló."}
+        </p>
+      ) : null}
+      {capMessage ? (
+        <p role="status" className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          JD guardada. {capMessage}
         </p>
       ) : null}
       {ok ? (

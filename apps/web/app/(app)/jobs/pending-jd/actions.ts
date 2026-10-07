@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { evaluateInBackground } from "@/lib/evaluate-now";
+import { evaluateInBackgroundOrExplain } from "@/lib/evaluate-now";
 import { applyJobEvent } from "@/lib/job-detail";
 import { attachJd } from "@/lib/pending-jd";
 import { requireUserId } from "@/lib/session";
@@ -21,9 +21,11 @@ export async function pasteJdAction(formData: FormData): Promise<void> {
     if (e instanceof Error && e.name === "JdTooShortError") redirect(`${PAGE}?error=corta`);
     throw e;
   }
-  evaluateInBackground(userId, jobId);
+  const capMessage = await evaluateInBackgroundOrExplain(userId, jobId);
   revalidatePath(PAGE);
   revalidatePath("/jobs");
+  // Tope de gasto: la JD quedó guardada pero no se evalúa ahora; se avisa en la página
+  if (capMessage) redirect(`${PAGE}?cap=${capMessage}`);
   redirect(`${PAGE}?ok=${jobId}`);
 }
 

@@ -1,6 +1,7 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
+import { spendCapReason } from "../llm/spend";
 import type { LlmClient, LlmError } from "../llm/types";
 import {
   ApplicantFailure,
@@ -68,7 +69,24 @@ export type DraftApplicationAnswersResult = {
   } | null;
   /** Si el modelo falló, las respuestas fijas igual salen; el resto queda vacío con la nota. */
   llm_error: LlmError | null;
+  /** Mensaje para la UI si un tope de gasto (global o del usuario) impidió llamar al modelo. */
+  cap_message?: string;
 };
+
+/**
+ * Guardia de tope de gasto para `draftApplicationAnswers` (JS-093): mismo chequeo que el worker
+ * (`spendCapReason`). `db` es la conexión de servicio, que ve `llm_calls` de todos: la transacción
+ * con RLS del usuario solo vería las suyas.
+ */
+export function draftsCapGuard(db: Db, userId: string): () => Promise<string | null> {
+  return async () => {
+    const reason = await spendCapReason(db, { userId });
+    if (reason === "global")
+      return "Se alcanzó el tope diario de gasto del modelo. Probá más tarde.";
+    if (reason === "user") return "Alcanzaste tu tope diario de uso del modelo. Probá más tarde.";
+    return null;
+  };
+}
 
 export type FixedKind = "salary" | "work_authorization" | "availability" | "links" | "contract";
 
@@ -229,6 +247,7 @@ export async function draftApplicationAnswers(
   db: Db,
   input: { userId: string; jobId: string; questions: FormQuestion[] },
   llm: LlmClient,
+  capGuard?: () => Promise<string | null>,
 ): Promise<DraftApplicationAnswersResult> {
   const { userId, jobId } = input;
   const questions = input.questions.map((q) => ({ id: q.id.trim(), text: q.text.trim() }));
@@ -252,7 +271,21 @@ export async function draftApplicationAnswers(
   let llmInfo: DraftApplicationAnswersResult["llm"] = null;
   let llmError: LlmError | null = null;
 
-  if (forModel.length > 0) {
+  let capMessage: string | null = null;
+  if (forModel.length > 0) capMessage = (await capGuard?.()) ?? null;
+  if (capMessage) {
+    for (const q of forModel) {
+      results.set(q.id, {
+        question_id: q.id,
+        question: q.text,
+        origin: "modelo",
+        draft: "",
+        sources: [],
+        confidence: "baja",
+        note: `${capMessage} Redactala vos.`,
+      });
+    }
+  } else if (forModel.length > 0) {
     // getCandidateProfile no expone la clave de cada hecho; hace falta para citar y para validar.
     const facts = await db
       .select({
@@ -335,5 +368,6 @@ export async function draftApplicationAnswers(
     drafts: questions.map((q) => results.get(q.id)!),
     llm: llmInfo,
     llm_error: llmError,
+    ...(capMessage ? { cap_message: capMessage } : {}),
   };
 }

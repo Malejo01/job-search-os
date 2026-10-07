@@ -5,6 +5,7 @@ import {
   ApplicantFailure,
   createLogger,
   draftApplicationAnswers,
+  draftsCapGuard,
   saveAnswer,
   saveApplicationAnswers,
   type DraftOrigin,
@@ -109,6 +110,7 @@ export async function generateDraftsAction(input: {
           })),
         },
         serviceLlm(conn.db, logger),
+        draftsCapGuard(conn.db, userId),
       ),
     );
     const byId = new Map(result.drafts.map((d) => [d.question_id, d]));
@@ -129,7 +131,9 @@ export async function generateDraftsAction(input: {
     return {
       ok: true,
       drafts,
-      llmError: result.llm_error ? `el modelo no respondió (${result.llm_error.kind})` : null,
+      llmError:
+        result.cap_message ??
+        (result.llm_error ? `el modelo no respondió (${result.llm_error.kind})` : null),
     };
   } catch (e) {
     if (!(e instanceof ApplicantFailure)) {

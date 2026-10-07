@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   pgTable, pgEnum, uuid, text, integer, real, boolean, timestamp, jsonb, date, index, uniqueIndex, primaryKey,
 } from "drizzle-orm/pg-core";
@@ -483,3 +484,20 @@ export const applicationAnswers = pgTable("application_answers", {
   answer: text("answer").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [uniqueIndex("application_answers_job_position").on(t.jobId, t.position)]);
+
+// Registro por invitación (JS-091): solo se guarda el sha256 del código; el valor en claro se
+// muestra una sola vez al crearla. Sin columna user_id a propósito: la policy es por
+// created_by_user_id y el canje pasa por register_with_invitation() (rls/0001_invitations.sql).
+export const invitations = pgTable("invitations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  codeHash: text("code_hash").notNull(),
+  email: text("email"), // si viene, solo ese email puede canjearla
+  createdByUserId: uuid("created_by_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull().default(sql`now() + interval '14 days'`),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  usedByUserId: uuid("used_by_user_id"),
+}, (t) => [
+  uniqueIndex("invitations_code_hash").on(t.codeHash),
+  index("invitations_created_by").on(t.createdByUserId),
+]);

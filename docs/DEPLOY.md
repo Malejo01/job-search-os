@@ -43,7 +43,9 @@ Consecuencia: el `vercel.json` actual (`0 */6 * * *` y `15 */6 * * *`) **no desp
 | `AUTH_SECRET` | prod + preview (distinto por entorno) | `openssl rand -base64 32` |
 | `CRON_SECRET` | prod | aleatorio; Vercel lo manda en `Authorization` a los crons |
 | `GEMINI_API_KEY` | prod | proyecto de Google Cloud propio (docs/LLM_COSTOS.md) |
-| `LLM_DAILY_CAP_USD` | prod | tope del worker en 24 h (default 2) |
+| `LLM_DAILY_CAP_USD` | prod | tope global del worker en 24 h (default 2) |
+| `LLM_USER_DAILY_CAP_USD` | prod | tope por usuario en 24 h, además del global (default 1; `0` = sin tope por usuario). Si un usuario lo pasa, sus evaluaciones quedan en la cola y las de otros siguen (JS-093). Un valor inválido (no numérico o negativo) hace fallar al worker. Exceso máximo posible: el chequeo es previo a cada llamada, así que con workers concurrentes (cron, pegar JD, CLI) un usuario puede pasarse por el costo de una evaluación por worker |
+| `ADMIN_EMAILS` | prod | emails (separados por coma) que pueden crear invitaciones en `/settings/invitations` (JS-091). Vacía o sin definir: nadie |
 | `LLM_CALL_TIMEOUT_MS` | opcional | default 90000 |
 | `LLM_DEMO` | preview | `1` para evaluar con el modelo falso (sin gasto) |
 | `RESEND_WEBHOOK_SECRET`, `INGEST_DOMAIN` | bloque 4 | |
@@ -85,6 +87,8 @@ Vercel:
    - `CRON_SECRET` (el del paso 2) · prod
    - `GEMINI_API_KEY` (key del proyecto propio) · prod
    - `LLM_DAILY_CAP_USD` = `2` · prod
+   - `LLM_USER_DAILY_CAP_USD` = `1` · prod (opcional: sin ella rige el default 1)
+   - `ADMIN_EMAILS` = el email de Mauro · prod (sin ella nadie puede invitar)
    - `LLM_DEMO` = `1` · solo preview (evaluaciones falsas, sin gasto)
    - `MCP_TOKEN` (`openssl rand -hex 32`) · prod: token del servidor MCP propio (JS-035)
    NO van: `DATABASE_URL_UNPOOLED` (solo migraciones locales), `DATABASE_URL_LOCAL`, `DATABASE_URL_APP_LOCAL`, `SEED_USER_*`, `DB_TARGET`, `LLM_FAKE_GENERATE`, `SKIP_APP_ROLE_CHECK`.
