@@ -12,7 +12,7 @@ import type { PromptRef } from "@job-search-os/prompts";
 import { and, desc, eq } from "drizzle-orm";
 import { DEFAULT_PROMPT_VERSIONS } from "../llm/client";
 import type { LlmClient } from "../llm/types";
-import { dailyCapFromEnv, spendLast24h } from "../llm/spend";
+import { dailyCapFromEnv, spendLast24h, userDailyCapUsd } from "../llm/spend";
 import type { Logger } from "../logger";
 import { EVALUATE_QUEUE, type EvaluatePayload, type Queue } from "../queue/pg-queue";
 
@@ -198,9 +198,59 @@ export type WorkerSummary = {
   retried: number;
   failed: number;
   skipped: number;
+  /** Mensajes devueltos a pending porque su dueño pasó el tope diario por usuario (JS-093). */
+  userCapped: number;
   requeuedStale: number;
   outcomes: EvaluateOutcome[];
 };
+
+export { spendCapReason } from "../llm/spend";
+
+/** Mensaje para la UI cuando el tope por usuario frena una evaluación. */
+export const USER_CAP_MESSAGE = "tope diario de evaluaciones alcanzado";
+
+/** Cuánto se pospone un mensaje de un usuario topeado (la ventana de 24 h es móvil: 1 h alcanza). */
+const USER_CAP_DEFER_MS = 60 * 60 * 1000;
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function jobOwner(db: Db, jobId: string): Promise<string | null> {
+  // Un payload con un id que no es uuid (mensaje corrupto) no tiene dueño: evaluateJobById lo descarta
+  if (!UUID_RE.test(jobId)) return null;
+  const [row] = await db
+    .select({ userId: s.jobs.userId })
+    .from(s.jobs)
+    .where(eq(s.jobs.id, jobId))
+    .limit(1);
+  return row?.userId ?? null;
+}
+
+/**
+ * Gasto de 24 h por usuario (filtra explícito por user_id: el worker usa rol de servicio, sin RLS)
+ * con caché dentro de una corrida: se consulta una vez por usuario y
+ * después se suma el costo de lo que el worker evalúa, sin volver a la base por cada mensaje.
+ * Exceso máximo posible: el chequeo es previo a cada llamada, así que un usuario puede pasarse
+ * del tope por lo que cueste UNA evaluación por worker concurrente (cron + pegar JD + CLI corren
+ * cada uno con su caché y no ven las llamadas en vuelo de los otros): como mucho
+ * (workers concurrentes) × (costo de una evaluación) por encima del tope.
+ */
+function userSpendTracker(deps: EvaluateDeps, capUsd: number) {
+  const spent = new Map<string, number>();
+  return {
+    async isOver(userId: string | null): Promise<boolean> {
+      if (capUsd <= 0 || !userId) return false;
+      let usd = spent.get(userId);
+      if (usd === undefined) {
+        usd = (await spendLast24h(deps.db, deps.now, { userId })).usd;
+        spent.set(userId, usd);
+      }
+      return usd >= capUsd;
+    },
+    add(userId: string | null, usd: number): void {
+      if (userId && spent.has(userId)) spent.set(userId, spent.get(userId)! + usd);
+    },
+  };
+}
 
 /** Procesa hasta `limit` mensajes de la cola evaluate_job (route /api/cron/evaluate y CLI). */
 export async function runEvaluateWorker(
@@ -210,10 +260,19 @@ export async function runEvaluateWorker(
     staleAfterSeconds?: number;
     /** Tope de gasto en 24 h móviles (USD). Default: LLM_DAILY_CAP_USD o DEFAULT_DAILY_CAP_USD; 0 = sin tope. */
     dailyCapUsd?: number;
+    /** Tope por usuario en 24 h (USD). Default: LLM_USER_DAILY_CAP_USD o 1; 0 = sin tope. */
+    userDailyCapUsd?: number;
   } = {},
 ): Promise<WorkerSummary> {
   const limit = options.limit ?? 20;
   const dailyCapUsd = options.dailyCapUsd ?? dailyCapFromEnv();
+  const userCapUsd = options.userDailyCapUsd ?? userDailyCapUsd();
+  if (userCapUsd === 0) {
+    deps.logger.info(
+      "tope por usuario desactivado (LLM_USER_DAILY_CAP_USD=0): solo rige el global",
+    );
+  }
+  const userCap = userSpendTracker(deps, userCapUsd);
   const requeuedStale = await deps.queue.requeueStale(
     EVALUATE_QUEUE,
     options.staleAfterSeconds ?? 15 * 60,
@@ -230,6 +289,7 @@ export async function runEvaluateWorker(
     retried: 0,
     failed: 0,
     skipped: 0,
+    userCapped: 0,
     outcomes: [] as EvaluateOutcome[],
   };
   if (spend.unpricedCalls > 0) {
@@ -247,11 +307,10 @@ export async function runEvaluateWorker(
   }
   if (deps.signal?.aborted) return { ...base, stopped: "signal", taken: 0 };
 
-  const messages = await deps.queue.dequeue<EvaluatePayload>(EVALUATE_QUEUE, limit);
   const summary: WorkerSummary = {
     ...base,
     stopped: null,
-    taken: messages.length,
+    taken: 0,
     evaluated: 0,
     retried: 0,
     failed: 0,
@@ -260,57 +319,101 @@ export async function runEvaluateWorker(
   };
   // Devolver a pending sin gastar un intento: el mensaje no se procesó
   const requeue = (id: string, why: string) => deps.queue.release(id, why);
-  for (const [i, msg] of messages.entries()) {
-    if (deps.signal?.aborted || overCap()) {
-      summary.stopped = deps.signal?.aborted ? "signal" : "cap";
-      for (const rest of messages.slice(i))
-        await requeue(rest.id, `worker frenado: ${summary.stopped}`);
-      summary.taken = i;
-      break;
+  const nowMs = () => (deps.now?.() ?? new Date()).getTime();
+  // Un usuario topeado se pospone: sus mensajes no vuelven a ocupar el lote hasta dentro de 1 h
+  const deferredUsers = new Set<string>();
+  batches: for (;;) {
+    const messages = await deps.queue.dequeue<EvaluatePayload>(EVALUATE_QUEUE, limit);
+    if (messages.length === 0) break;
+    const takenBefore = summary.taken;
+    summary.taken += messages.length;
+    let deferredInBatch = 0;
+    for (const [i, msg] of messages.entries()) {
+      if (deps.signal?.aborted || overCap()) {
+        summary.stopped = deps.signal?.aborted ? "signal" : "cap";
+        for (const rest of messages.slice(i))
+          await requeue(rest.id, `worker frenado: ${summary.stopped}`);
+        summary.taken = takenBefore + i;
+        break batches;
+      }
+      // Tope por usuario: su mensaje vuelve a pending y el worker sigue con los de otros usuarios.
+      // El dueño sale de jobs.user_id, no de job_queue.user_id (nullable).
+      const ownerId = await jobOwner(deps.db, msg.payload.jobId);
+      if (await userCap.isOver(ownerId)) {
+        const until = new Date(nowMs() + USER_CAP_DEFER_MS);
+        await deps.queue.release(msg.id, USER_CAP_MESSAGE, { runAfter: until });
+        if (ownerId && !deferredUsers.has(ownerId)) {
+          deferredUsers.add(ownerId);
+          deps.logger.warn(
+            { user_id: ownerId, job_id: msg.payload.jobId },
+            "evaluaciones diferidas: el usuario pasó su tope diario (LLM_USER_DAILY_CAP_USD)",
+          );
+          // El resto de sus pendientes también, para que no llenen el próximo lote
+          await deps.db
+            .update(s.jobQueue)
+            .set({ runAfter: until })
+            .where(
+              and(
+                eq(s.jobQueue.queue, EVALUATE_QUEUE),
+                eq(s.jobQueue.status, "pending"),
+                eq(s.jobQueue.userId, ownerId),
+              ),
+            );
+        }
+        summary.userCapped++;
+        deferredInBatch++;
+        continue;
+      }
+      let outcome: EvaluateOutcome;
+      try {
+        outcome = await evaluateJobById(msg.payload.jobId, deps);
+      } catch (e) {
+        outcome = {
+          ok: false,
+          jobId: msg.payload.jobId,
+          error: e instanceof Error ? e.message : String(e),
+          retry: "retry",
+        };
+      }
+      if (!outcome.ok && outcome.error.startsWith("aborted:")) {
+        // Cancelada por señal: vuelve a pending sin contar intento y se corta el loop
+        await requeue(msg.id, outcome.error);
+        for (const rest of messages.slice(i + 1)) await requeue(rest.id, "worker frenado: signal");
+        summary.stopped = "signal";
+        summary.taken = takenBefore + i;
+        break batches;
+      }
+      summary.outcomes.push(outcome);
+      if (outcome.ok) {
+        await deps.queue.ack(msg.id);
+        summary.evaluated++;
+        // El costo de esta llamada entra al acumulado sin volver a consultar la base
+        spend.usd += outcome.costUsd ?? 0;
+        userCap.add(ownerId, outcome.costUsd ?? 0);
+      } else if (outcome.retry === "skipped") {
+        await deps.queue.ack(msg.id);
+        summary.skipped++;
+      } else if (outcome.retry === "failed") {
+        // Job inexistente o sin perfil: no hay reintento que lo arregle, se descarta ya
+        await deps.queue.fail(msg.id, outcome.error, { final: true });
+        summary.failed++;
+      } else {
+        const r = await deps.queue.fail(msg.id, outcome.error);
+        if (r === "retry") summary.retried++;
+        else summary.failed++;
+      }
     }
-    let outcome: EvaluateOutcome;
-    try {
-      outcome = await evaluateJobById(msg.payload.jobId, deps);
-    } catch (e) {
-      outcome = {
-        ok: false,
-        jobId: msg.payload.jobId,
-        error: e instanceof Error ? e.message : String(e),
-        retry: "retry",
-      };
-    }
-    if (!outcome.ok && outcome.error.startsWith("aborted:")) {
-      // Cancelada por señal: vuelve a pending sin contar intento y se corta el loop
-      await requeue(msg.id, outcome.error);
-      for (const rest of messages.slice(i + 1)) await requeue(rest.id, "worker frenado: signal");
-      summary.stopped = "signal";
-      summary.taken = i;
-      break;
-    }
-    summary.outcomes.push(outcome);
-    if (outcome.ok) {
-      await deps.queue.ack(msg.id);
-      summary.evaluated++;
-      // El costo de esta llamada entra al acumulado sin volver a consultar la base
-      spend.usd += outcome.costUsd ?? 0;
-    } else if (outcome.retry === "skipped") {
-      await deps.queue.ack(msg.id);
-      summary.skipped++;
-    } else if (outcome.retry === "failed") {
-      // Job inexistente o sin perfil: no hay reintento que lo arregle, se descarta ya
-      await deps.queue.fail(msg.id, outcome.error, { final: true });
-      summary.failed++;
-    } else {
-      const r = await deps.queue.fail(msg.id, outcome.error);
-      if (r === "retry") summary.retried++;
-      else summary.failed++;
-    }
+    // Lote entero diferido por tope: hay que traer otro, o los de otros usuarios no se evalúan nunca
+    if (deferredInBatch < messages.length) break;
   }
   return summary;
 }
 
 export type EvaluateNowResult =
-  { ran: true; outcome: EvaluateOutcome } | { ran: false; reason: "cap" | "not_pending" };
+  | { ran: true; outcome: EvaluateOutcome }
+  | { ran: false; reason: "cap" | "not_pending" }
+  /** El dueño pasó su tope diario por usuario (JS-093): `message` es apto para mostrar en la UI. */
+  | { ran: false; reason: "user_cap"; message: string };
 
 /**
  * Evaluación inmediata de un job recién encolado (JS-027: pegar JD evalúa al instante, sin
@@ -321,7 +424,7 @@ export type EvaluateNowResult =
 export async function evaluateJobNow(
   jobId: string,
   deps: EvaluateDeps,
-  options: { dailyCapUsd?: number } = {},
+  options: { dailyCapUsd?: number; userDailyCapUsd?: number } = {},
 ): Promise<EvaluateNowResult> {
   const log = deps.logger.child({ job_id: jobId });
   const dailyCapUsd = options.dailyCapUsd ?? dailyCapFromEnv();
@@ -333,6 +436,22 @@ export async function evaluateJobNow(
         "evaluación inmediata frenada por el tope de gasto: queda para el cron",
       );
       return { ran: false, reason: "cap" };
+    }
+  }
+  // Tope por usuario: el mensaje queda pending (nadie lo reclamó) para cuando se libere la ventana
+  const userCapUsd = options.userDailyCapUsd ?? userDailyCapUsd();
+  if (userCapUsd > 0) {
+    const [owner] = await deps.db
+      .select({ userId: s.jobs.userId })
+      .from(s.jobs)
+      .where(eq(s.jobs.id, jobId))
+      .limit(1);
+    if (owner && (await userSpendTracker(deps, userCapUsd).isOver(owner.userId))) {
+      log.warn(
+        { user_id: owner.userId, cap_usd: userCapUsd },
+        "evaluación inmediata frenada por el tope diario del usuario: queda para el cron",
+      );
+      return { ran: false, reason: "user_cap", message: USER_CAP_MESSAGE };
     }
   }
   const msg = await deps.queue.claimForJob<EvaluatePayload>(EVALUATE_QUEUE, jobId);

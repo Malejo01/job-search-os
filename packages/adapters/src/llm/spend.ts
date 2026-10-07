@@ -32,7 +32,28 @@ export function dailyCapFromEnv(env: NodeJS.ProcessEnv = process.env): number {
   return n;
 }
 
-export async function spendSince(db: Db, since: Date): Promise<SpendSummary> {
+export const DEFAULT_USER_DAILY_CAP_USD = 1;
+
+/**
+ * Tope diario por usuario (JS-093) desde LLM_USER_DAILY_CAP_USD, además del global: un usuario
+ * no puede gastar el cupo de todos. 0 lo desactiva; vacío usa el default.
+ */
+export function userDailyCapUsd(env: NodeJS.ProcessEnv = process.env): number {
+  const raw = env.LLM_USER_DAILY_CAP_USD;
+  if (raw === undefined || raw === "") return DEFAULT_USER_DAILY_CAP_USD;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) {
+    throw new Error(`LLM_USER_DAILY_CAP_USD inválido: '${raw}' (USD, ≥ 0; 0 = sin tope)`);
+  }
+  return n;
+}
+
+/** Con `userId` suma solo las llamadas de ese usuario; sin él, todas (tope global). */
+export async function spendSince(
+  db: Db,
+  since: Date,
+  options: { userId?: string } = {},
+): Promise<SpendSummary> {
   const [row] = await db
     .select({
       calls: sql<number>`count(*)::int`,
@@ -44,12 +65,45 @@ export async function spendSince(db: Db, since: Date): Promise<SpendSummary> {
       usd: sql<number>`coalesce(sum(${s.llmCalls.costUsd}), 0)::float8`,
     })
     .from(s.llmCalls)
-    .where(and(gte(s.llmCalls.createdAt, since)));
+    .where(
+      and(
+        gte(s.llmCalls.createdAt, since),
+        options.userId ? eq(s.llmCalls.userId, options.userId) : undefined,
+      ),
+    );
   return { since, ...row! };
 }
 
-export const spendLast24h = (db: Db, now: () => Date = () => new Date()): Promise<SpendSummary> =>
-  spendSince(db, new Date(now().getTime() - 24 * 60 * 60 * 1000));
+export const spendLast24h = (
+  db: Db,
+  now: () => Date = () => new Date(),
+  options: { userId?: string } = {},
+): Promise<SpendSummary> =>
+  spendSince(db, new Date(now().getTime() - 24 * 60 * 60 * 1000), options);
+
+/**
+ * Chequeo de topes antes de una llamada al modelo fuera del worker (borradores de formularios,
+ * JS-093): `"global"` si el gasto de 24 h de todos supera LLM_DAILY_CAP_USD, `"user"` si el del
+ * usuario supera LLM_USER_DAILY_CAP_USD, null si puede seguir. `db` tiene que ver `llm_calls` de
+ * todos (conexión de servicio, no la transacción con RLS del usuario). Mismas reglas que el worker.
+ */
+export async function spendCapReason(
+  db: Db,
+  input: {
+    userId: string;
+    now?: () => Date;
+    dailyCapUsd?: number;
+    userDailyCapUsd?: number;
+  },
+): Promise<"global" | "user" | null> {
+  const globalCap = input.dailyCapUsd ?? dailyCapFromEnv();
+  if (globalCap > 0 && (await spendLast24h(db, input.now)).usd >= globalCap) return "global";
+  const userCap = input.userDailyCapUsd ?? userDailyCapUsd();
+  if (userCap > 0 && (await spendLast24h(db, input.now, { userId: input.userId })).usd >= userCap) {
+    return "user";
+  }
+  return null;
+}
 
 /** Desglose por día, tarea y modelo (comando `pnpm llm:spend`). */
 export type SpendRow = {

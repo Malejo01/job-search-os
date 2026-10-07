@@ -12,3 +12,9 @@ export {
 } from "./env";
 export { loadFixture, type FixtureName, type LoadedFixture } from "./fixtures";
 export { confirmRemoteTarget, isRemoteDatabase } from "./confirm-remote";
+export {
+  USER_TABLES,
+  usersTableIsLast,
+  deleteUserData,
+  confirmsAccountDeletion,
+} from "./user-tables";
