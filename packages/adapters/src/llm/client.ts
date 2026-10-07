@@ -22,6 +22,7 @@ import type {
  */
 export const DEFAULT_PROMPT_VERSIONS: Record<string, PromptRef> = {
   evaluate_job: "evaluate_job@v1.3.2",
+  draft_application_answers: "draft_application_answers@v1",
 };
 
 /**
