@@ -1,3 +1,11 @@
+export {
+  looksLikeHtml,
+  parseApplicationForm,
+  type FormParseError,
+  type FormQuestion,
+  type FormQuestionKind,
+  type ParsedForm,
+} from "./form-parser";
 export { normalizeQuestion, questionTokens, rankAnswers } from "./answers";
 export {
   isPartTimeTitle,

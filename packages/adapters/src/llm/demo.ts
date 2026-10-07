@@ -109,23 +109,65 @@ export function demoEvaluation(vars: Vars): Record<string, unknown> {
   };
 }
 
+function parseJsonArray(raw: unknown): Record<string, unknown>[] {
+  try {
+    const value: unknown = JSON.parse(String(raw ?? "[]"));
+    return Array.isArray(value) ? (value as Record<string, unknown>[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Borradores falsos (draft_application_answers): cada pregunta se "responde" con el primer hecho
+ * cargado y cita su clave; sin hechos, "sin fuente". Siempre cumple el esquema y la regla de fuentes.
+ */
+export function demoDrafts(vars: Vars): Record<string, unknown> {
+  const facts = parseJsonArray(vars.facts);
+  const first = facts.find((f) => typeof f.key === "string" && typeof f.claim === "string");
+  return {
+    drafts: parseJsonArray(vars.questions).map((q) =>
+      first
+        ? {
+            question_id: String(q.id),
+            draft: `DEMO: ${String(first.claim)}`,
+            sources: [String(first.key)],
+            confidence: "media",
+          }
+        : {
+            question_id: String(q.id),
+            draft: "",
+            sources: [],
+            confidence: "baja",
+            note: "sin fuente",
+          },
+    ),
+  };
+}
+
 /** LlmClient de demo: valida contra el schema pedido (v1: gaps como strings; v1.1+: tipados). */
 export function createDemoLlm(options: { calls?: CallSink } = {}): LlmClient {
   return {
     async generateStructured(task, schema, vars, ctx: GenerateContext = {}) {
-      if (task !== "evaluate_job") {
+      if (task !== "evaluate_job" && task !== "draft_application_answers") {
         return err({
           kind: "no_route",
           task,
-          detail: `modo demo: solo evaluate_job (pedido: ${task})`,
+          detail: `modo demo: solo evaluate_job y draft_application_answers (pedido: ${task})`,
         });
       }
-      const typed = demoEvaluation(vars);
-      const legacy = {
-        ...typed,
-        gaps: (typed.gaps as { skill: string }[]).map((g) => g.skill),
-      };
-      const parsed = [typed, legacy].map((o) => schema.safeParse(o)).find((p) => p.success);
+      const candidates =
+        task === "draft_application_answers"
+          ? [demoDrafts(vars)]
+          : (() => {
+              const typed = demoEvaluation(vars);
+              const legacy = {
+                ...typed,
+                gaps: (typed.gaps as { skill: string }[]).map((g) => g.skill),
+              };
+              return [typed, legacy];
+            })();
+      const parsed = candidates.map((o) => schema.safeParse(o)).find((p) => p.success);
       if (!parsed?.success) {
         return err({
           kind: "generation_failed",

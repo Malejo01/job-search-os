@@ -39,6 +39,8 @@ const AI_TITLE =
   /\b(ai|ia|llm|llms|gen\s?ai|genai|agentic|agents?|agente|inteligencia artificial)\b/;
 const REMOTE_NO_COUNTRY = /\b(latam|latinoam[eé]rica|remote|remoto|anywhere)\b/;
 const ANYWHERE = /\b(anywhere|worldwide|global)\b/;
+const FOREIGN_REGION =
+  /\b(us|usa|u\.s\.a?\.?|ee\.?\s?uu\.?|united states|estados unidos|canada|north america|norteamerica|americas|emea|apac|europe|europa)(?![a-z0-9])/;
 
 /** "3 de 4 aptitudes coinciden" → 0.75; sin badge de aptitudes → null. */
 export function skillsMatchRatioFromBadges(
@@ -145,16 +147,23 @@ export function prefilter(
   }
 
   // 5. Ubicación: riesgo, nunca descarte
+  //    La regla por texto de región ajena solo suma el flag, igual que el resto. El huso horario
+  //    de EE.UU. es riesgo de horario, no de ubicación: no va acá.
   const countries = input.countriesAllowed?.map((c) => c.toUpperCase()) ?? null;
+  const userToken = userCountry === "AR" ? "argentina" : userCountry.toLowerCase();
+  const mentionsUser = location.includes(userToken);
+  let locationRisk = false;
   if (countries?.length) {
-    if (!countries.includes(userCountry) && !countries.includes("*")) flags.push("location_risk");
-  } else if (REMOTE_NO_COUNTRY.test(location) && !ANYWHERE.test(location)) {
-    // "LATAM", "remote", "remoto" sin país explícito del candidato
-    const mentionsUser = location.includes(
-      userCountry === "AR" ? "argentina" : userCountry.toLowerCase(),
-    );
-    if (!mentionsUser) flags.push("location_risk");
+    locationRisk = !countries.includes(userCountry) && !countries.includes("*");
+  } else if (!ANYWHERE.test(location)) {
+    if (REMOTE_NO_COUNTRY.test(location)) {
+      // "LATAM", "remote", "remoto" sin país explícito del candidato
+      locationRisk = !mentionsUser;
+    }
+    // "US-based", "Americas", "EMEA": región o país ajeno sin el del candidato
+    if (FOREIGN_REGION.test(location) && !mentionsUser) locationRisk = true;
   }
+  if (locationRisk) flags.push("location_risk");
 
   // 6. Candidatos: riesgo
   if (

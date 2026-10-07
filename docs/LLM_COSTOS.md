@@ -10,7 +10,7 @@ Tarifas vigentes (lista, por millón de tokens; el thinking se factura como sali
 | gemini-2.5-flash | 0,30 | 2,50 |
 | gemini-3.1-flash-lite | 0,25 | 1,50 |
 | claude-haiku-4-5 | 1,00 | 5,00 |
-| claude-sonnet-5 | 2,00 | 10,00 |
+| claude-sonnet-5-5 | 2,00 | 10,00 |
 
 **`gemini-3.5-flash` no es un modelo barato.** A USD 9 la salida está en el orden de un modelo de gama alta, no de un "Flash". Toda la tabla de `model_routing` se armó sobre el supuesto "flash = barato, para todo", y ese supuesto era falso.
 

@@ -1,6 +1,8 @@
 // packages/adapters: implementaciones por entorno (llm, queue, storage, cron, sources).
 export * from "./llm";
 export { createLogger, type Logger } from "./logger";
+// Arriba a propósito: el PR #38 agrega exports al final de este archivo (ronda 04, debate §1).
+export * from "./applicant/drafts";
 export * from "./sources/getonboard";
 export * from "./ingest/ingest-job";
 export * from "./ingest/attach-jd";
