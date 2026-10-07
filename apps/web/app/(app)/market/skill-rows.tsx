@@ -25,7 +25,10 @@ export function SkillRows({
     <>
       {compact ? (
         <ul className="mt-2 sm:hidden">
-          <li className="flex items-baseline justify-between gap-2 py-1 text-xs text-zinc-600">
+          <li
+            aria-hidden="true"
+            className="flex items-baseline justify-between gap-2 py-1 text-xs text-zinc-600"
+          >
             <span className="min-w-0 flex-1">Skill</span>
             <span>Nivel</span>
             <span className="w-12 text-right">Demanda</span>
@@ -40,8 +43,12 @@ export function SkillRows({
                 <span className="min-w-0 flex-1 truncate font-medium text-zinc-900">
                   {k?.name ?? r.slug}
                 </span>
-                <span className="text-xs text-zinc-600">{levelText(r.level)}</span>
+                <span className="text-xs text-zinc-600">
+                  <span className="sr-only">Nivel: </span>
+                  {levelText(r.level)}
+                </span>
                 <span className="w-12 text-right tabular-nums text-zinc-800">
+                  <span className="sr-only">Demanda: </span>
                   {r.weightedDemand.toFixed(1)}
                 </span>
               </li>
@@ -89,13 +96,27 @@ export function SkillRows({
         <table className="w-full text-left text-sm">
           <thead className="text-xs text-zinc-600">
             <tr>
-              <th className="py-1 pr-2 font-medium">Skill</th>
-              <th className="py-1 pr-2 font-medium">Categoría</th>
-              <th className="py-1 pr-2 font-medium">Nivel</th>
-              <th className="py-1 pr-2 text-right font-medium">Menciones</th>
-              <th className="py-1 pr-2 text-right font-medium">Must</th>
-              <th className="py-1 pr-2 text-right font-medium">Demanda</th>
-              <th className="py-1 text-right font-medium">Horas</th>
+              <th scope="col" className="py-1 pr-2 font-medium">
+                Skill
+              </th>
+              <th scope="col" className="py-1 pr-2 font-medium">
+                Categoría
+              </th>
+              <th scope="col" className="py-1 pr-2 font-medium">
+                Nivel
+              </th>
+              <th scope="col" className="py-1 pr-2 text-right font-medium">
+                Menciones
+              </th>
+              <th scope="col" className="py-1 pr-2 text-right font-medium">
+                Must
+              </th>
+              <th scope="col" className="py-1 pr-2 text-right font-medium">
+                Demanda
+              </th>
+              <th scope="col" className="py-1 text-right font-medium">
+                Horas
+              </th>
             </tr>
           </thead>
           <tbody>

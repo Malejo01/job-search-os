@@ -8,8 +8,9 @@ export function SkillCandidates({ candidates }: { candidates: SkillCandidate[] }
         Candidatos a skill nueva ({candidates.length})
       </summary>
       <p className="mt-2 text-xs text-zinc-600">
-        Términos frecuentes en los avisos que no están en la taxonomía. No cuentan en la demanda
-        hasta que se agreguen.
+        Términos frecuentes en los avisos que no están en la taxonomía. Salen de las últimas 300
+        ofertas con texto, no del rango de semanas elegido, y se actualizan cada hora. No cuentan en
+        la demanda hasta que se agreguen.
       </p>
       {candidates.length ? (
         <ul className="mt-2 flex flex-wrap gap-2">
@@ -18,7 +19,13 @@ export function SkillCandidates({ candidates }: { candidates: SkillCandidate[] }
               key={c.term}
               className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-800"
             >
-              {c.term} <span className="tabular-nums text-zinc-600">· {c.count}</span>
+              {c.term}{" "}
+              <span className="tabular-nums text-zinc-600">
+                <span aria-hidden="true">· {c.count}</span>
+                <span className="sr-only">
+                  , en {c.count} {c.count === 1 ? "oferta" : "ofertas"}
+                </span>
+              </span>
             </li>
           ))}
         </ul>
