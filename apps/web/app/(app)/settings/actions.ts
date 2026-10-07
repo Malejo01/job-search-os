@@ -16,6 +16,8 @@ export async function deleteAccountAction(formData: FormData): Promise<void> {
     email: String(formData.get("email") ?? ""),
     password: String(formData.get("password") ?? ""),
   });
-  if (!result.ok) redirect("/settings?error=confirmacion");
+  // Vuelve a la página desde la que se pidió (lista cerrada: nunca una URL del formulario)
+  const back = formData.get("returnTo") === "/onboarding" ? "/onboarding" : "/settings";
+  if (!result.ok) redirect(`${back}?error=confirmacion`);
   await signOut({ redirectTo: "/login" });
 }

@@ -73,7 +73,11 @@ function getCandidates(userId: string): Promise<SkillCandidate[]> {
   return unstable_cache(() => computeCandidates(userId), keyParts, { revalidate, tags })();
 }
 
-/** Para conectar a los puntos de ingesta/pegado de ofertas (hoy el caché solo vence por tiempo). */
+/**
+ * Invalida el caché de candidatos del usuario. Se llama desde las Server Actions de alta manual,
+ * pegado de JD y borrado de cuenta. La ingesta del cron/email corre fuera de Next y no puede
+ * invalidar: ahí el caché vence solo (1 h).
+ */
 export function invalidateMarketCandidates(userId: string): void {
   for (const tag of candidatesCacheConfig(userId).tags) revalidateTag(tag);
 }
