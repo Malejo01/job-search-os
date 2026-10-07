@@ -36,3 +36,10 @@ Quedan `null`: contrato, seniority, idioma, candidatos.
 ## Términos de uso (pendiente para riesgos)
 - Piden atribución con link al aviso original: hay que mostrar `source.url` y la fuente en la UI.
 - Frecuencia de consulta permitida y uso de los datos: revisar sus términos antes de conectar.
+
+## Cómo prenderla
+Agregar `remoteok` a `INGEST_EXTRA_SOURCES` (docs/DEPLOY.md), solo después de revisar los términos de uso de arriba. En la primera corrida, mirar la respuesta del cron (`extraSources`) y los avisos ingeridos:
+- Formato real contra lo marcado "a verificar": que `epoch`, `salary_*` y `location` sean como se asume.
+- Cantidad: `fetched` razonable para 24 h (ni cero ni miles).
+- Ubicación: los avisos con `location` compuesta quedan con `countriesAllowed: null` (riesgo de ubicación en el prefiltro).
+- Salario: que sea USD anual antes de confiar en el filtro de piso.

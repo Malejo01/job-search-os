@@ -8,6 +8,11 @@ export * from "./ingest/ingest-job";
 export * from "./ingest/attach-jd";
 export * from "./ingest/merge-duplicate";
 export * from "./ingest/run-getonboard";
+export {
+  parseEnabledSources,
+  runExtraSourcesIngest,
+  type RunExtraSourcesResult,
+} from "./ingest/run-sources";
 export * from "./queue/pg-queue";
 export * from "./worker/evaluate-job";
 export * from "./market/snapshot";

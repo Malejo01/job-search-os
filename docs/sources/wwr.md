@@ -39,3 +39,10 @@ Quedan `null`: salario (el RSS no lo trae), seniority, idioma, candidatos.
 ## Términos de uso (pendiente para riesgos)
 - Atribución y uso permitido del feed: revisar antes de conectar.
 - Frecuencia de consulta recomendada.
+
+## Cómo prenderla
+Agregar `wwr` a `INGEST_EXTRA_SOURCES` (docs/DEPLOY.md), tras revisar los términos de uso de arriba. En la primera corrida, mirar la respuesta del cron (`extraSources`) y los avisos ingeridos:
+- Formato real contra lo marcado "a verificar": `title` ("Empresa: Puesto"), `guid` y `description`.
+- Cantidad: `fetched` razonable para 24 h; si falla una categoría, el log lo dice y las demás siguen.
+- Ubicación: que `region` se refleje en `countriesAllowed` o quede `null`.
+- Salario: el feed no lo trae; debe quedar `null`.
