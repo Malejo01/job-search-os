@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   buildEvaluateJobVars,
   prefilter,
@@ -89,6 +90,29 @@ export type GoldenJob = {
 export const goldenMeta = golden.meta;
 export const goldenJobs = golden.jobs.slice().sort((a, b) => a.id - b.id);
 export const criteriaRules = criteriaSeed as unknown as CriteriaRules;
+
+const stableStringify = (v: unknown): string => {
+  if (Array.isArray(v)) return `[${v.map(stableStringify).join(",")}]`;
+  if (v && typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    return `{${Object.keys(o)
+      .sort()
+      .map((k) => `${JSON.stringify(k)}:${stableStringify(o[k])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(v) ?? "null";
+};
+
+/**
+ * Hash corto de los criterios con los que se corrió (o recalculó) un reporte. Con claves
+ * ordenadas: el orden de las propiedades no lo cambia. Sirve para avisar cuando `recompute`
+ * usa criterios distintos de los de la corrida (JS-067).
+ */
+export function hashCriteria(rules: unknown): string {
+  return createHash("sha256").update(stableStringify(rules)).digest("hex").slice(0, 12);
+}
+
+export const criteriaHash = hashCriteria(criteriaRules);
 
 /**
  * Lo que el prefiltro de producción decidiría con los campos de un email (título, empresa,

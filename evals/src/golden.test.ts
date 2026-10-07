@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { goldenJobs, goldenToJob, goldenVars } from "./golden";
+import { goldenJobs, goldenToJob, goldenVars, hashCriteria } from "./golden";
+
+describe("hashCriteria (JS-067)", () => {
+  it("no depende del orden de las claves y cambia con cualquier valor", () => {
+    expect(hashCriteria({ a: 1, b: { c: [1, 2], d: "x" } })).toBe(
+      hashCriteria({ b: { d: "x", c: [1, 2] }, a: 1 }),
+    );
+    expect(hashCriteria({ a: 1 })).not.toBe(hashCriteria({ a: 2 }));
+    expect(hashCriteria({ a: 1 })).toMatch(/^[0-9a-f]{12}$/);
+  });
+});
 
 describe("golden → prompt", () => {
   it("carga las 36 ofertas ordenadas por id", () => {

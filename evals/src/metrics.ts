@@ -42,8 +42,38 @@ export type JobRow = {
   /** Acción recalculada en código con decide(), no la sugerida por el modelo. */
   model_action: string | null;
   model_location_ok: string | null;
+  /**
+   * Después de decide(): el usuario ve un riesgo de ubicación (flag `location_risk` del prefiltro
+   * o riesgo de ubicación en decision.riesgos). Ausente en reportes sin recalcular = false.
+   */
+  model_location_risk_final?: boolean;
+  /** El prefiltro descartó la oferta antes de decide(): el descarte no es del modelo. */
+  prefilter_discard?: boolean;
   unstable: boolean;
 };
+
+/** Lo que las métricas necesitan de una decisión de producción (forma de HarnessDecision en run.ts). */
+export type DecisionLike = {
+  prefilter:
+    | { pass: true; cap: number | null; flags: string[] }
+    | { pass: false; reason: string; detail: string };
+  riesgos: string[];
+};
+
+/**
+ * Señales post-decide() de una fila. Lee primero prefilter.flags (estable) y recién después el
+ * texto de los riesgos, que se rompe si cambia la redacción.
+ */
+export function decisionSignals(d: DecisionLike | null): {
+  location_risk_final: boolean;
+  prefilter_discard: boolean;
+} {
+  if (!d) return { location_risk_final: false, prefilter_discard: false };
+  if (!d.prefilter.pass) return { location_risk_final: false, prefilter_discard: true };
+  const byFlag = d.prefilter.flags.includes("location_risk");
+  const byText = d.riesgos.some((r) => classifyRisk(r) === "ubicacion");
+  return { location_risk_final: byFlag || byText, prefilter_discard: false };
+}
 
 export type Metrics = {
   anchor: Anchor;
@@ -65,6 +95,8 @@ export type Metrics = {
   risks_recall: number | null;
   /** Métrica vieja (indulgente): jobs con riesgo humano donde el modelo devolvió ≥ 1 riesgo. */
   risks_recall_any: number | null;
+  /** Recall de riesgos por tipo (sin los excluidos). Vacío con ancla v1. `n_human` = ofertas con ese tipo. */
+  risks_recall_by_type: Partial<Record<RiskType, { recall: number | null; n_human: number }>>;
   discipline_acc: number | null;
   action_acc: number | null;
   false_apply: number;
@@ -75,12 +107,26 @@ export type Metrics = {
   false_discard: number;
   /** Variante por acción: ancla ≥ piso que termina en "descartar" aunque el score no baje. */
   false_discard_action: number;
+  /**
+   * Ancla ≥ piso que el prefiltro descarta antes de decide(). Es comportamiento correcto del
+   * prefiltro, no un error del modelo: no entra en false_discard ni en false_discard_action.
+   */
+  false_discard_prefilter: number;
+  /** Definición vieja (modelo + prefiltro): lo que el usuario pierde y la cifra comparable con lo publicado. */
+  false_discard_total: number;
+  /** Variante por acción de la definición vieja. */
+  false_discard_action_total: number;
   /** Piso usado para false_discard (thresholds.guardar), para poder reproducir el número. */
   apply_floor: number;
   /** Jobs con ubicación humana riesgo o no donde el modelo devolvió EXACTAMENTE el mismo valor. */
   location_risk_recall: number | null;
   /** Métrica vieja (indulgente): riesgo y no valen como equivalentes. */
   location_risk_recall_any: number | null;
+  /**
+   * Lo que ve el usuario: cuenta si el modelo devolvió riesgo/no, o si después de decide() hay
+   * riesgo de ubicación (prefilter.flags o riesgos). La cruda sigue diciendo si el prompt mejoró.
+   */
+  location_risk_recall_final: number | null;
   unstable_ratio: number;
 };
 
@@ -131,6 +177,7 @@ export function classifyBlocker(text: string): BlockerType {
 /** Taxonomía de riesgos. "salario" (no publicado) se excluye de risks_recall: el modelo lo emite casi siempre. */
 export const RISK_TYPES = [
   "ubicacion",
+  "horario",
   "salario",
   "staffing",
   "candidatos",
@@ -144,6 +191,9 @@ export const RISK_TYPES_EXCLUDED_FROM_RECALL: readonly RiskType[] = ["salario"];
 
 export function classifyRisk(text: string): RiskType {
   const t = fold(text);
+  // Antes que ubicación: "solapamiento horario con US Eastern" es otro riesgo que "LATAM sin países"
+  if (/horario|zona horaria|time ?zone|overlap|solapamiento|huso|eastern|pacific/.test(t))
+    return "horario";
   if (/pais|latam|ubicaci|location|remoto sin|remote sin|argentina no/.test(t)) return "ubicacion";
   if (/salari|sueldo|remuneraci/.test(t)) return "salario";
   if (/staffing|consultor|agencia|intermediari|outsourc/.test(t)) return "staffing";
@@ -252,16 +302,33 @@ export function computeMetrics(
     RISK_TYPES_EXCLUDED_FROM_RECALL,
   );
 
+  const risksByType: Metrics["risks_recall_by_type"] = {};
+  if (anchor !== "human_score") {
+    for (const t of RISK_TYPES) {
+      if (RISK_TYPES_EXCLUDED_FROM_RECALL.includes(t)) continue;
+      const withType = ok.filter((r) => typeSet(r.human_risks, classifyRisk).has(t));
+      const hit = withType.filter((r) => typeSet(r.model_risks, classifyRisk).has(t)).length;
+      risksByType[t] = { recall: ratio(hit, withType.length), n_human: withType.length };
+    }
+  }
+
   const disciplineHit = ok.filter((r) => r.model_discipline === r.human_discipline).length;
   const actionHit = ok.filter((r) => sameAction(r.model_action ?? "", r.human_action)).length;
 
   const finalScore = (r: JobRow) => r.model_score_final ?? r.model_score;
-  const overFloor = ok.filter((r) => pickAnchor(r) !== null && pickAnchor(r)! >= applyFloor);
-  const falseDiscard = overFloor.filter((r) => {
+  const allOverFloor = ok.filter((r) => pickAnchor(r) !== null && pickAnchor(r)! >= applyFloor);
+  // El descarte del prefiltro es comportamiento correcto, no un error del modelo: va aparte
+  const falseDiscardPrefilter = allOverFloor.filter((r) => r.prefilter_discard).length;
+  const overFloor = allOverFloor.filter((r) => !r.prefilter_discard);
+  const belowFloor = (r: JobRow) => {
     const f = finalScore(r);
     return f !== null && f !== undefined && f < applyFloor;
-  }).length;
+  };
+  const falseDiscard = overFloor.filter(belowFloor).length;
   const falseDiscardAction = overFloor.filter((r) => r.model_action === "descartar").length;
+  // Definición vieja (modelo + prefiltro): comparable con lo publicado antes de JS-067
+  const falseDiscardTotal = allOverFloor.filter(belowFloor).length;
+  const falseDiscardActionTotal = allOverFloor.filter((r) => r.model_action === "descartar").length;
 
   const falseApply = ok.filter(
     (r) =>
@@ -280,6 +347,12 @@ export function computeMetrics(
   const riskyAny = risky.filter(
     (r) => r.model_location_ok === "riesgo" || r.model_location_ok === "no",
   ).length;
+  const riskyFinal = risky.filter(
+    (r) =>
+      r.model_location_ok === "riesgo" ||
+      r.model_location_ok === "no" ||
+      r.model_location_risk_final,
+  ).length;
 
   return {
     anchor,
@@ -294,14 +367,19 @@ export function computeMetrics(
     blockers_recall_any: ratio(blockersHit, withBlockers.length),
     risks_recall: anchor === "human_score" ? null : typedRisks.recall,
     risks_recall_any: anchor === "human_score" ? null : ratio(risksHit, withRisks.length),
+    risks_recall_by_type: risksByType,
     discipline_acc: ratio(disciplineHit, ok.length),
     action_acc: ratio(actionHit, ok.length),
     false_apply: falseApply,
     false_discard: falseDiscard,
     false_discard_action: falseDiscardAction,
+    false_discard_prefilter: falseDiscardPrefilter,
+    false_discard_total: falseDiscardTotal,
+    false_discard_action_total: falseDiscardActionTotal,
     apply_floor: applyFloor,
     location_risk_recall: ratio(riskyExact, risky.length),
     location_risk_recall_any: ratio(riskyAny, risky.length),
+    location_risk_recall_final: ratio(riskyFinal, risky.length),
     unstable_ratio: ratio(ok.filter((r) => r.unstable).length, ok.length) ?? 0,
   };
 }

@@ -6,9 +6,11 @@ import {
   typedMatch,
   checkThresholds,
   computeMetrics,
+  decisionSignals,
   isUnstable,
   median,
   promptVersionNumber,
+  RISK_TYPES,
   sameAction,
   splitByAnchorSource,
   type JobRow,
@@ -279,6 +281,103 @@ describe("false_discard (JS-052): el error que más cuesta", () => {
       (c) => c.name,
     );
     expect(names).toContain("false_discard = 0");
+  });
+});
+
+describe("JS-067: ubicación final, riesgo horario y falso descarte del prefiltro", () => {
+  it("decisionSignals lee prefilter.flags primero y cae al texto de riesgos", () => {
+    const withFlag = decisionSignals({
+      prefilter: { pass: true, cap: null, flags: ["location_risk"] },
+      riesgos: [],
+    });
+    expect(withFlag.location_risk_final).toBe(true);
+    const withText = decisionSignals({
+      prefilter: { pass: true, cap: null, flags: [] },
+      riesgos: ["LATAM sin países explícitos"],
+    });
+    expect(withText.location_risk_final).toBe(true);
+    const none = decisionSignals({
+      prefilter: { pass: true, cap: null, flags: ["many_candidates"] },
+      riesgos: ["salario no publicado"],
+    });
+    expect(none).toEqual({ location_risk_final: false, prefilter_discard: false });
+    const discarded = decisionSignals({
+      prefilter: { pass: false, reason: "x", detail: "y" },
+      riesgos: [],
+    });
+    expect(discarded).toEqual({ location_risk_final: false, prefilter_discard: true });
+    expect(decisionSignals(null)).toEqual({ location_risk_final: false, prefilter_discard: false });
+  });
+
+  it("location_risk_recall_final suma lo que agrega decide() y deja la cruda aparte", () => {
+    const m = computeMetrics(
+      [
+        // el modelo lo vio
+        row({ id: 5, human_location_ok_clean: "riesgo", model_location_ok: "riesgo" }),
+        // el modelo dijo ok, pero el prefiltro lo marcó: el usuario ve el riesgo
+        row({
+          id: 9,
+          human_location_ok_clean: "riesgo",
+          model_location_ok: "ok",
+          model_location_risk_final: true,
+        }),
+        // nadie lo vio
+        row({ id: 15, human_location_ok_clean: "no", model_location_ok: "ok" }),
+      ],
+      "human_score_match",
+    );
+    expect(m.location_risk_recall).toBeCloseTo(1 / 3);
+    expect(m.location_risk_recall_final).toBeCloseTo(2 / 3);
+  });
+
+  it("clasifica el solapamiento horario como 'horario', no como 'otro'", () => {
+    expect(classifyRisk("Solapamiento horario limitado con US Eastern")).toBe("horario");
+    expect(classifyRisk("requiere overlap con zona horaria de EE.UU.")).toBe("horario");
+    expect(classifyRisk("LATAM sin países explícitos")).toBe("ubicacion");
+    expect(RISK_TYPES).toContain("horario");
+  });
+
+  it("risks_recall_by_type informa el recall de cada tipo (sin salario)", () => {
+    const m = computeMetrics(
+      [
+        row({
+          id: 36,
+          human_risks: ["solapamiento horario con US", "salario no publicado"],
+          model_risks: ["overlap horario con Eastern"],
+        }),
+        row({ id: 4, human_risks: ["muchos candidatos (191)"], model_risks: [] }),
+        row({ id: 9, human_risks: ["muchos candidatos (250)"], model_risks: ["candidatos 250"] }),
+      ],
+      "human_score_match",
+    );
+    expect(m.risks_recall_by_type.horario).toEqual({ recall: 1, n_human: 1 });
+    expect(m.risks_recall_by_type.candidatos).toEqual({ recall: 0.5, n_human: 2 });
+    expect(m.risks_recall_by_type.salario).toBeUndefined();
+    expect(m.risks_recall_by_type.staffing).toEqual({ recall: null, n_human: 0 });
+    expect(computeMetrics([row({})], "human_score").risks_recall_by_type).toEqual({});
+  });
+
+  it("el prefiltro que descarta un ancla ≥ 5 es falso descarte del prefiltro, no del modelo", () => {
+    const m = computeMetrics(
+      [
+        row({
+          id: 3,
+          human_score_match: 6,
+          model_score: 7,
+          model_score_final: null,
+          model_action: "descartar",
+          prefilter_discard: true,
+        }),
+        row({ id: 6, human_score_match: 6, model_score: 3, model_score_final: 3 }),
+      ],
+      "human_score_match",
+    );
+    expect(m.false_discard_prefilter).toBe(1);
+    expect(m.false_discard).toBe(1); // solo el 6
+    expect(m.false_discard_action).toBe(0);
+    // Definición vieja (modelo + prefiltro): el descarte por acción del prefiltro también cuenta
+    expect(m.false_discard_total).toBe(1); // el 3 no baja de 5 por score (cae a model_score 7); el 6 sí
+    expect(m.false_discard_action_total).toBe(1);
   });
 });
 

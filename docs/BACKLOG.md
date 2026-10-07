@@ -493,14 +493,44 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
   - **`pnpm prompt:promote <task@vN>` (la parte operativa).** Cambia el frontmatter y el puntero, y **verifica contra la base** que los criterios activos tengan las claves que el prompt y `decide()` necesitan (hoy: `allowed_disciplines`, `discipline_cap_score`, `english_risk_from`, `years_gap`). Si faltan, falla y dice cual. Solo lectura contra la base; no escribe criterios.
 - **Acepta:** con el puntero en una version y el frontmatter en otra, `pnpm test` falla nombrando las dos; `prompt:promote` falla si los criterios activos no tienen las claves nuevas.
 
-### JS-064 · `evals recompute` con las anclas actuales del golden, separadas por origen
-`deps:` JS-052 · `est:` 2 h · `estado:` todo
+### JS-064 · `evals recompute` con las anclas actuales del golden, separadas por origen ✅ done 2026-10-07
+`deps:` JS-052 · `est:` 2 h · `estado:` done (ronda 02)
 - Surge del 2026-09-28 (JS-053): al alinear los criterios privados con los activos, `recompute` informó una mejora de `action_acc` que mezclaba anclas. `recomputeReport` recalcula la acción del modelo con el golden y los criterios actuales, pero `human_action`, `human_score_match` y `anchor_source` quedan como estaban en el reporte guardado. Una oferta re-puntuada después de la corrida se comparó contra su acción humana vieja, y el número no distinguía anclas `human` de `assisted`.
 - **Propuesta:**
   - `recompute` vuelve a leer del golden actual `human_score`, `human_score_match`, `accion`, `human_blockers`, `human_risks`, `human_location_ok` y `anchor_source`, y lista cada ancla que cambió respecto del reporte ("ancla actualizada: id N, acción X → Y").
   - La salida separa las métricas por origen del ancla (`human` y `assisted`), como ya hace `compare` con `splitByAnchorSource`. Las `human` son la evidencia no circular; las `assisted` quedan como control.
   - `--anclas-del-reporte` reproduce el cálculo viejo, para comparar con números ya publicados.
 - **Acepta:** test con un reporte cuya acción humana difiere de la del golden actual: `recompute` usa la del golden y lo avisa. La salida muestra `action_acc`, `false_apply` y `false_discard` por separado para `human` y `assisted`.
+
+### JS-067 · Metricas del harness: ubicacion despues de decide(), riesgos por tipo y hash de criterios ✅ done 2026-10-07
+`deps:` — · `est:` M · `estado:` done (ronda 02). `false_discard` pasa a contar solo errores del modelo; la definicion anterior sigue como `false_discard_total`
+- **Por que:** `location_risk_recall` mide la salida cruda del modelo, no lo que ve el usuario: `decide()` y el prefiltro agregan el riesgo de ubicacion y eso no se mide. El solapamiento horario cae en `otro`. Un reporte no dice con que criterios se calculo.
+- **Que:**
+  - `location_risk_recall_final` (lee `decision.prefilter.flags` antes que el texto de riesgos), junto a la cruda;
+  - tipo de riesgo `horario`;
+  - `risks_recall` por tipo;
+  - falso descarte del prefiltro separado del del modelo;
+  - hash de `criteriaRules` en `meta`, con aviso en `recompute` si no coincide;
+  - tabla de tokens de `run.ts` actualizada (estimacion, no eleccion de modelo).
+- **Acepta:** `recompute` sobre un reporte guardado muestra las dos cifras de ubicacion, el recall por tipo y el aviso de hash; tests en verde.
+
+### JS-074 · Prompt `evaluate_job` v1.3.3 sin el literal de un aviso real
+`deps:` — · `est:` S + corrida · `estado:` en curso (ronda 02, 2026-10-07): version escrita, sin promover
+- **Por que:** el ejemplo de mision contra requisitos de v1.3.2 cita frases de un aviso real; una busqueda las identifica. Es el prompt de produccion.
+- **Que:** v1.3.3 = v1.3.2 con ese ejemplo reescrito de cero en otro dominio, con la misma ensenanza (la disciplina sale de los requisitos). No se promueve sin medir.
+- **Acepta:** 1 corrida completa (36 casos, ≈ USD 0,36) + `recompute` y `compare` contra la de v1.3.2 sin empeorar `action_acc`, `false_apply` ni `discipline_acc` en las anclas `human`. Recien ahi se promueve (decision de Mauro).
+
+### JS-077 · Los evals de CI miden el prompt vigente
+`deps:` JS-067 (CLI) · `est:` S · `estado:` en curso: `--prompt vigente` en el CLI hecho (ronda 02, 2026-10-07); falta aplicar el cambio de `ci.yml` (≈ USD 0,16 por corrida de CI, contra ≈ 0,09 con v1)
+- **Por que:** el job `evals` de CI corre `evaluate_job@v1`, no la version de produccion. Un PR que cambia el prompt vigente o el golden se mide contra una version vieja (ver tambien JS-058).
+- **Que:** `pnpm evals run --prompt vigente` resuelve a la version que usa produccion; `ci.yml` pasa a `EVALS_PROMPT: vigente`, con el costo por corrida estimado antes de aplicarlo.
+- **Acepta:** el log del job muestra la version vigente; el costo por corrida queda anotado en el PR.
+
+### JS-078 · El barrido `--pre-push` informa cuando pasa
+`deps:` JS-063 · `est:` S · `estado:` todo (2026-10-06)
+- **Por que:** cuando no encuentra nada, `scripts/privacy-scan.mjs --pre-push` no imprime nada, asi que no se distingue "paso" de "no corrio".
+- **Que:** imprimir `pre-push: OK (N commits)` al pasar.
+- **Acepta:** test por CLI con un repo temporal que verifica el mensaje y el conteo; con hallazgos, el mensaje de error no cambia.
 
 ### JS-056 · Tope de score por cantidad de gaps must
 `deps:` JS-052 · `est:` 2 h · `estado:` todo (no bloquea)

@@ -1,5 +1,6 @@
-import { createFakeLlm } from "@job-search-os/adapters";
+import { createFakeLlm, DEFAULT_PROMPT_VERSIONS } from "@job-search-os/adapters";
 import { describe, expect, it } from "vitest";
+import { criteriaHash } from "./golden";
 import {
   ANCHOR_IDS,
   BudgetExceededError,
@@ -12,6 +13,7 @@ import {
   FatalEvalError,
   parseThinkingFlag,
   priceForModel,
+  resolvePromptFlag,
   routeFor,
   RunAbortedError,
   runEvals,
@@ -216,6 +218,30 @@ describe("runEvals: modelo, thinking y registro", () => {
     });
     expect(report.meta).toMatchObject({ thinking: "minimal", db: "none", label: "paso4" });
     expect(client.calls[0]?.ctx).toMatchObject({ recordTask: "eval:v1.2", label: "paso4" });
+  });
+});
+
+describe("--prompt vigente (JS-077) y hash de criterios (JS-067)", () => {
+  it("'vigente' resuelve a la versión que usa producción; el default sigue en v1", () => {
+    expect(resolvePromptFlag("vigente")).toBe(DEFAULT_PROMPT_VERSIONS.evaluate_job);
+    expect(resolvePromptFlag("evaluate_job@v1.3.2")).toBe("evaluate_job@v1.3.2");
+    expect(resolvePromptFlag(undefined)).toBe("evaluate_job@v1");
+  });
+
+  it("el reporte guarda el hash de criterios en meta", async () => {
+    const report = await runEvals({
+      prompt: "evaluate_job@v1.2",
+      runs: 1,
+      concurrency: 1,
+      ids: [33],
+      outDir: "",
+      client: fake(),
+    });
+    expect(report.meta.criteria_hash).toBe(criteriaHash);
+  });
+
+  it("la tabla de tokens refleja lo medido en final-v132", () => {
+    expect(MEASURED_TOKENS_PER_CALL["gemini-3.5-flash:minimal"]).toEqual({ in: 4_102, out: 418 });
   });
 });
 

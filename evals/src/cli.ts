@@ -8,6 +8,7 @@ import {
   estimateRunCostWithHistory,
   formatReport,
   parseThinkingFlag,
+  resolvePromptFlag,
   runEvals,
   type CostEstimate,
 } from "./run";
@@ -17,7 +18,9 @@ import {
  *   [--ids 1,2,33] [--subset] [--budget 150] [--force] [--label paso1] [--no-report]
  *   [--max-usd 1] [--yes] [--max-minutes 30] [--thinking minimal] [--db cloud|local|none]
  * pnpm evals compare reports/a.json reports/b.json
- * pnpm evals recompute reports/a.json [...]   (métricas y decide() sin llamar a la API)
+ * pnpm evals recompute reports/a.json [...] [--anclas-del-reporte]   (métricas y decide() sin llamar a la API;
+ *   por defecto relee las anclas del golden actual, con el flag usa las de la corrida)
+ * --prompt vigente = la versión de DEFAULT_PROMPT_VERSIONS (la que usa producción)
  *
  * Guardarraíles de costo: antes de la primera llamada se muestra el costo estimado
  * (llamadas × tokens promedio × tarifa de model_routing); si supera --max-usd pide confirmación
@@ -76,7 +79,7 @@ async function main(): Promise<void> {
   const { command, flags, rest } = parseArgs(process.argv.slice(2));
 
   if (command === "run") {
-    const prompt = (flags.prompt ?? "evaluate_job@v1") as PromptRef;
+    const prompt: PromptRef = resolvePromptFlag(flags.prompt);
     const options = {
       prompt,
       model: flags.model,
@@ -143,8 +146,15 @@ async function main(): Promise<void> {
   }
 
   if (command === "recompute") {
-    if (!rest.length) throw new Error("uso: pnpm evals recompute <reporte.json> [más reportes]");
-    for (const line of recomputeFiles(rest)) console.log(line);
+    // Si el flag va antes de la ruta, parseArgs se la traga como valor: se devuelve a la lista
+    const flagValue = flags["anclas-del-reporte"];
+    const anclasDelReporte = flagValue !== undefined;
+    const paths = flagValue !== undefined && flagValue !== "true" ? [flagValue, ...rest] : rest;
+    if (!paths.length)
+      throw new Error(
+        "uso: pnpm evals recompute <reporte.json> [más reportes] [--anclas-del-reporte]",
+      );
+    for (const line of recomputeFiles(paths, { anclasDelReporte })) console.log(line);
     return;
   }
 
