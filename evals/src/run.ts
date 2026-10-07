@@ -7,6 +7,7 @@ import {
   createLogger,
   createProviderRegistry,
   dailyCapFromEnv,
+  DEFAULT_PROMPT_VERSIONS,
   drizzleCallSink,
   memoryCallSink,
   parseThinkingLevel,
@@ -25,6 +26,7 @@ import { decide, outputSchemaFor, type Adjustment, type Evaluation } from "@job-
 import type { PromptRef } from "@job-search-os/prompts";
 import routingSeed from "../../packages/db/seeds/model_routing.json";
 import {
+  criteriaHash,
   criteriaRules,
   goldenJobs,
   goldenMeta,
@@ -39,6 +41,7 @@ import {
   anchorLocation,
   checkThresholds,
   computeMetrics,
+  decisionSignals,
   isUnstable,
   median,
   type Anchor,
@@ -77,9 +80,11 @@ export type TokenSample = { in: number; out: number; source: string };
 
 /** Promedios medidos en llm_calls (Neon). Clave: `<modelo>:<thinking|default>`. */
 export const MEASURED_TOKENS_PER_CALL: Record<string, Omit<TokenSample, "source">> = {
-  // 2026-09-11, evaluate_job v1.1/v1.2 subsets (14 llamadas) y job 33: 0 tokens de thinking
-  "gemini-3.5-flash:minimal": { in: 1_950, out: 430 },
-  "gemini-3.1-flash-lite:minimal": { in: 1_950, out: 400 },
+  // 2026-09-24, final-v132 (108 llamadas, evaluate_job v1.3.2): ≈ USD 0,0099 por evaluación,
+  // 0 tokens de thinking. Es una tabla de estimación: no elige modelo.
+  "gemini-3.5-flash:minimal": { in: 4_102, out: 418 },
+  // Sin medición propia: mismo prompt que 3.5-flash, así que se usa la misma entrada
+  "gemini-3.1-flash-lite:minimal": { in: 4_102, out: 400 },
   // 2026-09-10, sin thinking_level (dinámico): ~85% de la salida fue thinking
   "gemini-3.5-flash:default": { in: 1_760, out: 2_050 },
 };
@@ -268,6 +273,10 @@ export type Report = {
     runs: number;
     date: string;
     golden_version: string;
+    /** Hash de criteriaRules de la corrida; ausente en reportes viejos. `recompute` avisa si difiere. */
+    criteria_hash?: string;
+    /** Anclas de la corrida, guardadas por `recompute` antes de releer el golden (para --anclas-del-reporte). */
+    anclas_del_reporte?: Record<number, Record<string, unknown>>;
     /** Presente si las métricas se recalcularon con pnpm evals recompute. */
     recomputed?: string;
     calls: number;
@@ -352,6 +361,20 @@ export function routeFor(model?: string, thinking?: ThinkingLevel): RouteConfig 
     fallbackInputUsdPerMtok: null,
     fallbackOutputUsdPerMtok: null,
   };
+}
+
+/**
+ * `--prompt vigente` resuelve a la versión que usa producción (DEFAULT_PROMPT_VERSIONS). El
+ * default sin flag sigue siendo evaluate_job@v1 hasta que se aplique el cambio de ci.yml.
+ */
+export function resolvePromptFlag(raw: string | undefined): PromptRef {
+  if (raw === undefined) return "evaluate_job@v1";
+  if (raw === "vigente") {
+    const current = DEFAULT_PROMPT_VERSIONS.evaluate_job;
+    if (!current) throw new Error("DEFAULT_PROMPT_VERSIONS no define evaluate_job");
+    return current;
+  }
+  return raw as PromptRef;
 }
 
 export function parseThinkingFlag(raw: string | undefined): ThinkingLevel | undefined {
@@ -645,6 +668,8 @@ async function runEvalsWith(options: RunOptions, env: RunEnv): Promise<Report> {
       model_raw: rep,
       decision,
       model_location_ok: rep?.location_ok ?? null,
+      model_location_risk_final: decisionSignals(decision).location_risk_final,
+      prefilter_discard: decisionSignals(decision).prefilter_discard,
       unstable: isUnstable(scores),
       veredicto: rep?.veredicto ?? null,
       confianza: rep?.confianza ?? null,
@@ -717,6 +742,7 @@ async function runEvalsWith(options: RunOptions, env: RunEnv): Promise<Report> {
       runs: options.runs,
       date: new Date(startedAt).toISOString(),
       golden_version: goldenMeta.version,
+      criteria_hash: criteriaHash,
       calls: calls.calls.length,
       calls_failed: calls.calls.filter((c) => !c.ok).length,
       tokens_in: tokensIn,
@@ -777,6 +803,10 @@ export function formatReport(report: Report): string {
     `| false_discard_action (ancla ≥ 5 → descartar) | ${m.false_discard_action} | informativo |`,
     `| location_risk_recall (valor exacto) | ${pct(m.location_risk_recall)} | 100% |`,
     `| location_risk_recall_any (vieja: riesgo ≡ no) | ${pct(m.location_risk_recall_any)} | informativo |`,
+    `| location_risk_recall_final (después de decide()) | ${pct(m.location_risk_recall_final ?? null)} | informativo |`,
+    `| false_discard_prefilter (ancla ≥ 5 descartada por el prefiltro) | ${m.false_discard_prefilter ?? "n/a"} | informativo |`,
+    `| false_discard_total (modelo + prefiltro, definición vieja) | ${m.false_discard_total ?? "n/a"} | informativo |`,
+    `| false_discard_action_total (modelo + prefiltro) | ${m.false_discard_action_total ?? "n/a"} | informativo |`,
     `| unstable | ${pct(m.unstable_ratio)} | ≤ 10% |`,
     "",
     "Top 5 deltas |modelo − ancla|:",

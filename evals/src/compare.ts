@@ -48,13 +48,26 @@ function byAnchorSource(a: Report, b: Report, A: string, B: string): string[] {
   return out;
 }
 
+/** Un reporte sin los campos de JS-067 usa otra definición de false_discard: no se mezcla en silencio. */
+export const needsRecompute = (r: Report): boolean =>
+  r.metrics.false_discard_total === undefined ||
+  r.jobs.some((j) => j.prefilter_discard === undefined);
+
 /** Diff legible entre dos reportes: métricas lado a lado y jobs cuya decisión o score cambió. */
 export function compareReports(a: Report, b: Report): string {
+  const stale = [a, b].some(needsRecompute);
+  const warning = stale
+    ? [
+        "AVISO: reporte sin recomputar: correr `pnpm evals recompute <reporte>` antes de comparar (false_discard y ubicación usan definiciones distintas).",
+        "",
+      ]
+    : [];
   const A = `${a.meta.prompt} × ${a.meta.model}${a.meta.label ? ` (${a.meta.label})` : ""}`;
   const B = `${b.meta.prompt} × ${b.meta.model}${b.meta.label ? ` (${b.meta.label})` : ""}`;
   const ma = a.metrics;
   const mb = b.metrics;
   const lines = [
+    ...warning,
     `| métrica | ${A} | ${B} |`,
     "|---|---|---|",
     `| ancla del score | ${ma.anchor ?? "human_score"} | ${mb.anchor ?? "human_score"} |`,
@@ -70,6 +83,9 @@ export function compareReports(a: Report, b: Report): string {
     `| **false_discard** | ${ma.false_discard} | ${mb.false_discard} |`,
     `| false_discard_action (informativa) | ${ma.false_discard_action} | ${mb.false_discard_action} |`,
     `| location_risk_recall | ${pct(ma.location_risk_recall)} | ${pct(mb.location_risk_recall)} |`,
+    `| location_risk_recall_final (después de decide()) | ${pct(ma.location_risk_recall_final)} | ${pct(mb.location_risk_recall_final)} |`,
+    `| false_discard_prefilter | ${fmt(ma.false_discard_prefilter, 0)} | ${fmt(mb.false_discard_prefilter, 0)} |`,
+    `| false_discard_total (modelo + prefiltro) | ${fmt(ma.false_discard_total, 0)} | ${fmt(mb.false_discard_total, 0)} |`,
     `| unstable | ${pct(ma.unstable_ratio)} | ${pct(mb.unstable_ratio)} |`,
     `| tokens in/out | ${a.meta.tokens_in}/${a.meta.tokens_out} | ${b.meta.tokens_in}/${b.meta.tokens_out} |`,
     `| costo USD | ${fmt(a.meta.cost_usd, 4)} | ${fmt(b.meta.cost_usd, 4)} |`,
