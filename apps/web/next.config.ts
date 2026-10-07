@@ -16,6 +16,15 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/**": ["../../packages/prompts/*.md"],
   },
+  // El token del reset viaja en la query: que no salga en el Referer hacia otros sitios (SEC-05).
+  async headers() {
+    return [
+      {
+        source: "/reset-password",
+        headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
+      },
+    ];
+  },
   transpilePackages: [
     "@job-search-os/adapters",
     "@job-search-os/db",

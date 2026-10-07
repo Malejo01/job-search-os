@@ -1,4 +1,3 @@
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { requestPasswordReset } from "@/lib/password-reset";
 
@@ -9,10 +8,7 @@ export const dynamic = "force-dynamic";
 async function forgotPassword(formData: FormData): Promise<void> {
   "use server";
   const email = String(formData.get("email") ?? "");
-  const h = await headers();
-  const host = h.get("host") ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  await requestPasswordReset(email, `${proto}://${host}`);
+  await requestPasswordReset(email);
   redirect("/forgot-password?sent=1");
 }
 

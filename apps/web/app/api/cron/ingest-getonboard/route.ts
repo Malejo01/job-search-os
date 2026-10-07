@@ -1,5 +1,5 @@
 import { createDb, requireDatabaseUrl } from "@job-search-os/db";
-import { createLogger, runGetOnBoardIngest } from "@job-search-os/adapters";
+import { checkBearerSecret, createLogger, runGetOnBoardIngest } from "@job-search-os/adapters";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -12,8 +12,12 @@ export const maxDuration = 60;
  * Corre como servicio (dueño de la base) y filtra por user_id explícito.
  */
 export async function GET(request: Request): Promise<NextResponse> {
-  const secret = process.env.CRON_SECRET;
-  if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (
+    !checkBearerSecret({
+      authorization: request.headers.get("authorization"),
+      expected: process.env.CRON_SECRET,
+    })
+  ) {
     return NextResponse.json({ error: "no autorizado" }, { status: 401 });
   }
 

@@ -1,3 +1,4 @@
+import { createLogger } from "@job-search-os/adapters";
 import { sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { assertAppRole, getAppDb } from "@/lib/db";
@@ -21,9 +22,11 @@ export async function GET(): Promise<NextResponse> {
       commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
     });
   } catch (error) {
-    return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : String(error) },
-      { status: 503 },
+    // El detalle (host, rol, código de Postgres) va al log, nunca a la respuesta (SEC-04).
+    createLogger({ route: "health" }).error(
+      { err: error instanceof Error ? error.message : String(error) },
+      "health falló",
     );
+    return NextResponse.json({ ok: false, error: "unhealthy" }, { status: 503 });
   }
 }

@@ -1,5 +1,10 @@
 import { createDb, requireDatabaseUrl, schema as s } from "@job-search-os/db";
-import { buildLearningPlan, buildMarketSnapshot, createLogger } from "@job-search-os/adapters";
+import {
+  buildLearningPlan,
+  buildMarketSnapshot,
+  checkBearerSecret,
+  createLogger,
+} from "@job-search-os/adapters";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -12,8 +17,12 @@ export const maxDuration = 120;
  * market_snapshots de la semana actual y sincroniza learning_plan_items. Protegido por CRON_SECRET.
  */
 export async function GET(request: Request): Promise<NextResponse> {
-  const secret = process.env.CRON_SECRET;
-  if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (
+    !checkBearerSecret({
+      authorization: request.headers.get("authorization"),
+      expected: process.env.CRON_SECRET,
+    })
+  ) {
     return NextResponse.json({ error: "no autorizado" }, { status: 401 });
   }
 
