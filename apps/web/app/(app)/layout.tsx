@@ -59,6 +59,15 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         </nav>
       </header>
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-4">{children}</main>
+      <footer className="border-t border-zinc-200 px-4 py-3 text-center text-xs text-zinc-500">
+        <Link href="/privacidad" className="underline-offset-2 hover:underline">
+          Privacidad
+        </Link>
+        <span aria-hidden="true"> · </span>
+        <Link href="/terminos" className="underline-offset-2 hover:underline">
+          Términos
+        </Link>
+      </footer>
     </div>
   );
 }
