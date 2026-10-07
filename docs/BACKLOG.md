@@ -521,7 +521,7 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Acepta:** 1 corrida completa (36 casos, ≈ USD 0,36) + `recompute` y `compare` contra la de v1.3.2 sin empeorar `action_acc`, `false_apply` ni `discipline_acc` en las anclas `human`. Recien ahi se promueve (decision de Mauro).
 
 ### JS-077 · Los evals de CI miden el prompt vigente
-`deps:` JS-067 (CLI) · `est:` S · `estado:` en curso: `--prompt vigente` en el CLI hecho (ronda 02, 2026-10-07); falta aplicar el cambio de `ci.yml` (≈ USD 0,16 por corrida de CI, contra ≈ 0,09 con v1)
+`deps:` JS-067 (CLI) · `est:` S · `estado:` ✅ done 2026-10-07 (ronda 02): `--prompt vigente` en el CLI y `EVALS_PROMPT: vigente` en `ci.yml` (≈ USD 0,16 por corrida de CI, contra ≈ 0,09 con v1)
 - **Por que:** el job `evals` de CI corre `evaluate_job@v1`, no la version de produccion. Un PR que cambia el prompt vigente o el golden se mide contra una version vieja (ver tambien JS-058).
 - **Que:** `pnpm evals run --prompt vigente` resuelve a la version que usa produccion; `ci.yml` pasa a `EVALS_PROMPT: vigente`, con el costo por corrida estimado antes de aplicarlo.
 - **Acepta:** el log del job muestra la version vigente; el costo por corrida queda anotado en el PR.
