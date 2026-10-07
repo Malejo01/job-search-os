@@ -1,7 +1,9 @@
 import { schema as s } from "@job-search-os/db";
 import { buildAgenda, skillCandidates, type MarketAgenda } from "@job-search-os/pipeline";
 import { and, desc, eq, gte, isNotNull, lte } from "drizzle-orm";
+import { revalidateTag, unstable_cache } from "next/cache";
 import { withUser } from "./db";
+import { candidatesCacheConfig } from "./market-cache";
 
 /**
  * Agenda de mercado (/market, adelanto de JS-031): lee el snapshot más reciente dentro del rango
@@ -31,7 +33,54 @@ export function parseRange(params: Record<string, string | string[] | undefined>
   return { from: one("desde"), to: one("hasta") };
 }
 
+/**
+ * Candidatos: términos frecuentes en los JD recientes que la taxonomía no cubre (propuesta).
+ * Sin caché; consulta con su propia transacción `withUser` (RLS).
+ */
+async function computeCandidates(userId: string): Promise<SkillCandidate[]> {
+  return withUser(userId, async (tx) => {
+    const taxonomyRows = await tx
+      .select({ slug: s.skills.slug, name: s.skills.name, aliases: s.skills.aliases })
+      .from(s.skills);
+    const jdRows = await tx
+      .select({
+        jdText: s.jobs.jdText,
+        companyRaw: s.jobs.companyRaw,
+        companyName: s.companies.nameNormalized,
+      })
+      .from(s.jobs)
+      .leftJoin(s.companies, eq(s.companies.id, s.jobs.companyId))
+      .where(isNotNull(s.jobs.jdText))
+      .orderBy(desc(s.jobs.createdAt))
+      .limit(300);
+    // Los nombres de empresa no son skills: se excluyen de los candidatos.
+    const exclude = [
+      ...new Set(
+        jdRows.flatMap((j) => [j.companyRaw, j.companyName].filter((n): n is string => !!n)),
+      ),
+    ];
+    return skillCandidates(
+      jdRows.flatMap((j) => (j.jdText ? [j.jdText] : [])),
+      taxonomyRows,
+      { limit: 15, exclude },
+    ).map(({ term, count }) => ({ term, count }));
+  });
+}
+
+/** Cacheado por usuario (clave y tag incluyen `userId`: nunca se comparte entre usuarios). */
+function getCandidates(userId: string): Promise<SkillCandidate[]> {
+  const { keyParts, tags, revalidate } = candidatesCacheConfig(userId);
+  return unstable_cache(() => computeCandidates(userId), keyParts, { revalidate, tags })();
+}
+
+/** Para conectar a los puntos de ingesta/pegado de ofertas (hoy el caché solo vence por tiempo). */
+export function invalidateMarketCandidates(userId: string): void {
+  for (const tag of candidatesCacheConfig(userId).tags) revalidateTag(tag);
+}
+
 export async function getMarket(userId: string, range: MarketRange): Promise<MarketView> {
+  // Fuera de la transacción de abajo: el caché abre la suya y no debe anidarse (otra conexión).
+  const candidates = await getCandidates(userId);
   return withUser(userId, async (tx) => {
     const weekRows = await tx
       .selectDistinct({ weekStart: s.marketSnapshots.weekStart })
@@ -68,34 +117,6 @@ export async function getMarket(userId: string, range: MarketRange): Promise<Mar
         { name: k.name, category: k.category, closureHours: k.closureHours },
       ]),
     );
-
-    // Candidatos: términos frecuentes en los JD recientes que la taxonomía no cubre (propuesta).
-    const taxonomyRows = await tx
-      .select({ slug: s.skills.slug, name: s.skills.name, aliases: s.skills.aliases })
-      .from(s.skills);
-    const jdRows = await tx
-      .select({
-        jdText: s.jobs.jdText,
-        companyRaw: s.jobs.companyRaw,
-        companyName: s.companies.nameNormalized,
-      })
-      .from(s.jobs)
-      .leftJoin(s.companies, eq(s.companies.id, s.jobs.companyId))
-      .where(isNotNull(s.jobs.jdText))
-      .orderBy(desc(s.jobs.createdAt))
-      .limit(300);
-    // Los nombres de empresa no son skills: se excluyen de los candidatos.
-    const exclude = [
-      ...new Set(
-        jdRows.flatMap((j) => [j.companyRaw, j.companyName].filter((n): n is string => !!n)),
-      ),
-    ];
-    const candidateOptions = { limit: 15, exclude };
-    const candidates = skillCandidates(
-      jdRows.flatMap((j) => (j.jdText ? [j.jdText] : [])),
-      taxonomyRows,
-      candidateOptions,
-    ).map(({ term, count }) => ({ term, count }));
 
     if (!weekStart) {
       return {
