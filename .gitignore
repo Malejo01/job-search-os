@@ -30,6 +30,8 @@ pnpm-debug.log*
 # Playwright / tests
 playwright-report/
 test-results/
+# Instantáneas del MCP de Playwright (ux-ui): copian el contenido de la página, con datos de la base local
+.playwright-mcp/
 
 # Vercel
 .vercel
