@@ -1,21 +1,20 @@
+import { checkMcpToken } from "@job-search-os/adapters";
 import { schema as s } from "@job-search-os/db";
-import { timingSafeEqual } from "node:crypto";
 import { getAppDb } from "./db";
 
 /**
- * Autenticación del servidor MCP (JS-035): token compartido en `Authorization: Bearer` o en
- * `?token=` (para clientes que solo aceptan una URL, como el conector de claude.ai). No es OAuth
- * a propósito: un solo usuario, un solo token, rotable cambiando MCP_TOKEN.
+ * Autenticación del servidor MCP (JS-035, SEC-02): token compartido en `Authorization: Bearer`.
+ * `?token=` se acepta solo con MCP_ALLOW_QUERY_TOKEN=1, porque el conector de claude.ai puede
+ * necesitar una URL; el token en la URL queda en logs, así que es opt-in. No es OAuth a
+ * propósito: un solo usuario, un solo token, rotable cambiando MCP_TOKEN.
  */
 export function mcpTokenOk(req: Request): boolean {
-  const expected = process.env.MCP_TOKEN;
-  if (!expected) return false;
-  const header = req.headers.get("authorization") ?? "";
-  const bearer = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
-  const query = new URL(req.url).searchParams.get("token") ?? "";
-  const given = bearer || query;
-  if (!given || given.length !== expected.length) return false;
-  return timingSafeEqual(Buffer.from(given), Buffer.from(expected));
+  return checkMcpToken({
+    authorization: req.headers.get("authorization"),
+    url: req.url,
+    expected: process.env.MCP_TOKEN,
+    allowQuery: process.env.MCP_ALLOW_QUERY_TOKEN === "1",
+  });
 }
 
 let cachedUserId: string | null = null;

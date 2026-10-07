@@ -1,5 +1,10 @@
 import { createDb, requireDatabaseUrl } from "@job-search-os/db";
-import { createLogger, createPgQueue, runEvaluateWorker } from "@job-search-os/adapters";
+import {
+  checkBearerSecret,
+  createLogger,
+  createPgQueue,
+  runEvaluateWorker,
+} from "@job-search-os/adapters";
 import { NextResponse } from "next/server";
 import { serviceLlm } from "@/lib/llm-service";
 
@@ -13,8 +18,12 @@ export const maxDuration = 300;
  * Procesa hasta 20 mensajes de la cola evaluate_job. Protegido por CRON_SECRET.
  */
 export async function GET(request: Request): Promise<NextResponse> {
-  const secret = process.env.CRON_SECRET;
-  if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (
+    !checkBearerSecret({
+      authorization: request.headers.get("authorization"),
+      expected: process.env.CRON_SECRET,
+    })
+  ) {
     return NextResponse.json({ error: "no autorizado" }, { status: 401 });
   }
 

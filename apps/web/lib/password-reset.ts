@@ -1,4 +1,9 @@
-import { createLogger, sendEmail } from "@job-search-os/adapters";
+import {
+  createLogger,
+  markAllResetTokensUsed,
+  resetUrlBase,
+  sendEmail,
+} from "@job-search-os/adapters";
 import { schema as s } from "@job-search-os/db";
 import { hashPassword } from "@job-search-os/db/password";
 import { generateResetToken, hashResetToken } from "@job-search-os/db/password-reset-token";
@@ -10,7 +15,7 @@ import { getAppDb, withUser } from "./db";
  * el caller. Sin RESEND_API_KEY el token igual se crea (útil para dev/e2e) pero no se manda
  * nada, como hace inbound/resend.ts cuando falta la key.
  */
-export async function requestPasswordReset(email: string, resetUrlBase: string): Promise<void> {
+export async function requestPasswordReset(email: string): Promise<void> {
   const normalized = email.trim().toLowerCase();
   if (!normalized) return;
   const [user] = await getAppDb()
@@ -25,7 +30,16 @@ export async function requestPasswordReset(email: string, resetUrlBase: string):
   );
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return;
-  const link = `${resetUrlBase}/reset-password?token=${token}`;
+  // URL base solo de la configuración, nunca de Host/x-forwarded-* (SEC-05).
+  const base = resetUrlBase();
+  if (!base.ok) {
+    createLogger({ user_id: user.id, task: "password_reset_email" }).error(
+      { reason: base.error },
+      "no se manda el email de recuperación: sin URL base",
+    );
+    return;
+  }
+  const link = `${base.url}/reset-password?token=${token}`;
   try {
     await sendEmail(
       {
@@ -71,17 +85,14 @@ export async function checkResetToken(token: string): Promise<ResetTokenCheck> {
 export async function resetPassword(token: string, newPassword: string): Promise<ResetTokenCheck> {
   const check = await checkResetToken(token);
   if (!check.ok) return check;
-  const tokenHash = hashResetToken(token);
   const passwordHash = hashPassword(newPassword);
   await withUser(check.userId, async (tx) => {
     await tx
       .update(s.users)
       .set({ passwordHash, updatedAt: new Date() })
       .where(eq(s.users.id, check.userId));
-    await tx
-      .update(s.passwordResetTokens)
-      .set({ usedAt: new Date() })
-      .where(eq(s.passwordResetTokens.tokenHash, tokenHash));
+    // Todos los tokens del usuario, no solo el consumido: un link viejo no sobrevive al reset.
+    await markAllResetTokensUsed(tx, check.userId, new Date());
   });
   return check;
 }
