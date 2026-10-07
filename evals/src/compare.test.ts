@@ -37,6 +37,18 @@ const report = (jobs: JobReport[], strip = false): Report => {
   } as unknown as Report;
 };
 
+describe("compare: reportes cortados por tope de gasto", () => {
+  it("avisa arriba de la comparación qué lado (A/B) quedó cortado", () => {
+    const fresh = report([job({ prefilter_discard: false })]);
+    const cut = report([job({ prefilter_discard: false })]);
+    cut.meta.cut_by_budget = { max_usd: 0.5, spent_usd: 0.49, calls_done: 40, calls_planned: 108 };
+    const text = compareReports(fresh, cut);
+    expect(text).toMatch(/^B: !! CORTADO por tope de gasto/);
+    expect(text).not.toMatch(/A: !! CORTADO/);
+    expect(compareReports(fresh, fresh)).not.toContain("CORTADO");
+  });
+});
+
 describe("compare: reportes sin recomputar", () => {
   it("avisa cuando un reporte no trae los campos de JS-067 y no lo hace si ambos los traen", () => {
     const fresh = report([job({ prefilter_discard: false })]);

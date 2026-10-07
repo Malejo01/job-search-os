@@ -1,5 +1,8 @@
-import { createFakeLlm, DEFAULT_PROMPT_VERSIONS } from "@job-search-os/adapters";
-import { outputSchemaFor } from "@job-search-os/pipeline";
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { createFakeLlm, DEFAULT_PROMPT_VERSIONS, type LlmClient } from "@job-search-os/adapters";
+import { ok, outputSchemaFor } from "@job-search-os/pipeline";
 import { listPrompts } from "@job-search-os/prompts";
 import { describe, expect, it } from "vitest";
 
@@ -31,8 +34,10 @@ import {
   priceForModel,
   resolvePromptFlag,
   routeFor,
+  formatReport,
   RunAbortedError,
   runEvals,
+  type Report,
 } from "./run";
 
 /** Respuesta grabada válida para EvaluationV11OutputSchema (v1.1/v1.2). */
@@ -197,6 +202,105 @@ describe("runEvals: guardarraíles de costo", () => {
       }),
     ).rejects.toBeInstanceOf(RunAbortedError);
     expect(client.calls.length).toBeLessThanOrEqual(2);
+  });
+});
+
+describe("runEvals: tope de gasto durante la corrida (JS-080)", () => {
+  /** Cliente falso que cobra `usd` por llamada (el FakeLlm de adapters siempre devuelve 0). */
+  const charging = (usd: number | null): LlmClient & { calls: unknown[] } => {
+    const inner = fake();
+    return {
+      calls: inner.calls,
+      async generateStructured(task, schema, vars, ctx) {
+        const r = await inner.generateStructured(task, schema, vars, ctx);
+        return r.ok ? ok({ ...r.value, costUsd: usd }) : r;
+      },
+    };
+  };
+  const cutOptions = (client: LlmClient, concurrency: number, outDir: string) => ({
+    prompt: "evaluate_job@v1.1" as const,
+    runs: 1,
+    concurrency,
+    subset: true,
+    outDir,
+    client,
+    sleep: async () => {},
+    maxUsd: 0.05,
+    expectedCallUsd: 0.01,
+  });
+
+  it.each([1, 3])(
+    "con concurrencia %i corta tras N llamadas, nunca N+1, y deja el reporte marcado",
+    async (concurrency) => {
+      const dir = mkdtempSync(join(tmpdir(), "evals-cut-"));
+      try {
+        const client = charging(0.01);
+        let error: unknown;
+        await runEvals(cutOptions(client, concurrency, dir)).catch((e: unknown) => (error = e));
+        expect(error).toBeInstanceOf(RunAbortedError);
+        expect((error as RunAbortedError).message).toMatch(/tope de gasto/);
+        expect(client.calls.length).toBeLessThanOrEqual(5);
+        expect(client.calls.length).toBeGreaterThan(0);
+
+        const [file] = readdirSync(dir);
+        // Un reporte cortado no pisa a uno completo de la misma configuración
+        expect(file).toMatch(/_cortado\.json$/);
+        const report = JSON.parse(readFileSync(join(dir, file!), "utf8")) as Report;
+        const cut = report.meta.cut_by_budget!;
+        expect(cut.max_usd).toBe(0.05);
+        expect(cut.calls_planned).toBe(16);
+        expect(cut.calls_done).toBe(client.calls.length);
+        expect(cut.spent_usd).toBeLessThanOrEqual(0.05 + 1e-9);
+        expect(formatReport(report)).toMatch(/CORTADO por tope de gasto/);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.each([1, 3])(
+    "costo real mayor al esperado (concurrencia %i): corta y el exceso queda acotado a lo que estaba en vuelo",
+    async (concurrency) => {
+      // Esperado 0.01, real 0.04, tope 0.05. El tope en vuelo es aproximado a propósito: cada
+      // llamada lanzada reservó solo 0.01, así que el exceso máximo sobre el tope es
+      // concurrencia × (real − esperado); nunca crece con las llamadas que no se lanzaron.
+      const dir = mkdtempSync(join(tmpdir(), "evals-cut-"));
+      try {
+        const client = charging(0.04);
+        await expect(runEvals(cutOptions(client, concurrency, dir))).rejects.toBeInstanceOf(
+          RunAbortedError,
+        );
+        const [file] = readdirSync(dir);
+        const report = JSON.parse(readFileSync(join(dir, file!), "utf8")) as Report;
+        const cut = report.meta.cut_by_budget!;
+        expect(client.calls.length).toBeLessThan(16);
+        expect(cut.spent_usd).toBeGreaterThan(0.05);
+        expect(cut.spent_usd).toBeLessThanOrEqual(0.05 + concurrency * (0.04 - 0.01) + 1e-9);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it("sin costo informado cuenta el esperado por llamada", async () => {
+    const client = charging(null);
+    await expect(runEvals(cutOptions(client, 1, ""))).rejects.toBeInstanceOf(RunAbortedError);
+    expect(client.calls.length).toBe(5);
+  });
+
+  it("sin maxUsd no corta: la corrida completa termina igual que antes", async () => {
+    const client = charging(0.01);
+    const { maxUsd: _m, expectedCallUsd: _e, ...rest } = cutOptions(client, 3, "");
+    const report = await runEvals(rest);
+    expect(client.calls).toHaveLength(16);
+    expect(report.meta.cut_by_budget).toBeUndefined();
+  });
+
+  it("un tope que alcanza para todo no corta", async () => {
+    const client = charging(0.001);
+    const report = await runEvals({ ...cutOptions(client, 2, ""), maxUsd: 1 });
+    expect(client.calls).toHaveLength(16);
+    expect(report.meta.cut_by_budget).toBeUndefined();
   });
 });
 

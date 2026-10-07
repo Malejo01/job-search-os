@@ -106,5 +106,17 @@ describe("formatRecompute", () => {
     expect(text).toContain("location_risk_recall cruda");
     expect(text).toContain("final");
     expect(text).toContain("risks_recall por tipo");
+    expect(text).not.toContain("CORTADO");
+  });
+
+  it("muestra la línea de corte si el reporte fue cortado por el tope de gasto", () => {
+    const { report } = recomputeReport(
+      reportWith(
+        {},
+        { cut_by_budget: { max_usd: 0.5, spent_usd: 0.49, calls_done: 40, calls_planned: 108 } },
+      ),
+    );
+    const lines = formatRecompute(report, { ...report.metrics }, []);
+    expect(lines[0]).toMatch(/^!! CORTADO por tope de gasto/);
   });
 });

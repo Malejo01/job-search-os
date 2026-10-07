@@ -10,6 +10,7 @@ import {
   splitByAnchorSource,
   type Metrics,
 } from "./metrics";
+import { cutLine } from "./cost-guard";
 import { productionDecision, type JobReport, type Report } from "./run";
 
 /**
@@ -189,6 +190,7 @@ export function formatRecompute(report: Report, old: Partial<Metrics>, notes: st
   const both = (k: keyof Metrics) =>
     `${pct(old[k] as number | null | undefined)} → ${pct(m[k] as number | null)}`;
   const lines = [
+    ...cutLine(report),
     `${report.meta.prompt} × ${report.meta.model}: mae ${old.score_mae?.toFixed(2)} → ${m.score_mae?.toFixed(2)} · blockers_recall ${both("blockers_recall")} · blockers_precision ${both("blockers_precision")} · risks_recall ${both("risks_recall")} · action_acc ${both("action_acc")} · false_apply ${old.false_apply} → ${m.false_apply} · false_discard ${old.false_discard ?? "n/a"} → ${m.false_discard} · location ${both("location_risk_recall")}`,
     `  laxas: blockers_recall_any ${both("blockers_recall_any")} · risks_recall_any ${both("risks_recall_any")} · location_risk_recall_any ${both("location_risk_recall_any")} · false_discard_action ${old.false_discard_action ?? "n/a"} → ${m.false_discard_action}`,
     `  location_risk_recall cruda ${pct(m.location_risk_recall)} · final (después de decide()) ${pct(m.location_risk_recall_final)}`,
