@@ -1,0 +1,63 @@
+[
+  {
+    "legal": "Datos de ejemplo inventados. Aviso legal ficticio: enlazar al aviso original."
+  },
+  {
+    "id": "900001",
+    "slug": "remote-senior-backend-engineer-empresa-a-900001",
+    "epoch": 1789000000,
+    "date": "2026-09-10T01:46:40+00:00",
+    "company": "Empresa A",
+    "position": "Senior Backend Engineer",
+    "tags": ["python", "backend", "api"],
+    "description": "<p>Construimos <strong>APIs</strong> para clientes ficticios.</p><ul><li>Python y Postgres</li><li>Ingl&#233;s &amp; trabajo asincr&#243;nico</li></ul>",
+    "location": "Worldwide",
+    "salary_min": 90000,
+    "salary_max": 130000,
+    "url": "https://example.com/remote-jobs/900001",
+    "apply_url": "https://example.com/apply/900001"
+  },
+  {
+    "id": "900002",
+    "slug": "remote-fullstack-developer-empresa-b-900002",
+    "epoch": 1789000100,
+    "date": "2026-09-10T01:48:20+00:00",
+    "company": "Empresa B",
+    "position": "Full Stack Developer",
+    "tags": ["typescript", "react"],
+    "description": "<p>Producto ficticio sin rango salarial.</p>",
+    "location": "USA",
+    "salary_min": 0,
+    "salary_max": 0,
+    "url": "https://example.com/remote-jobs/900002",
+    "apply_url": "https://example.com/apply/900002"
+  },
+  {
+    "id": "900003",
+    "slug": "remote-devops-engineer-empresa-c-900003",
+    "epoch": 1789000200,
+    "date": "2026-09-10T01:50:00+00:00",
+    "company": "Empresa C",
+    "position": "DevOps Engineer",
+    "tags": ["devops", "aws"],
+    "description": "<p>Infraestructura ficticia.</p>",
+    "location": "",
+    "salary_min": 70000,
+    "salary_max": 0,
+    "url": "https://example.com/remote-jobs/900003"
+  },
+  {
+    "id": 900004,
+    "slug": "remote-old-job-empresa-d-900004",
+    "epoch": 1700000000,
+    "date": "2023-11-14T22:13:20+00:00",
+    "company": "Empresa D",
+    "position": "Data Engineer",
+    "tags": ["data"],
+    "description": "<p>Aviso viejo.</p>",
+    "location": "Europe",
+    "salary_min": 0,
+    "salary_max": 0,
+    "url": "https://example.com/remote-jobs/900004"
+  }
+]

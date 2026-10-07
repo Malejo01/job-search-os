@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>We Work Remotely (ejemplo inventado)</title>
+    <link>https://example.com/</link>
+    <description>Feed de ejemplo con datos ficticios</description>
+    <item>
+      <title>Empresa E: Senior Platform Engineer</title>
+      <region>Anywhere in the World</region>
+      <category>Programming</category>
+      <type>Full-Time</type>
+      <description><![CDATA[<p>Plataforma ficticia.</p><ul><li>Kubernetes</li><li>Terraform &amp; CI</li></ul>]]></description>
+      <pubDate>Thu, 10 Sep 2026 01:46:40 +0000</pubDate>
+      <link>https://example.com/wwr/empresa-e-senior-platform-engineer</link>
+      <guid>https://example.com/wwr/empresa-e-senior-platform-engineer</guid>
+    </item>
+    <item>
+      <title>Empresa F: Backend Developer</title>
+      <region>USA Only</region>
+      <category>Back-End Programming</category>
+      <type>Contract</type>
+      <description>&lt;p&gt;Equipo ficticio &amp;amp; remoto.&lt;/p&gt;&lt;p&gt;Pago en d&amp;#243;lares.&lt;/p&gt;</description>
+      <pubDate>Thu, 10 Sep 2026 02:00:00 +0000</pubDate>
+      <link>https://example.com/wwr/empresa-f-backend-developer</link>
+      <guid>https://example.com/wwr/empresa-f-backend-developer</guid>
+    </item>
+    <item>
+      <title>Desarrollador sin empresa en el titulo</title>
+      <category>Programming</category>
+      <description><![CDATA[<p>Sin region ni tipo.</p>]]></description>
+      <pubDate>Thu, 10 Sep 2026 03:00:00 +0000</pubDate>
+      <link>https://example.com/wwr/sin-empresa</link>
+    </item>
+    <item>
+      <title>Empresa G: Item roto sin fecha</title>
+      <link>https://example.com/wwr/empresa-g-roto</link>
+      <guid>https://example.com/wwr/empresa-g-roto</guid>
+    </item>
+    <item>
+      <title>Empresa H: Puesto viejo</title>
+      <region>Anywhere in the World</region>
+      <category>Programming</category>
+      <description><![CDATA[<p>Aviso viejo.</p>]]></description>
+      <pubDate>Tue, 14 Nov 2023 22:13:20 +0000</pubDate>
+      <link>https://example.com/wwr/empresa-h-viejo</link>
+      <guid>https://example.com/wwr/empresa-h-viejo</guid>
+    </item>
+  </channel>
+</rss>
