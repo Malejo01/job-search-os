@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { cleanDomain, emailIdsOfDomain, filterLeaks } from "@/lib/filter-leak";
 import { inboxVolume, listInbox, parseInboxView, type InboxView } from "@/lib/inbox-list";
+import { getInboundAddress } from "@/lib/inbound-address";
 import { formatDate, parserLabel } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import { BulkBar } from "./bulk-bar";
@@ -21,8 +22,7 @@ const EMPTY: Record<InboxView, string> = {
   pendientes: "No hay emails pendientes de revisar.",
   vistos: "Todavía no marcaste ningún email como visto.",
   descartados: "No descartaste ningún email.",
-  todos:
-    "Todavía no llegó ningún email. Reenviá las alertas a tu dirección de ingesta (perfil › inbound_address).",
+  todos: "Todavía no llegó ningún email. Reenviá las alertas a tu dirección de ingesta.",
 };
 
 /**
@@ -44,10 +44,11 @@ export default async function InboxPage({
   // "Ver" desde el aviso de fuga: solo los emails de ese dominio (JS-048)
   const domain = params.dominio ? cleanDomain(params.dominio) : null;
   const only = domain ? await emailIdsOfDomain(userId, domain) : undefined;
-  const [{ rows, counts }, volume, leaks] = await Promise.all([
+  const [{ rows, counts }, volume, leaks, address] = await Promise.all([
     listInbox(userId, view, only),
     inboxVolume(userId),
     filterLeaks(userId),
+    getInboundAddress(userId),
   ]);
 
   return (
@@ -166,6 +167,16 @@ export default async function InboxPage({
       {rows.length === 0 ? (
         <p className="rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500">
           {EMPTY[view]}
+          {counts.todos === 0 && address ? (
+            <>
+              <br />
+              Tu dirección: <span className="font-mono text-zinc-900 select-all">{address}</span>
+              <br />
+              <Link href="/settings" className="text-blue-700 underline">
+                Cómo reenviar desde Gmail, en Ajustes
+              </Link>
+            </>
+          ) : null}
         </p>
       ) : (
         <ul className="flex flex-col gap-2">

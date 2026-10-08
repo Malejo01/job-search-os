@@ -18,3 +18,5 @@ export * from "./review";
 export * from "./applicant";
 export * from "./legal/markdown";
 export * from "./onboarding";
+export * from "./inbound-address";
+export * from "./criteria-form";
