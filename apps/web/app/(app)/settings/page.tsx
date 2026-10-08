@@ -46,6 +46,16 @@ export default async function SettingsPage({
       />
 
       <section className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
+        <h2 className="text-lg font-medium">Remitentes</h2>
+        <p className="text-sm text-zinc-700">
+          Qué dominios son fuentes de empleo y se guardan completos.
+        </p>
+        <Link href="/settings/senders" className="text-sm text-zinc-900 underline">
+          Ver y cambiar remitentes
+        </Link>
+      </section>
+
+      <section className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
         <h2 className="text-lg font-medium">Criterios</h2>
         <Link href="/settings/criteria" className="text-sm text-zinc-900 underline">
           Editar mis criterios de evaluación

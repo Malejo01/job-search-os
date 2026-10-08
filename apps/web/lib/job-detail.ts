@@ -1,3 +1,4 @@
+import { applyJobEventIn } from "@job-search-os/adapters";
 import { schema as s } from "@job-search-os/db";
 import {
   applicationEffect,
@@ -6,9 +7,7 @@ import {
   correctStatus,
   planDuplicateMerge,
   POSSIBLE_DUPLICATE_FLAG,
-  transition,
   type Adjustment,
-  type ApplicationOutcome,
   type JobEvent,
   type JobStatus,
 } from "@job-search-os/pipeline";
@@ -260,51 +259,16 @@ export async function getJobDetail(userId: string, jobId: string): Promise<JobDe
   });
 }
 
-/** Evento manual → resultado de la postulación (si existe). `close` desde aplicada = cerrada antes de responder. */
-const EVENT_OUTCOME: Partial<Record<JobEvent, ApplicationOutcome>> = {
-  reject: "rechazo_humano",
-  auto_reject: "rechazo_automatico_otro",
-  interview: "entrevista",
-  offer: "oferta",
-  close: "cerrada_antes",
-};
-
-/** Cambia el estado con transition(); en `apply` deja constancia en applications y los eventos posteriores actualizan su resultado. */
+/**
+ * Cambia el estado con transition(); en `apply` deja constancia en applications y los eventos
+ * posteriores actualizan su resultado. La lógica vive en adapters (la comparte el inbound).
+ */
 export async function applyJobEvent(
   userId: string,
   jobId: string,
   event: JobEvent,
 ): Promise<JobStatus> {
-  return withUser(userId, async (tx) => {
-    const [job] = await tx
-      .select({ status: s.jobs.status })
-      .from(s.jobs)
-      .where(eq(s.jobs.id, jobId))
-      .limit(1);
-    if (!job) throw new Error("oferta inexistente");
-    const next = transition(job.status, event); // lanza InvalidTransitionError si no corresponde
-    const now = new Date();
-    await tx.update(s.jobs).set({ status: next, updatedAt: now }).where(eq(s.jobs.id, jobId));
-    if (event === "apply") {
-      const [existing] = await tx
-        .select({ id: s.applications.id })
-        .from(s.applications)
-        .where(eq(s.applications.jobId, jobId))
-        .limit(1);
-      if (!existing) {
-        await tx.insert(s.applications).values({ jobId, userId, appliedAt: now });
-      }
-    }
-    // Feedback loop (JS-036): el evento sobre la oferta deja el resultado en la postulación
-    const outcome = EVENT_OUTCOME[event];
-    if (outcome) {
-      await tx
-        .update(s.applications)
-        .set({ outcome, outcomeAt: now })
-        .where(and(eq(s.applications.jobId, jobId), eq(s.applications.userId, userId)));
-    }
-    return next;
-  });
+  return withUser(userId, (tx) => applyJobEventIn(tx, userId, jobId, event));
 }
 
 /**

@@ -1,9 +1,16 @@
 import Link from "next/link";
 import { cleanDomain, emailIdsOfDomain, filterLeaks } from "@/lib/filter-leak";
-import { inboxVolume, listInbox, parseInboxView, type InboxView } from "@/lib/inbox-list";
+import {
+  inboxVolume,
+  listInbox,
+  parseInboxView,
+  pendingGmailConfirmation,
+  type InboxView,
+} from "@/lib/inbox-list";
 import { getInboundAddress } from "@/lib/inbound-address";
 import { formatDate, parserLabel } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
+import { markSeenAction } from "./actions";
 import { BulkBar } from "./bulk-bar";
 import { DeleteDomainButton } from "./delete-domain-button";
 import { EmailActions } from "./email-actions";
@@ -20,7 +27,7 @@ const TABS: { view: InboxView; label: string }[] = [
 
 const EMPTY: Record<InboxView, string> = {
   pendientes: "No hay emails pendientes de revisar.",
-  vistos: "Todavía no marcaste ningún email como visto.",
+  vistos: "Todavía no hay emails vistos ni resueltos automáticamente.",
   descartados: "No descartaste ningún email.",
   todos: "Todavía no llegó ningún email. Reenviá las alertas a tu dirección de ingesta.",
 };
@@ -44,15 +51,66 @@ export default async function InboxPage({
   // "Ver" desde el aviso de fuga: solo los emails de ese dominio (JS-048)
   const domain = params.dominio ? cleanDomain(params.dominio) : null;
   const only = domain ? await emailIdsOfDomain(userId, domain) : undefined;
-  const [{ rows, counts }, volume, leaks, address] = await Promise.all([
+  const [{ rows, counts }, volume, leaks, address, gmail] = await Promise.all([
     listInbox(userId, view, only),
     inboxVolume(userId),
     filterLeaks(userId),
     getInboundAddress(userId),
+    pendingGmailConfirmation(userId),
   ]);
 
   return (
     <section className="flex flex-col gap-3">
+      {/* Arriba de todo, hasta que se marque como visto */}
+      {gmail ? (
+        <div
+          role="region"
+          aria-label="Confirmación del reenvío de Gmail"
+          className="flex flex-col gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-950"
+        >
+          <p className="font-medium">Confirmá el reenvío de Gmail</p>
+          <p className="text-xs">
+            Gmail mandó el pedido de confirmación a tu dirección de ingesta. Confirmalo para que
+            empiece a reenviar tus alertas.
+          </p>
+          <p className="text-xs">
+            {gmail.requester ? (
+              <>
+                Lo pidió <span className="font-medium">{gmail.requester}</span>. Confirmá solo si es
+                tu cuenta de Gmail.
+              </>
+            ) : (
+              "Confirmá solo si vos pediste este reenvío."
+            )}
+          </p>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            {gmail.link ? (
+              <a
+                href={gmail.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded bg-blue-700 px-3 py-1.5 font-medium text-white"
+              >
+                Confirmar reenvío
+              </a>
+            ) : (
+              <>
+                <span>Abrí el email para confirmarlo.</span>
+                <Link href={`/inbox/${gmail.id}`} className="text-blue-700 underline">
+                  Abrir el email
+                </Link>
+              </>
+            )}
+            <form action={markSeenAction}>
+              <input type="hidden" name="id" value={gmail.id} />
+              <button type="submit" className="rounded border border-blue-300 bg-white px-3 py-1.5">
+                Ya lo confirmé
+              </button>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-xl font-semibold">Emails entrantes</h1>
         <p className="text-xs text-zinc-500">
@@ -162,7 +220,7 @@ export default async function InboxPage({
         </p>
       ) : null}
 
-      <BulkBar total={only ? rows.length : counts[view]} shown={rows.length} />
+      <BulkBar total={only ? rows.length : counts[view]} shown={rows.length} view={view} />
 
       {rows.length === 0 ? (
         <p className="rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500">

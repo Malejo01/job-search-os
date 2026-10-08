@@ -173,6 +173,10 @@ export async function createInboundEmail(options: {
   receivedAt?: Date;
   /** Llega de un remitente no esperado: sin cuerpo guardado (JS-051). */
   redacted?: boolean;
+  /** Avisos que el parser extrajo (por defecto 0). */
+  jobsExtracted?: number;
+  /** Llega ya visto (lo que hace la ingesta con un email que extrajo avisos). */
+  seen?: boolean;
 }): Promise<{ id: string; rawRef: string }> {
   const { db, close } = ownerDb();
   try {
@@ -211,13 +215,14 @@ export async function createInboundEmail(options: {
         subject: options.subject,
         rawRef,
         parser: options.parser ?? "none",
-        jobsExtracted: 0,
+        jobsExtracted: options.jobsExtracted ?? 0,
         error:
           options.error === undefined
             ? "sin parser para este remitente: cola manual"
             : options.error,
         receivedAt: options.receivedAt ?? new Date(),
         dismissedAt: options.dismissed ? new Date() : null,
+        seenAt: options.seen ? new Date() : null,
       })
       .returning({ id: s.inboundEmails.id });
     return { id: row!.id, rawRef };
@@ -678,6 +683,25 @@ export async function inboundCountOf(userId: string, subjectFragment: string): P
         ),
       );
     return rows.length;
+  } finally {
+    await close();
+  }
+}
+
+/** Guarda una decisión sobre un dominio para el usuario seed (la UI de Remitentes la cambia después). */
+export async function setSenderVerdictForSeed(
+  domain: string,
+  verdict: "empleo" | "no_empleo",
+): Promise<void> {
+  const { db, close } = ownerDb();
+  try {
+    await db
+      .insert(s.inboundSenderDomains)
+      .values({ userId: E2E_USER_ID, domain, verdict })
+      .onConflictDoUpdate({
+        target: [s.inboundSenderDomains.userId, s.inboundSenderDomains.domain],
+        set: { verdict },
+      });
   } finally {
     await close();
   }

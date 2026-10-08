@@ -142,7 +142,7 @@ Tickets de 1–3 hs. `deps` = tickets que deben estar done. Estado: `todo` · `d
 
 ### JS-020 · Inbound email (Resend) ✅ configurado 2026-09-18
 `deps:` JS-019 · `est:` 2 h
-- **Producción:** dominio `ingest.malejo.com.ar` verificado en Resend con envío **y recepción**; registros en la zona de Vercel (DKIM, SPF, MX de feedback en `send.ingest`, y **MX de recepción** `ingest MX 10 inbound-smtp.sa-east-1.amazonaws.com`, que tiene que ser el de menor prioridad del subdominio). Webhook `https://busquedalaboral.malejo.com.ar/api/inbound` con `RESEND_WEBHOOK_SECRET` e `INGEST_DOMAIN` cargados. `profiles.inbound_address` = `u_a0000000@ingest.malejo.com.ar` por **UPDATE puntual**: el seed completo NO se corre contra producción, reescribiría perfil y golden.
+- **Producción:** dominio `ingest.malejo.com.ar` verificado en Resend con envío **y recepción**; registros en la zona de Vercel (DKIM, SPF, MX de feedback en `send.ingest`, y **MX de recepción** `ingest MX 10 inbound-smtp.sa-east-1.amazonaws.com`, que tiene que ser el de menor prioridad del subdominio). Webhook `https://busquedalaboral.malejo.com.ar/api/inbound` con `RESEND_WEBHOOK_SECRET` e `INGEST_DOMAIN` cargados. `profiles.inbound_address` cargada por **UPDATE puntual** (hoy cada usuario la ve y la rota en Ajustes): el seed completo NO se corre contra producción, reescribiría perfil y golden.
 - Verificado contra producción: 401 sin firma, 401 con firma inválida, 200 `unknown_recipient` con firma válida, y el primer email real (confirmación de reenvío de Gmail) guardado y despachado a cola manual como corresponde.
 - **`/inbox/<id>`: ver el contenido del email** (links, texto y HTML en un `iframe` con `sandbox` vacío, porque es contenido no confiable). Nació de una carencia real: sin esto, un email de una fuente nueva caía en cola manual y no había forma de leerlo para decidir si cargarlo a mano o escribirle un parser. El primer caso fue el link de confirmación de Gmail, que estaba enterrado en el HTML.
 - **✅ Confirmado en producción con datos reales el 2026-09-18:** llegaron dos alertas reales de LinkedIn por el filtro de reenvío de Gmail, el parser extrajo 5 y 1 avisos, y el dedup no duplicó: un mismo puesto de Empresa X (golden id 30) re-anunciado dos veces quedó como un solo job, y Empresa S (golden id 24) se cruzó con el job del golden cargado antes. (La sospecha de que el filtro de Gmail no andaba era falsa: faltaba que llegara una alerta real después de crearlo.)
@@ -712,6 +712,23 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 ### JS-117 · Inbound: eleccion del destinatario ✅ done 2026-10-08
 `deps:` — · `est:` XS · `estado:` done (ronda 18)
 - Con varios destinatarios del sistema se elige de forma determinista: primero `received_for` (el destinatario de la entrega), despues `to`, despues `cc`.
+
+### JS-119 · Bandeja automatica ✅ done 2026-10-08
+`deps:` JS-095 · `est:` M · `estado:` done (ronda 19)
+- Al llegar: con avisos extraidos queda visto; login, verificacion o codigos (de cualquier remitente) se descartan sin guardar contenido y con el asunto enmascarado; la confirmacion de reenvio de Gmail dirigida a la direccion del usuario se guarda completa y aparece arriba de `/inbox` con "Confirmar reenvio" (solo links `https` de los hosts de Gmail); las confirmaciones de postulacion de LinkedIn actualizan el aviso propio si hay un unico candidato, y si no quedan vistas.
+- "Pendientes" = solo lo que necesita intervencion (error, sin parser o la confirmacion de Gmail). Acciones en lote por id con "Deshacer" (10 s) y "Volver a vistos/pendientes" en Descartados. Ajustes > Remitentes para cambiar el veredicto de cada dominio.
+
+### JS-120 · Datos legales por variables de entorno
+`deps:` JS-097 · `est:` S · `estado:` todo (ronda 20)
+- Los datos del responsable y el plazo de logs se completan en tiempo de ejecucion desde variables; si falta alguna, la pagina dice "en revision". Nunca en el repo.
+
+### JS-121 · Higiene de tests y de escaneo de secretos
+`deps:` — · `est:` S · `estado:` todo (ronda 20)
+- Los tests de integracion que crean roles o usuarios fallan antes de conectarse si la base no es local o de Testcontainers; `.gitguardian.yaml` ignora solo las credenciales de prueba de tests y e2e.
+
+### JS-122 · Asistente de ingesta en pocos clics (B8)
+`deps:` JS-119 · `est:` M · `estado:` todo (ronda 22, pre-aprobada)
+- Asistente en el onboarding y en Ajustes con estado en vivo; auto-confirmacion del reenvio de Gmail con lista estricta de hosts; archivo de filtros de Gmail por usuario; fuentes por API prendidas por defecto. Meta: un invitado configura todo solo en menos de 10 minutos.
 
 ### JS-118 · Prefiltro: modalidad no remota en el titulo
 `deps:` — · `est:` S · `estado:` todo (2026-10-08, Mauro)

@@ -1,6 +1,6 @@
 import { schema as s } from "@job-search-os/db";
 import { baseDomain, detectFilterLeaks, type FilterLeak } from "@job-search-os/pipeline";
-import { sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { withUser } from "./db";
 import { deleteInbound } from "./inbox-list";
 
@@ -11,7 +11,7 @@ import { deleteInbound } from "./inbox-list";
  */
 
 /** Host del remitente en SQL: "Banco <a@mails.banco.example>" → "mails.banco.example". */
-const HOST_SQL = sql<string>`lower(split_part(regexp_replace(${s.inboundEmails.fromAddress}, '^.*<([^>]+)>.*$', '\\1'), '@', 2))`;
+export const HOST_SQL = sql<string>`lower(split_part(regexp_replace(${s.inboundEmails.fromAddress}, '^.*<([^>]+)>.*$', '\\1'), '@', 2))`;
 
 export const SENDER_VERDICTS = ["empleo", "no_empleo"] as const;
 export type SenderVerdict = (typeof SENDER_VERDICTS)[number];
@@ -70,6 +70,17 @@ export async function setSenderVerdict(
         target: [s.inboundSenderDomains.userId, s.inboundSenderDomains.domain],
         set: { verdict, createdAt: new Date() },
       }),
+  );
+}
+
+/** "Sin decidir" (Ajustes › Remitentes): borra la decisión; el aviso de fuga vuelve a poder saltar. */
+export async function clearSenderVerdict(userId: string, domain: string): Promise<void> {
+  await withUser(userId, (tx) =>
+    tx
+      .delete(s.inboundSenderDomains)
+      .where(
+        and(eq(s.inboundSenderDomains.userId, userId), eq(s.inboundSenderDomains.domain, domain)),
+      ),
   );
 }
 
