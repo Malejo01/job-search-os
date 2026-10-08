@@ -141,7 +141,7 @@ test.describe("Flujo 21: bandeja automática", () => {
     );
     const fila = page.getByRole("listitem").filter({ hasText: dominioGmail });
     await expect(fila).toContainText("1 email");
-    await expect(fila.getByRole("button", { name: "Es de empleo" })).toHaveAttribute(
+    await expect(fila.getByRole("button", { name: "Es de empleo", exact: true })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
