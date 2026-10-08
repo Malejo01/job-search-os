@@ -15,10 +15,17 @@ const nextConfig: NextConfig = {
   // Los prompts se leen del disco en runtime: sin esto no viajan en el bundle serverless de Vercel
   outputFileTracingIncludes: {
     "/**": ["../../packages/prompts/*.md"],
-    // Textos legales que /privacidad, /terminos y /register (los muestra en la página) leen del disco en runtime
+    // Textos legales que /legal/* y /register (los muestra en la página) leen del disco
     "/register": ["./content/legal/*.md"],
-    "/privacidad": ["./content/legal/*.md"],
-    "/terminos": ["./content/legal/*.md"],
+    "/legal/privacidad": ["./content/legal/*.md"],
+    "/legal/terminos": ["./content/legal/*.md"],
+  },
+  // Las URLs viejas siguen andando, también sin sesión (JS-106); las páginas de (app) quedan de cinturón
+  async redirects() {
+    return [
+      { source: "/privacidad", destination: "/legal/privacidad", permanent: false },
+      { source: "/terminos", destination: "/legal/terminos", permanent: false },
+    ];
   },
   // El token del reset viaja en la query: que no salga en el Referer hacia otros sitios (SEC-05).
   async headers() {

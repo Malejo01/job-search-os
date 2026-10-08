@@ -4,6 +4,7 @@ import {
   canonicalUrl,
   dedup,
   externalKey,
+  isValidCountry,
   normalizeCompany,
   normalizeLocation,
   normalizeTitle,
@@ -45,6 +46,11 @@ export type IngestDeps = {
   taxonomy?: readonly Term[];
   /** Dónde va el crudo (JS-024). Por defecto raw_blobs en la misma conexión. */
   storage?: BlobStorage;
+  /**
+   * País del perfil (ISO-2) para el prefiltro (JS-104). `null` = desconocido; si no viene,
+   * ingestBatch / ingestRawJob lo leen de profiles.location_country.
+   */
+  userCountry?: string | null;
 };
 
 export type IngestOutcome =
@@ -222,6 +228,17 @@ async function upsertCompany(db: Db, companyRaw: string): Promise<string | null>
   return row?.id ?? null;
 }
 
+/** País del perfil para el prefiltro; `'XX'` (registro), vacío o sin perfil cuentan como desconocido (`null`). */
+export async function loadProfileCountry(db: Db, userId: string): Promise<string | null> {
+  const [row] = await db
+    .select({ country: s.profiles.locationCountry })
+    .from(s.profiles)
+    .where(eq(s.profiles.userId, userId))
+    .limit(1);
+  const country = row?.country?.trim().toUpperCase() ?? null;
+  return isValidCountry(country) ? country : null;
+}
+
 export async function ingestRawJob(raw: RawJob, deps: IngestDeps): Promise<IngestOutcome> {
   const { db, userId, rules } = deps;
   const now = deps.now?.() ?? new Date();
@@ -365,6 +382,10 @@ export async function ingestRawJob(raw: RawJob, deps: IngestDeps): Promise<Inges
       countriesAllowed: raw.countriesAllowed,
     },
     rules,
+    {
+      userCountry:
+        deps.userCountry === undefined ? await loadProfileCountry(db, userId) : deps.userCountry,
+    },
   );
 
   let status: JobStatus = transition("nueva", pre.pass ? "prefilter_pass" : "prefilter_discard");
@@ -466,9 +487,19 @@ export async function ingestBatch(raws: RawJob[], deps: IngestDeps): Promise<Ing
     enqueued: 0,
     errors: [],
   };
+  // El país del perfil se lee una vez por lote (JS-104)
+  let batchDeps = deps;
+  if (deps.userCountry === undefined) {
+    try {
+      batchDeps = { ...deps, userCountry: await loadProfileCountry(deps.db, deps.userId) };
+    } catch (e) {
+      // Si falla la lectura, cada job la reintenta por su cuenta y registra su propio error
+      deps.logger.error({ user_id: deps.userId, err: String(e) }, "ingest: país del perfil");
+    }
+  }
   for (const raw of raws) {
     try {
-      const out = await ingestRawJob(raw, deps);
+      const out = await ingestRawJob(raw, batchDeps);
       if (out.action === "merged") summary.merged++;
       else {
         summary.inserted++;

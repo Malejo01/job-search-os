@@ -247,7 +247,7 @@ export async function draftApplicationAnswers(
   db: Db,
   input: { userId: string; jobId: string; questions: FormQuestion[] },
   llm: LlmClient,
-  capGuard?: () => Promise<string | null>,
+  capGuard: () => Promise<string | null>,
 ): Promise<DraftApplicationAnswersResult> {
   const { userId, jobId } = input;
   const questions = input.questions.map((q) => ({ id: q.id.trim(), text: q.text.trim() }));
@@ -272,7 +272,7 @@ export async function draftApplicationAnswers(
   let llmError: LlmError | null = null;
 
   let capMessage: string | null = null;
-  if (forModel.length > 0) capMessage = (await capGuard?.()) ?? null;
+  if (forModel.length > 0) capMessage = (await capGuard()) ?? null;
   if (capMessage) {
     for (const q of forModel) {
       results.set(q.id, {

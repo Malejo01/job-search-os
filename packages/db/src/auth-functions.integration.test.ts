@@ -8,11 +8,10 @@ import { applyMigrations } from "./migrate";
 import { hashPassword, verifyPassword } from "./password";
 
 /**
- * Ronda 14a · `users` sin lectura cruzada. Como jobsearch_app (NOBYPASSRLS) y con un dueño de
- * tablas y funciones SIN BYPASSRLS (como puede pasar en Neon), aplica DENTRO del test
- * rls-pendiente/0003_users_own_row.sql (users_read = fila propia, bootstrap por función) y prueba que
- * login, sesión, reset, MCP, /setup y el registro v2 siguen andando por las funciones de
- * rls/0003_auth_functions.sql. Datos inventados.
+ * Rondas 14a/14c · `users` sin lectura cruzada. Como jobsearch_app (NOBYPASSRLS) y con un dueño de
+ * tablas y funciones SIN BYPASSRLS (como puede pasar en Neon), sobre rls/ (que desde la 14c ya
+ * cierra users_read y el bootstrap va por función) prueba que login, sesión, reset, MCP, /setup y
+ * el registro v2 siguen andando por las funciones de rls/0003_auth_functions.sql. Datos inventados.
  */
 const A = "a3000000-0000-4000-8000-000000000001";
 const B = "b3000000-0000-4000-8000-000000000002";
@@ -44,6 +43,7 @@ let container: StartedPostgreSqlContainer | null = null;
 let owner: Sql;
 let app: Sql;
 let ownerName = "";
+let migrateUrl = "";
 
 /** Como la app para un usuario con sesión: app.user_id fijado en la transacción */
 async function asUser<T>(userId: string, fn: (tx: postgres.TransactionSql) => Promise<T>) {
@@ -70,6 +70,7 @@ beforeAll(async () => {
       .start();
     ownerUrl = container.getConnectionUri();
   }
+  migrateUrl = ownerUrl;
   await applyMigrations(ownerUrl, { log: () => {} });
   owner = postgres(ownerUrl, { max: 1, prepare: false });
   await owner.unsafe(`ALTER ROLE jobsearch_app WITH PASSWORD '${APP_PASSWORD}'`);
@@ -110,7 +111,7 @@ afterAll(async () => {
       ${TABLES.map((t) => `ALTER TABLE ${t} OWNER TO ${ownerName};`).join("\n")}
       ${[...OLD_FNS, ...NEW_FNS].map((f) => `ALTER FUNCTION public.${f} OWNER TO ${ownerName};`).join("\n")}
     `);
-    // Vuelve al estado de rls/: users_read abierta, bootstrap por subconsulta, policies del dueño original
+    // Vuelve al estado de rls/ con las policies del dueño original
     await owner.unsafe(
       `${read("rls", "0000_policies.sql")} ${read("rls", "0001_invitations.sql")} ${read("rls", "0003_auth_functions.sql")}`,
     );
@@ -134,23 +135,65 @@ describe("users con lectura cerrada a la fila propia (JS-103, 14a)", () => {
     ]);
   });
 
-  it("con rls/ solo (lectura abierta todavía) la app ve las dos filas: el código anterior sigue andando", async () => {
-    const rows = await asUser(A, (tx) => tx`select id from users where id in (${A}, ${B})`);
-    expect(rows).toHaveLength(2);
-    const bootstrap = await owner`select policyname, qual, with_check from pg_policies
-                                  where tablename = 'users' and policyname in ('users_read', 'users_bootstrap_insert')`;
-    expect(bootstrap.find((p) => p.policyname === "users_read")!.qual).toBe("true");
+  it("el estado por defecto de rls/ ya es cerrado (fila propia y bootstrap por función)", async () => {
+    const pols = await owner`select policyname, qual, with_check from pg_policies
+                             where tablename in ('users', 'password_reset_tokens')
+                               and policyname in ('users_read', 'users_bootstrap_insert', 'password_reset_tokens_read')`;
+    expect(pols.find((p) => p.policyname === "users_read")!.qual).not.toBe("true");
+    expect(pols.find((p) => p.policyname === "password_reset_tokens_read")!.qual).not.toBe("true");
+    expect(pols.find((p) => p.policyname === "users_bootstrap_insert")!.with_check).toContain(
+      "has_any_user",
+    );
   });
 
-  describe("con rls-pendiente/0003 aplicado por el dueño sin BYPASSRLS", () => {
-    beforeAll(async () => {
+  describe("con rls/ aplicado por el dueño sin BYPASSRLS", () => {
+    it("A no lee los tokens de reset de B, ni B los de A", async () => {
+      await owner`insert into password_reset_tokens (user_id, token_hash, expires_at)
+                  values (${A}, 'cruz-a-cuentas', now() + interval '1 hour'),
+                         (${B}, 'cruz-b-cuentas', now() + interval '1 hour')`;
       try {
-        await owner.unsafe(
-          `SET ROLE jso_nobypass; ${read("rls-pendiente", "0003_users_own_row.sql")}`,
-        );
+        const a = await asUser(A, (tx) => tx`select token_hash from password_reset_tokens`);
+        expect(a.map((r) => r.token_hash)).toEqual(["cruz-a-cuentas"]);
+        const b = await asUser(B, (tx) => tx`select token_hash from password_reset_tokens`);
+        expect(b.map((r) => r.token_hash)).toEqual(["cruz-b-cuentas"]);
       } finally {
-        await owner.unsafe("RESET ROLE");
+        await owner`delete from password_reset_tokens where token_hash like 'cruz-%-cuentas'`;
       }
+    });
+
+    it("select * y filtro por email tampoco cruzan usuarios", async () => {
+      const star = await asUser(A, (tx) => tx`select * from users`);
+      expect(star.map((r) => r.id)).toEqual([A]);
+      const like = await asUser(
+        A,
+        (tx) => tx`select id from users where email like '%@cuentas.test'`,
+      );
+      expect(like.map((r) => r.id)).toEqual([A]);
+    });
+
+    it("el dueño sin BYPASSRLS ve todas las filas de users (lo que usa el cron de mercado)", async () => {
+      const rows = await owner.begin(async (tx) => {
+        await tx.unsafe("SET LOCAL ROLE jso_nobypass");
+        return tx`select id from users where id in (${A}, ${B})`;
+      });
+      expect(rows).toHaveLength(2);
+    });
+
+    it("/setup con users vacía: el INSERT de bootstrap pasa (se deshace al final)", async () => {
+      class Rollback extends Error {}
+      await expect(
+        owner.begin(async (tx) => {
+          await tx.unsafe("SET LOCAL session_replication_role = replica");
+          await tx`delete from users`;
+          await tx.unsafe("SET LOCAL ROLE jobsearch_app");
+          // Sin RETURNING: devolver la fila exigiría pasar users_read, y sin sesión no se ve
+          const ins = await tx`insert into users (email, password_hash)
+                               values ('primero@cuentas.test', 'x')`;
+          expect(ins.count).toBe(1);
+          throw new Rollback();
+        }),
+      ).rejects.toBeInstanceOf(Rollback);
+      expect(await owner`select 1 from users where id in (${A}, ${B})`).toHaveLength(2);
     });
 
     it("A no lee la fila de B (ni por id, ni por email, ni contando)", async () => {
@@ -327,5 +370,46 @@ describe("users con lectura cerrada a la fila propia (JS-103, 14a)", () => {
         expect(r.auth_exec, r.proname).toBe(true);
       }
     });
+
+    it("con solo 0000 aplicado (0003 sin correr) /setup queda cerrado aunque users esté vacía", async () => {
+      try {
+        await owner.unsafe(read("rls", "0000_policies.sql"));
+        const [pol] = await owner`select with_check from pg_policies
+                                  where tablename = 'users' and policyname = 'users_bootstrap_insert'`;
+        expect(pol!.with_check).toBe("false");
+        await expect(
+          owner.begin(async (tx) => {
+            await tx.unsafe("SET LOCAL session_replication_role = replica");
+            await tx`delete from users`;
+            await tx.unsafe("SET LOCAL ROLE jobsearch_app");
+            await tx`insert into users (email, password_hash) values ('primero@cuentas.test', 'x')`;
+          }),
+        ).rejects.toThrow(/row-level security/);
+      } finally {
+        await owner.unsafe(read("rls", "0003_auth_functions.sql"));
+      }
+      expect(await owner`select 1 from users where id in (${A}, ${B})`).toHaveLength(2);
+    });
+
+    // Último: applyMigrations reasigna las policies *_definer_select al rol que migra (el superusuario)
+    it("dos corridas más de applyMigrations dejan las mismas policies, siempre cerradas", async () => {
+      const snapshot = async () =>
+        owner`select tablename, policyname, cmd, roles::text as roles, qual, with_check
+                from pg_policies where schemaname = 'public' order by tablename, policyname`;
+      await applyMigrations(migrateUrl, { log: () => {} });
+      const first = await snapshot();
+      await applyMigrations(migrateUrl, { log: () => {} });
+      const second = await snapshot();
+      expect(second).toEqual(first);
+      const read = second.find((p) => p.policyname === "users_read")!;
+      expect(read.qual).not.toBe("true");
+      expect(second.find((p) => p.policyname === "password_reset_tokens_read")!.qual).not.toBe(
+        "true",
+      );
+      expect(second.find((p) => p.policyname === "users_bootstrap_insert")!.with_check).toContain(
+        "has_any_user",
+      );
+      expect(await app`select id from users`).toHaveLength(0);
+    }, 120_000);
   });
 });

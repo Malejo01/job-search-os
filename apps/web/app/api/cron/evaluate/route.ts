@@ -1,6 +1,8 @@
 import { createDb, requireDatabaseUrl } from "@job-search-os/db";
 import {
+  buildEvaluateCronResponse,
   checkBearerSecret,
+  failedOutcomes,
   createLogger,
   createPgQueue,
   runEvaluateWorker,
@@ -35,14 +37,14 @@ export async function GET(request: Request): Promise<NextResponse> {
       { db, llm, queue: createPgQueue(db), logger },
       { limit: 20 },
     );
-    const { outcomes, ...counts } = summary;
-    return NextResponse.json({
-      ok: true,
-      ...counts,
-      errors: outcomes
-        .filter((o) => !o.ok)
-        .map((o) => ({ jobId: o.jobId, error: o.error.slice(0, 200) })),
-    });
+    // El detalle (ids y mensaje) va al log del servidor; la respuesta es pública (cron.yml): JS-110
+    for (const f of failedOutcomes(summary.outcomes)) {
+      logger.warn(
+        { job_id: f.jobId, category: f.category, err: f.message },
+        "evaluación fallida en el cron",
+      );
+    }
+    return NextResponse.json(buildEvaluateCronResponse(summary));
   } catch (error) {
     logger.error(
       { err: error instanceof Error ? error.message : String(error) },

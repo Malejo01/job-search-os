@@ -1,6 +1,7 @@
 import type { JobEvent } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { notEvaluatedMessage } from "@/lib/evaluate-now";
 import { getJobDetail } from "@/lib/job-detail";
 import { jobNeighbors, listQuery, parseJobFilters } from "@/lib/jobs";
 import {
@@ -62,6 +63,11 @@ export default async function JobDetailPage({
   const { id } = await params;
   const sp = await searchParams;
   const error = typeof sp.error === "string" ? sp.error : undefined;
+  // Tope de gasto o chequeo fallido (JS-105): la oferta quedó guardada, pero no se evaluó ahora
+  const capNotice =
+    sp.cap === "user" || sp.cap === "global" || sp.cap === "pendiente" || sp.cap === "onboarding"
+      ? `Oferta guardada. ${notEvaluatedMessage(sp.cap)}`
+      : null;
   // Los filtros de la lista viajan en la URL del detalle (JS-061): "volver" y "siguiente" los
   // respetan, y el orden sale de la misma consulta que la lista.
   const filters = parseJobFilters(sp);
@@ -89,6 +95,11 @@ export default async function JobDetailPage({
       {error ? (
         <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
           {ERRORS[error] ?? "Algo falló."}
+        </p>
+      ) : null}
+      {capNotice ? (
+        <p role="status" className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          {capNotice}
         </p>
       ) : null}
       {job.evaluating ? (

@@ -1,12 +1,10 @@
-import type { Metadata } from "next";
-import { LegalPage } from "@/lib/legal";
+import { redirect } from "next/navigation";
 
-// El layout de (app) consulta la base (sesión y rol): sin esto Next la prerenderiza en el build,
-// donde no hay DATABASE_URL (CI y Vercel).
+// El layout de (app) consulta la base: sin esto Next la prerenderiza en el build, donde no hay DATABASE_URL.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = { title: "Términos de uso (borrador)" };
-
-export default function TerminosPage() {
-  return <LegalPage name="terminos" />;
+// La página pública vive en /legal/terminos (JS-106). next.config.ts ya redirige esta URL;
+// este archivo queda como cinturón hasta que se pueda borrar.
+export default function TerminosPage(): never {
+  redirect("/legal/terminos");
 }

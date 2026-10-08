@@ -632,26 +632,47 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 `deps:` — · `est:` M · `estado:` done como borrador (ronda 12, PR #48); falta la revision legal
 - Politica (ley 25.326) y terminos de la beta en `apps/web/content/legal/`, inventario de datos por proveedor en `docs/legal/datos-por-proveedor.md`, paginas `/privacidad` y `/terminos` con parser de Markdown sin dependencias.
 
-### JS-103 · `users` legible solo por su duenio
-`deps:` JS-091 · `est:` S · `estado:` en curso (ronda 14)
+### JS-103 · `users` legible solo por su duenio ✅ done 2026-10-08
+`deps:` JS-091 · `est:` S · `estado:` done (rondas 14 y 14c): `rls/0000` cierra `users_read` y `password_reset_tokens_read`; el bootstrap de `/setup` pasa a `has_any_user()` en `rls/0003` (en `0000` queda cerrado hasta que `0003` lo reemplaza). En Neon se aplica despues del deploy de la 14c
 - **Por que:** `users_read USING (true)`: con registro por invitacion, el rol de la app puede leer email y hash de todos.
 - **Que:** funciones `SECURITY DEFINER` para lo que necesita leer `users` sin sesion (login, existencia, `/setup`, MCP); `users_read` a `id = auth.uid()` en un paso posterior al deploy, para que la migracion sea compatible con el codigo anterior.
 - **Acepta:** test de RLS con el rol de la app: un usuario no lee la fila de otro; el login sigue funcionando.
 
-### JS-104 · El prefiltro usa el pais del perfil
-`deps:` JS-094 · `est:` S · `estado:` todo (2026-10-07)
+### JS-104 · El prefiltro usa el pais del perfil ✅ done 2026-10-08
+`deps:` JS-094 · `est:` S · `estado:` done (ronda 14c): la ingesta lee `location_country` una vez por lote; `XX`, vacio o sin perfil = pais desconocido → riesgo de ubicacion. Sin el parametro, `prefilter` sigue asumiendo AR (evals no cambia)
 - Ningun llamador de `prefilter` pasa `userCountry`, asi que siempre usa AR. Pasar `profiles.location_country` en la ingesta; sin pais cargado, marcar riesgo.
 - **Acepta:** test con un perfil de otro pais.
 
-### JS-105 · Tope por usuario: cerrar los huecos
-`deps:` JS-093 · `est:` S · `estado:` todo (2026-10-07)
+### JS-105 · Tope por usuario: cerrar los huecos ✅ done 2026-10-08
+`deps:` JS-093 · `est:` S · `estado:` done (ronda 14c): `capGuard` obligatorio; `jobs/new`, `jobs/[id]` y el MCP usan `evaluateInBackgroundOrExplain` y muestran el aviso (tope, onboarding o pendiente), que nunca lanza
 - `capGuard` obligatorio en `draftApplicationAnswers`; aviso de tope en `jobs/new`, `jobs/[id]` y el MCP; `spendCapReason` exportado desde `llm/index.ts`.
 - **Acepta:** typecheck falla si un llamador no pasa el guard; las tres pantallas muestran el aviso.
 
-### JS-106 · Terminos publicos y aceptacion en el registro
-`deps:` JS-091, JS-097 · `est:` S · `estado:` en curso (ronda 14)
+### JS-106 · Terminos publicos y aceptacion en el registro ✅ done 2026-10-08
+`deps:` JS-091, JS-097 · `est:` S · `estado:` done (rondas 14 y 14c): casilla versionada en la 14; paginas publicas en `/legal/privacidad` y `/legal/terminos`, con `/privacidad` y `/terminos` redirigidas sin sesion
 - `/privacidad` y `/terminos` publicas; casilla obligatoria en `/register` validada en el servidor; fecha y version aceptadas guardadas en `users`.
 - **Acepta:** registro sin aceptar → error; la aceptacion queda guardada con la version.
+
+### JS-108 · Rate limit de las pantallas de cuenta ✅ done 2026-10-08
+`deps:` — · `est:` S · `estado:` done (2026-10-08): regla del firewall de Vercel, ventana fija de 10 por minuto por IP, para el POST de `/login`, `/register`, `/setup`, `/forgot-password` y `/reset-password`. Documentada en `docs/DEPLOY.md`.
+
+### JS-109 · Cierre de `users_read` y paginas legales publicas (14c) ✅ done 2026-10-08
+`deps:` JS-103, JS-106 · `est:` S · `estado:` done (ronda 14c)
+- Cierre en `rls/0000` (no como archivo aparte, para que ninguna corrida reabra la lectura); `rls-pendiente/0003` queda sin uso. Tests de lectura cruzada con el rol de la app y un duenio sin `BYPASSRLS`. `evaluateInBackground` no evalua sin onboarding completo. El cron de mercado lista usuarios desde `profiles`.
+
+### JS-110 · Respuesta del cron de evaluacion sin errores crudos ✅ done 2026-10-08
+`deps:` — · `est:` S · `estado:` done (ronda 14c)
+- **Por que:** `cron.yml` imprime la respuesta en el log de Actions, que es publico en un repo publico.
+- La respuesta lleva solo conteos y errores por categoria cerrada (`llm`, `validacion`, `otro`); el detalle va a pino con `job_id`. Test de que un error con email, uuid o texto de la base no aparece.
+
+### JS-111 · Prefiltro: colisiones de nombres de pais y paises fuera de la region
+`deps:` JS-104 · `est:` S · `estado:` todo (2026-10-08, revisor de la 14c)
+- "New Mexico" cuenta como mencion de Mexico: para un perfil MX una oferta de EE.UU. pasa sin riesgo de ubicacion. `COUNTRY_NAMES` (`normalize/location.ts`) duplica `COUNTRY_OPTIONS` del onboarding y el fallback por codigo es inalcanzable hoy. Paises fuera de la region ("Spain only") no se detectan.
+- **Acepta:** test con "New Mexico"; test que compare las dos tablas (o una sola tabla); fallback eliminado.
+
+### JS-112 · Evals: medir el prefiltro con el pais explicito
+`deps:` JS-104 · `est:` XS + CI pago · `estado:` todo (2026-10-08, revisor de la 14c)
+- `evals/src/golden.ts` llama a `prefilter` sin pais, asi que la regla "solo paises ajenos" que usa produccion no se mide. Pasar `userCountry: "AR"` explicito. Toca `evals/`: dispara el job pago del CI (≈ USD 0,15), va en una ronda con gasto aprobado.
 
 ### JS-107 · Retencion y logs sin datos de terceros
 `deps:` — · `est:` S · `estado:` todo (2026-10-07)

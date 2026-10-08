@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { evaluateInBackground } from "@/lib/evaluate-now";
+import { evaluateInBackgroundOrExplain } from "@/lib/evaluate-now";
 import { ingestManualJob, parseModality } from "@/lib/ingest-manual";
 import { invalidateMarketCandidates } from "@/lib/market";
 import { isOnboardingComplete } from "@/lib/onboarding";
@@ -40,8 +40,13 @@ export async function createManualJobAction(formData: FormData): Promise<void> {
   // Solo desde Server Actions; la ingesta del cron/email corre fuera de Next y espera al vencimiento (1 h).
   invalidateMarketCandidates(userId);
   // Con JD completo se evalúa ya (JS-027); si no quedó nada encolado, no hace nada
-  if (str("jdText")) evaluateInBackground(userId, outcome.jobId);
+  // Con el tope superado no se evalúa y la pantalla del detalle lo avisa (JS-105)
+  const notEvaluated = str("jdText")
+    ? await evaluateInBackgroundOrExplain(userId, outcome.jobId)
+    : null;
   revalidatePath("/jobs");
   revalidatePath("/jobs/pending-jd");
-  redirect(`/jobs/${outcome.jobId}?nueva=${outcome.action}`);
+  redirect(
+    `/jobs/${outcome.jobId}?nueva=${outcome.action}${notEvaluated ? `&cap=${notEvaluated}` : ""}`,
+  );
 }

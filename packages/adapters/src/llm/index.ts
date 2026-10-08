@@ -10,6 +10,7 @@ export {
   dailyCapFromEnv,
   DEFAULT_DAILY_CAP_USD,
   spendBreakdown,
+  spendCapReason,
   spendLast24h,
   spendSince,
   averageTokensFor,

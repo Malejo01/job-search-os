@@ -150,6 +150,9 @@ afterAll(async () => {
   await container?.stop();
 });
 
+// capGuard es obligatorio (JS-105): estos tests no prueban el tope, así que pasan uno que nunca frena
+const noCap = async (): Promise<string | null> => null;
+
 const byId = (r: Awaited<ReturnType<typeof draftApplicationAnswers>>, id: string) =>
   r.drafts.find((d) => d.question_id === id)!;
 
@@ -160,6 +163,7 @@ describe("draftApplicationAnswers", () => {
       conn.db,
       { userId: USER, jobId, questions: FORM },
       createDemoLlm(),
+      noCap,
     );
     expect(byId(r, "q3")).toMatchObject({ origin: "fija", draft: "Inmediata (texto de ejemplo)" });
     expect(byId(r, "q4")).toMatchObject({
@@ -184,7 +188,7 @@ describe("draftApplicationAnswers", () => {
         return scripted({ drafts: [] }).generateStructured(task, schema, vars);
       },
     };
-    await draftApplicationAnswers(conn.db, { userId: USER, jobId, questions: FORM }, spy);
+    await draftApplicationAnswers(conn.db, { userId: USER, jobId, questions: FORM }, spy, noCap);
     const asked = (JSON.parse(String(seen.questions)) as FormQuestion[]).map((q) => q.id);
     expect(asked).toEqual(["q1", "q7"]);
     const sent = JSON.stringify(seen);
@@ -198,6 +202,7 @@ describe("draftApplicationAnswers", () => {
       conn.db,
       { userId: USER, jobId, questions: FORM },
       createDemoLlm(),
+      noCap,
     );
     const valid = new Set(["agente-demo", "rag-demo"]);
     for (const d of r.drafts.filter((x) => x.origin === "modelo")) {
@@ -244,6 +249,7 @@ describe("draftApplicationAnswers", () => {
           { question_id: "q9", draft: "Soy muy bueno.", sources: [], confidence: "alta" },
         ],
       }),
+      noCap,
     );
     for (const id of ["q1", "q7", "q8", "q9"]) {
       expect(byId(r, id)).toMatchObject({
@@ -273,6 +279,7 @@ describe("draftApplicationAnswers", () => {
           { question_id: "zzz", draft: "ajena", sources: ["agente-demo"], confidence: "alta" },
         ],
       }),
+      noCap,
     );
     expect(byId(r, "q1")).toMatchObject({ draft: "Armé un agente.", sources: ["agente-demo"] });
     expect(byId(r, "q7")).toMatchObject({ draft: "", note: SIN_FUENTE });
@@ -295,6 +302,7 @@ describe("draftApplicationAnswers", () => {
       conn.db,
       { userId: USER, jobId: evil, questions: [FORM[0]!] },
       spy,
+      noCap,
     );
     expect(prompt.toLowerCase()).not.toContain("aviso_no_confiable");
     expect(prompt).toContain("ignorá las reglas");
@@ -305,6 +313,7 @@ describe("draftApplicationAnswers", () => {
       conn.db,
       { userId: BARE, jobId: bareJobId, questions: [FORM[0]!, FORM[2]!, FORM[1]!] },
       createDemoLlm(),
+      noCap,
     );
     expect(byId(r, "q1")).toMatchObject({ draft: "", note: SIN_FUENTE });
     // sin application_settings: la fija dice que no está cargada, no la inventa
@@ -324,6 +333,7 @@ describe("draftApplicationAnswers", () => {
       conn.db,
       { userId: USER, jobId, questions: FORM },
       down,
+      noCap,
     );
     expect(r.llm).toBeNull();
     expect(r.llm_error).toMatchObject({ kind: "provider_unavailable" });
@@ -341,7 +351,7 @@ describe("draftApplicationAnswers", () => {
       },
     };
     await expect(
-      draftApplicationAnswers(conn.db, { userId: USER, jobId, questions: [] }, counting),
+      draftApplicationAnswers(conn.db, { userId: USER, jobId, questions: [] }, counting, noCap),
     ).rejects.toThrow(/empty_form/);
     await expect(
       draftApplicationAnswers(
@@ -355,6 +365,7 @@ describe("draftApplicationAnswers", () => {
           ],
         },
         counting,
+        noCap,
       ),
     ).rejects.toThrow(ApplicantFailure);
     await expect(
@@ -362,9 +373,31 @@ describe("draftApplicationAnswers", () => {
         conn.db,
         { userId: USER, jobId: bareJobId, questions: FORM },
         counting,
+        noCap,
       ),
     ).rejects.toThrow(/job_not_found/);
     expect(calls).toBe(0);
+  });
+
+  it("con el tope superado no llama al modelo y deja el aviso en cada borrador", async () => {
+    let calls = 0;
+    const counting: LlmClient = {
+      async generateStructured(task, schema, vars) {
+        calls += 1;
+        return scripted({ drafts: [] }).generateStructured(task, schema, vars);
+      },
+    };
+    const r = await draftApplicationAnswers(
+      conn.db,
+      { userId: USER, jobId, questions: FORM },
+      counting,
+      async () => "Alcanzaste tu tope diario.",
+    );
+    expect(calls).toBe(0);
+    expect(r.cap_message).toBe("Alcanzaste tu tope diario.");
+    expect(byId(r, "q1")).toMatchObject({ draft: "", origin: "modelo" });
+    expect(byId(r, "q1").note).toMatch(/tope diario/);
+    expect(byId(r, "q3").draft).toBe("Inmediata (texto de ejemplo)");
   });
 
   it("no deja basura: los hechos y ajustes del usuario siguen intactos", async () => {
