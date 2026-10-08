@@ -1,5 +1,6 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import type { CriteriaRules, RawJob, Term } from "@job-search-os/pipeline";
+import { eq } from "drizzle-orm";
 import type { Logger } from "../logger";
 import { safeDbError } from "../logging/safe-error";
 import { enqueueEvaluationWith } from "../queue/pg-queue";
@@ -130,6 +131,8 @@ export type RunExtraSourcesOptions = {
   logger: Logger;
   enabled: readonly SourceName[];
   sinceHours?: number;
+  /** Solo este usuario; por defecto todos los perfiles con criterios activos. */
+  userId?: string;
   fetchImpl?: typeof fetch;
   now?: () => Date;
   /** Tiempo total a partir del cual no arranca otra fuente (default 40 000 ms). */
@@ -161,7 +164,10 @@ function defaultDeps(options: RunExtraSourcesOptions, now: Date): RunExtraSource
   let taxonomy: Term[] = [];
   return {
     loadUsers: async () => {
-      const profiles = await options.db.select({ userId: s.profiles.userId }).from(s.profiles);
+      const profiles = await options.db
+        .select({ userId: s.profiles.userId })
+        .from(s.profiles)
+        .where(options.userId ? eq(s.profiles.userId, options.userId) : undefined);
       taxonomy = await loadTaxonomy(options.db);
       const users: { userId: string; rules: CriteriaRules }[] = [];
       for (const { userId } of profiles) {
@@ -229,6 +235,8 @@ export async function runExtraSourcesIngest(
       let cut = false;
       const totals = { inserted: 0, merged: 0, discarded: 0, errors: 0 };
       for (const { userId, rules } of loaded.users) {
+        // Con deps inyectadas la costura no filtra: el límite a un usuario se garantiza acá también.
+        if (options.userId && userId !== options.userId) continue;
         if (clock() - started >= budgetMs) {
           cut = true;
           break;
