@@ -39,6 +39,44 @@ export type PrefilterOptions = {
 };
 
 const NON_REMOTE_IN_TEXT = /\b(hibrid[oa]|hybrid|presencial|on[\s-]?site|in[\s-]?office)\b/;
+
+/**
+ * Modalidad no remota en el TÍTULO. Criterio contra falsos positivos ("Hybrid Cloud Engineer",
+ * "Sistemas Híbridos de IA", "hybrid apps"): la señal cuenta solo si es un SEGMENTO propio del
+ * título, es decir separada del resto por un delimitador (paréntesis, corchetes, guion, coma,
+ * barra, pipe, dos puntos) o por el borde del título, y el segmento no tiene más palabras que la
+ * señal y un par de calificadores ("Hybrid work", "Modalidad híbrida", "Hybrid 3 days").
+ * Sin lista de compuestos técnicos: un sustantivo del rol queda siempre pegado a otras palabras.
+ * Costo aceptado: "Hybrid Backend Engineer" (sin delimitador) no descarta; lo ve el evaluador.
+ * "Optional/opcional/flexible" pegado a la señal (aun a través de un delimitador) la anula.
+ */
+const TITLE_NON_REMOTE_SEGMENT =
+  /^(?:(?:modalidad|modelo|esquema|work|working)\s+)?(?:hibrid[oa]|hybrid|presencial|onsite|inoffice|en\s+oficina)(?:\s+(?:work|working|mode|model|modelo|modalidad))?(?:\s+\d.*)?$/;
+// Señales que nunca son sustantivo del rol: pueden abrir un segmento con palabras después
+// ("Presencial en Madrid", "Híbrido CABA"). "hibridos/as" (plural) es el sustantivo; "onsite
+// interview(s)" es el proceso de selección. El inglés "hybrid" no entra: "Hybrid Cloud".
+const TITLE_STRONG_SEGMENT_START =
+  /^(?:(?:modalidad|modelo|esquema)\s+)?(?:hibrid[oa]|presencial|onsite|inoffice|en\s+oficina)(?:\s|$)(?!interviews?\b)/;
+const NON_REMOTE_SIGNAL = "hibrid[oa]|hybrid|presencial|onsite|inoffice";
+// "flexible hours/schedule/horario" es horario, no modalidad: no anula la señal.
+const NON_REMOTE_OPTIONAL = new RegExp(
+  `\\b(?:(?:${NON_REMOTE_SIGNAL})\\W+(?:optional|opcional|flexible(?!\\s+(?:hours|schedule|horarios?)\\b))|(?:optional|opcional|flexible)\\W+(?:${NON_REMOTE_SIGNAL}))\\b`,
+);
+
+function titleNonRemoteSignal(foldedTitle: string): string | null {
+  const text = foldedTitle
+    .replace(/\bon[\s-]site\b/g, "onsite")
+    .replace(/\bin[\s-]office\b/g, "inoffice");
+  if (NON_REMOTE_OPTIONAL.test(text)) return null;
+  // El guion solo delimita con espacios alrededor: "Hybrid-Cloud", "Non-hybrid" no se parten.
+  for (const raw of text.split(/[()[\],/|:;–—]+|(?:^|\s)-(?:\s|$)/)) {
+    const seg = raw.replace(/\s+/g, " ").trim();
+    if (seg && (TITLE_NON_REMOTE_SEGMENT.test(seg) || TITLE_STRONG_SEGMENT_START.test(seg)))
+      return seg;
+  }
+  return null;
+}
+
 const AI_TITLE =
   /\b(ai|ia|llm|llms|gen\s?ai|genai|agentic|agents?|agente|inteligencia artificial)\b/;
 
@@ -144,6 +182,10 @@ export function prefilter(
   // 1. Modalidad: bloqueador duro
   if (input.modality === "presencial" || input.modality === "hibrido") {
     return { pass: false, reason: "modalidad_no_remota", detail: `modalidad ${input.modality}` };
+  }
+  // El título contradice a la fuente: gana el título, también con modality "remoto".
+  if (titleNonRemoteSignal(title)) {
+    return { pass: false, reason: "modalidad_no_remota", detail: `título: ${input.title}` };
   }
   if (input.modality !== "remoto" && NON_REMOTE_IN_TEXT.test(location)) {
     return {
