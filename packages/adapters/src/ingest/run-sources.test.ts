@@ -54,6 +54,59 @@ const base = {
   now: () => new Date("2026-10-07T12:00:00Z"),
 };
 
+describe("runExtraSourcesIngest con userId", () => {
+  it("solo ingiere para ese usuario aunque loadUsers devuelva más", async () => {
+    const ingest = vi.fn(async (jobs: RawJob[], _userId: string, _rules: CriteriaRules) =>
+      summary(jobs.length),
+    );
+    const deps = makeDeps({
+      loadUsers: async () => ({
+        users: [
+          { userId: "u1", rules: {} as CriteriaRules },
+          { userId: "u2", rules: {} as CriteriaRules },
+        ],
+        taxonomy: [],
+      }),
+      ingest,
+    });
+    const r = await runExtraSourcesIngest(
+      {
+        ...base,
+        userId: "u2",
+        enabled: ["remoteok"],
+        downloaders: downloaders({ remoteok: async () => [job("1")] }),
+      },
+      deps,
+    );
+    expect(r.sources[0]).toMatchObject({ status: "ok", users: 1 });
+    expect(ingest).toHaveBeenCalledTimes(1);
+    expect(ingest.mock.calls[0]![1]).toBe("u2");
+  });
+
+  it("sin userId ingiere para todos", async () => {
+    const ingest = vi.fn(async (jobs: RawJob[]) => summary(jobs.length));
+    const deps = makeDeps({
+      loadUsers: async () => ({
+        users: [
+          { userId: "u1", rules: {} as CriteriaRules },
+          { userId: "u2", rules: {} as CriteriaRules },
+        ],
+        taxonomy: [],
+      }),
+      ingest,
+    });
+    const r = await runExtraSourcesIngest(
+      {
+        ...base,
+        enabled: ["remoteok"],
+        downloaders: downloaders({ remoteok: async () => [job("1")] }),
+      },
+      deps,
+    );
+    expect(r.sources[0]).toMatchObject({ users: 2 });
+  });
+});
+
 describe("parseEnabledSources", () => {
   it("vacío, undefined o solo espacios = ninguna", () => {
     for (const v of [undefined, "", "   ", " , ,"]) {

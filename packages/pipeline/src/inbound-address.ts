@@ -43,3 +43,5 @@ export function isLegacyInboundAddress(address: string, userId: string): boolean
   const m = /^u_([0-9a-f]{8})@/.exec(address.toLowerCase());
   return m !== null && m[1] === userId.slice(0, 8).toLowerCase();
 }
+
+export * from "./gmail-filters";

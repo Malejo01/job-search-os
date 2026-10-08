@@ -12,6 +12,8 @@ import { DeleteAccountForm } from "../(app)/settings/delete-account-form";
 import { saveOnboardingAction } from "./actions";
 
 export const dynamic = "force-dynamic";
+// La primera ingesta corre en `after()` al guardar y hereda la duración de esta ruta
+export const maxDuration = 120;
 
 const input = "rounded-md border border-zinc-300 px-3 py-2 text-base";
 
