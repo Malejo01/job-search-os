@@ -321,6 +321,54 @@ describe("prefilter: reglas una por una", () => {
     expect(r.pass && r.flags).toContain("many_candidates");
   });
 
+  describe("modalidad no remota en el título", () => {
+    const run = (title: string, modality: PrefilterInput["modality"] = null) =>
+      prefilter({ title, locationRaw: "Argentina", modality }, rules);
+
+    it.each([
+      ["Desarrollador Backend - Hibrido, CABA", null],
+      ["Frontend Engineer (Hybrid, Ciudad X)", "remoto"],
+      ["Presencial - Analista de Datos - Empresa A", null],
+      ["Backend Engineer (Presencial)", "remoto"],
+      ["Backend Engineer - On-site", null],
+      ["Backend Engineer, onsite", null],
+      ["Backend Engineer | In-office", null],
+      ["Backend Engineer - Hybrid -", null],
+      ["Backend Engineer / Híbrido", null],
+      ["Remote / Hybrid", null],
+      ["Desarrollador Python - En oficina", null],
+      ["Backend Engineer (Hibrida)", "remoto"],
+      ["Backend Engineer - Hybrid, flexible hours", null],
+      ["Desarrollador (Híbrido CABA)", null],
+      ["Backend (Presencial en Madrid)", "remoto"],
+      ["Backend Engineer - On-site Madrid", null],
+    ] as const)("%s (fuente: %s) → modalidad_no_remota", (title, modality) => {
+      const r = run(title, modality);
+      expect(r).toMatchObject({ pass: false, reason: "modalidad_no_remota" });
+      expect(!r.pass && r.detail).toBe(`título: ${title}`);
+    });
+
+    it.each([
+      "Senior Engineer, remote-first, hybrid optional",
+      "Senior Engineer (Hybrid optional)",
+      "Senior Engineer - Hybrid (optional)",
+      "Ingeniero Backend - híbrido opcional",
+      "Ingeniero Backend - Híbrido flexible",
+      "Ingeniero de Sistemas Hibridos de IA",
+      "Hybrid Cloud Engineer",
+      "Hybrid-Cloud Architect",
+      "Non-onsite Backend Engineer",
+      "Non-hybrid Platform Engineer",
+      "Backend Engineer - Onsite interviews",
+      "Senior Hybrid Cloud Engineer",
+      "Hybrid apps Developer",
+      "Desarrollador Fullstack (Remoto)",
+    ])("%s → no descarta por modalidad", (title) => {
+      const r = run(title, "remoto");
+      expect(r.pass || r.reason !== "modalidad_no_remota").toBe(true);
+    });
+  });
+
   describe("avisos que no son IT (títulos de otros oficios, bases de RR. HH.)", () => {
     const run = (title: string) =>
       prefilter({ title, companyRaw: "Empresa Demo SA", modality: "remoto" }, rules);
