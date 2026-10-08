@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ReactNode } from "react";
 import {
+  fillLegalPlaceholders,
   parseLegalMarkdown,
   type BlockNode,
   type InlineNode,
@@ -33,6 +34,22 @@ export function loadLegalDocument(name: LegalName): LegalDocument {
   const path = candidates(name).find((p) => existsSync(p));
   if (!path) throw new Error(`No se encontró el texto legal "${name}"`);
   return parseLegalMarkdown(readFileSync(path, "utf8"));
+}
+
+/**
+ * Igual que loadLegalDocument pero con los datos legales de las variables LEGAL_* (JS-120). Se
+ * lee `process.env` en cada request: las páginas que lo usan son dinámicas. Los valores no se loguean.
+ */
+function loadFilledLegalDocument(name: LegalName): LegalDocument {
+  const path = candidates(name).find((p) => existsSync(p));
+  if (!path) throw new Error(`No se encontró el texto legal "${name}"`);
+  const filled = fillLegalPlaceholders(readFileSync(path, "utf8"), {
+    LEGAL_RESPONSABLE: process.env.LEGAL_RESPONSABLE,
+    LEGAL_DOMICILIO: process.env.LEGAL_DOMICILIO,
+    LEGAL_EMAIL: process.env.LEGAL_EMAIL,
+    LEGAL_LOG_DAYS: process.env.LEGAL_LOG_DAYS,
+  });
+  return parseLegalMarkdown(filled);
 }
 
 function renderInline(nodes: InlineNode[]): ReactNode[] {
@@ -157,7 +174,7 @@ export function legalUpdatedAt(doc: LegalDocument): string | null {
 
 /** Página común de /privacidad y /terminos: aviso de borrador + texto. Server Component. */
 export function LegalPage({ name }: { name: LegalName }) {
-  const doc = loadLegalDocument(name);
+  const doc = loadFilledLegalDocument(name);
   const updated = legalUpdatedAt(doc);
   return (
     <article className="mx-auto max-w-prose break-words text-sm sm:text-base">
