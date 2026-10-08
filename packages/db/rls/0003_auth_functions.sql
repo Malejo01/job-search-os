@@ -147,3 +147,56 @@ END
 $fn$;
 REVOKE ALL ON FUNCTION public.register_with_invitation_v2(text, text, text, text, text, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.register_with_invitation_v2(text, text, text, text, text, text) TO authenticated;
+
+-- Registro con dirección de ingesta aleatoria (JS-113). Igual que v2, que NO se toca (el código
+-- desplegado la llama hasta el merge), pero la dirección ya no se deriva del id: la app genera el
+-- token (20 caracteres base32, 100 bits) y la función solo valida el formato y lo guarda.
+CREATE OR REPLACE FUNCTION public.register_with_invitation_v3(
+  p_code_hash text,
+  p_email text,
+  p_password_hash text,
+  p_name text,
+  p_ingest_domain text,
+  p_terms_version text,
+  p_inbound_local text
+) RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $fn$
+DECLARE
+  v_invitation uuid;
+  v_user uuid := gen_random_uuid();
+  v_email text := lower(btrim(p_email));
+  v_terms text := NULLIF(btrim(p_terms_version), '');
+  v_domain text := lower(btrim(p_ingest_domain));
+BEGIN
+  IF v_terms IS NULL THEN
+    RAISE EXCEPTION 'register_with_invitation_v3: falta la versión de los términos aceptados';
+  END IF;
+  IF v_domain IS NULL OR v_domain !~ '^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$' THEN
+    RAISE EXCEPTION 'register_with_invitation_v3: el dominio de ingesta no es válido';
+  END IF;
+  IF p_inbound_local IS NULL OR p_inbound_local !~ '^[a-z2-7]{20}$' THEN
+    RAISE EXCEPTION 'register_with_invitation_v3: el token de la dirección de ingesta no es válido';
+  END IF;
+  UPDATE public.invitations
+     SET used_at = now(), used_by_user_id = v_user
+   WHERE code_hash = p_code_hash
+     AND used_at IS NULL
+     AND expires_at > now()
+     AND (email IS NULL OR lower(email) = v_email)
+  RETURNING id INTO v_invitation;
+  IF v_invitation IS NULL THEN
+    RETURN NULL;
+  END IF;
+  INSERT INTO public.users (id, email, name, password_hash, terms_accepted_at, terms_version)
+    VALUES (v_user, v_email, NULLIF(btrim(p_name), ''), p_password_hash, now(), v_terms);
+  INSERT INTO public.profiles (user_id, display_name, location_country, inbound_address)
+    VALUES (v_user, COALESCE(NULLIF(btrim(p_name), ''), split_part(v_email, '@', 1)), 'XX',
+            'u_' || p_inbound_local || '@' || v_domain);
+  RETURN v_user;
+END
+$fn$;
+REVOKE ALL ON FUNCTION public.register_with_invitation_v3(text, text, text, text, text, text, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.register_with_invitation_v3(text, text, text, text, text, text, text) TO authenticated;

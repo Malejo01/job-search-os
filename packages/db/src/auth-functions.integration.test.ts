@@ -28,6 +28,7 @@ const NEW_FNS = [
   "has_any_user()",
   "sole_user_id()",
   "register_with_invitation_v2(text, text, text, text, text, text)",
+  "register_with_invitation_v3(text, text, text, text, text, text, text)",
 ];
 const OLD_FNS = [
   "register_with_invitation(text, text, text, text, text)",
@@ -344,15 +345,95 @@ describe("users con lectura cerrada a la fila propia (JS-103, 14a)", () => {
       expect(inv!.used_at).toBeNull();
     });
 
-    it("la v1 sigue existiendo con su firma (el código de main la llama) y guarda términos NULL", async () => {
+    it("la v1 existe pero el rol de la app ya no puede ejecutarla (JS-113)", async () => {
       await owner`insert into invitations (code_hash, created_by_user_id) values ('hash-v1', ${A})`;
-      const [r] = await app<{ user_id: string | null }[]>`
-        select register_with_invitation('hash-v1', 'v1@cuentas.test', ${hashPassword("contraseña-test")},
-                                        null, 'ingest.test') as user_id`;
-      expect(r!.user_id).not.toBeNull();
-      const [user] =
-        await owner`select terms_version, terms_accepted_at from users where id = ${r!.user_id}`;
-      expect(user).toEqual({ terms_version: null, terms_accepted_at: null });
+      await expect(
+        app`select register_with_invitation('hash-v1', 'v1@cuentas.test', ${hashPassword("contraseña-test")},
+                                            null, 'ingest.test') as user_id`,
+      ).rejects.toThrow(/permission denied/);
+      expect(await owner`select 1 from users where email = 'v1@cuentas.test'`).toHaveLength(0);
+      const [inv] = await owner`select used_at from invitations where code_hash = 'hash-v1'`;
+      expect(inv!.used_at).toBeNull();
+    });
+
+    describe("registro v3 con dirección aleatoria (JS-113)", () => {
+      const register = (codeHash: string, email: string, token: string | null) =>
+        app<{ user_id: string | null }[]>`
+          select register_with_invitation_v3(${codeHash}, ${email}, ${hashPassword("contraseña-test")},
+                                             ${"Persona Nueva"}, 'ingest.test', '2026-10-07',
+                                             ${token}) as user_id`;
+
+      it("guarda u_<token>@<dominio> con el token recibido y los términos", async () => {
+        await owner`insert into invitations (code_hash, created_by_user_id) values ('hash-v3-ok', ${A})`;
+        const token = "abcdefghijklmnopqrst";
+        const [r] = await register("hash-v3-ok", "v3@cuentas.test", token);
+        expect(r!.user_id).not.toBeNull();
+        const [p] = await owner`select inbound_address from profiles where user_id = ${r!.user_id}`;
+        expect(p!.inbound_address).toBe(`u_${token}@ingest.test`);
+        expect(p!.inbound_address).toMatch(/^u_[a-z2-7]{20}@ingest\.test$/);
+        const [u] = await owner`select terms_version from users where id = ${r!.user_id}`;
+        expect(u!.terms_version).toBe("2026-10-07");
+      });
+
+      it("un token inválido falla y no gasta la invitación", async () => {
+        await owner`insert into invitations (code_hash, created_by_user_id) values ('hash-v3-mal', ${A})`;
+        for (const bad of [
+          null,
+          "",
+          "corto",
+          "ABCDEFGHIJKLMNOPQRST",
+          "abcdefghijklmnopqrs1",
+          "abcdefghijklmnopqrstu",
+          "abcdefghij@lmnopqrst",
+        ]) {
+          await expect(register("hash-v3-mal", "mal@cuentas.test", bad)).rejects.toThrow(
+            /token de la dirección de ingesta no es válido/,
+          );
+        }
+        expect(await owner`select 1 from users where email = 'mal@cuentas.test'`).toHaveLength(0);
+        const [inv] = await owner`select used_at from invitations where code_hash = 'hash-v3-mal'`;
+        expect(inv!.used_at).toBeNull();
+      });
+
+      it("un token repetido falla por unicidad y no gasta la invitación", async () => {
+        const token = "zyxwvutsrqponmlkjihg";
+        await owner`insert into invitations (code_hash, created_by_user_id) values ('hash-v3-dup', ${A})`;
+        await owner`insert into profiles (user_id, display_name, location_country, inbound_address)
+                    values (${A}, 'Persona A', 'XX', ${`u_${token}@ingest.test`})`;
+        try {
+          await expect(register("hash-v3-dup", "dup@cuentas.test", token)).rejects.toMatchObject({
+            code: "23505",
+          });
+        } finally {
+          await owner`delete from profiles where user_id = ${A}`;
+        }
+        const [inv] = await owner`select used_at from invitations where code_hash = 'hash-v3-dup'`;
+        expect(inv!.used_at).toBeNull();
+      });
+
+      it("un dominio inválido falla y no gasta la invitación; el dominio se guarda en minúscula", async () => {
+        await owner`insert into invitations (code_hash, created_by_user_id) values ('hash-v3-dom', ${A})`;
+        const withDomain = (domain: string | null) =>
+          app`select register_with_invitation_v3('hash-v3-dom', 'dom@cuentas.test',
+                ${hashPassword("contraseña-test")}, 'Persona Nueva', ${domain}, '2026-10-07',
+                'abcdefghijklmnopqrsu') as user_id`;
+        for (const bad of [
+          null,
+          "",
+          "a b.test",
+          "x@y.test",
+          "-ingest.test",
+          "ingest.test-",
+          "a/b",
+        ]) {
+          await expect(withDomain(bad)).rejects.toThrow(/dominio de ingesta no es válido/);
+        }
+        const [inv] = await owner`select used_at from invitations where code_hash = 'hash-v3-dom'`;
+        expect(inv!.used_at).toBeNull();
+        const [r] = await withDomain("  Ingest.TEST ");
+        const [p] = await owner`select inbound_address from profiles where user_id = ${r!.user_id}`;
+        expect(p!.inbound_address).toBe("u_abcdefghijklmnopqrsu@ingest.test");
+      });
     });
 
     it("las funciones no son ejecutables por PUBLIC y sí por authenticated", async () => {
@@ -363,8 +444,9 @@ describe("users con lectura cerrada a la fila propia (JS-103, 14a)", () => {
           from pg_proc p join pg_namespace n on n.oid = p.pronamespace
          where n.nspname = 'public'
            and p.proname in ('auth_user_by_email', 'user_id_by_email', 'user_exists', 'has_any_user',
-                             'sole_user_id', 'register_with_invitation_v2', 'check_reset_token')`;
-      expect(rows).toHaveLength(7);
+                             'sole_user_id', 'register_with_invitation_v2', 'register_with_invitation_v3',
+                             'check_reset_token')`;
+      expect(rows).toHaveLength(8);
       for (const r of rows) {
         expect(r.public_exec, r.proname).toBe(false);
         expect(r.auth_exec, r.proname).toBe(true);
