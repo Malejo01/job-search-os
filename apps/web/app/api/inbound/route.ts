@@ -6,10 +6,10 @@ import {
   pgBlobStorage,
   ResendAnyEventSchema,
   ResendReceivedEventSchema,
+  safeDbError,
   verifySvix,
 } from "@job-search-os/adapters";
 import { NextResponse } from "next/server";
-import { safeDbError } from "@/lib/safe-error";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

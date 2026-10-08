@@ -134,7 +134,20 @@ describe("webhook con dos usuarios", () => {
     expect(blobs.filter((b) => b.body.includes("em_dos_cc"))).toEqual([]);
   });
 
-  it.todo("destinatario de to gana sobre cc (JS-117)");
+  it("el log del inbound lleva el dominio del remitente y no la dirección completa", async () => {
+    const lines: string[] = [];
+    const spy = pino({ level: "debug" }, { write: (chunk: string) => void lines.push(chunk) });
+    const deps = { db: conn.db, storage: pgBlobStorage(conn.db), logger: spy };
+    const ev = event("em_dos_log", [ADDR_A]);
+    ev.data.from = "Persona Ficticia <persona.ficticia@example.com>";
+    const out = await handleInboundEmail(ev, null, JSON.stringify(ev), deps);
+    expect(out.kind).toBe("stored");
+    const logged = lines.join("\n");
+    expect(logged).toContain("em_dos_log");
+    expect(logged).toContain("example.com");
+    expect(logged).not.toContain("persona.ficticia");
+    expect(logged).not.toContain("Persona Ficticia");
+  });
 
   it("remitente no esperado: el aviso de privacidad queda en inbound_emails.error", async () => {
     const deps = { db: conn.db, storage: pgBlobStorage(conn.db), logger };
@@ -169,16 +182,36 @@ describe("webhook con dos usuarios", () => {
     expect((await emailsOf(A)).length).toBe(before);
     expect((await emailsOf(B)).filter((e) => e.rawRef.length > 0).length).toBeLessThanOrEqual(1);
   });
+
+  // Va al final: guarda un email más para B y el test anterior cuenta sus filas
+  it("B en `to` y A en `cc`: el email es de B (el destinatario se elige por posición)", async () => {
+    const deps = { db: conn.db, storage: pgBlobStorage(conn.db), logger };
+    const ev = {
+      ...event("em_dos_pos", [ADDR_B]),
+      data: { ...event("x", []).data, email_id: "em_dos_pos", to: [ADDR_B], cc: [ADDR_A] },
+    };
+    const out = await handleInboundEmail(ev, null, JSON.stringify(ev), deps);
+    expect(out).toMatchObject({ kind: "stored", userId: B });
+  });
+
+  it("B en `received_for` y A en `to`: gana received_for", async () => {
+    const deps = { db: conn.db, storage: pgBlobStorage(conn.db), logger };
+    const ev = {
+      ...event("em_dos_rf", [ADDR_A]),
+      data: { ...event("x", []).data, email_id: "em_dos_rf", to: [ADDR_A], received_for: [ADDR_B] },
+    };
+    const out = await handleInboundEmail(ev, null, JSON.stringify(ev), deps);
+    expect(out).toMatchObject({ kind: "stored", userId: B });
+  });
 });
 
 describe("log de un fallo de ingesta", () => {
-  // pendiente (JS-107 ampliado); al cerrarlo, quitar el `.fails`
   const lines: string[] = [];
   let failed = 0;
 
   it("el insert del caso falla de verdad (precondición, JS-107)", async () => {
     const spy = pino({ level: "debug" }, { write: (chunk: string) => void lines.push(chunk) });
-    const secretJd = "TextoFicticioDeLaJD-Zorro-Violeta-4471 requisitos ficticios para la oferta.";
+    const jdMarker = "texto ficticio de la oferta zorro violeta requisitos de ejemplo";
     // Un NUL en el título hace fallar el INSERT de jobs (Postgres no admite 0x00 en text)
     const raw = rawJobFromManual({
       url: "https://empresa-a.example/jobs/dos-1",
@@ -186,7 +219,7 @@ describe("log de un fallo de ingesta", () => {
       company: "Empresa A",
       locationRaw: "Remoto (Argentina)",
       modality: "remoto",
-      jdText: secretJd,
+      jdText: jdMarker,
     });
     const summary = await ingestBatch([raw], {
       db: conn.db,
@@ -198,11 +231,8 @@ describe("log de un fallo de ingesta", () => {
     expect(failed).toBe(1);
   });
 
-  it.fails(
-    "el log de un fallo de ingesta no incluye datos de la oferta (JS-107, pendiente)",
-    () => {
-      expect(failed).toBe(1);
-      expect(lines.join("\n")).not.toContain("Zorro-Violeta-4471");
-    },
-  );
+  it("el log de un fallo de ingesta no incluye datos de la oferta (JS-107)", () => {
+    expect(failed).toBe(1);
+    expect(lines.join("\n")).not.toContain("zorro violeta");
+  });
 });

@@ -3,6 +3,7 @@ import {
   createLogger,
   createPgQueue,
   evaluateJobNow,
+  safeDbError,
   spendCapReason,
   USER_CAP_MESSAGE,
 } from "@job-search-os/adapters";
@@ -57,7 +58,7 @@ export async function evaluateInBackgroundOrExplain(
     }
   } catch (e) {
     createLogger({ user_id: userId, job_id: jobId }).error(
-      { err: e instanceof Error ? e.message : String(e) },
+      { err: safeDbError(e) },
       "no se pudo chequear onboarding o tope antes de evaluar: queda para el cron",
     );
     return "pendiente";
@@ -66,7 +67,7 @@ export async function evaluateInBackgroundOrExplain(
     scheduleEvaluation(userId, jobId);
   } catch (e) {
     createLogger({ user_id: userId, job_id: jobId }).error(
-      { err: e instanceof Error ? e.message : String(e) },
+      { err: safeDbError(e) },
       "no se pudo programar la evaluación: queda para el cron",
     );
     return "pendiente";
@@ -101,7 +102,7 @@ function scheduleEvaluation(
         }
       } catch (e) {
         logger.error(
-          { err: e instanceof Error ? e.message : String(e) },
+          { err: safeDbError(e) },
           "no se pudo chequear el onboarding: queda para el cron",
         );
         return;
@@ -117,10 +118,7 @@ function scheduleEvaluation(
       });
       if (!result.ran) logger.info({ reason: result.reason }, "evaluación inmediata no corrió");
     } catch (e) {
-      logger.error(
-        { err: e instanceof Error ? e.message : String(e) },
-        "evaluación inmediata falló: queda para el cron",
-      );
+      logger.error({ err: safeDbError(e) }, "evaluación inmediata falló: queda para el cron");
     } finally {
       await close();
     }

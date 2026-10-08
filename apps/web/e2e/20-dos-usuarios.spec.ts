@@ -132,7 +132,10 @@ test.describe("Flujo 20: dos usuarios, sin lectura ni escritura cruzada", () => 
   }) => {
     await login(page);
     await page.goto("/applications");
-    const card = page.locator("li", { hasText: `Oferta Ficticia A ${tag}` });
+    const card = page
+      .locator("li")
+      .filter({ has: page.locator('input[name="applicationId"]') })
+      .filter({ hasText: `Oferta Ficticia A ${tag}` });
     await expect(card).toBeVisible();
     await card.locator('input[name="applicationId"]').evaluate((el, v) => {
       (el as HTMLInputElement).value = v;
@@ -208,7 +211,10 @@ test.describe("Flujo 20: dos usuarios, sin lectura ni escritura cruzada", () => 
     try {
       await login(page);
       await page.goto("/applications");
-      const card = page.locator("li", { hasText: `Oferta Ficticia A propia ${tag}` });
+      const card = page
+        .locator("li")
+        .filter({ has: page.locator('input[name="applicationId"]') })
+        .filter({ hasText: `Oferta Ficticia A propia ${tag}` });
       await expect(card).toBeVisible();
       await card.getByLabel("Resultado").selectOption("rechazo_humano");
       await Promise.all([

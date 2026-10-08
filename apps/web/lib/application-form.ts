@@ -6,6 +6,7 @@ import {
   createLogger,
   draftApplicationAnswers,
   draftsCapGuard,
+  safeDbError,
   saveAnswer,
   saveApplicationAnswers,
   type DraftOrigin,
@@ -141,7 +142,7 @@ export async function generateDraftsAction(input: {
     };
   } catch (e) {
     if (!(e instanceof ApplicantFailure)) {
-      logger.error({ err: e instanceof Error ? e.message : String(e) }, "borradores fallaron");
+      logger.error({ err: safeDbError(e) }, "borradores fallaron");
     }
     return { ok: false, error: failureMessage(e) };
   } finally {

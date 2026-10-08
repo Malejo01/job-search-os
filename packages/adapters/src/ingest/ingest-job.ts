@@ -23,6 +23,7 @@ import { syncJobSkillsFromText } from "../skills/sync";
 import { pgBlobStorage, type BlobStorage } from "../storage/blob";
 import { and, eq, gte, inArray, isNotNull, or, sql, type SQL } from "drizzle-orm";
 import type { Logger } from "../logger";
+import { safeDbError } from "../logging/safe-error";
 
 /**
  * Ingesta de un RawJob para un usuario: normaliza → dedup contra los últimos 14 días →
@@ -494,7 +495,7 @@ export async function ingestBatch(raws: RawJob[], deps: IngestDeps): Promise<Ing
       batchDeps = { ...deps, userCountry: await loadProfileCountry(deps.db, deps.userId) };
     } catch (e) {
       // Si falla la lectura, cada job la reintenta por su cuenta y registra su propio error
-      deps.logger.error({ user_id: deps.userId, err: String(e) }, "ingest: país del perfil");
+      deps.logger.error({ user_id: deps.userId, err: safeDbError(e) }, "ingest: país del perfil");
     }
   }
   for (const raw of raws) {
@@ -507,8 +508,9 @@ export async function ingestBatch(raws: RawJob[], deps: IngestDeps): Promise<Ing
         if (out.enqueued) summary.enqueued++;
       }
     } catch (e) {
-      const error = e instanceof Error ? e.message : String(e);
-      deps.logger.error({ external_id: raw.source.externalId, err: error }, "ingest: error");
+      const safe = safeDbError(e);
+      const error = [safe.name, safe.code, safe.constraint].filter(Boolean).join(" ");
+      deps.logger.error({ external_id: raw.source.externalId, err: safe }, "ingest: error");
       summary.errors.push({ externalId: raw.source.externalId, error });
     }
   }

@@ -28,7 +28,9 @@ export default async function NewJobPage({
       </div>
       {error ? (
         <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
-          {error === "campos" ? "Título y empresa son obligatorios." : `No se pudo: ${error}`}
+          {error === "campos"
+            ? "Título y empresa son obligatorios."
+            : "No se pudo cargar la oferta. Probá de nuevo."}
         </p>
       ) : null}
       <form action={createManualJobAction} className="flex flex-col gap-3">

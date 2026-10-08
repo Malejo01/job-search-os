@@ -675,10 +675,54 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - `evals/src/golden.ts` llama a `prefilter` sin pais, asi que la regla "solo paises ajenos" que usa produccion no se mide. Pasar `userCountry: "AR"` explicito. Toca `evals/`: dispara el job pago del CI (≈ USD 0,15), va en una ronda con gasto aprobado.
 
 ### JS-107 · Retencion y logs sin datos de terceros
-`deps:` — · `est:` S · `estado:` todo (2026-10-07)
-- Ningun proceso purga `raw_blobs`, `inbound_emails`, tokens de reseteo vencidos ni logs; los logs de la ingesta incluyen el remitente de cada email.
-- **Que:** purga programada con plazos a decidir; sacar el remitente de los logs o dejar solo su dominio.
-- **Acepta:** test de la purga; ningun log de la ingesta lleva el email completo del remitente.
+`deps:` — · `est:` S · `estado:` parcial (2026-10-08, ronda 18): logs hechos; falta la purga
+- **Hecho (ronda 18):** los logs del inbound llevan el dominio del remitente y no su email; los errores de la base se loguean sin consulta ni parametros (`safeDbError`) en la ingesta, el inbound, el worker, `run-sources`, los crons, `health`, la evaluacion inmediata y los borradores; los errores del LLM sin texto del modelo. Queda el texto de error que el MCP devuelve al propio usuario.
+- **Falta:** ningun proceso purga `raw_blobs`, `inbound_emails`, tokens de reseteo vencidos ni logs. Purga programada con plazos a decidir (la politica deja el plazo de logs como `[A DEFINIR]`).
+- **Acepta:** test de la purga.
+
+### JS-095 · Direccion de email entrante por usuario ✅ done 2026-10-08
+`deps:` JS-094 · `est:` S · `estado:` done (ronda 17, PR #55)
+- Direccion aleatoria de 20 caracteres asignada al completar el onboarding; visible en Ajustes y en `/inbox` vacio con instrucciones de reenvio; rotacion en dos pasos que invalida la anterior; aviso si la direccion es del formato anterior.
+
+### JS-096 · Criterios editables desde la app ✅ done 2026-10-08
+`deps:` JS-094 · `est:` S · `estado:` done (ronda 17, PR #55); falta el e2e
+- `/settings/criteria`: listas de titulos y disciplinas, piso salarial, horas, anios maximos, riesgo de ingles y umbrales; version nueva en una transaccion; volver a los valores por defecto. Los cambios valen para ofertas nuevas.
+
+### JS-098 · Auditoria multiusuario (B7) ✅ done 2026-10-08
+`deps:` JS-103, JS-095 · `est:` M · `estado:` done (ronda 18)
+- Tests de dos usuarios (integracion sobre todas las tablas con duenio y las funciones `SECURITY DEFINER`, que fallan si aparece una nueva sin cubrir; e2e en el CI) y arreglos chicos. Sin bloqueantes en el codigo.
+
+### JS-113 · Endurecer el registro por invitacion
+`deps:` JS-095 · `est:` S + RLS · `estado:` todo (2026-10-08, seguridad)
+- Endurecer el registro por invitacion (detalle en las notas privadas de la ronda 18). Toca `rls/0003`; se aplica en Neon.
+
+### JS-114 · Endurecer policies de `evaluations` y `applications`
+`deps:` JS-103 · `est:` XS + RLS · `estado:` todo (2026-10-08, seguridad)
+- Endurecer las policies de `evaluations` y `applications` (detalle en las notas privadas de la ronda 18). Toca `rls/0000`; se aplica en Neon.
+- **Acepta:** los `it.fails` de la ronda 18 pasan a `it`.
+
+### JS-115 · Idempotencia del webhook por columna
+`deps:` — · `est:` S + migracion · `estado:` todo (2026-10-08, seguridad)
+- Columna `email_id` en `inbound_emails` con indice unico, en lugar de buscar en los crudos.
+
+### JS-116 · Vigencia de sesiones ante cambios de credenciales
+`deps:` — · `est:` M + migracion · `estado:` todo (2026-10-08, seguridad)
+- Revisar la vigencia de las sesiones despues de cambios de credenciales (detalle en las notas privadas de la ronda 18).
+
+### JS-117 · Inbound: eleccion del destinatario ✅ done 2026-10-08
+`deps:` — · `est:` XS · `estado:` done (ronda 18)
+- Con varios destinatarios del sistema se elige de forma determinista: primero `received_for` (el destinatario de la entrega), despues `to`, despues `cc`.
+
+### JS-118 · Prefiltro: modalidad no remota en el titulo
+`deps:` — · `est:` S · `estado:` todo (2026-10-08, Mauro)
+- **Por que:** un aviso con la modalidad en el titulo ("Hibrido, CABA") paso el prefiltro: `NON_REMOTE_IN_TEXT` solo mira la ubicacion, y ademas no se aplica si la fuente dijo `modality: "remoto"`.
+- **Casos (inventados):**
+  - "Desarrollador Backend - Hibrido, CABA", ubicacion "Argentina", modalidad desconocida → descarte `modalidad_no_remota`.
+  - "Frontend Engineer (Hybrid, Ciudad X)", modalidad "remoto" segun la fuente → descarte o riesgo (decidir: el titulo contradice a la fuente).
+  - "Presencial - Analista de Datos - Empresa A", ubicacion vacia → descarte.
+  - "Senior Engineer, remote-first, hybrid optional" → no descartar (definir la regla: "optional"/"opcional" no bloquea).
+  - "Ingeniero de Sistemas Hibridos de IA" → no descartar (la palabra no es la modalidad).
+- **Acepta:** tests con esos casos en `prefilter.test.ts`; el golden publico no cambia de descartes salvo los esperados (si cambia, medir con el CI pago de evals antes de mergear).
 
 ### JS-094 · Onboarding guiado del perfil
 `deps:` JS-091 · `est:` M · `estado:` en curso (ronda 14)

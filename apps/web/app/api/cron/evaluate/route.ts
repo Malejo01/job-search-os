@@ -6,6 +6,7 @@ import {
   createLogger,
   createPgQueue,
   runEvaluateWorker,
+  safeDbError,
 } from "@job-search-os/adapters";
 import { NextResponse } from "next/server";
 import { serviceLlm } from "@/lib/llm-service";
@@ -46,10 +47,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     }
     return NextResponse.json(buildEvaluateCronResponse(summary));
   } catch (error) {
-    logger.error(
-      { err: error instanceof Error ? error.message : String(error) },
-      "cron evaluate falló",
-    );
+    logger.error({ err: safeDbError(error) }, "cron evaluate falló");
     return NextResponse.json({ ok: false, error: "worker falló" }, { status: 500 });
   } finally {
     await close();
