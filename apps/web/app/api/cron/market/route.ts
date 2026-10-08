@@ -4,6 +4,7 @@ import {
   buildMarketSnapshot,
   checkBearerSecret,
   createLogger,
+  safeDbError,
 } from "@job-search-os/adapters";
 import { NextResponse } from "next/server";
 
@@ -54,10 +55,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     }
     return NextResponse.json({ ok: true, users: users.length, ...totals });
   } catch (error) {
-    logger.error(
-      { err: error instanceof Error ? error.message : String(error) },
-      "cron market falló",
-    );
+    logger.error({ err: safeDbError(error) }, "cron market falló");
     return NextResponse.json({ ok: false, error: "snapshot falló" }, { status: 500 });
   } finally {
     await close();

@@ -5,6 +5,7 @@ import {
   parseEnabledSources,
   runExtraSourcesIngest,
   runGetOnBoardIngest,
+  safeDbError,
   type RunExtraSourcesResult,
 } from "@job-search-os/adapters";
 import { NextResponse } from "next/server";
@@ -70,10 +71,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       gob = await runGetOnBoardIngest({ db, logger, sinceHours: 24 });
     } catch (error) {
       gobFailed = true;
-      logger.error(
-        { err: error instanceof Error ? error.message : String(error) },
-        "cron ingest falló",
-      );
+      logger.error({ err: safeDbError(error) }, "cron ingest falló");
     }
 
     const { enabled, unknown } = parseEnabledSources(process.env.INGEST_EXTRA_SOURCES);
@@ -92,10 +90,7 @@ export async function GET(request: Request): Promise<NextResponse> {
         });
       } catch (error) {
         // Un error de las extras no convierte en 500 una corrida de Get on Board que anduvo.
-        logger.error(
-          { err: error instanceof Error ? error.message : String(error) },
-          "cron fuentes extra falló",
-        );
+        logger.error({ err: safeDbError(error) }, "cron fuentes extra falló");
         extra = {
           ok: false,
           sources: enabled.map((name) => ({

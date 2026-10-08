@@ -1,5 +1,6 @@
 "use server";
 
+import { createLogger, safeDbError } from "@job-search-os/adapters";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { evaluateInBackgroundOrExplain } from "@/lib/evaluate-now";
@@ -33,8 +34,8 @@ export async function createManualJobAction(formData: FormData): Promise<void> {
       candidatesCount: num("candidates"),
     });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    redirect(`/jobs/new?error=${encodeURIComponent(msg.slice(0, 120))}`);
+    createLogger({ user_id: userId }).error({ err: safeDbError(e) }, "alta manual falló");
+    redirect("/jobs/new?error=ingesta");
   }
   // Los candidatos de /market salen de los JD recientes: se invalida el caché del usuario (JS-102).
   // Solo desde Server Actions; la ingesta del cron/email corre fuera de Next y espera al vencimiento (1 h).

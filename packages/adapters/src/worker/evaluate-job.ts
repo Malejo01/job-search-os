@@ -14,6 +14,7 @@ import { DEFAULT_PROMPT_VERSIONS } from "../llm/client";
 import type { LlmClient } from "../llm/types";
 import { dailyCapFromEnv, spendLast24h, userDailyCapUsd } from "../llm/spend";
 import type { Logger } from "../logger";
+import { safeDbError } from "../logging/safe-error";
 import { EVALUATE_QUEUE, type EvaluatePayload, type Queue } from "../queue/pg-queue";
 
 /**
@@ -43,6 +44,15 @@ export type EvaluateOutcome =
       status: JobStatus;
     }
   | { ok: false; jobId: string; error: string; retry: "retry" | "failed" | "skipped" };
+
+/**
+ * Texto de una excepción inesperada para `outcome.error` (→ job_queue.last_error y log): solo
+ * `<name> <code> <constraint>`, sin `message`, que en errores de la base cita la consulta y el JD.
+ */
+export function unexpectedError(e: unknown): string {
+  const { name, code, constraint } = safeDbError(e);
+  return [name, code, constraint].filter(Boolean).join(" ");
+}
 
 const titleCapFromFlags = (flags: readonly string[] | null | undefined): number | null => {
   for (const f of flags ?? []) {
@@ -339,6 +349,18 @@ export async function runEvaluateWorker(
       // Tope por usuario: su mensaje vuelve a pending y el worker sigue con los de otros usuarios.
       // El dueño sale de jobs.user_id, no de job_queue.user_id (nullable).
       const ownerId = await jobOwner(deps.db, msg.payload.jobId);
+      // Mensaje encolado por otro usuario que apunta a un job ajeno: se descarta antes del LLM y del cupo
+      if (msg.userId && ownerId && msg.userId !== ownerId) {
+        const error = "el dueño del mensaje no coincide con el dueño del job";
+        deps.logger.error(
+          { user_id: msg.userId, job_id: msg.payload.jobId },
+          "mensaje descartado: dueño de la cola distinto del dueño del job",
+        );
+        await deps.queue.fail(msg.id, error, { final: true });
+        summary.outcomes.push({ ok: false, jobId: msg.payload.jobId, error, retry: "failed" });
+        summary.failed++;
+        continue;
+      }
       if (await userCap.isOver(ownerId)) {
         const until = new Date(nowMs() + USER_CAP_DEFER_MS);
         await deps.queue.release(msg.id, USER_CAP_MESSAGE, { runAfter: until });
@@ -371,7 +393,7 @@ export async function runEvaluateWorker(
         outcome = {
           ok: false,
           jobId: msg.payload.jobId,
-          error: e instanceof Error ? e.message : String(e),
+          error: unexpectedError(e),
           retry: "retry",
         };
       }
@@ -464,7 +486,7 @@ export async function evaluateJobNow(
     outcome = {
       ok: false,
       jobId,
-      error: e instanceof Error ? e.message : String(e),
+      error: unexpectedError(e),
       retry: "retry",
     };
   }

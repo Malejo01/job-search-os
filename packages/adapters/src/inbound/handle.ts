@@ -52,6 +52,13 @@ export const UNEXPECTED_SENDER_REASON =
 /** Valor de `inbound_emails.parser` para el ruido social de LinkedIn (JS-050). */
 export const LINKEDIN_SOCIAL_PARSER = "linkedin_social";
 
+/** Dominio del remitente, con o sin nombre visible; null si no se puede leer. */
+function senderDomain(from: string): string | null {
+  const addr = (/<([^>]+)>/.exec(from)?.[1] ?? from).trim().toLowerCase();
+  const at = addr.lastIndexOf("@");
+  return at >= 0 && at < addr.length - 1 ? addr.slice(at + 1) : null;
+}
+
 export async function handleInboundEmail(
   event: ResendReceivedEvent,
   content: ReceivedEmailContent | null,
@@ -60,7 +67,10 @@ export async function handleInboundEmail(
 ): Promise<InboundOutcome> {
   const { db } = deps;
   const now = deps.now?.() ?? new Date();
-  const log = deps.logger.child({ email_id: event.data.email_id, from: event.data.from });
+  const log = deps.logger.child({
+    email_id: event.data.email_id,
+    from_domain: senderDomain(event.data.from),
+  });
 
   // Idempotencia: Svix reintenta; el mismo email_id no se guarda dos veces
   const [dup] = await db
@@ -72,7 +82,7 @@ export async function handleInboundEmail(
   if (dup) return { kind: "duplicate", inboundId: dup.id };
 
   // Usuario por dirección de destino (u_<id>@ingest.<dominio>)
-  const recipients = [...event.data.to, ...event.data.received_for, ...event.data.cc].map((r) =>
+  const recipients = [...event.data.received_for, ...event.data.to, ...event.data.cc].map((r) =>
     (/<([^>]+)>/.exec(r)?.[1] ?? r).trim().toLowerCase(),
   );
   const profiles = recipients.length
@@ -81,7 +91,9 @@ export async function handleInboundEmail(
         .from(s.profiles)
         .where(sql`lower(${s.profiles.inboundAddress}) in ${recipients}`)
     : [];
-  const profile = profiles[0];
+  // Con varias direcciones del sistema, gana la primera por posición: received_for, to, cc
+  const byAddress = new Map(profiles.map((p) => [p.inboundAddress?.toLowerCase(), p]));
+  const profile = recipients.map((r) => byAddress.get(r)).find((p) => p !== undefined);
   if (!profile) {
     // Solo la cantidad: las direcciones son secretos de usuarios y la respuesta del webhook sale
     // hacia afuera (JS-095)

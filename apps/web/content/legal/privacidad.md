@@ -15,9 +15,9 @@ Job Search OS es una herramienta en beta cerrada. El responsable del tratamiento
 - **Cuenta:** tu email y una versión cifrada (hash) de tu contraseña. No guardamos tu contraseña en claro.
 - **Perfil que cargás:** nombre, titular, país y ciudad, preferencia por trabajo remoto, autorización de trabajo, años de experiencia, nivel de inglés, piso salarial, horas semanales máximas, zona horaria y un resumen de tu perfil. Si los cargás, también hechos verificables de tu trayectoria (proyectos, logros, fuentes), respuestas fijas para formularios (disponibilidad, tipo de contratación, links) y respuestas que aprobaste.
 - **Avisos de empleo:** los que cargás vos o llegan por los emails que reenviás (empresa, título, ubicación, sueldo, texto del aviso, link) y las evaluaciones que genera el sistema.
-- **Emails que reenviás:** el sistema te asigna una dirección propia de ingesta. De los remitentes que reconoce como fuentes de empleo guarda el email completo para extraer los avisos. De los demás remitentes guarda solo remitente, destinatarios, asunto y fecha, sin el cuerpo. Ver la sección 6 sobre lo que escapa a este filtro.
+- **Emails que reenviás:** el sistema te asigna una dirección propia de ingesta, con el formato `u_<20 caracteres>@dominio`. De los remitentes que reconoce como fuentes de empleo guarda el email completo para extraer los avisos. Podés ampliar esa lista marcando otros dominios como "empleo": desde ese momento, los emails de esos dominios se guardan completos. De los demás remitentes guarda solo remitente, destinatarios, asunto y fecha, sin el cuerpo. Ver la sección 6 sobre lo que escapa a este filtro.
 - **Seguimiento que cargás:** postulaciones que hiciste por tu cuenta, contactos de reclutadores, plan de aprendizaje, entrevistas de skills.
-- **Datos técnicos:** registro de llamadas a modelos de IA (qué tarea, modelo, cantidad de tokens, costo y duración; no guardamos ahí los textos que se envían ni las respuestas, aunque un mensaje de error del proveedor puede incluir un fragmento [A CONFIRMAR]), y registros de funcionamiento del servidor con tu identificador interno, que pueden incluir el remitente y los destinatarios de los emails que reenviás (datos de terceros).
+- **Datos técnicos:** registro de llamadas a modelos de IA (qué tarea, modelo, cantidad de tokens, costo y duración; no guardamos ahí los textos que se envían ni las respuestas, y en errores de validación guardamos solo códigos técnicos; un mensaje de error del proveedor de IA podría incluir un fragmento técnico), y registros de funcionamiento del servidor con tu identificador interno. Los registros de error pueden llevar el remitente del email reenviado (dato de un tercero) y fragmentos técnicos del fallo. No se publican. Se conservan por [A DEFINIR: plazo de retención de los logs].
 
 **Datos de terceros.** Los emails y avisos pueden contener nombres y emails de reclutadores u otras personas. Los tratamos solo para mostrártelos y ordenar tu búsqueda. Es tu responsabilidad reenviar solo lo que tengas derecho a compartir (ver los Términos).
 
@@ -83,7 +83,7 @@ Tenés derecho a:
 - Los **backups o el historial del proveedor de base de datos**, hasta que vence su plazo [A CONFIRMAR: plazo del plan].
 - Los **registros de funcionamiento del hosting**, por el plazo de ese proveedor.
 - Lo que el **proveedor de email** haya recibido o conserve de los emails reenviados.
-- Los **catálogos compartidos** (empresas y skills), que no pertenecen a una persona.
+- Los **catálogos compartidos** (empresas, skills y recursos de aprendizaje), que no pertenecen a una persona y no se borran con la cuenta.
 - **Filas técnicas sin dueño** (por ejemplo, tareas en cola sin identificador de usuario), que pueden quedar hasta su limpieza.
 - Los datos que una norma nos obligue a conservar.
 

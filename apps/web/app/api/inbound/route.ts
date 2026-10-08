@@ -6,6 +6,7 @@ import {
   pgBlobStorage,
   ResendAnyEventSchema,
   ResendReceivedEventSchema,
+  safeDbError,
   verifySvix,
 } from "@job-search-os/adapters";
 import { NextResponse } from "next/server";
@@ -59,7 +60,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       try {
         content = await fetchReceivedEmail(event.data.data.email_id, apiKey);
       } catch (e) {
-        logger.warn({ err: e instanceof Error ? e.message : String(e) }, "inbound: sin cuerpo");
+        logger.warn({ err: safeDbError(e) }, "inbound: sin cuerpo");
       }
     }
     const outcome = await handleInboundEmail(event.data, content, rawBody, {
@@ -70,7 +71,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     const status = outcome.kind === "rate_limited" ? 429 : 200;
     return NextResponse.json({ ok: outcome.kind !== "rate_limited", ...outcome }, { status });
   } catch (error) {
-    logger.error({ err: error instanceof Error ? error.message : String(error) }, "inbound falló");
+    logger.error({ err: safeDbError(error) }, "inbound falló");
     // 500 para que Svix reintente
     return NextResponse.json({ ok: false, error: "inbound falló" }, { status: 500 });
   } finally {
