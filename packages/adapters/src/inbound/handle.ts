@@ -32,7 +32,7 @@ export type InboundDeps = {
 
 export type InboundOutcome =
   | { kind: "duplicate"; inboundId: string }
-  | { kind: "unknown_recipient"; recipients: string[] }
+  | { kind: "unknown_recipient"; recipientsCount: number }
   | { kind: "rate_limited"; userId: string }
   | {
       kind: "stored";
@@ -83,8 +83,10 @@ export async function handleInboundEmail(
     : [];
   const profile = profiles[0];
   if (!profile) {
-    log.warn({ recipients }, "inbound: destinatario sin usuario");
-    return { kind: "unknown_recipient", recipients };
+    // Solo la cantidad: las direcciones son secretos de usuarios y la respuesta del webhook sale
+    // hacia afuera (JS-095)
+    log.warn({ recipients_count: recipients.length }, "inbound: destinatario sin usuario");
+    return { kind: "unknown_recipient", recipientsCount: recipients.length };
   }
   const userId = profile.userId;
 
