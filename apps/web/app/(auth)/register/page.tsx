@@ -73,6 +73,12 @@ export default async function RegisterPage({
       <div>
         <h1 className="text-2xl font-semibold">Job Search OS</h1>
         <p className="text-sm text-zinc-600">Creá tu cuenta con tu invitación.</p>
+        {code ? null : (
+          <p role="note" className="mt-2 text-sm text-amber-800">
+            Abrí el link completo que te mandaron: sin el código de la invitación no se puede crear
+            la cuenta.
+          </p>
+        )}
       </div>
       <form action={register} className="flex flex-col gap-3">
         <input type="hidden" name="code" value={code ?? ""} />
@@ -109,7 +115,7 @@ export default async function RegisterPage({
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          Repetila
+          Repetí la contraseña
           <input
             name="confirm"
             type="password"

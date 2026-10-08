@@ -43,7 +43,7 @@ const DB_NAME = /^(DATABASE|PGHOST)|_URL$/i;
  * alrededor incluidos) y por nombre (`DATABASE*`, `*_URL` con valor que mencione postgres, `PGHOST`).
  */
 export function assertLocalTestEnv(env: NodeJS.ProcessEnv = process.env): void {
-  // El modo nube apunta a Neon por diseño y carga sus URL dentro del test, después de esta guarda
+  // El modo nube se retiró de los tests (ronda 27); si alguien lo vuelve a pedir, se corta acá
   if (env.TEST_DB_TARGET === "cloud") {
     throw new Error("Guarda de tests: el modo nube (TEST_DB_TARGET=cloud) no está permitido");
   }

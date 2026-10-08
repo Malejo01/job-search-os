@@ -1,7 +1,6 @@
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import postgres, { type Sql } from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { loadLocalEnv } from "./env";
 import { applyMigrations } from "./migrate";
 
 /**
@@ -10,8 +9,6 @@ import { applyMigrations } from "./migrate";
  * Entornos:
  * - CI: DATABASE_URL (servicio postgres, dueño); la contraseña de jobsearch_app la fija el test.
  * - Local: Testcontainer pgvector/pgvector:pg16.
- * - Nube (TEST_DB_TARGET=cloud, pnpm test:integration:cloud): DATABASE_URL_UNPOOLED como dueño y
- *   DATABASE_URL_APP tal cual está en .env.local: el mismo rol y la misma URL pooled que usa la app.
  * Incluye un control negativo: sin la policy, el aislamiento desaparece y la aserción debe fallar.
  */
 const A = "11111111-1111-1111-1111-111111111111";
@@ -39,13 +36,7 @@ function asUser(userId: string | null) {
 }
 
 beforeAll(async () => {
-  if (process.env.TEST_DB_TARGET === "cloud") {
-    loadLocalEnv();
-    ownerUrl = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL ?? "";
-    if (!ownerUrl || !process.env.DATABASE_URL_APP) {
-      throw new Error("modo cloud: faltan DATABASE_URL_UNPOOLED / DATABASE_URL_APP en .env.local");
-    }
-  } else if (process.env.DATABASE_URL) {
+  if (process.env.DATABASE_URL) {
     ownerUrl = process.env.DATABASE_URL;
   } else {
     container = await new PostgreSqlContainer("pgvector/pgvector:pg16")
@@ -57,16 +48,12 @@ beforeAll(async () => {
   }
   await applyMigrations(ownerUrl, { log: () => {} });
   owner = postgres(ownerUrl, { max: 1, prepare: false });
-  if (process.env.DATABASE_URL_APP) {
-    // Rol real con su contraseña real: no se toca
-    appUrl = process.env.DATABASE_URL_APP;
-  } else {
-    await owner.unsafe(`ALTER ROLE jobsearch_app WITH PASSWORD '${APP_PASSWORD}'`);
-    const u = new URL(ownerUrl);
-    u.username = "jobsearch_app";
-    u.password = APP_PASSWORD;
-    appUrl = u.toString();
-  }
+  // Solo base local o la del CI (la guarda de tests rechaza las remotas)
+  await owner.unsafe(`ALTER ROLE jobsearch_app WITH PASSWORD '${APP_PASSWORD}'`);
+  const u = new URL(ownerUrl);
+  u.username = "jobsearch_app";
+  u.password = APP_PASSWORD;
+  appUrl = u.toString();
 }, 180_000);
 
 afterAll(async () => {
