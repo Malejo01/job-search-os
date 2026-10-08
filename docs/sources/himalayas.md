@@ -35,3 +35,10 @@ Adapter: `packages/adapters/src/sources/himalayas.ts`. Estado: **no conectado al
 
 ## Términos de uso: pendiente para riesgos
 Revisar términos de la API pública (atribución exigida, frecuencia máxima, uso permitido de los datos). No se investigó: sin red.
+
+## Cómo prenderla
+Agregar `himalayas` a `INGEST_EXTRA_SOURCES` (docs/DEPLOY.md) **solo después** de verificar el período de `minSalary`/`maxSalary` y de revisar los términos de uso. En la primera corrida, mirar la respuesta del cron (`extraSources`) y los avisos ingeridos:
+- Formato real contra lo marcado "a verificar": `pubDate`, `guid`, `description`.
+- Cantidad: `fetched` razonable para 24 h (el cron pagina hasta 3 páginas).
+- Ubicación: valores reales de `locationRestrictions` y su mapeo a `countriesAllowed`.
+- Salario: moneda y período coherentes antes de confiar en el filtro de piso.

@@ -30,3 +30,10 @@ Adapter: `packages/adapters/src/sources/torre.ts`. Estado: **no conectado al cro
 
 ## Pregunta para riesgos
 ¿Los términos de uso de Torre permiten consultar su buscador de forma automatizada y reutilizar los avisos? No hay API pública que lo habilite explícitamente; antes de conectar hay que leer los términos y, si no hay permiso claro, descartar la fuente.
+
+## Cómo prenderla
+**No prender hasta revisar los términos de uso** (ver "Pregunta para riesgos"); si no hay permiso claro, descartar la fuente. Si se aprueba, agregar `torre` a `INGEST_EXTRA_SOURCES` (docs/DEPLOY.md) y en la primera corrida mirar la respuesta del cron (`extraSources`) y los avisos ingeridos:
+- Formato real contra lo marcado "a verificar": endpoint, body, orden por fecha y forma de `compensation`.
+- Cantidad: `fetched` razonable para 24 h (el cron pagina hasta 3 páginas).
+- Ubicación: qué significa `locations` en un remoto.
+- Salario: moneda y periodicidad; si no hay descripción, no hay JD para evaluar.

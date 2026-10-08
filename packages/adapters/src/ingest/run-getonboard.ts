@@ -28,6 +28,17 @@ export type RunGobResult = {
   durationMs: number;
 };
 
+/** Reglas de la versión activa más reciente de los criterios del usuario; null si no tiene. */
+export async function loadActiveRules(db: Db, userId: string): Promise<CriteriaRules | null> {
+  const [criteria] = await db
+    .select({ rules: s.evaluationCriteria.rules })
+    .from(s.evaluationCriteria)
+    .where(and(eq(s.evaluationCriteria.userId, userId), eq(s.evaluationCriteria.active, true)))
+    .orderBy(desc(s.evaluationCriteria.version))
+    .limit(1);
+  return criteria ? (criteria.rules as CriteriaRules) : null;
+}
+
 /**
  * Corrida de ingesta de Get on Board para todos los usuarios (o uno): una sola descarga,
  * dedup/prefiltro por usuario. La usan el cron (app/api/cron/ingest-getonboard) y el CLI.
@@ -60,20 +71,15 @@ export async function runGetOnBoardIngest(options: RunGobOptions): Promise<RunGo
   const taxonomy = await loadTaxonomy(options.db);
   const users: RunGobResult["users"] = [];
   for (const { userId } of profiles) {
-    const [criteria] = await options.db
-      .select({ rules: s.evaluationCriteria.rules })
-      .from(s.evaluationCriteria)
-      .where(and(eq(s.evaluationCriteria.userId, userId), eq(s.evaluationCriteria.active, true)))
-      .orderBy(desc(s.evaluationCriteria.version))
-      .limit(1);
-    if (!criteria) {
+    const rules = await loadActiveRules(options.db, userId);
+    if (!rules) {
       log.warn({ user_id: userId }, "gob: usuario sin criterios activos, se omite");
       continue;
     }
     const summary = await ingestBatch(fetched.jobs, {
       db: options.db,
       userId,
-      rules: criteria.rules as CriteriaRules,
+      rules,
       logger: log,
       enqueueEvaluation,
       now: () => now,
