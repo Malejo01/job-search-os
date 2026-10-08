@@ -102,6 +102,21 @@ Cron:
 9. Actions › cron › Run workflow (step: both). Tiene que terminar en verde y mostrar el JSON de la ingesta y de la evaluación. Si falla, el error dice cuál de los dos endpoints y por qué.
 10. Al día siguiente: `pnpm llm:spend` y `/jobs` con ofertas nuevas de Get on Board.
 
+## Variables de datos legales (JS-120)
+
+Las páginas `/legal/privacidad` y `/legal/terminos` completan los datos legales desde variables de entorno, leídas en cada request (páginas dinámicas): cambiarlas en Vercel no exige rebuild, alcanza con redeployar. Se cargan en Vercel (Production y Preview); **nunca** van al repo y son públicas en esas páginas.
+
+| Variable | Qué completa | Formato |
+|---|---|---|
+| `LEGAL_RESPONSABLE` | `[RESPONSABLE]` | Texto, hasta 200 caracteres |
+| `LEGAL_DOMICILIO` | `[DOMICILIO]` | Texto, hasta 200 caracteres |
+| `LEGAL_EMAIL` | `[EMAIL DE CONTACTO]` | Texto, hasta 200 caracteres |
+| `LEGAL_LOG_DAYS` | Plazo de retención de los registros técnicos; también lo usa la purga (JS-107) | Entero de 1 a 3650 |
+
+- **Si falta una variable** (o `LEGAL_LOG_DAYS` no es válido), la página dice "(dato en revisión)" o "un plazo que está en revisión", nunca el marcador.
+- **Los valores se muestran como texto:** no se interpretan como Markdown ni como HTML, y no se loguean.
+- **Sin `LEGAL_LOG_DAYS`,** la purga solo borra los tokens de reseteo vencidos.
+
 ## Rate limit de las pantallas de cuenta (JS-108)
 
 Una regla del firewall de Vercel (Firewall › Rules): ventana fija de 10 pedidos por minuto por IP para los `POST` a `/login`, `/register`, `/setup`, `/forgot-password` y `/reset-password`. Cada intento de login o de registro cuesta un scrypt, así que sin esta regla son un vector de CPU y de fuerza bruta. Cargada el 2026-10-08. Si se agrega otra pantalla que reciba una contraseña, va en la misma regla.

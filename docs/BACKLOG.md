@@ -675,10 +675,9 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - `evals/src/golden.ts` llama a `prefilter` sin pais, asi que la regla "solo paises ajenos" que usa produccion no se mide. Pasar `userCountry: "AR"` explicito. Toca `evals/`: dispara el job pago del CI (≈ USD 0,15), va en una ronda con gasto aprobado.
 
 ### JS-107 · Retencion y logs sin datos de terceros
-`deps:` — · `est:` S · `estado:` parcial (2026-10-08, ronda 18): logs hechos; falta la purga
+`deps:` — · `est:` S · `estado:` ✅ done 2026-10-08 (logs en la ronda 18; purga en la ronda 20, PR #58)
+- **Purga (ronda 20):** en el cron de evaluacion; tokens de reseteo vencidos o usados siempre; con `LEGAL_LOG_DAYS`, registros tecnicos (llamadas a IA con minimo de 90 dias, cola terminada, contadores de rechazos con minimo de 2 dias). Los datos del usuario no se purgan por antiguedad.
 - **Hecho (ronda 18):** los logs del inbound llevan el dominio del remitente y no su email; los errores de la base se loguean sin consulta ni parametros (`safeDbError`) en la ingesta, el inbound, el worker, `run-sources`, los crons, `health`, la evaluacion inmediata y los borradores; los errores del LLM sin texto del modelo. Queda el texto de error que el MCP devuelve al propio usuario.
-- **Falta:** ningun proceso purga `raw_blobs`, `inbound_emails`, tokens de reseteo vencidos ni logs. Purga programada con plazos a decidir (la politica deja el plazo de logs como `[A DEFINIR]`).
-- **Acepta:** test de la purga.
 
 ### JS-095 · Direccion de email entrante por usuario ✅ done 2026-10-08
 `deps:` JS-094 · `est:` S · `estado:` done (ronda 17, PR #55)
@@ -692,12 +691,12 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 `deps:` JS-103, JS-095 · `est:` M · `estado:` done (ronda 18)
 - Tests de dos usuarios (integracion sobre todas las tablas con duenio y las funciones `SECURITY DEFINER`, que fallan si aparece una nueva sin cubrir; e2e en el CI) y arreglos chicos. Sin bloqueantes en el codigo.
 
-### JS-113 · Endurecer el registro por invitacion
-`deps:` JS-095 · `est:` S + RLS · `estado:` todo (2026-10-08, seguridad)
+### JS-113 · Endurecer el registro por invitacion ✅ done 2026-10-08
+`deps:` JS-095 · `est:` S + RLS · `estado:` done (ronda 23, PR #60; aplicado en Neon)
 - Endurecer el registro por invitacion (detalle en las notas privadas de la ronda 18). Toca `rls/0003`; se aplica en Neon.
 
-### JS-114 · Endurecer policies de `evaluations` y `applications`
-`deps:` JS-103 · `est:` XS + RLS · `estado:` todo (2026-10-08, seguridad)
+### JS-114 · Endurecer policies de `evaluations` y `applications` ✅ done 2026-10-08
+`deps:` JS-103 · `est:` XS + RLS · `estado:` done (ronda 23, PR #60; aplicado en Neon)
 - Endurecer las policies de `evaluations` y `applications` (detalle en las notas privadas de la ronda 18). Toca `rls/0000`; se aplica en Neon.
 - **Acepta:** los `it.fails` de la ronda 18 pasan a `it`.
 
@@ -718,20 +717,30 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - Al llegar: con avisos extraidos queda visto; login, verificacion o codigos (de cualquier remitente) se descartan sin guardar contenido y con el asunto enmascarado; la confirmacion de reenvio de Gmail dirigida a la direccion del usuario se guarda completa y aparece arriba de `/inbox` con "Confirmar reenvio" (solo links `https` de los hosts de Gmail); las confirmaciones de postulacion de LinkedIn actualizan el aviso propio si hay un unico candidato, y si no quedan vistas.
 - "Pendientes" = solo lo que necesita intervencion (error, sin parser o la confirmacion de Gmail). Acciones en lote por id con "Deshacer" (10 s) y "Volver a vistos/pendientes" en Descartados. Ajustes > Remitentes para cambiar el veredicto de cada dominio.
 
-### JS-120 · Datos legales por variables de entorno
-`deps:` JS-097 · `est:` S · `estado:` todo (ronda 20)
+### JS-120 · Datos legales por variables de entorno ✅ done 2026-10-08
+`deps:` JS-097 · `est:` S · `estado:` done (ronda 20, PR #58)
 - Los datos del responsable y el plazo de logs se completan en tiempo de ejecucion desde variables; si falta alguna, la pagina dice "en revision". Nunca en el repo.
 
-### JS-121 · Higiene de tests y de escaneo de secretos
-`deps:` — · `est:` S · `estado:` todo (ronda 20)
-- Los tests de integracion que crean roles o usuarios fallan antes de conectarse si la base no es local o de Testcontainers; `.gitguardian.yaml` ignora solo las credenciales de prueba de tests y e2e.
+### JS-121 · Higiene de tests y de escaneo de secretos ✅ done 2026-10-08
+`deps:` — · `est:` S · `estado:` done (ronda 20, PR #58)
+- Los tests de integracion y los e2e fallan antes de conectarse si alguna URL de base del entorno no es local; `.gitguardian.yaml` ignora solo cadenas de prueba inventadas, una por una.
 
 ### JS-122 · Asistente de ingesta en pocos clics (B8)
-`deps:` JS-119 · `est:` M · `estado:` todo (ronda 22, pre-aprobada)
-- Asistente en el onboarding y en Ajustes con estado en vivo; auto-confirmacion del reenvio de Gmail con lista estricta de hosts; archivo de filtros de Gmail por usuario; fuentes por API prendidas por defecto. Meta: un invitado configura todo solo en menos de 10 minutos.
+`deps:` JS-119 · `est:` M · `estado:` parte 1 done 2026-10-08 (ronda 22a, PR #59); parte 2 en la ronda 26
+- **Parte 1:** archivo de filtros de Gmail por usuario, pantalla del asistente en el onboarding y en Ajustes, y ofertas de las fuentes por API apenas termina el onboarding.
+- **Parte 2:** el asistente muestra el paso actual deducido de la base (direccion, confirmacion de Gmail, filtros, primera alerta). El servidor **no** abre links de confirmacion: el boton de la bandeja los abre en el navegador del usuario.
+- Meta: un invitado configura todo solo en menos de 10 minutos.
 
-### JS-118 · Prefiltro: modalidad no remota en el titulo
-`deps:` — · `est:` S · `estado:` todo (2026-10-08, Mauro)
+### JS-123 · Registro de llamadas a la IA sin texto del proveedor
+`deps:` — · `est:` XS · `estado:` en curso (ronda 25) — prioridad alta, antes de invitar
+- El registro guarda solo metadatos (tarea, modelo, tokens, costo, fecha, usuario) y un codigo de error normalizado (tipo y status HTTP), nunca el texto del proveedor. Limpieza de filas viejas por `UPDATE` (Mauro). La purga de 90 dias, cubierta por un test.
+
+### JS-124 · Retirar la version anterior de la funcion de registro
+`deps:` JS-113 · `est:` XS + RLS · `estado:` todo (2026-10-08) — despues del deploy de la ronda 23
+- Retirar la version anterior de la funcion de registro (detalle en las notas privadas de la ronda 23).
+
+### JS-118 · Prefiltro: modalidad no remota en el titulo ✅ done 2026-10-08
+`deps:` — · `est:` S · `estado:` done (ronda 21, PR #57). Golden privado: 0 cambios de prefiltro en 3 corridas, metricas sin cambios (Mauro).
 - **Por que:** un aviso con la modalidad en el titulo ("Hibrido, CABA") paso el prefiltro: `NON_REMOTE_IN_TEXT` solo mira la ubicacion, y ademas no se aplica si la fuente dijo `modality: "remoto"`.
 - **Casos (inventados):**
   - "Desarrollador Backend - Hibrido, CABA", ubicacion "Argentina", modalidad desconocida → descarte `modalidad_no_remota`.

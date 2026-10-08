@@ -1,4 +1,5 @@
 import { schema, type Db } from "@job-search-os/db";
+import { isLlmErrorCode } from "./error-code";
 import type { CallSink, LlmCallRecord } from "./types";
 
 /** Persiste cada llamada en `llm_calls` (ARCHITECTURE §7). */
@@ -18,7 +19,8 @@ export function drizzleCallSink(db: Db): CallSink {
         costUsd: call.costUsd,
         label: call.label,
         ok: call.ok,
-        error: call.error,
+        // Última barrera (D-027): lo que no sea un código cerrado no se guarda
+        error: call.error === null || isLlmErrorCode(call.error) ? call.error : "unknown",
       });
     },
   };

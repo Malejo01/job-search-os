@@ -1,8 +1,9 @@
 import { err, ok, type Result } from "@job-search-os/pipeline";
 import { loadPrompt, renderPrompt, type PromptRef } from "@job-search-os/prompts";
-import { generateObject, NoObjectGeneratedError } from "ai";
+import { generateObject } from "ai";
 import type { z } from "zod";
 import { createLogger, type Logger } from "../logger";
+import { LlmValidationError, llmErrorDetail, normalizeLlmError } from "./error-code";
 import { providerForModel } from "./providers";
 import type {
   CallSink,
@@ -86,25 +87,6 @@ export function estimateCost(
   return (tokensIn * inPrice + tokensOut * outPrice) / 1_000_000;
 }
 
-/**
- * Resumen de un error de zod apto para guardar: solo `path: code` (hasta 5 issues y 300
- * caracteres). `message` y `received` pueden citar la salida del modelo, que refleja el JD.
- */
-export function zodIssuesSummary(error: { issues: readonly z.core.$ZodIssue[] }): string {
-  const issues = error.issues
-    .slice(0, 5)
-    .map((i) => `${i.path.map(String).join(".") || "(raíz)"}: ${i.code}`);
-  return issues.join("; ").slice(0, 300);
-}
-
-const errorMessage = (e: unknown): string => {
-  if (NoObjectGeneratedError.isInstance(e)) {
-    // Típico: max_tokens corto para un modelo con thinking → JSON truncado
-    return `${e.name}: ${e.message} (finishReason=${e.finishReason ?? "?"}, usage=${JSON.stringify(e.usage ?? null)}, len=${(e.text ?? "").length})`;
-  }
-  return e instanceof Error ? `${e.name}: ${e.message}` : String(e);
-};
-
 const isAbort = (e: unknown, signal: AbortSignal): boolean =>
   signal.aborted || (e instanceof Error && e.name === "AbortError");
 
@@ -136,11 +118,11 @@ export function createLlmClient(deps: LlmClientDeps): LlmClient {
       return err({
         kind: "provider_unavailable",
         task: route.task,
-        detail: `${provider}/${model}: falta la API key del proveedor`,
+        detail: "provider_unavailable",
       });
     }
     if (ctx.signal?.aborted) {
-      return err({ kind: "aborted", task: route.task, detail: "cancelada antes de llamar" });
+      return err({ kind: "aborted", task: route.task, detail: "aborted" });
     }
 
     // Timeout duro por llamada + cancelación externa (SIGINT/SIGTERM, tope de corrida)
@@ -166,7 +148,7 @@ export function createLlmClient(deps: LlmClientDeps): LlmClient {
         ? { success: true as const, data: raw.object as T }
         : schema.safeParse(raw.object);
       if (!parsed.success) {
-        throw new Error(`salida no cumple el schema: ${zodIssuesSummary(parsed.error)}`);
+        throw new LlmValidationError(parsed.error.issues);
       }
       const tokensIn = raw.usage.inputTokens ?? null;
       const tokensOut = raw.usage.outputTokens ?? null;
@@ -212,11 +194,10 @@ export function createLlmClient(deps: LlmClientDeps): LlmClient {
     } catch (e) {
       const latencyMs = now() - startedAt;
       const aborted = isAbort(e, signal);
-      const detail = aborted
-        ? ctx.signal?.aborted
-          ? "cancelada (señal externa)"
-          : `timeout de ${timeoutMs} ms por llamada`
-        : errorMessage(e);
+      // Solo el código cerrado (D-027): nunca `e.message`, que puede citar el JD o la salida
+      const code = aborted ? (ctx.signal?.aborted ? "aborted" : "timeout") : normalizeLlmError(e);
+      // `detail` lleva además un sufijo fijo para el clasificador de evals; la base, solo el código
+      const detail = llmErrorDetail(code);
       await deps.calls.record({
         userId: ctx.userId ?? null,
         task: ctx.recordTask ?? route.task,
@@ -230,9 +211,12 @@ export function createLlmClient(deps: LlmClientDeps): LlmClient {
         costUsd: null,
         label: ctx.label ?? null,
         ok: false,
-        error: detail.slice(0, 1000),
+        error: code.slice(0, 120),
       });
-      log.error({ model, latency_ms: latencyMs, err: detail }, "llm falló");
+      log.error(
+        { model, latency_ms: latencyMs, err: code, err_name: e instanceof Error ? e.name : null },
+        "llm falló",
+      );
       return err({ kind: aborted ? "aborted" : "generation_failed", task: route.task, detail });
     }
   }
