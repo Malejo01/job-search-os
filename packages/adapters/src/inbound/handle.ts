@@ -1,6 +1,16 @@
 import { schema as s, type Db } from "@job-search-os/db";
-import { isExpectedSender, type CriteriaRules } from "@job-search-os/pipeline";
+import {
+  classifyInbound,
+  GMAIL_FORWARDING_PARSER,
+  htmlToText,
+  isExpectedSender,
+  LINKEDIN_APPLICATION_PARSER,
+  maskDigits,
+  SECURITY_PARSER,
+  type CriteriaRules,
+} from "@job-search-os/pipeline";
 import { and, desc, eq, gte, like, sql } from "drizzle-orm";
+import { applyLinkedinApplication } from "../applications/linkedin-application";
 import { ingestBatch } from "../ingest/ingest-job";
 import type { Logger } from "../logger";
 import { enqueueEvaluationWith } from "../queue/pg-queue";
@@ -48,6 +58,10 @@ export const MANUAL_QUEUE_REASON = "sin parser para este remitente: cola manual"
 /** Remitente no esperado (JS-051): se guardó solo remitente, asunto y fecha. */
 export const UNEXPECTED_SENDER_REASON =
   "remitente no esperado: por privacidad se guardó solo remitente, asunto y fecha, sin el cuerpo";
+
+/** Email de seguridad (JS-119): código, acceso o contraseña, de cualquier remitente. */
+export const SECURITY_EMAIL_REASON =
+  "email de seguridad (código, acceso o contraseña): por privacidad se guardó solo remitente, asunto con los números enmascarados y fecha, sin el cuerpo";
 
 /** Valor de `inbound_emails.parser` para el ruido social de LinkedIn (JS-050). */
 export const LINKEDIN_SOCIAL_PARSER = "linkedin_social";
@@ -125,21 +139,50 @@ export async function handleInboundEmail(
     return { kind: "rate_limited", userId };
   }
 
-  // JS-051: red de seguridad de privacidad. Si el reenvío de Gmail manda correo personal (banco,
-  // códigos, resets de contraseña), no se guarda su contenido: completo solo lo de remitentes
-  // esperados (fuentes de empleo conocidas o dominios marcados como fuente de empleo). Del resto,
-  // solo remitente, destinatarios, asunto, fecha y el email_id (idempotencia); ni cuerpo ni
-  // nombres de adjuntos.
+  // JS-119: se clasifica antes del chequeo de remitente. Los códigos y reseteos (de cualquier
+  // remitente) se guardan como los de un remitente no esperado y con el asunto enmascarado;
+  // la confirmación de reenvío de Gmail dirigida a esta dirección se guarda completa.
+  // Remitente esperado (fuente de empleo, JS-051): ahí `seguridad` se decide solo por el asunto.
+  // Sin parte de texto se clasifica con el HTML pasado a texto.
   const jobDomains = await db
     .select({ domain: s.inboundSenderDomains.domain })
     .from(s.inboundSenderDomains)
     .where(
       and(eq(s.inboundSenderDomains.userId, userId), eq(s.inboundSenderDomains.verdict, "empleo")),
     );
-  const expected = isExpectedSender(
+  const senderExpected = isExpectedSender(
     event.data.from,
     jobDomains.map((d) => d.domain),
   );
+  const classification = classifyInbound({
+    from: event.data.from,
+    to: recipients,
+    subject: event.data.subject,
+    text: content?.text || (content?.html ? htmlToText(content.html) : null),
+    securityBySubjectOnly: senderExpected,
+  });
+  const category = classification.category;
+  const ownAddress = profile.inboundAddress?.toLowerCase() ?? null;
+  const addressedToUser =
+    ownAddress !== null &&
+    [...event.data.to, ...event.data.received_for].some(
+      (r) => (/<([^>]+)>/.exec(r)?.[1] ?? r).trim().toLowerCase() === ownAddress,
+    );
+  const isSecurity = category === "seguridad";
+  const isGmailConfirm = category === "confirmacion_reenvio_gmail" && addressedToUser;
+
+  // JS-051: red de seguridad de privacidad. Si el reenvío de Gmail manda correo personal (banco,
+  // códigos, resets de contraseña), no se guarda su contenido: completo solo lo de remitentes
+  // esperados (fuentes de empleo conocidas o dominios marcados como fuente de empleo). Del resto,
+  // solo remitente, destinatarios, asunto, fecha y el email_id (idempotencia); ni cuerpo ni
+  // nombres de adjuntos.
+  const expected = !isSecurity && (isGmailConfirm || senderExpected);
+  // Todo lo que no se guarda completo lleva el asunto con los números enmascarados
+  const storedSubject = expected
+    ? (event.data.subject ?? null)
+    : event.data.subject
+      ? maskDigits(event.data.subject)
+      : null;
   const rawRef = await deps.storage.put({
     userId,
     kind: "inbound_email",
@@ -156,11 +199,11 @@ export async function handleInboundEmail(
                 from: event.data.from,
                 to: event.data.to,
                 received_for: event.data.received_for,
-                subject: event.data.subject ?? null,
+                subject: storedSubject,
               },
             },
             content: null,
-            redacted: UNEXPECTED_SENDER_REASON,
+            redacted: isSecurity ? SECURITY_EMAIL_REASON : UNEXPECTED_SENDER_REASON,
           },
     ),
   });
@@ -171,9 +214,34 @@ export async function handleInboundEmail(
   let error: string | null = null;
   let parserUsed: string | null = null;
   let dismissedAt: Date | null = null;
+  let seen = false;
 
-  if (!expected) {
+  if (isSecurity) {
+    parserUsed = SECURITY_PARSER;
+    error = SECURITY_EMAIL_REASON;
+    dismissedAt = now;
+  } else if (isGmailConfirm) {
+    // Queda completo y pendiente: la persona tiene que abrir el link de confirmación
+    parserUsed = GMAIL_FORWARDING_PARSER;
+  } else if (!expected) {
     error = UNEXPECTED_SENDER_REASON;
+  } else if (
+    (category === "postulacion_enviada" || category === "postulacion_vista") &&
+    classification.application
+  ) {
+    parserUsed = LINKEDIN_APPLICATION_PARSER;
+    seen = true;
+    const result = await applyLinkedinApplication(
+      db,
+      userId,
+      category === "postulacion_enviada" ? "enviada" : "vista",
+      classification.application,
+      now,
+    );
+    log.info(
+      { user_id: userId, match: result.match, action: result.action },
+      "inbound: postulacion de LinkedIn",
+    );
   } else if (linkedinSenderKind(event.data.from) === "social") {
     // JS-050: ruido social de LinkedIn. Se guarda (con su crudo) ya descartado, así no ensucia
     // Pendientes ni la cola manual y se puede revisar. Si trae tarjetas de aviso, LinkedIn cambió
@@ -243,17 +311,27 @@ export async function handleInboundEmail(
     .values({
       userId,
       fromAddress: event.data.from,
-      subject: event.data.subject ?? null,
+      subject: storedSubject,
       rawRef,
       parser: parserUsed ?? (parser ? parserName : "none"),
       jobsExtracted,
       error,
       receivedAt: now,
+      // Resuelto solo (postulación de LinkedIn) o con avisos extraídos y sin error: no necesita a
+      // la persona. Un fallo parcial ("N avisos con error") queda en Pendientes.
+      seenAt: seen || (jobsExtracted > 0 && error === null) ? now : null,
       dismissedAt,
     })
     .returning({ id: s.inboundEmails.id });
+  // Nunca el asunto ni el cuerpo: pueden traer códigos
   log.info(
-    { user_id: userId, parser: parserUsed, jobs_extracted: jobsExtracted, error },
+    {
+      user_id: userId,
+      category,
+      parser: parserUsed,
+      jobs_extracted: jobsExtracted,
+      error,
+    },
     "inbound: guardado",
   );
   return {

@@ -1,6 +1,14 @@
-import { schema as s } from "@job-search-os/db";
-import { assessInboxVolume, type InboxVolume } from "@job-search-os/pipeline";
-import { and, desc, eq, gte, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import { inboxAttention, inboxWhere, schema as s } from "@job-search-os/db";
+import { pgBlobStorage } from "@job-search-os/adapters";
+import {
+  assessInboxVolume,
+  GMAIL_FORWARDING_PARSER,
+  gmailConfirmLink,
+  gmailForwardRequester,
+  type InboxVolume,
+} from "@job-search-os/pipeline";
+import type { PgColumn } from "drizzle-orm/pg-core";
+import { and, desc, eq, gte, inArray, isNull, not, sql } from "drizzle-orm";
 import { withUser } from "./db";
 
 /**
@@ -15,10 +23,16 @@ export function parseInboxView(raw: string | undefined): InboxView {
   return (INBOX_VIEWS as readonly string[]).includes(raw ?? "") ? (raw as InboxView) : "pendientes";
 }
 
+/**
+ * Las pestañas salen de `inboxWhere` (packages/db/src/inbox-views.ts), la regla de
+ * `needsAttention` escrita en SQL y probada contra ella. Un email con avisos extraídos y sin error
+ * no necesita intervención, tenga o no `seen_at`: los viejos salen de Pendientes y pasan a Vistos
+ * solos, sin tocar datos.
+ */
 const VIEW_WHERE = {
-  pendientes: and(isNull(s.inboundEmails.seenAt), isNull(s.inboundEmails.dismissedAt)),
-  vistos: and(isNotNull(s.inboundEmails.seenAt), isNull(s.inboundEmails.dismissedAt)),
-  descartados: isNotNull(s.inboundEmails.dismissedAt),
+  pendientes: inboxWhere.pendientes,
+  vistos: inboxWhere.vistos,
+  descartados: inboxWhere.descartados,
   todos: undefined,
 } as const;
 
@@ -66,9 +80,9 @@ export async function listInbox(
       .limit(INBOX_LIMIT);
     const [c] = await tx
       .select({
-        pendientes: sql<number>`count(*) filter (where seen_at is null and dismissed_at is null)::int`,
-        vistos: sql<number>`count(*) filter (where seen_at is not null and dismissed_at is null)::int`,
-        descartados: sql<number>`count(*) filter (where dismissed_at is not null)::int`,
+        pendientes: sql<number>`count(*) filter (where ${inboxWhere.pendientes})::int`,
+        vistos: sql<number>`count(*) filter (where ${inboxWhere.vistos})::int`,
+        descartados: sql<number>`count(*) filter (where ${inboxWhere.descartados})::int`,
         todos: sql<number>`count(*)::int`,
       })
       .from(s.inboundEmails);
@@ -172,6 +186,205 @@ export async function restoreInbound(userId: string, ids: string | string[]): Pr
       .where(these(list))
       .returning({ id: s.inboundEmails.id });
     return rows.length;
+  });
+}
+
+/** Acciones en lote que se pueden deshacer; "delete" no está: borra de verdad. */
+export const REVERSIBLE_BULK = ["seen", "dismiss", "restore_seen", "restore_pending"] as const;
+export type ReversibleBulk = (typeof REVERSIBLE_BULK)[number];
+
+type Marks = { seenAt: string | null; dismissedAt: string | null };
+
+/**
+ * Para deshacer una acción en lote (fechas en ISO): el estado de un email antes (`seenAt`,
+ * `dismissedAt`) y el que dejó la acción (`after`). «Deshacer» solo restaura si el estado actual
+ * sigue siendo `after`; si cambió después, no lo pisa.
+ */
+export type InboxPrevious = Marks & { id: string; after: Marks };
+
+const iso = (d: Date | null) => (d ? d.toISOString() : null);
+
+/**
+ * Acción en lote por id (no por posición): aplica `kind` a esos ids y devuelve el estado anterior
+ * de cada uno. "Volver a vistos" saca solo `dismissed_at` (y deja visto); "Volver a pendientes"
+ * saca las dos marcas. Todo en una transacción y con RLS.
+ */
+export async function bulkApply(
+  userId: string,
+  kind: ReversibleBulk,
+  ids: readonly string[],
+): Promise<{ n: number; previous: InboxPrevious[]; stay: number }> {
+  const list = cleanIds(ids);
+  if (!list.length) return { n: 0, previous: [], stay: 0 };
+  return withUser(userId, async (tx) => {
+    const before = await tx
+      .select({
+        id: s.inboundEmails.id,
+        seenAt: s.inboundEmails.seenAt,
+        dismissedAt: s.inboundEmails.dismissedAt,
+      })
+      .from(s.inboundEmails)
+      .where(these(list));
+    const found = before.map((b) => b.id);
+    if (!found.length) return { n: 0, previous: [], stay: 0 };
+    const set = {
+      seen: { seenAt: sql`coalesce(${s.inboundEmails.seenAt}, now())` },
+      dismiss: { dismissedAt: sql`coalesce(${s.inboundEmails.dismissedAt}, now())` },
+      restore_seen: {
+        seenAt: sql`coalesce(${s.inboundEmails.seenAt}, now())`,
+        dismissedAt: null,
+      },
+      restore_pending: { seenAt: null, dismissedAt: null },
+    }[kind];
+    const after = await tx.update(s.inboundEmails).set(set).where(these(found)).returning({
+      id: s.inboundEmails.id,
+      seenAt: s.inboundEmails.seenAt,
+      dismissedAt: s.inboundEmails.dismissedAt,
+    });
+    const afterById = new Map(after.map((a) => [a.id, a]));
+    // «Volver a pendientes» deja fuera de Pendientes a los que ya tienen avisos cargados y no
+    // requieren intervención: quedan en «Todos». El aviso de la barra lo dice.
+    let stay = 0;
+    if (kind === "restore_pending") {
+      const [c] = await tx
+        .select({ n: sql<number>`count(*)::int` })
+        .from(s.inboundEmails)
+        .where(and(these(found), not(inboxAttention)));
+      stay = c?.n ?? 0;
+    }
+    return {
+      n: found.length,
+      stay,
+      previous: before.map((b) => ({
+        id: b.id,
+        seenAt: iso(b.seenAt),
+        dismissedAt: iso(b.dismissedAt),
+        after: {
+          seenAt: iso(afterById.get(b.id)?.seenAt ?? null),
+          dismissedAt: iso(afterById.get(b.id)?.dismissedAt ?? null),
+        },
+      })),
+    };
+  });
+}
+
+const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/;
+
+/** Fecha ISO estricta y razonable → Date; null → null; cualquier otra cosa → undefined (se ignora). */
+function parseMark(value: unknown): Date | null | undefined {
+  if (value === null) return null;
+  if (typeof value !== "string" || !ISO_UTC.test(value)) return undefined;
+  const d = new Date(value);
+  const year = d.getUTCFullYear();
+  return Number.isNaN(d.getTime()) || year < 2000 || year > 2100 ? undefined : d;
+}
+
+/** Igualdad al milisegundo (JS no guarda microsegundos) y tratando null como valor. */
+const sameMark = (col: PgColumn, d: Date | null) =>
+  d === null
+    ? sql`${col} is null`
+    : sql`date_trunc('milliseconds', ${col}) = ${d.toISOString()}::timestamptz`;
+
+/**
+ * «Deshacer»: devuelve a cada id el estado que tenía antes, y solo a esos ids. Cada fila se
+ * restaura únicamente si su estado actual sigue siendo el que dejó la acción: si la persona la
+ * tocó después, no se pisa. Una entrada mal formada o con fecha inválida se ignora (nunca falla).
+ * `user_id` va explícito además de RLS.
+ */
+export async function undoBulk(
+  userId: string,
+  previous: readonly InboxPrevious[],
+): Promise<number> {
+  const entries: {
+    id: string;
+    prev: [Date | null, Date | null];
+    after: [Date | null, Date | null];
+  }[] = [];
+  for (const p of previous) {
+    if (typeof p !== "object" || p === null || typeof p.after !== "object" || p.after === null) {
+      continue;
+    }
+    const marks = [
+      parseMark(p.seenAt),
+      parseMark(p.dismissedAt),
+      parseMark(p.after.seenAt),
+      parseMark(p.after.dismissedAt),
+    ];
+    if (typeof p.id !== "string" || !UUID.test(p.id) || marks.some((m) => m === undefined))
+      continue;
+    const [prevSeen, prevDismissed, afterSeen, afterDismissed] = marks as (Date | null)[];
+    entries.push({
+      id: p.id,
+      prev: [prevSeen ?? null, prevDismissed ?? null],
+      after: [afterSeen ?? null, afterDismissed ?? null],
+    });
+  }
+  const unique = [...new Map(entries.map((e) => [e.id, e])).values()].slice(0, BULK_LIMIT);
+  if (!unique.length) return 0;
+  return withUser(userId, async (tx) => {
+    let n = 0;
+    for (const e of unique) {
+      const rows = await tx
+        .update(s.inboundEmails)
+        .set({ seenAt: e.prev[0], dismissedAt: e.prev[1] })
+        .where(
+          and(
+            eq(s.inboundEmails.id, e.id),
+            eq(s.inboundEmails.userId, userId),
+            sameMark(s.inboundEmails.seenAt, e.after[0]),
+            sameMark(s.inboundEmails.dismissedAt, e.after[1]),
+          ),
+        )
+        .returning({ id: s.inboundEmails.id });
+      n += rows.length;
+    }
+    return n;
+  });
+}
+
+/** La confirmación de reenvío de Gmail que sigue sin verse, con su link de confirmación (o null). */
+export type GmailConfirmation = {
+  id: string;
+  link: string | null;
+  /** Cuenta de Gmail que pidió el reenvío, si el cuerpo la dice. */
+  requester: string | null;
+};
+
+export async function pendingGmailConfirmation(userId: string): Promise<GmailConfirmation | null> {
+  return withUser(userId, async (tx) => {
+    const [row] = await tx
+      .select({ id: s.inboundEmails.id, rawRef: s.inboundEmails.rawRef })
+      .from(s.inboundEmails)
+      .where(
+        and(
+          eq(s.inboundEmails.parser, GMAIL_FORWARDING_PARSER),
+          isNull(s.inboundEmails.seenAt),
+          isNull(s.inboundEmails.dismissedAt),
+        ),
+      )
+      .orderBy(desc(s.inboundEmails.receivedAt))
+      .limit(1);
+    if (!row) return null;
+    const blob = await pgBlobStorage(tx).get(row.rawRef);
+    let text: string | null = null;
+    let html: string | null = null;
+    if (blob) {
+      try {
+        const parsed = JSON.parse(blob.body) as {
+          content?: { html?: string | null; text?: string | null } | null;
+        };
+        text = parsed.content?.text ?? null;
+        html = parsed.content?.html ?? null;
+      } catch {
+        text = blob.body;
+      }
+    }
+    // El link se calcula en el servidor sobre el cuerpo guardado; acá no se abre nada
+    return {
+      id: row.id,
+      link: gmailConfirmLink(text, html),
+      requester: gmailForwardRequester(text, html),
+    };
   });
 }
 

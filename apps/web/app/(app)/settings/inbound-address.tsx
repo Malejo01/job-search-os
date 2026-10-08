@@ -43,15 +43,16 @@ export function InboundAddressSection({
             pegá la dirección de arriba.
           </li>
           <li>
-            Gmail manda un link de confirmación a esa dirección. Lo vas a encontrar en{" "}
+            Gmail manda un pedido de confirmación a esa dirección. Aparece arriba de todo en{" "}
             <Link href="/inbox" className="underline">
               Emails
-            </Link>{" "}
-            › «Ver contenido» › «Links».
+            </Link>
+            , con el botón «Confirmar reenvío».
           </li>
           <li>
             Creá un filtro solo para las alertas de LinkedIn y de Get on Board (por remitente) con
-            la acción «Reenviar a». No reenvíes el resto de tu correo.
+            las acciones «Reenviar a» y «Omitir Recibidos (archivarlo)», así las alertas no ensucian
+            tu bandeja. No reenvíes el resto de tu correo.
           </li>
         </ol>
       </details>

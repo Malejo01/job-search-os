@@ -11,9 +11,11 @@ export const dynamic = "force-dynamic";
 
 /**
  * Estilos que se agregan al HTML del email para que se lea en el ancho del celular (tablas de
- * 600 px, imágenes grandes). Van dentro del mismo iframe aislado: no tocan la página.
+ * 600 px, imágenes grandes). Van dentro del mismo iframe aislado: no tocan la página. El meta CSP
+ * (el mismo de form-review.tsx) corta todo pedido de red del email: sin imágenes remotas de
+ * tracking, sin fuentes ni navegación; solo se permiten estilos en línea.
  */
-const LECTURA = `<meta name="viewport" content="width=device-width, initial-scale=1"><style>
+const LECTURA = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><meta name="viewport" content="width=device-width, initial-scale=1"><style>
 html,body{margin:0;padding:12px;font-family:system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.45;color:#18181b;background:#fff;word-wrap:break-word}
 img{max-width:100%;height:auto}table{max-width:100%!important;width:auto}td,th{word-break:break-word}
 </style>`;

@@ -116,7 +116,7 @@ No hace falta el dominio de ingesta ni nada de lo del bloque 4: alcanza con una 
 
 ## Email entrante con Resend (JS-020)
 
-Dominio de ingesta: `ingest.malejo.com.ar`. Dirección del usuario: `u_a0000000@ingest.malejo.com.ar`.
+Dominio de ingesta: `ingest.malejo.com.ar`. Dirección de cada usuario: `u_<token>@ingest.malejo.com.ar` (se ve en Ajustes; es un secreto del usuario, no va en docs ni en issues).
 
 **Hecho (2026-09-17):**
 
@@ -126,7 +126,7 @@ Dominio de ingesta: `ingest.malejo.com.ar`. Dirección del usuario: `u_a0000000@
 4. Verificado en producción: sin firma → 401; con firma inválida → 401; con firma válida y destinatario inexistente → 200 `unknown_recipient` sin escribir nada.
 
 5. **Recepción habilitada:** recibir necesita un **MX aparte** del de envío, sobre `ingest.malejo.com.ar` (no sobre `send.ingest`) y con la prioridad más baja del subdominio: `ingest MX 10 inbound-smtp.sa-east-1.amazonaws.com`. Cargado con `npx vercel dns add malejo.com.ar ingest MX inbound-smtp.sa-east-1.amazonaws.com 10`. Resend no lo revalida solo: se fuerza con `POST https://api.resend.com/domains/<id>/verify` (con `RESEND_API_KEY`) y después `GET /domains/<id>` tiene que mostrar `status: verified` y el registro `Receiving` en `verified`.
-6. **Reenvío de Gmail configurado** (2026-09-18): filtro que manda las alertas de LinkedIn y Get on Board a `u_a0000000@ingest.malejo.com.ar`. Gmail pide confirmar la dirección; **esta variante del mail no trae código, trae un link**, y llega al propio sistema: se lee desde `/inbox` › "Ver contenido" › sección "Links".
+6. **Reenvío de Gmail configurado** (2026-09-18): filtro que manda las alertas de LinkedIn y Get on Board a la dirección de ingesta del usuario, con las acciones «Reenviar a» y «Omitir Recibidos (archivarlo)». Gmail pide confirmar la dirección; **esta variante del mail no trae código, trae un link**, y llega al propio sistema. Desde la ronda 19 no hace falta marcar el dominio de Google como fuente de empleo: el pedido de confirmación (solo del remitente oficial de reenvíos de Gmail y dirigido a la dirección del usuario) se guarda completo y aparece arriba de todo en `/inbox`, con el botón «Confirmar reenvío». El botón es un link común (solo `https` a `mail.google.com` o `mail-settings.google.com`, calculado en el servidor sobre el cuerpo guardado; el servidor no abre nada). Si no hay un link válido, el bloque dice «Abrí el email para confirmarlo». «Ya lo confirmé» lo marca como visto. Si ese dominio ya se había marcado como empleo, se revierte en Ajustes › Remitentes («Sin decidir»).
 7. Pendiente de comprobar con tráfico real: que una alerta de LinkedIn entre parseada (JS-021) y sus ofertas queden en pendientes de JD.
 
 ### Leer un email entrante

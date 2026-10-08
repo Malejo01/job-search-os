@@ -3,11 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
+  bulkApply,
   cleanIds,
   deleteInbound,
   dismissInbound,
   markInboundSeen,
   restoreInbound,
+  REVERSIBLE_BULK,
+  undoBulk,
+  type InboxPrevious,
+  type ReversibleBulk,
 } from "@/lib/inbox-list";
 import { requireUserId } from "@/lib/session";
 
@@ -41,19 +46,38 @@ export async function deleteAction(formData: FormData): Promise<void> {
   if (formData.get("volver") === "1") redirect("/inbox");
 }
 
-export type BulkKind = "seen" | "dismiss" | "delete";
+export type BulkKind = ReversibleBulk | "delete";
 
 /**
- * Acciones en lote (JS-049), llamadas desde la barra de selección. Devuelve cuántos emails tocó.
- * La confirmación de "Eliminar" (una sola, con la cantidad) la pide el cliente.
+ * Acciones en lote (JS-049), llamadas desde la barra de selección. La acción viaja con su nombre
+ * explícito y la lista de ids (nunca una posición en pantalla); el servidor valida ambos. Devuelve
+ * cuántos emails tocó y el estado anterior de cada uno, para "Deshacer". "Eliminar" no se puede
+ * deshacer: no devuelve estado. Su confirmación (una sola, con la cantidad) la pide el cliente.
  */
-export async function bulkInboxAction(kind: BulkKind, ids: string[]): Promise<number> {
+export async function bulkInboxAction(
+  kind: BulkKind,
+  ids: string[],
+): Promise<{ n: number; previous: InboxPrevious[]; stay: number }> {
   const userId = await requireUserId();
   const list = cleanIds(Array.isArray(ids) ? ids.map(String) : []);
-  let n = 0;
-  if (kind === "seen") n = await markInboundSeen(userId, list);
-  else if (kind === "dismiss") n = await dismissInbound(userId, list);
-  else if (kind === "delete") n = (await deleteInbound(userId, list)).deleted;
+  let result: { n: number; previous: InboxPrevious[]; stay: number } = {
+    n: 0,
+    previous: [],
+    stay: 0,
+  };
+  if ((REVERSIBLE_BULK as readonly string[]).includes(kind)) {
+    result = await bulkApply(userId, kind as ReversibleBulk, list);
+  } else if (kind === "delete") {
+    result = { n: (await deleteInbound(userId, list)).deleted, previous: [], stay: 0 };
+  }
+  revalidatePath("/inbox");
+  return result;
+}
+
+/** "Deshacer" de una acción en lote: restaura el estado anterior solo de esos ids. */
+export async function undoBulkAction(previous: InboxPrevious[]): Promise<number> {
+  const userId = await requireUserId();
+  const n = await undoBulk(userId, Array.isArray(previous) ? previous : []);
   revalidatePath("/inbox");
   return n;
 }
