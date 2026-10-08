@@ -19,7 +19,9 @@ import {
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { withUser } from "./db";
+import { ONBOARDING_MESSAGE } from "./evaluate-now";
 import { serviceLlm } from "./llm-service";
+import { isOnboardingComplete } from "./onboarding";
 import { requireUserId } from "./session";
 
 /**
@@ -87,6 +89,8 @@ export async function generateDraftsAction(input: {
   raw: string;
 }): Promise<DraftsResult> {
   const userId = await requireUserId();
+  // Sin onboarding no se llama al modelo (JS-109): esta acción tampoco pasa por el gate del layout
+  if (!(await isOnboardingComplete(userId))) return { ok: false, error: `${ONBOARDING_MESSAGE}.` };
   const jobId = jobIdSchema.safeParse(input.jobId);
   if (!jobId.success) return { ok: false, error: "Oferta inválida." };
   const parsed = parseApplicationForm(String(input.raw ?? "").slice(0, MAX_RAW));

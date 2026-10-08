@@ -133,7 +133,17 @@ export default async function RegisterPage({
         </details>
         <label className="flex items-start gap-2 text-sm">
           <input name="terms" type="checkbox" required className="mt-1 h-4 w-4" />
-          <span>Leí y acepto los términos y la política de privacidad.</span>
+          <span>
+            Leí y acepto los{" "}
+            <a href="/legal/terminos" target="_blank" rel="noopener" className="underline">
+              términos
+            </a>{" "}
+            y la{" "}
+            <a href="/legal/privacidad" target="_blank" rel="noopener" className="underline">
+              política de privacidad
+            </a>
+            .
+          </span>
         </label>
         {error ? (
           <p role="alert" className="text-sm text-red-700">

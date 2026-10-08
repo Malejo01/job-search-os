@@ -5,7 +5,7 @@ import { listJobs } from "@/lib/jobs";
 import { getMarket } from "@/lib/market";
 import { mcpTokenOk, resolveMcpUserId } from "@/lib/mcp-user";
 import { ingestManualJob, parseModality } from "@/lib/ingest-manual";
-import { evaluateInBackground } from "@/lib/evaluate-now";
+import { evaluateInBackgroundOrExplain, notEvaluatedMessage } from "@/lib/evaluate-now";
 import { attachJd, listPendingJd } from "@/lib/pending-jd";
 import { answersFromBank, approveAnswer, candidateProfile, saveFormAnswers } from "@/lib/applicant";
 import {
@@ -161,8 +161,15 @@ const handler = createMcpHandler(
         const userId = await resolveMcpUserId();
         try {
           await attachJd(userId, id, jd);
-          evaluateInBackground(userId, id);
-          return text({ id, saved: true, chars: jd.trim().length, next: "evaluando ahora" });
+          const notEvaluated = await evaluateInBackgroundOrExplain(userId, id);
+          return text({
+            id,
+            saved: true,
+            chars: jd.trim().length,
+            ...(notEvaluated
+              ? { next: "evaluación pendiente", aviso: notEvaluatedMessage(notEvaluated) }
+              : { next: "evaluando ahora" }),
+          });
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
           return { content: [{ type: "text", text: `no se pudo: ${msg}` }], isError: true };
@@ -194,8 +201,14 @@ const handler = createMcpHandler(
             candidatesCount: a.candidates ?? null,
           });
           // Con JD completo se evalúa ya; si no quedó nada encolado, no hace nada
-          if (a.jd_text) evaluateInBackground(userId, out.jobId);
-          return untrustedText(out);
+          const notEvaluated = a.jd_text
+            ? await evaluateInBackgroundOrExplain(userId, out.jobId)
+            : null;
+          return untrustedText(
+            notEvaluated
+              ? { ...out, evaluacion: "pendiente", aviso: notEvaluatedMessage(notEvaluated) }
+              : out,
+          );
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
           return { content: [{ type: "text", text: `no se pudo: ${msg}` }], isError: true };

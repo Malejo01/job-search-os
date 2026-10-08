@@ -8,6 +8,7 @@ import {
 } from "@job-search-os/adapters";
 import { after } from "next/server";
 import { serviceLlm } from "./llm-service";
+import { isOnboardingComplete } from "./onboarding";
 
 /** Mensajes para la UI por tipo de tope (la URL lleva solo el código, nunca el texto). */
 export const CAP_MESSAGES = {
@@ -17,29 +18,59 @@ export const CAP_MESSAGES = {
 } as const;
 export type CapKind = keyof typeof CAP_MESSAGES;
 
+/** Sin onboarding completo no se evalúa nada (JS-109): el MCP y las acciones no pasan por el gate del layout. */
+export const ONBOARDING_MESSAGE = "Completá el onboarding para evaluar ofertas";
+
+/** Por qué `evaluateInBackgroundOrExplain` no programó la evaluación. */
+export type NotEvaluatedReason = CapKind | "onboarding" | "pendiente";
+
+/** Un chequeo previo falló: no se programa nada y el mensaje queda en la cola (sin detalle del error). */
+export const PENDING_MESSAGE =
+  "La evaluación quedó pendiente: se hace en la próxima corrida automática.";
+
+/** Texto para la UI o el MCP (sin montos) de cada motivo. */
+export function notEvaluatedMessage(reason: NotEvaluatedReason): string {
+  if (reason === "onboarding") return ONBOARDING_MESSAGE;
+  if (reason === "pendiente") return PENDING_MESSAGE;
+  return CAP_MESSAGES[reason];
+}
+
 /**
- * Como `evaluateInBackground`, pero antes mira los topes de gasto (global y del usuario) y, si
- * alguno está superado, NO evalúa y devuelve cuál (`CapKind`) para mostrarlo en la UI (el mensaje
- * de la cola queda pending para el cron cuando baje el gasto). null = se programó la evaluación.
+ * Como `evaluateInBackground`, pero antes mira el onboarding y los topes de gasto (global y del
+ * usuario) y, si algo lo impide, NO evalúa y devuelve el motivo para mostrarlo en la UI (el
+ * mensaje de la cola queda pending para el cron cuando baje el gasto). null = se programó la
+ * evaluación.
  */
 export async function evaluateInBackgroundOrExplain(
   userId: string,
   jobId: string,
-): Promise<CapKind | null> {
-  const { db, close } = createDb(requireDatabaseUrl({ purpose: "service" }), { max: 1 });
+): Promise<NotEvaluatedReason | null> {
+  // Nunca lanza: los llamadores ya guardaron el dato (JD, fusión) y no deben mostrar un error por esto
   try {
-    const reason = await spendCapReason(db, { userId });
-    if (reason) return reason;
+    if (!(await isOnboardingComplete(userId))) return "onboarding";
+    const { db, close } = createDb(requireDatabaseUrl({ purpose: "service" }), { max: 1 });
+    try {
+      const reason = await spendCapReason(db, { userId });
+      if (reason) return reason;
+    } finally {
+      await close();
+    }
   } catch (e) {
-    // Si el chequeo falla, no se frena: evaluateJobNow vuelve a chequear dentro del `after`
-    createLogger({ user_id: userId, job_id: jobId }).warn(
+    createLogger({ user_id: userId, job_id: jobId }).error(
       { err: e instanceof Error ? e.message : String(e) },
-      "no se pudo chequear el tope antes de evaluar",
+      "no se pudo chequear onboarding o tope antes de evaluar: queda para el cron",
     );
-  } finally {
-    await close();
+    return "pendiente";
   }
-  evaluateInBackground(userId, jobId);
+  try {
+    scheduleEvaluation(userId, jobId);
+  } catch (e) {
+    createLogger({ user_id: userId, job_id: jobId }).error(
+      { err: e instanceof Error ? e.message : String(e) },
+      "no se pudo programar la evaluación: queda para el cron",
+    );
+    return "pendiente";
+  }
   return null;
 }
 
@@ -49,10 +80,33 @@ export async function evaluateInBackgroundOrExplain(
  * actualiza sola cuando termina. Usa la conexión de servicio, como el cron, porque escribe
  * evaluations y llm_calls; el dueño del job ya se verificó con RLS al guardar el JD.
  * Si el tope de gasto está superado o el modelo falla, el mensaje queda en la cola para el cron.
+ * Sin onboarding completo no evalúa (JS-109).
  */
 export function evaluateInBackground(userId: string, jobId: string): void {
+  scheduleEvaluation(userId, jobId, { checkOnboarding: true });
+}
+
+function scheduleEvaluation(
+  userId: string,
+  jobId: string,
+  opts: { checkOnboarding?: boolean } = {},
+): void {
   after(async () => {
     const logger = createLogger({ user_id: userId, job_id: jobId, trigger: "pegar_jd" });
+    if (opts.checkOnboarding) {
+      try {
+        if (!(await isOnboardingComplete(userId))) {
+          logger.info({ reason: "onboarding" }, "evaluación inmediata no corrió");
+          return;
+        }
+      } catch (e) {
+        logger.error(
+          { err: e instanceof Error ? e.message : String(e) },
+          "no se pudo chequear el onboarding: queda para el cron",
+        );
+        return;
+      }
+    }
     const { db, close } = createDb(requireDatabaseUrl({ purpose: "service" }), { max: 1 });
     try {
       const result = await evaluateJobNow(jobId, {

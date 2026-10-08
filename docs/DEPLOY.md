@@ -102,6 +102,10 @@ Cron:
 9. Actions › cron › Run workflow (step: both). Tiene que terminar en verde y mostrar el JSON de la ingesta y de la evaluación. Si falla, el error dice cuál de los dos endpoints y por qué.
 10. Al día siguiente: `pnpm llm:spend` y `/jobs` con ofertas nuevas de Get on Board.
 
+## Rate limit de las pantallas de cuenta (JS-108)
+
+Una regla del firewall de Vercel (Firewall › Rules): ventana fija de 10 pedidos por minuto por IP para los `POST` a `/login`, `/register`, `/setup`, `/forgot-password` y `/reset-password`. Cada intento de login o de registro cuesta un scrypt, así que sin esta regla son un vector de CPU y de fuerza bruta. Cargada el 2026-10-08. Si se agrega otra pantalla que reciba una contraseña, va en la misma regla.
+
 ## Email saliente para "olvidé mi contraseña" (JS-045): qué configura Mauro
 
 No hace falta el dominio de ingesta ni nada de lo del bloque 4: alcanza con una cuenta de Resend

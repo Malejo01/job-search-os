@@ -22,7 +22,12 @@ export const authConfig = {
         pathname.startsWith("/forgot-password") ||
         pathname.startsWith("/reset-password") ||
         pathname.startsWith("/setup") ||
-        pathname.startsWith("/register")
+        pathname.startsWith("/register") ||
+        // Páginas legales públicas (JS-106): se leen antes de registrarse
+        pathname === "/legal" ||
+        pathname.startsWith("/legal/") ||
+        pathname === "/privacidad" ||
+        pathname === "/terminos"
       ) {
         return true;
       }

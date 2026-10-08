@@ -3,30 +3,29 @@
 -- para usuarios; escritura con service_role / owner (bypass RLS). Sin referencias a roles
 -- de Supabase en las policies para que sean portables (Docker, CI, Neon).
 
--- users (ADR-010): lectura abierta al rol de la app para resolver el login por email (un solo usuario,
--- sin registro público); escritura solo del propio registro. Sin INSERT/DELETE para la app.
+-- users (ADR-010, JS-103): cada usuario lee solo su fila; login, sesión, reset y MCP leen por las
+-- funciones SECURITY DEFINER de 0003. Se crea ya cerrada: este archivo corre en cada migrate y una
+-- apertura intermedia (USING (true)) dejaría leer todos los emails hasta que corra un archivo posterior.
+-- Escritura solo del propio registro. El INSERT de /setup (users_bootstrap_insert) se abre en 0003:
+-- necesita has_any_user(), que en una base nueva todavía no existe cuando corre este archivo.
 ALTER TABLE "users" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "users" FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "users_read" ON "users";
-CREATE POLICY "users_read" ON "users" FOR SELECT USING (true);
+CREATE POLICY "users_read" ON "users" FOR SELECT USING (id = auth.uid());
 DROP POLICY IF EXISTS "users_self_update" ON "users";
 CREATE POLICY "users_self_update" ON "users" FOR UPDATE
   USING (id = auth.uid()) WITH CHECK (id = auth.uid());
--- Setup inicial (JS-045/ADR-012): crear EL usuario cuando todavía no hay ninguno (reemplaza el
--- paso manual de `pnpm db:seed`). No es registro público: en cuanto existe una fila, este check
--- es siempre falso y la puerta queda cerrada para siempre (doble candado con `hasAnyUser()` en la app).
+-- Cerrada hasta que 0003 la reemplace por has_any_user(); si 0003 falla, /setup queda cerrado, nunca abierto.
 DROP POLICY IF EXISTS "users_bootstrap_insert" ON "users";
-CREATE POLICY "users_bootstrap_insert" ON "users" FOR INSERT
-  WITH CHECK (NOT EXISTS (SELECT 1 FROM users));
+CREATE POLICY "users_bootstrap_insert" ON "users" FOR INSERT WITH CHECK (false);
 
--- password_reset_tokens (JS-045): mismo caso que users_read. Consumir el link llega SIN sesión
--- (no hay app.user_id todavía), así que necesitamos poder buscar por token_hash antes de saber
--- de quién es; el valor en claro nunca se guarda, así que leer la fila no alcanza para nada.
--- Insert/update sí van con dueño: para entonces ya resolvimos el user_id (withUser).
+-- password_reset_tokens (JS-045, JS-103): la app lee solo los tokens propios. El link llega SIN sesión
+-- y se consume por check_reset_token (SECURITY DEFINER, 0003); el valor en claro nunca se guarda.
+-- Insert/update van con dueño: para entonces ya resolvimos el user_id (withUser).
 ALTER TABLE "password_reset_tokens" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "password_reset_tokens" FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "password_reset_tokens_read" ON "password_reset_tokens";
-CREATE POLICY "password_reset_tokens_read" ON "password_reset_tokens" FOR SELECT USING (true);
+CREATE POLICY "password_reset_tokens_read" ON "password_reset_tokens" FOR SELECT USING (user_id = auth.uid());
 DROP POLICY IF EXISTS "password_reset_tokens_insert" ON "password_reset_tokens";
 CREATE POLICY "password_reset_tokens_insert" ON "password_reset_tokens" FOR INSERT WITH CHECK (user_id = auth.uid());
 DROP POLICY IF EXISTS "password_reset_tokens_update" ON "password_reset_tokens";

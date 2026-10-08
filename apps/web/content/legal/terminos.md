@@ -4,7 +4,7 @@ actualizado: 2026-10-07
 
 # Términos de uso de la beta cerrada (borrador, no vigente)
 
-> **Borrador para revisión.** No rige hasta que [RESPONSABLE] lo apruebe. Se lee junto con la [Política de privacidad](/privacidad). No es asesoramiento legal.
+> **Borrador para revisión.** No rige hasta que [RESPONSABLE] lo apruebe. Se lee junto con la [Política de privacidad](/legal/privacidad). No es asesoramiento legal.
 
 ## 1. Qué es Job Search OS
 

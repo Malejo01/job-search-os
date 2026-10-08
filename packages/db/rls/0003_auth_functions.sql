@@ -1,9 +1,7 @@
 -- Funciones de cuentas (ronda 14a, JS-103/JS-106). Idempotente: se aplica en cada pnpm db:migrate.
 -- Objetivo: que la app no necesite leer `users` con el rol jobsearch_app fuera de su propia fila.
--- Hoy users_read es `USING (true)` (0000); cuando se cierre a `id = auth.uid()` (rls-pendiente/0003,
--- que pasa a rls/ en la 14c, después del deploy de 14a), el login, la sesión, el reset, el MCP y
--- /setup siguen andando porque leen por estas funciones. Compatible con el código anterior: no
--- cambia ni reemplaza ninguna función existente.
+-- Desde la 14c users_read es `id = auth.uid()` (0000): el login, la sesión, el reset, el MCP y
+-- /setup andan porque leen por estas funciones. No cambia ni reemplaza ninguna función existente.
 --
 -- Todas: SECURITY DEFINER (corren como el dueño), search_path fijo, objetos calificados, sin EXECUTE
 -- para PUBLIC y con EXECUTE solo para `authenticated` (el rol de la app es miembro, 0005).
@@ -84,6 +82,13 @@ AS $fn$
 $fn$;
 REVOKE ALL ON FUNCTION public.has_any_user() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.has_any_user() TO authenticated;
+
+-- Setup inicial (JS-045/ADR-012, JS-103): crear EL usuario solo si no hay ninguno. Va acá y no en 0000
+-- porque necesita has_any_user(); la función ve todas las filas aunque users_read esté cerrada.
+-- En cuanto existe una fila el check es siempre falso (doble candado con `hasAnyUser()` en la app).
+DROP POLICY IF EXISTS "users_bootstrap_insert" ON "users";
+CREATE POLICY "users_bootstrap_insert" ON "users" FOR INSERT
+  WITH CHECK (NOT public.has_any_user());
 
 -- Fallback del MCP sin MCP_USER_ID: el id si hay exactamente un usuario; con 0 o 2+, NULL.
 CREATE OR REPLACE FUNCTION public.sole_user_id() RETURNS uuid

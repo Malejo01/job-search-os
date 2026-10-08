@@ -262,6 +262,60 @@ describe("prefilter: reglas una por una", () => {
     });
   });
 
+  describe("país del perfil (JS-104)", () => {
+    const risk = (
+      locationRaw: string,
+      userCountry?: string | null,
+      countriesAllowed?: string[],
+    ) => {
+      const r = prefilter(
+        { ...base, locationRaw, countriesAllowed },
+        rules,
+        userCountry === undefined ? {} : { userCountry },
+      );
+      expect(r.pass, locationRaw).toBe(true);
+      return r.pass && r.flags.includes("location_risk");
+    };
+
+    it("perfil MX con oferta 'Mexico only' pasa sin riesgo", () => {
+      expect(risk("Mexico only", "MX")).toBe(false);
+      expect(risk("Remoto (México)", "mx")).toBe(false);
+      expect(risk("Remote", "MX", ["MX", "CO"])).toBe(false);
+    });
+
+    it("perfil MX con 'Argentina only' queda con riesgo", () => {
+      expect(risk("Argentina only", "MX")).toBe(true);
+      expect(risk("Remote", "MX", ["AR", "CL"])).toBe(true);
+      expect(risk("Remoto (Chile, Argentina, Perú)", "MX")).toBe(true);
+    });
+
+    it("perfil AR explícito marca un país vecino sin Argentina, y no si la nombra", () => {
+      expect(risk("Brasil (remoto)", "AR")).toBe(true);
+      expect(risk("Brasil o Argentina", "AR")).toBe(false);
+    });
+
+    it("país desconocido (null): toda restricción de ubicación queda con riesgo", () => {
+      expect(risk("Argentina only", null)).toBe(true);
+      expect(risk("Mexico only", null)).toBe(true);
+      expect(risk("LATAM (remote)", null)).toBe(true);
+      expect(risk("US-based", null)).toBe(true);
+      expect(risk("Remote", null, ["MX"])).toBe(true);
+    });
+
+    it("país desconocido: sin restricción (anywhere, '*', sin ubicación) no marca", () => {
+      expect(risk("Work from anywhere", null)).toBe(false);
+      expect(risk("Remote", null, ["*"])).toBe(false);
+      expect(risk("", null)).toBe(false);
+    });
+
+    it("sin el parámetro el comportamiento es el de hoy (AR)", () => {
+      expect(risk("Argentina (remoto)")).toBe(false);
+      expect(risk("LATAM (remote)")).toBe(true);
+      expect(risk("Mexico only")).toBe(false);
+      expect(risk("Remote", undefined, ["AR"])).toBe(false);
+    });
+  });
+
   it("candidatos ≥ 100 → flag many_candidates, no descarta", () => {
     const r = prefilter({ ...base, candidatesCount: 264 }, rules);
     expect(r.pass && r.flags).toContain("many_candidates");

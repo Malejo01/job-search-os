@@ -1,4 +1,5 @@
 import type { CriteriaRules } from "../criteria";
+import { countriesMentioned, countryNames } from "../normalize/location";
 import { foldText } from "../normalize/text";
 
 /**
@@ -29,8 +30,11 @@ export type PrefilterResult =
   | { pass: false; reason: PrefilterReason; detail: string };
 
 export type PrefilterOptions = {
-  /** País del candidato (ISO-2). Default AR. */
-  userCountry?: string;
+  /**
+   * País del candidato (ISO-2). Ausente = AR, como siempre (evals/ llama sin país). `null` = país
+   * desconocido: toda oferta con restricción de ubicación queda con `location_risk`.
+   */
+  userCountry?: string | null;
   manyCandidatesFrom?: number;
 };
 
@@ -127,7 +131,11 @@ export function prefilter(
   rules: CriteriaRules,
   options: PrefilterOptions = {},
 ): PrefilterResult {
-  const userCountry = (options.userCountry ?? "AR").toUpperCase();
+  // `undefined` (sin parámetro) = AR; `null` = desconocido. Con país explícito (o null) además se
+  // marca el aviso que nombra solo países ajenos; sin parámetro no, para no mover los evals.
+  const explicitCountry = options.userCountry !== undefined;
+  const userCountry =
+    options.userCountry === null ? null : (options.userCountry ?? "AR").toUpperCase();
   const manyFrom = options.manyCandidatesFrom ?? 100;
   const title = foldText(input.title);
   const location = foldText(input.locationRaw ?? "");
@@ -226,11 +234,16 @@ export function prefilter(
   //    La regla por texto de región ajena solo suma el flag, igual que el resto. El huso horario
   //    de EE.UU. es riesgo de horario, no de ubicación: no va acá.
   const countries = input.countriesAllowed?.map((c) => c.toUpperCase()) ?? null;
-  const userToken = userCountry === "AR" ? "argentina" : userCountry.toLowerCase();
-  const mentionsUser = location.includes(userToken);
+  const userNames = userCountry ? countryNames(userCountry) : [];
+  const mentionsUser = userCountry
+    ? userNames.length
+      ? userNames.some((n) => location.includes(n))
+      : location.includes(userCountry.toLowerCase())
+    : false;
   let locationRisk = false;
   if (countries?.length) {
-    locationRisk = !countries.includes(userCountry) && !countries.includes("*");
+    locationRisk =
+      !countries.includes("*") && (userCountry === null || !countries.includes(userCountry));
   } else if (!ANYWHERE.test(location)) {
     if (REMOTE_NO_COUNTRY.test(location)) {
       // "LATAM", "remote", "remoto" sin país explícito del candidato
@@ -238,6 +251,9 @@ export function prefilter(
     }
     // "US-based", "Americas", "EMEA": región o país ajeno sin el del candidato
     if (FOREIGN_REGION.test(location) && !mentionsUser) locationRisk = true;
+    // País de la región que no es el del candidato ("Argentina only" para un perfil MX)
+    if (explicitCountry && !mentionsUser && countriesMentioned(location).length)
+      locationRisk = true;
   }
   if (locationRisk) flags.push("location_risk");
 

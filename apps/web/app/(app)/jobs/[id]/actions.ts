@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createLogger } from "@job-search-os/adapters";
 import { dismissDuplicate, mergeDuplicate } from "@/lib/duplicates";
-import { evaluateInBackground } from "@/lib/evaluate-now";
+import { evaluateInBackgroundOrExplain } from "@/lib/evaluate-now";
 import { applyJobEvent, correctJobStatus, MANUAL_EVENTS, saveHumanScore } from "@/lib/job-detail";
 import { requireUserId } from "@/lib/session";
 
@@ -78,6 +78,7 @@ export async function mergeDuplicateAction(formData: FormData): Promise<void> {
   const userId = await requireUserId();
   const jobId = String(formData.get("jobId") ?? "");
   let survivorId: string;
+  let notEvaluated: string | null = null;
   try {
     const out = await mergeDuplicate(userId, jobId);
     survivorId = out.survivorId;
@@ -86,7 +87,8 @@ export async function mergeDuplicateAction(formData: FormData): Promise<void> {
       "posible duplicado fusionado a mano",
     );
     // El que queda recibió la JD que le faltaba: se evalúa ya, como al pegarla (JS-027)
-    if (out.enqueued) evaluateInBackground(userId, out.survivorId);
+    // Con el tope superado queda en la cola y el detalle lo avisa (JS-105)
+    if (out.enqueued) notEvaluated = await evaluateInBackgroundOrExplain(userId, out.survivorId);
   } catch (e) {
     if (e instanceof Error && e.name === "DuplicateMergeFailure") {
       redirect(`/jobs/${jobId}?error=fusion`);
@@ -94,7 +96,7 @@ export async function mergeDuplicateAction(formData: FormData): Promise<void> {
     throw e;
   }
   revalidatePath("/jobs");
-  redirect(`/jobs/${survivorId}`);
+  redirect(`/jobs/${survivorId}${notEvaluated ? `?cap=${notEvaluated}` : ""}`);
 }
 
 /** "No son la misma" (JS-025): saca la marca de posible duplicado. */

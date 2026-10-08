@@ -29,26 +29,30 @@ export async function GET(request: Request): Promise<NextResponse> {
   const { db, close } = createDb(requireDatabaseUrl({ purpose: "service" }), { max: 2 });
   const logger = createLogger({ cron: "market" });
   try {
-    const users = await db.select({ id: s.users.id }).from(s.users);
-    const results = [];
+    // Desde profiles, como la ingesta (run-sources.ts): no depende de leer `users` (JS-103)
+    const users = await db.select({ id: s.profiles.userId }).from(s.profiles);
+    // La respuesta va al log público de Actions (cron.yml): solo agregados, sin ids ni skills.
+    // El detalle por usuario queda en el log del servidor.
+    const totals = { jobs: 0, planItems: 0, planInserted: 0, planRemoved: 0 };
     for (const u of users) {
       const snapshot = await buildMarketSnapshot(db, { userId: u.id });
       const plan = await buildLearningPlan(db, { userId: u.id, weekStart: snapshot.weekStart });
       logger.info(
-        { user_id: u.id, week: snapshot.weekStart, jobs: snapshot.jobs, plan: plan.rows.length },
+        {
+          user_id: u.id,
+          week: snapshot.weekStart,
+          jobs: snapshot.jobs,
+          skills: snapshot.skills,
+          plan: plan.rows.length,
+        },
         "snapshot y plan",
       );
-      results.push({
-        userId: u.id,
-        weekStart: snapshot.weekStart,
-        jobs: snapshot.jobs,
-        skills: snapshot.skills,
-        planItems: plan.rows.length,
-        planInserted: plan.inserted,
-        planRemoved: plan.removed,
-      });
+      totals.jobs += snapshot.jobs;
+      totals.planItems += plan.rows.length;
+      totals.planInserted += plan.inserted;
+      totals.planRemoved += plan.removed;
     }
-    return NextResponse.json({ ok: true, users: results.length, results });
+    return NextResponse.json({ ok: true, users: users.length, ...totals });
   } catch (error) {
     logger.error(
       { err: error instanceof Error ? error.message : String(error) },
