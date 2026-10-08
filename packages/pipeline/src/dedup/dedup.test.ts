@@ -125,7 +125,7 @@ describe("dedup: claves fuertes y blandas", () => {
     expect(otherSource).toEqual({ kind: "insert" });
   });
 
-  it("misma empresa + Jaccard de título ≥ 0.6 sin URL ni JD que lo confirmen → insert marcado como posible duplicado", () => {
+  it("misma empresa + Jaccard de título > 0.6 sin URL ni JD que lo confirmen → insert marcado como posible duplicado", () => {
     const similar: GoldenJob = { ...acme, titulo: "Senior AI Engineer (Remote)" };
     const r = dedup(candidateFrom(similar), [recent]);
     expect(r).toMatchObject({
