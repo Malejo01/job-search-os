@@ -7,23 +7,40 @@ import {
 import { schema as s } from "@job-search-os/db";
 import { hashPassword } from "@job-search-os/db/password";
 import { generateResetToken, hashResetToken } from "@job-search-os/db/password-reset-token";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
+import { after } from "next/server";
 import { getAppDb, withUser } from "./db";
 
 /**
  * Pide el reset (JS-045). Nunca revela si el email existe: siempre termina en silencio para
- * el caller. Sin RESEND_API_KEY el token igual se crea (útil para dev/e2e) pero no se manda
+ * el caller. Dentro del request solo corre el lookup (igual exista o no); crear el token y mandar
+ * el email van en `after()`, así el tiempo de respuesta no distingue los dos casos.
+ * Sin RESEND_API_KEY el token igual se crea (útil para dev/e2e) pero no se manda
  * nada, como hace inbound/resend.ts cuando falta la key.
  */
 export async function requestPasswordReset(email: string): Promise<void> {
   const normalized = email.trim().toLowerCase();
   if (!normalized) return;
-  const [user] = await getAppDb()
-    .select({ id: s.users.id, email: s.users.email })
-    .from(s.users)
-    .where(eq(s.users.email, normalized))
-    .limit(1);
-  if (!user) return;
+  // user_id_by_email (SECURITY DEFINER): el rol de la app no lee users ajenos. Solo devuelve el id.
+  const [found] = (await getAppDb().execute(
+    sql`select user_id_by_email(${normalized}) as id`,
+  )) as unknown as { id: string | null }[];
+  if (!found?.id) return;
+  const user = { id: found.id, email: normalized };
+  after(async () => {
+    try {
+      await issueResetToken(user);
+    } catch (error) {
+      // Sin el email en el log: solo el user_id
+      createLogger({ user_id: user.id, task: "password_reset_email" }).error(
+        { error },
+        "no se pudo crear el token de recuperación",
+      );
+    }
+  });
+}
+
+async function issueResetToken(user: { id: string; email: string }): Promise<void> {
   const { token, tokenHash, expiresAt } = generateResetToken();
   await withUser(user.id, (tx) =>
     tx.insert(s.passwordResetTokens).values({ userId: user.id, tokenHash, expiresAt }),
@@ -66,19 +83,15 @@ export type ResetTokenCheck =
 export async function checkResetToken(token: string): Promise<ResetTokenCheck> {
   if (!token) return { ok: false, reason: "invalid" };
   const tokenHash = hashResetToken(token);
-  const [row] = await getAppDb()
-    .select({
-      userId: s.passwordResetTokens.userId,
-      expiresAt: s.passwordResetTokens.expiresAt,
-      usedAt: s.passwordResetTokens.usedAt,
-    })
-    .from(s.passwordResetTokens)
-    .where(eq(s.passwordResetTokens.tokenHash, tokenHash))
-    .limit(1);
+  // check_reset_token (SECURITY DEFINER): el rol de la app no lista tokens ajenos (llega sin sesión).
+  // La función devuelve timestamptz; el driver puede entregarlos como Date o como string.
+  const [row] = (await getAppDb().execute(
+    sql`select user_id, expires_at, used_at from check_reset_token(${tokenHash})`,
+  )) as unknown as { user_id: string; expires_at: Date | string; used_at: Date | string | null }[];
   if (!row) return { ok: false, reason: "invalid" };
-  if (row.usedAt) return { ok: false, reason: "used" };
-  if (row.expiresAt.getTime() < Date.now()) return { ok: false, reason: "expired" };
-  return { ok: true, userId: row.userId };
+  if (row.used_at) return { ok: false, reason: "used" };
+  if (new Date(row.expires_at).getTime() < Date.now()) return { ok: false, reason: "expired" };
+  return { ok: true, userId: row.user_id };
 }
 
 /** Consume el token y cambia la contraseña; `hashPassword` tira si tiene menos de 8 caracteres. */

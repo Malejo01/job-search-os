@@ -1,11 +1,15 @@
 import { schema as s } from "@job-search-os/db";
 import { hashPassword } from "@job-search-os/db/password";
+import { sql } from "drizzle-orm";
 import { getAppDb } from "./db";
 
 /** Bootstrap (JS-045/ADR-012): true si ya existe algún usuario. Sin esto, /setup queda cerrado. */
 export async function hasAnyUser(): Promise<boolean> {
-  const [row] = await getAppDb().select({ id: s.users.id }).from(s.users).limit(1);
-  return Boolean(row);
+  // has_any_user (SECURITY DEFINER): ve todas las filas aunque users_read quede en la propia.
+  const [row] = (await getAppDb().execute(sql`select has_any_user() as any_user`)) as unknown as {
+    any_user: boolean;
+  }[];
+  return Boolean(row?.any_user);
 }
 
 /**

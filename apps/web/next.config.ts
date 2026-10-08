@@ -15,7 +15,8 @@ const nextConfig: NextConfig = {
   // Los prompts se leen del disco en runtime: sin esto no viajan en el bundle serverless de Vercel
   outputFileTracingIncludes: {
     "/**": ["../../packages/prompts/*.md"],
-    // Textos legales que /privacidad y /terminos leen del disco en runtime
+    // Textos legales que /privacidad, /terminos y /register (los muestra en la página) leen del disco en runtime
+    "/register": ["./content/legal/*.md"],
     "/privacidad": ["./content/legal/*.md"],
     "/terminos": ["./content/legal/*.md"],
   },

@@ -1,5 +1,5 @@
 import { checkMcpToken } from "@job-search-os/adapters";
-import { schema as s } from "@job-search-os/db";
+import { sql } from "drizzle-orm";
 import { getAppDb } from "./db";
 
 /**
@@ -23,12 +23,15 @@ let cachedUserId: string | null = null;
 export async function resolveMcpUserId(): Promise<string> {
   if (process.env.MCP_USER_ID) return process.env.MCP_USER_ID;
   if (cachedUserId) return cachedUserId;
-  const rows = await getAppDb().select({ id: s.users.id }).from(s.users).limit(2);
-  if (rows.length !== 1) {
+  // sole_user_id (SECURITY DEFINER): el id si hay exactamente un usuario, si no NULL.
+  const [row] = (await getAppDb().execute(sql`select sole_user_id() as id`)) as unknown as {
+    id: string | null;
+  }[];
+  if (!row?.id) {
     throw new Error(
-      `MCP_USER_ID no definido y la tabla users tiene ${rows.length} filas: definilo explícitamente`,
+      "MCP_USER_ID no definido y no hay exactamente un usuario: definí MCP_USER_ID explícitamente",
     );
   }
-  cachedUserId = rows[0]!.id;
+  cachedUserId = row.id;
   return cachedUserId;
 }

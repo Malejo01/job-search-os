@@ -1,5 +1,4 @@
-import { schema as s } from "@job-search-os/db";
-import { eq } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { auth } from "@/auth";
@@ -16,11 +15,10 @@ export const requireUserId = cache(async (): Promise<string> => {
   const session = await auth();
   const id = session?.user?.id;
   if (!id) redirect("/login");
-  const [user] = await getAppDb()
-    .select({ id: s.users.id })
-    .from(s.users)
-    .where(eq(s.users.id, id))
-    .limit(1);
-  if (!user) redirect("/api/session/ended");
+  // user_exists (SECURITY DEFINER): el rol de la app no lee users ajenos y acá solo importa si existe.
+  const [row] = (await getAppDb().execute(
+    sql`select user_exists(${id}::uuid) as ok`,
+  )) as unknown as { ok: boolean }[];
+  if (!row?.ok) redirect("/api/session/ended");
   return id;
 });
