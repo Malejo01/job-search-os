@@ -1,0 +1,18 @@
+# ggshield: ignora solo credenciales de prueba INVENTADAS, una por una (nunca rutas enteras: el repo es público).
+version: 2
+secret:
+  ignored_matches:
+    - name: Contraseña del rol de prueba jobsearch_app (Docker local)
+      match: jobsearch_app_test
+    - name: Contraseña inventada de test de user-tables
+      match: clave-de-prueba-1
+    - name: Contraseña inventada de test de user-tables (segundo usuario)
+      match: otra-clave-2
+    - name: Contraseña inventada del usuario B en e2e
+      match: dev-password-b-local
+    - name: URL de la base Docker local de desarrollo (postgres:postgres)
+      match: postgres://postgres:postgres@localhost:54322/jobsearch
+    - name: URL remota ficticia de test de confirm-remote
+      match: postgres://usuario:x@ep-ejemplo-123.sa-east-1.aws.neon.example/jobsearch
+    - name: URL remota ficticia de test-guard
+      match: postgres://u:secreto-x@db.remoto.example/db

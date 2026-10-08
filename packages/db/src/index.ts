@@ -18,3 +18,4 @@ export {
   deleteUserData,
   confirmsAccountDeletion,
 } from "./user-tables";
+export { assertLocalTestDatabase, assertLocalTestEnv } from "./test-guard";

@@ -5,6 +5,8 @@
  * [texto](url) (solo https: y rutas internas) y tablas simples con `|`.
  */
 
+export * from "./fill";
+
 export type InlineNode =
   | { type: "text"; text: string }
   | { type: "strong"; children: InlineNode[] }
