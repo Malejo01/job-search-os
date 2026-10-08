@@ -19,8 +19,11 @@ test.describe("setup inicial (JS-045/ADR-012)", () => {
       await page.getByLabel("Contraseña").fill(E2E_PASSWORD);
       await page.getByLabel("Repetila").fill(E2E_PASSWORD);
       await page.getByRole("button", { name: "Crear cuenta" }).click();
-      await page.waitForURL("**/jobs**");
-      expect(page.url()).toContain("/jobs");
+      // Gate de onboarding (B2): la cuenta nueva no tiene perfil y /jobs la manda a /onboarding.
+      // Esperar a que cargue: con el redirect todavía en vuelo, su respuesta vuelve a poner la
+      // cookie de sesión después del clearCookies de abajo.
+      await page.waitForURL("**/onboarding");
+      await expect(page.getByRole("heading", { name: "Completá tu perfil" })).toBeVisible();
 
       // ya hay usuario: /setup queda cerrado. Sin cookies de sesión: logueado, /login
       // rebota a /jobs (auth.config.ts) y taparía el redirect propio de /setup.

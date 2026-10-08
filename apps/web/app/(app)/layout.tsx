@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { signOut } from "@/auth";
 import { assertAppRole } from "@/lib/db";
+import { isOnboardingComplete } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
 
 const NAV = [
@@ -26,7 +28,10 @@ async function logout(): Promise<void> {
  */
 export default async function AppLayout({ children }: { children: ReactNode }) {
   await assertAppRole();
-  await requireUserId();
+  const userId = await requireUserId();
+  // Gate de onboarding (B2): sin perfil completo no se ve nada de la app. /onboarding está fuera
+  // de este grupo; si estuviera adentro, este redirect entraría en loop.
+  if (!(await isOnboardingComplete(userId))) redirect("/onboarding");
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/95 backdrop-blur">
@@ -34,29 +39,45 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           <Link href="/jobs" className="text-base font-semibold">
             Job Search OS
           </Link>
-          <form action={logout}>
-            <button
-              type="submit"
+          <div className="flex items-center gap-4">
+            <Link
+              href="/settings"
               className="text-sm text-zinc-600 underline-offset-2 hover:underline"
             >
-              Salir
-            </button>
-          </form>
+              Ajustes
+            </Link>
+            <form action={logout}>
+              <button
+                type="submit"
+                className="text-sm text-zinc-600 underline-offset-2 hover:underline"
+              >
+                Salir
+              </button>
+            </form>
+          </div>
         </div>
-        <nav aria-label="Secciones" className="mx-auto max-w-5xl overflow-x-auto px-2">
-          <ul className="flex gap-1 text-sm">
-            {NAV.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className="block whitespace-nowrap rounded-md px-3 py-2 text-zinc-700 hover:bg-zinc-100"
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        {/* A 375 px no entran todos los ítems: scroll horizontal y un degradé en el borde derecho
+            avisa que hay más (solo en pantallas chicas; el pr-8 deja el último ítem fuera del degradé). */}
+        <div className="relative mx-auto max-w-5xl">
+          <nav aria-label="Secciones" className="overflow-x-auto px-2">
+            <ul className="flex gap-1 pr-8 text-sm sm:pr-0">
+              {NAV.map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className="block whitespace-nowrap rounded-md px-3 py-2 text-zinc-700 hover:bg-zinc-100"
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent sm:hidden"
+          />
+        </div>
       </header>
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-4">{children}</main>
       <footer className="border-t border-zinc-200 px-4 py-3 text-center text-xs text-zinc-500">
