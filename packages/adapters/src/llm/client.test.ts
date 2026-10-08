@@ -1,3 +1,4 @@
+import { NoObjectGeneratedError } from "ai";
 import pino from "pino";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
@@ -302,6 +303,50 @@ describe("createLlmClient.generateStructured", () => {
     const r = await client.generateStructured("evaluate_job", Schema, vars);
     expect(r).toMatchObject({ ok: false, error: { kind: "generation_failed" } });
     expect(calls.calls[0]!.ok).toBe(false);
+  });
+
+  it("el error de schema no cita la salida del modelo (ni en llm_calls ni en el resultado)", async () => {
+    const calls = memoryCallSink();
+    const client = createLlmClient({
+      routes: staticRouteSource([{ ...route, fallbackModel: null }]),
+      calls,
+      providers: providers(["google"]),
+      generate: okGenerate({ score: "TEXTO-DEL-JD", veredicto: 7 }),
+      logger: silent,
+    });
+    const r = await client.generateStructured("evaluate_job", Schema, vars);
+    expect(r.ok).toBe(false);
+    const detail = r.ok ? "" : r.error.detail;
+    expect(detail).toContain("score: invalid_type");
+    expect(detail).not.toContain("TEXTO-DEL-JD");
+    expect(calls.calls[0]!.error).not.toContain("TEXTO-DEL-JD");
+  });
+});
+
+describe("NoObjectGeneratedError", () => {
+  it("no cita el texto del modelo en detail ni en llm_calls.error, solo el largo", async () => {
+    const calls = memoryCallSink();
+    const client = createLlmClient({
+      routes: staticRouteSource([{ ...route, fallbackModel: null }]),
+      calls,
+      providers: providers(["google"]),
+      generate: async () => {
+        throw new NoObjectGeneratedError({
+          message: "No object generated: could not parse the response.",
+          text: "TEXTO-DEL-JD { json invalido",
+          response: { id: "r", timestamp: new Date(), modelId: "m" },
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 } as never,
+          finishReason: "stop",
+        });
+      },
+      logger: silent,
+    });
+    const r = await client.generateStructured("evaluate_job", Schema, vars);
+    expect(r.ok).toBe(false);
+    const detail = r.ok ? "" : r.error.detail;
+    expect(detail).toContain("len=28");
+    expect(detail).not.toContain("TEXTO-DEL-JD");
+    expect(calls.calls[0]!.error).not.toContain("TEXTO-DEL-JD");
   });
 });
 

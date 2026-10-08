@@ -86,10 +86,21 @@ export function estimateCost(
   return (tokensIn * inPrice + tokensOut * outPrice) / 1_000_000;
 }
 
+/**
+ * Resumen de un error de zod apto para guardar: solo `path: code` (hasta 5 issues y 300
+ * caracteres). `message` y `received` pueden citar la salida del modelo, que refleja el JD.
+ */
+export function zodIssuesSummary(error: { issues: readonly z.core.$ZodIssue[] }): string {
+  const issues = error.issues
+    .slice(0, 5)
+    .map((i) => `${i.path.map(String).join(".") || "(raíz)"}: ${i.code}`);
+  return issues.join("; ").slice(0, 300);
+}
+
 const errorMessage = (e: unknown): string => {
   if (NoObjectGeneratedError.isInstance(e)) {
     // Típico: max_tokens corto para un modelo con thinking → JSON truncado
-    return `${e.name}: ${e.message} (finishReason=${e.finishReason ?? "?"}, usage=${JSON.stringify(e.usage ?? null)}, text=${(e.text ?? "").slice(0, 160).replace(/\s+/g, " ")})`;
+    return `${e.name}: ${e.message} (finishReason=${e.finishReason ?? "?"}, usage=${JSON.stringify(e.usage ?? null)}, len=${(e.text ?? "").length})`;
   }
   return e instanceof Error ? `${e.name}: ${e.message}` : String(e);
 };
@@ -154,7 +165,9 @@ export function createLlmClient(deps: LlmClientDeps): LlmClient {
       const parsed = raw.validated
         ? { success: true as const, data: raw.object as T }
         : schema.safeParse(raw.object);
-      if (!parsed.success) throw new Error(`salida no cumple el schema: ${parsed.error.message}`);
+      if (!parsed.success) {
+        throw new Error(`salida no cumple el schema: ${zodIssuesSummary(parsed.error)}`);
+      }
       const tokensIn = raw.usage.inputTokens ?? null;
       const tokensOut = raw.usage.outputTokens ?? null;
       const tokensReasoning = raw.usage.reasoningTokens ?? null;

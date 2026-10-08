@@ -424,3 +424,261 @@ export async function clearSenderVerdicts(fragment: string): Promise<void> {
     await close();
   }
 }
+
+// ─────────────────────────────────────────────────────────────
+// Segundo usuario (B) para los e2e de dos usuarios (JS-098). Datos inventados; el usuario de
+// siempre (E2E_USER_ID) hace de A. Todo se crea como dueño y se borra con removeSecondUser().
+// ─────────────────────────────────────────────────────────────
+export const E2E_B_EMAIL = "usuario-b@dos.test";
+export const E2E_B_PASSWORD = "dev-password-b-local";
+export const E2E_B_USER_ID = "b0000000-0000-4000-8000-000000000002";
+
+export type SecondUserData = {
+  jobId: string;
+  title: string;
+  company: string;
+  /** Texto único dentro de la JD de B: no tiene que aparecer en ninguna pantalla de A. */
+  jdToken: string;
+  applicationId: string;
+  emailId: string;
+  rawRef: string;
+  subject: string;
+  /** Dominio remitente del email de B, con una decisión guardada (`no_empleo`). */
+  domain: string;
+};
+
+/** Crea a B con onboarding completo (si no, el layout lo manda a /onboarding). Idempotente. */
+export async function ensureSecondUser(): Promise<void> {
+  const { db, close } = ownerDb();
+  try {
+    await db
+      .insert(s.users)
+      .values({
+        id: E2E_B_USER_ID,
+        email: E2E_B_EMAIL,
+        name: "Persona B",
+        passwordHash: hashPassword(E2E_B_PASSWORD),
+      })
+      .onConflictDoNothing();
+    await db
+      .insert(s.profiles)
+      .values({
+        userId: E2E_B_USER_ID,
+        displayName: "Persona B",
+        locationCountry: "AR",
+        inboundAddress: "u_dos_b@ingest.test",
+        profileSummary:
+          "Perfil ficticio de la persona B para los tests de dos usuarios. No corresponde a nadie real y solo existe en la base local.",
+      })
+      .onConflictDoNothing();
+    const [crit] = await db
+      .select({ id: s.evaluationCriteria.id })
+      .from(s.evaluationCriteria)
+      .where(eq(s.evaluationCriteria.userId, E2E_B_USER_ID));
+    if (!crit) {
+      await db
+        .insert(s.evaluationCriteria)
+        .values({ userId: E2E_B_USER_ID, version: 1, active: true, rules: {} as never });
+    }
+  } finally {
+    await close();
+  }
+}
+
+/** Una oferta evaluada, una postulación, un email entrante con su crudo y un dominio, todo de B. */
+export async function seedSecondUserData(tag: string | number): Promise<SecondUserData> {
+  await ensureSecondUser();
+  const { db, close } = ownerDb();
+  try {
+    const title = `Oferta Ficticia B ${tag}`;
+    const company = `Empresa B ${tag}`;
+    const jdToken = `TokenJdFicticioB${tag}`;
+    const [job] = await db
+      .insert(s.jobs)
+      .values({
+        userId: E2E_B_USER_ID,
+        companyRaw: company,
+        title,
+        titleNormalized: title.toLowerCase(),
+        canonicalUrl: `https://example.com/e2e-b/${tag}`,
+        locationRaw: "Remoto (Argentina)",
+        modality: "remoto",
+        status: "evaluada",
+        jdText: `Descripción ficticia de la oferta de B. ${jdToken}`,
+        flags: [],
+        firstSeenAt: new Date(),
+      })
+      .returning({ id: s.jobs.id });
+    await db.insert(s.jobSources).values({
+      jobId: job!.id,
+      kind: "manual",
+      sourceName: "e2e-b",
+      url: `https://example.com/e2e-b/${tag}`,
+      seenAt: new Date(),
+    });
+    await db.insert(s.evaluations).values({
+      jobId: job!.id,
+      userId: E2E_B_USER_ID,
+      criteriaVersion: 1,
+      promptVersion: "evaluate_job@e2e",
+      model: "fake",
+      hadFullJd: true,
+      score: 8,
+      locationOk: "ok",
+      modality: "remoto",
+      discipline: "ai_engineer",
+      matchFuerte: [],
+      gaps: [],
+      bloqueadoresDuros: [],
+      senalesPositivas: [],
+      veredicto: `Evaluación ficticia de B ${tag}.`,
+      accion: "aplicar",
+    });
+    const [application] = await db
+      .insert(s.applications)
+      .values({
+        jobId: job!.id,
+        userId: E2E_B_USER_ID,
+        appliedAt: new Date(),
+        outcome: "sin_respuesta",
+      })
+      .returning({ id: s.applications.id });
+
+    const subject = `Email ficticio de B ${tag}`;
+    const domain = `dominio-b-${tag}.example`;
+    const body = JSON.stringify({
+      event: { data: { subject } },
+      content: { text: `Cuerpo ficticio de B ${tag}`, html: null },
+    });
+    const [blob] = await db
+      .insert(s.rawBlobs)
+      .values({
+        userId: E2E_B_USER_ID,
+        kind: "inbound_email",
+        contentType: "application/json",
+        body,
+        bytes: body.length,
+      })
+      .returning({ id: s.rawBlobs.id });
+    const rawRef = `pg:${blob!.id}`;
+    const [email] = await db
+      .insert(s.inboundEmails)
+      .values({
+        userId: E2E_B_USER_ID,
+        fromAddress: `Remitente B <aviso@mail.${domain}>`,
+        subject,
+        rawRef,
+        parser: "none",
+        jobsExtracted: 0,
+        error: "sin parser para este remitente: cola manual",
+        receivedAt: new Date(),
+      })
+      .returning({ id: s.inboundEmails.id });
+    await db
+      .insert(s.inboundSenderDomains)
+      .values({ userId: E2E_B_USER_ID, domain, verdict: "no_empleo" });
+    return {
+      jobId: job!.id,
+      title,
+      company,
+      jdToken,
+      applicationId: application!.id,
+      emailId: email!.id,
+      rawRef,
+      subject,
+      domain,
+    };
+  } finally {
+    await close();
+  }
+}
+
+/** Borra todo lo de B (ofertas con sus hijos por cascade, emails, crudos, dominios) y su cuenta. */
+export async function removeSecondUser(): Promise<void> {
+  const { db, close } = ownerDb();
+  try {
+    await db.delete(s.inboundSenderDomains).where(eq(s.inboundSenderDomains.userId, E2E_B_USER_ID));
+    await db.delete(s.inboundEmails).where(eq(s.inboundEmails.userId, E2E_B_USER_ID));
+    await db.delete(s.rawBlobs).where(eq(s.rawBlobs.userId, E2E_B_USER_ID));
+    await db.delete(s.applications).where(eq(s.applications.userId, E2E_B_USER_ID));
+    await db.delete(s.evaluations).where(eq(s.evaluations.userId, E2E_B_USER_ID));
+    await db.delete(s.jobs).where(eq(s.jobs.userId, E2E_B_USER_ID));
+    await db.delete(s.evaluationCriteria).where(eq(s.evaluationCriteria.userId, E2E_B_USER_ID));
+    await db.delete(s.profiles).where(eq(s.profiles.userId, E2E_B_USER_ID));
+    await db.delete(s.users).where(eq(s.users.id, E2E_B_USER_ID));
+  } finally {
+    await close();
+  }
+}
+
+/** Inicia sesión como B. */
+export async function loginAsSecondUser(page: Page): Promise<void> {
+  await page.goto("/login");
+  await page.getByLabel("Email").fill(E2E_B_EMAIL);
+  await page.getByLabel("Contraseña").fill(E2E_B_PASSWORD);
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await page.waitForURL("**/jobs**");
+}
+
+/** Postulación del usuario seed (A) para una oferta suya; devuelve el id. */
+export async function createApplicationForSeedUser(jobId: string): Promise<string> {
+  const { db, close } = ownerDb();
+  try {
+    const [row] = await db
+      .insert(s.applications)
+      .values({ jobId, userId: E2E_USER_ID, appliedAt: new Date(), outcome: "sin_respuesta" })
+      .returning({ id: s.applications.id });
+    return row!.id;
+  } finally {
+    await close();
+  }
+}
+
+/** Resultado de una postulación por su id (null si no existe). */
+export async function applicationOutcomeById(id: string): Promise<string | null> {
+  const { db, close } = ownerDb();
+  try {
+    const [row] = await db
+      .select({ outcome: s.applications.outcome })
+      .from(s.applications)
+      .where(eq(s.applications.id, id));
+    return row?.outcome ?? null;
+  } finally {
+    await close();
+  }
+}
+
+/** Decisión guardada sobre un dominio para un usuario cualquiera, o null. */
+export async function senderVerdictOf(userId: string, domain: string): Promise<string | null> {
+  const { db, close } = ownerDb();
+  try {
+    const [row] = await db
+      .select({ verdict: s.inboundSenderDomains.verdict })
+      .from(s.inboundSenderDomains)
+      .where(
+        and(eq(s.inboundSenderDomains.userId, userId), eq(s.inboundSenderDomains.domain, domain)),
+      );
+    return row?.verdict ?? null;
+  } finally {
+    await close();
+  }
+}
+
+/** Cuántos emails de un dominio remitente tiene un usuario (para verificar que no se borraron). */
+export async function inboundCountOf(userId: string, subjectFragment: string): Promise<number> {
+  const { db, close } = ownerDb();
+  try {
+    const rows = await db
+      .select({ id: s.inboundEmails.id })
+      .from(s.inboundEmails)
+      .where(
+        and(
+          eq(s.inboundEmails.userId, userId),
+          sql`${s.inboundEmails.subject} like ${`%${subjectFragment}%`}`,
+        ),
+      );
+    return rows.length;
+  } finally {
+    await close();
+  }
+}

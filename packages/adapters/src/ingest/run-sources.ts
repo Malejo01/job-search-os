@@ -1,6 +1,7 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import type { CriteriaRules, RawJob, Term } from "@job-search-os/pipeline";
 import type { Logger } from "../logger";
+import { safeDbError } from "../logging/safe-error";
 import { enqueueEvaluationWith } from "../queue/pg-queue";
 import { loadTaxonomy } from "../skills/sync";
 import { fetchHimalayasJobs } from "../sources/himalayas";
@@ -246,7 +247,7 @@ export async function runExtraSourcesIngest(
         } catch (e) {
           failed++;
           log.error(
-            { source: name, user_id: userId, err: e instanceof Error ? e.message : String(e) },
+            { source: name, user_id: userId, err: safeDbError(e) },
             "fuentes: la ingesta de un usuario falló",
           );
         }
@@ -260,11 +261,8 @@ export async function runExtraSourcesIngest(
         sources.push({ name, status, fetched, users, ...totals });
       }
     } catch (e) {
-      // El mensaje completo (en Drizzle trae la consulta y sus parámetros) solo va al log del servidor.
-      log.error(
-        { source: name, err: e instanceof Error ? e.message : String(e) },
-        "fuentes: falló",
-      );
+      // El mensaje (en Drizzle trae la consulta y sus parámetros) no va al log: solo código y constraint.
+      log.error({ source: name, err: safeDbError(e) }, "fuentes: falló");
       sources.push({
         name,
         status: "error",
