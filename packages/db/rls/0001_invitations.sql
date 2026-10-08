@@ -126,4 +126,6 @@ $fn$;
 -- used_by_user_id sin FK a propósito: borrar la cuenta de quien se registró no debe tocar la
 -- invitación (queda como registro de quien la creó).
 REVOKE ALL ON FUNCTION public.register_with_invitation(text, text, text, text, text) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.register_with_invitation(text, text, text, text, text) TO authenticated;
+-- Desde JS-113 nadie la llama (el registro usa v3, 0003): sin EXECUTE para el rol de la app. La función
+-- queda por si hace falta reintroducirla; el dueño la sigue pudiendo ejecutar.
+REVOKE EXECUTE ON FUNCTION public.register_with_invitation(text, text, text, text, text) FROM authenticated;

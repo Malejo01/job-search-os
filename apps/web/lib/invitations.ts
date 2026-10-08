@@ -1,7 +1,9 @@
 import { resetUrlBase } from "@job-search-os/adapters";
 import { schema as s } from "@job-search-os/db";
 import { hashPassword } from "@job-search-os/db/password";
+import { INBOUND_TOKEN_BYTES, tokenFromBytes } from "@job-search-os/pipeline";
 import { and, desc, eq, sql } from "drizzle-orm";
+import { randomBytes } from "node:crypto";
 import { getAppDb, withUser } from "./db";
 import {
   generateInvitationCode,
@@ -137,8 +139,18 @@ function isUniqueViolation(error: unknown): boolean {
   return false;
 }
 
+/** ¿El choque de unicidad es el de la dirección de ingesta (y no el del email)? */
+function isInboundAddressViolation(error: unknown): boolean {
+  for (let e: unknown = error; e && typeof e === "object"; e = (e as { cause?: unknown }).cause) {
+    const { code, constraint_name: constraint } = e as Record<string, unknown>;
+    if (code === "23505" && typeof constraint === "string" && /inbound_address/.test(constraint))
+      return true;
+  }
+  return false;
+}
+
 /**
- * Canje + alta del usuario en UNA llamada atómica (register_with_invitation_v2, SECURITY DEFINER):
+ * Canje + alta del usuario en UNA llamada atómica (register_with_invitation_v3, SECURITY DEFINER):
  * si algo falla, la invitación no queda gastada. Error genérico para inexistente / usada /
  * vencida / de otro email / email ya registrado: quien prueba códigos no aprende nada.
  * `termsAccepted` es el valor crudo de la casilla: sin aceptar no se registra (JS-106) y se guarda
@@ -164,18 +176,27 @@ export async function registerWithInvitation(
   if (!pre?.ok) throw new InvalidInvitationError();
   const passwordHash = hashPassword(input.password);
   const ingestDomain = process.env.INGEST_DOMAIN ?? "ingest.local";
-  let userId: string | null;
-  try {
-    const rows = (await getAppDb().execute(
-      sql`select register_with_invitation_v2(
-        ${codeHash}, ${email}, ${passwordHash},
-        ${input.name?.trim() || null}, ${ingestDomain}, ${terms.version}) as user_id`,
-    )) as unknown as { user_id: string | null }[];
-    userId = rows[0]?.user_id ?? null;
-  } catch (error) {
-    if (isUniqueViolation(error)) throw new InvalidInvitationError();
-    throw error;
+  // La dirección de ingesta es un token aleatorio. Si choca con el unique de inbound_address
+  // (probabilidad despreciable) se reintenta una vez con otro token; un choque de email o de
+  // invitación sigue siendo el error genérico.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const inboundLocal = tokenFromBytes(randomBytes(INBOUND_TOKEN_BYTES));
+    try {
+      const rows = (await getAppDb().execute(
+        sql`select register_with_invitation_v3(
+          ${codeHash}, ${email}, ${passwordHash},
+          ${input.name?.trim() || null}, ${ingestDomain}, ${terms.version}, ${inboundLocal}) as user_id`,
+      )) as unknown as { user_id: string | null }[];
+      const userId = rows[0]?.user_id ?? null;
+      if (!userId) throw new InvalidInvitationError();
+      return { userId };
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        if (attempt === 0 && isInboundAddressViolation(error)) continue;
+        throw new InvalidInvitationError();
+      }
+      throw error;
+    }
   }
-  if (!userId) throw new InvalidInvitationError();
-  return { userId };
+  throw new InvalidInvitationError();
 }

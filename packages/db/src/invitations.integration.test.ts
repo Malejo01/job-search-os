@@ -9,7 +9,7 @@ import { hashPassword, verifyPassword } from "./password";
 
 /**
  * JS-091 · Canje de invitaciones por el camino real: la app como jobsearch_app, sin sesión para
- * el canje (register_with_invitation, SECURITY DEFINER) y con app.user_id para listar/crear.
+ * el canje (register_with_invitation_v3, SECURITY DEFINER) y con app.user_id para listar/crear.
  * Mismos entornos que rls.integration.test.ts (CI: DATABASE_URL; local: Testcontainer).
  */
 const CREATOR = "aaaaaaaa-0000-4000-8000-000000000001";
@@ -33,10 +33,24 @@ async function createInvitation(
   });
 }
 
+/** Token válido y distinto en cada llamada: 20 caracteres de [a-z2-7] */
+let tokenCounter = 0;
+function nextToken(): string {
+  const alphabet = "abcdefghijklmnopqrstuvwxyz234567";
+  let n = ++tokenCounter;
+  let out = "";
+  for (let i = 0; i < 20; i++) {
+    out = alphabet[n % 32] + out;
+    n = Math.floor(n / 32);
+  }
+  return out;
+}
+
 async function register(codeHash: string, email: string, name: string | null = null) {
   const rows = await app<{ user_id: string | null }[]>`
-    select register_with_invitation(${codeHash}, ${email}, ${hashPassword("contraseña-test")},
-                                    ${name}, 'ingest.test') as user_id`;
+    select register_with_invitation_v3(${codeHash}, ${email}, ${hashPassword("contraseña-test")},
+                                       ${name}, 'ingest.test', '2026-10-07',
+                                       ${nextToken()}) as user_id`;
   return rows[0]!.user_id;
 }
 
@@ -91,7 +105,7 @@ describe("registro por invitación (JS-091)", () => {
     const [profile] =
       await owner`select display_name, inbound_address from profiles where user_id = ${userId}`;
     expect(profile!.display_name).toBe("Persona Uno");
-    expect(profile!.inbound_address).toBe(`u_${userId!.slice(0, 8)}@ingest.test`);
+    expect(profile!.inbound_address).toMatch(/^u_[a-z2-7]{20}@ingest\.test$/);
     const [inv] =
       await owner`select used_at, used_by_user_id from invitations where code_hash = 'hash-ok'`;
     expect(inv!.used_at).not.toBeNull();
@@ -246,7 +260,13 @@ describe("registro por invitación (JS-091)", () => {
         await owner.unsafe("RESET ROLE");
       }
       await createInvitation(CREATOR, "hash-sin-bypass");
-      const userId = await register("hash-sin-bypass", "sinbypass@invitado.test", "Sin Bypass");
+      // La v1 ya no la ejecuta el rol de la app: se llama como dueño de la sesión, y la función
+      // corre con los privilegios de jso_nobypass (SECURITY DEFINER), que es lo que se prueba
+      const [r] = await owner<{ user_id: string | null }[]>`
+        select register_with_invitation('hash-sin-bypass', 'sinbypass@invitado.test',
+                                        ${hashPassword("contraseña-test")}, 'Sin Bypass',
+                                        'ingest.test') as user_id`;
+      const userId = r!.user_id;
       expect(userId).not.toBeNull();
       const [profile] = await owner`select display_name from profiles where user_id = ${userId}`;
       expect(profile!.display_name).toBe("Sin Bypass");

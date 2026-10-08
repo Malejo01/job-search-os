@@ -53,14 +53,20 @@ CREATE POLICY "jobs_owner" ON "jobs" FOR ALL
 ALTER TABLE "evaluations" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "evaluations" FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "evaluations_owner" ON "evaluations";
+-- WITH CHECK: el job_id tiene que ser una oferta del propio usuario (JS-114), igual que answer_bank.
+-- Quien inserta con BYPASSRLS (worker, conexión de servicio) no pasa por la policy.
 CREATE POLICY "evaluations_owner" ON "evaluations" FOR ALL
-  USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid() AND EXISTS (
+    SELECT 1 FROM jobs j WHERE j.id = "evaluations".job_id AND j.user_id = auth.uid()));
 
 ALTER TABLE "applications" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "applications" FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "applications_owner" ON "applications";
 CREATE POLICY "applications_owner" ON "applications" FOR ALL
-  USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid() AND EXISTS (
+    SELECT 1 FROM jobs j WHERE j.id = "applications".job_id AND j.user_id = auth.uid()));
 
 ALTER TABLE "contacts" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "contacts" FORCE ROW LEVEL SECURITY;

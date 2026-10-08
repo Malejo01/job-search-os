@@ -450,18 +450,33 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
       );
       await expect(asUser(A, (tx) => tx`select release_invitations(null)`)).rejects.toThrow();
     },
-    // Una invitación ya canjeada no se vuelve a canjear: no crea usuarios ni toca la de B.
+    // Sin EXECUTE para el rol de la app desde JS-113: llamarla falla y no toca la invitación de B.
     register_with_invitation: async () => {
+      const before = await fingerprint({ table: "invitations", column: "used_by_user_id" }, B);
+      await expect(
+        asUser(
+          A,
+          (tx) => tx`select register_with_invitation(
+          'hash-canjeada-por-b', ${EMAIL_B}, 'x', 'Intruso', 'ingest.test') as id`,
+        ),
+      ).rejects.toThrow(/permission denied/);
+      expect(await fingerprint({ table: "invitations", column: "used_by_user_id" }, B)).toBe(
+        before,
+      );
+    },
+    register_with_invitation_v3: async () => {
       const before = await fingerprint({ table: "invitations", column: "used_by_user_id" }, B);
       const [r] = await asUser(
         A,
-        (tx) => tx<{ id: string | null }[]>`select register_with_invitation(
-          'hash-canjeada-por-b', ${EMAIL_B}, 'x', 'Intruso', 'ingest.test') as id`,
+        (tx) => tx<{ id: string | null }[]>`select register_with_invitation_v3(
+          'hash-canjeada-por-b', ${EMAIL_B}, 'x', 'Intruso', 'ingest.test', '2026-10-07',
+          'abcdefghijklmnopqrst') as id`,
       );
       expect(r!.id).toBeNull();
       expect(await fingerprint({ table: "invitations", column: "used_by_user_id" }, B)).toBe(
         before,
       );
+      expect(await owner`select 1 from users where name = 'Intruso'`).toHaveLength(0);
     },
     register_with_invitation_v2: async () => {
       const before = await fingerprint({ table: "invitations", column: "used_by_user_id" }, B);
@@ -652,7 +667,7 @@ describe("sentencias de la app con el id de una fila de B y contexto de A", () =
     }).toEqual(before);
   });
 
-  // JS-114, pendiente: al cerrarlo, quitar el `.fails`.
+  // JS-114: el job_id de una evaluación o postulación tiene que ser una oferta propia.
   const insertFor = (tx: Sql, table: string, jobId: string) =>
     table === "applications"
       ? tx`insert into applications (job_id, user_id) values (${jobId}, ${A})`
@@ -665,7 +680,7 @@ describe("sentencias de la app con el id de una fila de B y contexto de A", () =
     owner.unsafe(`delete from ${table} where user_id = $1 and job_id = $2`, [A, jobId]);
 
   for (const table of ["evaluations", "applications"]) {
-    // Control: el insert está bien armado, así el it.fails de abajo mide solo el rechazo.
+    // Control: el insert está bien armado, así el test de abajo mide solo el rechazo.
     it(`control (JS-114, ${table}): la inserción con referencia propia funciona`, async () => {
       const [mine] = await owner<
         { id: string }[]
@@ -679,20 +694,45 @@ describe("sentencias de la app con el id de una fila de B y contexto de A", () =
       }
     });
 
-    it.fails(
-      `inserción con referencia a un registro ajeno es rechazada en ${table} (JS-114, pendiente)`,
-      async () => {
-        let error: unknown = null;
-        try {
-          await asUser(A, (tx) => insertFor(tx as unknown as Sql, table, jobB));
-        } catch (e) {
-          error = e;
-        } finally {
-          await cleanup(table, jobB);
-        }
-        if (error) expect(String(error)).toMatch(/row-level security/);
-        expect(error, "la inserción no fue rechazada").not.toBeNull();
-      },
-    );
+    it(`inserción con referencia a un registro ajeno es rechazada en ${table} (JS-114)`, async () => {
+      let error: unknown = null;
+      try {
+        await asUser(A, (tx) => insertFor(tx as unknown as Sql, table, jobB));
+      } catch (e) {
+        error = e;
+      } finally {
+        await cleanup(table, jobB);
+      }
+      if (error) expect(String(error)).toMatch(/row-level security/);
+      expect(error, "la inserción no fue rechazada").not.toBeNull();
+    });
   }
+
+  // El worker inserta con la conexión de servicio (dueño con BYPASSRLS, sin app.user_id): las
+  // policies nuevas no lo alcanzan. Rol de prueba: BYPASSRLS, sin superusuario.
+  it("la conexión de servicio (BYPASSRLS, sin contexto de usuario) sigue insertando (JS-114)", async () => {
+    const [mine] = await owner<{ id: string }[]>`select id from jobs where user_id = ${A} limit 1`;
+    await owner.unsafe(`
+      DROP ROLE IF EXISTS jso_servicio_test;
+      CREATE ROLE jso_servicio_test NOLOGIN NOSUPERUSER BYPASSRLS;
+      GRANT USAGE ON SCHEMA public TO jso_servicio_test;
+      GRANT SELECT ON jobs TO jso_servicio_test;
+      GRANT SELECT, INSERT ON evaluations, applications TO jso_servicio_test;
+    `);
+    try {
+      for (const table of ["evaluations", "applications"]) {
+        try {
+          await owner.begin(async (tx) => {
+            await tx.unsafe("SET LOCAL ROLE jso_servicio_test");
+            const r = await insertFor(tx as unknown as Sql, table, mine!.id);
+            expect(r.count).toBe(1);
+          });
+        } finally {
+          await cleanup(table, mine!.id);
+        }
+      }
+    } finally {
+      await owner.unsafe("DROP OWNED BY jso_servicio_test; DROP ROLE jso_servicio_test;");
+    }
+  });
 });
