@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
@@ -37,7 +38,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2">
           <Link href="/jobs" className="text-base font-semibold">
-            Job Search OS
+            {PRODUCT_NAME}
           </Link>
           <div className="flex items-center gap-4">
             <Link

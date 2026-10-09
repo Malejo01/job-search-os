@@ -3,6 +3,8 @@
  * dominio propio verificado en Resend, `from` tiene que ser el sandbox `onboarding@resend.dev`,
  * que solo entrega al email de la cuenta de Resend (alcanza para un solo usuario, JS-045).
  */
+import { PRODUCT_NAME } from "@job-search-os/pipeline";
+
 export type SendEmailParams = {
   to: string;
   subject: string;
@@ -10,7 +12,7 @@ export type SendEmailParams = {
   from?: string;
 };
 
-const DEFAULT_FROM = "Job Search OS <onboarding@resend.dev>";
+const DEFAULT_FROM = `${PRODUCT_NAME} <onboarding@resend.dev>`;
 
 export async function sendEmail(
   params: SendEmailParams,

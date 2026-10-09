@@ -3,6 +3,7 @@
  * del usuario y las saca de Recibidos. Puro: la fecha la pasa quien llama. No incluye
  * `shouldMarkAsRead` ni aplicar a conversaciones existentes (el XML no lo exporta).
  */
+import { PRODUCT_NAME } from "./product";
 
 /** Remitentes de alertas de empleo. Los dominios solos los acepta el criterio `from` de Gmail. */
 export const DEFAULT_ALERT_SENDERS: readonly string[] = [
@@ -38,11 +39,11 @@ export function gmailFiltersXml(input: {
   return [
     "<?xml version='1.0' encoding='UTF-8'?>",
     '<feed xmlns="http://www.w3.org/2005/Atom" xmlns:apps="http://schemas.google.com/apps/2006">',
-    "  <title>Filtros de Job Search OS</title>",
+    `  <title>Filtros de ${escapeXml(PRODUCT_NAME)}</title>`,
     `  <updated>${input.now.toISOString()}</updated>`,
     "  <entry>",
     "    <category term='filter'/>",
-    "    <title>Alertas de empleo hacia Job Search OS</title>",
+    `    <title>Alertas de empleo hacia ${escapeXml(PRODUCT_NAME)}</title>`,
     `    <updated>${input.now.toISOString()}</updated>`,
     `    <apps:property name='from' value='${from}'/>`,
     `    <apps:property name='forwardTo' value='${escapeXml(input.forwardTo)}'/>`,

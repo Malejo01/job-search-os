@@ -23,3 +23,4 @@ export * from "./onboarding";
 export * from "./inbound-address";
 export * from "./criteria-form";
 export * from "./assistant-step";
+export * from "./product";
