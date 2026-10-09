@@ -7,6 +7,7 @@ import {
 import { schema as s } from "@job-search-os/db";
 import { hashPassword } from "@job-search-os/db/password";
 import { generateResetToken, hashResetToken } from "@job-search-os/db/password-reset-token";
+import { PRODUCT_NAME } from "@job-search-os/pipeline";
 import { eq, sql } from "drizzle-orm";
 import { after } from "next/server";
 import { getAppDb, withUser } from "./db";
@@ -61,7 +62,7 @@ async function issueResetToken(user: { id: string; email: string }): Promise<voi
     await sendEmail(
       {
         to: user.email,
-        subject: "Recuperar contraseña — Job Search OS",
+        subject: `Recuperar contraseña — ${PRODUCT_NAME}`,
         html: `<p>Pediste restablecer tu contraseña.</p><p><a href="${link}">Elegí una nueva contraseña</a></p><p>El link vence en una hora. Si no fuiste vos, ignorá este email.</p>`,
         from: process.env.EMAIL_FROM,
       },

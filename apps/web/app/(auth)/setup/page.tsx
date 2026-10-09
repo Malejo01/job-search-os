@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from "@job-search-os/pipeline";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { signIn } from "@/auth";
@@ -45,7 +46,7 @@ export default async function SetupPage({
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-6">
       <div>
-        <h1 className="text-2xl font-semibold">Job Search OS</h1>
+        <h1 className="text-2xl font-semibold">{PRODUCT_NAME}</h1>
         <p className="text-sm text-zinc-600">
           Todavía no hay ningún usuario. Creá el único usuario de la app.
         </p>
