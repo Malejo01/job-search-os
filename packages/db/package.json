@@ -20,8 +20,7 @@
     "db:seed": "tsx src/seed.ts",
     "db:sql": "tsx src/sql.ts",
     "test": "vitest run",
-    "test:integration": "vitest run --config vitest.integration.config.ts",
-    "test:integration:cloud": "vitest run --config vitest.integration.cloud.config.ts"
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",

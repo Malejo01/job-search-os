@@ -26,7 +26,6 @@
     "db:migrate:local": "pnpm --filter @job-search-os/db db:migrate --local",
     "db:seed:local": "pnpm --filter @job-search-os/db db:seed --local",
     "db:sql": "pnpm --filter @job-search-os/db db:sql",
-    "test:integration:cloud": "pnpm --filter @job-search-os/db test:integration:cloud",
     "ingest:getonboard": "pnpm --filter @job-search-os/adapters ingest:getonboard",
     "worker:evaluate": "pnpm --filter @job-search-os/adapters worker:evaluate",
     "llm:spend": "pnpm --filter @job-search-os/adapters llm:spend",
