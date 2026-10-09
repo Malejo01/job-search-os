@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { assistantState } from "@/lib/assistant-state";
 import { getInboundAddress } from "@/lib/inbound-address";
 import { isOnboardingComplete } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
@@ -10,5 +11,6 @@ export const dynamic = "force-dynamic";
 export default async function OnboardingAssistantPage() {
   const userId = await requireUserId();
   if (!(await isOnboardingComplete(userId))) redirect("/onboarding");
-  return <Assistant address={await getInboundAddress(userId)} userId={userId} />;
+  const address = await getInboundAddress(userId);
+  return <Assistant address={address} state={await assistantState(userId, address)} />;
 }

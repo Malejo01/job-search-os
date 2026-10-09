@@ -7,7 +7,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { execSync } from "node:child_process";
 import { resolve } from "node:path";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import type { Page } from "@playwright/test";
 
 /** Credenciales del usuario seed local (pnpm db:seed --local con SEED_USER_EMAIL/PASSWORD). */
@@ -702,6 +702,82 @@ export async function setSenderVerdictForSeed(
         target: [s.inboundSenderDomains.userId, s.inboundSenderDomains.domain],
         set: { verdict },
       });
+  } finally {
+    await close();
+  }
+}
+
+/** Dirección de ingesta del usuario seed; devuelve la anterior para restaurarla al final. */
+export async function setSeedInboundAddress(address: string): Promise<string | null> {
+  const { db, close } = ownerDb();
+  try {
+    const [before] = await db
+      .select({ address: s.profiles.inboundAddress })
+      .from(s.profiles)
+      .where(eq(s.profiles.userId, E2E_USER_ID));
+    await db
+      .update(s.profiles)
+      .set({ inboundAddress: address })
+      .where(eq(s.profiles.userId, E2E_USER_ID));
+    return before?.address ?? null;
+  } finally {
+    await close();
+  }
+}
+
+export type AssistantFactsBackup = {
+  id: string;
+  parser: string | null;
+  jobsExtracted: number | null;
+}[];
+
+/**
+ * Deja al usuario seed sin pedidos de Gmail ni alertas con avisos (los hechos del asistente), para
+ * partir del paso 1. Devuelve lo que cambió, para `restoreAssistantFacts`.
+ */
+export async function neutralizeAssistantFacts(): Promise<AssistantFactsBackup> {
+  const { db, close } = ownerDb();
+  try {
+    const rows = await db
+      .select({
+        id: s.inboundEmails.id,
+        parser: s.inboundEmails.parser,
+        jobsExtracted: s.inboundEmails.jobsExtracted,
+      })
+      .from(s.inboundEmails)
+      .where(
+        and(
+          eq(s.inboundEmails.userId, E2E_USER_ID),
+          sql`(${s.inboundEmails.parser} = 'gmail_reenvio' or ${s.inboundEmails.jobsExtracted} > 0)`,
+        ),
+      );
+    // Un solo UPDATE: o cambia todo lo respaldado o nada
+    if (rows.length > 0) {
+      await db
+        .update(s.inboundEmails)
+        .set({ parser: "none", jobsExtracted: 0 })
+        .where(
+          inArray(
+            s.inboundEmails.id,
+            rows.map((r) => r.id),
+          ),
+        );
+    }
+    return rows;
+  } finally {
+    await close();
+  }
+}
+
+export async function restoreAssistantFacts(backup: AssistantFactsBackup): Promise<void> {
+  const { db, close } = ownerDb();
+  try {
+    for (const r of backup) {
+      await db
+        .update(s.inboundEmails)
+        .set({ parser: r.parser, jobsExtracted: r.jobsExtracted })
+        .where(eq(s.inboundEmails.id, r.id));
+    }
   } finally {
     await close();
   }

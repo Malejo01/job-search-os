@@ -45,6 +45,10 @@ export default async function SettingsPage({
         notice={direccion === "nueva" || direccion === "sin_dominio" ? direccion : undefined}
       />
 
+      <Link href="/settings/asistente" className="text-sm text-zinc-900 underline">
+        Asistente de email
+      </Link>
+
       <section className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
         <h2 className="text-lg font-medium">Remitentes</h2>
         <p className="text-sm text-zinc-700">

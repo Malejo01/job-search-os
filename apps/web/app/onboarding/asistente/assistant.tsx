@@ -1,18 +1,42 @@
-import { isLegacyInboundAddress } from "@job-search-os/pipeline";
+import { ASSISTANT_STEPS, type AssistantStep } from "@job-search-os/pipeline";
 import Link from "next/link";
+import { AutoRefresh } from "@/app/(app)/jobs/auto-refresh";
+import type { AssistantState } from "@/lib/assistant-state";
+import { confirmedForwardingAction, filtersImportedAction } from "./actions";
 import { CopyButton } from "./copy-button";
 
 const LEGACY_NOTICE =
   "Tu dirección es de un formato anterior: generá una nueva en Ajustes › Email entrante antes de configurar Gmail.";
 
+const GMAIL_FORWARDING_URL = "https://mail.google.com/mail/u/0/#settings/fwdandpop";
+
+const STEP_TITLES: Record<(typeof ASSISTANT_STEPS)[number], string> = {
+  agregar_direccion: "Agregá la dirección de reenvío",
+  confirmar_reenvio: "Confirmá el reenvío",
+  importar_filtros: "Importá los filtros",
+  esperando_alerta: "Esperá tu primera alerta",
+  listo: "Listo",
+};
+
+type StepView = "done" | "current" | "next";
+
+/** La dirección vieja bloquea el paso 1: se muestra como ese paso, con el aviso. */
+function viewOf(step: (typeof ASSISTANT_STEPS)[number], current: AssistantStep): StepView {
+  const at = ASSISTANT_STEPS.indexOf(step);
+  const now = ASSISTANT_STEPS.indexOf(
+    current === "direccion_vieja" ? "agregar_direccion" : current,
+  );
+  return at < now ? "done" : at === now ? "current" : "next";
+}
+
 /**
- * Asistente de reenvío (compartido por el onboarding y Ajustes): la dirección, el alta del reenvío
- * en Gmail y la descarga del archivo de filtros. Todo es texto y links: nada se abre desde el servidor.
+ * Asistente de reenvío con el paso actual (compartido por el onboarding y Ajustes): la dirección y
+ * cinco pasos que avanzan solos según lo que llegó. Todo es texto y links: el servidor no abre
+ * ningún link (D-028); el de la confirmación de Gmail lo abre el navegador de la persona.
  */
-export function Assistant({ address, userId }: { address: string | null; userId: string }) {
-  const legacy =
-    address !== null &&
-    (isLegacyInboundAddress(address, userId) || !/^u_[a-z2-7]{20}@/.test(address));
+export function Assistant({ address, state }: { address: string | null; state: AssistantState }) {
+  const { step } = state;
+  const legacy = step === "direccion_vieja";
   return (
     <section className="flex flex-col gap-4">
       <h1 className="text-xl font-semibold">Conectá tus alertas de empleo</h1>
@@ -40,61 +64,186 @@ export function Assistant({ address, userId }: { address: string | null; userId:
           Todavía no tenés una dirección de reenvío. Generá una en Ajustes.
         </p>
       )}
-      <ol className="flex list-none flex-col gap-4 p-0 text-sm text-zinc-700">
-        <li className="flex flex-col gap-1">
-          <h2 className="text-base font-medium text-zinc-900">Paso 1: agregá el reenvío</h2>
+
+      <ol className="flex list-none flex-col gap-2 p-0 text-sm" aria-label="Pasos">
+        {ASSISTANT_STEPS.map((id, i) => {
+          const view = viewOf(id, step);
+          return (
+            <li
+              key={id}
+              data-testid={`assistant-step-${id}`}
+              aria-current={view === "current" ? "step" : undefined}
+              className={
+                view === "current"
+                  ? "rounded-md border border-zinc-900 bg-white px-3 py-2"
+                  : view === "done"
+                    ? "px-3 py-1 text-zinc-600"
+                    : "px-3 py-1 text-zinc-500"
+              }
+            >
+              <h2
+                className={view === "current" ? "text-base font-semibold text-zinc-900" : "text-sm"}
+              >
+                {view === "done" ? <span aria-hidden="true">✓ </span> : null}
+                Paso {i + 1}: {STEP_TITLES[id]}
+                <span className="sr-only">
+                  {view === "done" ? " (hecho)" : view === "current" ? " (actual)" : " (pendiente)"}
+                </span>
+              </h2>
+              {view === "current" ? (
+                <div className="mt-2 flex flex-col gap-2 text-zinc-700">
+                  <StepBody step={id} state={state} />
+                </div>
+              ) : null}
+            </li>
+          );
+        })}
+      </ol>
+
+      {/* Pasos que avanzan solos por algo que llega por email: el pedido de Gmail y la primera alerta */}
+      <AutoRefresh
+        active={step === "agregar_direccion" || step === "esperando_alerta"}
+        everyMs={15000}
+        maxMs={30 * 60 * 1000}
+      />
+
+      <div className="flex justify-end">
+        <Link
+          href="/jobs"
+          className="rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white"
+        >
+          {step === "listo" ? "Ir a mis avisos" : "Lo hago después"}
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function StepBody({
+  step,
+  state,
+}: {
+  step: (typeof ASSISTANT_STEPS)[number];
+  state: AssistantState;
+}) {
+  const { confirmation, step: current } = state;
+  switch (step) {
+    case "agregar_direccion":
+      return current === "direccion_vieja" ? (
+        <p>{LEGACY_NOTICE}</p>
+      ) : (
+        <>
           <p>
             Abrí{" "}
             <a
-              href="https://mail.google.com/mail/u/0/#settings/fwdandpop"
+              href={GMAIL_FORWARDING_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="underline"
             >
               Gmail › Reenvío y correo POP/IMAP
             </a>
-            . Tocá «Añadir una dirección de reenvío», pegá la dirección de arriba y confirmá.
+            . Tocá «Añadir una dirección de reenvío», pegá la dirección de arriba, tocá «Siguiente»
+            y después «Continuar».
           </p>
           <p>
-            Gmail te manda un pedido de confirmación a esa dirección. Lo vas a ver en tu bandeja de
-            la app.
+            Gmail te manda un pedido de confirmación a esa dirección. Esta pantalla lo detecta y
+            pasa al paso siguiente.
           </p>
-        </li>
-        <li className="flex flex-col gap-1">
-          <h2 className="text-base font-medium text-zinc-900">Paso 2: descargá tus filtros</h2>
+        </>
+      );
+    case "confirmar_reenvio":
+      return (
+        <>
+          <p>Gmail mandó el pedido de confirmación a tu dirección.</p>
           <p>
-            {legacy ? (
-              LEGACY_NOTICE
+            {confirmation?.requester ? (
+              <>
+                Lo pidió <span className="font-medium">{confirmation.requester}</span>. Confirmá
+                solo si es tu cuenta de Gmail.
+              </>
             ) : (
-              <a href="/api/gmail-filters" download className="underline">
-                Descargar filtros-job-search-os.xml
-              </a>
+              "Confirmá solo si vos pediste este reenvío."
             )}
           </p>
+          <div className="flex flex-wrap items-center gap-2">
+            {confirmation?.link ? (
+              <a
+                href={confirmation.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded bg-blue-700 px-3 py-1.5 font-medium text-white"
+              >
+                Confirmar reenvío
+              </a>
+            ) : confirmation ? (
+              <>
+                <span>Abrí el email para confirmarlo.</span>
+                <Link href={`/inbox/${confirmation.id}`} className="text-blue-700 underline">
+                  Abrir el email
+                </Link>
+              </>
+            ) : null}
+            {confirmation ? (
+              <form action={confirmedForwardingAction}>
+                <input type="hidden" name="id" value={confirmation.id} />
+                <button
+                  type="submit"
+                  className="rounded border border-zinc-300 bg-white px-3 py-1.5"
+                >
+                  Ya lo confirmé
+                </button>
+              </form>
+            ) : null}
+          </div>
+        </>
+      );
+    case "importar_filtros":
+      return (
+        <>
           <p>
-            Después, en Gmail › Filtros y direcciones bloqueadas › «Importar filtros», elegí el
-            archivo y tocá «Crear filtros». No marques «Aplicar también a las conversaciones
-            existentes».
+            <a href="/api/gmail-filters" download className="underline">
+              Descargar filtros-job-search-os.xml
+            </a>
+          </p>
+          <p>
+            En Gmail: Configuración › Ver todos los ajustes › Filtros y direcciones bloqueadas ›
+            Importar filtros → elegí el archivo → Abrir archivo → Crear filtros. No marques «Aplicar
+            también a las conversaciones existentes».
           </p>
           <p>
             El filtro reenvía todo lo que llega de esos remitentes (también avisos de cuenta de esas
             plataformas): los avisos de inicio de sesión o códigos se descartan en la app sin
             guardarse, y en Gmail quedan en Todos los mensajes.
           </p>
-        </li>
-        <li className="flex flex-col gap-1">
-          <h2 className="text-base font-medium text-zinc-900">Paso 3: listo</h2>
-          <p>Cuando llegue la próxima alerta, la vas a ver en tu bandeja.</p>
-        </li>
-      </ol>
-      <div className="flex justify-end">
-        <Link
-          href="/jobs"
-          className="rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white"
-        >
-          Lo hago después
-        </Link>
-      </div>
-    </section>
-  );
+          <form action={filtersImportedAction}>
+            <button type="submit" className="rounded border border-zinc-300 bg-white px-3 py-1.5">
+              Ya importé los filtros
+            </button>
+          </form>
+        </>
+      );
+    case "esperando_alerta":
+      return (
+        <p>
+          Cuando LinkedIn, Get on Board o Indeed te manden una alerta, aparece acá. Para probar ya:
+          reenviá a mano una alerta que tengas a tu dirección. Esta pantalla se actualiza sola.
+        </p>
+      );
+    case "listo":
+      return (
+        <>
+          <p className="font-medium text-green-800">✓ Primera alerta recibida</p>
+          <p>
+            <Link href="/jobs" className="underline">
+              Ver mis avisos
+            </Link>{" "}
+            ·{" "}
+            <Link href="/inbox" className="underline">
+              Ver la bandeja
+            </Link>
+          </p>
+        </>
+      );
+  }
 }
