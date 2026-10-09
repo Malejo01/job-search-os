@@ -1,0 +1,124 @@
+{
+  "frontend": {
+    "label": "Frontend",
+    "skills": [
+      "typescript",
+      "react",
+      "nextjs",
+      "angular",
+      "vue",
+      "testing",
+      "accessibility",
+      "rest_apis",
+      "ci_cd",
+      "ai_coding_tools"
+    ]
+  },
+  "backend": {
+    "label": "Backend",
+    "skills": [
+      "python_backend",
+      "nodejs",
+      "nestjs",
+      "java",
+      "dotnet",
+      "go",
+      "sql",
+      "nosql",
+      "rest_apis",
+      "microservices",
+      "docker",
+      "testing"
+    ]
+  },
+  "fullstack": {
+    "label": "Full-stack",
+    "skills": [
+      "typescript",
+      "react",
+      "nextjs",
+      "nodejs",
+      "sql",
+      "rest_apis",
+      "docker",
+      "testing",
+      "ci_cd",
+      "vercel",
+      "supabase"
+    ]
+  },
+  "qa": {
+    "label": "QA",
+    "skills": [
+      "testing",
+      "ci_cd",
+      "sql",
+      "rest_apis",
+      "python",
+      "typescript",
+      "accessibility",
+      "observability",
+      "docker",
+      "english_intermediate"
+    ]
+  },
+  "data_analyst": {
+    "label": "Data Analyst",
+    "skills": [
+      "sql",
+      "python",
+      "analytics",
+      "etl",
+      "snowflake",
+      "nosql",
+      "aws",
+      "gcp",
+      "english_intermediate",
+      "client_facing"
+    ]
+  },
+  "soporte_it": {
+    "label": "Soporte IT",
+    "skills": [
+      "client_facing",
+      "security",
+      "iam",
+      "azure",
+      "aws",
+      "sql",
+      "observability",
+      "english_intermediate",
+      "docker",
+      "n8n"
+    ]
+  },
+  "ai_engineer": {
+    "label": "AI Engineer",
+    "skills": [
+      "python",
+      "rag",
+      "agents",
+      "tool_calling",
+      "prompt_engineering",
+      "llm_evals",
+      "vector_db",
+      "mcp",
+      "guardrails",
+      "langchain"
+    ]
+  },
+  "ux_ui": {
+    "label": "UX/UI",
+    "skills": [
+      "accessibility",
+      "react",
+      "typescript",
+      "analytics",
+      "seo",
+      "client_facing",
+      "testing",
+      "nextjs",
+      "english_intermediate"
+    ]
+  }
+}

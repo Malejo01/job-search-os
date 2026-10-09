@@ -3,6 +3,7 @@
 import {
   createLogger,
   parseEnabledSources,
+  recomputeMarketForUser,
   runExtraSourcesIngest,
   runGetOnBoardIngest,
   safeDbError,
@@ -40,7 +41,7 @@ export async function saveOnboardingAction(formData: FormData): Promise<void> {
   }
   // Así ve ofertas sin esperar al cron; si el onboarding ya estaba completo no se repite
   if (!wasComplete) scheduleFirstIngest(userId);
-  redirect("/onboarding/asistente");
+  redirect("/onboarding/skills");
 }
 
 /**
@@ -67,6 +68,12 @@ function scheduleFirstIngest(userId: string): void {
         } catch (e) {
           logger.error({ err: safeDbError(e) }, "primera ingesta: fuentes extra fallaron");
         }
+      }
+      // Con las ofertas ya ingeridas: primer mercado y plan de la persona (sin LLM)
+      try {
+        await recomputeMarketForUser(db, { userId, inputsChanged: true });
+      } catch (e) {
+        logger.error({ err: safeDbError(e) }, "primera ingesta: el recálculo de mercado falló");
       }
     } catch (e) {
       logger.error({ err: safeDbError(e) }, "primera ingesta no pudo arrancar");
