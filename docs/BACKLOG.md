@@ -762,10 +762,34 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Acepta:** con una URL remota, los helpers fallan antes de conectarse (test).
 
 ### JS-129 · `/api/health` con el commit del deploy en curso
-`deps:` — · `est:` XS · `estado:` todo (2026-10-08, Mauro)
+`deps:` — · `est:` XS · `estado:` código hecho 2026-10-09 (ronda 29): `turbo.json` declara `VERCEL_GIT_COMMIT_SHA` en `build`, `/api/health` responde con `Cache-Control: no-store` y un test cubre que la ruta es dinámica. Falta verificar después del deploy que el commit coincide con el de Vercel (Mauro).
 - En produccion `/api/health` muestra un commit anterior al deploy activo: la respuesta queda estatica o en cache. Tiene que ser dinamica (sin prerender ni cache) y mostrar el commit del deploy en curso.
 - La ruta ya tiene `force-dynamic` y lee `VERCEL_GIT_COMMIT_SHA` al responder. A verificar: (1) que el build de Vercel no reutilice una salida vieja del cache de Turborepo (la tarea `build` de `turbo.json` no declara variables de entorno); (2) que la variable de sistema llegue en tiempo de ejecucion y no solo al build; (3) los encabezados de cache de la respuesta.
 - **Acepta:** test de que la ruta es dinamica y lee el commit en tiempo de ejecucion; despues del deploy, el commit coincide con el de Vercel.
+
+### JS-130 · Skills autodeclaradas y mercado bajo demanda ✅ done 2026-10-09
+`deps:` JS-094, JS-034 · `est:` M · `estado:` done (ronda 28, PR #65)
+- **Por qué:** para un invitado, `/market`, `/plan` y el prescore lo trataban como nivel 0 en todo (los niveles solo entraban por seed), y las pantallas vacías pedían comandos.
+- **Carga:** paso opcional del onboarding y `/settings/skills`. Unas 10 skills sugeridas por rol objetivo (seed `role_skills.json`: Frontend, Backend, Full-stack, QA, Data Analyst, Soporte IT, AI Engineer, UX/UI), buscador sobre la taxonomía y 4 niveles en palabras. El rol no se guarda: se elige en la pantalla y el default sale del titular o de las disciplinas de los criterios, salvo que sean las de fábrica. Server Actions con Zod sobre `skill_levels` (RLS de dueño), sin migración.
+- **Mercado y plan bajo demanda:** al terminar el onboarding (después de la primera ingesta) y al guardar skills, snapshot y plan sin LLM. Límite D-029: sin ofertas nuevas ni niveles cambiados, 1 cada 10 minutos; con cambios, un mínimo de 10 s entre recálculos (si cae adentro, espera lo que falta y reintenta una vez). Marca en `job_queue` con lock por usuario. El cron semanal no cambia.
+- **Pantallas para personas:** `/market` y `/plan` dicen qué falta (ofertas, skills, cálculo en curso), con link a la acción. Un test impide `pnpm`, `seeds/` o nombres de archivo en el texto de la UI.
+- **e2e:** invitado nuevo → carga 5 skills → `/market` deja de marcar todo como gap y el plan ya no lista lo que domina.
+
+### JS-131 · Nombre del producto en una constante y limpieza pre-beta
+`deps:` — · `est:` XS · `estado:` en revisión (ronda 29)
+- `PRODUCT_NAME` único para el título, los metadatos, los encabezados, los emails y el XML de filtros. Los textos legales quedan para el cambio de nombre.
+- Se borran `/privacidad` y `/terminos` dentro de `(app)` (las URLs viejas ya redirigen a `/legal/*` desde `next.config.ts`) y `lib/safe-error.ts` de web, que no tenían uso.
+
+### JS-132 · Feedback de un toque (👍/👎) en el detalle de la oferta
+`deps:` — · `est:` S + migración · `estado:` diseño (2026-10-09, ronda 30) — lleva migración: va con plan y se aplica en Neon antes del deploy
+- **Por qué no entra en `human_score`:** ese número lo usan el snapshot de mercado (peso de la demanda) y el MAE del reporte de feedback. Un 👍/👎 no tiene un número honesto: copiar el score del modelo mete errores 0 en el MAE, y un 👎 no dice si el score estaba alto o bajo.
+- **Diseño:** columnas `human_verdict` (enum `de_acuerdo`/`en_desacuerdo`) y `human_verdict_at` en `evaluations`. El motivo corto opcional va en `human_note`. El formulario numérico queda en "Ajustar el score (avanzado)". El reporte de feedback suma la tasa de acuerdo por banda, fuera del MAE.
+- **Acepta:** 👎 con motivo persiste; el numérico sigue igual y no pisa el veredicto; B no puede marcar la evaluación de A.
+
+### JS-133 · Taxonomía: skills de diseño, soporte y análisis de datos
+`deps:` JS-130 · `est:` S · `estado:` todo (2026-10-09, ronda 28)
+- Las sugerencias de UX/UI, Soporte IT y Data Analyst usan lo que hay en la taxonomía de 60 skills. Faltan, por ejemplo, herramientas de diseño, sistemas operativos y redes, y planillas o BI.
+- Sumar skills cambia un dato global en Neon (tabla `skills`, hoy cargada desde `skills.json`). Va con plan y lo aplica Mauro. Después se ajusta `role_skills.json`.
 
 ### JS-118 · Prefiltro: modalidad no remota en el titulo ✅ done 2026-10-08
 `deps:` — · `est:` S · `estado:` done (ronda 21, PR #57). Golden privado: 0 cambios de prefiltro en 3 corridas, metricas sin cambios (Mauro).
