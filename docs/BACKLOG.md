@@ -658,7 +658,7 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 
 ### JS-109 · Cierre de `users_read` y paginas legales publicas (14c) ✅ done 2026-10-08
 `deps:` JS-103, JS-106 · `est:` S · `estado:` done (ronda 14c)
-- Cierre en `rls/0000` (no como archivo aparte, para que ninguna corrida reabra la lectura); `rls-pendiente/0003` queda sin uso. Tests de lectura cruzada con el rol de la app y un duenio sin `BYPASSRLS`. `evaluateInBackground` no evalua sin onboarding completo. El cron de mercado lista usuarios desde `profiles`.
+- Cierre en `rls/0000` (no como archivo aparte, para que ninguna corrida reabra la lectura); `rls-pendiente/0003` retirado del repo (ronda 27). Tests de lectura cruzada con el rol de la app y un duenio sin `BYPASSRLS`. `evaluateInBackground` no evalua sin onboarding completo. El cron de mercado lista usuarios desde `profiles`.
 
 ### JS-110 · Respuesta del cron de evaluacion sin errores crudos ✅ done 2026-10-08
 `deps:` — · `est:` S · `estado:` done (ronda 14c)
@@ -722,22 +722,50 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - Los datos del responsable y el plazo de logs se completan en tiempo de ejecucion desde variables; si falta alguna, la pagina dice "en revision". Nunca en el repo.
 
 ### JS-121 · Higiene de tests y de escaneo de secretos ✅ done 2026-10-08
-`deps:` — · `est:` S · `estado:` done (ronda 20, PR #58)
+`deps:` — · `est:` S · `estado:` done (ronda 20, PR #58; modo nube retirado en la ronda 27, PR #64)
 - Los tests de integracion y los e2e fallan antes de conectarse si alguna URL de base del entorno no es local; `.gitguardian.yaml` ignora solo cadenas de prueba inventadas, una por una.
+- **Ronda 27:** los tests de RLS corren solo contra la base local o la del CI; se retiraron el script, la rama del test y la config del modo nube.
 
-### JS-122 · Asistente de ingesta en pocos clics (B8)
-`deps:` JS-119 · `est:` M · `estado:` parte 1 done 2026-10-08 (ronda 22a, PR #59); parte 2 en la ronda 26
+### JS-122 · Asistente de ingesta en pocos clics (B8) ✅ done 2026-10-08
+`deps:` JS-119 · `est:` M · `estado:` done (parte 1: ronda 22a, PR #59; parte 2: ronda 26, PR #63)
 - **Parte 1:** archivo de filtros de Gmail por usuario, pantalla del asistente en el onboarding y en Ajustes, y ofertas de las fuentes por API apenas termina el onboarding.
-- **Parte 2:** el asistente muestra el paso actual deducido de la base (direccion, confirmacion de Gmail, filtros, primera alerta). El servidor **no** abre links de confirmacion: el boton de la bandeja los abre en el navegador del usuario.
-- Meta: un invitado configura todo solo en menos de 10 minutos.
+- **Parte 2:** el asistente muestra el paso actual deducido de la base, sin migracion: agregar la direccion, confirmar el reenvio, importar los filtros, esperar la primera alerta y listo. "Ya importe los filtros" queda en una cookie del navegador. El servidor **no** abre links de confirmacion (D-028): el boton los abre en el navegador del usuario. e2e del flujo completo.
+- Meta: un invitado configura todo solo en menos de 10 minutos. Ensayo en seco con dos usuarios en el e2e de la ronda 27 (PR #64).
 
-### JS-123 · Registro de llamadas a la IA sin texto del proveedor
-`deps:` — · `est:` XS · `estado:` en curso (ronda 25) — prioridad alta, antes de invitar
-- El registro guarda solo metadatos (tarea, modelo, tokens, costo, fecha, usuario) y un codigo de error normalizado (tipo y status HTTP), nunca el texto del proveedor. Limpieza de filas viejas por `UPDATE` (Mauro). La purga de 90 dias, cubierta por un test.
+### JS-123 · Registro de llamadas a la IA sin texto del proveedor ✅ done 2026-10-08
+`deps:` — · `est:` XS · `estado:` done (ronda 25, PR #62; limpieza aplicada en produccion despues del deploy, control en 0)
+- El registro guarda solo metadatos (tarea, modelo, tokens, costo, fecha, usuario) y un codigo de error normalizado (tipo y status HTTP), nunca el texto del proveedor. Las filas viejas con texto pasaron a `legacy_text`. La purga de 90 dias, cubierta por un test en el borde.
 
 ### JS-124 · Retirar la version anterior de la funcion de registro
-`deps:` JS-113 · `est:` XS + RLS · `estado:` todo (2026-10-08) — despues del deploy de la ronda 23
+`deps:` JS-113 · `est:` XS + RLS · `estado:` todo (2026-10-08) — lleva migracion: va con plan y se aplica en Neon
 - Retirar la version anterior de la funcion de registro (detalle en las notas privadas de la ronda 23).
+
+### JS-125 · Ingesta del onboarding sin red en e2e/CI
+`deps:` JS-122 · `est:` XS · `estado:` todo (2026-10-08, ronda 27)
+- La primera ingesta al terminar el onboarding (ronda 22a) sale a la red real de las fuentes por API si el entorno no esta en modo demo; en e2e y CI puede volver flaky un test o crear ofertas despues de la limpieza. Apagarla cuando `LLM_DEMO=1` o con una variable propia del entorno de e2e.
+- **Acepta:** con el entorno de e2e, la primera ingesta no hace pedidos de red (test).
+
+### JS-126 · Pulido del onboarding y del registro
+`deps:` — · `est:` S · `estado:` todo (2026-10-08, ronda 27)
+- "Otro pais: codigo de 2 letras" visible solo al elegir "Otro"; errores junto a cada campo y conservar lo cargado al volver con error; unificar "Repeti la contrasenia" en `setup` y `reset-password` (y los e2e 05 y 06).
+- Asistente: si se agrega retencion de la bandeja, derivar "primera alerta recibida" tambien de las fuentes de los avisos, para que no vuelva al paso 1.
+- Sumar lo que salga del ensayo de invitacion.
+- **Acepta:** e2e de onboarding con un error que conserva lo cargado; los tres formularios con el mismo texto.
+
+### JS-127 · Endurecer la clasificacion del pedido de confirmacion de Gmail
+`deps:` JS-122 · `est:` S · `estado:` todo (2026-10-08, ronda 26)
+- Hallazgo de severidad baja de la revision de la ronda 26 (detalle en las notas privadas de la ronda). La UI ya pide confirmar solo si la cuenta es propia.
+
+### JS-128 · Guarda de host en la conexion de duenio de los helpers de e2e
+`deps:` — · `est:` XS · `estado:` todo (2026-10-08, ronda 27)
+- La conexion de duenio de los helpers de e2e usa la misma guarda de base local que los tests de integracion.
+- **Acepta:** con una URL remota, los helpers fallan antes de conectarse (test).
+
+### JS-129 · `/api/health` con el commit del deploy en curso
+`deps:` — · `est:` XS · `estado:` todo (2026-10-08, Mauro)
+- En produccion `/api/health` muestra un commit anterior al deploy activo: la respuesta queda estatica o en cache. Tiene que ser dinamica (sin prerender ni cache) y mostrar el commit del deploy en curso.
+- La ruta ya tiene `force-dynamic` y lee `VERCEL_GIT_COMMIT_SHA` al responder. A verificar: (1) que el build de Vercel no reutilice una salida vieja del cache de Turborepo (la tarea `build` de `turbo.json` no declara variables de entorno); (2) que la variable de sistema llegue en tiempo de ejecucion y no solo al build; (3) los encabezados de cache de la respuesta.
+- **Acepta:** test de que la ruta es dinamica y lee el commit en tiempo de ejecucion; despues del deploy, el commit coincide con el de Vercel.
 
 ### JS-118 · Prefiltro: modalidad no remota en el titulo ✅ done 2026-10-08
 `deps:` — · `est:` S · `estado:` done (ronda 21, PR #57). Golden privado: 0 cambios de prefiltro en 3 corridas, metricas sin cambios (Mauro).
