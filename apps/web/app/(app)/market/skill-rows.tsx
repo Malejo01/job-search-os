@@ -1,10 +1,8 @@
-import type { AgendaRow } from "@job-search-os/pipeline";
+import { SELF_LEVELS, type AgendaRow } from "@job-search-os/pipeline";
 import type { MarketView } from "@/lib/market";
 
-const LEVEL_LABELS = ["nulo", "básico", "productivo", "fuerte"];
-
 function levelText(level: number | null): string {
-  return level === null ? "sin dato" : `${level} · ${LEVEL_LABELS[level]}`;
+  return level === null ? "sin dato" : `${level} · ${SELF_LEVELS[level]?.label ?? ""}`;
 }
 
 /**

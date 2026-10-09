@@ -1,6 +1,6 @@
 import { schema as s } from "@job-search-os/db";
 import { buildAgenda, skillCandidates, type MarketAgenda } from "@job-search-os/pipeline";
-import { and, desc, eq, gte, isNotNull, lte } from "drizzle-orm";
+import { and, count, desc, eq, gte, isNotNull, lte } from "drizzle-orm";
 import { revalidateTag, unstable_cache } from "next/cache";
 import { withUser } from "./db";
 import { candidatesCacheConfig } from "./market-cache";
@@ -80,6 +80,50 @@ function getCandidates(userId: string): Promise<SkillCandidate[]> {
  */
 export function invalidateMarketCandidates(userId: string): void {
   for (const tag of candidatesCacheConfig(userId).tags) revalidateTag(tag);
+}
+
+/** Lo mínimo para decidir qué pantalla vacía mostrar en /market y /plan. */
+export type DataState = {
+  jobsCount: number;
+  hasSnapshot: boolean;
+  levelsKnown: number;
+  /**
+   * Hay ofertas, no hay snapshot y el último recálculo fue hace más de 5 minutos: el cálculo ya
+   * corrió y no encontró skills en las ofertas (no es que siga en curso).
+   */
+  noSkillsFound: boolean;
+};
+
+const STALE_RECOMPUTE_MS = 5 * 60_000;
+
+/**
+ * Los `count()` y `select` van sin filtro de usuario a propósito: se apoyan en RLS (`withUser`
+ * fija el usuario de la transacción y las tablas tienen política de dueño).
+ */
+export async function getDataState(userId: string): Promise<DataState> {
+  return withUser(userId, async (tx) => {
+    const [jobs] = await tx.select({ n: count() }).from(s.jobs);
+    const snap = await tx.select({ id: s.marketSnapshots.id }).from(s.marketSnapshots).limit(1);
+    const [levels] = await tx.select({ n: count() }).from(s.skillLevels);
+    const [mark] = await tx
+      .select({ createdAt: s.jobQueue.createdAt })
+      .from(s.jobQueue)
+      .where(eq(s.jobQueue.queue, "market_recompute"))
+      .orderBy(desc(s.jobQueue.createdAt))
+      .limit(1);
+    const jobsCount = jobs?.n ?? 0;
+    const hasSnapshot = snap.length > 0;
+    return {
+      jobsCount,
+      hasSnapshot,
+      levelsKnown: levels?.n ?? 0,
+      noSkillsFound:
+        jobsCount > 0 &&
+        !hasSnapshot &&
+        mark !== undefined &&
+        Date.now() - mark.createdAt.getTime() > STALE_RECOMPUTE_MS,
+    };
+  });
 }
 
 export async function getMarket(userId: string, range: MarketRange): Promise<MarketView> {

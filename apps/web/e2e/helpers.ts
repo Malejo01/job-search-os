@@ -782,3 +782,126 @@ export async function restoreAssistantFacts(backup: AssistantFactsBackup): Promi
     await close();
   }
 }
+
+// ─────────────────────────────────────────────────────────────
+// Skills autodeclaradas (ronda 28). Datos inventados; se borran con deleteUserData o con el usuario.
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Siembra ofertas evaluadas de un usuario con sus skills pedidas (job_skills, todas requeridas).
+ * Cada elemento de `offers` es la lista de slugs de una oferta. Devuelve los ids de las ofertas.
+ */
+export async function seedOffersWithSkills(
+  userId: string,
+  tag: string | number,
+  offers: string[][],
+): Promise<string[]> {
+  const { db, close } = ownerDb();
+  try {
+    const slugs = [...new Set(offers.flat())];
+    const known = await db
+      .select({ id: s.skills.id, slug: s.skills.slug })
+      .from(s.skills)
+      .where(inArray(s.skills.slug, slugs));
+    const idOf = new Map(known.map((k) => [k.slug, k.id]));
+    const ids: string[] = [];
+    for (const [i, list] of offers.entries()) {
+      const title = `Oferta Ficticia Skills ${tag} ${i + 1}`;
+      const [job] = await db
+        .insert(s.jobs)
+        .values({
+          userId,
+          companyRaw: `Empresa Skills ${tag} ${i + 1}`,
+          title,
+          titleNormalized: title.toLowerCase(),
+          canonicalUrl: `https://example.com/e2e-skills/${tag}/${i + 1}`,
+          locationRaw: "Remoto (Brasil)",
+          modality: "remoto",
+          status: "evaluada",
+          jdText: `Descripción ficticia de la oferta ${i + 1} (${tag}).`,
+          flags: [],
+          firstSeenAt: new Date(),
+        })
+        .returning({ id: s.jobs.id });
+      await db.insert(s.evaluations).values({
+        jobId: job!.id,
+        userId,
+        criteriaVersion: 1,
+        promptVersion: "evaluate_job@e2e",
+        model: "fake",
+        hadFullJd: true,
+        score: 8,
+        locationOk: "ok",
+        modality: "remoto",
+        discipline: "fullstack",
+        matchFuerte: [],
+        gaps: [],
+        bloqueadoresDuros: [],
+        senalesPositivas: [],
+        veredicto: "Evaluación de prueba (e2e).",
+        accion: "aplicar",
+      });
+      const rows = list.flatMap((slug) => {
+        const skillId = idOf.get(slug);
+        return skillId ? [{ jobId: job!.id, skillId, isMust: true, rawMention: slug }] : [];
+      });
+      if (rows.length !== list.length) throw new Error("un slug de la oferta no está en skills");
+      await db.insert(s.jobSkills).values(rows);
+      ids.push(job!.id);
+    }
+    return ids;
+  } finally {
+    await close();
+  }
+}
+
+/**
+ * Siembra el snapshot de mercado de la semana actual (lunes UTC) para los slugs de `offers`, como
+ * lo calcularía el recálculo: menciones = ofertas que la piden, todas como requisito, demanda =
+ * 8 por mención (el score de las ofertas sembradas). Así el spec no espera a la primera ingesta.
+ */
+export async function seedMarketSnapshot(userId: string, offers: string[][]): Promise<void> {
+  const { db, close } = ownerDb();
+  try {
+    const mentions = new Map<string, number>();
+    for (const list of offers)
+      for (const slug of list) mentions.set(slug, (mentions.get(slug) ?? 0) + 1);
+    const known = await db
+      .select({ id: s.skills.id, slug: s.skills.slug })
+      .from(s.skills)
+      .where(inArray(s.skills.slug, [...mentions.keys()]));
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+    const weekStart = d.toISOString().slice(0, 10);
+    await db
+      .insert(s.marketSnapshots)
+      .values(
+        known.map((k) => ({
+          userId,
+          weekStart,
+          skillId: k.id,
+          mentions: mentions.get(k.slug)!,
+          mustMentions: mentions.get(k.slug)!,
+          weightedDemand: 8 * mentions.get(k.slug)!,
+        })),
+      )
+      .onConflictDoNothing();
+  } finally {
+    await close();
+  }
+}
+
+/** slug → nivel declarado de un usuario. */
+export async function skillLevelsOf(userId: string): Promise<Record<string, number>> {
+  const { db, close } = ownerDb();
+  try {
+    const rows = await db
+      .select({ slug: s.skills.slug, level: s.skillLevels.level })
+      .from(s.skillLevels)
+      .innerJoin(s.skills, eq(s.skills.id, s.skillLevels.skillId))
+      .where(eq(s.skillLevels.userId, userId));
+    return Object.fromEntries(rows.map((r) => [r.slug, r.level]));
+  } finally {
+    await close();
+  }
+}
