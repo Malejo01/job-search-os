@@ -1,4 +1,4 @@
-import { NoObjectGeneratedError } from "ai";
+import { APICallError, NoObjectGeneratedError } from "ai";
 import pino from "pino";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
@@ -152,7 +152,8 @@ describe("createLlmClient.generateStructured", () => {
       ["modelo-primario", false],
       ["claude-fallback", true],
     ]);
-    expect(calls.calls[0]!.error).toContain("429");
+    // un Error pelado no trae status estructurado: no se lee del message
+    expect(calls.calls[0]!.error).toBe("unknown");
     expect(calls.calls[1]!.costUsd).toBeNull(); // sin precio para el fallback
   });
 
@@ -221,8 +222,13 @@ describe("createLlmClient.generateStructured", () => {
     const r = await client.generateStructured("evaluate_job", Schema, vars);
     expect(r).toMatchObject({ ok: false, error: { kind: "aborted" } });
     if (r.ok) return;
-    expect(r.error.detail).toContain("timeout de 20 ms");
-    expect(calls.calls[0]).toMatchObject({ ok: false, tokensIn: null, tokensOut: null });
+    expect(r.error.detail).toBe("timeout");
+    expect(calls.calls[0]).toMatchObject({
+      ok: false,
+      tokensIn: null,
+      tokensOut: null,
+      error: "timeout",
+    });
   });
 
   it("una señal externa cancela la llamada y NO prueba el fallback", async () => {
@@ -246,7 +252,8 @@ describe("createLlmClient.generateStructured", () => {
     });
     expect(r).toMatchObject({ ok: false, error: { kind: "aborted" } });
     if (r.ok) return;
-    expect(r.error.detail).toContain("señal externa");
+    expect(r.error.detail).toBe("aborted");
+    expect(calls.calls[0]!.error).toBe("aborted");
     expect(calls.calls.map((c) => c.model)).toEqual(["modelo-primario"]);
   });
 
@@ -264,8 +271,34 @@ describe("createLlmClient.generateStructured", () => {
     const r = await client.generateStructured("evaluate_job", Schema, vars);
     expect(r).toMatchObject({ ok: false, error: { kind: "generation_failed" } });
     if (r.ok) return;
-    expect(r.error.detail).toContain("boom");
+    expect(r.error.detail).toBe("unknown");
+    expect(r.error.detail).not.toContain("boom");
     expect(calls.calls).toHaveLength(1);
+  });
+
+  it("un error de API con texto arbitrario guarda solo api_call:<status>", async () => {
+    const calls = memoryCallSink();
+    const client = createLlmClient({
+      routes: staticRouteSource([{ ...route, fallbackModel: null }]),
+      calls,
+      providers: providers(["google"]),
+      generate: async () => {
+        throw new APICallError({
+          message: "TEXTO-DEL-JD",
+          url: "https://x.test",
+          requestBodyValues: { prompt: "TEXTO-DEL-JD" },
+          statusCode: 500,
+          responseBody: "TEXTO-DEL-JD",
+        });
+      },
+      logger: silent,
+    });
+    const r = await client.generateStructured("evaluate_job", Schema, vars);
+    expect(calls.calls[0]!.error).toBe("api_call:500");
+    expect(r).toMatchObject({
+      ok: false,
+      error: { kind: "generation_failed", detail: "api_call:500" },
+    });
   });
 
   it("no re-parsea una salida ya validada por el proveedor (schema con transform)", async () => {
@@ -317,14 +350,13 @@ describe("createLlmClient.generateStructured", () => {
     const r = await client.generateStructured("evaluate_job", Schema, vars);
     expect(r.ok).toBe(false);
     const detail = r.ok ? "" : r.error.detail;
-    expect(detail).toContain("score: invalid_type");
-    expect(detail).not.toContain("TEXTO-DEL-JD");
-    expect(calls.calls[0]!.error).not.toContain("TEXTO-DEL-JD");
+    expect(detail).toBe("validation:invalid_type salida no cumple el schema");
+    expect(calls.calls[0]!.error).toBe("validation:invalid_type");
   });
 });
 
 describe("NoObjectGeneratedError", () => {
-  it("no cita el texto del modelo en detail ni en llm_calls.error, solo el largo", async () => {
+  it("guarda solo el código no_object, sin texto del modelo", async () => {
     const calls = memoryCallSink();
     const client = createLlmClient({
       routes: staticRouteSource([{ ...route, fallbackModel: null }]),
@@ -344,9 +376,8 @@ describe("NoObjectGeneratedError", () => {
     const r = await client.generateStructured("evaluate_job", Schema, vars);
     expect(r.ok).toBe(false);
     const detail = r.ok ? "" : r.error.detail;
-    expect(detail).toContain("len=28");
-    expect(detail).not.toContain("TEXTO-DEL-JD");
-    expect(calls.calls[0]!.error).not.toContain("TEXTO-DEL-JD");
+    expect(detail).toBe("no_object");
+    expect(calls.calls[0]!.error).toBe("no_object");
   });
 });
 

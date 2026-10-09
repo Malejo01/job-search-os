@@ -1,7 +1,7 @@
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { applyMigrations } from "@job-search-os/db/src/migrate";
 import { createDb, schema as s } from "@job-search-os/db";
-import { inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { PURGE_MAX_BATCHES, parseLogDays, purgeExpired } from "./purge";
 
@@ -122,6 +122,17 @@ describe("purgeExpired", () => {
     // solo se va lo de 100 d; las de 40 d, 20 d y 23 h (ventana del tope) se quedan
     expect(left).toHaveLength(6);
     expect(left.every((r) => r.createdAt >= daysAgo(90))).toBe(true);
+  });
+
+  it("borde de los 90 días en llm_calls: 89 d queda y 91 d cae, con logDays en 1", async () => {
+    const edge = { userId: A, task: `${TAG}-borde`, model: "m", ok: false, error: "api_call:500" };
+    await conn.db.insert(s.llmCalls).values([
+      { ...edge, createdAt: daysAgo(89) },
+      { ...edge, createdAt: daysAgo(91) },
+    ]);
+    await purgeExpired(conn.db, { now: NOW, logDays: 1 });
+    const left = await conn.db.select().from(s.llmCalls).where(eq(s.llmCalls.task, edge.task));
+    expect(left.map((r) => r.createdAt.getTime())).toEqual([daysAgo(89).getTime()]);
   });
 
   it("con logDays mayor que el mínimo, llm_calls usa logDays", async () => {

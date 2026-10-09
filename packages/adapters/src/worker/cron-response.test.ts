@@ -31,6 +31,21 @@ describe("classifyCronError", () => {
     expect(classifyCronError('relation "x" does not exist')).toBe("otro");
     expect(classifyCronError("")).toBe("otro");
   });
+
+  it("clasifica como llm el formato `kind: código` de JS-123", () => {
+    for (const e of [
+      "generation_failed: api_call:500",
+      "generation_failed: no_object",
+      "generation_failed: validation:invalid_type",
+      "generation_failed: unknown",
+      "aborted: timeout",
+      "aborted: aborted",
+      "provider_unavailable: provider_unavailable",
+      "no_route: sin fila en model_routing para 'evaluate_job'",
+    ]) {
+      expect(classifyCronError(e)).toBe("llm");
+    }
+  });
 });
 
 describe("buildEvaluateCronResponse", () => {
