@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { CriteriaRules } from "./criteria";
+import { DISCIPLINES } from "./evaluation";
 
 /**
  * Onboarding obligatorio (B2, JS-094): qué es un "perfil completo" y cómo se valida el formulario.
@@ -57,21 +58,14 @@ export function isProfileComplete(p: ProfileCompletenessInput): boolean {
 }
 
 /**
- * Reglas por defecto de un usuario nuevo. Espejo de packages/db/seeds/criteria.example.json
- * (un test las compara); no se lee el archivo para no depender de fixtures-private ni de I/O.
+ * Reglas por defecto de un usuario nuevo: neutras (todas las disciplinas, sin piso salarial, sin
+ * penalización por inglés, solo cargos de dirección excluidos). Ya no son espejo de
+ * packages/db/seeds/criteria.example.json, que queda como fixture de un perfil de desarrollo;
+ * un test compara solo lo que no cambió. No se lee el archivo para no depender de I/O.
  */
 export const DEFAULT_CRITERIA_RULES: CriteriaRules = {
-  title_blocklist: [
-    "lead",
-    "manager",
-    "director",
-    "head of",
-    "principal",
-    "architect",
-    "tech lead",
-    "vp ",
-    "chief",
-  ],
+  // "vp " lleva el espacio final a propósito: no coincide con "vpn" ni "mvp".
+  title_blocklist: ["director", "vp ", "chief", "head of"],
   title_allowlist: ["agent architect"],
   title_cap_score: 3,
   title_cap_score_if_few_candidates: { max_candidates: 5, cap: 5, disciplines: ["ai_engineer"] },
@@ -119,14 +113,14 @@ export const DEFAULT_CRITERIA_RULES: CriteriaRules = {
     "scrum master",
     "business owner",
   ],
-  allowed_disciplines: ["ai_engineer", "fullstack", "frontend", "backend", "arquitectura"],
+  allowed_disciplines: [...DISCIPLINES],
   discipline_cap_score: 4,
   english_risk_from: "avanzado",
   cloud_must_penalty: 1,
-  english_fluent_penalty: 1,
+  english_fluent_penalty: 0,
   easy_apply_penalty: 0,
   skills_match_badge: { analyze_from: 0.6, discard_below: 0.4 },
-  salary_floor_usd_monthly: 3000,
+  salary_floor_usd_monthly: null,
   max_weekly_hours: 40,
   thresholds: { personalizado: 9, aplicar: 7, guardar: 5 },
 };
@@ -138,8 +132,7 @@ export function criteriaFromOnboarding(input: {
 }): CriteriaRules {
   return {
     ...DEFAULT_CRITERIA_RULES,
-    salary_floor_usd_monthly:
-      input.salaryFloorUsd ?? DEFAULT_CRITERIA_RULES.salary_floor_usd_monthly,
+    salary_floor_usd_monthly: input.salaryFloorUsd ?? null,
     max_weekly_hours: input.maxWeeklyHours ?? DEFAULT_CRITERIA_RULES.max_weekly_hours,
   };
 }
@@ -163,7 +156,7 @@ export const onboardingSchema = z
     country: z.string().trim().toUpperCase(),
     countryOther: z.string().trim().toUpperCase(),
     city: optionalText(100),
-    remoteOnly: z.boolean(),
+    remoteOnly: z.enum(["si", "no"]).transform((v) => v === "si"),
     workAuthUs: z.boolean(),
     workAuthEu: z.boolean(),
     workAuthOther: optionalText(200),
@@ -212,7 +205,8 @@ export function parseOnboarding(raw: Record<string, string | undefined>): Onboar
     country: s("country"),
     countryOther: s("countryOther"),
     city: s("city"),
-    remoteOnly: s("remoteOnly") === "on",
+    // Radio Sí/No sin valor marcado: ausente u otro valor falla en vez de asumir algo.
+    remoteOnly: s("remoteOnly"),
     workAuthUs: s("workAuthUs") === "on",
     workAuthEu: s("workAuthEu") === "on",
     workAuthOther: s("workAuthOther"),

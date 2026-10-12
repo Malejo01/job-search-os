@@ -110,8 +110,8 @@ describe("parseCriteriaForm", () => {
     const bad: [string, string][] = [
       ["salary_floor_usd_monthly", "-1"],
       ["salary_floor_usd_monthly", "100001"],
-      ["salary_floor_usd_monthly", ""],
       ["salary_floor_usd_monthly", "3000.5"],
+      ["salary_floor_usd_monthly", "abc"],
       ["max_weekly_hours", "0"],
       ["max_weekly_hours", "81"],
       ["max_years_hard", "41"],
@@ -139,6 +139,15 @@ describe("parseCriteriaForm", () => {
       ok: false,
       field: "max_years_hard",
     });
+  });
+
+  it("piso salarial vacío es válido y queda en null (sin piso)", () => {
+    for (const empty of ["", "   "]) {
+      const r = parseCriteriaForm({ ...untouched(BASE), salary_floor_usd_monthly: empty }, BASE);
+      expect(r.ok && r.rules.salary_floor_usd_monthly).toBeNull();
+    }
+    const r = parseCriteriaForm({ ...untouched(BASE), salary_floor_usd_monthly: "0" }, BASE);
+    expect(r.ok && r.rules.salary_floor_usd_monthly).toBe(0);
   });
 
   it("riesgo de inglés: solo los valores del enum", () => {
@@ -188,11 +197,12 @@ describe("parseCriteriaForm", () => {
 
 describe("criteriaFormDefaults", () => {
   it("precarga cada campo editable", () => {
-    const d = criteriaFormDefaults(BASE);
+    const d = criteriaFormDefaults({ ...BASE, salary_floor_usd_monthly: 3000 });
     expect(d.title_allowlist).toBe("agent architect");
-    expect(d.title_blocklist.split("\n")).toContain("lead");
+    expect(d.title_blocklist.split("\n")).toContain("director");
     expect(d.allowed_disciplines).toEqual(BASE.allowed_disciplines);
     expect(d.salary_floor_usd_monthly).toBe("3000");
+    expect(criteriaFormDefaults(BASE).salary_floor_usd_monthly).toBe("");
     expect(d.max_weekly_hours).toBe("40");
     expect(d.max_years_hard).toBe("8");
     expect(d.english_risk_from).toBe("avanzado");

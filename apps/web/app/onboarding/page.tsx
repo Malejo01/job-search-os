@@ -21,6 +21,7 @@ const FIELD_ERRORS: Record<string, string> = {
   country: "Elegí tu país.",
   countryOther: "Escribí el código de país de 2 letras (por ejemplo PT).",
   city: "La ciudad es demasiado larga.",
+  remoteOnly: "Elegí si buscás solo trabajo remoto.",
   workAuthOther: "El campo de otras autorizaciones es demasiado largo.",
   englishCefr: "Elegí tu nivel de inglés.",
   yearsTotal: "Los años de experiencia tienen que ser un número entre 0 y 60.",
@@ -126,10 +127,20 @@ export default async function OnboardingPage({
           </label>
         </div>
         <fieldset className="flex flex-col gap-2 text-sm">
-          <legend className="mb-1">Autorización de trabajo</legend>
+          <legend className="mb-1">¿Buscás solo trabajo remoto? *</legend>
           <label className="flex items-center gap-2">
-            <input name="remoteOnly" type="checkbox" defaultChecked /> Busco solo trabajo remoto
+            <input name="remoteOnly" type="radio" value="si" required /> Sí, solo remoto
           </label>
+          <label className="flex items-center gap-2">
+            <input name="remoteOnly" type="radio" value="no" /> No, también híbrido o presencial
+          </label>
+          <p className="text-xs text-zinc-600">
+            Si elegís «Sí», las ofertas híbridas o presenciales se descartan solas. Si elegís «No»,
+            se muestran con ese riesgo marcado.
+          </p>
+        </fieldset>
+        <fieldset className="flex flex-col gap-2 text-sm">
+          <legend className="mb-1">Autorización de trabajo</legend>
           <label className="flex items-center gap-2">
             <input name="workAuthUs" type="checkbox" /> Puedo trabajar en EE.UU. sin sponsorship
           </label>

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { DISCIPLINES } from "./evaluation";
 import {
   criteriaFromOnboarding,
   DEFAULT_CRITERIA_RULES,
@@ -45,7 +46,7 @@ describe("parseOnboarding", () => {
     country: "UY",
     countryOther: "",
     city: " Montevideo ",
-    remoteOnly: "on",
+    remoteOnly: "si",
     workAuthUs: "",
     workAuthEu: "on",
     workAuthOther: "CA, , MX",
@@ -73,6 +74,19 @@ describe("parseOnboarding", () => {
       },
     });
   });
+  it("remoteOnly: 'no' es false; ausente u otro valor reporta el campo", () => {
+    const no = parseOnboarding({ ...form, remoteOnly: "no" });
+    expect(no.ok && no.value.remoteOnly).toBe(false);
+    const { remoteOnly: _omit, ...sinCampo } = form;
+    void _omit;
+    expect(parseOnboarding(sinCampo)).toEqual({ ok: false, field: "remoteOnly" });
+    for (const v of ["", "on", "SI", "true"]) {
+      expect(parseOnboarding({ ...form, remoteOnly: v })).toEqual({
+        ok: false,
+        field: "remoteOnly",
+      });
+    }
+  });
   it("país 'otro' usa el código escrito", () => {
     const r = parseOnboarding({ ...form, country: "OTRO", countryOther: "pt" });
     expect(r.ok && r.value.locationCountry).toBe("PT");
@@ -99,11 +113,32 @@ describe("parseOnboarding", () => {
 });
 
 describe("criterios por defecto", () => {
-  it("espejo de criteria.example.json", () => {
+  it("son neutros: todas las disciplinas, sin penalización de inglés, sin piso", () => {
+    expect(DEFAULT_CRITERIA_RULES.allowed_disciplines).toEqual([...DISCIPLINES]);
+    expect(DEFAULT_CRITERIA_RULES.english_fluent_penalty).toBe(0);
+    expect(DEFAULT_CRITERIA_RULES.title_blocklist).toEqual(["director", "vp ", "chief", "head of"]);
+    expect(DEFAULT_CRITERIA_RULES.salary_floor_usd_monthly).toBeNull();
+  });
+  it("en lo demás coinciden con criteria.example.json (mismas claves y valores)", () => {
     const path = resolve(__dirname, "../../db/seeds/criteria.example.json");
     const { _nota, ...example } = JSON.parse(readFileSync(path, "utf8"));
     void _nota;
-    expect(DEFAULT_CRITERIA_RULES).toEqual(example);
+    const changed = [
+      "allowed_disciplines",
+      "english_fluent_penalty",
+      "title_blocklist",
+      "salary_floor_usd_monthly",
+    ];
+    expect(Object.keys(DEFAULT_CRITERIA_RULES).sort()).toEqual(Object.keys(example).sort());
+    const rest = (o: Record<string, unknown>) =>
+      Object.fromEntries(Object.entries(o).filter(([k]) => !changed.includes(k)));
+    expect(rest(DEFAULT_CRITERIA_RULES)).toEqual(rest(example));
+  });
+  it("sin piso en el formulario queda null", () => {
+    expect(
+      criteriaFromOnboarding({ salaryFloorUsd: null, maxWeeklyHours: null })
+        .salary_floor_usd_monthly,
+    ).toBeNull();
   });
   it("aplica piso y horas del formulario solo si vienen", () => {
     expect(criteriaFromOnboarding({ salaryFloorUsd: 2000, maxWeeklyHours: 30 })).toMatchObject({

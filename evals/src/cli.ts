@@ -19,7 +19,8 @@ import {
  *   [--max-usd 1] [--yes] [--max-minutes 30] [--thinking minimal] [--db cloud|local|none]
  * pnpm evals compare reports/a.json reports/b.json
  * pnpm evals recompute reports/a.json [...] [--anclas-del-reporte]   (métricas y decide() sin llamar a la API;
- *   por defecto relee las anclas del golden actual, con el flag usa las de la corrida)
+ *   por defecto relee las anclas del golden actual, con el flag usa las de la corrida;
+ *   con --sin-escribir recalcula en memoria, no toca el archivo e imprime la huella de las decisiones)
  * --prompt vigente = la versión de DEFAULT_PROMPT_VERSIONS (la que usa producción)
  *
  * Guardarraíles de costo: antes de la primera llamada se muestra el costo estimado
@@ -138,15 +139,18 @@ async function main(): Promise<void> {
   }
 
   if (command === "recompute") {
-    // Si el flag va antes de la ruta, parseArgs se la traga como valor: se devuelve a la lista
-    const flagValue = flags["anclas-del-reporte"];
-    const anclasDelReporte = flagValue !== undefined;
-    const paths = flagValue !== undefined && flagValue !== "true" ? [flagValue, ...rest] : rest;
+    // Si un flag va antes de la ruta, parseArgs se la traga como valor: se devuelve a la lista
+    const swallowed = ["anclas-del-reporte", "sin-escribir"]
+      .map((k) => flags[k])
+      .filter((v): v is string => v !== undefined && v !== "true");
+    const anclasDelReporte = flags["anclas-del-reporte"] !== undefined;
+    const sinEscribir = flags["sin-escribir"] !== undefined;
+    const paths = [...swallowed, ...rest];
     if (!paths.length)
       throw new Error(
-        "uso: pnpm evals recompute <reporte.json> [más reportes] [--anclas-del-reporte]",
+        "uso: pnpm evals recompute <reporte.json> [más reportes] [--anclas-del-reporte] [--sin-escribir]",
       );
-    for (const line of recomputeFiles(paths, { anclasDelReporte })) console.log(line);
+    for (const line of recomputeFiles(paths, { anclasDelReporte, sinEscribir })) console.log(line);
     return;
   }
 

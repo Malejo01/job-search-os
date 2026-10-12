@@ -275,6 +275,39 @@ describe("decide(): inglés exigido por encima del candidato (JS-052)", () => {
   });
 });
 
+describe("decide(): penalización de inglés según el CEFR de la persona", () => {
+  const score = (req: Evaluation["ingles_requerido"], cefr?: string | null) =>
+    decide({ ...base, ingles_requerido: req }, rules, { candidateEnglishCefr: cefr }).scoreFinal;
+
+  it("C1 contra avanzado: sin penalización", () => expect(score("avanzado", "C1")).toBe(8));
+  it("B2 contra avanzado: con penalización", () => expect(score("avanzado", "B2")).toBe(7));
+  it("C1 contra nativo: con penalización", () => expect(score("nativo", "C1")).toBe(7));
+  it("C2 contra nativo: sin penalización", () => expect(score("nativo", "C2")).toBe(8));
+  it("sin CEFR (o ilegible): con penalización, como antes", () => {
+    expect(score("avanzado")).toBe(7);
+    expect(score("avanzado", null)).toBe(7);
+    expect(score("nativo", "?")).toBe(7);
+  });
+  it("con penalización 0 (criterios neutros) nunca resta", () => {
+    const neutral = { ...rules, english_fluent_penalty: 0 };
+    expect(decide({ ...base, ingles_requerido: "nativo" }, neutral).scoreFinal).toBe(8);
+  });
+});
+
+describe("decide(): flag modalidad_no_remota del prefiltro", () => {
+  it("agrega el riesgo de modalidad y baja personalizado a aplicar", () => {
+    const d = decide({ ...base, score: 9.5 }, rules, { prefilterFlags: ["modalidad_no_remota"] });
+    expect(d.riesgos).toEqual(["modalidad híbrida o presencial"]);
+    expect(d.accion).toBe("aplicar");
+  });
+  it("no duplica si el modelo ya lo reportó", () => {
+    const d = decide({ ...base, riesgos: ["Modalidad híbrida en Buenos Aires"] }, rules, {
+      prefilterFlags: ["modalidad_no_remota"],
+    });
+    expect(d.riesgos).toHaveLength(1);
+  });
+});
+
 describe("decide(): gap de años contra el perfil (JS-052)", () => {
   // Las reglas absolutas (≥ 8 bloquea, 5–7 resta 2) no se tocan: son el criterio del golden.
   // El gap solo agrega un riesgo, nunca baja el score.

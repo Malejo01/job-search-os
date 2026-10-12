@@ -131,6 +131,9 @@ export function goldenPrefilter(j: GoldenJob): PrefilterResult {
       countriesAllowed: null,
     },
     criteriaRules,
+    // Igual que producción (ingesta / evaluate-job): lee profiles.remote_only. Sin userCountry a
+    // propósito: "sin parámetro = AR" es la semántica documentada del prefiltro para no mover evals.
+    { remoteOnly: profileSeed.profile.remote_only },
   );
 }
 

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { criteriaHash, goldenJobs } from "./golden";
-import { recomputeReport, criteriaHashNote, formatRecompute } from "./recompute";
+import {
+  recomputeReport,
+  criteriaHashNote,
+  decisionFingerprint,
+  formatRecompute,
+} from "./recompute";
 import { computeMetrics } from "./metrics";
 import type { JobReport, Report } from "./run";
 
@@ -118,5 +123,25 @@ describe("formatRecompute", () => {
     );
     const lines = formatRecompute(report, { ...report.metrics }, []);
     expect(lines[0]).toMatch(/^!! CORTADO por tope de gasto/);
+  });
+});
+
+describe("huella de decisiones (--sin-escribir)", () => {
+  const base = () => recomputeReport(reportWith({ model_score: 6 })).report;
+
+  it("es estable: el mismo recálculo da la misma huella", () => {
+    expect(decisionFingerprint(base())).toBe(decisionFingerprint(base()));
+  });
+
+  it("control positivo: cambia si cambia la acción, el score final o el prefiltro de una oferta", () => {
+    const h = decisionFingerprint(base());
+    const accion = base();
+    accion.jobs[0]!.model_action =
+      accion.jobs[0]!.model_action === "descartar" ? "guardar" : "descartar";
+    const score = base();
+    score.jobs[0]!.model_score_final = (score.jobs[0]!.model_score_final ?? 0) + 1;
+    const pre = base();
+    pre.jobs[0]!.prefilter_discard = !pre.jobs[0]!.prefilter_discard;
+    for (const r of [accion, score, pre]) expect(decisionFingerprint(r)).not.toBe(h);
   });
 });

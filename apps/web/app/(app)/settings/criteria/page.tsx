@@ -9,7 +9,9 @@ import Link from "next/link";
 import { getActiveCriteria } from "@/lib/criteria";
 import { requireUserId } from "@/lib/session";
 import { resetCriteriaAction, saveCriteriaAction } from "./actions";
+import { SaveButton } from "./save-button";
 
+export const metadata = { title: "Criterios" };
 export const dynamic = "force-dynamic";
 
 const input = "rounded-md border border-zinc-300 px-3 py-2 text-base";
@@ -26,7 +28,8 @@ const FIELD_ERRORS: Record<string, string> = {
   title_allowlist: `Títulos permitidos: hasta ${MAX_LIST_ENTRIES} líneas de ${MAX_ENTRY_CHARS} caracteres, sin símbolos raros.`,
   other_discipline_keywords: `Palabras de otras disciplinas: hasta ${MAX_LIST_ENTRIES} líneas de ${MAX_ENTRY_CHARS} caracteres, sin símbolos raros.`,
   allowed_disciplines: "Marcá al menos una disciplina.",
-  salary_floor_usd_monthly: "El piso salarial tiene que ser un entero entre 0 y 100000.",
+  salary_floor_usd_monthly:
+    "El piso salarial tiene que ser un entero entre 0 y 100000, o quedar vacío.",
   max_weekly_hours: "Las horas máximas tienen que ser un entero entre 1 y 80.",
   max_years_hard: "Los años máximos tienen que ser un entero entre 1 y 40.",
   english_risk_from: "Elegí un nivel de inglés de la lista.",
@@ -90,6 +93,11 @@ export default async function CriteriaPage({
   }
 
   const d = criteriaFormDefaults(active.rules);
+  // El error es el name del input que falló; "thresholds" marca los 3 umbrales y "conflict" nada.
+  const invalid = (name: string) => {
+    const hit = error === name || (error === "thresholds" && name.startsWith("threshold_"));
+    return hit ? ({ "aria-invalid": true, "aria-describedby": "criteria-error" } as const) : {};
+  };
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-5">
@@ -112,7 +120,11 @@ export default async function CriteriaPage({
         </p>
       ) : null}
       {error ? (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
+        <p
+          id="criteria-error"
+          role="alert"
+          className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800"
+        >
           {FIELD_ERRORS[error] ?? "Revisá los datos del formulario."}
         </p>
       ) : null}
@@ -124,6 +136,7 @@ export default async function CriteriaPage({
           Títulos bloqueados (uno por línea)
           <textarea
             name="title_blocklist"
+            {...invalid("title_blocklist")}
             rows={6}
             defaultValue={d.title_blocklist}
             className={input}
@@ -138,6 +151,7 @@ export default async function CriteriaPage({
           Títulos permitidos (uno por línea)
           <textarea
             name="title_allowlist"
+            {...invalid("title_allowlist")}
             rows={3}
             defaultValue={d.title_allowlist}
             className={input}
@@ -152,6 +166,7 @@ export default async function CriteriaPage({
           Palabras de otras disciplinas (una por línea)
           <textarea
             name="other_discipline_keywords"
+            {...invalid("other_discipline_keywords")}
             rows={6}
             defaultValue={d.other_discipline_keywords}
             className={input}
@@ -162,7 +177,7 @@ export default async function CriteriaPage({
           </span>
         </label>
 
-        <fieldset className="flex flex-col gap-2 text-sm">
+        <fieldset className="flex flex-col gap-2 text-sm" {...invalid("allowed_disciplines")}>
           <legend className="mb-1">Disciplinas que buscás</legend>
           <div className="grid gap-1 sm:grid-cols-2">
             {DISCIPLINES.map((disc) => (
@@ -185,7 +200,7 @@ export default async function CriteriaPage({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="flex flex-col gap-1 text-sm">
-            Piso salarial mensual (USD)
+            Piso salarial mensual (USD, opcional)
             <input
               name="salary_floor_usd_monthly"
               type="number"
@@ -193,16 +208,20 @@ export default async function CriteriaPage({
               min={0}
               max={100000}
               step={1}
-              required
+              {...invalid("salary_floor_usd_monthly")}
               defaultValue={d.salary_floor_usd_monthly}
               className={input}
             />
-            <span className={help}>Un salario publicado por debajo de este piso se marca.</span>
+            <span className={help}>
+              Si lo dejás vacío, no se marca nada por salario. Un salario publicado por debajo de
+              este piso se marca.
+            </span>
           </label>
           <label className="flex flex-col gap-1 text-sm">
             Horas máximas por semana
             <input
               name="max_weekly_hours"
+              {...invalid("max_weekly_hours")}
               type="number"
               inputMode="numeric"
               min={1}
@@ -218,6 +237,7 @@ export default async function CriteriaPage({
             Años máximos que tolerás
             <input
               name="max_years_hard"
+              {...invalid("max_years_hard")}
               type="number"
               inputMode="numeric"
               min={1}
@@ -233,7 +253,12 @@ export default async function CriteriaPage({
           </label>
           <label className="flex flex-col gap-1 text-sm">
             Riesgo de inglés desde
-            <select name="english_risk_from" defaultValue={d.english_risk_from} className={input}>
+            <select
+              name="english_risk_from"
+              {...invalid("english_risk_from")}
+              defaultValue={d.english_risk_from}
+              className={input}
+            >
               {ENGLISH_RISK_LEVELS.map((l) => (
                 <option key={l} value={l}>
                   {ENGLISH_LABEL[l]}
@@ -253,6 +278,7 @@ export default async function CriteriaPage({
               Personalizar desde
               <input
                 name="threshold_personalizado"
+                {...invalid("threshold_personalizado")}
                 type="number"
                 inputMode="decimal"
                 min={0}
@@ -267,6 +293,7 @@ export default async function CriteriaPage({
               Aplicar desde
               <input
                 name="threshold_aplicar"
+                {...invalid("threshold_aplicar")}
                 type="number"
                 inputMode="decimal"
                 min={0}
@@ -281,6 +308,7 @@ export default async function CriteriaPage({
               Guardar desde
               <input
                 name="threshold_guardar"
+                {...invalid("threshold_guardar")}
                 type="number"
                 inputMode="decimal"
                 min={0}
@@ -300,12 +328,7 @@ export default async function CriteriaPage({
         </fieldset>
 
         <div className="flex justify-end">
-          <button
-            type="submit"
-            className="rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white"
-          >
-            Guardar como versión nueva
-          </button>
+          <SaveButton label="Guardar como versión nueva" />
         </div>
       </form>
 
@@ -318,12 +341,11 @@ export default async function CriteriaPage({
               del perfil se conservan. Las ofertas ya evaluadas no se recalculan.
             </p>
             <div className="flex gap-2">
-              <button
-                type="submit"
+              <SaveButton
+                label="Sí, volver a los valores por defecto"
+                pendingLabel="Restableciendo…"
                 className="rounded-md bg-red-700 px-3 py-2 font-medium text-white"
-              >
-                Sí, volver a los valores por defecto
-              </button>
+              />
               <Link
                 href="/settings/criteria"
                 className="rounded-md border border-zinc-300 px-3 py-2"

@@ -36,6 +36,12 @@ export type PrefilterOptions = {
    */
   userCountry?: string | null;
   manyCandidatesFrom?: number;
+  /**
+   * La persona busca solo trabajo remoto. Ausente = `true` (como siempre: evals y tests no
+   * cambian). Con `false`, híbrida y presencial no descartan: pasan con el flag
+   * `modalidad_no_remota`.
+   */
+  remoteOnly?: boolean;
 };
 
 const NON_REMOTE_IN_TEXT = /\b(hibrid[oa]|hybrid|presencial|on[\s-]?site|in[\s-]?office)\b/;
@@ -179,20 +185,23 @@ export function prefilter(
   const location = foldText(input.locationRaw ?? "");
   const flags: string[] = [];
 
-  // 1. Modalidad: bloqueador duro
+  // 1. Modalidad: bloqueador duro si la persona busca solo remoto (ausente = sí). Si no, no
+  //    descarta: marca el flag una sola vez y sigue con el resto de las reglas.
+  const remoteOnly = options.remoteOnly ?? true;
+  let nonRemoteDetail: string | null = null;
   if (input.modality === "presencial" || input.modality === "hibrido") {
-    return { pass: false, reason: "modalidad_no_remota", detail: `modalidad ${input.modality}` };
+    nonRemoteDetail = `modalidad ${input.modality}`;
+    // El título contradice a la fuente: gana el título, también con modality "remoto".
+  } else if (titleNonRemoteSignal(title)) {
+    nonRemoteDetail = `título: ${input.title}`;
+  } else if (input.modality !== "remoto" && NON_REMOTE_IN_TEXT.test(location)) {
+    nonRemoteDetail = `ubicación: ${input.locationRaw}`;
   }
-  // El título contradice a la fuente: gana el título, también con modality "remoto".
-  if (titleNonRemoteSignal(title)) {
-    return { pass: false, reason: "modalidad_no_remota", detail: `título: ${input.title}` };
-  }
-  if (input.modality !== "remoto" && NON_REMOTE_IN_TEXT.test(location)) {
-    return {
-      pass: false,
-      reason: "modalidad_no_remota",
-      detail: `ubicación: ${input.locationRaw}`,
-    };
+  if (nonRemoteDetail !== null) {
+    if (remoteOnly) {
+      return { pass: false, reason: "modalidad_no_remota", detail: nonRemoteDetail };
+    }
+    flags.push("modalidad_no_remota");
   }
 
   // 2. Disciplina distinta por keywords en el título: bloqueador duro.

@@ -6,3 +6,4 @@ export {
   type PrefilterReason,
   type PrefilterResult,
 } from "./prefilter";
+export { prefilterReasonText } from "./reason-text";

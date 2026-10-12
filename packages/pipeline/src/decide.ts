@@ -75,6 +75,10 @@ const FLAG_TO_RISK: Record<string, { text: string; already: RegExp }> = {
     already: /pa[ií]s|latam|ubicaci/i,
   },
   many_candidates: { text: "muchos candidatos", already: /candidatos/i },
+  modalidad_no_remota: {
+    text: "modalidad híbrida o presencial",
+    already: /h[ií]brid|presencial|modalidad/i,
+  },
 };
 
 const clamp = (n: number) => Math.max(0, Math.min(10, n));
@@ -119,8 +123,9 @@ export function englishRankFromCefr(cefr: string | null | undefined): number | n
  * - años requeridos ≥ max_years_hard → bloqueador aunque el modelo no lo haya puesto;
  * - años en el rango de penalización (5–7) → −years_penalty;
  * - gap must de cloud/infra → −cloud_must_penalty;
- * - inglés requerido avanzado/nativo → −english_fluent_penalty;
- * - flags del prefiltro (location_risk, many_candidates) y location_ok ≠ ok → riesgos, sin duplicar.
+ * - inglés requerido avanzado/nativo → −english_fluent_penalty, solo si el CEFR del candidato está
+ *   por debajo de lo requerido o no se conoce;
+ * - flags del prefiltro (location_risk, many_candidates, modalidad_no_remota) y location_ok ≠ ok → riesgos, sin duplicar.
  */
 export function decide(
   evaluation: Evaluation,
@@ -243,9 +248,14 @@ export function decide(
     score -= rules.cloud_must_penalty;
   }
 
+  // Se penaliza solo si el CEFR de la persona está por debajo de lo requerido; sin CEFR
+  // (o ilegible) se penaliza como siempre, lo conservador.
+  const requeridoRank = ENGLISH_RANK[evaluation.ingles_requerido];
+  const candidatoRank = englishRankFromCefr(context.candidateEnglishCefr);
   if (
     (evaluation.ingles_requerido === "avanzado" || evaluation.ingles_requerido === "nativo") &&
-    rules.english_fluent_penalty
+    rules.english_fluent_penalty &&
+    (candidatoRank === null || (requeridoRank !== undefined && candidatoRank < requeridoRank))
   ) {
     adjustments.push({
       rule: "english_fluent_penalty",
