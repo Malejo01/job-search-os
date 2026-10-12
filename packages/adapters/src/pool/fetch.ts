@@ -60,7 +60,38 @@ const DEFAULT_TIMEOUT_MS: Record<PoolSourceName, number> = {
   himalayas: 10_000,
 };
 const HIMALAYAS_MAX_PAGES = 3;
-const DEFAULT_SINCE_HOURS = 48;
+
+/**
+ * Ventana de descarga por fuente (ronda 38). Sin corrida `ok` previa: backfill de
+ * `POOL_BACKFILL_DAYS` días (default 14, entero 1 a 30; nunca más que la retención del pool).
+ * Con una corrida `ok`: desde su inicio menos 6 h de solapamiento. Una `partial` no cuenta, así
+ * que la próxima vuelve a hacer backfill (el upsert es idempotente). Get on Board pagina de a 100
+ * con hasta 10 páginas por categoría y corta al llegar a avisos fuera de la ventana: alcanza para
+ * 14 días; el límite real es el tope de 2.000 avisos y el presupuesto de tiempo.
+ */
+export const POOL_BACKFILL_DEFAULT_DAYS = 14;
+export const POOL_BACKFILL_MAX_DAYS = 30;
+export const POOL_OVERLAP_MS = 6 * HOUR_MS;
+
+export function parsePoolBackfillDays(value: string | undefined): {
+  days: number;
+  invalid: boolean;
+} {
+  const raw = value?.trim();
+  if (!raw) return { days: POOL_BACKFILL_DEFAULT_DAYS, invalid: false };
+  const n = /^\d{1,3}$/.test(raw) ? Number(raw) : NaN;
+  if (Number.isInteger(n) && n >= 1 && n <= POOL_BACKFILL_MAX_DAYS)
+    return { days: n, invalid: false };
+  return { days: POOL_BACKFILL_DEFAULT_DAYS, invalid: true };
+}
+
+/** Desde cuándo se descarga una fuente, según su última corrida `ok`. */
+export function poolSince(now: Date, lastOkStartedAt: Date | null, backfillDays: number): Date {
+  const floor = now.getTime() - POOL_BACKFILL_MAX_DAYS * 24 * HOUR_MS;
+  return lastOkStartedAt
+    ? new Date(Math.max(lastOkStartedAt.getTime() - POOL_OVERLAP_MS, floor))
+    : new Date(now.getTime() - backfillDays * 24 * HOUR_MS);
+}
 
 export type PoolErrorCode = SourceErrorCode;
 
@@ -162,7 +193,10 @@ export type RunPoolFetchOptions = {
   logger: Logger;
   enabled: readonly PoolSourceName[];
   userAgent?: string;
+  /** Fuerza la ventana de todas las fuentes (CLI y uso manual); si no, rige backfill / última ok. */
   sinceHours?: number;
+  /** Días de backfill; si no viene se lee `POOL_BACKFILL_DAYS` del entorno. */
+  backfillDays?: number;
   fetchImpl?: typeof fetch;
   now?: () => Date;
   /** Tiempo total a partir del cual no arranca otra fuente (default 45 000 ms). */
@@ -177,8 +211,10 @@ export type RunPoolFetchOptions = {
 };
 
 export type PoolFetchHistory = {
-  /** Inicio de la última corrida `ok` o `partial`. */
+  /** Inicio de la última corrida `ok` o `partial` (intervalo mínimo). */
   lastGoodStartedAt: Date | null;
+  /** Inicio de la última corrida `ok` (ventana de descarga); ausente = ninguna. */
+  lastOkStartedAt?: Date | null;
   /** `error_code` de la última corrida de cualquier estado. */
   lastErrorCode: string | null;
 };
@@ -235,7 +271,22 @@ function defaultDeps(options: RunPoolFetchOptions, now: Date): RunPoolFetchDeps 
         .where(eq(s.publicJobFetches.sourceKind, POOL_SOURCE_KIND[source]))
         .orderBy(desc(s.publicJobFetches.startedAt))
         .limit(1);
-      return { lastGoodStartedAt: good?.startedAt ?? null, lastErrorCode: last?.errorCode ?? null };
+      const [ok] = await db
+        .select({ startedAt: s.publicJobFetches.startedAt })
+        .from(s.publicJobFetches)
+        .where(
+          and(
+            eq(s.publicJobFetches.sourceKind, POOL_SOURCE_KIND[source]),
+            eq(s.publicJobFetches.status, "ok"),
+          ),
+        )
+        .orderBy(desc(s.publicJobFetches.startedAt))
+        .limit(1);
+      return {
+        lastGoodStartedAt: good?.startedAt ?? null,
+        lastOkStartedAt: ok?.startedAt ?? null,
+        lastErrorCode: last?.errorCode ?? null,
+      };
     },
     recordStart: async (source, startedAt) => {
       const [row] = await db
@@ -275,7 +326,17 @@ export async function runPoolFetch(
   const clock = options.clock ?? Date.now;
   const started = clock();
   const now = options.now?.() ?? new Date();
-  const since = new Date(now.getTime() - (options.sinceHours ?? DEFAULT_SINCE_HOURS) * HOUR_MS);
+  let backfillDays = options.backfillDays;
+  if (backfillDays === undefined) {
+    const parsed = parsePoolBackfillDays(process.env.POOL_BACKFILL_DAYS);
+    backfillDays = parsed.days;
+    if (parsed.invalid) {
+      options.logger.warn(
+        { variable: "POOL_BACKFILL_DAYS", default_days: parsed.days },
+        "pool: variable inválida, se usa el default",
+      );
+    }
+  }
   const budgetMs = options.budgetMs ?? 45_000;
   const downloaders = options.downloaders ?? POOL_DOWNLOADERS;
   const userAgent = options.userAgent ?? "JobSearchOS/1.0";
@@ -304,8 +365,13 @@ export async function runPoolFetch(
     );
     let stage: "intervalo" | "descargar" | "ingerir" = "intervalo";
     try {
+      // El historial se lee siempre: además del intervalo, define la ventana de descarga
+      const history = await d.lastFetches(name);
+      const since =
+        options.sinceHours !== undefined
+          ? new Date(now.getTime() - options.sinceHours * HOUR_MS)
+          : poolSince(now, history.lastOkStartedAt ?? null, backfillDays);
       if (!options.force) {
-        const history = await d.lastFetches(name);
         const interval = poolIntervalMs(name, history.lastErrorCode);
         if (
           history.lastGoodStartedAt &&

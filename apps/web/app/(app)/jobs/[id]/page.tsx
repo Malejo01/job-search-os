@@ -33,7 +33,9 @@ import { ApplyButton } from "./apply-button";
 import { getSavedFormAnswers } from "./form-data";
 import { FormReview } from "./form-review";
 import { MergeButton } from "./merge-button";
+import { EvaluateNow } from "./evaluate-now";
 import { ReviewNav } from "./review-nav";
+import { SourceAttribution } from "./source-attribution";
 import { StatusCorrection } from "./status-correction";
 
 export const dynamic = "force-dynamic";
@@ -61,6 +63,7 @@ const ERRORS: Record<string, string> = {
   correccion: "Esa corrección no vale desde el estado actual (la página estaba desactualizada).",
   fusion:
     "No se pudo fusionar: las ofertas cambiaron (una ya tiene evaluación o postulación, o se está evaluando). Recargá y revisá.",
+  evaluar: "No se puede evaluar esta oferta: no tiene la descripción del puesto.",
 };
 
 /** Detalle de una oferta (JS-016): evaluación completa, fuentes, acciones de estado y score humano. */
@@ -94,6 +97,15 @@ export default async function JobDetailPage({
   const flagTexts = job.flags.flatMap((f) => flagLabel(f) ?? []);
   const jobUrl = safeHttpUrl(job.url);
   const ev = job.evaluation;
+  // Solo con JD, sin evaluación y sin cola (el componente decide si se muestra)
+  const evaluateNow = (
+    <EvaluateNow
+      jobId={job.id}
+      hasJd={Boolean(job.jdText?.trim()) && job.status !== "descartada_prefiltro"}
+      evaluated={Boolean(ev)}
+      evaluating={job.evaluating}
+    />
+  );
   const tone = scoreTone(ev?.score ?? null);
   const salary =
     job.salaryMinUsd || job.salaryMaxUsd
@@ -212,6 +224,8 @@ export default async function JobDetailPage({
           </p>
         ) : null}
       </section>
+      {/* Atribución exigida por las fuentes públicas: mención + enlace al aviso original */}
+      <SourceAttribution sources={job.sources} />
       {job.corrections.length ? (
         <StatusCorrection jobId={job.id} current={job.status} targets={job.corrections} />
       ) : null}
@@ -394,13 +408,15 @@ export default async function JobDetailPage({
       ) : job.preScore ? (
         <section className="flex flex-col gap-2 rounded-md border-2 border-dashed border-zinc-400 p-3 text-sm">
           <div className="flex items-baseline justify-between gap-2">
-            <h2 className="font-semibold">Pre-evaluación determinista · sin LLM</h2>
+            <h2 className="font-semibold">Sin evaluar</h2>
             <span className="text-lg font-semibold">pre-score {job.preScore.score}</span>
           </div>
           <p className="text-xs text-zinc-600">
-            El modelo todavía no corrió. Esto sale de reglas: skills de la JD contra tu nivel,
-            riesgos del prefiltro y salario contra el piso. No es el score del evaluador.
+            El modelo todavía no corrió. El pre-score sale de reglas, sin inteligencia artificial:
+            skills de la JD contra tu nivel, riesgos del prefiltro y salario contra el piso. No es
+            el score del evaluador.
           </p>
+          <div>{evaluateNow}</div>
           {job.preScore.riesgos.length ? (
             <div className="rounded-md border border-amber-200 bg-amber-50 p-2">
               <p className="text-xs font-semibold text-amber-900">Riesgos detectados</p>
@@ -448,19 +464,22 @@ export default async function JobDetailPage({
           ) : null}
         </section>
       ) : (
-        <p className="rounded-md border border-dashed border-zinc-300 p-3 text-sm text-zinc-600">
-          Sin evaluación todavía
-          {job.prefilterReason ? ` · prefiltro: ${job.prefilterReason}` : ""}
-          {job.status === "pendiente_jd" ? (
-            <>
-              {" "}
-              ·{" "}
-              <Link href="/jobs/pending-jd" className="underline">
-                pegar la JD
-              </Link>
-            </>
-          ) : null}
-        </p>
+        <div className="flex flex-col gap-2 rounded-md border border-dashed border-zinc-300 p-3 text-sm text-zinc-600">
+          <p>
+            Sin evaluación todavía
+            {job.prefilterReason ? ` · prefiltro: ${job.prefilterReason}` : ""}
+            {job.status === "pendiente_jd" ? (
+              <>
+                {" "}
+                ·{" "}
+                <Link href="/jobs/pending-jd" className="underline">
+                  pegar la JD
+                </Link>
+              </>
+            ) : null}
+          </p>
+          <div>{evaluateNow}</div>
+        </div>
       )}
 
       {/* Formulario de postulación (JS-053, fase 2): se pega, se revisa y se copia; la app no envía nada */}

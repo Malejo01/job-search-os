@@ -214,6 +214,9 @@ function normalizeCategory(value: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+/** Más roles que esto en un mismo aviso se cuenta como "sin señal". */
+export const MAX_ROLE_HINTS = 4;
+
 export function inferRoleHints(input: {
   sourceKind: string;
   title: string;
@@ -252,5 +255,7 @@ export function inferRoleHints(input: {
     for (const role of DEV) found.add(role);
   }
 
-  return ROLE_KEYS.filter((role) => found.has(role));
+  const roles = ROLE_KEYS.filter((role) => found.has(role));
+  // Un aviso que "sirve para todo" no es una señal: vacío = no se sabe (ronda 38)
+  return roles.length > MAX_ROLE_HINTS ? [] : roles;
 }

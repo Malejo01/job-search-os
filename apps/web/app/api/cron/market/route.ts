@@ -1,6 +1,7 @@
 import { createDb, requireDatabaseUrl, schema as s } from "@job-search-os/db";
 import {
   buildLearningPlan,
+  buildRoleMarketSnapshots,
   buildMarketSnapshot,
   checkBearerSecret,
   createLogger,
@@ -30,6 +31,13 @@ export async function GET(request: Request): Promise<NextResponse> {
   const { db, close } = createDb(requireDatabaseUrl({ purpose: "service" }), { max: 2 });
   const logger = createLogger({ cron: "market" });
   try {
+    // Mercado por rol (pool): primero, y en su propio try; si falla, el de cada usuario sigue
+    let roles: number | null = null;
+    try {
+      roles = (await buildRoleMarketSnapshots(db)).roles;
+    } catch (error) {
+      logger.error({ err: safeDbError(error) }, "cron mercado por rol falló");
+    }
     // Desde profiles, como la ingesta (run-sources.ts): no depende de leer `users` (JS-103)
     const users = await db.select({ id: s.profiles.userId }).from(s.profiles);
     // La respuesta va al log público de Actions (cron.yml): solo agregados, sin ids ni skills.
@@ -53,7 +61,12 @@ export async function GET(request: Request): Promise<NextResponse> {
       totals.planInserted += plan.inserted;
       totals.planRemoved += plan.removed;
     }
-    return NextResponse.json({ ok: true, users: users.length, ...totals });
+    return NextResponse.json({
+      ok: true,
+      users: users.length,
+      ...(roles !== null ? { roles } : {}),
+      ...totals,
+    });
   } catch (error) {
     logger.error({ err: safeDbError(error) }, "cron market falló");
     return NextResponse.json({ ok: false, error: "snapshot falló" }, { status: 500 });

@@ -186,6 +186,7 @@ export async function listJobs(
         canonicalUrl: s.jobs.canonicalUrl,
         sourceUrl: sources.url,
         salaryMaxUsd: s.jobs.salaryMaxUsd,
+        salaryPeriod: s.jobs.salaryPeriod,
         firstSeenAt: s.jobs.firstSeenAt,
         postedAt: s.jobs.postedAt,
         flags: s.jobs.flags,
@@ -223,7 +224,12 @@ export async function listJobs(
     const pre = await preScoresFor(
       tx,
       userId,
-      pending.map((r) => ({ id: r.id, flags: r.flags ?? [], salaryMaxUsd: r.salaryMaxUsd })),
+      pending.map((r) => ({
+        id: r.id,
+        flags: r.flags ?? [],
+        salaryMaxUsd: r.salaryMaxUsd,
+        salaryPeriod: r.salaryPeriod,
+      })),
     );
     return rows.map((r) => ({
       id: r.id,
