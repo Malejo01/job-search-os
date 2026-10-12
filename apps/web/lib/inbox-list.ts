@@ -10,6 +10,7 @@ import {
 import type { PgColumn } from "drizzle-orm/pg-core";
 import { and, desc, eq, gte, inArray, isNull, not, sql } from "drizzle-orm";
 import { withUser } from "./db";
+import { isUuid } from "./ids";
 
 /**
  * Lista y acciones de /inbox (JS-038). "Visto" y "no me sirve" solo sacan el email de la vista
@@ -138,11 +139,10 @@ export async function inboxVolume(userId: string, now = new Date()): Promise<Inb
 
 /** Tope por acción en lote: la vista muestra INBOX_LIMIT filas, esto deja margen. */
 export const BULK_LIMIT = 200;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Ids válidos y sin repetir; lo que no es un uuid se ignora (RLS ya limita al usuario). */
 export function cleanIds(ids: readonly string[]): string[] {
-  return [...new Set(ids.filter((id) => UUID.test(id)))].slice(0, BULK_LIMIT);
+  return [...new Set(ids.filter((id) => isUuid(id)))].slice(0, BULK_LIMIT);
 }
 
 const these = (ids: string[]) => inArray(s.inboundEmails.id, ids);
@@ -310,8 +310,7 @@ export async function undoBulk(
       parseMark(p.after.seenAt),
       parseMark(p.after.dismissedAt),
     ];
-    if (typeof p.id !== "string" || !UUID.test(p.id) || marks.some((m) => m === undefined))
-      continue;
+    if (typeof p.id !== "string" || !isUuid(p.id) || marks.some((m) => m === undefined)) continue;
     const [prevSeen, prevDismissed, afterSeen, afterDismissed] = marks as (Date | null)[];
     entries.push({
       id: p.id,

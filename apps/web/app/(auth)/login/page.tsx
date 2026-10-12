@@ -2,10 +2,16 @@ import { PRODUCT_NAME } from "@job-search-os/pipeline";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { signIn } from "@/auth";
+import { SubmitButton } from "@/app/components/submit-button";
 import { hasAnyUser } from "@/lib/setup";
 
 // Igual que /setup: el gate hacia /setup depende de una lectura de la base en cada visita.
 export const dynamic = "force-dynamic";
+
+export const metadata = { title: "Entrar" };
+
+const SKIP_CLASS =
+  "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-zinc-900 focus:ring-2 focus:ring-zinc-900";
 
 /** Login con email + contraseña (Server Action; sin JS de cliente). Un solo usuario, sin registro. */
 async function login(formData: FormData): Promise<void> {
@@ -30,7 +36,14 @@ export default async function LoginPage({
   if (!(await hasAnyUser())) redirect("/setup");
   const { error, reset } = await searchParams;
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-6">
+    <main
+      id="contenido"
+      tabIndex={-1}
+      className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-6"
+    >
+      <a href="#contenido" className={SKIP_CLASS}>
+        Saltar al contenido
+      </a>
       <div>
         <h1 className="text-2xl font-semibold">{PRODUCT_NAME}</h1>
         <p className="text-sm text-zinc-600">Entrá con tu email y contraseña.</p>
@@ -64,12 +77,12 @@ export default async function LoginPage({
             Email o contraseña incorrectos.
           </p>
         ) : null}
-        <button
-          type="submit"
+        <SubmitButton
+          pendingLabel="Entrando…"
           className="mt-2 rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white"
         >
           Entrar
-        </button>
+        </SubmitButton>
       </form>
       <a href="/forgot-password" className="text-sm text-zinc-600 underline">
         Olvidé mi contraseña

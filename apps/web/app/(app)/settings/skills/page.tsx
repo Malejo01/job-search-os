@@ -5,6 +5,7 @@ import { ROLE_SKILLS, getSkillsPageData } from "@/lib/skill-levels";
 import { saveSkillsAction } from "./actions";
 import { SkillsForm, parseRoleParam } from "./skills-form";
 
+export const metadata = { title: "Mis skills" };
 export const dynamic = "force-dynamic";
 
 const FIELD_ERRORS: Record<string, string> = {
@@ -47,7 +48,11 @@ export default async function SkillsSettingsPage({
         </p>
       ) : null}
       {error ? (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
+        <p
+          id="skills-error"
+          role="alert"
+          className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800"
+        >
           {error.startsWith("level:")
             ? "Hay un nivel que no es válido. Recargá la página y volvé a intentar."
             : (FIELD_ERRORS[error] ?? "Revisá los datos del formulario.")}
@@ -62,6 +67,7 @@ export default async function SkillsSettingsPage({
         taxonomy={data.taxonomy}
         levels={data.levels}
         submitLabel="Guardar"
+        invalidSlug={error?.startsWith("level:") ? error.slice("level:".length) : undefined}
       />
 
       <Link href="/settings" className="text-sm text-zinc-900 underline">

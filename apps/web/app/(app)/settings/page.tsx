@@ -8,6 +8,7 @@ import { requireUserId } from "@/lib/session";
 import { DeleteAccountForm } from "./delete-account-form";
 import { InboundAddressSection } from "./inbound-address";
 
+export const metadata = { title: "Ajustes" };
 export const dynamic = "force-dynamic";
 
 /** Ajustes de la cuenta (JS-092): email, invitaciones y eliminación de la cuenta. Server Component. */

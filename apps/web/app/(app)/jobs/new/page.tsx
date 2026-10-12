@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { SubmitButton } from "@/app/components/submit-button";
 import { createManualJobAction } from "./actions";
 
+export const metadata = { title: "Nueva oferta" };
 export const dynamic = "force-dynamic";
 // Con JD completo la evaluación corre en `after` dentro de esta invocación (JS-027)
 export const maxDuration = 120;
@@ -18,34 +20,48 @@ export default async function NewJobPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
+  const invalidProps = (key: string) =>
+    error === key ? { "aria-invalid": true, "aria-describedby": "alta-error" } : {};
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between gap-2">
         <h1 className="text-xl font-semibold">Nueva oferta</h1>
-        <Link href="/jobs" className="text-xs text-zinc-500 hover:underline">
+        <Link href="/jobs" className="text-xs text-zinc-600 hover:underline">
           ← Ofertas
         </Link>
       </div>
       {error ? (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
+        <p
+          id="alta-error"
+          role="alert"
+          className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800"
+        >
           {error === "campos"
             ? "Título y empresa son obligatorios."
-            : "No se pudo cargar la oferta. Probá de nuevo."}
+            : error === "url"
+              ? "La URL tiene que empezar con http:// o https:// y ser una dirección pública."
+              : "No se pudo cargar la oferta. Probá de nuevo."}
         </p>
       ) : null}
       <form action={createManualJobAction} className="flex flex-col gap-3">
         <label className="flex flex-col gap-1 text-sm">
           Link del aviso (opcional; sirve para no cargarlo dos veces)
-          <input name="url" type="url" placeholder="https://…" className={input} />
+          <input
+            name="url"
+            type="url"
+            placeholder="https://…"
+            {...invalidProps("url")}
+            className={input}
+          />
         </label>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1 text-sm">
             Título *
-            <input name="title" required className={input} />
+            <input name="title" required {...invalidProps("campos")} className={input} />
           </label>
           <label className="flex flex-col gap-1 text-sm">
             Empresa *
-            <input name="company" required className={input} />
+            <input name="company" required {...invalidProps("campos")} className={input} />
           </label>
           <label className="flex flex-col gap-1 text-sm">
             Ubicación
@@ -78,15 +94,15 @@ export default async function NewJobPage({
           <textarea name="jdText" rows={8} className={input} />
         </label>
         <div className="flex justify-end">
-          <button
-            type="submit"
+          <SubmitButton
+            pendingLabel="Cargando…"
             className="rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white"
           >
             Cargar oferta
-          </button>
+          </SubmitButton>
         </div>
       </form>
-      <p className="text-xs text-zinc-500">
+      <p className="text-xs text-zinc-600">
         Si el link o la descripción ya existen en los últimos 14 días, se fusiona con la oferta
         existente en vez de duplicarla. Si solo coinciden empresa y título, se guarda aparte marcada
         como posible duplicado. El prefiltro determinista decide si va a evaluación.

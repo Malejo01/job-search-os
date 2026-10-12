@@ -7,11 +7,15 @@ import {
 } from "@/lib/invitations";
 import { INVALID_INVITATION_MESSAGE } from "@/lib/invitations-core";
 import { LegalPage } from "@/lib/legal";
+import { SubmitButton } from "@/app/components/submit-button";
 
 export const dynamic = "force-dynamic";
 
 // El código viaja en ?code=: que no salga en el Referer hacia ningún otro sitio.
-export const metadata = { referrer: "no-referrer" } as const;
+export const metadata = { title: "Crear cuenta", referrer: "no-referrer" } as const;
+
+const SKIP_CLASS =
+  "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-zinc-900 focus:ring-2 focus:ring-zinc-900";
 
 const ERROR_MESSAGE: Record<string, string> = {
   corta: "La contraseña tiene que tener entre 8 y 128 caracteres.",
@@ -57,7 +61,14 @@ export default async function RegisterPage({
   const { code, error, done } = await searchParams;
   if (done) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-6">
+      <main
+        id="contenido"
+        tabIndex={-1}
+        className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-6"
+      >
+        <a href="#contenido" className={SKIP_CLASS}>
+          Saltar al contenido
+        </a>
         <h1 className="text-2xl font-semibold">Cuenta creada</h1>
         <p className="text-sm text-emerald-700">Ya podés entrar con tu email y tu contraseña.</p>
         <a
@@ -69,8 +80,17 @@ export default async function RegisterPage({
       </main>
     );
   }
+  const invalidProps = (key: string) =>
+    error === key ? { "aria-invalid": true, "aria-describedby": "register-error" } : {};
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-6">
+    <main
+      id="contenido"
+      tabIndex={-1}
+      className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-6"
+    >
+      <a href="#contenido" className={SKIP_CLASS}>
+        Saltar al contenido
+      </a>
       <div>
         <h1 className="text-2xl font-semibold">{PRODUCT_NAME}</h1>
         <p className="text-sm text-zinc-600">Creá tu cuenta con tu invitación.</p>
@@ -90,6 +110,7 @@ export default async function RegisterPage({
             type="email"
             autoComplete="username"
             required
+            {...invalidProps("email")}
             className="rounded-md border border-zinc-300 px-3 py-2 text-base"
           />
         </label>
@@ -100,6 +121,7 @@ export default async function RegisterPage({
             type="text"
             autoComplete="name"
             maxLength={100}
+            {...invalidProps("nombre")}
             className="rounded-md border border-zinc-300 px-3 py-2 text-base"
           />
         </label>
@@ -112,6 +134,7 @@ export default async function RegisterPage({
             minLength={8}
             maxLength={128}
             required
+            {...invalidProps("corta")}
             className="rounded-md border border-zinc-300 px-3 py-2 text-base"
           />
         </label>
@@ -123,6 +146,7 @@ export default async function RegisterPage({
             autoComplete="new-password"
             minLength={8}
             required
+            {...invalidProps("no_coincide")}
             className="rounded-md border border-zinc-300 px-3 py-2 text-base"
           />
         </label>
@@ -139,7 +163,13 @@ export default async function RegisterPage({
           </div>
         </details>
         <label className="flex items-start gap-2 text-sm">
-          <input name="terms" type="checkbox" required className="mt-1 h-4 w-4" />
+          <input
+            name="terms"
+            type="checkbox"
+            required
+            {...invalidProps("terminos")}
+            className="mt-1 h-4 w-4"
+          />
           <span>
             Leí y acepto los{" "}
             <a href="/legal/terminos" target="_blank" rel="noopener" className="underline">
@@ -153,16 +183,16 @@ export default async function RegisterPage({
           </span>
         </label>
         {error ? (
-          <p role="alert" className="text-sm text-red-700">
+          <p id="register-error" role="alert" className="text-sm text-red-700">
             {ERROR_MESSAGE[error] ?? "No se pudo crear la cuenta."}
           </p>
         ) : null}
-        <button
-          type="submit"
+        <SubmitButton
+          pendingLabel="Creando la cuenta…"
           className="mt-2 rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white"
         >
           Crear cuenta
-        </button>
+        </SubmitButton>
       </form>
       <a href="/login" className="text-sm text-zinc-600 underline">
         Ya tengo cuenta

@@ -31,7 +31,7 @@ export function StatusCorrection({
       }}
     >
       <fieldset className="flex flex-wrap items-end gap-2 rounded-md border border-dashed border-zinc-300 p-3">
-        <legend className="px-1 text-xs text-zinc-500">Corregir estado</legend>
+        <legend className="px-1 text-xs text-zinc-600">Corregir estado</legend>
         <input type="hidden" name="jobId" value={jobId} />
         <label className="flex flex-col gap-1 text-xs text-zinc-600">
           Estado correcto
@@ -53,7 +53,7 @@ export function StatusCorrection({
         >
           Corregir
         </button>
-        <p className="w-full text-[11px] text-zinc-500">
+        <p className="w-full text-[11px] text-zinc-600">
           Para cuando marcaste un estado por error. Volver a Evaluada o Descartada borra la
           postulación registrada.
         </p>

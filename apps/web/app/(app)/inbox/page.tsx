@@ -16,6 +16,7 @@ import { DeleteDomainButton } from "./delete-domain-button";
 import { EmailActions } from "./email-actions";
 import { senderVerdictAction } from "./leak-actions";
 
+export const metadata = { title: "Emails entrantes" };
 export const dynamic = "force-dynamic";
 
 const TABS: { view: InboxView; label: string }[] = [
@@ -113,7 +114,7 @@ export default async function InboxPage({
 
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-xl font-semibold">Emails entrantes</h1>
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-zinc-600">
           {volume.last24h} en 24 h · {volume.last24hNoParser} sin parser · promedio{" "}
           {volume.averagePerDay}/día
           {volume.rejectedLast24h ? ` · ${volume.rejectedLast24h} rechazados` : ""}

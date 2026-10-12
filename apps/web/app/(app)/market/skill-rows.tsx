@@ -1,4 +1,5 @@
 import { SELF_LEVELS, type AgendaRow } from "@job-search-os/pipeline";
+import { SKILL_CATEGORY_LABEL } from "@/lib/labels";
 import type { MarketView } from "@/lib/market";
 
 function levelText(level: number | null): string {
@@ -61,7 +62,9 @@ export function SkillRows({
             <li key={r.slug} className="rounded-md border border-zinc-200 bg-white p-3">
               <div className="flex items-baseline justify-between gap-2">
                 <span className="font-medium text-zinc-900">{k?.name ?? r.slug}</span>
-                <span className="text-xs text-zinc-600">{k?.category ?? ""}</span>
+                <span className="text-xs text-zinc-600">
+                  {k ? (SKILL_CATEGORY_LABEL[k.category] ?? k.category) : ""}
+                </span>
               </div>
               <dl className="mt-2 grid grid-cols-3 gap-2 text-xs">
                 <div>
@@ -123,7 +126,9 @@ export function SkillRows({
               return (
                 <tr key={r.slug} className="border-t border-zinc-100">
                   <td className="py-1 pr-2 font-medium text-zinc-900">{k?.name ?? r.slug}</td>
-                  <td className="py-1 pr-2 text-zinc-600">{k?.category ?? ""}</td>
+                  <td className="py-1 pr-2 text-zinc-600">
+                    {k ? (SKILL_CATEGORY_LABEL[k.category] ?? k.category) : ""}
+                  </td>
                   <td className="py-1 pr-2 text-zinc-700">{levelText(r.level)}</td>
                   <td className="py-1 pr-2 text-right tabular-nums">{r.mentions}</td>
                   <td className="py-1 pr-2 text-right tabular-nums">{r.mustMentions}</td>

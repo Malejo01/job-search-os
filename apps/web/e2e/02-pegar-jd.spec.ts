@@ -23,7 +23,9 @@ test.describe("Flujo 2: pegar JD → evaluación al instante (JS-027)", () => {
     await expect(card).toBeVisible();
     await card.getByPlaceholder("Pegá acá la descripción completa del puesto").fill(JD);
     await card.getByRole("button", { name: "Guardar JD y evaluar" }).click();
-    await expect(page.getByRole("status")).toContainText("JD guardada: evaluando ahora");
+    await expect(page.getByRole("status")).toContainText(
+      "JD guardada: la oferta queda en cola para evaluar",
+    );
     await expect(page.locator("li", { hasText: title })).toHaveCount(0);
 
     // Sin correr ningún worker: la evaluación se dispara al guardar (LLM demo en e2e)

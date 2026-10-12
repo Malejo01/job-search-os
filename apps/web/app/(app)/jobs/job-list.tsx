@@ -6,9 +6,12 @@ import type { JobListRow } from "@/lib/jobs";
 import {
   DEMO_BADGE_CLASSES,
   DEMO_MODEL,
+  flagLabel,
   formatDate,
   LOCATION_CLASSES,
   LOCATION_LABELS,
+  riskLabel,
+  safeHttpUrl,
   SCORE_CLASSES,
   scoreTone,
   SOURCE_LABELS,
@@ -44,6 +47,7 @@ export function JobList({ rows, query = "" }: { rows: JobListRow[]; query?: stri
 /** `query`: los filtros de la lista, para que el detalle sepa volver y calcular "siguiente" (JS-061). */
 function JobCard({ job, query }: { job: JobListRow; query: string }) {
   const tone = scoreTone(job.score);
+  const url = safeHttpUrl(job.url);
   return (
     <div className="relative flex gap-3 rounded-lg border border-zinc-200 bg-white p-3 hover:border-zinc-400">
       {/* El link al detalle cubre toda la card; el link a la oferta va encima (z-10) */}
@@ -55,8 +59,8 @@ function JobCard({ job, query }: { job: JobListRow; query: string }) {
       {job.evaluating ? (
         <div
           className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-md border-2 border-sky-300 text-sky-700"
-          aria-label="evaluando"
-          title="El modelo está evaluando esta oferta; la lista se actualiza sola"
+          aria-label="en cola"
+          title="Esperando la evaluación"
         >
           <span className="animate-pulse text-lg font-semibold leading-none">…</span>
           <span className="text-[10px] uppercase">score</span>
@@ -97,7 +101,7 @@ function JobCard({ job, query }: { job: JobListRow; query: string }) {
           ) : null}
           {job.evaluating ? (
             <span className="rounded bg-sky-100 px-1.5 py-0.5 font-medium text-sky-800">
-              Evaluando…
+              En cola
             </span>
           ) : (
             <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-zinc-700">
@@ -123,7 +127,7 @@ function JobCard({ job, query }: { job: JobListRow; query: string }) {
           ) : null}
           {job.riesgos.slice(0, 2).map((r) => (
             <span key={r} className="rounded bg-amber-50 px-1.5 py-0.5 text-amber-900">
-              riesgo: {r}
+              riesgo: {riskLabel(r)}
             </span>
           ))}
           {job.riesgos.length > 2 ? (
@@ -136,22 +140,25 @@ function JobCard({ job, query }: { job: JobListRow; query: string }) {
               posible duplicado
             </span>
           ) : null}
-          {job.flags
-            .filter((f) => !f.startsWith("title_cap:") && f !== "posible_duplicado")
-            .map((f) => (
-              <span key={f} className="rounded bg-zinc-50 px-1.5 py-0.5 text-zinc-500">
-                {f.replace("domain_keyword:", "dominio: ")}
-              </span>
-            ))}
+          {job.flags.flatMap((f) => {
+            const label = flagLabel(f);
+            return label
+              ? [
+                  <span key={f} className="rounded bg-zinc-50 px-1.5 py-0.5 text-zinc-600">
+                    {label}
+                  </span>,
+                ]
+              : [];
+          })}
         </div>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-2">
-        <time className="text-[11px] text-zinc-400" dateTime={job.firstSeenAt}>
+        <time className="text-[11px] text-zinc-600" dateTime={job.firstSeenAt}>
           {formatDate(job.postedAt ?? job.firstSeenAt)}
         </time>
-        {job.url ? (
+        {url ? (
           <a
-            href={job.url}
+            href={url}
             target="_blank"
             rel="noopener noreferrer"
             className="relative z-10 rounded-md border border-zinc-300 px-2 py-1 text-[11px] text-zinc-700 hover:border-zinc-500 hover:text-zinc-900"

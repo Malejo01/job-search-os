@@ -111,7 +111,7 @@ export function FormReview({ jobId }: { jobId: string }) {
                 </span>
                 {q.required ? <span className="ml-1 text-xs text-red-700">obligatoria</span> : null}
                 {q.options?.length ? (
-                  <p className="text-xs text-zinc-500">opciones: {q.options.join(" · ")}</p>
+                  <p className="text-xs text-zinc-600">opciones: {q.options.join(" · ")}</p>
                 ) : null}
               </li>
             ))}
@@ -242,7 +242,7 @@ function DraftList({
                   <span className="rounded bg-red-50 px-1.5 py-0.5 text-red-800">sin fuente</span>
                 )
               ) : null}
-              {it.note ? <span className="text-zinc-500">{it.note}</span> : null}
+              {it.note ? <span className="text-zinc-600">{it.note}</span> : null}
             </p>
             {it.state === "descartada" ? (
               <button
@@ -286,7 +286,7 @@ function DraftList({
       </ul>
       <div className="flex flex-wrap items-center gap-2">
         <CopyAllButton text={approvedText} disabled={!approvedText} />
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-zinc-600">
           Copia solo las aprobadas. La app no envía nada: pegalas vos en el formulario de la
           empresa.
         </p>

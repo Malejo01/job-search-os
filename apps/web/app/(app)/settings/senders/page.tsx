@@ -4,6 +4,7 @@ import { requireUserId } from "@/lib/session";
 import { listSenders } from "@/lib/senders";
 import { setSenderAction } from "./actions";
 
+export const metadata = { title: "Remitentes" };
 export const dynamic = "force-dynamic";
 
 const OPTIONS = [

@@ -6,6 +6,7 @@ import { ROLE_SKILLS, getSkillsPageData } from "@/lib/skill-levels";
 import { SkillsForm, parseRoleParam } from "../../(app)/settings/skills/skills-form";
 import { saveOnboardingSkillsAction } from "./actions";
 
+export const metadata = { title: "Tus skills" };
 export const dynamic = "force-dynamic";
 
 /** Paso opcional del onboarding: niveles de skills. Sin perfil completo vuelve al paso 1. */
@@ -33,7 +34,11 @@ export default async function OnboardingSkillsPage({
         cambiar después en Ajustes
       </p>
       {error ? (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
+        <p
+          id="skills-error"
+          role="alert"
+          className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800"
+        >
           Revisá los datos del formulario y volvé a intentar.
         </p>
       ) : null}
@@ -45,6 +50,7 @@ export default async function OnboardingSkillsPage({
         taxonomy={data.taxonomy}
         levels={data.levels}
         submitLabel="Guardar y seguir"
+        invalidSlug={error?.startsWith("level:") ? error.slice("level:".length) : undefined}
         allowRemove={false}
         skip={{ href: "/onboarding/asistente", label: "Saltear por ahora" }}
       />

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { isUuid } from "@/lib/ids";
 import { getInboundEmail } from "@/lib/inbox";
 import { markInboundSeen } from "@/lib/inbox-list";
 import { formatDate, parserLabel } from "@/lib/labels";
@@ -7,6 +8,7 @@ import { requireUserId } from "@/lib/session";
 import { EmailActions } from "../email-actions";
 import { senderVerdictAction } from "../leak-actions";
 
+export const metadata = { title: "Email" };
 export const dynamic = "force-dynamic";
 
 /**
@@ -33,6 +35,7 @@ img{max-width:100%;height:auto}table{max-width:100%!important;width:auto}td,th{w
 export default async function InboundEmailPage({ params }: { params: Promise<{ id: string }> }) {
   const userId = await requireUserId();
   const { id } = await params;
+  if (!isUuid(id)) notFound();
   const email = await getInboundEmail(userId, id);
   if (!email) notFound();
   // Abrirlo es leerlo: sale de pendientes. No pisa un "no me sirve" ni la fecha de un visto previo.

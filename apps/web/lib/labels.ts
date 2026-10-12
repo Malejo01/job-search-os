@@ -31,6 +31,13 @@ export const LOCATION_LABELS: Record<string, string> = {
   no: "Ubicación: no",
 };
 
+export const MODALITY_LABELS: Record<string, string> = {
+  remoto: "remoto",
+  hibrido: "híbrido",
+  presencial: "presencial",
+  desconocida: "modalidad sin dato",
+};
+
 export const OUTCOME_LABELS: Record<string, string> = {
   sin_respuesta: "Sin respuesta",
   rechazo_automatico_ubicacion: "Rechazo automático (ubicación)",
@@ -76,7 +83,7 @@ export const SCORE_CLASSES: Record<ReturnType<typeof scoreTone>, string> = {
   alto: "bg-emerald-100 text-emerald-900 ring-emerald-300",
   medio: "bg-amber-100 text-amber-900 ring-amber-300",
   bajo: "bg-zinc-100 text-zinc-700 ring-zinc-300",
-  none: "bg-zinc-50 text-zinc-500 ring-zinc-200",
+  none: "bg-zinc-50 text-zinc-600 ring-zinc-200",
 };
 
 export const LOCATION_CLASSES: Record<string, string> = {
@@ -97,4 +104,115 @@ export function formatDate(iso: string | null): string {
 export function parserLabel(parser: string | null): string {
   if (parser === "linkedin_social") return "no relevante: notificación social de LinkedIn";
   return `parser ${parser ?? "none"}`;
+}
+
+/** Flags del prefiltro en llano. `null` = no se muestra (reglas internas o desconocidas). */
+export function flagLabel(flag: string): string | null {
+  if (flag.startsWith("domain_keyword:")) {
+    const domain = flag.slice("domain_keyword:".length).trim();
+    return domain ? `dominio: ${domain}` : null;
+  }
+  switch (flag) {
+    case "location_risk":
+      return "ubicación a confirmar";
+    case "many_candidates":
+      return "muchos postulantes";
+    case "modalidad_no_remota":
+      return "híbrida o presencial";
+    case "skills_match_high":
+      return "buena coincidencia de aptitudes";
+    case "volume_recruiting":
+      return "búsqueda masiva";
+    default:
+      return null;
+  }
+}
+
+/** Riesgos de la evaluación: ya vienen en castellano, salvo `location_ok = <valor>`. */
+export function riskLabel(text: string): string {
+  const m = /^location_ok\s*=\s*(\S+)$/.exec(text.trim());
+  if (!m) return text;
+  return m[1] === "no" ? "tu país no está entre los permitidos" : "ubicación a confirmar";
+}
+
+export const DISCIPLINE_LABEL: Record<string, string> = {
+  ai_engineer: "Ingeniería de IA",
+  ml_engineer: "Ingeniería de ML",
+  ai_evaluation: "Evaluación de IA",
+  creative_production: "Producción creativa con IA",
+  fullstack: "Fullstack",
+  frontend: "Frontend",
+  backend: "Backend",
+  devops: "DevOps",
+  data: "Datos",
+  ciberseguridad: "Ciberseguridad",
+  negocio: "Negocio",
+  project_management: "Gestión de proyectos",
+  administracion_plataformas: "Administración de plataformas",
+  arquitectura: "Arquitectura",
+  otra: "Otra",
+};
+
+export const ENGLISH_LABEL: Record<string, string> = {
+  no_menciona: "no lo menciona",
+  no: "no pide",
+  basico: "básico",
+  intermedio: "intermedio",
+  avanzado: "avanzado",
+  nativo: "nativo",
+};
+
+export const COMPANY_TYPE_LABEL: Record<string, string> = {
+  producto: "producto",
+  startup: "startup",
+  consultora: "consultora",
+  staffing: "staffing",
+  agencia: "agencia",
+  desconocido: "no se sabe",
+};
+
+export const SKILL_CATEGORY_LABEL: Record<string, string> = {
+  cloud: "nube",
+  infra: "infraestructura",
+  testing: "pruebas",
+  llm_ops: "operación de modelos",
+  ai_core: "IA",
+  lenguaje: "lenguajes",
+  framework: "frameworks",
+  datos: "datos",
+  soft: "habilidades blandas",
+  idioma: "idiomas",
+  dominio: "dominio",
+  otra: "otra",
+};
+
+export const ADJUSTMENT_LABEL: Record<string, string> = {
+  title_cap: "tope por el título",
+  years_penalty: "piden muchos años",
+  years_gap_penalty: "faltan años de experiencia",
+  discipline_cap: "disciplina fuera de tu perfil",
+  cloud_must_penalty: "exigen infraestructura que no tenés",
+  english_fluent_penalty: "piden inglés fluido",
+  sin_skills: "sin aptitudes reconocidas en la descripción",
+  cobertura: "cobertura de aptitudes",
+  riesgo_dominio: "dominio de riesgo",
+  riesgo_location_risk: "ubicación a confirmar",
+  salario_bajo_piso: "salario por debajo de tu piso",
+};
+
+/** Un ajuste de score en llano: el detalle que ya trae, o la etiqueta de la regla. */
+export function adjustmentText(a: { rule: string; delta: number; detail?: string | null }): string {
+  const what = a.detail?.trim() || ADJUSTMENT_LABEL[a.rule] || "ajuste automático";
+  return `${what} ${a.delta > 0 ? "+" : ""}${a.delta}`;
+}
+
+/** Solo se enlaza lo que es http(s): una URL guardada puede venir de cualquier fuente. */
+export function safeHttpUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url.trim());
+    return u.protocol === "http:" || u.protocol === "https:" ? u.href : null;
+  } catch {
+    return null;
+  }
 }

@@ -318,7 +318,7 @@ describe("draftApplicationAnswers", () => {
     expect(byId(r, "q1")).toMatchObject({ draft: "", note: SIN_FUENTE });
     // sin application_settings: la fija dice que no está cargada, no la inventa
     expect(byId(r, "q3")).toMatchObject({ origin: "fija", draft: "" });
-    expect(byId(r, "q3").note).toMatch(/sin cargar/);
+    expect(byId(r, "q3").note).toMatch(/no está cargado en tu perfil/);
     // piso del perfil sin criterios activos → no hay número
     expect(byId(r, "q2")).toMatchObject({ origin: "salario", draft: "" });
   });
@@ -339,7 +339,7 @@ describe("draftApplicationAnswers", () => {
     expect(r.llm_error).toMatchObject({ kind: "provider_unavailable" });
     expect(byId(r, "q3").draft).toBe("Inmediata (texto de ejemplo)");
     expect(byId(r, "q1")).toMatchObject({ draft: "", origin: "modelo" });
-    expect(byId(r, "q1").note).toMatch(/provider_unavailable/);
+    expect(byId(r, "q1").note).toMatch(/No hay respuesta automática/);
   });
 
   it("formulario vacío, ids repetidos u oferta ajena → error con código y sin llamar al modelo", async () => {

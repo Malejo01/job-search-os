@@ -1,6 +1,7 @@
 import { checkMcpToken } from "@job-search-os/adapters";
 import { sql } from "drizzle-orm";
 import { getAppDb } from "./db";
+import { isUuid } from "./ids";
 
 /**
  * Autenticación del servidor MCP (JS-035, SEC-02): token compartido en `Authorization: Bearer`.
@@ -19,11 +20,9 @@ export function mcpTokenOk(req: Request): boolean {
 
 let cachedUserId: string | null = null;
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 /** user_exists (SECURITY DEFINER): la cuenta pudo borrarse después de configurar o cachear el id. */
 async function userExists(id: string): Promise<boolean> {
-  if (!UUID_RE.test(id)) return false;
+  if (!isUuid(id)) return false;
   const [row] = (await getAppDb().execute(
     sql`select user_exists(${id}::uuid) as ok`,
   )) as unknown as { ok: boolean }[];

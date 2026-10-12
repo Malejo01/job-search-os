@@ -3,6 +3,7 @@ import { requireUserId } from "@/lib/session";
 import { revokeInvitationAction } from "./actions";
 import { CreateInvitationForm } from "./create-form";
 
+export const metadata = { title: "Invitaciones" };
 export const dynamic = "force-dynamic";
 
 const STATUS_LABEL = { pendiente: "Pendiente", usada: "Usada", vencida: "Vencida" } as const;

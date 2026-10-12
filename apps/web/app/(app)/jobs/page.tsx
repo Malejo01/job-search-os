@@ -17,6 +17,7 @@ import { JobFilters } from "./job-filters";
 import { JobList } from "./job-list";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Ofertas" };
 
 /** Lista de ofertas (JS-015): Server Component; filtros en la URL; la lista anima en cliente. */
 export default async function JobsPage({
@@ -38,7 +39,7 @@ export default async function JobsPage({
     <section className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between gap-2">
         <h1 className="text-xl font-semibold">Ofertas</h1>
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-zinc-600">
           {rows.length === LIST_LIMIT ? `primeras ${LIST_LIMIT}` : `${rows.length}`} · por score y
           fecha ·{" "}
           <Link href="/jobs/new" className="text-sky-700 underline">
