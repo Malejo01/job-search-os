@@ -9,6 +9,8 @@ import { execSync } from "node:child_process";
 import { resolve } from "node:path";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import type { Page } from "@playwright/test";
+// Import relativo directo, como global-setup: test-guard.ts no importa nada
+import { assertLocalTestDatabase } from "../../../packages/db/src/test-guard";
 
 /** Credenciales del usuario seed local (pnpm db:seed --local con SEED_USER_EMAIL/PASSWORD). */
 export const E2E_EMAIL = process.env.E2E_EMAIL ?? "mauro@job-search-os.local";
@@ -21,7 +23,10 @@ const ROOT = resolve(__dirname, "../../..");
 const LOCAL_DATABASE_URL = "postgres://postgres:postgres@localhost:54322/jobsearch";
 
 export function ownerDb() {
-  const sql = postgres(process.env.DATABASE_URL_LOCAL ?? LOCAL_DATABASE_URL, {
+  const url = process.env.DATABASE_URL_LOCAL ?? LOCAL_DATABASE_URL;
+  // Defensa en profundidad: la misma guarda de global-setup, antes de abrir la conexión
+  assertLocalTestDatabase(url);
+  const sql = postgres(url, {
     max: 1,
     prepare: false,
   });
@@ -902,6 +907,8 @@ export type SeedPublicJob = {
   sourceKind: "getonboard_api" | "remoteok" | "jobicy";
   /** Roles de ROLE_KEYS a los que sirve el aviso (`public_jobs.role_hints`). */
   roleHints: string[];
+  /** Skills que pide el aviso (`public_job_skills`), para que el mercado del puesto tenga datos. */
+  skills?: { slug: string; isMust: boolean }[];
 };
 
 const POOL_SOURCE_NAMES: Record<SeedPublicJob["sourceKind"], string> = {
@@ -947,6 +954,28 @@ export async function seedPublicJobs(
         })
         .returning({ id: s.publicJobs.id });
       ids.push(row!.id);
+      if (r.skills?.length) {
+        const known = await db
+          .select({ id: s.skills.id, slug: s.skills.slug })
+          .from(s.skills)
+          .where(
+            inArray(
+              s.skills.slug,
+              r.skills.map((k) => k.slug),
+            ),
+          );
+        const idOf = new Map(known.map((k) => [k.slug, k.id]));
+        if (known.length !== new Set(r.skills.map((k) => k.slug)).size) {
+          throw new Error("un slug de las skills del aviso no está en skills");
+        }
+        await db.insert(s.publicJobSkills).values(
+          r.skills.map((k) => ({
+            publicJobId: row!.id,
+            skillId: idOf.get(k.slug)!,
+            isMust: k.isMust,
+          })),
+        );
+      }
     }
     return ids;
   } finally {
