@@ -123,5 +123,80 @@
       "client_facing",
       "english_intermediate"
     ]
+  },
+  "marketing_digital": {
+    "label": "Marketing digital",
+    "skills": [
+      "seo",
+      "google_ads",
+      "meta_ads",
+      "ga4",
+      "email_marketing",
+      "copywriting",
+      "social_media",
+      "growth_marketing",
+      "analytics",
+      "excel"
+    ]
+  },
+  "producto_proyectos": {
+    "label": "Producto y proyectos",
+    "skills": [
+      "product_management",
+      "scrum_agile",
+      "jira",
+      "roadmap",
+      "product_discovery",
+      "ux_research",
+      "analytics",
+      "sql",
+      "client_facing",
+      "english_intermediate"
+    ]
+  },
+  "rrhh_it": {
+    "label": "Recruiter IT / RRHH tech",
+    "skills": [
+      "sourcing",
+      "interviewing",
+      "ats",
+      "employer_branding",
+      "linkedin_recruiter",
+      "client_facing",
+      "excel",
+      "english_intermediate",
+      "ai_coding_tools"
+    ]
+  },
+  "customer_success": {
+    "label": "Customer success",
+    "skills": [
+      "hubspot",
+      "salesforce",
+      "customer_onboarding",
+      "churn_retention",
+      "help_desk",
+      "client_facing",
+      "jira",
+      "analytics",
+      "excel",
+      "english_intermediate"
+    ]
+  },
+  "ciberseguridad": {
+    "label": "Ciberseguridad",
+    "skills": [
+      "security",
+      "iam",
+      "redes_it",
+      "linux_admin",
+      "windows_server",
+      "active_directory",
+      "azure",
+      "aws",
+      "python",
+      "docker",
+      "english_intermediate"
+    ]
   }
 }

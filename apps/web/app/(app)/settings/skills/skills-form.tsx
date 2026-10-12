@@ -1,4 +1,5 @@
 import {
+  ROLE_GROUPS,
   isRoleKey,
   suggestedSkills,
   type RoleKey,
@@ -59,23 +60,30 @@ export function SkillsForm({
     <div className="flex flex-col gap-5">
       <nav aria-label="Rol objetivo" className="flex flex-col gap-2">
         <h2 className="text-base font-medium">Qué rol buscás</h2>
-        <ul className="flex flex-wrap gap-2">
-          {(Object.keys(roleMap) as RoleKey[]).map((key) => (
-            <li key={key}>
-              <Link
-                href={`${basePath}?rol=${key}`}
-                aria-current={key === role ? "true" : undefined}
-                className={`inline-block rounded-md border px-3 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900 ${
-                  key === role
-                    ? "border-zinc-900 bg-zinc-900 text-white"
-                    : "border-zinc-300 text-zinc-900"
-                }`}
-              >
-                {roleMap[key].label}
-              </Link>
-            </li>
-          ))}
-        </ul>
+        {ROLE_GROUPS.map((group) => (
+          <div key={group.label} className="flex flex-col gap-1">
+            <h3 className="text-xs font-medium text-zinc-600">{group.label}</h3>
+            <ul className="flex flex-wrap gap-2">
+              {group.roles
+                .filter((key) => key in roleMap)
+                .map((key) => (
+                  <li key={key}>
+                    <Link
+                      href={`${basePath}?rol=${key}`}
+                      aria-current={key === role ? "true" : undefined}
+                      className={`inline-block rounded-md border px-3 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900 ${
+                        key === role
+                          ? "border-zinc-900 bg-zinc-900 text-white"
+                          : "border-zinc-300 text-zinc-900"
+                      }`}
+                    >
+                      {roleMap[key].label}
+                    </Link>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        ))}
         <p className="text-xs text-zinc-600">Cambiar de rol descarta lo que no guardaste.</p>
       </nav>
 

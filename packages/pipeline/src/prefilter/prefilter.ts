@@ -1,6 +1,7 @@
 import type { CriteriaRules } from "../criteria";
 import { countriesMentioned, countryNames } from "../normalize/location";
 import { foldText } from "../normalize/text";
+import type { RoleKey } from "../skills/self-assessment";
 
 /**
  * Prefiltro determinista, sin LLM, con SOLO los campos que trae un email de alerta
@@ -42,7 +43,71 @@ export type PrefilterOptions = {
    * `modalidad_no_remota`.
    */
   remoteOnly?: boolean;
+  /**
+   * Puesto objetivo de la persona (ronda 40). Las palabras de `other_discipline_keywords` que son
+   * el oficio propio de ese puesto (`ROLE_DOMAIN_KEYWORDS`) no descartan ni marcan flag. Ausente o
+   * `null` = como siempre (evals/ llama sin la opción).
+   */
+  targetRole?: RoleKey | null;
 };
+
+/**
+ * Palabras de `other_discipline_keywords` que, para ese puesto, son su propio oficio. Los puestos
+ * que no están acá no cambian nada. Se comparan con `foldText`.
+ */
+export const ROLE_DOMAIN_KEYWORDS: Partial<Record<RoleKey, readonly string[]>> = {
+  marketing_digital: ["seo", "growth"],
+  producto_proyectos: ["project manager", "scrum master", "pmp", "prince2", "business owner"],
+  ciberseguridad: [
+    "ciberseguridad",
+    "cybersecurity",
+    "iam",
+    "sailpoint",
+    "saviynt",
+    "identity governance",
+  ],
+};
+
+/**
+ * Frases de título que son el cargo propio del puesto y llevan una palabra de la blocklist
+ * ("manager"). Solo se liberan para ese puesto. "Atención al cliente" sigue descartando también
+ * con `customer_success`, por decisión del plan (NON_IT_TITLE no cambia).
+ */
+export const ROLE_OWN_TITLE_PHRASES: Partial<Record<RoleKey, readonly string[]>> = {
+  producto_proyectos: [
+    "product manager",
+    "project manager",
+    "program manager",
+    "delivery manager",
+    "product owner",
+  ],
+  customer_success: ["customer success manager", "technical account manager", "account manager"],
+  marketing_digital: [
+    "marketing manager",
+    "community manager",
+    "social media manager",
+    "growth manager",
+  ],
+  rrhh_it: ["talent acquisition manager", "recruiting manager"],
+  ciberseguridad: ["security manager"],
+};
+
+/** Título doblado sin las frases propias del puesto (con límite de palabra), cada una por un espacio. */
+function withoutOwnPhrases(foldedTitle: string, role: RoleKey): string {
+  const phrases = [...(ROLE_OWN_TITLE_PHRASES[role] ?? []), ...(ROLE_DOMAIN_KEYWORDS[role] ?? [])]
+    .map((p) => foldText(p).trim())
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length);
+  let out = foldedTitle;
+  for (const p of phrases) {
+    const re = new RegExp(
+      `(^|[^a-z0-9])${p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?=$|[^a-z0-9])`,
+      "g",
+    );
+    out = out.replace(re, "$1 ");
+  }
+  return out;
+}
 
 const NON_REMOTE_IN_TEXT = /\b(hibrid[oa]|hybrid|presencial|on[\s-]?site|in[\s-]?office)\b/;
 
@@ -238,7 +303,18 @@ export function prefilter(
       };
     }
   }
-  const domain = containsKeyword(title, rules.other_discipline_keywords);
+  const ownTrade = new Set(
+    (options.targetRole ? (ROLE_DOMAIN_KEYWORDS[options.targetRole] ?? []) : []).map((k) =>
+      foldText(k).trim(),
+    ),
+  );
+  const isOwnTrade = (k: string) => ownTrade.has(foldText(k).trim());
+  const domain = containsKeyword(
+    title,
+    ownTrade.size
+      ? rules.other_discipline_keywords.filter((k) => !isOwnTrade(k))
+      : rules.other_discipline_keywords,
+  );
   if (domain) {
     if (!AI_TITLE.test(title)) {
       return {
@@ -265,7 +341,15 @@ export function prefilter(
   // 4. Título en blocklist (salvo allowlist), con la excepción calibrada (caso golden 13)
   let cap: number | null = null;
   const allowed = containsKeyword(title, rules.title_allowlist);
-  const blocked = allowed ? null : containsKeyword(title, rules.title_blocklist);
+  // Con puesto, la blocklist se aplica sobre el título sin las frases del oficio propio ("manager"
+  // solo se libera dentro de "project manager" para producto_proyectos; "lead", "director" y un
+  // "manager" suelto siguen bloqueando). Sin puesto, el título original.
+  const blocked = allowed
+    ? null
+    : containsKeyword(
+        options.targetRole ? withoutOwnPhrases(title, options.targetRole) : title,
+        rules.title_blocklist,
+      );
   if (blocked) {
     const exc = rules.title_cap_score_if_few_candidates;
     const fewCandidates =

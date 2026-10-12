@@ -67,7 +67,8 @@ create policy jobs_owner on jobs for all using (user_id = auth.uid()) with check
 
 ## Seeds
 
-- `seeds/skills.json`: taxonomía inicial (~60 skills) con aliases y `closure_hours`. Ver `packages/db/seeds/skills.json`.
+- `seeds/skills.json`: taxonomía de skills con aliases y `closure_hours`: tecnología más carreras digitales (ronda 40, ADR-015). Ver `packages/db/seeds/skills.json`.
+- Migración `0019` (ronda 40): es de datos, sin cambios de esquema. Suma 19 skills de carreras digitales (marketing, producto, RRHH IT y customer success) y hace de `hubspot` una skill propia (sale de los aliases de `salesforce`).
 - `seeds/model_routing.json`: ruteo inicial.
 - `seeds/criteria.mauro.json`: `CriteriaRules` v1 calibradas con el golden set.
 - `evals/fixtures/golden.json`: 34 ofertas → se cargan como `jobs` + `evaluations(model='human')`.

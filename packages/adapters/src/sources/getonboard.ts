@@ -20,10 +20,13 @@ export const GOB_CATEGORIES = [
 ] as const;
 /**
  * Categorías del pool global (JS-137). Los tres slugs de `GOB_CATEGORIES` están verificados
- * (2026-09-10); el resto salen del catálogo conocido y están A VERIFICAR con
+ * (2026-09-10); `digital-marketing`, `hr`, `innovation-agile`, `technical-support` y
+ * `cybersecurity` (carreras digitales, ronda 40) están verificados en `/api/v0/categories`
+ * (2026-10-12). El resto salen del catálogo conocido y están A VERIFICAR con
  * `pnpm pool:fetch getonboard --dry-run`: si alguno no existe, un 404 se saltea
- * (`skipMissingCategories`) y queda en `missingCategories`. `GOB_CATEGORIES` no cambia: la usa
- * la ingesta por usuario de hoy.
+ * (`skipMissingCategories`) y queda en `missingCategories`. No se suman a propósito `sales`,
+ * `education-coaching`, `advertising-media`, `operations-management`, `other` ni
+ * `hardware-electronics` (ADR-015). `GOB_CATEGORIES` no cambia: la usa la ingesta por usuario de hoy.
  */
 export const GOB_POOL_CATEGORIES = [
   "programming",
@@ -33,6 +36,11 @@ export const GOB_POOL_CATEGORIES = [
   "design-ux",
   "sysadmin-devops-qa",
   "customer-support",
+  "digital-marketing",
+  "hr",
+  "innovation-agile",
+  "technical-support",
+  "cybersecurity",
 ] as const;
 export const GOB_EXPAND = ["company", "tags", "modality", "seniority", "location_tenants"] as const;
 

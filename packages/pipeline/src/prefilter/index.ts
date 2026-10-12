@@ -1,5 +1,6 @@
 export {
   prefilter,
+  ROLE_DOMAIN_KEYWORDS,
   skillsMatchRatioFromBadges,
   type PrefilterInput,
   type PrefilterOptions,

@@ -418,6 +418,26 @@ describe("fetchGetOnBoardJobs (fetch inyectado)", () => {
     for (const c of GOB_CATEGORIES) expect(GOB_POOL_CATEGORIES).toContain(c);
   });
 
+  it("GOB_POOL_CATEGORIES suma las carreras digitales y no las excluidas", () => {
+    for (const c of [
+      "digital-marketing",
+      "hr",
+      "innovation-agile",
+      "technical-support",
+      "cybersecurity",
+    ])
+      expect(GOB_POOL_CATEGORIES).toContain(c);
+    for (const c of [
+      "sales",
+      "education-coaching",
+      "advertising-media",
+      "operations-management",
+      "other",
+      "hardware-electronics",
+    ])
+      expect(GOB_POOL_CATEGORIES).not.toContain(c);
+  });
+
   it("arma la URL de categoría con per_page, page y expand", () => {
     const u = gobCategoryUrl("https://x/api/v0", "programming", 2, 50);
     expect(u).toContain("/categories/programming/jobs?per_page=50&page=2&expand=");
