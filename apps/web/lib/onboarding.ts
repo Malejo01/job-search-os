@@ -58,26 +58,49 @@ export async function hasReceivedEmail(userId: string): Promise<boolean> {
   });
 }
 
-/** Cambia el rol objetivo (Mis skills). Un valor que no es clave de rol no se guarda. */
-export async function setTargetRole(userId: string, role: unknown): Promise<boolean> {
-  if (!isRoleKey(role)) return false;
+/**
+ * Cambia el rol objetivo (Mis skills y Ajustes). Acepta una clave de rol o null («Otro o varios»);
+ * cualquier otro valor no se guarda. `changed` es verdadero si el valor anterior era distinto; se
+ * lee en la misma transacción que el cambio.
+ */
+export async function setTargetRole(
+  userId: string,
+  role: unknown,
+): Promise<{ saved: boolean; changed: boolean }> {
+  if (role !== null && !isRoleKey(role)) return { saved: false, changed: false };
   return withUser(userId, async (tx) => {
-    const updated = await tx
+    const [before] = await tx
+      .select({ targetRole: s.profiles.targetRole })
+      .from(s.profiles)
+      .where(eq(s.profiles.userId, userId))
+      .limit(1);
+    if (!before) return { saved: false, changed: false };
+    const previous = isRoleKey(before.targetRole) ? before.targetRole : null;
+    await tx
       .update(s.profiles)
       .set({ targetRole: role, updatedAt: new Date() })
-      .where(eq(s.profiles.userId, userId))
-      .returning({ userId: s.profiles.userId });
-    return updated.length > 0;
+      .where(eq(s.profiles.userId, userId));
+    return { saved: true, changed: previous !== role };
   });
 }
 
 /**
  * Guarda el formulario: actualiza el perfil y, si el usuario no tiene criterios activos, crea
  * la versión siguiente (1 si no tenía ninguna) con las reglas por defecto. Todo en una transacción.
- * Devuelve false si el usuario no tiene fila de perfil (no se inventa una).
+ * Devuelve `saved: false` si el usuario no tiene fila de perfil (no se inventa una); `roleChanged`
+ * dice si el puesto es distinto del que había (un reenvío del paso 1 con otro puesto).
  */
-export async function completeOnboarding(userId: string, input: OnboardingInput): Promise<boolean> {
+export async function completeOnboarding(
+  userId: string,
+  input: OnboardingInput,
+): Promise<{ saved: boolean; roleChanged: boolean }> {
   return withUser(userId, async (tx) => {
+    const [before] = await tx
+      .select({ targetRole: s.profiles.targetRole })
+      .from(s.profiles)
+      .where(eq(s.profiles.userId, userId))
+      .limit(1);
+    const previousRole = isRoleKey(before?.targetRole) ? before.targetRole : null;
     const updated = await tx
       .update(s.profiles)
       .set({
@@ -95,7 +118,7 @@ export async function completeOnboarding(userId: string, input: OnboardingInput)
       })
       .where(eq(s.profiles.userId, userId))
       .returning({ userId: s.profiles.userId });
-    if (updated.length === 0) return false;
+    if (updated.length === 0) return { saved: false, roleChanged: false };
 
     const [crit] = await tx
       .select({
@@ -116,6 +139,6 @@ export async function completeOnboarding(userId: string, input: OnboardingInput)
         })
         .onConflictDoNothing();
     }
-    return true;
+    return { saved: true, roleChanged: previousRole !== (input.targetRole ?? null) };
   });
 }

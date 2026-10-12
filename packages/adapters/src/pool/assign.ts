@@ -34,6 +34,8 @@ export type AssignResult = {
   enqueued: number;
   /** Ids de `jobs` encolados, en orden de ranking. */
   enqueuedJobIds: string[];
+  /** Ofertas no tocadas que se borraron antes de asignar (`replaceUntouched`). */
+  replaced: number;
 };
 
 export type AssignOptions = {
@@ -47,6 +49,12 @@ export type AssignOptions = {
    * asignación del onboarding: dos envíos paralelos no asignan ni encolan el doble.
    */
   deductLast24h?: boolean;
+  /**
+   * Antes de asignar, borra (mismo lock y transacción) las ofertas del pool del usuario que no se
+   * tocaron: estado inicial, sin evaluación, sin mensaje en la cola y sin referencias de usuario. El
+   * aviso sigue en `public_jobs` y puede volver a asignarse. Sin reglas activas no se borra nada.
+   */
+  replaceUntouched?: boolean;
   logger: Logger;
   now?: () => Date;
 };
@@ -57,12 +65,13 @@ const CANDIDATE_CAP = 300;
 const SEEN_WINDOW_DAYS = 14;
 const POSTED_WINDOW_DAYS = 30;
 
-const empty = (): AssignResult => ({
+const empty = (replaced = 0): AssignResult => ({
   assigned: 0,
   discarded: 0,
   alreadyHad: 0,
   enqueued: 0,
   enqueuedJobIds: [],
+  replaced,
 });
 
 export async function assignPoolToUser(
@@ -79,6 +88,37 @@ export async function assignPoolToUser(
   const result = await db.transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`pool-assign:${userId}`}))`);
 
+    // 1. Criterios: sin criterios no hay prefiltro posible, no se borra ni se asigna nada
+    const rules = await loadActiveRules(tx, userId);
+    if (!rules) return empty();
+
+    // Reemplazo: borra lo no tocado antes de contar, así el conteo de 24 h baja solo.
+    // Tablas con FK a jobs.id revisadas: job_sources y job_skills (cascade, se van con el job);
+    // evaluations, applications y application_answers (tocan el job: se queda); answer_bank
+    // (source_job_id, set null: una referencia también cuenta como tocado). job_queue y llm_calls
+    // no tienen FK: la cola se mira por payload->>'jobId', en cualquier estado. jobs.duplicate_of_id
+    // tampoco tiene FK: un job al que otro apunta como original también cuenta como tocado.
+    let replaced = 0;
+    if (opts.replaceUntouched) {
+      const deleted = await tx
+        .delete(s.jobs)
+        .where(
+          and(
+            eq(s.jobs.userId, userId),
+            isNotNull(s.jobs.publicJobId),
+            inArray(s.jobs.status, ["prefiltrada", "pendiente_jd"]),
+            sql`not exists (select 1 from ${s.evaluations} where ${s.evaluations.jobId} = ${s.jobs.id})`,
+            sql`not exists (select 1 from ${s.applications} where ${s.applications.jobId} = ${s.jobs.id})`,
+            sql`not exists (select 1 from ${s.applicationAnswers} where ${s.applicationAnswers.jobId} = ${s.jobs.id})`,
+            sql`not exists (select 1 from ${s.answerBank} where ${s.answerBank.sourceJobId} = ${s.jobs.id})`,
+            sql`not exists (select 1 from ${s.jobs} d where d.duplicate_of_id = ${s.jobs.id})`,
+            sql`not exists (select 1 from ${s.jobQueue} where ${s.jobQueue.payload}->>'jobId' = ${s.jobs.id}::text)`,
+          ),
+        )
+        .returning({ id: s.jobs.id });
+      replaced = deleted.length;
+    }
+
     // Topes efectivos. Con `deductLast24h` se descuenta, dentro del lock, lo ya asignado y lo ya
     // encolado en las últimas 24 h: dos envíos paralelos del onboarding no suman el doble.
     let limit = opts.limit;
@@ -87,12 +127,10 @@ export async function assignPoolToUser(
       const since = new Date(now.getTime() - DAY_MS);
       limit = Math.max(0, limit - (await countPoolAssigned(tx, userId, since)));
       enqueueTop = Math.max(0, enqueueTop - (await countPoolQueued(tx, userId, since)));
-      if (limit === 0) return empty();
+      if (limit === 0) return empty(replaced);
     }
 
-    // 1. Perfil y criterios: sin criterios no hay prefiltro posible, no se asigna nada
-    const rules = await loadActiveRules(tx, userId);
-    if (!rules) return empty();
+    // 2. Perfil y criterios de prefiltro
     const prefs = await loadProfilePrefilterPrefs(tx, userId);
     const [profile] = await tx
       .select({ targetRole: s.profiles.targetRole })
@@ -146,7 +184,7 @@ export async function assignPoolToUser(
         s.publicJobs.id,
       )
       .limit(CANDIDATE_CAP);
-    if (!candidates.length) return empty();
+    if (!candidates.length) return empty(replaced);
 
     // 4. Prefiltro y pre-score por candidata
     const passed: { row: (typeof candidates)[number]; flags: string[] }[] = [];
@@ -173,7 +211,7 @@ export async function assignPoolToUser(
         flags: [...pre.flags, ...(pre.cap !== null ? [`title_cap:${pre.cap}`] : [])],
       });
     }
-    if (!passed.length) return { ...empty(), discarded };
+    if (!passed.length) return { ...empty(replaced), discarded };
 
     const passedIds = passed.map((p) => p.row.id);
     const skillRows = await tx
@@ -301,6 +339,7 @@ export async function assignPoolToUser(
       alreadyHad,
       enqueued: enqueuedJobIds.length,
       enqueuedJobIds,
+      replaced,
     };
   });
 
@@ -310,6 +349,7 @@ export async function assignPoolToUser(
       discarded: result.discarded,
       already_had: result.alreadyHad,
       enqueued: result.enqueued,
+      replaced: result.replaced,
     },
     "pool: asignación",
   );

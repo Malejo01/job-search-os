@@ -8,6 +8,8 @@ import { SkillsForm, parseRoleParam } from "./skills-form";
 
 export const metadata = { title: "Mis skills" };
 export const dynamic = "force-dynamic";
+// La acción puede programar la primera evaluación en after(): corre dentro de este límite
+export const maxDuration = 120;
 
 const FIELD_ERRORS: Record<string, string> = {
   niveles: "Hay demasiadas skills en el formulario. Recargá la página y volvé a intentar.",

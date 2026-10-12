@@ -8,6 +8,8 @@ import { saveOnboardingSkillsAction } from "./actions";
 
 export const metadata = { title: "Tus skills" };
 export const dynamic = "force-dynamic";
+// La acción programa la primera evaluación en after(): corre dentro de este límite
+export const maxDuration = 120;
 
 /** Paso opcional del onboarding: niveles de skills. Sin perfil completo vuelve al paso 1. */
 export default async function OnboardingSkillsPage({
@@ -59,7 +61,7 @@ export default async function OnboardingSkillsPage({
         submitLabel="Guardar y seguir"
         invalidSlug={error?.startsWith("level:") ? error.slice("level:".length) : undefined}
         allowRemove={false}
-        skip={{ href: "/onboarding/ofertas", label: "Saltear por ahora" }}
+        skip={{ label: "Saltear por ahora" }}
       />
     </section>
   );
