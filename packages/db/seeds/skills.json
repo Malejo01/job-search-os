@@ -735,8 +735,222 @@
     "category": "framework",
     "aliases": [
       "wcag",
-      "a11y"
+      "a11y",
+      "accesibilidad",
+      "accesibilidad web",
+      "wai-aria",
+      "screen reader",
+      "lectores de pantalla"
     ],
     "closure_hours": 8
+  },
+  {
+    "slug": "figma",
+    "name": "Figma",
+    "category": "dominio",
+    "aliases": [
+      "figjam",
+      "figma dev mode"
+    ],
+    "closure_hours": 8
+  },
+  {
+    "slug": "ux_research",
+    "name": "Investigación UX",
+    "category": "dominio",
+    "aliases": [
+      "user research",
+      "investigación de usuarios",
+      "investigacion de usuarios",
+      "usability testing",
+      "tests de usabilidad",
+      "user interviews",
+      "entrevistas a usuarios"
+    ],
+    "closure_hours": 24
+  },
+  {
+    "slug": "design_systems",
+    "name": "Design systems",
+    "category": "dominio",
+    "aliases": [
+      "design system",
+      "sistema de diseño",
+      "sistemas de diseño",
+      "design tokens"
+    ],
+    "closure_hours": 16
+  },
+  {
+    "slug": "prototyping",
+    "name": "Prototipado",
+    "category": "dominio",
+    "aliases": [
+      "wireframes",
+      "wireframe",
+      "wireframing",
+      "mockups",
+      "prototipos interactivos",
+      "figma prototype"
+    ],
+    "closure_hours": 8
+  },
+  {
+    "slug": "redes_it",
+    "name": "Redes (TCP/IP, DNS, VPN)",
+    "category": "infra",
+    "aliases": [
+      "tcp/ip",
+      "dns",
+      "dhcp",
+      "vpn",
+      "lan",
+      "wan",
+      "cisco",
+      "redes de datos",
+      "redes de computadoras",
+      "redes lan",
+      "administración de redes",
+      "administracion de redes",
+      "network administration",
+      "network administrator"
+    ],
+    "closure_hours": 24
+  },
+  {
+    "slug": "windows_server",
+    "name": "Windows Server",
+    "category": "infra",
+    "aliases": [
+      "windows server 2016",
+      "windows server 2019",
+      "windows server 2022",
+      "gpo",
+      "group policy",
+      "hyper-v"
+    ],
+    "closure_hours": 24
+  },
+  {
+    "slug": "linux_admin",
+    "name": "Administración Linux",
+    "category": "infra",
+    "aliases": [
+      "linux server",
+      "linux servers",
+      "servidores linux",
+      "linux system administration",
+      "ubuntu server",
+      "red hat",
+      "rhel",
+      "centos",
+      "debian",
+      "shell scripting",
+      "sysadmin",
+      "administración de linux",
+      "administracion de linux"
+    ],
+    "closure_hours": 24
+  },
+  {
+    "slug": "active_directory",
+    "name": "Active Directory",
+    "category": "infra",
+    "aliases": [
+      "directorio activo",
+      "domain controller",
+      "controlador de dominio"
+    ],
+    "closure_hours": 16
+  },
+  {
+    "slug": "itil",
+    "name": "ITIL / gestión de servicios",
+    "category": "dominio",
+    "aliases": [
+      "itil 4",
+      "itil v4",
+      "itsm",
+      "it service management",
+      "gestión de incidentes",
+      "gestion de incidentes",
+      "incident management"
+    ],
+    "closure_hours": 16
+  },
+  {
+    "slug": "help_desk",
+    "name": "Help desk / mesa de ayuda",
+    "category": "dominio",
+    "aliases": [
+      "helpdesk",
+      "mesa de ayuda",
+      "service desk",
+      "jira service management",
+      "zendesk",
+      "freshdesk",
+      "glpi",
+      "soporte técnico",
+      "soporte tecnico",
+      "technical support"
+    ],
+    "closure_hours": 8
+  },
+  {
+    "slug": "excel",
+    "name": "Excel",
+    "category": "datos",
+    "aliases": [
+      "microsoft excel",
+      "tablas dinámicas",
+      "tablas dinamicas",
+      "pivot tables",
+      "vlookup",
+      "buscarv",
+      "google sheets",
+      "hojas de cálculo",
+      "hojas de calculo",
+      "spreadsheets",
+      "vba"
+    ],
+    "closure_hours": 8
+  },
+  {
+    "slug": "power_bi",
+    "name": "Power BI",
+    "category": "datos",
+    "aliases": [
+      "powerbi",
+      "dax",
+      "power query"
+    ],
+    "closure_hours": 16
+  },
+  {
+    "slug": "tableau",
+    "name": "Tableau / Looker",
+    "category": "datos",
+    "aliases": [
+      "looker",
+      "looker studio",
+      "data studio",
+      "qlik",
+      "qlikview",
+      "metabase"
+    ],
+    "closure_hours": 16
+  },
+  {
+    "slug": "statistics",
+    "name": "Estadística",
+    "category": "datos",
+    "aliases": [
+      "estadistica",
+      "statistics",
+      "statistical analysis",
+      "análisis estadístico",
+      "analisis estadistico"
+    ],
+    "closure_hours": 24
   }
 ]

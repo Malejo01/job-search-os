@@ -45,9 +45,9 @@ describe("matchStack: mapeo determinista del stack a la taxonomía", () => {
     const m = matchMention(".NET Core 5+ años", terms);
     expect(m.slugs).toEqual(["dotnet"]);
     expect(m.leftover).toEqual([]);
-    const free = matchMention("estadística en muestras chicas", terms);
+    const free = matchMention("cerámica en muestras chicas", terms);
     expect(free.slugs).toEqual([]);
-    expect(free.leftover).toEqual(["estadistica en muestras chicas"]);
+    expect(free.leftover).toEqual(["ceramica en muestras chicas"]);
   });
 
   it("entradas reales del golden", () => {
