@@ -15,6 +15,16 @@ export type AssistantFacts = {
   firstAlertReceived: boolean;
 };
 
+/**
+ * Único link directo a Gmail del asistente: la pantalla de Filtros, que sí carga por URL. La de
+ * reenvío (`#settings/fwdandpop`) no carga por URL: ahí se dan instrucciones en texto.
+ */
+export const GMAIL_FILTERS_URL = "https://mail.google.com/mail/u/0/#settings/filters";
+
+/** Cómo llegar a la pantalla de reenvío de Gmail, en texto (sin link). */
+export const GMAIL_FORWARDING_PATH =
+  "Gmail › ⚙ › Ver todos los ajustes › Reenvío y correo POP/IMAP";
+
 export type AssistantStep =
   | "direccion_vieja"
   | "agregar_direccion"

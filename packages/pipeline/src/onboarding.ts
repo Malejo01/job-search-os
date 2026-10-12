@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { CriteriaRules } from "./criteria";
 import { DISCIPLINES } from "./evaluation";
+import { isRoleKey, type RoleKey } from "./skills/self-assessment";
 
 /**
  * Onboarding obligatorio (B2, JS-094): qué es un "perfil completo" y cómo se valida el formulario.
@@ -151,8 +152,17 @@ const optionalInt = (min: number, max: number) =>
     .transform((v) => (v === "" ? null : Number(v)))
     .pipe(z.number().int().min(min).max(max).nullable());
 
+/** Valor del selector de puesto para "Otro o varios": no guarda rol (`target_role` queda null). */
+export const OTHER_ROLE = "otro";
+
 export const onboardingSchema = z
   .object({
+    // Obligatorio: una clave de ROLE_KEYS o "otro". Ausente u otro valor falla (no se asume nada).
+    targetRole: z
+      .string()
+      .trim()
+      .refine((v) => v === OTHER_ROLE || isRoleKey(v))
+      .transform((v): RoleKey | null => (isRoleKey(v) ? v : null)),
     country: z.string().trim().toUpperCase(),
     countryOther: z.string().trim().toUpperCase(),
     city: optionalText(100),
@@ -182,6 +192,8 @@ export const onboardingSchema = z
   });
 
 export type OnboardingInput = {
+  /** Puesto que busca; null = "Otro o varios" (sin filtro por rol). */
+  targetRole: RoleKey | null;
   locationCountry: string;
   locationCity: string | null;
   remoteOnly: boolean;
@@ -202,6 +214,7 @@ export type OnboardingParse = { ok: true; value: OnboardingInput } | { ok: false
 export function parseOnboarding(raw: Record<string, string | undefined>): OnboardingParse {
   const s = (k: string) => raw[k] ?? "";
   const parsed = onboardingSchema.safeParse({
+    targetRole: s("targetRole"),
     country: s("country"),
     countryOther: s("countryOther"),
     city: s("city"),
@@ -229,6 +242,7 @@ export function parseOnboarding(raw: Record<string, string | undefined>): Onboar
   return {
     ok: true,
     value: {
+      targetRole: v.targetRole,
       locationCountry: v.country === OTHER_COUNTRY ? v.countryOther : v.country,
       locationCity: v.city,
       remoteOnly: v.remoteOnly,

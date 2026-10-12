@@ -1,5 +1,6 @@
 import { DEFAULT_CRITERIA_RULES, defaultRole } from "@job-search-os/pipeline";
 import Link from "next/link";
+import { getTargetRole } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
 import { ROLE_SKILLS, getSkillsPageData } from "@/lib/skill-levels";
 import { saveSkillsAction } from "./actions";
@@ -20,12 +21,16 @@ export default async function SkillsSettingsPage({
   searchParams: Promise<{ rol?: string; guardado?: string; error?: string }>;
 }) {
   const userId = await requireUserId();
-  const [data, { rol, guardado, error }] = await Promise.all([
+  const [data, targetRole, { rol, guardado, error }] = await Promise.all([
     getSkillsPageData(userId),
+    getTargetRole(userId),
     searchParams,
   ]);
+  const chosen = parseRoleParam(rol);
+  // Primero lo que eligió en esta pantalla, después el rol que dijo buscar, después el deducido
   const role =
-    parseRoleParam(rol) ??
+    chosen ??
+    targetRole ??
     defaultRole({
       headline: data.headline,
       allowedDisciplines: data.allowedDisciplines,
@@ -60,7 +65,7 @@ export default async function SkillsSettingsPage({
       ) : null}
 
       <SkillsForm
-        action={saveSkillsAction}
+        action={saveSkillsAction.bind(null, chosen)}
         basePath="/settings/skills"
         roleMap={ROLE_SKILLS}
         role={role}

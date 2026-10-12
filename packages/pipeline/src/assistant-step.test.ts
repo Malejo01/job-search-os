@@ -1,5 +1,13 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { ASSISTANT_STEPS, assistantStep, type AssistantFacts } from "./assistant-step";
+import {
+  ASSISTANT_STEPS,
+  assistantStep,
+  GMAIL_FILTERS_URL,
+  GMAIL_FORWARDING_PATH,
+  type AssistantFacts,
+} from "./assistant-step";
 
 const none: AssistantFacts = {
   legacyAddress: false,
@@ -94,6 +102,26 @@ describe("assistantStep", () => {
         "listo",
       ].sort(),
     );
+  });
+});
+
+describe("links de Gmail", () => {
+  const assistantSource = readFileSync(
+    resolve(__dirname, "../../../apps/web/app/onboarding/asistente/assistant.tsx"),
+    "utf8",
+  );
+
+  it("el único link directo es a Filtros", () => {
+    expect(GMAIL_FILTERS_URL).toBe("https://mail.google.com/mail/u/0/#settings/filters");
+  });
+  it("el recorrido al reenvío es texto y no lleva link", () => {
+    expect(GMAIL_FORWARDING_PATH).toContain("Reenvío y correo POP/IMAP");
+    expect(GMAIL_FORWARDING_PATH).not.toMatch(/https?:/);
+  });
+  it("la pantalla no conserva el link viejo de reenvío", () => {
+    expect(assistantSource).not.toContain("fwdandpop");
+    expect(assistantSource).not.toContain("GMAIL_FORWARDING_URL");
+    expect(assistantSource).toContain("GMAIL_FILTERS_URL");
   });
 });
 

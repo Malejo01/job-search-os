@@ -13,6 +13,7 @@ import { SOURCE_LABELS, STATUS_LABELS } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import Link from "next/link";
 import { AutoRefresh } from "./auto-refresh";
+import { EmailNudge } from "./email-nudge";
 import { JobFilters } from "./job-filters";
 import { JobList } from "./job-list";
 
@@ -47,6 +48,7 @@ export default async function JobsPage({
           </Link>
         </p>
       </div>
+      <EmailNudge userId={userId} />
       {/* Posibles duplicados (JS-025): se revisan a mano, desde el detalle */}
       {filters.duplicates ? (
         <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">

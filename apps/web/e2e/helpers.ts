@@ -891,6 +891,173 @@ export async function seedMarketSnapshot(userId: string, offers: string[][]): Pr
   }
 }
 
+// ─────────────────────────────────────────────────────────────
+// Pool público (ronda 39). Datos inventados (`Empresa Ficticia`, example.com). Sin red: el pool
+// no se descarga en e2e (POOL_SOURCES vacío), las filas se siembran con la conexión del dueño.
+// ─────────────────────────────────────────────────────────────
+
+export type SeedPublicJob = {
+  title: string;
+  company: string;
+  sourceKind: "getonboard_api" | "remoteok" | "jobicy";
+  /** Roles de ROLE_KEYS a los que sirve el aviso (`public_jobs.role_hints`). */
+  roleHints: string[];
+};
+
+const POOL_SOURCE_NAMES: Record<SeedPublicJob["sourceKind"], string> = {
+  getonboard_api: "Get on Board · programming",
+  remoteok: "Remote OK",
+  jobicy: "Jobicy",
+};
+
+/** Prefijo de `external_id` de las filas sembradas con `tag`: así la limpieza no toca otras. */
+const poolExternalPrefix = (tag: string | number) => `e2e-pool-${tag}-`;
+
+/** Inserta filas ficticias en `public_jobs`; devuelve sus ids en el orden de `rows`. */
+export async function seedPublicJobs(
+  tag: string | number,
+  rows: SeedPublicJob[],
+): Promise<string[]> {
+  const { db, close } = ownerDb();
+  try {
+    const ids: string[] = [];
+    for (const [i, r] of rows.entries()) {
+      const url = `https://example.com/e2e-pool/${tag}/${i + 1}`;
+      const now = new Date();
+      const [row] = await db
+        .insert(s.publicJobs)
+        .values({
+          sourceKind: r.sourceKind,
+          externalId: `${poolExternalPrefix(tag)}${i + 1}`,
+          sourceName: POOL_SOURCE_NAMES[r.sourceKind],
+          sourceUrl: url,
+          canonicalUrl: url,
+          title: r.title,
+          titleNormalized: r.title.toLowerCase(),
+          companyRaw: r.company,
+          companyNormalized: r.company.toLowerCase(),
+          locationRaw: "Remoto (Brasil)",
+          modality: "remoto",
+          jdText: `Descripción ficticia del aviso ${i + 1} (${tag}): se busca una persona para un equipo remoto.`,
+          jdHash: `e2e-pool-${tag}-${i + 1}`,
+          roleHints: r.roleHints,
+          postedAt: now,
+          firstSeenAt: now,
+          lastSeenAt: now,
+        })
+        .returning({ id: s.publicJobs.id });
+      ids.push(row!.id);
+    }
+    return ids;
+  } finally {
+    await close();
+  }
+}
+
+/**
+ * Hace lo que la asignación del pool a una persona (ronda 38) para las filas sembradas con `tag`:
+ * crea su `jobs` + `job_sources` con `public_job_id` y deja un mensaje de evaluación en la cola.
+ * Filtra por el rol guardado en su perfil (`target_role`): con rol, solo los avisos cuyo
+ * `role_hints` lo incluye; sin rol, todos. Con `ON CONFLICT DO NOTHING` y sin repetir cola ni
+ * fuentes, sirve igual si la asignación real ya corrió. Devuelve los ids de `jobs` que creó.
+ */
+export async function assignSeededPoolJobs(
+  userId: string,
+  tag: string | number,
+): Promise<string[]> {
+  const { db, close } = ownerDb();
+  try {
+    const [profile] = await db
+      .select({ targetRole: s.profiles.targetRole })
+      .from(s.profiles)
+      .where(eq(s.profiles.userId, userId));
+    const role = profile?.targetRole ?? null;
+    const pool = await db
+      .select()
+      .from(s.publicJobs)
+      .where(sql`${s.publicJobs.externalId} like ${`${poolExternalPrefix(tag)}%`}`);
+    const created: string[] = [];
+    for (const p of pool) {
+      if (role !== null && !(p.roleHints ?? []).includes(role)) continue;
+      const [job] = await db
+        .insert(s.jobs)
+        .values({
+          userId,
+          companyRaw: p.companyRaw,
+          title: p.title,
+          titleNormalized: p.titleNormalized,
+          canonicalUrl: p.canonicalUrl,
+          locationRaw: p.locationRaw,
+          modality: p.modality,
+          jdText: p.jdText,
+          jdHash: p.jdHash,
+          publicJobId: p.id,
+          // Como la asignación real: con JD pasa el prefiltro y queda lista para evaluar
+          status: "prefiltrada",
+          flags: [],
+          postedAt: p.postedAt,
+          firstSeenAt: new Date(),
+        })
+        .onConflictDoNothing()
+        .returning({ id: s.jobs.id });
+      // Ya estaba asignada (la 38 corrió antes): no se repite nada
+      if (!job) continue;
+      await db.insert(s.jobSources).values({
+        jobId: job.id,
+        kind: p.sourceKind,
+        sourceName: p.sourceName,
+        externalId: p.externalId,
+        url: p.sourceUrl,
+        seenAt: new Date(),
+      });
+      await db.insert(s.jobQueue).values({
+        queue: "evaluate_job",
+        userId,
+        payload: { jobId: job.id },
+        runAfter: new Date(),
+        maxAttempts: 3,
+      });
+      created.push(job.id);
+    }
+    return created;
+  } finally {
+    await close();
+  }
+}
+
+/**
+ * Borra lo sembrado con `tag`: las copias por usuario (con fuentes y evaluaciones por cascade), sus
+ * mensajes de cola y las filas de `public_jobs`. Cada paso aparte: si uno falla, los demás corren.
+ */
+export async function deleteSeededPublicJobs(tag: string | number): Promise<void> {
+  const { db, close } = ownerDb();
+  try {
+    const pool = await db
+      .select({ id: s.publicJobs.id })
+      .from(s.publicJobs)
+      .where(sql`${s.publicJobs.externalId} like ${`${poolExternalPrefix(tag)}%`}`);
+    const ids = pool.map((p) => p.id);
+    if (ids.length === 0) return;
+    const copies = await db
+      .select({ id: s.jobs.id })
+      .from(s.jobs)
+      .where(inArray(s.jobs.publicJobId, ids));
+    for (const c of copies) {
+      await db
+        .delete(s.jobQueue)
+        .where(sql`${s.jobQueue.payload}->>'jobId' = ${c.id}`)
+        .catch(() => {});
+    }
+    await db
+      .delete(s.jobs)
+      .where(inArray(s.jobs.publicJobId, ids))
+      .catch(() => {});
+    await db.delete(s.publicJobs).where(inArray(s.publicJobs.id, ids));
+  } finally {
+    await close();
+  }
+}
+
 /** slug → nivel declarado de un usuario. */
 export async function skillLevelsOf(userId: string): Promise<Record<string, number>> {
   const { db, close } = ownerDb();

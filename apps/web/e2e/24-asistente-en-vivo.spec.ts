@@ -34,16 +34,15 @@ test.describe.serial("Flujo 24: asistente con el paso actual", () => {
     if (previousAddress) await setSeedInboundAddress(previousAddress);
   });
 
-  test("sin nada hecho: paso 1 con el link a Gmail", async ({ page }) => {
+  test("sin nada hecho: paso 1 con el recorrido a Gmail en texto, sin link", async ({ page }) => {
     await login(page);
     await page.goto("/settings/asistente");
     const current = page.locator('[aria-current="step"]');
     await expect(current).toHaveCount(1);
     await expect(current).toContainText("Agregá la dirección de reenvío");
-    await expect(current.getByRole("link", { name: /Reenvío y correo POP\/IMAP/ })).toHaveAttribute(
-      "href",
-      /^https:\/\/mail\.google\.com\//,
-    );
+    // La pantalla de reenvío de Gmail no carga por URL (ronda 39): instrucciones, no link
+    await expect(current).toContainText("Ver todos los ajustes › Reenvío y correo POP/IMAP");
+    await expect(current.locator('a[href*="mail.google.com"]')).toHaveCount(0);
   });
 
   test("llega el pedido de Gmail: paso 2, «Ya lo confirmé» pasa al paso 3", async ({ page }) => {

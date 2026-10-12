@@ -1,14 +1,18 @@
-import { ASSISTANT_STEPS, type AssistantStep } from "@job-search-os/pipeline";
+import {
+  ASSISTANT_STEPS,
+  GMAIL_FILTERS_URL,
+  GMAIL_FORWARDING_PATH,
+  type AssistantStep,
+} from "@job-search-os/pipeline";
 import Link from "next/link";
 import { AutoRefresh } from "@/app/(app)/jobs/auto-refresh";
+import { TrustBox } from "@/app/components/trust-box";
 import type { AssistantState } from "@/lib/assistant-state";
 import { confirmedForwardingAction, filtersImportedAction } from "./actions";
 import { CopyButton } from "./copy-button";
 
 const LEGACY_NOTICE =
   "Tu dirección es de un formato anterior: generá una nueva en Ajustes › Email entrante antes de configurar Gmail.";
-
-const GMAIL_FORWARDING_URL = "https://mail.google.com/mail/u/0/#settings/fwdandpop";
 
 const STEP_TITLES: Record<(typeof ASSISTANT_STEPS)[number], string> = {
   agregar_direccion: "Agregá la dirección de reenvío",
@@ -34,15 +38,26 @@ function viewOf(step: (typeof ASSISTANT_STEPS)[number], current: AssistantStep):
  * cinco pasos que avanzan solos según lo que llegó. Todo es texto y links: el servidor no abre
  * ningún link (D-028); el de la confirmación de Gmail lo abre el navegador de la persona.
  */
-export function Assistant({ address, state }: { address: string | null; state: AssistantState }) {
+export function Assistant({
+  address,
+  state,
+  context = "settings",
+}: {
+  address: string | null;
+  state: AssistantState;
+  /** `onboarding`: paso opcional después de «Tus primeras ofertas». `settings`: dentro de Ajustes. */
+  context?: "onboarding" | "settings";
+}) {
   const { step } = state;
   const legacy = step === "direccion_vieja";
+  const inOnboarding = context === "onboarding";
   return (
     <section className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">Conectá tus alertas de empleo</h1>
+      <h1 className="text-xl font-semibold">Conectá tus alertas de email (opcional)</h1>
       <p className="text-sm text-zinc-700">
-        Reenviá las alertas de LinkedIn, Get on Board e Indeed a tu dirección personal y se cargan
-        solas. No la compartas.
+        Ya tenés ofertas de las fuentes públicas. Si además recibís alertas de LinkedIn, Get on
+        Board, Indeed u otro portal, podés sumarlas: reenviá esos emails a tu dirección personal y
+        se cargan solas. No la compartas.
       </p>
       {legacy ? (
         <p role="alert" className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
@@ -107,12 +122,22 @@ export function Assistant({ address, state }: { address: string | null; state: A
         maxMs={30 * 60 * 1000}
       />
 
-      <div className="flex justify-end">
+      <TrustBox />
+
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        {inOnboarding ? (
+          <Link
+            href="/onboarding/ofertas"
+            className="rounded-md border border-zinc-300 px-4 py-2 text-base focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
+          >
+            Volver a Tus primeras ofertas
+          </Link>
+        ) : null}
         <Link
           href="/jobs"
-          className="rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white"
+          className="rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
         >
-          {step === "listo" ? "Ir a mis avisos" : "Lo hago después"}
+          {step === "listo" ? "Ir a mis ofertas" : "Lo hago después"}
         </Link>
       </div>
     </section>
@@ -134,17 +159,9 @@ function StepBody({
       ) : (
         <>
           <p>
-            Abrí{" "}
-            <a
-              href={GMAIL_FORWARDING_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline"
-            >
-              Gmail › Reenvío y correo POP/IMAP
-            </a>
-            . Tocá «Añadir una dirección de reenvío», pegá la dirección de arriba, tocá «Siguiente»
-            y después «Continuar».
+            En Gmail, abrí <span className="font-medium">{GMAIL_FORWARDING_PATH}</span>. Tocá
+            «Añadir una dirección de reenvío», pegá la dirección de arriba, tocá «Siguiente» y
+            después «Continuar».
           </p>
           <p>
             Gmail te manda un pedido de confirmación a esa dirección. Esta pantalla lo detecta y
@@ -207,9 +224,17 @@ function StepBody({
             </a>
           </p>
           <p>
-            En Gmail: Configuración › Ver todos los ajustes › Filtros y direcciones bloqueadas ›
-            Importar filtros → elegí el archivo → Abrir archivo → Crear filtros. No marques «Aplicar
-            también a las conversaciones existentes».
+            En Gmail, abrí{" "}
+            <a
+              href={GMAIL_FILTERS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              Filtros y direcciones bloqueadas
+            </a>{" "}
+            › Importar filtros → elegí el archivo → Abrir archivo → Crear filtros. No marques
+            «Aplicar también a las conversaciones existentes».
           </p>
           <p>
             El filtro reenvía todo lo que llega de esos remitentes (también avisos de cuenta de esas
