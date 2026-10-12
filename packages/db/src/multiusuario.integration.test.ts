@@ -25,7 +25,17 @@ const EXTRA_TABLES = [
 ] as const;
 
 /** Catálogos compartidos sin dueño: lectura abierta a propósito, sin escritura para la app. */
-const CATALOG_TABLES = ["companies", "skills", "model_routing", "learning_resources"];
+const CATALOG_TABLES = [
+  "companies",
+  "skills",
+  "model_routing",
+  "learning_resources",
+  // Pool global de ofertas (ADR-014): sin user_id, la app solo lee; public_job_fetches ni eso.
+  "public_jobs",
+  "public_job_skills",
+  "public_job_fetches",
+  "role_market_snapshots",
+];
 
 /**
  * JS-103, ver #54 (trae sus propios tests de lectura cruzada). Se excluyen solo del chequeo de

@@ -7,6 +7,7 @@ import {
   createPgQueue,
   parseLogDays,
   purgeExpired,
+  purgePool,
   runEvaluateWorker,
   safeDbError,
 } from "@job-search-os/adapters";
@@ -17,10 +18,13 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
+/** Mensajes de la cola que procesa cada corrida (cada 6 h). Subió de 20 a 50 con el pool (ronda 37). */
+const EVALUATE_LIMIT = 50;
+
 /**
  * Worker de evaluación: lo dispara .github/workflows/cron.yml cada 6 hs, después de la ingesta
  * (docs/DEPLOY.md).
- * Procesa hasta 20 mensajes de la cola evaluate_job. Protegido por CRON_SECRET.
+ * Procesa hasta EVALUATE_LIMIT mensajes de la cola evaluate_job. Protegido por CRON_SECRET.
  */
 export async function GET(request: Request): Promise<NextResponse> {
   if (
@@ -38,7 +42,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     const llm = serviceLlm(db, logger);
     const summary = await runEvaluateWorker(
       { db, llm, queue: createPgQueue(db), logger },
-      { limit: 20 },
+      { limit: EVALUATE_LIMIT },
     );
     // El detalle (ids y mensaje) va al log del servidor; la respuesta es pública (cron.yml): JS-110
     for (const f of failedOutcomes(summary.outcomes)) {
@@ -59,7 +63,17 @@ export async function GET(request: Request): Promise<NextResponse> {
     } catch (error) {
       logger.error({ err: safeDbError(error) }, "purga de retención falló");
     }
-    return NextResponse.json({ ...buildEvaluateCronResponse(summary), purged });
+    // Retención del pool global (30 días desde la última vez visto): en su propio try, no rompe el cron.
+    // La respuesta pública lleva solo el conteo de avisos.
+    let purgedPool: number | null = null;
+    try {
+      const detail = await purgePool(db);
+      purgedPool = detail.jobs;
+      logger.info({ purged_pool: detail }, "purga del pool");
+    } catch (error) {
+      logger.error({ err: safeDbError(error) }, "purga del pool falló");
+    }
+    return NextResponse.json({ ...buildEvaluateCronResponse(summary), purged, purgedPool });
   } catch (error) {
     logger.error({ err: safeDbError(error) }, "cron evaluate falló");
     return NextResponse.json({ ok: false, error: "worker falló" }, { status: 500 });

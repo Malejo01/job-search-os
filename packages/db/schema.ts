@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   pgTable, pgEnum, uuid, text, integer, real, boolean, timestamp, jsonb, date, index, uniqueIndex, primaryKey,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
 // ─────────────────────────────────────────────────────────────
@@ -19,7 +20,7 @@ export const locationOk = pgEnum("location_ok", ["ok", "riesgo", "no"]);
 export const suggestedAction = pgEnum("suggested_action", ["aplicar_personalizado", "aplicar", "guardar", "descartar"]);
 export const englishLevel = pgEnum("english_level", ["no_menciona", "no", "basico", "intermedio", "avanzado", "nativo"]);
 export const companyType = pgEnum("company_type", ["producto", "startup", "consultora", "staffing", "agencia", "desconocido"]);
-export const sourceKind = pgEnum("source_kind", ["getonboard_api", "email_linkedin", "email_getonboard", "email_generic", "manual", "hn_whoishiring", "remotive", "other"]);
+export const sourceKind = pgEnum("source_kind", ["getonboard_api", "email_linkedin", "email_getonboard", "email_generic", "manual", "hn_whoishiring", "remotive", "other", "remoteok", "jobicy", "himalayas"]);
 export const applicationOutcome = pgEnum("application_outcome", [
   "sin_respuesta", "rechazo_automatico_ubicacion", "rechazo_automatico_otro", "rechazo_humano", "entrevista", "oferta", "cerrada_antes", "retirada",
 ]);
@@ -75,6 +76,8 @@ export const profiles = pgTable("profiles", {
   inboundAddress: text("inbound_address").notNull().unique(), // u_<id>@ingest.<dominio>
   timezone: text("timezone").default("America/Argentina/Salta"),
   profileSummary: text("profile_summary"),    // texto que entra al prompt (generado desde skill_levels + proyectos)
+  targetRole: text("target_role"),            // rol objetivo: se valida en código contra ROLE_KEYS (sin enum en la base)
+  poolDailyEvalLimit: integer("pool_daily_eval_limit"), // tope diario de evaluaciones del pool; null = rige el default de la variable
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -145,6 +148,8 @@ export const jobs = pgTable("jobs", {
   salaryNote: text("salary_note"),
   weeklyHours: integer("weekly_hours"),
   candidatesCount: integer("candidates_count"),
+  // Oferta del pool de la que salió esta copia por usuario (ADR-014); null = ingesta directa
+  publicJobId: uuid("public_job_id").references((): AnyPgColumn => publicJobs.id, { onDelete: "set null" }),
   badges: text("badges").array(),                       // "En busca de personal", "Solicitud sencilla", "3 de 4 aptitudes"
   skillsMatchRatio: real("skills_match_ratio"),         // 0..1 desde badge "X de Y aptitudes"
   jdText: text("jd_text"),                              // null → pendiente_jd
@@ -162,7 +167,94 @@ export const jobs = pgTable("jobs", {
   index("jobs_user_status").on(t.userId, t.status),
   index("jobs_user_company").on(t.userId, t.companyId, t.firstSeenAt),
   uniqueIndex("jobs_user_url").on(t.userId, t.canonicalUrl),
+  uniqueIndex("jobs_user_public_job").on(t.userId, t.publicJobId).where(sql`${t.publicJobId} is not null`),
 ]);
+
+// Pool global de ofertas públicas (ADR-014). Son ofertas, no datos de usuarios: nada por persona
+// (estado, flags, prefiltro, evaluaciones) va acá; eso vive en `jobs`. Sin user_id.
+export const publicJobs = pgTable("public_jobs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  sourceKind: sourceKind("source_kind").notNull(),
+  externalId: text("external_id").notNull(),              // sin prefijo
+  sourceName: text("source_name").notNull(),              // "Get on Board · programming", "Remote OK"...
+  sourceUrl: text("source_url").notNull(),                // tal como la da la fuente (atribución)
+  canonicalUrl: text("canonical_url"),
+  title: text("title").notNull(),
+  titleNormalized: text("title_normalized").notNull(),
+  companyRaw: text("company_raw").notNull(),
+  companyNormalized: text("company_normalized").notNull(),
+  companyId: uuid("company_id").references(() => companies.id, { onDelete: "set null" }),
+  locationRaw: text("location_raw"),
+  countriesAllowed: text("countries_allowed").array(),    // null = la fuente no lo dice
+  modality: modality("modality").default("desconocida"),
+  contractType: text("contract_type"),
+  seniority: text("seniority"),
+  lang: text("lang"),
+  salaryMinUsd: integer("salary_min_usd"),
+  salaryMaxUsd: integer("salary_max_usd"),
+  salaryPeriod: text("salary_period"),                    // mensual | anual | hora
+  salaryNote: text("salary_note"),
+  weeklyHours: integer("weekly_hours"),
+  candidatesCount: integer("candidates_count"),
+  jdText: text("jd_text"),
+  jdHash: text("jd_hash"),
+  jdShingles: jsonb("jd_shingles").$type<string[]>(),
+  tags: text("tags").array(),
+  categories: text("categories").array(),                 // categoría o industria de la fuente
+  roleHints: text("role_hints").array().notNull().default(sql`'{}'::text[]`), // roles de ROLE_KEYS; vacío = no se sabe
+  postedAt: timestamp("posted_at", { withTimezone: true }),
+  firstSeenAt: timestamp("first_seen_at", { withTimezone: true }).notNull(),
+  lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull(),
+  // Copia de otra fila del pool (la más antigua). No se fusiona: las dos filas quedan.
+  dedupOfId: uuid("dedup_of_id").references((): AnyPgColumn => publicJobs.id, { onDelete: "set null" }),
+  rawRef: text("raw_ref"),                                // raw_blobs con user_id NULL
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("public_jobs_source_external").on(t.sourceKind, t.externalId),
+  index("public_jobs_posted_at").on(t.postedAt.desc()),
+  index("public_jobs_last_seen").on(t.lastSeenAt),
+  index("public_jobs_canonical_url").on(t.canonicalUrl).where(sql`${t.canonicalUrl} is not null`),
+  index("public_jobs_jd_hash").on(t.jdHash).where(sql`${t.jdHash} is not null`),
+  index("public_jobs_role_hints").using("gin", t.roleHints),
+  index("public_jobs_dedup_of").on(t.dedupOfId).where(sql`${t.dedupOfId} is not null`),
+]);
+
+export const publicJobSkills = pgTable("public_job_skills", {
+  publicJobId: uuid("public_job_id").notNull().references(() => publicJobs.id, { onDelete: "cascade" }),
+  skillId: uuid("skill_id").notNull().references(() => skills.id),
+  isMust: boolean("is_must").notNull(),
+  rawMention: text("raw_mention"),
+}, (t) => [
+  primaryKey({ columns: [t.publicJobId, t.skillId] }),
+  index("public_job_skills_skill").on(t.skillId),
+]);
+
+// Bitácora global de descargas del pool: intervalos por fuente y auditoría. Solo la lee el servicio.
+export const publicJobFetches = pgTable("public_job_fetches", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  sourceKind: sourceKind("source_kind").notNull(),
+  startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+  finishedAt: timestamp("finished_at", { withTimezone: true }),
+  status: text("status").notNull(),                       // ok | partial | error | skipped
+  httpStatus: integer("http_status"),
+  fetched: integer("fetched").notNull().default(0),
+  inserted: integer("inserted").notNull().default(0),
+  updated: integer("updated").notNull().default(0),
+  skipped: integer("skipped").notNull().default(0),
+  errorCode: text("error_code"),                          // cerrado: timeout | http_429 | http_5xx | parse
+  durationMs: integer("duration_ms"),
+}, (t) => [index("public_job_fetches_source_started").on(t.sourceKind, t.startedAt)]);
+
+// Agregados de demanda por rol y semana (global, sin user_id). Los usa /market.
+export const roleMarketSnapshots = pgTable("role_market_snapshots", {
+  role: text("role").notNull(),
+  weekStart: date("week_start").notNull(),
+  skillId: uuid("skill_id").notNull().references(() => skills.id),
+  mentions: integer("mentions").notNull(),
+  mustMentions: integer("must_mentions").notNull(),
+  jobs: integer("jobs").notNull(),
+}, (t) => [primaryKey({ columns: [t.role, t.weekStart, t.skillId] })]);
 
 export const jobSources = pgTable("job_sources", {
   id: uuid("id").primaryKey().defaultRandom(),

@@ -10,6 +10,13 @@ export {
   type RecentJob,
 } from "./dedup";
 export {
+  poolDedup,
+  type PoolDedupCandidate,
+  type PoolDedupDecision,
+  type PoolDedupOptions,
+  type PoolRecent,
+} from "./pool-dedup";
+export {
   fnv1a,
   jaccard,
   shingleSimilarity,

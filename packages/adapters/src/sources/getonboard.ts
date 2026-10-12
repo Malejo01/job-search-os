@@ -1,4 +1,5 @@
 import type { Modality, RawJob } from "@job-search-os/pipeline";
+import { sourceErrorCode, type SourceErrorCode } from "./error-code";
 
 /**
  * Get on Board, API pública v0 (sin key). Confirmado el 2026-09-10 con llamadas reales:
@@ -16,6 +17,22 @@ export const GOB_CATEGORIES = [
   "programming",
   "machine-learning-ai",
   "data-science-analytics",
+] as const;
+/**
+ * Categorías del pool global (JS-137). Los tres slugs de `GOB_CATEGORIES` están verificados
+ * (2026-09-10); el resto salen del catálogo conocido y están A VERIFICAR con
+ * `pnpm pool:fetch getonboard --dry-run`: si alguno no existe, un 404 se saltea
+ * (`skipMissingCategories`) y queda en `missingCategories`. `GOB_CATEGORIES` no cambia: la usa
+ * la ingesta por usuario de hoy.
+ */
+export const GOB_POOL_CATEGORIES = [
+  "programming",
+  "mobile-developer",
+  "machine-learning-ai",
+  "data-science-analytics",
+  "design-ux",
+  "sysadmin-devops-qa",
+  "customer-support",
 ] as const;
 export const GOB_EXPAND = ["company", "tags", "modality", "seniority", "location_tenants"] as const;
 
@@ -223,6 +240,7 @@ export function mapGobJob(item: GobJobItem, categorySlug: string): RawJob {
     tags: (a.tags?.data ?? []).map((t) => t.attributes?.name ?? t.id),
     seniority: a.seniority?.data?.attributes?.name ?? null,
     lang: a.lang && a.lang !== "lang_not_specified" ? a.lang : null,
+    categories: [categorySlug],
   };
 }
 
@@ -235,6 +253,18 @@ export type FetchGobOptions = {
   maxPages?: number;
   /** Solo remotos (default true). */
   remoteOnly?: boolean;
+  /**
+   * Con `true`, un 404 en la página 1 de una categoría se saltea y se cuenta en
+   * `missingCategories`; cualquier otro error corta. Default `false` (ingesta por usuario).
+   */
+  skipMissingCategories?: boolean;
+  /**
+   * Con `true`, si una request falla (timeout incluido) después de haber juntado avisos, deja de
+   * pedir y devuelve lo juntado con `partial: true`. Default `false`: el error corta, como hoy.
+   */
+  partialOnError?: boolean;
+  /** Si viene, se manda como cabecera `user-agent`. */
+  userAgent?: string;
   fetchImpl?: typeof fetch;
   baseUrl?: string;
 };
@@ -244,6 +274,12 @@ export type FetchGobResult = {
   pagesFetched: number;
   /** Avisos vistos antes de filtrar por fecha y modalidad. */
   seen: number;
+  /** Categorías salteadas por 404 (solo con `skipMissingCategories`). */
+  missingCategories: string[];
+  /** true si una request falló después de juntar avisos y se devolvió lo juntado (`partialOnError`). */
+  partial: boolean;
+  /** Código cerrado del error que cortó la descarga; null si no hubo. */
+  partialError: SourceErrorCode | null;
 };
 
 export function gobCategoryUrl(
@@ -259,7 +295,7 @@ export function gobCategoryUrl(
 /**
  * Recorre las categorías configuradas página por página (published_at desc), se queda con los
  * remotos publicados desde `since` y corta cuando la página ya es más vieja que la ventana.
- * Deduplica por id entre categorías.
+ * Deduplica por id entre categorías: si un aviso aparece en otra, se le suma la categoría.
  */
 export async function fetchGetOnBoardJobs(options: FetchGobOptions): Promise<FetchGobResult> {
   const fetchImpl = options.fetchImpl ?? fetch;
@@ -273,13 +309,31 @@ export async function fetchGetOnBoardJobs(options: FetchGobOptions): Promise<Fet
   const byId = new Map<string, RawJob>();
   let pagesFetched = 0;
   let seen = 0;
-  for (const category of categories) {
+  const missingCategories: string[] = [];
+  const headers: Record<string, string> = { accept: "application/json" };
+  if (options.userAgent) headers["user-agent"] = options.userAgent;
+  let partial = false;
+  let partialError: SourceErrorCode | null = null;
+  outer: for (const category of categories) {
     for (let page = 1; page <= maxPages; page++) {
-      const res = await fetchImpl(gobCategoryUrl(baseUrl, category, page, perPage), {
-        headers: { accept: "application/json" },
-      });
-      if (!res.ok) throw new Error(`Get on Board ${category} p${page}: HTTP ${res.status}`);
-      const body = (await res.json()) as GobPage;
+      let body: GobPage;
+      try {
+        const res = await fetchImpl(gobCategoryUrl(baseUrl, category, page, perPage), { headers });
+        if (page === 1 && res.status === 404 && options.skipMissingCategories) {
+          missingCategories.push(category);
+          break;
+        }
+        if (!res.ok) throw new Error(`Get on Board ${category} p${page}: HTTP ${res.status}`);
+        body = (await res.json()) as GobPage;
+      } catch (e) {
+        if (options.partialOnError && byId.size > 0) {
+          // Se conserva lo juntado y se informa el error en forma cerrada (nunca el mensaje).
+          partial = true;
+          partialError = sourceErrorCode(e);
+          break outer;
+        }
+        throw e;
+      }
       pagesFetched++;
       const items = body.data ?? [];
       seen += items.length;
@@ -290,12 +344,16 @@ export async function fetchGetOnBoardJobs(options: FetchGobOptions): Promise<Fet
           continue;
         }
         if (remoteOnly && !item.attributes.remote) continue;
-        if (!byId.has(item.id)) byId.set(item.id, mapGobJob(item, category));
+        const existing = byId.get(item.id);
+        if (!existing) byId.set(item.id, mapGobJob(item, category));
+        else if (!existing.categories?.includes(category)) {
+          existing.categories = [...(existing.categories ?? []), category];
+        }
       }
       const totalPages = body.meta?.total_pages ?? page;
       // Orden published_at desc: si toda la página quedó fuera de la ventana, lo que sigue también
       if (page >= totalPages || items.length === 0 || olderThanWindow === items.length) break;
     }
   }
-  return { jobs: [...byId.values()], pagesFetched, seen };
+  return { jobs: [...byId.values()], pagesFetched, seen, missingCategories, partial, partialError };
 }

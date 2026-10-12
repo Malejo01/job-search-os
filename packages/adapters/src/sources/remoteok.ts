@@ -6,7 +6,12 @@ import { htmlToText } from "./getonboard";
  * (se escribió sin red; ver docs/sources/remoteok.md):
  * - `GET https://remoteok.com/api` → array. El primer elemento es un aviso legal (sin id/position).
  * - Salarios en USD anuales; 0 = sin dato. Todo aviso es remoto por definición de la fuente.
- * - Piden atribución con link al aviso.
+ * - Atribución exigida, texto del campo `legal` del elemento [0] citado en
+ *   ops/rondas/37-38-39/informes/riesgos-fuentes.md (consultado el 2026-10-12): "Please link back
+ *   (with follow, and without nofollow!) to the URL on Remote OK and mention Remote OK as a
+ *   source" y "Please don't use the Remote OK logo without written permission". Quien muestre
+ *   estos avisos debe enlazar a `source.url` con `follow` y decir "Remote OK", sin logo.
+ * - `externalId` es el id de la fuente sin prefijo: la unicidad la da `source.kind`.
  */
 export const REMOTEOK_BASE_URL = "https://remoteok.com/api";
 
@@ -60,9 +65,9 @@ export function mapRemoteOkJob(item: RemoteOkItem): RawJob {
 
   return {
     source: {
-      kind: "other",
+      kind: "remoteok",
       name: "Remote OK",
-      externalId: `remoteok:${id}`,
+      externalId: id,
       url: item.url ?? item.apply_url ?? null,
       rawRef: null,
       original: { contentType: "application/json", body: JSON.stringify(item) },
@@ -85,6 +90,7 @@ export function mapRemoteOkJob(item: RemoteOkItem): RawJob {
     tags: item.tags ?? [],
     seniority: null,
     lang: null,
+    categories: (item.tags ?? []).map((t) => t.toLowerCase()),
   };
 }
 
@@ -93,12 +99,16 @@ export type FetchRemoteOkOptions = {
   since: Date;
   /** Si viene, solo avisos con alguno de estos tags (filtro en cliente, sin distinguir mayúsculas). */
   tags?: readonly string[];
+  /** Si viene, se manda como cabecera `user-agent`. */
+  userAgent?: string;
   fetchImpl?: typeof fetch;
   baseUrl?: string;
 };
 
 export type FetchRemoteOkResult = {
   jobs: RawJob[];
+  /** Texto del campo `legal` del elemento [0], si existe (auditoría y `--dry-run`; no se guarda). */
+  legal: string | null;
   /** Avisos vistos antes de filtrar (sin contar el elemento legal). */
   seen: number;
   /** Avisos descartados por estructura incompleta (sin id/position o sin epoch válido). */
@@ -114,13 +124,17 @@ export async function fetchRemoteOkJobs(
   const sinceMs = options.since.getTime();
   const wanted = options.tags?.map((t) => t.toLowerCase());
 
-  const res = await fetchImpl(baseUrl, { headers: { accept: "application/json" } });
+  const headers: Record<string, string> = { accept: "application/json" };
+  if (options.userAgent) headers["user-agent"] = options.userAgent;
+  const res = await fetchImpl(baseUrl, { headers });
   if (!res.ok) throw new Error(`Remote OK: HTTP ${res.status}`);
   const body = (await res.json()) as unknown;
   if (!Array.isArray(body)) throw new Error("Remote OK: la respuesta no es un array");
 
   // El elemento legal inicial no cuenta; cualquier otro sin id/position o sin epoch válido se saltea
   const all = body as RemoteOkItem[];
+  const legalText = all[0]?.legal;
+  const legal = typeof legalText === "string" && legalText.trim() ? legalText : null;
   const items = all.filter(isRemoteOkJob);
   let skipped = all.slice(1).filter((i) => !isRemoteOkJob(i)).length;
   const byId = new Map<string, RawJob>();
@@ -134,5 +148,5 @@ export async function fetchRemoteOkJobs(
     const id = String(item.id);
     if (!byId.has(id)) byId.set(id, mapRemoteOkJob(item));
   }
-  return { jobs: [...byId.values()], seen: items.length, skipped };
+  return { jobs: [...byId.values()], legal, seen: items.length, skipped };
 }

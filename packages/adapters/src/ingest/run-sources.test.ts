@@ -5,6 +5,7 @@ import {
   parseEnabledSources,
   runExtraSourcesIngest,
   safeError,
+  SOURCE_NAMES,
   type ExtraSourceDownloaders,
   type RunExtraSourcesDeps,
 } from "./run-sources";
@@ -44,7 +45,7 @@ function downloaders(partial: Partial<ExtraSourceDownloaders>): ExtraSourceDownl
   const none = vi.fn(async () => {
     throw new Error("no debería llamarse");
   });
-  return { remoteok: none, wwr: none, himalayas: none, torre: none, ...partial };
+  return { wwr: none, torre: none, ...partial };
 }
 
 const base = {
@@ -73,8 +74,8 @@ describe("runExtraSourcesIngest con userId", () => {
       {
         ...base,
         userId: "u2",
-        enabled: ["remoteok"],
-        downloaders: downloaders({ remoteok: async () => [job("1")] }),
+        enabled: ["wwr"],
+        downloaders: downloaders({ wwr: async () => [job("1")] }),
       },
       deps,
     );
@@ -98,8 +99,8 @@ describe("runExtraSourcesIngest con userId", () => {
     const r = await runExtraSourcesIngest(
       {
         ...base,
-        enabled: ["remoteok"],
-        downloaders: downloaders({ remoteok: async () => [job("1")] }),
+        enabled: ["wwr"],
+        downloaders: downloaders({ wwr: async () => [job("1")] }),
       },
       deps,
     );
@@ -108,6 +109,10 @@ describe("runExtraSourcesIngest con userId", () => {
 });
 
 describe("parseEnabledSources", () => {
+  it("las fuentes extra son solo wwr y torre (Remote OK y Himalayas pasaron al pool)", () => {
+    expect([...SOURCE_NAMES]).toEqual(["wwr", "torre"]);
+  });
+
   it("vacío, undefined o solo espacios = ninguna", () => {
     for (const v of [undefined, "", "   ", " , ,"]) {
       expect(parseEnabledSources(v)).toEqual({ enabled: [], unknown: [] });
@@ -115,32 +120,32 @@ describe("parseEnabledSources", () => {
   });
 
   it("recorta espacios, pasa a minúsculas y quita repetidos", () => {
-    expect(parseEnabledSources(" RemoteOK , wwr,REMOTEOK , Himalayas ")).toEqual({
-      enabled: ["remoteok", "wwr", "himalayas"],
+    expect(parseEnabledSources(" WWR , torre,WWR , Torre ")).toEqual({
+      enabled: ["wwr", "torre"],
       unknown: [],
     });
   });
 
-  it("separa los desconocidos", () => {
-    expect(parseEnabledSources("torre,linkedin,Foo,foo")).toEqual({
+  it("separa los desconocidos; un remoteok o himalayas viejo queda como desconocido", () => {
+    expect(parseEnabledSources("torre,linkedin,Foo,foo,remoteok,himalayas")).toEqual({
       enabled: ["torre"],
-      unknown: ["linkedin", "foo"],
+      unknown: ["linkedin", "foo", "remoteok", "himalayas"],
     });
   });
 });
 
 describe("runExtraSourcesIngest", () => {
   it("una fuente prendida ingiere y las apagadas no se llaman", async () => {
-    const remoteok = vi.fn(async () => [job("a"), job("b")]);
-    const wwr = vi.fn(async () => [job("c")]);
+    const wwr = vi.fn(async () => [job("a"), job("b")]);
+    const torre = vi.fn(async () => [job("c")]);
     const deps = makeDeps();
     const out = await runExtraSourcesIngest(
-      { ...base, enabled: ["remoteok"], downloaders: downloaders({ remoteok, wwr }) },
+      { ...base, enabled: ["wwr"], downloaders: downloaders({ wwr, torre }) },
       deps,
     );
     expect(out.sources).toEqual([
       {
-        name: "remoteok",
+        name: "wwr",
         status: "ok",
         fetched: 2,
         users: 1,
@@ -150,29 +155,42 @@ describe("runExtraSourcesIngest", () => {
         errors: 0,
       },
     ]);
-    expect(remoteok).toHaveBeenCalledTimes(1);
-    expect(wwr).not.toHaveBeenCalled();
+    expect(wwr).toHaveBeenCalledTimes(1);
+    expect(torre).not.toHaveBeenCalled();
     expect(deps.ingest).toHaveBeenCalledTimes(1);
   });
 
+  it("cuenta como descartados los que el prefiltro descartó (clave descartada_prefiltro)", async () => {
+    const wwr = vi.fn(async () => [job("a"), job("b")]);
+    const ingest = vi.fn(async (jobs: RawJob[]) => ({
+      ...summary(jobs.length),
+      byStatus: { descartada_prefiltro: 2 },
+    }));
+    const out = await runExtraSourcesIngest(
+      { ...base, enabled: ["wwr"], downloaders: downloaders({ wwr }) },
+      makeDeps({ ingest }),
+    );
+    expect(out.sources[0]).toMatchObject({ status: "ok", discarded: 2 });
+  });
+
   it("una que tira error no corta a las demás y no filtra el body", async () => {
-    const remoteok = vi.fn(async () => {
+    const wwr = vi.fn(async () => {
       throw new Error("HTTP 500");
     });
-    const wwr = vi.fn(async () => [job("c")]);
+    const torre = vi.fn(async () => [job("c")]);
     const out = await runExtraSourcesIngest(
-      { ...base, enabled: ["remoteok", "wwr"], downloaders: downloaders({ remoteok, wwr }) },
+      { ...base, enabled: ["wwr", "torre"], downloaders: downloaders({ wwr, torre }) },
       makeDeps(),
     );
-    expect(out.sources[0]).toMatchObject({ name: "remoteok", status: "error", fetched: 0 });
+    expect(out.sources[0]).toMatchObject({ name: "wwr", status: "error", fetched: 0 });
     expect(out.sources[0]?.error).toBe("HTTP 500");
-    expect(out.sources[1]).toMatchObject({ name: "wwr", status: "ok", fetched: 1, users: 1 });
+    expect(out.sources[1]).toMatchObject({ name: "torre", status: "ok", fetched: 1, users: 1 });
   });
 
   it("el presupuesto corta la siguiente fuente", async () => {
     let t = 0;
-    const remoteok = vi.fn(async () => [job("a")]);
-    const wwr = vi.fn(async () => [job("c")]);
+    const wwr = vi.fn(async () => [job("a")]);
+    const torre = vi.fn(async () => [job("c")]);
     const ingest = vi.fn(async (jobs: RawJob[]) => {
       t += 50_000;
       return summary(jobs.length);
@@ -180,24 +198,24 @@ describe("runExtraSourcesIngest", () => {
     const out = await runExtraSourcesIngest(
       {
         ...base,
-        enabled: ["remoteok", "wwr"],
+        enabled: ["wwr", "torre"],
         budgetMs: 40_000,
         clock: () => t,
-        downloaders: downloaders({ remoteok, wwr }),
+        downloaders: downloaders({ wwr, torre }),
       },
       makeDeps({ ingest }),
     );
     expect(out.sources[0]?.status).toBe("ok");
     expect(out.sources[1]).toMatchObject({
-      name: "wwr",
+      name: "torre",
       status: "skipped",
       skipped: "presupuesto",
     });
-    expect(wwr).not.toHaveBeenCalled();
+    expect(torre).not.toHaveBeenCalled();
   });
 
   it("el timeout por fuente aborta la descarga", async () => {
-    const himalayas = vi.fn(
+    const wwr = vi.fn(
       ({ signal }: { signal?: AbortSignal }) =>
         new Promise<RawJob[]>((_, reject) => {
           signal?.addEventListener("abort", () => reject(new Error("abortada")));
@@ -207,24 +225,24 @@ describe("runExtraSourcesIngest", () => {
     const out = await runExtraSourcesIngest(
       {
         ...base,
-        enabled: ["himalayas", "torre"],
+        enabled: ["wwr", "torre"],
         perSourceTimeoutMs: 20,
-        downloaders: downloaders({ himalayas, torre }),
+        downloaders: downloaders({ wwr, torre }),
       },
       makeDeps(),
     );
-    expect(out.sources[0]).toMatchObject({ name: "himalayas", status: "error" });
+    expect(out.sources[0]).toMatchObject({ name: "wwr", status: "error" });
     expect(out.sources[1]?.status).toBe("ok");
   });
 
   it("un fetch que ignora la señal y nunca resuelve igual sale por timeout", async () => {
     const never = vi.fn(() => new Promise<Response>(() => {}));
     const out = await runExtraSourcesIngest(
-      { ...base, enabled: ["remoteok"], perSourceTimeoutMs: 20, fetchImpl: never as never },
+      { ...base, enabled: ["wwr"], perSourceTimeoutMs: 20, fetchImpl: never as never },
       makeDeps(),
     );
     expect(never).toHaveBeenCalledTimes(1);
-    expect(out.sources[0]).toMatchObject({ name: "remoteok", status: "error", error: "timeout" });
+    expect(out.sources[0]).toMatchObject({ name: "wwr", status: "error", error: "timeout" });
     expect(out.ok).toBe(false);
   });
 
@@ -243,7 +261,7 @@ describe("runExtraSourcesIngest", () => {
 
   it("el timeout de la descarga no pasa lo que queda del presupuesto", async () => {
     const seen: number[] = [];
-    const remoteok = vi.fn(async ({ signal }: { signal?: AbortSignal }) => {
+    const wwr = vi.fn(async ({ signal }: { signal?: AbortSignal }) => {
       await new Promise((r) => setTimeout(r, 60));
       seen.push(signal?.aborted ? 1 : 0);
       return [job("a")];
@@ -251,10 +269,10 @@ describe("runExtraSourcesIngest", () => {
     const out = await runExtraSourcesIngest(
       {
         ...base,
-        enabled: ["remoteok"],
+        enabled: ["wwr"],
         budgetMs: 15,
         perSourceTimeoutMs: 10_000,
-        downloaders: downloaders({ remoteok }),
+        downloaders: downloaders({ wwr }),
       },
       makeDeps(),
     );
@@ -264,7 +282,7 @@ describe("runExtraSourcesIngest", () => {
 
   it("si se acaba el presupuesto entre usuarios queda partial", async () => {
     let t = 0;
-    const remoteok = vi.fn(async () => [job("a")]);
+    const wwr = vi.fn(async () => [job("a")]);
     const ingest = vi.fn(async (jobs: RawJob[]) => {
       t += 50_000;
       return summary(jobs.length);
@@ -272,10 +290,10 @@ describe("runExtraSourcesIngest", () => {
     const out = await runExtraSourcesIngest(
       {
         ...base,
-        enabled: ["remoteok"],
+        enabled: ["wwr"],
         budgetMs: 40_000,
         clock: () => t,
-        downloaders: downloaders({ remoteok }),
+        downloaders: downloaders({ wwr }),
       },
       makeDeps({
         ingest,
@@ -293,10 +311,10 @@ describe("runExtraSourcesIngest", () => {
   });
 
   it("un usuario que falla no corta a los demás de esa fuente", async () => {
-    const remoteok = vi.fn(async () => [job("a")]);
+    const wwr = vi.fn(async () => [job("a")]);
     const ingest = vi.fn().mockRejectedValueOnce(new Error("rls")).mockResolvedValue(summary(1));
     const out = await runExtraSourcesIngest(
-      { ...base, enabled: ["remoteok"], downloaders: downloaders({ remoteok }) },
+      { ...base, enabled: ["wwr"], downloaders: downloaders({ wwr }) },
       makeDeps({
         ingest,
         loadUsers: async () => ({
@@ -314,13 +332,13 @@ describe("runExtraSourcesIngest", () => {
 
   it("un error de base con parámetros no aparece en la respuesta", async () => {
     const leak = "Failed query: insert into jobs ... params: texto-de-aviso,user-uuid-123";
-    const remoteok = vi.fn(async () => [job("a")]);
-    const wwr = vi.fn(async () => {
+    const wwr = vi.fn(async () => [job("a")]);
+    const torre = vi.fn(async () => {
       throw new Error(leak);
     });
     const ingest = vi.fn().mockRejectedValue(new Error(leak));
     const out = await runExtraSourcesIngest(
-      { ...base, enabled: ["remoteok", "wwr"], downloaders: downloaders({ remoteok, wwr }) },
+      { ...base, enabled: ["wwr", "torre"], downloaders: downloaders({ wwr, torre }) },
       makeDeps({ ingest }),
     );
     const json = JSON.stringify(out);
@@ -330,13 +348,13 @@ describe("runExtraSourcesIngest", () => {
   });
 
   it("un error de base con la señal ya vencida sale como error al ingerir, no timeout", async () => {
-    const remoteok = vi.fn(async () => [job("a")]);
+    const wwr = vi.fn(async () => [job("a")]);
     const out = await runExtraSourcesIngest(
       {
         ...base,
-        enabled: ["remoteok"],
+        enabled: ["wwr"],
         perSourceTimeoutMs: 10,
-        downloaders: downloaders({ remoteok }),
+        downloaders: downloaders({ wwr }),
       },
       makeDeps({
         loadUsers: async () => {
@@ -349,7 +367,7 @@ describe("runExtraSourcesIngest", () => {
   });
 
   it("safeError usa una lista cerrada y recortada", () => {
-    expect(safeError(new Error("Remote OK: HTTP 503"))).toBe("HTTP 503");
+    expect(safeError(new Error("WWR: HTTP 503"))).toBe("HTTP 503");
     expect(safeError(new Error("x"), true)).toBe("timeout");
     expect(safeError(new Error("timeout de la fuente"))).toBe("timeout");
     expect(safeError("cualquier cosa " + "x".repeat(500), false, "ingerir")).toBe(
@@ -358,14 +376,14 @@ describe("runExtraSourcesIngest", () => {
   });
 
   it("un error de ingesta de una fuente se aísla", async () => {
-    const remoteok = vi.fn(async () => [job("a")]);
-    const wwr = vi.fn(async () => [job("c")]);
+    const wwr = vi.fn(async () => [job("a")]);
+    const torre = vi.fn(async () => [job("c")]);
     const ingest = vi
       .fn()
       .mockRejectedValueOnce(new Error("db caída"))
       .mockResolvedValue(summary(1));
     const out = await runExtraSourcesIngest(
-      { ...base, enabled: ["remoteok", "wwr"], downloaders: downloaders({ remoteok, wwr }) },
+      { ...base, enabled: ["wwr", "torre"], downloaders: downloaders({ wwr, torre }) },
       makeDeps({ ingest }),
     );
     expect(out.sources.map((s) => s.status)).toEqual(["error", "ok"]);

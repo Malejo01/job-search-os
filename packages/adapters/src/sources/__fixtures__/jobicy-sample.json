@@ -1,0 +1,76 @@
+{
+  "apiVersion": "2.0",
+  "friendlyNotice": "Datos de ejemplo inventados para tests. No es una respuesta real.",
+  "jobCount": 5,
+  "jobs": [
+    {
+      "id": 880001,
+      "url": "https://jobicy.com/jobs/880001-ficticio",
+      "jobSlug": "880001-ficticio",
+      "jobTitle": "Senior Backend Engineer",
+      "companyName": "Empresa Ficticia 1",
+      "jobIndustry": ["Engineering"],
+      "jobType": ["Full-Time"],
+      "jobGeo": "Anywhere",
+      "jobLevel": "Senior",
+      "jobExcerpt": "Resumen ficticio.",
+      "jobDescription": "<p>Construimos <strong>APIs</strong> para clientes ficticios.</p><ul><li>Python y Postgres</li><li>Ingl&#233;s &amp; trabajo asincr&#243;nico</li></ul>",
+      "pubDate": "2026-10-10T12:00:00Z",
+      "salaryCurrency": "USD",
+      "annualSalaryMin": 50000,
+      "annualSalaryMax": 70000
+    },
+    {
+      "id": 880002,
+      "url": "https://jobicy.com/jobs/880002-ficticio",
+      "jobSlug": "880002-ficticio",
+      "jobTitle": "Product Designer",
+      "companyName": "Empresa Ficticia 2",
+      "jobIndustry": ["Design & Creative"],
+      "jobType": ["Contract"],
+      "jobGeo": "Argentina",
+      "jobLevel": "Midweight",
+      "jobDescription": "<p>Diseño de producto para una empresa ficticia.</p>",
+      "pubDate": "2026-10-10 09:30:00",
+      "salaryCurrency": "EUR",
+      "annualSalaryMin": "40000",
+      "annualSalaryMax": "60000"
+    },
+    {
+      "id": 880003,
+      "url": "https://jobicy.com/jobs/880003-ficticio",
+      "jobSlug": "880003-ficticio",
+      "jobTitle": "Customer Support Specialist",
+      "companyName": "Empresa Ficticia 3",
+      "jobIndustry": "Customer Success",
+      "jobType": "Full-Time",
+      "jobGeo": "Europe",
+      "jobLevel": "Junior",
+      "jobDescription": "<p>Soporte a clientes ficticios.</p>",
+      "pubDate": "2026-10-09T08:00:00+00:00"
+    },
+    {
+      "id": 880004,
+      "jobSlug": "880004-ficticio",
+      "jobTitle": "Aviso sin url",
+      "companyName": "Empresa Ficticia 4",
+      "jobGeo": "Anywhere",
+      "jobDescription": "<p>Este aviso no trae url y debe fallar cerrado.</p>",
+      "pubDate": "2026-10-10 10:00:00"
+    },
+    {
+      "id": 880005,
+      "url": "https://jobicy.com/jobs/880005-ficticio",
+      "jobSlug": "880005-ficticio",
+      "jobTitle": "Data Analyst",
+      "companyName": "Empresa Ficticia 5",
+      "jobIndustry": ["Data Science", "Business Analytics"],
+      "jobType": ["Full-Time", "Contract"],
+      "jobGeo": "",
+      "jobLevel": "",
+      "jobDescription": "<p>Analisis de datos ficticios.</p>",
+      "pubDate": "2026-10-01 00:00:00",
+      "annualSalaryMin": 30000
+    }
+  ]
+}

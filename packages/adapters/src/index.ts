@@ -37,3 +37,15 @@ export * from "./auth/secret";
 export * from "./auth/reset-url";
 export * from "./auth/reset-tokens";
 export * from "./retention/purge";
+export {
+  parsePoolSources,
+  POOL_RECOMMENDED_SOURCES,
+  POOL_SOURCE_NAMES,
+  runPoolFetch,
+  type PoolSourceName,
+  type PoolSourceResult,
+  type RunPoolFetchResult,
+} from "./pool/fetch";
+export { upsertPoolJobs, type PoolUpsertSummary } from "./pool/upsert";
+export { POOL_RETENTION_DAYS, purgePool } from "./pool/retention";
+export { sourceUserAgent } from "./sources/user-agent";

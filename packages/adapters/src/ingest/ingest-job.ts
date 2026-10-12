@@ -216,7 +216,7 @@ async function persistRaw(
   });
 }
 
-async function upsertCompany(db: Db, companyRaw: string): Promise<string | null> {
+export async function upsertCompany(db: Db, companyRaw: string): Promise<string | null> {
   const nameNormalized = normalizeCompany(companyRaw);
   if (!nameNormalized) return null;
   await db

@@ -3,23 +3,35 @@ import {
   checkBearerSecret,
   createLogger,
   parseEnabledSources,
+  parsePoolSources,
   runExtraSourcesIngest,
   runGetOnBoardIngest,
+  runPoolFetch,
   safeDbError,
+  sourceUserAgent,
   type RunExtraSourcesResult,
+  type RunPoolFetchResult,
 } from "@job-search-os/adapters";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+// cron.yml espera hasta 120 s con curl.
+export const maxDuration = 120;
 
-/** De los 60 s de maxDuration, después de esto no arranca otra fuente extra. */
-const TOTAL_BUDGET_MS = 40_000;
+/** Presupuesto total, medido desde el inicio del request (maxDuration es 120 s). */
+const TOTAL_BUDGET_MS = 100_000;
+/** Tope del pool dentro de ese presupuesto; las fuentes extra usan lo que quede. */
+const POOL_BUDGET_MS = 45_000;
 
 /** `extraSources.ok` es false si todas las prendidas fallaron; el estado HTTP no cambia. */
 function extraBody(extra: RunExtraSourcesResult | null) {
   return extra ? { extraSources: { ok: extra.ok, sources: extra.sources } } : {};
+}
+
+/** Solo conteos y códigos cerrados por fuente: la respuesta sale en un log público. */
+function poolBody(pool: RunPoolFetchResult | null) {
+  return pool ? { pool: { ok: pool.ok, sources: pool.sources } } : {};
 }
 
 /**
@@ -32,7 +44,7 @@ function gobBody(gob: Awaited<ReturnType<typeof runGetOnBoardIngest>> | null) {
   for (const { summary } of gob.users) {
     totals.inserted += summary.inserted;
     totals.merged += summary.merged;
-    totals.discarded += summary.byStatus["prefilter_discard"] ?? 0;
+    totals.discarded += summary.byStatus["descartada_prefiltro"] ?? 0;
     totals.enqueued += summary.enqueued;
     totals.errors += summary.errors.length;
   }
@@ -49,7 +61,8 @@ function gobBody(gob: Awaited<ReturnType<typeof runGetOnBoardIngest>> | null) {
  * Cron de ingesta de Get on Board: lo dispara .github/workflows/cron.yml cada 6 hs con
  * `Authorization: Bearer <CRON_SECRET>` (docs/DEPLOY.md); cualquier llamada sin ese header es 401.
  * Corre como servicio (dueño de la base) y filtra por user_id explícito.
- * Después de Get on Board corre las fuentes de `INGEST_EXTRA_SOURCES` (apagadas por defecto).
+ * Orden: (1) Get on Board por usuario, (2) el pool global de ofertas públicas (`POOL_SOURCES`),
+ * (3) las fuentes de `INGEST_EXTRA_SOURCES` (apagadas por defecto).
  */
 export async function GET(request: Request): Promise<NextResponse> {
   if (
@@ -74,6 +87,38 @@ export async function GET(request: Request): Promise<NextResponse> {
       logger.error({ err: safeDbError(error) }, "cron ingest falló");
     }
 
+    const budgetLeft = () => Math.max(0, TOTAL_BUDGET_MS - (Date.now() - started));
+
+    const pools = parsePoolSources(process.env.POOL_SOURCES);
+    if (pools.unknown.length > 0) {
+      logger.warn({ unknown: pools.unknown }, "POOL_SOURCES: fuentes desconocidas, se ignoran");
+    }
+    let pool: RunPoolFetchResult | null = null;
+    if (pools.enabled.length > 0) {
+      try {
+        pool = await runPoolFetch({
+          db,
+          logger,
+          enabled: pools.enabled,
+          userAgent: sourceUserAgent(),
+          budgetMs: Math.min(POOL_BUDGET_MS, budgetLeft()),
+        });
+      } catch (error) {
+        // Un fallo del pool no convierte en 500 una corrida de Get on Board que anduvo.
+        logger.error({ err: safeDbError(error) }, "cron pool falló");
+        pool = {
+          ok: false,
+          sources: pools.enabled.map((name) => ({
+            name,
+            status: "error" as const,
+            fetched: 0,
+            error: "unknown" as const,
+          })),
+          durationMs: 0,
+        };
+      }
+    }
+
     const { enabled, unknown } = parseEnabledSources(process.env.INGEST_EXTRA_SOURCES);
     if (unknown.length > 0) {
       logger.warn({ unknown }, "INGEST_EXTRA_SOURCES: fuentes desconocidas, se ignoran");
@@ -86,7 +131,7 @@ export async function GET(request: Request): Promise<NextResponse> {
           logger,
           enabled,
           sinceHours: 24,
-          budgetMs: Math.max(0, TOTAL_BUDGET_MS - (Date.now() - started)),
+          budgetMs: budgetLeft(),
         });
       } catch (error) {
         // Un error de las extras no convierte en 500 una corrida de Get on Board que anduvo.
@@ -107,13 +152,14 @@ export async function GET(request: Request): Promise<NextResponse> {
 
     if (gobFailed) {
       return NextResponse.json(
-        { ok: false, error: "ingesta falló", ...extraBody(extra) },
+        { ok: false, error: "ingesta falló", ...poolBody(pool), ...extraBody(extra) },
         { status: 500 },
       );
     }
     return NextResponse.json({
       ok: true,
       ...gobBody(gob),
+      ...poolBody(pool),
       ...extraBody(extra),
     });
   } finally {
