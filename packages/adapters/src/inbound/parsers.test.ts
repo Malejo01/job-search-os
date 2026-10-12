@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { baseDomain, EXPECTED_SOURCE_DOMAINS } from "@job-search-os/pipeline";
-import { chooseParserName, linkedinSenderKind } from "./parsers";
+import { chooseParserName, EMAIL_PARSERS, linkedinSenderKind } from "./parsers";
 
 /**
  * JS-050 · Ruido social de LinkedIn. Viene del mismo dominio que las alertas, así que la regla
@@ -32,6 +32,32 @@ describe("linkedinSenderKind", () => {
     expect(linkedinSenderKind("Falso <messages-noreply@linkedin.com.example.org>")).toBeNull();
     expect(linkedinSenderKind("Banco <messages-noreply@banco.example>")).toBeNull();
     expect(chooseParserName("Banco <messages-noreply@banco.example>")).toBe("generic");
+  });
+});
+
+describe("chooseParserName: Eightfold", () => {
+  it.each([
+    "Eightfold <notifications@eightfold.ai>",
+    '"Empresa Ficticia Careers" <no-reply@mail.eightfold.ai>',
+    "NOREPLY@Talent.Eightfold.AI",
+  ])("%s → eightfold", (from) => {
+    expect(chooseParserName(from)).toBe("eightfold");
+  });
+
+  it("un dominio parecido no es Eightfold", () => {
+    // Sin @ se lee como dominio: la comparación es la misma.
+    expect(chooseParserName("noteightfold.ai")).toBe("generic");
+    expect(chooseParserName("x@eightfold.ai.example.org")).toBe("generic");
+    expect(chooseParserName("eightfold.com")).toBe("generic");
+  });
+
+  it("lee el remitente como el filtro de fugas: lo de entre <> manda", () => {
+    expect(chooseParserName("a@eightfold.ai <x@evil.example>")).toBe("generic");
+    expect(chooseParserName("a@evil.example <x@mail.eightfold.ai>")).toBe("eightfold");
+  });
+
+  it("está registrado en EMAIL_PARSERS", () => {
+    expect(EMAIL_PARSERS.eightfold?.name).toBe("eightfold");
   });
 });
 

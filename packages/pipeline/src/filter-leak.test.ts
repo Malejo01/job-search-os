@@ -109,6 +109,17 @@ describe("detectFilterLeaks", () => {
     expect(leaks).toEqual([]);
   });
 
+  it("Eightfold es fuente esperada, también desde un subdominio", () => {
+    expect(EXPECTED_SOURCE_DOMAINS).toContain("eightfold.ai");
+    expect(isExpectedSender("Aviso <x@mail.eightfold.ai>", [])).toBe(true);
+    expect(detectFilterLeaks({ ...base, hosts: [host({ host: "noteightfold.ai" })] })).toHaveLength(
+      1,
+    );
+    expect(detectFilterLeaks({ ...base, hosts: [host({ host: "mail.eightfold.ai" })] })).toEqual(
+      [],
+    );
+  });
+
   it("un dominio ya visto antes de las 48 h no vuelve a avisar", () => {
     const leaks = detectFilterLeaks({
       ...base,
