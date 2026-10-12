@@ -1,6 +1,6 @@
 import { SELF_LEVELS, type PlanStatus } from "@job-search-os/pipeline";
 import { SKILL_CATEGORY_LABEL, safeHttpUrl } from "@/lib/labels";
-import { getDataState, getPlan, type PlanItemView } from "@/lib/plan";
+import { getDataState, getPlan, getPlanRoleFallback, type PlanItemView } from "@/lib/plan";
 import { requireUserId } from "@/lib/session";
 import { MissingDataNotice, NoLevelsNotice } from "../market/data-state-notice";
 import { setPlanStatusAction } from "./actions";
@@ -35,7 +35,11 @@ export default async function PlanPage({
 }) {
   const userId = await requireUserId();
   const { error } = await searchParams;
-  const [items, state] = await Promise.all([getPlan(userId), getDataState(userId)]);
+  const [items, state, roleFallback] = await Promise.all([
+    getPlan(userId),
+    getDataState(userId),
+    getPlanRoleFallback(userId),
+  ]);
   const groups: Record<PlanStatus, PlanItemView[]> = { en_curso: [], pendiente: [], cerrada: [] };
   for (const it of items) groups[it.status].push(it);
   const hoursPending = items
@@ -54,6 +58,12 @@ export default async function PlanPage({
       {error ? (
         <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
           Estado inválido.
+        </p>
+      ) : null}
+      {roleFallback && items.length > 0 ? (
+        <p data-testid="plan-role-source" className="text-xs text-zinc-600">
+          Calculado con el mercado de {roleFallback}: cuando tengas 10 ofertas propias, pasa a usar
+          las tuyas.
         </p>
       ) : null}
       <NoLevelsNotice state={state} />

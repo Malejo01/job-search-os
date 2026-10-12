@@ -1,5 +1,5 @@
 import { schema as s } from "@job-search-os/db";
-import { preScore, type CriteriaRules, type PreScore } from "@job-search-os/pipeline";
+import { monthlyUsd, preScore, type CriteriaRules, type PreScore } from "@job-search-os/pipeline";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import type { Tx } from "./db";
 
@@ -10,10 +10,25 @@ import type { Tx } from "./db";
  */
 export type PreScoreView = PreScore & { skillsMentioned: number };
 
+/** `jobs.salary_period` es texto libre en la base: solo estos tres valores se convierten a mensual. */
+function knownPeriod(period: string | null | undefined): "mensual" | "anual" | "hora" | null {
+  return period === "mensual" || period === "anual" || period === "hora" ? period : null;
+}
+
+/**
+ * `salaryMaxUsd` se compara con el piso mensual ya mensualizado según `salaryPeriod` (anual / 12,
+ * hora × 160). Sin período conocido no se supone mensual: el salario cuenta como desconocido.
+ */
 export async function preScoresFor(
   tx: Tx,
   userId: string,
-  jobs: readonly { id: string; flags: string[]; salaryMaxUsd: number | null }[],
+  jobs: readonly {
+    id: string;
+    flags: string[];
+    salaryMaxUsd: number | null;
+    /** Opcional: sin período, el salario no se puede mensualizar y no penaliza. */
+    salaryPeriod?: string | null;
+  }[],
 ): Promise<Map<string, PreScoreView>> {
   const out = new Map<string, PreScoreView>();
   if (!jobs.length) return out;
@@ -60,7 +75,7 @@ export async function preScoresFor(
           isMust: k.isMust,
           level: k.level,
         })),
-        salaryMaxUsd: job.salaryMaxUsd,
+        salaryMaxUsd: monthlyUsd(job.salaryMaxUsd, knownPeriod(job.salaryPeriod)),
         salaryFloorUsd,
       }),
       skillsMentioned: skills.length,

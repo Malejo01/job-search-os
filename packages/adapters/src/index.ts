@@ -49,3 +49,11 @@ export {
 export { upsertPoolJobs, type PoolUpsertSummary } from "./pool/upsert";
 export { POOL_RETENTION_DAYS, purgePool } from "./pool/retention";
 export { sourceUserAgent } from "./sources/user-agent";
+export { assignPoolToUser, type AssignOptions, type AssignResult } from "./pool/assign";
+export { assignPoolDaily, type PoolDailyOptions, type PoolDailyResult } from "./pool/daily";
+export {
+  buildRoleMarketSnapshots,
+  getRoleMarket,
+  ROLE_MARKET_WINDOW_DAYS,
+  type RoleMarket,
+} from "./market/role-snapshot";

@@ -1,7 +1,9 @@
+import { getRoleMarket, MIN_OWN_JOBS_FOR_PLAN } from "@job-search-os/adapters";
 import { schema as s } from "@job-search-os/db";
-import { PLAN_STATUSES, type PlanStatus } from "@job-search-os/pipeline";
-import { and, desc, eq } from "drizzle-orm";
+import { isRoleKey, PLAN_STATUSES, type PlanStatus } from "@job-search-os/pipeline";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { withUser } from "./db";
+import { ROLE_SKILLS } from "./skill-levels";
 
 /** Plan de formación (JS-034): lectura y cambio de estado con el rol de la app (RLS). */
 export type PlanItemView = {
@@ -86,6 +88,32 @@ export async function getPlan(userId: string): Promise<PlanItemView[]> {
           }
         : null,
     }));
+  });
+}
+
+/**
+ * Etiqueta del rol si el plan se calculó con el mercado del rol y no con las ofertas propias; null
+ * si sale de las propias. Misma regla que `buildLearningPlan`: rol guardado válido, menos de
+ * `MIN_OWN_JOBS_FOR_PLAN` ofertas propias con skills y datos del rol. La etiqueta es la de
+ * `ROLE_SKILLS`, nunca la clave.
+ */
+export async function getPlanRoleFallback(userId: string): Promise<string | null> {
+  return withUser(userId, async (tx) => {
+    const [profile] = await tx
+      .select({ targetRole: s.profiles.targetRole })
+      .from(s.profiles)
+      .where(eq(s.profiles.userId, userId))
+      .limit(1);
+    const role = profile?.targetRole;
+    if (!isRoleKey(role)) return null;
+    const [own] = await tx
+      .select({ n: sql<number>`count(distinct ${s.jobSkills.jobId})::int` })
+      .from(s.jobSkills)
+      .innerJoin(s.jobs, eq(s.jobs.id, s.jobSkills.jobId))
+      .where(eq(s.jobs.userId, userId));
+    if ((own?.n ?? 0) >= MIN_OWN_JOBS_FOR_PLAN) return null;
+    const market = await getRoleMarket(tx, role, { limit: 1 });
+    return market.skills.length > 0 ? ROLE_SKILLS[role].label : null;
   });
 }
 

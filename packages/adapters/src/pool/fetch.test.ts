@@ -2,6 +2,7 @@ import type { RawJob } from "@job-search-os/pipeline";
 import { describe, expect, it, vi } from "vitest";
 import type { Logger } from "../logger";
 import {
+  parsePoolBackfillDays,
   parsePoolSources,
   poolErrorCode,
   poolIntervalMs,
@@ -136,7 +137,7 @@ describe("poolErrorCode e intervalos", () => {
 });
 
 describe("runPoolFetch", () => {
-  it("una fuente prendida descarga con since de 48 h y user-agent, y llama al upsert", async () => {
+  it("una fuente prendida descarga con since de backfill y user-agent, y llama al upsert", async () => {
     const remoteok = vi.fn(async (_args: { since: Date; userAgent: string }) => [
       job("a"),
       job("b"),
@@ -164,7 +165,7 @@ describe("runPoolFetch", () => {
         copies: 0,
       },
     ]);
-    expect(remoteok.mock.calls[0]![0].since).toEqual(hoursAgo(48));
+    expect(remoteok.mock.calls[0]![0].since).toEqual(hoursAgo(14 * 24));
     expect(remoteok.mock.calls[0]![0].userAgent).toBe("JobSearchOS/1.0 (+https://app.example.com)");
     expect(jobicy).not.toHaveBeenCalled();
     expect(deps.upsert).toHaveBeenCalledTimes(1);
@@ -349,12 +350,107 @@ describe("runPoolFetch", () => {
   it("force ignora el intervalo", async () => {
     const jobicy = vi.fn(async () => [job("c")]);
     const { deps } = makeDeps({ jobicy: { lastGoodStartedAt: hoursAgo(1), lastErrorCode: null } });
+    // force ignora el intervalo pero igual lee el historial para la ventana
     const out = await runPoolFetch(
       { ...base, enabled: ["jobicy"], force: true, downloaders: downloaders({ jobicy }) },
       deps,
     );
     expect(out.sources[0]?.status).toBe("ok");
-    expect(deps.lastFetches).not.toHaveBeenCalled();
+    expect(deps.lastFetches).toHaveBeenCalledTimes(1);
+  });
+
+  describe("ventana de descarga (backfill)", () => {
+    const sinceOf = async (
+      history: Partial<Record<PoolSourceName, PoolFetchHistory>>,
+      extra: { backfillDays?: number; sinceHours?: number } = {},
+    ) => {
+      const remoteok = vi.fn(async (_a: { since: Date }) => [job("a")]);
+      const { deps } = makeDeps(history);
+      await runPoolFetch(
+        { ...base, enabled: ["remoteok"], downloaders: downloaders({ remoteok }), ...extra },
+        deps,
+      );
+      return remoteok.mock.calls[0]![0].since;
+    };
+
+    it("sin ninguna corrida ok: ahora menos los días de backfill", async () => {
+      expect(await sinceOf({}, { backfillDays: 14 })).toEqual(hoursAgo(14 * 24));
+      expect(await sinceOf({}, { backfillDays: 3 })).toEqual(hoursAgo(3 * 24));
+    });
+
+    it("con una ok: el inicio de la última ok menos 6 h de solapamiento", async () => {
+      const since = await sinceOf({
+        remoteok: {
+          lastGoodStartedAt: hoursAgo(8),
+          lastOkStartedAt: hoursAgo(8),
+          lastErrorCode: null,
+        },
+      });
+      expect(since).toEqual(hoursAgo(14));
+    });
+
+    it("la ventana nunca pasa de 30 días atrás aunque la última ok sea más vieja", async () => {
+      const since = await sinceOf({
+        remoteok: {
+          lastGoodStartedAt: hoursAgo(40 * 24),
+          lastOkStartedAt: hoursAgo(40 * 24),
+          lastErrorCode: null,
+        },
+      });
+      expect(since).toEqual(hoursAgo(30 * 24));
+    });
+
+    it("una partial no cuenta como ok: vuelve a hacer backfill", async () => {
+      const since = await sinceOf({
+        remoteok: { lastGoodStartedAt: hoursAgo(8), lastOkStartedAt: null, lastErrorCode: null },
+      });
+      expect(since).toEqual(hoursAgo(14 * 24));
+    });
+
+    it("sinceHours explícito pisa la regla", async () => {
+      expect(await sinceOf({}, { sinceHours: 5 })).toEqual(hoursAgo(5));
+    });
+
+    it("lee POOL_BACKFILL_DAYS del entorno; inválido o mayor a 30 vuelve a 14 y avisa", async () => {
+      const prev = process.env.POOL_BACKFILL_DAYS;
+      try {
+        process.env.POOL_BACKFILL_DAYS = "7";
+        expect(await sinceOf({})).toEqual(hoursAgo(7 * 24));
+        for (const bad of ["31", "0", "-2", "abc", "1.5"]) {
+          process.env.POOL_BACKFILL_DAYS = bad;
+          vi.mocked(logger.warn).mockClear();
+          expect(await sinceOf({})).toEqual(hoursAgo(14 * 24));
+          expect(logger.warn).toHaveBeenCalledWith(
+            expect.objectContaining({ variable: "POOL_BACKFILL_DAYS" }),
+            expect.any(String),
+          );
+        }
+      } finally {
+        if (prev === undefined) delete process.env.POOL_BACKFILL_DAYS;
+        else process.env.POOL_BACKFILL_DAYS = prev;
+      }
+    });
+
+    it("un backfill grande se recorta al tope de avisos por fuente y queda partial", async () => {
+      const many = Array.from({ length: POOL_MAX_JOBS_PER_SOURCE + 500 }, (_, i) => job(`j${i}`));
+      const remoteok = vi.fn(async () => many);
+      const { deps } = makeDeps();
+      const out = await runPoolFetch(
+        { ...base, enabled: ["remoteok"], downloaders: downloaders({ remoteok }) },
+        deps,
+      );
+      expect(vi.mocked(deps.upsert).mock.calls[0]![0]).toHaveLength(POOL_MAX_JOBS_PER_SOURCE);
+      expect(out.sources[0]).toMatchObject({ status: "partial", truncated: true });
+    });
+  });
+
+  it("parsePoolBackfillDays: default 14, entero 1 a 30", () => {
+    expect(parsePoolBackfillDays(undefined)).toEqual({ days: 14, invalid: false });
+    expect(parsePoolBackfillDays(" ")).toEqual({ days: 14, invalid: false });
+    expect(parsePoolBackfillDays("30")).toEqual({ days: 30, invalid: false });
+    expect(parsePoolBackfillDays("1")).toEqual({ days: 1, invalid: false });
+    expect(parsePoolBackfillDays("31")).toEqual({ days: 14, invalid: true });
+    expect(parsePoolBackfillDays("x")).toEqual({ days: 14, invalid: true });
   });
 
   it("el presupuesto corta la siguiente fuente", async () => {

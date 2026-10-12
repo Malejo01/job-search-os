@@ -135,7 +135,12 @@ export async function getJobDetail(userId: string, jobId: string): Promise<JobDe
       !ev && job.status !== "descartada_prefiltro"
         ? ((
             await preScoresFor(tx, userId, [
-              { id: job.id, flags: job.flags ?? [], salaryMaxUsd: job.salaryMaxUsd },
+              {
+                id: job.id,
+                flags: job.flags ?? [],
+                salaryMaxUsd: job.salaryMaxUsd,
+                salaryPeriod: job.salaryPeriod,
+              },
             ])
           ).get(job.id) ?? null)
         : null;

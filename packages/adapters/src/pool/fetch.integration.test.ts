@@ -186,6 +186,45 @@ describe("runPoolFetch con la base real", () => {
     expect(await fetchRows()).toHaveLength(2);
   });
 
+  it("la primera corrida hace backfill; la segunda (con force) parte de la última ok menos 6 h", async () => {
+    await cleanup();
+    const sinces: Date[] = [];
+    const recording: PoolDownloaders = {
+      ...downloaders,
+      remoteok: async ({ since }) => {
+        sinces.push(since);
+        return [rawJob("remoteok", "1", "Backend Developer")];
+      },
+    };
+    const run = (now: Date) =>
+      runPoolFetch({
+        db: conn.db,
+        logger,
+        enabled: ["remoteok"],
+        now: () => now,
+        force: true,
+        backfillDays: 14,
+        downloaders: recording,
+      });
+
+    await run(NOW);
+    expect(sinces[0]!.getTime()).toBe(NOW.getTime() - 14 * 24 * 3_600_000);
+
+    const [ok] = await fetchRows();
+    expect(ok!.status).toBe("ok");
+    await run(new Date(NOW.getTime() + 8 * 3_600_000));
+    expect(sinces[1]!.getTime()).toBe(ok!.startedAt.getTime() - 6 * 3_600_000);
+
+    // Una partial no cuenta: tras marcar la ok como partial, vuelve el backfill
+    await conn.db
+      .update(s.publicJobFetches)
+      .set({ status: "partial" })
+      .where(eq(s.publicJobFetches.sourceKind, "remoteok"));
+    const later = new Date(NOW.getTime() + 9 * 3_600_000);
+    await run(later);
+    expect(sinces[2]!.getTime()).toBe(later.getTime() - 14 * 24 * 3_600_000);
+  });
+
   it("una fuente que falla deja su fila con error_code cerrado", async () => {
     await cleanup();
     const out = await runPoolFetch({

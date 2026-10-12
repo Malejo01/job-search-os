@@ -1,7 +1,14 @@
 import type { AgendaRow } from "@job-search-os/pipeline";
-import { getDataState, getMarket, parseRange, type MarketView } from "@/lib/market";
+import {
+  getDataState,
+  getMarket,
+  getRoleMarketView,
+  parseRange,
+  type MarketView,
+} from "@/lib/market";
 import { requireUserId } from "@/lib/session";
 import { MissingDataNotice, NoLevelsNotice } from "./data-state-notice";
+import { RoleMarket } from "./role-market";
 import { SkillCandidates } from "./skill-candidates";
 import { SkillRows } from "./skill-rows";
 
@@ -23,7 +30,11 @@ export default async function MarketPage({
 }) {
   const userId = await requireUserId();
   const range = parseRange(await searchParams);
-  const [view, state] = await Promise.all([getMarket(userId, range), getDataState(userId)]);
+  const [view, state, roleMarket] = await Promise.all([
+    getMarket(userId, range),
+    getDataState(userId),
+    getRoleMarketView(userId),
+  ]);
   const { agenda } = view;
 
   return (
@@ -35,6 +46,8 @@ export default async function MarketPage({
           {view.levelsKnown} skills con nivel propio
         </p>
       </div>
+
+      <RoleMarket view={roleMarket} />
 
       <form method="get" className="flex flex-col gap-2 text-xs text-zinc-600">
         <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-end">

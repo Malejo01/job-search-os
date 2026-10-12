@@ -225,6 +225,23 @@ describe("inferRoleHints · categorías de la fuente", () => {
     expect(order).toEqual([...order].sort((a, b) => a - b));
   });
 
+  it("más de 4 roles = sin señal (vacío); con 4 todavía cuenta", () => {
+    // 3 de desarrollo + data + ux = 5 roles
+    expect(
+      hints("Cargo sin pistas", {
+        sourceKind: "remoteok",
+        tags: ["react", "sql", "design"],
+      }),
+    ).toEqual([]);
+    // 3 de desarrollo + data = 4 roles
+    expect(hints("Cargo sin pistas", { sourceKind: "remoteok", tags: ["react", "sql"] })).toEqual([
+      "frontend",
+      "backend",
+      "fullstack",
+      "data_analyst",
+    ]);
+  });
+
   it("todos los roles de la tabla son ROLE_KEYS", () => {
     for (const table of Object.values(SOURCE_CATEGORY_ROLES)) {
       for (const roles of Object.values(table)) {
