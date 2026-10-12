@@ -31,20 +31,20 @@ test.describe("Flujo 8: oferta evaluándose visible y actualización sin recarga
     await page.goto("/jobs?score=9");
     const filtrada = page.getByRole("listitem").filter({ hasText: title });
     await expect(filtrada).toBeVisible();
-    await expect(filtrada.getByText("Evaluando")).toBeVisible();
+    await expect(filtrada.getByText("En cola")).toBeVisible();
     // Arriba de todo, antes que las ya evaluadas
     await expect(page.getByRole("main").getByRole("listitem").first()).toContainText(title);
 
     // El detalle también lo dice
     await page.goto(`/jobs/${jobId}`);
-    await expect(page.getByRole("status")).toContainText("Evaluando");
+    await expect(page.getByRole("status")).toContainText("En cola para evaluar");
 
     // La lista abierta se actualiza sola cuando la evaluación termina (acá la termina el worker)
     await page.goto("/jobs?estado=todas");
     const card = page.getByRole("listitem").filter({ hasText: title });
-    await expect(card.getByText("Evaluando")).toBeVisible();
+    await expect(card.getByText("En cola")).toBeVisible();
     runDemoWorker();
     await expect(card.getByText("DEMO")).toBeVisible({ timeout: 20_000 });
-    await expect(card.getByText("Evaluando")).toHaveCount(0);
+    await expect(card.getByText("En cola")).toHaveCount(0);
   });
 });

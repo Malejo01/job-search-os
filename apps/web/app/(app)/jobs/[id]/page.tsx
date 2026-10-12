@@ -2,15 +2,25 @@ import type { JobEvent } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { notEvaluatedMessage } from "@/lib/evaluate-now";
+import { isUuid } from "@/lib/ids";
 import { getJobDetail } from "@/lib/job-detail";
 import { jobNeighbors, listQuery, parseJobFilters } from "@/lib/jobs";
 import {
   ACTION_LABELS,
+  adjustmentText,
+  COMPANY_TYPE_LABEL,
   DEMO_BADGE_CLASSES,
   DEMO_MODEL,
+  DISCIPLINE_LABEL,
+  ENGLISH_LABEL,
+  flagLabel,
   formatDate,
   LOCATION_CLASSES,
   LOCATION_LABELS,
+  MODALITY_LABELS,
+  OUTCOME_LABELS,
+  riskLabel,
+  safeHttpUrl,
   SCORE_CLASSES,
   scoreTone,
   SOURCE_LABELS,
@@ -27,6 +37,8 @@ import { ReviewNav } from "./review-nav";
 import { StatusCorrection } from "./status-correction";
 
 export const dynamic = "force-dynamic";
+
+export const metadata = { title: "Oferta" };
 
 const EVENT_LABELS: Record<JobEvent, string> = {
   prefilter_pass: "Prefiltro ok",
@@ -61,6 +73,7 @@ export default async function JobDetailPage({
 }) {
   const userId = await requireUserId();
   const { id } = await params;
+  if (!isUuid(id)) notFound();
   const sp = await searchParams;
   const error = typeof sp.error === "string" ? sp.error : undefined;
   // Tope de gasto o chequeo fallido (JS-105): la oferta quedó guardada, pero no se evaluó ahora
@@ -78,6 +91,8 @@ export default async function JobDetailPage({
     getSavedFormAnswers(userId, id),
   ]);
   if (!job) notFound();
+  const flagTexts = job.flags.flatMap((f) => flagLabel(f) ?? []);
+  const jobUrl = safeHttpUrl(job.url);
   const ev = job.evaluation;
   const tone = scoreTone(ev?.score ?? null);
   const salary =
@@ -102,9 +117,10 @@ export default async function JobDetailPage({
           {capNotice}
         </p>
       ) : null}
-      {job.evaluating ? (
+      {job.evaluating && !capNotice ? (
         <p role="status" className="rounded-md bg-sky-50 px-3 py-2 text-sm text-sky-900">
-          Evaluando con el modelo… la página se actualiza sola cuando termine.
+          En cola para evaluar. Puede tardar de unos segundos a unas horas; esta página se actualiza
+          sola un rato.
         </p>
       ) : null}
       <AutoRefresh active={job.evaluating} />
@@ -121,10 +137,12 @@ export default async function JobDetailPage({
         <div className="min-w-0">
           <h1 className="text-lg font-semibold leading-tight">{job.title}</h1>
           <p className="text-sm text-zinc-700">{job.company}</p>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-zinc-600">
             {[
               job.locationRaw,
-              job.modality && job.modality !== "desconocida" ? job.modality : null,
+              job.modality && job.modality !== "desconocida"
+                ? (MODALITY_LABELS[job.modality] ?? job.modality)
+                : null,
               job.contractType,
               salary,
               job.candidatesCount !== null ? `${job.candidatesCount} candidatos` : null,
@@ -153,7 +171,7 @@ export default async function JobDetailPage({
               </span>
             ) : null}
             {job.badges.map((b) => (
-              <span key={b} className="rounded bg-zinc-50 px-1.5 py-0.5 text-zinc-500">
+              <span key={b} className="rounded bg-zinc-50 px-1.5 py-0.5 text-zinc-600">
                 {b}
               </span>
             ))}
@@ -164,8 +182,8 @@ export default async function JobDetailPage({
       {/* Acciones de estado: Server Actions + transition(); solo los eventos válidos desde el estado actual */}
       <section aria-label="Estado" className="flex flex-wrap gap-2">
         {/* Ir a la publicación original; al volver pregunta si hubo postulación (confirmación manual) */}
-        {job.url ? (
-          <ApplyButton jobId={job.id} url={job.url} canApply={job.events.includes("apply")} />
+        {jobUrl ? (
+          <ApplyButton jobId={job.id} url={jobUrl} canApply={job.events.includes("apply")} />
         ) : null}
         {job.events.map((event) => (
           <form key={event} action={changeStatusAction}>
@@ -186,9 +204,11 @@ export default async function JobDetailPage({
           </form>
         ))}
         {job.application?.appliedAt ? (
-          <p className="self-center text-xs text-zinc-500">
+          <p className="self-center text-xs text-zinc-600">
             aplicada el {formatDate(job.application.appliedAt)}
-            {job.application.outcome ? ` · ${job.application.outcome}` : ""}
+            {job.application.outcome
+              ? ` · ${OUTCOME_LABELS[job.application.outcome] ?? job.application.outcome}`
+              : ""}
           </p>
         ) : null}
       </section>
@@ -251,7 +271,7 @@ export default async function JobDetailPage({
                 <Link href={`/jobs/${d.id}`} className="underline">
                   {d.title}
                 </Link>{" "}
-                <span className="text-xs text-zinc-500">
+                <span className="text-xs text-zinc-600">
                   {STATUS_LABELS[d.status] ?? d.status} · se revisa desde su detalle
                 </span>
               </li>
@@ -282,7 +302,7 @@ export default async function JobDetailPage({
               </h2>
               <ul className="mt-1 list-disc pl-5 text-sm text-amber-900">
                 {ev.riesgos.map((r) => (
-                  <li key={r}>{r}</li>
+                  <li key={r}>{riskLabel(r)}</li>
                 ))}
               </ul>
             </section>
@@ -297,23 +317,27 @@ export default async function JobDetailPage({
               <p className="mt-1 text-zinc-800">{ev.veredicto}</p>
               <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-zinc-600">
                 <dt>Disciplina</dt>
-                <dd>{ev.discipline}</dd>
+                <dd>{DISCIPLINE_LABEL[ev.discipline] ?? ev.discipline}</dd>
                 <dt>Inglés</dt>
-                <dd>{ev.englishRequired}</dd>
+                <dd>{ENGLISH_LABEL[ev.englishRequired] ?? ev.englishRequired}</dd>
                 <dt>Años pedidos</dt>
                 <dd>{ev.yearsRequired ?? "no dice"}</dd>
                 <dt>Empresa</dt>
-                <dd>{ev.companyType ?? "desconocido"}</dd>
-                <dt>Modelo</dt>
                 <dd>
-                  {ev.model} · {ev.promptVersion}
-                  {ev.hadFullJd ? "" : " · sin JD completa"}
+                  {ev.companyType
+                    ? (COMPANY_TYPE_LABEL[ev.companyType] ?? ev.companyType)
+                    : COMPANY_TYPE_LABEL.desconocido}
                 </dd>
-                <dt>Score del modelo</dt>
+                <dt>Fecha de la evaluación</dt>
+                <dd>
+                  {formatDate(ev.createdAt)}
+                  {ev.hadFullJd ? "" : " · sin la descripción completa"}
+                </dd>
+                <dt>Score de la evaluación</dt>
                 <dd>
                   {ev.scoreModel ?? ev.score}
                   {ev.adjustments.length
-                    ? ` → ${ev.score} (${ev.adjustments.map((a) => `${a.rule} ${a.delta > 0 ? "+" : ""}${a.delta}`).join(", ")})`
+                    ? ` → ${ev.score} (${ev.adjustments.map(adjustmentText).join(", ")})`
                     : ""}
                 </dd>
               </dl>
@@ -360,7 +384,7 @@ export default async function JobDetailPage({
               </button>
             </div>
             {ev.humanScore !== null ? (
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-zinc-600">
                 guardado: {ev.humanScore} · diferencia con el modelo{" "}
                 {(ev.humanScore - ev.score).toFixed(1)}
               </p>
@@ -373,7 +397,7 @@ export default async function JobDetailPage({
             <h2 className="font-semibold">Pre-evaluación determinista · sin LLM</h2>
             <span className="text-lg font-semibold">pre-score {job.preScore.score}</span>
           </div>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-zinc-600">
             El modelo todavía no corrió. Esto sale de reglas: skills de la JD contra tu nivel,
             riesgos del prefiltro y salario contra el piso. No es el score del evaluador.
           </p>
@@ -382,7 +406,7 @@ export default async function JobDetailPage({
               <p className="text-xs font-semibold text-amber-900">Riesgos detectados</p>
               <ul className="list-disc pl-5 text-xs text-amber-900">
                 {job.preScore.riesgos.map((r) => (
-                  <li key={r}>{r}</li>
+                  <li key={r}>{riskLabel(r)}</li>
                 ))}
               </ul>
             </div>
@@ -404,19 +428,19 @@ export default async function JobDetailPage({
               tone="text-zinc-600"
             />
           </div>
-          <p className="text-xs text-zinc-500">
-            {job.preScore.skillsMentioned} skills mapeadas en la JD
+          <p className="text-xs text-zinc-600">
+            {job.preScore.skillsMentioned} aptitudes reconocidas en la descripción
             {job.preScore.coverage !== null
               ? ` · cobertura ${(job.preScore.coverage * 100).toFixed(0)} %`
               : ""}
-            {job.preScore.cap !== null ? ` · cap por título ${job.preScore.cap}` : ""} ·{" "}
-            {job.preScore.adjustments
-              .map((a) => `${a.rule} ${a.delta > 0 ? "+" : ""}${a.delta}`)
-              .join(", ")}
+            {job.preScore.cap !== null ? ` · tope por el título ${job.preScore.cap}` : ""}
+            {job.preScore.adjustments.length
+              ? ` · ${job.preScore.adjustments.map(adjustmentText).join(", ")}`
+              : ""}
           </p>
           {job.status === "pendiente_jd" ? (
-            <p className="text-xs text-zinc-500">
-              Sin JD: el pre-score usa solo flags y salario.{" "}
+            <p className="text-xs text-zinc-600">
+              Sin JD: el pre-score usa solo las señales del aviso y el salario.{" "}
               <Link href="/jobs/pending-jd" className="underline">
                 pegar la JD
               </Link>
@@ -445,7 +469,7 @@ export default async function JobDetailPage({
         className="rounded-md border border-zinc-200 p-3 text-sm"
       >
         <h2 className="font-semibold">Formulario de postulación</h2>
-        <p className="mb-2 text-xs text-zinc-500">
+        <p className="mb-2 text-xs text-zinc-600">
           Pegá las preguntas, revisá los borradores y copiá lo aprobado. Nada se envía desde acá.
         </p>
         {savedForm.length ? (
@@ -475,9 +499,9 @@ export default async function JobDetailPage({
                 {SOURCE_LABELS[src.kind] ?? src.kind}
               </span>
               {src.name ? <span className="text-zinc-600">{src.name}</span> : null}
-              {src.url ? (
+              {safeHttpUrl(src.url) ? (
                 <a
-                  href={src.url}
+                  href={safeHttpUrl(src.url) ?? undefined}
                   target="_blank"
                   rel="noreferrer noopener"
                   className="truncate text-sky-700 underline"
@@ -485,12 +509,12 @@ export default async function JobDetailPage({
                   {src.url}
                 </a>
               ) : null}
-              <span className="text-zinc-400">{formatDate(src.seenAt)}</span>
+              <span className="text-zinc-600">{formatDate(src.seenAt)}</span>
             </li>
           ))}
         </ul>
-        {job.flags.length ? (
-          <p className="mt-2 text-xs text-zinc-500">flags: {job.flags.join(", ")}</p>
+        {flagTexts.length ? (
+          <p className="mt-2 text-xs text-zinc-600">Señales del aviso: {flagTexts.join(", ")}</p>
         ) : null}
       </section>
 
@@ -513,7 +537,7 @@ function SkillBox({ title, items, tone }: { title: string; items: string[]; tone
       {items.length ? (
         <p className={`text-xs ${tone}`}>{items.join(" · ")}</p>
       ) : (
-        <p className="text-xs text-zinc-400">—</p>
+        <p className="text-xs text-zinc-600">—</p>
       )}
     </div>
   );
@@ -530,7 +554,7 @@ function Block({ title, items, tone }: { title: string; items: string[]; tone: s
           ))}
         </ul>
       ) : (
-        <p className="mt-1 text-xs text-zinc-400">—</p>
+        <p className="mt-1 text-xs text-zinc-600">—</p>
       )}
     </div>
   );

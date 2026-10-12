@@ -10,6 +10,7 @@ export * from "./dedup";
 export * from "./prefilter";
 export * from "./skills";
 export * from "./feedback";
+export * from "./manual-url";
 export type { CriteriaRules } from "./criteria";
 export { parseModality, rawJobFromManual } from "./raw-job";
 export type { ManualJobInput, Modality, RawJob, SourceKind } from "./raw-job";

@@ -129,6 +129,9 @@ const SPANISH_HINT =
   /\b(que|cual|cuales|cuanto|cuando|tu|tus|sus|podes|puedes|tenes|tienes|estas|pretension|salarial|sueldo|salario|disponibilidad|experiencia|trabajo|años|anos)\b|[¿¡]/;
 const isSpanish = (text: string): boolean => SPANISH_HINT.test(fold(text));
 
+const NOT_IN_PROFILE = "Este dato no está cargado en tu perfil: completalo antes de postular.";
+const NO_AUTO_ANSWER = "No hay respuesta automática para esta pregunta: completala a mano.";
+
 function emptyFixed(q: FormQuestion, origin: "fija" | "salario", note: string): DraftedAnswer {
   return {
     question_id: q.id,
@@ -151,7 +154,7 @@ function fixedDraft(q: FormQuestion, kind: FixedKind, profile: CandidateProfile)
           : ask.kind === "bajo_piso"
             ? `el rango máximo (USD ${ask.maxUsd}) está bajo el piso (USD ${ask.floorUsd})`
             : "el piso del perfil y el de los criterios no coinciden";
-      return emptyFixed(q, "salario", `sueldo sin calcular (${ask.kind}): ${why}. Decidilo vos.`);
+      return emptyFixed(q, "salario", `No se pudo calcular el sueldo: ${why}. Decidilo vos.`);
     }
     const es = isSpanish(q.text);
     return {
@@ -161,12 +164,15 @@ function fixedDraft(q: FormQuestion, kind: FixedKind, profile: CandidateProfile)
       draft: es ? `USD ${ask.usdMonthly} mensuales` : `USD ${ask.usdMonthly} per month`,
       sources: [],
       confidence: "alta",
-      note: `calculado por el sistema (${ask.basis})`,
+      note:
+        ask.basis === "minimo_del_rango"
+          ? "Calculado a partir del mínimo del rango del aviso."
+          : "Calculado a partir de tu piso salarial.",
     };
   }
 
   const fixed = profile.fixed_answers;
-  if ("marca" in fixed) return emptyFixed(q, "fija", "sin cargar: completá applicant:sync");
+  if ("marca" in fixed) return emptyFixed(q, "fija", NOT_IN_PROFILE);
 
   let value: string | undefined;
   if (kind === "availability") value = fixed.availability;
@@ -186,8 +192,7 @@ function fixedDraft(q: FormQuestion, kind: FixedKind, profile: CandidateProfile)
           ? lines[0]![1]
           : lines.map(([k, url]) => `${k}: ${url}`).join("\n");
   }
-  if (!value || value === NOT_LOADED)
-    return emptyFixed(q, "fija", "sin cargar: completá applicant:sync");
+  if (!value || value === NOT_LOADED) return emptyFixed(q, "fija", NOT_IN_PROFILE);
   return {
     question_id: q.id,
     question: q.text,
@@ -195,7 +200,7 @@ function fixedDraft(q: FormQuestion, kind: FixedKind, profile: CandidateProfile)
     draft: value,
     sources: [],
     confidence: "alta",
-    note: "respuesta fija, copiada de application_settings",
+    note: "Respuesta fija de tu perfil.",
   };
 }
 
@@ -358,7 +363,7 @@ export async function draftApplicationAnswers(
           draft: "",
           sources: [],
           confidence: "baja",
-          note: `el modelo no respondió (${r.error.kind}): redactala vos`,
+          note: NO_AUTO_ANSWER,
         });
       }
     }

@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { CAP_MESSAGES } from "@/lib/evaluate-now";
-import { formatDate, SOURCE_LABELS } from "@/lib/labels";
+import { formatDate, safeHttpUrl, SOURCE_LABELS } from "@/lib/labels";
 import { CLAUDE_IN_CHROME_SNIPPET, listPendingJd, PENDING_LIMIT } from "@/lib/pending-jd";
 import { requireUserId } from "@/lib/session";
 import { closeJobAction, pasteJdAction } from "./actions";
 import { CopyButton } from "./copy-button";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Pendientes de descripción" };
 // La evaluación inmediata al pegar JD (JS-027) corre en `after` dentro de esta invocación
 export const maxDuration = 120;
 
@@ -30,7 +31,7 @@ export default async function PendingJdPage({
     <section className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between gap-2">
         <h1 className="text-xl font-semibold">Pendientes de JD</h1>
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-zinc-600">
           {rows.length === PENDING_LIMIT ? `primeras ${PENDING_LIMIT}` : rows.length} sin
           descripción
         </p>
@@ -47,7 +48,7 @@ export default async function PendingJdPage({
       ) : null}
       {ok ? (
         <p role="status" className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-          JD guardada: evaluando ahora. En unos segundos la ves con score en{" "}
+          JD guardada: la oferta queda en cola para evaluar. Cuando termine la ves con score en{" "}
           <Link href={`/jobs/${ok}`} className="underline">
             el detalle
           </Link>{" "}
@@ -55,7 +56,7 @@ export default async function PendingJdPage({
           <Link href="/jobs" className="underline">
             Ofertas
           </Link>
-          , que se actualizan solas.
+          .
         </p>
       ) : null}
 
@@ -72,8 +73,8 @@ export default async function PendingJdPage({
         </pre>
         <div className="mt-2 flex items-center gap-2">
           <CopyButton text={CLAUDE_IN_CHROME_SNIPPET} />
-          <span className="text-xs text-zinc-500">
-            Máximo 5 avisos por día (ARCHITECTURE §5). El sistema nunca postula por vos.
+          <span className="text-xs text-zinc-600">
+            Máximo 5 avisos por día. El sistema nunca postula por vos.
           </span>
         </div>
       </details>
@@ -96,9 +97,9 @@ export default async function PendingJdPage({
                     {job.locationRaw ? ` · ${job.locationRaw}` : ""} · {formatDate(job.firstSeenAt)}
                     {job.sourceKind ? ` · ${SOURCE_LABELS[job.sourceKind] ?? job.sourceKind}` : ""}
                   </p>
-                  {job.url ? (
+                  {safeHttpUrl(job.url) ? (
                     <a
-                      href={job.url}
+                      href={safeHttpUrl(job.url) ?? undefined}
                       target="_blank"
                       rel="noreferrer noopener"
                       className="text-xs text-sky-700 underline"
@@ -106,7 +107,7 @@ export default async function PendingJdPage({
                       abrir el aviso
                     </a>
                   ) : (
-                    <span className="text-xs text-zinc-400">sin link al aviso</span>
+                    <span className="text-xs text-zinc-600">sin link al aviso</span>
                   )}
                 </div>
                 <form action={closeJobAction}>

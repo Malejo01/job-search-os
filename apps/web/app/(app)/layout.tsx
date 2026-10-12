@@ -16,6 +16,9 @@ const NAV = [
   { href: "/plan", label: "Plan" },
 ] as const;
 
+const SKIP_CLASS =
+  "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-zinc-900 focus:ring-2 focus:ring-zinc-900";
+
 async function logout(): Promise<void> {
   "use server";
   await signOut({ redirectTo: "/login" });
@@ -35,6 +38,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (!(await isOnboardingComplete(userId))) redirect("/onboarding");
   return (
     <div className="flex min-h-screen flex-col">
+      <a href="#contenido" className={SKIP_CLASS}>
+        Saltar al contenido
+      </a>
       <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2">
           <Link href="/jobs" className="text-base font-semibold">
@@ -80,8 +86,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           />
         </div>
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-4">{children}</main>
-      <footer className="border-t border-zinc-200 px-4 py-3 text-center text-xs text-zinc-500">
+      <main id="contenido" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-4 py-4">
+        {children}
+      </main>
+      <footer className="border-t border-zinc-200 px-4 py-3 text-center text-xs text-zinc-600">
         <Link href="/legal/privacidad" className="underline-offset-2 hover:underline">
           Privacidad
         </Link>

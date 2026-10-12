@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: PRODUCT_NAME,
+  title: { default: PRODUCT_NAME, template: `%s · ${PRODUCT_NAME}` },
   description:
     "Menos postulaciones, mejores. El modelo evalúa, el código decide, el humano interviene.",
 };

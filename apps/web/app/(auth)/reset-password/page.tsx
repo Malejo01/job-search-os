@@ -4,6 +4,11 @@ import { checkResetToken, resetPassword } from "@/lib/password-reset";
 // Ver la nota en /setup: nunca dejar que Next congele una página que depende de estado en vivo.
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Contraseña nueva" };
+
+const SKIP_CLASS =
+  "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-zinc-900 focus:ring-2 focus:ring-zinc-900";
+
 const REASON_MESSAGE: Record<"invalid" | "expired" | "used", string> = {
   invalid: "El link no es válido.",
   expired: "El link venció. Pedí uno nuevo.",
@@ -39,6 +44,9 @@ export default async function ResetPasswordPage({
     ? await checkResetToken(token)
     : { ok: false as const, reason: "invalid" as const };
 
+  const invalidProps = (key: string) =>
+    error === key ? { "aria-invalid": true, "aria-describedby": "reset-error" } : {};
+
   const formError =
     error === "corta"
       ? "La contraseña tiene que tener al menos 8 caracteres."
@@ -47,7 +55,14 @@ export default async function ResetPasswordPage({
         : null;
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-6">
+    <main
+      id="contenido"
+      tabIndex={-1}
+      className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-6"
+    >
+      <a href="#contenido" className={SKIP_CLASS}>
+        Saltar al contenido
+      </a>
       <div>
         <h1 className="text-2xl font-semibold">Elegir contraseña nueva</h1>
       </div>
@@ -66,6 +81,7 @@ export default async function ResetPasswordPage({
               autoComplete="new-password"
               minLength={8}
               required
+              {...invalidProps("corta")}
               className="rounded-md border border-zinc-300 px-3 py-2 text-base"
             />
           </label>
@@ -77,11 +93,12 @@ export default async function ResetPasswordPage({
               autoComplete="new-password"
               minLength={8}
               required
+              {...invalidProps("no_coincide")}
               className="rounded-md border border-zinc-300 px-3 py-2 text-base"
             />
           </label>
           {formError ? (
-            <p role="alert" className="text-sm text-red-700">
+            <p id="reset-error" role="alert" className="text-sm text-red-700">
               {formError}
             </p>
           ) : null}

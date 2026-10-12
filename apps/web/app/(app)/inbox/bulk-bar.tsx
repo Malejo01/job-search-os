@@ -166,7 +166,7 @@ export function BulkBar({ total, shown, view }: { total: number; shown: number; 
                 type="button"
                 disabled={pending}
                 onClick={() => toggleAll(false)}
-                className="text-zinc-500 underline"
+                className="text-zinc-600 underline"
               >
                 Cancelar selección
               </button>

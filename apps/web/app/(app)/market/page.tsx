@@ -6,6 +6,7 @@ import { SkillCandidates } from "./skill-candidates";
 import { SkillRows } from "./skill-rows";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Mercado" };
 
 const INPUT_CLASS =
   "w-full rounded-md border border-zinc-300 px-2 py-2 text-sm text-zinc-800 sm:w-auto";

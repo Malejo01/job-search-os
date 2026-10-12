@@ -5,6 +5,7 @@ import { isOnboardingComplete } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
 import { Assistant } from "./assistant";
 
+export const metadata = { title: "Reenvío de emails" };
 export const dynamic = "force-dynamic";
 
 /** Paso 2 del onboarding: conectar el reenvío de Gmail. Sin perfil completo vuelve al paso 1. */

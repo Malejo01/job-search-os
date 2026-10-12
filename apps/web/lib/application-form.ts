@@ -138,7 +138,9 @@ export async function generateDraftsAction(input: {
       drafts,
       llmError:
         result.cap_message ??
-        (result.llm_error ? `el modelo no respondió (${result.llm_error.kind})` : null),
+        (result.llm_error
+          ? "no se pudieron generar los borradores redactados por el modelo"
+          : null),
     };
   } catch (e) {
     if (!(e instanceof ApplicantFailure)) {

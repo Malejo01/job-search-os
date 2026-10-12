@@ -5,6 +5,7 @@ import {
   type RoleSkillsMap,
 } from "@job-search-os/pipeline";
 import Link from "next/link";
+import { SubmitButton } from "@/app/components/submit-button";
 import type { TaxonomySkill } from "@/lib/skill-levels";
 import { SkillRow } from "./skill-row";
 import { SkillSearch } from "./skill-search";
@@ -28,6 +29,7 @@ export function SkillsForm({
   submitLabel,
   skip,
   allowRemove = true,
+  invalidSlug,
 }: {
   action: (formData: FormData) => Promise<void>;
   /** Ruta de la pantalla: los links del selector de rol son `${basePath}?rol=<clave>`. */
@@ -40,6 +42,8 @@ export function SkillsForm({
   skip?: { href: string; label: string };
   /** Muestra "Quitar" en las skills con nivel guardado (no en el onboarding). */
   allowRemove?: boolean;
+  /** Slug de la fila a la que apunta `?error=level:<slug>`, si lo hay. */
+  invalidSlug?: string;
 }) {
   const byslug = new Map(taxonomy.map((t) => [t.slug, t]));
   const suggested = role ? suggestedSkills(role, roleMap).filter((slug) => byslug.has(slug)) : [];
@@ -99,6 +103,7 @@ export function SkillsForm({
                 name={byslug.get(slug)!.name}
                 level={levels[slug]}
                 removable={allowRemove && slug in levels}
+                invalid={slug === invalidSlug}
               />
             ))}
           </section>
@@ -116,6 +121,7 @@ export function SkillsForm({
                 name={t.name}
                 level={levels[t.slug]}
                 removable={allowRemove}
+                invalid={t.slug === invalidSlug}
               />
             ))}
           </section>
@@ -132,12 +138,12 @@ export function SkillsForm({
               {skip.label}
             </Link>
           ) : null}
-          <button
-            type="submit"
+          <SubmitButton
+            pendingLabel="Guardando…"
             className="rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
           >
             {submitLabel}
-          </button>
+          </SubmitButton>
         </div>
       </form>
     </div>

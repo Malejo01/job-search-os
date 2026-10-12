@@ -99,16 +99,19 @@ test.describe("Flujo 16: revisión de a una", () => {
       new RegExp(`/jobs/${B}`),
     );
 
-    // Atajos: j = siguiente, k = anterior
+    // Atajos con Alt: Alt+J = siguiente, Alt+K = anterior (la letra sola no hace nada)
     await page.keyboard.press("j");
+    await expect(page).toHaveURL(new RegExp(`/jobs/${A}`));
+    await page.keyboard.press("Alt+j");
     await expect(page).toHaveURL(new RegExp(`/jobs/${B}`));
-    await page.keyboard.press("k");
+    await page.keyboard.press("Alt+k");
     await expect(page).toHaveURL(new RegExp(`/jobs/${A}`));
 
-    // Escribiendo en un campo, "j" es una letra y no un atajo
+    // Escribiendo en un campo, ni la letra ni Alt+J son un atajo
     const nota = page.getByLabel("Nota");
     await nota.click();
     await nota.pressSequentially("jk");
+    await page.keyboard.press("Alt+j");
     await expect(page).toHaveURL(new RegExp(`/jobs/${A}`));
     await expect(nota).toHaveValue("jk");
     await nota.blur();

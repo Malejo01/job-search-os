@@ -185,7 +185,7 @@ export function LegalPage({ name }: { name: LegalName }) {
         <strong>Borrador en revisión:</strong> todavía no vigente.
       </p>
       {updated ? (
-        <p className="mt-2 text-xs text-zinc-500">Última actualización: {updated}</p>
+        <p className="mt-2 text-xs text-zinc-600">Última actualización: {updated}</p>
       ) : null}
       {renderLegalBlocks(doc.blocks)}
     </article>

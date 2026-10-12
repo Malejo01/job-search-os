@@ -6,6 +6,7 @@ import { requireUserId } from "@/lib/session";
 import { setOutcomeAction } from "./actions";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Postulaciones" };
 
 const pct = (v: number | null) => (v === null ? "—" : `${Math.round(v * 100)} %`);
 const OUTCOME_CLASSES: Record<string, string> = {
@@ -53,7 +54,7 @@ export default async function ApplicationsPage({
     <section className="flex flex-col gap-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-xl font-semibold">Postulaciones</h1>
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-zinc-600">
           {report.applied} postulaciones sobre {report.evaluated} evaluadas
         </p>
       </div>
@@ -68,14 +69,13 @@ export default async function ApplicationsPage({
         <p className="text-sm">
           Respuesta positiva (entrevista u oferta) con score ≥ 7:{" "}
           <strong>{pct(report.highScore.rate)}</strong>{" "}
-          <span className="text-xs text-zinc-500">
-            ({report.highScore.positive} de {report.highScore.applied}; métrica del PRD, sin
-            baseline todavía)
+          <span className="text-xs text-zinc-600">
+            ({report.highScore.positive} de {report.highScore.applied} postulaciones)
           </span>
         </p>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
-            <thead className="text-left text-zinc-500">
+            <thead className="text-left text-zinc-600">
               <tr>
                 <th className="py-1 pr-3">Score</th>
                 <th className="py-1 pr-3">Evaluadas</th>
@@ -110,7 +110,7 @@ export default async function ApplicationsPage({
             {report.humanVsModel.bias.toFixed(2)} (positivo = el modelo puntúa de más).
           </p>
         ) : (
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-zinc-600">
             Cargá tu score en el detalle de las ofertas evaluadas para comparar modelo vs humano
             fuera del golden.
           </p>
@@ -124,7 +124,7 @@ export default async function ApplicationsPage({
               report.surprises.lowScorePositive,
             )}
             {surprise(
-              "Rechazo automático por ubicación con location_ok = ok (revisar aviso o regla)",
+              "Rechazo automático por ubicación en una oferta que parecía compatible (revisar el aviso o la regla)",
               report.surprises.autoLocationRejectWithOk,
             )}
             {surprise("Score ≥ 7 sin respuesta", report.surprises.highScoreNoAnswer)}
@@ -152,9 +152,9 @@ export default async function ApplicationsPage({
                     {a.score !== null
                       ? ` · score ${a.score}${a.accion ? ` (${ACTION_LABELS[a.accion] ?? a.accion})` : ""}`
                       : " · sin evaluación"}
-                    {a.model === "fake" ? " · DEMO" : ""}
+                    {a.model === "fake" ? " · modo demo" : ""}
                   </p>
-                  {a.outcomeNote ? <p className="text-xs text-zinc-500">{a.outcomeNote}</p> : null}
+                  {a.outcomeNote ? <p className="text-xs text-zinc-600">{a.outcomeNote}</p> : null}
                 </div>
                 <span
                   className={`rounded-full px-2 py-0.5 text-xs ${OUTCOME_CLASSES[a.outcome] ?? ""}`}
@@ -194,7 +194,7 @@ export default async function ApplicationsPage({
           ))}
         </ol>
       )}
-      <p className="text-xs text-zinc-500">
+      <p className="text-xs text-zinc-600">
         El estado de la oferta (rechazada, entrevista, oferta) se cambia desde su detalle y
         actualiza el resultado acá; el resultado también se puede corregir a mano.
       </p>

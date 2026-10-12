@@ -9,6 +9,7 @@ export function SkillRow({
   name,
   level,
   removable = false,
+  invalid = false,
 }: {
   slug: string;
   name: string;
@@ -16,6 +17,8 @@ export function SkillRow({
   level?: number;
   /** Con nivel guardado: muestra "Quitar" (vuelve a "sin dato"). */
   removable?: boolean;
+  /** El error de la página apunta a esta fila: marca los radios y los une al aviso `skills-error`. */
+  invalid?: boolean;
 }) {
   return (
     <fieldset
@@ -36,6 +39,8 @@ export function SkillRow({
               name={`level:${slug}`}
               value={l.level}
               defaultChecked={level === l.level}
+              aria-invalid={invalid ? true : undefined}
+              aria-describedby={invalid ? "skills-error" : undefined}
               className="h-5 w-5"
             />
             {l.label}

@@ -4,6 +4,11 @@ import { requestPasswordReset } from "@/lib/password-reset";
 // Ver la nota en /setup: nunca dejar que Next congele una página que depende de estado en vivo.
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Recuperar contraseña" };
+
+const SKIP_CLASS =
+  "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-zinc-900 focus:ring-2 focus:ring-zinc-900";
+
 /** Pide el link de recuperación (JS-045); server action sin JS de cliente. */
 async function forgotPassword(formData: FormData): Promise<void> {
   "use server";
@@ -19,7 +24,14 @@ export default async function ForgotPasswordPage({
 }) {
   const { sent } = await searchParams;
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-6">
+    <main
+      id="contenido"
+      tabIndex={-1}
+      className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-6"
+    >
+      <a href="#contenido" className={SKIP_CLASS}>
+        Saltar al contenido
+      </a>
       <div>
         <h1 className="text-2xl font-semibold">Olvidé mi contraseña</h1>
         <p className="text-sm text-zinc-600">

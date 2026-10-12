@@ -1,6 +1,7 @@
 "use server";
 
 import { createLogger, safeDbError } from "@job-search-os/adapters";
+import { parseManualUrl } from "@job-search-os/pipeline";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { evaluateInBackgroundOrExplain } from "@/lib/evaluate-now";
@@ -20,10 +21,13 @@ export async function createManualJobAction(formData: FormData): Promise<void> {
     return v === "" ? null : Number.isFinite(Number(v)) ? Number(v) : null;
   };
   if (!str("title") || !str("company")) redirect("/jobs/new?error=campos");
+  // Solo se valida el texto: el servidor nunca abre la URL (D-028)
+  const parsedUrl = parseManualUrl(str("url"));
+  if (!parsedUrl.ok) redirect("/jobs/new?error=url");
   let outcome;
   try {
     outcome = await ingestManualJob(userId, {
-      url: str("url") || null,
+      url: parsedUrl.url,
       title: str("title"),
       company: str("company"),
       locationRaw: str("location") || null,
