@@ -1,0 +1,208 @@
+import { describe, expect, it } from "vitest";
+import sample from "./__fixtures__/jobicy-sample.json";
+import {
+  fetchJobicyJobs,
+  JOBICY_BASE_URL,
+  mapJobicyJob,
+  parseJobicyDate,
+  type JobicyItem,
+} from "./jobicy";
+
+const fixture = sample as unknown as { jobs: JobicyItem[] };
+const [anywhere, country, region, noUrl, empty] = fixture.jobs as [
+  JobicyItem,
+  JobicyItem,
+  JobicyItem,
+  JobicyItem,
+  JobicyItem,
+];
+
+const jsonFetch = (body: unknown, status = 200): typeof fetch =>
+  (async () =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { "content-type": "application/json" },
+    })) as unknown as typeof fetch;
+
+describe("Jobicy: contrato con una respuesta de ejemplo (formato a verificar)", () => {
+  it("mapea un aviso 'Anywhere' con salario en USD", () => {
+    const raw = mapJobicyJob(anywhere)!;
+    expect(raw.source).toEqual({
+      kind: "jobicy",
+      name: "Jobicy",
+      externalId: "880001",
+      url: "https://jobicy.com/jobs/880001-ficticio",
+      rawRef: null,
+      original: { contentType: "application/json", body: expect.any(String) },
+    });
+    expect(raw.title).toBe("Senior Backend Engineer");
+    expect(raw.companyRaw).toBe("Empresa Ficticia 1");
+    expect(raw.modality).toBe("remoto");
+    expect(raw.countriesAllowed).toEqual(["*"]);
+    expect(raw.locationRaw).toBe("Remoto (Anywhere)");
+    expect(raw.salaryMinUsd).toBe(50000);
+    expect(raw.salaryMaxUsd).toBe(70000);
+    expect(raw.salaryPeriod).toBe("anual");
+    expect(raw.salaryNote).toBeNull();
+    expect(raw.postedAt).toEqual(new Date("2026-10-10T12:00:00Z"));
+    expect(raw.categories).toEqual(["engineering"]);
+    expect(raw.contractType).toBe("Full-Time");
+    expect(raw.seniority).toBe("Senior");
+    expect(raw.tags).toEqual([]);
+    expect(raw.jdText).toContain("- Python y Postgres");
+    expect(raw.jdText).toContain("Inglés & trabajo asincrónico");
+    expect(raw.jdText).not.toMatch(/<[a-z]+>/i);
+  });
+
+  it("conserva el aviso crudo y la URL canónica tal cual", () => {
+    const raw = mapJobicyJob(anywhere)!;
+    expect(JSON.parse(raw.source.original!.body)).toEqual(anywhere);
+    expect(raw.source.url).toBe(anywhere.url);
+  });
+
+  it("un país → ISO; salario en otra moneda solo va en la nota (montos como string)", () => {
+    const raw = mapJobicyJob(country)!;
+    expect(raw.countriesAllowed).toEqual(["AR"]);
+    expect(raw.locationRaw).toBe("Remoto (Argentina)");
+    expect(raw.salaryMinUsd).toBeNull();
+    expect(raw.salaryMaxUsd).toBeNull();
+    expect(raw.salaryPeriod).toBeNull();
+    expect(raw.salaryNote).toBe("EUR 40000–60000 por año según Jobicy");
+    expect(raw.categories).toEqual(["design-creative"]);
+  });
+
+  it("pubDate 'YYYY-MM-DD HH:MM:SS' se toma como UTC", () => {
+    expect(mapJobicyJob(country)!.postedAt).toEqual(new Date("2026-10-10T09:30:00Z"));
+    expect(parseJobicyDate("2026-10-10 09:30:00")).toEqual(new Date("2026-10-10T09:30:00Z"));
+    expect(parseJobicyDate("2026-10-10T09:30:00")).toEqual(new Date("2026-10-10T09:30:00Z"));
+    expect(parseJobicyDate("2026-10-10T09:30:00+02:00")).toEqual(new Date("2026-10-10T07:30:00Z"));
+  });
+
+  it("pubDate inválida o ausente → null", () => {
+    expect(parseJobicyDate("ayer")).toBeNull();
+    expect(parseJobicyDate("")).toBeNull();
+    expect(parseJobicyDate(undefined)).toBeNull();
+    expect(mapJobicyJob({ ...anywhere, pubDate: "nunca" })!.postedAt).toBeNull();
+  });
+
+  it("una región no es un país: countriesAllowed null y la región queda en locationRaw", () => {
+    const raw = mapJobicyJob(region)!;
+    expect(raw.countriesAllowed).toBeNull();
+    expect(raw.locationRaw).toBe("Remoto (Europe)");
+    expect(raw.salaryNote).toBeNull();
+    expect(raw.salaryPeriod).toBeNull();
+    expect(raw.categories).toEqual(["customer-success"]);
+    expect(raw.contractType).toBe("Full-Time");
+  });
+
+  it("jobGeo vacío, lista o nombre desconocido → null; nada se supone", () => {
+    const vacio = mapJobicyJob(empty)!;
+    expect(vacio.countriesAllowed).toBeNull();
+    expect(vacio.locationRaw).toBe("Remoto (países no especificados)");
+    expect(vacio.seniority).toBeNull();
+    expect(mapJobicyJob({ ...anywhere, jobGeo: ["Chile", "Peru"] })!.countriesAllowed).toBeNull();
+    expect(mapJobicyJob({ ...anywhere, jobGeo: "EU" })!.countriesAllowed).toBeNull();
+    expect(mapJobicyJob({ ...anywhere, jobGeo: "Worldwide" })!.countriesAllowed).toEqual(["*"]);
+  });
+
+  it("varias industrias y tipos de contrato; salario sin moneda va en la nota", () => {
+    const raw = mapJobicyJob(empty)!;
+    expect(raw.categories).toEqual(["data-science", "business-analytics"]);
+    expect(raw.contractType).toBe("Full-Time, Contract");
+    expect(raw.salaryMinUsd).toBeNull();
+    expect(raw.salaryNote).toBe("moneda no indicada 30000–? por año según Jobicy");
+  });
+
+  it("salario 0 o inválido → sin salario", () => {
+    const raw = mapJobicyJob({
+      ...anywhere,
+      annualSalaryMin: 0,
+      annualSalaryMax: "abc",
+    })!;
+    expect(raw.salaryMinUsd).toBeNull();
+    expect(raw.salaryMaxUsd).toBeNull();
+    expect(raw.salaryPeriod).toBeNull();
+    expect(raw.salaryNote).toBeNull();
+  });
+
+  it("sin url, sin id o sin título → null (falla cerrado)", () => {
+    expect(mapJobicyJob(noUrl)).toBeNull();
+    expect(mapJobicyJob({ ...anywhere, id: undefined })).toBeNull();
+    expect(mapJobicyJob({ ...anywhere, jobTitle: "  " })).toBeNull();
+    expect(mapJobicyJob({ ...anywhere, url: "" })).toBeNull();
+  });
+});
+
+describe("fetchJobicyJobs (fetch inyectado)", () => {
+  const since = new Date("2026-10-09T00:00:00Z");
+
+  it("una sola llamada con ?count, filtra por fecha y cuenta los rotos", async () => {
+    const urls: string[] = [];
+    const fetchImpl = (async (url: string | URL | Request) => {
+      urls.push(String(url));
+      return new Response(JSON.stringify(fixture));
+    }) as unknown as typeof fetch;
+    const r = await fetchJobicyJobs({ since, fetchImpl });
+    expect(urls).toEqual([`${JOBICY_BASE_URL}?count=200`]);
+    expect(r.seen).toBe(5);
+    // 880004 no tiene url (skipped); 880005 es del 1/10 (fuera de la ventana)
+    expect(r.skipped).toBe(1);
+    expect(r.jobs.map((j) => j.source.externalId)).toEqual(["880001", "880002", "880003"]);
+  });
+
+  it("respeta count y baseUrl; deduplica por id", async () => {
+    const urls: string[] = [];
+    const fetchImpl = (async (url: string | URL | Request) => {
+      urls.push(String(url));
+      return new Response(JSON.stringify({ jobs: [anywhere, anywhere] }));
+    }) as unknown as typeof fetch;
+    const r = await fetchJobicyJobs({
+      since,
+      count: 50,
+      baseUrl: "https://x.example/api",
+      fetchImpl,
+    });
+    expect(urls).toEqual(["https://x.example/api?count=50"]);
+    expect(r.jobs).toHaveLength(1);
+    expect(r.seen).toBe(2);
+  });
+
+  it("un aviso con pubDate inválida no pasa el filtro y cuenta como skipped", async () => {
+    const r = await fetchJobicyJobs({
+      since,
+      fetchImpl: jsonFetch({ jobs: [{ ...anywhere, pubDate: "nunca" }] }),
+    });
+    expect(r.jobs).toEqual([]);
+    expect(r.skipped).toBe(1);
+  });
+
+  it("jobs que no es un array → error", async () => {
+    await expect(fetchJobicyJobs({ since, fetchImpl: jsonFetch({ jobs: {} }) })).rejects.toThrow(
+      "Jobicy: respuesta inesperada",
+    );
+    await expect(fetchJobicyJobs({ since, fetchImpl: jsonFetch({}) })).rejects.toThrow(
+      "Jobicy: respuesta inesperada",
+    );
+    await expect(fetchJobicyJobs({ since, fetchImpl: jsonFetch([]) })).rejects.toThrow(
+      "Jobicy: respuesta inesperada",
+    );
+  });
+
+  it("HTTP no-OK → error con la fuente y el status", async () => {
+    await expect(fetchJobicyJobs({ since, fetchImpl: jsonFetch({}, 429) })).rejects.toThrow(
+      /Jobicy: HTTP 429/,
+    );
+  });
+
+  it("manda user-agent solo si viene", async () => {
+    const headers: (Record<string, string> | undefined)[] = [];
+    const fetchImpl = (async (_url: unknown, init?: RequestInit) => {
+      headers.push(init?.headers as Record<string, string>);
+      return new Response(JSON.stringify({ jobs: [] }));
+    }) as unknown as typeof fetch;
+    await fetchJobicyJobs({ since, userAgent: "JobSearchOS/1.0", fetchImpl });
+    await fetchJobicyJobs({ since, fetchImpl });
+    expect(headers[0]?.["user-agent"]).toBe("JobSearchOS/1.0");
+    expect(headers[1]?.["user-agent"]).toBeUndefined();
+  });
+});

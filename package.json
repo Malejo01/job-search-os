@@ -35,7 +35,8 @@
     "skills:extract": "pnpm --filter @job-search-os/adapters skills:extract",
     "worker:requeue": "pnpm --filter @job-search-os/adapters worker:requeue",
     "secrets:scan": "docker run --rm -v \"$(pwd -W 2>/dev/null || pwd):/repo\" zricethezav/gitleaks:latest detect --source /repo --redact --exit-code 2",
-    "applicant:sync": "pnpm --filter @job-search-os/adapters applicant:sync"
+    "applicant:sync": "pnpm --filter @job-search-os/adapters applicant:sync",
+    "pool:fetch": "pnpm --filter @job-search-os/adapters pool:fetch"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

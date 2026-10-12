@@ -1,6 +1,6 @@
 # Fuente: We Work Remotely (WWR)
 
-Adapter: `packages/adapters/src/sources/wwr.ts`. **No conectado al cron** (falta migración del enum `source_kind`: hoy devuelve `kind: "other"`, `source.name` = `WWR <categoría>` y `externalId` = `wwr:<guid>`).
+Adapter: `packages/adapters/src/sources/wwr.ts`. Conectado al cron detrás de `INGEST_EXTRA_SOURCES` (desde JS-089), **apagado**. Devuelve `kind: "other"`, `source.name` = `WWR <categoría>` y `externalId` = `wwr:<guid>`.
 
 > Escrito sin red (ronda 07). Todo lo de este documento sale del formato documentado conocido y está **a verificar** contra un feed real antes de conectarlo.
 

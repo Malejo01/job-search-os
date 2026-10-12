@@ -21,9 +21,9 @@ describe("Himalayas: contrato con una respuesta de ejemplo (formato a verificar)
   it("mapea un aviso completo a RawJob", () => {
     const raw = mapHimalayasJob(full)!;
     expect(raw.source).toEqual({
-      kind: "other",
+      kind: "himalayas",
       name: "Himalayas",
-      externalId: `himalayas:${full.guid}`,
+      externalId: full.guid,
       url: full.applicationLink,
       rawRef: null,
       original: { contentType: "application/json", body: expect.any(String) },
@@ -41,6 +41,8 @@ describe("Himalayas: contrato con una respuesta de ejemplo (formato a verificar)
     expect(raw.contractType).toBe("Full Time");
     expect(raw.seniority).toBe("Senior");
     expect(raw.tags).toEqual(["Software-Engineering", "Backend"]);
+    expect(raw.categories).toEqual(["Software-Engineering", "Backend"]);
+    expect(raw.source.externalId).not.toContain("himalayas:");
     expect(raw.postedAt).toEqual(new Date(1790000000 * 1000));
     expect(raw.jdText).toContain("- 5+ años con APIs");
     expect(raw.jdText).toContain("Inglés & español");
@@ -122,11 +124,19 @@ describe("fetchHimalayasJobs (fetch inyectado)", () => {
     expect(calls[1]).toBe(himalayasUrl("https://himalayas.app/jobs/api", 2, 2));
     expect(r.pagesFetched).toBe(3);
     expect(r.seen).toBe(5);
-    expect(r.jobs.map((j) => j.source.externalId)).toEqual([
-      "himalayas:a",
-      "himalayas:b",
-      "himalayas:c",
-    ]);
+    expect(r.jobs.map((j) => j.source.externalId)).toEqual(["a", "b", "c"]);
+  });
+
+  it("manda user-agent solo si viene", async () => {
+    const headers: (Record<string, string> | undefined)[] = [];
+    const fetchImpl = (async (_url: unknown, init?: RequestInit) => {
+      headers.push(init?.headers as Record<string, string>);
+      return new Response(JSON.stringify({ jobs: [] }));
+    }) as unknown as typeof fetch;
+    await fetchHimalayasJobs({ since: new Date(0), userAgent: "JobSearchOS/1.0", fetchImpl });
+    await fetchHimalayasJobs({ since: new Date(0), fetchImpl });
+    expect(headers[0]?.["user-agent"]).toBe("JobSearchOS/1.0");
+    expect(headers[1]?.["user-agent"]).toBeUndefined();
   });
 
   it("corta cuando una página entera es más vieja que la ventana", async () => {
@@ -157,7 +167,7 @@ describe("fetchHimalayasJobs (fetch inyectado)", () => {
     });
     expect(r.pagesFetched).toBe(2);
     expect(r.skipped).toBe(1);
-    expect(r.jobs.map((j) => j.source.externalId)).toEqual(["himalayas:a", "himalayas:b"]);
+    expect(r.jobs.map((j) => j.source.externalId)).toEqual(["a", "b"]);
   });
 
   it("HTTP no-OK → error con la fuente y el status", async () => {

@@ -33,3 +33,24 @@ export async function syncJobSkillsFromText(
     .values(ids.map((k) => ({ jobId, skillId: k.id, isMust: true, rawMention: "jd" })));
   return ids.length;
 }
+
+/** Igual que `syncJobSkillsFromText`, sobre las skills del pool (`public_job_skills`). */
+export async function syncPublicJobSkillsFromText(
+  db: Db,
+  publicJobId: string,
+  text: string,
+  terms: readonly Term[],
+): Promise<number> {
+  const slugs = extractSkillsFromText(text, terms);
+  await db.delete(s.publicJobSkills).where(eq(s.publicJobSkills.publicJobId, publicJobId));
+  if (!slugs.length) return 0;
+  const ids = await db
+    .select({ id: s.skills.id, slug: s.skills.slug })
+    .from(s.skills)
+    .where(inArray(s.skills.slug, slugs));
+  if (!ids.length) return 0;
+  await db
+    .insert(s.publicJobSkills)
+    .values(ids.map((k) => ({ publicJobId, skillId: k.id, isMust: true, rawMention: "jd" })));
+  return ids.length;
+}

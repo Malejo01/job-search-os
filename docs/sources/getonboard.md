@@ -54,6 +54,21 @@ Por eso remoto y fecha se filtran en cliente (`fetchGetOnBoardJobs`).
 
 Distribución observada en 60 avisos de programming: 20 híbridos Chile, 13 `remote_local`, 11 `fully_remote`, 8 `no_remote`, el resto híbridos en Perú, Colombia, México, Argentina, Guatemala.
 
+## Pool global (JS-137)
+
+La fuente también alimenta el pool global (`POOL_SOURCES`; apagada hasta que Mauro define la variable, y se prende de a una tras el `--dry-run`), además de la ingesta por usuario de abajo, que sigue igual hasta que la asignación desde el pool la reemplace.
+
+- Categorías: `GOB_POOL_CATEGORIES` = `programming`, `mobile-developer`, `machine-learning-ai`, `data-science-analytics`, `design-ux`, `sysadmin-devops-qa`, `customer-support`. Los tres de `GOB_CATEGORIES` están verificados (2026-09-10); **los otros cuatro están a verificar** con `pnpm pool:fetch getonboard --dry-run`. `GOB_CATEGORIES` no cambia.
+- Llamada con `remoteOnly: false` (el pool guarda también híbridos y presenciales), `skipMissingCategories: true` (un 404 en la página 1 de una categoría se saltea y queda en `missingCategories`; cualquier otro error corta) y ventana de 48 h.
+- `RawJob.categories` = slugs de las categorías donde apareció el aviso; si aparece en otra, se **suma**.
+- `partialOnError: true`: si una request falla (timeout incluido) después de haber juntado avisos, deja de pedir y devuelve lo juntado con `partial: true` y un código de error cerrado; el pool marca la fuente `partial`. Timeout de la fuente en el pool: 25 s.
+- `User-Agent` identificable (`sourceUserAgent()`).
+- `externalId` es el `id` de la fuente, ya sin prefijo.
+- `--dry-run`: `pnpm pool:fetch getonboard --dry-run` informa páginas, avisos vistos, mapeados, categorías faltantes y qué campos trae la respuesta real (solo conteos y tipos, nunca valores). No escribe en ninguna base.
+
+### Atribución y términos
+Fuente: `ops/rondas/37-38-39/informes/riesgos-fuentes.md` §1 (consultado el 2026-10-12; no es asesoramiento legal). Es la fuente menos clara: la ayuda oficial invita a mostrar avisos en otro sitio, pero los Términos (sección 7) prohíben la descarga automática de su propiedad intelectual y entrenar modelos, y no publican límites ni atribución. Condiciones sugeridas: mostrar "Get on Board" y el link a `links.public_url`; consulta moderada con `User-Agent` identificable y retroceso ante 429; confirmación escrita del uso previsto (la decide y hace Mauro).
+
 ## Ingesta
 
 - Ventana: 24 h en el cron (`/api/cron/ingest-getonboard`, `CRON_SECRET`), configurable en el CLI: `pnpm ingest:getonboard [--local] [--since-hours N] [--user <uuid>]`.

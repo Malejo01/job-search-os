@@ -1,6 +1,6 @@
 # Torre
 
-Adapter: `packages/adapters/src/sources/torre.ts`. Estado: **no conectado al cron** (falta la migración del enum `source_kind`; hoy devuelve `kind: "other"` y `externalId` con prefijo `torre:`).
+Adapter: `packages/adapters/src/sources/torre.ts`. Estado: conectado al cron detrás de `INGEST_EXTRA_SOURCES` (desde JS-089), **apagado**. Devuelve `kind: "other"` y `externalId` con prefijo `torre:`.
 
 **Torre no tiene una API pública de avisos documentada.** Lo que hay es el buscador público que usa su web. Todo lo de abajo (endpoint, body de filtros, forma del resultado) es **a verificar** y puede cambiar o estar prohibido sin aviso.
 

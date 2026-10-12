@@ -5,14 +5,14 @@ import type { Logger } from "../logger";
 import { safeDbError } from "../logging/safe-error";
 import { enqueueEvaluationWith } from "../queue/pg-queue";
 import { loadTaxonomy } from "../skills/sync";
-import { fetchHimalayasJobs } from "../sources/himalayas";
-import { fetchRemoteOkJobs } from "../sources/remoteok";
 import { fetchTorreJobs } from "../sources/torre";
+import { withSignal } from "../sources/with-signal";
 import { fetchWwrJobs } from "../sources/wwr";
 import { ingestBatch, type IngestSummary } from "./ingest-job";
 import { loadActiveRules } from "./run-getonboard";
 
-export const SOURCE_NAMES = ["remoteok", "wwr", "himalayas", "torre"] as const;
+/** Remote OK y Himalayas pasaron al pool global (JS-137): `POOL_SOURCES`, no esta lista. */
+export const SOURCE_NAMES = ["wwr", "torre"] as const;
 export type SourceName = (typeof SOURCE_NAMES)[number];
 
 export type SourceDownloader = (args: {
@@ -26,38 +26,9 @@ export type ExtraSourceDownloaders = Record<SourceName, SourceDownloader>;
 /** Tope de páginas bajo para las fuentes que paginan: el cron tiene 60 s en total. */
 const MAX_PAGES = 3;
 
-/**
- * Los adapters no conocen el AbortSignal: se inyecta en cada request a través de fetchImpl.
- * Si el fetch (real o falso) ignora la señal, igual se corta la espera con una carrera.
- */
-function withSignal(fetchImpl: typeof fetch, signal: AbortSignal | undefined): typeof fetch {
-  if (!signal) return fetchImpl;
-  return ((input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
-    if (signal.aborted) return Promise.reject(new Error("timeout de la fuente"));
-    return Promise.race([
-      fetchImpl(input, { ...init, signal }),
-      new Promise<never>((_, reject) => {
-        signal.addEventListener("abort", () => reject(new Error("timeout de la fuente")), {
-          once: true,
-        });
-      }),
-    ]);
-  }) as typeof fetch;
-}
-
 export const EXTRA_SOURCES: ExtraSourceDownloaders = {
-  remoteok: async ({ since, fetchImpl, signal }) =>
-    (await fetchRemoteOkJobs({ since, fetchImpl: withSignal(fetchImpl ?? fetch, signal) })).jobs,
   wwr: async ({ since, fetchImpl, signal }) =>
     (await fetchWwrJobs({ since, fetchImpl: withSignal(fetchImpl ?? fetch, signal) })).jobs,
-  himalayas: async ({ since, fetchImpl, signal }) =>
-    (
-      await fetchHimalayasJobs({
-        since,
-        maxPages: MAX_PAGES,
-        fetchImpl: withSignal(fetchImpl ?? fetch, signal),
-      })
-    ).jobs,
   torre: async ({ since, fetchImpl, signal }) =>
     (
       await fetchTorreJobs({
@@ -250,7 +221,7 @@ export async function runExtraSourcesIngest(
           users++;
           totals.inserted += summary.inserted;
           totals.merged += summary.merged;
-          totals.discarded += summary.byStatus["prefilter_discard"] ?? 0;
+          totals.discarded += summary.byStatus["descartada_prefiltro"] ?? 0;
           totals.errors += summary.errors.length;
         } catch (e) {
           failed++;

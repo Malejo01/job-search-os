@@ -10,7 +10,11 @@ export type SourceKind =
   | "manual"
   | "hn_whoishiring"
   | "remotive"
-  | "other";
+  | "other"
+  // Pool de ofertas públicas (Tanda G, ronda 37): fuentes con valor propio en el enum
+  | "remoteok"
+  | "jobicy"
+  | "himalayas";
 
 export type Modality = "remoto" | "hibrido" | "presencial" | "desconocida";
 
@@ -50,6 +54,11 @@ export type RawJob = {
   postedAt: Date | null;
   /** Etiquetas de la fuente (tags de GoB), para skills en fase 2 */
   tags: string[];
+  /**
+   * Categorías o industrias de la fuente (slug de categoría de GoB, `jobIndustry` de Jobicy).
+   * Las usa el pool para inferir los roles del aviso. Opcional: los parsers de email no las tienen.
+   */
+  categories?: string[];
   seniority: string | null;
   lang: string | null;
 };

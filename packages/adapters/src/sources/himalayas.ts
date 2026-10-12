@@ -10,6 +10,13 @@ import { COUNTRY_TO_ISO, countryToIso, htmlToText } from "./getonboard";
  * - `pubDate` en epoch de segundos (a verificar: podría venir en ms o ISO).
  * - `minSalary`/`maxSalary`: período a verificar. Hasta verificarlo no se llenan los campos de
  *   salario del RawJob: moneda y montos van solo en `salaryNote`.
+ * - Paginación: su documentación (https://himalayas.app/docs/remote-jobs-api, consultada el
+ *   2026-10-12) marca `offset` como deprecado y prefiere `cursor`. Se sigue usando `offset`; pasar
+ *   a `cursor` queda A VERIFICAR con `pnpm pool:fetch himalayas --dry-run`, porque el formato de
+ *   su respuesta no está confirmado. La fuente queda APAGADA por sus términos (ver
+ *   docs/sources/himalayas.md).
+ * - Atribución exigida por la API: link visible a himalayas.app y mención de que los datos vienen
+ *   de Himalayas. `externalId` es el guid sin prefijo: la unicidad la da `source.kind`.
  */
 export const HIMALAYAS_BASE_URL = "https://himalayas.app/jobs/api";
 
@@ -106,9 +113,9 @@ export function mapHimalayasJob(item: HimalayasJobItem): RawJob | null {
   const seniority = (item.seniority ?? []).filter(Boolean);
   return {
     source: {
-      kind: "other",
+      kind: "himalayas",
       name: "Himalayas",
-      externalId: `himalayas:${guid}`,
+      externalId: guid,
       url: item.applicationLink ?? null,
       rawRef: null,
       original: { contentType: "application/json", body: JSON.stringify(item) },
@@ -131,6 +138,7 @@ export function mapHimalayasJob(item: HimalayasJobItem): RawJob | null {
     tags: [...(item.categories ?? [])],
     seniority: seniority.length ? seniority.join(", ") : null,
     lang: null,
+    categories: [...(item.categories ?? [])],
   };
 }
 
@@ -140,6 +148,8 @@ export type FetchHimalayasOptions = {
   limit?: number;
   /** Tope de páginas, para acotar llamadas. */
   maxPages?: number;
+  /** Si viene, se manda como cabecera `user-agent`. */
+  userAgent?: string;
   fetchImpl?: typeof fetch;
   baseUrl?: string;
 };
@@ -175,10 +185,10 @@ export async function fetchHimalayasJobs(
   let seen = 0;
   let skipped = 0;
   let offset = 0;
+  const headers: Record<string, string> = { accept: "application/json" };
+  if (options.userAgent) headers["user-agent"] = options.userAgent;
   for (let page = 1; page <= maxPages; page++) {
-    const res = await fetchImpl(himalayasUrl(baseUrl, limit, offset), {
-      headers: { accept: "application/json" },
-    });
+    const res = await fetchImpl(himalayasUrl(baseUrl, limit, offset), { headers });
     if (!res.ok) throw new Error(`Himalayas offset ${offset}: HTTP ${res.status}`);
     const body = (await res.json()) as HimalayasPage;
     pagesFetched++;

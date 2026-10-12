@@ -22,6 +22,9 @@ export const SOURCE_LABELS: Record<string, string> = {
   manual: "Manual",
   hn_whoishiring: "HN Who is hiring",
   remotive: "Remotive",
+  remoteok: "Remote OK",
+  jobicy: "Jobicy",
+  himalayas: "Himalayas",
   other: "Otra",
 };
 

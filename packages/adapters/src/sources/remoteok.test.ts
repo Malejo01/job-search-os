@@ -27,9 +27,9 @@ describe("Remote OK: contrato con una respuesta de ejemplo (formato a verificar)
   it("mapea un aviso completo y worldwide", () => {
     const raw = mapRemoteOkJob(full);
     expect(raw.source).toEqual({
-      kind: "other",
+      kind: "remoteok",
       name: "Remote OK",
-      externalId: "remoteok:900001",
+      externalId: "900001",
       url: "https://example.com/remote-jobs/900001",
       rawRef: null,
       original: { contentType: "application/json", body: expect.any(String) },
@@ -45,6 +45,7 @@ describe("Remote OK: contrato con una respuesta de ejemplo (formato a verificar)
     expect(raw.salaryNote).toContain("Remote OK");
     expect(raw.postedAt).toEqual(new Date(1789000000 * 1000));
     expect(raw.tags).toEqual(["python", "backend", "api"]);
+    expect(raw.categories).toEqual(["python", "backend", "api"]);
     expect(raw.jdText).toContain("- Python y Postgres");
     expect(raw.jdText).toContain("Inglés & trabajo asincrónico");
     expect(raw.jdText).not.toMatch(/<[a-z]+>/i);
@@ -69,8 +70,17 @@ describe("Remote OK: contrato con una respuesta de ejemplo (formato a verificar)
     expect(raw.salaryPeriod).toBe("anual");
   });
 
-  it("id numérico → externalId con prefijo", () => {
-    expect(mapRemoteOkJob(old).source.externalId).toBe("remoteok:900004");
+  it("id numérico → externalId como string, sin prefijo", () => {
+    expect(mapRemoteOkJob(old).source.externalId).toBe("900004");
+    expect(mapRemoteOkJob({ ...old, id: 900005 }).source.externalId).toBe("900005");
+  });
+
+  it("categories son los tags en minúsculas", () => {
+    expect(mapRemoteOkJob({ ...full, tags: ["Python", "DevOps"] }).categories).toEqual([
+      "python",
+      "devops",
+    ]);
+    expect(mapRemoteOkJob({ ...full, tags: undefined }).categories).toEqual([]);
   });
 
   it("conserva el item crudo tal cual", () => {
@@ -88,11 +98,28 @@ describe("fetchRemoteOkJobs (fetch inyectado)", () => {
     });
     expect(r.seen).toBe(5);
     expect(r.skipped).toBe(0);
-    expect(r.jobs.map((j) => j.source.externalId)).toEqual([
-      "remoteok:900001",
-      "remoteok:900002",
-      "remoteok:900003",
-    ]);
+    expect(r.jobs.map((j) => j.source.externalId)).toEqual(["900001", "900002", "900003"]);
+  });
+
+  it("devuelve el texto legal del elemento [0], o null si no hay", async () => {
+    const r = await fetchRemoteOkJobs({ since, fetchImpl: jsonFetch(fixture) });
+    expect(r.legal).toBe(legal.legal);
+    const sinLegal = await fetchRemoteOkJobs({ since, fetchImpl: jsonFetch([full]) });
+    expect(sinLegal.legal).toBeNull();
+    const vacio = await fetchRemoteOkJobs({ since, fetchImpl: jsonFetch([{ legal: "  " }, full]) });
+    expect(vacio.legal).toBeNull();
+  });
+
+  it("manda user-agent solo si viene", async () => {
+    const headers: (Record<string, string> | undefined)[] = [];
+    const fetchImpl = (async (_url: unknown, init?: RequestInit) => {
+      headers.push(init?.headers as Record<string, string>);
+      return new Response(JSON.stringify([legal]));
+    }) as unknown as typeof fetch;
+    await fetchRemoteOkJobs({ since, userAgent: "JobSearchOS/1.0", fetchImpl });
+    await fetchRemoteOkJobs({ since, fetchImpl });
+    expect(headers[0]?.["user-agent"]).toBe("JobSearchOS/1.0");
+    expect(headers[1]?.["user-agent"]).toBeUndefined();
   });
 
   it("cuenta como skipped los avisos sin epoch válido o sin id/position", async () => {
@@ -116,7 +143,7 @@ describe("fetchRemoteOkJobs (fetch inyectado)", () => {
       tags: ["TypeScript"],
       fetchImpl: jsonFetch(fixture),
     });
-    expect(r.jobs.map((j) => j.source.externalId)).toEqual(["remoteok:900002"]);
+    expect(r.jobs.map((j) => j.source.externalId)).toEqual(["900002"]);
   });
 
   it("HTTP no-OK → error con fuente y status; cuerpo no array → error", async () => {

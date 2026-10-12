@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import page from "./__fixtures__/getonboard-search-page.json";
 import {
+  GOB_CATEGORIES,
+  GOB_POOL_CATEGORIES,
   countryToIso,
   fetchGetOnBoardJobs,
   gobCategoryUrl,
@@ -226,6 +228,194 @@ describe("fetchGetOnBoardJobs (fetch inyectado)", () => {
     await expect(
       fetchGetOnBoardJobs({ since: new Date(0), categories: ["programming"], fetchImpl: failing }),
     ).rejects.toThrow(/HTTP 500/);
+  });
+
+  it("mapea la categoría de origen en `categories`", () => {
+    expect(mapGobJob(first, "design-ux").categories).toEqual(["design-ux"]);
+  });
+
+  it("un aviso que aparece en otra categoría suma la categoría en vez de descartarla", async () => {
+    const pages: Record<string, GobPage> = {
+      "programming:1": {
+        data: [item("a", now - 100), item("b", now - 100)],
+        meta: { page: 1, per_page: 100, total_pages: 1 },
+      },
+      "machine-learning-ai:1": {
+        data: [item("a", now - 100), item("a", now - 100)],
+        meta: { page: 1, per_page: 100, total_pages: 1 },
+      },
+    };
+    const r = await fetchGetOnBoardJobs({
+      since: new Date((now - 86_400) * 1000),
+      categories: ["programming", "machine-learning-ai"],
+      fetchImpl: fakeFetch(pages),
+    });
+    const byId = Object.fromEntries(r.jobs.map((j) => [j.source.externalId, j.categories]));
+    expect(byId).toEqual({ a: ["programming", "machine-learning-ai"], b: ["programming"] });
+  });
+
+  it("con skipMissingCategories un 404 en la página 1 se saltea y se cuenta", async () => {
+    const calls: string[] = [];
+    const fetchImpl = (async (url: string | URL | Request) => {
+      const u = String(url);
+      calls.push(u);
+      if (u.includes("/categories/no-existe/")) return new Response("nope", { status: 404 });
+      return new Response(
+        JSON.stringify({
+          data: [item("a", now - 100)],
+          meta: { page: 1, per_page: 100, total_pages: 1 },
+        }),
+        { status: 200 },
+      );
+    }) as typeof fetch;
+    const r = await fetchGetOnBoardJobs({
+      since: new Date((now - 86_400) * 1000),
+      categories: ["no-existe", "programming"],
+      skipMissingCategories: true,
+      fetchImpl,
+    });
+    expect(r.missingCategories).toEqual(["no-existe"]);
+    expect(r.jobs.map((j) => j.source.externalId)).toEqual(["a"]);
+    expect(r.pagesFetched).toBe(1);
+    expect(calls).toHaveLength(2);
+  });
+
+  it("sin la opción un 404 corta como siempre; con la opción otro error también corta", async () => {
+    const status = (code: number) =>
+      (async () => new Response("nope", { status: code })) as unknown as typeof fetch;
+    await expect(
+      fetchGetOnBoardJobs({
+        since: new Date(0),
+        categories: ["no-existe"],
+        fetchImpl: status(404),
+      }),
+    ).rejects.toThrow(/HTTP 404/);
+    await expect(
+      fetchGetOnBoardJobs({
+        since: new Date(0),
+        categories: ["programming"],
+        skipMissingCategories: true,
+        fetchImpl: status(429),
+      }),
+    ).rejects.toThrow(/HTTP 429/);
+  });
+
+  it("partialOnError: si una request falla tras juntar avisos, devuelve lo juntado con partial", async () => {
+    let calls = 0;
+    const fetchImpl = (async () => {
+      calls++;
+      if (calls === 1) {
+        return new Response(
+          JSON.stringify({
+            data: [item("a", now - 100)],
+            meta: { page: 1, per_page: 100, total_pages: 1 },
+          }),
+        );
+      }
+      throw new Error("timeout de la fuente");
+    }) as unknown as typeof fetch;
+    const r = await fetchGetOnBoardJobs({
+      since: new Date((now - 86_400) * 1000),
+      categories: ["programming", "design-ux", "customer-support"],
+      partialOnError: true,
+      fetchImpl,
+    });
+    expect(r.jobs.map((j) => j.source.externalId)).toEqual(["a"]);
+    expect(r.partial).toBe(true);
+    expect(r.partialError).toBe("timeout");
+    expect(calls).toBe(2); // deja de pedir
+  });
+
+  it("partialOnError cubre HTTP y JSON inválido, y sin avisos juntados igual corta", async () => {
+    const ok = JSON.stringify({
+      data: [item("a", now - 100)],
+      meta: { page: 1, per_page: 100, total_pages: 1 },
+    });
+    const sequence = (second: () => Response) => {
+      let n = 0;
+      return (async () => (++n === 1 ? new Response(ok) : second())) as unknown as typeof fetch;
+    };
+    const since = new Date((now - 86_400) * 1000);
+    const cats = ["programming", "design-ux"];
+    const http = await fetchGetOnBoardJobs({
+      since,
+      categories: cats,
+      partialOnError: true,
+      fetchImpl: sequence(() => new Response("x", { status: 429 })),
+    });
+    expect(http).toMatchObject({ partial: true, partialError: "http_429" });
+    const json = await fetchGetOnBoardJobs({
+      since,
+      categories: cats,
+      partialOnError: true,
+      fetchImpl: sequence(() => new Response("<html>no json")),
+    });
+    expect(json).toMatchObject({ partial: true, partialError: "parse" });
+    await expect(
+      fetchGetOnBoardJobs({
+        since,
+        categories: cats,
+        partialOnError: true,
+        fetchImpl: (async () => new Response("x", { status: 500 })) as unknown as typeof fetch,
+      }),
+    ).rejects.toThrow(/HTTP 500/);
+  });
+
+  it("sin partialOnError el error corta aunque haya avisos (como siempre)", async () => {
+    let n = 0;
+    const fetchImpl = (async () => {
+      if (++n === 1) {
+        return new Response(
+          JSON.stringify({
+            data: [item("a", now - 100)],
+            meta: { page: 1, per_page: 100, total_pages: 1 },
+          }),
+        );
+      }
+      return new Response("x", { status: 503 });
+    }) as unknown as typeof fetch;
+    await expect(
+      fetchGetOnBoardJobs({
+        since: new Date((now - 86_400) * 1000),
+        categories: ["programming", "design-ux"],
+        fetchImpl,
+      }),
+    ).rejects.toThrow(/HTTP 503/);
+  });
+
+  it("una corrida completa devuelve partial false", async () => {
+    const r = await fetchGetOnBoardJobs({
+      since: new Date(0),
+      categories: ["programming"],
+      fetchImpl: (async () =>
+        new Response(
+          JSON.stringify({ data: [], meta: { page: 1, per_page: 1, total_pages: 0 } }),
+        )) as unknown as typeof fetch,
+    });
+    expect(r).toMatchObject({ partial: false, partialError: null });
+  });
+
+  it("manda user-agent solo si viene", async () => {
+    const seen: (Record<string, string> | undefined)[] = [];
+    const fetchImpl = (async (_url: unknown, init?: RequestInit) => {
+      seen.push(init?.headers as Record<string, string>);
+      return new Response(
+        JSON.stringify({ data: [], meta: { page: 1, per_page: 1, total_pages: 0 } }),
+      );
+    }) as unknown as typeof fetch;
+    await fetchGetOnBoardJobs({
+      since: new Date(0),
+      categories: ["programming"],
+      userAgent: "JobSearchOS/1.0 (+https://app.example.com)",
+      fetchImpl,
+    });
+    await fetchGetOnBoardJobs({ since: new Date(0), categories: ["programming"], fetchImpl });
+    expect(seen[0]?.["user-agent"]).toBe("JobSearchOS/1.0 (+https://app.example.com)");
+    expect(seen[1]?.["user-agent"]).toBeUndefined();
+  });
+
+  it("GOB_POOL_CATEGORIES incluye las tres verificadas", () => {
+    for (const c of GOB_CATEGORIES) expect(GOB_POOL_CATEGORIES).toContain(c);
   });
 
   it("arma la URL de categoría con per_page, page y expand", () => {

@@ -25,3 +25,5 @@ export * from "./inbound-address";
 export * from "./criteria-form";
 export * from "./assistant-step";
 export * from "./product";
+export { inferRoleHints, SOURCE_CATEGORY_ROLES } from "./skills/role-hints";
+export * from "./pool";
