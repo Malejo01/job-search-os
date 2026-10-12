@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from "@job-search-os/pipeline";
 import { redirect } from "next/navigation";
 import {
   InvalidInvitationError,
@@ -71,7 +72,7 @@ export default async function RegisterPage({
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-6">
       <div>
-        <h1 className="text-2xl font-semibold">Job Search OS</h1>
+        <h1 className="text-2xl font-semibold">{PRODUCT_NAME}</h1>
         <p className="text-sm text-zinc-600">Creá tu cuenta con tu invitación.</p>
         {code ? null : (
           <p role="note" className="mt-2 text-sm text-amber-800">

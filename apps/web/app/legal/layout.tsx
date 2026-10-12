@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from "@job-search-os/pipeline";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -10,7 +11,7 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-zinc-200 bg-white">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-2">
-          <span className="text-base font-semibold">Job Search OS</span>
+          <span className="text-base font-semibold">{PRODUCT_NAME}</span>
           <Link href="/login" className="text-sm text-zinc-600 underline-offset-2 hover:underline">
             Entrar
           </Link>

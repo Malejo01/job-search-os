@@ -1,9 +1,10 @@
+import { PRODUCT_NAME } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Job Search OS",
+  title: PRODUCT_NAME,
   description:
     "Menos postulaciones, mejores. El modelo evalúa, el código decide, el humano interviene.",
 };

@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from "@job-search-os/pipeline";
 import type { ReactNode } from "react";
 import { signOut } from "@/auth";
 import { assertAppRole } from "@/lib/db";
@@ -19,7 +20,7 @@ export default async function OnboardingLayout({ children }: { children: ReactNo
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-zinc-200 bg-white">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-2">
-          <span className="text-base font-semibold">Job Search OS</span>
+          <span className="text-base font-semibold">{PRODUCT_NAME}</span>
           <form action={logout}>
             <button
               type="submit"

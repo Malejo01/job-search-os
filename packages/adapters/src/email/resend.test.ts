@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from "@job-search-os/pipeline";
 import { describe, expect, it, vi } from "vitest";
 import { sendEmail } from "./resend";
 
@@ -18,7 +19,7 @@ describe("sendEmail", () => {
     );
     const body = JSON.parse(fetchImpl.mock.calls[0]![1].body as string);
     expect(body).toMatchObject({
-      from: "Job Search OS <onboarding@resend.dev>",
+      from: `${PRODUCT_NAME} <onboarding@resend.dev>`,
       to: ["mauro@example.com"],
       subject: "Asunto",
       html: "<p>hola</p>",
