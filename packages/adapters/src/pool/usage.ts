@@ -37,6 +37,43 @@ export async function countPoolQueued(db: Db, userId: string, since: Date): Prom
   return row?.n ?? 0;
 }
 
+/**
+ * true si alguna oferta del pool del usuario ya tiene una evaluación o un mensaje evaluate_job
+ * (en cualquier estado). Sin actividad, reasignar es gratis: nada se evaluó todavía.
+ */
+export async function hasPoolEvaluationActivity(db: Db, userId: string): Promise<boolean> {
+  const [ev] = await db
+    .select({ one: sql<number>`1` })
+    .from(s.evaluations)
+    .innerJoin(s.jobs, eq(s.jobs.id, s.evaluations.jobId))
+    .where(and(eq(s.jobs.userId, userId), isNotNull(s.jobs.publicJobId)))
+    .limit(1);
+  if (ev) return true;
+  const [q] = await db
+    .select({ one: sql<number>`1` })
+    .from(s.jobQueue)
+    .innerJoin(s.jobs, sql`${s.jobs.id}::text = ${s.jobQueue.payload}->>'jobId'`)
+    .where(
+      and(
+        eq(s.jobQueue.queue, EVALUATE_QUEUE),
+        eq(s.jobs.userId, userId),
+        isNotNull(s.jobs.publicJobId),
+      ),
+    )
+    .limit(1);
+  return Boolean(q);
+}
+
+/** Tope diario de evaluaciones del pool que fijó la persona; null si no fijó ninguno. */
+export async function loadPoolEvalLimit(db: Db, userId: string): Promise<number | null> {
+  const [row] = await db
+    .select({ limit: s.profiles.poolDailyEvalLimit })
+    .from(s.profiles)
+    .where(eq(s.profiles.userId, userId))
+    .limit(1);
+  return row?.limit ?? null;
+}
+
 /** Período de la fuente tal como está en la base; lo desconocido queda en null (no se supone mensual). */
 export function salaryPeriod(value: string | null): "mensual" | "anual" | "hora" | null {
   return value === "mensual" || value === "anual" || value === "hora" ? value : null;

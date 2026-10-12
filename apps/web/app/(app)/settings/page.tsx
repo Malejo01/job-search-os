@@ -4,22 +4,29 @@ import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { withUser } from "@/lib/db";
 import { getInboundAddress } from "@/lib/inbound-address";
+import { getTargetRole } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
 import { DeleteAccountForm } from "./delete-account-form";
 import { InboundAddressSection } from "./inbound-address";
+import { TargetRoleForm } from "./target-role-form";
 
 export const metadata = { title: "Ajustes" };
 export const dynamic = "force-dynamic";
+// «Tu puesto» puede programar la primera evaluación en after(): corre dentro de este límite
+export const maxDuration = 120;
 
 /** Ajustes de la cuenta (JS-092): email, invitaciones y eliminación de la cuenta. Server Component. */
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; direccion?: string }>;
+  searchParams: Promise<{ error?: string; direccion?: string; puesto?: string }>;
 }) {
   const userId = await requireUserId();
-  const { error, direccion } = await searchParams;
-  const address = await getInboundAddress(userId);
+  const { error, direccion, puesto } = await searchParams;
+  const [address, targetRole] = await Promise.all([
+    getInboundAddress(userId),
+    getTargetRole(userId),
+  ]);
   const [user] = await withUser(userId, (tx) =>
     tx.select({ email: s.users.email }).from(s.users).where(eq(s.users.id, userId)).limit(1),
   );
@@ -39,6 +46,11 @@ export default async function SettingsPage({
 
         <DeleteAccountForm error={Boolean(error)} />
       </section>
+
+      <TargetRoleForm
+        current={targetRole}
+        status={puesto === "guardado" || puesto === "error" ? puesto : undefined}
+      />
 
       <InboundAddressSection
         address={address}

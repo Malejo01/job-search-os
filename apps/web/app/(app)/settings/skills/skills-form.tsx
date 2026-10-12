@@ -40,7 +40,8 @@ export function SkillsForm({
   taxonomy: TaxonomySkill[];
   levels: Record<string, number>;
   submitLabel: string;
-  skip?: { href: string; label: string };
+  /** Botón del mismo formulario (`name="saltear"`): la acción decide no guardar los niveles. */
+  skip?: { label: string };
   /** Muestra "Quitar" en las skills con nivel guardado (no en el onboarding). */
   allowRemove?: boolean;
   /** Slug de la fila a la que apunta `?error=level:<slug>`, si lo hay. */
@@ -137,21 +138,24 @@ export function SkillsForm({
 
         <SkillSearch options={options} />
 
-        <div className="flex flex-wrap items-center justify-end gap-3">
-          {skip ? (
-            <Link
-              href={skip.href}
-              className="rounded-md border border-zinc-300 px-4 py-2 text-base focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
-            >
-              {skip.label}
-            </Link>
-          ) : null}
+        {/* «Guardar» va primero en el DOM (Enter guarda, nunca saltea); row-reverse lo deja a la derecha */}
+        <div className="flex flex-row-reverse flex-wrap items-center justify-start gap-3">
           <SubmitButton
             pendingLabel="Guardando…"
             className="rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
           >
             {submitLabel}
           </SubmitButton>
+          {skip ? (
+            <button
+              type="submit"
+              name="saltear"
+              value="1"
+              className="rounded-md border border-zinc-300 px-4 py-2 text-base focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
+            >
+              {skip.label}
+            </button>
+          ) : null}
         </div>
       </form>
     </div>

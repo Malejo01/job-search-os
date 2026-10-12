@@ -143,7 +143,7 @@ test.describe("Flujo 26: skills autodeclaradas, del onboarding al mercado", () =
     );
     await expect(page.getByText(/Elegí un rol/)).toHaveCount(0);
 
-    await page.getByRole("link", { name: "Saltear por ahora" }).click();
+    await page.getByRole("button", { name: "Saltear por ahora" }).click();
     await page.waitForURL("**/onboarding/ofertas**");
     expect(await skillLevelsOf(userId)).toEqual({});
   });

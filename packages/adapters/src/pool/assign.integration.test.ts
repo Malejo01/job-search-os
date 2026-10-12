@@ -259,6 +259,7 @@ describe("assignPoolToUser · selección", () => {
       alreadyHad: 0,
       enqueued: 0,
       enqueuedJobIds: [],
+      replaced: 0,
     });
     expect(await jobsOf(USER_A)).toHaveLength(0);
   });
@@ -272,6 +273,7 @@ describe("assignPoolToUser · selección", () => {
       alreadyHad: 0,
       enqueued: 0,
       enqueuedJobIds: [],
+      replaced: 0,
     });
     expect(await jobsOf(USER_NO_RULES)).toHaveLength(0);
   });

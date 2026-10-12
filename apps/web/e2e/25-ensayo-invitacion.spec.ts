@@ -123,7 +123,7 @@ test.describe("Flujo 25: ensayo de invitación, de la invitación a la primera o
     await pageB.getByRole("button", { name: "Guardar y continuar" }).click();
     // Paso opcional de skills (ronda 28): se saltea
     await pageB.waitForURL("**/onboarding/skills**");
-    await pageB.getByRole("link", { name: "Saltear por ahora" }).click();
+    await pageB.getByRole("button", { name: "Saltear por ahora" }).click();
     // Ronda 39: el onboarding pasa por «Tus primeras ofertas»; el email es un paso opcional
     await pageB.waitForURL("**/onboarding/ofertas**");
     await expect(pageB.getByRole("heading", { name: "Tus primeras ofertas" })).toBeVisible();

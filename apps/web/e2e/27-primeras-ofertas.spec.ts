@@ -8,6 +8,7 @@ import {
   E2E_USER_ID,
   assignSeededPoolJobs,
   deleteSeededPublicJobs,
+  login,
   ownerDb,
   runDemoWorker,
   seedPublicJobs,
@@ -147,7 +148,8 @@ test.describe("Flujo 27: primeras ofertas del pool, del puesto a /jobs", () => {
       "aria-current",
       "true",
     );
-    await page.getByRole("link", { name: "Saltear por ahora" }).click();
+    // «Saltear por ahora» es un botón del formulario: no guarda niveles y sigue a las ofertas
+    await page.getByRole("button", { name: "Saltear por ahora" }).click();
     await page.waitForURL("**/onboarding/ofertas**");
     await expect(page.getByRole("heading", { name: "Tus primeras ofertas" })).toBeVisible();
 
@@ -238,5 +240,62 @@ test.describe("Flujo 27: primeras ofertas del pool, del puesto a /jobs", () => {
     await page.reload();
     await expect(page.getByRole("heading", { name: "Ofertas", exact: true })).toBeVisible();
     await expect(page.getByTestId("email-nudge")).toHaveCount(0);
+  });
+
+  test("en Ajustes, «Tu puesto» cambia de QA a UX/UI y avisa que las ofertas se actualizan", async () => {
+    await page.goto("/settings#puesto");
+    const section = page.locator("#puesto");
+    const select = section.getByLabel(/¿Qué puesto buscás\?/);
+    await expect(select).toHaveValue("qa");
+
+    await select.selectOption("ux_ui");
+    await section.getByRole("button", { name: "Guardar puesto" }).click();
+    await page.waitForURL("**/settings?puesto=guardado**");
+    await expect(page.locator("#puesto").getByRole("status")).toContainText(
+      "Guardado. Tus ofertas se actualizan con el puesto nuevo.",
+    );
+    await expect(page.locator("#puesto").getByLabel(/¿Qué puesto buscás\?/)).toHaveValue("ux_ui");
+
+    const { db, close } = ownerDb();
+    try {
+      const [row] = await db
+        .select({ targetRole: s.profiles.targetRole })
+        .from(s.profiles)
+        .where(eq(s.profiles.userId, userId!));
+      expect(row!.targetRole).toBe("ux_ui");
+    } finally {
+      await close();
+    }
+  });
+});
+
+test.describe("Flujo 27b: aviso «Elegí tu puesto» en /jobs", () => {
+  test("una cuenta sin puesto ve el aviso, lo descarta y no vuelve", async ({ page }) => {
+    // El usuario e2e principal no tiene puesto elegido (target_role null)
+    const { db, close } = ownerDb();
+    try {
+      const [row] = await db
+        .select({ targetRole: s.profiles.targetRole })
+        .from(s.profiles)
+        .where(eq(s.profiles.userId, E2E_USER_ID));
+      expect(row?.targetRole ?? null).toBeNull();
+    } finally {
+      await close();
+    }
+
+    await login(page);
+    const nudge = page.getByTestId("role-nudge");
+    await expect(nudge).toContainText("Elegí tu puesto para recibir ofertas que te sirvan.");
+    await expect(nudge.getByRole("link", { name: "Elegir mi puesto" })).toHaveAttribute(
+      "href",
+      "/settings#puesto",
+    );
+
+    await nudge.getByRole("button", { name: "Ahora no" }).click();
+    await expect(page.getByTestId("role-nudge")).toHaveCount(0);
+
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "Ofertas", exact: true })).toBeVisible();
+    await expect(page.getByTestId("role-nudge")).toHaveCount(0);
   });
 });
