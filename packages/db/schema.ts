@@ -108,7 +108,7 @@ export type CriteriaRules = {
   english_fluent_penalty: number;       // -1
   easy_apply_penalty: number;           // 0 (solo flag)
   skills_match_badge: { analyze_from: number; discard_below: number }; // 0.6, 0.4
-  salary_floor_usd_monthly: number;     // piso mensual en USD
+  salary_floor_usd_monthly: number | null; // piso mensual en USD; null = no se cargó (sin penalización por sueldo)
   max_weekly_hours: number;             // 40
   thresholds: { personalizado: number; aplicar: number; guardar: number }; // 9, 7, 5
 };

@@ -52,6 +52,11 @@ export type IngestDeps = {
    * ingestBatch / ingestRawJob lo leen de profiles.location_country.
    */
   userCountry?: string | null;
+  /**
+   * El perfil busca solo remoto (profiles.remote_only). Si no viene, se lee del perfil junto con
+   * el país; sin fila de perfil vale `true`.
+   */
+  remoteOnly?: boolean;
 };
 
 export type IngestOutcome =
@@ -229,15 +234,27 @@ async function upsertCompany(db: Db, companyRaw: string): Promise<string | null>
   return row?.id ?? null;
 }
 
-/** País del perfil para el prefiltro; `'XX'` (registro), vacío o sin perfil cuentan como desconocido (`null`). */
-export async function loadProfileCountry(db: Db, userId: string): Promise<string | null> {
+/**
+ * País y preferencia remota del perfil para el prefiltro, en una sola consulta.
+ * País: `'XX'` (registro), vacío o sin perfil cuentan como desconocido (`null`).
+ * Sin fila de perfil, `remoteOnly` es `true` (lo conservador, como antes).
+ */
+export async function loadProfilePrefilterPrefs(
+  db: Db,
+  userId: string,
+): Promise<{ country: string | null; remoteOnly: boolean }> {
   const [row] = await db
-    .select({ country: s.profiles.locationCountry })
+    .select({ country: s.profiles.locationCountry, remoteOnly: s.profiles.remoteOnly })
     .from(s.profiles)
     .where(eq(s.profiles.userId, userId))
     .limit(1);
   const country = row?.country?.trim().toUpperCase() ?? null;
-  return isValidCountry(country) ? country : null;
+  return { country: isValidCountry(country) ? country : null, remoteOnly: row?.remoteOnly ?? true };
+}
+
+/** País del perfil para el prefiltro; `'XX'` (registro), vacío o sin perfil cuentan como desconocido (`null`). */
+export async function loadProfileCountry(db: Db, userId: string): Promise<string | null> {
+  return (await loadProfilePrefilterPrefs(db, userId)).country;
 }
 
 export async function ingestRawJob(raw: RawJob, deps: IngestDeps): Promise<IngestOutcome> {
@@ -372,6 +389,13 @@ export async function ingestRawJob(raw: RawJob, deps: IngestDeps): Promise<Inges
 
   // Insert: empresa, prefiltro y estado
   const companyId = await upsertCompany(db, raw.companyRaw);
+  let userCountry = deps.userCountry;
+  let remoteOnly = deps.remoteOnly;
+  if (userCountry === undefined || remoteOnly === undefined) {
+    const prefs = await loadProfilePrefilterPrefs(db, userId);
+    if (userCountry === undefined) userCountry = prefs.country;
+    if (remoteOnly === undefined) remoteOnly = prefs.remoteOnly;
+  }
   const pre = prefilter(
     {
       title: raw.title,
@@ -383,10 +407,7 @@ export async function ingestRawJob(raw: RawJob, deps: IngestDeps): Promise<Inges
       countriesAllowed: raw.countriesAllowed,
     },
     rules,
-    {
-      userCountry:
-        deps.userCountry === undefined ? await loadProfileCountry(db, userId) : deps.userCountry,
-    },
+    { userCountry, remoteOnly },
   );
 
   let status: JobStatus = transition("nueva", pre.pass ? "prefilter_pass" : "prefilter_discard");
@@ -488,11 +509,16 @@ export async function ingestBatch(raws: RawJob[], deps: IngestDeps): Promise<Ing
     enqueued: 0,
     errors: [],
   };
-  // El país del perfil se lee una vez por lote (JS-104)
+  // País y preferencia remota del perfil se leen una vez por lote (JS-104)
   let batchDeps = deps;
-  if (deps.userCountry === undefined) {
+  if (deps.userCountry === undefined || deps.remoteOnly === undefined) {
     try {
-      batchDeps = { ...deps, userCountry: await loadProfileCountry(deps.db, deps.userId) };
+      const prefs = await loadProfilePrefilterPrefs(deps.db, deps.userId);
+      batchDeps = {
+        ...deps,
+        userCountry: deps.userCountry === undefined ? prefs.country : deps.userCountry,
+        remoteOnly: deps.remoteOnly === undefined ? prefs.remoteOnly : deps.remoteOnly,
+      };
     } catch (e) {
       // Si falla la lectura, cada job la reintenta por su cuenta y registra su propio error
       deps.logger.error({ user_id: deps.userId, err: safeDbError(e) }, "ingest: país del perfil");

@@ -117,6 +117,7 @@ test.describe("Flujo 25: ensayo de invitación, de la invitación a la primera o
       .fill(
         "Perfil ficticio del ensayo: desarrollo backend con dos años de experiencia, Python y PostgreSQL en producción, sin experiencia en móvil.",
       );
+    await pageB.getByRole("radio", { name: /Sí, solo remoto/ }).check();
     await pageB.getByRole("button", { name: "Guardar y continuar" }).click();
     // Paso opcional de skills (ronda 28): se saltea
     await pageB.waitForURL("**/onboarding/skills**");

@@ -39,7 +39,8 @@ export function criteriaFormDefaults(current: CriteriaRules): CriteriaFormValues
     title_allowlist: current.title_allowlist.join("\n"),
     other_discipline_keywords: current.other_discipline_keywords.join("\n"),
     allowed_disciplines: [...current.allowed_disciplines],
-    salary_floor_usd_monthly: String(current.salary_floor_usd_monthly),
+    salary_floor_usd_monthly:
+      current.salary_floor_usd_monthly === null ? "" : String(current.salary_floor_usd_monthly),
     max_weekly_hours: String(current.max_weekly_hours),
     max_years_hard: String(current.max_years_hard),
     english_risk_from: current.english_risk_from,
@@ -109,7 +110,15 @@ function schemaFor(current: CriteriaRules) {
         .array(z.enum(DISCIPLINES))
         .min(1)
         .transform((v) => DISCIPLINES.filter((d) => v.includes(d))),
-      salary_floor_usd_monthly: numberField(0, 100000, true),
+      // Opcional: vacío = sin piso (null).
+      salary_floor_usd_monthly: z.union([
+        z
+          .string()
+          .trim()
+          .length(0)
+          .transform(() => null),
+        numberField(0, 100000, true),
+      ]),
       max_weekly_hours: numberField(1, 80, true),
       max_years_hard: numberField(1, 40, true),
       english_risk_from: z.enum(ENGLISH_RISK_LEVELS),

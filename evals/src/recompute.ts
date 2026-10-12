@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { Evaluation } from "@job-search-os/pipeline";
@@ -23,7 +24,7 @@ import { productionDecision, type JobReport, type Report } from "./run";
  * avisa cada una. `anclasDelReporte` reproduce el cálculo viejo, con las anclas guardadas.
  */
 export type RecomputeResult = { report: Report; partial: boolean; notes: string[] };
-export type RecomputeOptions = { anclasDelReporte?: boolean };
+export type RecomputeOptions = { anclasDelReporte?: boolean; sinEscribir?: boolean };
 
 function reconstructRaw(j: JobReport): Evaluation | null {
   if (j.model_score === null) return null;
@@ -217,6 +218,28 @@ export function formatRecompute(report: Report, old: Partial<Metrics>, notes: st
   return lines;
 }
 
+/**
+ * Huella de lo que decide el código por oferta (acción, score final, prefiltro, riesgo de
+ * ubicación y el detalle de decide()) más las métricas. Dos recálculos con la misma huella
+ * deciden exactamente lo mismo. Solo un hash: nada del contenido del reporte sale a la consola.
+ */
+export function decisionFingerprint(report: Report): string {
+  const rows = report.jobs
+    .map((j) => [
+      j.id,
+      j.model_action,
+      j.model_score_final,
+      j.prefilter_discard,
+      j.model_location_risk_final,
+      j.decision,
+    ])
+    .sort((a, b) => Number(a[0]) - Number(b[0]));
+  return createHash("sha256")
+    .update(JSON.stringify({ rows, metrics: report.metrics }))
+    .digest("hex")
+    .slice(0, 16);
+}
+
 export function recomputeFiles(paths: string[], options: RecomputeOptions = {}): string[] {
   const lines: string[] = [];
   for (const given of paths) {
@@ -228,8 +251,10 @@ export function recomputeFiles(paths: string[], options: RecomputeOptions = {}):
       JSON.parse(readFileSync(path, "utf8")) as Report,
       options,
     );
-    writeFileSync(path, JSON.stringify(report, null, 2));
+    // --sin-escribir: el reporte original queda intacto (equivale a recalcular una copia)
+    if (!options.sinEscribir) writeFileSync(path, JSON.stringify(report, null, 2));
     lines.push(...formatRecompute(report, old, notes));
+    if (options.sinEscribir) lines.push(`  huella de decisiones: ${decisionFingerprint(report)}`);
   }
   return lines;
 }

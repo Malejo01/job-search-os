@@ -96,6 +96,57 @@ describe("prefilter: reglas una por una", () => {
     ).toBe(true);
   });
 
+  describe("remoteOnly: false (la persona acepta híbrido y presencial)", () => {
+    const open = { remoteOnly: false };
+    const flagOnce = (r: ReturnType<typeof prefilter>) =>
+      r.pass && r.flags.filter((f) => f === "modalidad_no_remota").length === 1;
+
+    it("híbrida y presencial pasan con el flag", () => {
+      for (const modality of ["hibrido", "presencial"] as const) {
+        const r = prefilter({ ...base, modality }, rules, open);
+        expect(r.pass).toBe(true);
+        expect(flagOnce(r)).toBe(true);
+      }
+    });
+    it("título '(Híbrido)' pasa con el flag, una sola vez aunque coincidan varias señales", () => {
+      const r = prefilter(
+        { title: "AI Engineer (Híbrido)", modality: "hibrido", locationRaw: "CABA presencial" },
+        rules,
+        open,
+      );
+      expect(flagOnce(r)).toBe(true);
+    });
+    it("ubicación con híbrido y modalidad desconocida pasa con el flag", () => {
+      const r = prefilter(
+        { ...base, modality: "desconocida", locationRaw: "Buenos Aires (híbrido)" },
+        rules,
+        open,
+      );
+      expect(flagOnce(r)).toBe(true);
+    });
+    it("un aviso remoto no recibe el flag", () => {
+      const r = prefilter(base, rules, open);
+      expect(r).toMatchObject({ pass: true });
+      expect(r.pass && r.flags).not.toContain("modalidad_no_remota");
+    });
+    it("las demás reglas siguen descartando", () => {
+      expect(
+        prefilter({ title: "Project Manager", modality: "hibrido" }, rules, open),
+      ).toMatchObject({ pass: false, reason: "disciplina_distinta" });
+    });
+    it("con remoteOnly true o sin la opción se descarta como siempre", () => {
+      const hybrid = { title: "AI Engineer (Híbrido)", modality: "hibrido" } as const;
+      expect(prefilter(hybrid, rules)).toMatchObject({
+        pass: false,
+        reason: "modalidad_no_remota",
+      });
+      expect(prefilter(hybrid, rules, { remoteOnly: true })).toMatchObject({
+        pass: false,
+        reason: "modalidad_no_remota",
+      });
+    });
+  });
+
   it("keywords de otra disciplina en el título → descarte (ML engineer, AI eval, IAM, PM...)", () => {
     for (const title of [
       "IAM Engineer SailPoint",

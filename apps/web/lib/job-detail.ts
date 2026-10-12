@@ -7,6 +7,7 @@ import {
   correctStatus,
   planDuplicateMerge,
   POSSIBLE_DUPLICATE_FLAG,
+  prefilterReasonText,
   type Adjustment,
   type JobEvent,
   type JobStatus,
@@ -65,6 +66,7 @@ export type JobDetail = {
   candidatesCount: number | null;
   badges: string[];
   flags: string[];
+  /** Motivo del descarte en castellano llano (prefilterReasonText), no el valor crudo guardado. */
   prefilterReason: string | null;
   jdText: string | null;
   postedAt: string | null;
@@ -210,7 +212,7 @@ export async function getJobDetail(userId: string, jobId: string): Promise<JobDe
       candidatesCount: job.candidatesCount,
       badges: job.badges ?? [],
       flags: job.flags ?? [],
-      prefilterReason: job.prefilterReason,
+      prefilterReason: prefilterReasonText(job.prefilterReason),
       jdText: job.jdText,
       postedAt: job.postedAt?.toISOString() ?? null,
       firstSeenAt: job.firstSeenAt.toISOString(),

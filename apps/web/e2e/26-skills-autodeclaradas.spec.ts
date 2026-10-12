@@ -128,6 +128,7 @@ test.describe("Flujo 26: skills autodeclaradas, del onboarding al mercado", () =
       .fill(
         "Perfil ficticio de la prueba de skills: desarrollo web con tres años de experiencia, sin experiencia en móvil ni en infraestructura.",
       );
+    await page.getByRole("radio", { name: /Sí, solo remoto/ }).check();
     await page.getByRole("button", { name: "Guardar y continuar" }).click();
 
     await page.waitForURL("**/onboarding/skills**");

@@ -33,7 +33,8 @@ export type CriteriaRules = {
   english_fluent_penalty: number;
   easy_apply_penalty: number;
   skills_match_badge: { analyze_from: number; discard_below: number };
-  salary_floor_usd_monthly: number;
+  /** Piso salarial mensual en USD; `null` = sin piso. */
+  salary_floor_usd_monthly: number | null;
   max_weekly_hours: number;
   thresholds: { personalizado: number; aplicar: number; guardar: number };
 };
