@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 import golden from "../../../../evals/fixtures/golden.json";
 import criteria from "../../../db/seeds/criteria.example.json";
 import type { CriteriaRules } from "../criteria";
-import { prefilter, skillsMatchRatioFromBadges, type PrefilterInput } from "./prefilter";
+import type { RoleKey } from "../skills/self-assessment";
+import {
+  prefilter,
+  ROLE_DOMAIN_KEYWORDS,
+  skillsMatchRatioFromBadges,
+  type PrefilterInput,
+} from "./prefilter";
 
 const rules = criteria as CriteriaRules;
 
@@ -65,6 +71,88 @@ describe("prefilter: expectativas del golden (sin LLM)", () => {
     if (latam.pass) expect(latam.flags).toContain("location_risk");
     const crowded = prefilter(byId(6), rules);
     if (crowded.pass) expect(crowded.flags).toContain("many_candidates");
+  });
+});
+
+describe("prefilter: targetRole (ronda 40)", () => {
+  const run = (title: string, targetRole?: RoleKey | null) =>
+    prefilter({ title, modality: "remoto" }, rules, targetRole === undefined ? {} : { targetRole });
+
+  it("SEO Specialist descarta sin puesto y pasa con marketing_digital", () => {
+    expect(run("SEO Specialist")).toMatchObject({ pass: false, reason: "disciplina_distinta" });
+    expect(run("SEO Specialist", null)).toMatchObject({ pass: false });
+    const r = run("SEO Specialist", "marketing_digital");
+    expect(r.pass).toBe(true);
+    if (r.pass) expect(r.flags.some((f) => f.startsWith("domain_keyword"))).toBe(false);
+  });
+
+  it("Project Manager pasa con producto_proyectos y descarta con frontend", () => {
+    expect(run("Project Manager", "producto_proyectos").pass).toBe(true);
+    expect(run("Project Manager", "frontend")).toMatchObject({ pass: false });
+    expect(run("Project Manager")).toMatchObject({ pass: false });
+  });
+
+  it("Cybersecurity Analyst pasa con ciberseguridad", () => {
+    expect(run("Cybersecurity Analyst")).toMatchObject({ pass: false });
+    expect(run("Cybersecurity Analyst", "ciberseguridad").pass).toBe(true);
+  });
+
+  it("la excepción es solo del oficio propio de cada puesto", () => {
+    expect(run("SEO Specialist", "producto_proyectos")).toMatchObject({ pass: false });
+    expect(run("Project Manager", "marketing_digital")).toMatchObject({ pass: false });
+    // una palabra de otro oficio en el mismo título sigue descartando
+    expect(run("SEO y Medios de Pago", "marketing_digital")).toMatchObject({ pass: false });
+  });
+
+  it("atención al cliente y call center siguen descartando", () => {
+    expect(run("Atención al cliente", "customer_success")).toMatchObject({ pass: false });
+    expect(run("Call Center", "customer_success")).toMatchObject({ pass: false });
+  });
+
+  it("de la blocklist solo se libera la palabra que es parte del oficio propio", () => {
+    expect(run("Project Manager", "producto_proyectos").pass).toBe(true);
+    expect(run("Lead Project Manager", "producto_proyectos")).toMatchObject({
+      pass: false,
+      reason: "titulo_blocklist",
+    });
+    expect(run("Engineering Manager", "producto_proyectos")).toMatchObject({ pass: false });
+  });
+
+  it("la blocklist solo libera el cargo propio del puesto", () => {
+    const withLists = rules.title_blocklist;
+    expect(withLists).toContain("manager");
+    expect(withLists).toContain("lead");
+    expect(run("Product Manager", "producto_proyectos").pass).toBe(true);
+    expect(run("Customer Success Manager", "customer_success").pass).toBe(true);
+    expect(run("Product Manager", "frontend")).toMatchObject({ pass: false });
+    expect(run("Customer Success Manager", "frontend")).toMatchObject({ pass: false });
+    expect(run("Customer Success Manager")).toMatchObject({ pass: false });
+    expect(run("Engineering Manager — Project Manager", "producto_proyectos")).toMatchObject({
+      pass: false,
+      reason: "titulo_blocklist",
+    });
+    expect(run("Lead Product Manager", "producto_proyectos")).toMatchObject({ pass: false });
+  });
+
+  it("límite de palabra: Williams, Diamond y Seoul no activan la excepción", () => {
+    expect(run("Williams Engineer", "ciberseguridad").pass).toBe(true);
+    expect(run("Diamond Backend Developer", "ciberseguridad").pass).toBe(true);
+    expect(run("Seoul Specialist", "marketing_digital").pass).toBe(true);
+    // la palabra pegada a otra no se libera ni se borra del título: la blocklist sigue viendo "manager"
+    expect(run("Seoul Manager", "marketing_digital")).toMatchObject({ pass: false });
+    expect(run("Pmpx Manager", "producto_proyectos")).toMatchObject({ pass: false });
+    expect(run("Diamond Sailpoint Williams", "marketing_digital")).toMatchObject({ pass: false });
+    // lo que sí es la palabra, con puesto, pasa
+    expect(run("IAM Engineer", "ciberseguridad").pass).toBe(true);
+    expect(run("PMP Project Manager", "producto_proyectos").pass).toBe(true);
+  });
+
+  it("puestos sin entradas no cambian nada y todas las palabras existen en las reglas", () => {
+    expect(run("SEO Specialist", "rrhh_it")).toMatchObject({ pass: false });
+    expect(run("Backend Developer", "backend").pass).toBe(true);
+    for (const words of Object.values(ROLE_DOMAIN_KEYWORDS)) {
+      for (const w of words ?? []) expect(rules.other_discipline_keywords).toContain(w);
+    }
   });
 });
 

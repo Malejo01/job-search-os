@@ -134,6 +134,13 @@
       "when": 1791829674120,
       "tag": "0018_furry_gorilla_man",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791843145563,
+      "tag": "0019_carreras_digitales",
+      "breakpoints": true
     }
   ]
 }

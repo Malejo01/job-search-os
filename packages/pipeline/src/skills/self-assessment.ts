@@ -22,8 +22,40 @@ export const ROLE_KEYS = [
   "soporte_it",
   "ai_engineer",
   "ux_ui",
+  "marketing_digital",
+  "producto_proyectos",
+  "rrhh_it",
+  "customer_success",
+  "ciberseguridad",
 ] as const;
 export type RoleKey = (typeof ROLE_KEYS)[number];
+
+/** Los puestos de tecnología (los de antes de la ronda 40). */
+export const IT_ROLE_KEYS: readonly RoleKey[] = [
+  "frontend",
+  "backend",
+  "fullstack",
+  "qa",
+  "data_analyst",
+  "soporte_it",
+  "ai_engineer",
+  "ux_ui",
+];
+
+/** Los puestos de carreras digitales (ronda 40). */
+export const DIGITAL_ROLE_KEYS: readonly RoleKey[] = [
+  "marketing_digital",
+  "producto_proyectos",
+  "rrhh_it",
+  "customer_success",
+  "ciberseguridad",
+];
+
+/** Grupos del selector de puesto: juntos cubren `ROLE_KEYS` sin repetir. */
+export const ROLE_GROUPS: readonly { label: string; roles: readonly RoleKey[] }[] = [
+  { label: "Tecnología", roles: IT_ROLE_KEYS },
+  { label: "Carreras digitales", roles: DIGITAL_ROLE_KEYS },
+];
 
 export function isRoleKey(v: unknown): v is RoleKey {
   return typeof v === "string" && (ROLE_KEYS as readonly string[]).includes(v);
@@ -73,6 +105,14 @@ const HEADLINE_KEYWORDS: Record<RoleKey, RegExp> = {
   soporte_it: /soporte/,
   ai_engineer: /ai engineer|\bia\b/,
   ux_ui: /\bux\b|\bui\b/,
+  marketing_digital:
+    /marketing digital|digital marketing|\bseo\b|performance marketing|community manager/,
+  producto_proyectos:
+    /product manager|product owner|project manager|scrum master|(?:gerente|jefe|jefa|lider) de proyectos/,
+  rrhh_it:
+    /\brecruiters?\b|\breclutador(?:a|es|as)?\b|talent acquisition|\brrhh\b|recursos humanos/,
+  customer_success: /customer success/,
+  ciberseguridad: /ciberseguridad|cybersecurity|seguridad informatica|\binfosec\b/,
 };
 
 /** disciplina de los criterios → rol (en orden de prioridad). */
@@ -82,6 +122,9 @@ const DISCIPLINE_ROLES: [string, RoleKey][] = [
   ["frontend", "frontend"],
   ["backend", "backend"],
   ["data", "data_analyst"],
+  // Al final: los de arriba no cambian de prioridad
+  ["ciberseguridad", "ciberseguridad"],
+  ["project_management", "producto_proyectos"],
 ];
 
 function sameSet(a: readonly string[], b: readonly string[]): boolean {

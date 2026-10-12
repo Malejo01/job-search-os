@@ -313,6 +313,59 @@ describe("assignPoolToUser · prefiltro", () => {
   });
 });
 
+describe("assignPoolToUser · carreras digitales (ADR-015)", () => {
+  it("sin puesto no recibe avisos solo digitales, pero sí los sin señal y los de IT", async () => {
+    await pool({
+      title: "Growth Analyst",
+      titleNormalized: "growth analyst",
+      roleHints: ["marketing_digital"],
+    });
+    const open = await pool({ roleHints: [] });
+    const it = await pool({
+      title: "Backend Developer",
+      titleNormalized: "backend developer",
+      roleHints: ["backend"],
+    });
+    const r = await run(USER_B, 10, 0);
+    expect(r.assigned).toBe(2);
+    expect((await jobsOf(USER_B)).map((j) => j.publicJobId).sort()).toEqual([open, it].sort());
+  });
+
+  it("con marketing_digital recibe 'SEO Specialist', que sin puesto se descartaría", async () => {
+    const seo = await pool({
+      title: "SEO Specialist",
+      titleNormalized: "seo specialist",
+      roleHints: ["marketing_digital"],
+    });
+    await setProfile(USER_A, { targetRole: "marketing_digital" });
+    const r = await run(USER_A, 10, 0);
+    expect(r).toMatchObject({ assigned: 1, discarded: 0 });
+    expect((await jobsOf(USER_A)).map((j) => j.publicJobId)).toEqual([seo]);
+
+    // Control: la misma oferta, para alguien sin puesto, la frena el prefiltro (no el filtro de hints)
+    const seoOpen = await pool({
+      title: "SEO Specialist",
+      titleNormalized: "seo specialist",
+      roleHints: [],
+    });
+    const rb = await run(USER_B, 10, 0);
+    expect(rb).toMatchObject({ assigned: 0, discarded: 1 });
+    expect(seoOpen).toBeTruthy();
+  });
+
+  it("con producto_proyectos recibe 'Project Manager'", async () => {
+    const pm = await pool({
+      title: "Project Manager",
+      titleNormalized: "project manager",
+      roleHints: ["producto_proyectos"],
+    });
+    await setProfile(USER_A, { targetRole: "producto_proyectos" });
+    const r = await run(USER_A, 10, 0);
+    expect(r).toMatchObject({ assigned: 1, discarded: 0 });
+    expect((await jobsOf(USER_A)).map((j) => j.publicJobId)).toEqual([pm]);
+  });
+});
+
 describe("assignPoolToUser · sin duplicar", () => {
   it("no duplica lo que ya tiene por URL canónica ni por jd_hash, ni en una segunda corrida", async () => {
     const urlDup = await pool();

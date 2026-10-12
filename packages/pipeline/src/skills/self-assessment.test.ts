@@ -3,6 +3,9 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_CRITERIA_RULES } from "../onboarding";
 import {
+  DIGITAL_ROLE_KEYS,
+  IT_ROLE_KEYS,
+  ROLE_GROUPS,
   ROLE_KEYS,
   SELF_LEVELS,
   defaultRole,
@@ -28,10 +31,26 @@ describe("SELF_LEVELS", () => {
   });
 });
 
+describe("ROLE_GROUPS", () => {
+  it("los grupos cubren ROLE_KEYS sin repetir", () => {
+    const all = ROLE_GROUPS.flatMap((g) => [...g.roles]);
+    expect(new Set(all).size).toBe(all.length);
+    expect([...all].sort()).toEqual([...ROLE_KEYS].sort());
+  });
+  it("tecnología son los 8 de siempre y carreras digitales los 5 nuevos", () => {
+    expect(IT_ROLE_KEYS).toEqual(ROLE_KEYS.slice(0, 8));
+    expect(DIGITAL_ROLE_KEYS).toEqual(ROLE_KEYS.slice(8));
+    expect(ROLE_GROUPS.map((g) => g.label)).toEqual(["Tecnología", "Carreras digitales"]);
+  });
+});
+
 describe("role_skills.json", () => {
   const parsed = roleSkillsSchema.safeParse(seed);
   it("valida contra el esquema", () => expect(parsed.success).toBe(true));
-  it("tiene los 8 roles", () => expect(Object.keys(seed).sort()).toEqual([...ROLE_KEYS].sort()));
+  it("tiene los 13 roles", () => {
+    expect(ROLE_KEYS).toHaveLength(13);
+    expect(Object.keys(seed).sort()).toEqual([...ROLE_KEYS].sort());
+  });
   it("todos los slugs existen en la taxonomía", () => {
     const known = new Set(taxonomy.map((s) => s.slug));
     for (const role of ROLE_KEYS) {
@@ -90,6 +109,31 @@ describe("defaultRole", () => {
     expect(role("Ingeniera en IA")).toBe("ai_engineer");
     expect(role("Diseñador UX")).toBe("ux_ui");
     expect(role("Product designer UI")).toBe("ux_ui");
+  });
+  it("deduce los puestos de carreras digitales", () => {
+    expect(role("Especialista en Marketing Digital")).toBe("marketing_digital");
+    expect(role("SEO Specialist")).toBe("marketing_digital");
+    expect(role("Product Manager")).toBe("producto_proyectos");
+    expect(role("Jefa de Proyectos")).toBe("producto_proyectos");
+    expect(role("Scrum Master")).toBe("producto_proyectos");
+    expect(role("Tech Recruiter")).toBe("rrhh_it");
+    expect(role("Reclutadora IT")).toBe("rrhh_it");
+    expect(role("Analista de RRHH")).toBe("rrhh_it");
+    expect(role("Customer Success Manager")).toBe("customer_success");
+    expect(role("Analista de Ciberseguridad")).toBe("ciberseguridad");
+    expect(role("Seguridad informática")).toBe("ciberseguridad");
+  });
+  it("los titulares de siempre no caen en un puesto nuevo", () => {
+    expect(role("Product designer UI")).toBe("ux_ui");
+    expect(role("Product designer")).toBeNull();
+    expect(role("Desarrollador Backend")).toBe("backend");
+    expect(role("Senior Software Engineer")).toBeNull();
+    expect(role("Frontend developer en un equipo de producto")).toBe("frontend");
+  });
+  it("las disciplinas de seguridad y proyectos dan el puesto nuevo, sin pisar a las de siempre", () => {
+    expect(role(null, ["ciberseguridad"])).toBe("ciberseguridad");
+    expect(role(null, ["project_management"])).toBe("producto_proyectos");
+    expect(role(null, ["ciberseguridad", "backend"])).toBe("backend");
   });
   it("las palabras cortas van enteras", () => {
     expect(role("Quality Assurance Squad")).toBeNull();

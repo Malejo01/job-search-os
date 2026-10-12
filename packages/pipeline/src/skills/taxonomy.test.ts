@@ -27,6 +27,28 @@ const NEW_SLUGS = [
   "tableau",
   "statistics",
 ];
+/** Skills de la ronda 40 (carreras digitales): se excluyen de la comparación de "no cambia". */
+const CAREER_SLUGS = new Set([
+  "google_ads",
+  "meta_ads",
+  "ga4",
+  "email_marketing",
+  "copywriting",
+  "social_media",
+  "product_management",
+  "scrum_agile",
+  "jira",
+  "roadmap",
+  "product_discovery",
+  "sourcing",
+  "interviewing",
+  "ats",
+  "employer_branding",
+  "linkedin_recruiter",
+  "hubspot",
+  "customer_onboarding",
+  "churn_retention",
+]);
 const CATEGORIES = ["dominio", "infra", "datos"];
 const ALLOWED_CATEGORY = new Set([
   "cloud",
@@ -216,7 +238,7 @@ describe("skills nuevas: UX/UI, soporte IT y datos", () => {
 });
 
 describe("skills existentes: el resultado no cambia", () => {
-  const before = taxonomy.filter((s) => !NEW_SLUGS.includes(s.slug));
+  const before = taxonomy.filter((s) => !NEW_SLUGS.includes(s.slug) && !CAREER_SLUGS.has(s.slug));
   const texts = [
     "Python, FastAPI, Docker y Kubernetes sobre AWS (Lambda, S3). CI/CD con GitHub Actions.",
     "React Native y Next.js con TypeScript; testing con Playwright y Vitest.",
@@ -229,7 +251,7 @@ describe("skills existentes: el resultado no cambia", () => {
     "Okta, monitoring, Azure DevOps y Linux.",
   ];
   it.each(texts)("mismo resultado sobre las skills viejas: %s", (text) => {
-    const withNew = extract(text).filter((s) => !NEW_SLUGS.includes(s));
+    const withNew = extract(text).filter((s) => !NEW_SLUGS.includes(s) && !CAREER_SLUGS.has(s));
     expect(withNew).toEqual(extract(text, before));
   });
 });

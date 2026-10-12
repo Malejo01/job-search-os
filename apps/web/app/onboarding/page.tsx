@@ -5,7 +5,7 @@ import {
   MIN_SUMMARY_CHARS,
   OTHER_COUNTRY,
   OTHER_ROLE,
-  ROLE_KEYS,
+  ROLE_GROUPS,
 } from "@job-search-os/pipeline";
 import { redirect } from "next/navigation";
 import { isOnboardingComplete } from "@/lib/onboarding";
@@ -77,15 +77,21 @@ export default async function OnboardingPage({
             <option value="" disabled>
               Elegí uno
             </option>
-            {ROLE_KEYS.map((key) => (
-              <option key={key} value={key}>
-                {ROLE_SKILLS[key].label}
-              </option>
+            {ROLE_GROUPS.map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.roles.map((key) => (
+                  <option key={key} value={key}>
+                    {ROLE_SKILLS[key].label}
+                  </option>
+                ))}
+              </optgroup>
             ))}
             <option value={OTHER_ROLE}>Otro o varios</option>
           </select>
           <span className="text-xs text-zinc-600">
-            Con esto te mostramos primero las ofertas de ese puesto.
+            Con esto te mostramos primero las ofertas de ese puesto. Además de tecnología, hay
+            carreras digitales: marketing, producto, recruiting IT, customer success y
+            ciberseguridad.
           </span>
         </label>
         <div className="grid gap-3 sm:grid-cols-2">

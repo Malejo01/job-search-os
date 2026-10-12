@@ -74,12 +74,9 @@ describe("inferRoleHints · título", () => {
 
   it.each([
     ["Building Manager"],
-    ["Social Media Manager"],
     ["Guild Lead"],
-    ["Media Buyer"],
     ["Gerente de Ventas"],
     ["Account Executive"],
-    ["Recruiter"],
     ["Quality Manager"],
     ["Biologist"],
     ["Business Developer"],
@@ -125,6 +122,71 @@ describe("inferRoleHints · título", () => {
   });
 });
 
+describe("inferRoleHints · puestos de carreras digitales (ronda 40)", () => {
+  it.each([
+    ["Digital Marketing Specialist", ["marketing_digital"]],
+    ["Especialista SEO", ["marketing_digital"]],
+    ["Social Media Manager", ["marketing_digital"]],
+    ["Media Buyer", ["marketing_digital"]],
+    ["Community Manager", ["marketing_digital"]],
+    ["Product Manager", ["producto_proyectos"]],
+    ["Project Manager", ["producto_proyectos"]],
+    ["Scrum Master", ["producto_proyectos"]],
+    ["Jefe de Proyectos", ["producto_proyectos"]],
+    ["Líder de Proyectos", ["producto_proyectos"]],
+    ["Recruiter", ["rrhh_it"]],
+    ["Tech Recruiter", ["rrhh_it"]],
+    ["Reclutadora IT", ["rrhh_it"]],
+    ["Talent Acquisition Partner", ["rrhh_it"]],
+    ["Analista de RRHH", ["rrhh_it"]],
+    ["Customer Success Manager", ["customer_success"]],
+    ["Technical Account Manager", ["customer_success"]],
+    ["Cybersecurity Analyst", ["ciberseguridad"]],
+    ["Analista de Ciberseguridad", ["ciberseguridad"]],
+    ["Security Engineer", ["ciberseguridad"]],
+    ["Pentester", ["ciberseguridad"]],
+    ["DevSecOps Engineer", ["ciberseguridad"]],
+  ])("%s", (title, roles) => {
+    expect(hints(title)).toEqual(roles);
+  });
+
+  it("no se cruzan con los puestos de siempre", () => {
+    expect(hints("Product Designer")).toEqual(["ux_ui"]);
+    expect(hints("Developer Relations Manager")).toEqual([]);
+    expect(hints("Customer Support Representative")).toEqual([]);
+    expect(hints("Atención al cliente")).toEqual([]);
+    expect(hints("Security Guard")).toEqual([]);
+    expect(hints("Senior Developer")).toEqual(DEV);
+  });
+
+  it.each([
+    ["getonboard_api", "digital-marketing", ["marketing_digital"]],
+    ["getonboard_api", "hr", ["rrhh_it"]],
+    ["getonboard_api", "innovation-agile", ["producto_proyectos"]],
+    ["getonboard_api", "technical-support", ["soporte_it"]],
+    ["getonboard_api", "cybersecurity", ["ciberseguridad"]],
+    ["getonboard_api", "customer-support", ["customer_success"]],
+    ["jobicy", "Marketing", ["marketing_digital"]],
+    ["jobicy", "Project Management", ["producto_proyectos"]],
+    ["jobicy", "Customer Success", ["customer_success"]],
+    ["jobicy", "Recruiting", ["rrhh_it"]],
+    ["remoteok", "seo", ["marketing_digital"]],
+    ["remoteok", "recruiter", ["rrhh_it"]],
+    ["remoteok", "product", ["producto_proyectos"]],
+    ["remoteok", "cybersecurity", ["ciberseguridad"]],
+  ])("categoría de %s: %s", (sourceKind, category, roles) => {
+    const key = sourceKind === "remoteok" ? { tags: [category] } : { categories: [category] };
+    expect(hints("Cargo sin pistas", { sourceKind, ...key })).toEqual(roles);
+  });
+
+  it("`support` suelto sigue sin mapear en Jobicy y Remote OK", () => {
+    expect(hints("Cargo sin pistas", { sourceKind: "jobicy", categories: ["support"] })).toEqual(
+      [],
+    );
+    expect(hints("Cargo sin pistas", { sourceKind: "remoteok", tags: ["support"] })).toEqual([]);
+  });
+});
+
 describe("inferRoleHints · categorías de la fuente", () => {
   it("Get on Board: programming y mobile-developer dan desarrollo", () => {
     expect(
@@ -140,7 +202,6 @@ describe("inferRoleHints · categorías de la fuente", () => {
     ["data-science-analytics", ["data_analyst"]],
     ["design-ux", ["ux_ui"]],
     ["sysadmin-devops-qa", ["qa", "soporte_it"]],
-    ["customer-support", []],
   ])("Get on Board: %s", (category, roles) => {
     expect(
       hints("Cargo sin pistas", { sourceKind: "getonboard_api", categories: [category] }),
@@ -210,7 +271,7 @@ describe("inferRoleHints · categorías de la fuente", () => {
 
   it("Remote OK: un tag desconocido no marca nada", () => {
     expect(
-      hints("Cargo sin pistas", { sourceKind: "remoteok", tags: ["marketing", "sales"] }),
+      hints("Cargo sin pistas", { sourceKind: "remoteok", tags: ["sales", "finance"] }),
     ).toEqual([]);
   });
 

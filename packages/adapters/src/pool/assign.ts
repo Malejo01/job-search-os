@@ -1,5 +1,11 @@
 import { schema as s, type Db } from "@job-search-os/db";
-import { isRoleKey, prefilter, rankCandidates, type JobStatus } from "@job-search-os/pipeline";
+import {
+  IT_ROLE_KEYS,
+  isRoleKey,
+  prefilter,
+  rankCandidates,
+  type JobStatus,
+} from "@job-search-os/pipeline";
 import { and, eq, gte, inArray, isNotNull, isNull, notExists, or, sql } from "drizzle-orm";
 import { loadActiveRules } from "../ingest/run-getonboard";
 import { loadProfilePrefilterPrefs, upsertCompany } from "../ingest/ingest-job";
@@ -114,6 +120,10 @@ export async function assignPoolToUser(
           ),
         ),
       );
+    const itRoleKeys = sql`ARRAY[${sql.join(
+      IT_ROLE_KEYS.map((k) => sql`${k}`),
+      sql`, `,
+    )}]::text[]`;
     const candidates = await tx
       .select()
       .from(s.publicJobs)
@@ -122,9 +132,10 @@ export async function assignPoolToUser(
           isNull(s.publicJobs.dedupOfId),
           gte(s.publicJobs.lastSeenAt, seenSince),
           or(gte(s.publicJobs.postedAt, postedSince), isNull(s.publicJobs.postedAt)),
+          // Sin puesto solo IT (ADR-015): el aviso marcado solo con puestos digitales no entra
           role
             ? sql`(${s.publicJobs.roleHints} && ARRAY[${role}]::text[] or ${s.publicJobs.roleHints} = '{}'::text[])`
-            : undefined,
+            : sql`(${s.publicJobs.roleHints} = '{}'::text[] or ${s.publicJobs.roleHints} && ${itRoleKeys})`,
           notExists(alreadyOwned),
         ),
       )
@@ -151,7 +162,7 @@ export async function assignPoolToUser(
           countriesAllowed: pj.countriesAllowed,
         },
         rules,
-        { userCountry: prefs.country, remoteOnly: prefs.remoteOnly },
+        { userCountry: prefs.country, remoteOnly: prefs.remoteOnly, targetRole: role },
       );
       if (!pre.pass) {
         discarded++;

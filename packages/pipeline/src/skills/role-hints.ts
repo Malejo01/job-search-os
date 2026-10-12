@@ -16,7 +16,8 @@ const DEV: readonly RoleKey[] = ["frontend", "backend", "fullstack"];
  *
  * A VERIFICAR con `pool:fetch --dry-run`: de Get on Board solo están confirmados `programming`,
  * `machine-learning-ai` y `sysadmin-devops-qa`; el resto de sus slugs y los valores de Jobicy
- * son una suposición razonable hasta mirar la respuesta real.
+ * y Remote OK son una suposición razonable hasta mirar la respuesta real. `support` suelto no
+ * se mapea en ninguna fuente.
  */
 export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleKey[]>> = {
   getonboard_api: {
@@ -26,7 +27,13 @@ export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleK
     "data-science-analytics": ["data_analyst"],
     "design-ux": ["ux_ui"],
     "sysadmin-devops-qa": ["qa", "soporte_it"],
-    // `customer-support` no está: es atención al cliente, no soporte de IT.
+    "digital-marketing": ["marketing_digital"],
+    hr: ["rrhh_it"],
+    "innovation-agile": ["producto_proyectos"],
+    "technical-support": ["soporte_it"],
+    cybersecurity: ["ciberseguridad"],
+    // `customer-support` es atención al cliente: no es soporte de IT, sí customer success.
+    "customer-support": ["customer_success"],
   },
   jobicy: {
     engineering: DEV,
@@ -43,6 +50,17 @@ export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleK
     supporting: ["soporte_it"],
     qa: ["qa"],
     "quality-assurance": ["qa"],
+    marketing: ["marketing_digital"],
+    seo: ["marketing_digital"],
+    "social-media": ["marketing_digital"],
+    hr: ["rrhh_it"],
+    "human-resources": ["rrhh_it"],
+    recruiting: ["rrhh_it"],
+    product: ["producto_proyectos"],
+    "project-management": ["producto_proyectos"],
+    "customer-success": ["customer_success"],
+    security: ["ciberseguridad"],
+    cybersecurity: ["ciberseguridad"],
   },
   remoteok: {
     dev: DEV,
@@ -66,6 +84,20 @@ export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleK
     ai: ["ai_engineer"],
     "machine-learning": ["ai_engineer"],
     llm: ["ai_engineer"],
+    marketing: ["marketing_digital"],
+    seo: ["marketing_digital"],
+    "digital-marketing": ["marketing_digital"],
+    "content-marketing": ["marketing_digital"],
+    hr: ["rrhh_it"],
+    recruiter: ["rrhh_it"],
+    recruiting: ["rrhh_it"],
+    product: ["producto_proyectos"],
+    "product-manager": ["producto_proyectos"],
+    "project-manager": ["producto_proyectos"],
+    "customer-success": ["customer_success"],
+    security: ["ciberseguridad"],
+    cybersecurity: ["ciberseguridad"],
+    infosec: ["ciberseguridad"],
   },
 };
 
@@ -174,6 +206,75 @@ const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "disenadora web",
     "disenador de interfaces",
     "disenadora de interfaces",
+  ],
+  marketing_digital: [
+    "marketing digital",
+    "digital marketing",
+    "seo",
+    "sem",
+    "performance marketing",
+    "growth marketing",
+    "paid media",
+    "media buyer",
+    "trafficker",
+    "community manager",
+    "social media",
+    "content marketing",
+    "email marketing",
+  ],
+  producto_proyectos: [
+    "product manager",
+    "product owner",
+    "project manager",
+    "scrum master",
+    "agile coach",
+    "pmo",
+    "delivery manager",
+    "gerente de proyectos",
+    "jefe de proyectos",
+    "lider de proyectos",
+  ],
+  rrhh_it: [
+    "recruiter",
+    "tech recruiter",
+    "it recruiter",
+    "technical recruiter",
+    "talent acquisition",
+    "sourcer",
+    "reclutador",
+    "reclutadora",
+    "analista de seleccion",
+    "hr business partner",
+    "hrbp",
+    "people partner",
+    "employer branding",
+    "recursos humanos",
+    "rrhh",
+    "human resources",
+  ],
+  customer_success: [
+    // Nunca "customer support" ni "atencion al cliente": es atención, no customer success.
+    "customer success",
+    "client success",
+    "customer onboarding",
+    "technical account manager",
+  ],
+  ciberseguridad: [
+    // Nunca "security" suelto: "Security guard", "Social Security" no son del puesto.
+    "ciberseguridad",
+    "cybersecurity",
+    "security engineer",
+    "security analyst",
+    "analista de seguridad",
+    "seguridad informatica",
+    "seguridad de la informacion",
+    "infosec",
+    "soc analyst",
+    "pentester",
+    "penetration tester",
+    "ethical hacker",
+    "appsec",
+    "devsecops",
   ],
 };
 
