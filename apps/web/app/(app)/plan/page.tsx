@@ -1,6 +1,7 @@
-import type { PlanStatus } from "@job-search-os/pipeline";
-import { getPlan, type PlanItemView } from "@/lib/plan";
+import { SELF_LEVELS, type PlanStatus } from "@job-search-os/pipeline";
+import { getDataState, getPlan, type PlanItemView } from "@/lib/plan";
 import { requireUserId } from "@/lib/session";
+import { MissingDataNotice, NoLevelsNotice } from "../market/data-state-notice";
 import { setPlanStatusAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +16,6 @@ const STATUS_CLASSES: Record<PlanStatus, string> = {
   en_curso: "bg-amber-100 text-amber-900",
   cerrada: "bg-emerald-100 text-emerald-900",
 };
-const LEVEL_LABELS = ["nulo", "básico", "productivo", "fuerte"];
 const NEXT: Record<PlanStatus, PlanStatus[]> = {
   pendiente: ["en_curso", "cerrada"],
   en_curso: ["cerrada", "pendiente"],
@@ -33,7 +33,7 @@ export default async function PlanPage({
 }) {
   const userId = await requireUserId();
   const { error } = await searchParams;
-  const items = await getPlan(userId);
+  const [items, state] = await Promise.all([getPlan(userId), getDataState(userId)]);
   const groups: Record<PlanStatus, PlanItemView[]> = { en_curso: [], pendiente: [], cerrada: [] };
   for (const it of items) groups[it.status].push(it);
   const hoursPending = items
@@ -53,11 +53,15 @@ export default async function PlanPage({
           Estado inválido.
         </p>
       ) : null}
+      <NoLevelsNotice state={state} />
       {items.length === 0 ? (
-        <p className="rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500">
-          Sin plan todavía. Generalo con <code>pnpm plan:build</code> (local: <code>--local</code>)
-          después de <code>pnpm market:snapshot</code>.
-        </p>
+        state.hasSnapshot ? (
+          <p className="rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-600">
+            No hay skills para reforzar con las ofertas actuales.
+          </p>
+        ) : (
+          <MissingDataNotice state={state} />
+        )
       ) : (
         (["en_curso", "pendiente", "cerrada"] as const).map((status) =>
           groups[status].length ? (
@@ -78,7 +82,7 @@ export default async function PlanPage({
                           prioridad {it.priority.toFixed(1)} · nivel{" "}
                           {it.level === null
                             ? "sin dato"
-                            : `${it.level} (${LEVEL_LABELS[it.level]})`}
+                            : `${it.level} (${SELF_LEVELS[it.level]?.label ?? ""})`}
                           {it.hoursRemaining !== null
                             ? ` · ~${it.hoursRemaining} h para cerrar`
                             : ""}
@@ -140,8 +144,8 @@ export default async function PlanPage({
       )}
       <p className="text-xs text-zinc-500">
         Prioridad = demanda ponderada del mercado × (1 − nivel/3) × facilidad (16 h de cierre → 1,
-        40 h → 0,4, 80 h → 0,2). Se recalcula con <code>pnpm plan:build</code>; los estados se
-        conservan. Recursos: catálogo manual en <code>seeds/learning_resources.json</code>.
+        40 h → 0,4, 80 h → 0,2). Se recalcula cuando guardás tus skills y cada lunes; los estados
+        que marcaste se conservan. Los recursos salen de un catálogo revisado a mano.
       </p>
     </section>
   );

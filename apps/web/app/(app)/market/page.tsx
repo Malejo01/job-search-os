@@ -1,6 +1,7 @@
 import type { AgendaRow } from "@job-search-os/pipeline";
-import { getMarket, parseRange, type MarketView } from "@/lib/market";
+import { getDataState, getMarket, parseRange, type MarketView } from "@/lib/market";
 import { requireUserId } from "@/lib/session";
+import { MissingDataNotice, NoLevelsNotice } from "./data-state-notice";
 import { SkillCandidates } from "./skill-candidates";
 import { SkillRows } from "./skill-rows";
 
@@ -21,7 +22,7 @@ export default async function MarketPage({
 }) {
   const userId = await requireUserId();
   const range = parseRange(await searchParams);
-  const view = await getMarket(userId, range);
+  const [view, state] = await Promise.all([getMarket(userId, range), getDataState(userId)]);
   const { agenda } = view;
 
   return (
@@ -29,7 +30,7 @@ export default async function MarketPage({
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-xl font-semibold">Mercado</h1>
         <p className="text-xs text-zinc-600">
-          {view.weekStart ? `snapshot de la semana del ${view.weekStart}` : "sin snapshots"} ·{" "}
+          {view.weekStart ? `datos de la semana del ${view.weekStart}` : "sin datos todavía"} ·{" "}
           {view.levelsKnown} skills con nivel propio
         </p>
       </div>
@@ -59,11 +60,16 @@ export default async function MarketPage({
         {view.weeks.length ? <p>semanas disponibles: {view.weeks.join(", ")}</p> : null}
       </form>
 
+      <NoLevelsNotice state={state} />
+
       {!view.weekStart ? (
-        <p className="rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-600">
-          No hay snapshot en ese rango. Generalo con <code>pnpm market:snapshot</code> (local:{" "}
-          <code>--local</code>).
-        </p>
+        !state.hasSnapshot ? (
+          <MissingDataNotice state={state} />
+        ) : (
+          <p className="rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-600">
+            No hay datos de mercado en ese rango de semanas. Probá con otro rango.
+          </p>
+        )
       ) : (
         <>
           <Section
@@ -72,6 +78,7 @@ export default async function MarketPage({
             rows={agenda.gaps}
             view={view}
             tone="border-red-200"
+            testId="market-gaps"
           />
           <Section
             title="Diferenciales · nivel fuerte con demanda"
@@ -79,6 +86,7 @@ export default async function MarketPage({
             rows={agenda.differentials}
             view={view}
             tone="border-emerald-200"
+            testId="market-differentials"
           />
           <Section
             title="En crecimiento · nivel productivo"
@@ -86,6 +94,7 @@ export default async function MarketPage({
             rows={agenda.growing}
             view={view}
             tone="border-amber-200"
+            testId="market-growing"
           />
           <details className="rounded-md border border-zinc-200 p-3 text-sm">
             <summary className="flex min-h-11 cursor-pointer items-center font-semibold">
@@ -99,10 +108,11 @@ export default async function MarketPage({
               ¿Cómo se calcula?
             </summary>
             <p className="mt-2 text-xs text-zinc-600">
-              Demanda ponderada = Σ score de la oferta × (1 si es requisito, 0,4 si es deseable).
-              Las ofertas sin score pesan 5. Skills mapeadas por alias determinista desde el stack
-              de cada aviso (sin LLM); lo que no matchea la taxonomía no cuenta. Niveles
-              autodeclarados (`seeds/skill_levels.mauro.json`) hasta la entrevista dirigida.
+              La demanda de cada skill suma el puntaje de las ofertas que la piden: cuenta entero si
+              es un requisito y 0,4 si es deseable. Las ofertas sin puntaje pesan 5. Las skills se
+              reconocen por nombre en cada aviso, sin inteligencia artificial; lo que no está en la
+              lista de skills conocidas no cuenta. Tus niveles son los que cargaste en Mis skills.
+              Se actualiza cuando guardás tus skills y cada lunes.
             </p>
           </details>
         </>
@@ -117,15 +127,17 @@ function Section({
   rows,
   view,
   tone,
+  testId,
 }: {
   title: string;
   hint: string;
   rows: AgendaRow[];
   view: MarketView;
   tone: string;
+  testId: string;
 }) {
   return (
-    <section className={`rounded-md border p-3 ${tone}`}>
+    <section data-testid={testId} className={`rounded-md border p-3 ${tone}`}>
       <h2 className="text-sm font-semibold">{title}</h2>
       <p className="text-xs text-zinc-600">{hint}</p>
       {rows.length ? (

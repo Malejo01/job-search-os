@@ -25,6 +25,9 @@ export type PlanItemView = {
   } | null;
 };
 
+/** Estado de datos para las pantallas vacías del plan (mismo que /market). */
+export { getDataState } from "./market";
+
 export async function getPlan(userId: string): Promise<PlanItemView[]> {
   return withUser(userId, async (tx) => {
     const rows = await tx

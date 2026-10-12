@@ -60,6 +60,13 @@ export default async function SettingsPage({
       </section>
 
       <section className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
+        <h2 className="text-lg font-medium">Skills</h2>
+        <Link href="/settings/skills" className="text-sm text-zinc-900 underline">
+          Mis skills
+        </Link>
+      </section>
+
+      <section className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
         <h2 className="text-lg font-medium">Criterios</h2>
         <Link href="/settings/criteria" className="text-sm text-zinc-900 underline">
           Editar mis criterios de evaluación

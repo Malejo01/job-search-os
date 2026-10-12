@@ -19,6 +19,7 @@ export * from "./worker/evaluate-job";
 export * from "./worker/cron-response";
 export * from "./market/snapshot";
 export * from "./market/plan";
+export * from "./market/recompute";
 export * from "./skills/sync";
 export * from "./storage/blob";
 export * from "./inbound/svix";

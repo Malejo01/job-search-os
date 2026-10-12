@@ -118,6 +118,9 @@ test.describe("Flujo 25: ensayo de invitación, de la invitación a la primera o
         "Perfil ficticio del ensayo: desarrollo backend con dos años de experiencia, Python y PostgreSQL en producción, sin experiencia en móvil.",
       );
     await pageB.getByRole("button", { name: "Guardar y continuar" }).click();
+    // Paso opcional de skills (ronda 28): se saltea
+    await pageB.waitForURL("**/onboarding/skills**");
+    await pageB.getByRole("link", { name: "Saltear por ahora" }).click();
     await pageB.waitForURL("**/onboarding/asistente**");
 
     await expect(pageB.getByTestId("assistant-address")).toHaveText(/^u_[^@]{20}@/);
