@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { DISCIPLINES } from "./evaluation";
+import { ROLE_KEYS } from "./skills/self-assessment";
 import {
   criteriaFromOnboarding,
   DEFAULT_CRITERIA_RULES,
@@ -43,6 +44,7 @@ describe("isValidCountry", () => {
 
 describe("parseOnboarding", () => {
   const form = {
+    targetRole: "qa",
     country: "UY",
     countryOther: "",
     city: " Montevideo ",
@@ -62,6 +64,7 @@ describe("parseOnboarding", () => {
     expect(r).toEqual({
       ok: true,
       value: {
+        targetRole: "qa",
         locationCountry: "UY",
         locationCity: "Montevideo",
         remoteOnly: true,
@@ -73,6 +76,27 @@ describe("parseOnboarding", () => {
         profileSummary: SUMMARY.trim(),
       },
     });
+  });
+  it("targetRole: cada clave de ROLE_KEYS vale y 'otro' guarda null", () => {
+    for (const role of ROLE_KEYS) {
+      const r = parseOnboarding({ ...form, targetRole: role });
+      expect(r.ok && r.value.targetRole).toBe(role);
+    }
+    const otro = parseOnboarding({ ...form, targetRole: "otro" });
+    expect(otro.ok && otro.value.targetRole).toBeNull();
+    const conEspacios = parseOnboarding({ ...form, targetRole: " fullstack " });
+    expect(conEspacios.ok && conEspacios.value.targetRole).toBe("fullstack");
+  });
+  it("targetRole: ausente, vacío o desconocido reporta el campo", () => {
+    const { targetRole: _omit, ...sinCampo } = form;
+    void _omit;
+    expect(parseOnboarding(sinCampo)).toEqual({ ok: false, field: "targetRole" });
+    for (const v of ["", "OTRO", "Frontend", "devops", "__proto__"]) {
+      expect(parseOnboarding({ ...form, targetRole: v })).toEqual({
+        ok: false,
+        field: "targetRole",
+      });
+    }
   });
   it("remoteOnly: 'no' es false; ausente u otro valor reporta el campo", () => {
     const no = parseOnboarding({ ...form, remoteOnly: "no" });

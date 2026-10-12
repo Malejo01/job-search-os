@@ -4,10 +4,13 @@ import {
   MAX_SUMMARY_CHARS,
   MIN_SUMMARY_CHARS,
   OTHER_COUNTRY,
+  OTHER_ROLE,
+  ROLE_KEYS,
 } from "@job-search-os/pipeline";
 import { redirect } from "next/navigation";
 import { isOnboardingComplete } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
+import { ROLE_SKILLS } from "@/lib/skill-levels";
 import { DeleteAccountForm } from "../(app)/settings/delete-account-form";
 import { saveOnboardingAction } from "./actions";
 
@@ -18,6 +21,7 @@ export const maxDuration = 120;
 const input = "rounded-md border border-zinc-300 px-3 py-2 text-base";
 
 const FIELD_ERRORS: Record<string, string> = {
+  targetRole: "Elegí el puesto que buscás (o «Otro o varios»).",
   country: "Elegí tu país.",
   countryOther: "Escribí el código de país de 2 letras (por ejemplo PT).",
   city: "La ciudad es demasiado larga.",
@@ -51,11 +55,39 @@ export default async function OnboardingPage({
         podés cambiar más adelante.
       </p>
       {error && error !== "confirmacion" ? (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
+        <p
+          id="onboarding-error"
+          role="alert"
+          className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800"
+        >
           {FIELD_ERRORS[error] ?? "Revisá los datos del formulario."}
         </p>
       ) : null}
       <form action={saveOnboardingAction} className="flex flex-col gap-3">
+        <label className="flex flex-col gap-1 text-sm">
+          ¿Qué puesto buscás? *
+          <select
+            name="targetRole"
+            required
+            defaultValue=""
+            aria-invalid={error === "targetRole" ? true : undefined}
+            aria-describedby={error === "targetRole" ? "onboarding-error" : undefined}
+            className={input}
+          >
+            <option value="" disabled>
+              Elegí uno
+            </option>
+            {ROLE_KEYS.map((key) => (
+              <option key={key} value={key}>
+                {ROLE_SKILLS[key].label}
+              </option>
+            ))}
+            <option value={OTHER_ROLE}>Otro o varios</option>
+          </select>
+          <span className="text-xs text-zinc-600">
+            Con esto te mostramos primero las ofertas de ese puesto.
+          </span>
+        </label>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1 text-sm">
             País de residencia *

@@ -1,6 +1,6 @@
 import { DEFAULT_CRITERIA_RULES, defaultRole } from "@job-search-os/pipeline";
 import { redirect } from "next/navigation";
-import { isOnboardingComplete } from "@/lib/onboarding";
+import { getTargetRole, isOnboardingComplete } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
 import { ROLE_SKILLS, getSkillsPageData } from "@/lib/skill-levels";
 import { SkillsForm, parseRoleParam } from "../../(app)/settings/skills/skills-form";
@@ -17,9 +17,16 @@ export default async function OnboardingSkillsPage({
 }) {
   const userId = await requireUserId();
   if (!(await isOnboardingComplete(userId))) redirect("/onboarding");
-  const [data, { rol, error }] = await Promise.all([getSkillsPageData(userId), searchParams]);
+  const [data, targetRole, { rol, error }] = await Promise.all([
+    getSkillsPageData(userId),
+    getTargetRole(userId),
+    searchParams,
+  ]);
+  const chosen = parseRoleParam(rol);
+  // Primero lo que eligió en esta pantalla, después el puesto del paso 1, después el deducido
   const role =
-    parseRoleParam(rol) ??
+    chosen ??
+    targetRole ??
     defaultRole({
       headline: data.headline,
       allowedDisciplines: data.allowedDisciplines,
@@ -43,7 +50,7 @@ export default async function OnboardingSkillsPage({
         </p>
       ) : null}
       <SkillsForm
-        action={saveOnboardingSkillsAction}
+        action={saveOnboardingSkillsAction.bind(null, chosen)}
         basePath="/onboarding/skills"
         roleMap={ROLE_SKILLS}
         role={role}
@@ -52,7 +59,7 @@ export default async function OnboardingSkillsPage({
         submitLabel="Guardar y seguir"
         invalidSlug={error?.startsWith("level:") ? error.slice("level:".length) : undefined}
         allowRemove={false}
-        skip={{ href: "/onboarding/asistente", label: "Saltear por ahora" }}
+        skip={{ href: "/onboarding/ofertas", label: "Saltear por ahora" }}
       />
     </section>
   );

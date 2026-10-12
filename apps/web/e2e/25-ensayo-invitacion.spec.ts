@@ -8,7 +8,8 @@ import { E2E_USER_ID, createJob, deleteJob, login, ownerDb } from "./helpers";
 
 /**
  * Flujo 25 (ronda 27): el guion de `ops/ensayo-invitacion.md` de punta a punta. Una persona nueva
- * (B) se registra con una invitación, hace el onboarding, llega al asistente y ve su primera
+ * (B) se registra con una invitación, hace el onboarding (con el puesto, «Tus primeras ofertas» y
+ * el asistente de email como paso opcional) y ve su primera
  * alerta; ni ella ni A ven nada del otro. La invitación se siembra con la conexión del dueño porque
  * el server de e2e no define ADMIN_EMAILS (crearla por la UI de Ajustes queda para el ensayo real).
  * Todo inventado; B se borra al final con deleteUserData.
@@ -109,6 +110,7 @@ test.describe("Flujo 25: ensayo de invitación, de la invitación a la primera o
     await expect(pageB.getByRole("heading", { name: "Completá tu perfil" })).toBeVisible();
 
     // Un perfil distinto del de A: otro país y pocos años
+    await pageB.getByLabel(/¿Qué puesto buscás\?/).selectOption("backend");
     await pageB.getByLabel(/País de residencia/).selectOption("BR");
     await pageB.getByLabel(/Inglés \(nivel CEFR\)/).selectOption("B2");
     await pageB.getByLabel(/Años de experiencia/).fill("2");
@@ -122,6 +124,10 @@ test.describe("Flujo 25: ensayo de invitación, de la invitación a la primera o
     // Paso opcional de skills (ronda 28): se saltea
     await pageB.waitForURL("**/onboarding/skills**");
     await pageB.getByRole("link", { name: "Saltear por ahora" }).click();
+    // Ronda 39: el onboarding pasa por «Tus primeras ofertas»; el email es un paso opcional
+    await pageB.waitForURL("**/onboarding/ofertas**");
+    await expect(pageB.getByRole("heading", { name: "Tus primeras ofertas" })).toBeVisible();
+    await pageB.getByRole("link", { name: /Conectar mis alertas de email/ }).click();
     await pageB.waitForURL("**/onboarding/asistente**");
 
     await expect(pageB.getByTestId("assistant-address")).toHaveText(/^u_[^@]{20}@/);

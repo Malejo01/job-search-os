@@ -2,7 +2,9 @@ import { schema as s } from "@job-search-os/db";
 import {
   criteriaFromOnboarding,
   isProfileComplete,
+  isRoleKey,
   type OnboardingInput,
+  type RoleKey,
 } from "@job-search-os/pipeline";
 import { and, eq, sql } from "drizzle-orm";
 import { withUser } from "./db";
@@ -30,6 +32,46 @@ export async function isOnboardingComplete(userId: string): Promise<boolean> {
 }
 
 /**
+ * Rol que la persona dijo que busca (`profiles.target_role`), o null si no eligió ("Otro o varios")
+ * o si el valor guardado no es una clave conocida: la base no lo valida, el código sí.
+ */
+export async function getTargetRole(userId: string): Promise<RoleKey | null> {
+  return withUser(userId, async (tx) => {
+    const [row] = await tx
+      .select({ targetRole: s.profiles.targetRole })
+      .from(s.profiles)
+      .where(eq(s.profiles.userId, userId))
+      .limit(1);
+    return isRoleKey(row?.targetRole) ? row.targetRole : null;
+  });
+}
+
+/** ¿La persona ya recibió algún email (`inbound_emails`)? Con RLS: cuenta solo los suyos. */
+export async function hasReceivedEmail(userId: string): Promise<boolean> {
+  return withUser(userId, async (tx) => {
+    const [row] = await tx
+      .select({ id: s.inboundEmails.id })
+      .from(s.inboundEmails)
+      .where(eq(s.inboundEmails.userId, userId))
+      .limit(1);
+    return Boolean(row);
+  });
+}
+
+/** Cambia el rol objetivo (Mis skills). Un valor que no es clave de rol no se guarda. */
+export async function setTargetRole(userId: string, role: unknown): Promise<boolean> {
+  if (!isRoleKey(role)) return false;
+  return withUser(userId, async (tx) => {
+    const updated = await tx
+      .update(s.profiles)
+      .set({ targetRole: role, updatedAt: new Date() })
+      .where(eq(s.profiles.userId, userId))
+      .returning({ userId: s.profiles.userId });
+    return updated.length > 0;
+  });
+}
+
+/**
  * Guarda el formulario: actualiza el perfil y, si el usuario no tiene criterios activos, crea
  * la versión siguiente (1 si no tenía ninguna) con las reglas por defecto. Todo en una transacción.
  * Devuelve false si el usuario no tiene fila de perfil (no se inventa una).
@@ -39,6 +81,7 @@ export async function completeOnboarding(userId: string, input: OnboardingInput)
     const updated = await tx
       .update(s.profiles)
       .set({
+        targetRole: input.targetRole,
         locationCountry: input.locationCountry,
         locationCity: input.locationCity,
         remoteOnly: input.remoteOnly,

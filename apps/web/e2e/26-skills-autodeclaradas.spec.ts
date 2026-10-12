@@ -120,6 +120,8 @@ test.describe("Flujo 26: skills autodeclaradas, del onboarding al mercado", () =
     await seedOffersWithSkills(userId, tag, OFFERS);
     await seedMarketSnapshot(userId, OFFERS);
 
+    // Ronda 39: el puesto se elige en el paso 1 y Mis skills lo trae elegido
+    await page.getByLabel(/¿Qué puesto buscás\?/).selectOption("fullstack");
     await page.getByLabel(/País de residencia/).selectOption("BR");
     await page.getByLabel(/Inglés \(nivel CEFR\)/).selectOption("B2");
     await page.getByLabel(/Años de experiencia/).fill("3");
@@ -134,11 +136,15 @@ test.describe("Flujo 26: skills autodeclaradas, del onboarding al mercado", () =
     await page.waitForURL("**/onboarding/skills**");
     await expect(page.getByRole("heading", { name: "Tus skills" })).toBeVisible();
     await expect(page.getByText(/Opcional\. Con tus niveles/)).toBeVisible();
-    // Con los criterios de fábrica no hay rol deducido: pide elegirlo
-    await expect(page.getByText(/Elegí un rol/)).toBeVisible();
+    // El rol del paso 1 ya viene elegido: no pide elegirlo
+    await expect(page.getByRole("link", { name: "Full-stack" })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+    await expect(page.getByText(/Elegí un rol/)).toHaveCount(0);
 
     await page.getByRole("link", { name: "Saltear por ahora" }).click();
-    await page.waitForURL("**/onboarding/asistente**");
+    await page.waitForURL("**/onboarding/ofertas**");
     expect(await skillLevelsOf(userId)).toEqual({});
   });
 
