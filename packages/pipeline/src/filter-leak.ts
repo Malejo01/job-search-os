@@ -18,6 +18,7 @@ export const EXPECTED_SOURCE_DOMAINS = [
   "getonbrd.com",
   "getonboard.com",
   "indeed.com",
+  "eightfold.ai",
 ] as const;
 
 /** Segundos niveles de país: `mails.banco.com.ar` → `banco.com.ar`, no `com.ar`. */

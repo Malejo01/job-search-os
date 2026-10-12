@@ -8,6 +8,7 @@ import {
   maskDigits,
   SECURITY_PARSER,
   type CriteriaRules,
+  type RawJob,
 } from "@job-search-os/pipeline";
 import { and, desc, eq, gte, like, sql } from "drizzle-orm";
 import { applyLinkedinApplication } from "../applications/linkedin-application";
@@ -71,6 +72,38 @@ function senderDomain(from: string): string | null {
   const addr = (/<([^>]+)>/.exec(from)?.[1] ?? from).trim().toLowerCase();
   const at = addr.lastIndexOf("@");
   return at >= 0 && at < addr.length - 1 ? addr.slice(at + 1) : null;
+}
+
+/**
+ * Ingesta de los avisos que un parser sacó de un email: cada uno apunta al crudo del email
+ * (JS-024). Compartida con el reprocesado de la cola manual, para que sea el mismo camino.
+ */
+export async function ingestEmailJobs(
+  db: Db,
+  input: { userId: string; jobs: RawJob[]; rawRef: string; logger: Logger; now: Date },
+): Promise<{ jobsExtracted: number; error: string | null }> {
+  const { userId, rawRef, now } = input;
+  const [criteria] = await db
+    .select({ rules: s.evaluationCriteria.rules })
+    .from(s.evaluationCriteria)
+    .where(and(eq(s.evaluationCriteria.userId, userId), eq(s.evaluationCriteria.active, true)))
+    .orderBy(desc(s.evaluationCriteria.version))
+    .limit(1);
+  if (!criteria) return { jobsExtracted: 0, error: "usuario sin criterios activos" };
+  const jobs = input.jobs.map((j) => ({ ...j, source: { ...j.source, rawRef } }));
+  const summary = await ingestBatch(jobs, {
+    db,
+    userId,
+    rules: criteria.rules as CriteriaRules,
+    logger: input.logger,
+    enqueueEvaluation: enqueueEvaluationWith(db),
+    now: () => now,
+    taxonomy: await loadTaxonomy(db),
+  });
+  return {
+    jobsExtracted: summary.inserted + summary.merged,
+    error: summary.errors.length ? `${summary.errors.length} avisos con error al ingestar` : null,
+  };
 }
 
 export async function handleInboundEmail(
@@ -280,29 +313,13 @@ export async function handleInboundEmail(
     if (!parsed.ok) {
       error = `estructura no reconocida (${parser.name}): ${parsed.reason}. Cola manual`;
     } else if (parsed.jobs.length) {
-      const [criteria] = await db
-        .select({ rules: s.evaluationCriteria.rules })
-        .from(s.evaluationCriteria)
-        .where(and(eq(s.evaluationCriteria.userId, userId), eq(s.evaluationCriteria.active, true)))
-        .orderBy(desc(s.evaluationCriteria.version))
-        .limit(1);
-      if (!criteria) {
-        error = "usuario sin criterios activos";
-      } else {
-        // Cada aviso extraído apunta al crudo del email (JS-024)
-        const jobs = parsed.jobs.map((j) => ({ ...j, source: { ...j.source, rawRef } }));
-        const summary = await ingestBatch(jobs, {
-          db,
-          userId,
-          rules: criteria.rules as CriteriaRules,
-          logger: log,
-          enqueueEvaluation: enqueueEvaluationWith(db),
-          now: () => now,
-          taxonomy: await loadTaxonomy(db),
-        });
-        jobsExtracted = summary.inserted + summary.merged;
-        if (summary.errors.length) error = `${summary.errors.length} avisos con error al ingestar`;
-      }
+      ({ jobsExtracted, error } = await ingestEmailJobs(db, {
+        userId,
+        jobs: parsed.jobs,
+        rawRef,
+        logger: log,
+        now,
+      }));
     }
   }
 

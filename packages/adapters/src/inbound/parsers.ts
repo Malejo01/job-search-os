@@ -1,4 +1,5 @@
-import type { RawJob } from "@job-search-os/pipeline";
+import { senderHost, type RawJob } from "@job-search-os/pipeline";
+import { eightfoldParser } from "./eightfold";
 import { getonboardParser } from "./getonboard";
 import { indeedParser } from "./indeed";
 import { linkedinParser } from "./linkedin";
@@ -20,7 +21,7 @@ export type InboundEmailContent = {
 export type ParseResult = { ok: true; jobs: RawJob[] } | { ok: false; reason: string };
 
 export type EmailParser = {
-  name: "linkedin" | "getonboard" | "indeed" | "generic";
+  name: "linkedin" | "getonboard" | "indeed" | "eightfold" | "generic";
   parse(email: InboundEmailContent): ParseResult;
 };
 
@@ -53,11 +54,16 @@ export function linkedinSenderKind(
 
 /** Remitente → parser. `generic` es el último recurso y también falla cerrado. */
 export function chooseParserName(fromAddress: string): EmailParser["name"] {
-  const addr = fromAddress.toLowerCase();
-  const domain = (/@([^>\s]+)/.exec(addr)?.[1] ?? addr).trim();
+  // Misma lectura del remitente que el filtro de fugas y el chequeo de remitente esperado: lo de
+  // entre <> si existe. "a@eightfold.ai <x@otro.example>" es de otro.example.
+  const domain = senderHost(fromAddress) || fromAddress.toLowerCase().trim();
   if (domain.endsWith("linkedin.com")) return "linkedin";
   if (domain.endsWith("getonbrd.com") || domain.endsWith("getonboard.com")) return "getonboard";
   if (domain === "indeed.com" || domain.endsWith(".indeed.com")) return "indeed";
+  // Eightfold: el remitente real está por validar con el .eml. Hoy se acepta cualquier
+  // `*.eightfold.ai` (y por eso se guarda completo, EXPECTED_SOURCE_DOMAINS); cuando llegue el
+  // .eml, acotar por parte local.
+  if (domain === "eightfold.ai" || domain.endsWith(".eightfold.ai")) return "eightfold";
   return "generic";
 }
 
@@ -73,4 +79,5 @@ export const EMAIL_PARSERS: Partial<Record<EmailParser["name"], EmailParser>> = 
   linkedin: linkedinParser,
   getonboard: getonboardParser,
   indeed: indeedParser,
+  eightfold: eightfoldParser,
 };
