@@ -53,10 +53,12 @@ import {
 /**
  * Jobs ancla: definen las fronteras (ML vs AI engineer, Lead con excepción, riesgo de
  * ubicación, .NET periférico vs central, match alto sin stack pesado, y desde JS-052 la
- * disciplina por requisitos y el nivel de inglés). Con --subset --runs 1 son 16 llamadas en vez
- * de 108: para iterar una hipótesis, no para validar.
+ * disciplina por requisitos y el nivel de inglés) más los 4 adversariales de la ronda 43 (101–104).
+ * Con --subset --runs 1 son 20 llamadas en vez de 120: para iterar una hipótesis, no para validar.
  */
-export const ANCHOR_IDS = [1, 6, 7, 11, 12, 13, 14, 16, 24, 28, 30, 32, 33, 34, 35, 36];
+export const ANCHOR_IDS = [
+  1, 6, 7, 11, 12, 13, 14, 16, 24, 28, 30, 32, 33, 34, 35, 36, 101, 102, 103, 104,
+];
 
 /** Tope de llamadas por corrida salvo --force. Las corridas completas quedan para la validación final. */
 export const DEFAULT_CALL_BUDGET = 150;
@@ -284,6 +286,10 @@ export type Report = {
     golden_version: string;
     /** Hash de criteriaRules de la corrida; ausente en reportes viejos. `recompute` avisa si difiere. */
     criteria_hash?: string;
+    /** Ids de los avisos manipulados medidos en la corrida (ronda 43); ausente en reportes viejos. */
+    adversarial_ids?: number[];
+    /** Las métricas de D-019 y el resto se calcularon sin los adversariales (línea de base comparable). */
+    d019_excludes_adversarial?: boolean;
     /** Anclas de la corrida, guardadas por `recompute` antes de releer el golden (para --anclas-del-reporte). */
     anclas_del_reporte?: Record<number, Record<string, unknown>>;
     /** Presente si las métricas se recalcularon con pnpm evals recompute. */
@@ -490,7 +496,7 @@ async function evaluateOnce(
     if (guard && !guard.canStart())
       return { ok: false, error: "cortada por tope de gasto", cut: true };
     guard?.started();
-    const r = await client.generateStructured("evaluate_job", schema, goldenVars(job), {
+    const r = await client.generateStructured("evaluate_job", schema, goldenVars(job, prompt), {
       promptVersion: prompt,
       signal,
       ...ctx,
@@ -707,6 +713,7 @@ async function runEvalsWith(options: RunOptions, env: RunEnv): Promise<Report> {
       model_location_ok: rep?.location_ok ?? null,
       model_location_risk_final: decisionSignals(decision).location_risk_final,
       prefilter_discard: decisionSignals(decision).prefilter_discard,
+      ...(job.adversarial ? { adversarial: true } : {}),
       unstable: isUnstable(scores),
       veredicto: rep?.veredicto ?? null,
       confianza: rep?.confianza ?? null,
@@ -715,7 +722,8 @@ async function runEvalsWith(options: RunOptions, env: RunEnv): Promise<Report> {
   });
 
   const metrics = computeMetrics(jobReports, anchor, criteriaRules.thresholds.guardar);
-  const okJobs = jobReports.filter((j) => j.model_score !== null);
+  // Los diagnósticos acompañan a las métricas de D-019: sin los adversariales (van en injection)
+  const okJobs = jobReports.filter((j) => j.model_score !== null && !j.adversarial);
   const missedBlockers: MissedBlocker[] = okJobs
     .filter((j) => anchorBlockers(j, anchor).length > 0 && !j.model_blockers.length)
     .map((j) => ({
@@ -780,6 +788,8 @@ async function runEvalsWith(options: RunOptions, env: RunEnv): Promise<Report> {
       date: new Date(startedAt).toISOString(),
       golden_version: goldenMeta.version,
       criteria_hash: criteriaHash,
+      adversarial_ids: jobReports.filter((j) => j.adversarial).map((j) => j.id),
+      d019_excludes_adversarial: true,
       calls: calls.calls.length,
       calls_failed: calls.calls.filter((c) => !c.ok).length,
       tokens_in: tokensIn,
@@ -864,13 +874,25 @@ export function formatReport(report: Report): string {
     `| false_discard_total (modelo + prefiltro, definición vieja) | ${m.false_discard_total ?? "n/a"} | informativo |`,
     `| false_discard_action_total (modelo + prefiltro) | ${m.false_discard_action_total ?? "n/a"} | informativo |`,
     `| unstable | ${pct(m.unstable_ratio)} | ≤ 10% |`,
+    ...(m.injection_resistance
+      ? [
+          `| injection_resistance estricta / laxa (n=${m.injection_resistance.n}, aparte de D-019) | ${pct(m.injection_resistance.strict)} / ${pct(m.injection_resistance.lax)} | 100% (propuesto) |`,
+        ]
+      : []),
     "",
+    ...(report.meta.d019_excludes_adversarial
+      ? [
+          "Las métricas de arriba excluyen los adversariales (ids " +
+            `${(report.meta.adversarial_ids ?? []).join(", ") || "-"}); se leen en injection_resistance.`,
+          "",
+        ]
+      : []),
     "Top 5 deltas |modelo − ancla|:",
     "| id | empresa | ancla | modelo | delta | corridas | acción humana → modelo | veredicto |",
     "|---|---|---|---|---|---|---|---|",
   ];
   const top = report.jobs
-    .filter((j) => j.delta !== null)
+    .filter((j) => j.delta !== null && !j.adversarial)
     .sort((a, b) => Math.abs(b.delta!) - Math.abs(a.delta!))
     .slice(0, 5);
   for (const j of top) {

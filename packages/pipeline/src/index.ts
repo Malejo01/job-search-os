@@ -3,6 +3,8 @@ export * from "./result";
 export * from "./normalize";
 export * from "./evaluation";
 export * from "./decide";
+export * from "./evaluator/injection";
+export * from "./evaluator/sanitize";
 export * from "./status";
 export * from "./status-correction";
 export * from "./inbox-volume";

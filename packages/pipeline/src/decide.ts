@@ -1,5 +1,6 @@
 import type { CriteriaRules } from "./criteria";
 import type { Evaluation } from "./evaluation";
+import { INJECTION_FLAG, INJECTION_RISK } from "./evaluator/injection";
 
 /**
  * Decisión desde score + bloqueadores + riesgos + umbrales (EVALUATOR_PROMPT §3, prompt v1.1).
@@ -293,10 +294,28 @@ export function decide(
     riesgos.push(`location_ok = ${evaluation.location_ok}`);
   }
 
+  /**
+   * Aviso con instrucciones dirigidas al evaluador (ronda 43). El texto es de terceros: si intentó
+   * mover el score, no lo logra más allá de "guardar" y la persona ve el riesgo. Nunca descarta.
+   */
+  const injected = (context.prefilterFlags ?? []).includes(INJECTION_FLAG);
+  if (injected) {
+    if (!riesgos.includes(INJECTION_RISK)) riesgos.push(INJECTION_RISK);
+    if (score > rules.thresholds.guardar) {
+      adjustments.push({
+        rule: "injection_cap",
+        delta: rules.thresholds.guardar - score,
+        detail: `aviso con instrucciones al evaluador (tope ${rules.thresholds.guardar})`,
+      });
+      score = rules.thresholds.guardar;
+    }
+  }
+
   const scoreFinal = clamp(score);
-  const accion = applyLocationCap(
+  let accion = applyLocationCap(
     decideAction(scoreFinal, bloqueadores, rules.thresholds, riesgos),
     evaluation.location_ok,
   );
+  if (injected && (accion === "aplicar" || accion === "aplicar_personalizado")) accion = "guardar";
   return { scoreModel: evaluation.score, scoreFinal, bloqueadores, riesgos, adjustments, accion };
 }

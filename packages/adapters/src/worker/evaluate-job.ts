@@ -1,9 +1,15 @@
 import { schema as s, type Db } from "@job-search-os/db";
+import roleSkillsSeed from "@job-search-os/db/seeds/role_skills.json";
 import {
   buildEvaluateJobVars,
   canTransition,
   decide,
+  detectEvaluatorInjection,
+  INJECTION_FLAG,
+  isRoleKey,
   outputSchemaFor,
+  roleSkillsSchema,
+  sanitizeEvaluation,
   transition,
   type CriteriaRules,
   type JobStatus,
@@ -62,6 +68,22 @@ const titleCapFromFlags = (flags: readonly string[] | null | undefined): number 
   return null;
 };
 
+const ROLE_LABELS = roleSkillsSchema.parse(roleSkillsSeed);
+
+/**
+ * Puesto del candidato para `{{target_role}}`: el del pool que encontró el aviso, si no el principal
+ * de la lista, si no el puesto único de antes. Solo claves conocidas; null si no hay ninguna.
+ */
+export function targetRoleLabelFor(
+  matchedRole: string | null | undefined,
+  profile: { targetRoles?: readonly string[] | null; targetRole?: string | null },
+): string | null {
+  for (const candidate of [matchedRole, profile.targetRoles?.[0], profile.targetRole]) {
+    if (isRoleKey(candidate)) return ROLE_LABELS[candidate].label;
+  }
+  return null;
+}
+
 /** Evalúa un job por id (fuera de la cola: útil para JS-017 "pegar JD" y para tests). */
 export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promise<EvaluateOutcome> {
   const { db } = deps;
@@ -95,7 +117,20 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
   }
   const rules = criteria.rules as CriteriaRules;
 
+  // El aviso es texto de terceros: si trae instrucciones al evaluador se marca antes de llamar al
+  // modelo. El flag topa el score en decide() y queda en jobs.flags; en el log solo van los nombres.
+  const injection = detectEvaluatorInjection([job.title, job.companyRaw, job.jdText].join("\n"));
+  // Se recalcula siempre: un flag viejo no sobrevive si la JD ya no dispara el detector
+  const baseFlags = (job.flags ?? []).filter((f) => f !== INJECTION_FLAG);
+  const flags = injection.hit ? [...baseFlags, INJECTION_FLAG] : baseFlags;
+  const flagsChanged =
+    flags.length !== (job.flags ?? []).length ||
+    injection.hit !== (job.flags ?? []).includes(INJECTION_FLAG);
+  if (injection.hit)
+    log.warn({ signals: injection.signals }, "aviso con instrucciones al evaluador");
+
   const vars = buildEvaluateJobVars({
+    promptRef: promptVersion,
     profile: {
       profileSummary: profile.profileSummary ?? "",
       locationCountry: profile.locationCountry,
@@ -106,6 +141,8 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
       maxWeeklyHours: profile.maxWeeklyHours,
       englishCefr: profile.englishCefr,
       yearsTotal: profile.yearsTotal,
+      targetRoles: profile.targetRoles,
+      targetRoleLabel: targetRoleLabelFor(job.matchedRole, profile),
     },
     rules,
     job,
@@ -130,10 +167,11 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
     };
   }
 
-  const evaluation = result.value.object;
+  // Texto libre del modelo: se sanea (largo, enlaces, caracteres de control) antes de decidir y guardar
+  const { evaluation, sanitized } = sanitizeEvaluation(result.value.object);
   const decision = decide(evaluation, rules, {
     titleCap: titleCapFromFlags(job.flags),
-    prefilterFlags: job.flags ?? [],
+    prefilterFlags: flags,
     candidateEnglishCefr: profile.englishCefr,
     candidateYearsTotal: profile.yearsTotal,
   });
@@ -173,7 +211,11 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
   const status = transition(job.status, "evaluated");
   await db
     .update(s.jobs)
-    .set({ status, updatedAt: deps.now?.() ?? new Date() })
+    .set({
+      status,
+      ...(flagsChanged ? { flags } : {}),
+      updatedAt: deps.now?.() ?? new Date(),
+    })
     .where(eq(s.jobs.id, job.id));
 
   log.info(
@@ -183,6 +225,7 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
       accion: decision.accion,
       model: result.value.model,
       status,
+      sanitized,
     },
     "evaluado",
   );

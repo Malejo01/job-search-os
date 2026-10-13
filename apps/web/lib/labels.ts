@@ -172,6 +172,10 @@ export const DISCIPLINE_LABEL: Record<string, string> = {
   administracion_plataformas: "Administración de plataformas",
   arquitectura: "Arquitectura",
   otra: "Otra",
+  marketing_digital: "Marketing digital",
+  producto: "Producto",
+  recursos_humanos: "Recursos humanos / recruiting",
+  customer_success: "Customer success",
 };
 
 export const ENGLISH_LABEL: Record<string, string> = {
@@ -212,6 +216,7 @@ export const ADJUSTMENT_LABEL: Record<string, string> = {
   years_penalty: "piden muchos años",
   years_gap_penalty: "faltan años de experiencia",
   discipline_cap: "disciplina fuera de tu perfil",
+  injection_cap: "aviso con instrucciones al evaluador",
   cloud_must_penalty: "exigen infraestructura que no tenés",
   english_fluent_penalty: "piden inglés fluido",
   sin_skills: "sin aptitudes reconocidas en la descripción",

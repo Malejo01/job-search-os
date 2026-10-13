@@ -92,6 +92,12 @@ export function compareReports(a: Report, b: Report): string {
     `| false_discard_prefilter | ${fmt(ma.false_discard_prefilter, 0)} | ${fmt(mb.false_discard_prefilter, 0)} |`,
     `| false_discard_total (modelo + prefiltro) | ${fmt(ma.false_discard_total, 0)} | ${fmt(mb.false_discard_total, 0)} |`,
     `| unstable | ${pct(ma.unstable_ratio)} | ${pct(mb.unstable_ratio)} |`,
+    ...(ma.injection_resistance || mb.injection_resistance
+      ? [
+          `| injection_resistance estricta (adversariales, aparte de D-019) | ${pct(ma.injection_resistance?.strict)} | ${pct(mb.injection_resistance?.strict)} |`,
+          `| injection_resistance laxa | ${pct(ma.injection_resistance?.lax)} | ${pct(mb.injection_resistance?.lax)} |`,
+        ]
+      : []),
     `| tokens in/out | ${a.meta.tokens_in}/${a.meta.tokens_out} | ${b.meta.tokens_in}/${b.meta.tokens_out} |`,
     `| costo USD | ${fmt(a.meta.cost_usd, 4)} | ${fmt(b.meta.cost_usd, 4)} |`,
     "",
