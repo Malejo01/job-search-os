@@ -1,3 +1,4 @@
+import { inferRoleHints, type RawJob } from "@job-search-os/pipeline";
 import { fetchAshbyBoard } from "../sources/ashby";
 import {
   ATS_MAX_JOBS_PER_BOARD,
@@ -192,6 +193,65 @@ const ATS_FETCHERS = {
   ashby: fetchAshbyBoard,
 } satisfies Record<AtsProvider, unknown>;
 
+/** Los N slugs más frecuentes de la taxonomía de la fuente, normalizados, con su conteo. */
+function topSlugs(values: Iterable<string>, limit: number): string {
+  const counts = new Map<string, number>();
+  for (const v of values) {
+    const slug = v
+      .normalize("NFKD")
+      .replace(/[̀-ͯ]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    // Cada slug impreso se corta a 40 caracteres
+    const short = slug.slice(0, 40);
+    if (short) counts.set(short, (counts.get(short) ?? 0) + 1);
+  }
+  const top = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, limit);
+  return top.length ? top.map(([k, n]) => `${k}=${n}`).join(", ") : "ninguno";
+}
+
+/**
+ * Conteos de pistas de puesto (iguales a las del upsert) y de taxonomía de la fuente. Solo
+ * conteos y slugs de categoría/tag: nunca títulos ni textos del aviso.
+ */
+function hintLines(source: SourceName, jobs: readonly RawJob[]): string[] {
+  const perRole = new Map<string, number>();
+  let withHint = 0;
+  for (const job of jobs) {
+    const roles = inferRoleHints({
+      sourceKind: job.source.kind,
+      title: job.title,
+      tags: job.tags,
+      categories: job.categories,
+    });
+    if (roles.length) withHint++;
+    for (const role of roles) perRole.set(role, (perRole.get(role) ?? 0) + 1);
+  }
+  const lines = [
+    `con pista de puesto: ${withHint} / ${jobs.length}`,
+    `por puesto: ${[...perRole].map(([k, n]) => `${k}=${n}`).join(", ") || "ninguno"}`,
+  ];
+  if (source === "jobicy") {
+    lines.push(
+      `categorías de la fuente (top 20): ${topSlugs(
+        jobs.flatMap((j) => j.categories ?? []),
+        20,
+      )}`,
+    );
+  }
+  if (source === "remoteok") {
+    lines.push(
+      `tags de la fuente (top 20): ${topSlugs(
+        jobs.flatMap((j) => j.tags ?? []),
+        20,
+      )}`,
+      `seniority inferida: ${jobs.filter((j) => j.seniority).length} / ${jobs.length}`,
+    );
+  }
+  return lines;
+}
+
 async function run(source: SourceName, ats?: AtsArgs): Promise<void> {
   const userAgent = sourceUserAgent();
   const since = new Date(Date.now() - SINCE_HOURS * 3_600_000);
@@ -199,6 +259,7 @@ async function run(source: SourceName, ats?: AtsArgs): Promise<void> {
   const fetchImpl = capturingFetch(source, raw);
   const lines: string[] = [];
   let mapped: number;
+  let jobs: readonly RawJob[];
 
   if (ats) {
     let r: AtsBoardResult;
@@ -215,7 +276,8 @@ async function run(source: SourceName, ats?: AtsArgs): Promise<void> {
       process.exitCode = 1;
       return;
     }
-    mapped = r.jobs.length;
+    jobs = r.jobs;
+    mapped = jobs.length;
     lines.push(
       `estado del board: ${r.status}`,
       `vistos: ${r.seen}`,
@@ -232,7 +294,8 @@ async function run(source: SourceName, ats?: AtsArgs): Promise<void> {
       userAgent,
       fetchImpl,
     });
-    mapped = r.jobs.length;
+    jobs = r.jobs;
+    mapped = jobs.length;
     lines.push(`vistos: ${r.seen}`, `salteados: ${r.skipped}`);
     lines.push(
       `categorías con error: ${r.errors.length ? r.errors.join("; ") : "ninguna"}`,
@@ -247,14 +310,16 @@ async function run(source: SourceName, ats?: AtsArgs): Promise<void> {
       userAgent,
       fetchImpl,
     });
-    mapped = r.jobs.length;
+    jobs = r.jobs;
+    mapped = jobs.length;
     lines.push(`páginas descargadas: ${r.pagesFetched}`, `vistos: ${r.seen}`);
     lines.push(
       `categorías faltantes (404): ${r.missingCategories.length ? r.missingCategories.join(", ") : "ninguna"}`,
     );
   } else if (source === "remoteok") {
     const r = await fetchRemoteOkJobs({ since, userAgent, fetchImpl });
-    mapped = r.jobs.length;
+    jobs = r.jobs;
+    mapped = jobs.length;
     lines.push(`vistos: ${r.seen}`, `salteados: ${r.skipped}`);
     lines.push(
       r.legal
@@ -263,7 +328,8 @@ async function run(source: SourceName, ats?: AtsArgs): Promise<void> {
     );
   } else if (source === "jobicy") {
     const r = await fetchJobicyJobs({ since, userAgent, fetchImpl });
-    mapped = r.jobs.length;
+    jobs = r.jobs;
+    mapped = jobs.length;
     lines.push(`vistos: ${r.seen}`, `salteados: ${r.skipped}`);
   } else {
     const r = await fetchHimalayasJobs({
@@ -272,7 +338,8 @@ async function run(source: SourceName, ats?: AtsArgs): Promise<void> {
       userAgent,
       fetchImpl,
     });
-    mapped = r.jobs.length;
+    jobs = r.jobs;
+    mapped = jobs.length;
     lines.push(`páginas descargadas: ${r.pagesFetched}`, `vistos: ${r.seen}`);
     lines.push(`salteados: ${r.skipped}`);
   }
@@ -292,6 +359,7 @@ async function run(source: SourceName, ats?: AtsArgs): Promise<void> {
       : `mapeados dentro de la ventana: ${mapped}`,
   );
   for (const l of lines) console.log(l);
+  for (const l of hintLines(source, jobs)) console.log(l);
   console.log(`\ncampos de la respuesta cruda (${raw.length} items) que lee el mapper:`);
   console.log(formatFieldReport(fieldPresence(raw, MAPPER_FIELDS[source]), raw.length));
 }

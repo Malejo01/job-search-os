@@ -187,6 +187,119 @@ describe("inferRoleHints · puestos de carreras digitales (ronda 40)", () => {
   });
 });
 
+describe("inferRoleHints · IA en el título (ronda 47c)", () => {
+  it.each([
+    "Gen AI Specialist",
+    "ML Ops Lead",
+    "AI/ML Practitioner",
+    "ML AI Practitioner",
+    "NLP Researcher",
+    "Natural Language Processing Analyst",
+    "Deep Learning Practitioner",
+    "Computer Vision Practitioner",
+    "Applied Scientist",
+    "Research Scientist",
+    "Prompt Engineer",
+    "AI Agents Builder",
+    "Agentic Workflow Designer",
+    "LLMOps Practitioner",
+  ])("término nuevo: %s", (title) => {
+    expect(hints(title)).toContain("ai_engineer");
+  });
+
+  it.each([
+    "AI Software Engineer",
+    "Senior AI Platform Engineer",
+    "ML Infrastructure Engineer",
+    "AI Solutions Architect",
+    "AI Research Scientist",
+  ])("patrón AI + rol técnico: %s", (title) => {
+    expect(hints(title)).toEqual(["ai_engineer"]);
+  });
+
+  it("AI + engineer no suma frontend, backend ni fullstack", () => {
+    expect(hints("AI Software Engineer")).toEqual(["ai_engineer"]);
+  });
+
+  it.each(["AI Trainer", "AI Tutor", "AI Data Annotator", "AI Writing Evaluator"])(
+    "entrenamiento o anotación no es ingeniería: %s",
+    (title) => {
+      expect(hints(title)).toEqual([]);
+    },
+  );
+
+  it("AI Product Manager sigue siendo producto, sin ai_engineer", () => {
+    expect(hints("AI Product Manager")).toEqual(["producto_proyectos"]);
+  });
+
+  it("'html' no es 'ml' y 'Email Marketing Specialist' no entra", () => {
+    expect(hints("HTML Developer")).toEqual(DEV);
+    expect(hints("Email Marketing Specialist")).toEqual(["marketing_digital"]);
+  });
+
+  it("la lista de exclusión anula el patrón: ya no hay falso positivo en Sales Engineer", () => {
+    expect(hints("Sales Engineer – AI platform")).toEqual([]);
+  });
+
+  it.each(["AI Sales Specialist", "AI Customer Support Specialist", "AI Marketing Specialist"])(
+    "specialist ya no es rol técnico: %s",
+    (title) => {
+      expect(hints(title)).not.toContain("ai_engineer");
+    },
+  );
+
+  it("AI Specialist a secas ya no da ai_engineer", () => {
+    expect(hints("AI Specialist")).toEqual([]);
+  });
+
+  it("AI UX Researcher es solo ux_ui; AI Researcher es ai_engineer", () => {
+    expect(hints("AI UX Researcher")).toEqual(["ux_ui"]);
+    expect(hints("AI Researcher")).toEqual(["ai_engineer"]);
+  });
+
+  it("el título manda cuando categoría + título superan el máximo", () => {
+    expect(
+      hints("AI Developer", {
+        sourceKind: "jobicy",
+        categories: ["programming", "data-science-analytics"],
+      }),
+    ).toEqual(["ai_engineer"]);
+    // Sin roles en el título sigue siendo "sin señal"
+    expect(
+      hints("Cargo sin pistas", {
+        sourceKind: "jobicy",
+        categories: ["programming", "data-science-analytics", "web-app-design"],
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("inferRoleHints · categorías nuevas de Jobicy (ronda 47c)", () => {
+  it.each([
+    ["Programming", DEV],
+    ["Software Development", DEV],
+    ["Web Development", DEV],
+    ["Web & App Design", ["ux_ui"]],
+    ["Data Science & Analytics", ["data_analyst"]],
+    ["DevOps & Infrastructure", ["soporte_it"]],
+    ["HR & Recruiting", ["rrhh_it"]],
+    ["Machine Learning", ["ai_engineer"]],
+    ["Artificial Intelligence", ["ai_engineer"]],
+    ["AI/ML", ["ai_engineer"]],
+    ["AI", ["ai_engineer"]],
+  ])("%s", (category, roles) => {
+    expect(hints("Cargo sin pistas", { sourceKind: "jobicy", categories: [category] })).toEqual(
+      roles,
+    );
+  });
+
+  it("customer-support no se mapea", () => {
+    expect(
+      hints("Cargo sin pistas", { sourceKind: "jobicy", categories: ["Customer Support"] }),
+    ).toEqual([]);
+  });
+});
+
 describe("inferRoleHints · categorías de la fuente", () => {
   it("Get on Board: programming y mobile-developer dan desarrollo", () => {
     expect(
@@ -263,7 +376,7 @@ describe("inferRoleHints · categorías de la fuente", () => {
 
   it("la tabla de una fuente no se aplica a otra", () => {
     expect(
-      hints("Cargo sin pistas", { sourceKind: "jobicy", categories: ["programming"] }),
+      hints("Cargo sin pistas", { sourceKind: "jobicy", categories: ["mobile-developer"] }),
     ).toEqual([]);
     expect(hints("Cargo sin pistas", { sourceKind: "other", categories: ["programming"] })).toEqual(
       [],

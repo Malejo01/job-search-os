@@ -1,4 +1,4 @@
-import type { RawJob } from "@job-search-os/pipeline";
+import { inferSeniorityFromTitle, type RawJob } from "@job-search-os/pipeline";
 import { htmlToText } from "./getonboard";
 
 /**
@@ -61,6 +61,7 @@ export function mapRemoteOkJob(item: RemoteOkItem): RawJob {
   const max = item.salary_max && item.salary_max > 0 ? item.salary_max : null;
   const hasSalary = min !== null || max !== null;
   const id = String(item.id);
+  const title = (item.position ?? "").trim();
   const posted = item.epoch ? new Date(item.epoch * 1000) : item.date ? new Date(item.date) : null;
 
   return {
@@ -72,7 +73,7 @@ export function mapRemoteOkJob(item: RemoteOkItem): RawJob {
       rawRef: null,
       original: { contentType: "application/json", body: JSON.stringify(item) },
     },
-    title: (item.position ?? "").trim(),
+    title,
     companyRaw: item.company?.trim() || "desconocida",
     locationRaw,
     countriesAllowed,
@@ -88,7 +89,7 @@ export function mapRemoteOkJob(item: RemoteOkItem): RawJob {
     jdText: htmlToText(item.description) || null,
     postedAt: posted && !Number.isNaN(posted.getTime()) ? posted : null,
     tags: item.tags ?? [],
-    seniority: null,
+    seniority: inferSeniorityFromTitle(title),
     lang: null,
     categories: (item.tags ?? []).map((t) => t.toLowerCase()),
   };

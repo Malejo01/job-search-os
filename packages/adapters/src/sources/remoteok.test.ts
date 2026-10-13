@@ -51,6 +51,12 @@ describe("Remote OK: contrato con una respuesta de ejemplo (formato a verificar)
     expect(raw.jdText).not.toMatch(/<[a-z]+>/i);
   });
 
+  it("la seniority sale del título; sin nivel en el título queda null", () => {
+    expect(mapRemoteOkJob(full).seniority).toBe("Senior");
+    expect(mapRemoteOkJob({ ...full, position: "Staff Platform Engineer" }).seniority).toBe("Lead");
+    expect(mapRemoteOkJob({ ...full, position: "Backend Engineer" }).seniority).toBeNull();
+  });
+
   it("sin salario (0) → null y sin periodo; región restringida → countriesAllowed null", () => {
     const raw = mapRemoteOkJob(noSalary);
     expect(raw.salaryMinUsd).toBeNull();

@@ -200,6 +200,58 @@ describe("upsertPoolJobs", () => {
     expect((await row("b")).roleHints).toEqual(["ux_ui"]);
   });
 
+  it("una fila con role_hints viejos recibe las pistas nuevas sin crudo nuevo y cuenta como unchanged", async () => {
+    const same = rawJob({
+      id: "b",
+      title: "Product Designer",
+      companyRaw: "Empresa Ficticia 2",
+      jdText: JD_B,
+      tags: ["design"],
+      categories: ["design"],
+    });
+    const before = await row("b");
+    await conn.db.update(s.publicJobs).set({ roleHints: [] }).where(eq(s.publicJobs.id, before.id));
+    const blobs = await poolBlobCount();
+
+    const summary = await upsertPoolJobs([same], {
+      db: conn.db,
+      logger,
+      now: () => T1,
+      taxonomy,
+    });
+
+    expect(summary).toMatchObject({ inserted: 0, updated: 0, unchanged: 1, errors: 0 });
+    const after = await row("b");
+    expect(after.roleHints).toEqual(["ux_ui"]);
+    expect(after.rawRef).toBe(before.rawRef);
+    expect(after.updatedAt).toEqual(before.updatedAt);
+    expect(after.lastSeenAt).toEqual(T1);
+    expect(await poolBlobCount()).toBe(blobs);
+  });
+
+  it("si las pistas no cambian, un segundo upsert solo avanza last_seen_at", async () => {
+    const same = rawJob({
+      id: "b",
+      title: "Product Designer",
+      companyRaw: "Empresa Ficticia 2",
+      jdText: JD_B,
+      tags: ["design"],
+      categories: ["design"],
+    });
+    const before = await row("b");
+    const summary = await upsertPoolJobs([same], {
+      db: conn.db,
+      logger,
+      now: () => new Date("2026-10-12T20:00:00Z"),
+      taxonomy,
+    });
+    expect(summary).toMatchObject({ inserted: 0, updated: 0, unchanged: 1, errors: 0 });
+    const after = await row("b");
+    expect(after.roleHints).toEqual(before.roleHints);
+    expect(after.updatedAt).toEqual(before.updatedAt);
+    expect(after.rawRef).toBe(before.rawRef);
+  });
+
   it("emails y teléfonos no quedan en jd_text", async () => {
     const a = await row("a");
     expect(a.jdText).toContain("[contacto]");
