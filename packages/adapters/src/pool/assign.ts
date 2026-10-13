@@ -61,9 +61,9 @@ export type AssignOptions = {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** Candidatas que se traen y puntúan por corrida. */
-const CANDIDATE_CAP = 300;
-const SEEN_WINDOW_DAYS = 14;
-const POSTED_WINDOW_DAYS = 30;
+export const CANDIDATE_CAP = 300;
+export const SEEN_WINDOW_DAYS = 14;
+export const POSTED_WINDOW_DAYS = 30;
 
 const empty = (replaced = 0): AssignResult => ({
   assigned: 0,
