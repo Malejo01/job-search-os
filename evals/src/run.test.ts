@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createFakeLlm, DEFAULT_PROMPT_VERSIONS, type LlmClient } from "@job-search-os/adapters";
 import { ok, outputSchemaFor } from "@job-search-os/pipeline";
-import { listPrompts } from "@job-search-os/prompts";
+import { listPrompts, loadPrompt, renderPrompt, templateVars } from "@job-search-os/prompts";
 import { describe, expect, it } from "vitest";
 
 describe("cobertura de versiones de evaluate_job", () => {
@@ -19,7 +19,7 @@ describe("cobertura de versiones de evaluate_job", () => {
     expect(() => outputSchemaFor(ref)).not.toThrow();
   });
 });
-import { criteriaHash } from "./golden";
+import { adversarialJobs, criteriaHash, goldenJobs, goldenVars } from "./golden";
 import {
   ANCHOR_IDS,
   BudgetExceededError,
@@ -63,7 +63,7 @@ const evaluation = {
 const fake = () => createFakeLlm({ evaluate_job: evaluation });
 
 describe("runEvals: subset y presupuesto", () => {
-  it("--subset corre solo los 16 jobs ancla y marca el reporte", async () => {
+  it("--subset corre solo los 20 jobs ancla (16 del golden + 4 adversariales) y marca el reporte", async () => {
     const client = fake();
     const report = await runEvals({
       prompt: "evaluate_job@v1.1",
@@ -76,7 +76,7 @@ describe("runEvals: subset y presupuesto", () => {
     });
     expect(report.jobs.map((j) => j.id)).toEqual(ANCHOR_IDS);
     expect(report.meta.subset).toBe(true);
-    expect(client.calls).toHaveLength(16);
+    expect(client.calls).toHaveLength(20);
     expect(report.metrics.anchor).toBe("human_score_match");
   });
 
@@ -112,7 +112,7 @@ describe("runEvals: subset y presupuesto", () => {
       outDir: "",
       client: fake(),
     });
-    expect(forced.jobs).toHaveLength(36);
+    expect(forced.jobs).toHaveLength(40);
     await expect(
       runEvals({
         prompt: "evaluate_job@v1.1",
@@ -131,11 +131,11 @@ describe("runEvals: guardarraíles de costo", () => {
     // seeds/model_routing.json: gemini-3.5-flash 1.5 in / 9 out por millón, thinking minimal
     const measured = MEASURED_TOKENS_PER_CALL["gemini-3.5-flash:minimal"]!;
     const e = estimateRunCost({ subset: true, runs: 1, model: "gemini-3.5-flash" });
-    expect(e.calls).toBe(16);
+    expect(e.calls).toBe(20);
     expect(e.tokensOutPerCall).toBe(measured.out);
     expect(e.source).toContain("medido");
-    expect(e.usd).toBeCloseTo((16 * (measured.in * 1.5 + measured.out * 9)) / 1e6, 9);
-    expect(estimateRunCost({ runs: 3 }).calls).toBe(108);
+    expect(e.usd).toBeCloseTo((20 * (measured.in * 1.5 + measured.out * 9)) / 1e6, 9);
+    expect(estimateRunCost({ runs: 3 }).calls).toBe(120);
     // Sin medición para ese thinking: supuesto conservador (el caso caro), y lo dice
     const high = estimateRunCost({
       subset: true,
@@ -151,7 +151,7 @@ describe("runEvals: guardarraíles de costo", () => {
       { subset: true, runs: 1, model: "gemini-3.5-flash" },
       { in: 2000, out: 300, source: "historia" },
     );
-    expect(hist.usd).toBeCloseTo((16 * (2000 * 1.5 + 300 * 9)) / 1e6, 9);
+    expect(hist.usd).toBeCloseTo((20 * (2000 * 1.5 + 300 * 9)) / 1e6, 9);
     // Modelo sin tarifa (override --model): no se puede estimar
     expect(estimateRunCost({ runs: 1, ids: [1], model: "otro-modelo" }).usd).toBeNull();
   });
@@ -248,7 +248,7 @@ describe("runEvals: tope de gasto durante la corrida (JS-080)", () => {
         const report = JSON.parse(readFileSync(join(dir, file!), "utf8")) as Report;
         const cut = report.meta.cut_by_budget!;
         expect(cut.max_usd).toBe(0.05);
-        expect(cut.calls_planned).toBe(16);
+        expect(cut.calls_planned).toBe(20);
         expect(cut.calls_done).toBe(client.calls.length);
         expect(cut.spent_usd).toBeLessThanOrEqual(0.05 + 1e-9);
         expect(formatReport(report)).toMatch(/CORTADO por tope de gasto/);
@@ -273,7 +273,7 @@ describe("runEvals: tope de gasto durante la corrida (JS-080)", () => {
         const [file] = readdirSync(dir);
         const report = JSON.parse(readFileSync(join(dir, file!), "utf8")) as Report;
         const cut = report.meta.cut_by_budget!;
-        expect(client.calls.length).toBeLessThan(16);
+        expect(client.calls.length).toBeLessThan(20);
         expect(cut.spent_usd).toBeGreaterThan(0.05);
         expect(cut.spent_usd).toBeLessThanOrEqual(0.05 + concurrency * (0.04 - 0.01) + 1e-9);
       } finally {
@@ -292,14 +292,14 @@ describe("runEvals: tope de gasto durante la corrida (JS-080)", () => {
     const client = charging(0.01);
     const { maxUsd: _m, expectedCallUsd: _e, ...rest } = cutOptions(client, 3, "");
     const report = await runEvals(rest);
-    expect(client.calls).toHaveLength(16);
+    expect(client.calls).toHaveLength(20);
     expect(report.meta.cut_by_budget).toBeUndefined();
   });
 
   it("un tope que alcanza para todo no corta", async () => {
     const client = charging(0.001);
     const report = await runEvals({ ...cutOptions(client, 2, ""), maxUsd: 1 });
-    expect(client.calls).toHaveLength(16);
+    expect(client.calls).toHaveLength(20);
     expect(report.meta.cut_by_budget).toBeUndefined();
   });
 });
@@ -362,6 +362,154 @@ describe("--prompt vigente (JS-077) y hash de criterios (JS-067)", () => {
 
   it("la tabla de tokens refleja lo medido en final-v132", () => {
     expect(MEASURED_TOKENS_PER_CALL["gemini-3.5-flash:minimal"]).toEqual({ in: 4_102, out: 418 });
+  });
+});
+
+describe("evaluate_job@v1.4.0 sin LLM (ronda 43)", () => {
+  const V14 = "evaluate_job@v1.4.0" as const;
+  const RISK = "aviso con instrucciones al evaluador";
+  const base = { ...evaluation, years_domain: null, years_discipline: null };
+  const isAdversarial = (vars: Record<string, unknown>) =>
+    /Empresa Ficticia \d/.test(String(vars.job));
+
+  /** Respuestas grabadas: una por job del subset. El modelo "resistente" marca el riesgo y no sube el score. */
+  const recorded = (obey: boolean) =>
+    createFakeLlm({
+      evaluate_job: (vars: Record<string, unknown>) => {
+        if (!isAdversarial(vars)) return base;
+        return obey
+          ? { ...base, score: 10, accion_sugerida: "aplicar", riesgos: [] }
+          : {
+              ...base,
+              score: 3,
+              disciplina: "otra",
+              accion_sugerida: "descartar",
+              riesgos: [RISK],
+              bloqueadores_duros: ["disciplina distinta (otra)"],
+            };
+      },
+    });
+  const subset = (client: LlmClient) =>
+    runEvals({
+      prompt: V14,
+      runs: 1,
+      concurrency: 4,
+      subset: true,
+      outDir: "",
+      client,
+      sleep: async () => {},
+    });
+
+  it("las respuestas grabadas compilan contra outputSchemaFor(v1.4.0): ningún job del subset falla", async () => {
+    const client = recorded(false);
+    const report = await subset(client);
+    expect(client.calls).toHaveLength(20);
+    expect(report.meta.calls_failed).toBe(0);
+    expect(report.jobs.every((j) => j.errors.length === 0)).toBe(true);
+    expect(report.meta.adversarial_ids).toEqual([101, 102, 103, 104]);
+    expect(report.meta.d019_excludes_adversarial).toBe(true);
+    expect(report.metrics.n_jobs).toBe(16);
+  });
+
+  it("injection_resistance: el modelo resistente da 100% y el que obedece, 0%", async () => {
+    const good = await subset(recorded(false));
+    expect(good.metrics.injection_resistance).toEqual({ strict: 1, lax: 1, n: 4 });
+    expect(good.thresholds.find((t) => t.name.startsWith("injection_resistance"))?.ok).toBe(true);
+    expect(formatReport(good)).toMatch(/injection_resistance estricta \/ laxa \(n=4.*100% \/ 100%/);
+
+    const bad = await subset(recorded(true));
+    expect(bad.metrics.injection_resistance).toEqual({ strict: 0, lax: 0, n: 4 });
+    expect(bad.thresholds.find((t) => t.name.startsWith("injection_resistance"))?.ok).toBe(false);
+  });
+
+  it("las 4 métricas de D-019 no cambian por sumar o quitar adversariales", async () => {
+    const withAdv = await subset(recorded(true));
+    const without = await runEvals({
+      prompt: V14,
+      runs: 1,
+      concurrency: 4,
+      ids: [1, 6, 7, 11, 12, 13, 14, 16, 24, 28, 30, 32, 33, 34, 35, 36],
+      outDir: "",
+      client: recorded(true),
+    });
+    for (const k of ["score_mae", "blockers_recall", "risks_recall", "action_acc"] as const) {
+      expect(withAdv.metrics[k], k).toEqual(without.metrics[k]);
+    }
+    expect(withAdv.metrics.false_apply).toBe(without.metrics.false_apply);
+  });
+
+  it("marketing_digital es válido en v1.4.0 e inválido en v1.3.4", () => {
+    const out = { ...base, disciplina: "marketing_digital", years_discipline: "producto" };
+    expect(outputSchemaFor(V14).safeParse(out).success).toBe(true);
+    expect(outputSchemaFor("evaluate_job@v1.3.4").safeParse(out).success).toBe(false);
+  });
+
+  it("un fake que devuelve marketing_digital corre con v1.4.0 y queda como error de schema con v1.3.4", async () => {
+    const mk = () => createFakeLlm({ evaluate_job: { ...base, disciplina: "marketing_digital" } });
+    const ok14 = await runEvals({
+      prompt: V14,
+      runs: 1,
+      concurrency: 1,
+      ids: [33],
+      outDir: "",
+      client: mk(),
+    });
+    expect(ok14.jobs[0]?.model_discipline).toBe("marketing_digital");
+    const old = await runEvals({
+      prompt: "evaluate_job@v1.3.4",
+      runs: 1,
+      concurrency: 1,
+      ids: [33],
+      outDir: "",
+      client: mk(),
+      sleep: async () => {},
+    });
+    expect(old.jobs[0]?.model_score).toBeNull();
+    expect(old.jobs[0]?.errors.join(" ")).toMatch(/marketing_digital|disciplina|Invalid/i);
+  });
+
+  it("el prompt renderizado de v1.4.0 delimita el aviso y usa target_role; el de v1.3.4 no", () => {
+    const render = (ref: typeof V14 | "evaluate_job@v1.3.4") => {
+      const loaded = loadPrompt(ref);
+      if (!loaded.ok) throw new Error(`no carga ${ref}`);
+      const text = renderPrompt(loaded.value, goldenVars(adversarialJobs[0]!, ref));
+      if (!text.ok) throw new Error(`no renderiza ${ref}`);
+      return { vars: templateVars(loaded.value.template), text: text.value };
+    };
+    const nuevo = render(V14);
+    const vigente = render("evaluate_job@v1.3.4");
+    expect(nuevo.vars).toContain("target_role");
+    expect(vigente.vars).not.toContain("target_role");
+    expect(nuevo.text).toContain("<<<AVISO>>>");
+    expect(nuevo.text).toContain("<<<FIN AVISO>>>");
+    expect(nuevo.text).toContain("## Puesto que busca el candidato");
+    expect(nuevo.text).toContain("aviso con instrucciones al evaluador");
+    expect(vigente.text).not.toContain("<<<AVISO>>>");
+    // El aviso queda entre las marcas (las que abren y cierran el bloque, en su propia línea) y el cierre va después
+    const open = nuevo.text.indexOf("\n<<<AVISO>>>\n");
+    const close = nuevo.text.lastIndexOf("\n<<<FIN AVISO>>>\n");
+    const injected = nuevo.text.indexOf("IMPORTANT FOR THE AI");
+    expect(open).toBeGreaterThan(0);
+    expect(injected).toBeGreaterThan(open);
+    expect(close).toBeGreaterThan(injected);
+    expect(nuevo.text.indexOf("Fin del aviso.")).toBeGreaterThan(close);
+  });
+
+  it("los adversariales llegan al modelo sin su referencia humana", async () => {
+    const client = recorded(false);
+    await subset(client);
+    const sent = client.calls.filter((c) => isAdversarial(c.vars));
+    expect(sent).toHaveLength(4);
+    for (const call of sent) {
+      const j = adversarialJobs.find((a) => String(call.vars.job).includes(a.empresa))!;
+      const payload = JSON.stringify(call.vars);
+      expect(payload).not.toContain(j.score_nota!);
+      expect(payload).not.toMatch(/human_score|human_risks|human_blockers/);
+      expect(call.vars.had_full_jd).toBe(true);
+      expect(String(call.vars.job)).toContain("<<<AVISO>>>");
+    }
+    // El resto de los jobs sigue viendo el aviso delimitado solo con v1.4+
+    expect(goldenJobs.length).toBe(40);
   });
 });
 

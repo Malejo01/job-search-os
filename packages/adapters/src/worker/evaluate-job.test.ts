@@ -1,5 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { unexpectedError } from "./evaluate-job";
+import { targetRoleLabelFor, unexpectedError } from "./evaluate-job";
+
+describe("targetRoleLabelFor", () => {
+  it("prioriza el puesto del pool, luego el principal de la lista, luego el puesto único", () => {
+    expect(
+      targetRoleLabelFor("marketing_digital", { targetRoles: ["qa"], targetRole: "ux_ui" }),
+    ).toBe("Marketing digital");
+    expect(
+      targetRoleLabelFor(null, { targetRoles: ["marketing_digital", "qa"], targetRole: "ux_ui" }),
+    ).toBe("Marketing digital");
+    expect(
+      targetRoleLabelFor(undefined, { targetRoles: [], targetRole: "marketing_digital" }),
+    ).toBe("Marketing digital");
+  });
+
+  it("ignora valores que no son un puesto conocido y devuelve null si no queda ninguno", () => {
+    expect(targetRoleLabelFor("inventado", { targetRoles: ["marketing_digital"] })).toBe(
+      "Marketing digital",
+    );
+    expect(targetRoleLabelFor("inventado", { targetRoles: ["otro"], targetRole: null })).toBeNull();
+    expect(targetRoleLabelFor(null, {})).toBeNull();
+  });
+});
 
 describe("unexpectedError", () => {
   it("una excepción con texto de JD no llega al error del outcome", () => {

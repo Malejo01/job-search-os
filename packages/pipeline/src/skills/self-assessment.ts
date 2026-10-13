@@ -125,6 +125,10 @@ const DISCIPLINE_ROLES: [string, RoleKey][] = [
   // Al final: los de arriba no cambian de prioridad
   ["ciberseguridad", "ciberseguridad"],
   ["project_management", "producto_proyectos"],
+  ["marketing_digital", "marketing_digital"],
+  ["producto", "producto_proyectos"],
+  ["recursos_humanos", "rrhh_it"],
+  ["customer_success", "customer_success"],
 ];
 
 function sameSet(a: readonly string[], b: readonly string[]): boolean {

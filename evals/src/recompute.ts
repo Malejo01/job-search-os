@@ -198,6 +198,11 @@ export function formatRecompute(report: Report, old: Partial<Metrics>, notes: st
     `  falso descarte del prefiltro (ancla ≥ ${m.apply_floor}): ${m.false_discard_prefilter} (aparte de false_discard del modelo)`,
     `  false_discard_total (modelo + prefiltro, definición vieja) ${old.false_discard ?? "n/a"} → ${m.false_discard_total} · false_discard_action_total ${old.false_discard_action ?? "n/a"} → ${m.false_discard_action_total}`,
   ];
+  if (m.injection_resistance) {
+    lines.push(
+      `  injection_resistance (aparte de D-019, n=${m.injection_resistance.n}): estricta ${pct(m.injection_resistance.strict)} · laxa ${pct(m.injection_resistance.lax)}`,
+    );
+  }
   const types = Object.entries(m.risks_recall_by_type);
   if (types.length) {
     lines.push(

@@ -155,6 +155,20 @@
       "when": 1791850480612,
       "tag": "0021_target_roles_backfill",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1791855875890,
+      "tag": "0022_absent_angel",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791855883690,
+      "tag": "0023_criteria_disciplinas_digitales",
+      "breakpoints": true
     }
   ]
 }

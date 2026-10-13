@@ -69,6 +69,7 @@ async function main(): Promise<void> {
       },
       rules: criteria.rules,
       job: { ...job, jdText: job.jdText ?? (jdSummary || null) },
+      promptRef: "evaluate_job@v1",
     });
     // Resumen humano ≠ JD completa: que el modelo lo sepa
     vars.had_full_jd = Boolean(job.jdText);

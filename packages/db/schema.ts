@@ -15,6 +15,7 @@ export const modality = pgEnum("modality", ["remoto", "hibrido", "presencial", "
 export const discipline = pgEnum("discipline", [
   "ai_engineer", "ml_engineer", "ai_evaluation", "creative_production", "fullstack", "frontend", "backend", "devops",
   "data", "ciberseguridad", "negocio", "project_management", "administracion_plataformas", "arquitectura", "otra",
+  "marketing_digital", "producto", "recursos_humanos", "customer_success",
 ]);
 export const locationOk = pgEnum("location_ok", ["ok", "riesgo", "no"]);
 export const suggestedAction = pgEnum("suggested_action", ["aplicar_personalizado", "aplicar", "guardar", "descartar"]);

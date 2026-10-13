@@ -3,6 +3,7 @@ import criteria from "../../db/seeds/criteria.example.json";
 import type { CriteriaRules } from "./criteria";
 import { decide, decideAction } from "./decide";
 import type { Evaluation } from "./evaluation";
+import { INJECTION_FLAG, INJECTION_RISK } from "./evaluator/injection";
 
 const rules = criteria as CriteriaRules;
 
@@ -476,5 +477,49 @@ describe("decide(): reglas nuevas con criterios viejos (orden de deploy)", () =>
       candidateYearsTotal: 2,
     });
     expect(d.riesgos).toEqual([]);
+  });
+});
+
+describe("decide(): aviso con instrucciones al evaluador (ronda 43)", () => {
+  const flags = { prefilterFlags: [INJECTION_FLAG] };
+  const limpio = { ...base, years_required: null };
+
+  it("sin el flag no cambia nada", () => {
+    const d = decide({ ...limpio, score: 9 }, rules);
+    expect(d.riesgos).not.toContain(INJECTION_RISK);
+    expect(d.adjustments.some((a) => a.rule === "injection_cap")).toBe(false);
+    expect(d.accion).toBe("aplicar_personalizado");
+  });
+
+  it("con el flag y score 9: riesgo, tope en guardar y acción guardar", () => {
+    const d = decide({ ...limpio, score: 9 }, rules, flags);
+    expect(d.riesgos).toContain(INJECTION_RISK);
+    expect(d.scoreFinal).toBe(rules.thresholds.guardar);
+    expect(d.adjustments).toContainEqual({
+      rule: "injection_cap",
+      delta: rules.thresholds.guardar - 9,
+      detail: expect.any(String),
+    });
+    expect(d.accion).toBe("guardar");
+  });
+
+  it("con el flag y score 4: el score no cambia y sigue descartando", () => {
+    const d = decide({ ...limpio, score: 4 }, rules, flags);
+    expect(d.scoreFinal).toBe(4);
+    expect(d.adjustments.some((a) => a.rule === "injection_cap")).toBe(false);
+    expect(d.riesgos).toContain(INJECTION_RISK);
+    expect(d.accion).toBe("descartar");
+  });
+
+  it("no duplica el riesgo si el modelo ya lo puso", () => {
+    const d = decide({ ...limpio, score: 8, riesgos: [INJECTION_RISK] }, rules, flags);
+    expect(d.riesgos.filter((r) => r === INJECTION_RISK)).toHaveLength(1);
+  });
+
+  it("con el flag nunca queda en aplicar ni aplicar_personalizado", () => {
+    for (const score of [5, 6, 7, 8, 9, 10]) {
+      const d = decide({ ...limpio, score }, rules, flags);
+      expect(["aplicar", "aplicar_personalizado"]).not.toContain(d.accion);
+    }
   });
 });

@@ -64,6 +64,10 @@ const DISCIPLINE_LABEL: Record<(typeof DISCIPLINES)[number], string> = {
   administracion_plataformas: "Administración de plataformas",
   arquitectura: "Arquitectura",
   otra: "Otra",
+  marketing_digital: "Marketing digital",
+  producto: "Producto",
+  recursos_humanos: "Recursos humanos / recruiting",
+  customer_success: "Customer success",
 };
 
 /**

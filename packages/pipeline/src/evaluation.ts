@@ -4,7 +4,7 @@ import { z } from "zod";
  * Contrato de salida del evaluador (docs/EVALUATOR_PROMPT_v1.md §4).
  * El LLM propone; `decide()` (JS-011) recalcula `accion` en código.
  */
-export const DISCIPLINES = [
+export const DISCIPLINES_V13 = [
   "ai_engineer",
   "ml_engineer",
   "ai_evaluation",
@@ -21,6 +21,18 @@ export const DISCIPLINES = [
   "administracion_plataformas",
   "arquitectura",
   "otra",
+] as const;
+
+/**
+ * Las 15 de v1 a v1.3.4 más las carreras digitales (ronda 43). El JSON schema que ve el modelo
+ * vigente usa DISCIPLINES_V13 y no cambia; v1.4+, la base, los criterios y las etiquetas usan estas.
+ */
+export const DISCIPLINES = [
+  ...DISCIPLINES_V13,
+  "marketing_digital",
+  "producto",
+  "recursos_humanos",
+  "customer_success",
 ] as const;
 
 /** Gap tipado (prompt v1.1+): solo los "must" del stack central afectan el score. */
@@ -40,7 +52,7 @@ export const EvaluationV1OutputSchema = z.object({
   years_required: z.number().int().nullable(),
   location_ok: z.enum(["ok", "riesgo", "no"]),
   modalidad: z.enum(["remoto", "hibrido", "presencial", "desconocida"]),
-  disciplina: z.enum(DISCIPLINES),
+  disciplina: z.enum(DISCIPLINES_V13),
   ingles_requerido: z.enum(["no_menciona", "no", "basico", "intermedio", "avanzado", "nativo"]),
   tipo_empresa: z.enum(["producto", "startup", "consultora", "staffing", "agencia", "desconocido"]),
   paises_permitidos: z.array(z.string()).nullable(),
@@ -70,6 +82,12 @@ export const EvaluationV11OutputSchema = EvaluationV1OutputSchema.omit({ gaps: t
  */
 export const EvaluationV12OutputSchema = EvaluationV11OutputSchema.extend({
   years_domain: z.string().nullable(),
+  years_discipline: z.enum(DISCIPLINES_V13).nullable(),
+});
+
+/** v1.4.0: igual que v1.3.x pero con las 19 disciplinas. */
+export const EvaluationV14OutputSchema = EvaluationV12OutputSchema.extend({
+  disciplina: z.enum(DISCIPLINES),
   years_discipline: z.enum(DISCIPLINES).nullable(),
 });
 
@@ -81,6 +99,7 @@ const GapTolerantSchema = z.union([
 
 export const EvaluationSchema = EvaluationV1OutputSchema.omit({ gaps: true }).extend({
   gaps: z.array(GapTolerantSchema),
+  disciplina: z.enum(DISCIPLINES),
   riesgos: z.array(z.string()).default([]),
   /** v1.3.2+; en versiones anteriores queda null y las reglas de dominio no corren. */
   years_domain: z.string().nullable().default(null),
@@ -116,6 +135,8 @@ export function outputSchemaFor(promptRef: string): z.ZodType<Evaluation, unknow
     case "v1.3.3": // mismo schema; solo cambian ejemplos del prompt (JS-074)
     case "v1.3.4":
       return EvaluationV12OutputSchema;
+    case "v1.4.0":
+      return EvaluationV14OutputSchema;
     default:
       throw new Error(`sin schema de salida para ${promptRef}`);
   }
@@ -138,6 +159,8 @@ export type JobForPrompt = {
   badges?: string[] | null;
   postedAt?: Date | string | null;
   jdText?: string | null;
+  /** Puesto del candidato con el que el pool encontró el aviso (jobs.matched_role). */
+  matchedRole?: string | null;
 };
 
 export type ProfileForPrompt = {
@@ -150,6 +173,10 @@ export type ProfileForPrompt = {
   maxWeeklyHours?: number | null;
   englishCefr?: string | null;
   yearsTotal?: number | null;
+  /** Puestos objetivo (profiles.target_roles); el primero es el principal. */
+  targetRoles?: readonly string[] | null;
+  /** Nombre legible del puesto principal para el prompt (lo resuelve el caller). */
+  targetRoleLabel?: string | null;
 };
 
 const line = (label: string, value: unknown): string | null =>
@@ -159,8 +186,25 @@ const line = (label: string, value: unknown): string | null =>
 
 const lines = (items: (string | null)[]) => items.filter((l): l is string => l !== null).join("\n");
 
+/** Marcas del aviso en v1.4+: lo que está entre ellas es texto de terceros, dato y no instrucción. */
+export const JOB_OPEN = "<<<AVISO>>>";
+export const JOB_CLOSE = "<<<FIN AVISO>>>";
+
+/** v1.4 en adelante recibe el aviso delimitado; v1.3.x y anteriores, el texto de siempre. */
+export function promptNeedsDelimitedJob(promptRef: string): boolean {
+  const m = /^v(\d+)(?:\.(\d+))?/.exec(promptRef.split("@")[1] ?? promptRef);
+  if (!m) return false;
+  const major = Number(m[1]);
+  const minor = Number(m[2] ?? 0);
+  return major > 1 || (major === 1 && minor >= 4);
+}
+
+/** Un "<<<" o ">>>" del texto externo no puede abrir ni cerrar las marcas. */
+const escapeMarks = (text: string): string =>
+  text.replaceAll("<<<", "‹‹‹").replaceAll(">>>", "›››");
+
 /** `{{job}}` del prompt: campos estructurados + JD (o "JD NO DISPONIBLE"). */
-export function renderJob(job: JobForPrompt): string {
+export function renderJob(job: JobForPrompt, opts: { delimit?: boolean } = {}): string {
   const salary =
     job.salaryMinUsd || job.salaryMaxUsd
       ? `${job.salaryMinUsd ?? "?"}–${job.salaryMaxUsd ?? "?"} USD ${job.salaryPeriod ?? ""}${
@@ -183,7 +227,8 @@ export function renderJob(job: JobForPrompt): string {
     line("Publicada", posted),
   ]);
   const jd = job.jdText?.trim() ? job.jdText.trim() : "JD NO DISPONIBLE";
-  return `${header}\n\nDescripción del puesto:\n${jd}`;
+  const text = `${header}\n\nDescripción del puesto:\n${jd}`;
+  return opts.delimit ? `${JOB_OPEN}\n${escapeMarks(text)}\n${JOB_CLOSE}` : text;
 }
 
 /** `{{constraints}}` del prompt desde `profiles`. */
@@ -217,13 +262,15 @@ export function buildEvaluateJobVars(input: {
   profile: ProfileForPrompt;
   rules: Record<string, unknown>;
   job: JobForPrompt;
+  promptRef: string;
 }): Record<string, string | boolean> {
   const hadFullJd = Boolean(input.job.jdText?.trim());
   return {
     profile_summary: input.profile.profileSummary,
     constraints: renderConstraints(input.profile),
     criteria: renderCriteria(input.rules),
-    job: renderJob(input.job),
+    job: renderJob(input.job, { delimit: promptNeedsDelimitedJob(input.promptRef) }),
+    target_role: input.profile.targetRoleLabel?.trim() || "no especificado",
     had_full_jd: hadFullJd,
   };
 }
