@@ -16,6 +16,7 @@ import { AutoRefresh } from "./auto-refresh";
 import { EmailNudge } from "./email-nudge";
 import { JobFilters } from "./job-filters";
 import { JobList } from "./job-list";
+import { RoleGaps } from "./role-gaps";
 import { RoleNudge } from "./role-nudge";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +52,7 @@ export default async function JobsPage({
       </div>
       <RoleNudge userId={userId} />
       <EmailNudge userId={userId} />
+      <RoleGaps userId={userId} />
       {/* Posibles duplicados (JS-025): se revisan a mano, desde el detalle */}
       {filters.duplicates ? (
         <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">

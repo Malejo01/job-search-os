@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AutoRefresh } from "@/app/(app)/jobs/auto-refresh";
+import { RoleGaps } from "@/app/(app)/jobs/role-gaps";
 import { TrustBox } from "@/app/components/trust-box";
 import {
   getProfileUpdatedAt,
@@ -69,6 +70,7 @@ export default async function FirstOffersPage() {
             </li>
             <li>Seguimos buscando todos los días.</li>
           </ul>
+          <RoleGaps userId={userId} title={false} />
         </div>
       )}
 

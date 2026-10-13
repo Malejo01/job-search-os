@@ -51,6 +51,7 @@ export { POOL_RETENTION_DAYS, purgePool } from "./pool/retention";
 export { sourceUserAgent } from "./sources/user-agent";
 export { assignPoolToUser, type AssignOptions, type AssignResult } from "./pool/assign";
 export { hasPoolEvaluationActivity, loadPoolEvalLimit } from "./pool/usage";
+export { explainEmptyRoles } from "./pool/role-coverage";
 export { assignPoolDaily, type PoolDailyOptions, type PoolDailyResult } from "./pool/daily";
 export {
   buildRoleMarketSnapshots,
