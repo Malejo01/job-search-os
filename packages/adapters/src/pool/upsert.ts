@@ -340,6 +340,7 @@ export async function upsertPoolJobs(
             tags: t.tags,
             jdHash: t.jdHash,
             rawRef: t.rawRef,
+            roleHints: t.roleHints,
           })
           .from(t)
           .where(eq(t.id, decision.id));
@@ -349,7 +350,15 @@ export async function upsertPoolJobs(
           jdHash: n.hash,
         });
         if (stored && contentSignature(stored) === incoming) {
-          await db.update(t).set({ lastSeenAt: now }).where(eq(t.id, decision.id));
+          // `role_hints` no está en la firma: si una regla nueva da otras pistas, se actualizan acá,
+          // sin crudo nuevo ni `updatedAt`
+          const hintsChanged =
+            JSON.stringify([...(stored.roleHints ?? [])].sort()) !==
+            JSON.stringify([...n.roleHints].sort());
+          await db
+            .update(t)
+            .set(hintsChanged ? { lastSeenAt: now, roleHints: n.roleHints } : { lastSeenAt: now })
+            .where(eq(t.id, decision.id));
           // Una fila sin skills pero con JD (la sincronización falló antes) se rehace
           if (n.jdText && taxonomy) {
             const [{ n: have } = { n: 0 }] = await db

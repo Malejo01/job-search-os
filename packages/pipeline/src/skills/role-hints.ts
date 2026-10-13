@@ -16,7 +16,8 @@ const DEV: readonly RoleKey[] = ["frontend", "backend", "fullstack"];
  *
  * A VERIFICAR con `pool:fetch --dry-run`: de Get on Board solo están confirmados `programming`,
  * `machine-learning-ai` y `sysadmin-devops-qa`; el resto de sus slugs y los valores de Jobicy
- * y Remote OK son una suposición razonable hasta mirar la respuesta real. `support` suelto no
+ * y Remote OK son una suposición razonable hasta mirar la respuesta real. El `--dry-run` ahora
+ * lista las categorías (Jobicy) y tags (Remote OK) reales con su conteo. `support` suelto no
  * se mapea en ninguna fuente.
  */
 export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleKey[]>> = {
@@ -61,6 +62,18 @@ export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleK
     "customer-success": ["customer_success"],
     security: ["ciberseguridad"],
     cybersecurity: ["ciberseguridad"],
+    programming: DEV,
+    "software-development": DEV,
+    "web-development": DEV,
+    "web-app-design": ["ux_ui"],
+    "data-science-analytics": ["data_analyst"],
+    "devops-infrastructure": ["soporte_it"],
+    "hr-recruiting": ["rrhh_it"],
+    "machine-learning": ["ai_engineer"],
+    "artificial-intelligence": ["ai_engineer"],
+    "ai-ml": ["ai_engineer"],
+    ai: ["ai_engineer"],
+    // `customer-support` no entra: es atención al cliente, no soporte de IT.
   },
   remoteok: {
     dev: DEV,
@@ -214,6 +227,22 @@ const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "inteligencia artificial",
     "artificial intelligence",
     "ia",
+    "gen ai",
+    "ml ops",
+    "ai ml",
+    "ml ai",
+    "nlp",
+    "natural language processing",
+    "deep learning",
+    "computer vision",
+    "machine learning engineer",
+    "applied scientist",
+    "research scientist",
+    "prompt engineer",
+    "ai agent",
+    "ai agents",
+    "agentic",
+    "llmops",
   ],
   ux_ui: [
     "ux",
@@ -320,6 +349,45 @@ const NOT_DEV_TERMS = [
   "relations",
 ];
 
+/** Palabras de rol técnico que, junto a "ai" o "ml", indican ingeniería de IA. */
+const AI_TECH_ROLE_WORDS = ["engineer", "developer", "architect", "scientist", "researcher"];
+
+/** Si el título tiene alguna, el patrón "AI + rol técnico" no aplica (los términos explícitos sí). */
+const AI_PATTERN_EXCLUDED_WORDS = [
+  "sales",
+  "marketing",
+  "support",
+  "customer",
+  "account",
+  "ux",
+  "ui",
+  "recruiter",
+  "recruiting",
+  "content",
+  "writer",
+  "trainer",
+  "tutor",
+  "annotator",
+];
+
+/**
+ * Patrón "AI" + palabras + rol técnico: el título tiene "ai" o "ml" como palabra suelta y además
+ * una palabra de rol técnico ("AI Software Engineer", "ML Infrastructure Engineer", "AI Solutions
+ * Architect"). "specialist" no cuenta ("AI Sales Specialist" no es ingeniería) y las palabras de
+ * AI_PATTERN_EXCLUDED_WORDS (sales, support, ux...) anulan el patrón. "AI Trainer" o "AI Data
+ * Annotator" no llevan rol técnico; "HTML Developer" no entra porque "html" es otra palabra.
+ * Falso positivo aceptado: "Sales Engineer AI platform" ya no entra por "sales"; otros similares
+ * pueden colarse (la pista solo ordena la asignación; decide el evaluador).
+ * Recibe el título ya pasado por `normalizeTitleText`.
+ */
+function matchesAiWithTechRole(padded: string): boolean {
+  return (
+    (hasTerm(padded, "ai") || hasTerm(padded, "ml")) &&
+    AI_TECH_ROLE_WORDS.some((word) => hasTerm(padded, word)) &&
+    !AI_PATTERN_EXCLUDED_WORDS.some((word) => hasTerm(padded, word))
+  );
+}
+
 function normalizeTitleText(title: string): string {
   return ` ${foldText(title)
     .replace(/[^a-z0-9]+/g, " ")
@@ -360,24 +428,27 @@ export function inferRoleHints(input: {
 
   // 2. Título
   const title = normalizeTitleText(input.title);
-  let titleMatched = false;
+  const fromTitle = new Set<RoleKey>();
   for (const role of ROLE_KEYS) {
-    if (TITLE_TERMS[role].some((term) => hasTerm(title, term))) {
-      found.add(role);
-      titleMatched = true;
-    }
+    if (TITLE_TERMS[role].some((term) => hasTerm(title, term))) fromTitle.add(role);
   }
+  if (matchesAiWithTechRole(title)) fromTitle.add("ai_engineer");
   // La palabra genérica solo cuenta si el título no nombra ya otra especialidad
   // ("AI Developer" es ai_engineer, no un desarrollador de los tres roles).
   if (
-    !titleMatched &&
+    fromTitle.size === 0 &&
     GENERIC_DEV_TERMS.some((term) => hasTerm(title, term)) &&
     !NOT_DEV_TERMS.some((term) => hasTerm(title, term))
   ) {
-    for (const role of DEV) found.add(role);
+    for (const role of DEV) fromTitle.add(role);
   }
+  for (const role of fromTitle) found.add(role);
 
   const roles = ROLE_KEYS.filter((role) => found.has(role));
-  // Un aviso que "sirve para todo" no es una señal: vacío = no se sabe (ronda 38)
-  return roles.length > MAX_ROLE_HINTS ? [] : roles;
+  if (roles.length <= MAX_ROLE_HINTS) return roles;
+  // Pasarse de MAX_ROLE_HINTS es "sin señal"... salvo que el título solo ya dé entre 1 y MAX:
+  // el título es la señal fuerte y la categoría no la borra.
+  return fromTitle.size >= 1 && fromTitle.size <= MAX_ROLE_HINTS
+    ? ROLE_KEYS.filter((role) => fromTitle.has(role))
+    : [];
 }

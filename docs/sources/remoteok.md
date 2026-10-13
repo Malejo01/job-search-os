@@ -24,7 +24,7 @@ Adapter: `packages/adapters/src/sources/remoteok.ts`. Estado: **pool global (JS-
 | `tags` | `tags` y `categories` (en minúsculas) | |
 | aviso entero | `source.original` | JSON tal cual |
 
-Quedan `null`: contrato, seniority, idioma, candidatos.
+La seniority no viene en la API: sale del título con `inferSeniorityFromTitle` (`null` si el título no nombra un nivel). Quedan `null`: contrato, idioma, candidatos.
 
 ## Atribución exigida
 Texto del campo `legal` del primer objeto de la API, citado en `ops/rondas/37-38-39/informes/riesgos-fuentes.md` §2 (consultado el 2026-10-12):

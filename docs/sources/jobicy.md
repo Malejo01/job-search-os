@@ -22,7 +22,7 @@ Adapter: `packages/adapters/src/sources/jobicy.ts`. Estado: **pool global (JS-13
 | salario en otra moneda o sin moneda | solo `salaryNote` | D-017: no se supone la moneda |
 | `jobDescription` (HTML) | `jdText` | `htmlToText` |
 | `pubDate` | `postedAt` | ISO o `YYYY-MM-DD HH:MM:SS` (UTC); inválida → `null` y el aviso no pasa el filtro |
-| `jobIndustry` | `categories` | minúsculas con guiones |
+| `jobIndustry` | `categories` | minúsculas con guiones; los slugs reales se verifican con `pool:fetch jobicy --dry-run` (top 20 con conteo) |
 | `jobType` | `contractType` | varias → unidas con coma |
 | `jobLevel` | `seniority` | |
 | aviso entero | `source.original` | JSON tal cual |
