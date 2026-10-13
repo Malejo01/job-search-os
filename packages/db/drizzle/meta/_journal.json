@@ -141,6 +141,20 @@
       "when": 1791843145563,
       "tag": "0019_carreras_digitales",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791850475983,
+      "tag": "0020_target_roles",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1791850480612,
+      "tag": "0021_target_roles_backfill",
+      "breakpoints": true
     }
   ]
 }

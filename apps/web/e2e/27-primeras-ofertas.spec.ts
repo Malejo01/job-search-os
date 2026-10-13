@@ -7,6 +7,7 @@ import { deleteUserData } from "../../../packages/db/src/user-tables";
 import {
   E2E_USER_ID,
   assignSeededPoolJobs,
+  chooseRoles,
   deleteSeededPublicJobs,
   login,
   ownerDb,
@@ -127,10 +128,11 @@ test.describe("Flujo 27: primeras ofertas del pool, del puesto a /jobs", () => {
     await page.getByRole("button", { name: "Entrar" }).click();
     await page.waitForURL("**/onboarding**");
 
-    // El puesto es obligatorio y viene sin valor elegido
-    const role = page.getByLabel(/¿Qué puesto buscás\?/);
-    await expect(role).toHaveValue("");
-    await role.selectOption("qa");
+    // El puesto es obligatorio y viene sin nada marcado
+    const roles = page.locator('input[name="targetRoles"]');
+    await expect(roles.first()).not.toBeChecked();
+    await expect(page.locator('input[name="targetRoles"]:checked')).toHaveCount(0);
+    await chooseRoles(page, ["qa"]);
     await page.getByLabel(/País de residencia/).selectOption("BR");
     await page.getByLabel(/Inglés \(nivel CEFR\)/).selectOption("C1");
     await page.getByLabel(/Años de experiencia/).fill("6");
@@ -156,11 +158,16 @@ test.describe("Flujo 27: primeras ofertas del pool, del puesto a /jobs", () => {
     const { db, close } = ownerDb();
     try {
       const [user] = await db
-        .select({ id: s.users.id, targetRole: s.profiles.targetRole })
+        .select({
+          id: s.users.id,
+          targetRole: s.profiles.targetRole,
+          targetRoles: s.profiles.targetRoles,
+        })
         .from(s.users)
         .innerJoin(s.profiles, eq(s.profiles.userId, s.users.id))
         .where(eq(s.users.email, email));
       userId = user!.id;
+      expect(user!.targetRoles).toEqual(["qa"]);
       expect(user!.targetRole).toBe("qa");
     } finally {
       await close();
@@ -242,26 +249,29 @@ test.describe("Flujo 27: primeras ofertas del pool, del puesto a /jobs", () => {
     await expect(page.getByTestId("email-nudge")).toHaveCount(0);
   });
 
-  test("en Ajustes, «Tu puesto» cambia de QA a UX/UI y avisa que las ofertas se actualizan", async () => {
+  test("en Ajustes, «Tus puestos» cambia de QA a UX/UI y avisa que las ofertas se actualizan", async () => {
     await page.goto("/settings#puesto");
     const section = page.locator("#puesto");
-    const select = section.getByLabel(/¿Qué puesto buscás\?/);
-    await expect(select).toHaveValue("qa");
+    await expect(section.getByTestId("current-roles")).toContainText("Tus puestos actuales: QA");
+    const qa = section.locator('input[name="targetRoles"][value="qa"]');
+    await expect(qa).toBeChecked();
 
-    await select.selectOption("ux_ui");
-    await section.getByRole("button", { name: "Guardar puesto" }).click();
+    await qa.uncheck();
+    await chooseRoles(section, ["ux_ui"]);
+    await section.getByRole("button", { name: "Guardar puestos" }).click();
     await page.waitForURL("**/settings?puesto=guardado**");
     await expect(page.locator("#puesto").getByRole("status")).toContainText(
-      "Guardado. Tus ofertas se actualizan con el puesto nuevo.",
+      "Guardado. Tus ofertas se actualizan con tus puestos.",
     );
-    await expect(page.locator("#puesto").getByLabel(/¿Qué puesto buscás\?/)).toHaveValue("ux_ui");
+    await expect(page.locator('#puesto input[name="targetRoles"][value="ux_ui"]')).toBeChecked();
 
     const { db, close } = ownerDb();
     try {
       const [row] = await db
-        .select({ targetRole: s.profiles.targetRole })
+        .select({ targetRole: s.profiles.targetRole, targetRoles: s.profiles.targetRoles })
         .from(s.profiles)
         .where(eq(s.profiles.userId, userId!));
+      expect(row!.targetRoles).toEqual(["ux_ui"]);
       expect(row!.targetRole).toBe("ux_ui");
     } finally {
       await close();
@@ -271,14 +281,14 @@ test.describe("Flujo 27: primeras ofertas del pool, del puesto a /jobs", () => {
 
 test.describe("Flujo 27b: aviso «Elegí tu puesto» en /jobs", () => {
   test("una cuenta sin puesto ve el aviso, lo descarta y no vuelve", async ({ page }) => {
-    // El usuario e2e principal no tiene puesto elegido (target_role null)
+    // El usuario e2e principal no tiene puestos elegidos (target_roles vacío)
     const { db, close } = ownerDb();
     try {
       const [row] = await db
-        .select({ targetRole: s.profiles.targetRole })
+        .select({ targetRoles: s.profiles.targetRoles })
         .from(s.profiles)
         .where(eq(s.profiles.userId, E2E_USER_ID));
-      expect(row?.targetRole ?? null).toBeNull();
+      expect(row?.targetRoles ?? []).toEqual([]);
     } finally {
       await close();
     }

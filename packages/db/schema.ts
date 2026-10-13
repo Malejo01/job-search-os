@@ -76,7 +76,9 @@ export const profiles = pgTable("profiles", {
   inboundAddress: text("inbound_address").notNull().unique(), // u_<id>@ingest.<dominio>
   timezone: text("timezone").default("America/Argentina/Salta"),
   profileSummary: text("profile_summary"),    // texto que entra al prompt (generado desde skill_levels + proyectos)
-  targetRole: text("target_role"),            // rol objetivo: se valida en código contra ROLE_KEYS (sin enum en la base)
+  targetRole: text("target_role"),            // puesto principal (el primero de target_roles); se escribe siempre junto con la lista
+  targetRoles: text("target_roles").array().notNull().default(sql`'{}'::text[]`), // puestos elegidos (ADR-016): se validan en código contra ROLE_KEYS
+  maxTargetRoles: integer("max_target_roles"), // tope de puestos del perfil; null = rige TARGET_ROLES_FREE_LIMIT
   poolDailyEvalLimit: integer("pool_daily_eval_limit"), // tope diario de evaluaciones del pool; null = rige el default de la variable
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
@@ -150,6 +152,8 @@ export const jobs = pgTable("jobs", {
   candidatesCount: integer("candidates_count"),
   // Oferta del pool de la que salió esta copia por usuario (ADR-014); null = ingesta directa
   publicJobId: uuid("public_job_id").references((): AnyPgColumn => publicJobs.id, { onDelete: "set null" }),
+  // Puesto elegido por el que se asignó la oferta del pool (ronda 45); null = sin señal o ingesta directa
+  matchedRole: text("matched_role"),
   badges: text("badges").array(),                       // "En busca de personal", "Solicitud sencilla", "3 de 4 aptitudes"
   skillsMatchRatio: real("skills_match_ratio"),         // 0..1 desde badge "X de Y aptitudes"
   jdText: text("jd_text"),                              // null → pendiente_jd

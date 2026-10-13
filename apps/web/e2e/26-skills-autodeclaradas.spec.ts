@@ -6,6 +6,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { deleteUserData } from "../../../packages/db/src/user-tables";
 import {
   E2E_USER_ID,
+  chooseRoles,
   ownerDb,
   seedMarketSnapshot,
   seedOffersWithSkills,
@@ -121,7 +122,7 @@ test.describe("Flujo 26: skills autodeclaradas, del onboarding al mercado", () =
     await seedMarketSnapshot(userId, OFFERS);
 
     // Ronda 39: el puesto se elige en el paso 1 y Mis skills lo trae elegido
-    await page.getByLabel(/¿Qué puesto buscás\?/).selectOption("fullstack");
+    await chooseRoles(page, ["fullstack"]);
     await page.getByLabel(/País de residencia/).selectOption("BR");
     await page.getByLabel(/Inglés \(nivel CEFR\)/).selectOption("B2");
     await page.getByLabel(/Años de experiencia/).fill("3");

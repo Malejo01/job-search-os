@@ -6,3 +6,4 @@ export * from "./candidates";
 export * from "./extract-contract";
 export * from "./self-assessment";
 export * from "./recompute";
+export * from "./target-roles";

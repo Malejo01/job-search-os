@@ -4,11 +4,14 @@ import {
   getMarket,
   getRoleMarketView,
   parseRange,
+  pickRole,
   type MarketView,
 } from "@/lib/market";
+import { getTargetRoles } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
 import { MissingDataNotice, NoLevelsNotice } from "./data-state-notice";
 import { RoleMarket } from "./role-market";
+import { RoleTabs } from "./role-tabs";
 import { SkillCandidates } from "./skill-candidates";
 import { SkillRows } from "./skill-rows";
 
@@ -29,11 +32,14 @@ export default async function MarketPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const userId = await requireUserId();
-  const range = parseRange(await searchParams);
+  const params = await searchParams;
+  const range = parseRange(params);
+  const roles = await getTargetRoles(userId);
+  const role = pickRole(roles, params.rol);
   const [view, state, roleMarket] = await Promise.all([
     getMarket(userId, range),
     getDataState(userId),
-    getRoleMarketView(userId),
+    getRoleMarketView(userId, role),
   ]);
   const { agenda } = view;
 
@@ -47,9 +53,16 @@ export default async function MarketPage({
         </p>
       </div>
 
+      <RoleTabs
+        basePath="/market"
+        roles={roles}
+        active={role}
+        keep={{ desde: range.from, hasta: range.to }}
+      />
       <RoleMarket view={roleMarket} />
 
       <form method="get" className="flex flex-col gap-2 text-xs text-zinc-600">
+        {role ? <input type="hidden" name="rol" value={role} /> : null}
         <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-end">
           <label className="flex flex-col gap-1">
             Desde (semana)

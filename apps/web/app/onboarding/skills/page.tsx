@@ -1,6 +1,6 @@
 import { DEFAULT_CRITERIA_RULES, defaultRole } from "@job-search-os/pipeline";
 import { redirect } from "next/navigation";
-import { getTargetRole, isOnboardingComplete } from "@/lib/onboarding";
+import { getTargetRoles, isOnboardingComplete } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
 import { ROLE_SKILLS, getSkillsPageData } from "@/lib/skill-levels";
 import { SkillsForm, parseRoleParam } from "../../(app)/settings/skills/skills-form";
@@ -19,16 +19,16 @@ export default async function OnboardingSkillsPage({
 }) {
   const userId = await requireUserId();
   if (!(await isOnboardingComplete(userId))) redirect("/onboarding");
-  const [data, targetRole, { rol, error }] = await Promise.all([
+  const [data, targetRoles, { rol, error }] = await Promise.all([
     getSkillsPageData(userId),
-    getTargetRole(userId),
+    getTargetRoles(userId),
     searchParams,
   ]);
   const chosen = parseRoleParam(rol);
-  // Primero lo que eligió en esta pantalla, después el puesto del paso 1, después el deducido
+  // Primero lo que miró en esta pantalla, después el puesto principal del paso 1, después el deducido
   const role =
     chosen ??
-    targetRole ??
+    targetRoles[0] ??
     defaultRole({
       headline: data.headline,
       allowedDisciplines: data.allowedDisciplines,
@@ -52,7 +52,8 @@ export default async function OnboardingSkillsPage({
         </p>
       ) : null}
       <SkillsForm
-        action={saveOnboardingSkillsAction.bind(null, chosen)}
+        action={saveOnboardingSkillsAction}
+        selectedRoles={targetRoles}
         basePath="/onboarding/skills"
         roleMap={ROLE_SKILLS}
         role={role}

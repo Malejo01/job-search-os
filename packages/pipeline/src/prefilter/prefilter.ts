@@ -44,11 +44,13 @@ export type PrefilterOptions = {
    */
   remoteOnly?: boolean;
   /**
-   * Puesto objetivo de la persona (ronda 40). Las palabras de `other_discipline_keywords` que son
-   * el oficio propio de ese puesto (`ROLE_DOMAIN_KEYWORDS`) no descartan ni marcan flag. Ausente o
-   * `null` = como siempre (evals/ llama sin la opción).
+   * Puestos objetivo de la persona (ronda 40, varios desde la 45). Las palabras de
+   * `other_discipline_keywords` que son el oficio propio de alguno de esos puestos
+   * (`ROLE_DOMAIN_KEYWORDS`) no descartan ni marcan flag, y las frases propias del cargo
+   * (`ROLE_OWN_TITLE_PHRASES`) se liberan de la blocklist: vale la unión de los puestos. Ausente,
+   * `null` o vacío = como siempre (evals/ llama sin la opción).
    */
-  targetRole?: RoleKey | null;
+  targetRoles?: readonly RoleKey[] | null;
 };
 
 /**
@@ -92,9 +94,13 @@ export const ROLE_OWN_TITLE_PHRASES: Partial<Record<RoleKey, readonly string[]>>
   ciberseguridad: ["security manager"],
 };
 
-/** Título doblado sin las frases propias del puesto (con límite de palabra), cada una por un espacio. */
-function withoutOwnPhrases(foldedTitle: string, role: RoleKey): string {
-  const phrases = [...(ROLE_OWN_TITLE_PHRASES[role] ?? []), ...(ROLE_DOMAIN_KEYWORDS[role] ?? [])]
+/** Título doblado sin las frases propias de los puestos (con límite de palabra), cada una por un espacio. */
+function withoutOwnPhrases(foldedTitle: string, roles: readonly RoleKey[]): string {
+  const phrases = roles
+    .flatMap((role) => [
+      ...(ROLE_OWN_TITLE_PHRASES[role] ?? []),
+      ...(ROLE_DOMAIN_KEYWORDS[role] ?? []),
+    ])
     .map((p) => foldText(p).trim())
     .filter(Boolean)
     .sort((a, b) => b.length - a.length);
@@ -246,6 +252,7 @@ export function prefilter(
   const userCountry =
     options.userCountry === null ? null : (options.userCountry ?? "AR").toUpperCase();
   const manyFrom = options.manyCandidatesFrom ?? 100;
+  const targetRoles = options.targetRoles ?? [];
   const title = foldText(input.title);
   const location = foldText(input.locationRaw ?? "");
   const flags: string[] = [];
@@ -304,9 +311,7 @@ export function prefilter(
     }
   }
   const ownTrade = new Set(
-    (options.targetRole ? (ROLE_DOMAIN_KEYWORDS[options.targetRole] ?? []) : []).map((k) =>
-      foldText(k).trim(),
-    ),
+    targetRoles.flatMap((r) => ROLE_DOMAIN_KEYWORDS[r] ?? []).map((k) => foldText(k).trim()),
   );
   const isOwnTrade = (k: string) => ownTrade.has(foldText(k).trim());
   const domain = containsKeyword(
@@ -347,7 +352,7 @@ export function prefilter(
   const blocked = allowed
     ? null
     : containsKeyword(
-        options.targetRole ? withoutOwnPhrases(title, options.targetRole) : title,
+        targetRoles.length ? withoutOwnPhrases(title, targetRoles) : title,
         rules.title_blocklist,
       );
   if (blocked) {

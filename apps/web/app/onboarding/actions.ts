@@ -15,19 +15,24 @@ import { parseOnboarding, parsePoolLimits } from "@job-search-os/pipeline";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { upgradeLegacyInboundAddress } from "@/lib/inbound-address";
-import { completeOnboarding, isOnboardingComplete } from "@/lib/onboarding";
+import { completeOnboarding, getTargetRolesLimit, isOnboardingComplete } from "@/lib/onboarding";
 import { reassignForRoleChange } from "@/lib/pool-reassign";
 import { requireUserId } from "@/lib/session";
 
 /**
  * Guarda el onboarding (B2). Valida con Zod (parseOnboarding); si falla vuelve al formulario con
- * el nombre del campo, nunca con el valor. El usuario sale de la sesión, no del formulario.
+ * el nombre del campo, nunca con el valor. El usuario sale de la sesión, no del formulario. Los
+ * puestos (1 hasta el tope del plan) se validan en el servidor; `target_role` queda como el primero.
  */
 export async function saveOnboardingAction(formData: FormData): Promise<void> {
   const userId = await requireUserId();
-  const raw: Record<string, string> = {};
+  const raw: Record<string, string | string[]> = {};
   for (const [k, v] of formData.entries()) if (typeof v === "string") raw[k] = v;
-  const parsed = parseOnboarding(raw);
+  // Los puestos llegan como una casilla por puesto; el tope sale del perfil (o del plan gratis)
+  raw.targetRoles = formData
+    .getAll("targetRoles")
+    .filter((v): v is string => typeof v === "string");
+  const parsed = parseOnboarding(raw, await getTargetRolesLimit(userId));
   if (!parsed.ok) redirect(`/onboarding?error=${encodeURIComponent(parsed.field)}`);
   // Solo la primera vez dispara la ingesta: un POST repetido a la acción no la repite
   const wasComplete = await isOnboardingComplete(userId);

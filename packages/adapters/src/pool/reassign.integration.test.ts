@@ -136,6 +136,12 @@ async function queuedOf(userId: string) {
   return conn.db.select().from(s.jobQueue).where(eq(s.jobQueue.userId, userId));
 }
 
+/** `target_role` (principal) y `target_roles` siempre juntos, como los escribe la app. */
+const rolesOf = (...targetRoles: string[]) => ({
+  targetRole: targetRoles[0] ?? null,
+  targetRoles,
+});
+
 async function setProfile(userId: string, patch: Partial<typeof s.profiles.$inferInsert>) {
   await conn.db.update(s.profiles).set(patch).where(eq(s.profiles.userId, userId));
 }
@@ -195,8 +201,8 @@ beforeEach(async () => {
     await conn.db.delete(s.skillLevels).where(eq(s.skillLevels.userId, userId));
   }
   await conn.db.delete(s.publicJobs).where(like(s.publicJobs.externalId, `${PREFIX}%`));
-  await setProfile(USER_A, { targetRole: "qa", poolDailyEvalLimit: null });
-  await setProfile(USER_B, { targetRole: "qa" });
+  await setProfile(USER_A, { ...rolesOf("qa"), poolDailyEvalLimit: null });
+  await setProfile(USER_B, rolesOf("qa"));
 });
 
 describe("assignPoolToUser · replaceUntouched", () => {
@@ -391,7 +397,7 @@ describe("assignPoolToUser · cambio de puesto", () => {
     const [evaluatedJob] = await conn.db.select().from(s.jobs).where(eq(s.jobs.userId, USER_A));
     await evaluate(USER_A, evaluatedJob!.id);
 
-    await setProfile(USER_A, { targetRole: "ux_ui" });
+    await setProfile(USER_A, rolesOf("ux_ui"));
     const r = await run(USER_A, { limit: 20, enqueueTop: 5, deductLast24h: true });
     expect(r).toMatchObject({ replaced: 2, assigned: 4 });
 
@@ -401,6 +407,33 @@ describe("assignPoolToUser · cambio de puesto", () => {
     expect(ids).toHaveLength(5);
     // El tope de encolado descuenta lo que había en la cola de 24 h (nada) y respeta enqueueTop
     expect(r.enqueued).toBeLessThanOrEqual(5);
+  });
+
+  it("de {QA} a {QA, UX} (ronda 45): se reasigna con los dos puestos y matched_role correcto", async () => {
+    const qa = [await pool(), await pool(), await pool()];
+    const ux = [] as string[];
+    for (let i = 0; i < 4; i++) {
+      ux.push(
+        await pool({ title: "UX Designer", titleNormalized: "ux designer", roleHints: ["ux_ui"] }),
+      );
+    }
+    await run(USER_A, { replaceUntouched: false });
+    expect(await jobIdsOf(USER_A)).toHaveLength(3);
+    const [evaluatedJob] = await conn.db.select().from(s.jobs).where(eq(s.jobs.userId, USER_A));
+    await evaluate(USER_A, evaluatedJob!.id);
+
+    await setProfile(USER_A, rolesOf("qa", "ux_ui"));
+    const r = await run(USER_A, { limit: 20, enqueueTop: 5, deductLast24h: true });
+    expect(r).toMatchObject({ replaced: 2, assigned: 6 });
+
+    const ids = await publicIdsOf(USER_A);
+    for (const id of [...qa, ...ux]) expect(ids).toContain(id);
+    const rows = await conn.db.select().from(s.jobs).where(eq(s.jobs.userId, USER_A));
+    const roleOf = new Map(rows.map((j) => [j.publicJobId, j.matchedRole]));
+    for (const id of ux) expect(roleOf.get(id)).toBe("ux_ui");
+    // Las QA reasignadas se guardan con su puesto; la evaluada conserva el que tenía (null)
+    const reassignedQa = qa.filter((id) => id !== evaluatedJob!.publicJobId);
+    for (const id of reassignedQa) expect(roleOf.get(id)).toBe("qa");
   });
 });
 

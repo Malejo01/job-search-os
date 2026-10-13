@@ -8,7 +8,7 @@ import postgres from "postgres";
 import { execSync } from "node:child_process";
 import { resolve } from "node:path";
 import { and, eq, inArray, sql } from "drizzle-orm";
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 // Import relativo directo, como global-setup: test-guard.ts no importa nada
 import { assertLocalTestDatabase } from "../../../packages/db/src/test-guard";
 
@@ -39,6 +39,14 @@ export async function login(page: Page): Promise<void> {
   await page.getByLabel("Contraseña").fill(E2E_PASSWORD);
   await page.getByRole("button", { name: "Entrar" }).click();
   await page.waitForURL("**/jobs**");
+}
+
+/**
+ * Paso 1 y Ajustes (ronda 45): marca los puestos por su clave (`value` de la casilla), sin depender
+ * de la etiqueta que se muestra. Cada casilla está dentro del `fieldset` de su grupo.
+ */
+export async function chooseRoles(scope: Page | Locator, keys: string[]): Promise<void> {
+  for (const key of keys) await scope.locator(`input[name="targetRoles"][value="${key}"]`).check();
 }
 
 /** Inserta una oferta del usuario seed con estado y JD dados; devuelve el id. */
@@ -986,9 +994,9 @@ export async function seedPublicJobs(
 /**
  * Hace lo que la asignación del pool a una persona (ronda 38) para las filas sembradas con `tag`:
  * crea su `jobs` + `job_sources` con `public_job_id` y deja un mensaje de evaluación en la cola.
- * Filtra por el rol guardado en su perfil (`target_role`): con rol, solo los avisos cuyo
- * `role_hints` lo incluye; sin rol, todos. Con `ON CONFLICT DO NOTHING` y sin repetir cola ni
- * fuentes, sirve igual si la asignación real ya corrió. Devuelve los ids de `jobs` que creó.
+ * Filtra por los puestos de su perfil (`target_roles`, ronda 45): con puestos, solo los avisos cuyo
+ * `role_hints` comparte alguno; sin puestos, todos. Con `ON CONFLICT DO NOTHING` y sin repetir cola
+ * ni fuentes, sirve igual si la asignación real ya corrió. Devuelve los ids de `jobs` que creó.
  */
 export async function assignSeededPoolJobs(
   userId: string,
@@ -997,17 +1005,17 @@ export async function assignSeededPoolJobs(
   const { db, close } = ownerDb();
   try {
     const [profile] = await db
-      .select({ targetRole: s.profiles.targetRole })
+      .select({ targetRoles: s.profiles.targetRoles })
       .from(s.profiles)
       .where(eq(s.profiles.userId, userId));
-    const role = profile?.targetRole ?? null;
+    const roles = profile?.targetRoles ?? [];
     const pool = await db
       .select()
       .from(s.publicJobs)
       .where(sql`${s.publicJobs.externalId} like ${`${poolExternalPrefix(tag)}%`}`);
     const created: string[] = [];
     for (const p of pool) {
-      if (role !== null && !(p.roleHints ?? []).includes(role)) continue;
+      if (roles.length > 0 && !(p.roleHints ?? []).some((h) => roles.includes(h))) continue;
       const [job] = await db
         .insert(s.jobs)
         .values({

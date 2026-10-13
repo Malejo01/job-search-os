@@ -44,7 +44,7 @@ describe("isValidCountry", () => {
 
 describe("parseOnboarding", () => {
   const form = {
-    targetRole: "qa",
+    targetRoles: ["qa"] as string[] | string,
     country: "UY",
     countryOther: "",
     city: " Montevideo ",
@@ -64,7 +64,7 @@ describe("parseOnboarding", () => {
     expect(r).toEqual({
       ok: true,
       value: {
-        targetRole: "qa",
+        targetRoles: ["qa"],
         locationCountry: "UY",
         locationCity: "Montevideo",
         remoteOnly: true,
@@ -77,24 +77,40 @@ describe("parseOnboarding", () => {
       },
     });
   });
-  it("targetRole: cada clave de ROLE_KEYS vale y 'otro' guarda null", () => {
+  it("targetRoles: cada clave de ROLE_KEYS vale; también como string suelto", () => {
     for (const role of ROLE_KEYS) {
-      const r = parseOnboarding({ ...form, targetRole: role });
-      expect(r.ok && r.value.targetRole).toBe(role);
+      const r = parseOnboarding({ ...form, targetRoles: [role] });
+      expect(r.ok && r.value.targetRoles).toEqual([role]);
     }
-    const otro = parseOnboarding({ ...form, targetRole: "otro" });
-    expect(otro.ok && otro.value.targetRole).toBeNull();
-    const conEspacios = parseOnboarding({ ...form, targetRole: " fullstack " });
-    expect(conEspacios.ok && conEspacios.value.targetRole).toBe("fullstack");
+    const suelto = parseOnboarding({ ...form, targetRoles: "fullstack" });
+    expect(suelto.ok && suelto.value.targetRoles).toEqual(["fullstack"]);
   });
-  it("targetRole: ausente, vacío o desconocido reporta el campo", () => {
-    const { targetRole: _omit, ...sinCampo } = form;
+  it("targetRoles: varios hasta el tope, en el orden recibido", () => {
+    const dos = parseOnboarding({ ...form, targetRoles: ["ux_ui", "qa"] });
+    expect(dos.ok && dos.value.targetRoles).toEqual(["ux_ui", "qa"]);
+    expect(parseOnboarding({ ...form, targetRoles: ["ux_ui", "qa", "backend"] })).toEqual({
+      ok: false,
+      field: "targetRoles",
+    });
+    const tres = parseOnboarding({ ...form, targetRoles: ["ux_ui", "qa", "backend"] }, 3);
+    expect(tres.ok && tres.value.targetRoles).toHaveLength(3);
+  });
+  it("targetRoles: ausente, vacío, repetido o desconocido reporta el campo", () => {
+    const { targetRoles: _omit, ...sinCampo } = form;
     void _omit;
-    expect(parseOnboarding(sinCampo)).toEqual({ ok: false, field: "targetRole" });
-    for (const v of ["", "OTRO", "Frontend", "devops", "__proto__"]) {
-      expect(parseOnboarding({ ...form, targetRole: v })).toEqual({
+    expect(parseOnboarding(sinCampo)).toEqual({ ok: false, field: "targetRoles" });
+    expect(parseOnboarding({ ...form, targetRoles: [] })).toEqual({
+      ok: false,
+      field: "targetRoles",
+    });
+    expect(parseOnboarding({ ...form, targetRoles: ["qa", "qa"] })).toEqual({
+      ok: false,
+      field: "targetRoles",
+    });
+    for (const v of ["", "otro", "OTRO", "Frontend", "devops", "__proto__", " fullstack "]) {
+      expect(parseOnboarding({ ...form, targetRoles: [v] })).toEqual({
         ok: false,
-        field: "targetRole",
+        field: "targetRoles",
       });
     }
   });

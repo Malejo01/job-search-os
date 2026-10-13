@@ -82,6 +82,7 @@ beforeAll(async () => {
         locationCountry: "AR",
         remoteOnly: true,
         targetRole: "qa",
+        targetRoles: ["qa"],
         inboundAddress: `u_${tag}@ingest.test`,
       })
       .onConflictDoNothing();
@@ -105,6 +106,7 @@ async function addBadUser() {
       displayName: "Test",
       locationCountry: "AR",
       targetRole: "qa",
+      targetRoles: ["qa"],
       inboundAddress: "u_bad@ingest.test",
     })
     .onConflictDoNothing();

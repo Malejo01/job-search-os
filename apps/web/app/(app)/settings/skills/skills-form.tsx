@@ -31,6 +31,7 @@ export function SkillsForm({
   skip,
   allowRemove = true,
   invalidSlug,
+  selectedRoles = [],
 }: {
   action: (formData: FormData) => Promise<void>;
   /** Ruta de la pantalla: los links del selector de rol son `${basePath}?rol=<clave>`. */
@@ -46,6 +47,8 @@ export function SkillsForm({
   allowRemove?: boolean;
   /** Slug de la fila a la que apunta `?error=level:<slug>`, si lo hay. */
   invalidSlug?: string;
+  /** Puestos que eligió la persona: van primero entre los pills (solo sugieren skills). */
+  selectedRoles?: readonly RoleKey[];
 }) {
   const byslug = new Map(taxonomy.map((t) => [t.slug, t]));
   const suggested = role ? suggestedSkills(role, roleMap).filter((slug) => byslug.has(slug)) : [];
@@ -53,39 +56,49 @@ export function SkillsForm({
   // Lo que ya declaró se ve siempre, aunque no sea del rol
   const own = taxonomy.filter((t) => t.slug in levels && !suggestedSet.has(t.slug));
   const shown = new Set([...suggested, ...own.map((t) => t.slug)]);
+  // Primero los puestos elegidos y después el resto, por grupo
+  const chosen = selectedRoles.filter((key) => key in roleMap);
+  const pillGroups = [
+    ...(chosen.length > 0 ? [{ label: "Tus puestos", roles: chosen }] : []),
+    ...ROLE_GROUPS.map((group) => ({
+      label: group.label,
+      roles: group.roles.filter((key) => key in roleMap && !chosen.includes(key)),
+    })).filter((group) => group.roles.length > 0),
+  ];
   const options = taxonomy
     .filter((t) => !shown.has(t.slug))
     .map((t) => ({ slug: t.slug, name: t.name, aliases: t.aliases }));
 
   return (
     <div className="flex flex-col gap-5">
-      <nav aria-label="Rol objetivo" className="flex flex-col gap-2">
-        <h2 className="text-base font-medium">Qué rol buscás</h2>
-        {ROLE_GROUPS.map((group) => (
+      <nav aria-label="Puesto de las sugerencias" className="flex flex-col gap-2">
+        <h2 className="text-base font-medium">Skills sugeridas de</h2>
+        {pillGroups.map((group) => (
           <div key={group.label} className="flex flex-col gap-1">
             <h3 className="text-xs font-medium text-zinc-600">{group.label}</h3>
             <ul className="flex flex-wrap gap-2">
-              {group.roles
-                .filter((key) => key in roleMap)
-                .map((key) => (
-                  <li key={key}>
-                    <Link
-                      href={`${basePath}?rol=${key}`}
-                      aria-current={key === role ? "true" : undefined}
-                      className={`inline-block rounded-md border px-3 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900 ${
-                        key === role
-                          ? "border-zinc-900 bg-zinc-900 text-white"
-                          : "border-zinc-300 text-zinc-900"
-                      }`}
-                    >
-                      {roleMap[key].label}
-                    </Link>
-                  </li>
-                ))}
+              {group.roles.map((key) => (
+                <li key={key}>
+                  <Link
+                    href={`${basePath}?rol=${key}`}
+                    aria-current={key === role ? "true" : undefined}
+                    className={`inline-block rounded-md border px-3 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900 ${
+                      key === role
+                        ? "border-zinc-900 bg-zinc-900 text-white"
+                        : "border-zinc-300 text-zinc-900"
+                    }`}
+                  >
+                    {roleMap[key].label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
         ))}
-        <p className="text-xs text-zinc-600">Cambiar de rol descarta lo que no guardaste.</p>
+        <p className="text-xs text-zinc-600">
+          Solo cambia las skills que ves; tus puestos se cambian en Ajustes. Cambiar de puesto acá
+          descarta lo que no guardaste.
+        </p>
       </nav>
 
       {role === null && own.length === 0 ? (

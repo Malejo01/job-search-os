@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import Link from "next/link";
-import { getTargetRole } from "@/lib/onboarding";
+import { getTargetRoles } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
 
 /** Cookie de «Ahora no»: es solo UX (httpOnly, un año), igual que la del aviso de email. */
@@ -26,14 +26,14 @@ async function dismissRoleNudgeAction(): Promise<void> {
 }
 
 /**
- * Aviso descartable de /jobs (ronda 41): si la persona no tiene puesto elegido («Otro o varios» es
- * válido, por eso se puede descartar), le ofrece elegirlo en Ajustes. Server Component: lee la
+ * Aviso descartable de /jobs (ronda 41): si la persona no tiene puestos elegidos (`target_roles`
+ * vacío, ronda 45; las cuentas anteriores pueden no tenerlos), le ofrece elegirlos en Ajustes. Server Component: lee la
  * cookie y la base (con RLS) en cada request.
  */
 export async function RoleNudge({ userId }: { userId: string }) {
   const jar = await cookies();
   if (jar.get(ROLE_NUDGE_COOKIE)?.value === userId) return null;
-  if ((await getTargetRole(userId)) !== null) return null;
+  if ((await getTargetRoles(userId)).length > 0) return null;
   return (
     <div
       role="note"

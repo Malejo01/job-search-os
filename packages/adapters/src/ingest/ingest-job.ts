@@ -60,10 +60,10 @@ export type IngestDeps = {
    */
   remoteOnly?: boolean;
   /**
-   * Puesto del perfil (profiles.target_role) para la excepción de oficio del prefiltro (ADR-015).
-   * `null` = sin puesto; si no viene, se lee del perfil junto con el país.
+   * Puestos del perfil (profiles.target_roles) para la excepción de oficio del prefiltro
+   * (ADR-015, ADR-016). `[]` o `null` = sin puesto; si no viene, se lee del perfil junto con el país.
    */
-  targetRole?: RoleKey | null;
+  targetRoles?: readonly RoleKey[] | null;
 };
 
 export type IngestOutcome =
@@ -242,20 +242,20 @@ export async function upsertCompany(db: Db, companyRaw: string): Promise<string 
 }
 
 /**
- * País, preferencia remota y puesto del perfil para el prefiltro, en una sola consulta.
- * Puesto: un valor que no es de `ROLE_KEYS` cuenta como sin puesto (`null`).
+ * País, preferencia remota y puestos del perfil para el prefiltro, en una sola consulta.
+ * Puestos: solo cuentan los valores de `ROLE_KEYS` (el resto se descarta); sin ninguno, `[]`.
  * País: `'XX'` (registro), vacío o sin perfil cuentan como desconocido (`null`).
  * Sin fila de perfil, `remoteOnly` es `true` (lo conservador, como antes).
  */
 export async function loadProfilePrefilterPrefs(
   db: Db,
   userId: string,
-): Promise<{ country: string | null; remoteOnly: boolean; targetRole: RoleKey | null }> {
+): Promise<{ country: string | null; remoteOnly: boolean; targetRoles: RoleKey[] }> {
   const [row] = await db
     .select({
       country: s.profiles.locationCountry,
       remoteOnly: s.profiles.remoteOnly,
-      targetRole: s.profiles.targetRole,
+      targetRoles: s.profiles.targetRoles,
     })
     .from(s.profiles)
     .where(eq(s.profiles.userId, userId))
@@ -264,8 +264,15 @@ export async function loadProfilePrefilterPrefs(
   return {
     country: isValidCountry(country) ? country : null,
     remoteOnly: row?.remoteOnly ?? true,
-    targetRole: isRoleKey(row?.targetRole) ? row.targetRole : null,
+    targetRoles: validRoleKeys(row?.targetRoles),
   };
+}
+
+/** Las claves válidas de `ROLE_KEYS`, sin repetir y en el orden dado; todo lo demás se descarta. */
+export function validRoleKeys(values: readonly unknown[] | null | undefined): RoleKey[] {
+  const out: RoleKey[] = [];
+  for (const v of values ?? []) if (isRoleKey(v) && !out.includes(v)) out.push(v);
+  return out;
 }
 
 /** País del perfil para el prefiltro; `'XX'` (registro), vacío o sin perfil cuentan como desconocido (`null`). */
@@ -407,12 +414,12 @@ export async function ingestRawJob(raw: RawJob, deps: IngestDeps): Promise<Inges
   const companyId = await upsertCompany(db, raw.companyRaw);
   let userCountry = deps.userCountry;
   let remoteOnly = deps.remoteOnly;
-  let targetRole = deps.targetRole;
-  if (userCountry === undefined || remoteOnly === undefined || targetRole === undefined) {
+  let targetRoles = deps.targetRoles;
+  if (userCountry === undefined || remoteOnly === undefined || targetRoles === undefined) {
     const prefs = await loadProfilePrefilterPrefs(db, userId);
     if (userCountry === undefined) userCountry = prefs.country;
     if (remoteOnly === undefined) remoteOnly = prefs.remoteOnly;
-    if (targetRole === undefined) targetRole = prefs.targetRole;
+    if (targetRoles === undefined) targetRoles = prefs.targetRoles;
   }
   const pre = prefilter(
     {
@@ -425,7 +432,7 @@ export async function ingestRawJob(raw: RawJob, deps: IngestDeps): Promise<Inges
       countriesAllowed: raw.countriesAllowed,
     },
     rules,
-    { userCountry, remoteOnly, targetRole },
+    { userCountry, remoteOnly, targetRoles },
   );
 
   let status: JobStatus = transition("nueva", pre.pass ? "prefilter_pass" : "prefilter_discard");
@@ -532,7 +539,7 @@ export async function ingestBatch(raws: RawJob[], deps: IngestDeps): Promise<Ing
   if (
     deps.userCountry === undefined ||
     deps.remoteOnly === undefined ||
-    deps.targetRole === undefined
+    deps.targetRoles === undefined
   ) {
     try {
       const prefs = await loadProfilePrefilterPrefs(deps.db, deps.userId);
@@ -540,7 +547,7 @@ export async function ingestBatch(raws: RawJob[], deps: IngestDeps): Promise<Ing
         ...deps,
         userCountry: deps.userCountry === undefined ? prefs.country : deps.userCountry,
         remoteOnly: deps.remoteOnly === undefined ? prefs.remoteOnly : deps.remoteOnly,
-        targetRole: deps.targetRole === undefined ? prefs.targetRole : deps.targetRole,
+        targetRoles: deps.targetRoles === undefined ? prefs.targetRoles : deps.targetRoles,
       };
     } catch (e) {
       // Si falla la lectura, cada job la reintenta por su cuenta y registra su propio error

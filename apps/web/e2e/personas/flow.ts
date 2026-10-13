@@ -6,10 +6,12 @@ import { createHash, randomBytes } from "node:crypto";
 import { resolve } from "node:path";
 // Import relativo directo (no el índice de @job-search-os/db, que arrastra import.meta)
 import { deleteUserData } from "../../../../packages/db/src/user-tables";
+import roleSkills from "../../../../packages/db/seeds/role_skills.json";
 import {
   E2E_USER_ID,
   assignSeededPoolJobs,
   deleteSeededPublicJobs,
+  chooseRoles,
   ownerDb,
   runDemoWorker,
   seedPublicJobs,
@@ -112,14 +114,12 @@ export async function register(page: Page, run: Run): Promise<void> {
 /** Paso 1: el puesto está en su grupo del selector, se elige y se completa el perfil. */
 export async function completeStep1(page: Page, run: Run): Promise<void> {
   const { persona } = run;
-  const role = page.getByLabel(/¿Qué puesto buscás\?/);
-  await expect(role).toHaveValue("");
-  const option = page.locator(
-    `select[name="targetRole"] optgroup[label="${persona.roleGroup}"] option[value="${persona.role}"]`,
-  );
-  await expect(option).toHaveCount(1);
-  await expect(option).toHaveText(persona.roleLabel);
-  await role.selectOption(persona.role);
+  await expect(page.locator('input[name="targetRoles"]:checked')).toHaveCount(0);
+  // El grupo se verifica por su fieldset/legend y el puesto por el value de la casilla
+  const group = page.getByRole("group", { name: persona.roleGroup, exact: true });
+  const box = group.locator(`input[name="targetRoles"][value="${persona.role}"]`);
+  await expect(box).toHaveCount(1);
+  await chooseRoles(group, [persona.role]);
   await page.getByLabel(/País de residencia/).selectOption(persona.country);
   await page.getByLabel(/Inglés \(nivel CEFR\)/).selectOption(persona.cefr);
   await page.getByLabel(/Años de experiencia/).fill(persona.years);
@@ -133,11 +133,16 @@ export async function completeStep1(page: Page, run: Run): Promise<void> {
   const { db, close } = ownerDb();
   try {
     const [user] = await db
-      .select({ id: s.users.id, targetRole: s.profiles.targetRole })
+      .select({
+        id: s.users.id,
+        targetRole: s.profiles.targetRole,
+        targetRoles: s.profiles.targetRoles,
+      })
       .from(s.users)
       .innerJoin(s.profiles, eq(s.profiles.userId, s.users.id))
       .where(eq(s.users.email, persona.email));
     run.userId = user!.id;
+    expect(user!.targetRoles).toEqual([persona.role]);
     expect(user!.targetRole).toBe(persona.role);
   } finally {
     await close();
@@ -333,7 +338,9 @@ export function definePersonaSpec(key: PersonaKey): void {
       await timed("/market", async () => {
         await page.goto("/market");
         const market = page.getByTestId("role-market");
-        await expect(market).toContainText(`El mercado de ${persona.roleLabel}`);
+        // La etiqueta sale del seed de roles: así no depende de cómo la nombre la 44
+        const label = (roleSkills as Record<string, { label: string }>)[persona.role]!.label;
+        await expect(market).toContainText(`El mercado de ${label}`);
         await expect(market).not.toContainText("Todavía no hay datos para este rol");
         const text = await market.innerText();
         expect(
@@ -351,7 +358,9 @@ export function definePersonaSpec(key: PersonaKey): void {
         finding(
           "/plan no nombra ninguna skill del puesto con 4 ofertas sembradas (revisar el umbral o el texto vacío)",
         );
-        expect(text).toMatch(/No hay skills para reforzar|Todavía no|Estamos armando/);
+        expect(text).toMatch(
+          /No hay skills para reforzar|Con pocas ofertas todavía no|Todavía no|Estamos armando/,
+        );
       });
     });
   });

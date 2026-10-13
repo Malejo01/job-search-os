@@ -6,7 +6,7 @@ Cuatro personas inventadas recorren el producto de punta a punta, sin red ni LLM
 |---|---|---|
 | `28-persona-lucia` | Lucía, contadora en transición | Data Analyst (Tecnología) |
 | `29-persona-valentina` | Valentina, SEO/SEM y redes | Marketing digital (Carreras digitales) |
-| `30-persona-martin` | Martín, viene de RRHH general | Recruiter IT / RRHH tech (Carreras digitales) |
+| `30-persona-martin` | Martín, viene de RRHH general | Recruiter IT (Carreras digitales) |
 | `31-persona-tomas` | Tomás, dev junior en Node | Backend (Tecnología) |
 
 ## Qué recorre cada una

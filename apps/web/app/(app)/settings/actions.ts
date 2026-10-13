@@ -1,12 +1,12 @@
 "use server";
 
-import { OTHER_ROLE, isRoleKey } from "@job-search-os/pipeline";
+import { parseTargetRoles } from "@job-search-os/pipeline";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { signOut } from "@/auth";
 import { deleteAccount } from "@/lib/delete-account";
 import { assignRandomInboundAddress } from "@/lib/inbound-address";
-import { setTargetRole } from "@/lib/onboarding";
+import { getTargetRolesLimit, setTargetRoles } from "@/lib/onboarding";
 import { reassignForRoleChange, scheduleImmediateEvaluation } from "@/lib/pool-reassign";
 import { requireUserId } from "@/lib/session";
 
@@ -28,15 +28,17 @@ export async function deleteAccountAction(formData: FormData): Promise<void> {
 }
 
 /**
- * Guarda el puesto que busca la persona (ronda 41). El usuario sale de la sesión; el valor se valida
- * en el servidor (una clave de rol o «Otro o varios»). Si el puesto cambió, reasigna las ofertas del
- * pool; si la reasignación falla, el puesto igual queda guardado.
+ * Guarda los puestos que busca la persona (rondas 41 y 45). El usuario sale de la sesión; la lista se
+ * valida en el servidor (solo claves conocidas, sin repetir, entre 1 y el tope de su plan). Si el
+ * conjunto cambió, reasigna las ofertas del pool; si la reasignación falla, los puestos igual
+ * quedan guardados.
  */
-export async function saveTargetRoleAction(formData: FormData): Promise<void> {
+export async function saveTargetRolesAction(formData: FormData): Promise<void> {
   const userId = await requireUserId();
-  const value = formData.get("targetRole");
-  if (value !== OTHER_ROLE && !isRoleKey(value)) redirect("/settings?puesto=error#puesto");
-  const { saved, changed } = await setTargetRole(userId, value === OTHER_ROLE ? null : value);
+  const values = formData.getAll("targetRoles").filter((v): v is string => typeof v === "string");
+  const parsed = parseTargetRoles(values, await getTargetRolesLimit(userId));
+  if (!parsed.ok) redirect("/settings?puesto=error#puesto");
+  const { saved, changed } = await setTargetRoles(userId, parsed.roles);
   if (!saved) redirect("/settings?puesto=error#puesto");
   if (changed) {
     const result = await reassignForRoleChange(userId);

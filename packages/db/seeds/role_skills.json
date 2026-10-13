@@ -19,10 +19,10 @@
     "skills": [
       "python_backend",
       "nodejs",
+      "typescript",
       "nestjs",
       "java",
       "dotnet",
-      "go",
       "sql",
       "nosql",
       "rest_apis",
@@ -73,9 +73,7 @@
       "statistics",
       "analytics",
       "etl",
-      "snowflake",
-      "english_intermediate",
-      "client_facing"
+      "english_intermediate"
     ]
   },
   "soporte_it": {
@@ -136,7 +134,8 @@
       "social_media",
       "growth_marketing",
       "analytics",
-      "excel"
+      "excel",
+      "hubspot"
     ]
   },
   "producto_proyectos": {
@@ -155,7 +154,7 @@
     ]
   },
   "rrhh_it": {
-    "label": "Recruiter IT / RRHH tech",
+    "label": "Recruiter IT",
     "skills": [
       "sourcing",
       "interviewing",
