@@ -4,12 +4,15 @@ import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import type { JobListRow } from "@/lib/jobs";
 import {
+  BLOCKER_LABEL,
   DEMO_BADGE_CLASSES,
   DEMO_MODEL,
   flagLabel,
   formatDate,
+  formatScoreNumber,
   LOCATION_CLASSES,
   LOCATION_LABELS,
+  PRE_SCORE_EXPLAIN,
   riskLabel,
   safeHttpUrl,
   SCORE_CLASSES,
@@ -68,13 +71,13 @@ function JobCard({ job, query }: { job: JobListRow; query: string }) {
       ) : job.score === null && job.preScore !== null ? (
         <div
           className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-md border-2 border-dashed border-zinc-400 text-zinc-700"
-          aria-label={`pre-score ${job.preScore}`}
-          title="Pre-score determinista, sin LLM: skills × tu nivel, riesgos del prefiltro y salario"
+          aria-label={`estimación previa ${job.preScore}`}
+          title={PRE_SCORE_EXPLAIN}
         >
           <span className="text-lg font-semibold leading-none">
-            {job.preScore.toFixed(job.preScore % 1 ? 1 : 0)}
+            {formatScoreNumber(job.preScore)}
           </span>
-          <span className="text-[10px] uppercase">pre</span>
+          <span className="text-[10px]">/10</span>
         </div>
       ) : (
         <div
@@ -82,9 +85,9 @@ function JobCard({ job, query }: { job: JobListRow; query: string }) {
           aria-label={job.score === null ? "sin evaluar" : `score ${job.score}`}
         >
           <span className="text-lg font-semibold leading-none">
-            {job.score === null ? "–" : job.score.toFixed(job.score % 1 ? 1 : 0)}
+            {job.score === null ? "–" : formatScoreNumber(job.score)}
           </span>
-          <span className="text-[10px] uppercase">score</span>
+          <span className="text-[10px]">{job.score === null ? "score" : "/10"}</span>
         </div>
       )}
       <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -121,13 +124,13 @@ function JobCard({ job, query }: { job: JobListRow; query: string }) {
           {job.bloqueadores.length ? (
             <span className="rounded bg-red-100 px-1.5 py-0.5 font-medium text-red-800">
               {job.bloqueadores.length === 1
-                ? "1 bloqueador"
-                : `${job.bloqueadores.length} bloqueadores`}
+                ? `${BLOCKER_LABEL}: 1 motivo`
+                : `${BLOCKER_LABEL}: ${job.bloqueadores.length} motivos`}
             </span>
           ) : null}
           {job.riesgos.slice(0, 2).map((r) => (
             <span key={r} className="rounded bg-amber-50 px-1.5 py-0.5 text-amber-900">
-              riesgo: {riskLabel(r)}
+              Riesgo: {riskLabel(r)}
             </span>
           ))}
           {job.riesgos.length > 2 ? (
@@ -135,6 +138,11 @@ function JobCard({ job, query }: { job: JobListRow; query: string }) {
               +{job.riesgos.length - 2} riesgos
             </span>
           ) : null}
+          {job.evaluating || job.score !== null || job.preScore === null ? null : (
+            <span className="rounded bg-zinc-50 px-1.5 py-0.5 text-zinc-600">
+              Estimación previa, sin IA
+            </span>
+          )}
           {job.flags.includes("posible_duplicado") ? (
             <span className="rounded bg-amber-100 px-1.5 py-0.5 font-medium text-amber-900">
               posible duplicado
