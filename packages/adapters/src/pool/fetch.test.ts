@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { Logger } from "../logger";
 import {
   atsDownloader,
+  boardsStarted,
   parsePoolBackfillDays,
   parsePoolSources,
   poolErrorCode,
@@ -604,6 +605,7 @@ describe("runPoolFetch · fuentes ATS (boards de ats_boards)", () => {
     token,
     status,
     fetched,
+    truncated: 0,
   });
 
   it("wwr y los ATS tienen su kind, 5 h de intervalo y están recomendados", () => {
@@ -740,7 +742,7 @@ describe("runPoolFetch · fuentes ATS (boards de ats_boards)", () => {
       deps,
     );
     expect(info).toHaveBeenCalledWith(
-      { source: "greenhouse", token: "a", status: "ok", jobs: 1 },
+      { source: "greenhouse", token: "a", status: "ok", jobs: 1, truncated: 0 },
       "pool: board",
     );
     expect(JSON.stringify(info.mock.calls)).not.toContain("Titulo Secreto");
@@ -794,8 +796,8 @@ describe("atsDownloader", () => {
       fetchImpl: fetchImpl as never,
     })) as Exclude<Awaited<ReturnType<ReturnType<typeof atsDownloader>>>, RawJob[]>;
     expect(out.boards).toEqual([
-      { id: "malo", token: "malo", status: "http_4xx", fetched: 0 },
-      { id: "bueno", token: "bueno", status: "ok", fetched: 0 },
+      { id: "malo", token: "malo", status: "http_4xx", fetched: 0, truncated: 0 },
+      { id: "bueno", token: "bueno", status: "ok", fetched: 0, truncated: 0 },
     ]);
     expect(out.partialError).toBe("http_4xx");
   });
@@ -852,7 +854,7 @@ describe("runPoolFetch · boards rotos, orden y updateBoards", () => {
     const lever = vi.fn(async () => ({
       jobs: [],
       partialError: null,
-      boards: [{ id: "id-a", token: "a", status: "not_found" as const, fetched: 0 }],
+      boards: [{ id: "id-a", token: "a", status: "not_found" as const, fetched: 0, truncated: 0 }],
     }));
     const { deps } = makeDeps({}, { loadBoards: vi.fn(async () => [brd("a")]) });
     const out = await runPoolFetch(
@@ -909,7 +911,7 @@ describe("runPoolFetch · boards rotos, orden y updateBoards", () => {
     const lever = vi.fn(async () => ({
       jobs: [job("1")],
       partialError: null,
-      boards: [{ id: "id-a", token: "a", status: "ok" as const, fetched: 1 }],
+      boards: [{ id: "id-a", token: "a", status: "ok" as const, fetched: 1, truncated: 0 }],
     }));
     const order: string[] = [];
     const { deps } = makeDeps(
@@ -1032,5 +1034,99 @@ describe("runPoolFetch · boards rotos, orden y updateBoards", () => {
       ["jobicy", "ok"],
       ["remoteok", "skipped"],
     ]);
+  });
+});
+
+describe("boardsStarted", () => {
+  const o = (token: string, fetched: number): PoolBoardOutcome => ({
+    id: `id-${token}`,
+    token,
+    status: "ok",
+    fetched,
+    truncated: 0,
+  });
+  const outcomes = [o("a", 3), o("b", 0), o("c", 4), o("d", 2), o("e", 0)];
+
+  it("sin corte: todos los boards", () => {
+    expect([...boardsStarted(outcomes, 9)]).toEqual(["id-a", "id-b", "id-c", "id-d", "id-e"]);
+  });
+
+  it("corte a la mitad del board c: a, c y los de 0 avisos sí; d no", () => {
+    expect([...boardsStarted(outcomes, 5)]).toEqual(["id-a", "id-b", "id-c", "id-e"]);
+  });
+
+  it("un board se marca si el upsert llegó a empezarlo", () => {
+    expect([...boardsStarted(outcomes, 3)]).toEqual(["id-a", "id-b", "id-e"]);
+    expect([...boardsStarted(outcomes, 4)]).toEqual(["id-a", "id-b", "id-c", "id-e"]);
+  });
+
+  it("processed = 0: solo los de 0 avisos", () => {
+    expect([...boardsStarted(outcomes, 0)]).toEqual(["id-b", "id-e"]);
+  });
+});
+
+describe("runPoolFetch · boards procesados por el upsert", () => {
+  const brd = (token: string): PoolBoard => ({
+    id: `id-${token}`,
+    token,
+    region: null,
+    companyName: `Empresa ${token}`,
+  });
+  const out = (token: string, fetched: number): PoolBoardOutcome => ({
+    id: `id-${token}`,
+    token,
+    status: "ok",
+    fetched,
+    truncated: 0,
+  });
+
+  it("si el upsert corta (stopped), updateBoards recibe solo los boards empezados", async () => {
+    const lever = vi.fn(async () => ({
+      jobs: [job("1"), job("2"), job("3"), job("4"), job("5")],
+      partialError: null,
+      boards: [out("a", 2), out("b", 3), out("c", 0)],
+    }));
+    const updateBoards = vi.fn(async () => {});
+    const { deps } = makeDeps(
+      {},
+      {
+        loadBoards: vi.fn(async () => [brd("a"), brd("b"), brd("c")]),
+        // Procesó 2 de 5: empezó el board a, no llegó a tocar el b
+        upsert: vi.fn(async () => summary(5, { inserted: 2, stopped: true })),
+        updateBoards,
+      },
+    );
+    const res = await runPoolFetch(
+      { ...base, enabled: ["lever"], downloaders: downloaders({ lever: lever as never }) },
+      deps,
+    );
+    expect(res.sources[0]).toMatchObject({ status: "partial", stopped: true });
+    expect(updateBoards).toHaveBeenCalledWith(
+      [
+        { id: "id-a", status: "ok" },
+        { id: "id-c", status: "ok" },
+      ],
+      expect.any(Date),
+    );
+  });
+
+  it("recorte por POOL_MAX_JOBS_PER_SOURCE: el board que no entró no se marca", async () => {
+    const half = POOL_MAX_JOBS_PER_SOURCE;
+    const many = (n: number, p: string) => Array.from({ length: n }, (_, i) => job(`${p}${i}`));
+    const lever = vi.fn(async () => ({
+      jobs: [...many(half, "a"), ...many(50, "b")],
+      partialError: null,
+      boards: [out("a", half), out("b", 50)],
+    }));
+    const updateBoards = vi.fn(async () => {});
+    const { deps } = makeDeps(
+      {},
+      { loadBoards: vi.fn(async () => [brd("a"), brd("b")]), updateBoards },
+    );
+    await runPoolFetch(
+      { ...base, enabled: ["lever"], downloaders: downloaders({ lever: lever as never }) },
+      deps,
+    );
+    expect(updateBoards).toHaveBeenCalledWith([{ id: "id-a", status: "ok" }], expect.any(Date));
   });
 });

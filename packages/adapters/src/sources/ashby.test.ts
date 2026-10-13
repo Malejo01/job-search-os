@@ -2,8 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { atsStatusOf } from "./ats-common";
 import { fetchAshbyBoard } from "./ashby";
 
-const SINCE = new Date("2026-10-01T00:00:00Z");
-const board = { token: "empresa-ficticia", companyName: "Empresa Ficticia 3", since: SINCE };
+const board = { token: "empresa-ficticia", companyName: "Empresa Ficticia 3" };
 
 const posting = (over: Record<string, unknown> = {}) => ({
   id: "bbbb-2222",
@@ -154,14 +153,29 @@ describe("fetchAshbyBoard", () => {
     expect(r.jobs[1]!.salaryNote).toContain("Hasta 100 mil");
   });
 
-  it("fecha: lo anterior a since se descarta", async () => {
+  it("100 ubicaciones secundarias: máximo 20 y el texto no pasa de 500 caracteres", async () => {
+    const many = Array.from({ length: 100 }, (_, i) => ({
+      location: `Ciudad Ficticia Numero ${i} ${"x".repeat(40)}`,
+    }));
+    const r = await fetchAshbyBoard({
+      ...board,
+      fetchImpl: respond({ jobs: [posting({ secondaryLocations: many })] }),
+    });
+    const loc = r.jobs[0]!.locationRaw!;
+    expect(loc.length).toBeLessThanOrEqual(500);
+    expect(loc.split("; ").length).toBeLessThanOrEqual(21);
+    expect(loc).not.toContain("Numero 20 ");
+  });
+
+  it("sin ventana de fecha: un aviso remoto de hace 90 días entra", async () => {
     const r = await fetchAshbyBoard({
       ...board,
       fetchImpl: respond({
-        jobs: [posting({ id: "1", publishedAt: "2026-08-01T00:00:00Z" }), posting({ id: "2" })],
+        jobs: [posting({ id: "1", publishedAt: "2026-07-12T00:00:00Z" }), posting({ id: "2" })],
       }),
     });
-    expect(r.jobs).toHaveLength(1);
+    expect(r.jobs).toHaveLength(2);
+    expect(r.truncated).toBe(0);
   });
 
   it("404 → not_found", async () => {

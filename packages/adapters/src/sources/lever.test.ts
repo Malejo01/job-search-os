@@ -2,8 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { atsStatusOf } from "./ats-common";
 import { fetchLeverBoard } from "./lever";
 
-const SINCE = new Date("2026-10-01T00:00:00Z");
-const board = { token: "empresa-ficticia", companyName: "Empresa Ficticia 2", since: SINCE };
+const board = { token: "empresa-ficticia", companyName: "Empresa Ficticia 2" };
 const CREATED = Date.UTC(2026, 9, 10, 12, 0, 0);
 
 const posting = (over: Record<string, unknown> = {}) => ({
@@ -99,15 +98,57 @@ describe("fetchLeverBoard", () => {
     expect(r.filteredNonRemote).toBe(3);
   });
 
-  it("createdAt en ms: lo anterior a since se descarta", async () => {
+  it("sin ventana de fecha: un aviso remoto de hace 90 días entra", async () => {
     const r = await fetchLeverBoard({
       ...board,
       fetchImpl: respond([
-        posting({ id: "viejo", createdAt: Date.UTC(2026, 8, 1) }),
+        posting({ id: "viejo", createdAt: CREATED - 90 * 24 * 3_600_000 }),
         posting({ id: "nuevo" }),
       ]),
     });
-    expect(r.jobs.map((j) => j.source.externalId?.split(":")[2])).toEqual(["nuevo"]);
+    expect(r.jobs.map((j) => j.source.externalId?.split(":")[2])).toEqual(["viejo", "nuevo"]);
+    expect(r.truncated).toBe(0);
+  });
+
+  it("100 ubicaciones: máximo 20 y el texto no pasa de 500 caracteres", async () => {
+    const many = Array.from(
+      { length: 100 },
+      (_, i) => `Ciudad Ficticia Numero ${i} ${"x".repeat(40)}`,
+    );
+    const r = await fetchLeverBoard({
+      ...board,
+      fetchImpl: respond([posting({ categories: { location: "Remote", allLocations: many } })]),
+    });
+    const loc = r.jobs[0]!.locationRaw!;
+    expect(loc.length).toBeLessThanOrEqual(500);
+    expect(loc.split("; ").length).toBeLessThanOrEqual(21);
+    expect(loc).not.toContain("Numero 20 ");
+  });
+
+  it("allLocations: location no remota pero otra ubicación sí → pasa el filtro", async () => {
+    const r = await fetchLeverBoard({
+      ...board,
+      fetchImpl: respond([
+        posting({
+          id: "m1",
+          workplaceType: "unspecified",
+          categories: { location: "Berlin", allLocations: ["Berlin", "LATAM"] },
+        }),
+        posting({
+          id: "m2",
+          workplaceType: "unspecified",
+          categories: { location: "Madrid", allLocations: ["Remote"] },
+        }),
+        posting({
+          id: "m3",
+          workplaceType: "unspecified",
+          categories: { location: "Londres", allLocations: ["Londres", "Paris"] },
+        }),
+      ]),
+    });
+    expect(r.jobs.map((j) => j.source.externalId?.split(":")[2])).toEqual(["m1", "m2"]);
+    expect(r.jobs[0]!.locationRaw).toBe("Berlin; LATAM");
+    expect(r.filteredNonRemote).toBe(1);
   });
 
   it("404 → not_found", async () => {

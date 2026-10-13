@@ -5,6 +5,7 @@ import {
   buildAtsRawJob,
   fetchAtsBoard,
   httpUrl,
+  joinAtsLocations,
   modalityOfWorkplace,
   text,
   toDate,
@@ -64,7 +65,7 @@ export function mapAshbyJob(
         )
         .filter(Boolean)
     : [];
-  const allLocations = [location, ...secondary].filter(Boolean).join("; ") || null;
+  const allLocations = joinAtsLocations(location ?? "", secondary);
   const workplaceType = text(item.workplaceType) || null;
   const isRemote = typeof item.isRemote === "boolean" ? item.isRemote : null;
   const department = text(item.department);

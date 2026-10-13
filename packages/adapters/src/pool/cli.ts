@@ -1,5 +1,10 @@
 import { fetchAshbyBoard } from "../sources/ashby";
-import { atsStatusOf, type AtsBoardResult, type AtsProvider } from "../sources/ats-common";
+import {
+  ATS_MAX_JOBS_PER_BOARD,
+  atsStatusOf,
+  type AtsBoardResult,
+  type AtsProvider,
+} from "../sources/ats-common";
 import { fetchGetOnBoardJobs, GOB_POOL_CATEGORIES } from "../sources/getonboard";
 import { fetchGreenhouseBoard } from "../sources/greenhouse";
 import { fetchHimalayasJobs } from "../sources/himalayas";
@@ -21,16 +26,15 @@ import {
  * Prueba en seco de una fuente del pool (JS-137):
  *   pnpm pool:fetch <getonboard|remoteok|jobicy|himalayas|wwr> --dry-run
  *   pnpm pool:fetch <greenhouse|lever|ashby> <token> [--region eu] [--company "Nombre"] --dry-run
- * Descarga UNA vez con el User-Agent identificable y ventana de 48 h (14 días en los ATS, que
- * publican todo el board), y reporta conteos y qué campos trae la respuesta real contra los que
- * lee el mapper. Los ATS consultan ese board SIN leer `ats_boards`. No escribe en ninguna base
+ * Descarga UNA vez con el User-Agent identificable y ventana de 48 h (los ATS no tienen ventana:
+ * traen todo lo abierto, hasta ATS_MAX_JOBS_PER_BOARD por board), y reporta conteos y qué campos
+ * trae la respuesta real contra los que lee el mapper. Los ATS consultan ese board SIN leer `ats_boards`. No escribe en ninguna base
  * (no importa @job-search-os/db) y nunca imprime títulos, empresas, URLs ni textos.
  */
 type SourceName = PoolCliSource;
 type AtsArgs = Extract<PoolCliArgs, { ok: true; token: string }>;
 
 const SINCE_HOURS = 48;
-const ATS_SINCE_HOURS = 14 * 24;
 /** Variables que mira `sourceUserAgent()` para armar el host del User-Agent. */
 const USER_AGENT_VARS = ["APP_URL", "NEXT_PUBLIC_APP_URL", "AUTH_URL"];
 /** Páginas de Himalayas en una prueba manual: su documentación pide una consulta por día. */
@@ -190,8 +194,7 @@ const ATS_FETCHERS = {
 
 async function run(source: SourceName, ats?: AtsArgs): Promise<void> {
   const userAgent = sourceUserAgent();
-  const windowHours = ats ? ATS_SINCE_HOURS : SINCE_HOURS;
-  const since = new Date(Date.now() - windowHours * 3_600_000);
+  const since = new Date(Date.now() - SINCE_HOURS * 3_600_000);
   const raw: unknown[] = [];
   const fetchImpl = capturingFetch(source, raw);
   const lines: string[] = [];
@@ -204,7 +207,6 @@ async function run(source: SourceName, ats?: AtsArgs): Promise<void> {
         token: ats.token,
         region: ats.region,
         companyName: ats.company,
-        since,
         userAgent,
         fetchImpl,
       });
@@ -219,6 +221,7 @@ async function run(source: SourceName, ats?: AtsArgs): Promise<void> {
       `vistos: ${r.seen}`,
       `filtrados por no remoto: ${r.filteredNonRemote}`,
       `salteados (estructura incompleta): ${r.skipped}`,
+      `recortados por tope (${ATS_MAX_JOBS_PER_BOARD}): ${r.truncated}`,
     );
     if (r.unlisted !== undefined) lines.push(`no listados (isListed=false): ${r.unlisted}`);
   } else if (source === "wwr") {
@@ -276,14 +279,18 @@ async function run(source: SourceName, ats?: AtsArgs): Promise<void> {
 
   const hasHost = userAgent.includes("(+");
   console.log(
-    `fuente: ${source}${ats ? `/${ats.token}${ats.region ? ` (región ${ats.region})` : ""}` : ""}  (ventana ${windowHours} h, User-Agent con host: ${hasHost ? "sí" : "no"})`,
+    `fuente: ${source}${ats ? `/${ats.token}${ats.region ? ` (región ${ats.region})` : ""}` : ""}  (${ats ? `todo lo abierto, tope ${ATS_MAX_JOBS_PER_BOARD} por board` : `ventana ${SINCE_HOURS} h`}, User-Agent con host: ${hasHost ? "sí" : "no"})`,
   );
   if (!hasHost) {
     console.log(
       `  sin host: se miraron ${USER_AGENT_VARS.join(", ")} y ninguna es una URL http(s) válida en este entorno`,
     );
   }
-  console.log(`mapeados dentro de la ventana: ${mapped}`);
+  console.log(
+    ats
+      ? `abiertos (remotos, tras el tope): ${mapped}`
+      : `mapeados dentro de la ventana: ${mapped}`,
+  );
   for (const l of lines) console.log(l);
   console.log(`\ncampos de la respuesta cruda (${raw.length} items) que lee el mapper:`);
   console.log(formatFieldReport(fieldPresence(raw, MAPPER_FIELDS[source]), raw.length));

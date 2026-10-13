@@ -12,11 +12,11 @@ Adapter: `packages/adapters/src/sources/lever.ts` (+ `ats-common.ts`). Estado: *
 | `hostedUrl` | `source.url` | solo http(s) |
 | `text` | `title` | |
 | `company_name` del board | `companyRaw` | |
-| `categories.location` | `locationRaw` | `countriesAllowed: null` salvo "Anywhere"/"Worldwide" |
+| `categories.location` + `categories.allLocations` | `locationRaw` | se unen sin repetidos con `"; "` (como Ashby) y alimentan el filtro de remotos; `countriesAllowed: null` salvo "Anywhere"/"Worldwide" |
 | `workplaceType` | `modality` | `remote` → remoto, `hybrid` → híbrido, `on-site` → presencial, `unspecified` → según la ubicación |
 | `categories.commitment` | `contractType` | |
 | `categories.team` | `categories` | |
-| `createdAt` (ms) | `postedAt` | lo anterior a `since` se descarta |
+| `createdAt` (ms) | `postedAt` | sin ventana de fecha: se trae todo lo abierto, hasta 200 por board (los más recientes) |
 | `descriptionPlain` + `lists[]` + `additionalPlain` | `jdText` | `lists[].content` es HTML y pasa por `htmlToText` |
 | `salaryRange` (`min`, `max`, `currency`, `interval`) | `salaryMinUsd/MaxUsd` + `salaryPeriod` | solo USD con período claro (año, mes u hora); si no, `salaryNote` (D-017) |
 
@@ -41,7 +41,7 @@ Probar antes, sin tocar la tabla:
 pnpm pool:fetch lever empresa-ficticia [--region eu] --company "Empresa Ficticia 2" --dry-run
 ```
 
-Informa estado del board, vistos, filtrados por no remoto, salteados y campos presentes (solo conteos y tipos). Un board inexistente da `not_found`. Ventana de 14 días; no escribe en la base.
+Informa estado del board, vistos, filtrados por no remoto, salteados y campos presentes (solo conteos y tipos). Un board inexistente da `not_found`. Sin ventana de fecha: se trae todo lo abierto en cada corrida, hasta 200 por board (los más recientes; el informe cuenta los recortados); la retención de 30 días cuenta desde la última vez que la fuente lo devolvió. No escribe en la base.
 
 ## A verificar contra la fuente real
 - Valores reales de `interval` en `salaryRange` (hoy se reconoce año, mes y hora por el texto).

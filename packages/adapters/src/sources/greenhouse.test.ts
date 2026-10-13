@@ -2,8 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { atsStatusOf } from "./ats-common";
 import { fetchGreenhouseBoard } from "./greenhouse";
 
-const SINCE = new Date("2026-10-01T00:00:00Z");
-const board = { token: "empresa-ficticia", companyName: "Empresa Ficticia 1", since: SINCE };
+const board = { token: "empresa-ficticia", companyName: "Empresa Ficticia 1" };
 
 const job = (over: Record<string, unknown> = {}) => ({
   id: 1001,
@@ -72,22 +71,22 @@ describe("fetchGreenhouseBoard", () => {
     expect(r.filteredNonRemote).toBe(2);
   });
 
-  it("descarta lo publicado antes de since; sin fecha se conserva", async () => {
+  it("sin ventana de fecha: lo viejo (90 días) y lo sin fecha entran", async () => {
     const r = await fetchGreenhouseBoard({
       ...board,
       fetchImpl: respond({
         jobs: [
           job({
             id: 1,
-            first_published: "2026-09-01T00:00:00Z",
-            updated_at: "2026-09-02T00:00:00Z",
+            first_published: "2026-07-12T00:00:00Z",
+            updated_at: "2026-07-13T00:00:00Z",
           }),
           job({ id: 2, first_published: null, updated_at: "2026-10-05T00:00:00Z" }),
           job({ id: 3, first_published: null, updated_at: null }),
         ],
       }),
     });
-    expect(r.jobs.map((j) => j.source.externalId?.split(":")[2])).toEqual(["2", "3"]);
+    expect(r.jobs.map((j) => j.source.externalId?.split(":")[2])).toEqual(["1", "2", "3"]);
   });
 
   it("estructura incompleta se saltea", async () => {

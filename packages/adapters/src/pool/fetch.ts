@@ -195,7 +195,29 @@ export type PoolBoardOutcome = {
   status: AtsBoardStatus;
   /** Avisos remotos que aportó. */
   fetched: number;
+  /** Remotos que quedaron afuera por el tope por board. */
+  truncated: number;
 };
+
+/**
+ * Ids de los boards que se pueden marcar como consultados: los que no tienen avisos (error,
+ * `not_found`, 0 remotos) y aquellos cuyos avisos el upsert llegó a EMPEZAR (índice de inicio <
+ * `processed`; los avisos se juntan en el orden de los boards). Los que no se tocaron no se marcan
+ * y quedan al frente de la cola. Un board a medias sí se marca: así rota al final y no frena para
+ * siempre a los demás; lo que quedó sin refrescar tiene margen con la retención de 30 días.
+ */
+export function boardsStarted(
+  outcomes: readonly PoolBoardOutcome[],
+  processed: number,
+): Set<string> {
+  const done = new Set<string>();
+  let start = 0;
+  for (const o of outcomes) {
+    if (o.fetched === 0 || start < processed) done.add(o.id);
+    start += o.fetched;
+  }
+  return done;
+}
 
 /** Un descargador devuelve los avisos, o además el error cerrado si cortó a la mitad. */
 export type PoolDownload =
@@ -272,7 +294,8 @@ const ATS_FETCHERS: Record<AtsProvider, (o: AtsBoardOptions) => Promise<AtsBoard
  * cerrado. `partialError` es el del primer fallo; si fallaron todos, `runPoolFetch` lo trata como error.
  */
 export function atsDownloader(provider: AtsProvider): PoolDownloader {
-  return async ({ since, fetchImpl, userAgent, boards = [], shouldStop, timeLeftMs }) => {
+  // Los ATS ignoran `since`: traen todo lo abierto (hasta `ATS_MAX_JOBS_PER_BOARD` por board).
+  return async ({ fetchImpl, userAgent, boards = [], shouldStop, timeLeftMs }) => {
     const jobs: RawJob[] = [];
     const outcomes: PoolBoardOutcome[] = [];
     let stopped = false;
@@ -286,15 +309,26 @@ export function atsDownloader(provider: AtsProvider): PoolDownloader {
           token: b.token,
           region: b.region,
           companyName: b.companyName,
-          since,
           userAgent,
           fetchImpl,
           timeLeftMs,
         });
         jobs.push(...r.jobs);
-        outcomes.push({ id: b.id, token: b.token, status: r.status, fetched: r.jobs.length });
+        outcomes.push({
+          id: b.id,
+          token: b.token,
+          status: r.status,
+          fetched: r.jobs.length,
+          truncated: r.truncated,
+        });
       } catch (e) {
-        outcomes.push({ id: b.id, token: b.token, status: atsStatusOf(e), fetched: 0 });
+        outcomes.push({
+          id: b.id,
+          token: b.token,
+          status: atsStatusOf(e),
+          fetched: 0,
+          truncated: 0,
+        });
       }
     }
     // Solo los fallos transitorios cuentan contra la fuente; `not_found` e `invalid_token` quedan
@@ -676,7 +710,13 @@ export async function runPoolFetch(
       const outcomes = downloaded.boards ?? [];
       for (const o of outcomes) {
         log.info(
-          { source: name, token: o.token, status: o.status, jobs: o.fetched },
+          {
+            source: name,
+            token: o.token,
+            status: o.status,
+            jobs: o.fetched,
+            truncated: o.truncated,
+          },
           "pool: board",
         );
       }
@@ -697,9 +737,20 @@ export async function runPoolFetch(
         summary.errors > 0 &&
         summary.inserted + summary.updated + summary.unchanged + summary.copies === 0;
       if (outcomes.length > 0 && !upsertFailed) {
+        // Cada iteración del upsert suma exactamente un contador; si cortó, lo no recorrido no cuenta.
+        const processed =
+          summary.inserted +
+          summary.updated +
+          summary.unchanged +
+          summary.copies +
+          summary.skipped +
+          summary.errors;
+        // `outcomes[].fetched` es previo al recorte a POOL_MAX_JOBS_PER_SOURCE: un board que cae
+        // entero después del recorte no se marca, y es lo buscado (vuelve a la cabeza de la cola).
+        const complete = boardsStarted(outcomes, processed);
         try {
           await d.updateBoards(
-            outcomes.map((o) => ({ id: o.id, status: o.status })),
+            outcomes.filter((o) => complete.has(o.id)).map((o) => ({ id: o.id, status: o.status })),
             new Date(now.getTime() + (clock() - started)),
           );
         } catch (e) {
