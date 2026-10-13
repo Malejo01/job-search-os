@@ -1,6 +1,6 @@
 import { AutoRefresh } from "@/app/(app)/jobs/auto-refresh";
 import type { FirstOffer } from "@/lib/first-offers";
-import { safeHttpUrl, SOURCE_LABELS } from "@/lib/labels";
+import { formatScore, safeHttpUrl, SOURCE_LABELS } from "@/lib/labels";
 
 /** Nombre de la fuente para «Publicado en …»: el de SOURCE_LABELS; sin fuente conocida, texto neutro. */
 function sourceLabel(kind: string | null): string {
@@ -15,7 +15,7 @@ function ScoreBadge({ offer }: { offer: FirstOffer }) {
         className="shrink-0 rounded-md bg-zinc-900 px-2 py-0.5 text-sm font-semibold text-white"
       >
         <span className="sr-only">Score </span>
-        {Math.round(offer.score * 10) / 10}
+        {formatScore(Math.round(offer.score * 10) / 10)}
       </span>
     );
   }

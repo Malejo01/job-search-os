@@ -9,7 +9,7 @@ import {
   reviewProgressFor,
   type JobFilters as ListFilters,
 } from "@/lib/jobs";
-import { SOURCE_LABELS, STATUS_LABELS } from "@/lib/labels";
+import { PRE_SCORE_EXPLAIN, SOURCE_LABELS, STATUS_LABELS } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import Link from "next/link";
 import { AutoRefresh } from "./auto-refresh";
@@ -87,7 +87,14 @@ export default async function JobsPage({
             : "Sin ofertas con estos filtros."}
         </p>
       ) : (
-        <JobList rows={rows} query={query} />
+        <>
+          {rows.some((r) => !r.evaluating && r.score === null && r.preScore !== null) ? (
+            <p className="text-xs text-zinc-600" data-testid="pre-score-explain">
+              {PRE_SCORE_EXPLAIN} El número va de 0 a 10.
+            </p>
+          ) : null}
+          <JobList rows={rows} query={query} />
+        </>
       )}
       <AutoRefresh active={rows.some((r) => r.evaluating)} />
     </section>

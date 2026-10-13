@@ -117,7 +117,7 @@ export function flagLabel(flag: string): string | null {
   }
   switch (flag) {
     case "location_risk":
-      return "ubicación a confirmar";
+      return LOCATION_RISK_TEXT;
     case "many_candidates":
       return "muchos postulantes";
     case "modalidad_no_remota":
@@ -135,8 +135,26 @@ export function flagLabel(flag: string): string | null {
 export function riskLabel(text: string): string {
   const m = /^location_ok\s*=\s*(\S+)$/.exec(text.trim());
   if (!m) return text;
-  return m[1] === "no" ? "tu país no está entre los permitidos" : "ubicación a confirmar";
+  return m[1] === "no" ? "tu país no está entre los permitidos" : LOCATION_RISK_TEXT;
 }
+
+/** Lo que implica el riesgo de ubicación, en llano (ronda 44). */
+export const LOCATION_RISK_TEXT = "ubicación (la oferta pide otro país o no confirma el tuyo)";
+
+/** Score con escala y coma decimal: 7,5/10. Solo para mostrar; los aria-label siguen con punto. */
+export function formatScore(score: number): string {
+  return `${formatScoreNumber(score)}/10`;
+}
+
+/** Solo el número (7,5), para cuando la escala "/10" va en otro elemento. */
+export function formatScoreNumber(score: number): string {
+  return score.toFixed(score % 1 ? 1 : 0).replace(".", ",");
+}
+
+/** Textos de la «estimación previa» (antes «pre-score»): una línea visible, no solo un title. */
+export const PRE_SCORE_EXPLAIN =
+  "Estimación previa: la calculamos con reglas, sin IA, mirando tus skills, los riesgos y el salario. Todavía no es la evaluación.";
+export const BLOCKER_LABEL = "Impide postular";
 
 export const DISCIPLINE_LABEL: Record<string, string> = {
   ai_engineer: "Ingeniería de IA",
@@ -199,7 +217,7 @@ export const ADJUSTMENT_LABEL: Record<string, string> = {
   sin_skills: "sin aptitudes reconocidas en la descripción",
   cobertura: "cobertura de aptitudes",
   riesgo_dominio: "dominio de riesgo",
-  riesgo_location_risk: "ubicación a confirmar",
+  riesgo_location_risk: LOCATION_RISK_TEXT,
   salario_bajo_piso: "salario por debajo de tu piso",
 };
 

@@ -39,6 +39,36 @@ export type FirstOffer = {
 const evaluatingSql = () =>
   sql<boolean>`exists (select 1 from job_queue q where q.queue = 'evaluate_job' and q.status in ('pending', 'processing') and q.payload->>'jobId' = "jobs"."id"::text)`;
 
+/**
+ * Ventana de «estamos buscando» (ronda 44): tras guardar el perfil, la asignación del pool corre en
+ * segundo plano. Durante estos minutos una lista vacía se lee como «todavía buscando» y la página
+ * se refresca; pasados, se muestra «por ahora no hay ofertas» sin refresco.
+ */
+export const SEARCHING_WINDOW_MINUTES = 5;
+
+/** Pura: ¿estamos dentro de la ventana de búsqueda? Sin fecha de perfil, no (vacío definitivo). */
+export function isSearchingWindow(
+  profileUpdatedAt: Date | null,
+  now: Date,
+  windowMinutes: number = SEARCHING_WINDOW_MINUTES,
+): boolean {
+  if (!profileUpdatedAt) return false;
+  const elapsedMs = now.getTime() - profileUpdatedAt.getTime();
+  return elapsedMs >= 0 && elapsedMs < windowMinutes * 60_000;
+}
+
+/** Última actualización del perfil (`profiles.updated_at`, que el paso 1 fija al guardar); null si no hay perfil. */
+export async function getProfileUpdatedAt(userId: string): Promise<Date | null> {
+  return withUser(userId, async (tx) => {
+    const [row] = await tx
+      .select({ updatedAt: s.profiles.updatedAt })
+      .from(s.profiles)
+      .where(eq(s.profiles.userId, userId))
+      .limit(1);
+    return row?.updatedAt ?? null;
+  });
+}
+
 export async function listFirstOffers(
   userId: string,
   limit: number = FIRST_OFFERS_LIMIT,

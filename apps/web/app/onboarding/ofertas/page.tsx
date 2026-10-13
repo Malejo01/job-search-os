@@ -2,7 +2,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AutoRefresh } from "@/app/(app)/jobs/auto-refresh";
 import { TrustBox } from "@/app/components/trust-box";
-import { listFirstOffers } from "@/lib/first-offers";
+import {
+  getProfileUpdatedAt,
+  isSearchingWindow,
+  listFirstOffers,
+  SEARCHING_WINDOW_MINUTES,
+} from "@/lib/first-offers";
 import { isOnboardingComplete } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
 import { FirstOffersList } from "./first-offers-list";
@@ -18,6 +23,8 @@ export default async function FirstOffersPage() {
   const userId = await requireUserId();
   if (!(await isOnboardingComplete(userId))) redirect("/onboarding");
   const offers = await listFirstOffers(userId);
+  const searching =
+    offers.length === 0 && isSearchingWindow(await getProfileUpdatedAt(userId), new Date());
 
   return (
     <section className="flex flex-col gap-4">
@@ -30,19 +37,39 @@ export default async function FirstOffersPage() {
           </p>
           <FirstOffersList offers={offers} />
         </>
-      ) : (
+      ) : searching ? (
         <>
-          <p className="rounded-md border border-dashed border-zinc-300 p-4 text-sm text-zinc-700">
-            Todavía no hay ofertas para tu puesto en las fuentes públicas. Se actualizan cada 6
-            horas.{" "}
-            <Link href="/jobs/new" className="underline">
-              Cargar una oferta a mano
-            </Link>
-            .
+          <p
+            role="status"
+            data-testid="first-offers-searching"
+            className="rounded-md border border-dashed border-zinc-300 p-4 text-sm text-zinc-700"
+          >
+            Estamos buscando ofertas para tus puestos. Puede tardar un par de minutos; esta página
+            se actualiza sola.
           </p>
-          {/* Las ofertas se asignan después de guardar el perfil: un rato corto de espera por si llegan */}
-          <AutoRefresh active everyMs={4000} maxMs={20_000} />
+          {/* Las ofertas se asignan después de guardar el perfil: un rato de espera por si llegan */}
+          <AutoRefresh active everyMs={4000} maxMs={SEARCHING_WINDOW_MINUTES * 60_000} />
         </>
+      ) : (
+        <div
+          data-testid="first-offers-empty"
+          className="flex flex-col gap-2 rounded-md border border-dashed border-zinc-300 p-4 text-sm text-zinc-700"
+        >
+          <p className="font-medium text-zinc-900">Por ahora no hay ofertas para tus puestos</p>
+          <ul className="list-disc pl-5">
+            <li>
+              <Link href="/jobs/new" className="underline">
+                Pegá una oferta que te interese
+              </Link>
+            </li>
+            <li>
+              <Link href="/settings#puesto" className="underline">
+                Revisá tus puestos en Ajustes
+              </Link>
+            </li>
+            <li>Seguimos buscando todos los días.</li>
+          </ul>
+        </div>
       )}
 
       <div className="flex flex-wrap items-center justify-end gap-3">

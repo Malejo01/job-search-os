@@ -11,10 +11,13 @@ import {
   COMPANY_TYPE_LABEL,
   DEMO_BADGE_CLASSES,
   DEMO_MODEL,
+  BLOCKER_LABEL,
   DISCIPLINE_LABEL,
   ENGLISH_LABEL,
   flagLabel,
   formatDate,
+  formatScore,
+  formatScoreNumber,
   LOCATION_CLASSES,
   LOCATION_LABELS,
   MODALITY_LABELS,
@@ -142,9 +145,9 @@ export default async function JobDetailPage({
           className={`flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-md ring-1 ${SCORE_CLASSES[tone]}`}
         >
           <span className="text-2xl font-semibold leading-none">
-            {ev ? ev.score.toFixed(ev.score % 1 ? 1 : 0) : "–"}
+            {ev ? formatScoreNumber(ev.score) : "–"}
           </span>
-          <span className="text-[10px] uppercase">score</span>
+          <span className="text-[10px]">{ev ? "/10" : "score"}</span>
         </div>
         <div className="min-w-0">
           <h1 className="text-lg font-semibold leading-tight">{job.title}</h1>
@@ -300,7 +303,7 @@ export default async function JobDetailPage({
           {ev.bloqueadores.length ? (
             <section className="rounded-md border border-red-200 bg-red-50 p-3">
               <h2 className="text-sm font-semibold text-red-900">
-                Bloqueadores ({ev.bloqueadores.length}) · frenan la postulación
+                {BLOCKER_LABEL} ({ev.bloqueadores.length})
               </h2>
               <ul className="mt-1 list-disc pl-5 text-sm text-red-900">
                 {ev.bloqueadores.map((b) => (
@@ -409,12 +412,14 @@ export default async function JobDetailPage({
         <section className="flex flex-col gap-2 rounded-md border-2 border-dashed border-zinc-400 p-3 text-sm">
           <div className="flex items-baseline justify-between gap-2">
             <h2 className="font-semibold">Sin evaluar</h2>
-            <span className="text-lg font-semibold">pre-score {job.preScore.score}</span>
+            <span className="text-lg font-semibold">
+              Estimación previa {formatScore(job.preScore.score)}
+            </span>
           </div>
           <p className="text-xs text-zinc-600">
-            El modelo todavía no corrió. El pre-score sale de reglas, sin inteligencia artificial:
-            skills de la JD contra tu nivel, riesgos del prefiltro y salario contra el piso. No es
-            el score del evaluador.
+            La IA todavía no evaluó esta oferta. La estimación previa sale de reglas, sin
+            inteligencia artificial: skills de la JD contra tu nivel, riesgos y salario contra tu
+            piso. No es la evaluación completa.
           </p>
           <div>{evaluateNow}</div>
           {job.preScore.riesgos.length ? (
@@ -456,7 +461,7 @@ export default async function JobDetailPage({
           </p>
           {job.status === "pendiente_jd" ? (
             <p className="text-xs text-zinc-600">
-              Sin JD: el pre-score usa solo las señales del aviso y el salario.{" "}
+              Sin JD: la estimación previa usa solo las señales del aviso y el salario.{" "}
               <Link href="/jobs/pending-jd" className="underline">
                 pegar la JD
               </Link>
