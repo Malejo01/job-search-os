@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
+import { fetchGreenhouseBoard } from "./greenhouse";
 import {
+  ATS_MAX_JOBS_PER_BOARD,
+  emptyBoardResult,
   atsBoardUrl,
   atsGetJson,
   atsHtmlToText,
@@ -257,5 +260,67 @@ describe("atsSalary", () => {
 
   it("sin números no hay nada", () => {
     expect(atsSalary({ currency: "USD", interval: "year", sourceName: "X" }).salaryNote).toBeNull();
+  });
+});
+
+describe("tope por board (ATS_MAX_JOBS_PER_BOARD)", () => {
+  const DAY = 86_400_000;
+  const T0 = Date.UTC(2026, 9, 1);
+  const item = (id: number, publishedMs: number | null) => ({
+    id,
+    title: "Backend Engineer",
+    absolute_url: `https://boards.example.test/empresa-ficticia/jobs/${id}`,
+    location: { name: "Remote" },
+    first_published: publishedMs === null ? null : new Date(publishedMs).toISOString(),
+    updated_at: null,
+    content: "texto",
+  });
+  const run = (items: unknown[]) =>
+    fetchGreenhouseBoard({
+      token: "empresa-ficticia",
+      companyName: "Empresa Ficticia 1",
+      fetchImpl: vi.fn(
+        async () => new Response(JSON.stringify({ jobs: items })),
+      ) as unknown as typeof fetch,
+    });
+  const idsOf = (jobs: { source: { externalId?: string | null } }[]) =>
+    jobs.map((j) => Number(j.source.externalId?.split(":")[2]));
+
+  it("500 remotos: salen 200, truncated = 300, los más recientes; sin fecha al final", async () => {
+    // ids 1..450 con fecha creciente (el id mayor es el más reciente), 451..500 sin fecha
+    const items = [
+      ...Array.from({ length: 450 }, (_, i) => item(i + 1, T0 + i * DAY)),
+      ...Array.from({ length: 50 }, (_, i) => item(451 + i, null)),
+    ];
+    const r = await run(items);
+    expect(r.status).toBe("ok");
+    expect(r.jobs).toHaveLength(ATS_MAX_JOBS_PER_BOARD);
+    expect(r.truncated).toBe(300);
+    const ids = idsOf(r.jobs);
+    expect(ids[0]).toBe(450);
+    expect(ids[ids.length - 1]).toBe(251);
+    expect(ids.some((id) => id > 450)).toBe(false);
+  });
+
+  it("los sin fecha completan el cupo al final, en el orden de la respuesta", async () => {
+    const items = [
+      ...Array.from({ length: 150 }, (_, i) => item(i + 1, T0 + i * DAY)),
+      ...Array.from({ length: 100 }, (_, i) => item(1001 + i, null)),
+    ];
+    const r = await run(items);
+    expect(r.truncated).toBe(50);
+    const ids = idsOf(r.jobs);
+    expect(ids[0]).toBe(150);
+    expect(ids.slice(150)).toEqual(Array.from({ length: 50 }, (_, i) => 1001 + i));
+  });
+
+  it("hasta el tope: truncated = 0 y el orden de la respuesta no cambia", async () => {
+    const r = await run([item(1, T0), item(2, T0 + DAY)]);
+    expect(r.truncated).toBe(0);
+    expect(idsOf(r.jobs)).toEqual([1, 2]);
+  });
+
+  it("emptyBoardResult inicia truncated en 0", () => {
+    expect(emptyBoardResult("not_found").truncated).toBe(0);
   });
 });

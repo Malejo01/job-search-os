@@ -5,6 +5,7 @@ import {
   buildAtsRawJob,
   fetchAtsBoard,
   httpUrl,
+  joinAtsLocations,
   modalityOfWorkplace,
   text,
   toDate,
@@ -48,7 +49,11 @@ export function mapLeverJob(
   if (!id || !url || !title) return "skip";
 
   const cats = (item.categories ?? {}) as Record<string, unknown>;
-  const location = text(cats.location) || null;
+  // Ubicaciones múltiples: `location` + `allLocations`, sin repetidos (como Ashby).
+  const allLocations = Array.isArray(cats.allLocations)
+    ? (cats.allLocations as unknown[]).map((l) => text(l)).filter(Boolean)
+    : [];
+  const location = joinAtsLocations(text(cats.location), allLocations);
   const workplaceType = text(item.workplaceType) || null;
   const range = (item.salaryRange ?? null) as Record<string, unknown> | null;
   const team = text(cats.team);

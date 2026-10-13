@@ -24,7 +24,12 @@ se pueden scrapear, y Torre tiene su API oficial en beta privada.
    `last_fetch_at` ascendente. `last_fetch_at` se actualiza después del upsert. Dentro del pool,
    las fuentes corren por último intento ascendente (las nunca intentadas primero), así las del
    final de la lista no pasan hambre; el presupuesto del pool en el cron sube a 65 s
-   (`maxDuration` de 120 s).
+   (`maxDuration` de 120 s). **Sin ventana de fecha:** un board lista solo lo abierto hoy, así que
+   se trae todo lo abierto en cada corrida, hasta 200 por board (los más recientes; los sin fecha
+   al final); la retención de 30 días cuenta desde la última vez que la fuente lo devolvió.
+   `last_fetch_at` solo avanza para los boards cuyos avisos el upsert llegó a procesar (si corta
+   por presupuesto o por el tope de 2.000 avisos por fuente, los demás se reintentan). En Lever
+   se leen `categories.location` y `categories.allLocations`.
 3. **Filtro previo sin LLM** (`isPoolRemoteCandidate`): un ATS publica todos los puestos de la
    empresa, así que solo se guarda lo remoto. Ante la duda se guarda y decide el prefiltro por
    usuario.

@@ -340,6 +340,7 @@ describe("runPoolFetch con boards de ats_boards", () => {
               ? ("not_found" as const)
               : ("ok" as const),
         fetched: b.token === T("b") ? 1 : 0,
+        truncated: 0,
       }));
       return {
         jobs: [rawJob("greenhouse", "g1", "Backend Developer")],

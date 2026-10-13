@@ -16,7 +16,7 @@ El token se valida (`^[a-z0-9][a-z0-9._-]{0,99}$`, sin distinguir mayúsculas) y
 | `company_name` del board (`ats_boards`) | `companyRaw` | |
 | `location.name` | `locationRaw` | `countriesAllowed: null` salvo "Anywhere"/"Worldwide" (`["*"]`) |
 | `content` | `jdText` | viene con las etiquetas HTML escapadas (`&lt;p&gt;`): se decodifica y se pasa a texto |
-| `first_published` (si no, `updated_at`) | `postedAt` | lo anterior a `since` se descarta; sin fecha se conserva |
+| `first_published` (si no, `updated_at`) | `postedAt` | sin ventana de fecha: se trae todo lo abierto, hasta 200 por board (los más recientes; sin fecha van al final) |
 | `departments[].name` | `categories` | el rol se infiere por título |
 | (no trae) | sueldo `null`, `modality` solo `remoto` si la ubicación lo dice | D-017 |
 
@@ -43,7 +43,7 @@ Antes de cargarlo, probar el board sin tocar la tabla:
 pnpm pool:fetch greenhouse empresa-ficticia --company "Empresa Ficticia 1" --dry-run
 ```
 
-Informa estado del board (`ok` o `not_found`), vistos, filtrados por no remoto, salteados y qué campos trae la respuesta (solo conteos y tipos). Ventana de 14 días. No escribe en ninguna base.
+Informa estado del board (`ok` o `not_found`), vistos, filtrados por no remoto, salteados y qué campos trae la respuesta (solo conteos y tipos). Sin ventana de fecha: se trae todo lo abierto en cada corrida, hasta 200 por board (los más recientes; el informe cuenta los recortados); la retención de 30 días cuenta desde la última vez que la fuente lo devolvió. No escribe en ninguna base.
 
 Para apagar un board: `UPDATE ats_boards SET enabled = false WHERE provider = 'greenhouse' AND token = '...'`. `last_status` guarda el último código cerrado (`ok`, `not_found`, `timeout`, `http_429`, `http_4xx`, `http_5xx`, `parse`, `too_large`).
 

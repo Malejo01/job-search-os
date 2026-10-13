@@ -18,7 +18,7 @@ Adapter: `packages/adapters/src/sources/ashby.ts` (+ `ats-common.ts`). Estado: *
 | `employmentType` | `contractType` | |
 | `department`, `team` | `categories` | |
 | `descriptionPlain` (si no, `descriptionHtml` por `htmlToText`) | `jdText` | |
-| `publishedAt` | `postedAt` | lo anterior a `since` se descarta |
+| `publishedAt` | `postedAt` | sin ventana de fecha: se trae todo lo abierto, hasta 200 por board (los más recientes) |
 | `compensation.summaryComponents[]` con `compensationType = Salary` | `salaryMinUsd/MaxUsd` + `salaryPeriod` | solo USD con intervalo claro (`1 YEAR`, `1 MONTH`, `1 HOUR`); si no, `salaryNote`; sin componentes, `compensationTierSummary` va a `salaryNote` (D-017) |
 
 Filtro de remotos (`isPoolRemoteCandidate`): `workplaceType`, `isRemote` y la ubicación; híbrido y presencial explícitos se descartan (`filteredNonRemote`).
@@ -42,7 +42,7 @@ Probar antes, sin tocar la tabla:
 pnpm pool:fetch ashby empresa-ficticia --company "Empresa Ficticia 3" --dry-run
 ```
 
-Informa estado, vistos, filtrados por no remoto, no listados, salteados y campos presentes (solo conteos y tipos). Ventana de 14 días; no escribe en la base.
+Informa estado, vistos, filtrados por no remoto, no listados, salteados y campos presentes (solo conteos y tipos). Sin ventana de fecha: se trae todo lo abierto en cada corrida, hasta 200 por board (los más recientes; el informe cuenta los recortados); la retención de 30 días cuenta desde la última vez que la fuente lo devolvió. No escribe en la base.
 
 ## A verificar contra la fuente real
 - Que el id del aviso venga en `id` o, si no, que el final de `jobUrl` sea estable.

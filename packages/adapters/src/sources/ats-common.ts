@@ -206,7 +206,6 @@ export type AtsBoardOptions = {
   region?: string | null;
   /** `company_name` del board: va a `companyRaw`. */
   companyName: string;
-  since: Date;
   userAgent?: string;
   fetchImpl?: typeof fetch;
   sleep?: (ms: number) => Promise<void>;
@@ -226,7 +225,12 @@ export type AtsBoardResult = {
   seen: number;
   /** `ok`, o `not_found` si el board no existe (sin excepción). */
   status: "ok" | "not_found";
+  /** Remotos que quedaron afuera por `ATS_MAX_JOBS_PER_BOARD` (0 si ninguno). */
+  truncated: number;
 };
+
+/** Tope de avisos por board y por corrida: quedan los más recientes. */
+export const ATS_MAX_JOBS_PER_BOARD = 200;
 
 export const emptyBoardResult = (status: "ok" | "not_found"): AtsBoardResult => ({
   jobs: [],
@@ -234,6 +238,7 @@ export const emptyBoardResult = (status: "ok" | "not_found"): AtsBoardResult => 
   skipped: 0,
   seen: 0,
   status,
+  truncated: 0,
 });
 
 /** Texto plano desde HTML que puede venir con las etiquetas escapadas (`&lt;p&gt;`), como Greenhouse. */
@@ -385,6 +390,19 @@ export function buildAtsRawJob(p: AtsJobParts): RawJob {
   };
 }
 
+/** Topes de ubicaciones por aviso: una lista enorme no infla `locationRaw` ni el filtro de remotos. */
+export const ATS_MAX_LOCATIONS = 20;
+export const ATS_MAX_LOCATION_CHARS = 500;
+
+/**
+ * Une la ubicación principal con las secundarias, sin repetidos, con "; ". Máximo
+ * `ATS_MAX_LOCATIONS` secundarias y `ATS_MAX_LOCATION_CHARS` caracteres. `null` si queda vacío.
+ */
+export function joinAtsLocations(primary: string, others: readonly string[]): string | null {
+  const parts = [primary, ...others.slice(0, ATS_MAX_LOCATIONS)].filter(Boolean);
+  return [...new Set(parts)].join("; ").slice(0, ATS_MAX_LOCATION_CHARS) || null;
+}
+
 /** Solo http(s): una URL de otro esquema no se guarda como enlace al aviso. */
 export function httpUrl(value: unknown): string | null {
   const v = text(value);
@@ -412,7 +430,7 @@ export type AtsMapped =
 
 /**
  * Descarga un board y lo pasa por el mismo embudo en los tres proveedores: estructura →
- * (no listado) → remoto → ventana de fecha → dedup. 404 → `status: "not_found"`, sin excepción;
+ * (no listado) → remoto → dedup → tope por board (sin ventana de fecha). 404 → `status: "not_found"`, sin excepción;
  * el resto de los fallos lanzan `AtsBoardError` / `HTTP n` (ver `atsStatusOf`).
  */
 export async function fetchAtsBoard(
@@ -456,16 +474,23 @@ export async function fetchAtsBoard(
       result.filteredNonRemote++;
       continue;
     }
-    if (!inWindow(mapped.raw.postedAt, options.since)) continue;
     const id = mapped.raw.source.externalId!;
     if (!byId.has(id)) byId.set(id, mapped.raw);
   }
-  result.jobs = [...byId.values()];
+  const all = [...byId.values()];
   if (provider === "ashby") result.unlisted = unlisted;
+  if (all.length <= ATS_MAX_JOBS_PER_BOARD) {
+    result.jobs = all;
+    return result;
+  }
+  // Más recientes primero; sin fecha al final. `sort` es estable: a igual fecha, el orden de la respuesta.
+  const time = (j: RawJob) => j.postedAt?.getTime() ?? -Infinity;
+  const sorted = all.sort((a, b) => {
+    const ta = time(a);
+    const tb = time(b);
+    return ta === tb ? 0 : ta < tb ? 1 : -1;
+  });
+  result.jobs = sorted.slice(0, ATS_MAX_JOBS_PER_BOARD);
+  result.truncated = sorted.length - ATS_MAX_JOBS_PER_BOARD;
   return result;
-}
-
-/** `postedAt` anterior a `since` se descarta; sin fecha se conserva. */
-export function inWindow(postedAt: Date | null, since: Date): boolean {
-  return !postedAt || postedAt.getTime() >= since.getTime();
 }
