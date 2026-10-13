@@ -12,8 +12,9 @@ import { COUNTRY_TO_ISO, countryToIso, htmlToText } from "./getonboard";
  *   `source.url` es la URL de la fuente tal cual y quien muestre el aviso debe decir "Jobicy" y
  *   enlazar a ella. No presentar los avisos como propios.
  * - `externalId` es el id de la fuente sin prefijo: la unicidad la da `source.kind`.
- * - Salario: solo USD llena los campos que lee `decide()`; otra moneda o sin moneda va en `salaryNote`
- *   (D-017: lo que la fuente no dice no se supone).
+ * - Salario: solo USD con período claro llena los campos que lee `decide()`; otra moneda, sin moneda
+ *   o período desconocido va en `salaryNote` (D-017: lo que la fuente no dice no se supone). Se lee
+ *   `salaryMin`/`salaryMax`/`salaryPeriod` y, si no están, `annualSalaryMin`/`annualSalaryMax`.
  */
 export const JOBICY_BASE_URL = "https://jobicy.com/api/v2/remote-jobs";
 
@@ -29,6 +30,9 @@ export type JobicyItem = {
   jobDescription?: string;
   pubDate?: string;
   salaryCurrency?: string;
+  salaryMin?: number | string;
+  salaryMax?: number | string;
+  salaryPeriod?: string;
   annualSalaryMin?: number | string;
   annualSalaryMax?: number | string;
   [key: string]: unknown;
@@ -54,6 +58,43 @@ function slugify(value: string): string {
 function positiveNumber(value: unknown): number | null {
   const n = typeof value === "string" ? Number(value.trim()) : value;
   return typeof n === "number" && Number.isFinite(n) && n > 0 ? n : null;
+}
+
+type SalaryPeriod = "mensual" | "anual" | "hora";
+
+/**
+ * Sueldo del aviso. Dos formas del payload: `salaryMin`/`salaryMax`/`salaryPeriod` (la API v2 actual)
+ * y `annualSalaryMin`/`annualSalaryMax` (la anterior, siempre anual). Gana la primera si trae algún
+ * número. `year`/`annual` → anual, `month` → mensual, `hour` → hora; otro período, o ninguno, deja
+ * `period` en null y el sueldo va a `salaryNote` (D-017: lo que la fuente no dice no se supone).
+ */
+function salaryOf(item: JobicyItem): {
+  min: number | null;
+  max: number | null;
+  period: SalaryPeriod | null;
+  periodLabel: string;
+} {
+  const min = positiveNumber(item.salaryMin);
+  const max = positiveNumber(item.salaryMax);
+  if (min === null && max === null) {
+    return {
+      min: positiveNumber(item.annualSalaryMin),
+      max: positiveNumber(item.annualSalaryMax),
+      period: "anual",
+      periodLabel: "por año",
+    };
+  }
+  const raw = typeof item.salaryPeriod === "string" ? item.salaryPeriod.trim().toLowerCase() : "";
+  if (/^(year|yearly|annual|annually)$/.test(raw)) {
+    return { min, max, period: "anual", periodLabel: "por año" };
+  }
+  if (/^(month|monthly)$/.test(raw)) {
+    return { min, max, period: "mensual", periodLabel: "por mes" };
+  }
+  if (/^(hour|hourly)$/.test(raw)) {
+    return { min, max, period: "hora", periodLabel: "por hora" };
+  }
+  return { min, max, period: null, periodLabel: "(período no indicado)" };
 }
 
 /**
@@ -98,14 +139,13 @@ export function mapJobicyJob(item: JobicyItem): RawJob | null {
   if (!id || !url || !title) return null;
 
   const { locationRaw, countriesAllowed } = geoOf(item.jobGeo);
-  const min = positiveNumber(item.annualSalaryMin);
-  const max = positiveNumber(item.annualSalaryMax);
+  const { min, max, period, periodLabel } = salaryOf(item);
   const hasSalary = min !== null || max !== null;
   const currency =
     typeof item.salaryCurrency === "string" && item.salaryCurrency.trim()
       ? item.salaryCurrency.trim().toUpperCase()
       : null;
-  const isUsd = hasSalary && currency === "USD";
+  const isUsd = hasSalary && currency === "USD" && period !== null;
 
   const jobType = strings(item.jobType).filter(Boolean);
   const industries = [...new Set(strings(item.jobIndustry).map(slugify).filter(Boolean))];
@@ -129,10 +169,10 @@ export function mapJobicyJob(item: JobicyItem): RawJob | null {
     contractType: jobType.length ? jobType.join(", ") : null,
     salaryMinUsd: isUsd ? min : null,
     salaryMaxUsd: isUsd ? max : null,
-    salaryPeriod: isUsd ? "anual" : null,
+    salaryPeriod: isUsd ? period : null,
     salaryNote:
       hasSalary && !isUsd
-        ? `${currency ?? "moneda no indicada"} ${min ?? "?"}–${max ?? "?"} por año según Jobicy`
+        ? `${currency ?? "moneda no indicada"} ${min ?? "?"}–${max ?? "?"} ${periodLabel} según Jobicy`
         : null,
     weeklyHours: null,
     candidatesCount: null,

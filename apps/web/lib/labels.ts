@@ -25,6 +25,10 @@ export const SOURCE_LABELS: Record<string, string> = {
   remoteok: "Remote OK",
   jobicy: "Jobicy",
   himalayas: "Himalayas",
+  wwr: "We Work Remotely",
+  greenhouse: "Greenhouse",
+  lever: "Lever",
+  ashby: "Ashby",
   other: "Otra",
 };
 

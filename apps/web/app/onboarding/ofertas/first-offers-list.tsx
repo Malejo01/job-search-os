@@ -1,10 +1,18 @@
 import { AutoRefresh } from "@/app/(app)/jobs/auto-refresh";
 import type { FirstOffer } from "@/lib/first-offers";
 import { formatScore, safeHttpUrl, SOURCE_LABELS } from "@/lib/labels";
+import { attributionFor } from "@job-search-os/pipeline";
 
-/** Nombre de la fuente para «Publicado en …»: el de SOURCE_LABELS; sin fuente conocida, texto neutro. */
-function sourceLabel(kind: string | null): string {
-  return (kind && SOURCE_LABELS[kind]) || "la fuente original";
+/**
+ * Texto de la atribución: el de `attributionFor` (los ATS nombran la empresa del aviso); si la
+ * fuente no tiene uno, «Publicado en …» con el nombre de SOURCE_LABELS o un texto neutro.
+ */
+function attributionText(offer: FirstOffer): string {
+  const attribution = offer.sourceKind
+    ? attributionFor(offer.sourceKind, { company: offer.company })
+    : null;
+  if (attribution) return attribution.text;
+  return `Publicado en ${(offer.sourceKind && SOURCE_LABELS[offer.sourceKind]) || "la fuente original"}`;
 }
 
 function ScoreBadge({ offer }: { offer: FirstOffer }) {
@@ -52,7 +60,7 @@ export function FirstOffersList({ offers }: { offers: FirstOffer[] }) {
                 <ScoreBadge offer={o} />
               </div>
               <p className="text-xs text-zinc-600">
-                Publicado en {sourceLabel(o.sourceKind)}
+                {attributionText(o)}
                 {url ? (
                   <>
                     {" · "}

@@ -1,0 +1,2 @@
+ALTER TABLE "ats_boards" ADD CONSTRAINT "ats_boards_token_check" CHECK ("ats_boards"."token" ~* '^[a-z0-9][a-z0-9._-]{0,99}$');--> statement-breakpoint
+ALTER TABLE "ats_boards" ADD CONSTRAINT "ats_boards_region_check" CHECK ("ats_boards"."region" is null or ("ats_boards"."provider" = 'lever' and "ats_boards"."region" = 'eu'));

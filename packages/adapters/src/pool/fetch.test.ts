@@ -2,6 +2,7 @@ import type { RawJob } from "@job-search-os/pipeline";
 import { describe, expect, it, vi } from "vitest";
 import type { Logger } from "../logger";
 import {
+  atsDownloader,
   parsePoolBackfillDays,
   parsePoolSources,
   poolErrorCode,
@@ -11,6 +12,8 @@ import {
   POOL_MIN_INTERVAL_MS,
   POOL_SOURCE_KIND,
   runPoolFetch,
+  type PoolBoard,
+  type PoolBoardOutcome,
   type PoolDownloaders,
   type PoolFetchFinish,
   type PoolFetchHistory,
@@ -46,7 +49,17 @@ function downloaders(partial: Partial<PoolDownloaders>): PoolDownloaders {
   const none = vi.fn(async () => {
     throw new Error("no debería llamarse");
   });
-  return { getonboard: none, remoteok: none, jobicy: none, himalayas: none, ...partial };
+  return {
+    getonboard: none,
+    remoteok: none,
+    jobicy: none,
+    himalayas: none,
+    wwr: none,
+    greenhouse: none,
+    lever: none,
+    ashby: none,
+    ...partial,
+  };
 }
 
 type Recorded = { id: string; source: PoolSourceName; startedAt: Date; finish?: PoolFetchFinish };
@@ -69,6 +82,9 @@ function makeDeps(
     recordFinish: vi.fn(async (id, finish) => {
       rows.find((r) => r.id === id)!.finish = finish;
     }),
+    lastAttempts: vi.fn(async () => ({})),
+    loadBoards: vi.fn(async () => []),
+    updateBoards: vi.fn(async () => {}),
     ...over,
   };
   return { deps, rows };
@@ -82,8 +98,16 @@ describe("parsePoolSources", () => {
     expect(parsePoolSources(undefined)).toEqual({ enabled: [], unknown: [] });
   });
 
-  it("las recomendadas son tres y no incluyen Himalayas", () => {
-    expect([...POOL_RECOMMENDED_SOURCES]).toEqual(["getonboard", "remoteok", "jobicy"]);
+  it("las recomendadas son siete y no incluyen Himalayas", () => {
+    expect([...POOL_RECOMMENDED_SOURCES]).toEqual([
+      "getonboard",
+      "remoteok",
+      "jobicy",
+      "wwr",
+      "greenhouse",
+      "lever",
+      "ashby",
+    ]);
   });
 
   it("vacío o solo espacios → ninguna", () => {
@@ -107,6 +131,10 @@ describe("POOL_SOURCE_KIND", () => {
       remoteok: "remoteok",
       jobicy: "jobicy",
       himalayas: "himalayas",
+      wwr: "wwr",
+      greenhouse: "greenhouse",
+      lever: "lever",
+      ashby: "ashby",
     });
   });
 });
@@ -561,5 +589,448 @@ describe("runPoolFetch", () => {
     const { deps } = makeDeps();
     const out = await runPoolFetch({ ...base, enabled: [], downloaders: downloaders({}) }, deps);
     expect(out).toMatchObject({ ok: true, sources: [] });
+  });
+});
+
+describe("runPoolFetch · fuentes ATS (boards de ats_boards)", () => {
+  const board = (token: string) => ({
+    id: `id-${token}`,
+    token,
+    region: null,
+    companyName: `Empresa ${token}`,
+  });
+  const outcome = (token: string, status: PoolBoardOutcome["status"], fetched = 0) => ({
+    id: `id-${token}`,
+    token,
+    status,
+    fetched,
+  });
+
+  it("wwr y los ATS tienen su kind, 5 h de intervalo y están recomendados", () => {
+    for (const n of ["wwr", "greenhouse", "lever", "ashby"] as const) {
+      expect(POOL_SOURCE_KIND[n]).toBe(n);
+      expect(POOL_MIN_INTERVAL_MS[n]).toBe(5 * 3_600_000);
+      expect(POOL_RECOMMENDED_SOURCES).toContain(n);
+    }
+    expect(parsePoolSources("WWR, Greenhouse,lever,ashby").enabled).toEqual([
+      "wwr",
+      "greenhouse",
+      "lever",
+      "ashby",
+    ]);
+  });
+
+  it("sin boards → skipped sin_boards, sin descargar ni registrar la corrida", async () => {
+    const greenhouse = vi.fn();
+    const { deps, rows } = makeDeps({}, { loadBoards: vi.fn(async () => []) });
+    const out = await runPoolFetch(
+      { ...base, enabled: ["greenhouse"], downloaders: downloaders({ greenhouse }) },
+      deps,
+    );
+    expect(out.sources).toEqual([
+      { name: "greenhouse", status: "skipped", fetched: 0, skipped: "sin_boards" },
+    ]);
+    expect(greenhouse).not.toHaveBeenCalled();
+    expect(rows).toHaveLength(0);
+    expect(out.ok).toBe(true);
+  });
+
+  it("pasa los boards al descargador y actualiza solo los intentados, con código cerrado", async () => {
+    const boards = [board("a"), board("b")];
+    const lever = vi.fn(async (args: { boards?: readonly unknown[] }) => ({
+      jobs: [job("1")],
+      partialError: null,
+      boards: [outcome("a", "ok", 1), outcome("b", "ok", 0)],
+      args,
+    }));
+    const updateBoards = vi.fn(async () => {});
+    const { deps } = makeDeps({}, { loadBoards: vi.fn(async () => boards), updateBoards });
+    const out = await runPoolFetch(
+      { ...base, enabled: ["lever"], downloaders: downloaders({ lever: lever as never }) },
+      deps,
+    );
+    expect(deps.loadBoards).toHaveBeenCalledWith("lever");
+    expect(lever.mock.calls[0]![0].boards).toEqual(boards);
+    expect(updateBoards).toHaveBeenCalledWith(
+      [
+        { id: "id-a", status: "ok" },
+        { id: "id-b", status: "ok" },
+      ],
+      expect.any(Date),
+    );
+    expect(out.sources[0]).toMatchObject({ name: "lever", status: "ok", fetched: 1 });
+  });
+
+  it("un board que falla deja la fuente partial, con su código, sin cortar a los demás", async () => {
+    const ashby = vi.fn(async () => ({
+      jobs: [job("1")],
+      partialError: "http_4xx" as const,
+      boards: [outcome("a", "not_found"), outcome("b", "ok", 1)],
+    }));
+    const updateBoards = vi.fn(async () => {});
+    const { deps, rows } = makeDeps(
+      {},
+      { loadBoards: vi.fn(async () => [board("a"), board("b")]), updateBoards },
+    );
+    const out = await runPoolFetch(
+      { ...base, enabled: ["ashby"], downloaders: downloaders({ ashby }) },
+      deps,
+    );
+    expect(deps.upsert).toHaveBeenCalledTimes(1);
+    expect(out.sources[0]).toMatchObject({ status: "partial", error: "http_4xx" });
+    expect(rows[0]!.finish).toMatchObject({ status: "partial", errorCode: "http_4xx" });
+    expect(updateBoards).toHaveBeenCalledWith(
+      [
+        { id: "id-a", status: "not_found" },
+        { id: "id-b", status: "ok" },
+      ],
+      expect.any(Date),
+    );
+  });
+
+  it("fallaron todos los boards → error", async () => {
+    const greenhouse = vi.fn(async () => ({
+      jobs: [],
+      partialError: "timeout" as const,
+      boards: [outcome("a", "timeout"), outcome("b", "http_5xx")],
+    }));
+    const { deps, rows } = makeDeps(
+      {},
+      { loadBoards: vi.fn(async () => [board("a"), board("b")]) },
+    );
+    const out = await runPoolFetch(
+      { ...base, enabled: ["greenhouse"], downloaders: downloaders({ greenhouse }) },
+      deps,
+    );
+    expect(out.sources[0]).toMatchObject({ status: "error", error: "timeout" });
+    expect(rows[0]!.finish).toMatchObject({ status: "error", errorCode: "timeout" });
+    expect(out.ok).toBe(false);
+  });
+
+  it("boards sin intentar por tiempo → partial con stopped; solo se actualizan los intentados", async () => {
+    const greenhouse = vi.fn(async () => ({
+      jobs: [],
+      partialError: null,
+      boards: [outcome("a", "ok")],
+      stopped: true,
+    }));
+    const updateBoards = vi.fn(async () => {});
+    const { deps } = makeDeps(
+      {},
+      { loadBoards: vi.fn(async () => [board("a"), board("b")]), updateBoards },
+    );
+    const out = await runPoolFetch(
+      { ...base, enabled: ["greenhouse"], downloaders: downloaders({ greenhouse }) },
+      deps,
+    );
+    expect(out.sources[0]).toMatchObject({ status: "partial", stopped: true });
+    expect(updateBoards).toHaveBeenCalledWith([{ id: "id-a", status: "ok" }], expect.any(Date));
+  });
+
+  it("el log lleva token y conteos por board, no títulos", async () => {
+    const info = vi.fn();
+    const log = { info, warn: vi.fn(), error: vi.fn(), child: () => log } as unknown as Logger;
+    const greenhouse = vi.fn(async () => ({
+      jobs: [{ source: { externalId: "x" }, title: "Titulo Secreto" } as unknown as RawJob],
+      boards: [outcome("a", "ok", 1)],
+    }));
+    const { deps } = makeDeps({}, { loadBoards: vi.fn(async () => [board("a")]) });
+    await runPoolFetch(
+      { ...base, logger: log, enabled: ["greenhouse"], downloaders: downloaders({ greenhouse }) },
+      deps,
+    );
+    expect(info).toHaveBeenCalledWith(
+      { source: "greenhouse", token: "a", status: "ok", jobs: 1 },
+      "pool: board",
+    );
+    expect(JSON.stringify(info.mock.calls)).not.toContain("Titulo Secreto");
+  });
+
+  it("shouldStop se activa al acercarse al tope de la fuente", async () => {
+    let t = 0;
+    const seen: boolean[] = [];
+    const lever = vi.fn(async (args: { shouldStop?: () => boolean }) => {
+      seen.push(args.shouldStop!());
+      t = 29_000;
+      seen.push(args.shouldStop!());
+      return { jobs: [], boards: [outcome("a", "ok")] };
+    });
+    const { deps } = makeDeps({}, { loadBoards: vi.fn(async () => [board("a")]) });
+    await runPoolFetch(
+      {
+        ...base,
+        enabled: ["lever"],
+        clock: () => t,
+        downloaders: downloaders({ lever: lever as never }),
+      },
+      deps,
+    );
+    expect(seen).toEqual([false, true]);
+  });
+});
+
+describe("atsDownloader", () => {
+  const args = (boards: PoolBoard[], shouldStop?: () => boolean) => ({
+    since: NOW,
+    fetchImpl: vi.fn() as never,
+    userAgent: "UA",
+    boards,
+    shouldStop,
+  });
+  const b = (token: string) => ({
+    id: token,
+    token,
+    region: null,
+    companyName: "Empresa Ficticia 1",
+  });
+
+  it("un board que lanza no corta a los demás y queda con su código cerrado", async () => {
+    const fetchImpl = vi.fn(async (url: string) => {
+      if (url.includes("/malo/")) return new Response("", { status: 403 });
+      return new Response(JSON.stringify({ jobs: [] }));
+    });
+    const out = (await atsDownloader("greenhouse")({
+      ...args([b("malo"), b("bueno")]),
+      fetchImpl: fetchImpl as never,
+    })) as Exclude<Awaited<ReturnType<ReturnType<typeof atsDownloader>>>, RawJob[]>;
+    expect(out.boards).toEqual([
+      { id: "malo", token: "malo", status: "http_4xx", fetched: 0 },
+      { id: "bueno", token: "bueno", status: "ok", fetched: 0 },
+    ]);
+    expect(out.partialError).toBe("http_4xx");
+  });
+
+  it("se detiene cuando shouldStop lo pide y no toca los boards restantes", async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ jobs: [] })));
+    let calls = 0;
+    const out = (await atsDownloader("ashby")({
+      ...args([b("a"), b("b"), b("c")], () => calls++ >= 1),
+      fetchImpl: fetchImpl as never,
+    })) as Exclude<Awaited<ReturnType<ReturnType<typeof atsDownloader>>>, RawJob[]>;
+    expect(out.boards).toHaveLength(1);
+    expect(out.stopped).toBe(true);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("sin boards no hace nada", async () => {
+    const out = await atsDownloader("lever")(args([]));
+    expect(out).toMatchObject({ jobs: [], boards: [], stopped: false });
+  });
+
+  it("not_found e invalid_token no cuentan como fallo de la fuente; los transitorios sí", async () => {
+    const fetchImpl = vi.fn(async (url: string) => {
+      if (url.includes("/roto/")) return new Response("", { status: 404 });
+      if (url.includes("/lento/")) return new Response("", { status: 403 });
+      return new Response(JSON.stringify({ jobs: [] }));
+    });
+    const run = async (boards: PoolBoard[]) =>
+      (await atsDownloader("greenhouse")({
+        ...args(boards),
+        fetchImpl: fetchImpl as never,
+      })) as Exclude<Awaited<ReturnType<ReturnType<typeof atsDownloader>>>, RawJob[]>;
+    const soloRoto = await run([b("roto"), b("bueno")]);
+    expect(soloRoto.boards?.map((o) => o.status)).toEqual(["not_found", "ok"]);
+    expect(soloRoto.partialError).toBeNull();
+    const malToken = await run([b("../x"), b("bueno")]);
+    expect(malToken.boards?.[0]!.status).toBe("invalid_token");
+    expect(malToken.partialError).toBeNull();
+    const mixto = await run([b("roto"), b("lento")]);
+    expect(mixto.partialError).toBe("http_4xx");
+  });
+});
+
+describe("runPoolFetch · boards rotos, orden y updateBoards", () => {
+  const brd = (token: string, over: Partial<PoolBoard> = {}): PoolBoard => ({
+    id: `id-${token}`,
+    token,
+    region: null,
+    companyName: `Empresa ${token}`,
+    ...over,
+  });
+
+  it("si todos los boards son permanentes (not_found) la fuente queda ok", async () => {
+    const lever = vi.fn(async () => ({
+      jobs: [],
+      partialError: null,
+      boards: [{ id: "id-a", token: "a", status: "not_found" as const, fetched: 0 }],
+    }));
+    const { deps } = makeDeps({}, { loadBoards: vi.fn(async () => [brd("a")]) });
+    const out = await runPoolFetch(
+      { ...base, enabled: ["lever"], downloaders: downloaders({ lever: lever as never }) },
+      deps,
+    );
+    expect(out.sources[0]).toMatchObject({ status: "ok" });
+    expect(deps.updateBoards).toHaveBeenCalledWith(
+      [{ id: "id-a", status: "not_found" }],
+      expect.any(Date),
+    );
+  });
+
+  it("un board not_found de hace menos de 24 h se saltea; de más de 24 h se reintenta", async () => {
+    const lever = vi.fn(async () => ({ jobs: [], partialError: null, boards: [] }));
+    const { deps } = makeDeps(
+      {},
+      {
+        loadBoards: vi.fn(async () => [
+          brd("reciente", { lastStatus: "not_found", lastFetchAt: hoursAgo(2) }),
+          brd("viejo", { lastStatus: "not_found", lastFetchAt: hoursAgo(25) }),
+          brd("sano", { lastStatus: "ok", lastFetchAt: hoursAgo(1) }),
+          brd("nuevo", { lastStatus: null, lastFetchAt: null }),
+        ]),
+      },
+    );
+    await runPoolFetch(
+      { ...base, enabled: ["lever"], downloaders: downloaders({ lever: lever as never }) },
+      deps,
+    );
+    const passed = (lever.mock.calls[0] as unknown as [{ boards: PoolBoard[] }])[0].boards;
+    expect(passed.map((x) => x.token)).toEqual(["viejo", "sano", "nuevo"]);
+  });
+
+  it("si solo quedan boards rotos recientes → skipped sin_boards", async () => {
+    const lever = vi.fn();
+    const { deps } = makeDeps(
+      {},
+      {
+        loadBoards: vi.fn(async () => [
+          brd("a", { lastStatus: "invalid_token", lastFetchAt: hoursAgo(3) }),
+        ]),
+      },
+    );
+    const out = await runPoolFetch(
+      { ...base, enabled: ["lever"], downloaders: downloaders({ lever }) },
+      deps,
+    );
+    expect(out.sources[0]).toMatchObject({ status: "skipped", skipped: "sin_boards" });
+    expect(lever).not.toHaveBeenCalled();
+  });
+
+  it("updateBoards va después del upsert: si el upsert falla, last_fetch_at no avanza", async () => {
+    const lever = vi.fn(async () => ({
+      jobs: [job("1")],
+      partialError: null,
+      boards: [{ id: "id-a", token: "a", status: "ok" as const, fetched: 1 }],
+    }));
+    const order: string[] = [];
+    const { deps } = makeDeps(
+      {},
+      {
+        loadBoards: vi.fn(async () => [brd("a")]),
+        upsert: vi.fn(async () => {
+          order.push("upsert");
+          throw new Error("db caída");
+        }),
+        updateBoards: vi.fn(async () => {
+          order.push("update");
+        }),
+      },
+    );
+    const out = await runPoolFetch(
+      { ...base, enabled: ["lever"], downloaders: downloaders({ lever: lever as never }) },
+      deps,
+    );
+    expect(out.sources[0]).toMatchObject({ status: "error" });
+    expect(order).toEqual(["upsert"]);
+
+    const ok = makeDeps({}, { loadBoards: vi.fn(async () => [brd("a")]) });
+    ok.deps.upsert = vi.fn(async (raws) => {
+      order.push("upsert-ok");
+      return summary(raws.length);
+    });
+    ok.deps.updateBoards = vi.fn(async () => {
+      order.push("update-ok");
+    });
+    await runPoolFetch(
+      { ...base, enabled: ["lever"], downloaders: downloaders({ lever: lever as never }) },
+      ok.deps,
+    );
+    expect(order.slice(1)).toEqual(["upsert-ok", "update-ok"]);
+  });
+
+  it("corre primero la fuente con el intento más viejo (nunca intentada, antes que todas)", async () => {
+    const called: string[] = [];
+    const mk = (n: string) =>
+      vi.fn(async () => {
+        called.push(n);
+        return [job(n)];
+      });
+    const { deps } = makeDeps(
+      {},
+      {
+        lastAttempts: vi.fn(async () => ({
+          remoteok: hoursAgo(1),
+          jobicy: hoursAgo(9),
+          getonboard: hoursAgo(5),
+          himalayas: null,
+        })),
+      },
+    );
+    const out = await runPoolFetch(
+      {
+        ...base,
+        enabled: ["getonboard", "remoteok", "jobicy", "himalayas"],
+        downloaders: downloaders({
+          getonboard: mk("getonboard"),
+          remoteok: mk("remoteok"),
+          jobicy: mk("jobicy"),
+          himalayas: mk("himalayas"),
+        }),
+      },
+      deps,
+    );
+    expect(called).toEqual(["himalayas", "jobicy", "getonboard", "remoteok"]);
+    expect(out.sources.map((x) => x.name)).toEqual(called);
+  });
+
+  it("empate o sin historial conserva el orden configurado; si lastAttempts falla, también", async () => {
+    const called: string[] = [];
+    const mk = (n: string) =>
+      vi.fn(async () => {
+        called.push(n);
+        return [job(n)];
+      });
+    const { deps } = makeDeps(
+      {},
+      {
+        lastAttempts: vi.fn(async () => {
+          throw new Error("x");
+        }),
+      },
+    );
+    await runPoolFetch(
+      {
+        ...base,
+        enabled: ["remoteok", "jobicy"],
+        downloaders: downloaders({ remoteok: mk("remoteok"), jobicy: mk("jobicy") }),
+      },
+      deps,
+    );
+    expect(called).toEqual(["remoteok", "jobicy"]);
+  });
+
+  it("sin presupuesto, las fuentes salteadas son las del final del orden (las más recientes)", async () => {
+    let t = 0;
+    const slow = vi.fn(async () => {
+      t = 50_000;
+      return [job("1")];
+    });
+    const { deps } = makeDeps(
+      {},
+      { lastAttempts: vi.fn(async () => ({ remoteok: hoursAgo(1), jobicy: hoursAgo(8) })) },
+    );
+    const out = await runPoolFetch(
+      {
+        ...base,
+        enabled: ["remoteok", "jobicy"],
+        budgetMs: 45_000,
+        clock: () => t,
+        downloaders: downloaders({ remoteok: vi.fn(), jobicy: slow }),
+      },
+      deps,
+    );
+    expect(out.sources.map((x) => [x.name, x.status])).toEqual([
+      ["jobicy", "ok"],
+      ["remoteok", "skipped"],
+    ]);
   });
 });

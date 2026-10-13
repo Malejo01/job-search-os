@@ -27,10 +27,8 @@ const fakeFetch = (async () =>
     status: 200,
   })) as unknown as typeof fetch;
 const downloaders = (() => {
-  const none = async () => [];
   return {
-    wwr: async () => gob.map((i) => mapGobJob(i, "fake")),
-    torre: none,
+    torre: async () => gob.map((i) => mapGobJob(i, "fake")),
   };
 })() as ExtraSourceDownloaders;
 
@@ -109,7 +107,7 @@ describe("ingesta de un solo usuario", () => {
     const r = await runExtraSourcesIngest({
       ...common,
       userId: USER_A,
-      enabled: ["wwr"],
+      enabled: ["torre"],
       downloaders,
     });
     expect(r.sources[0]?.status).toBe("ok");
@@ -124,7 +122,7 @@ describe("ingesta de un solo usuario", () => {
     await conn.db.delete(s.jobs).where(eq(s.jobs.userId, USER_A));
     await conn.db.delete(s.jobs).where(eq(s.jobs.userId, USER_B));
 
-    const r = await runExtraSourcesIngest({ ...common, enabled: ["wwr"], downloaders });
+    const r = await runExtraSourcesIngest({ ...common, enabled: ["torre"], downloaders });
     expect(r.sources[0]?.users).toBe(2);
     expect((await jobsOf(USER_A)).length).toBeGreaterThan(0);
     expect((await jobsOf(USER_B)).length).toBeGreaterThan(0);

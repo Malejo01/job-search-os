@@ -15,6 +15,10 @@ const SOURCE_KINDS = [
   "remoteok",
   "jobicy",
   "himalayas",
+  "wwr",
+  "greenhouse",
+  "lever",
+  "ashby",
 ] as const;
 
 describe("SOURCE_ATTRIBUTION", () => {
@@ -55,5 +59,36 @@ describe("attributionFor", () => {
     expect(attributionFor("constructor")).toBeNull();
     expect(attributionFor("manual")).toBeNull();
     expect(attributionFor("jobicy")?.name).toBe("Jobicy");
+  });
+
+  it("WWR: Publicado en We Work Remotely", () => {
+    expect(attributionFor("wwr")?.text).toBe("Publicado en We Work Remotely");
+  });
+
+  it("ATS: nombra la empresa del aviso", () => {
+    for (const kind of ["greenhouse", "lever", "ashby"]) {
+      expect(attributionFor(kind, { company: "Empresa Ficticia 9" })?.text).toBe(
+        "Publicado en el sitio de empleos de Empresa Ficticia 9",
+      );
+    }
+  });
+
+  it("ATS: sin empresa dice 'la empresa'", () => {
+    for (const company of [undefined, null, "", "   "]) {
+      expect(attributionFor("greenhouse", { company })?.text).toBe(
+        "Publicado en el sitio de empleos de la empresa",
+      );
+    }
+    expect(attributionFor("lever")?.text).toBe("Publicado en el sitio de empleos de la empresa");
+  });
+
+  it("ATS: el nombre no rompe el reemplazo ni crece sin tope", () => {
+    expect(attributionFor("ashby", { company: "A $& B" })?.text).toContain("A $& B");
+    expect(attributionFor("ashby", { company: "x".repeat(500) })?.text.length).toBeLessThan(150);
+  });
+
+  it("las demás fuentes ignoran la empresa", () => {
+    expect(attributionFor("jobicy", { company: "Empresa A" })?.text).toBe("Publicado en Jobicy");
+    expect(attributionFor("manual", { company: "Empresa A" })).toBeNull();
   });
 });

@@ -125,6 +125,71 @@ describe("Jobicy: contrato con una respuesta de ejemplo (formato a verificar)", 
     expect(raw.salaryNote).toBeNull();
   });
 
+  describe("sueldo: salaryMin/salaryMax/salaryPeriod y annualSalaryMin/annualSalaryMax", () => {
+    const base = {
+      ...anywhere,
+      annualSalaryMin: undefined,
+      annualSalaryMax: undefined,
+      salaryCurrency: "USD",
+    };
+
+    it.each([
+      ["year", "anual"],
+      ["annual", "anual"],
+      ["month", "mensual"],
+      ["hour", "hora"],
+      ["Hour", "hora"],
+    ] as const)("USD con período %s → %s", (period, expected) => {
+      const raw = mapJobicyJob({
+        ...base,
+        salaryMin: 4000,
+        salaryMax: "5000",
+        salaryPeriod: period,
+      })!;
+      expect(raw.salaryMinUsd).toBe(4000);
+      expect(raw.salaryMaxUsd).toBe(5000);
+      expect(raw.salaryPeriod).toBe(expected);
+      expect(raw.salaryNote).toBeNull();
+    });
+
+    it("período desconocido o ausente → solo salaryNote", () => {
+      for (const salaryPeriod of ["week", "", undefined]) {
+        const raw = mapJobicyJob({ ...base, salaryMin: 111, salaryMax: 222, salaryPeriod })!;
+        expect(raw.salaryMinUsd).toBeNull();
+        expect(raw.salaryMaxUsd).toBeNull();
+        expect(raw.salaryPeriod).toBeNull();
+        expect(raw.salaryNote).toBe("USD 111–222 (período no indicado) según Jobicy");
+      }
+    });
+
+    it("otra moneda con período claro → solo salaryNote, con el período", () => {
+      const raw = mapJobicyJob({
+        ...base,
+        salaryCurrency: "EUR",
+        salaryMin: 30,
+        salaryPeriod: "hour",
+      })!;
+      expect(raw.salaryMinUsd).toBeNull();
+      expect(raw.salaryNote).toBe("EUR 30–? por hora según Jobicy");
+    });
+
+    it("sin salaryMin/salaryMax usa la forma annual*; la primera forma gana si trae números", () => {
+      const annual = mapJobicyJob({ ...base, annualSalaryMin: 50000, annualSalaryMax: 70000 })!;
+      expect(annual.salaryPeriod).toBe("anual");
+      expect(annual.salaryMinUsd).toBe(50000);
+      const both = mapJobicyJob({
+        ...base,
+        salaryMin: 20,
+        salaryMax: 30,
+        salaryPeriod: "hour",
+        annualSalaryMin: 50000,
+        annualSalaryMax: 70000,
+      })!;
+      expect(both.salaryPeriod).toBe("hora");
+      expect(both.salaryMinUsd).toBe(20);
+    });
+  });
+
   it("sin url, sin id o sin título → null (falla cerrado)", () => {
     expect(mapJobicyJob(noUrl)).toBeNull();
     expect(mapJobicyJob({ ...anywhere, id: undefined })).toBeNull();

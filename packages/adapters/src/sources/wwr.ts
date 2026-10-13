@@ -1,4 +1,5 @@
 import type { RawJob } from "@job-search-os/pipeline";
+import { sourceErrorCode, type SourceErrorCode } from "./error-code";
 import { htmlToText } from "./getonboard";
 
 /**
@@ -10,12 +11,22 @@ import { htmlToText } from "./getonboard";
  * - Parseo mínimo sin dependencias; un item sin title/link/pubDate se saltea (falla cerrado por item).
  */
 export const WWR_BASE_URL = "https://weworkremotely.com/categories";
-export const WWR_CATEGORIES = [
-  "remote-programming-jobs",
-  "remote-back-end-programming-jobs",
+/**
+ * Categorías del pool (ronda 47): desarrollo, producto, soporte y diseño. Slugs de RSS con el patrón
+ * `remote-<categoría>-jobs`. A VERIFICAR con `pool:fetch wwr --dry-run`: se escribieron sin red; una
+ * categoría que no exista devuelve HTTP 404 y el informe del dry-run la marca.
+ */
+export const WWR_POOL_CATEGORIES: readonly string[] = [
+  // Las específicas primero y la general al final; igual, un aviso en varias categorías las junta todas
   "remote-full-stack-programming-jobs",
+  "remote-back-end-programming-jobs",
+  "remote-front-end-programming-jobs",
   "remote-devops-sysadmin-jobs",
-] as const;
+  "remote-product-jobs",
+  "remote-customer-support-jobs",
+  "remote-design-jobs",
+  "remote-programming-jobs",
+];
 
 export type WwrItem = {
   title: string;
@@ -105,7 +116,7 @@ export function mapWwrJob(item: WwrItem, categorySlug: string): RawJob {
 
   return {
     source: {
-      kind: "other",
+      kind: "wwr",
       name: `WWR ${categorySlug}`,
       externalId: `wwr:${item.guid ?? item.link}`,
       url: item.link,
@@ -128,6 +139,8 @@ export function mapWwrJob(item: WwrItem, categorySlug: string): RawJob {
     jdText: htmlToText(item.description) || null,
     postedAt: new Date(item.pubDate),
     tags: item.category ? [item.category] : [],
+    // El slug del feed alimenta el `role_hints` del pool (SOURCE_CATEGORY_ROLES.wwr)
+    categories: [categorySlug],
     seniority: null,
     lang: null,
   };
@@ -137,6 +150,13 @@ export type FetchWwrOptions = {
   /** Solo avisos publicados desde esta fecha (filtro en cliente por `pubDate`). */
   since: Date;
   categories?: readonly string[];
+  /** Si viene, se manda como cabecera `user-agent`. */
+  userAgent?: string;
+  /**
+   * Con `true`, si algunas categorías fallan pero otras no, se devuelve lo juntado con
+   * `partialError`. Default `false`: el primer error corta. Si fallan todas, siempre tira.
+   */
+  partialOnError?: boolean;
   fetchImpl?: typeof fetch;
   baseUrl?: string;
 };
@@ -149,6 +169,10 @@ export type FetchWwrResult = {
   skipped: number;
   /** Categorías que fallaron (fuente + categoría + causa); las demás siguieron. */
   errors: string[];
+  /** Categorías que dieron 404: se saltean y no cuentan como error (el dry-run las muestra). */
+  missingCategories: string[];
+  /** Código cerrado del primer error cuando se devolvió lo juntado (`partialOnError`); si no, null. */
+  partialError: SourceErrorCode | null;
 };
 
 export function wwrCategoryUrl(baseUrl: string, category: string): string {
@@ -159,23 +183,39 @@ export function wwrCategoryUrl(baseUrl: string, category: string): string {
 export async function fetchWwrJobs(options: FetchWwrOptions): Promise<FetchWwrResult> {
   const fetchImpl = options.fetchImpl ?? fetch;
   const baseUrl = options.baseUrl ?? WWR_BASE_URL;
-  const categories = options.categories ?? WWR_CATEGORIES;
+  const categories = options.categories ?? WWR_POOL_CATEGORIES;
   const sinceMs = options.since.getTime();
+  const headers: Record<string, string> = {
+    accept: "application/rss+xml, application/xml, text/xml",
+  };
+  if (options.userAgent) headers["user-agent"] = options.userAgent;
 
   const byId = new Map<string, RawJob>();
   let seen = 0;
   let skipped = 0;
   const errors: string[] = [];
+  const missingCategories: string[] = [];
+  let partialError: SourceErrorCode | null = null;
   for (const category of categories) {
     let parsed: ReturnType<typeof parseWwrFeed>;
     try {
-      const res = await fetchImpl(wwrCategoryUrl(baseUrl, category), {
-        headers: { accept: "application/rss+xml, application/xml, text/xml" },
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const res = await fetchImpl(wwrCategoryUrl(baseUrl, category), { headers });
+      if (res.status === 404) {
+        // Una categoría que no existe no deja la fuente en `partial` para siempre: se informa aparte
+        missingCategories.push(category);
+        continue;
+      }
+      if (!res.ok) throw new Error(`We Work Remotely ${category}: HTTP ${res.status}`);
       parsed = parseWwrFeed(await res.text());
     } catch (e) {
-      errors.push(`We Work Remotely ${category}: ${e instanceof Error ? e.message : String(e)}`);
+      if (!options.partialOnError) throw e;
+      partialError ??= sourceErrorCode(e);
+      const message = e instanceof Error ? e.message : String(e);
+      errors.push(
+        message.startsWith("We Work Remotely")
+          ? message
+          : `We Work Remotely ${category}: ${message}`,
+      );
       continue;
     }
     skipped += parsed.skipped;
@@ -183,11 +223,18 @@ export async function fetchWwrJobs(options: FetchWwrOptions): Promise<FetchWwrRe
     for (const item of parsed.items) {
       if (Date.parse(item.pubDate) < sinceMs) continue;
       const key = item.guid ?? item.link;
-      if (!byId.has(key)) byId.set(key, mapWwrJob(item, category));
+      const existing = byId.get(key);
+      if (!existing) byId.set(key, mapWwrJob(item, category));
+      else if (!existing.categories?.includes(category)) {
+        // El mismo aviso en otra categoría: se unen, para no perder la señal del puesto
+        existing.categories = [...(existing.categories ?? []), category];
+      }
     }
   }
-  if (categories.length > 0 && errors.length === categories.length) {
-    throw new Error(errors.join("; "));
+  if (categories.length > 0 && errors.length + missingCategories.length === categories.length) {
+    throw new Error(
+      errors.length > 0 ? errors.join("; ") : "We Work Remotely: HTTP 404 en todas las categorías",
+    );
   }
-  return { jobs: [...byId.values()], seen, skipped, errors };
+  return { jobs: [...byId.values()], seen, skipped, errors, missingCategories, partialError };
 }

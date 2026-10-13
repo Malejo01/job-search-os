@@ -16,7 +16,9 @@ Adapter: `packages/adapters/src/sources/jobicy.ts`. Estado: **pool global (JS-13
 | `jobGeo` "Anywhere"/"Worldwide" | `countriesAllowed: ["*"]` | |
 | `jobGeo` con un país conocido | `countriesAllowed: [ISO-2]` | vía `countryToIso` de `getonboard.ts` |
 | `jobGeo` región, lista, vacío o país desconocido | `null` | el prefiltro marca el riesgo de ubicación |
-| `annualSalaryMin/Max` + `salaryCurrency` = USD | `salaryMinUsd/MaxUsd`, `salaryPeriod: "anual"` | |
+| `salaryMin/Max` + `salaryPeriod` + `salaryCurrency` = USD | `salaryMinUsd/MaxUsd`, `salaryPeriod` | `year`/`annual` → `anual`, `month` → `mensual`, `hour` → `hora`. Gana esta forma si trae algún número |
+| `annualSalaryMin/Max` + `salaryCurrency` = USD (forma anterior, solo si no hay `salaryMin/Max`) | `salaryMinUsd/MaxUsd`, `salaryPeriod: "anual"` | |
+| período desconocido o ausente en `salaryMin/Max` | solo `salaryNote` ("… (período no indicado)") | D-017: no se supone el período |
 | salario en otra moneda o sin moneda | solo `salaryNote` | D-017: no se supone la moneda |
 | `jobDescription` (HTML) | `jdText` | `htmlToText` |
 | `pubDate` | `postedAt` | ISO o `YYYY-MM-DD HH:MM:SS` (UTC); inválida → `null` y el aviso no pasa el filtro |
@@ -38,7 +40,7 @@ Fuente: `ops/rondas/37-38-39/informes/riesgos-fuentes.md` §3 (consultado el 202
 Consecuencias en el código: intervalo mínimo de 5 h entre corridas (mucho más que la hora exigida), `User-Agent` identificable, "Jobicy" y link canónico en cada aviso que se muestre.
 
 ## A verificar contra la fuente real
-- Nombres exactos de campos (`jobTitle`, `companyName`, `jobGeo`, `jobIndustry`, `jobType`, `jobLevel`, `jobDescription`, `pubDate`, `salaryCurrency`, `annualSalaryMin/Max`) y sus tipos (¿`jobGeo` string o lista?, ¿montos número o string?).
+- Nombres exactos de campos (`jobTitle`, `companyName`, `jobGeo`, `jobIndustry`, `jobType`, `jobLevel`, `jobDescription`, `pubDate`, `salaryCurrency`, `salaryMin/Max`, `salaryPeriod`, `annualSalaryMin/Max`) y cuál de las dos formas del sueldo usa la API hoy; sus tipos (¿`jobGeo` string o lista?, ¿montos número o string?).
 - Formato de `pubDate` y su zona horaria.
 - Que `count=200` sea aceptado y alcance para 48 h.
 - Valores reales de `jobGeo` (nombres de país en inglés, "USA", "UK", regiones): hoy solo se mapean los nombres que conoce `COUNTRY_TO_ISO`.

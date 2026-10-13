@@ -20,11 +20,11 @@ const DAY_END = new Date("2026-10-13T00:00:00Z");
 let container: StartedPostgreSqlContainer | null = null;
 let conn: ReturnType<typeof createDb>;
 
-function rawJob(kind: "remoteok" | "jobicy", id: string, title: string): RawJob {
+function rawJob(kind: "remoteok" | "jobicy" | "greenhouse", id: string, title: string): RawJob {
   return {
     source: {
       kind,
-      name: kind === "remoteok" ? "Remote OK" : "Jobicy",
+      name: kind === "remoteok" ? "Remote OK" : kind === "jobicy" ? "Jobicy" : "Greenhouse",
       externalId: `${PREFIX}${id}`,
       url: `https://example.com/jobs/${PREFIX}${id}`,
       rawRef: null,
@@ -64,6 +64,18 @@ const downloaders: PoolDownloaders = {
   himalayas: async () => {
     throw new Error("no debería llamarse");
   },
+  wwr: async () => {
+    throw new Error("no debería llamarse");
+  },
+  greenhouse: async () => {
+    throw new Error("no debería llamarse");
+  },
+  lever: async () => {
+    throw new Error("no debería llamarse");
+  },
+  ashby: async () => {
+    throw new Error("no debería llamarse");
+  },
 };
 
 async function cleanup() {
@@ -85,11 +97,12 @@ async function cleanup() {
     .delete(s.publicJobFetches)
     .where(
       and(
-        inArray(s.publicJobFetches.sourceKind, ["remoteok", "jobicy"]),
+        inArray(s.publicJobFetches.sourceKind, ["remoteok", "jobicy", "greenhouse"]),
         gte(s.publicJobFetches.startedAt, DAY_START),
         lt(s.publicJobFetches.startedAt, DAY_END),
       ),
     );
+  await conn.db.delete(s.atsBoards).where(like(s.atsBoards.token, `${PREFIX}%`));
 }
 
 async function fetchRows() {
@@ -261,5 +274,94 @@ describe("runPoolFetch con la base real", () => {
       downloaders,
     });
     expect(again.sources[0]).toMatchObject({ status: "ok", inserted: 1 });
+  });
+});
+
+describe("runPoolFetch con boards de ats_boards", () => {
+  const T = (suffix: string) => `${PREFIX}${suffix}`;
+  const run = (greenhouse: PoolDownloaders["greenhouse"]) =>
+    runPoolFetch({
+      db: conn.db,
+      logger,
+      enabled: ["greenhouse"],
+      now: () => NOW,
+      force: true,
+      clock: () => 0,
+      downloaders: { ...downloaders, greenhouse },
+    });
+
+  it("sin boards habilitados de la prueba, la fuente no descarga (no hay filas propias)", async () => {
+    await cleanup();
+    const seen: string[] = [];
+    await run(async ({ boards = [] }) => {
+      seen.push(...boards.map((b) => b.token).filter((t) => t.startsWith(PREFIX)));
+      return [];
+    });
+    expect(seen).toEqual([]);
+  });
+
+  it("lee los boards enabled por last_fetch_at (nulos primero), actualiza estado y un fallo no corta a los demás", async () => {
+    await cleanup();
+    const hoursAgo = (h: number) => new Date(NOW.getTime() - h * 3_600_000);
+    await conn.db.insert(s.atsBoards).values([
+      {
+        provider: "greenhouse",
+        token: T("a"),
+        companyName: "Empresa Ficticia 1",
+        lastFetchAt: hoursAgo(1),
+      },
+      { provider: "greenhouse", token: T("b"), companyName: "Empresa Ficticia 2" },
+      {
+        provider: "greenhouse",
+        token: T("c"),
+        companyName: "Empresa Ficticia 3",
+        lastFetchAt: hoursAgo(5),
+      },
+      {
+        provider: "greenhouse",
+        token: T("off"),
+        companyName: "Empresa Ficticia 4",
+        enabled: false,
+      },
+      { provider: "lever", token: T("otro"), companyName: "Empresa Ficticia 5" },
+    ]);
+
+    const order: string[] = [];
+    const out = await run(async ({ boards = [] }) => {
+      const mine = boards.filter((b) => b.token.startsWith(PREFIX));
+      order.push(...mine.map((b) => b.token));
+      const outcomes = mine.map((b) => ({
+        id: b.id,
+        token: b.token,
+        status:
+          b.token === T("a")
+            ? ("timeout" as const)
+            : b.token === T("c")
+              ? ("not_found" as const)
+              : ("ok" as const),
+        fetched: b.token === T("b") ? 1 : 0,
+      }));
+      return {
+        jobs: [rawJob("greenhouse", "g1", "Backend Developer")],
+        partialError: "timeout" as const,
+        boards: outcomes,
+      };
+    });
+
+    expect(order).toEqual([T("b"), T("c"), T("a")]);
+    expect(out.sources[0]).toMatchObject({ name: "greenhouse", status: "partial", inserted: 1 });
+
+    const rows = await conn.db
+      .select()
+      .from(s.atsBoards)
+      .where(like(s.atsBoards.token, `${PREFIX}%`));
+    const by = Object.fromEntries(rows.map((r) => [r.token, r]));
+    expect(by[T("a")]).toMatchObject({ lastStatus: "timeout" });
+    expect(by[T("b")]).toMatchObject({ lastStatus: "ok" });
+    expect(by[T("c")]).toMatchObject({ lastStatus: "not_found" });
+    for (const t of ["a", "b", "c"]) expect(by[T(t)]!.lastFetchAt!.getTime()).toBe(NOW.getTime());
+    // Los deshabilitados y los de otro proveedor no se tocan
+    expect(by[T("off")]).toMatchObject({ lastFetchAt: null, lastStatus: null });
+    expect(by[T("otro")]).toMatchObject({ lastFetchAt: null, lastStatus: null });
   });
 });

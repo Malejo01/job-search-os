@@ -1,5 +1,66 @@
 import { describe, expect, it } from "vitest";
-import { fieldPresence, formatFieldReport } from "./field-report";
+import { fieldPresence, formatFieldReport, parsePoolCliArgs } from "./field-report";
+
+describe("parsePoolCliArgs", () => {
+  it("fuentes sin token: wwr y las anteriores", () => {
+    for (const s of ["wwr", "getonboard", "remoteok", "jobicy", "himalayas"]) {
+      expect(parsePoolCliArgs([s, "--dry-run"])).toEqual({ ok: true, source: s });
+    }
+  });
+
+  it("ATS con token, región y nombre de empresa", () => {
+    expect(
+      parsePoolCliArgs([
+        "lever",
+        "empresa-ficticia",
+        "--region",
+        "eu",
+        "--company",
+        "Empresa Ficticia 1",
+        "--dry-run",
+      ]),
+    ).toEqual({
+      ok: true,
+      source: "lever",
+      token: "empresa-ficticia",
+      region: "eu",
+      company: "Empresa Ficticia 1",
+    });
+    expect(
+      parsePoolCliArgs(["--dry-run", "ashby", "empresa-ficticia", "--company=Empresa Ficticia 2"]),
+    ).toMatchObject({
+      ok: true,
+      source: "ashby",
+      region: null,
+      company: "Empresa Ficticia 2",
+    });
+  });
+
+  it("sin --company se usa el token", () => {
+    expect(parsePoolCliArgs(["greenhouse", "empresa-ficticia", "--dry-run"])).toMatchObject({
+      company: "empresa-ficticia",
+    });
+  });
+
+  it("rechaza lo inválido sin llegar a hacer requests", () => {
+    const bad = [
+      [],
+      ["linkedin", "--dry-run"],
+      ["wwr"],
+      ["greenhouse", "--dry-run"],
+      ["greenhouse", "../x", "--dry-run"],
+      ["greenhouse", "a", "b", "--dry-run"],
+      ["greenhouse", "x", "--region", "eu", "--dry-run"],
+      ["lever", "x", "--region", "us", "--dry-run"],
+      ["lever", "x", "--region", "--dry-run"],
+      ["lever", "x", "--company", "--dry-run"],
+      ["wwr", "token", "--dry-run"],
+      ["wwr", "--region", "eu", "--dry-run"],
+      ["wwr", "--otra", "--dry-run"],
+    ];
+    for (const argv of bad) expect(parsePoolCliArgs(argv).ok, argv.join(" ")).toBe(false);
+  });
+});
 
 describe("fieldPresence", () => {
   const items = [
