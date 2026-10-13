@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
-  pgTable, pgEnum, uuid, text, integer, real, boolean, timestamp, jsonb, date, index, uniqueIndex, primaryKey,
+  pgTable, pgEnum, uuid, text, integer, real, boolean, timestamp, jsonb, date, index, uniqueIndex, primaryKey, check,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
@@ -21,7 +21,7 @@ export const locationOk = pgEnum("location_ok", ["ok", "riesgo", "no"]);
 export const suggestedAction = pgEnum("suggested_action", ["aplicar_personalizado", "aplicar", "guardar", "descartar"]);
 export const englishLevel = pgEnum("english_level", ["no_menciona", "no", "basico", "intermedio", "avanzado", "nativo"]);
 export const companyType = pgEnum("company_type", ["producto", "startup", "consultora", "staffing", "agencia", "desconocido"]);
-export const sourceKind = pgEnum("source_kind", ["getonboard_api", "email_linkedin", "email_getonboard", "email_generic", "manual", "hn_whoishiring", "remotive", "other", "remoteok", "jobicy", "himalayas"]);
+export const sourceKind = pgEnum("source_kind", ["getonboard_api", "email_linkedin", "email_getonboard", "email_generic", "manual", "hn_whoishiring", "remotive", "other", "remoteok", "jobicy", "himalayas", "wwr", "greenhouse", "lever", "ashby"]);
 export const applicationOutcome = pgEnum("application_outcome", [
   "sin_respuesta", "rechazo_automatico_ubicacion", "rechazo_automatico_otro", "rechazo_humano", "entrevista", "oferta", "cerrada_antes", "retirada",
 ]);
@@ -250,6 +250,27 @@ export const publicJobFetches = pgTable("public_job_fetches", {
   errorCode: text("error_code"),                          // cerrado: timeout | http_429 | http_5xx | parse
   durationMs: integer("duration_ms"),
 }, (t) => [index("public_job_fetches_source_started").on(t.sourceKind, t.startedAt)]);
+
+// Boards públicos de ATS (Greenhouse, Lever, Ashby) que descarga el pool. Global, sin datos de
+// personas. RLS sin policy (rls/0005): la app no la lee; la usa el cron con la conexión de servicio.
+export const atsBoards = pgTable("ats_boards", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  provider: text("provider").notNull(),                   // greenhouse | lever | ashby (check)
+  token: text("token").notNull(),                         // slug del board: [a-z0-9-_.], máx. 100
+  region: text("region"),                                 // solo lever: "eu" → api.eu.lever.co
+  companyName: text("company_name").notNull(),
+  enabled: boolean("enabled").notNull().default(true),
+  notes: text("notes"),
+  lastFetchAt: timestamp("last_fetch_at", { withTimezone: true }),
+  lastStatus: text("last_status"),                        // cerrado: ok | código de error por board
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("ats_boards_provider_token").on(t.provider, t.token),
+  check("ats_boards_provider_check", sql`${t.provider} in ('greenhouse', 'lever', 'ashby')`),
+  // Defensa en profundidad (SSRF): el token va a una URL; la región solo existe en Lever
+  check("ats_boards_token_check", sql`${t.token} ~* '^[a-z0-9][a-z0-9._-]{0,99}$'`),
+  check("ats_boards_region_check", sql`${t.region} is null or (${t.provider} = 'lever' and ${t.region} = 'eu')`),
+]);
 
 // Agregados de demanda por rol y semana (global, sin user_id). Los usa /market.
 export const roleMarketSnapshots = pgTable("role_market_snapshots", {

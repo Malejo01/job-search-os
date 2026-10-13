@@ -3,6 +3,7 @@ export { parsePoolLimits, POOL_LIMIT_DEFAULTS, POOL_LIMIT_MAX, type PoolLimits }
 export { monthlyUsd, HOURS_PER_MONTH } from "./monthly-usd";
 export { rankCandidates, interleaveByRole, type RankCandidate } from "./rank";
 export * from "./attribution";
+export { isPoolRemoteCandidate, type PoolRemoteInput } from "./remote-candidate";
 export {
   roleGapMessage,
   summarizeRoleGap,

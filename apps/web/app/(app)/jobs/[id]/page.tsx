@@ -228,7 +228,7 @@ export default async function JobDetailPage({
         ) : null}
       </section>
       {/* Atribución exigida por las fuentes públicas: mención + enlace al aviso original */}
-      <SourceAttribution sources={job.sources} />
+      <SourceAttribution sources={job.sources} company={job.company} />
       {job.corrections.length ? (
         <StatusCorrection jobId={job.id} current={job.status} targets={job.corrections} />
       ) : null}

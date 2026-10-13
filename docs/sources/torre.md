@@ -2,7 +2,7 @@
 
 Adapter: `packages/adapters/src/sources/torre.ts`. Estado: conectado al cron detrás de `INGEST_EXTRA_SOURCES` (desde JS-089), **apagado**. Devuelve `kind: "other"` y `externalId` con prefijo `torre:`.
 
-**Torre no tiene una API pública de avisos documentada.** Lo que hay es el buscador público que usa su web. Todo lo de abajo (endpoint, body de filtros, forma del resultado) es **a verificar** y puede cambiar o estar prohibido sin aviso.
+**Torre no tiene una API pública de avisos abierta.** Su API oficial está en **beta privada** y hay que pedir acceso a Torre (ronda 47, ADR-018); sin ese acceso no hay permiso para consultarla. El adapter usa el buscador público que usa su web, un endpoint **no documentado**, y por eso **queda apagado**: no se prende ni se pasa al pool hasta tener acceso oficial. Todo lo de abajo (endpoint, body de filtros, forma del resultado) es **a verificar** y puede cambiar o estar prohibido sin aviso.
 
 ## Endpoint (a verificar)
 `POST https://search.torre.co/opportunities/_search/?size=N&offset=M` con filtros en el body (por defecto `{ "and": [{ "remote": { "term": true } }] }`) → `{ results, total, size, offset }`.

@@ -7,13 +7,18 @@ import { enqueueEvaluationWith } from "../queue/pg-queue";
 import { loadTaxonomy } from "../skills/sync";
 import { fetchTorreJobs } from "../sources/torre";
 import { withSignal } from "../sources/with-signal";
-import { fetchWwrJobs } from "../sources/wwr";
 import { ingestBatch, type IngestSummary } from "./ingest-job";
 import { loadActiveRules } from "./run-getonboard";
 
-/** Remote OK y Himalayas pasaron al pool global (JS-137): `POOL_SOURCES`, no esta lista. */
-export const SOURCE_NAMES = ["wwr", "torre"] as const;
+/**
+ * Remote OK y Himalayas pasaron al pool global (JS-137) y We Work Remotely en la ronda 47:
+ * `POOL_SOURCES`, no esta lista.
+ */
+export const SOURCE_NAMES = ["torre"] as const;
 export type SourceName = (typeof SOURCE_NAMES)[number];
+
+/** Fuentes que ya no se prenden acá: se ignoran con un aviso, no rompen. */
+const MOVED_TO_POOL: readonly string[] = ["wwr"];
 
 export type SourceDownloader = (args: {
   since: Date;
@@ -27,8 +32,6 @@ export type ExtraSourceDownloaders = Record<SourceName, SourceDownloader>;
 const MAX_PAGES = 3;
 
 export const EXTRA_SOURCES: ExtraSourceDownloaders = {
-  wwr: async ({ since, fetchImpl, signal }) =>
-    (await fetchWwrJobs({ since, fetchImpl: withSignal(fetchImpl ?? fetch, signal) })).jobs,
   torre: async ({ since, fetchImpl, signal }) =>
     (
       await fetchTorreJobs({
@@ -39,22 +42,34 @@ export const EXTRA_SOURCES: ExtraSourceDownloaders = {
     ).jobs,
 };
 
-/** Lee `INGEST_EXTRA_SOURCES`: lista separada por coma; vacía o ausente = ninguna. */
-export function parseEnabledSources(value: string | undefined): {
+/**
+ * Lee `INGEST_EXTRA_SOURCES`: lista separada por coma; vacía o ausente = ninguna. Las fuentes que
+ * pasaron al pool (`wwr`) no se prenden: quedan en `moved` y, si hay logger, se avisa.
+ */
+export function parseEnabledSources(
+  value: string | undefined,
+  logger?: Pick<Logger, "warn">,
+): {
   enabled: SourceName[];
   unknown: string[];
+  moved: string[];
 } {
   const enabled: SourceName[] = [];
   const unknown: string[] = [];
+  const moved: string[] = [];
   const seen = new Set<string>();
   for (const part of (value ?? "").split(",")) {
     const name = part.trim().toLowerCase();
     if (!name || seen.has(name)) continue;
     seen.add(name);
     if ((SOURCE_NAMES as readonly string[]).includes(name)) enabled.push(name as SourceName);
+    else if (MOVED_TO_POOL.includes(name)) moved.push(name);
     else unknown.push(name);
   }
-  return { enabled, unknown };
+  for (const name of moved) {
+    logger?.warn({ source: name }, `${name} pasó al pool: sumala a POOL_SOURCES`);
+  }
+  return { enabled, unknown, moved };
 }
 
 /**

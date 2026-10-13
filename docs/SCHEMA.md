@@ -15,6 +15,7 @@ public_jobs ─1:N─ public_job_skills            (pool global, sin user_id; AD
 public_jobs ─1:N─ jobs                         (jobs.public_job_id: la copia por usuario)
 public_jobs ─1:N─ public_jobs                  (dedup_of_id: copia de otra fila del pool, sin fusión)
 public_job_fetches                             (bitácora global de descargas por fuente)
+ats_boards (provider, token)                   (boards públicos de ATS que descarga el pool; global, ronda 47)
 role_market_snapshots (rol, semana, skill)     (agregados de demanda por rol, global)
 skills ─1:N─ skill_levels · skill_evidence · skill_interviews · learning_resources
 market_snapshots (user, semana, skill) ← agregación semanal de job_skills × evaluations.score
@@ -26,7 +27,8 @@ profiles ─1:N─ candidate_facts · 1:1 application_settings · 1:N answer_ban
 
 ## Decisiones
 
-- **Pool global de ofertas públicas (ADR-014) más copias por usuario en `jobs`.** `public_jobs` guarda ofertas de fuentes públicas (Get on Board, Remote OK, Jobicy, Himalayas) sin `user_id`: nada por persona va ahí. Todo lo que es de la persona sigue en `jobs` (estado, flags, prefiltro, evaluaciones, postulación). `jobs.public_job_id` apunta a la oferta del pool de la que salió la copia (`ON DELETE SET NULL`: purgar el pool no toca la copia). Reemplaza la decisión anterior de "`jobs.userId` y no un catálogo global" y la optimización de fase 3 que preveía.
+- **Pool global de ofertas públicas (ADR-014) más copias por usuario en `jobs`.** `public_jobs` guarda ofertas de fuentes públicas (Get on Board, Remote OK, Jobicy, Himalayas, We Work Remotely y los ATS públicos) sin `user_id`: nada por persona va ahí. Todo lo que es de la persona sigue en `jobs` (estado, flags, prefiltro, evaluaciones, postulación). `jobs.public_job_id` apunta a la oferta del pool de la que salió la copia (`ON DELETE SET NULL`: purgar el pool no toca la copia). Reemplaza la decisión anterior de "`jobs.userId` y no un catálogo global" y la optimización de fase 3 que preveía.
+- **Fuentes del pool y `ats_boards` (ronda 47, migración 0024).** El enum `source_kind` suma `wwr`, `greenhouse`, `lever` y `ashby` (solo `ADD VALUE`: no se revierte). `ats_boards` lista los boards de los ATS públicos que descarga el pool: `provider` (check: `greenhouse`, `lever`, `ashby`), `token` (slug del board), `region` (solo Lever: `eu`), `company_name`, `enabled`, `notes`, `last_fetch_at`, `last_status` (código cerrado, nunca un mensaje crudo) y `created_at`; único por `(provider, token)`. Es global y sin datos de personas: RLS activo y sin policy (`rls/0005_ats_boards.sql`), así que la app no la lee ni la escribe; la usa el cron con la conexión de servicio. Arranca vacía; el seed lo arma y lo corre Mauro.
 - **El pool no fusiona.** Una oferta que llega por otra fuente con la misma URL o el mismo texto se inserta igual y apunta a la raíz con `public_jobs.dedup_of_id`; ningún texto se pierde. Retención: 30 días desde `last_seen_at`, con emails y teléfonos quitados de título, empresa, ubicación, JD y crudo al guardar.
 - **`profiles.target_role` y `profiles.pool_daily_eval_limit`.** El rol objetivo se valida en código contra `ROLE_KEYS` (sin enum en la base: agregar un rol no pide migración). El tope diario de evaluaciones del pool es `null` mientras rija el default de la variable de entorno.
 - **Varios puestos (ADR-016).** `profiles.target_roles text[] NOT NULL DEFAULT '{}'` guarda los puestos elegidos, validados en código contra `ROLE_KEYS`; el primero es el principal. `profiles.target_role` se queda como ese principal y se escribe siempre junto con la lista (migración 0021: backfill `ARRAY[target_role]`). `profiles.max_target_roles integer` (null = rige `TARGET_ROLES_FREE_LIMIT`) pisa el tope por persona. `jobs.matched_role text` (null) guarda el puesto por el que se asignó una oferta del pool; la ronda 43 se lo pasa al evaluador.
@@ -63,7 +65,7 @@ create policy jobs_owner on jobs for all using (user_id = auth.uid()) with check
 -- Pool (rls/0004_public_jobs.sql): public_jobs, public_job_skills, role_market_snapshots tienen
 -- ENABLE sin FORCE y una policy de solo lectura (using true), sin policies de escritura: escribe
 -- solo el servicio con la conexión dueña. public_job_fetches tiene ENABLE y ninguna policy: la
--- app no la lee ni la escribe.
+-- app no la lee ni la escribe. Lo mismo ats_boards (rls/0005_ats_boards.sql).
 ```
 
 ## Seeds

@@ -49,6 +49,12 @@ export {
 export { upsertPoolJobs, type PoolUpsertSummary } from "./pool/upsert";
 export { POOL_RETENTION_DAYS, purgePool } from "./pool/retention";
 export { sourceUserAgent } from "./sources/user-agent";
+export {
+  ATS_PROVIDERS,
+  isValidAtsToken,
+  type AtsBoardStatus,
+  type AtsProvider,
+} from "./sources/ats-common";
 export { assignPoolToUser, type AssignOptions, type AssignResult } from "./pool/assign";
 export { hasPoolEvaluationActivity, loadPoolEvalLimit } from "./pool/usage";
 export { explainEmptyRoles } from "./pool/role-coverage";

@@ -99,6 +99,27 @@ export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleK
     cybersecurity: ["ciberseguridad"],
     infosec: ["ciberseguridad"],
   },
+  // We Work Remotely: el mapper deja el slug del feed en `categories` y el `<category>` del item en
+  // `tags`. A VERIFICAR con `pool:fetch wwr --dry-run`: los nombres de `<category>` son una suposición.
+  wwr: {
+    "remote-programming-jobs": DEV,
+    programming: DEV,
+    "remote-full-stack-programming-jobs": ["fullstack"],
+    "full-stack-programming": ["fullstack"],
+    "remote-back-end-programming-jobs": ["backend"],
+    "back-end-programming": ["backend"],
+    "remote-front-end-programming-jobs": ["frontend"],
+    "front-end-programming": ["frontend"],
+    "remote-devops-sysadmin-jobs": ["soporte_it"],
+    "devops-and-sysadmin": ["soporte_it"],
+    "devops-sysadmin": ["soporte_it"],
+    "remote-product-jobs": ["producto_proyectos"],
+    product: ["producto_proyectos"],
+    "remote-customer-support-jobs": ["customer_success"],
+    "customer-support": ["customer_success"],
+    "remote-design-jobs": ["ux_ui"],
+    design: ["ux_ui"],
+  },
 };
 
 /**

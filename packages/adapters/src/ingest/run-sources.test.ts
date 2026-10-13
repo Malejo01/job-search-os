@@ -6,8 +6,9 @@ import {
   runExtraSourcesIngest,
   safeError,
   SOURCE_NAMES,
-  type ExtraSourceDownloaders,
   type RunExtraSourcesDeps,
+  type RunExtraSourcesOptions,
+  type SourceDownloader,
 } from "./run-sources";
 
 const logger = {
@@ -41,11 +42,24 @@ function makeDeps(overrides: Partial<RunExtraSourcesDeps> = {}): RunExtraSources
   };
 }
 
-function downloaders(partial: Partial<ExtraSourceDownloaders>): ExtraSourceDownloaders {
+/**
+ * El corredor no depende de cuáles fuentes existen. Hoy la lista es solo `torre`, así que para
+ * probar el aislamiento entre fuentes los tests usan además `fuente_a`, que no es una fuente real.
+ */
+type TestOptions = Omit<RunExtraSourcesOptions, "enabled" | "downloaders"> & {
+  enabled: string[];
+  downloaders?: Record<string, SourceDownloader>;
+};
+
+function run(options: TestOptions, deps?: RunExtraSourcesDeps) {
+  return runExtraSourcesIngest(options as unknown as RunExtraSourcesOptions, deps);
+}
+
+function downloaders(partial: Record<string, SourceDownloader>): Record<string, SourceDownloader> {
   const none = vi.fn(async () => {
     throw new Error("no debería llamarse");
   });
-  return { wwr: none, torre: none, ...partial };
+  return { fuente_a: none, torre: none, ...partial };
 }
 
 const base = {
@@ -70,12 +84,12 @@ describe("runExtraSourcesIngest con userId", () => {
       }),
       ingest,
     });
-    const r = await runExtraSourcesIngest(
+    const r = await run(
       {
         ...base,
         userId: "u2",
-        enabled: ["wwr"],
-        downloaders: downloaders({ wwr: async () => [job("1")] }),
+        enabled: ["torre"],
+        downloaders: downloaders({ torre: async () => [job("1")] }),
       },
       deps,
     );
@@ -96,11 +110,11 @@ describe("runExtraSourcesIngest con userId", () => {
       }),
       ingest,
     });
-    const r = await runExtraSourcesIngest(
+    const r = await run(
       {
         ...base,
-        enabled: ["wwr"],
-        downloaders: downloaders({ wwr: async () => [job("1")] }),
+        enabled: ["torre"],
+        downloaders: downloaders({ torre: async () => [job("1")] }),
       },
       deps,
     );
@@ -109,20 +123,21 @@ describe("runExtraSourcesIngest con userId", () => {
 });
 
 describe("parseEnabledSources", () => {
-  it("las fuentes extra son solo wwr y torre (Remote OK y Himalayas pasaron al pool)", () => {
-    expect([...SOURCE_NAMES]).toEqual(["wwr", "torre"]);
+  it("la única fuente extra es torre (Remote OK, Himalayas y WWR pasaron al pool)", () => {
+    expect([...SOURCE_NAMES]).toEqual(["torre"]);
   });
 
   it("vacío, undefined o solo espacios = ninguna", () => {
     for (const v of [undefined, "", "   ", " , ,"]) {
-      expect(parseEnabledSources(v)).toEqual({ enabled: [], unknown: [] });
+      expect(parseEnabledSources(v)).toEqual({ enabled: [], unknown: [], moved: [] });
     }
   });
 
   it("recorta espacios, pasa a minúsculas y quita repetidos", () => {
-    expect(parseEnabledSources(" WWR , torre,WWR , Torre ")).toEqual({
-      enabled: ["wwr", "torre"],
+    expect(parseEnabledSources(" torre,Torre , TORRE ")).toEqual({
+      enabled: ["torre"],
       unknown: [],
+      moved: [],
     });
   });
 
@@ -130,22 +145,36 @@ describe("parseEnabledSources", () => {
     expect(parseEnabledSources("torre,linkedin,Foo,foo,remoteok,himalayas")).toEqual({
       enabled: ["torre"],
       unknown: ["linkedin", "foo", "remoteok", "himalayas"],
+      moved: [],
     });
+  });
+
+  it("wwr pasó al pool: se ignora con un warn y no rompe", () => {
+    const warn = vi.fn();
+    expect(parseEnabledSources(" WWR , torre,wwr", { warn })).toEqual({
+      enabled: ["torre"],
+      unknown: [],
+      moved: ["wwr"],
+    });
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]![1]).toBe("wwr pasó al pool: sumala a POOL_SOURCES");
+    // Sin logger tampoco rompe
+    expect(parseEnabledSources("wwr")).toEqual({ enabled: [], unknown: [], moved: ["wwr"] });
   });
 });
 
 describe("runExtraSourcesIngest", () => {
   it("una fuente prendida ingiere y las apagadas no se llaman", async () => {
-    const wwr = vi.fn(async () => [job("a"), job("b")]);
+    const a = vi.fn(async () => [job("a"), job("b")]);
     const torre = vi.fn(async () => [job("c")]);
     const deps = makeDeps();
-    const out = await runExtraSourcesIngest(
-      { ...base, enabled: ["wwr"], downloaders: downloaders({ wwr, torre }) },
+    const out = await run(
+      { ...base, enabled: ["fuente_a"], downloaders: downloaders({ fuente_a: a, torre }) },
       deps,
     );
     expect(out.sources).toEqual([
       {
-        name: "wwr",
+        name: "fuente_a",
         status: "ok",
         fetched: 2,
         users: 1,
@@ -155,53 +184,57 @@ describe("runExtraSourcesIngest", () => {
         errors: 0,
       },
     ]);
-    expect(wwr).toHaveBeenCalledTimes(1);
+    expect(a).toHaveBeenCalledTimes(1);
     expect(torre).not.toHaveBeenCalled();
     expect(deps.ingest).toHaveBeenCalledTimes(1);
   });
 
   it("cuenta como descartados los que el prefiltro descartó (clave descartada_prefiltro)", async () => {
-    const wwr = vi.fn(async () => [job("a"), job("b")]);
+    const a = vi.fn(async () => [job("a"), job("b")]);
     const ingest = vi.fn(async (jobs: RawJob[]) => ({
       ...summary(jobs.length),
       byStatus: { descartada_prefiltro: 2 },
     }));
-    const out = await runExtraSourcesIngest(
-      { ...base, enabled: ["wwr"], downloaders: downloaders({ wwr }) },
+    const out = await run(
+      { ...base, enabled: ["fuente_a"], downloaders: downloaders({ fuente_a: a }) },
       makeDeps({ ingest }),
     );
     expect(out.sources[0]).toMatchObject({ status: "ok", discarded: 2 });
   });
 
   it("una que tira error no corta a las demás y no filtra el body", async () => {
-    const wwr = vi.fn(async () => {
+    const a = vi.fn(async () => {
       throw new Error("HTTP 500");
     });
     const torre = vi.fn(async () => [job("c")]);
-    const out = await runExtraSourcesIngest(
-      { ...base, enabled: ["wwr", "torre"], downloaders: downloaders({ wwr, torre }) },
+    const out = await run(
+      {
+        ...base,
+        enabled: ["fuente_a", "torre"],
+        downloaders: downloaders({ fuente_a: a, torre }),
+      },
       makeDeps(),
     );
-    expect(out.sources[0]).toMatchObject({ name: "wwr", status: "error", fetched: 0 });
+    expect(out.sources[0]).toMatchObject({ name: "fuente_a", status: "error", fetched: 0 });
     expect(out.sources[0]?.error).toBe("HTTP 500");
     expect(out.sources[1]).toMatchObject({ name: "torre", status: "ok", fetched: 1, users: 1 });
   });
 
   it("el presupuesto corta la siguiente fuente", async () => {
     let t = 0;
-    const wwr = vi.fn(async () => [job("a")]);
+    const a = vi.fn(async () => [job("a")]);
     const torre = vi.fn(async () => [job("c")]);
     const ingest = vi.fn(async (jobs: RawJob[]) => {
       t += 50_000;
       return summary(jobs.length);
     });
-    const out = await runExtraSourcesIngest(
+    const out = await run(
       {
         ...base,
-        enabled: ["wwr", "torre"],
+        enabled: ["fuente_a", "torre"],
         budgetMs: 40_000,
         clock: () => t,
-        downloaders: downloaders({ wwr, torre }),
+        downloaders: downloaders({ fuente_a: a, torre }),
       },
       makeDeps({ ingest }),
     );
@@ -215,45 +248,50 @@ describe("runExtraSourcesIngest", () => {
   });
 
   it("el timeout por fuente aborta la descarga", async () => {
-    const wwr = vi.fn(
+    const a = vi.fn(
       ({ signal }: { signal?: AbortSignal }) =>
         new Promise<RawJob[]>((_, reject) => {
           signal?.addEventListener("abort", () => reject(new Error("abortada")));
         }),
     );
     const torre = vi.fn(async () => [job("t")]);
-    const out = await runExtraSourcesIngest(
+    const out = await run(
       {
         ...base,
-        enabled: ["wwr", "torre"],
+        enabled: ["fuente_a", "torre"],
         perSourceTimeoutMs: 20,
-        downloaders: downloaders({ wwr, torre }),
+        downloaders: downloaders({ fuente_a: a, torre }),
       },
       makeDeps(),
     );
-    expect(out.sources[0]).toMatchObject({ name: "wwr", status: "error" });
+    expect(out.sources[0]).toMatchObject({ name: "fuente_a", status: "error" });
     expect(out.sources[1]?.status).toBe("ok");
   });
 
   it("un fetch que ignora la señal y nunca resuelve igual sale por timeout", async () => {
     const never = vi.fn(() => new Promise<Response>(() => {}));
-    const out = await runExtraSourcesIngest(
-      { ...base, enabled: ["wwr"], perSourceTimeoutMs: 20, fetchImpl: never as never },
+    const out = await run(
+      { ...base, enabled: ["torre"], perSourceTimeoutMs: 20, fetchImpl: never as never },
       makeDeps(),
     );
     expect(never).toHaveBeenCalledTimes(1);
-    expect(out.sources[0]).toMatchObject({ name: "wwr", status: "error", error: "timeout" });
+    expect(out.sources[0]).toMatchObject({ name: "torre", status: "error", error: "timeout" });
     expect(out.ok).toBe(false);
   });
 
   it("si la descarga trae algo pero venció el timeout, no es ok", async () => {
-    const wwr = vi.fn(async ({ signal }: { signal?: AbortSignal }) => {
+    const a = vi.fn(async ({ signal }: { signal?: AbortSignal }) => {
       await new Promise((r) => setTimeout(r, 40));
       expect(signal?.aborted).toBe(true);
       return [job("x")];
     });
-    const out = await runExtraSourcesIngest(
-      { ...base, enabled: ["wwr"], perSourceTimeoutMs: 10, downloaders: downloaders({ wwr }) },
+    const out = await run(
+      {
+        ...base,
+        enabled: ["fuente_a"],
+        perSourceTimeoutMs: 10,
+        downloaders: downloaders({ fuente_a: a }),
+      },
       makeDeps(),
     );
     expect(out.sources[0]).toMatchObject({ status: "error", error: "timeout", fetched: 1 });
@@ -261,18 +299,18 @@ describe("runExtraSourcesIngest", () => {
 
   it("el timeout de la descarga no pasa lo que queda del presupuesto", async () => {
     const seen: number[] = [];
-    const wwr = vi.fn(async ({ signal }: { signal?: AbortSignal }) => {
+    const a = vi.fn(async ({ signal }: { signal?: AbortSignal }) => {
       await new Promise((r) => setTimeout(r, 60));
       seen.push(signal?.aborted ? 1 : 0);
       return [job("a")];
     });
-    const out = await runExtraSourcesIngest(
+    const out = await run(
       {
         ...base,
-        enabled: ["wwr"],
+        enabled: ["fuente_a"],
         budgetMs: 15,
         perSourceTimeoutMs: 10_000,
-        downloaders: downloaders({ wwr }),
+        downloaders: downloaders({ fuente_a: a }),
       },
       makeDeps(),
     );
@@ -282,18 +320,18 @@ describe("runExtraSourcesIngest", () => {
 
   it("si se acaba el presupuesto entre usuarios queda partial", async () => {
     let t = 0;
-    const wwr = vi.fn(async () => [job("a")]);
+    const a = vi.fn(async () => [job("a")]);
     const ingest = vi.fn(async (jobs: RawJob[]) => {
       t += 50_000;
       return summary(jobs.length);
     });
-    const out = await runExtraSourcesIngest(
+    const out = await run(
       {
         ...base,
-        enabled: ["wwr"],
+        enabled: ["fuente_a"],
         budgetMs: 40_000,
         clock: () => t,
-        downloaders: downloaders({ wwr }),
+        downloaders: downloaders({ fuente_a: a }),
       },
       makeDeps({
         ingest,
@@ -311,10 +349,10 @@ describe("runExtraSourcesIngest", () => {
   });
 
   it("un usuario que falla no corta a los demás de esa fuente", async () => {
-    const wwr = vi.fn(async () => [job("a")]);
+    const a = vi.fn(async () => [job("a")]);
     const ingest = vi.fn().mockRejectedValueOnce(new Error("rls")).mockResolvedValue(summary(1));
-    const out = await runExtraSourcesIngest(
-      { ...base, enabled: ["wwr"], downloaders: downloaders({ wwr }) },
+    const out = await run(
+      { ...base, enabled: ["fuente_a"], downloaders: downloaders({ fuente_a: a }) },
       makeDeps({
         ingest,
         loadUsers: async () => ({
@@ -332,13 +370,17 @@ describe("runExtraSourcesIngest", () => {
 
   it("un error de base con parámetros no aparece en la respuesta", async () => {
     const leak = "Failed query: insert into jobs ... params: texto-de-aviso,user-uuid-123";
-    const wwr = vi.fn(async () => [job("a")]);
+    const a = vi.fn(async () => [job("a")]);
     const torre = vi.fn(async () => {
       throw new Error(leak);
     });
     const ingest = vi.fn().mockRejectedValue(new Error(leak));
-    const out = await runExtraSourcesIngest(
-      { ...base, enabled: ["wwr", "torre"], downloaders: downloaders({ wwr, torre }) },
+    const out = await run(
+      {
+        ...base,
+        enabled: ["fuente_a", "torre"],
+        downloaders: downloaders({ fuente_a: a, torre }),
+      },
       makeDeps({ ingest }),
     );
     const json = JSON.stringify(out);
@@ -348,13 +390,13 @@ describe("runExtraSourcesIngest", () => {
   });
 
   it("un error de base con la señal ya vencida sale como error al ingerir, no timeout", async () => {
-    const wwr = vi.fn(async () => [job("a")]);
-    const out = await runExtraSourcesIngest(
+    const a = vi.fn(async () => [job("a")]);
+    const out = await run(
       {
         ...base,
-        enabled: ["wwr"],
+        enabled: ["fuente_a"],
         perSourceTimeoutMs: 10,
-        downloaders: downloaders({ wwr }),
+        downloaders: downloaders({ fuente_a: a }),
       },
       makeDeps({
         loadUsers: async () => {
@@ -367,7 +409,7 @@ describe("runExtraSourcesIngest", () => {
   });
 
   it("safeError usa una lista cerrada y recortada", () => {
-    expect(safeError(new Error("WWR: HTTP 503"))).toBe("HTTP 503");
+    expect(safeError(new Error("Torre: HTTP 503"))).toBe("HTTP 503");
     expect(safeError(new Error("x"), true)).toBe("timeout");
     expect(safeError(new Error("timeout de la fuente"))).toBe("timeout");
     expect(safeError("cualquier cosa " + "x".repeat(500), false, "ingerir")).toBe(
@@ -376,14 +418,18 @@ describe("runExtraSourcesIngest", () => {
   });
 
   it("un error de ingesta de una fuente se aísla", async () => {
-    const wwr = vi.fn(async () => [job("a")]);
+    const a = vi.fn(async () => [job("a")]);
     const torre = vi.fn(async () => [job("c")]);
     const ingest = vi
       .fn()
       .mockRejectedValueOnce(new Error("db caída"))
       .mockResolvedValue(summary(1));
-    const out = await runExtraSourcesIngest(
-      { ...base, enabled: ["wwr", "torre"], downloaders: downloaders({ wwr, torre }) },
+    const out = await run(
+      {
+        ...base,
+        enabled: ["fuente_a", "torre"],
+        downloaders: downloaders({ fuente_a: a, torre }),
+      },
       makeDeps({ ingest }),
     );
     expect(out.sources.map((s) => s.status)).toEqual(["error", "ok"]);

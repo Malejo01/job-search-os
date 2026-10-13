@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
+import { inferRoleHints } from "@job-search-os/pipeline";
 import { describe, expect, it } from "vitest";
-import { fetchWwrJobs, mapWwrJob, parseWwrFeed, wwrCategoryUrl } from "./wwr";
+import { fetchWwrJobs, mapWwrJob, parseWwrFeed, WWR_POOL_CATEGORIES, wwrCategoryUrl } from "./wwr";
 
 const xml = readFileSync(new URL("./__fixtures__/wwr-sample.xml", import.meta.url), "utf8");
 
@@ -25,7 +26,8 @@ describe("WWR: parseo del feed de ejemplo (formato a verificar)", () => {
 
   it("mapea un item con CDATA, región worldwide y tipo", () => {
     const raw = mapWwrJob(items[0]!, "remote-programming-jobs");
-    expect(raw.source.kind).toBe("other");
+    expect(raw.source.kind).toBe("wwr");
+    expect(raw.categories).toEqual(["remote-programming-jobs"]);
     expect(raw.source.name).toBe("WWR remote-programming-jobs");
     expect(raw.source.externalId).toBe(
       "wwr:https://example.com/wwr/empresa-e-senior-platform-engineer",
@@ -84,7 +86,89 @@ describe("fetchWwrJobs (fetch inyectado)", () => {
     expect(r.jobs[0]!.source.name).toBe("WWR remote-programming-jobs");
   });
 
-  it("una categoría que falla no corta las demás y queda en errors", async () => {
+  it("un aviso en varias categorías las une y el role_hints incluye backend", async () => {
+    const r = await fetchWwrJobs({
+      since,
+      categories: ["remote-programming-jobs", "remote-back-end-programming-jobs"],
+      fetchImpl: xmlFetch({
+        "remote-programming-jobs": xml,
+        "remote-back-end-programming-jobs": xml,
+      }),
+    });
+    const job = r.jobs[0]!;
+    expect(job.categories).toEqual(["remote-programming-jobs", "remote-back-end-programming-jobs"]);
+    expect(
+      inferRoleHints({ sourceKind: "wwr", title: "Cargo sin pistas", categories: job.categories }),
+    ).toContain("backend");
+  });
+
+  it("una categoría con 404 se saltea y queda en missingCategories, sin partialError", async () => {
+    const fetchImpl = (async (url: string | URL | Request) =>
+      String(url).includes("remote-design-jobs")
+        ? new Response("no existe", { status: 404 })
+        : new Response(xml)) as unknown as typeof fetch;
+    for (const partialOnError of [false, true]) {
+      const r = await fetchWwrJobs({
+        since,
+        categories: ["remote-programming-jobs", "remote-design-jobs"],
+        fetchImpl,
+        partialOnError,
+      });
+      expect(r.missingCategories).toEqual(["remote-design-jobs"]);
+      expect(r.partialError).toBeNull();
+      expect(r.errors).toEqual([]);
+      expect(r.jobs).toHaveLength(3);
+    }
+  });
+
+  it("si todas las categorías dan 404, tira con HTTP 404", async () => {
+    await expect(
+      fetchWwrJobs({
+        since,
+        categories: ["remote-design-jobs"],
+        fetchImpl: xmlFetch({}, 404),
+      }),
+    ).rejects.toThrow(/HTTP 404/);
+  });
+
+  it("las categorías específicas van antes que la general", () => {
+    expect(WWR_POOL_CATEGORIES.at(-1)).toBe("remote-programming-jobs");
+  });
+
+  it("sin partialOnError, el primer error corta", async () => {
+    await expect(
+      fetchWwrJobs({
+        since,
+        categories: ["remote-back-end-programming-jobs", "remote-programming-jobs"],
+        fetchImpl: (async (url: string | URL | Request) =>
+          String(url).includes("back-end")
+            ? new Response("x", { status: 500 })
+            : new Response(xml)) as unknown as typeof fetch,
+      }),
+    ).rejects.toThrow(/HTTP 500/);
+  });
+
+  it("manda el user-agent cuando viene", async () => {
+    const seenHeaders: Record<string, string>[] = [];
+    const fetchImpl = (async (_url: unknown, init?: RequestInit) => {
+      seenHeaders.push(init?.headers as Record<string, string>);
+      return new Response(xml);
+    }) as unknown as typeof fetch;
+    await fetchWwrJobs({
+      since,
+      categories: ["remote-programming-jobs"],
+      userAgent: "agente-ficticio/1.0",
+      fetchImpl,
+    });
+    expect(seenHeaders[0]!["user-agent"]).toBe("agente-ficticio/1.0");
+  });
+
+  it("WWR_POOL_CATEGORIES: las 8 categorías con el patrón remote-…-jobs", () => {
+    expect(WWR_POOL_CATEGORIES).toHaveLength(8);
+    for (const c of WWR_POOL_CATEGORIES) expect(c).toMatch(/^remote-[a-z-]+-jobs$/);
+  });
+
+  it("una categoría que falla no corta las demás y queda en errors (partialOnError)", async () => {
     const fetchImpl = (async (url: string | URL | Request) => {
       if (String(url).includes("remote-devops-sysadmin-jobs")) throw new Error("red caída");
       if (String(url).includes("remote-back-end-programming-jobs"))
@@ -99,8 +183,10 @@ describe("fetchWwrJobs (fetch inyectado)", () => {
         "remote-devops-sysadmin-jobs",
       ],
       fetchImpl,
+      partialOnError: true,
     });
     expect(r.jobs).toHaveLength(3);
+    expect(r.partialError).toBe("http_5xx");
     expect(r.errors).toEqual([
       "We Work Remotely remote-back-end-programming-jobs: HTTP 500",
       "We Work Remotely remote-devops-sysadmin-jobs: red caída",

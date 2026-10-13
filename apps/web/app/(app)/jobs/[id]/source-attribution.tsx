@@ -2,18 +2,21 @@ import { safeHttpUrl } from "@/lib/labels";
 import { attributionFor } from "@job-search-os/pipeline";
 
 /**
- * Atribución de las fuentes públicas (Get on Board, Remote OK, Jobicy, Himalayas): mención de la
- * fuente y enlace al aviso original. El enlace no lleva `nofollow` (Remote OK lo exige) y no hay
- * logos. Las fuentes propias (email, manual) no muestran nada. Server Component.
+ * Atribución de las fuentes públicas (Get on Board, Remote OK, Jobicy, Himalayas, We Work Remotely
+ * y los sitios de empleos de las empresas): mención de la fuente y enlace al aviso original. El
+ * enlace no lleva `nofollow` (Remote OK lo exige) y no hay logos. Las fuentes propias (email,
+ * manual) no muestran nada. `company` es la empresa del aviso: los ATS la nombran. Server Component.
  */
 export function SourceAttribution({
   sources,
+  company,
 }: {
   sources: readonly { kind: string; url: string | null }[];
+  company?: string | null;
 }) {
   const seen = new Set<string>();
   const items = sources.flatMap((src) => {
-    const attribution = attributionFor(src.kind);
+    const attribution = attributionFor(src.kind, { company });
     if (!attribution) return [];
     const url = safeHttpUrl(src.url);
     const key = `${src.kind}|${url ?? ""}`;

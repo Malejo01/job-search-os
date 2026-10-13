@@ -24,8 +24,11 @@ export const maxDuration = 120;
 
 /** Presupuesto total, medido desde el inicio del request (maxDuration es 120 s). */
 const TOTAL_BUDGET_MS = 100_000;
-/** Tope del pool dentro de ese presupuesto; las fuentes extra usan lo que quede. */
-const POOL_BUDGET_MS = 45_000;
+/**
+ * Tope del pool dentro de ese presupuesto; las fuentes extra usan lo que quede. 65 s (antes 45 s)
+ * por los ATS y WWR (ronda 47); el total sigue acotado por TOTAL_BUDGET_MS y maxDuration = 120 s.
+ */
+const POOL_BUDGET_MS = 65_000;
 
 /** `extraSources.ok` es false si todas las prendidas fallaron; el estado HTTP no cambia. */
 function extraBody(extra: RunExtraSourcesResult | null) {
@@ -156,7 +159,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       }
     }
 
-    const { enabled, unknown } = parseEnabledSources(process.env.INGEST_EXTRA_SOURCES);
+    const { enabled, unknown } = parseEnabledSources(process.env.INGEST_EXTRA_SOURCES, logger);
     if (unknown.length > 0) {
       logger.warn({ unknown }, "INGEST_EXTRA_SOURCES: fuentes desconocidas, se ignoran");
     }

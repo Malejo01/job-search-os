@@ -35,6 +35,8 @@ const CATALOG_TABLES = [
   "public_job_skills",
   "public_job_fetches",
   "role_market_snapshots",
+  // Boards de ATS del pool (ronda 47): sin policy, solo el cron con la conexión de servicio.
+  "ats_boards",
 ];
 
 /**

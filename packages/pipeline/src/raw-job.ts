@@ -14,7 +14,12 @@ export type SourceKind =
   // Pool de ofertas públicas (Tanda G, ronda 37): fuentes con valor propio en el enum
   | "remoteok"
   | "jobicy"
-  | "himalayas";
+  | "himalayas"
+  // Ronda 47: WWR y los ATS públicos (Greenhouse, Lever, Ashby) al pool
+  | "wwr"
+  | "greenhouse"
+  | "lever"
+  | "ashby";
 
 export type Modality = "remoto" | "hibrido" | "presencial" | "desconocida";
 

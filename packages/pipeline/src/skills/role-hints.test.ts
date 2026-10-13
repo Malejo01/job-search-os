@@ -236,6 +236,31 @@ describe("inferRoleHints · categorías de la fuente", () => {
     expect(hints("Cargo sin pistas", { sourceKind: "jobicy", categories: ["QA"] })).toEqual(["qa"]);
   });
 
+  it.each([
+    ["remote-programming-jobs", ["frontend", "backend", "fullstack"]],
+    ["remote-full-stack-programming-jobs", ["fullstack"]],
+    ["remote-back-end-programming-jobs", ["backend"]],
+    ["remote-front-end-programming-jobs", ["frontend"]],
+    ["remote-devops-sysadmin-jobs", ["soporte_it"]],
+    ["remote-product-jobs", ["producto_proyectos"]],
+    ["remote-customer-support-jobs", ["customer_success"]],
+    ["remote-design-jobs", ["ux_ui"]],
+    ["Full-Stack Programming", ["fullstack"]],
+    ["DevOps and Sysadmin", ["soporte_it"]],
+  ])("WWR: categoría %s", (category, roles) => {
+    expect(hints("Cargo sin pistas", { sourceKind: "wwr", categories: [category] })).toEqual(roles);
+    expect(hints("Cargo sin pistas", { sourceKind: "wwr", tags: [category] })).toEqual(roles);
+  });
+
+  it("los ATS no tienen mapa de categorías: infieren por título", () => {
+    expect(
+      hints("Cargo sin pistas", { sourceKind: "greenhouse", categories: ["Engineering"] }),
+    ).toEqual([]);
+    expect(hints("Product Manager", { sourceKind: "lever", categories: ["Engineering"] })).toEqual([
+      "producto_proyectos",
+    ]);
+  });
+
   it("la tabla de una fuente no se aplica a otra", () => {
     expect(
       hints("Cargo sin pistas", { sourceKind: "jobicy", categories: ["programming"] }),

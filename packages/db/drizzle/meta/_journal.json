@@ -169,6 +169,20 @@
       "when": 1791855883690,
       "tag": "0023_criteria_disciplinas_digitales",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791898778101,
+      "tag": "0024_military_fabian_cortez",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791900932295,
+      "tag": "0025_fluffy_arachne",
+      "breakpoints": true
     }
   ]
 }

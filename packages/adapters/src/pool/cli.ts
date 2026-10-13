@@ -1,22 +1,38 @@
+import { fetchAshbyBoard } from "../sources/ashby";
+import { atsStatusOf, type AtsBoardResult, type AtsProvider } from "../sources/ats-common";
 import { fetchGetOnBoardJobs, GOB_POOL_CATEGORIES } from "../sources/getonboard";
+import { fetchGreenhouseBoard } from "../sources/greenhouse";
 import { fetchHimalayasJobs } from "../sources/himalayas";
 import { fetchJobicyJobs } from "../sources/jobicy";
+import { fetchLeverBoard } from "../sources/lever";
 import { fetchRemoteOkJobs } from "../sources/remoteok";
 import { describeFailure } from "../sources/error-code";
 import { sourceUserAgent } from "../sources/user-agent";
-import { fieldPresence, formatFieldReport } from "./field-report";
+import { fetchWwrJobs, parseWwrFeed, WWR_POOL_CATEGORIES } from "../sources/wwr";
+import {
+  fieldPresence,
+  formatFieldReport,
+  parsePoolCliArgs,
+  type PoolCliArgs,
+  type PoolCliSource,
+} from "./field-report";
 
 /**
  * Prueba en seco de una fuente del pool (JS-137):
- *   pnpm pool:fetch <getonboard|remoteok|jobicy|himalayas> --dry-run
- * Descarga UNA vez con el User-Agent identificable y ventana de 48 h, y reporta conteos y qué
- * campos trae la respuesta real contra los que lee el mapper. No escribe en ninguna base (no
- * importa @job-search-os/db) y nunca imprime títulos, empresas, URLs ni textos.
+ *   pnpm pool:fetch <getonboard|remoteok|jobicy|himalayas|wwr> --dry-run
+ *   pnpm pool:fetch <greenhouse|lever|ashby> <token> [--region eu] [--company "Nombre"] --dry-run
+ * Descarga UNA vez con el User-Agent identificable y ventana de 48 h (14 días en los ATS, que
+ * publican todo el board), y reporta conteos y qué campos trae la respuesta real contra los que
+ * lee el mapper. Los ATS consultan ese board SIN leer `ats_boards`. No escribe en ninguna base
+ * (no importa @job-search-os/db) y nunca imprime títulos, empresas, URLs ni textos.
  */
-const SOURCES = ["getonboard", "remoteok", "jobicy", "himalayas"] as const;
-type SourceName = (typeof SOURCES)[number];
+type SourceName = PoolCliSource;
+type AtsArgs = Extract<PoolCliArgs, { ok: true; token: string }>;
 
 const SINCE_HOURS = 48;
+const ATS_SINCE_HOURS = 14 * 24;
+/** Variables que mira `sourceUserAgent()` para armar el host del User-Agent. */
+const USER_AGENT_VARS = ["APP_URL", "NEXT_PUBLIC_APP_URL", "AUTH_URL"];
 /** Páginas de Himalayas en una prueba manual: su documentación pide una consulta por día. */
 const HIMALAYAS_DRY_RUN_PAGES = 3;
 
@@ -89,11 +105,54 @@ const MAPPER_FIELDS: Record<SourceName, readonly string[]> = {
     "description",
     "pubDate",
   ],
+  wwr: ["title", "link", "guid", "pubDate", "region", "category", "type", "description"],
+  greenhouse: [
+    "id",
+    "title",
+    "absolute_url",
+    "location",
+    "first_published",
+    "updated_at",
+    "departments",
+    "content",
+  ],
+  lever: [
+    "id",
+    "text",
+    "hostedUrl",
+    "categories",
+    "workplaceType",
+    "createdAt",
+    "description",
+    "descriptionPlain",
+    "lists",
+    "additional",
+    "additionalPlain",
+    "salaryRange",
+  ],
+  ashby: [
+    "id",
+    "title",
+    "jobUrl",
+    "location",
+    "secondaryLocations",
+    "department",
+    "team",
+    "isListed",
+    "isRemote",
+    "workplaceType",
+    "employmentType",
+    "descriptionPlain",
+    "descriptionHtml",
+    "publishedAt",
+    "compensation",
+  ],
 };
 
 /** Items crudos de una respuesta JSON, según la forma de cada fuente. */
 function rawItemsOf(source: SourceName, body: unknown): unknown[] {
   if (source === "remoteok") return Array.isArray(body) ? body.slice(1) : [];
+  if (source === "lever") return Array.isArray(body) ? body : [];
   if (body === null || typeof body !== "object") return [];
   if (source === "getonboard") {
     const data = (body as { data?: unknown }).data;
@@ -114,7 +173,8 @@ function capturingFetch(source: SourceName, sink: unknown[]): typeof fetch {
   return (async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
     const res = await fetch(input, init);
     try {
-      sink.push(...rawItemsOf(source, await res.clone().json()));
+      if (source === "wwr") sink.push(...parseWwrFeed(await res.clone().text()).items);
+      else sink.push(...rawItemsOf(source, await res.clone().json()));
     } catch {
       // Cuerpo que no es JSON: el adaptador informa el error a su manera
     }
@@ -122,15 +182,60 @@ function capturingFetch(source: SourceName, sink: unknown[]): typeof fetch {
   }) as typeof fetch;
 }
 
-async function run(source: SourceName): Promise<void> {
+const ATS_FETCHERS = {
+  greenhouse: fetchGreenhouseBoard,
+  lever: fetchLeverBoard,
+  ashby: fetchAshbyBoard,
+} satisfies Record<AtsProvider, unknown>;
+
+async function run(source: SourceName, ats?: AtsArgs): Promise<void> {
   const userAgent = sourceUserAgent();
-  const since = new Date(Date.now() - SINCE_HOURS * 3_600_000);
+  const windowHours = ats ? ATS_SINCE_HOURS : SINCE_HOURS;
+  const since = new Date(Date.now() - windowHours * 3_600_000);
   const raw: unknown[] = [];
   const fetchImpl = capturingFetch(source, raw);
   const lines: string[] = [];
   let mapped: number;
 
-  if (source === "getonboard") {
+  if (ats) {
+    let r: AtsBoardResult;
+    try {
+      r = await ATS_FETCHERS[ats.source]({
+        token: ats.token,
+        region: ats.region,
+        companyName: ats.company,
+        since,
+        userAgent,
+        fetchImpl,
+      });
+    } catch (e) {
+      console.log(`board ${ats.source}/${ats.token}: error (${atsStatusOf(e)})`);
+      process.exitCode = 1;
+      return;
+    }
+    mapped = r.jobs.length;
+    lines.push(
+      `estado del board: ${r.status}`,
+      `vistos: ${r.seen}`,
+      `filtrados por no remoto: ${r.filteredNonRemote}`,
+      `salteados (estructura incompleta): ${r.skipped}`,
+    );
+    if (r.unlisted !== undefined) lines.push(`no listados (isListed=false): ${r.unlisted}`);
+  } else if (source === "wwr") {
+    const r = await fetchWwrJobs({
+      since,
+      categories: WWR_POOL_CATEGORIES,
+      partialOnError: true,
+      userAgent,
+      fetchImpl,
+    });
+    mapped = r.jobs.length;
+    lines.push(`vistos: ${r.seen}`, `salteados: ${r.skipped}`);
+    lines.push(
+      `categorías con error: ${r.errors.length ? r.errors.join("; ") : "ninguna"}`,
+      "(un HTTP 404 en una categoría = slug a corregir en WWR_POOL_CATEGORIES)",
+    );
+  } else if (source === "getonboard") {
     const r = await fetchGetOnBoardJobs({
       since,
       categories: GOB_POOL_CATEGORIES,
@@ -169,9 +274,15 @@ async function run(source: SourceName): Promise<void> {
     lines.push(`salteados: ${r.skipped}`);
   }
 
+  const hasHost = userAgent.includes("(+");
   console.log(
-    `fuente: ${source}  (ventana ${SINCE_HOURS} h, User-Agent con host: ${userAgent.includes("(+") ? "sí" : "no"})`,
+    `fuente: ${source}${ats ? `/${ats.token}${ats.region ? ` (región ${ats.region})` : ""}` : ""}  (ventana ${windowHours} h, User-Agent con host: ${hasHost ? "sí" : "no"})`,
   );
+  if (!hasHost) {
+    console.log(
+      `  sin host: se miraron ${USER_AGENT_VARS.join(", ")} y ninguna es una URL http(s) válida en este entorno`,
+    );
+  }
   console.log(`mapeados dentro de la ventana: ${mapped}`);
   for (const l of lines) console.log(l);
   console.log(`\ncampos de la respuesta cruda (${raw.length} items) que lee el mapper:`);
@@ -179,19 +290,13 @@ async function run(source: SourceName): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  const args = process.argv.slice(2);
-  const source = args.find((a) => !a.startsWith("--"));
-  if (!source || !(SOURCES as readonly string[]).includes(source)) {
-    console.error(`uso: pnpm pool:fetch <${SOURCES.join("|")}> --dry-run`);
+  const parsed = parsePoolCliArgs(process.argv.slice(2));
+  if (!parsed.ok) {
+    console.error(parsed.error);
     process.exitCode = 1;
     return;
   }
-  if (!args.includes("--dry-run")) {
-    console.error("pool:fetch: solo existe el modo --dry-run");
-    process.exitCode = 1;
-    return;
-  }
-  await run(source as SourceName);
+  await run(parsed.source, "token" in parsed ? parsed : undefined);
 }
 
 main().catch((error: unknown) => {
