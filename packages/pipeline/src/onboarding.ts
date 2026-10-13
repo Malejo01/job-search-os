@@ -1,7 +1,8 @@
 import { z } from "zod";
 import type { CriteriaRules } from "./criteria";
 import { DISCIPLINES } from "./evaluation";
-import { isRoleKey, type RoleKey } from "./skills/self-assessment";
+import { type RoleKey } from "./skills/self-assessment";
+import { parseTargetRoles, TARGET_ROLES_DEFAULT_LIMIT } from "./skills/target-roles";
 
 /**
  * Onboarding obligatorio (B2, JS-094): qué es un "perfil completo" y cómo se valida el formulario.
@@ -152,17 +153,10 @@ const optionalInt = (min: number, max: number) =>
     .transform((v) => (v === "" ? null : Number(v)))
     .pipe(z.number().int().min(min).max(max).nullable());
 
-/** Valor del selector de puesto para "Otro o varios": no guarda rol (`target_role` queda null). */
-export const OTHER_ROLE = "otro";
-
 export const onboardingSchema = z
   .object({
-    // Obligatorio: una clave de ROLE_KEYS o "otro". Ausente u otro valor falla (no se asume nada).
-    targetRole: z
-      .string()
-      .trim()
-      .refine((v) => v === OTHER_ROLE || isRoleKey(v))
-      .transform((v): RoleKey | null => (isRoleKey(v) ? v : null)),
+    // Ya validados por parseTargetRoles (parseOnboarding los pasa por ahí antes del schema).
+    targetRoles: z.array(z.custom<RoleKey>()),
     country: z.string().trim().toUpperCase(),
     countryOther: z.string().trim().toUpperCase(),
     city: optionalText(100),
@@ -192,8 +186,8 @@ export const onboardingSchema = z
   });
 
 export type OnboardingInput = {
-  /** Puesto que busca; null = "Otro o varios" (sin filtro por rol). */
-  targetRole: RoleKey | null;
+  /** Puestos que busca (1 a `limit`); el primero es el principal (`target_role`). */
+  targetRoles: RoleKey[];
   locationCountry: string;
   locationCity: string | null;
   remoteOnly: boolean;
@@ -209,12 +203,26 @@ export type OnboardingParse = { ok: true; value: OnboardingInput } | { ok: false
 
 /**
  * Valida los campos crudos del formulario (strings; las casillas llegan como "on"/ausente).
- * Si falla devuelve el primer campo con error, sin eco del valor.
+ * `targetRoles` llega como lista (el form manda un `targetRoles` por casilla) y se valida con
+ * `parseTargetRoles` contra `limit`, el tope ya resuelto por `targetRolesLimit` (por defecto, el
+ * del plan gratis). Si falla devuelve el primer campo con error, sin eco del valor.
  */
-export function parseOnboarding(raw: Record<string, string | undefined>): OnboardingParse {
-  const s = (k: string) => raw[k] ?? "";
+export function parseOnboarding(
+  raw: Record<string, string | readonly string[] | undefined>,
+  limit: number = TARGET_ROLES_DEFAULT_LIMIT,
+): OnboardingParse {
+  const s = (k: string) => {
+    const v = raw[k];
+    return typeof v === "string" ? v : "";
+  };
+  const rolesRaw = raw.targetRoles;
+  const roles = parseTargetRoles(
+    typeof rolesRaw === "string" ? [rolesRaw] : [...(rolesRaw ?? [])],
+    limit,
+  );
+  if (!roles.ok) return { ok: false, field: roles.field };
   const parsed = onboardingSchema.safeParse({
-    targetRole: s("targetRole"),
+    targetRoles: roles.roles,
     country: s("country"),
     countryOther: s("countryOther"),
     city: s("city"),
@@ -242,7 +250,7 @@ export function parseOnboarding(raw: Record<string, string | undefined>): Onboar
   return {
     ok: true,
     value: {
-      targetRole: v.targetRole,
+      targetRoles: v.targetRoles,
       locationCountry: v.country === OTHER_COUNTRY ? v.countryOther : v.country,
       locationCity: v.city,
       remoteOnly: v.remoteOnly,

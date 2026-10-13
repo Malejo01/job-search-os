@@ -1,6 +1,14 @@
 import { SELF_LEVELS, type PlanStatus } from "@job-search-os/pipeline";
+import Link from "next/link";
 import { SKILL_CATEGORY_LABEL, safeHttpUrl } from "@/lib/labels";
-import { getDataState, getPlan, getPlanRoleFallback, type PlanItemView } from "@/lib/plan";
+import { getTargetRoles } from "@/lib/onboarding";
+import {
+  getDataState,
+  getPlan,
+  getPlanRoleFallback,
+  hasFewOwnJobs,
+  type PlanItemView,
+} from "@/lib/plan";
 import { requireUserId } from "@/lib/session";
 import { MissingDataNotice, NoLevelsNotice } from "../market/data-state-notice";
 import { setPlanStatusAction } from "./actions";
@@ -25,8 +33,20 @@ const NEXT: Record<PlanStatus, PlanStatus[]> = {
 };
 
 /**
+ * Prioridad en palabras (ronda 45): el número depende de la escala de demanda de cada persona y
+ * no dice nada solo. Se compara con el ítem de mayor prioridad del plan: desde 2/3 de ese máximo es
+ * «alta», desde 1/3 «media» y por debajo «baja». Con un solo ítem, o sin prioridad, es «alta».
+ */
+function priorityBand(priority: number, max: number): "alta" | "media" | "baja" {
+  if (max <= 0) return "alta";
+  const ratio = priority / max;
+  return ratio >= 2 / 3 ? "alta" : ratio >= 1 / 3 ? "media" : "baja";
+}
+
+/**
  * Plan de formación (JS-034): skills por prioridad = demanda × (1 − nivel/3) × facilidad,
  * con horas estimadas, recurso asociado si hay y estado. Server Component + Server Actions.
+ * Con varios puestos (ronda 45) el plan sigue siendo uno: un plan por puesto es un ticket futuro.
  */
 export default async function PlanPage({
   searchParams,
@@ -35,11 +55,15 @@ export default async function PlanPage({
 }) {
   const userId = await requireUserId();
   const { error } = await searchParams;
-  const [items, state, roleFallback] = await Promise.all([
+  // El plan guardado es uno por persona: la nota usa siempre el puesto principal
+  const role = (await getTargetRoles(userId))[0] ?? null;
+  const [items, state, roleFallback, fewOwnJobs] = await Promise.all([
     getPlan(userId),
     getDataState(userId),
-    getPlanRoleFallback(userId),
+    getPlanRoleFallback(userId, role),
+    hasFewOwnJobs(userId),
   ]);
+  const maxPriority = items.reduce((m, i) => Math.max(m, i.priority), 0);
   const groups: Record<PlanStatus, PlanItemView[]> = { en_curso: [], pendiente: [], cerrada: [] };
   for (const it of items) groups[it.status].push(it);
   const hoursPending = items
@@ -69,9 +93,22 @@ export default async function PlanPage({
       <NoLevelsNotice state={state} />
       {items.length === 0 ? (
         state.hasSnapshot ? (
-          <p className="rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-600">
-            No hay skills para reforzar con las ofertas actuales.
-          </p>
+          fewOwnJobs ? (
+            <p
+              data-testid="plan-few-offers"
+              className="rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-600"
+            >
+              Con pocas ofertas todavía no podemos decirlo: sumá más o{" "}
+              <Link href="/jobs/new" className="underline">
+                pegá una oferta
+              </Link>
+              .
+            </p>
+          ) : (
+            <p className="rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-600">
+              No hay skills para reforzar con las ofertas actuales.
+            </p>
+          )
         ) : (
           <MissingDataNotice state={state} />
         )
@@ -94,7 +131,7 @@ export default async function PlanPage({
                           </span>
                         </p>
                         <p className="text-xs text-zinc-600">
-                          prioridad {it.priority.toFixed(1)} · nivel{" "}
+                          prioridad {priorityBand(it.priority, maxPriority)} · nivel{" "}
                           {it.level === null
                             ? "sin dato"
                             : `${it.level} (${SELF_LEVELS[it.level]?.label ?? ""})`}
@@ -122,7 +159,7 @@ export default async function PlanPage({
                           </p>
                         ) : (
                           <p className="text-xs text-zinc-600">
-                            sin recurso aprobado en el catálogo
+                            Todavía no tenemos un curso para esta skill
                           </p>
                         )}
                       </div>
@@ -157,11 +194,17 @@ export default async function PlanPage({
           ) : null,
         )
       )}
-      <p className="text-xs text-zinc-600">
-        Prioridad = demanda ponderada del mercado × (1 − nivel/3) × facilidad (16 h de cierre → 1,
-        40 h → 0,4, 80 h → 0,2). Se recalcula cuando guardás tus skills y cada lunes; los estados
-        que marcaste se conservan. Los recursos salen de un catálogo revisado a mano.
-      </p>
+      <details className="rounded-md border border-zinc-200 p-3 text-sm">
+        <summary className="flex min-h-11 cursor-pointer items-center font-semibold">
+          Cómo se calcula
+        </summary>
+        <p className="mt-2 text-xs text-zinc-600">
+          Prioridad = demanda ponderada del mercado × (1 − nivel/3) × facilidad (16 h de cierre → 1,
+          40 h → 0,4, 80 h → 0,2). «Alta», «media» y «baja» comparan cada skill con la de mayor
+          prioridad de tu plan. Se recalcula cuando guardás tus skills y cada lunes; los estados que
+          marcaste se conservan. Los recursos salen de un catálogo revisado a mano.
+        </p>
+      </details>
     </section>
   );
 }

@@ -15,13 +15,14 @@ import { ingestBatch, loadProfilePrefilterPrefs } from "./ingest-job";
 const MARKETING = "a4000000-0000-4000-8000-000000000001";
 const SIN_PUESTO = "a4000000-0000-4000-8000-000000000002";
 const INVALIDO = "a4000000-0000-4000-8000-000000000003";
-const USERS = [MARKETING, SIN_PUESTO, INVALIDO];
+const VARIOS = "a4000000-0000-4000-8000-000000000004";
+const USERS = [MARKETING, SIN_PUESTO, INVALIDO, VARIOS];
 
 let container: StartedPostgreSqlContainer | null = null;
 let conn: ReturnType<typeof createDb>;
 const logger = pino({ level: "silent" });
 
-async function ingestSeo(userId: string, extra: { targetRole?: null } = {}) {
+async function ingestSeo(userId: string, extra: { targetRoles?: null } = {}) {
   const out = await ingestBatch(
     [
       rawJobFromManual({
@@ -61,21 +62,23 @@ beforeAll(async () => {
   await conn.db
     .insert(s.users)
     .values(USERS.map((id, i) => ({ id, email: `u${i}@puesto.test`, passwordHash: "x" })));
-  const profile = (userId: string, targetRole: string | null) => ({
+  const profile = (userId: string, targetRoles: string[]) => ({
     userId,
     displayName: "Test",
     locationCountry: "AR",
     remoteOnly: true,
-    targetRole,
+    targetRole: targetRoles[0] ?? null,
+    targetRoles,
     inboundAddress: `p_${userId.slice(0, 8)}_${userId.slice(-1)}@ingest.test`,
     profileSummary: "Perfil de prueba.",
   });
   await conn.db
     .insert(s.profiles)
     .values([
-      profile(MARKETING, "marketing_digital"),
-      profile(SIN_PUESTO, null),
-      profile(INVALIDO, "no_es_un_puesto"),
+      profile(MARKETING, ["marketing_digital"]),
+      profile(SIN_PUESTO, []),
+      profile(INVALIDO, ["no_es_un_puesto"]),
+      profile(VARIOS, ["frontend", "marketing_digital", "marketing_digital", "no_es_un_puesto"]),
     ]);
 }, 180_000);
 
@@ -89,13 +92,21 @@ afterAll(async () => {
   await container?.stop();
 });
 
-describe("Ronda 40: target_role del perfil en el prefiltro de la ingesta", () => {
-  it("loadProfilePrefilterPrefs: devuelve el puesto; inválido o sin perfil es null", async () => {
-    expect((await loadProfilePrefilterPrefs(conn.db, MARKETING)).targetRole).toBe(
+describe("Rondas 40 y 45: target_roles del perfil en el prefiltro de la ingesta", () => {
+  it("loadProfilePrefilterPrefs: devuelve los puestos válidos; inválidos o sin perfil, []", async () => {
+    expect((await loadProfilePrefilterPrefs(conn.db, MARKETING)).targetRoles).toEqual([
       "marketing_digital",
-    );
-    expect((await loadProfilePrefilterPrefs(conn.db, SIN_PUESTO)).targetRole).toBeNull();
-    expect((await loadProfilePrefilterPrefs(conn.db, INVALIDO)).targetRole).toBeNull();
+    ]);
+    expect((await loadProfilePrefilterPrefs(conn.db, SIN_PUESTO)).targetRoles).toEqual([]);
+    expect((await loadProfilePrefilterPrefs(conn.db, INVALIDO)).targetRoles).toEqual([]);
+    expect((await loadProfilePrefilterPrefs(conn.db, VARIOS)).targetRoles).toEqual([
+      "frontend",
+      "marketing_digital",
+    ]);
+  });
+
+  it("varios puestos: 'SEO Specialist' pasa por la unión de oficios", async () => {
+    expect((await ingestSeo(VARIOS))?.status).toBe("prefiltrada");
   });
 
   it("marketing_digital: 'SEO Specialist' pasa", async () => {
@@ -106,9 +117,11 @@ describe("Ronda 40: target_role del perfil en el prefiltro de la ingesta", () =>
     expect((await ingestSeo(SIN_PUESTO))?.status).toBe("descartada_prefiltro");
   });
 
-  it("targetRole inyectado en deps (null) gana sobre el perfil", async () => {
-    // Mismo usuario de marketing, pero con el puesto forzado a null: se descarta
+  it("targetRoles inyectado en deps (null) gana sobre el perfil", async () => {
+    // Mismo usuario de marketing, pero con los puestos forzados a null: se descarta
     await conn.db.delete(s.jobs).where(eq(s.jobs.userId, MARKETING));
-    expect((await ingestSeo(MARKETING, { targetRole: null }))?.status).toBe("descartada_prefiltro");
+    expect((await ingestSeo(MARKETING, { targetRoles: null }))?.status).toBe(
+      "descartada_prefiltro",
+    );
   });
 });

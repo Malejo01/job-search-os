@@ -1,6 +1,7 @@
 import { schema as s, type Db } from "@job-search-os/db";
-import { buildPlan, isRoleKey, type PlanRow } from "@job-search-os/pipeline";
+import { buildPlan, type PlanRow, type RoleKey } from "@job-search-os/pipeline";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { validRoleKeys } from "../ingest/ingest-job";
 
 /**
  * Plan de formación (JS-034, determinista): toma el último snapshot de mercado del usuario,
@@ -11,8 +12,10 @@ import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
  * - skill que ya estaba → se actualiza la prioridad, se conservan estado y recurso;
  * - skill que ya no aplica (nivel 3) y estaba `pendiente` → se borra; `en_curso`/`cerrada` quedan.
  *
- * Respaldo del rol (ronda 38): con menos de 10 ofertas con skills y un `target_role` válido, la
- * demanda sale de `role_market_snapshots` de ese rol (pool global) en vez del snapshot del usuario.
+ * Respaldo del rol (ronda 38): con menos de 10 ofertas con skills y un puesto válido, la
+ * demanda sale de `role_market_snapshots` de ese puesto (pool global) en vez del snapshot del
+ * usuario. Ronda 45: el puesto es `options.role` (uno de los elegidos en `target_roles`) o, por
+ * defecto, el principal (el primero de la lista).
  */
 export type PlanBuildResult = {
   weekStart: string | null;
@@ -72,19 +75,21 @@ async function loadRoleDemand(
 
 export async function buildLearningPlan(
   db: Db,
-  options: { userId: string; weekStart?: string },
+  options: { userId: string; weekStart?: string; role?: RoleKey },
 ): Promise<PlanBuildResult> {
   const { userId } = options;
 
-  // Pocas ofertas propias y un rol válido: la demanda del rol es mejor señal que la de tres avisos
+  // Pocas ofertas propias y un puesto elegido: la demanda del puesto es mejor señal que la de tres
+  // avisos. `role` (la pestaña de /plan) solo vale si es uno de los elegidos; si no, el principal.
   let fromRole: { weekStart: string; rows: DemandRow[] } | null = null;
   const [profile] = await db
-    .select({ targetRole: s.profiles.targetRole })
+    .select({ targetRoles: s.profiles.targetRoles })
     .from(s.profiles)
     .where(eq(s.profiles.userId, userId))
     .limit(1);
-  const targetRole = profile?.targetRole;
-  if (isRoleKey(targetRole)) {
+  const chosen = validRoleKeys(profile?.targetRoles);
+  const targetRole = options.role && chosen.includes(options.role) ? options.role : chosen[0];
+  if (targetRole) {
     const [own] = await db
       .select({ n: sql<number>`count(distinct ${s.jobSkills.jobId})::int` })
       .from(s.jobSkills)

@@ -4,6 +4,7 @@ import {
   isProfileComplete,
   isRoleKey,
   type OnboardingInput,
+  targetRolesLimit,
   type RoleKey,
 } from "@job-search-os/pipeline";
 import { and, eq, sql } from "drizzle-orm";
@@ -31,18 +32,44 @@ export async function isOnboardingComplete(userId: string): Promise<boolean> {
   });
 }
 
+/** Claves conocidas y sin repetir, en el orden guardado: la base no valida, el código sí. */
+function knownRoles(values: readonly unknown[] | null | undefined): RoleKey[] {
+  const out: RoleKey[] = [];
+  for (const v of values ?? []) if (isRoleKey(v) && !out.includes(v)) out.push(v);
+  return out;
+}
+
+function sameRoleSet(a: readonly RoleKey[], b: readonly RoleKey[]): boolean {
+  return a.length === b.length && a.every((r) => b.includes(r));
+}
+
 /**
- * Rol que la persona dijo que busca (`profiles.target_role`), o null si no eligió ("Otro o varios")
- * o si el valor guardado no es una clave conocida: la base no lo valida, el código sí.
+ * Puestos que la persona dijo que busca (`profiles.target_roles`, ronda 45). El primero es el
+ * principal. Vacío si todavía no eligió. Los valores que no son una clave conocida se ignoran.
  */
-export async function getTargetRole(userId: string): Promise<RoleKey | null> {
+export async function getTargetRoles(userId: string): Promise<RoleKey[]> {
   return withUser(userId, async (tx) => {
     const [row] = await tx
-      .select({ targetRole: s.profiles.targetRole })
+      .select({ targetRoles: s.profiles.targetRoles })
       .from(s.profiles)
       .where(eq(s.profiles.userId, userId))
       .limit(1);
-    return isRoleKey(row?.targetRole) ? row.targetRole : null;
+    return knownRoles(row?.targetRoles);
+  });
+}
+
+/**
+ * Tope de puestos de la persona: `max_target_roles` del perfil si lo tiene; si no, el del entorno
+ * (`TARGET_ROLES_FREE_LIMIT`, 2 por defecto). La regla vive en el pipeline.
+ */
+export async function getTargetRolesLimit(userId: string): Promise<number> {
+  return withUser(userId, async (tx) => {
+    const [row] = await tx
+      .select({ max: s.profiles.maxTargetRoles })
+      .from(s.profiles)
+      .where(eq(s.profiles.userId, userId))
+      .limit(1);
+    return targetRolesLimit(process.env, row?.max ?? null);
   });
 }
 
@@ -59,28 +86,31 @@ export async function hasReceivedEmail(userId: string): Promise<boolean> {
 }
 
 /**
- * Cambia el rol objetivo (Mis skills y Ajustes). Acepta una clave de rol o null («Otro o varios»);
- * cualquier otro valor no se guarda. `changed` es verdadero si el valor anterior era distinto; se
- * lee en la misma transacción que el cambio.
+ * Cambia los puestos (Ajustes). Guarda la lista y el principal (`target_role` = el primero) en la
+ * misma escritura. Exige al menos una clave y solo claves conocidas, sin repetir; el tope por plan
+ * lo valida quien llama con `parseTargetRoles`. `changed` es verdadero si el conjunto anterior era
+ * distinto; se lee en la misma transacción que el cambio.
  */
-export async function setTargetRole(
+export async function setTargetRoles(
   userId: string,
-  role: unknown,
+  roles: unknown,
 ): Promise<{ saved: boolean; changed: boolean }> {
-  if (role !== null && !isRoleKey(role)) return { saved: false, changed: false };
+  if (!Array.isArray(roles) || roles.length === 0) return { saved: false, changed: false };
+  const next = knownRoles(roles);
+  if (next.length !== new Set(roles).size) return { saved: false, changed: false };
   return withUser(userId, async (tx) => {
     const [before] = await tx
-      .select({ targetRole: s.profiles.targetRole })
+      .select({ targetRoles: s.profiles.targetRoles })
       .from(s.profiles)
       .where(eq(s.profiles.userId, userId))
       .limit(1);
     if (!before) return { saved: false, changed: false };
-    const previous = isRoleKey(before.targetRole) ? before.targetRole : null;
+    const previous = knownRoles(before.targetRoles);
     await tx
       .update(s.profiles)
-      .set({ targetRole: role, updatedAt: new Date() })
+      .set({ targetRoles: next, targetRole: next[0], updatedAt: new Date() })
       .where(eq(s.profiles.userId, userId));
-    return { saved: true, changed: previous !== role };
+    return { saved: true, changed: !sameRoleSet(previous, next) };
   });
 }
 
@@ -96,15 +126,17 @@ export async function completeOnboarding(
 ): Promise<{ saved: boolean; roleChanged: boolean }> {
   return withUser(userId, async (tx) => {
     const [before] = await tx
-      .select({ targetRole: s.profiles.targetRole })
+      .select({ targetRoles: s.profiles.targetRoles })
       .from(s.profiles)
       .where(eq(s.profiles.userId, userId))
       .limit(1);
-    const previousRole = isRoleKey(before?.targetRole) ? before.targetRole : null;
+    const previousRoles = knownRoles(before?.targetRoles);
     const updated = await tx
       .update(s.profiles)
       .set({
-        targetRole: input.targetRole,
+        targetRoles: input.targetRoles,
+        // El principal es el primero de la lista y se escribe siempre junto con ella
+        targetRole: input.targetRoles[0] ?? null,
         locationCountry: input.locationCountry,
         locationCity: input.locationCity,
         remoteOnly: input.remoteOnly,
@@ -139,6 +171,6 @@ export async function completeOnboarding(
         })
         .onConflictDoNothing();
     }
-    return { saved: true, roleChanged: previousRole !== (input.targetRole ?? null) };
+    return { saved: true, roleChanged: !sameRoleSet(previousRoles, input.targetRoles) };
   });
 }

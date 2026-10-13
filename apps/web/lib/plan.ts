@@ -1,8 +1,8 @@
 import { getRoleMarket, MIN_OWN_JOBS_FOR_PLAN } from "@job-search-os/adapters";
 import { schema as s } from "@job-search-os/db";
-import { isRoleKey, PLAN_STATUSES, type PlanStatus } from "@job-search-os/pipeline";
+import { PLAN_STATUSES, type PlanStatus, type RoleKey } from "@job-search-os/pipeline";
 import { and, desc, eq, sql } from "drizzle-orm";
-import { withUser } from "./db";
+import { withUser, type Tx } from "./db";
 import { ROLE_SKILLS } from "./skill-levels";
 
 /** Plan de formación (JS-034): lectura y cambio de estado con el rol de la app (RLS). */
@@ -97,24 +97,34 @@ export async function getPlan(userId: string): Promise<PlanItemView[]> {
  * `MIN_OWN_JOBS_FOR_PLAN` ofertas propias con skills y datos del rol. La etiqueta es la de
  * `ROLE_SKILLS`, nunca la clave.
  */
-export async function getPlanRoleFallback(userId: string): Promise<string | null> {
+export async function getPlanRoleFallback(
+  userId: string,
+  role: RoleKey | null,
+): Promise<string | null> {
+  if (role === null) return null;
   return withUser(userId, async (tx) => {
-    const [profile] = await tx
-      .select({ targetRole: s.profiles.targetRole })
-      .from(s.profiles)
-      .where(eq(s.profiles.userId, userId))
-      .limit(1);
-    const role = profile?.targetRole;
-    if (!isRoleKey(role)) return null;
-    const [own] = await tx
-      .select({ n: sql<number>`count(distinct ${s.jobSkills.jobId})::int` })
-      .from(s.jobSkills)
-      .innerJoin(s.jobs, eq(s.jobs.id, s.jobSkills.jobId))
-      .where(eq(s.jobs.userId, userId));
-    if ((own?.n ?? 0) >= MIN_OWN_JOBS_FOR_PLAN) return null;
+    if ((await countOwnJobsWithSkills(tx, userId)) >= MIN_OWN_JOBS_FOR_PLAN) return null;
     const market = await getRoleMarket(tx, role, { limit: 1 });
     return market.skills.length > 0 ? ROLE_SKILLS[role].label : null;
   });
+}
+
+/** Ofertas propias con skills reconocidas: con menos de `MIN_OWN_JOBS_FOR_PLAN` el plan es provisorio. */
+async function countOwnJobsWithSkills(tx: Tx, userId: string): Promise<number> {
+  const [own] = await tx
+    .select({ n: sql<number>`count(distinct ${s.jobSkills.jobId})::int` })
+    .from(s.jobSkills)
+    .innerJoin(s.jobs, eq(s.jobs.id, s.jobSkills.jobId))
+    .where(eq(s.jobs.userId, userId));
+  return own?.n ?? 0;
+}
+
+/** ¿La persona tiene pocas ofertas propias con skills? Decide el texto del plan vacío. */
+export async function hasFewOwnJobs(userId: string): Promise<boolean> {
+  return withUser(
+    userId,
+    async (tx) => (await countOwnJobsWithSkills(tx, userId)) < MIN_OWN_JOBS_FOR_PLAN,
+  );
 }
 
 /** pendiente → en_curso (started_at) → cerrada (closed_at); también se puede volver a pendiente. */

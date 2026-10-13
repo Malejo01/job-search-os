@@ -17,8 +17,11 @@ let container: StartedPostgreSqlContainer | null = null;
 let conn: ReturnType<typeof createDb>;
 const skillIds: Record<string, string> = {};
 
-async function setRole(targetRole: string | null) {
-  await conn.db.update(s.profiles).set({ targetRole }).where(eq(s.profiles.userId, USER));
+async function setRole(...targetRoles: string[]) {
+  await conn.db
+    .update(s.profiles)
+    .set({ targetRole: targetRoles[0] ?? null, targetRoles })
+    .where(eq(s.profiles.userId, USER));
 }
 
 async function seedRoleMarket() {
@@ -171,7 +174,7 @@ describe("buildLearningPlan · respaldo del rol", () => {
   });
 
   it("sin rol y con pocas ofertas: como antes, con el snapshot del usuario", async () => {
-    await setRole(null);
+    await setRole();
     await seedRoleMarket();
     await seedOwn(2);
     const r = await buildLearningPlan(conn.db, { userId: USER, weekStart: USER_WEEK });
@@ -180,7 +183,7 @@ describe("buildLearningPlan · respaldo del rol", () => {
   });
 
   it("sin rol, sin ofertas y sin snapshot: plan vacío", async () => {
-    await setRole(null);
+    await setRole();
     expect(await buildLearningPlan(conn.db, { userId: USER })).toEqual({
       weekStart: null,
       rows: [],
@@ -196,6 +199,27 @@ describe("buildLearningPlan · respaldo del rol", () => {
     const r = await buildLearningPlan(conn.db, { userId: USER, weekStart: USER_WEEK });
     expect(r.demandSource).toBe("usuario");
     expect(r.rows.map((x) => x.slug)).toEqual(["plan_s3"]);
+  });
+
+  it("con varios puestos, role elige la demanda y por defecto rige el principal", async () => {
+    await seedRoleMarket();
+    await conn.db.insert(s.roleMarketSnapshots).values({
+      role: "ux_ui",
+      weekStart: ROLE_WEEK,
+      skillId: skillIds.plan_s3!,
+      mentions: 4,
+      mustMentions: 1,
+      jobs: 6,
+    });
+    await setRole("qa", "ux_ui");
+    const porDefecto = await buildLearningPlan(conn.db, { userId: USER });
+    expect(porDefecto.rows.map((x) => x.slug)).toEqual(["plan_s1", "plan_s2"]);
+    const segundo = await buildLearningPlan(conn.db, { userId: USER, role: "ux_ui" });
+    expect(segundo.demandSource).toBe("rol");
+    expect(segundo.rows.map((x) => x.slug)).toEqual(["plan_s3"]);
+    // un puesto que la persona no eligió no se usa: cae al principal
+    const ajeno = await buildLearningPlan(conn.db, { userId: USER, role: "backend" });
+    expect(ajeno.rows.map((x) => x.slug)).toEqual(["plan_s1", "plan_s2"]);
   });
 
   it("un rol inválido no activa el respaldo", async () => {

@@ -76,6 +76,12 @@ async function publicIdsOf(jobIds: string[]): Promise<(string | null)[]> {
   return jobIds.map((id) => byId.get(id) ?? null);
 }
 
+/** `target_role` (principal) y `target_roles` siempre juntos, como los escribe la app. */
+const rolesOf = (...targetRoles: string[]) => ({
+  targetRole: targetRoles[0] ?? null,
+  targetRoles,
+});
+
 async function setProfile(userId: string, patch: Partial<typeof s.profiles.$inferInsert>) {
   await conn.db.update(s.profiles).set(patch).where(eq(s.profiles.userId, userId));
 }
@@ -134,8 +140,8 @@ beforeEach(async () => {
     await conn.db.delete(s.skillLevels).where(eq(s.skillLevels.userId, userId));
   }
   await conn.db.delete(s.publicJobs).where(like(s.publicJobs.externalId, `${PREFIX}%`));
-  await setProfile(USER_A, { targetRole: "qa", remoteOnly: true, locationCountry: "AR" });
-  await setProfile(USER_B, { targetRole: null, remoteOnly: true, locationCountry: "AR" });
+  await setProfile(USER_A, { ...rolesOf("qa"), remoteOnly: true, locationCountry: "AR" });
+  await setProfile(USER_B, { ...rolesOf(), remoteOnly: true, locationCountry: "AR" });
 });
 
 describe("assignPoolToUser · selección", () => {
@@ -158,10 +164,78 @@ describe("assignPoolToUser · selección", () => {
     expect(r.assigned).toBe(3);
   });
 
-  it("un target_role inválido cuenta como sin rol", async () => {
-    await setProfile(USER_A, { targetRole: "no_es_un_rol" });
+  it("un puesto inválido en target_roles cuenta como sin rol", async () => {
+    await setProfile(USER_A, rolesOf("no_es_un_rol"));
     await pool({ roleHints: ["ux_ui"] });
     expect((await run(USER_A, 10, 0)).assigned).toBe(1);
+  });
+
+  it("target_roles vacío con target_role viejo: se lee solo la lista (sin rol)", async () => {
+    await setProfile(USER_A, { targetRole: "qa", targetRoles: [] });
+    await pool({ roleHints: ["ux_ui"] });
+    expect((await run(USER_A, 10, 0)).assigned).toBe(1);
+  });
+
+  describe("varios puestos (ronda 45)", () => {
+    it("dos puestos: reparte intercalado, guarda matched_role y deja afuera un tercer puesto", async () => {
+      await setProfile(USER_A, rolesOf("qa", "ux_ui"));
+      const q = [] as string[];
+      const u = [] as string[];
+      for (let i = 0; i < 3; i++) q.push(await pool({ roleHints: ["qa"] }));
+      for (let i = 0; i < 3; i++) {
+        u.push(
+          await pool({
+            title: "UX Designer",
+            titleNormalized: "ux designer",
+            roleHints: ["ux_ui"],
+          }),
+        );
+      }
+      await pool({
+        title: "Backend Developer",
+        titleNormalized: "backend developer",
+        roleHints: ["backend"],
+      });
+      const open = await pool({ roleHints: [] });
+
+      const r = await run(USER_A, 10, 10);
+      expect(r.assigned).toBe(7);
+      const order = await publicIdsOf(r.enqueuedJobIds);
+      // intercalado A, B, A, B...; la oferta sin señal al final. Dentro de cada puesto, el orden de rankCandidates
+      // (mismo score: más nueva primero, y pool() las numera de más nueva a más vieja).
+      expect(order).toEqual([q[0], u[0], q[1], u[1], q[2], u[2], open]);
+      const byPublic = new Map((await jobsOf(USER_A)).map((j) => [j.publicJobId, j.matchedRole]));
+      expect(q.map((id) => byPublic.get(id))).toEqual(["qa", "qa", "qa"]);
+      expect(u.map((id) => byPublic.get(id))).toEqual(["ux_ui", "ux_ui", "ux_ui"]);
+      expect(byPublic.get(open)).toBeNull();
+    });
+
+    it("el tope reparte por el intercalado: con límite 4, dos de cada puesto", async () => {
+      await setProfile(USER_A, rolesOf("qa", "ux_ui"));
+      for (let i = 0; i < 4; i++) await pool({ roleHints: ["qa"] });
+      for (let i = 0; i < 4; i++) {
+        await pool({ title: "UX Designer", titleNormalized: "ux designer", roleHints: ["ux_ui"] });
+      }
+      expect((await run(USER_A, 4, 0)).assigned).toBe(4);
+      const roles = (await jobsOf(USER_A)).map((j) => j.matchedRole).sort();
+      expect(roles).toEqual(["qa", "qa", "ux_ui", "ux_ui"]);
+    });
+
+    it("un solo puesto: matched_role es ese puesto y el orden es el de siempre", async () => {
+      const a = await pool({ roleHints: ["qa"] });
+      const open = await pool({ roleHints: [] });
+      const r = await run(USER_A, 10, 10);
+      expect(await publicIdsOf(r.enqueuedJobIds)).toEqual([a, open]);
+      const byPublic = new Map((await jobsOf(USER_A)).map((j) => [j.publicJobId, j.matchedRole]));
+      expect(byPublic.get(a)).toBe("qa");
+      expect(byPublic.get(open)).toBeNull();
+    });
+
+    it("sin puestos, matched_role queda null", async () => {
+      await pool({ roleHints: ["qa"] });
+      await run(USER_B, 10, 0);
+      expect((await jobsOf(USER_B)).map((j) => j.matchedRole)).toEqual([null]);
+    });
   });
 
   it("respeta el límite y el orden: rol exacto antes que sin hints, después pre-score", async () => {
@@ -339,7 +413,7 @@ describe("assignPoolToUser · carreras digitales (ADR-015)", () => {
       titleNormalized: "seo specialist",
       roleHints: ["marketing_digital"],
     });
-    await setProfile(USER_A, { targetRole: "marketing_digital" });
+    await setProfile(USER_A, rolesOf("marketing_digital"));
     const r = await run(USER_A, 10, 0);
     expect(r).toMatchObject({ assigned: 1, discarded: 0 });
     expect((await jobsOf(USER_A)).map((j) => j.publicJobId)).toEqual([seo]);
@@ -361,7 +435,7 @@ describe("assignPoolToUser · carreras digitales (ADR-015)", () => {
       titleNormalized: "project manager",
       roleHints: ["producto_proyectos"],
     });
-    await setProfile(USER_A, { targetRole: "producto_proyectos" });
+    await setProfile(USER_A, rolesOf("producto_proyectos"));
     const r = await run(USER_A, 10, 0);
     expect(r).toMatchObject({ assigned: 1, discarded: 0 });
     expect((await jobsOf(USER_A)).map((j) => j.publicJobId)).toEqual([pm]);

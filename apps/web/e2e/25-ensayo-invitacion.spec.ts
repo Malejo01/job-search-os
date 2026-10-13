@@ -4,7 +4,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { createHash, randomBytes } from "node:crypto";
 // Import relativo directo (no el índice de @job-search-os/db, que arrastra import.meta)
 import { deleteUserData } from "../../../packages/db/src/user-tables";
-import { E2E_USER_ID, createJob, deleteJob, login, ownerDb } from "./helpers";
+import { E2E_USER_ID, chooseRoles, createJob, deleteJob, login, ownerDb } from "./helpers";
 
 /**
  * Flujo 25 (ronda 27): el guion de `ops/ensayo-invitacion.md` de punta a punta. Una persona nueva
@@ -110,7 +110,7 @@ test.describe("Flujo 25: ensayo de invitación, de la invitación a la primera o
     await expect(pageB.getByRole("heading", { name: "Completá tu perfil" })).toBeVisible();
 
     // Un perfil distinto del de A: otro país y pocos años
-    await pageB.getByLabel(/¿Qué puesto buscás\?/).selectOption("backend");
+    await chooseRoles(pageB, ["backend"]);
     await pageB.getByLabel(/País de residencia/).selectOption("BR");
     await pageB.getByLabel(/Inglés \(nivel CEFR\)/).selectOption("B2");
     await pageB.getByLabel(/Años de experiencia/).fill("2");

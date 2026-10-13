@@ -15,11 +15,11 @@ export function RoleMarket({ view }: { view: RoleMarketView }) {
         className="rounded-md border border-zinc-200 p-3 text-sm"
       >
         <p className="text-zinc-700">
-          Elegí tu rol en{" "}
-          <Link href="/settings/skills" className="underline">
-            Mis skills
+          Elegí tus puestos en{" "}
+          <Link href="/settings#puesto" className="underline">
+            Ajustes
           </Link>{" "}
-          y acá vas a ver qué piden las ofertas públicas para ese puesto.
+          y acá vas a ver qué piden las ofertas públicas para cada uno.
         </p>
       </section>
     );

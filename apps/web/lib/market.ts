@@ -2,9 +2,9 @@ import { getRoleMarket } from "@job-search-os/adapters";
 import { schema as s } from "@job-search-os/db";
 import {
   buildAgenda,
-  isRoleKey,
   skillCandidates,
   type MarketAgenda,
+  type RoleKey,
 } from "@job-search-os/pipeline";
 import { and, count, desc, eq, gte, isNotNull, lte } from "drizzle-orm";
 import { revalidateTag, unstable_cache } from "next/cache";
@@ -90,9 +90,9 @@ export function invalidateMarketCandidates(userId: string): void {
 }
 
 /**
- * El mercado del rol objetivo de la persona, calculado con las ofertas de fuentes públicas del pool
- * (últimos 30 días). `sin_rol`: no guardó rol (o eligió "Otro / varios"). `sin_datos`: hay rol pero
- * todavía no hay ofertas calculadas para él. La etiqueta es la de `ROLE_SKILLS`, nunca la clave.
+ * El mercado de uno de los puestos de la persona (el de la pestaña), calculado con las ofertas de
+ * fuentes públicas del pool (últimos 30 días). `sin_rol`: no eligió puestos. `sin_datos`: hay
+ * puesto pero todavía no hay ofertas calculadas para él. La etiqueta es la de `ROLE_SKILLS`, nunca la clave.
  */
 export type RoleMarketView =
   | { kind: "sin_rol" }
@@ -105,15 +105,25 @@ export type RoleMarketView =
       skills: { slug: string; name: string; mentions: number; mustMentions: number }[];
     };
 
-export async function getRoleMarketView(userId: string): Promise<RoleMarketView> {
+/**
+ * Puesto de la pestaña activa de /market y /plan (ronda 45): el de `?rol=` si es uno de los elegidos;
+ * si no (ausente, desconocido o ajeno a la selección), el principal, que es el primero. Sin puestos,
+ * null: las pantallas quedan como antes de elegir.
+ */
+export function pickRole(
+  roles: readonly RoleKey[],
+  param: string | string[] | undefined,
+): RoleKey | null {
+  const wanted = Array.isArray(param) ? param[0] : param;
+  return roles.find((r) => r === wanted) ?? roles[0] ?? null;
+}
+
+export async function getRoleMarketView(
+  userId: string,
+  role: RoleKey | null,
+): Promise<RoleMarketView> {
+  if (role === null) return { kind: "sin_rol" };
   return withUser(userId, async (tx) => {
-    const [profile] = await tx
-      .select({ targetRole: s.profiles.targetRole })
-      .from(s.profiles)
-      .where(eq(s.profiles.userId, userId))
-      .limit(1);
-    const role = profile?.targetRole;
-    if (!isRoleKey(role)) return { kind: "sin_rol" } as const;
     const label = ROLE_SKILLS[role].label;
     const market = await getRoleMarket(tx, role, { limit: 10 });
     if (!market.weekStart || market.skills.length === 0) {

@@ -4,11 +4,12 @@ import {
   MAX_SUMMARY_CHARS,
   MIN_SUMMARY_CHARS,
   OTHER_COUNTRY,
-  OTHER_ROLE,
   ROLE_GROUPS,
+  TARGET_ROLES_DEFAULT_LIMIT,
 } from "@job-search-os/pipeline";
 import { redirect } from "next/navigation";
-import { isOnboardingComplete } from "@/lib/onboarding";
+import { RolePicker } from "@/components/role-picker";
+import { getTargetRoles, getTargetRolesLimit, isOnboardingComplete } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
 import { DeleteAccountForm } from "../(app)/settings/delete-account-form";
@@ -21,7 +22,6 @@ export const maxDuration = 120;
 const input = "rounded-md border border-zinc-300 px-3 py-2 text-base";
 
 const FIELD_ERRORS: Record<string, string> = {
-  targetRole: "Elegí el puesto que buscás (o «Otro o varios»).",
   country: "Elegí tu país.",
   countryOther: "Escribí el código de país de 2 letras (por ejemplo PT).",
   city: "La ciudad es demasiado larga.",
@@ -46,7 +46,15 @@ export default async function OnboardingPage({
 }) {
   const userId = await requireUserId();
   if (await isOnboardingComplete(userId)) redirect("/jobs");
-  const { error } = await searchParams;
+  const [{ error }, targetRoles, rolesLimit] = await Promise.all([
+    searchParams,
+    getTargetRoles(userId),
+    getTargetRolesLimit(userId),
+  ]);
+  const roleGroups = ROLE_GROUPS.map((group) => ({
+    label: group.label,
+    roles: group.roles.map((key) => ({ key, label: ROLE_SKILLS[key].label })),
+  }));
   return (
     <section className="flex flex-col gap-3">
       <h1 className="text-xl font-semibold">Completá tu perfil</h1>
@@ -60,40 +68,30 @@ export default async function OnboardingPage({
           role="alert"
           className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800"
         >
-          {FIELD_ERRORS[error] ?? "Revisá los datos del formulario."}
+          {error === "targetRoles"
+            ? `Elegí al menos un puesto (hasta ${rolesLimit}).`
+            : (FIELD_ERRORS[error] ?? "Revisá los datos del formulario.")}
         </p>
       ) : null}
       <form action={saveOnboardingAction} className="flex flex-col gap-3">
-        <label className="flex flex-col gap-1 text-sm">
-          ¿Qué puesto buscás? *
-          <select
-            name="targetRole"
-            required
-            defaultValue=""
-            aria-invalid={error === "targetRole" ? true : undefined}
-            aria-describedby={error === "targetRole" ? "onboarding-error" : undefined}
-            className={input}
-          >
-            <option value="" disabled>
-              Elegí uno
-            </option>
-            {ROLE_GROUPS.map((group) => (
-              <optgroup key={group.label} label={group.label}>
-                {group.roles.map((key) => (
-                  <option key={key} value={key}>
-                    {ROLE_SKILLS[key].label}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-            <option value={OTHER_ROLE}>Otro o varios</option>
-          </select>
-          <span className="text-xs text-zinc-600">
-            Con esto te mostramos primero las ofertas de ese puesto. Además de tecnología, hay
-            carreras digitales: marketing, producto, recruiting IT, customer success y
-            ciberseguridad.
-          </span>
-        </label>
+        <fieldset
+          className="flex flex-col gap-2 text-sm"
+          aria-describedby={error === "targetRoles" ? "onboarding-error" : "roles-help"}
+        >
+          <legend className="mb-1">¿Qué puestos buscás?</legend>
+          <p id="roles-help" className="text-xs text-zinc-600">
+            Elegí hasta {rolesLimit}. Te mostramos primero las ofertas de esos puestos. Además de
+            tecnología, hay carreras digitales: marketing, producto, recruiting IT, customer success
+            y ciberseguridad.
+          </p>
+          <RolePicker
+            name="targetRoles"
+            selected={targetRoles}
+            limit={rolesLimit}
+            defaultLimit={TARGET_ROLES_DEFAULT_LIMIT}
+            groups={roleGroups}
+          />
+        </fieldset>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1 text-sm">
             País de residencia *
@@ -180,11 +178,12 @@ export default async function OnboardingPage({
         <fieldset className="flex flex-col gap-2 text-sm">
           <legend className="mb-1">Autorización de trabajo</legend>
           <label className="flex items-center gap-2">
-            <input name="workAuthUs" type="checkbox" /> Puedo trabajar en EE.UU. sin sponsorship
+            <input name="workAuthUs" type="checkbox" /> Puedo trabajar en EE.UU. sin visa
+            patrocinada
           </label>
           <label className="flex items-center gap-2">
-            <input name="workAuthEu" type="checkbox" /> Puedo trabajar en la Unión Europea sin
-            sponsorship
+            <input name="workAuthEu" type="checkbox" /> Puedo trabajar en la Unión Europea sin visa
+            patrocinada
           </label>
           <label className="flex flex-col gap-1">
             Otros países donde puedo trabajar (opcional, separados por coma)
@@ -205,11 +204,12 @@ export default async function OnboardingPage({
         <div className="rounded-md bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
           <p className="font-medium">Qué poner</p>
           <p>
-            Tu rol y años de experiencia; qué dominás con proyectos en producción, qué usaste pero
-            no sostenés como stack principal, y qué casi no conocés. Ser honesto con lo que no sabés
-            evita que te recomienden avisos que no podés cubrir. Ejemplo inventado:
-            &ldquo;Desarrolladora backend con 6 años, Python y PostgreSQL en producción; intermedio
-            en Docker y AWS; sin experiencia en Kubernetes ni en móvil. Inglés B2.&rdquo;
+            Tu puesto y años de experiencia; qué dominás y ya hiciste en trabajos reales, qué usaste
+            pero no es lo tuyo, y qué casi no conocés. Ser honesto con lo que no sabés evita que te
+            recomienden avisos que no podés cubrir. Ejemplo inventado: &ldquo;Analista con 5 años en
+            equipos de producto; dominio de investigación con usuarios y reportes en producción;
+            nivel intermedio en herramientas de datos; sin experiencia en gestión de equipos. Inglés
+            B2.&rdquo;
           </p>
           <p className="mt-1 font-medium">Qué no poner</p>
           <p>

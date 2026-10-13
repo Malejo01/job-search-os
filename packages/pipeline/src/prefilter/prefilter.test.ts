@@ -74,9 +74,33 @@ describe("prefilter: expectativas del golden (sin LLM)", () => {
   });
 });
 
-describe("prefilter: targetRole (ronda 40)", () => {
-  const run = (title: string, targetRole?: RoleKey | null) =>
-    prefilter({ title, modality: "remoto" }, rules, targetRole === undefined ? {} : { targetRole });
+describe("prefilter: targetRoles (ronda 40, varios en la 45)", () => {
+  const run = (title: string, targetRole?: RoleKey | readonly RoleKey[] | null) =>
+    prefilter(
+      { title, modality: "remoto" },
+      rules,
+      targetRole === undefined
+        ? {}
+        : { targetRoles: targetRole === null ? null : [targetRole].flat() },
+    );
+
+  it("varios puestos: la excepción es la unión de los oficios propios", () => {
+    const both: RoleKey[] = ["marketing_digital", "producto_proyectos"];
+    expect(run("SEO Specialist", both).pass).toBe(true);
+    expect(run("Project Manager", both).pass).toBe(true);
+    expect(run("Product Manager", both).pass).toBe(true);
+    expect(run("Cybersecurity Analyst", both)).toMatchObject({ pass: false });
+    // un puesto sin entradas no quita las del otro
+    expect(run("SEO Specialist", ["frontend", "marketing_digital"]).pass).toBe(true);
+    expect(run("SEO Specialist", ["frontend", "backend"])).toMatchObject({ pass: false });
+    // lead sigue bloqueando aunque haya varios puestos
+    expect(run("Lead Project Manager", both)).toMatchObject({ pass: false });
+  });
+
+  it("lista vacía o null = como sin la opción", () => {
+    expect(run("SEO Specialist", [])).toMatchObject({ pass: false });
+    expect(run("Project Manager", [])).toMatchObject({ pass: false });
+  });
 
   it("SEO Specialist descarta sin puesto y pasa con marketing_digital", () => {
     expect(run("SEO Specialist")).toMatchObject({ pass: false, reason: "disciplina_distinta" });

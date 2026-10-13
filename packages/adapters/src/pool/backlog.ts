@@ -1,6 +1,7 @@
 import { schema as s, type Db } from "@job-search-os/db";
-import { isRoleKey, rankCandidates } from "@job-search-os/pipeline";
+import { interleaveByRole, rankCandidates } from "@job-search-os/pipeline";
 import { and, eq, inArray, isNotNull, notExists, sql } from "drizzle-orm";
+import { validRoleKeys } from "../ingest/ingest-job";
 import { loadActiveRules } from "../ingest/run-getonboard";
 import type { Logger } from "../logger";
 import { createPgQueue, enqueueEvaluationWith, EVALUATE_QUEUE } from "../queue/pg-queue";
@@ -28,11 +29,11 @@ export async function enqueueUnevaluated(
     const rules = await loadActiveRules(tx, userId);
     if (!rules) return none;
     const [profile] = await tx
-      .select({ targetRole: s.profiles.targetRole })
+      .select({ targetRoles: s.profiles.targetRoles })
       .from(s.profiles)
       .where(eq(s.profiles.userId, userId))
       .limit(1);
-    const role = isRoleKey(profile?.targetRole) ? profile.targetRole : null;
+    const roles = validRoleKeys(profile?.targetRoles);
 
     const evaluated = tx
       .select({ one: sql`1` })
@@ -96,24 +97,29 @@ export async function enqueueUnevaluated(
     const skillsByJob = new Map<string, typeof skillRows>();
     for (const r of skillRows) skillsByJob.set(r.jobId, [...(skillsByJob.get(r.jobId) ?? []), r]);
 
-    const ranked = rankCandidates(
-      rows.map((r) => ({
-        id: r.id,
-        postedAt: r.postedAt,
-        exactRole: role !== null && r.roleHints.includes(role),
-        score: poolPreScore({
-          flags: r.flags ?? [],
-          skills: (skillsByJob.get(r.id) ?? []).map((k) => ({
-            slug: k.slug,
-            name: k.name,
-            isMust: k.isMust,
-            level: levelBySkill.get(k.skillId) ?? null,
-          })),
-          salaryMaxUsd: r.salaryMaxUsd,
-          salaryPeriod: r.salaryPeriod,
-          salaryFloorUsd: rules.salary_floor_usd_monthly ?? null,
-        }).score,
-      })),
+    // Mismo criterio que la asignación: rankCandidates y, entre varios puestos, intercalado
+    const ranked = interleaveByRole(
+      rankCandidates(
+        rows.map((r) => ({
+          id: r.id,
+          postedAt: r.postedAt,
+          roleHints: r.roleHints,
+          exactRole: r.roleHints.some((h) => (roles as readonly string[]).includes(h)),
+          score: poolPreScore({
+            flags: r.flags ?? [],
+            skills: (skillsByJob.get(r.id) ?? []).map((k) => ({
+              slug: k.slug,
+              name: k.name,
+              isMust: k.isMust,
+              level: levelBySkill.get(k.skillId) ?? null,
+            })),
+            salaryMaxUsd: r.salaryMaxUsd,
+            salaryPeriod: r.salaryPeriod,
+            salaryFloorUsd: rules.salary_floor_usd_monthly ?? null,
+          }).score,
+        })),
+      ),
+      roles,
     ).slice(0, opts.count);
 
     const enqueue = enqueueEvaluationWith(tx, createPgQueue(tx));

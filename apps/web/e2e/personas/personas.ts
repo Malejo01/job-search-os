@@ -18,10 +18,9 @@ export type Persona = {
   name: string;
   email: string;
   password: string;
-  /** Clave del puesto (`ROLE_KEYS`) y su etiqueta en pantalla (seed `role_skills.json`). */
+  /** Clave del puesto (`ROLE_KEYS`); la etiqueta se lee del seed `role_skills.json`. */
   role: string;
-  roleLabel: string;
-  /** Grupo del selector del paso 1. */
+  /** Grupo del selector del paso 1 (`legend` de su `fieldset`). */
   roleGroup: "Tecnología" | "Carreras digitales";
   country: string;
   cefr: "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
@@ -91,7 +90,6 @@ export function buildPersona(key: PersonaKey, tag: number = Date.now()): Persona
         ...base,
         name: "Lucía Ficticia",
         role: "data_analyst",
-        roleLabel: "Data Analyst",
         roleGroup: "Tecnología",
         country: "AR",
         cefr: "B1",
@@ -150,7 +148,6 @@ export function buildPersona(key: PersonaKey, tag: number = Date.now()): Persona
         ...base,
         name: "Valentina Ficticia",
         role: "marketing_digital",
-        roleLabel: "Marketing digital",
         roleGroup: "Carreras digitales",
         country: "MX",
         cefr: "B2",
@@ -208,7 +205,6 @@ export function buildPersona(key: PersonaKey, tag: number = Date.now()): Persona
         ...base,
         name: "Martín Ficticio",
         role: "rrhh_it",
-        roleLabel: "Recruiter IT / RRHH tech",
         roleGroup: "Carreras digitales",
         country: "CL",
         cefr: "C1",
@@ -263,7 +259,6 @@ export function buildPersona(key: PersonaKey, tag: number = Date.now()): Persona
         ...base,
         name: "Tomás Ficticio",
         role: "backend",
-        roleLabel: "Backend",
         roleGroup: "Tecnología",
         country: "CO",
         cefr: "B1",

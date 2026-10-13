@@ -1,7 +1,7 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import {
   IT_ROLE_KEYS,
-  isRoleKey,
+  interleaveByRole,
   prefilter,
   rankCandidates,
   type JobStatus,
@@ -132,14 +132,13 @@ export async function assignPoolToUser(
 
     // 2. Perfil y criterios de prefiltro
     const prefs = await loadProfilePrefilterPrefs(tx, userId);
-    const [profile] = await tx
-      .select({ targetRole: s.profiles.targetRole })
-      .from(s.profiles)
-      .where(eq(s.profiles.userId, userId))
-      .limit(1);
 
-    // 2. Rol: válido filtra; si no, sin filtro de rol
-    const role = isRoleKey(profile?.targetRole) ? profile.targetRole : null;
+    // 2. Puestos (ADR-016): los válidos filtran; sin ninguno, solo IT
+    const roles = prefs.targetRoles;
+    const rolesArray = sql`ARRAY[${sql.join(
+      roles.map((k) => sql`${k}`),
+      sql`, `,
+    )}]::text[]`;
 
     // 3. Candidatas: vivas, recientes, sin copias, del rol (o sin señal de rol) y que la persona no tiene
     const alreadyOwned = tx
@@ -171,15 +170,16 @@ export async function assignPoolToUser(
           gte(s.publicJobs.lastSeenAt, seenSince),
           or(gte(s.publicJobs.postedAt, postedSince), isNull(s.publicJobs.postedAt)),
           // Sin puesto solo IT (ADR-015): el aviso marcado solo con puestos digitales no entra
-          role
-            ? sql`(${s.publicJobs.roleHints} && ARRAY[${role}]::text[] or ${s.publicJobs.roleHints} = '{}'::text[])`
+          roles.length
+            ? sql`(${s.publicJobs.roleHints} && ${rolesArray} or ${s.publicJobs.roleHints} = '{}'::text[])`
             : sql`(${s.publicJobs.roleHints} = '{}'::text[] or ${s.publicJobs.roleHints} && ${itRoleKeys})`,
           notExists(alreadyOwned),
         ),
       )
-      // El rol exacto va antes del tope: un aviso exacto más viejo que 300 sin señal de rol entra igual
+      // El puesto exacto (de cualquiera de los elegidos) va antes del tope: un aviso exacto más viejo
+      // que 300 sin señal de rol entra igual
       .orderBy(
-        ...(role ? [sql`(${s.publicJobs.roleHints} && ARRAY[${role}]::text[]) desc`] : []),
+        ...(roles.length ? [sql`(${s.publicJobs.roleHints} && ${rolesArray}) desc`] : []),
         sql`${s.publicJobs.postedAt} desc nulls last`,
         s.publicJobs.id,
       )
@@ -200,7 +200,7 @@ export async function assignPoolToUser(
           countriesAllowed: pj.countriesAllowed,
         },
         rules,
-        { userCountry: prefs.country, remoteOnly: prefs.remoteOnly, targetRole: role },
+        { userCountry: prefs.country, remoteOnly: prefs.remoteOnly, targetRoles: roles },
       );
       if (!pre.pass) {
         discarded++;
@@ -236,31 +236,36 @@ export async function assignPoolToUser(
       skillsByJob.set(r.publicJobId, [...(skillsByJob.get(r.publicJobId) ?? []), r]);
     }
 
-    const ranked = rankCandidates(
-      passed.map((p) => ({
-        ...p,
-        id: p.row.id,
-        postedAt: p.row.postedAt,
-        exactRole: role !== null && p.row.roleHints.includes(role),
-        score: poolPreScore({
-          flags: p.flags,
-          skills: (skillsByJob.get(p.row.id) ?? []).map((k) => ({
-            slug: k.slug,
-            name: k.name,
-            isMust: k.isMust,
-            level: levelBySkill.get(k.skillId) ?? null,
-          })),
-          salaryMaxUsd: p.row.salaryMaxUsd,
-          salaryPeriod: p.row.salaryPeriod,
-          salaryFloorUsd: rules.salary_floor_usd_monthly ?? null,
-        }).score,
-      })),
+    // Orden de rankCandidates y, con varios puestos, intercalado entre ellos (ADR-016)
+    const ranked = interleaveByRole(
+      rankCandidates(
+        passed.map((p) => ({
+          ...p,
+          id: p.row.id,
+          postedAt: p.row.postedAt,
+          roleHints: p.row.roleHints,
+          exactRole: p.row.roleHints.some((h) => (roles as readonly string[]).includes(h)),
+          score: poolPreScore({
+            flags: p.flags,
+            skills: (skillsByJob.get(p.row.id) ?? []).map((k) => ({
+              slug: k.slug,
+              name: k.name,
+              isMust: k.isMust,
+              level: levelBySkill.get(k.skillId) ?? null,
+            })),
+            salaryMaxUsd: p.row.salaryMaxUsd,
+            salaryPeriod: p.row.salaryPeriod,
+            salaryFloorUsd: rules.salary_floor_usd_monthly ?? null,
+          }).score,
+        })),
+      ),
+      roles,
     ).slice(0, limit);
 
     // 5. Alta en jobs + job_sources + job_skills, en el orden del ranking
     const created: { id: string; hasJd: boolean }[] = [];
     let alreadyHad = 0;
-    for (const { row: pj, flags } of ranked) {
+    for (const { row: pj, flags, matchedRole } of ranked) {
       const hasJd = Boolean(pj.jdText?.trim());
       const status: JobStatus = hasJd ? "prefiltrada" : "pendiente_jd";
       const companyId = pj.companyId ?? (await upsertCompany(tx, pj.companyRaw));
@@ -284,6 +289,7 @@ export async function assignPoolToUser(
           weeklyHours: pj.weeklyHours,
           candidatesCount: pj.candidatesCount,
           publicJobId: pj.id,
+          matchedRole,
           jdText: pj.jdText,
           jdHash: pj.jdHash,
           jdShingles: pj.jdShingles,
