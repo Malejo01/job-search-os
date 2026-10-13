@@ -8,6 +8,7 @@ import {
   atsSourceError,
   atsStatusOf,
   ATS_PROVIDERS,
+  ATS_REQUEST_TIMEOUT_MS,
   isPermanentBoardStatus,
   type AtsBoardOptions,
   type AtsBoardResult,
@@ -93,19 +94,22 @@ export const POOL_MIN_INTERVAL_MS: Record<PoolSourceName, number> = {
   ashby: 5 * HOUR_MS,
 };
 
-/** Los ATS pueden usar hasta 30 s: el tope real es lo que quede del presupuesto del pool. */
+/** Los ATS pueden usar hasta 20 s de descarga: el tope real es lo que quede del presupuesto. */
 const DEFAULT_TIMEOUT_MS: Record<PoolSourceName, number> = {
   getonboard: 25_000,
   remoteok: 10_000,
   jobicy: 10_000,
   himalayas: 10_000,
   wwr: 15_000,
-  greenhouse: 30_000,
-  lever: 30_000,
-  ashby: 30_000,
+  greenhouse: 20_000,
+  lever: 20_000,
+  ashby: 20_000,
 };
-/** Margen antes del tope de la fuente para no arrancar otro board. */
-const BOARD_STOP_MARGIN_MS = 1_500;
+/**
+ * Tope total de una fuente ATS (descarga más upsert): así una fuente lenta no se come el
+ * presupuesto de las demás.
+ */
+export const POOL_ATS_SOURCE_MAX_MS = 35_000;
 const HIMALAYAS_MAX_PAGES = 3;
 
 /**
@@ -238,7 +242,10 @@ export type PoolDownloader = (args: {
   userAgent: string;
   /** Solo ATS: filas `enabled` de `ats_boards`, las más viejas primero. */
   boards?: readonly PoolBoard[];
-  /** Solo ATS: true al acercarse al tope de la fuente; no arrancar otro board. */
+  /**
+   * Solo ATS: true cuando a la ventana de descarga le quedan menos de `ATS_REQUEST_TIMEOUT_MS`
+   * (el máximo de un request): un board que no va a terminar no se empieza.
+   */
   shouldStop?: () => boolean;
   /** Solo ATS: ms que le quedan a la fuente (deadline), para no dormir un backoff que no entra. */
   timeLeftMs?: () => number;
@@ -452,7 +459,7 @@ export type PoolFetchFinish = {
 export type RunPoolFetchDeps = {
   upsert: (
     raws: readonly RawJob[],
-    opts: { shouldStop: () => boolean },
+    opts: { shouldStop: () => boolean; timeLeftMs: () => number },
   ) => Promise<PoolUpsertSummary>;
   lastFetches: (source: PoolSourceName) => Promise<PoolFetchHistory>;
   /** Crea la fila `running` y devuelve su id. */
@@ -480,6 +487,7 @@ function defaultDeps(options: RunPoolFetchOptions, now: Date): RunPoolFetchDeps 
         logger: options.logger,
         now: () => now,
         shouldStop: opts.shouldStop,
+        timeLeftMs: opts.timeLeftMs,
       }),
     lastFetches: async (source) => {
       const [good] = await db
@@ -610,8 +618,7 @@ export async function runPoolFetch(
   const downloaders = options.downloaders ?? POOL_DOWNLOADERS;
   const userAgent = options.userAgent ?? "JobSearchOS/1.0";
   const d = deps ?? defaultDeps(options, now);
-  // El upsert corta entre avisos cuando se acaba el presupuesto total.
-  const shouldStop = () => clock() - started >= budgetMs;
+  const totalLeftMs = () => budgetMs - (clock() - started);
   const log = options.logger.child({ run_id: `pool-${started}` });
 
   // Las fuentes con el intento más viejo van primero (nunca intentadas, antes que todas): así las
@@ -644,11 +651,27 @@ export async function runPoolFetch(
     let recordId: string | null = null;
     const sourceStart = clock();
     const sourceStartedAt = new Date(now.getTime() + (sourceStart - started));
-    // El timeout de la descarga nunca pasa lo que queda del presupuesto total.
+    // Tope total de la fuente (descarga + upsert): lo que queda del presupuesto; en los ATS,
+    // además, `POOL_ATS_SOURCE_MAX_MS`.
+    const sourceLimitMs = isAtsSource(name)
+      ? Math.min(remaining, POOL_ATS_SOURCE_MAX_MS)
+      : remaining;
+    const sourceLeftMs = () => sourceLimitMs - (clock() - sourceStart);
+    // El upsert corta entre avisos al pasarse del presupuesto total o del límite de la fuente.
+    const shouldStop = () => totalLeftMs() <= 0 || (isAtsSource(name) && sourceLeftMs() <= 0);
+    const timeLeftMs = () => Math.max(0, Math.min(totalLeftMs(), sourceLeftMs()));
+    // El timeout de la descarga nunca pasa lo que queda de la fuente.
     const sourceTimeoutMs = Math.min(
       options.perSourceTimeoutMs ?? DEFAULT_TIMEOUT_MS[name],
-      remaining,
+      sourceLimitMs,
     );
+    // Una ATS sin lugar para un request no descarga ningún board: se omite sin dejar una corrida
+    // vacía, así queda como la más vieja y va primera la próxima vez.
+    if (isAtsSource(name) && sourceTimeoutMs < ATS_REQUEST_TIMEOUT_MS) {
+      log.warn({ source: name }, "pool: sin ventana de descarga para un board, se omite");
+      sources.push({ name, status: "skipped", fetched: 0, skipped: "presupuesto" });
+      continue;
+    }
     const signal = AbortSignal.timeout(sourceTimeoutMs);
     let stage: "intervalo" | "descargar" | "ingerir" = "intervalo";
     try {
@@ -700,7 +723,8 @@ export async function runPoolFetch(
                 boards,
                 timeLeftMs: () => sourceTimeoutMs - (clock() - sourceStart),
                 shouldStop: () =>
-                  signal.aborted || clock() - sourceStart >= sourceTimeoutMs - BOARD_STOP_MARGIN_MS,
+                  signal.aborted ||
+                  sourceTimeoutMs - (clock() - sourceStart) < ATS_REQUEST_TIMEOUT_MS,
               }
             : {}),
         }),
@@ -731,7 +755,7 @@ export async function runPoolFetch(
       const jobs = truncated ? downloaded.jobs.slice(0, POOL_MAX_JOBS_PER_SOURCE) : downloaded.jobs;
 
       stage = "ingerir";
-      const summary = await d.upsert(jobs, { shouldStop });
+      const summary = await d.upsert(jobs, { shouldStop, timeLeftMs });
       // Después del upsert: si este falla, `last_fetch_at` no avanza y los boards se reintentan.
       const upsertFailed =
         summary.errors > 0 &&

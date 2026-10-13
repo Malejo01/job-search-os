@@ -34,6 +34,44 @@ export async function syncJobSkillsFromText(
   return ids.length;
 }
 
+const SKILLS_INSERT_CHUNK = 5000;
+
+/**
+ * Skills de varias filas nuevas del pool de una vez: slugs en memoria, un select de ids con ANY
+ * sobre la unión y un insert multi-fila. Solo para filas recién creadas (no borra nada antes).
+ */
+export async function syncPublicJobSkillsMany(
+  db: Db,
+  items: readonly { publicJobId: string; text: string }[],
+  terms: readonly Term[],
+): Promise<number> {
+  const perJob = items.map((i) => ({
+    publicJobId: i.publicJobId,
+    slugs: extractSkillsFromText(i.text, terms),
+  }));
+  const union = [...new Set(perJob.flatMap((p) => p.slugs))];
+  if (!union.length) return 0;
+  const ids = await db
+    .select({ id: s.skills.id, slug: s.skills.slug })
+    .from(s.skills)
+    .where(inArray(s.skills.slug, union));
+  const idBySlug = new Map(ids.map((k) => [k.slug, k.id]));
+  const rows = perJob.flatMap((p) =>
+    p.slugs.flatMap((slug) => {
+      const skillId = idBySlug.get(slug);
+      return skillId
+        ? [{ publicJobId: p.publicJobId, skillId, isMust: true, rawMention: "jd" }]
+        : [];
+    }),
+  );
+  if (!rows.length) return 0;
+  // Trozos de 5.000 filas: el protocolo de Postgres limita los parámetros por consulta
+  for (let i = 0; i < rows.length; i += SKILLS_INSERT_CHUNK) {
+    await db.insert(s.publicJobSkills).values(rows.slice(i, i + SKILLS_INSERT_CHUNK));
+  }
+  return rows.length;
+}
+
 /** Igual que `syncJobSkillsFromText`, sobre las skills del pool (`public_job_skills`). */
 export async function syncPublicJobSkillsFromText(
   db: Db,

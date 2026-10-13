@@ -29,7 +29,11 @@ se pueden scrapear, y Torre tiene su API oficial en beta privada.
    al final); la retención de 30 días cuenta desde la última vez que la fuente lo devolvió.
    `last_fetch_at` solo avanza para los boards cuyos avisos el upsert llegó a procesar (si corta
    por presupuesto o por el tope de 2.000 avisos por fuente, los demás se reintentan). En Lever
-   se leen `categories.location` y `categories.allLocations`.
+   se leen `categories.location` y `categories.allLocations`. Cada fuente ATS tiene un tope propio
+   de 35 s (descarga más upsert) para que una no se coma el presupuesto de las demás; Lever pide
+   `limit=200` a la API. Pérdida conocida y aceptada: ese `limit` se aplica antes del filtro de
+   remotos y sin orden garantizado por fecha, así que los remotos pasados el aviso 200 se pierden
+   sin aviso; si hace falta, la alternativa es paginar con `skip`.
 3. **Filtro previo sin LLM** (`isPoolRemoteCandidate`): un ATS publica todos los puestos de la
    empresa, así que solo se guarda lo remoto. Ante la duda se guarda y decide el prefiltro por
    usuario.

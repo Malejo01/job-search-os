@@ -522,10 +522,17 @@ describe("upsertPoolJobs", () => {
   });
 
   it("shouldStop corta el lote y lo informa", async () => {
+    // shouldStop se consulta antes de cada lote: tres boards distintos son tres lotes
+    const atsJob = (id: string, over: Partial<RawJob>) => {
+      const j = rawJob({ id, ...over });
+      j.source.kind = "greenhouse";
+      j.source.externalId = `${PREFIX}${id}:x`;
+      return j;
+    };
     const batch = [
-      rawJob({ id: "stop1", companyRaw: "Empresa Ficticia 8", jdText: JD_B + " Uno." }),
-      rawJob({ id: "stop2", companyRaw: "Empresa Ficticia 9", jdText: JD_C + " Dos." }),
-      rawJob({ id: "stop3", companyRaw: "Empresa Ficticia 10", jdText: JD_A + " Tres." }),
+      atsJob("stop1", { companyRaw: "Empresa Ficticia 8", jdText: JD_B + " Uno." }),
+      atsJob("stop2", { companyRaw: "Empresa Ficticia 9", jdText: JD_C + " Dos." }),
+      atsJob("stop3", { companyRaw: "Empresa Ficticia 10", jdText: JD_A + " Tres." }),
     ];
     let calls = 0;
     const out = await upsertPoolJobs(batch, {
@@ -540,7 +547,7 @@ describe("upsertPoolJobs", () => {
       .select({ id: s.publicJobs.externalId })
       .from(s.publicJobs)
       .where(like(s.publicJobs.externalId, `${PREFIX}stop%`));
-    expect(rows.map((r) => r.id)).toEqual([`${PREFIX}stop1`]);
+    expect(rows.map((r) => r.id)).toEqual([`${PREFIX}stop1:x`]);
     // Sin corte, stopped es false
     const full = await upsertPoolJobs([batch[0]!], {
       db: conn.db,
@@ -571,5 +578,146 @@ describe("upsertPoolJobs", () => {
       .where(eq(s.publicJobs.externalId, `${PREFIX}race`));
     expect(rows).toHaveLength(1);
     expect(await poolBlobCount()).toBe(blobsBefore + 1);
+  });
+});
+
+describe("upsertPoolJobs por lotes", () => {
+  const distinct = (tag: string, i: number, over: Partial<RawJob> = {}) =>
+    rawJob({
+      id: `${tag}${i}`,
+      companyRaw: `Empresa Lote ${tag} ${i}`,
+      jdText: `${JD_A} Variante ${tag} ${i}.`,
+      ...over,
+    });
+
+  it("150 nuevos del mismo board son dos lotes, con skills y crudos", async () => {
+    const batch = Array.from({ length: 150 }, (_, i) => distinct("big", i));
+    const blobsBefore = await poolBlobCount();
+    let stopChecks = 0;
+    const out = await upsertPoolJobs(batch, {
+      db: conn.db,
+      logger,
+      now: () => T1,
+      taxonomy,
+      shouldStop: () => {
+        stopChecks++;
+        return false;
+      },
+    });
+    expect(out).toMatchObject({ received: 150, inserted: 150, copies: 0, errors: 0 });
+    expect(stopChecks).toBe(2);
+    const rows = await conn.db
+      .select({ id: s.publicJobs.id })
+      .from(s.publicJobs)
+      .where(like(s.publicJobs.externalId, `${PREFIX}big%`));
+    expect(rows).toHaveLength(150);
+    const [withSkills] = await conn.db
+      .select({ n: sql<number>`count(distinct ${s.publicJobSkills.publicJobId})::int` })
+      .from(s.publicJobSkills)
+      .where(
+        inArray(
+          s.publicJobSkills.publicJobId,
+          rows.map((r) => r.id),
+        ),
+      );
+    expect(withSkills!.n).toBe(150);
+    expect(await poolBlobCount()).toBe(blobsBefore + 150);
+  });
+
+  it("dos avisos con el mismo texto en un lote quedan como raíz y copia", async () => {
+    const jd = `${JD_C} Gemelos del lote.`;
+    const first = rawJob({ id: "twin1", companyRaw: "Empresa Lote Gemela", jdText: jd });
+    const second = rawJob({ id: "twin2", companyRaw: "Empresa Lote Gemela", jdText: jd });
+    const out = await upsertPoolJobs([first, second], {
+      db: conn.db,
+      logger,
+      now: () => T1,
+      taxonomy,
+    });
+    expect(out).toMatchObject({ inserted: 1, copies: 1, errors: 0 });
+    const root = await row("twin1");
+    const copy = await row("twin2");
+    expect(root.dedupOfId).toBeNull();
+    expect(copy.dedupOfId).toBe(root.id);
+    expect(copy.jdText).toBe(jd);
+  });
+
+  it("un aviso que rompe la transacción: se reintenta uno por uno y solo el malo es error", async () => {
+    const blobsBefore = await poolBlobCount();
+    const batch = [
+      distinct("rt", 1),
+      distinct("rt", 2, { modality: "inexistente" as never }),
+      distinct("rt", 3),
+    ];
+    const out = await upsertPoolJobs(batch, { db: conn.db, logger, now: () => T1, taxonomy });
+    expect(out).toMatchObject({ inserted: 2, errors: 1, copies: 0 });
+    expect(await poolBlobCount()).toBe(blobsBefore + 2);
+    const rows = await conn.db
+      .select({ id: s.publicJobs.externalId })
+      .from(s.publicJobs)
+      .where(like(s.publicJobs.externalId, `${PREFIX}rt%`));
+    expect(rows.map((r) => r.id).sort()).toEqual([`${PREFIX}rt1`, `${PREFIX}rt3`]);
+  });
+
+  it("un lote que falla corta el reintento si shouldStop se vuelve true", async () => {
+    const batch = [
+      distinct("rs", 1),
+      distinct("rs", 2, { modality: "inexistente" as never }),
+      distinct("rs", 3),
+    ];
+    let calls = 0;
+    const out = await upsertPoolJobs(batch, {
+      db: conn.db,
+      logger,
+      now: () => T1,
+      taxonomy,
+      // 0: antes del lote; 1: primer aviso del reintento; 2: segundo aviso, ya corta
+      shouldStop: () => calls++ >= 2,
+    });
+    expect(out).toMatchObject({ received: 3, inserted: 1, errors: 0, stopped: true });
+    const rows = await conn.db
+      .select({ id: s.publicJobs.externalId })
+      .from(s.publicJobs)
+      .where(like(s.publicJobs.externalId, `${PREFIX}rs%`));
+    expect(rows.map((r) => r.id)).toEqual([`${PREFIX}rs1`]);
+  });
+
+  it("mezcla de nuevos, sin cambios y cambiados: cada uno en su contador", async () => {
+    const same = distinct("mix", 1);
+    const toChange = distinct("mix", 2);
+    await upsertPoolJobs([same, toChange], { db: conn.db, logger, now: () => T0, taxonomy });
+    const out = await upsertPoolJobs(
+      [
+        same,
+        { ...toChange, salaryMinUsd: 1000, salaryMaxUsd: 1500, salaryPeriod: "mensual" },
+        distinct("mix", 3),
+      ],
+      { db: conn.db, logger, now: () => T1, taxonomy },
+    );
+    expect(out).toMatchObject({ inserted: 1, updated: 1, unchanged: 1, copies: 0, errors: 0 });
+    expect((await row("mix1")).lastSeenAt).toEqual(T1);
+    expect((await row("mix2")).salaryMinUsd).toBe(1000);
+    expect((await row("mix3")).firstSeenAt).toEqual(T1);
+  });
+
+  it("timeLeftMs que no alcanza para el segundo lote corta y cuenta solo el primero", async () => {
+    const batch = Array.from({ length: 150 }, (_, i) => distinct("tl", i));
+    let ticks = 0;
+    let calls = 0;
+    const out = await upsertPoolJobs(batch, {
+      db: conn.db,
+      logger,
+      now: () => T1,
+      taxonomy,
+      // 1000 ms por lote de 100 avisos: 10 ms por aviso medido
+      clock: () => (ticks++ ? 1000 : 0),
+      timeLeftMs: () => (calls++ === 0 ? 10_000 : 100),
+    });
+    expect(out).toMatchObject({ received: 150, inserted: 100, stopped: true, errors: 0 });
+    const rows = await conn.db
+      .select({ id: s.publicJobs.id })
+      .from(s.publicJobs)
+      .where(like(s.publicJobs.externalId, `${PREFIX}tl%`));
+    expect(rows).toHaveLength(100);
   });
 });

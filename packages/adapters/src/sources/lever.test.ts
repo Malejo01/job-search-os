@@ -47,7 +47,7 @@ describe("fetchLeverBoard", () => {
       salaryNote: null,
     });
     expect((fetchImpl as unknown as { mock: { calls: string[][] } }).mock.calls[0]![0]).toBe(
-      "https://api.lever.co/v0/postings/empresa-ficticia?mode=json",
+      "https://api.lever.co/v0/postings/empresa-ficticia?mode=json&limit=200",
     );
   });
 
