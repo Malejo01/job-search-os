@@ -1,4 +1,5 @@
 import { schema as s, type Db } from "@job-search-os/db";
+import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 
 /**
@@ -7,18 +8,35 @@ import { eq } from "drizzle-orm";
  */
 export type BlobRef = string;
 
+export type BlobInput = {
+  userId: string | null;
+  kind: string;
+  contentType: string;
+  body: string;
+};
+
 export interface BlobStorage {
-  put(input: {
-    userId: string | null;
-    kind: string;
-    contentType: string;
-    body: string;
-  }): Promise<BlobRef>;
+  put(input: BlobInput): Promise<BlobRef>;
+  /** Opcional: varios crudos en una sola ida a la base. Devuelve las refs en el mismo orden. */
+  putMany?(inputs: readonly BlobInput[]): Promise<BlobRef[]>;
   get(ref: BlobRef): Promise<{ contentType: string; body: string } | null>;
 }
 
 export function pgBlobStorage(db: Db): BlobStorage {
   return {
+    async putMany(inputs) {
+      if (!inputs.length) return [];
+      const rows = inputs.map((i) => ({
+        id: randomUUID(),
+        userId: i.userId,
+        kind: i.kind,
+        contentType: i.contentType,
+        body: i.body,
+        bytes: Buffer.byteLength(i.body, "utf8"),
+      }));
+      await db.insert(s.rawBlobs).values(rows);
+      return rows.map((r) => `pg:${r.id}`);
+    },
     async put({ userId, kind, contentType, body }) {
       const [row] = await db
         .insert(s.rawBlobs)

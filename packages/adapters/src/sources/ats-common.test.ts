@@ -48,7 +48,7 @@ describe("atsBoardUrl", () => {
       "https://boards-api.greenhouse.io/v1/boards/empresa-ficticia/jobs?content=true",
     );
     expect(atsBoardUrl("lever", "empresa-ficticia")).toBe(
-      "https://api.lever.co/v0/postings/empresa-ficticia?mode=json",
+      "https://api.lever.co/v0/postings/empresa-ficticia?mode=json&limit=200",
     );
     expect(atsBoardUrl("ashby", "empresa-ficticia")).toBe(
       "https://api.ashbyhq.com/posting-api/job-board/empresa-ficticia?includeCompensation=true",
@@ -57,7 +57,7 @@ describe("atsBoardUrl", () => {
 
   it("Lever con región eu usa el host europeo", () => {
     expect(atsBoardUrl("lever", "empresa-ficticia", "eu")).toBe(
-      "https://api.eu.lever.co/v0/postings/empresa-ficticia?mode=json",
+      "https://api.eu.lever.co/v0/postings/empresa-ficticia?mode=json&limit=200",
     );
   });
 

@@ -8,6 +8,7 @@ import {
   parsePoolSources,
   poolErrorCode,
   poolIntervalMs,
+  POOL_ATS_SOURCE_MAX_MS,
   POOL_MAX_JOBS_PER_SOURCE,
   POOL_RECOMMENDED_SOURCES,
   POOL_MIN_INTERVAL_MS,
@@ -748,7 +749,7 @@ describe("runPoolFetch · fuentes ATS (boards de ats_boards)", () => {
     expect(JSON.stringify(info.mock.calls)).not.toContain("Titulo Secreto");
   });
 
-  it("shouldStop se activa al acercarse al tope de la fuente", async () => {
+  it("shouldStop de la descarga se activa al acercarse al final de su ventana", async () => {
     let t = 0;
     const seen: boolean[] = [];
     const lever = vi.fn(async (args: { shouldStop?: () => boolean }) => {
@@ -768,6 +769,130 @@ describe("runPoolFetch · fuentes ATS (boards de ats_boards)", () => {
       deps,
     );
     expect(seen).toEqual([false, true]);
+  });
+
+  it("un board no se empieza si a la ventana de descarga le quedan menos de 8 s", async () => {
+    let t = 0;
+    const seen: boolean[] = [];
+    const lever = vi.fn(async (args: { shouldStop?: () => boolean }) => {
+      seen.push(args.shouldStop!()); // quedan 20 s
+      t = 12_000; // quedan exactamente 8 s: alcanza para un request
+      seen.push(args.shouldStop!());
+      t = 12_001; // quedan menos de 8 s
+      const stop = args.shouldStop!();
+      seen.push(stop);
+      return { jobs: [], boards: [outcome("a", "ok")], stopped: stop };
+    });
+    const { deps } = makeDeps({}, { loadBoards: vi.fn(async () => [board("a")]) });
+    const out = await runPoolFetch(
+      {
+        ...base,
+        enabled: ["lever"],
+        budgetMs: 65_000,
+        clock: () => t,
+        downloaders: downloaders({ lever: lever as never }),
+      },
+      deps,
+    );
+    expect(seen).toEqual([false, false, true]);
+    expect(out.sources[0]).toMatchObject({ status: "partial", stopped: true });
+  });
+
+  it("una fuente ATS lenta termina en POOL_ATS_SOURCE_MAX_MS y la siguiente llega a correr", async () => {
+    let t = 0;
+    const lefts: number[] = [];
+    let upsertCalls = 0;
+    let firstEndedAt = -1;
+    const upsert = vi.fn(
+      async (
+        _raws: readonly RawJob[],
+        opts: { shouldStop: () => boolean; timeLeftMs: () => number },
+      ) => {
+        upsertCalls++;
+        if (upsertCalls > 1) return summary(1);
+        while (!opts.shouldStop()) {
+          lefts.push(opts.timeLeftMs());
+          t += 5_000;
+        }
+        lefts.push(opts.timeLeftMs());
+        firstEndedAt = t;
+        return summary(1, { stopped: true });
+      },
+    );
+    const dl = () => ({ jobs: [job("a")], boards: [outcome("a", "ok", 1)] });
+    const lever = vi.fn(async () => dl());
+    const { deps } = makeDeps({}, { loadBoards: vi.fn(async () => [board("a")]), upsert });
+    const out = await runPoolFetch(
+      {
+        ...base,
+        enabled: ["greenhouse", "lever"],
+        budgetMs: 65_000,
+        clock: () => t,
+        downloaders: downloaders({ greenhouse: vi.fn(async () => dl()), lever }),
+      },
+      deps,
+    );
+    expect(firstEndedAt).toBe(POOL_ATS_SOURCE_MAX_MS);
+    expect(Math.max(...lefts)).toBeLessThanOrEqual(POOL_ATS_SOURCE_MAX_MS);
+    expect(Math.min(...lefts)).toBeGreaterThanOrEqual(0);
+    expect(lever).toHaveBeenCalledTimes(1);
+    expect(out.sources.map((r) => r.name)).toEqual(["greenhouse", "lever"]);
+    expect(out.sources[0]).toMatchObject({ status: "partial", stopped: true });
+  });
+
+  it("una ATS con menos de 8 s de ventana se omite sin registrar una corrida vacía", async () => {
+    const greenhouse = vi.fn(async () => ({ jobs: [], boards: [] }));
+    const { deps } = makeDeps({}, { loadBoards: vi.fn(async () => [board("a")]) });
+    const out = await runPoolFetch(
+      {
+        ...base,
+        enabled: ["greenhouse"],
+        budgetMs: 7_000,
+        clock: () => 0,
+        downloaders: downloaders({ greenhouse }),
+      },
+      deps,
+    );
+    expect(out.sources[0]).toEqual({
+      name: "greenhouse",
+      status: "skipped",
+      fetched: 0,
+      skipped: "presupuesto",
+    });
+    expect(greenhouse).not.toHaveBeenCalled();
+    expect(deps.recordStart).not.toHaveBeenCalled();
+  });
+
+  it("una fuente que no es ATS no tiene el límite de 35 s", async () => {
+    let t = 0;
+    const seen: { stop: boolean; left: number }[] = [];
+    const upsert = vi.fn(
+      async (
+        _raws: readonly RawJob[],
+        opts: { shouldStop: () => boolean; timeLeftMs: () => number },
+      ) => {
+        t = 40_000;
+        seen.push({ stop: opts.shouldStop(), left: opts.timeLeftMs() });
+        t = 70_000;
+        seen.push({ stop: opts.shouldStop(), left: opts.timeLeftMs() });
+        return summary(1);
+      },
+    );
+    const { deps } = makeDeps({}, { upsert });
+    await runPoolFetch(
+      {
+        ...base,
+        enabled: ["jobicy"],
+        budgetMs: 65_000,
+        clock: () => t,
+        downloaders: downloaders({ jobicy: vi.fn(async () => [job("a")]) }),
+      },
+      deps,
+    );
+    expect(seen).toEqual([
+      { stop: false, left: 25_000 },
+      { stop: true, left: 0 },
+    ]);
   });
 });
 

@@ -52,7 +52,7 @@ export function atsBoardUrl(provider: AtsProvider, token: string, region?: strin
     case "greenhouse":
       return `https://boards-api.greenhouse.io/v1/boards/${t}/jobs?content=true`;
     case "lever":
-      return `https://${hasRegion ? "api.eu.lever.co" : "api.lever.co"}/v0/postings/${t}?mode=json`;
+      return `https://${hasRegion ? "api.eu.lever.co" : "api.lever.co"}/v0/postings/${t}?mode=json&limit=${LEVER_API_LIMIT}`;
     case "ashby":
       return `https://api.ashbyhq.com/posting-api/job-board/${t}?includeCompensation=true`;
     default:
@@ -231,6 +231,9 @@ export type AtsBoardResult = {
 
 /** Tope de avisos por board y por corrida: quedan los más recientes. */
 export const ATS_MAX_JOBS_PER_BOARD = 200;
+
+/** `limit` del pedido a Lever (la API lo soporta; Greenhouse y Ashby no): igual al tope por board. */
+export const LEVER_API_LIMIT = ATS_MAX_JOBS_PER_BOARD;
 
 export const emptyBoardResult = (status: "ok" | "not_found"): AtsBoardResult => ({
   jobs: [],
