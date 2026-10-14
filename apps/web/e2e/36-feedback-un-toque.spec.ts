@@ -49,6 +49,46 @@ test.describe("Flujo 36: feedback de un toque", () => {
     const fila = await evaluationFeedbackOf(mismo);
     expect(fila?.humanNote).toBe("sueldo");
     expect(fila?.humanVerdict).toBe("en_desacuerdo");
+    // Sin recargar: el formulario se remonta y muestra lo guardado
+    await expect(page.getByLabel("Score humano (0–10)")).toHaveValue("6");
+  });
+
+  test("guardar motivo no vacía el campo; sin cambios queda deshabilitado; quitar lo borra", async ({
+    page,
+  }) => {
+    const motivo = await createJob({
+      title: `E2E veredicto motivo ${tag}`,
+      status: "evaluada",
+    });
+    await createEvaluation(motivo, { score: 9.2 });
+    creados.push(motivo);
+    await login(page);
+    await page.goto(`/jobs/${motivo}`);
+    await page
+      .getByRole("group", { name: "¿Te sirve esta evaluación?" })
+      .getByRole("button", { name: "No", exact: true })
+      .click();
+
+    const guardar = page.getByRole("button", { name: "Guardar motivo", exact: true });
+    const campo = page.getByLabel("Motivo", { exact: true });
+    await expect(guardar).toBeDisabled(); // vacío
+    await page.getByRole("button", { name: "sueldo", exact: true }).click();
+    await expect(guardar).toBeEnabled();
+    await guardar.click();
+
+    // Sin page.goto: el campo sigue mostrando el texto y aparece la confirmación
+    await expect(page.getByRole("status").filter({ hasText: "Guardado ✓" })).toBeVisible();
+    await expect(campo).toHaveValue("sueldo");
+    await expect(guardar).toBeDisabled(); // igual al guardado
+    await expect.poll(async () => (await evaluationFeedbackOf(motivo))?.humanNote).toBe("sueldo");
+
+    await page.reload();
+    await expect(campo).toHaveValue("sueldo");
+
+    await page.getByRole("button", { name: "Quitar motivo", exact: true }).click();
+    await expect.poll(async () => (await evaluationFeedbackOf(motivo))?.humanNote).toBeNull();
+    await expect(campo).toHaveValue("");
+    await expect(page.getByRole("button", { name: "Quitar motivo", exact: true })).toHaveCount(0);
   });
 
   test("tarjeta en 360 px: sin scroll horizontal y botones de al menos 44x44", async ({ page }) => {

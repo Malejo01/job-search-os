@@ -377,9 +377,9 @@ export default async function JobDetailPage({
             className="rounded-md border border-zinc-200 p-3 text-sm"
           >
             <summary className="cursor-pointer font-semibold">Ajustar el score (avanzado)</summary>
-            {/* key: al guardar un motivo la nota cambia y el formulario se remonta con la nota nueva */}
+            {/* key: al guardar un motivo o un score el formulario se remonta con lo guardado */}
             <form
-              key={ev.humanNote ?? ""}
+              key={`${ev.humanScore ?? ""}|${ev.humanNote ?? ""}`}
               action={humanScoreAction}
               className="mt-2 flex flex-col gap-2"
             >
