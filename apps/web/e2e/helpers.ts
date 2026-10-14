@@ -158,6 +158,32 @@ export async function createEvaluation(
   }
 }
 
+/** Feedback humano de la última evaluación de una oferta (null si no hay evaluación). */
+export async function evaluationFeedbackOf(jobId: string): Promise<{
+  humanVerdict: string | null;
+  humanVerdictAt: Date | null;
+  humanNote: string | null;
+  humanScore: number | null;
+} | null> {
+  const { db, close } = ownerDb();
+  try {
+    const [row] = await db
+      .select({
+        humanVerdict: s.evaluations.humanVerdict,
+        humanVerdictAt: s.evaluations.humanVerdictAt,
+        humanNote: s.evaluations.humanNote,
+        humanScore: s.evaluations.humanScore,
+      })
+      .from(s.evaluations)
+      .where(eq(s.evaluations.jobId, jobId))
+      .orderBy(sql`${s.evaluations.createdAt} desc`)
+      .limit(1);
+    return row ?? null;
+  } finally {
+    await close();
+  }
+}
+
 /** Postulación de una oferta (null si no hay). */
 export async function applicationOf(jobId: string): Promise<{ outcome: string | null } | null> {
   const { db, close } = ownerDb();

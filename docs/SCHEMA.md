@@ -35,6 +35,7 @@ profiles ─1:N─ candidate_facts · 1:1 application_settings · 1:N answer_ban
 - **`evaluations` es append-only.** Cambiar prompt, modelo o criterios genera una evaluación nueva con `prompt_version`, `criteria_version`, `model`. Así se compara.
 - **`evaluations.accion` la calcula código** desde `score`, `bloqueadores_duros` y `thresholds`; el LLM sugiere pero no decide.
 - **`human_score`** en `evaluations` es el ancla de calibración. El golden set entra como evaluaciones con `model = 'human'`.
+- **`human_verdict`** (`de_acuerdo` / `en_desacuerdo`, nulable) y `human_verdict_at` en `evaluations`: veredicto de un toque. `NULL` = sin opinión. No es un score: queda fuera del MAE y del snapshot de mercado; el motivo opcional va en `human_note`.
 - **`jobs.status`** es la máquina de estados; las transiciones válidas viven en `packages/pipeline/status.ts`, no en la UI.
 - **`skills` global + `skill_levels` por usuario.** La taxonomía es compartida; el nivel, la evidencia y la entrevista son del usuario.
 - **`market_snapshots` por usuario.** La "agenda de mercado" refleja lo que ese usuario ve; agregados cross-usuario solo anónimos y en fase 3.

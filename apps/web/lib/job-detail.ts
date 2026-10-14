@@ -9,6 +9,7 @@ import {
   POSSIBLE_DUPLICATE_FLAG,
   prefilterReasonText,
   type Adjustment,
+  type HumanVerdict,
   type JobEvent,
   type JobStatus,
 } from "@job-search-os/pipeline";
@@ -45,8 +46,13 @@ export type EvaluationView = {
   adjustments: Adjustment[];
   humanScore: number | null;
   humanNote: string | null;
+  /** 👍/👎 de un toque (ronda 30); null = sin opinión. No es un score: no entra en el MAE. */
+  humanVerdict: HumanVerdict | null;
   createdAt: string;
 };
+
+/** Largo máximo del motivo corto del veredicto (se guarda en human_note). */
+export const HUMAN_NOTE_MAX = 140;
 
 export type JobDetail = {
   id: string;
@@ -247,6 +253,7 @@ export async function getJobDetail(userId: string, jobId: string): Promise<JobDe
             adjustments: decision?.adjustments ?? [],
             humanScore: ev.humanScore,
             humanNote: ev.humanNote,
+            humanVerdict: ev.humanVerdict,
             createdAt: ev.createdAt.toISOString(),
           }
         : null,
@@ -352,6 +359,56 @@ export async function saveHumanScore(
       .update(s.evaluations)
       .set({ humanScore, humanNote })
       .where(and(eq(s.evaluations.id, evaluationId), eq(s.evaluations.userId, userId)))
+      .returning({ id: s.evaluations.id });
+    if (!updated.length) throw new Error("evaluación inexistente");
+  });
+}
+
+/** 👍/👎 de un toque (ronda 30). `null` lo quita. No toca el score humano ni la nota. */
+export async function saveHumanVerdict(
+  userId: string,
+  jobId: string,
+  evaluationId: string,
+  verdict: HumanVerdict | null,
+): Promise<void> {
+  await withUser(userId, async (tx) => {
+    const updated = await tx
+      .update(s.evaluations)
+      .set({ humanVerdict: verdict, humanVerdictAt: verdict ? new Date() : null })
+      .where(
+        and(
+          eq(s.evaluations.id, evaluationId),
+          eq(s.evaluations.jobId, jobId),
+          eq(s.evaluations.userId, userId),
+        ),
+      )
+      .returning({ id: s.evaluations.id });
+    if (!updated.length) throw new Error("evaluación inexistente");
+  });
+}
+
+/** Motivo corto del veredicto: solo `human_note`, máximo 140 caracteres. */
+export async function saveHumanNote(
+  userId: string,
+  jobId: string,
+  evaluationId: string,
+  note: string | null,
+): Promise<void> {
+  const clean = note?.trim() || null;
+  if (clean !== null && clean.length > HUMAN_NOTE_MAX) {
+    throw new Error(`el motivo admite hasta ${HUMAN_NOTE_MAX} caracteres`);
+  }
+  await withUser(userId, async (tx) => {
+    const updated = await tx
+      .update(s.evaluations)
+      .set({ humanNote: clean })
+      .where(
+        and(
+          eq(s.evaluations.id, evaluationId),
+          eq(s.evaluations.jobId, jobId),
+          eq(s.evaluations.userId, userId),
+        ),
+      )
       .returning({ id: s.evaluations.id });
     if (!updated.length) throw new Error("evaluación inexistente");
   });
