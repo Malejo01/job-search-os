@@ -692,6 +692,121 @@ export async function applicationOutcomeById(id: string): Promise<string | null>
   }
 }
 
+/** Resultado y nota de una postulación por su id (null si no existe). */
+export async function applicationOutcomeAndNote(
+  id: string,
+): Promise<{ outcome: string | null; note: string | null } | null> {
+  const { db, close } = ownerDb();
+  try {
+    const [row] = await db
+      .select({ outcome: s.applications.outcome, note: s.applications.outcomeNote })
+      .from(s.applications)
+      .where(eq(s.applications.id, id));
+    return row ?? null;
+  } finally {
+    await close();
+  }
+}
+
+export type CriteriaBackup = { id: string; version: number; active: boolean }[];
+
+/** Versiones de criterios del usuario seed (id, versión, activa), para `restoreSeedCriteria`. */
+export async function backupSeedCriteria(): Promise<CriteriaBackup> {
+  const { db, close } = ownerDb();
+  try {
+    return await db
+      .select({
+        id: s.evaluationCriteria.id,
+        version: s.evaluationCriteria.version,
+        active: s.evaluationCriteria.active,
+      })
+      .from(s.evaluationCriteria)
+      .where(eq(s.evaluationCriteria.userId, E2E_USER_ID));
+  } finally {
+    await close();
+  }
+}
+
+/** Criterios activos de mayor versión del usuario seed, como los lee la app. */
+export async function activeSeedCriteria(): Promise<{
+  version: number;
+  maxYearsHard: number;
+} | null> {
+  const { db, close } = ownerDb();
+  try {
+    const [row] = await db
+      .select({ version: s.evaluationCriteria.version, rules: s.evaluationCriteria.rules })
+      .from(s.evaluationCriteria)
+      .where(
+        and(eq(s.evaluationCriteria.userId, E2E_USER_ID), eq(s.evaluationCriteria.active, true)),
+      )
+      .orderBy(sql`${s.evaluationCriteria.version} desc`)
+      .limit(1);
+    return row ? { version: row.version, maxYearsHard: row.rules.max_years_hard } : null;
+  } finally {
+    await close();
+  }
+}
+
+/** Borra las versiones creadas después del respaldo y devuelve cada una a su estado `active`. */
+export async function restoreSeedCriteria(backup: CriteriaBackup): Promise<void> {
+  const { db, close } = ownerDb();
+  try {
+    const keep = backup.map((b) => b.id);
+    if (keep.length > 0) {
+      await db.delete(s.evaluationCriteria).where(
+        and(
+          eq(s.evaluationCriteria.userId, E2E_USER_ID),
+          sql`${s.evaluationCriteria.id} not in (${sql.join(
+            keep.map((k) => sql`${k}`),
+            sql`, `,
+          )})`,
+        ),
+      );
+    }
+    for (const b of backup) {
+      await db
+        .update(s.evaluationCriteria)
+        .set({ active: b.active })
+        .where(eq(s.evaluationCriteria.id, b.id));
+    }
+  } finally {
+    await close();
+  }
+}
+
+/** Puestos del usuario seed (lista y puesto principal), para guardarlos y restaurarlos. */
+export async function seedTargetRoles(): Promise<{
+  targetRoles: string[];
+  targetRole: string | null;
+}> {
+  const { db, close } = ownerDb();
+  try {
+    const [row] = await db
+      .select({ targetRoles: s.profiles.targetRoles, targetRole: s.profiles.targetRole })
+      .from(s.profiles)
+      .where(eq(s.profiles.userId, E2E_USER_ID));
+    return { targetRoles: row?.targetRoles ?? [], targetRole: row?.targetRole ?? null };
+  } finally {
+    await close();
+  }
+}
+
+export async function setSeedTargetRoles(state: {
+  targetRoles: string[];
+  targetRole: string | null;
+}): Promise<void> {
+  const { db, close } = ownerDb();
+  try {
+    await db
+      .update(s.profiles)
+      .set({ targetRoles: state.targetRoles, targetRole: state.targetRole })
+      .where(eq(s.profiles.userId, E2E_USER_ID));
+  } finally {
+    await close();
+  }
+}
+
 /** Decisión guardada sobre un dominio para un usuario cualquiera, o null. */
 export async function senderVerdictOf(userId: string, domain: string): Promise<string | null> {
   const { db, close } = ownerDb();
