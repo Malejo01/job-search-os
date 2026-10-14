@@ -177,7 +177,12 @@ export default async function ApplicationsPage({
                   {a.outcomeAt ? ` · ${a.outcomeAt}` : ""}
                 </span>
               </div>
-              <form action={setOutcomeAction} className="mt-2 flex flex-wrap items-center gap-2">
+              <form
+                // Con lo guardado en la key, el form se remonta y sus defaultValue siguen a la base
+                key={`${a.outcome}|${a.outcomeNote ?? ""}`}
+                action={setOutcomeAction}
+                className="mt-2 flex flex-wrap items-center gap-2"
+              >
                 <input type="hidden" name="applicationId" value={a.id} />
                 <select
                   name="outcome"
