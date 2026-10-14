@@ -27,6 +27,7 @@ export const applicationOutcome = pgEnum("application_outcome", [
 ]);
 export const skillCategory = pgEnum("skill_category", ["cloud", "infra", "testing", "llm_ops", "ai_core", "lenguaje", "framework", "datos", "soft", "idioma", "dominio", "otra"]);
 export const evidenceType = pgEnum("evidence_type", ["repo", "certificacion", "proyecto_produccion", "experiencia_laboral", "respuesta_entrevista", "test_externo", "otra"]);
+export const humanVerdict = pgEnum("human_verdict", ["de_acuerdo", "en_desacuerdo"]);
 export const skillState = pgEnum("skill_claim_state", ["respaldada", "parcial", "sin_evidencia"]);
 
 // ─────────────────────────────────────────────────────────────
@@ -322,6 +323,8 @@ export const evaluations = pgTable("evaluations", {
   raw: jsonb("raw"),                                    // JSON completo devuelto por el modelo
   humanScore: real("human_score"),                      // override / referencia humana
   humanNote: text("human_note"),
+  humanVerdict: humanVerdict("human_verdict"),          // veredicto de un toque; null = sin opinión. No entra en el MAE ni en el snapshot
+  humanVerdictAt: timestamp("human_verdict_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [index("evaluations_job").on(t.jobId), index("evaluations_user_score").on(t.userId, t.score)]);
 

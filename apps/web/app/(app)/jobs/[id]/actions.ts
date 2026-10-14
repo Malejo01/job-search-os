@@ -1,6 +1,13 @@
 "use server";
 
-import { JOB_EVENTS, JOB_STATUSES, type JobEvent, type JobStatus } from "@job-search-os/pipeline";
+import {
+  HUMAN_VERDICTS,
+  JOB_EVENTS,
+  JOB_STATUSES,
+  type JobEvent,
+  type JobStatus,
+} from "@job-search-os/pipeline";
+import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createLogger, createPgQueue, enqueueEvaluationWith } from "@job-search-os/adapters";
@@ -10,7 +17,15 @@ import { withUser } from "@/lib/db";
 import { dismissDuplicate, mergeDuplicate } from "@/lib/duplicates";
 import { evaluateInBackgroundOrExplain } from "@/lib/evaluate-now";
 import { isUuid } from "@/lib/ids";
-import { applyJobEvent, correctJobStatus, MANUAL_EVENTS, saveHumanScore } from "@/lib/job-detail";
+import {
+  applyJobEvent,
+  correctJobStatus,
+  HUMAN_NOTE_MAX,
+  MANUAL_EVENTS,
+  saveHumanNote,
+  saveHumanScore,
+  saveHumanVerdict,
+} from "@/lib/job-detail";
 import { evaluatingSql } from "@/lib/jobs";
 import { requireUserId } from "@/lib/session";
 
@@ -51,6 +66,75 @@ export async function humanScoreAction(formData: FormData): Promise<void> {
   } catch (e) {
     if (e instanceof Error && /score humano/.test(e.message))
       redirect(`/jobs/${jobId}?error=score`);
+    throw e;
+  }
+  revalidatePath(`/jobs/${jobId}`);
+}
+
+const verdictInput = z.object({
+  jobId: z.string().refine(isUuid),
+  evaluationId: z.string().refine(isUuid),
+  // "" = quitar el veredicto (volver a tocar el botón apretado)
+  verdict: z.union([z.enum(HUMAN_VERDICTS), z.literal("")]),
+});
+
+/** 👍/👎 de un toque (ronda 30). Sin redirect si sale bien: desde la lista se queda en la lista. */
+export async function humanVerdictAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const jobId = String(formData.get("jobId") ?? "");
+  const parsed = verdictInput.safeParse({
+    jobId,
+    evaluationId: String(formData.get("evaluationId") ?? ""),
+    verdict: String(formData.get("verdict") ?? ""),
+  });
+  // Sin un uuid válido no se arma una ruta con lo que mandó el cliente
+  const back = isUuid(jobId) ? `/jobs/${jobId}` : "/jobs";
+  if (!parsed.success) redirect(`${back}?error=veredicto`);
+  try {
+    await saveHumanVerdict(
+      userId,
+      parsed.data.jobId,
+      parsed.data.evaluationId,
+      parsed.data.verdict || null,
+    );
+  } catch (e) {
+    if (e instanceof Error && /evaluación inexistente/.test(e.message)) {
+      redirect(`${back}?error=veredicto`);
+    }
+    throw e;
+  }
+  revalidatePath(`/jobs/${jobId}`);
+  revalidatePath("/jobs");
+}
+
+const noteInput = z.object({
+  jobId: z.string().refine(isUuid),
+  evaluationId: z.string().refine(isUuid),
+  note: z.string().trim().max(HUMAN_NOTE_MAX),
+});
+
+/** Motivo corto (≤ 140) del veredicto: escribe human_note. */
+export async function humanNoteAction(formData: FormData): Promise<void> {
+  const userId = await requireUserId();
+  const jobId = String(formData.get("jobId") ?? "");
+  const parsed = noteInput.safeParse({
+    jobId,
+    evaluationId: String(formData.get("evaluationId") ?? ""),
+    note: String(formData.get("humanNote") ?? ""),
+  });
+  const back = isUuid(jobId) ? `/jobs/${jobId}` : "/jobs";
+  if (!parsed.success) redirect(`${back}?error=motivo`);
+  try {
+    await saveHumanNote(
+      userId,
+      parsed.data.jobId,
+      parsed.data.evaluationId,
+      parsed.data.note || null,
+    );
+  } catch (e) {
+    if (e instanceof Error && /evaluación inexistente/.test(e.message)) {
+      redirect(`${back}?error=motivo`);
+    }
     throw e;
   }
   revalidatePath(`/jobs/${jobId}`);

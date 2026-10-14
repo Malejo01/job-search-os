@@ -668,8 +668,16 @@ describe("sentencias de la app con el id de una fila de B y contexto de A", () =
       (await tx`delete from invitations where id = ${invId}`).count,
       (await tx`update inbound_emails set dismissed_at = now() where id = ${emailId}`).count,
       (await tx`delete from inbound_emails where id = ${emailId}`).count,
+      (
+        await tx`update evaluations set human_verdict = 'en_desacuerdo', human_verdict_at = now()
+                 where id = ${evalId}`
+      ).count,
     ]);
-    expect(counts).toEqual([0, 0, 0, 0, 0, 0]);
+    expect(counts).toEqual([0, 0, 0, 0, 0, 0, 0]);
+    const [still] = await owner<
+      { human_verdict: string | null; human_verdict_at: Date | null }[]
+    >`select human_verdict, human_verdict_at from evaluations where id = ${evalId}`;
+    expect(still).toEqual({ human_verdict: null, human_verdict_at: null });
     expect({
       a: await fingerprint({ table: "applications", column: "user_id" }, B),
       p: await fingerprint({ table: "learning_plan_items", column: "user_id" }, B),

@@ -9,6 +9,8 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Postulaciones" };
 
 const pct = (v: number | null) => (v === null ? "—" : `${Math.round(v * 100)} %`);
+/** "Te sirve": 👍 y 👎 de un toque sobre la evaluación; "–" si todavía no hay ninguno. */
+const verdictText = (up: number, down: number) => (up + down === 0 ? "–" : `${up} 👍 · ${down} 👎`);
 const OUTCOME_CLASSES: Record<string, string> = {
   entrevista: "bg-emerald-100 text-emerald-900",
   oferta: "bg-emerald-200 text-emerald-950",
@@ -84,7 +86,8 @@ export default async function ApplicationsPage({
                 <th className="py-1 pr-3">Rechazo humano</th>
                 <th className="py-1 pr-3">Rechazo automático</th>
                 <th className="py-1 pr-3">Sin respuesta</th>
-                <th className="py-1">Tasa positiva</th>
+                <th className="py-1 pr-3">Tasa positiva</th>
+                <th className="py-1">Te sirve</th>
               </tr>
             </thead>
             <tbody>
@@ -97,10 +100,21 @@ export default async function ApplicationsPage({
                   <td className="py-1 pr-3">{b.rejectedHuman}</td>
                   <td className="py-1 pr-3">{b.rejectedAuto}</td>
                   <td className="py-1 pr-3">{b.noAnswer}</td>
-                  <td className="py-1">{pct(b.positiveRate)}</td>
+                  <td className="py-1 pr-3">{pct(b.positiveRate)}</td>
+                  <td className="py-1">{verdictText(b.verdicts.agree, b.verdicts.disagree)}</td>
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr className="border-t border-zinc-200 font-medium">
+                <td className="py-1 pr-3" colSpan={8}>
+                  Total
+                </td>
+                <td className="py-1">
+                  {verdictText(report.verdicts.agree, report.verdicts.disagree)}
+                </td>
+              </tr>
+            </tfoot>
           </table>
         </div>
         {report.humanVsModel ? (

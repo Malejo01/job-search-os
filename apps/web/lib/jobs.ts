@@ -6,6 +6,7 @@ import {
   parsePeriod,
   resolveSince,
   reviewProgress,
+  type HumanVerdict,
   type JobStatus,
   type Period,
   type ReviewProgress,
@@ -58,6 +59,10 @@ export type JobListRow = {
   bloqueadores: string[];
   /** evaluations.model; "fake" = modo demo (badge DEMO). */
   model: string | null;
+  /** Última evaluación (para el 👍/👎 de la tarjeta); null si no hay. */
+  evaluationId: string | null;
+  /** 👍/👎 guardado sobre la última evaluación; no cuenta como "revisada". */
+  humanVerdict: HumanVerdict | null;
   /** Pre-score determinista (sin LLM) cuando no hay evaluación; null si ya hay score o no aplica. */
   preScore: number | null;
   /** Tiene la evaluación en curso o en cola (JS-027): se muestra arriba como "evaluando". */
@@ -136,12 +141,14 @@ export async function listJobs(
     const latest = tx
       .selectDistinctOn([s.evaluations.jobId], {
         jobId: s.evaluations.jobId,
+        evaluationId: s.evaluations.id,
         score: s.evaluations.score,
         locationOk: s.evaluations.locationOk,
         accion: s.evaluations.accion,
         riesgos: s.evaluations.riesgos,
         bloqueadores: s.evaluations.bloqueadoresDuros,
         model: s.evaluations.model,
+        humanVerdict: s.evaluations.humanVerdict,
       })
       .from(s.evaluations)
       .orderBy(s.evaluations.jobId, desc(s.evaluations.createdAt))
@@ -197,6 +204,8 @@ export async function listJobs(
         riesgos: latest.riesgos,
         bloqueadores: latest.bloqueadores,
         model: latest.model,
+        evaluationId: latest.evaluationId,
+        humanVerdict: latest.humanVerdict,
         evaluating: evaluatingSql(),
       })
       .from(s.jobs)
@@ -249,6 +258,8 @@ export async function listJobs(
       riesgos: r.riesgos ?? [],
       bloqueadores: r.bloqueadores ?? [],
       model: r.model,
+      evaluationId: r.evaluationId,
+      humanVerdict: r.humanVerdict,
       preScore: pre.get(r.id)?.score ?? null,
       evaluating: Boolean(r.evaluating),
     }));

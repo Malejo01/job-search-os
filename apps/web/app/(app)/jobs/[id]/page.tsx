@@ -40,6 +40,7 @@ import { EvaluateNow } from "./evaluate-now";
 import { ReviewNav } from "./review-nav";
 import { SourceAttribution } from "./source-attribution";
 import { StatusCorrection } from "./status-correction";
+import { Verdict } from "./verdict";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +68,9 @@ const ERRORS: Record<string, string> = {
   fusion:
     "No se pudo fusionar: las ofertas cambiaron (una ya tiene evaluación o postulación, o se está evaluando). Recargá y revisá.",
   evaluar: "No se puede evaluar esta oferta: no tiene la descripción del puesto.",
+  veredicto: "No se pudo guardar tu respuesta: la evaluación ya no existe. Recargá la página.",
+  motivo:
+    "No se pudo guardar el motivo: admite hasta 140 caracteres y la evaluación tiene que existir.",
 };
 
 /** Detalle de una oferta (JS-016): evaluación completa, fuentes, acciones de estado y score humano. */
@@ -362,51 +366,65 @@ export default async function JobDetailPage({
           </section>
 
           {/* Score humano: referencia para el golden y para calibrar (PRD §6) */}
-          <form
-            action={humanScoreAction}
-            className="flex flex-col gap-2 rounded-md border border-zinc-200 p-3 text-sm"
+          <Verdict
+            jobId={job.id}
+            evaluationId={ev.id}
+            verdict={ev.humanVerdict}
+            note={ev.humanNote}
+          />
+          <details
+            open={ev.humanScore !== null}
+            className="rounded-md border border-zinc-200 p-3 text-sm"
           >
-            <h2 className="font-semibold">Tu score</h2>
-            <input type="hidden" name="jobId" value={job.id} />
-            <input type="hidden" name="evaluationId" value={ev.id} />
-            <div className="flex flex-wrap items-end gap-2">
-              <label className="flex flex-col gap-1 text-xs text-zinc-600">
-                Score humano (0–10)
-                <input
-                  name="humanScore"
-                  type="number"
-                  min={0}
-                  max={10}
-                  step={0.5}
-                  inputMode="decimal"
-                  defaultValue={ev.humanScore ?? ""}
-                  className="w-28 rounded-md border border-zinc-300 px-2 py-2 text-base"
-                />
-              </label>
-              <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs text-zinc-600">
-                Nota
-                <input
-                  name="humanNote"
-                  type="text"
-                  defaultValue={ev.humanNote ?? ""}
-                  placeholder="por qué difiere del modelo"
-                  className="rounded-md border border-zinc-300 px-2 py-2 text-base"
-                />
-              </label>
-              <button
-                type="submit"
-                className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white"
-              >
-                Guardar
-              </button>
-            </div>
-            {ev.humanScore !== null ? (
-              <p className="text-xs text-zinc-600">
-                guardado: {ev.humanScore} · diferencia con el modelo{" "}
-                {(ev.humanScore - ev.score).toFixed(1)}
-              </p>
-            ) : null}
-          </form>
+            <summary className="cursor-pointer font-semibold">Ajustar el score (avanzado)</summary>
+            {/* key: al guardar un motivo la nota cambia y el formulario se remonta con la nota nueva */}
+            <form
+              key={ev.humanNote ?? ""}
+              action={humanScoreAction}
+              className="mt-2 flex flex-col gap-2"
+            >
+              <h2 className="font-semibold">Tu score</h2>
+              <input type="hidden" name="jobId" value={job.id} />
+              <input type="hidden" name="evaluationId" value={ev.id} />
+              <div className="flex flex-wrap items-end gap-2">
+                <label className="flex flex-col gap-1 text-xs text-zinc-600">
+                  Score humano (0–10)
+                  <input
+                    name="humanScore"
+                    type="number"
+                    min={0}
+                    max={10}
+                    step={0.5}
+                    inputMode="decimal"
+                    defaultValue={ev.humanScore ?? ""}
+                    className="w-28 rounded-md border border-zinc-300 px-2 py-2 text-base"
+                  />
+                </label>
+                <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs text-zinc-600">
+                  Nota
+                  <input
+                    name="humanNote"
+                    type="text"
+                    defaultValue={ev.humanNote ?? ""}
+                    placeholder="por qué difiere del modelo"
+                    className="rounded-md border border-zinc-300 px-2 py-2 text-base"
+                  />
+                </label>
+                <button
+                  type="submit"
+                  className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white"
+                >
+                  Guardar
+                </button>
+              </div>
+              {ev.humanScore !== null ? (
+                <p className="text-xs text-zinc-600">
+                  guardado: {ev.humanScore} · diferencia con el modelo{" "}
+                  {(ev.humanScore - ev.score).toFixed(1)}
+                </p>
+              ) : null}
+            </form>
+          </details>
         </>
       ) : job.preScore ? (
         <section className="flex flex-col gap-2 rounded-md border-2 border-dashed border-zinc-400 p-3 text-sm">

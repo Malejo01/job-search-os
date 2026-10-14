@@ -108,6 +108,8 @@ test.describe("Flujo 16: revisión de a una", () => {
     await expect(page).toHaveURL(new RegExp(`/jobs/${A}`));
 
     // Escribiendo en un campo, ni la letra ni Alt+J son un atajo
+    // El formulario numérico vive en un <details> cerrado (ronda 30)
+    await page.getByText("Ajustar el score (avanzado)").click();
     const nota = page.getByLabel("Nota");
     await nota.click();
     await nota.pressSequentially("jk");

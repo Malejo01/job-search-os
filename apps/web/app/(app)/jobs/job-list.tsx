@@ -20,6 +20,7 @@ import {
   SOURCE_LABELS,
   STATUS_LABELS,
 } from "@/lib/labels";
+import { CardVerdict } from "./card-verdict";
 
 /**
  * Lista de ofertas como cards (JS-015). Client component únicamente por Framer Motion:
@@ -174,6 +175,9 @@ function JobCard({ job, query }: { job: JobListRow; query: string }) {
           >
             Ver oferta ↗
           </a>
+        ) : null}
+        {job.evaluationId && !job.evaluating ? (
+          <CardVerdict jobId={job.id} evaluationId={job.evaluationId} verdict={job.humanVerdict} />
         ) : null}
       </div>
     </div>

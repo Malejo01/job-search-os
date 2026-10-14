@@ -9,6 +9,7 @@ const row = (p: Partial<FeedbackRow>): FeedbackRow => ({
   model: p.model ?? "gemini-3.1-flash-lite",
   locationOk: p.locationOk ?? "ok",
   outcome: p.outcome ?? null,
+  humanVerdict: p.humanVerdict ?? null,
 });
 
 describe("scoreBand", () => {
@@ -74,6 +75,60 @@ describe("buildFeedbackReport (JS-036)", () => {
       row({ score: 9, humanScore: null }),
     ]);
     expect(r.humanVsModel).toEqual({ n: 2, mae: 1, bias: 0 });
+  });
+
+  describe("veredicto de un toque", () => {
+    const withVerdicts: FeedbackRow[] = [
+      row({ jobId: "a", score: 9, humanVerdict: "de_acuerdo" }),
+      row({ jobId: "b", score: 8, humanVerdict: "de_acuerdo" }),
+      row({ jobId: "c", score: 7.5, humanVerdict: "en_desacuerdo" }),
+      row({ jobId: "d", score: 3, humanVerdict: "en_desacuerdo" }),
+      row({ jobId: "e", score: 8 }), // sin opinión
+    ];
+
+    it("cuenta veredictos por banda y en total", () => {
+      const r = buildFeedbackReport(withVerdicts);
+      expect(r.bands.find((b) => b.band === "9+")!.verdicts).toEqual({
+        agree: 1,
+        disagree: 0,
+        agreeRate: 1,
+      });
+      expect(r.bands.find((b) => b.band === "7–8,9")!.verdicts).toEqual({
+        agree: 1,
+        disagree: 1,
+        agreeRate: 0.5,
+      });
+      expect(r.bands.find((b) => b.band === "<5")!.verdicts).toEqual({
+        agree: 0,
+        disagree: 1,
+        agreeRate: 0,
+      });
+      expect(r.verdicts).toEqual({ agree: 2, disagree: 2, agreeRate: 0.5 });
+    });
+
+    it("la tasa es null sin veredictos, no NaN", () => {
+      const r = buildFeedbackReport([row({ score: 8 })]);
+      expect(r.verdicts).toEqual({ agree: 0, disagree: 0, agreeRate: null });
+      expect(r.bands.every((b) => b.verdicts.agreeRate === null)).toBe(true);
+    });
+
+    it("no cambia el MAE ni el sesgo", () => {
+      const base = [row({ score: 8, humanScore: 7 }), row({ score: 6, humanScore: 7 })];
+      const con = [
+        row({ score: 8, humanScore: 7, humanVerdict: "en_desacuerdo" }),
+        row({ score: 6, humanScore: 7, humanVerdict: "de_acuerdo" }),
+        row({ score: 9, humanVerdict: "de_acuerdo" }),
+      ];
+      expect(buildFeedbackReport(con).humanVsModel).toEqual(buildFeedbackReport(base).humanVsModel);
+    });
+
+    it("las evaluaciones humanas (model = human) se excluyen del veredicto, como del MAE", () => {
+      const r = buildFeedbackReport([
+        row({ score: 8, humanVerdict: "de_acuerdo" }),
+        row({ score: 8, model: "human", humanVerdict: "en_desacuerdo" }),
+      ]);
+      expect(r.verdicts).toEqual({ agree: 1, disagree: 0, agreeRate: 1 });
+    });
   });
 
   it("sin postulaciones devuelve tasas nulas, no NaN", () => {

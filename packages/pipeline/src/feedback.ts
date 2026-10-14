@@ -17,6 +17,17 @@ export type ApplicationOutcome = (typeof APPLICATION_OUTCOMES)[number];
 
 export const POSITIVE_OUTCOMES: readonly ApplicationOutcome[] = ["entrevista", "oferta"];
 
+/** Veredicto de un toque sobre la evaluación. No es un score: no entra en el MAE ni en el snapshot. */
+export const HUMAN_VERDICTS = ["de_acuerdo", "en_desacuerdo"] as const;
+export type HumanVerdict = (typeof HUMAN_VERDICTS)[number];
+
+export type VerdictStats = {
+  agree: number;
+  disagree: number;
+  /** agree / (agree + disagree), null sin veredictos. */
+  agreeRate: number | null;
+};
+
 export type FeedbackRow = {
   jobId: string;
   /** Score final de la última evaluación (null si no hay). */
@@ -28,6 +39,8 @@ export type FeedbackRow = {
   locationOk: string | null;
   /** null = no hubo postulación. */
   outcome: ApplicationOutcome | null;
+  /** null = sin opinión. */
+  humanVerdict: HumanVerdict | null;
 };
 
 export const SCORE_BANDS = ["9+", "7–8,9", "5–6,9", "<5", "sin score"] as const;
@@ -52,12 +65,15 @@ export type BandStats = {
   noAnswer: number;
   /** positive / applied, null sin postulaciones. */
   positiveRate: number | null;
+  verdicts: VerdictStats;
 };
 
 export type FeedbackReport = {
   evaluated: number;
   applied: number;
   bands: BandStats[];
+  /** Veredictos de un toque (excluye evaluaciones humanas). */
+  verdicts: VerdictStats;
   /** Métrica del PRD: tasa de respuesta positiva a postulaciones con score ≥ 7. */
   highScore: { applied: number; positive: number; rate: number | null };
   surprises: {
@@ -76,6 +92,13 @@ const isPositive = (o: ApplicationOutcome | null) => o !== null && POSITIVE_OUTC
 const isAutoReject = (o: ApplicationOutcome | null) =>
   o === "rechazo_automatico_ubicacion" || o === "rechazo_automatico_otro";
 
+function verdictStats(rows: readonly FeedbackRow[]): VerdictStats {
+  const judged = rows.filter((r) => r.model !== "human");
+  const agree = judged.filter((r) => r.humanVerdict === "de_acuerdo").length;
+  const disagree = judged.filter((r) => r.humanVerdict === "en_desacuerdo").length;
+  return { agree, disagree, agreeRate: agree + disagree ? agree / (agree + disagree) : null };
+}
+
 export function buildFeedbackReport(rows: readonly FeedbackRow[]): FeedbackReport {
   const applied = rows.filter((r) => r.outcome !== null);
   const bands: BandStats[] = SCORE_BANDS.map((band) => {
@@ -91,6 +114,7 @@ export function buildFeedbackReport(rows: readonly FeedbackRow[]): FeedbackRepor
       rejectedAuto: app.filter((r) => isAutoReject(r.outcome)).length,
       noAnswer: app.filter((r) => r.outcome === "sin_respuesta").length,
       positiveRate: app.length ? positive / app.length : null,
+      verdicts: verdictStats(inBand),
     };
   });
   const high = applied.filter((r) => r.score !== null && r.score >= 7);
@@ -111,6 +135,7 @@ export function buildFeedbackReport(rows: readonly FeedbackRow[]): FeedbackRepor
     evaluated: rows.length,
     applied: applied.length,
     bands,
+    verdicts: verdictStats(rows),
     highScore: {
       applied: high.length,
       positive: highPositive,
