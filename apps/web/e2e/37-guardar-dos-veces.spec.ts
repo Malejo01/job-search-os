@@ -21,8 +21,6 @@ import {
  * viejo. Entre el primer y el segundo guardado no hay `goto` ni `reload`; solo se espera a que la
  * base tenga lo guardado. Datos inventados; criterios y puestos del usuario e2e se restauran.
  */
-test.describe.configure({ mode: "serial" });
-
 /** Toca el botón y espera la respuesta del servidor (la acción POSTea a la misma ruta). */
 async function clickAndWaitAction(page: Page, click: () => Promise<void>): Promise<void> {
   await Promise.all([page.waitForResponse((r) => r.request().method() === "POST"), click()]);
@@ -48,7 +46,10 @@ test.describe("Flujo 37a: resultado de una postulación", () => {
   }) => {
     await login(page);
     await page.goto("/applications");
-    const card = page.locator("li", { hasText: title });
+    // La tarjeta con el formulario: la lista de "sorpresas" de arriba también nombra la oferta
+    const card = page
+      .locator("li", { hasText: title })
+      .filter({ has: page.getByRole("button", { name: "Guardar resultado", exact: true }) });
     const save = card.getByRole("button", { name: "Guardar resultado", exact: true });
     await expect(card).toBeVisible();
 
