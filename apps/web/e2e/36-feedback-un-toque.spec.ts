@@ -57,7 +57,8 @@ test.describe("Flujo 36: feedback de un toque", () => {
     await page.goto("/jobs");
     const item = page.getByRole("main").getByRole("listitem").filter({ hasText: tituloTarjeta });
     for (const name of ["Me sirve la evaluación", "No me sirve la evaluación"]) {
-      const box = await item.getByRole("button", { name }).boundingBox();
+      // exact: "Me sirve…" es subcadena de "No me sirve…"
+      const box = await item.getByRole("button", { name, exact: true }).boundingBox();
       expect(box?.width).toBeGreaterThanOrEqual(44);
       expect(box?.height).toBeGreaterThanOrEqual(44);
     }
@@ -128,7 +129,7 @@ test.describe("Flujo 36: feedback de un toque", () => {
     await login(page);
     await page.goto("/jobs");
     const item = page.getByRole("main").getByRole("listitem").filter({ hasText: tituloTarjeta });
-    const boton = item.getByRole("button", { name: "Me sirve la evaluación" });
+    const boton = item.getByRole("button", { name: "Me sirve la evaluación", exact: true });
     await expect(boton).toHaveAttribute("aria-pressed", "false");
     await boton.click();
     await expect(boton).toHaveAttribute("aria-pressed", "true");
