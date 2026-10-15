@@ -1,0 +1,285 @@
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
+import {
+  classifyWhy,
+  explainDatabaseUrl,
+  firstToLlm,
+  formatExplainReport,
+  formatPicksTable,
+  hintsCrossRoles,
+  parseExplainArgs,
+  parsePersona,
+  TITLE_WIDTH,
+  type ExplainReport,
+  type WhyContext,
+  type WhyRow,
+} from "./explain";
+import type { PublicJobRow, RankedPick } from "./select";
+
+const UID = "a0000000-0000-4000-8000-0000000000a1";
+const NOW = new Date("2026-10-15T12:00:00Z");
+const daysAgo = (n: number) => new Date(NOW.getTime() - n * 86_400_000);
+
+describe("parseExplainArgs", () => {
+  it("persona con valores por defecto", () => {
+    const r = parseExplainArgs(["--persona", "p.json"]);
+    expect(r).toEqual({
+      ok: true,
+      args: { mode: { kind: "persona", path: "p.json" }, limit: 30, db: "snapshot", why: [] },
+    });
+  });
+
+  it("user, límite, base dev y --why repetido; ignora el -- de pnpm", () => {
+    const r = parseExplainArgs([
+      "--",
+      "--user",
+      UID,
+      "--limit",
+      "10",
+      "--db",
+      "dev",
+      "--why",
+      "data analyst",
+      "--why",
+      "fraud",
+    ]);
+    expect(r).toEqual({
+      ok: true,
+      args: {
+        mode: { kind: "user", userId: UID },
+        limit: 10,
+        db: "dev",
+        why: ["data analyst", "fraud"],
+      },
+    });
+  });
+
+  it.each([
+    [[], "exactamente uno"],
+    [["--persona", "p.json", "--user", UID], "exactamente uno"],
+    [["--user", "no-es-uuid"], "uuid"],
+    [["--persona", "p.json", "--db", "prod"], "--db"],
+    [["--persona", "p.json", "--db", "cloud"], "--db"],
+    [["--persona", "p.json", "--limit", "0"], "--limit"],
+    [["--persona", "p.json", "--limit", "9999"], "--limit"],
+    [["--persona", "p.json", "--limit", "1e2"], "--limit"],
+    [["--persona", "p.json", "--url", "postgres://x"], "desconocido"],
+    [["--persona"], "valor"],
+    [["--persona", "p.json", "--why"], "valor"],
+  ])("rechaza %j", (argv, fragment) => {
+    const r = parseExplainArgs(argv);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toContain(fragment);
+  });
+});
+
+describe("explainDatabaseUrl", () => {
+  const local = "postgres://postgres:postgres@localhost:54322/jobsearch";
+
+  it("cambia solo el nombre de la base según --db", () => {
+    expect(explainDatabaseUrl(local, "snapshot")).toEqual({
+      ok: true,
+      url: "postgres://postgres:postgres@localhost:54322/jobsearch_snapshot",
+    });
+    expect(explainDatabaseUrl(local, "dev")).toEqual({
+      ok: true,
+      url: "postgres://postgres:postgres@localhost:54322/jobsearch",
+    });
+  });
+
+  it("acepta 127.0.0.1 y descarta parámetros de la URL", () => {
+    const r = explainDatabaseUrl(
+      "postgres://u:p@127.0.0.1:5432/x?host=ejemplo.com&sslmode=require",
+      "dev",
+    );
+    expect(r).toEqual({ ok: true, url: "postgres://u:p@127.0.0.1:5432/jobsearch" });
+  });
+
+  it.each([
+    "postgres://u:p@db.example.com:5432/x",
+    "postgres://u:p@10.0.0.5:5432/x",
+    "postgres://u:p@localhost.example.com:5432/x",
+    "postgres://u:p@[::1]:5432/x",
+    "no es una url",
+    "",
+  ])("falla cerrado con %j", (base) => {
+    const r = explainDatabaseUrl(base, "snapshot");
+    expect(r.ok).toBe(false);
+  });
+});
+
+describe("parsePersona", () => {
+  const base = {
+    targetRoles: ["data_analyst"],
+    locationCountry: "ar",
+    remoteOnly: true,
+    yearsTotal: 3,
+    skills: [{ slug: "sql", level: 2 }],
+  };
+
+  it("normaliza el país y completa lo opcional con null", () => {
+    const r = parsePersona(base);
+    expect(r).toEqual({
+      ok: true,
+      persona: {
+        targetRoles: ["data_analyst"],
+        locationCountry: "AR",
+        remoteOnly: true,
+        yearsTotal: 3,
+        salaryFloorUsd: null,
+        maxWeeklyHours: null,
+        skills: [{ slug: "sql", level: 2 }],
+      },
+    });
+  });
+
+  it.each([
+    { ...base, targetRoles: ["inventado"] },
+    { ...base, targetRoles: [] },
+    { ...base, locationCountry: "XX" },
+    { ...base, skills: [{ slug: "sql", level: 4 }] },
+    { ...base, extra: 1 },
+    { ...base, yearsTotal: -1 },
+  ])("rechaza una persona inválida", (bad) => {
+    expect(parsePersona(bad).ok).toBe(false);
+  });
+
+  it("las personas incluidas son válidas", () => {
+    for (const f of ["lucia.json", "ai-junior.json"]) {
+      const json = JSON.parse(readFileSync(new URL(`./personas/${f}`, import.meta.url), "utf8"));
+      expect(parsePersona(json).ok, f).toBe(true);
+    }
+  });
+});
+
+describe("classifyWhy", () => {
+  const row = (over: Partial<WhyRow> = {}): WhyRow => ({
+    dedupOfId: null,
+    lastSeenAt: daysAgo(1),
+    postedAt: daysAgo(2),
+    roleHints: ["data_analyst"],
+    ...over,
+  });
+  const ctx = (over: Partial<WhyContext> = {}): WhyContext => ({
+    roles: ["data_analyst"],
+    now: NOW,
+    limit: 30,
+    owned: false,
+    inCandidates: true,
+    discarded: null,
+    rank: 5,
+    ...over,
+  });
+
+  it("cada paso, en orden", () => {
+    expect(classifyWhy(row({ dedupOfId: UID }), ctx()).step).toBe("copia");
+    expect(classifyWhy(row({ lastSeenAt: daysAgo(15) }), ctx()).step).toBe("last_seen");
+    expect(classifyWhy(row({ postedAt: daysAgo(31) }), ctx()).step).toBe("posted");
+    expect(classifyWhy(row({ roleHints: ["qa"] }), ctx()).step).toBe("hints");
+    expect(classifyWhy(row(), ctx({ owned: true })).step).toBe("ya_la_tiene");
+    expect(classifyWhy(row(), ctx({ inCandidates: false })).step).toBe("tope");
+    const pre = classifyWhy(
+      row(),
+      ctx({ discarded: { reason: "titulo_blocklist", detail: "director" } }),
+    );
+    expect(pre.step).toBe("prefiltro");
+    expect(pre.text).toContain("titulo_blocklist");
+    expect(classifyWhy(row(), ctx({ rank: 31 })).step).toBe("ranking");
+    expect(classifyWhy(row(), ctx({ rank: 30 }))).toEqual({
+      step: "entro",
+      text: "ENTRÓ en la posición 30",
+    });
+  });
+
+  it("sin fecha de publicación no queda afuera por la ventana", () => {
+    expect(classifyWhy(row({ postedAt: null }), ctx()).step).toBe("entro");
+  });
+
+  it("la primera causa gana cuando hay varias", () => {
+    const r = row({ dedupOfId: UID, lastSeenAt: daysAgo(40) });
+    expect(classifyWhy(r, ctx({ owned: true })).step).toBe("copia");
+  });
+
+  it("sin puesto, solo cuentan los hints IT; sin hints siempre cruza", () => {
+    expect(hintsCrossRoles([], ["qa"])).toBe(true);
+    expect(hintsCrossRoles(["marketing_digital"], [])).toBe(false);
+    expect(hintsCrossRoles(["backend", "marketing_digital"], [])).toBe(true);
+    expect(hintsCrossRoles(["backend"], ["qa", "data_analyst"])).toBe(false);
+  });
+});
+
+function pick(rank: number, over: Partial<PublicJobRow> = {}, extra: Partial<RankedPick> = {}) {
+  return {
+    row: {
+      sourceKind: "remoteok",
+      title: `Analista ficticio ${rank}`,
+      locationRaw: "Remoto",
+      roleHints: ["data_analyst"],
+      jdText: "Descripción ficticia",
+      ...over,
+    } as PublicJobRow,
+    flags: ["location_risk"],
+    matchedRole: "data_analyst",
+    score: 7.5,
+    exactRole: true,
+    rank,
+    ...extra,
+  } satisfies RankedPick;
+}
+
+describe("formato", () => {
+  it("la tabla corta título y ubicación y alinea las columnas", () => {
+    const long = "T".repeat(100);
+    const lines = formatPicksTable([
+      pick(1, { title: long, locationRaw: "L".repeat(80) }),
+      pick(2, { roleHints: [] }, { exactRole: false, flags: [] }),
+    ]);
+    expect(lines).toHaveLength(3);
+    expect(lines[1]).toContain("T".repeat(TITLE_WIDTH));
+    expect(lines[1]).not.toContain("T".repeat(TITLE_WIDTH + 1));
+    expect(lines[1]).toContain("L".repeat(40));
+    expect(lines[1]).not.toContain("L".repeat(41));
+    expect(lines[0]).toMatch(
+      /^rank\s+fuente\s+título\s+ubicación\s+hints\s+exacto\s+score\s+flags\s+JD$/,
+    );
+    expect(lines[1]).toContain("7.5");
+    expect(lines[2]).toMatch(/\bno\b.*\s-\s+sí$/);
+  });
+
+  it("firstToLlm toma las primeras n con JD, en orden", () => {
+    const picks = [pick(1, { jdText: null }), pick(2), pick(3, { jdText: "  " }), pick(4), pick(5)];
+    expect(firstToLlm(picks, 2)).toEqual([2, 4]);
+    expect(firstToLlm(picks, 9)).toEqual([2, 4, 5]);
+  });
+
+  it("el informe no imprime el user_id y resume descartes y --why", () => {
+    const report: ExplainReport = {
+      header: "perfil: cuenta existente · puestos: data_analyst",
+      warnings: ["skill desconocida en la taxonomía: inventada"],
+      limit: 30,
+      candidateCount: 120,
+      discardedByReason: [
+        ["titulo_blocklist", 5],
+        ["disciplina_distinta", 2],
+      ],
+      picks: [pick(1)],
+      firstEvalTopN: 9,
+      why: [
+        {
+          pattern: "data analyst",
+          matches: [{ title: "Data Analyst", source: "ashby", step: "tope", text: "x" }],
+        },
+        { pattern: "(", matches: [], error: "la expresión regular no es válida" },
+      ],
+    };
+    const text = formatExplainReport(report);
+    expect(text).not.toContain(UID);
+    expect(text).toContain("candidatas de la consulta: 120 (tope 300)");
+    expect(text).toContain("titulo_blocklist=5, disciplina_distinta=2");
+    expect(text).toContain("aviso: skill desconocida");
+    expect(text).toContain("irían primero al LLM (las 9 primeras con JD): #1");
+    expect(text).toContain('--why "data analyst":');
+    expect(text).toContain("[tope] Data Analyst (ashby): x");
+    expect(text).toContain("la expresión regular no es válida");
+  });
+});
