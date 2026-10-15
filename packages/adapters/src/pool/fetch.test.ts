@@ -11,6 +11,7 @@ import {
   POOL_ATS_SOURCE_MAX_MS,
   POOL_MAX_JOBS_PER_SOURCE,
   POOL_RECOMMENDED_SOURCES,
+  POOL_DOWNLOADERS,
   POOL_MIN_INTERVAL_MS,
   POOL_SOURCE_KIND,
   runPoolFetch,
@@ -963,6 +964,71 @@ describe("atsDownloader", () => {
     expect(malToken.partialError).toBeNull();
     const mixto = await run([b("roto"), b("lento")]);
     expect(mixto.partialError).toBe("http_4xx");
+  });
+});
+
+describe("Remote OK: ventana ensanchada por la demora de la API y seen", () => {
+  const item = (id: number, ageH: number) => ({
+    id: String(id),
+    epoch: Math.floor(hoursAgo(ageH).getTime() / 1000),
+    position: `Puesto ficticio ${id}`,
+    company: "Empresa Ficticia 1",
+    url: `https://example.com/remote-jobs/${id}`,
+    tags: ["dev"],
+    description: "<p>Descripción inventada</p>",
+  });
+  const legal = { legal: "Aviso legal inventado" };
+
+  it("entran los de 30 h y 40 h con since de hace 12 h; el de 70 h no; seen cuenta todos", async () => {
+    const body = [legal, item(1, 2), item(2, 30), item(3, 40), item(4, 70)];
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify(body)));
+    const out = await POOL_DOWNLOADERS.remoteok({
+      since: hoursAgo(12),
+      fetchImpl: fetchImpl as never,
+      userAgent: "UA",
+    });
+    expect(Array.isArray(out)).toBe(false);
+    const r = out as Exclude<typeof out, RawJob[]>;
+    expect(r.jobs.map((j) => j.source.externalId).sort()).toEqual(["1", "2", "3"]);
+    expect(r.seen).toBe(4);
+  });
+
+  it("el pool descuenta 48 h al since que recibe", async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify([legal, item(5, 47)])));
+    const near = (await POOL_DOWNLOADERS.remoteok({
+      since: NOW,
+      fetchImpl: fetchImpl as never,
+      userAgent: "UA",
+    })) as Exclude<RawJob[] | { jobs: RawJob[] }, RawJob[]>;
+    expect(near.jobs).toHaveLength(1);
+    const far = (await POOL_DOWNLOADERS.remoteok({
+      since: NOW,
+      fetchImpl: vi.fn(async () => new Response(JSON.stringify([legal, item(6, 49)]))) as never,
+      userAgent: "UA",
+    })) as Exclude<RawJob[] | { jobs: RawJob[] }, RawJob[]>;
+    expect(far.jobs).toHaveLength(0);
+  });
+
+  it("runPoolFetch: seen sale en el resultado de la fuente, fetched sigue siendo lo filtrado", async () => {
+    const remoteok = vi.fn(async () => ({ jobs: [], seen: 5 }));
+    const { deps, rows } = makeDeps();
+    const out = await runPoolFetch(
+      { ...base, enabled: ["remoteok"], downloaders: downloaders({ remoteok }) },
+      deps,
+    );
+    expect(out.sources[0]).toMatchObject({ name: "remoteok", fetched: 0, seen: 5 });
+    expect(rows[0]!.finish).not.toHaveProperty("seen");
+    expect(rows[0]!.finish?.fetched).toBe(0);
+  });
+
+  it("runPoolFetch: un descargador que devuelve un array no trae seen", async () => {
+    const jobicy = vi.fn(async () => [job("a")]);
+    const { deps } = makeDeps();
+    const out = await runPoolFetch(
+      { ...base, enabled: ["jobicy"], downloaders: downloaders({ jobicy }) },
+      deps,
+    );
+    expect(out.sources[0]).not.toHaveProperty("seen");
   });
 });
 

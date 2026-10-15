@@ -21,7 +21,7 @@ import { fetchGreenhouseBoard } from "../sources/greenhouse";
 import { fetchHimalayasJobs } from "../sources/himalayas";
 import { fetchJobicyJobs } from "../sources/jobicy";
 import { fetchLeverBoard } from "../sources/lever";
-import { fetchRemoteOkJobs } from "../sources/remoteok";
+import { fetchRemoteOkJobs, REMOTEOK_API_DELAY_LOOKBACK_MS } from "../sources/remoteok";
 import { fetchWwrJobs, WWR_POOL_CATEGORIES } from "../sources/wwr";
 import { upsertPoolJobs, type PoolUpsertSummary } from "./upsert";
 
@@ -233,6 +233,8 @@ export type PoolDownload =
       boards?: PoolBoardOutcome[];
       /** Solo ATS: quedaron boards sin intentar por falta de tiempo. */
       stopped?: boolean;
+      /** Avisos que trajo la fuente antes de filtrar (hoy solo Remote OK). */
+      seen?: number;
     };
 
 export type PoolDownloader = (args: {
@@ -258,14 +260,16 @@ function normalizeDownload(d: PoolDownload): {
   partialError: PoolErrorCode | null;
   boards: PoolBoardOutcome[] | null;
   stopped: boolean;
+  seen: number | null;
 } {
   return Array.isArray(d)
-    ? { jobs: d, partialError: null, boards: null, stopped: false }
+    ? { jobs: d, partialError: null, boards: null, stopped: false, seen: null }
     : {
         jobs: d.jobs,
         partialError: d.partialError ?? null,
         boards: d.boards ?? null,
         stopped: d.stopped === true,
+        seen: d.seen ?? null,
       };
 }
 
@@ -367,8 +371,15 @@ export const POOL_DOWNLOADERS: PoolDownloaders = {
     });
     return { jobs: r.jobs, partialError: r.partialError };
   },
-  remoteok: async ({ since, fetchImpl, userAgent }) =>
-    (await fetchRemoteOkJobs({ since, userAgent, fetchImpl })).jobs,
+  remoteok: async ({ since, fetchImpl, userAgent }) => {
+    // La API publica con ~24 h de demora: se ensancha la ventana y el upsert deduplica.
+    const r = await fetchRemoteOkJobs({
+      since: new Date(since.getTime() - REMOTEOK_API_DELAY_LOOKBACK_MS),
+      userAgent,
+      fetchImpl,
+    });
+    return { jobs: r.jobs, seen: r.seen };
+  },
   jobicy: async ({ since, fetchImpl, userAgent }) =>
     (await fetchJobicyJobs({ since, userAgent, fetchImpl })).jobs,
   himalayas: async ({ since, fetchImpl, userAgent }) =>
@@ -392,6 +403,8 @@ export type PoolSourceResult = {
   name: PoolSourceName;
   status: "ok" | "partial" | "error" | "skipped";
   fetched: number;
+  /** Avisos que trajo la fuente antes de filtrar por fecha; solo cuando el descargador lo informa. */
+  seen?: number;
   inserted?: number;
   updated?: number;
   unchanged?: number;
@@ -809,11 +822,19 @@ export async function runPoolFetch(
         errorCode,
         durationMs: clock() - sourceStart,
       });
-      log.info({ source: name, ...summary }, "pool: fuente procesada");
+      log.info(
+        {
+          source: name,
+          ...(downloaded.seen !== null ? { seen: downloaded.seen } : {}),
+          ...summary,
+        },
+        "pool: fuente procesada",
+      );
       sources.push({
         name,
         status,
         fetched,
+        ...(downloaded.seen !== null ? { seen: downloaded.seen } : {}),
         inserted: summary.inserted,
         updated: summary.updated,
         unchanged: summary.unchanged,

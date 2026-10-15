@@ -33,12 +33,17 @@ Texto del campo `legal` del primer objeto de la API, citado en `ops/rondas/37-38
 
 Cumplimiento: link a `source.url` **con `follow`** y mención visible "Remote OK" en cada aviso; **sin logo**. Rate limit: no figura; `remoteok.com/terms` devolvió 404. Una consulta por ciclo (intervalo mínimo de 5 h). La respuesta pesa ~586 K caracteres.
 
+## Demora de la API
+La API publica con **~24 h de demora** (medido el 2026-10-15: el aviso más nuevo tenía 24,1 h). La ventana normal del pool (`since` = última corrida `ok` − 6 h, ~12 h con el cron de 6 h) dejaba todo afuera del filtro por `epoch`, y el resultado era `fetched=0, skipped=0` sin aviso. Por eso el descargador del pool usa `since − 48 h` (`REMOTEOK_API_DELAY_LOOKBACK_MS`): cubre la demora con margen y el upsert deduplica los repetidos (van por "sin cambios", solo `last_seen_at`). El contrato de `fetchRemoteOkJobs` no cambia: `since` sigue siendo "publicados desde".
+
+`seen` (avisos que trajo la API antes de filtrar) sale en el log "pool: fuente procesada" y en el resultado de la fuente. Un `fetched=0` con `seen` alto ya no es silencioso. La columna `fetched` de `public_job_fetches` sigue contando lo que pasó el filtro.
+
 ## A verificar contra la fuente real
-- Que el primer elemento siga siendo el aviso legal y que traiga `legal`.
+- ~~Que el primer elemento siga siendo el aviso legal y que traiga `legal`.~~ Verificado el 2026-10-15: `[0]` es el aviso legal.
 - Nombres exactos de campos y que `salary_*` sean USD anuales.
 - Valores reales de `location` (hay textos compuestos tipo "USA, Canada" que quedan con `countriesAllowed: null`).
-- Que `epoch` esté en segundos y presente en todos los avisos.
-- Si exige cabecera `User-Agent` o limita la frecuencia.
+- ~~Que `epoch` esté en segundos y presente en todos los avisos.~~ Verificado el 2026-10-15: segundos, coherente con `date`.
+- ~~Si exige cabecera `User-Agent` o limita la frecuencia.~~ Verificado el 2026-10-15: HTTP 200 sin cabeceras especiales. El límite de frecuencia sigue sin figurar.
 
 ## Cómo prenderla
 El pool no consulta nada hasta que Mauro define `POOL_SOURCES` (las recomendadas son `getonboard,remoteok,jobicy`; se prenden de a una). Primero `pnpm pool:fetch remoteok --dry-run`: avisos vistos, mapeados, salteados, si vino el texto legal (sí/no y largo) y qué campos trae la respuesta real. Mirar:

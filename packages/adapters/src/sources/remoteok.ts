@@ -15,6 +15,13 @@ import { htmlToText } from "./getonboard";
  */
 export const REMOTEOK_BASE_URL = "https://remoteok.com/api";
 
+/**
+ * La API publica con ~24 h de demora (medido el 2026-10-15: el aviso más nuevo tenía 24,1 h).
+ * Con la ventana normal del pool (~12 h) todo quedaba fuera del filtro por `epoch`. El pool
+ * ensancha la ventana con esta constante y el upsert deduplica los repetidos.
+ */
+export const REMOTEOK_API_DELAY_LOOKBACK_MS = 48 * 3_600_000;
+
 export type RemoteOkItem = {
   id?: string | number;
   slug?: string;
