@@ -1,11 +1,25 @@
-import { createHash, randomBytes } from "node:crypto";
+import {
+  generateInvitationCode,
+  hashInvitationCode,
+  INVITATION_TTL_DAYS,
+  isInvitationAdmin,
+  normalizeEmail,
+} from "@job-search-os/db/invitation-code";
 import { z } from "zod";
 
 /**
  * Parte pura de las invitaciones (JS-091): sin base de datos ni variables de entorno.
  * El código en claro va solo en el link y se muestra una vez; en la base queda su sha256.
+ * Generación, hash, TTL y chequeo de admin viven en `@job-search-os/db/invitation-code`
+ * (los usan también los comandos admin:*); se re-exportan para no cambiar a los importadores.
  */
-export const INVITATION_TTL_DAYS = 14;
+export {
+  generateInvitationCode,
+  hashInvitationCode,
+  INVITATION_TTL_DAYS,
+  isInvitationAdmin,
+  normalizeEmail,
+};
 export const MIN_PASSWORD_LENGTH = 8;
 export const INVALID_INVITATION_MESSAGE = "invitación inválida o vencida";
 
@@ -13,20 +27,6 @@ export const INVALID_INVITATION_MESSAGE = "invitación inválida o vencida";
 export const MAX_PASSWORD_LENGTH = 128;
 
 const emailSchema = z.email().max(254);
-
-export function hashInvitationCode(code: string): string {
-  return createHash("sha256").update(code).digest("hex");
-}
-
-/** 32 bytes aleatorios en base64url (43 caracteres): no se adivina ni se enumera. */
-export function generateInvitationCode(): { code: string; codeHash: string } {
-  const code = randomBytes(32).toString("base64url");
-  return { code, codeHash: hashInvitationCode(code) };
-}
-
-export function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
-}
 
 export function isValidEmail(email: string): boolean {
   return emailSchema.safeParse(normalizeEmail(email)).success;
@@ -36,22 +36,6 @@ export type RegistrationInput = { code: string; email: string; password: string;
 
 export const MAX_CODE_LENGTH = 64;
 export const MAX_NAME_LENGTH = 100;
-
-/**
- * Admins que pueden crear invitaciones (ADMIN_EMAILS, separados por coma). Vacía o sin definir:
- * nadie. Se compara normalizado, nunca con un valor que venga del cliente.
- */
-export function isInvitationAdmin(
-  email: string | null | undefined,
-  adminEmails: string | undefined,
-): boolean {
-  if (!email || !adminEmails) return false;
-  const wanted = normalizeEmail(email);
-  return adminEmails
-    .split(",")
-    .map(normalizeEmail)
-    .some((admin) => admin !== "" && admin === wanted);
-}
 
 /** Mismas reglas que /setup y el reset (8+), con topes de largo en servidor (scrypt en ruta pública). */
 export function validateRegistration(
