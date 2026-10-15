@@ -242,7 +242,8 @@ export async function upsertCompany(db: Db, companyRaw: string): Promise<string 
 }
 
 /**
- * País, preferencia remota y puestos del perfil para el prefiltro, en una sola consulta.
+ * País, preferencia remota, puestos y años de experiencia del perfil, en una sola consulta.
+ * Los años (`yearsTotal`, null si no hay dato) no los usa el prefiltro: los lee el pool.
  * Puestos: solo cuentan los valores de `ROLE_KEYS` (el resto se descarta); sin ninguno, `[]`.
  * País: `'XX'` (registro), vacío o sin perfil cuentan como desconocido (`null`).
  * Sin fila de perfil, `remoteOnly` es `true` (lo conservador, como antes).
@@ -250,12 +251,18 @@ export async function upsertCompany(db: Db, companyRaw: string): Promise<string 
 export async function loadProfilePrefilterPrefs(
   db: Db,
   userId: string,
-): Promise<{ country: string | null; remoteOnly: boolean; targetRoles: RoleKey[] }> {
+): Promise<{
+  country: string | null;
+  remoteOnly: boolean;
+  targetRoles: RoleKey[];
+  yearsTotal: number | null;
+}> {
   const [row] = await db
     .select({
       country: s.profiles.locationCountry,
       remoteOnly: s.profiles.remoteOnly,
       targetRoles: s.profiles.targetRoles,
+      yearsTotal: s.profiles.yearsTotal,
     })
     .from(s.profiles)
     .where(eq(s.profiles.userId, userId))
@@ -265,6 +272,7 @@ export async function loadProfilePrefilterPrefs(
     country: isValidCountry(country) ? country : null,
     remoteOnly: row?.remoteOnly ?? true,
     targetRoles: validRoleKeys(row?.targetRoles),
+    yearsTotal: row?.yearsTotal ?? null,
   };
 }
 

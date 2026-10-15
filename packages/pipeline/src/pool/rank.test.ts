@@ -39,6 +39,34 @@ describe("rankCandidates", () => {
     expect(r.map((x) => x.id)).toEqual(["m", "z", "b", "n"]);
   });
 
+  it("sin titleFit ni seniorPenalty el orden es el de siempre", () => {
+    const rows = [
+      { id: "a", exactRole: true, score: 5, postedAt: d(1) },
+      { id: "b", exactRole: true, score: 7, postedAt: d(1) },
+      { id: "c", exactRole: false, score: 9, postedAt: d(9) },
+    ];
+    const withDefaults = rows.map((r) => ({ ...r, titleFit: 2, seniorPenalty: 0 }));
+    expect(rankCandidates(rows).map((x) => x.id)).toEqual(["b", "a", "c"]);
+    expect(rankCandidates(withDefaults).map((x) => x.id)).toEqual(["b", "a", "c"]);
+  });
+
+  it("titleFit desc va antes que el score", () => {
+    const r = rankCandidates([
+      { id: "a", exactRole: true, score: 9, postedAt: d(10), titleFit: 1 },
+      { id: "b", exactRole: true, score: 4, postedAt: d(1), titleFit: 2 },
+    ]);
+    expect(r.map((x) => x.id)).toEqual(["b", "a"]);
+  });
+
+  it("seniorPenalty baja al aviso dentro del mismo titleFit, aunque tenga más score", () => {
+    const r = rankCandidates([
+      { id: "a", exactRole: true, score: 9, postedAt: d(10), titleFit: 2, seniorPenalty: 1 },
+      { id: "b", exactRole: true, score: 4, postedAt: d(1), titleFit: 2, seniorPenalty: 0 },
+      { id: "c", exactRole: true, score: 8, postedAt: d(1), titleFit: 1, seniorPenalty: 0 },
+    ]);
+    expect(r.map((x) => x.id)).toEqual(["b", "a", "c"]);
+  });
+
   it("no muta la entrada y es estable entre corridas", () => {
     const input = [
       { id: "b", exactRole: false, score: 1, postedAt: null },

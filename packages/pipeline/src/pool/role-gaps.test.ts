@@ -55,6 +55,17 @@ describe("summarizeRoleGap", () => {
     expect(other.groups[0]).toEqual({ key: "otros", text: "no pasan tus filtros", count: 2 });
   });
 
+  it("ubicación y nivel tienen su propio motivo", () => {
+    const place = { reason: "ubicacion", detail: "solo US" };
+    const level = { reason: "nivel", detail: "staff_plus con 3 años" };
+    const a = summarizeRoleGap(input({ poolCount: 3, discards: many(3, place) }));
+    expect(a.mainCause).toBe("ubicacion");
+    expect(roleGapMessage(a)).toBe("Hay 3 ofertas de Data Analyst: todas no habilitan tu país.");
+    const b = summarizeRoleGap(input({ poolCount: 1, discards: [level] }));
+    expect(b.mainCause).toBe("nivel");
+    expect(roleGapMessage(b)).toBe("Hay 1 oferta de Data Analyst: pide más experiencia.");
+  });
+
   it("blocklist sin palabra entre comillas cae en otros", () => {
     const sum = summarizeRoleGap(
       input({

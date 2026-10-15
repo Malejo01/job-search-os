@@ -139,6 +139,104 @@ describe("selectPoolCandidates", () => {
   });
 });
 
+describe("selectPoolCandidates · ronda 51-b", () => {
+  const input = {
+    userId: null,
+    rules,
+    prefs: { ...prefs, yearsTotal: 3 },
+    levelBySkill: new Map<string, number>(),
+    now: NOW,
+    limit: 30,
+  };
+
+  it("descarta por ubicación y por nivel, con su razón", async () => {
+    const onlyUs = await pool({ title: "Data Analyst US", locationRaw: "Remote - US" });
+    const latam = await pool({ title: "Data Analyst LATAM", locationRaw: "Remoto (LATAM)" });
+    const staff = await pool({ title: "Staff Data Analyst" });
+    const sel = await selectPoolCandidates(conn.db, input);
+    const reasons = Object.fromEntries(sel.discarded.map((d) => [d.row.id, d.reason]));
+    expect(reasons[onlyUs]).toBe("ubicacion");
+    expect(reasons[staff]).toMatch(/^(nivel|titulo_blocklist)$/);
+    expect(sel.ranked.map((r) => r.row.id)).toContain(latam);
+    expect(reasons[latam]).toBeUndefined();
+  });
+
+  it("sin país o con 5 años o más no descarta por ubicación ni por nivel", async () => {
+    const onlyUs = await pool({ title: "Data Analyst US", locationRaw: "Remote - US" });
+    const noCountry = await selectPoolCandidates(conn.db, {
+      ...input,
+      prefs: { ...input.prefs, country: null },
+    });
+    expect(noCountry.ranked.map((r) => r.row.id)).toContain(onlyUs);
+    const staff = await pool({ title: "Principal Data Analyst" });
+    const senior = await selectPoolCandidates(conn.db, {
+      ...input,
+      prefs: { ...input.prefs, yearsTotal: 8 },
+    });
+    expect(senior.discarded.find((d) => d.row.id === staff)?.reason).not.toBe("nivel");
+  });
+
+  it("el veto del título manda la oferta a 'sin señal' y Senior baja dentro del mismo ajuste", async () => {
+    const good = await pool({ title: "Data Analyst Junior" });
+    const senior = await pool({ title: "Senior Data Analyst" });
+    const engineer = await pool({ title: "Data Engineer", roleHints: ["data_analyst"] });
+    const sel = await selectPoolCandidates(conn.db, input);
+    const order = sel.ranked.map((r) => r.row.id);
+    expect(order.indexOf(good)).toBeLessThan(order.indexOf(senior));
+    expect(order.indexOf(senior)).toBeLessThan(order.indexOf(engineer));
+    const eng = sel.ranked.find((r) => r.row.id === engineer)!;
+    expect(eng.titleFit).toBe(0);
+    expect(eng.exactRole).toBe(false);
+    expect(eng.matchedRole).toBeNull();
+    expect(sel.ranked.find((r) => r.row.id === senior)!.seniorPenalty).toBe(1);
+  });
+
+  it("los ATS entran por last_seen_at aunque posted_at sea viejo; los demás no", async () => {
+    const ats = await pool({
+      sourceKind: "greenhouse",
+      postedAt: daysAgo(90),
+      title: "Fraud Data Analyst",
+    });
+    const other = await pool({
+      sourceKind: "remoteok",
+      postedAt: daysAgo(90),
+      title: "Data Analyst Viejo",
+    });
+    const sel = await selectPoolCandidates(conn.db, input);
+    expect(sel.candidateIds.has(ats)).toBe(true);
+    expect(sel.candidateIds.has(other)).toBe(false);
+  });
+
+  it("el título que nombra el cargo entra antes del tope aunque sea más viejo", async () => {
+    const rows = Array.from({ length: 300 }, (_, i) => {
+      const n = ++seq;
+      return {
+        sourceKind: "remoteok" as const,
+        externalId: `${PREFIX}${n}`,
+        sourceName: "Remote OK",
+        sourceUrl: `https://example.com/jobs/${PREFIX}${n}`,
+        canonicalUrl: `https://example.com/jobs/${PREFIX}${n}`,
+        title: `Asociado de Reportes ${i}`,
+        titleNormalized: `asociado de reportes ${i}`,
+        companyRaw: `Empresa Ficticia ${n}`,
+        companyNormalized: `empresa ficticia ${n}`,
+        modality: "remoto" as const,
+        jdText: `Descripcion ficticia numero ${n}.`,
+        jdHash: `${PREFIX}hash-${n}`,
+        roleHints: ["data_analyst"],
+        postedAt: daysAgo(1),
+        firstSeenAt: daysAgo(3),
+        lastSeenAt: NOW,
+      };
+    });
+    await conn.db.insert(s.publicJobs).values(rows);
+    const strong = await pool({ title: "Data Analyst", postedAt: daysAgo(25) });
+    const sel = await selectPoolCandidates(conn.db, input);
+    expect(sel.candidateCount).toBe(300);
+    expect(sel.candidateIds.has(strong)).toBe(true);
+  });
+});
+
 describe("runExplain", () => {
   const args = (over: Partial<ExplainArgs> = {}): ExplainArgs => ({
     mode: { kind: "persona", path: "x.json" },

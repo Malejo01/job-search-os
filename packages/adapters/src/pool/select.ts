@@ -1,12 +1,18 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import {
   IT_ROLE_KEYS,
+  allowsCountry,
+  assessPoolTitle,
   interleaveByRole,
+  locationScope,
   prefilter,
   rankCandidates,
+  isTooSenior,
+  strongTitlePattern,
   type CriteriaRules,
-  type PrefilterReason,
+  type PoolDiscardReason,
   type RoleKey,
+  type TitleLevel,
 } from "@job-search-os/pipeline";
 import { and, eq, gte, inArray, isNotNull, isNull, notExists, or, sql } from "drizzle-orm";
 import { poolPreScore } from "./usage";
@@ -23,6 +29,22 @@ export const DAY_MS = 24 * 60 * 60 * 1000;
 export const CANDIDATE_CAP = 300;
 export const SEEN_WINDOW_DAYS = 14;
 export const POSTED_WINDOW_DAYS = 30;
+/**
+ * Los ATS públicos publican el aviso con la fecha de alta y lo mantienen abierto meses: para ellos
+ * la ventana es `last_seen_at` (siguen vivos), no `posted_at`.
+ */
+export const ATS_SOURCE_KINDS = ["greenhouse", "lever", "ashby"] as const;
+export const isAtsSource = (kind: string): boolean =>
+  (ATS_SOURCE_KINDS as readonly string[]).includes(kind);
+
+/** Condición de la ventana de publicación (misma en la asignación y en la explicación del vacío). */
+export function postedWindowCondition(postedSince: Date) {
+  return or(
+    inArray(s.publicJobs.sourceKind, [...ATS_SOURCE_KINDS]),
+    gte(s.publicJobs.postedAt, postedSince),
+    isNull(s.publicJobs.postedAt),
+  );
+}
 
 export type PublicJobRow = typeof s.publicJobs.$inferSelect;
 
@@ -43,7 +65,7 @@ export type SelectInput = {
     country: string | null;
     remoteOnly: boolean;
     targetRoles: readonly RoleKey[];
-    /** Hoy no lo usa el prefiltro; lo lee la herramienta de diagnóstico. */
+    /** No lo usa el prefiltro: decide el descarte `nivel` y la penalidad de Senior/Lead (< 5 años). */
     yearsTotal?: number | null;
   };
   levelBySkill: ReadonlyMap<string, number>;
@@ -57,11 +79,15 @@ export type RankedPick = {
   matchedRole: RoleKey | null;
   score: number;
   exactRole: boolean;
+  /** Ajuste del título al puesto (2, 1 o 0). */
+  titleFit: number;
+  seniorPenalty: number;
+  level: TitleLevel | null;
   /** Posición (desde 1) en el orden completo de ranking. */
   rank: number;
 };
 
-export type DiscardedPick = { row: PublicJobRow; reason: PrefilterReason; detail: string };
+export type DiscardedPick = { row: PublicJobRow; reason: PoolDiscardReason; detail: string };
 
 export type PoolSelection = {
   /** Las elegidas (hasta `limit`), en orden de ranking. */
@@ -73,7 +99,16 @@ export type PoolSelection = {
   candidateIds: Set<string>;
   /** Ids de todas las que pasaron el prefiltro, en orden de ranking (no solo las `limit`). */
   rankedIds: string[];
+  /** Fit, penalidad y score de todas las que pasaron (para explicar una posición del ranking). */
+  rankInfoById: Map<string, RankInfo>;
   skillsByPublicJob: Map<string, PoolSkillRow[]>;
+};
+
+export type RankInfo = {
+  titleFit: number;
+  seniorPenalty: number;
+  level: TitleLevel | null;
+  score: number;
 };
 
 /** Ventanas de tiempo de la consulta, desde `now`. */
@@ -104,6 +139,31 @@ export function alreadyOwnedBy(tx: Db, userId: string) {
     );
 }
 
+/**
+ * Descartes propios del pool, después del prefiltro (que no cambia): `ubicacion` si el aviso solo
+ * habilita otros países que el de la persona, `nivel` si pide Staff/Principal/Head... y la persona
+ * tiene menos de 5 años. Sin país de la persona o sin años, no descarta nada.
+ */
+export function poolExtraDiscard(
+  job: {
+    title: string;
+    locationRaw: string | null;
+    countriesAllowed: readonly string[] | null;
+  },
+  prefs: { country: string | null; yearsTotal?: number | null },
+): { reason: "ubicacion" | "nivel"; detail: string } | null {
+  const scope = locationScope(job.locationRaw, job.countriesAllowed);
+  if (!allowsCountry(scope, prefs.country) && scope.kind === "places") {
+    const where = [...scope.countries, ...scope.regions].join(",");
+    return { reason: "ubicacion", detail: `habilita solo ${where}, no ${prefs.country}` };
+  }
+  const years = prefs.yearsTotal ?? null;
+  if (isTooSenior(job.title, years)) {
+    return { reason: "nivel", detail: `título staff o superior con ${years} años` };
+  }
+  return null;
+}
+
 export async function selectPoolCandidates(tx: Db, input: SelectInput): Promise<PoolSelection> {
   const { userId, rules, prefs, levelBySkill, now, limit } = input;
   const { seenSince, postedSince } = poolWindows(now);
@@ -119,6 +179,8 @@ export async function selectPoolCandidates(tx: Db, input: SelectInput): Promise<
     sql`, `,
   )}]::text[]`;
 
+  const strongPattern = strongTitlePattern(roles);
+
   // Candidatas: vivas, recientes, sin copias, del rol (o sin señal de rol) y que la persona no tiene
   const candidates = await tx
     .select()
@@ -127,7 +189,7 @@ export async function selectPoolCandidates(tx: Db, input: SelectInput): Promise<
       and(
         isNull(s.publicJobs.dedupOfId),
         gte(s.publicJobs.lastSeenAt, seenSince),
-        or(gte(s.publicJobs.postedAt, postedSince), isNull(s.publicJobs.postedAt)),
+        postedWindowCondition(postedSince),
         // Sin puesto solo IT (ADR-015): el aviso marcado solo con puestos digitales no entra
         roles.length
           ? sql`(${s.publicJobs.roleHints} && ${rolesArray} or ${s.publicJobs.roleHints} = '{}'::text[])`
@@ -136,8 +198,10 @@ export async function selectPoolCandidates(tx: Db, input: SelectInput): Promise<
       ),
     )
     // El puesto exacto (de cualquiera de los elegidos) va antes del tope: un aviso exacto más viejo
-    // que 300 sin señal de rol entra igual
+    // que 300 sin señal de rol entra igual. Antes, los que nombran el cargo en el título (patrón
+    // fuerte, aproximado: no pliega acentos): así no los desplazan los que solo vienen por categoría
     .orderBy(
+      ...(strongPattern ? [sql`(${s.publicJobs.title} ~* ${strongPattern}) desc`] : []),
       ...(roles.length ? [sql`(${s.publicJobs.roleHints} && ${rolesArray}) desc`] : []),
       sql`${s.publicJobs.postedAt} desc nulls last`,
       s.publicJobs.id,
@@ -151,6 +215,7 @@ export async function selectPoolCandidates(tx: Db, input: SelectInput): Promise<
     candidateCount: candidates.length,
     candidateIds,
     rankedIds: [],
+    rankInfoById: new Map(),
     skillsByPublicJob: new Map(),
   };
   if (!candidates.length) return none;
@@ -173,6 +238,11 @@ export async function selectPoolCandidates(tx: Db, input: SelectInput): Promise<
     );
     if (!pre.pass) {
       discarded.push({ row: pj, reason: pre.reason, detail: pre.detail });
+      continue;
+    }
+    const extra = poolExtraDiscard(pj, prefs);
+    if (extra) {
+      discarded.push({ row: pj, ...extra });
       continue;
     }
     passed.push({
@@ -205,28 +275,41 @@ export async function selectPoolCandidates(tx: Db, input: SelectInput): Promise<
     skillsByPublicJob.set(r.publicJobId, [...(skillsByPublicJob.get(r.publicJobId) ?? []), r]);
   }
 
-  // Orden de rankCandidates y, con varios puestos, intercalado entre ellos (ADR-016)
+  // Orden de rankCandidates y, con varios puestos, intercalado entre ellos (ADR-016). El título
+  // veta puestos (titleFit 0): a `interleaveByRole` le llegan los hints sin los vetados, así una
+  // oferta vetada cae en "sin señal" y no se intercala con las buenas.
   const all = interleaveByRole(
     rankCandidates(
-      passed.map((p) => ({
-        ...p,
-        id: p.row.id,
-        postedAt: p.row.postedAt,
-        roleHints: p.row.roleHints,
-        exactRole: p.row.roleHints.some((h) => (roles as readonly string[]).includes(h)),
-        score: poolPreScore({
-          flags: p.flags,
-          skills: (skillsByPublicJob.get(p.row.id) ?? []).map((k) => ({
-            slug: k.slug,
-            name: k.name,
-            isMust: k.isMust,
-            level: levelBySkill.get(k.skillId) ?? null,
-          })),
-          salaryMaxUsd: p.row.salaryMaxUsd,
-          salaryPeriod: p.row.salaryPeriod,
-          salaryFloorUsd: rules.salary_floor_usd_monthly ?? null,
-        }).score,
-      })),
+      passed.map((p) => {
+        const a = assessPoolTitle({
+          title: p.row.title,
+          roleHints: p.row.roleHints,
+          roles,
+          yearsTotal: prefs.yearsTotal ?? null,
+        });
+        return {
+          ...p,
+          id: p.row.id,
+          postedAt: p.row.postedAt,
+          roleHints: a.effectiveHints,
+          exactRole: a.titleFit >= 1,
+          titleFit: a.titleFit as number,
+          seniorPenalty: a.seniorPenalty as number,
+          level: a.level,
+          score: poolPreScore({
+            flags: p.flags,
+            skills: (skillsByPublicJob.get(p.row.id) ?? []).map((k) => ({
+              slug: k.slug,
+              name: k.name,
+              isMust: k.isMust,
+              level: levelBySkill.get(k.skillId) ?? null,
+            })),
+            salaryMaxUsd: p.row.salaryMaxUsd,
+            salaryPeriod: p.row.salaryPeriod,
+            salaryFloorUsd: rules.salary_floor_usd_monthly ?? null,
+          }).score,
+        };
+      }),
     ),
     roles,
   );
@@ -238,12 +321,21 @@ export async function selectPoolCandidates(tx: Db, input: SelectInput): Promise<
       matchedRole: r.matchedRole,
       score: r.score,
       exactRole: r.exactRole,
+      titleFit: r.titleFit,
+      seniorPenalty: r.seniorPenalty,
+      level: r.level,
       rank: i + 1,
     })),
     discarded,
     candidateCount: candidates.length,
     candidateIds,
     rankedIds: all.map((r) => r.id),
+    rankInfoById: new Map(
+      all.map((r) => [
+        r.id,
+        { titleFit: r.titleFit, seniorPenalty: r.seniorPenalty, level: r.level, score: r.score },
+      ]),
+    ),
     skillsByPublicJob,
   };
 }

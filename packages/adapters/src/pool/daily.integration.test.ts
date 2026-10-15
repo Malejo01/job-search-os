@@ -3,10 +3,11 @@ import { applyMigrations } from "@job-search-os/db/src/migrate";
 import { createDb, schema as s } from "@job-search-os/db";
 import criteria from "@job-search-os/db/seeds/criteria.example.json";
 import { POOL_LIMIT_DEFAULTS, type PoolLimits } from "@job-search-os/pipeline";
-import { and, eq, isNotNull, like } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, like } from "drizzle-orm";
 import pino from "pino";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { assignPoolToUser } from "./assign";
+import { enqueueUnevaluated } from "./backlog";
 import { assignPoolDaily } from "./daily";
 
 /**
@@ -283,6 +284,68 @@ describe("assignPoolDaily", () => {
     // Segunda corrida: ya está el tope de cola del día, no encola más
     await assignPoolDaily(conn.db, { logger, limits: { ...LIMITS, dailyAssignLimit: 3 } });
     expect(await queuedFor(USER_A)).toHaveLength(2);
+  });
+
+  it("la cola diaria no encola lo asignado que solo habilita otros países ni lo Staff", async () => {
+    await assignPoolToUser(conn.db, USER_A, { limit: 6, enqueueTop: 0, logger });
+    const rows = await conn.db.select().from(s.jobs).where(eq(s.jobs.userId, USER_A));
+    expect(rows).toHaveLength(6);
+    // Dos solo para EE.UU., una Staff (la persona tiene años del perfil < 5) y tres normales
+    const [us1, us2, staff] = rows;
+    await conn.db
+      .update(s.jobs)
+      .set({ locationRaw: "Remote - US" })
+      .where(inArray(s.jobs.id, [us1!.id, us2!.id]));
+    await conn.db
+      .update(s.jobs)
+      .set({ title: "Staff QA Engineer" })
+      .where(eq(s.jobs.id, staff!.id));
+    await conn.db.update(s.profiles).set({ yearsTotal: 2 }).where(eq(s.profiles.userId, USER_A));
+    try {
+      const r = await enqueueUnevaluated(conn.db, USER_A, { count: 6, logger });
+      expect(r.enqueued).toBe(3);
+      expect(r.enqueuedJobIds).not.toContain(us1!.id);
+      expect(r.enqueuedJobIds).not.toContain(us2!.id);
+      expect(r.enqueuedJobIds).not.toContain(staff!.id);
+    } finally {
+      await conn.db
+        .update(s.profiles)
+        .set({ yearsTotal: null })
+        .where(eq(s.profiles.userId, USER_A));
+    }
+  });
+
+  it("más descartables que el tope de la consulta: pagina y encola la válida", async () => {
+    await assignPoolToUser(conn.db, USER_A, { limit: 6, enqueueTop: 0, logger });
+    const rows = await conn.db.select().from(s.jobs).where(eq(s.jobs.userId, USER_A));
+    expect(rows).toHaveLength(6);
+    const [valid, ...rest] = rows;
+    // Cinco solo para EE.UU. y una válida, con páginas de 2: una sola página no alcanza
+    await conn.db
+      .update(s.jobs)
+      .set({ locationRaw: "Remote - US" })
+      .where(
+        inArray(
+          s.jobs.id,
+          rest.map((r) => r.id),
+        ),
+      );
+    const r = await enqueueUnevaluated(conn.db, USER_A, {
+      count: 6,
+      logger,
+      candidateCap: 2,
+      maxPages: 10,
+    });
+    expect(r.enqueuedJobIds).toEqual([valid!.id]);
+    // Con el tope duro de páginas en 1 no sigue buscando (y no se cuelga)
+    await conn.db.delete(s.jobQueue).where(eq(s.jobQueue.userId, USER_A));
+    const capped = await enqueueUnevaluated(conn.db, USER_A, {
+      count: 6,
+      logger,
+      candidateCap: 2,
+      maxPages: 1,
+    });
+    expect(capped.enqueued).toBeLessThanOrEqual(1);
   });
 
   it("users cuenta solo a quienes se les asignó o encoló algo", async () => {

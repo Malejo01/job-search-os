@@ -139,7 +139,7 @@ export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleK
  * Palabras y frases del título, ya sin acentos ni mayúsculas. Se buscan con límite de palabra
  * ("ui" no está en "build", "ia" no está en "media"); un plural simple con "s" también cuenta.
  */
-const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
+export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
   frontend: [
     "frontend",
     "front end",
@@ -353,7 +353,7 @@ const NOT_DEV_TERMS = [
 const AI_TECH_ROLE_WORDS = ["engineer", "developer", "architect", "scientist", "researcher"];
 
 /** Si el título tiene alguna, el patrón "AI + rol técnico" no aplica (los términos explícitos sí). */
-const AI_PATTERN_EXCLUDED_WORDS = [
+export const AI_PATTERN_EXCLUDED_WORDS = [
   "sales",
   "marketing",
   "support",
@@ -380,7 +380,7 @@ const AI_PATTERN_EXCLUDED_WORDS = [
  * pueden colarse (la pista solo ordena la asignación; decide el evaluador).
  * Recibe el título ya pasado por `normalizeTitleText`.
  */
-function matchesAiWithTechRole(padded: string): boolean {
+export function matchesAiWithTechRole(padded: string): boolean {
   return (
     (hasTerm(padded, "ai") || hasTerm(padded, "ml")) &&
     AI_TECH_ROLE_WORDS.some((word) => hasTerm(padded, word)) &&
@@ -388,13 +388,13 @@ function matchesAiWithTechRole(padded: string): boolean {
   );
 }
 
-function normalizeTitleText(title: string): string {
+export function normalizeTitleText(title: string): string {
   return ` ${foldText(title)
     .replace(/[^a-z0-9]+/g, " ")
     .trim()} `;
 }
 
-function hasTerm(padded: string, term: string): boolean {
+export function hasTerm(padded: string, term: string): boolean {
   return padded.includes(` ${term} `) || padded.includes(` ${term}s `);
 }
 

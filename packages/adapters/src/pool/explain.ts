@@ -16,11 +16,13 @@ import {
   alreadyOwnedBy,
   CANDIDATE_CAP,
   poolWindows,
+  isAtsSource,
   POSTED_WINDOW_DAYS,
   SEEN_WINDOW_DAYS,
   selectPoolCandidates,
   type PoolSelection,
   type RankedPick,
+  type RankInfo,
 } from "./select";
 
 /**
@@ -186,6 +188,8 @@ export type WhyStep =
   | "ya_la_tiene"
   | "tope"
   | "prefiltro"
+  | "ubicacion"
+  | "nivel"
   | "ranking"
   | "entro"
   | "sin_clasificar";
@@ -195,6 +199,8 @@ export type WhyRow = {
   lastSeenAt: Date;
   postedAt: Date | null;
   roleHints: readonly string[];
+  /** Los ATS (greenhouse, lever, ashby) no tienen ventana por `posted_at`. */
+  sourceKind?: string;
 };
 
 export type WhyContext = {
@@ -207,6 +213,8 @@ export type WhyContext = {
   discarded: { reason: string; detail: string } | null;
   /** Posición (desde 1) en el orden completo de ranking; null si no pasó el prefiltro. */
   rank: number | null;
+  /** Ajuste del título, penalidad y score de la oferta, para explicar el ranking. */
+  rankInfo?: RankInfo | null;
 };
 
 const day = (d: Date) => d.toISOString().slice(0, 10);
@@ -228,7 +236,7 @@ export function classifyWhy(row: WhyRow, ctx: WhyContext): { step: WhyStep; text
       text: `last_seen_at fuera de ${SEEN_WINDOW_DAYS} d (${day(row.lastSeenAt)})`,
     };
   }
-  if (row.postedAt && row.postedAt < postedSince) {
+  if (row.postedAt && row.postedAt < postedSince && !isAtsSource(row.sourceKind ?? "")) {
     return {
       step: "posted",
       text: `posted_at fuera de ${POSTED_WINDOW_DAYS} d (${day(row.postedAt)})`,
@@ -245,6 +253,12 @@ export function classifyWhy(row: WhyRow, ctx: WhyContext): { step: WhyStep; text
     return { step: "tope", text: `quedó después del tope de ${CANDIDATE_CAP} candidatas` };
   }
   if (ctx.discarded) {
+    if (ctx.discarded.reason === "ubicacion" || ctx.discarded.reason === "nivel") {
+      return {
+        step: ctx.discarded.reason,
+        text: `${ctx.discarded.reason}: ${ctx.discarded.detail}`,
+      };
+    }
     return {
       step: "prefiltro",
       text: `prefiltro: ${ctx.discarded.reason} (${ctx.discarded.detail})`,
@@ -252,7 +266,14 @@ export function classifyWhy(row: WhyRow, ctx: WhyContext): { step: WhyStep; text
   }
   if (ctx.rank === null) return { step: "sin_clasificar", text: "no se pudo clasificar" };
   if (ctx.rank > ctx.limit) {
-    return { step: "ranking", text: `ranking: posición ${ctx.rank} > límite ${ctx.limit}` };
+    const i = ctx.rankInfo;
+    const detail = i
+      ? ` (fit ${i.titleFit}, nivel ${i.level ?? "-"}${i.seniorPenalty ? " penalizado" : ""}, score ${i.score.toFixed(1)})`
+      : "";
+    return {
+      step: "ranking",
+      text: `ranking: posición ${ctx.rank} > límite ${ctx.limit}${detail}`,
+    };
   }
   return { step: "entro", text: `ENTRÓ en la posición ${ctx.rank}` };
 }
@@ -286,7 +307,19 @@ export function firstToLlm(picks: readonly RankedPick[], n: number): number[] {
 }
 
 export function formatPicksTable(picks: readonly RankedPick[]): string[] {
-  const head = ["rank", "fuente", "título", "ubicación", "hints", "exacto", "score", "flags", "JD"];
+  const head = [
+    "rank",
+    "fuente",
+    "título",
+    "ubicación",
+    "hints",
+    "exacto",
+    "fit",
+    "nivel",
+    "score",
+    "flags",
+    "JD",
+  ];
   const rows = picks.map((p) => [
     String(p.rank),
     p.row.sourceKind,
@@ -294,6 +327,8 @@ export function formatPicksTable(picks: readonly RankedPick[]): string[] {
     oneLine(p.row.locationRaw, LOCATION_WIDTH),
     p.row.roleHints.join(",") || "-",
     p.exactRole ? "sí" : "no",
+    String(p.titleFit),
+    p.level ? `${p.level}${p.seniorPenalty ? "*" : ""}` : "-",
     p.score.toFixed(1),
     p.flags.join(",") || "-",
     hasJd(p) ? "sí" : "no",
@@ -405,12 +440,12 @@ async function personaProfile(tx: Db, persona: Persona, label: string): Promise<
 
 async function userProfile(tx: Db, userId: string): Promise<Profile> {
   // El snapshot copia `profiles` sin filas: sin perfil o sin criterios, falla con un mensaje claro
-  const [years] = await tx
-    .select({ yearsTotal: s.profiles.yearsTotal })
+  const [exists] = await tx
+    .select({ userId: s.profiles.userId })
     .from(s.profiles)
     .where(eq(s.profiles.userId, userId))
     .limit(1);
-  if (!years) throw new Error("perfil sin datos en esta base; usá --persona");
+  if (!exists) throw new Error("perfil sin datos en esta base; usá --persona");
   const rules = await loadActiveRules(tx, userId);
   if (!rules) throw new Error("criterios activos sin datos en esta base; usá --persona");
   const base = await loadProfilePrefilterPrefs(tx, userId);
@@ -418,7 +453,7 @@ async function userProfile(tx: Db, userId: string): Promise<Profile> {
     .select({ skillId: s.skillLevels.skillId, level: s.skillLevels.level })
     .from(s.skillLevels)
     .where(eq(s.skillLevels.userId, userId));
-  const prefs = { ...base, yearsTotal: years?.yearsTotal ?? null };
+  const prefs = base;
   return {
     // El user_id no se imprime
     header: describeProfile("cuenta existente", prefs),
@@ -479,6 +514,7 @@ async function explainWhy(
         inCandidates: selection.candidateIds.has(row.id),
         discarded: d ? { reason: d.reason, detail: d.detail } : null,
         rank: rankOf.get(row.id) ?? null,
+        rankInfo: selection.rankInfoById.get(row.id) ?? null,
       });
       return { title: row.title, source: row.sourceKind, step, text };
     }),

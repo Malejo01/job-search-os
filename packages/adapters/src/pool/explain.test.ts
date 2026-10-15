@@ -191,6 +191,42 @@ describe("classifyWhy", () => {
     });
   });
 
+  it("ubicación y nivel son pasos propios, no 'prefiltro'", () => {
+    const place = classifyWhy(
+      row(),
+      ctx({ discarded: { reason: "ubicacion", detail: "habilita solo US, no AR" } }),
+    );
+    expect(place.step).toBe("ubicacion");
+    expect(place.text).toContain("habilita solo US");
+    expect(classifyWhy(row(), ctx({ discarded: { reason: "nivel", detail: "staff" } })).step).toBe(
+      "nivel",
+    );
+  });
+
+  it("en los ATS la ventana es last_seen_at: un posted_at viejo no los saca", () => {
+    for (const sourceKind of ["greenhouse", "lever", "ashby"]) {
+      expect(classifyWhy(row({ sourceKind, postedAt: daysAgo(90) }), ctx()).step).toBe("entro");
+    }
+    expect(classifyWhy(row({ sourceKind: "remoteok", postedAt: daysAgo(90) }), ctx()).step).toBe(
+      "posted",
+    );
+    expect(
+      classifyWhy(row({ sourceKind: "greenhouse", lastSeenAt: daysAgo(15) }), ctx()).step,
+    ).toBe("last_seen");
+  });
+
+  it("el detalle del ranking trae fit, nivel y score", () => {
+    const r = classifyWhy(
+      row(),
+      ctx({
+        rank: 51,
+        rankInfo: { titleFit: 1, seniorPenalty: 1, level: "senior", score: 6.5 },
+      }),
+    );
+    expect(r.step).toBe("ranking");
+    expect(r.text).toContain("fit 1, nivel senior penalizado, score 6.5");
+  });
+
   it("sin fecha de publicación no queda afuera por la ventana", () => {
     expect(classifyWhy(row({ postedAt: null }), ctx()).step).toBe("entro");
   });
@@ -222,6 +258,9 @@ function pick(rank: number, over: Partial<PublicJobRow> = {}, extra: Partial<Ran
     matchedRole: "data_analyst",
     score: 7.5,
     exactRole: true,
+    titleFit: 2,
+    seniorPenalty: 0,
+    level: null,
     rank,
     ...extra,
   } satisfies RankedPick;
@@ -240,7 +279,7 @@ describe("formato", () => {
     expect(lines[1]).toContain("L".repeat(40));
     expect(lines[1]).not.toContain("L".repeat(41));
     expect(lines[0]).toMatch(
-      /^rank\s+fuente\s+título\s+ubicación\s+hints\s+exacto\s+score\s+flags\s+JD$/,
+      /^rank\s+fuente\s+título\s+ubicación\s+hints\s+exacto\s+fit\s+nivel\s+score\s+flags\s+JD$/,
     );
     expect(lines[1]).toContain("7.5");
     expect(lines[2]).toMatch(/\bno\b.*\s-\s+sí$/);

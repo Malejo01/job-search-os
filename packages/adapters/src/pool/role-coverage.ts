@@ -12,6 +12,7 @@ import { loadProfilePrefilterPrefs } from "../ingest/ingest-job";
 import { loadActiveRules } from "../ingest/run-getonboard";
 import { createLogger } from "../logger";
 import { CANDIDATE_CAP, POSTED_WINDOW_DAYS, SEEN_WINDOW_DAYS } from "./assign";
+import { poolExtraDiscard, postedWindowCondition } from "./select";
 
 /**
  * Explicación del vacío por puesto (ronda 46): para cada puesto elegido sin ninguna oferta del pool
@@ -88,7 +89,7 @@ export async function explainEmptyRoles(
         and(
           isNull(s.publicJobs.dedupOfId),
           gte(s.publicJobs.lastSeenAt, seenSince),
-          or(gte(s.publicJobs.postedAt, postedSince), isNull(s.publicJobs.postedAt)),
+          postedWindowCondition(postedSince),
           sql`${s.publicJobs.roleHints} && ARRAY[${role}]::text[]`,
           notExists(alreadyOwned),
         ),
@@ -104,8 +105,14 @@ export async function explainEmptyRoles(
         remoteOnly: prefs.remoteOnly,
         targetRoles: roles,
       });
-      if (pre.pass) pendingCount++;
-      else discards.push({ reason: pre.reason, detail: pre.detail });
+      if (!pre.pass) {
+        discards.push({ reason: pre.reason, detail: pre.detail });
+        continue;
+      }
+      // Mismos descartes propios del pool que la selección: país y nivel
+      const extra = poolExtraDiscard(pj, prefs);
+      if (extra) discards.push(extra);
+      else pendingCount++;
     }
     out.push(
       summarizeRoleGap({
