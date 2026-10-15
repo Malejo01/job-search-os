@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { basename } from "node:path";
+import { basename, resolve } from "node:path";
 import { createDb, LOCAL_DATABASE_URL } from "@job-search-os/db";
 import { safeDbError } from "../logging/safe-error";
 import {
@@ -40,8 +40,11 @@ async function main(): Promise<void> {
   let personaLabel = "";
   if (args.mode.kind === "persona") {
     let json: unknown;
+    // `pnpm --filter` corre el script desde packages/adapters: la ruta se resuelve contra la carpeta
+    // desde la que se lanzó el comando (INIT_CWD, que define pnpm), no contra la del paquete
+    const personaPath = resolve(process.env.INIT_CWD ?? process.cwd(), args.mode.path);
     try {
-      json = JSON.parse(readFileSync(args.mode.path, "utf8"));
+      json = JSON.parse(readFileSync(personaPath, "utf8"));
     } catch {
       console.error("no se pudo leer la persona (archivo ausente o JSON inválido)");
       process.exitCode = 1;
