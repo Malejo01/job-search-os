@@ -28,7 +28,7 @@ export function PrivacyDialog({
       <button
         type="button"
         onClick={() => ref.current?.showModal()}
-        className="self-start text-sm underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
+        className="min-h-11 self-start text-sm underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
       >
         Qué leemos y qué no
       </button>
@@ -42,7 +42,7 @@ export function PrivacyDialog({
           <button
             type="submit"
             onClick={() => ref.current?.close()}
-            className="rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
+            className="min-h-11 rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
           >
             Entiendo y continúo
           </button>

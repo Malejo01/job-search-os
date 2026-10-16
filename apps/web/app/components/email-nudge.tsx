@@ -75,7 +75,7 @@ export async function EmailNudge({
       <form action={dismissEmailNudgeAction}>
         <button
           type="submit"
-          className="rounded-md border border-sky-300 bg-white px-3 py-1 text-sm text-sky-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-900"
+          className="min-h-11 rounded-md border border-sky-300 bg-white px-3 py-1 text-sm text-sky-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-900"
         >
           No, gracias
         </button>
