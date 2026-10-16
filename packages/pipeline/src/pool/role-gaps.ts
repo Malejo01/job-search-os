@@ -17,7 +17,14 @@ export type RoleGapInput = {
 };
 
 export type RoleGapCause =
-  "blocklist" | "modalidad" | "disciplina" | "otros" | "sin_avisos" | "pendientes";
+  | "blocklist"
+  | "modalidad"
+  | "disciplina"
+  | "ubicacion"
+  | "nivel"
+  | "otros"
+  | "sin_avisos"
+  | "pendientes";
 
 export type RoleGapGroup = { key: string; text: string; count: number };
 
@@ -50,6 +57,10 @@ function classify(d: { reason: string; detail: string }): { key: string; text: s
     return { key: "modalidad", text: "no son remotas" };
   } else if (d.reason === "disciplina_distinta") {
     return { key: "disciplina", text: "son de otro oficio" };
+  } else if (d.reason === "ubicacion") {
+    return { key: "ubicacion", text: "no habilitan tu país" };
+  } else if (d.reason === "nivel") {
+    return { key: "nivel", text: "piden más experiencia" };
   }
   return { key: "otros", text: "no pasan tus filtros" };
 }
@@ -61,7 +72,11 @@ const causeOf = (key: string): RoleGapCause =>
       ? "modalidad"
       : key === "disciplina"
         ? "disciplina"
-        : "otros";
+        : key === "ubicacion"
+          ? "ubicacion"
+          : key === "nivel"
+            ? "nivel"
+            : "otros";
 
 export function summarizeRoleGap(input: RoleGapInput): RoleGapSummary {
   const byKey = new Map<string, RoleGapGroup>();
@@ -97,6 +112,8 @@ function singular(g: RoleGapGroup): string {
   if (g.key.startsWith("blocklist")) return g.text.replace(/^piden /, "pide ");
   if (g.key === "modalidad") return "no es remota";
   if (g.key === "disciplina") return "es de otro oficio";
+  if (g.key === "ubicacion") return "no habilita tu país";
+  if (g.key === "nivel") return "pide más experiencia";
   return "no pasa tus filtros";
 }
 

@@ -1,10 +1,11 @@
 import { schema as s, type Db } from "@job-search-os/db";
-import { interleaveByRole, rankCandidates } from "@job-search-os/pipeline";
-import { and, eq, inArray, isNotNull, notExists, sql } from "drizzle-orm";
-import { validRoleKeys } from "../ingest/ingest-job";
+import { assessPoolTitle, interleaveByRole, rankCandidates } from "@job-search-os/pipeline";
+import { and, eq, gt, inArray, isNotNull, notExists, sql } from "drizzle-orm";
+import { loadProfilePrefilterPrefs } from "../ingest/ingest-job";
 import { loadActiveRules } from "../ingest/run-getonboard";
 import type { Logger } from "../logger";
 import { createPgQueue, enqueueEvaluationWith, EVALUATE_QUEUE } from "../queue/pg-queue";
+import { poolExtraDiscard } from "./select";
 import { poolPreScore } from "./usage";
 
 /**
@@ -15,25 +16,43 @@ import { poolPreScore } from "./usage";
  * Toma el mismo lock por usuario que `assignPoolToUser`. Sin modelo; logs con solo conteos.
  */
 const CANDIDATE_CAP = 500;
+/** Páginas máximas de la consulta de candidatas (tope duro para no colgar el cron). */
+const MAX_PAGES = 10;
+
+type Candidate = {
+  id: string;
+  flags: string[] | null;
+  salaryMaxUsd: number | null;
+  salaryPeriod: typeof s.jobs.$inferSelect.salaryPeriod;
+  postedAt: Date | null;
+  roleHints: string[];
+  title: string;
+  locationRaw: string | null;
+  countriesAllowed: string[] | null;
+};
 
 export async function enqueueUnevaluated(
   db: Db,
   userId: string,
-  opts: { count: number; logger: Logger },
+  opts: {
+    count: number;
+    logger: Logger;
+    /** Solo para tests: tamaño de página y tope de candidatas válidas (default 500). */
+    candidateCap?: number;
+    maxPages?: number;
+  },
 ): Promise<{ enqueued: number; enqueuedJobIds: string[] }> {
   const none = { enqueued: 0, enqueuedJobIds: [] as string[] };
   if (opts.count <= 0) return none;
+  const cap = opts.candidateCap ?? CANDIDATE_CAP;
+  const maxPages = opts.maxPages ?? MAX_PAGES;
 
   const result = await db.transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`pool-assign:${userId}`}))`);
     const rules = await loadActiveRules(tx, userId);
     if (!rules) return none;
-    const [profile] = await tx
-      .select({ targetRoles: s.profiles.targetRoles })
-      .from(s.profiles)
-      .where(eq(s.profiles.userId, userId))
-      .limit(1);
-    const roles = validRoleKeys(profile?.targetRoles);
+    const prefs = await loadProfilePrefilterPrefs(tx, userId);
+    const roles = prefs.targetRoles;
 
     const evaluated = tx
       .select({ one: sql`1` })
@@ -49,28 +68,46 @@ export async function enqueueUnevaluated(
           sql`${s.jobQueue.payload}->>'jobId' = ${s.jobs.id}::text`,
         ),
       );
-    const rows = await tx
-      .select({
-        id: s.jobs.id,
-        flags: s.jobs.flags,
-        salaryMaxUsd: s.jobs.salaryMaxUsd,
-        salaryPeriod: s.jobs.salaryPeriod,
-        postedAt: s.jobs.postedAt,
-        roleHints: s.publicJobs.roleHints,
-      })
-      .from(s.jobs)
-      .innerJoin(s.publicJobs, eq(s.publicJobs.id, s.jobs.publicJobId))
-      .where(
-        and(
-          eq(s.jobs.userId, userId),
-          isNotNull(s.jobs.publicJobId),
-          eq(s.jobs.status, "prefiltrada"),
-          sql`length(trim(coalesce(${s.jobs.jdText}, ''))) > 0`,
-          notExists(evaluated),
-          notExists(inQueue),
-        ),
-      )
-      .limit(CANDIDATE_CAP);
+    // No se encola lo que hoy la selección descartaría por país o por nivel: queda en `prefiltrada`
+    // sin evaluar (no se reasigna ni se borra; solo se deja de gastar evaluaciones en eso). Como
+    // esas filas se quedan ahí, se pagina por `id` (keyset) hasta juntar `cap` válidas, con un tope
+    // de páginas: un lote de descartables no puede dejar la cola en 0.
+    const rows: Candidate[] = [];
+    let after: string | null = null;
+    for (let page = 0; page < maxPages && rows.length < cap; page++) {
+      const batch: Candidate[] = await tx
+        .select({
+          id: s.jobs.id,
+          flags: s.jobs.flags,
+          salaryMaxUsd: s.jobs.salaryMaxUsd,
+          salaryPeriod: s.jobs.salaryPeriod,
+          postedAt: s.jobs.postedAt,
+          roleHints: s.publicJobs.roleHints,
+          title: s.jobs.title,
+          locationRaw: s.jobs.locationRaw,
+          countriesAllowed: s.jobs.countriesAllowed,
+        })
+        .from(s.jobs)
+        .innerJoin(s.publicJobs, eq(s.publicJobs.id, s.jobs.publicJobId))
+        .where(
+          and(
+            eq(s.jobs.userId, userId),
+            isNotNull(s.jobs.publicJobId),
+            eq(s.jobs.status, "prefiltrada"),
+            sql`length(trim(coalesce(${s.jobs.jdText}, ''))) > 0`,
+            notExists(evaluated),
+            notExists(inQueue),
+            after ? gt(s.jobs.id, after) : undefined,
+          ),
+        )
+        .orderBy(s.jobs.id)
+        .limit(cap);
+      for (const r of batch) {
+        if (rows.length < cap && !poolExtraDiscard(r, prefs)) rows.push(r);
+      }
+      if (batch.length < cap) break;
+      after = batch[batch.length - 1]!.id;
+    }
     if (!rows.length) return none;
 
     const skillRows = await tx
@@ -100,24 +137,34 @@ export async function enqueueUnevaluated(
     // Mismo criterio que la asignación: rankCandidates y, entre varios puestos, intercalado
     const ranked = interleaveByRole(
       rankCandidates(
-        rows.map((r) => ({
-          id: r.id,
-          postedAt: r.postedAt,
-          roleHints: r.roleHints,
-          exactRole: r.roleHints.some((h) => (roles as readonly string[]).includes(h)),
-          score: poolPreScore({
-            flags: r.flags ?? [],
-            skills: (skillsByJob.get(r.id) ?? []).map((k) => ({
-              slug: k.slug,
-              name: k.name,
-              isMust: k.isMust,
-              level: levelBySkill.get(k.skillId) ?? null,
-            })),
-            salaryMaxUsd: r.salaryMaxUsd,
-            salaryPeriod: r.salaryPeriod,
-            salaryFloorUsd: rules.salary_floor_usd_monthly ?? null,
-          }).score,
-        })),
+        rows.map((r) => {
+          const a = assessPoolTitle({
+            title: r.title,
+            roleHints: r.roleHints,
+            roles,
+            yearsTotal: prefs.yearsTotal,
+          });
+          return {
+            id: r.id,
+            postedAt: r.postedAt,
+            roleHints: a.effectiveHints,
+            exactRole: a.titleFit >= 1,
+            titleFit: a.titleFit as number,
+            seniorPenalty: a.seniorPenalty as number,
+            score: poolPreScore({
+              flags: r.flags ?? [],
+              skills: (skillsByJob.get(r.id) ?? []).map((k) => ({
+                slug: k.slug,
+                name: k.name,
+                isMust: k.isMust,
+                level: levelBySkill.get(k.skillId) ?? null,
+              })),
+              salaryMaxUsd: r.salaryMaxUsd,
+              salaryPeriod: r.salaryPeriod,
+              salaryFloorUsd: rules.salary_floor_usd_monthly ?? null,
+            }).score,
+          };
+        }),
       ),
       roles,
     ).slice(0, opts.count);

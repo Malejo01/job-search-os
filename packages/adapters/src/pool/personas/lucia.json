@@ -1,0 +1,17 @@
+{
+  "targetRoles": ["data_analyst", "producto_proyectos"],
+  "locationCountry": "AR",
+  "remoteOnly": true,
+  "yearsTotal": 3,
+  "skills": [
+    { "slug": "excel", "level": 3 },
+    { "slug": "sql", "level": 2 },
+    { "slug": "power_bi", "level": 2 },
+    { "slug": "analytics", "level": 2 },
+    { "slug": "statistics", "level": 1 },
+    { "slug": "tableau", "level": 1 },
+    { "slug": "python", "level": 1 },
+    { "slug": "jira", "level": 2 },
+    { "slug": "scrum_agile", "level": 2 }
+  ]
+}

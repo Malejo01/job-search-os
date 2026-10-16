@@ -1,17 +1,12 @@
 import { schema as s, type Db } from "@job-search-os/db";
-import {
-  IT_ROLE_KEYS,
-  interleaveByRole,
-  prefilter,
-  rankCandidates,
-  type JobStatus,
-} from "@job-search-os/pipeline";
-import { and, eq, gte, inArray, isNotNull, isNull, notExists, or, sql } from "drizzle-orm";
+import type { JobStatus } from "@job-search-os/pipeline";
+import { and, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { loadActiveRules } from "../ingest/run-getonboard";
 import { loadProfilePrefilterPrefs, upsertCompany } from "../ingest/ingest-job";
 import type { Logger } from "../logger";
 import { createPgQueue, enqueueEvaluationWith } from "../queue/pg-queue";
-import { countPoolAssigned, countPoolQueued, poolPreScore } from "./usage";
+import { DAY_MS, selectPoolCandidates } from "./select";
+import { countPoolAssigned, countPoolQueued } from "./usage";
 
 /**
  * Asignación del pool a un usuario (ronda 38, ADR-014): copia ofertas de `public_jobs` a `jobs`
@@ -59,11 +54,8 @@ export type AssignOptions = {
   now?: () => Date;
 };
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-/** Candidatas que se traen y puntúan por corrida. */
-export const CANDIDATE_CAP = 300;
-export const SEEN_WINDOW_DAYS = 14;
-export const POSTED_WINDOW_DAYS = 30;
+// Los topes y ventanas viven en select.ts; se reexportan para quien los importaba de acá
+export { CANDIDATE_CAP, POSTED_WINDOW_DAYS, SEEN_WINDOW_DAYS } from "./select";
 
 const empty = (replaced = 0): AssignResult => ({
   assigned: 0,
@@ -82,8 +74,6 @@ export async function assignPoolToUser(
   const log = opts.logger.child({ user_id: userId });
   if (opts.limit <= 0) return empty();
   const now = opts.now?.() ?? new Date();
-  const seenSince = new Date(now.getTime() - SEEN_WINDOW_DAYS * DAY_MS);
-  const postedSince = new Date(now.getTime() - POSTED_WINDOW_DAYS * DAY_MS);
 
   const result = await db.transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`pool-assign:${userId}`}))`);
@@ -133,134 +123,25 @@ export async function assignPoolToUser(
     // 2. Perfil y criterios de prefiltro
     const prefs = await loadProfilePrefilterPrefs(tx, userId);
 
-    // 2. Puestos (ADR-016): los válidos filtran; sin ninguno, solo IT
-    const roles = prefs.targetRoles;
-    const rolesArray = sql`ARRAY[${sql.join(
-      roles.map((k) => sql`${k}`),
-      sql`, `,
-    )}]::text[]`;
-
-    // 3. Candidatas: vivas, recientes, sin copias, del rol (o sin señal de rol) y que la persona no tiene
-    const alreadyOwned = tx
-      .select({ one: sql`1` })
-      .from(s.jobs)
-      .where(
-        and(
-          eq(s.jobs.userId, userId),
-          or(
-            eq(s.jobs.publicJobId, s.publicJobs.id),
-            and(
-              isNotNull(s.publicJobs.canonicalUrl),
-              eq(s.jobs.canonicalUrl, s.publicJobs.canonicalUrl),
-            ),
-            and(isNotNull(s.publicJobs.jdHash), eq(s.jobs.jdHash, s.publicJobs.jdHash)),
-          ),
-        ),
-      );
-    const itRoleKeys = sql`ARRAY[${sql.join(
-      IT_ROLE_KEYS.map((k) => sql`${k}`),
-      sql`, `,
-    )}]::text[]`;
-    const candidates = await tx
-      .select()
-      .from(s.publicJobs)
-      .where(
-        and(
-          isNull(s.publicJobs.dedupOfId),
-          gte(s.publicJobs.lastSeenAt, seenSince),
-          or(gte(s.publicJobs.postedAt, postedSince), isNull(s.publicJobs.postedAt)),
-          // Sin puesto solo IT (ADR-015): el aviso marcado solo con puestos digitales no entra
-          roles.length
-            ? sql`(${s.publicJobs.roleHints} && ${rolesArray} or ${s.publicJobs.roleHints} = '{}'::text[])`
-            : sql`(${s.publicJobs.roleHints} = '{}'::text[] or ${s.publicJobs.roleHints} && ${itRoleKeys})`,
-          notExists(alreadyOwned),
-        ),
-      )
-      // El puesto exacto (de cualquiera de los elegidos) va antes del tope: un aviso exacto más viejo
-      // que 300 sin señal de rol entra igual
-      .orderBy(
-        ...(roles.length ? [sql`(${s.publicJobs.roleHints} && ${rolesArray}) desc`] : []),
-        sql`${s.publicJobs.postedAt} desc nulls last`,
-        s.publicJobs.id,
-      )
-      .limit(CANDIDATE_CAP);
-    if (!candidates.length) return empty(replaced);
-
-    // 4. Prefiltro y pre-score por candidata
-    const passed: { row: (typeof candidates)[number]; flags: string[] }[] = [];
-    let discarded = 0;
-    for (const pj of candidates) {
-      const pre = prefilter(
-        {
-          title: pj.title,
-          companyRaw: pj.companyRaw,
-          locationRaw: pj.locationRaw,
-          modality: pj.modality,
-          candidatesCount: pj.candidatesCount,
-          countriesAllowed: pj.countriesAllowed,
-        },
-        rules,
-        { userCountry: prefs.country, remoteOnly: prefs.remoteOnly, targetRoles: roles },
-      );
-      if (!pre.pass) {
-        discarded++;
-        continue;
-      }
-      passed.push({
-        row: pj,
-        flags: [...pre.flags, ...(pre.cap !== null ? [`title_cap:${pre.cap}`] : [])],
-      });
-    }
-    if (!passed.length) return { ...empty(replaced), discarded };
-
-    const passedIds = passed.map((p) => p.row.id);
-    const skillRows = await tx
-      .select({
-        publicJobId: s.publicJobSkills.publicJobId,
-        skillId: s.skills.id,
-        slug: s.skills.slug,
-        name: s.skills.name,
-        isMust: s.publicJobSkills.isMust,
-        rawMention: s.publicJobSkills.rawMention,
-      })
-      .from(s.publicJobSkills)
-      .innerJoin(s.skills, eq(s.skills.id, s.publicJobSkills.skillId))
-      .where(inArray(s.publicJobSkills.publicJobId, passedIds));
+    // 3. Niveles de skills de la persona
     const levelRows = await tx
       .select({ skillId: s.skillLevels.skillId, level: s.skillLevels.level })
       .from(s.skillLevels)
       .where(eq(s.skillLevels.userId, userId));
     const levelBySkill = new Map(levelRows.map((l) => [l.skillId, l.level]));
-    const skillsByJob = new Map<string, typeof skillRows>();
-    for (const r of skillRows) {
-      skillsByJob.set(r.publicJobId, [...(skillsByJob.get(r.publicJobId) ?? []), r]);
-    }
 
-    // Orden de rankCandidates y, con varios puestos, intercalado entre ellos (ADR-016)
-    const ranked = interleaveByRole(
-      rankCandidates(
-        passed.map((p) => ({
-          ...p,
-          id: p.row.id,
-          postedAt: p.row.postedAt,
-          roleHints: p.row.roleHints,
-          exactRole: p.row.roleHints.some((h) => (roles as readonly string[]).includes(h)),
-          score: poolPreScore({
-            flags: p.flags,
-            skills: (skillsByJob.get(p.row.id) ?? []).map((k) => ({
-              slug: k.slug,
-              name: k.name,
-              isMust: k.isMust,
-              level: levelBySkill.get(k.skillId) ?? null,
-            })),
-            salaryMaxUsd: p.row.salaryMaxUsd,
-            salaryPeriod: p.row.salaryPeriod,
-            salaryFloorUsd: rules.salary_floor_usd_monthly ?? null,
-          }).score,
-        })),
-      ),
-      roles,
-    ).slice(0, limit);
+    // 4. Candidatas, prefiltro, pre-score y ranking (select.ts, solo lectura)
+    const selection = await selectPoolCandidates(tx, {
+      userId,
+      rules,
+      prefs,
+      levelBySkill,
+      now,
+      limit,
+    });
+    const discarded = selection.discarded.length;
+    if (!selection.ranked.length) return { ...empty(replaced), discarded };
+    const { ranked, skillsByPublicJob: skillsByJob } = selection;
 
     // 5. Alta en jobs + job_sources + job_skills, en el orden del ranking
     const created: { id: string; hasJd: boolean }[] = [];

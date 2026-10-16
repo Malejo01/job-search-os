@@ -1,0 +1,12 @@
+{
+  "targetRoles": ["ai_engineer"],
+  "locationCountry": "AR",
+  "remoteOnly": true,
+  "yearsTotal": 2,
+  "skills": [
+    { "slug": "python", "level": 2 },
+    { "slug": "prompt_engineering", "level": 2 },
+    { "slug": "rag", "level": 1 },
+    { "slug": "agents", "level": 1 }
+  ]
+}
