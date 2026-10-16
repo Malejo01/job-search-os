@@ -71,6 +71,37 @@ describe("titleFit", () => {
     expect(titleFit("Desarrollador UX AI", "ai_engineer")).toBe(0);
   });
 
+  it("ai_engineer: 'AI' suelto al final no nombra el puesto si el núcleo es otra disciplina", () => {
+    expect(titleFit("Legacy Tool to Cloud Platform Migration Engineer AI", "ai_engineer")).not.toBe(
+      2,
+    );
+    expect(titleFit("Data Engineer AI", "ai_engineer")).not.toBe(2);
+    // No se fuerza a 0: cae a la lógica de veto/1 de siempre.
+    expect(titleFit("Legacy Tool to Cloud Platform Migration Engineer AI", "ai_engineer")).toBe(1);
+  });
+
+  it("ai_engineer: scientist/researcher con 'data' delante siguen nombrando el puesto", () => {
+    expect(titleFit("Data Scientist, ML", "ai_engineer")).toBe(2);
+    expect(titleFit("Data Scientist - AI", "ai_engineer")).toBe(2);
+    expect(titleFit("Data Engineer AI", "ai_engineer")).not.toBe(2);
+  });
+
+  it("ai_engineer: 'AI' antes del rol, o después con núcleo de software, nombra el puesto", () => {
+    expect(titleFit("Software Engineer, AI", "ai_engineer")).toBe(2);
+    expect(titleFit("Software Engineer - AI/ML", "ai_engineer")).toBe(2);
+    expect(titleFit("AI Software Engineer", "ai_engineer")).toBe(2);
+    expect(titleFit("ML Infrastructure Engineer", "ai_engineer")).toBe(2);
+    expect(titleFit("AI Engineer", "ai_engineer")).toBe(2);
+    expect(titleFit("AI Data Engineer", "ai_engineer")).toBe(2);
+    expect(titleFit("Desarrollador Full-Stack AI Native", "ai_engineer")).toBe(2);
+  });
+
+  it("data_analyst: análisis de fraude es análisis con datos", () => {
+    expect(titleFit("Fraud Operations Analyst", "data_analyst")).toBe(2);
+    expect(titleFit("Fraud Analyst", "data_analyst")).toBe(2);
+    expect(titleFit("Fraud Operations Analyst (Region A)", "data_analyst")).toBe(2);
+  });
+
   it("puestos sin veto definido dan 2 con frase y 1 sin ella", () => {
     expect(titleFit("QA Automation Engineer", "qa")).toBe(2);
     expect(titleFit("Release Coordinator", "qa")).toBe(1);
@@ -84,6 +115,12 @@ describe("strongTitlePattern", () => {
     expect(p).toContain("data[^[:alnum:]]+analyst");
     expect(p.startsWith("\\m(")).toBe(true);
     expect(p.endsWith(")s?\\M")).toBe(true);
+  });
+
+  it("incluye las frases de fraude de data_analyst", () => {
+    const p = strongTitlePattern(["data_analyst"])!;
+    expect(p).toContain("fraud[^[:alnum:]]+operations[^[:alnum:]]+analyst");
+    expect(p).toContain("fraud[^[:alnum:]]+analyst");
   });
 });
 

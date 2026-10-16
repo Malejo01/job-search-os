@@ -24,6 +24,10 @@ const EXTRA_STRONG_TERMS: Partial<Record<RoleKey, readonly string[]>> = {
     "insights analyst",
     "analytics analyst",
     "analista de bi",
+    // Análisis de fraude es análisis con datos. Solo pesa si el aviso ya trae el hint data_analyst
+    // ("fraud data analyst" ya entra por "data analyst").
+    "fraud analyst",
+    "fraud operations analyst",
   ],
 };
 
@@ -76,11 +80,63 @@ function matchesAiWithTechRoleEs(padded: string): boolean {
   );
 }
 
+/** Palabras de rol técnico en inglés (las mismas de `matchesAiWithTechRole`, que no las exporta). */
+const AI_TECH_ROLE_WORDS_EN = ["engineer", "developer", "architect", "scientist", "researcher"];
+
+/**
+ * Palabras previas al rol que indican que el núcleo del puesto es otra disciplina: una migración
+ * de datos con "AI" al final del título es migración, no ingeniería de IA. Lista
+ * corta y conservadora (sin acentos). No incluye "software", "backend" ni "platform": con esos el
+ * "AI" final sí suele nombrar el puesto ("Software Engineer, AI"). "data" está porque
+ * "Data Engineer AI" es ingeniería de datos; "AI Data Engineer" (AI antes) sigue contando.
+ */
+const OTHER_DISCIPLINE_CORE = [
+  "migration",
+  "databricks",
+  "sas",
+  "etl",
+  "database",
+  "data",
+  "sql",
+  "salesforce",
+  "sap",
+  "network",
+  "qa",
+  "test",
+  "devops",
+  "cloud",
+  "security",
+  "hardware",
+  "mechanical",
+  "electrical",
+  "civil",
+];
+
+/**
+ * `matchesAiWithTechRole` con orden: si "ai"/"ml" está antes de la palabra de rol técnico nombra
+ * el puesto; si solo está después, nombra el puesto únicamente cuando las palabras previas al rol
+ * no son de otra disciplina. Solo refina el patrón en inglés; el español no cambia.
+ */
+function namesAiEngineerInEnglish(padded: string): boolean {
+  if (!matchesAiWithTechRole(padded)) return false;
+  const words = padded.trim().split(" ");
+  const isAi = (w: string) => w === "ai" || w === "ml";
+  const roleIdx = words.findIndex((w) =>
+    AI_TECH_ROLE_WORDS_EN.some((r) => w === r || w === `${r}s`),
+  );
+  if (roleIdx < 0) return true;
+  // "Data Scientist, ML": scientist/researcher con "data" delante sigue nombrando el puesto.
+  if (/^(scientist|researcher)s?$/.test(words[roleIdx]!)) return true;
+  if (words.slice(0, roleIdx).some(isAi)) return true;
+  return !words.slice(0, roleIdx).some((w) => OTHER_DISCIPLINE_CORE.includes(w));
+}
+
 export function titleFit(title: string, role: RoleKey): TitleFit {
   const padded = normalizeTitleText(title);
   const named =
     strongTerms(role).some((t) => hasTerm(padded, t)) ||
-    (role === "ai_engineer" && (matchesAiWithTechRole(padded) || matchesAiWithTechRoleEs(padded)));
+    (role === "ai_engineer" &&
+      (namesAiEngineerInEnglish(padded) || matchesAiWithTechRoleEs(padded)));
   if (named) return 2;
   if ((VETO_TERMS[role] ?? []).some((t) => hasTerm(padded, t))) return 0;
   return 1;
