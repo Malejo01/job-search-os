@@ -15,6 +15,9 @@ test.describe("datos legales por variables (JS-120)", () => {
         expect(texto).not.toContain(marcador);
       }
       expect(texto).not.toContain("plazo de retención de los logs]");
+      expect(texto).not.toMatch(/\[(?:A REVISAR|A CONFIRMAR|CONFIRMAR|CONSULTAR|A DEFINIR)\b/);
+      // Sin variables, el aviso de borrador sigue apareciendo.
+      await expect(page.getByRole("note")).toContainText("Borrador en revisión");
     });
   }
 });

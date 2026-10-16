@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-// Sin sesión: las páginas legales se leen antes de registrarse (JS-106)
+// Sin sesión y sin LEGAL_* en e2e: el texto se lee antes de registrarse y lleva el aviso de borrador (JS-106)
 test.use({ storageState: { cookies: [], origins: [] } });
 
 test.describe("páginas legales públicas (JS-106)", () => {
@@ -17,6 +17,8 @@ test.describe("páginas legales públicas (JS-106)", () => {
       expect(response?.status()).toBe(200);
       expect(new URL(page.url()).pathname).not.toBe("/login");
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(titulo);
+      await expect(page.getByRole("heading", { level: 1 })).not.toContainText(/borrador/i);
+      expect(await page.title()).not.toMatch(/borrador/i);
       await expect(page.getByRole("note")).toContainText("Borrador en revisión");
     });
   }
