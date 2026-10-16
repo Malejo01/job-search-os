@@ -24,9 +24,7 @@ export function DeleteAccountForm({
           de llamadas al modelo y las invitaciones que creaste. Después se borra tu usuario y se
           cierra la sesión.
         </p>
-        <p className="font-medium text-red-800">
-          Es irreversible: no podemos recuperarla.
-        </p>
+        <p className="font-medium text-red-800">Es irreversible: no podemos recuperarla.</p>
         {error ? (
           <p role="alert" className="text-red-700">
             El email o la contraseña no coinciden. No se borró nada.
