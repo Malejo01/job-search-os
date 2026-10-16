@@ -1,6 +1,7 @@
 import { createDb, loadLocalEnv } from "@job-search-os/db";
 import { askInteractive, maskEmail, resolveTargetUrl, safeError } from "./common";
 import {
+  DEFAULT_ALLOWLIST,
   formatTestUserRow,
   listTestUsers,
   parseTestUsersArgs,
@@ -21,6 +22,12 @@ async function main(): Promise<void> {
     process.exitCode = 1;
     return;
   }
+  // Contra la nube solo vale la allowlist por defecto: un archivo equivocado no amplía qué se borra
+  if (args.remote && args.allowlist !== DEFAULT_ALLOWLIST) {
+    console.error(`con --remote solo se usa la allowlist por defecto (${DEFAULT_ALLOWLIST})`);
+    process.exitCode = 1;
+    return;
+  }
   const allowlist = readAllowlist(args.allowlist);
   if (!allowlist.ok) {
     console.error(allowlist.error);
@@ -35,12 +42,17 @@ async function main(): Promise<void> {
       process.exitCode = 1;
       return;
     }
-    if (!args.yes) {
+    // --yes solo en local: contra la nube siempre se escribe el email
+    if (!args.yes || args.remote) {
       const answer = await askInteractive(
         `Esto borra TODOS los datos de ${maskEmail(args.mode.email)}. Escribí el email completo para confirmar: `,
       );
       if (answer === null) {
-        console.error("no hay terminal para confirmar: usá --yes si de verdad querés seguir");
+        console.error(
+          args.remote
+            ? "no hay terminal para confirmar: contra la nube el borrado necesita una persona"
+            : "no hay terminal para confirmar: usá --yes si de verdad querés seguir",
+        );
         process.exitCode = 1;
         return;
       }

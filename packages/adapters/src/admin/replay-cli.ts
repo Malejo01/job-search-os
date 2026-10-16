@@ -2,6 +2,7 @@ import { createDb, loadLocalEnv } from "@job-search-os/db";
 import { createLogger } from "../logger";
 import { resolveTargetUrl, safeError } from "./common";
 import { loadReplayFixture, parseReplayArgs, replayInbound } from "./replay";
+import { DEFAULT_ALLOWLIST, readAllowlist } from "./test-users";
 
 /**
  * pnpm inbound:replay <fixture.json> --to <email-de-usuario> [--remote]
@@ -22,6 +23,17 @@ async function main(): Promise<void> {
     console.error(fixture.error);
     process.exitCode = 1;
     return;
+  }
+  // Contra la nube solo a cuentas de prueba: un replay ingesta datos y encola evaluaciones (LLM)
+  if (args.remote) {
+    const allowlist = readAllowlist(DEFAULT_ALLOWLIST);
+    if (!allowlist.ok || !allowlist.emails.includes(args.to)) {
+      console.error(
+        `con --remote, --to tiene que ser una cuenta de prueba de ${DEFAULT_ALLOWLIST}: no se hace nada`,
+      );
+      process.exitCode = 1;
+      return;
+    }
   }
   const target = await resolveTargetUrl(args.remote, "reproducir un email en");
   if (!target.ok) {

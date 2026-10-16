@@ -1,8 +1,44 @@
+import { confirmRemoteTarget, type Db } from "@job-search-os/db";
 import { describe, expect, it } from "vitest";
-import { maskEmail, parseEmail } from "./common";
+import { maskEmail, parseEmail, remoteConfirmOptions } from "./common";
 import { parseInviteArgs } from "./invite";
 import { loadReplayFixture, parseReplayArgs, ReplayFixtureSchema } from "./replay";
-import { parseAllowlist, parseTestUsersArgs, readAllowlist } from "./test-users";
+import { parseAllowlist, parseTestUsersArgs, readAllowlist, resetTestUser } from "./test-users";
+
+describe("confirmación remota", () => {
+  it("CONFIRM_PRODUCTION=si no saltea la pregunta: sin terminal, no confirma", async () => {
+    const before = process.env.CONFIRM_PRODUCTION;
+    process.env.CONFIRM_PRODUCTION = "si";
+    try {
+      const ok = await confirmRemoteTarget("postgres://u@db.example.com/x", {
+        ...remoteConfirmOptions("probar", () => {}),
+        interactive: false,
+      });
+      expect(ok).toBe(false);
+    } finally {
+      if (before === undefined) delete process.env.CONFIRM_PRODUCTION;
+      else process.env.CONFIRM_PRODUCTION = before;
+    }
+  });
+});
+
+describe("resetTestUser sin base", () => {
+  // Los rechazos ocurren antes de tocar la base
+  const noDb = {} as Db;
+  it("rechaza un email de ADMIN_EMAILS aunque esté en la allowlist", async () => {
+    const r = await resetTestUser(
+      noDb,
+      "Admin@Example.com",
+      ["admin@example.com"],
+      "admin@example.com",
+    );
+    expect(r).toMatchObject({ ok: false, error: expect.stringContaining("admin") });
+  });
+  it("rechaza un email fuera de la allowlist", async () => {
+    const r = await resetTestUser(noDb, "otro@example.com", ["prueba@example.com"], "");
+    expect(r.ok).toBe(false);
+  });
+});
 
 describe("maskEmail / parseEmail", () => {
   it("enmascara dejando la primera letra y el dominio", () => {

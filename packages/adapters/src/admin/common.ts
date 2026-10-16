@@ -32,8 +32,21 @@ export function maskEmail(email: string): string {
 }
 
 /**
+ * Opciones de confirmación remota de estos comandos: `env: {}` hace que CONFIRM_PRODUCTION
+ * (del entorno o de .env.local) NO saltee la pregunta. Contra la nube siempre hace falta una
+ * persona en una terminal escribiendo "si".
+ */
+export function remoteConfirmOptions(
+  action: string,
+  log: (message: string) => void,
+): { action: string; log: (message: string) => void; env: Record<string, string | undefined> } {
+  return { action, log, env: {} };
+}
+
+/**
  * Destino de la base: local por defecto; la nube solo con `--remote`, y entonces pide confirmar
- * (en una terminal; sin terminal aborta). Nunca imprime la URL, solo usuario, host y base.
+ * (en una terminal; sin terminal aborta, sin excepción por variables). Nunca imprime la URL: en
+ * local, usuario@host/base; en remoto, solo "remoto".
  */
 export async function resolveTargetUrl(
   remote: boolean,
@@ -53,11 +66,12 @@ export async function resolveTargetUrl(
     };
   }
   if (remote) {
-    const confirmed = await confirmRemoteTarget(url, { action, log });
+    const confirmed = await confirmRemoteTarget(url, remoteConfirmOptions(action, log));
     if (!confirmed)
       return { ok: false, error: "operación cancelada: destino remoto sin confirmar" };
+    return { ok: true, url, label: "remoto" };
   }
-  return { ok: true, url, label: describeDatabaseUrl(url) };
+  return { ok: true, url, label: `local (${describeDatabaseUrl(url)})` };
 }
 
 /** Pregunta en la terminal; sin terminal devuelve null (no se puede confirmar). */

@@ -1,4 +1,5 @@
 import { deleteUserData, schema as s, type Db } from "@job-search-os/db";
+import { isInvitationAdmin } from "@job-search-os/db/invitation-code";
 import { eq, sql } from "drizzle-orm";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -183,10 +184,16 @@ export async function resetTestUser(
   db: Db,
   email: string,
   allowlist: string[],
+  adminEmails: string | undefined = process.env.ADMIN_EMAILS,
 ): Promise<ResetResult> {
   const wanted = normalizeEmail(email);
+  // Este es el chequeo de seguridad real (el del CLI solo adelanta el error): no borrarlo
   if (!allowlist.map(normalizeEmail).includes(wanted)) {
     return { ok: false, error: "ese email no está en la allowlist: no se borra nada" };
+  }
+  // Una allowlist equivocada nunca borra la cuenta de un admin
+  if (isInvitationAdmin(wanted, adminEmails)) {
+    return { ok: false, error: "ese email es de un admin (ADMIN_EMAILS): no se borra nada" };
   }
   const [user] = await db
     .select({ id: s.users.id })
