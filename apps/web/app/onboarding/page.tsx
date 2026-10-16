@@ -14,6 +14,7 @@ import { requireUserId } from "@/lib/session";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
 import { DeleteAccountForm } from "../(app)/settings/delete-account-form";
 import { saveOnboardingAction } from "./actions";
+import { OnboardingSteps } from "./steps";
 
 export const dynamic = "force-dynamic";
 // La primera ingesta corre en `after()` al guardar y hereda la duración de esta ruta
@@ -57,6 +58,7 @@ export default async function OnboardingPage({
   }));
   return (
     <section className="flex flex-col gap-3">
+      <OnboardingSteps current={1} />
       <h1 className="text-xl font-semibold">Completá tu perfil</h1>
       <p className="text-sm text-zinc-600">
         Antes de ver ofertas necesitamos unos datos: con ellos se filtran y evalúan los avisos. Los
@@ -123,7 +125,13 @@ export default async function OnboardingPage({
           </label>
           <label className="flex flex-col gap-1 text-sm">
             Inglés (nivel CEFR) *
-            <select name="englishCefr" required defaultValue="" className={input}>
+            <select
+              name="englishCefr"
+              required
+              defaultValue=""
+              aria-describedby="cefr-help"
+              className={input}
+            >
               <option value="" disabled>
                 Elegí uno
               </option>
@@ -134,6 +142,33 @@ export default async function OnboardingPage({
               ))}
             </select>
           </label>
+          <p id="cefr-help" className="text-xs text-zinc-600 sm:col-span-2">
+            Es la escala de inglés que usan muchos avisos. Si dudás entre dos, elegí el más bajo.
+          </p>
+          <details className="rounded-md border border-zinc-200 p-3 text-sm sm:col-span-2">
+            <summary className="cursor-pointer font-medium">¿Qué es CEFR?</summary>
+            <ul className="mt-2 flex list-none flex-col gap-1 p-0 text-zinc-700">
+              <li>
+                <span className="font-medium">A1–A2 · básico:</span> entendés frases y textos
+                cortos.
+              </li>
+              <li>
+                <span className="font-medium">B1 · intermedio:</span> leés documentación y escribís
+                mails simples; seguir una reunión en inglés te cuesta.
+              </li>
+              <li>
+                <span className="font-medium">B2 · intermedio alto:</span> participás en reuniones y
+                entrevistas con algunos errores.
+              </li>
+              <li>
+                <span className="font-medium">C1 · avanzado:</span> trabajás todo el día en inglés
+                sin problema.
+              </li>
+              <li>
+                <span className="font-medium">C2 · casi nativo.</span>
+              </li>
+            </ul>
+          </details>
           <label className="flex flex-col gap-1 text-sm">
             Años de experiencia *
             <input
