@@ -20,6 +20,13 @@ describe("locationScope", () => {
     });
   });
 
+  it("'San Francisco or LATAM': incluye US y la región LATAM, y admite AR", () => {
+    const scope = locationScope("San Francisco or LATAM", null);
+    expect(scope).toMatchObject({ kind: "places", regions: ["LATAM"] });
+    expect(scope).toMatchObject({ countries: expect.arrayContaining(["US"]) });
+    expect(allowsCountry(scope, "AR")).toBe(true);
+  });
+
   it("'Remote' a secas, vacío o sin país: unknown", () => {
     for (const t of [
       "Remote",
@@ -107,6 +114,20 @@ describe("locationScope", () => {
     });
   });
 
+  it("Bay Area y ciudades de EE.UU. son US, sin fail-open", () => {
+    const bay = locationScope("Remote, Bay Area, CA", null);
+    expect(bay).toMatchObject({ kind: "places", countries: ["US"] });
+    expect(allowsCountry(bay, "AR")).toBe(false);
+    expect(locationScope("Remote - San Francisco", null)).toMatchObject({ countries: ["US"] });
+    expect(locationScope("SF Bay Area", null)).toMatchObject({ countries: ["US"] });
+    expect(locationScope("Silicon Valley", null)).toMatchObject({ countries: ["US"] });
+    expect(locationScope("Remote, California", null)).toMatchObject({ countries: ["US"] });
+  });
+
+  it("'CA' suelto sigue ambiguo (Canada o California)", () => {
+    expect(locationScope("Remote, CA", null)).toEqual({ kind: "unknown" });
+  });
+
   it("UK como código se normaliza a GB", () => {
     expect(locationScope(null, ["UK"])).toMatchObject({ countries: ["GB"] });
   });
@@ -163,10 +184,13 @@ describe("allowsCountry", () => {
       "Global",
       "Remote",
       "New York, NY",
-      "San Francisco, CA",
     ]) {
       expect(allows(t, null), t).toBe(true);
     }
+  });
+
+  it("San Francisco ya es US (ronda 51-c): no admite a AR", () => {
+    expect(allows("San Francisco, CA", null)).toBe(false);
   });
 
   it("LATAM y Americas contienen los países de la región", () => {
