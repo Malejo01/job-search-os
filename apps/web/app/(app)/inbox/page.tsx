@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { cleanDomain, emailIdsOfDomain, filterLeaks } from "@/lib/filter-leak";
+import { isWebmailDomain } from "@job-search-os/pipeline";
+import {
+  cleanDomain,
+  emailIdsOfDomain,
+  filterLeaks,
+  webmailErrorFromParams,
+} from "@/lib/filter-leak";
 import {
   inboxVolume,
   listInbox,
@@ -44,10 +50,11 @@ const EMPTY: Record<InboxView, string> = {
 export default async function InboxPage({
   searchParams,
 }: {
-  searchParams: Promise<{ vista?: string; dominio?: string }>;
+  searchParams: Promise<{ vista?: string; dominio?: string; error?: string; sender?: string }>;
 }) {
   const userId = await requireUserId();
   const params = await searchParams;
+  const webmailError = webmailErrorFromParams(params);
   const view = parseInboxView(params.vista);
   // "Ver" desde el aviso de fuga: solo los emails de ese dominio (JS-048)
   const domain = params.dominio ? cleanDomain(params.dominio) : null;
@@ -62,6 +69,15 @@ export default async function InboxPage({
 
   return (
     <section className="flex flex-col gap-3">
+      {webmailError ? (
+        <p
+          role="alert"
+          data-testid="error-webmail"
+          className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900"
+        >
+          {webmailError}
+        </p>
+      ) : null}
       {/* Arriba de todo, hasta que se marque como visto */}
       {gmail ? (
         <div
@@ -152,16 +168,23 @@ export default async function InboxPage({
                 >
                   Ver
                 </Link>
-                <form action={senderVerdictAction}>
-                  <input type="hidden" name="domain" value={l.domain} />
-                  <input type="hidden" name="verdict" value="empleo" />
-                  <button
-                    type="submit"
-                    className="rounded border border-zinc-300 bg-white px-2 py-1"
-                  >
-                    Es fuente de empleo
-                  </button>
-                </form>
+                {isWebmailDomain(l.domain) ? (
+                  <span className="text-zinc-700">
+                    Correo personal: no se puede marcar como fuente
+                  </span>
+                ) : (
+                  <form action={senderVerdictAction}>
+                    <input type="hidden" name="domain" value={l.domain} />
+                    <input type="hidden" name="verdict" value="empleo" />
+                    <input type="hidden" name="back" value="/inbox" />
+                    <button
+                      type="submit"
+                      className="rounded border border-zinc-300 bg-white px-2 py-1"
+                    >
+                      Es fuente de empleo
+                    </button>
+                  </form>
+                )}
                 <form action={senderVerdictAction}>
                   <input type="hidden" name="domain" value={l.domain} />
                   <input type="hidden" name="verdict" value="no_empleo" />

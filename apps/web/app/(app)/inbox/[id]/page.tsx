@@ -1,6 +1,8 @@
+import { isWebmailDomain } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { isUuid } from "@/lib/ids";
+import { webmailErrorFromParams } from "@/lib/filter-leak";
 import { getInboundEmail } from "@/lib/inbox";
 import { markInboundSeen } from "@/lib/inbox-list";
 import { formatDate, parserLabel } from "@/lib/labels";
@@ -32,9 +34,16 @@ img{max-width:100%;height:auto}table{max-width:100%!important;width:auto}td,th{w
  * scripts, sin formularios y sin poder navegar la página que lo contiene. Por eso sus links no
  * se abren desde adentro; se listan aparte.
  */
-export default async function InboundEmailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function InboundEmailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string; sender?: string }>;
+}) {
   const userId = await requireUserId();
   const { id } = await params;
+  const webmailError = webmailErrorFromParams(await searchParams);
   if (!isUuid(id)) notFound();
   const email = await getInboundEmail(userId, id);
   if (!email) notFound();
@@ -49,6 +58,16 @@ export default async function InboundEmailPage({ params }: { params: Promise<{ i
       <Link href="/inbox" className="text-xs text-zinc-600 underline">
         ← Emails entrantes
       </Link>
+
+      {webmailError ? (
+        <p
+          role="alert"
+          data-testid="error-webmail"
+          className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900"
+        >
+          {webmailError}
+        </p>
+      ) : null}
 
       <header className="flex flex-col gap-2 rounded-lg border border-zinc-200 bg-white p-3">
         <h1 className="text-lg font-semibold leading-snug">{email.subject ?? "(sin asunto)"}</h1>
@@ -92,10 +111,15 @@ export default async function InboundEmailPage({ params }: { params: Promise<{ i
               <p className="text-xs text-emerald-800">
                 Los próximos emails de {email.senderDomain} se guardan completos. Este queda así.
               </p>
+            ) : isWebmailDomain(email.senderDomain) ? (
+              <p className="text-xs text-zinc-700">
+                Correo personal: no se puede marcar como fuente
+              </p>
             ) : (
               <form action={senderVerdictAction}>
                 <input type="hidden" name="domain" value={email.senderDomain} />
                 <input type="hidden" name="verdict" value="empleo" />
+                <input type="hidden" name="back" value={`/inbox/${email.id}`} />
                 <button
                   type="submit"
                   className="rounded border border-zinc-400 bg-white px-2 py-1 text-xs"

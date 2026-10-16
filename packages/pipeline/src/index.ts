@@ -17,6 +17,7 @@ export type { CriteriaRules } from "./criteria";
 export { parseModality, rawJobFromManual } from "./raw-job";
 export type { ManualJobInput, Modality, RawJob, SourceKind } from "./raw-job";
 export * from "./filter-leak";
+export * from "./webmail-domains";
 export * from "./inbound-classify";
 export * from "./inbox-attention";
 export * from "./review";

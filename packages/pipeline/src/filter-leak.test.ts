@@ -222,3 +222,23 @@ describe("isExpectedSender", () => {
     }
   });
 });
+
+describe("detectFilterLeaks con un 'empleo' viejo sobre webmail (RM-3)", () => {
+  it("no silencia el aviso: ese veredicto ya no vale", () => {
+    const leaks = detectFilterLeaks({
+      now: NOW,
+      hosts: [host({ host: "gmail.com" })],
+      userVerdicts: { "gmail.com": "empleo" },
+    });
+    expect(leaks.map((l) => l.domain)).toEqual(["gmail.com"]);
+  });
+
+  it("un 'no_empleo' sobre webmail sí lo silencia", () => {
+    const leaks = detectFilterLeaks({
+      now: NOW,
+      hosts: [host({ host: "gmail.com" })],
+      userVerdicts: { "gmail.com": "no_empleo" },
+    });
+    expect(leaks).toEqual([]);
+  });
+});

@@ -1,6 +1,6 @@
 import { pgBlobStorage } from "@job-search-os/adapters";
 import { schema as s } from "@job-search-os/db";
-import { baseDomain, senderHost } from "@job-search-os/pipeline";
+import { baseDomain, isWebmailDomain, senderHost } from "@job-search-os/pipeline";
 import { and, eq } from "drizzle-orm";
 import { withUser } from "./db";
 
@@ -114,7 +114,8 @@ export async function getInboundEmail(
       links: extraerLinks(plano, html),
       redacted,
       senderDomain,
-      senderIsJobSource: verdict?.verdict === "empleo",
+      senderIsJobSource:
+        verdict?.verdict === "empleo" && !(senderDomain !== null && isWebmailDomain(senderDomain)),
     };
   });
 }
