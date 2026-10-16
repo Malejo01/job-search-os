@@ -1,5 +1,10 @@
 import { schema as s } from "@job-search-os/db";
-import { baseDomain, detectFilterLeaks, type FilterLeak } from "@job-search-os/pipeline";
+import {
+  baseDomain,
+  detectFilterLeaks,
+  isWebmailDomain,
+  type FilterLeak,
+} from "@job-search-os/pipeline";
 import { and, eq, sql } from "drizzle-orm";
 import { withUser } from "./db";
 import { deleteInbound } from "./inbox-list";
@@ -56,12 +61,23 @@ export function cleanDomain(raw: string): string | null {
   return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(d) ? d : null;
 }
 
-/** "Es fuente de empleo" / "No es de empleo": deja de avisar por ese dominio. */
+export type SetSenderVerdictResult = { ok: true } | { ok: false; error: "webmail" };
+
+/** Mensaje para la persona cuando se rechaza "empleo" sobre un proveedor de correo personal (RM-3). */
+export function webmailRejectionMessage(domain: string): string {
+  return `No se puede marcar ${domain} como fuente de empleo: es un proveedor de correo personal, y se guardarían completos los mails de cualquier persona con esa cuenta. Para alertas reenviadas a mano, configurá un filtro de reenvío automático.`;
+}
+
+/**
+ * "Es fuente de empleo" / "No es de empleo": deja de avisar por ese dominio. "empleo" sobre un
+ * dominio de webmail no escribe nada y devuelve un rechazo tipado; "no_empleo" sí se permite.
+ */
 export async function setSenderVerdict(
   userId: string,
   domain: string,
   verdict: SenderVerdict,
-): Promise<void> {
+): Promise<SetSenderVerdictResult> {
+  if (verdict === "empleo" && isWebmailDomain(domain)) return { ok: false, error: "webmail" };
   await withUser(userId, (tx) =>
     tx
       .insert(s.inboundSenderDomains)
@@ -71,6 +87,25 @@ export async function setSenderVerdict(
         set: { verdict, createdAt: new Date() },
       }),
   );
+  return { ok: true };
+}
+
+/** Destinos válidos para volver tras un rechazo (el formulario manda `back`; nunca una URL libre). */
+export function safeBackPath(raw: unknown): string {
+  const v = String(raw ?? "");
+  return /^\/(inbox|inbox\/[0-9a-f-]{36}|settings\/senders)$/.test(v) ? v : "/inbox";
+}
+
+/** URL de vuelta con el error de webmail (`?error=webmail&sender=<dominio>`). */
+export function webmailErrorUrl(back: string, domain: string): string {
+  return `${back}?error=webmail&sender=${encodeURIComponent(domain)}`;
+}
+
+/** Lee `?error=webmail&sender=` de los searchParams; devuelve el mensaje o null. */
+export function webmailErrorFromParams(params: { error?: string; sender?: string }): string | null {
+  if (params.error !== "webmail" || !params.sender) return null;
+  const domain = cleanDomain(params.sender);
+  return domain && isWebmailDomain(domain) ? webmailRejectionMessage(domain) : null;
 }
 
 /** "Sin decidir" (Ajustes › Remitentes): borra la decisión; el aviso de fuga vuelve a poder saltar. */

@@ -1,11 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import {
   cleanDomain,
   deleteDomainEmails,
+  safeBackPath,
   SENDER_VERDICTS,
   setSenderVerdict,
+  webmailErrorUrl,
   type SenderVerdict,
 } from "@/lib/filter-leak";
 import { requireUserId } from "@/lib/session";
@@ -16,7 +19,9 @@ export async function senderVerdictAction(formData: FormData): Promise<void> {
   const domain = cleanDomain(String(formData.get("domain") ?? ""));
   const verdict = String(formData.get("verdict") ?? "");
   if (!domain || !(SENDER_VERDICTS as readonly string[]).includes(verdict)) return;
-  await setSenderVerdict(userId, domain, verdict as SenderVerdict);
+  const res = await setSenderVerdict(userId, domain, verdict as SenderVerdict);
+  // Webmail como "empleo": no se escribió nada; se vuelve a la página con el mensaje (RM-3)
+  if (!res.ok) redirect(webmailErrorUrl(safeBackPath(formData.get("back")), domain));
   revalidatePath("/inbox");
   // También desde el detalle de un email sin cuerpo (JS-051)
   revalidatePath("/inbox/[id]", "page");
