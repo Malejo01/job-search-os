@@ -20,7 +20,9 @@ import { isUuid } from "@/lib/ids";
 import {
   applyJobEvent,
   correctJobStatus,
+  EvaluationNotFoundError,
   HUMAN_NOTE_MAX,
+  HumanScoreError,
   MANUAL_EVENTS,
   saveHumanNote,
   saveHumanScore,
@@ -64,8 +66,7 @@ export async function humanScoreAction(formData: FormData): Promise<void> {
   try {
     await saveHumanScore(userId, evaluationId, score, note || null);
   } catch (e) {
-    if (e instanceof Error && /score humano/.test(e.message))
-      redirect(`/jobs/${jobId}?error=score`);
+    if (e instanceof HumanScoreError) redirect(`/jobs/${jobId}?error=score`);
     throw e;
   }
   revalidatePath(`/jobs/${jobId}`);
@@ -98,7 +99,7 @@ export async function humanVerdictAction(formData: FormData): Promise<void> {
       parsed.data.verdict || null,
     );
   } catch (e) {
-    if (e instanceof Error && /evaluación inexistente/.test(e.message)) {
+    if (e instanceof EvaluationNotFoundError) {
       redirect(`${back}?error=veredicto`);
     }
     throw e;
@@ -132,7 +133,7 @@ export async function humanNoteAction(formData: FormData): Promise<void> {
       parsed.data.note || null,
     );
   } catch (e) {
-    if (e instanceof Error && /evaluación inexistente/.test(e.message)) {
+    if (e instanceof EvaluationNotFoundError) {
       redirect(`${back}?error=motivo`);
     }
     throw e;

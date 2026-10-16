@@ -4,9 +4,9 @@ import { VerdictReason } from "./verdict-reason";
 
 const TITLE = "¿Te sirve esta evaluación?";
 
-const OPTIONS: { verdict: HumanVerdict; label: string; emoji: string }[] = [
-  { verdict: "de_acuerdo", label: "Sí", emoji: "👍" },
-  { verdict: "en_desacuerdo", label: "No", emoji: "👎" },
+const OPTIONS: { verdict: HumanVerdict; label: string; name: string; emoji: string }[] = [
+  { verdict: "de_acuerdo", label: "Sí", name: "Sí, me sirve", emoji: "👍" },
+  { verdict: "en_desacuerdo", label: "No", name: "No, no me sirve", emoji: "👎" },
 ];
 
 /**
@@ -37,11 +37,12 @@ export function Verdict({
               <input type="hidden" name="verdict" value={pressed ? "" : o.verdict} />
               <button
                 type="submit"
+                aria-label={o.name}
                 aria-pressed={pressed}
-                className={`flex min-h-[44px] min-w-[88px] items-center justify-center gap-2 rounded-md border-2 px-4 text-sm font-medium ${
+                className={`flex min-h-[44px] min-w-[88px] items-center justify-center gap-2 rounded-md border-2 px-4 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
                   pressed
                     ? "border-zinc-900 bg-zinc-900 text-white"
-                    : "border-zinc-300 bg-white text-zinc-800 hover:border-zinc-500"
+                    : "border-zinc-500 bg-white text-zinc-800 hover:border-zinc-700"
                 }`}
               >
                 <span aria-hidden="true">{o.emoji}</span>
