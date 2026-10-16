@@ -63,6 +63,14 @@ describe("titleFit", () => {
     expect(titleFit("Solutions Specialist", "ai_engineer")).toBe(1);
   });
 
+  it("ai_engineer: el patrón AI + rol técnico también vale con el rol en español", () => {
+    expect(titleFit("Desarrollador Full-Stack AI Native", "ai_engineer")).toBe(2);
+    expect(titleFit("Ingeniera de ML", "ai_engineer")).toBe(2);
+    expect(titleFit("Arquitecto AI", "ai_engineer")).toBe(2);
+    expect(titleFit("Desarrollador Backend", "ai_engineer")).toBe(1);
+    expect(titleFit("Desarrollador UX AI", "ai_engineer")).toBe(0);
+  });
+
   it("puestos sin veto definido dan 2 con frase y 1 sin ella", () => {
     expect(titleFit("QA Automation Engineer", "qa")).toBe(2);
     expect(titleFit("Release Coordinator", "qa")).toBe(1);

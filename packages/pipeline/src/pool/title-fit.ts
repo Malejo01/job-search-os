@@ -57,11 +57,30 @@ const strongTerms = (role: RoleKey): readonly string[] => [
   ...(EXTRA_STRONG_TERMS[role] ?? []),
 ];
 
+/** Rol técnico en español para el patrón "AI + rol" ("Desarrollador Full-Stack AI"). */
+const AI_TECH_ROLE_WORDS_ES = [
+  "desarrollador",
+  "desarrolladora",
+  "ingeniero",
+  "ingeniera",
+  "arquitecto",
+  "arquitecta",
+];
+
+/** El mismo patrón de `matchesAiWithTechRole`, con el rol técnico en español. */
+function matchesAiWithTechRoleEs(padded: string): boolean {
+  return (
+    (hasTerm(padded, "ai") || hasTerm(padded, "ml")) &&
+    AI_TECH_ROLE_WORDS_ES.some((w) => hasTerm(padded, w)) &&
+    !AI_PATTERN_EXCLUDED_WORDS.some((w) => hasTerm(padded, w))
+  );
+}
+
 export function titleFit(title: string, role: RoleKey): TitleFit {
   const padded = normalizeTitleText(title);
   const named =
     strongTerms(role).some((t) => hasTerm(padded, t)) ||
-    (role === "ai_engineer" && matchesAiWithTechRole(padded));
+    (role === "ai_engineer" && (matchesAiWithTechRole(padded) || matchesAiWithTechRoleEs(padded)));
   if (named) return 2;
   if ((VETO_TERMS[role] ?? []).some((t) => hasTerm(padded, t))) return 0;
   return 1;
