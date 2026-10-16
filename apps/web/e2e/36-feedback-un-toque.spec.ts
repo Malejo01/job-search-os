@@ -34,7 +34,7 @@ test.describe("Flujo 36: feedback de un toque", () => {
     await page.goto(`/jobs/${mismo}`);
     await page
       .getByRole("group", { name: "¿Te sirve esta evaluación?" })
-      .getByRole("button", { name: "No", exact: true })
+      .getByRole("button", { name: "No, no me sirve", exact: true })
       .click();
     await page.getByRole("button", { name: "sueldo" }).click();
     await page.getByRole("button", { name: "Guardar motivo" }).click();
@@ -66,7 +66,7 @@ test.describe("Flujo 36: feedback de un toque", () => {
     await page.goto(`/jobs/${motivo}`);
     await page
       .getByRole("group", { name: "¿Te sirve esta evaluación?" })
-      .getByRole("button", { name: "No", exact: true })
+      .getByRole("button", { name: "No, no me sirve", exact: true })
       .click();
 
     const guardar = page.getByRole("button", { name: "Guardar motivo", exact: true });
@@ -116,7 +116,7 @@ test.describe("Flujo 36: feedback de un toque", () => {
     await login(page);
     await page.goto(`/jobs/${detalle}`);
     const grupo = page.getByRole("group", { name: "¿Te sirve esta evaluación?" });
-    const no = grupo.getByRole("button", { name: "No", exact: true });
+    const no = grupo.getByRole("button", { name: "No, no me sirve", exact: true });
     await expect(no).toHaveAttribute("aria-pressed", "false");
     await no.click();
     await expect(no).toHaveAttribute("aria-pressed", "true");
@@ -129,7 +129,7 @@ test.describe("Flujo 36: feedback de un toque", () => {
     await expect(
       page
         .getByRole("group", { name: "¿Te sirve esta evaluación?" })
-        .getByRole("button", { name: "No", exact: true }),
+        .getByRole("button", { name: "No, no me sirve", exact: true }),
     ).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByLabel("Motivo")).toHaveValue("el score está alto");
 
@@ -158,7 +158,7 @@ test.describe("Flujo 36: feedback de un toque", () => {
     await page.goto(`/jobs/${detalle}`);
     const no = page
       .getByRole("group", { name: "¿Te sirve esta evaluación?" })
-      .getByRole("button", { name: "No", exact: true });
+      .getByRole("button", { name: "No, no me sirve", exact: true });
     await expect(no).toHaveAttribute("aria-pressed", "true");
     await no.click();
     await expect(no).toHaveAttribute("aria-pressed", "false");

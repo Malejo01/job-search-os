@@ -25,13 +25,18 @@ function VerdictButton({
       aria-label={label}
       aria-pressed={pressed}
       disabled={pending}
-      className={`flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md border-2 p-2 text-base leading-none disabled:opacity-50 ${
+      className={`flex min-h-[44px] min-w-[44px] items-center justify-center gap-1 rounded-md border-2 p-2 text-base leading-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 ${
         pressed
           ? "border-zinc-900 bg-zinc-900 text-white"
-          : "border-zinc-300 bg-white hover:border-zinc-500"
+          : "border-zinc-500 bg-white hover:border-zinc-700"
       }`}
     >
       <span aria-hidden="true">{emoji}</span>
+      {pressed ? (
+        <span aria-hidden="true" className="text-sm">
+          ✓
+        </span>
+      ) : null}
     </button>
   );
 }
@@ -50,7 +55,7 @@ export function CardVerdict({
   verdict: HumanVerdict | null;
 }) {
   return (
-    <div className="relative z-10 flex gap-1">
+    <div className="relative z-10 flex gap-2">
       {OPTIONS.map((o) => {
         const pressed = verdict === o.verdict;
         return (

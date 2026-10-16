@@ -344,6 +344,22 @@ export async function correctJobStatus(
   });
 }
 
+/** La evaluación no existe o no es del usuario. Las acciones lo detectan con instanceof. */
+export class EvaluationNotFoundError extends Error {
+  override name = "EvaluationNotFoundError";
+  constructor() {
+    super("evaluación inexistente");
+  }
+}
+
+/** El score humano está fuera de 0–10 o no va en pasos de 0,5. */
+export class HumanScoreError extends Error {
+  override name = "HumanScoreError";
+  constructor() {
+    super("el score humano va de 0 a 10 en pasos de 0,5");
+  }
+}
+
 /** Score humano (0–10, medio punto) + nota sobre la última evaluación. */
 export async function saveHumanScore(
   userId: string,
@@ -352,7 +368,7 @@ export async function saveHumanScore(
   humanNote: string | null,
 ): Promise<void> {
   if (humanScore !== null && (humanScore < 0 || humanScore > 10 || (humanScore * 2) % 1 !== 0)) {
-    throw new Error("el score humano va de 0 a 10 en pasos de 0,5");
+    throw new HumanScoreError();
   }
   await withUser(userId, async (tx) => {
     const updated = await tx
@@ -360,7 +376,7 @@ export async function saveHumanScore(
       .set({ humanScore, humanNote })
       .where(and(eq(s.evaluations.id, evaluationId), eq(s.evaluations.userId, userId)))
       .returning({ id: s.evaluations.id });
-    if (!updated.length) throw new Error("evaluación inexistente");
+    if (!updated.length) throw new EvaluationNotFoundError();
   });
 }
 
@@ -383,7 +399,7 @@ export async function saveHumanVerdict(
         ),
       )
       .returning({ id: s.evaluations.id });
-    if (!updated.length) throw new Error("evaluación inexistente");
+    if (!updated.length) throw new EvaluationNotFoundError();
   });
 }
 
@@ -410,6 +426,6 @@ export async function saveHumanNote(
         ),
       )
       .returning({ id: s.evaluations.id });
-    if (!updated.length) throw new Error("evaluación inexistente");
+    if (!updated.length) throw new EvaluationNotFoundError();
   });
 }
