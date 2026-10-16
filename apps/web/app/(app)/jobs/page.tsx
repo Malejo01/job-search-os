@@ -14,6 +14,7 @@ import { requireUserId } from "@/lib/session";
 import Link from "next/link";
 import { AutoRefresh } from "./auto-refresh";
 import { EmailNudge } from "./email-nudge";
+import { FirstSteps, firstStepsHidden } from "./first-steps";
 import { JobFilters } from "./job-filters";
 import { JobList } from "./job-list";
 import { RoleGaps } from "./role-gaps";
@@ -37,6 +38,7 @@ export default async function JobsPage({
     reviewProgressFor(userId, filters),
   ]);
   const query = listQuery(filters);
+  const stepsHidden = await firstStepsHidden(userId);
 
   return (
     <section className="flex flex-col gap-3">
@@ -50,8 +52,10 @@ export default async function JobsPage({
           </Link>
         </p>
       </div>
+      <FirstSteps userId={userId} />
       <RoleNudge userId={userId} />
-      <EmailNudge userId={userId} />
+      {/* D2: mientras la checklist está visible, su ítem 6 reemplaza al aviso de email */}
+      {stepsHidden ? <EmailNudge userId={userId} /> : null}
       <RoleGaps userId={userId} />
       {/* Posibles duplicados (JS-025): se revisan a mano, desde el detalle */}
       {filters.duplicates ? (

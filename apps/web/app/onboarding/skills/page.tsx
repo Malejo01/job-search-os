@@ -4,6 +4,7 @@ import { getTargetRoles, isOnboardingComplete } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
 import { ROLE_SKILLS, getSkillsPageData } from "@/lib/skill-levels";
 import { SkillsForm, parseRoleParam } from "../../(app)/settings/skills/skills-form";
+import { OnboardingSteps } from "../steps";
 import { saveOnboardingSkillsAction } from "./actions";
 
 export const metadata = { title: "Tus skills" };
@@ -37,6 +38,7 @@ export default async function OnboardingSkillsPage({
 
   return (
     <section className="flex flex-col gap-3">
+      <OnboardingSteps current={2} />
       <h1 className="text-xl font-semibold">Tus skills</h1>
       <p className="text-sm text-zinc-600">
         Opcional. Con tus niveles, el mercado y el plan muestran lo que te falta de verdad. Lo podés

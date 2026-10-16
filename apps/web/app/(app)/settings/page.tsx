@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { withUser } from "@/lib/db";
 import { getInboundAddress } from "@/lib/inbound-address";
+import { canCreateInvitations } from "@/lib/invitations";
 import { getTargetRoles, getTargetRolesLimit } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
 import { DeleteAccountForm } from "./delete-account-form";
@@ -23,10 +24,11 @@ export default async function SettingsPage({
 }) {
   const userId = await requireUserId();
   const { error, direccion, puesto } = await searchParams;
-  const [address, targetRoles, rolesLimit] = await Promise.all([
+  const [address, targetRoles, rolesLimit, canInvite] = await Promise.all([
     getInboundAddress(userId),
     getTargetRoles(userId),
     getTargetRolesLimit(userId),
+    canCreateInvitations(userId),
   ]);
   const [user] = await withUser(userId, (tx) =>
     tx.select({ email: s.users.email }).from(s.users).where(eq(s.users.id, userId)).limit(1),
@@ -41,12 +43,21 @@ export default async function SettingsPage({
         <p className="text-sm text-zinc-700">
           Email: <span className="font-medium">{user?.email ?? "—"}</span>
         </p>
-        <Link href="/settings/invitations" className="text-sm text-zinc-900 underline">
-          Invitaciones
-        </Link>
-
         <DeleteAccountForm error={Boolean(error)} />
       </section>
+
+      {canInvite ? (
+        <section className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
+          <h2 className="text-lg font-medium">Invitar a alguien</h2>
+          <p className="text-sm text-zinc-700">Mandale un link a quien quieras sumar a la beta.</p>
+          <Link
+            href="/settings/invitations"
+            className="inline-flex min-h-11 items-center self-start rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
+          >
+            Crear invitación
+          </Link>
+        </section>
+      ) : null}
 
       <TargetRolesForm
         current={targetRoles}

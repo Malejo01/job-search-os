@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
+  closePrivacyDialog,
   createInboundEmail,
   deleteInboundEmails,
   login,
@@ -37,6 +38,7 @@ test.describe.serial("Flujo 24: asistente con el paso actual", () => {
   test("sin nada hecho: paso 1 con el recorrido a Gmail en texto, sin link", async ({ page }) => {
     await login(page);
     await page.goto("/settings/asistente");
+    await closePrivacyDialog(page);
     const current = page.locator('[aria-current="step"]');
     await expect(current).toHaveCount(1);
     await expect(current).toContainText("Agregá la dirección de reenvío");
@@ -54,6 +56,7 @@ test.describe.serial("Flujo 24: asistente con el paso actual", () => {
     });
     await login(page);
     await page.goto("/settings/asistente");
+    await closePrivacyDialog(page);
     const current = page.locator('[aria-current="step"]');
     await expect(current).toContainText("Confirmá el reenvío");
     const confirm = current.getByRole("link", { name: "Confirmar reenvío" });
@@ -68,6 +71,7 @@ test.describe.serial("Flujo 24: asistente con el paso actual", () => {
   test("«Ya importé los filtros» pasa al paso 4", async ({ page }) => {
     await login(page);
     await page.goto("/settings/asistente");
+    await closePrivacyDialog(page);
     const current = page.locator('[aria-current="step"]');
     await expect(current).toContainText("Importá los filtros");
     await current.getByRole("button", { name: "Ya importé los filtros" }).click();
@@ -84,6 +88,7 @@ test.describe.serial("Flujo 24: asistente con el paso actual", () => {
     });
     await login(page);
     await page.goto("/settings/asistente");
+    await closePrivacyDialog(page);
     const current = page.locator('[aria-current="step"]');
     await expect(current).toContainText("Listo");
     await expect(current).toContainText("Primera alerta recibida");

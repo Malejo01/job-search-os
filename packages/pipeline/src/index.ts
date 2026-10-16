@@ -30,3 +30,4 @@ export * from "./product";
 export { inferRoleHints, SOURCE_CATEGORY_ROLES } from "./skills/role-hints";
 export * from "./pool";
 export * from "./trust";
+export * from "./first-steps";

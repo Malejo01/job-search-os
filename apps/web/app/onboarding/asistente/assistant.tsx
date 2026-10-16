@@ -4,12 +4,19 @@ import {
   GMAIL_FORWARDING_PATH,
   type AssistantStep,
 } from "@job-search-os/pipeline";
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { AutoRefresh } from "@/app/(app)/jobs/auto-refresh";
-import { TrustBox } from "@/app/components/trust-box";
+import { PRIVACY_OK_COOKIE, TrustBox } from "@/app/components/trust-box";
 import type { AssistantState } from "@/lib/assistant-state";
-import { confirmedForwardingAction, filtersImportedAction } from "./actions";
+import { requireUserId } from "@/lib/session";
+import {
+  confirmedForwardingAction,
+  filtersImportedAction,
+  privacyAcknowledgedAction,
+} from "./actions";
 import { CopyButton } from "./copy-button";
+import { PrivacyDialog } from "./privacy-dialog";
 
 const LEGACY_NOTICE =
   "Tu dirección es de un formato anterior: generá una nueva en Ajustes › Email entrante antes de configurar Gmail.";
@@ -53,6 +60,9 @@ export function Assistant({
   const inOnboarding = context === "onboarding";
   return (
     <section className="flex flex-col gap-4">
+      {inOnboarding ? (
+        <p className="text-sm font-medium text-zinc-600">Opcional · Conectar alertas</p>
+      ) : null}
       <h1 className="text-xl font-semibold">Conectá tus alertas de email (opcional)</h1>
       <p className="text-sm text-zinc-700">
         Ya tenés ofertas de las fuentes públicas. Si además recibís alertas de LinkedIn, Get on
@@ -122,7 +132,7 @@ export function Assistant({
         maxMs={30 * 60 * 1000}
       />
 
-      <TrustBox />
+      <PrivacyModal />
 
       <div className="flex flex-wrap items-center justify-end gap-3">
         {inOnboarding ? (
@@ -141,6 +151,20 @@ export function Assistant({
         </Link>
       </div>
     </section>
+  );
+}
+
+/** Modal de privacidad: se abre solo si la persona no dijo «Entiendo y continúo»; el link lo reabre. */
+async function PrivacyModal() {
+  const userId = await requireUserId();
+  const jar = await cookies();
+  return (
+    <PrivacyDialog
+      initiallyOpen={jar.get(PRIVACY_OK_COOKIE)?.value !== userId}
+      acknowledge={privacyAcknowledgedAction}
+    >
+      <TrustBox />
+    </PrivacyDialog>
   );
 }
 

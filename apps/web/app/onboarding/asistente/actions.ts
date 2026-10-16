@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
+import { PRIVACY_OK_COOKIE, PRIVACY_OK_MAX_AGE } from "@/app/components/trust-box";
 import { FILTERS_COOKIE, FILTERS_COOKIE_MAX_AGE } from "@/lib/assistant-state";
 import { markInboundSeen } from "@/lib/inbox-list";
 import { requireUserId } from "@/lib/session";
@@ -18,6 +19,20 @@ export async function confirmedForwardingAction(formData: FormData): Promise<voi
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await markInboundSeen(userId, id);
+  refresh();
+}
+
+/** «Entiendo y continúo»: cookie `httpOnly` de un año con el id del usuario; el modal no vuelve. */
+export async function privacyAcknowledgedAction(): Promise<void> {
+  const userId = await requireUserId();
+  const jar = await cookies();
+  jar.set(PRIVACY_OK_COOKIE, userId, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: PRIVACY_OK_MAX_AGE,
+  });
   refresh();
 }
 
