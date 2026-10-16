@@ -244,7 +244,8 @@ test.describe("Flujo 38: primeros pasos, de la persona nueva a la checklist comp
 
     const yes = page
       .getByRole("group", { name: "¿Te sirve esta evaluación?" })
-      .getByRole("button", { name: "Sí", exact: true });
+      // "Sí" hoy; "Sí, me sirve" con el #93 (nombre accesible): vale con cualquier orden de merge
+      .getByRole("button", { name: /^Sí(, me sirve)?$/ });
     await yes.click();
     await expect(yes).toHaveAttribute("aria-pressed", "true");
 
