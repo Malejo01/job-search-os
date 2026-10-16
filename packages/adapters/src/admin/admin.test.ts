@@ -149,4 +149,23 @@ describe("ReplayFixtureSchema / loadReplayFixture", () => {
     const bad = loadReplayFixture("fx/mal.json", { INIT_CWD: "/r" }, read);
     expect(bad).toMatchObject({ ok: false, error: expect.stringContaining("JSON") });
   });
+  it("htmlFile solo lee .html y nunca desde fixtures-private", () => {
+    const files: Record<string, string> = {
+      "/r/fx/env.json": JSON.stringify({ ...base, htmlFile: "../.env" }),
+      "/r/fx/priv.json": JSON.stringify({ ...base, htmlFile: "../fixtures-private/x.html" }),
+      "/r/.env": "SECRETO=1",
+      "/r/fixtures-private/x.html": "<p>privado</p>",
+    };
+    const read = (p: string) => {
+      const v = files[p.replace(/\\/g, "/").replace(/^[A-Za-z]:/, "")];
+      if (v === undefined) throw new Error("ENOENT");
+      return v;
+    };
+    for (const name of ["fx/env.json", "fx/priv.json"]) {
+      expect(loadReplayFixture(name, { INIT_CWD: "/r" }, read)).toMatchObject({
+        ok: false,
+        error: expect.stringContaining(".html público"),
+      });
+    }
+  });
 });

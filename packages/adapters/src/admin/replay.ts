@@ -74,10 +74,15 @@ export function loadReplayFixture(
   }
   const fixture = result.data;
   if (fixture.html !== undefined) return { ok: true, loaded: { fixture, html: fixture.html } };
+  const htmlPath = resolve(dirname(full), fixture.htmlFile!);
+  // Solo HTML y nunca desde fixtures-private: el crudo termina en la base (y con --remote, en producción)
+  if (!/\.html?$/i.test(htmlPath) || /(^|[\\/])fixtures-private([\\/]|$)/i.test(htmlPath)) {
+    return { ok: false, error: "fixture inválido: htmlFile tiene que ser un .html público" };
+  }
   try {
     return {
       ok: true,
-      loaded: { fixture, html: readFile(resolve(dirname(full), fixture.htmlFile!)) },
+      loaded: { fixture, html: readFile(htmlPath) },
     };
   } catch {
     return { ok: false, error: "fixture inválido: no se pudo leer htmlFile" };
