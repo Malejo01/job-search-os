@@ -123,6 +123,9 @@ jobs:
       SEED_USER_PASSWORD: dev-password-local
       E2E_EMAIL: mauro@job-search-os.local
       E2E_PASSWORD: dev-password-local
+      # Usuario seed ficticio como admin de invitaciones: corren los casos "admin" del 38k (#92)
+      # y del 39b (#97). Los casos "no admin" usan cuentas nuevas o se saltean. No es un secreto.
+      ADMIN_EMAILS: mauro@job-search-os.local
       LLM_DAILY_CAP_USD: "0"
     steps:
       - uses: actions/checkout@v4
