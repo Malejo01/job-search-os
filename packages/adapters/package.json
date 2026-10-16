@@ -23,7 +23,10 @@
     "test:coverage": "vitest run --coverage.enabled --coverage.provider=v8 --coverage.reporter=text",
     "applicant:sync": "tsx src/applicant/cli.ts",
     "pool:fetch": "tsx src/pool/cli.ts",
-    "pool:explain": "tsx src/pool/explain-cli.ts"
+    "pool:explain": "tsx src/pool/explain-cli.ts",
+    "admin:invite": "tsx src/admin/invite-cli.ts",
+    "admin:test-users": "tsx src/admin/test-users-cli.ts",
+    "inbound:replay": "tsx src/admin/replay-cli.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.52",
