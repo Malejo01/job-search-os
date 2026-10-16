@@ -31,6 +31,25 @@ export const WEBMAIL_DOMAINS = [
   "tuta.io",
   "fastmail.com",
   "hey.com",
+  // ISP y proveedores de LATAM y otros
+  "fibertel.com.ar",
+  "speedy.com.ar",
+  "arnet.com.ar",
+  "telecentro.com.ar",
+  "uol.com.ar",
+  "ciudad.com.ar",
+  "terra.com.br",
+  "bol.com.br",
+  "uol.com.br",
+  "prodigy.net.mx",
+  "mail.ru",
+  "inbox.ru",
+  "proton.ch",
+  "protonmail.ch",
+  "tutanota.de",
+  "tutamail.com",
+  "duck.com",
+  "web.de",
 ] as const;
 
 const LIST = new Set<string>(WEBMAIL_DOMAINS);
@@ -48,7 +67,7 @@ const BRAND_COUNTRY =
 
 /** ¿El host o dominio es de un proveedor de correo personal? Insensible a mayúsculas y subdominios. */
 export function isWebmailDomain(domain: string): boolean {
-  const host = domain.trim().toLowerCase().replace(/\.$/, "");
+  const host = domain.trim().toLowerCase().replace(/\.+$/, "");
   if (!host) return false;
   // Se prueban los sufijos de 2 y 3 etiquetas (`yahoo.com`, `yahoo.com.ar`) contra la lista y la
   // regex; así un subdominio (`mail.yahoo.com.ar`) cae igual y `gmail.com.empresa-a.example` no.

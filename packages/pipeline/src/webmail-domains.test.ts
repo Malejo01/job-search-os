@@ -27,12 +27,26 @@ describe("isWebmailDomain", () => {
     expect(isWebmailDomain(d)).toBe(true);
   });
 
-  it.each([["GMAIL.com"], ["  Gmail.Com "], ["Hotmail.COM.ar"], ["gmail.com."]])(
+  it.each([["GMAIL.com"], ["  Gmail.Com "], ["Hotmail.COM.ar"], ["gmail.com."], ["gmail.com.."]])(
     "mayúsculas y espacios: %s",
     (d) => {
       expect(isWebmailDomain(d)).toBe(true);
     },
   );
+
+  it.each([
+    ["fibertel.com.ar"],
+    ["mail.speedy.com.ar"],
+    ["terra.com.br"],
+    ["prodigy.net.mx"],
+    ["mail.ru"],
+    ["protonmail.ch"],
+    ["tutamail.com"],
+    ["duck.com"],
+    ["web.de"],
+  ])("ISP y proveedor extra %s es webmail", (d) => {
+    expect(isWebmailDomain(d)).toBe(true);
+  });
 
   it("un subdominio de un proveedor también", () => {
     expect(isWebmailDomain("mail.yahoo.com.ar")).toBe(true);
