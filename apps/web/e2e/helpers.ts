@@ -8,7 +8,7 @@ import postgres from "postgres";
 import { execSync } from "node:child_process";
 import { resolve } from "node:path";
 import { and, eq, inArray, sql } from "drizzle-orm";
-import type { Locator, Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 // Import relativo directo, como global-setup: test-guard.ts no importa nada
 import { assertLocalTestDatabase } from "../../../packages/db/src/test-guard";
 
@@ -33,12 +33,32 @@ export function ownerDb() {
   return { db: drizzle(sql, { schema: s }), close: () => sql.end() };
 }
 
+/** Cookie de «Ocultar» de la checklist «Primeros pasos» (ronda 49): el valor es el id del usuario. */
+export const FIRST_STEPS_COOKIE = "jso_primeros_pasos";
+
+const E2E_BASE_URL = process.env.E2E_BASE_URL ?? "http://localhost:3100";
+
 export async function login(page: Page): Promise<void> {
+  // El usuario principal ya tiene postulaciones y ofertas sembradas: la checklist no es lo que
+  // prueban los demás specs y movería sus conteos y locators. Solo el 38 la ve, con usuarios nuevos
+  await page
+    .context()
+    .addCookies([{ name: FIRST_STEPS_COOKIE, value: E2E_USER_ID, url: E2E_BASE_URL }]);
   await page.goto("/login");
   await page.getByLabel("Email").fill(E2E_EMAIL);
   await page.getByLabel("Contraseña").fill(E2E_PASSWORD);
   await page.getByRole("button", { name: "Entrar" }).click();
   await page.waitForURL("**/jobs**");
+}
+
+/**
+ * El asistente de alertas abre el modal de privacidad al entrar (ronda 49) y, abierto, deja el
+ * resto de la página inerte. Lo cierra con «Entiendo y continúo»; la cookie queda en el contexto.
+ */
+export async function closePrivacyDialog(page: Page): Promise<void> {
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("button", { name: "Entiendo y continúo" }).click();
+  await expect(dialog).toBeHidden();
 }
 
 /**

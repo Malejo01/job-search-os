@@ -4,7 +4,15 @@ import { and, eq, sql } from "drizzle-orm";
 import { createHash, randomBytes } from "node:crypto";
 // Import relativo directo (no el índice de @job-search-os/db, que arrastra import.meta)
 import { deleteUserData } from "../../../packages/db/src/user-tables";
-import { E2E_USER_ID, chooseRoles, createJob, deleteJob, login, ownerDb } from "./helpers";
+import {
+  E2E_USER_ID,
+  chooseRoles,
+  closePrivacyDialog,
+  createJob,
+  deleteJob,
+  login,
+  ownerDb,
+} from "./helpers";
 
 /**
  * Flujo 25 (ronda 27): el guion de `ops/ensayo-invitacion.md` de punta a punta. Una persona nueva
@@ -127,8 +135,10 @@ test.describe("Flujo 25: ensayo de invitación, de la invitación a la primera o
     // Ronda 39: el onboarding pasa por «Tus primeras ofertas»; el email es un paso opcional
     await pageB.waitForURL("**/onboarding/ofertas**");
     await expect(pageB.getByRole("heading", { name: "Tus primeras ofertas" })).toBeVisible();
-    await pageB.getByRole("link", { name: /Conectar mis alertas de email/ }).click();
+    // Ronda 49: «Conectar mis alertas» está en el aviso de arriba y el asistente abre el modal de privacidad
+    await pageB.getByRole("link", { name: "Conectar mis alertas" }).click();
     await pageB.waitForURL("**/onboarding/asistente**");
+    await closePrivacyDialog(pageB);
 
     await expect(pageB.getByTestId("assistant-address")).toHaveText(/^u_[^@]{20}@/);
     await expect(pageB.getByText(/formato anterior/)).toHaveCount(0);
