@@ -1,0 +1,29 @@
+name: smoke
+on: deployment_status
+
+# Smoke de solo lectura contra producción después de cada deploy a Production (docs/OPERACION.md).
+# La URL es fija: no se usa la del evento, para no correr contra previews ni URLs inyectadas.
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    if: github.event.deployment_status.state == 'success' && github.event.deployment_status.environment == 'Production'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CI: "1"
+      SMOKE_BASE_URL: https://busquedalaboral.malejo.com.ar
+      E2E_PROD_EMAIL: ${{ secrets.E2E_PROD_EMAIL }}
+      E2E_PROD_PASSWORD: ${{ secrets.E2E_PROD_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @job-search-os/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @job-search-os/web smoke
+      # Sin trazas ni screenshots (podrían mostrar datos de la cuenta de prueba): solo el resumen
+      - if: failure()
+        run: echo "::error title=smoke falló::El smoke post-deploy falló contra producción; ver el log del paso anterior."
