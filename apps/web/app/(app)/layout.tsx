@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { signOut } from "@/auth";
 import { assertAppRole } from "@/lib/db";
+import { canCreateInvitations } from "@/lib/invitations";
 import { isOnboardingComplete } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
 
@@ -36,6 +37,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   // Gate de onboarding (B2): sin perfil completo no se ve nada de la app. /onboarding está fuera
   // de este grupo; si estuviera adentro, este redirect entraría en loop.
   if (!(await isOnboardingComplete(userId))) redirect("/onboarding");
+  // Solo los admins ven "Invitar". Sin ADMIN_EMAILS no hay consulta; si el chequeo falla, el
+  // layout no se rompe: el link no se muestra.
+  const canInvite = process.env.ADMIN_EMAILS
+    ? await canCreateInvitations(userId).catch(() => false)
+    : false;
   return (
     <div className="flex min-h-screen flex-col">
       <a href="#contenido" className={SKIP_CLASS}>
@@ -47,6 +53,14 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             {PRODUCT_NAME}
           </Link>
           <div className="flex items-center gap-4">
+            {canInvite ? (
+              <Link
+                href="/settings/invitations"
+                className="text-sm text-zinc-600 underline-offset-2 hover:underline"
+              >
+                Invitar
+              </Link>
+            ) : null}
             <Link
               href="/settings"
               className="text-sm text-zinc-600 underline-offset-2 hover:underline"
