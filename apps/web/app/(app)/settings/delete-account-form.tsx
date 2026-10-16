@@ -25,7 +25,7 @@ export function DeleteAccountForm({
           cierra la sesión.
         </p>
         <p className="font-medium text-red-800">
-          Es irreversible: no hay copia ni forma de recuperarla.
+          Es irreversible: no podemos recuperarla.
         </p>
         {error ? (
           <p role="alert" className="text-red-700">

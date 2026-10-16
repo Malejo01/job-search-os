@@ -135,6 +135,7 @@ Las páginas `/legal/privacidad` y `/legal/terminos` completan los datos legales
 | `LEGAL_LOG_DAYS` | Plazo de retención de los registros técnicos; también lo usa la purga (JS-107) | Entero de 1 a 3650 |
 
 - **Si falta una variable** (o `LEGAL_LOG_DAYS` no es válido), la página dice "(dato en revisión)" o "un plazo que está en revisión", nunca el marcador.
+- **Aviso "Borrador en revisión":** las páginas legales lo muestran mientras falte o sea inválida alguna `LEGAL_*` que el texto usa, o quede una decisión `{{MAURO: …}}` en `apps/web/content/legal/*.md`. Con las cuatro cargadas y sin decisiones pendientes, el aviso desaparece sin otro deploy de código.
 - **Los valores se muestran como texto:** no se interpretan como Markdown ni como HTML, y no se loguean.
 - **Sin `LEGAL_LOG_DAYS`,** la purga solo borra los tokens de reseteo vencidos.
 

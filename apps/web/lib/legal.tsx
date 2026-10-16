@@ -3,10 +3,12 @@ import { join } from "node:path";
 import type { ReactNode } from "react";
 import {
   fillLegalPlaceholders,
+  legalTextIsDraft,
   parseLegalMarkdown,
   type BlockNode,
   type InlineNode,
   type LegalDocument,
+  type LegalEnv,
 } from "@job-search-os/pipeline";
 
 export type LegalName = "privacidad" | "terminos";
@@ -39,17 +41,22 @@ export function loadLegalDocument(name: LegalName): LegalDocument {
 /**
  * Igual que loadLegalDocument pero con los datos legales de las variables LEGAL_* (JS-120). Se
  * lee `process.env` en cada request: las páginas que lo usan son dinámicas. Los valores no se loguean.
+ * `draft` es true mientras falte una variable o quede una decisión pendiente en el texto.
  */
-function loadFilledLegalDocument(name: LegalName): LegalDocument {
+function loadFilledLegalDocument(name: LegalName): { doc: LegalDocument; draft: boolean } {
   const path = candidates(name).find((p) => existsSync(p));
   if (!path) throw new Error(`No se encontró el texto legal "${name}"`);
-  const filled = fillLegalPlaceholders(readFileSync(path, "utf8"), {
+  const raw = readFileSync(path, "utf8");
+  const env: LegalEnv = {
     LEGAL_RESPONSABLE: process.env.LEGAL_RESPONSABLE,
     LEGAL_DOMICILIO: process.env.LEGAL_DOMICILIO,
     LEGAL_EMAIL: process.env.LEGAL_EMAIL,
     LEGAL_LOG_DAYS: process.env.LEGAL_LOG_DAYS,
-  });
-  return parseLegalMarkdown(filled);
+  };
+  return {
+    doc: parseLegalMarkdown(fillLegalPlaceholders(raw, env)),
+    draft: legalTextIsDraft(raw, env),
+  };
 }
 
 function renderInline(nodes: InlineNode[]): ReactNode[] {
@@ -172,18 +179,24 @@ export function legalUpdatedAt(doc: LegalDocument): string | null {
   return doc.meta.actualizado ?? doc.meta.updated ?? null;
 }
 
-/** Página común de /privacidad y /terminos: aviso de borrador + texto. Server Component. */
+/**
+ * Página común de /privacidad y /terminos. El aviso de borrador sale solo si falta un dato legal
+ * o queda una decisión pendiente: producción nunca muestra un texto incompleto como vigente.
+ * Server Component.
+ */
 export function LegalPage({ name }: { name: LegalName }) {
-  const doc = loadFilledLegalDocument(name);
+  const { doc, draft } = loadFilledLegalDocument(name);
   const updated = legalUpdatedAt(doc);
   return (
     <article className="mx-auto max-w-prose break-words text-sm sm:text-base">
-      <p
-        role="note"
-        className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
-      >
-        <strong>Borrador en revisión:</strong> todavía no vigente.
-      </p>
+      {draft ? (
+        <p
+          role="note"
+          className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+        >
+          <strong>Borrador en revisión:</strong> todavía no vigente.
+        </p>
+      ) : null}
       {updated ? (
         <p className="mt-2 text-xs text-zinc-600">Última actualización: {updated}</p>
       ) : null}
