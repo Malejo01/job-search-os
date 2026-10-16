@@ -1,6 +1,6 @@
 import { createDb, loadLocalEnv } from "@job-search-os/db";
 import { createLogger } from "../logger";
-import { resolveTargetUrl, safeError } from "./common";
+import { normalizeEmail, resolveTargetUrl, safeError } from "./common";
 import { loadReplayFixture, parseReplayArgs, replayInbound } from "./replay";
 import { DEFAULT_ALLOWLIST, readAllowlist } from "./test-users";
 
@@ -27,7 +27,7 @@ async function main(): Promise<void> {
   // Contra la nube solo a cuentas de prueba: un replay ingesta datos y encola evaluaciones (LLM)
   if (args.remote) {
     const allowlist = readAllowlist(DEFAULT_ALLOWLIST);
-    if (!allowlist.ok || !allowlist.emails.includes(args.to)) {
+    if (!allowlist.ok || !allowlist.emails.includes(normalizeEmail(args.to))) {
       console.error(
         `con --remote, --to tiene que ser una cuenta de prueba de ${DEFAULT_ALLOWLIST}: no se hace nada`,
       );

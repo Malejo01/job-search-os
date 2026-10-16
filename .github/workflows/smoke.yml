@@ -14,16 +14,19 @@ jobs:
     env:
       CI: "1"
       SMOKE_BASE_URL: https://busquedalaboral.malejo.com.ar
-      E2E_PROD_EMAIL: ${{ secrets.E2E_PROD_EMAIL }}
-      E2E_PROD_PASSWORD: ${{ secrets.E2E_PROD_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
+        with: { persist-credentials: false }
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @job-search-os/web exec playwright install --with-deps chromium
+      # Las credenciales solo en este paso: install y playwright install corren scripts de dependencias
       - run: pnpm --filter @job-search-os/web smoke
+        env:
+          E2E_PROD_EMAIL: ${{ secrets.E2E_PROD_EMAIL }}
+          E2E_PROD_PASSWORD: ${{ secrets.E2E_PROD_PASSWORD }}
       # Sin trazas ni screenshots (podrían mostrar datos de la cuenta de prueba): solo el resumen
       - if: failure()
         run: echo "::error title=smoke falló::El smoke post-deploy falló contra producción; ver el log del paso anterior."
