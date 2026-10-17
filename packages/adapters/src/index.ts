@@ -59,6 +59,7 @@ export { assignPoolToUser, type AssignOptions, type AssignResult } from "./pool/
 export { hasPoolEvaluationActivity, loadPoolEvalLimit } from "./pool/usage";
 export { explainEmptyRoles } from "./pool/role-coverage";
 export { assignPoolDaily, type PoolDailyOptions, type PoolDailyResult } from "./pool/daily";
+export { CAREER_MARKET_WINDOW_DAYS, readCareerMarketInput } from "./market/career-market";
 export {
   buildRoleMarketSnapshots,
   getRoleMarket,

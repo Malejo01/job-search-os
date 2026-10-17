@@ -1,0 +1,49 @@
+import { readCareerMarketInput } from "@job-search-os/adapters";
+import {
+  ROLE_KEYS,
+  buildCareerMarket,
+  type CareerMarket,
+  type RoleKey,
+} from "@job-search-os/pipeline";
+import { unstable_cache } from "next/cache";
+import { assertAppRole, getAppDb } from "./db";
+import { ROLE_SKILLS } from "./skill-levels";
+
+/**
+ * Mercado por carrera (ronda 58): lo que piden las ofertas públicas del pool para una carrera,
+ * con skills, inglés, seniority, sueldos y volumen. Cálculo puro en el pipeline; acá solo la lectura
+ * y el caché.
+ */
+
+/** `?carrera=`: solo claves de `ROLE_KEYS`. Con varios valores, el primero; lo demás es null. */
+export function parseCareer(param: string | string[] | undefined): RoleKey | null {
+  const wanted = Array.isArray(param) ? param[0] : param;
+  return ROLE_KEYS.find((k) => k === wanted) ?? null;
+}
+
+/** Etiqueta de la carrera, la del seed de roles; nunca la clave interna. */
+export function careerLabel(role: RoleKey): string {
+  return ROLE_SKILLS[role].label;
+}
+
+/**
+ * Caché de 30 minutos por carrera. La clave y los tags NO llevan usuario a propósito: el resultado
+ * sale solo de `public_jobs`, `public_job_skills` y `skills` (lectura abierta, sin datos de nadie),
+ * así que es idéntico para todas las personas y compartirlo es seguro. El valor es JSON plano
+ * (fechas en ISO) porque el Data Cache lo serializa.
+ */
+export function getCareerMarket(role: RoleKey): Promise<CareerMarket> {
+  return unstable_cache(
+    async () => {
+      await assertAppRole();
+      // Sin `withUser`: no se fija `app.user_id`; las policies de estas tablas son `USING (true)`.
+      const input = await getAppDb().transaction(
+        (tx) => readCareerMarketInput(tx, role, new Date()),
+        { accessMode: "read only" },
+      );
+      return buildCareerMarket(input);
+    },
+    ["career-market", "v1", role],
+    { revalidate: 1800, tags: ["career-market", `career-market:${role}`] },
+  )();
+}

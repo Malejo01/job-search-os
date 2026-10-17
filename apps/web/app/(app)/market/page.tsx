@@ -7,8 +7,11 @@ import {
   pickRole,
   type MarketView,
 } from "@/lib/market";
+import { careerLabel, getCareerMarket, parseCareer } from "@/lib/career-market";
 import { getTargetRoles } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
+import { CareerMarket } from "./career-market";
+import { CareerPicker } from "./career-picker";
 import { MissingDataNotice, NoLevelsNotice } from "./data-state-notice";
 import { RoleMarket } from "./role-market";
 import { RoleTabs } from "./role-tabs";
@@ -22,9 +25,11 @@ const INPUT_CLASS =
   "w-full rounded-md border border-zinc-300 px-2 py-2 text-sm text-zinc-800 sm:w-auto";
 
 /**
- * Agenda de mercado (adelanto de JS-031, sin LLM): qué piden las ofertas que ya pasaron por el
- * sistema, ponderado por score (Σ score × must ? 1 : 0.4), cruzado con el nivel propio.
- * Server Component; la única interactividad es el rango de semanas (formulario GET).
+ * Mercado (ronda 58): arriba, "Mercado de <carrera>" con las ofertas públicas del pool (la carrera de
+ * la pestaña o la que se explore con `?carrera=`, sin tocar `?rol=`); abajo, "Tu agenda": agenda de
+ * mercado (adelanto de JS-031, sin LLM) con lo que piden las ofertas que ya pasaron por el sistema,
+ * ponderado por score (Σ score × must ? 1 : 0.4), cruzado con el nivel propio.
+ * Server Component; la interactividad son formularios GET (carrera y rango de semanas).
  */
 export default async function MarketPage({
   searchParams,
@@ -36,10 +41,13 @@ export default async function MarketPage({
   const range = parseRange(params);
   const roles = await getTargetRoles(userId);
   const role = pickRole(roles, params.rol);
-  const [view, state, roleMarket] = await Promise.all([
+  const carrera = parseCareer(params.carrera);
+  const careerRole = carrera ?? role;
+  const [view, state, roleMarket, careerMarket] = await Promise.all([
     getMarket(userId, range),
     getDataState(userId),
     getRoleMarketView(userId, role),
+    careerRole ? getCareerMarket(careerRole) : null,
   ]);
   const { agenda } = view;
 
@@ -59,6 +67,23 @@ export default async function MarketPage({
         active={role}
         keep={{ desde: range.from, hasta: range.to }}
       />
+      <CareerPicker current={careerRole} tab={role} />
+      {careerRole && careerMarket ? (
+        <CareerMarket
+          market={careerMarket}
+          label={careerLabel(careerRole)}
+          backHref={carrera && role && carrera !== role ? `/market?rol=${role}` : undefined}
+        />
+      ) : (
+        <p className="text-xs text-zinc-600">
+          Elegí una carrera y ves qué piden las ofertas públicas de los últimos 30 días.
+        </p>
+      )}
+
+      <h2 className="text-lg font-semibold">Tu agenda</h2>
+      <p className="-mt-3 text-xs text-zinc-600">
+        Lo que piden las ofertas que ya pasaron por tu cuenta, cruzado con tus niveles.
+      </p>
       <RoleMarket view={roleMarket} />
 
       <form method="get" className="flex flex-col gap-2 text-xs text-zinc-600">
