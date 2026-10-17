@@ -173,7 +173,8 @@ test.describe("Flujo 41: mercado por carrera", () => {
     await expect(page.getByRole("combobox", { name: "Explorar otra carrera" })).toBeVisible();
 
     const row = section.getByRole("listitem").filter({ hasText: /Testing automatizado/ });
-    await expect(row).toHaveCount(1);
+    // Con el texto de la sección en el mensaje: si falla, el log del CI muestra qué se renderizó
+    await expect(row, await section.innerText()).toHaveCount(1);
     await expect(row).toContainText(/3 de 3 ofertas \(100 %\)/);
     await expect(row).toContainText(/3 excluyente/);
     await expect(row).not.toContainText(/0 deseable/);
