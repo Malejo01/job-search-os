@@ -167,7 +167,8 @@ test.describe("Flujo 41: mercado por carrera", () => {
   }) => {
     await login(page);
     await page.goto("/market?carrera=marketing_digital");
-    const section = page.getByRole("region", { name: /^Mercado de/ });
+    // Nombre completo: «Tu agenda» tiene otra región, «Mercado del rol», que un /^Mercado de/ también toma
+    const section = page.getByRole("region", { name: /^Mercado de Marketing digital/ });
     await expect(section).toBeVisible();
     await expect(page.getByRole("combobox", { name: "Explorar otra carrera" })).toBeVisible();
 
