@@ -10,7 +10,13 @@ const field = "min-h-11 rounded-md border border-zinc-300 px-3 py-2 text-base";
 export type RoleOption = { key: string; label: string };
 
 /** Formulario "Pedir acceso". Las carreras las arma la página (servidor) para no traer la base al cliente. */
-export function WaitlistForm({ roles }: { roles: RoleOption[] }) {
+export function WaitlistForm({
+  roles,
+  contact,
+}: {
+  roles: RoleOption[];
+  contact: { email: string; href: string } | null;
+}) {
   const [state, action, pending] = useActionState(submitWaitlist, INITIAL);
   const formRef = useRef<HTMLFormElement>(null);
   // Mientras se envía no se muestran los errores del intento anterior
@@ -150,7 +156,6 @@ export function WaitlistForm({ roles }: { roles: RoleOption[] }) {
         {showError && state.status === "error" ? state.message : ""}
       </p>
 
-      {/* TODO(63): agregar el email de contacto para pedir el borrado (lo resuelve el lead con Mauro) */}
       <p className="text-xs text-zinc-600">
         Guardamos tu nombre, email, carrera y cómo nos conociste solo para avisarte cuando haya
         lugar. Los ve solo quien administra el proyecto. Más info en{" "}
@@ -158,6 +163,16 @@ export function WaitlistForm({ roles }: { roles: RoleOption[] }) {
           Privacidad
         </Link>
         .
+        {contact ? (
+          <>
+            {" "}
+            Para borrar tus datos, escribinos a{" "}
+            <a href={contact.href} className="underline">
+              {contact.email}
+            </a>
+            .
+          </>
+        ) : null}
       </p>
     </form>
   );

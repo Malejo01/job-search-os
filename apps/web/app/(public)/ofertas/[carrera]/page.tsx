@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { careerLabel } from "@/lib/career-market";
+import { contactLink } from "@/lib/contact";
 import { careerFromSlug, getShowcaseCards } from "@/lib/showcase";
 import { CareerChips } from "../../mercado/career-chips";
 import { OffersList } from "../offers-list";
@@ -43,7 +44,7 @@ export default async function OfertasCarreraPage({ params }: Props) {
         </p>
         <h1 className="text-3xl font-semibold">Ofertas de {label}</h1>
       </header>
-      <OffersList cards={cards} />
+      <OffersList cards={cards} contact={contactLink("Retirar un aviso")} />
       <section aria-labelledby="otras" className="flex flex-col gap-3">
         <h2 id="otras" className="text-xl font-semibold">
           Cambiar de carrera
