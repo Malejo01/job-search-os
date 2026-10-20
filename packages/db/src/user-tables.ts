@@ -63,6 +63,19 @@ export const USER_TABLES: readonly UserTableEntry[] = [
   { table: "password_reset_tokens", column: "user_id", action: "delete" },
 ];
 
+/**
+ * Tablas con columna de dueño que el borrado de cuenta NO recorre, con el motivo. El test de
+ * cobertura las acepta solo si están acá.
+ */
+export const USER_TABLES_EXEMPT: readonly { table: string; column: string; reason: string }[] = [
+  {
+    table: "app_admins",
+    column: "user_id",
+    reason:
+      "tabla de admins sin acceso de la app (solo la leen las funciones SECURITY DEFINER de rls/0006); la fila cae por ON DELETE CASCADE desde users",
+  },
+];
+
 /** `users` se borra siempre al final: el resto de las tablas la referencian lógicamente. */
 export const usersTableIsLast = { table: "users", column: "id" } as const;
 
