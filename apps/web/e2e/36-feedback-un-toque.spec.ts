@@ -41,7 +41,7 @@ test.describe("Flujo 36: feedback de un toque", () => {
     await expect.poll(async () => (await evaluationFeedbackOf(mismo))?.humanNote).toBe("sueldo");
 
     // Sin page.goto: el formulario numérico se remonta con la nota nueva al revalidar
-    await page.getByText("Ajustar el score (avanzado)").click();
+    await page.getByText("Corregir el puntaje").click();
     await expect(page.getByLabel("Nota")).toHaveValue("sueldo");
     await page.getByLabel("Score humano (0–10)").fill("6");
     await page.getByRole("button", { name: "Guardar", exact: true }).click();
@@ -142,7 +142,7 @@ test.describe("Flujo 36: feedback de un toque", () => {
   test("el score numérico no pisa el veredicto ni la nota", async ({ page }) => {
     await login(page);
     await page.goto(`/jobs/${detalle}`);
-    await page.getByText("Ajustar el score (avanzado)").click();
+    await page.getByText("Corregir el puntaje").click();
     await page.getByLabel("Score humano (0–10)").fill("6");
     await expect(page.getByLabel("Nota")).toHaveValue("el score está alto");
     await page.getByRole("button", { name: "Guardar", exact: true }).click();

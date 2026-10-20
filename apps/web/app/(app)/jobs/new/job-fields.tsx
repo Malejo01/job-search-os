@@ -101,7 +101,8 @@ export function JobFields({
         </label>
       </div>
       <label className="flex flex-col gap-1 text-sm">
-        Descripción del puesto (pegá el texto completo; si la dejás vacía queda pendiente de JD)
+        Descripción del puesto (pegá el texto completo; si la dejás vacía queda en «Sin
+        descripción»)
         <textarea
           name="jdText"
           rows={8}

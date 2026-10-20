@@ -22,9 +22,9 @@ test.describe("Flujo 2: pegar JD → evaluación al instante (JS-027)", () => {
     const card = page.locator("li", { hasText: title });
     await expect(card).toBeVisible();
     await card.getByPlaceholder("Pegá acá la descripción completa del puesto").fill(JD);
-    await card.getByRole("button", { name: "Guardar JD y evaluar" }).click();
+    await card.getByRole("button", { name: "Guardar descripción y evaluar" }).click();
     await expect(page.getByRole("status")).toContainText(
-      "JD guardada: la oferta queda en cola para evaluar",
+      "Descripción guardada: la oferta queda en cola para evaluar",
     );
     await expect(page.locator("li", { hasText: title })).toHaveCount(0);
 

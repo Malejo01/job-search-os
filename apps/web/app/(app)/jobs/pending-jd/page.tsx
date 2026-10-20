@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { CAP_MESSAGES } from "@/lib/evaluate-now";
 import { formatDate, safeHttpUrl, SOURCE_LABELS } from "@/lib/labels";
-import { CLAUDE_IN_CHROME_SNIPPET, listPendingJd, PENDING_LIMIT } from "@/lib/pending-jd";
+import { listPendingJd, PENDING_LIMIT } from "@/lib/pending-jd";
 import { requireUserId } from "@/lib/session";
 import { closeJobAction, pasteJdAction } from "./actions";
-import { CopyButton } from "./copy-button";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Pendientes de descripción" };
+export const metadata = { title: "Sin descripción" };
 // La evaluación inmediata al pegar JD (JS-027) corre en `after` dentro de esta invocación
 export const maxDuration = 120;
 
@@ -30,10 +29,9 @@ export default async function PendingJdPage({
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between gap-2">
-        <h1 className="text-xl font-semibold">Pendientes de JD</h1>
+        <h1 className="text-xl font-semibold">Sin descripción</h1>
         <p className="text-xs text-zinc-600">
-          {rows.length === PENDING_LIMIT ? `primeras ${PENDING_LIMIT}` : rows.length} sin
-          descripción
+          {rows.length === PENDING_LIMIT ? `primeras ${PENDING_LIMIT}` : rows.length} para completar
         </p>
       </div>
       <p className="text-sm text-zinc-700">
@@ -49,12 +47,13 @@ export default async function PendingJdPage({
       ) : null}
       {capMessage ? (
         <p role="status" className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          JD guardada. {capMessage}
+          Descripción guardada. {capMessage}
         </p>
       ) : null}
       {ok ? (
         <p role="status" className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-          JD guardada: la oferta queda en cola para evaluar. Cuando termine la ves con score en{" "}
+          Descripción guardada: la oferta queda en cola para evaluar. Cuando termine la ves con
+          score en{" "}
           <Link href={`/jobs/${ok}`} className="underline">
             el detalle
           </Link>{" "}
@@ -66,23 +65,27 @@ export default async function PendingJdPage({
         </p>
       ) : null}
 
-      <details className="rounded-md border border-zinc-200 bg-zinc-50 p-3 text-sm">
-        <summary className="cursor-pointer font-medium">
-          Cómo leer la JD con Claude in Chrome
+      <details
+        open={rows.length > 0}
+        className="group rounded-md border border-zinc-200 bg-zinc-50 p-3 text-sm"
+      >
+        <summary className="flex min-h-11 cursor-pointer items-center gap-2 font-medium">
+          <span aria-hidden="true" className="group-open:hidden">
+            ▸
+          </span>
+          <span aria-hidden="true" className="hidden group-open:inline">
+            ▾
+          </span>
+          Cómo completar una oferta
         </summary>
         <ol className="mt-2 list-decimal pl-5 text-zinc-700">
-          <li>Abrí el aviso con el link de la oferta.</li>
-          <li>Pegale esta instrucción a Claude in Chrome y copiá su respuesta:</li>
+          <li>Abrí el aviso con el link «abrir el aviso» de la oferta.</li>
+          <li>Seleccioná y copiá el texto completo del puesto: tareas, requisitos y beneficios.</li>
+          <li>Pegalo en el cuadro de abajo y tocá «Guardar descripción y evaluar».</li>
         </ol>
-        <pre className="mt-2 whitespace-pre-wrap rounded-md bg-white p-2 text-xs text-zinc-800">
-          {CLAUDE_IN_CHROME_SNIPPET}
-        </pre>
-        <div className="mt-2 flex items-center gap-2">
-          <CopyButton text={CLAUDE_IN_CHROME_SNIPPET} />
-          <span className="text-xs text-zinc-600">
-            Máximo 5 avisos por día. El sistema nunca postula por vos.
-          </span>
-        </div>
+        <p className="mt-2 text-xs text-zinc-600">
+          El sistema nunca postula por vos: la postulación la hacés vos en el sitio del aviso.
+        </p>
       </details>
 
       {rows.length === 0 ? (
@@ -142,7 +145,7 @@ export default async function PendingJdPage({
                     type="submit"
                     className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white"
                   >
-                    Guardar JD y evaluar
+                    Guardar descripción y evaluar
                   </button>
                 </div>
               </form>

@@ -1,12 +1,14 @@
 import { schema as s } from "@job-search-os/db";
 import { JOB_STATUSES } from "@job-search-os/pipeline";
 import {
+  countJobs,
   countPossibleDuplicates,
   listJobs,
   LIST_LIMIT,
   listQuery,
   parseJobFilters,
   reviewProgressFor,
+  type JobCounts,
   type JobFilters as ListFilters,
 } from "@/lib/jobs";
 import { PRE_SCORE_EXPLAIN, SOURCE_LABELS, STATUS_LABELS } from "@/lib/labels";
@@ -38,19 +40,26 @@ export default async function JobsPage({
     reviewProgressFor(userId, filters),
   ]);
   const query = listQuery(filters);
+  // Solo hace falta cuando la lista queda vacía: distingue "los filtros no coinciden" de "no hay nada"
+  const counts = rows.length === 0 ? await countJobs(userId) : null;
   const stepsHidden = await firstStepsHidden(userId);
 
   return (
     <section className="flex flex-col gap-3">
-      <div className="flex items-baseline justify-between gap-2">
-        <h1 className="text-xl font-semibold">Ofertas</h1>
-        <p className="text-xs text-zinc-600">
-          {rows.length === LIST_LIMIT ? `primeras ${LIST_LIMIT}` : `${rows.length}`} · por score y
-          fecha ·{" "}
-          <Link href="/jobs/new" className="text-sky-700 underline">
-            nueva oferta
-          </Link>
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0">
+          <h1 className="text-xl font-semibold">Ofertas</h1>
+          <p className="text-xs text-zinc-600">
+            {rows.length === LIST_LIMIT ? `primeras ${LIST_LIMIT}` : `${rows.length}`} · por score y
+            fecha
+          </p>
+        </div>
+        <Link
+          href="/jobs/new"
+          className="inline-flex min-h-11 shrink-0 items-center rounded-md bg-zinc-900 px-3 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
+        >
+          + Cargar oferta
+        </Link>
       </div>
       <FirstSteps userId={userId} />
       <RoleNudge userId={userId} />
@@ -87,11 +96,12 @@ export default async function JobsPage({
         statuses={JOB_STATUSES.map((k) => ({ value: k, label: STATUS_LABELS[k] ?? k }))}
       />
       {rows.length === 0 ? (
-        <p className="rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500">
-          {filters.status === null && progress.total > 0 && progress.revisadas === progress.total
-            ? "No quedan ofertas sin revisar en este período."
-            : "Sin ofertas con estos filtros."}
-        </p>
+        <EmptyList
+          counts={counts}
+          reviewedAll={
+            filters.status === null && progress.total > 0 && progress.revisadas === progress.total
+          }
+        />
       ) : (
         <>
           {rows.some((r) => !r.evaluating && r.score === null && r.preScore !== null) ? (
@@ -104,6 +114,94 @@ export default async function JobsPage({
       )}
       <AutoRefresh active={rows.some((r) => r.evaluating)} />
     </section>
+  );
+}
+
+const EMPTY_BOX =
+  "flex flex-col gap-2 rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-700";
+const EMPTY_LINK =
+  "inline-flex min-h-11 items-center font-medium text-sky-800 underline underline-offset-2";
+
+/**
+ * Lista vacía. Si hay ofertas sin evaluar que los filtros esconden, lo dice y las muestra; si no
+ * hay ninguna oferta, explica cómo conseguir las primeras.
+ */
+function EmptyList({ counts, reviewedAll }: { counts: JobCounts | null; reviewedAll: boolean }) {
+  if (reviewedAll) {
+    return <p className={EMPTY_BOX}>No quedan ofertas sin revisar en este período.</p>;
+  }
+  const porEvaluar = counts?.porEvaluar ?? 0;
+  const sinDescripcion = counts?.sinDescripcion ?? 0;
+  if (porEvaluar > 0 || sinDescripcion > 0) {
+    return (
+      <div className={EMPTY_BOX} data-testid="jobs-empty-unevaluated">
+        <p>
+          Ninguna oferta coincide con estos filtros.{" "}
+          <Link href="/jobs?estado=todas" className={EMPTY_LINK}>
+            Ver todas las ofertas
+          </Link>
+        </p>
+        {porEvaluar > 0 ? (
+          <div className="mt-1">
+            <p>
+              {porEvaluar === 1
+                ? "Tenés 1 oferta que todavía no evaluamos"
+                : `Tenés ${porEvaluar} ofertas que todavía no evaluamos`}
+            </p>
+            <Link href="/jobs?estado=prefiltrada" className={EMPTY_LINK}>
+              verlas
+            </Link>
+          </div>
+        ) : null}
+        {sinDescripcion > 0 ? (
+          <div className="mt-1">
+            <p>
+              {sinDescripcion === 1
+                ? "Tenés 1 oferta sin descripción"
+                : `Tenés ${sinDescripcion} ofertas sin descripción`}
+            </p>
+            <Link href="/jobs/pending-jd" className={EMPTY_LINK}>
+              completarla{sinDescripcion === 1 ? "" : "s"}
+            </Link>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+  if (counts !== null && counts.total === 0) {
+    return (
+      <div className={EMPTY_BOX} data-testid="jobs-empty-none">
+        <p className="font-medium text-zinc-900">Todavía no tenés ofertas</p>
+        <p>Podés empezar de tres maneras:</p>
+        <ul className="flex flex-col items-center">
+          <li>
+            <Link href="/jobs/new" className={EMPTY_LINK}>
+              Cargar una oferta que viste
+            </Link>
+          </li>
+          <li>
+            <Link href="/settings/asistente" className={EMPTY_LINK}>
+              Reenviar tus alertas de empleo por email
+            </Link>
+          </li>
+          <li>
+            <Link href="/settings#puesto" className={EMPTY_LINK}>
+              Esperar las ofertas que sumamos cada día para tus puestos
+            </Link>
+          </li>
+        </ul>
+      </div>
+    );
+  }
+  return (
+    <div className={EMPTY_BOX}>
+      <p>Ninguna oferta coincide con estos filtros.</p>
+      <p>
+        <Link href="/jobs?estado=todas" className={EMPTY_LINK}>
+          Ver todas las ofertas
+        </Link>
+      </p>
+    </div>
   );
 }
 

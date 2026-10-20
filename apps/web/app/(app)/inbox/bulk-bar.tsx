@@ -57,8 +57,8 @@ const button =
  * React; la selección es el conjunto de ids de email que tienen tilde, y se vuelve a leer del DOM
  * al apretar un botón. La acción viaja con su nombre (`kind`) y esa lista de ids, nunca con una
  * posición: así un cambio de ancho de ventana no puede mandar una acción sobre otra fila ni otra
- * acción. El espacio de la barra está reservado y los botones tienen tamaño fijo, para que no se
- * reacomoden bajo el puntero al seleccionar. Después de cualquier acción menos «Eliminar» aparece
+ * acción. La barra flota abajo (no ocupa lugar en la página) y los botones tienen tamaño fijo,
+ * para que no se reacomoden bajo el puntero al seleccionar. Después de cualquier acción menos «Eliminar» aparece
  * «Deshacer» por 10 s. «Eliminar» pide una sola confirmación con la cantidad.
  */
 export function BulkBar({ total, shown, view }: { total: number; shown: number; view: Vista }) {
@@ -148,13 +148,13 @@ export function BulkBar({ total, shown, view }: { total: number; shown: number; 
             : ""}
         </label>
       ) : null}
-      {/* Espacio reservado: la barra aparece sin empujar las filas ni mover los botones */}
-      <div className="min-h-[7.5rem] sm:min-h-[5rem]">
+      {/* Flota abajo de la pantalla: aparece sin empujar las filas ni dejar un hueco cuando no hay selección */}
+      <div>
         {ids.size > 0 ? (
           <div
             role="toolbar"
             aria-label="Acciones en lote"
-            className={`sticky top-2 z-20 flex flex-col gap-2 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-xs shadow-sm ${
+            className={`fixed inset-x-2 bottom-2 z-20 mx-auto flex max-w-5xl flex-col gap-2 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-xs shadow-md ${
               pending ? "opacity-60" : ""
             }`}
           >

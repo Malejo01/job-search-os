@@ -125,7 +125,7 @@ export default async function MarketPage({
       ) : (
         <>
           <Section
-            title="Gaps · demanda alta y nivel ≤ básico"
+            title="Lo que te falta · demanda alta y nivel ≤ básico"
             hint="Lo que más piden las ofertas que te interesan y hoy no tenés. Orden: demanda ponderada."
             rows={agenda.gaps}
             view={view}

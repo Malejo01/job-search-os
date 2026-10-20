@@ -19,7 +19,7 @@ test.describe("Flujo 11: acciones y volumen en /inbox", () => {
   const tag = Date.now();
   const fila = (page: Page, subject: string) =>
     page.getByRole("main").getByRole("listitem").filter({ hasText: subject });
-  // Las pestañas de /inbox (el menú principal también tiene "Pendientes de JD")
+  // Las pestañas de /inbox (el menú principal es otra navegación)
   const pestaña = (page: Page, nombre: string) =>
     page
       .getByRole("navigation", { name: "Vistas" })

@@ -17,7 +17,7 @@ function tabClass(active: boolean): string {
 /**
  * Ingesta manual (JS-023): una oferta vista en cualquier lado (LinkedIn, un mail, un chat) entra
  * por el mismo camino que las automáticas: dedup contra 14 días, prefiltro, estado y cola de
- * evaluación si trae JD. Sin JD queda en "Pendientes de JD". Server Component + Server Action.
+ * evaluación si trae JD. Sin JD queda en "Sin descripción". Server Component + Server Action.
  * Dos modos: completar los campos o pegar el aviso entero (`?modo=pegar`, ronda 63). Si la acción
  * redirige con `?error=`, se pierde el modo pegar: es aceptable.
  */

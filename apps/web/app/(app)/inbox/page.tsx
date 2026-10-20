@@ -14,7 +14,7 @@ import {
   type InboxView,
 } from "@/lib/inbox-list";
 import { getInboundAddress } from "@/lib/inbound-address";
-import { formatDate, parserLabel } from "@/lib/labels";
+import { formatDate, inboundErrorLabel, parserLabel } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import { markSeenAction } from "./actions";
 import { BulkBar } from "./bulk-bar";
@@ -131,7 +131,7 @@ export default async function InboxPage({
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-xl font-semibold">Emails entrantes</h1>
         <p className="text-xs text-zinc-600">
-          {volume.last24h} en 24 h · {volume.last24hNoParser} sin parser · promedio{" "}
+          {volume.last24h} en 24 h · {volume.last24hNoParser} sin poder leer en 24 h · promedio{" "}
           {volume.averagePerDay}/día
           {volume.rejectedLast24h ? ` · ${volume.rejectedLast24h} rechazados` : ""}
         </p>
@@ -217,13 +217,13 @@ export default async function InboxPage({
         </div>
       ) : null}
 
-      <nav aria-label="Vistas" className="flex flex-wrap gap-1 text-sm">
+      <nav aria-label="Vistas" className="flex flex-nowrap gap-1 overflow-x-auto text-sm">
         {TABS.map((t) => (
           <Link
             key={t.view}
             href={t.view === "pendientes" ? "/inbox" : `/inbox?vista=${t.view}`}
             aria-current={view === t.view ? "page" : undefined}
-            className={`rounded-md px-3 py-1.5 ${
+            className={`flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-md px-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900 ${
               view === t.view ? "bg-zinc-900 text-white" : "text-zinc-700 hover:bg-zinc-100"
             }`}
           >
@@ -289,7 +289,7 @@ export default async function InboxPage({
               </p>
               {r.error ? (
                 <p className="mt-1 pl-6 text-xs text-amber-900">
-                  {r.error}{" "}
+                  {inboundErrorLabel(r.error)}{" "}
                   <Link href="/jobs/new" className="underline">
                     cargar a mano
                   </Link>

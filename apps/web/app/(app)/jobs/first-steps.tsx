@@ -75,6 +75,44 @@ export async function FirstSteps({ userId }: { userId: string }) {
     );
   }
 
+  // Con un solo paso obligatorio por hacer, la lista va plegada: el summary ya dice cuál es
+  const pendingRequired = items.filter((i) => !i.optional && !i.done);
+  const onlyOneMissing = pendingRequired.length === 1;
+  const missing = pendingRequired[0];
+  const list = (
+    <ol className="flex flex-col gap-2">
+      {items.map((item) => (
+        <li
+          key={item.id}
+          className={`flex gap-2 ${item.done ? "text-zinc-500" : "text-zinc-900"} ${
+            item.id === firstPending ? "font-semibold" : ""
+          }`}
+        >
+          <span aria-hidden="true" className="w-4 shrink-0">
+            {item.done ? "✓" : "○"}
+          </span>
+          <div className="flex min-w-0 flex-col">
+            <span>
+              {item.text}
+              <span className="sr-only"> {item.done ? "(hecho)" : "(pendiente)"}</span>
+            </span>
+            {item.help ? (
+              <span className="text-xs font-normal text-zinc-600">{item.help}</span>
+            ) : null}
+            {item.link ? (
+              <Link
+                href={item.link.href}
+                className="inline-flex min-h-11 items-center font-medium text-sky-700 underline"
+              >
+                {item.link.label}
+              </Link>
+            ) : null}
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+
   return (
     <section
       aria-labelledby="primeros-pasos-titulo"
@@ -89,37 +127,22 @@ export async function FirstSteps({ userId }: { userId: string }) {
           {done} de {total}
         </p>
       </div>
-      <ol className="flex flex-col gap-2">
-        {items.map((item) => (
-          <li
-            key={item.id}
-            className={`flex gap-2 ${item.done ? "text-zinc-500" : "text-zinc-900"} ${
-              item.id === firstPending ? "font-semibold" : ""
-            }`}
-          >
-            <span aria-hidden="true" className="w-4 shrink-0">
-              {item.done ? "✓" : "○"}
+      {onlyOneMissing ? (
+        <details className="group">
+          <summary className="flex min-h-11 cursor-pointer items-center gap-2 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900">
+            <span aria-hidden="true" className="group-open:hidden">
+              ▸
             </span>
-            <div className="flex min-w-0 flex-col">
-              <span>
-                {item.text}
-                <span className="sr-only"> {item.done ? "(hecho)" : "(pendiente)"}</span>
-              </span>
-              {item.help ? (
-                <span className="text-xs font-normal text-zinc-600">{item.help}</span>
-              ) : null}
-              {item.link ? (
-                <Link
-                  href={item.link.href}
-                  className="inline-flex min-h-11 items-center font-medium text-sky-700 underline"
-                >
-                  {item.link.label}
-                </Link>
-              ) : null}
-            </div>
-          </li>
-        ))}
-      </ol>
+            <span aria-hidden="true" className="hidden group-open:inline">
+              ▾
+            </span>
+            Te falta un paso: {missing?.text}
+          </summary>
+          {list}
+        </details>
+      ) : (
+        list
+      )}
       <div className="flex justify-end">{hide}</div>
     </section>
   );

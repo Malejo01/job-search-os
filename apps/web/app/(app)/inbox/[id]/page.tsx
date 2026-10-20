@@ -5,7 +5,7 @@ import { isUuid } from "@/lib/ids";
 import { webmailErrorFromParams } from "@/lib/filter-leak";
 import { getInboundEmail } from "@/lib/inbox";
 import { markInboundSeen } from "@/lib/inbox-list";
-import { formatDate, parserLabel } from "@/lib/labels";
+import { formatDate, inboundErrorLabel, parserLabel } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import { EmailActions } from "../email-actions";
 import { senderVerdictAction } from "../leak-actions";
@@ -72,7 +72,7 @@ export default async function InboundEmailPage({
         </div>
         {email.error ? (
           <p className="text-xs text-amber-900">
-            {email.error}{" "}
+            {inboundErrorLabel(email.error)}{" "}
             <Link href="/jobs/new" className="underline">
               cargar a mano
             </Link>

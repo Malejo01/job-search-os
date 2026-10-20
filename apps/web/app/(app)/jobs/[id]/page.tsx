@@ -6,6 +6,7 @@ import { isUuid } from "@/lib/ids";
 import { getJobDetail } from "@/lib/job-detail";
 import { jobNeighbors, listQuery, parseJobFilters } from "@/lib/jobs";
 import {
+  ACTION_ADVICE,
   ACTION_LABELS,
   adjustmentText,
   COMPANY_TYPE_LABEL,
@@ -47,9 +48,9 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Oferta" };
 
 const EVENT_LABELS: Record<JobEvent, string> = {
-  prefilter_pass: "Prefiltro ok",
-  prefilter_discard: "Descartar (prefiltro)",
-  needs_jd: "Falta JD",
+  prefilter_pass: "Pasó los filtros",
+  prefilter_discard: "Descartar automáticamente",
+  needs_jd: "Falta la descripción",
   evaluated: "Evaluada",
   apply: "Marcar aplicada",
   discard: "Descartar",
@@ -181,7 +182,7 @@ export default async function JobDetailPage({
             </span>
             {ev ? (
               <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-zinc-700">
-                acción: {ACTION_LABELS[ev.accion] ?? ev.accion}
+                {ACTION_ADVICE[ev.accion] ?? ACTION_LABELS[ev.accion] ?? ev.accion}
               </span>
             ) : null}
             {ev ? (
@@ -251,8 +252,8 @@ export default async function JobDetailPage({
             </Link>{" "}
             ({job.possibleDuplicateOf.company} ·{" "}
             {STATUS_LABELS[job.possibleDuplicateOf.status] ?? job.possibleDuplicateOf.status}):
-            misma empresa y título parecido, pero sin URL ni JD en común. Si es el mismo aviso,
-            fusionalas; si no, sacá la marca.
+            misma empresa y título parecido, pero sin link ni descripción en común. Si es el mismo
+            aviso, fusionalas; si no, sacá la marca.
           </p>
           {job.possibleDuplicateOf.canMerge ? null : (
             <p className="text-xs text-amber-900">
@@ -330,8 +331,8 @@ export default async function JobDetailPage({
           ) : null}
 
           <section className="grid gap-3 sm:grid-cols-2">
-            <Block title="Match fuerte" items={ev.matchFuerte} tone="text-emerald-900" />
-            <Block title="Gaps" items={ev.gaps} tone="text-zinc-800" />
+            <Block title="Lo que ya tenés" items={ev.matchFuerte} tone="text-emerald-900" />
+            <Block title="Lo que te falta" items={ev.gaps} tone="text-zinc-800" />
             <Block title="Señales positivas" items={ev.senales} tone="text-zinc-800" />
             <div className="rounded-md border border-zinc-200 p-3 text-sm">
               <h2 className="font-semibold">Veredicto</h2>
@@ -376,7 +377,7 @@ export default async function JobDetailPage({
             open={ev.humanScore !== null}
             className="rounded-md border border-zinc-200 p-3 text-sm"
           >
-            <summary className="cursor-pointer font-semibold">Ajustar el score (avanzado)</summary>
+            <summary className="cursor-pointer font-semibold">Corregir el puntaje</summary>
             {/* key: al guardar un motivo o un score el formulario se remonta con lo guardado */}
             <form
               key={`${ev.humanScore ?? ""}|${ev.humanNote ?? ""}`}
@@ -436,7 +437,7 @@ export default async function JobDetailPage({
           </div>
           <p className="text-xs text-zinc-600">
             La IA todavía no evaluó esta oferta. La estimación previa sale de reglas, sin
-            inteligencia artificial: skills de la JD contra tu nivel, riesgos y salario contra tu
+            inteligencia artificial: skills del aviso contra tu nivel, riesgos y salario contra tu
             piso. No es la evaluación completa.
           </p>
           <div>{evaluateNow}</div>
@@ -479,9 +480,9 @@ export default async function JobDetailPage({
           </p>
           {job.status === "pendiente_jd" ? (
             <p className="text-xs text-zinc-600">
-              Sin JD: la estimación previa usa solo las señales del aviso y el salario.{" "}
+              Sin descripción: la estimación previa usa solo las señales del aviso y el salario.{" "}
               <Link href="/jobs/pending-jd" className="underline">
-                pegar la JD
+                pegar la descripción
               </Link>
             </p>
           ) : null}
@@ -490,13 +491,13 @@ export default async function JobDetailPage({
         <div className="flex flex-col gap-2 rounded-md border border-dashed border-zinc-300 p-3 text-sm text-zinc-600">
           <p>
             Sin evaluación todavía
-            {job.prefilterReason ? ` · prefiltro: ${job.prefilterReason}` : ""}
+            {job.prefilterReason ? ` · descartada automáticamente: ${job.prefilterReason}` : ""}
             {job.status === "pendiente_jd" ? (
               <>
                 {" "}
                 ·{" "}
                 <Link href="/jobs/pending-jd" className="underline">
-                  pegar la JD
+                  pegar la descripción
                 </Link>
               </>
             ) : null}
