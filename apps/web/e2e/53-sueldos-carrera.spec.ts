@@ -139,9 +139,14 @@ test.describe("Flujo 53: sueldos por carrera", () => {
     }
     try {
       await login(appPage);
-      await appPage.goto("/market?carrera=soporte_it");
+      // El mercado va por unstable_cache (stale-while-revalidate): el build ya guardó la carrera
+      // vacía, y la primera visita después del vencimiento todavía la sirve. Se recarga hasta que
+      // la revalidación traiga los avisos sembrados
       const block = appPage.getByTestId("market-salary");
-      await expect(block).toBeVisible();
+      await expect(async () => {
+        await appPage.goto("/market?carrera=soporte_it");
+        await expect(block).toBeVisible({ timeout: 2_000 });
+      }).toPass({ timeout: 30_000 });
       await expect(block).toContainText("Ofertas abiertas a Argentina / LatAm");
       await expect(block).toContainText("Ofertas internacionales");
     } finally {
