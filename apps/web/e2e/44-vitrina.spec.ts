@@ -104,6 +104,13 @@ test.describe("Flujo 44: vitrina pública", () => {
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
   });
 
+  test("los títulos públicos no llevan el nombre del producto", async ({ page }) => {
+    for (const path of ["/", "/mercado", "/ofertas", "/acceso"]) {
+      await page.goto(path);
+      expect(await page.title(), path).not.toContain("Job Search OS");
+    }
+  });
+
   test("robots.txt y sitemap.xml son públicos", async ({ request }) => {
     const robots = await request.get("/robots.txt");
     expect(robots.status()).toBe(200);
