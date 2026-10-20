@@ -4,12 +4,14 @@ import { eq, sql } from "drizzle-orm";
 import { createHash, randomBytes } from "node:crypto";
 // Import relativo directo (no el índice de @job-search-os/db, que arrastra import.meta)
 import { deleteUserData } from "../../../packages/db/src/user-tables";
-import { E2E_USER_ID, deleteSeededPublicJobs, login, ownerDb } from "./helpers";
+import { E2E_USER_ID, ownerDb } from "./helpers";
 
 /**
  * Flujo 53 (ronda 80): sueldos por carrera en dos segmentos (LatAm e internacional). Una persona
  * nueva ve en el paso 1 la línea corta de sueldos debajo de cada puesto y abre «Ver sueldos»; a
- * 360 px no hay scroll horizontal. En /market (con sesión) se ven los dos segmentos.
+ * 360 px no hay scroll horizontal. Los dos segmentos en /market los verifica el flujo 41: acá no se
+ * puede, porque el prefetch de los links de /mercado ya dejó en caché (30 min) carreras sin avisos
+ * antes de que este spec siembre (ver ops/rondas/80-sueldos-carrera/diagnostico-e2e53.md).
  *
  * El servidor cachea 30 minutos los sueldos y el pool del CI tiene pocos datos: se verifica la
  * estructura (la línea con número o con «pocos datos», los dos rótulos), nunca cifras exactas.
@@ -102,55 +104,5 @@ test.describe("Flujo 53: sueldos por carrera", () => {
       ),
       "sin scroll horizontal a 360 px",
     ).toBe(true);
-  });
-
-  test("/market: se ven los dos segmentos de sueldos", async ({ page: appPage }) => {
-    // El bloque de sueldos solo se pinta si la carrera tiene avisos. Se siembran dos ficticios de
-    // una carrera que ningún otro spec visita (el mercado se cachea 30 minutos por carrera)
-    const { db, close } = ownerDb();
-    try {
-      const now = new Date();
-      for (const i of [0, 1]) {
-        const title = `Oferta Ficticia soporte ${tag} ${i}`;
-        const url = `https://example.com/e2e-pool/${tag}/${i}-soporte`;
-        await db.insert(s.publicJobs).values({
-          sourceKind: "remoteok",
-          // Mismo prefijo que usa la limpieza de helpers.ts
-          externalId: `e2e-pool-${tag}-soporte-${i}`,
-          sourceName: "Remote OK",
-          sourceUrl: url,
-          canonicalUrl: url,
-          title,
-          titleNormalized: title.toLowerCase(),
-          companyRaw: `Empresa Ficticia ${i}`,
-          companyNormalized: `empresa ficticia ${i}`,
-          locationRaw: "Remoto (Anywhere in the World)",
-          modality: "remoto",
-          jdText: `Descripción ficticia ${i} (${tag}).`,
-          jdHash: `e2e-pool-${tag}-soporte-${i}`,
-          roleHints: ["soporte_it"],
-          postedAt: now,
-          firstSeenAt: now,
-          lastSeenAt: now,
-        });
-      }
-    } finally {
-      await close();
-    }
-    try {
-      await login(appPage);
-      // El mercado va por unstable_cache (stale-while-revalidate): el build ya guardó la carrera
-      // vacía, y la primera visita después del vencimiento todavía la sirve. Se recarga hasta que
-      // la revalidación traiga los avisos sembrados
-      const block = appPage.getByTestId("market-salary");
-      await expect(async () => {
-        await appPage.goto("/market?carrera=soporte_it");
-        await expect(block).toBeVisible({ timeout: 2_000 });
-      }).toPass({ timeout: 30_000 });
-      await expect(block).toContainText("Ofertas abiertas a Argentina / LatAm");
-      await expect(block).toContainText("Ofertas internacionales");
-    } finally {
-      await deleteSeededPublicJobs(tag).catch(() => {});
-    }
   });
 });

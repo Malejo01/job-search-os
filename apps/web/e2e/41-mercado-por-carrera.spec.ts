@@ -146,6 +146,10 @@ test.describe("Flujo 41: mercado por carrera", () => {
     await expect(section).toContainText(
       /Pocos datos todavía|Ninguna oferta publica sueldo todavía/,
     );
+    // Ronda 80: dos mercados por separado, nunca una cifra mezclada
+    const salary = section.getByTestId("market-salary");
+    await expect(salary).toContainText("Ofertas abiertas a Argentina / LatAm");
+    await expect(salary).toContainText("Ofertas internacionales");
     // «Tu agenda» sigue en el puesto de la persona
     await expect(page.getByRole("heading", { name: "Tu agenda" })).toBeVisible();
     await expect(page.getByTestId("role-market")).toContainText("QA");
