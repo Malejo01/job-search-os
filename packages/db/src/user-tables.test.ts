@@ -6,6 +6,7 @@ import { hashPassword } from "./password";
 import {
   OWNER_COLUMNS,
   USER_TABLES,
+  USER_TABLES_EXEMPT,
   confirmsAccountDeletion,
   usersTableIsLast,
 } from "./user-tables";
@@ -43,7 +44,9 @@ describe("confirmsAccountDeletion", () => {
 
 describe("USER_TABLES (borrado de cuenta, JS-092)", () => {
   it("cubre toda tabla del schema con columna de dueño (una tabla nueva sin borrado rompe el CI)", () => {
-    const listed = new Set(USER_TABLES.map((e) => key(e.table, e.column)));
+    const listed = new Set(
+      [...USER_TABLES, ...USER_TABLES_EXEMPT].map((e) => key(e.table, e.column)),
+    );
     const missing: string[] = [];
     for (const t of schemaTables) {
       for (const c of t.columns) {
@@ -61,6 +64,16 @@ describe("USER_TABLES (borrado de cuenta, JS-092)", () => {
   it("toda entrada de la lista existe en el schema (tabla y columna)", () => {
     const real = new Set(schemaTables.flatMap((t) => t.columns.map((c) => key(t.name, c.name))));
     expect(USER_TABLES.map((e) => key(e.table, e.column)).filter((k) => !real.has(k))).toEqual([]);
+  });
+
+  it("cada excepción existe en el schema, tiene motivo y no está también en la lista", () => {
+    const real = new Set(schemaTables.flatMap((t) => t.columns.map((c) => key(t.name, c.name))));
+    const listed = new Set(USER_TABLES.map((e) => key(e.table, e.column)));
+    for (const e of USER_TABLES_EXEMPT) {
+      expect(real.has(key(e.table, e.column)), key(e.table, e.column)).toBe(true);
+      expect(listed.has(key(e.table, e.column)), key(e.table, e.column)).toBe(false);
+      expect(e.reason.length).toBeGreaterThan(10);
+    }
   });
 
   it("no repite entradas", () => {

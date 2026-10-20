@@ -283,12 +283,22 @@ export const waitlist = pgTable("waitlist", {
   heardFrom: text("heard_from"),
   ipHash: text("ip_hash"),                                // sha256 con sal; la función lo pone en null a las 24 h
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  invitedAt: timestamp("invited_at", { withTimezone: true }),   // ronda 70: cuándo el admin creó la invitación
+  invitationId: uuid("invitation_id"),                    // sin FK a propósito: la purga puede borrar la invitación
 }, (t) => [
   uniqueIndex("waitlist_email_unique").on(t.email),
   index("waitlist_ip_hash_created").on(t.ipHash, t.createdAt),
   index("waitlist_created").on(t.createdAt),
   check("waitlist_role_check", sql`${t.role} in ('frontend', 'backend', 'fullstack', 'qa', 'data_analyst', 'soporte_it', 'ai_engineer', 'ux_ui', 'marketing_digital', 'producto_proyectos', 'rrhh_it', 'customer_success', 'ciberseguridad')`),
 ]);
+
+// Administradores a nivel base (ronda 70): barrera de las funciones waitlist_admin_* (rls/0006). RLS sin
+// policies: la app no la lee ni escribe; se carga con un INSERT puntual del dueño. Sin ella, ADMIN_EMAILS
+// solo decide qué ve la UI.
+export const appAdmins = pgTable("app_admins", {
+  userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 // Agregados de demanda por rol y semana (global, sin user_id). Los usa /market.
 export const roleMarketSnapshots = pgTable("role_market_snapshots", {

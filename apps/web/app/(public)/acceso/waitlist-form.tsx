@@ -152,7 +152,8 @@ export function WaitlistForm({ roles }: { roles: RoleOption[] }) {
 
       {/* TODO(63): agregar el email de contacto para pedir el borrado (lo resuelve el lead con Mauro) */}
       <p className="text-xs text-zinc-600">
-        Guardamos tu nombre, email y carrera solo para avisarte cuando haya lugar. Más info en{" "}
+        Guardamos tu nombre, email, carrera y cómo nos conociste solo para avisarte cuando haya
+        lugar. Los ve solo quien administra el proyecto. Más info en{" "}
         <Link href="/legal/privacidad" className="underline">
           Privacidad
         </Link>

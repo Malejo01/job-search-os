@@ -74,3 +74,131 @@ END
 $fn$;
 REVOKE ALL ON FUNCTION public.waitlist_join(text, text, text, text, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.waitlist_join(text, text, text, text, text) TO authenticated;
+
+-- Administración de la lista (ronda 70). La app sigue sin privilegios sobre la tabla: el admin lee,
+-- marca y borra solo por estas tres funciones.
+-- Quién es admin: ADMIN_EMAILS sigue siendo la fuente para la UI (qué se muestra); app_admins es la
+-- barrera de la base. Las funciones exigen que auth.uid() (app.user_id de la transacción) esté en
+-- app_admins, así que una sesión común del rol de la app no las puede usar aunque las llame a mano.
+-- Mauro carga su user_id con un INSERT puntual (el seed solo lo hace en local/CI). El código además
+-- verifica ADMIN_EMAILS antes de llamarlas (isInvitationAdmin en lib/waitlist-admin.ts).
+-- Ninguna devuelve ip_hash.
+-- Tiene user_id, así que lleva FORCE como el resto (regla del repo): la única policy es la de lectura
+-- del rol que aplica la migración (dueño de las funciones), como en 0001. La app no tiene ninguna.
+ALTER TABLE "app_admins" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "app_admins" FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "app_admins_definer_select" ON "app_admins";
+CREATE POLICY "app_admins_definer_select" ON "app_admins" FOR SELECT TO CURRENT_USER
+  USING (true);
+REVOKE ALL ON "app_admins" FROM authenticated;
+REVOKE ALL ON "app_admins" FROM jobsearch_app;
+
+-- La supresión completa (waitlist_admin_delete) borra también la invitación sin usar. invitations
+-- tiene FORCE RLS y su única policy de DELETE es por dueño: el rol que aplica la migración (dueño de
+-- la función) necesita la suya, como ya tiene la de SELECT y UPDATE (0001).
+DROP POLICY IF EXISTS "invitations_definer_delete" ON "invitations";
+CREATE POLICY "invitations_definer_delete" ON "invitations" FOR DELETE TO CURRENT_USER
+  USING (true);
+
+CREATE OR REPLACE FUNCTION public.waitlist_admin_list(p_limit integer DEFAULT 500)
+RETURNS TABLE (
+  id uuid,
+  name text,
+  email text,
+  role text,
+  heard_from text,
+  created_at timestamptz,
+  invited_at timestamptz
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $fn$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.app_admins a WHERE a.user_id = auth.uid()) THEN
+    RAISE EXCEPTION 'waitlist_admin: no autorizado';
+  END IF;
+  -- Sin invitar primero y, dentro de cada grupo, las más nuevas primero
+  RETURN QUERY
+    SELECT w.id, w.name, w.email, w.role, w.heard_from, w.created_at, w.invited_at
+      FROM public.waitlist w
+     ORDER BY (w.invited_at IS NOT NULL), w.created_at DESC, w.id
+     LIMIT least(greatest(coalesce(p_limit, 500), 1), 500);
+END
+$fn$;
+REVOKE ALL ON FUNCTION public.waitlist_admin_list(integer) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.waitlist_admin_list(integer) TO authenticated;
+
+-- Una sola fila (para invitar sin recorrer el listado). Sin ip_hash.
+CREATE OR REPLACE FUNCTION public.waitlist_admin_get(p_id uuid)
+RETURNS TABLE (
+  id uuid,
+  email text,
+  invited_at timestamptz
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $fn$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.app_admins a WHERE a.user_id = auth.uid()) THEN
+    RAISE EXCEPTION 'waitlist_admin: no autorizado';
+  END IF;
+  RETURN QUERY
+    SELECT w.id, w.email, w.invited_at FROM public.waitlist w WHERE w.id = p_id;
+END
+$fn$;
+REVOKE ALL ON FUNCTION public.waitlist_admin_get(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.waitlist_admin_get(uuid) TO authenticated;
+
+-- Marca la fila como invitada solo si todavía no lo estaba. Devuelve si cambió.
+CREATE OR REPLACE FUNCTION public.waitlist_admin_mark_invited(
+  p_id uuid,
+  p_invitation_id uuid
+) RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $fn$
+DECLARE
+  v_changed integer;
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.app_admins a WHERE a.user_id = auth.uid()) THEN
+    RAISE EXCEPTION 'waitlist_admin: no autorizado';
+  END IF;
+  UPDATE public.waitlist
+     SET invited_at = now(), invitation_id = p_invitation_id
+   WHERE id = p_id AND invited_at IS NULL;
+  GET DIAGNOSTICS v_changed = ROW_COUNT;
+  RETURN v_changed = 1;
+END
+$fn$;
+REVOKE ALL ON FUNCTION public.waitlist_admin_mark_invited(uuid, uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.waitlist_admin_mark_invited(uuid, uuid) TO authenticated;
+
+-- Borrado a pedido de la persona (supresión completa): borra la fila y, si tenía una invitación que
+-- nadie usó, también esa invitación (lleva su email). Una ya usada queda como registro. Devuelve si
+-- había fila.
+CREATE OR REPLACE FUNCTION public.waitlist_admin_delete(p_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $fn$
+DECLARE
+  v_invitation uuid;
+  v_deleted integer;
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.app_admins a WHERE a.user_id = auth.uid()) THEN
+    RAISE EXCEPTION 'waitlist_admin: no autorizado';
+  END IF;
+  DELETE FROM public.waitlist WHERE id = p_id RETURNING invitation_id INTO v_invitation;
+  GET DIAGNOSTICS v_deleted = ROW_COUNT;
+  IF v_invitation IS NOT NULL THEN
+    DELETE FROM public.invitations WHERE id = v_invitation AND used_at IS NULL;
+  END IF;
+  RETURN v_deleted = 1;
+END
+$fn$;
+REVOKE ALL ON FUNCTION public.waitlist_admin_delete(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.waitlist_admin_delete(uuid) TO authenticated;

@@ -1,7 +1,10 @@
 import { canCreateInvitations, listInvitations } from "@/lib/invitations";
 import { requireUserId } from "@/lib/session";
+import { ROLE_SKILLS } from "@/lib/skill-levels";
+import { listWaitlist, WaitlistNotEnabledInDbError } from "@/lib/waitlist-admin";
 import { revokeInvitationAction } from "./actions";
 import { CreateInvitationForm } from "./create-form";
+import { WaitlistRow } from "./waitlist-row";
 
 export const metadata = { title: "Invitaciones" };
 export const dynamic = "force-dynamic";
@@ -17,6 +20,15 @@ export default async function InvitationsPage() {
     listInvitations(userId),
     canCreateInvitations(userId),
   ]);
+  // Admin en la app pero sin fila en app_admins: la base rechaza la lista; se avisa en vez de romper
+  const loaded = isAdmin
+    ? await listWaitlist(userId).catch((error: unknown) => {
+        if (error instanceof WaitlistNotEnabledInDbError) return null;
+        throw error;
+      })
+    : [];
+  const waitlistEnabled = loaded !== null;
+  const waitlist = loaded ?? [];
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-6">
@@ -65,6 +77,45 @@ export default async function InvitationsPage() {
           </ul>
         )}
       </section>
+
+      {isAdmin && !waitlistEnabled ? (
+        <section className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          Tu cuenta es admin en la app pero falta habilitarla en la base (ver docs del PR).
+        </section>
+      ) : null}
+
+      {isAdmin && waitlistEnabled ? (
+        <section className="flex flex-col gap-2" aria-labelledby="waitlist-heading">
+          <h2 id="waitlist-heading" className="text-lg font-medium">
+            Lista de espera ({waitlist.filter((w) => !w.invitedAt).length} sin invitar)
+          </h2>
+          <p className="text-sm text-zinc-600">
+            No se manda ningún email: copiá el link y enviáselo vos.
+          </p>
+          {waitlist.length === 0 ? (
+            <p className="text-sm text-zinc-600">Nadie se anotó todavía.</p>
+          ) : (
+            <ul className="flex flex-col divide-y divide-zinc-200 rounded-md border border-zinc-200">
+              {waitlist.map((w) => (
+                <WaitlistRow
+                  key={w.id}
+                  entry={{
+                    id: w.id,
+                    name: w.name,
+                    email: w.email,
+                    roleLabel:
+                      (ROLE_SKILLS as Record<string, { label: string } | undefined>)[w.role]
+                        ?.label ?? w.role,
+                    heardFrom: w.heardFrom,
+                    createdLabel: DATE.format(w.createdAt),
+                    invitedLabel: w.invitedAt ? DATE.format(w.invitedAt) : null,
+                  }}
+                />
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
     </div>
   );
 }
