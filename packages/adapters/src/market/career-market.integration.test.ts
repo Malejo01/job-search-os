@@ -4,7 +4,7 @@ import { createDb, schema as s } from "@job-search-os/db";
 import { buildCareerMarket } from "@job-search-os/pipeline";
 import { like } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { readCareerMarketInput } from "./career-market";
+import { readCareerMarketInput, readCareerSalaryJobs } from "./career-market";
 
 /**
  * Ronda 58 · Lectura del mercado por carrera: solo avisos del rol, sin copias y dentro de la
@@ -141,7 +141,39 @@ describe("readCareerMarketInput", () => {
     expect(market.smallSample).toBe(true);
     expect(market.volume.active).toBe(3);
     expect(market.volume.new24h).toBe(1);
-    expect(market.salary).toMatchObject({ informed: 1, total: 3, enough: false });
+    const { latam, international } = market.salary;
+    // Sin países permitidos ni ubicación: no acepta Argentina de forma explícita
+    expect(international).toMatchObject({ informed: 1, total: 3, enough: false });
+    expect(latam).toMatchObject({ informed: 0, total: 0, enough: false });
     expect(market.skills[0]).toMatchObject({ slug: "careermkt_s1", jobs: 2, must: 1, nice: 1 });
+  });
+});
+
+describe("readCareerSalaryJobs", () => {
+  it("trae roleHints, sin texto del aviso, y respeta dedup y la ventana de 30 días", async () => {
+    const root = await pool(["qa", "soporte_it"], [], {
+      jdText: "texto ficticio",
+      countriesAllowed: ["AR"],
+      salaryMinUsd: 1000,
+      salaryMaxUsd: 2000,
+      salaryPeriod: "mensual",
+    });
+    await pool(["qa"], [], { dedupOfId: root }); // copia
+    await pool(["qa"], [], { lastSeenAt: day(40) }); // viejo
+    await pool(["ux_ui"], []);
+
+    const rows = (await readCareerSalaryJobs(conn.db, NOW)).filter((r) =>
+      r.job.title.startsWith("Puesto ficticio"),
+    );
+    expect(rows).toHaveLength(2);
+    const first = rows.find((r) => r.roleHints.includes("soporte_it"));
+    expect(first?.roleHints).toEqual(["qa", "soporte_it"]);
+    expect(first?.job).toMatchObject({
+      countriesAllowed: ["AR"],
+      salaryMinUsd: 1000,
+      salaryPeriod: "mensual",
+    });
+    expect(first?.job).not.toHaveProperty("jdText");
+    expect(rows.some((r) => r.roleHints.includes("ux_ui"))).toBe(true);
   });
 });

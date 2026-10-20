@@ -1,6 +1,10 @@
 "use client";
 
+import type { RoleKey } from "@job-search-os/pipeline";
 import { useId, useState } from "react";
+import { CareerSalary, type CareerSalaryView } from "./career-salary";
+
+export type RolePickerSalaries = Partial<Record<RoleKey, CareerSalaryView>>;
 
 export type RolePickerGroup = {
   label: string;
@@ -18,7 +22,10 @@ export function RolePicker({
   limit,
   groups,
   defaultLimit,
+  salaries,
 }: {
+  /** Sueldos del pool por puesto (ronda 80); sin esto, el selector no muestra nada de sueldos. */
+  salaries?: RolePickerSalaries | undefined;
   name?: string;
   selected: readonly string[];
   limit: number;
@@ -48,25 +55,38 @@ export function RolePicker({
             {group.roles.map((role) => {
               const checked = chosen.has(role.key);
               const disabled = atLimit && !checked;
+              const salary = salaries?.[role.key as RoleKey];
               return (
-                <label
+                <div
                   key={role.key}
-                  className={`flex min-h-11 items-center gap-2 rounded-md border border-zinc-200 px-3 py-2 ${
+                  className={`flex min-w-0 flex-col rounded-md border border-zinc-200 ${
                     disabled ? "text-zinc-500" : "text-zinc-900"
                   }`}
                 >
-                  <input
-                    type="checkbox"
-                    name={name}
-                    value={role.key}
-                    checked={checked}
-                    disabled={disabled}
-                    aria-describedby={disabled ? noteId : undefined}
-                    onChange={(e) => toggle(role.key, e.target.checked)}
-                    className="h-4 w-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
-                  />
-                  {role.label}
-                </label>
+                  <label className="flex min-h-11 items-center gap-2 px-3 py-2">
+                    <input
+                      type="checkbox"
+                      name={name}
+                      value={role.key}
+                      checked={checked}
+                      disabled={disabled}
+                      aria-describedby={disabled ? noteId : undefined}
+                      onChange={(e) => toggle(role.key, e.target.checked)}
+                      className="h-4 w-4 shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
+                    />
+                    {role.label}
+                  </label>
+                  {/* Fuera del label: abrir "Ver sueldos" no tiene que marcar el puesto */}
+                  {salary ? (
+                    <div className="px-3 pb-1">
+                      <CareerSalary
+                        salary={salary}
+                        label={role.label}
+                        testId={`career-salary-${role.key}`}
+                      />
+                    </div>
+                  ) : null}
+                </div>
               );
             })}
           </div>

@@ -12,7 +12,11 @@ import {
 import { unstable_rethrow } from "next/navigation";
 import { CefrHelp } from "@/components/cefr-help";
 import { countChars, TextareaWithCounter } from "@/components/char-counter";
-import { RolePicker, type RolePickerGroup } from "@/components/role-picker";
+import {
+  RolePicker,
+  type RolePickerGroup,
+  type RolePickerSalaries,
+} from "@/components/role-picker";
 import { saveOnboardingAction } from "./actions";
 import { CountrySearch } from "./country-search";
 
@@ -48,6 +52,7 @@ function FieldError({ name }: { name: string }) {
  */
 export function OnboardingForm({
   roleGroups,
+  salaries,
   selectedRoles,
   rolesLimit,
   defaultRolesLimit,
@@ -58,6 +63,8 @@ export function OnboardingForm({
   maxSummary,
 }: {
   roleGroups: RolePickerGroup[];
+  /** Sueldos por puesto del pool público; sin ellos el selector no muestra la línea. */
+  salaries?: RolePickerSalaries | undefined;
   selectedRoles: readonly string[];
   rolesLimit: number;
   defaultRolesLimit: number;
@@ -204,6 +211,7 @@ export function OnboardingForm({
             limit={rolesLimit}
             defaultLimit={defaultRolesLimit}
             groups={roleGroups}
+            salaries={salaries}
           />
           <FieldError name="targetRoles" />
         </fieldset>

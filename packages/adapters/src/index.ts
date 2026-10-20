@@ -61,7 +61,11 @@ export { explainEmptyRoles } from "./pool/role-coverage";
 // Demo guiada (ronda 74): línea en el medio a propósito, el #102 toca las puntas de este archivo.
 export * from "./demo";
 export { assignPoolDaily, type PoolDailyOptions, type PoolDailyResult } from "./pool/daily";
-export { CAREER_MARKET_WINDOW_DAYS, readCareerMarketInput } from "./market/career-market";
+export {
+  CAREER_MARKET_WINDOW_DAYS,
+  readCareerMarketInput,
+  readCareerSalaryJobs,
+} from "./market/career-market";
 export {
   buildRoleMarketSnapshots,
   getRoleMarket,

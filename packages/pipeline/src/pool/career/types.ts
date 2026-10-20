@@ -24,6 +24,18 @@ export type CareerJobInput = {
   jdText: string | null;
 };
 
+/** Lo único que necesita `buildCareerSalary` de un aviso. */
+export type CareerSalaryJob = Pick<
+  CareerJobInput,
+  | "title"
+  | "seniority"
+  | "salaryMinUsd"
+  | "salaryMaxUsd"
+  | "salaryPeriod"
+  | "countriesAllowed"
+  | "locationRaw"
+>;
+
 export type CareerSkillInput = { jobId: string; slug: string; name: string; isMust: boolean };
 
 export type CareerMarketInput = {
@@ -50,6 +62,21 @@ export type CareerSkillRow = {
 export type SeniorityBucket = "junior" | "semi" | "senior" | "lead" | "unknown";
 export type EnglishLevel = "basico" | "intermedio" | "avanzado" | "fluido";
 
+export type SalarySummary = {
+  informed: number;
+  total: number;
+  enough: boolean;
+  /** USD por mes; null si `enough` es false. */
+  p25: number | null;
+  median: number | null;
+  p75: number | null;
+};
+
+/** Un segmento de mercado con su desglose por seniority; cada celda lleva su propio N y umbral. */
+export type SalarySegment = SalarySummary & {
+  bySeniority: Record<SeniorityBucket, SalarySummary>;
+};
+
 export type CareerMarket = {
   role: RoleKey;
   total: number;
@@ -67,15 +94,8 @@ export type CareerMarket = {
     /** true si la precisión medida del detector quedó < 85 %: la UI dice "estimado". */
     estimated: boolean;
   };
-  salary: {
-    informed: number;
-    total: number;
-    enough: boolean;
-    /** USD por mes; null si `enough` es false. */
-    p25: number | null;
-    median: number | null;
-    p75: number | null;
-  };
+  /** Nunca una cifra mezclada: LatAm (acepta Argentina de forma explícita) e internacional (el resto). */
+  salary: { latam: SalarySegment; international: SalarySegment };
   volume: {
     active: number;
     new24h: number;

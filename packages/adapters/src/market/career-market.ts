@@ -1,5 +1,5 @@
 import { schema as s, type Db } from "@job-search-os/db";
-import type { CareerMarketInput, RoleKey } from "@job-search-os/pipeline";
+import type { CareerMarketInput, CareerSalaryJob, RoleKey } from "@job-search-os/pipeline";
 import { and, eq, isNull, sql } from "drizzle-orm";
 
 /**
@@ -72,6 +72,39 @@ export async function readCareerMarketInput(
     poolUpdatedAt: pool?.last ? toIso(pool.last) : null,
     now: now.toISOString(),
   };
+}
+
+/**
+ * Sueldos de todas las carreras en una sola consulta (sin texto del aviso ni skills): los avisos
+ * de la ventana con sus `role_hints`, para que el llamador agrupe por carrera.
+ */
+export async function readCareerSalaryJobs(
+  db: Db,
+  now: Date,
+): Promise<{ roleHints: string[]; job: CareerSalaryJob }[]> {
+  const since = new Date(now.getTime() - CAREER_MARKET_WINDOW_DAYS * DAY_MS);
+  const rows = await db
+    .select({
+      title: s.publicJobs.title,
+      seniority: s.publicJobs.seniority,
+      salaryMinUsd: s.publicJobs.salaryMinUsd,
+      salaryMaxUsd: s.publicJobs.salaryMaxUsd,
+      salaryPeriod: s.publicJobs.salaryPeriod,
+      countriesAllowed: s.publicJobs.countriesAllowed,
+      locationRaw: s.publicJobs.locationRaw,
+      roleHints: s.publicJobs.roleHints,
+    })
+    .from(s.publicJobs)
+    .where(
+      and(
+        isNull(s.publicJobs.dedupOfId),
+        sql`${s.publicJobs.lastSeenAt} >= ${since.toISOString()}::timestamptz`,
+      ),
+    );
+  return rows.map(({ roleHints, ...job }) => ({
+    roleHints: roleHints ?? [],
+    job,
+  }));
 }
 
 /** `sql<Date>` no pasa por el mapeo de drizzle: el driver puede devolver Date o texto. */

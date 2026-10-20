@@ -25,6 +25,16 @@ describe("monthlySalaryPoint", () => {
     expect(monthlySalaryPoint(20, 30, "hora")).toBe(4000);
   });
 
+  it("regla A: un anual con monto crudo menor a 15000 se descarta", () => {
+    expect(monthlySalaryPoint(12000, 12000, "anual")).toBeNull();
+    // se mira el promedio crudo (14000)
+    expect(monthlySalaryPoint(10000, 18000, "anual")).toBeNull();
+    expect(monthlySalaryPoint(14999, 14999, "anual")).toBeNull();
+    expect(monthlySalaryPoint(15000, 15000, "anual")).toBe(1250);
+    // el mismo monto mensual no es sospechoso
+    expect(monthlySalaryPoint(12000, 12000, "mensual")).toBe(12000);
+  });
+
   it("descarta fuera de los límites", () => {
     expect(monthlySalaryPoint(60000, 80000, "mensual")).toBeNull();
     expect(monthlySalaryPoint(50, 100, "mensual")).toBeNull();
