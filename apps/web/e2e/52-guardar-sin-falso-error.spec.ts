@@ -1,14 +1,49 @@
+import { skillLevels, skills } from "@job-search-os/db/schema";
 import { expect, test } from "@playwright/test";
+import { and, eq } from "drizzle-orm";
 import {
   E2E_USER_ID,
   backupSeedCriteria,
   login,
+  ownerDb,
   restoreSeedCriteria,
   seedTargetRoles,
   setSeedTargetRoles,
   skillLevelsOf,
   type CriteriaBackup,
 } from "./helpers";
+
+type SkillLevelRow = typeof skillLevels.$inferSelect;
+
+/** Fila completa de `skill_levels` del usuario e2e para un slug, o null si no tiene nivel. */
+async function skillLevelRow(slug: string): Promise<SkillLevelRow | null> {
+  const { db, close } = ownerDb();
+  try {
+    const [row] = await db
+      .select({ level: skillLevels })
+      .from(skillLevels)
+      .innerJoin(skills, eq(skills.id, skillLevels.skillId))
+      .where(and(eq(skillLevels.userId, E2E_USER_ID), eq(skills.slug, slug)));
+    return row?.level ?? null;
+  } finally {
+    await close();
+  }
+}
+
+/** Deja la fila como estaba antes del test: la vuelve a insertar tal cual o la borra si no existía. */
+async function restoreSkillLevelRow(slug: string, backup: SkillLevelRow | null): Promise<void> {
+  const { db, close } = ownerDb();
+  try {
+    const [skill] = await db.select({ id: skills.id }).from(skills).where(eq(skills.slug, slug));
+    if (!skill) return;
+    await db
+      .delete(skillLevels)
+      .where(and(eq(skillLevels.userId, E2E_USER_ID), eq(skillLevels.skillId, skill.id)));
+    if (backup) await db.insert(skillLevels).values(backup);
+  } finally {
+    await close();
+  }
+}
 
 /**
  * Flujo 52 (ronda 77): los formularios que se envían con `GuardedForm` no muestran un error falso
@@ -47,40 +82,39 @@ test.describe("Flujo 52b: skills de Ajustes", () => {
     await login(page);
     await page.goto("/settings/skills?rol=fullstack");
 
-    // Una skill del rol que el usuario e2e todavía no tiene (el seed carga varias)
-    const rows = await page.locator('[data-testid^="skill-"]').evaluateAll((els) =>
+    const rowLocator = page.locator('[data-testid^="skill-"]');
+    await rowLocator.first().waitFor();
+    const rows = await rowLocator.evaluateAll((els) =>
       els.map((el) => ({
         slug: (el.getAttribute("data-testid") ?? "").replace(/^skill-/, ""),
         name: el.querySelector("legend")?.textContent?.trim() ?? "",
       })),
     );
-    const free = rows.find((r) => r.slug !== "" && r.name !== "" && !(r.slug in before));
-    expect(free, "el rol tiene al menos una skill sin nivel para el usuario e2e").toBeDefined();
-    const { slug, name } = free!;
+    const named = rows.filter((r) => r.slug !== "" && r.name !== "");
+    // Mejor una skill sin nivel; si el seed ya las cargó todas, la primera fila, que se respalda
+    // completa (nivel, confianza y estado) y se restaura al final
+    const target = named.find((r) => !(r.slug in before)) ?? named[0];
+    expect(target, "el rol muestra al menos una skill").toBeDefined();
+    const { slug, name } = target!;
+    const backup = await skillLevelRow(slug);
+    const prev = before[slug];
+    const [label, level] = prev === 3 ? ["lo usé en un proyecto", 2] : ["lo uso con soltura", 3];
+    const withoutTarget = Object.fromEntries(Object.entries(before).filter(([k]) => k !== slug));
 
     try {
-      await page
-        .getByTestId(`skill-${slug}`)
-        .getByLabel("lo uso con soltura", { exact: true })
-        .check();
+      await page.getByTestId(`skill-${slug}`).getByLabel(label, { exact: true }).check();
       await page.getByRole("button", { name: "Guardar", exact: true }).click();
       await page.waitForURL("**/settings/skills?guardado=1");
       await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
-      // Solo se suma esa skill: las demás filas viajan con el nivel que ya tenían
-      expect(await skillLevelsOf(E2E_USER_ID)).toEqual({ ...before, [slug]: 3 });
+      // Solo cambia esa skill: las demás filas viajan con el nivel que ya tenían
+      expect(await skillLevelsOf(E2E_USER_ID)).toEqual({ ...before, [slug]: level });
 
       await page.getByRole("button", { name: `Quitar ${name}`, exact: true }).click();
       await page.waitForURL("**/settings/skills?guardado=1");
       await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
-      expect(await skillLevelsOf(E2E_USER_ID)).toEqual(before);
+      expect(await skillLevelsOf(E2E_USER_ID)).toEqual(withoutTarget);
     } finally {
-      // Si el test falló a mitad, no deja el nivel de prueba guardado
-      const current = await skillLevelsOf(E2E_USER_ID);
-      if (slug in current && !(slug in before)) {
-        await page.goto("/settings/skills?rol=fullstack");
-        await page.getByRole("button", { name: `Quitar ${name}`, exact: true }).click();
-        await page.waitForURL("**/settings/skills?guardado=1");
-      }
+      await restoreSkillLevelRow(slug, backup);
     }
   });
 });
