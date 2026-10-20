@@ -1,5 +1,12 @@
 import { safeHttpUrl } from "@/lib/labels";
-import { attributionFor } from "@job-search-os/pipeline";
+import { attributionFor, findAtsLinks, WWR_PAYWALL_NOTICE } from "@job-search-os/pipeline";
+
+const ATS_NAMES = {
+  greenhouse: "Greenhouse",
+  lever: "Lever",
+  ashby: "Ashby",
+  workable: "Workable",
+} as const;
 
 /**
  * Atribución de las fuentes públicas (Get on Board, Remote OK, Jobicy, Himalayas, We Work Remotely
@@ -10,9 +17,12 @@ import { attributionFor } from "@job-search-os/pipeline";
 export function SourceAttribution({
   sources,
   company,
+  jdText,
 }: {
   sources: readonly { kind: string; url: string | null }[];
   company?: string | null;
+  /** La JD, para buscar el link al sitio de empleos de la empresa en los avisos de WWR. */
+  jdText?: string | null;
 }) {
   const seen = new Set<string>();
   const items = sources.flatMap((src) => {
@@ -26,30 +36,56 @@ export function SourceAttribution({
   });
   if (items.length === 0) return null;
 
+  const isWwr = sources.some((src) => src.kind === "wwr");
+  const atsLinks = isWwr
+    ? findAtsLinks(jdText ?? null).flatMap((l) => {
+        const href = safeHttpUrl(l.url);
+        return href ? [{ provider: l.provider, href }] : [];
+      })
+    : [];
+
   return (
-    <ul aria-label="Origen del aviso" className="flex flex-col gap-0.5 text-xs text-zinc-700">
-      {items.map(({ key, attribution, url }) => {
-        const home = safeHttpUrl(attribution.homeUrl);
-        return (
-          <li key={key}>
-            {home ? (
-              <a href={home} target="_blank" rel="noopener" className="underline">
-                {attribution.text}
-              </a>
-            ) : (
-              attribution.text
-            )}
-            {url ? (
-              <>
-                {" · "}
-                <a href={url} target="_blank" rel="noopener" className="text-sky-700 underline">
-                  Ver el aviso original ↗
+    <div className="flex flex-col gap-1">
+      <ul aria-label="Origen del aviso" className="flex flex-col gap-0.5 text-xs text-zinc-700">
+        {items.map(({ key, attribution, url }) => {
+          const home = safeHttpUrl(attribution.homeUrl);
+          return (
+            <li key={key}>
+              {home ? (
+                <a href={home} target="_blank" rel="noopener" className="underline">
+                  {attribution.text}
                 </a>
-              </>
-            ) : null}
-          </li>
-        );
-      })}
-    </ul>
+              ) : (
+                attribution.text
+              )}
+              {url ? (
+                <>
+                  {" · "}
+                  <a href={url} target="_blank" rel="noopener" className="text-sky-700 underline">
+                    Ver el aviso original ↗
+                  </a>
+                </>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+      {isWwr ? (
+        <div className="flex flex-col gap-0.5 text-xs">
+          <p className="text-amber-800">{WWR_PAYWALL_NOTICE}</p>
+          {atsLinks.map(({ provider, href }) => (
+            <a
+              key={href}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sky-700 underline"
+            >
+              Postular en el sitio de la empresa ({ATS_NAMES[provider]}) ↗
+            </a>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }

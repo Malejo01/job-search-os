@@ -1,5 +1,95 @@
 import { describe, expect, it } from "vitest";
-import { attributionFor, SOURCE_ATTRIBUTION } from "./attribution";
+import {
+  attributionFor,
+  findAtsLinks,
+  SOURCE_ATTRIBUTION,
+  WWR_PAYWALL_NOTICE,
+} from "./attribution";
+
+describe("findAtsLinks", () => {
+  it("reconoce cada proveedor", () => {
+    const text = [
+      "https://boards.greenhouse.io/empresa-a/jobs/1",
+      "https://job-boards.greenhouse.io/empresa-a/jobs/2",
+      "https://empresa-a.greenhouse.io/x/jobs/3",
+    ].join(" ");
+    expect(findAtsLinks(text).map((l) => l.provider)).toEqual([
+      "greenhouse",
+      "greenhouse",
+      "greenhouse",
+    ]);
+    expect(findAtsLinks("ver https://jobs.lever.co/empresa-a/123")).toEqual([
+      { provider: "lever", url: "https://jobs.lever.co/empresa-a/123" },
+    ]);
+    expect(findAtsLinks("https://jobs.ashbyhq.com/empresa-a/abc")[0]?.provider).toBe("ashby");
+    expect(findAtsLinks("https://apply.workable.com/empresa-a/j/ABC/")[0]?.provider).toBe(
+      "workable",
+    );
+    expect(findAtsLinks("https://empresa-a.workable.com/j/ABC")[0]?.provider).toBe("workable");
+  });
+
+  it("descarta hosts parecidos, credenciales, http y javascript", () => {
+    const bad = [
+      "https://greenhouse.io.evil.com/x/jobs/1",
+      "https://boards.greenhouse.io.evil.com/x",
+      "https://evil.com/jobs.lever.co/x",
+      "https://jobs.lever.co.evil.com/x",
+      "https://notjobs.lever.co/x",
+      `https://persona${"@"}jobs.lever.co/x`,
+      `https://persona:clave${"@"}jobs.lever.co/x`,
+      "https://empresa-a.greenhouse.io/about",
+      "https://empresa-a.workable.com/about",
+      "http://jobs.lever.co/x/1",
+      "javascript:alert(1)//jobs.lever.co",
+    ].join(" ");
+    expect(findAtsLinks(bad)).toEqual([]);
+  });
+
+  it("devuelve la URL sin query ni hash", () => {
+    const long = `https://jobs.lever.co/empresa-a/1?x=${"a".repeat(500)}`;
+    expect(findAtsLinks(long)[0]?.url).toBe("https://jobs.lever.co/empresa-a/1");
+    expect(findAtsLinks("https://jobs.lever.co/empresa-a/1#frag")[0]?.url).toBe(
+      "https://jobs.lever.co/empresa-a/1",
+    );
+  });
+
+  it("descarta URLs de más de 200 caracteres", () => {
+    expect(findAtsLinks(`https://jobs.lever.co/${"a".repeat(300)}`)).toEqual([]);
+  });
+
+  it("rechaza la barra invertida que engaña al host", () => {
+    expect(findAtsLinks(String.raw`https://evil.com\@jobs.lever.co/x`)).toEqual([]);
+  });
+
+  it("un token enorme no cuelga el análisis", () => {
+    const t0 = performance.now();
+    findAtsLinks(`https://${".".repeat(50_000)}a`);
+    expect(performance.now() - t0).toBeLessThan(200);
+  });
+
+  it("recorta la puntuación final", () => {
+    expect(findAtsLinks("(https://jobs.lever.co/empresa-a/1).")[0]?.url).toBe(
+      "https://jobs.lever.co/empresa-a/1",
+    );
+    expect(findAtsLinks("a https://jobs.lever.co/empresa-a/2, b")[0]?.url).toBe(
+      "https://jobs.lever.co/empresa-a/2",
+    );
+  });
+
+  it("sin duplicados, en orden y como máximo 3", () => {
+    const text = [1, 1, 2, 3, 4].map((n) => `https://jobs.lever.co/empresa-a/${n}`).join("\n");
+    expect(findAtsLinks(text).map((l) => l.url.slice(-1))).toEqual(["1", "2", "3"]);
+  });
+
+  it("texto null o vacío", () => {
+    expect(findAtsLinks(null)).toEqual([]);
+    expect(findAtsLinks("")).toEqual([]);
+  });
+
+  it("el aviso del muro de pago existe", () => {
+    expect(WWR_PAYWALL_NOTICE).toContain("We Work Remotely");
+  });
+});
 
 // Valores de `source_kind` en packages/db/schema.ts (pipeline no puede importar db). Si el enum
 // cambia, este test y el mapa se actualizan juntos.
