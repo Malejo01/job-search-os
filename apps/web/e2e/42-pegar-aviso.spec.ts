@@ -52,13 +52,17 @@ test.describe("Flujo 42: pegar el aviso entero", () => {
     await read.click();
 
     await expect(page.getByRole("status")).toContainText("Completamos 4 de 4 campos");
-    await expect(page.getByLabel("Título *")).toHaveValue(title);
-    await expect(page.getByLabel("Empresa *")).toHaveValue("Empresa Ficticia E2E");
-    await expect(page.getByLabel("Ubicación")).toHaveValue("Buenos Aires, Argentina");
-    await expect(page.getByLabel("Modalidad")).toHaveValue("remoto");
+    // exact: el nombre accesible del textarea incluye su contenido (el aviso pegado dice «Ubicación:»).
+    // El select va por name: su nombre accesible puede sumar la opción elegida.
+    await expect(page.getByLabel("Título *", { exact: true })).toHaveValue(title);
+    await expect(page.getByLabel("Empresa *", { exact: true })).toHaveValue("Empresa Ficticia E2E");
+    await expect(page.getByLabel("Ubicación", { exact: true })).toHaveValue(
+      "Buenos Aires, Argentina",
+    );
+    await expect(page.locator('select[name="modality"]')).toHaveValue("remoto");
     await expect(page.getByLabel(/^Descripción del puesto/)).toHaveValue(aviso);
 
-    await page.getByLabel("Empresa *").fill("Empresa Ficticia E2E corregida");
+    await page.getByLabel("Empresa *", { exact: true }).fill("Empresa Ficticia E2E corregida");
     await page.getByRole("button", { name: "Guardar oferta" }).click();
     await page.waitForURL(/\/jobs\/[0-9a-f-]{36}/);
     createdId = /\/jobs\/([0-9a-f-]{36})/.exec(page.url())?.[1] ?? null;
