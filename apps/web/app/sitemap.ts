@@ -9,6 +9,12 @@ import { siteUrl } from "@/lib/site-url";
 const site = siteUrl();
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const paths = ["/", "/mercado", ...ROLE_KEYS.map((k) => `/mercado/${k}`), "/acceso"];
+  const paths = [
+    "/",
+    "/mercado",
+    ...ROLE_KEYS.map((k) => `/mercado/${k}`),
+    "/acceso",
+    "/como-esta-hecho",
+  ];
   return paths.map((path) => ({ url: `${site}${path === "/" ? "" : path}` }));
 }

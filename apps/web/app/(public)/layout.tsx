@@ -74,7 +74,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
       <main id="contenido" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
         {children}
       </main>
-      <footer className="flex flex-wrap items-center justify-center gap-x-2 border-t border-zinc-200 px-4 py-3 text-center text-xs text-zinc-600">
+      <footer className="flex flex-wrap items-center justify-center gap-x-4border-t border-zinc-200 px-4 py-3 text-center text-xs text-zinc-600">
         <Link href="/mercado" className={`${FOOTER_LINK} sm:hidden`}>
           Mercado
         </Link>
@@ -93,6 +93,13 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
           className="inline-flex min-h-11 items-center px-2 underline-offset-2 hover:underline"
         >
           Términos
+        </Link>
+        <span aria-hidden="true" className="hidden sm:inline">
+          {" "}
+          ·{" "}
+        </span>
+        <Link href="/como-esta-hecho" className={FOOTER_LINK}>
+          Cómo está hecho
         </Link>
       </footer>
     </div>
