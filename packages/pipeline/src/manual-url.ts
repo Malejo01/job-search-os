@@ -104,3 +104,6 @@ export function parseManualUrl(raw: string): ManualUrlResult {
   if (isBlockedHost(u.hostname)) return { ok: false };
   return { ok: true, url: u.href };
 }
+
+// re-export del alta manual; pasa a index.ts después del #92
+export * from "./manual-paste";
