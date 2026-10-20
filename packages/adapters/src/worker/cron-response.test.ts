@@ -72,6 +72,10 @@ describe("buildEvaluateCronResponse", () => {
     expect(body).not.toContain("jobId");
   });
 
+  it("incluye remaining (conteo numérico del resumen)", () => {
+    expect(buildEvaluateCronResponse({ ...summary, remaining: 7 })).toMatchObject({ remaining: 7 });
+  });
+
   it("sin errores no incluye la clave errors", () => {
     const body = buildEvaluateCronResponse({ ...summary, outcomes: [{ ok: true, jobId: JOB }] });
     expect(body).not.toHaveProperty("errors");
