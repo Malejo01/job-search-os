@@ -1,8 +1,12 @@
 name: cron
-# Cron externo (docs/DEPLOY.md, JS-019): Vercel Hobby solo permite crons diarios, así que la
-# ingesta y la evaluación se disparan desde acá cada 6 h contra los endpoints protegidos por
-# CRON_SECRET. Mismo patrón que EventBridge → HTTP del ADR-007. Falla ruidosamente: cualquier
-# respuesta que no sea 2xx con { "ok": true } marca el workflow en rojo (y GitHub avisa por mail).
+# Cron externo (JS-019, ronda 62). El trabajo pesado corre ACÁ, en el runner, contra la base con
+# el secret DATABASE_URL: ingesta (pool de fuentes, Get on Board, mercado por rol y asignación
+# diaria) cada 6 h y snapshot de mercado + plan los lunes (`pnpm cron:run`, docs/OPERACION.md).
+# En Vercel queda solo `evaluate`, que es casi todo espera del LLM, por HTTP con CRON_SECRET.
+# Las rutas /api/cron/ingest-getonboard y /api/cron/market siguen como respaldo manual.
+# Falla ruidosamente: un paso que no termina ok marca el workflow en rojo (y GitHub avisa por mail).
+# Repo público: el log es público. `cron:run --remote` imprime solo agregados y "remoto", nunca
+# la URL; pino va en silencio.
 on:
   schedule:
     - cron: "0 */6 * * *" # UTC: 00, 06, 12, 18 → 21, 03, 09, 15 hora Argentina
@@ -15,36 +19,77 @@ on:
         type: choice
         options: [ingest, evaluate, both, market]
 
+permissions:
+  contents: read
+
 concurrency:
   group: cron
   cancel-in-progress: false
 
+env:
+  # El schedule semanal corre solo el paso market; el de 6 h, ingesta + evaluación
+  STEP: ${{ github.event.inputs.step || (github.event.schedule == '30 6 * * 1' && 'market' || 'both') }}
+
 jobs:
-  run:
+  # Ingesta y mercado semanal en el runner (antes: curl a Vercel, que se llevaba la CPU)
+  pool:
+    if: github.event.inputs.step != 'evaluate'
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
+    env:
+      # Configuración no secreta (Settings › Variables), la misma que tiene Vercel
+      APP_URL: ${{ vars.APP_URL }}
+      POOL_SOURCES: ${{ vars.POOL_SOURCES }}
+      POOL_BACKFILL_DAYS: ${{ vars.POOL_BACKFILL_DAYS }}
+      POOL_FIRST_ASSIGN_LIMIT: ${{ vars.POOL_FIRST_ASSIGN_LIMIT }}
+      POOL_DAILY_ASSIGN_LIMIT: ${{ vars.POOL_DAILY_ASSIGN_LIMIT }}
+      POOL_DAILY_EVAL_PER_USER: ${{ vars.POOL_DAILY_EVAL_PER_USER }}
+      INGEST_EXTRA_SOURCES: ${{ vars.INGEST_EXTRA_SOURCES }}
+    steps:
+      - name: Verificar configuración
+        env:
+          HAS_DATABASE_URL: ${{ secrets.DATABASE_URL != '' }}
+        run: |
+          if [ "$HAS_DATABASE_URL" != "true" ]; then echo "::error::Falta el secret DATABASE_URL (Settings › Secrets › Actions)"; exit 1; fi
+          if [ -z "$APP_URL" ]; then echo "::error::Falta la variable APP_URL (Settings › Variables): va en el User-Agent de las fuentes"; exit 1; fi
+          if [ "$STEP" != "market" ] && [ -z "$POOL_SOURCES" ]; then echo "::error::Falta la variable POOL_SOURCES (Settings › Variables): copiala de Vercel; sin ella el pool no descarga nada"; exit 1; fi
+
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      # Sin secrets en este paso: install corre scripts de dependencias
+      - run: pnpm install --frozen-lockfile
+
+      - name: Ingesta (pool, Get on Board, mercado por rol, asignación diaria)
+        if: env.STEP == 'ingest' || env.STEP == 'both'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: pnpm cron:run ingest --remote
+
+      - name: Snapshot de mercado y plan de formación
+        if: env.STEP == 'market'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: pnpm cron:run market --remote
+
+  # Evaluación de la cola: sigue en Vercel (espera del LLM, poca CPU), después de la ingesta
+  evaluate:
+    needs: pool
+    if: ${{ !cancelled() && (needs.pool.result == 'success' || needs.pool.result == 'skipped') && (github.event.inputs.step == 'evaluate' || github.event.inputs.step == 'both' || (github.event_name == 'schedule' && github.event.schedule != '30 6 * * 1')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
     env:
       APP_URL: ${{ vars.APP_URL }}
       CRON_SECRET: ${{ secrets.CRON_SECRET }}
-      # El schedule semanal corre solo el paso market; el de 6 h, ingesta + evaluación
-      STEP: ${{ github.event.inputs.step || (github.event.schedule == '30 6 * * 1' && 'market' || 'both') }}
     steps:
       - name: Verificar configuración
         run: |
           if [ -z "$APP_URL" ]; then echo "::error::Falta la variable APP_URL (Settings › Variables), ej. https://job-search-os.vercel.app"; exit 1; fi
           if [ -z "$CRON_SECRET" ]; then echo "::error::Falta el secret CRON_SECRET (el mismo valor que en Vercel)"; exit 1; fi
 
-      - name: Ingesta Get on Board
-        if: env.STEP == 'ingest' || env.STEP == 'both'
-        run: |
-          set -o pipefail
-          body=$(curl --silent --show-error --fail-with-body --max-time 120 \
-            -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/ingest-getonboard") || { echo "::error::ingest: el endpoint no respondió 2xx"; echo "$body"; exit 1; }
-          echo "$body" | jq .
-          echo "$body" | jq -e '.ok == true' > /dev/null || { echo "::error::ingest: la respuesta no trae ok:true"; exit 1; }
-
       - name: Evaluar cola
-        if: env.STEP == 'evaluate' || env.STEP == 'both'
         run: |
           set -o pipefail
           body=$(curl --silent --show-error --fail-with-body --max-time 300 \
@@ -63,11 +108,3 @@ jobs:
             echo "::error::evaluate: 0 evaluadas y $((failed + retried)) con error; primer error: $(echo "$body" | jq -r '.errors[0].error // "?"')"
             exit 1
           fi
-
-      - name: Snapshot de mercado y plan de formación
-        if: env.STEP == 'market'
-        run: |
-          set -o pipefail
-          body=$(curl --silent --show-error --fail-with-body --max-time 120             -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/market") || { echo "::error::market: el endpoint no respondió 2xx"; echo "$body"; exit 1; }
-          echo "$body" | jq .
-          echo "$body" | jq -e '.ok == true' > /dev/null || { echo "::error::market: la respuesta no trae ok:true"; exit 1; }

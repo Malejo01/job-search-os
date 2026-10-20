@@ -69,3 +69,35 @@ Sin secrets corre solo `/api/health` y el resto queda `skipped`. Para el recorri
 Si falla, el job queda en rojo y GitHub avisa. No sube trazas ni capturas: podrían mostrar datos de la cuenta de prueba.
 
 Corrida manual, desde `apps/web`: `SMOKE_BASE_URL=<url> pnpm smoke`.
+
+## Cron en GitHub Actions (`pnpm cron:run`)
+
+```
+pnpm cron:run <ingest|market> [--local | --remote]
+```
+
+Desde la ronda 62, `.github/workflows/cron.yml` corre el trabajo pesado **en el runner de GitHub**, no en Vercel:
+
+| Cuándo | Job | Dónde corre | Qué hace |
+|---|---|---|---|
+| cada 6 h | `pool` → `pnpm cron:run ingest --remote` | runner | Get on Board por usuario (si no está en el pool), pool de fuentes, mercado por rol, asignación diaria y fuentes extra |
+| cada 6 h, después | `evaluate` → curl a `/api/cron/evaluate` | Vercel | evaluación de la cola: casi todo espera del LLM |
+| lunes 06:30 UTC | `pool` → `pnpm cron:run market --remote` | runner | snapshot de mercado y plan de formación por usuario |
+
+- `--remote` **solo corre dentro de GitHub Actions** (`GITHUB_ACTIONS=true`). Fuera de ahí aborta: para una corrida manual se usa **Actions › cron › Run workflow**.
+- En remoto no se lee `.env.local`.
+- Sin flag, o con `--local`, va contra el Postgres de Docker.
+- La salida es una línea `→ remoto` y otra con el JSON de agregados: el mismo cuerpo que devolvían las rutas. Nunca muestra la URL ni el host, y los logs de pino van en silencio porque el log de Actions es público.
+- Si el resultado no es `ok`, el paso sale con código 1 y el workflow queda en rojo.
+
+**Secret y variables (Settings → Secrets and variables → Actions):**
+
+- **Secret `DATABASE_URL`:** solo lo ve el paso que corre `cron:run`, nunca `pnpm install`. Hoy es la URL **pooled del dueño de la base**, la misma que `DATABASE_URL` en Vercel: el propósito `service` de `requireDatabaseUrl`, con BYPASSRLS, que filtra por `user_id` explícito. La recomendación es pasar a un rol con permisos mínimos, `jobsearch_cron`: el SQL propuesto está en `docs/sql/rol-jobsearch-cron.sql` y lo corre Mauro.
+- **Variables (no son secretas, los mismos valores que en Vercel):**
+  - `APP_URL`: obligatoria, va en el User-Agent de las fuentes;
+  - `POOL_SOURCES`: obligatoria para `ingest`; el workflow falla si falta;
+  - opcionales: `POOL_BACKFILL_DAYS`, `POOL_FIRST_ASSIGN_LIMIT`, `POOL_DAILY_ASSIGN_LIMIT`, `POOL_DAILY_EVAL_PER_USER` e `INGEST_EXTRA_SOURCES`.
+
+Si en Vercel cambia alguna de estas variables, hay que cambiarla también acá. Las de Vercel ya no las usa el cron, solo las rutas de respaldo.
+
+**Respaldo:** `/api/cron/ingest-getonboard` y `/api/cron/market` siguen en Vercel con la misma lógica (`runIngestCron` y `runMarketCron` de `@job-search-os/adapters`) y el mismo `CRON_SECRET`, pero el workflow ya no las llama. Si el runner no anda, se pueden disparar a mano con curl.
