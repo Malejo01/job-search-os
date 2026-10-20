@@ -251,6 +251,10 @@ test.describe("Flujo 38: primeros pasos, de la persona nueva a la checklist comp
 
     await page.goto("/jobs");
     await expect(page.getByTestId("first-steps-count")).toHaveText(/4 de 5/);
+    // Con un solo paso por hacer la lista va plegada (ronda 73): el summary dice cuál falta
+    const pending = checklist(page).getByText(/Te falta un paso:/);
+    await expect(pending).toContainText("Cuando te postules, marcala como Aplicada");
+    await pending.click();
     const item = checklist(page).getByRole("listitem").nth(3);
     await expect(item).toContainText("Le diste tu opinión a una oferta");
     await expect(item).toContainText("(hecho)");
