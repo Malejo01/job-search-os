@@ -71,8 +71,10 @@ test.describe("Flujo 44: vitrina pública", () => {
     // El header no lleva el nombre del producto
     await expect(page.locator("header")).not.toContainText("Job Search OS");
 
-    const nav = page.getByRole("navigation", { name: "Principal" });
-    await nav.getByRole("link", { name: "Mercado" }).click();
+    // A 390 px (viewport de los e2e) Mercado y Ofertas están en el pie, no en el header: se busca
+    // en toda la página el primero visible (getByRole ignora los ocultos con display: none).
+    const visibleLink = (name: string) => page.getByRole("link", { name, exact: true }).first();
+    await visibleLink("Mercado").click();
     await expect(page).toHaveURL(/\/mercado$/);
     await expect(page.getByRole("heading", { level: 1, name: "Mercado" })).toBeVisible();
 
@@ -81,12 +83,15 @@ test.describe("Flujo 44: vitrina pública", () => {
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Qué piden las ofertas de");
     await expect(page.getByTestId("career-market")).toBeVisible();
 
-    await nav.getByRole("link", { name: "Ofertas" }).click();
+    await visibleLink("Ofertas").click();
     await expect(page).toHaveURL(/\/ofertas$/);
     await expect(page.getByRole("heading", { level: 1, name: "Ofertas de muestra" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Más recientes" })).toBeVisible();
 
-    await nav.getByRole("link", { name: "Pedir acceso" }).click();
+    await page
+      .getByRole("navigation", { name: "Principal" })
+      .getByRole("link", { name: "Pedir acceso" })
+      .click();
     await expect(page).toHaveURL(/\/acceso$/);
     await expect(page.getByRole("heading", { name: "Pedir acceso" })).toBeVisible();
   });
