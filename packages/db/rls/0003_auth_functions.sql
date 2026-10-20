@@ -181,7 +181,7 @@ BEGIN
     RAISE EXCEPTION 'register_with_invitation_v3: el token de la dirección de ingesta no es válido';
   END IF;
   UPDATE public.invitations
-     SET used_at = now(), used_by_user_id = v_user
+     SET used_at = now(), used_by_user_id = v_user, email = NULL
    WHERE code_hash = p_code_hash
      AND used_at IS NULL
      AND expires_at > now()

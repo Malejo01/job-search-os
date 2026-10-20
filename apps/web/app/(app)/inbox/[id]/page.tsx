@@ -1,4 +1,4 @@
-import { isWebmailDomain } from "@job-search-os/pipeline";
+import { buildEmailFrameDoc, isWebmailDomain } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { isUuid } from "@/lib/ids";
@@ -14,25 +14,16 @@ export const metadata = { title: "Email" };
 export const dynamic = "force-dynamic";
 
 /**
- * Estilos que se agregan al HTML del email para que se lea en el ancho del celular (tablas de
- * 600 px, imágenes grandes). Van dentro del mismo iframe aislado: no tocan la página. El meta CSP
- * (el mismo de form-review.tsx) corta todo pedido de red del email: sin imágenes remotas de
- * tracking, sin fuentes ni navegación; solo se permiten estilos en línea.
- */
-const LECTURA = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><meta name="viewport" content="width=device-width, initial-scale=1"><style>
-html,body{margin:0;padding:12px;font-family:system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.45;color:#18181b;background:#fff;word-wrap:break-word}
-img{max-width:100%;height:auto}table{max-width:100%!important;width:auto}td,th{word-break:break-word}
-</style>`;
-
-/**
  * Un email entrante como en un cliente de correo (JS-020, JS-039): encabezado, acciones arriba
  * (las mismas que la lista de /inbox) y un solo cuerpo. Si hay HTML se muestra el HTML; si no,
  * el texto. El texto plano y los links quedan plegados como alternativa ("ver original").
  * Abrirlo lo marca visto, como en un cliente de correo.
  *
  * El HTML del email es contenido NO confiable: va dentro de un iframe con `sandbox` vacío, sin
- * scripts, sin formularios y sin poder navegar la página que lo contiene. Por eso sus links no
- * se abren desde adentro; se listan aparte.
+ * scripts, sin formularios y sin poder navegar la página que lo contiene. Ojo: sus links SÍ
+ * navegan el propio iframe al hacer click (no hay scripts ni formularios, pero un link es un
+ * link); la CSP corta el pedido de red del contenido, no la navegación por click. `buildEmailFrameDoc` agrega la CSP y los estilos de
+ * lectura (ancho del celular) y le saca el `meta refresh` y el `base`.
  */
 export default async function InboundEmailPage({
   params,
@@ -135,7 +126,7 @@ export default async function InboundEmailPage({
           title="Contenido del email"
           sandbox=""
           referrerPolicy="no-referrer"
-          srcDoc={`${LECTURA}${email.html}`}
+          srcDoc={buildEmailFrameDoc(email.html)}
           className="h-[75vh] w-full rounded-lg border border-zinc-200 bg-white"
         />
       ) : email.text ? (
