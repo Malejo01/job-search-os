@@ -172,6 +172,37 @@ describe("purgeExpired", () => {
     expect(left.some((r) => r.tokenHash.startsWith(`${TAG}-extra-`))).toBe(false);
   });
 
+  it("pone en null el ip_hash de la lista de espera de más de 24 h, sin borrar la fila", async () => {
+    const base = { name: "Persona", role: "frontend" };
+    await conn.db.delete(s.waitlist).where(eq(s.waitlist.name, "Persona purga"));
+    await conn.db.insert(s.waitlist).values([
+      {
+        ...base,
+        name: "Persona purga",
+        email: `vieja@${TAG}.test`,
+        ipHash: "h1",
+        createdAt: hoursAgo(25),
+      },
+      {
+        ...base,
+        name: "Persona purga",
+        email: `nueva@${TAG}.test`,
+        ipHash: "h2",
+        createdAt: hoursAgo(2),
+      },
+    ]);
+    const r = await purgeExpired(conn.db, { now: NOW });
+    expect(r.waitlistIps).toBeGreaterThanOrEqual(1);
+    const rows = await conn.db
+      .select()
+      .from(s.waitlist)
+      .where(eq(s.waitlist.name, "Persona purga"));
+    const byEmail = Object.fromEntries(rows.map((x) => [x.email, x.ipHash]));
+    expect(byEmail[`vieja@${TAG}.test`]).toBeNull();
+    expect(byEmail[`nueva@${TAG}.test`]).toBe("h2");
+    await conn.db.delete(s.waitlist).where(eq(s.waitlist.name, "Persona purga"));
+  });
+
   it("no toca la cola pendiente ni en curso por vieja que sea", async () => {
     await purgeExpired(conn.db, { now: NOW, logDays: 1 });
     const left = await conn.db.select().from(s.jobQueue).where(inArray(s.jobQueue.userId, mine));
@@ -201,7 +232,7 @@ describe("purgeExpired", () => {
   it("es idempotente", async () => {
     await purgeExpired(conn.db, { now: NOW, logDays: 30 });
     const second = await purgeExpired(conn.db, { now: NOW, logDays: 30 });
-    expect(second).toEqual({ tokens: 0, llmCalls: 0, queue: 0, rejections: 0 });
+    expect(second).toEqual({ tokens: 0, llmCalls: 0, queue: 0, rejections: 0, waitlistIps: 0 });
   });
 
   it("no toca raw_blobs ni inbound_emails", async () => {

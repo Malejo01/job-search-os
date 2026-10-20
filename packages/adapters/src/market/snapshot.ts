@@ -106,3 +106,6 @@ export async function buildMarketSnapshot(
     demand,
   };
 }
+
+// re-export de la vitrina (ronda 63): adapters/src/index.ts está en otro PR; mover allá cuando se mergee
+export * from "./showcase";

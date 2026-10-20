@@ -273,6 +273,23 @@ export const atsBoards = pgTable("ats_boards", {
   check("ats_boards_region_check", sql`${t.region} is null or (${t.provider} = 'lever' and ${t.region} = 'eu')`),
 ]);
 
+// Lista de espera de la vitrina pública (ronda 63): personas sin cuenta, por eso sin user_id. RLS sin
+// policy (rls/0006): la app solo entra por waitlist_join(); el email se guarda normalizado.
+export const waitlist = pgTable("waitlist", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: text("email").notNull(),                         // lower(btrim()), único
+  name: text("name").notNull(),
+  role: text("role").notNull(),                           // clave de ROLE_KEYS (check; si cambia la lista, va una migración)
+  heardFrom: text("heard_from"),
+  ipHash: text("ip_hash"),                                // sha256 con sal; la función lo pone en null a las 24 h
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("waitlist_email_unique").on(t.email),
+  index("waitlist_ip_hash_created").on(t.ipHash, t.createdAt),
+  index("waitlist_created").on(t.createdAt),
+  check("waitlist_role_check", sql`${t.role} in ('frontend', 'backend', 'fullstack', 'qa', 'data_analyst', 'soporte_it', 'ai_engineer', 'ux_ui', 'marketing_digital', 'producto_proyectos', 'rrhh_it', 'customer_success', 'ciberseguridad')`),
+]);
+
 // Agregados de demanda por rol y semana (global, sin user_id). Los usa /market.
 export const roleMarketSnapshots = pgTable("role_market_snapshots", {
   role: text("role").notNull(),

@@ -31,3 +31,4 @@ export {
 } from "./role-gaps";
 export { roleDemand, type RoleDemandJob, type RoleDemandRow } from "./role-demand";
 export * from "./career";
+export * from "./showcase";

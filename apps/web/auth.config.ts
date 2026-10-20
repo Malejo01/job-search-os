@@ -17,6 +17,23 @@ export const authConfig = {
       if (pathname.startsWith("/login")) {
         return loggedIn ? Response.redirect(new URL("/jobs", request.nextUrl)) : true;
       }
+      // Portada y pedido de acceso (ronda 63): con sesión van a /jobs; sin sesión se ve la vitrina
+      if (pathname === "/" || pathname === "/acceso") {
+        return loggedIn ? Response.redirect(new URL("/jobs", request.nextUrl)) : true;
+      }
+      // Vitrina pública (ronda 63): mercado, ofertas de muestra y metadatos de compartir
+      if (
+        pathname === "/mercado" ||
+        pathname.startsWith("/mercado/") ||
+        pathname === "/ofertas" ||
+        pathname.startsWith("/ofertas/") ||
+        pathname.startsWith("/opengraph-image") ||
+        pathname.startsWith("/twitter-image") ||
+        pathname === "/sitemap.xml" ||
+        pathname === "/robots.txt"
+      ) {
+        return true;
+      }
       // Recuperación de contraseña y setup inicial (JS-045): se usan sin sesión activa.
       if (
         pathname.startsWith("/forgot-password") ||
