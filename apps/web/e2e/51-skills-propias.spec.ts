@@ -244,9 +244,10 @@ test.describe("Flujo 51: inglés, «¿Qué es?» y skills propias", () => {
     ).toBeVisible();
 
     await page.getByRole("button", { name: `Quitar ${NOMBRE_PROPIO}` }).click();
-    await page.waitForURL("**/settings/skills?guardado=1");
-    expect(await customSkillsOf(userId!)).toEqual({});
+    // La URL ya es ?guardado=1 desde el guardado anterior: se espera a que la fila desaparezca,
+    // que pasa recién cuando la acción terminó y la página se volvió a renderizar
     await expect(page.getByRole("group", { name: NOMBRE_PROPIO })).toHaveCount(0);
+    expect(await customSkillsOf(userId!)).toEqual({});
 
     // Ni la taxonomía global ni el nivel de otras skills se tocaron
     const { db, close } = ownerDb();

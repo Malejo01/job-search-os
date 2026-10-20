@@ -45,6 +45,11 @@ const NEW_SLUGS = [
   "churn_retention",
 ];
 const migrationSql = readFileSync(join(PKG_ROOT, "drizzle", "0019_carreras_digitales.sql"), "utf8");
+// La 0032 (ronda 78) vuelve a tocar aliases que la 0019 escribe (mailchimp sale de email_marketing)
+const migration0032Sql = readFileSync(
+  join(PKG_ROOT, "drizzle", "0032_onboarding_datos.sql"),
+  "utf8",
+);
 
 let container: StartedPostgreSqlContainer | null = null;
 let owner: Sql;
@@ -52,6 +57,13 @@ let owner: Sql;
 /** Corre la 0019 como lo hace el migrador: statement por statement. */
 async function runMigration0019() {
   for (const statement of migrationSql.split("--> statement-breakpoint")) {
+    await owner.unsafe(statement);
+  }
+}
+
+/** La 0032, también idempotente: deja la base como la secuencia real de migraciones. */
+async function runMigration0032() {
+  for (const statement of migration0032Sql.split("--> statement-breakpoint")) {
     await owner.unsafe(statement);
   }
 }
@@ -119,6 +131,8 @@ describe("migración 0019 · carreras digitales", () => {
     const totalBefore = await countSkills();
     await runMigration0019();
     await runMigration0019();
+    // Reaplicar la 0019 sola revierte aliases que cambió una migración posterior: se corre la 0032
+    await runMigration0032();
     expect(await readNew()).toEqual(before);
     expect(await countSkills()).toBe(totalBefore);
   });
