@@ -4,6 +4,10 @@
  * Nunca `jobId`, mensaje ni texto que venga de la base o del proveedor. El detalle va a pino.
  */
 
+// Estado operativo de `/api/cron/status` (umbrales y lectura de agregados). Se reexporta desde acá
+// porque este archivo ya sale por el barrel del paquete.
+export * from "./status";
+
 export type CronErrorCategory = "llm" | "validacion" | "otro";
 
 export type CronErrorCounts = Record<CronErrorCategory, number>;

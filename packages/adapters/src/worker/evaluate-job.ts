@@ -15,7 +15,8 @@ import {
   type JobStatus,
 } from "@job-search-os/pipeline";
 import type { PromptRef } from "@job-search-os/prompts";
-import { and, desc, eq } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
+import { and, count, desc, eq, lte } from "drizzle-orm";
 import { DEFAULT_PROMPT_VERSIONS } from "../llm/client";
 import type { LlmClient } from "../llm/types";
 import { dailyCapFromEnv, spendLast24h, userDailyCapUsd } from "../llm/spend";
@@ -245,7 +246,9 @@ export type WorkerSummary = {
   spendUsd24h: number;
   dailyCapUsd: number;
   /** true si el worker se frenó por tope de gasto o por señal; lo no procesado sigue en la cola. */
-  stopped: "cap" | "signal" | null;
+  stopped: "cap" | "signal" | "budget" | null;
+  /** Pendientes en la cola al cortar por presupuesto de tiempo; 0 si no se cortó por eso. */
+  remaining: number;
   taken: number;
   evaluated: number;
   retried: number;
@@ -258,6 +261,15 @@ export type WorkerSummary = {
 };
 
 export { spendCapReason } from "../llm/spend";
+
+/**
+ * Presupuesto de tiempo del worker en el cron: la función tiene `maxDuration` de 300 s, así que
+ * 240 s dejan ~60 s para terminar la evaluación en curso, la purga y la respuesta.
+ */
+export const EVALUATE_BUDGET_MS = 240_000;
+
+/** Margen por defecto antes de la primera evaluación: lo que se supone que tarda una. */
+export const EVALUATE_BUDGET_DEFAULT_MARGIN_MS = 30_000;
 
 /** Mensaje para la UI cuando el tope por usuario frena una evaluación. */
 export const USER_CAP_MESSAGE = "tope diario de evaluaciones alcanzado";
@@ -315,9 +327,19 @@ export async function runEvaluateWorker(
     dailyCapUsd?: number;
     /** Tope por usuario en 24 h (USD). Default: LLM_USER_DAILY_CAP_USD o 1; 0 = sin tope. */
     userDailyCapUsd?: number;
+    /**
+     * Presupuesto de tiempo (ms) medido con `deps.now`. Antes de tomar cada evaluación, si lo
+     * transcurrido más un margen (la evaluación más lenta de la corrida, o 30 s si aún no hubo
+     * ninguna) supera el presupuesto, corta. Nunca interrumpe una evaluación en curso. Sin valor:
+     * sin límite de tiempo.
+     */
+    budgetMs?: number;
+    /** Id de la corrida para el log; por defecto uno nuevo. */
+    runId?: string;
   } = {},
 ): Promise<WorkerSummary> {
   const limit = options.limit ?? 20;
+  const runId = options.runId ?? randomUUID();
   const dailyCapUsd = options.dailyCapUsd ?? dailyCapFromEnv();
   const userCapUsd = options.userDailyCapUsd ?? userDailyCapUsd();
   if (userCapUsd === 0) {
@@ -343,6 +365,7 @@ export async function runEvaluateWorker(
     failed: 0,
     skipped: 0,
     userCapped: 0,
+    remaining: 0,
     outcomes: [] as EvaluateOutcome[],
   };
   if (spend.unpricedCalls > 0) {
@@ -375,13 +398,55 @@ export async function runEvaluateWorker(
   const nowMs = () => (deps.now?.() ?? new Date()).getTime();
   // Un usuario topeado se pospone: sus mensajes no vuelven a ocupar el lote hasta dentro de 1 h
   const deferredUsers = new Set<string>();
+  // Presupuesto de tiempo: el margen es la evaluación más lenta vista en esta corrida
+  const startMs = nowMs();
+  let slowestMs = 0;
+  const overBudget = () =>
+    options.budgetMs !== undefined &&
+    nowMs() - startMs + (slowestMs || EVALUATE_BUDGET_DEFAULT_MARGIN_MS) > options.budgetMs;
+  // Lo no procesado ya volvió a pending (release): se cuenta lo que quedó en la cola
+  const stopByBudget = async () => {
+    summary.stopped = "budget";
+    const [row] = await deps.db
+      .select({ n: count() })
+      .from(s.jobQueue)
+      .where(
+        and(
+          eq(s.jobQueue.queue, EVALUATE_QUEUE),
+          eq(s.jobQueue.status, "pending"),
+          lte(s.jobQueue.runAfter, new Date(nowMs())),
+        ),
+      );
+    summary.remaining = row?.n ?? 0;
+    deps.logger.info(
+      {
+        run_id: runId,
+        processed: summary.evaluated + summary.retried + summary.failed + summary.skipped,
+        remaining: summary.remaining,
+        budget_ms: options.budgetMs,
+        elapsed_ms: nowMs() - startMs,
+      },
+      "evaluate: presupuesto agotado",
+    );
+  };
   batches: for (;;) {
+    if (overBudget()) {
+      await stopByBudget();
+      break;
+    }
     const messages = await deps.queue.dequeue<EvaluatePayload>(EVALUATE_QUEUE, limit);
     if (messages.length === 0) break;
     const takenBefore = summary.taken;
     summary.taken += messages.length;
     let deferredInBatch = 0;
     for (const [i, msg] of messages.entries()) {
+      if (overBudget()) {
+        // Lo tomado y no evaluado vuelve a pending sin gastar un intento ni quedar bloqueado
+        for (const rest of messages.slice(i)) await requeue(rest.id, "worker frenado: budget");
+        summary.taken = takenBefore + i;
+        await stopByBudget();
+        break batches;
+      }
       if (deps.signal?.aborted || overCap()) {
         summary.stopped = deps.signal?.aborted ? "signal" : "cap";
         for (const rest of messages.slice(i))
@@ -430,6 +495,7 @@ export async function runEvaluateWorker(
         continue;
       }
       let outcome: EvaluateOutcome;
+      const evalStartMs = nowMs();
       try {
         outcome = await evaluateJobById(msg.payload.jobId, deps);
       } catch (e) {
@@ -440,6 +506,7 @@ export async function runEvaluateWorker(
           retry: "retry",
         };
       }
+      slowestMs = Math.max(slowestMs, nowMs() - evalStartMs);
       if (!outcome.ok && outcome.error.startsWith("aborted:")) {
         // Cancelada por señal: vuelve a pending sin contar intento y se corta el loop
         await requeue(msg.id, outcome.error);

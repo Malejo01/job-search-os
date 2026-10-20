@@ -5,6 +5,7 @@ import {
   failedOutcomes,
   createLogger,
   createPgQueue,
+  EVALUATE_BUDGET_MS,
   parseLogDays,
   purgeExpired,
   purgePool,
@@ -42,7 +43,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     const llm = serviceLlm(db, logger);
     const summary = await runEvaluateWorker(
       { db, llm, queue: createPgQueue(db), logger },
-      { limit: EVALUATE_LIMIT },
+      { limit: EVALUATE_LIMIT, budgetMs: EVALUATE_BUDGET_MS },
     );
     // El detalle (ids y mensaje) va al log del servidor; la respuesta es pública (cron.yml): JS-110
     for (const f of failedOutcomes(summary.outcomes)) {
@@ -73,7 +74,12 @@ export async function GET(request: Request): Promise<NextResponse> {
     } catch (error) {
       logger.error({ err: safeDbError(error) }, "purga del pool falló");
     }
-    return NextResponse.json({ ...buildEvaluateCronResponse(summary), purged, purgedPool });
+    return NextResponse.json({
+      ...buildEvaluateCronResponse(summary),
+      stopped_by_budget: summary.stopped === "budget",
+      purged,
+      purgedPool,
+    });
   } catch (error) {
     logger.error({ err: safeDbError(error) }, "cron evaluate falló");
     return NextResponse.json({ ok: false, error: "worker falló" }, { status: 500 });
