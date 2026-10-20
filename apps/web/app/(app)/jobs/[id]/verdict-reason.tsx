@@ -38,6 +38,7 @@ export function VerdictReason({
   const [text, setText] = useState(note ?? "");
   const [seenNote, setSeenNote] = useState(note);
   const [done, setDone] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [pending, startTransition] = useTransition();
 
   // Si la nota cambia desde afuera (otro formulario o la revalidación tras guardar), el campo la
@@ -58,9 +59,14 @@ export function VerdictReason({
     fd.set("evaluationId", evaluationId);
     fd.set("humanNote", value);
     setDone(false);
+    setFailed(false);
     startTransition(async () => {
-      await humanNoteAction(fd);
-      setDone(true);
+      try {
+        await humanNoteAction(fd);
+        setDone(true);
+      } catch {
+        setFailed(true);
+      }
     });
   }
 
@@ -83,7 +89,7 @@ export function VerdictReason({
               setDone(false);
               setText((t) => addReason(t, chip));
             }}
-            className="min-h-[36px] rounded-full border border-zinc-300 bg-white px-3 text-xs text-zinc-800 hover:border-zinc-500"
+            className="min-h-11 rounded-full border border-zinc-500 bg-white px-3 text-xs text-zinc-800 hover:border-zinc-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
           >
             {chip}
           </button>
@@ -102,13 +108,13 @@ export function VerdictReason({
               setDone(false);
               setText(e.target.value);
             }}
-            className="rounded-md border border-zinc-300 px-2 py-2 text-base"
+            className="rounded-md border border-zinc-500 px-2 py-2 text-base focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
           />
         </label>
         <button
           type="submit"
           disabled={pending || trimmed === "" || trimmed === saved}
-          className="min-h-[44px] rounded-md bg-zinc-900 px-3 text-sm font-medium text-white disabled:opacity-50"
+          className="min-h-[44px] rounded-md bg-zinc-900 px-3 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
         >
           {pending ? "Guardando…" : "Guardar motivo"}
         </button>
@@ -117,14 +123,17 @@ export function VerdictReason({
             type="button"
             disabled={pending}
             onClick={() => save("")}
-            className="min-h-[44px] rounded-md border border-zinc-300 bg-white px-3 text-sm text-zinc-800 disabled:opacity-50"
+            className="min-h-[44px] rounded-md border border-zinc-500 bg-white px-3 text-sm text-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
           >
             Quitar motivo
           </button>
         ) : null}
       </div>
-      <p role="status" className="min-h-[1rem] text-xs text-green-700">
-        {done && !pending ? "Guardado ✓" : ""}
+      <p role="status" aria-live="polite" className="min-h-[1rem] text-xs text-green-700">
+        {done && !pending && !failed ? "Guardado ✓" : ""}
+      </p>
+      <p aria-live="polite" className="min-h-[1rem] text-xs text-red-700">
+        {failed && !pending ? "No se pudo guardar el motivo. Probá de nuevo." : ""}
       </p>
     </form>
   );
