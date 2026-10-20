@@ -1,5 +1,5 @@
 import { schema as s, type Db } from "@job-search-os/db";
-import { inArray, lt, or, and } from "drizzle-orm";
+import { inArray, isNotNull, lt, or, and } from "drizzle-orm";
 import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 import type { SQL } from "drizzle-orm";
 
@@ -8,7 +8,14 @@ import type { SQL } from "drizzle-orm";
  * datos del usuario (esos se van con la cuenta). `db` es la conexión de servicio: ve las filas de
  * todos los usuarios y el borrado es global por antigüedad, sin cruzar datos entre usuarios.
  */
-export type PurgeResult = { tokens: number; llmCalls: number; queue: number; rejections: number };
+export type PurgeResult = {
+  tokens: number;
+  llmCalls: number;
+  queue: number;
+  rejections: number;
+  /** ip_hash de la lista de espera puestos en null (más de 24 h): se borra aunque nadie se anote */
+  waitlistIps: number;
+};
 
 export const PURGE_BATCH = 5_000;
 /** Tope de lotes por tabla y corrida; lo que quede lo borra la próxima (cada 6 h). */
@@ -58,7 +65,15 @@ export async function purgeExpired(
   const { now } = input;
   const batchSize = input.batchSize ?? PURGE_BATCH;
   const dayAgo = new Date(now.getTime() - DAY_MS);
-  const result: PurgeResult = { tokens: 0, llmCalls: 0, queue: 0, rejections: 0 };
+  const result: PurgeResult = { tokens: 0, llmCalls: 0, queue: 0, rejections: 0, waitlistIps: 0 };
+
+  // IP hasheada de la lista de espera: no se guarda más de un día (mismo UPDATE que waitlist_join)
+  const wiped = await db
+    .update(s.waitlist)
+    .set({ ipHash: null })
+    .where(and(isNotNull(s.waitlist.ipHash), lt(s.waitlist.createdAt, dayAgo)))
+    .returning({ id: s.waitlist.id });
+  result.waitlistIps = wiped.length;
 
   // Tokens de reseteo: vencidos o usados hace más de 1 día
   result.tokens = await deleteInBatches(

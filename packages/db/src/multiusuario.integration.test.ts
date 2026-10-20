@@ -37,6 +37,8 @@ const CATALOG_TABLES = [
   "role_market_snapshots",
   // Boards de ATS del pool (ronda 47): sin policy, solo el cron con la conexión de servicio.
   "ats_boards",
+  // Lista de espera pública (ronda 63): personas sin cuenta, sin policy; solo entra por waitlist_join.
+  "waitlist",
 ];
 
 /**
@@ -544,6 +546,22 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
           >`select user_exists(${"d8000000-0000-4000-8000-0000000000ff"}::uuid) as ok`,
       );
       expect(r!.ok).toBe(false);
+    },
+    // Lista de espera (sin user_id): no lee ni toca nada de B; solo inserta su propia fila.
+    waitlist_join: async () => {
+      const before = await fingerprint({ table: "invitations", column: "used_by_user_id" }, B);
+      const [r] = await asUser(
+        A,
+        (tx) =>
+          tx<
+            { s: string }[]
+          >`select waitlist_join('Persona', 'multiusuario-espera@ejemplo.test', 'frontend', null, null) as s`,
+      );
+      expect(r!.s).toBe("ok");
+      expect(await fingerprint({ table: "invitations", column: "used_by_user_id" }, B)).toBe(
+        before,
+      );
+      await owner`delete from waitlist where email = 'multiusuario-espera@ejemplo.test'`;
     },
     // Lookup por email: acá solo un email inexistente.
     auth_user_by_email: async () => {
