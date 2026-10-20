@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AutoRefresh } from "@/app/(app)/jobs/auto-refresh";
 import { RoleGaps } from "@/app/(app)/jobs/role-gaps";
-import { TrustBox } from "@/app/components/trust-box";
+import { EmailNudge } from "@/app/components/email-nudge";
 import {
   getProfileUpdatedAt,
   isSearchingWindow,
@@ -11,6 +11,7 @@ import {
 } from "@/lib/first-offers";
 import { isOnboardingComplete } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
+import { OnboardingSteps } from "../steps";
 import { FirstOffersList } from "./first-offers-list";
 
 export const metadata = { title: "Tus primeras ofertas" };
@@ -29,7 +30,23 @@ export default async function FirstOffersPage() {
 
   return (
     <section className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">Tus primeras ofertas</h1>
+      <OnboardingSteps current={3} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold">Tus primeras ofertas</h1>
+        <Link
+          href="/jobs"
+          className="inline-flex min-h-11 items-center text-sm font-medium underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900 sm:rounded-md sm:bg-zinc-900 sm:px-4 sm:py-2 sm:text-base sm:text-white sm:no-underline sm:focus-visible:outline-offset-2"
+        >
+          Ir a mis ofertas
+        </Link>
+      </div>
+      <EmailNudge
+        userId={userId}
+        title="Sumá tus alertas de LinkedIn, Get on Board e Indeed"
+        body="Reenviá las alertas que ya te llegan y las evaluamos junto con estas. Toma unos 5 minutos."
+        cta="Conectar mis alertas"
+        href="/onboarding/asistente"
+      />
       {offers.length > 0 ? (
         <>
           <p className="text-sm text-zinc-700">
@@ -76,20 +93,12 @@ export default async function FirstOffersPage() {
 
       <div className="flex flex-wrap items-center justify-end gap-3">
         <Link
-          href="/onboarding/asistente"
-          className="rounded-md border border-zinc-300 px-4 py-2 text-base focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
-        >
-          Conectar mis alertas de email (opcional)
-        </Link>
-        <Link
           href="/jobs"
           className="rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
         >
           Ir a mis ofertas
         </Link>
       </div>
-
-      <TrustBox />
     </section>
   );
 }

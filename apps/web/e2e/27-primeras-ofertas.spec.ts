@@ -8,6 +8,7 @@ import {
   E2E_USER_ID,
   assignSeededPoolJobs,
   chooseRoles,
+  closePrivacyDialog,
   deleteSeededPublicJobs,
   login,
   ownerDb,
@@ -195,7 +196,8 @@ test.describe("Flujo 27: primeras ofertas del pool, del puesto a /jobs", () => {
     expect(await original.getAttribute("rel")).not.toMatch(/nofollow/);
 
     await expect(page.getByText(/Las ordenamos por lo que nos contaste/)).toBeVisible();
-    await expect(page.getByTestId("trust-box")).toBeVisible();
+    // Ronda 49: el recuadro de privacidad salió de «Tus primeras ofertas» (ahora es un modal del asistente)
+    await expect(page.getByTestId("trust-box")).toHaveCount(0);
   });
 
   test("después de evaluar aparece un score", async () => {
@@ -206,13 +208,17 @@ test.describe("Flujo 27: primeras ofertas del pool, del puesto a /jobs", () => {
     }).toPass({ timeout: 30_000, intervals: [2_000] });
   });
 
-  test("conectar el email es opcional y el asistente trae el recuadro de confianza", async () => {
+  test("conectar el email es opcional y el asistente trae el recuadro de confianza en un modal", async () => {
     await page.goto("/onboarding/ofertas");
-    await page.getByRole("link", { name: /Conectar mis alertas de email/ }).click();
+    // Ronda 49: el acceso está en el aviso de arriba
+    await page.getByRole("link", { name: "Conectar mis alertas" }).click();
     await page.waitForURL("**/onboarding/asistente**");
     await expect(page.getByRole("heading", { name: /Conectá tus alertas de email/ })).toBeVisible();
 
-    const trust = page.getByTestId("trust-box");
+    // Se abre solo al entrar, con el mismo texto de siempre
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    const trust = dialog.getByTestId("trust-box");
     await expect(trust).toBeVisible();
     for (const text of ["Qué leemos", "Qué no leemos", "Cómo cortarlo", "Quién está detrás"]) {
       await expect(trust).toContainText(text);
@@ -225,6 +231,8 @@ test.describe("Flujo 27: primeras ofertas del pool, del puesto a /jobs", () => {
       "/legal/privacidad",
     );
 
+    await closePrivacyDialog(page);
+
     // La pantalla de reenvío de Gmail no carga por URL: son instrucciones en texto, sin link
     const current = page.locator('[aria-current="step"]');
     await expect(current).toContainText("Reenvío y correo POP/IMAP");
@@ -234,8 +242,15 @@ test.describe("Flujo 27: primeras ofertas del pool, del puesto a /jobs", () => {
   test("«Ir a mis ofertas» lleva a /jobs, donde el aviso de email se descarta y no vuelve", async () => {
     await page.getByRole("link", { name: "Volver a Tus primeras ofertas" }).click();
     await page.waitForURL("**/onboarding/ofertas**");
-    await page.getByRole("link", { name: "Ir a mis ofertas" }).click();
+    // Ronda 49: hay dos «Ir a mis ofertas» (arriba y al final de la lista)
+    await page.getByRole("link", { name: "Ir a mis ofertas" }).first().click();
     await page.waitForURL("**/jobs**");
+
+    // D2: mientras la checklist «Primeros pasos» está visible, el aviso de email no se muestra
+    // (el ítem de alertas lo reemplaza). Se oculta la checklist para probar el aviso
+    await expect(page.getByTestId("email-nudge")).toHaveCount(0);
+    await page.getByTestId("first-steps").getByRole("button", { name: "Ocultar" }).click();
+    await expect(page.getByTestId("first-steps")).toHaveCount(0);
 
     const nudge = page.getByTestId("email-nudge");
     await expect(nudge).toContainText("¿Recibís alertas de empleo por email?");

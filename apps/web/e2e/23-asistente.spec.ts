@@ -1,11 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { login } from "./helpers";
+import { closePrivacyDialog, login } from "./helpers";
 
 /** Flujo 23: el asistente de Ajustes muestra la dirección y el archivo de filtros la contiene. */
 test.describe("Flujo 23: asistente de reenvío de Gmail", () => {
   test("la página muestra la dirección y /api/gmail-filters la incluye", async ({ page }) => {
     await login(page);
     await page.goto("/settings/asistente");
+    await closePrivacyDialog(page);
     const direccion = page.getByTestId("assistant-address");
     await expect(direccion).toHaveText(/^u_.+@.+/);
     const address = (await direccion.innerText()).trim();
