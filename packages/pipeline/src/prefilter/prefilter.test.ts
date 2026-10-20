@@ -639,3 +639,56 @@ describe("prefilter: reglas una por una", () => {
     expect(r).toMatchObject({ pass: false, reason: "modalidad_no_remota" });
   });
 });
+
+describe("prefilter: residencia exigida (ronda 66)", () => {
+  const job: PrefilterInput = {
+    title: "Senior Data Analyst",
+    companyRaw: "Empresa A",
+    locationRaw: "Remote (Canada)",
+    modality: "remoto",
+    jdText: "Empresa A busca analistas.\nYou must be based in Canada.\nSQL y Python.",
+  };
+  const hasResidency = (r: ReturnType<typeof prefilter>) =>
+    r.pass && r.flags.some((f) => f.startsWith("residencia_exigida"));
+
+  it("con país explícito suma residencia_exigida y location_risk, y no descarta", () => {
+    const r = prefilter(job, rules, { userCountry: "AR" });
+    expect(r.pass).toBe(true);
+    if (!r.pass) return;
+    expect(r.flags).toContain("residencia_exigida:CA");
+    expect(r.flags.filter((f) => f === "location_risk")).toHaveLength(1);
+  });
+
+  it("agrega location_risk aunque la ubicación sola no lo marcara", () => {
+    const r = prefilter(
+      { ...job, locationRaw: "Remote", jdText: "Candidates must be located in the United States." },
+      rules,
+      { userCountry: "AR" },
+    );
+    expect(r.pass && r.flags).toEqual(
+      expect.arrayContaining(["residencia_exigida:US", "location_risk"]),
+    );
+  });
+
+  it("no marca si la lista incluye al país de la persona", () => {
+    const r = prefilter(
+      { ...job, locationRaw: "Remote", jdText: "Must be based in Canada or Argentina." },
+      rules,
+      { userCountry: "AR" },
+    );
+    expect(hasResidency(r)).toBe(false);
+  });
+
+  it("sin userCountry explícito no cambia nada", () => {
+    expect(hasResidency(prefilter(job, rules))).toBe(false);
+  });
+
+  it("con userCountry null no marca residencia", () => {
+    expect(hasResidency(prefilter(job, rules, { userCountry: null }))).toBe(false);
+  });
+
+  it("no regresión: el pass de todo el golden público no cambia con país explícito", () => {
+    const actual = jobs.map((j) => prefilter(byId(j.id), rules, { userCountry: "AR" }).pass);
+    expect(actual).toEqual(PASS_BEFORE);
+  });
+});

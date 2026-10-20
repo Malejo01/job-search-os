@@ -4,6 +4,7 @@ import type { CriteriaRules } from "./criteria";
 import { decide, decideAction } from "./decide";
 import type { Evaluation } from "./evaluation";
 import { INJECTION_FLAG, INJECTION_RISK } from "./evaluator/injection";
+import { prefilter } from "./prefilter";
 
 const rules = criteria as CriteriaRules;
 
@@ -521,5 +522,63 @@ describe("decide(): aviso con instrucciones al evaluador (ronda 43)", () => {
       const d = decide({ ...limpio, score }, rules, flags);
       expect(["aplicar", "aplicar_personalizado"]).not.toContain(d.accion);
     }
+  });
+});
+
+describe("decide(): residencia exigida (ronda 66)", () => {
+  const flags = { prefilterFlags: ["residencia_exigida:CA", "location_risk"] };
+
+  it("con el flag → descartar, bloqueador, adjustment y location_ok efectivo 'no'", () => {
+    const d = decide({ ...base, score: 9 }, rules, flags);
+    expect(d.accion).toBe("descartar");
+    expect(d.bloqueadores).toContain("residencia exigida en CA");
+    expect(d.adjustments).toContainEqual(
+      expect.objectContaining({ rule: "residencia_exigida", delta: 0 }),
+    );
+    expect(d.locationOk).toBe("no");
+    expect(d.scoreFinal).toBe(9);
+  });
+
+  it("lista varios lugares en el bloqueador", () => {
+    const d = decide(base, rules, { prefilterFlags: ["residencia_exigida:CA,US,EU"] });
+    expect(d.bloqueadores).toContain("residencia exigida en CA, US, EU");
+  });
+
+  it("un solo bloqueador de país aunque el modelo ya haya puesto uno", () => {
+    const d = decide({ ...base, bloqueadores_duros: ["país excluido: Canadá"] }, rules, flags);
+    expect(d.bloqueadores).toEqual(["país excluido: Canadá"]);
+    expect(d.accion).toBe("descartar");
+  });
+
+  it("sin el flag, location_ok del modelo queda como está", () => {
+    expect(decide(base, rules).locationOk).toBe("ok");
+    expect(decide({ ...base, location_ok: "riesgo" }, rules).locationOk).toBe("riesgo");
+  });
+
+  it("caso Empresa A / Canadá: JD ficticia, perfil AR → descartar", () => {
+    const jd = [
+      "Empresa A (fintech) busca un Senior Data Analyst.",
+      "Remote (Canada). You must be based in Canada to be considered.",
+      "Trabajarás con SQL, Python y dashboards para el equipo de riesgo.",
+      "Se valora experiencia en pagos.",
+    ].join("\n");
+    const pre = prefilter(
+      {
+        title: "Senior Data Analyst",
+        companyRaw: "Empresa A",
+        locationRaw: "Remote (Canada)",
+        modality: "remoto",
+        jdText: jd,
+      },
+      rules,
+      { userCountry: "AR" },
+    );
+    expect(pre.pass).toBe(true);
+    const d = decide({ ...base, score: 8.5, location_ok: "ok" }, rules, {
+      prefilterFlags: pre.pass ? pre.flags : [],
+    });
+    expect(d.accion).toBe("descartar");
+    expect(d.locationOk).toBe("no");
+    expect(d.bloqueadores).toEqual(["residencia exigida en CA"]);
   });
 });

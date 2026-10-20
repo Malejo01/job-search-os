@@ -1,6 +1,7 @@
 import type { CriteriaRules } from "../criteria";
 import { countriesMentioned, countryNames } from "../normalize/location";
 import { foldText } from "../normalize/text";
+import { detectResidencyRestriction, RESIDENCY_FLAG } from "./residency";
 import type { RoleKey } from "../skills/self-assessment";
 
 /**
@@ -21,6 +22,8 @@ export type PrefilterInput = {
   skillsMatchRatio?: number | null;
   /** Países del aviso si la fuente los trae estructurados (Get on Board). */
   countriesAllowed?: readonly string[] | null;
+  /** Texto del aviso, si ya se tiene: lo usa la detección de residencia exigida. */
+  jdText?: string | null;
 };
 
 export type PrefilterReason =
@@ -396,6 +399,19 @@ export function prefilter(
       locationRisk = true;
   }
   if (locationRisk) flags.push("location_risk");
+
+  // Residencia exigida en un país ajeno ("must be based in Canada"): suma el flag y el riesgo, no
+  // descarta. Solo con país explícito, como la regla de arriba, para no mover los evals.
+  if (explicitCountry && userCountry) {
+    const residency = detectResidencyRestriction(
+      [input.title, input.locationRaw, input.jdText].filter(Boolean).join("\n"),
+      userCountry,
+    );
+    if (residency) {
+      flags.push(`${RESIDENCY_FLAG}:${[...residency.countries, ...residency.regions].join(",")}`);
+      if (!locationRisk) flags.push("location_risk");
+    }
+  }
 
   // 6. Candidatos: riesgo
   if (
