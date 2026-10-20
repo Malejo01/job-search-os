@@ -3,6 +3,8 @@ on: deployment_status
 
 # Smoke de solo lectura contra producción después de cada deploy a Production (docs/OPERACION.md).
 # La URL es fija: no se usa la del evento, para no correr contra previews ni URLs inyectadas.
+# Si falla, abre (o comenta) un issue `smoke-roto` y GitHub le avisa a Mauro. Rollback en
+# docs/CARRIL_VERDE.md § "Si el smoke falla: rollback".
 permissions:
   contents: read
 
@@ -11,6 +13,9 @@ jobs:
     if: github.event.deployment_status.state == 'success' && github.event.deployment_status.environment == 'Production'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
     env:
       CI: "1"
       SMOKE_BASE_URL: https://busquedalaboral.malejo.com.ar
@@ -30,3 +35,19 @@ jobs:
       # Sin trazas ni screenshots (podrían mostrar datos de la cuenta de prueba): solo el resumen
       - if: failure()
         run: echo "::error title=smoke falló::El smoke post-deploy falló contra producción; ver el log del paso anterior."
+      # Aviso: un issue por racha de fallas; si ya hay uno abierto, se comenta ahí. El texto no lleva
+      # nada del log: solo el commit y el link a la corrida.
+      - if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.deployment.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh label create smoke-roto --color B60205 --description "El smoke post-deploy falló" --repo "$GITHUB_REPOSITORY" || true
+          body="El smoke post-deploy falló contra producción (commit ${SHA:0:7}). Corrida: $RUN_URL. Rollback: docs/CARRIL_VERDE.md § Si el smoke falla."
+          open=$(gh issue list --repo "$GITHUB_REPOSITORY" --label smoke-roto --state open --json number --jq '.[0].number // empty')
+          if [ -n "$open" ]; then
+            gh issue comment "$open" --repo "$GITHUB_REPOSITORY" --body "$body"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --label smoke-roto --title "Smoke post-deploy falló (${SHA:0:7})" --body "$body"
+          fi

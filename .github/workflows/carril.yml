@@ -1,0 +1,44 @@
+name: carril
+# Carril verde (ronda 65, docs/CARRIL_VERDE.md). Check obligatorio del ruleset de main: pasa solo si
+# el PR tiene la etiqueta `carril-verde`, viene del mismo repo, AUTO_MERGE_PAUSED no es "true" y no
+# toca ningún path de .github/carril-rojo.txt. Con todo en verde, el auto-merge (squash) que activó
+# el lead mergea solo. Lo demás lo mergea Mauro.
+#
+# pull_request_target a propósito: el workflow, el script y la lista roja salen de main, así que un
+# PR no puede cambiar las reglas con las que se lo juzga. NUNCA se hace checkout del código del PR
+# ni se ejecuta nada de él: la lista de archivos viene de la API. Por lo mismo, este workflow no
+# corre en su propio PR: empieza a valer cuando está en main.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled, ready_for_review]
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: carril-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  carril:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Sin `ref`: en pull_request_target el checkout es la punta de main, no el PR
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: .github
+      - name: Clasificar el PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          CHANGED_FILES: ${{ github.event.pull_request.changed_files }}
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          AUTO_MERGE_PAUSED: ${{ vars.AUTO_MERGE_PAUSED }}
+        run: node .github/scripts/carril.mjs
