@@ -27,9 +27,26 @@ const nextConfig: NextConfig = {
       { source: "/terminos", destination: "/legal/terminos", permanent: false },
     ];
   },
-  // El token del reset viaja en la query: que no salga en el Referer hacia otros sitios (SEC-05).
+  // Headers de seguridad globales. La CSP lleva solo frame-ancestors (la completa es otro ticket);
+  // limitan que nos enmarquen, no los iframes propios con srcDoc.
   async headers() {
     return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Permissions-Policy",
+            // Sin interest-cohort: Chrome ya no lo reconoce y lo informa como error en la consola
+            value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+          },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+        ],
+      },
+      // Va después de la global a propósito: con la misma clave gana la última entrada que matchea.
+      // El token del reset viaja en la query: que no salga en el Referer hacia otros sitios (SEC-05).
       {
         source: "/reset-password",
         headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
