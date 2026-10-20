@@ -1,9 +1,11 @@
 import { PRODUCT_NAME } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { signOut } from "@/auth";
 import { assertAppRole } from "@/lib/db";
 import { requireUserId } from "@/lib/session";
+import { needsTermsAcceptance } from "@/lib/terms-status";
 
 export const metadata: Metadata = { title: "Completá tu perfil" };
 
@@ -21,7 +23,9 @@ async function logout(): Promise<void> {
  */
 export default async function OnboardingLayout({ children }: { children: ReactNode }) {
   await assertAppRole();
-  await requireUserId();
+  const userId = await requireUserId();
+  // Gate de términos (ronda 83): igual que en (app); la pantalla de re-aceptación está fuera de ambos
+  if (await needsTermsAcceptance(userId)) redirect("/terminos-actualizados");
   return (
     <div className="flex min-h-screen flex-col">
       <a href="#contenido" className={SKIP_CLASS}>

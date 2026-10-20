@@ -19,6 +19,11 @@ test.describe("setup inicial (JS-045/ADR-012)", () => {
       await page.getByLabel("Contraseña").fill(E2E_PASSWORD);
       await page.getByLabel("Repetila").fill(E2E_PASSWORD);
       await page.getByRole("button", { name: "Crear cuenta" }).click();
+      // Gate de términos (ronda 83): /setup deja terms_version en null, así que el primer usuario
+      // también acepta los términos antes de seguir.
+      await page.waitForURL("**/terminos-actualizados");
+      await page.getByLabel("Leí y acepto los términos y la política de privacidad").check();
+      await page.getByRole("button", { name: "Aceptar y seguir" }).click();
       // Gate de onboarding (B2): la cuenta nueva no tiene perfil y /jobs la manda a /onboarding.
       // Esperar a que cargue: con el redirect todavía en vuelo, su respuesta vuelve a poner la
       // cookie de sesión después del clearCookies de abajo.

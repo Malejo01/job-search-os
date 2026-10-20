@@ -7,6 +7,9 @@ import {
 } from "@job-search-os/pipeline";
 import * as s from "../schema";
 import routingSeed from "../seeds/model_routing.json";
+// Import cruzado a propósito: TERMS_VERSION vive en apps/web/lib/terms.ts (PR #95). Cuando se mergee,
+// mover la constante a @job-search-os/pipeline y re-exportarla.
+import { TERMS_VERSION } from "../../../apps/web/lib/terms";
 import { hashPassword } from "./password";
 import skillsSeed from "../seeds/skills.json";
 import learningResourcesSeed from "../seeds/learning_resources.json";
@@ -274,12 +277,21 @@ async function seedUser(db: Db, userId: string): Promise<void> {
   const passwordHash = password ? hashPassword(password) : null;
   await db
     .insert(s.users)
-    .values({ id: userId, email, name: p.display_name, passwordHash })
+    .values({
+      id: userId,
+      email,
+      name: p.display_name,
+      passwordHash,
+      termsVersion: TERMS_VERSION,
+      termsAcceptedAt: new Date(),
+    })
     .onConflictDoUpdate({
       target: s.users.id,
       set: {
         email,
         name: p.display_name,
+        termsVersion: TERMS_VERSION,
+        termsAcceptedAt: new Date(),
         ...(passwordHash ? { passwordHash } : {}),
         updatedAt: new Date(),
       },
