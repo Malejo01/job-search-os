@@ -1,0 +1,7 @@
+name: carril
+on: pull_request
+jobs:
+  carril:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ok
