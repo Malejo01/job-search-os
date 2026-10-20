@@ -39,6 +39,8 @@ const CATALOG_TABLES = [
   "ats_boards",
   // Lista de espera pública (ronda 63): personas sin cuenta, sin policy; solo entra por waitlist_join.
   "waitlist",
+  // Admins a nivel base (ronda 70): tiene user_id pero sin policy; la app no la toca (rls/0006).
+  "app_admins",
 ];
 
 /**
@@ -562,6 +564,52 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
         before,
       );
       await owner`delete from waitlist where email = 'multiusuario-espera@ejemplo.test'`;
+    },
+    // Administración de la lista (ronda 70): sin user_id y sin datos de usuarios; no tocan nada de B.
+    // El control de admin es de la app; la base solo exige sesión (cubierto en waitlist.integration).
+    waitlist_admin_list: async () => {
+      const before = await fingerprint({ table: "invitations", column: "used_by_user_id" }, B);
+      // A no está en app_admins: la base la rechaza (el caso admin está en waitlist.integration)
+      await expect(asUser(A, (tx) => tx`select * from waitlist_admin_list(5)`)).rejects.toThrow(
+        /waitlist_admin: no autorizado/,
+      );
+      expect(await fingerprint({ table: "invitations", column: "used_by_user_id" }, B)).toBe(
+        before,
+      );
+    },
+    waitlist_admin_get: async () => {
+      await expect(
+        asUser(
+          A,
+          (tx) =>
+            tx`select * from waitlist_admin_get('d8000000-0000-4000-8000-0000000000fe'::uuid)`,
+        ),
+      ).rejects.toThrow(/waitlist_admin: no autorizado/);
+    },
+    waitlist_admin_mark_invited: async () => {
+      const before = await fingerprint({ table: "invitations", column: "used_by_user_id" }, B);
+      await expect(
+        asUser(
+          A,
+          (tx) =>
+            tx`select waitlist_admin_mark_invited('d8000000-0000-4000-8000-0000000000fe'::uuid, null)`,
+        ),
+      ).rejects.toThrow(/waitlist_admin: no autorizado/);
+      expect(await fingerprint({ table: "invitations", column: "used_by_user_id" }, B)).toBe(
+        before,
+      );
+    },
+    waitlist_admin_delete: async () => {
+      const before = await fingerprint({ table: "invitations", column: "used_by_user_id" }, B);
+      await expect(
+        asUser(
+          A,
+          (tx) => tx`select waitlist_admin_delete('d8000000-0000-4000-8000-0000000000fe'::uuid)`,
+        ),
+      ).rejects.toThrow(/waitlist_admin: no autorizado/);
+      expect(await fingerprint({ table: "invitations", column: "used_by_user_id" }, B)).toBe(
+        before,
+      );
     },
     // Lookup por email: acá solo un email inexistente.
     auth_user_by_email: async () => {

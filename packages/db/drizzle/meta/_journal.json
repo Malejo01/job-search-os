@@ -197,6 +197,20 @@
       "when": 1792504047452,
       "tag": "0027_free_bedlam",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1792515891845,
+      "tag": "0028_opposite_korg",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1792516209141,
+      "tag": "0029_fearless_veda",
+      "breakpoints": true
     }
   ]
 }

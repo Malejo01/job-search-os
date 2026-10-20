@@ -284,6 +284,15 @@ async function seedUser(db: Db, userId: string): Promise<void> {
         updatedAt: new Date(),
       },
     });
+  // Barrera de admin en la base (rls/0006): solo local/CI, si el email está en ADMIN_EMAILS. En
+  // producción Mauro carga su user_id con un INSERT puntual (el seed no corre contra Neon).
+  const adminEmails = (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  if (adminEmails.includes(email)) {
+    await db.insert(s.appAdmins).values({ userId }).onConflictDoNothing();
+  }
   if (!password) {
     console.warn(
       "SEED_USER_PASSWORD no definida: el usuario queda sin contraseña nueva (no puede entrar hasta cargarla)",
