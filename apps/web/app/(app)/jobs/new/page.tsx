@@ -1,27 +1,33 @@
 import Link from "next/link";
-import { SubmitButton } from "@/app/components/submit-button";
 import { createManualJobAction } from "./actions";
+import { JobFields } from "./job-fields";
+import { PasteForm } from "./paste-form";
 
 export const metadata = { title: "Nueva oferta" };
 export const dynamic = "force-dynamic";
 // Con JD completo la evaluación corre en `after` dentro de esta invocación (JS-027)
 export const maxDuration = 120;
 
-const input = "rounded-md border border-zinc-300 px-3 py-2 text-base";
+function tabClass(active: boolean): string {
+  return `inline-flex min-h-11 items-center rounded-md border px-3 text-sm ${
+    active ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-300 text-zinc-800"
+  }`;
+}
 
 /**
  * Ingesta manual (JS-023): una oferta vista en cualquier lado (LinkedIn, un mail, un chat) entra
  * por el mismo camino que las automáticas: dedup contra 14 días, prefiltro, estado y cola de
  * evaluación si trae JD. Sin JD queda en "Pendientes de JD". Server Component + Server Action.
+ * Dos modos: completar los campos o pegar el aviso entero (`?modo=pegar`, ronda 63). Si la acción
+ * redirige con `?error=`, se pierde el modo pegar: es aceptable.
  */
 export default async function NewJobPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; modo?: string }>;
 }) {
-  const { error } = await searchParams;
-  const invalidProps = (key: string) =>
-    error === key ? { "aria-invalid": true, "aria-describedby": "alta-error" } : {};
+  const { error, modo } = await searchParams;
+  const pegar = modo === "pegar";
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between gap-2">
@@ -30,6 +36,22 @@ export default async function NewJobPage({
           ← Ofertas
         </Link>
       </div>
+      <nav aria-label="Cómo cargar la oferta" className="flex flex-wrap gap-2">
+        <Link
+          href="/jobs/new"
+          aria-current={pegar ? undefined : "page"}
+          className={tabClass(!pegar)}
+        >
+          Completar campos
+        </Link>
+        <Link
+          href="/jobs/new?modo=pegar"
+          aria-current={pegar ? "page" : undefined}
+          className={tabClass(pegar)}
+        >
+          Pegar el aviso entero
+        </Link>
+      </nav>
       {error ? (
         <p
           id="alta-error"
@@ -43,65 +65,13 @@ export default async function NewJobPage({
               : "No se pudo cargar la oferta. Probá de nuevo."}
         </p>
       ) : null}
-      <form action={createManualJobAction} className="flex flex-col gap-3">
-        <label className="flex flex-col gap-1 text-sm">
-          Link del aviso (opcional; sirve para no cargarlo dos veces)
-          <input
-            name="url"
-            type="url"
-            placeholder="https://…"
-            {...invalidProps("url")}
-            className={input}
-          />
-        </label>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-1 text-sm">
-            Título *
-            <input name="title" required {...invalidProps("campos")} className={input} />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            Empresa *
-            <input name="company" required {...invalidProps("campos")} className={input} />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            Ubicación
-            <input name="location" placeholder="Remoto (Argentina), CABA…" className={input} />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            Modalidad
-            <select name="modality" defaultValue="desconocida" className={input}>
-              <option value="remoto">Remoto</option>
-              <option value="hibrido">Híbrido</option>
-              <option value="presencial">Presencial</option>
-              <option value="desconocida">No dice</option>
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            Salario USD mensual (mín.)
-            <input name="salaryMin" type="number" min={0} className={input} />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            Salario USD mensual (máx.)
-            <input name="salaryMax" type="number" min={0} className={input} />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            Candidatos (si el aviso lo dice)
-            <input name="candidates" type="number" min={0} className={input} />
-          </label>
-        </div>
-        <label className="flex flex-col gap-1 text-sm">
-          Descripción del puesto (pegá el texto completo; si la dejás vacía queda pendiente de JD)
-          <textarea name="jdText" rows={8} className={input} />
-        </label>
-        <div className="flex justify-end">
-          <SubmitButton
-            pendingLabel="Cargando…"
-            className="rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white"
-          >
-            Cargar oferta
-          </SubmitButton>
-        </div>
-      </form>
+      {pegar ? (
+        <PasteForm error={error} />
+      ) : (
+        <form action={createManualJobAction} className="flex flex-col gap-3">
+          <JobFields error={error} submitLabel="Cargar oferta" pendingLabel="Cargando…" />
+        </form>
+      )}
       <p className="text-xs text-zinc-600">
         Si el link o la descripción ya existen en los últimos 14 días, se fusiona con la oferta
         existente en vez de duplicarla. Si solo coinciden empresa y título, se guarda aparte marcada

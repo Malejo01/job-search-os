@@ -36,6 +36,12 @@ export default async function PendingJdPage({
           descripción
         </p>
       </div>
+      <p className="text-sm text-zinc-700">
+        ¿La oferta no está en la lista?{" "}
+        <Link href="/jobs/new?modo=pegar" className="inline-block py-3 align-middle underline">
+          Cargala a mano
+        </Link>
+      </p>
       {error ? (
         <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
           {ERRORS[error] ?? "Algo falló."}
