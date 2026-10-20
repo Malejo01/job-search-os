@@ -259,6 +259,17 @@ export function locationScope(
   return toScope(fromText);
 }
 
+/**
+ * Países y regiones que nombra un fragmento de texto (por ejemplo, lo que sigue a "must be based
+ * in"). `null` si no reconoce ninguno o si menciona un huso horario: falla abierto, como `scan`.
+ */
+export function placesIn(value: string): { countries: string[]; regions: Region[] } | null {
+  const found: Found = { countries: new Set(), regions: new Set() };
+  if (scan(value, found)) return null;
+  const scope = toScope(found);
+  return scope.kind === "places" ? { countries: scope.countries, regions: scope.regions } : null;
+}
+
 /** ¿La oferta admite a alguien de `iso2`? Sin país de la persona o con alcance desconocido, sí. */
 export function allowsCountry(scope: LocationScope, iso2: string | null | undefined): boolean {
   if (scope.kind !== "places" || !iso2) return true;

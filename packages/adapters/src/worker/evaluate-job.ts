@@ -5,9 +5,11 @@ import {
   canTransition,
   decide,
   detectEvaluatorInjection,
+  detectResidencyRestriction,
   INJECTION_FLAG,
   isRoleKey,
   outputSchemaFor,
+  RESIDENCY_FLAG,
   roleSkillsSchema,
   sanitizeEvaluation,
   transition,
@@ -121,11 +123,25 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
   // modelo. El flag topa el score en decide() y queda en jobs.flags; en el log solo van los nombres.
   const injection = detectEvaluatorInjection([job.title, job.companyRaw, job.jdText].join("\n"));
   // Se recalcula siempre: un flag viejo no sobrevive si la JD ya no dispara el detector
-  const baseFlags = (job.flags ?? []).filter((f) => f !== INJECTION_FLAG);
-  const flags = injection.hit ? [...baseFlags, INJECTION_FLAG] : baseFlags;
+  // Lo mismo con la residencia exigida: la JD pudo llegar después del ingreso (pendiente_jd), así
+  // que se recalcula con el texto completo y el país actual de la persona.
+  const residency = detectResidencyRestriction(
+    [job.title, job.locationRaw, job.jdText].filter(Boolean).join("\n"),
+    profile.locationCountry,
+  );
+  const residencyFlag = residency
+    ? `${RESIDENCY_FLAG}:${[...residency.countries, ...residency.regions].join(",")}`
+    : null;
+  const baseFlags = (job.flags ?? []).filter(
+    (f) => f !== INJECTION_FLAG && !f.startsWith(`${RESIDENCY_FLAG}:`),
+  );
+  const flags = [
+    ...baseFlags,
+    ...(injection.hit ? [INJECTION_FLAG] : []),
+    ...(residencyFlag ? [residencyFlag] : []),
+  ];
   const flagsChanged =
-    flags.length !== (job.flags ?? []).length ||
-    injection.hit !== (job.flags ?? []).includes(INJECTION_FLAG);
+    flags.length !== (job.flags ?? []).length || flags.some((f) => !(job.flags ?? []).includes(f));
   if (injection.hit)
     log.warn({ signals: injection.signals }, "aviso con instrucciones al evaluador");
 
@@ -190,7 +206,7 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
       yearsRequired: evaluation.years_required,
       yearsDomain: evaluation.years_domain,
       yearsDiscipline: evaluation.years_discipline,
-      locationOk: evaluation.location_ok,
+      locationOk: decision.locationOk,
       modality: evaluation.modalidad,
       discipline: evaluation.disciplina,
       englishRequired: evaluation.ingles_requerido,

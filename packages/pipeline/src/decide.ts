@@ -1,6 +1,7 @@
 import type { CriteriaRules } from "./criteria";
 import type { Evaluation } from "./evaluation";
 import { INJECTION_FLAG, INJECTION_RISK } from "./evaluator/injection";
+import { RESIDENCY_FLAG } from "./prefilter/residency";
 
 /**
  * Decisión desde score + bloqueadores + riesgos + umbrales (EVALUATOR_PROMPT §3, prompt v1.1).
@@ -16,6 +17,7 @@ import { INJECTION_FLAG, INJECTION_RISK } from "./evaluator/injection";
  * | sin riesgos + score ≥ aplicar               | aplicar                |
  * | sin riesgos + score entre guardar y aplicar | guardar                |
  * | location_ok = "no" (país excluido)          | tope: guardar como máximo, aunque el score sea alto |
+ * | flag residencia_exigida:<países> (prefiltro) | bloqueador duro → descartar; location_ok efectivo = "no" |
  */
 export type ActionThresholds = { personalizado: number; aplicar: number; guardar: number };
 export type Action = "aplicar_personalizado" | "aplicar" | "guardar" | "descartar";
@@ -67,6 +69,8 @@ export type Decision = {
   riesgos: string[];
   adjustments: Adjustment[];
   accion: Action;
+  /** `location_ok` efectivo: el del modelo, salvo que el código vea residencia exigida ("no"). */
+  locationOk: Evaluation["location_ok"];
 };
 
 const CLOUD = /\b(aws|azure|gcp|google cloud|kubernetes|k8s|eks|terraform)\b/i;
@@ -295,6 +299,33 @@ export function decide(
   }
 
   /**
+   * Residencia exigida en un país ajeno (ronda 66): el aviso dice "must be based in Canada" y la
+   * persona no vive ahí. El prefiltro lo detecta con una frase literal; acá es bloqueador duro y
+   * el `location_ok` efectivo pasa a "no", aunque el modelo haya dicho "ok" o "riesgo".
+   * Es una regla determinista sobre texto de terceros que SÍ descarta, a pedido (H-1); por eso el
+   * detector falla abierto ante cualquier duda (ver prefilter/residency.ts).
+   */
+  const residencyFlag = (context.prefilterFlags ?? []).find((f) =>
+    f.startsWith(`${RESIDENCY_FLAG}:`),
+  );
+  let locationOk: Evaluation["location_ok"] = evaluation.location_ok;
+  if (residencyFlag) {
+    const places = residencyFlag
+      .slice(RESIDENCY_FLAG.length + 1)
+      .split(",")
+      .join(", ");
+    if (!bloqueadores.some((b) => /pa[ií]s|residen|ubicaci/i.test(b))) {
+      bloqueadores.push(`residencia exigida en ${places}`);
+    }
+    adjustments.push({
+      rule: "residencia_exigida",
+      delta: 0,
+      detail: `el aviso exige residir en ${places}`,
+    });
+    locationOk = "no";
+  }
+
+  /**
    * Aviso con instrucciones dirigidas al evaluador (ronda 43). El texto es de terceros: si intentó
    * mover el score, no lo logra más allá de "guardar" y la persona ve el riesgo. Nunca descarta.
    */
@@ -314,8 +345,16 @@ export function decide(
   const scoreFinal = clamp(score);
   let accion = applyLocationCap(
     decideAction(scoreFinal, bloqueadores, rules.thresholds, riesgos),
-    evaluation.location_ok,
+    locationOk,
   );
   if (injected && (accion === "aplicar" || accion === "aplicar_personalizado")) accion = "guardar";
-  return { scoreModel: evaluation.score, scoreFinal, bloqueadores, riesgos, adjustments, accion };
+  return {
+    scoreModel: evaluation.score,
+    scoreFinal,
+    bloqueadores,
+    riesgos,
+    adjustments,
+    accion,
+    locationOk,
+  };
 }

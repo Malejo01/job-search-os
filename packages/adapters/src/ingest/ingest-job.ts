@@ -438,6 +438,7 @@ export async function ingestRawJob(raw: RawJob, deps: IngestDeps): Promise<Inges
       badges: raw.badges,
       candidatesCount: raw.candidatesCount,
       countriesAllowed: raw.countriesAllowed,
+      jdText: raw.jdText,
     },
     rules,
     { userCountry, remoteOnly, targetRoles },

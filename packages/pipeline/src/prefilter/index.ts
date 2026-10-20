@@ -7,4 +7,5 @@ export {
   type PrefilterReason,
   type PrefilterResult,
 } from "./prefilter";
+export { detectResidencyRestriction, RESIDENCY_FLAG, type ResidencyRestriction } from "./residency";
 export { prefilterReasonText } from "./reason-text";
