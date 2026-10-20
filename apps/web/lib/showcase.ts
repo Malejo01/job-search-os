@@ -9,6 +9,7 @@ import {
   type RoleKey,
   type ShowcaseCard,
 } from "@job-search-os/pipeline";
+import { unstable_cache } from "next/cache";
 import { assertAppRole, getAppDb, type Tx } from "./db";
 
 /**
@@ -26,13 +27,26 @@ export function careerFromSlug(slug: string): RoleKey | null {
 }
 
 /**
+ * Segundos de vida de una página renderizada sin base (el build de Vercel y el del CI no tienen URL
+ * de la app): así "Datos en preparación" no queda cacheado la hora entera de `revalidate`.
+ */
+export const EMPTY_PAGE_REVALIDATE_SECONDS = 30;
+
+/**
  * Lectura de solo lectura sobre el pool público. Devuelve `null` únicamente cuando la app no tiene
- * URL de base configurada (el build del CI): ahí la página muestra "Datos en preparación" en vez de
- * romper el prerender. Cualquier otro error se propaga, para que ISR siga sirviendo la versión
- * anterior en vez de cachear una página vacía.
+ * URL de base configurada: ahí la página muestra "Datos en preparación" en vez de romper el
+ * prerender, y además se acorta su vida a 30 s. Un `unstable_cache` con `revalidate` numérico baja
+ * el `revalidate` de la página que se está prerenderizando (next/.../unstable-cache.js); con datos
+ * no se llama y la página queda con su hora. Cualquier otro error se propaga, para que ISR siga
+ * sirviendo la versión anterior en vez de cachear una página vacía.
  */
 export async function readPublicPool<T>(read: (tx: Tx) => Promise<T>): Promise<T | null> {
-  if (!resolveDatabaseUrl({ purpose: "app" })) return null;
+  if (!resolveDatabaseUrl({ purpose: "app" })) {
+    await unstable_cache(async () => null, ["vitrina-sin-base"], {
+      revalidate: EMPTY_PAGE_REVALIDATE_SECONDS,
+    })();
+    return null;
+  }
   await assertAppRole();
   return getAppDb().transaction(read, { accessMode: "read only" });
 }

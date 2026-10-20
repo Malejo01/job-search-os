@@ -16,7 +16,9 @@ const site = siteUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(site),
-  title: { default: TAGLINE, template: "%s" },
+  // `absolute`: con `default`, el título de este layout heredaba la plantilla del raíz
+  // ("%s · <nombre del producto>"). Las páginas de abajo usan "%s", sin nombre.
+  title: { absolute: TAGLINE, template: "%s" },
   description: DESCRIPTION,
   openGraph: { title: TAGLINE, description: DESCRIPTION, type: "website", locale: "es_AR" },
   twitter: { card: "summary_large_image", title: TAGLINE, description: DESCRIPTION },
