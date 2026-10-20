@@ -39,6 +39,8 @@ test.describe("Flujo 12: vista de email unificada con acciones arriba", () => {
     const cuerpo = page.locator('iframe[title="Contenido del email"]');
     await expect(cuerpo).toHaveCount(1);
     await expect(cuerpo).toHaveAttribute("sandbox", "");
+    // La CSP del documento corta formularios y <base>
+    await expect(cuerpo).toHaveAttribute("srcdoc", /form-action 'none'.*base-uri 'none'/);
     await expect(
       page.frameLocator('iframe[title="Contenido del email"]').getByRole("heading"),
     ).toContainText(`Nueva oferta ${tag}`);

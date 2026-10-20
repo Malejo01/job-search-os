@@ -1,5 +1,5 @@
 import { schema as s, type Db } from "@job-search-os/db";
-import { inArray, isNotNull, lt, or, and } from "drizzle-orm";
+import { inArray, isNotNull, isNull, lt, or, and } from "drizzle-orm";
 import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 import type { SQL } from "drizzle-orm";
 
@@ -15,7 +15,13 @@ export type PurgeResult = {
   rejections: number;
   /** ip_hash de la lista de espera puestos en null (más de 24 h): se borra aunque nadie se anote */
   waitlistIps: number;
+  /** Invitaciones vencidas y sin usar, borradas. */
+  invitations: number;
+  /** Invitaciones usadas a las que se les anuló el email. */
+  invitationEmails: number;
 };
+
+const INVITATION_GRACE_DAYS = 7;
 
 export const PURGE_BATCH = 5_000;
 /** Tope de lotes por tabla y corrida; lo que quede lo borra la próxima (cada 6 h). */
@@ -65,7 +71,15 @@ export async function purgeExpired(
   const { now } = input;
   const batchSize = input.batchSize ?? PURGE_BATCH;
   const dayAgo = new Date(now.getTime() - DAY_MS);
-  const result: PurgeResult = { tokens: 0, llmCalls: 0, queue: 0, rejections: 0, waitlistIps: 0 };
+  const result: PurgeResult = {
+    tokens: 0,
+    llmCalls: 0,
+    queue: 0,
+    rejections: 0,
+    waitlistIps: 0,
+    invitations: 0,
+    invitationEmails: 0,
+  };
 
   // IP hasheada de la lista de espera: no se guarda más de un día (mismo UPDATE que waitlist_join)
   const wiped = await db
@@ -82,6 +96,22 @@ export async function purgeExpired(
     or(lt(s.passwordResetTokens.expiresAt, dayAgo), lt(s.passwordResetTokens.usedAt, dayAgo)),
     batchSize,
   );
+
+  // Invitaciones vencidas y sin usar, con 7 días de gracia para que el admin vea que vencieron
+  const graceCutoff = new Date(now.getTime() - INVITATION_GRACE_DAYS * DAY_MS);
+  result.invitations = await deleteInBatches(
+    db,
+    s.invitations,
+    and(isNull(s.invitations.usedAt), lt(s.invitations.expiresAt, graceCutoff)),
+    batchSize,
+  );
+  // Las usadas no guardan el email del invitado (las anteriores al canje que lo borra, todavía sí)
+  const cleared = await db
+    .update(s.invitations)
+    .set({ email: null })
+    .where(and(isNotNull(s.invitations.usedAt), isNotNull(s.invitations.email)))
+    .returning({ id: s.invitations.id });
+  result.invitationEmails = cleared.length;
 
   const logDays = input.logDays;
   if (
