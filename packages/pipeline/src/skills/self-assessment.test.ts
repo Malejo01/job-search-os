@@ -5,6 +5,7 @@ import { DEFAULT_CRITERIA_RULES } from "../onboarding";
 import {
   DIGITAL_ROLE_KEYS,
   IT_ROLE_KEYS,
+  MAX_SKILL_ENTRIES,
   ROLE_GROUPS,
   ROLE_KEYS,
   SELF_LEVELS,
@@ -194,12 +195,21 @@ describe("parseSkillLevelsForm", () => {
       expect(r).toEqual({ ok: false, field: "slug" });
     }
   });
-  it("rechaza más de 60 entradas", () => {
+  it("rechaza más entradas que el tope", () => {
     const raw: Record<string, string> = {};
-    for (let i = 0; i < 61; i++) raw[`level:skill_${i}`] = "1";
+    for (let i = 0; i < MAX_SKILL_ENTRIES + 1; i++) raw[`level:skill_${i}`] = "1";
     expect(parseSkillLevelsForm(raw)).toEqual({ ok: false, field: "niveles" });
-    delete raw["level:skill_60"];
+    delete raw[`level:skill_${MAX_SKILL_ENTRIES}`];
     expect(parseSkillLevelsForm(raw).ok).toBe(true);
+  });
+  it("el tope alcanza para toda la taxonomía (antes eran 60 y había más skills)", () => {
+    expect(taxonomy.length).toBeGreaterThan(93);
+    expect(MAX_SKILL_ENTRIES).toBeGreaterThanOrEqual(taxonomy.length);
+    const raw: Record<string, string> = {};
+    for (const t of taxonomy) raw[`level:${t.slug}`] = "2";
+    const parsed = parseSkillLevelsForm(raw);
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) expect(parsed.entries).toHaveLength(taxonomy.length);
   });
 });
 

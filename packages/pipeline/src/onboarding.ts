@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isIsoCountry } from "./countries";
 import type { CriteriaRules } from "./criteria";
 import { DISCIPLINES } from "./evaluation";
 import { type RoleKey } from "./skills/self-assessment";
@@ -9,10 +10,12 @@ import { parseTargetRoles, TARGET_ROLES_DEFAULT_LIMIT } from "./skills/target-ro
  * Puro: la app lee el perfil y los criterios y pasa los datos; acá solo se decide.
  */
 
+export { ISO_COUNTRY_CODES, isIsoCountry } from "./countries";
+
 export const MIN_SUMMARY_CHARS = 80;
 export const MAX_SUMMARY_CHARS = 2000;
 
-/** Países de LATAM del selector; "OTRO" habilita el campo de código ISO-2 libre. */
+/** Países de LATAM: el buscador de país de residencia los muestra primero. */
 export const COUNTRY_OPTIONS = [
   { code: "AR", label: "Argentina" },
   { code: "BO", label: "Bolivia" },
@@ -36,7 +39,6 @@ export const COUNTRY_OPTIONS = [
   { code: "VE", label: "Venezuela" },
 ] as const;
 
-export const OTHER_COUNTRY = "OTRO";
 export const CEFR_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"] as const;
 
 /** `XX` es el marcador que deja el registro por invitación: no cuenta como país. */
@@ -139,6 +141,16 @@ export function criteriaFromOnboarding(input: {
   };
 }
 
+/** Modalidades de trabajo que la persona puede aceptar (subconjunto de `jobs.modality`). */
+export const MODALITIES = ["remoto", "hibrido", "presencial"] as const;
+export type AcceptedModality = (typeof MODALITIES)[number];
+export type JobLanguage = "es" | "en";
+
+/** Solo remoto: es lo que mantiene `profiles.remote_only` en sincronía con `accepted_modalities`. */
+export function isRemoteOnly(modalities: readonly string[]): boolean {
+  return modalities.length === 1 && modalities[0] === "remoto";
+}
+
 const optionalText = (max: number) =>
   z
     .string()
@@ -158,12 +170,14 @@ export const onboardingSchema = z
     // Ya validados por parseTargetRoles (parseOnboarding los pasa por ahí antes del schema).
     targetRoles: z.array(z.custom<RoleKey>()),
     country: z.string().trim().toUpperCase(),
-    countryOther: z.string().trim().toUpperCase(),
     city: optionalText(100),
-    remoteOnly: z.enum(["si", "no"]).transform((v) => v === "si"),
+    // Casillas Remoto/Híbrido/Presencial: al menos una, sin repetidos ni valores ajenos.
+    acceptedModalities: z.array(z.enum(MODALITIES)).min(1),
+    // Radio: "es", "en" o "both" (los dos).
+    jobLanguage: z.enum(["es", "en", "both"]),
     workAuthUs: z.boolean(),
     workAuthEu: z.boolean(),
-    workAuthOther: optionalText(200),
+    workAuthOther: z.array(z.string().trim().toUpperCase()),
     englishCefr: z.enum(CEFR_LEVELS),
     yearsTotal: z
       .string()
@@ -175,13 +189,12 @@ export const onboardingSchema = z
     summary: z.string().trim().min(MIN_SUMMARY_CHARS).max(MAX_SUMMARY_CHARS),
   })
   .superRefine((v, ctx) => {
-    const code = v.country === OTHER_COUNTRY ? v.countryOther : v.country;
-    if (!isValidCountry(code)) {
-      ctx.addIssue({
-        code: "custom",
-        path: [v.country === OTHER_COUNTRY ? "countryOther" : "country"],
-        message: "país inválido",
-      });
+    // Cualquier ISO-2 asignado (el buscador del form ofrece todos); `XX` y lo inventado, no
+    if (!isIsoCountry(v.country)) {
+      ctx.addIssue({ code: "custom", path: ["country"], message: "país inválido" });
+    }
+    if (v.workAuthOther.some((c) => !isIsoCountry(c))) {
+      ctx.addIssue({ code: "custom", path: ["workAuthOther"], message: "país inválido" });
     }
   });
 
@@ -190,7 +203,12 @@ export type OnboardingInput = {
   targetRoles: RoleKey[];
   locationCountry: string;
   locationCity: string | null;
+  /** Modalidades aceptadas, en el orden de `MODALITIES`, sin repetir (al menos una). */
+  acceptedModalities: AcceptedModality[];
+  /** Derivado de `acceptedModalities`: true si solo acepta remoto. */
   remoteOnly: boolean;
+  /** Idiomas de las ofertas que acepta (uno o los dos). */
+  jobLanguages: JobLanguage[];
   workAuth: { us: boolean; eu: boolean; other?: string[] };
   englishCefr: (typeof CEFR_LEVELS)[number];
   yearsTotal: number;
@@ -218,6 +236,10 @@ export function parseOnboarding(
     const v = raw[k];
     return typeof v === "string" ? v : "";
   };
+  const list = (k: string): string[] => {
+    const v = raw[k];
+    return typeof v === "string" ? [v] : [...(v ?? [])];
+  };
   const rolesRaw = raw.targetRoles;
   const roles = parseTargetRoles(
     typeof rolesRaw === "string" ? [rolesRaw] : [...(rolesRaw ?? [])],
@@ -227,13 +249,18 @@ export function parseOnboarding(
   const parsed = onboardingSchema.safeParse({
     targetRoles: roles.roles,
     country: s("country"),
-    countryOther: s("countryOther"),
     city: s("city"),
-    // Radio Sí/No sin valor marcado: ausente u otro valor falla en vez de asumir algo.
-    remoteOnly: s("remoteOnly"),
+    // Sin casilla marcada o con un valor ajeno falla en vez de asumir algo.
+    acceptedModalities: list("acceptedModalities"),
+    // Radio sin valor marcado: ausente u otro valor falla.
+    jobLanguage: s("jobLanguage"),
     workAuthUs: s("workAuthUs") === "on",
     workAuthEu: s("workAuthEu") === "on",
-    workAuthOther: s("workAuthOther"),
+    // Lista (un valor por país) o, por compatibilidad, un solo texto "CA, MX".
+    workAuthOther: list("workAuthOther")
+      .flatMap((x) => x.split(","))
+      .map((x) => x.trim())
+      .filter(Boolean),
     englishCefr: s("englishCefr"),
     yearsTotal: s("yearsTotal"),
     salaryFloorUsd: s("salaryFloorUsd"),
@@ -252,19 +279,17 @@ export function parseOnboarding(
     return { ok: false, field };
   }
   const v = parsed.data;
-  const other = (v.workAuthOther ?? "")
-    .split(",")
-    .map((x) => x.trim())
-    .filter(Boolean)
-    .slice(0, 10)
-    .map((x) => x.slice(0, 40));
+  const other = [...new Set(v.workAuthOther)].slice(0, 10);
+  const acceptedModalities = MODALITIES.filter((m) => v.acceptedModalities.includes(m));
   return {
     ok: true,
     value: {
       targetRoles: v.targetRoles,
-      locationCountry: v.country === OTHER_COUNTRY ? v.countryOther : v.country,
+      locationCountry: v.country,
       locationCity: v.city,
-      remoteOnly: v.remoteOnly,
+      acceptedModalities,
+      remoteOnly: isRemoteOnly(acceptedModalities),
+      jobLanguages: v.jobLanguage === "both" ? ["es", "en"] : [v.jobLanguage],
       workAuth: { us: v.workAuthUs, eu: v.workAuthEu, ...(other.length ? { other } : {}) },
       englishCefr: v.englishCefr,
       yearsTotal: v.yearsTotal,

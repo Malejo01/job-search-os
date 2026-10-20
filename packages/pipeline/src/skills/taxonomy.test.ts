@@ -8,6 +8,7 @@ type Entry = {
   category: string;
   aliases: string[];
   closure_hours: number;
+  description: string;
 };
 const taxonomy = skills as Entry[];
 
@@ -27,8 +28,11 @@ const NEW_SLUGS = [
   "tableau",
   "statistics",
 ];
-/** Skills de la ronda 40 (carreras digitales): se excluyen de la comparación de "no cambia". */
+/** Skills de la ronda 78 (herramientas que faltaban): también se excluyen de "no cambia". */
+const R78_SLUGS = ["git", "canva", "capcut", "notion", "trello", "mailchimp"];
+/** Skills de la ronda 40 (carreras digitales) y de la 78: se excluyen de la comparación de "no cambia". */
 const CAREER_SLUGS = new Set([
+  ...R78_SLUGS,
   "google_ads",
   "meta_ads",
   "ga4",
@@ -148,6 +152,59 @@ describe("skills.json: integridad", () => {
       `"gtm": seo / growth_marketing`,
     ]);
     expect(clashes.filter((c) => !inherited.has(c))).toEqual([]);
+  });
+});
+
+describe("skills.json: descripciones (ronda 78)", () => {
+  it("todas tienen una frase de hasta 140 caracteres, sin saltos de línea", () => {
+    for (const s of taxonomy) {
+      expect(typeof s.description, s.slug).toBe("string");
+      expect(s.description.trim().length, s.slug).toBeGreaterThan(10);
+      expect(s.description.length, `${s.slug}: ${s.description.length}`).toBeLessThanOrEqual(140);
+      expect(s.description, s.slug).not.toMatch(/[\r\n<>]/);
+    }
+  });
+});
+
+describe("skills de la ronda 78: Git, Canva, CapCut, Notion, Trello y Mailchimp", () => {
+  const find = (slug: string) => taxonomy.find((s) => s.slug === slug);
+
+  it("están todas, con categoría existente", () => {
+    for (const slug of R78_SLUGS) {
+      expect(find(slug), slug).toBeDefined();
+      expect(ALLOWED_CATEGORY.has(find(slug)!.category), slug).toBe(true);
+    }
+  });
+
+  it("Git se llama «Git / GitHub» y tiene los aliases github, gitlab y bitbucket", () => {
+    expect(find("git")!.name).toBe("Git / GitHub");
+    expect(find("git")!.aliases).toEqual(expect.arrayContaining(["github", "gitlab", "bitbucket"]));
+  });
+
+  it("mailchimp sale de los aliases de email_marketing", () => {
+    expect(find("email_marketing")!.aliases).not.toContain("mailchimp");
+  });
+
+  it.each([
+    ["git", "Experiencia con Git y GitHub para el control de versiones."],
+    ["git", "Manejo de Bitbucket o GitLab."],
+    ["canva", "Diseño de piezas en Canva."],
+    ["capcut", "Edición de reels con CapCut."],
+    ["notion", "Documentación en Notion."],
+    ["trello", "Seguimiento de tareas en Trello."],
+    ["mailchimp", "Campañas en Mailchimp."],
+  ])("detecta %s en: %s", (slug, text) => {
+    expect(extract(text)).toContain(slug);
+  });
+
+  it("«GitHub Actions» sigue siendo CI/CD y no suma Git", () => {
+    const found = extract("Pipelines con GitHub Actions.");
+    expect(found).toContain("ci_cd");
+    expect(found).not.toContain("git");
+  });
+
+  it("mailchimp ya no cuenta como email_marketing", () => {
+    expect(extract("Campañas en Mailchimp.")).not.toContain("email_marketing");
   });
 });
 

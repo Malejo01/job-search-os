@@ -10,12 +10,20 @@ import {
   type FormEvent,
 } from "react";
 import { unstable_rethrow } from "next/navigation";
+import { CefrHelp } from "@/components/cefr-help";
 import { countChars, TextareaWithCounter } from "@/components/char-counter";
 import { RolePicker, type RolePickerGroup } from "@/components/role-picker";
 import { saveOnboardingAction } from "./actions";
+import { CountrySearch } from "./country-search";
+
+const MODALITY_OPTIONS = [
+  { value: "remoto", label: "Remoto" },
+  { value: "hibrido", label: "Híbrido" },
+  { value: "presencial", label: "Presencial" },
+] as const;
 
 const input =
-  "rounded-md border border-zinc-300 px-3 py-2 text-base aria-[invalid=true]:border-red-700";
+  "min-h-11 rounded-md border border-zinc-300 px-3 py-2 text-base aria-[invalid=true]:border-red-700";
 const choice = "flex min-h-11 items-center gap-2";
 
 type FormError = { field: string; reason?: "min" | "max"; over?: number };
@@ -44,8 +52,8 @@ export function OnboardingForm({
   rolesLimit,
   defaultRolesLimit,
   countries,
-  otherCountry,
   cefrLevels,
+  countryCodes,
   minSummary,
   maxSummary,
 }: {
@@ -53,9 +61,11 @@ export function OnboardingForm({
   selectedRoles: readonly string[];
   rolesLimit: number;
   defaultRolesLimit: number;
+  /** Países de LATAM: van primero en el buscador de residencia. */
   countries: readonly { code: string; label: string }[];
-  otherCountry: string;
   cefrLevels: readonly string[];
+  /** Códigos ISO-2 para el buscador de autorización de trabajo (la lista vive en el pipeline). */
+  countryCodes: readonly string[];
   minSummary: number;
   maxSummary: number;
 }) {
@@ -63,14 +73,20 @@ export function OnboardingForm({
   const alertRef = useRef<HTMLParagraphElement>(null);
   const [error, setError] = useState<FormError | null>(null);
   const [pending, startTransition] = useTransition();
+  const [modalities, setModalities] = useState<string[]>(["remoto"]);
+  const [hasCity, setHasCity] = useState(false);
+  // Aviso no bloqueante: sin ciudad no se puede comparar con la del aviso
+  const needsCity =
+    !hasCity && (modalities.includes("hibrido") || modalities.includes("presencial"));
 
   const messages: Record<string, string> = {
     targetRoles: `Elegí al menos un puesto (hasta ${rolesLimit}).`,
     country: "Elegí tu país.",
-    countryOther: "Escribí el código de país de 2 letras (por ejemplo PT).",
     city: "La ciudad es demasiado larga.",
-    remoteOnly: "Elegí si buscás solo trabajo remoto.",
-    workAuthOther: "El campo de otras autorizaciones es demasiado largo.",
+    acceptedModalities: "Marcá al menos una modalidad.",
+    jobLanguage: "Elegí en qué idioma aceptás ofertas.",
+    workAuthOther:
+      "Uno de los países de autorización de trabajo no es válido. Quitalo y volvé a elegir.",
     englishCefr: "Elegí tu nivel de inglés.",
     yearsTotal: "Los años de experiencia tienen que ser un número entre 0 y 60.",
     salaryFloorUsd: "El piso salarial tiene que ser un número entero en USD (o dejalo vacío).",
@@ -98,6 +114,10 @@ export function OnboardingForm({
       } else {
         const named = form.elements.namedItem(error.field);
         target = named instanceof RadioNodeList ? (named[0] as Element) : (named as Element | null);
+        // Los buscadores de país no tienen `name` (solo mandan hidden): se marcan con data-field
+        if (!target || (target instanceof HTMLInputElement && target.type === "hidden")) {
+          target = form.querySelector(`[data-field="${error.field}"]`);
+        }
       }
     }
     const el = target instanceof HTMLElement ? target : alertRef.current;
@@ -125,6 +145,11 @@ export function OnboardingForm({
         setError({ field: el.name, reason: "max", over });
         return;
       }
+    }
+    // Sin modalidad marcada no se envía: mismo error que daría el servidor, con foco en Remoto
+    if (modalities.length === 0) {
+      setError({ field: "acceptedModalities" });
+      return;
     }
     const data = new FormData(form);
     setError(null);
@@ -183,46 +208,32 @@ export function OnboardingForm({
           <FieldError name="targetRoles" />
         </fieldset>
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-1 text-sm">
-            País de residencia *
-            <select
+          <div className="flex flex-col gap-1 text-sm">
+            <CountrySearch
               name="country"
-              required
-              defaultValue=""
-              {...fieldProps("country")}
-              className={input}
-            >
-              <option value="" disabled>
-                Elegí uno
-              </option>
-              {countries.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.label}
-                </option>
-              ))}
-              <option value={otherCountry}>Otro (escribí el código abajo)</option>
-            </select>
-            <FieldError name="country" />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            Otro país: código de 2 letras
-            <input
-              name="countryOther"
-              maxLength={2}
-              placeholder="PT"
-              autoComplete="off"
-              {...fieldProps("countryOther")}
-              className={input}
+              codes={countryCodes}
+              label="País de residencia *"
+              placeholder="Escribí tu país"
+              max={1}
+              priority={countries.map((c) => c.code)}
+              invalid={error?.field === "country"}
+              describedBy={error?.field === "country" ? "country-error" : undefined}
             />
-            <FieldError name="countryOther" />
-          </label>
+            <FieldError name="country" />
+          </div>
           <label className="flex flex-col gap-1 text-sm">
             Ciudad (opcional)
-            <input name="city" maxLength={100} {...fieldProps("city")} className={input} />
+            <input
+              name="city"
+              maxLength={100}
+              onChange={(e) => setHasCity(e.target.value.trim() !== "")}
+              {...fieldProps("city")}
+              className={input}
+            />
             <FieldError name="city" />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            Inglés (nivel CEFR) *
+            Tu nivel de inglés *
             <select
               name="englishCefr"
               required
@@ -242,32 +253,10 @@ export function OnboardingForm({
             <FieldError name="englishCefr" />
           </label>
           <p id="cefr-help" className="text-xs text-zinc-600 sm:col-span-2">
-            Es la escala de inglés que usan muchos avisos. Si dudás entre dos, elegí el más bajo.
+            Se mide con la escala CEFR, que usan muchos avisos. Si dudás entre dos niveles, elegí el
+            más bajo.
           </p>
-          <details className="rounded-md border border-zinc-200 p-3 text-sm sm:col-span-2">
-            <summary className="cursor-pointer font-medium">¿Qué es CEFR?</summary>
-            <ul className="mt-2 flex list-none flex-col gap-1 p-0 text-zinc-700">
-              <li>
-                <span className="font-medium">A1–A2 · básico:</span> entendés frases y textos
-                cortos.
-              </li>
-              <li>
-                <span className="font-medium">B1 · intermedio:</span> leés documentación y escribís
-                mails simples; seguir una reunión en inglés te cuesta.
-              </li>
-              <li>
-                <span className="font-medium">B2 · intermedio alto:</span> participás en reuniones y
-                entrevistas con algunos errores.
-              </li>
-              <li>
-                <span className="font-medium">C1 · avanzado:</span> trabajás todo el día en inglés
-                sin problema.
-              </li>
-              <li>
-                <span className="font-medium">C2 · casi nativo.</span>
-              </li>
-            </ul>
-          </details>
+          <CefrHelp className="sm:col-span-2" />
           <label className="flex flex-col gap-1 text-sm">
             Años de experiencia *
             <input
@@ -308,65 +297,95 @@ export function OnboardingForm({
             <FieldError name="maxWeeklyHours" />
           </label>
         </div>
-        <fieldset className="flex flex-col gap-2 text-sm">
-          <legend className="mb-1">¿Buscás solo trabajo remoto? *</legend>
-          <label className={choice}>
-            <input
-              name="remoteOnly"
-              type="radio"
-              value="si"
-              required
-              {...fieldProps("remoteOnly")}
-            />{" "}
-            Sí, solo remoto
-          </label>
-          <label className={choice}>
-            <input name="remoteOnly" type="radio" value="no" {...fieldProps("remoteOnly")} /> No,
-            también híbrido o presencial
-          </label>
-          <FieldError name="remoteOnly" />
-          <p className="text-xs text-zinc-600">
-            Si elegís «Sí», las ofertas híbridas o presenciales se descartan solas. Si elegís «No»,
-            se muestran con ese riesgo marcado.
+        <fieldset
+          className="flex flex-col gap-2 text-sm"
+          aria-describedby={
+            error?.field === "acceptedModalities" ? "acceptedModalities-error" : "modalities-help"
+          }
+        >
+          <legend className="mb-1">¿Qué modalidades aceptás? *</legend>
+          {MODALITY_OPTIONS.map((m) => (
+            <label key={m.value} className={choice}>
+              <input
+                name="acceptedModalities"
+                type="checkbox"
+                className="h-5 w-5"
+                value={m.value}
+                checked={modalities.includes(m.value)}
+                onChange={(e) =>
+                  setModalities((prev) =>
+                    e.target.checked ? [...prev, m.value] : prev.filter((v) => v !== m.value),
+                  )
+                }
+                {...fieldProps("acceptedModalities")}
+              />{" "}
+              {m.label}
+            </label>
+          ))}
+          <FieldError name="acceptedModalities" />
+          <p id="modalities-help" className="text-xs text-zinc-600">
+            Si marcás Híbrido o Presencial, usamos la ciudad de tu perfil para avisarte si la oferta
+            es en otro lado
+          </p>
+          {/* Siempre montado: solo cambia el texto, así el lector de pantalla lo anuncia */}
+          <p role="status" className="min-h-4 text-xs font-medium text-amber-800">
+            {needsCity
+              ? "Sin ciudad no podemos avisarte si la oferta es en otro lado. Cargala arriba."
+              : ""}
           </p>
         </fieldset>
         <fieldset className="flex flex-col gap-2 text-sm">
-          <legend className="mb-1">Autorización de trabajo</legend>
+          <legend className="mb-1">¿En qué idioma aceptás ofertas? *</legend>
           <label className={choice}>
-            <input name="workAuthUs" type="checkbox" /> Puedo trabajar en EE.UU. sin visa
-            patrocinada
-          </label>
-          <label className={choice}>
-            <input name="workAuthEu" type="checkbox" /> Puedo trabajar en la Unión Europea sin visa
-            patrocinada
-          </label>
-          <label className="flex flex-col gap-1">
-            Otros países donde puedo trabajar (opcional, separados por coma)
             <input
-              name="workAuthOther"
-              maxLength={200}
-              placeholder="CA, MX"
-              {...fieldProps("workAuthOther")}
-              className={input}
-            />
-            <FieldError name="workAuthOther" />
+              name="jobLanguage"
+              type="radio"
+              value="es"
+              required
+              {...fieldProps("jobLanguage")}
+            />{" "}
+            Solo en español
           </label>
+          <label className={choice}>
+            <input name="jobLanguage" type="radio" value="en" {...fieldProps("jobLanguage")} /> Solo
+            en inglés
+          </label>
+          <label className={choice}>
+            <input
+              name="jobLanguage"
+              type="radio"
+              value="both"
+              defaultChecked
+              {...fieldProps("jobLanguage")}
+            />{" "}
+            En los dos
+          </label>
+          <FieldError name="jobLanguage" />
         </fieldset>
-        <div className="flex flex-col gap-1 text-sm">
-          <label htmlFor="summary">Resumen de tu perfil * (mínimo {minSummary} caracteres)</label>
-          <TextareaWithCounter
-            name="summary"
-            min={minSummary}
-            max={maxSummary}
-            rows={9}
-            required
-            invalid={error?.field === "summary"}
-            describedBy={error?.field === "summary" ? "summary-error" : undefined}
-            className={input}
+        <fieldset className="flex flex-col gap-2 text-sm">
+          <legend className="mb-1">Autorización de trabajo</legend>
+          <p className="text-xs text-zinc-600">
+            Completalo solo si tenés ciudadanía, residencia o visa de trabajo en otro país. Si no,
+            dejalo vacío.
+          </p>
+          <label className={choice}>
+            <input name="workAuthUs" type="checkbox" className="h-5 w-5" /> Puedo trabajar en EE.UU.
+            sin que la empresa me tramite la visa
+          </label>
+          <label className={choice}>
+            <input name="workAuthEu" type="checkbox" className="h-5 w-5" /> Puedo trabajar en la
+            Unión Europea sin que la empresa me tramite la visa
+          </label>
+          <p className="mt-1">Otros países donde puedo trabajar (opcional)</p>
+          <CountrySearch
+            name="workAuthOther"
+            codes={countryCodes}
+            invalid={error?.field === "workAuthOther"}
+            describedBy={error?.field === "workAuthOther" ? "workAuthOther-error" : undefined}
           />
-          <FieldError name="summary" />
-        </div>
-        <div className="rounded-md bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+          <FieldError name="workAuthOther" />
+        </fieldset>
+        <div id="summary-help" className="rounded-md bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
           <p className="font-medium">Qué poner</p>
           <p>
             Tu puesto y años de experiencia; qué dominás y ya hiciste en trabajos reales, qué usaste
@@ -381,6 +400,20 @@ export function OnboardingForm({
             Documentos, direcciones, teléfonos, contraseñas ni datos de terceros. El texto se envía
             al modelo que evalúa las ofertas.
           </p>
+        </div>
+        <div className="flex flex-col gap-1 text-sm">
+          <label htmlFor="summary">Resumen de tu perfil * (mínimo {minSummary} caracteres)</label>
+          <TextareaWithCounter
+            name="summary"
+            min={minSummary}
+            max={maxSummary}
+            rows={9}
+            required
+            invalid={error?.field === "summary"}
+            describedBy={error?.field === "summary" ? "summary-error summary-help" : "summary-help"}
+            className={input}
+          />
+          <FieldError name="summary" />
         </div>
         <div className="flex justify-end">
           <button

@@ -3,10 +3,22 @@ import { prefilterReasonText } from "./reason-text";
 
 describe("prefilterReasonText", () => {
   it("modalidad_no_remota, con o sin detail", () => {
-    const frase = "Es híbrida o presencial, y marcaste que buscás solo trabajo remoto.";
+    const frase = "Es híbrida o presencial, y no aceptás esa modalidad.";
     expect(prefilterReasonText("modalidad_no_remota: modalidad hibrido")).toBe(frase);
     expect(prefilterReasonText("modalidad_no_remota: título: AI Engineer (Híbrido)")).toBe(frase);
     expect(prefilterReasonText("modalidad_no_remota")).toBe(frase);
+  });
+
+  it("idioma_no_aceptado: nombra el idioma del aviso", () => {
+    expect(prefilterReasonText("idioma_no_aceptado: aviso en inglés")).toBe(
+      "El aviso está en inglés, y elegiste ofertas solo en español.",
+    );
+    expect(prefilterReasonText("idioma_no_aceptado: aviso en español")).toBe(
+      "El aviso está en español, y elegiste ofertas solo en inglés.",
+    );
+    expect(prefilterReasonText("idioma_no_aceptado")).toBe(
+      "El aviso está en un idioma que no elegiste.",
+    );
   });
 
   it("disciplina_distinta: usa lo que va entre comillas, sin comillas ni paréntesis del detail", () => {

@@ -8,7 +8,7 @@ import {
   type RoleKey,
 } from "@job-search-os/pipeline";
 import { and, eq, gte, isNotNull, isNull, notExists, or, sql } from "drizzle-orm";
-import { loadProfilePrefilterPrefs } from "../ingest/ingest-job";
+import { jdLanguageFor, loadProfilePrefilterPrefs } from "../ingest/ingest-job";
 import { loadActiveRules } from "../ingest/run-getonboard";
 import { createLogger } from "../logger";
 import { CANDIDATE_CAP, POSTED_WINDOW_DAYS, SEEN_WINDOW_DAYS } from "./assign";
@@ -83,6 +83,8 @@ export async function explainEmptyRoles(
         modality: s.publicJobs.modality,
         candidatesCount: s.publicJobs.candidatesCount,
         countriesAllowed: s.publicJobs.countriesAllowed,
+        jdText: s.publicJobs.jdText,
+        lang: s.publicJobs.lang,
       })
       .from(s.publicJobs)
       .where(
@@ -100,11 +102,18 @@ export async function explainEmptyRoles(
     const discards: { reason: string; detail: string }[] = [];
     let pendingCount = 0;
     for (const pj of candidates) {
-      const pre = prefilter(pj, rules, {
-        userCountry: prefs.country,
-        remoteOnly: prefs.remoteOnly,
-        targetRoles: roles,
-      });
+      const pre = prefilter(
+        { ...pj, jdLanguage: jdLanguageFor(prefs.jobLanguages, pj.jdText, pj.lang) },
+        rules,
+        {
+          userCountry: prefs.country,
+          remoteOnly: prefs.remoteOnly,
+          acceptedModalities: prefs.acceptedModalities,
+          userCity: prefs.city,
+          jobLanguages: prefs.jobLanguages,
+          targetRoles: roles,
+        },
+      );
       if (!pre.pass) {
         discards.push({ reason: pre.reason, detail: pre.detail });
         continue;

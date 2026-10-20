@@ -46,12 +46,12 @@ describe("parseOnboarding", () => {
   const form = {
     targetRoles: ["qa"] as string[] | string,
     country: "UY",
-    countryOther: "",
     city: " Montevideo ",
-    remoteOnly: "si",
+    acceptedModalities: ["remoto"] as string[] | string,
+    jobLanguage: "both",
     workAuthUs: "",
     workAuthEu: "on",
-    workAuthOther: "CA, , MX",
+    workAuthOther: "CA, , MX" as string[] | string,
     englishCefr: "B2",
     yearsTotal: "4.5",
     salaryFloorUsd: "2500",
@@ -67,7 +67,9 @@ describe("parseOnboarding", () => {
         targetRoles: ["qa"],
         locationCountry: "UY",
         locationCity: "Montevideo",
+        acceptedModalities: ["remoto"],
         remoteOnly: true,
+        jobLanguages: ["es", "en"],
         workAuth: { us: false, eu: true, other: ["CA", "MX"] },
         englishCefr: "B2",
         yearsTotal: 4.5,
@@ -114,26 +116,61 @@ describe("parseOnboarding", () => {
       });
     }
   });
-  it("remoteOnly: 'no' es false; ausente u otro valor reporta el campo", () => {
-    const no = parseOnboarding({ ...form, remoteOnly: "no" });
-    expect(no.ok && no.value.remoteOnly).toBe(false);
-    const { remoteOnly: _omit, ...sinCampo } = form;
+  it("modalidades: remoteOnly se deriva; con híbrido o presencial es false", () => {
+    const solo = parseOnboarding({ ...form, acceptedModalities: "remoto" });
+    expect(solo.ok && solo.value.acceptedModalities).toEqual(["remoto"]);
+    expect(solo.ok && solo.value.remoteOnly).toBe(true);
+    const dos = parseOnboarding({ ...form, acceptedModalities: ["presencial", "remoto"] });
+    expect(dos.ok && dos.value.acceptedModalities).toEqual(["remoto", "presencial"]);
+    expect(dos.ok && dos.value.remoteOnly).toBe(false);
+    const hib = parseOnboarding({ ...form, acceptedModalities: ["hibrido", "hibrido"] });
+    expect(hib.ok && hib.value.acceptedModalities).toEqual(["hibrido"]);
+    expect(hib.ok && hib.value.remoteOnly).toBe(false);
+  });
+  it("modalidades: ninguna, vacía o con un valor ajeno reporta el campo", () => {
+    const { acceptedModalities: _omit, ...sinCampo } = form;
     void _omit;
-    expect(parseOnboarding(sinCampo)).toEqual({ ok: false, field: "remoteOnly" });
-    for (const v of ["", "on", "SI", "true"]) {
-      expect(parseOnboarding({ ...form, remoteOnly: v })).toEqual({
+    expect(parseOnboarding(sinCampo)).toEqual({ ok: false, field: "acceptedModalities" });
+    for (const v of [[], [""], ["remoto", "otro"], ["si"], ["REMOTO"]]) {
+      expect(parseOnboarding({ ...form, acceptedModalities: v })).toEqual({
         ok: false,
-        field: "remoteOnly",
+        field: "acceptedModalities",
       });
     }
   });
-  it("país 'otro' usa el código escrito", () => {
-    const r = parseOnboarding({ ...form, country: "OTRO", countryOther: "pt" });
+  it("jobLanguage: es, en o both; ausente u otro valor reporta el campo", () => {
+    const es = parseOnboarding({ ...form, jobLanguage: "es" });
+    expect(es.ok && es.value.jobLanguages).toEqual(["es"]);
+    const en = parseOnboarding({ ...form, jobLanguage: "en" });
+    expect(en.ok && en.value.jobLanguages).toEqual(["en"]);
+    const { jobLanguage: _omit, ...sinCampo } = form;
+    void _omit;
+    expect(parseOnboarding(sinCampo)).toEqual({ ok: false, field: "jobLanguage" });
+    for (const v of ["", "fr", "ES", "on"]) {
+      expect(parseOnboarding({ ...form, jobLanguage: v })).toEqual({
+        ok: false,
+        field: "jobLanguage",
+      });
+    }
+  });
+  it("workAuthOther: acepta lista o texto, normaliza y sin repetir", () => {
+    const lista = parseOnboarding({ ...form, workAuthOther: ["ca", " MX ", "CA"] });
+    expect(lista.ok && lista.value.workAuth.other).toEqual(["CA", "MX"]);
+    const vacio = parseOnboarding({ ...form, workAuthOther: [] });
+    expect(vacio.ok && vacio.value.workAuth).toEqual({ us: false, eu: true });
+  });
+  it("workAuthOther: un código que no es ISO-2 falla sin eco del valor", () => {
+    for (const v of [["XX"], ["Canadá"], ["CAN"], "CA, ZZ", ["<script>"]]) {
+      const r = parseOnboarding({ ...form, workAuthOther: v });
+      expect(r).toEqual({ ok: false, field: "workAuthOther" });
+    }
+  });
+  it("país: cualquier ISO-2 asignado vale; XX, inventados y el viejo OTRO no", () => {
+    const r = parseOnboarding({ ...form, country: "pt" });
     expect(r.ok && r.value.locationCountry).toBe("PT");
-    expect(parseOnboarding({ ...form, country: "OTRO", countryOther: "XX" })).toEqual({
-      ok: false,
-      field: "countryOther",
-    });
+    for (const v of ["XX", "ZZ", "OTRO", "", "ARG"]) {
+      expect(parseOnboarding({ ...form, country: v })).toEqual({ ok: false, field: "country" });
+    }
   });
   it("resumen corto, inglés inválido y años faltantes reportan el campo", () => {
     expect(parseOnboarding({ ...form, summary: "corto" })).toEqual({

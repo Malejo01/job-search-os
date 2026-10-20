@@ -24,10 +24,21 @@ export type PrefilterInput = {
   countriesAllowed?: readonly string[] | null;
   /** Texto del aviso, si ya se tiene: lo usa la detección de residencia exigida. */
   jdText?: string | null;
+  /**
+   * Idioma detectado del aviso (`detectEnglish(...).language`). `null` o ausente = no se sabe:
+   * pasa. Solo descarta si no está entre `jobLanguages`.
+   */
+  jdLanguage?: "es" | "en" | null;
 };
 
 export type PrefilterReason =
-  "modalidad_no_remota" | "disciplina_distinta" | "badge_aptitudes" | "titulo_blocklist";
+  | "modalidad_no_remota"
+  | "idioma_no_aceptado"
+  | "disciplina_distinta"
+  | "badge_aptitudes"
+  | "titulo_blocklist";
+
+export type PrefilterModality = "remoto" | "hibrido" | "presencial";
 
 export type PrefilterResult =
   | { pass: true; cap: number | null; flags: string[] }
@@ -46,6 +57,19 @@ export type PrefilterOptions = {
    * `modalidad_no_remota`.
    */
   remoteOnly?: boolean;
+  /**
+   * Modalidades que acepta la persona (ronda 78). Ausente = las de hoy, derivadas de `remoteOnly`:
+   * solo remoto, o las tres con `remoteOnly: false`. Un aviso híbrido o presencial que no está acá
+   * se descarta (`modalidad_no_remota`); si está, pasa con ese flag.
+   */
+  acceptedModalities?: readonly PrefilterModality[];
+  /**
+   * Ciudad del perfil. Si acepta híbrido o presencial y el aviso no remoto no la nombra en su
+   * ubicación, flag `ciudad_distinta` (nunca descarta). Ausente o vacía = no compara.
+   */
+  userCity?: string | null;
+  /** Idiomas de aviso que acepta. Ausente = los dos (no descarta por idioma). */
+  jobLanguages?: readonly ("es" | "en")[];
   /**
    * Puestos objetivo de la persona (ronda 40, varios desde la 45). Las palabras de
    * `other_discipline_keywords` que son el oficio propio de alguno de esos puestos
@@ -260,12 +284,19 @@ export function prefilter(
   const location = foldText(input.locationRaw ?? "");
   const flags: string[] = [];
 
-  // 1. Modalidad: bloqueador duro si la persona busca solo remoto (ausente = sí). Si no, no
-  //    descarta: marca el flag una sola vez y sigue con el resto de las reglas.
-  const remoteOnly = options.remoteOnly ?? true;
+  // 1. Modalidad: bloqueador duro si la modalidad del aviso no está entre las aceptadas (ausente =
+  //    solo remoto). Si está aceptada, no descarta: marca el flag una sola vez y sigue.
+  const accepted: readonly PrefilterModality[] =
+    options.acceptedModalities ??
+    (options.remoteOnly === false ? ["remoto", "hibrido", "presencial"] : ["remoto"]);
+  const acceptsHybrid = accepted.includes("hibrido");
+  const acceptsOnsite = accepted.includes("presencial");
   let nonRemoteDetail: string | null = null;
+  // Modalidad concreta si la fuente la dice; null si solo hay una señal (título o ubicación).
+  let nonRemoteKind: "hibrido" | "presencial" | null = null;
   if (input.modality === "presencial" || input.modality === "hibrido") {
     nonRemoteDetail = `modalidad ${input.modality}`;
+    nonRemoteKind = input.modality;
     // El título contradice a la fuente: gana el título, también con modality "remoto".
   } else if (titleNonRemoteSignal(title)) {
     nonRemoteDetail = `título: ${input.title}`;
@@ -273,10 +304,27 @@ export function prefilter(
     nonRemoteDetail = `ubicación: ${input.locationRaw}`;
   }
   if (nonRemoteDetail !== null) {
-    if (remoteOnly) {
+    const ok = nonRemoteKind ? accepted.includes(nonRemoteKind) : acceptsHybrid || acceptsOnsite;
+    if (!ok) {
       return { pass: false, reason: "modalidad_no_remota", detail: nonRemoteDetail };
     }
     flags.push("modalidad_no_remota");
+    // Ciudad: el aviso no está normalizado, se busca la del perfil en su ubicación.
+    const city = foldText(options.userCity ?? "").trim();
+    if (city && location && !location.includes(city)) flags.push("ciudad_distinta");
+  }
+
+  // 1b. Idioma del aviso: solo descarta con un idioma detectado que la persona no acepta.
+  if (
+    input.jdLanguage &&
+    options.jobLanguages &&
+    !options.jobLanguages.includes(input.jdLanguage)
+  ) {
+    return {
+      pass: false,
+      reason: "idioma_no_aceptado",
+      detail: `aviso en ${input.jdLanguage === "en" ? "inglés" : "español"}`,
+    };
   }
 
   // 2. Disciplina distinta por keywords en el título: bloqueador duro.

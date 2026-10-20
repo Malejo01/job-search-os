@@ -74,10 +74,11 @@ test.describe("Flujo 50: el onboarding no pierde lo cargado", () => {
   /** Puestos, país, inglés, años y modalidad: todo menos el resumen. */
   async function cargarDatos(page: Page) {
     await chooseRoles(page, ["fullstack", "qa"]);
-    await page.getByLabel(/País de residencia/).selectOption("UY");
-    await page.getByLabel(/Inglés \(nivel CEFR\)/).selectOption("B2");
+    await page.getByLabel(/País de residencia/).fill("UY");
+    await page.getByRole("option", { name: /\(UY\)/ }).click();
+    await page.getByLabel(/Tu nivel de inglés/).selectOption("B2");
     await page.getByLabel(/Años de experiencia/).fill("4");
-    await page.getByRole("radio", { name: /Sí, solo remoto/ }).check();
+    await page.getByRole("checkbox", { name: "Remoto" }).check();
   }
 
   // Cada paso de la limpieza por separado: si uno falla, los demás igual corren
@@ -128,10 +129,10 @@ test.describe("Flujo 50: el onboarding no pierde lo cargado", () => {
 
     // Nada se perdió
     await expect(page.locator('input[name="targetRoles"]:checked')).toHaveCount(2);
-    await expect(page.getByLabel(/País de residencia/)).toHaveValue("UY");
-    await expect(page.getByLabel(/Inglés \(nivel CEFR\)/)).toHaveValue("B2");
+    await expect(page.getByRole("list", { name: "Países elegidos" })).toContainText("(UY)");
+    await expect(page.getByLabel(/Tu nivel de inglés/)).toHaveValue("B2");
     await expect(page.getByLabel(/Años de experiencia/)).toHaveValue("4");
-    await expect(page.getByRole("radio", { name: /Sí, solo remoto/ })).toBeChecked();
+    await expect(page.getByRole("checkbox", { name: "Remoto" })).toBeChecked();
 
     // Recortado, guarda
     await resumenInput.fill(resumen(1500));

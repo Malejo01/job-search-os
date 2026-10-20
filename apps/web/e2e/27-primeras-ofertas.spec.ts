@@ -134,15 +134,16 @@ test.describe("Flujo 27: primeras ofertas del pool, del puesto a /jobs", () => {
     await expect(roles.first()).not.toBeChecked();
     await expect(page.locator('input[name="targetRoles"]:checked')).toHaveCount(0);
     await chooseRoles(page, ["qa"]);
-    await page.getByLabel(/País de residencia/).selectOption("BR");
-    await page.getByLabel(/Inglés \(nivel CEFR\)/).selectOption("C1");
+    await page.getByLabel(/País de residencia/).fill("BR");
+    await page.getByRole("option", { name: /\(BR\)/ }).click();
+    await page.getByLabel(/Tu nivel de inglés/).selectOption("C1");
     await page.getByLabel(/Años de experiencia/).fill("6");
     await page
       .getByLabel(/Resumen de tu perfil/)
       .fill(
         "Perfil ficticio de la prueba de primeras ofertas: testing manual y automatizado con seis años de experiencia, sin experiencia en móvil.",
       );
-    await page.getByRole("radio", { name: /Sí, solo remoto/ }).check();
+    await page.getByRole("checkbox", { name: "Remoto" }).check();
     await page.getByRole("button", { name: "Guardar y continuar" }).click();
 
     // El rol del paso 1 ya viene elegido en Mis skills

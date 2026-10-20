@@ -119,15 +119,16 @@ test.describe("Flujo 25: ensayo de invitación, de la invitación a la primera o
 
     // Un perfil distinto del de A: otro país y pocos años
     await chooseRoles(pageB, ["backend"]);
-    await pageB.getByLabel(/País de residencia/).selectOption("BR");
-    await pageB.getByLabel(/Inglés \(nivel CEFR\)/).selectOption("B2");
+    await pageB.getByLabel(/País de residencia/).fill("BR");
+    await pageB.getByRole("option", { name: /\(BR\)/ }).click();
+    await pageB.getByLabel(/Tu nivel de inglés/).selectOption("B2");
     await pageB.getByLabel(/Años de experiencia/).fill("2");
     await pageB
       .getByLabel(/Resumen de tu perfil/)
       .fill(
         "Perfil ficticio del ensayo: desarrollo backend con dos años de experiencia, Python y PostgreSQL en producción, sin experiencia en móvil.",
       );
-    await pageB.getByRole("radio", { name: /Sí, solo remoto/ }).check();
+    await pageB.getByRole("checkbox", { name: "Remoto" }).check();
     await pageB.getByRole("button", { name: "Guardar y continuar" }).click();
     // Paso opcional de skills (ronda 28): se saltea
     await pageB.waitForURL("**/onboarding/skills**");

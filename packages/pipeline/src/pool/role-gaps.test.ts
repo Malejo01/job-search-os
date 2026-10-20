@@ -37,7 +37,7 @@ describe("summarizeRoleGap", () => {
     );
     expect(sum.groups).toEqual([
       { key: "blocklist:senior", text: "piden Senior", count: 4 },
-      { key: "modalidad", text: "no son remotas", count: 2 },
+      { key: "modalidad", text: "no son de una modalidad que aceptás", count: 2 },
       { key: "blocklist:lead", text: "piden Lead", count: 1 },
     ]);
     expect(sum.mainCause).toBe("blocklist");
@@ -98,7 +98,7 @@ describe("roleGapMessage", () => {
     const msg = roleGapMessage(summarizeRoleGap(input({ poolCount: 1, discards: [senior] })));
     expect(msg).toBe("Hay 1 oferta de Data Analyst: pide Senior (lo excluís en tus criterios).");
     expect(roleGapMessage(summarizeRoleGap(input({ poolCount: 1, discards: [remote] })))).toBe(
-      "Hay 1 oferta de Data Analyst: no es remota.",
+      "Hay 1 oferta de Data Analyst: no es de una modalidad que aceptás.",
     );
   });
 
@@ -109,7 +109,7 @@ describe("roleGapMessage", () => {
       ),
     );
     expect(msg).toBe(
-      "Hay 12 ofertas de Data Analyst: 8 piden Senior (lo excluís en tus criterios), 4 no son remotas.",
+      "Hay 12 ofertas de Data Analyst: 8 piden Senior (lo excluís en tus criterios), 4 no son de una modalidad que aceptás.",
     );
   });
 
@@ -129,7 +129,7 @@ describe("roleGapMessage", () => {
       ),
     );
     expect(msg).toBe(
-      "Hay 15 ofertas de Data Analyst: 5 piden Senior (lo excluís en tus criterios), 4 no son remotas, 3 son de otro oficio y 3 por otros motivos.",
+      "Hay 15 ofertas de Data Analyst: 5 piden Senior (lo excluís en tus criterios), 4 no son de una modalidad que aceptás, 3 son de otro oficio y 3 por otros motivos.",
     );
   });
 

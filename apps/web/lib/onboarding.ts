@@ -139,7 +139,10 @@ export async function completeOnboarding(
         targetRole: input.targetRoles[0] ?? null,
         locationCountry: input.locationCountry,
         locationCity: input.locationCity,
+        // remote_only se mantiene en sincronía: lo leen el MCP, los borradores y el prompt
         remoteOnly: input.remoteOnly,
+        acceptedModalities: input.acceptedModalities,
+        jobLanguages: input.jobLanguages,
         workAuth: input.workAuth,
         englishCefr: input.englishCefr,
         yearsTotal: input.yearsTotal,

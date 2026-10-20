@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
-  pgTable, pgEnum, uuid, text, integer, real, boolean, timestamp, jsonb, date, index, uniqueIndex, primaryKey, check,
+  pgTable, pgEnum, uuid, text, integer, smallint, real, boolean, timestamp, jsonb, date, index, uniqueIndex, primaryKey, check,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
@@ -68,7 +68,9 @@ export const profiles = pgTable("profiles", {
   headline: text("headline"),                 // "AI Engineer / Fullstack"
   locationCountry: text("location_country").notNull(), // ISO-2
   locationCity: text("location_city"),
-  remoteOnly: boolean("remote_only").notNull().default(true),
+  remoteOnly: boolean("remote_only").notNull().default(true), // derivado de accepted_modalities: true si solo acepta remoto
+  acceptedModalities: text("accepted_modalities").array().notNull().default(sql`'{remoto}'::text[]`), // remoto | hibrido | presencial; se validan en código
+  jobLanguages: text("job_languages").array().notNull().default(sql`'{es,en}'::text[]`), // idiomas de aviso que acepta: es | en
   workAuth: jsonb("work_auth").$type<{ us: boolean; eu: boolean; other?: string[] }>().notNull().default({ us: false, eu: false }),
   yearsTotal: real("years_total"),
   yearsEnterprise: real("years_enterprise"),
@@ -427,6 +429,7 @@ export const skills = pgTable("skills", {
   aliases: text("aliases").array().notNull().default([]),
   closureHours: integer("closure_hours"),   // horas estimadas para llegar a nivel 2 desde 0
   isGlobal: boolean("is_global").notNull().default(true),
+  description: text("description"),         // una frase de qué es y para qué se usa ("¿Qué es?" de la pantalla de skills); sin LLM
 });
 
 export const jobSkills = pgTable("job_skills", {
@@ -444,6 +447,21 @@ export const skillLevels = pgTable("skill_levels", {
   state: skillState("state").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [primaryKey({ columns: [t.userId, t.skillId] })]);
+
+// Skills que la persona agrega a mano porque no están en la taxonomía (ronda 78). Son solo suyas:
+// NO entran a `skills` ni a ningún prompt, al mercado o al plan. Máximo 30 por persona (en código).
+// Único por (user_id, lower(name)).
+export const userSkills = pgTable("user_skills", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  level: smallint("level").notNull(),       // 0 nulo · 1 básico · 2 productivo · 3 fuerte
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("user_skills_user_name").on(t.userId, sql`lower(${t.name})`),
+  check("user_skills_level_range", sql`${t.level} between 0 and 3`),
+  check("user_skills_name_length", sql`char_length(${t.name}) between 2 and 40`),
+]);
 
 export const skillEvidence = pgTable("skill_evidence", {
   id: uuid("id").primaryKey().defaultRandom(),

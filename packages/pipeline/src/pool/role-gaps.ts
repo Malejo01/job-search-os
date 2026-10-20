@@ -54,7 +54,9 @@ function classify(d: { reason: string; detail: string }): { key: string; text: s
     const word = blocklistWord(d.detail);
     if (word) return { key: `blocklist:${word.toLowerCase()}`, text: `piden ${upperFirst(word)}` };
   } else if (d.reason === "modalidad_no_remota") {
-    return { key: "modalidad", text: "no son remotas" };
+    return { key: "modalidad", text: "no son de una modalidad que aceptás" };
+  } else if (d.reason === "idioma_no_aceptado") {
+    return { key: "idioma", text: "están en otro idioma" };
   } else if (d.reason === "disciplina_distinta") {
     return { key: "disciplina", text: "son de otro oficio" };
   } else if (d.reason === "ubicacion") {
@@ -110,7 +112,8 @@ export function summarizeRoleGap(input: RoleGapInput): RoleGapSummary {
 /** Texto del motivo en singular, a partir del plural del grupo. */
 function singular(g: RoleGapGroup): string {
   if (g.key.startsWith("blocklist")) return g.text.replace(/^piden /, "pide ");
-  if (g.key === "modalidad") return "no es remota";
+  if (g.key === "modalidad") return "no es de una modalidad que aceptás";
+  if (g.key === "idioma") return "está en otro idioma";
   if (g.key === "disciplina") return "es de otro oficio";
   if (g.key === "ubicacion") return "no habilita tu país";
   if (g.key === "nivel") return "pide más experiencia";

@@ -84,6 +84,10 @@ const FLAG_TO_RISK: Record<string, { text: string; already: RegExp }> = {
     text: "modalidad híbrida o presencial",
     already: /h[ií]brid|presencial|modalidad/i,
   },
+  ciudad_distinta: {
+    text: "La oferta parece ser en otra ciudad que la de tu perfil",
+    already: /otra ciudad|ciudad distinta/i,
+  },
 };
 
 const clamp = (n: number) => Math.max(0, Math.min(10, n));

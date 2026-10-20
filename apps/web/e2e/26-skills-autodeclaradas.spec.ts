@@ -123,15 +123,16 @@ test.describe("Flujo 26: skills autodeclaradas, del onboarding al mercado", () =
 
     // Ronda 39: el puesto se elige en el paso 1 y Mis skills lo trae elegido
     await chooseRoles(page, ["fullstack"]);
-    await page.getByLabel(/País de residencia/).selectOption("BR");
-    await page.getByLabel(/Inglés \(nivel CEFR\)/).selectOption("B2");
+    await page.getByLabel(/País de residencia/).fill("BR");
+    await page.getByRole("option", { name: /\(BR\)/ }).click();
+    await page.getByLabel(/Tu nivel de inglés/).selectOption("B2");
     await page.getByLabel(/Años de experiencia/).fill("3");
     await page
       .getByLabel(/Resumen de tu perfil/)
       .fill(
         "Perfil ficticio de la prueba de skills: desarrollo web con tres años de experiencia, sin experiencia en móvil ni en infraestructura.",
       );
-    await page.getByRole("radio", { name: /Sí, solo remoto/ }).check();
+    await page.getByRole("checkbox", { name: "Remoto" }).check();
     await page.getByRole("button", { name: "Guardar y continuar" }).click();
 
     await page.waitForURL("**/onboarding/skills**");
@@ -189,6 +190,9 @@ test.describe("Flujo 26: skills autodeclaradas, del onboarding al mercado", () =
       testing: 2,
       rest_apis: 2,
       kubernetes: 1,
+      // Ronda 78: el inglés (B2 del paso 1) se deriva del select de CEFR al guardar
+      english_intermediate: 3,
+      english_fluent: 1,
     });
     // Lo guardado vuelve marcado
     await page.getByRole("link", { name: "Full-stack" }).click();
