@@ -1,0 +1,90 @@
+# Carril rojo (ronda 65): un PR que toca alguno de estos paths no se mergea solo. Lo mergea Mauro.
+# Un patrón por línea, relativo a la raíz del repo. `**` = cualquier cantidad de carpetas, `*` = dentro
+# de una carpeta. Las líneas con # y las vacías se ignoran. Este archivo está en el carril rojo: el
+# workflow lo lee siempre de `main`, nunca de la rama del PR. `.github/CODEOWNERS` repite esta lista
+# (un test verifica que coincidan): GitHub exige la revisión de Mauro en estos paths.
+
+# Base: migraciones, schema, RLS, roles, seeds, conexión y guardas de producción
+packages/db/drizzle/**
+packages/db/drizzle.config.ts
+packages/db/schema.ts
+packages/db/rls/**
+packages/db/seeds/**
+packages/db/src/**
+docs/sql/**
+
+# CI, workflows, control de calidad y de privacidad
+.github/**
+scripts/**
+infra/**
+.gitignore
+.gitattributes
+.gitmodules
+.gitguardian.yaml
+.nvmrc
+.prettierignore
+.env.example
+turbo.json
+tsconfig.base.json
+**/tsconfig.json
+eslint.config.mjs
+**/vitest*.config.ts
+**/playwright*.config.ts
+apps/web/postcss.config.mjs
+CLAUDE.md
+
+# Sesión, login, autorización y conexión con RLS
+apps/web/auth.ts
+apps/web/auth.config.ts
+apps/web/middleware.ts
+apps/web/instrumentation.ts
+apps/web/lib/session*
+apps/web/lib/db.ts
+apps/web/app/**/actions.ts
+apps/web/app/**/*-actions.ts
+apps/web/lib/application-form.ts
+apps/web/lib/mcp-user.ts
+apps/web/lib/password-reset.ts
+apps/web/lib/invitations*
+apps/web/lib/senders.ts
+apps/web/lib/filter-leak*
+apps/web/lib/applicant.ts
+apps/web/lib/ingest-manual.ts
+packages/adapters/src/auth/**
+packages/adapters/src/admin/**
+
+# Prompts, evaluador y evals (los evals del CI son pagos)
+packages/prompts/**
+evals/**
+packages/pipeline/src/decide.ts
+packages/pipeline/src/evaluation.ts
+packages/pipeline/src/evaluator/**
+packages/pipeline/src/prefilter/**
+packages/adapters/src/worker/**
+packages/adapters/src/llm/**
+packages/adapters/src/queue/**
+packages/adapters/src/applicant/**
+
+# Legales, datos personales, borrado de cuenta y retención
+apps/web/content/legal/**
+apps/web/lib/legal.tsx
+apps/web/lib/terms.ts
+apps/web/lib/delete-account.ts
+packages/pipeline/src/legal/**
+packages/adapters/src/retention/**
+packages/adapters/src/privacy/**
+packages/adapters/src/storage/**
+
+# Rutas de API, webhooks, ingesta de email, crons y MCP (bordes con secreto propio)
+apps/web/app/api/**
+packages/adapters/src/inbound/**
+packages/adapters/src/email/**
+packages/adapters/src/mcp/**
+
+# Dependencias y configuración de build (cualquier package.json: también scripts)
+**/package.json
+pnpm-lock.yaml
+pnpm-workspace.yaml
+.npmrc
+apps/web/next.config.ts
+vercel.json

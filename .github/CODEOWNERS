@@ -1,0 +1,89 @@
+# Carril rojo (ronda 65): estos paths necesitan la revisión de Mauro. Es la misma lista que
+# .github/carril-rojo.txt (carril.test.mjs verifica que coincidan); con "Require review from Code
+# Owners" en el ruleset de main, GitHub lo impone aunque alguien falsifique el check `carril`.
+# Un PR que no toca nada de esto no pide revisión de code owner.
+
+# Base: migraciones, schema, RLS, roles, seeds, conexión y guardas de producción
+/packages/db/drizzle/** @Malejo01
+/packages/db/drizzle.config.ts @Malejo01
+/packages/db/schema.ts @Malejo01
+/packages/db/rls/** @Malejo01
+/packages/db/seeds/** @Malejo01
+/packages/db/src/** @Malejo01
+/docs/sql/** @Malejo01
+
+# CI, workflows, control de calidad y de privacidad
+/.github/** @Malejo01
+/scripts/** @Malejo01
+/infra/** @Malejo01
+/.gitignore @Malejo01
+/.gitattributes @Malejo01
+/.gitmodules @Malejo01
+/.gitguardian.yaml @Malejo01
+/.nvmrc @Malejo01
+/.prettierignore @Malejo01
+/.env.example @Malejo01
+/turbo.json @Malejo01
+/tsconfig.base.json @Malejo01
+**/tsconfig.json @Malejo01
+/eslint.config.mjs @Malejo01
+**/vitest*.config.ts @Malejo01
+**/playwright*.config.ts @Malejo01
+/apps/web/postcss.config.mjs @Malejo01
+/CLAUDE.md @Malejo01
+
+# Sesión, login, autorización y conexión con RLS
+/apps/web/auth.ts @Malejo01
+/apps/web/auth.config.ts @Malejo01
+/apps/web/middleware.ts @Malejo01
+/apps/web/instrumentation.ts @Malejo01
+/apps/web/lib/session* @Malejo01
+/apps/web/lib/db.ts @Malejo01
+/apps/web/app/**/actions.ts @Malejo01
+/apps/web/app/**/*-actions.ts @Malejo01
+/apps/web/lib/application-form.ts @Malejo01
+/apps/web/lib/mcp-user.ts @Malejo01
+/apps/web/lib/password-reset.ts @Malejo01
+/apps/web/lib/invitations* @Malejo01
+/apps/web/lib/senders.ts @Malejo01
+/apps/web/lib/filter-leak* @Malejo01
+/apps/web/lib/applicant.ts @Malejo01
+/apps/web/lib/ingest-manual.ts @Malejo01
+/packages/adapters/src/auth/** @Malejo01
+/packages/adapters/src/admin/** @Malejo01
+
+# Prompts, evaluador y evals (los evals del CI son pagos)
+/packages/prompts/** @Malejo01
+/evals/** @Malejo01
+/packages/pipeline/src/decide.ts @Malejo01
+/packages/pipeline/src/evaluation.ts @Malejo01
+/packages/pipeline/src/evaluator/** @Malejo01
+/packages/pipeline/src/prefilter/** @Malejo01
+/packages/adapters/src/worker/** @Malejo01
+/packages/adapters/src/llm/** @Malejo01
+/packages/adapters/src/queue/** @Malejo01
+/packages/adapters/src/applicant/** @Malejo01
+
+# Legales, datos personales, borrado de cuenta y retención
+/apps/web/content/legal/** @Malejo01
+/apps/web/lib/legal.tsx @Malejo01
+/apps/web/lib/terms.ts @Malejo01
+/apps/web/lib/delete-account.ts @Malejo01
+/packages/pipeline/src/legal/** @Malejo01
+/packages/adapters/src/retention/** @Malejo01
+/packages/adapters/src/privacy/** @Malejo01
+/packages/adapters/src/storage/** @Malejo01
+
+# Rutas de API, webhooks, ingesta de email, crons y MCP (bordes con secreto propio)
+/apps/web/app/api/** @Malejo01
+/packages/adapters/src/inbound/** @Malejo01
+/packages/adapters/src/email/** @Malejo01
+/packages/adapters/src/mcp/** @Malejo01
+
+# Dependencias y configuración de build (cualquier package.json: también scripts)
+**/package.json @Malejo01
+/pnpm-lock.yaml @Malejo01
+/pnpm-workspace.yaml @Malejo01
+/.npmrc @Malejo01
+/apps/web/next.config.ts @Malejo01
+/vercel.json @Malejo01

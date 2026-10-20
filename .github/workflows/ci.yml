@@ -6,11 +6,19 @@ on:
 
 # docs/TESTING_STRATEGY.md §CI. Todo corre sin claves salvo `evals`, que se saltea con aviso
 # si el secret GEMINI_API_KEY no está (nunca rompe el build por falta de key).
+# Token de solo lectura (informe pre-beta, Importante 12): cada job pide lo que necesita.
+permissions:
+  contents: read
+
 jobs:
   # Escáner de secretos (gitleaks) sobre toda la historia: falla si encuentra algo. Lección del
   # 2026-09-11 (docs/AUDITORIA_2026-09-11.md): nunca publicar sin pasar esto antes.
   secrets:
     runs-on: ubuntu-latest
+    # gitleaks lista los commits del PR por la API
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
@@ -27,6 +35,8 @@ jobs:
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint && pnpm typecheck
+      # Script del check `carril` (.github/scripts/carril.mjs), sin dependencias
+      - run: node --test .github/scripts/carril.test.mjs
 
   unit:
     runs-on: ubuntu-latest
@@ -77,30 +87,36 @@ jobs:
     # sin GEMINI_API_KEY se saltea con aviso, no falla.
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    # La key solo entra en el paso que corre los evals: el resto del job (checkout, install, que corre
+    # scripts de dependencias) no la ve. HAS_GEMINI_KEY dice si existe sin exponer el valor.
     env:
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      HAS_GEMINI_KEY: ${{ secrets.GEMINI_API_KEY != '' }}
       EVALS_PROMPT: vigente
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with: { fetch-depth: 0, persist-credentials: false }
       - id: changed
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
-          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -Eq '^(packages/prompts|evals)/'; then
+          if git diff --name-only "origin/$BASE_REF...HEAD" | grep -Eq '^(packages/prompts|evals)/'; then
             echo run=true >> "$GITHUB_OUTPUT"
           else
             echo "::notice::evals: sin cambios en packages/prompts ni evals, no se corre"
           fi
-      - if: steps.changed.outputs.run == 'true' && env.GEMINI_API_KEY == ''
+      - if: steps.changed.outputs.run == 'true' && env.HAS_GEMINI_KEY != 'true'
         run: echo "::warning title=evals salteados::GEMINI_API_KEY no está configurada como secret del repo; los evals no corrieron. Configurala en Settings › Secrets para que el PR mida el prompt."
-      - if: steps.changed.outputs.run == 'true' && env.GEMINI_API_KEY != ''
+      - if: steps.changed.outputs.run == 'true' && env.HAS_GEMINI_KEY == 'true'
         uses: pnpm/action-setup@v4
-      - if: steps.changed.outputs.run == 'true' && env.GEMINI_API_KEY != ''
+      - if: steps.changed.outputs.run == 'true' && env.HAS_GEMINI_KEY == 'true'
         uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
-      - if: steps.changed.outputs.run == 'true' && env.GEMINI_API_KEY != ''
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm evals run --prompt "$EVALS_PROMPT" --subset --runs 1 --concurrency 1 --db none --yes --max-usd 0.5 --max-minutes 20
+      - if: steps.changed.outputs.run == 'true' && env.HAS_GEMINI_KEY == 'true'
+        run: pnpm install --frozen-lockfile
+      - if: steps.changed.outputs.run == 'true' && env.HAS_GEMINI_KEY == 'true'
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: pnpm evals run --prompt "$EVALS_PROMPT" --subset --runs 1 --concurrency 1 --db none --yes --max-usd 0.5 --max-minutes 20
 
   e2e:
     # Playwright: los 4 flujos de docs/TESTING_STRATEGY.md contra Postgres + worker en modo demo (sin LLM)
