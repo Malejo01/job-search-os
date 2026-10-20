@@ -41,6 +41,8 @@ const CATALOG_TABLES = [
   "waitlist",
   // Admins a nivel base (ronda 70): tiene user_id pero sin policy; la app no la toca (rls/0006).
   "app_admins",
+  // Demo guiada (ronda 74): perfiles inventados, sin user_id; lectura abierta, escribe solo el servicio (rls/0007).
+  "demo_evaluations",
 ];
 
 /**

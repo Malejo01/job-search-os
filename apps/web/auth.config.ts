@@ -27,6 +27,8 @@ export const authConfig = {
         pathname.startsWith("/mercado/") ||
         pathname === "/ofertas" ||
         pathname.startsWith("/ofertas/") ||
+        pathname === "/demo" ||
+        pathname.startsWith("/demo/") ||
         pathname.startsWith("/opengraph-image") ||
         pathname.startsWith("/twitter-image") ||
         pathname === "/sitemap.xml" ||

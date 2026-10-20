@@ -57,6 +57,9 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
             <Link href="/ofertas" className={DESKTOP_LINK_CLASS}>
               Ofertas
             </Link>
+            <Link href="/demo" className={DESKTOP_LINK_CLASS}>
+              Demo
+            </Link>
             {/* A 360 px el texto largo deja el header justo en el borde: abajo de sm dice "Entrar" */}
             <Link href="/login" className={LINK_CLASS}>
               <span className="sm:hidden">Entrar</span>
@@ -81,13 +84,19 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
         <Link href="/ofertas" className={`${FOOTER_LINK} sm:hidden`}>
           Ofertas
         </Link>
+        <Link href="/demo" className={`${FOOTER_LINK} sm:hidden`}>
+          Demo
+        </Link>
         <Link
           href="/legal/privacidad"
           className="inline-flex min-h-11 items-center px-2 underline-offset-2 hover:underline"
         >
           Privacidad
         </Link>
-        <span aria-hidden="true"> · </span>
+        <span aria-hidden="true" className="hidden sm:inline">
+          {" "}
+          ·{" "}
+        </span>
         <Link
           href="/legal/terminos"
           className="inline-flex min-h-11 items-center px-2 underline-offset-2 hover:underline"
