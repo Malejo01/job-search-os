@@ -105,3 +105,5 @@ Modo demo (sin gastar): `pnpm worker:evaluate --local --demo` evalúa con heurí
 - Un país excluido explícitamente nunca llega a "aplicar" sin pasar por "guardar" (tope en `decide()`).
 - Un rol de otra disciplina (evaluación de IA, ML puro) bloquea y baja el score a 3 aunque el vocabulario coincida (ADR-011).
 - Presencial o híbrido bloquea pero no toca el score: el trabajo puede ser el tuyo, falla dónde se hace.
+
+<!-- prueba carril 4 -->
