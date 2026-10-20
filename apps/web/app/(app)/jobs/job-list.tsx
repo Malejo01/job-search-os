@@ -139,11 +139,6 @@ function JobCard({ job, query }: { job: JobListRow; query: string }) {
               +{job.riesgos.length - 2} riesgos
             </span>
           ) : null}
-          {job.evaluating || job.score !== null || job.preScore === null ? null : (
-            <span className="rounded bg-zinc-50 px-1.5 py-0.5 text-zinc-600">
-              Estimación previa, sin IA
-            </span>
-          )}
           {job.flags.includes("posible_duplicado") ? (
             <span className="rounded bg-amber-100 px-1.5 py-0.5 font-medium text-amber-900">
               posible duplicado

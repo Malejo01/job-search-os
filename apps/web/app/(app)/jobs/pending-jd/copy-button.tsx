@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-/** Copia el snippet para Claude in Chrome al portapapeles. Client component mínimo (clipboard). */
+/** Copia un texto al portapapeles. Client component mínimo (clipboard). Ya no se usa en esta página. */
 export function CopyButton({ text }: { text: string }) {
   const [state, setState] = useState<"idle" | "ok" | "error">("idle");
   return (

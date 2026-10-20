@@ -1,9 +1,9 @@
 /** Etiquetas de UI (español) para los enums del schema. Sin lógica: solo texto y color. */
 export const STATUS_LABELS: Record<string, string> = {
   nueva: "Nueva",
-  prefiltrada: "Prefiltrada",
-  descartada_prefiltro: "Descartada (prefiltro)",
-  pendiente_jd: "Pendiente de JD",
+  prefiltrada: "Lista para evaluar",
+  descartada_prefiltro: "Descartada automáticamente",
+  pendiente_jd: "Sin descripción",
   evaluada: "Evaluada",
   aplicada: "Aplicada",
   descartada: "Descartada",
@@ -63,6 +63,14 @@ export const ACTION_LABELS: Record<string, string> = {
   descartar: "Descartar",
 };
 
+/** La acción sugerida por la evaluación, dicha como consejo (detalle de la oferta). */
+export const ACTION_ADVICE: Record<string, string> = {
+  aplicar_personalizado: "Te conviene: postularte con una carta a medida",
+  aplicar: "Te conviene: postularte",
+  guardar: "Te conviene: guardarla",
+  descartar: "Te conviene: descartarla",
+};
+
 /** Estados "activos": lo que se muestra por defecto en la lista (lo descartado o cerrado queda detrás de un filtro). */
 export const ACTIVE_STATUSES = [
   "nueva",
@@ -106,11 +114,22 @@ export function formatDate(iso: string | null): string {
 
 /**
  * Cómo se muestra `inbound_emails.parser` en /inbox. El ruido social de LinkedIn (JS-050) se
- * guarda con su propio valor y ya descartado: se lee como "no relevante", no como un parser.
+ * guarda con su propio valor y ya descartado: se lee como "no relevante". Sin lector (null o
+ * "none") el email espera en la cola manual.
  */
 export function parserLabel(parser: string | null): string {
   if (parser === "linkedin_social") return "no relevante: notificación social de LinkedIn";
-  return `parser ${parser ?? "none"}`;
+  if (parser === null || parser === "none") return "no se pudo leer automáticamente";
+  if (parser === "gmail_reenvio") return "reenvío de Gmail";
+  return "leído automáticamente";
+}
+
+/**
+ * El error de un email viene de la ingesta y habla de "parser" y "cola manual". Se muestra en
+ * llano; lo que no menciona un parser queda como está.
+ */
+export function inboundErrorLabel(error: string): string {
+  return /parser/i.test(error) ? "No pudimos leer este email automáticamente." : error;
 }
 
 /** Flags del prefiltro en llano. `null` = no se muestra (reglas internas o desconocidas). */

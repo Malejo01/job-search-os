@@ -9,7 +9,7 @@ export function MergeButton({ jobId, otherTitle }: { jobId: string; otherTitle: 
       action={mergeDuplicateAction}
       onSubmit={(e) => {
         const ok = window.confirm(
-          `¿Fusionar con "${otherTitle}"? Queda una sola oferta con las fuentes de las dos; ningún JD se pierde.`,
+          `¿Fusionar con "${otherTitle}"? Queda una sola oferta con las fuentes de las dos; ninguna descripción se pierde.`,
         );
         if (!ok) e.preventDefault();
       }}

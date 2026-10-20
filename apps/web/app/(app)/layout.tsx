@@ -7,10 +7,11 @@ import { assertAppRole } from "@/lib/db";
 import { canCreateInvitations } from "@/lib/invitations";
 import { isOnboardingComplete } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
+import { MainNav } from "./main-nav";
 
 const NAV = [
   { href: "/jobs", label: "Ofertas" },
-  { href: "/jobs/pending-jd", label: "Pendientes de JD" },
+  { href: "/jobs/pending-jd", label: "Sin descripción" },
   { href: "/inbox", label: "Emails" },
   { href: "/applications", label: "Postulaciones" },
   { href: "/market", label: "Mercado" },
@@ -48,11 +49,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         Saltar al contenido
       </a>
       <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2">
           <Link href="/jobs" className="text-base font-semibold">
             {PRODUCT_NAME}
           </Link>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-x-4">
+            {" "}
             {canInvite ? (
               <Link
                 href="/settings/invitations"
@@ -77,27 +79,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             </form>
           </div>
         </div>
-        {/* A 375 px no entran todos los ítems: scroll horizontal y un degradé en el borde derecho
-            avisa que hay más (solo en pantallas chicas; el pr-8 deja el último ítem fuera del degradé). */}
-        <div className="relative mx-auto max-w-5xl">
-          <nav aria-label="Secciones" className="overflow-x-auto px-2">
-            <ul className="flex gap-1 pr-8 text-sm sm:pr-0">
-              {NAV.map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className="block whitespace-nowrap rounded-md px-3 py-2 text-zinc-700 hover:bg-zinc-100"
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent sm:hidden"
-          />
+        {/* A 360 px seis links no entran en una fila: por debajo de `sm` van en un menú desplegable */}
+        <div className="mx-auto max-w-5xl">
+          <MainNav items={NAV} />
         </div>
       </header>
       <main id="contenido" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-4 py-4">

@@ -329,6 +329,33 @@ export function listQuery(filters: JobFilters): string {
   return str ? `?${str}` : "";
 }
 
+export type JobCounts = {
+  /** Todas las ofertas del usuario, en cualquier estado. */
+  total: number;
+  /** `prefiltrada`: pasó los filtros y espera la evaluación (en cola). */
+  porEvaluar: number;
+  /** `pendiente_jd`: falta la descripción para poder evaluarla. */
+  sinDescripcion: number;
+};
+
+/** Conteo barato para el estado vacío de /jobs: una consulta, filtrada por RLS al usuario. */
+export async function countJobs(userId: string): Promise<JobCounts> {
+  return withUser(userId, async (tx) => {
+    const [row] = await tx
+      .select({
+        total: sql<number>`count(*)::int`,
+        porEvaluar: sql<number>`(count(*) filter (where ${s.jobs.status} = 'prefiltrada'))::int`,
+        sinDescripcion: sql<number>`(count(*) filter (where ${s.jobs.status} = 'pendiente_jd'))::int`,
+      })
+      .from(s.jobs);
+    return {
+      total: row?.total ?? 0,
+      porEvaluar: row?.porEvaluar ?? 0,
+      sinDescripcion: row?.sinDescripcion ?? 0,
+    };
+  });
+}
+
 /** Cuántas ofertas marcadas `posible_duplicado` hay para revisar (JS-025). */
 export async function countPossibleDuplicates(userId: string): Promise<number> {
   return withUser(userId, async (tx) => {
