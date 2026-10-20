@@ -103,6 +103,13 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
         >
           Términos
         </Link>
+        <span aria-hidden="true" className="hidden sm:inline">
+          {" "}
+          ·{" "}
+        </span>
+        <Link href="/como-esta-hecho" className={FOOTER_LINK}>
+          Cómo está hecho
+        </Link>
       </footer>
     </div>
   );

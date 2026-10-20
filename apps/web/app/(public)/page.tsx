@@ -101,6 +101,12 @@ export default async function HomePage() {
           </Link>
         </p>
       </section>
+
+      <p className="text-sm text-zinc-700">
+        <Link href="/como-esta-hecho" className="inline-flex min-h-11 items-center underline">
+          ¿Sos reclutador o curioso? Mirá cómo está hecho
+        </Link>
+      </p>
     </div>
   );
 }
