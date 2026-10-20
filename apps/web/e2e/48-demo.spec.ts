@@ -114,7 +114,8 @@ test.describe("Flujo 48: demo guiada", () => {
   test("👍 muestra el texto de prueba", async ({ page }) => {
     await page.goto("/demo/fullstack_ssr");
     const card = page.getByTestId("demo-card").first();
-    await card.getByRole("button", { name: "Me sirvió" }).click();
+    // Anclado: "Me sirvió" sin ^ también coincide con "No me sirvió…" (subcadena, sin mayúsculas)
+    await card.getByRole("button", { name: /^Me sirvió/ }).click();
     await expect(card.getByRole("status")).toContainText("Acá no se guarda nada");
   });
 
