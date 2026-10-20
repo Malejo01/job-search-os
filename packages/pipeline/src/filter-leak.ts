@@ -8,6 +8,8 @@
  * Puro: recibe los remitentes agrupados por host y devuelve los dominios sospechosos.
  */
 
+import { isWebmailDomain } from "./webmail-domains";
+
 /**
  * Fuentes de empleo esperadas: las que tienen parser (con todos sus remitentes, también los
  * sociales de LinkedIn, JS-050) e Indeed, que está en el filtro de Gmail aunque todavía no tenga
@@ -48,10 +50,10 @@ export function isExpectedSender(fromAddress: string, userJobDomains: readonly s
   const host = senderHost(fromAddress);
   if (!host) return false;
   const domain = baseDomain(host);
-  return (
-    (EXPECTED_SOURCE_DOMAINS as readonly string[]).includes(domain) ||
-    userJobDomains.includes(domain)
-  );
+  if ((EXPECTED_SOURCE_DOMAINS as readonly string[]).includes(domain)) return true;
+  // Un "empleo" sobre un proveedor de correo personal se ignora (RM-3): protege aunque haya filas viejas
+  if (isWebmailDomain(host)) return false;
+  return userJobDomains.includes(domain);
 }
 
 export type SenderCategory = "banco" | "streaming" | "e-commerce";
@@ -160,7 +162,10 @@ export function detectFilterLeaks(input: FilterLeakInput): FilterLeak[] {
 
   const leaks: FilterLeak[] = [];
   for (const [domain, hosts] of byDomain) {
-    if (expected.has(domain) || input.userVerdicts[domain]) continue;
+    // Un "empleo" viejo sobre webmail no silencia el aviso: ese veredicto ya no vale (RM-3)
+    const decided = input.userVerdicts[domain];
+    const valid = decided && !(decided === "empleo" && isWebmailDomain(domain));
+    if (expected.has(domain) || valid) continue;
     const firstAt = new Date(Math.min(...hosts.map((h) => h.firstAt.getTime())));
     const recent = hosts.reduce((n, h) => n + h.recent, 0);
     if (firstAt.getTime() < since || recent === 0) continue;

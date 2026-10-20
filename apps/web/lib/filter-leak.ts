@@ -1,8 +1,24 @@
 import { schema as s } from "@job-search-os/db";
-import { baseDomain, detectFilterLeaks, type FilterLeak } from "@job-search-os/pipeline";
+import {
+  baseDomain,
+  detectFilterLeaks,
+  isWebmailDomain,
+  type FilterLeak,
+} from "@job-search-os/pipeline";
 import { and, eq, sql } from "drizzle-orm";
 import { withUser } from "./db";
+import type { SetSenderVerdictResult } from "./filter-leak-core";
 import { deleteInbound } from "./inbox-list";
+
+// La parte pura vive en filter-leak-core.ts (se prueba sin base de datos); se re-exporta acá.
+export {
+  cleanDomain,
+  safeBackPath,
+  webmailErrorFromParams,
+  webmailErrorUrl,
+  webmailRejectionMessage,
+  type SetSenderVerdictResult,
+} from "./filter-leak-core";
 
 /**
  * Aviso de posible fuga del filtro de reenvío en /inbox (JS-048). La regla está en el pipeline
@@ -50,18 +66,16 @@ export async function filterLeaks(userId: string, now = new Date()): Promise<Fil
   });
 }
 
-/** Dominio base válido (lo que llega del formulario); null si no parece un dominio. */
-export function cleanDomain(raw: string): string | null {
-  const d = baseDomain(raw);
-  return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(d) ? d : null;
-}
-
-/** "Es fuente de empleo" / "No es de empleo": deja de avisar por ese dominio. */
+/**
+ * "Es fuente de empleo" / "No es de empleo": deja de avisar por ese dominio. "empleo" sobre un
+ * dominio de webmail no escribe nada y devuelve un rechazo tipado; "no_empleo" sí se permite.
+ */
 export async function setSenderVerdict(
   userId: string,
   domain: string,
   verdict: SenderVerdict,
-): Promise<void> {
+): Promise<SetSenderVerdictResult> {
+  if (verdict === "empleo" && isWebmailDomain(domain)) return { ok: false, error: "webmail" };
   await withUser(userId, (tx) =>
     tx
       .insert(s.inboundSenderDomains)
@@ -71,6 +85,7 @@ export async function setSenderVerdict(
         set: { verdict, createdAt: new Date() },
       }),
   );
+  return { ok: true };
 }
 
 /** "Sin decidir" (Ajustes › Remitentes): borra la decisión; el aviso de fuga vuelve a poder saltar. */
