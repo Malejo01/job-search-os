@@ -38,6 +38,7 @@
     "applicant:sync": "pnpm --filter @job-search-os/adapters applicant:sync",
     "pool:fetch": "pnpm --filter @job-search-os/adapters pool:fetch",
     "pool:explain": "pnpm --filter @job-search-os/adapters pool:explain",
+    "cron:run": "pnpm --filter @job-search-os/adapters cron:run",
     "admin:invite": "pnpm --filter @job-search-os/adapters admin:invite",
     "admin:test-users": "pnpm --filter @job-search-os/adapters admin:test-users",
     "inbound:replay": "pnpm --filter @job-search-os/adapters inbound:replay"

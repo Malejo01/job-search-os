@@ -1,5 +1,6 @@
 // packages/adapters: implementaciones por entorno (llm, queue, storage, cron, sources).
 export * from "./llm";
+export * from "./cron";
 export { createLogger, type Logger } from "./logger";
 export { safeDbError, type SafeDbError } from "./logging/safe-error";
 // Arriba a propósito: el PR #38 agrega exports al final de este archivo (ronda 04, debate §1).
