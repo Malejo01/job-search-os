@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { contactLink } from "@/lib/contact";
 import { getShowcaseCards } from "@/lib/showcase";
 import { CareerChips } from "../mercado/career-chips";
 import { OffersList } from "./offers-list";
@@ -33,7 +34,7 @@ export default async function OfertasPage() {
         <h2 id="lista" className="text-xl font-semibold">
           Más recientes
         </h2>
-        <OffersList cards={cards} />
+        <OffersList cards={cards} contact={contactLink("Retirar un aviso")} />
       </section>
     </div>
   );

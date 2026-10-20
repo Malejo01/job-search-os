@@ -96,6 +96,15 @@ test.describe("Flujo 44: vitrina pública", () => {
     await expect(page.getByRole("heading", { name: "Pedir acceso" })).toBeVisible();
   });
 
+  test("sin CONTACT_EMAIL no aparece ninguna línea de contacto", async ({ page }) => {
+    // El CI no define la variable; con ella cargada (ISR) el caso con email lo cubren los unit tests
+    test.skip(!!process.env.CONTACT_EMAIL, "CONTACT_EMAIL definido en este entorno");
+    for (const path of ["/acceso", "/ofertas"]) {
+      await page.goto(path);
+      await expect(page.getByText(/escribinos/i), path).toHaveCount(0);
+    }
+  });
+
   test("una carrera que no existe da 404 y /ofertas no se indexa", async ({ page, request }) => {
     const missing = await request.get("/mercado/no-existe");
     expect(missing.status()).toBe(404);

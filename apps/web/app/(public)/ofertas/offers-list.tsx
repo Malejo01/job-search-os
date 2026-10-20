@@ -1,5 +1,6 @@
 import type { ShowcaseCard } from "@job-search-os/pipeline";
 import Link from "next/link";
+import type { ContactLink } from "@/lib/contact";
 import { JobCard } from "./job-card";
 import { ModalityFilter } from "./modality-filter";
 
@@ -10,7 +11,13 @@ import { ModalityFilter } from "./modality-filter";
  */
 const LIST_ID = "ofertas-lista";
 
-export function OffersList({ cards }: { cards: ShowcaseCard[] | null }) {
+export function OffersList({
+  cards,
+  contact,
+}: {
+  cards: ShowcaseCard[] | null;
+  contact: ContactLink | null;
+}) {
   if (cards === null) {
     return (
       <p role="note" className="text-sm text-zinc-600">
@@ -41,10 +48,15 @@ export function OffersList({ cards }: { cards: ShowcaseCard[] | null }) {
           </ul>
         </>
       )}
-      {/* TODO(63): el email de contacto lo resuelve Mauro (igual que en /acceso) */}
-      <p className="text-xs text-zinc-600">
-        ¿Publicaste uno de estos avisos y querés que lo saquemos? Escribinos.
-      </p>
+      {contact ? (
+        <p className="text-xs text-zinc-600">
+          ¿Publicaste uno de estos avisos y querés que lo saquemos? Escribinos a{" "}
+          <a href={contact.href} className="underline">
+            {contact.email}
+          </a>
+          .
+        </p>
+      ) : null}
     </div>
   );
 }
