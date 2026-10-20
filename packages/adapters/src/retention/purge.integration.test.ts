@@ -201,7 +201,54 @@ describe("purgeExpired", () => {
   it("es idempotente", async () => {
     await purgeExpired(conn.db, { now: NOW, logDays: 30 });
     const second = await purgeExpired(conn.db, { now: NOW, logDays: 30 });
-    expect(second).toEqual({ tokens: 0, llmCalls: 0, queue: 0, rejections: 0 });
+    expect(second).toEqual({
+      tokens: 0,
+      llmCalls: 0,
+      queue: 0,
+      rejections: 0,
+      invitations: 0,
+      invitationEmails: 0,
+    });
+  });
+
+  it("borra la invitación vencida sin usar, respeta la gracia y anula el email de la usada", async () => {
+    const base = { createdByUserId: A };
+    await conn.db.delete(s.invitations).where(eq(s.invitations.createdByUserId, A));
+    await conn.db.insert(s.invitations).values([
+      {
+        ...base,
+        codeHash: `${TAG}-inv-vencida`,
+        expiresAt: daysAgo(8),
+        email: "persona@example.com",
+      },
+      { ...base, codeHash: `${TAG}-inv-en-gracia`, expiresAt: daysAgo(3) },
+      {
+        ...base,
+        codeHash: `${TAG}-inv-vigente`,
+        expiresAt: daysAgo(-5),
+        email: "persona@example.com",
+      },
+      {
+        ...base,
+        codeHash: `${TAG}-inv-usada`,
+        expiresAt: daysAgo(-5),
+        usedAt: daysAgo(1),
+        email: "persona@example.com",
+      },
+    ]);
+    const r = await purgeExpired(conn.db, { now: NOW });
+    expect(r.invitations).toBe(1);
+    expect(r.invitationEmails).toBe(1);
+    const left = await conn.db
+      .select()
+      .from(s.invitations)
+      .where(eq(s.invitations.createdByUserId, A));
+    const byHash = Object.fromEntries(left.map((i) => [i.codeHash, i]));
+    expect(byHash[`${TAG}-inv-vencida`]).toBeUndefined();
+    expect(byHash[`${TAG}-inv-en-gracia`]).toBeDefined();
+    expect(byHash[`${TAG}-inv-vigente`]?.email).toBe("persona@example.com");
+    expect(byHash[`${TAG}-inv-usada`]?.email).toBeNull();
+    expect(byHash[`${TAG}-inv-usada`]?.usedAt).not.toBeNull();
   });
 
   it("no toca raw_blobs ni inbound_emails", async () => {

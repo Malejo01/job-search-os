@@ -1,5 +1,5 @@
 import { schema as s, type Db } from "@job-search-os/db";
-import { inArray, lt, or, and } from "drizzle-orm";
+import { inArray, isNotNull, isNull, lt, or, and } from "drizzle-orm";
 import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 import type { SQL } from "drizzle-orm";
 
@@ -8,7 +8,18 @@ import type { SQL } from "drizzle-orm";
  * datos del usuario (esos se van con la cuenta). `db` es la conexión de servicio: ve las filas de
  * todos los usuarios y el borrado es global por antigüedad, sin cruzar datos entre usuarios.
  */
-export type PurgeResult = { tokens: number; llmCalls: number; queue: number; rejections: number };
+export type PurgeResult = {
+  tokens: number;
+  llmCalls: number;
+  queue: number;
+  rejections: number;
+  /** Invitaciones vencidas y sin usar, borradas. */
+  invitations: number;
+  /** Invitaciones usadas a las que se les anuló el email. */
+  invitationEmails: number;
+};
+
+const INVITATION_GRACE_DAYS = 7;
 
 export const PURGE_BATCH = 5_000;
 /** Tope de lotes por tabla y corrida; lo que quede lo borra la próxima (cada 6 h). */
@@ -58,7 +69,14 @@ export async function purgeExpired(
   const { now } = input;
   const batchSize = input.batchSize ?? PURGE_BATCH;
   const dayAgo = new Date(now.getTime() - DAY_MS);
-  const result: PurgeResult = { tokens: 0, llmCalls: 0, queue: 0, rejections: 0 };
+  const result: PurgeResult = {
+    tokens: 0,
+    llmCalls: 0,
+    queue: 0,
+    rejections: 0,
+    invitations: 0,
+    invitationEmails: 0,
+  };
 
   // Tokens de reseteo: vencidos o usados hace más de 1 día
   result.tokens = await deleteInBatches(
@@ -67,6 +85,22 @@ export async function purgeExpired(
     or(lt(s.passwordResetTokens.expiresAt, dayAgo), lt(s.passwordResetTokens.usedAt, dayAgo)),
     batchSize,
   );
+
+  // Invitaciones vencidas y sin usar, con 7 días de gracia para que el admin vea que vencieron
+  const graceCutoff = new Date(now.getTime() - INVITATION_GRACE_DAYS * DAY_MS);
+  result.invitations = await deleteInBatches(
+    db,
+    s.invitations,
+    and(isNull(s.invitations.usedAt), lt(s.invitations.expiresAt, graceCutoff)),
+    batchSize,
+  );
+  // Las usadas no guardan el email del invitado (las anteriores al canje que lo borra, todavía sí)
+  const cleared = await db
+    .update(s.invitations)
+    .set({ email: null })
+    .where(and(isNotNull(s.invitations.usedAt), isNotNull(s.invitations.email)))
+    .returning({ id: s.invitations.id });
+  result.invitationEmails = cleared.length;
 
   const logDays = input.logDays;
   if (

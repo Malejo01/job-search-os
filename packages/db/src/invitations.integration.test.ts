@@ -112,6 +112,16 @@ describe("registro por invitación (JS-091)", () => {
     expect(inv!.used_by_user_id).toBe(userId);
   });
 
+  it("al canjear, la invitación pierde el email del invitado y queda usada", async () => {
+    await createInvitation(CREATOR, "hash-borra-email", { email: "persona@invitado.test" });
+    const userId = await register("hash-borra-email", "persona@invitado.test");
+    expect(userId).not.toBeNull();
+    const [inv] =
+      await owner`select email, used_at from invitations where code_hash = 'hash-borra-email'`;
+    expect(inv!.email).toBeNull();
+    expect(inv!.used_at).not.toBeNull();
+  });
+
   it("doble canje del mismo código: el segundo falla (NULL)", async () => {
     await createInvitation(CREATOR, "hash-doble");
     expect(await register("hash-doble", "uno@invitado.test")).not.toBeNull();

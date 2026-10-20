@@ -1,5 +1,6 @@
 "use client";
 
+import { buildEmailFrameDoc } from "@job-search-os/pipeline";
 import { useActionState, useState, useTransition } from "react";
 import {
   analyzeFormAction,
@@ -20,13 +21,11 @@ const ORIGIN_LABELS = {
   modelo: "borrador del modelo",
 } as const;
 
-/**
- * Los iframes con `sandbox=""` no ejecutan scripts ni envían formularios. El meta CSP además
- * corta cualquier pedido de red del HTML pegado (imágenes de tracking incluidas).
+/*
+ * Los iframes con `sandbox=""` no ejecutan scripts ni envían formularios. `buildEmailFrameDoc`
+ * además pone la CSP (sin red, sin form-action ni base-uri) y saca `meta` y `base` del HTML pegado.
  * El HTML pegado NUNCA se inyecta en la página: solo viaja como `srcDoc` de este iframe.
  */
-const PREVIEW_CSP =
-  "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'\">";
 
 type Item = DraftView & { state: "pendiente" | "aprobada" | "descartada" };
 
@@ -96,7 +95,7 @@ export function FormReview({ jobId }: { jobId: string }) {
                 title="Vista previa del formulario pegado"
                 sandbox=""
                 referrerPolicy="no-referrer"
-                srcDoc={PREVIEW_CSP + analysis.raw}
+                srcDoc={buildEmailFrameDoc(analysis.raw)}
                 className="mt-2 h-64 w-full rounded-md border border-zinc-200 bg-white"
               />
             </details>
