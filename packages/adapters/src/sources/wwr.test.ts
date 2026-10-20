@@ -64,6 +64,52 @@ describe("WWR: parseo del feed de ejemplo (formato a verificar)", () => {
   });
 });
 
+describe("WWR: link al sitio de empleos de la empresa", () => {
+  const item = (description: string) => ({
+    title: "Empresa Z: Puesto Z",
+    link: "https://example.com/wwr/z",
+    guid: null,
+    pubDate: "Wed, 10 Sep 2026 01:46:40 +0000",
+    region: null,
+    category: null,
+    type: null,
+    description,
+    xml: "<item></item>",
+  });
+
+  it("rescata el href de un ATS y lo agrega al final de la JD", () => {
+    const raw = mapWwrJob(
+      item(
+        '<p>Texto ficticio.</p><p><a href="https://jobs.lever.co/empresa-z/123?x=1&amp;y=2">Apply</a></p>',
+      ),
+      "remote-programming-jobs",
+    );
+    expect(raw.jdText).toBe(
+      "Texto ficticio.\nApply\n\nSitio de empleos de la empresa: https://jobs.lever.co/empresa-z/123",
+    );
+  });
+
+  it("ignora hrefs que no son de un ATS reconocido o no son https", () => {
+    const raw = mapWwrJob(
+      item(
+        '<p><a href="https://example.com/jobs/1">a</a> <a href="http://jobs.lever.co/x/1">b</a></p>',
+      ),
+      "remote-programming-jobs",
+    );
+    expect(raw.jdText).toBe("a b");
+  });
+
+  it("no repite el link si la JD ya lo trae como texto", () => {
+    const raw = mapWwrJob(
+      item(
+        '<p>https://jobs.lever.co/empresa-z/123</p><a href="https://jobs.lever.co/empresa-z/123">x</a>',
+      ),
+      "remote-programming-jobs",
+    );
+    expect(raw.jdText).toBe("https://jobs.lever.co/empresa-z/123\nx");
+  });
+});
+
 describe("fetchWwrJobs (fetch inyectado)", () => {
   const since = new Date("2026-09-01T00:00:00Z");
 

@@ -1,4 +1,4 @@
-import type { RawJob } from "@job-search-os/pipeline";
+import { findAtsLinks, type RawJob } from "@job-search-os/pipeline";
 import { sourceErrorCode, type SourceErrorCode } from "./error-code";
 import { htmlToText } from "./getonboard";
 
@@ -94,6 +94,24 @@ export function parseWwrFeed(xml: string): { items: WwrItem[]; skipped: number }
   return { items, skipped };
 }
 
+/**
+ * `htmlToText` descarta los `href`: el link al sitio de empleos de la empresa (Greenhouse, Lever,
+ * Ashby, Workable) se perdía. Se rescatan los que `findAtsLinks` reconoce y van al final de la JD
+ * en una línea de texto plano (dato, no instrucción).
+ */
+function jdWithAtsLinks(description: string | null): string | null {
+  const text = htmlToText(description);
+  const hrefs = [...(description ?? "").matchAll(/href\s*=\s*(?:"([^"]*)"|'([^']*)')/gi)].map((m) =>
+    decodeXml(m[1] ?? m[2] ?? ""),
+  );
+  const links = findAtsLinks(hrefs.join("\n"))
+    .map((l) => l.url)
+    .filter((url) => !text.includes(url));
+  if (links.length === 0) return text || null;
+  const line = `Sitio de empleos de la empresa: ${links.join(" ")}`;
+  return text ? `${text}\n\n${line}` : line;
+}
+
 /** Un item del feed → RawJob. Puro: no hace I/O. `categorySlug` va en el nombre de la fuente. */
 export function mapWwrJob(item: WwrItem, categorySlug: string): RawJob {
   const sep = item.title.indexOf(":");
@@ -136,7 +154,7 @@ export function mapWwrJob(item: WwrItem, categorySlug: string): RawJob {
     weeklyHours: null,
     candidatesCount: null,
     badges: [],
-    jdText: htmlToText(item.description) || null,
+    jdText: jdWithAtsLinks(item.description),
     postedAt: new Date(item.pubDate),
     tags: item.category ? [item.category] : [],
     // El slug del feed alimenta el `role_hints` del pool (SOURCE_CATEGORY_ROLES.wwr)
