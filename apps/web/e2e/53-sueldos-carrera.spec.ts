@@ -4,7 +4,7 @@ import { eq, sql } from "drizzle-orm";
 import { createHash, randomBytes } from "node:crypto";
 // Import relativo directo (no el índice de @job-search-os/db, que arrastra import.meta)
 import { deleteUserData } from "../../../packages/db/src/user-tables";
-import { E2E_USER_ID, login, ownerDb } from "./helpers";
+import { E2E_USER_ID, deleteSeededPublicJobs, login, ownerDb } from "./helpers";
 
 /**
  * Flujo 53 (ronda 80): sueldos por carrera en dos segmentos (LatAm e internacional). Una persona
@@ -105,11 +105,47 @@ test.describe("Flujo 53: sueldos por carrera", () => {
   });
 
   test("/market: se ven los dos segmentos de sueldos", async ({ page: appPage }) => {
-    await login(appPage);
-    await appPage.goto("/market?carrera=backend");
-    const block = appPage.getByTestId("market-salary");
-    await expect(block).toBeVisible();
-    await expect(block).toContainText("Ofertas abiertas a Argentina / LatAm");
-    await expect(block).toContainText("Ofertas internacionales");
+    // El bloque de sueldos solo se pinta si la carrera tiene avisos. Se siembran dos ficticios de
+    // una carrera que ningún otro spec visita (el mercado se cachea 30 minutos por carrera)
+    const { db, close } = ownerDb();
+    try {
+      const now = new Date();
+      for (const i of [0, 1]) {
+        const title = `Oferta Ficticia soporte ${tag} ${i}`;
+        const url = `https://example.com/e2e-pool/${tag}/${i}-soporte`;
+        await db.insert(s.publicJobs).values({
+          sourceKind: "remoteok",
+          // Mismo prefijo que usa la limpieza de helpers.ts
+          externalId: `e2e-pool-${tag}-soporte-${i}`,
+          sourceName: "Remote OK",
+          sourceUrl: url,
+          canonicalUrl: url,
+          title,
+          titleNormalized: title.toLowerCase(),
+          companyRaw: `Empresa Ficticia ${i}`,
+          companyNormalized: `empresa ficticia ${i}`,
+          locationRaw: "Remoto (Anywhere in the World)",
+          modality: "remoto",
+          jdText: `Descripción ficticia ${i} (${tag}).`,
+          jdHash: `e2e-pool-${tag}-soporte-${i}`,
+          roleHints: ["soporte_it"],
+          postedAt: now,
+          firstSeenAt: now,
+          lastSeenAt: now,
+        });
+      }
+    } finally {
+      await close();
+    }
+    try {
+      await login(appPage);
+      await appPage.goto("/market?carrera=soporte_it");
+      const block = appPage.getByTestId("market-salary");
+      await expect(block).toBeVisible();
+      await expect(block).toContainText("Ofertas abiertas a Argentina / LatAm");
+      await expect(block).toContainText("Ofertas internacionales");
+    } finally {
+      await deleteSeededPublicJobs(tag).catch(() => {});
+    }
   });
 });
