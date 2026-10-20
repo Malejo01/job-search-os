@@ -136,7 +136,11 @@ describe("parseOnboarding", () => {
     });
   });
   it("resumen corto, inglés inválido y años faltantes reportan el campo", () => {
-    expect(parseOnboarding({ ...form, summary: "corto" })).toEqual({ ok: false, field: "summary" });
+    expect(parseOnboarding({ ...form, summary: "corto" })).toEqual({
+      ok: false,
+      field: "summary",
+      reason: "min",
+    });
     expect(parseOnboarding({ ...form, englishCefr: "D9" })).toEqual({
       ok: false,
       field: "englishCefr",
@@ -144,6 +148,38 @@ describe("parseOnboarding", () => {
     expect(parseOnboarding({ ...form, yearsTotal: "" })).toEqual({
       ok: false,
       field: "yearsTotal",
+    });
+  });
+  // Texto de `total` caracteres (contados con \n) con `breaks` saltos de línea
+  const textWithBreaks = (total: number, breaks: number, eol: string) => {
+    const body = total - breaks;
+    const per = Math.floor(body / (breaks + 1));
+    const extra = body - per * (breaks + 1);
+    return Array.from({ length: breaks + 1 }, (_, i) => "a".repeat(per + (i < extra ? 1 : 0))).join(
+      eol,
+    );
+  };
+  it("el resumen se mide con \\n: \\r\\n cuenta como 1 carácter", () => {
+    const crlf = textWithBreaks(1990, 30, "\r\n");
+    expect(crlf.length).toBe(1990 + 30);
+    const r = parseOnboarding({ ...form, summary: crlf });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.value.profileSummary.length).toBe(1990);
+      expect(r.value.profileSummary).not.toContain("\r");
+    }
+    expect(parseOnboarding({ ...form, summary: textWithBreaks(1990, 30, "\r") }).ok).toBe(true);
+  });
+  it("el resumen pasado del máximo o corto dice la razón", () => {
+    expect(parseOnboarding({ ...form, summary: textWithBreaks(2001, 30, "\r\n") })).toEqual({
+      ok: false,
+      field: "summary",
+      reason: "max",
+    });
+    expect(parseOnboarding({ ...form, summary: "a".repeat(50) })).toEqual({
+      ok: false,
+      field: "summary",
+      reason: "min",
     });
   });
   it("piso salarial negativo o decimal", () => {

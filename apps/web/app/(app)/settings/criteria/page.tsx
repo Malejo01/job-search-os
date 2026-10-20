@@ -9,6 +9,7 @@ import Link from "next/link";
 import { getActiveCriteria } from "@/lib/criteria";
 import { requireUserId } from "@/lib/session";
 import { resetCriteriaAction, saveCriteriaAction } from "./actions";
+import { FieldError, GuardedForm, PendingSubmit } from "@/app/components/guarded-form";
 import { SaveButton } from "./save-button";
 
 export const metadata = { title: "Criterios" };
@@ -38,7 +39,7 @@ const FIELD_ERRORS: Record<string, string> = {
   threshold_guardar: "El umbral para guardar tiene que ser un número entre 0 y 10.",
   thresholds: "Los umbrales tienen que ir de mayor a menor: personalizar, aplicar, guardar.",
   conflict:
-    "Otro guardado ganó (o los criterios cambiaron mientras editabas). Recargá y volvé a intentar.",
+    "Alguien guardó cambios más nuevos. Copiá lo que necesites y recargá: al recargar se muestra la versión nueva.",
 };
 
 const ENGLISH_LABEL: Record<(typeof ENGLISH_RISK_LEVELS)[number], string> = {
@@ -97,11 +98,6 @@ export default async function CriteriaPage({
   }
 
   const d = criteriaFormDefaults(active.rules);
-  // El error es el name del input que falló; "thresholds" marca los 3 umbrales y "conflict" nada.
-  const invalid = (name: string) => {
-    const hit = error === name || (error === "thresholds" && name.startsWith("threshold_"));
-    return hit ? ({ "aria-invalid": true, "aria-describedby": "criteria-error" } as const) : {};
-  };
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-5">
@@ -133,18 +129,26 @@ export default async function CriteriaPage({
         </p>
       ) : null}
 
-      <form action={saveCriteriaAction} className="flex flex-col gap-4">
+      <GuardedForm
+        action={saveCriteriaAction}
+        messages={FIELD_ERRORS}
+        groups={{
+          thresholds: ["threshold_personalizado", "threshold_aplicar", "threshold_guardar"],
+        }}
+        conflictField="conflict"
+        className="flex flex-col gap-4"
+      >
         <input type="hidden" name="baseVersion" value={active.version} />
 
         <label className="flex flex-col gap-1 text-sm">
           Títulos bloqueados (uno por línea)
           <textarea
             name="title_blocklist"
-            {...invalid("title_blocklist")}
             rows={6}
             defaultValue={d.title_blocklist}
             className={input}
           />
+          <FieldError name="title_blocklist" />
           <span className={help}>
             Un aviso cuyo título contiene alguna de estas palabras se descarta antes de evaluarlo,
             salvo que coincida con los títulos permitidos.
@@ -155,11 +159,11 @@ export default async function CriteriaPage({
           Títulos permitidos (uno por línea)
           <textarea
             name="title_allowlist"
-            {...invalid("title_allowlist")}
             rows={3}
             defaultValue={d.title_allowlist}
             className={input}
           />
+          <FieldError name="title_allowlist" />
           <span className={help}>
             Excepciones a la lista de bloqueados: un título que coincide con una de estas frases
             pasa el filtro.
@@ -170,18 +174,18 @@ export default async function CriteriaPage({
           Palabras de otras disciplinas (una por línea)
           <textarea
             name="other_discipline_keywords"
-            {...invalid("other_discipline_keywords")}
             rows={6}
             defaultValue={d.other_discipline_keywords}
             className={input}
           />
+          <FieldError name="other_discipline_keywords" />
           <span className={help}>
             Si el aviso las menciona como el núcleo del puesto, se considera de otro oficio y el
             puntaje tiene tope.
           </span>
         </label>
 
-        <fieldset className="flex flex-col gap-2 text-sm" {...invalid("allowed_disciplines")}>
+        <fieldset className="flex flex-col gap-2 text-sm">
           <legend className="mb-1">Disciplinas que buscás</legend>
           <div className="grid gap-1 sm:grid-cols-2">
             {DISCIPLINES.map((disc) => (
@@ -196,6 +200,7 @@ export default async function CriteriaPage({
               </label>
             ))}
           </div>
+          <FieldError name="allowed_disciplines" />
           <span className={help}>
             Un aviso de una disciplina que no marcaste queda como bloqueador y su puntaje tiene
             tope. Tiene que haber al menos una.
@@ -212,10 +217,10 @@ export default async function CriteriaPage({
               min={0}
               max={100000}
               step={1}
-              {...invalid("salary_floor_usd_monthly")}
               defaultValue={d.salary_floor_usd_monthly}
               className={input}
             />
+            <FieldError name="salary_floor_usd_monthly" />
             <span className={help}>
               Si lo dejás vacío, no se marca nada por salario. Un salario publicado por debajo de
               este piso se marca.
@@ -225,7 +230,6 @@ export default async function CriteriaPage({
             Horas máximas por semana
             <input
               name="max_weekly_hours"
-              {...invalid("max_weekly_hours")}
               type="number"
               inputMode="numeric"
               min={1}
@@ -235,13 +239,13 @@ export default async function CriteriaPage({
               defaultValue={d.max_weekly_hours}
               className={input}
             />
+            <FieldError name="max_weekly_hours" />
             <span className={help}>Un aviso que pide más horas se marca como riesgo.</span>
           </label>
           <label className="flex flex-col gap-1 text-sm">
             Años máximos que tolerás
             <input
               name="max_years_hard"
-              {...invalid("max_years_hard")}
               type="number"
               inputMode="numeric"
               min={1}
@@ -251,24 +255,21 @@ export default async function CriteriaPage({
               defaultValue={d.max_years_hard}
               className={input}
             />
+            <FieldError name="max_years_hard" />
             <span className={help}>
               Si el aviso pide más años que estos, es un bloqueador (no se recomienda aplicar).
             </span>
           </label>
           <label className="flex flex-col gap-1 text-sm">
             Riesgo de inglés desde
-            <select
-              name="english_risk_from"
-              {...invalid("english_risk_from")}
-              defaultValue={d.english_risk_from}
-              className={input}
-            >
+            <select name="english_risk_from" defaultValue={d.english_risk_from} className={input}>
               {ENGLISH_RISK_LEVELS.map((l) => (
                 <option key={l} value={l}>
                   {ENGLISH_LABEL[l]}
                 </option>
               ))}
             </select>
+            <FieldError name="english_risk_from" />
             <span className={help}>
               Desde qué nivel exigido en el aviso se reporta riesgo si tu inglés está por debajo.
             </span>
@@ -282,7 +283,6 @@ export default async function CriteriaPage({
               Personalizar desde
               <input
                 name="threshold_personalizado"
-                {...invalid("threshold_personalizado")}
                 type="number"
                 inputMode="decimal"
                 min={0}
@@ -297,7 +297,6 @@ export default async function CriteriaPage({
               Aplicar desde
               <input
                 name="threshold_aplicar"
-                {...invalid("threshold_aplicar")}
                 type="number"
                 inputMode="decimal"
                 min={0}
@@ -312,7 +311,6 @@ export default async function CriteriaPage({
               Guardar desde
               <input
                 name="threshold_guardar"
-                {...invalid("threshold_guardar")}
                 type="number"
                 inputMode="decimal"
                 min={0}
@@ -324,6 +322,10 @@ export default async function CriteriaPage({
               />
             </label>
           </div>
+          <FieldError name="thresholds" />
+          <FieldError name="threshold_personalizado" />
+          <FieldError name="threshold_aplicar" />
+          <FieldError name="threshold_guardar" />
           <span className={help}>
             Con qué puntaje (sin bloqueadores) la acción recomendada pasa a personalizar, aplicar o
             guardar. Tienen que ir de mayor a menor. Con 0 en &ldquo;Guardar desde&rdquo; no se
@@ -332,9 +334,11 @@ export default async function CriteriaPage({
         </fieldset>
 
         <div className="flex justify-end">
-          <SaveButton label="Guardar como versión nueva" />
+          <PendingSubmit className="rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white">
+            Guardar como versión nueva
+          </PendingSubmit>
         </div>
-      </form>
+      </GuardedForm>
 
       <section className="border-t border-zinc-200 pt-4 text-sm">
         {reset === "confirm" ? (

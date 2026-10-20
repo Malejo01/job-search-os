@@ -3,6 +3,7 @@
 import { parseRemoveSlugs, parseSkillLevelsForm } from "@job-search-os/pipeline";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import type { FormActionError } from "@/app/components/guarded-form";
 import { scheduleMarketRecompute } from "@/lib/market-recompute";
 import { reassignForSkills, scheduleImmediateEvaluation } from "@/lib/pool-reassign";
 import { requireUserId } from "@/lib/session";
@@ -19,14 +20,14 @@ function formToRaw(formData: FormData): Record<string, string> {
 
 /**
  * Guarda los niveles autodeclarados. Valida con Zod en el servidor (parseSkillLevelsForm); si
- * falla vuelve con el nombre del campo, nunca con el valor. El usuario sale de la sesión. Los
- * puestos no cambian acá (ronda 45): se cambian en Ajustes. Después programa el recálculo de
- * mercado y plan, que corre sin que la persona espere.
+ * falla devuelve `{ ok: false, field }` (nunca el valor) y el formulario conserva lo cargado. El
+ * usuario sale de la sesión. Los puestos no cambian acá (ronda 45): se cambian en Ajustes.
+ * Después programa el recálculo de mercado y plan, que corre sin que la persona espere.
  */
-export async function saveSkillsAction(formData: FormData): Promise<void> {
+export async function saveSkillsAction(formData: FormData): Promise<FormActionError | void> {
   const userId = await requireUserId();
   const parsed = parseSkillLevelsForm(formToRaw(formData));
-  if (!parsed.ok) redirect(`${BACK}?error=${encodeURIComponent(parsed.field)}`);
+  if (!parsed.ok) return { ok: false, field: parsed.field };
   const remove = parseRemoveSlugs(formData.getAll("quitar").filter((v) => typeof v === "string"));
   const { changed } = await saveSkillLevels(userId, parsed.entries, remove);
   if (changed > 0) scheduleMarketRecompute(userId, { inputsChanged: true });

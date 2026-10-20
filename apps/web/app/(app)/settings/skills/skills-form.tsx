@@ -6,10 +6,17 @@ import {
   type RoleSkillsMap,
 } from "@job-search-os/pipeline";
 import Link from "next/link";
-import { SubmitButton } from "@/app/components/submit-button";
+import { GuardedForm, PendingSubmit, type FormActionError } from "@/app/components/guarded-form";
 import type { TaxonomySkill } from "@/lib/skill-levels";
 import { SkillRow } from "./skill-row";
 import { SkillSearch } from "./skill-search";
+
+/** Mensajes por campo de `parseSkillLevelsForm`; `level:<slug>` cae en `level`. */
+const SKILL_ERRORS: Record<string, string> = {
+  level: "Hay un nivel que no es válido. Elegí uno de los cuatro de esa skill y volvé a guardar.",
+  niveles: "Hay demasiadas skills en el formulario. Recargá la página y volvé a intentar.",
+  slug: "Hay una skill que no se reconoce. Recargá la página y volvé a intentar.",
+};
 
 export function parseRoleParam(value: string | undefined): RoleKey | null {
   return isRoleKey(value) ? value : null;
@@ -30,10 +37,9 @@ export function SkillsForm({
   submitLabel,
   skip,
   allowRemove = true,
-  invalidSlug,
   selectedRoles = [],
 }: {
-  action: (formData: FormData) => Promise<void>;
+  action: (formData: FormData) => Promise<FormActionError | void>;
   /** Ruta de la pantalla: los links del selector de rol son `${basePath}?rol=<clave>`. */
   basePath: string;
   roleMap: RoleSkillsMap;
@@ -45,8 +51,6 @@ export function SkillsForm({
   skip?: { label: string };
   /** Muestra "Quitar" en las skills con nivel guardado (no en el onboarding). */
   allowRemove?: boolean;
-  /** Slug de la fila a la que apunta `?error=level:<slug>`, si lo hay. */
-  invalidSlug?: string;
   /** Puestos que eligió la persona: van primero entre los pills (solo sugieren skills). */
   selectedRoles?: readonly RoleKey[];
 }) {
@@ -107,7 +111,7 @@ export function SkillsForm({
         </p>
       ) : null}
 
-      <form action={action} className="flex flex-col gap-4">
+      <GuardedForm action={action} messages={SKILL_ERRORS} className="flex flex-col gap-4">
         {/* Primer botón del formulario: Enter guarda y no dispara el "Quitar" de la primera fila */}
         <button type="submit" tabIndex={-1} aria-hidden="true" className="sr-only">
           Guardar
@@ -125,7 +129,6 @@ export function SkillsForm({
                 name={byslug.get(slug)!.name}
                 level={levels[slug]}
                 removable={allowRemove && slug in levels}
-                invalid={slug === invalidSlug}
               />
             ))}
           </section>
@@ -143,7 +146,6 @@ export function SkillsForm({
                 name={t.name}
                 level={levels[t.slug]}
                 removable={allowRemove}
-                invalid={t.slug === invalidSlug}
               />
             ))}
           </section>
@@ -153,12 +155,12 @@ export function SkillsForm({
 
         {/* «Guardar» va primero en el DOM (Enter guarda, nunca saltea); row-reverse lo deja a la derecha */}
         <div className="flex flex-row-reverse flex-wrap items-center justify-start gap-3">
-          <SubmitButton
+          <PendingSubmit
             pendingLabel="Guardando…"
             className="rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
           >
             {submitLabel}
-          </SubmitButton>
+          </PendingSubmit>
           {skip ? (
             <button
               type="submit"
@@ -170,7 +172,7 @@ export function SkillsForm({
             </button>
           ) : null}
         </div>
-      </form>
+      </GuardedForm>
     </div>
   );
 }

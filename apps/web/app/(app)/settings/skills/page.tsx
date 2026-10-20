@@ -11,19 +11,14 @@ export const dynamic = "force-dynamic";
 // La acción puede programar la primera evaluación en after(): corre dentro de este límite
 export const maxDuration = 120;
 
-const FIELD_ERRORS: Record<string, string> = {
-  niveles: "Hay demasiadas skills en el formulario. Recargá la página y volvé a intentar.",
-  slug: "Hay una skill que no se reconoce. Recargá la página y volvé a intentar.",
-};
-
 /** Mis skills (ronda 28): niveles autodeclarados que usan el mercado, el plan y el prescore. */
 export default async function SkillsSettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ rol?: string; guardado?: string; error?: string }>;
+  searchParams: Promise<{ rol?: string; guardado?: string }>;
 }) {
   const userId = await requireUserId();
-  const [data, targetRoles, { rol, guardado, error }] = await Promise.all([
+  const [data, targetRoles, { rol, guardado }] = await Promise.all([
     getSkillsPageData(userId),
     getTargetRoles(userId),
     searchParams,
@@ -54,17 +49,6 @@ export default async function SkillsSettingsPage({
           Guardado. Tu mercado y tu plan se actualizan en unos segundos.
         </p>
       ) : null}
-      {error ? (
-        <p
-          id="skills-error"
-          role="alert"
-          className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800"
-        >
-          {error.startsWith("level:")
-            ? "Hay un nivel que no es válido. Recargá la página y volvé a intentar."
-            : (FIELD_ERRORS[error] ?? "Revisá los datos del formulario.")}
-        </p>
-      ) : null}
 
       <SkillsForm
         action={saveSkillsAction}
@@ -75,7 +59,6 @@ export default async function SkillsSettingsPage({
         taxonomy={data.taxonomy}
         levels={data.levels}
         submitLabel="Guardar"
-        invalidSlug={error?.startsWith("level:") ? error.slice("level:".length) : undefined}
       />
 
       <Link href="/settings" className="text-sm text-zinc-900 underline">

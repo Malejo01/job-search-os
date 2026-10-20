@@ -1,4 +1,5 @@
 import { ROLE_GROUPS, TARGET_ROLES_DEFAULT_LIMIT, type RoleKey } from "@job-search-os/pipeline";
+import { FieldError, GuardedForm, PendingSubmit } from "@/app/components/guarded-form";
 import { RolePicker } from "@/components/role-picker";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
 import { saveTargetRolesAction } from "./actions";
@@ -16,7 +17,7 @@ export function TargetRolesForm({
 }: {
   current: RoleKey[];
   limit: number;
-  status?: "guardado" | "error";
+  status?: "guardado";
 }) {
   const groups = ROLE_GROUPS.map((group) => ({
     label: group.label,
@@ -38,12 +39,13 @@ export function TargetRolesForm({
           Guardado. Tus ofertas se actualizan con tus puestos.
         </p>
       ) : null}
-      {status === "error" ? (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
-          Elegí al menos un puesto (hasta {limit}) y volvé a intentar.
-        </p>
-      ) : null}
-      <form action={saveTargetRolesAction} className="flex flex-col gap-3">
+      <GuardedForm
+        action={saveTargetRolesAction}
+        messages={{
+          targetRoles: `Elegí al menos un puesto (hasta ${limit}) y volvé a guardar. Lo que marcaste sigue ahí.`,
+        }}
+        className="flex flex-col gap-3"
+      >
         <p className="text-xs text-zinc-600">
           ¿Qué puestos buscás? Elegí hasta {limit}. Te mostramos primero las ofertas de esos
           puestos.
@@ -55,13 +57,11 @@ export function TargetRolesForm({
           defaultLimit={TARGET_ROLES_DEFAULT_LIMIT}
           groups={groups}
         />
-        <button
-          type="submit"
-          className="self-start rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
-        >
+        <FieldError name="targetRoles" />
+        <PendingSubmit className="self-start rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900">
           Guardar puestos
-        </button>
-      </form>
+        </PendingSubmit>
+      </GuardedForm>
     </section>
   );
 }

@@ -20,11 +20,14 @@ import { reassignForRoleChange } from "@/lib/pool-reassign";
 import { requireUserId } from "@/lib/session";
 
 /**
- * Guarda el onboarding (B2). Valida con Zod (parseOnboarding); si falla vuelve al formulario con
- * el nombre del campo, nunca con el valor. El usuario sale de la sesión, no del formulario. Los
- * puestos (1 hasta el tope del plan) se validan en el servidor; `target_role` queda como el primero.
+ * Guarda el onboarding (B2). Valida con Zod (parseOnboarding); si falla DEVUELVE el nombre del
+ * campo (nunca el valor) en vez de redirigir: el formulario de cliente sigue en pantalla con todo
+ * lo cargado. El usuario sale de la sesión, no del formulario. Los puestos (1 hasta el tope del
+ * plan) se validan en el servidor; `target_role` queda como el primero. Si sale bien, redirige.
  */
-export async function saveOnboardingAction(formData: FormData): Promise<void> {
+export type OnboardingActionResult = { ok: false; field: string; reason?: "min" | "max" };
+
+export async function saveOnboardingAction(formData: FormData): Promise<OnboardingActionResult> {
   const userId = await requireUserId();
   const raw: Record<string, string | string[]> = {};
   for (const [k, v] of formData.entries()) if (typeof v === "string") raw[k] = v;
@@ -33,11 +36,17 @@ export async function saveOnboardingAction(formData: FormData): Promise<void> {
     .getAll("targetRoles")
     .filter((v): v is string => typeof v === "string");
   const parsed = parseOnboarding(raw, await getTargetRolesLimit(userId));
-  if (!parsed.ok) redirect(`/onboarding?error=${encodeURIComponent(parsed.field)}`);
+  if (!parsed.ok) {
+    return {
+      ok: false,
+      field: parsed.field,
+      ...(parsed.reason ? { reason: parsed.reason } : {}),
+    };
+  }
   // Solo la primera vez dispara la ingesta: un POST repetido a la acción no la repite
   const wasComplete = await isOnboardingComplete(userId);
   const { saved, roleChanged } = await completeOnboarding(userId, parsed.value);
-  if (!saved) redirect("/onboarding?error=perfil");
+  if (!saved) return { ok: false, field: "perfil" };
   // Reenvío con otro puesto y con evaluaciones hechas: reasigna (sin actividad lo cubre Mis skills)
   if (wasComplete && roleChanged) await reassignForRoleChange(userId, { onlyWithActivity: true });
   // JS-095: la dirección derivada del id se cambia por una aleatoria (si ya lo es, no se toca)

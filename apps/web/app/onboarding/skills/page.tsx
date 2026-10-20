@@ -16,11 +16,11 @@ export const maxDuration = 120;
 export default async function OnboardingSkillsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ rol?: string; error?: string }>;
+  searchParams: Promise<{ rol?: string }>;
 }) {
   const userId = await requireUserId();
   if (!(await isOnboardingComplete(userId))) redirect("/onboarding");
-  const [data, targetRoles, { rol, error }] = await Promise.all([
+  const [data, targetRoles, { rol }] = await Promise.all([
     getSkillsPageData(userId),
     getTargetRoles(userId),
     searchParams,
@@ -44,15 +44,6 @@ export default async function OnboardingSkillsPage({
         Opcional. Con tus niveles, el mercado y el plan muestran lo que te falta de verdad. Lo podés
         cambiar después en Ajustes
       </p>
-      {error ? (
-        <p
-          id="skills-error"
-          role="alert"
-          className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800"
-        >
-          Revisá los datos del formulario y volvé a intentar.
-        </p>
-      ) : null}
       <SkillsForm
         action={saveOnboardingSkillsAction}
         selectedRoles={targetRoles}
@@ -62,7 +53,6 @@ export default async function OnboardingSkillsPage({
         taxonomy={data.taxonomy}
         levels={data.levels}
         submitLabel="Guardar y seguir"
-        invalidSlug={error?.startsWith("level:") ? error.slice("level:".length) : undefined}
         allowRemove={false}
         skip={{ label: "Saltear por ahora" }}
       />

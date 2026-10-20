@@ -62,7 +62,7 @@ export default async function SettingsPage({
       <TargetRolesForm
         current={targetRoles}
         limit={rolesLimit}
-        status={puesto === "guardado" || puesto === "error" ? puesto : undefined}
+        status={puesto === "guardado" ? puesto : undefined}
       />
 
       <InboundAddressSection
