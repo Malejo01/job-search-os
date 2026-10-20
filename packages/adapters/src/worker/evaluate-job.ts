@@ -14,13 +14,15 @@ import {
   sanitizeEvaluation,
   transition,
   type CriteriaRules,
+  type JobForPrompt,
   type JobStatus,
+  type ProfileForPrompt,
 } from "@job-search-os/pipeline";
 import type { PromptRef } from "@job-search-os/prompts";
 import { randomUUID } from "node:crypto";
 import { and, count, desc, eq, lte } from "drizzle-orm";
 import { DEFAULT_PROMPT_VERSIONS } from "../llm/client";
-import type { LlmClient } from "../llm/types";
+import type { GenerateContext, LlmClient, LlmError } from "../llm/types";
 import { dailyCapFromEnv, spendLast24h, userDailyCapUsd } from "../llm/spend";
 import type { Logger } from "../logger";
 import { safeDbError } from "../logging/safe-error";
@@ -87,6 +89,127 @@ export function targetRoleLabelFor(
   return null;
 }
 
+/** Lo que el núcleo necesita del perfil: el de `profiles` o uno inventado (demo). */
+export type EvaluationProfile = Omit<ProfileForPrompt, "targetRoleLabel" | "profileSummary"> & {
+  profileSummary?: string | null;
+  /** Puesto único de antes de `targetRoles`; solo para el rótulo del prompt. */
+  targetRole?: string | null;
+};
+
+export type EvaluationJob = JobForPrompt & {
+  /** Flags del prefiltro/ingreso (`title_cap:N`, residencia, inyección...). */
+  flags?: string[] | null;
+};
+
+type InjectionInfo = { hit: boolean; signals: string[] };
+
+export type EvaluateForProfileInput = {
+  llm: LlmClient;
+  promptVersion: PromptRef;
+  profile: EvaluationProfile;
+  rules: CriteriaRules;
+  job: EvaluationJob;
+  signal?: AbortSignal;
+  /** userId/jobId y, para la demo, recordTask/label. promptVersion y signal los pone el núcleo. */
+  ctx?: Omit<GenerateContext, "promptVersion" | "signal">;
+};
+
+export type EvaluateForProfileResult =
+  | {
+      ok: true;
+      evaluation: ReturnType<typeof sanitizeEvaluation>["evaluation"];
+      decision: ReturnType<typeof decide>;
+      model: string;
+      costUsd: number | null;
+      /** Flags recalculados (inyección y residencia) y si cambiaron respecto de `job.flags`. */
+      flags: string[];
+      flagsChanged: boolean;
+      sanitized: ReturnType<typeof sanitizeEvaluation>["sanitized"];
+      injection: InjectionInfo;
+    }
+  | { ok: false; error: LlmError; injection: InjectionInfo };
+
+/**
+ * Núcleo de la evaluación, sin base: detectores de inyección y residencia, variables del prompt,
+ * llamada al LLM, saneado y decide(). Lo usan el worker (`evaluateJobById`) y la demo guiada, así
+ * ambos evalúan con el mismo código. No escribe nada.
+ */
+export async function evaluateForProfile(
+  input: EvaluateForProfileInput,
+): Promise<EvaluateForProfileResult> {
+  const { promptVersion, profile, rules, job } = input;
+  // El aviso es texto de terceros: si trae instrucciones al evaluador se marca antes de llamar al
+  // modelo. El flag topa el score en decide() y queda en jobs.flags; en el log solo van los nombres.
+  const injection = detectEvaluatorInjection([job.title, job.companyRaw, job.jdText].join("\n"));
+  // Se recalcula siempre: un flag viejo no sobrevive si la JD ya no dispara el detector
+  // Lo mismo con la residencia exigida: la JD pudo llegar después del ingreso (pendiente_jd), así
+  // que se recalcula con el texto completo y el país actual de la persona.
+  const residency = detectResidencyRestriction(
+    [job.title, job.locationRaw, job.jdText].filter(Boolean).join("\n"),
+    profile.locationCountry,
+  );
+  const residencyFlag = residency
+    ? `${RESIDENCY_FLAG}:${[...residency.countries, ...residency.regions].join(",")}`
+    : null;
+  const baseFlags = (job.flags ?? []).filter(
+    (f) => f !== INJECTION_FLAG && !f.startsWith(`${RESIDENCY_FLAG}:`),
+  );
+  const flags = [
+    ...baseFlags,
+    ...(injection.hit ? [INJECTION_FLAG] : []),
+    ...(residencyFlag ? [residencyFlag] : []),
+  ];
+  const flagsChanged =
+    flags.length !== (job.flags ?? []).length || flags.some((f) => !(job.flags ?? []).includes(f));
+
+  const vars = buildEvaluateJobVars({
+    promptRef: promptVersion,
+    profile: {
+      profileSummary: profile.profileSummary ?? "",
+      locationCountry: profile.locationCountry,
+      locationCity: profile.locationCity,
+      remoteOnly: profile.remoteOnly,
+      workAuth: profile.workAuth,
+      salaryFloorUsd: profile.salaryFloorUsd,
+      maxWeeklyHours: profile.maxWeeklyHours,
+      englishCefr: profile.englishCefr,
+      yearsTotal: profile.yearsTotal,
+      targetRoles: profile.targetRoles,
+      targetRoleLabel: targetRoleLabelFor(job.matchedRole, profile),
+    },
+    rules,
+    job,
+  });
+
+  const result = await input.llm.generateStructured(
+    "evaluate_job",
+    outputSchemaFor(promptVersion),
+    vars,
+    { ...input.ctx, promptVersion, signal: input.signal },
+  );
+  if (!result.ok) return { ok: false, error: result.error, injection };
+
+  // Texto libre del modelo: se sanea (largo, enlaces, caracteres de control) antes de decidir y guardar
+  const { evaluation, sanitized } = sanitizeEvaluation(result.value.object);
+  const decision = decide(evaluation, rules, {
+    titleCap: titleCapFromFlags(job.flags),
+    prefilterFlags: flags,
+    candidateEnglishCefr: profile.englishCefr,
+    candidateYearsTotal: profile.yearsTotal,
+  });
+  return {
+    ok: true,
+    evaluation,
+    decision,
+    model: result.value.model,
+    costUsd: result.value.costUsd,
+    flags,
+    flagsChanged,
+    sanitized,
+    injection,
+  };
+}
+
 /** Evalúa un job por id (fuera de la cola: útil para JS-017 "pegar JD" y para tests). */
 export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promise<EvaluateOutcome> {
   const { db } = deps;
@@ -120,78 +243,31 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
   }
   const rules = criteria.rules as CriteriaRules;
 
-  // El aviso es texto de terceros: si trae instrucciones al evaluador se marca antes de llamar al
-  // modelo. El flag topa el score en decide() y queda en jobs.flags; en el log solo van los nombres.
-  const injection = detectEvaluatorInjection([job.title, job.companyRaw, job.jdText].join("\n"));
-  // Se recalcula siempre: un flag viejo no sobrevive si la JD ya no dispara el detector
-  // Lo mismo con la residencia exigida: la JD pudo llegar después del ingreso (pendiente_jd), así
-  // que se recalcula con el texto completo y el país actual de la persona.
-  const residency = detectResidencyRestriction(
-    [job.title, job.locationRaw, job.jdText].filter(Boolean).join("\n"),
-    profile.locationCountry,
-  );
-  const residencyFlag = residency
-    ? `${RESIDENCY_FLAG}:${[...residency.countries, ...residency.regions].join(",")}`
-    : null;
-  const baseFlags = (job.flags ?? []).filter(
-    (f) => f !== INJECTION_FLAG && !f.startsWith(`${RESIDENCY_FLAG}:`),
-  );
-  const flags = [
-    ...baseFlags,
-    ...(injection.hit ? [INJECTION_FLAG] : []),
-    ...(residencyFlag ? [residencyFlag] : []),
-  ];
-  const flagsChanged =
-    flags.length !== (job.flags ?? []).length || flags.some((f) => !(job.flags ?? []).includes(f));
-  if (injection.hit)
-    log.warn({ signals: injection.signals }, "aviso con instrucciones al evaluador");
-
-  const vars = buildEvaluateJobVars({
-    promptRef: promptVersion,
-    profile: {
-      profileSummary: profile.profileSummary ?? "",
-      locationCountry: profile.locationCountry,
-      locationCity: profile.locationCity,
-      remoteOnly: profile.remoteOnly,
-      workAuth: profile.workAuth,
-      salaryFloorUsd: profile.salaryFloorUsd,
-      maxWeeklyHours: profile.maxWeeklyHours,
-      englishCefr: profile.englishCefr,
-      yearsTotal: profile.yearsTotal,
-      targetRoles: profile.targetRoles,
-      targetRoleLabel: targetRoleLabelFor(job.matchedRole, profile),
-    },
+  const evaluated = await evaluateForProfile({
+    llm: deps.llm,
+    promptVersion,
+    profile,
     rules,
     job,
+    signal: deps.signal,
+    ctx: { userId: job.userId, jobId: job.id },
   });
-
-  const result = await deps.llm.generateStructured(
-    "evaluate_job",
-    outputSchemaFor(promptVersion),
-    vars,
-    { userId: job.userId, jobId: job.id, promptVersion, signal: deps.signal },
-  );
-  if (!result.ok) {
+  if (evaluated.injection.hit)
+    log.warn({ signals: evaluated.injection.signals }, "aviso con instrucciones al evaluador");
+  if (!evaluated.ok) {
     log.error(
-      { kind: result.error.kind, detail: result.error.detail.slice(0, 300) },
+      { kind: evaluated.error.kind, detail: evaluated.error.detail.slice(0, 300) },
       "evaluación falló",
     );
     return {
       ok: false,
       jobId,
-      error: `${result.error.kind}: ${result.error.detail}`,
+      error: `${evaluated.error.kind}: ${evaluated.error.detail}`,
       retry: "retry",
     };
   }
-
-  // Texto libre del modelo: se sanea (largo, enlaces, caracteres de control) antes de decidir y guardar
-  const { evaluation, sanitized } = sanitizeEvaluation(result.value.object);
-  const decision = decide(evaluation, rules, {
-    titleCap: titleCapFromFlags(job.flags),
-    prefilterFlags: flags,
-    candidateEnglishCefr: profile.englishCefr,
-    candidateYearsTotal: profile.yearsTotal,
-  });
+  const { evaluation, decision, flags, flagsChanged, sanitized } = evaluated;
+  const result = { value: { model: evaluated.model, costUsd: evaluated.costUsd } };
 
   const [row] = await db
     .insert(s.evaluations)

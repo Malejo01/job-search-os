@@ -236,6 +236,29 @@ export const publicJobSkills = pgTable("public_job_skills", {
   index("public_job_skills_skill").on(t.skillId),
 ]);
 
+// Evaluaciones de la demo guiada (ronda 74): 3 perfiles inventados contra avisos reales del pool.
+// Global, sin user_id. Lectura abierta (rls/0007); escribe solo el cron con la conexión de servicio.
+export const demoEvaluations = pgTable("demo_evaluations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  profileKey: text("profile_key").notNull(),
+  publicJobId: uuid("public_job_id").notNull().references(() => publicJobs.id, { onDelete: "cascade" }),
+  promptVersion: text("prompt_version").notNull(),
+  model: text("model").notNull(),
+  score: real("score").notNull(),                         // scoreFinal de decide()
+  scoreModel: real("score_model").notNull(),
+  accion: text("accion").notNull(),
+  matchFuerte: text("match_fuerte").array().notNull().default(sql`'{}'::text[]`),
+  gaps: text("gaps").array().notNull().default(sql`'{}'::text[]`),
+  bloqueadores: text("bloqueadores").array().notNull().default(sql`'{}'::text[]`),
+  riesgos: text("riesgos").array().notNull().default(sql`'{}'::text[]`),
+  veredicto: text("veredicto").notNull(),                 // saneado
+  locationOk: text("location_ok").notNull(),
+  evaluatedAt: timestamp("evaluated_at", { withTimezone: true }).notNull(),
+}, (t) => [
+  uniqueIndex("demo_evaluations_profile_job").on(t.profileKey, t.publicJobId),
+  check("demo_evaluations_profile_check", sql`${t.profileKey} in ('data_analyst_jr', 'fullstack_ssr', 'ai_engineer')`),
+]);
+
 // Bitácora global de descargas del pool: intervalos por fuente y auditoría. Solo la lee el servicio.
 export const publicJobFetches = pgTable("public_job_fetches", {
   id: uuid("id").primaryKey().defaultRandom(),

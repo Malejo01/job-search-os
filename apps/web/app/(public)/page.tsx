@@ -36,6 +36,12 @@ export default async function HomePage() {
             Pedir acceso
           </Link>
           <Link
+            href="/demo"
+            className="inline-flex min-h-11 items-center text-sm text-zinc-800 underline"
+          >
+            Ver una demo
+          </Link>
+          <Link
             href="/login"
             className="inline-flex min-h-11 items-center text-sm text-zinc-800 underline"
           >

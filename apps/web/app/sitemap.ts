@@ -1,4 +1,4 @@
-import { ROLE_KEYS } from "@job-search-os/pipeline";
+import { DEMO_PROFILE_KEYS, ROLE_KEYS } from "@job-search-os/pipeline";
 import type { MetadataRoute } from "next";
 import { siteUrl } from "@/lib/site-url";
 
@@ -9,6 +9,13 @@ import { siteUrl } from "@/lib/site-url";
 const site = siteUrl();
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const paths = ["/", "/mercado", ...ROLE_KEYS.map((k) => `/mercado/${k}`), "/acceso"];
+  const paths = [
+    "/",
+    "/mercado",
+    ...ROLE_KEYS.map((k) => `/mercado/${k}`),
+    "/demo",
+    ...DEMO_PROFILE_KEYS.map((k) => `/demo/${k}`),
+    "/acceso",
+  ];
   return paths.map((path) => ({ url: `${site}${path === "/" ? "" : path}` }));
 }
