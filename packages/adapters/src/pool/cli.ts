@@ -16,8 +16,10 @@ import { describeFailure } from "../sources/error-code";
 import { sourceUserAgent } from "../sources/user-agent";
 import { fetchWwrJobs, parseWwrFeed, WWR_POOL_CATEGORIES } from "../sources/wwr";
 import {
+  countriesLine,
   fieldPresence,
   formatFieldReport,
+  languageLine,
   parsePoolCliArgs,
   type PoolCliArgs,
   type PoolCliSource,
@@ -231,6 +233,8 @@ function hintLines(source: SourceName, jobs: readonly RawJob[]): string[] {
   const lines = [
     `con pista de puesto: ${withHint} / ${jobs.length}`,
     `por puesto: ${[...perRole].map(([k, n]) => `${k}=${n}`).join(", ") || "ninguno"}`,
+    languageLine(jobs),
+    countriesLine(jobs),
   ];
   if (source === "jobicy") {
     lines.push(

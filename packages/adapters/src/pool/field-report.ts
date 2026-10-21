@@ -1,3 +1,9 @@
+import {
+  detectJobLanguage,
+  LATAM_CODES,
+  locationScope,
+  type RawJob,
+} from "@job-search-os/pipeline";
 import { ATS_PROVIDERS, isValidAtsToken, type AtsProvider } from "../sources/ats-common";
 
 /**
@@ -77,6 +83,55 @@ export function parsePoolCliArgs(argv: readonly string[]): PoolCliArgs {
     company: company?.trim().slice(0, 100) || token,
   };
 }
+const LATAM_COUNTRIES: ReadonlySet<string> = new Set(LATAM_CODES);
+const LATAM_REGIONS: readonly string[] = ["LATAM", "AMERICAS", "GLOBAL"];
+const SPAIN_REGIONS: readonly string[] = ["EU", "EMEA", "GLOBAL"];
+
+/**
+ * Línea `por idioma:` de los avisos que entrarían al pool. Mismo detector que el upsert. Solo
+ * conteos.
+ */
+export function languageLine(jobs: readonly RawJob[]): string {
+  const counts = { es: 0, en: 0, pt: 0, none: 0 };
+  for (const job of jobs) {
+    const lang = detectJobLanguage(job.jdText, job.lang);
+    if (lang === "es" || lang === "en" || lang === "pt") counts[lang]++;
+    else counts.none++;
+  }
+  return `por idioma: es=${counts.es}, en=${counts.en}, pt=${counts.pt}, sin idioma=${counts.none}`;
+}
+
+/**
+ * Línea `por países permitidos:`. `countriesAllowed` null, vacío o ["*"] cuenta como abierto;
+ * "incluye LatAm" e "incluye España" se solapan entre sí y con las regiones que los abarcan
+ * (LatAm, Américas, Global; UE, EMEA, Global). El resto va a "otros". Solo conteos.
+ */
+export function countriesLine(jobs: readonly RawJob[]): string {
+  let open = 0;
+  let latam = 0;
+  let spain = 0;
+  let other = 0;
+  for (const job of jobs) {
+    const entries = (job.countriesAllowed ?? []).map((e) => e.trim()).filter(Boolean);
+    if (entries.length === 0 || entries.includes("*")) {
+      open++;
+      continue;
+    }
+    const scope = locationScope(null, entries);
+    const hasLatam =
+      scope.kind === "places" &&
+      (scope.countries.some((c) => LATAM_COUNTRIES.has(c)) ||
+        scope.regions.some((r) => LATAM_REGIONS.includes(r)));
+    const hasSpain =
+      scope.kind === "places" &&
+      (scope.countries.includes("ES") || scope.regions.some((r) => SPAIN_REGIONS.includes(r)));
+    if (hasLatam) latam++;
+    if (hasSpain) spain++;
+    if (!hasLatam && !hasSpain) other++;
+  }
+  return `por países permitidos: abiertos (sin restricción)=${open}, incluye LatAm=${latam}, incluye España=${spain}, otros=${other}`;
+}
+
 export type FieldPresence = {
   field: string;
   /** Items que traen el campo (no `null`, `undefined` ni `""`). */

@@ -1,5 +1,75 @@
 import { describe, expect, it } from "vitest";
-import { fieldPresence, formatFieldReport, parsePoolCliArgs } from "./field-report";
+import type { RawJob } from "@job-search-os/pipeline";
+import {
+  countriesLine,
+  fieldPresence,
+  formatFieldReport,
+  languageLine,
+  parsePoolCliArgs,
+} from "./field-report";
+
+const ES =
+  "Buscamos un desarrollador para el equipo de producto. Vas a trabajar con los datos de la empresa y con una API en el stack de Node, con deploy en remote. Es un puesto en la oficina del centro y en las tardes.";
+const EN =
+  "We are looking for an engineer to join our team. You will work with the product group and have a say in the roadmap. Your work is key to this company and the people we serve.";
+const PT =
+  "Estamos com uma vaga aberta para o nosso time. Você vai trabalhar com uma equipe de produto, e não precisa ser sênior. Nossa empresa tem um ambiente flexível, com benefícios e mais autonomia, ou seja, pelo seu trabalho.";
+
+function job(over: Partial<RawJob> = {}): RawJob {
+  return {
+    source: { kind: "remoteok", name: "Fuente A", externalId: null, url: null, rawRef: null },
+    title: "Puesto A",
+    companyRaw: "Empresa A",
+    locationRaw: null,
+    countriesAllowed: null,
+    modality: "remoto",
+    contractType: null,
+    salaryMinUsd: null,
+    salaryMaxUsd: null,
+    salaryPeriod: null,
+    salaryNote: null,
+    weeklyHours: null,
+    candidatesCount: null,
+    badges: [],
+    jdText: null,
+    postedAt: null,
+    tags: [],
+    seniority: null,
+    lang: null,
+    ...over,
+  };
+}
+
+describe("languageLine y countriesLine", () => {
+  it("cuenta idiomas, con 'sin idioma' para lo que no se detecta", () => {
+    const jobs = [
+      job({ jdText: ES }),
+      job({ jdText: EN }),
+      job({ jdText: EN }),
+      job({ jdText: PT }),
+      job({ jdText: "React y Node" }),
+      job({ jdText: null }),
+    ];
+    expect(languageLine(jobs)).toBe("por idioma: es=1, en=2, pt=1, sin idioma=2");
+  });
+
+  it("cuenta países: abiertos, LatAm, España y otros", () => {
+    const jobs = [
+      job({ countriesAllowed: null }),
+      job({ countriesAllowed: [] }),
+      job({ countriesAllowed: ["*"] }),
+      job({ countriesAllowed: ["AR", "UY"] }),
+      job({ countriesAllowed: ["LATINOAMÉRICA"] }),
+      job({ countriesAllowed: ["ES"] }),
+      job({ countriesAllowed: ["MX", "ES"] }),
+      job({ countriesAllowed: ["US"] }),
+      job({ countriesAllowed: ["DE", "FR"] }),
+    ];
+    expect(countriesLine(jobs)).toBe(
+      "por países permitidos: abiertos (sin restricción)=3, incluye LatAm=3, incluye España=2, otros=2",
+    );
+  });
+});
 
 describe("parsePoolCliArgs", () => {
   it("fuentes sin token: wwr y las anteriores", () => {

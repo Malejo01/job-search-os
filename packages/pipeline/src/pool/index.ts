@@ -18,7 +18,13 @@ export {
   type TitleFit,
   type TitleLevel,
 } from "./title-fit";
-export { allowsCountry, locationScope, type LocationScope, type Region } from "./location-scope";
+export {
+  allowsCountry,
+  LATAM_CODES,
+  locationScope,
+  type LocationScope,
+  type Region,
+} from "./location-scope";
 export * from "./attribution";
 export { isPoolRemoteCandidate, type PoolRemoteInput } from "./remote-candidate";
 export {
