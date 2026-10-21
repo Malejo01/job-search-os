@@ -57,6 +57,8 @@ export default async function DemoPage() {
                 ) : (
                   <Link
                     href={`/demo/${p.key}`}
+                    // Sin prefetch (ronda 85): cada perfil es una página ISR que lee la base
+                    prefetch={false}
                     aria-label={`Ver la demo de ${p.label}`}
                     className="inline-flex min-h-11 items-center text-sm font-medium text-zinc-900 underline"
                   >

@@ -62,7 +62,8 @@ export default async function MercadoPage() {
                 <ol className="flex flex-col gap-1 text-sm text-zinc-800">
                   {showcase.remoteByRole.map((r) => (
                     <li key={r.role} className="break-words">
-                      <Link href={`/mercado/${r.role}`} className="underline">
+                      {/* Sin prefetch, como los chips: es una lista de páginas ISR */}
+                      <Link href={`/mercado/${r.role}`} prefetch={false} className="underline">
                         {careerLabel(r.role)}
                       </Link>{" "}
                       · {NF.format(r.remote)} {r.remote === 1 ? "oferta" : "ofertas"}
