@@ -42,6 +42,10 @@ export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleK
     cybersecurity: ["ciberseguridad"],
     // `customer-support` es atención al cliente: no es soporte de IT, sí customer success.
     "customer-support": ["customer_success"],
+    // Ronda 103 (ADR-020). Operaciones trae también gerencia y administración: `titleFit` deja
+    // solo los títulos de proyectos. Publicidad y medios es lo más cercano a marketing digital.
+    "operations-management": ["project_manager"],
+    "advertising-media": ["marketing_digital"],
   },
   jobicy: {
     engineering: DEV,
