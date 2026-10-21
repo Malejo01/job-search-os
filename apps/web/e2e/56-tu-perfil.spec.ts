@@ -14,13 +14,23 @@ import { E2E_USER_ID, login, ownerDb } from "./helpers";
  */
 test.describe.configure({ mode: "serial" });
 
-type Original = {
-  acceptedModalities: string[];
-  remoteOnly: boolean;
-  profileSummary: string | null;
-  yearsTotal: number | null;
-  locationCity: string | null;
-};
+/** Todas las columnas que reescribe `completeOnboarding`: se restauran enteras al final. */
+type Original = Pick<
+  typeof s.profiles.$inferSelect,
+  | "targetRoles"
+  | "targetRole"
+  | "locationCountry"
+  | "locationCity"
+  | "remoteOnly"
+  | "acceptedModalities"
+  | "jobLanguages"
+  | "workAuth"
+  | "englishCefr"
+  | "yearsTotal"
+  | "salaryFloorUsd"
+  | "maxWeeklyHours"
+  | "profileSummary"
+>;
 
 const BASE_SUMMARY =
   "Perfil ficticio del flujo 56: analista con experiencia en producto, dominio de reportes y " +
@@ -32,27 +42,39 @@ test.describe("Flujo 56: Tu perfil en Ajustes", () => {
   test.beforeAll(async () => {
     const { db, close } = ownerDb();
     try {
-      const [profile] = await db
-        .select({
-          acceptedModalities: s.profiles.acceptedModalities,
-          remoteOnly: s.profiles.remoteOnly,
-          profileSummary: s.profiles.profileSummary,
-          yearsTotal: s.profiles.yearsTotal,
-          locationCity: s.profiles.locationCity,
-        })
-        .from(s.profiles)
-        .where(eq(s.profiles.userId, E2E_USER_ID));
-      if (!profile) throw new Error("el usuario e2e necesita perfil");
-      original = profile;
-      // Punto de partida conocido: solo remoto, con resumen, años y ciudad fijos
+      const [row] = await db.select().from(s.profiles).where(eq(s.profiles.userId, E2E_USER_ID));
+      if (!row) throw new Error("el usuario e2e necesita perfil");
+      original = {
+        targetRoles: row.targetRoles,
+        targetRole: row.targetRole,
+        locationCountry: row.locationCountry,
+        locationCity: row.locationCity,
+        remoteOnly: row.remoteOnly,
+        acceptedModalities: row.acceptedModalities,
+        jobLanguages: row.jobLanguages,
+        workAuth: row.workAuth,
+        englishCefr: row.englishCefr,
+        yearsTotal: row.yearsTotal,
+        salaryFloorUsd: row.salaryFloorUsd,
+        maxWeeklyHours: row.maxWeeklyHours,
+        profileSummary: row.profileSummary,
+      };
+      // Punto de partida conocido y válido, sin depender de lo sembrado
       await db
         .update(s.profiles)
         .set({
+          targetRoles: ["qa"],
+          targetRole: "qa",
+          locationCountry: "AR",
+          locationCity: "Ciudad Ficticia",
           acceptedModalities: ["remoto"],
           remoteOnly: true,
-          profileSummary: BASE_SUMMARY,
+          jobLanguages: ["es", "en"],
+          workAuth: { us: false, eu: false },
+          englishCefr: "B2",
           yearsTotal: 4,
-          locationCity: "Ciudad Ficticia",
+          maxWeeklyHours: 40,
+          profileSummary: BASE_SUMMARY,
         })
         .where(eq(s.profiles.userId, E2E_USER_ID));
     } finally {

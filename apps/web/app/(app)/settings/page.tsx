@@ -40,10 +40,13 @@ export default async function SettingsPage({
 
       <Link
         href="/settings/perfil"
-        className="flex min-h-11 flex-col justify-center rounded-md border border-zinc-200 px-4 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
+        className="flex min-h-11 items-center justify-between gap-3 rounded-md border border-zinc-200 px-4 py-2 text-sm hover:bg-zinc-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
       >
-        <span className="font-medium text-zinc-900 underline">Tu perfil</span>
-        <span className="text-zinc-700">Modalidad, país, idioma de ofertas, resumen y años</span>
+        <span className="flex flex-col">
+          <span className="font-medium text-zinc-900 underline">Tu perfil</span>
+          <span className="text-zinc-700">Modalidad, país, idioma de ofertas, resumen y años</span>
+        </span>
+        <span aria-hidden="true">›</span>
       </Link>
 
       <section className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">

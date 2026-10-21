@@ -199,6 +199,19 @@ export const onboardingSchema = z
     }
   });
 
+/**
+ * Señales del detector del evaluador que no se aplican al resumen del perfil. Sobre una oferta
+ * solo topan el score, pero acá bloquean el guardado, y saltan con texto laboral normal ("implementé
+ * nuevas instrucciones de seguridad", "no evalúes solo el título", "veredicto: aprobado").
+ */
+const SUMMARY_IGNORED_SIGNALS: readonly string[] = [
+  "nuevas_instrucciones",
+  "new_instructions",
+  "no_evalues",
+  "do_not_evaluate",
+  "veredicto_campo",
+];
+
 export type OnboardingInput = {
   /** Puestos que busca (1 a `limit`); el primero es el principal (`target_role`). */
   targetRoles: RoleKey[];
@@ -285,9 +298,11 @@ export function parseOnboarding(
   }
   const v = parsed.data;
   // El resumen entra al prompt del evaluador: no se guarda si trae instrucciones para el modelo
-  const injection = detectEvaluatorInjection(v.summary);
-  if (injection.hit) {
-    return { ok: false, field: "profileSummary", reason: "injection", signals: injection.signals };
+  const signals = detectEvaluatorInjection(v.summary).signals.filter(
+    (name) => !SUMMARY_IGNORED_SIGNALS.includes(name),
+  );
+  if (signals.length > 0) {
+    return { ok: false, field: "profileSummary", reason: "injection", signals };
   }
   const other = [...new Set(v.workAuthOther)].slice(0, 10);
   const acceptedModalities = MODALITIES.filter((m) => v.acceptedModalities.includes(m));

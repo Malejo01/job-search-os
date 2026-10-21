@@ -168,7 +168,13 @@ export function CountrySearch({
             autoComplete="off"
             maxLength={40}
             disabled={full}
-            placeholder={full ? `Llegaste al máximo de ${max}` : placeholder}
+            placeholder={
+              full
+                ? max === 1
+                  ? "Para cambiar el país, quitá el que elegiste"
+                  : `Llegaste al máximo de ${max}`
+                : placeholder
+            }
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);

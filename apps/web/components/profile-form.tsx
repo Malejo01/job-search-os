@@ -73,7 +73,10 @@ export function ProfileForm({
   showLimits,
   submitLabel,
   savedMessage,
+  rolesNotice,
 }: {
+  /** Texto del error de puestos cuando el formulario no tiene ese campo (Ajustes). */
+  rolesNotice?: ReactNode;
   action: (formData: FormData) => Promise<ProfileActionResult>;
   initial?: ProfileFormValues | undefined;
   children?: ReactNode;
@@ -174,6 +177,12 @@ export function ProfileForm({
         return;
       }
     }
+    // Resumen corto: sin `minLength` nativo, el mensaje es el propio y el foco va al campo
+    const summaryEl = form.elements.namedItem("summary");
+    if (summaryEl instanceof HTMLTextAreaElement && countChars(summaryEl.value) < minSummary) {
+      setError({ field: "summary", reason: "min" });
+      return;
+    }
     // Sin modalidad marcada no se envía: mismo error que daría el servidor, con foco en Remoto
     if (modalities.length === 0) {
       setError({ field: "acceptedModalities" });
@@ -221,11 +230,11 @@ export function ProfileForm({
             role="alert"
             className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800"
           >
-            {messageOf(error)}
+            {error.field === "targetRoles" && rolesNotice ? rolesNotice : messageOf(error)}
           </p>
         ) : null}
         {children}
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid items-start gap-3 sm:grid-cols-2">
           <div className="flex min-w-0 flex-col gap-1 text-sm">
             <CountrySearch
               name="country"
@@ -448,10 +457,8 @@ export function ProfileForm({
           <label htmlFor="summary">Resumen de tu perfil * (mínimo {minSummary} caracteres)</label>
           <TextareaWithCounter
             name="summary"
-            min={minSummary}
             max={maxSummary}
             rows={9}
-            required
             defaultValue={initial?.summary ?? ""}
             invalid={error?.field === "summary"}
             describedBy={error?.field === "summary" ? "summary-error summary-help" : "summary-help"}
