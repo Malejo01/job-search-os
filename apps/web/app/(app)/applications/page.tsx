@@ -75,7 +75,13 @@ export default async function ApplicationsPage({
             ({report.highScore.positive} de {report.highScore.applied} postulaciones)
           </span>
         </p>
-        <div className="overflow-x-auto">
+        {/* Con teclado se puede desplazar a 360 px (axe: scrollable-region-focusable, C-4) */}
+        <div
+          role="region"
+          aria-label="Calibración por score"
+          tabIndex={0}
+          className="overflow-x-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
+        >
           <table className="w-full text-xs">
             <thead className="text-left text-zinc-600">
               <tr>

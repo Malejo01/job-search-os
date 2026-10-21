@@ -18,7 +18,7 @@ import {
  * `ensureSecondUser` lo crea ya completo; hay que registrar una persona con invitación
  * (`personas/flow.ts`), que es un flujo largo y con su propia limpieza.
  */
-test.describe.configure({ mode: "serial" });
+// Sin modo serial: una ruta con violaciones no saltea las demás (cada test solo lee)
 
 const VIEWPORTS = [
   { name: "360x740", width: 360, height: 740 },
