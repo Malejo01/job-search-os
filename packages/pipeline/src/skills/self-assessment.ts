@@ -30,10 +30,19 @@ export const ROLE_KEYS = [
   "product_owner",
   "project_manager",
   "product_marketing",
+  // Ronda 106 (ADR-021): carreras de tecnología nuevas, siempre al final.
+  "data_engineer",
+  "solutions_engineer",
+  // Ronda 107 (ADR-022): ventas y atención, siempre al final.
+  "ventas_b2b",
+  "atencion_cliente",
 ] as const;
 export type RoleKey = (typeof ROLE_KEYS)[number];
 
-/** Los puestos de tecnología (los de antes de la ronda 40). */
+/**
+ * Los puestos de tecnología de antes de la ronda 40. Son los que valen cuando la persona no eligió
+ * puesto (`select.ts`, `explain.ts`): las carreras de la ronda 106 no se suman a ese default.
+ */
 export const IT_ROLE_KEYS: readonly RoleKey[] = [
   "frontend",
   "backend",
@@ -44,6 +53,9 @@ export const IT_ROLE_KEYS: readonly RoleKey[] = [
   "ai_engineer",
   "ux_ui",
 ];
+
+/** Las carreras de tecnología que se abrieron en la ronda 106 (ADR-021). */
+const NEW_TECH_ROLE_KEYS: readonly RoleKey[] = ["data_engineer", "solutions_engineer"];
 
 /** Los puestos de carreras digitales que no son de producto (ronda 40). */
 const OTHER_DIGITAL_ROLE_KEYS: readonly RoleKey[] = [
@@ -61,18 +73,42 @@ export const PRODUCT_ROLE_KEYS: readonly RoleKey[] = [
   "product_marketing",
 ];
 
-/** Todo lo que no es IT: carreras digitales y de producto. */
+/** Las carreras comerciales y de atención (ronda 107, ADR-022). */
+export const COMMERCIAL_ROLE_KEYS: readonly RoleKey[] = ["ventas_b2b", "atencion_cliente"];
+
+/** Todo lo que no es IT: carreras digitales, de producto, ventas y atención. */
 export const DIGITAL_ROLE_KEYS: readonly RoleKey[] = [
   ...OTHER_DIGITAL_ROLE_KEYS,
   ...PRODUCT_ROLE_KEYS,
+  ...COMMERCIAL_ROLE_KEYS,
 ];
 
 /** Grupos del selector de puesto: juntos cubren `ROLE_KEYS` sin repetir. */
 export const ROLE_GROUPS: readonly { label: string; roles: readonly RoleKey[] }[] = [
-  { label: "Tecnología", roles: IT_ROLE_KEYS },
+  { label: "Tecnología", roles: [...IT_ROLE_KEYS, ...NEW_TECH_ROLE_KEYS] },
   { label: "Producto y proyectos", roles: PRODUCT_ROLE_KEYS },
   { label: "Carreras digitales", roles: OTHER_DIGITAL_ROLE_KEYS },
+  { label: "Ventas y atención", roles: COMMERCIAL_ROLE_KEYS },
 ];
+
+/**
+ * Carreras que existen pero todavía no se ofrecen en los selectores (menos de 10 ofertas, ADR-022).
+ * Quien ya la tiene la conserva: `isRoleKey`, la ingesta y `/mercado/<clave>` no cambian.
+ */
+export const UNLISTED_ROLE_KEYS: readonly RoleKey[] = [];
+
+/**
+ * `ROLE_GROUPS` sin las carreras no listadas, salvo las de `keep` (las del perfil de la persona), y
+ * sin grupos vacíos.
+ */
+export function selectableRoleGroups(
+  keep: readonly RoleKey[] = [],
+): readonly { label: string; roles: readonly RoleKey[] }[] {
+  return ROLE_GROUPS.map((g) => ({
+    label: g.label,
+    roles: g.roles.filter((r) => !UNLISTED_ROLE_KEYS.includes(r) || keep.includes(r)),
+  })).filter((g) => g.roles.length > 0);
+}
 
 export function isRoleKey(v: unknown): v is RoleKey {
   return typeof v === "string" && (ROLE_KEYS as readonly string[]).includes(v);
@@ -149,9 +185,16 @@ const HEADLINE_KEYWORDS: Record<RoleKey, RegExp> = {
   project_manager:
     /project manager|program manager|scrum master|agile coach|\bpmo\b|(?:gerente|jefe|jefa|lider|coordinador|coordinadora) de proyectos/,
   product_marketing: /product marketing|marketing de producto/,
+  data_engineer: /data engineer|analytics engineer|ingenier[oa] de datos/,
+  solutions_engineer:
+    /solutions? engineer|solutions? architect|sales engineer|\bpre-?sales\b|preventa|forward deployed/,
   rrhh_it:
     /\brecruiters?\b|\breclutador(?:a|es|as)?\b|talent acquisition|\brrhh\b|recursos humanos/,
   customer_success: /customer success/,
+  ventas_b2b:
+    /\bsdr\b|\bbdr\b|account executive|business development|inside sales|sales (?:development|representative|executive)|ejecutiv[oa] (?:comercial|de ventas|de cuentas)/,
+  atencion_cliente:
+    /customer (?:support|service|care)|atencion al cliente|servicio al cliente|call center/,
   ciberseguridad: /ciberseguridad|cybersecurity|seguridad informatica|\binfosec\b/,
 };
 

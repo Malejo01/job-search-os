@@ -1,6 +1,6 @@
 import {
   ENGLISH_SKILL_SLUGS,
-  ROLE_GROUPS,
+  selectableRoleGroups,
   suggestedSkills,
   toRoleKey,
   type RoleKey,
@@ -89,10 +89,12 @@ export function SkillsForm({
   const chosen = selectedRoles.filter((key) => key in roleMap);
   const pillGroups = [
     ...(chosen.length > 0 ? [{ label: "Tus puestos", roles: chosen }] : []),
-    ...ROLE_GROUPS.map((group) => ({
-      label: group.label,
-      roles: group.roles.filter((key) => key in roleMap && !chosen.includes(key)),
-    })).filter((group) => group.roles.length > 0),
+    ...selectableRoleGroups()
+      .map((group) => ({
+        label: group.label,
+        roles: group.roles.filter((key) => key in roleMap && !chosen.includes(key)),
+      }))
+      .filter((group) => group.roles.length > 0),
   ];
   const options = taxonomy
     .filter((t) => !shown.has(t.slug) && !ENGLISH_SLUGS.has(t.slug))

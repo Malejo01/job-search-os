@@ -167,6 +167,10 @@ describe("parsePersona", () => {
       "product-owner.json",
       "project-manager.json",
       "product-marketing.json",
+      "data-engineer.json",
+      "solutions-engineer.json",
+      "ventas-b2b.json",
+      "atencion-cliente.json",
     ]) {
       const json = JSON.parse(readFileSync(new URL(`./personas/${f}`, import.meta.url), "utf8"));
       expect(parsePersona(json).ok, f).toBe(true);
@@ -242,6 +246,65 @@ describe("--hints (ronda 97)", () => {
     }
     expect(text).toContain("carrera");
     expect(text).toContain("producto_proyectos → combinación nueva");
+  });
+});
+
+describe("--hints (ronda 106)", () => {
+  it("las carreras nuevas aparecen en la tabla, con 0 guardadas y lo recalculado", () => {
+    const rows: HintsRow[] = [
+      {
+        sourceKind: "other",
+        title: "Senior Data Engineer Cuarzo",
+        tags: null,
+        categories: null,
+        roleHints: [],
+      },
+      {
+        sourceKind: "other",
+        title: "Solutions Architect Berilo",
+        tags: null,
+        categories: null,
+        roleHints: [],
+      },
+      {
+        sourceKind: "other",
+        title: "Site Reliability Engineer Onix",
+        tags: null,
+        categories: null,
+        roleHints: [],
+      },
+    ];
+    const r = buildHintsReport(rows);
+    const by = (role: string) => r.byRole.find((x) => x.role === role);
+    expect(by("data_engineer")).toEqual({ role: "data_engineer", stored: 0, recomputed: 1 });
+    expect(by("solutions_engineer")).toEqual({
+      role: "solutions_engineer",
+      stored: 0,
+      recomputed: 1,
+    });
+    expect(by("soporte_it")).toMatchObject({ recomputed: 1 });
+  });
+});
+
+describe("--hints (ronda 107)", () => {
+  it("ventas y atención aparecen en la tabla con lo recalculado", () => {
+    const row = (title: string, categories: string[] | null = null): HintsRow => ({
+      sourceKind: categories ? "getonboard_api" : "other",
+      title,
+      tags: null,
+      categories,
+      roleHints: [],
+    });
+    const r = buildHintsReport([
+      row("Account Executive Cuarzo"),
+      row("Sales Development Representative Berilo"),
+      row("Customer Support Specialist Onix", ["customer-support"]),
+      row("Cargo sin pistas Jade", ["sales"]),
+    ]);
+    const by = (role: string) => r.byRole.find((x) => x.role === role);
+    expect(by("ventas_b2b")).toEqual({ role: "ventas_b2b", stored: 0, recomputed: 3 });
+    expect(by("atencion_cliente")).toEqual({ role: "atencion_cliente", stored: 0, recomputed: 1 });
+    expect(by("customer_success")).toMatchObject({ recomputed: 1 });
   });
 });
 

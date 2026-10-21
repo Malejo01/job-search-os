@@ -3,7 +3,11 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_CRITERIA_RULES } from "../onboarding";
 import {
+  COMMERCIAL_ROLE_KEYS,
   DIGITAL_ROLE_KEYS,
+  UNLISTED_ROLE_KEYS,
+  selectableRoleGroups,
+  type RoleKey,
   IT_ROLE_KEYS,
   MAX_SKILL_ENTRIES,
   PRODUCT_ROLE_KEYS,
@@ -40,15 +44,23 @@ describe("ROLE_GROUPS", () => {
     expect(new Set(all).size).toBe(all.length);
     expect([...all].sort()).toEqual([...ROLE_KEYS].sort());
   });
-  it("tecnología son los 8 de siempre, producto los 4 de la ronda 97 y digitales el resto", () => {
+  it("tecnología son los 8 de siempre más 2 de la ronda 106, producto los 4 de la 97 y digitales el resto", () => {
     expect(IT_ROLE_KEYS).toEqual(ROLE_KEYS.slice(0, 8));
-    expect(PRODUCT_ROLE_KEYS).toEqual(ROLE_KEYS.slice(12));
-    expect(DIGITAL_ROLE_KEYS).toEqual(ROLE_KEYS.slice(8));
+    expect(PRODUCT_ROLE_KEYS).toEqual(ROLE_KEYS.slice(12, 16));
+    expect(COMMERCIAL_ROLE_KEYS).toEqual(["ventas_b2b", "atencion_cliente"]);
+    // Digitales, producto y comerciales (ronda 107): todo lo que no es IT ni de la 106.
+    expect([...DIGITAL_ROLE_KEYS].sort()).toEqual(
+      [...ROLE_KEYS.slice(8, 16), ...ROLE_KEYS.slice(18)].sort(),
+    );
+    expect(ROLE_GROUPS[0]!.roles).toEqual([...ROLE_KEYS.slice(0, 8), ...ROLE_KEYS.slice(16, 18)]);
+    expect(ROLE_GROUPS[0]!.roles.slice(-2)).toEqual(["data_engineer", "solutions_engineer"]);
     expect(ROLE_GROUPS.map((g) => g.label)).toEqual([
       "Tecnología",
       "Producto y proyectos",
       "Carreras digitales",
+      "Ventas y atención",
     ]);
+    expect(ROLE_GROUPS[3]!.roles).toEqual(["ventas_b2b", "atencion_cliente"]);
     expect(ROLE_GROUPS[1]!.roles).toEqual([
       "product_manager",
       "product_owner",
@@ -75,6 +87,30 @@ describe("ROLE_GROUPS", () => {
   });
 });
 
+describe("selectableRoleGroups", () => {
+  it("hoy no hay carreras sin listar: devuelve los mismos grupos", () => {
+    expect(UNLISTED_ROLE_KEYS).toEqual([]);
+    expect(selectableRoleGroups()).toEqual(ROLE_GROUPS);
+  });
+  it("las no listadas salen salvo las del perfil (keep), y los grupos no quedan vacíos", () => {
+    // La lista es una constante: se prueba el mecanismo con una copia temporal.
+    const unlisted = UNLISTED_ROLE_KEYS as RoleKey[];
+    unlisted.push("ventas_b2b", "atencion_cliente");
+    try {
+      const flat = (g: ReturnType<typeof selectableRoleGroups>) => g.flatMap((x) => [...x.roles]);
+      expect(flat(selectableRoleGroups())).not.toContain("atencion_cliente");
+      expect(selectableRoleGroups().map((g) => g.label)).not.toContain("Ventas y atención");
+      expect(flat(selectableRoleGroups(["atencion_cliente"]))).toContain("atencion_cliente");
+      expect(flat(selectableRoleGroups(["atencion_cliente"]))).not.toContain("ventas_b2b");
+      for (const g of selectableRoleGroups(["atencion_cliente"])) {
+        expect(g.roles.length).toBeGreaterThan(0);
+      }
+    } finally {
+      unlisted.length = 0;
+    }
+  });
+});
+
 describe("toRoleKey", () => {
   it("traduce la clave vieja y valida", () => {
     expect(toRoleKey("producto_proyectos")).toBe("product_manager");
@@ -90,8 +126,8 @@ describe("toRoleKey", () => {
 describe("role_skills.json", () => {
   const parsed = roleSkillsSchema.safeParse(seed);
   it("valida contra el esquema", () => expect(parsed.success).toBe(true));
-  it("tiene los 16 roles", () => {
-    expect(ROLE_KEYS).toHaveLength(16);
+  it("tiene los 20 roles", () => {
+    expect(ROLE_KEYS).toHaveLength(20);
     expect(Object.keys(seed).sort()).toEqual([...ROLE_KEYS].sort());
   });
   it("todos los slugs existen en la taxonomía", () => {
@@ -165,6 +201,17 @@ describe("defaultRole", () => {
     expect(role("Scrum Master")).toBe("project_manager");
     expect(role("Agile Coach")).toBe("project_manager");
     expect(role("Product Marketing Manager")).toBe("product_marketing");
+    expect(role("Data Engineer")).toBe("data_engineer");
+    expect(role("Ingeniera de Datos")).toBe("data_engineer");
+    expect(role("Solutions Engineer")).toBe("solutions_engineer");
+    expect(role("Sales Engineer")).toBe("solutions_engineer");
+    expect(role("Ingeniero de Preventa")).toBe("solutions_engineer");
+    expect(role("Sales Development Representative (SDR)")).toBe("ventas_b2b");
+    expect(role("Account Executive")).toBe("ventas_b2b");
+    expect(role("Ejecutiva Comercial")).toBe("ventas_b2b");
+    expect(role("Customer Support Specialist")).toBe("atencion_cliente");
+    expect(role("Atención al cliente")).toBe("atencion_cliente");
+    expect(role("Agente de Call Center")).toBe("atencion_cliente");
     expect(role("Tech Recruiter")).toBe("rrhh_it");
     expect(role("Reclutadora IT")).toBe("rrhh_it");
     expect(role("Analista de RRHH")).toBe("rrhh_it");

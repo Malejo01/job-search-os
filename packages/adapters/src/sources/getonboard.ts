@@ -26,9 +26,10 @@ export const GOB_CATEGORIES = [
  * `pnpm pool:fetch getonboard --dry-run`: si alguno no existe, un 404 se saltea
  * (`skipMissingCategories`) y queda en `missingCategories`. `operations-management` y
  * `advertising-media` entran desde la ronda 103 (ADR-020: mapean a `project_manager` y
- * `marketing_digital`). No se suman `sales` (espera las carreras de la H2: sin puesto, un aviso con
- * `role_hints` vacío le llegaría a quien no eligió puesto como si fuera de IT), `education-coaching`,
- * `other` ni `hardware-electronics`. La API lista 18 categorías (verificado el 2026-10-21).
+ * `marketing_digital`). `sales` entra desde la ronda 107 (ADR-022, supera el punto 3 del ADR-020:
+ * mapea a `ventas_b2b`, así que un aviso de ventas ya no queda sin puesto). No se suman
+ * `education-coaching`, `other` ni `hardware-electronics`. La API lista 18 categorías (verificado el
+ * 2026-10-21): son 15 consultas por corrida.
  * `GOB_CATEGORIES` no cambia: la usa la ingesta por usuario de hoy.
  */
 export const GOB_POOL_CATEGORIES = [
@@ -46,6 +47,8 @@ export const GOB_POOL_CATEGORIES = [
   "cybersecurity",
   "operations-management",
   "advertising-media",
+  // Ronda 107 (ADR-022)
+  "sales",
 ] as const;
 export const GOB_EXPAND = ["company", "tags", "modality", "seniority", "location_tenants"] as const;
 

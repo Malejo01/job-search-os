@@ -1,0 +1,14 @@
+{
+  "targetRoles": ["ventas_b2b"],
+  "locationCountry": "AR",
+  "remoteOnly": true,
+  "yearsTotal": 3,
+  "skills": [
+    { "slug": "prospecting", "level": 3 },
+    { "slug": "negotiation", "level": 2 },
+    { "slug": "hubspot", "level": 2 },
+    { "slug": "client_facing", "level": 3 },
+    { "slug": "english_fluent", "level": 2 },
+    { "slug": "excel", "level": 1 }
+  ]
+}

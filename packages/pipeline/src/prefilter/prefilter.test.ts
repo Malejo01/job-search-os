@@ -136,6 +136,68 @@ describe("prefilter: targetRoles (ronda 40, varios en la 45)", () => {
     expect(run("Cybersecurity Analyst", "ciberseguridad").pass).toBe(true);
   });
 
+  it("data_engineer y solutions_engineer pasan sus títulos propios (ronda 106)", () => {
+    // Palabras que el dueño de la instancia pudo poner en other_discipline_keywords
+    const strict = {
+      ...rules,
+      other_discipline_keywords: [
+        ...rules.other_discipline_keywords,
+        "sales engineer",
+        "presales",
+        "etl",
+      ],
+    };
+    const go = (title: string, role?: RoleKey) =>
+      prefilter({ title, modality: "remoto" }, strict, role ? { targetRoles: [role] } : undefined);
+    expect(go("Sales Engineer")).toMatchObject({ pass: false });
+    expect(go("Sales Engineer", "solutions_engineer").pass).toBe(true);
+    expect(go("Presales Engineer", "solutions_engineer").pass).toBe(true);
+    expect(go("ETL Developer")).toMatchObject({ pass: false });
+    expect(go("ETL Developer", "data_engineer").pass).toBe(true);
+    // la excepción es solo de la carrera propia
+    expect(go("Sales Engineer", "data_engineer")).toMatchObject({ pass: false });
+    expect(go("ETL Developer", "solutions_engineer")).toMatchObject({ pass: false });
+    // "architect" está en la blocklist: el cargo propio se libera solo para solutions_engineer
+    expect(go("Solutions Architect")).toMatchObject({ pass: false, reason: "titulo_blocklist" });
+    expect(go("Solutions Architect", "solutions_engineer").pass).toBe(true);
+    expect(go("Solutions Architect", "frontend")).toMatchObject({ pass: false });
+    // lead y manager siguen bloqueando
+    expect(go("Lead Solutions Engineer", "solutions_engineer")).toMatchObject({ pass: false });
+  });
+
+  it("las palabras preventivas de las dos carreras pasan con la carrera y se descartan con una ajena", () => {
+    const strict = {
+      ...rules,
+      other_discipline_keywords: [
+        ...rules.other_discipline_keywords,
+        "databricks",
+        "snowflake",
+        "pre sales",
+        "solutions architect",
+      ],
+    };
+    const go = (title: string, role?: RoleKey) =>
+      prefilter({ title, modality: "remoto" }, strict, role ? { targetRoles: [role] } : undefined);
+    const cases: [string, RoleKey, RoleKey][] = [
+      ["Databricks Developer", "data_engineer", "solutions_engineer"],
+      ["Snowflake Developer", "data_engineer", "frontend"],
+      ["Pre Sales Engineer", "solutions_engineer", "data_engineer"],
+      ["Solutions Architect", "solutions_engineer", "backend"],
+    ];
+    for (const [title, own, foreign] of cases) {
+      expect(go(title, own).pass, `${title} con ${own}`).toBe(true);
+      expect(go(title, foreign).pass, `${title} con ${foreign}`).toBe(false);
+      expect(go(title).pass, `${title} sin carrera`).toBe(false);
+    }
+  });
+
+  it("software architect pasa con backend y security architect con ciberseguridad", () => {
+    expect(run("Software Architect")).toMatchObject({ pass: false });
+    expect(run("Software Architect", "backend").pass).toBe(true);
+    expect(run("Security Architect", "ciberseguridad").pass).toBe(true);
+    expect(run("Security Architect", "backend")).toMatchObject({ pass: false });
+  });
+
   it("la excepción es solo del oficio propio de cada puesto", () => {
     expect(run("SEO Specialist", "product_manager")).toMatchObject({ pass: false });
     expect(run("Project Manager", "marketing_digital")).toMatchObject({ pass: false });
@@ -146,6 +208,63 @@ describe("prefilter: targetRoles (ronda 40, varios en la 45)", () => {
   it("atención al cliente y call center siguen descartando", () => {
     expect(run("Atención al cliente", "customer_success")).toMatchObject({ pass: false });
     expect(run("Call Center", "customer_success")).toMatchObject({ pass: false });
+  });
+
+  it("ventas y atención (ronda 107): su oficio propio pasa, sin puesto o con otra carrera descarta", () => {
+    expect(run("Atención al cliente", "atencion_cliente").pass).toBe(true);
+    expect(run("Operador de Call Center", "atencion_cliente").pass).toBe(true);
+    expect(run("Atención al cliente")).toMatchObject({
+      pass: false,
+      reason: "disciplina_distinta",
+    });
+    expect(run("Atención al cliente", "ventas_b2b")).toMatchObject({ pass: false });
+    expect(run("Call Center", "customer_success")).toMatchObject({ pass: false });
+    // «Vendedor/a» queda liberado solo para ventas_b2b
+    expect(run("Vendedor de mostrador", "ventas_b2b").pass).toBe(true);
+    expect(run("Vendedora", "ventas_b2b").pass).toBe(true);
+    expect(run("Vendedor de mostrador")).toMatchObject({ pass: false });
+    expect(run("Vendedor de mostrador", "atencion_cliente")).toMatchObject({ pass: false });
+    expect(run("Vendedor de mostrador", "customer_success")).toMatchObject({ pass: false });
+    // con varias carreras, alcanza con que una la libere
+    expect(run("Vendedora", ["frontend", "ventas_b2b"]).pass).toBe(true);
+    // el resto de los oficios sigue descartando aunque la persona sea de ventas
+    expect(run("Cajero/a", "ventas_b2b")).toMatchObject({ pass: false });
+  });
+
+  it("ventas_b2b libera 'manager' dentro de su cargo propio; lead y director siguen bloqueando", () => {
+    expect(run("Sales Manager", "ventas_b2b").pass).toBe(true);
+    expect(run("Key Account Manager", "ventas_b2b").pass).toBe(true);
+    expect(run("Partner Manager", "ventas_b2b").pass).toBe(true);
+    expect(run("Business Development Manager", "ventas_b2b").pass).toBe(true);
+    expect(run("Sales Manager")).toMatchObject({ pass: false });
+    expect(run("Sales Manager", "frontend")).toMatchObject({ pass: false });
+    expect(run("Lead Sales Manager", "ventas_b2b")).toMatchObject({ pass: false });
+    expect(run("Director of Sales", "ventas_b2b")).toMatchObject({ pass: false });
+  });
+
+  it("rrhh_it libera HR Manager y People Operations Manager", () => {
+    expect(run("HR Manager", "rrhh_it").pass).toBe(true);
+    expect(run("People Operations Manager", "rrhh_it").pass).toBe(true);
+    expect(run("HR Manager")).toMatchObject({ pass: false });
+  });
+
+  it("el oficio propio de ventas y atención no descarta si está en other_discipline_keywords", () => {
+    const strict = {
+      ...rules,
+      other_discipline_keywords: [
+        ...rules.other_discipline_keywords,
+        "sales",
+        "sdr",
+        "customer support",
+      ],
+    };
+    const go = (title: string, role?: RoleKey) =>
+      prefilter({ title, modality: "remoto" }, strict, role ? { targetRoles: [role] } : undefined);
+    expect(go("SDR")).toMatchObject({ pass: false });
+    expect(go("SDR", "ventas_b2b").pass).toBe(true);
+    expect(go("Customer Support Specialist")).toMatchObject({ pass: false });
+    expect(go("Customer Support Specialist", "atencion_cliente").pass).toBe(true);
+    expect(go("SDR", "atencion_cliente")).toMatchObject({ pass: false });
   });
 
   it("de la blocklist solo se libera la palabra que es parte del oficio propio", () => {
@@ -189,7 +308,17 @@ describe("prefilter: targetRoles (ronda 40, varios en la 45)", () => {
   it("puestos sin entradas no cambian nada y todas las palabras existen en las reglas", () => {
     expect(run("SEO Specialist", "rrhh_it")).toMatchObject({ pass: false });
     expect(run("Backend Developer", "backend").pass).toBe(true);
-    for (const words of Object.values(ROLE_DOMAIN_KEYWORDS)) {
+    // Las carreras de la ronda 106 son preventivas: sus palabras no están en el ejemplo público, pero
+    // sí pueden estar en las reglas privadas de la instancia (otro oficio, p. ej. ventas o SQL).
+    // Ídem las de la 107 (ventas y atención): el ejemplo público no las lista.
+    const PREVENTIVE: RoleKey[] = [
+      "data_engineer",
+      "solutions_engineer",
+      "ventas_b2b",
+      "atencion_cliente",
+    ];
+    for (const [role, words] of Object.entries(ROLE_DOMAIN_KEYWORDS)) {
+      if (PREVENTIVE.includes(role as RoleKey)) continue;
       for (const w of words ?? []) expect(rules.other_discipline_keywords).toContain(w);
     }
   });
@@ -805,5 +934,64 @@ describe("prefilter: residencia exigida (ronda 66)", () => {
   it("no regresión: el pass de todo el golden público no cambia con país explícito", () => {
     const actual = jobs.map((j) => prefilter(byId(j.id), rules, { userCountry: "AR" }).pass);
     expect(actual).toEqual(PASS_BEFORE);
+  });
+});
+
+describe("prefilter: licencia o matrícula profesional (ronda 107)", () => {
+  const job: PrefilterInput = {
+    title: "Customer Support Specialist",
+    companyRaw: "Empresa A",
+    locationRaw: "Remote",
+    modality: "remoto",
+    jdText: "Empresa A busca gente.\nBar admission in New York is required.\nInglés fluido.",
+  };
+
+  it("con país explícito descarta con razón propia y el término en el detalle", () => {
+    const r = prefilter(job, rules, { userCountry: "AR" });
+    expect(r).toMatchObject({ pass: false, reason: "licencia_profesional" });
+    expect(!r.pass && r.detail).toBe("'bar admission' en el aviso");
+  });
+
+  it("con país desconocido (null) no corre: sin el país no se sabe si la licencia es de otro", () => {
+    const r = prefilter(job, rules, { userCountry: null });
+    expect(!r.pass && r.reason === "licencia_profesional").toBe(false);
+  });
+
+  it("sin userCountry (evals) no corre la regla", () => {
+    expect(prefilter(job, rules).pass).toBe(true);
+  });
+
+  it("si el aviso nombra el país de la persona junto a la licencia, pasa con el flag", () => {
+    const r = prefilter(
+      { ...job, jdText: "Se requiere matrícula profesional en Argentina." },
+      rules,
+      { userCountry: "AR" },
+    );
+    expect(r.pass).toBe(true);
+    if (r.pass) expect(r.flags).toContain("licencia_profesional:matricula profesional");
+  });
+
+  it("con otro país al lado descarta", () => {
+    const r = prefilter({ ...job, jdText: "Se requiere matrícula profesional en Chile." }, rules, {
+      userCountry: "AR",
+    });
+    expect(r).toMatchObject({ pass: false, reason: "licencia_profesional" });
+  });
+
+  it.each([
+    "Valid driver's license required.",
+    "Licensed under the MIT license.",
+    "Optimize cost per acquisition (CPA).",
+    "Apoyo para colegiaturas de tus hijos.",
+    "We are a Series B startup with a board of directors.",
+  ])("no descarta: %s", (jdText) => {
+    expect(prefilter({ ...job, jdText }, rules, { userCountry: "AR" }).pass).toBe(true);
+  });
+
+  it("no regresión: ni el pass ni los flags del golden público cambian con país explícito", () => {
+    for (const j of jobs) {
+      const r = prefilter(byId(j.id), rules, { userCountry: "AR" });
+      if (r.pass) expect(r.flags.some((f) => f.startsWith("licencia_profesional"))).toBe(false);
+    }
   });
 });

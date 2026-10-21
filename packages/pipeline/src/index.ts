@@ -38,3 +38,4 @@ export * from "./demo";
 export * from "./cv";
 export * from "./alerts/portal-guide";
 export * from "./applications/followup";
+export * from "./alerts/portal-stats";

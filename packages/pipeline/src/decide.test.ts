@@ -817,6 +817,91 @@ describe("decide(): jobFacts, salario (D3, ronda 104)", () => {
   it("sin jobFacts todo queda como antes", () => {
     expect(decide(base, rules, {})).toEqual(decide(base, rules));
   });
+
+  describe("salario leído del texto del aviso (S-O4, ronda 109)", () => {
+    const delTexto = (f: object) => facts({ ...f, salaryFromApi: false });
+    const delApi = (f: object) => facts({ ...f, salaryFromApi: true });
+
+    it("bajo el piso: de la API bloquea; del texto no bloquea", () => {
+      const f = { salaryMinUsd: 2400, salaryMaxUsd: 2800, salaryPeriod: "mensual" };
+      expect(decide(base, rules, delApi(f)).bloqueadores).toHaveLength(1);
+      const t = decide(base, rules, delTexto(f));
+      expect(t.bloqueadores).toEqual([]);
+      expect(t.riesgos).toEqual([]);
+      expect(t.accion).toBe("aplicar");
+    });
+
+    it("≥ piso: de la API hace caer el bloqueador del modelo; del texto no", () => {
+      const ev = { ...base, bloqueadores_duros: ["Salario por debajo del piso"] };
+      const f = { salaryMinUsd: 3600, salaryMaxUsd: 5200, salaryPeriod: "mensual" };
+      expect(decide(ev, rules, delApi(f)).bloqueadores).toEqual([]);
+      const t = decide(ev, rules, delTexto(f));
+      expect(t.bloqueadores).toEqual(["Salario por debajo del piso"]);
+      expect(t.accion).toBe("descartar");
+    });
+
+    it("del texto tampoco agrega el riesgo de rango; la moneda local sigue siendo riesgo", () => {
+      const rango = { salaryMinUsd: 2500, salaryMaxUsd: 3500, salaryPeriod: "mensual" };
+      expect(decide(base, rules, delTexto(rango)).riesgos).toEqual([]);
+      const local = { salaryMaxUsd: 7000, salaryPeriod: "mensual", salaryNote: "pagado en ARS" };
+      expect(decide(base, rules, delTexto(local)).riesgos).toEqual([
+        "salario en USD pagado en moneda local",
+      ]);
+    });
+  });
+});
+
+describe("decide(): riesgos informativos no bajan «aplicar personalizado» (R-O4, ronda 109)", () => {
+  const alto: Evaluation = { ...base, score: 9.5, years_required: null };
+  const facts = (f: NonNullable<Parameters<typeof decide>[2]>["jobFacts"]) => ({ jobFacts: f });
+
+  it("solo un riesgo de seniority del título: sigue en aplicar_personalizado y se muestra", () => {
+    const d = decide(alto, rules, {
+      candidateYearsTotal: 5,
+      jobFacts: { title: "Desarrollador Fullstack Junior" },
+    });
+    expect(d.riesgos).toHaveLength(1);
+    expect(d.riesgosInformativos).toEqual(d.riesgos);
+    expect(d.accion).toBe("aplicar_personalizado");
+  });
+
+  it("rango que arranca bajo el piso y moneda local también son informativos", () => {
+    const d = decide(
+      alto,
+      rules,
+      facts({
+        salaryMinUsd: 2500,
+        salaryMaxUsd: 7000,
+        salaryPeriod: "mensual",
+        salaryNote: "pagado en ARS",
+        salaryFromApi: true,
+      }),
+    );
+    expect(d.riesgos).toEqual([
+      "el rango salarial empieza abajo de tu piso",
+      "salario en USD pagado en moneda local",
+    ]);
+    expect(d.riesgosInformativos).toEqual(d.riesgos);
+    expect(d.accion).toBe("aplicar_personalizado");
+  });
+
+  it("con un riesgo del modelo baja a aplicar, aunque haya informativos", () => {
+    const d = decide({ ...alto, riesgos: ["Equipo muy chico"] }, rules, {
+      candidateYearsTotal: 5,
+      jobFacts: { title: "Desarrollador Fullstack Junior" },
+    });
+    expect(d.riesgos).toHaveLength(2);
+    expect(d.riesgosInformativos).toHaveLength(1);
+    expect(d.riesgosInformativos).not.toContain("Equipo muy chico");
+    expect(d.accion).toBe("aplicar");
+  });
+
+  it("sin jobFacts no hay informativos y todo sigue igual", () => {
+    const d = decide({ ...alto, riesgos: ["Equipo muy chico"] }, rules);
+    expect(d.riesgosInformativos).toEqual([]);
+    expect(d.accion).toBe("aplicar");
+    expect(decide(alto, rules).accion).toBe("aplicar_personalizado");
+  });
 });
 
 describe("decide(): jobFacts, jornada y seniority del título", () => {
@@ -892,13 +977,40 @@ describe("decide(): inglés en un aviso en español que no lo pide (ronda 101)",
     expect(d.accion).toBe("aplicar");
   });
 
-  it("también cae un bloqueador de inglés del modelo, pero no uno mixto", () => {
+  it("un bloqueador de inglés del modelo no se borra: pasa a riesgo (S-O3); el mixto se queda", () => {
     const d = decide(
       { ...base, bloqueadores_duros: ["Inglés avanzado excluyente", "Jornada de 48 hs e inglés"] },
       rules,
       { jobFacts: { jdText: jdEs } },
     );
     expect(d.bloqueadores).toEqual(["Jornada de 48 hs e inglés"]);
+    expect(d.riesgos).toEqual(["el modelo marcó inglés, pero el aviso parece no pedirlo"]);
+  });
+
+  it("solo con el bloqueador de inglés: desaparece, aparece el riesgo y la acción baja a aplicar", () => {
+    const d = decide({ ...base, bloqueadores_duros: ["Inglés avanzado excluyente"] }, rules, {
+      jobFacts: { jdText: jdEs },
+    });
+    expect(d.bloqueadores).toEqual([]);
+    expect(d.riesgos).toEqual(["el modelo marcó inglés, pero el aviso parece no pedirlo"]);
+    expect(d.accion).toBe("aplicar");
+    expect(d.scoreFinal).toBe(8);
+    expect(d.adjustments).toEqual([]);
+  });
+
+  it("dos bloqueadores de inglés dejan un solo riesgo; los riesgos de inglés del modelo se siguen sacando", () => {
+    const d = decide(
+      {
+        ...base,
+        ingles_requerido: "avanzado",
+        bloqueadores_duros: ["Inglés avanzado excluyente", "English fluency required"],
+        riesgos: ["Inglés avanzado requerido"],
+      },
+      rules,
+      { jobFacts: { jdText: jdEs } },
+    );
+    expect(d.bloqueadores).toEqual([]);
+    expect(d.riesgos).toEqual(["el modelo marcó inglés, pero el aviso parece no pedirlo"]);
   });
 
   it("aviso en inglés, o sin jdText: todo igual que hoy", () => {

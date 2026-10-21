@@ -52,6 +52,15 @@ describe("prefilterReasonText", () => {
     );
   });
 
+  it("licencia_profesional: nombra la frase del aviso", () => {
+    expect(prefilterReasonText("licencia_profesional: 'bar admission' en el aviso")).toBe(
+      "Pide una licencia o matrícula profesional de otro país («bar admission»).",
+    );
+    expect(prefilterReasonText("licencia_profesional")).toBe(
+      "Pide una licencia o matrícula profesional de otro país.",
+    );
+  });
+
   it("motivo desconocido", () => {
     expect(prefilterReasonText("algo_nuevo: x")).toBe("No pasó el filtro inicial.");
   });

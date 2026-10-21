@@ -76,7 +76,6 @@ describe("inferRoleHints · título", () => {
     ["Building Manager"],
     ["Guild Lead"],
     ["Gerente de Ventas"],
-    ["Account Executive"],
     ["Quality Manager"],
     ["Biologist"],
     ["Business Developer"],
@@ -107,9 +106,9 @@ describe("inferRoleHints · título", () => {
     expect(hints(title)).toEqual(["soporte_it"]);
   });
 
-  it("atención al cliente no es soporte de IT", () => {
-    expect(hints("Customer Support Representative")).toEqual([]);
-    expect(hints("Support Specialist")).toEqual([]);
+  it("atención al cliente no es soporte de IT: desde la 107 es atencion_cliente", () => {
+    expect(hints("Customer Support Representative")).toEqual(["atencion_cliente"]);
+    expect(hints("Support Specialist")).toEqual(["atencion_cliente"]);
     expect(hints("Soporte al cliente")).toEqual([]);
     expect(hints("Technical Support Engineer")).toEqual(["soporte_it"]);
     expect(hints("Analista de Soporte IT")).toEqual(["soporte_it"]);
@@ -154,9 +153,9 @@ describe("inferRoleHints · carreras de producto (ronda 97)", () => {
     ["GTM Manager", ["product_marketing"]],
     ["Marketing de Producto", ["product_marketing"]],
     ["Product Owner / Scrum Master", ["product_owner", "project_manager"]],
-    // Sin hint de producto a propósito: son datos y desarrollo
-    ["Product Analyst", []],
-    ["Product Engineer", []],
+    // Sin hint de producto a propósito: son datos y desarrollo (ronda 106 les da su carrera)
+    ["Product Analyst", ["data_analyst"]],
+    ["Product Engineer", ["fullstack"]],
     ["PO Box Clerk", []],
   ])("%s", (title, roles) => {
     expect(hints(title)).toEqual(roles);
@@ -221,8 +220,8 @@ describe("inferRoleHints · puestos de carreras digitales (ronda 40)", () => {
   it("no se cruzan con los puestos de siempre", () => {
     expect(hints("Product Designer")).toEqual(["ux_ui"]);
     expect(hints("Developer Relations Manager")).toEqual([]);
-    expect(hints("Customer Support Representative")).toEqual([]);
-    expect(hints("Atención al cliente")).toEqual([]);
+    expect(hints("Customer Support Representative")).toEqual(["atencion_cliente"]);
+    expect(hints("Atención al cliente")).toEqual(["atencion_cliente"]);
     expect(hints("Security Guard")).toEqual([]);
     expect(hints("Senior Developer")).toEqual(DEV);
   });
@@ -232,7 +231,8 @@ describe("inferRoleHints · puestos de carreras digitales (ronda 40)", () => {
     ["getonboard_api", "hr", ["rrhh_it"]],
     ["getonboard_api", "technical-support", ["soporte_it"]],
     ["getonboard_api", "cybersecurity", ["ciberseguridad"]],
-    ["getonboard_api", "customer-support", ["customer_success"]],
+    ["getonboard_api", "customer-support", ["customer_success", "atencion_cliente"]],
+    ["getonboard_api", "sales", ["ventas_b2b"]],
     ["getonboard_api", "operations-management", ["project_manager"]],
     ["getonboard_api", "advertising-media", ["marketing_digital"]],
     ["jobicy", "Marketing", ["marketing_digital"]],
@@ -278,10 +278,13 @@ describe("inferRoleHints · IA en el título (ronda 47c)", () => {
     "AI Software Engineer",
     "Senior AI Platform Engineer",
     "ML Infrastructure Engineer",
-    "AI Solutions Architect",
     "AI Research Scientist",
   ])("patrón AI + rol técnico: %s", (title) => {
     expect(hints(title)).toEqual(["ai_engineer"]);
+  });
+
+  it("AI Solutions Architect es de IA y también de solutions engineering (ronda 106)", () => {
+    expect(hints("AI Solutions Architect")).toEqual(["ai_engineer", "solutions_engineer"]);
   });
 
   it("AI + engineer no suma frontend, backend ni fullstack", () => {
@@ -304,8 +307,8 @@ describe("inferRoleHints · IA en el título (ronda 47c)", () => {
     expect(hints("Email Marketing Specialist")).toEqual(["marketing_digital"]);
   });
 
-  it("la lista de exclusión anula el patrón: ya no hay falso positivo en Sales Engineer", () => {
-    expect(hints("Sales Engineer – AI platform")).toEqual([]);
+  it("la lista de exclusión anula el patrón: Sales Engineer no es ai_engineer, es solutions_engineer", () => {
+    expect(hints("Sales Engineer – AI platform")).toEqual(["solutions_engineer"]);
   });
 
   it.each(["AI Sales Specialist", "AI Customer Support Specialist", "AI Marketing Specialist"])(
@@ -360,10 +363,10 @@ describe("inferRoleHints · categorías nuevas de Jobicy (ronda 47c)", () => {
     );
   });
 
-  it("customer-support no se mapea", () => {
+  it("customer-support da atención al cliente y customer success (ronda 107)", () => {
     expect(
       hints("Cargo sin pistas", { sourceKind: "jobicy", categories: ["Customer Support"] }),
-    ).toEqual([]);
+    ).toEqual(["customer_success", "atencion_cliente"]);
   });
 });
 
@@ -423,7 +426,8 @@ describe("inferRoleHints · categorías de la fuente", () => {
     ["remote-front-end-programming-jobs", ["frontend"]],
     ["remote-devops-sysadmin-jobs", ["soporte_it"]],
     ["remote-product-jobs", ["product_manager", "product_owner", "project_manager"]],
-    ["remote-customer-support-jobs", ["customer_success"]],
+    ["remote-customer-support-jobs", ["customer_success", "atencion_cliente"]],
+    ["customer-support", ["customer_success", "atencion_cliente"]],
     ["remote-design-jobs", ["ux_ui"]],
     ["Full-Stack Programming", ["fullstack"]],
     ["DevOps and Sysadmin", ["soporte_it"]],
@@ -462,7 +466,9 @@ describe("inferRoleHints · categorías de la fuente", () => {
     ]);
     expect(
       hints("Cargo sin pistas", { sourceKind: "remoteok", tags: ["Customer Support", "support"] }),
-    ).toEqual([]);
+    ).toEqual(["customer_success", "atencion_cliente"]);
+    // `support` suelto sigue sin mapearse
+    expect(hints("Cargo sin pistas", { sourceKind: "remoteok", tags: ["support"] })).toEqual([]);
     expect(hints("Cargo sin pistas", { sourceKind: "remoteok", tags: ["sysadmin"] })).toEqual([
       "soporte_it",
     ]);
@@ -514,5 +520,310 @@ describe("inferRoleHints · categorías de la fuente", () => {
         for (const role of roles) expect(ROLE_KEYS).toContain(role);
       }
     }
+  });
+});
+
+describe("inferRoleHints · reglas para tech sin carrera (ronda 106, ADR-021)", () => {
+  it.each([
+    ["Site Reliability Engineer", ["soporte_it"]],
+    ["Senior SRE", ["soporte_it"]],
+    ["DevOps Engineer", ["soporte_it"]],
+    ["GitOps Engineer", ["soporte_it"]],
+    ["Platform Engineer", ["soporte_it"]],
+    ["Infrastructure Engineer", ["soporte_it"]],
+    ["Infra Engineer", ["soporte_it"]],
+    ["IT Engineer", ["soporte_it"]],
+    ["IT Systems Administrator", ["soporte_it"]],
+    ["IT Operations Analyst", ["soporte_it"]],
+    ["Desktop Support Technician", ["soporte_it"]],
+    ["Software Support Engineer", ["soporte_it"]],
+    ["Database Support Engineer", ["soporte_it"]],
+    ["Application Support Engineer", ["soporte_it"]],
+  ])("soporte_it: %s", (title, roles) => {
+    expect(hints(title)).toEqual(roles);
+  });
+
+  it("support engineer suelto o de producto no es soporte de IT", () => {
+    expect(hints("Support Engineer")).toEqual([]);
+    expect(hints("Customer Support Engineer")).toEqual([]);
+    expect(hints("Product Support Engineer")).toEqual([]);
+  });
+
+  it("la infraestructura de IA no es soporte de IT", () => {
+    expect(hints("AI Platform Engineer")).toEqual(["ai_engineer"]);
+    expect(hints("ML Infrastructure Engineer")).toEqual(["ai_engineer"]);
+  });
+
+  it.each([
+    ["Security Operations Analyst", ["ciberseguridad"]],
+    ["Security Architect", ["ciberseguridad"]],
+    ["Security Researcher", ["ciberseguridad"]],
+    ["Security Infrastructure Engineer", ["ciberseguridad"]],
+    ["Security Governance Lead", ["ciberseguridad"]],
+    ["Security Risk Engineer", ["ciberseguridad"]],
+    ["Threat Intelligence Analyst", ["ciberseguridad"]],
+    ["Red Team Operator", ["ciberseguridad"]],
+    ["Incident Response Engineer", ["ciberseguridad"]],
+    ["Cyber Defense Analyst", ["ciberseguridad"]],
+    ["Cyberdefense Analyst", ["ciberseguridad"]],
+  ])("ciberseguridad: %s", (title, roles) => {
+    expect(hints(title)).toEqual(roles);
+  });
+
+  it("seguridad física y de data center no es ciberseguridad", () => {
+    expect(hints("Physical Security Engineer")).toEqual([]);
+    expect(hints("Physical Security Architect")).toEqual([]);
+    expect(hints("Data Center Security Engineer")).toEqual([]);
+    expect(hints("Security Guard")).toEqual([]);
+  });
+
+  it.each([
+    ["Rust Engineer", ["backend"]],
+    ["Senior Elixir Engineer", ["backend"]],
+    ["Scala Engineer", ["backend"]],
+    ["Kotlin Engineer", ["backend"]],
+    ["Golang Engineer", ["backend"]],
+    ["Postgres Engineer", ["backend"]],
+    ["Microservices Engineer", ["backend"]],
+    ["Distributed Systems Engineer", ["backend"]],
+    ["Software Architect", ["backend"]],
+  ])("backend: %s", (title, roles) => {
+    expect(hints(title)).toEqual(roles);
+  });
+
+  it("un lenguaje sin 'engineer' no suma backend por sí solo", () => {
+    expect(hints("Rust Evangelist")).toEqual([]);
+    expect(hints("Solutions Architect")).toEqual(["solutions_engineer"]);
+  });
+
+  it("product engineer es fullstack, salvo manufactura, hardware o mecánica", () => {
+    expect(hints("Product Engineer")).toEqual(["fullstack"]);
+    expect(hints("Senior Product Engineer")).toEqual(["fullstack"]);
+    expect(hints("Manufacturing Product Engineer")).toEqual([]);
+    expect(hints("Hardware Product Engineer")).toEqual([]);
+    expect(hints("Mechanical Product Engineer")).toEqual([]);
+    expect(hints("Product Engineer, Manufacturing")).toEqual([]);
+  });
+
+  it("la exclusión de hardware aplica solo a 'product engineer', no a full stack", () => {
+    expect(hints("Full Stack Engineer, Hardware Platform")).toEqual(["fullstack"]);
+    expect(hints("Fullstack Developer - Manufacturing Software")).toEqual(["fullstack"]);
+    expect(hints("Product Engineer")).toEqual(["fullstack"]);
+  });
+
+  it("cyber es una lista cerrada, no un prefijo", () => {
+    expect(hints("Cyber Monday Marketing Manager")).not.toContain("ciberseguridad");
+    expect(hints("Cyberdefense Analyst")).toContain("ciberseguridad");
+    expect(hints("Cyber Security Engineer")).toContain("ciberseguridad");
+    expect(hints("Cyber Threat Hunter")).toContain("ciberseguridad");
+    expect(hints("Cyber Risk Manager")).toContain("ciberseguridad");
+    expect(hints("Cyber Engineer")).toContain("ciberseguridad");
+  });
+
+  it("research engineer es ai_engineer; research analyst no", () => {
+    expect(hints("Research Engineer")).toEqual(["ai_engineer"]);
+    expect(hints("Research Analyst")).toEqual([]);
+  });
+
+  it("data scientist y product analyst son data_analyst; business analyst no", () => {
+    expect(hints("Data Scientist")).toEqual(["data_analyst"]);
+    expect(hints("Product Analyst")).toEqual(["data_analyst"]);
+    expect(hints("Business Analyst")).toEqual([]);
+  });
+
+  it("mobile y 'engineer' genérico no se tocan", () => {
+    expect(hints("Android Engineer")).toEqual([]);
+    expect(hints("iOS Engineer")).toEqual([]);
+    expect(hints("Staff Engineer")).toEqual([]);
+    expect(hints("Engineer")).toEqual([]);
+    expect(hints("iOS Developer")).toEqual(DEV);
+  });
+
+  it("engineering manager no tiene carrera", () => {
+    expect(hints("Engineering Manager")).toEqual([]);
+  });
+});
+
+describe("inferRoleHints · data_engineer y solutions_engineer (ronda 106, ADR-021)", () => {
+  it.each([
+    ["Data Engineer", ["data_engineer"]],
+    ["Senior Data Engineer", ["data_engineer"]],
+    ["Big Data Engineer", ["data_engineer"]],
+    ["Analytics Engineer", ["data_engineer"]],
+    ["Data Platform Engineer", ["data_engineer"]],
+    ["ETL Developer", ["data_engineer"]],
+    ["Ingeniero de Datos", ["data_engineer"]],
+    ["Ingeniera de Datos Senior", ["data_engineer"]],
+  ])("data_engineer: %s (y no cae en data_analyst)", (title, roles) => {
+    expect(hints(title)).toEqual(roles);
+  });
+
+  it("data analyst sigue siendo data_analyst, sin data_engineer", () => {
+    expect(hints("Data Analyst")).toEqual(["data_analyst"]);
+    expect(hints("Analista de Datos")).toEqual(["data_analyst"]);
+  });
+
+  it.each([
+    ["Solutions Engineer", ["solutions_engineer"]],
+    ["Senior Solutions Architect", ["solutions_engineer"]],
+    ["Sales Engineer", ["solutions_engineer"]],
+    ["Pre-Sales Consultant Engineer", ["solutions_engineer"]],
+    ["Presales Engineer", ["solutions_engineer"]],
+    ["Forward Deployed Engineer", ["solutions_engineer"]],
+    ["Software Field Engineer", ["solutions_engineer"]],
+    ["Customer Field Engineer", ["solutions_engineer"]],
+    ["Professional Services Engineer", ["solutions_engineer"]],
+    ["Professional Services Consultant", ["solutions_engineer"]],
+    ["Ingeniero de Preventa", ["solutions_engineer"]],
+  ])("solutions_engineer: %s", (title, roles) => {
+    expect(hints(title)).toEqual(roles);
+  });
+
+  it("field engineer suelto, ventas y gerencia no son solutions_engineer", () => {
+    expect(hints("Field Engineer")).toEqual([]);
+    expect(hints("Field Service Engineer")).toEqual([]);
+    // Desde la 107 son ventas_b2b, y solo eso
+    expect(hints("Sales Manager")).toEqual(["ventas_b2b"]);
+    expect(hints("Account Executive")).toEqual(["ventas_b2b"]);
+    expect(hints("Solutions Manager")).toEqual([]);
+  });
+
+  it("las categorías de la fuente no marcan las carreras de la 106", () => {
+    for (const table of Object.values(SOURCE_CATEGORY_ROLES)) {
+      for (const roles of Object.values(table)) {
+        expect(roles).not.toContain("data_engineer");
+        expect(roles).not.toContain("solutions_engineer");
+      }
+    }
+  });
+});
+
+describe("inferRoleHints · ventas, atención, RRHH y contenido (ronda 107, ADR-022)", () => {
+  it.each([
+    "SDR",
+    "BDR - LatAm",
+    "Sales Development Representative",
+    "Business Development Representative",
+    "Business Development Manager",
+    "Account Executive, Mid-Market",
+    "Inside Sales Representative",
+    "Sales Representative",
+    "Sales Executive",
+    "Sales Manager",
+    "Sales Lead",
+    "Key Account Manager",
+    "Partner Manager",
+    "Ejecutivo Comercial",
+    "Ejecutiva de Cuentas",
+    "Ejecutivo de Ventas",
+    "Representante de Ventas",
+    "Asesora Comercial",
+    "Desarrollo de Negocios",
+    "Vendedor",
+    "Vendedora Senior",
+    "Ventas B2B",
+  ])("ventas_b2b: %s", (title) => {
+    expect(hints(title)).toEqual(["ventas_b2b"]);
+  });
+
+  it.each([
+    "Customer Support Specialist",
+    "Customer Service Representative",
+    "Customer Care Agent",
+    "Support Agent",
+    "Support Associate",
+    "Atención al Cliente",
+    "Atención al Usuario",
+    "Servicio al Cliente",
+    "Call Center Agent",
+    "Contact Center Representative",
+    "Contact Centre Agent",
+    "Agente de Soporte",
+    "Agente de Atención",
+    "Representante de Atención",
+    "Representante de Servicio",
+  ])("atencion_cliente: %s", (title) => {
+    expect(hints(title)).toEqual(["atencion_cliente"]);
+  });
+
+  it.each([
+    ["Sales Engineer", ["solutions_engineer"]],
+    ["Business Developer", []],
+    ["IT Support Specialist", ["soporte_it"]],
+    ["Technical Support Specialist", ["soporte_it"]],
+    ["Customer Support Engineer", []],
+    ["Agente de soporte técnico", ["soporte_it"]],
+    ["Customer Success Manager", ["customer_success"]],
+    ["Technical Account Manager", ["customer_success"]],
+    ["Key Account Manager", ["ventas_b2b"]],
+    ["Account Manager", []],
+    ["Graphic Designer", ["marketing_digital"]],
+    ["Product Designer", ["ux_ui"]],
+    ["HR Generalist", ["rrhh_it"]],
+    ["Presales Engineer", ["solutions_engineer"]],
+  ])("separación entre carreras vecinas: %s", (title, roles) => {
+    expect(hints(title)).toEqual(roles);
+  });
+
+  it.each([
+    "HR",
+    "HR Manager",
+    "HR Specialist",
+    "HR Coordinator",
+    "People Operations Manager",
+    "People Ops Specialist",
+    "Talent Partner",
+    "Recruiting Coordinator",
+    "Recruitment Consultant",
+    "Especialista en Reclutamiento",
+  ])("rrhh_it: %s", (title) => {
+    expect(hints(title)).toEqual(["rrhh_it"]);
+  });
+
+  it.each([
+    "Copywriter",
+    "Content Creator",
+    "Content Writer",
+    "Content Producer",
+    "Content Specialist",
+    "Redactor SEO",
+    "Redactora de contenidos",
+    "Graphic Designer",
+    "Diseñador Gráfico",
+    "Diseñadora Gráfica",
+    "Video Editor",
+    "Editor de Video",
+    "Editora de Video",
+    "Motion Graphics Artist",
+    "Motion Designer",
+    "Creador de Contenido",
+    "Creadora de Contenido",
+  ])("marketing_digital (contenido, gráfico, video): %s", (title) => {
+    expect(hints(title)).toContain("marketing_digital");
+    expect(hints(title)).not.toContain("ux_ui");
+  });
+
+  it("customer-support de la fuente suma atención y CS; el título agrega su carrera", () => {
+    for (const sourceKind of ["getonboard_api", "jobicy", "remoteok", "wwr"]) {
+      const tag = sourceKind === "wwr" ? "customer-support" : "Customer Support";
+      expect(hints("Cargo sin pistas", { sourceKind, categories: [tag], tags: [] })).toEqual([
+        "customer_success",
+        "atencion_cliente",
+      ]);
+    }
+    // El orden es el de ROLE_KEYS. La exclusión de «technical» solo vale para el título: la
+    // categoría suma atención igual, y `titleFit` la separa después (assessPoolTitle).
+    expect(
+      hints("Technical Support Specialist", {
+        sourceKind: "getonboard_api",
+        categories: ["customer-support"],
+      }),
+    ).toEqual(["soporte_it", "customer_success", "atencion_cliente"]);
+  });
+
+  it("Get on Board sales marca ventas_b2b", () => {
+    expect(
+      hints("Cargo sin pistas", { sourceKind: "getonboard_api", categories: ["sales"] }),
+    ).toEqual(["ventas_b2b"]);
   });
 });
