@@ -12,6 +12,7 @@ import { fetchHimalayasJobs } from "../sources/himalayas";
 import { fetchJobicyJobs } from "../sources/jobicy";
 import { fetchLeverBoard } from "../sources/lever";
 import { fetchRemoteOkJobs } from "../sources/remoteok";
+import { fetchTeamtailorBoard, parseTeamtailorFeed } from "../sources/teamtailor";
 import { describeFailure } from "../sources/error-code";
 import { sourceUserAgent } from "../sources/user-agent";
 import { fetchWwrJobs, parseWwrFeed, WWR_POOL_CATEGORIES } from "../sources/wwr";
@@ -26,7 +27,7 @@ import {
 /**
  * Prueba en seco de una fuente del pool (JS-137):
  *   pnpm pool:fetch <getonboard|remoteok|jobicy|himalayas|wwr> --dry-run
- *   pnpm pool:fetch <greenhouse|lever|ashby> <token> [--region eu] [--company "Nombre"] --dry-run
+ *   pnpm pool:fetch <greenhouse|lever|ashby|teamtailor> <token> [--region eu|na] [--company "Nombre"] --dry-run
  * Descarga UNA vez con el User-Agent identificable y ventana de 48 h (los ATS no tienen ventana:
  * traen todo lo abierto, hasta ATS_MAX_JOBS_PER_BOARD por board), y reporta conteos y qué campos
  * trae la respuesta real contra los que lee el mapper. Los ATS consultan ese board SIN leer `ats_boards`. No escribe en ninguna base
@@ -152,6 +153,19 @@ const MAPPER_FIELDS: Record<SourceName, readonly string[]> = {
     "publishedAt",
     "compensation",
   ],
+  // Nombres del item ya parseado del feed RSS (`parseTeamtailorFeed`)
+  teamtailor: [
+    "guid",
+    "title",
+    "link",
+    "description",
+    "pubDate",
+    "remoteStatus",
+    "locations",
+    "department",
+    "role",
+    "division",
+  ],
 };
 
 /** Items crudos de una respuesta JSON, según la forma de cada fuente. */
@@ -179,6 +193,7 @@ function capturingFetch(source: SourceName, sink: unknown[]): typeof fetch {
     const res = await fetch(input, init);
     try {
       if (source === "wwr") sink.push(...parseWwrFeed(await res.clone().text()).items);
+      else if (source === "teamtailor") sink.push(...parseTeamtailorFeed(await res.clone().text()));
       else sink.push(...rawItemsOf(source, await res.clone().json()));
     } catch {
       // Cuerpo que no es JSON: el adaptador informa el error a su manera
@@ -191,6 +206,7 @@ const ATS_FETCHERS = {
   greenhouse: fetchGreenhouseBoard,
   lever: fetchLeverBoard,
   ashby: fetchAshbyBoard,
+  teamtailor: fetchTeamtailorBoard,
 } satisfies Record<AtsProvider, unknown>;
 
 /** Los N slugs más frecuentes de la taxonomía de la fuente, normalizados, con su conteo. */
@@ -286,6 +302,11 @@ async function run(source: SourceName, ats?: AtsArgs): Promise<void> {
       `recortados por tope (${ATS_MAX_JOBS_PER_BOARD}): ${r.truncated}`,
     );
     if (r.unlisted !== undefined) lines.push(`no listados (isListed=false): ${r.unlisted}`);
+    if (r.feedMaybeTruncated) {
+      lines.push(
+        "AVISO: el feed trajo exactamente 100 items (tope por defecto de Teamtailor): puede estar cortado; no se pide más (una request por board)",
+      );
+    }
   } else if (source === "wwr") {
     const r = await fetchWwrJobs({
       since,

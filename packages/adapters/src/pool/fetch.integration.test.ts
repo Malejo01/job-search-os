@@ -76,6 +76,9 @@ const downloaders: PoolDownloaders = {
   ashby: async () => {
     throw new Error("no debería llamarse");
   },
+  teamtailor: async () => {
+    throw new Error("no debería llamarse");
+  },
 };
 
 async function cleanup() {

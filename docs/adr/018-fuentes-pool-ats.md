@@ -62,3 +62,9 @@ se pueden scrapear, y Torre tiene su API oficial en beta privada.
   ronda (sin red): Mauro las revisa antes de prender cada fuente, de a una y tras el `--dry-run`
   (`pnpm pool:fetch <proveedor> <token> --dry-run`).
 - Una migración (enum `source_kind` y tabla `ats_boards`, ronda 47) que aplica Mauro.
+
+## Ampliación (ronda 120): Teamtailor por RSS
+Teamtailor se suma como un proveedor más de `ats_boards`, leído desde su feed RSS público
+(`/jobs.rss`, un único GET por board, sin paginación ni HTML) y con las mismas defensas. Queda
+integrado y apagado, con lista curada y revisión del `robots.txt` de cada dominio antes de cargar
+un board. No reabre la decisión: ver `docs/sources/teamtailor.md`.

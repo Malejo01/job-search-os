@@ -5,6 +5,7 @@ import {
   emptyBoardResult,
   atsBoardUrl,
   atsGetJson,
+  atsGetText,
   atsHtmlToText,
   atsSalary,
   atsStatusOf,
@@ -67,6 +68,48 @@ describe("atsBoardUrl", () => {
     expect(() => atsBoardUrl("greenhouse", "x", "eu")).toThrow();
     expect(atsBoardUrl("lever", "x", "")).toContain("api.lever.co");
     expect(atsBoardUrl("lever", "x", null)).toContain("api.lever.co");
+  });
+
+  it("Teamtailor: host fijo con el token de subdominio y región na", () => {
+    expect(atsBoardUrl("teamtailor", "empresa-ficticia")).toBe(
+      "https://empresa-ficticia.teamtailor.com/jobs.rss",
+    );
+    expect(atsBoardUrl("teamtailor", "empresa-ficticia", "na")).toBe(
+      "https://empresa-ficticia.na.teamtailor.com/jobs.rss",
+    );
+    expect(atsBoardUrl("teamtailor", "x", "")).toBe("https://x.teamtailor.com/jobs.rss");
+    expect(atsBoardUrl("teamtailor", "a".repeat(63))).toContain(`https://${"a".repeat(63)}.`);
+  });
+
+  it("Teamtailor: regiones inválidas; na solo en Teamtailor y eu solo en Lever", () => {
+    for (const r of ["eu", "us", "NA", "na.evil.example", "x/y"]) {
+      expect(() => atsBoardUrl("teamtailor", "x", r), r).toThrow("región inválida");
+    }
+    for (const p of ["greenhouse", "ashby", "lever"] as const) {
+      expect(() => atsBoardUrl(p, "x", "na"), p).toThrow("región inválida");
+    }
+    expect(() => atsBoardUrl("greenhouse", "x", "eu")).toThrow("región inválida");
+  });
+
+  it("Teamtailor: el token tiene que ser una etiqueta DNS válida (anti-SSRF)", () => {
+    for (const t of [
+      "a.b",
+      "a_b",
+      "a/b",
+      "a@b",
+      "a:80",
+      "Empresa",
+      "eMPresa-1",
+      "-a",
+      "a-",
+      "a".repeat(64),
+      "a..b",
+      "",
+    ]) {
+      expect(() => atsBoardUrl("teamtailor", t), t).toThrow("token inválido");
+    }
+    // Los otros proveedores siguen aceptando `.` y `_`
+    expect(() => atsBoardUrl("lever", "a.b_c")).not.toThrow();
   });
 
   it("token inválido o proveedor desconocido lanza antes de armar nada", () => {
@@ -207,6 +250,46 @@ describe("atsGetJson", () => {
       (x) => x,
     );
     expect(atsStatusOf(e)).toBe("timeout");
+  });
+});
+
+describe("atsGetText", () => {
+  const xml = "<rss><channel></channel></rss>";
+
+  it("200 → el cuerpo como texto, con Accept de RSS, User-Agent y sin seguir redirecciones", async () => {
+    const f = vi.fn(async () => new Response(xml));
+    await expect(
+      atsGetText("https://x.example/jobs.rss", { fetchImpl: f as never, userAgent: "UA/1" }),
+    ).resolves.toBe(xml);
+    const init = (f.mock.calls[0] as unknown as [string, RequestInit])[1];
+    expect(init.headers).toMatchObject({
+      accept: expect.stringContaining("application/rss+xml"),
+      "user-agent": "UA/1",
+    });
+    expect(init.redirect).toBe("error");
+  });
+
+  it("404 → not_found", async () => {
+    const f = vi.fn(async () => new Response("", { status: 404 }));
+    const e = await atsGetText("https://x.example/a", { fetchImpl: f as never }).catch((x) => x);
+    expect(atsStatusOf(e)).toBe("not_found");
+  });
+
+  it("429 → un reintento tras Retry-After", async () => {
+    const sleep = vi.fn(async () => {});
+    const f = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("", { status: 429, headers: { "retry-after": "4" } }))
+      .mockResolvedValueOnce(new Response(xml));
+    await expect(atsGetText("https://x.example/a", { fetchImpl: f, sleep })).resolves.toBe(xml);
+    expect(sleep).toHaveBeenCalledWith(4000);
+    expect(f).toHaveBeenCalledTimes(2);
+  });
+
+  it("cuerpo por encima del tope → too_large", async () => {
+    const big = vi.fn(async () => new Response("a".repeat(15 * 1024 * 1024 + 1)));
+    const e = await atsGetText("https://x.example/a", { fetchImpl: big as never }).catch((x) => x);
+    expect(atsStatusOf(e)).toBe("too_large");
   });
 });
 
