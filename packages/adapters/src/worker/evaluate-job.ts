@@ -6,6 +6,7 @@ import {
   decide,
   detectEvaluatorInjection,
   detectResidencyRestriction,
+  effectiveAcceptedModalities,
   INJECTION_FLAG,
   isRoleKey,
   outputSchemaFor,
@@ -94,6 +95,8 @@ export type EvaluationProfile = Omit<ProfileForPrompt, "targetRoleLabel" | "prof
   profileSummary?: string | null;
   /** Puesto único de antes de `targetRoles`; solo para el rótulo del prompt. */
   targetRole?: string | null;
+  /** profiles.accepted_modalities (ronda 78); ausente en la demo = lo derivado de remoteOnly. */
+  acceptedModalities?: readonly string[] | null;
 };
 
 export type EvaluationJob = JobForPrompt & {
@@ -196,6 +199,7 @@ export async function evaluateForProfile(
     prefilterFlags: flags,
     candidateEnglishCefr: profile.englishCefr,
     candidateYearsTotal: profile.yearsTotal,
+    acceptedModalities: effectiveAcceptedModalities(profile),
   });
   return {
     ok: true,

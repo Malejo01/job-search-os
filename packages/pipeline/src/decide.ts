@@ -18,6 +18,7 @@ import { RESIDENCY_FLAG } from "./prefilter/residency";
  * | sin riesgos + score entre guardar y aplicar | guardar                |
  * | location_ok = "no" (país excluido)          | tope: guardar como máximo, aunque el score sea alto |
  * | flag residencia_exigida:<países> (prefiltro) | bloqueador duro → descartar; location_ok efectivo = "no" |
+ * | bloqueador de modalidad del modelo, modalidad aceptada | pasa a riesgos, no descarta (ronda 84) |
  */
 export type ActionThresholds = { personalizado: number; aplicar: number; guardar: number };
 export type Action = "aplicar_personalizado" | "aplicar" | "guardar" | "descartar";
@@ -56,6 +57,11 @@ export type DecideContext = {
   candidateEnglishCefr?: string | null;
   /** Años del candidato (profiles.years_total). Sin esto no se evalúa el gap de años. */
   candidateYearsTotal?: number | null;
+  /**
+   * Modalidades que acepta la persona (`effectiveAcceptedModalities`). Ausente = no hay con qué
+   * contradecir al modelo: sus bloqueadores de modalidad se respetan (comportamiento previo).
+   */
+  acceptedModalities?: readonly ("remoto" | "hibrido" | "presencial")[];
 };
 
 export type Adjustment = { rule: string; delta: number; detail: string };
@@ -82,7 +88,7 @@ const FLAG_TO_RISK: Record<string, { text: string; already: RegExp }> = {
   many_candidates: { text: "muchos candidatos", already: /candidatos/i },
   modalidad_no_remota: {
     text: "modalidad híbrida o presencial",
-    already: /h[ií]brid|presencial|modalidad/i,
+    already: /h[ií]brid|presencial|modalidad|oficina|on-?site/i,
   },
   ciudad_distinta: {
     text: "La oferta parece ser en otra ciudad que la de tu perfil",
@@ -104,6 +110,25 @@ const disciplinasPermitidas = (rules: CriteriaRules): string[] | null => {
 
 /** Un bloqueador de disciplina, lo escriba el modelo o el código. */
 const IS_DISCIPLINE_BLOCKER = /disciplina distinta/i;
+/**
+ * Un bloqueador de modalidad del modelo. "modalidad" sola no cuenta ("modalidad de contratación"):
+ * tiene que ir con una palabra de modalidad. Sin "relocat": mudarse de país no es modalidad.
+ */
+const IS_MODALITY_BLOCKER =
+  /presencial|h[ií]brid|oficina|on-?site|modalidad\b.*\b(?:remot|presencial|h[ií]brid|oficina|on-?site)/i;
+/**
+ * Si el texto también habla de otra cosa (jornada, años, salario, visa, contrato, idioma, una
+ * entrevista presencial, una nube híbrida, un paquete office) o de otro país, no se toca: lo conservador. "visitas" solo
+ * cuenta junto a oficina o presencial (que ya matchean solas): sin eso puede ser un viaje.
+ */
+const MIXED_BLOCKER =
+  /jornada|horas|a[ñn]os|years|salari|visa|autoriz|residen|residir|radic|reubic|\bmud|permiso|ciudadan|sponsor|work permit|relocat|contrat|freelance|monotribut|dependencia|ingl|english|disciplina|entrevista|nube|cloud|infraestructura|paquete|otro pa[ií]s|fuera de|exterior|abroad|outside/i;
+/** Modalidades concretas que nombra un bloqueador; "oficina", "on-site" o "visitas" no nombran ninguna. */
+const namedModalities = (b: string): ("hibrido" | "presencial")[] => [
+  ...(/h[ií]brid/i.test(b) ? (["hibrido"] as const) : []),
+  ...(/presencial/i.test(b) ? (["presencial"] as const) : []),
+];
+const normalizeText = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 
 /**
  * Escala del inglés exigido por el aviso. `no_menciona` y `no` quedan fuera: no hay nivel que
@@ -244,6 +269,31 @@ export function decide(
     // Sin lista configurada no hay con qué contradecir al modelo: se respeta lo que dijo.
     for (let i = bloqueadores.length - 1; i >= 0; i--) {
       if (IS_DISCIPLINE_BLOCKER.test(bloqueadores[i]!)) bloqueadores.splice(i, 1);
+    }
+  }
+
+  /**
+   * Modalidad (ronda 84). El prefiltro ya descartó lo que la persona no acepta; acá un bloqueador
+   * de modalidad del modelo sobre una modalidad ACEPTADA pasa a riesgo. "remoto"/"desconocida" con
+   * bloqueador de modalidad ("primera semana en oficina") es una señal sin tipo: como en el
+   * prefiltro, vale si acepta híbrido o presencial.
+   */
+  const aceptadas = context.acceptedModalities;
+  if (aceptadas) {
+    const m = evaluation.modalidad;
+    // Sin modalidad concreta en el texto vale la del aviso (o la señal sin tipo, si acepta no remoto).
+    const sinTipo =
+      m === "hibrido" || m === "presencial"
+        ? aceptadas.includes(m)
+        : aceptadas.some((a) => a !== "remoto");
+    for (let i = bloqueadores.length - 1; i >= 0; i--) {
+      const b = bloqueadores[i]!;
+      if (!IS_MODALITY_BLOCKER.test(b) || MIXED_BLOCKER.test(b)) continue;
+      const nombradas = namedModalities(b);
+      const aceptada = nombradas.length ? nombradas.every((n) => aceptadas.includes(n)) : sinTipo;
+      if (!aceptada) continue;
+      bloqueadores.splice(i, 1);
+      if (!riesgos.some((r) => normalizeText(r) === normalizeText(b))) riesgos.push(b);
     }
   }
 

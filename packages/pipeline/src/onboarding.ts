@@ -152,6 +152,20 @@ export function isRemoteOnly(modalities: readonly string[]): boolean {
   return modalities.length === 1 && modalities[0] === "remoto";
 }
 
+/**
+ * Modalidades efectivas de un perfil (ronda 84). Valores ajenos se descartan; vacío = solo remoto.
+ * `remote_only = false` con solo remoto en la lista es un perfil sin sincronizar (anterior al
+ * backfill de la ronda 78): vale lo que decía `remote_only`, que acepta las tres.
+ */
+export function effectiveAcceptedModalities(p: {
+  remoteOnly?: boolean | null;
+  acceptedModalities?: readonly string[] | null;
+}): AcceptedModality[] {
+  const list = MODALITIES.filter((m) => p.acceptedModalities?.includes(m));
+  if (p.remoteOnly === false && !list.some((m) => m !== "remoto")) return [...MODALITIES];
+  return list.length ? list : ["remoto"];
+}
+
 const optionalText = (max: number) =>
   z
     .string()

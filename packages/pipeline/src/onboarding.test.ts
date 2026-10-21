@@ -6,12 +6,51 @@ import { ROLE_KEYS } from "./skills/self-assessment";
 import {
   criteriaFromOnboarding,
   DEFAULT_CRITERIA_RULES,
+  effectiveAcceptedModalities,
   isProfileComplete,
   isValidCountry,
   parseOnboarding,
 } from "./onboarding";
 
 const SUMMARY = "Desarrollo web con cinco años de experiencia en producto. ".repeat(2);
+
+describe("effectiveAcceptedModalities", () => {
+  it("sin fila de perfil: solo remoto", () => {
+    expect(effectiveAcceptedModalities({})).toEqual(["remoto"]);
+    expect(effectiveAcceptedModalities({ remoteOnly: null, acceptedModalities: null })).toEqual([
+      "remoto",
+    ]);
+  });
+  it("perfil sin sincronizar (remote_only=false, solo remoto): acepta las tres", () => {
+    expect(
+      effectiveAcceptedModalities({ remoteOnly: false, acceptedModalities: ["remoto"] }),
+    ).toEqual(["remoto", "hibrido", "presencial"]);
+    expect(effectiveAcceptedModalities({ remoteOnly: false, acceptedModalities: [] })).toEqual([
+      "remoto",
+      "hibrido",
+      "presencial",
+    ]);
+  });
+  it("valores ajenos se descartan y vacío es solo remoto", () => {
+    expect(effectiveAcceptedModalities({ remoteOnly: true, acceptedModalities: ["x"] })).toEqual([
+      "remoto",
+    ]);
+    expect(
+      effectiveAcceptedModalities({ remoteOnly: true, acceptedModalities: ["x", "hibrido"] }),
+    ).toEqual(["hibrido"]);
+  });
+  it("lista normal: en el orden de MODALITIES", () => {
+    expect(
+      effectiveAcceptedModalities({
+        remoteOnly: false,
+        acceptedModalities: ["presencial", "remoto"],
+      }),
+    ).toEqual(["remoto", "presencial"]);
+    expect(
+      effectiveAcceptedModalities({ remoteOnly: true, acceptedModalities: ["remoto"] }),
+    ).toEqual(["remoto"]);
+  });
+});
 
 describe("isProfileComplete", () => {
   const ok = { locationCountry: "AR", profileSummary: SUMMARY, activeCriteriaCount: 1 };
