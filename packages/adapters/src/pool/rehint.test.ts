@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatRehintReport, parseRehintArgs } from "./rehint";
+import { formatRehintProgress, formatRehintReport, parseRehintArgs } from "./rehint";
 
 describe("parseRehintArgs", () => {
   it("por defecto es dry-run local", () => {
@@ -14,6 +14,21 @@ describe("parseRehintArgs", () => {
   });
   it("rechaza argumentos desconocidos", () => {
     expect(parseRehintArgs(["--force"]).ok).toBe(false);
+  });
+});
+
+describe("formatRehintProgress", () => {
+  it("imprime solo conteos por lote", () => {
+    expect(
+      formatRehintProgress({
+        batch: 2,
+        seen: 1000,
+        expected: 2737,
+        changed: 480,
+        written: 480,
+        totalWritten: 900,
+      }),
+    ).toBe("lote 2: vistas 1000 de 2737, a escribir 480, escritas 480 (total escritas 900)");
   });
 });
 

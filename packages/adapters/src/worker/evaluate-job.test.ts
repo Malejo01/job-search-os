@@ -40,6 +40,13 @@ describe("targetRoleLabelFor", () => {
     expect(targetRoleLabelFor("product_marketing", {})).toBe("Product Marketing");
   });
 
+  it("rotula las carreras de la ronda 106", () => {
+    expect(targetRoleLabelFor("data_engineer", {})).toBe("Data Engineering");
+    expect(targetRoleLabelFor(null, { targetRoles: ["solutions_engineer"] })).toBe(
+      "Solutions / Sales Engineering",
+    );
+  });
+
   it("ignora valores que no son un puesto conocido y devuelve null si no queda ninguno", () => {
     expect(targetRoleLabelFor("inventado", { targetRoles: ["marketing_digital"] })).toBe(
       "Marketing digital",

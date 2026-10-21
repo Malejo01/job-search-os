@@ -251,5 +251,37 @@
       "canva",
       "english_intermediate"
     ]
+  },
+  "data_engineer": {
+    "label": "Data Engineering",
+    "skills": [
+      "sql",
+      "python",
+      "etl",
+      "snowflake",
+      "aws",
+      "gcp",
+      "azure",
+      "docker",
+      "git",
+      "ci_cd",
+      "nosql",
+      "english_intermediate"
+    ]
+  },
+  "solutions_engineer": {
+    "label": "Solutions / Sales Engineering",
+    "skills": [
+      "client_facing",
+      "rest_apis",
+      "python",
+      "sql",
+      "aws",
+      "azure",
+      "gcp",
+      "docker",
+      "salesforce",
+      "english_fluent"
+    ]
   }
 }

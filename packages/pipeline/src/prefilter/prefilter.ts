@@ -99,6 +99,10 @@ export const ROLE_DOMAIN_KEYWORDS: Partial<Record<RoleKey, readonly string[]>> =
   product_owner: ["project manager", "scrum master", "pmp", "prince2", "business owner"],
   project_manager: ["project manager", "scrum master", "pmp", "prince2", "business owner"],
   product_marketing: ["growth"],
+  // Ronda 106 (ADR-021): oficio propio de las carreras nuevas. Si el dueño de la instancia los puso en
+  // `other_discipline_keywords` ("etl" por SQL, "sales engineer" por ventas), no descartan.
+  data_engineer: ["etl", "databricks", "snowflake"],
+  solutions_engineer: ["sales engineer", "presales", "pre sales", "solutions architect"],
   ciberseguridad: [
     "ciberseguridad",
     "cybersecurity",
@@ -127,6 +131,10 @@ export const ROLE_OWN_TITLE_PHRASES: Partial<Record<RoleKey, readonly string[]>>
   product_owner: PRODUCT_OWN_TITLE_PHRASES,
   project_manager: PRODUCT_OWN_TITLE_PHRASES,
   product_marketing: ["product marketing manager", "marketing manager"],
+  // "architect" está en la blocklist; "solutions architect" es el cargo propio de la carrera.
+  // Está también en ROLE_DOMAIN_KEYWORDS a propósito: esa lista libera la palabra de
+  // `other_discipline_keywords`; esta libera la palabra "architect" de la blocklist. Son dos filtros.
+  solutions_engineer: ["solutions architect", "solution architect"],
   customer_success: ["customer success manager", "technical account manager", "account manager"],
   marketing_digital: [
     "marketing manager",
@@ -135,7 +143,8 @@ export const ROLE_OWN_TITLE_PHRASES: Partial<Record<RoleKey, readonly string[]>>
     "growth manager",
   ],
   rrhh_it: ["talent acquisition manager", "recruiting manager"],
-  ciberseguridad: ["security manager"],
+  ciberseguridad: ["security manager", "security architect"],
+  backend: ["software architect"],
 };
 
 /** Título doblado sin las frases propias de los puestos (con límite de palabra), cada una por un espacio. */

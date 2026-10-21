@@ -154,9 +154,9 @@ describe("inferRoleHints · carreras de producto (ronda 97)", () => {
     ["GTM Manager", ["product_marketing"]],
     ["Marketing de Producto", ["product_marketing"]],
     ["Product Owner / Scrum Master", ["product_owner", "project_manager"]],
-    // Sin hint de producto a propósito: son datos y desarrollo
-    ["Product Analyst", []],
-    ["Product Engineer", []],
+    // Sin hint de producto a propósito: son datos y desarrollo (ronda 106 les da su carrera)
+    ["Product Analyst", ["data_analyst"]],
+    ["Product Engineer", ["fullstack"]],
     ["PO Box Clerk", []],
   ])("%s", (title, roles) => {
     expect(hints(title)).toEqual(roles);
@@ -278,10 +278,13 @@ describe("inferRoleHints · IA en el título (ronda 47c)", () => {
     "AI Software Engineer",
     "Senior AI Platform Engineer",
     "ML Infrastructure Engineer",
-    "AI Solutions Architect",
     "AI Research Scientist",
   ])("patrón AI + rol técnico: %s", (title) => {
     expect(hints(title)).toEqual(["ai_engineer"]);
+  });
+
+  it("AI Solutions Architect es de IA y también de solutions engineering (ronda 106)", () => {
+    expect(hints("AI Solutions Architect")).toEqual(["ai_engineer", "solutions_engineer"]);
   });
 
   it("AI + engineer no suma frontend, backend ni fullstack", () => {
@@ -304,8 +307,8 @@ describe("inferRoleHints · IA en el título (ronda 47c)", () => {
     expect(hints("Email Marketing Specialist")).toEqual(["marketing_digital"]);
   });
 
-  it("la lista de exclusión anula el patrón: ya no hay falso positivo en Sales Engineer", () => {
-    expect(hints("Sales Engineer – AI platform")).toEqual([]);
+  it("la lista de exclusión anula el patrón: Sales Engineer no es ai_engineer, es solutions_engineer", () => {
+    expect(hints("Sales Engineer – AI platform")).toEqual(["solutions_engineer"]);
   });
 
   it.each(["AI Sales Specialist", "AI Customer Support Specialist", "AI Marketing Specialist"])(
@@ -512,6 +515,180 @@ describe("inferRoleHints · categorías de la fuente", () => {
     for (const table of Object.values(SOURCE_CATEGORY_ROLES)) {
       for (const roles of Object.values(table)) {
         for (const role of roles) expect(ROLE_KEYS).toContain(role);
+      }
+    }
+  });
+});
+
+describe("inferRoleHints · reglas para tech sin carrera (ronda 106, ADR-021)", () => {
+  it.each([
+    ["Site Reliability Engineer", ["soporte_it"]],
+    ["Senior SRE", ["soporte_it"]],
+    ["DevOps Engineer", ["soporte_it"]],
+    ["GitOps Engineer", ["soporte_it"]],
+    ["Platform Engineer", ["soporte_it"]],
+    ["Infrastructure Engineer", ["soporte_it"]],
+    ["Infra Engineer", ["soporte_it"]],
+    ["IT Engineer", ["soporte_it"]],
+    ["IT Systems Administrator", ["soporte_it"]],
+    ["IT Operations Analyst", ["soporte_it"]],
+    ["Desktop Support Technician", ["soporte_it"]],
+    ["Software Support Engineer", ["soporte_it"]],
+    ["Database Support Engineer", ["soporte_it"]],
+    ["Application Support Engineer", ["soporte_it"]],
+  ])("soporte_it: %s", (title, roles) => {
+    expect(hints(title)).toEqual(roles);
+  });
+
+  it("support engineer suelto o de producto no es soporte de IT", () => {
+    expect(hints("Support Engineer")).toEqual([]);
+    expect(hints("Customer Support Engineer")).toEqual([]);
+    expect(hints("Product Support Engineer")).toEqual([]);
+  });
+
+  it("la infraestructura de IA no es soporte de IT", () => {
+    expect(hints("AI Platform Engineer")).toEqual(["ai_engineer"]);
+    expect(hints("ML Infrastructure Engineer")).toEqual(["ai_engineer"]);
+  });
+
+  it.each([
+    ["Security Operations Analyst", ["ciberseguridad"]],
+    ["Security Architect", ["ciberseguridad"]],
+    ["Security Researcher", ["ciberseguridad"]],
+    ["Security Infrastructure Engineer", ["ciberseguridad"]],
+    ["Security Governance Lead", ["ciberseguridad"]],
+    ["Security Risk Engineer", ["ciberseguridad"]],
+    ["Threat Intelligence Analyst", ["ciberseguridad"]],
+    ["Red Team Operator", ["ciberseguridad"]],
+    ["Incident Response Engineer", ["ciberseguridad"]],
+    ["Cyber Defense Analyst", ["ciberseguridad"]],
+    ["Cyberdefense Analyst", ["ciberseguridad"]],
+  ])("ciberseguridad: %s", (title, roles) => {
+    expect(hints(title)).toEqual(roles);
+  });
+
+  it("seguridad física y de data center no es ciberseguridad", () => {
+    expect(hints("Physical Security Engineer")).toEqual([]);
+    expect(hints("Physical Security Architect")).toEqual([]);
+    expect(hints("Data Center Security Engineer")).toEqual([]);
+    expect(hints("Security Guard")).toEqual([]);
+  });
+
+  it.each([
+    ["Rust Engineer", ["backend"]],
+    ["Senior Elixir Engineer", ["backend"]],
+    ["Scala Engineer", ["backend"]],
+    ["Kotlin Engineer", ["backend"]],
+    ["Golang Engineer", ["backend"]],
+    ["Postgres Engineer", ["backend"]],
+    ["Microservices Engineer", ["backend"]],
+    ["Distributed Systems Engineer", ["backend"]],
+    ["Software Architect", ["backend"]],
+  ])("backend: %s", (title, roles) => {
+    expect(hints(title)).toEqual(roles);
+  });
+
+  it("un lenguaje sin 'engineer' no suma backend por sí solo", () => {
+    expect(hints("Rust Evangelist")).toEqual([]);
+    expect(hints("Solutions Architect")).toEqual(["solutions_engineer"]);
+  });
+
+  it("product engineer es fullstack, salvo manufactura, hardware o mecánica", () => {
+    expect(hints("Product Engineer")).toEqual(["fullstack"]);
+    expect(hints("Senior Product Engineer")).toEqual(["fullstack"]);
+    expect(hints("Manufacturing Product Engineer")).toEqual([]);
+    expect(hints("Hardware Product Engineer")).toEqual([]);
+    expect(hints("Mechanical Product Engineer")).toEqual([]);
+    expect(hints("Product Engineer, Manufacturing")).toEqual([]);
+  });
+
+  it("la exclusión de hardware aplica solo a 'product engineer', no a full stack", () => {
+    expect(hints("Full Stack Engineer, Hardware Platform")).toEqual(["fullstack"]);
+    expect(hints("Fullstack Developer - Manufacturing Software")).toEqual(["fullstack"]);
+    expect(hints("Product Engineer")).toEqual(["fullstack"]);
+  });
+
+  it("cyber es una lista cerrada, no un prefijo", () => {
+    expect(hints("Cyber Monday Marketing Manager")).not.toContain("ciberseguridad");
+    expect(hints("Cyberdefense Analyst")).toContain("ciberseguridad");
+    expect(hints("Cyber Security Engineer")).toContain("ciberseguridad");
+    expect(hints("Cyber Threat Hunter")).toContain("ciberseguridad");
+    expect(hints("Cyber Risk Manager")).toContain("ciberseguridad");
+    expect(hints("Cyber Engineer")).toContain("ciberseguridad");
+  });
+
+  it("research engineer es ai_engineer; research analyst no", () => {
+    expect(hints("Research Engineer")).toEqual(["ai_engineer"]);
+    expect(hints("Research Analyst")).toEqual([]);
+  });
+
+  it("data scientist y product analyst son data_analyst; business analyst no", () => {
+    expect(hints("Data Scientist")).toEqual(["data_analyst"]);
+    expect(hints("Product Analyst")).toEqual(["data_analyst"]);
+    expect(hints("Business Analyst")).toEqual([]);
+  });
+
+  it("mobile y 'engineer' genérico no se tocan", () => {
+    expect(hints("Android Engineer")).toEqual([]);
+    expect(hints("iOS Engineer")).toEqual([]);
+    expect(hints("Staff Engineer")).toEqual([]);
+    expect(hints("Engineer")).toEqual([]);
+    expect(hints("iOS Developer")).toEqual(DEV);
+  });
+
+  it("engineering manager no tiene carrera", () => {
+    expect(hints("Engineering Manager")).toEqual([]);
+  });
+});
+
+describe("inferRoleHints · data_engineer y solutions_engineer (ronda 106, ADR-021)", () => {
+  it.each([
+    ["Data Engineer", ["data_engineer"]],
+    ["Senior Data Engineer", ["data_engineer"]],
+    ["Big Data Engineer", ["data_engineer"]],
+    ["Analytics Engineer", ["data_engineer"]],
+    ["Data Platform Engineer", ["data_engineer"]],
+    ["ETL Developer", ["data_engineer"]],
+    ["Ingeniero de Datos", ["data_engineer"]],
+    ["Ingeniera de Datos Senior", ["data_engineer"]],
+  ])("data_engineer: %s (y no cae en data_analyst)", (title, roles) => {
+    expect(hints(title)).toEqual(roles);
+  });
+
+  it("data analyst sigue siendo data_analyst, sin data_engineer", () => {
+    expect(hints("Data Analyst")).toEqual(["data_analyst"]);
+    expect(hints("Analista de Datos")).toEqual(["data_analyst"]);
+  });
+
+  it.each([
+    ["Solutions Engineer", ["solutions_engineer"]],
+    ["Senior Solutions Architect", ["solutions_engineer"]],
+    ["Sales Engineer", ["solutions_engineer"]],
+    ["Pre-Sales Consultant Engineer", ["solutions_engineer"]],
+    ["Presales Engineer", ["solutions_engineer"]],
+    ["Forward Deployed Engineer", ["solutions_engineer"]],
+    ["Software Field Engineer", ["solutions_engineer"]],
+    ["Customer Field Engineer", ["solutions_engineer"]],
+    ["Professional Services Engineer", ["solutions_engineer"]],
+    ["Professional Services Consultant", ["solutions_engineer"]],
+    ["Ingeniero de Preventa", ["solutions_engineer"]],
+  ])("solutions_engineer: %s", (title, roles) => {
+    expect(hints(title)).toEqual(roles);
+  });
+
+  it("field engineer suelto, ventas y gerencia no son solutions_engineer", () => {
+    expect(hints("Field Engineer")).toEqual([]);
+    expect(hints("Field Service Engineer")).toEqual([]);
+    expect(hints("Sales Manager")).toEqual([]);
+    expect(hints("Account Executive")).toEqual([]);
+    expect(hints("Solutions Manager")).toEqual([]);
+  });
+
+  it("las categorías de la fuente no marcan las carreras nuevas", () => {
+    for (const table of Object.values(SOURCE_CATEGORY_ROLES)) {
+      for (const roles of Object.values(table)) {
+        expect(roles).not.toContain("data_engineer");
+        expect(roles).not.toContain("solutions_engineer");
       }
     }
   });

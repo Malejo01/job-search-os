@@ -1,0 +1,14 @@
+{
+  "targetRoles": ["solutions_engineer"],
+  "locationCountry": "AR",
+  "remoteOnly": true,
+  "yearsTotal": 4,
+  "skills": [
+    { "slug": "client_facing", "level": 3 },
+    { "slug": "rest_apis", "level": 2 },
+    { "slug": "python", "level": 2 },
+    { "slug": "sql", "level": 2 },
+    { "slug": "aws", "level": 1 },
+    { "slug": "salesforce", "level": 1 }
+  ]
+}

@@ -30,10 +30,16 @@ export const ROLE_KEYS = [
   "product_owner",
   "project_manager",
   "product_marketing",
+  // Ronda 106 (ADR-021): carreras de tecnología nuevas, siempre al final.
+  "data_engineer",
+  "solutions_engineer",
 ] as const;
 export type RoleKey = (typeof ROLE_KEYS)[number];
 
-/** Los puestos de tecnología (los de antes de la ronda 40). */
+/**
+ * Los puestos de tecnología de antes de la ronda 40. Son los que valen cuando la persona no eligió
+ * puesto (`select.ts`, `explain.ts`): las carreras de la ronda 106 no se suman a ese default.
+ */
 export const IT_ROLE_KEYS: readonly RoleKey[] = [
   "frontend",
   "backend",
@@ -44,6 +50,9 @@ export const IT_ROLE_KEYS: readonly RoleKey[] = [
   "ai_engineer",
   "ux_ui",
 ];
+
+/** Las carreras de tecnología que se abrieron en la ronda 106 (ADR-021). */
+const NEW_TECH_ROLE_KEYS: readonly RoleKey[] = ["data_engineer", "solutions_engineer"];
 
 /** Los puestos de carreras digitales que no son de producto (ronda 40). */
 const OTHER_DIGITAL_ROLE_KEYS: readonly RoleKey[] = [
@@ -69,7 +78,7 @@ export const DIGITAL_ROLE_KEYS: readonly RoleKey[] = [
 
 /** Grupos del selector de puesto: juntos cubren `ROLE_KEYS` sin repetir. */
 export const ROLE_GROUPS: readonly { label: string; roles: readonly RoleKey[] }[] = [
-  { label: "Tecnología", roles: IT_ROLE_KEYS },
+  { label: "Tecnología", roles: [...IT_ROLE_KEYS, ...NEW_TECH_ROLE_KEYS] },
   { label: "Producto y proyectos", roles: PRODUCT_ROLE_KEYS },
   { label: "Carreras digitales", roles: OTHER_DIGITAL_ROLE_KEYS },
 ];
@@ -149,6 +158,9 @@ const HEADLINE_KEYWORDS: Record<RoleKey, RegExp> = {
   project_manager:
     /project manager|program manager|scrum master|agile coach|\bpmo\b|(?:gerente|jefe|jefa|lider|coordinador|coordinadora) de proyectos/,
   product_marketing: /product marketing|marketing de producto/,
+  data_engineer: /data engineer|analytics engineer|ingenier[oa] de datos/,
+  solutions_engineer:
+    /solutions? engineer|solutions? architect|sales engineer|\bpre-?sales\b|preventa|forward deployed/,
   rrhh_it:
     /\brecruiters?\b|\breclutador(?:a|es|as)?\b|talent acquisition|\brrhh\b|recursos humanos/,
   customer_success: /customer success/,

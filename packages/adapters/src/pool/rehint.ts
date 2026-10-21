@@ -1,6 +1,6 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import { detectJobLanguage, inferRoleHints, ROLE_KEYS } from "@job-search-os/pipeline";
-import { and, asc, eq, gt, gte, isNull } from "drizzle-orm";
+import { and, asc, gt, gte, isNull, sql } from "drizzle-orm";
 import { inReadOnlyTransaction } from "./explain";
 import { poolWindows, SEEN_WINDOW_DAYS } from "./select";
 
@@ -11,7 +11,7 @@ import { poolWindows, SEEN_WINDOW_DAYS } from "./select";
  *
  * Las filas vigentes son las mismas que mira `pool:explain --hints`: sin copias (`dedup_of_id`
  * nulo) y con `last_seen_at` dentro de la ventana de `poolWindows`. Con `apply`, un `UPDATE` por
- * fila que cambió, solo de `role_hints` y/o `lang`; no toca `updated_at`, `last_seen_at` ni el
+ * lote (un `UPDATE … FROM VALUES` con las filas que cambiaron), solo de `role_hints` y/o `lang`; no toca `updated_at`, `last_seen_at` ni el
  * crudo. Cada lote va en su transacción. El informe son solo conteos: ni títulos, ni ids, ni texto.
  */
 
@@ -33,6 +33,49 @@ export type RehintReport = {
   legacyMatrix: { from: string; to: string; count: number }[];
 };
 
+/** Solo conteos. `changed` = filas del lote a escribir; `written` = filas que el UPDATE tocó. */
+export type RehintProgress = {
+  batch: number;
+  seen: number;
+  changed: number;
+  written: number;
+  /** Filas vigentes en total (`count(*)` con el mismo filtro). */
+  expected: number;
+  totalWritten: number;
+};
+
+type PendingUpdate = {
+  id: string;
+  hintsChanged: boolean;
+  nextHints: string[];
+  langChanged: boolean;
+  nextLang: string | null;
+};
+
+/**
+ * Un único `UPDATE … FROM (VALUES …)` por lote. Cada columna lleva su marca (`set_*`): la que no
+ * cambió conserva el valor guardado (`CASE`), así no se reordena ni se normaliza lo que ya estaba.
+ * Todo va parametrizado; `id` y `text[]` se castean dentro del `VALUES`.
+ */
+async function writeBatch(tx: Db, pending: readonly PendingUpdate[]): Promise<number> {
+  if (pending.length === 0) return 0;
+  const values = pending.map((u) => {
+    const hints = sql`ARRAY[${sql.join(
+      u.nextHints.map((h) => sql`${h}::text`),
+      sql`, `,
+    )}]::text[]`;
+    return sql`(${u.id}::uuid, ${hints}, ${u.nextLang}::text, ${u.hintsChanged}::boolean, ${u.langChanged}::boolean)`;
+  });
+  const res = await tx.execute(sql`
+    UPDATE public_jobs AS p
+    SET role_hints = CASE WHEN v.set_hints THEN v.role_hints ELSE p.role_hints END,
+        lang = CASE WHEN v.set_lang THEN v.lang ELSE p.lang END
+    FROM (VALUES ${sql.join(values, sql`, `)}) AS v(id, role_hints, lang, set_hints, set_lang)
+    WHERE p.id = v.id
+    RETURNING p.id`);
+  return (res as unknown as unknown[]).length;
+}
+
 const keyOf = (hints: readonly string[]) => (hints.length ? hints.join(",") : "(sin señal)");
 
 function hintsDiffer(stored: readonly string[], next: readonly string[]): boolean {
@@ -47,7 +90,12 @@ function langBucket(lang: string | null): string {
 
 export async function rehintPool(
   db: Db,
-  opts: { apply: boolean; now: Date; batchSize?: number },
+  opts: {
+    apply: boolean;
+    now: Date;
+    batchSize?: number;
+    onProgress?: (p: RehintProgress) => void;
+  },
 ): Promise<RehintReport> {
   const batchSize = opts.batchSize ?? REHINT_BATCH_SIZE;
   const { seenSince } = poolWindows(opts.now);
@@ -59,6 +107,13 @@ export async function rehintPool(
   const bump = (m: Map<string, number>, k: string) => m.set(k, (m.get(k) ?? 0) + 1);
   const report = { total: 0, hintsChanged: 0, langChanged: 0, rowsWritten: 0 };
 
+  const [cnt] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(s.publicJobs)
+    .where(and(isNull(s.publicJobs.dedupOfId), gte(s.publicJobs.lastSeenAt, seenSince)));
+  const expected = cnt?.n ?? 0;
+  let seen = 0;
+  let batch = 0;
   let cursor: string | null = null;
   for (;;) {
     const where = and(
@@ -66,7 +121,7 @@ export async function rehintPool(
       gte(s.publicJobs.lastSeenAt, seenSince),
       cursor ? gt(s.publicJobs.id, cursor) : undefined,
     );
-    const process = async (tx: Db): Promise<number> => {
+    const process = async (tx: Db): Promise<{ n: number; progress: RehintProgress }> => {
       const rows = await tx
         .select({
           id: s.publicJobs.id,
@@ -82,6 +137,8 @@ export async function rehintPool(
         .where(where)
         .orderBy(asc(s.publicJobs.id))
         .limit(batchSize);
+      const pending: PendingUpdate[] = [];
+      let batchChanged = 0;
       for (const row of rows) {
         const oldHints = [...new Set(row.roleHints ?? [])];
         const nextHints = inferRoleHints({
@@ -101,27 +158,36 @@ export async function rehintPool(
         report.total += 1;
         if (hintsChanged) report.hintsChanged += 1;
         if (langChanged) report.langChanged += 1;
-        if (opts.apply && (hintsChanged || langChanged)) {
-          // Se cuentan las filas que el UPDATE tocó de verdad: con un rol sin permiso, RLS las
-          // descartaría en silencio y el informe no puede decir que se escribió
-          const written = await tx
-            .update(s.publicJobs)
-            .set({
-              ...(hintsChanged ? { roleHints: nextHints } : {}),
-              ...(langChanged ? { lang: nextLang } : {}),
-            })
-            .where(eq(s.publicJobs.id, row.id))
-            .returning({ id: s.publicJobs.id });
-          report.rowsWritten += written.length;
+        if (hintsChanged || langChanged) {
+          batchChanged += 1;
+          pending.push({ id: row.id, hintsChanged, nextHints, langChanged, nextLang });
         }
       }
+      // Una sola escritura por lote. Se cuentan las filas que el UPDATE tocó de verdad: con un rol
+      // sin permiso, RLS las descartaría en silencio y el informe no puede decir que se escribió
+      const written = opts.apply ? await writeBatch(tx, pending) : 0;
+      report.rowsWritten += written;
+      seen += rows.length;
+      batch += 1;
       cursor = rows.length ? rows[rows.length - 1]!.id : cursor;
-      return rows.length;
+      // El progreso se informa recién cuando la transacción del lote hizo commit (más abajo)
+      return {
+        n: rows.length,
+        progress: {
+          batch,
+          seen,
+          changed: batchChanged,
+          written,
+          expected,
+          totalWritten: report.rowsWritten,
+        } satisfies RehintProgress,
+      };
     };
     // El dry-run corre en una transacción de solo lectura: Postgres rechaza cualquier escritura
-    const n: number = opts.apply
+    const { n, progress } = opts.apply
       ? await db.transaction((tx) => process(tx as unknown as Db))
       : await inReadOnlyTransaction(db, process);
+    opts.onProgress?.(progress);
     if (n < batchSize) break;
   }
 
@@ -139,6 +205,10 @@ export async function rehintPool(
       .map(([to, count]) => ({ from: LEGACY_HINT, to, count }))
       .sort((a, b) => b.count - a.count || a.to.localeCompare(b.to)),
   };
+}
+
+export function formatRehintProgress(p: RehintProgress): string {
+  return `lote ${p.batch}: vistas ${p.seen} de ${p.expected}, a escribir ${p.changed}, escritas ${p.written} (total escritas ${p.totalWritten})`;
 }
 
 export function formatRehintReport(r: RehintReport): string {

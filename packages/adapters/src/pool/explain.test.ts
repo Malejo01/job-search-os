@@ -167,6 +167,8 @@ describe("parsePersona", () => {
       "product-owner.json",
       "project-manager.json",
       "product-marketing.json",
+      "data-engineer.json",
+      "solutions-engineer.json",
     ]) {
       const json = JSON.parse(readFileSync(new URL(`./personas/${f}`, import.meta.url), "utf8"));
       expect(parsePersona(json).ok, f).toBe(true);
@@ -242,6 +244,43 @@ describe("--hints (ronda 97)", () => {
     }
     expect(text).toContain("carrera");
     expect(text).toContain("producto_proyectos → combinación nueva");
+  });
+});
+
+describe("--hints (ronda 106)", () => {
+  it("las carreras nuevas aparecen en la tabla, con 0 guardadas y lo recalculado", () => {
+    const rows: HintsRow[] = [
+      {
+        sourceKind: "other",
+        title: "Senior Data Engineer Cuarzo",
+        tags: null,
+        categories: null,
+        roleHints: [],
+      },
+      {
+        sourceKind: "other",
+        title: "Solutions Architect Berilo",
+        tags: null,
+        categories: null,
+        roleHints: [],
+      },
+      {
+        sourceKind: "other",
+        title: "Site Reliability Engineer Onix",
+        tags: null,
+        categories: null,
+        roleHints: [],
+      },
+    ];
+    const r = buildHintsReport(rows);
+    const by = (role: string) => r.byRole.find((x) => x.role === role);
+    expect(by("data_engineer")).toEqual({ role: "data_engineer", stored: 0, recomputed: 1 });
+    expect(by("solutions_engineer")).toEqual({
+      role: "solutions_engineer",
+      stored: 0,
+      recomputed: 1,
+    });
+    expect(by("soporte_it")).toMatchObject({ recomputed: 1 });
   });
 });
 

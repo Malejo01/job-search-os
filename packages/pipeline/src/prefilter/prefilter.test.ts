@@ -136,6 +136,68 @@ describe("prefilter: targetRoles (ronda 40, varios en la 45)", () => {
     expect(run("Cybersecurity Analyst", "ciberseguridad").pass).toBe(true);
   });
 
+  it("data_engineer y solutions_engineer pasan sus títulos propios (ronda 106)", () => {
+    // Palabras que el dueño de la instancia pudo poner en other_discipline_keywords
+    const strict = {
+      ...rules,
+      other_discipline_keywords: [
+        ...rules.other_discipline_keywords,
+        "sales engineer",
+        "presales",
+        "etl",
+      ],
+    };
+    const go = (title: string, role?: RoleKey) =>
+      prefilter({ title, modality: "remoto" }, strict, role ? { targetRoles: [role] } : undefined);
+    expect(go("Sales Engineer")).toMatchObject({ pass: false });
+    expect(go("Sales Engineer", "solutions_engineer").pass).toBe(true);
+    expect(go("Presales Engineer", "solutions_engineer").pass).toBe(true);
+    expect(go("ETL Developer")).toMatchObject({ pass: false });
+    expect(go("ETL Developer", "data_engineer").pass).toBe(true);
+    // la excepción es solo de la carrera propia
+    expect(go("Sales Engineer", "data_engineer")).toMatchObject({ pass: false });
+    expect(go("ETL Developer", "solutions_engineer")).toMatchObject({ pass: false });
+    // "architect" está en la blocklist: el cargo propio se libera solo para solutions_engineer
+    expect(go("Solutions Architect")).toMatchObject({ pass: false, reason: "titulo_blocklist" });
+    expect(go("Solutions Architect", "solutions_engineer").pass).toBe(true);
+    expect(go("Solutions Architect", "frontend")).toMatchObject({ pass: false });
+    // lead y manager siguen bloqueando
+    expect(go("Lead Solutions Engineer", "solutions_engineer")).toMatchObject({ pass: false });
+  });
+
+  it("las palabras preventivas de las dos carreras pasan con la carrera y se descartan con una ajena", () => {
+    const strict = {
+      ...rules,
+      other_discipline_keywords: [
+        ...rules.other_discipline_keywords,
+        "databricks",
+        "snowflake",
+        "pre sales",
+        "solutions architect",
+      ],
+    };
+    const go = (title: string, role?: RoleKey) =>
+      prefilter({ title, modality: "remoto" }, strict, role ? { targetRoles: [role] } : undefined);
+    const cases: [string, RoleKey, RoleKey][] = [
+      ["Databricks Developer", "data_engineer", "solutions_engineer"],
+      ["Snowflake Developer", "data_engineer", "frontend"],
+      ["Pre Sales Engineer", "solutions_engineer", "data_engineer"],
+      ["Solutions Architect", "solutions_engineer", "backend"],
+    ];
+    for (const [title, own, foreign] of cases) {
+      expect(go(title, own).pass, `${title} con ${own}`).toBe(true);
+      expect(go(title, foreign).pass, `${title} con ${foreign}`).toBe(false);
+      expect(go(title).pass, `${title} sin carrera`).toBe(false);
+    }
+  });
+
+  it("software architect pasa con backend y security architect con ciberseguridad", () => {
+    expect(run("Software Architect")).toMatchObject({ pass: false });
+    expect(run("Software Architect", "backend").pass).toBe(true);
+    expect(run("Security Architect", "ciberseguridad").pass).toBe(true);
+    expect(run("Security Architect", "backend")).toMatchObject({ pass: false });
+  });
+
   it("la excepción es solo del oficio propio de cada puesto", () => {
     expect(run("SEO Specialist", "product_manager")).toMatchObject({ pass: false });
     expect(run("Project Manager", "marketing_digital")).toMatchObject({ pass: false });
@@ -189,7 +251,11 @@ describe("prefilter: targetRoles (ronda 40, varios en la 45)", () => {
   it("puestos sin entradas no cambian nada y todas las palabras existen en las reglas", () => {
     expect(run("SEO Specialist", "rrhh_it")).toMatchObject({ pass: false });
     expect(run("Backend Developer", "backend").pass).toBe(true);
-    for (const words of Object.values(ROLE_DOMAIN_KEYWORDS)) {
+    // Las carreras de la ronda 106 son preventivas: sus palabras no están en el ejemplo público, pero
+    // sí pueden estar en las reglas privadas de la instancia (otro oficio, p. ej. ventas o SQL).
+    const PREVENTIVE: RoleKey[] = ["data_engineer", "solutions_engineer"];
+    for (const [role, words] of Object.entries(ROLE_DOMAIN_KEYWORDS)) {
+      if (PREVENTIVE.includes(role as RoleKey)) continue;
       for (const w of words ?? []) expect(rules.other_discipline_keywords).toContain(w);
     }
   });

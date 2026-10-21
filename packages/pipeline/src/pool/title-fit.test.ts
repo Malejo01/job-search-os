@@ -40,6 +40,36 @@ describe("titleFit · carreras de producto (ronda 97)", () => {
   });
 });
 
+describe("titleFit · data_engineer y solutions_engineer (ronda 106)", () => {
+  it("data engineer y data analyst se vetan entre sí cuando la categoría las junta", () => {
+    expect(titleFit("Senior Data Engineer", "data_engineer")).toBe(2);
+    expect(titleFit("Senior Data Engineer", "data_analyst")).toBe(0);
+    expect(titleFit("Data Analyst", "data_analyst")).toBe(2);
+    expect(titleFit("Data Analyst", "data_engineer")).toBe(0);
+    expect(titleFit("Data Scientist", "data_engineer")).toBe(0);
+  });
+
+  it("un título de datos sin frase de ninguna no se veta", () => {
+    expect(titleFit("Data Specialist", "data_engineer")).toBe(1);
+  });
+
+  it("solutions_engineer: el cargo nombrado vale 2 y el field engineer suelto no", () => {
+    expect(titleFit("Solutions Architect", "solutions_engineer")).toBe(2);
+    expect(titleFit("Sales Engineer", "solutions_engineer")).toBe(2);
+    expect(titleFit("Customer Field Engineer", "solutions_engineer")).toBe(2);
+    expect(titleFit("Field Engineer", "solutions_engineer")).toBe(1);
+  });
+
+  it("las exclusiones de role-hints también valen acá", () => {
+    expect(titleFit("Physical Security Engineer", "ciberseguridad")).toBe(1);
+    expect(titleFit("Security Architect", "ciberseguridad")).toBe(2);
+    expect(titleFit("Manufacturing Product Engineer", "fullstack")).toBe(1);
+    expect(titleFit("Product Engineer, Manufacturing", "fullstack")).toBe(1);
+    expect(titleFit("Product Engineer", "fullstack")).toBe(2);
+    expect(titleFit("Full Stack Engineer, Hardware Platform", "fullstack")).toBe(2);
+  });
+});
+
 describe("titleFit", () => {
   it("2 cuando el título nombra el cargo", () => {
     expect(titleFit("Data Analyst", "data_analyst")).toBe(2);
@@ -52,8 +82,14 @@ describe("titleFit", () => {
     expect(titleFit("Fraud Data Analyst", "data_analyst")).toBe(2);
   });
 
-  it("analytics engineer no se veta", () => {
-    expect(titleFit("Analytics Engineer", "data_analyst")).toBe(2);
+  it("analytics engineer pasó a data_engineer (ronda 106): data_analyst lo veta", () => {
+    expect(titleFit("Analytics Engineer", "data_analyst")).toBe(0);
+    expect(titleFit("Analytics Engineer", "data_engineer")).toBe(2);
+  });
+
+  it("data scientist y product analyst nombran data_analyst", () => {
+    expect(titleFit("Data Scientist", "data_analyst")).toBe(2);
+    expect(titleFit("Product Analyst", "data_analyst")).toBe(2);
   });
 
   it("con frase fuerte no hay veto aunque el título mencione otra disciplina", () => {
@@ -64,7 +100,6 @@ describe("titleFit", () => {
   it("0 cuando el título nombra otra disciplina y no tiene frase del puesto", () => {
     for (const t of [
       "Senior Data Engineer",
-      "Data Scientist",
       "Machine Learning Researcher",
       "ML Engineer",
       "AI Engineer",
