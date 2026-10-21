@@ -45,13 +45,24 @@ describe("validateCustomSkillName", () => {
   });
 
   it("rechaza links", () => {
-    for (const bad of ["https://ejemplo.test/x", "www.ejemplo.com", "herramienta.com", "ftp://x"]) {
+    for (const bad of [
+      "https://ejemplo.test/x",
+      "https://x.com",
+      "www.ejemplo.com",
+      "www.algo.com",
+      "algo.com/ruta",
+      "persona@example.com",
+      "ftp://x",
+    ]) {
       expect(validateCustomSkillName(bad, taxonomy), bad).toEqual({ ok: false, reason: "url" });
     }
   });
 
   it("no confunde con un link nombres con punto como Vue.js", () => {
-    expect(validateCustomSkillName("Svelte.js", taxonomy).ok).toBe(true);
+    for (const good of ["Svelte.js", "Socket.io", "Node.js", "D3.js", "ASP.NET"]) {
+      // Sin taxonomía: algunos (Node.js) ya están en la lista y darían `en_taxonomia`, no `url`
+      expect(validateCustomSkillName(good, []).ok, good).toBe(true);
+    }
   });
 
   it("rechaza lo que ya está en la taxonomía, por nombre, slug o alias, y dice cuál usar", () => {

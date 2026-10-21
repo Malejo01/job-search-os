@@ -28,8 +28,11 @@ export function customSkillKey(name: string): string {
 
 /** Controles y caracteres invisibles (ancho cero, direccionales), además de `<` y `>`. */
 const BAD_CHARS = /[\p{Cc}\p{Cf}\p{Co}\p{Cs}<>]/u;
-/** Esquema, `www.` o un dominio con extensión común. */
-const URL_LIKE = /:\/\/|\bwww\.|\b[a-z0-9-]+\.(?:com|org|io|dev|app|info|xyz)\b/i;
+/**
+ * Link o email: esquema (`://`), `www.`, `/` o `@`. Un punto seguido de letras es válido
+ * (`Socket.io`, `Node.js`, `D3.js`, `ASP.NET`).
+ */
+const URL_LIKE = /:\/\/|www\.|\/|@/i;
 
 /** Términos con los que una skill de la taxonomía puede escribirse. */
 function taxonomyTerms(entry: SkillTaxonomyEntry): string[] {
@@ -55,8 +58,8 @@ export function validateCustomSkillName(
   const name = trimmed.replace(/\s+/g, " ");
   if (name.length < CUSTOM_SKILL_MIN_LENGTH) return { ok: false, reason: "corto" };
   if (name.length > CUSTOM_SKILL_MAX_LENGTH) return { ok: false, reason: "largo" };
-  if (URL_LIKE.test(name)) return { ok: false, reason: "url" };
   const key = customSkillKey(name);
+  // Primero la taxonomía: «Git / GitHub» lleva `/` y es una skill de la lista, no un link
   for (const entry of taxonomy) {
     if (taxonomyTerms(entry).includes(key)) {
       return {
@@ -66,6 +69,7 @@ export function validateCustomSkillName(
       };
     }
   }
+  if (URL_LIKE.test(name)) return { ok: false, reason: "url" };
   return { ok: true, name, key };
 }
 
