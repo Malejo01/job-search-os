@@ -846,5 +846,45 @@
     "aliases": ["pmp", "capm", "prince2", "psm", "pspo", "cspo", "certified scrum master","safe agilist"],
     "closure_hours": 40,
     "description": "Certificaciones de gestión de proyectos y producto, como PMP, PSM o CSPO, que se rinden con examen"
+  },
+  {
+    "slug": "prospecting",
+    "name": "Prospección y generación de leads",
+    "category": "dominio",
+    "aliases": ["prospección", "prospeccion", "cold calling", "cold outreach", "cold email", "outbound", "lead generation", "generación de leads", "generacion de leads"],
+    "closure_hours": 12,
+    "description": "Prospección: buscar y contactar a empresas o personas que todavía no son clientes para conseguir reuniones de venta"
+  },
+  {
+    "slug": "negotiation",
+    "name": "Negociación y cierre de ventas",
+    "category": "dominio",
+    "aliases": ["negociación", "negociacion", "deal closing", "closing deals", "cierre de ventas", "objection handling", "manejo de objeciones"],
+    "closure_hours": 12,
+    "description": "Negociación y cierre: acordar precio y condiciones con un cliente y responder sus objeciones hasta cerrar la venta"
+  },
+  {
+    "slug": "sales_tools",
+    "name": "Herramientas de ventas (Apollo, Gong)",
+    "category": "dominio",
+    "aliases": ["lemlist", "gong", "zoominfo", "sales navigator", "linkedin sales navigator", "outreach.io", "outreach sequences"],
+    "closure_hours": 8,
+    "description": "Herramientas de ventas: plataformas para buscar contactos, enviar secuencias de mails y analizar llamadas con clientes"
+  },
+  {
+    "slug": "chat_support",
+    "name": "Atención por chat",
+    "category": "dominio",
+    "aliases": ["live chat", "chat support", "intercom", "soporte por chat", "atención por chat", "atencion por chat"],
+    "closure_hours": 8,
+    "description": "Atención por chat: responder consultas de clientes en tiempo real por chat, con herramientas como Intercom"
+  },
+  {
+    "slug": "hr_generalist",
+    "name": "Generalista de RRHH",
+    "category": "dominio",
+    "aliases": ["hr generalist", "people operations", "onboarding de empleados", "employee onboarding", "nómina", "nomina", "payroll", "legislación laboral", "legislacion laboral"],
+    "closure_hours": 16,
+    "description": "Generalista de RRHH: ingreso de personal, nómina, legislación laboral y trámites del día a día de las personas de una empresa"
   }
 ]

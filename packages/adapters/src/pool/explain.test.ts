@@ -169,6 +169,8 @@ describe("parsePersona", () => {
       "product-marketing.json",
       "data-engineer.json",
       "solutions-engineer.json",
+      "ventas-b2b.json",
+      "atencion-cliente.json",
     ]) {
       const json = JSON.parse(readFileSync(new URL(`./personas/${f}`, import.meta.url), "utf8"));
       expect(parsePersona(json).ok, f).toBe(true);
@@ -281,6 +283,28 @@ describe("--hints (ronda 106)", () => {
       recomputed: 1,
     });
     expect(by("soporte_it")).toMatchObject({ recomputed: 1 });
+  });
+});
+
+describe("--hints (ronda 107)", () => {
+  it("ventas y atención aparecen en la tabla con lo recalculado", () => {
+    const row = (title: string, categories: string[] | null = null): HintsRow => ({
+      sourceKind: categories ? "getonboard_api" : "other",
+      title,
+      tags: null,
+      categories,
+      roleHints: [],
+    });
+    const r = buildHintsReport([
+      row("Account Executive Cuarzo"),
+      row("Sales Development Representative Berilo"),
+      row("Customer Support Specialist Onix", ["customer-support"]),
+      row("Cargo sin pistas Jade", ["sales"]),
+    ]);
+    const by = (role: string) => r.byRole.find((x) => x.role === role);
+    expect(by("ventas_b2b")).toEqual({ role: "ventas_b2b", stored: 0, recomputed: 3 });
+    expect(by("atencion_cliente")).toEqual({ role: "atencion_cliente", stored: 0, recomputed: 1 });
+    expect(by("customer_success")).toMatchObject({ recomputed: 1 });
   });
 });
 

@@ -17,6 +17,12 @@ const PRODUCT_ONLY: readonly RoleKey[] = ["product_manager", "product_owner"];
 const PRODUCT_PROJECT: readonly RoleKey[] = [...PRODUCT_ONLY, "project_manager"];
 
 /**
+ * `customer-support` (ronda 107, ADR-022): atención al cliente y customer success comparten la
+ * categoría; `titleFit` los separa con los vetos cruzados. No es soporte de IT.
+ */
+const CUSTOMER_SUPPORT: readonly RoleKey[] = ["atencion_cliente", "customer_success"];
+
+/**
  * Fuente → categoría → roles. Las categorías se comparan normalizadas: minúsculas, sin acentos y
  * con todo lo que no sea letra o número convertido en un guion ("Machine Learning" → "machine-learning").
  * Remote OK se consulta sobre sus `tags`; Get on Board y Jobicy sobre `categories`.
@@ -40,8 +46,10 @@ export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleK
     "innovation-agile": PRODUCT_PROJECT,
     "technical-support": ["soporte_it"],
     cybersecurity: ["ciberseguridad"],
-    // `customer-support` es atención al cliente: no es soporte de IT, sí customer success.
-    "customer-support": ["customer_success"],
+    "customer-support": CUSTOMER_SUPPORT,
+    // Ronda 107 (ADR-022): ventas B2B. La categoría trae también ventas de mostrador y comercio:
+    // los términos de título y sus vetos separan.
+    sales: ["ventas_b2b"],
     // Ronda 103 (ADR-020). Operaciones trae también gerencia y administración: `titleFit` deja
     // solo los títulos de proyectos. Publicidad y medios es lo más cercano a marketing digital.
     "operations-management": ["project_manager"],
@@ -84,7 +92,7 @@ export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleK
     "artificial-intelligence": ["ai_engineer"],
     "ai-ml": ["ai_engineer"],
     ai: ["ai_engineer"],
-    // `customer-support` no entra: es atención al cliente, no soporte de IT.
+    "customer-support": CUSTOMER_SUPPORT,
   },
   remoteok: {
     dev: DEV,
@@ -100,7 +108,8 @@ export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleK
     ui: ["ux_ui"],
     qa: ["qa"],
     testing: ["qa"],
-    // Ni `support` ni `customer-support`: en Remote OK son atención al cliente, no soporte de IT.
+    // `support` suelto no se mapea; `customer-support` es atención al cliente, no soporte de IT.
+    "customer-support": CUSTOMER_SUPPORT,
     sysadmin: ["soporte_it"],
     data: ["data_analyst"],
     analyst: ["data_analyst"],
@@ -139,8 +148,8 @@ export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleK
     "devops-sysadmin": ["soporte_it"],
     "remote-product-jobs": PRODUCT_PROJECT,
     product: PRODUCT_PROJECT,
-    "remote-customer-support-jobs": ["customer_success"],
-    "customer-support": ["customer_success"],
+    "remote-customer-support-jobs": CUSTOMER_SUPPORT,
+    "customer-support": CUSTOMER_SUPPORT,
     "remote-design-jobs": ["ux_ui"],
     design: ["ux_ui"],
   },
@@ -313,6 +322,25 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "social media",
     "content marketing",
     "email marketing",
+    // Ronda 107 (ADR-022): contenido, redes, gráfico y video son subespecialidades de la carrera.
+    // Nada de "designer" ni "content" sueltos: "designer" es ux_ui.
+    "copywriter",
+    "content creator",
+    "content writer",
+    "content producer",
+    "content specialist",
+    "redactor",
+    "redactora",
+    "graphic designer",
+    "disenador grafico",
+    "disenadora grafica",
+    "video editor",
+    "editor de video",
+    "editora de video",
+    "motion graphics",
+    "motion designer",
+    "creador de contenido",
+    "creadora de contenido",
   ],
   product_manager: [
     "product manager",
@@ -360,6 +388,18 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "recursos humanos",
     "rrhh",
     "human resources",
+    // Ronda 107 (ADR-022): RRHH general, no solo IT.
+    "hr",
+    "hr generalist",
+    "hr manager",
+    "hr specialist",
+    "hr coordinator",
+    "people operations",
+    "people ops",
+    "talent partner",
+    "recruiting",
+    "recruitment",
+    "reclutamiento",
   ],
   customer_success: [
     // Nunca "customer support" ni "atencion al cliente": es atención, no customer success.
@@ -431,6 +471,56 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "ingeniero de preventa",
     "ingeniera de preventa",
   ],
+  // Ronda 107 (ADR-022). "Account manager" suelto NO va: es de customer_success (status quo).
+  ventas_b2b: [
+    "sdr",
+    "bdr",
+    "sales development",
+    "business development",
+    "business development representative",
+    "account executive",
+    "inside sales",
+    "sales representative",
+    "sales executive",
+    "sales manager",
+    "sales lead",
+    "key account",
+    "partner manager",
+    "ejecutivo comercial",
+    "ejecutiva comercial",
+    "ejecutivo de cuentas",
+    "ejecutiva de cuentas",
+    "ejecutivo de ventas",
+    "ejecutiva de ventas",
+    "representante de ventas",
+    "asesor comercial",
+    "asesora comercial",
+    "desarrollo de negocios",
+    "vendedor",
+    "vendedora",
+    "vendedores",
+    "vendedoras",
+    "ventas b2b",
+  ],
+  atencion_cliente: [
+    "customer support",
+    "customer service",
+    "customer care",
+    "support agent",
+    "support representative",
+    "support specialist",
+    "support associate",
+    "atencion al cliente",
+    "atencion al usuario",
+    "servicio al cliente",
+    "call center",
+    "contact center",
+    "contact centre",
+    "agente de soporte",
+    "agente de atencion",
+    "representante de atencion",
+    "representante de servicio",
+  ],
 };
 
 /** Palabras que anulan el puesto aunque el título tenga uno de sus términos. */
@@ -438,6 +528,29 @@ export const TITLE_EXCLUSIONS: Partial<Record<RoleKey, readonly string[]>> = {
   ciberseguridad: ["physical security", "data center security"],
   // Esas infraestructuras y plataformas son de seguridad y de datos, ya tienen su carrera.
   soporte_it: ["security infrastructure", "data platform", "data infrastructure"],
+  // Ronda 107 (ADR-022): «Sales Engineer» es solutions_engineer y «Business Developer» no es ventas.
+  ventas_b2b: [
+    "engineer",
+    "architect",
+    "developer",
+    "ingeniero",
+    "ingeniera",
+    "presales",
+    "pre sales",
+    "preventa",
+  ],
+  // «IT Support», «Technical Support Specialist», «Customer Support Engineer», «Agente de soporte técnico».
+  atencion_cliente: [
+    "technical",
+    "it",
+    "engineer",
+    "software",
+    "developer",
+    "success",
+    "tecnico",
+    "tecnica",
+    "data",
+  ],
 };
 
 /**

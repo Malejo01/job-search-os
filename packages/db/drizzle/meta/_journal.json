@@ -253,6 +253,20 @@
       "when": 1792606717287,
       "tag": "0035_chief_thor",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1792612471594,
+      "tag": "0036_thin_marvel_apes",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1792612473865,
+      "tag": "0037_carreras_ventas",
+      "breakpoints": true
     }
   ]
 }

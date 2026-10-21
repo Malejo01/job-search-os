@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ROLE_GROUPS } from "@job-search-os/pipeline";
+import { selectableRoleGroups } from "@job-search-os/pipeline";
 import { contactLink } from "@/lib/contact";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
 import { WaitlistForm } from "./waitlist-form";
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 export default function AccesoPage() {
-  const groups = ROLE_GROUPS.map((group) => ({
+  const groups = selectableRoleGroups().map((group) => ({
     label: group.label,
     roles: group.roles.map((key) => ({ key, label: ROLE_SKILLS[key].label })),
   }));
