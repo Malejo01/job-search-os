@@ -7,6 +7,7 @@ import { assertAppRole } from "@/lib/db";
 import { canCreateInvitations } from "@/lib/invitations";
 import { isOnboardingComplete } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
+import { needsTermsAcceptance } from "@/lib/terms-status";
 import { MainNav } from "./main-nav";
 
 const NAV = [
@@ -35,6 +36,9 @@ async function logout(): Promise<void> {
 export default async function AppLayout({ children }: { children: ReactNode }) {
   await assertAppRole();
   const userId = await requireUserId();
+  // Gate de términos (ronda 83): sin la versión vigente aceptada no se ve nada. La pantalla está fuera
+  // de este grupo; si estuviera adentro, este redirect entraría en loop.
+  if (await needsTermsAcceptance(userId)) redirect("/terminos-actualizados");
   // Gate de onboarding (B2): sin perfil completo no se ve nada de la app. /onboarding está fuera
   // de este grupo; si estuviera adentro, este redirect entraría en loop.
   if (!(await isOnboardingComplete(userId))) redirect("/onboarding");

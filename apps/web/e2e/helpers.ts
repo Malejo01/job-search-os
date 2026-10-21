@@ -11,6 +11,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { expect, type Locator, type Page } from "@playwright/test";
 // Import relativo directo, como global-setup: test-guard.ts no importa nada
 import { assertLocalTestDatabase } from "../../../packages/db/src/test-guard";
+import { TERMS_VERSION } from "../lib/terms";
 
 /** Credenciales del usuario seed local (pnpm db:seed --local con SEED_USER_EMAIL/PASSWORD). */
 export const E2E_EMAIL = process.env.E2E_EMAIL ?? "mauro@job-search-os.local";
@@ -522,6 +523,9 @@ export async function ensureSecondUser(): Promise<void> {
         email: E2E_B_EMAIL,
         name: "Persona B",
         passwordHash: hashPassword(E2E_B_PASSWORD),
+        // Con la versión vigente: si no, el gate de términos la frena en /terminos-actualizados
+        termsVersion: TERMS_VERSION,
+        termsAcceptedAt: new Date(),
       })
       .onConflictDoNothing();
     await db
