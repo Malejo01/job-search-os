@@ -31,7 +31,7 @@ export const TRUST_TEXTS: readonly [TrustText, TrustText, TrustText, TrustText] 
   {
     id: "cortar",
     title: "Cómo cortarlo",
-    body: "Borrá el filtro en Gmail, o borrá tu cuenta acá y se borra todo lo tuyo.",
+    body: "Borrá el filtro en Gmail, o borrá tu cuenta acá y se borra todo lo tuyo de nuestra base (qué queda afuera está en la política de privacidad).",
   },
   {
     id: "responsable",

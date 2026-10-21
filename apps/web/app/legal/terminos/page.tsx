@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { LegalPage } from "@/lib/legal";
 
-export const metadata: Metadata = { title: "Términos de uso (borrador)" };
+export const metadata: Metadata = { title: "Términos de uso" };
 
 // Pública y sin base: LegalPage lee el Markdown del disco y las variables LEGAL_* en cada request
 // (dinámica), para que cambiarlas en Vercel no exija un rebuild con datos horneados.
