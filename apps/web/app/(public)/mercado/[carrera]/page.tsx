@@ -23,6 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `Mercado de ${label}: qué piden las ofertas`,
     description: `Skills, inglés, seniority y sueldos que piden las ofertas públicas de ${label}.`,
+    alternates: { canonical: `/mercado/${role}` },
   };
 }
 

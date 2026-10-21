@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: "Demo: así evalúa ofertas reales",
   description:
     "Mirá cómo evalúa ofertas reales para tres perfiles inventados: puntaje, por qué sí, por qué no y acción sugerida.",
+  alternates: { canonical: "/demo" },
 };
 
 export default async function DemoPage() {

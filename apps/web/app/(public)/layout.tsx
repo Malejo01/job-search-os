@@ -33,7 +33,8 @@ const LINK_CLASS =
 const DESKTOP_LINK_CLASS =
   "hidden min-h-11 items-center px-2 text-sm text-zinc-700 underline-offset-2 hover:underline sm:inline-flex";
 
-const FOOTER_LINK = "inline-flex min-h-11 items-center px-2 underline-offset-2 hover:underline";
+// Subrayados siempre: el pie mezcla links con "·" y sin subrayado el link no se distingue del texto (link-in-text-block)
+const FOOTER_LINK = "inline-flex min-h-11 items-center px-2 underline underline-offset-2";
 
 export default function PublicLayout({ children }: { children: ReactNode }) {
   return (
@@ -87,20 +88,14 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
         <Link href="/demo" className={`${FOOTER_LINK} sm:hidden`}>
           Demo
         </Link>
-        <Link
-          href="/legal/privacidad"
-          className="inline-flex min-h-11 items-center px-2 underline-offset-2 hover:underline"
-        >
+        <Link href="/legal/privacidad" className={FOOTER_LINK}>
           Privacidad
         </Link>
         <span aria-hidden="true" className="hidden sm:inline">
           {" "}
           ·{" "}
         </span>
-        <Link
-          href="/legal/terminos"
-          className="inline-flex min-h-11 items-center px-2 underline-offset-2 hover:underline"
-        >
+        <Link href="/legal/terminos" className={FOOTER_LINK}>
           Términos
         </Link>
         <span aria-hidden="true" className="hidden sm:inline">

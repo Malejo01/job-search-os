@@ -9,6 +9,7 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "Ofertas de muestra",
   description: "Las ofertas públicas más recientes, con link al aviso original.",
+  alternates: { canonical: "/ofertas" },
   // La muestra cambia todos los días: no se indexa, pero el robot tiene que poder leer esto
   robots: { index: false, follow: true },
 };
