@@ -5,7 +5,7 @@ import { login, ownerDb } from "./helpers";
 
 /**
  * Flujo 44 (ronda 63): vitrina pública. Portada, mercado, ofertas de muestra y pedido de acceso sin
- * sesión; con sesión `/` lleva a /jobs; y a 360 px nada se desborda. Las páginas son ISR y pueden
+ * sesión; con sesión `/` lleva a /hoy (ronda 119b); y a 360 px nada se desborda. Las páginas son ISR y pueden
  * haberse prerenderizado antes de cargar datos: se verifica la estructura (headings y secciones),
  * nunca cantidades. La lista de espera usa un email inventado con Date.now() y lo borra al final.
  */
