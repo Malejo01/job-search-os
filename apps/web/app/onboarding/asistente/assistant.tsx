@@ -3,6 +3,7 @@ import {
   GMAIL_FILTERS_URL,
   GMAIL_FORWARDING_PATH,
   type AssistantStep,
+  type PortalStatsRow,
 } from "@job-search-os/pipeline";
 import { cookies } from "next/headers";
 import Link from "next/link";
@@ -17,6 +18,7 @@ import {
 } from "./actions";
 import { AlertGuide, type AlertGuideProps } from "./alert-guide";
 import { CopyButton } from "./copy-button";
+import { PortalStats } from "./portal-stats";
 import { PrivacyDialog } from "./privacy-dialog";
 
 const LEGACY_NOTICE =
@@ -51,11 +53,14 @@ export function Assistant({
   state,
   context = "settings",
   guide,
+  portalStats,
 }: {
   address: string | null;
   state: AssistantState;
   /** Datos de «Qué alertas crear» (carreras, idioma y estado de cada portal). */
   guide?: AlertGuideProps;
+  /** «Qué portal te sirve»: solo en Ajustes (no en el onboarding). */
+  portalStats?: PortalStatsRow[];
   /** `onboarding`: paso opcional después de «Tus primeras ofertas». `settings`: dentro de Ajustes. */
   context?: "onboarding" | "settings";
 }) {
@@ -130,6 +135,8 @@ export function Assistant({
       </ol>
 
       {guide ? <AlertGuide {...guide} /> : null}
+
+      {portalStats ? <PortalStats rows={portalStats} /> : null}
 
       {/* Pasos que avanzan solos por algo que llega por email: el pedido de Gmail y la primera alerta */}
       <AutoRefresh
