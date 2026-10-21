@@ -118,6 +118,8 @@ export type ListOptions = {
   include?: string;
   /** Hora actual para los atajos de fecha; se inyecta solo en tests. */
   now?: Date;
+  /** Solo ofertas cuya última evaluación se creó desde esta fecha (inclusive). */
+  evaluatedSince?: Date;
 };
 
 type Tx = Parameters<Parameters<typeof withUser>[1]>[0];
@@ -152,6 +154,7 @@ export async function listJobs(
         bloqueadores: s.evaluations.bloqueadoresDuros,
         model: s.evaluations.model,
         humanVerdict: s.evaluations.humanVerdict,
+        createdAt: s.evaluations.createdAt,
       })
       .from(s.evaluations)
       .orderBy(s.evaluations.jobId, desc(s.evaluations.createdAt))
@@ -167,6 +170,7 @@ export async function listJobs(
       .as("src");
 
     const conds = [
+      options.evaluatedSince ? gte(latest.createdAt, options.evaluatedSince) : undefined,
       filters.status === "todas" || (filters.duplicates && !filters.status)
         ? undefined
         : filters.status === "activas"

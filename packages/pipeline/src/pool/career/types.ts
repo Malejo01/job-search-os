@@ -101,6 +101,8 @@ export type CareerMarket = {
   volume: {
     active: number;
     new24h: number;
+    /** Publicados en los últimos 7 días, y de ellos los escritos en español. */
+    last7d: { total: number; writtenInSpanish: number };
     modality: Record<"remoto" | "hibrido" | "presencial" | "desconocida", number>;
     fromArgentina: Record<"acepta" | "no_acepta" | "no_dice", number>;
     sources: { name: string; jobs: number }[];

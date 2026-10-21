@@ -124,13 +124,19 @@ export function buildCareerMarket(input: CareerMarketInput): CareerMarket {
   const fromArgentina = { acepta: 0, no_acepta: 0, no_dice: 0 };
   const sources = new Map<string, number>();
   let new24h = 0;
+  const last7d = { total: 0, writtenInSpanish: 0 };
 
   for (const job of jobs) {
     seniority[seniorityBucket(job.seniority, job.title)]++;
 
     const en = detectEnglish(job.jdText, job.lang);
     if (en.language === "en") writtenInEnglish++;
-    if (detectJobLanguage(job.jdText, job.lang) === "es") writtenInSpanish++;
+    const isSpanish = detectJobLanguage(job.jdText, job.lang) === "es";
+    if (isSpanish) writtenInSpanish++;
+    if (Date.parse(job.publishedAt) >= nowMs - 7 * DAY_MS) {
+      last7d.total++;
+      if (isSpanish) last7d.writtenInSpanish++;
+    }
     if (en.asks) {
       asks++;
       levels[en.level ?? "sin_nivel"]++;
@@ -163,6 +169,7 @@ export function buildCareerMarket(input: CareerMarketInput): CareerMarket {
     volume: {
       active: total,
       new24h,
+      last7d,
       modality,
       fromArgentina,
       sources: [...sources]
