@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { signOut } from "@/auth";
+import { countFollowUps } from "@/lib/applications";
 import { assertAppRole } from "@/lib/db";
 import { canCreateInvitations } from "@/lib/invitations";
 import { isOnboardingComplete } from "@/lib/onboarding";
@@ -47,6 +48,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const canInvite = process.env.ADMIN_EMAILS
     ? await canCreateInvitations(userId).catch(() => false)
     : false;
+  // Contador de «Postulaciones»: si la consulta falla, el menú se muestra igual, sin número
+  const followUps = await countFollowUps(userId, new Date()).catch(() => 0);
+  const navItems = NAV.map((item) =>
+    item.href === "/applications" ? { ...item, count: followUps } : item,
+  );
   return (
     <div className="flex min-h-screen flex-col">
       <a href="#contenido" className={SKIP_CLASS}>
@@ -86,7 +92,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         </div>
         {/* A 360 px seis links no entran en una fila: por debajo de `sm` van en un menú desplegable */}
         <div className="mx-auto max-w-5xl">
-          <MainNav items={NAV} />
+          <MainNav items={navItems} />
         </div>
       </header>
       <main id="contenido" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-4 py-4">

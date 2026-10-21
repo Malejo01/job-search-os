@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { APPLICATION_OUTCOMES, type FeedbackRow } from "@job-search-os/pipeline";
-import { getFeedbackReport, listApplications } from "@/lib/applications";
+import { getFeedbackReport, listApplications, listFollowUps } from "@/lib/applications";
 import { ACTION_LABELS, OUTCOME_LABELS, STATUS_LABELS } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import { setOutcomeAction } from "./actions";
+import { closeApplicationAction, snoozeFollowUpAction } from "./followup-actions";
+
+const FOLLOW_BUTTON =
+  "inline-flex min-h-11 items-center justify-center rounded-md border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-900 hover:bg-zinc-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Postulaciones" };
@@ -34,7 +38,11 @@ export default async function ApplicationsPage({
 }) {
   const userId = await requireUserId();
   const { error } = await searchParams;
-  const [apps, report] = await Promise.all([listApplications(userId), getFeedbackReport(userId)]);
+  const [apps, report, followUps] = await Promise.all([
+    listApplications(userId),
+    getFeedbackReport(userId),
+    listFollowUps(userId, new Date()),
+  ]);
   const titleOf = new Map(apps.map((a) => [a.jobId, `${a.company} · ${a.title}`]));
   const surprise = (label: string, rows: FeedbackRow[]) =>
     rows.length ? (
@@ -64,6 +72,63 @@ export default async function ApplicationsPage({
         <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
           Resultado inválido.
         </p>
+      ) : null}
+
+      {followUps.length ? (
+        <section
+          aria-labelledby="seguimiento"
+          className="flex flex-col gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3"
+        >
+          <h2 id="seguimiento" className="text-sm font-semibold text-zinc-800">
+            Para hacer seguimiento ({followUps.length})
+          </h2>
+          <p className="text-xs text-zinc-700">
+            Hace rato que no hay novedades de estas postulaciones. Fijate si te escribieron o
+            escribiles vos. «Ya hice seguimiento» te la vuelve a mostrar en una semana.
+          </p>
+          <ul className="flex flex-col gap-2">
+            {followUps.map((f) => (
+              <li
+                key={f.jobId}
+                data-testid="seguimiento-item"
+                className="rounded-md border border-amber-200 bg-white p-3"
+              >
+                <Link href={`/jobs/${f.jobId}`} className="text-sm font-medium text-zinc-900">
+                  {f.title}
+                </Link>
+                <p className="text-xs text-zinc-600">
+                  {f.company} · {STATUS_LABELS[f.status] ?? f.status} · hace {f.daysSince}{" "}
+                  {f.daysSince === 1 ? "día" : "días"}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <form action={snoozeFollowUpAction.bind(null, f.jobId)}>
+                    <button type="submit" className={FOLLOW_BUTTON}>
+                      Ya hice seguimiento
+                    </button>
+                  </form>
+                  <Link href={`/jobs/${f.jobId}`} className={FOLLOW_BUTTON}>
+                    Me respondieron
+                  </Link>
+                  {/* Cerrar pide confirmación: está al lado de la acción más usada y no se deshace acá */}
+                  <details className="ml-auto">
+                    <summary className="flex min-h-11 cursor-pointer items-center px-2 text-sm text-zinc-600 underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900">
+                      Cerrar postulación
+                    </summary>
+                    <form
+                      action={closeApplicationAction.bind(null, f.jobId)}
+                      className="mt-1 flex items-center gap-2"
+                    >
+                      <span className="text-xs text-zinc-700">¿Ya no la seguís?</span>
+                      <button type="submit" className={FOLLOW_BUTTON}>
+                        Sí, cerrar
+                      </button>
+                    </form>
+                  </details>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
 
       <section className="flex flex-col gap-2 rounded-lg border border-zinc-200 bg-white p-3">

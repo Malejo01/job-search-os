@@ -37,3 +37,4 @@ export * from "./first-steps";
 export * from "./demo";
 export * from "./cv";
 export * from "./alerts/portal-guide";
+export * from "./applications/followup";

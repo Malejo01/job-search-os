@@ -4,7 +4,35 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 
-export type NavItem = { href: string; label: string };
+export type NavItem = {
+  href: string;
+  label: string;
+  /** Número chico al lado del label (p. ej. postulaciones para seguimiento); con 0 o sin valor no se muestra. */
+  count?: number;
+};
+
+/**
+ * El número se ve dentro del link, pero queda oculto para lectores de pantalla (`aria-hidden`).
+ * Así el nombre accesible del link sigue siendo el label. La versión para lectores va después
+ * del link (`NavCountText`).
+ */
+function NavCount({ item }: { item: NavItem }) {
+  if (!item.count) return null;
+  return (
+    <span
+      data-testid="nav-count"
+      aria-hidden="true"
+      className="ml-1.5 rounded-full bg-zinc-200 px-1.5 text-xs font-medium text-zinc-800"
+    >
+      {item.count}
+    </span>
+  );
+}
+
+function NavCountText({ item }: { item: NavItem }) {
+  if (!item.count) return null;
+  return <span className="sr-only">{`${item.count} para hacer seguimiento`}</span>;
+}
 
 /**
  * La sección activa es la de href más largo que prefija la ruta: /jobs/pending-jd no marca
@@ -37,6 +65,8 @@ export function MainNav({ items }: { items: readonly NavItem[] }) {
   const pathname = usePathname();
   const active = activeHref(pathname, items);
   const activeLabel = items.find((i) => i.href === active)?.label ?? null;
+  // Con el menú del celular cerrado, el número de pendientes se ve igual en el «Menú»
+  const pending = items.reduce((n, i) => n + (i.count ?? 0), 0);
   const details = useRef<HTMLDetailsElement>(null);
 
   const closeMenu = () => {
@@ -61,7 +91,9 @@ export function MainNav({ items }: { items: readonly NavItem[] }) {
                 className={`flex min-h-11 items-center whitespace-nowrap ${LINK_BASE} ${item.href === active ? LINK_ACTIVE : ""}`}
               >
                 {item.label}
+                <NavCount item={item} />
               </Link>
+              <NavCountText item={item} />
             </li>
           ))}
         </ul>
@@ -74,6 +106,17 @@ export function MainNav({ items }: { items: readonly NavItem[] }) {
         >
           <span>
             Menú{activeLabel ? <span className="font-normal"> · {activeLabel}</span> : null}
+            {pending ? (
+              <>
+                <span
+                  aria-hidden="true"
+                  className="ml-1.5 rounded-full bg-zinc-200 px-1.5 text-xs font-medium text-zinc-800"
+                >
+                  {pending}
+                </span>
+                <span className="sr-only">{`, ${pending} para hacer seguimiento`}</span>
+              </>
+            ) : null}
           </span>
           <span aria-hidden="true" className="group-open:hidden">
             ▸
@@ -93,7 +136,9 @@ export function MainNav({ items }: { items: readonly NavItem[] }) {
                   className={`flex min-h-11 items-center ${LINK_BASE} ${item.href === active ? LINK_ACTIVE : ""}`}
                 >
                   {item.label}
+                  <NavCount item={item} />
                 </Link>
+                <NavCountText item={item} />
               </li>
             ))}
           </ul>
