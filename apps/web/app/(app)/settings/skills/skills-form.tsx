@@ -107,7 +107,11 @@ export function SkillsForm({
 
   return (
     <div className="flex flex-col gap-5">
-      <nav aria-label="Puesto de las sugerencias" className="flex flex-col gap-2">
+      <nav
+        aria-label="Puesto de las sugerencias"
+        data-tour="skills:puestos"
+        className="flex flex-col gap-2"
+      >
         <h2 className="text-base font-medium">Skills sugeridas de</h2>
         {pillGroups.map((group) => (
           <div key={group.label} className="flex flex-col gap-1">
@@ -156,16 +160,26 @@ export function SkillsForm({
             <h2 id="skills-del-rol" className="text-base font-medium">
               Skills de {role ? roleMap[role].label : ""}
             </h2>
-            {suggested.map((slug) => (
-              <SkillRow
-                key={slug}
-                slug={slug}
-                name={byslug.get(slug)!.name}
-                description={byslug.get(slug)!.description}
-                level={levels[slug]}
-                removable={allowRemove && slug in levels}
-              />
-            ))}
+            {suggested.map((slug, i) => {
+              const row = (
+                <SkillRow
+                  key={slug}
+                  slug={slug}
+                  name={byslug.get(slug)!.name}
+                  description={byslug.get(slug)!.description}
+                  level={levels[slug]}
+                  removable={allowRemove && slug in levels}
+                />
+              );
+              // Ancla de la guía (ronda 92): solo la primera fila
+              return i === 0 ? (
+                <div key={slug} data-tour="skills:nivel">
+                  {row}
+                </div>
+              ) : (
+                row
+              );
+            })}
           </section>
         ) : null}
 
@@ -207,14 +221,17 @@ export function SkillsForm({
           </section>
         ) : null}
 
-        <SkillSearch
-          options={options}
-          taxonomy={taxonomyTerms}
-          customNames={customSkills.map((c) => c.name)}
-        />
+        <div data-tour="skills:buscar">
+          <SkillSearch
+            options={options}
+            taxonomy={taxonomyTerms}
+            customNames={customSkills.map((c) => c.name)}
+          />
+        </div>
 
-        {/* «Guardar» va primero en el DOM (Enter guarda, nunca saltea); row-reverse lo deja a la derecha */}
-        <div className="sticky bottom-0 flex flex-row-reverse flex-wrap items-center justify-start gap-3 border-t border-zinc-200 bg-white p-3">
+        {/* «Guardar» va primero en el DOM (Enter guarda, nunca saltea); row-reverse lo deja a la derecha.
+            `--tour-panel-h` lo fija la guía mientras está abierta: la barra queda encima del panel */}
+        <div className="sticky bottom-[var(--tour-panel-h,0px)] flex flex-row-reverse flex-wrap items-center justify-start gap-3 border-t border-zinc-200 bg-white p-3">
           <PendingSubmit
             pendingLabel="Guardando…"
             className="rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
@@ -226,6 +243,7 @@ export function SkillsForm({
               type="submit"
               name="saltear"
               value="1"
+              data-tour="skills:saltear"
               className="rounded-md border border-zinc-300 px-4 py-2 text-base focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
             >
               {skip.label}

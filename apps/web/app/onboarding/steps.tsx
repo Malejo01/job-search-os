@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 const STEPS = [
   { n: 1, name: "Tu perfil" },
   { n: 2, name: "Tus skills" },
@@ -9,8 +11,24 @@ const STEPS = [
  * tres nombres en fila. Los pasos anteriores no son links: volver al 1 con el perfil completo
  * redirige a /jobs.
  */
-export function OnboardingSteps({ current }: { current: 1 | 2 | 3 }) {
+export function OnboardingSteps({
+  current,
+  guide,
+}: {
+  current: 1 | 2 | 3;
+  /** `GuidedTour` de la pantalla (ronda 92): su botón va a la derecha de «Paso N de 3». */
+  guide?: ReactNode;
+}) {
   const now = STEPS.find((step) => step.n === current) ?? STEPS[0];
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+      <StepsList current={current} now={now} />
+      {guide}
+    </div>
+  );
+}
+
+function StepsList({ current, now }: { current: 1 | 2 | 3; now: (typeof STEPS)[number] }) {
   return (
     <div className="flex flex-col gap-1">
       <p className="text-sm font-medium text-zinc-600">

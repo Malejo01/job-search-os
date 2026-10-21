@@ -1,5 +1,8 @@
 import { DEFAULT_CRITERIA_RULES, defaultRole } from "@job-search-os/pipeline";
 import { redirect } from "next/navigation";
+import { GuidedTour } from "@/components/guided-tour";
+import { dismissGuideAction } from "@/lib/guide-actions";
+import { GUIDE_LABELS, GUIDE_STEPS } from "@/lib/guide";
 import { getTargetRoles, isOnboardingComplete } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
 import { ROLE_SKILLS, getSkillsPageData } from "@/lib/skill-levels";
@@ -38,7 +41,19 @@ export default async function OnboardingSkillsPage({
 
   return (
     <section className="flex flex-col gap-3">
-      <OnboardingSteps current={2} />
+      <OnboardingSteps
+        current={2}
+        guide={
+          <GuidedTour
+            steps={GUIDE_STEPS.skills}
+            label={GUIDE_LABELS.panel}
+            testId="guide"
+            openerLabel={GUIDE_LABELS.opener}
+            resume
+            onDone={dismissGuideAction}
+          />
+        }
+      />
       <h1 className="text-xl font-semibold">Tus skills</h1>
       <p className="text-sm text-zinc-600">
         Opcional. Con tus niveles, el mercado y el plan muestran lo que te falta de verdad. Lo podés

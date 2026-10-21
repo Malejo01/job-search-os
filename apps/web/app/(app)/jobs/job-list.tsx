@@ -31,7 +31,7 @@ export function JobList({ rows, query = "" }: { rows: JobListRow[]; query?: stri
   return (
     <motion.ul layout className="flex flex-col gap-2">
       <AnimatePresence initial={false}>
-        {rows.map((job) => (
+        {rows.map((job, i) => (
           <motion.li
             key={job.id}
             layout
@@ -40,7 +40,7 @@ export function JobList({ rows, query = "" }: { rows: JobListRow[]; query?: stri
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.18 }}
           >
-            <JobCard job={job} query={query} />
+            <JobCard job={job} query={query} tour={i === 0} />
           </motion.li>
         ))}
       </AnimatePresence>
@@ -48,10 +48,14 @@ export function JobList({ rows, query = "" }: { rows: JobListRow[]; query?: stri
   );
 }
 
-/** `query`: los filtros de la lista, para que el detalle sepa volver y calcular "siguiente" (JS-061). */
-function JobCard({ job, query }: { job: JobListRow; query: string }) {
+/**
+ * `query`: los filtros de la lista, para que el detalle sepa volver y calcular "siguiente" (JS-061).
+ * `tour`: la primera tarjeta lleva las anclas de la guía de /jobs (ronda 92).
+ */
+function JobCard({ job, query, tour }: { job: JobListRow; query: string; tour: boolean }) {
   const tone = scoreTone(job.score);
   const url = safeHttpUrl(job.url);
+  const anchor = (name: string) => (tour ? { "data-tour": name } : {});
   return (
     <div className="relative flex gap-3 rounded-lg border border-zinc-200 bg-white p-3 hover:border-zinc-400">
       {/* El link al detalle cubre toda la card; el link a la oferta va encima (z-10) */}
@@ -65,6 +69,7 @@ function JobCard({ job, query }: { job: JobListRow; query: string }) {
           className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-md border-2 border-sky-300 text-sky-700"
           aria-label="en cola"
           title="Esperando la evaluación"
+          {...anchor("jobs:puntaje")}
         >
           <span className="animate-pulse text-lg font-semibold leading-none">…</span>
           <span className="text-[10px] uppercase">score</span>
@@ -74,6 +79,7 @@ function JobCard({ job, query }: { job: JobListRow; query: string }) {
           className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-md border-2 border-dashed border-zinc-400 text-zinc-700"
           aria-label={`estimación previa ${job.preScore}`}
           title={PRE_SCORE_EXPLAIN}
+          {...anchor("jobs:puntaje")}
         >
           <span className="text-lg font-semibold leading-none">
             {formatScoreNumber(job.preScore)}
@@ -84,6 +90,7 @@ function JobCard({ job, query }: { job: JobListRow; query: string }) {
         <div
           className={`flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-md ring-1 ${SCORE_CLASSES[tone]}`}
           aria-label={job.score === null ? "sin evaluar" : `score ${job.score}`}
+          {...anchor("jobs:puntaje")}
         >
           <span className="text-lg font-semibold leading-none">
             {job.score === null ? "–" : formatScoreNumber(job.score)}
@@ -97,7 +104,7 @@ function JobCard({ job, query }: { job: JobListRow; query: string }) {
           {job.company}
           {job.locationRaw ? ` · ${job.locationRaw}` : ""}
         </p>
-        <div className="flex flex-wrap gap-1 text-[11px]">
+        <div className="flex flex-wrap gap-1 text-[11px]" {...anchor("jobs:etiquetas")}>
           {job.model === DEMO_MODEL ? (
             <span className={DEMO_BADGE_CLASSES} title="Evaluación falsa del modo demo, sin LLM">
               DEMO
@@ -165,14 +172,19 @@ function JobCard({ job, query }: { job: JobListRow; query: string }) {
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="relative z-10 rounded-md border border-zinc-300 px-2 py-1 text-[11px] text-zinc-700 hover:border-zinc-500 hover:text-zinc-900"
+            className="relative z-10 inline-flex min-h-11 items-center rounded-md border border-zinc-300 px-2 py-1 text-[11px] sm:min-h-0 text-zinc-700 hover:border-zinc-500 hover:text-zinc-900"
             title="Abrir la publicación original en una pestaña nueva"
           >
             Ver oferta ↗
           </a>
         ) : null}
         {job.evaluationId && !job.evaluating ? (
-          <CardVerdict jobId={job.id} evaluationId={job.evaluationId} verdict={job.humanVerdict} />
+          <CardVerdict
+            jobId={job.id}
+            evaluationId={job.evaluationId}
+            verdict={job.humanVerdict}
+            {...(tour ? { tourAnchor: "jobs:opinion" } : {})}
+          />
         ) : null}
       </div>
     </div>

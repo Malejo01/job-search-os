@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 import { AutoRefresh } from "@/app/(app)/jobs/auto-refresh";
 import { RoleGaps } from "@/app/(app)/jobs/role-gaps";
 import { EmailNudge } from "@/app/components/email-nudge";
+import { GuidedTour } from "@/components/guided-tour";
+import { dismissGuideAction } from "@/lib/guide-actions";
+import { GUIDE_LABELS, GUIDE_STEPS } from "@/lib/guide";
 import {
   getProfileUpdatedAt,
   isSearchingWindow,
@@ -30,7 +33,19 @@ export default async function FirstOffersPage() {
 
   return (
     <section className="flex flex-col gap-4">
-      <OnboardingSteps current={3} />
+      <OnboardingSteps
+        current={3}
+        guide={
+          <GuidedTour
+            steps={GUIDE_STEPS.ofertas}
+            label={GUIDE_LABELS.panel}
+            testId="guide"
+            openerLabel={GUIDE_LABELS.opener}
+            resume
+            onDone={dismissGuideAction}
+          />
+        }
+      />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold">Tus primeras ofertas</h1>
         <Link
@@ -40,23 +55,26 @@ export default async function FirstOffersPage() {
           Ir a mis ofertas
         </Link>
       </div>
-      <EmailNudge
-        userId={userId}
-        title="Sumá tus alertas de LinkedIn, Get on Board e Indeed"
-        body="Reenviá las alertas que ya te llegan y las evaluamos junto con estas. Toma unos 5 minutos."
-        cta="Conectar mis alertas"
-        href="/onboarding/asistente"
-      />
+      {/* Sin aviso (ya recibió un email o dijo «No, gracias») el contenedor queda vacío y no ocupa lugar */}
+      <div data-tour="ofertas:email" className="empty:hidden">
+        <EmailNudge
+          userId={userId}
+          title="Sumá tus alertas de LinkedIn, Get on Board e Indeed"
+          body="Reenviá las alertas que ya te llegan y las evaluamos junto con estas. Toma unos 5 minutos."
+          cta="Conectar mis alertas"
+          href="/onboarding/asistente"
+        />
+      </div>
       {offers.length > 0 ? (
-        <>
+        <div data-tour="ofertas:lista" className="flex flex-col gap-4">
           <p className="text-sm text-zinc-700">
             Las ordenamos por lo que nos contaste. La IA evalúa las primeras ahora y el resto cuando
             lo pidas.
           </p>
           <FirstOffersList offers={offers} />
-        </>
+        </div>
       ) : searching ? (
-        <>
+        <div data-tour="ofertas:lista" className="flex flex-col gap-4">
           <p
             role="status"
             data-testid="first-offers-searching"
@@ -67,9 +85,10 @@ export default async function FirstOffersPage() {
           </p>
           {/* Las ofertas se asignan después de guardar el perfil: un rato de espera por si llegan */}
           <AutoRefresh active everyMs={4000} maxMs={SEARCHING_WINDOW_MINUTES * 60_000} />
-        </>
+        </div>
       ) : (
         <div
+          data-tour="ofertas:lista"
           data-testid="first-offers-empty"
           className="flex flex-col gap-2 rounded-md border border-dashed border-zinc-300 p-4 text-sm text-zinc-700"
         >
@@ -94,6 +113,7 @@ export default async function FirstOffersPage() {
       <div className="flex flex-wrap items-center justify-end gap-3">
         <Link
           href="/jobs"
+          data-tour="ofertas:seguir"
           className="rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
         >
           Ir a mis ofertas

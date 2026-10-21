@@ -49,13 +49,16 @@ export function CardVerdict({
   jobId,
   evaluationId,
   verdict,
+  tourAnchor,
 }: {
   jobId: string;
   evaluationId: string;
   verdict: HumanVerdict | null;
+  /** `data-tour` de la guía de /jobs (ronda 92), solo en la primera tarjeta. */
+  tourAnchor?: string;
 }) {
   return (
-    <div className="relative z-10 flex gap-2">
+    <div className="relative z-10 flex gap-2" data-tour={tourAnchor}>
       {OPTIONS.map((o) => {
         const pressed = verdict === o.verdict;
         return (

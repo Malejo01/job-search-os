@@ -52,7 +52,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       <a href="#contenido" className={SKIP_CLASS}>
         Saltar al contenido
       </a>
-      <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/95 backdrop-blur">
+      {/* z-20: las tarjetas de /jobs llevan links z-10 y no deben dibujarse sobre el header; la guía (z-40) y los modales (z-50) quedan arriba */}
+      <header className="sticky top-0 z-20 border-b border-zinc-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2">
           <Link href="/jobs" className="text-base font-semibold">
             {PRODUCT_NAME}
