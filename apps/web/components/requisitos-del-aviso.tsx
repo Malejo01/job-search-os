@@ -15,7 +15,8 @@ function StatusBadge({ status }: { status: ChecklistItemView["status"] }) {
       className={`inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium ${st.classes}`}
     >
       <span aria-hidden="true">{st.icon}</span>
-      {st.label}
+      {/* El rótulo en su propio nodo: un lector (o un test) lo encuentra sin el ícono pegado */}
+      <span>{st.label}</span>
     </span>
   );
 }
