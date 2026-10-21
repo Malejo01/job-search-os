@@ -12,6 +12,7 @@ const PATHS = [
   "/ofertas",
   "/demo",
   "/como-esta-hecho",
+  "/en/how-its-built",
   "/acceso",
 ] as const;
 

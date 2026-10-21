@@ -30,6 +30,7 @@ export const authConfig = {
         pathname === "/demo" ||
         pathname.startsWith("/demo/") ||
         pathname === "/como-esta-hecho" ||
+        pathname === "/en/how-its-built" ||
         pathname.startsWith("/opengraph-image") ||
         pathname.startsWith("/twitter-image") ||
         pathname === "/sitemap.xml" ||

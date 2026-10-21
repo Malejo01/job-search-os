@@ -10,7 +10,10 @@ export const metadata: Metadata = {
   title: "Cómo está hecho",
   description:
     "Cómo una oferta pasa de la fuente a la decisión: la IA evalúa, las reglas en código deciden y la persona elige. Stack, controles y código público.",
-  alternates: { canonical: "/como-esta-hecho" },
+  alternates: {
+    canonical: "/como-esta-hecho",
+    languages: { es: "/como-esta-hecho", en: "/en/how-its-built" },
+  },
 };
 
 const REPO_URL = "https://github.com/Malejo01/job-search-os";
@@ -71,6 +74,11 @@ export default async function ComoEstaHechoPage() {
   return (
     <div className="flex flex-col gap-10">
       <header className="flex flex-col gap-2 py-4">
+        <p>
+          <Link href="/en/how-its-built" hrefLang="en" lang="en" className={LINK_CLASS}>
+            English
+          </Link>
+        </p>
         <h1 className="text-3xl font-semibold sm:text-4xl">Cómo está hecho</h1>
         <p className="max-w-2xl text-base text-zinc-700">
           Un sistema que lee ofertas de trabajo y las evalúa contra un perfil. El modelo de IA
