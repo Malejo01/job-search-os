@@ -41,6 +41,7 @@ job-search-os/
 │   ├── app/(auth)/           login, registro y recuperación (Auth.js, ADR-010)
 │   ├── app/(app)/            ofertas, bandeja, postulaciones, mercado, plan y ajustes
 │   ├── app/(public)/         vitrina pública y demo (docs/VITRINA.md)
+│   ├── app/(public-en)/      versión en inglés de «Cómo está hecho» (/en/how-its-built)
 │   ├── app/onboarding/       alta del perfil
 │   ├── app/api/cron/         endpoints protegidos por CRON_SECRET (los dispara GitHub Actions)
 │   ├── app/api/inbound/      webhook de email (Resend, firma Svix)
@@ -75,6 +76,12 @@ job-search-os/
 | Evaluación | cola | `Job` + `Profile` + `SkillLevels` | `EvaluationJSON` | sí |
 | Decisión | inmediato | `EvaluationJSON` | `accion`, `estado` | no |
 | Extracción de skills | cola (fase 2) | `Job.jd_text` | `job_skills[]` normalizados | sí + fuzzy |
+
+### Carreras e idioma
+
+- **Carreras.** Las carreras que una persona puede elegir son las `ROLE_KEYS` de `packages/pipeline/src/skills/self-assessment.ts`. Hoy son 20: las de tecnología, las digitales (ADR-015), las de producto (ADR-019), `data_engineer` y `solutions_engineer` (ADR-021), y `ventas_b2b` y `atencion_cliente` (ADR-022). Las nuevas siempre se agregan al final. Si la persona no eligió carrera, valen solo las de tecnología previas a la ronda 40 (`IT_ROLE_KEYS`); las de las rondas 106 y 107 no se suman a ese default. Cada carrera tiene su vista en el mercado (`pool/career/`). A los avisos ya guardados se les vuelve a asignar carrera con `pool:rehint`, fuera del cron.
+- **Licencia profesional (ADR-022).** `prefilter/licensing.ts` reconoce un conjunto estricto de frases de habilitación profesional, como abogacía, enfermería o contaduría. Si el texto nombra el país de la persona cerca de la frase, no descarta. Si no se conoce el país de la persona, la regla no corre. Las frases de licencia de conducir quedan afuera a propósito.
+- **Idioma del aviso.** `normalize/language.ts` (`detectJobLanguage`) decide si un aviso está escrito en español, inglés o portugués. Es determinista y sin LLM; cuando no hay evidencia suficiente devuelve `null` en vez de adivinar. Lo usa el mercado para contar los avisos escritos en español. No reemplaza a `detectEnglish`, que usa el prefiltro para el nivel de inglés que pide el aviso.
 
 ## 4. Multi-tenant
 
@@ -119,7 +126,7 @@ Tabla `model_routing (task, provider, model, fallback_model, max_tokens, tempera
 
 ## 10. Lectura de CV (en construcción, apagada)
 
-La persona puede subir su CV (PDF o Word) para que el sistema le proponga el resumen del perfil, los años de experiencia, el inglés y los niveles de skills. Siempre es opcional y la persona revisa y confirma antes de guardar. Hoy solo está hecha la etapa 1 del pipeline (CV-01); el resto es diseño y todavía no tiene código.
+La persona puede subir su CV (PDF o Word) para que el sistema le proponga el resumen del perfil, los años de experiencia, el inglés y los niveles de skills. Siempre es opcional y la persona revisa y confirma antes de guardar. Por ahora están hechas la etapa 1 del pipeline (CV-01) y la orquestación en adapters (CV-03). Lo demás es diseño, y la función sigue apagada.
 
 **Qué corre dónde.** El requisito es que el archivo se lea sin ejecutar macros, con tope de tamaño y de páginas y con el tipo validado por contenido. La decisión vigente es parsear en el servidor; leerlo en el navegador (CV-04) es una alternativa **a confirmar**.
 
@@ -137,7 +144,14 @@ La persona puede subir su CV (PDF o Word) para que el sistema le proponga el res
 **Estado:**
 
 - **Hecho (CV-01):** `packages/pipeline/src/cv/**`, funciones puras sin I/O: tipo por contenido (`sniff.ts`), texto de DOCX (`docx-text.ts`), redacción (`redact.ts`), normalización del texto (`normalize-text.ts`), skills candidatas (`candidates.ts`), detector de inyección (`injection.ts`), variables del prompt (`prompt-vars.ts`), esquema estricto y normalización de la salida (`extraction.ts`) y los topes (`limits.ts`).
-- **Diseño pendiente (CV-02 a CV-07):** prompt y fila de ruteo (CV-02), orquestación con topes y logs sin contenido en adapters (CV-03), lectura de PDF y DOCX en el navegador, que suma dependencias (CV-04), la interfaz del onboarding y de skills (CV-05), la edición desde Ajustes (CV-06) y el texto legal, el ADR y estos docs (CV-07). Antes hace falta una pantalla «Tu perfil» en Ajustes (CV-00).
+- **Hecho (CV-03):** `packages/adapters/src/cv/extract.ts` orquesta la lectura sobre texto ya extraído:
+  - Vuelve a normalizar y redactar el texto, porque no confía en lo que manda el cliente.
+  - Detecta inyección, arma las candidatas y llama a la tarea `extract_cv_profile`. Verifica la salida con el código del CV-01.
+  - Antes de llamar, controla el cupo mensual por persona: 1 lectura en el plan gratis y 5 en el pago, en una ventana móvil de 30 días que se cuenta sobre `llm_calls`.
+  - También exige el chequeo de topes en USD (`capGuard`). Si ese chequeo falta, falla cerrado.
+  - No escribe nada propio. Los logs llevan solo `user_id`, códigos y conteos.
+  - Para encenderla falta un lock del cupo (lecturas simultáneas de la misma persona) y un límite para cuentas nuevas.
+- **Diseño pendiente (CV-02 y CV-04 a CV-07):** prompt y fila de ruteo (CV-02), lectura de PDF y DOCX en el navegador, que suma dependencias (CV-04), la interfaz del onboarding y de skills (CV-05), la edición desde Ajustes (CV-06) y el texto legal, el ADR y estos docs (CV-07). Antes hace falta una pantalla «Tu perfil» en Ajustes (CV-00).
 - **Alcance buscado:** perfil, skills, hechos verificables e historial laboral; formatos PDF (incluido el export de LinkedIn), DOCX y texto pegado; un CV base y la posibilidad de subir otro para una carrera puntual; comparación al re-subir. Parte de esto (hechos, historial, comparación) queda para etapas posteriores a la 1.
 
 ## 11. Carril verde y carril rojo

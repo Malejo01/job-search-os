@@ -18,19 +18,19 @@ export const metadata: Metadata = {
   metadataBase: new URL(site),
   title: { absolute: TAGLINE, template: "%s" },
   description: DESCRIPTION,
-  // La imagen vive en `(public)/opengraph-image.tsx` (ruta /opengraph-image): este grupo no la hereda
+  // La imagen en inglés es el route handler `opengraph-image-en/route.tsx` (ronda 122)
   openGraph: {
     title: TAGLINE,
     description: DESCRIPTION,
     type: "website",
     locale: "en_US",
-    images: ["/opengraph-image"],
+    images: [{ url: "/opengraph-image-en", width: 1200, height: 630, alt: TAGLINE }],
   },
   twitter: {
     card: "summary_large_image",
     title: TAGLINE,
     description: DESCRIPTION,
-    images: ["/opengraph-image"],
+    images: ["/opengraph-image-en"],
   },
 };
 
