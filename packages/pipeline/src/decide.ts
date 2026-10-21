@@ -18,6 +18,7 @@ import { RESIDENCY_FLAG } from "./prefilter/residency";
  * | sin riesgos + score entre guardar y aplicar | guardar                |
  * | location_ok = "no" (país excluido)          | tope: guardar como máximo, aunque el score sea alto |
  * | flag residencia_exigida:<países> (prefiltro) | bloqueador duro → descartar; location_ok efectivo = "no" |
+ * | bloqueador de modalidad del modelo, modalidad aceptada | pasa a riesgos, no descarta (ronda 84) |
  */
 export type ActionThresholds = { personalizado: number; aplicar: number; guardar: number };
 export type Action = "aplicar_personalizado" | "aplicar" | "guardar" | "descartar";
@@ -87,7 +88,7 @@ const FLAG_TO_RISK: Record<string, { text: string; already: RegExp }> = {
   many_candidates: { text: "muchos candidatos", already: /candidatos/i },
   modalidad_no_remota: {
     text: "modalidad híbrida o presencial",
-    already: /h[ií]brid|presencial|modalidad/i,
+    already: /h[ií]brid|presencial|modalidad|oficina|on-?site/i,
   },
   ciudad_distinta: {
     text: "La oferta parece ser en otra ciudad que la de tu perfil",
@@ -110,11 +111,23 @@ const disciplinasPermitidas = (rules: CriteriaRules): string[] | null => {
 /** Un bloqueador de disciplina, lo escriba el modelo o el código. */
 const IS_DISCIPLINE_BLOCKER = /disciplina distinta/i;
 /**
- * Un bloqueador de modalidad del modelo. Sin "relocat": mudarse de país no es modalidad. Si el
- * texto también habla de otra cosa (jornada, años, salario, visa), no se toca: lo conservador.
+ * Un bloqueador de modalidad del modelo. "modalidad" sola no cuenta ("modalidad de contratación"):
+ * tiene que ir con una palabra de modalidad. Sin "relocat": mudarse de país no es modalidad.
  */
-const IS_MODALITY_BLOCKER = /presencial|h[ií]brid|modalidad|oficina|on-?site|visitas/i;
-const MIXED_BLOCKER = /jornada|horas|a[ñn]os|years|salari|visa|autoriz|residen|relocat|disciplina/i;
+const IS_MODALITY_BLOCKER =
+  /presencial|h[ií]brid|oficina|on-?site|visitas|modalidad\b.*\b(?:remot|presencial|h[ií]brid|oficina|on-?site)/i;
+/**
+ * Si el texto también habla de otra cosa (jornada, años, salario, visa, contrato, idioma, una
+ * entrevista presencial, una nube híbrida, un paquete office), no se toca: lo conservador.
+ */
+const MIXED_BLOCKER =
+  /jornada|horas|a[ñn]os|years|salari|visa|autoriz|residen|residir|radic|reubic|\bmud|permiso|ciudadan|sponsor|work permit|relocat|contrat|freelance|monotribut|dependencia|ingl|english|disciplina|entrevista|nube|cloud|infraestructura|paquete/i;
+/** Modalidades concretas que nombra un bloqueador; "oficina", "on-site" o "visitas" no nombran ninguna. */
+const namedModalities = (b: string): ("hibrido" | "presencial")[] => [
+  ...(/h[ií]brid/i.test(b) ? (["hibrido"] as const) : []),
+  ...(/presencial/i.test(b) ? (["presencial"] as const) : []),
+];
+const normalizeText = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 
 /**
  * Escala del inglés exigido por el aviso. `no_menciona` y `no` quedan fuera: no hay nivel que
@@ -267,17 +280,19 @@ export function decide(
   const aceptadas = context.acceptedModalities;
   if (aceptadas) {
     const m = evaluation.modalidad;
-    const aceptada =
+    // Sin modalidad concreta en el texto vale la del aviso (o la señal sin tipo, si acepta no remoto).
+    const sinTipo =
       m === "hibrido" || m === "presencial"
         ? aceptadas.includes(m)
         : aceptadas.some((a) => a !== "remoto");
-    if (aceptada) {
-      for (let i = bloqueadores.length - 1; i >= 0; i--) {
-        const b = bloqueadores[i]!;
-        if (!IS_MODALITY_BLOCKER.test(b) || MIXED_BLOCKER.test(b)) continue;
-        bloqueadores.splice(i, 1);
-        if (!riesgos.some((r) => IS_MODALITY_BLOCKER.test(r))) riesgos.push(b);
-      }
+    for (let i = bloqueadores.length - 1; i >= 0; i--) {
+      const b = bloqueadores[i]!;
+      if (!IS_MODALITY_BLOCKER.test(b) || MIXED_BLOCKER.test(b)) continue;
+      const nombradas = namedModalities(b);
+      const aceptada = nombradas.length ? nombradas.every((n) => aceptadas.includes(n)) : sinTipo;
+      if (!aceptada) continue;
+      bloqueadores.splice(i, 1);
+      if (!riesgos.some((r) => normalizeText(r) === normalizeText(b))) riesgos.push(b);
     }
   }
 

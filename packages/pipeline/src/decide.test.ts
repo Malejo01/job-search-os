@@ -366,6 +366,55 @@ describe("decide(): modalidad aceptada (ronda 84)", () => {
     const no = decide(e, rules, { acceptedModalities: ["remoto"] });
     expect(no.bloqueadores).toEqual(["Primera semana en oficina"]);
   });
+  it.each([
+    "Relocation obligatoria a una oficina en otro país",
+    "Visa de trabajo requerida, trabajo presencial",
+    "Otra disciplina del oficio, presencial en oficina",
+    "Modalidad de contratación: dependencia",
+    "Entrevista presencial obligatoria",
+    "Infraestructura en nube híbrida",
+    "Paquete oficina de Microsoft",
+    "Debe mudarse a la oficina central",
+    "Inglés avanzado, presencial",
+  ])("no mueve un bloqueador que no es solo modalidad: %s", (texto) => {
+    const e: Evaluation = { ...base, modalidad: "presencial", bloqueadores_duros: [texto] };
+    const d = decide(e, rules, { acceptedModalities: todas });
+    expect(d.bloqueadores).toEqual([texto]);
+    expect(d.accion).toBe("descartar");
+  });
+  it("un bloqueador que nombra una modalidad no aceptada no se mueve", () => {
+    const e: Evaluation = {
+      ...base,
+      modalidad: "remoto",
+      bloqueadores_duros: ["Presencial 5 días"],
+    };
+    const d = decide(e, rules, { acceptedModalities: ["remoto", "hibrido"] });
+    expect(d.bloqueadores).toEqual(["Presencial 5 días"]);
+  });
+  it("'Presencial en otra ciudad' pasa a riesgo y con ciudad_distinta no se duplica", () => {
+    const e: Evaluation = {
+      ...base,
+      modalidad: "presencial",
+      bloqueadores_duros: ["Presencial en otra ciudad"],
+    };
+    const d = decide(e, rules, {
+      acceptedModalities: todas,
+      prefilterFlags: ["modalidad_no_remota", "ciudad_distinta"],
+    });
+    expect(d.bloqueadores).toEqual([]);
+    expect(d.riesgos.filter((r) => /otra ciudad/i.test(r))).toHaveLength(1);
+  });
+  it("dos bloqueadores de modalidad pasan a riesgos los dos", () => {
+    const e: Evaluation = {
+      ...base,
+      modalidad: "hibrido",
+      bloqueadores_duros: ["Modalidad híbrida", "Dos días en oficina"],
+      riesgos: ["modalidad híbrida"],
+    };
+    const d = decide(e, rules, { acceptedModalities: todas });
+    expect(d.bloqueadores).toEqual([]);
+    expect(d.riesgos).toEqual(["modalidad híbrida", "Dos días en oficina"]);
+  });
   it("con ciudad_distinta el riesgo de ciudad aparece una sola vez", () => {
     const d = decide(hibrido, rules, {
       acceptedModalities: todas,
