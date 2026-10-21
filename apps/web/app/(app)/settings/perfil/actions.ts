@@ -28,7 +28,13 @@ export async function savePerfilAction(formData: FormData): Promise<ProfileActio
   const userId = await requireUserId();
   // Si no se puede leer el perfil anterior, no hay con qué comparar: se guarda sin re-prefiltrar
   const before = await withUser(userId, (tx) => loadProfilePrefilterPrefs(tx, userId)).catch(
-    () => null,
+    (e) => {
+      createLogger({ user_id: userId, task: "reprefilter" }).warn(
+        { err: safeDbError(e) },
+        "reprefilter: no se pudo leer el perfil anterior; se guarda sin re-prefiltrar",
+      );
+      return null;
+    },
   );
   const result = await saveProfileFromForm(userId, formData, { keepStored: true });
   if (!result.ok) return result;

@@ -2,7 +2,7 @@ import { schema as s, type Db } from "@job-search-os/db";
 import { prefilter, RESIDENCY_FLAG, type JobStatus } from "@job-search-os/pipeline";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import type { Logger } from "../logger";
-import { createPgQueue, enqueueEvaluationWith } from "../queue/pg-queue";
+import { createPgQueue, enqueueEvaluationWith, EVALUATE_QUEUE } from "../queue/pg-queue";
 import { jdLanguageFor, loadProfilePrefilterPrefs } from "./ingest-job";
 import { loadActiveRules } from "./run-getonboard";
 
@@ -35,6 +35,13 @@ export const REPREFILTER_STATUSES = [
  */
 export const REPREFILTER_ENQUEUE_CAP = 20;
 
+/**
+ * Avisos que se re-prefiltran por corrida, los más nuevos primero. Los `prefiltrada` rescatados que
+ * no entran en el tope de cola no los recoge ningún proceso: `pool/backlog.ts:91` solo mira los del
+ * pool (join con `public_jobs`) y `requeue-cli` es manual. Pendiente conocido.
+ */
+export const REPREFILTER_BATCH = 500;
+
 /** Banderas que escribe el prefiltro; las demás (`posible_duplicado`, etc.) se conservan. */
 const PREFILTER_FLAGS = new Set([
   "modalidad_no_remota",
@@ -63,6 +70,7 @@ export function prefilterPrefsChanged(
 ): boolean {
   return (
     before.country !== after.country ||
+    before.remoteOnly !== after.remoteOnly ||
     before.city !== after.city ||
     !sameSet(before.acceptedModalities, after.acceptedModalities) ||
     !sameSet(before.jobLanguages, after.jobLanguages)
@@ -79,6 +87,8 @@ export type ReprefilterResult = {
   discarded: number;
   /** Rescatados con JD que volvieron a la cola de evaluación. */
   enqueued: number;
+  /** Había otra corrida del mismo usuario en curso: no se hizo nada. */
+  skipped?: boolean;
 };
 
 const EMPTY: ReprefilterResult = { examined: 0, changed: 0, recovered: 0, discarded: 0, enqueued: 0 };
@@ -92,7 +102,11 @@ export async function reprefilterJobs(
   const log = opts.logger.child({ user_id: userId });
 
   const result = await db.transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`reprefilter:${userId}`}))`);
+    // Si ya hay otra corrida del mismo usuario no se espera ni se apila: se sale (S-91-1)
+    const [lock] = await tx.execute<{ ok: boolean }>(
+      sql`select pg_try_advisory_xact_lock(hashtext(${`reprefilter:${userId}`})) as ok`,
+    );
+    if (!lock?.ok) return { ...EMPTY, skipped: true };
     // Sin criterios no hay prefiltro posible: no se toca nada (como la asignación del pool)
     const rules = await loadActiveRules(tx, userId);
     if (!rules) return EMPTY;
@@ -116,9 +130,25 @@ export async function reprefilterJobs(
       })
       .from(s.jobs)
       .where(and(eq(s.jobs.userId, userId), inArray(s.jobs.status, [...REPREFILTER_STATUSES])))
-      .orderBy(desc(s.jobs.firstSeenAt));
+      .orderBy(desc(s.jobs.firstSeenAt))
+      .limit(REPREFILTER_BATCH);
 
     const enqueueEvaluation = enqueueEvaluationWith(tx, createPgQueue(tx));
+    // `enqueueEvaluationWith` no informa si insertó o ya había un mensaje: se mira antes
+    const hasPendingMessage = async (jobId: string) =>
+      (
+        await tx
+          .select({ id: s.jobQueue.id })
+          .from(s.jobQueue)
+          .where(
+            and(
+              eq(s.jobQueue.queue, EVALUATE_QUEUE),
+              sql`${s.jobQueue.status} in ('pending', 'processing')`,
+              sql`${s.jobQueue.payload}->>'jobId' = ${jobId}`,
+            ),
+          )
+          .limit(1)
+      ).length > 0;
     const out = { ...EMPTY, examined: rows.length };
     for (const j of rows) {
       const pre = prefilter(
@@ -182,8 +212,10 @@ export async function reprefilterJobs(
         out.recovered++;
         // Las del pool las encola la asignación diaria con sus propios topes
         if (status === "prefiltrada" && !j.publicJobId && out.enqueued < REPREFILTER_ENQUEUE_CAP) {
-          await enqueueEvaluation(j.id, userId);
-          out.enqueued++;
+          if (!(await hasPendingMessage(j.id))) {
+            await enqueueEvaluation(j.id, userId);
+            out.enqueued++;
+          }
         }
       } else if (!pre.pass && j.status !== "descartada_prefiltro") {
         out.discarded++;
@@ -192,6 +224,7 @@ export async function reprefilterJobs(
     return out;
   });
 
-  log.info(result, "reprefilter: perfil cambiado");
+  if (result.skipped) log.info(result, "reprefilter: ya hay otra corrida en curso, se sale");
+  else log.info(result, "reprefilter: perfil cambiado");
   return result;
 }
