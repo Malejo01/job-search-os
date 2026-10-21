@@ -8,8 +8,6 @@ Sistema de búsqueda laboral para perfiles de tecnología y carreras digitales: 
 - Demo para recorrer sin registrarse: <https://busquedalaboral.malejo.com.ar/demo>
 - Cómo está hecho, explicado para quien no programa: <https://busquedalaboral.malejo.com.ar/como-esta-hecho>
 
-<!-- capturas: docs/img/ (pendiente) -->
-
 ## In English
 
 Job Search OS is a job-search assistant built as a portfolio project. It ingests public job feeds and forwarded alert emails, drops poor fits with deterministic rules, scores the rest with an LLM against a candidate profile, and then lets plain code (`decide()`) make the final call: apply, save or discard. The model suggests; the code decides.
@@ -83,7 +81,7 @@ Algunas decisiones tempranas fueron reemplazadas por otras posteriores (por ejem
 
 ## Calidad
 
-Conteo **al 21/10/2026**, sobre el árbol del repo. Método: archivos `*.test.ts` (unit), `*.integration.test.ts` (integración) y `apps/web/e2e/*.spec.ts` (e2e) bajo `packages/`, `evals/` y `apps/`, sin `node_modules`; casos = líneas que empiezan con `it(`/`test(` (y sus variantes `.each`/`.skip`/`.only`) buscadas con ripgrep. Un `it.each` cuenta una vez aunque corra varias filas, así que son cifras mínimas.
+Conteo **al 20/10/2026**, sobre el árbol del repo. Método: archivos `*.test.ts` (unit), `*.integration.test.ts` (integración) y `apps/web/e2e/*.spec.ts` (e2e) bajo `packages/`, `evals/` y `apps/`, sin `node_modules`; casos = líneas que empiezan con `it(`/`test(` (y sus variantes `.each`/`.skip`/`.only`) buscadas con ripgrep. Un `it.each` cuenta una vez aunque corra varias filas, así que son cifras mínimas.
 
 | Tipo | Herramienta | Archivos | Casos |
 |---|---|---|---|
