@@ -31,6 +31,12 @@ Adapter: `packages/adapters/src/sources/torre.ts`. Estado: conectado al cron det
 ## Pregunta para riesgos
 ¿Los términos de uso de Torre permiten consultar su buscador de forma automatizada y reutilizar los avisos? No hay API pública que lo habilite explícitamente; antes de conectar hay que leer los términos y, si no hay permiso claro, descartar la fuente.
 
+## Actualización 2026-10-21 (ronda 103, informe de fuentes)
+- La API oficial sigue en beta privada, con acceso por formulario. Los términos públicos (sección 6) prohíben las arañas web, y dicen que el contenido es para uso personal no comercial. Los términos de la API no estaban a la vista.
+- Torre ahora promociona MCP, créditos y auto-postulación. **Usarlo para postular choca con ADR-004.**
+- Según terceros, `_search` ignora `offset` y corta en 99 resultados. **A verificar** contra este adapter si alguna vez se prende.
+- **Recomendación:** Mauro pide acceso a la API oficial. Si no hay respuesta, se descarta la fuente y se borra el adapter apagado.
+
 ## Cómo prenderla
 **No prender hasta revisar los términos de uso** (ver "Pregunta para riesgos"); si no hay permiso claro, descartar la fuente. Si se aprueba, agregar `torre` a `INGEST_EXTRA_SOURCES` (docs/DEPLOY.md) y en la primera corrida mirar la respuesta del cron (`extraSources`) y los avisos ingeridos:
 - Formato real contra lo marcado "a verificar": endpoint, body, orden por fecha y forma de `compensation`.
