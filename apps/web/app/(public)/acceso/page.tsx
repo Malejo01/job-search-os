@@ -11,6 +11,7 @@ export const metadata: Metadata = {
   title: { absolute: "Pedir acceso" },
   description:
     "La beta es por invitación. Dejá tu nombre, email y carrera y te avisamos cuando haya lugar.",
+  alternates: { canonical: "/acceso" },
 };
 
 export default function AccesoPage() {

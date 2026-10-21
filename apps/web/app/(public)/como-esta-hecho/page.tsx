@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getPoolShowcase } from "@/lib/showcase";
 import { PoolNumbers } from "../mercado/pool-numbers";
@@ -5,10 +6,11 @@ import { FlowDiagram, FLOW_STEPS } from "./flow-diagram";
 
 // ISR (ronda 63): la CPU de Vercel no alcanza para una consulta por visita
 export const revalidate = 3600;
-export const metadata = {
+export const metadata: Metadata = {
   title: "Cómo está hecho",
   description:
     "Cómo una oferta pasa de la fuente a la decisión: la IA evalúa, las reglas en código deciden y la persona elige. Stack, controles y código público.",
+  alternates: { canonical: "/como-esta-hecho" },
 };
 
 const REPO_URL = "https://github.com/Malejo01/job-search-os";

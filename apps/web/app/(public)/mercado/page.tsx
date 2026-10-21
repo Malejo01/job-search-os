@@ -1,4 +1,5 @@
 import { SHOWCASE_TOP_MIN_JOBS } from "@job-search-os/pipeline";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { careerLabel } from "@/lib/career-market";
 import { getPoolShowcase } from "@/lib/showcase";
@@ -7,10 +8,11 @@ import { PoolNumbers } from "./pool-numbers";
 
 // ISR (ronda 63): la página se calcula una vez por hora, no por visita
 export const revalidate = 3600;
-export const metadata = {
+export const metadata: Metadata = {
   title: "Mercado: qué piden las ofertas por carrera",
   description:
     "Qué skills, nivel de inglés y sueldos piden las ofertas públicas de cada carrera, y datos curiosos del pool.",
+  alternates: { canonical: "/mercado" },
 };
 
 const NF = new Intl.NumberFormat("es-AR");
