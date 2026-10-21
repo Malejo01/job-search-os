@@ -23,6 +23,8 @@ export type DemoEvaluationView = {
   riesgos: string[];
   veredicto: string;
   locationOk: string;
+  /** jsonb crudo (null en filas anteriores a la ronda 115): la web lo valida con parseChecklist. */
+  checklist: unknown;
   model: string;
   evaluatedAt: Date;
 };
@@ -50,6 +52,7 @@ export async function readDemoEvaluations(
       riesgos: s.demoEvaluations.riesgos,
       veredicto: s.demoEvaluations.veredicto,
       locationOk: s.demoEvaluations.locationOk,
+      checklist: s.demoEvaluations.checklist,
       model: s.demoEvaluations.model,
       evaluatedAt: s.demoEvaluations.evaluatedAt,
     })

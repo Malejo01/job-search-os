@@ -1,0 +1,1 @@
+ALTER TABLE "demo_evaluations" ADD COLUMN "checklist" jsonb;
