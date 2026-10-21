@@ -11,11 +11,11 @@ import {
   safeDbError,
 } from "@job-search-os/adapters";
 import { createDb, requireDatabaseUrl } from "@job-search-os/db";
-import { parseOnboarding, parsePoolLimits } from "@job-search-os/pipeline";
+import { parsePoolLimits } from "@job-search-os/pipeline";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { upgradeLegacyInboundAddress } from "@/lib/inbound-address";
-import { completeOnboarding, getTargetRolesLimit, isOnboardingComplete } from "@/lib/onboarding";
+import { saveProfileFromForm } from "@/lib/onboarding";
 import { reassignForRoleChange } from "@/lib/pool-reassign";
 import { requireUserId } from "@/lib/session";
 
@@ -25,29 +25,18 @@ import { requireUserId } from "@/lib/session";
  * lo cargado. El usuario sale de la sesión, no del formulario. Los puestos (1 hasta el tope del
  * plan) se validan en el servidor; `target_role` queda como el primero. Si sale bien, redirige.
  */
-export type OnboardingActionResult = { ok: false; field: string; reason?: "min" | "max" };
+export type OnboardingActionResult = {
+  ok: false;
+  field: string;
+  reason?: "min" | "max" | "injection";
+};
 
 export async function saveOnboardingAction(formData: FormData): Promise<OnboardingActionResult> {
   const userId = await requireUserId();
-  const raw: Record<string, string | string[]> = {};
-  for (const [k, v] of formData.entries()) if (typeof v === "string") raw[k] = v;
-  // Los puestos llegan como una casilla por puesto; el tope sale del perfil (o del plan gratis).
-  // Modalidades y países de autorización también llegan como un valor por opción.
-  for (const k of ["targetRoles", "acceptedModalities", "workAuthOther"]) {
-    raw[k] = formData.getAll(k).filter((v): v is string => typeof v === "string");
-  }
-  const parsed = parseOnboarding(raw, await getTargetRolesLimit(userId));
-  if (!parsed.ok) {
-    return {
-      ok: false,
-      field: parsed.field,
-      ...(parsed.reason ? { reason: parsed.reason } : {}),
-    };
-  }
-  // Solo la primera vez dispara la ingesta: un POST repetido a la acción no la repite
-  const wasComplete = await isOnboardingComplete(userId);
-  const { saved, roleChanged } = await completeOnboarding(userId, parsed.value);
-  if (!saved) return { ok: false, field: "perfil" };
+  // El núcleo (parseo, validación y guardado) es el mismo que usa «Tu perfil» en Ajustes
+  const result = await saveProfileFromForm(userId, formData);
+  if (!result.ok) return result;
+  const { wasComplete, roleChanged } = result;
   // Reenvío con otro puesto y con evaluaciones hechas: reasigna (sin actividad lo cubre Mis skills)
   if (wasComplete && roleChanged) await reassignForRoleChange(userId, { onlyWithActivity: true });
   // JS-095: la dirección derivada del id se cambia por una aleatoria (si ya lo es, no se toca)

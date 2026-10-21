@@ -1,9 +1,11 @@
+import { createLogger } from "@job-search-os/adapters";
 import { schema as s } from "@job-search-os/db";
 import {
   criteriaFromOnboarding,
   isProfileComplete,
   isRoleKey,
   type OnboardingInput,
+  parseOnboarding,
   targetRolesLimit,
   type RoleKey,
 } from "@job-search-os/pipeline";
@@ -71,6 +73,109 @@ export async function getTargetRolesLimit(userId: string): Promise<number> {
       .limit(1);
     return targetRolesLimit(process.env, row?.max ?? null);
   });
+}
+
+/** Valores del formulario del perfil como strings, tal como los llenan los campos. */
+export type ProfileFormValues = {
+  country: string;
+  city: string;
+  acceptedModalities: string[];
+  jobLanguage: "es" | "en" | "both";
+  workAuthUs: boolean;
+  workAuthEu: boolean;
+  workAuthOther: string[];
+  englishCefr: string;
+  yearsTotal: string;
+  summary: string;
+};
+
+/** Perfil guardado, listo para precargar «Tu perfil». `null` si la persona no tiene fila de perfil. */
+export async function getProfileForEdit(userId: string): Promise<ProfileFormValues | null> {
+  return withUser(userId, async (tx) => {
+    const [p] = await tx.select().from(s.profiles).where(eq(s.profiles.userId, userId)).limit(1);
+    if (!p) return null;
+    const languages = p.jobLanguages ?? [];
+    const es = languages.includes("es");
+    const en = languages.includes("en");
+    return {
+      // `XX` es el marcador del alta por invitación: no es un país elegido
+      country: p.locationCountry === "XX" ? "" : p.locationCountry,
+      city: p.locationCity ?? "",
+      acceptedModalities: p.acceptedModalities ?? [],
+      jobLanguage: es && !en ? "es" : en && !es ? "en" : "both",
+      workAuthUs: p.workAuth?.us === true,
+      workAuthEu: p.workAuth?.eu === true,
+      workAuthOther: p.workAuth?.other ?? [],
+      englishCefr: p.englishCefr ?? "",
+      yearsTotal: p.yearsTotal == null ? "" : String(p.yearsTotal),
+      summary: p.profileSummary ?? "",
+    };
+  });
+}
+
+export type SaveProfileResult =
+  | { ok: true; roleChanged: boolean; wasComplete: boolean }
+  | { ok: false; field: string; reason?: "min" | "max" | "injection" };
+
+/**
+ * Núcleo de guardado del perfil, común al onboarding y a Ajustes: FormData → `parseOnboarding` →
+ * `completeOnboarding`. Con `keepStored` (Ajustes) los puestos, el piso salarial y las horas no
+ * vienen en el formulario: se usan los guardados, sin pisarlos. Si el resumen trae frases dirigidas
+ * al modelo no se guarda y solo se loguean los nombres de las señales, nunca el texto.
+ */
+export async function saveProfileFromForm(
+  userId: string,
+  formData: FormData,
+  options: { keepStored?: boolean } = {},
+): Promise<SaveProfileResult> {
+  const raw: Record<string, string | string[]> = {};
+  for (const [k, v] of formData.entries()) if (typeof v === "string") raw[k] = v;
+  // Los puestos llegan como una casilla por puesto; el tope sale del perfil (o del plan gratis).
+  // Modalidades y países de autorización también llegan como un valor por opción.
+  for (const k of ["targetRoles", "acceptedModalities", "workAuthOther"]) {
+    raw[k] = formData.getAll(k).filter((v): v is string => typeof v === "string");
+  }
+  let limit = await getTargetRolesLimit(userId);
+  if (options.keepStored) {
+    const stored = await withUser(userId, async (tx) => {
+      const [row] = await tx
+        .select({
+          targetRoles: s.profiles.targetRoles,
+          salaryFloorUsd: s.profiles.salaryFloorUsd,
+          maxWeeklyHours: s.profiles.maxWeeklyHours,
+        })
+        .from(s.profiles)
+        .where(eq(s.profiles.userId, userId))
+        .limit(1);
+      return row ?? null;
+    });
+    if (!stored) return { ok: false, field: "perfil" };
+    const roles = knownRoles(stored.targetRoles);
+    raw.targetRoles = roles;
+    // Los puestos ya guardados no se rechazan si el tope bajó después
+    limit = Math.max(limit, roles.length);
+    raw.salaryFloorUsd = stored.salaryFloorUsd == null ? "" : String(stored.salaryFloorUsd);
+    raw.maxWeeklyHours = stored.maxWeeklyHours == null ? "" : String(stored.maxWeeklyHours);
+  }
+  const parsed = parseOnboarding(raw, limit);
+  if (!parsed.ok) {
+    if (parsed.reason === "injection") {
+      createLogger({ user_id: userId, task: "profile_summary" }).warn(
+        { signals: parsed.signals ?? [] },
+        "resumen del perfil con frases dirigidas al modelo: no se guardó",
+      );
+    }
+    return {
+      ok: false,
+      field: parsed.field,
+      ...(parsed.reason ? { reason: parsed.reason } : {}),
+    };
+  }
+  // Solo la primera vez dispara la ingesta: un POST repetido a la acción no la repite
+  const wasComplete = await isOnboardingComplete(userId);
+  const { saved, roleChanged } = await completeOnboarding(userId, parsed.value);
+  if (!saved) return { ok: false, field: "perfil" };
+  return { ok: true, roleChanged, wasComplete };
 }
 
 /** ¿La persona ya recibió algún email (`inbound_emails`)? Con RLS: cuenta solo los suyos. */

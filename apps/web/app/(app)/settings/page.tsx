@@ -38,6 +38,14 @@ export default async function SettingsPage({
     <div className="mx-auto flex max-w-xl flex-col gap-6">
       <h1 className="text-2xl font-semibold">Ajustes</h1>
 
+      <Link
+        href="/settings/perfil"
+        className="flex min-h-11 flex-col justify-center rounded-md border border-zinc-200 px-4 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
+      >
+        <span className="font-medium text-zinc-900 underline">Tu perfil</span>
+        <span className="text-zinc-700">Modalidad, país, idioma de ofertas, resumen y años</span>
+      </Link>
+
       <section className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
         <h2 className="text-lg font-medium">Cuenta</h2>
         <p className="text-sm text-zinc-700">
