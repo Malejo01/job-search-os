@@ -56,6 +56,11 @@ export type DecideContext = {
   candidateEnglishCefr?: string | null;
   /** Años del candidato (profiles.years_total). Sin esto no se evalúa el gap de años. */
   candidateYearsTotal?: number | null;
+  /**
+   * Modalidades que acepta la persona (`effectiveAcceptedModalities`). Ausente = no hay con qué
+   * contradecir al modelo: sus bloqueadores de modalidad se respetan (comportamiento previo).
+   */
+  acceptedModalities?: readonly ("remoto" | "hibrido" | "presencial")[];
 };
 
 export type Adjustment = { rule: string; delta: number; detail: string };
@@ -104,6 +109,12 @@ const disciplinasPermitidas = (rules: CriteriaRules): string[] | null => {
 
 /** Un bloqueador de disciplina, lo escriba el modelo o el código. */
 const IS_DISCIPLINE_BLOCKER = /disciplina distinta/i;
+/**
+ * Un bloqueador de modalidad del modelo. Sin "relocat": mudarse de país no es modalidad. Si el
+ * texto también habla de otra cosa (jornada, años, salario, visa), no se toca: lo conservador.
+ */
+const IS_MODALITY_BLOCKER = /presencial|h[ií]brid|modalidad|oficina|on-?site|visitas/i;
+const MIXED_BLOCKER = /jornada|horas|a[ñn]os|years|salari|visa|autoriz|residen|relocat|disciplina/i;
 
 /**
  * Escala del inglés exigido por el aviso. `no_menciona` y `no` quedan fuera: no hay nivel que
@@ -244,6 +255,29 @@ export function decide(
     // Sin lista configurada no hay con qué contradecir al modelo: se respeta lo que dijo.
     for (let i = bloqueadores.length - 1; i >= 0; i--) {
       if (IS_DISCIPLINE_BLOCKER.test(bloqueadores[i]!)) bloqueadores.splice(i, 1);
+    }
+  }
+
+  /**
+   * Modalidad (ronda 84). El prefiltro ya descartó lo que la persona no acepta; acá un bloqueador
+   * de modalidad del modelo sobre una modalidad ACEPTADA pasa a riesgo. "remoto"/"desconocida" con
+   * bloqueador de modalidad ("primera semana en oficina") es una señal sin tipo: como en el
+   * prefiltro, vale si acepta híbrido o presencial.
+   */
+  const aceptadas = context.acceptedModalities;
+  if (aceptadas) {
+    const m = evaluation.modalidad;
+    const aceptada =
+      m === "hibrido" || m === "presencial"
+        ? aceptadas.includes(m)
+        : aceptadas.some((a) => a !== "remoto");
+    if (aceptada) {
+      for (let i = bloqueadores.length - 1; i >= 0; i--) {
+        const b = bloqueadores[i]!;
+        if (!IS_MODALITY_BLOCKER.test(b) || MIXED_BLOCKER.test(b)) continue;
+        bloqueadores.splice(i, 1);
+        if (!riesgos.some((r) => IS_MODALITY_BLOCKER.test(r))) riesgos.push(b);
+      }
     }
   }
 

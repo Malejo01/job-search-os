@@ -323,6 +323,60 @@ describe("decide(): flag ciudad_distinta del prefiltro", () => {
   });
 });
 
+describe("decide(): modalidad aceptada (ronda 84)", () => {
+  const hibrido: Evaluation = {
+    ...base,
+    modalidad: "hibrido",
+    bloqueadores_duros: ["Modalidad híbrida"],
+  };
+  const todas = ["remoto", "hibrido", "presencial"] as const;
+
+  it("acepta híbrido: el bloqueador pasa a riesgo y la acción sale del score", () => {
+    const d = decide(hibrido, rules, { acceptedModalities: todas });
+    expect(d.bloqueadores).toEqual([]);
+    expect(d.riesgos).toEqual(["Modalidad híbrida"]);
+    expect(d.accion).toBe("aplicar");
+  });
+  it("solo remoto: sigue descartando", () => {
+    const d = decide(hibrido, rules, { acceptedModalities: ["remoto"] });
+    expect(d.bloqueadores).toEqual(["Modalidad híbrida"]);
+    expect(d.accion).toBe("descartar");
+  });
+  it("sin acceptedModalities: idéntico a hoy", () => {
+    const d = decide(hibrido, rules);
+    expect(d.bloqueadores).toEqual(["Modalidad híbrida"]);
+    expect(d.riesgos).toEqual([]);
+    expect(d.accion).toBe("descartar");
+  });
+  it("un bloqueador mixto (jornada presencial de 48 hs) se conserva", () => {
+    const e: Evaluation = {
+      ...base,
+      modalidad: "presencial",
+      bloqueadores_duros: ["jornada presencial de 48 hs"],
+    };
+    const d = decide(e, rules, { acceptedModalities: todas });
+    expect(d.bloqueadores).toEqual(["jornada presencial de 48 hs"]);
+    expect(d.accion).toBe("descartar");
+  });
+  it("modalidad remoto con 'primera semana en oficina': riesgo si acepta híbrido, bloqueador si no", () => {
+    const e: Evaluation = { ...base, bloqueadores_duros: ["Primera semana en oficina"] };
+    const acepta = decide(e, rules, { acceptedModalities: ["remoto", "hibrido"] });
+    expect(acepta.bloqueadores).toEqual([]);
+    expect(acepta.riesgos).toEqual(["Primera semana en oficina"]);
+    const no = decide(e, rules, { acceptedModalities: ["remoto"] });
+    expect(no.bloqueadores).toEqual(["Primera semana en oficina"]);
+  });
+  it("con ciudad_distinta el riesgo de ciudad aparece una sola vez", () => {
+    const d = decide(hibrido, rules, {
+      acceptedModalities: todas,
+      prefilterFlags: ["modalidad_no_remota", "ciudad_distinta"],
+    });
+    expect(d.bloqueadores).toEqual([]);
+    expect(d.riesgos.filter((r) => /otra ciudad/i.test(r))).toHaveLength(1);
+    expect(d.riesgos.filter((r) => /h[ií]brid|presencial|modalidad/i.test(r))).toHaveLength(1);
+  });
+});
+
 describe("decide(): gap de años contra el perfil (JS-052)", () => {
   // Las reglas absolutas (≥ 8 bloquea, 5–7 resta 2) no se tocan: son el criterio del golden.
   // El gap solo agrega un riesgo, nunca baja el score.

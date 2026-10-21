@@ -5,10 +5,10 @@ import {
   canonicalUrl,
   dedup,
   detectEnglish,
+  effectiveAcceptedModalities,
   externalKey,
   isRoleKey,
   isValidCountry,
-  MODALITIES,
   normalizeCompany,
   normalizeLocation,
   normalizeTitle,
@@ -287,19 +287,11 @@ export async function loadProfilePrefilterPrefs(
     .where(eq(s.profiles.userId, userId))
     .limit(1);
   const country = row?.country?.trim().toUpperCase() ?? null;
-  let modalities: AcceptedModality[] = MODALITIES.filter((m) =>
-    row?.acceptedModalities?.includes(m),
-  );
-  // `remote_only = false` con solo remoto en la lista es un perfil sin sincronizar (anterior al
-  // backfill de la ronda 78): vale lo que decía `remote_only`, que acepta las tres.
-  if (row && !row.remoteOnly && modalities.length <= 1 && !modalities.some((m) => m !== "remoto")) {
-    modalities = [...MODALITIES];
-  }
   const languages = (["es", "en"] as const).filter((l) => row?.jobLanguages?.includes(l));
   return {
     country: isValidCountry(country) ? country : null,
     remoteOnly: row?.remoteOnly ?? true,
-    acceptedModalities: modalities.length ? modalities : ["remoto"],
+    acceptedModalities: effectiveAcceptedModalities(row ?? {}),
     city: row?.city?.trim() || null,
     jobLanguages: languages.length ? languages : ["es", "en"],
     targetRoles: validRoleKeys(row?.targetRoles),
