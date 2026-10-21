@@ -316,7 +316,14 @@ const handler = createMcpHandler(
       },
     );
   },
-  { serverInfo: { name: "job-search-os", version: "0.2.0" } },
+  {
+    serverInfo: { name: "job-search-os", version: "0.2.0" },
+    // En serverless no hay a quién avisar: cada invocación tiene su propio bus en memoria y nunca se
+    // publican cambios. Sin esto, un cliente 2026-07-28 abre `subscriptions/listen`, el SSE no se
+    // cierra nunca y Vercel lo corta a los 120 s del maxDuration (ronda 99).
+    capabilities: { tools: { listChanged: false } },
+    maxSubscriptions: 0,
+  },
 );
 
 async function guarded(req: Request): Promise<Response> {
