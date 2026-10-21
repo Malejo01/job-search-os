@@ -1,6 +1,7 @@
 import type { CareerMarket as CareerMarketData } from "@job-search-os/pipeline";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { CareerSalary } from "@/components/career-salary";
 import { BarGrow } from "./bar-grow";
 
 /**
@@ -239,21 +240,7 @@ export function CareerMarket({
           </Block>
 
           <Block title="Sueldos publicados">
-            {market.salary.enough && market.salary.median !== null ? (
-              <p className="break-words text-xs text-zinc-800">
-                Mediana: USD {NF.format(Math.round(market.salary.median))} por mes.
-                {market.salary.p25 !== null && market.salary.p75 !== null
-                  ? ` La mitad de las ofertas paga entre USD ${NF.format(Math.round(market.salary.p25))} y USD ${NF.format(Math.round(market.salary.p75))}.`
-                  : ""}{" "}
-                Lo informan {NF.format(market.salary.informed)} de {NF.format(market.salary.total)}{" "}
-                ofertas.
-              </p>
-            ) : (
-              <p className="text-xs text-zinc-600">
-                Muy pocas ofertas informan sueldo ({NF.format(market.salary.informed)} de{" "}
-                {NF.format(market.salary.total)}).
-              </p>
-            )}
+            <CareerSalary salary={market.salary} variant="full" testId="market-salary" />
           </Block>
 
           <Block title="Volumen y movimiento">

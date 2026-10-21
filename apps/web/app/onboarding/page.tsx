@@ -8,6 +8,7 @@ import {
   TARGET_ROLES_DEFAULT_LIMIT,
 } from "@job-search-os/pipeline";
 import { redirect } from "next/navigation";
+import { getCareerSalaries } from "@/lib/career-market";
 import { getTargetRoles, getTargetRolesLimit, isOnboardingComplete } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
@@ -31,10 +32,12 @@ export default async function OnboardingPage({
 }) {
   const userId = await requireUserId();
   if (await isOnboardingComplete(userId)) redirect("/jobs");
-  const [{ error }, targetRoles, rolesLimit] = await Promise.all([
+  const [{ error }, targetRoles, rolesLimit, salaries] = await Promise.all([
     searchParams,
     getTargetRoles(userId),
     getTargetRolesLimit(userId),
+    // Informativo: si el pool no responde, el selector se ve igual, sin sueldos
+    getCareerSalaries().catch(() => undefined),
   ]);
   const roleGroups = ROLE_GROUPS.map((group) => ({
     label: group.label,
@@ -50,6 +53,7 @@ export default async function OnboardingPage({
       </p>
       <OnboardingForm
         roleGroups={roleGroups}
+        salaries={salaries}
         selectedRoles={targetRoles}
         rolesLimit={rolesLimit}
         defaultRolesLimit={TARGET_ROLES_DEFAULT_LIMIT}

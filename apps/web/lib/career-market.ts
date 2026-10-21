@@ -1,7 +1,8 @@
-import { readCareerMarketInput } from "@job-search-os/adapters";
+import { readCareerMarketInput, readCareerSalaryJobs } from "@job-search-os/adapters";
 import {
   ROLE_KEYS,
   buildCareerMarket,
+  buildCareerSalary,
   type CareerMarket,
   type RoleKey,
 } from "@job-search-os/pipeline";
@@ -43,7 +44,33 @@ export function getCareerMarket(role: RoleKey): Promise<CareerMarket> {
       );
       return buildCareerMarket(input);
     },
-    ["career-market", "v1", role],
+    // v2: el sueldo pasó de una cifra única a { latam, international }
+    ["career-market", "v2", role],
     { revalidate: 1800, tags: ["career-market", `career-market:${role}`] },
+  )();
+}
+
+/**
+ * Sueldos de las 13 carreras para el paso 1 del onboarding: una sola lectura del pool (30 días) y
+ * un solo caché de 30 minutos, en vez de 13 consultas por visita. Misma razón que arriba para no
+ * llevar usuario en la clave: sale solo de `public_jobs`.
+ */
+export function getCareerSalaries(): Promise<Record<RoleKey, CareerMarket["salary"]>> {
+  return unstable_cache(
+    async () => {
+      await assertAppRole();
+      const rows = await getAppDb().transaction((tx) => readCareerSalaryJobs(tx, new Date()), {
+        accessMode: "read only",
+      });
+      const out = {} as Record<RoleKey, CareerMarket["salary"]>;
+      for (const role of ROLE_KEYS) {
+        out[role] = buildCareerSalary(
+          rows.filter((r) => r.roleHints.includes(role)).map((r) => r.job),
+        );
+      }
+      return out;
+    },
+    ["career-salaries", "v2"],
+    { revalidate: 1800, tags: ["career-market"] },
   )();
 }

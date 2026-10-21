@@ -1,5 +1,10 @@
 export * from "./types";
-export { buildCareerMarket, SMALL_SAMPLE_JOBS, TOP_SKILLS } from "./career-market";
+export {
+  buildCareerMarket,
+  buildCareerSalary,
+  SMALL_SAMPLE_JOBS,
+  TOP_SKILLS,
+} from "./career-market";
 export { detectEnglish, ENGLISH_ESTIMATED, type EnglishDetection } from "./english";
 export {
   monthlySalaryPoint,

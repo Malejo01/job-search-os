@@ -1,10 +1,13 @@
 import { monthlyUsd } from "../monthly-usd";
-import type { CareerMarket } from "./types";
+import type { SalarySummary } from "./types";
 
 /** Cuántos avisos con sueldo hacen falta para mostrar números. */
 export const MIN_SALARY_SAMPLE = 10;
 /** USD por mes fuera de este rango se descartan (un anual cargado como mensual, un error de carga). */
 export const SALARY_MONTHLY_BOUNDS: readonly [number, number] = [200, 40000];
+
+/** Monto crudo mínimo (USD por año) para creerle a un sueldo anual. */
+const MIN_ANNUAL_RAW = 15000;
 
 const PERIODS = new Set(["mensual", "anual", "hora"]);
 
@@ -18,6 +21,8 @@ export function monthlySalaryPoint(
   const values = [min, max].filter((v): v is number => v !== null && Number.isFinite(v));
   if (!values.length) return null;
   const avg = values.reduce((a, b) => a + b, 0) / values.length;
+  // Regla A: un anual menor a 15000 USD por año es casi seguro un período mal etiquetado en origen
+  if (period === "anual" && avg < MIN_ANNUAL_RAW) return null;
   const monthly = monthlyUsd(avg, period as "mensual" | "anual" | "hora");
   if (monthly === null) return null;
   const [lo, hi] = SALARY_MONTHLY_BOUNDS;
@@ -38,7 +43,7 @@ export function percentile(sorted: readonly number[], p: number): number | null 
 export function summarizeSalaries(
   points: readonly (number | null)[],
   total: number,
-): CareerMarket["salary"] {
+): SalarySummary {
   const values = points.filter((v): v is number => v !== null).sort((a, b) => a - b);
   const enough = values.length >= MIN_SALARY_SAMPLE;
   const pick = (p: number) => {

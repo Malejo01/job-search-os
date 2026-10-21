@@ -42,7 +42,8 @@ describe("buildCareerMarket · base", () => {
     expect(m.skills).toEqual([]);
     expect(m.poolUpdatedAt).toBeNull();
     expect(m.volume).toMatchObject({ active: 0, new24h: 0, sources: [] });
-    expect(m.salary).toMatchObject({ informed: 0, total: 0, enough: false });
+    expect(m.salary.latam).toMatchObject({ informed: 0, total: 0, enough: false });
+    expect(m.salary.international).toMatchObject({ informed: 0, total: 0, enough: false });
     expect(m.english.asks).toBe(0);
     expect(m.computedAt).toBe(NOW);
     expect(m.role).toBe("frontend");
@@ -130,21 +131,144 @@ describe("buildCareerMarket · seniority, inglés y sueldos", () => {
       }),
     );
 
+  const inAr = { countriesAllowed: ["AR"] };
+
   it("sueldos con N = 9: sin números", () => {
     const m = buildCareerMarket(input([...withSalary(9), job("x")]));
-    expect(m.salary).toMatchObject({ informed: 9, total: 10, enough: false, median: null });
+    expect(m.salary.international).toMatchObject({
+      informed: 9,
+      total: 10,
+      enough: false,
+      p25: null,
+      median: null,
+      p75: null,
+    });
   });
 
   it("sueldos con N = 10: con números", () => {
     const m = buildCareerMarket(input(withSalary(10)));
-    expect(m.salary).toMatchObject({ informed: 10, enough: true, median: 5500 });
+    expect(m.salary.international).toMatchObject({ informed: 10, enough: true, median: 5500 });
   });
 
   it("un anual cargado como mensual se descarta", () => {
     const m = buildCareerMarket(
       input([job("a", { salaryMinUsd: 90000, salaryMaxUsd: 90000, salaryPeriod: "mensual" })]),
     );
-    expect(m.salary.informed).toBe(0);
+    expect(m.salary.international.informed).toBe(0);
+    expect(m.salary.latam.informed).toBe(0);
+  });
+
+  it("un aviso mensual que acepta Argentina cae en latam", () => {
+    const m = buildCareerMarket(
+      input([
+        job("a", { ...inAr, salaryMinUsd: 2000, salaryMaxUsd: 3000, salaryPeriod: "mensual" }),
+      ]),
+    );
+    expect(m.salary.latam).toMatchObject({ informed: 1, total: 1 });
+    expect(m.salary.international).toMatchObject({ informed: 0, total: 0 });
+  });
+
+  it("un aviso 'any' anual cae en international", () => {
+    const m = buildCareerMarket(
+      input([
+        job("a", {
+          countriesAllowed: ["*"],
+          salaryMinUsd: 120000,
+          salaryMaxUsd: 180000,
+          salaryPeriod: "anual",
+        }),
+      ]),
+    );
+    expect(m.salary.latam.informed).toBe(0);
+    expect(m.salary.international).toMatchObject({ informed: 1, total: 1 });
+  });
+
+  it("los avisos que no aceptan Argentina o no dicen van a international", () => {
+    const m = buildCareerMarket(
+      input([job("a", { countriesAllowed: ["US"] }), job("b", { countriesAllowed: null })]),
+    );
+    expect(m.salary.latam.total).toBe(0);
+    expect(m.salary.international.total).toBe(2);
+  });
+
+  it("una región de LatAm cuenta como explícita; 'worldwide' no", () => {
+    const m = buildCareerMarket(
+      input([
+        job("a", { countriesAllowed: null, locationRaw: "Latin America" }),
+        job("b", { countriesAllowed: null, locationRaw: "Anywhere in the World" }),
+      ]),
+    );
+    expect(m.salary.latam.total).toBe(1);
+    expect(m.salary.international.total).toBe(1);
+  });
+
+  it("latam e international se calculan por separado, sin mezcla", () => {
+    const latam = Array.from({ length: 10 }, (_, i) =>
+      job(`l${i}`, {
+        ...inAr,
+        salaryMinUsd: 2000,
+        salaryMaxUsd: 2000,
+        salaryPeriod: "mensual",
+      }),
+    );
+    const intl = Array.from({ length: 10 }, (_, i) =>
+      job(`i${i}`, {
+        countriesAllowed: ["*"],
+        salaryMinUsd: 120000,
+        salaryMaxUsd: 120000,
+        salaryPeriod: "anual",
+      }),
+    );
+    const m = buildCareerMarket(input([...latam, ...intl]));
+    expect(m.salary.latam).toMatchObject({ enough: true, median: 2000 });
+    expect(m.salary.international).toMatchObject({ enough: true, median: 10000 });
+  });
+
+  it("las celdas por seniority llevan su propio N y umbral", () => {
+    const seniors = Array.from({ length: 10 }, (_, i) =>
+      job(`s${i}`, {
+        ...inAr,
+        seniority: "Senior",
+        salaryMinUsd: 4000,
+        salaryMaxUsd: 4000,
+        salaryPeriod: "mensual",
+      }),
+    );
+    const semis = Array.from({ length: 3 }, (_, i) =>
+      job(`m${i}`, {
+        ...inAr,
+        seniority: "Semi Senior",
+        salaryMinUsd: 2000,
+        salaryMaxUsd: 2000,
+        salaryPeriod: "mensual",
+      }),
+    );
+    const m = buildCareerMarket(
+      input([...seniors, ...semis, job("j", { ...inAr, seniority: "Junior" })]),
+    );
+    const { latam } = m.salary;
+    expect(latam).toMatchObject({ informed: 13, total: 14, enough: true });
+    expect(latam.bySeniority.senior).toMatchObject({
+      informed: 10,
+      total: 10,
+      enough: true,
+      median: 4000,
+    });
+    expect(latam.bySeniority.semi).toMatchObject({
+      informed: 3,
+      total: 3,
+      enough: false,
+      median: null,
+    });
+    expect(latam.bySeniority.junior).toMatchObject({ informed: 0, total: 1, enough: false });
+    expect(latam.bySeniority.lead).toMatchObject({ informed: 0, total: 0 });
+  });
+
+  it("la regla A descarta un anual de 12000", () => {
+    const m = buildCareerMarket(
+      input([job("a", { salaryMinUsd: 12000, salaryMaxUsd: 12000, salaryPeriod: "anual" })]),
+    );
+    expect(m.salary.international).toMatchObject({ informed: 0, total: 1 });
   });
 });
 
