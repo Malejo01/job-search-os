@@ -56,3 +56,27 @@ export function fillLegalPlaceholders(markdown: string, env: LegalEnv): string {
     (m) => values[m] ?? (m === LOG_MARKER ? LOG_PENDING_TEXT : LEGAL_PENDING_TEXT),
   );
 }
+
+const ENV_KEY: Record<string, keyof LegalEnv> = {
+  "[RESPONSABLE]": "LEGAL_RESPONSABLE",
+  "[DOMICILIO]": "LEGAL_DOMICILIO",
+  "[EMAIL DE CONTACTO]": "LEGAL_EMAIL",
+  [LOG_MARKER]: "LEGAL_LOG_DAYS",
+};
+
+/** Marcas que un texto vigente no puede tener (decisiones pendientes y notas de revisión). */
+const DRAFT_MARKS = /\{\{MAURO:|\[(?:A REVISAR|A CONFIRMAR|CONFIRMAR|CONSULTAR|A DEFINIR)\b/;
+
+/**
+ * true si el texto todavía no puede mostrarse como vigente: falta o es inválida alguna variable
+ * LEGAL_* que el texto usa, o queda una marca de borrador. Recibe el Markdown SIN completar.
+ */
+export function legalTextIsDraft(markdown: string, env: LegalEnv): boolean {
+  for (const m of new Set(markdown.match(PLACEHOLDERS) ?? [])) {
+    const key = ENV_KEY[m]!;
+    const value = m === LOG_MARKER ? daysValue(env[key]) : textValue(env[key]);
+    if (value === null) return true;
+  }
+  // El marcador de los logs empieza con "[A DEFINIR": se quita antes de buscar marcas
+  return DRAFT_MARKS.test(markdown.replace(PLACEHOLDERS, ""));
+}

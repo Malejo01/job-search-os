@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fillLegalPlaceholders } from "./fill";
+import { fillLegalPlaceholders, legalTextIsDraft } from "./fill";
 import { parseLegalMarkdown, type InlineNode } from "./markdown";
 
 const TEXTO =
@@ -88,5 +88,37 @@ describe("fillLegalPlaceholders", () => {
   it("un valor con saltos de línea no rompe el bloque", () => {
     const out = fillLegalPlaceholders("[DOMICILIO]", { LEGAL_DOMICILIO: "a\n\n# b" });
     expect(out).not.toContain("\n");
+  });
+});
+
+describe("legalTextIsDraft", () => {
+  const LIMPIO =
+    "Responsable: [RESPONSABLE], [DOMICILIO], [EMAIL DE CONTACTO]. " +
+    "Se conservan por [A DEFINIR: plazo de retención de los logs].";
+
+  it("con las cuatro variables válidas y sin marcas no es borrador", () => {
+    expect(legalTextIsDraft(LIMPIO, COMPLETO)).toBe(false);
+  });
+  it("falta una variable que el texto usa: borrador", () => {
+    expect(legalTextIsDraft(LIMPIO, { ...COMPLETO, LEGAL_EMAIL: " " })).toBe(true);
+  });
+  it("LEGAL_LOG_DAYS inválido: borrador", () => {
+    expect(legalTextIsDraft(LIMPIO, { ...COMPLETO, LEGAL_LOG_DAYS: "abc" })).toBe(true);
+  });
+  it("una variable que el texto no usa no hace falta", () => {
+    expect(
+      legalTextIsDraft("Contacto: [EMAIL DE CONTACTO]", { LEGAL_EMAIL: "a@example.com" }),
+    ).toBe(false);
+  });
+  it.each([
+    "{{MAURO: edad}}",
+    "[A REVISAR: x]",
+    "[A CONFIRMAR: x]",
+    "[CONFIRMAR x]",
+    "[CONSULTAR: x]",
+    "[A DEFINIR: jurisdicción]",
+    "[A DEFINIR con Ani]",
+  ])("%s deja el texto como borrador aunque estén todas las variables", (marca) => {
+    expect(legalTextIsDraft(`${LIMPIO} ${marca}`, COMPLETO)).toBe(true);
   });
 });

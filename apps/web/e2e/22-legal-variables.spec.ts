@@ -15,6 +15,11 @@ test.describe("datos legales por variables (JS-120)", () => {
         expect(texto).not.toContain(marcador);
       }
       expect(texto).not.toContain("plazo de retención de los logs]");
+      // Ninguna nota interna de revisión; solo puede quedar el precio, pendiente con Ani
+      expect(texto).not.toMatch(/\{\{MAURO|\[(?:A REVISAR|A CONFIRMAR|CONFIRMAR|CONSULTAR)\b/);
+      expect(texto.replace("[A DEFINIR con Ani]", "")).not.toMatch(/\[A DEFINIR\b/);
+      // Sin las variables, el texto no puede mostrarse como vigente
+      await expect(page.getByRole("note")).toContainText("Borrador en revisión");
     });
   }
 });

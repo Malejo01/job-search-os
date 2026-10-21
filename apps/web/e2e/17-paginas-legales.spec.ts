@@ -17,6 +17,9 @@ test.describe("páginas legales públicas (JS-106)", () => {
       expect(response?.status()).toBe(200);
       expect(new URL(page.url()).pathname).not.toBe("/login");
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(titulo);
+      // El título ya no dice "borrador": el aviso depende del contenido (sin LEGAL_* en e2e, sale)
+      await expect(page.getByRole("heading", { level: 1 })).not.toContainText(/borrador/i);
+      expect(await page.title()).not.toMatch(/borrador/i);
       await expect(page.getByRole("note")).toContainText("Borrador en revisión");
     });
   }
