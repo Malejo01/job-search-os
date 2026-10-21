@@ -25,7 +25,10 @@ export function CountrySearch({
   priority = [],
   invalid,
   describedBy,
+  initial = [],
 }: {
+  /** Países ya elegidos al montar (por ejemplo, el guardado en el perfil). */
+  initial?: readonly string[];
   name: string;
   /** Códigos ISO-2 asignados (la lista vive en el pipeline y la pasa el servidor). */
   codes: readonly string[];
@@ -43,7 +46,7 @@ export function CountrySearch({
   const inputRef = useRef<HTMLInputElement>(null);
   const refocus = useRef(false);
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected, setSelected] = useState<string[]>(() => initial.slice(0, max));
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const [announce, setAnnounce] = useState("");
@@ -165,7 +168,13 @@ export function CountrySearch({
             autoComplete="off"
             maxLength={40}
             disabled={full}
-            placeholder={full ? `Llegaste al máximo de ${max}` : placeholder}
+            placeholder={
+              full
+                ? max === 1
+                  ? "Para cambiar el país, quitá el que elegiste"
+                  : `Llegaste al máximo de ${max}`
+                : placeholder
+            }
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);

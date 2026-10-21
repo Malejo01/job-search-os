@@ -2,6 +2,7 @@ import { z } from "zod";
 import { isIsoCountry } from "./countries";
 import type { CriteriaRules } from "./criteria";
 import { DISCIPLINES } from "./evaluation";
+import { detectEvaluatorInjection } from "./evaluator/injection";
 import { type RoleKey } from "./skills/self-assessment";
 import { parseTargetRoles, TARGET_ROLES_DEFAULT_LIMIT } from "./skills/target-roles";
 
@@ -198,6 +199,19 @@ export const onboardingSchema = z
     }
   });
 
+/**
+ * Señales del detector del evaluador que no se aplican al resumen del perfil. Sobre una oferta
+ * solo topan el score, pero acá bloquean el guardado, y saltan con texto laboral normal ("implementé
+ * nuevas instrucciones de seguridad", "no evalúes solo el título", "veredicto: aprobado").
+ */
+const SUMMARY_IGNORED_SIGNALS: readonly string[] = [
+  "nuevas_instrucciones",
+  "new_instructions",
+  "no_evalues",
+  "do_not_evaluate",
+  "veredicto_campo",
+];
+
 export type OnboardingInput = {
   /** Puestos que busca (1 a `limit`); el primero es el principal (`target_role`). */
   targetRoles: RoleKey[];
@@ -219,8 +233,12 @@ export type OnboardingInput = {
 
 export type OnboardingParse =
   | { ok: true; value: OnboardingInput }
-  /** `reason` solo viene en `summary`: por debajo del mínimo o por encima del máximo. */
-  | { ok: false; field: string; reason?: "min" | "max" };
+  /**
+   * `reason` solo viene en el resumen: por debajo del mínimo, por encima del máximo o con frases
+   * dirigidas al modelo (`injection`, en el campo `profileSummary`; `signals` son los NOMBRES de
+   * los patrones, nunca el texto).
+   */
+  | { ok: false; field: string; reason?: "min" | "max" | "injection"; signals?: string[] };
 
 /**
  * Valida los campos crudos del formulario (strings; las casillas llegan como "on"/ausente).
@@ -279,6 +297,13 @@ export function parseOnboarding(
     return { ok: false, field };
   }
   const v = parsed.data;
+  // El resumen entra al prompt del evaluador: no se guarda si trae instrucciones para el modelo
+  const signals = detectEvaluatorInjection(v.summary).signals.filter(
+    (name) => !SUMMARY_IGNORED_SIGNALS.includes(name),
+  );
+  if (signals.length > 0) {
+    return { ok: false, field: "profileSummary", reason: "injection", signals };
+  }
   const other = [...new Set(v.workAuthOther)].slice(0, 10);
   const acceptedModalities = MODALITIES.filter((m) => v.acceptedModalities.includes(m));
   return {
