@@ -1,6 +1,7 @@
 import { alertGuideData } from "@/lib/alert-guide-data";
 import { assistantState } from "@/lib/assistant-state";
 import { getInboundAddress } from "@/lib/inbound-address";
+import { portalStats } from "@/lib/portal-stats";
 import { requireUserId } from "@/lib/session";
 import { Assistant } from "../../../onboarding/asistente/assistant";
 
@@ -16,6 +17,7 @@ export default async function SettingsAssistantPage() {
       address={address}
       state={await assistantState(userId, address)}
       guide={await alertGuideData(userId)}
+      portalStats={await portalStats(userId, new Date())}
     />
   );
 }
