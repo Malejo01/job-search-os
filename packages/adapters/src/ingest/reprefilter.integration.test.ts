@@ -105,7 +105,9 @@ beforeEach(async () => {
   await clean();
   await conn.db
     .insert(s.evaluationCriteria)
-    .values(USERS.map((userId) => ({ userId, version: 1, active: true, rules: criteria as never })));
+    .values(
+      USERS.map((userId) => ({ userId, version: 1, active: true, rules: criteria as never })),
+    );
   for (const u of USERS) await setProfile(u, ["remoto"], true);
 });
 

@@ -91,7 +91,13 @@ export type ReprefilterResult = {
   skipped?: boolean;
 };
 
-const EMPTY: ReprefilterResult = { examined: 0, changed: 0, recovered: 0, discarded: 0, enqueued: 0 };
+const EMPTY: ReprefilterResult = {
+  examined: 0,
+  changed: 0,
+  recovered: 0,
+  discarded: 0,
+  enqueued: 0,
+};
 
 export async function reprefilterJobs(
   db: Db,
@@ -184,11 +190,7 @@ export async function reprefilterJobs(
       if (pre.pass) {
         // Los que ya estaban en carrera conservan su estado; los rescatados entran como en la ingesta
         status = wasOut ? (hasJd ? "prefiltrada" : "pendiente_jd") : j.status;
-        flags = [
-          ...kept,
-          ...pre.flags,
-          ...(pre.cap !== null ? [`title_cap:${pre.cap}`] : []),
-        ];
+        flags = [...kept, ...pre.flags, ...(pre.cap !== null ? [`title_cap:${pre.cap}`] : [])];
         reason = null;
       } else {
         status = "descartada_prefiltro";
@@ -198,9 +200,7 @@ export async function reprefilterJobs(
       flags = [...new Set(flags)];
 
       const same =
-        status === j.status &&
-        reason === j.prefilterReason &&
-        sameSet(flags, j.flags ?? []);
+        status === j.status && reason === j.prefilterReason && sameSet(flags, j.flags ?? []);
       if (same) continue;
 
       await tx
