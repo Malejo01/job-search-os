@@ -37,18 +37,67 @@ export const FLOW_STEPS = [
   },
 ] as const;
 
-const TITLE = "Recorrido de una oferta, de la fuente a la decisión";
-const DESC =
-  "Seis pasos en orden: 1 fuentes, 2 normalización y duplicados, 3 prefiltro en código, 4 evaluación con IA, 5 decide() en código, 6 la app y el MCP, donde la persona decide.";
+export type FlowLang = "es" | "en";
 
-const LABELS = [
-  ["1 · Fuentes", "APIs y alertas"],
-  ["2 · Normalización", "y duplicados"],
-  ["3 · Prefiltro", "código, sin IA"],
-  ["4 · Evaluación", "con IA"],
-  ["5 · decide()", "código"],
-  ["6 · App y MCP", "la persona decide"],
+export const FLOW_STEPS_EN = [
+  {
+    title: "Sources",
+    text: "Public job-board APIs and company career sites (Greenhouse, Lever, Ashby), plus the alerts the person forwards by email.",
+    note: "No LinkedIn scraping and no automatic applications.",
+  },
+  {
+    title: "Normalization and deduplication",
+    text: "The same posting from two sources becomes a single job.",
+    note: null,
+  },
+  {
+    title: "Prefilter (code, no AI)",
+    text: "Work mode, discipline, off-profile titles and required country. It discards cheaply before spending on AI.",
+    note: null,
+  },
+  {
+    title: "AI evaluation",
+    text: "Reads the full posting against the profile and returns a fixed, validated structure: score, pros, cons, gaps and risks.",
+    note: null,
+  },
+  {
+    title: "decide() (code)",
+    text: "Applies verifiable rules: required years, English, residency and a per-title ceiling. That yields the action: apply, save or discard.",
+    note: "The model suggests; the code decides.",
+  },
+  {
+    title: "The app and MCP",
+    text: "The person sees the reasoning and decides. It can also be queried over MCP, a protocol for connecting AI assistants.",
+    note: null,
+  },
 ] as const;
+
+const TEXTS = {
+  es: {
+    title: "Recorrido de una oferta, de la fuente a la decisión",
+    desc: "Seis pasos en orden: 1 fuentes, 2 normalización y duplicados, 3 prefiltro en código, 4 evaluación con IA, 5 decide() en código, 6 la app y el MCP, donde la persona decide.",
+    labels: [
+      ["1 · Fuentes", "APIs y alertas"],
+      ["2 · Normalización", "y duplicados"],
+      ["3 · Prefiltro", "código, sin IA"],
+      ["4 · Evaluación", "con IA"],
+      ["5 · decide()", "código"],
+      ["6 · App y MCP", "la persona decide"],
+    ],
+  },
+  en: {
+    title: "Journey of a job posting, from source to decision",
+    desc: "Six steps in order: 1 sources, 2 normalization and deduplication, 3 prefilter in code, 4 AI evaluation, 5 decide() in code, 6 the app and MCP, where the person decides.",
+    labels: [
+      ["1 · Sources", "APIs and alerts"],
+      ["2 · Normalization", "and deduplication"],
+      ["3 · Prefilter", "code, no AI"],
+      ["4 · AI evaluation", "reads the posting"],
+      ["5 · decide()", "code"],
+      ["6 · App and MCP", "the person decides"],
+    ],
+  },
+} as const;
 
 const BOX = "fill-white stroke-zinc-900";
 const HEAD = "fill-zinc-900 text-[15px] font-semibold";
@@ -72,7 +121,8 @@ function Defs({ id }: { id: string }) {
   );
 }
 
-export function FlowDiagram() {
+export function FlowDiagram({ lang = "es" }: { lang?: FlowLang }) {
+  const { title: TITLE, desc: DESC, labels: LABELS } = TEXTS[lang];
   return (
     <div data-testid="flow-diagram">
       {/* Desde sm: dos filas de tres cajas, la flecha de la fila 1 vuelve a la izquierda */}
