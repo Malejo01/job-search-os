@@ -16,7 +16,8 @@ export type LocationScope =
   | { kind: "places"; countries: string[]; regions: Region[] }
   | { kind: "unknown" };
 
-const LATAM_CODES = [
+/** ISO-2 de LatAm. Exportado para el informe del dry-run (C-1b). */
+export const LATAM_CODES: readonly string[] = [
   "AR",
   "BO",
   "BR",
