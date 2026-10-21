@@ -20,7 +20,7 @@ async function login(formData: FormData): Promise<void> {
     await signIn("credentials", {
       email: String(formData.get("email") ?? ""),
       password: String(formData.get("password") ?? ""),
-      redirectTo: "/jobs",
+      redirectTo: "/hoy",
     });
   } catch (error) {
     if (error instanceof AuthError) redirect("/login?error=1");

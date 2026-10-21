@@ -9,7 +9,10 @@ import Link from "next/link";
 import type { PortalCoverage } from "@/lib/portal-coverage";
 import { CopyButton } from "./copy-button";
 
-const STATUS_VIEW: Record<PortalStatus, { icon: string; text: string; className: string }> = {
+export const PORTAL_STATUS_VIEW: Record<
+  PortalStatus,
+  { icon: string; text: string; className: string }
+> = {
   activo: {
     icon: "✅",
     text: "Activo: te llegó un aviso en los últimos 14 días",
@@ -76,7 +79,7 @@ export function AlertGuide({ roles, language, coverage }: AlertGuideProps) {
       </div>
       <ul className="m-0 flex list-none flex-col gap-3 p-0">
         {ALERT_PORTALS.map((portal) => {
-          const status = STATUS_VIEW[coverage[portal.id].status];
+          const status = PORTAL_STATUS_VIEW[coverage[portal.id].status];
           const url = searchUrlFor(portal.id, keywords);
           return (
             <li

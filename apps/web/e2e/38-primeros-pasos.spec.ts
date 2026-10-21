@@ -294,6 +294,7 @@ test.describe("Flujo 38: primeros pasos, de la persona nueva a la checklist comp
     await context!.clearCookies();
     await context!.addCookies(hidden);
     await loginAsSecondUser(page);
+    await page.goto("/jobs");
     await expect(page.getByRole("heading", { name: "Ofertas", exact: true })).toBeVisible();
     await expect(checklist(page)).toBeVisible();
   });

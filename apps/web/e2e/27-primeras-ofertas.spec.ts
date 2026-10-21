@@ -310,6 +310,7 @@ test.describe("Flujo 27b: aviso «Elegí tu puesto» en /jobs", () => {
     }
 
     await login(page);
+    await page.goto("/jobs");
     const nudge = page.getByTestId("role-nudge");
     await expect(nudge).toContainText("Elegí tu puesto para recibir ofertas que te sirvan.");
     await expect(nudge.getByRole("link", { name: "Elegir mi puesto" })).toHaveAttribute(

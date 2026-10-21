@@ -299,6 +299,18 @@ describe("buildCareerMarket · volumen", () => {
     expect(m.volume.new24h).toBe(2);
   });
 
+  it("últimos 7 días: cuenta el borde y separa los escritos en español", () => {
+    const es = "Buscamos una persona para sumarse a nuestro equipo de desarrollo en la empresa";
+    const m = buildCareerMarket(
+      input([
+        job("a", { publishedAt: "2026-10-09T12:00:00.000Z", lang: "es", jdText: es }),
+        job("b", { publishedAt: "2026-10-09T11:59:59.999Z", lang: "es", jdText: es }),
+        job("c", { publishedAt: "2026-10-15T12:00:00.000Z", lang: "en" }),
+      ]),
+    );
+    expect(m.volume.last7d).toEqual({ total: 2, writtenInSpanish: 1 });
+  });
+
   it("modalidad: lo desconocido va a desconocida", () => {
     const m = buildCareerMarket(
       input([

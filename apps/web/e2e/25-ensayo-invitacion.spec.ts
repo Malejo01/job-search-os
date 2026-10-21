@@ -250,6 +250,7 @@ test.describe("Flujo 25: ensayo de invitación, de la invitación a la primera o
 
   test("B no ve lo de A, ni por lista ni por URL", async () => {
     for (const path of [
+      "/hoy",
       "/jobs",
       "/jobs/pending-jd",
       "/inbox",
@@ -271,6 +272,7 @@ test.describe("Flujo 25: ensayo de invitación, de la invitación a la primera o
   test("A no ve la oferta de B, ni por lista ni por URL", async ({ page }) => {
     await login(page);
     for (const path of [
+      "/hoy",
       "/jobs",
       "/jobs/pending-jd",
       "/inbox",

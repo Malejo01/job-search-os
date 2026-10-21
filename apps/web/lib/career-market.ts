@@ -47,8 +47,10 @@ export function getCareerMarket(role: RoleKey): Promise<CareerMarket> {
       );
       return buildCareerMarket(input);
     },
-    // v2: el sueldo pasó de una cifra única a { latam, international }; v3: suma writtenInSpanish
-    ["career-market", "v3", role],
+    // v2: el sueldo pasó de una cifra única a { latam, international }; v3: suma writtenInSpanish;
+    // v4: suma volume.last7d. Al cambiar la forma se sube la clave porque el Data Cache de Vercel
+    // persiste entre deploys y devolvería la forma vieja.
+    ["career-market", "v4", role],
     { revalidate: 1800, tags: ["career-market", `career-market:${role}`] },
   )();
 }

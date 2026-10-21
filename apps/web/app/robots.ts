@@ -14,6 +14,7 @@ export default function robots(): MetadataRoute.Robots {
       allow: ["/", "/mercado", "/acceso"],
       disallow: [
         "/api/",
+        "/hoy",
         "/jobs",
         "/inbox",
         "/applications",

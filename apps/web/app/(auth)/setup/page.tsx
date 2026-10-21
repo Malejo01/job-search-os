@@ -35,7 +35,7 @@ async function setup(formData: FormData): Promise<void> {
     redirect("/setup?error=email");
   }
   try {
-    await signIn("credentials", { email, password, redirectTo: "/jobs" });
+    await signIn("credentials", { email, password, redirectTo: "/hoy" });
   } catch (error) {
     if (error instanceof AuthError) redirect("/login");
     throw error; // NEXT_REDIRECT y errores reales siguen su curso

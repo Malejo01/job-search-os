@@ -15,14 +15,18 @@ test("health responde ok", async ({ request }) => {
 test.describe("con sesión", () => {
   test.skip(!EMAIL || !PASSWORD, "faltan E2E_PROD_EMAIL/E2E_PROD_PASSWORD (los crea Mauro)");
 
-  test("login, /jobs, primera oferta y /applications", async ({ page }) => {
+  test("login, /hoy, /jobs, primera oferta y /applications", async ({ page }) => {
     // Mismos locators que e2e/helpers.ts (login), sin importar nada que toque la base
     await page.goto("/login");
     await page.getByLabel("Email").fill(EMAIL ?? "");
     await page.getByLabel("Contraseña").fill(PASSWORD ?? "");
     await page.getByRole("button", { name: "Entrar" }).click();
-    await page.waitForURL("**/jobs**");
+    // El login aterriza en /hoy (ronda 119); /jobs se visita aparte, como antes
+    await page.waitForURL("**/hoy**");
+    await expect(page.getByRole("heading", { level: 1, name: "Hoy" })).toBeVisible();
+    await expect(page.getByText(/application error|internal server error/i)).toHaveCount(0);
 
+    await page.goto("/jobs");
     await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
     await expect(page.getByText(/application error|internal server error/i)).toHaveCount(0);
 
