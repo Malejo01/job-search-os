@@ -50,6 +50,8 @@ const checklistItemSchema = z.object({
     tenes: z.enum(["perfil", "skills"]).nullable(),
   }),
   bloquea: z.boolean(),
+  // Aclaración del código (por ejemplo «salario leído del texto del aviso»); opcional
+  nota: z.string().max(200).optional(),
 });
 const checklistSchema = z.object({
   items: z.array(checklistItemSchema).max(40),

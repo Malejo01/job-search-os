@@ -58,6 +58,11 @@ function Item({ item, compact }: { item: ChecklistItemView; compact: boolean }) 
           ? `Tenés (${CHECKLIST_TENES_SOURCE[item.fuente.tenes]}): ${item.tenes}`
           : "Tenés: no lo sabemos"}
       </p>
+      {item.nota ? (
+        <p data-testid="requisito-nota" className="break-words text-xs text-zinc-600">
+          {item.nota}
+        </p>
+      ) : null}
       {cta ? (
         <p className="text-xs">
           <Link href={cta.href} className="inline-flex min-h-8 items-center text-sky-800 underline">
