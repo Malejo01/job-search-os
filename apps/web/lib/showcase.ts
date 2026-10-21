@@ -27,8 +27,10 @@ export function careerFromSlug(slug: string): RoleKey | null {
 }
 
 /**
- * Segundos de vida de una página renderizada sin base (el build de Vercel y el del CI no tienen URL
- * de la app): así "Datos en preparación" no queda cacheado la hora entera de `revalidate`.
+ * Segundos de vida de una página renderizada sin base (el build del CI no tiene URL de la app): así
+ * "Datos en preparación" no queda cacheado la hora entera de `revalidate`. En Vercel no alcanzó
+ * (ronda 94: la página vacía del build siguió más de 40 minutos), por eso el build de Vercel recibe
+ * `DATABASE_URL_APP` (`passThroughEnv` en turbo.json) y sale con datos.
  */
 export const EMPTY_PAGE_REVALIDATE_SECONDS = 30;
 
