@@ -11,6 +11,12 @@ export type JobFacts = {
   /** `jobs.salary_period`: mensual | anual | hora. */
   salaryPeriod?: string | null;
   salaryNote?: string | null;
+  /**
+   * El salario salió de un campo de la API de la fuente (el worker lo calcula según `job_sources`).
+   * `false` = salió del texto del aviso (lo controla un tercero): no bloquea ni desmiente al modelo.
+   * Ausente = como antes de la ronda 109 (se trata como de la API).
+   */
+  salaryFromApi?: boolean;
   weeklyHours?: number | null;
   /** Texto del aviso: solo para detectar el idioma (inglés en un aviso en español). */
   jdText?: string | null;
@@ -49,6 +55,13 @@ export const LOCAL_CURRENCY_NOTE = /\b(?:ars|pesos?|moneda local)\b/i;
 
 export const salaryIsLocalCurrency = (facts: JobFacts | undefined): boolean =>
   Boolean(facts?.salaryNote && LOCAL_CURRENCY_NOTE.test(facts.salaryNote));
+
+/** El código solo se fía del salario estructurado si viene de la API; ausente = sí (compatibilidad). */
+export const salaryIsFromApi = (facts: JobFacts | undefined): boolean =>
+  facts?.salaryFromApi !== false;
+
+/** Nota del ítem `salario` del checklist cuando la cifra salió del texto del aviso. */
+export const SALARY_FROM_TEXT_NOTE = "salario leído del texto del aviso";
 
 /** Un bloqueador o riesgo de salario escrito por el modelo (o por el código). */
 export const IS_SALARY_TEXT = /salari|sueldo|remuneraci|usd|piso/i;

@@ -79,6 +79,27 @@ const titleCapFromFlags = (flags: readonly string[] | null | undefined): number 
   return null;
 };
 
+/**
+ * Fuentes cuyo salario sale de un campo estructurado de la API del portal (USD y período claros):
+ * Get on Board (`min_salary`/`max_salary`) y los ATS Greenhouse, Lever y Ashby (`atsSalary`). El resto
+ * lo parsea del texto (emails, alertas) o no se sabe de dónde sale (Remote OK, Jobicy, Torre, `other`,
+ * pegado a mano): ahí el código no se fía de la cifra.
+ */
+const SALARY_API_KINDS: ReadonlySet<string> = new Set([
+  "getonboard_api",
+  "greenhouse",
+  "lever",
+  "ashby",
+]);
+
+/**
+ * `true` solo si el aviso tiene fuentes y TODAS son de API: un aviso fusionado con un email puede
+ * haber tomado la cifra del texto.
+ */
+export function salaryFromApiKinds(kinds: readonly string[]): boolean {
+  return kinds.length > 0 && kinds.every((k) => SALARY_API_KINDS.has(k));
+}
+
 const ROLE_LABELS = roleSkillsSchema.parse(roleSkillsSeed);
 
 /**
@@ -154,6 +175,11 @@ export type EvaluateForProfileInput = {
    * (demo, tests) el checklist sale sin skills.
    */
   checklistSkills?: ChecklistSkills;
+  /**
+   * El salario del aviso salió de un campo de la API (ver `salaryIsFromApi`). Ausente = false: sin
+   * saber de dónde vino, el código no se fía de la cifra (demo, tests).
+   */
+  salaryFromApi?: boolean;
   signal?: AbortSignal;
   /** Para loguear (sin datos) si el checklist falla. */
   logger?: Logger;
@@ -249,6 +275,7 @@ export async function evaluateForProfile(
     salaryMaxUsd: job.salaryMaxUsd,
     salaryPeriod: job.salaryPeriod,
     salaryNote: job.salaryNote,
+    salaryFromApi: input.salaryFromApi ?? false,
     weeklyHours: job.weeklyHours,
     jdText: job.jdText,
   };
@@ -346,6 +373,11 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
       "checklist: no se pudieron cargar las skills",
     );
   }
+  // De dónde salió el salario: sin fuentes registradas se trata como texto (lo conservador)
+  const sources = await db
+    .select({ kind: s.jobSources.kind })
+    .from(s.jobSources)
+    .where(eq(s.jobSources.jobId, job.id));
   const evaluated = await evaluateForProfile({
     llm: deps.llm,
     promptVersion,
@@ -353,6 +385,7 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
     rules,
     job,
     checklistSkills,
+    salaryFromApi: salaryFromApiKinds(sources.map((r) => r.kind)),
     logger: log,
     signal: deps.signal,
     ctx: { userId: job.userId, jobId: job.id },
