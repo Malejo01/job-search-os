@@ -251,6 +251,26 @@ export const ADJUSTMENT_LABEL: Record<string, string> = {
   salario_bajo_piso: "salario por debajo de tu piso",
 };
 
+/** Estado de un requisito del aviso (ronda 104): ícono + texto, nunca solo color. */
+export const CHECKLIST_STATUS: Record<
+  "cumple" | "no_cumple" | "no_se_sabe",
+  { icon: string; label: string; classes: string }
+> = {
+  cumple: { icon: "✓", label: "Cumple", classes: "bg-emerald-50 text-emerald-900" },
+  no_cumple: { icon: "✗", label: "No cumple", classes: "bg-red-50 text-red-900" },
+  no_se_sabe: { icon: "?", label: "No se sabe", classes: "bg-zinc-100 text-zinc-800" },
+};
+
+/** De dónde sale cada lado de un requisito. */
+export const CHECKLIST_PIDE_SOURCE: Record<"fuente" | "modelo", string> = {
+  fuente: "del aviso",
+  modelo: "según la evaluación",
+};
+export const CHECKLIST_TENES_SOURCE: Record<"perfil" | "skills", string> = {
+  perfil: "de tu perfil",
+  skills: "de tu perfil",
+};
+
 /** Un ajuste de score en llano: el detalle que ya trae, o la etiqueta de la regla. */
 export function adjustmentText(a: { rule: string; delta: number; detail?: string | null }): string {
   const what = a.detail?.trim() || ADJUSTMENT_LABEL[a.rule] || "ajuste automático";

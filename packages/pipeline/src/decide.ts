@@ -1,7 +1,16 @@
 import type { CriteriaRules } from "./criteria";
 import type { Evaluation } from "./evaluation";
 import { INJECTION_FLAG, INJECTION_RISK } from "./evaluator/injection";
+import {
+  IS_SALARY_TEXT,
+  MIXED_TOPIC_TEXT,
+  monthlySalaryUsd,
+  salaryIsLocalCurrency,
+  type JobFacts,
+} from "./evaluator/job-facts";
+import { inferSeniorityFromTitle } from "./normalize/seniority";
 import { RESIDENCY_FLAG } from "./prefilter/residency";
+import { englishIsNotAGap } from "./skills/english-gap";
 
 /**
  * Decisión desde score + bloqueadores + riesgos + umbrales (EVALUATOR_PROMPT §3, prompt v1.1).
@@ -62,6 +71,11 @@ export type DecideContext = {
    * contradecir al modelo: sus bloqueadores de modalidad se respetan (comportamiento previo).
    */
   acceptedModalities?: readonly ("remoto" | "hibrido" | "presencial")[];
+  /**
+   * Hechos estructurados del aviso (`jobs.*`): el código decide con esto antes que con el texto del
+   * modelo (salario, jornada, seniority del título, idioma del aviso). Ausente = todo como antes.
+   */
+  jobFacts?: JobFacts;
 };
 
 export type Adjustment = { rule: string; delta: number; detail: string };
@@ -297,6 +311,92 @@ export function decide(
     }
   }
 
+  const facts = context.jobFacts;
+
+  /**
+   * Salario (D3, ronda 104). Con salario estructurado mensual o anual en USD manda el dato: máximo
+   * por debajo del piso → bloqueador; piso dentro del rango → riesgo; máximo ≥ piso → el bloqueador
+   * de salario del modelo es una contradicción y se cae. Por hora, otro período o sin cifras: no se
+   * sabe y vale lo que dijo el modelo. Moneda local en la nota: si el máximo en USD ya está bajo el
+   * piso, bloquea igual (la nota no lo salva); si no, la moneda local es solo riesgo.
+   */
+  const floor = rules.salary_floor_usd_monthly;
+  const salary = monthlySalaryUsd(facts);
+  if (typeof floor === "number" && floor > 0 && salary && salary.max !== null) {
+    if (salary.max < floor) {
+      if (!bloqueadores.some((b) => IS_SALARY_TEXT.test(b))) {
+        bloqueadores.push(
+          `salario publicado por debajo del piso (USD ${salary.max}/mes < ${floor})`,
+        );
+      }
+    } else {
+      for (let i = bloqueadores.length - 1; i >= 0; i--) {
+        const b = bloqueadores[i]!;
+        if (IS_SALARY_TEXT.test(b) && !MIXED_TOPIC_TEXT.test(b)) bloqueadores.splice(i, 1);
+      }
+      const RANGE_RISK = "el rango salarial empieza abajo de tu piso";
+      if (salary.min !== null && salary.min < floor && !riesgos.includes(RANGE_RISK)) {
+        riesgos.push(RANGE_RISK);
+      }
+    }
+  }
+  if (salaryIsLocalCurrency(facts)) {
+    const LOCAL_RISK = "salario en USD pagado en moneda local";
+    if (!riesgos.some((r) => /moneda local|pesos|\bars\b/i.test(r))) riesgos.push(LOCAL_RISK);
+  }
+
+  /** Jornada: la fuente trae horas semanales y superan el máximo del perfil. Sin dato vale el modelo. */
+  const maxHours = rules.max_weekly_hours;
+  const hours = facts?.weeklyHours;
+  if (
+    typeof maxHours === "number" &&
+    maxHours > 0 &&
+    typeof hours === "number" &&
+    hours > maxHours &&
+    !bloqueadores.some((b) => /jornada|horas/i.test(b))
+  ) {
+    bloqueadores.push(`jornada de ${hours} h (máximo ${maxHours})`);
+  }
+
+  /**
+   * Seniority del título (D6): solo riesgo, nunca bloqueador ni score. "Lead" ya lo trata el
+   * prefiltro (blocklist y cap): no se duplica.
+   */
+  const titleLevels = facts?.title
+    ? (inferSeniorityFromTitle(facts.title)?.split(" / ") ?? [])
+    : [];
+  const yearsNow = context.candidateYearsTotal;
+  if (titleLevels.length && yearsNow !== null && yearsNow !== undefined) {
+    const juniorOnly = titleLevels.every((l) => l === "Trainee" || l === "Junior");
+    const seniorOnly = titleLevels.every((l) => l === "Senior");
+    const risk =
+      juniorOnly && yearsNow >= 4
+        ? `el aviso es junior y tenés ~${yearsNow} años: pueden descartarte por sobrecalificado o pagar menos`
+        : seniorOnly && yearsNow < 3
+          ? `el aviso es senior y tenés ~${yearsNow} años`
+          : null;
+    if (risk && !riesgos.includes(risk)) riesgos.push(risk);
+  }
+
+  /**
+   * Inglés en un aviso en español que no lo pide (ronda 101): el modelo a veces exige inglés por
+   * costumbre. Si el texto está en español y no pide inglés, ni la penalización ni el riesgo ni un
+   * bloqueador de inglés del modelo valen: es una contradicción en código, como disciplina.
+   */
+  const englishMoot = englishIsNotAGap(facts?.jdText ?? null, null);
+  if (englishMoot) {
+    for (const list of [bloqueadores, riesgos]) {
+      for (let i = list.length - 1; i >= 0; i--) {
+        const t = list[i]!;
+        if (
+          /ingl[eé]s|english/i.test(t) &&
+          !MIXED_TOPIC_TEXT.test(t.replace(/ingl[eé]s|english/gi, ""))
+        )
+          list.splice(i, 1);
+      }
+    }
+  }
+
   const cloudMust = evaluation.gaps.find((g) => g.nivel === "must" && CLOUD.test(g.skill));
   if (cloudMust && rules.cloud_must_penalty) {
     adjustments.push({
@@ -312,6 +412,7 @@ export function decide(
   const requeridoRank = ENGLISH_RANK[evaluation.ingles_requerido];
   const candidatoRank = englishRankFromCefr(context.candidateEnglishCefr);
   if (
+    !englishMoot &&
     (evaluation.ingles_requerido === "avanzado" || evaluation.ingles_requerido === "nativo") &&
     rules.english_fluent_penalty &&
     (candidatoRank === null || (requeridoRank !== undefined && candidatoRank < requeridoRank))
@@ -332,6 +433,7 @@ export function decide(
   const candidato = englishRankFromCefr(context.candidateEnglishCefr);
   const desde = ENGLISH_RANK[rules.english_risk_from];
   if (
+    !englishMoot &&
     requerido !== undefined &&
     candidato !== null &&
     desde !== undefined &&

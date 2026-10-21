@@ -7,7 +7,9 @@ import {
   safeHttpUrl,
   scoreTone,
 } from "@/lib/labels";
+import { RequisitosDelAviso } from "@/components/requisitos-del-aviso";
 import type { DemoEvaluationRow } from "@/lib/demo";
+import type { ChecklistView } from "@/lib/job-detail";
 import { MODALITY_LABELS, modalityKey } from "../../ofertas/job-card";
 import { Feedback } from "./feedback";
 
@@ -41,7 +43,16 @@ function Reasons({ title, items }: { title: string; items: string[] }) {
  * Tarjeta de una evaluación de la demo (ronda 74). Sin la JD. `tour` marca la primera tarjeta con
  * los `data-tour` (`demo:*`) que resalta el recorrido. Server Component; solo 👍/👎 es de cliente.
  */
-export function EvaluationCard({ row, tour }: { row: DemoEvaluationRow; tour: boolean }) {
+export function EvaluationCard({
+  row,
+  tour,
+  checklist = null,
+}: {
+  row: DemoEvaluationRow;
+  tour: boolean;
+  /** Checklist ya validado (ronda 104). `demo_evaluations` todavía no lo guarda: sin él no se muestra. */
+  checklist?: ChecklistView | null;
+}) {
   const modality = modalityKey(row.modality);
   const attribution = attributionFor(row.sourceKind, { company: row.companyRaw });
   const url = safeHttpUrl(row.sourceUrl);
@@ -81,6 +92,8 @@ export function EvaluationCard({ row, tour }: { row: DemoEvaluationRow; tour: bo
           <Reasons title="Por qué sí" items={row.matchFuerte} />
           <Reasons title="Por qué no" items={against} />
         </div>
+
+        {checklist ? <RequisitosDelAviso checklist={checklist} compact /> : null}
 
         <p {...step("demo:accion")} className="rounded-md p-1 text-sm">
           <span className="text-zinc-700">Acción sugerida: </span>
