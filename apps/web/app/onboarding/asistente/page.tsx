@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { alertGuideData } from "@/lib/alert-guide-data";
 import { assistantState } from "@/lib/assistant-state";
 import { getInboundAddress } from "@/lib/inbound-address";
 import { isOnboardingComplete } from "@/lib/onboarding";
@@ -21,6 +22,7 @@ export default async function OnboardingAssistantPage() {
       address={address}
       state={await assistantState(userId, address)}
       context="onboarding"
+      guide={await alertGuideData(userId)}
     />
   );
 }

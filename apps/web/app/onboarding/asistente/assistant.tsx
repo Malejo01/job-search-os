@@ -15,6 +15,7 @@ import {
   filtersImportedAction,
   privacyAcknowledgedAction,
 } from "./actions";
+import { AlertGuide, type AlertGuideProps } from "./alert-guide";
 import { CopyButton } from "./copy-button";
 import { PrivacyDialog } from "./privacy-dialog";
 
@@ -49,9 +50,12 @@ export function Assistant({
   address,
   state,
   context = "settings",
+  guide,
 }: {
   address: string | null;
   state: AssistantState;
+  /** Datos de «Qué alertas crear» (carreras, idioma y estado de cada portal). */
+  guide?: AlertGuideProps;
   /** `onboarding`: paso opcional después de «Tus primeras ofertas». `settings`: dentro de Ajustes. */
   context?: "onboarding" | "settings";
 }) {
@@ -124,6 +128,8 @@ export function Assistant({
           );
         })}
       </ol>
+
+      {guide ? <AlertGuide {...guide} /> : null}
 
       {/* Pasos que avanzan solos por algo que llega por email: el pedido de Gmail y la primera alerta */}
       <AutoRefresh

@@ -1,3 +1,4 @@
+import { alertGuideData } from "@/lib/alert-guide-data";
 import { assistantState } from "@/lib/assistant-state";
 import { getInboundAddress } from "@/lib/inbound-address";
 import { requireUserId } from "@/lib/session";
@@ -10,5 +11,11 @@ export const dynamic = "force-dynamic";
 export default async function SettingsAssistantPage() {
   const userId = await requireUserId();
   const address = await getInboundAddress(userId);
-  return <Assistant address={address} state={await assistantState(userId, address)} />;
+  return (
+    <Assistant
+      address={address}
+      state={await assistantState(userId, address)}
+      guide={await alertGuideData(userId)}
+    />
+  );
 }
