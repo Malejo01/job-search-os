@@ -8,4 +8,5 @@ export {
   type PrefilterResult,
 } from "./prefilter";
 export { detectResidencyRestriction, RESIDENCY_FLAG, type ResidencyRestriction } from "./residency";
+export { detectProfessionalLicense, LICENSE_FLAG, type ProfessionalLicense } from "./licensing";
 export { prefilterReasonText } from "./reason-text";

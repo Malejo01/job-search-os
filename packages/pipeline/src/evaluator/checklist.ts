@@ -5,7 +5,12 @@ import { foldText } from "../normalize/text";
 import { MAX_JD_CHARS } from "../pool/career/english";
 import { englishIsNotAGap } from "../skills/english-gap";
 import { extractSkillsFromText, type Term } from "../skills/match";
-import { monthlySalaryUsd, type JobFacts } from "./job-facts";
+import {
+  monthlySalaryUsd,
+  SALARY_FROM_TEXT_NOTE,
+  salaryIsFromApi,
+  type JobFacts,
+} from "./job-facts";
 
 /**
  * Checklist de requisitos del aviso (ronda 98, §2.1; fase A de la 104). Puro: el worker carga los
@@ -29,6 +34,8 @@ export type ChecklistItem = {
   fuente: { pide: "fuente" | "modelo"; tenes: "perfil" | "skills" | null };
   /** true si el ítem está detrás de un bloqueador de `decision`. */
   bloquea: boolean;
+  /** Aclaración sobre la confiabilidad del dato (p. ej. salario leído del texto). Ausente = ninguna. */
+  nota?: string;
 };
 
 export type ChecklistCounts = { cumple: number; no_cumple: number; no_se_sabe: number };
@@ -109,7 +116,7 @@ const clip = (s: string): string =>
 
 const item = (
   p: Pick<ChecklistItem, "id" | "pide" | "tenes" | "status"> &
-    Partial<Pick<ChecklistItem, "kind" | "nivel" | "bloquea" | "fuente">>,
+    Partial<Pick<ChecklistItem, "kind" | "nivel" | "bloquea" | "fuente" | "nota">>,
 ): ChecklistItem => ({
   kind: "estructurado",
   nivel: "must",
@@ -271,7 +278,8 @@ export function buildChecklist(
   if (hasSalary) {
     const monthly = monthlySalaryUsd(job);
     const floor = rules.salary_floor_usd_monthly ?? null; // la misma fuente que decide()
-    const comparable = monthly?.max != null && typeof floor === "number" && floor > 0;
+    const fromApi = salaryIsFromApi(job);
+    const comparable = fromApi && monthly?.max != null && typeof floor === "number" && floor > 0;
     const rango = [job.salaryMinUsd, job.salaryMaxUsd].filter(Boolean).join("–");
     const periodo = job.salaryPeriod ? `/${job.salaryPeriod}` : "";
     items.push(
@@ -282,6 +290,7 @@ export function buildChecklist(
         status: !comparable ? "no_se_sabe" : monthly!.max! >= floor! ? "cumple" : "no_cumple",
         bloquea: blockers.some((b) => IS_SALARY_BLOCKER.test(b)),
         fuente: { pide: "fuente", tenes: typeof floor === "number" && floor > 0 ? "perfil" : null },
+        ...(fromApi ? {} : { nota: SALARY_FROM_TEXT_NOTE }),
       }),
     );
   }

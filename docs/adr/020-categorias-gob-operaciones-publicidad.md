@@ -13,6 +13,7 @@ Casi todo lo que hay en español en el pool viene de Get on Board. La API lista 
    - Como con las categorías de producto, la categoría da la carrera posible y `titleFit` separa por título.
 2. **Toda categoría del pool tiene que mapear al menos a una carrera.** Un aviso con `role_hints` vacío le llega a quien no eligió puesto como si fuera de IT (ADR-015, punto 4). Un test lo verifica.
 3. **`sales` sigue fuera** hasta que exista una carrera de ventas (H2 del roadmap). `education-coaching`, `other` y `hardware-electronics` siguen fuera.
+   - **Superado por el ADR-022 (ronda 107):** `sales` entra y mapea a `ventas_b2b`. Siguen fuera `education-coaching`, `other` y `hardware-electronics`.
 4. **El tope de requests no cambia:** 10 páginas por categoría y el mismo timeout. Con la ventana de 48 h del pool, cada categoría es una request por corrida, así que se pasa de 12 a 14.
 
 ## Consequences

@@ -40,6 +40,99 @@ describe("titleFit · carreras de producto (ronda 97)", () => {
   });
 });
 
+describe("titleFit · data_engineer y solutions_engineer (ronda 106)", () => {
+  it("data engineer y data analyst se vetan entre sí cuando la categoría las junta", () => {
+    expect(titleFit("Senior Data Engineer", "data_engineer")).toBe(2);
+    expect(titleFit("Senior Data Engineer", "data_analyst")).toBe(0);
+    expect(titleFit("Data Analyst", "data_analyst")).toBe(2);
+    expect(titleFit("Data Analyst", "data_engineer")).toBe(0);
+    expect(titleFit("Data Scientist", "data_engineer")).toBe(0);
+  });
+
+  it("un título de datos sin frase de ninguna no se veta", () => {
+    expect(titleFit("Data Specialist", "data_engineer")).toBe(1);
+  });
+
+  it("solutions_engineer: el cargo nombrado vale 2 y el field engineer suelto no", () => {
+    expect(titleFit("Solutions Architect", "solutions_engineer")).toBe(2);
+    expect(titleFit("Sales Engineer", "solutions_engineer")).toBe(2);
+    expect(titleFit("Customer Field Engineer", "solutions_engineer")).toBe(2);
+    expect(titleFit("Field Engineer", "solutions_engineer")).toBe(1);
+  });
+
+  it("las exclusiones de role-hints también valen acá", () => {
+    expect(titleFit("Physical Security Engineer", "ciberseguridad")).toBe(1);
+    expect(titleFit("Security Architect", "ciberseguridad")).toBe(2);
+    expect(titleFit("Manufacturing Product Engineer", "fullstack")).toBe(1);
+    expect(titleFit("Product Engineer, Manufacturing", "fullstack")).toBe(1);
+    expect(titleFit("Product Engineer", "fullstack")).toBe(2);
+    expect(titleFit("Full Stack Engineer, Hardware Platform", "fullstack")).toBe(2);
+  });
+});
+
+describe("titleFit · ventas y atención (ronda 107)", () => {
+  it("ventas_b2b: el cargo vale 2; los técnicos y las vecinas se vetan", () => {
+    expect(titleFit("Account Executive", "ventas_b2b")).toBe(2);
+    expect(titleFit("Key Account Manager", "ventas_b2b")).toBe(2);
+    expect(titleFit("Sales Engineer", "ventas_b2b")).toBe(0);
+    expect(titleFit("Customer Success Manager", "ventas_b2b")).toBe(0);
+    expect(titleFit("Customer Support Specialist", "ventas_b2b")).toBe(0);
+    expect(titleFit("Business Developer", "ventas_b2b")).toBe(0);
+    expect(titleFit("Regional Specialist", "ventas_b2b")).toBe(1);
+  });
+
+  it("solutions_engineer veta los títulos de ventas", () => {
+    expect(titleFit("Account Executive", "solutions_engineer")).toBe(0);
+    expect(titleFit("Sales Manager", "solutions_engineer")).toBe(0);
+    expect(titleFit("Sales Engineer", "solutions_engineer")).toBe(2);
+  });
+
+  it("atencion_cliente: el cargo vale 2; technical, success e IT no son atención", () => {
+    expect(titleFit("Customer Support Specialist", "atencion_cliente")).toBe(2);
+    expect(titleFit("Call Center Agent", "atencion_cliente")).toBe(2);
+    expect(titleFit("Customer Success Manager", "atencion_cliente")).toBe(0);
+    expect(titleFit("Technical Support Specialist", "atencion_cliente")).toBe(0);
+    expect(titleFit("IT Support Specialist", "atencion_cliente")).toBe(0);
+    expect(titleFit("Customer Support Engineer", "atencion_cliente")).toBe(0);
+    expect(titleFit("Help Desk Analyst", "atencion_cliente")).toBe(0);
+    expect(titleFit("Operations Associate", "atencion_cliente")).toBe(1);
+  });
+
+  it("soporte_it veta call center y atención, pero no 'customer support'", () => {
+    expect(titleFit("Call Center Agent", "soporte_it")).toBe(0);
+    expect(titleFit("Atención al Cliente", "soporte_it")).toBe(0);
+    expect(titleFit("Customer Support Specialist", "soporte_it")).toBe(1);
+    expect(titleFit("Customer Support Engineer", "soporte_it")).toBe(1);
+    expect(titleFit("Technical Support Specialist", "soporte_it")).toBe(2);
+  });
+
+  it("customer_success veta ventas y atención", () => {
+    expect(titleFit("Customer Success Manager", "customer_success")).toBe(2);
+    expect(titleFit("Technical Account Manager", "customer_success")).toBe(2);
+    expect(titleFit("Customer Support Specialist", "customer_success")).toBe(0);
+    expect(titleFit("Account Executive", "customer_success")).toBe(0);
+    expect(titleFit("Account Manager", "customer_success")).toBe(1);
+  });
+
+  it("assessPoolTitle: con la categoría customer-support el título deja la carrera que corresponde", () => {
+    const base = { roleHints: ["customer_success", "atencion_cliente"], yearsTotal: null };
+    const support = assessPoolTitle({
+      ...base,
+      title: "Customer Support Specialist",
+      roles: ["customer_success"],
+    });
+    expect(support.titleFit).toBe(0);
+    expect(support.effectiveHints).toEqual(["atencion_cliente"]);
+    const csm = assessPoolTitle({
+      ...base,
+      title: "Customer Success Manager",
+      roles: ["atencion_cliente"],
+    });
+    expect(csm.titleFit).toBe(0);
+    expect(csm.effectiveHints).toEqual(["customer_success"]);
+  });
+});
+
 describe("titleFit", () => {
   it("2 cuando el título nombra el cargo", () => {
     expect(titleFit("Data Analyst", "data_analyst")).toBe(2);
@@ -52,8 +145,14 @@ describe("titleFit", () => {
     expect(titleFit("Fraud Data Analyst", "data_analyst")).toBe(2);
   });
 
-  it("analytics engineer no se veta", () => {
-    expect(titleFit("Analytics Engineer", "data_analyst")).toBe(2);
+  it("analytics engineer pasó a data_engineer (ronda 106): data_analyst lo veta", () => {
+    expect(titleFit("Analytics Engineer", "data_analyst")).toBe(0);
+    expect(titleFit("Analytics Engineer", "data_engineer")).toBe(2);
+  });
+
+  it("data scientist y product analyst nombran data_analyst", () => {
+    expect(titleFit("Data Scientist", "data_analyst")).toBe(2);
+    expect(titleFit("Product Analyst", "data_analyst")).toBe(2);
   });
 
   it("con frase fuerte no hay veto aunque el título mencione otra disciplina", () => {
@@ -64,7 +163,6 @@ describe("titleFit", () => {
   it("0 cuando el título nombra otra disciplina y no tiene frase del puesto", () => {
     for (const t of [
       "Senior Data Engineer",
-      "Data Scientist",
       "Machine Learning Researcher",
       "ML Engineer",
       "AI Engineer",

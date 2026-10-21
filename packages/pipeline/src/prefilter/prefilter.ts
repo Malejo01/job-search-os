@@ -1,6 +1,7 @@
 import type { CriteriaRules } from "../criteria";
 import { countriesMentioned, countryNames } from "../normalize/location";
 import { foldText } from "../normalize/text";
+import { detectProfessionalLicense, LICENSE_FLAG } from "./licensing";
 import { detectResidencyRestriction, RESIDENCY_FLAG } from "./residency";
 import type { RoleKey } from "../skills/self-assessment";
 
@@ -36,7 +37,8 @@ export type PrefilterReason =
   | "idioma_no_aceptado"
   | "disciplina_distinta"
   | "badge_aptitudes"
-  | "titulo_blocklist";
+  | "titulo_blocklist"
+  | "licencia_profesional";
 
 export type PrefilterModality = "remoto" | "hibrido" | "presencial";
 
@@ -99,6 +101,13 @@ export const ROLE_DOMAIN_KEYWORDS: Partial<Record<RoleKey, readonly string[]>> =
   product_owner: ["project manager", "scrum master", "pmp", "prince2", "business owner"],
   project_manager: ["project manager", "scrum master", "pmp", "prince2", "business owner"],
   product_marketing: ["growth"],
+  // Ronda 106 (ADR-021): oficio propio de las carreras nuevas. Si el dueño de la instancia los puso en
+  // `other_discipline_keywords` ("etl" por SQL, "sales engineer" por ventas), no descartan.
+  data_engineer: ["etl", "databricks", "snowflake"],
+  solutions_engineer: ["sales engineer", "presales", "pre sales", "solutions architect"],
+  // Ronda 107 (ADR-022): el dueño de la instancia puede tener estas palabras en `other_discipline_keywords`.
+  ventas_b2b: ["sales", "ventas", "sdr", "bdr", "account executive", "business development"],
+  atencion_cliente: ["customer support", "customer service", "atencion al cliente", "call center"],
   ciberseguridad: [
     "ciberseguridad",
     "cybersecurity",
@@ -127,6 +136,10 @@ export const ROLE_OWN_TITLE_PHRASES: Partial<Record<RoleKey, readonly string[]>>
   product_owner: PRODUCT_OWN_TITLE_PHRASES,
   project_manager: PRODUCT_OWN_TITLE_PHRASES,
   product_marketing: ["product marketing manager", "marketing manager"],
+  // "architect" está en la blocklist; "solutions architect" es el cargo propio de la carrera.
+  // Está también en ROLE_DOMAIN_KEYWORDS a propósito: esa lista libera la palabra de
+  // `other_discipline_keywords`; esta libera la palabra "architect" de la blocklist. Son dos filtros.
+  solutions_engineer: ["solutions architect", "solution architect"],
   customer_success: ["customer success manager", "technical account manager", "account manager"],
   marketing_digital: [
     "marketing manager",
@@ -134,8 +147,21 @@ export const ROLE_OWN_TITLE_PHRASES: Partial<Record<RoleKey, readonly string[]>>
     "social media manager",
     "growth manager",
   ],
-  rrhh_it: ["talent acquisition manager", "recruiting manager"],
-  ciberseguridad: ["security manager"],
+  rrhh_it: [
+    "talent acquisition manager",
+    "recruiting manager",
+    "hr manager",
+    "people operations manager",
+  ],
+  // "manager" está en la blocklist; "lead" y "director" siguen bloqueando, como en la 106.
+  ventas_b2b: [
+    "sales manager",
+    "key account manager",
+    "partner manager",
+    "business development manager",
+  ],
+  ciberseguridad: ["security manager", "security architect"],
+  backend: ["software architect"],
 };
 
 /** Título doblado sin las frases propias de los puestos (con límite de palabra), cada una por un espacio. */
@@ -211,14 +237,24 @@ const word = (body: string) => new RegExp(`(?<![a-z0-9])${body}(?![a-z0-9])`);
  * las reglas de la base las cambia el dueño de la instancia con un UPDATE y esto tiene que andar sin tocar la base).
  * `label` es lo que se muestra en el detail.
  */
-const NON_IT_TITLE: readonly { label: string; re: RegExp }[] = [
+const NON_IT_TITLE: readonly { label: string; re: RegExp; exemptFor?: readonly RoleKey[] }[] = [
   { label: "administrativ", re: word(`administrativ${GENDER}`) },
   { label: "auxiliar contable", re: word("auxiliar\\s+contables?") },
   { label: "recepcionista", re: word("recepcionistas?") },
   { label: "cajer", re: word(`cajer${GENDER}`) },
-  { label: "vendedor", re: word("vendedor(?:es|as?|@)?") },
-  { label: "atencion al cliente", re: word("atencion\\s+al\\s+cliente") },
-  { label: "call center", re: word("call\\s?center") },
+  // `exemptFor` (ronda 107, ADR-022): el oficio propio de quien eligió esa carrera no se descarta.
+  // Sin puesto, o con otra carrera, siguen descartando como siempre.
+  {
+    label: "vendedor",
+    re: word("vendedor(?:es|as?|@)?"),
+    exemptFor: ["ventas_b2b"],
+  },
+  {
+    label: "atencion al cliente",
+    re: word("atencion\\s+al\\s+cliente"),
+    exemptFor: ["atencion_cliente"],
+  },
+  { label: "call center", re: word("call\\s?center"), exemptFor: ["atencion_cliente"] },
   { label: "operari", re: word(`operari${GENDER}`) },
   { label: "repositor", re: word("repositor(?:es|as?|@)?") },
   { label: "chofer", re: word("chofer(?:es)?") },
@@ -369,13 +405,35 @@ export function prefilter(
     };
   }
   if (!hasItSignal(title)) {
-    const nonIt = NON_IT_TITLE.find((p) => p.re.test(title));
+    const nonIt = NON_IT_TITLE.find(
+      (p) => p.re.test(title) && !p.exemptFor?.some((r) => targetRoles.includes(r)),
+    );
     if (nonIt) {
       return {
         pass: false,
         reason: "disciplina_distinta",
         detail: `título fuera de IT: '${nonIt.label}'`,
       };
+    }
+  }
+  // 2c. Licencia o matrícula profesional de otro país (ronda 107, ADR-022). Solo con país explícito
+  //     (como residencia: evals/ llama sin país y el golden no se mueve) y conocido: sin el país de
+  //     la persona no se puede decir que la licencia sea de otro, y la regla falla abierta.
+  let licenseFlag: string | null = null;
+  if (explicitCountry && userCountry) {
+    const license = detectProfessionalLicense(
+      [input.title, input.locationRaw, input.jdText].filter(Boolean).join("\n"),
+      userCountry,
+    );
+    if (license) {
+      if (!license.ownCountry) {
+        return {
+          pass: false,
+          reason: "licencia_profesional",
+          detail: `'${license.term}' en el aviso`,
+        };
+      }
+      licenseFlag = `${LICENSE_FLAG}:${license.term}`;
     }
   }
   const ownTrade = new Set(
@@ -477,6 +535,9 @@ export function prefilter(
       if (!locationRisk) flags.push("location_risk");
     }
   }
+
+  // La licencia es del país de la persona: no descarta, queda como señal para el evaluador.
+  if (licenseFlag) flags.push(licenseFlag);
 
   // 6. Candidatos: riesgo
   if (

@@ -137,13 +137,13 @@
       "social_media",
       "growth_marketing",
       "analytics",
-      "hubspot",
+      "capcut",
       "canva",
       "mailchimp"
     ]
   },
   "rrhh_it": {
-    "label": "Recruiter IT",
+    "label": "RRHH y recruiting",
     "skills": [
       "sourcing",
       "interviewing",
@@ -152,7 +152,8 @@
       "linkedin_recruiter",
       "client_facing",
       "excel",
-      "english_intermediate"
+      "english_intermediate",
+      "hr_generalist"
     ]
   },
   "customer_success": {
@@ -250,6 +251,68 @@
       "client_facing",
       "canva",
       "english_intermediate"
+    ]
+  },
+  "data_engineer": {
+    "label": "Data Engineering",
+    "skills": [
+      "sql",
+      "python",
+      "etl",
+      "snowflake",
+      "aws",
+      "gcp",
+      "azure",
+      "docker",
+      "git",
+      "ci_cd",
+      "nosql",
+      "english_intermediate"
+    ]
+  },
+  "solutions_engineer": {
+    "label": "Solutions / Sales Engineering",
+    "skills": [
+      "client_facing",
+      "rest_apis",
+      "python",
+      "sql",
+      "aws",
+      "azure",
+      "gcp",
+      "docker",
+      "salesforce",
+      "english_fluent"
+    ]
+  },
+  "ventas_b2b": {
+    "label": "Ventas B2B (SDR, AE)",
+    "skills": [
+      "prospecting",
+      "negotiation",
+      "sales_tools",
+      "hubspot",
+      "salesforce",
+      "positioning_messaging",
+      "client_facing",
+      "excel",
+      "analytics",
+      "english_fluent"
+    ]
+  },
+  "atencion_cliente": {
+    "label": "Atención al cliente",
+    "skills": [
+      "help_desk",
+      "chat_support",
+      "amazon_connect",
+      "hubspot",
+      "salesforce",
+      "customer_onboarding",
+      "churn_retention",
+      "client_facing",
+      "excel",
+      "english_fluent"
     ]
   }
 }

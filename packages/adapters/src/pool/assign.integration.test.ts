@@ -474,6 +474,77 @@ describe("assignPoolToUser · carreras digitales (ADR-015)", () => {
   });
 });
 
+describe("assignPoolToUser · carreras de tecnología nuevas (ronda 106)", () => {
+  it("con solutions_engineer recibe 'Solutions Architect' aunque 'architect' esté en la blocklist", async () => {
+    const sa = await pool({
+      title: "Solutions Architect",
+      titleNormalized: "solutions architect",
+      roleHints: ["solutions_engineer"],
+    });
+    await setProfile(USER_A, rolesOf("solutions_engineer"));
+    const r = await run(USER_A, 10, 0);
+    expect(r).toMatchObject({ assigned: 1, discarded: 0 });
+    expect((await jobsOf(USER_A)).map((j) => j.publicJobId)).toEqual([sa]);
+  });
+
+  it("con data_engineer recibe 'Data Engineer' y el 'Data Analyst' de la misma categoría queda detrás", async () => {
+    const analyst = await pool({
+      title: "Data Analyst",
+      titleNormalized: "data analyst",
+      roleHints: ["data_analyst", "data_engineer"],
+    });
+    const eng = await pool({
+      title: "Data Engineer",
+      titleNormalized: "data engineer",
+      roleHints: ["data_analyst", "data_engineer"],
+    });
+    await setProfile(USER_A, rolesOf("data_engineer"));
+    const r = await run(USER_A, 1, 0);
+    expect(r.assigned).toBe(1);
+    const got = (await jobsOf(USER_A)).map((j) => j.publicJobId);
+    expect(got).toEqual([eng]);
+    expect(got).not.toContain(analyst);
+  });
+});
+
+describe("assignPoolToUser · ventas y atención (ronda 107)", () => {
+  it("con ventas_b2b recibe 'Sales Manager' y 'Vendedor' aunque la blocklist y NON_IT_TITLE los descarten", async () => {
+    const sm = await pool({
+      title: "Sales Manager",
+      titleNormalized: "sales manager",
+      roleHints: ["ventas_b2b"],
+    });
+    const seller = await pool({
+      title: "Vendedor de soluciones B2B",
+      titleNormalized: "vendedor de soluciones b2b",
+      roleHints: ["ventas_b2b"],
+    });
+    await setProfile(USER_A, rolesOf("ventas_b2b"));
+    const r = await run(USER_A, 10, 0);
+    expect(r).toMatchObject({ assigned: 2, discarded: 0 });
+    expect((await jobsOf(USER_A)).map((j) => j.publicJobId).sort()).toEqual([sm, seller].sort());
+  });
+
+  it("con atencion_cliente recibe 'Atención al Cliente' y el 'Customer Success Manager' de la misma categoría queda detrás", async () => {
+    const csm = await pool({
+      title: "Customer Success Manager",
+      titleNormalized: "customer success manager",
+      roleHints: ["customer_success", "atencion_cliente"],
+    });
+    const support = await pool({
+      title: "Atención al Cliente",
+      titleNormalized: "atencion al cliente",
+      roleHints: ["customer_success", "atencion_cliente"],
+    });
+    await setProfile(USER_A, rolesOf("atencion_cliente"));
+    const r = await run(USER_A, 1, 0);
+    expect(r.assigned).toBe(1);
+    const got = (await jobsOf(USER_A)).map((j) => j.publicJobId);
+    expect(got).toEqual([support]);
+    expect(got).not.toContain(csm);
+  });
+});
+
 describe("assignPoolToUser · sin duplicar", () => {
   it("no duplica lo que ya tiene por URL canónica ni por jd_hash, ni en una segunda corrida", async () => {
     const urlDup = await pool();

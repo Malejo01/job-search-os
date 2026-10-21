@@ -429,10 +429,21 @@ describe("fetchGetOnBoardJobs (fetch inyectado)", () => {
       // ronda 103 (ADR-020)
       "operations-management",
       "advertising-media",
+      // ronda 107 (ADR-022)
+      "sales",
     ])
       expect(GOB_POOL_CATEGORIES).toContain(c);
-    for (const c of ["sales", "education-coaching", "other", "hardware-electronics"])
+    for (const c of ["education-coaching", "other", "hardware-electronics"])
       expect(GOB_POOL_CATEGORIES).not.toContain(c);
+    expect(GOB_POOL_CATEGORIES).toHaveLength(15);
+  });
+
+  it("sales mapea a ventas_b2b y customer-support a atención y customer success", () => {
+    expect(SOURCE_CATEGORY_ROLES.getonboard_api?.sales).toEqual(["ventas_b2b"]);
+    expect(SOURCE_CATEGORY_ROLES.getonboard_api?.["customer-support"]).toEqual([
+      "atencion_cliente",
+      "customer_success",
+    ]);
   });
 
   it("toda categoría del pool tiene carrera en role_hints: un aviso sin pista iría a quien no eligió puesto", () => {

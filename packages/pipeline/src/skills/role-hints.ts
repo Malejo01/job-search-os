@@ -17,6 +17,12 @@ const PRODUCT_ONLY: readonly RoleKey[] = ["product_manager", "product_owner"];
 const PRODUCT_PROJECT: readonly RoleKey[] = [...PRODUCT_ONLY, "project_manager"];
 
 /**
+ * `customer-support` (ronda 107, ADR-022): atención al cliente y customer success comparten la
+ * categoría; `titleFit` los separa con los vetos cruzados. No es soporte de IT.
+ */
+const CUSTOMER_SUPPORT: readonly RoleKey[] = ["atencion_cliente", "customer_success"];
+
+/**
  * Fuente → categoría → roles. Las categorías se comparan normalizadas: minúsculas, sin acentos y
  * con todo lo que no sea letra o número convertido en un guion ("Machine Learning" → "machine-learning").
  * Remote OK se consulta sobre sus `tags`; Get on Board y Jobicy sobre `categories`.
@@ -40,8 +46,10 @@ export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleK
     "innovation-agile": PRODUCT_PROJECT,
     "technical-support": ["soporte_it"],
     cybersecurity: ["ciberseguridad"],
-    // `customer-support` es atención al cliente: no es soporte de IT, sí customer success.
-    "customer-support": ["customer_success"],
+    "customer-support": CUSTOMER_SUPPORT,
+    // Ronda 107 (ADR-022): ventas B2B. La categoría trae también ventas de mostrador y comercio:
+    // los términos de título y sus vetos separan.
+    sales: ["ventas_b2b"],
     // Ronda 103 (ADR-020). Operaciones trae también gerencia y administración: `titleFit` deja
     // solo los títulos de proyectos. Publicidad y medios es lo más cercano a marketing digital.
     "operations-management": ["project_manager"],
@@ -84,7 +92,7 @@ export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleK
     "artificial-intelligence": ["ai_engineer"],
     "ai-ml": ["ai_engineer"],
     ai: ["ai_engineer"],
-    // `customer-support` no entra: es atención al cliente, no soporte de IT.
+    "customer-support": CUSTOMER_SUPPORT,
   },
   remoteok: {
     dev: DEV,
@@ -100,7 +108,8 @@ export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleK
     ui: ["ux_ui"],
     qa: ["qa"],
     testing: ["qa"],
-    // Ni `support` ni `customer-support`: en Remote OK son atención al cliente, no soporte de IT.
+    // `support` suelto no se mapea; `customer-support` es atención al cliente, no soporte de IT.
+    "customer-support": CUSTOMER_SUPPORT,
     sysadmin: ["soporte_it"],
     data: ["data_analyst"],
     analyst: ["data_analyst"],
@@ -139,8 +148,8 @@ export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleK
     "devops-sysadmin": ["soporte_it"],
     "remote-product-jobs": PRODUCT_PROJECT,
     product: PRODUCT_PROJECT,
-    "remote-customer-support-jobs": ["customer_success"],
-    "customer-support": ["customer_success"],
+    "remote-customer-support-jobs": CUSTOMER_SUPPORT,
+    "customer-support": CUSTOMER_SUPPORT,
     "remote-design-jobs": ["ux_ui"],
     design: ["ux_ui"],
   },
@@ -177,7 +186,19 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "php developer",
     "ruby developer",
     "ruby on rails",
+    // Ronda 106 (ADR-021): lenguajes y especialidades de backend seguidos de "engineer".
+    "rust engineer",
+    "elixir engineer",
+    "scala engineer",
+    "kotlin engineer",
+    "golang engineer",
+    "postgres engineer",
+    "postgresql engineer",
+    "microservices engineer",
+    "distributed systems engineer",
+    "software architect",
   ],
+  // "Product engineer" también es fullstack, pero se resuelve aparte (PRODUCT_ENGINEER_*).
   fullstack: ["full stack", "fullstack"],
   qa: [
     "qa",
@@ -201,10 +222,28 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "bi",
     "business intelligence",
     "inteligencia de negocio",
-    "analytics engineer",
+    // "Analytics engineer" pasó a data_engineer (ronda 106).
+    "data scientist",
+    "product analyst",
   ],
   soporte_it: [
     // Nunca "support" ni "soporte" sueltos: "Customer Support Representative" es atención al cliente.
+    // "Support engineer" suelto tampoco: es soporte de producto. Solo con technical, software,
+    // database o application delante (los de abajo; "technical support" ya cubre el primero).
+    "software support engineer",
+    "database support engineer",
+    "application support engineer",
+    "site reliability",
+    "sre",
+    "devops",
+    "gitops",
+    "platform engineer",
+    "infrastructure engineer",
+    "infra engineer",
+    "it engineer",
+    "it systems",
+    "it operations",
+    "desktop support",
     "technical support",
     "it support",
     "soporte tecnico",
@@ -254,6 +293,7 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "ai agents",
     "agentic",
     "llmops",
+    "research engineer",
   ],
   ux_ui: [
     "ux",
@@ -282,6 +322,25 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "social media",
     "content marketing",
     "email marketing",
+    // Ronda 107 (ADR-022): contenido, redes, gráfico y video son subespecialidades de la carrera.
+    // Nada de "designer" ni "content" sueltos: "designer" es ux_ui.
+    "copywriter",
+    "content creator",
+    "content writer",
+    "content producer",
+    "content specialist",
+    "redactor",
+    "redactora",
+    "graphic designer",
+    "disenador grafico",
+    "disenadora grafica",
+    "video editor",
+    "editor de video",
+    "editora de video",
+    "motion graphics",
+    "motion designer",
+    "creador de contenido",
+    "creadora de contenido",
   ],
   product_manager: [
     "product manager",
@@ -329,6 +388,18 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "recursos humanos",
     "rrhh",
     "human resources",
+    // Ronda 107 (ADR-022): RRHH general, no solo IT.
+    "hr",
+    "hr generalist",
+    "hr manager",
+    "hr specialist",
+    "hr coordinator",
+    "people operations",
+    "people ops",
+    "talent partner",
+    "recruiting",
+    "recruitment",
+    "reclutamiento",
   ],
   customer_success: [
     // Nunca "customer support" ni "atencion al cliente": es atención, no customer success.
@@ -353,8 +424,141 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "ethical hacker",
     "appsec",
     "devsecops",
+    "security operations",
+    "security architect",
+    "security researcher",
+    "security infrastructure",
+    "security governance",
+    "security risk engineer",
+    "threat intelligence",
+    "red team",
+    "incident response",
+    // Lista cerrada: "cyber" por prefijo traía "Cyber Monday Marketing Manager".
+    "cyber security",
+    "cyberdefense",
+    "cyber defense",
+    "cyberops",
+    "cyber ops",
+    "cyber threat",
+    "cyber risk",
+    "cyber analyst",
+    "cyber engineer",
+  ],
+  data_engineer: [
+    "data engineer",
+    "analytics engineer",
+    "etl",
+    "data platform engineer",
+    "ingeniero de datos",
+    "ingeniera de datos",
+    "big data engineer",
+  ],
+  solutions_engineer: [
+    "solutions engineer",
+    "solution engineer",
+    "solutions architect",
+    "solution architect",
+    "sales engineer",
+    "pre sales",
+    "presales",
+    "forward deployed engineer",
+    // "Field engineer" suelto es de campo (hardware, telecom): solo con software, solutions o customer.
+    "software field engineer",
+    "solutions field engineer",
+    "customer field engineer",
+    "professional services engineer",
+    "professional services consultant",
+    "ingeniero de preventa",
+    "ingeniera de preventa",
+  ],
+  // Ronda 107 (ADR-022). "Account manager" suelto NO va: es de customer_success (status quo).
+  ventas_b2b: [
+    "sdr",
+    "bdr",
+    "sales development",
+    "business development",
+    "business development representative",
+    "account executive",
+    "inside sales",
+    "sales representative",
+    "sales executive",
+    "sales manager",
+    "sales lead",
+    "key account",
+    "partner manager",
+    "ejecutivo comercial",
+    "ejecutiva comercial",
+    "ejecutivo de cuentas",
+    "ejecutiva de cuentas",
+    "ejecutivo de ventas",
+    "ejecutiva de ventas",
+    "representante de ventas",
+    "asesor comercial",
+    "asesora comercial",
+    "desarrollo de negocios",
+    "vendedor",
+    "vendedora",
+    "vendedores",
+    "vendedoras",
+    "ventas b2b",
+  ],
+  atencion_cliente: [
+    "customer support",
+    "customer service",
+    "customer care",
+    "support agent",
+    "support representative",
+    "support specialist",
+    "support associate",
+    "atencion al cliente",
+    "atencion al usuario",
+    "servicio al cliente",
+    "call center",
+    "contact center",
+    "contact centre",
+    "agente de soporte",
+    "agente de atencion",
+    "representante de atencion",
+    "representante de servicio",
   ],
 };
+
+/** Palabras que anulan el puesto aunque el título tenga uno de sus términos. */
+export const TITLE_EXCLUSIONS: Partial<Record<RoleKey, readonly string[]>> = {
+  ciberseguridad: ["physical security", "data center security"],
+  // Esas infraestructuras y plataformas son de seguridad y de datos, ya tienen su carrera.
+  soporte_it: ["security infrastructure", "data platform", "data infrastructure"],
+  // Ronda 107 (ADR-022): «Sales Engineer» es solutions_engineer y «Business Developer» no es ventas.
+  ventas_b2b: [
+    "engineer",
+    "architect",
+    "developer",
+    "ingeniero",
+    "ingeniera",
+    "presales",
+    "pre sales",
+    "preventa",
+  ],
+  // «IT Support», «Technical Support Specialist», «Customer Support Engineer», «Agente de soporte técnico».
+  atencion_cliente: [
+    "technical",
+    "it",
+    "engineer",
+    "software",
+    "developer",
+    "success",
+    "tecnico",
+    "tecnica",
+    "data",
+  ],
+};
+
+/**
+ * "Product engineer" es fullstack, salvo en manufactura, hardware o mecánica. La exclusión aplica
+ * solo a este término: "Full Stack Engineer, Hardware Platform" sigue siendo fullstack.
+ */
+const PRODUCT_ENGINEER = "product engineer";
+const PRODUCT_ENGINEER_EXCLUSIONS = ["manufacturing", "hardware", "mechanical"];
 
 /** Títulos de desarrollo sin especialidad: sirven a frontend, backend y fullstack. */
 const GENERIC_DEV_TERMS = [
@@ -426,6 +630,27 @@ export function hasTerm(padded: string, term: string): boolean {
   return padded.includes(` ${term} `) || padded.includes(` ${term}s `);
 }
 
+/**
+ * ¿El título (ya normalizado) nombra el puesto? Usa los términos de `TITLE_TERMS` (y «product engineer» para fullstack),
+ * salvo que tenga una palabra de `TITLE_EXCLUSIONS`. `extraTerms` suma frases fuertes de otros
+ * módulos (`titleFit`). Con "AI + rol técnico" ("ML Infrastructure Engineer", "AI Platform
+ * Engineer") soporte_it no aplica: ahí la infraestructura es de IA, no de IT interno.
+ */
+export function matchesRoleTitle(
+  padded: string,
+  role: RoleKey,
+  extraTerms: readonly string[] = [],
+): boolean {
+  if ((TITLE_EXCLUSIONS[role] ?? []).some((w) => hasTerm(padded, w))) return false;
+  if (role === "soporte_it" && matchesAiWithTechRole(padded)) return false;
+  if ([...TITLE_TERMS[role], ...extraTerms].some((term) => hasTerm(padded, term))) return true;
+  return (
+    role === "fullstack" &&
+    hasTerm(padded, PRODUCT_ENGINEER) &&
+    !PRODUCT_ENGINEER_EXCLUSIONS.some((w) => hasTerm(padded, w))
+  );
+}
+
 function normalizeCategory(value: string): string {
   return foldText(value)
     .replace(/[^a-z0-9]+/g, "-")
@@ -458,7 +683,7 @@ export function inferRoleHints(input: {
   const title = normalizeTitleText(input.title);
   const fromTitle = new Set<RoleKey>();
   for (const role of ROLE_KEYS) {
-    if (TITLE_TERMS[role].some((term) => hasTerm(title, term))) fromTitle.add(role);
+    if (matchesRoleTitle(title, role)) fromTitle.add(role);
   }
   if (matchesAiWithTechRole(title)) fromTitle.add("ai_engineer");
   // La palabra genérica solo cuenta si el título no nombra ya otra especialidad

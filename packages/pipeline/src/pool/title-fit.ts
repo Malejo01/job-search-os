@@ -4,6 +4,7 @@ import {
   TITLE_TERMS,
   hasTerm,
   matchesAiWithTechRole,
+  matchesRoleTitle,
   normalizeTitleText,
 } from "../skills/role-hints";
 import type { RoleKey } from "../skills/self-assessment";
@@ -53,7 +54,13 @@ function productVeto(role: RoleKey): readonly string[] {
 const VETO_TERMS: Partial<Record<RoleKey, readonly string[]>> = {
   data_analyst: [
     "data engineer",
-    "data scientist",
+    // Ronda 106: la carrera data_engineer toma estos títulos.
+    "analytics engineer",
+    "etl",
+    "data platform engineer",
+    "big data engineer",
+    "ingeniero de datos",
+    "ingeniera de datos",
     "machine learning",
     "ml engineer",
     "ai engineer",
@@ -71,7 +78,53 @@ const VETO_TERMS: Partial<Record<RoleKey, readonly string[]>> = {
     "sre",
     "platform engineer",
   ],
+  // Ronda 106: data_analyst y data_engineer comparten la categoría de datos; cada una veta a la otra.
+  data_engineer: [
+    "data analyst",
+    "analista de datos",
+    "data scientist",
+    "business intelligence",
+    "machine learning",
+    "ml engineer",
+    "ai engineer",
+    "research scientist",
+    "applied scientist",
+    "mlops",
+    "frontend",
+    "front end",
+    "full stack",
+    "fullstack",
+  ],
   ai_engineer: AI_PATTERN_EXCLUDED_WORDS,
+  // Ronda 107 (ADR-022). Ventas, atención, customer success y soporte comparten categorías de la
+  // fuente: cada carrera veta los títulos de las vecinas. Un título con frase propia nunca se veta.
+  ventas_b2b: [
+    ...TITLE_TERMS.solutions_engineer,
+    ...TITLE_TERMS.customer_success,
+    ...TITLE_TERMS.atencion_cliente,
+    "engineer",
+    "developer",
+  ],
+  solutions_engineer: TITLE_TERMS.ventas_b2b,
+  atencion_cliente: [
+    ...TITLE_TERMS.customer_success,
+    ...TITLE_TERMS.soporte_it,
+    "engineer",
+    "developer",
+    "success",
+  ],
+  customer_success: [...TITLE_TERMS.ventas_b2b, ...TITLE_TERMS.atencion_cliente],
+  // Nunca "customer support": «Customer Support Engineer» con categoría de soporte técnico sigue
+  // siendo soporte_it.
+  soporte_it: [
+    "call center",
+    "contact center",
+    "contact centre",
+    "atencion al cliente",
+    "servicio al cliente",
+    "customer service",
+    "customer care",
+  ],
   // Las categorías de producto juntan las cuatro carreras (ronda 97): cada una veta los títulos de
   // las otras tres y los de desarrollo y diseño. Un título con frase propia nunca se veta.
   product_manager: productVeto("product_manager"),
@@ -83,6 +136,8 @@ const VETO_TERMS: Partial<Record<RoleKey, readonly string[]>> = {
 const strongTerms = (role: RoleKey): readonly string[] => [
   ...TITLE_TERMS[role],
   ...(EXTRA_STRONG_TERMS[role] ?? []),
+  // Solo para ordenar la consulta (aproximada): la exclusión de manufactura la aplica matchesRoleTitle.
+  ...(role === "fullstack" ? ["product engineer"] : []),
 ];
 
 /** Rol técnico en español para el patrón "AI + rol" ("Desarrollador Full-Stack AI"). */
@@ -158,7 +213,7 @@ function namesAiEngineerInEnglish(padded: string): boolean {
 export function titleFit(title: string, role: RoleKey): TitleFit {
   const padded = normalizeTitleText(title);
   const named =
-    strongTerms(role).some((t) => hasTerm(padded, t)) ||
+    matchesRoleTitle(padded, role, EXTRA_STRONG_TERMS[role]) ||
     (role === "ai_engineer" &&
       (namesAiEngineerInEnglish(padded) || matchesAiWithTechRoleEs(padded)));
   if (named) return 2;

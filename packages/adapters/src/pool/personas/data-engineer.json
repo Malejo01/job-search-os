@@ -1,0 +1,14 @@
+{
+  "targetRoles": ["data_engineer"],
+  "locationCountry": "AR",
+  "remoteOnly": true,
+  "yearsTotal": 3,
+  "skills": [
+    { "slug": "sql", "level": 3 },
+    { "slug": "python", "level": 3 },
+    { "slug": "etl", "level": 2 },
+    { "slug": "snowflake", "level": 1 },
+    { "slug": "aws", "level": 2 },
+    { "slug": "docker", "level": 1 }
+  ]
+}

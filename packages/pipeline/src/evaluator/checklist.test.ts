@@ -147,6 +147,31 @@ describe("buildChecklist: golden 29 (USD pagado en moneda local)", () => {
   });
 });
 
+describe("buildChecklist: salario leído del texto del aviso (S-O4, ronda 109)", () => {
+  const salary = { salaryMinUsd: 2400, salaryMaxUsd: 2800, salaryPeriod: "mensual" };
+  it("de la API: no cumple y bloquea, sin nota", () => {
+    const { d, c } = run(base, ctxBase({ ...salary, salaryFromApi: true }));
+    expect(byId(c, "salario")).toMatchObject({ status: "no_cumple", bloquea: true });
+    expect(byId(c, "salario")?.nota).toBeUndefined();
+    expect(d.bloqueadores).toHaveLength(1);
+  });
+  it("del texto: no se sabe, no bloquea y lleva la nota", () => {
+    const { d, c } = run(base, ctxBase({ ...salary, salaryFromApi: false }));
+    expect(byId(c, "salario")).toMatchObject({
+      status: "no_se_sabe",
+      bloquea: false,
+      nota: "salario leído del texto del aviso",
+    });
+    expect(d.bloqueadores).toEqual([]);
+    expect(c.descarte_rapido).toBeNull();
+  });
+  it("del texto con el bloqueador de salario del modelo: el ítem sigue siendo «no se sabe» pero bloquea", () => {
+    const ev: Evaluation = { ...base, bloqueadores_duros: ["Salario bajo el piso"] };
+    const { c } = run(ev, ctxBase({ ...salary, salaryFromApi: false }));
+    expect(byId(c, "salario")).toMatchObject({ status: "no_se_sabe", bloquea: true });
+  });
+});
+
 describe("buildChecklist: golden 2 (junior, presencial, fase A)", () => {
   const ev: Evaluation = {
     ...base,
