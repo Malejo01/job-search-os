@@ -31,6 +31,24 @@ const EXTRA_STRONG_TERMS: Partial<Record<RoleKey, readonly string[]>> = {
   ],
 };
 
+const PRODUCT_ROLES: readonly RoleKey[] = [
+  "product_manager",
+  "product_owner",
+  "project_manager",
+  "product_marketing",
+];
+
+/** Títulos de desarrollo y diseño: ninguna carrera de producto los quiere. */
+const PRODUCT_VETO_EXTRA = ["engineer", "developer", "desarrollador", "desarrolladora", "designer"];
+
+/** Frases de las otras tres carreras de producto, más desarrollo y diseño. */
+function productVeto(role: RoleKey): readonly string[] {
+  return [
+    ...PRODUCT_ROLES.filter((r) => r !== role).flatMap((r) => TITLE_TERMS[r]),
+    ...PRODUCT_VETO_EXTRA,
+  ];
+}
+
 /** Otra disciplina nombrada en el título: veta el puesto solo si no hay ninguna frase del puesto. */
 const VETO_TERMS: Partial<Record<RoleKey, readonly string[]>> = {
   data_analyst: [
@@ -54,6 +72,12 @@ const VETO_TERMS: Partial<Record<RoleKey, readonly string[]>> = {
     "platform engineer",
   ],
   ai_engineer: AI_PATTERN_EXCLUDED_WORDS,
+  // Las categorías de producto juntan las cuatro carreras (ronda 97): cada una veta los títulos de
+  // las otras tres y los de desarrollo y diseño. Un título con frase propia nunca se veta.
+  product_manager: productVeto("product_manager"),
+  product_owner: productVeto("product_owner"),
+  project_manager: productVeto("project_manager"),
+  product_marketing: productVeto("product_marketing"),
 };
 
 const strongTerms = (role: RoleKey): readonly string[] => [

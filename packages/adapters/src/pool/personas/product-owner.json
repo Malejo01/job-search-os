@@ -1,0 +1,14 @@
+{
+  "targetRoles": ["product_owner"],
+  "locationCountry": "AR",
+  "remoteOnly": true,
+  "yearsTotal": 3,
+  "skills": [
+    { "slug": "user_stories", "level": 3 },
+    { "slug": "scrum_agile", "level": 2 },
+    { "slug": "jira", "level": 2 },
+    { "slug": "product_management", "level": 1 },
+    { "slug": "roadmap", "level": 1 },
+    { "slug": "pm_certifications", "level": 1 }
+  ]
+}

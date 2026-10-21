@@ -14,7 +14,7 @@ function validLimit(n: number): boolean {
 
 /**
  * Tope de puestos de la persona: `max_target_roles` del perfil (si no es null y válido) pisa al
- * env `TARGET_ROLES_FREE_LIMIT`; el env es un entero de 1 a 13 (todos los puestos), inválido = 2.
+ * env `TARGET_ROLES_FREE_LIMIT`; el env es un entero de 1 a la cantidad de puestos (16), inválido = 2.
  */
 export function targetRolesLimit(
   env: Record<string, string | undefined>,

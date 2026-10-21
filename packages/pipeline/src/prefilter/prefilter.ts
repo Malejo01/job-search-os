@@ -86,7 +86,19 @@ export type PrefilterOptions = {
  */
 export const ROLE_DOMAIN_KEYWORDS: Partial<Record<RoleKey, readonly string[]>> = {
   marketing_digital: ["seo", "growth"],
-  producto_proyectos: ["project manager", "scrum master", "pmp", "prince2", "business owner"],
+  // Las tres carreras de gestión conservan el oficio de la antigua `producto_proyectos`: los
+  // títulos mixtos ("Product Owner / Scrum Master") son comunes y la separación la hacen los hints.
+  product_manager: [
+    "project manager",
+    "scrum master",
+    "pmp",
+    "prince2",
+    "business owner",
+    "growth",
+  ],
+  product_owner: ["project manager", "scrum master", "pmp", "prince2", "business owner"],
+  project_manager: ["project manager", "scrum master", "pmp", "prince2", "business owner"],
+  product_marketing: ["growth"],
   ciberseguridad: [
     "ciberseguridad",
     "cybersecurity",
@@ -97,19 +109,24 @@ export const ROLE_DOMAIN_KEYWORDS: Partial<Record<RoleKey, readonly string[]>> =
   ],
 };
 
+const PRODUCT_OWN_TITLE_PHRASES = [
+  "product manager",
+  "project manager",
+  "program manager",
+  "delivery manager",
+  "product owner",
+];
+
 /**
  * Frases de título que son el cargo propio del puesto y llevan una palabra de la blocklist
  * ("manager"). Solo se liberan para ese puesto. "Atención al cliente" sigue descartando también
  * con `customer_success`, por decisión del plan (NON_IT_TITLE no cambia).
  */
 export const ROLE_OWN_TITLE_PHRASES: Partial<Record<RoleKey, readonly string[]>> = {
-  producto_proyectos: [
-    "product manager",
-    "project manager",
-    "program manager",
-    "delivery manager",
-    "product owner",
-  ],
+  product_manager: PRODUCT_OWN_TITLE_PHRASES,
+  product_owner: PRODUCT_OWN_TITLE_PHRASES,
+  project_manager: PRODUCT_OWN_TITLE_PHRASES,
+  product_marketing: ["product marketing manager", "marketing manager"],
   customer_success: ["customer success manager", "technical account manager", "account manager"],
   marketing_digital: [
     "marketing manager",

@@ -6,7 +6,9 @@ import {
   DIGITAL_ROLE_KEYS,
   IT_ROLE_KEYS,
   MAX_SKILL_ENTRIES,
+  PRODUCT_ROLE_KEYS,
   ROLE_GROUPS,
+  toRoleKey,
   ROLE_KEYS,
   SELF_LEVELS,
   defaultRole,
@@ -38,18 +40,58 @@ describe("ROLE_GROUPS", () => {
     expect(new Set(all).size).toBe(all.length);
     expect([...all].sort()).toEqual([...ROLE_KEYS].sort());
   });
-  it("tecnología son los 8 de siempre y carreras digitales los 5 nuevos", () => {
+  it("tecnología son los 8 de siempre, producto los 4 de la ronda 97 y digitales el resto", () => {
     expect(IT_ROLE_KEYS).toEqual(ROLE_KEYS.slice(0, 8));
+    expect(PRODUCT_ROLE_KEYS).toEqual(ROLE_KEYS.slice(12));
     expect(DIGITAL_ROLE_KEYS).toEqual(ROLE_KEYS.slice(8));
-    expect(ROLE_GROUPS.map((g) => g.label)).toEqual(["Tecnología", "Carreras digitales"]);
+    expect(ROLE_GROUPS.map((g) => g.label)).toEqual([
+      "Tecnología",
+      "Producto y proyectos",
+      "Carreras digitales",
+    ]);
+    expect(ROLE_GROUPS[1]!.roles).toEqual([
+      "product_manager",
+      "product_owner",
+      "project_manager",
+      "product_marketing",
+    ]);
+  });
+  it("el orden de los puestos que ya existían no cambia y producto_proyectos no se elige", () => {
+    expect(ROLE_KEYS.slice(0, 12)).toEqual([
+      "frontend",
+      "backend",
+      "fullstack",
+      "qa",
+      "data_analyst",
+      "soporte_it",
+      "ai_engineer",
+      "ux_ui",
+      "marketing_digital",
+      "rrhh_it",
+      "customer_success",
+      "ciberseguridad",
+    ]);
+    expect(ROLE_KEYS as readonly string[]).not.toContain("producto_proyectos");
+  });
+});
+
+describe("toRoleKey", () => {
+  it("traduce la clave vieja y valida", () => {
+    expect(toRoleKey("producto_proyectos")).toBe("product_manager");
+    expect(toRoleKey("product_owner")).toBe("product_owner");
+    expect(toRoleKey("frontend")).toBe("frontend");
+    expect(toRoleKey("x")).toBeNull();
+    expect(toRoleKey("toString")).toBeNull();
+    expect(toRoleKey(null)).toBeNull();
+    expect(toRoleKey(3)).toBeNull();
   });
 });
 
 describe("role_skills.json", () => {
   const parsed = roleSkillsSchema.safeParse(seed);
   it("valida contra el esquema", () => expect(parsed.success).toBe(true));
-  it("tiene los 13 roles", () => {
-    expect(ROLE_KEYS).toHaveLength(13);
+  it("tiene los 16 roles", () => {
+    expect(ROLE_KEYS).toHaveLength(16);
     expect(Object.keys(seed).sort()).toEqual([...ROLE_KEYS].sort());
   });
   it("todos los slugs existen en la taxonomía", () => {
@@ -114,9 +156,15 @@ describe("defaultRole", () => {
   it("deduce los puestos de carreras digitales", () => {
     expect(role("Especialista en Marketing Digital")).toBe("marketing_digital");
     expect(role("SEO Specialist")).toBe("marketing_digital");
-    expect(role("Product Manager")).toBe("producto_proyectos");
-    expect(role("Jefa de Proyectos")).toBe("producto_proyectos");
-    expect(role("Scrum Master")).toBe("producto_proyectos");
+    expect(role("Product Manager")).toBe("product_manager");
+    expect(role("Gerente de Producto")).toBe("product_manager");
+    expect(role("Product Owner")).toBe("product_owner");
+    expect(role("Dueña de Producto")).toBe("product_owner");
+    expect(role("Product Owner / Scrum Master")).toBe("product_owner");
+    expect(role("Jefa de Proyectos")).toBe("project_manager");
+    expect(role("Scrum Master")).toBe("project_manager");
+    expect(role("Agile Coach")).toBe("project_manager");
+    expect(role("Product Marketing Manager")).toBe("product_marketing");
     expect(role("Tech Recruiter")).toBe("rrhh_it");
     expect(role("Reclutadora IT")).toBe("rrhh_it");
     expect(role("Analista de RRHH")).toBe("rrhh_it");
@@ -133,7 +181,8 @@ describe("defaultRole", () => {
   });
   it("las disciplinas de seguridad y proyectos dan el puesto nuevo, sin pisar a las de siempre", () => {
     expect(role(null, ["ciberseguridad"])).toBe("ciberseguridad");
-    expect(role(null, ["project_management"])).toBe("producto_proyectos");
+    expect(role(null, ["project_management"])).toBe("project_manager");
+    expect(role(null, ["producto"])).toBe("product_manager");
     expect(role(null, ["ciberseguridad", "backend"])).toBe("backend");
   });
   it("las palabras cortas van enteras", () => {

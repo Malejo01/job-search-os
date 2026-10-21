@@ -3,10 +3,10 @@ import { schema as s } from "@job-search-os/db";
 import {
   criteriaFromOnboarding,
   isProfileComplete,
-  isRoleKey,
   type OnboardingInput,
   parseOnboarding,
   targetRolesLimit,
+  toRoleKey,
   type RoleKey,
 } from "@job-search-os/pipeline";
 import { and, eq, sql } from "drizzle-orm";
@@ -34,10 +34,16 @@ export async function isOnboardingComplete(userId: string): Promise<boolean> {
   });
 }
 
-/** Claves conocidas y sin repetir, en el orden guardado: la base no valida, el código sí. */
+/**
+ * Claves conocidas y sin repetir, en el orden guardado: la base no valida, el código sí. La clave
+ * anterior `producto_proyectos` se traduce (`toRoleKey`), así que un perfil sin migrar sigue andando.
+ */
 function knownRoles(values: readonly unknown[] | null | undefined): RoleKey[] {
   const out: RoleKey[] = [];
-  for (const v of values ?? []) if (isRoleKey(v) && !out.includes(v)) out.push(v);
+  for (const v of values ?? []) {
+    const key = toRoleKey(v);
+    if (key && !out.includes(key)) out.push(key);
+  }
   return out;
 }
 

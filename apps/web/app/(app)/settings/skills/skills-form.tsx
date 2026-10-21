@@ -1,8 +1,8 @@
 import {
   ENGLISH_SKILL_SLUGS,
   ROLE_GROUPS,
-  isRoleKey,
   suggestedSkills,
+  toRoleKey,
   type RoleKey,
   type RoleSkillsMap,
 } from "@job-search-os/pipeline";
@@ -34,7 +34,7 @@ const SKILL_ERRORS: Record<string, string> = {
 const ENGLISH_SLUGS: ReadonlySet<string> = new Set(ENGLISH_SKILL_SLUGS);
 
 export function parseRoleParam(value: string | undefined): RoleKey | null {
-  return isRoleKey(value) ? value : null;
+  return toRoleKey(value);
 }
 
 /**

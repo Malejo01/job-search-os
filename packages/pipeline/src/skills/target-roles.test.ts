@@ -12,7 +12,7 @@ describe("targetRolesLimit", () => {
     );
   });
   it("env inválido = 2", () => {
-    for (const v of ["", "0", "-1", "14", "2.5", "dos", "1e1", "NaN"]) {
+    for (const v of ["", "0", "-1", String(ROLE_KEYS.length + 1), "2.5", "dos", "1e1", "NaN"]) {
       expect(targetRolesLimit({ TARGET_ROLES_FREE_LIMIT: v }, null), v).toBe(2);
     }
   });

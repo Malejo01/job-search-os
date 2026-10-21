@@ -5,9 +5,11 @@ import { safeDbError } from "../logging/safe-error";
 import {
   explainDatabaseUrl,
   formatExplainReport,
+  formatHintsReport,
   parseExplainArgs,
   parsePersona,
   runExplain,
+  runHintsReport,
   type Persona,
 } from "./explain";
 
@@ -15,6 +17,9 @@ import {
  * Diagnóstico del pool de solo lectura (ronda 51):
  *   pnpm pool:explain --persona <ruta.json> [--limit 30] [--db snapshot|dev] [--why "<regex>"]...
  *   pnpm pool:explain --user <uuid>         [--limit 30] [--db snapshot|dev] [--why "<regex>"]...
+ *   pnpm pool:explain --hints [--db snapshot|dev]
+ * `--hints` recalcula los `role_hints` de la ventana con el código actual y muestra solo conteos
+ * (guardado contra recalculado, y a qué se traduce la clave anterior): sin títulos.
  * Muestra qué ofertas elegiría hoy la asignación inicial y por qué. Se conecta SOLO a la base local
  * de Docker (`jobsearch_snapshot` por defecto, `jobsearch` con `--db dev`), armada desde
  * LOCAL_DATABASE_URL; ignora DATABASE_URL y cualquier otra variable, y aborta ante un host que no
@@ -62,6 +67,14 @@ async function main(): Promise<void> {
 
   const conn = createDb(target.url, { max: 1 });
   try {
+    if (args.mode.kind === "hints") {
+      const hints = await runHintsReport(conn.db, { now: new Date() });
+      console.log(
+        `base: ${args.db === "dev" ? "jobsearch" : "jobsearch_snapshot"} (localhost, solo lectura)`,
+      );
+      console.log(formatHintsReport(hints));
+      return;
+    }
     const report = await runExplain(conn.db, args, { persona, personaLabel, now: new Date() });
     console.log(
       `base: ${args.db === "dev" ? "jobsearch" : "jobsearch_snapshot"} (localhost, solo lectura)`,

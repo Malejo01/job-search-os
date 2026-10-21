@@ -1,0 +1,2 @@
+ALTER TABLE "waitlist" DROP CONSTRAINT "waitlist_role_check";--> statement-breakpoint
+ALTER TABLE "waitlist" ADD CONSTRAINT "waitlist_role_check" CHECK ("waitlist"."role" in ('frontend', 'backend', 'fullstack', 'qa', 'data_analyst', 'soporte_it', 'ai_engineer', 'ux_ui', 'marketing_digital', 'producto_proyectos', 'rrhh_it', 'customer_success', 'ciberseguridad', 'product_manager', 'product_owner', 'project_manager', 'product_marketing'));

@@ -11,6 +11,14 @@ export type RolePickerGroup = {
   roles: { key: string; label: string }[];
 };
 
+/** Una línea para distinguir las cuatro carreras de producto (ronda 97); las demás no la llevan. */
+const ROLE_HELP: Readonly<Record<string, string>> = {
+  product_manager: "Estrategia y roadmap del producto",
+  product_owner: "Backlog y prioridades de un equipo",
+  project_manager: "Planificación, plazos y Scrum",
+  product_marketing: "Lanzamiento y posicionamiento",
+};
+
 /**
  * Selector de puestos (ronda 45): casillas agrupadas con un tope por plan. El contador y el
  * deshabilitado son interacción real, por eso es de cliente. Sin JS se ve y se envía igual: el
@@ -56,6 +64,11 @@ export function RolePicker({
               const checked = chosen.has(role.key);
               const disabled = atLimit && !checked;
               const salary = salaries?.[role.key as RoleKey];
+              const help = ROLE_HELP[role.key];
+              const helpId = `${noteId}-help-${role.key}`;
+              const describedBy = [help ? helpId : null, disabled ? noteId : null]
+                .filter(Boolean)
+                .join(" ");
               return (
                 <div
                   key={role.key}
@@ -70,12 +83,17 @@ export function RolePicker({
                       value={role.key}
                       checked={checked}
                       disabled={disabled}
-                      aria-describedby={disabled ? noteId : undefined}
+                      aria-describedby={describedBy || undefined}
                       onChange={(e) => toggle(role.key, e.target.checked)}
                       className="h-4 w-4 shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
                     />
                     {role.label}
                   </label>
+                  {help ? (
+                    <p id={helpId} className="pb-2 pl-9 pr-3 text-xs text-zinc-600">
+                      {help}
+                    </p>
+                  ) : null}
                   {/* Fuera del label: abrir "Ver sueldos" no tiene que marcar el puesto */}
                   {salary ? (
                     <div className="px-3 pb-1">

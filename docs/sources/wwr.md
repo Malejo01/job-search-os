@@ -14,7 +14,7 @@ Adapter: `packages/adapters/src/sources/wwr.ts`. Desde la ronda 47 es una **fuen
 | `remote-back-end-programming-jobs` | backend |
 | `remote-front-end-programming-jobs` | frontend |
 | `remote-devops-sysadmin-jobs` | soporte_it |
-| `remote-product-jobs` | producto_proyectos |
+| `remote-product-jobs` | product_manager, product_owner, project_manager (el título separa; `product_marketing` sale solo del título) |
 | `remote-customer-support-jobs` | customer_success |
 | `remote-design-jobs` | ux_ui |
 

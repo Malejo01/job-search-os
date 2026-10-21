@@ -17,6 +17,16 @@ describe("targetRoleLabelFor", () => {
     ).toBe("Marketing digital");
   });
 
+  it("traduce la clave anterior producto_proyectos y rotula las carreras de producto", () => {
+    expect(targetRoleLabelFor("producto_proyectos", {})).toBe("Product Manager");
+    expect(targetRoleLabelFor(null, { targetRoles: ["producto_proyectos"] })).toBe(
+      "Product Manager",
+    );
+    expect(targetRoleLabelFor("product_owner", {})).toBe("Product Owner");
+    expect(targetRoleLabelFor("project_manager", {})).toBe("Project Manager / Scrum");
+    expect(targetRoleLabelFor("product_marketing", {})).toBe("Product Marketing");
+  });
+
   it("ignora valores que no son un puesto conocido y devuelve null si no queda ninguno", () => {
     expect(targetRoleLabelFor("inventado", { targetRoles: ["marketing_digital"] })).toBe(
       "Marketing digital",

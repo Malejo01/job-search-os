@@ -304,7 +304,7 @@ export const waitlist = pgTable("waitlist", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull(),                         // lower(btrim()), único
   name: text("name").notNull(),
-  role: text("role").notNull(),                           // clave de ROLE_KEYS (check; si cambia la lista, va una migración)
+  role: text("role").notNull(),                           // clave de ROLE_KEYS (check; si cambia la lista, va una migración). `producto_proyectos` queda permitida hasta la contracción (ADR-019)
   heardFrom: text("heard_from"),
   ipHash: text("ip_hash"),                                // sha256 con sal; la función lo pone en null a las 24 h
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -314,7 +314,7 @@ export const waitlist = pgTable("waitlist", {
   uniqueIndex("waitlist_email_unique").on(t.email),
   index("waitlist_ip_hash_created").on(t.ipHash, t.createdAt),
   index("waitlist_created").on(t.createdAt),
-  check("waitlist_role_check", sql`${t.role} in ('frontend', 'backend', 'fullstack', 'qa', 'data_analyst', 'soporte_it', 'ai_engineer', 'ux_ui', 'marketing_digital', 'producto_proyectos', 'rrhh_it', 'customer_success', 'ciberseguridad')`),
+  check("waitlist_role_check", sql`${t.role} in ('frontend', 'backend', 'fullstack', 'qa', 'data_analyst', 'soporte_it', 'ai_engineer', 'ux_ui', 'marketing_digital', 'producto_proyectos', 'rrhh_it', 'customer_success', 'ciberseguridad', 'product_manager', 'product_owner', 'project_manager', 'product_marketing')`),
 ]);
 
 // Administradores a nivel base (ronda 70): barrera de las funciones waitlist_admin_* (rls/0006). RLS sin

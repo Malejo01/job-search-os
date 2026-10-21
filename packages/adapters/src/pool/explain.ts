@@ -1,15 +1,17 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import {
   criteriaFromOnboarding,
+  inferRoleHints,
   IT_ROLE_KEYS,
   isRoleKey,
   isValidCountry,
   POOL_LIMIT_DEFAULTS,
+  ROLE_KEYS,
   type AcceptedModality,
   type CriteriaRules,
   type RoleKey,
 } from "@job-search-os/pipeline";
-import { and, desc, eq, exists, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, exists, gte, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { loadProfilePrefilterPrefs } from "../ingest/ingest-job";
 import { loadActiveRules } from "../ingest/run-getonboard";
@@ -42,13 +44,15 @@ export const LOCATION_WIDTH = 40;
 export type ExplainDb = "snapshot" | "dev";
 
 export type ExplainArgs = {
-  mode: { kind: "persona"; path: string } | { kind: "user"; userId: string };
+  mode: { kind: "persona"; path: string } | { kind: "user"; userId: string } | { kind: "hints" };
   limit: number;
   db: ExplainDb;
   why: string[];
 };
 
 const KNOWN_FLAGS: readonly string[] = ["--persona", "--user", "--limit", "--db", "--why"];
+/** Flags sin valor. */
+const BOOLEAN_FLAGS: readonly string[] = ["--hints"];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function parseExplainArgs(
@@ -59,10 +63,15 @@ export function parseExplainArgs(
   let limit = DEFAULT_LIMIT;
   let db: ExplainDb = "snapshot";
   const why: string[] = [];
+  let hints = false;
   const list = argv.filter((a) => a !== "--");
   for (let i = 0; i < list.length; i++) {
     const flag = list[i]!;
     const value = list[i + 1];
+    if (BOOLEAN_FLAGS.includes(flag)) {
+      hints = true;
+      continue;
+    }
     if (!KNOWN_FLAGS.includes(flag)) return { ok: false, error: `argumento desconocido: ${flag}` };
     if (value === undefined || value.startsWith("--")) {
       return { ok: false, error: `${flag} necesita un valor` };
@@ -85,8 +94,17 @@ export function parseExplainArgs(
       why.push(value);
     }
   }
+  if (hints) {
+    if (persona !== null || user !== null || why.length) {
+      return { ok: false, error: "--hints no se combina con --persona, --user ni --why" };
+    }
+    return { ok: true, args: { mode: { kind: "hints" }, limit, db, why } };
+  }
   if ((persona === null) === (user === null)) {
-    return { ok: false, error: "indicá exactamente uno: --persona <ruta.json> o --user <uuid>" };
+    return {
+      ok: false,
+      error: "indicá exactamente uno: --persona <ruta.json>, --user <uuid> o --hints",
+    };
   }
   if (user !== null && !UUID.test(user)) return { ok: false, error: "--user no es un uuid" };
   return {
@@ -526,6 +544,105 @@ async function explainWhy(
   };
 }
 
+/** Lo que `--hints` necesita de una fila del pool: título, categorías y tags guardados y los hints guardados. */
+export type HintsRow = {
+  sourceKind: string;
+  title: string;
+  tags: readonly string[] | null;
+  categories: readonly string[] | null;
+  roleHints: readonly string[] | null;
+};
+
+/** Solo conteos: ningún título, empresa ni texto de aviso. */
+export type HintsReport = {
+  total: number;
+  /** Una fila por carrera de `ROLE_KEYS`, más la clave anterior si hay filas guardadas con ella. */
+  byRole: { role: string; stored: number; recomputed: number }[];
+  /** Hints guardados que incluían una clave que ya no existe → combinación nueva, con cuántas filas. */
+  legacyMatrix: { from: string; to: string; count: number }[];
+};
+
+const LEGACY_HINT = "producto_proyectos";
+const keyOf = (hints: readonly string[]) => (hints.length ? hints.join(",") : "(sin señal)");
+
+/** Recalcula `inferRoleHints` con el código actual sobre filas ya leídas. Puro. */
+export function buildHintsReport(rows: readonly HintsRow[]): HintsReport {
+  const stored = new Map<string, number>();
+  const recomputed = new Map<string, number>();
+  const matrix = new Map<string, number>();
+  const bump = (m: Map<string, number>, k: string) => m.set(k, (m.get(k) ?? 0) + 1);
+  for (const row of rows) {
+    const old = [...new Set(row.roleHints ?? [])];
+    const next = inferRoleHints({
+      sourceKind: row.sourceKind,
+      title: row.title,
+      tags: row.tags ?? undefined,
+      categories: row.categories ?? undefined,
+    });
+    for (const h of old) bump(stored, h);
+    for (const h of next) bump(recomputed, h);
+    if (old.includes(LEGACY_HINT)) bump(matrix, keyOf(next));
+  }
+  // Solo claves conocidas (la anterior incluida): lo que venga de la base y no lo sea no se imprime
+  const known: string[] = [...ROLE_KEYS, ...(stored.has(LEGACY_HINT) ? [LEGACY_HINT] : [])];
+  return {
+    total: rows.length,
+    byRole: known.map((role) => ({
+      role,
+      stored: stored.get(role) ?? 0,
+      recomputed: recomputed.get(role) ?? 0,
+    })),
+    legacyMatrix: [...matrix]
+      .map(([to, count]) => ({ from: LEGACY_HINT, to, count }))
+      .sort((a, b) => b.count - a.count || a.to.localeCompare(b.to)),
+  };
+}
+
+export function formatHintsReport(r: HintsReport): string {
+  const widths = [
+    Math.max("carrera".length, ...r.byRole.map((x) => x.role.length)),
+    "guardado".length,
+    "recalculado".length,
+  ];
+  const line = (cells: string[]) =>
+    cells
+      .map((c, i) => (i === 0 ? c.padEnd(widths[0]!) : c.padStart(widths[i]!)))
+      .join("  ")
+      .trimEnd();
+  const out = [
+    `avisos vigentes (visto en los últimos ${SEEN_WINDOW_DAYS} d, sin copias): ${r.total}`,
+    "",
+    line(["carrera", "guardado", "recalculado"]),
+    ...r.byRole.map((x) => line([x.role, String(x.stored), String(x.recomputed)])),
+    "",
+    `${LEGACY_HINT} → combinación nueva:`,
+  ];
+  out.push(
+    ...(r.legacyMatrix.length
+      ? r.legacyMatrix.map((m) => `  ${m.to}: ${m.count}`)
+      : ["  (ninguna fila guardada con esa clave)"]),
+  );
+  return out.join("\n");
+}
+
+/** `--hints`: recalcula los hints de la ventana con el código de la rama. Solo lectura. */
+export async function runHintsReport(db: Db, deps: { now: Date }): Promise<HintsReport> {
+  return inReadOnlyTransaction(db, async (tx) => {
+    const { seenSince } = poolWindows(deps.now);
+    const rows = await tx
+      .select({
+        sourceKind: s.publicJobs.sourceKind,
+        title: s.publicJobs.title,
+        tags: s.publicJobs.tags,
+        categories: s.publicJobs.categories,
+        roleHints: s.publicJobs.roleHints,
+      })
+      .from(s.publicJobs)
+      .where(and(isNull(s.publicJobs.dedupOfId), gte(s.publicJobs.lastSeenAt, seenSince)));
+    return buildHintsReport(rows);
+  });
+}
+
 /** Corre el diagnóstico completo dentro de una transacción de solo lectura. */
 export async function runExplain(
   db: Db,
@@ -533,6 +650,7 @@ export async function runExplain(
   deps: { persona: Persona | null; personaLabel: string; now: Date },
 ): Promise<ExplainReport> {
   return inReadOnlyTransaction(db, async (tx) => {
+    if (args.mode.kind === "hints") throw new Error("--hints usa runHintsReport");
     if (args.mode.kind === "persona" && !deps.persona) throw new Error("falta la persona");
     const profile =
       args.mode.kind === "user"

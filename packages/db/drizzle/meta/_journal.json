@@ -232,6 +232,20 @@
       "when": 1792532675123,
       "tag": "0032_onboarding_datos",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1792552591932,
+      "tag": "0033_redundant_captain_marvel",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1792552592932,
+      "tag": "0034_carreras_producto",
+      "breakpoints": true
     }
   ]
 }

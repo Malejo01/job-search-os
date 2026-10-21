@@ -8,13 +8,14 @@ const INITIAL: WaitlistState = { status: "idle" };
 const field = "min-h-11 rounded-md border border-zinc-300 px-3 py-2 text-base";
 
 export type RoleOption = { key: string; label: string };
+export type RoleOptionGroup = { label: string; roles: RoleOption[] };
 
 /** Formulario "Pedir acceso". Las carreras las arma la página (servidor) para no traer la base al cliente. */
 export function WaitlistForm({
-  roles,
+  groups,
   contact,
 }: {
-  roles: RoleOption[];
+  groups: RoleOptionGroup[];
   contact: { email: string; href: string } | null;
 }) {
   const [state, action, pending] = useActionState(submitWaitlist, INITIAL);
@@ -97,10 +98,14 @@ export function WaitlistForm({
           <option value="" disabled>
             Elegí una carrera
           </option>
-          {roles.map((r) => (
-            <option key={r.key} value={r.key}>
-              {r.label}
-            </option>
+          {groups.map((g) => (
+            <optgroup key={g.label} label={g.label}>
+              {g.roles.map((r) => (
+                <option key={r.key} value={r.key}>
+                  {r.label}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
         {errors.role ? (

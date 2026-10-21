@@ -51,8 +51,43 @@ const migration0032Sql = readFileSync(
   "utf8",
 );
 
+// La 0034 (ronda 97) da de alta las 7 skills de las carreras de producto
+const migration0034Sql = readFileSync(
+  join(PKG_ROOT, "drizzle", "0034_carreras_producto.sql"),
+  "utf8",
+);
+const R97_SLUGS = [
+  "go_to_market",
+  "positioning_messaging",
+  "market_research",
+  "user_stories",
+  "project_planning",
+  "risk_management",
+  "pm_certifications",
+];
+
 let container: StartedPostgreSqlContainer | null = null;
 let owner: Sql;
+
+async function runMigration0034() {
+  for (const statement of migration0034Sql.split("--> statement-breakpoint")) {
+    await owner.unsafe(statement);
+  }
+}
+
+async function readR97() {
+  return owner<
+    {
+      slug: string;
+      name: string;
+      category: string;
+      aliases: string[];
+      closure_hours: number;
+      description: string;
+    }[]
+  >`select slug, name, category::text as category, aliases, closure_hours, description
+    from skills where slug = any(${R97_SLUGS}) order by slug`;
+}
 
 /** Corre la 0019 como lo hace el migrador: statement por statement. */
 async function runMigration0019() {
@@ -161,5 +196,55 @@ describe("migración 0019 · carreras digitales", () => {
     } finally {
       await owner`delete from skills where slug in ('salesforce', 'seo')`;
     }
+  });
+});
+
+describe("migración 0034 · skills de las carreras de producto", () => {
+  it("después de migrar, sin seed, están las 7 skills tal cual skills.json", async () => {
+    const rows = await readR97();
+    expect(rows).toHaveLength(R97_SLUGS.length);
+    for (const row of rows) {
+      const expected = seed.find((s) => s.slug === row.slug) as SeedSkill & { description: string };
+      expect(expected, row.slug).toBeDefined();
+      expect(row, row.slug).toEqual({
+        slug: expected.slug,
+        name: expected.name,
+        category: expected.category,
+        aliases: expected.aliases,
+        closure_hours: expected.closure_hours,
+        description: expected.description,
+      });
+    }
+  });
+
+  it("gtm queda solo en go_to_market: sale de los aliases de growth_marketing", async () => {
+    const find = (slug: string) => seed.find((s) => s.slug === slug)!;
+    expect(find("go_to_market").aliases).toContain("gtm");
+    expect(find("growth_marketing").aliases).not.toContain("gtm");
+    try {
+      await owner`insert into skills (slug, name, category, aliases, closure_hours) values
+        ('growth_marketing', 'Growth / marketing', 'dominio', ${["cro", "gtm", "growth"]}, 16)`;
+      await runMigration0034();
+      const [row] = await owner<
+        { aliases: string[] }[]
+      >`select aliases from skills where slug = 'growth_marketing'`;
+      expect(row!.aliases).toEqual(find("growth_marketing").aliases);
+      expect(row!.aliases).not.toContain("gtm");
+      const gtm = await owner<
+        { slug: string }[]
+      >`select slug from skills where slug = any(${R97_SLUGS}) and 'gtm' = any(aliases)`;
+      expect(gtm.map((r) => r.slug)).toEqual(["go_to_market"]);
+    } finally {
+      await owner`delete from skills where slug = 'growth_marketing'`;
+    }
+  });
+
+  it("correrla dos veces no duplica ni cambia nada", async () => {
+    const before = await readR97();
+    const totalBefore = await countSkills();
+    await runMigration0034();
+    await runMigration0034();
+    expect(await readR97()).toEqual(before);
+    expect(await countSkills()).toBe(totalBefore);
   });
 });
