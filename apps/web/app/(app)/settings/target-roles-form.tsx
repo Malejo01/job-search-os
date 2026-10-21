@@ -1,4 +1,8 @@
-import { ROLE_GROUPS, TARGET_ROLES_DEFAULT_LIMIT, type RoleKey } from "@job-search-os/pipeline";
+import {
+  selectableRoleGroups,
+  TARGET_ROLES_DEFAULT_LIMIT,
+  type RoleKey,
+} from "@job-search-os/pipeline";
 import { FieldError, GuardedForm, PendingSubmit } from "@/app/components/guarded-form";
 import { RolePicker } from "@/components/role-picker";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
@@ -19,7 +23,7 @@ export function TargetRolesForm({
   limit: number;
   status?: "guardado";
 }) {
-  const groups = ROLE_GROUPS.map((group) => ({
+  const groups = selectableRoleGroups(current).map((group) => ({
     label: group.label,
     roles: group.roles.map((key) => ({ key, label: ROLE_SKILLS[key].label })),
   }));

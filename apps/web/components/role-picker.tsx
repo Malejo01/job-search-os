@@ -22,6 +22,9 @@ const ROLE_HELP: Readonly<Record<string, string>> = {
   product_marketing: "Lanzamiento y posicionamiento",
   data_engineer: "Pipelines y plataformas de datos",
   solutions_engineer: "Demos y arquitectura con clientes",
+  ventas_b2b: "Prospección y cierre con empresas",
+  atencion_cliente: "Soporte a clientes por chat, mail o teléfono; no es IT",
+  rrhh_it: "Recruiting y RRHH, IT o no",
 };
 
 /**

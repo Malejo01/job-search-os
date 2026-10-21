@@ -96,6 +96,35 @@ const VETO_TERMS: Partial<Record<RoleKey, readonly string[]>> = {
     "fullstack",
   ],
   ai_engineer: AI_PATTERN_EXCLUDED_WORDS,
+  // Ronda 107 (ADR-022). Ventas, atención, customer success y soporte comparten categorías de la
+  // fuente: cada carrera veta los títulos de las vecinas. Un título con frase propia nunca se veta.
+  ventas_b2b: [
+    ...TITLE_TERMS.solutions_engineer,
+    ...TITLE_TERMS.customer_success,
+    ...TITLE_TERMS.atencion_cliente,
+    "engineer",
+    "developer",
+  ],
+  solutions_engineer: TITLE_TERMS.ventas_b2b,
+  atencion_cliente: [
+    ...TITLE_TERMS.customer_success,
+    ...TITLE_TERMS.soporte_it,
+    "engineer",
+    "developer",
+    "success",
+  ],
+  customer_success: [...TITLE_TERMS.ventas_b2b, ...TITLE_TERMS.atencion_cliente],
+  // Nunca "customer support": «Customer Support Engineer» con categoría de soporte técnico sigue
+  // siendo soporte_it.
+  soporte_it: [
+    "call center",
+    "contact center",
+    "contact centre",
+    "atencion al cliente",
+    "servicio al cliente",
+    "customer service",
+    "customer care",
+  ],
   // Las categorías de producto juntan las cuatro carreras (ronda 97): cada una veta los títulos de
   // las otras tres y los de desarrollo y diseño. Un título con frase propia nunca se veta.
   product_manager: productVeto("product_manager"),

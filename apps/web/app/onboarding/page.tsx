@@ -4,7 +4,7 @@ import {
   ISO_COUNTRY_CODES,
   MAX_SUMMARY_CHARS,
   MIN_SUMMARY_CHARS,
-  ROLE_GROUPS,
+  selectableRoleGroups,
   TARGET_ROLES_DEFAULT_LIMIT,
 } from "@job-search-os/pipeline";
 import { redirect } from "next/navigation";
@@ -43,7 +43,7 @@ export default async function OnboardingPage({
     getCareerSalaries().catch(() => undefined),
     guideDismissed(userId),
   ]);
-  const roleGroups = ROLE_GROUPS.map((group) => ({
+  const roleGroups = selectableRoleGroups(targetRoles).map((group) => ({
     label: group.label,
     roles: group.roles.map((key) => ({ key, label: ROLE_SKILLS[key].label })),
   }));

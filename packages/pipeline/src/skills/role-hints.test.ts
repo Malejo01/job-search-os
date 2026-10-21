@@ -76,7 +76,6 @@ describe("inferRoleHints · título", () => {
     ["Building Manager"],
     ["Guild Lead"],
     ["Gerente de Ventas"],
-    ["Account Executive"],
     ["Quality Manager"],
     ["Biologist"],
     ["Business Developer"],
@@ -107,9 +106,9 @@ describe("inferRoleHints · título", () => {
     expect(hints(title)).toEqual(["soporte_it"]);
   });
 
-  it("atención al cliente no es soporte de IT", () => {
-    expect(hints("Customer Support Representative")).toEqual([]);
-    expect(hints("Support Specialist")).toEqual([]);
+  it("atención al cliente no es soporte de IT: desde la 107 es atencion_cliente", () => {
+    expect(hints("Customer Support Representative")).toEqual(["atencion_cliente"]);
+    expect(hints("Support Specialist")).toEqual(["atencion_cliente"]);
     expect(hints("Soporte al cliente")).toEqual([]);
     expect(hints("Technical Support Engineer")).toEqual(["soporte_it"]);
     expect(hints("Analista de Soporte IT")).toEqual(["soporte_it"]);
@@ -221,8 +220,8 @@ describe("inferRoleHints · puestos de carreras digitales (ronda 40)", () => {
   it("no se cruzan con los puestos de siempre", () => {
     expect(hints("Product Designer")).toEqual(["ux_ui"]);
     expect(hints("Developer Relations Manager")).toEqual([]);
-    expect(hints("Customer Support Representative")).toEqual([]);
-    expect(hints("Atención al cliente")).toEqual([]);
+    expect(hints("Customer Support Representative")).toEqual(["atencion_cliente"]);
+    expect(hints("Atención al cliente")).toEqual(["atencion_cliente"]);
     expect(hints("Security Guard")).toEqual([]);
     expect(hints("Senior Developer")).toEqual(DEV);
   });
@@ -232,7 +231,8 @@ describe("inferRoleHints · puestos de carreras digitales (ronda 40)", () => {
     ["getonboard_api", "hr", ["rrhh_it"]],
     ["getonboard_api", "technical-support", ["soporte_it"]],
     ["getonboard_api", "cybersecurity", ["ciberseguridad"]],
-    ["getonboard_api", "customer-support", ["customer_success"]],
+    ["getonboard_api", "customer-support", ["customer_success", "atencion_cliente"]],
+    ["getonboard_api", "sales", ["ventas_b2b"]],
     ["getonboard_api", "operations-management", ["project_manager"]],
     ["getonboard_api", "advertising-media", ["marketing_digital"]],
     ["jobicy", "Marketing", ["marketing_digital"]],
@@ -363,10 +363,10 @@ describe("inferRoleHints · categorías nuevas de Jobicy (ronda 47c)", () => {
     );
   });
 
-  it("customer-support no se mapea", () => {
+  it("customer-support da atención al cliente y customer success (ronda 107)", () => {
     expect(
       hints("Cargo sin pistas", { sourceKind: "jobicy", categories: ["Customer Support"] }),
-    ).toEqual([]);
+    ).toEqual(["customer_success", "atencion_cliente"]);
   });
 });
 
@@ -426,7 +426,8 @@ describe("inferRoleHints · categorías de la fuente", () => {
     ["remote-front-end-programming-jobs", ["frontend"]],
     ["remote-devops-sysadmin-jobs", ["soporte_it"]],
     ["remote-product-jobs", ["product_manager", "product_owner", "project_manager"]],
-    ["remote-customer-support-jobs", ["customer_success"]],
+    ["remote-customer-support-jobs", ["customer_success", "atencion_cliente"]],
+    ["customer-support", ["customer_success", "atencion_cliente"]],
     ["remote-design-jobs", ["ux_ui"]],
     ["Full-Stack Programming", ["fullstack"]],
     ["DevOps and Sysadmin", ["soporte_it"]],
@@ -465,7 +466,9 @@ describe("inferRoleHints · categorías de la fuente", () => {
     ]);
     expect(
       hints("Cargo sin pistas", { sourceKind: "remoteok", tags: ["Customer Support", "support"] }),
-    ).toEqual([]);
+    ).toEqual(["customer_success", "atencion_cliente"]);
+    // `support` suelto sigue sin mapearse
+    expect(hints("Cargo sin pistas", { sourceKind: "remoteok", tags: ["support"] })).toEqual([]);
     expect(hints("Cargo sin pistas", { sourceKind: "remoteok", tags: ["sysadmin"] })).toEqual([
       "soporte_it",
     ]);
@@ -679,17 +682,148 @@ describe("inferRoleHints · data_engineer y solutions_engineer (ronda 106, ADR-0
   it("field engineer suelto, ventas y gerencia no son solutions_engineer", () => {
     expect(hints("Field Engineer")).toEqual([]);
     expect(hints("Field Service Engineer")).toEqual([]);
-    expect(hints("Sales Manager")).toEqual([]);
-    expect(hints("Account Executive")).toEqual([]);
+    // Desde la 107 son ventas_b2b, y solo eso
+    expect(hints("Sales Manager")).toEqual(["ventas_b2b"]);
+    expect(hints("Account Executive")).toEqual(["ventas_b2b"]);
     expect(hints("Solutions Manager")).toEqual([]);
   });
 
-  it("las categorías de la fuente no marcan las carreras nuevas", () => {
+  it("las categorías de la fuente no marcan las carreras de la 106", () => {
     for (const table of Object.values(SOURCE_CATEGORY_ROLES)) {
       for (const roles of Object.values(table)) {
         expect(roles).not.toContain("data_engineer");
         expect(roles).not.toContain("solutions_engineer");
       }
     }
+  });
+});
+
+describe("inferRoleHints · ventas, atención, RRHH y contenido (ronda 107, ADR-022)", () => {
+  it.each([
+    "SDR",
+    "BDR - LatAm",
+    "Sales Development Representative",
+    "Business Development Representative",
+    "Business Development Manager",
+    "Account Executive, Mid-Market",
+    "Inside Sales Representative",
+    "Sales Representative",
+    "Sales Executive",
+    "Sales Manager",
+    "Sales Lead",
+    "Key Account Manager",
+    "Partner Manager",
+    "Ejecutivo Comercial",
+    "Ejecutiva de Cuentas",
+    "Ejecutivo de Ventas",
+    "Representante de Ventas",
+    "Asesora Comercial",
+    "Desarrollo de Negocios",
+    "Vendedor",
+    "Vendedora Senior",
+    "Ventas B2B",
+  ])("ventas_b2b: %s", (title) => {
+    expect(hints(title)).toEqual(["ventas_b2b"]);
+  });
+
+  it.each([
+    "Customer Support Specialist",
+    "Customer Service Representative",
+    "Customer Care Agent",
+    "Support Agent",
+    "Support Associate",
+    "Atención al Cliente",
+    "Atención al Usuario",
+    "Servicio al Cliente",
+    "Call Center Agent",
+    "Contact Center Representative",
+    "Contact Centre Agent",
+    "Agente de Soporte",
+    "Agente de Atención",
+    "Representante de Atención",
+    "Representante de Servicio",
+  ])("atencion_cliente: %s", (title) => {
+    expect(hints(title)).toEqual(["atencion_cliente"]);
+  });
+
+  it.each([
+    ["Sales Engineer", ["solutions_engineer"]],
+    ["Business Developer", []],
+    ["IT Support Specialist", ["soporte_it"]],
+    ["Technical Support Specialist", ["soporte_it"]],
+    ["Customer Support Engineer", []],
+    ["Agente de soporte técnico", ["soporte_it"]],
+    ["Customer Success Manager", ["customer_success"]],
+    ["Technical Account Manager", ["customer_success"]],
+    ["Key Account Manager", ["ventas_b2b"]],
+    ["Account Manager", []],
+    ["Graphic Designer", ["marketing_digital"]],
+    ["Product Designer", ["ux_ui"]],
+    ["HR Generalist", ["rrhh_it"]],
+    ["Presales Engineer", ["solutions_engineer"]],
+  ])("separación entre carreras vecinas: %s", (title, roles) => {
+    expect(hints(title)).toEqual(roles);
+  });
+
+  it.each([
+    "HR",
+    "HR Manager",
+    "HR Specialist",
+    "HR Coordinator",
+    "People Operations Manager",
+    "People Ops Specialist",
+    "Talent Partner",
+    "Recruiting Coordinator",
+    "Recruitment Consultant",
+    "Especialista en Reclutamiento",
+  ])("rrhh_it: %s", (title) => {
+    expect(hints(title)).toEqual(["rrhh_it"]);
+  });
+
+  it.each([
+    "Copywriter",
+    "Content Creator",
+    "Content Writer",
+    "Content Producer",
+    "Content Specialist",
+    "Redactor SEO",
+    "Redactora de contenidos",
+    "Graphic Designer",
+    "Diseñador Gráfico",
+    "Diseñadora Gráfica",
+    "Video Editor",
+    "Editor de Video",
+    "Editora de Video",
+    "Motion Graphics Artist",
+    "Motion Designer",
+    "Creador de Contenido",
+    "Creadora de Contenido",
+  ])("marketing_digital (contenido, gráfico, video): %s", (title) => {
+    expect(hints(title)).toContain("marketing_digital");
+    expect(hints(title)).not.toContain("ux_ui");
+  });
+
+  it("customer-support de la fuente suma atención y CS; el título agrega su carrera", () => {
+    for (const sourceKind of ["getonboard_api", "jobicy", "remoteok", "wwr"]) {
+      const tag = sourceKind === "wwr" ? "customer-support" : "Customer Support";
+      expect(hints("Cargo sin pistas", { sourceKind, categories: [tag], tags: [] })).toEqual([
+        "customer_success",
+        "atencion_cliente",
+      ]);
+    }
+    // El orden es el de ROLE_KEYS. La exclusión de «technical» solo vale para el título: la
+    // categoría suma atención igual, y `titleFit` la separa después (assessPoolTitle).
+    expect(
+      hints("Technical Support Specialist", {
+        sourceKind: "getonboard_api",
+        categories: ["customer-support"],
+      }),
+    ).toEqual(["soporte_it", "customer_success", "atencion_cliente"]);
+  });
+
+  it("Get on Board sales marca ventas_b2b", () => {
+    expect(
+      hints("Cargo sin pistas", { sourceKind: "getonboard_api", categories: ["sales"] }),
+    ).toEqual(["ventas_b2b"]);
   });
 });

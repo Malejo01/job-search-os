@@ -40,10 +40,13 @@ const R97_SLUGS = [
   "risk_management",
   "pm_certifications",
 ];
-/** Skills de la ronda 40 (carreras digitales), de la 78 y de la 97: se excluyen de la comparación de "no cambia". */
+/** Skills de la ronda 107 (ventas y atención): también se excluyen de "no cambia". */
+const R107_SLUGS = ["prospecting", "negotiation", "sales_tools", "chat_support", "hr_generalist"];
+/** Skills de la ronda 40 (carreras digitales), de la 78, de la 97 y de la 107: se excluyen de la comparación de "no cambia". */
 const CAREER_SLUGS = new Set([
   ...R78_SLUGS,
   ...R97_SLUGS,
+  ...R107_SLUGS,
   "google_ads",
   "meta_ads",
   "ga4",
@@ -221,6 +224,35 @@ describe("skills de la ronda 78: Git, Canva, CapCut, Notion, Trello y Mailchimp"
 
   it("mailchimp ya no cuenta como email_marketing", () => {
     expect(extract("Campañas en Mailchimp.")).not.toContain("email_marketing");
+  });
+});
+
+describe("skills de la ronda 107: ventas y atención", () => {
+  const find = (slug: string) => taxonomy.find((s) => s.slug === slug);
+
+  it("están las 5, en categoría dominio", () => {
+    for (const slug of R107_SLUGS) {
+      expect(find(slug), slug).toBeDefined();
+      expect(find(slug)!.category, slug).toBe("dominio");
+    }
+  });
+
+  it.each([
+    ["prospecting", "Cold calling y lead generation para outbound."],
+    ["negotiation", "Negociación y cierre de ventas con objection handling."],
+    ["sales_tools", "Experiencia con Lemlist, ZoomInfo o Sales Navigator."],
+    ["chat_support", "Atención por live chat con Intercom."],
+    ["hr_generalist", "Generalista de RRHH: nómina, payroll y legislación laboral."],
+  ])("detecta %s en: %s", (slug, text) => {
+    expect(extract(text)).toContain(slug);
+  });
+
+  it.each([
+    ["sales_tools", "We run an outreach program for local schools."],
+    ["negotiation", "You will negotiate benefits with the HR team."],
+    ["negotiation", "Closing the ticket after the customer confirms."],
+  ])("no marca %s en: %s", (slug, text) => {
+    expect(extract(text)).not.toContain(slug);
   });
 });
 

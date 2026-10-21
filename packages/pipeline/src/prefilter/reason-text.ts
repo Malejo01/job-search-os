@@ -36,6 +36,12 @@ export function prefilterReasonText(stored: string | null | undefined): string |
         ? `El título incluye «${word}», que está en los títulos que excluís en tus criterios.`
         : "El título incluye una palabra que está en los títulos que excluís en tus criterios.";
     }
+    case "licencia_profesional": {
+      const term = quoted(detail);
+      return term
+        ? `Pide una licencia o matrícula profesional de otro país («${term}»).`
+        : "Pide una licencia o matrícula profesional de otro país.";
+    }
     default:
       return "No pasó el filtro inicial.";
   }

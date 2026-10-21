@@ -1,0 +1,13 @@
+{
+  "targetRoles": ["atencion_cliente"],
+  "locationCountry": "AR",
+  "remoteOnly": true,
+  "yearsTotal": 2,
+  "skills": [
+    { "slug": "chat_support", "level": 3 },
+    { "slug": "help_desk", "level": 2 },
+    { "slug": "client_facing", "level": 3 },
+    { "slug": "english_intermediate", "level": 2 },
+    { "slug": "excel", "level": 1 }
+  ]
+}
