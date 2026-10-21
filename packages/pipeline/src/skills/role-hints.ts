@@ -10,6 +10,13 @@ import { ROLE_KEYS, type RoleKey } from "./self-assessment";
 const DEV: readonly RoleKey[] = ["frontend", "backend", "fullstack"];
 
 /**
+ * Categorías de producto: la fuente no distingue las carreras, así que dan todas las que pueden
+ * ser (`titleFit` separa después por título). `product_marketing` no sale de ninguna categoría.
+ */
+const PRODUCT_ONLY: readonly RoleKey[] = ["product_manager", "product_owner"];
+const PRODUCT_PROJECT: readonly RoleKey[] = [...PRODUCT_ONLY, "project_manager"];
+
+/**
  * Fuente → categoría → roles. Las categorías se comparan normalizadas: minúsculas, sin acentos y
  * con todo lo que no sea letra o número convertido en un guion ("Machine Learning" → "machine-learning").
  * Remote OK se consulta sobre sus `tags`; Get on Board y Jobicy sobre `categories`.
@@ -30,7 +37,7 @@ export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleK
     "sysadmin-devops-qa": ["qa", "soporte_it"],
     "digital-marketing": ["marketing_digital"],
     hr: ["rrhh_it"],
-    "innovation-agile": ["producto_proyectos"],
+    "innovation-agile": PRODUCT_PROJECT,
     "technical-support": ["soporte_it"],
     cybersecurity: ["ciberseguridad"],
     // `customer-support` es atención al cliente: no es soporte de IT, sí customer success.
@@ -57,8 +64,8 @@ export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleK
     hr: ["rrhh_it"],
     "human-resources": ["rrhh_it"],
     recruiting: ["rrhh_it"],
-    product: ["producto_proyectos"],
-    "project-management": ["producto_proyectos"],
+    product: PRODUCT_ONLY,
+    "project-management": ["project_manager"],
     "customer-success": ["customer_success"],
     security: ["ciberseguridad"],
     cybersecurity: ["ciberseguridad"],
@@ -104,9 +111,9 @@ export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleK
     hr: ["rrhh_it"],
     recruiter: ["rrhh_it"],
     recruiting: ["rrhh_it"],
-    product: ["producto_proyectos"],
-    "product-manager": ["producto_proyectos"],
-    "project-manager": ["producto_proyectos"],
+    product: PRODUCT_ONLY,
+    "product-manager": ["product_manager"],
+    "project-manager": ["project_manager"],
     "customer-success": ["customer_success"],
     security: ["ciberseguridad"],
     cybersecurity: ["ciberseguridad"],
@@ -126,8 +133,8 @@ export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleK
     "remote-devops-sysadmin-jobs": ["soporte_it"],
     "devops-and-sysadmin": ["soporte_it"],
     "devops-sysadmin": ["soporte_it"],
-    "remote-product-jobs": ["producto_proyectos"],
-    product: ["producto_proyectos"],
+    "remote-product-jobs": PRODUCT_PROJECT,
+    product: PRODUCT_PROJECT,
     "remote-customer-support-jobs": ["customer_success"],
     "customer-support": ["customer_success"],
     "remote-design-jobs": ["ux_ui"],
@@ -272,18 +279,35 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "content marketing",
     "email marketing",
   ],
-  producto_proyectos: [
+  product_manager: [
     "product manager",
-    "product owner",
+    "product management",
+    "product operations",
+    "product ops",
+    "gerente de producto",
+    "jefe de producto",
+    "jefa de producto",
+    "responsable de producto",
+  ],
+  product_owner: ["product owner", "dueno de producto", "duena de producto"],
+  project_manager: [
     "project manager",
+    "program manager",
+    "delivery manager",
     "scrum master",
     "agile coach",
     "pmo",
-    "delivery manager",
+    "project coordinator",
     "gerente de proyectos",
     "jefe de proyectos",
+    "jefa de proyectos",
     "lider de proyectos",
+    "coordinador de proyectos",
+    "coordinadora de proyectos",
+    "gestor de proyectos",
+    "gestora de proyectos",
   ],
+  product_marketing: ["product marketing", "go to market", "gtm manager", "marketing de producto"],
   rrhh_it: [
     "recruiter",
     "tech recruiter",

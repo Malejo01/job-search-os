@@ -30,9 +30,20 @@ const NEW_SLUGS = [
 ];
 /** Skills de la ronda 78 (herramientas que faltaban): también se excluyen de "no cambia". */
 const R78_SLUGS = ["git", "canva", "capcut", "notion", "trello", "mailchimp"];
-/** Skills de la ronda 40 (carreras digitales) y de la 78: se excluyen de la comparación de "no cambia". */
+/** Skills de la ronda 97 (carreras de producto): también se excluyen de "no cambia". */
+const R97_SLUGS = [
+  "go_to_market",
+  "positioning_messaging",
+  "market_research",
+  "user_stories",
+  "project_planning",
+  "risk_management",
+  "pm_certifications",
+];
+/** Skills de la ronda 40 (carreras digitales), de la 78 y de la 97: se excluyen de la comparación de "no cambia". */
 const CAREER_SLUGS = new Set([
   ...R78_SLUGS,
+  ...R97_SLUGS,
   "google_ads",
   "meta_ads",
   "ga4",
@@ -123,6 +134,11 @@ describe("skills.json: integridad", () => {
       "jax",
       "etl",
       "net",
+      // ronda 97: siglas de certificaciones y de planificación, inequívocas en una JD
+      "pmp",
+      "psm",
+      "csm",
+      "wbs",
     ]);
     for (const s of taxonomy) {
       for (const a of s.aliases) {
@@ -149,7 +165,8 @@ describe("skills.json: integridad", () => {
     const inherited = new Set([
       `"eks": aws / kubernetes`,
       `"aks": azure / kubernetes`,
-      `"gtm": seo / growth_marketing`,
+      // "gtm" en seo es Google Tag Manager; en la 97 pasó a go_to_market y salió de growth_marketing
+      `"gtm": seo / go_to_market`,
     ]);
     expect(clashes.filter((c) => !inherited.has(c))).toEqual([]);
   });
@@ -205,6 +222,40 @@ describe("skills de la ronda 78: Git, Canva, CapCut, Notion, Trello y Mailchimp"
 
   it("mailchimp ya no cuenta como email_marketing", () => {
     expect(extract("Campañas en Mailchimp.")).not.toContain("email_marketing");
+  });
+});
+
+describe("skills de la ronda 97: carreras de producto", () => {
+  const find = (slug: string) => taxonomy.find((s) => s.slug === slug);
+
+  it("están las 7, en categoría dominio, con descripción", () => {
+    for (const slug of R97_SLUGS) {
+      expect(find(slug), slug).toBeDefined();
+      expect(find(slug)!.category, slug).toBe("dominio");
+    }
+  });
+
+  it("gtm es alias de go_to_market y ya no de growth_marketing", () => {
+    expect(find("go_to_market")!.aliases).toContain("gtm");
+    expect(find("growth_marketing")!.aliases).not.toContain("gtm");
+  });
+
+  it.each([
+    ["go_to_market", "Plan de go-to-market y lanzamientos de producto."],
+    ["positioning_messaging", "Definir la propuesta de valor y el product positioning."],
+    ["market_research", "Realizar competitive analysis e investigación de mercado."],
+    ["user_stories", "Escribir user stories y mantener el product backlog."],
+    ["project_planning", "Cronograma en MS Project y diagramas de Gantt."],
+    ["risk_management", "Gestión de riesgos y gestión del alcance."],
+    ["pm_certifications", "Certificación PMP o PSM deseable."],
+  ])("detecta %s en: %s", (slug, text) => {
+    expect(extract(text)).toContain(slug);
+  });
+
+  it("'messaging' suelto (colas de mensajes) no marca posicionamiento", () => {
+    expect(extract("Sistemas de messaging con Kafka y RabbitMQ.")).not.toContain(
+      "positioning_messaging",
+    );
   });
 });
 

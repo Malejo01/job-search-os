@@ -23,10 +23,13 @@ export const ROLE_KEYS = [
   "ai_engineer",
   "ux_ui",
   "marketing_digital",
-  "producto_proyectos",
   "rrhh_it",
   "customer_success",
   "ciberseguridad",
+  "product_manager",
+  "product_owner",
+  "project_manager",
+  "product_marketing",
 ] as const;
 export type RoleKey = (typeof ROLE_KEYS)[number];
 
@@ -42,23 +45,53 @@ export const IT_ROLE_KEYS: readonly RoleKey[] = [
   "ux_ui",
 ];
 
-/** Los puestos de carreras digitales (ronda 40). */
-export const DIGITAL_ROLE_KEYS: readonly RoleKey[] = [
+/** Los puestos de carreras digitales que no son de producto (ronda 40). */
+const OTHER_DIGITAL_ROLE_KEYS: readonly RoleKey[] = [
   "marketing_digital",
-  "producto_proyectos",
   "rrhh_it",
   "customer_success",
   "ciberseguridad",
 ];
 
+/** Los puestos de producto y proyectos (ronda 97, ADR-019). */
+export const PRODUCT_ROLE_KEYS: readonly RoleKey[] = [
+  "product_manager",
+  "product_owner",
+  "project_manager",
+  "product_marketing",
+];
+
+/** Todo lo que no es IT: carreras digitales y de producto. */
+export const DIGITAL_ROLE_KEYS: readonly RoleKey[] = [
+  ...OTHER_DIGITAL_ROLE_KEYS,
+  ...PRODUCT_ROLE_KEYS,
+];
+
 /** Grupos del selector de puesto: juntos cubren `ROLE_KEYS` sin repetir. */
 export const ROLE_GROUPS: readonly { label: string; roles: readonly RoleKey[] }[] = [
   { label: "Tecnología", roles: IT_ROLE_KEYS },
-  { label: "Carreras digitales", roles: DIGITAL_ROLE_KEYS },
+  { label: "Producto y proyectos", roles: PRODUCT_ROLE_KEYS },
+  { label: "Carreras digitales", roles: OTHER_DIGITAL_ROLE_KEYS },
 ];
 
 export function isRoleKey(v: unknown): v is RoleKey {
   return typeof v === "string" && (ROLE_KEYS as readonly string[]).includes(v);
+}
+
+/**
+ * Clave que ya no se elige → la que la reemplaza. `producto_proyectos` se partió en cuatro carreras
+ * (ronda 97): la traducción deja que el código nuevo lea perfiles anteriores a la migración de datos.
+ * Se borra cuando no queden filas con la clave vieja.
+ */
+export const LEGACY_ROLE_KEYS: Readonly<Record<string, RoleKey>> = {
+  producto_proyectos: "product_manager",
+};
+
+/** La clave como `RoleKey`: traduce las anteriores y valida; si no es ninguna, null. */
+export function toRoleKey(v: unknown): RoleKey | null {
+  if (typeof v !== "string") return null;
+  if (isRoleKey(v)) return v;
+  return Object.hasOwn(LEGACY_ROLE_KEYS, v) ? LEGACY_ROLE_KEYS[v]! : null;
 }
 
 export const MIN_ROLE_SKILLS = 8;
@@ -111,8 +144,11 @@ const HEADLINE_KEYWORDS: Record<RoleKey, RegExp> = {
   ux_ui: /\bux\b|\bui\b/,
   marketing_digital:
     /marketing digital|digital marketing|\bseo\b|performance marketing|community manager/,
-  producto_proyectos:
-    /product manager|product owner|project manager|scrum master|(?:gerente|jefe|jefa|lider) de proyectos/,
+  product_manager: /product manager|(?:gerente|jefe|jefa) de producto/,
+  product_owner: /product owner|due[nñ][oa] de producto/,
+  project_manager:
+    /project manager|program manager|scrum master|agile coach|\bpmo\b|(?:gerente|jefe|jefa|lider|coordinador|coordinadora) de proyectos/,
+  product_marketing: /product marketing|marketing de producto/,
   rrhh_it:
     /\brecruiters?\b|\breclutador(?:a|es|as)?\b|talent acquisition|\brrhh\b|recursos humanos/,
   customer_success: /customer success/,
@@ -128,9 +164,9 @@ const DISCIPLINE_ROLES: [string, RoleKey][] = [
   ["data", "data_analyst"],
   // Al final: los de arriba no cambian de prioridad
   ["ciberseguridad", "ciberseguridad"],
-  ["project_management", "producto_proyectos"],
+  ["project_management", "project_manager"],
   ["marketing_digital", "marketing_digital"],
-  ["producto", "producto_proyectos"],
+  ["producto", "product_manager"],
   ["recursos_humanos", "rrhh_it"],
   ["customer_success", "customer_success"],
 ];

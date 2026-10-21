@@ -1,0 +1,14 @@
+{
+  "targetRoles": ["product_marketing"],
+  "locationCountry": "AR",
+  "remoteOnly": true,
+  "yearsTotal": 3,
+  "skills": [
+    { "slug": "go_to_market", "level": 2 },
+    { "slug": "positioning_messaging", "level": 2 },
+    { "slug": "market_research", "level": 2 },
+    { "slug": "copywriting", "level": 2 },
+    { "slug": "growth_marketing", "level": 1 },
+    { "slug": "ga4", "level": 1 }
+  ]
+}

@@ -122,6 +122,79 @@ describe("inferRoleHints · título", () => {
   });
 });
 
+describe("inferRoleHints · carreras de producto (ronda 97)", () => {
+  it.each([
+    ["Product Manager", ["product_manager"]],
+    ["Technical Product Manager", ["product_manager"]],
+    ["Group Product Manager", ["product_manager"]],
+    ["AI Product Manager", ["product_manager"]],
+    ["Product Operations Lead", ["product_manager"]],
+    ["Product Ops Specialist", ["product_manager"]],
+    ["Gerente de Producto", ["product_manager"]],
+    ["Jefa de Producto", ["product_manager"]],
+    ["Responsable de Producto", ["product_manager"]],
+    ["Product Owner", ["product_owner"]],
+    ["Technical Product Owner", ["product_owner"]],
+    ["Dueña de Producto", ["product_owner"]],
+    ["Project Manager", ["project_manager"]],
+    ["Technical Project Manager", ["project_manager"]],
+    ["IT Project Manager", ["project_manager"]],
+    ["Program Manager", ["project_manager"]],
+    ["Delivery Manager", ["project_manager"]],
+    ["Scrum Master", ["project_manager"]],
+    ["Agile Coach", ["project_manager"]],
+    ["PMO Analyst", ["project_manager"]],
+    ["Project Coordinator", ["project_manager"]],
+    ["Jefe de Proyectos", ["project_manager"]],
+    ["Líder de Proyectos", ["project_manager"]],
+    ["Coordinadora de Proyectos", ["project_manager"]],
+    ["Gestor de Proyectos", ["project_manager"]],
+    ["Product Marketing Manager", ["product_marketing"]],
+    ["Go to Market Specialist", ["product_marketing"]],
+    ["GTM Manager", ["product_marketing"]],
+    ["Marketing de Producto", ["product_marketing"]],
+    ["Product Owner / Scrum Master", ["product_owner", "project_manager"]],
+    // Sin hint de producto a propósito: son datos y desarrollo
+    ["Product Analyst", []],
+    ["Product Engineer", []],
+    ["PO Box Clerk", []],
+  ])("%s", (title, roles) => {
+    expect(hints(title)).toEqual(roles);
+  });
+
+  it("Product Designer sigue siendo ux_ui", () => {
+    expect(hints("Product Designer")).toEqual(["ux_ui"]);
+  });
+
+  it.each([
+    ["getonboard_api", "innovation-agile", ["product_manager", "product_owner", "project_manager"]],
+    ["jobicy", "Product", ["product_manager", "product_owner"]],
+    ["jobicy", "Project Management", ["project_manager"]],
+    ["remoteok", "product", ["product_manager", "product_owner"]],
+    ["remoteok", "product-manager", ["product_manager"]],
+    ["remoteok", "project-manager", ["project_manager"]],
+    ["wwr", "remote-product-jobs", ["product_manager", "product_owner", "project_manager"]],
+    ["wwr", "product", ["product_manager", "product_owner", "project_manager"]],
+  ])("categoría de %s: %s", (sourceKind, category, roles) => {
+    const key = sourceKind === "remoteok" ? { tags: [category] } : { categories: [category] };
+    expect(hints("Cargo sin pistas", { sourceKind, ...key })).toEqual(roles);
+  });
+
+  it("product_marketing no sale de ninguna categoría", () => {
+    for (const table of Object.values(SOURCE_CATEGORY_ROLES)) {
+      for (const roles of Object.values(table)) expect(roles).not.toContain("product_marketing");
+    }
+  });
+
+  it("el título se suma a la categoría y no la pisa", () => {
+    expect(hints("Senior Scrum Master", { sourceKind: "wwr", categories: ["product"] })).toEqual([
+      "product_manager",
+      "product_owner",
+      "project_manager",
+    ]);
+  });
+});
+
 describe("inferRoleHints · puestos de carreras digitales (ronda 40)", () => {
   it.each([
     ["Digital Marketing Specialist", ["marketing_digital"]],
@@ -129,11 +202,6 @@ describe("inferRoleHints · puestos de carreras digitales (ronda 40)", () => {
     ["Social Media Manager", ["marketing_digital"]],
     ["Media Buyer", ["marketing_digital"]],
     ["Community Manager", ["marketing_digital"]],
-    ["Product Manager", ["producto_proyectos"]],
-    ["Project Manager", ["producto_proyectos"]],
-    ["Scrum Master", ["producto_proyectos"]],
-    ["Jefe de Proyectos", ["producto_proyectos"]],
-    ["Líder de Proyectos", ["producto_proyectos"]],
     ["Recruiter", ["rrhh_it"]],
     ["Tech Recruiter", ["rrhh_it"]],
     ["Reclutadora IT", ["rrhh_it"]],
@@ -162,17 +230,14 @@ describe("inferRoleHints · puestos de carreras digitales (ronda 40)", () => {
   it.each([
     ["getonboard_api", "digital-marketing", ["marketing_digital"]],
     ["getonboard_api", "hr", ["rrhh_it"]],
-    ["getonboard_api", "innovation-agile", ["producto_proyectos"]],
     ["getonboard_api", "technical-support", ["soporte_it"]],
     ["getonboard_api", "cybersecurity", ["ciberseguridad"]],
     ["getonboard_api", "customer-support", ["customer_success"]],
     ["jobicy", "Marketing", ["marketing_digital"]],
-    ["jobicy", "Project Management", ["producto_proyectos"]],
     ["jobicy", "Customer Success", ["customer_success"]],
     ["jobicy", "Recruiting", ["rrhh_it"]],
     ["remoteok", "seo", ["marketing_digital"]],
     ["remoteok", "recruiter", ["rrhh_it"]],
-    ["remoteok", "product", ["producto_proyectos"]],
     ["remoteok", "cybersecurity", ["ciberseguridad"]],
   ])("categoría de %s: %s", (sourceKind, category, roles) => {
     const key = sourceKind === "remoteok" ? { tags: [category] } : { categories: [category] };
@@ -229,7 +294,7 @@ describe("inferRoleHints · IA en el título (ronda 47c)", () => {
   );
 
   it("AI Product Manager sigue siendo producto, sin ai_engineer", () => {
-    expect(hints("AI Product Manager")).toEqual(["producto_proyectos"]);
+    expect(hints("AI Product Manager")).toEqual(["product_manager"]);
   });
 
   it("'html' no es 'ml' y 'Email Marketing Specialist' no entra", () => {
@@ -355,7 +420,7 @@ describe("inferRoleHints · categorías de la fuente", () => {
     ["remote-back-end-programming-jobs", ["backend"]],
     ["remote-front-end-programming-jobs", ["frontend"]],
     ["remote-devops-sysadmin-jobs", ["soporte_it"]],
-    ["remote-product-jobs", ["producto_proyectos"]],
+    ["remote-product-jobs", ["product_manager", "product_owner", "project_manager"]],
     ["remote-customer-support-jobs", ["customer_success"]],
     ["remote-design-jobs", ["ux_ui"]],
     ["Full-Stack Programming", ["fullstack"]],
@@ -370,7 +435,7 @@ describe("inferRoleHints · categorías de la fuente", () => {
       hints("Cargo sin pistas", { sourceKind: "greenhouse", categories: ["Engineering"] }),
     ).toEqual([]);
     expect(hints("Product Manager", { sourceKind: "lever", categories: ["Engineering"] })).toEqual([
-      "producto_proyectos",
+      "product_manager",
     ]);
   });
 

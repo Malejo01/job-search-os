@@ -7,11 +7,11 @@ import {
   detectEvaluatorInjection,
   detectResidencyRestriction,
   INJECTION_FLAG,
-  isRoleKey,
   outputSchemaFor,
   RESIDENCY_FLAG,
   roleSkillsSchema,
   sanitizeEvaluation,
+  toRoleKey,
   transition,
   type CriteriaRules,
   type JobForPrompt,
@@ -84,7 +84,8 @@ export function targetRoleLabelFor(
   profile: { targetRoles?: readonly string[] | null; targetRole?: string | null },
 ): string | null {
   for (const candidate of [matchedRole, profile.targetRoles?.[0], profile.targetRole]) {
-    if (isRoleKey(candidate)) return ROLE_LABELS[candidate].label;
+    const key = toRoleKey(candidate);
+    if (key) return ROLE_LABELS[key].label;
   }
   return null;
 }

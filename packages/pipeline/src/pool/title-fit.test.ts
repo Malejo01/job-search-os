@@ -7,6 +7,39 @@ import {
   titleLevel,
 } from "./title-fit";
 
+describe("titleFit · carreras de producto (ronda 97)", () => {
+  it("separa las cuatro cuando la categoría las junta", () => {
+    expect(titleFit("Senior Scrum Master", "product_manager")).toBe(0);
+    expect(titleFit("Senior Scrum Master", "project_manager")).toBe(2);
+    expect(titleFit("Product Owner", "product_marketing")).toBe(0);
+    expect(titleFit("Product Owner", "product_owner")).toBe(2);
+    expect(titleFit("Product Marketing Manager", "product_manager")).toBe(0);
+    expect(titleFit("Product Marketing Manager", "product_marketing")).toBe(2);
+  });
+
+  it("sin frase de ninguna carrera nada se veta", () => {
+    expect(titleFit("Product Specialist", "product_manager")).toBe(1);
+    expect(titleFit("Product Specialist", "product_owner")).toBe(1);
+  });
+
+  it("vetan desarrollo y diseño, pero la frase propia gana", () => {
+    expect(titleFit("Product Engineer", "product_manager")).toBe(0);
+    expect(titleFit("Product Designer", "product_owner")).toBe(0);
+    expect(titleFit("Technical Product Manager, Developer Tools", "product_manager")).toBe(2);
+  });
+
+  it("assessPoolTitle saca del hint efectivo al puesto vetado", () => {
+    const r = assessPoolTitle({
+      title: "Senior Scrum Master",
+      roleHints: ["product_manager", "product_owner", "project_manager"],
+      roles: ["product_manager"],
+      yearsTotal: null,
+    });
+    expect(r.titleFit).toBe(0);
+    expect(r.effectiveHints).toEqual(["product_owner", "project_manager"]);
+  });
+});
+
 describe("titleFit", () => {
   it("2 cuando el título nombra el cargo", () => {
     expect(titleFit("Data Analyst", "data_analyst")).toBe(2);

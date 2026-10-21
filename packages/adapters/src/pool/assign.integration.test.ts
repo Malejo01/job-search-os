@@ -429,16 +429,48 @@ describe("assignPoolToUser · carreras digitales (ADR-015)", () => {
     expect(seoOpen).toBeTruthy();
   });
 
-  it("con producto_proyectos recibe 'Project Manager'", async () => {
+  it("con project_manager recibe 'Project Manager'", async () => {
     const pm = await pool({
       title: "Project Manager",
       titleNormalized: "project manager",
-      roleHints: ["producto_proyectos"],
+      roleHints: ["project_manager"],
     });
-    await setProfile(USER_A, rolesOf("producto_proyectos"));
+    await setProfile(USER_A, rolesOf("project_manager"));
     const r = await run(USER_A, 10, 0);
     expect(r).toMatchObject({ assigned: 1, discarded: 0 });
     expect((await jobsOf(USER_A)).map((j) => j.publicJobId)).toEqual([pm]);
+  });
+
+  it("con product_owner recibe 'Product Owner' aunque 'manager' esté en la blocklist", async () => {
+    const po = await pool({
+      title: "Product Owner",
+      titleNormalized: "product owner",
+      roleHints: ["product_owner"],
+    });
+    await setProfile(USER_A, rolesOf("product_owner"));
+    const r = await run(USER_A, 10, 0);
+    expect(r).toMatchObject({ assigned: 1, discarded: 0 });
+    expect((await jobsOf(USER_A)).map((j) => j.publicJobId)).toEqual([po]);
+  });
+
+  it("con product_manager un 'Scrum Master' que solo tiene hints de categoría queda detrás", async () => {
+    // Una categoría de producto reparte las tres carreras; el título vetado no se intercala con las buenas
+    const scrum = await pool({
+      title: "Scrum Master",
+      titleNormalized: "scrum master",
+      roleHints: ["product_manager", "product_owner", "project_manager"],
+    });
+    const pm = await pool({
+      title: "Product Manager",
+      titleNormalized: "product manager",
+      roleHints: ["product_manager", "product_owner", "project_manager"],
+    });
+    await setProfile(USER_A, rolesOf("product_manager"));
+    const r = await run(USER_A, 1, 0);
+    expect(r.assigned).toBe(1);
+    const got = (await jobsOf(USER_A)).map((j) => j.publicJobId);
+    expect(got).toEqual([pm]);
+    expect(got).not.toContain(scrum);
   });
 });
 

@@ -6,7 +6,6 @@ import {
   dedup,
   detectEnglish,
   externalKey,
-  isRoleKey,
   isValidCountry,
   MODALITIES,
   normalizeCompany,
@@ -15,6 +14,7 @@ import {
   prefilter,
   textShingles,
   titleTokens,
+  toRoleKey,
   transition,
   type CriteriaRules,
   type DedupReason,
@@ -320,10 +320,16 @@ export function jdLanguageFor(
   return detectEnglish(jdText ?? null, lang ?? null).language;
 }
 
-/** Las claves válidas de `ROLE_KEYS`, sin repetir y en el orden dado; todo lo demás se descarta. */
+/**
+ * Las claves válidas de `ROLE_KEYS`, sin repetir y en el orden dado (la clave anterior
+ * `producto_proyectos` se traduce con `toRoleKey`); todo lo demás se descarta.
+ */
 export function validRoleKeys(values: readonly unknown[] | null | undefined): RoleKey[] {
   const out: RoleKey[] = [];
-  for (const v of values ?? []) if (isRoleKey(v) && !out.includes(v)) out.push(v);
+  for (const v of values ?? []) {
+    const key = toRoleKey(v);
+    if (key && !out.includes(key)) out.push(key);
+  }
   return out;
 }
 

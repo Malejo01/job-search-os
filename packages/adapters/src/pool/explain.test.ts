@@ -1,16 +1,19 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  buildHintsReport,
   classifyWhy,
   explainDatabaseUrl,
   firstToLlm,
   formatExplainReport,
+  formatHintsReport,
   formatPicksTable,
   hintsCrossRoles,
   parseExplainArgs,
   parsePersona,
   TITLE_WIDTH,
   type ExplainReport,
+  type HintsRow,
   type WhyContext,
   type WhyRow,
 } from "./explain";
@@ -54,7 +57,19 @@ describe("parseExplainArgs", () => {
     });
   });
 
+  it("--hints es válido sin persona ni usuario", () => {
+    expect(parseExplainArgs(["--hints"])).toEqual({
+      ok: true,
+      args: { mode: { kind: "hints" }, limit: 30, db: "snapshot", why: [] },
+    });
+    const r = parseExplainArgs(["--", "--hints", "--db", "dev"]);
+    expect(r).toMatchObject({ ok: true, args: { mode: { kind: "hints" }, db: "dev" } });
+  });
+
   it.each([
+    [["--hints", "--persona", "p.json"], "--hints"],
+    [["--hints", "--user", UID], "--hints"],
+    [["--hints", "--why", "x"], "--hints"],
     [[], "exactamente uno"],
     [["--persona", "p.json", "--user", UID], "exactamente uno"],
     [["--user", "no-es-uuid"], "uuid"],
@@ -145,10 +160,73 @@ describe("parsePersona", () => {
   });
 
   it("las personas incluidas son válidas", () => {
-    for (const f of ["lucia.json", "ai-junior.json"]) {
+    for (const f of [
+      "lucia.json",
+      "ai-junior.json",
+      "product-manager.json",
+      "product-owner.json",
+      "project-manager.json",
+      "product-marketing.json",
+    ]) {
       const json = JSON.parse(readFileSync(new URL(`./personas/${f}`, import.meta.url), "utf8"));
       expect(parsePersona(json).ok, f).toBe(true);
     }
+  });
+});
+
+describe("--hints (ronda 97)", () => {
+  const rows: HintsRow[] = [
+    {
+      sourceKind: "wwr",
+      title: "Senior Scrum Master Zafiro",
+      tags: null,
+      categories: ["remote-product-jobs"],
+      roleHints: ["producto_proyectos"],
+    },
+    {
+      sourceKind: "other",
+      title: "Product Marketing Manager Opalo",
+      tags: null,
+      categories: null,
+      roleHints: [],
+    },
+    {
+      sourceKind: "other",
+      title: "Product Owner Jade",
+      tags: null,
+      categories: null,
+      roleHints: ["producto_proyectos"],
+    },
+  ];
+
+  it("cuenta lo guardado, lo recalculado y a qué se traduce la clave anterior", () => {
+    const r = buildHintsReport(rows);
+    expect(r.total).toBe(3);
+    const by = (role: string) => r.byRole.find((x) => x.role === role);
+    expect(by("producto_proyectos")).toEqual({
+      role: "producto_proyectos",
+      stored: 2,
+      recomputed: 0,
+    });
+    expect(by("product_owner")).toEqual({ role: "product_owner", stored: 0, recomputed: 2 });
+    expect(by("product_marketing")).toEqual({
+      role: "product_marketing",
+      stored: 0,
+      recomputed: 1,
+    });
+    expect(r.legacyMatrix).toEqual([
+      { from: "producto_proyectos", to: "product_manager,product_owner,project_manager", count: 1 },
+      { from: "producto_proyectos", to: "product_owner", count: 1 },
+    ]);
+  });
+
+  it("el formateo no imprime títulos", () => {
+    const text = formatHintsReport(buildHintsReport(rows));
+    for (const t of ["Zafiro", "Opalo", "Jade", "Scrum", "Product Owner"]) {
+      expect(text).not.toContain(t);
+    }
+    expect(text).toContain("carrera");
+    expect(text).toContain("producto_proyectos → combinación nueva");
   });
 });
 

@@ -1,0 +1,14 @@
+{
+  "targetRoles": ["project_manager"],
+  "locationCountry": "AR",
+  "remoteOnly": true,
+  "yearsTotal": 3,
+  "skills": [
+    { "slug": "project_planning", "level": 2 },
+    { "slug": "risk_management", "level": 2 },
+    { "slug": "scrum_agile", "level": 3 },
+    { "slug": "jira", "level": 2 },
+    { "slug": "excel", "level": 2 },
+    { "slug": "pm_certifications", "level": 1 }
+  ]
+}

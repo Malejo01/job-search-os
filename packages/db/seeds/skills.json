@@ -387,7 +387,7 @@
     "slug": "growth_marketing",
     "name": "Growth / marketing",
     "category": "dominio",
-    "aliases": ["paid media", "cro", "lifecycle", "funnels", "revops", "gtm", "growth", "marketing"],
+    "aliases": ["paid media", "cro", "lifecycle", "funnels", "revops", "growth", "marketing"],
     "closure_hours": 16,
     "description": "Growth / marketing: probar y medir acciones para conseguir más usuarios o clientes"
   },
@@ -790,5 +790,61 @@
     "aliases": [],
     "closure_hours": 8,
     "description": "Mailchimp: plataforma para armar y enviar campañas de email a una lista de contactos"
+  },
+  {
+    "slug": "go_to_market",
+    "name": "Go-to-market y lanzamientos",
+    "category": "dominio",
+    "aliases": ["go-to-market", "go to market", "gtm", "product launch", "product launches", "lanzamiento de producto", "lanzamientos"],
+    "closure_hours": 16,
+    "description": "Go-to-market: planificar cómo se presenta un producto al mercado y qué hacer el día del lanzamiento"
+  },
+  {
+    "slug": "positioning_messaging",
+    "name": "Posicionamiento y mensajes",
+    "category": "dominio",
+    "aliases": ["product positioning", "market positioning", "brand messaging", "product messaging", "value proposition", "propuesta de valor", "buyer persona", "sales enablement"],
+    "closure_hours": 12,
+    "description": "Posicionamiento y mensajes: definir qué decir de un producto, a quién y por qué es mejor que otras opciones"
+  },
+  {
+    "slug": "market_research",
+    "name": "Investigación de mercado y competencia",
+    "category": "dominio",
+    "aliases": ["market research", "competitive analysis", "competitor analysis", "análisis competitivo", "analisis competitivo", "investigación de mercado", "investigacion de mercado"],
+    "closure_hours": 12,
+    "description": "Investigación de mercado: estudiar clientes y competidores para decidir qué producto o mensaje conviene"
+  },
+  {
+    "slug": "user_stories",
+    "name": "Historias de usuario y backlog",
+    "category": "dominio",
+    "aliases": ["user stories", "historias de usuario", "product backlog", "backlog grooming", "backlog refinement", "refinamiento", "acceptance criteria", "criterios de aceptación", "criterios de aceptacion"],
+    "closure_hours": 8,
+    "description": "Historias de usuario y backlog: escribir qué necesita la persona usuaria y ordenar el trabajo pendiente del equipo"
+  },
+  {
+    "slug": "project_planning",
+    "name": "Planificación de proyectos",
+    "category": "dominio",
+    "aliases": ["project planning", "planificación de proyectos", "planificacion de proyectos", "gantt", "ms project", "microsoft project", "cronograma", "wbs"],
+    "closure_hours": 16,
+    "description": "Planificación de proyectos: armar el plan con tareas, plazos y responsables, y seguir su avance"
+  },
+  {
+    "slug": "risk_management",
+    "name": "Riesgos, alcance y presupuesto",
+    "category": "dominio",
+    "aliases": ["risk management", "gestión de riesgos", "gestion de riesgos", "scope management", "gestión del alcance", "gestion del alcance", "project budget", "presupuesto del proyecto"],
+    "closure_hours": 16,
+    "description": "Riesgos, alcance y presupuesto: anticipar qué puede salir mal en un proyecto y cuidar lo acordado y lo gastado"
+  },
+  {
+    "slug": "pm_certifications",
+    "name": "Certificaciones (PMP, PSM, CSPO)",
+    "category": "dominio",
+    "aliases": ["pmp", "capm", "prince2", "psm", "pspo", "cspo", "csm", "safe agilist"],
+    "closure_hours": 40,
+    "description": "Certificaciones de gestión de proyectos y producto, como PMP, PSM o CSPO, que se rinden con examen"
   }
 ]

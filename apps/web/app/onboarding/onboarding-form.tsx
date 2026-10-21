@@ -31,8 +31,9 @@ function RolesSection({
       <legend className="mb-1">¿Qué puestos buscás?</legend>
       <p id="roles-help" className="text-xs text-zinc-600">
         Elegí hasta {rolesLimit}. Te mostramos primero las ofertas de esos puestos. Además de
-        tecnología, hay carreras digitales: marketing, producto, recruiting IT, customer success y
-        ciberseguridad.
+        tecnología, hay carreras de producto y proyectos (product manager, product owner, project
+        manager y product marketing) y carreras digitales: marketing, recruiting IT, customer
+        success y ciberseguridad.
       </p>
       <RolePicker
         name="targetRoles"

@@ -85,7 +85,7 @@ describe("prefilter: targetRoles (ronda 40, varios en la 45)", () => {
     );
 
   it("varios puestos: la excepción es la unión de los oficios propios", () => {
-    const both: RoleKey[] = ["marketing_digital", "producto_proyectos"];
+    const both: RoleKey[] = ["marketing_digital", "product_manager"];
     expect(run("SEO Specialist", both).pass).toBe(true);
     expect(run("Project Manager", both).pass).toBe(true);
     expect(run("Product Manager", both).pass).toBe(true);
@@ -110,10 +110,25 @@ describe("prefilter: targetRoles (ronda 40, varios en la 45)", () => {
     if (r.pass) expect(r.flags.some((f) => f.startsWith("domain_keyword"))).toBe(false);
   });
 
-  it("Project Manager pasa con producto_proyectos y descarta con frontend", () => {
-    expect(run("Project Manager", "producto_proyectos").pass).toBe(true);
+  it("Project Manager pasa con project_manager y descarta con frontend", () => {
+    expect(run("Project Manager", "project_manager").pass).toBe(true);
     expect(run("Project Manager", "frontend")).toMatchObject({ pass: false });
     expect(run("Project Manager")).toMatchObject({ pass: false });
+  });
+
+  it("cada carrera de producto pasa sus propios títulos, con los default de otra disciplina", () => {
+    expect(run("Project Manager", "project_manager").pass).toBe(true);
+    expect(run("Scrum Master", "project_manager").pass).toBe(true);
+    expect(run("Product Owner / Scrum Master", "product_owner").pass).toBe(true);
+    expect(run("Product Manager", "product_manager").pass).toBe(true);
+    expect(run("Growth Product Manager", "product_manager").pass).toBe(true);
+    expect(run("Product Marketing Manager", "product_marketing").pass).toBe(true);
+  });
+
+  it("'growth' es oficio propio de product_manager y product_marketing, no de project_manager", () => {
+    expect(run("Growth Product Manager")).toMatchObject({ pass: false });
+    expect(run("Growth Product Manager", "project_manager")).toMatchObject({ pass: false });
+    expect(run("Growth Marketing Manager", "product_marketing").pass).toBe(true);
   });
 
   it("Cybersecurity Analyst pasa con ciberseguridad", () => {
@@ -122,7 +137,7 @@ describe("prefilter: targetRoles (ronda 40, varios en la 45)", () => {
   });
 
   it("la excepción es solo del oficio propio de cada puesto", () => {
-    expect(run("SEO Specialist", "producto_proyectos")).toMatchObject({ pass: false });
+    expect(run("SEO Specialist", "product_manager")).toMatchObject({ pass: false });
     expect(run("Project Manager", "marketing_digital")).toMatchObject({ pass: false });
     // una palabra de otro oficio en el mismo título sigue descartando
     expect(run("SEO y Medios de Pago", "marketing_digital")).toMatchObject({ pass: false });
@@ -134,28 +149,28 @@ describe("prefilter: targetRoles (ronda 40, varios en la 45)", () => {
   });
 
   it("de la blocklist solo se libera la palabra que es parte del oficio propio", () => {
-    expect(run("Project Manager", "producto_proyectos").pass).toBe(true);
-    expect(run("Lead Project Manager", "producto_proyectos")).toMatchObject({
+    expect(run("Project Manager", "project_manager").pass).toBe(true);
+    expect(run("Lead Project Manager", "project_manager")).toMatchObject({
       pass: false,
       reason: "titulo_blocklist",
     });
-    expect(run("Engineering Manager", "producto_proyectos")).toMatchObject({ pass: false });
+    expect(run("Engineering Manager", "project_manager")).toMatchObject({ pass: false });
   });
 
   it("la blocklist solo libera el cargo propio del puesto", () => {
     const withLists = rules.title_blocklist;
     expect(withLists).toContain("manager");
     expect(withLists).toContain("lead");
-    expect(run("Product Manager", "producto_proyectos").pass).toBe(true);
+    expect(run("Product Manager", "product_manager").pass).toBe(true);
     expect(run("Customer Success Manager", "customer_success").pass).toBe(true);
     expect(run("Product Manager", "frontend")).toMatchObject({ pass: false });
     expect(run("Customer Success Manager", "frontend")).toMatchObject({ pass: false });
     expect(run("Customer Success Manager")).toMatchObject({ pass: false });
-    expect(run("Engineering Manager — Project Manager", "producto_proyectos")).toMatchObject({
+    expect(run("Engineering Manager — Project Manager", "project_manager")).toMatchObject({
       pass: false,
       reason: "titulo_blocklist",
     });
-    expect(run("Lead Product Manager", "producto_proyectos")).toMatchObject({ pass: false });
+    expect(run("Lead Product Manager", "product_manager")).toMatchObject({ pass: false });
   });
 
   it("límite de palabra: Williams, Diamond y Seoul no activan la excepción", () => {
@@ -164,11 +179,11 @@ describe("prefilter: targetRoles (ronda 40, varios en la 45)", () => {
     expect(run("Seoul Specialist", "marketing_digital").pass).toBe(true);
     // la palabra pegada a otra no se libera ni se borra del título: la blocklist sigue viendo "manager"
     expect(run("Seoul Manager", "marketing_digital")).toMatchObject({ pass: false });
-    expect(run("Pmpx Manager", "producto_proyectos")).toMatchObject({ pass: false });
+    expect(run("Pmpx Manager", "project_manager")).toMatchObject({ pass: false });
     expect(run("Diamond Sailpoint Williams", "marketing_digital")).toMatchObject({ pass: false });
     // lo que sí es la palabra, con puesto, pasa
     expect(run("IAM Engineer", "ciberseguridad").pass).toBe(true);
-    expect(run("PMP Project Manager", "producto_proyectos").pass).toBe(true);
+    expect(run("PMP Project Manager", "project_manager").pass).toBe(true);
   });
 
   it("puestos sin entradas no cambian nada y todas las palabras existen en las reglas", () => {

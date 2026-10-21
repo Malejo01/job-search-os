@@ -1,0 +1,15 @@
+{
+  "targetRoles": ["product_manager"],
+  "locationCountry": "AR",
+  "remoteOnly": true,
+  "yearsTotal": 3,
+  "skills": [
+    { "slug": "product_management", "level": 2 },
+    { "slug": "roadmap", "level": 2 },
+    { "slug": "product_discovery", "level": 1 },
+    { "slug": "analytics", "level": 2 },
+    { "slug": "user_stories", "level": 2 },
+    { "slug": "jira", "level": 2 },
+    { "slug": "sql", "level": 1 }
+  ]
+}

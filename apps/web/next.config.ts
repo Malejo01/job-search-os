@@ -25,6 +25,18 @@ const nextConfig: NextConfig = {
     return [
       { source: "/privacidad", destination: "/legal/privacidad", permanent: false },
       { source: "/terminos", destination: "/legal/terminos", permanent: false },
+      // `producto_proyectos` se partió en cuatro carreras (ronda 97, ADR-019): las URLs públicas
+      // indexadas pasan a la primera. 308 (permanent) y acá, no en la página, para responder sin base.
+      {
+        source: "/mercado/producto_proyectos",
+        destination: "/mercado/product_manager",
+        permanent: true,
+      },
+      {
+        source: "/ofertas/producto_proyectos",
+        destination: "/ofertas/product_manager",
+        permanent: true,
+      },
     ];
   },
   // Headers de seguridad globales. La CSP lleva solo frame-ancestors (la completa es otro ticket);

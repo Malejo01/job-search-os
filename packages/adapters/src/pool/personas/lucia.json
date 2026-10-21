@@ -1,5 +1,5 @@
 {
-  "targetRoles": ["data_analyst", "producto_proyectos"],
+  "targetRoles": ["data_analyst", "project_manager"],
   "locationCountry": "AR",
   "remoteOnly": true,
   "yearsTotal": 3,

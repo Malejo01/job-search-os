@@ -142,23 +142,6 @@
       "mailchimp"
     ]
   },
-  "producto_proyectos": {
-    "label": "Producto y proyectos",
-    "skills": [
-      "product_management",
-      "scrum_agile",
-      "jira",
-      "roadmap",
-      "product_discovery",
-      "ux_research",
-      "analytics",
-      "sql",
-      "client_facing",
-      "notion",
-      "trello",
-      "english_intermediate"
-    ]
-  },
   "rrhh_it": {
     "label": "Recruiter IT",
     "skills": [
@@ -200,6 +183,72 @@
       "aws",
       "python",
       "docker",
+      "english_intermediate"
+    ]
+  },
+  "product_manager": {
+    "label": "Product Manager",
+    "skills": [
+      "product_management",
+      "roadmap",
+      "product_discovery",
+      "analytics",
+      "ux_research",
+      "user_stories",
+      "market_research",
+      "scrum_agile",
+      "jira",
+      "sql",
+      "client_facing",
+      "english_intermediate"
+    ]
+  },
+  "product_owner": {
+    "label": "Product Owner",
+    "skills": [
+      "user_stories",
+      "scrum_agile",
+      "jira",
+      "product_management",
+      "roadmap",
+      "product_discovery",
+      "analytics",
+      "ux_research",
+      "pm_certifications",
+      "client_facing",
+      "english_intermediate"
+    ]
+  },
+  "project_manager": {
+    "label": "Project Manager / Scrum",
+    "skills": [
+      "project_planning",
+      "risk_management",
+      "scrum_agile",
+      "pm_certifications",
+      "jira",
+      "excel",
+      "client_facing",
+      "leadership",
+      "notion",
+      "trello",
+      "english_intermediate"
+    ]
+  },
+  "product_marketing": {
+    "label": "Product Marketing",
+    "skills": [
+      "go_to_market",
+      "positioning_messaging",
+      "market_research",
+      "copywriting",
+      "growth_marketing",
+      "email_marketing",
+      "hubspot",
+      "ga4",
+      "analytics",
+      "client_facing",
+      "canva",
       "english_intermediate"
     ]
   }
