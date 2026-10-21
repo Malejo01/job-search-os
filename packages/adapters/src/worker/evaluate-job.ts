@@ -1,8 +1,10 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import roleSkillsSeed from "@job-search-os/db/seeds/role_skills.json";
 import {
+  buildChecklist,
   buildEvaluateJobVars,
   canTransition,
+  compileTaxonomy,
   decide,
   detectEvaluatorInjection,
   detectResidencyRestriction,
@@ -14,7 +16,10 @@ import {
   sanitizeEvaluation,
   toRoleKey,
   transition,
+  type Term,
+  type Checklist,
   type CriteriaRules,
+  type JobFacts,
   type JobForPrompt,
   type JobStatus,
   type ProfileForPrompt,
@@ -107,13 +112,51 @@ export type EvaluationJob = JobForPrompt & {
 
 type InjectionInfo = { hit: boolean; signals: string[] };
 
+export type ChecklistSkills = {
+  skillLevels: ReadonlyMap<string, number>;
+  userSkills: readonly { name: string; level: number }[];
+  terms: readonly Term[];
+  skillNames?: ReadonlyMap<string, string>;
+};
+
+/** skill_levels, user_skills y taxonomía de UNA persona (filtra por user_id: el worker no tiene RLS). */
+export async function loadChecklistSkills(db: Db, userId: string): Promise<ChecklistSkills> {
+  const [catalog, levels, own] = await Promise.all([
+    db
+      .select({ slug: s.skills.slug, name: s.skills.name, aliases: s.skills.aliases })
+      .from(s.skills),
+    db
+      .select({ slug: s.skills.slug, level: s.skillLevels.level })
+      .from(s.skillLevels)
+      .innerJoin(s.skills, eq(s.skills.id, s.skillLevels.skillId))
+      .where(eq(s.skillLevels.userId, userId)),
+    db
+      .select({ name: s.userSkills.name, level: s.userSkills.level })
+      .from(s.userSkills)
+      .where(eq(s.userSkills.userId, userId)),
+  ]);
+  return {
+    skillLevels: new Map(levels.map((l) => [l.slug, l.level])),
+    userSkills: own,
+    terms: compileTaxonomy(catalog),
+    skillNames: new Map(catalog.map((k) => [k.slug, k.name])),
+  };
+}
+
 export type EvaluateForProfileInput = {
   llm: LlmClient;
   promptVersion: PromptRef;
   profile: EvaluationProfile;
   rules: CriteriaRules;
   job: EvaluationJob;
+  /**
+   * Niveles y taxonomía de la persona para el checklist ("Skills que nombra el aviso"). Sin esto
+   * (demo, tests) el checklist sale sin skills.
+   */
+  checklistSkills?: ChecklistSkills;
   signal?: AbortSignal;
+  /** Para loguear (sin datos) si el checklist falla. */
+  logger?: Logger;
   /** userId/jobId y, para la demo, recordTask/label. promptVersion y signal los pone el núcleo. */
   ctx?: Omit<GenerateContext, "promptVersion" | "signal">;
 };
@@ -123,6 +166,9 @@ export type EvaluateForProfileResult =
       ok: true;
       evaluation: ReturnType<typeof sanitizeEvaluation>["evaluation"];
       decision: ReturnType<typeof decide>;
+      /** Vista de requisitos del aviso (solo explica: no cambia score ni acción). */
+      /** null si armarlo falló (se guarda la evaluación sin la clave). */
+      checklist: Checklist | null;
       model: string;
       costUsd: number | null;
       /** Flags recalculados (inyección y residencia) y si cambiaron respecto de `job.flags`. */
@@ -195,17 +241,59 @@ export async function evaluateForProfile(
 
   // Texto libre del modelo: se sanea (largo, enlaces, caracteres de control) antes de decidir y guardar
   const { evaluation, sanitized } = sanitizeEvaluation(result.value.object);
+  const acceptedModalities = effectiveAcceptedModalities(profile);
+  // Hechos estructurados del aviso: decide() resuelve salario, jornada, seniority del título e idioma
+  const jobFacts: JobFacts = {
+    title: job.title,
+    salaryMinUsd: job.salaryMinUsd,
+    salaryMaxUsd: job.salaryMaxUsd,
+    salaryPeriod: job.salaryPeriod,
+    salaryNote: job.salaryNote,
+    weeklyHours: job.weeklyHours,
+    jdText: job.jdText,
+  };
   const decision = decide(evaluation, rules, {
     titleCap: titleCapFromFlags(job.flags),
     prefilterFlags: flags,
     candidateEnglishCefr: profile.englishCefr,
     candidateYearsTotal: profile.yearsTotal,
-    acceptedModalities: effectiveAcceptedModalities(profile),
+    acceptedModalities,
+    jobFacts,
   });
+  // El checklist solo explica: si falla, la evaluación se guarda igual, sin la clave `checklist`.
+  // Se loguea sin datos (el error de la base puede citar la consulta y el aviso).
+  let checklist: Checklist | null = null;
+  try {
+    const skillsIn = input.checklistSkills;
+    checklist = buildChecklist(evaluation, decision, rules, {
+      profile: {
+        yearsTotal: profile.yearsTotal,
+        englishCefr: profile.englishCefr,
+        locationCountry: profile.locationCountry,
+        workAuth: profile.workAuth,
+        acceptedModalities,
+      },
+      job: {
+        ...jobFacts,
+        countriesAllowed: job.countriesAllowed,
+        hadFullJd: Boolean(job.jdText?.trim()),
+      },
+      skillLevels: skillsIn?.skillLevels ?? new Map(),
+      userSkills: skillsIn?.userSkills ?? [],
+      terms: skillsIn?.terms ?? [],
+      skillNames: skillsIn?.skillNames,
+    });
+  } catch (e) {
+    input.logger?.error(
+      { user_id: input.ctx?.userId, job_id: input.ctx?.jobId, error: unexpectedError(e) },
+      "checklist falló: se guarda la evaluación sin checklist",
+    );
+  }
   return {
     ok: true,
     evaluation,
     decision,
+    checklist,
     model: result.value.model,
     costUsd: result.value.costUsd,
     flags,
@@ -248,12 +336,24 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
   }
   const rules = criteria.rules as CriteriaRules;
 
+  // Los niveles de skills solo alimentan el checklist: si falla la carga, la evaluación sigue
+  let checklistSkills: ChecklistSkills | undefined;
+  try {
+    checklistSkills = await loadChecklistSkills(db, job.userId);
+  } catch (e) {
+    log.error(
+      { user_id: job.userId, job_id: job.id, error: unexpectedError(e) },
+      "checklist: no se pudieron cargar las skills",
+    );
+  }
   const evaluated = await evaluateForProfile({
     llm: deps.llm,
     promptVersion,
     profile,
     rules,
     job,
+    checklistSkills,
+    logger: log,
     signal: deps.signal,
     ctx: { userId: job.userId, jobId: job.id },
   });
@@ -271,7 +371,7 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
       retry: "retry",
     };
   }
-  const { evaluation, decision, flags, flagsChanged, sanitized } = evaluated;
+  const { evaluation, decision, checklist, flags, flagsChanged, sanitized } = evaluated;
   const result = { value: { model: evaluated.model, costUsd: evaluated.costUsd } };
 
   const [row] = await db
@@ -300,7 +400,11 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
       senalesPositivas: evaluation.senales_positivas,
       veredicto: evaluation.veredicto,
       accion: decision.accion,
-      decision: { adjustments: decision.adjustments, accion_sugerida: evaluation.accion_sugerida },
+      decision: {
+        adjustments: decision.adjustments,
+        accion_sugerida: evaluation.accion_sugerida,
+        ...(checklist ? { checklist } : {}),
+      },
       raw: evaluation,
       createdAt: deps.now?.() ?? new Date(),
     })

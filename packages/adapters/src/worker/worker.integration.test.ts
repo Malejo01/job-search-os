@@ -201,6 +201,23 @@ describe("worker de evaluación (FakeLlm)", () => {
       gaps: ["AWS (must)"],
       riesgos: [],
     });
+    // La foto del checklist queda en evaluations.decision, junto a los ajustes
+    const decision = ev?.decision as {
+      adjustments: unknown[];
+      checklist: {
+        parcial: boolean;
+        items: { id: string; status: string; kind: string }[];
+        must: Record<string, number>;
+        descarte_rapido: unknown;
+      };
+    };
+    expect(decision.adjustments).toHaveLength(1);
+    expect(decision.checklist.parcial).toBe(false);
+    expect(decision.checklist.items.find((i) => i.id === "salario")?.status).toBe("cumple");
+    expect(decision.checklist.items.find((i) => i.id === "disciplina")?.status).toBe("cumple");
+    expect(decision.checklist.items.find((i) => i.id === "anos")?.status).toBe("no_se_sabe");
+    expect(decision.checklist.must.no_cumple).toBeGreaterThanOrEqual(0);
+    expect(decision.checklist.descarte_rapido).toBeNull();
     expect((await q.stats(EVALUATE_QUEUE)).pending ?? 0).toBe(0);
   });
 

@@ -1,6 +1,7 @@
 import { englishIsNotAGap, isEnglishGap, type JobEvent } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { RequisitosDelAviso } from "@/components/requisitos-del-aviso";
 import { notEvaluatedMessage } from "@/lib/evaluate-now";
 import { isUuid } from "@/lib/ids";
 import { getJobDetail } from "@/lib/job-detail";
@@ -329,6 +330,9 @@ export default async function JobDetailPage({
               </ul>
             </section>
           ) : null}
+
+          {/* Requisitos del aviso (ronda 104): solo si la evaluación guardó el checklist */}
+          {ev.checklist ? <RequisitosDelAviso checklist={ev.checklist} /> : null}
 
           <section className="grid gap-3 sm:grid-cols-2">
             <Block title="Lo que ya tenés" items={ev.matchFuerte} tone="text-emerald-900" />

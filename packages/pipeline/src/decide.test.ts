@@ -712,3 +712,200 @@ describe("decide(): residencia exigida (ronda 66)", () => {
     expect(d.bloqueadores).toEqual(["residencia exigida en CA"]);
   });
 });
+
+describe("decide(): jobFacts, salario (D3, ronda 104)", () => {
+  const facts = (f: NonNullable<Parameters<typeof decide>[2]>["jobFacts"]) => ({ jobFacts: f });
+
+  it("máximo mensual por debajo del piso → bloqueador en código (golden 19) → descartar", () => {
+    const d = decide(
+      { ...base, score: 8 },
+      rules,
+      facts({ salaryMinUsd: 2400, salaryMaxUsd: 2800, salaryPeriod: "mensual" }),
+    );
+    expect(d.bloqueadores).toHaveLength(1);
+    expect(d.bloqueadores[0]).toMatch(/^salario publicado por debajo del piso/);
+    expect(d.accion).toBe("descartar");
+  });
+
+  it("anual se divide por 12: 30.000 al año son 2.500 al mes", () => {
+    const d = decide(
+      base,
+      rules,
+      facts({ salaryMinUsd: 24000, salaryMaxUsd: 30000, salaryPeriod: "anual" }),
+    );
+    expect(d.bloqueadores).toHaveLength(1);
+    expect(d.bloqueadores[0]).toMatch(/por debajo del piso \(.*2500\/mes/);
+    const ok = decide(base, rules, facts({ salaryMaxUsd: 48000, salaryPeriod: "anual" }));
+    expect(ok.bloqueadores).toEqual([]);
+  });
+
+  it("no duplica si el modelo ya puso un bloqueador de salario", () => {
+    const d = decide(
+      { ...base, bloqueadores_duros: ["Salario bajo el piso"] },
+      rules,
+      facts({ salaryMaxUsd: 2000, salaryPeriod: "mensual" }),
+    );
+    expect(d.bloqueadores).toEqual(["Salario bajo el piso"]);
+  });
+
+  it("por hora, sin período o sin cifras: no se sabe, vale lo del modelo (golden 33)", () => {
+    for (const f of [
+      { salaryMinUsd: 100, salaryMaxUsd: 150, salaryPeriod: "hora" },
+      { salaryMaxUsd: 150, salaryPeriod: null },
+      { salaryPeriod: "mensual" },
+    ]) {
+      const d = decide(base, rules, facts(f));
+      expect(d.bloqueadores, JSON.stringify(f)).toEqual([]);
+      expect(d.riesgos, JSON.stringify(f)).toEqual([]);
+    }
+    const modelo = decide(
+      { ...base, bloqueadores_duros: ["Salario bajo el piso"] },
+      rules,
+      facts({ salaryMaxUsd: 150, salaryPeriod: "hora" }),
+    );
+    expect(modelo.bloqueadores).toEqual(["Salario bajo el piso"]);
+  });
+
+  it("dato estructurado ≥ piso: el bloqueador de salario del modelo se cae", () => {
+    const d = decide(
+      { ...base, bloqueadores_duros: ["Salario por debajo del piso"] },
+      rules,
+      facts({ salaryMinUsd: 3600, salaryMaxUsd: 5200, salaryPeriod: "mensual" }),
+    );
+    expect(d.bloqueadores).toEqual([]);
+    expect(d.accion).toBe("aplicar");
+  });
+
+  it("el bloqueador de salario que también habla de otra cosa se conserva", () => {
+    const d = decide(
+      { ...base, bloqueadores_duros: ["Salario bajo y jornada de 48 hs"] },
+      rules,
+      facts({ salaryMaxUsd: 5000, salaryPeriod: "mensual" }),
+    );
+    expect(d.bloqueadores).toEqual(["Salario bajo y jornada de 48 hs"]);
+  });
+
+  it("el rango que arranca abajo del piso es riesgo, no bloqueador", () => {
+    const d = decide(
+      base,
+      rules,
+      facts({ salaryMinUsd: 2500, salaryMaxUsd: 3500, salaryPeriod: "mensual" }),
+    );
+    expect(d.bloqueadores).toEqual([]);
+    expect(d.riesgos).toEqual(["el rango salarial empieza abajo de tu piso"]);
+  });
+
+  it("nota de moneda local → riesgo, nunca bloqueador (golden 29)", () => {
+    const d = decide(
+      base,
+      rules,
+      facts({ salaryMaxUsd: 7000, salaryPeriod: "mensual", salaryNote: "pagado en ARS" }),
+    );
+    expect(d.bloqueadores).toEqual([]);
+    expect(d.riesgos).toEqual(["salario en USD pagado en moneda local"]);
+  });
+
+  it("sin piso configurado la regla de piso está apagada", () => {
+    const d = decide(
+      base,
+      { ...rules, salary_floor_usd_monthly: null },
+      facts({ salaryMaxUsd: 100, salaryPeriod: "mensual" }),
+    );
+    expect(d.bloqueadores).toEqual([]);
+  });
+
+  it("sin jobFacts todo queda como antes", () => {
+    expect(decide(base, rules, {})).toEqual(decide(base, rules));
+  });
+});
+
+describe("decide(): jobFacts, jornada y seniority del título", () => {
+  const sinAnos: Evaluation = { ...base, years_required: null };
+  it("horas semanales sobre el máximo → bloqueador; en el máximo no", () => {
+    const d = decide(base, rules, { jobFacts: { weeklyHours: 48 } });
+    expect(d.bloqueadores).toEqual(["jornada de 48 h (máximo 40)"]);
+    expect(decide(base, rules, { jobFacts: { weeklyHours: 40 } }).bloqueadores).toEqual([]);
+    expect(decide(base, rules, { jobFacts: { weeklyHours: null } }).bloqueadores).toEqual([]);
+  });
+
+  it("no duplica el bloqueador de jornada del modelo", () => {
+    const d = decide({ ...base, bloqueadores_duros: ["Jornada de 48 hs"] }, rules, {
+      jobFacts: { weeklyHours: 48 },
+    });
+    expect(d.bloqueadores).toEqual(["Jornada de 48 hs"]);
+  });
+
+  it("título junior con ~5 años → riesgo (golden 2), no bloqueador ni score", () => {
+    const d = decide(base, rules, {
+      candidateYearsTotal: 5,
+      jobFacts: { title: "Desarrollador Fullstack Junior" },
+    });
+    expect(d.bloqueadores).toEqual([]);
+    expect(d.scoreFinal).toBe(8);
+    expect(d.riesgos).toEqual([
+      "el aviso es junior y tenés ~5 años: pueden descartarte por sobrecalificado o pagar menos",
+    ]);
+  });
+
+  it("título senior con pocos años → riesgo; Lead lo trata el prefiltro", () => {
+    const d = decide(sinAnos, rules, {
+      candidateYearsTotal: 2,
+      jobFacts: { title: "Senior Backend Engineer" },
+    });
+    expect(d.riesgos).toEqual(["el aviso es senior y tenés ~2 años"]);
+    const lead = decide(sinAnos, rules, {
+      candidateYearsTotal: 2,
+      jobFacts: { title: "Tech Lead" },
+    });
+    expect(lead.riesgos).toEqual([]);
+  });
+
+  it("sin años, sin título con nivel o con años acordes: sin riesgo (golden 33: 'Expert')", () => {
+    const t = (title: string, years: number | null) =>
+      decide(sinAnos, rules, { candidateYearsTotal: years, jobFacts: { title } }).riesgos;
+    expect(t("Agentic AI Expert (Remote)", 5)).toEqual([]);
+    expect(t("Junior Developer", null)).toEqual([]);
+    expect(t("Junior Developer", 2)).toEqual([]);
+    expect(t("Senior Developer", 6)).toEqual([]);
+  });
+});
+
+describe("decide(): inglés en un aviso en español que no lo pide (ronda 101)", () => {
+  const jdEs =
+    "Buscamos una persona desarrolladora para sumarse a nuestro equipo de producto. Vas a trabajar con Python y APIs, de manera remota, con un horario flexible. Ofrecemos capacitación continua y un buen clima laboral.";
+  const jdEn =
+    "We are looking for a developer to join our product team. You will work with Python and APIs. Excellent written English is required for daily communication with our US team.";
+  const avanzado: Evaluation = {
+    ...base,
+    ingles_requerido: "avanzado",
+    riesgos: ["Inglés avanzado requerido"],
+  };
+
+  it("aviso en español sin pedir inglés: sin penalización ni riesgo de inglés", () => {
+    const d = decide(avanzado, rules, {
+      candidateEnglishCefr: "B2",
+      jobFacts: { jdText: jdEs },
+    });
+    expect(d.scoreFinal).toBe(8);
+    expect(d.riesgos).toEqual([]);
+    expect(d.adjustments).toEqual([]);
+    expect(d.accion).toBe("aplicar");
+  });
+
+  it("también cae un bloqueador de inglés del modelo, pero no uno mixto", () => {
+    const d = decide(
+      { ...base, bloqueadores_duros: ["Inglés avanzado excluyente", "Jornada de 48 hs e inglés"] },
+      rules,
+      { jobFacts: { jdText: jdEs } },
+    );
+    expect(d.bloqueadores).toEqual(["Jornada de 48 hs e inglés"]);
+  });
+
+  it("aviso en inglés, o sin jdText: todo igual que hoy", () => {
+    const en = decide(avanzado, rules, { candidateEnglishCefr: "B2", jobFacts: { jdText: jdEn } });
+    const sin = decide(avanzado, rules, { candidateEnglishCefr: "B2" });
+    expect(en.scoreFinal).toBe(7);
+    expect(en).toEqual(sin);
+    expect(sin.riesgos.length).toBeGreaterThan(0);
+  });
+});

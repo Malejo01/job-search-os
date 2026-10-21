@@ -9,11 +9,13 @@ import {
   POSSIBLE_DUPLICATE_FLAG,
   prefilterReasonText,
   type Adjustment,
+  type Checklist,
   type HumanVerdict,
   type JobEvent,
   type JobStatus,
 } from "@job-search-os/pipeline";
 import { and, desc, eq, sql } from "drizzle-orm";
+import { z } from "zod";
 import { withUser } from "./db";
 import { evaluatingSql } from "./jobs";
 import { preScoresFor, type PreScoreView } from "./prescore";
@@ -22,6 +24,51 @@ import { preScoresFor, type PreScoreView } from "./prescore";
  * Detalle y acciones de una oferta (JS-016). Lecturas y escrituras con el rol de la app y
  * app.user_id fijado (RLS). jobs.status nunca se escribe directo: siempre transition().
  */
+/**
+ * Checklist de requisitos del aviso (ronda 104, diseño 98 §2.1). Lo arma `buildChecklist` del
+ * pipeline y vive en `evaluations.decision.checklist` (jsonb): las evaluaciones viejas no lo
+ * tienen y lo guardado no es de fiar, por eso se valida la forma al leer. `checklistContract`
+ * hace fallar el typecheck si el tipo del pipeline deja de entrar en este schema.
+ */
+const countsSchema = z.object({
+  cumple: z.number().int().min(0),
+  no_cumple: z.number().int().min(0),
+  no_se_sabe: z.number().int().min(0),
+});
+const checklistItemSchema = z.object({
+  id: z.string().max(80),
+  kind: z.enum(["estructurado", "skill", "texto"]),
+  nivel: z.enum(["must", "deseable"]),
+  // Topes del otro lado: CHECKLIST_TEXT_MAX (160, + «…») y CHECKLIST_MAX_ITEMS (40) en
+  // packages/pipeline/src/evaluator/checklist.ts. Acá un poco más holgados.
+  pide: z.string().max(200),
+  evidencia: z.string().max(600).nullable(),
+  tenes: z.string().max(200).nullable(),
+  status: z.enum(["cumple", "no_cumple", "no_se_sabe"]),
+  fuente: z.object({
+    pide: z.enum(["fuente", "modelo"]),
+    tenes: z.enum(["perfil", "skills"]).nullable(),
+  }),
+  bloquea: z.boolean(),
+});
+const checklistSchema = z.object({
+  items: z.array(checklistItemSchema).max(40),
+  must: countsSchema,
+  deseable: countsSchema,
+  parcial: z.boolean(),
+  descarte_rapido: checklistItemSchema.nullable(),
+});
+export type ChecklistItemView = z.infer<typeof checklistItemSchema>;
+export type ChecklistView = z.infer<typeof checklistSchema>;
+export const checklistContract = (c: Checklist): ChecklistView => c;
+
+/** Lee y valida `decision.checklist`; `null` si falta o no tiene la forma esperada. */
+export function parseChecklist(decision: unknown): ChecklistView | null {
+  if (!decision || typeof decision !== "object") return null;
+  const parsed = checklistSchema.safeParse((decision as { checklist?: unknown }).checklist);
+  return parsed.success ? parsed.data : null;
+}
+
 export type EvaluationView = {
   id: string;
   score: number;
@@ -44,6 +91,8 @@ export type EvaluationView = {
   senales: string[];
   veredicto: string;
   adjustments: Adjustment[];
+  /** Requisitos del aviso (ronda 104); null en evaluaciones viejas o con forma inválida. */
+  checklist: ChecklistView | null;
   humanScore: number | null;
   humanNote: string | null;
   /** 👍/👎 de un toque (ronda 30); null = sin opinión. No es un score: no entra en el MAE. */
@@ -251,6 +300,7 @@ export async function getJobDetail(userId: string, jobId: string): Promise<JobDe
             senales: ev.senalesPositivas,
             veredicto: ev.veredicto,
             adjustments: decision?.adjustments ?? [],
+            checklist: parseChecklist(decision),
             humanScore: ev.humanScore,
             humanNote: ev.humanNote,
             humanVerdict: ev.humanVerdict,
