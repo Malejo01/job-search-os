@@ -177,7 +177,19 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "php developer",
     "ruby developer",
     "ruby on rails",
+    // Ronda 106 (ADR-021): lenguajes y especialidades de backend seguidos de "engineer".
+    "rust engineer",
+    "elixir engineer",
+    "scala engineer",
+    "kotlin engineer",
+    "golang engineer",
+    "postgres engineer",
+    "postgresql engineer",
+    "microservices engineer",
+    "distributed systems engineer",
+    "software architect",
   ],
+  // "Product engineer" también es fullstack, pero se resuelve aparte (PRODUCT_ENGINEER_*).
   fullstack: ["full stack", "fullstack"],
   qa: [
     "qa",
@@ -201,10 +213,28 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "bi",
     "business intelligence",
     "inteligencia de negocio",
-    "analytics engineer",
+    // "Analytics engineer" pasó a data_engineer (ronda 106).
+    "data scientist",
+    "product analyst",
   ],
   soporte_it: [
     // Nunca "support" ni "soporte" sueltos: "Customer Support Representative" es atención al cliente.
+    // "Support engineer" suelto tampoco: es soporte de producto. Solo con technical, software,
+    // database o application delante (los de abajo; "technical support" ya cubre el primero).
+    "software support engineer",
+    "database support engineer",
+    "application support engineer",
+    "site reliability",
+    "sre",
+    "devops",
+    "gitops",
+    "platform engineer",
+    "infrastructure engineer",
+    "infra engineer",
+    "it engineer",
+    "it systems",
+    "it operations",
+    "desktop support",
     "technical support",
     "it support",
     "soporte tecnico",
@@ -254,6 +284,7 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "ai agents",
     "agentic",
     "llmops",
+    "research engineer",
   ],
   ux_ui: [
     "ux",
@@ -353,8 +384,68 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "ethical hacker",
     "appsec",
     "devsecops",
+    "security operations",
+    "security architect",
+    "security researcher",
+    "security infrastructure",
+    "security governance",
+    "security risk engineer",
+    "threat intelligence",
+    "red team",
+    "incident response",
+    // Lista cerrada: "cyber" por prefijo traía "Cyber Monday Marketing Manager".
+    "cyber security",
+    "cyberdefense",
+    "cyber defense",
+    "cyberops",
+    "cyber ops",
+    "cyber threat",
+    "cyber risk",
+    "cyber analyst",
+    "cyber engineer",
+  ],
+  data_engineer: [
+    "data engineer",
+    "analytics engineer",
+    "etl",
+    "data platform engineer",
+    "ingeniero de datos",
+    "ingeniera de datos",
+    "big data engineer",
+  ],
+  solutions_engineer: [
+    "solutions engineer",
+    "solution engineer",
+    "solutions architect",
+    "solution architect",
+    "sales engineer",
+    "pre sales",
+    "presales",
+    "forward deployed engineer",
+    // "Field engineer" suelto es de campo (hardware, telecom): solo con software, solutions o customer.
+    "software field engineer",
+    "solutions field engineer",
+    "customer field engineer",
+    "professional services engineer",
+    "professional services consultant",
+    "ingeniero de preventa",
+    "ingeniera de preventa",
   ],
 };
+
+/** Palabras que anulan el puesto aunque el título tenga uno de sus términos. */
+export const TITLE_EXCLUSIONS: Partial<Record<RoleKey, readonly string[]>> = {
+  ciberseguridad: ["physical security", "data center security"],
+  // Esas infraestructuras y plataformas son de seguridad y de datos, ya tienen su carrera.
+  soporte_it: ["security infrastructure", "data platform", "data infrastructure"],
+};
+
+/**
+ * "Product engineer" es fullstack, salvo en manufactura, hardware o mecánica. La exclusión aplica
+ * solo a este término: "Full Stack Engineer, Hardware Platform" sigue siendo fullstack.
+ */
+const PRODUCT_ENGINEER = "product engineer";
+const PRODUCT_ENGINEER_EXCLUSIONS = ["manufacturing", "hardware", "mechanical"];
 
 /** Títulos de desarrollo sin especialidad: sirven a frontend, backend y fullstack. */
 const GENERIC_DEV_TERMS = [
@@ -426,6 +517,27 @@ export function hasTerm(padded: string, term: string): boolean {
   return padded.includes(` ${term} `) || padded.includes(` ${term}s `);
 }
 
+/**
+ * ¿El título (ya normalizado) nombra el puesto? Usa los términos de `TITLE_TERMS` (y «product engineer» para fullstack),
+ * salvo que tenga una palabra de `TITLE_EXCLUSIONS`. `extraTerms` suma frases fuertes de otros
+ * módulos (`titleFit`). Con "AI + rol técnico" ("ML Infrastructure Engineer", "AI Platform
+ * Engineer") soporte_it no aplica: ahí la infraestructura es de IA, no de IT interno.
+ */
+export function matchesRoleTitle(
+  padded: string,
+  role: RoleKey,
+  extraTerms: readonly string[] = [],
+): boolean {
+  if ((TITLE_EXCLUSIONS[role] ?? []).some((w) => hasTerm(padded, w))) return false;
+  if (role === "soporte_it" && matchesAiWithTechRole(padded)) return false;
+  if ([...TITLE_TERMS[role], ...extraTerms].some((term) => hasTerm(padded, term))) return true;
+  return (
+    role === "fullstack" &&
+    hasTerm(padded, PRODUCT_ENGINEER) &&
+    !PRODUCT_ENGINEER_EXCLUSIONS.some((w) => hasTerm(padded, w))
+  );
+}
+
 function normalizeCategory(value: string): string {
   return foldText(value)
     .replace(/[^a-z0-9]+/g, "-")
@@ -458,7 +570,7 @@ export function inferRoleHints(input: {
   const title = normalizeTitleText(input.title);
   const fromTitle = new Set<RoleKey>();
   for (const role of ROLE_KEYS) {
-    if (TITLE_TERMS[role].some((term) => hasTerm(title, term))) fromTitle.add(role);
+    if (matchesRoleTitle(title, role)) fromTitle.add(role);
   }
   if (matchesAiWithTechRole(title)) fromTitle.add("ai_engineer");
   // La palabra genérica solo cuenta si el título no nombra ya otra especialidad

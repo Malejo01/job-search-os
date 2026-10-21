@@ -1,7 +1,7 @@
 import { createDb, loadLocalEnv } from "@job-search-os/db";
 import { resolveTargetUrl, safeError } from "../admin/common";
 import { safeDbError } from "../logging/safe-error";
-import { formatRehintReport, parseRehintArgs, rehintPool } from "./rehint";
+import { formatRehintProgress, formatRehintReport, parseRehintArgs, rehintPool } from "./rehint";
 
 /**
  * Recalcula `role_hints` y `lang` de las ofertas vigentes del pool (ronda 102):
@@ -26,8 +26,12 @@ async function main(): Promise<void> {
 
   const conn = createDb(target.url, { max: 1 });
   try {
-    const report = await rehintPool(conn.db, { apply: parsed.apply, now: new Date() });
     console.log(`base: ${target.label}`);
+    const report = await rehintPool(conn.db, {
+      apply: parsed.apply,
+      now: new Date(),
+      onProgress: (p) => console.log(formatRehintProgress(p)),
+    });
     console.log(formatRehintReport(report));
     console.log(
       parsed.apply

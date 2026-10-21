@@ -4,7 +4,7 @@ import { createDb, isRemoteDatabase, schema as s } from "@job-search-os/db";
 import { inferRoleHints } from "@job-search-os/pipeline";
 import { eq, like, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { rehintPool } from "./rehint";
+import { rehintPool, type RehintProgress } from "./rehint";
 
 /**
  * Ronda 102 · `rehintPool`. Avisos inventados (Empresa Ficticia N), conexión dueña como el servicio.
@@ -182,5 +182,132 @@ describe("rehintPool", () => {
     }
     const [n] = await conn.db.select({ n: sql<number>`count(*)::int` }).from(s.publicJobs);
     expect(n!.n).toBeGreaterThan(0);
+  });
+
+  it("escribe por lotes: con batchSize 2 y 5 filas cambiadas emite varios eventos y escribe 5", async () => {
+    const ids = ["b1", "b2", "b3", "b4", "b5"];
+    for (const id of ids) await seed({ id, title: "Product Manager", roleHints: [] });
+    const events: RehintProgress[] = [];
+    const r = await rehintPool(conn.db, {
+      apply: true,
+      now: NOW,
+      batchSize: 2,
+      onProgress: (p) => events.push(p),
+    });
+    expect(r.hintsChanged).toBe(5);
+    expect(r.rowsWritten).toBe(5);
+    expect(events.length).toBeGreaterThanOrEqual(3);
+    expect(events.map((e) => e.batch)).toEqual(events.map((_, i) => i + 1));
+    expect(events.reduce((n, e) => n + e.written, 0)).toBe(5);
+    expect(events.reduce((n, e) => n + e.changed, 0)).toBe(5);
+    const last = events[events.length - 1]!;
+    expect(last.totalWritten).toBe(5);
+    expect(last.seen).toBe(last.expected);
+    const expected = inferRoleHints({
+      sourceKind: "remoteok",
+      title: "Product Manager",
+      tags: [],
+      categories: [],
+    });
+    for (const id of ids) {
+      const x = await row(id);
+      expect(x.roleHints).toEqual(expected);
+      expect(x.updatedAt).toEqual(UPDATED);
+    }
+  });
+
+  it("si role_hints cambia y lang no, el lang queda igual", async () => {
+    await seed({ id: "keeplang", title: "Product Manager", roleHints: [], lang: "en" });
+    const r = await rehintPool(conn.db, { apply: true, now: NOW });
+    expect(r.hintsChanged).toBe(1);
+    expect(r.langChanged).toBe(0);
+    expect(r.rowsWritten).toBe(1);
+    const x = await row("keeplang");
+    expect(x.lang).toBe("en");
+    expect(x.roleHints).not.toEqual([]);
+  });
+
+  it("en un mismo lote, una fila que cambia solo lang y otra solo role_hints: cada una cambia lo suyo", async () => {
+    // A: pistas viejas (vacías) e idioma ya correcto; B: pistas correctas e idioma sin dato
+    const hintsOnly = await seed({
+      id: "mix-h",
+      title: "Product Manager",
+      roleHints: [],
+      lang: "en",
+    });
+    const designerHints = inferRoleHints({ sourceKind: "remoteok", title: "Diseñador" });
+    const langOnly = await seed({
+      id: "mix-l",
+      title: "Diseñador",
+      roleHints: [...designerHints].reverse(),
+      jdText: JD_ES,
+    });
+    expect(hintsOnly).not.toBe(langOnly);
+    const beforeL = await row("mix-l");
+    const r = await rehintPool(conn.db, { apply: true, now: NOW, batchSize: 100 });
+    expect(r.hintsChanged).toBe(1);
+    expect(r.langChanged).toBe(1);
+    expect(r.rowsWritten).toBe(2);
+    const h = await row("mix-h");
+    expect(h.lang).toBe("en");
+    expect(h.roleHints).toEqual(
+      inferRoleHints({
+        sourceKind: "remoteok",
+        title: "Product Manager",
+        tags: [],
+        categories: [],
+      }),
+    );
+    const l = await row("mix-l");
+    expect(l.lang).toBe("es");
+    // las pistas de la fila que solo cambia lang conservan el orden guardado
+    expect(l.roleHints).toEqual(beforeL.roleHints);
+  });
+
+  it("una fila cuyos hints nuevos quedan vacíos se escribe como []", async () => {
+    await seed({
+      id: "to-empty",
+      title: "Gerente de Algo",
+      roleHints: ["frontend", "backend"],
+      lang: "en",
+    });
+    expect(inferRoleHints({ sourceKind: "remoteok", title: "Gerente de Algo" })).toEqual([]);
+    const r = await rehintPool(conn.db, { apply: true, now: NOW });
+    expect(r.hintsChanged).toBe(1);
+    expect(r.rowsWritten).toBe(1);
+    const x = await row("to-empty");
+    expect(x.roleHints).toEqual([]);
+    expect(x.lang).toBe("en");
+  });
+
+  it("onProgress se llama después del commit del lote: lo escrito ya se ve desde otra conexión", async () => {
+    const ids = ["c1", "c2", "c3"];
+    for (const id of ids) await seed({ id, title: "Product Manager", roleHints: [] });
+    const checks: Promise<number>[] = [];
+    const totals: number[] = [];
+    await rehintPool(conn.db, {
+      apply: true,
+      now: NOW,
+      batchSize: 2,
+      onProgress: (p) => {
+        if (p.written === 0) return;
+        totals.push(p.totalWritten);
+        // Consulta sobre otra conexión del pool: solo ve filas con commit hecho
+        checks.push(
+          conn.db
+            .select({ n: sql<number>`count(*)::int` })
+            .from(s.publicJobs)
+            .where(
+              sql`${s.publicJobs.externalId} like ${PREFIX + "c_"} and cardinality(${s.publicJobs.roleHints}) > 0`,
+            )
+            .then(([x]) => x!.n),
+        );
+      },
+    });
+    const visible = await Promise.all(checks);
+    expect(visible.length).toBeGreaterThanOrEqual(2);
+    // Cada aviso de progreso ya ve, desde afuera, todo lo escrito hasta ese lote
+    visible.forEach((n, i) => expect(n).toBeGreaterThanOrEqual(totals[i]!));
+    expect(visible[visible.length - 1]).toBe(3);
   });
 });

@@ -246,6 +246,13 @@
       "when": 1792552592932,
       "tag": "0034_carreras_producto",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1792606717287,
+      "tag": "0035_chief_thor",
+      "breakpoints": true
     }
   ]
 }
