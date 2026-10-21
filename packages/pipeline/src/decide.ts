@@ -115,13 +115,14 @@ const IS_DISCIPLINE_BLOCKER = /disciplina distinta/i;
  * tiene que ir con una palabra de modalidad. Sin "relocat": mudarse de país no es modalidad.
  */
 const IS_MODALITY_BLOCKER =
-  /presencial|h[ií]brid|oficina|on-?site|visitas|modalidad\b.*\b(?:remot|presencial|h[ií]brid|oficina|on-?site)/i;
+  /presencial|h[ií]brid|oficina|on-?site|modalidad\b.*\b(?:remot|presencial|h[ií]brid|oficina|on-?site)/i;
 /**
  * Si el texto también habla de otra cosa (jornada, años, salario, visa, contrato, idioma, una
- * entrevista presencial, una nube híbrida, un paquete office), no se toca: lo conservador.
+ * entrevista presencial, una nube híbrida, un paquete office) o de otro país, no se toca: lo conservador. "visitas" solo
+ * cuenta junto a oficina o presencial (que ya matchean solas): sin eso puede ser un viaje.
  */
 const MIXED_BLOCKER =
-  /jornada|horas|a[ñn]os|years|salari|visa|autoriz|residen|residir|radic|reubic|\bmud|permiso|ciudadan|sponsor|work permit|relocat|contrat|freelance|monotribut|dependencia|ingl|english|disciplina|entrevista|nube|cloud|infraestructura|paquete/i;
+  /jornada|horas|a[ñn]os|years|salari|visa|autoriz|residen|residir|radic|reubic|\bmud|permiso|ciudadan|sponsor|work permit|relocat|contrat|freelance|monotribut|dependencia|ingl|english|disciplina|entrevista|nube|cloud|infraestructura|paquete|otro pa[ií]s|fuera de|exterior|abroad|outside/i;
 /** Modalidades concretas que nombra un bloqueador; "oficina", "on-site" o "visitas" no nombran ninguna. */
 const namedModalities = (b: string): ("hibrido" | "presencial")[] => [
   ...(/h[ií]brid/i.test(b) ? (["hibrido"] as const) : []),

@@ -376,11 +376,25 @@ describe("decide(): modalidad aceptada (ronda 84)", () => {
     "Paquete oficina de Microsoft",
     "Debe mudarse a la oficina central",
     "Inglés avanzado, presencial",
+    "Visitas mensuales a clientes en el exterior",
+    "Presencial en otro país (España)",
+    "On-site abroad",
   ])("no mueve un bloqueador que no es solo modalidad: %s", (texto) => {
     const e: Evaluation = { ...base, modalidad: "presencial", bloqueadores_duros: [texto] };
     const d = decide(e, rules, { acceptedModalities: todas });
     expect(d.bloqueadores).toEqual([texto]);
     expect(d.accion).toBe("descartar");
+  });
+  it("'Presencial 5 días en Madrid' baja a riesgo: sin señal de país en el texto no hay regla limpia", () => {
+    // Limitación conocida: el país lo cubren location_ok y el prefiltro, no esta regla.
+    const e: Evaluation = {
+      ...base,
+      modalidad: "presencial",
+      bloqueadores_duros: ["Presencial 5 días en Madrid"],
+    };
+    const d = decide(e, rules, { acceptedModalities: todas });
+    expect(d.bloqueadores).toEqual([]);
+    expect(d.riesgos).toEqual(["Presencial 5 días en Madrid"]);
   });
   it("un bloqueador que nombra una modalidad no aceptada no se mueve", () => {
     const e: Evaluation = {
