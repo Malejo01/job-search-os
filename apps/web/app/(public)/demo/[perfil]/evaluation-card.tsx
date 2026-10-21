@@ -39,14 +39,14 @@ function Reasons({ title, items }: { title: string; items: string[] }) {
 
 /**
  * Tarjeta de una evaluación de la demo (ronda 74). Sin la JD. `tour` marca la primera tarjeta con
- * los `data-tour-step` que resalta el recorrido. Server Component; solo 👍/👎 es de cliente.
+ * los `data-tour` (`demo:*`) que resalta el recorrido. Server Component; solo 👍/👎 es de cliente.
  */
 export function EvaluationCard({ row, tour }: { row: DemoEvaluationRow; tour: boolean }) {
   const modality = modalityKey(row.modality);
   const attribution = attributionFor(row.sourceKind, { company: row.companyRaw });
   const url = safeHttpUrl(row.sourceUrl);
   const tone = scoreTone(row.score);
-  const step = (n: number) => (tour ? { "data-tour-step": n } : {});
+  const step = (anchor: string) => (tour ? { "data-tour": anchor } : {});
   const against = [...row.gaps, ...row.bloqueadores, ...row.riesgos.map(riskLabel)];
   return (
     <li data-testid="demo-card" className="min-w-0 rounded-md border border-zinc-200 bg-white p-4">
@@ -60,7 +60,7 @@ export function EvaluationCard({ row, tour }: { row: DemoEvaluationRow; tour: bo
           <p className="text-xs text-zinc-700">{MODALITY_LABELS[modality]}</p>
         </div>
 
-        <div {...step(2)} className="flex flex-col gap-1 rounded-md p-1">
+        <div {...step("demo:puntaje")} className="flex flex-col gap-1 rounded-md p-1">
           <p className="flex items-baseline gap-2 text-sm">
             <span
               className={`rounded px-2 py-0.5 text-base font-semibold ring-1 ${SCORE_CLASSES[tone]}`}
@@ -77,12 +77,12 @@ export function EvaluationCard({ row, tour }: { row: DemoEvaluationRow; tour: bo
           </div>
         </div>
 
-        <div {...step(3)} className="grid gap-3 rounded-md p-1 sm:grid-cols-2">
+        <div {...step("demo:por-que")} className="grid gap-3 rounded-md p-1 sm:grid-cols-2">
           <Reasons title="Por qué sí" items={row.matchFuerte} />
           <Reasons title="Por qué no" items={against} />
         </div>
 
-        <p {...step(4)} className="rounded-md p-1 text-sm">
+        <p {...step("demo:accion")} className="rounded-md p-1 text-sm">
           <span className="text-zinc-700">Acción sugerida: </span>
           <span className="font-semibold">{ACTION_LABELS[row.accion] ?? row.accion}</span>
         </p>

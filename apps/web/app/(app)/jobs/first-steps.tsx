@@ -61,6 +61,7 @@ export async function FirstSteps({ userId }: { userId: string }) {
       <section
         aria-labelledby="primeros-pasos-titulo"
         data-testid="first-steps"
+        data-tour="jobs:primeros-pasos"
         className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-900"
       >
         <h2 id="primeros-pasos-titulo" className="sr-only">
@@ -117,6 +118,7 @@ export async function FirstSteps({ userId }: { userId: string }) {
     <section
       aria-labelledby="primeros-pasos-titulo"
       data-testid="first-steps"
+      data-tour="jobs:primeros-pasos"
       className="flex flex-col gap-2 rounded-md border border-zinc-200 bg-white p-3 text-sm"
     >
       <div className="flex items-baseline justify-between gap-2">

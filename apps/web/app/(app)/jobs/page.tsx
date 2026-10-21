@@ -11,6 +11,8 @@ import {
   type JobCounts,
   type JobFilters as ListFilters,
 } from "@/lib/jobs";
+import { GuidedTour } from "@/components/guided-tour";
+import { GUIDE_LABELS, GUIDE_STEPS } from "@/lib/guide";
 import { PRE_SCORE_EXPLAIN, SOURCE_LABELS, STATUS_LABELS } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import Link from "next/link";
@@ -54,12 +56,21 @@ export default async function JobsPage({
             fecha
           </p>
         </div>
-        <Link
-          href="/jobs/new"
-          className="inline-flex min-h-11 shrink-0 items-center rounded-md bg-zinc-900 px-3 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
-        >
-          + Cargar oferta
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <GuidedTour
+            steps={GUIDE_STEPS.jobs}
+            label={GUIDE_LABELS.panel}
+            testId="guide"
+            openerLabel={GUIDE_LABELS.opener}
+            resume
+          />
+          <Link
+            href="/jobs/new"
+            className="inline-flex min-h-11 shrink-0 items-center rounded-md bg-zinc-900 px-3 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
+          >
+            + Cargar oferta
+          </Link>
+        </div>
       </div>
       <FirstSteps userId={userId} />
       <RoleNudge userId={userId} />

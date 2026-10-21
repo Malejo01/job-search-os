@@ -20,6 +20,9 @@ function activeHref(pathname: string, items: readonly NavItem[]): string | null 
   return best;
 }
 
+/** Link «Sin descripción»: ancla de la guía de /jobs. */
+const PENDING_JD_HREF = "/jobs/pending-jd";
+
 const LINK_BASE =
   "rounded-md px-3 text-zinc-700 hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900";
 const LINK_ACTIVE = "bg-zinc-100 font-medium text-zinc-900";
@@ -46,12 +49,14 @@ export function MainNav({ items }: { items: readonly NavItem[] }) {
 
   return (
     <>
+      {/* `data-tour`: ancla de la guía de /jobs (ronda 92); el menú móvil lleva la suya abajo */}
       <nav aria-label="Secciones" className="hidden px-2 sm:block">
         <ul className="flex gap-1 text-sm">
           {items.map((item) => (
             <li key={item.href}>
               <Link
                 href={item.href}
+                data-tour={item.href === PENDING_JD_HREF ? "jobs:menu" : undefined}
                 aria-current={item.href === active ? "page" : undefined}
                 className={`flex min-h-11 items-center whitespace-nowrap ${LINK_BASE} ${item.href === active ? LINK_ACTIVE : ""}`}
               >
@@ -62,7 +67,11 @@ export function MainNav({ items }: { items: readonly NavItem[] }) {
         </ul>
       </nav>
       <details ref={details} className="group px-4 pb-2 text-sm sm:hidden" data-testid="menu-movil">
-        <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-md border border-zinc-300 px-3 font-medium text-zinc-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900">
+        {/* Ancla de la guía en el «Menú» y no en todo el <details>: abierto, sería un recuadro enorme */}
+        <summary
+          data-tour="jobs:menu"
+          className="flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-md border border-zinc-300 px-3 font-medium text-zinc-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
+        >
           <span>
             Menú{activeLabel ? <span className="font-normal"> · {activeLabel}</span> : null}
           </span>

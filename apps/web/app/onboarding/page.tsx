@@ -8,7 +8,10 @@ import {
   TARGET_ROLES_DEFAULT_LIMIT,
 } from "@job-search-os/pipeline";
 import { redirect } from "next/navigation";
+import { GuidedTour } from "@/components/guided-tour";
 import { getCareerSalaries } from "@/lib/career-market";
+import { dismissGuideAction } from "@/lib/guide-actions";
+import { GUIDE_INVITE, GUIDE_LABELS, GUIDE_STEPS, guideDismissed } from "@/lib/guide";
 import { getTargetRoles, getTargetRolesLimit, isOnboardingComplete } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
@@ -32,12 +35,13 @@ export default async function OnboardingPage({
 }) {
   const userId = await requireUserId();
   if (await isOnboardingComplete(userId)) redirect("/jobs");
-  const [{ error }, targetRoles, rolesLimit, salaries] = await Promise.all([
+  const [{ error }, targetRoles, rolesLimit, salaries, inviteDismissed] = await Promise.all([
     searchParams,
     getTargetRoles(userId),
     getTargetRolesLimit(userId),
     // Informativo: si el pool no responde, el selector se ve igual, sin sueldos
     getCareerSalaries().catch(() => undefined),
+    guideDismissed(userId),
   ]);
   const roleGroups = ROLE_GROUPS.map((group) => ({
     label: group.label,
@@ -45,7 +49,20 @@ export default async function OnboardingPage({
   }));
   return (
     <section className="flex flex-col gap-3">
-      <OnboardingSteps current={1} />
+      <OnboardingSteps
+        current={1}
+        guide={
+          <GuidedTour
+            steps={GUIDE_STEPS.perfil}
+            label={GUIDE_LABELS.panel}
+            testId="guide"
+            openerLabel={GUIDE_LABELS.opener}
+            resume
+            onDone={dismissGuideAction}
+            invite={inviteDismissed ? undefined : GUIDE_INVITE}
+          />
+        }
+      />
       <h1 className="text-xl font-semibold">Completá tu perfil</h1>
       <p className="text-sm text-zinc-600">
         Antes de ver ofertas necesitamos unos datos: con ellos se filtran y evalúan los avisos. Los

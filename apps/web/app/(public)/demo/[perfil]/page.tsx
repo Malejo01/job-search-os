@@ -52,7 +52,7 @@ export default async function DemoProfilePage({ params }: Props) {
         </p>
         <h1 className="text-3xl font-semibold">{profile.label}</h1>
         <div
-          data-tour-step="1"
+          data-tour="demo:perfil"
           data-testid="demo-profile"
           className="flex flex-col gap-1 rounded-md border border-zinc-200 bg-white p-4"
         >
@@ -100,7 +100,7 @@ export default async function DemoProfilePage({ params }: Props) {
       <p className="text-sm text-zinc-700">
         <Link
           href="/acceso"
-          data-tour-step="5"
+          data-tour="demo:acceso"
           className="inline-flex min-h-11 items-center underline"
         >
           ¿Querés probarlo con tu perfil? Pedí acceso

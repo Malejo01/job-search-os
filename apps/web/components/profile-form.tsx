@@ -24,6 +24,9 @@ const MODALITY_OPTIONS = [
 
 const input =
   "min-h-11 min-w-0 rounded-md border border-zinc-300 px-3 py-2 text-base aria-[invalid=true]:border-red-700";
+// Resumen: alto fijo de varias líneas (no crece al escribir, el usuario puede estirarlo) y sin el min-h-11 de `input`
+const summaryInput =
+  "min-h-56 min-w-0 resize-y rounded-md border border-zinc-300 px-3 py-2 text-base leading-6 aria-[invalid=true]:border-red-700";
 const choice = "flex min-h-11 items-center gap-2";
 
 export type ProfileFormError = {
@@ -233,8 +236,9 @@ export function ProfileForm({
             {error.field === "targetRoles" && rolesNotice ? rolesNotice : messageOf(error)}
           </p>
         ) : null}
-        {children}
-        <div className="grid items-start gap-3 sm:grid-cols-2">
+        {/* `data-tour`: anclas de la guía del paso 1 (ronda 92); en Ajustes no hay guía y no cambian nada */}
+        {children ? <div data-tour="perfil:puestos">{children}</div> : null}
+        <div data-tour="perfil:pais-ingles" className="grid items-start gap-3 sm:grid-cols-2">
           <div className="flex min-w-0 flex-col gap-1 text-sm">
             <CountrySearch
               name="country"
@@ -332,6 +336,7 @@ export function ProfileForm({
           ) : null}
         </div>
         <fieldset
+          data-tour="perfil:modalidad"
           className="flex min-w-0 flex-col gap-2 text-sm"
           aria-describedby={
             error?.field === "acceptedModalities" ? "acceptedModalities-error" : "modalities-help"
@@ -403,7 +408,7 @@ export function ProfileForm({
           </label>
           <FieldError name="jobLanguage" />
         </fieldset>
-        <fieldset className="flex min-w-0 flex-col gap-2 text-sm">
+        <fieldset data-tour="perfil:autorizacion" className="flex min-w-0 flex-col gap-2 text-sm">
           <legend className="mb-1">Autorización de trabajo</legend>
           <p className="text-xs text-zinc-600">
             Completalo solo si tenés ciudadanía, residencia o visa de trabajo en otro país. Si no,
@@ -453,16 +458,17 @@ export function ProfileForm({
             al modelo que evalúa las ofertas.
           </p>
         </div>
-        <div className="flex min-w-0 flex-col gap-1 text-sm">
+        <div data-tour="perfil:resumen" className="flex min-w-0 flex-col gap-1 text-sm">
           <label htmlFor="summary">Resumen de tu perfil * (mínimo {minSummary} caracteres)</label>
           <TextareaWithCounter
             name="summary"
             max={maxSummary}
+            softMin={minSummary}
             rows={9}
             defaultValue={initial?.summary ?? ""}
             invalid={error?.field === "summary"}
             describedBy={error?.field === "summary" ? "summary-error summary-help" : "summary-help"}
-            className={input}
+            className={summaryInput}
           />
           <FieldError name="summary" />
         </div>
@@ -473,6 +479,7 @@ export function ProfileForm({
         <div className="flex justify-end">
           <button
             type="submit"
+            data-tour="perfil:guardar"
             disabled={pending}
             className="min-h-11 w-full rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 disabled:opacity-60 sm:w-auto"
           >
