@@ -255,6 +255,8 @@ export const demoEvaluations = pgTable("demo_evaluations", {
   riesgos: text("riesgos").array().notNull().default(sql`'{}'::text[]`),
   veredicto: text("veredicto").notNull(),                 // saneado
   locationOk: text("location_ok").notNull(),
+  // Requisitos del aviso (buildChecklist). Null en las filas anteriores a la ronda 115: la web lo valida al leer
+  checklist: jsonb("checklist"),
   evaluatedAt: timestamp("evaluated_at", { withTimezone: true }).notNull(),
 }, (t) => [
   uniqueIndex("demo_evaluations_profile_job").on(t.profileKey, t.publicJobId),

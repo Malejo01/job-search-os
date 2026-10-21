@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDemoEvaluations } from "@/lib/demo";
+import { parseChecklist } from "@/lib/job-detail";
 import { EvaluationCard } from "./evaluation-card";
 import { Tour } from "./tour";
 
@@ -81,7 +82,12 @@ export default async function DemoProfilePage({ params }: Props) {
         {hasRows && rows ? (
           <ul className="flex flex-col gap-3">
             {rows.map((row, i) => (
-              <EvaluationCard key={row.publicJobId} row={row} tour={i === 0} />
+              <EvaluationCard
+                key={row.publicJobId}
+                row={row}
+                tour={i === 0}
+                checklist={parseChecklist({ checklist: row.checklist })}
+              />
             ))}
           </ul>
         ) : (

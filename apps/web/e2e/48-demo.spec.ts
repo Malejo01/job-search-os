@@ -53,6 +53,26 @@ test.describe("Flujo 48: demo guiada", () => {
         riesgos: [],
         veredicto: "Evaluación ficticia de prueba.",
         locationOk: "ok",
+        // Ronda 115: la demo guarda los requisitos del aviso (checklist ficticio)
+        checklist: {
+          items: [
+            {
+              id: "anos",
+              kind: "estructurado",
+              nivel: "must",
+              pide: "3 años de experiencia",
+              evidencia: null,
+              tenes: "4 años",
+              status: "cumple",
+              fuente: { pide: "fuente", tenes: "perfil" },
+              bloquea: false,
+            },
+          ],
+          must: { cumple: 1, no_cumple: 0, no_se_sabe: 0 },
+          deseable: { cumple: 0, no_cumple: 0, no_se_sabe: 0 },
+          parcial: false,
+          descarte_rapido: null,
+        },
         evaluatedAt: now,
       });
     } finally {
@@ -109,6 +129,17 @@ test.describe("Flujo 48: demo guiada", () => {
     await expect(card).toContainText("Aplicar");
     await expect(card.getByRole("link", { name: /Ver el aviso original/ })).toBeVisible();
     await expect(page.locator("body")).not.toContainText("nunca muestra");
+  });
+
+  test("la tarjeta con checklist guardado muestra «Requisitos del aviso»", async ({ page }) => {
+    await page.goto("/demo/fullstack_ssr");
+    const section = page
+      .getByTestId("demo-card")
+      .first()
+      .getByRole("region", { name: "Requisitos del aviso" });
+    await expect(section).toBeVisible();
+    await expect(section.getByTestId("requisitos-titular")).toContainText("1 de 1");
+    await expect(section).toContainText("3 años de experiencia");
   });
 
   test("👍 muestra el texto de prueba", async ({ page }) => {

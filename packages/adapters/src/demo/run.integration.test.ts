@@ -177,6 +177,21 @@ describe("runDemoEvaluations", () => {
     expect(scores).toEqual([...scores].sort((a, b) => b - a));
   });
 
+  it("guarda el checklist de cada evaluación (sin llamadas extra al LLM) y la lectura lo devuelve", async () => {
+    const llm = costedLlm(0);
+    const r = await runDemoEvaluations({ db: conn.db, llm, logger, now: () => NOW });
+    expect(r.evaluated).toBeGreaterThan(0);
+    expect(llm.n).toBe(r.evaluated);
+    const rows = await readDemoEvaluations(conn.db, "data_analyst_jr");
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      const c = row.checklist as { items: unknown[]; must: unknown; descarte_rapido: unknown };
+      expect(c).not.toBeNull();
+      expect(Array.isArray(c.items)).toBe(true);
+      expect(c.must).toBeDefined();
+    }
+  });
+
   it("corta por tope de gasto semanal con un capUsd chico", async () => {
     const llm = costedLlm(0.02);
     const r = await runDemoEvaluations({ db: conn.db, llm, logger, now: () => NOW, capUsd: 0.12 });
