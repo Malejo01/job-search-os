@@ -556,7 +556,7 @@ export type HintsRow = {
 /** Solo conteos: ningún título, empresa ni texto de aviso. */
 export type HintsReport = {
   total: number;
-  /** Una fila por carrera (las de `ROLE_KEYS` y cualquier otra clave guardada, como la anterior). */
+  /** Una fila por carrera de `ROLE_KEYS`, más la clave anterior si hay filas guardadas con ella. */
   byRole: { role: string; stored: number; recomputed: number }[];
   /** Hints guardados que incluían una clave que ya no existe → combinación nueva, con cuántas filas. */
   legacyMatrix: { from: string; to: string; count: number }[];
@@ -583,10 +583,11 @@ export function buildHintsReport(rows: readonly HintsRow[]): HintsReport {
     for (const h of next) bump(recomputed, h);
     if (old.includes(LEGACY_HINT)) bump(matrix, keyOf(next));
   }
-  const extra = [...stored.keys()].filter((k) => !isRoleKey(k)).sort();
+  // Solo claves conocidas (la anterior incluida): lo que venga de la base y no lo sea no se imprime
+  const known: string[] = [...ROLE_KEYS, ...(stored.has(LEGACY_HINT) ? [LEGACY_HINT] : [])];
   return {
     total: rows.length,
-    byRole: [...ROLE_KEYS, ...extra].map((role) => ({
+    byRole: known.map((role) => ({
       role,
       stored: stored.get(role) ?? 0,
       recomputed: recomputed.get(role) ?? 0,

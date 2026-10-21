@@ -137,7 +137,6 @@ describe("skills.json: integridad", () => {
       // ronda 97: siglas de certificaciones y de planificación, inequívocas en una JD
       "pmp",
       "psm",
-      "csm",
       "wbs",
     ]);
     for (const s of taxonomy) {

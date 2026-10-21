@@ -795,7 +795,7 @@
     "slug": "go_to_market",
     "name": "Go-to-market y lanzamientos",
     "category": "dominio",
-    "aliases": ["go-to-market", "go to market", "gtm", "product launch", "product launches", "lanzamiento de producto", "lanzamientos"],
+    "aliases": ["go-to-market", "go to market", "gtm", "product launch", "product launches", "lanzamiento de producto"],
     "closure_hours": 16,
     "description": "Go-to-market: planificar cómo se presenta un producto al mercado y qué hacer el día del lanzamiento"
   },
@@ -819,7 +819,7 @@
     "slug": "user_stories",
     "name": "Historias de usuario y backlog",
     "category": "dominio",
-    "aliases": ["user stories", "historias de usuario", "product backlog", "backlog grooming", "backlog refinement", "refinamiento", "acceptance criteria", "criterios de aceptación", "criterios de aceptacion"],
+    "aliases": ["user stories", "historias de usuario", "product backlog", "backlog grooming", "backlog refinement","acceptance criteria", "criterios de aceptación", "criterios de aceptacion"],
     "closure_hours": 8,
     "description": "Historias de usuario y backlog: escribir qué necesita la persona usuaria y ordenar el trabajo pendiente del equipo"
   },
@@ -843,7 +843,7 @@
     "slug": "pm_certifications",
     "name": "Certificaciones (PMP, PSM, CSPO)",
     "category": "dominio",
-    "aliases": ["pmp", "capm", "prince2", "psm", "pspo", "cspo", "csm", "safe agilist"],
+    "aliases": ["pmp", "capm", "prince2", "psm", "pspo", "cspo", "certified scrum master","safe agilist"],
     "closure_hours": 40,
     "description": "Certificaciones de gestión de proyectos y producto, como PMP, PSM o CSPO, que se rinden con examen"
   }

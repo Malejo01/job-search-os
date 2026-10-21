@@ -220,6 +220,21 @@ describe("--hints (ronda 97)", () => {
     ]);
   });
 
+  it("una clave guardada que no es conocida no se imprime", () => {
+    const text = formatHintsReport(
+      buildHintsReport([
+        {
+          sourceKind: "other",
+          title: "Cargo",
+          tags: null,
+          categories: null,
+          roleHints: ["clave_rara"],
+        },
+      ]),
+    );
+    expect(text).not.toContain("clave_rara");
+  });
+
   it("el formateo no imprime títulos", () => {
     const text = formatHintsReport(buildHintsReport(rows));
     for (const t of ["Zafiro", "Opalo", "Jade", "Scrum", "Product Owner"]) {

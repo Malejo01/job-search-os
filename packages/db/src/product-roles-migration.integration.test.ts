@@ -143,8 +143,12 @@ describe("0034: backfill de carreras de producto", () => {
   it("sin titular queda product_manager y target_role es igual al primero", async () => {
     await addProfile(1, null, [LEGACY]);
     await addProfile(2, "Analista funcional", [LEGACY]);
+    // "proyectos" suelto no alcanza: la regla es la de defaultRole (self-assessment.ts)
+    await addProfile(3, "Analista de proyectos de datos", [LEGACY]);
+    await addJob(U(3), 1, LEGACY);
     await runMigration();
-    for (const n of [1, 2]) {
+    expect(await matchedRoleOf(1)).toBe("product_manager");
+    for (const n of [1, 2, 3]) {
       expect(await profileOf(U(n))).toEqual({
         target_role: "product_manager",
         target_roles: ["product_manager"],

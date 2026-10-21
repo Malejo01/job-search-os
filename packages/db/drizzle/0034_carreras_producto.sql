@@ -9,13 +9,13 @@
 -- Idempotente: correrla dos veces da lo mismo. La clave vieja sigue permitida en el check de `waitlist`
 -- hasta la contracción (otra ronda, con los conteos en 0).
 INSERT INTO "skills" ("slug", "name", "category", "aliases", "closure_hours", "description", "is_global") VALUES
-  ('go_to_market', 'Go-to-market y lanzamientos', 'dominio', ARRAY['go-to-market', 'go to market', 'gtm', 'product launch', 'product launches', 'lanzamiento de producto', 'lanzamientos']::text[], 16, 'Go-to-market: planificar cómo se presenta un producto al mercado y qué hacer el día del lanzamiento', true),
+  ('go_to_market', 'Go-to-market y lanzamientos', 'dominio', ARRAY['go-to-market', 'go to market', 'gtm', 'product launch', 'product launches', 'lanzamiento de producto']::text[], 16, 'Go-to-market: planificar cómo se presenta un producto al mercado y qué hacer el día del lanzamiento', true),
   ('positioning_messaging', 'Posicionamiento y mensajes', 'dominio', ARRAY['product positioning', 'market positioning', 'brand messaging', 'product messaging', 'value proposition', 'propuesta de valor', 'buyer persona', 'sales enablement']::text[], 12, 'Posicionamiento y mensajes: definir qué decir de un producto, a quién y por qué es mejor que otras opciones', true),
   ('market_research', 'Investigación de mercado y competencia', 'dominio', ARRAY['market research', 'competitive analysis', 'competitor analysis', 'análisis competitivo', 'analisis competitivo', 'investigación de mercado', 'investigacion de mercado']::text[], 12, 'Investigación de mercado: estudiar clientes y competidores para decidir qué producto o mensaje conviene', true),
-  ('user_stories', 'Historias de usuario y backlog', 'dominio', ARRAY['user stories', 'historias de usuario', 'product backlog', 'backlog grooming', 'backlog refinement', 'refinamiento', 'acceptance criteria', 'criterios de aceptación', 'criterios de aceptacion']::text[], 8, 'Historias de usuario y backlog: escribir qué necesita la persona usuaria y ordenar el trabajo pendiente del equipo', true),
+  ('user_stories', 'Historias de usuario y backlog', 'dominio', ARRAY['user stories', 'historias de usuario', 'product backlog', 'backlog grooming', 'backlog refinement','acceptance criteria', 'criterios de aceptación', 'criterios de aceptacion']::text[], 8, 'Historias de usuario y backlog: escribir qué necesita la persona usuaria y ordenar el trabajo pendiente del equipo', true),
   ('project_planning', 'Planificación de proyectos', 'dominio', ARRAY['project planning', 'planificación de proyectos', 'planificacion de proyectos', 'gantt', 'ms project', 'microsoft project', 'cronograma', 'wbs']::text[], 16, 'Planificación de proyectos: armar el plan con tareas, plazos y responsables, y seguir su avance', true),
   ('risk_management', 'Riesgos, alcance y presupuesto', 'dominio', ARRAY['risk management', 'gestión de riesgos', 'gestion de riesgos', 'scope management', 'gestión del alcance', 'gestion del alcance', 'project budget', 'presupuesto del proyecto']::text[], 16, 'Riesgos, alcance y presupuesto: anticipar qué puede salir mal en un proyecto y cuidar lo acordado y lo gastado', true),
-  ('pm_certifications', 'Certificaciones (PMP, PSM, CSPO)', 'dominio', ARRAY['pmp', 'capm', 'prince2', 'psm', 'pspo', 'cspo', 'csm', 'safe agilist']::text[], 40, 'Certificaciones de gestión de proyectos y producto, como PMP, PSM o CSPO, que se rinden con examen', true)
+  ('pm_certifications', 'Certificaciones (PMP, PSM, CSPO)', 'dominio', ARRAY['pmp', 'capm', 'prince2', 'psm', 'pspo', 'cspo', 'certified scrum master','safe agilist']::text[], 40, 'Certificaciones de gestión de proyectos y producto, como PMP, PSM o CSPO, que se rinden con examen', true)
 ON CONFLICT ("slug") DO UPDATE SET
   "name" = EXCLUDED."name",
   "category" = EXCLUDED."category",
@@ -29,7 +29,7 @@ UPDATE "jobs" AS j
 SET "matched_role" = CASE
     WHEN p."headline" ~* 'product\s+owner|due[ñn][oa]\s+de\s+producto' THEN 'product_owner'
     WHEN p."headline" ~* 'product\s+marketing|marketing\s+de\s+producto' THEN 'product_marketing'
-    WHEN p."headline" ~* 'project\s+manager|program\s+manager|scrum|agile\s+coach|\mpmo\M|proyectos' THEN 'project_manager'
+    WHEN p."headline" ~* 'project\s+manager|program\s+manager|scrum\s+master|agile\s+coach|\mpmo\M|(gerente|jefe|jefa|l[ií]der|coordinador|coordinadora)\s+de\s+proyectos' THEN 'project_manager'
     ELSE 'product_manager'
   END
 FROM "profiles" AS p
@@ -43,7 +43,7 @@ WITH m AS (
     CASE
       WHEN "headline" ~* 'product\s+owner|due[ñn][oa]\s+de\s+producto' THEN 'product_owner'
       WHEN "headline" ~* 'product\s+marketing|marketing\s+de\s+producto' THEN 'product_marketing'
-      WHEN "headline" ~* 'project\s+manager|program\s+manager|scrum|agile\s+coach|\mpmo\M|proyectos' THEN 'project_manager'
+      WHEN "headline" ~* 'project\s+manager|program\s+manager|scrum\s+master|agile\s+coach|\mpmo\M|(gerente|jefe|jefa|l[ií]der|coordinador|coordinadora)\s+de\s+proyectos' THEN 'project_manager'
       ELSE 'product_manager'
     END AS nuevo
   FROM "profiles"

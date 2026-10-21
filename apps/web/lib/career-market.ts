@@ -3,6 +3,7 @@ import {
   ROLE_KEYS,
   buildCareerMarket,
   buildCareerSalary,
+  toRoleKey,
   type CareerMarket,
   type RoleKey,
 } from "@job-search-os/pipeline";
@@ -16,10 +17,12 @@ import { ROLE_SKILLS } from "./skill-levels";
  * y el caché.
  */
 
-/** `?carrera=`: solo claves de `ROLE_KEYS`. Con varios valores, el primero; lo demás es null. */
+/**
+ * `?carrera=`: solo claves de `ROLE_KEYS` (la anterior `producto_proyectos` se traduce con
+ * `toRoleKey`). Con varios valores, el primero; lo demás es null.
+ */
 export function parseCareer(param: string | string[] | undefined): RoleKey | null {
-  const wanted = Array.isArray(param) ? param[0] : param;
-  return ROLE_KEYS.find((k) => k === wanted) ?? null;
+  return toRoleKey(Array.isArray(param) ? param[0] : param);
 }
 
 /** Etiqueta de la carrera, la del seed de roles; nunca la clave interna. */
@@ -51,8 +54,8 @@ export function getCareerMarket(role: RoleKey): Promise<CareerMarket> {
 }
 
 /**
- * Sueldos de las 13 carreras para el paso 1 del onboarding: una sola lectura del pool (30 días) y
- * un solo caché de 30 minutos, en vez de 13 consultas por visita. Misma razón que arriba para no
+ * Sueldos de todas las carreras para el paso 1 del onboarding: una sola lectura del pool (30 días) y
+ * un solo caché de 30 minutos, en vez de una consulta por carrera y por visita. Misma razón que arriba para no
  * llevar usuario en la clave: sale solo de `public_jobs`.
  */
 export function getCareerSalaries(): Promise<Record<RoleKey, CareerMarket["salary"]>> {
