@@ -1,3 +1,4 @@
+import { SOURCE_CATEGORY_ROLES } from "@job-search-os/pipeline";
 import { describe, expect, it } from "vitest";
 import page from "./__fixtures__/getonboard-search-page.json";
 import {
@@ -425,17 +426,18 @@ describe("fetchGetOnBoardJobs (fetch inyectado)", () => {
       "innovation-agile",
       "technical-support",
       "cybersecurity",
+      // ronda 103 (ADR-020)
+      "operations-management",
+      "advertising-media",
     ])
       expect(GOB_POOL_CATEGORIES).toContain(c);
-    for (const c of [
-      "sales",
-      "education-coaching",
-      "advertising-media",
-      "operations-management",
-      "other",
-      "hardware-electronics",
-    ])
+    for (const c of ["sales", "education-coaching", "other", "hardware-electronics"])
       expect(GOB_POOL_CATEGORIES).not.toContain(c);
+  });
+
+  it("toda categoría del pool tiene carrera en role_hints: un aviso sin pista iría a quien no eligió puesto", () => {
+    for (const c of GOB_POOL_CATEGORIES)
+      expect(SOURCE_CATEGORY_ROLES.getonboard_api?.[c]?.length ?? 0).toBeGreaterThan(0);
   });
 
   it("arma la URL de categoría con per_page, page y expand", () => {

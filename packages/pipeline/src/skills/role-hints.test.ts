@@ -233,6 +233,8 @@ describe("inferRoleHints · puestos de carreras digitales (ronda 40)", () => {
     ["getonboard_api", "technical-support", ["soporte_it"]],
     ["getonboard_api", "cybersecurity", ["ciberseguridad"]],
     ["getonboard_api", "customer-support", ["customer_success"]],
+    ["getonboard_api", "operations-management", ["project_manager"]],
+    ["getonboard_api", "advertising-media", ["marketing_digital"]],
     ["jobicy", "Marketing", ["marketing_digital"]],
     ["jobicy", "Customer Success", ["customer_success"]],
     ["jobicy", "Recruiting", ["rrhh_it"]],
