@@ -93,20 +93,10 @@ export default function PublicEnLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
       <footer className="flex flex-wrap items-center justify-center gap-x-2 border-t border-zinc-200 px-4 py-3 text-center text-xs text-zinc-600">
-        <Link
-          href="/mercado"
-          hrefLang="es"
-          lang="es"
-          className={`${FOOTER_LINK} sm:hidden`}
-        >
+        <Link href="/mercado" hrefLang="es" lang="es" className={`${FOOTER_LINK} sm:hidden`}>
           <span lang="en">Market</span>
         </Link>
-        <Link
-          href="/ofertas"
-          hrefLang="es"
-          lang="es"
-          className={`${FOOTER_LINK} sm:hidden`}
-        >
+        <Link href="/ofertas" hrefLang="es" lang="es" className={`${FOOTER_LINK} sm:hidden`}>
           <span lang="en">Postings</span>
         </Link>
         <Link href="/demo" hrefLang="es" lang="es" className={`${FOOTER_LINK} sm:hidden`}>
