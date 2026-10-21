@@ -137,7 +137,7 @@ test.describe("Flujo 37b: criterios", () => {
       .toEqual({ version: start!.version + 2, maxYearsHard: newYears });
     await expect(page.getByText(`Versión vigente: ${start!.version + 2} `)).toBeVisible();
     // El aviso de error de la página (no el anunciador de rutas de Next, que también es role=alert)
-    await expect(page.locator("#criteria-error")).toHaveCount(0);
+    await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
     expect(page.url()).not.toContain("error=");
     await expect(years).toHaveValue(String(newYears));
   });

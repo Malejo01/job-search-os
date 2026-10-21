@@ -4,6 +4,7 @@ import { parseTargetRoles } from "@job-search-os/pipeline";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { signOut } from "@/auth";
+import type { FormActionError } from "@/app/components/guarded-form";
 import { deleteAccount } from "@/lib/delete-account";
 import { assignRandomInboundAddress } from "@/lib/inbound-address";
 import { getTargetRolesLimit, setTargetRoles } from "@/lib/onboarding";
@@ -29,17 +30,18 @@ export async function deleteAccountAction(formData: FormData): Promise<void> {
 
 /**
  * Guarda los puestos que busca la persona (rondas 41 y 45). El usuario sale de la sesión; la lista se
- * valida en el servidor (solo claves conocidas, sin repetir, entre 1 y el tope de su plan). Si el
+ * valida en el servidor (solo claves conocidas, sin repetir, entre 1 y el tope de su plan); si no
+ * pasa, devuelve `{ ok: false, field: "targetRoles" }` y la selección queda como estaba. Si el
  * conjunto cambió, reasigna las ofertas del pool; si la reasignación falla, los puestos igual
  * quedan guardados.
  */
-export async function saveTargetRolesAction(formData: FormData): Promise<void> {
+export async function saveTargetRolesAction(formData: FormData): Promise<FormActionError | void> {
   const userId = await requireUserId();
   const values = formData.getAll("targetRoles").filter((v): v is string => typeof v === "string");
   const parsed = parseTargetRoles(values, await getTargetRolesLimit(userId));
-  if (!parsed.ok) redirect("/settings?puesto=error#puesto");
+  if (!parsed.ok) return { ok: false, field: "targetRoles" };
   const { saved, changed } = await setTargetRoles(userId, parsed.roles);
-  if (!saved) redirect("/settings?puesto=error#puesto");
+  if (!saved) return { ok: false, field: "targetRoles" };
   if (changed) {
     const result = await reassignForRoleChange(userId);
     // Cuenta que nunca evaluó nada del pool: igual que Mis skills, evalúa las primeras enseguida

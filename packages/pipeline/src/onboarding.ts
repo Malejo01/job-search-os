@@ -199,7 +199,10 @@ export type OnboardingInput = {
   profileSummary: string;
 };
 
-export type OnboardingParse = { ok: true; value: OnboardingInput } | { ok: false; field: string };
+export type OnboardingParse =
+  | { ok: true; value: OnboardingInput }
+  /** `reason` solo viene en `summary`: por debajo del mínimo o por encima del máximo. */
+  | { ok: false; field: string; reason?: "min" | "max" };
 
 /**
  * Valida los campos crudos del formulario (strings; las casillas llegan como "on"/ausente).
@@ -235,10 +238,18 @@ export function parseOnboarding(
     yearsTotal: s("yearsTotal"),
     salaryFloorUsd: s("salaryFloorUsd"),
     maxWeeklyHours: s("maxWeeklyHours"),
-    summary: s("summary"),
+    // El navegador cuenta el salto de línea como 1 y lo envía como \r\n: se normaliza para que el
+    // largo sea el que ve el contador
+    summary: s("summary").replace(/\r\n?/g, "\n"),
   });
   if (!parsed.success) {
-    return { ok: false, field: String(parsed.error.issues[0]?.path[0] ?? "form") };
+    const issue = parsed.error.issues[0];
+    const field = String(issue?.path[0] ?? "form");
+    if (field === "summary") {
+      if (issue?.code === "too_small") return { ok: false, field, reason: "min" };
+      if (issue?.code === "too_big") return { ok: false, field, reason: "max" };
+    }
+    return { ok: false, field };
   }
   const v = parsed.data;
   const other = (v.workAuthOther ?? "")
