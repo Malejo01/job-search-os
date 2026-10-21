@@ -33,3 +33,4 @@ export * from "./pool";
 export * from "./trust";
 export * from "./first-steps";
 export * from "./demo";
+export * from "./cv";
