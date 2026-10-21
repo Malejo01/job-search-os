@@ -16,6 +16,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/demo",
     ...DEMO_PROFILE_KEYS.map((k) => `/demo/${k}`),
     "/acceso",
+    "/como-esta-hecho",
   ];
   return paths.map((path) => ({ url: `${site}${path === "/" ? "" : path}` }));
 }
