@@ -44,7 +44,7 @@ test.describe("recuperar contraseña (JS-045)", () => {
       await page.getByLabel("Email").fill(E2E_EMAIL);
       await page.getByLabel("Contraseña").fill(E2E_RESET_VALUE);
       await page.getByRole("button", { name: "Entrar" }).click();
-      await page.waitForURL("**/jobs**");
+      await page.waitForURL("**/hoy**");
 
       // el mismo link ya no sirve
       await page.goto(`/reset-password?token=${token}`);

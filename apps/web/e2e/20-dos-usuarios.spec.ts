@@ -99,6 +99,7 @@ test.describe("Flujo 20: dos usuarios, sin lectura ni escritura cruzada", () => 
   test("las listas de A no traen nada de B", async ({ page }) => {
     await login(page);
     for (const path of [
+      "/hoy",
       "/jobs",
       "/jobs/pending-jd",
       "/inbox",

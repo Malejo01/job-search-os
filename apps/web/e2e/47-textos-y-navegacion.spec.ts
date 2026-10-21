@@ -66,6 +66,7 @@ test.describe("Flujo 47: textos y navegación", () => {
     await login(page);
     const menu = page.getByTestId("menu-movil");
     const sections: Array<[string, string]> = [
+      ["Hoy", "/hoy"],
       ["Ofertas", "/jobs"],
       ["Sin descripción", "/jobs/pending-jd"],
       ["Emails", "/inbox"],

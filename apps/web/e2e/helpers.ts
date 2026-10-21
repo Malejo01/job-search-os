@@ -49,7 +49,7 @@ export async function login(page: Page): Promise<void> {
   await page.getByLabel("Email").fill(E2E_EMAIL);
   await page.getByLabel("Contraseña").fill(E2E_PASSWORD);
   await page.getByRole("button", { name: "Entrar" }).click();
-  await page.waitForURL("**/jobs**");
+  await page.waitForURL("**/hoy**");
 }
 
 /**
@@ -685,7 +685,7 @@ export async function loginAsSecondUser(page: Page): Promise<void> {
   await page.getByLabel("Email").fill(E2E_B_EMAIL);
   await page.getByLabel("Contraseña").fill(E2E_B_PASSWORD);
   await page.getByRole("button", { name: "Entrar" }).click();
-  await page.waitForURL("**/jobs**");
+  await page.waitForURL("**/hoy**");
 }
 
 /** Postulación del usuario seed (A) para una oferta suya; devuelve el id. */
