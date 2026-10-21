@@ -37,6 +37,8 @@ export type JobFilters = {
   periodo: Period | null;
   /** Solo las marcadas `posible_duplicado` (JS-025), en cualquier estado salvo que se elija uno. */
   duplicates: boolean;
+  /** Solo ofertas del pool escritas en español (`public_jobs.lang = 'es'`); null = sin filtro. */
+  idioma?: "es" | null;
 };
 
 export type JobListRow = {
@@ -102,6 +104,7 @@ export function parseJobFilters(params: Record<string, string | string[] | undef
     since: /^\d{4}-\d{2}-\d{2}$/.test(since) ? since : null,
     periodo: parsePeriod(one("periodo")),
     duplicates: one("duplicados") === "1",
+    idioma: one("idioma") === "es" ? "es" : null,
   };
 }
 
@@ -180,6 +183,7 @@ export async function listJobs(
       filters.source ? sql`${filters.source} = any(${sources.kinds})` : undefined,
       since ? gte(s.jobs.firstSeenAt, since) : undefined,
       filters.duplicates ? sql`'posible_duplicado' = any(${s.jobs.flags})` : undefined,
+      filters.idioma ? eq(s.publicJobs.lang, filters.idioma) : undefined,
     ].filter((c): c is NonNullable<typeof c> => c !== undefined);
 
     const rows = await tx
@@ -211,6 +215,7 @@ export async function listJobs(
       .from(s.jobs)
       .leftJoin(latest, eq(latest.jobId, s.jobs.id))
       .leftJoin(sources, eq(sources.jobId, s.jobs.id))
+      .leftJoin(s.publicJobs, eq(s.publicJobs.id, s.jobs.publicJobId))
       .where(
         options.include
           ? or(conds.length ? and(...conds) : undefined, eq(s.jobs.id, options.include))
@@ -325,6 +330,7 @@ export function listQuery(filters: JobFilters): string {
   if (filters.since) q.set("desde", filters.since);
   if (filters.periodo) q.set("periodo", filters.periodo);
   if (filters.duplicates) q.set("duplicados", "1");
+  if (filters.idioma) q.set("idioma", filters.idioma);
   const str = q.toString();
   return str ? `?${str}` : "";
 }

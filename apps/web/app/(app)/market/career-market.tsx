@@ -231,6 +231,9 @@ export function CareerMarket({
               <p className="text-xs text-zinc-600">
                 Avisos escritos en inglés: {NF.format(market.english.writtenInEnglish)}
               </p>
+              <p className="text-xs text-zinc-600">
+                Ofertas en español: {NF.format(market.english.writtenInSpanish)}
+              </p>
               {market.english.estimated ? (
                 <p role="note" className="text-xs text-zinc-600">
                   Se detecta leyendo el texto del aviso, sin inteligencia artificial; puede fallar.

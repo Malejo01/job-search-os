@@ -1,4 +1,4 @@
-import type { JobEvent } from "@job-search-os/pipeline";
+import { englishIsNotAGap, isEnglishGap, type JobEvent } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { notEvaluatedMessage } from "@/lib/evaluate-now";
@@ -332,7 +332,15 @@ export default async function JobDetailPage({
 
           <section className="grid gap-3 sm:grid-cols-2">
             <Block title="Lo que ya tenés" items={ev.matchFuerte} tone="text-emerald-900" />
-            <Block title="Lo que te falta" items={ev.gaps} tone="text-zinc-800" />
+            <Block
+              title="Lo que te falta"
+              items={
+                englishIsNotAGap(job.jdText, null)
+                  ? ev.gaps.filter((g) => !isEnglishGap(g))
+                  : ev.gaps
+              }
+              tone="text-zinc-800"
+            />
             <Block title="Señales positivas" items={ev.senales} tone="text-zinc-800" />
             <div className="rounded-md border border-zinc-200 p-3 text-sm">
               <h2 className="font-semibold">Veredicto</h2>

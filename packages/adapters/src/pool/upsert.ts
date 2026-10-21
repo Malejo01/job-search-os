@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { schema as s, type Db } from "@job-search-os/db";
 import {
   canonicalUrl,
+  detectJobLanguage,
   inferRoleHints,
   normalizeCompany,
   normalizeTitle,
@@ -124,6 +125,8 @@ type Normalized = {
   titleNormalized: string;
   companyNormalized: string;
   roleHints: string[];
+  /** Idioma del aviso: el que declara la fuente o el detectado en el texto; `null` si no se sabe. */
+  lang: string | null;
 };
 
 function normalize(raw: RawJob, externalId: string, sourceUrl: string): Normalized {
@@ -144,6 +147,7 @@ function normalize(raw: RawJob, externalId: string, sourceUrl: string): Normaliz
       tags: raw.tags,
       categories: raw.categories,
     }),
+    lang: detectJobLanguage(raw.jdText, raw.lang),
   };
 }
 
@@ -300,7 +304,7 @@ function contentColumns(raw: RawJob, n: Normalized, companyId: string | null) {
     modality: raw.modality,
     contractType: raw.contractType,
     seniority: raw.seniority,
-    lang: raw.lang,
+    lang: n.lang,
     salaryMinUsd: raw.salaryMinUsd,
     salaryMaxUsd: raw.salaryMaxUsd,
     salaryPeriod: raw.salaryPeriod,
@@ -397,6 +401,7 @@ async function upsertOne(ctx: Ctx, original: RawJob): Promise<Outcome> {
           jdHash: t.jdHash,
           rawRef: t.rawRef,
           roleHints: t.roleHints,
+          lang: t.lang,
         })
         .from(t)
         .where(eq(t.id, decision.id));
@@ -406,12 +411,11 @@ async function upsertOne(ctx: Ctx, original: RawJob): Promise<Outcome> {
         jdHash: n.hash,
       });
       if (stored && contentSignature(stored) === incoming) {
-        // `role_hints` no está en la firma: si una regla nueva da otras pistas, se actualizan acá,
-        // sin crudo nuevo ni `updatedAt`
-        const hintsChanged = hintsDiffer(stored.roleHints, n.roleHints);
+        // `role_hints` y `lang` no están en la firma: si una regla nueva da otras pistas u otro
+        // idioma, se actualizan acá en una sola escritura, sin crudo nuevo ni `updatedAt`
         await db
           .update(t)
-          .set(hintsChanged ? { lastSeenAt: now, roleHints: n.roleHints } : { lastSeenAt: now })
+          .set({ lastSeenAt: now, ...autoFix(stored, n) })
           .where(eq(t.id, decision.id));
         // Una fila sin skills pero con JD (la sincronización falló antes) se rehace
         if (n.jdText && taxonomy) {
@@ -501,6 +505,17 @@ function hintsDiffer(stored: readonly string[] | null, incoming: readonly string
   return JSON.stringify([...(stored ?? [])].sort()) !== JSON.stringify([...incoming].sort());
 }
 
+/** Columnas fuera de la firma que se corrigen al volver a ver el aviso: pistas de carrera e idioma. */
+function autoFix(
+  stored: { roleHints: readonly string[] | null; lang: string | null } | undefined,
+  n: Normalized,
+): { roleHints?: string[]; lang?: string | null } {
+  const fix: { roleHints?: string[]; lang?: string | null } = {};
+  if (hintsDiffer(stored?.roleHints ?? null, n.roleHints)) fix.roleHints = n.roleHints;
+  if ((stored?.lang ?? null) !== n.lang) fix.lang = n.lang;
+  return fix;
+}
+
 type Item = { original: RawJob; raw: RawJob; n: Normalized; externalId: string };
 type NewRow = { id: string; item: Item; dedupOfId: string | null };
 
@@ -561,6 +576,7 @@ async function processBatch(
     tags: string[] | null;
     jdHash: string | null;
     roleHints: string[] | null;
+    lang: string | null;
   };
   const recent: PoolRecent[] = [];
   const storedById = new Map<string, Stored>();
@@ -618,6 +634,7 @@ async function processBatch(
         categories: t.categories,
         tags: t.tags,
         roleHints: t.roleHints,
+        lang: t.lang,
       })
       .from(t)
       .where(or(...conds));
@@ -703,14 +720,16 @@ async function processBatch(
     try {
       const ids = [...new Set(unchangedItems.map((u) => u.id))];
       await db.update(t).set({ lastSeenAt: now }).where(inArray(t.id, ids));
-      const hinted = new Map<string, string[]>();
+      const fixed = new Map<string, ReturnType<typeof autoFix>>();
       for (const u of unchangedItems) {
-        if (hintsDiffer(storedById.get(u.id)?.roleHints ?? null, u.item.n.roleHints)) {
-          hinted.set(u.id, u.item.n.roleHints);
-        }
+        const fix = autoFix(storedById.get(u.id), u.item.n);
+        if (Object.keys(fix).length) fixed.set(u.id, fix);
       }
-      for (const [id, roleHints] of hinted) {
-        await db.update(t).set({ lastSeenAt: now, roleHints }).where(eq(t.id, id));
+      for (const [id, fix] of fixed) {
+        await db
+          .update(t)
+          .set({ lastSeenAt: now, ...fix })
+          .where(eq(t.id, id));
       }
       const withJd = unchangedItems.filter((u) => u.item.n.jdText);
       if (withJd.length && ctx.taxonomy) {
