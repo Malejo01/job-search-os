@@ -119,7 +119,12 @@ test.describe("Flujo 63: requisitos del aviso", () => {
     try {
       const anos = item({ id: "anos", pide: "5 años", status: "no_se_sabe" });
       const pais = item({ id: "pais", pide: "Ubicación permitida", status: "no_se_sabe" });
-      const salario = item({ id: "salario", pide: "Salario publicado", status: "no_se_sabe" });
+      const salario = item({
+        id: "salario",
+        pide: "Salario publicado",
+        status: "no_se_sabe",
+        nota: "salario leído del texto del aviso",
+      });
       await evaluateWithDecision(jobId, {
         checklist: {
           items: [anos, pais, salario],
@@ -136,6 +141,10 @@ test.describe("Flujo 63: requisitos del aviso", () => {
         section.getByRole("link", { name: "Completá este dato en Tu perfil: 5 años" }),
       ).toHaveAttribute("href", "/settings/perfil");
       await expect(section.getByRole("link")).toHaveCount(1);
+      // La aclaración del código se ve debajo del ítem
+      await expect(section.getByTestId("requisito-nota")).toHaveText(
+        "salario leído del texto del aviso",
+      );
     } finally {
       await deleteJob(jobId);
     }
