@@ -28,7 +28,11 @@ const guide = (page: Page) => page.getByTestId("guide");
 const invite = (page: Page) => page.getByTestId("guide-invite");
 /** El botón fijo. «Ver la guía» (el de la invitación) no coincide con `exact`. */
 const opener = (page: Page) => page.getByRole("button", { name: "Ver guía", exact: true });
-/** Elemento resaltado: el recorrido le pone un outline de 3 px. */
+/**
+ * Elemento resaltado: el recorrido le pone un outline inline de 3 px sólido. Se compara
+ * `outline-style` (solid / none) y no `outline-width`: Chromium devuelve 3px (el valor inicial)
+ * aunque el estilo sea none, así que el ancho no distingue resaltado de no resaltado.
+ */
 const anchor = (page: Page, name: string) => page.locator(`[data-tour="${name}"]`);
 
 type Scene = { page: Page; run: Run; context: BrowserContext };
@@ -97,15 +101,15 @@ test.describe("Flujo 57: guía del onboarding y de /jobs", () => {
       await openGuide(page);
       await expect(guide(page)).toContainText("Paso 1 de 6");
       await expect(guide(page)).toContainText("Qué buscás");
-      await expect(anchor(page, "perfil:puestos")).toHaveCSS("outline-width", "3px");
+      await expect(anchor(page, "perfil:puestos")).toHaveCSS("outline-style", "solid");
       // Con la guía abierta la invitación sobra
       await expect(invite(page)).toHaveCount(0);
 
       await next(page);
       await expect(guide(page)).toContainText("Paso 2 de 6");
       await expect(guide(page)).toContainText("Dónde estás y tu inglés");
-      await expect(anchor(page, "perfil:pais-ingles")).toHaveCSS("outline-width", "3px");
-      await expect(anchor(page, "perfil:puestos")).toHaveCSS("outline-width", "0px");
+      await expect(anchor(page, "perfil:pais-ingles")).toHaveCSS("outline-style", "solid");
+      await expect(anchor(page, "perfil:puestos")).toHaveCSS("outline-style", "none");
 
       await guide(page).getByRole("button", { name: "Anterior" }).click();
       await expect(guide(page)).toContainText("Paso 1 de 6");
@@ -119,7 +123,7 @@ test.describe("Flujo 57: guía del onboarding y de /jobs", () => {
       await page.keyboard.press("Escape");
       await expect(guide(page)).toBeHidden();
       await expect(opener(page)).toBeFocused();
-      await expect(anchor(page, "perfil:pais-ingles")).toHaveCSS("outline-width", "0px");
+      await expect(anchor(page, "perfil:pais-ingles")).toHaveCSS("outline-style", "none");
 
       // Cerrar con Escape no pierde el paso, ni cuenta como rechazar la invitación
       await expect(invite(page)).toBeVisible();
@@ -330,10 +334,10 @@ test.describe("Flujo 57: guía del onboarding y de /jobs", () => {
       await expect(guide(page)).toBeHidden();
       await openGuide(page);
       await expect(guide(page)).toContainText("Paso 1 de 4");
-      await expect(anchor(page, "skills:puestos")).toHaveCSS("outline-width", "3px");
+      await expect(anchor(page, "skills:puestos")).toHaveCSS("outline-style", "solid");
       await next(page);
       await expect(guide(page)).toContainText("Tu nivel real");
-      await expect(anchor(page, "skills:nivel")).toHaveCSS("outline-width", "3px");
+      await expect(anchor(page, "skills:nivel")).toHaveCSS("outline-style", "solid");
       await next(page);
       await expect(guide(page)).toContainText("¿No está la tuya?");
       await next(page);
@@ -350,13 +354,13 @@ test.describe("Flujo 57: guía del onboarding y de /jobs", () => {
       await expect(page.getByRole("heading", { name: "Tus primeras ofertas" })).toBeVisible();
       await openGuide(page);
       await expect(guide(page)).toContainText("Paso 1 de 3");
-      await expect(anchor(page, "ofertas:lista")).toHaveCSS("outline-width", "3px");
+      await expect(anchor(page, "ofertas:lista")).toHaveCSS("outline-style", "solid");
       await next(page);
       await expect(guide(page)).toContainText("Tus alertas (opcional)");
-      await expect(anchor(page, "ofertas:email")).toHaveCSS("outline-width", "3px");
+      await expect(anchor(page, "ofertas:email")).toHaveCSS("outline-style", "solid");
       await next(page);
       await expect(guide(page)).toContainText("Paso 3 de 3");
-      await expect(anchor(page, "ofertas:seguir")).toHaveCSS("outline-width", "3px");
+      await expect(anchor(page, "ofertas:seguir")).toHaveCSS("outline-style", "solid");
     });
   });
 
@@ -376,7 +380,7 @@ test.describe("Flujo 57: guía del onboarding y de /jobs", () => {
       expect(total).toBeGreaterThanOrEqual(2);
       expect(total).toBeLessThan(5);
       await expect(guide(page)).toContainText("Tus primeros pasos");
-      await expect(anchor(page, "jobs:primeros-pasos")).toHaveCSS("outline-width", "3px");
+      await expect(anchor(page, "jobs:primeros-pasos")).toHaveCSS("outline-style", "solid");
       if (cards === 0) {
         expect(total).toBe(2);
         await expect(guide(page)).not.toContainText("El puntaje");
@@ -387,11 +391,11 @@ test.describe("Flujo 57: guía del onboarding y de /jobs", () => {
       await expect(guide(page)).toContainText(`Paso ${total} de ${total}`);
       await expect(guide(page)).toContainText("Sin descripción");
       const link = page.locator('a[data-tour="jobs:menu"]').filter({ hasText: "Sin descripción" });
-      await expect(link).toHaveCSS("outline-width", "3px");
-      await expect(page.locator("header")).toHaveCSS("outline-width", "0px");
+      await expect(link).toHaveCSS("outline-style", "solid");
+      await expect(page.locator("header")).toHaveCSS("outline-style", "none");
       await guide(page).getByRole("button", { name: "Listo" }).click();
       await expect(guide(page)).toBeHidden();
-      await expect(link).toHaveCSS("outline-width", "0px");
+      await expect(link).toHaveCSS("outline-style", "none");
     });
   });
 
@@ -406,9 +410,9 @@ test.describe("Flujo 57: guía del onboarding y de /jobs", () => {
       const total = Number(/Paso 1 de (\d+)/.exec((await guide(page).textContent()) ?? "")?.[1]);
       for (let n = 1; n < total; n++) await next(page);
       const menu = page.getByTestId("menu-movil").locator("summary");
-      await expect(menu).toHaveCSS("outline-width", "3px");
-      await expect(page.locator("header")).toHaveCSS("outline-width", "0px");
-      await expect(page.getByTestId("menu-movil")).toHaveCSS("outline-width", "0px");
+      await expect(menu).toHaveCSS("outline-style", "solid");
+      await expect(page.locator("header")).toHaveCSS("outline-style", "none");
+      await expect(page.getByTestId("menu-movil")).toHaveCSS("outline-style", "none");
     });
   });
 });
