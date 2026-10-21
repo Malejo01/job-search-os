@@ -1,7 +1,12 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { atsStatusOf, type AtsMapped } from "./ats-common";
-import { fetchTeamtailorBoard, mapTeamtailorJob, parseTeamtailorFeed } from "./teamtailor";
+import {
+  fetchTeamtailorBoard,
+  MAX_ITEM_CHARS,
+  mapTeamtailorJob,
+  parseTeamtailorFeed,
+} from "./teamtailor";
 
 const xml = readFileSync(new URL("./__fixtures__/teamtailor-sample.xml", import.meta.url), "utf8");
 const board = { token: "empresa-ficticia", companyName: "Empresa Ficticia 1" };
@@ -58,6 +63,24 @@ describe("parseTeamtailorFeed", () => {
     expect(items[3]!.title).toBe("Soporte Regional Ficticio");
   });
 
+  it("un <item> sin cierre corta la lectura y uno más largo que el tope se saltea (seguridad)", () => {
+    const ok = "<item><guid>g-1</guid><title>Uno</title></item>";
+    expect(parseTeamtailorFeed(`<rss>${ok}<item><title>sin cierre`).map((i) => i.guid)).toEqual([
+      "g-1",
+    ]);
+    const huge = `<item><guid>g-2</guid><description>${"x".repeat(MAX_ITEM_CHARS)}</description></item>`;
+    expect(parseTeamtailorFeed(`<rss>${huge}${ok}</rss>`).map((i) => i.guid)).toEqual(["g-1"]);
+    // `<items>` u otra etiqueta que empieza igual no se toma como item
+    expect(parseTeamtailorFeed("<rss><items>x</items></rss>")).toEqual([]);
+  });
+
+  it("muchas aperturas sin cierre no cuelgan el parseo (lineal)", () => {
+    const hostile = `<rss>${"<item><title>".repeat(50_000)}</rss>`;
+    const t0 = Date.now();
+    expect(parseTeamtailorFeed(hostile)).toEqual([]);
+    expect(Date.now() - t0).toBeLessThan(2_000);
+  });
+
   it("un cuerpo sin items da una lista vacía", () => {
     expect(parseTeamtailorFeed("<rss><channel></channel></rss>")).toEqual([]);
     expect(parseTeamtailorFeed("<html>no es un feed</html>")).toEqual([]);
@@ -65,6 +88,30 @@ describe("parseTeamtailorFeed", () => {
 });
 
 describe("mapTeamtailorJob", () => {
+  const minimal = (over: Record<string, unknown>) =>
+    mapTeamtailorJob(
+      {
+        guid: "g-1",
+        title: "Puesto Ficticio",
+        link: "https://empresa-ficticia.teamtailor.com/jobs/1-puesto",
+        locations: [],
+        ...over,
+      },
+      board,
+    );
+
+  it("el link tiene que quedar en teamtailor.com: otro host se saltea (seguridad)", () => {
+    expect(minimal({})).not.toBe("skip");
+    expect(minimal({ link: "https://teamtailor.com.x.example/jobs/1-puesto" })).toBe("skip");
+    expect(minimal({ link: "https://x.example/jobs/1-puesto" })).toBe("skip");
+    expect(minimal({ link: "javascript:alert(1)" })).toBe("skip");
+  });
+
+  it("un guid de más de 200 caracteres se saltea (seguridad)", () => {
+    expect(minimal({ guid: "g".repeat(200) })).not.toBe("skip");
+    expect(minimal({ guid: "g".repeat(201) })).toBe("skip");
+  });
+
   it("mapea un aviso completo: id del guid, fuente, empresa, fecha y categorías", () => {
     const { raw } = mapped(0);
     expect(raw.source).toMatchObject({
