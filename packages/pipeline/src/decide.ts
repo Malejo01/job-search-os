@@ -5,6 +5,7 @@ import {
   IS_SALARY_TEXT,
   MIXED_TOPIC_TEXT,
   monthlySalaryUsd,
+  salaryIsFromApi,
   salaryIsLocalCurrency,
   type JobFacts,
 } from "./evaluator/job-facts";
@@ -87,6 +88,11 @@ export type Decision = {
   scoreFinal: number;
   bloqueadores: string[];
   riesgos: string[];
+  /**
+   * Subconjunto de `riesgos` que el código agregó solo para informar (rango salarial bajo el piso,
+   * moneda local, seniority del título). Se muestran igual, pero no bajan la acción a «aplicar».
+   */
+  riesgosInformativos: string[];
   adjustments: Adjustment[];
   accion: Action;
   /** `location_ok` efectivo: el del modelo, salvo que el código vea residencia exigida ("no"). */
@@ -109,6 +115,10 @@ const FLAG_TO_RISK: Record<string, { text: string; already: RegExp }> = {
     already: /otra ciudad|ciudad distinta/i,
   },
 };
+
+const RANGE_RISK = "el rango salarial empieza abajo de tu piso";
+const LOCAL_RISK = "salario en USD pagado en moneda local";
+const ENGLISH_MOOT_RISK = "el modelo marcó inglés, pero el aviso parece no pedirlo";
 
 const clamp = (n: number) => Math.max(0, Math.min(10, n));
 
@@ -312,6 +322,8 @@ export function decide(
   }
 
   const facts = context.jobFacts;
+  /** Riesgos que agrega el código y que solo informan: se muestran pero no bajan «aplicar personalizado». */
+  const informativos: string[] = [];
 
   /**
    * Salario (D3, ronda 104). Con salario estructurado mensual o anual en USD manda el dato: máximo
@@ -321,7 +333,8 @@ export function decide(
    * piso, bloquea igual (la nota no lo salva); si no, la moneda local es solo riesgo.
    */
   const floor = rules.salary_floor_usd_monthly;
-  const salary = monthlySalaryUsd(facts);
+  // Salario leído del texto del aviso (S-O4): lo controla un tercero; no bloquea ni desmiente al modelo
+  const salary = salaryIsFromApi(facts) ? monthlySalaryUsd(facts) : null;
   if (typeof floor === "number" && floor > 0 && salary && salary.max !== null) {
     if (salary.max < floor) {
       if (!bloqueadores.some((b) => IS_SALARY_TEXT.test(b))) {
@@ -334,15 +347,17 @@ export function decide(
         const b = bloqueadores[i]!;
         if (IS_SALARY_TEXT.test(b) && !MIXED_TOPIC_TEXT.test(b)) bloqueadores.splice(i, 1);
       }
-      const RANGE_RISK = "el rango salarial empieza abajo de tu piso";
       if (salary.min !== null && salary.min < floor && !riesgos.includes(RANGE_RISK)) {
         riesgos.push(RANGE_RISK);
+        informativos.push(RANGE_RISK);
       }
     }
   }
   if (salaryIsLocalCurrency(facts)) {
-    const LOCAL_RISK = "salario en USD pagado en moneda local";
-    if (!riesgos.some((r) => /moneda local|pesos|\bars\b/i.test(r))) riesgos.push(LOCAL_RISK);
+    if (!riesgos.some((r) => /moneda local|pesos|\bars\b/i.test(r))) {
+      riesgos.push(LOCAL_RISK);
+      informativos.push(LOCAL_RISK);
+    }
   }
 
   /** Jornada: la fuente trae horas semanales y superan el máximo del perfil. Sin dato vale el modelo. */
@@ -375,26 +390,32 @@ export function decide(
         : seniorOnly && yearsNow < 3
           ? `el aviso es senior y tenés ~${yearsNow} años`
           : null;
-    if (risk && !riesgos.includes(risk)) riesgos.push(risk);
+    if (risk && !riesgos.includes(risk)) {
+      riesgos.push(risk);
+      informativos.push(risk);
+    }
   }
 
   /**
    * Inglés en un aviso en español que no lo pide (ronda 101): el modelo a veces exige inglés por
-   * costumbre. Si el texto está en español y no pide inglés, ni la penalización ni el riesgo ni un
-   * bloqueador de inglés del modelo valen: es una contradicción en código, como disciplina.
+   * costumbre. Si el texto está en español y no pide inglés, ni la penalización ni el riesgo de
+   * inglés valen. Un aviso puede esconder el pedido (S-O3, ronda 109), así que un BLOQUEADOR de
+   * inglés del modelo no se borra: pasa a riesgo. Los riesgos de inglés sí se sacan.
    */
   const englishMoot = englishIsNotAGap(facts?.jdText ?? null, null);
   if (englishMoot) {
-    for (const list of [bloqueadores, riesgos]) {
-      for (let i = list.length - 1; i >= 0; i--) {
-        const t = list[i]!;
-        if (
-          /ingl[eé]s|english/i.test(t) &&
-          !MIXED_TOPIC_TEXT.test(t.replace(/ingl[eé]s|english/gi, ""))
-        )
-          list.splice(i, 1);
-      }
+    const isPureEnglish = (t: string) =>
+      /ingl[eé]s|english/i.test(t) && !MIXED_TOPIC_TEXT.test(t.replace(/ingl[eé]s|english/gi, ""));
+    let demoted = false;
+    for (let i = bloqueadores.length - 1; i >= 0; i--) {
+      if (!isPureEnglish(bloqueadores[i]!)) continue;
+      bloqueadores.splice(i, 1);
+      demoted = true;
     }
+    for (let i = riesgos.length - 1; i >= 0; i--) {
+      if (isPureEnglish(riesgos[i]!)) riesgos.splice(i, 1);
+    }
+    if (demoted && !riesgos.includes(ENGLISH_MOOT_RISK)) riesgos.push(ENGLISH_MOOT_RISK);
   }
 
   const cloudMust = evaluation.gaps.find((g) => g.nivel === "must" && CLOUD.test(g.skill));
@@ -500,7 +521,12 @@ export function decide(
 
   const scoreFinal = clamp(score);
   let accion = applyLocationCap(
-    decideAction(scoreFinal, bloqueadores, rules.thresholds, riesgos),
+    decideAction(
+      scoreFinal,
+      bloqueadores,
+      rules.thresholds,
+      riesgos.filter((r) => !informativos.includes(r)),
+    ),
     locationOk,
   );
   if (injected && (accion === "aplicar" || accion === "aplicar_personalizado")) accion = "guardar";
@@ -509,6 +535,7 @@ export function decide(
     scoreFinal,
     bloqueadores,
     riesgos,
+    riesgosInformativos: informativos.filter((r) => riesgos.includes(r)),
     adjustments,
     accion,
     locationOk,

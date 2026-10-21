@@ -4,7 +4,12 @@ import { buildChecklist, compileTaxonomy, type CriteriaRules } from "@job-search
 import type * as Pipeline from "@job-search-os/pipeline";
 import type { LlmClient } from "../llm/types";
 import type { Logger } from "../logger";
-import { evaluateForProfile, targetRoleLabelFor, unexpectedError } from "./evaluate-job";
+import {
+  evaluateForProfile,
+  salaryFromApiKinds,
+  targetRoleLabelFor,
+  unexpectedError,
+} from "./evaluate-job";
 
 // buildChecklist real por defecto; un test lo hace tirar una vez (R-O7)
 vi.mock("@job-search-os/pipeline", async (orig) => {
@@ -167,13 +172,42 @@ describe("evaluateForProfile: checklist y jobFacts", () => {
       ...extra,
     });
 
-  it("devuelve el checklist y pasa los hechos del aviso a decide()", async () => {
+  it("salario sin fuente de API (texto o desconocida): no bloquea y el checklist lo marca", async () => {
     const r = await run({
-      jdText: "Python en equipo internacional. Excellent English required.",
+      jdText: "Python en equipo internacional.",
       salaryMinUsd: 2000,
       salaryMaxUsd: 2500,
       salaryPeriod: "mensual",
     });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.decision.bloqueadores).toEqual([]);
+    expect(r.checklist?.items.find((i) => i.id === "salario")).toMatchObject({
+      status: "no_se_sabe",
+      nota: "salario leído del texto del aviso",
+    });
+  });
+
+  it("salaryFromApiKinds: solo si todas las fuentes son de API", () => {
+    expect(salaryFromApiKinds(["getonboard_api"])).toBe(true);
+    expect(salaryFromApiKinds(["greenhouse", "lever", "ashby"])).toBe(true);
+    expect(salaryFromApiKinds([])).toBe(false);
+    expect(salaryFromApiKinds(["getonboard_api", "email_getonboard"])).toBe(false);
+    for (const k of ["email_linkedin", "email_generic", "manual", "remoteok", "jobicy", "other"]) {
+      expect(salaryFromApiKinds([k]), k).toBe(false);
+    }
+  });
+
+  it("devuelve el checklist y pasa los hechos del aviso a decide()", async () => {
+    const r = await run(
+      {
+        jdText: "Python en equipo internacional. Excellent English required.",
+        salaryMinUsd: 2000,
+        salaryMaxUsd: 2500,
+        salaryPeriod: "mensual",
+      },
+      { salaryFromApi: true },
+    );
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.decision.bloqueadores).toHaveLength(1);
