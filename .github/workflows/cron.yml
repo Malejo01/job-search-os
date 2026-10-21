@@ -7,13 +7,14 @@ on:
   schedule:
     - cron: "0 */6 * * *" # UTC: 00, 06, 12, 18 → 21, 03, 09, 15 hora Argentina
     - cron: "30 6 * * 1" # lunes 06:30 UTC (03:30 AR): snapshot de mercado + plan de formación, sin LLM
+    - cron: "0 7 * * 1" # lunes 07:00 UTC (04:00 AR): demo guiada (con LLM, tope de USD 1 por semana)
   workflow_dispatch:
     inputs:
       step:
-        description: "ingest | evaluate | both | market"
+        description: "ingest | evaluate | both | market | demo"
         default: both
         type: choice
-        options: [ingest, evaluate, both, market]
+        options: [ingest, evaluate, both, market, demo]
 
 concurrency:
   group: cron
@@ -26,8 +27,8 @@ jobs:
     env:
       APP_URL: ${{ vars.APP_URL }}
       CRON_SECRET: ${{ secrets.CRON_SECRET }}
-      # El schedule semanal corre solo el paso market; el de 6 h, ingesta + evaluación
-      STEP: ${{ github.event.inputs.step || (github.event.schedule == '30 6 * * 1' && 'market' || 'both') }}
+      # Los schedules semanales corren solo market o demo; el de 6 h, ingesta + evaluación
+      STEP: ${{ github.event.inputs.step || (github.event.schedule == '0 7 * * 1' && 'demo' || (github.event.schedule == '30 6 * * 1' && 'market' || 'both')) }}
     steps:
       - name: Verificar configuración
         run: |
@@ -71,3 +72,27 @@ jobs:
           body=$(curl --silent --show-error --fail-with-body --max-time 120             -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/market") || { echo "::error::market: el endpoint no respondió 2xx"; echo "$body"; exit 1; }
           echo "$body" | jq .
           echo "$body" | jq -e '.ok == true' > /dev/null || { echo "::error::market: la respuesta no trae ok:true"; exit 1; }
+
+      # Demo guiada (ronda 74, #115): 3 perfiles inventados evaluados con el evaluador de producción.
+      # La ruta corta sola en USD 1 por 7 días (DEMO_WEEKLY_CAP_USD); una corrida completa cuesta ~USD 0,26.
+      - name: Demo guiada (3 perfiles inventados)
+        if: env.STEP == 'demo'
+        run: |
+          set -o pipefail
+          body=$(curl --silent --show-error --fail-with-body --max-time 300 \
+            -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/demo") || { echo "::error::demo: el endpoint no respondió 2xx"; echo "$body"; exit 1; }
+          echo "$body" | jq .
+          echo "$body" | jq -e '.ok == true' > /dev/null || { echo "::error::demo: la respuesta no trae ok:true"; exit 1; }
+          case "$(echo "$body" | jq -r '.stopped // empty')" in
+            cap) echo "::warning::demo: frenada por el tope semanal de USD 1; faltan evaluaciones hasta que pase la ventana" ;;
+            running) echo "::warning::demo: otra corrida en curso (llamadas de los últimos 5 minutos); no se evaluó nada" ;;
+            cap_unverifiable) echo "::error::demo: una llamada no quedó registrada en llm_calls; se cortó sin poder verificar el tope"; exit 1 ;;
+            budget) echo "::warning::demo: se acabó el presupuesto de tiempo; falta correrla de nuevo (workflow_dispatch, step=demo)" ;;
+          esac
+          skipped=$(echo "$body" | jq -r '.skipped // 0')
+          evaluated=$(echo "$body" | jq -r '.evaluated // 0')
+          if [ "$skipped" != "0" ]; then echo "::warning::demo: $skipped evaluaciones fallaron"; fi
+          if [ "$evaluated" = "0" ] && [ "$skipped" != "0" ]; then
+            echo "::error::demo: 0 evaluadas y $skipped con error (prompt, modelo o key)"
+            exit 1
+          fi
