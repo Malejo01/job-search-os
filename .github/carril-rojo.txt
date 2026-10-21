@@ -74,6 +74,9 @@ packages/pipeline/src/legal/**
 packages/adapters/src/retention/**
 packages/adapters/src/privacy/**
 packages/adapters/src/storage/**
+packages/pipeline/src/cv/**
+packages/adapters/src/cv/**
+apps/web/lib/cv-file.ts
 
 # Rutas de API, webhooks, ingesta de email, crons y MCP (bordes con secreto propio)
 apps/web/app/api/**

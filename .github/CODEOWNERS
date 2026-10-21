@@ -73,6 +73,9 @@
 /packages/adapters/src/retention/** @Malejo01
 /packages/adapters/src/privacy/** @Malejo01
 /packages/adapters/src/storage/** @Malejo01
+/packages/pipeline/src/cv/** @Malejo01
+/packages/adapters/src/cv/** @Malejo01
+/apps/web/lib/cv-file.ts @Malejo01
 
 # Rutas de API, webhooks, ingesta de email, crons y MCP (bordes con secreto propio)
 /apps/web/app/api/** @Malejo01
