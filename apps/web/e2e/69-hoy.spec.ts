@@ -62,13 +62,14 @@ test.describe("Flujo 69: Hoy", () => {
       status: "evaluada",
       jdText: "Descripción ficticia para el flujo Hoy.",
     });
-    await createEvaluation(high, { score: 8, accion: "aplicar" });
+    // 10 y 9: por encima de lo que dejan sembrado otros specs, así entran en el top 5 de la tarjeta
+    await createEvaluation(high, { score: 10, accion: "aplicar" });
     const low = await createJob({
       title: titleLow,
       status: "evaluada",
       jdText: "Descripción ficticia para el flujo Hoy.",
     });
-    await createEvaluation(low, { score: 5, accion: "guardar" });
+    await createEvaluation(low, { score: 9, accion: "aplicar" });
     jobIds.push(high, low);
   });
 
@@ -111,7 +112,7 @@ test.describe("Flujo 69: Hoy", () => {
     expect(cookie?.sameSite).toBe("Lax");
   });
 
-  test("sin cookie: «mejores de la semana», la de 8 primero y con su acción; con cookie posterior: «Nada nuevo»", async ({
+  test("sin cookie: «mejores de la semana», la de 10 primero y con su acción; con cookie posterior: «Nada nuevo»", async ({
     page,
     context,
     baseURL,
@@ -125,19 +126,26 @@ test.describe("Flujo 69: Hoy", () => {
     const high = card.getByTestId("hoy-nuevo-fila").filter({ hasText: titleHigh });
     const low = card.getByTestId("hoy-nuevo-fila").filter({ hasText: titleLow });
     await expect(high).toBeVisible();
-    await expect(high).toContainText("Puntaje 8");
+    await expect(high).toContainText("Puntaje 10");
     await expect(high).toContainText("Aplicar");
     await expect(low).toBeVisible();
-    await expect(low).toContainText("Guardar");
-    // Por score descendente: la de 8 está arriba de la de 5
-    const yHigh = (await high.boundingBox())?.y ?? Number.POSITIVE_INFINITY;
-    const yLow = (await low.boundingBox())?.y ?? Number.NEGATIVE_INFINITY;
-    expect(yHigh, "la oferta de score 8 va antes que la de 5").toBeLessThan(yLow);
+    await expect(low).toContainText("Puntaje 9");
+    await expect(low).toContainText("Aplicar");
+    // Por score descendente: entre las filas que haya, la de 10 aparece antes que la de 9
+    const rows = await card.getByTestId("hoy-nuevo-fila").allTextContents();
+    const iHigh = rows.findIndex((t) => t.includes(titleHigh));
+    const iLow = rows.findIndex((t) => t.includes(titleLow));
+    expect(iHigh, "la oferta de score 10 está en las filas").toBeGreaterThanOrEqual(0);
+    expect(iHigh, "la oferta de score 10 va antes que la de 9").toBeLessThan(iLow);
     // El link de la fila lleva al detalle
     expect(await high.getByRole("link").getAttribute("href")).toMatch(/^\/jobs\/[0-9a-f-]{36}$/);
 
     // Visita anterior posterior a las evaluaciones: no hay nada nuevo que mostrar
     const stamp = nowSec() + 60;
+    // Espera a que la visita ya haya escrito su cookie: así su respuesta no pisa la del test
+    await expect
+      .poll(async () => (await context.cookies()).some((c) => c.name === VISIT_COOKIE))
+      .toBe(true);
     await context.addCookies([
       { name: VISIT_COOKIE, value: `${E2E_USER_ID}.${stamp}.${stamp}`, url: baseURL! },
     ]);
@@ -156,6 +164,9 @@ test.describe("Flujo 69: Hoy", () => {
     await expect(empty).toContainText(/Nada nuevo desde tu última visita|en cola/);
 
     // Una cookie de otra persona no sirve: vuelve el fallback de la semana
+    await expect
+      .poll(async () => (await context.cookies()).some((c) => c.name === VISIT_COOKIE))
+      .toBe(true);
     await context.addCookies([
       {
         name: VISIT_COOKIE,

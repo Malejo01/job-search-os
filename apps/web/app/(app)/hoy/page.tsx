@@ -1,4 +1,4 @@
-import { ALERT_PORTALS, VISIT_COOKIE } from "@job-search-os/pipeline";
+import { ALERT_PORTALS, VISIT_COOKIE, visitWindow } from "@job-search-os/pipeline";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -13,22 +13,22 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Hoy" };
 
 const VISIT_MAX_AGE = 60 * 60 * 24 * 365;
-/** Formato exacto del valor de la cookie: `${uuid}.${anterior}.${actual}` (epoch en segundos). */
-const STAMP_FORMAT =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.\d{1,12}\.\d{1,12}$/;
 const SHOWN = 5;
 
 const CARD = "flex min-w-0 flex-col gap-2 rounded-md border border-zinc-200 px-3 py-3";
 const LINK =
   "inline-flex min-h-11 w-fit items-center font-medium text-sky-800 underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900";
 
-/** Guarda la marca de visita. Valida el formato y que el usuario del valor sea el de la sesión. */
-async function markVisitAction(stamp: string): Promise<void> {
+/**
+ * Guarda la marca de visita. No recibe nada del cliente: lee la cookie actual y recalcula la marca
+ * con el usuario de la sesión; si no hay que reescribirla (stamp null), no hace nada.
+ */
+async function markVisitAction(): Promise<void> {
   "use server";
   const userId = await requireUserId();
-  if (typeof stamp !== "string" || !STAMP_FORMAT.test(stamp)) return;
-  if (!stamp.startsWith(`${userId}.`)) return;
   const jar = await cookies();
+  const { stamp } = visitWindow(jar.get(VISIT_COOKIE)?.value, userId, new Date());
+  if (stamp === null) return;
   jar.set(VISIT_COOKIE, stamp, {
     httpOnly: true,
     sameSite: "lax",
@@ -38,11 +38,8 @@ async function markVisitAction(stamp: string): Promise<void> {
   });
 }
 
-function formatDate(d: Date): string {
-  return new Intl.DateTimeFormat("es-AR", {
-    dateStyle: "long",
-    timeZone: "America/Argentina/Buenos_Aires",
-  }).format(d);
+function formatDate(d: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat("es-AR", { dateStyle: "long", timeZone }).format(d);
 }
 
 /** «Hoy» (ronda 119): lo que pasó desde tu última visita, en una pantalla. Todo con RLS, sin LLM. */
@@ -55,7 +52,9 @@ export default async function HoyPage() {
       <div>
         <h1 className="text-xl font-semibold">Hoy</h1>
         <p data-testid="hoy-visita" className="text-xs text-zinc-600">
-          {data.since ? `Tu última visita: ${formatDate(data.since)}` : "Primera vez por acá"}
+          {data.since
+            ? `Tu última visita: ${formatDate(data.since, data.timeZone)}`
+            : "Primera vez por acá"}
         </p>
       </div>
       {/* Las tarjetas van en este grid; la de seguimiento se suma entre «Lo nuevo» y «Alertas» */}
@@ -64,7 +63,7 @@ export default async function HoyPage() {
         <AlertsCard data={data} />
         <MarketCard data={data} />
       </div>
-      {data.stamp ? <MarkVisit stamp={data.stamp} action={markVisitAction} /> : null}
+      {data.stamp ? <MarkVisit action={markVisitAction} /> : null}
     </div>
   );
 }
@@ -109,7 +108,7 @@ function NewCard({ data }: { data: HoyData }) {
             ))}
           </ul>
           <Link href="/jobs" className={LINK}>
-            {jobs.length === 1 ? "Ver la oferta" : `Ver las ${jobs.length}`}
+            {jobs.length === 1 ? "Ver la oferta" : "Ver todas mis ofertas"}
           </Link>
         </>
       ) : empty && empty.counts.total === 0 ? (
@@ -144,7 +143,7 @@ function NewCard({ data }: { data: HoyData }) {
         <div data-testid="hoy-vacio-nada-nuevo" className="flex flex-col gap-1 text-sm">
           <p className="text-zinc-700">
             {since
-              ? `Nada nuevo desde tu última visita (${formatDate(since)}).`
+              ? `Nada nuevo desde tu última visita (${formatDate(since, data.timeZone)}).`
               : "Nada nuevo en la última semana."}
           </p>
           <Link href="/jobs?estado=todas" className={LINK}>

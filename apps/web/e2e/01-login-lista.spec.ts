@@ -9,6 +9,7 @@ test.describe("Flujo 1: login → lista con filtros", () => {
     await expect(page).toHaveURL(/\/login/);
 
     await login(page);
+    await page.goto("/jobs");
     await expect(page.getByRole("heading", { name: "Ofertas" })).toBeVisible();
     // Por defecto la lista muestra solo lo sin revisar (JS-061)
     await expect(page.getByLabel("Estado")).toHaveValue("");

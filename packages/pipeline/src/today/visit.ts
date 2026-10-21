@@ -1,6 +1,10 @@
 /** Nombre de la cookie que guarda la última visita a «Hoy». */
 export const VISIT_COOKIE = "jso_ultima_visita";
-/** Pasado este tiempo sin actividad, la siguiente carga cuenta como una visita nueva. */
+/**
+ * Pasado este tiempo desde la última visita marcada, la siguiente carga cuenta como una visita
+ * nueva. La ventana se mide desde esa marca y no se desliza con la actividad: seguir navegando no la
+ * extiende.
+ */
 export const VISIT_WINDOW_MS = 30 * 60 * 1000;
 
 const DAY_MS = 24 * 60 * 60 * 1000;

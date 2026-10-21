@@ -7,6 +7,7 @@ test.describe("Flujo 10: filtro de score libre", () => {
     page,
   }) => {
     await login(page);
+    await page.goto("/jobs");
     const filtro = page.getByLabel("Score mín.");
     await expect(filtro.locator("option")).toHaveText([
       "cualquiera",

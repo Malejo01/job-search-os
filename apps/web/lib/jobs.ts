@@ -125,7 +125,7 @@ export type ListOptions = {
 type Tx = Parameters<Parameters<typeof withUser>[1]>[0];
 
 /** Zona del perfil (profiles.timezone): los atajos "hoy" y "esta semana" se calculan ahí, no en UTC. */
-async function profileTimeZone(tx: Tx): Promise<string> {
+export async function profileTimeZone(tx: Tx): Promise<string> {
   const [row] = await tx.select({ tz: s.profiles.timezone }).from(s.profiles).limit(1);
   return row?.tz || DEFAULT_TIMEZONE;
 }

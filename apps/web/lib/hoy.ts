@@ -1,6 +1,7 @@
 import { visitWindow, type CareerMarket, type RoleKey } from "@job-search-os/pipeline";
 import { getCareerMarket } from "./career-market";
-import { countJobs, listJobs, type JobCounts, type JobListRow } from "./jobs";
+import { withUser } from "./db";
+import { countJobs, listJobs, profileTimeZone, type JobCounts, type JobListRow } from "./jobs";
 import { getTargetRoles, hasReceivedEmail } from "./onboarding";
 import { portalCoverage, type PortalCoverage } from "./portal-coverage";
 
@@ -20,6 +21,8 @@ export type HoyData = {
   careers: HoyCareer[];
   /** Solo cuando no hay ofertas nuevas: para elegir qué decir en el vacío. */
   empty: { counts: JobCounts; hasReceivedEmail: boolean } | null;
+  /** Zona del perfil (o la del pipeline por defecto): con ella se formatean las fechas. */
+  timeZone: string;
 };
 
 /**
@@ -34,7 +37,7 @@ export async function getHoyData(
 ): Promise<HoyData> {
   const { since, stamp } = visitWindow(cookieValue, userId, now);
   const evaluatedSince = since ?? new Date(now.getTime() - 7 * DAY_MS);
-  const [jobs, coverage, roles] = await Promise.all([
+  const [jobs, coverage, roles, timeZone] = await Promise.all([
     listJobs(
       userId,
       {
@@ -49,6 +52,7 @@ export async function getHoyData(
     ),
     portalCoverage(userId, now),
     getTargetRoles(userId),
+    withUser(userId, (tx) => profileTimeZone(tx)),
   ]);
   const [careers, empty] = await Promise.all([
     Promise.all(roles.map(async (role) => ({ role, market: await getCareerMarket(role) }))),
@@ -59,5 +63,5 @@ export async function getHoyData(
         }))
       : Promise.resolve(null),
   ]);
-  return { since, stamp, jobs, coverage, roles, careers, empty };
+  return { since, stamp, jobs, coverage, roles, careers, empty, timeZone };
 }
