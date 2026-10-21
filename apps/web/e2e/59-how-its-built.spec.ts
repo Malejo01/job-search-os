@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 /**
  * Flujo 59 (ronda 96): /en/how-its-built pública, versión en inglés de /como-esta-hecho. Sin sesión
  * carga con h1 en inglés, contenedor lang="en", link de ida y vuelta, canonical y presencia en el sitemap.
+ * Ronda 122: la imagen para compartir es la de inglés (`/opengraph-image-en`).
  * Requiere que /en/how-its-built figure como ruta pública en auth.config.ts (carril rojo).
  */
 test.describe("Flujo 59: how it's built (EN)", () => {
@@ -45,6 +46,20 @@ test.describe("Flujo 59: how it's built (EN)", () => {
     await expect(page).toHaveURL(/\/como-esta-hecho$/);
     await page.getByRole("link", { name: "English" }).click();
     await expect(page).toHaveURL(/\/en\/how-its-built$/);
+  });
+
+  test("la imagen para compartir es la de inglés y carga sin sesión", async ({ page, request }) => {
+    await page.goto("/en/how-its-built");
+    const og = await page.locator('meta[property="og:image"]').getAttribute("content");
+    expect(og, "og:image").not.toBeNull();
+    expect(new URL(og!).pathname).toBe("/opengraph-image-en");
+    await expect(page.locator('meta[name="twitter:image"]')).toHaveAttribute(
+      "content",
+      /\/opengraph-image-en$/,
+    );
+    const res = await request.get("/opengraph-image-en", { maxRedirects: 0 });
+    expect(res.status()).toBe(200);
+    expect(res.headers()["content-type"]).toContain("image/png");
   });
 
   test("está en el sitemap", async ({ request }) => {
