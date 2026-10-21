@@ -1,7 +1,11 @@
 import { schema as s } from "@job-search-os/db";
 import roleSkillsSeed from "@job-search-os/db/seeds/role_skills.json";
 import {
+  ENGLISH_SKILL_SLUGS,
+  MAX_CUSTOM_SKILLS,
   roleSkillsSchema,
+  skillLevelsFromCefr,
+  type CefrLevel,
   type RoleSkillsMap,
   type SkillLevelEntry,
 } from "@job-search-os/pipeline";
@@ -16,12 +20,25 @@ export const ROLE_SKILLS: RoleSkillsMap = roleSkillsSchema.parse(roleSkillsSeed)
  * de `withUser`; la taxonomía (`skills`) es de lectura global.
  */
 
-export type TaxonomySkill = { slug: string; name: string; category: string; aliases: string[] };
+export type TaxonomySkill = {
+  slug: string;
+  name: string;
+  category: string;
+  aliases: string[];
+  /** Una frase de qué es y para qué se usa; null si todavía no tiene. */
+  description: string | null;
+};
+
+/** Skill agregada a mano (`user_skills`): solo de la persona, no entra a la taxonomía ni a ningún prompt. */
+export type CustomSkill = { id: string; name: string; level: number };
 
 export type SkillsPageData = {
   taxonomy: TaxonomySkill[];
   /** slug → nivel declarado (0..3) */
   levels: Record<string, number>;
+  customSkills: CustomSkill[];
+  /** Nivel de inglés del perfil (A1..C2), o null si no lo cargó. */
+  englishCefr: string | null;
   headline: string | null;
   allowedDisciplines: string[];
 };
@@ -34,6 +51,7 @@ export async function getSkillsPageData(userId: string): Promise<SkillsPageData>
         name: s.skills.name,
         category: s.skills.category,
         aliases: s.skills.aliases,
+        description: s.skills.description,
       })
       .from(s.skills)
       .orderBy(s.skills.name);
@@ -42,8 +60,13 @@ export async function getSkillsPageData(userId: string): Promise<SkillsPageData>
       .from(s.skillLevels)
       .innerJoin(s.skills, eq(s.skills.id, s.skillLevels.skillId))
       .where(eq(s.skillLevels.userId, userId));
+    const customSkills = await tx
+      .select({ id: s.userSkills.id, name: s.userSkills.name, level: s.userSkills.level })
+      .from(s.userSkills)
+      .where(eq(s.userSkills.userId, userId))
+      .orderBy(s.userSkills.createdAt);
     const [profile] = await tx
-      .select({ headline: s.profiles.headline })
+      .select({ headline: s.profiles.headline, englishCefr: s.profiles.englishCefr })
       .from(s.profiles)
       .where(eq(s.profiles.userId, userId))
       .limit(1);
@@ -56,9 +79,132 @@ export async function getSkillsPageData(userId: string): Promise<SkillsPageData>
     return {
       taxonomy,
       levels: Object.fromEntries(rows.map((r) => [r.slug, r.level])),
+      customSkills,
+      englishCefr: profile?.englishCefr ?? null,
       headline: profile?.headline ?? null,
       allowedDisciplines: Array.isArray(allowed) ? allowed.map(String) : [],
     };
+  });
+}
+
+/**
+ * Lo que necesita guardar el formulario de skills: la taxonomía (nombres y alias) y las skills
+ * propias ya guardadas, para validar las nuevas; y el inglés actual (CEFR del perfil y niveles de las
+ * dos skills de inglés), para saber si hay que derivarlos.
+ */
+export async function getSkillsSaveContext(userId: string): Promise<{
+  taxonomy: { slug: string; name: string; aliases: string[] }[];
+  existing: { id: string; name: string }[];
+  englishCefr: string | null;
+  englishLevels: Record<string, number>;
+}> {
+  return withUser(userId, async (tx) => {
+    const taxonomy = await tx
+      .select({ slug: s.skills.slug, name: s.skills.name, aliases: s.skills.aliases })
+      .from(s.skills);
+    const existing = await tx
+      .select({ id: s.userSkills.id, name: s.userSkills.name })
+      .from(s.userSkills)
+      .where(eq(s.userSkills.userId, userId));
+    const [profile] = await tx
+      .select({ englishCefr: s.profiles.englishCefr })
+      .from(s.profiles)
+      .where(eq(s.profiles.userId, userId))
+      .limit(1);
+    const english = await tx
+      .select({ slug: s.skills.slug, level: s.skillLevels.level })
+      .from(s.skillLevels)
+      .innerJoin(s.skills, eq(s.skills.id, s.skillLevels.skillId))
+      .where(
+        and(eq(s.skillLevels.userId, userId), inArray(s.skills.slug, [...ENGLISH_SKILL_SLUGS])),
+      );
+    return {
+      taxonomy,
+      existing,
+      englishCefr: profile?.englishCefr ?? null,
+      englishLevels: Object.fromEntries(english.map((r) => [r.slug, r.level])),
+    };
+  });
+}
+
+/** Niveles de `english_intermediate` y `english_fluent` para un nivel CEFR, listos para `saveSkillLevels`. */
+export function englishSkillEntries(cefr: CefrLevel): SkillLevelEntry[] {
+  const levels = skillLevelsFromCefr(cefr);
+  return ENGLISH_SKILL_SLUGS.map((slug) => ({ slug, level: levels[slug] }));
+}
+
+/** Guarda `profiles.english_cefr` (ronda 78); si ya tiene ese valor no toca la fila. */
+export async function saveEnglishCefr(userId: string, cefr: CefrLevel): Promise<void> {
+  await withUser(userId, (tx) =>
+    tx
+      .update(s.profiles)
+      .set({ englishCefr: cefr, updatedAt: sql`now()` })
+      .where(
+        and(eq(s.profiles.userId, userId), sql`${s.profiles.englishCefr} is distinct from ${cefr}`),
+      ),
+  );
+}
+
+/**
+ * Skills propias (`user_skills`), ronda 78: altas, cambios de nivel y bajas en una transacción.
+ * NO tocan la taxonomía global ni ningún prompt: son solo de la persona y se muestran con su nivel.
+ * El nombre ya viene validado por `parseCustomSkillsForm`; el índice único `(user_id, lower(name))`
+ * frena un duplicado por carrera (ese alta se descarta sin error). El tope de 30 se recuenta acá
+ * adentro, con un lock por persona, para que dos envíos a la vez no lo pasen: si se pasa devuelve
+ * `capExceeded` y no escribe nada. Devuelve cuántas filas cambiaron.
+ */
+export async function saveCustomSkills(
+  userId: string,
+  input: {
+    updates: { id: string; level: number }[];
+    additions: { name: string; level: number }[];
+    removeIds: string[];
+  },
+): Promise<{ changed: number; capExceeded: boolean }> {
+  return withUser(userId, async (tx) => {
+    let changed = 0;
+    if (input.additions.length > 0) {
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${userId}::text))`);
+      const rows = await tx
+        .select({ id: s.userSkills.id })
+        .from(s.userSkills)
+        .where(eq(s.userSkills.userId, userId));
+      const removing = new Set(input.removeIds);
+      const kept = rows.filter((r) => !removing.has(r.id)).length;
+      if (kept + input.additions.length > MAX_CUSTOM_SKILLS) {
+        return { changed: 0, capExceeded: true };
+      }
+    }
+    if (input.removeIds.length > 0) {
+      const gone = await tx
+        .delete(s.userSkills)
+        .where(and(eq(s.userSkills.userId, userId), inArray(s.userSkills.id, input.removeIds)))
+        .returning({ id: s.userSkills.id });
+      changed += gone.length;
+    }
+    for (const u of input.updates) {
+      const done = await tx
+        .update(s.userSkills)
+        .set({ level: u.level })
+        .where(
+          and(
+            eq(s.userSkills.userId, userId),
+            eq(s.userSkills.id, u.id),
+            sql`${s.userSkills.level} <> ${u.level}`,
+          ),
+        )
+        .returning({ id: s.userSkills.id });
+      changed += done.length;
+    }
+    if (input.additions.length > 0) {
+      const added = await tx
+        .insert(s.userSkills)
+        .values(input.additions.map((a) => ({ userId, name: a.name, level: a.level })))
+        .onConflictDoNothing()
+        .returning({ id: s.userSkills.id });
+      changed += added.length;
+    }
+    return { changed, capExceeded: false };
   });
 }
 

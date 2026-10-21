@@ -47,6 +47,8 @@ export const USER_TABLES: readonly UserTableEntry[] = [
   { table: "skill_interviews", column: "user_id", action: "delete" },
   { table: "skill_evidence", column: "user_id", action: "delete" },
   { table: "skill_levels", column: "user_id", action: "delete" },
+  // Skills agregadas a mano (ronda 78); también caen por cascade desde users
+  { table: "user_skills", column: "user_id", action: "delete" },
   { table: "talent_platforms", column: "user_id", action: "delete" },
   { table: "contacts", column: "user_id", action: "delete" },
   { table: "applications", column: "user_id", action: "delete" },

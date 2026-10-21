@@ -52,6 +52,8 @@ export default async function OnboardingSkillsPage({
         role={role}
         taxonomy={data.taxonomy}
         levels={data.levels}
+        englishCefr={data.englishCefr}
+        customSkills={data.customSkills}
         submitLabel="Guardar y seguir"
         allowRemove={false}
         skip={{ label: "Saltear por ahora" }}

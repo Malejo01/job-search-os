@@ -5,6 +5,7 @@ import {
   isRoleKey,
   isValidCountry,
   POOL_LIMIT_DEFAULTS,
+  type AcceptedModality,
   type CriteriaRules,
   type RoleKey,
 } from "@job-search-os/pipeline";
@@ -394,6 +395,10 @@ type Profile = {
   prefs: {
     country: string | null;
     remoteOnly: boolean;
+    /** Solo las cuentas existentes los traen; la persona de prueba usa lo derivado de `remoteOnly`. */
+    acceptedModalities?: readonly AcceptedModality[];
+    city?: string | null;
+    jobLanguages?: readonly ("es" | "en")[];
     targetRoles: RoleKey[];
     yearsTotal: number | null;
   };
@@ -401,7 +406,7 @@ type Profile = {
 };
 
 const describeProfile = (who: string, prefs: Profile["prefs"]): string =>
-  `perfil: ${who} · puestos: ${prefs.targetRoles.join(", ") || "(ninguno: solo IT)"} · país ${prefs.country ?? "?"} · ${prefs.remoteOnly ? "solo remoto" : "cualquier modalidad"} · años: ${prefs.yearsTotal ?? "?"}`;
+  `perfil: ${who} · puestos: ${prefs.targetRoles.join(", ") || "(ninguno: solo IT)"} · país ${prefs.country ?? "?"} · ${prefs.acceptedModalities ? `modalidades: ${prefs.acceptedModalities.join("/")}` : prefs.remoteOnly ? "solo remoto" : "cualquier modalidad"} · años: ${prefs.yearsTotal ?? "?"}`;
 
 async function personaProfile(tx: Db, persona: Persona, label: string): Promise<Profile> {
   const slugs = persona.skills.map((k) => k.slug);

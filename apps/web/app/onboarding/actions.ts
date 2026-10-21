@@ -31,10 +31,11 @@ export async function saveOnboardingAction(formData: FormData): Promise<Onboardi
   const userId = await requireUserId();
   const raw: Record<string, string | string[]> = {};
   for (const [k, v] of formData.entries()) if (typeof v === "string") raw[k] = v;
-  // Los puestos llegan como una casilla por puesto; el tope sale del perfil (o del plan gratis)
-  raw.targetRoles = formData
-    .getAll("targetRoles")
-    .filter((v): v is string => typeof v === "string");
+  // Los puestos llegan como una casilla por puesto; el tope sale del perfil (o del plan gratis).
+  // Modalidades y países de autorización también llegan como un valor por opción.
+  for (const k of ["targetRoles", "acceptedModalities", "workAuthOther"]) {
+    raw[k] = formData.getAll(k).filter((v): v is string => typeof v === "string");
+  }
   const parsed = parseOnboarding(raw, await getTargetRolesLimit(userId));
   if (!parsed.ok) {
     return {

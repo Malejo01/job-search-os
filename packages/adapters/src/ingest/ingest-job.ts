@@ -1,11 +1,14 @@
 import { createHash } from "node:crypto";
 import { schema as s, type Db } from "@job-search-os/db";
 import {
+  type AcceptedModality,
   canonicalUrl,
   dedup,
+  detectEnglish,
   externalKey,
   isRoleKey,
   isValidCountry,
+  MODALITIES,
   normalizeCompany,
   normalizeLocation,
   normalizeTitle,
@@ -59,6 +62,14 @@ export type IngestDeps = {
    * el país; sin fila de perfil vale `true`.
    */
   remoteOnly?: boolean;
+  /**
+   * Modalidades que acepta el perfil, ciudad del perfil e idiomas de aviso que acepta (ronda 78).
+   * Si no vienen, se leen del perfil cuando se lee el resto; si el que llama pasó país, remoto y
+   * puestos a mano, rige lo derivado de `remoteOnly` y los dos idiomas.
+   */
+  acceptedModalities?: readonly AcceptedModality[];
+  userCity?: string | null;
+  jobLanguages?: readonly ("es" | "en")[];
   /**
    * Puestos del perfil (profiles.target_roles) para la excepción de oficio del prefiltro
    * (ADR-015, ADR-016). `[]` o `null` = sin puesto; si no viene, se lee del perfil junto con el país.
@@ -254,6 +265,11 @@ export async function loadProfilePrefilterPrefs(
 ): Promise<{
   country: string | null;
   remoteOnly: boolean;
+  /** Modalidades aceptadas; sin perfil, solo remoto. Valores ajenos se descartan. */
+  acceptedModalities: AcceptedModality[];
+  city: string | null;
+  /** Idiomas de aviso aceptados; sin perfil o sin valores válidos, los dos. */
+  jobLanguages: ("es" | "en")[];
   targetRoles: RoleKey[];
   yearsTotal: number | null;
 }> {
@@ -261,6 +277,9 @@ export async function loadProfilePrefilterPrefs(
     .select({
       country: s.profiles.locationCountry,
       remoteOnly: s.profiles.remoteOnly,
+      acceptedModalities: s.profiles.acceptedModalities,
+      city: s.profiles.locationCity,
+      jobLanguages: s.profiles.jobLanguages,
       targetRoles: s.profiles.targetRoles,
       yearsTotal: s.profiles.yearsTotal,
     })
@@ -268,12 +287,37 @@ export async function loadProfilePrefilterPrefs(
     .where(eq(s.profiles.userId, userId))
     .limit(1);
   const country = row?.country?.trim().toUpperCase() ?? null;
+  let modalities: AcceptedModality[] = MODALITIES.filter((m) =>
+    row?.acceptedModalities?.includes(m),
+  );
+  // `remote_only = false` con solo remoto en la lista es un perfil sin sincronizar (anterior al
+  // backfill de la ronda 78): vale lo que decía `remote_only`, que acepta las tres.
+  if (row && !row.remoteOnly && modalities.length <= 1 && !modalities.some((m) => m !== "remoto")) {
+    modalities = [...MODALITIES];
+  }
+  const languages = (["es", "en"] as const).filter((l) => row?.jobLanguages?.includes(l));
   return {
     country: isValidCountry(country) ? country : null,
     remoteOnly: row?.remoteOnly ?? true,
+    acceptedModalities: modalities.length ? modalities : ["remoto"],
+    city: row?.city?.trim() || null,
+    jobLanguages: languages.length ? languages : ["es", "en"],
     targetRoles: validRoleKeys(row?.targetRoles),
     yearsTotal: row?.yearsTotal ?? null,
   };
+}
+
+/**
+ * Idioma del aviso para el prefiltro. Solo se calcula si la persona no acepta los dos idiomas:
+ * si los acepta, el prefiltro no lo mira.
+ */
+export function jdLanguageFor(
+  jobLanguages: readonly ("es" | "en")[],
+  jdText: string | null | undefined,
+  lang?: string | null,
+): "es" | "en" | null {
+  if (jobLanguages.length >= 2) return null;
+  return detectEnglish(jdText ?? null, lang ?? null).language;
 }
 
 /** Las claves válidas de `ROLE_KEYS`, sin repetir y en el orden dado; todo lo demás se descarta. */
@@ -423,11 +467,19 @@ export async function ingestRawJob(raw: RawJob, deps: IngestDeps): Promise<Inges
   let userCountry = deps.userCountry;
   let remoteOnly = deps.remoteOnly;
   let targetRoles = deps.targetRoles;
+  let acceptedModalities = deps.acceptedModalities;
+  let userCity = deps.userCity;
+  let jobLanguages = deps.jobLanguages;
   if (userCountry === undefined || remoteOnly === undefined || targetRoles === undefined) {
     const prefs = await loadProfilePrefilterPrefs(db, userId);
     if (userCountry === undefined) userCountry = prefs.country;
     if (remoteOnly === undefined) remoteOnly = prefs.remoteOnly;
     if (targetRoles === undefined) targetRoles = prefs.targetRoles;
+    // Un `remoteOnly` pasado a mano manda: no se mezcla con las modalidades del perfil
+    if (acceptedModalities === undefined && deps.remoteOnly === undefined)
+      acceptedModalities = prefs.acceptedModalities;
+    if (userCity === undefined) userCity = prefs.city;
+    if (jobLanguages === undefined) jobLanguages = prefs.jobLanguages;
   }
   const pre = prefilter(
     {
@@ -439,9 +491,10 @@ export async function ingestRawJob(raw: RawJob, deps: IngestDeps): Promise<Inges
       candidatesCount: raw.candidatesCount,
       countriesAllowed: raw.countriesAllowed,
       jdText: raw.jdText,
+      jdLanguage: jobLanguages ? jdLanguageFor(jobLanguages, raw.jdText, raw.lang) : null,
     },
     rules,
-    { userCountry, remoteOnly, targetRoles },
+    { userCountry, remoteOnly, acceptedModalities, userCity, jobLanguages, targetRoles },
   );
 
   let status: JobStatus = transition("nueva", pre.pass ? "prefilter_pass" : "prefilter_discard");
@@ -557,6 +610,11 @@ export async function ingestBatch(raws: RawJob[], deps: IngestDeps): Promise<Ing
         userCountry: deps.userCountry === undefined ? prefs.country : deps.userCountry,
         remoteOnly: deps.remoteOnly === undefined ? prefs.remoteOnly : deps.remoteOnly,
         targetRoles: deps.targetRoles === undefined ? prefs.targetRoles : deps.targetRoles,
+        acceptedModalities:
+          deps.acceptedModalities ??
+          (deps.remoteOnly === undefined ? prefs.acceptedModalities : undefined),
+        userCity: deps.userCity === undefined ? prefs.city : deps.userCity,
+        jobLanguages: deps.jobLanguages ?? prefs.jobLanguages,
       };
     } catch (e) {
       // Si falla la lectura, cada job la reintenta por su cuenta y registra su propio error

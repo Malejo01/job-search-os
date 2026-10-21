@@ -63,8 +63,12 @@ export function isRoleKey(v: unknown): v is RoleKey {
 
 export const MIN_ROLE_SKILLS = 8;
 export const MAX_ROLE_SKILLS = 12;
-/** Tope de filas del formulario: la taxonomía tiene 60 skills. */
-export const MAX_SKILL_ENTRIES = 60;
+/**
+ * Tope de filas `level:<slug>` del formulario. Limita lo que se acepta de un envío, no lo que se
+ * muestra: tiene que alcanzar para toda la taxonomía (unas 100 skills, `taxonomy.test.ts` lo vigila)
+ * con holgura para que crezca.
+ */
+export const MAX_SKILL_ENTRIES = 200;
 
 const SKILL_SLUG = /^[a-z][a-z0-9_]{0,39}$/;
 

@@ -259,6 +259,106 @@ describe("prefilter: reglas una por una", () => {
     });
   });
 
+  describe("acceptedModalities (ronda 78)", () => {
+    const hybridOnly = { acceptedModalities: ["remoto", "hibrido"] as const };
+    const onsiteOnly = { acceptedModalities: ["remoto", "presencial"] as const };
+
+    it("híbrido aceptado pasa con el flag; presencial no aceptado se descarta", () => {
+      const ok = prefilter({ ...base, modality: "hibrido" }, rules, hybridOnly);
+      expect(ok).toMatchObject({ pass: true });
+      expect(ok.pass && ok.flags).toContain("modalidad_no_remota");
+      expect(prefilter({ ...base, modality: "presencial" }, rules, hybridOnly)).toMatchObject({
+        pass: false,
+        reason: "modalidad_no_remota",
+      });
+    });
+    it("presencial aceptado pasa; híbrido no aceptado se descarta", () => {
+      expect(prefilter({ ...base, modality: "presencial" }, rules, onsiteOnly).pass).toBe(true);
+      expect(prefilter({ ...base, modality: "hibrido" }, rules, onsiteOnly).pass).toBe(false);
+    });
+    it("señal por título sin modalidad: descarta solo si no acepta ni híbrido ni presencial", () => {
+      const input = { title: "AI Engineer (Híbrido)", modality: "desconocida" } as const;
+      expect(prefilter(input, rules, { acceptedModalities: ["remoto"] }).pass).toBe(false);
+      expect(prefilter(input, rules, onsiteOnly).pass).toBe(true);
+      expect(prefilter(input, rules, hybridOnly).pass).toBe(true);
+    });
+    it("tiene prioridad sobre remoteOnly", () => {
+      const r = prefilter({ ...base, modality: "hibrido" }, rules, {
+        remoteOnly: true,
+        acceptedModalities: ["hibrido"],
+      });
+      expect(r.pass).toBe(true);
+    });
+    it("solo ['remoto'] descarta como siempre", () => {
+      expect(
+        prefilter({ ...base, modality: "hibrido" }, rules, { acceptedModalities: ["remoto"] }).pass,
+      ).toBe(false);
+    });
+  });
+
+  describe("ciudad_distinta", () => {
+    const open = { acceptedModalities: ["remoto", "hibrido", "presencial"] as const };
+    const hybrid = { ...base, modality: "hibrido" } as const;
+    const flagsOf = (r: ReturnType<typeof prefilter>) => (r.pass ? r.flags : []);
+
+    it("la ciudad del aviso no es la del perfil → flag, sin descarte", () => {
+      const r = prefilter({ ...hybrid, locationRaw: "Córdoba, Argentina" }, rules, {
+        ...open,
+        userCity: "Rosario",
+      });
+      expect(r.pass).toBe(true);
+      expect(flagsOf(r)).toContain("ciudad_distinta");
+    });
+    it("compara sin tildes ni mayúsculas", () => {
+      const r = prefilter({ ...hybrid, locationRaw: "CORDOBA, Argentina" }, rules, {
+        ...open,
+        userCity: "Córdoba",
+      });
+      expect(flagsOf(r)).not.toContain("ciudad_distinta");
+    });
+    it("sin ciudad en el perfil, sin ubicación en el aviso o aviso remoto: sin flag", () => {
+      const loc = { locationRaw: "Córdoba, Argentina" };
+      expect(flagsOf(prefilter({ ...hybrid, ...loc }, rules, open))).not.toContain(
+        "ciudad_distinta",
+      );
+      expect(
+        flagsOf(prefilter({ ...hybrid, ...loc }, rules, { ...open, userCity: " " })),
+      ).not.toContain("ciudad_distinta");
+      expect(flagsOf(prefilter(hybrid, rules, { ...open, userCity: "Rosario" }))).not.toContain(
+        "ciudad_distinta",
+      );
+      expect(
+        flagsOf(prefilter({ ...base, ...loc }, rules, { ...open, userCity: "Rosario" })),
+      ).not.toContain("ciudad_distinta");
+    });
+  });
+
+  describe("idioma de las ofertas (ronda 78)", () => {
+    it("aviso en inglés con solo español → descarte", () => {
+      expect(
+        prefilter({ ...base, jdLanguage: "en" }, rules, { jobLanguages: ["es"] }),
+      ).toMatchObject({ pass: false, reason: "idioma_no_aceptado", detail: "aviso en inglés" });
+    });
+    it("aviso en español con solo inglés → descarte", () => {
+      expect(
+        prefilter({ ...base, jdLanguage: "es" }, rules, { jobLanguages: ["en"] }),
+      ).toMatchObject({ pass: false, reason: "idioma_no_aceptado", detail: "aviso en español" });
+    });
+    it("idioma aceptado, desconocido (null o ausente) o sin la opción: pasa", () => {
+      expect(prefilter({ ...base, jdLanguage: "en" }, rules, { jobLanguages: ["en"] }).pass).toBe(
+        true,
+      );
+      expect(prefilter({ ...base, jdLanguage: null }, rules, { jobLanguages: ["es"] }).pass).toBe(
+        true,
+      );
+      expect(prefilter(base, rules, { jobLanguages: ["es"] }).pass).toBe(true);
+      expect(prefilter({ ...base, jdLanguage: "en" }, rules).pass).toBe(true);
+      expect(
+        prefilter({ ...base, jdLanguage: "en" }, rules, { jobLanguages: ["es", "en"] }).pass,
+      ).toBe(true);
+    });
+  });
+
   it("keywords de otra disciplina en el título → descarte (ML engineer, AI eval, IAM, PM...)", () => {
     for (const title of [
       "IAM Engineer SailPoint",

@@ -1,5 +1,6 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import {
+  type AcceptedModality,
   IT_ROLE_KEYS,
   allowsCountry,
   assessPoolTitle,
@@ -15,6 +16,7 @@ import {
   type TitleLevel,
 } from "@job-search-os/pipeline";
 import { and, eq, gte, inArray, isNotNull, isNull, notExists, or, sql } from "drizzle-orm";
+import { jdLanguageFor } from "../ingest/ingest-job";
 import { poolPreScore } from "./usage";
 
 /**
@@ -64,6 +66,10 @@ export type SelectInput = {
   prefs: {
     country: string | null;
     remoteOnly: boolean;
+    /** Ausentes = lo derivado de `remoteOnly` y los dos idiomas (como antes de la ronda 78). */
+    acceptedModalities?: readonly AcceptedModality[];
+    city?: string | null;
+    jobLanguages?: readonly ("es" | "en")[];
     targetRoles: readonly RoleKey[];
     /** No lo usa el prefiltro: decide el descarte `nivel` y la penalidad de Senior/Lead (< 5 años). */
     yearsTotal?: number | null;
@@ -232,9 +238,19 @@ export async function selectPoolCandidates(tx: Db, input: SelectInput): Promise<
         modality: pj.modality,
         candidatesCount: pj.candidatesCount,
         countriesAllowed: pj.countriesAllowed,
+        jdLanguage: prefs.jobLanguages
+          ? jdLanguageFor(prefs.jobLanguages, pj.jdText, pj.lang)
+          : null,
       },
       rules,
-      { userCountry: prefs.country, remoteOnly: prefs.remoteOnly, targetRoles: roles },
+      {
+        userCountry: prefs.country,
+        remoteOnly: prefs.remoteOnly,
+        acceptedModalities: prefs.acceptedModalities,
+        userCity: prefs.city,
+        jobLanguages: prefs.jobLanguages,
+        targetRoles: roles,
+      },
     );
     if (!pre.pass) {
       discarded.push({ row: pj, reason: pre.reason, detail: pre.detail });

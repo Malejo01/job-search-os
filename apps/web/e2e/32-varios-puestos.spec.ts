@@ -140,15 +140,16 @@ test.describe("Flujo 32: varios puestos", () => {
     await chooseRoles(page, ["ux_ui"]);
     await expect(third).toBeDisabled();
 
-    await page.getByLabel(/País de residencia/).selectOption("BR");
-    await page.getByLabel(/Inglés \(nivel CEFR\)/).selectOption("C1");
+    await page.getByLabel(/País de residencia/).fill("BR");
+    await page.getByRole("option", { name: /\(BR\)/ }).click();
+    await page.getByLabel(/Tu nivel de inglés/).selectOption("C1");
     await page.getByLabel(/Años de experiencia/).fill("4");
     await page
       .getByLabel(/Resumen de tu perfil/)
       .fill(
         "Perfil ficticio de la prueba de varios puestos: testing y diseño de producto con cuatro años de experiencia, sin experiencia en móvil.",
       );
-    await page.getByRole("radio", { name: /Sí, solo remoto/ }).check();
+    await page.getByRole("checkbox", { name: "Remoto" }).check();
     await page.getByRole("button", { name: "Guardar y continuar" }).click();
     await page.waitForURL("**/onboarding/skills**");
     await page.getByRole("button", { name: "Saltear por ahora" }).click();

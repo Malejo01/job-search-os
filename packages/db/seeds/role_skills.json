@@ -11,6 +11,7 @@
       "accessibility",
       "rest_apis",
       "ci_cd",
+      "git",
       "ai_coding_tools"
     ]
   },
@@ -43,6 +44,7 @@
       "docker",
       "testing",
       "ci_cd",
+      "git",
       "vercel",
       "supabase"
     ]
@@ -119,6 +121,7 @@
       "typescript",
       "analytics",
       "client_facing",
+      "canva",
       "english_intermediate"
     ]
   },
@@ -134,8 +137,9 @@
       "social_media",
       "growth_marketing",
       "analytics",
-      "excel",
-      "hubspot"
+      "hubspot",
+      "canva",
+      "mailchimp"
     ]
   },
   "producto_proyectos": {
@@ -150,6 +154,8 @@
       "analytics",
       "sql",
       "client_facing",
+      "notion",
+      "trello",
       "english_intermediate"
     ]
   },

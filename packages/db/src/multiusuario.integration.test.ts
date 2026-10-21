@@ -133,6 +133,7 @@ async function seed(id: string, tag: string): Promise<{ jobId: string }> {
                values (${job!.id}, ${skill!.id}, true)`;
   await owner`insert into skill_levels (user_id, skill_id, level, confidence, state)
                values (${id}, ${skill!.id}, 2, 0.5, 'parcial')`;
+  await owner`insert into user_skills (user_id, name, level) values (${id}, 'Herramienta Ficticia', 2)`;
   await owner`insert into skill_evidence (user_id, skill_id, type, description)
                values (${id}, ${skill!.id}, 'otra', 'evidencia ficticia')`;
   await owner`insert into skill_interviews (user_id, skill_id, question) values (${id}, ${skill!.id}, 'Pregunta?')`;

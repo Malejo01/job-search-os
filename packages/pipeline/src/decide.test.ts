@@ -310,6 +310,19 @@ describe("decide(): flag modalidad_no_remota del prefiltro", () => {
   });
 });
 
+describe("decide(): flag ciudad_distinta del prefiltro", () => {
+  it("agrega el riesgo sin bajar el score ni la acción, y no se duplica", () => {
+    const sin = decide({ ...base, score: 9.5 }, rules);
+    const d = decide({ ...base, score: 9.5 }, rules, { prefilterFlags: ["ciudad_distinta"] });
+    expect(d.riesgos).toEqual(["La oferta parece ser en otra ciudad que la de tu perfil"]);
+    expect(d.scoreFinal).toBe(sin.scoreFinal);
+    const dup = decide({ ...base, riesgos: ["Está en otra ciudad"] }, rules, {
+      prefilterFlags: ["ciudad_distinta"],
+    });
+    expect(dup.riesgos).toHaveLength(1);
+  });
+});
+
 describe("decide(): gap de años contra el perfil (JS-052)", () => {
   // Las reglas absolutas (≥ 8 bloquea, 5–7 resta 2) no se tocan: son el criterio del golden.
   // El gap solo agrega un riesgo, nunca baja el score.

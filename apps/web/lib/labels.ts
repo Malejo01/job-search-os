@@ -145,6 +145,8 @@ export function flagLabel(flag: string): string | null {
       return "muchos postulantes";
     case "modalidad_no_remota":
       return "híbrida o presencial";
+    case "ciudad_distinta":
+      return "la ciudad del aviso no es la de tu perfil";
     case "skills_match_high":
       return "buena coincidencia de aptitudes";
     case "volume_recruiting":

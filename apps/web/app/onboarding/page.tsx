@@ -1,9 +1,9 @@
 import {
   CEFR_LEVELS,
   COUNTRY_OPTIONS,
+  ISO_COUNTRY_CODES,
   MAX_SUMMARY_CHARS,
   MIN_SUMMARY_CHARS,
-  OTHER_COUNTRY,
   ROLE_GROUPS,
   TARGET_ROLES_DEFAULT_LIMIT,
 } from "@job-search-os/pipeline";
@@ -54,8 +54,8 @@ export default async function OnboardingPage({
         rolesLimit={rolesLimit}
         defaultRolesLimit={TARGET_ROLES_DEFAULT_LIMIT}
         countries={COUNTRY_OPTIONS}
-        otherCountry={OTHER_COUNTRY}
         cefrLevels={CEFR_LEVELS}
+        countryCodes={ISO_COUNTRY_CODES}
         minSummary={MIN_SUMMARY_CHARS}
         maxSummary={MAX_SUMMARY_CHARS}
       />

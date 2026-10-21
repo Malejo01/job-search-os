@@ -3,1085 +3,792 @@
     "slug": "aws",
     "name": "AWS",
     "category": "cloud",
-    "aliases": [
-      "amazon web services",
-      "lambda",
-      "s3",
-      "eks",
-      "bedrock",
-      "sagemaker",
-      "ec2",
-      "beanstalk",
-      "eventbridge",
-      "step functions",
-      "kinesis",
-      "glue",
-      "athena",
-      "aws lambda"
-    ],
-    "closure_hours": 40
+    "aliases": ["amazon web services", "lambda", "s3", "eks", "bedrock", "sagemaker", "ec2", "beanstalk", "eventbridge", "step functions", "kinesis", "glue", "athena", "aws lambda"],
+    "closure_hours": 40,
+    "description": "AWS: servicios de nube de Amazon para servidores, bases de datos, almacenamiento e IA"
   },
   {
     "slug": "azure",
     "name": "Azure",
     "category": "cloud",
-    "aliases": [
-      "azure openai",
-      "azure ai foundry",
-      "aks",
-      "azure aml",
-      "azure devops"
-    ],
-    "closure_hours": 40
+    "aliases": ["azure openai", "azure ai foundry", "aks", "azure aml", "azure devops"],
+    "closure_hours": 40,
+    "description": "Azure: servicios de nube de Microsoft para alojar aplicaciones, datos y equipos de trabajo"
   },
   {
     "slug": "gcp",
     "name": "Google Cloud",
     "category": "cloud",
-    "aliases": [
-      "gcp",
-      "vertex ai",
-      "vertex"
-    ],
-    "closure_hours": 40
+    "aliases": ["gcp", "vertex ai", "vertex"],
+    "closure_hours": 40,
+    "description": "Google Cloud: servicios de nube de Google para servidores, datos y modelos de IA"
   },
   {
     "slug": "docker",
     "name": "Docker",
     "category": "infra",
-    "aliases": [
-      "containers",
-      "contenedores"
-    ],
-    "closure_hours": 16
+    "aliases": ["containers", "contenedores"],
+    "closure_hours": 16,
+    "description": "Docker: empaqueta una aplicación con todo lo que necesita para correr igual en cualquier equipo"
   },
   {
     "slug": "kubernetes",
     "name": "Kubernetes",
     "category": "infra",
-    "aliases": [
-      "k8s",
-      "eks",
-      "aks",
-      "gke"
-    ],
-    "closure_hours": 40
+    "aliases": ["k8s", "eks", "aks", "gke"],
+    "closure_hours": 40,
+    "description": "Kubernetes: sistema que organiza y escala muchos contenedores de Docker en varios servidores"
   },
   {
     "slug": "ci_cd",
     "name": "CI/CD",
     "category": "infra",
-    "aliases": [
-      "github actions",
-      "jenkins",
-      "argocd",
-      "azure devops pipelines",
-      "gitlab ci",
-      "release management"
-    ],
-    "closure_hours": 16
+    "aliases": ["github actions", "jenkins", "argocd", "azure devops pipelines", "gitlab ci", "release management"],
+    "closure_hours": 16,
+    "description": "CI/CD: automatiza las pruebas y la publicación del código cada vez que alguien lo cambia"
   },
   {
     "slug": "iac",
     "name": "Infraestructura como código",
     "category": "infra",
-    "aliases": [
-      "terraform",
-      "cdk",
-      "aws cdk",
-      "sst",
-      "pulumi"
-    ],
-    "closure_hours": 24
+    "aliases": ["terraform", "cdk", "aws cdk", "sst", "pulumi"],
+    "closure_hours": 24,
+    "description": "Infraestructura como código: se describen servidores y redes en archivos, en vez de armarlos a mano"
   },
   {
     "slug": "testing",
     "name": "Testing automatizado",
     "category": "testing",
-    "aliases": [
-      "unit testing",
-      "integration testing",
-      "e2e",
-      "jest",
-      "vitest",
-      "playwright",
-      "pytest",
-      "tdd"
-    ],
-    "closure_hours": 24
+    "aliases": ["unit testing", "integration testing", "e2e", "jest", "vitest", "playwright", "pytest", "tdd"],
+    "closure_hours": 24,
+    "description": "Testing automatizado: programas que prueban solos que el código funcione y no se rompa al cambiarlo"
   },
   {
     "slug": "llm_evals",
     "name": "Evaluación de sistemas LLM",
     "category": "testing",
-    "aliases": [
-      "evals",
-      "eval harness",
-      "llm-as-judge",
-      "golden dataset",
-      "promptfoo",
-      "dspy",
-      "regression testing de prompts",
-      "eval harnesses",
-      "golden datasets",
-      "evals de llm"
-    ],
-    "closure_hours": 24
+    "aliases": ["evals", "eval harness", "llm-as-judge", "golden dataset", "promptfoo", "dspy", "regression testing de prompts", "eval harnesses", "golden datasets", "evals de llm"],
+    "closure_hours": 24,
+    "description": "Evaluación de sistemas LLM: medir si las respuestas de una IA son correctas y no empeoran con los cambios"
   },
   {
     "slug": "observability",
     "name": "Observabilidad",
     "category": "infra",
-    "aliases": [
-      "logging",
-      "tracing",
-      "alerting",
-      "monitoring",
-      "opentelemetry",
-      "datadog",
-      "sentry"
-    ],
-    "closure_hours": 16
+    "aliases": ["logging", "tracing", "alerting", "monitoring", "opentelemetry", "datadog", "sentry"],
+    "closure_hours": 16,
+    "description": "Observabilidad: registros, métricas y alertas para saber qué le pasa a un sistema en producción"
   },
   {
     "slug": "rag",
     "name": "RAG",
     "category": "ai_core",
-    "aliases": [
-      "retrieval augmented generation",
-      "retrieval",
-      "vector search"
-    ],
-    "closure_hours": 0
+    "aliases": ["retrieval augmented generation", "retrieval", "vector search"],
+    "closure_hours": 0,
+    "description": "RAG: la IA busca en tus documentos antes de responder, para contestar con información propia"
   },
   {
     "slug": "agents",
     "name": "Agentes / workflows agénticos",
     "category": "ai_core",
-    "aliases": [
-      "agentic ai",
-      "multi-agent",
-      "agent workflows",
-      "task decomposition",
-      "agent chaining",
-      "orquestación de agentes",
-      "agentes",
-      "agent frameworks",
-      "multi-paso",
-      "multi-step",
-      "stateful agents",
-      "agentic"
-    ],
-    "closure_hours": 0
+    "aliases": ["agentic ai", "multi-agent", "agent workflows", "task decomposition", "agent chaining", "orquestación de agentes", "agentes", "agent frameworks", "multi-paso", "multi-step", "stateful agents", "agentic"],
+    "closure_hours": 0,
+    "description": "Agentes: sistemas de IA que encadenan pasos y herramientas para cumplir una tarea sin guía constante"
   },
   {
     "slug": "tool_calling",
     "name": "Tool use / function calling",
     "category": "ai_core",
-    "aliases": [
-      "function calling",
-      "tool use",
-      "structured outputs",
-      "tool-use",
-      "tool calling"
-    ],
-    "closure_hours": 0
+    "aliases": ["function calling", "tool use", "structured outputs", "tool-use", "tool calling"],
+    "closure_hours": 0,
+    "description": "Tool use: permitir que un modelo de IA llame funciones o servicios externos y use el resultado"
   },
   {
     "slug": "mcp",
     "name": "MCP",
     "category": "ai_core",
-    "aliases": [
-      "model context protocol",
-      "a2a",
-      "acp"
-    ],
-    "closure_hours": 0
+    "aliases": ["model context protocol", "a2a", "acp"],
+    "closure_hours": 0,
+    "description": "MCP: protocolo abierto para conectar modelos de IA con herramientas y fuentes de datos"
   },
   {
     "slug": "prompt_engineering",
     "name": "Prompt engineering",
     "category": "ai_core",
-    "aliases": [
-      "system prompts",
-      "prompt design"
-    ],
-    "closure_hours": 0
+    "aliases": ["system prompts", "prompt design"],
+    "closure_hours": 0,
+    "description": "Prompt engineering: escribir las instrucciones que se le dan a una IA para obtener buenas respuestas"
   },
   {
     "slug": "guardrails",
     "name": "Guardrails / prompt injection",
     "category": "ai_core",
-    "aliases": [
-      "prompt injection",
-      "policy layers",
-      "human-in-the-loop",
-      "hitl",
-      "mitigación de alucinaciones"
-    ],
-    "closure_hours": 0
+    "aliases": ["prompt injection", "policy layers", "human-in-the-loop", "hitl", "mitigación de alucinaciones"],
+    "closure_hours": 0,
+    "description": "Guardrails: controles que evitan que una IA haga o diga cosas no deseadas, incluidos los engaños por texto"
   },
   {
     "slug": "vector_db",
     "name": "Vector DBs",
     "category": "datos",
-    "aliases": [
-      "pgvector",
-      "pinecone",
-      "faiss",
-      "weaviate",
-      "chroma",
-      "embeddings"
-    ],
-    "closure_hours": 8
+    "aliases": ["pgvector", "pinecone", "faiss", "weaviate", "chroma", "embeddings"],
+    "closure_hours": 8,
+    "description": "Vector DBs: bases de datos que buscan por significado y no por palabras exactas, usadas con IA"
   },
   {
     "slug": "langchain",
     "name": "LangChain / LangGraph",
     "category": "framework",
-    "aliases": [
-      "langgraph",
-      "llamaindex",
-      "semantic kernel",
-      "autogen",
-      "crewai"
-    ],
-    "closure_hours": 16
+    "aliases": ["langgraph", "llamaindex", "semantic kernel", "autogen", "crewai"],
+    "closure_hours": 16,
+    "description": "LangChain / LangGraph: librerías para armar aplicaciones y flujos con modelos de lenguaje"
   },
   {
     "slug": "litellm",
     "name": "LiteLLM",
     "category": "llm_ops",
     "aliases": [],
-    "closure_hours": 4
+    "closure_hours": 4,
+    "description": "LiteLLM: una sola interfaz para usar modelos de IA de distintos proveedores"
   },
   {
     "slug": "fine_tuning",
     "name": "Fine-tuning",
     "category": "ai_core",
-    "aliases": [
-      "lora",
-      "qlora",
-      "peft",
-      "rlhf",
-      "dpo",
-      "unsloth",
-      "deepspeed"
-    ],
-    "closure_hours": 80
+    "aliases": ["lora", "qlora", "peft", "rlhf", "dpo", "unsloth", "deepspeed"],
+    "closure_hours": 80,
+    "description": "Fine-tuning: reentrenar un modelo de IA con datos propios para que se adapte a una tarea"
   },
   {
     "slug": "pytorch",
     "name": "PyTorch / TensorFlow",
     "category": "framework",
-    "aliases": [
-      "tensorflow",
-      "jax",
-      "hugging face",
-      "huggingface"
-    ],
-    "closure_hours": 80
+    "aliases": ["tensorflow", "jax", "hugging face", "huggingface"],
+    "closure_hours": 80,
+    "description": "PyTorch / TensorFlow: librerías para crear y entrenar modelos de aprendizaje automático"
   },
   {
     "slug": "mlops",
     "name": "MLOps",
     "category": "llm_ops",
-    "aliases": [
-      "mlflow",
-      "kubeflow",
-      "aiops",
-      "model monitoring",
-      "drift"
-    ],
-    "closure_hours": 40
+    "aliases": ["mlflow", "kubeflow", "aiops", "model monitoring", "drift"],
+    "closure_hours": 40,
+    "description": "MLOps: llevar modelos de aprendizaje automático a producción y mantenerlos funcionando"
   },
   {
     "slug": "python",
     "name": "Python",
     "category": "lenguaje",
     "aliases": [],
-    "closure_hours": 0
+    "closure_hours": 0,
+    "description": "Python: lenguaje de programación muy usado en datos, automatización, IA y desarrollo web"
   },
   {
     "slug": "python_backend",
     "name": "Python backend (FastAPI/Django/Flask)",
     "category": "framework",
-    "aliases": [
-      "fastapi",
-      "django",
-      "flask",
-      "sqlalchemy",
-      "pydantic",
-      "alembic"
-    ],
-    "closure_hours": 24
+    "aliases": ["fastapi", "django", "flask", "sqlalchemy", "pydantic", "alembic"],
+    "closure_hours": 24,
+    "description": "Python backend: crear el servidor de una aplicación o una API con FastAPI, Django o Flask"
   },
   {
     "slug": "typescript",
     "name": "TypeScript",
     "category": "lenguaje",
-    "aliases": [
-      "ts"
-    ],
-    "closure_hours": 0
+    "aliases": ["ts"],
+    "closure_hours": 0,
+    "description": "TypeScript: JavaScript con tipos, que ayuda a detectar errores antes de ejecutar el código"
   },
   {
     "slug": "nodejs",
     "name": "Node.js",
     "category": "framework",
-    "aliases": [
-      "node",
-      "express"
-    ],
-    "closure_hours": 8
+    "aliases": ["node", "express"],
+    "closure_hours": 8,
+    "description": "Node.js: permite programar el servidor de una aplicación con JavaScript"
   },
   {
     "slug": "nestjs",
     "name": "NestJS",
     "category": "framework",
-    "aliases": [
-      "nest"
-    ],
-    "closure_hours": 16
+    "aliases": ["nest"],
+    "closure_hours": 16,
+    "description": "NestJS: framework de Node.js con estructura ordenada para crear aplicaciones de servidor"
   },
   {
     "slug": "react",
     "name": "React",
     "category": "framework",
-    "aliases": [
-      "react.js"
-    ],
-    "closure_hours": 0
+    "aliases": ["react.js"],
+    "closure_hours": 0,
+    "description": "React: librería de JavaScript para armar pantallas web interactivas a partir de componentes"
   },
   {
     "slug": "nextjs",
     "name": "Next.js",
     "category": "framework",
-    "aliases": [
-      "next",
-      "app router",
-      "ssr",
-      "isr"
-    ],
-    "closure_hours": 0
+    "aliases": ["next", "app router", "ssr", "isr"],
+    "closure_hours": 0,
+    "description": "Next.js: framework sobre React para crear sitios y aplicaciones web con servidor incluido"
   },
   {
     "slug": "angular",
     "name": "Angular",
     "category": "framework",
-    "aliases": [
-      "angular 20"
-    ],
-    "closure_hours": 24
+    "aliases": ["angular 20"],
+    "closure_hours": 24,
+    "description": "Angular: framework de Google para crear aplicaciones web grandes con TypeScript"
   },
   {
     "slug": "vue",
     "name": "Vue",
     "category": "framework",
-    "aliases": [
-      "nuxt"
-    ],
-    "closure_hours": 24
+    "aliases": ["nuxt"],
+    "closure_hours": 24,
+    "description": "Vue: framework de JavaScript para crear interfaces web, más simple de aprender que otros"
   },
   {
     "slug": "react_native",
     "name": "React Native",
     "category": "framework",
-    "aliases": [
-      "expo"
-    ],
-    "closure_hours": 16
+    "aliases": ["expo"],
+    "closure_hours": 16,
+    "description": "React Native: crea aplicaciones para celular (Android e iOS) con React"
   },
   {
     "slug": "dotnet",
     "name": ".NET / C#",
     "category": "framework",
-    "aliases": [
-      ".net core",
-      "c#",
-      "ef core",
-      "entity framework",
-      "asp.net",
-      ".net",
-      "dotnet"
-    ],
-    "closure_hours": 60
+    "aliases": [".net core", "c#", "ef core", "entity framework", "asp.net", ".net", "dotnet"],
+    "closure_hours": 60,
+    "description": ".NET / C#: plataforma y lenguaje de Microsoft para aplicaciones web, de escritorio y empresariales"
   },
   {
     "slug": "java",
     "name": "Java",
     "category": "lenguaje",
-    "aliases": [
-      "spring",
-      "spring boot"
-    ],
-    "closure_hours": 60
+    "aliases": ["spring", "spring boot"],
+    "closure_hours": 60,
+    "description": "Java: lenguaje de programación muy usado en sistemas empresariales, bancos y Android"
   },
   {
     "slug": "go",
     "name": "Go",
     "category": "lenguaje",
-    "aliases": [
-      "golang"
-    ],
-    "closure_hours": 40
+    "aliases": ["golang"],
+    "closure_hours": 40,
+    "description": "Go: lenguaje de Google, rápido y simple, usado para servicios de servidor y herramientas de nube"
   },
   {
     "slug": "sql",
     "name": "SQL / PostgreSQL",
     "category": "datos",
-    "aliases": [
-      "postgres",
-      "postgresql",
-      "sql server",
-      "query plans",
-      "planes de ejecución"
-    ],
-    "closure_hours": 0
+    "aliases": ["postgres", "postgresql", "sql server", "query plans", "planes de ejecución"],
+    "closure_hours": 0,
+    "description": "SQL / PostgreSQL: lenguaje para consultar y modificar datos guardados en bases de datos relacionales"
   },
   {
     "slug": "nosql",
     "name": "NoSQL",
     "category": "datos",
-    "aliases": [
-      "mongodb",
-      "mongoose",
-      "dynamodb",
-      "redis"
-    ],
-    "closure_hours": 16
+    "aliases": ["mongodb", "mongoose", "dynamodb", "redis"],
+    "closure_hours": 16,
+    "description": "NoSQL: bases de datos que no usan tablas fijas, como MongoDB o Redis, para datos flexibles o muy rápidos"
   },
   {
     "slug": "supabase",
     "name": "Supabase",
     "category": "datos",
     "aliases": [],
-    "closure_hours": 0
+    "closure_hours": 0,
+    "description": "Supabase: servicio que ofrece base de datos, usuarios y archivos listos para usar en una aplicación"
   },
   {
     "slug": "vercel",
     "name": "Vercel",
     "category": "cloud",
     "aliases": [],
-    "closure_hours": 0
+    "closure_hours": 0,
+    "description": "Vercel: plataforma para publicar sitios y aplicaciones web, muy usada con Next.js"
   },
   {
     "slug": "microservices",
     "name": "Microservicios",
     "category": "framework",
-    "aliases": [
-      "bff",
-      "distributed systems",
-      "arquitecturas distribuidas",
-      "event driven",
-      "distribuidas",
-      "distributed",
-      "arquitectura distribuida"
-    ],
-    "closure_hours": 24
+    "aliases": ["bff", "distributed systems", "arquitecturas distribuidas", "event driven", "distribuidas", "distributed", "arquitectura distribuida"],
+    "closure_hours": 24,
+    "description": "Microservicios: dividir un sistema grande en servicios pequeños que se comunican entre sí"
   },
   {
     "slug": "clean_architecture",
     "name": "Clean / Hexagonal Architecture",
     "category": "framework",
-    "aliases": [
-      "hexagonal",
-      "ports and adapters",
-      "puertos y adaptadores",
-      "ddd"
-    ],
-    "closure_hours": 16
+    "aliases": ["hexagonal", "ports and adapters", "puertos y adaptadores", "ddd"],
+    "closure_hours": 16,
+    "description": "Arquitectura limpia: organizar el código para separar la lógica del negocio de las herramientas externas"
   },
   {
     "slug": "rest_apis",
     "name": "REST APIs",
     "category": "framework",
-    "aliases": [
-      "rest",
-      "webhooks",
-      "api design",
-      "rate limiting",
-      "auth"
-    ],
-    "closure_hours": 0
+    "aliases": ["rest", "webhooks", "api design", "rate limiting", "auth"],
+    "closure_hours": 0,
+    "description": "REST APIs: la forma habitual en que dos programas se piden y se envían datos por internet"
   },
   {
     "slug": "etl",
     "name": "Pipelines de datos / ETL",
     "category": "datos",
-    "aliases": [
-      "data pipelines",
-      "etl",
-      "data engineering",
-      "pipelines de datos",
-      "data pipeline"
-    ],
-    "closure_hours": 0
+    "aliases": ["data pipelines", "etl", "data engineering", "pipelines de datos", "data pipeline"],
+    "closure_hours": 0,
+    "description": "Pipelines de datos / ETL: extraer datos de varias fuentes, transformarlos y cargarlos donde se analizan"
   },
   {
     "slug": "snowflake",
     "name": "Snowflake / Databricks",
     "category": "datos",
-    "aliases": [
-      "databricks",
-      "data warehouse",
-      "spark",
-      "kafka"
-    ],
-    "closure_hours": 24
+    "aliases": ["databricks", "data warehouse", "spark", "kafka"],
+    "closure_hours": 24,
+    "description": "Snowflake / Databricks: plataformas en la nube para guardar y analizar grandes volúmenes de datos"
   },
   {
     "slug": "n8n",
     "name": "n8n / automatización",
     "category": "framework",
-    "aliases": [
-      "zapier",
-      "make",
-      "automation workflows"
-    ],
-    "closure_hours": 0
+    "aliases": ["zapier", "make", "automation workflows"],
+    "closure_hours": 0,
+    "description": "n8n / automatización: conectar aplicaciones y armar tareas automáticas sin programar todo a mano"
   },
   {
     "slug": "ai_coding_tools",
     "name": "Herramientas de IA para desarrollar",
     "category": "ai_core",
-    "aliases": [
-      "claude code",
-      "cursor",
-      "copilot",
-      "codex",
-      "gemini cli",
-      "factory",
-      "droid",
-      "ai coding assistants",
-      "codigo ai",
-      "código ai",
-      "coding assistants"
-    ],
-    "closure_hours": 0
+    "aliases": ["claude code", "cursor", "copilot", "codex", "gemini cli", "factory", "droid", "ai coding assistants", "codigo ai", "código ai", "coding assistants"],
+    "closure_hours": 0,
+    "description": "Herramientas de IA para desarrollar: asistentes como Copilot o Claude Code que sugieren y escriben código"
   },
   {
     "slug": "multimodal",
     "name": "Modelos multimodales",
     "category": "ai_core",
-    "aliases": [
-      "vision",
-      "image generation",
-      "video generation",
-      "computer vision"
-    ],
-    "closure_hours": 16
+    "aliases": ["vision", "image generation", "video generation", "computer vision"],
+    "closure_hours": 16,
+    "description": "Modelos multimodales: IA que trabaja con imágenes, audio o video además de texto"
   },
   {
     "slug": "seo",
     "name": "SEO técnico",
     "category": "dominio",
-    "aliases": [
-      "core web vitals",
-      "lighthouse",
-      "json-ld",
-      "hreflang",
-      "gtm"
-    ],
-    "closure_hours": 16
+    "aliases": ["core web vitals", "lighthouse", "json-ld", "hreflang", "gtm"],
+    "closure_hours": 16,
+    "description": "SEO técnico: mejorar un sitio para que aparezca mejor en los resultados de Google"
   },
   {
     "slug": "growth_marketing",
     "name": "Growth / marketing",
     "category": "dominio",
-    "aliases": [
-      "paid media",
-      "cro",
-      "lifecycle",
-      "funnels",
-      "revops",
-      "gtm",
-      "growth",
-      "marketing"
-    ],
-    "closure_hours": 16
+    "aliases": ["paid media", "cro", "lifecycle", "funnels", "revops", "gtm", "growth", "marketing"],
+    "closure_hours": 16,
+    "description": "Growth / marketing: probar y medir acciones para conseguir más usuarios o clientes"
   },
   {
     "slug": "payments",
     "name": "Medios de pago",
     "category": "dominio",
-    "aliases": [
-      "iso 8583",
-      "pci dss",
-      "tokenización",
-      "cards",
-      "tarjetas",
-      "payments"
-    ],
-    "closure_hours": 40
+    "aliases": ["iso 8583", "pci dss", "tokenización", "cards", "tarjetas", "payments"],
+    "closure_hours": 40,
+    "description": "Medios de pago: cómo se procesan los pagos con tarjeta y qué normas de seguridad rigen"
   },
   {
     "slug": "iam",
     "name": "IAM / identidad",
     "category": "dominio",
-    "aliases": [
-      "okta",
-      "oidc",
-      "jwt",
-      "sailpoint",
-      "saviynt",
-      "iga",
-      "entra id",
-      "rbac",
-      "sod",
-      "identity"
-    ],
-    "closure_hours": 24
+    "aliases": ["okta", "oidc", "jwt", "sailpoint", "saviynt", "iga", "entra id", "rbac", "sod", "identity"],
+    "closure_hours": 24,
+    "description": "IAM / identidad: controlar quién es cada usuario y a qué sistemas puede entrar"
   },
   {
     "slug": "security",
     "name": "Ciberseguridad",
     "category": "dominio",
-    "aliases": [
-      "red-teaming",
-      "owasp",
-      "seguridad",
-      "security",
-      "ciberseguridad"
-    ],
-    "closure_hours": 40
+    "aliases": ["red-teaming", "owasp", "seguridad", "security", "ciberseguridad"],
+    "closure_hours": 40,
+    "description": "Ciberseguridad: proteger sistemas y datos frente a ataques y accesos indebidos"
   },
   {
     "slug": "english_intermediate",
     "name": "Inglés intermedio (B1-B2)",
     "category": "idioma",
-    "aliases": [
-      "upper-intermediate",
-      "conversational english"
-    ],
-    "closure_hours": 0
+    "aliases": ["upper-intermediate", "conversational english"],
+    "closure_hours": 0,
+    "description": "Inglés intermedio (B1-B2): leer documentación y participar en reuniones con algunos errores"
   },
   {
     "slug": "english_fluent",
     "name": "Inglés avanzado/fluido (C1+)",
     "category": "idioma",
-    "aliases": [
-      "fluent",
-      "excellent english",
-      "highest level",
-      "proficient",
-      "native"
-    ],
-    "closure_hours": 200
+    "aliases": ["fluent", "excellent english", "highest level", "proficient", "native"],
+    "closure_hours": 200,
+    "description": "Inglés avanzado (C1 o más): trabajar todo el día en inglés sin dificultad"
   },
   {
     "slug": "client_facing",
     "name": "Client-facing / explicar a no técnicos",
     "category": "soft",
-    "aliases": [
-      "discovery",
-      "stakeholders",
-      "communication",
-      "documentación para no técnicos"
-    ],
-    "closure_hours": 0
+    "aliases": ["discovery", "stakeholders", "communication", "documentación para no técnicos"],
+    "closure_hours": 0,
+    "description": "Client-facing: hablar con clientes y explicar temas técnicos a personas que no son técnicas"
   },
   {
     "slug": "leadership",
     "name": "Liderazgo técnico / gestión de personas",
     "category": "soft",
-    "aliases": [
-      "mentoring",
-      "tech lead",
-      "people management",
-      "referente técnico",
-      "gestión de personas",
-      "gestion de personas",
-      "liderazgo"
-    ],
-    "closure_hours": 40
+    "aliases": ["mentoring", "tech lead", "people management", "referente técnico", "gestión de personas", "gestion de personas", "liderazgo"],
+    "closure_hours": 40,
+    "description": "Liderazgo técnico: guiar a otras personas del equipo, repartir tareas y tomar decisiones técnicas"
   },
   {
     "slug": "salesforce",
     "name": "Salesforce / CRM",
     "category": "dominio",
-    "aliases": [
-      "apollo",
-      "crm"
-    ],
-    "closure_hours": 16
+    "aliases": ["apollo", "crm"],
+    "closure_hours": 16,
+    "description": "Salesforce / CRM: sistema para registrar clientes, oportunidades de venta y su seguimiento"
   },
   {
     "slug": "amazon_connect",
     "name": "Amazon Connect / contact center",
     "category": "dominio",
-    "aliases": [
-      "lex",
-      "cxe"
-    ],
-    "closure_hours": 40
+    "aliases": ["lex", "cxe"],
+    "closure_hours": 40,
+    "description": "Amazon Connect: central de atención al cliente en la nube de Amazon"
   },
   {
     "slug": "analytics",
     "name": "Product analytics",
     "category": "datos",
-    "aliases": [
-      "mixpanel",
-      "amplitude",
-      "event tracking"
-    ],
-    "closure_hours": 8
+    "aliases": ["mixpanel", "amplitude", "event tracking"],
+    "closure_hours": 8,
+    "description": "Product analytics: medir cómo usa la gente un producto, con herramientas como Mixpanel o Amplitude"
   },
   {
     "slug": "accessibility",
     "name": "Accesibilidad (WCAG)",
     "category": "framework",
-    "aliases": [
-      "wcag",
-      "a11y",
-      "accesibilidad",
-      "accesibilidad web",
-      "wai-aria",
-      "screen reader",
-      "lectores de pantalla"
-    ],
-    "closure_hours": 8
+    "aliases": ["wcag", "a11y", "accesibilidad", "accesibilidad web", "wai-aria", "screen reader", "lectores de pantalla"],
+    "closure_hours": 8,
+    "description": "Accesibilidad (WCAG): lograr que un sitio lo pueda usar cualquier persona, incluso con discapacidad"
   },
   {
     "slug": "figma",
     "name": "Figma",
     "category": "dominio",
-    "aliases": [
-      "figjam",
-      "figma dev mode"
-    ],
-    "closure_hours": 8
+    "aliases": ["figjam", "figma dev mode"],
+    "closure_hours": 8,
+    "description": "Figma: herramienta para diseñar pantallas y prototipos que se comparte y edita en equipo"
   },
   {
     "slug": "ux_research",
     "name": "Investigación UX",
     "category": "dominio",
-    "aliases": [
-      "user research",
-      "investigación de usuarios",
-      "investigacion de usuarios",
-      "usability testing",
-      "tests de usabilidad",
-      "user interviews",
-      "entrevistas a usuarios"
-    ],
-    "closure_hours": 24
+    "aliases": ["user research", "investigación de usuarios", "investigacion de usuarios", "usability testing", "tests de usabilidad", "user interviews", "entrevistas a usuarios"],
+    "closure_hours": 24,
+    "description": "Investigación UX: entrevistar y observar usuarios para entender qué necesitan y qué les cuesta"
   },
   {
     "slug": "design_systems",
     "name": "Design systems",
     "category": "dominio",
-    "aliases": [
-      "design system",
-      "sistema de diseño",
-      "sistemas de diseño",
-      "design tokens"
-    ],
-    "closure_hours": 16
+    "aliases": ["design system", "sistema de diseño", "sistemas de diseño", "design tokens"],
+    "closure_hours": 16,
+    "description": "Design systems: conjunto de componentes y reglas de diseño reutilizables en todo un producto"
   },
   {
     "slug": "prototyping",
     "name": "Prototipado",
     "category": "dominio",
-    "aliases": [
-      "wireframes",
-      "wireframe",
-      "wireframing",
-      "mockups",
-      "prototipos interactivos",
-      "figma prototype"
-    ],
-    "closure_hours": 8
+    "aliases": ["wireframes", "wireframe", "wireframing", "mockups", "prototipos interactivos", "figma prototype"],
+    "closure_hours": 8,
+    "description": "Prototipado: armar maquetas de una pantalla o flujo para probarlo antes de programarlo"
   },
   {
     "slug": "redes_it",
     "name": "Redes (TCP/IP, DNS, VPN)",
     "category": "infra",
-    "aliases": [
-      "tcp/ip",
-      "dns",
-      "dhcp",
-      "vpn",
-      "lan",
-      "wan",
-      "cisco",
-      "redes de datos",
-      "redes de computadoras",
-      "redes lan",
-      "administración de redes",
-      "administracion de redes",
-      "network administration",
-      "network administrator"
-    ],
-    "closure_hours": 24
+    "aliases": ["tcp/ip", "dns", "dhcp", "vpn", "lan", "wan", "cisco", "redes de datos", "redes de computadoras", "redes lan", "administración de redes", "administracion de redes", "network administration", "network administrator"],
+    "closure_hours": 24,
+    "description": "Redes: cómo se conectan los equipos (TCP/IP, DNS, VPN) y cómo se resuelven problemas de conexión"
   },
   {
     "slug": "windows_server",
     "name": "Windows Server",
     "category": "infra",
-    "aliases": [
-      "windows server 2016",
-      "windows server 2019",
-      "windows server 2022",
-      "gpo",
-      "group policy",
-      "hyper-v"
-    ],
-    "closure_hours": 24
+    "aliases": ["windows server 2016", "windows server 2019", "windows server 2022", "gpo", "group policy", "hyper-v"],
+    "closure_hours": 24,
+    "description": "Windows Server: sistema de Microsoft para administrar servidores, usuarios y recursos de una empresa"
   },
   {
     "slug": "linux_admin",
     "name": "Administración Linux",
     "category": "infra",
-    "aliases": [
-      "linux server",
-      "linux servers",
-      "servidores linux",
-      "linux system administration",
-      "ubuntu server",
-      "red hat",
-      "rhel",
-      "centos",
-      "debian",
-      "shell scripting",
-      "sysadmin",
-      "administración de linux",
-      "administracion de linux"
-    ],
-    "closure_hours": 24
+    "aliases": ["linux server", "linux servers", "servidores linux", "linux system administration", "ubuntu server", "red hat", "rhel", "centos", "debian", "shell scripting", "sysadmin", "administración de linux", "administracion de linux"],
+    "closure_hours": 24,
+    "description": "Administración Linux: instalar, configurar y mantener servidores que usan Linux"
   },
   {
     "slug": "active_directory",
     "name": "Active Directory",
     "category": "infra",
-    "aliases": [
-      "directorio activo",
-      "domain controller",
-      "controlador de dominio"
-    ],
-    "closure_hours": 16
+    "aliases": ["directorio activo", "domain controller", "controlador de dominio"],
+    "closure_hours": 16,
+    "description": "Active Directory: servicio de Microsoft para administrar usuarios, equipos y permisos de una red"
   },
   {
     "slug": "itil",
     "name": "ITIL / gestión de servicios",
     "category": "dominio",
-    "aliases": [
-      "itil 4",
-      "itil v4",
-      "itsm",
-      "it service management",
-      "gestión de incidentes",
-      "gestion de incidentes",
-      "incident management"
-    ],
-    "closure_hours": 16
+    "aliases": ["itil 4", "itil v4", "itsm", "it service management", "gestión de incidentes", "gestion de incidentes", "incident management"],
+    "closure_hours": 16,
+    "description": "ITIL: conjunto de buenas prácticas para gestionar los servicios y los incidentes de TI"
   },
   {
     "slug": "help_desk",
     "name": "Help desk / mesa de ayuda",
     "category": "dominio",
-    "aliases": [
-      "helpdesk",
-      "mesa de ayuda",
-      "service desk",
-      "jira service management",
-      "zendesk",
-      "freshdesk",
-      "glpi",
-      "soporte técnico",
-      "soporte tecnico",
-      "technical support"
-    ],
-    "closure_hours": 8
+    "aliases": ["helpdesk", "mesa de ayuda", "service desk", "jira service management", "zendesk", "freshdesk", "glpi", "soporte técnico", "soporte tecnico", "technical support"],
+    "closure_hours": 8,
+    "description": "Help desk: atender consultas y problemas técnicos de usuarios, con un sistema de tickets"
   },
   {
     "slug": "excel",
     "name": "Excel",
     "category": "datos",
-    "aliases": [
-      "microsoft excel",
-      "tablas dinámicas",
-      "tablas dinamicas",
-      "pivot tables",
-      "vlookup",
-      "buscarv",
-      "google sheets",
-      "hojas de cálculo",
-      "hojas de calculo",
-      "spreadsheets",
-      "vba"
-    ],
-    "closure_hours": 8
+    "aliases": ["microsoft excel", "tablas dinámicas", "tablas dinamicas", "pivot tables", "vlookup", "buscarv", "google sheets", "hojas de cálculo", "hojas de calculo", "spreadsheets", "vba"],
+    "closure_hours": 8,
+    "description": "Excel: planillas de cálculo para ordenar datos, hacer cuentas, tablas dinámicas y gráficos"
   },
   {
     "slug": "power_bi",
     "name": "Power BI",
     "category": "datos",
-    "aliases": [
-      "powerbi",
-      "dax",
-      "power query"
-    ],
-    "closure_hours": 16
+    "aliases": ["powerbi", "dax", "power query"],
+    "closure_hours": 16,
+    "description": "Power BI: herramienta de Microsoft para armar tableros e informes con datos"
   },
   {
     "slug": "tableau",
     "name": "Tableau / Looker",
     "category": "datos",
-    "aliases": [
-      "looker",
-      "looker studio",
-      "data studio",
-      "qlik",
-      "qlikview",
-      "metabase"
-    ],
-    "closure_hours": 16
+    "aliases": ["looker", "looker studio", "data studio", "qlik", "qlikview", "metabase"],
+    "closure_hours": 16,
+    "description": "Tableau / Looker: herramientas para visualizar datos y armar tableros interactivos"
   },
   {
     "slug": "statistics",
     "name": "Estadística",
     "category": "datos",
-    "aliases": [
-      "estadistica",
-      "statistics",
-      "statistical analysis",
-      "análisis estadístico",
-      "analisis estadistico"
-    ],
-    "closure_hours": 24
+    "aliases": ["estadistica", "statistics", "statistical analysis", "análisis estadístico", "analisis estadistico"],
+    "closure_hours": 24,
+    "description": "Estadística: analizar datos para sacar conclusiones, medir variación y comparar resultados"
   },
   {
     "slug": "google_ads",
     "name": "Google Ads (SEM)",
     "category": "dominio",
     "aliases": ["adwords", "google adwords", "search engine marketing", "search ads", "performance max"],
-    "closure_hours": 16
+    "closure_hours": 16,
+    "description": "Google Ads: publicar anuncios pagos en el buscador de Google y en otros sitios"
   },
   {
     "slug": "meta_ads",
     "name": "Meta Ads",
     "category": "dominio",
     "aliases": ["facebook ads", "instagram ads", "meta ads manager", "meta business suite", "facebook business manager"],
-    "closure_hours": 16
+    "closure_hours": 16,
+    "description": "Meta Ads: publicar anuncios pagos en Facebook e Instagram"
   },
   {
     "slug": "ga4",
     "name": "Google Analytics (GA4)",
     "category": "datos",
     "aliases": ["google analytics", "google analytics 4", "universal analytics"],
-    "closure_hours": 12
+    "closure_hours": 12,
+    "description": "Google Analytics (GA4): mide las visitas a un sitio y qué hace la gente en él"
   },
   {
     "slug": "email_marketing",
     "name": "Email marketing",
     "category": "dominio",
-    "aliases": ["mailchimp", "klaviyo", "newsletter", "newsletters", "email automation", "marketing automation", "campañas de email"],
-    "closure_hours": 12
+    "aliases": ["klaviyo", "newsletter", "newsletters", "email automation", "marketing automation", "campañas de email"],
+    "closure_hours": 12,
+    "description": "Email marketing: enviar campañas y newsletters por correo a una lista de contactos"
   },
   {
     "slug": "copywriting",
     "name": "Copywriting",
     "category": "dominio",
     "aliases": ["copywriter", "redacción publicitaria", "redaccion publicitaria", "content writing", "redacción de contenidos", "redaccion de contenidos"],
-    "closure_hours": 16
+    "closure_hours": 16,
+    "description": "Copywriting: escribir textos para vender o convencer, en avisos, páginas y mensajes"
   },
   {
     "slug": "social_media",
     "name": "Redes sociales (social media)",
     "category": "dominio",
     "aliases": ["social media", "community management", "community manager", "instagram", "tiktok", "redes sociales"],
-    "closure_hours": 12
+    "closure_hours": 12,
+    "description": "Redes sociales: publicar contenido y conversar con la comunidad en Instagram, TikTok y otras"
   },
   {
     "slug": "product_management",
     "name": "Product management",
     "category": "dominio",
     "aliases": ["product manager", "product owner", "gestión de producto", "gestion de producto", "gestión de productos", "gestion de productos"],
-    "closure_hours": 24
+    "closure_hours": 24,
+    "description": "Product management: decidir qué se construye y en qué orden, entre usuarios, negocio y equipo técnico"
   },
   {
     "slug": "scrum_agile",
     "name": "Scrum / Agile",
     "category": "dominio",
     "aliases": ["scrum", "agile", "kanban", "sprint planning", "scrum master", "metodologías ágiles", "metodologias agiles"],
-    "closure_hours": 16
+    "closure_hours": 16,
+    "description": "Scrum / Agile: formas de organizar el trabajo en ciclos cortos, con tareas y reuniones de seguimiento"
   },
   {
     "slug": "jira",
     "name": "Jira",
     "category": "dominio",
     "aliases": ["jira software", "atlassian", "confluence"],
-    "closure_hours": 8
+    "closure_hours": 8,
+    "description": "Jira: herramienta para organizar tareas y errores de un equipo, muy usada en desarrollo"
   },
   {
     "slug": "roadmap",
     "name": "Roadmap de producto",
     "category": "dominio",
     "aliases": ["product roadmap", "roadmapping", "hoja de ruta", "priorización de producto", "priorizacion de producto"],
-    "closure_hours": 12
+    "closure_hours": 12,
+    "description": "Roadmap de producto: plan de qué se hará y cuándo, ordenado por prioridad"
   },
   {
     "slug": "product_discovery",
     "name": "Product discovery",
     "category": "dominio",
     "aliases": ["continuous discovery", "descubrimiento de producto", "jobs to be done", "jtbd"],
-    "closure_hours": 16
+    "closure_hours": 16,
+    "description": "Product discovery: investigar qué problema vale la pena resolver antes de construir algo"
   },
   {
     "slug": "sourcing",
     "name": "Sourcing de talento",
     "category": "dominio",
     "aliases": ["talent sourcing", "boolean search", "búsqueda booleana", "busqueda booleana", "headhunting"],
-    "closure_hours": 12
+    "closure_hours": 12,
+    "description": "Sourcing de talento: buscar candidatos antes de que se postulen, en LinkedIn y otras fuentes"
   },
   {
     "slug": "interviewing",
     "name": "Entrevistas",
     "category": "dominio",
     "aliases": ["entrevistas por competencias", "entrevistas técnicas", "entrevistas tecnicas", "behavioral interviews", "technical screening"],
-    "closure_hours": 12
+    "closure_hours": 12,
+    "description": "Entrevistas: conducir entrevistas de selección para evaluar a candidatos de forma justa"
   },
   {
     "slug": "ats",
     "name": "ATS (seguimiento de candidatos)",
     "category": "dominio",
     "aliases": ["applicant tracking system", "sistema de seguimiento de candidatos", "greenhouse", "workable", "teamtailor"],
-    "closure_hours": 8
+    "closure_hours": 8,
+    "description": "ATS: sistema donde una empresa recibe, ordena y sigue las candidaturas de un proceso de selección"
   },
   {
     "slug": "employer_branding",
     "name": "Employer branding",
     "category": "dominio",
     "aliases": ["marca empleadora", "employer brand", "candidate experience"],
-    "closure_hours": 16
+    "closure_hours": 16,
+    "description": "Employer branding: cómo una empresa se muestra como lugar de trabajo para atraer personas"
   },
   {
     "slug": "linkedin_recruiter",
     "name": "LinkedIn Recruiter",
     "category": "dominio",
     "aliases": ["linkedin talent solutions", "linkedin talent", "linkedin sourcing"],
-    "closure_hours": 8
+    "closure_hours": 8,
+    "description": "Herramienta de LinkedIn para buscar y contactar candidatos en un proceso de selección"
   },
   {
     "slug": "hubspot",
     "name": "HubSpot",
     "category": "dominio",
     "aliases": ["hubspot crm", "hubspot marketing", "hubspot sales"],
-    "closure_hours": 12
+    "closure_hours": 12,
+    "description": "HubSpot: plataforma de CRM, marketing y ventas para gestionar contactos y campañas"
   },
   {
     "slug": "customer_onboarding",
     "name": "Onboarding de clientes",
     "category": "dominio",
     "aliases": ["customer onboarding", "client onboarding", "implementación de clientes", "implementacion de clientes"],
-    "closure_hours": 12
+    "closure_hours": 12,
+    "description": "Onboarding de clientes: acompañar a un cliente nuevo hasta que empieza a usar el producto"
   },
   {
     "slug": "churn_retention",
     "name": "Churn y retención",
     "category": "dominio",
     "aliases": ["churn", "retención de clientes", "retencion de clientes", "customer retention", "net promoter score", "renovaciones"],
-    "closure_hours": 16
+    "closure_hours": 16,
+    "description": "Churn y retención: medir por qué los clientes se van y qué hacer para que se queden"
+  },
+  {
+    "slug": "git",
+    "name": "Git / GitHub",
+    "category": "infra",
+    "aliases": ["github", "gitlab", "bitbucket"],
+    "closure_hours": 8,
+    "description": "Git / GitHub: control de versiones para guardar el historial del código y trabajar en equipo"
+  },
+  {
+    "slug": "canva",
+    "name": "Canva",
+    "category": "dominio",
+    "aliases": [],
+    "closure_hours": 4,
+    "description": "Canva: editor online de diseño para armar posts, presentaciones y piezas gráficas con plantillas"
+  },
+  {
+    "slug": "capcut",
+    "name": "CapCut",
+    "category": "dominio",
+    "aliases": [],
+    "closure_hours": 4,
+    "description": "CapCut: editor de video para celular y PC, muy usado para reels y TikTok"
+  },
+  {
+    "slug": "notion",
+    "name": "Notion",
+    "category": "dominio",
+    "aliases": [],
+    "closure_hours": 4,
+    "description": "Notion: espacio para notas, documentos, tablas y tareas, que se usa solo o en equipo"
+  },
+  {
+    "slug": "trello",
+    "name": "Trello",
+    "category": "dominio",
+    "aliases": [],
+    "closure_hours": 4,
+    "description": "Trello: tablero de tarjetas para organizar tareas y ver en qué estado está cada una"
+  },
+  {
+    "slug": "mailchimp",
+    "name": "Mailchimp",
+    "category": "dominio",
+    "aliases": [],
+    "closure_hours": 8,
+    "description": "Mailchimp: plataforma para armar y enviar campañas de email a una lista de contactos"
   }
 ]

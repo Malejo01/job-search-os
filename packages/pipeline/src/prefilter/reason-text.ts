@@ -13,7 +13,13 @@ export function prefilterReasonText(stored: string | null | undefined): string |
 
   switch (reason) {
     case "modalidad_no_remota":
-      return "Es híbrida o presencial, y marcaste que buscás solo trabajo remoto.";
+      return "Es híbrida o presencial, y no aceptás esa modalidad.";
+    case "idioma_no_aceptado":
+      return detail.includes("inglés")
+        ? "El aviso está en inglés, y elegiste ofertas solo en español."
+        : detail.includes("español")
+          ? "El aviso está en español, y elegiste ofertas solo en inglés."
+          : "El aviso está en un idioma que no elegiste.";
     case "disciplina_distinta": {
       const area = quoted(detail);
       return area ? `El puesto es de otra área (${area}).` : "El puesto es de otra área.";

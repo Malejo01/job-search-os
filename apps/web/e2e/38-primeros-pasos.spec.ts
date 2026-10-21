@@ -85,8 +85,8 @@ test.describe("Flujo 38: primeros pasos, de la persona nueva a la checklist comp
     await expect(page.getByText("Paso 1 de 3")).toBeVisible();
     await expect(steps(page)).toHaveCount(1);
 
-    // La etiqueta no cambia: los specs de onboarding la buscan así
-    const cefr = page.getByLabel(/Inglés \(nivel CEFR\)/);
+    // Los specs de onboarding buscan esta etiqueta
+    const cefr = page.getByLabel(/Tu nivel de inglés/);
     await expect(cefr).toBeVisible();
     await expect(cefr).toHaveAttribute("aria-describedby", "cefr-help");
     await expect(page.locator("#cefr-help")).toBeVisible();

@@ -120,13 +120,17 @@ export async function completeStep1(page: Page, run: Run): Promise<void> {
   const box = group.locator(`input[name="targetRoles"][value="${persona.role}"]`);
   await expect(box).toHaveCount(1);
   await chooseRoles(group, [persona.role]);
-  await page.getByLabel(/País de residencia/).selectOption(persona.country);
-  await page.getByLabel(/Inglés \(nivel CEFR\)/).selectOption(persona.cefr);
+  await page.getByLabel(/País de residencia/).fill(persona.country);
+  await page.getByRole("option", { name: new RegExp(`\\(${persona.country}\\)`) }).click();
+  await page.getByLabel(/Tu nivel de inglés/).selectOption(persona.cefr);
   await page.getByLabel(/Años de experiencia/).fill(persona.years);
   await page.getByLabel(/Resumen de tu perfil/).fill(persona.summary);
-  await page
-    .getByRole("radio", { name: persona.remoteOnly ? /Sí, solo remoto/ : /No, también híbrido/ })
-    .check();
+  // Remoto viene marcado; quien acepta más modalidades suma Híbrido y Presencial
+  await page.getByRole("checkbox", { name: "Remoto" }).check();
+  if (!persona.remoteOnly) {
+    await page.getByRole("checkbox", { name: "Híbrido" }).check();
+    await page.getByRole("checkbox", { name: "Presencial" }).check();
+  }
   await page.getByRole("button", { name: "Guardar y continuar" }).click();
   await page.waitForURL("**/onboarding/skills**");
 

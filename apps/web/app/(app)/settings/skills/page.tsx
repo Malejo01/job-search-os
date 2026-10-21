@@ -58,6 +58,8 @@ export default async function SkillsSettingsPage({
         role={role}
         taxonomy={data.taxonomy}
         levels={data.levels}
+        englishCefr={data.englishCefr}
+        customSkills={data.customSkills}
         submitLabel="Guardar"
       />
 

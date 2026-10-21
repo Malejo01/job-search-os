@@ -170,6 +170,7 @@ async function seedCatalog(db: Db): Promise<void> {
         category: enumValue(s.skillCategory.enumValues, k.category, "otra"),
         aliases: k.aliases,
         closureHours: k.closure_hours,
+        description: k.description,
         isGlobal: true,
       })),
     )
@@ -180,6 +181,7 @@ async function seedCatalog(db: Db): Promise<void> {
         category: rawSql`excluded.category`,
         aliases: rawSql`excluded.aliases`,
         closureHours: rawSql`excluded.closure_hours`,
+        description: rawSql`excluded.description`,
       },
     });
 
