@@ -14,12 +14,13 @@ export const authConfig = {
     authorized({ auth, request }) {
       const loggedIn = Boolean(auth?.user?.id);
       const { pathname } = request.nextUrl;
+      // Con sesión, la entrada a la app es «Hoy» (ronda 119)
       if (pathname.startsWith("/login")) {
-        return loggedIn ? Response.redirect(new URL("/jobs", request.nextUrl)) : true;
+        return loggedIn ? Response.redirect(new URL("/hoy", request.nextUrl)) : true;
       }
-      // Portada y pedido de acceso (ronda 63): con sesión van a /jobs; sin sesión se ve la vitrina
+      // Portada y pedido de acceso (ronda 63): con sesión van a /hoy; sin sesión se ve la vitrina
       if (pathname === "/" || pathname === "/acceso") {
-        return loggedIn ? Response.redirect(new URL("/jobs", request.nextUrl)) : true;
+        return loggedIn ? Response.redirect(new URL("/hoy", request.nextUrl)) : true;
       }
       // Vitrina pública (ronda 63): mercado, ofertas de muestra y metadatos de compartir
       if (

@@ -15,7 +15,7 @@ export async function GET(): Promise<Response> {
   const [row] = (await getAppDb().execute(
     sql`select user_exists(${id}::uuid) as ok`,
   )) as unknown as { ok: boolean }[];
-  if (row?.ok) redirect("/jobs");
+  if (row?.ok) redirect("/hoy");
   await signOut({ redirectTo: "/login" }); // lanza el redirect de Next
   return new Response(null, { status: 204 });
 }

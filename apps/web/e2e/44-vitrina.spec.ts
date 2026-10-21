@@ -131,12 +131,14 @@ test.describe("Flujo 44: vitrina pública", () => {
     expect(await sitemap.text()).toContain("/mercado");
   });
 
-  test("con sesión, la portada y /acceso redirigen a /jobs", async ({ page }) => {
+  test("con sesión, la portada, /acceso y /login redirigen a /hoy", async ({ page }) => {
     await login(page);
     await page.goto("/");
-    await expect(page).toHaveURL(/\/jobs/);
+    await expect(page).toHaveURL(/\/hoy$/);
     await page.goto("/acceso");
-    await expect(page).toHaveURL(/\/jobs/);
+    await expect(page).toHaveURL(/\/hoy$/);
+    await page.goto("/login");
+    await expect(page).toHaveURL(/\/hoy$/);
   });
 
   test("una página pública que no existe muestra el 404 con el layout público", async ({
