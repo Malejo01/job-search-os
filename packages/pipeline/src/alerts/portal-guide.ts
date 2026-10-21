@@ -45,8 +45,9 @@ export const ALERT_PORTALS: readonly AlertPortal[] = [
   },
 ];
 
-/** Una carrera nueva (como las del PR #148) todavía puede no estar en `RoleKey`. */
-export type AlertRoleKey = RoleKey | "data_engineer" | "solutions_engineer";
+/** Una carrera nueva (como las de los PR #148 y #154) todavía puede no estar en `RoleKey`. */
+export type AlertRoleKey =
+  RoleKey | "data_engineer" | "solutions_engineer" | "ventas_b2b" | "atencion_cliente";
 
 type Keywords = { es: string[]; en: string[] };
 
@@ -127,6 +128,20 @@ export const ALERT_KEYWORDS: Partial<Record<AlertRoleKey, Keywords>> = {
   solutions_engineer: {
     es: ["ingeniero de soluciones", "solutions engineer", "preventa", "ingeniero de preventa"],
     en: ["solutions engineer", "sales engineer", "pre sales", "solutions architect"],
+  },
+  ventas_b2b: {
+    es: [
+      "ejecutivo comercial",
+      "ventas b2b",
+      "sdr",
+      "desarrollo de negocios",
+      "ejecutivo de cuentas",
+    ],
+    en: ["sales development representative", "account executive", "sdr", "business development"],
+  },
+  atencion_cliente: {
+    es: ["atención al cliente", "servicio al cliente", "soporte al cliente", "call center"],
+    en: ["customer support", "customer service", "support agent", "customer care"],
   },
 };
 
