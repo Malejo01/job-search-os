@@ -10,6 +10,18 @@ const HEADERS = {
   "content-type": "application/json",
   accept: "application/json, text/event-stream",
 };
+// Revisión 2026-07-28: las claves de _meta y el header mcp-method son obligatorios en la ruta moderna
+const MODERN = "2026-07-28";
+const MODERN_META = {
+  "io.modelcontextprotocol/protocolVersion": MODERN,
+  "io.modelcontextprotocol/clientInfo": { name: "e2e", version: "0" },
+  "io.modelcontextprotocol/clientCapabilities": {},
+};
+const MODERN_HEADERS = {
+  ...HEADERS,
+  authorization: `Bearer ${TOKEN}`,
+  "mcp-protocol-version": MODERN,
+};
 const LIST = { jsonrpc: "2.0", id: 1, method: "tools/list", params: {} };
 
 test.describe("MCP /api/mcp", () => {
@@ -38,5 +50,42 @@ test.describe("MCP /api/mcp", () => {
     const body = await res.text();
     expect(body).toContain("list_jobs");
     expect(body).toContain("get_job");
+  });
+
+  // Correr primero sin el arreglo para verlo en rojo
+  test("subscriptions/listen responde enseguida, sin dejar un SSE abierto (ronda 99)", async ({
+    request,
+  }) => {
+    const res = await request.post("/api/mcp", {
+      headers: { ...MODERN_HEADERS, "mcp-method": "subscriptions/listen" },
+      data: {
+        jsonrpc: "2.0",
+        id: 2,
+        method: "subscriptions/listen",
+        params: { notifications: { toolsListChanged: true }, _meta: MODERN_META },
+      },
+      // Sin el arreglo la respuesta es un SSE que no termina: el request vence y el test falla
+      timeout: 10_000,
+    });
+    expect(res.headers()["content-type"]).toContain("application/json");
+    const body = await res.json();
+    expect(body.id).toBe(2);
+    expect(body.error).toBeDefined();
+  });
+
+  test("server/discover no anuncia tools.listChanged (ronda 99)", async ({ request }) => {
+    const res = await request.post("/api/mcp", {
+      headers: { ...MODERN_HEADERS, "mcp-method": "server/discover" },
+      data: { jsonrpc: "2.0", id: 3, method: "server/discover", params: { _meta: MODERN_META } },
+      timeout: 10_000,
+    });
+    expect(res.ok()).toBe(true);
+    const text = await res.text();
+    // Respuesta de éxito (no un error JSON-RPC) con las capabilities tal cual las arma el SDK
+    // (_ondiscover: mcp-DXXb3Vv3.mjs:1034-1039, discoverAdvertisedCapabilities :1291-1293)
+    expect(text).not.toContain('"error"');
+    expect(text).toContain('"supportedVersions"');
+    expect(text).toContain(MODERN);
+    expect(text).toMatch(/"tools":\s*\{[^}]*"listChanged":\s*false/);
   });
 });
