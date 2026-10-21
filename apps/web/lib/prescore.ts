@@ -1,5 +1,12 @@
 import { schema as s } from "@job-search-os/db";
-import { monthlyUsd, preScore, type CriteriaRules, type PreScore } from "@job-search-os/pipeline";
+import {
+  englishIsNotAGap,
+  isEnglishSkillSlug,
+  monthlyUsd,
+  preScore,
+  type CriteriaRules,
+  type PreScore,
+} from "@job-search-os/pipeline";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import type { Tx } from "./db";
 
@@ -64,8 +71,27 @@ export async function preScoresFor(
   const byJob = new Map<string, typeof skillRows>();
   for (const r of skillRows) byJob.set(r.jobId, [...(byJob.get(r.jobId) ?? []), r]);
 
+  // Texto de los avisos: si uno está en español y no pide inglés, el inglés no es una brecha.
+  // Solo se lee el de los avisos con inglés faltante, para no traer todas las JD de la lista.
+  const withEnglishGap = [
+    ...new Set(
+      skillRows.filter((k) => isEnglishSkillSlug(k.slug) && (k.level ?? 0) < 2).map((k) => k.jobId),
+    ),
+  ];
+  const jdRows = withEnglishGap.length
+    ? await tx
+        .select({ id: s.jobs.id, jdText: s.jobs.jdText })
+        .from(s.jobs)
+        .where(inArray(s.jobs.id, withEnglishGap))
+    : [];
+  const jdById = new Map(jdRows.map((r) => [r.id, r.jdText]));
+
   for (const job of jobs) {
-    const skills = byJob.get(job.id) ?? [];
+    const hideEnglish = englishIsNotAGap(jdById.get(job.id) ?? null, null);
+    // Solo se quita lo que no llega a nivel productivo (los faltantes); lo que ya tiene se conserva
+    const skills = (byJob.get(job.id) ?? []).filter(
+      (k) => !(hideEnglish && isEnglishSkillSlug(k.slug) && (k.level ?? 0) < 2),
+    );
     out.set(job.id, {
       ...preScore({
         flags: job.flags,

@@ -47,8 +47,8 @@ export function getCareerMarket(role: RoleKey): Promise<CareerMarket> {
       );
       return buildCareerMarket(input);
     },
-    // v2: el sueldo pasó de una cifra única a { latam, international }
-    ["career-market", "v2", role],
+    // v2: el sueldo pasó de una cifra única a { latam, international }; v3: suma writtenInSpanish
+    ["career-market", "v3", role],
     { revalidate: 1800, tags: ["career-market", `career-market:${role}`] },
   )();
 }

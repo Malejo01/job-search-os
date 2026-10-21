@@ -252,6 +252,80 @@ describe("upsertPoolJobs", () => {
     expect(after.rawRef).toBe(before.rawRef);
   });
 
+  describe("idioma guardado", () => {
+    const same = () =>
+      rawJob({
+        id: "b",
+        title: "Product Designer",
+        companyRaw: "Empresa Ficticia 2",
+        jdText: JD_B,
+        tags: ["design"],
+        categories: ["design"],
+      });
+
+    it("sin lang de la fuente se guarda el detectado en el texto", async () => {
+      expect((await row("b")).lang).toBe("es");
+    });
+
+    it("la fuente manda cuando declara es/en/pt", async () => {
+      const summary = await upsertPoolJobs(
+        [
+          rawJob({
+            id: "lang-pt",
+            jdText: "Vaga para pessoa de dados que gosta de gráficos claros e de ensinar colegas.",
+            lang: "pt-BR",
+            companyRaw: "Empresa Ficticia 9",
+          }),
+        ],
+        { db: conn.db, logger, now: () => T0, taxonomy },
+      );
+      expect(summary).toMatchObject({ inserted: 1, errors: 0 });
+      expect((await row("lang-pt")).lang).toBe("pt");
+    });
+
+    it("un lang viejo se corrige al volver a ver el aviso, sin crudo nuevo ni updatedAt", async () => {
+      const before = await row("b");
+      await conn.db
+        .update(s.publicJobs)
+        .set({ lang: "lang_not_specified" })
+        .where(eq(s.publicJobs.id, before.id));
+      const blobs = await poolBlobCount();
+
+      const summary = await upsertPoolJobs([same()], {
+        db: conn.db,
+        logger,
+        now: () => T1,
+        taxonomy,
+      });
+
+      expect(summary).toMatchObject({ inserted: 0, updated: 0, unchanged: 1, errors: 0 });
+      const after = await row("b");
+      expect(after.lang).toBe("es");
+      expect(after.rawRef).toBe(before.rawRef);
+      expect(after.updatedAt).toEqual(before.updatedAt);
+      expect(await poolBlobCount()).toBe(blobs);
+    });
+
+    it("si cambian lang y role_hints, se corrigen los dos juntos", async () => {
+      const before = await row("b");
+      await conn.db
+        .update(s.publicJobs)
+        .set({ lang: null, roleHints: [] })
+        .where(eq(s.publicJobs.id, before.id));
+      const summary = await upsertPoolJobs([same()], {
+        db: conn.db,
+        logger,
+        now: () => T1,
+        taxonomy,
+      });
+      expect(summary).toMatchObject({ unchanged: 1, updated: 0, errors: 0 });
+      const after = await row("b");
+      expect(after.lang).toBe("es");
+      expect(after.roleHints).toEqual(["ux_ui"]);
+      expect(after.updatedAt).toEqual(before.updatedAt);
+    });
+  });
+
   it("emails y teléfonos no quedan en jd_text", async () => {
     const a = await row("a");
     expect(a.jdText).toContain("[contacto]");

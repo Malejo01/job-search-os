@@ -91,6 +91,8 @@ export type CareerMarket = {
     levels: Record<EnglishLevel | "sin_nivel", number>;
     /** Avisos escritos en inglés (pidan o no inglés explícitamente). */
     writtenInEnglish: number;
+    /** Avisos escritos en español (`lang` guardado o detección del texto). */
+    writtenInSpanish: number;
     /** true si la precisión medida del detector quedó < 85 %: la UI dice "estimado". */
     estimated: boolean;
   };

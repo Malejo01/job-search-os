@@ -8,4 +8,5 @@ export * from "./self-assessment";
 export * from "./recompute";
 export * from "./target-roles";
 export * from "./english";
+export * from "./english-gap";
 export * from "./custom-skills";

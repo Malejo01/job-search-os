@@ -122,6 +122,21 @@ describe("buildCareerMarket · seniority, inglés y sueldos", () => {
     expect(m.english.estimated).toBe(ENGLISH_ESTIMATED);
   });
 
+  it("cuenta los avisos en español: por lang guardado o por el texto", () => {
+    const text =
+      "Buscamos un desarrollador para el equipo de producto. Vas a trabajar con los datos de la empresa y con una API en el stack de Node, con deploy en remote. Es un puesto en la oficina.";
+    const m = buildCareerMarket(
+      input([
+        job("1", { lang: "es" }),
+        job("2", { lang: null, jdText: text }),
+        job("3", { lang: "en" }),
+        job("4", { lang: "pt" }),
+        job("5", { lang: null, jdText: "React" }),
+      ]),
+    );
+    expect(m.english.writtenInSpanish).toBe(2);
+  });
+
   const withSalary = (n: number) =>
     Array.from({ length: n }, (_, i) =>
       job(`s${i}`, {

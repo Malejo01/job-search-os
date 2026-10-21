@@ -1082,6 +1082,8 @@ export type SeedPublicJob = {
   roleHints: string[];
   /** Skills que pide el aviso (`public_job_skills`), para que el mercado del puesto tenga datos. */
   skills?: { slug: string; isMust: boolean }[];
+  /** Idioma guardado (`public_jobs.lang`); sin valor queda null. */
+  lang?: string;
 };
 
 const POOL_SOURCE_NAMES: Record<SeedPublicJob["sourceKind"], string> = {
@@ -1121,6 +1123,7 @@ export async function seedPublicJobs(
           jdText: `Descripción ficticia del aviso ${i + 1} (${tag}): se busca una persona para un equipo remoto.`,
           jdHash: `e2e-pool-${tag}-${i + 1}`,
           roleHints: r.roleHints,
+          lang: r.lang ?? null,
           postedAt: now,
           firstSeenAt: now,
           lastSeenAt: now,

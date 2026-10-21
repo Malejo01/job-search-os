@@ -94,6 +94,27 @@ export default async function JobsPage({
           </Link>
         </p>
       ) : null}
+      <div className="flex flex-wrap items-center gap-2">
+        <Link
+          href={`/jobs${listQuery({ ...filters, idioma: filters.idioma ? null : "es" })}`}
+          aria-current={filters.idioma === "es" ? "true" : undefined}
+          data-testid="chip-en-espanol"
+          aria-describedby={filters.idioma === "es" ? "chip-en-espanol-ayuda" : undefined}
+          className={`inline-flex min-h-11 items-center rounded-full border px-4 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 ${
+            filters.idioma === "es"
+              ? "border-zinc-900 bg-zinc-900 text-white"
+              : "border-zinc-300 bg-white text-zinc-800"
+          }`}
+        >
+          En español
+        </Link>
+        {filters.idioma === "es" ? (
+          <p id="chip-en-espanol-ayuda" className="text-xs text-zinc-600">
+            Solo las ofertas que encontramos nosotros: las que cargaste vos no tienen idioma
+            guardado.
+          </p>
+        ) : null}
+      </div>
       {progress.total > 0 ? <ReviewProgress {...progress} filters={filters} /> : null}
       <JobFilters
         value={{

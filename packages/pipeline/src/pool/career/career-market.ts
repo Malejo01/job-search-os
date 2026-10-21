@@ -1,6 +1,7 @@
 import { SOURCE_ATTRIBUTION } from "../attribution";
 import { allowsCountry, locationScope } from "../location-scope";
 import { roleDemand } from "../role-demand";
+import { detectJobLanguage } from "../../normalize/language";
 import { detectEnglish, ENGLISH_ESTIMATED } from "./english";
 import { monthlySalaryPoint, summarizeSalaries } from "./salary";
 import { seniorityBucket } from "./seniority-bucket";
@@ -118,6 +119,7 @@ export function buildCareerMarket(input: CareerMarketInput): CareerMarket {
   };
   let asks = 0;
   let writtenInEnglish = 0;
+  let writtenInSpanish = 0;
   const modality = { remoto: 0, hibrido: 0, presencial: 0, desconocida: 0 };
   const fromArgentina = { acepta: 0, no_acepta: 0, no_dice: 0 };
   const sources = new Map<string, number>();
@@ -128,6 +130,7 @@ export function buildCareerMarket(input: CareerMarketInput): CareerMarket {
 
     const en = detectEnglish(job.jdText, job.lang);
     if (en.language === "en") writtenInEnglish++;
+    if (detectJobLanguage(job.jdText, job.lang) === "es") writtenInSpanish++;
     if (en.asks) {
       asks++;
       levels[en.level ?? "sin_nivel"]++;
@@ -155,7 +158,7 @@ export function buildCareerMarket(input: CareerMarketInput): CareerMarket {
     poolUpdatedAt: input.poolUpdatedAt,
     skills,
     seniority: { counts: seniority },
-    english: { asks, levels, writtenInEnglish, estimated: ENGLISH_ESTIMATED },
+    english: { asks, levels, writtenInEnglish, writtenInSpanish, estimated: ENGLISH_ESTIMATED },
     salary: buildCareerSalary(jobs),
     volume: {
       active: total,
