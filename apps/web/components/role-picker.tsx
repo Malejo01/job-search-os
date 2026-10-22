@@ -39,7 +39,10 @@ export function RolePicker({
   groups,
   defaultLimit,
   salaries,
+  spanishCounts,
 }: {
+  /** Ofertas en español por puesto (30 días); sin esto, el selector no muestra «en español: N». */
+  spanishCounts?: Partial<Record<RoleKey, number>> | undefined;
   /** Sueldos del pool por puesto (ronda 80); sin esto, el selector no muestra nada de sueldos. */
   salaries?: RolePickerSalaries | undefined;
   name?: string;
@@ -72,6 +75,7 @@ export function RolePicker({
               const checked = chosen.has(role.key);
               const disabled = atLimit && !checked;
               const salary = salaries?.[role.key as RoleKey];
+              const spanish = spanishCounts?.[role.key as RoleKey];
               const help = ROLE_HELP[role.key];
               const helpId = `${noteId}-help-${role.key}`;
               const describedBy = [help ? helpId : null, disabled ? noteId : null]
@@ -100,6 +104,15 @@ export function RolePicker({
                   {help ? (
                     <p id={helpId} className="pb-2 pl-9 pr-3 text-xs text-zinc-600">
                       {help}
+                    </p>
+                  ) : null}
+                  {spanish !== undefined ? (
+                    <p
+                      className="pb-1 pl-9 pr-3 text-xs text-zinc-600"
+                      data-testid={`career-spanish-${role.key}`}
+                      data-count={spanish}
+                    >
+                      en español: {spanish}
                     </p>
                   ) : null}
                   {/* Fuera del label: abrir "Ver sueldos" no tiene que marcar el puesto */}

@@ -1,12 +1,15 @@
 import { readCareerMarketInput, readCareerSalaryJobs } from "@job-search-os/adapters";
+import { schema as s } from "@job-search-os/db";
 import {
   ROLE_KEYS,
   buildCareerMarket,
   buildCareerSalary,
+  detectJobLanguage,
   toRoleKey,
   type CareerMarket,
   type RoleKey,
 } from "@job-search-os/pipeline";
+import { and, isNull, sql } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 import { assertAppRole, getAppDb } from "./db";
 import { ROLE_SKILLS } from "./skill-levels";
@@ -76,6 +79,51 @@ export function getCareerSalaries(): Promise<Record<RoleKey, CareerMarket["salar
       return out;
     },
     ["career-salaries", "v2"],
+    { revalidate: 1800, tags: ["career-market"] },
+  )();
+}
+
+/** Tope del texto del aviso que se trae para detectar el idioma (alcanza para contar palabras). */
+const SPANISH_JD_MAX_CHARS = 6000;
+
+/**
+ * Ofertas escritas en español por carrera (ventana de 30 días, sin copias) para el paso 1: una sola
+ * lectura del pool y un solo caché de 30 minutos, igual que los sueldos. Usa `detectJobLanguage`,
+ * la misma regla que `writtenInSpanish` de la página de mercado. Sale solo de `public_jobs`.
+ */
+export function getCareerSpanishCounts(): Promise<Record<RoleKey, number>> {
+  return unstable_cache(
+    async () => {
+      await assertAppRole();
+      const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const rows = await getAppDb().transaction(
+        (tx) =>
+          tx
+            .select({
+              roleHints: s.publicJobs.roleHints,
+              lang: s.publicJobs.lang,
+              jdText: sql<string | null>`left(${s.publicJobs.jdText}, ${SPANISH_JD_MAX_CHARS})`,
+            })
+            .from(s.publicJobs)
+            .where(
+              and(
+                isNull(s.publicJobs.dedupOfId),
+                sql`${s.publicJobs.lastSeenAt} >= ${since.toISOString()}::timestamptz`,
+              ),
+            ),
+        { accessMode: "read only" },
+      );
+      const out = {} as Record<RoleKey, number>;
+      for (const role of ROLE_KEYS) out[role] = 0;
+      for (const row of rows) {
+        if (detectJobLanguage(row.jdText, row.lang) !== "es") continue;
+        for (const hint of row.roleHints ?? []) {
+          if (hint in out) out[hint as RoleKey]++;
+        }
+      }
+      return out;
+    },
+    ["career-spanish", "v1"],
     { revalidate: 1800, tags: ["career-market"] },
   )();
 }
