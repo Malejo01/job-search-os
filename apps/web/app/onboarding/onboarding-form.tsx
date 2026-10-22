@@ -8,6 +8,13 @@ import {
 } from "@/components/role-picker";
 import { saveOnboardingAction } from "./actions";
 
+/** «A, B y C» con los nombres de los grupos del selector (salen de `ROLE_GROUPS`, no se escriben acá). */
+function groupsText(labels: string[]): string {
+  const lower = labels.map((l) => l.toLowerCase());
+  if (lower.length < 2) return lower.join("");
+  return `${lower.slice(0, -1).join(", ")} y ${lower[lower.length - 1]}`;
+}
+
 /** Puestos del paso 1: van arriba de los campos del perfil y comparten su manejo de errores. */
 function RolesSection({
   roleGroups,
@@ -30,10 +37,8 @@ function RolesSection({
     >
       <legend className="mb-1">¿Qué puestos buscás?</legend>
       <p id="roles-help" className="text-xs text-zinc-600">
-        Elegí hasta {rolesLimit}. Te mostramos primero las ofertas de esos puestos. Además de
-        tecnología, hay carreras de producto y proyectos (product manager, product owner, project
-        manager y product marketing) y carreras digitales: marketing, recruiting IT, customer
-        success y ciberseguridad.
+        Elegí hasta {rolesLimit}. Te mostramos primero las ofertas de esos puestos. Hay carreras de{" "}
+        {groupsText(roleGroups.map((g) => g.label))}.
       </p>
       <RolePicker
         name="targetRoles"

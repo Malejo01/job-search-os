@@ -73,6 +73,10 @@ export function Assistant({
         <p className="text-sm font-medium text-zinc-600">Opcional · Conectar alertas</p>
       ) : null}
       <h1 className="text-xl font-semibold">Conectá tus alertas de email (opcional)</h1>
+      <p role="note" className="rounded-md bg-sky-50 px-3 py-2 text-sm text-sky-900">
+        Por ahora este asistente es solo para Gmail. Si usás otro correo (Outlook, Hotmail, Yahoo),
+        reenviá a mano las alertas a tu dirección de la app.
+      </p>
       <p className="text-sm text-zinc-700">
         Ya tenés ofertas de las fuentes públicas. Si además recibís alertas de LinkedIn, Get on
         Board, Indeed u otro portal, podés sumarlas: reenviá esos emails a tu dirección personal y
