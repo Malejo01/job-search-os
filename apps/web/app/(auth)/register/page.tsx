@@ -185,6 +185,7 @@ export default async function RegisterPage({
         {error ? (
           <p id="register-error" role="alert" className="text-sm text-red-700">
             {ERROR_MESSAGE[error] ?? "No se pudo crear la cuenta."}
+            {error === "invitacion" ? " Si te invitaron con otro email, usá ese." : null}
           </p>
         ) : null}
         <SubmitButton

@@ -105,6 +105,11 @@ export default async function SettingsPage({
 
       <section className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
         <h2 className="text-lg font-medium">Criterios</h2>
+        <p className="text-xs font-semibold tracking-wide text-zinc-700 uppercase">Avanzado</p>
+        <p className="text-sm text-zinc-700">
+          Cambiar estos criterios puede hacer que se descarten ofertas que te sirven. Si no estás
+          segura o seguro, dejalos como están.
+        </p>
         <Link href="/settings/criteria" className="text-sm text-zinc-900 underline">
           Editar mis criterios de evaluación
         </Link>

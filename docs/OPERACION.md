@@ -69,3 +69,16 @@ Sin secrets corre solo `/api/health` y el resto queda `skipped`. Para el recorri
 Si falla, el job queda en rojo y GitHub avisa. No sube trazas ni capturas: podrían mostrar datos de la cuenta de prueba.
 
 Corrida manual, desde `apps/web`: `SMOKE_BASE_URL=<url> pnpm smoke`.
+
+**Al publicar `TERMS_VERSION` el smoke falla** hasta que la cuenta de prueba entre a la app y vuelva a aceptar los términos. Después de subir la versión, hacer ese re-aceptado a mano y recién entonces volver a correr el smoke.
+
+## Piloto: qué mirar cada día
+
+Unos 15 minutos por día, en este orden:
+
+1. **Mail.** Avisos de GitHub (el workflow `cron` en rojo, `smoke-roto`) y, cuando exista, el monitor externo.
+2. **Gasto de IA.** `pnpm llm:spend --days 1`. Si pasa de USD 1,5 en un día, mirar de quién es el gasto (`llm_calls.user_id`) antes de subir el tope.
+3. **Estado del servicio.** `/api/cron/status` (un `curl` con el token). `queue_oldest_pending_hours` y `queue_failed_24h` dicen si el evaluador está atascado.
+4. **Actividad de las cuentas del piloto.** No hay panel. `pnpm admin:test-users --list --allowlist <archivo>` devuelve por cada email: fecha de alta, onboarding completo y cuántos jobs, evaluaciones y postulaciones tiene. Usar un archivo aparte, no versionado (un email por línea), distinto de la allowlist de cuentas de prueba. **Nunca `--reset` con esa lista**: borraría los datos de una persona real.
+5. **👍/👎 y «Calibración».** Por ahora solo se ven por cuenta, no agregados. Durante el piloto, preguntarles directamente a las personas.
+6. **Una vez por semana.** `pnpm pool:rehint` sin `--apply`, para ver si las carreras que estaban sobre el tope de ofertas siguen igual.

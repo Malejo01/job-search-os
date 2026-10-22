@@ -102,11 +102,17 @@ export default async function CriteriaPage({
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-5">
       <div className="flex flex-col gap-1">
+        <p className="text-xs font-semibold tracking-wide text-zinc-700 uppercase">Avanzado</p>
         <h1 className="text-2xl font-semibold">Criterios de evaluación</h1>
         <p className="text-sm text-zinc-600">
           Versión vigente: {active.version} · guardada el {DATE.format(active.createdAt)} (UTC)
         </p>
       </div>
+
+      <p role="note" className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+        Cambiar estos criterios puede hacer que se descarten ofertas que te sirven. Si no estás
+        segura o seguro, dejalos como están.
+      </p>
 
       <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
         Los cambios valen para las ofertas nuevas; las ya evaluadas no se recalculan.
