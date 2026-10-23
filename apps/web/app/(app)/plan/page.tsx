@@ -2,13 +2,7 @@ import { SELF_LEVELS, type PlanStatus } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { SKILL_CATEGORY_LABEL, safeHttpUrl } from "@/lib/labels";
 import { getTargetRoles } from "@/lib/onboarding";
-import {
-  getDataState,
-  getPlan,
-  getPlanRoleFallback,
-  hasFewOwnJobs,
-  type PlanItemView,
-} from "@/lib/plan";
+import { getDataState, getOwnJobsPlanState, getPlan, type PlanItemView } from "@/lib/plan";
 import { getPlanImpact } from "@/lib/plan-impact";
 import { requireUserId } from "@/lib/session";
 import { MissingDataNotice, NoLevelsNotice } from "../market/data-state-notice";
@@ -59,11 +53,10 @@ export default async function PlanPage({
   const { error, simular } = await searchParams;
   // El plan guardado es uno por persona: la nota usa siempre el puesto principal
   const role = (await getTargetRoles(userId))[0] ?? null;
-  const [items, state, roleFallback, fewOwnJobs] = await Promise.all([
+  const [items, state, { roleFallback, fewOwnJobs }] = await Promise.all([
     getPlan(userId),
     getDataState(userId),
-    getPlanRoleFallback(userId, role),
-    hasFewOwnJobs(userId),
+    getOwnJobsPlanState(userId, role),
   ]);
   // El simulador necesita plan y niveles cargados; sin ellos la pantalla ya explica qué falta
   const showSim = items.length > 0 && state.levelsKnown > 0;
