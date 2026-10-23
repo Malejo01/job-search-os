@@ -1,8 +1,14 @@
-import { englishIsNotAGap, isEnglishGap, type JobEvent } from "@job-search-os/pipeline";
+import {
+  englishIsNotAGap,
+  fitCrossSentence,
+  isEnglishGap,
+  type JobEvent,
+} from "@job-search-os/pipeline";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { RequisitosDelAviso } from "@/components/requisitos-del-aviso";
 import { notEvaluatedMessage } from "@/lib/evaluate-now";
+import { getMainFitSummary } from "@/lib/fit";
 import { isUuid } from "@/lib/ids";
 import { getJobDetail } from "@/lib/job-detail";
 import { jobNeighbors, listQuery, parseJobFilters } from "@/lib/jobs";
@@ -115,6 +121,11 @@ export default async function JobDetailPage({
       evaluating={job.evaluating}
     />
   );
+  // C-6 E4b: si el descarte de esta oferta es el freno más común de la persona, se cruza con «Tu
+  // encaje». Solo se calcula cuando la oferta tiene descarte: el resto de los detalles no lo paga
+  const descarteId = ev?.checklist?.descarte_rapido?.id ?? null;
+  const fitSummary = descarteId ? await getMainFitSummary(userId, new Date()) : null;
+  const crossLine = fitSummary ? fitCrossSentence(fitSummary, descarteId) : null;
   const tone = scoreTone(ev?.score ?? null);
   const salary =
     job.salaryMinUsd || job.salaryMaxUsd
@@ -333,6 +344,17 @@ export default async function JobDetailPage({
 
           {/* Requisitos del aviso (ronda 104): solo si la evaluación guardó el checklist */}
           {ev.checklist ? <RequisitosDelAviso checklist={ev.checklist} /> : null}
+          {crossLine ? (
+            <p data-testid="encaje-cruce" className="text-sm text-zinc-700">
+              {crossLine}{" "}
+              <Link
+                href="/encaje"
+                className="inline-flex min-h-11 items-center font-medium text-sky-800 underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
+              >
+                Ver Tu encaje
+              </Link>
+            </p>
+          ) : null}
 
           <section className="grid gap-3 sm:grid-cols-2">
             <Block title="Lo que ya tenés" items={ev.matchFuerte} tone="text-emerald-900" />

@@ -48,12 +48,14 @@ function checklistWith(failing: "ingles" | "salario") {
       bloquea: false,
     };
   };
+  const items = [item("ingles", "Inglés fluido"), item("salario", "Sueldo en dólares")];
   return {
-    items: [item("ingles", "Inglés fluido"), item("salario", "Sueldo en dólares")],
+    items,
     must: { cumple: 1, no_cumple: 1, no_se_sabe: 0 },
     deseable: { cumple: 0, no_cumple: 0, no_se_sabe: 0 },
     parcial: false,
-    descarte_rapido: null,
+    // Como en el evaluador: el primer must que no se cumple (E4b lo cruza con «Tu encaje»)
+    descarte_rapido: items.find((it) => it.status === "no_cumple") ?? null,
   };
 }
 
@@ -139,6 +141,7 @@ async function axeSummary(page: Page): Promise<string[]> {
 test.describe("Flujo 72: Tu encaje", () => {
   const tag = Date.now();
   const jobIds: string[] = [];
+  const bJobIds: string[] = [];
   let originalRoles: Awaited<ReturnType<typeof seedTargetRoles>>;
 
   test.beforeAll(async () => {
@@ -172,7 +175,7 @@ test.describe("Flujo 72: Tu encaje", () => {
   test("con 6 ofertas: «Lo que más te frena» dice «N de M» y la página no usa jerga", async ({
     page,
   }) => {
-    await seedOffers(E2E_B_USER_ID, tag, 4, 3, "ingles");
+    bJobIds.push(...(await seedOffers(E2E_B_USER_ID, tag, 4, 3, "ingles")));
     await loginAsSecondUser(page);
     await page.goto(`/encaje?rol=${ROLE_FRENO}`);
     const frenos = page.getByTestId("encaje-frenos");
@@ -205,6 +208,23 @@ test.describe("Flujo 72: Tu encaje", () => {
     await expect(page.getByTestId("encaje-base")).toContainText("6 ofertas evaluadas");
     const html = await page.content();
     expect(html, "aparece una oferta de A").not.toContain(`Oferta Ficticia Encaje ${tag} 1`);
+  });
+
+  test("E4b: el detalle de una oferta cruza su descarte con el freno más común", async ({
+    page,
+  }) => {
+    // Usa las ofertas del caso de las 6: en serie, ese caso corre antes
+    expect(bJobIds.length, "faltan las ofertas del caso anterior").toBeGreaterThan(0);
+    // La línea usa la carrera principal: rrhh_it, cuyo cálculo ya tiene las 6 ofertas
+    await setRolesOf(E2E_B_USER_ID, [ROLE_FRENO, ROLE_SMALL]);
+    await loginAsSecondUser(page);
+    await page.goto(`/jobs/${bJobIds[0]}`);
+    const cross = page.getByTestId("encaje-cruce");
+    await expect(cross).toContainText("Esto mismo te pasa en 6 de tus 6 ofertas.");
+    await expect(cross.getByRole("link", { name: "Ver Tu encaje" })).toHaveAttribute(
+      "href",
+      "/encaje",
+    );
   });
 
   test("la tarjeta «Tu encaje» de «Hoy» lleva a /encaje", async ({ page }) => {
