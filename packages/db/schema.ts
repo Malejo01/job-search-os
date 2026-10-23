@@ -183,6 +183,8 @@ export const jobs = pgTable("jobs", {
 }, (t) => [
   index("jobs_user_status").on(t.userId, t.status),
   index("jobs_user_company").on(t.userId, t.companyId, t.firstSeenAt),
+  // C-7: orden y filtro por fecha de la lista (/jobs, «Hoy»)
+  index("jobs_user_first_seen").on(t.userId, t.firstSeenAt.desc()),
   uniqueIndex("jobs_user_url").on(t.userId, t.canonicalUrl),
   uniqueIndex("jobs_user_public_job").on(t.userId, t.publicJobId).where(sql`${t.publicJobId} is not null`),
 ]);
@@ -389,7 +391,13 @@ export const evaluations = pgTable("evaluations", {
   humanVerdict: humanVerdict("human_verdict"),          // veredicto de un toque; null = sin opinión. No entra en el MAE ni en el snapshot
   humanVerdictAt: timestamp("human_verdict_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-}, (t) => [index("evaluations_job").on(t.jobId), index("evaluations_user_score").on(t.userId, t.score)]);
+}, (t) => [
+  index("evaluations_job").on(t.jobId),
+  index("evaluations_user_score").on(t.userId, t.score),
+  // C-7: «la última evaluación por oferta» (DISTINCT ON job_id … created_at desc) y la ventana de «Tu encaje»
+  index("evaluations_job_created").on(t.jobId, t.createdAt.desc()),
+  index("evaluations_user_created").on(t.userId, t.createdAt.desc()),
+]);
 
 export const applications = pgTable("applications", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -405,7 +413,11 @@ export const applications = pgTable("applications", {
   outcomeNote: text("outcome_note"),
   followUpAt: date("follow_up_at"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-}, (t) => [index("applications_user_outcome").on(t.userId, t.outcome)]);
+}, (t) => [
+  index("applications_user_outcome").on(t.userId, t.outcome),
+  // C-7: FK sin índice; los joins de /applications y del informe de calibración van por acá
+  index("applications_job").on(t.jobId),
+]);
 
 export const contacts = pgTable("contacts", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -529,7 +541,10 @@ export const learningPlanItems = pgTable("learning_plan_items", {
   status: text("status").notNull().default("pendiente"), // pendiente, en_curso, cerrada
   startedAt: date("started_at"),
   closedAt: date("closed_at"),
-});
+}, (t) => [
+  // C-7: el plan de cada persona, por prioridad (/plan y «Si aprendés…»)
+  index("learning_plan_items_user_priority").on(t.userId, t.priority.desc()),
+]);
 
 // ─────────────────────────────────────────────────────────────
 // Operación
@@ -613,7 +628,10 @@ export const inboundEmails = pgTable("inbound_emails", {
   receivedAt: timestamp("received_at", { withTimezone: true }).defaultNow().notNull(),
   seenAt: timestamp("seen_at", { withTimezone: true }),          // JS-038: marcado como visto
   dismissedAt: timestamp("dismissed_at", { withTimezone: true }), // JS-038: "no me sirve"
-});
+}, (t) => [
+  // C-7: no tenía ningún índice; la bandeja, la cobertura de alertas de «Hoy» y «Primeros pasos» filtran así
+  index("inbound_emails_user_received").on(t.userId, t.receivedAt.desc()),
+]);
 
 // JS-038: emails que el webhook rechazó por el límite horario (no se guardan; esto los cuenta)
 export const inboundRejections = pgTable("inbound_rejections", {
