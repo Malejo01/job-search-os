@@ -1,4 +1,5 @@
 import type { AgendaRow } from "@job-search-os/pipeline";
+import Link from "next/link";
 import {
   getDataState,
   getMarket,
@@ -84,6 +85,12 @@ export default async function MarketPage({
       <p className="-mt-3 text-xs text-zinc-600">
         Lo que piden las ofertas que ya pasaron por tu cuenta, cruzado con tus niveles.
       </p>
+      <Link
+        href={role ? `/encaje?rol=${role}` : "/encaje"}
+        className="-mt-2 inline-flex min-h-11 w-fit items-center text-sm font-medium text-sky-800 underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
+      >
+        Explicado en llano: Tu encaje
+      </Link>
       <RoleMarket view={roleMarket} />
 
       <form method="get" className="flex flex-col gap-2 text-xs text-zinc-600">

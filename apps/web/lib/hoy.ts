@@ -1,12 +1,17 @@
+import { createLogger } from "@job-search-os/adapters";
 import { schema as s } from "@job-search-os/db";
 import {
   DEFAULT_TIMEZONE,
+  PRODUCT_NAME,
+  buildDigest,
+  digestSentence,
   visitWindow,
   type CareerMarket,
   type RoleKey,
 } from "@job-search-os/pipeline";
 import { getCareerMarket } from "./career-market";
 import { withUser } from "./db";
+import { getFitData } from "./fit";
 import { countJobs, listJobs, type JobCounts, type JobListRow } from "./jobs";
 import { getTargetRoles, hasReceivedEmail } from "./onboarding";
 import { portalCoverage, type PortalCoverage } from "./portal-coverage";
@@ -31,7 +36,23 @@ export type HoyData = {
   timeZone: string;
   /** La persona acepta ofertas solo en español (`jobLanguages` = ["es"]): habilita el puente de idioma. */
   onlySpanish: boolean;
+  /** «En resumen» (C-6, canal A): una frase con conteos; null sin visita anterior o sin novedades. */
+  digest: string | null;
+  /** Titular de «Tu encaje» de la carrera principal; null si no hay carrera o el cálculo falló. */
+  fit: { headline: string } | null;
 };
+
+/** El titular de «Tu encaje»: si falla, la tarjeta no se muestra y se loguea solo el usuario. */
+async function fitForCard(userId: string, role: RoleKey | undefined, now: Date) {
+  if (!role) return null;
+  try {
+    const fit = await getFitData(userId, role, now);
+    return { headline: fit.summary.headline };
+  } catch {
+    createLogger({ user_id: userId, task: "tu_encaje" }).error({}, "tu encaje falló");
+    return null;
+  }
+}
 
 /**
  * Datos de «Hoy» (ronda 119): una `Promise.all` con RLS y el mercado cacheado. La ventana sale de
@@ -71,7 +92,7 @@ export async function getHoyData(
   ]);
   const { tz: timeZone, languages } = profile;
   const onlySpanish = languages.includes("es") && !languages.includes("en");
-  const [careers, empty] = await Promise.all([
+  const [careers, empty, fit] = await Promise.all([
     Promise.all(roles.map(async (role) => ({ role, market: await getCareerMarket(role) }))),
     jobs.length === 0
       ? Promise.all([countJobs(userId), hasReceivedEmail(userId)]).then(([counts, received]) => ({
@@ -79,6 +100,36 @@ export async function getHoyData(
           hasReceivedEmail: received,
         }))
       : Promise.resolve(null),
+    fitForCard(userId, roles[0], now),
   ]);
-  return { since, stamp, jobs, coverage, roles, careers, empty, timeZone, onlySpanish };
+  // Solo con una visita anterior: la frase dice «desde tu última visita». Seguimientos: pendiente (C-9)
+  const digest = since
+    ? digestSentence(
+        buildDigest({
+          newEvaluated: jobs.length,
+          toApply: jobs.filter(
+            (j) => j.accion === "aplicar" || j.accion === "aplicar_personalizado",
+          ).length,
+          followUps: 0,
+          careers: [],
+          frequency: "diario",
+          now,
+          timeZone,
+          productName: PRODUCT_NAME,
+        }),
+      )
+    : null;
+  return {
+    since,
+    stamp,
+    jobs,
+    coverage,
+    roles,
+    careers,
+    empty,
+    timeZone,
+    onlySpanish,
+    digest,
+    fit,
+  };
 }

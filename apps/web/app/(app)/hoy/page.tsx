@@ -59,9 +59,29 @@ export default async function HoyPage() {
             : "Primera vez por acá"}
         </p>
       </div>
+      {data.digest ? (
+        <section
+          data-testid="hoy-resumen"
+          aria-labelledby="hoy-resumen-titulo"
+          className="rounded-md bg-zinc-50 px-3 py-3"
+        >
+          <h2 id="hoy-resumen-titulo" className="text-base font-semibold text-zinc-900">
+            En resumen
+          </h2>
+          <p className="text-sm text-zinc-700">{data.digest}</p>
+        </section>
+      ) : null}
       {/* Las tarjetas van en este grid; la de seguimiento se suma entre «Lo nuevo» y «Alertas» */}
       <div className="grid gap-3 sm:grid-cols-2">
         <NewCard data={data} />
+        {data.fit ? (
+          <Card id="hoy-encaje-titulo" testId="hoy-encaje" title="Tu encaje">
+            <p className="text-sm text-zinc-700">{data.fit.headline}</p>
+            <Link href="/encaje" className={LINK}>
+              Ver tu encaje
+            </Link>
+          </Card>
+        ) : null}
         <AlertsCard data={data} />
         <MarketCard data={data} />
       </div>
