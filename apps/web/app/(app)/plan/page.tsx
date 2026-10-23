@@ -90,6 +90,12 @@ export default async function PlanPage({
           las tuyas.
         </p>
       ) : null}
+      <Link
+        href="/encaje"
+        className="inline-flex min-h-11 w-fit items-center text-sm font-medium text-sky-800 underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
+      >
+        Ver Tu encaje: qué piden tus ofertas y qué te falta
+      </Link>
       <NoLevelsNotice state={state} />
       {items.length === 0 ? (
         state.hasSnapshot ? (
