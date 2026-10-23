@@ -17,6 +17,8 @@ import {
 /**
  * Flujo 74 (C-17a): MIDE cuánto tarda, y cuántos pasos lleva, que una cuenta nueva vea su
  * primera oferta evaluada (con score). Meta: menos de 3 minutos. Solo mide: no cambia pantallas.
+ * Recorrido: registro (que deja la sesión iniciada) -> onboarding -> skills -> ofertas; ya no
+ * pasa por «Cuenta creada» ni por /login.
  * Evaluador falso (worker --demo): costo LLM cero. Todo inventado; se limpia al final.
  *
  * Resultado: anotación `primer-valor` y una línea `PRIMER_VALOR {json}` en el log.
@@ -164,19 +166,8 @@ test.describe("Flujo 74: primer valor, de la cuenta nueva a la primera oferta ev
     await check(page.getByLabel(/Leí y acepto/));
     await click(page.getByRole("button", { name: "Crear cuenta" }));
 
-    // 2. Cuenta creada (misma URL, otra pantalla)
-    await expect(page.getByRole("heading", { name: "Cuenta creada" })).toBeVisible();
-    enter("/register (cuenta creada)");
-    await click(page.getByRole("link", { name: "Ir a entrar" }));
-
-    // 3. Entrar
-    await page.waitForURL("**/login**");
-    enter();
-    await fill(page.getByLabel("Email"), email);
-    await fill(page.getByLabel("Contraseña"), secret);
-    await click(page.getByRole("button", { name: "Entrar" }));
-
-    // 4. Onboarding paso 1: puesto, país, inglés, años, resumen y modalidad son obligatorios
+    // 2. El registro deja la sesión iniciada: va directo al onboarding
+    // 3. Onboarding paso 1: puesto, país, inglés, años, resumen y modalidad son obligatorios
     await page.waitForURL("**/onboarding**");
     enter();
     const roleInput = page.locator(`input[name="targetRoles"][value="${CAREER}"]`);
@@ -194,12 +185,12 @@ test.describe("Flujo 74: primer valor, de la cuenta nueva a la primera oferta ev
     await check(page.getByRole("checkbox", { name: "Remoto" }));
     await click(page.getByRole("button", { name: "Guardar y continuar" }));
 
-    // 5. Skills: se saltea
+    // 4. Skills: se saltea
     await page.waitForURL("**/onboarding/skills**");
     enter();
     await click(page.getByRole("button", { name: "Saltear por ahora" }));
 
-    // 6. Tus primeras ofertas: hasta ver una con score
+    // 5. Tus primeras ofertas: hasta ver una con score
     await page.waitForURL("**/onboarding/ofertas**");
     await expect(page.getByRole("heading", { name: "Tus primeras ofertas" })).toBeVisible();
     enter();

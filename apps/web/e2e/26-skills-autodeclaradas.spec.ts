@@ -97,11 +97,7 @@ test.describe("Flujo 26: skills autodeclaradas, del onboarding al mercado", () =
     await page.getByLabel("Repetí la contraseña").fill(password);
     await page.getByLabel(/Leí y acepto/).check();
     await page.getByRole("button", { name: "Crear cuenta" }).click();
-    await expect(page.getByRole("heading", { name: "Cuenta creada" })).toBeVisible();
-    await page.getByRole("link", { name: "Ir a entrar" }).click();
-    await page.getByLabel("Email").fill(email);
-    await page.getByLabel("Contraseña").fill(password);
-    await page.getByRole("button", { name: "Entrar" }).click();
+    // El registro deja la sesión iniciada: va directo al onboarding
     await page.waitForURL("**/onboarding**");
 
     const { db, close } = ownerDb();

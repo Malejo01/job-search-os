@@ -1,5 +1,7 @@
 import { PRODUCT_NAME } from "@job-search-os/pipeline";
+import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
+import { signIn } from "@/auth";
 import {
   InvalidInvitationError,
   InvalidRegistrationError,
@@ -29,6 +31,8 @@ const ERROR_MESSAGE: Record<string, string> = {
 /**
  * Alta por invitación (JS-091). Pública: el código (en el link) es lo único que habilita el canje.
  * Los errores del código son siempre el mismo mensaje: no se revela si existe, está usada o vencida.
+ * Con la cuenta creada entra sola, igual que el login (C-17, R2: una pantalla y dos campos menos).
+ * Si el ingreso falla, cae en «Cuenta creada» y la persona entra a mano.
  */
 async function register(formData: FormData): Promise<void> {
   "use server";
@@ -50,7 +54,12 @@ async function register(formData: FormData): Promise<void> {
     }
     throw error;
   }
-  redirect("/register?done=1");
+  try {
+    await signIn("credentials", { email, password, redirectTo: "/hoy" });
+  } catch (error) {
+    if (error instanceof AuthError) redirect("/register?done=1");
+    throw error; // NEXT_REDIRECT y errores reales siguen su curso
+  }
 }
 
 export default async function RegisterPage({
