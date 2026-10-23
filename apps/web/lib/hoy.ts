@@ -1,4 +1,4 @@
-import { createLogger } from "@job-search-os/adapters";
+import { createLogger, safeDbError } from "@job-search-os/adapters";
 import { schema as s } from "@job-search-os/db";
 import {
   DEFAULT_TIMEZONE,
@@ -9,6 +9,7 @@ import {
   type CareerMarket,
   type RoleKey,
 } from "@job-search-os/pipeline";
+import { listFollowUps, type FollowUpView } from "./applications";
 import { getCareerMarket } from "./career-market";
 import { withUser } from "./db";
 import { getFitData } from "./fit";
@@ -40,6 +41,8 @@ export type HoyData = {
   digest: string | null;
   /** Titular de «Tu encaje» de la carrera principal; null si no hay carrera o el cálculo falló. */
   fit: { headline: string } | null;
+  /** «Para hacer seguimiento» (C-9): postulaciones que vencen hoy. */
+  followUps: FollowUpView[];
 };
 
 /** El titular de «Tu encaje»: si falla, la tarjeta no se muestra y se loguea solo el usuario. */
@@ -68,7 +71,7 @@ export async function getHoyData(
 ): Promise<HoyData> {
   const { since, stamp } = visitWindow(cookieValue, userId, now);
   const evaluatedSince = since ?? new Date(now.getTime() - 7 * DAY_MS);
-  const [jobs, coverage, roles, profile] = await Promise.all([
+  const [jobs, coverage, roles, profile, followUps] = await Promise.all([
     listJobs(
       userId,
       {
@@ -91,6 +94,15 @@ export async function getHoyData(
         .limit(1);
       return { tz: row?.tz || DEFAULT_TIMEZONE, languages: row?.languages ?? [] };
     }),
+    // C-9: las postulaciones que vencen hoy (el vencimiento lo decide `followUpDue`). Si falla,
+    // la tarjeta queda vacía y «Hoy» se muestra igual
+    listFollowUps(userId, now).catch((e: unknown) => {
+      createLogger({ user_id: userId, task: "hoy_seguimiento" }).error(
+        { err: safeDbError(e) },
+        "no se pudieron leer los seguimientos",
+      );
+      return [];
+    }),
   ]);
   const { tz: timeZone, languages } = profile;
   const onlySpanish = languages.includes("es") && !languages.includes("en");
@@ -104,7 +116,7 @@ export async function getHoyData(
       : Promise.resolve(null),
     fitForCard(userId, roles[0], now),
   ]);
-  // Solo con una visita anterior: la frase dice «desde tu última visita». Seguimientos: pendiente (C-9)
+  // Solo con una visita anterior: la frase dice «desde tu última visita»
   const digest = since
     ? digestSentence(
         buildDigest({
@@ -112,7 +124,7 @@ export async function getHoyData(
           toApply: jobs.filter(
             (j) => j.accion === "aplicar" || j.accion === "aplicar_personalizado",
           ).length,
-          followUps: 0,
+          followUps: followUps.length,
           careers: [],
           frequency: "diario",
           now,
@@ -133,5 +145,6 @@ export async function getHoyData(
     onlySpanish,
     digest,
     fit,
+    followUps,
   };
 }
