@@ -1,2 +1,4 @@
-/** Nombre del producto: es el único lugar donde se cambia (títulos, emails, filtros de Gmail). */
-export const PRODUCT_NAME = "Job Search OS";
+import { BRAND } from "./brand";
+
+/** Nombre del producto. Sale de `BRAND` (brand.ts), el único lugar donde se cambia. */
+export const PRODUCT_NAME = BRAND.name;

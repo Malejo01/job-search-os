@@ -1,1 +1,12 @@
 @import "tailwindcss";
+
+/*
+ * Colores de marca (C-15). Hoy valen lo mismo que el gris oscuro que usa la app, así que no cambia
+ * nada a la vista. Para cambiar de marca se editan estas tres líneas; las clases son `bg-brand`,
+ * `hover:bg-brand-hover` y `text-brand-contrast`. Ver docs/MARCA.md.
+ */
+@theme {
+  --color-brand: var(--color-zinc-900);
+  --color-brand-hover: var(--color-zinc-800);
+  --color-brand-contrast: var(--color-white);
+}
