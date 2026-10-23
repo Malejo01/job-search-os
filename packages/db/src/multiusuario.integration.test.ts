@@ -624,6 +624,22 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
         before,
       );
     },
+    // C-13: por carrera, solo sí/no por regla; nada que identifique a B
+    career_maturity_stats: async () => {
+      const rows = await asUser(
+        A,
+        (tx) => tx<Record<string, unknown>[]>`select * from career_maturity_stats()`,
+      );
+      for (const r of rows) {
+        expect(Object.keys(r).sort()).toEqual(["active_ok", "offers_ok", "role", "thumbs_ok"]);
+      }
+    },
+    // C-14: solo app_admins
+    admin_beta_metrics: async () => {
+      await expect(asUser(A, (tx) => tx`select admin_beta_metrics()`)).rejects.toThrow(
+        /admin_beta_metrics: no autorizado/,
+      );
+    },
     // Lookup por email: acá solo un email inexistente.
     auth_user_by_email: async () => {
       expect(
