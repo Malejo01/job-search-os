@@ -88,7 +88,7 @@ test.describe("Flujo 69: Hoy", () => {
     await expect(page).toHaveURL(/\/hoy$/);
     await expect(page.getByRole("heading", { level: 1, name: "Hoy", exact: true })).toBeVisible();
     await expect(page.getByTestId("hoy-visita")).toHaveText("Primera vez por acá");
-    for (const id of ["hoy-nuevo", "hoy-alertas", "hoy-mercado"]) {
+    for (const id of ["hoy-nuevo", "hoy-seguimiento", "hoy-alertas", "hoy-mercado"]) {
       const section = page.getByTestId(id);
       await expect(section).toBeVisible();
       // Cada tarjeta es una región con nombre (section + aria-labelledby apuntando a su h2)
@@ -199,11 +199,43 @@ test.describe("Flujo 69: Hoy", () => {
     );
     await expect(page.getByTestId("hoy-vacio-alertas")).toBeVisible();
     await expect(page.getByTestId("hoy-vacio-mercado")).toBeVisible();
+    await expect(page.getByTestId("hoy-vacio-seguimiento")).toContainText("Nada pendiente");
 
     const html = await page.content();
     expect(html, "aparece una oferta de A").not.toContain(titleHigh);
     expect(html, "aparece una oferta de A").not.toContain(titleLow);
     expect(html, "aparece la empresa de A").not.toContain("E2E Testing SA");
+  });
+
+  test("seguimiento (C-9): una postulación de hace 10 días aparece y lleva a /applications", async ({
+    page,
+  }) => {
+    const title = `Oferta Ficticia Hoy Seguimiento ${tag}`;
+    const jobId = await createJob({ title, status: "aplicada", jdText: "JD de prueba." });
+    jobIds.push(jobId);
+    const { db, close } = ownerDb();
+    try {
+      await db.insert(s.applications).values({
+        jobId,
+        userId: E2E_USER_ID,
+        appliedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+        outcome: "sin_respuesta",
+      });
+    } finally {
+      await close();
+    }
+    await login(page);
+    await page.goto("/hoy");
+    const card = page.getByTestId("hoy-seguimiento");
+    await expect(card.getByRole("heading", { level: 2 })).toHaveText("Para hacer seguimiento");
+    // Puede haber otras vencidas de otros specs: alcanza con que esta esté (o la cuente el link)
+    const seeAll = card.getByRole("link", { name: /^Ver la postulación$|^Ver las \d+$/ });
+    await expect(seeAll).toHaveAttribute("href", "/applications#seguimiento");
+    await seeAll.click();
+    await expect(page).toHaveURL(/\/applications#seguimiento$/);
+    await expect(page.getByTestId("seguimiento-item").filter({ hasText: title })).toContainText(
+      "hace 10 días",
+    );
   });
 
   test("A no ve nada de B en /hoy", async ({ page }) => {

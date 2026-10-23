@@ -14,6 +14,7 @@ export const metadata = { title: "Hoy" };
 
 const VISIT_MAX_AGE = 60 * 60 * 24 * 365;
 const SHOWN = 5;
+const FOLLOW_UPS_SHOWN = 3;
 
 const CARD = "flex min-w-0 flex-col gap-2 rounded-md border border-zinc-200 px-3 py-3";
 const LINK =
@@ -71,9 +72,9 @@ export default async function HoyPage() {
           <p className="text-sm text-zinc-700">{data.digest}</p>
         </section>
       ) : null}
-      {/* Las tarjetas van en este grid; la de seguimiento se suma entre «Lo nuevo» y «Alertas» */}
       <div className="grid gap-3 sm:grid-cols-2">
         <NewCard data={data} />
+        <FollowUpCard data={data} />
         {data.fit ? (
           <Card id="hoy-encaje-titulo" testId="hoy-encaje" title="Tu encaje">
             <p className="text-sm text-zinc-700">{data.fit.headline}</p>
@@ -172,6 +173,41 @@ function NewCard({ data }: { data: HoyData }) {
             Ver todas las ofertas
           </Link>
         </div>
+      )}
+    </Card>
+  );
+}
+
+/**
+ * «Para hacer seguimiento» (C-9, diseño de la 119 §2): las tres primeras y el link a la lista. Sin
+ * botones: las acciones viven en /applications.
+ */
+function FollowUpCard({ data }: { data: HoyData }) {
+  const { followUps } = data;
+  return (
+    <Card id="hoy-seguimiento-titulo" testId="hoy-seguimiento" title="Para hacer seguimiento">
+      {followUps.length === 0 ? (
+        <p data-testid="hoy-vacio-seguimiento" className="text-sm text-zinc-700">
+          Nada pendiente. Te avisamos a los 7 días sin respuesta (5 después de una entrevista).
+        </p>
+      ) : (
+        <>
+          <ul className="m-0 flex list-none flex-col gap-2 p-0">
+            {followUps.slice(0, FOLLOW_UPS_SHOWN).map((f) => (
+              <li key={f.jobId} className="min-w-0 text-sm">
+                <Link href={`/jobs/${f.jobId}`} className={`${LINK_INLINE} block truncate`}>
+                  {f.title}
+                </Link>
+                <p className="truncate text-xs text-zinc-600">
+                  {f.company} · hace {f.daysSince} {f.daysSince === 1 ? "día" : "días"}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <Link href="/applications#seguimiento" className={LINK}>
+            {followUps.length === 1 ? "Ver la postulación" : `Ver las ${followUps.length}`}
+          </Link>
+        </>
       )}
     </Card>
   );
