@@ -350,31 +350,53 @@ export default async function JobDetailPage({
               <h2 className="font-semibold">Veredicto</h2>
               <p className="mt-1 text-zinc-800">{ev.veredicto}</p>
               <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-zinc-600">
-                <dt>Disciplina</dt>
-                <dd>{DISCIPLINE_LABEL[ev.discipline] ?? ev.discipline}</dd>
                 <dt>Inglés</dt>
                 <dd>{ENGLISH_LABEL[ev.englishRequired] ?? ev.englishRequired}</dd>
                 <dt>Años pedidos</dt>
                 <dd>{ev.yearsRequired ?? "no dice"}</dd>
-                <dt>Empresa</dt>
-                <dd>
-                  {ev.companyType
-                    ? (COMPANY_TYPE_LABEL[ev.companyType] ?? ev.companyType)
-                    : COMPANY_TYPE_LABEL.desconocido}
-                </dd>
-                <dt>Fecha de la evaluación</dt>
-                <dd>
-                  {formatDate(ev.createdAt)}
-                  {ev.hadFullJd ? "" : " · sin la descripción completa"}
-                </dd>
-                <dt>Score de la evaluación</dt>
-                <dd>
-                  {ev.scoreModel ?? ev.score}
-                  {ev.adjustments.length
-                    ? ` → ${ev.score} (${ev.adjustments.map(adjustmentText).join(", ")})`
-                    : ""}
-                </dd>
               </dl>
+              {/* A-10 (C-5 P2-3): el detalle técnico del puntaje queda plegado, para no
+                  recibir con jerga a quien no es de tecnología */}
+              <details className="mt-2 text-xs text-zinc-600">
+                <summary className="cursor-pointer py-1 font-medium text-zinc-700">
+                  Cómo se calculó
+                </summary>
+                <p className="mt-1">
+                  La IA lee el aviso y tu perfil y propone un puntaje. Después la app aplica reglas
+                  fijas que lo suben o lo bajan.
+                </p>
+                <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1">
+                  <dt>Área del aviso</dt>
+                  <dd>{DISCIPLINE_LABEL[ev.discipline] ?? ev.discipline}</dd>
+                  <dt>Tipo de empresa</dt>
+                  <dd>
+                    {ev.companyType
+                      ? (COMPANY_TYPE_LABEL[ev.companyType] ?? ev.companyType)
+                      : COMPANY_TYPE_LABEL.desconocido}
+                  </dd>
+                  <dt>Puntaje de la IA</dt>
+                  <dd>{ev.scoreModel ?? ev.score}</dd>
+                  <dt>Ajustes</dt>
+                  <dd>
+                    {ev.adjustments.length ? (
+                      <ul>
+                        {ev.adjustments.map((a, i) => (
+                          <li key={`${i}|${a.rule}`}>{adjustmentText(a)}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      "ninguno"
+                    )}
+                  </dd>
+                  <dt>Puntaje final</dt>
+                  <dd>{ev.score}</dd>
+                  <dt>Fecha de la evaluación</dt>
+                  <dd>
+                    {formatDate(ev.createdAt)}
+                    {ev.hadFullJd ? "" : " · sin la descripción completa"}
+                  </dd>
+                </dl>
+              </details>
             </div>
           </section>
 

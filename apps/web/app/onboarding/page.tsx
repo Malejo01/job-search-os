@@ -25,7 +25,7 @@ export const maxDuration = 120;
 
 /**
  * Onboarding obligatorio (B2, JS-094): sin país, resumen y criterios el evaluador no tiene con
- * qué trabajar. El gate está en el layout de (app); si el perfil ya está completo, va a /jobs.
+ * qué trabajar. El gate está en el layout de (app); si el perfil ya está completo, va a /hoy (119b).
  * El formulario es de cliente (`OnboardingForm`): ante un error no recarga y no pierde lo cargado.
  */
 export default async function OnboardingPage({
@@ -34,7 +34,7 @@ export default async function OnboardingPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const userId = await requireUserId();
-  if (await isOnboardingComplete(userId)) redirect("/jobs");
+  if (await isOnboardingComplete(userId)) redirect("/hoy");
   const [{ error }, targetRoles, rolesLimit, salaries, inviteDismissed] = await Promise.all([
     searchParams,
     getTargetRoles(userId),
