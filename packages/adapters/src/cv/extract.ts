@@ -16,7 +16,7 @@ import {
   type RoleKey,
   type SkillTaxonomyEntry,
 } from "@job-search-os/pipeline";
-import { and, eq, gte, sql } from "drizzle-orm";
+import { and, eq, gte, isNull, notInArray, or, sql } from "drizzle-orm";
 import type { Logger } from "../logger";
 import type { LlmClient } from "../llm/types";
 
@@ -71,6 +71,12 @@ export interface CvUsageSource {
 }
 
 /**
+ * Una lectura que se cortó por tiempo (o que se canceló) no consume cupo: decisión de Mauro del
+ * 21/10. El resto de los fallos del proveedor sí cuenta (pueden haber costado).
+ */
+export const CV_ERRORS_NOT_COUNTED = ["timeout", "aborted"] as const;
+
+/**
  * Reusa el patrón de `spend.ts`: filas de `llm_calls` por `user_id` y `task`, con el índice
  * `llm_calls_user_task`. `db` tiene que ver `llm_calls` de la persona (conexión de servicio).
  */
@@ -85,6 +91,7 @@ export function drizzleCvUsage(db: Db): CvUsageSource {
             eq(s.llmCalls.userId, userId),
             eq(s.llmCalls.task, EXTRACT_CV_TASK),
             gte(s.llmCalls.createdAt, since),
+            or(isNull(s.llmCalls.error), notInArray(s.llmCalls.error, [...CV_ERRORS_NOT_COUNTED])),
           ),
         );
       return row?.n ?? 0;
