@@ -1,0 +1,81 @@
+import { describe, expect, it } from "vitest";
+import {
+  buildStudyRoute,
+  simulateSkillImpact,
+  simulateSkills,
+  type SimCandidate,
+  type SimInput,
+} from "./simulate";
+
+/** Skill de una oferta: «slug» o «slug!» si es excluyente. */
+function offer(id: string, skills: string[], flags: string[] = []): SimCandidate {
+  const parsed = skills.map((s) => {
+    const slug = s.replace("!", "");
+    return { slug, name: slug, isMust: s.endsWith("!") };
+  });
+  return { id, flags, skills: parsed, salaryMaxUsd: null };
+}
+
+// Ejemplo del diseño de la 121 (§3): persona ficticia de Data Analyst, sin piso salarial
+const LEVELS = new Map(
+  Object.entries({
+    sql: 2,
+    excel: 3,
+    python: 1,
+    statistics: 1,
+    english_intermediate: 2,
+    power_bi: 0,
+    tableau: 0,
+  }),
+);
+const CANDIDATES = [
+  offer("A", ["sql!", "power_bi!", "excel"]),
+  offer("B", ["sql", "python!", "power_bi!", "english_intermediate"]),
+  offer("C", ["excel", "power_bi!", "statistics"], ["location_risk"]),
+  offer("D", ["tableau!", "sql"]),
+  offer("E", ["python!", "sql", "statistics", "etl"]),
+];
+const INPUT: SimInput = { candidates: CANDIDATES, levels: LEVELS, salaryFloorUsd: null };
+
+describe("simulador «si aprendés X» (121 §3, C-3 E3)", () => {
+  it("reproduce el ejemplo del diseño: hoy entra 1 de 5", () => {
+    expect(simulateSkills(INPUT, [])).toEqual({ total: 5, passNow: 1, passAfter: 1 });
+  });
+
+  it("power_bi la piden 3 (todas excluyentes) y suma 1; python suma 2; tableau, 1", () => {
+    const powerBi = simulateSkillImpact(INPUT, "power_bi");
+    expect(powerBi).toMatchObject({ asks: 3, asksMust: 3, passNow: 1, passAfter: 2, delta: 1 });
+    expect(powerBi.exampleIds).toEqual(["B"]);
+    const python = simulateSkillImpact(INPUT, "python");
+    expect(python).toMatchObject({ asks: 2, asksMust: 2, delta: 2 });
+    expect(python.exampleIds).toEqual(["B", "E"]);
+    expect(simulateSkillImpact(INPUT, "tableau")).toMatchObject({ asks: 1, delta: 1 });
+  });
+
+  it("combinadas no se cuentan dos veces", () => {
+    expect(simulateSkills(INPUT, ["power_bi", "python"]).passAfter).toBe(3);
+  });
+
+  it("la ruta greedy da python, tableau y power_bi, repartidas en semanas", () => {
+    const skills = [
+      { slug: "power_bi", name: "Power BI", hours: 16, priority: 2 },
+      { slug: "python", name: "Python", hours: null, priority: 1 },
+      { slug: "tableau", name: "Tableau", hours: 16, priority: 1 },
+    ];
+    const route = buildStudyRoute(INPUT, skills, 5);
+    expect(route.map((r) => r.slug)).toEqual(["python", "tableau", "power_bi"]);
+    expect(route.map((r) => [r.weekFrom, r.weekTo])).toEqual([
+      [1, 4],
+      [5, 7],
+      [8, 10],
+    ]);
+    expect(route[0]).toMatchObject({ hours: 20, estimated: true, delta: 2 });
+    // Después de python, power_bi ya no suma B: la oferta ya entra
+    expect(route[2]).toMatchObject({ slug: "power_bi", delta: 0 });
+  });
+
+  it("con más horas por semana, la misma ruta se comprime", () => {
+    const skills = [{ slug: "python", name: "Python", hours: 20, priority: 1 }];
+    expect(buildStudyRoute(INPUT, skills, 10)[0]).toMatchObject({ weekFrom: 1, weekTo: 2 });
+  });
+});
