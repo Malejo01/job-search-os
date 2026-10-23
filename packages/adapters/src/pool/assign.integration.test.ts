@@ -545,6 +545,49 @@ describe("assignPoolToUser · ventas y atención (ronda 107)", () => {
   });
 });
 
+describe("assignPoolToUser · finanzas y operaciones (C-2b)", () => {
+  it("con finanzas_contabilidad recibe 'Auxiliar contable'", async () => {
+    const acc = await pool({
+      title: "Auxiliar contable",
+      titleNormalized: "auxiliar contable",
+      roleHints: ["finanzas_contabilidad"],
+    });
+    await setProfile(USER_A, rolesOf("finanzas_contabilidad"));
+    const r = await run(USER_A, 10, 0);
+    expect(r).toMatchObject({ assigned: 1, discarded: 0 });
+    expect((await jobsOf(USER_A)).map((j) => j.publicJobId)).toEqual([acc]);
+  });
+
+  it("con asistencia_operaciones recibe 'Asistente administrativa'", async () => {
+    const asst = await pool({
+      title: "Asistente administrativa",
+      titleNormalized: "asistente administrativa",
+      roleHints: ["asistencia_operaciones"],
+    });
+    await setProfile(USER_A, rolesOf("asistencia_operaciones"));
+    const r = await run(USER_A, 10, 0);
+    expect(r).toMatchObject({ assigned: 1, discarded: 0 });
+    expect((await jobsOf(USER_A)).map((j) => j.publicJobId)).toEqual([asst]);
+  });
+
+  it("sin ese puesto, los dos avisos se descartan", async () => {
+    await pool({
+      title: "Auxiliar contable",
+      titleNormalized: "auxiliar contable",
+      roleHints: ["finanzas_contabilidad"],
+    });
+    await pool({
+      title: "Asistente administrativa",
+      titleNormalized: "asistente administrativa",
+      roleHints: ["asistencia_operaciones"],
+    });
+    await setProfile(USER_A, rolesOf("data_engineer"));
+    const r = await run(USER_A, 10, 0);
+    expect(r.assigned).toBe(0);
+    expect(await jobsOf(USER_A)).toEqual([]);
+  });
+});
+
 describe("assignPoolToUser · sin duplicar", () => {
   it("no duplica lo que ya tiene por URL canónica ni por jd_hash, ni en una segunda corrida", async () => {
     const urlDup = await pool();

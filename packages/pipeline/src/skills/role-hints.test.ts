@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { inferRoleHints, SOURCE_CATEGORY_ROLES } from "./role-hints";
+import { inferRoleHints, SOURCE_CATEGORY_ROLES, TITLE_TERMS } from "./role-hints";
 import { ROLE_KEYS } from "./self-assessment";
 
 const hints = (
@@ -85,8 +85,9 @@ describe("inferRoleHints · título", () => {
 
   it("sin señales devuelve vacío", () => {
     expect(hints("")).toEqual([]);
-    expect(hints("Contador")).toEqual([]);
-    expect(inferRoleHints({ sourceKind: "other", title: "Contador" })).toEqual([]);
+    // C-2b: «Contador» ya no es «sin señal» (era el ejemplo; ahora es finanzas_contabilidad).
+    expect(hints("Gerente")).toEqual([]);
+    expect(inferRoleHints({ sourceKind: "other", title: "Gerente" })).toEqual([]);
   });
 
   it("ignora mayúsculas y acentos", () => {
@@ -825,5 +826,87 @@ describe("inferRoleHints · ventas, atención, RRHH y contenido (ronda 107, ADR-
     expect(
       hints("Cargo sin pistas", { sourceKind: "getonboard_api", categories: ["sales"] }),
     ).toEqual(["ventas_b2b"]);
+  });
+});
+
+describe("inferRoleHints · finanzas y asistencia/operaciones (C-2b, ADR-023)", () => {
+  it.each(["finanzas_contabilidad", "asistencia_operaciones"] as const)(
+    "%s: cada término de TITLE_TERMS, solo, nombra el puesto",
+    (role) => {
+      expect(TITLE_TERMS[role].length).toBeGreaterThan(20);
+      for (const term of TITLE_TERMS[role]) {
+        expect(hints(term), term).toContain(role);
+      }
+    },
+  );
+
+  it.each([
+    ["Senior Accountant", ["finanzas_contabilidad"]],
+    ["Bookkeeper (part-time)", ["finanzas_contabilidad"]],
+    ["Accounts Payable Specialist", ["finanzas_contabilidad"]],
+    ["AR Specialist", ["finanzas_contabilidad"]],
+    ["Billing Analyst", ["finanzas_contabilidad"]],
+    ["Payroll Specialist", ["finanzas_contabilidad"]],
+    ["FP&A Analyst", ["finanzas_contabilidad"]],
+    ["Financial Controller", ["finanzas_contabilidad"]],
+    ["Tax Analyst", ["finanzas_contabilidad"]],
+    ["Sales Tax Analyst", ["finanzas_contabilidad"]],
+    ["Internal Audit Associate", ["finanzas_contabilidad"]],
+    ["Contador Público", ["finanzas_contabilidad"]],
+    ["Analista de Finanzas", ["finanzas_contabilidad"]],
+    ["Analista de Cuentas por Pagar", ["finanzas_contabilidad"]],
+    ["Liquidación de Sueldos", ["finanzas_contabilidad"]],
+    ["Asistente Contable", ["finanzas_contabilidad"]],
+    ["Virtual Assistant", ["asistencia_operaciones"]],
+    ["Executive Assistant", ["asistencia_operaciones"]],
+    ["Administrative Assistant", ["asistencia_operaciones"]],
+    ["Office Manager", ["asistencia_operaciones"]],
+    ["Operations Coordinator", ["asistencia_operaciones"]],
+    ["Operations Associate", ["asistencia_operaciones"]],
+    ["Data Entry Clerk", ["asistencia_operaciones"]],
+    ["Back Office Specialist", ["asistencia_operaciones"]],
+    ["Asistente Virtual", ["asistencia_operaciones"]],
+    ["Asistente Ejecutiva", ["asistencia_operaciones"]],
+    ["Auxiliar Administrativo", ["asistencia_operaciones"]],
+    ["Coordinadora de Operaciones", ["asistencia_operaciones"]],
+    ["Ingreso de Datos", ["asistencia_operaciones"]],
+  ])("positivo: %s", (title, roles) => {
+    expect(hints(title)).toEqual(expect.arrayContaining(roles));
+  });
+
+  it.each([
+    "Sales Operations Coordinator",
+    "Revenue Operations Specialist",
+    "Marketing Operations Associate",
+    "Financial Engineer",
+    "Operations Manager",
+    "Assistant Manager",
+    "Finance Manager",
+    "Quantitative Financial Analyst",
+    "Software Engineer, Payments",
+    "Fraud Operations Analyst",
+    "Warehouse Operations Associate",
+    "Trust and Safety Operations Specialist",
+  ])("negativo: %s no suma finanzas ni operaciones", (title) => {
+    const h = hints(title);
+    expect(h).not.toContain("asistencia_operaciones");
+    expect(h).not.toContain("finanzas_contabilidad");
+  });
+
+  it("casos puntuales de §2", () => {
+    expect(hints("Sales Operations Coordinator")).toEqual([]);
+    expect(hints("Revenue Operations Specialist")).toEqual([]);
+    expect(hints("Financial Engineer")).toEqual([]);
+    expect(hints("DevOps Engineer")).toEqual(["soporte_it"]);
+    expect(hints("Executive Assistant to the CFO")).toEqual(["asistencia_operaciones"]);
+    expect(hints("Accounting Operations Specialist")).toEqual(["finanzas_contabilidad"]);
+    expect(hints("HR & Payroll Coordinator")).toEqual(["rrhh_it", "finanzas_contabilidad"]);
+    expect(hints("Fraud Operations Analyst")).not.toContain("asistencia_operaciones");
+  });
+
+  it("los vecinos que ya existían no se mueven", () => {
+    expect(hints("IT Operations Analyst")).toEqual(["soporte_it"]);
+    expect(hints("Security Operations Analyst")).toEqual(["ciberseguridad"]);
+    expect(hints("People Operations Manager")).toEqual(["rrhh_it"]);
   });
 });

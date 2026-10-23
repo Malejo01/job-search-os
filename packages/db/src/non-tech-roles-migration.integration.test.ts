@@ -93,7 +93,7 @@ describe("ronda 107: las cinco skills nuevas", () => {
       const seed = skills.find((s) => s.slug === row.slug)!;
       expect(row.name).toBe(seed.name);
       expect(row.category).toBe("dominio");
-      expect(row.aliases).toEqual(seed.aliases);
+      expect(row.aliases).toEqual(seed.aliases); // incluye hr_generalist ya sin payroll (0044)
       expect(row.closure_hours).toBe(seed.closure_hours);
       expect(row.description).toBe(seed.description);
       expect(row.is_global).toBe(true);

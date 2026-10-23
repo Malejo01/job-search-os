@@ -1,4 +1,4 @@
-import { ROLE_KEYS } from "@job-search-os/pipeline";
+import { ROLE_KEYS, UNLISTED_ROLE_KEYS } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { careerLabel } from "@/lib/career-market";
 
@@ -22,7 +22,7 @@ export function CareerChips({
   return (
     <nav aria-label={label}>
       <ul className="flex flex-wrap gap-2">
-        {ROLE_KEYS.map((key) => (
+        {ROLE_KEYS.filter((k) => !UNLISTED_ROLE_KEYS.includes(k) || k === current).map((key) => (
           <li key={key}>
             <Link
               href={`${base}/${key}`}

@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_CRITERIA_RULES } from "../onboarding";
 import {
+  BACKOFFICE_ROLE_KEYS,
   COMMERCIAL_ROLE_KEYS,
   DIGITAL_ROLE_KEYS,
   UNLISTED_ROLE_KEYS,
@@ -59,6 +60,7 @@ describe("ROLE_GROUPS", () => {
       "Producto y proyectos",
       "Carreras digitales",
       "Ventas y atención",
+      "Finanzas y operaciones",
     ]);
     expect(ROLE_GROUPS[3]!.roles).toEqual(["ventas_b2b", "atencion_cliente"]);
     expect(ROLE_GROUPS[1]!.roles).toEqual([
@@ -85,16 +87,34 @@ describe("ROLE_GROUPS", () => {
     ]);
     expect(ROLE_KEYS as readonly string[]).not.toContain("producto_proyectos");
   });
+  it("C-2b: las dos claves nuevas van al final, en su grupo, y cuentan como no IT", () => {
+    expect(ROLE_KEYS.slice(-2)).toEqual(["finanzas_contabilidad", "asistencia_operaciones"]);
+    expect(BACKOFFICE_ROLE_KEYS).toEqual(["finanzas_contabilidad", "asistencia_operaciones"]);
+    expect(ROLE_GROUPS).toHaveLength(5);
+    expect(ROLE_GROUPS[4]).toEqual({
+      label: "Finanzas y operaciones",
+      roles: ["finanzas_contabilidad", "asistencia_operaciones"],
+    });
+    for (const k of BACKOFFICE_ROLE_KEYS) {
+      expect(DIGITAL_ROLE_KEYS).toContain(k);
+      expect(IT_ROLE_KEYS).not.toContain(k);
+    }
+  });
 });
 
 describe("selectableRoleGroups", () => {
-  it("hoy no hay carreras sin listar: devuelve los mismos grupos", () => {
-    expect(UNLISTED_ROLE_KEYS).toEqual([]);
-    expect(selectableRoleGroups()).toEqual(ROLE_GROUPS);
+  it("hoy solo asistencia_operaciones está sin listar (C-2b): sale del selector salvo que la tenga el perfil", () => {
+    expect(UNLISTED_ROLE_KEYS).toEqual(["asistencia_operaciones"]);
+    const flat = (g: ReturnType<typeof selectableRoleGroups>) => g.flatMap((x) => [...x.roles]);
+    expect(flat(selectableRoleGroups())).not.toContain("asistencia_operaciones");
+    expect(flat(selectableRoleGroups())).toContain("finanzas_contabilidad");
+    const kept = flat(selectableRoleGroups(["asistencia_operaciones"]));
+    expect(kept).toContain("asistencia_operaciones");
   });
   it("las no listadas salen salvo las del perfil (keep), y los grupos no quedan vacíos", () => {
-    // La lista es una constante: se prueba el mecanismo con una copia temporal.
+    // La lista es una constante: se prueba el mecanismo con una copia temporal y se restaura.
     const unlisted = UNLISTED_ROLE_KEYS as RoleKey[];
+    const original = [...unlisted];
     unlisted.push("ventas_b2b", "atencion_cliente");
     try {
       const flat = (g: ReturnType<typeof selectableRoleGroups>) => g.flatMap((x) => [...x.roles]);
@@ -107,6 +127,7 @@ describe("selectableRoleGroups", () => {
       }
     } finally {
       unlisted.length = 0;
+      unlisted.push(...original);
     }
   });
 });
@@ -126,8 +147,8 @@ describe("toRoleKey", () => {
 describe("role_skills.json", () => {
   const parsed = roleSkillsSchema.safeParse(seed);
   it("valida contra el esquema", () => expect(parsed.success).toBe(true));
-  it("tiene los 20 roles", () => {
-    expect(ROLE_KEYS).toHaveLength(20);
+  it("tiene los 22 roles", () => {
+    expect(ROLE_KEYS).toHaveLength(22);
     expect(Object.keys(seed).sort()).toEqual([...ROLE_KEYS].sort());
   });
   it("todos los slugs existen en la taxonomía", () => {
@@ -218,6 +239,22 @@ describe("defaultRole", () => {
     expect(role("Customer Success Manager")).toBe("customer_success");
     expect(role("Analista de Ciberseguridad")).toBe("ciberseguridad");
     expect(role("Seguridad informática")).toBe("ciberseguridad");
+  });
+  it("C-2b: deduce finanzas y asistencia/operaciones del titular", () => {
+    expect(role("Contadora Pública")).toBe("finanzas_contabilidad");
+    expect(role("Senior Accountant")).toBe("finanzas_contabilidad");
+    expect(role("Bookkeeper freelance")).toBe("finanzas_contabilidad");
+    expect(role("FP&A Analyst")).toBe("finanzas_contabilidad");
+    expect(role("Analista Financiera")).toBe("finanzas_contabilidad");
+    expect(role("Financial Analyst")).toBe("finanzas_contabilidad");
+    expect(role("Asistente Virtual")).toBe("asistencia_operaciones");
+    expect(role("Executive Assistant")).toBe("asistencia_operaciones");
+    expect(role("Asistente administrativa")).toBe("asistencia_operaciones");
+    expect(role("Operations Coordinator")).toBe("asistencia_operaciones");
+    expect(role("Data entry")).toBe("asistencia_operaciones");
+    // negativos: «operations» suelto no alcanza
+    expect(role("Operations Manager")).toBeNull();
+    expect(role("Sales Operations")).toBeNull();
   });
   it("los titulares de siempre no caen en un puesto nuevo", () => {
     expect(role("Product designer UI")).toBe("ux_ui");

@@ -133,6 +133,51 @@ describe("titleFit · ventas y atención (ronda 107)", () => {
   });
 });
 
+describe("titleFit · finanzas y asistencia/operaciones (C-2b)", () => {
+  it("finanzas_contabilidad: el cargo vale 2; datos y desarrollo se vetan", () => {
+    expect(titleFit("Senior Accountant", "finanzas_contabilidad")).toBe(2);
+    expect(titleFit("Sales Tax Analyst", "finanzas_contabilidad")).toBe(2);
+    expect(titleFit("Contador Público", "finanzas_contabilidad")).toBe(2);
+    expect(titleFit("Finance Specialist", "finanzas_contabilidad")).toBe(2);
+    expect(titleFit("Finance Manager", "finanzas_contabilidad")).toBe(1);
+    expect(titleFit("Financial Data Engineer", "finanzas_contabilidad")).toBe(0);
+    expect(titleFit("Accounting Software Engineer", "finanzas_contabilidad")).toBe(0);
+    expect(titleFit("Financial Engineer", "finanzas_contabilidad")).toBe(0);
+    expect(titleFit("Finance Developer", "finanzas_contabilidad")).toBe(0);
+  });
+
+  it("asistencia_operaciones: el cargo vale 2; proyectos, soporte IT y finanzas se vetan", () => {
+    expect(titleFit("Virtual Assistant", "asistencia_operaciones")).toBe(2);
+    expect(titleFit("Operations Coordinator", "asistencia_operaciones")).toBe(2);
+    expect(titleFit("Asistente Administrativa", "asistencia_operaciones")).toBe(2);
+    expect(titleFit("Operations Lead", "asistencia_operaciones")).toBe(1);
+    expect(titleFit("Project Manager", "asistencia_operaciones")).toBe(0);
+    expect(titleFit("IT Support Specialist", "asistencia_operaciones")).toBe(0);
+    expect(titleFit("Senior Accountant", "asistencia_operaciones")).toBe(0);
+    expect(titleFit("Operations Engineer", "asistencia_operaciones")).toBe(0);
+    // la exclusión de role-hints (otra operación) lo deja sin nombrar el cargo, pero sin veto
+    expect(titleFit("Sales Operations Coordinator", "asistencia_operaciones")).toBe(1);
+  });
+
+  it("project_manager veta los títulos de operaciones (D9), pero la frase propia gana", () => {
+    expect(titleFit("Virtual Assistant", "project_manager")).toBe(0);
+    expect(titleFit("Operations Coordinator", "project_manager")).toBe(0);
+    expect(titleFit("Project Manager", "project_manager")).toBe(2);
+    expect(titleFit("Operations Coordinator & Project Manager", "project_manager")).toBe(2);
+  });
+
+  it("assessPoolTitle: con la categoría de operaciones el título deja la carrera que corresponde", () => {
+    const r = assessPoolTitle({
+      title: "Executive Assistant",
+      roleHints: ["project_manager", "asistencia_operaciones"],
+      roles: ["project_manager"],
+      yearsTotal: null,
+    });
+    expect(r.titleFit).toBe(0);
+    expect(r.effectiveHints).toEqual(["asistencia_operaciones"]);
+  });
+});
+
 describe("titleFit", () => {
   it("2 cuando el título nombra el cargo", () => {
     expect(titleFit("Data Analyst", "data_analyst")).toBe(2);
