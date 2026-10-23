@@ -22,6 +22,7 @@ import { fetchHimalayasJobs } from "../sources/himalayas";
 import { fetchJobicyJobs } from "../sources/jobicy";
 import { fetchLeverBoard } from "../sources/lever";
 import { fetchRemoteOkJobs, REMOTEOK_API_DELAY_LOOKBACK_MS } from "../sources/remoteok";
+import { fetchTeamtailorBoard } from "../sources/teamtailor";
 import { fetchWwrJobs, WWR_POOL_CATEGORIES } from "../sources/wwr";
 import { upsertPoolJobs, type PoolUpsertSummary } from "./upsert";
 
@@ -40,6 +41,7 @@ export const POOL_SOURCE_NAMES = [
   "greenhouse",
   "lever",
   "ashby",
+  "teamtailor",
 ] as const;
 export type PoolSourceName = (typeof POOL_SOURCE_NAMES)[number];
 
@@ -79,6 +81,9 @@ export const POOL_SOURCE_KIND: Record<PoolSourceName, SourceKindValue> = {
   greenhouse: "greenhouse",
   lever: "lever",
   ashby: "ashby",
+  // PROVISORIO (120-a): el enum `source_kind` de la base todavía no tiene "teamtailor"; la
+  // migración de 120-b lo agrega y acá pasa a ser "teamtailor". Hasta entonces la fuente no se prende.
+  teamtailor: "other",
 };
 
 const HOUR_MS = 3_600_000;
@@ -92,6 +97,7 @@ export const POOL_MIN_INTERVAL_MS: Record<PoolSourceName, number> = {
   greenhouse: 5 * HOUR_MS,
   lever: 5 * HOUR_MS,
   ashby: 5 * HOUR_MS,
+  teamtailor: 5 * HOUR_MS,
 };
 
 /** Los ATS pueden usar hasta 20 s de descarga: el tope real es lo que quede del presupuesto. */
@@ -104,6 +110,7 @@ const DEFAULT_TIMEOUT_MS: Record<PoolSourceName, number> = {
   greenhouse: 20_000,
   lever: 20_000,
   ashby: 20_000,
+  teamtailor: 20_000,
 };
 /**
  * Tope total de una fuente ATS (descarga más upsert): así una fuente lenta no se come el
@@ -201,6 +208,8 @@ export type PoolBoardOutcome = {
   fetched: number;
   /** Remotos que quedaron afuera por el tope por board. */
   truncated: number;
+  /** Solo Teamtailor: el feed trajo exactamente 100 items y puede estar cortado. */
+  feedMaybeTruncated?: true;
 };
 
 /**
@@ -298,6 +307,7 @@ const ATS_FETCHERS: Record<AtsProvider, (o: AtsBoardOptions) => Promise<AtsBoard
   greenhouse: fetchGreenhouseBoard,
   lever: fetchLeverBoard,
   ashby: fetchAshbyBoard,
+  teamtailor: fetchTeamtailorBoard,
 };
 
 /**
@@ -331,6 +341,7 @@ export function atsDownloader(provider: AtsProvider): PoolDownloader {
           status: r.status,
           fetched: r.jobs.length,
           truncated: r.truncated,
+          ...(r.feedMaybeTruncated ? { feedMaybeTruncated: true as const } : {}),
         });
       } catch (e) {
         outcomes.push({
@@ -397,6 +408,7 @@ export const POOL_DOWNLOADERS: PoolDownloaders = {
   greenhouse: atsDownloader("greenhouse"),
   lever: atsDownloader("lever"),
   ashby: atsDownloader("ashby"),
+  teamtailor: atsDownloader("teamtailor"),
 };
 
 export type PoolSourceResult = {
@@ -753,6 +765,7 @@ export async function runPoolFetch(
             status: o.status,
             jobs: o.fetched,
             truncated: o.truncated,
+            ...(o.feedMaybeTruncated ? { feed_maybe_truncated: true } : {}),
           },
           "pool: board",
         );

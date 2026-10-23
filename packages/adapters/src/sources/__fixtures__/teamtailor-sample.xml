@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:tt="https://teamtailor.com/locations">
+  <channel>
+    <title>Empresa Ficticia 1 · Empleos</title>
+    <link>https://empresa-ficticia.teamtailor.com</link>
+    <description>Feed inventado para pruebas</description>
+    <item>
+      <guid>tt-guid-0001</guid>
+      <title>Ingeniero/a Backend Ficticio</title>
+      <description>&lt;p&gt;Buscamos a alguien para el equipo &amp;amp; la plataforma.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;SQL&lt;/li&gt;&lt;li&gt;Python&lt;/li&gt;&lt;/ul&gt;</description>
+      <pubDate>Mon, 12 Oct 2026 09:30:00 +0000</pubDate>
+      <link>https://empresa-ficticia.teamtailor.com/jobs/1001-ingeniero-backend-ficticio</link>
+      <remoteStatus>fully</remoteStatus>
+      <tt:locations>
+        <tt:location>
+          <tt:name>Oficina Uno</tt:name>
+          <tt:address>Calle Inventada 1</tt:address>
+          <tt:zip>00000</tt:zip>
+          <tt:city>Ciudad Uno</tt:city>
+          <tt:country>Spain</tt:country>
+        </tt:location>
+        <tt:location>
+          <tt:name>Oficina Dos</tt:name>
+          <tt:city>Ciudad Dos</tt:city>
+          <tt:country>Spain</tt:country>
+        </tt:location>
+        <tt:location>
+          <tt:name>Sede Remota Tres</tt:name>
+        </tt:location>
+      </tt:locations>
+      <tt:department>Ingeniería</tt:department>
+      <tt:role>Backend</tt:role>
+      <tt:division>División Uno</tt:division>
+    </item>
+    <item>
+      <guid>tt-guid-0002</guid>
+      <title>Analista Híbrido Ficticio</title>
+      <description>&lt;p&gt;Puesto de prueba híbrido.&lt;/p&gt;</description>
+      <pubDate>Tue, 13 Oct 2026 10:00:00 +0000</pubDate>
+      <link>https://empresa-ficticia.teamtailor.com/jobs/1002-analista-hibrido-ficticio</link>
+      <remoteStatus>hybrid</remoteStatus>
+      <tt:locations></tt:locations>
+      <tt:department></tt:department>
+      <tt:role/>
+      <tt:division></tt:division>
+    </item>
+    <item>
+      <guid>tt-guid-0003</guid>
+      <title>Técnico Presencial Ficticio</title>
+      <description>&lt;p&gt;Puesto de prueba presencial.&lt;/p&gt;</description>
+      <pubDate>Wed, 14 Oct 2026 08:00:00 +0000</pubDate>
+      <link>https://empresa-ficticia.teamtailor.com/jobs/1003-tecnico-presencial-ficticio</link>
+      <remoteStatus>onsite</remoteStatus>
+      <tt:locations>
+        <tt:location>
+          <tt:city>Ciudad Uno</tt:city>
+          <tt:country>Spain</tt:country>
+        </tt:location>
+      </tt:locations>
+      <tt:department>Operaciones</tt:department>
+      <tt:role></tt:role>
+    </item>
+    <item>
+      <guid>tt-guid-0004</guid>
+      <title>Soporte Regional Ficticio</title>
+      <description>&lt;p&gt;Puesto de prueba para toda la región.&lt;/p&gt;</description>
+      <pubDate>Thu, 15 Oct 2026 08:00:00 +0000</pubDate>
+      <link>https://empresa-ficticia.teamtailor.com/jobs/1004-soporte-regional-ficticio</link>
+      <remoteStatus>none</remoteStatus>
+      <tt:locations>
+        <tt:location>
+          <tt:name>Región</tt:name>
+          <tt:country>LATAM</tt:country>
+        </tt:location>
+      </tt:locations>
+      <tt:department>Soporte</tt:department>
+      <tt:role>Atención</tt:role>
+    </item>
+    <item>
+      <guid>tt-guid-0005</guid>
+      <title>Puesto Sin Modalidad Ficticio</title>
+      <description>&lt;p&gt;Sin remoteStatus ni ubicaciones.&lt;/p&gt;</description>
+      <pubDate>Fri, 16 Oct 2026 08:00:00 +0000</pubDate>
+      <link>https://empresa-ficticia.teamtailor.com/jobs/1005-puesto-sin-modalidad-ficticio</link>
+    </item>
+    <item>
+      <guid>tt-guid-0006</guid>
+      <title>Puesto Sin Link Ficticio</title>
+      <description>&lt;p&gt;Este item no tiene link y se saltea.&lt;/p&gt;</description>
+      <pubDate>Fri, 16 Oct 2026 09:00:00 +0000</pubDate>
+      <remoteStatus>fully</remoteStatus>
+    </item>
+    <item>
+      <title>Puesto Sin Guid Ficticio</title>
+      <description>&lt;p&gt;El id sale del path del link.&lt;/p&gt;</description>
+      <pubDate>Sat, 17 Oct 2026 09:00:00 +0000</pubDate>
+      <link>https://empresa-ficticia.teamtailor.com/jobs/7777-puesto-sin-guid-ficticio</link>
+      <remoteStatus>fully</remoteStatus>
+    </item>
+  </channel>
+</rss>
