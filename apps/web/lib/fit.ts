@@ -1,3 +1,4 @@
+import { createLogger } from "@job-search-os/adapters";
 import { schema as s } from "@job-search-os/db";
 import {
   buildFitSummary,
@@ -12,6 +13,7 @@ import { unstable_cache } from "next/cache";
 import { getCareerMarket } from "./career-market";
 import { withUser } from "./db";
 import { parseChecklist } from "./job-detail";
+import { getTargetRoles } from "./onboarding";
 
 /**
  * Datos de «Tu encaje» (C-6, ticket E2). Lee con RLS (`withUser`) la última evaluación de cada oferta
@@ -139,6 +141,22 @@ async function readFitData(userId: string, role: RoleKey, now: Date): Promise<Fi
  * tocar acciones de otras pantallas): lo que cargues se ve en el próximo cálculo. El valor es JSON plano.
  * `now` solo se usa al recalcular, por eso no entra en la clave.
  */
+/**
+ * Resumen de la carrera principal para la línea de cruce del detalle (E4b). Usa el mismo caché que
+ * «Hoy»; sin carrera o si falla, null: la línea es una ayuda y nunca rompe el detalle.
+ */
+export async function getMainFitSummary(userId: string, now: Date): Promise<FitSummary | null> {
+  try {
+    const [role] = await getTargetRoles(userId);
+    return role ? (await getFitData(userId, role, now)).summary : null;
+  } catch (err) {
+    // Solo el tipo de error: el mensaje puede traer parámetros de la consulta
+    const errName = err instanceof Error ? err.name : "desconocido";
+    createLogger({ user_id: userId, task: "tu_encaje" }).error({ errName }, "tu encaje falló");
+    return null;
+  }
+}
+
 export function getFitData(userId: string, role: RoleKey, now: Date): Promise<FitData> {
   return unstable_cache(() => readFitData(userId, role, now), ["fit", "v1", userId, role], {
     revalidate: FIT_REVALIDATE_SECONDS,

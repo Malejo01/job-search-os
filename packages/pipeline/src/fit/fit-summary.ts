@@ -208,3 +208,17 @@ export function fitHeadline(s: {
   if (gap) return `Los requisitos básicos los cumplís. Lo que más piden y te falta es ${gap.name}.`;
   return "Cumplís lo que piden la mayoría de tus ofertas.";
 }
+
+/**
+ * Línea de cruce del detalle de una oferta (C-6 §1.2, ticket E4b): si el descarte rápido de esa
+ * oferta es el freno más común de la persona, «Esto mismo te pasa en N de tus M ofertas». Con base
+ * chica, sin descarte o con otro freno, null.
+ */
+export function fitCrossSentence(summary: FitSummary, descarteId: string | null): string | null {
+  const top = summary.blockers[0];
+  if (!descarteId || !top || summary.basis.smallSample) return null;
+  const group = FIT_GROUPS.find((g) => g.key === top.key);
+  const ids: readonly string[] = group?.ids ?? [];
+  if (!ids.includes(descarteId)) return null;
+  return `Esto mismo te pasa en ${top.count} de tus ${summary.basis.withChecklist} ofertas.`;
+}

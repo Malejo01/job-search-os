@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { Checklist, ChecklistItem, ChecklistStatus } from "../evaluator/checklist";
-import { buildFitSummary, FIT_THRESHOLDS, type FitOffer } from "./fit-summary";
+import {
+  buildFitSummary,
+  fitCrossSentence,
+  FIT_THRESHOLDS,
+  type FitOffer,
+  type FitSummary,
+} from "./fit-summary";
 
 const ZERO = { cumple: 0, no_cumple: 0, no_se_sabe: 0 };
 
@@ -127,5 +133,38 @@ describe("buildFitSummary (C-6 E1)", () => {
     const labels = [...s.blockers, ...s.unknowns].map((g) => g.label);
     const jargon = [s.headline, ...labels].filter((t) => /score|ponderad|bloqueador/i.test(t));
     expect(jargon).toEqual([]);
+  });
+});
+
+describe("fitCrossSentence (C-6 E4b): la línea de cruce del detalle", () => {
+  const summary = (smallSample: boolean): FitSummary => ({
+    basis: { offers: 20, withChecklist: 20, smallSample },
+    blockers: [
+      { key: "ingles", label: "Inglés", count: 9 },
+      { key: "anos", label: "Años de experiencia", count: 4 },
+    ],
+    unknowns: [],
+    strengths: [],
+    gaps: [],
+    unrated: [],
+    surplus: [],
+    headline: "",
+  });
+
+  it("si el descarte de la oferta es tu freno más común, lo dice en «N de M»", () => {
+    const line = fitCrossSentence(summary(false), "ingles");
+    expect(line).toBe("Esto mismo te pasa en 9 de tus 20 ofertas.");
+  });
+
+  it("residencia y país cuentan como el mismo freno", () => {
+    const s = summary(false);
+    s.blockers = [{ key: "donde", label: "Desde dónde se puede trabajar", count: 7 }];
+    expect(fitCrossSentence(s, "pais")).toBe("Esto mismo te pasa en 7 de tus 20 ofertas.");
+  });
+
+  it("sin línea si no es el freno más común, si no hay descarte o con base chica", () => {
+    expect(fitCrossSentence(summary(false), "anos")).toBeNull();
+    expect(fitCrossSentence(summary(false), null)).toBeNull();
+    expect(fitCrossSentence(summary(true), "ingles")).toBeNull();
   });
 });
