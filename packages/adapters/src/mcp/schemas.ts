@@ -1,4 +1,9 @@
-import { JOB_STATUSES, type JobEvent } from "@job-search-os/pipeline";
+import {
+  JOB_STATUSES,
+  MAX_JD_INPUT_CHARS,
+  MAX_JOB_FIELD_CHARS,
+  type JobEvent,
+} from "@job-search-os/pipeline";
 import { z } from "zod";
 import { ANSWER_LANGS } from "../applicant/context";
 
@@ -19,15 +24,18 @@ export function setStatusInput(manualEvents: readonly [JobEvent, ...JobEvent[]])
   return z.object({ id: z.string().uuid(), event: z.enum(manualEvents) });
 }
 
-export const pasteJdInput = z.object({ id: z.string().uuid(), text: z.string().min(200) });
+export const pasteJdInput = z.object({
+  id: z.string().uuid(),
+  text: z.string().min(200).max(MAX_JD_INPUT_CHARS),
+});
 
 export const addJobInput = z.object({
-  title: z.string().min(3),
-  company: z.string().min(1),
+  title: z.string().min(3).max(MAX_JOB_FIELD_CHARS),
+  company: z.string().min(1).max(MAX_JOB_FIELD_CHARS),
   url: z.string().url().optional(),
-  location: z.string().optional(),
+  location: z.string().max(MAX_JOB_FIELD_CHARS).optional(),
   modality: z.enum(["remoto", "hibrido", "presencial", "desconocida"]).default("desconocida"),
-  jd_text: z.string().min(200).optional(),
+  jd_text: z.string().min(200).max(MAX_JD_INPUT_CHARS).optional(),
   salary_min_usd: z.number().int().min(0).optional(),
   salary_max_usd: z.number().int().min(0).optional(),
   candidates: z.number().int().min(0).optional(),

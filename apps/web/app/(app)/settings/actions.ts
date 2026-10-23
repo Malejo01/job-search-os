@@ -9,7 +9,9 @@ import { deleteAccount } from "@/lib/delete-account";
 import { assignRandomInboundAddress } from "@/lib/inbound-address";
 import { getTargetRolesLimit, setTargetRoles } from "@/lib/onboarding";
 import { reassignForRoleChange, scheduleImmediateEvaluation } from "@/lib/pool-reassign";
-import { requireUserId } from "@/lib/session";
+import { requireActiveUserId, requireUserId } from "@/lib/session";
+
+const DELETE_RETURN_TO = ["/settings", "/onboarding", "/terminos-actualizados"] as const;
 
 /**
  * Elimina la cuenta de la sesión (JS-092). El usuario sale de la sesión, no del formulario:
@@ -17,13 +19,14 @@ import { requireUserId } from "@/lib/session";
  * vuelve a /settings con un error genérico; si borra, cierra la sesión y va a /login.
  */
 export async function deleteAccountAction(formData: FormData): Promise<void> {
+  // Sin requireActiveUserId: borrar tiene que poder hacerse sin aceptar los términos nuevos
   const userId = await requireUserId();
   const result = await deleteAccount(userId, {
     email: String(formData.get("email") ?? ""),
     password: String(formData.get("password") ?? ""),
   });
   // Vuelve a la página desde la que se pidió (lista cerrada: nunca una URL del formulario)
-  const back = formData.get("returnTo") === "/onboarding" ? "/onboarding" : "/settings";
+  const back = DELETE_RETURN_TO.find((p) => p === formData.get("returnTo")) ?? "/settings";
   if (!result.ok) redirect(`${back}?error=confirmacion`);
   await signOut({ redirectTo: "/login" });
 }
@@ -36,7 +39,7 @@ export async function deleteAccountAction(formData: FormData): Promise<void> {
  * quedan guardados.
  */
 export async function saveTargetRolesAction(formData: FormData): Promise<FormActionError | void> {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const values = formData.getAll("targetRoles").filter((v): v is string => typeof v === "string");
   const parsed = parseTargetRoles(values, await getTargetRolesLimit(userId));
   if (!parsed.ok) return { ok: false, field: "targetRoles" };
@@ -57,7 +60,7 @@ export async function saveTargetRolesAction(formData: FormData): Promise<FormAct
  * El usuario sale de la sesión. Vuelve a /settings con un aviso, nunca con la dirección en la URL.
  */
 export async function rotateInboundAddressAction(): Promise<void> {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const result = await assignRandomInboundAddress(userId);
   redirect(result.ok ? "/settings?direccion=nueva" : "/settings?direccion=sin_dominio");
 }

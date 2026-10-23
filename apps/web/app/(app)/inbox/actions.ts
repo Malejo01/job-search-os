@@ -14,11 +14,11 @@ import {
   type InboxPrevious,
   type ReversibleBulk,
 } from "@/lib/inbox-list";
-import { requireUserId } from "@/lib/session";
+import { requireActiveUserId } from "@/lib/session";
 
 /** Acciones por email de /inbox (JS-038). La confirmación de "Eliminar" la pide el cliente. */
 async function run(formData: FormData, fn: (userId: string, id: string) => Promise<unknown>) {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await fn(userId, id);
@@ -58,7 +58,7 @@ export async function bulkInboxAction(
   kind: BulkKind,
   ids: string[],
 ): Promise<{ n: number; previous: InboxPrevious[]; stay: number }> {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const list = cleanIds(Array.isArray(ids) ? ids.map(String) : []);
   let result: { n: number; previous: InboxPrevious[]; stay: number } = {
     n: 0,
@@ -76,7 +76,7 @@ export async function bulkInboxAction(
 
 /** "Deshacer" de una acción en lote: restaura el estado anterior solo de esos ids. */
 export async function undoBulkAction(previous: InboxPrevious[]): Promise<number> {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const n = await undoBulk(userId, Array.isArray(previous) ? previous : []);
   revalidatePath("/inbox");
   return n;

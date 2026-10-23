@@ -11,11 +11,11 @@ import {
   webmailErrorUrl,
   type SenderVerdict,
 } from "@/lib/filter-leak";
-import { requireUserId } from "@/lib/session";
+import { requireActiveUserId } from "@/lib/session";
 
 /** Aviso de fuga del filtro (JS-048): marcar un dominio o borrar todos sus emails. */
 export async function senderVerdictAction(formData: FormData): Promise<void> {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const domain = cleanDomain(String(formData.get("domain") ?? ""));
   const verdict = String(formData.get("verdict") ?? "");
   if (!domain || !(SENDER_VERDICTS as readonly string[]).includes(verdict)) return;
@@ -29,7 +29,7 @@ export async function senderVerdictAction(formData: FormData): Promise<void> {
 
 /** La confirmación (con la cantidad) la pide el cliente. Devuelve cuántos borró. */
 export async function deleteDomainAction(rawDomain: string): Promise<number> {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const domain = cleanDomain(String(rawDomain));
   if (!domain) return 0;
   const n = await deleteDomainEmails(userId, domain);

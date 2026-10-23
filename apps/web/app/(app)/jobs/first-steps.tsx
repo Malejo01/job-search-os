@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { EMAIL_NUDGE_COOKIE } from "@/app/components/email-nudge";
 import { getFirstStepsFacts } from "@/lib/first-steps";
-import { requireUserId } from "@/lib/session";
+import { requireActiveUserId } from "@/lib/session";
 
 /** Cookie de «Ocultar»: solo UX (httpOnly, un año), con el id del usuario como valor. */
 const FIRST_STEPS_COOKIE = "jso_primeros_pasos";
@@ -15,7 +15,7 @@ async function hideFirstStepsAction(): Promise<void> {
   "use server";
   // El valor es el id del usuario (sale de la sesión): en un navegador compartido ocultarla
   // en una cuenta no la oculta en otra
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const jar = await cookies();
   jar.set(FIRST_STEPS_COOKIE, userId, {
     httpOnly: true,

@@ -6,7 +6,7 @@ import { saveSkillsFromForm } from "@/app/(app)/settings/skills/save-skills";
 import { scheduleMarketRecompute } from "@/lib/market-recompute";
 import { isOnboardingComplete } from "@/lib/onboarding";
 import { reassignForSkills, scheduleImmediateEvaluation } from "@/lib/pool-reassign";
-import { requireUserId } from "@/lib/session";
+import { requireTermsAcceptedUserId } from "@/lib/session";
 
 /**
  * Paso opcional del onboarding: guarda los niveles, el inglés (CEFR) y las skills propias, y sigue a
@@ -17,7 +17,7 @@ import { requireUserId } from "@/lib/session";
 export async function saveOnboardingSkillsAction(
   formData: FormData,
 ): Promise<FormActionError | void> {
-  const userId = await requireUserId();
+  const userId = await requireTermsAcceptedUserId();
   if (!(await isOnboardingComplete(userId))) redirect("/onboarding");
   // «Saltear por ahora» es un botón del mismo formulario: no guarda niveles
   const skip = formData.get("saltear") !== null;

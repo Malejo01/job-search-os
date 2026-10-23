@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { PORTAL_STATUS_VIEW } from "@/app/onboarding/asistente/alert-guide";
 import { careerLabel } from "@/lib/career-market";
 import { getHoyData, type HoyData } from "@/lib/hoy";
-import { requireUserId } from "@/lib/session";
+import { requireActiveUserId } from "@/lib/session";
 import { MarkVisit } from "./mark-visit";
 import { NewJobRow } from "./new-job-row";
 
@@ -25,7 +25,7 @@ const LINK =
  */
 async function markVisitAction(): Promise<void> {
   "use server";
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const jar = await cookies();
   const { stamp } = visitWindow(jar.get(VISIT_COOKIE)?.value, userId, new Date());
   if (stamp === null) return;
@@ -44,7 +44,7 @@ function formatDate(d: Date, timeZone: string): string {
 
 /** «Hoy» (ronda 119): lo que pasó desde tu última visita, en una pantalla. Todo con RLS, sin LLM. */
 export default async function HoyPage() {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const jar = await cookies();
   const data = await getHoyData(userId, new Date(), jar.get(VISIT_COOKIE)?.value);
   return (

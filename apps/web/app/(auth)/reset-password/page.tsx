@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { MAX_PASSWORD_LENGTH } from "@/lib/invitations-core";
 import { checkResetToken, resetPassword } from "@/lib/password-reset";
 
 // Ver la nota en /setup: nunca dejar que Next congele una página que depende de estado en vivo.
@@ -21,7 +22,8 @@ async function submitNewPassword(formData: FormData): Promise<void> {
   const token = String(formData.get("token") ?? "");
   const password = String(formData.get("password") ?? "");
   const confirm = String(formData.get("confirm") ?? "");
-  if (password.length < 8) {
+  // S-3: con tope, para que un texto enorme no pase por scrypt
+  if (password.length < 8 || password.length > MAX_PASSWORD_LENGTH) {
     redirect(`/reset-password?token=${encodeURIComponent(token)}&error=corta`);
   }
   if (password !== confirm) {
@@ -49,7 +51,7 @@ export default async function ResetPasswordPage({
 
   const formError =
     error === "corta"
-      ? "La contraseña tiene que tener al menos 8 caracteres."
+      ? `La contraseña tiene que tener entre 8 y ${MAX_PASSWORD_LENGTH} caracteres.`
       : error === "no_coincide"
         ? "Las contraseñas no coinciden."
         : null;

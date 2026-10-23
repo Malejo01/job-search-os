@@ -1,4 +1,5 @@
 import {
+  consumeResetToken,
   createLogger,
   markAllResetTokensUsed,
   resetUrlBase,
@@ -8,9 +9,10 @@ import { schema as s } from "@job-search-os/db";
 import { hashPassword } from "@job-search-os/db/password";
 import { generateResetToken, hashResetToken } from "@job-search-os/db/password-reset-token";
 import { PRODUCT_NAME } from "@job-search-os/pipeline";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, gt, sql } from "drizzle-orm";
 import { after } from "next/server";
 import { getAppDb, withUser } from "./db";
+import { MAX_PASSWORD_LENGTH } from "./invitations-core";
 
 /**
  * Pide el reset (JS-045). Nunca revela si el email existe: siempre termina en silencio para
@@ -41,11 +43,33 @@ export async function requestPasswordReset(email: string): Promise<void> {
   });
 }
 
+/** S-4 (C-5 seguridad P0-1): un reset cada 5 minutos por cuenta, como respaldo del firewall. */
+export const RESET_COOLDOWN_MS = 5 * 60_000;
+
 async function issueResetToken(user: { id: string; email: string }): Promise<void> {
   const { token, tokenHash, expiresAt } = generateResetToken();
-  await withUser(user.id, (tx) =>
-    tx.insert(s.passwordResetTokens).values({ userId: user.id, tokenHash, expiresAt }),
-  );
+  const issued = await withUser(user.id, async (tx) => {
+    const [recent] = await tx
+      .select({ id: s.passwordResetTokens.id })
+      .from(s.passwordResetTokens)
+      .where(
+        and(
+          eq(s.passwordResetTokens.userId, user.id),
+          gt(s.passwordResetTokens.createdAt, new Date(Date.now() - RESET_COOLDOWN_MS)),
+        ),
+      )
+      .limit(1);
+    if (recent) return false;
+    await tx.insert(s.passwordResetTokens).values({ userId: user.id, tokenHash, expiresAt });
+    return true;
+  });
+  // Mismo silencio hacia quien pide: el link anterior sigue sirviendo
+  if (!issued) {
+    createLogger({ user_id: user.id, task: "password_reset_email" }).info(
+      "reset pedido de nuevo antes de 5 minutos: no se manda otro email",
+    );
+    return;
+  }
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return;
   // URL base solo de la configuración, nunca de Host/x-forwarded-* (SEC-05).
@@ -95,18 +119,28 @@ export async function checkResetToken(token: string): Promise<ResetTokenCheck> {
   return { ok: true, userId: row.user_id };
 }
 
-/** Consume el token y cambia la contraseña; `hashPassword` tira si tiene menos de 8 caracteres. */
+/**
+ * Consume el token y cambia la contraseña; `hashPassword` tira si tiene menos de 8 caracteres.
+ * S-3: el token se consume con un UPDATE condicional dentro de la misma transacción que cambia la
+ * contraseña. Si otro pedido con el mismo link ganó la carrera, no se cambia nada y vuelve "used".
+ */
 export async function resetPassword(token: string, newPassword: string): Promise<ResetTokenCheck> {
+  if (newPassword.length > MAX_PASSWORD_LENGTH) {
+    throw new Error(`la contraseña no puede pasar de ${MAX_PASSWORD_LENGTH} caracteres`);
+  }
   const check = await checkResetToken(token);
   if (!check.ok) return check;
   const passwordHash = hashPassword(newPassword);
-  await withUser(check.userId, async (tx) => {
+  const now = new Date();
+  const changed = await withUser(check.userId, async (tx) => {
+    if ((await consumeResetToken(tx, hashResetToken(token), now)) !== check.userId) return false;
     await tx
       .update(s.users)
-      .set({ passwordHash, updatedAt: new Date() })
+      .set({ passwordHash, updatedAt: now })
       .where(eq(s.users.id, check.userId));
     // Todos los tokens del usuario, no solo el consumido: un link viejo no sobrevive al reset.
-    await markAllResetTokensUsed(tx, check.userId, new Date());
+    await markAllResetTokensUsed(tx, check.userId, now);
+    return true;
   });
-  return check;
+  return changed ? check : { ok: false, reason: "used" };
 }

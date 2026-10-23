@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createInvitation, NotInvitationAdminError, revokeInvitation } from "@/lib/invitations";
 import { isValidEmail, normalizeEmail } from "@/lib/invitations-core";
-import { requireUserId } from "@/lib/session";
+import { requireActiveUserId } from "@/lib/session";
 import {
   deleteFromWaitlist,
   inviteFromWaitlist,
@@ -24,7 +24,7 @@ export async function createInvitationAction(
   _prev: CreateInvitationState,
   formData: FormData,
 ): Promise<CreateInvitationState> {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const email = String(formData.get("email") ?? "").trim();
   if (email && !isValidEmail(email)) return { status: "error", message: "El email no es válido." };
   let created;
@@ -63,7 +63,7 @@ export async function inviteFromWaitlistAction(
   _prev: WaitlistInviteState,
   formData: FormData,
 ): Promise<WaitlistInviteState> {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const id = WaitlistIdSchema.safeParse(formData.get("id"));
   if (!id.success) return { status: "error", message: "La persona no es válida." };
   try {
@@ -111,7 +111,7 @@ export async function deleteFromWaitlistAction(
   _prev: WaitlistDeleteState,
   formData: FormData,
 ): Promise<WaitlistDeleteState> {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const id = WaitlistIdSchema.safeParse(formData.get("id"));
   if (!id.success) return { status: "error", message: "La persona no es válida." };
   try {
@@ -131,7 +131,7 @@ export async function deleteFromWaitlistAction(
 }
 
 export async function revokeInvitationAction(formData: FormData): Promise<void> {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   await revokeInvitation(userId, String(formData.get("id") ?? ""));
   revalidatePath("/settings/invitations");
 }

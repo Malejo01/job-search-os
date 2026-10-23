@@ -3,7 +3,7 @@ import { applyMigrations } from "@job-search-os/db/src/migrate";
 import { createDb, schema as s } from "@job-search-os/db";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { markAllResetTokensUsed } from "./reset-tokens";
+import { consumeResetToken, markAllResetTokensUsed } from "./reset-tokens";
 
 /** SEC-05 · al consumir un token, todos los del usuario quedan usados; los de otros no. */
 const USER = "a0000000-0000-4000-8000-000000000068";
@@ -57,5 +57,32 @@ describe("markAllResetTokensUsed", () => {
       .from(s.passwordResetTokens)
       .where(eq(s.passwordResetTokens.userId, OTHER));
     expect(other[0]!.usedAt).toBeNull();
+  });
+});
+
+describe("consumeResetToken (S-3)", () => {
+  it("consume el token una sola vez, aunque lleguen dos pedidos a la vez", async () => {
+    const expiresAt = new Date(Date.now() + 3_600_000);
+    await conn.db
+      .insert(s.passwordResetTokens)
+      .values({ userId: OTHER, tokenHash: "hash-068-d", expiresAt });
+    const now = new Date();
+    const results = await Promise.all([
+      conn.db.transaction((tx) => consumeResetToken(tx, "hash-068-d", now)),
+      conn.db.transaction((tx) => consumeResetToken(tx, "hash-068-d", now)),
+    ]);
+    expect(results.filter((r) => r === OTHER)).toHaveLength(1);
+    expect(results.filter((r) => r === null)).toHaveLength(1);
+  });
+
+  it("no consume un token vencido ni uno inexistente", async () => {
+    await conn.db.insert(s.passwordResetTokens).values({
+      userId: OTHER,
+      tokenHash: "hash-068-e",
+      expiresAt: new Date(Date.now() - 1000),
+    });
+    const now = new Date();
+    expect(await conn.db.transaction((tx) => consumeResetToken(tx, "hash-068-e", now))).toBeNull();
+    expect(await conn.db.transaction((tx) => consumeResetToken(tx, "no-existe", now))).toBeNull();
   });
 });

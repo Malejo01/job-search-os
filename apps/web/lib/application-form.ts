@@ -23,7 +23,7 @@ import { withUser } from "./db";
 import { ONBOARDING_MESSAGE } from "./evaluate-now";
 import { serviceLlm } from "./llm-service";
 import { isOnboardingComplete } from "./onboarding";
-import { requireUserId } from "./session";
+import { requireTermsAcceptedUserId } from "./session";
 
 /**
  * Formulario de postulación en el detalle de la oferta (JS-053, fase 2). Acciones de servidor:
@@ -73,7 +73,7 @@ export async function analyzeFormAction(
   _prev: FormAnalysis,
   formData: FormData,
 ): Promise<FormAnalysis> {
-  await requireUserId();
+  await requireTermsAcceptedUserId();
   const raw = String(formData.get("raw") ?? "").slice(0, MAX_RAW);
   const parsed = parseApplicationForm(raw);
   if (!parsed.ok) return { status: "error", reason: parsed.error.reason, raw };
@@ -89,7 +89,7 @@ export async function generateDraftsAction(input: {
   jobId: string;
   raw: string;
 }): Promise<DraftsResult> {
-  const userId = await requireUserId();
+  const userId = await requireTermsAcceptedUserId();
   // Sin onboarding no se llama al modelo (JS-109): esta acción tampoco pasa por el gate del layout
   if (!(await isOnboardingComplete(userId))) return { ok: false, error: `${ONBOARDING_MESSAGE}.` };
   const jobId = jobIdSchema.safeParse(input.jobId);
@@ -176,7 +176,7 @@ const approveSchema = z.object({
 export async function approveAnswerAction(
   input: z.input<typeof approveSchema>,
 ): Promise<ApproveResult> {
-  const userId = await requireUserId();
+  const userId = await requireTermsAcceptedUserId();
   const parsed = approveSchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, error: "La respuesta no es válida (¿vacía o demasiado larga?)." };

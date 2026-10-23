@@ -12,6 +12,7 @@ export const maxDuration = 120;
 
 const ERRORS: Record<string, string> = {
   corta: "La descripción es muy corta (mínimo 200 caracteres): pegá el aviso completo.",
+  larga: "La descripción es demasiado larga: pegá solo el aviso, sin el resto de la página.",
   oferta: "Oferta inexistente.",
 };
 
