@@ -14,3 +14,10 @@ export {
   SALARY_MONTHLY_BOUNDS,
 } from "./salary";
 export { seniorityBucket } from "./seniority-bucket";
+export {
+  careerDatasetJsonLd,
+  careerSeoDescription,
+  jsonLdString,
+  SEO_MIN_JOBS,
+  type CareerDatasetInput,
+} from "./seo";
