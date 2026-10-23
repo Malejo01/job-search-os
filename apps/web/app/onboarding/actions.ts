@@ -17,7 +17,7 @@ import { after } from "next/server";
 import { upgradeLegacyInboundAddress } from "@/lib/inbound-address";
 import { saveProfileFromForm } from "@/lib/onboarding";
 import { reassignForRoleChange } from "@/lib/pool-reassign";
-import { requireUserId } from "@/lib/session";
+import { requireTermsAcceptedUserId } from "@/lib/session";
 
 /**
  * Guarda el onboarding (B2). Valida con Zod (parseOnboarding); si falla DEVUELVE el nombre del
@@ -32,7 +32,7 @@ export type OnboardingActionResult = {
 };
 
 export async function saveOnboardingAction(formData: FormData): Promise<OnboardingActionResult> {
-  const userId = await requireUserId();
+  const userId = await requireTermsAcceptedUserId();
   // El núcleo (parseo, validación y guardado) es el mismo que usa «Tu perfil» en Ajustes
   const result = await saveProfileFromForm(userId, formData);
   if (!result.ok) return result;

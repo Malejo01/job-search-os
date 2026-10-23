@@ -19,6 +19,13 @@ export type PastedJobFields = {
 
 export const MAX_PASTE_CHARS = 30_000;
 
+/**
+ * Tope del servidor para una JD que entra a mano: alta manual, pegado en «Sin descripción» y MCP
+ * (S-2, C-5 seguridad S-03). Es el doble de lo que lee el evaluador: un aviso real no llega, y un
+ * texto más largo solo sirve para llenar la base. El formulario corta antes, en MAX_PASTE_CHARS.
+ */
+export const MAX_JD_INPUT_CHARS = 60_000;
+
 const MAX_LINES = 40;
 const MAX_LINE_CHARS = 300;
 const HEAD_LINES = 5;

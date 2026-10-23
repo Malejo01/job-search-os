@@ -10,7 +10,7 @@ export function DeleteAccountForm({
   returnTo = "/settings",
 }: {
   error: boolean;
-  returnTo?: "/settings" | "/onboarding";
+  returnTo?: "/settings" | "/onboarding" | "/terminos-actualizados";
 }) {
   return (
     <details open={error} className="rounded-md border border-red-200 bg-red-50/40 p-3">

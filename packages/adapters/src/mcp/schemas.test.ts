@@ -1,4 +1,4 @@
-import type { JobEvent } from "@job-search-os/pipeline";
+import { MAX_JD_INPUT_CHARS, type JobEvent } from "@job-search-os/pipeline";
 import { describe, expect, it } from "vitest";
 import * as schemas from "./schemas";
 
@@ -26,6 +26,15 @@ describe("esquemas MCP", () => {
     expect(schemas.listJobsInput.safeParse({ limit: 51 }).success).toBe(false);
     expect(schemas.listJobsInput.safeParse({ score_min: 11 }).success).toBe(false);
     expect(schemas.pasteJdInput.safeParse({ id: UUID, text: "corto" }).success).toBe(false);
+    // S-2: tope de largo de la JD
+    const long = "a".repeat(MAX_JD_INPUT_CHARS + 1);
+    expect(schemas.pasteJdInput.safeParse({ id: UUID, text: long }).success).toBe(false);
+    expect(
+      schemas.pasteJdInput.safeParse({ id: UUID, text: "a".repeat(MAX_JD_INPUT_CHARS) }).success,
+    ).toBe(true);
+    expect(
+      schemas.addJobInput.safeParse({ title: "Dev", company: "Empresa A", jd_text: long }).success,
+    ).toBe(false);
     expect(schemas.saveApplicationAnswersInput.safeParse({ job_id: UUID, qa: [] }).success).toBe(
       false,
     );

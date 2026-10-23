@@ -2,7 +2,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { hasReceivedEmail } from "@/lib/onboarding";
-import { requireUserId } from "@/lib/session";
+import { requireTermsAcceptedUserId } from "@/lib/session";
 
 /** Cookie de «No, gracias»: es solo UX (httpOnly, un año), igual que `jso_filtros_ok`. */
 export const EMAIL_NUDGE_COOKIE = "jso_email_nudge";
@@ -13,7 +13,7 @@ async function dismissEmailNudgeAction(): Promise<void> {
   "use server";
   // El valor es el id del usuario (sale de la sesión): en un navegador compartido el descarte
   // de una cuenta no vale para otra
-  const userId = await requireUserId();
+  const userId = await requireTermsAcceptedUserId();
   const jar = await cookies();
   jar.set(EMAIL_NUDGE_COOKIE, userId, {
     httpOnly: true,

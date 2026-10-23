@@ -62,7 +62,9 @@ export default async function NewJobPage({
             ? "Título y empresa son obligatorios."
             : error === "url"
               ? "La URL tiene que empezar con http:// o https:// y ser una dirección pública."
-              : "No se pudo cargar la oferta. Probá de nuevo."}
+              : error === "larga"
+                ? "La descripción es demasiado larga: pegá solo el aviso, sin el resto de la página."
+                : "No se pudo cargar la oferta. Probá de nuevo."}
         </p>
       ) : null}
       {pegar ? (

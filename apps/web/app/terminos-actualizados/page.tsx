@@ -23,10 +23,15 @@ const LINK = "inline-flex min-h-11 items-center underline underline-offset-2";
  * entren en loop. Sin Ajustes a mano (también está detrás del gate), ofrece cerrar sesión o eliminar la
  * cuenta desde acá. Quien ya está al día va a /hoy.
  */
-export default async function TermsUpdatedPage() {
+export default async function TermsUpdatedPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   await assertAppRole();
   const userId = await requireUserId();
   if (!(await needsTermsAcceptance(userId))) redirect("/hoy");
+  const { error } = await searchParams;
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-zinc-200 bg-white">
@@ -68,7 +73,8 @@ export default async function TermsUpdatedPage() {
           <p className="text-sm text-zinc-700">
             ¿No estás de acuerdo? Podés eliminar tu cuenta desde acá.
           </p>
-          <DeleteAccountForm error={false} returnTo="/onboarding" />
+          {/* A-12: el error vuelve acá; antes iba a /onboarding, que lo mandaba de vuelta sin mensaje */}
+          <DeleteAccountForm error={error === "confirmacion"} returnTo="/terminos-actualizados" />
         </div>
       </main>
     </div>

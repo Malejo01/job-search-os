@@ -1,26 +1,26 @@
 "use server";
 
 import { createLogger, safeDbError } from "@job-search-os/adapters";
-import { parseManualUrl } from "@job-search-os/pipeline";
+import { MAX_JD_INPUT_CHARS, parseManualUrl } from "@job-search-os/pipeline";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { evaluateInBackgroundOrExplain } from "@/lib/evaluate-now";
 import { ingestManualJob, parseModality } from "@/lib/ingest-manual";
 import { invalidateMarketCandidates } from "@/lib/market";
-import { isOnboardingComplete } from "@/lib/onboarding";
-import { requireUserId } from "@/lib/session";
+import { requireActiveUserId } from "@/lib/session";
 
 /** Alta manual de una oferta (JS-023): URL + texto pegado → dedup, prefiltro, cola. */
 export async function createManualJobAction(formData: FormData): Promise<void> {
-  const userId = await requireUserId();
-  // El gate del layout no cubre llamadas directas a la acción: sin onboarding no se evalúa nada
-  if (!(await isOnboardingComplete(userId))) redirect("/onboarding");
+  // requireActiveUserId: el gate del layout no cubre llamadas directas a la acción (S-5)
+  const userId = await requireActiveUserId();
   const str = (k: string) => String(formData.get(k) ?? "").trim();
   const num = (k: string) => {
     const v = str(k);
     return v === "" ? null : Number.isFinite(Number(v)) ? Number(v) : null;
   };
   if (!str("title") || !str("company")) redirect("/jobs/new?error=campos");
+  // S-2: tope de largo de la JD (el crudo también se guarda)
+  if (str("jdText").length > MAX_JD_INPUT_CHARS) redirect("/jobs/new?error=larga");
   // Solo se valida el texto: el servidor nunca abre la URL (D-028)
   const parsedUrl = parseManualUrl(str("url"));
   if (!parsedUrl.ok) redirect("/jobs/new?error=url");

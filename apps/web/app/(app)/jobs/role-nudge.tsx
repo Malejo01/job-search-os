@@ -2,7 +2,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { getTargetRoles } from "@/lib/onboarding";
-import { requireUserId } from "@/lib/session";
+import { requireActiveUserId } from "@/lib/session";
 
 /** Cookie de «Ahora no»: es solo UX (httpOnly, un año), igual que la del aviso de email. */
 const ROLE_NUDGE_COOKIE = "jso_role_nudge";
@@ -13,7 +13,7 @@ async function dismissRoleNudgeAction(): Promise<void> {
   "use server";
   // El valor es el id del usuario (sale de la sesión): en un navegador compartido el descarte
   // de una cuenta no vale para otra
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const jar = await cookies();
   jar.set(ROLE_NUDGE_COOKIE, userId, {
     httpOnly: true,

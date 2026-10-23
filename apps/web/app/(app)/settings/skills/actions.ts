@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import type { FormActionError } from "@/app/components/guarded-form";
 import { scheduleMarketRecompute } from "@/lib/market-recompute";
 import { reassignForSkills, scheduleImmediateEvaluation } from "@/lib/pool-reassign";
-import { requireUserId } from "@/lib/session";
+import { requireActiveUserId } from "@/lib/session";
 import { saveSkillsFromForm } from "./save-skills";
 
 const BACK = "/settings/skills";
@@ -18,7 +18,7 @@ const BACK = "/settings/skills";
  * la persona espere.
  */
 export async function saveSkillsAction(formData: FormData): Promise<FormActionError | void> {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const saved = await saveSkillsFromForm(userId, formData);
   if (!saved.ok) return { ok: false, field: saved.field };
   const { changed } = saved;

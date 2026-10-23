@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { PRIVACY_OK_COOKIE, PRIVACY_OK_MAX_AGE } from "@/app/components/trust-box";
 import { FILTERS_COOKIE, FILTERS_COOKIE_MAX_AGE } from "@/lib/assistant-state";
 import { markInboundSeen } from "@/lib/inbox-list";
-import { requireUserId } from "@/lib/session";
+import { requireTermsAcceptedUserId } from "@/lib/session";
 
 function refresh() {
   revalidatePath("/onboarding/asistente");
@@ -15,7 +15,7 @@ function refresh() {
 
 /** «Ya lo confirmé»: marca visto el pedido de Gmail (la misma regla que el botón de /inbox). */
 export async function confirmedForwardingAction(formData: FormData): Promise<void> {
-  const userId = await requireUserId();
+  const userId = await requireTermsAcceptedUserId();
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await markInboundSeen(userId, id);
@@ -24,7 +24,7 @@ export async function confirmedForwardingAction(formData: FormData): Promise<voi
 
 /** «Entiendo y continúo»: cookie `httpOnly` de un año con el id del usuario; el modal no vuelve. */
 export async function privacyAcknowledgedAction(): Promise<void> {
-  const userId = await requireUserId();
+  const userId = await requireTermsAcceptedUserId();
   const jar = await cookies();
   jar.set(PRIVACY_OK_COOKIE, userId, {
     httpOnly: true,
@@ -41,7 +41,7 @@ export async function privacyAcknowledgedAction(): Promise<void> {
  * dato: si se pierde, la persona vuelve a ver el paso de los filtros.
  */
 export async function filtersImportedAction(): Promise<void> {
-  const userId = await requireUserId();
+  const userId = await requireTermsAcceptedUserId();
   const jar = await cookies();
   jar.set(FILTERS_COOKIE, userId, {
     httpOnly: true,

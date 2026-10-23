@@ -11,7 +11,7 @@ import { revalidatePath } from "next/cache";
 import type { ProfileActionResult } from "@/components/profile-form";
 import { withUser } from "@/lib/db";
 import { saveProfileFromForm } from "@/lib/onboarding";
-import { requireUserId } from "@/lib/session";
+import { requireActiveUserId } from "@/lib/session";
 
 /**
  * Guarda «Tu perfil» (CV-00): modalidad, país, idioma de las ofertas, inglés, años, autorización y
@@ -25,7 +25,7 @@ import { requireUserId } from "@/lib/session";
  * perfil igual queda guardado: se loguea y la acción no se rompe.
  */
 export async function savePerfilAction(formData: FormData): Promise<ProfileActionResult> {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   // Si no se puede leer el perfil anterior, no hay con qué comparar: se guarda sin re-prefiltrar
   const before = await withUser(userId, (tx) => loadProfilePrefilterPrefs(tx, userId)).catch(
     (e) => {

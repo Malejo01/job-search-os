@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { FormActionError } from "@/app/components/guarded-form";
 import { getActiveCriteria, resetCriteriaToDefaults, saveCriteria } from "@/lib/criteria";
-import { requireUserId } from "@/lib/session";
+import { requireActiveUserId } from "@/lib/session";
 
 const BACK = "/settings/criteria";
 
@@ -21,7 +21,7 @@ function baseVersionOf(formData: FormData): number | undefined {
  * viendo viaja como `baseVersion` para no pisar un guardado más nuevo (`field: "conflict"`).
  */
 export async function saveCriteriaAction(formData: FormData): Promise<FormActionError | void> {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const baseVersion = baseVersionOf(formData);
   const active = await getActiveCriteria(userId);
   if (!active || baseVersion === undefined) return { ok: false, field: "conflict" };
@@ -46,7 +46,7 @@ export async function saveCriteriaAction(formData: FormData): Promise<FormAction
  * (el usuario sale de ella) y la versión base (sin ella o desactualizada, no se guarda).
  */
 export async function resetCriteriaAction(formData: FormData): Promise<void> {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const baseVersion = baseVersionOf(formData);
   if (baseVersion === undefined) redirect(`${BACK}?error=conflict`);
   const saved = await resetCriteriaToDefaults(userId, baseVersion);
