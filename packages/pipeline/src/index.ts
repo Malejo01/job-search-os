@@ -41,4 +41,6 @@ export * from "./applications/followup";
 export * from "./alerts/portal-stats";
 export * from "./today/visit";
 export * from "./plans";
+export * from "./fit/fit-summary";
+export * from "./digest/build";
 export * from "./brand";
