@@ -1,3 +1,4 @@
+import { BRAND } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getPoolShowcase } from "@/lib/showcase";
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
   },
 };
 
-const REPO_URL = "https://github.com/Malejo01/job-search-os";
+const REPO_URL = BRAND.repoUrl;
 const PRINCIPLES_URL = `${REPO_URL}/blob/main/docs/ARCHITECTURE.md`;
 
 // Número fijo a propósito: no se cuenta en runtime. Conteo aproximado de casos de test (unitarios,
