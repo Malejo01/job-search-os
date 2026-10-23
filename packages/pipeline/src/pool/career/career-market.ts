@@ -20,7 +20,7 @@ export const SMALL_SAMPLE_JOBS = 20;
 export const TOP_SKILLS = 10;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const ATS_KINDS: ReadonlySet<string> = new Set(["greenhouse", "lever", "ashby"]);
+const ATS_KINDS: ReadonlySet<string> = new Set(["greenhouse", "lever", "ashby", "teamtailor"]);
 const ATS_NAME = "Sitios de empleos de las empresas";
 const OTHER_SOURCES = "Otras fuentes";
 

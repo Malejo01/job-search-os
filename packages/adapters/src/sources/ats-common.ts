@@ -396,10 +396,7 @@ export type AtsJobParts = {
 
 /** RawJob común a los tres proveedores. `externalId` = `{provider}:{token}:{id}`. */
 export function buildAtsRawJob(p: AtsJobParts): RawJob {
-  // PROVISORIO (120-a): el enum `source_kind` de la base todavía no tiene "teamtailor", así que
-  // `SourceKind` tampoco. Hasta que 120-b agregue el valor, sus avisos llevan "other" (la fuente
-  // no se prende antes). El `externalId` conserva el prefijo del proveedor.
-  const kind: SourceKind = p.provider === "teamtailor" ? "other" : p.provider;
+  const kind: SourceKind = p.provider;
   return {
     source: {
       kind,

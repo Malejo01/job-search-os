@@ -1,6 +1,6 @@
 # Fuente: Teamtailor (feed RSS por sitio de empleo) · integrada, apagada
 
-Adapter: `packages/adapters/src/sources/teamtailor.ts` (+ `ats-common.ts`). Ronda 120. Estado: **integrada, apagada**. No está en `POOL_RECOMMENDED_SOURCES`: la prende Mauro con `POOL_SOURCES`, después del `--dry-run` y de cargar boards con `enabled = false`. Falta la migración de 120-b (ver «Pendiente»). No es asesoramiento legal.
+Adapter: `packages/adapters/src/sources/teamtailor.ts` (+ `ats-common.ts`). Ronda 120. Estado: **integrada, apagada**. No está en `POOL_RECOMMENDED_SOURCES`: la prende Mauro con `POOL_SOURCES`, después del `--dry-run` y de cargar boards con `enabled = false`. Necesita la migración 0041 de 120-b, que aplica Mauro (ver «Hecho en 120-b»). No es asesoramiento legal.
 
 ## Qué ofrece
 Teamtailor es un ATS muy usado por empresas de Europa (España incluida) y de LatAm. Cada empresa tiene su propio sitio de empleo y no hay un listado global: igual que Greenhouse, Lever y Ashby (ADR-018), se trabaja con una **lista curada de empresas** en `ats_boards`.
@@ -56,6 +56,7 @@ VALUES ('teamtailor', 'empresa-ficticia', NULL, 'Empresa Ficticia 1', false)
 ON CONFLICT (provider, token) DO NOTHING;
 ```
 
-## Pendiente (120-b)
-- Migración que amplía `ats_boards_provider_check` (agrega `teamtailor`) y `ats_boards_region_check` (agrega `na` solo para teamtailor), y el valor `teamtailor` del enum `source_kind`. **Requiere aplicación en Neon por Mauro.**
-- Mientras tanto, `POOL_SOURCE_KIND.teamtailor` y el `kind` de sus avisos son `"other"` (provisorio, marcado en el código); 120-b los pasa a `"teamtailor"` y suma la atribución.
+## Hecho en 120-b (migración 0041, la aplica Mauro)
+- La migración 0041 amplía `ats_boards_provider_check` (agrega `teamtailor`) y `ats_boards_region_check` (agrega `na` solo para teamtailor), y agrega el valor `teamtailor` al enum `source_kind`. **Requiere aplicación en Neon por Mauro.**
+- `POOL_SOURCE_KIND.teamtailor` y el `kind` de sus avisos pasan a `"teamtailor"`; se suma la atribución («Sitio de empleos» con el nombre de la empresa) y los rótulos «Teamtailor».
+- La fuente sigue **apagada** hasta que Mauro aplique la migración y prenda los boards.

@@ -81,9 +81,7 @@ export const POOL_SOURCE_KIND: Record<PoolSourceName, SourceKindValue> = {
   greenhouse: "greenhouse",
   lever: "lever",
   ashby: "ashby",
-  // PROVISORIO (120-a): el enum `source_kind` de la base todavía no tiene "teamtailor"; la
-  // migración de 120-b lo agrega y acá pasa a ser "teamtailor". Hasta entonces la fuente no se prende.
-  teamtailor: "other",
+  teamtailor: "teamtailor",
 };
 
 const HOUR_MS = 3_600_000;

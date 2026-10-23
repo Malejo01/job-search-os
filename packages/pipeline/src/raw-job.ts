@@ -19,7 +19,9 @@ export type SourceKind =
   | "wwr"
   | "greenhouse"
   | "lever"
-  | "ashby";
+  | "ashby"
+  // Ronda 120: Teamtailor (feed RSS de los sitios de empleos)
+  | "teamtailor";
 
 export type Modality = "remoto" | "hibrido" | "presencial" | "desconocida";
 
