@@ -77,6 +77,22 @@ async function axeSummary(page: Page): Promise<string[]> {
   );
 }
 
+/**
+ * `seedPublicJobs` deja «Remoto (Brasil)», y el pool descarta por ubicación lo que no habilita el
+ * país de la persona (el usuario e2e es de AR): sin esto la carrera queda con menos de 10.
+ */
+async function openToAnyCountry(ids: string[]): Promise<void> {
+  const { db, close } = ownerDb();
+  try {
+    await db
+      .update(s.publicJobs)
+      .set({ locationRaw: "Remoto (Anywhere in the World)" })
+      .where(inArray(s.publicJobs.id, ids));
+  } finally {
+    await close();
+  }
+}
+
 /** «Hoy te calzan N de T ofertas» de la página: base para comparar la simulación. */
 async function readToday(page: Page): Promise<{ now: number; total: number }> {
   const text = await page.getByTestId("plan-sim-hoy").innerText();
@@ -138,7 +154,7 @@ test.describe("Flujo 73: si aprendés…", () => {
     } finally {
       await close();
     }
-    await seedPublicJobs(
+    const ids = await seedPublicJobs(
       tag,
       pool(tag).map((p) => ({
         title: p.title,
@@ -148,6 +164,7 @@ test.describe("Flujo 73: si aprendés…", () => {
         skills: p.skills,
       })),
     );
+    await openToAnyCountry(ids);
     await setSeedTargetRoles({ targetRoles: [CAREER], targetRole: CAREER });
   });
 
@@ -287,7 +304,7 @@ test.describe("Flujo 73: si aprendés…", () => {
   }
 
   test("con menos de 10 ofertas dice que todavía no puede decirlo", async ({ page }) => {
-    await seedPublicJobs(
+    const fewIds = await seedPublicJobs(
       fewTag,
       [1, 2, 3].map((i) => ({
         title: `Product Marketing Ficticio ${i} ${fewTag}`,
@@ -297,6 +314,8 @@ test.describe("Flujo 73: si aprendés…", () => {
         skills: [{ slug: "sql", isMust: true }],
       })),
     );
+    // Abiertas a cualquier país: así el «pocas» sale de los 3 avisos y no del descarte por ubicación
+    await openToAnyCountry(fewIds);
     await setSeedTargetRoles({ targetRoles: [FEW_CAREER], targetRole: FEW_CAREER });
     await page.setViewportSize({ width: 360, height: 740 });
     await login(page);
