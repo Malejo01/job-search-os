@@ -55,21 +55,15 @@ export default async function FirstOffersPage() {
           Ir a mis ofertas
         </Link>
       </div>
-      {/* Sin aviso (ya recibió un email o dijo «No, gracias») el contenedor queda vacío y no ocupa lugar */}
-      <div data-tour="ofertas:email" className="empty:hidden">
-        <EmailNudge
-          userId={userId}
-          title="Sumá tus alertas de LinkedIn, Get on Board e Indeed"
-          body="Reenviá las alertas que ya te llegan y las evaluamos junto con estas. Toma unos 5 minutos."
-          cta="Conectar mis alertas"
-          href="/onboarding/asistente"
-        />
-      </div>
       {offers.length > 0 ? (
         <div data-tour="ofertas:lista" className="flex flex-col gap-4">
           <p className="text-sm text-zinc-700">
-            Las ordenamos por lo que nos contaste. La IA evalúa las primeras ahora y el resto cuando
-            lo pidas.
+            Las ordenamos por lo que nos contaste.
+            {offers.some((o) => o.evaluating)
+              ? " La IA está evaluando las primeras: el puntaje aparece en unos segundos."
+              : offers.some((o) => o.score === null)
+                ? " Las que tienen descripción y todavía no tienen puntaje se evalúan cuando abrís la oferta y tocás «Evaluar ahora»."
+                : null}
           </p>
           <FirstOffersList offers={offers} />
         </div>
@@ -109,6 +103,18 @@ export default async function FirstOffersPage() {
           <RoleGaps userId={userId} title={false} />
         </div>
       )}
+
+      {/* El aviso va después de la lista: lo primero que se ve son las ofertas (C-17, R6). Sin aviso
+          (ya recibió un email o dijo «No, gracias») el contenedor queda vacío y no ocupa lugar */}
+      <div data-tour="ofertas:email" className="empty:hidden">
+        <EmailNudge
+          userId={userId}
+          title="Sumá tus alertas de LinkedIn, Get on Board e Indeed"
+          body="Reenviá las alertas que ya te llegan y las evaluamos junto con estas. Toma unos 5 minutos."
+          cta="Conectar mis alertas"
+          href="/onboarding/asistente"
+        />
+      </div>
 
       <div className="flex flex-wrap items-center justify-end gap-3">
         <Link
