@@ -13,6 +13,7 @@ import { unstable_cache } from "next/cache";
 import { getCareerMarket } from "./career-market";
 import { withUser } from "./db";
 import { parseChecklist } from "./job-detail";
+import { fitCacheTag } from "./insights-cache";
 import { getTargetRoles } from "./onboarding";
 
 /**
@@ -137,14 +138,15 @@ async function readFitData(userId: string, role: RoleKey, now: Date): Promise<Fi
 
 /**
  * «Tu encaje» de una persona para una carrera. Caché de 15 minutos con el `userId` y la carrera en la
- * clave: es dato personal y nunca se comparte entre personas. Sin invalidación (invalidar exigiría
- * tocar acciones de otras pantallas): lo que cargues se ve en el próximo cálculo. El valor es JSON plano.
+ * clave: es dato personal y nunca se comparte entre personas. Las acciones que cambian niveles, plan
+ * u ofertas lo invalidan con `invalidateUserInsights` (E-2b); lo que entra por el cron espera al
+ * vencimiento. El valor es JSON plano.
  * `now` solo se usa al recalcular, por eso no entra en la clave.
  */
 export function getFitData(userId: string, role: RoleKey, now: Date): Promise<FitData> {
   return unstable_cache(() => readFitData(userId, role, now), ["fit", "v1", userId, role], {
     revalidate: FIT_REVALIDATE_SECONDS,
-    tags: [`fit:${userId}`],
+    tags: [fitCacheTag(userId)],
   })();
 }
 

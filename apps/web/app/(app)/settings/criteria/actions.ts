@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { FormActionError } from "@/app/components/guarded-form";
 import { getActiveCriteria, resetCriteriaToDefaults, saveCriteria } from "@/lib/criteria";
+import { invalidateUserInsights } from "@/lib/insights-cache";
 import { requireActiveUserId } from "@/lib/session";
 
 const BACK = "/settings/criteria";
@@ -37,6 +38,8 @@ export async function saveCriteriaAction(formData: FormData): Promise<FormAction
 
   const saved = await saveCriteria(userId, parsed.rules, baseVersion);
   if (!saved.ok) return { ok: false, field: "conflict" };
+  // «Si aprendés…» prefiltra el pool con estos criterios (E-2b)
+  invalidateUserInsights(userId);
   revalidatePath(BACK);
   redirect(`${BACK}?saved=1`);
 }
@@ -50,6 +53,7 @@ export async function resetCriteriaAction(formData: FormData): Promise<void> {
   const baseVersion = baseVersionOf(formData);
   if (baseVersion === undefined) redirect(`${BACK}?error=conflict`);
   const saved = await resetCriteriaToDefaults(userId, baseVersion);
+  if (saved.ok) invalidateUserInsights(userId);
   revalidatePath(BACK);
   redirect(saved.ok ? `${BACK}?saved=reset` : `${BACK}?error=conflict`);
 }

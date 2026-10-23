@@ -10,6 +10,7 @@ import {
 import { revalidatePath } from "next/cache";
 import type { ProfileActionResult } from "@/components/profile-form";
 import { withUser } from "@/lib/db";
+import { invalidateUserInsights } from "@/lib/insights-cache";
 import { saveProfileFromForm } from "@/lib/onboarding";
 import { requireActiveUserId } from "@/lib/session";
 
@@ -38,6 +39,8 @@ export async function savePerfilAction(formData: FormData): Promise<ProfileActio
   );
   const result = await saveProfileFromForm(userId, formData, { keepStored: true });
   if (!result.ok) return result;
+  // País, modalidad, idioma e inglés cambian el prefiltro de «Si aprendés…» y el texto de «Tu encaje» (E-2b)
+  invalidateUserInsights(userId);
   if (before) {
     const log = createLogger({ user_id: userId, task: "reprefilter" });
     try {

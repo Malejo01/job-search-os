@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { evaluateInBackgroundOrExplain } from "@/lib/evaluate-now";
 import { ingestManualJob, parseModality } from "@/lib/ingest-manual";
+import { invalidateUserInsights } from "@/lib/insights-cache";
 import { invalidateMarketCandidates } from "@/lib/market";
 import { requireActiveUserId } from "@/lib/session";
 
@@ -48,6 +49,8 @@ export async function createManualJobAction(formData: FormData): Promise<void> {
   // Los candidatos de /market salen de los JD recientes: se invalida el caché del usuario (JS-102).
   // Solo desde Server Actions; la ingesta del cron/email corre fuera de Next y espera al vencimiento (1 h).
   invalidateMarketCandidates(userId);
+  // Una oferta nueva cambia «Tu encaje» (E-2b)
+  invalidateUserInsights(userId);
   // Con JD completo se evalúa ya (JS-027); si no quedó nada encolado, no hace nada
   // Con el tope superado no se evalúa y la pantalla del detalle lo avisa (JS-105)
   const notEvaluated = str("jdText")

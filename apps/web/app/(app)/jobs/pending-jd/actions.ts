@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { evaluateInBackgroundOrExplain } from "@/lib/evaluate-now";
 import { applyJobEvent } from "@/lib/job-detail";
+import { invalidateUserInsights } from "@/lib/insights-cache";
 import { invalidateMarketCandidates } from "@/lib/market";
 import { attachJd } from "@/lib/pending-jd";
 import { requireActiveUserId } from "@/lib/session";
@@ -26,6 +27,8 @@ export async function pasteJdAction(formData: FormData): Promise<void> {
   }
   // La JD nueva cambia los candidatos de /market (JS-102); el cron/email espera al vencimiento (1 h)
   invalidateMarketCandidates(userId);
+  // Y «Tu encaje», que cuenta las ofertas con requisitos (E-2b)
+  invalidateUserInsights(userId);
   const capMessage = await evaluateInBackgroundOrExplain(userId, jobId);
   revalidatePath(PAGE);
   revalidatePath("/jobs");
