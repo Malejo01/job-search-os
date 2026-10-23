@@ -15,7 +15,7 @@ import {
 /**
  * Flujo 73 (ronda 121, E3b): «Si aprendés…» en /plan. El usuario e2e queda con tres skills en el
  * plan y niveles conocidos, y el pool trae 12 avisos ficticios de una carrera que ningún otro spec
- * usa (soporte_it; la de muestra chica, rrhh_it). Todo inventado y sin red.
+ * usa (soporte_it; la de muestra chica, product_marketing). Todo inventado y sin red.
  *
  * Cuentas del pool sembrado (cada aviso pide `sql`, nivel 2 de la persona, y una skill más):
  * - 6 avisos de sql + excel: ya le calzan (pre-score 9);
@@ -24,13 +24,14 @@ import {
  * Los números absolutos dependen de que no haya otros avisos sueltos en la carrera, así que los
  * resultados se comparan contra el «hoy te calzan N de T» que muestra la misma página.
  *
- * `/plan` cachea el cálculo 30 minutos por persona, carrera y `?simular=`: por eso las dos carreras
- * son propias de este spec.
+ * `/plan` cachea el cálculo 30 minutos por persona y carrera (`?simular=` se combina afuera): por
+ * eso las dos carreras son propias de este spec. En local, reiniciá `next dev` entre corridas.
  */
 test.describe.configure({ mode: "serial" });
 
 const CAREER = "soporte_it";
-const FEW_CAREER = "rrhh_it";
+// `personas` siembra pool de rrhh_it: la muestra chica usa una carrera que ningún spec siembra
+const FEW_CAREER = "product_marketing";
 const LEVELS: Record<string, number> = { sql: 2, excel: 3, python: 1, power_bi: 1, tableau: 1 };
 const PLAN: { slug: string; priority: number }[] = [
   { slug: "power_bi", priority: 3 },
@@ -289,7 +290,7 @@ test.describe("Flujo 73: si aprendés…", () => {
     await seedPublicJobs(
       fewTag,
       [1, 2, 3].map((i) => ({
-        title: `Analista de RRHH Ficticio ${i} ${fewTag}`,
+        title: `Product Marketing Ficticio ${i} ${fewTag}`,
         company: "Empresa Ficticia 2",
         sourceKind: "getonboard_api" as const,
         roleHints: [FEW_CAREER],

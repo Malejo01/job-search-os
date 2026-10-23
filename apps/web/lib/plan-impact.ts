@@ -35,7 +35,7 @@ export const MAX_SIMULAR = 5;
 export const PLAN_IMPACT_HOURS_PER_WEEK = 5;
 /** De las skills del plan se simulan las de mayor prioridad: acota el costo del cálculo. */
 const MAX_PLAN_SKILLS = 15;
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const CACHE_REVALIDATE_SECONDS = 30 * 60;
 /** Tokens de `?simular=` que entran en la clave del caché (antes de filtrar contra el plan). */
 const MAX_REQUESTED_TOKENS = 10;
@@ -86,11 +86,21 @@ function periodOf(value: string | null): "mensual" | "anual" | "hora" | null {
   return value === "mensual" || value === "anual" || value === "hora" ? value : null;
 }
 
-async function computeImpact(
-  userId: string,
-  now: Date,
-  requested: readonly string[],
-): Promise<PlanImpact | null> {
+/**
+ * Lo que se guarda en el caché: el impacto base y la entrada del simulador, en arrays (JSON plano),
+ * para combinar `?simular=` afuera. Así cada combinación no repite la consulta del pool.
+ */
+type CachedImpact = {
+  impact: Omit<PlanImpact, "simulation">;
+  sim: {
+    candidates: SimCandidate[];
+    levels: [string, number][];
+    salaryFloorUsd: number | null;
+    planSlugs: string[];
+  } | null;
+};
+
+async function computeImpact(userId: string, now: Date): Promise<CachedImpact | null> {
   return withUser(userId, async (tx) => {
     const rules = await loadActiveRules(tx, userId);
     if (!rules) return null;
@@ -151,7 +161,7 @@ async function computeImpact(
       hoursPerWeek: PLAN_IMPACT_HOURS_PER_WEEK,
     };
     if (candidates.length < SIMULATE_MIN_CANDIDATES || planRows.length === 0) {
-      return { ...base, passNow: 0, enough: false, rows: [], route: [], simulation: null };
+      return { impact: { ...base, passNow: 0, enough: false, rows: [], route: [] }, sim: null };
     }
 
     const hoursOf = (closureHours: number | null, level: number | null): number | null => {
@@ -200,25 +210,40 @@ async function computeImpact(
       PLAN_IMPACT_HOURS_PER_WEEK,
     );
 
-    const inPlan = new Set(plan.map((p) => p.slug));
-    const chosen = requested.filter((slug) => inPlan.has(slug)).slice(0, MAX_SIMULAR);
-    const simulation = chosen.length ? { slugs: chosen, ...simulateSkills(input, chosen) } : null;
-
     return {
-      ...base,
-      passNow: rows[0]?.passNow ?? 0,
-      enough: true,
-      rows,
-      route,
-      simulation,
+      impact: { ...base, passNow: rows[0]?.passNow ?? 0, enough: true, rows, route },
+      sim: {
+        candidates,
+        levels: [...levels],
+        salaryFloorUsd: input.salaryFloorUsd,
+        planSlugs: plan.map((p) => p.slug),
+      },
     };
   });
 }
 
+/** `?simular=` sobre la entrada guardada: solo slugs del plan, hasta 5. Puro y barato. */
+function withSimulation(cached: CachedImpact, requested: readonly string[]): PlanImpact {
+  const { sim } = cached;
+  if (!sim) return { ...cached.impact, simulation: null };
+  const inPlan = new Set(sim.planSlugs);
+  const chosen = requested.filter((slug) => inPlan.has(slug)).slice(0, MAX_SIMULAR);
+  if (!chosen.length) return { ...cached.impact, simulation: null };
+  const input: SimInput = {
+    candidates: sim.candidates,
+    levels: new Map(sim.levels),
+    salaryFloorUsd: sim.salaryFloorUsd,
+  };
+  return { ...cached.impact, simulation: { slugs: chosen, ...simulateSkills(input, chosen) } };
+}
+
 /**
  * Impacto de las skills del plan sobre las ofertas del pool de la persona. Caché por persona de 30
- * minutos (la clave lleva usuario, carrera y `?simular=`). Si falla devuelve `null`: es una ayuda y
- * nunca rompe la página.
+ * minutos. La clave lleva usuario y carrera, pero no `?simular=`, que se combina afuera: así una URL
+ * nueva no repite la consulta. La carrera no entra al cálculo (las preferencias salen del perfil),
+ * pero va en la clave para que un cambio de carrera no muestre números de la anterior. Sin
+ * invalidación: lo que se cambie en el plan o en los niveles se ve en el próximo cálculo (E-2b). Si
+ * falla devuelve `null`: es una ayuda y nunca rompe la página.
  */
 export async function getPlanImpact(
   userId: string,
@@ -228,11 +253,12 @@ export async function getPlanImpact(
 ): Promise<PlanImpact | null> {
   const requested = parseSimular(simular);
   try {
-    return await unstable_cache(
-      () => computeImpact(userId, now, requested),
-      ["plan-impact", CACHE_VERSION, userId, role ?? "sin-carrera", requested.join(",")],
+    const cached = await unstable_cache(
+      () => computeImpact(userId, now),
+      ["plan-impact", CACHE_VERSION, userId, role ?? "sin-carrera"],
       { revalidate: CACHE_REVALIDATE_SECONDS, tags: [`plan-impact:${userId}`] },
     )();
+    return cached ? withSimulation(cached, requested) : null;
   } catch (e) {
     createLogger({ user_id: userId, task: "plan_impact" }).warn(
       { err: safeDbError(e) },
