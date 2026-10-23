@@ -26,6 +26,9 @@ export const MAX_PASTE_CHARS = 30_000;
  */
 export const MAX_JD_INPUT_CHARS = 60_000;
 
+/** Tope del servidor para título, empresa y ubicación de una oferta cargada a mano (S-2). */
+export const MAX_JOB_FIELD_CHARS = 300;
+
 const MAX_LINES = 40;
 const MAX_LINE_CHARS = 300;
 const HEAD_LINES = 5;

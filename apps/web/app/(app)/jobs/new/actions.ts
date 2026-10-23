@@ -1,7 +1,7 @@
 "use server";
 
 import { createLogger, safeDbError } from "@job-search-os/adapters";
-import { MAX_JD_INPUT_CHARS, parseManualUrl } from "@job-search-os/pipeline";
+import { MAX_JD_INPUT_CHARS, MAX_JOB_FIELD_CHARS, parseManualUrl } from "@job-search-os/pipeline";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { evaluateInBackgroundOrExplain } from "@/lib/evaluate-now";
@@ -19,8 +19,12 @@ export async function createManualJobAction(formData: FormData): Promise<void> {
     return v === "" ? null : Number.isFinite(Number(v)) ? Number(v) : null;
   };
   if (!str("title") || !str("company")) redirect("/jobs/new?error=campos");
-  // S-2: tope de largo de la JD (el crudo también se guarda)
-  if (str("jdText").length > MAX_JD_INPUT_CHARS) redirect("/jobs/new?error=larga");
+  // S-2: tope de largo de la JD (el crudo también se guarda) y de los campos sueltos
+  if (
+    str("jdText").length > MAX_JD_INPUT_CHARS ||
+    ["title", "company", "location"].some((k) => str(k).length > MAX_JOB_FIELD_CHARS)
+  )
+    redirect("/jobs/new?error=larga");
   // Solo se valida el texto: el servidor nunca abre la URL (D-028)
   const parsedUrl = parseManualUrl(str("url"));
   if (!parsedUrl.ok) redirect("/jobs/new?error=url");
