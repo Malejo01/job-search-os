@@ -5,7 +5,7 @@ import { login, ownerDb } from "./helpers";
 
 /**
  * Flujo 44 (ronda 63): vitrina pública. Portada, mercado, ofertas de muestra y pedido de acceso sin
- * sesión; con sesión `/` lleva a /jobs; y a 360 px nada se desborda. Las páginas son ISR y pueden
+ * sesión; con sesión `/` lleva a /hoy (ronda 119b); y a 360 px nada se desborda. Las páginas son ISR y pueden
  * haberse prerenderizado antes de cargar datos: se verifica la estructura (headings y secciones),
  * nunca cantidades. La lista de espera usa un email inventado con Date.now() y lo borra al final.
  */
@@ -131,12 +131,14 @@ test.describe("Flujo 44: vitrina pública", () => {
     expect(await sitemap.text()).toContain("/mercado");
   });
 
-  test("con sesión, la portada y /acceso redirigen a /jobs", async ({ page }) => {
+  test("con sesión, la portada, /acceso y /login redirigen a /hoy", async ({ page }) => {
     await login(page);
     await page.goto("/");
-    await expect(page).toHaveURL(/\/jobs/);
+    await expect(page).toHaveURL(/\/hoy$/);
     await page.goto("/acceso");
-    await expect(page).toHaveURL(/\/jobs/);
+    await expect(page).toHaveURL(/\/hoy$/);
+    await page.goto("/login");
+    await expect(page).toHaveURL(/\/hoy$/);
   });
 
   test("una página pública que no existe muestra el 404 con el layout público", async ({

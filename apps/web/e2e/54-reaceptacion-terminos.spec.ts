@@ -30,7 +30,7 @@ async function setTerms(version: string | null, acceptedAt: Date | null): Promis
 }
 
 test.describe("re-aceptación de los términos (ronda 83)", () => {
-  test("con una versión vieja redirige, exige la casilla y al aceptar vuelve a /jobs", async ({
+  test("con una versión vieja redirige, exige la casilla y al aceptar vuelve a /hoy", async ({
     page,
   }) => {
     const original = await termsOf();
@@ -62,17 +62,17 @@ test.describe("re-aceptación de los términos (ronda 83)", () => {
       await expect(checkbox).toHaveAttribute("aria-invalid", "true");
       expect((await termsOf()).version).toBe("2000-01-01");
 
-      // con la casilla: vuelve a /jobs y queda la versión vigente
+      // con la casilla: vuelve a /hoy (ronda 119) y queda la versión vigente
       await checkbox.check();
       await page.getByRole("button", { name: "Aceptar y seguir" }).click();
-      await page.waitForURL("**/jobs**");
+      await page.waitForURL("**/hoy**");
       const after = await termsOf();
       expect(after.version).toBe(TERMS_VERSION);
       expect(after.acceptedAt!.getTime()).toBeGreaterThan(Date.now() - 5 * 60_000);
 
-      // ya al día: la pantalla manda a /jobs
+      // ya al día: la pantalla manda a /hoy
       await page.goto("/terminos-actualizados");
-      await page.waitForURL("**/jobs**");
+      await page.waitForURL("**/hoy**");
     } finally {
       await setTerms(original.version, original.acceptedAt);
     }

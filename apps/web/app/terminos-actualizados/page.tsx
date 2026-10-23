@@ -21,12 +21,12 @@ const LINK = "inline-flex min-h-11 items-center underline underline-offset-2";
 /**
  * Re-aceptación de los términos (ronda 83). Vive fuera de (app) y de /onboarding para que sus gates no
  * entren en loop. Sin Ajustes a mano (también está detrás del gate), ofrece cerrar sesión o eliminar la
- * cuenta desde acá. Quien ya está al día va a /jobs.
+ * cuenta desde acá. Quien ya está al día va a /hoy.
  */
 export default async function TermsUpdatedPage() {
   await assertAppRole();
   const userId = await requireUserId();
-  if (!(await needsTermsAcceptance(userId))) redirect("/jobs");
+  if (!(await needsTermsAcceptance(userId))) redirect("/hoy");
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-zinc-200 bg-white">
