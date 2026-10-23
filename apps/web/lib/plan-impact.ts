@@ -1,0 +1,269 @@
+import {
+  CANDIDATE_CAP,
+  createLogger,
+  loadActiveRules,
+  loadProfilePrefilterPrefs,
+  safeDbError,
+  selectPoolCandidates,
+} from "@job-search-os/adapters";
+import { schema as s } from "@job-search-os/db";
+import {
+  SIMULATE_MIN_CANDIDATES,
+  buildStudyRoute,
+  monthlyUsd,
+  simulateSkillImpact,
+  simulateSkills,
+  type RoleKey,
+  type RouteStep,
+  type SimCandidate,
+  type SimInput,
+} from "@job-search-os/pipeline";
+import { and, desc, eq, ne } from "drizzle-orm";
+import { unstable_cache } from "next/cache";
+import { withUser } from "./db";
+
+/**
+ * «Si aprendés…» de /plan (ronda 121, E3b): cuántas ofertas del pool te empezarían a calzar si
+ * llevás una skill del plan a nivel 2, y en qué orden conviene estudiarlas. Corre con el rol de la
+ * app y `app.user_id` fijado (RLS): `public_jobs` es legible. Sin modelo ni red. El valor es JSON
+ * plano porque el Data Cache lo serializa; la clave lleva el usuario (contiene sus niveles).
+ */
+
+/** Skills que se pueden sumar a la simulación a la vez. */
+export const MAX_SIMULAR = 5;
+/** Horas de estudio por semana de la ruta: fijas hasta que exista el selector (E4). */
+export const PLAN_IMPACT_HOURS_PER_WEEK = 5;
+/** De las skills del plan se simulan las de mayor prioridad: acota el costo del cálculo. */
+const MAX_PLAN_SKILLS = 15;
+const CACHE_VERSION = "v2";
+const CACHE_REVALIDATE_SECONDS = 30 * 60;
+/** Tokens de `?simular=` que entran en la clave del caché (antes de filtrar contra el plan). */
+const MAX_REQUESTED_TOKENS = 10;
+
+export type PlanImpactRow = {
+  slug: string;
+  name: string;
+  /** Nivel actual de la persona; null = sin dato. */
+  level: number | null;
+  asks: number;
+  asksMust: number;
+  passNow: number;
+  passAfter: number;
+  delta: number;
+  /** Horas que faltan para cerrarla (o 20 si no hay dato). */
+  hours: number;
+  estimated: boolean;
+};
+
+export type PlanImpact = {
+  /** Candidatas del pool que pasaron el prefiltro de la persona. */
+  total: number;
+  /** Cuántas le calzan hoy (pre-score de 7 o más). */
+  passNow: number;
+  /** Con menos de `SIMULATE_MIN_CANDIDATES` no hay números. */
+  enough: boolean;
+  /** Fecha del cálculo (ISO), para el pie «ofertas de los últimos 30 días, al …». */
+  poolDate: string;
+  rows: PlanImpactRow[];
+  route: RouteStep[];
+  hoursPerWeek: number;
+  /** Resultado de `?simular=`: solo las skills que están en el plan; null si no se pidió ninguna. */
+  simulation: { slugs: string[]; total: number; passNow: number; passAfter: number } | null;
+};
+
+/** Lista de `?simular=a,b` limpia: solo slugs con forma válida, sin repetir, ordenada y acotada. */
+export function parseSimular(raw: string | readonly string[] | null | undefined): string[] {
+  const text = Array.isArray(raw) ? raw.join(",") : (raw ?? "");
+  const tokens = String(text)
+    .split(",")
+    .map((t) => t.trim().toLowerCase())
+    .filter((t) => /^[a-z0-9_]{1,40}$/.test(t));
+  return [...new Set(tokens)].sort().slice(0, MAX_REQUESTED_TOKENS);
+}
+
+/** Período de la fuente tal como está en la base; lo desconocido queda en null. */
+function periodOf(value: string | null): "mensual" | "anual" | "hora" | null {
+  return value === "mensual" || value === "anual" || value === "hora" ? value : null;
+}
+
+/**
+ * Lo que se guarda en el caché: el impacto base y la entrada del simulador, en arrays (JSON plano),
+ * para combinar `?simular=` afuera. Así cada combinación no repite la consulta del pool.
+ */
+type CachedImpact = {
+  impact: Omit<PlanImpact, "simulation">;
+  sim: {
+    candidates: SimCandidate[];
+    levels: [string, number][];
+    salaryFloorUsd: number | null;
+    planSlugs: string[];
+  } | null;
+};
+
+async function computeImpact(userId: string, now: Date): Promise<CachedImpact | null> {
+  return withUser(userId, async (tx) => {
+    const rules = await loadActiveRules(tx, userId);
+    if (!rules) return null;
+    const prefs = await loadProfilePrefilterPrefs(tx, userId);
+
+    const levelRows = await tx
+      .select({ skillId: s.skillLevels.skillId, slug: s.skills.slug, level: s.skillLevels.level })
+      .from(s.skillLevels)
+      .innerJoin(s.skills, eq(s.skills.id, s.skillLevels.skillId))
+      .where(eq(s.skillLevels.userId, userId));
+    // Ojo: `levelBySkill` de la selección va por skillId; `SimInput.levels`, por slug
+    const levelBySkill = new Map(levelRows.map((l) => [l.skillId, l.level]));
+    const levels = new Map(levelRows.map((l) => [l.slug, l.level]));
+
+    const planRows = await tx
+      .select({
+        slug: s.skills.slug,
+        name: s.skills.name,
+        closureHours: s.skills.closureHours,
+        priority: s.learningPlanItems.priority,
+      })
+      .from(s.learningPlanItems)
+      .innerJoin(s.skills, eq(s.skills.id, s.learningPlanItems.skillId))
+      .where(and(eq(s.learningPlanItems.userId, userId), ne(s.learningPlanItems.status, "cerrada")))
+      .orderBy(desc(s.learningPlanItems.priority), s.skills.slug)
+      .limit(MAX_PLAN_SKILLS);
+
+    // Las que pasaron el prefiltro, todas (limit = tope de la consulta), en modo persona: incluye
+    // las que la persona ya tiene, porque el simulador cuenta ofertas del mercado, no de su bandeja
+    const selection = await selectPoolCandidates(tx, {
+      userId: null,
+      rules,
+      prefs,
+      levelBySkill,
+      now,
+      limit: CANDIDATE_CAP,
+    });
+    const candidates: SimCandidate[] = selection.ranked.map((r) => ({
+      id: r.row.id,
+      flags: r.flags,
+      skills: (selection.skillsByPublicJob.get(r.row.id) ?? []).map((k) => ({
+        slug: k.slug,
+        name: k.name,
+        isMust: k.isMust,
+      })),
+      // Mensual, como en la bandeja (`poolPreScore`): así «entrar» significa lo mismo
+      salaryMaxUsd: monthlyUsd(r.row.salaryMaxUsd, periodOf(r.row.salaryPeriod)),
+    }));
+
+    const input: SimInput = {
+      candidates,
+      levels,
+      salaryFloorUsd: rules.salary_floor_usd_monthly ?? null,
+    };
+    const base = {
+      total: candidates.length,
+      poolDate: now.toISOString(),
+      hoursPerWeek: PLAN_IMPACT_HOURS_PER_WEEK,
+    };
+    if (candidates.length < SIMULATE_MIN_CANDIDATES || planRows.length === 0) {
+      return { impact: { ...base, passNow: 0, enough: false, rows: [], route: [] }, sim: null };
+    }
+
+    const hoursOf = (closureHours: number | null, level: number | null): number | null => {
+      if (closureHours === null) return null;
+      const left = Math.round(closureHours * (1 - Math.min(3, level ?? 0) / 3));
+      return left > 0 ? left : null;
+    };
+    const plan = planRows.map((p) => ({
+      ...p,
+      level: levels.get(p.slug) ?? null,
+      hours: hoursOf(p.closureHours, levels.get(p.slug) ?? null),
+    }));
+
+    const rows: PlanImpactRow[] = plan.map((p) => {
+      const impact = simulateSkillImpact(input, p.slug);
+      return {
+        slug: p.slug,
+        name: p.name,
+        level: p.level,
+        asks: impact.asks,
+        asksMust: impact.asksMust,
+        passNow: impact.passNow,
+        passAfter: impact.passAfter,
+        delta: impact.delta,
+        hours: p.hours ?? 20,
+        estimated: p.hours === null,
+      };
+    });
+    const priorityOf = new Map(plan.map((p, i) => [p.slug, plan.length - i]));
+    rows.sort(
+      (a, b) =>
+        b.delta - a.delta ||
+        b.asks - a.asks ||
+        (priorityOf.get(b.slug) ?? 0) - (priorityOf.get(a.slug) ?? 0) ||
+        a.slug.localeCompare(b.slug),
+    );
+
+    const route = buildStudyRoute(
+      input,
+      plan.map((p) => ({
+        slug: p.slug,
+        name: p.name,
+        hours: p.hours,
+        priority: priorityOf.get(p.slug) ?? 0,
+      })),
+      PLAN_IMPACT_HOURS_PER_WEEK,
+    );
+
+    return {
+      impact: { ...base, passNow: rows[0]?.passNow ?? 0, enough: true, rows, route },
+      sim: {
+        candidates,
+        levels: [...levels],
+        salaryFloorUsd: input.salaryFloorUsd,
+        planSlugs: plan.map((p) => p.slug),
+      },
+    };
+  });
+}
+
+/** `?simular=` sobre la entrada guardada: solo slugs del plan, hasta 5. Puro y barato. */
+function withSimulation(cached: CachedImpact, requested: readonly string[]): PlanImpact {
+  const { sim } = cached;
+  if (!sim) return { ...cached.impact, simulation: null };
+  const inPlan = new Set(sim.planSlugs);
+  const chosen = requested.filter((slug) => inPlan.has(slug)).slice(0, MAX_SIMULAR);
+  if (!chosen.length) return { ...cached.impact, simulation: null };
+  const input: SimInput = {
+    candidates: sim.candidates,
+    levels: new Map(sim.levels),
+    salaryFloorUsd: sim.salaryFloorUsd,
+  };
+  return { ...cached.impact, simulation: { slugs: chosen, ...simulateSkills(input, chosen) } };
+}
+
+/**
+ * Impacto de las skills del plan sobre las ofertas del pool de la persona. Caché por persona de 30
+ * minutos. La clave lleva usuario y carrera, pero no `?simular=`, que se combina afuera: así una URL
+ * nueva no repite la consulta. La carrera no entra al cálculo (las preferencias salen del perfil),
+ * pero va en la clave para que un cambio de carrera no muestre números de la anterior. Sin
+ * invalidación: lo que se cambie en el plan o en los niveles se ve en el próximo cálculo (E-2b). Si
+ * falla devuelve `null`: es una ayuda y nunca rompe la página.
+ */
+export async function getPlanImpact(
+  userId: string,
+  role: RoleKey | null,
+  now: Date,
+  simular?: string | readonly string[] | null,
+): Promise<PlanImpact | null> {
+  const requested = parseSimular(simular);
+  try {
+    const cached = await unstable_cache(
+      () => computeImpact(userId, now),
+      ["plan-impact", CACHE_VERSION, userId, role ?? "sin-carrera"],
+      { revalidate: CACHE_REVALIDATE_SECONDS, tags: [`plan-impact:${userId}`] },
+    )();
+    return cached ? withSimulation(cached, requested) : null;
+  } catch (e) {
+    createLogger({ user_id: userId, task: "plan_impact" }).warn(
+      { err: safeDbError(e) },
+      "no se pudo calcular el impacto del plan",
+    );
+    return null;
+  }
+}
