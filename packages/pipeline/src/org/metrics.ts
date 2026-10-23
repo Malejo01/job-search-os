@@ -18,17 +18,25 @@ export function peopleBucket(n: number): PeopleBucket {
 
 /**
  * Un conteo que sale de un grupo de personas: null si las personas detrás son menos de k. Ojo:
- * cuenta personas, no filas (7 entrevistas de 2 personas se suprimen).
+ * cuenta personas, no filas (7 entrevistas de 2 personas se suprimen). Con menos de 20 personas
+ * detrás va redondeado a 5 y nunca por debajo de 5 (la pantalla lo muestra como «hasta 5»): un 0
+ * exacto diría que nadie lo hizo, y eso ya es un dato de cada persona.
  */
 export function maskedCount(value: number, people: number): number | null {
-  return people >= ORG_K ? value : null;
+  if (people < ORG_K) return null;
+  return people < 20 ? Math.max(5, Math.round(value / 5) * 5) : value;
 }
 
-/** Porcentaje entero, redondeado a 5 si la base es menor que 20; null por debajo de k. */
+/**
+ * Porcentaje entero; null por debajo de k. Con base menor que 20 va redondeado a 5 y acotado entre 5
+ * y 95 (la pantalla muestra «5 % o menos» y «95 % o más»): un 0 % o un 100 % con base chica dice lo
+ * que hizo cada una de las personas.
+ */
 export function maskedPercent(part: number, base: number): number | null {
   if (base < ORG_K) return null;
   const pct = (part / base) * 100;
-  return base < 20 ? Math.round(pct / 5) * 5 : Math.round(pct);
+  if (base >= 20) return Math.round(pct);
+  return Math.min(95, Math.max(5, Math.round(pct / 5) * 5));
 }
 
 /**

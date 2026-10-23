@@ -64,13 +64,23 @@ describe("enmascarado de las métricas de una institución (C-16 §3)", () => {
   it("un conteo se suprime por las personas detrás, no por las filas", () => {
     // 7 entrevistas de 2 personas: no se informa
     expect(maskedCount(7, 2)).toBeNull();
-    expect(maskedCount(12, 5)).toBe(12);
+    expect(maskedCount(12, 5)).toBe(10);
+    expect(maskedCount(23, 20)).toBe(23);
+  });
+
+  it("con menos de 20 personas, un conteo de 0 no se distingue de uno chico", () => {
+    expect([0, 2, 3].map((v) => maskedCount(v, 8))).toEqual([5, 5, 5]);
   });
 
   it("los porcentajes se redondean a 5 con base chica", () => {
     expect(maskedPercent(1, 4)).toBeNull();
     expect(maskedPercent(4, 7)).toBe(55);
     expect(maskedPercent(13, 40)).toBe(33);
+  });
+
+  it("con base chica, el 0 % y el 100 % quedan acotados a 5 y 95", () => {
+    expect([maskedPercent(0, 6), maskedPercent(6, 6)]).toEqual([5, 95]);
+    expect([maskedPercent(0, 20), maskedPercent(20, 20)]).toEqual([0, 100]);
   });
 
   it("regla complementaria: con dos cohortes, si una no llega a 5 caen las dos", () => {
@@ -100,6 +110,15 @@ describe("enmascarado de las métricas de una institución (C-16 §3)", () => {
       ["c4", 3],
     ]);
     expect([...publishableCohorts(four)].sort()).toEqual(["c1", "c2"]);
+  });
+
+  it("dos cohortes ocultas que juntas llegan a 5 dejan publicar la grande", () => {
+    const one = new Map([
+      ["c1", 10],
+      ["c2", 3],
+      ["c3", 3],
+    ]);
+    expect([...publishableCohorts(one)]).toEqual(["c1"]);
   });
 });
 
