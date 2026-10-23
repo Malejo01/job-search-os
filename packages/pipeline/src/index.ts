@@ -25,6 +25,8 @@ export * from "./webmail-domains";
 export * from "./inbound-classify";
 export * from "./inbox-attention";
 export * from "./review";
+// S-6: en el medio y no al final, para no chocar con los export que agregan otras ramas
+export * from "./session-version";
 export * from "./applicant";
 export * from "./legal/markdown";
 export * from "./onboarding";

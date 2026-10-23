@@ -34,7 +34,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // no distingue "no existe" de "contraseña incorrecta" (enumeración de cuentas).
         const passwordOk = verifyPassword(password, user?.password_hash ?? DUMMY_PASSWORD_HASH);
         if (!user || !passwordOk) return null;
-        return { id: user.id, email };
+        // S-6: la versión de sesión vigente va al JWT (auth.config.ts, callback jwt)
+        const [row] = (await getAppDb().execute(
+          sql`select user_session_version(${user.id}::uuid) as v`,
+        )) as unknown as { v: number | null }[];
+        return { id: user.id, email, sessionVersion: row?.v ?? 0 };
       },
     }),
   ],

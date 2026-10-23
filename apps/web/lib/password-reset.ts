@@ -134,9 +134,11 @@ export async function resetPassword(token: string, newPassword: string): Promise
   const now = new Date();
   const changed = await withUser(check.userId, async (tx) => {
     if ((await consumeResetToken(tx, hashResetToken(token), now)) !== check.userId) return false;
+    // S-6: sube la versión de sesión, así las sesiones abiertas antes del reset dejan de valer
+    const sessionVersion = sql`${s.users.sessionVersion} + 1`;
     await tx
       .update(s.users)
-      .set({ passwordHash, updatedAt: now })
+      .set({ passwordHash, sessionVersion, updatedAt: now })
       .where(eq(s.users.id, check.userId));
     // Todos los tokens del usuario, no solo el consumido: un link viejo no sobrevive al reset.
     await markAllResetTokensUsed(tx, check.userId, now);

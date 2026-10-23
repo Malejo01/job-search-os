@@ -552,6 +552,16 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
       );
       expect(r!.ok).toBe(false);
     },
+    // S-6: devuelve un entero o null; de la fila de B no sale nada más
+    user_session_version: async () => {
+      const query = "select user_session_version($1::uuid) as v";
+      const ghost = "d8000000-0000-4000-8000-0000000000ff";
+      const missing = await asUser(A, (tx) => tx.unsafe(query, [ghost]));
+      expect(missing[0]?.v ?? null).toBeNull();
+      const other = await asUser(A, (tx) => tx.unsafe(query, [B]));
+      expect(Object.keys(other[0] ?? {})).toEqual(["v"]);
+      expect(typeof other[0]?.v).toBe("number");
+    },
     // Lista de espera (sin user_id): no lee ni toca nada de B; solo inserta su propia fila.
     waitlist_join: async () => {
       const before = await fingerprint({ table: "invitations", column: "used_by_user_id" }, B);
