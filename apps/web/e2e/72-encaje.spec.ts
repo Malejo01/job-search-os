@@ -213,7 +213,9 @@ test.describe("Flujo 72: Tu encaje", () => {
   test("E4b: el detalle de una oferta cruza su descarte con el freno más común", async ({
     page,
   }) => {
-    // La línea usa la carrera principal: rrhh_it, cuyo cálculo (con las 6 ofertas) ya está en caché
+    // Usa las ofertas del caso de las 6: en serie, ese caso corre antes
+    expect(bJobIds.length, "faltan las ofertas del caso anterior").toBeGreaterThan(0);
+    // La línea usa la carrera principal: rrhh_it, cuyo cálculo ya tiene las 6 ofertas
     await setRolesOf(E2E_B_USER_ID, [ROLE_FRENO, ROLE_SMALL]);
     await loginAsSecondUser(page);
     await page.goto(`/jobs/${bJobIds[0]}`);

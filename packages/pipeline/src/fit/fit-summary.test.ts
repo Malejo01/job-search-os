@@ -159,7 +159,11 @@ describe("fitCrossSentence (C-6 E4b): la línea de cruce del detalle", () => {
   it("residencia y país cuentan como el mismo freno", () => {
     const s = summary(false);
     s.blockers = [{ key: "donde", label: "Desde dónde se puede trabajar", count: 7 }];
-    expect(fitCrossSentence(s, "pais")).toBe("Esto mismo te pasa en 7 de tus 20 ofertas.");
+    const lines = ["pais", "residencia"].map((id) => fitCrossSentence(s, id));
+    expect(lines).toEqual([
+      "Esto mismo te pasa en 7 de tus 20 ofertas.",
+      "Esto mismo te pasa en 7 de tus 20 ofertas.",
+    ]);
   });
 
   it("sin línea si no es el freno más común, si no hay descarte o con base chica", () => {

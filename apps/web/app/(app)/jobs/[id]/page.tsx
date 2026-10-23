@@ -103,11 +103,10 @@ export default async function JobDetailPage({
   // respetan, y el orden sale de la misma consulta que la lista.
   const filters = parseJobFilters(sp);
   const query = listQuery(filters);
-  const [job, around, savedForm, fitSummary] = await Promise.all([
+  const [job, around, savedForm] = await Promise.all([
     getJobDetail(userId, id),
     jobNeighbors(userId, id, filters),
     getSavedFormAnswers(userId, id),
-    getMainFitSummary(userId, new Date()),
   ]);
   if (!job) notFound();
   const flagTexts = job.flags.flatMap((f) => flagLabel(f) ?? []);
@@ -122,8 +121,10 @@ export default async function JobDetailPage({
       evaluating={job.evaluating}
     />
   );
-  // C-6 E4b: si el descarte de esta oferta es el freno más común de la persona, se cruza con «Tu encaje»
+  // C-6 E4b: si el descarte de esta oferta es el freno más común de la persona, se cruza con «Tu
+  // encaje». Solo se calcula cuando la oferta tiene descarte: el resto de los detalles no lo paga
   const descarteId = ev?.checklist?.descarte_rapido?.id ?? null;
+  const fitSummary = descarteId ? await getMainFitSummary(userId, new Date()) : null;
   const crossLine = fitSummary ? fitCrossSentence(fitSummary, descarteId) : null;
   const tone = scoreTone(ev?.score ?? null);
   const salary =

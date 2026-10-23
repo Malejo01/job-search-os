@@ -141,6 +141,13 @@ async function readFitData(userId: string, role: RoleKey, now: Date): Promise<Fi
  * tocar acciones de otras pantallas): lo que cargues se ve en el próximo cálculo. El valor es JSON plano.
  * `now` solo se usa al recalcular, por eso no entra en la clave.
  */
+export function getFitData(userId: string, role: RoleKey, now: Date): Promise<FitData> {
+  return unstable_cache(() => readFitData(userId, role, now), ["fit", "v1", userId, role], {
+    revalidate: FIT_REVALIDATE_SECONDS,
+    tags: [`fit:${userId}`],
+  })();
+}
+
 /**
  * Resumen de la carrera principal para la línea de cruce del detalle (E4b). Usa el mismo caché que
  * «Hoy»; sin carrera o si falla, null: la línea es una ayuda y nunca rompe el detalle.
@@ -155,11 +162,4 @@ export async function getMainFitSummary(userId: string, now: Date): Promise<FitS
     createLogger({ user_id: userId, task: "tu_encaje" }).error({ errName }, "tu encaje falló");
     return null;
   }
-}
-
-export function getFitData(userId: string, role: RoleKey, now: Date): Promise<FitData> {
-  return unstable_cache(() => readFitData(userId, role, now), ["fit", "v1", userId, role], {
-    revalidate: FIT_REVALIDATE_SECONDS,
-    tags: [`fit:${userId}`],
-  })();
 }
