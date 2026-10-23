@@ -49,6 +49,8 @@ export {
 } from "./pool/fetch";
 export { upsertPoolJobs, type PoolUpsertSummary } from "./pool/upsert";
 export { POOL_RETENTION_DAYS, purgePool } from "./pool/retention";
+// E3b: lectura de candidatas para el simulador de /plan (lejos de las líneas que tocan #179 y #182)
+export { CANDIDATE_CAP, selectPoolCandidates } from "./pool/select";
 export { sourceUserAgent } from "./sources/user-agent";
 export {
   ATS_PROVIDERS,

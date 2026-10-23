@@ -9,9 +9,11 @@ import {
   hasFewOwnJobs,
   type PlanItemView,
 } from "@/lib/plan";
+import { getPlanImpact } from "@/lib/plan-impact";
 import { requireUserId } from "@/lib/session";
 import { MissingDataNotice, NoLevelsNotice } from "../market/data-state-notice";
 import { setPlanStatusAction } from "./actions";
+import { SiAprendes } from "./si-aprendes";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Plan" };
@@ -51,10 +53,10 @@ function priorityBand(priority: number, max: number): "alta" | "media" | "baja" 
 export default async function PlanPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; simular?: string | string[] }>;
 }) {
   const userId = await requireUserId();
-  const { error } = await searchParams;
+  const { error, simular } = await searchParams;
   // El plan guardado es uno por persona: la nota usa siempre el puesto principal
   const role = (await getTargetRoles(userId))[0] ?? null;
   const [items, state, roleFallback, fewOwnJobs] = await Promise.all([
@@ -63,6 +65,9 @@ export default async function PlanPage({
     getPlanRoleFallback(userId, role),
     hasFewOwnJobs(userId),
   ]);
+  // El simulador necesita plan y niveles cargados; sin ellos la pantalla ya explica qué falta
+  const showSim = items.length > 0 && state.levelsKnown > 0;
+  const impact = showSim ? await getPlanImpact(userId, role, new Date(), simular) : null;
   const maxPriority = items.reduce((m, i) => Math.max(m, i.priority), 0);
   const groups: Record<PlanStatus, PlanItemView[]> = { en_curso: [], pendiente: [], cerrada: [] };
   for (const it of items) groups[it.status].push(it);
@@ -194,6 +199,7 @@ export default async function PlanPage({
           ) : null,
         )
       )}
+      {showSim ? <SiAprendes impact={impact} selected={impact?.simulation?.slugs ?? []} /> : null}
       <details className="rounded-md border border-zinc-200 p-3 text-sm">
         <summary className="flex min-h-11 cursor-pointer items-center font-semibold">
           Cómo se calcula
@@ -203,6 +209,12 @@ export default async function PlanPage({
           40 h → 0,4, 80 h → 0,2). «Alta», «media» y «baja» comparan cada skill con la de mayor
           prioridad de tu plan. Se recalcula cuando guardás tus skills y cada lunes; los estados que
           marcaste se conservan. Los recursos salen de un catálogo revisado a mano.
+        </p>
+        <p className="mt-2 text-xs text-zinc-600">
+          «Si aprendés…» cuenta una oferta como «te calza» cuando su pre-score (una cuenta rápida de
+          cuántas de las skills que piden ya manejás, sin leer la oferta entera) llega a 7, el mismo
+          corte que usa «Hoy». Aprender una skill es llevarla a nivel 2. Ese número no es el puntaje
+          del modelo: es una estimación más gruesa, y el puntaje de cada oferta puede ser otro.
         </p>
       </details>
     </section>
