@@ -39,7 +39,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title,
     description,
     alternates: { canonical: `/mercado/${role}` },
-    openGraph: { title, description, url: `/mercado/${role}`, type: "website" },
+    // Un openGraph propio reemplaza entero al del layout, imagen incluida: se repite la de (public)
+    openGraph: {
+      title,
+      description,
+      url: `/mercado/${role}`,
+      type: "website",
+      locale: "es_AR",
+      images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
+    },
   };
 }
 
