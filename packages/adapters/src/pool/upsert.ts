@@ -67,7 +67,7 @@ export const POOL_UPSERT_INITIAL_MS_PER_JOB = 15;
 /** Margen de seguridad: el promedio de lotes baratos subestima a los caros. */
 export const POOL_UPSERT_ESTIMATE_FACTOR = 1.5;
 
-const ATS_KINDS = new Set(["greenhouse", "lever", "ashby"]);
+const ATS_KINDS = new Set(["greenhouse", "lever", "ashby", "teamtailor"]);
 
 /** Clave de board: en los ATS `proveedor:token`; en el resto, una fija por fuente. */
 function boardKey(raw: RawJob): string {

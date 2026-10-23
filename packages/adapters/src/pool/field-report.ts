@@ -4,7 +4,12 @@ import {
   locationScope,
   type RawJob,
 } from "@job-search-os/pipeline";
-import { ATS_PROVIDERS, isValidAtsToken, type AtsProvider } from "../sources/ats-common";
+import {
+  ATS_PROVIDERS,
+  atsBoardUrl,
+  isValidAtsToken,
+  type AtsProvider,
+} from "../sources/ats-common";
 
 /**
  * Reporte de presencia de campos para `pool:fetch --dry-run`: contrasta el formato real de una
@@ -27,14 +32,14 @@ export type PoolCliArgs =
       ok: true;
       source: AtsProvider;
       token: string;
-      region: "eu" | null;
+      region: "eu" | "na" | null;
       /** `--company`; si falta se usa el token. */
       company: string;
     }
   | { ok: false; error: string };
 
 const USAGE = `uso: pnpm pool:fetch <getonboard|remoteok|jobicy|himalayas|wwr> --dry-run
-     pnpm pool:fetch <${ATS_PROVIDERS.join("|")}> <token> [--region eu] [--company "Nombre"] --dry-run`;
+     pnpm pool:fetch <${ATS_PROVIDERS.join("|")}> <token> [--region eu|na] [--company "Nombre"] --dry-run`;
 
 /** Argumentos de `pool:fetch` (sin `node` ni el script). Puro: el token se valida antes de cualquier request. */
 export function parsePoolCliArgs(argv: readonly string[]): PoolCliArgs {
@@ -71,15 +76,27 @@ export function parsePoolCliArgs(argv: readonly string[]): PoolCliArgs {
   if (!isValidAtsToken(token)) {
     return { ok: false, error: "token inválido: solo letras, números, '.', '_' y '-' (máx. 100)" };
   }
-  if (region !== null && !(source === "lever" && region === "eu")) {
-    return { ok: false, error: "--region solo admite 'eu' y solo en lever" };
+  if (
+    region !== null &&
+    !((source === "lever" && region === "eu") || (source === "teamtailor" && region === "na"))
+  ) {
+    return { ok: false, error: "--region solo admite 'eu' en lever y 'na' en teamtailor" };
+  }
+  // Teamtailor usa el token de subdominio: la etiqueta DNS se valida antes de cualquier request.
+  try {
+    atsBoardUrl(source as AtsProvider, token, region);
+  } catch {
+    return {
+      ok: false,
+      error: "token inválido para ese proveedor (en teamtailor: [a-z0-9-], máx. 63)",
+    };
   }
   if (company !== null && !company.trim()) return { ok: false, error: "--company vacío" };
   return {
     ok: true,
     source: source as AtsProvider,
     token,
-    region: region === "eu" ? "eu" : null,
+    region: region === "eu" ? "eu" : region === "na" ? "na" : null,
     company: company?.trim().slice(0, 100) || token,
   };
 }

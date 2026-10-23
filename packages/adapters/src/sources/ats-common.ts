@@ -14,7 +14,7 @@ import { withSignal } from "./with-signal";
  * boards la mantiene Mauro en `ats_boards`; acá solo se valida el token, se arma la URL y se
  * hace el GET con tope de tamaño, timeout y un reintento. Ver docs/adr/018-fuentes-pool-ats.md.
  */
-export const ATS_PROVIDERS = ["greenhouse", "lever", "ashby"] as const;
+export const ATS_PROVIDERS = ["greenhouse", "lever", "ashby", "teamtailor"] as const;
 export type AtsProvider = (typeof ATS_PROVIDERS)[number];
 
 /** Estado cerrado de un board: lo que se guarda en `ats_boards.last_status`. */
@@ -37,15 +37,26 @@ export class AtsBoardError extends Error {
   }
 }
 
+/** Etiqueta DNS (Teamtailor la usa de subdominio): `[a-z0-9-]`, sin guion al borde, máx. 63. */
+const DNS_LABEL_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+
 /**
  * URL del board. SOLO con el token validado y codificado; el host sale de una tabla fija. `region`
- * existe únicamente para Lever (`"eu"`); cualquier otro valor es un error (anti-SSRF).
+ * existe únicamente para Lever (`"eu"`) y Teamtailor (`"na"`); cualquier otra combinación es un
+ * error (anti-SSRF). En Teamtailor el token va en el subdominio: además tiene que ser una etiqueta
+ * DNS válida.
  */
 export function atsBoardUrl(provider: AtsProvider, token: string, region?: string | null): string {
   if (!isValidAtsToken(token)) throw new AtsBoardError("invalid_token", "token inválido");
   const hasRegion = region !== undefined && region !== null && region !== "";
-  if (hasRegion && !(provider === "lever" && region === "eu")) {
+  if (
+    hasRegion &&
+    !((provider === "lever" && region === "eu") || (provider === "teamtailor" && region === "na"))
+  ) {
     throw new AtsBoardError("invalid_token", "región inválida");
+  }
+  if (provider === "teamtailor" && !DNS_LABEL_RE.test(token)) {
+    throw new AtsBoardError("invalid_token", "token inválido");
   }
   const t = encodeURIComponent(token);
   switch (provider) {
@@ -55,6 +66,9 @@ export function atsBoardUrl(provider: AtsProvider, token: string, region?: strin
       return `https://${hasRegion ? "api.eu.lever.co" : "api.lever.co"}/v0/postings/${t}?mode=json&limit=${LEVER_API_LIMIT}`;
     case "ashby":
       return `https://api.ashbyhq.com/posting-api/job-board/${t}?includeCompensation=true`;
+    case "teamtailor":
+      // Un único GET al feed, sin paginación (`offset`/`per_page`): es lo menos invasivo.
+      return `https://${t}${hasRegion ? ".na" : ""}.teamtailor.com/jobs.rss`;
     default:
       throw new AtsBoardError("invalid_token", "proveedor inválido");
   }
@@ -131,9 +145,27 @@ async function readCapped(res: Response, signal: AbortSignal): Promise<string> {
  * mensaje ni el cuerpo del error: lanza `AtsBoardError` con un estado cerrado.
  */
 export async function atsGetJson(url: string, options: AtsRequestOptions = {}): Promise<unknown> {
+  const body = await atsGetBody(url, options, "application/json");
+  try {
+    return JSON.parse(body) as unknown;
+  } catch {
+    throw new AtsBoardError("parse", "respuesta inesperada");
+  }
+}
+
+/** Igual que `atsGetJson` (mismo tope, timeout, reintento y errores cerrados), pero devuelve el texto (RSS/XML). */
+export async function atsGetText(url: string, options: AtsRequestOptions = {}): Promise<string> {
+  return atsGetBody(url, options, "application/rss+xml, application/xml, text/xml");
+}
+
+async function atsGetBody(
+  url: string,
+  options: AtsRequestOptions,
+  accept: string,
+): Promise<string> {
   const base = options.fetchImpl ?? fetch;
   const sleep = options.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
-  const headers: Record<string, string> = { accept: "application/json" };
+  const headers: Record<string, string> = { accept };
   if (options.userAgent) headers["user-agent"] = options.userAgent;
 
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -161,12 +193,7 @@ export async function atsGetJson(url: string, options: AtsRequestOptions = {}): 
       await res.body?.cancel().catch(() => {});
       throw new AtsBoardError("too_large", "respuesta demasiado grande");
     }
-    const text = await readCapped(res, signal);
-    try {
-      return JSON.parse(text) as unknown;
-    } catch {
-      throw new AtsBoardError("parse", "respuesta inesperada");
-    }
+    return readCapped(res, signal);
   }
   throw new Error("HTTP 429");
 }
@@ -202,7 +229,7 @@ export function atsSourceError(status: Exclude<AtsBoardStatus, "ok">): SourceErr
 
 export type AtsBoardOptions = {
   token: string;
-  /** Solo Lever: `"eu"`. */
+  /** Solo Lever: `"eu"`. Solo Teamtailor: `"na"`. */
   region?: string | null;
   /** `company_name` del board: va a `companyRaw`. */
   companyName: string;
@@ -227,7 +254,12 @@ export type AtsBoardResult = {
   status: "ok" | "not_found";
   /** Remotos que quedaron afuera por `ATS_MAX_JOBS_PER_BOARD` (0 si ninguno). */
   truncated: number;
+  /** Solo Teamtailor: el feed trajo exactamente 100 items (su tope por defecto), puede estar cortado. */
+  feedMaybeTruncated?: true;
 };
+
+/** Items por defecto del feed RSS de Teamtailor: con exactamente esa cantidad, puede haber más. */
+export const TEAMTAILOR_FEED_DEFAULT_LIMIT = 100;
 
 /** Tope de avisos por board y por corrida: quedan los más recientes. */
 export const ATS_MAX_JOBS_PER_BOARD = 200;
@@ -442,12 +474,14 @@ export async function fetchAtsBoard(
   spec: {
     items: (body: unknown) => unknown[] | null;
     map: (item: Record<string, unknown>) => AtsMapped;
+    /** `"text"`: el cuerpo llega como texto (RSS) y `items` lo recibe tal cual. Default: JSON. */
+    format?: "json" | "text";
   },
 ): Promise<AtsBoardResult> {
   const url = atsBoardUrl(provider, options.token, options.region);
   let body: unknown;
   try {
-    body = await atsGetJson(url, options);
+    body = spec.format === "text" ? await atsGetText(url, options) : await atsGetJson(url, options);
   } catch (e) {
     if (e instanceof AtsBoardError && e.status === "not_found")
       return emptyBoardResult("not_found");
@@ -459,6 +493,9 @@ export async function fetchAtsBoard(
   const byId = new Map<string, RawJob>();
   const result = emptyBoardResult("ok");
   result.seen = items.length;
+  if (provider === "teamtailor" && items.length === TEAMTAILOR_FEED_DEFAULT_LIMIT) {
+    result.feedMaybeTruncated = true;
+  }
   let unlisted = 0;
   for (const item of items) {
     const mapped =

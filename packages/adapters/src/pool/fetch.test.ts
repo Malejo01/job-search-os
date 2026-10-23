@@ -61,6 +61,7 @@ function downloaders(partial: Partial<PoolDownloaders>): PoolDownloaders {
     greenhouse: none,
     lever: none,
     ashby: none,
+    teamtailor: none,
     ...partial,
   };
 }
@@ -138,6 +139,7 @@ describe("POOL_SOURCE_KIND", () => {
       greenhouse: "greenhouse",
       lever: "lever",
       ashby: "ashby",
+      teamtailor: "teamtailor",
     });
   });
 });
@@ -621,6 +623,44 @@ describe("runPoolFetch · fuentes ATS (boards de ats_boards)", () => {
       "greenhouse",
       "lever",
       "ashby",
+    ]);
+  });
+
+  it("teamtailor: intervalo de 5 h, se acepta en POOL_SOURCES y NO está recomendada (la prende Mauro)", () => {
+    expect(POOL_MIN_INTERVAL_MS.teamtailor).toBe(5 * 3_600_000);
+    expect(POOL_RECOMMENDED_SOURCES).not.toContain("teamtailor");
+    expect(parsePoolSources("Teamtailor").enabled).toEqual(["teamtailor"]);
+  });
+
+  it("teamtailor: una request al feed por board, con región na, y avisa si trae 100 items", async () => {
+    const items = Array.from(
+      { length: 100 },
+      (_, i) =>
+        `<item><title>Puesto ${i}</title><link>https://empresa-ficticia.teamtailor.com/jobs/${i + 1}-puesto</link><guid>g${i}</guid><remoteStatus>fully</remoteStatus></item>`,
+    ).join("");
+    const fetchImpl = vi.fn(
+      async (_url: string) => new Response(`<rss><channel>${items}</channel></rss>`),
+    );
+    const out = (await atsDownloader("teamtailor")({
+      since: NOW,
+      userAgent: "UA",
+      boards: [
+        { id: "x", token: "empresa-ficticia", region: "na", companyName: "Empresa Ficticia 1" },
+      ],
+      fetchImpl: fetchImpl as never,
+    })) as Exclude<Awaited<ReturnType<ReturnType<typeof atsDownloader>>>, RawJob[]>;
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(fetchImpl.mock.calls[0]![0]).toBe("https://empresa-ficticia.na.teamtailor.com/jobs.rss");
+    expect(out.jobs).toHaveLength(100);
+    expect(out.boards).toEqual([
+      {
+        id: "x",
+        token: "empresa-ficticia",
+        status: "ok",
+        fetched: 100,
+        truncated: 0,
+        feedMaybeTruncated: true,
+      },
     ]);
   });
 

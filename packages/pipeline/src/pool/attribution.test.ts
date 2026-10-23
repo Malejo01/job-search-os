@@ -28,6 +28,30 @@ describe("findAtsLinks", () => {
     expect(findAtsLinks("https://empresa-a.workable.com/j/ABC")[0]?.provider).toBe("workable");
   });
 
+  it("reconoce los sitios de empleos de Teamtailor (también la región na)", () => {
+    expect(
+      findAtsLinks(
+        "https://empresa-a.teamtailor.com/jobs/1001-puesto-ficticio?utm=x https://empresa-b.na.teamtailor.com/jobs/2002-otro",
+      ),
+    ).toEqual([
+      { provider: "teamtailor", url: "https://empresa-a.teamtailor.com/jobs/1001-puesto-ficticio" },
+      { provider: "teamtailor", url: "https://empresa-b.na.teamtailor.com/jobs/2002-otro" },
+    ]);
+  });
+
+  it("Teamtailor: descarta hosts parecidos, http y rutas que no son avisos", () => {
+    const bad = [
+      "https://teamtailor.com.evil.com/jobs/1-a",
+      "https://empresa-a.teamtailor.com.evil.com/jobs/1-a",
+      "https://evil.com/empresa-a.teamtailor.com/jobs/1-a",
+      "https://nootroteamtailor.com/jobs/1-a",
+      "https://empresa-a.teamtailor.com/about",
+      "https://empresa-a.teamtailor.com/jobs.rss",
+      "http://empresa-a.teamtailor.com/jobs/1-a",
+    ].join(" ");
+    expect(findAtsLinks(bad)).toEqual([]);
+  });
+
   it("descarta hosts parecidos, credenciales, http y javascript", () => {
     const bad = [
       "https://greenhouse.io.evil.com/x/jobs/1",
@@ -109,6 +133,7 @@ const SOURCE_KINDS = [
   "greenhouse",
   "lever",
   "ashby",
+  "teamtailor",
 ] as const;
 
 describe("SOURCE_ATTRIBUTION", () => {
@@ -156,7 +181,7 @@ describe("attributionFor", () => {
   });
 
   it("ATS: nombra la empresa del aviso", () => {
-    for (const kind of ["greenhouse", "lever", "ashby"]) {
+    for (const kind of ["greenhouse", "lever", "ashby", "teamtailor"]) {
       expect(attributionFor(kind, { company: "Empresa Ficticia 9" })?.text).toBe(
         "Publicado en el sitio de empleos de Empresa Ficticia 9",
       );
