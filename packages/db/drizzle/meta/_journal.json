@@ -267,6 +267,13 @@
       "when": 1792612473865,
       "tag": "0037_carreras_ventas",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1792623089066,
+      "tag": "0038_stormy_sphinx",
+      "breakpoints": true
     }
   ]
 }

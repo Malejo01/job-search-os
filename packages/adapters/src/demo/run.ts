@@ -179,6 +179,7 @@ export async function runDemoEvaluations(input: RunDemoInput): Promise<DemoRunSu
             publicJobId: s.demoEvaluations.publicJobId,
             evaluatedAt: s.demoEvaluations.evaluatedAt,
             promptVersion: s.demoEvaluations.promptVersion,
+            checklist: s.demoEvaluations.checklist,
           })
           .from(s.demoEvaluations)
           .where(
@@ -192,7 +193,14 @@ export async function runDemoEvaluations(input: RunDemoInput): Promise<DemoRunSu
     const pending: { profile: DemoProfile; pick: RankedPick }[] = [];
     for (const pick of picks) {
       const e = byJob.get(pick.row.id);
-      if (e && e.evaluatedAt.getTime() >= staleBefore && e.promptVersion === promptVersion)
+      // Sin checklist (filas de antes de la ronda 115) se reevalúa: si no, la página no lo mostraría
+      // hasta que la fila venza por antigüedad
+      if (
+        e &&
+        e.evaluatedAt.getTime() >= staleBefore &&
+        e.promptVersion === promptVersion &&
+        e.checklist != null
+      )
         summary.kept++;
       else pending.push({ profile, pick });
     }
@@ -276,7 +284,16 @@ export async function runDemoEvaluations(input: RunDemoInput): Promise<DemoRunSu
   return summary;
 }
 
-const PUBLISHED_LIST_FIELDS = new Set(["match_fuerte", "gaps", "riesgos", "bloqueadores_duros"]);
+// Campos de la evaluación que terminan en la página pública: si el saneado tocó alguno, no se
+// publica. `paises_permitidos` y `years_domain` entran vía el checklist (ronda 115).
+const PUBLISHED_LIST_FIELDS = new Set([
+  "match_fuerte",
+  "gaps",
+  "riesgos",
+  "bloqueadores_duros",
+  "paises_permitidos",
+  "years_domain",
+]);
 
 async function saveEvaluation(
   db: Db,
@@ -298,6 +315,8 @@ async function saveEvaluation(
     riesgos: r.decision.riesgos,
     veredicto: r.evaluation.veredicto,
     locationOk: r.decision.locationOk,
+    // Sin skills del perfil (la demo no usa checklistSkills): sale sin esa sección. Null si buildChecklist falló
+    checklist: r.checklist,
     evaluatedAt,
   };
   await db
