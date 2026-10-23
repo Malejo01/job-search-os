@@ -14,8 +14,14 @@ import {
  * Flujo 61 (ronda 101): el chip «En español» de /jobs y el conteo «Ofertas en español» del mercado.
  * Dos avisos ficticios en el pool, uno con lang `es` y otro `en`, asignados al usuario e2e por base.
  * Sin red. Si en la máquina no hay navegador de Playwright, corre en el CI.
+ *
+ * La carrera es propia de este spec: `/mercado/<carrera>` cachea 30 minutos, y si otro spec la
+ * renderiza antes de sembrar (antes era `qa`), la línea «en español» no aparece. Ningún otro spec
+ * visita el mercado de ciberseguridad (el 34 la usa solo en /jobs).
  */
 test.describe.configure({ mode: "serial" });
+
+const CAREER = "ciberseguridad";
 
 test.describe("Flujo 61: En español", () => {
   const tag = `es-${Date.now()}`;
@@ -34,7 +40,7 @@ test.describe("Flujo 61: En español", () => {
       original = profile;
       await db
         .update(s.profiles)
-        .set({ targetRole: "qa", targetRoles: ["qa"] })
+        .set({ targetRole: CAREER, targetRoles: [CAREER] })
         .where(eq(s.profiles.userId, E2E_USER_ID));
     } finally {
       await close();
@@ -44,14 +50,14 @@ test.describe("Flujo 61: En español", () => {
         title: esTitle,
         company: "Empresa Ficticia 10",
         sourceKind: "remoteok",
-        roleHints: ["qa"],
+        roleHints: [CAREER],
         lang: "es",
       },
       {
         title: enTitle,
         company: "Empresa Ficticia 11",
         sourceKind: "remoteok",
-        roleHints: ["qa"],
+        roleHints: [CAREER],
         lang: "en",
       },
     ]);
@@ -93,7 +99,7 @@ test.describe("Flujo 61: En español", () => {
 
   test("el mercado público muestra el conteo de ofertas en español", async ({ page }) => {
     // El número puede venir del caché de 30 minutos: se verifica que la línea exista
-    const res = await page.goto("/mercado/qa");
+    const res = await page.goto(`/mercado/${CAREER}`);
     expect(res?.status()).toBe(200);
     await expect(page.getByText(/Ofertas en español: \d/)).toBeVisible();
   });
