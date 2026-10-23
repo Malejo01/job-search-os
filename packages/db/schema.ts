@@ -44,6 +44,9 @@ export const users = pgTable("users", {
   // Aceptación de términos (JS-106): fecha y versión vigente al registrarse; NULL = cuenta anterior.
   termsAcceptedAt: timestamp("terms_accepted_at", { withTimezone: true }),
   termsVersion: text("terms_version"),
+  // S-6: va en el JWT al iniciar sesión. Al resetear la contraseña sube, y las sesiones viejas dejan
+  // de valer (requireUserId compara las dos). Un JWT sin versión cuenta como 0
+  sessionVersion: integer("session_version").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [uniqueIndex("users_email").on(t.email)]);

@@ -3,8 +3,8 @@ import {
   gmailFiltersXml,
   isLegacyInboundAddress,
 } from "@job-search-os/pipeline";
-import { auth } from "@/auth";
 import { getInboundAddress } from "@/lib/inbound-address";
+import { sessionUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +17,8 @@ function json(status: number, error: string): Response {
  * La dirección es un secreto: no se loguea. Sin sesión, 401 (sin redirigir: lo consume un link de descarga).
  */
 export async function GET(): Promise<Response> {
-  const userId = (await auth())?.user?.id;
+  // Con la sesión vigente (S-6): una sesión de antes de un reset de contraseña no descarga nada
+  const userId = await sessionUserId();
   if (!userId) return json(401, "Iniciá sesión para descargar los filtros.");
   const address = await getInboundAddress(userId);
   if (!address || isLegacyInboundAddress(address, userId)) {

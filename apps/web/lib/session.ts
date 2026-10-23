@@ -1,3 +1,4 @@
+import { sessionVersionCheck, type SessionCheck } from "@job-search-os/pipeline";
 import { sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { cache } from "react";
@@ -7,22 +8,42 @@ import { isOnboardingComplete } from "./onboarding";
 import { needsTermsAcceptance } from "./terms-status";
 
 /**
+ * Estado de la sesión actual, sin redirigir: para las rutas de API, que contestan un código en vez
+ * de mandar a /login. Falla cerrado si el usuario ya no existe (cuenta borrada, JS-092) o si la
+ * versión de sesión del JWT no es la de la base (contraseña reseteada, S-6).
+ */
+type CurrentSession = { id: string; check: SessionCheck } | null;
+
+export const currentSession = cache(async (): Promise<CurrentSession> => {
+  const session = await auth();
+  const id = session?.user?.id;
+  if (!id) return null;
+  // user_session_version (SECURITY DEFINER, rls/0011): el rol de la app no lee users ajenos
+  const [row] = (await getAppDb().execute(
+    sql`select user_session_version(${id}::uuid) as v`,
+  )) as unknown as { v: number | null }[];
+  return { id, check: sessionVersionCheck(session?.sessionVersion, row?.v ?? null) };
+});
+
+/** users.id de una sesión que sigue valiendo, o null. Para las rutas de API. */
+export async function sessionUserId(): Promise<string | null> {
+  const current = await currentSession();
+  return current?.check === "ok" ? current.id : null;
+}
+
+/**
  * users.id de la sesión actual; sin sesión redirige a /login (el middleware ya lo hace, esto es el cinturón).
- * Falla cerrado si el usuario ya no existe (cuenta borrada, JS-092): el JWT dura 30 días y no hay FK
- * a `users`, así que sin este chequeo una sesión vieja podría crear filas huérfanas. El borrado de la
- * cookie lo hace /api/session/ended (no se puede desde un render y /login con JWT vigente rebotaría).
+ * Falla cerrado si el usuario ya no existe (cuenta borrada, JS-092) o si la sesión quedó vieja por
+ * un reset de contraseña (S-6): el JWT dura 14 días y no hay FK a `users`, así que sin este chequeo
+ * una sesión vieja podría seguir escribiendo. El borrado de la cookie lo hace /api/session/ended (no
+ * se puede desde un render y /login con JWT vigente rebotaría).
  * Con `cache` el chequeo corre una vez por request aunque lo llamen el layout y la página.
  */
 export const requireUserId = cache(async (): Promise<string> => {
-  const session = await auth();
-  const id = session?.user?.id;
-  if (!id) redirect("/login");
-  // user_exists (SECURITY DEFINER): el rol de la app no lee users ajenos y acá solo importa si existe.
-  const [row] = (await getAppDb().execute(
-    sql`select user_exists(${id}::uuid) as ok`,
-  )) as unknown as { ok: boolean }[];
-  if (!row?.ok) redirect("/api/session/ended");
-  return id;
+  const current = await currentSession();
+  if (!current) redirect("/login");
+  if (current.check !== "ok") redirect("/api/session/ended");
+  return current.id;
 });
 
 /**

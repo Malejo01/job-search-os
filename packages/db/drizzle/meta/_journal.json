@@ -281,6 +281,13 @@
       "when": 1792762168207,
       "tag": "0039_glorious_piledriver",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1792765116527,
+      "tag": "0040_high_captain_marvel",
+      "breakpoints": true
     }
   ]
 }

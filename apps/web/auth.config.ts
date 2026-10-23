@@ -8,7 +8,8 @@ import type { NextAuthConfig } from "next-auth";
  */
 export const authConfig = {
   pages: { signIn: "/login" },
-  session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
+  // 14 días (S-6, antes 30): con la versión de sesión, un reset corta las sesiones viejas igual
+  session: { strategy: "jwt", maxAge: 14 * 24 * 60 * 60 },
   trustHost: true,
   callbacks: {
     authorized({ auth, request }) {
@@ -58,11 +59,16 @@ export const authConfig = {
       return loggedIn;
     },
     jwt({ token, user }) {
-      if (user?.id) token.sub = user.id;
+      if (user?.id) {
+        token.sub = user.id;
+        // S-6: la versión de sesión del momento del login; requireUserId la compara con la base
+        token.sv = user.sessionVersion ?? 0;
+      }
       return token;
     },
     session({ session, token }) {
       if (token.sub) session.user.id = token.sub;
+      session.sessionVersion = typeof token.sv === "number" ? token.sv : undefined;
       return session;
     },
   },

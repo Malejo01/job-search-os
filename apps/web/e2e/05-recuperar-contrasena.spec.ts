@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { E2E_EMAIL, createPasswordResetToken, restoreSeedPassword } from "./helpers";
+import { E2E_EMAIL, createPasswordResetToken, login, restoreSeedPassword } from "./helpers";
 
 // Calculado y sin "password" en el nombre: GitGuardian dispara con solo ver esa palabra al lado
 // de un string literal, sin mirar el valor. Mismo criterio que el whsec_ de antes (falso positivo).
@@ -50,6 +50,32 @@ test.describe("recuperar contraseña (JS-045)", () => {
       await page.goto(`/reset-password?token=${token}`);
       await expect(page.locator('p[role="alert"]')).toHaveText(/ya se usó/);
     } finally {
+      await restoreSeedPassword();
+    }
+  });
+
+  test("un reset de contraseña cierra las sesiones abiertas antes (S-6)", async ({
+    page,
+    browser,
+  }) => {
+    await login(page);
+    await page.goto("/hoy");
+    await expect(page).toHaveURL(/\/hoy/);
+    const token = await createPasswordResetToken();
+    const other = await browser.newContext();
+    try {
+      // Otro navegador, sin sesión, usa el link de recuperación
+      const resetPage = await other.newPage();
+      await resetPage.goto(`/reset-password?token=${token}`);
+      await resetPage.getByLabel("Contraseña nueva").fill(E2E_RESET_VALUE);
+      await resetPage.getByLabel("Repetila").fill(E2E_RESET_VALUE);
+      await resetPage.getByRole("button", { name: "Guardar" }).click();
+      await resetPage.waitForURL("**/login?reset=1");
+      // La sesión que estaba abierta ya no vale: termina en /login
+      await page.goto("/hoy");
+      await page.waitForURL("**/login**");
+    } finally {
+      await other.close();
       await restoreSeedPassword();
     }
   });
