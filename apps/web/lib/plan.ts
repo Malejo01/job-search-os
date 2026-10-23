@@ -92,20 +92,22 @@ export async function getPlan(userId: string): Promise<PlanItemView[]> {
 }
 
 /**
- * Etiqueta del rol si el plan se calculó con el mercado del rol y no con las ofertas propias; null
- * si sale de las propias. Misma regla que `buildLearningPlan`: rol guardado válido, menos de
- * `MIN_OWN_JOBS_FOR_PLAN` ofertas propias con skills y datos del rol. La etiqueta es la de
- * `ROLE_SKILLS`, nunca la clave.
+ * Lo que /plan necesita de las ofertas propias, en una transacción y con un solo conteo (C-7):
+ * - `fewOwnJobs`: menos de `MIN_OWN_JOBS_FOR_PLAN` ofertas propias con skills (decide el texto del
+ *   plan vacío);
+ * - `roleFallback`: la etiqueta del rol si el plan se calculó con el mercado del rol y no con las
+ *   ofertas propias; null si sale de las propias. Misma regla que `buildLearningPlan`: rol guardado
+ *   válido, pocas ofertas propias y datos del rol. La etiqueta es la de `ROLE_SKILLS`, nunca la clave.
  */
-export async function getPlanRoleFallback(
+export async function getOwnJobsPlanState(
   userId: string,
   role: RoleKey | null,
-): Promise<string | null> {
-  if (role === null) return null;
+): Promise<{ fewOwnJobs: boolean; roleFallback: string | null }> {
   return withUser(userId, async (tx) => {
-    if ((await countOwnJobsWithSkills(tx, userId)) >= MIN_OWN_JOBS_FOR_PLAN) return null;
+    const fewOwnJobs = (await countOwnJobsWithSkills(tx, userId)) < MIN_OWN_JOBS_FOR_PLAN;
+    if (role === null || !fewOwnJobs) return { fewOwnJobs, roleFallback: null };
     const market = await getRoleMarket(tx, role, { limit: 1 });
-    return market.skills.length > 0 ? ROLE_SKILLS[role].label : null;
+    return { fewOwnJobs, roleFallback: market.skills.length > 0 ? ROLE_SKILLS[role].label : null };
   });
 }
 
@@ -117,14 +119,6 @@ async function countOwnJobsWithSkills(tx: Tx, userId: string): Promise<number> {
     .innerJoin(s.jobs, eq(s.jobs.id, s.jobSkills.jobId))
     .where(eq(s.jobs.userId, userId));
   return own?.n ?? 0;
-}
-
-/** ¿La persona tiene pocas ofertas propias con skills? Decide el texto del plan vacío. */
-export async function hasFewOwnJobs(userId: string): Promise<boolean> {
-  return withUser(
-    userId,
-    async (tx) => (await countOwnJobsWithSkills(tx, userId)) < MIN_OWN_JOBS_FOR_PLAN,
-  );
 }
 
 /** pendiente → en_curso (started_at) → cerrada (closed_at); también se puede volver a pendiente. */
