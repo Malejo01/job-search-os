@@ -21,8 +21,9 @@ import {
 } from "./helpers";
 
 /**
- * Flujo 69 (ronda 119): «Hoy», la pantalla de aterrizaje. Tres tarjetas por ahora: «Lo nuevo»,
- * «Tus alertas» y «Tu mercado esta semana» (la de seguimiento entra con el #155). Todo inventado.
+ * Flujo 69 (ronda 119): «Hoy», la pantalla de aterrizaje. Tarjetas: «Lo nuevo», «Para hacer
+ * seguimiento» (C-9), «Tu encaje» (la cubre el 72), «Tus alertas» y «Tu mercado esta semana». Todo
+ * inventado.
  *
  * - A es el usuario seed; B es la persona nueva de los helpers (sin ofertas, mails ni carrera).
  * - La cookie `jso_ultima_visita` vale `${userId}.${anterior}.${actual}` (epoch en segundos). Para
@@ -79,7 +80,7 @@ test.describe("Flujo 69: Hoy", () => {
     await removeSecondUser().catch(() => {});
   });
 
-  test("el login aterriza en /hoy con el título, las tres tarjetas y «Hoy» marcado en el menú", async ({
+  test("el login aterriza en /hoy con el título, las tarjetas y «Hoy» marcado en el menú", async ({
     page,
     context,
   }) => {

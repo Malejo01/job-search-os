@@ -1,4 +1,4 @@
-import { createLogger } from "@job-search-os/adapters";
+import { createLogger, safeDbError } from "@job-search-os/adapters";
 import { schema as s } from "@job-search-os/db";
 import {
   DEFAULT_TIMEZONE,
@@ -94,8 +94,15 @@ export async function getHoyData(
         .limit(1);
       return { tz: row?.tz || DEFAULT_TIMEZONE, languages: row?.languages ?? [] };
     }),
-    // C-9: las postulaciones que vencen hoy (el vencimiento lo decide `followUpDue`)
-    listFollowUps(userId, now),
+    // C-9: las postulaciones que vencen hoy (el vencimiento lo decide `followUpDue`). Si falla,
+    // la tarjeta queda vacía y «Hoy» se muestra igual
+    listFollowUps(userId, now).catch((e: unknown) => {
+      createLogger({ user_id: userId, task: "hoy_seguimiento" }).error(
+        { err: safeDbError(e) },
+        "no se pudieron leer los seguimientos",
+      );
+      return [];
+    }),
   ]);
   const { tz: timeZone, languages } = profile;
   const onlySpanish = languages.includes("es") && !languages.includes("en");

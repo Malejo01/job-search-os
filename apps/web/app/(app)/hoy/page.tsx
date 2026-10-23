@@ -195,8 +195,12 @@ function FollowUpCard({ data }: { data: HoyData }) {
           <ul className="m-0 flex list-none flex-col gap-2 p-0">
             {followUps.slice(0, FOLLOW_UPS_SHOWN).map((f) => (
               <li key={f.jobId} className="min-w-0 text-sm">
-                <Link href={`/jobs/${f.jobId}`} className={`${LINK_INLINE} block truncate`}>
-                  {f.title}
+                <Link
+                  href={`/jobs/${f.jobId}`}
+                  title={f.title}
+                  className={`${LINK_INLINE} flex min-h-11 min-w-0 items-center`}
+                >
+                  <span className="truncate">{f.title}</span>
                 </Link>
                 <p className="truncate text-xs text-zinc-600">
                   {f.company} · hace {f.daysSince} {f.daysSince === 1 ? "día" : "días"}
