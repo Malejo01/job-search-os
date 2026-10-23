@@ -1,7 +1,13 @@
-import { visitWindow, type CareerMarket, type RoleKey } from "@job-search-os/pipeline";
+import { schema as s } from "@job-search-os/db";
+import {
+  DEFAULT_TIMEZONE,
+  visitWindow,
+  type CareerMarket,
+  type RoleKey,
+} from "@job-search-os/pipeline";
 import { getCareerMarket } from "./career-market";
 import { withUser } from "./db";
-import { countJobs, listJobs, profileTimeZone, type JobCounts, type JobListRow } from "./jobs";
+import { countJobs, listJobs, type JobCounts, type JobListRow } from "./jobs";
 import { getTargetRoles, hasReceivedEmail } from "./onboarding";
 import { portalCoverage, type PortalCoverage } from "./portal-coverage";
 
@@ -23,6 +29,8 @@ export type HoyData = {
   empty: { counts: JobCounts; hasReceivedEmail: boolean } | null;
   /** Zona del perfil (o la del pipeline por defecto): con ella se formatean las fechas. */
   timeZone: string;
+  /** La persona acepta ofertas solo en español (`jobLanguages` = ["es"]): habilita el puente de idioma. */
+  onlySpanish: boolean;
 };
 
 /**
@@ -37,7 +45,7 @@ export async function getHoyData(
 ): Promise<HoyData> {
   const { since, stamp } = visitWindow(cookieValue, userId, now);
   const evaluatedSince = since ?? new Date(now.getTime() - 7 * DAY_MS);
-  const [jobs, coverage, roles, timeZone] = await Promise.all([
+  const [jobs, coverage, roles, profile] = await Promise.all([
     listJobs(
       userId,
       {
@@ -52,8 +60,17 @@ export async function getHoyData(
     ),
     portalCoverage(userId, now),
     getTargetRoles(userId),
-    withUser(userId, (tx) => profileTimeZone(tx)),
+    // Una sola consulta al perfil: zona horaria e idiomas de las ofertas
+    withUser(userId, async (tx) => {
+      const [row] = await tx
+        .select({ tz: s.profiles.timezone, languages: s.profiles.jobLanguages })
+        .from(s.profiles)
+        .limit(1);
+      return { tz: row?.tz || DEFAULT_TIMEZONE, languages: row?.languages ?? [] };
+    }),
   ]);
+  const { tz: timeZone, languages } = profile;
+  const onlySpanish = languages.includes("es") && !languages.includes("en");
   const [careers, empty] = await Promise.all([
     Promise.all(roles.map(async (role) => ({ role, market: await getCareerMarket(role) }))),
     jobs.length === 0
@@ -63,5 +80,5 @@ export async function getHoyData(
         }))
       : Promise.resolve(null),
   ]);
-  return { since, stamp, jobs, coverage, roles, careers, empty, timeZone };
+  return { since, stamp, jobs, coverage, roles, careers, empty, timeZone, onlySpanish };
 }

@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import * as s from "@job-search-os/db/schema";
 import { expect, test, type Page } from "@playwright/test";
+import { eq } from "drizzle-orm";
 import {
   E2E_B_USER_ID,
   E2E_USER_ID,
@@ -304,6 +305,58 @@ test.describe("Flujo 69: Hoy", () => {
       await deleteSeededPublicJobs(tag).catch(() => {});
       await setSeedTargetRoles(original);
     }
+  });
+
+  /** Deja el perfil seed con esos idiomas y carrera, corre `fn` y restaura todo al final. */
+  async function withProfile(jobLanguages: string[], fn: () => Promise<void>): Promise<void> {
+    const originalRoles = await seedTargetRoles();
+    const { db, close } = ownerDb();
+    let originalLanguages: string[] = ["es", "en"];
+    try {
+      const [row] = await db
+        .select({ jobLanguages: s.profiles.jobLanguages })
+        .from(s.profiles)
+        .where(eq(s.profiles.userId, E2E_USER_ID));
+      originalLanguages = row?.jobLanguages ?? originalLanguages;
+      await db.update(s.profiles).set({ jobLanguages }).where(eq(s.profiles.userId, E2E_USER_ID));
+      await setSeedTargetRoles({ targetRoles: [MARKET_CAREER], targetRole: MARKET_CAREER });
+      await fn();
+    } finally {
+      await db
+        .update(s.profiles)
+        .set({ jobLanguages: originalLanguages })
+        .where(eq(s.profiles.userId, E2E_USER_ID));
+      await close();
+      await setSeedTargetRoles(originalRoles);
+    }
+  }
+
+  test("puente de idioma: solo español y menos de 5 ofertas en español muestra el link al perfil", async ({
+    page,
+  }) => {
+    await withProfile(["es"], async () => {
+      await login(page);
+      const bridge = page
+        .getByTestId("hoy-mercado")
+        .getByTestId(`hoy-puente-idioma-${MARKET_CAREER}`);
+      await expect(bridge).toBeVisible();
+      await expect(bridge).toContainText(
+        "Casi todo está en inglés. Si aceptás ofertas en los dos idiomas vas a ver más.",
+      );
+      await expect(bridge.getByRole("link", { name: "vas a ver más" })).toHaveAttribute(
+        "href",
+        "/settings/perfil",
+      );
+    });
+  });
+
+  test("puente de idioma: con español e inglés no aparece", async ({ page }) => {
+    await withProfile(["es", "en"], async () => {
+      await login(page);
+      await expect(page.getByTestId(`hoy-mercado-${MARKET_CAREER}`)).toBeVisible();
+      await expect(page.getByTestId(`hoy-puente-idioma-${MARKET_CAREER}`)).toHaveCount(0);
+      await expect(page.getByTestId("hoy-mercado")).not.toContainText("Casi todo está en inglés");
+    });
   });
 
   for (const viewport of [

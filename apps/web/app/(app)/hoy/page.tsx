@@ -18,6 +18,8 @@ const SHOWN = 5;
 const CARD = "flex min-w-0 flex-col gap-2 rounded-md border border-zinc-200 px-3 py-3";
 const LINK =
   "inline-flex min-h-11 w-fit items-center font-medium text-sky-800 underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900";
+const LINK_INLINE =
+  "font-medium text-sky-800 underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900";
 
 /**
  * Guarda la marca de visita. No recibe nada del cliente: lee la cookie actual y recalcula la marca
@@ -193,7 +195,7 @@ function AlertsCard({ data }: { data: HoyData }) {
 }
 
 function MarketCard({ data }: { data: HoyData }) {
-  const { careers, roles } = data;
+  const { careers, roles, onlySpanish } = data;
   return (
     <Card id="hoy-mercado-titulo" testId="hoy-mercado" title="Tu mercado esta semana">
       {roles.length === 0 ? (
@@ -219,6 +221,15 @@ function MarketCard({ data }: { data: HoyData }) {
                     {writtenInSpanish} en español{market.english.estimated ? " (estimado)" : ""}.
                   </p>
                 )}
+                {onlySpanish && writtenInSpanish < 5 ? (
+                  <p data-testid={`hoy-puente-idioma-${role}`} className="text-zinc-700">
+                    Casi todo está en inglés. Si aceptás ofertas en los dos idiomas{" "}
+                    <Link href="/settings/perfil" className={LINK_INLINE}>
+                      vas a ver más
+                    </Link>
+                    .
+                  </p>
+                ) : null}
                 <Link href={`/market?carrera=${role}`} className={LINK}>
                   Ver el mercado de {label}
                 </Link>
