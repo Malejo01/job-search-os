@@ -211,7 +211,7 @@ test.describe("Flujo 27: primeras ofertas del pool, del puesto a /jobs", () => {
 
   test("conectar el email es opcional y el asistente trae el recuadro de confianza en un modal", async () => {
     await page.goto("/onboarding/ofertas");
-    // Ronda 49: el acceso está en el aviso de arriba
+    // El acceso está en el aviso, después de la lista (C-17)
     await page.getByRole("link", { name: "Conectar mis alertas" }).click();
     await page.waitForURL("**/onboarding/asistente**");
     await expect(page.getByRole("heading", { name: /Conectá tus alertas de email/ })).toBeVisible();

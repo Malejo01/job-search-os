@@ -136,7 +136,7 @@ test.describe("Flujo 25: ensayo de invitación, de la invitación a la primera o
     // Ronda 39: el onboarding pasa por «Tus primeras ofertas»; el email es un paso opcional
     await pageB.waitForURL("**/onboarding/ofertas**");
     await expect(pageB.getByRole("heading", { name: "Tus primeras ofertas" })).toBeVisible();
-    // Ronda 49: «Conectar mis alertas» está en el aviso de arriba y el asistente abre el modal de privacidad
+    // «Conectar mis alertas» está en el aviso, después de la lista (C-17), y el asistente abre el modal de privacidad
     await pageB.getByRole("link", { name: "Conectar mis alertas" }).click();
     await pageB.waitForURL("**/onboarding/asistente**");
     await closePrivacyDialog(pageB);
