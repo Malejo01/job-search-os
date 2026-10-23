@@ -21,7 +21,7 @@ export const locationOk = pgEnum("location_ok", ["ok", "riesgo", "no"]);
 export const suggestedAction = pgEnum("suggested_action", ["aplicar_personalizado", "aplicar", "guardar", "descartar"]);
 export const englishLevel = pgEnum("english_level", ["no_menciona", "no", "basico", "intermedio", "avanzado", "nativo"]);
 export const companyType = pgEnum("company_type", ["producto", "startup", "consultora", "staffing", "agencia", "desconocido"]);
-export const sourceKind = pgEnum("source_kind", ["getonboard_api", "email_linkedin", "email_getonboard", "email_generic", "manual", "hn_whoishiring", "remotive", "other", "remoteok", "jobicy", "himalayas", "wwr", "greenhouse", "lever", "ashby"]);
+export const sourceKind = pgEnum("source_kind", ["getonboard_api", "email_linkedin", "email_getonboard", "email_generic", "manual", "hn_whoishiring", "remotive", "other", "remoteok", "jobicy", "himalayas", "wwr", "greenhouse", "lever", "ashby", "teamtailor"]);
 export const applicationOutcome = pgEnum("application_outcome", [
   "sin_respuesta", "rechazo_automatico_ubicacion", "rechazo_automatico_otro", "rechazo_humano", "entrevista", "oferta", "cerrada_antes", "retirada",
 ]);
@@ -303,10 +303,10 @@ export const atsBoards = pgTable("ats_boards", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   uniqueIndex("ats_boards_provider_token").on(t.provider, t.token),
-  check("ats_boards_provider_check", sql`${t.provider} in ('greenhouse', 'lever', 'ashby')`),
+  check("ats_boards_provider_check", sql`${t.provider} in ('greenhouse', 'lever', 'ashby', 'teamtailor')`),
   // Defensa en profundidad (SSRF): el token va a una URL; la región solo existe en Lever
   check("ats_boards_token_check", sql`${t.token} ~* '^[a-z0-9][a-z0-9._-]{0,99}$'`),
-  check("ats_boards_region_check", sql`${t.region} is null or (${t.provider} = 'lever' and ${t.region} = 'eu')`),
+  check("ats_boards_region_check", sql`${t.region} is null or (${t.provider} = 'lever' and ${t.region} = 'eu') or (${t.provider} = 'teamtailor' and ${t.region} = 'na')`),
 ]);
 
 // Lista de espera de la vitrina pública (ronda 63): personas sin cuenta, por eso sin user_id. RLS sin

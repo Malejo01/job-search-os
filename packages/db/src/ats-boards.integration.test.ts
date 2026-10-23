@@ -120,6 +120,20 @@ describe("ats_boards", () => {
     ).rejects.toThrow(/ats_boards_region_check/);
   });
 
+  it("el check de región: teamtailor acepta na y rechaza eu", async () => {
+    await owner`insert into ats_boards (provider, token, company_name, region)
+                values ('teamtailor', ${TOKEN + "-t"}, 'Empresa Ficticia 4', 'na')`;
+    await owner`delete from ats_boards where token = ${TOKEN + "-t"}`;
+    await expect(
+      owner`insert into ats_boards (provider, token, company_name, region)
+            values ('teamtailor', ${TOKEN + "-e"}, 'Empresa Ficticia 4', 'eu')`,
+    ).rejects.toThrow(/ats_boards_region_check/);
+    await expect(
+      owner`insert into ats_boards (provider, token, company_name, region)
+            values ('lever', ${TOKEN + "-n"}, 'Empresa Ficticia 4', 'na')`,
+    ).rejects.toThrow(/ats_boards_region_check/);
+  });
+
   it("el unique rechaza (provider, token) duplicado, pero acepta otro provider", async () => {
     await expect(
       owner`insert into ats_boards (provider, token, company_name)
@@ -131,11 +145,13 @@ describe("ats_boards", () => {
     expect(n!.n).toBe(2);
   });
 
-  it("el enum source_kind tiene wwr, greenhouse, lever y ashby", async () => {
+  it("el enum source_kind tiene wwr, greenhouse, lever, ashby y teamtailor", async () => {
     const rows = await owner<{ v: string }[]>`
       select e.enumlabel as v from pg_enum e join pg_type t on t.oid = e.enumtypid
       where t.typname = 'source_kind'`;
     const values = rows.map((r) => r.v);
-    for (const kind of ["wwr", "greenhouse", "lever", "ashby"]) expect(values).toContain(kind);
+    for (const kind of ["wwr", "greenhouse", "lever", "ashby", "teamtailor"]) {
+      expect(values).toContain(kind);
+    }
   });
 });

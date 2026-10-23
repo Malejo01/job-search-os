@@ -133,6 +133,7 @@ const SOURCE_KINDS = [
   "greenhouse",
   "lever",
   "ashby",
+  "teamtailor",
 ] as const;
 
 describe("SOURCE_ATTRIBUTION", () => {
@@ -180,7 +181,7 @@ describe("attributionFor", () => {
   });
 
   it("ATS: nombra la empresa del aviso", () => {
-    for (const kind of ["greenhouse", "lever", "ashby"]) {
+    for (const kind of ["greenhouse", "lever", "ashby", "teamtailor"]) {
       expect(attributionFor(kind, { company: "Empresa Ficticia 9" })?.text).toBe(
         "Publicado en el sitio de empleos de Empresa Ficticia 9",
       );

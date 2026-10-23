@@ -35,7 +35,7 @@ export const POSTED_WINDOW_DAYS = 30;
  * Los ATS públicos publican el aviso con la fecha de alta y lo mantienen abierto meses: para ellos
  * la ventana es `last_seen_at` (siguen vivos), no `posted_at`.
  */
-export const ATS_SOURCE_KINDS = ["greenhouse", "lever", "ashby"] as const;
+export const ATS_SOURCE_KINDS = ["greenhouse", "lever", "ashby", "teamtailor"] as const;
 export const isAtsSource = (kind: string): boolean =>
   (ATS_SOURCE_KINDS as readonly string[]).includes(kind);
 

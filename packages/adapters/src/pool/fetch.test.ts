@@ -139,8 +139,7 @@ describe("POOL_SOURCE_KIND", () => {
       greenhouse: "greenhouse",
       lever: "lever",
       ashby: "ashby",
-      // Provisorio hasta que 120-b agregue "teamtailor" al enum de la base
-      teamtailor: "other",
+      teamtailor: "teamtailor",
     });
   });
 });
