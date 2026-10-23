@@ -57,6 +57,29 @@ pnpm inbound:replay packages/adapters/src/admin/fixtures/replay-linkedin-ejemplo
 
 Si el usuario no tiene criterios activos, el email queda en la cola manual con ese motivo: es el comportamiento normal del despacho, no un fallo del comando.
 
+## Asignar un plan (beta paga, C-11b)
+
+El cobro es externo, con el link de Mercado Pago. Cuando alguien paga, el plan se asigna a mano con un `UPDATE` puntual en el SQL Editor de Neon, **conectado como dueño**. El rol de la app no puede cambiarlo: lo frena el trigger `profiles_plan_guard` (`packages/db/rls/0010_plan.sql`).
+
+```sql
+begin;
+-- Las claves válidas son gratis, fundador, lista y pase_3_meses (packages/pipeline/src/plans.ts).
+-- El pase de 3 meses lleva su fecha de fin; el mensual, la del próximo vencimiento.
+update profiles p
+   set plan = 'pase_3_meses', plan_until = now() + interval '90 days', updated_at = now()
+  from users u
+ where u.id = p.user_id and u.email = 'persona@ejemplo.test';
+-- Tiene que dar exactamente 1 fila antes de confirmar
+select p.plan, p.plan_until from profiles p join users u on u.id = p.user_id
+ where u.email = 'persona@ejemplo.test';
+commit;
+```
+
+- **Vencimiento:** un plan pago con `plan_until` vencido rige como gratis, sin que haga falta tocar nada. Con `plan_until` en null el plan no vence: usalo solo si es a propósito.
+- **Topes:** el plan cuenta solo con `PRICING_ENABLED=1`. Un tope propio del perfil (`max_target_roles` o `pool_daily_eval_limit`) le gana al del plan.
+- **Primeras ofertas:** las 9 primeras evaluaciones del onboarding no dependen del plan.
+- **La web nunca se conecta como dueño:** `DATABASE_URL_APP` tiene que ser `jobsearch_app`. Con el rol dueño, el trigger dejaría pasar cualquier cambio de plan sin avisar (y RLS tampoco aplicaría; `assertAppRole` lo frena al arrancar).
+
 ## Smoke post-deploy
 
 Después de cada deploy exitoso a Production, `.github/workflows/smoke.yml` corre `apps/web/e2e-smoke/smoke.spec.ts` contra la URL de producción, que está fija en el workflow (nunca la del evento). Es **de solo lectura**: `/api/health`, login, `/jobs`, abrir la primera oferta si hay y `/applications`. No toca botones que escriban.

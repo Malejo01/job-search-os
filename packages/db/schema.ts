@@ -84,9 +84,15 @@ export const profiles = pgTable("profiles", {
   targetRoles: text("target_roles").array().notNull().default(sql`'{}'::text[]`), // puestos elegidos (ADR-016): se validan en código contra ROLE_KEYS
   maxTargetRoles: integer("max_target_roles"), // tope de puestos del perfil; null = rige TARGET_ROLES_FREE_LIMIT
   poolDailyEvalLimit: integer("pool_daily_eval_limit"), // tope diario de evaluaciones del pool; null = rige el default de la variable
+  // Plan de la beta paga (C-11b): claves de PLAN_KEYS (pipeline/src/plans.ts). Lo cambia el dueño con un
+  // UPDATE puntual; la app no puede (trigger en rls/0010_plan.sql). plan_until null = sin vencimiento
+  plan: text("plan").notNull().default("gratis"),
+  planUntil: timestamp("plan_until", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  check("profiles_plan_check", sql`${t.plan} in ('gratis', 'fundador', 'lista', 'pase_3_meses')`),
+]);
 
 export const evaluationCriteria = pgTable("evaluation_criteria", {
   id: uuid("id").primaryKey().defaultRandom(),

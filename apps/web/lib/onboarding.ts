@@ -5,6 +5,7 @@ import {
   isProfileComplete,
   type OnboardingInput,
   parseOnboarding,
+  resolvePlanLimit,
   targetRolesLimit,
   toRoleKey,
   type RoleKey,
@@ -67,17 +68,29 @@ export async function getTargetRoles(userId: string): Promise<RoleKey[]> {
 }
 
 /**
- * Tope de puestos de la persona: `max_target_roles` del perfil si lo tiene; si no, el del entorno
- * (`TARGET_ROLES_FREE_LIMIT`, 2 por defecto). La regla vive en el pipeline.
+ * Tope de puestos de la persona: `max_target_roles` del perfil si lo tiene; si no, el de su plan con
+ * `PRICING_ENABLED` (C-11b); si no, el del entorno (`TARGET_ROLES_FREE_LIMIT`, 2 por defecto). Las
+ * reglas viven en el pipeline.
  */
 export async function getTargetRolesLimit(userId: string): Promise<number> {
   return withUser(userId, async (tx) => {
     const [row] = await tx
-      .select({ max: s.profiles.maxTargetRoles })
+      .select({
+        max: s.profiles.maxTargetRoles,
+        plan: s.profiles.plan,
+        planUntil: s.profiles.planUntil,
+      })
       .from(s.profiles)
       .where(eq(s.profiles.userId, userId))
       .limit(1);
-    return targetRolesLimit(process.env, row?.max ?? null);
+    const max = row?.max ?? null;
+    return resolvePlanLimit(process.env, "targetRoles", {
+      override: max !== null ? targetRolesLimit(process.env, max) : null,
+      plan: row?.plan,
+      planUntil: row?.planUntil ?? null,
+      now: new Date(),
+      fallback: targetRolesLimit(process.env, null),
+    });
   });
 }
 
