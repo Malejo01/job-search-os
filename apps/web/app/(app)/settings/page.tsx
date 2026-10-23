@@ -1,17 +1,23 @@
 import { schema as s } from "@job-search-os/db";
-import { isLegacyInboundAddress } from "@job-search-os/pipeline";
+import { isLegacyInboundAddress, limitsText, pricingEnabled } from "@job-search-os/pipeline";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { withUser } from "@/lib/db";
 import { getInboundAddress } from "@/lib/inbound-address";
 import { canCreateInvitations } from "@/lib/invitations";
 import { getTargetRoles, getTargetRolesLimit } from "@/lib/onboarding";
+import { getUserPlan } from "@/lib/user-plan";
 import { requireUserId } from "@/lib/session";
 import { DeleteAccountForm } from "./delete-account-form";
 import { InboundAddressSection } from "./inbound-address";
 import { TargetRolesForm } from "./target-roles-form";
 
 export const metadata = { title: "Ajustes" };
+
+const PLAN_DATE = new Intl.DateTimeFormat("es-AR", {
+  dateStyle: "long",
+  timeZone: "America/Argentina/Buenos_Aires",
+});
 export const dynamic = "force-dynamic";
 // «Tus puestos» puede programar la primera evaluación en after(): corre dentro de este límite
 export const maxDuration = 120;
@@ -24,11 +30,14 @@ export default async function SettingsPage({
 }) {
   const userId = await requireUserId();
   const { error, direccion, puesto } = await searchParams;
-  const [address, targetRoles, rolesLimit, canInvite] = await Promise.all([
+  const pricing = pricingEnabled(process.env);
+  const [address, targetRoles, rolesLimit, canInvite, userPlan] = await Promise.all([
     getInboundAddress(userId),
     getTargetRoles(userId),
     getTargetRolesLimit(userId),
     canCreateInvitations(userId),
+    // «Tu plan» (C-11b) solo con los precios encendidos
+    pricing ? getUserPlan(userId) : null,
   ]);
   const [user] = await withUser(userId, (tx) =>
     tx.select({ email: s.users.email }).from(s.users).where(eq(s.users.id, userId)).limit(1),
@@ -56,6 +65,38 @@ export default async function SettingsPage({
         </p>
         <DeleteAccountForm error={Boolean(error)} />
       </section>
+
+      {userPlan ? (
+        <section
+          aria-labelledby="tu-plan"
+          data-testid="tu-plan"
+          className="flex flex-col gap-2 rounded-md border border-zinc-200 p-4"
+        >
+          <h2 id="tu-plan" className="text-lg font-medium">
+            Tu plan
+          </h2>
+          <p className="text-sm text-zinc-800">
+            <span className="font-medium">{userPlan.plan.name}</span>
+            {userPlan.until ? ` · hasta el ${PLAN_DATE.format(userPlan.until)}` : ""}
+          </p>
+          {userPlan.expired ? (
+            <p className="text-sm text-amber-900">
+              Tu plan anterior venció: ahora rigen los topes del plan gratis.
+            </p>
+          ) : null}
+          <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-zinc-700">
+            {limitsText(userPlan.plan.limits, {
+              cv: process.env.CV_IMPORT_ENABLED === "1",
+              assistant: false,
+            }).map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+          <Link href="/precios" className="text-sm text-zinc-900 underline">
+            Ver los planes
+          </Link>
+        </section>
+      ) : null}
 
       {canInvite ? (
         <section className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">

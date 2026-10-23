@@ -161,6 +161,28 @@ export function planLimitsFor(
   return pricingEnabled(env) ? planDef(plan).limits : null;
 }
 
+/**
+ * Tope de una persona para un recurso (C-11b), en este orden:
+ * 1. el tope propio del perfil, si Mauro lo fijó a mano (`max_target_roles`, `pool_daily_eval_limit`);
+ * 2. el del plan que rige hoy, solo con `PRICING_ENABLED`;
+ * 3. el de siempre (la variable de entorno o su default), que trae el llamador.
+ */
+export function resolvePlanLimit(
+  env: Record<string, string | undefined>,
+  key: keyof PlanLimits,
+  input: {
+    override: number | null;
+    plan: unknown;
+    planUntil: Date | null;
+    now: Date;
+    fallback: number;
+  },
+): number {
+  if (input.override !== null) return input.override;
+  const limits = planLimitsFor(env, effectivePlan(input.plan, input.planUntil, input.now));
+  return limits ? limits[key] : input.fallback;
+}
+
 /** Precio para mostrar: «Gratis», «$ 1.234 por mes» o «Precio a confirmar». */
 export function priceLabel(plan: PlanDef): string {
   if (plan.billing === "gratis") return "Gratis";

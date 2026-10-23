@@ -2,7 +2,7 @@ import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testconta
 import { applyMigrations } from "@job-search-os/db/src/migrate";
 import { createDb, schema as s } from "@job-search-os/db";
 import criteria from "@job-search-os/db/seeds/criteria.example.json";
-import { POOL_LIMIT_DEFAULTS, type PoolLimits } from "@job-search-os/pipeline";
+import { planDef, POOL_LIMIT_DEFAULTS, type PoolLimits } from "@job-search-os/pipeline";
 import { and, eq, inArray, isNotNull, like } from "drizzle-orm";
 import pino from "pino";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -187,6 +187,36 @@ describe("assignPoolDaily", () => {
     await assignPoolDaily(conn.db, { logger, limits: LIMITS });
     expect(await poolJobsOf(USER_A)).toHaveLength(3);
     expect(await queuedFor(USER_A)).toHaveLength(0);
+  });
+
+  it("con PRICING_ENABLED rige el tope del plan; apagado, el de siempre (C-11b)", async () => {
+    // Plan vencido: rige el gratis. Las conexiones de test son del dueño: el trigger lo deja.
+    await conn.db
+      .update(s.profiles)
+      .set({ plan: "fundador", planUntil: new Date(Date.now() - 3_600_000) })
+      .where(eq(s.profiles.userId, USER_A));
+    try {
+      const freeCap = planDef("gratis").limits.evaluationsPerDay;
+      await assignPoolDaily(conn.db, { logger, limits: LIMITS, env: { PRICING_ENABLED: "1" } });
+      expect(await queuedFor(USER_A)).toHaveLength(Math.min(3, freeCap));
+      // USER_B, sin plan pago y con los precios encendidos: también el gratis
+      expect(await queuedFor(USER_B)).toHaveLength(Math.min(3, freeCap));
+    } finally {
+      await conn.db
+        .update(s.profiles)
+        .set({ plan: "gratis", planUntil: null })
+        .where(eq(s.profiles.userId, USER_A));
+    }
+  });
+
+  it("con PRICING_ENABLED apagado, un plan pago no cambia el tope", async () => {
+    await conn.db.update(s.profiles).set({ plan: "fundador" }).where(eq(s.profiles.userId, USER_A));
+    try {
+      await assignPoolDaily(conn.db, { logger, limits: LIMITS, env: {} });
+      expect(await queuedFor(USER_A)).toHaveLength(LIMITS.dailyEvalPerUser);
+    } finally {
+      await conn.db.update(s.profiles).set({ plan: "gratis" }).where(eq(s.profiles.userId, USER_A));
+    }
   });
 
   it("un usuario que falla no corta a los demás", async () => {

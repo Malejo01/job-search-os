@@ -57,7 +57,7 @@ export {
   type AtsProvider,
 } from "./sources/ats-common";
 export { assignPoolToUser, type AssignOptions, type AssignResult } from "./pool/assign";
-export { hasPoolEvaluationActivity, loadPoolEvalLimit } from "./pool/usage";
+export { hasPoolEvaluationActivity, loadPoolEvalCap, loadPoolEvalLimit } from "./pool/usage";
 export { explainEmptyRoles } from "./pool/role-coverage";
 // Demo guiada (ronda 74): línea en el medio a propósito, el #102 toca las puntas de este archivo.
 export * from "./demo";

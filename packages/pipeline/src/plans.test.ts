@@ -9,9 +9,35 @@ import {
   PLANS,
   priceLabel,
   pricingEnabled,
+  resolvePlanLimit,
 } from "./plans";
 
 const NOW = new Date("2026-11-09T12:00:00Z");
+
+describe("resolvePlanLimit (C-11b)", () => {
+  const ON = { PRICING_ENABLED: "1" };
+  const base = { override: null, plan: "fundador", planUntil: null, now: NOW, fallback: 3 };
+
+  it("el tope propio del perfil gana siempre", () => {
+    expect(resolvePlanLimit(ON, "evaluationsPerDay", { ...base, override: 7 })).toBe(7);
+    expect(resolvePlanLimit({}, "evaluationsPerDay", { ...base, override: 0 })).toBe(0);
+  });
+
+  it("con los precios apagados rige el tope de siempre, aunque el perfil tenga plan pago", () => {
+    expect(resolvePlanLimit({}, "evaluationsPerDay", base)).toBe(3);
+  });
+
+  it("con los precios encendidos rige el plan; vencido o desconocido, el gratis", () => {
+    const paid = planDef("fundador").limits.evaluationsPerDay;
+    const free = planDef("gratis").limits.evaluationsPerDay;
+    expect(resolvePlanLimit(ON, "evaluationsPerDay", base)).toBe(paid);
+    const vencido = { ...base, planUntil: new Date("2026-11-01T00:00:00Z") };
+    expect(resolvePlanLimit(ON, "evaluationsPerDay", vencido)).toBe(free);
+    expect(resolvePlanLimit(ON, "targetRoles", { ...base, plan: "inventado" })).toBe(
+      planDef("gratis").limits.targetRoles,
+    );
+  });
+});
 
 describe("planes (C-11)", () => {
   it("hay una sola fila por clave y el gratis no tiene link de pago", () => {

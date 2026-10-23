@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { login } from "./helpers";
 
 /**
  * Flujo 71 (C-12): página pública de precios detrás de `PRICING_ENABLED`. El servidor del e2e hereda
@@ -35,5 +36,17 @@ test.describe("Flujo 71: precios", () => {
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
     );
     expect(overflow).toBe(false);
+  });
+
+  test("«Tu plan» en Ajustes aparece solo con los precios encendidos (C-11b)", async ({ page }) => {
+    await login(page);
+    await page.goto("/settings");
+    await expect(page.getByRole("heading", { level: 1, name: "Ajustes" })).toBeVisible();
+    if (ON) {
+      // La cuenta del e2e no tiene plan pago: rige el gratis
+      await expect(page.getByTestId("tu-plan")).toContainText("Gratis");
+    } else {
+      await expect(page.getByTestId("tu-plan")).toHaveCount(0);
+    }
   });
 });

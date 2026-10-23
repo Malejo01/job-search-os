@@ -1,5 +1,5 @@
 import { schema as s, type Db } from "@job-search-os/db";
-import { monthlyUsd, preScore, type PreScore } from "@job-search-os/pipeline";
+import { monthlyUsd, preScore, resolvePlanLimit, type PreScore } from "@job-search-os/pipeline";
 import { and, eq, gte, isNotNull, sql } from "drizzle-orm";
 import { EVALUATE_QUEUE } from "../queue/pg-queue";
 
@@ -72,6 +72,34 @@ export async function loadPoolEvalLimit(db: Db, userId: string): Promise<number 
     .where(eq(s.profiles.userId, userId))
     .limit(1);
   return row?.limit ?? null;
+}
+
+/**
+ * Tope diario de evaluaciones del pool que rige para la persona (C-11b): el que fijó a mano, si no el
+ * de su plan con `PRICING_ENABLED`, si no `fallback` (la variable o su default).
+ */
+export async function loadPoolEvalCap(
+  db: Db,
+  userId: string,
+  fallback: number,
+  opts: { env?: Record<string, string | undefined>; now?: Date } = {},
+): Promise<number> {
+  const [row] = await db
+    .select({
+      limit: s.profiles.poolDailyEvalLimit,
+      plan: s.profiles.plan,
+      planUntil: s.profiles.planUntil,
+    })
+    .from(s.profiles)
+    .where(eq(s.profiles.userId, userId))
+    .limit(1);
+  return resolvePlanLimit(opts.env ?? process.env, "evaluationsPerDay", {
+    override: row?.limit ?? null,
+    plan: row?.plan,
+    planUntil: row?.planUntil ?? null,
+    now: opts.now ?? new Date(),
+    fallback,
+  });
 }
 
 /** Período de la fuente tal como está en la base; lo desconocido queda en null (no se supone mensual). */
