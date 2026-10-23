@@ -108,6 +108,10 @@ export default async function SettingsPage({
           >
             Crear invitación
           </Link>
+          {/* C-14: el tablero de la beta es para las mismas cuentas que invitan */}
+          <Link href="/settings/metricas" className="text-sm text-zinc-900 underline">
+            Métricas de la beta
+          </Link>
         </section>
       ) : null}
 
