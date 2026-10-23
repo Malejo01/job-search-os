@@ -1,4 +1,4 @@
-import { DEMO_PROFILE_KEYS, ROLE_KEYS } from "@job-search-os/pipeline";
+import { DEMO_PROFILE_KEYS, pricingEnabled, ROLE_KEYS } from "@job-search-os/pipeline";
 import type { MetadataRoute } from "next";
 import { siteUrl } from "@/lib/site-url";
 
@@ -18,6 +18,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/acceso",
     "/como-esta-hecho",
     "/en/how-its-built",
+    // C-12: solo con los precios encendidos; si no, la página da 404
+    ...(pricingEnabled(process.env) ? ["/precios"] : []),
   ];
   return paths.map((path) => ({ url: `${site}${path === "/" ? "" : path}` }));
 }

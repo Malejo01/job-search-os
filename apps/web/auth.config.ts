@@ -32,6 +32,8 @@ export const authConfig = {
         pathname.startsWith("/demo/") ||
         pathname === "/como-esta-hecho" ||
         pathname === "/en/how-its-built" ||
+        // Precios (C-12): la página misma da 404 mientras PRICING_ENABLED esté apagado
+        pathname === "/precios" ||
         pathname.startsWith("/opengraph-image") ||
         pathname.startsWith("/twitter-image") ||
         pathname === "/sitemap.xml" ||

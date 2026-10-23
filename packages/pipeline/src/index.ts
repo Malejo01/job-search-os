@@ -40,3 +40,4 @@ export * from "./alerts/portal-guide";
 export * from "./applications/followup";
 export * from "./alerts/portal-stats";
 export * from "./today/visit";
+export * from "./plans";
