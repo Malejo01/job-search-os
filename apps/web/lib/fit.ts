@@ -43,13 +43,9 @@ export type FitData = {
   profile: { englishCefr: string | null; country: string };
 };
 
-async function readFitData(userId: string, role: RoleKey, now: Date): Promise<FitData> {
-  const since = new Date(now.getTime() - FIT_WINDOW_DAYS * DAY_MS);
-  const market = await getCareerMarket(role);
-  const marketShare =
-    market.total > 0 ? new Map(market.skills.map((k) => [k.slug, k.share])) : null;
-
-  const raw = await withUser(userId, async (tx) => {
+/** Lo propio de la persona, en una transacción con RLS. */
+function readOwnData(userId: string, since: Date) {
+  return withUser(userId, async (tx) => {
     // Más nuevas primero: la primera fila de cada oferta es su última evaluación
     const evals = await tx
       .select({ jobId: s.evaluations.jobId, decision: s.evaluations.decision })
@@ -62,7 +58,7 @@ async function readFitData(userId: string, role: RoleKey, now: Date): Promise<Fi
           isNull(s.jobs.duplicateOfId),
         ),
       )
-      .orderBy(desc(s.evaluations.createdAt))
+      .orderBy(desc(s.evaluations.createdAt), desc(s.evaluations.id))
       .limit(EVALUATION_ROWS_CAP);
     const latest = new Map<string, unknown>();
     for (const e of evals) {
@@ -96,6 +92,14 @@ async function readFitData(userId: string, role: RoleKey, now: Date): Promise<Fi
     ]);
     return { latest, asked, levels, profile: profileRows[0] ?? null };
   });
+}
+
+async function readFitData(userId: string, role: RoleKey, now: Date): Promise<FitData> {
+  const since = new Date(now.getTime() - FIT_WINDOW_DAYS * DAY_MS);
+  // El mercado (caché propia) y la transacción con RLS van en paralelo
+  const [market, raw] = await Promise.all([getCareerMarket(role), readOwnData(userId, since)]);
+  const marketShare =
+    market.total > 0 ? new Map(market.skills.map((k) => [k.slug, k.share])) : null;
 
   const skillNames = new Map<string, string>();
   const skillsByJob = new Map<string, { slug: string; isMust: boolean }[]>();

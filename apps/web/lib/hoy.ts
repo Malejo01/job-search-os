@@ -48,8 +48,10 @@ async function fitForCard(userId: string, role: RoleKey | undefined, now: Date) 
   try {
     const fit = await getFitData(userId, role, now);
     return { headline: fit.summary.headline };
-  } catch {
-    createLogger({ user_id: userId, task: "tu_encaje" }).error({}, "tu encaje falló");
+  } catch (err) {
+    // Solo el tipo de error: el mensaje puede traer parámetros de la consulta
+    const errName = err instanceof Error ? err.name : "desconocido";
+    createLogger({ user_id: userId, task: "tu_encaje" }).error({ errName }, "tu encaje falló");
     return null;
   }
 }

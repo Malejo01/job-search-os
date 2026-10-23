@@ -3,7 +3,6 @@ import {
   FIT_GROUPS,
   FIT_THRESHOLDS,
   SELF_LEVELS,
-  englishRankFromCefr,
   type CareerMarket,
   type FitGroup,
   type FitSkill,
@@ -85,8 +84,10 @@ export default async function EncajePage({
   let fit: FitData | null = null;
   try {
     fit = await getFitData(userId, role, new Date());
-  } catch {
-    createLogger({ user_id: userId, task: "tu_encaje" }).error({}, "tu encaje falló");
+  } catch (err) {
+    // Solo el tipo de error: el mensaje puede traer parámetros de la consulta
+    const errName = err instanceof Error ? err.name : "desconocido";
+    createLogger({ user_id: userId, task: "tu_encaje" }).error({ errName }, "tu encaje falló");
   }
   if (!fit) {
     return (
@@ -273,7 +274,7 @@ function Blockers({ groups, total, fit }: { groups: FitGroup[]; total: number; f
                   : no se cumple en {group.count} de {total} ofertas
                 </span>
                 {group.key === "ingles" && fit.profile.englishCefr ? (
-                  <span className={MUTED}>. Vos tenés {fit.profile.englishCefr}</span>
+                  <span className={MUTED}>. Tu inglés cargado es {fit.profile.englishCefr}</span>
                 ) : null}
               </p>
             </li>
@@ -373,16 +374,16 @@ function marketFacts(market: CareerMarket, fit: FitData): string[] {
   const total = market.total;
   const facts: string[] = [];
   const advanced = market.english.levels.avanzado + market.english.levels.fluido;
-  const mine = englishRankFromCefr(fit.profile.englishCefr);
+  const cefr = fit.profile.englishCefr;
   const estimated = market.english.estimated ? " (estimado)" : "";
   facts.push(
     `De cada 10 ofertas, ${perTen(advanced, total)} piden inglés avanzado o más${estimated}.` +
-      (mine !== null && fit.profile.englishCefr ? ` Vos tenés ${fit.profile.englishCefr}.` : ""),
+      (cefr ? ` Tu inglés cargado es ${cefr}.` : ""),
   );
   facts.push(`De cada 10 ofertas, ${perTen(market.volume.modality.remoto, total)} son remotas.`);
   const { junior, semi, senior, lead } = market.seniority.counts;
   facts.push(
-    `Por nivel, de cada 10 ofertas: ${perTen(junior, total)} para junior, ${perTen(semi, total)} semi senior, ${perTen(senior, total)} senior y ${perTen(lead, total)} lead. El resto no lo dice.`,
+    `Por nivel, de cada 10 ofertas (aprox.): ${perTen(junior, total)} para junior, ${perTen(semi, total)} semi senior, ${perTen(senior, total)} senior y ${perTen(lead, total)} lead. El resto no lo dice.`,
   );
   if (fit.profile.country === "AR") {
     facts.push(
