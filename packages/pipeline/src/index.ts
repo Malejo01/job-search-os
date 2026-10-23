@@ -14,6 +14,8 @@ export * from "./dedup";
 export * from "./prefilter";
 export * from "./skills";
 export * from "./feedback";
+// C-16: en el medio y no al final, para no chocar con los export que agregan otras ramas
+export * from "./org";
 export * from "./manual-url";
 export type { CriteriaRules } from "./criteria";
 export { parseModality, rawJobFromManual } from "./raw-job";
@@ -42,4 +44,3 @@ export * from "./alerts/portal-stats";
 export * from "./today/visit";
 export * from "./plans";
 export * from "./brand";
-export * from "./org";
