@@ -1,4 +1,5 @@
-import type { AgendaRow } from "@job-search-os/pipeline";
+import { CAREER_MATURITY_LABEL, type AgendaRow } from "@job-search-os/pipeline";
+import { getCareerMaturity } from "@/lib/career-maturity";
 import {
   getDataState,
   getMarket,
@@ -43,11 +44,12 @@ export default async function MarketPage({
   const role = pickRole(roles, params.rol);
   const carrera = parseCareer(params.carrera);
   const careerRole = carrera ?? role;
-  const [view, state, roleMarket, careerMarket] = await Promise.all([
+  const [view, state, roleMarket, careerMarket, maturity] = await Promise.all([
     getMarket(userId, range),
     getDataState(userId),
     getRoleMarketView(userId, role),
     careerRole ? getCareerMarket(careerRole) : null,
+    careerRole ? getCareerMaturity(careerRole) : null,
   ]);
   const { agenda } = view;
 
@@ -68,6 +70,19 @@ export default async function MarketPage({
         keep={{ desde: range.from, hasta: range.to }}
       />
       <CareerPicker current={careerRole} tab={role} />
+      {/* C-13: con el flag apagado, sin la función en la base o si falla, no se muestra nada */}
+      {careerRole && maturity ? (
+        <p
+          data-testid="carrera-madurez"
+          className={`w-fit rounded-full px-3 py-1 text-xs font-medium ${
+            maturity === "madura"
+              ? "bg-emerald-100 text-emerald-900"
+              : "bg-amber-100 text-amber-900"
+          }`}
+        >
+          {CAREER_MATURITY_LABEL[maturity]}
+        </p>
+      ) : null}
       {careerRole && careerMarket ? (
         <CareerMarket
           market={careerMarket}

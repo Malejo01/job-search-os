@@ -627,6 +627,22 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
       );
       expect(r!.id).toBeNull();
     },
+    // C-13: por carrera, solo sí/no por regla; nada que identifique a B
+    career_maturity_stats: async () => {
+      const rows = await asUser(
+        A,
+        (tx) => tx<Record<string, unknown>[]>`select * from career_maturity_stats()`,
+      );
+      for (const r of rows) {
+        expect(Object.keys(r).sort()).toEqual(["active_ok", "offers_ok", "role", "thumbs_ok"]);
+      }
+    },
+    // C-14: solo app_admins
+    admin_beta_metrics: async () => {
+      await expect(asUser(A, (tx) => tx`select admin_beta_metrics()`)).rejects.toThrow(
+        /admin_beta_metrics: no autorizado/,
+      );
+    },
   };
 
   it("toda función SECURITY DEFINER tiene un caso, search_path fijo y sin EXECUTE para PUBLIC", async () => {
