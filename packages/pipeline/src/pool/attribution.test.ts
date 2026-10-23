@@ -28,6 +28,30 @@ describe("findAtsLinks", () => {
     expect(findAtsLinks("https://empresa-a.workable.com/j/ABC")[0]?.provider).toBe("workable");
   });
 
+  it("reconoce los sitios de empleos de Teamtailor (también la región na)", () => {
+    expect(
+      findAtsLinks(
+        "https://empresa-a.teamtailor.com/jobs/1001-puesto-ficticio?utm=x https://empresa-b.na.teamtailor.com/jobs/2002-otro",
+      ),
+    ).toEqual([
+      { provider: "teamtailor", url: "https://empresa-a.teamtailor.com/jobs/1001-puesto-ficticio" },
+      { provider: "teamtailor", url: "https://empresa-b.na.teamtailor.com/jobs/2002-otro" },
+    ]);
+  });
+
+  it("Teamtailor: descarta hosts parecidos, http y rutas que no son avisos", () => {
+    const bad = [
+      "https://teamtailor.com.evil.com/jobs/1-a",
+      "https://empresa-a.teamtailor.com.evil.com/jobs/1-a",
+      "https://evil.com/empresa-a.teamtailor.com/jobs/1-a",
+      "https://nootroteamtailor.com/jobs/1-a",
+      "https://empresa-a.teamtailor.com/about",
+      "https://empresa-a.teamtailor.com/jobs.rss",
+      "http://empresa-a.teamtailor.com/jobs/1-a",
+    ].join(" ");
+    expect(findAtsLinks(bad)).toEqual([]);
+  });
+
   it("descarta hosts parecidos, credenciales, http y javascript", () => {
     const bad = [
       "https://greenhouse.io.evil.com/x/jobs/1",

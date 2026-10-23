@@ -6,6 +6,7 @@ const ATS_NAMES = {
   lever: "Lever",
   ashby: "Ashby",
   workable: "Workable",
+  teamtailor: "Teamtailor",
 } as const;
 
 /**

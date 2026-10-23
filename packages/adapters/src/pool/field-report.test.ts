@@ -106,6 +106,25 @@ describe("parsePoolCliArgs", () => {
     });
   });
 
+  it("teamtailor con token y región na; rechaza tokens que no son etiqueta DNS", () => {
+    expect(
+      parsePoolCliArgs(["teamtailor", "empresa-ficticia", "--region", "na", "--dry-run"]),
+    ).toMatchObject({ ok: true, source: "teamtailor", region: "na", token: "empresa-ficticia" });
+    expect(parsePoolCliArgs(["teamtailor", "empresa-ficticia", "--dry-run"])).toMatchObject({
+      ok: true,
+      region: null,
+    });
+    for (const argv of [
+      ["teamtailor", "a.b", "--dry-run"],
+      ["teamtailor", "a_b", "--dry-run"],
+      ["teamtailor", "Empresa", "--dry-run"],
+      ["teamtailor", "x", "--region", "eu", "--dry-run"],
+      ["lever", "x", "--region", "na", "--dry-run"],
+    ]) {
+      expect(parsePoolCliArgs(argv).ok, argv.join(" ")).toBe(false);
+    }
+  });
+
   it("sin --company se usa el token", () => {
     expect(parsePoolCliArgs(["greenhouse", "empresa-ficticia", "--dry-run"])).toMatchObject({
       company: "empresa-ficticia",
