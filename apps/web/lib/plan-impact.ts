@@ -11,6 +11,8 @@ import {
   SIMULATE_MIN_CANDIDATES,
   STUDY_HOURS_DEFAULT,
   buildStudyRoute,
+  compileTaxonomy,
+  countGapMentions,
   fitCacheValue,
   monthlyUsd,
   parseStudyHours,
@@ -22,7 +24,7 @@ import {
   type SimCandidate,
   type SimInput,
 } from "@job-search-os/pipeline";
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, desc, eq, gte, ne } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 import { withUser } from "./db";
 import { planImpactCacheTag } from "./insights-cache";
@@ -39,7 +41,11 @@ export const MAX_SIMULAR = 5;
 /** De las skills del plan se simulan las de mayor prioridad: acota el costo del cálculo. */
 const MAX_PLAN_SKILLS = 15;
 // v3: la entrada guardada suma `routeSkills`, para rehacer la ruta con `?horas=` afuera del caché
-const CACHE_VERSION = "v3";
+// v4: cada fila suma `evaluatorGaps`
+const CACHE_VERSION = "v4";
+/** Ventana y tope de las evaluaciones propias que se cuentan para «el evaluador te la marcó». */
+const GAP_WINDOW_DAYS = 30;
+const MAX_GAP_EVALUATIONS = 500;
 const CACHE_REVALIDATE_SECONDS = 30 * 60;
 /** Tokens de `?simular=` que entran en la clave del caché (antes de filtrar contra el plan). */
 const MAX_REQUESTED_TOKENS = 10;
@@ -57,6 +63,8 @@ export type PlanImpactRow = {
   /** Horas que faltan para cerrarla (o 20 si no hay dato). */
   hours: number;
   estimated: boolean;
+  /** En cuántas de tus ofertas evaluadas (últimos 30 días) el evaluador la marcó como brecha. */
+  evaluatorGaps: number;
 };
 
 export type PlanImpact = {
@@ -129,6 +137,7 @@ async function computeImpact(userId: string, now: Date): Promise<CachedImpact | 
         slug: s.skills.slug,
         name: s.skills.name,
         closureHours: s.skills.closureHours,
+        aliases: s.skills.aliases,
         priority: s.learningPlanItems.priority,
       })
       .from(s.learningPlanItems)
@@ -184,6 +193,24 @@ async function computeImpact(userId: string, now: Date): Promise<CachedImpact | 
       hours: hoursOf(p.closureHours, levels.get(p.slug) ?? null),
     }));
 
+    // E4d: la última evaluación de cada oferta propia de los últimos 30 días. Los gaps son texto
+    // del modelo: solo pasan por el matcher, contra las skills del plan, y no se muestran. El
+    // worker evalúa fuera de una Server Action, así que una evaluación nueva aparece al vencer el
+    // caché (30 minutos), como en «Tu encaje»
+    const since = new Date(now.getTime() - GAP_WINDOW_DAYS * 86_400_000);
+    const gapRows = await tx
+      .select({ jobId: s.evaluations.jobId, gaps: s.evaluations.gaps })
+      .from(s.evaluations)
+      .where(and(eq(s.evaluations.userId, userId), gte(s.evaluations.createdAt, since)))
+      .orderBy(desc(s.evaluations.createdAt))
+      .limit(MAX_GAP_EVALUATIONS);
+    const latestGaps = new Map<string, string[]>();
+    for (const g of gapRows) if (!latestGaps.has(g.jobId)) latestGaps.set(g.jobId, g.gaps);
+    const gapCounts = countGapMentions(
+      [...latestGaps.values()],
+      compileTaxonomy(planRows.map((p) => ({ slug: p.slug, name: p.name, aliases: p.aliases }))),
+    );
+
     const rows: PlanImpactRow[] = plan.map((p) => {
       const impact = simulateSkillImpact(input, p.slug);
       return {
@@ -197,6 +224,7 @@ async function computeImpact(userId: string, now: Date): Promise<CachedImpact | 
         delta: impact.delta,
         hours: p.hours ?? 20,
         estimated: p.hours === null,
+        evaluatorGaps: gapCounts.get(p.slug) ?? 0,
       };
     });
     const priorityOf = new Map(plan.map((p, i) => [p.slug, plan.length - i]));
