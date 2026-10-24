@@ -412,9 +412,11 @@ test.describe("Flujo 79: navegación solo con teclado", () => {
     const country = page.getByLabel(/País de residencia/);
     await reach(page, country, "país de residencia");
     await page.keyboard.type("Brasil");
-    await expect(page.getByRole("listbox", { name: "Países" })).toBeVisible();
+    const countries = page.getByRole("listbox", { name: "Países" });
+    await expect(countries).toBeVisible();
     await page.keyboard.press("ArrowDown");
-    await expect(page.getByRole("option", { selected: true })).toContainText("(BR)");
+    // Dentro del listbox: el placeholder del select de inglés también es una opción `selected`
+    await expect(countries.getByRole("option", { selected: true })).toContainText("Brasil");
     await page.keyboard.press("Enter");
     await expect(page.getByRole("list", { name: "Países elegidos" })).toContainText("(BR)");
 
