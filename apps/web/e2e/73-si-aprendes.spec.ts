@@ -4,6 +4,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { and, eq, inArray } from "drizzle-orm";
 import {
   E2E_USER_ID,
+  assignSeededPoolJobs,
   deleteSeededPublicJobs,
   login,
   ownerDb,
@@ -166,6 +167,9 @@ test.describe("Flujo 73: si aprendés…", () => {
     );
     await openToAnyCountry(ids);
     await setSeedTargetRoles({ targetRoles: [CAREER], targetRole: CAREER });
+    // E3d: copias propias de las ofertas sembradas, antes del primer render (el impacto se cachea,
+    // con los ids de esas copias: otra razón para reiniciar `next dev` entre corridas en local)
+    await assignSeededPoolJobs(E2E_USER_ID, tag);
   });
 
   // Cada paso de la limpieza por separado: si uno falla, los demás igual corren
@@ -271,6 +275,22 @@ test.describe("Flujo 73: si aprendés…", () => {
       "true",
     );
     await expect(page.getByTestId("plan-sim-pick-tableau")).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("«Ver 3 ofertas» lleva a las ofertas propias que se abrirían", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await login(page);
+    await page.goto("/plan");
+    // power_bi abre los 3 avisos «B» del pool, y el usuario e2e tiene una copia de cada uno
+    const examples = page.getByTestId("plan-sim-ejemplos-power_bi");
+    await expect(examples.locator("summary")).toContainText("Ver 3 ofertas");
+    await examples.locator("summary").click();
+    const links = examples.getByRole("link");
+    await expect(links).toHaveCount(3);
+    for (const link of await links.all()) {
+      await expect(link).toHaveAttribute("href", /^\/jobs\/[0-9a-f-]{36}$/);
+      await expect(link).toContainText(`Analista de Soporte IT Ficticio B`);
+    }
   });
 
   test("?horas= rearma la ruta y convive con ?simular=", async ({ page }) => {
