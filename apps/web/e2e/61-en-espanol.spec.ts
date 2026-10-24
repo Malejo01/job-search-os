@@ -16,8 +16,9 @@ import {
  * Sin red. Si en la máquina no hay navegador de Playwright, corre en el CI.
  *
  * La carrera es propia de este spec: `/mercado/<carrera>` cachea 30 minutos, y si otro spec la
- * renderiza antes de sembrar (antes era `qa`), la línea «en español» no aparece. Ningún otro spec
- * visita el mercado de ciberseguridad (el 34 la usa solo en /jobs).
+ * renderiza antes de sembrar (antes era `qa`), la línea «en español» no aparece. T6: el 34 también
+ * la renderiza (al entrar a /hoy), pero ya con 2 avisos sembrados, y el 72 (persona B) corre después
+ * por orden alfabético: el caché llega con avisos. Con otro orden de specs eso deja de valer.
  */
 test.describe.configure({ mode: "serial" });
 

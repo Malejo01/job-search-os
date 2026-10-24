@@ -14,6 +14,8 @@ import {
   ownerDb,
   runDemoWorker,
   seedPublicJobs,
+  seedTargetRoles,
+  setSeedTargetRoles,
 } from "./helpers";
 
 /**
@@ -292,6 +294,16 @@ test.describe("Flujo 27: primeras ofertas del pool, del puesto a /jobs", () => {
 });
 
 test.describe("Flujo 27b: aviso «Elegí tu puesto» en /jobs", () => {
+  // T6: el caso supone al usuario e2e sin puestos; se fija acá y se restaura, sin depender de lo que dejó otro spec
+  let originalRoles: Awaited<ReturnType<typeof seedTargetRoles>> | null = null;
+  test.beforeAll(async () => {
+    originalRoles = await seedTargetRoles();
+    await setSeedTargetRoles({ targetRoles: [], targetRole: null });
+  });
+  test.afterAll(async () => {
+    if (originalRoles) await setSeedTargetRoles(originalRoles).catch(() => {});
+  });
+
   test("una cuenta sin puesto ve el aviso, lo descarta y no vuelve", async ({ page }) => {
     // El usuario e2e principal no tiene puestos elegidos (target_roles vacío)
     const { db, close } = ownerDb();

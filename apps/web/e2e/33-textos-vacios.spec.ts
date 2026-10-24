@@ -1,7 +1,16 @@
 import * as s from "@job-search-os/db/schema";
 import { expect, test } from "@playwright/test";
 import { eq } from "drizzle-orm";
-import { E2E_USER_ID, createEvaluation, createJob, deleteJob, login, ownerDb } from "./helpers";
+import {
+  E2E_USER_ID,
+  createEvaluation,
+  createJob,
+  deleteJob,
+  login,
+  ownerDb,
+  seedTargetRoles,
+  setSeedTargetRoles,
+} from "./helpers";
 
 /**
  * Flujo 33 (ronda 44): textos y vacíos. Con el usuario e2e de siempre (sin pasar por el paso 1 del
@@ -17,6 +26,8 @@ test.describe("Flujo 33: textos y vacíos", () => {
   const pendingTitle = `Oferta Ficticia Sin Evaluar ${tag}`;
   const jobIds: string[] = [];
   let originalUpdatedAt: Date | null = null;
+  // T6: «sin ofertas» supone al usuario e2e sin puestos; se fija acá y se restaura, sin depender del spec anterior
+  let originalRoles: Awaited<ReturnType<typeof seedTargetRoles>> | null = null;
 
   /** Fija `profiles.updated_at` del usuario e2e (la ventana de «estamos buscando» se mide desde ahí). */
   async function setProfileUpdatedAt(date: Date): Promise<void> {
@@ -32,6 +43,8 @@ test.describe("Flujo 33: textos y vacíos", () => {
   }
 
   test.beforeAll(async () => {
+    originalRoles = await seedTargetRoles();
+    await setSeedTargetRoles({ targetRoles: [], targetRole: null });
     const { db, close } = ownerDb();
     try {
       const [row] = await db
@@ -53,6 +66,7 @@ test.describe("Flujo 33: textos y vacíos", () => {
   });
 
   test.afterAll(async () => {
+    if (originalRoles) await setSeedTargetRoles(originalRoles).catch(() => {});
     if (originalUpdatedAt) await setProfileUpdatedAt(originalUpdatedAt);
     for (const id of jobIds) await deleteJob(id);
   });
