@@ -39,7 +39,7 @@ export function Verdict({
                 type="submit"
                 aria-label={o.name}
                 aria-pressed={pressed}
-                className={`flex min-h-[44px] min-w-[88px] items-center justify-center gap-2 rounded-md border-2 px-4 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
+                className={`flex min-h-[44px] min-w-[88px] items-center justify-center gap-2 rounded-md border-2 px-4 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 ${
                   pressed
                     ? "border-zinc-900 bg-zinc-900 text-white"
                     : "border-zinc-500 bg-white text-zinc-800 hover:border-zinc-700"
