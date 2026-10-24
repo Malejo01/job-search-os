@@ -13,6 +13,7 @@ export function NewJobRow({ job }: { job: JobListRow }) {
       >
         <span className="sr-only">Puntaje </span>
         {job.score ?? "–"}
+        {job.score !== null ? <span className="sr-only"> de 10</span> : null}
       </span>
       <Link
         href={`/jobs/${job.id}`}

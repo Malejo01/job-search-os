@@ -69,7 +69,7 @@ export async function FirstSteps({ userId }: { userId: string }) {
         </h2>
         <p>
           <span aria-hidden="true">✓</span> ¡Listo! Ya sabés usar lo básico. Lo que sigue: revisar
-          las ofertas verdes cada día.
+          cada día las ofertas con mejor puntaje (las verdes).
         </p>
         {hide}
       </section>

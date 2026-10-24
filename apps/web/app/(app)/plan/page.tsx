@@ -93,7 +93,7 @@ function EstaSemana({ focus, item }: { focus: WeekFocus; item: PlanItemView | un
           <span className="text-zinc-700">· {item.resource.provider}</span>
         </p>
       ) : (
-        <p className="text-xs text-zinc-700">Todavía no tenemos un curso para esta skill</p>
+        <p className="text-xs text-zinc-700">Todavía no tenemos un curso para esta skill.</p>
       )}
       {item ? (
         <div className="flex flex-wrap items-center gap-1">
@@ -152,13 +152,13 @@ export default async function PlanPage({
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-xl font-semibold">Plan de formación</h1>
         <p className="text-xs text-zinc-600">
-          {items.length} skills ·{" "}
+          {items.length} {items.length === 1 ? "skill" : "skills"} ·{" "}
           {hoursPending > 0 ? `~${hoursPending} h pendientes` : "horas sin estimar"}
         </p>
       </div>
       {error ? (
         <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
-          Estado inválido.
+          No pudimos cambiar el estado de esa skill. Probá de nuevo.
         </p>
       ) : null}
       {roleFallback && items.length > 0 ? (
@@ -184,7 +184,7 @@ export default async function PlanPage({
               data-testid="plan-few-offers"
               className="rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-600"
             >
-              Con pocas ofertas todavía no podemos decirlo: sumá más o{" "}
+              Con pocas ofertas todavía no podemos armar tu plan: sumá más o{" "}
               <Link href="/jobs/new" className="underline">
                 pegá una oferta
               </Link>
@@ -192,7 +192,12 @@ export default async function PlanPage({
             </p>
           ) : (
             <p className="rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-600">
-              No hay skills para reforzar con las ofertas actuales.
+              No hay skills para reforzar con las ofertas actuales. Cuando sumes más ofertas o
+              cambies tus niveles en{" "}
+              <Link href="/settings/skills" className="underline">
+                Mis skills
+              </Link>
+              , se actualiza.
             </p>
           )
         ) : (
@@ -245,7 +250,8 @@ export default async function PlanPage({
                           </p>
                         ) : (
                           <p className="text-xs text-zinc-600">
-                            Todavía no tenemos un curso para esta skill
+                            Todavía no tenemos un curso para esta skill. Estamos sumando
+                            proveedores.
                           </p>
                         )}
                       </div>
@@ -271,16 +277,16 @@ export default async function PlanPage({
           Cómo se calcula
         </summary>
         <p className="mt-2 text-xs text-zinc-600">
-          Prioridad = demanda ponderada del mercado × (1 − nivel/3) × facilidad (16 h de cierre → 1,
-          40 h → 0,4, 80 h → 0,2). «Alta», «media» y «baja» comparan cada skill con la de mayor
-          prioridad de tu plan. Se recalcula cuando guardás tus skills y cada lunes; los estados que
-          marcaste se conservan. Los recursos salen de un catálogo revisado a mano.
+          La prioridad sube cuando una skill se pide mucho, tu nivel es bajo y se aprende rápido
+          (menos horas). «Alta», «media» y «baja» comparan cada skill con la de mayor prioridad de
+          tu plan. Se recalcula cuando guardás tus skills y cada lunes; los estados que marcaste se
+          conservan. Los recursos salen de un catálogo revisado a mano.
         </p>
         <p className="mt-2 text-xs text-zinc-600">
-          «Si aprendés…» cuenta una oferta como «te calza» cuando su pre-score (una cuenta rápida de
-          cuántas de las skills que piden ya manejás, sin leer la oferta entera) llega a 7, el mismo
-          corte que usa «Hoy». Aprender una skill es llevarla a nivel 2. Ese número no es el puntaje
-          del modelo: es una estimación más gruesa, y el puntaje de cada oferta puede ser otro.
+          «Si aprendés…» cuenta una oferta como «te calza» cuando su puntaje estimado llega a 7 de
+          10, el mismo corte que usa «Hoy». Es una cuenta rápida de cuántas de las skills que piden
+          ya manejás, sin leer la oferta entera. Aprender una skill es llevarla a nivel 2. No es el
+          puntaje de la evaluación: ese puede ser otro.
         </p>
       </details>
     </section>

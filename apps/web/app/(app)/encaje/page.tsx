@@ -111,9 +111,21 @@ export default async function EncajePage({
       <div>
         <h1 className="text-xl font-semibold">Tu encaje</h1>
         <p data-testid="encaje-base" className="text-xs text-zinc-600">
-          {basis.offers === 0
-            ? `Todavía no hay ofertas evaluadas en los últimos ${fit.windowDays} días. Mirá el mercado público de ${label}.`
-            : `Con ${offersText(basis.offers)} evaluadas en los últimos ${fit.windowDays} días y el mercado público de ${label}.`}
+          {basis.offers === 0 ? (
+            <>
+              Todavía no hay ofertas evaluadas en los últimos {fit.windowDays} días.{" "}
+              <Link href={`/market?carrera=${role}`} className="underline">
+                Mirá el mercado público de {label}
+              </Link>{" "}
+              o{" "}
+              <Link href="/jobs/new" className="underline">
+                pegá una oferta
+              </Link>
+              .
+            </>
+          ) : (
+            `Con ${offersText(basis.offers)} evaluadas en los últimos ${fit.windowDays} días y el mercado público de ${label}.`
+          )}
         </p>
       </div>
       <RoleTabs basePath="/encaje" roles={roles} active={role} />
@@ -191,7 +203,7 @@ export default async function EncajePage({
               title="Te piden y no cargaste tu nivel"
             >
               <p className="text-xs text-zinc-600">
-                No es lo mismo que no saberlo: sin tu nivel no podemos decir si te falta.
+                Si no cargaste tu nivel, no podemos decir si te falta o no.
               </p>
               <ul className={LIST}>
                 {summary.unrated.map((skill) => (
@@ -233,12 +245,12 @@ export default async function EncajePage({
           Cómo se calcula
         </summary>
         <p className="pb-2 text-xs text-zinc-700">
-          Contamos los requisitos que el código ya revisó en cada oferta. No usamos inteligencia
-          artificial para esta pantalla. Miramos tus ofertas evaluadas de los últimos{" "}
-          {fit.windowDays} días (hasta 200) y las comparamos con tus niveles y con las ofertas
-          públicas de tu carrera. Se actualiza cada 15 minutos. Un requisito entra si aparece en 2 o
-          más ofertas y en una de cada 5; con menos de {FIT_THRESHOLDS.minBase} ofertas no armamos
-          rankings.
+          Contamos los requisitos que ya revisamos en cada oferta. Para esta pantalla no usamos
+          inteligencia artificial. Miramos tus ofertas evaluadas de los últimos {fit.windowDays}{" "}
+          días (hasta 200) y las comparamos con tus niveles y con las ofertas públicas de tu
+          carrera. Se actualiza cada 15 minutos. Un requisito entra si aparece en 2 o más ofertas y
+          en una de cada 5; con menos de {FIT_THRESHOLDS.minBase} ofertas no armamos listas
+          ordenadas.
         </p>
       </details>
     </div>
@@ -383,7 +395,7 @@ function marketFacts(market: CareerMarket, fit: FitData): string[] {
   facts.push(`De cada 10 ofertas, ${perTen(market.volume.modality.remoto, total)} son remotas.`);
   const { junior, semi, senior, lead } = market.seniority.counts;
   facts.push(
-    `Por nivel, de cada 10 ofertas (aprox.): ${perTen(junior, total)} para junior, ${perTen(semi, total)} semi senior, ${perTen(senior, total)} senior y ${perTen(lead, total)} lead. El resto no lo dice.`,
+    `Por nivel, de cada 10 ofertas (aprox.): ${perTen(junior, total)} para junior, ${perTen(semi, total)} semi senior, ${perTen(senior, total)} senior y ${perTen(lead, total)} lead. En el resto, el aviso no aclara el nivel.`,
   );
   if (fit.profile.country === "AR") {
     facts.push(
@@ -406,7 +418,10 @@ function MarketBlock({
     <Block id="encaje-mercado-titulo" testId="encaje-mercado" title="Tu carrera en el mercado">
       {market.total === 0 ? (
         <p data-testid="encaje-vacio-mercado" className={MUTED}>
-          Todavía hay pocas ofertas públicas de {label}.
+          Todavía no hay ofertas públicas de {label} en los últimos 30 días.{" "}
+          <Link href="/market" className="underline">
+            Mirá otra carrera en Mercado
+          </Link>
         </p>
       ) : (
         <>

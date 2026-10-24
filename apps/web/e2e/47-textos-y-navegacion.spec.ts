@@ -166,15 +166,14 @@ test.describe("Flujo 47: textos y navegación", () => {
     await page.goto("/jobs?fuente=ashby&estado=todas");
     const box = page.getByTestId("jobs-empty-unevaluated");
     await expect(box).toContainText(/Tenés (1 oferta|\d+ ofertas) que todavía no evaluamos/);
-    await expect(box.getByRole("link", { name: "verlas" })).toHaveAttribute(
+    await expect(box.getByRole("link", { name: "Ver las ofertas sin evaluar" })).toHaveAttribute(
       "href",
       "/jobs?estado=prefiltrada",
     );
     await expect(box).toContainText(/Tenés (1 oferta|\d+ ofertas) sin descripción/);
-    await expect(box.getByRole("link", { name: /completarlas?/ })).toHaveAttribute(
-      "href",
-      "/jobs/pending-jd",
-    );
+    await expect(
+      box.getByRole("link", { name: /Completar (la descripción|las descripciones)/ }),
+    ).toHaveAttribute("href", "/jobs/pending-jd");
     await expect(page.locator("body")).not.toContainText("Sin ofertas con estos filtros");
   });
 
