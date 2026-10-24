@@ -9,6 +9,8 @@ export * from "./evaluator/checklist";
 export * from "./evaluator/job-facts";
 export * from "./status";
 export * from "./status-correction";
+// C-7 #11: lejos de las líneas que tocan otras ramas abiertas (#207)
+export * from "./cache-limit";
 export * from "./inbox-volume";
 export * from "./dedup";
 export * from "./prefilter";
