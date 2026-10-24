@@ -302,6 +302,20 @@
       "when": 1792794519084,
       "tag": "0042_volatile_thunderbolts",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1792795529699,
+      "tag": "0043_red_tattoo",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1792795534091,
+      "tag": "0044_carreras_finanzas_operaciones",
+      "breakpoints": true
     }
   ]
 }

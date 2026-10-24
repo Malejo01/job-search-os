@@ -1,4 +1,4 @@
-import { ROLE_KEYS, type RoleKey } from "@job-search-os/pipeline";
+import { ROLE_KEYS, UNLISTED_ROLE_KEYS, type RoleKey } from "@job-search-os/pipeline";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
 
 /**
@@ -33,7 +33,9 @@ export function CareerPicker({
                 Elegí una carrera
               </option>
             )}
-            {ROLE_KEYS.map((key) => (
+            {ROLE_KEYS.filter(
+              (k) => !UNLISTED_ROLE_KEYS.includes(k) || k === current || k === tab,
+            ).map((key) => (
               <option key={key} value={key}>
                 {ROLE_SKILLS[key].label}
               </option>

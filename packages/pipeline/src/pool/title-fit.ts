@@ -42,11 +42,15 @@ const PRODUCT_ROLES: readonly RoleKey[] = [
 /** Títulos de desarrollo y diseño: ninguna carrera de producto los quiere. */
 const PRODUCT_VETO_EXTRA = ["engineer", "developer", "desarrollador", "desarrolladora", "designer"];
 
-/** Frases de las otras tres carreras de producto, más desarrollo y diseño. */
+/**
+ * Frases de las otras tres carreras de producto, más desarrollo y diseño. `project_manager` suma
+ * además los títulos de asistencia y operaciones (C-2b, D9): comparten la categoría de operaciones.
+ */
 function productVeto(role: RoleKey): readonly string[] {
   return [
     ...PRODUCT_ROLES.filter((r) => r !== role).flatMap((r) => TITLE_TERMS[r]),
     ...PRODUCT_VETO_EXTRA,
+    ...(role === "project_manager" ? TITLE_TERMS.asistencia_operaciones : []),
   ];
 }
 
@@ -114,6 +118,16 @@ const VETO_TERMS: Partial<Record<RoleKey, readonly string[]>> = {
     "success",
   ],
   customer_success: [...TITLE_TERMS.ventas_b2b, ...TITLE_TERMS.atencion_cliente],
+  // C-2b (ADR-023): cada carrera veta a las vecinas que comparten categoría. Un título con frase
+  // propia nunca se veta.
+  finanzas_contabilidad: [...TITLE_TERMS.data_engineer, "engineer", "developer", "software"],
+  asistencia_operaciones: [
+    ...TITLE_TERMS.project_manager,
+    ...TITLE_TERMS.soporte_it,
+    ...TITLE_TERMS.finanzas_contabilidad,
+    "engineer",
+    "developer",
+  ],
   // Nunca "customer support": «Customer Support Engineer» con categoría de soporte técnico sigue
   // siendo soporte_it.
   soporte_it: [

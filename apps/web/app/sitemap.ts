@@ -1,4 +1,9 @@
-import { DEMO_PROFILE_KEYS, pricingEnabled, ROLE_KEYS } from "@job-search-os/pipeline";
+import {
+  DEMO_PROFILE_KEYS,
+  pricingEnabled,
+  ROLE_KEYS,
+  UNLISTED_ROLE_KEYS,
+} from "@job-search-os/pipeline";
 import type { MetadataRoute } from "next";
 import { siteUrl } from "@/lib/site-url";
 
@@ -12,7 +17,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const paths = [
     "/",
     "/mercado",
-    ...ROLE_KEYS.map((k) => `/mercado/${k}`),
+    // Las carreras sin publicar (C-2b, D2) responden pero no se anuncian
+    ...ROLE_KEYS.filter((k) => !(UNLISTED_ROLE_KEYS as readonly string[]).includes(k)).map(
+      (k) => `/mercado/${k}`,
+    ),
     "/demo",
     ...DEMO_PROFILE_KEYS.map((k) => `/demo/${k}`),
     "/acceso",

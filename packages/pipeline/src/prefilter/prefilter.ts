@@ -108,6 +108,9 @@ export const ROLE_DOMAIN_KEYWORDS: Partial<Record<RoleKey, readonly string[]>> =
   // Ronda 107 (ADR-022): el dueño de la instancia puede tener estas palabras en `other_discipline_keywords`.
   ventas_b2b: ["sales", "ventas", "sdr", "bdr", "account executive", "business development"],
   atencion_cliente: ["customer support", "customer service", "atencion al cliente", "call center"],
+  // C-2b (ADR-023): ídem, para contabilidad y asistencia virtual.
+  finanzas_contabilidad: ["accounting", "contabilidad", "finanzas", "payroll"],
+  asistencia_operaciones: ["virtual assistant", "asistente virtual", "data entry"],
   ciberseguridad: [
     "ciberseguridad",
     "cybersecurity",
@@ -160,6 +163,8 @@ export const ROLE_OWN_TITLE_PHRASES: Partial<Record<RoleKey, readonly string[]>>
     "partner manager",
     "business development manager",
   ],
+  // D7: de los «manager» se libera solo «office manager»; accounting, finance y operations manager siguen bloqueados.
+  asistencia_operaciones: ["office manager"],
   ciberseguridad: ["security manager", "security architect"],
   backend: ["software architect"],
 };
@@ -238,8 +243,17 @@ const word = (body: string) => new RegExp(`(?<![a-z0-9])${body}(?![a-z0-9])`);
  * `label` es lo que se muestra en el detail.
  */
 const NON_IT_TITLE: readonly { label: string; re: RegExp; exemptFor?: readonly RoleKey[] }[] = [
-  { label: "administrativ", re: word(`administrativ${GENDER}`) },
-  { label: "auxiliar contable", re: word("auxiliar\\s+contables?") },
+  // C-2b (ADR-023): lo administrativo y lo contable son el oficio propio de estas dos carreras.
+  {
+    label: "administrativ",
+    re: word(`administrativ${GENDER}`),
+    exemptFor: ["asistencia_operaciones", "finanzas_contabilidad"],
+  },
+  {
+    label: "auxiliar contable",
+    re: word("auxiliar\\s+contables?"),
+    exemptFor: ["finanzas_contabilidad"],
+  },
   { label: "recepcionista", re: word("recepcionistas?") },
   { label: "cajer", re: word(`cajer${GENDER}`) },
   // `exemptFor` (ronda 107, ADR-022): el oficio propio de quien eligió esa carrera no se descarta.
@@ -422,11 +436,14 @@ export function prefilter(
   let licenseFlag: string | null = null;
   if (explicitCountry && userCountry) {
     const license = detectProfessionalLicense(
-      [input.title, input.locationRaw, input.jdText].filter(Boolean).join("\n"),
+      // La ubicación va aparte (S-2): pegada al texto, quedaba «cerca» de la frase y la hacía propia.
+      [input.title, input.jdText].filter(Boolean).join("\n"),
       userCountry,
+      input.locationRaw,
     );
     if (license) {
-      if (!license.ownCountry) {
+      // Propia, o deseable pero no excluyente (C-2b): no descarta, solo marca el flag.
+      if (!license.ownCountry && !license.preferred) {
         return {
           pass: false,
           reason: "licencia_profesional",

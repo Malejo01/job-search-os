@@ -1,4 +1,4 @@
-import { countryNames } from "../normalize/location";
+import { countriesMentioned, countryNames } from "../normalize/location";
 import { foldText } from "../normalize/text";
 
 /**
@@ -19,6 +19,11 @@ export type ProfessionalLicense = {
   phrase: string;
   /** El texto nombra el país de la persona junto a la frase: la licencia es de su país. */
   ownCountry: boolean;
+  /**
+   * La frase aparece como deseable («preferred», «a plus», «deseable», «or equivalent»...), no como
+   * requisito: no descarta, solo marca el flag (C-2b).
+   */
+  preferred: boolean;
 };
 
 /** Prefijo del flag del prefiltro: `licencia_profesional:<frase>`. */
@@ -40,7 +45,31 @@ const STRICT: readonly RegExp[] = [
   /\bseries (?:7|63|65|66)\b/g,
   /\bmatricula (?:profesional|habilitante)\b/g,
   /\bcolegiad[oa]s?\b/g,
+  // C-2b (contaduría). «cpa» suelto queda afuera: también es «cost per acquisition».
+  /\b(?:licensed|active|current) cpa\b/g,
+  /\bcpa (?:license|licensure|required|certification required)\b/g,
+  /\bmust (?:be|hold) a(?:n active)? cpa\b/g,
+  /\benrolled agent\b/g,
+  // El título («Contador Público») no es matrícula: hace falta «matriculado/a».
+  /\bcontador(?:a|es)?(?: public[oa]s?)? matriculad[oa]s?\b/g,
 ];
+
+/** Cómo se llama el organismo de matriculación de un país, además de su nombre (cpce/facpce → AR). */
+const COUNTRY_ALIASES: Readonly<Record<string, readonly string[]>> = {
+  AR: ["cpce", "facpce"],
+};
+
+/** Palabras que vuelven deseable la frase si aparecen hasta 60 caracteres después. */
+const PREFERRED_AFTER =
+  /\b(?:preferred|a plus|nice to have|desirable|deseable|valorable|en curso|or working toward|or equivalent)\b/;
+/** Y hasta 40 caracteres antes. */
+const PREFERRED_BEFORE = /\b(?:preferably|preferentemente)\b/;
+const SENTENCE_END = /[.;!?\n]/;
+/** Países fuera de la región que `countryNames` no cubre (S-2). */
+const OTHER_COUNTRY =
+  /(?<![a-z0-9])(?:united states|usa|u\.s\.a?|canada|united kingdom|uk|spain|espana|australia|germany|france|india|europe|europa)(?![a-z0-9])/;
+const PREFERRED_AFTER_WINDOW = 60;
+const PREFERRED_BEFORE_WINDOW = 40;
 
 /** «license required»: cuenta salvo que en las 3 palabras previas sea de conducir. */
 const LICENSE_REQUIRED = new RegExp(`\\b${LICENSE} required\\b`, "g");
@@ -56,6 +85,12 @@ const MAX_PER_PATTERN = 50;
 /** A cuántos caracteres del match se busca el nombre del país de la persona. */
 const COUNTRY_WINDOW = 120;
 
+/** ¿El texto nombra un país de la región distinto del de la persona? */
+function otherRegionCountry(foldedText: string, userCountry: string | null): boolean {
+  const own = userCountry?.toUpperCase();
+  return countriesMentioned(foldedText).some((c) => c !== own);
+}
+
 function isDrivingLicense(before: string): boolean {
   const words = before
     .split(/[^a-z0-9']+/)
@@ -68,30 +103,59 @@ function isDrivingLicense(before: string): boolean {
 /**
  * La licencia o matrícula que exige el aviso, o `null`. Con `userCountry` nulo (país desconocido)
  * no se puede decir que sea el propio: devuelve `ownCountry: false`. Si alguna coincidencia está
- * junto al país de la persona, manda esa (ante la duda, no descarta).
+ * junto al país de la persona, manda esa (ante la duda, no descarta). `locationRaw` (la ubicación
+ * del aviso) que nombra el país de la persona también vuelve propias todas las frases (C-2b). Si no
+ * hay ninguna propia, manda la primera excluyente antes que una preferida.
  */
 export function detectProfessionalLicense(
   text: string | null,
   userCountry: string | null,
+  locationRaw: string | null = null,
 ): ProfessionalLicense | null {
   if (!text?.trim()) return null;
-  const folded = foldText(text.slice(0, MAX_TEXT)).replace(/\s+/g, " ");
-  const names = userCountry ? countryNames(userCountry) : [];
+  // Se conservan los saltos de línea: cortan la ventana de «preferred» (S-1).
+  const folded = foldText(text.slice(0, MAX_TEXT))
+    .replace(/[^\S\n]+/g, " ")
+    .replace(/ ?\n[\s]*/g, "\n");
+  const names = userCountry
+    ? [...countryNames(userCountry), ...(COUNTRY_ALIASES[userCountry.toUpperCase()] ?? [])]
+    : [];
+  const nameRe = (n: string) => new RegExp(`(?<![a-z0-9])${n}(?![a-z0-9])`);
+  const foldedLocation = locationRaw ? foldText(locationRaw) : "";
+  const locationIsOwn = names.some((n) => nameRe(n).test(foldedLocation));
 
+  // 2 = propia, 1 = excluyente de otro país, 0 = preferida de otro país.
+  const rank = (l: ProfessionalLicense) => (l.ownCountry ? 2 : l.preferred ? 0 : 1);
   const state: { found: ProfessionalLicense | null } = { found: null };
   const consider = (term: string, index: number, length: number) => {
     const around = folded.slice(
       Math.max(0, index - COUNTRY_WINDOW),
       Math.min(folded.length, index + length + COUNTRY_WINDOW),
     );
-    const ownCountry = names.some((n) => new RegExp(`(?<![a-z0-9])${n}(?![a-z0-9])`).test(around));
-    // La primera coincidencia propia manda; antes de eso, la primera que se vio.
-    if (state.found?.ownCountry || (state.found && !ownCountry)) return;
-    state.found = {
+    const namesOwn = names.some((n) => nameRe(n).test(around));
+    // S-2: la ubicación del aviso solo hace propia la frase si la ventana no nombra otro país.
+    const namesOther = OTHER_COUNTRY.test(around) || otherRegionCountry(around, userCountry);
+    const ownCountry = namesOwn || (locationIsOwn && !namesOther);
+    const end = index + length;
+    // S-1: la ventana se corta en el primer fin de oración o de línea.
+    const after = folded.slice(end, end + PREFERRED_AFTER_WINDOW).split(SENTENCE_END)[0]!;
+    const before = folded
+      .slice(Math.max(0, index - PREFERRED_BEFORE_WINDOW), index)
+      .split(SENTENCE_END)
+      .at(-1)!;
+    const preferred = PREFERRED_AFTER.test(after) || PREFERRED_BEFORE.test(before);
+    const candidate: ProfessionalLicense = {
       term,
-      phrase: folded.slice(Math.max(0, index - 40), index + length + 40).trim(),
+      phrase: folded
+        .slice(Math.max(0, index - 40), index + length + 40)
+        .replace(/\n/g, " ")
+        .trim(),
       ownCountry,
+      preferred,
     };
+    // La primera coincidencia de mayor rango manda; a igual rango, la primera que se vio.
+    if (state.found && rank(candidate) <= rank(state.found)) return;
+    state.found = candidate;
   };
 
   for (const re of STRICT) {
