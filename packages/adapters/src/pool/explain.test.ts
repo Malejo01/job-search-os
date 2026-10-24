@@ -173,6 +173,7 @@ describe("parsePersona", () => {
       "atencion-cliente.json",
       "finanzas-contabilidad.json",
       "asistencia-operaciones.json",
+      "marketing-digital.json",
     ]) {
       const json = JSON.parse(readFileSync(new URL(`./personas/${f}`, import.meta.url), "utf8"));
       expect(parsePersona(json).ok, f).toBe(true);
