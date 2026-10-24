@@ -55,6 +55,34 @@ describe("canonicalUrl", () => {
     expect(canonicalUrl("  https://example.com/  ")).toEqual(ok("https://example.com"));
   });
 
+  it("LinkedIn sin id reconocible: cae a la regla general (sin tracking, sin www)", () => {
+    expect(canonicalUrl("https://www.linkedin.com/company/empresa-de-prueba/?trk=abc")).toEqual(
+      ok("https://linkedin.com/company/empresa-de-prueba"),
+    );
+    // currentJobId no numérico se ignora
+    expect(canonicalUrl("https://linkedin.com/jobs/search/?currentJobId=abc&q=x")).toEqual(
+      ok("https://linkedin.com/jobs/search?currentJobId=abc&q=x"),
+    );
+  });
+
+  it("un dominio que solo termina parecido a linkedin.com no se trata como LinkedIn", () => {
+    expect(canonicalUrl("https://notlinkedin.com/jobs/view/123")).toEqual(
+      ok("https://notlinkedin.com/jobs/view/123"),
+    );
+  });
+
+  it("params repetidos y orden estable; tracking en mayúsculas", () => {
+    expect(canonicalUrl("https://example.com/p?b=2&a=2&a=1&UTM_Campaign=x&FBCLID=y")).toEqual(
+      ok("https://example.com/p?a=2&a=1&b=2"),
+    );
+  });
+
+  it("Indeed sin jk queda sin query", () => {
+    expect(canonicalUrl("https://www.indeed.com/viewjob?from=serp")).toEqual(
+      ok("https://indeed.com/viewjob"),
+    );
+  });
+
   it("rechaza lo que no es URL http(s)", () => {
     expect(canonicalUrl("no es una url")).toEqual(err("invalid_url"));
     expect(canonicalUrl("mailto:jobs@example.com")).toEqual(err("invalid_url"));

@@ -103,6 +103,68 @@ describe("validateCustomSkillName", () => {
   });
 });
 
+describe("customSkillRejectionText", () => {
+  it("un texto para cada motivo", () => {
+    expect(customSkillRejectionText({ ok: false, reason: "corto" })).toBe(
+      "El nombre tiene que tener al menos 2 letras.",
+    );
+    expect(customSkillRejectionText({ ok: false, reason: "largo" })).toBe(
+      "El nombre puede tener hasta 40 caracteres.",
+    );
+    expect(customSkillRejectionText({ ok: false, reason: "caracteres" })).toContain("< o >");
+    expect(customSkillRejectionText({ ok: false, reason: "url" })).toContain("sin links");
+  });
+
+  it("en_taxonomia sin `existing` usa un texto genérico", () => {
+    expect(customSkillRejectionText({ ok: false, reason: "en_taxonomia" })).toBe(
+      "«Esa skill» ya está en la lista: usá esa.",
+    );
+  });
+
+  it("el texto sale de la validación real, sin eco del valor escrito", () => {
+    const r = validateCustomSkillName("<b>Mi Herramienta Rara</b>", []);
+    if (r.ok) throw new Error("debería rechazar");
+    expect(customSkillRejectionText(r)).not.toContain("Rara");
+  });
+});
+
+describe("parseCustomSkillsForm · valores ausentes", () => {
+  const base = { taxonomy, existing: [] as { id: string; name: string }[] };
+
+  it("sin `remove` en el contexto equivale a no quitar nada", () => {
+    expect(
+      parseCustomSkillsForm({ "new_name:n1": "Herramienta Ficticia", "new_level:n1": "1" }, base)
+        .ok,
+    ).toBe(true);
+  });
+
+  it("nombre o nivel con valor undefined se tratan como vacíos", () => {
+    expect(parseCustomSkillsForm({ "new_name:n1": undefined, "new_level:n1": "1" }, base)).toEqual({
+      ok: false,
+      field: "new_name:n1",
+    });
+    expect(
+      parseCustomSkillsForm(
+        { "new_name:n1": "Herramienta Ficticia", "new_level:n1": undefined },
+        base,
+      ),
+    ).toEqual({ ok: false, field: "new_level:n1" });
+    expect(parseCustomSkillsForm({ [`clevel:${ID_A}`]: undefined }, base)).toEqual({
+      ok: true,
+      updates: [],
+      additions: [],
+    });
+  });
+
+  it("clevel con espacios alrededor del nivel se recorta", () => {
+    const r = parseCustomSkillsForm(
+      { [`clevel:${ID_A.toUpperCase()}`]: " 2 " },
+      { ...base, existing: [{ id: ID_A, name: "Una" }] },
+    );
+    expect(r).toEqual({ ok: true, updates: [{ id: ID_A, level: 2 }], additions: [] });
+  });
+});
+
 describe("customSkillKey", () => {
   it("ignora mayúsculas, acentos y espacios repetidos", () => {
     expect(customSkillKey("  Diseño   GRÁFICO ")).toBe("diseno grafico");
