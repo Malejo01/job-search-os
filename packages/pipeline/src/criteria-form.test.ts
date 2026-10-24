@@ -193,6 +193,51 @@ describe("parseCriteriaForm", () => {
     expect(r.ok && r.rules.title_cap_score).toBe(BASE.title_cap_score);
     expect(r.ok && r.rules.ml_engineer_keywords).toEqual(BASE.ml_engineer_keywords);
   });
+
+  it("un campo de texto que llega como arreglo usa el primer valor", () => {
+    const r = parseCriteriaForm(
+      { ...untouched(BASE), max_years_hard: ["12", "99"], title_allowlist: ["uno\ndos", "tres"] },
+      BASE,
+    );
+    expect(r.ok && r.rules.max_years_hard).toBe(12);
+    expect(r.ok && r.rules.title_allowlist).toEqual(["uno", "dos"]);
+  });
+
+  it("un campo de texto con arreglo vacío o ausente se trata como vacío", () => {
+    // arreglo vacío en un número: vacío no es número válido
+    expect(parseCriteriaForm({ ...untouched(BASE), max_weekly_hours: [] }, BASE)).toEqual({
+      ok: false,
+      field: "max_weekly_hours",
+    });
+    expect(parseCriteriaForm({ ...untouched(BASE), max_weekly_hours: undefined }, BASE)).toEqual({
+      ok: false,
+      field: "max_weekly_hours",
+    });
+    // arreglo vacío en el piso salarial: sin piso
+    const r = parseCriteriaForm({ ...untouched(BASE), salary_floor_usd_monthly: [] }, BASE);
+    expect(r.ok && r.rules.salary_floor_usd_monthly).toBeNull();
+    // lista ausente: vacía
+    const l = parseCriteriaForm({ ...untouched(BASE), title_blocklist: undefined }, BASE);
+    expect(l.ok && l.rules.title_blocklist).toEqual([]);
+  });
+
+  it("disciplinas ausentes o vacías (ninguna casilla marcada) fallan en ese campo", () => {
+    expect(parseCriteriaForm({ ...untouched(BASE), allowed_disciplines: undefined }, BASE)).toEqual(
+      {
+        ok: false,
+        field: "allowed_disciplines",
+      },
+    );
+    expect(parseCriteriaForm({ ...untouched(BASE), allowed_disciplines: "" }, BASE)).toEqual({
+      ok: false,
+      field: "allowed_disciplines",
+    });
+  });
+
+  it("formulario completamente vacío: falla con un campo, sin eco de valores", () => {
+    const r = parseCriteriaForm({}, BASE);
+    expect(r.ok).toBe(false);
+  });
 });
 
 describe("criteriaFormDefaults", () => {
