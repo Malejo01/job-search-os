@@ -1,6 +1,14 @@
-import { betaMetricRows, betaMetricsCsv, type BetaMetricRow } from "@job-search-os/pipeline";
+import {
+  FOUNDER_SEATS_PER_CAREER,
+  betaMetricRows,
+  betaMetricsCsv,
+  founderSeatRows,
+  isRoleKey,
+  type BetaMetricRow,
+} from "@job-search-os/pipeline";
 import { notFound } from "next/navigation";
-import { getBetaMetrics } from "@/lib/beta-metrics";
+import { careerLabel } from "@/lib/career-market";
+import { getBetaMetrics, getFounderCounts, type FounderCountsResult } from "@/lib/beta-metrics";
 import { requireUserId } from "@/lib/session";
 
 export const metadata = { title: "Métricas de la beta" };
@@ -40,6 +48,7 @@ export default async function MetricasPage() {
   const { metrics } = result;
   const rows = betaMetricRows(metrics);
   const groups = [...new Set(rows.map((r) => r.group))];
+  const founders = await getFounderCounts(userId);
   const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(betaMetricsCsv(metrics))}`;
 
   return (
@@ -54,6 +63,7 @@ export default async function MetricasPage() {
       {groups.map((group) => (
         <MetricTable key={group} title={group} rows={rows.filter((r) => r.group === group)} />
       ))}
+      <FounderSeats founders={founders} k={metrics.k} />
       <a
         href={csvHref}
         download="metricas-beta.csv"
@@ -62,6 +72,50 @@ export default async function MetricasPage() {
         Descargar CSV
       </a>
     </div>
+  );
+}
+
+/**
+ * Cupos de fundador por carrera (C-13b): cuántas personas tienen el plan fundador vigente en cada
+ * carrera. Sin cupo decidido (a confirmar con Ani) no hay «de N»; no se bloquea nada.
+ */
+function FounderSeats({ founders, k }: { founders: FounderCountsResult; k: number }) {
+  if (!founders.ok) {
+    return (
+      <p role="status" className="rounded-md border border-zinc-200 bg-white p-4 text-sm">
+        Cupos de fundador: todavía no hay datos (falta aplicar la migración de la base o no se
+        pudieron leer).
+      </p>
+    );
+  }
+  const rows = founderSeatRows(founders.rows, FOUNDER_SEATS_PER_CAREER, (key) =>
+    isRoleKey(key) ? careerLabel(key) : null,
+  );
+  const pending = FOUNDER_SEATS_PER_CAREER === null ? " El cupo todavía no está definido." : "";
+  const note = `Personas con plan fundador vigente, por su carrera principal. Menos de ${k}: «<${k}».`;
+  return (
+    <section className="rounded-md border border-zinc-200 bg-white p-4">
+      <table className="w-full text-sm">
+        <caption className="mb-2 text-left font-medium">Cupos de fundador</caption>
+        <tbody>
+          {rows.length === 0 ? (
+            <tr>
+              <td className="py-1 text-zinc-700">Todavía no hay personas con plan fundador.</td>
+            </tr>
+          ) : (
+            rows.map((r) => (
+              <tr key={r.key} className="border-t border-zinc-100">
+                <th scope="row" className="py-1 pr-3 text-left font-normal text-zinc-700">
+                  {r.label}
+                </th>
+                <td className="py-1 text-right font-medium tabular-nums">{r.value}</td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+      <p className="mt-2 text-xs text-zinc-600">{note + pending}</p>
+    </section>
   );
 }
 

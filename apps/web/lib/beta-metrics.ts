@@ -1,4 +1,9 @@
-import { parseBetaMetrics, type BetaMetrics } from "@job-search-os/pipeline";
+import {
+  parseBetaMetrics,
+  parseFounderCounts,
+  type BetaMetrics,
+  type FounderCountRow,
+} from "@job-search-os/pipeline";
 import { sql } from "drizzle-orm";
 import { withUser } from "./db";
 import { canCreateInvitations } from "./invitations";
@@ -11,6 +16,35 @@ import { canCreateInvitations } from "./invitations";
 export type BetaMetricsResult =
   | { ok: true; metrics: BetaMetrics }
   | { ok: false; reason: "no_admin" | "no_habilitado" | "sin_datos" };
+
+export type FounderCountsResult =
+  | { ok: true; rows: FounderCountRow[] }
+  | { ok: false; reason: "no_admin" | "no_habilitado" | "sin_datos" };
+
+/**
+ * Cupos de fundador por carrera (C-13b), mismas dos barreras que las métricas. La base cuenta
+ * personas con plan fundador vigente por su carrera principal (`admin_founder_counts`, rls/0012) y
+ * enmascara los grupos de menos de 3; las claves válidas están fijas en el SQL. Acá solo se valida la forma.
+ * Si la función no está aplicada en la base, vuelve `sin_datos` («falta aplicar la migración»).
+ */
+export async function getFounderCounts(userId: string): Promise<FounderCountsResult> {
+  if (!(await canCreateInvitations(userId))) return { ok: false, reason: "no_admin" };
+  try {
+    const raw = (await withUser(userId, (tx) =>
+      tx.execute(sql`select role, people from admin_founder_counts()`),
+    )) as unknown as { role: string; people: number | null }[];
+    const rows = parseFounderCounts(Array.from(raw));
+    return rows ? { ok: true, rows } : { ok: false, reason: "sin_datos" };
+  } catch (error) {
+    for (let e: unknown = error; e && typeof e === "object"; e = (e as { cause?: unknown }).cause) {
+      const message = (e as { message?: unknown }).message;
+      if (typeof message === "string" && message.includes("admin_founder_counts: no autorizado")) {
+        return { ok: false, reason: "no_habilitado" };
+      }
+    }
+    return { ok: false, reason: "sin_datos" };
+  }
+}
 
 export async function getBetaMetrics(userId: string): Promise<BetaMetricsResult> {
   if (!(await canCreateInvitations(userId))) return { ok: false, reason: "no_admin" };
