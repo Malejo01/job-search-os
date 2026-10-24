@@ -110,7 +110,7 @@ function EvaluatorGaps({ row, testId }: { row: PlanImpactRow; testId: string }) 
   if (row.evaluatorGaps <= 0) return null;
   return (
     <span data-testid={testId} className="block text-xs font-normal text-zinc-700">
-      El evaluador te la marcó como brecha en {offers(row.evaluatorGaps)} tuyas
+      Al evaluar tus ofertas, esta skill figuró como lo que te falta en {offers(row.evaluatorGaps)}
     </span>
   );
 }
@@ -184,8 +184,8 @@ export function SiAprendes({
           data-testid="plan-sim-pocas"
           className="rounded-md border border-dashed border-zinc-300 p-4 text-sm text-zinc-600"
         >
-          Con pocas ofertas todavía no podemos decirlo: cuando haya más avisos de tu carrera vas a
-          ver acá cuántos se te abren con cada skill.
+          Con pocas ofertas todavía no podemos calcularlo: cuando haya más avisos de tu carrera vas
+          a ver acá cuántos se te abren con cada skill.
         </p>
       </section>
     );

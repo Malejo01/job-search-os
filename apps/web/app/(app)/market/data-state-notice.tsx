@@ -20,15 +20,19 @@ export function MissingDataNotice({ state }: { state: DataState }) {
     return (
       <p className="rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-600">
         Todavía no encontramos skills en tus ofertas. Cuando lleguen ofertas con más detalle,
-        aparecen acá.
+        aparecen acá. Mientras tanto podés{" "}
+        <Link href="/jobs/new" className="text-zinc-900 underline">
+          pegar una oferta completa
+        </Link>
+        .
       </p>
     );
   }
   if (!state.hasSnapshot) {
     return (
       <p className="rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-600">
-        Estamos armando tu mercado con las ofertas que llegaron. Se actualiza cuando guardás tus
-        skills y cada lunes.
+        Estamos armando tu mercado con las ofertas que llegaron. Volvé en unos minutos; también se
+        actualiza cuando guardás tus skills y cada lunes.
       </p>
     );
   }

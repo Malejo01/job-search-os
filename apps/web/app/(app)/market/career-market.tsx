@@ -122,19 +122,20 @@ export function CareerMarket({
           <p className="break-words text-xs text-zinc-600">
             {NF.format(total)} {plural(total, "oferta activa", "ofertas activas")} de fuentes
             públicas en los últimos 30 días
-            {ago.text ? ` · datos del pool actualizados ${ago.text}` : ""}
+            {ago.text ? ` · ofertas actualizadas ${ago.text}` : ""}
           </p>
         ) : null}
         {ago.stale ? (
           <p role="note" className="mt-1 text-xs text-amber-800">
-            El pool no se actualiza hace más de dos días.
+            Las ofertas públicas no se actualizan hace más de dos días.
           </p>
         ) : null}
       </div>
 
       {total === 0 ? (
         <p className="text-xs text-zinc-600">
-          Todavía no hay ofertas de {label} en el pool. Probá con otra carrera.
+          Todavía no hay ofertas públicas de {label}. Probá con otra carrera desde «Explorar otra
+          carrera», arriba.
         </p>
       ) : (
         <>
@@ -229,10 +230,10 @@ export function CareerMarket({
                 <p className="text-xs text-zinc-600">Ninguna oferta pide inglés explícitamente.</p>
               )}
               <p className="text-xs text-zinc-600">
-                Avisos escritos en inglés: {NF.format(market.english.writtenInEnglish)}
+                Escritas en inglés: {NF.format(market.english.writtenInEnglish)}
               </p>
               <p className="text-xs text-zinc-600">
-                Ofertas en español: {NF.format(market.english.writtenInSpanish)}
+                Escritas en español: {NF.format(market.english.writtenInSpanish)}
               </p>
               {market.english.estimated ? (
                 <p role="note" className="text-xs text-zinc-600">

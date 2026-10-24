@@ -237,8 +237,8 @@ test.describe("Flujo 73: si aprendés…", () => {
     await expect(route.getByRole("listitem")).toHaveCount(3);
     await expect(route.getByRole("listitem").first()).toContainText("Semana 1");
     await expect(page.getByText(/Ofertas de los últimos 30 días, al \d{2}\/\d{2}\./)).toBeVisible();
-    // «pre-score» solo aparece dentro de «Cómo se calcula»
-    await expect(page.getByTestId("plan-sim")).not.toContainText(/pre-?score/i);
+    // «puntaje estimado» (antes «pre-score») solo aparece dentro de «Cómo se calcula»
+    await expect(page.getByTestId("plan-sim")).not.toContainText(/pre-?score|puntaje estimado/i);
   });
 
   test("?simular= cambia el «pasan X de T» y el botón queda presionado", async ({ page }) => {
@@ -409,7 +409,7 @@ test.describe("Flujo 73: si aprendés…", () => {
     await login(page);
     await page.goto("/plan");
     const few = page.getByTestId("plan-sim-pocas");
-    await expect(few).toContainText("Con pocas ofertas todavía no podemos decirlo");
+    await expect(few).toContainText("Con pocas ofertas todavía no podemos calcularlo");
     await expect(page.getByTestId("plan-sim-tabla")).toHaveCount(0);
     await expect(page.getByTestId("plan-sim-tarjetas")).toHaveCount(0);
     const width = await page.evaluate(() => document.documentElement.scrollWidth);

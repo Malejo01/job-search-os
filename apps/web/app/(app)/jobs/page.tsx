@@ -52,8 +52,10 @@ export default async function JobsPage({
         <div className="min-w-0">
           <h1 className="text-xl font-semibold">Ofertas</h1>
           <p className="text-xs text-zinc-600">
-            {rows.length === LIST_LIMIT ? `primeras ${LIST_LIMIT}` : `${rows.length}`} · por score y
-            fecha
+            {rows.length === LIST_LIMIT
+              ? `Mostrando las primeras ${LIST_LIMIT}`
+              : `${rows.length} ${rows.length === 1 ? "oferta" : "ofertas"}`}
+            , ordenadas por score y fecha
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -160,7 +162,14 @@ const EMPTY_LINK =
  */
 function EmptyList({ counts, reviewedAll }: { counts: JobCounts | null; reviewedAll: boolean }) {
   if (reviewedAll) {
-    return <p className={EMPTY_BOX}>No quedan ofertas sin revisar en este período.</p>;
+    return (
+      <p className={EMPTY_BOX}>
+        No quedan ofertas sin revisar en este período.{" "}
+        <Link href="/jobs?estado=todas" className={EMPTY_LINK}>
+          Ver todas las ofertas
+        </Link>
+      </p>
+    );
   }
   const porEvaluar = counts?.porEvaluar ?? 0;
   const sinDescripcion = counts?.sinDescripcion ?? 0;
@@ -181,7 +190,7 @@ function EmptyList({ counts, reviewedAll }: { counts: JobCounts | null; reviewed
                 : `Tenés ${porEvaluar} ofertas que todavía no evaluamos`}
             </p>
             <Link href="/jobs?estado=prefiltrada" className={EMPTY_LINK}>
-              verlas
+              Ver las ofertas sin evaluar
             </Link>
           </div>
         ) : null}
@@ -193,7 +202,7 @@ function EmptyList({ counts, reviewedAll }: { counts: JobCounts | null; reviewed
                 : `Tenés ${sinDescripcion} ofertas sin descripción`}
             </p>
             <Link href="/jobs/pending-jd" className={EMPTY_LINK}>
-              completarla{sinDescripcion === 1 ? "" : "s"}
+              {sinDescripcion === 1 ? "Completar la descripción" : "Completar las descripciones"}
             </Link>
           </div>
         ) : null}
@@ -218,7 +227,7 @@ function EmptyList({ counts, reviewedAll }: { counts: JobCounts | null; reviewed
           </li>
           <li>
             <Link href="/settings#puesto" className={EMPTY_LINK}>
-              Esperar las ofertas que sumamos cada día para tus puestos
+              Esperar las ofertas que sumamos cada día: elegí tus puestos
             </Link>
           </li>
         </ul>
@@ -270,8 +279,8 @@ function ReviewProgress({
         <strong>
           {revisadas} de {total}
         </strong>{" "}
-        {total === 1 ? "oferta verde" : "ofertas verdes"} {rangeLabel(filters)}{" "}
-        {total === 1 ? "revisada" : "revisadas"}
+        {total === 1 ? "oferta recomendada (verde)" : "ofertas recomendadas (verdes)"}{" "}
+        {rangeLabel(filters)} {total === 1 ? "revisada" : "revisadas"}
         {done ? " · terminaste" : ""}
       </p>
       <div

@@ -163,7 +163,7 @@ test.describe("Flujo 69: Hoy", () => {
       '[data-testid="hoy-vacio-nada-nuevo"], [data-testid="hoy-vacio-en-cola"]',
     );
     await expect(empty).toBeVisible();
-    await expect(empty).toContainText(/Nada nuevo desde tu última visita|en cola/);
+    await expect(empty).toContainText(/Nada nuevo desde tu última visita|Estamos evaluando/);
 
     // Una cookie de otra persona no sirve: vuelve el fallback de la semana
     await expect
@@ -192,7 +192,7 @@ test.describe("Flujo 69: Hoy", () => {
 
     const card = page.getByTestId("hoy-nuevo");
     const empty = card.getByTestId("hoy-vacio-sin-ofertas");
-    await expect(empty).toContainText("Todavía estamos leyendo ofertas para vos");
+    await expect(empty).toContainText("Todavía no llegaron ofertas para vos");
     // Sin carrera elegida, el paso siguiente es elegirla
     await expect(empty.getByRole("link", { name: "Elegí tu carrera" })).toHaveAttribute(
       "href",

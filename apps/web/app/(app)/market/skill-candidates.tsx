@@ -5,12 +5,12 @@ export function SkillCandidates({ candidates }: { candidates: SkillCandidate[] }
   return (
     <details className="rounded-md border border-zinc-200 p-3 text-sm">
       <summary className="flex min-h-11 cursor-pointer items-center font-semibold">
-        Candidatos a skill nueva ({candidates.length})
+        Términos que podrían ser skills nuevas ({candidates.length})
       </summary>
       <p className="mt-2 text-xs text-zinc-600">
-        Términos frecuentes en los avisos que no están en la taxonomía. Salen de las últimas 300
-        ofertas con texto, no del rango de semanas elegido, y se actualizan cada hora. No cuentan en
-        la demanda hasta que se agreguen.
+        Términos frecuentes en los avisos que todavía no están en nuestra lista de skills. Salen de
+        las últimas 300 ofertas con texto, no del rango de semanas elegido, y se actualizan cada
+        hora. No cuentan en la demanda hasta que los sumemos a la lista.
       </p>
       {candidates.length ? (
         <ul className="mt-2 flex flex-wrap gap-2">
@@ -30,7 +30,9 @@ export function SkillCandidates({ candidates }: { candidates: SkillCandidate[] }
           ))}
         </ul>
       ) : (
-        <p className="mt-2 text-xs text-zinc-600">— sin candidatos por ahora —</p>
+        <p className="mt-2 text-xs text-zinc-600">
+          Por ahora no encontramos términos nuevos que se repitan.
+        </p>
       )}
     </details>
   );

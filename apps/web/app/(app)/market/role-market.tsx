@@ -32,7 +32,10 @@ export function RoleMarket({ view }: { view: RoleMarketView }) {
         className="rounded-md border border-zinc-200 p-3 text-sm"
       >
         <h2 className="font-semibold">El mercado de {view.label}</h2>
-        <p className="mt-1 text-xs text-zinc-600">Todavía no hay datos para este rol.</p>
+        <p className="mt-1 text-xs text-zinc-600">
+          Todavía no hay ofertas públicas de {view.label} para mostrar. Probá con otra carrera en
+          «Explorar otra carrera».
+        </p>
       </section>
     );
   }

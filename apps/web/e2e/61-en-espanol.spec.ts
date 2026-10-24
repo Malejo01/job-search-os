@@ -102,6 +102,6 @@ test.describe("Flujo 61: En español", () => {
     // El número puede venir del caché de 30 minutos: se verifica que la línea exista
     const res = await page.goto(`/mercado/${CAREER}`);
     expect(res?.status()).toBe(200);
-    await expect(page.getByText(/Ofertas en español: \d/)).toBeVisible();
+    await expect(page.getByText(/Escritas en español: \d/)).toBeVisible();
   });
 });

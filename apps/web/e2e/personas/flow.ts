@@ -341,7 +341,9 @@ export function definePersonaSpec(key: PersonaKey): void {
         // La etiqueta sale del seed de roles: así no depende de cómo la nombre la 44
         const label = (roleSkills as Record<string, { label: string }>)[persona.role]!.label;
         await expect(market).toContainText(`El mercado de ${label}`);
-        await expect(market).not.toContainText("Todavía no hay datos para este rol");
+        await expect(market).not.toContainText(
+          `Todavía no hay ofertas públicas de ${label} para mostrar`,
+        );
         const text = await market.innerText();
         expect(
           wanted.some((name) => text.includes(name)),

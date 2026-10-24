@@ -55,7 +55,7 @@ test.describe("Flujo 14: posibles duplicados", () => {
         hasText: `E2E parecido fusion ${tag}`,
       });
     await expect(card).toBeVisible();
-    await expect(card).toContainText("posible duplicado");
+    await expect(card).toContainText("Posible duplicado");
     await expect(
       page
         .getByRole("main")
