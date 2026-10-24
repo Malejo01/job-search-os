@@ -111,7 +111,8 @@ describe("titleFit · ventas y atención (ronda 107)", () => {
     expect(titleFit("Technical Account Manager", "customer_success")).toBe(2);
     expect(titleFit("Customer Support Specialist", "customer_success")).toBe(0);
     expect(titleFit("Account Executive", "customer_success")).toBe(0);
-    expect(titleFit("Account Manager", "customer_success")).toBe(1);
+    // T2: «account manager» pasó a ser término de customer_success (antes 1).
+    expect(titleFit("Account Manager", "customer_success")).toBe(2);
   });
 
   it("assessPoolTitle: con la categoría customer-support el título deja la carrera que corresponde", () => {
@@ -410,5 +411,51 @@ describe("assessPoolTitle", () => {
       expect(staff.seniorPenalty).toBe(0);
       expect(staff.level).toBe("staff_plus");
     }
+  });
+});
+
+describe("titleFit · vetos T2", () => {
+  it("frontend y backend se vetan entre sí, el fullstack sirve a los tres", () => {
+    expect(titleFit("Backend Engineer", "frontend")).toBe(0);
+    expect(titleFit("Backend Developer", "frontend")).toBe(0);
+    expect(titleFit("Desarrollador Backend", "frontend")).toBe(0);
+    expect(titleFit("Frontend Engineer", "backend")).toBe(0);
+    expect(titleFit("Frontend Developer", "backend")).toBe(0);
+    expect(titleFit("Desarrollador Frontend", "backend")).toBe(0);
+    expect(titleFit("Backend Engineer", "backend")).toBe(2);
+    expect(titleFit("Frontend Engineer", "frontend")).toBe(2);
+    for (const role of ["frontend", "backend", "fullstack"] as const) {
+      expect(titleFit("Full Stack Engineer", role)).not.toBe(0);
+    }
+    expect(titleFit("Full Stack Backend Engineer", "frontend")).not.toBe(0);
+    expect(titleFit("Software Engineer", "frontend")).toBe(1);
+  });
+
+  it("soporte_it veta QA", () => {
+    expect(titleFit("QA Engineer", "soporte_it")).toBe(0);
+    expect(titleFit("Test Automation Engineer", "soporte_it")).toBe(0);
+    expect(titleFit("IT Support Specialist", "soporte_it")).toBe(2);
+    for (const t of [
+      "Network Automation Engineer",
+      "IT Automation Engineer",
+      "Cloud Automation Engineer",
+    ]) {
+      expect(titleFit(t, "soporte_it")).not.toBe(0);
+    }
+  });
+
+  it("key account: CS con cuentas clave se mantiene; el Key Account Manager no es CS", () => {
+    expect(titleFit("Customer Success Manager, Key Accounts", "customer_success")).toBeGreaterThan(
+      0,
+    );
+    expect(titleFit("Technical Account Manager – Key Account", "customer_success")).toBe(2);
+    expect(titleFit("Key Account Manager", "customer_success")).toBe(0);
+  });
+
+  it("customer_success veta solutions engineer", () => {
+    expect(titleFit("Solutions Engineer", "customer_success")).toBe(0);
+    expect(titleFit("Implementation Consultant", "customer_success")).toBe(0);
+    expect(titleFit("Technical Account Manager", "customer_success")).toBe(2);
+    expect(titleFit("Account Manager", "customer_success")).toBe(2);
   });
 });

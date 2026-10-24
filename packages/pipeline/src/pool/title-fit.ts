@@ -100,6 +100,28 @@ const VETO_TERMS: Partial<Record<RoleKey, readonly string[]>> = {
     "fullstack",
   ],
   ai_engineer: AI_PATTERN_EXCLUDED_WORDS,
+  // T2: frontend y backend se vetan entre sí con títulos claramente del otro lado. El fullstack
+  // nunca se veta (ver la guarda de fullstack en `titleFit`).
+  frontend: [
+    "backend engineer",
+    "backend developer",
+    "back end engineer",
+    "back end developer",
+    "desarrollador backend",
+    "desarrolladora backend",
+    "desarrollador back end",
+    "desarrolladora back end",
+  ],
+  backend: [
+    "frontend engineer",
+    "frontend developer",
+    "front end engineer",
+    "front end developer",
+    "desarrollador frontend",
+    "desarrolladora frontend",
+    "desarrollador front end",
+    "desarrolladora front end",
+  ],
   // Ronda 107 (ADR-022). Ventas, atención, customer success y soporte comparten categorías de la
   // fuente: cada carrera veta los títulos de las vecinas. Un título con frase propia nunca se veta.
   ventas_b2b: [
@@ -117,7 +139,12 @@ const VETO_TERMS: Partial<Record<RoleKey, readonly string[]>> = {
     "developer",
     "success",
   ],
-  customer_success: [...TITLE_TERMS.ventas_b2b, ...TITLE_TERMS.atencion_cliente],
+  customer_success: [
+    ...TITLE_TERMS.ventas_b2b,
+    ...TITLE_TERMS.atencion_cliente,
+    // T2: solutions engineer es otra carrera, aunque comparta categoría.
+    ...TITLE_TERMS.solutions_engineer,
+  ],
   // C-2b (ADR-023): cada carrera veta a las vecinas que comparten categoría. Un título con frase
   // propia nunca se veta.
   finanzas_contabilidad: [...TITLE_TERMS.data_engineer, "engineer", "developer", "software"],
@@ -131,6 +158,8 @@ const VETO_TERMS: Partial<Record<RoleKey, readonly string[]>> = {
   // Nunca "customer support": «Customer Support Engineer» con categoría de soporte técnico sigue
   // siendo soporte_it.
   soporte_it: [
+    // T2: QA comparte la categoría "sysadmin-devops-qa" pero es otra carrera.
+    ...TITLE_TERMS.qa.filter((t) => t !== "automation engineer"),
     "call center",
     "contact center",
     "contact centre",
@@ -231,6 +260,13 @@ export function titleFit(title: string, role: RoleKey): TitleFit {
     (role === "ai_engineer" &&
       (namesAiEngineerInEnglish(padded) || matchesAiWithTechRoleEs(padded)));
   if (named) return 2;
+  // "Full Stack" sirve a frontend, backend y fullstack: no se veta aunque nombre un lado.
+  if (
+    (role === "frontend" || role === "backend") &&
+    TITLE_TERMS.fullstack.some((t) => hasTerm(padded, t))
+  ) {
+    return 1;
+  }
   if ((VETO_TERMS[role] ?? []).some((t) => hasTerm(padded, t))) return 0;
   return 1;
 }
