@@ -105,6 +105,19 @@ function HoursPicker({ hours, selected }: { hours: number; selected: readonly st
   );
 }
 
+/** E4d: dato del evaluador sobre las ofertas propias. No entra en «+K»: va al lado. */
+function EvaluatorGaps({ row }: { row: PlanImpactRow }) {
+  if (row.evaluatorGaps <= 0) return null;
+  return (
+    <span
+      data-testid={`plan-sim-evaluador-${row.slug}`}
+      className="block text-xs font-normal text-zinc-700"
+    >
+      El evaluador te la marcó como brecha en {offers(row.evaluatorGaps)} tuyas
+    </span>
+  );
+}
+
 function Gain({ row }: { row: PlanImpactRow }) {
   return <span className="font-semibold text-emerald-800">+{offers(row.delta)}</span>;
 }
@@ -229,6 +242,7 @@ export function SiAprendes({
               </th>
               <td className="py-2 pr-3 text-zinc-700">
                 {row.asks} ({row.asksMust} excluyente{row.asksMust === 1 ? "" : "s"})
+                <EvaluatorGaps row={row} />
               </td>
               <td className="py-2 pr-3 text-zinc-700">
                 {row.passNow} → {row.passAfter}
@@ -260,6 +274,7 @@ export function SiAprendes({
             className="flex flex-col gap-1 rounded-lg border border-zinc-200 bg-white p-3 text-sm"
           >
             <p className="break-words font-medium text-zinc-900">{row.name}</p>
+            <EvaluatorGaps row={row} />
             <p className="text-xs text-zinc-700">
               La piden {row.asks} ({row.asksMust} excluyente{row.asksMust === 1 ? "" : "s"})
             </p>
