@@ -21,6 +21,7 @@ import {
 import { and, desc, eq, ne } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 import { withUser } from "./db";
+import { planImpactCacheTag } from "./insights-cache";
 
 /**
  * «Si aprendés…» de /plan (ronda 121, E3b): cuántas ofertas del pool te empezarían a calzar si
@@ -241,9 +242,9 @@ function withSimulation(cached: CachedImpact, requested: readonly string[]): Pla
  * Impacto de las skills del plan sobre las ofertas del pool de la persona. Caché por persona de 30
  * minutos. La clave lleva usuario y carrera, pero no `?simular=`, que se combina afuera: así una URL
  * nueva no repite la consulta. La carrera no entra al cálculo (las preferencias salen del perfil),
- * pero va en la clave para que un cambio de carrera no muestre números de la anterior. Sin
- * invalidación: lo que se cambie en el plan o en los niveles se ve en el próximo cálculo (E-2b). Si
- * falla devuelve `null`: es una ayuda y nunca rompe la página.
+ * pero va en la clave para que un cambio de carrera no muestre números de la anterior. Guardar
+ * niveles o cambiar el estado del plan lo invalida (`invalidateUserInsights`, E-2b). Si falla
+ * devuelve `null`: es una ayuda y nunca rompe la página.
  */
 export async function getPlanImpact(
   userId: string,
@@ -256,7 +257,7 @@ export async function getPlanImpact(
     const cached = await unstable_cache(
       () => computeImpact(userId, now),
       ["plan-impact", CACHE_VERSION, userId, role ?? "sin-carrera"],
-      { revalidate: CACHE_REVALIDATE_SECONDS, tags: [`plan-impact:${userId}`] },
+      { revalidate: CACHE_REVALIDATE_SECONDS, tags: [planImpactCacheTag(userId)] },
     )();
     return cached ? withSimulation(cached, requested) : null;
   } catch (e) {

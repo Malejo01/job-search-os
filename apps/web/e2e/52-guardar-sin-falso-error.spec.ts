@@ -110,9 +110,10 @@ test.describe("Flujo 52b: skills de Ajustes", () => {
       expect(await skillLevelsOf(E2E_USER_ID)).toEqual({ ...before, [slug]: level });
 
       await page.getByRole("button", { name: `Quitar ${name}`, exact: true }).click();
+      // La URL ya es ?guardado=1 del paso anterior: waitForURL no espera a la acción. Se espera la base
+      await expect.poll(() => skillLevelsOf(E2E_USER_ID)).toEqual(withoutTarget);
       await page.waitForURL("**/settings/skills?guardado=1");
       await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
-      expect(await skillLevelsOf(E2E_USER_ID)).toEqual(withoutTarget);
     } finally {
       await restoreSkillLevelRow(slug, backup);
     }
