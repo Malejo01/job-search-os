@@ -761,33 +761,33 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - La conexion de duenio de los helpers de e2e usa la misma guarda de base local que los tests de integracion.
 - **Acepta:** con una URL remota, los helpers fallan antes de conectarse (test).
 
-### JS-129 · `/api/health` con el commit del deploy en curso
-`deps:` — · `est:` XS · `estado:` código hecho 2026-10-09 (ronda 29): `turbo.json` declara `VERCEL_GIT_COMMIT_SHA` en `build`, `/api/health` responde con `Cache-Control: no-store` y un test cubre que la ruta es dinámica. Falta verificar después del deploy que el commit coincide con el de Vercel (Mauro).
+### JS-129 · `/api/health` con el commit del deploy en curso ✅ done 2026-10-12
+`deps:` — · `est:` XS · `estado:` done (ronda 29, PR #66, mergeado 2026-10-12): `turbo.json` declara `VERCEL_GIT_COMMIT_SHA` en `build`, `/api/health` responde con `Cache-Control: no-store` y un test cubre que la ruta es dinámica. Falta que Mauro confirme después de un deploy que el commit coincide con el de Vercel.
 - En produccion `/api/health` muestra un commit anterior al deploy activo: la respuesta queda estatica o en cache. Tiene que ser dinamica (sin prerender ni cache) y mostrar el commit del deploy en curso.
 - La ruta ya tiene `force-dynamic` y lee `VERCEL_GIT_COMMIT_SHA` al responder. A verificar: (1) que el build de Vercel no reutilice una salida vieja del cache de Turborepo (la tarea `build` de `turbo.json` no declara variables de entorno); (2) que la variable de sistema llegue en tiempo de ejecucion y no solo al build; (3) los encabezados de cache de la respuesta.
 - **Acepta:** test de que la ruta es dinamica y lee el commit en tiempo de ejecucion; despues del deploy, el commit coincide con el de Vercel.
 
 ### JS-130 · Skills autodeclaradas y mercado bajo demanda ✅ done 2026-10-09
-`deps:` JS-094, JS-034 · `est:` M · `estado:` done (ronda 28, PR #65)
+`deps:` JS-094, JS-034 · `est:` M · `estado:` done (ronda 28, PR #65, mergeado 2026-10-12)
 - **Por qué:** para un invitado, `/market`, `/plan` y el prescore lo trataban como nivel 0 en todo (los niveles solo entraban por seed), y las pantallas vacías pedían comandos.
 - **Carga:** paso opcional del onboarding y `/settings/skills`. Unas 10 skills sugeridas por rol objetivo (seed `role_skills.json`: Frontend, Backend, Full-stack, QA, Data Analyst, Soporte IT, AI Engineer, UX/UI), buscador sobre la taxonomía y 4 niveles en palabras. El rol no se guarda: se elige en la pantalla y el default sale del titular o de las disciplinas de los criterios, salvo que sean las de fábrica. Server Actions con Zod sobre `skill_levels` (RLS de dueño), sin migración.
 - **Mercado y plan bajo demanda:** al terminar el onboarding (después de la primera ingesta) y al guardar skills, snapshot y plan sin LLM. Límite D-029: sin ofertas nuevas ni niveles cambiados, 1 cada 10 minutos; con cambios, un mínimo de 10 s entre recálculos (si cae adentro, espera lo que falta y reintenta una vez). Marca en `job_queue` con lock por usuario. El cron semanal no cambia.
 - **Pantallas para personas:** `/market` y `/plan` dicen qué falta (ofertas, skills, cálculo en curso), con link a la acción. Un test impide `pnpm`, `seeds/` o nombres de archivo en el texto de la UI.
 - **e2e:** invitado nuevo → carga 5 skills → `/market` deja de marcar todo como gap y el plan ya no lista lo que domina.
 
-### JS-131 · Nombre del producto en una constante y limpieza pre-beta
-`deps:` — · `est:` XS · `estado:` en revisión (ronda 29)
+### JS-131 · Nombre del producto en una constante y limpieza pre-beta ✅ done 2026-10-12
+`deps:` — · `est:` XS · `estado:` done (ronda 29, PR #66). Después, la marca entera pasó a un solo módulo (C-15, PR #178).
 - `PRODUCT_NAME` único para el título, los metadatos, los encabezados, los emails y el XML de filtros. Los textos legales quedan para el cambio de nombre.
 - Se borran `/privacidad` y `/terminos` dentro de `(app)` (las URLs viejas ya redirigen a `/legal/*` desde `next.config.ts`) y `lib/safe-error.ts` de web, que no tenían uso.
 
-### JS-132 · Feedback de un toque (👍/👎) en el detalle de la oferta
-`deps:` — · `est:` S + migración · `estado:` diseño (2026-10-09, ronda 30) — lleva migración: va con plan y se aplica en Neon antes del deploy
+### JS-132 · Feedback de un toque (👍/👎) en el detalle de la oferta ✅ done 2026-10-14
+`deps:` — · `est:` S + migración · `estado:` done (PR #86, migración 0026, 2026-10-14). Después: guardar el motivo (#87) y botones accesibles (#93, 2026-10-19).
 - **Por qué no entra en `human_score`:** ese número lo usan el snapshot de mercado (peso de la demanda) y el MAE del reporte de feedback. Un 👍/👎 no tiene un número honesto: copiar el score del modelo mete errores 0 en el MAE, y un 👎 no dice si el score estaba alto o bajo.
 - **Diseño:** columnas `human_verdict` (enum `de_acuerdo`/`en_desacuerdo`) y `human_verdict_at` en `evaluations`. El motivo corto opcional va en `human_note`. El formulario numérico queda en "Ajustar el score (avanzado)". El reporte de feedback suma la tasa de acuerdo por banda, fuera del MAE.
 - **Acepta:** 👎 con motivo persiste; el numérico sigue igual y no pisa el veredicto; B no puede marcar la evaluación de A.
 
-### JS-133 · Taxonomía: skills de diseño, soporte y análisis de datos
-`deps:` JS-130 · `est:` S · `estado:` todo (2026-10-09, ronda 28)
+### JS-133 · Taxonomía: skills de diseño, soporte y análisis de datos ✅ done 2026-10-12
+`deps:` JS-130 · `est:` S · `estado:` done (ronda 28, PR #67)
 - Las sugerencias de UX/UI, Soporte IT y Data Analyst usan lo que hay en la taxonomía de 60 skills. Faltan, por ejemplo, herramientas de diseño, sistemas operativos y redes, y planillas o BI.
 - Sumar skills cambia un dato global en Neon (tabla `skills`, hoy cargada desde `skills.json`). Va con plan y lo aplica Mauro. Después se ajusta `role_skills.json`.
 
@@ -848,6 +848,128 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 ### JS-042 · Recruiter CRM y follow-ups
 ### JS-043 · Interview prep por oferta
 ### JS-044 · Application Kit RAG
+
+## Bloque 7 — Beta y pre-piloto (rondas 40 a 122, del 12/10 al 24/10)
+
+Resumen por tema de lo mergeado en ese período. Un ítem por tema, no uno por PR. «Mergeado» no implica «migración aplicada en producción»: las migraciones las aplica Mauro aparte.
+
+### Onboarding, guía y primer valor
+- **Onboarding** con varias modalidades, idioma de ofertas, país por nombre y skills más claras · done 2026-10-20 · #121. Un error de validación ya no borra lo cargado · #119.
+- **Primeros pasos y guía** dentro de la app · done 2026-10-20 · #92 y #139. Textos sin jerga, `/jobs` vacío que orienta y navegación a 360 px · #114.
+- **Textos para el piloto:**
+  - carreras, invitación, ubicación, Gmail y criterios · done 2026-10-21 · #169;
+  - el onboarding terminado aterriza en «Hoy» · #173;
+  - `/applications` sin jerga al empezar · #175 (2026-10-23).
+- **Primer valor en menos de 3 minutos (C-17):**
+  - e2e cronometrado · #193;
+  - la lista primero y el aviso de email después · #190;
+  - al crear la cuenta se entra directo · #199 (2026-10-23).
+
+  Quedan R1, R3 y R5, que esperan el #171.
+
+### «Hoy», seguimiento y postulaciones
+- **Pantalla «Hoy»** como aterrizaje después del login · done 2026-10-21 · #165 y #166.
+- **«Para hacer seguimiento»** en `/applications`, en el menú y en «Hoy» · done 2026-10-23 · #155 y #188.
+
+### Perfil, evaluador y prefiltro
+- **«Tu perfil» en Ajustes** · done 2026-10-20 · #129. Al cambiar modalidad, país o idioma se vuelven a prefiltrar los avisos sin evaluar · #135.
+- **Decide:** si la persona acepta la modalidad del aviso, el bloqueador del modelo pasa a riesgo · done 2026-10-21 · #134.
+- **Un aviso que exige residir en otro país se descarta** · done 2026-10-20 · #106. Más patrones de licencia de otro país · #208 (abierto).
+- **Evaluador:**
+  - checklist de requisitos del aviso; salario, jornada y seniority en código · done 2026-10-21 · #147;
+  - seguimientos · #150, #151 y #153;
+  - la demo muestra «Requisitos del aviso» · #161.
+- **Lectura de CV**, detrás de `CV_IMPORT_ENABLED` (apagado):
+  - pipeline puro · #130;
+  - orquestación · #160;
+  - una lectura cortada por tiempo no consume el cupo · #162;
+  - el código del CV pasa a carril rojo · #131.
+
+### Pool, fuentes y carreras
+- **Selección de primeras ofertas** que calzan con puesto, nivel y país · done 2026-10-16 · #90 y #96.
+- **Fuentes:**
+  - aviso de muro de pago y link al sitio de la empresa · #107;
+  - Get on Board suma operaciones y publicidad (ADR-020) · #145;
+  - fichas de fuentes · #152;
+  - Teamtailor por feed RSS, integrado y apagado · #196, con la migración 0041 · #200 (2026-10-23).
+- **Idioma en el pool**, chip «En español», y el inglés no es brecha en avisos en español · done 2026-10-21 · #144. Además: `pnpm pool:rehint` · #146; dry-run con desglose · #168.
+- **Carreras:**
+  - «Producto y proyectos» se parte en cuatro · #140;
+  - Data Engineering y Solutions Engineering · #148;
+  - Ventas B2B, Atención al cliente y licencias de otro país (ADR-022) · #154;
+  - Finanzas y contabilidad, y Asistencia y operaciones (migraciones 0043 y 0044) · #202;
+  - títulos sin carrera y vetos entre carreras vecinas · #210 (2026-10-24).
+- **Personas ficticias para `pool:explain`** · #211. Siguen #222 y #225 (abiertos).
+- **Alertas:** guía «Qué alertas crear» · #149; palabras sugeridas · #157; «Qué portal te sirve» · #156 (2026-10-21).
+
+### Mercado, plan y encaje
+- **Mercado por carrera en `/market`** · #101. Sueldos por carrera en dos mercados · #122.
+- **«Tu encaje»:**
+  - funciones puras · #180;
+  - `/encaje` y tarjeta en «Hoy» · #185;
+  - cruce con el detalle · #187;
+  - se actualiza al guardar · #203 (2026-10-23).
+- **Plan de estudio (C-3):**
+  - simulador y ruta, puros · #183;
+  - «Si aprendés…» en `/plan` · #186;
+  - selector de horas · #214;
+  - «Esta semana» · #217;
+  - el curso que lleva a nivel 2 · #216;
+  - «el evaluador te la marcó» · #218;
+  - «Ver 3 ofertas» · #220 (2026-10-24).
+- **Catálogo de cursos (C-3):**
+  - verificador de links, puro y sin red · #215;
+  - proveedores, todo «a verificar» · #219;
+  - más rangos rechazados en la validación de URLs · #221 (2026-10-24).
+
+  Quedan en carril rojo: columnas, CLI y cron.
+
+### Cuentas, planes y métricas de la beta
+- **Planes y topes en un solo lugar,** y `/precios` detrás de `PRICING_ENABLED` · done 2026-10-23 · #176. Plan de cada persona con vencimiento (migración 0039) · #179.
+- **Marca en un solo lugar** · done 2026-10-23 · #178.
+- **Carrera «madura» o «en pulido»** y tablero de la beta para el admin · done 2026-10-23 · #197. Cupos de fundador por carrera · #207 (abierto).
+- **Instituciones:** módulos puros de B2B · done 2026-10-23 · #184.
+- **Invitaciones y lista de espera** · #112 y #97.
+- **Legal:**
+  - volver a aceptar los términos cuando cambia la versión · #127;
+  - privacidad y términos para la beta · #158;
+  - contacto para borrar datos · #113.
+
+### Endurecimiento y operación
+- **Endurecimiento de las acciones del servidor y del restablecimiento de contraseña** · done 2026-10-23 · #174 y #182 (migración 0040).
+- **Endurecimiento del correo entrante y de los encabezados HTTP** · #110, #104 y #98. El MCP responde un error enseguida · #137.
+- **Operación:**
+  - presupuesto de tiempo del worker y `/api/cron/status` · #109;
+  - carril verde · #120;
+  - build local con Docker · #116;
+  - demo guiada semanal · #132.
+- **Rendimiento (C-7):**
+  - #192, #194, #195 y #206;
+  - seis índices (migración 0042) · #201;
+  - tope del caché de «Si aprendés…» · #209;
+  - sin prefetch en las listas ISR · #128.
+- **Pantallas de error en español** · #100.
+
+### Vitrina pública, documentación y calidad
+- **Vitrina:**
+  - portada, mercado y ofertas de muestra · #105;
+  - revalidación · #111;
+  - demo guiada · #115;
+  - URL canónica y metadatos · #136;
+  - `/en/how-its-built` · #141;
+  - build con la URL de la app · #138;
+  - imagen para compartir · #163;
+  - SEO por carrera · #181.
+- **Docs:** README · #133; ARCHITECTURE.md · #142.
+- **Accesibilidad AA (axe):**
+  - públicas · #143;
+  - con sesión · #167;
+  - registro y onboarding · #204;
+  - admin y `/precios` · #212.
+- **e2e y tests:**
+  - specs sin dependencias de orden ni de caché · #205 y #213;
+  - tests de cobertura de pipeline · #223;
+  - recorrido de una persona nueva en Finanzas · #224 (abiertos).
 
 ## Reglas del backlog
 
