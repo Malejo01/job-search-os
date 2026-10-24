@@ -143,9 +143,26 @@ describe("parsePersona", () => {
         yearsTotal: 3,
         salaryFloorUsd: null,
         maxWeeklyHours: null,
+        jobLanguages: null,
         skills: [{ slug: "sql", level: 2 }],
       },
     });
+  });
+
+  it("acepta jobLanguages y lo devuelve", () => {
+    const r = parsePersona({ ...base, jobLanguages: ["es"] });
+    expect(r.ok && r.persona.jobLanguages).toEqual(["es"]);
+    const r2 = parsePersona({ ...base, jobLanguages: ["es", "en"] });
+    expect(r2.ok && r2.persona.jobLanguages).toEqual(["es", "en"]);
+  });
+
+  it("sin jobLanguages devuelve null", () => {
+    const r = parsePersona(base);
+    expect(r.ok && r.persona.jobLanguages).toBeNull();
+  });
+
+  it.each([[[]], [["fr"]], [["es", "fr"]]])("rechaza jobLanguages %j", (jl) => {
+    expect(parsePersona({ ...base, jobLanguages: jl }).ok).toBe(false);
   });
 
   it.each([
@@ -177,6 +194,8 @@ describe("parsePersona", () => {
       "backend-dev.json",
       "qa.json",
       "diseno-ux.json",
+      "rrhh-it.json",
+      "customer-success-solo-es.json",
     ]) {
       const json = JSON.parse(readFileSync(new URL(`./personas/${f}`, import.meta.url), "utf8"));
       expect(parsePersona(json).ok, f).toBe(true);

@@ -1,0 +1,15 @@
+{
+  "targetRoles": ["customer_success"],
+  "locationCountry": "MX",
+  "remoteOnly": true,
+  "yearsTotal": 3,
+  "jobLanguages": ["es"],
+  "skills": [
+    { "slug": "customer_onboarding", "level": 3 },
+    { "slug": "churn_retention", "level": 2 },
+    { "slug": "hubspot", "level": 2 },
+    { "slug": "client_facing", "level": 3 },
+    { "slug": "help_desk", "level": 1 },
+    { "slug": "excel", "level": 2 }
+  ]
+}
