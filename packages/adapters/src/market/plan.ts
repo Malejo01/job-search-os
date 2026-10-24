@@ -1,5 +1,10 @@
 import { schema as s, type Db } from "@job-search-os/db";
-import { buildPlan, type PlanRow, type RoleKey } from "@job-search-os/pipeline";
+import {
+  buildPlan,
+  pickLearningResource,
+  type PlanRow,
+  type RoleKey,
+} from "@job-search-os/pipeline";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { validRoleKeys } from "../ingest/ingest-job";
 
@@ -168,7 +173,8 @@ export async function buildLearningPlan(
     .where(eq(s.learningPlanItems.userId, userId));
   const existingBySkill = new Map(existing.map((e) => [e.skillId, e]));
 
-  // Mejor recurso aprobado por skill: target_level > nivel actual, menos horas
+  // Mejor recurso aprobado por skill (`pickLearningResource`): sube el nivel, menos horas, y el
+  // que lleva a nivel 2 si cuesta como mucho el doble
   const wantedSkillIds = rows.map((r) => skillIdBySlug.get(r.slug)!);
   const resources = wantedSkillIds.length
     ? await db
@@ -188,7 +194,10 @@ export async function buildLearningPlan(
         .orderBy(asc(s.learningResources.hours))
     : [];
   const bestResource = (skillId: string, level: number | null) =>
-    resources.find((r) => r.skillId === skillId && r.targetLevel > (level ?? 0))?.id ?? null;
+    pickLearningResource(
+      resources.filter((r) => r.skillId === skillId),
+      level,
+    )?.id ?? null;
 
   let inserted = 0;
   let updated = 0;

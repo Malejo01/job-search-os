@@ -53,5 +53,39 @@ export function buildPlan(skills: readonly PlanSkillInput[]): PlanRow[] {
     .sort((a, b) => b.priority - a.priority || a.slug.localeCompare(b.slug));
 }
 
+/** Nivel al que «aprender» lleva una skill (el mismo del simulador) y tolerancia en horas. */
+const RESOURCE_TARGET_LEVEL = 2;
+const RESOURCE_MAX_HOURS_RATIO = 2;
+
+/**
+ * Mejor recurso del catálogo para una skill (121 §7). De los que suben el nivel actual, el de
+ * menos horas (los sin dato al final, y a igualdad, el orden de entrada). Si ese lleva solo a nivel
+ * 1 y hay uno que lleva a nivel 2 o más por como mucho el doble de horas, gana ese. Sin horas
+ * conocidas no se compara.
+ */
+export function pickLearningResource<T extends { targetLevel: number; hours: number | null }>(
+  resources: readonly T[],
+  level: number | null,
+): T | null {
+  const current = level ?? 0;
+  const byHours = resources
+    .map((r, i) => ({ r, i }))
+    .filter(({ r }) => r.targetLevel > current)
+    .sort(
+      (a, b) =>
+        (a.r.hours ?? Number.POSITIVE_INFINITY) - (b.r.hours ?? Number.POSITIVE_INFINITY) ||
+        a.i - b.i,
+    )
+    .map(({ r }) => r);
+  const cheapest = byHours[0];
+  if (!cheapest) return null;
+  if (cheapest.targetLevel >= RESOURCE_TARGET_LEVEL || cheapest.hours === null) return cheapest;
+  const limit = cheapest.hours * RESOURCE_MAX_HOURS_RATIO;
+  const deeper = byHours.find(
+    (r) => r.targetLevel >= RESOURCE_TARGET_LEVEL && r.hours !== null && r.hours <= limit,
+  );
+  return deeper ?? cheapest;
+}
+
 export const PLAN_STATUSES = ["pendiente", "en_curso", "cerrada"] as const;
 export type PlanStatus = (typeof PLAN_STATUSES)[number];
