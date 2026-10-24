@@ -17,8 +17,8 @@ function ipv4Octets(host: string): number[] | null {
   return o.every((n) => n <= 255) ? o : null;
 }
 
-function isBlockedIpv4([a, b]: number[]): boolean {
-  if (a === undefined || b === undefined) return true;
+function isBlockedIpv4([a, b, c]: number[]): boolean {
+  if (a === undefined || b === undefined || c === undefined) return true;
   return (
     a === 0 ||
     a === 10 ||
@@ -28,8 +28,18 @@ function isBlockedIpv4([a, b]: number[]): boolean {
     (a === 172 && b >= 16 && b <= 31) ||
     (a === 192 && b === 168) ||
     (a === 198 && (b === 18 || b === 19)) ||
+    // Reservadas y de documentación: 192.0.0/24, 192.0.2/24, 192.88.99/24, 198.51.100/24, 203.0.113/24
+    (a === 192 && b === 0 && (c === 0 || c === 2)) ||
+    (a === 192 && b === 88 && c === 99) ||
+    (a === 198 && b === 51 && c === 100) ||
+    (a === 203 && b === 0 && c === 113) ||
     a >= 224
   );
+}
+
+/** IPv4 de dos grupos de 16 bits de un IPv6. */
+function embeddedIpv4(hi: number, lo: number): number[] {
+  return [hi >> 8, hi & 0xff, lo >> 8, lo & 0xff];
 }
 
 /** Expande un IPv6 ya normalizado por URL (sin corchetes) a 8 grupos, o null si no se entiende. */
@@ -63,12 +73,17 @@ function isBlockedIpv6(host: string): boolean {
   if ((first & 0xfe00) === 0xfc00) return true; // fc00::/7
   if ((first & 0xffc0) === 0xfe80) return true; // fe80::/10
   if (first === 0x2001 && g[1] === 0x0db8) return true; // documentación
+  if (first === 0x2001 && g[1] === 0) return true; // Teredo (2001::/32): lleva una IPv4 ofuscada
+  if (first === 0x64 && g[1] === 0xff9b && g[2] === 1) return true; // NAT64 local (64:ff9b:1::/48)
   // ::ffff:a.b.c.d (mapeada) y ::a.b.c.d (compatible): se juzga la IPv4 embebida
   if (g.slice(0, 5).every((x) => x === 0) && (g[5] === 0xffff || g[5] === 0)) {
-    const hi = g[6] ?? 0;
-    const lo = g[7] ?? 0;
-    return isBlockedIpv4([hi >> 8, hi & 0xff, lo >> 8, lo & 0xff]);
+    return isBlockedIpv4(embeddedIpv4(g[6] ?? 0, g[7] ?? 0));
   }
+  // NAT64 (64:ff9b::/96) y 6to4 (2002::/16) también: se juzga la IPv4 que llevan
+  if (first === 0x64 && g[1] === 0xff9b && g.slice(2, 6).every((x) => x === 0)) {
+    return isBlockedIpv4(embeddedIpv4(g[6] ?? 0, g[7] ?? 0));
+  }
+  if (first === 0x2002) return isBlockedIpv4(embeddedIpv4(g[1] ?? 0, g[2] ?? 0));
   return false;
 }
 
