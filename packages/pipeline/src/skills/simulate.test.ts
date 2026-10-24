@@ -3,11 +3,54 @@ import {
   STUDY_HOURS_DEFAULT,
   buildStudyRoute,
   parseStudyHours,
+  pickWeekFocus,
   simulateSkillImpact,
   simulateSkills,
+  type RouteStep,
   type SimCandidate,
   type SimInput,
 } from "./simulate";
+
+describe("«Esta semana» (C-3 E4c)", () => {
+  const step = (slug: string, hours: number): RouteStep => ({
+    slug,
+    name: slug,
+    hours,
+    estimated: false,
+    delta: 1,
+    weekFrom: 1,
+    weekTo: 1,
+  });
+  const route = [step("python", 20), step("tableau", 3), step("power_bi", 11)];
+
+  it("sin ruta, nada", () => {
+    expect(pickWeekFocus([], new Map(), 5)).toBeNull();
+  });
+
+  it("el primer paso de la ruta; las horas de la semana con tope en lo que falta", () => {
+    expect(pickWeekFocus(route, new Map(), 5)).toEqual({
+      step: route[0],
+      hoursThisWeek: 5,
+      hoursLeft: 20,
+    });
+    expect(pickWeekFocus([step("tableau", 3)], new Map(), 5)?.hoursThisWeek).toBe(3);
+  });
+
+  it("si una skill de la ruta ya está en curso, esa va primero", () => {
+    const statuses = new Map([
+      ["python", "pendiente"],
+      ["power_bi", "en_curso"],
+    ] as const);
+    expect(pickWeekFocus(route, statuses, 10)?.step.slug).toBe("power_bi");
+  });
+
+  it("las cerradas no cuentan", () => {
+    const statuses = new Map([["python", "cerrada"]] as const);
+    expect(pickWeekFocus(route, statuses, 5)?.step.slug).toBe("tableau");
+    const all = new Map(route.map((s) => [s.slug, "cerrada"] as const));
+    expect(pickWeekFocus(route, all, 5)).toBeNull();
+  });
+});
 
 /** Skill de una oferta: «slug» o «slug!» si es excluyente. */
 function offer(id: string, skills: string[], flags: string[] = []): SimCandidate {

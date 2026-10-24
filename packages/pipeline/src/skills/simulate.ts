@@ -1,3 +1,4 @@
+import type { PlanStatus } from "./plan";
 import { preScore } from "./prescore";
 
 /**
@@ -170,4 +171,23 @@ export function buildStudyRoute(
     });
   }
   return steps;
+}
+
+export type WeekFocus = { step: RouteStep; hoursThisWeek: number; hoursLeft: number };
+
+/**
+ * «Esta semana» de /plan (diseño 121 §4.1, E4c). La skill en la que conviene estar ahora: la
+ * primera de la ruta que la persona ya marcó «en curso» o, si no hay ninguna, el primer paso de la
+ * ruta. Las cerradas no cuentan. Las horas de la semana son las elegidas, con tope en lo que falta.
+ */
+export function pickWeekFocus(
+  route: readonly RouteStep[],
+  statuses: ReadonlyMap<string, PlanStatus>,
+  hoursPerWeek: number,
+): WeekFocus | null {
+  const open = route.filter((s) => statuses.get(s.slug) !== "cerrada");
+  const step = open.find((s) => statuses.get(s.slug) === "en_curso") ?? open[0];
+  if (!step) return null;
+  const perWeek = hoursPerWeek > 0 ? hoursPerWeek : 5;
+  return { step, hoursThisWeek: Math.min(perWeek, step.hours), hoursLeft: step.hours };
 }

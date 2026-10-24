@@ -318,6 +318,29 @@ test.describe("Flujo 73: si aprendés…", () => {
     await expect(page.getByTestId("plan-ruta-pie")).toContainText("Con 5 h por semana.");
   });
 
+  test("«Esta semana» propone el primer paso de la ruta con las horas elegidas", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 360, height: 740 });
+    await login(page);
+    await page.goto("/plan");
+    const week = page.getByTestId("plan-semana");
+    await expect(week).toBeVisible();
+    // Power BI es la que más ofertas suma por hora (3 en ~11 h): primer paso de la ruta
+    await expect(week).toContainText("Power BI");
+    await expect(page.getByTestId("plan-semana-horas")).toContainText(
+      /^5 h esta semana · te quedan \d+ h/,
+    );
+    await expect(week.getByRole("button", { name: "Empezar" })).toBeVisible();
+    const first = await page.getByTestId("plan-ruta").getByRole("listitem").first().innerText();
+    expect(first).toContain("Power BI");
+
+    await page.goto("/plan?horas=10");
+    await expect(page.getByTestId("plan-semana-horas")).toContainText(/^10 h esta semana/);
+    const width = await page.evaluate(() => document.documentElement.scrollWidth);
+    expect(width, "scrollWidth en /plan con «Esta semana»").toBeLessThanOrEqual(360);
+  });
+
   for (const viewport of [
     { width: 360, height: 740 },
     { width: 1280, height: 800 },
