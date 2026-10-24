@@ -24,7 +24,7 @@ import {
   type SimCandidate,
   type SimInput,
 } from "@job-search-os/pipeline";
-import { and, desc, eq, gte, ne } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, ne } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 import { withUser } from "./db";
 import { planImpactCacheTag } from "./insights-cache";
@@ -42,7 +42,8 @@ export const MAX_SIMULAR = 5;
 const MAX_PLAN_SKILLS = 15;
 // v3: la entrada guardada suma `routeSkills`, para rehacer la ruta con `?horas=` afuera del caché
 // v4: cada fila suma `evaluatorGaps`
-const CACHE_VERSION = "v4";
+// v5: cada fila suma `examples`
+const CACHE_VERSION = "v5";
 /** Ventana y tope de las evaluaciones propias que se cuentan para «el evaluador te la marcó». */
 const GAP_WINDOW_DAYS = 30;
 const MAX_GAP_EVALUATIONS = 500;
@@ -65,6 +66,11 @@ export type PlanImpactRow = {
   estimated: boolean;
   /** En cuántas de tus ofertas evaluadas (últimos 30 días) el evaluador la marcó como brecha. */
   evaluatorGaps: number;
+  /**
+   * Hasta 3 de las ofertas que se te abrirían con la skill (E3d), solo las que ya tenés asignadas:
+   * de las demás no hay a dónde llevarte, y queda solo la cuenta.
+   */
+  examples: { jobId: string; title: string }[];
 };
 
 export type PlanImpact = {
@@ -211,8 +217,23 @@ async function computeImpact(userId: string, now: Date): Promise<CachedImpact | 
       compileTaxonomy(planRows.map((p) => ({ slug: p.slug, name: p.name, aliases: p.aliases }))),
     );
 
+    const impacts = new Map(plan.map((p) => [p.slug, simulateSkillImpact(input, p.slug)]));
+    // E3d: de las ofertas del pool que se abrirían, las que la persona ya tiene como `jobs` propios
+    const exampleIds = [...new Set([...impacts.values()].flatMap((i) => i.exampleIds))];
+    const ownCopies = exampleIds.length
+      ? await tx
+          .select({ id: s.jobs.id, title: s.jobs.title, publicJobId: s.jobs.publicJobId })
+          .from(s.jobs)
+          .where(and(eq(s.jobs.userId, userId), inArray(s.jobs.publicJobId, exampleIds)))
+      : [];
+    const ownByPublic = new Map(ownCopies.map((j) => [j.publicJobId, j]));
+
     const rows: PlanImpactRow[] = plan.map((p) => {
-      const impact = simulateSkillImpact(input, p.slug);
+      const impact = impacts.get(p.slug)!;
+      const examples = impact.exampleIds.flatMap((id) => {
+        const own = ownByPublic.get(id);
+        return own ? [{ jobId: own.id, title: own.title }] : [];
+      });
       return {
         slug: p.slug,
         name: p.name,
@@ -225,6 +246,7 @@ async function computeImpact(userId: string, now: Date): Promise<CachedImpact | 
         hours: p.hours ?? 20,
         estimated: p.hours === null,
         evaluatorGaps: gapCounts.get(p.slug) ?? 0,
+        examples,
       };
     });
     const priorityOf = new Map(plan.map((p, i) => [p.slug, plan.length - i]));

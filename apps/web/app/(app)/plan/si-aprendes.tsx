@@ -106,15 +106,40 @@ function HoursPicker({ hours, selected }: { hours: number; selected: readonly st
 }
 
 /** E4d: dato del evaluador sobre las ofertas propias. No entra en «+K»: va al lado. */
-function EvaluatorGaps({ row }: { row: PlanImpactRow }) {
+function EvaluatorGaps({ row, testId }: { row: PlanImpactRow; testId: string }) {
   if (row.evaluatorGaps <= 0) return null;
   return (
-    <span
-      data-testid={`plan-sim-evaluador-${row.slug}`}
-      className="block text-xs font-normal text-zinc-700"
-    >
+    <span data-testid={testId} className="block text-xs font-normal text-zinc-700">
       El evaluador te la marcó como brecha en {offers(row.evaluatorGaps)} tuyas
     </span>
+  );
+}
+
+/**
+ * E3d: «Ver N ofertas», solo con las que ya tenés asignadas. `details` sin JS; cada link de 44 px.
+ * Sin ninguna asignada no se muestra nada: la cuenta de «+K» ya está al lado.
+ */
+function Examples({ row, testId }: { row: PlanImpactRow; testId: string }) {
+  if (!row.examples.length) return null;
+  return (
+    <details className="text-xs" data-testid={testId}>
+      <summary className="flex min-h-11 cursor-pointer items-center gap-1 font-medium text-sky-800">
+        <span aria-hidden="true">▸</span>
+        <span className="underline underline-offset-2">Ver {offers(row.examples.length)}</span>
+      </summary>
+      <ul className="flex flex-col">
+        {row.examples.map((ex) => (
+          <li key={ex.jobId}>
+            <Link
+              href={`/jobs/${ex.jobId}`}
+              className="inline-flex min-h-11 items-center break-words text-sky-800 underline"
+            >
+              {ex.title}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
 
@@ -242,13 +267,14 @@ export function SiAprendes({
               </th>
               <td className="py-2 pr-3 text-zinc-700">
                 {row.asks} ({row.asksMust} excluyente{row.asksMust === 1 ? "" : "s"})
-                <EvaluatorGaps row={row} />
+                <EvaluatorGaps row={row} testId={`plan-sim-evaluador-${row.slug}`} />
               </td>
               <td className="py-2 pr-3 text-zinc-700">
                 {row.passNow} → {row.passAfter}
               </td>
               <td className="py-2 pr-3">
                 <Gain row={row} />
+                <Examples row={row} testId={`plan-sim-ejemplos-${row.slug}`} />
               </td>
               <td className="py-2 pr-3 text-zinc-700">
                 ~{row.hours} h{row.estimated ? " (estimado)" : ""}
@@ -274,7 +300,7 @@ export function SiAprendes({
             className="flex flex-col gap-1 rounded-lg border border-zinc-200 bg-white p-3 text-sm"
           >
             <p className="break-words font-medium text-zinc-900">{row.name}</p>
-            <EvaluatorGaps row={row} />
+            <EvaluatorGaps row={row} testId={`plan-sim-evaluador-m-${row.slug}`} />
             <p className="text-xs text-zinc-700">
               La piden {row.asks} ({row.asksMust} excluyente{row.asksMust === 1 ? "" : "s"})
             </p>
@@ -284,6 +310,7 @@ export function SiAprendes({
             <p className="text-xs">
               <Gain row={row} />
             </p>
+            <Examples row={row} testId={`plan-sim-ejemplos-m-${row.slug}`} />
             <p className="text-xs text-zinc-700">
               ~{row.hours} h{row.estimated ? " (estimado)" : ""}
             </p>
