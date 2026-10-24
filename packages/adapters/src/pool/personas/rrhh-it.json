@@ -1,0 +1,15 @@
+{
+  "targetRoles": ["rrhh_it"],
+  "locationCountry": "CO",
+  "remoteOnly": true,
+  "yearsTotal": 5,
+  "skills": [
+    { "slug": "sourcing", "level": 3 },
+    { "slug": "interviewing", "level": 3 },
+    { "slug": "ats", "level": 2 },
+    { "slug": "linkedin_recruiter", "level": 2 },
+    { "slug": "employer_branding", "level": 1 },
+    { "slug": "english_intermediate", "level": 2 },
+    { "slug": "excel", "level": 1 }
+  ]
+}
