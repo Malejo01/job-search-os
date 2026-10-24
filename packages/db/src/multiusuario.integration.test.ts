@@ -640,6 +640,12 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
         /admin_beta_metrics: no autorizado/,
       );
     },
+    // C-13b: cupos de fundador, solo app_admins
+    admin_founder_counts: async () => {
+      await expect(asUser(A, (tx) => tx`select * from admin_founder_counts()`)).rejects.toThrow(
+        /admin_founder_counts: no autorizado/,
+      );
+    },
     // Lookup por email: acá solo un email inexistente.
     auth_user_by_email: async () => {
       expect(
