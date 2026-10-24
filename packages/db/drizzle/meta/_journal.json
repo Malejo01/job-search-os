@@ -295,6 +295,13 @@
       "when": 1792793522228,
       "tag": "0041_lively_nehzno",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1792794519084,
+      "tag": "0042_volatile_thunderbolts",
+      "breakpoints": true
     }
   ]
 }
