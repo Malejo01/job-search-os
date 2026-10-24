@@ -10,6 +10,7 @@ import { schema as s } from "@job-search-os/db";
 import {
   SIMULATE_MIN_CANDIDATES,
   buildStudyRoute,
+  fitCacheValue,
   monthlyUsd,
   simulateSkillImpact,
   simulateSkills,
@@ -255,7 +256,19 @@ export async function getPlanImpact(
   const requested = parseSimular(simular);
   try {
     const cached = await unstable_cache(
-      () => computeImpact(userId, now),
+      async () => {
+        const value = await computeImpact(userId, now);
+        // C-7 #11: si no entra en el Data Cache (2 MB), se guarda sin la entrada de `?simular=`:
+        // la tabla y la ruta siguen, y la simulación queda sin efecto hasta el próximo cálculo
+        return value
+          ? fitCacheValue(value, (v) => {
+              createLogger({ user_id: userId, task: "plan_impact" }).warn(
+                "impacto del plan demasiado grande para el caché: se guarda sin la simulación",
+              );
+              return { ...v, sim: null };
+            })
+          : value;
+      },
       ["plan-impact", CACHE_VERSION, userId, role ?? "sin-carrera"],
       { revalidate: CACHE_REVALIDATE_SECONDS, tags: [planImpactCacheTag(userId)] },
     )();
