@@ -108,13 +108,10 @@ test.describe("Flujo 25: ensayo de invitación, de la invitación a la primera o
     await pageB.getByLabel("Repetí la contraseña").fill(passwordB);
     await pageB.getByLabel(/Leí y acepto/).check();
     await pageB.getByRole("button", { name: "Crear cuenta" }).click();
-    await expect(pageB.getByRole("heading", { name: "Cuenta creada" })).toBeVisible();
-
-    await pageB.getByRole("link", { name: "Ir a entrar" }).click();
-    await pageB.getByLabel("Email").fill(emailB);
-    await pageB.getByLabel("Contraseña").fill(passwordB);
-    await pageB.getByRole("button", { name: "Entrar" }).click();
+    // El registro deja la sesión iniciada: va directo al onboarding, sin pasar por /login
     await pageB.waitForURL("**/onboarding**");
+    expect(new URL(pageB.url()).pathname).toMatch(/^\/onboarding/);
+    await expect(pageB.getByRole("heading", { name: "Cuenta creada" })).toHaveCount(0);
     await expect(pageB.getByRole("heading", { name: "Completá tu perfil" })).toBeVisible();
 
     // Un perfil distinto del de A: otro país y pocos años
