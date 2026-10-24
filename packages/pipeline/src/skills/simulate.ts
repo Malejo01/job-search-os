@@ -12,6 +12,19 @@ export const SIMULATE_TARGET_LEVEL = 2;
 export const SIMULATE_MIN_CANDIDATES = 10;
 /** Horas que se suponen para cerrar una skill sin `closure_hours` (y se marcan «estimado»). */
 export const SIMULATE_DEFAULT_HOURS = 20;
+/** Horas de estudio por semana que se pueden elegir en /plan (`?horas=`, E4b). */
+export const STUDY_HOURS_OPTIONS = [3, 5, 10] as const;
+export type StudyHours = (typeof STUDY_HOURS_OPTIONS)[number];
+export const STUDY_HOURS_DEFAULT: StudyHours = 5;
+
+/** `?horas=` limpio: solo una de las opciones; cualquier otra cosa vuelve al valor por defecto. */
+export function parseStudyHours(raw: string | readonly string[] | null | undefined): StudyHours {
+  const text = (Array.isArray(raw) ? raw[0] : raw) ?? "";
+  const trimmed = String(text).trim();
+  if (!/^\d{1,2}$/.test(trimmed)) return STUDY_HOURS_DEFAULT;
+  const n = Number(trimmed);
+  return STUDY_HOURS_OPTIONS.find((h) => h === n) ?? STUDY_HOURS_DEFAULT;
+}
 
 export type SimCandidate = {
   id: string;
