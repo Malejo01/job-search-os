@@ -757,7 +757,8 @@ describe("inferRoleHints · ventas, atención, RRHH y contenido (ronda 107, ADR-
     ["Customer Success Manager", ["customer_success"]],
     ["Technical Account Manager", ["customer_success"]],
     ["Key Account Manager", ["ventas_b2b"]],
-    ["Account Manager", []],
+    // T2: «account manager» pasó a customer_success (antes []).
+    ["Account Manager", ["customer_success"]],
     ["Graphic Designer", ["marketing_digital"]],
     ["Product Designer", ["ux_ui"]],
     ["HR Generalist", ["rrhh_it"]],
@@ -908,5 +909,52 @@ describe("inferRoleHints · finanzas y asistencia/operaciones (C-2b, ADR-023)", 
     expect(hints("IT Operations Analyst")).toEqual(["soporte_it"]);
     expect(hints("Security Operations Analyst")).toEqual(["ciberseguridad"]);
     expect(hints("People Operations Manager")).toEqual(["rrhh_it"]);
+  });
+});
+
+describe("inferRoleHints · términos de carrera T2", () => {
+  it.each([
+    ["Sales Director", "ventas_b2b"],
+    ["Regional Sales EMEA", "ventas_b2b"],
+    ["Enterprise Sales EMEA", "ventas_b2b"],
+    ["Head of Sales", "ventas_b2b"],
+    ["Account Manager", "customer_success"],
+    ["Enterprise Account Manager", "customer_success"],
+    ["Solutions Engineering Lead", "solutions_engineer"],
+    ["Implementation Consultant", "solutions_engineer"],
+    ["Implementation Engineer", "solutions_engineer"],
+    ["Technical Architect", "solutions_engineer"],
+    ["Solutions Consultant", "solutions_engineer"],
+    ["Deployment Engineer", "solutions_engineer"],
+    ["Deployment Strategist", "solutions_engineer"],
+    ["Product Design Lead", "ux_ui"],
+    ["Senior Product Designer", "ux_ui"],
+  ])("%s -> %s", (title, role) => {
+    expect(hints(title)).toContain(role);
+  });
+
+  it("negativos: ingeniería de ventas, TAM, key account y diseño de hardware", () => {
+    expect(hints("Sales Engineer")).toEqual(["solutions_engineer"]);
+    expect(hints("Head of Sales Engineering")).not.toContain("ventas_b2b");
+    expect(hints("Technical Account Manager")).toEqual(["customer_success"]);
+    expect(hints("Key Account Manager")).toEqual(["ventas_b2b"]);
+    expect(hints("Key Accounts Manager")).toEqual(["ventas_b2b"]);
+    expect(hints("Customer Success Manager, Key Accounts")).toContain("customer_success");
+    expect(hints("Technical Account Manager – Key Account")).toContain("customer_success");
+    expect(hints("Hardware Product Designer")).not.toContain("ux_ui");
+    expect(hints("Mechanical Product Design Engineer")).not.toContain("ux_ui");
+  });
+
+  it("no se suman términos genéricos ni support engineer", () => {
+    for (const title of [
+      "Support Engineer",
+      "Operations Manager",
+      "Growth Manager",
+      "GTM Lead",
+      "Business Analyst",
+      "Engineer",
+    ]) {
+      expect(hints(title)).toEqual([]);
+    }
   });
 });

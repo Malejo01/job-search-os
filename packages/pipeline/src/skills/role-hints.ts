@@ -307,6 +307,8 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "disenadora web",
     "disenador de interfaces",
     "disenadora de interfaces",
+    // T2: "product designer" ya estaba; se suma la disciplina (exclusiones: hardware y mecánica).
+    "product design",
   ],
   marketing_digital: [
     "marketing digital",
@@ -407,6 +409,8 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "client success",
     "customer onboarding",
     "technical account manager",
+    // T2: "key account manager" es ventas (ver la exclusión).
+    "account manager",
   ],
   ciberseguridad: [
     // Nunca "security" suelto: "Security guard", "Social Security" no son del puesto.
@@ -470,6 +474,14 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "professional services consultant",
     "ingeniero de preventa",
     "ingeniera de preventa",
+    // T2
+    "solutions engineering",
+    "implementation consultant",
+    "implementation engineer",
+    "technical architect",
+    "solutions consultant",
+    "deployment engineer",
+    "deployment strategist",
   ],
   // Ronda 107 (ADR-022). "Account manager" suelto NO va: es de customer_success (status quo).
   ventas_b2b: [
@@ -501,6 +513,11 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "vendedores",
     "vendedoras",
     "ventas b2b",
+    // T2
+    "sales director",
+    "regional sales",
+    "enterprise sales",
+    "head of sales",
   ],
   atencion_cliente: [
     "customer support",
@@ -623,8 +640,13 @@ export const TITLE_EXCLUSIONS: Partial<Record<RoleKey, readonly string[]>> = {
   ciberseguridad: ["physical security", "data center security"],
   // Esas infraestructuras y plataformas son de seguridad y de datos, ya tienen su carrera.
   soporte_it: ["security infrastructure", "data platform", "data infrastructure"],
+  // T2: hardware y mecánica no son diseño de producto digital.
+  ux_ui: ["mechanical", "hardware"],
+  // T2: «Key Account Manager» es ventas; «account manager» a secas es customer success.
+  customer_success: ["key account manager", "key accounts manager"],
   // Ronda 107 (ADR-022): «Sales Engineer» es solutions_engineer y «Business Developer» no es ventas.
   ventas_b2b: [
+    "engineering",
     "engineer",
     "architect",
     "developer",
