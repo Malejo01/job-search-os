@@ -52,6 +52,14 @@ export { POOL_RETENTION_DAYS, purgePool } from "./pool/retention";
 // E3b: lectura de candidatas para el simulador de /plan (lejos de las líneas que tocan #179 y #182)
 export { CANDIDATE_CAP, selectPoolCandidates } from "./pool/select";
 export { sourceUserAgent } from "./sources/user-agent";
+// T7.4: verificador de links del catálogo, sin base
+export {
+  checkLearningLink,
+  checkLearningLinks,
+  type CheckLinkItem,
+  type CheckLinkResult,
+  type CheckLinksResult,
+} from "./learning/check-links";
 export {
   ATS_PROVIDERS,
   isValidAtsToken,
