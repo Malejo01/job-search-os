@@ -174,6 +174,9 @@ describe("parsePersona", () => {
       "finanzas-contabilidad.json",
       "asistencia-operaciones.json",
       "marketing-digital.json",
+      "backend-dev.json",
+      "qa.json",
+      "diseno-ux.json",
     ]) {
       const json = JSON.parse(readFileSync(new URL(`./personas/${f}`, import.meta.url), "utf8"));
       expect(parsePersona(json).ok, f).toBe(true);
