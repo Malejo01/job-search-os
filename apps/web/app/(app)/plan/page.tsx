@@ -1,4 +1,9 @@
-import { SELF_LEVELS, type PlanStatus } from "@job-search-os/pipeline";
+import {
+  SELF_LEVELS,
+  pickWeekFocus,
+  type PlanStatus,
+  type WeekFocus,
+} from "@job-search-os/pipeline";
 import Link from "next/link";
 import { SKILL_CATEGORY_LABEL, safeHttpUrl } from "@/lib/labels";
 import { getTargetRoles } from "@/lib/onboarding";
@@ -39,6 +44,66 @@ function priorityBand(priority: number, max: number): "alta" | "media" | "baja" 
   return ratio >= 2 / 3 ? "alta" : ratio >= 1 / 3 ? "media" : "baja";
 }
 
+/** «Empezar», «Cerrar» o «Reabrir» según el estado: los mismos en la lista y en «Esta semana». */
+function StatusButtons({ item }: { item: PlanItemView }) {
+  return NEXT[item.status].map((next) => (
+    <form key={next} action={setPlanStatusAction}>
+      <input type="hidden" name="itemId" value={item.id} />
+      <input type="hidden" name="status" value={next} />
+      <button
+        type="submit"
+        className="rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-700"
+      >
+        {next === "en_curso" ? "Empezar" : next === "cerrada" ? "Cerrar" : "Reabrir"}
+      </button>
+    </form>
+  ));
+}
+
+/**
+ * «Esta semana» (121 §4.1, E4c): la skill de la ruta en la que conviene estar ahora, con las horas
+ * de la semana, el recurso y los botones de siempre. Solo con ruta: sin ella no hay qué proponer.
+ */
+function EstaSemana({ focus, item }: { focus: WeekFocus; item: PlanItemView | undefined }) {
+  const href = item?.resource ? safeHttpUrl(item.resource.url) : null;
+  return (
+    <section
+      data-testid="plan-semana"
+      aria-labelledby="plan-semana-titulo"
+      className="flex flex-col gap-2 rounded-lg border border-sky-200 bg-sky-50 p-3"
+    >
+      <h2 id="plan-semana-titulo" className="text-sm font-semibold text-sky-950">
+        Esta semana
+      </h2>
+      <p className="break-words text-sm font-medium text-zinc-900">{focus.step.name}</p>
+      <p className="text-xs text-zinc-700" data-testid="plan-semana-horas">
+        {focus.hoursThisWeek} h esta semana · te quedan {focus.hoursLeft} h
+        {focus.step.estimated ? " (estimado)" : ""}
+      </p>
+      {item?.resource && href ? (
+        <p className="text-xs">
+          <a
+            href={href}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="text-sky-800 underline"
+          >
+            {item.resource.title}
+          </a>{" "}
+          <span className="text-zinc-700">· {item.resource.provider}</span>
+        </p>
+      ) : (
+        <p className="text-xs text-zinc-700">Todavía no tenemos un curso para esta skill</p>
+      )}
+      {item ? (
+        <div className="flex flex-wrap items-center gap-1">
+          <StatusButtons item={item} />
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 /**
  * Plan de formación (JS-034): skills por prioridad = demanda × (1 − nivel/3) × facilidad,
  * con horas estimadas, recurso asociado si hay y estado. Server Component + Server Actions.
@@ -71,6 +136,16 @@ export default async function PlanPage({
   const hoursPending = items
     .filter((i) => i.status !== "cerrada")
     .reduce((a, i) => a + (i.hoursRemaining ?? 0), 0);
+  // Los estados salen de la base, no del caché del impacto: un «Empezar» se ve en el acto. Y solo
+  // cuentan los pasos que siguen en el plan (la ruta puede tener hasta 30 minutos)
+  const planSlugs = new Set(items.map((i) => i.slug));
+  const focus = impact?.enough
+    ? pickWeekFocus(
+        impact.route.filter((step) => planSlugs.has(step.slug)),
+        new Map(items.map((i) => [i.slug, i.status])),
+        impact.hoursPerWeek,
+      )
+    : null;
 
   return (
     <section className="flex flex-col gap-4">
@@ -99,6 +174,9 @@ export default async function PlanPage({
         Ver Tu encaje: qué piden tus ofertas y qué te falta
       </Link>
       <NoLevelsNotice state={state} />
+      {focus ? (
+        <EstaSemana focus={focus} item={items.find((i) => i.slug === focus.step.slug)} />
+      ) : null}
       {items.length === 0 ? (
         state.hasSnapshot ? (
           fewOwnJobs ? (
@@ -177,22 +255,7 @@ export default async function PlanPage({
                         >
                           {STATUS_LABELS[it.status]}
                         </span>
-                        {NEXT[it.status].map((next) => (
-                          <form key={next} action={setPlanStatusAction}>
-                            <input type="hidden" name="itemId" value={it.id} />
-                            <input type="hidden" name="status" value={next} />
-                            <button
-                              type="submit"
-                              className="rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-700"
-                            >
-                              {next === "en_curso"
-                                ? "Empezar"
-                                : next === "cerrada"
-                                  ? "Cerrar"
-                                  : "Reabrir"}
-                            </button>
-                          </form>
-                        ))}
+                        <StatusButtons item={it} />
                       </div>
                     </div>
                   </li>
