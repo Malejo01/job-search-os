@@ -273,6 +273,51 @@ test.describe("Flujo 73: si aprendés…", () => {
     await expect(page.getByTestId("plan-sim-pick-tableau")).toHaveAttribute("aria-pressed", "true");
   });
 
+  test("?horas= rearma la ruta y convive con ?simular=", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await login(page);
+    /** Semana en la que termina el último paso de la ruta («Semana 3» o «Semana 3-5»). */
+    const lastWeek = async (): Promise<number> => {
+      const text = await page.getByTestId("plan-ruta").getByRole("listitem").last().innerText();
+      const m = /Semana (\d+)(?:-(\d+))?/.exec(text);
+      if (!m) throw new Error("no se encontró «Semana N» en la ruta");
+      return Number(m[2] ?? m[1]);
+    };
+
+    await page.goto("/plan");
+    await expect(page.getByTestId("plan-horas-5")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("plan-ruta-pie")).toContainText("Con 5 h por semana.");
+    const weeksAt5 = await lastWeek();
+
+    // Con el botón (formulario GET, sin JS); la simulación elegida se conserva
+    await page.goto("/plan?simular=power_bi");
+    await page.getByTestId("plan-horas-10").click();
+    await expect(page).toHaveURL(/horas=10/);
+    await expect(page).toHaveURL(/simular=power_bi/);
+    await expect(page.getByTestId("plan-horas-10")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("plan-horas-5")).toHaveAttribute("aria-pressed", "false");
+    await expect(page.getByTestId("plan-ruta-pie")).toContainText("Con 10 h por semana.");
+    await expect(page.getByTestId("plan-sim-resultado")).toBeVisible();
+    const weeksAt10 = await lastWeek();
+    expect(weeksAt10).toBeLessThanOrEqual(weeksAt5);
+
+    // Simular otra skill conserva las horas
+    await page.getByTestId("plan-sim-pick-tableau").click();
+    await expect(page).toHaveURL(/simular=power_bi(%2C|,)tableau/);
+    await expect(page).toHaveURL(/horas=10/);
+
+    // Con 3 h la ruta dura lo mismo o más que con 5 y, con 3 skills, más que con 10 (prueba que
+    // la ruta se rehízo y no solo el pie); un valor fuera de la lista vuelve a 5
+    await page.goto("/plan?horas=3");
+    await expect(page.getByTestId("plan-ruta-pie")).toContainText("Con 3 h por semana.");
+    const weeksAt3 = await lastWeek();
+    expect(weeksAt3).toBeGreaterThanOrEqual(weeksAt5);
+    expect(weeksAt3).toBeGreaterThan(weeksAt10);
+    await page.goto("/plan?horas=4");
+    await expect(page.getByTestId("plan-horas-5")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("plan-ruta-pie")).toContainText("Con 5 h por semana.");
+  });
+
   for (const viewport of [
     { width: 360, height: 740 },
     { width: 1280, height: 800 },

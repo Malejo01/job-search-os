@@ -1,10 +1,13 @@
+import { STUDY_HOURS_DEFAULT, STUDY_HOURS_OPTIONS } from "@job-search-os/pipeline";
 import { MAX_SIMULAR, type PlanImpact, type PlanImpactRow } from "@/lib/plan-impact";
 import Link from "next/link";
 
 /**
  * «Si aprendés…» (ronda 121, E3b). Server Component sin JS: las skills a simular se eligen con
  * formularios GET (`?simular=a,b`), botones de 44 px con `aria-pressed`. A partir de 640 px es una
- * tabla; en pantallas angostas, la misma información como tarjetas, sin scroll horizontal.
+ * tabla; en pantallas angostas, la misma información como tarjetas, sin scroll horizontal. Las
+ * horas por semana de la ruta (E4b) también van por GET (`?horas=3|5|10`); cada formulario
+ * conserva el otro parámetro.
  */
 
 const BUTTON =
@@ -22,13 +25,21 @@ function weeks(from: number, to: number): string {
   return from === to ? `Semana ${from}` : `Semana ${from}-${to}`;
 }
 
+/** `?horas=` solo si no es el valor por defecto, para que la URL de siempre siga igual. */
+function HoursInput({ hours }: { hours: number }) {
+  if (hours === STUDY_HOURS_DEFAULT) return null;
+  return <input type="hidden" name="horas" value={hours} />;
+}
+
 function PickButton({
   row,
   selected,
+  hours,
   testId,
 }: {
   row: PlanImpactRow;
   selected: readonly string[];
+  hours: number;
   testId: string;
 }) {
   const pressed = selected.includes(row.slug);
@@ -37,6 +48,7 @@ function PickButton({
   return (
     <form method="get" action="/plan">
       <input type="hidden" name="simular" value={next.join(",")} />
+      <HoursInput hours={hours} />
       <button
         type="submit"
         aria-pressed={pressed}
@@ -51,6 +63,45 @@ function PickButton({
         Simular {row.name}
       </button>
     </form>
+  );
+}
+
+/** Selector de horas por semana: un formulario GET por opción, la elegida con `aria-pressed`. */
+function HoursPicker({ hours, selected }: { hours: number; selected: readonly string[] }) {
+  return (
+    <div
+      role="group"
+      aria-labelledby="plan-horas-titulo"
+      className="flex flex-wrap items-center gap-2"
+      data-testid="plan-horas"
+    >
+      <span id="plan-horas-titulo" className="text-xs text-zinc-700">
+        Horas por semana:
+      </span>
+      {STUDY_HOURS_OPTIONS.map((option) => {
+        const pressed = option === hours;
+        return (
+          <form key={option} method="get" action="/plan">
+            {selected.length ? (
+              <input type="hidden" name="simular" value={selected.join(",")} />
+            ) : null}
+            <HoursInput hours={option} />
+            <button
+              type="submit"
+              aria-pressed={pressed}
+              data-testid={`plan-horas-${option}`}
+              className={`${BUTTON} ${
+                pressed
+                  ? "border-sky-700 bg-sky-700 text-white"
+                  : "border-zinc-300 bg-white text-zinc-800"
+              }`}
+            >
+              {option} h
+            </button>
+          </form>
+        );
+      })}
+    </div>
   );
 }
 
@@ -104,6 +155,7 @@ export function SiAprendes({
 
   const names = new Map(impact.rows.map((r) => [r.slug, r.name]));
   const sim = impact.simulation;
+  const hours = impact.hoursPerWeek;
 
   return (
     <section
@@ -130,7 +182,10 @@ export function SiAprendes({
             {sim.passAfter} de {sim.total}
           </strong>{" "}
           ofertas (hoy pasan {sim.passNow}).{" "}
-          <Link href="/plan" className="inline-flex min-h-11 items-center underline">
+          <Link
+            href={hours === STUDY_HOURS_DEFAULT ? "/plan" : `/plan?horas=${hours}`}
+            className="inline-flex min-h-11 items-center underline"
+          >
             Limpiar la simulación
           </Link>
         </p>
@@ -185,7 +240,12 @@ export function SiAprendes({
                 ~{row.hours} h{row.estimated ? " (estimado)" : ""}
               </td>
               <td className="py-1">
-                <PickButton row={row} selected={selected} testId={`plan-sim-pick-${row.slug}`} />
+                <PickButton
+                  row={row}
+                  selected={selected}
+                  hours={hours}
+                  testId={`plan-sim-pick-${row.slug}`}
+                />
               </td>
             </tr>
           ))}
@@ -212,7 +272,12 @@ export function SiAprendes({
             <p className="text-xs text-zinc-700">
               ~{row.hours} h{row.estimated ? " (estimado)" : ""}
             </p>
-            <PickButton row={row} selected={selected} testId={`plan-sim-pick-m-${row.slug}`} />
+            <PickButton
+              row={row}
+              selected={selected}
+              hours={hours}
+              testId={`plan-sim-pick-m-${row.slug}`}
+            />
           </li>
         ))}
       </ul>
@@ -222,6 +287,7 @@ export function SiAprendes({
           <h3 id="plan-ruta-titulo" className="text-sm font-semibold text-zinc-700">
             Ruta por semanas
           </h3>
+          {impact.hoursAdjustable ? <HoursPicker hours={hours} selected={selected} /> : null}
           <ol className="flex flex-col gap-1" data-testid="plan-ruta">
             {impact.route.map((step) => (
               <li
@@ -234,8 +300,8 @@ export function SiAprendes({
               </li>
             ))}
           </ol>
-          <p className="text-xs text-zinc-600">
-            Con {impact.hoursPerWeek} h por semana. Ofertas de los últimos 30 días, al{" "}
+          <p className="text-xs text-zinc-600" data-testid="plan-ruta-pie">
+            Con {hours} h por semana. Ofertas de los últimos 30 días, al{" "}
             {shortDate(impact.poolDate)}.
           </p>
         </section>

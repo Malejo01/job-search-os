@@ -9,12 +9,15 @@ import {
 import { schema as s } from "@job-search-os/db";
 import {
   SIMULATE_MIN_CANDIDATES,
+  STUDY_HOURS_DEFAULT,
   buildStudyRoute,
   fitCacheValue,
   monthlyUsd,
+  parseStudyHours,
   simulateSkillImpact,
   simulateSkills,
   type RoleKey,
+  type RouteSkill,
   type RouteStep,
   type SimCandidate,
   type SimInput,
@@ -33,11 +36,10 @@ import { planImpactCacheTag } from "./insights-cache";
 
 /** Skills que se pueden sumar a la simulación a la vez. */
 export const MAX_SIMULAR = 5;
-/** Horas de estudio por semana de la ruta: fijas hasta que exista el selector (E4). */
-export const PLAN_IMPACT_HOURS_PER_WEEK = 5;
 /** De las skills del plan se simulan las de mayor prioridad: acota el costo del cálculo. */
 const MAX_PLAN_SKILLS = 15;
-const CACHE_VERSION = "v2";
+// v3: la entrada guardada suma `routeSkills`, para rehacer la ruta con `?horas=` afuera del caché
+const CACHE_VERSION = "v3";
 const CACHE_REVALIDATE_SECONDS = 30 * 60;
 /** Tokens de `?simular=` que entran en la clave del caché (antes de filtrar contra el plan). */
 const MAX_REQUESTED_TOKENS = 10;
@@ -68,7 +70,10 @@ export type PlanImpact = {
   poolDate: string;
   rows: PlanImpactRow[];
   route: RouteStep[];
+  /** Horas por semana con las que está armada `route` (`?horas=`, E4b). */
   hoursPerWeek: number;
+  /** false si la entrada no entró en el caché: la ruta queda fija y no se muestra el selector. */
+  hoursAdjustable: boolean;
   /** Resultado de `?simular=`: solo las skills que están en el plan; null si no se pidió ninguna. */
   simulation: { slugs: string[]; total: number; passNow: number; passAfter: number } | null;
 };
@@ -89,16 +94,18 @@ function periodOf(value: string | null): "mensual" | "anual" | "hora" | null {
 }
 
 /**
- * Lo que se guarda en el caché: el impacto base y la entrada del simulador, en arrays (JSON plano),
- * para combinar `?simular=` afuera. Así cada combinación no repite la consulta del pool.
+ * Lo que se guarda en el caché: el impacto base (con la ruta a las horas por defecto) y la entrada
+ * del simulador, en arrays (JSON plano), para combinar `?simular=` y `?horas=` afuera. Así cada
+ * combinación no repite la consulta del pool.
  */
 type CachedImpact = {
-  impact: Omit<PlanImpact, "simulation">;
+  impact: Omit<PlanImpact, "simulation" | "hoursAdjustable">;
   sim: {
     candidates: SimCandidate[];
     levels: [string, number][];
     salaryFloorUsd: number | null;
     planSlugs: string[];
+    routeSkills: RouteSkill[];
   } | null;
 };
 
@@ -160,7 +167,7 @@ async function computeImpact(userId: string, now: Date): Promise<CachedImpact | 
     const base = {
       total: candidates.length,
       poolDate: now.toISOString(),
-      hoursPerWeek: PLAN_IMPACT_HOURS_PER_WEEK,
+      hoursPerWeek: STUDY_HOURS_DEFAULT,
     };
     if (candidates.length < SIMULATE_MIN_CANDIDATES || planRows.length === 0) {
       return { impact: { ...base, passNow: 0, enough: false, rows: [], route: [] }, sim: null };
@@ -201,16 +208,13 @@ async function computeImpact(userId: string, now: Date): Promise<CachedImpact | 
         a.slug.localeCompare(b.slug),
     );
 
-    const route = buildStudyRoute(
-      input,
-      plan.map((p) => ({
-        slug: p.slug,
-        name: p.name,
-        hours: p.hours,
-        priority: priorityOf.get(p.slug) ?? 0,
-      })),
-      PLAN_IMPACT_HOURS_PER_WEEK,
-    );
+    const routeSkills: RouteSkill[] = plan.map((p) => ({
+      slug: p.slug,
+      name: p.name,
+      hours: p.hours,
+      priority: priorityOf.get(p.slug) ?? 0,
+    }));
+    const route = buildStudyRoute(input, routeSkills, STUDY_HOURS_DEFAULT);
 
     return {
       impact: { ...base, passNow: rows[0]?.passNow ?? 0, enough: true, rows, route },
@@ -219,31 +223,48 @@ async function computeImpact(userId: string, now: Date): Promise<CachedImpact | 
         levels: [...levels],
         salaryFloorUsd: input.salaryFloorUsd,
         planSlugs: plan.map((p) => p.slug),
+        routeSkills,
       },
     };
   });
 }
 
-/** `?simular=` sobre la entrada guardada: solo slugs del plan, hasta 5. Puro y barato. */
-function withSimulation(cached: CachedImpact, requested: readonly string[]): PlanImpact {
+/**
+ * `?simular=` y `?horas=` sobre la entrada guardada. Simular: solo slugs del plan, hasta 5. Horas:
+ * la ruta se rehace si piden otras que las del caché. Sin la entrada (no entró en el caché) queda
+ * la ruta guardada, y `hoursPerWeek` sigue diciendo con cuántas horas está armada. Puro y barato.
+ */
+function withRequest(
+  cached: CachedImpact,
+  requested: readonly string[],
+  hoursPerWeek: number,
+): PlanImpact {
   const { sim } = cached;
-  if (!sim) return { ...cached.impact, simulation: null };
-  const inPlan = new Set(sim.planSlugs);
-  const chosen = requested.filter((slug) => inPlan.has(slug)).slice(0, MAX_SIMULAR);
-  if (!chosen.length) return { ...cached.impact, simulation: null };
+  if (!sim) return { ...cached.impact, hoursAdjustable: false, simulation: null };
   const input: SimInput = {
     candidates: sim.candidates,
     levels: new Map(sim.levels),
     salaryFloorUsd: sim.salaryFloorUsd,
   };
-  return { ...cached.impact, simulation: { slugs: chosen, ...simulateSkills(input, chosen) } };
+  const impact = {
+    ...cached.impact,
+    hoursAdjustable: true,
+    ...(hoursPerWeek === cached.impact.hoursPerWeek || !cached.impact.route.length
+      ? {}
+      : { hoursPerWeek, route: buildStudyRoute(input, sim.routeSkills, hoursPerWeek) }),
+  };
+  const inPlan = new Set(sim.planSlugs);
+  const chosen = requested.filter((slug) => inPlan.has(slug)).slice(0, MAX_SIMULAR);
+  if (!chosen.length) return { ...impact, simulation: null };
+  return { ...impact, simulation: { slugs: chosen, ...simulateSkills(input, chosen) } };
 }
 
 /**
  * Impacto de las skills del plan sobre las ofertas del pool de la persona. Caché por persona de 30
- * minutos. La clave lleva usuario y carrera, pero no `?simular=`, que se combina afuera: así una URL
- * nueva no repite la consulta. La carrera no entra al cálculo (las preferencias salen del perfil),
- * pero va en la clave para que un cambio de carrera no muestre números de la anterior. Guardar
+ * minutos. La clave lleva usuario y carrera, pero no `?simular=` ni `?horas=`, que se combinan
+ * afuera: así una URL nueva no repite la consulta. La carrera no entra al cálculo (las
+ * preferencias salen del perfil), pero va en la clave para que un cambio de carrera no muestre
+ * números de la anterior. Guardar
  * niveles o cambiar el estado del plan lo invalida (`invalidateUserInsights`, E-2b). Si falla
  * devuelve `null`: es una ayuda y nunca rompe la página.
  */
@@ -252,8 +273,10 @@ export async function getPlanImpact(
   role: RoleKey | null,
   now: Date,
   simular?: string | readonly string[] | null,
+  horas?: string | readonly string[] | null,
 ): Promise<PlanImpact | null> {
   const requested = parseSimular(simular);
+  const hoursPerWeek = parseStudyHours(horas);
   try {
     const cached = await unstable_cache(
       async () => {
@@ -272,7 +295,7 @@ export async function getPlanImpact(
       ["plan-impact", CACHE_VERSION, userId, role ?? "sin-carrera"],
       { revalidate: CACHE_REVALIDATE_SECONDS, tags: [planImpactCacheTag(userId)] },
     )();
-    return cached ? withSimulation(cached, requested) : null;
+    return cached ? withRequest(cached, requested, hoursPerWeek) : null;
   } catch (e) {
     createLogger({ user_id: userId, task: "plan_impact" }).warn(
       { err: safeDbError(e) },

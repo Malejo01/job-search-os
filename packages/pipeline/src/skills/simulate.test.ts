@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  STUDY_HOURS_DEFAULT,
   buildStudyRoute,
+  parseStudyHours,
   simulateSkillImpact,
   simulateSkills,
   type SimCandidate,
@@ -77,5 +79,25 @@ describe("simulador «si aprendés X» (121 §3, C-3 E3)", () => {
   it("con más horas por semana, la misma ruta se comprime", () => {
     const skills = [{ slug: "python", name: "Python", hours: 20, priority: 1 }];
     expect(buildStudyRoute(INPUT, skills, 10)[0]).toMatchObject({ weekFrom: 1, weekTo: 2 });
+  });
+});
+
+describe("?horas= del plan (C-3 E4b)", () => {
+  it("acepta solo 3, 5 o 10", () => {
+    expect(parseStudyHours("3")).toBe(3);
+    expect(parseStudyHours("10")).toBe(10);
+    expect(parseStudyHours(" 5 ")).toBe(5);
+  });
+
+  it("lo demás vuelve a las horas por defecto", () => {
+    for (const raw of [undefined, null, "", "4", "0", "-3", "3.5", "10abc", "100"]) {
+      expect(parseStudyHours(raw)).toBe(STUDY_HOURS_DEFAULT);
+    }
+    expect(STUDY_HOURS_DEFAULT).toBe(5);
+  });
+
+  it("con el parámetro repetido toma el primero", () => {
+    expect(parseStudyHours(["10", "3"])).toBe(10);
+    expect(parseStudyHours([])).toBe(STUDY_HOURS_DEFAULT);
   });
 });
