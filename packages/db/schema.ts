@@ -486,6 +486,24 @@ export const userSkills = pgTable("user_skills", {
   check("user_skills_name_length", sql`char_length(${t.name}) between 2 and 40`),
 ]);
 
+// «Contanos qué pasó» (C-23, V4): comentarios de la beta desde la app. `path` es solo el pathname
+// de la pantalla (sin query ni fragmento, que pueden traer ids). La persona inserta y lee lo suyo;
+// el admin lee todo por `admin_beta_feedback()` (rls/0013). Sin UPDATE ni DELETE para la app. Se
+// purga a los 180 días y se borra con la cuenta (cascade).
+export const betaFeedback = pgTable("beta_feedback", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  category: text("category").notNull(),
+  message: text("message").notNull(),
+  path: text("path").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index("beta_feedback_user_created").on(t.userId, t.createdAt),
+  check("beta_feedback_category", sql`${t.category} in ('algo_no_anduvo', 'idea', 'confuso')`),
+  check("beta_feedback_message_length", sql`char_length(${t.message}) between 1 and 2000`),
+  check("beta_feedback_path_length", sql`char_length(${t.path}) <= 200`),
+]);
+
 export const skillEvidence = pgTable("skill_evidence", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull(),

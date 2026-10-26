@@ -316,6 +316,13 @@
       "when": 1792795534091,
       "tag": "0044_carreras_finanzas_operaciones",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1793047508320,
+      "tag": "0045_puzzling_pretty_boy",
+      "breakpoints": true
     }
   ]
 }
