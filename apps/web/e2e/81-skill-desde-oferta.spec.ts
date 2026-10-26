@@ -193,6 +193,8 @@ test.describe("Flujo 81: nivel de una skill desde la oferta", () => {
     await dialog.getByRole("button", { name: "Guardar" }).click();
 
     await expect(dialog).toBeHidden();
+    // El botón que abrió el modal desaparece con el refresco: el foco queda en el contenido
+    await expect(page.locator("main#contenido")).toBeFocused();
     expect(page.url()).toBe(url);
     // Se refresca sola: Docker sale de «Sin nivel cargado» y queda Kubernetes
     await expect(page.getByText("Sin nivel cargado (1)")).toBeVisible();

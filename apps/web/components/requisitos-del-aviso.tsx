@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { SkillLevelButton } from "@/app/(app)/jobs/[id]/skill-level-modal";
 import type { ChecklistItemView, ChecklistView } from "@/lib/job-detail";
 import { CHECKLIST_PIDE_SOURCE, CHECKLIST_STATUS, CHECKLIST_TENES_SOURCE } from "@/lib/labels";
+import { SkillLevelButton } from "./skill-level-modal";
 
 /**
  * «Requisitos del aviso» (ronda 104, diseño 98 §2 y §4). Server Component: sin estado ni cliente.
@@ -82,7 +82,8 @@ function Item({
           {item.nota}
         </p>
       ) : null}
-      {cta && "slug" in cta && modal ? (
+      {/* El botón solo si el slug está en la taxonomía (`skillInfo`); si no, el link de siempre */}
+      {cta && "slug" in cta && modal && modal.skillInfo[cta.slug] ? (
         <div className="pt-1">
           <SkillLevelButton
             slug={cta.slug}

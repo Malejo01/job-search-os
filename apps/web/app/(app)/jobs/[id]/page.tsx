@@ -9,6 +9,7 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { RequisitosDelAviso } from "@/components/requisitos-del-aviso";
+import { SkillLevelButton } from "@/components/skill-level-modal";
 import { notEvaluatedMessage } from "@/lib/evaluate-now";
 import { getMainFitSummary } from "@/lib/fit";
 import { isUuid } from "@/lib/ids";
@@ -50,7 +51,6 @@ import { EvaluateNow } from "./evaluate-now";
 import { ReviewNav } from "./review-nav";
 import { SourceAttribution } from "./source-attribution";
 import { StatusCorrection } from "./status-correction";
-import { SkillLevelButton } from "./skill-level-modal";
 import { Verdict } from "./verdict";
 
 export const dynamic = "force-dynamic";
