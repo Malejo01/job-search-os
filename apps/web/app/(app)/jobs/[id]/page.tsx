@@ -2,11 +2,14 @@ import {
   englishIsNotAGap,
   fitCrossSentence,
   isEnglishGap,
+  isEnglishSkillSlug,
+  withCurrentSkillLevels,
   type JobEvent,
 } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { RequisitosDelAviso } from "@/components/requisitos-del-aviso";
+import { SkillLevelButton } from "@/components/skill-level-modal";
 import { notEvaluatedMessage } from "@/lib/evaluate-now";
 import { getMainFitSummary } from "@/lib/fit";
 import { isUuid } from "@/lib/ids";
@@ -126,6 +129,11 @@ export default async function JobDetailPage({
   const descarteId = ev?.checklist?.descarte_rapido?.id ?? null;
   const fitSummary = descarteId ? await getMainFitSummary(userId, new Date()) : null;
   const crossLine = fitSummary ? fitCrossSentence(fitSummary, descarteId) : null;
+  const currentLevels = new Map(
+    Object.entries(job.skillInfo).flatMap(([slug, info]) =>
+      info.level === null ? [] : [[slug, info.level] as const],
+    ),
+  );
   const tone = scoreTone(ev?.score ?? null);
   const salary =
     job.salaryMinUsd || job.salaryMaxUsd
@@ -343,7 +351,13 @@ export default async function JobDetailPage({
           ) : null}
 
           {/* Requisitos del aviso (ronda 104): solo si la evaluación guardó el checklist */}
-          {ev.checklist ? <RequisitosDelAviso checklist={ev.checklist} /> : null}
+          {/* C-20: el checklist guardado es una foto; se superponen los niveles de hoy (sin LLM) */}
+          {ev.checklist ? (
+            <RequisitosDelAviso
+              checklist={withCurrentSkillLevels(ev.checklist, currentLevels)}
+              modal={{ jobId: job.id, skillInfo: job.skillInfo }}
+            />
+          ) : null}
           {crossLine ? (
             <p data-testid="encaje-cruce" className="text-sm text-zinc-700">
               {crossLine}{" "}
@@ -518,11 +532,31 @@ export default async function JobDetailPage({
               items={job.preScore.missing}
               tone="text-red-900"
             />
-            <SkillBox
-              title={`Sin nivel cargado (${job.preScore.unknown.length})`}
-              items={job.preScore.unknown}
-              tone="text-zinc-600"
-            />
+            <div className="min-w-0 rounded-md border border-zinc-200 p-2">
+              <p className="text-xs font-semibold">
+                Sin nivel cargado ({job.preScore.unknownSkills.length})
+              </p>
+              {job.preScore.unknownSkills.length ? (
+                <ul className="mt-1 flex flex-col items-start gap-1">
+                  {job.preScore.unknownSkills.map((u) => (
+                    <li key={u.slug} className="min-w-0 max-w-full">
+                      {isEnglishSkillSlug(u.slug) ? (
+                        <span className="text-xs text-zinc-600">{u.name}</span>
+                      ) : (
+                        <SkillLevelButton
+                          slug={u.slug}
+                          name={u.name}
+                          description={job.skillInfo[u.slug]?.description ?? null}
+                          jobId={job.id}
+                        />
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-zinc-600">—</p>
+              )}
+            </div>
           </div>
           <p className="text-xs text-zinc-600">
             {job.preScore.skillsMentioned} aptitudes reconocidas en la descripción

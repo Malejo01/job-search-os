@@ -1,5 +1,6 @@
 import * as s from "@job-search-os/db/schema";
 import { expect, test } from "@playwright/test";
+import { and, eq } from "drizzle-orm";
 import { createEvaluation, createJob, deleteJob, E2E_USER_ID, login, ownerDb } from "./helpers";
 
 /**
@@ -27,6 +28,9 @@ const INGLES = item({
   tenes: "B2",
   status: "no_cumple",
 });
+// `docker` está en la taxonomía: el detalle superpone los niveles de hoy (C-20), así que el setup le
+// quita el nivel al usuario e2e y lo restaura al terminar. `zz_redis_e2e` no está en la taxonomía:
+// su estado guardado no cambia y linkea a Ajustes en vez de mostrar el botón.
 const DOCKER = item({
   id: "skill:docker",
   kind: "skill",
@@ -36,7 +40,7 @@ const DOCKER = item({
   evidencia: "experiencia con contenedores",
 });
 const NOMBRADA = item({
-  id: "skill:redis",
+  id: "skill:zz_redis_e2e",
   kind: "skill",
   nivel: "deseable",
   pide: "Redis",
@@ -80,6 +84,37 @@ async function evaluateWithDecision(jobId: string, decision: unknown): Promise<v
 }
 
 test.describe("Flujo 63: requisitos del aviso", () => {
+  let dockerBackup: (typeof s.skillLevels.$inferSelect)[] = [];
+
+  test.beforeAll(async () => {
+    const { db, close } = ownerDb();
+    try {
+      const [docker] = await db
+        .select({ id: s.skills.id })
+        .from(s.skills)
+        .where(eq(s.skills.slug, "docker"));
+      const mine = and(
+        eq(s.skillLevels.userId, E2E_USER_ID),
+        eq(s.skillLevels.skillId, docker!.id),
+      );
+      dockerBackup = await db.select().from(s.skillLevels).where(mine);
+      await db.delete(s.skillLevels).where(mine);
+    } finally {
+      await close();
+    }
+  });
+
+  test.afterAll(async () => {
+    const { db, close } = ownerDb();
+    try {
+      if (dockerBackup.length) {
+        await db.insert(s.skillLevels).values(dockerBackup).onConflictDoNothing();
+      }
+    } finally {
+      await close();
+    }
+  });
+
   test("con checklist: titular, un ítem de cada estado y la primera mirada", async ({ page }) => {
     const jobId = await createJob({ title: "E2E requisitos con checklist", status: "evaluada" });
     try {
@@ -95,11 +130,10 @@ test.describe("Flujo 63: requisitos del aviso", () => {
       await expect(section.getByText("Cumple", { exact: true }).first()).toBeVisible();
       await expect(section.getByText("No cumple", { exact: true })).toBeVisible();
       await expect(section.getByText("No se sabe", { exact: true })).toBeVisible();
-      // Lo desconocido pide cargar el nivel, con link a skills
-      await expect(section.getByRole("link", { name: "Cargá tu nivel de Docker" })).toHaveAttribute(
-        "href",
-        "/settings/skills",
-      );
+      // Lo desconocido pide cargar el nivel con un botón que abre el modal (C-20), no con un link
+      await expect(
+        section.getByRole("button", { name: "Cargar mi nivel de Docker" }),
+      ).toBeVisible();
       // Skills que solo nombra el aviso, aparte del titular
       await expect(
         section.getByRole("heading", { name: "Skills que nombra el aviso" }),
@@ -107,6 +141,43 @@ test.describe("Flujo 63: requisitos del aviso", () => {
       await expect(section.getByTestId("requisitos-descarte")).toContainText(
         "Lo primero por lo que te descartarían: Inglés avanzado (tenés B2)",
       );
+    } finally {
+      await deleteJob(jobId);
+    }
+  });
+
+  test("una skill fuera de la taxonomía linkea a Ajustes y no muestra el botón", async ({
+    page,
+  }) => {
+    const jobId = await createJob({
+      title: "E2E requisitos skill sin taxonomia",
+      status: "evaluada",
+    });
+    try {
+      const rara = item({
+        id: "skill:zz_sin_taxonomia_e2e",
+        kind: "skill",
+        nivel: "deseable",
+        pide: "Menciona Cosa Rara",
+        status: "no_se_sabe",
+        fuente: { pide: "fuente", tenes: null },
+      });
+      await evaluateWithDecision(jobId, {
+        checklist: {
+          items: [rara],
+          must: { cumple: 0, no_cumple: 0, no_se_sabe: 0 },
+          deseable: { cumple: 0, no_cumple: 0, no_se_sabe: 1 },
+          parcial: false,
+          descarte_rapido: null,
+        },
+      });
+      await login(page);
+      await page.goto(`/jobs/${jobId}`);
+      const section = page.getByRole("region", { name: "Requisitos del aviso" });
+      await expect(
+        section.getByRole("link", { name: "Cargá tu nivel de Cosa Rara" }),
+      ).toHaveAttribute("href", "/settings/skills");
+      await expect(section.getByRole("button", { name: /Cargar mi nivel/ })).toHaveCount(0);
     } finally {
       await deleteJob(jobId);
     }

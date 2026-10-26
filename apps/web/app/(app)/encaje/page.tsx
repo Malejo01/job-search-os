@@ -297,11 +297,17 @@ function Blockers({ groups, total, fit }: { groups: FitGroup[]; total: number; f
   );
 }
 
-/** Adónde cargar un dato que falta; reusa `missingCta` del detalle de la oferta. */
+/**
+ * Adónde cargar un dato que falta; reusa `missingCta` del detalle de la oferta. Acá no hay modal de
+ * nivel (C-20 es solo del detalle de una oferta): una skill linkea a Ajustes, como antes.
+ */
 function unknownCta(group: FitGroup): { href: string; text: string } | null {
   const ids = FIT_GROUPS.find((g) => g.key === group.key)?.ids ?? [];
   const stub = { id: ids[0] ?? group.key, pide: group.label } as ChecklistItemView;
-  return missingCta(stub);
+  const cta = missingCta(stub);
+  if (cta && "slug" in cta)
+    return { href: "/settings/skills", text: `Cargá tu nivel de ${cta.name}` };
+  return cta;
 }
 
 function Unknowns({ groups, total }: { groups: FitGroup[]; total: number }) {
