@@ -359,6 +359,87 @@ test.describe("Flujo 79: navegación solo con teclado", () => {
     await expectFocusVisible(page, "botón 👎 apretado");
   });
 
+  test("detalle de oferta: «Cargar mi nivel de X» abre el modal, se elige y se guarda solo con teclado (C-20)", async ({
+    page,
+  }) => {
+    await page.setViewportSize(WIDE);
+    // Preparación: una oferta sin evaluar con una skill de la taxonomía que la persona no tiene cargada
+    const prepared = await (async () => {
+      const { db, close } = ownerDb();
+      try {
+        const taxonomy = await db
+          .select({ id: s.skills.id, slug: s.skills.slug, name: s.skills.name })
+          .from(s.skills);
+        const levels = await db
+          .select({ skillId: s.skillLevels.skillId })
+          .from(s.skillLevels)
+          .where(eq(s.skillLevels.userId, E2E_USER_ID));
+        const have = new Set(levels.map((l) => l.skillId));
+        const free = taxonomy.find((t) => !have.has(t.id) && !t.slug.startsWith("english_"));
+        if (!free) throw new Error("no hay una skill sin nivel para la prueba");
+        const jobId = await createJob({
+          title: `E2E teclado skill ${tag}`,
+          status: "pendiente_jd",
+          jdText: "Descripción ficticia del aviso de la prueba de teclado.",
+        });
+        await db.insert(s.jobSkills).values({ jobId, skillId: free.id, isMust: true });
+        return { skillId: free.id, skillName: free.name, skillJobId: jobId };
+      } finally {
+        await close();
+      }
+    })();
+    const { skillId, skillName, skillJobId } = prepared;
+    try {
+      await login(page);
+      await page.goto(`/jobs/${skillJobId}`);
+      const open = page.getByRole("button", { name: `Cargar mi nivel de ${skillName}` });
+      await reach(page, open, "Cargar mi nivel de la skill");
+      await page.keyboard.press("Enter");
+      const dialog = page.getByRole("dialog", { name: `Tu nivel de ${skillName}` });
+      await expect(dialog).toBeVisible();
+
+      // El foco queda atrapado adentro: varias vueltas de Tab no llegan a la página de atrás. Al
+      // pasar el último botón el navegador puede dejar el foco en su propia barra (`body`), nunca en
+      // un elemento de la página, que queda inerte mientras el modal está abierto.
+      for (let i = 0; i < 12; i += 1) {
+        await page.keyboard.press("Tab");
+        const inside = await dialog.evaluate((el) => {
+          const active = el.ownerDocument.activeElement;
+          return active === el.ownerDocument.body || el.contains(active);
+        });
+        expect(inside, "el foco no sale del modal a la página").toBe(true);
+      }
+      // Esc cierra y el foco vuelve al botón
+      await page.keyboard.press("Escape");
+      await expect(dialog).toBeHidden();
+      await expect(open).toBeFocused();
+
+      // Se abre de nuevo; flechas para elegir el nivel 2, Tab hasta Guardar y Enter
+      await page.keyboard.press("Enter");
+      await expect(dialog).toBeVisible();
+      const level2 = dialog.getByRole("radio", { name: "lo usé en un proyecto" });
+      await reach(page, dialog.getByRole("radio").first(), "primer nivel");
+      await page.keyboard.press("ArrowDown");
+      await page.keyboard.press("ArrowDown");
+      await expect(level2).toBeChecked();
+      await reach(page, dialog.getByRole("button", { name: "Guardar" }), "Guardar");
+      await page.keyboard.press("Enter");
+      await expect(dialog).toBeHidden();
+      await expect(page.getByText("Sin nivel cargado (0)")).toBeVisible();
+    } finally {
+      const cleanup = ownerDb();
+      try {
+        if (skillJobId) await deleteJob(skillJobId).catch(() => {});
+        await cleanup.db
+          .delete(s.skillLevels)
+          .where(and(eq(s.skillLevels.userId, E2E_USER_ID), eq(s.skillLevels.skillId, skillId)))
+          .catch(() => {});
+      } finally {
+        await cleanup.close();
+      }
+    }
+  });
+
   test("/plan: «Simular <skill>» y el selector de horas con Tab y Enter", async ({ page }) => {
     await setSeedTargetRoles({ targetRoles: [PLAN_CAREER], targetRole: PLAN_CAREER });
     await page.setViewportSize(WIDE);

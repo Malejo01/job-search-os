@@ -27,6 +27,8 @@ export type PreScore = {
   missing: string[];
   /** Mencionadas sin nivel cargado: no cuentan ni a favor ni en contra. */
   unknown: string[];
+  /** Los mismos de `unknown` con su slug: para cargar el nivel desde la oferta (C-20). */
+  unknownSkills: { slug: string; name: string }[];
   riesgos: string[];
   cap: number | null;
   adjustments: PreScoreAdjustment[];
@@ -48,7 +50,10 @@ export function preScore(input: PreScoreInput): PreScore {
   const known = input.skills.filter((s) => s.level !== null);
   const have = known.filter((s) => (s.level ?? 0) >= 2).map((s) => s.name);
   const missing = known.filter((s) => (s.level ?? 0) < 2).map((s) => s.name);
-  const unknown = input.skills.filter((s) => s.level === null).map((s) => s.name);
+  const unknownSkills = input.skills
+    .filter((s) => s.level === null)
+    .map((s) => ({ slug: s.slug, name: s.name }));
+  const unknown = unknownSkills.map((s) => s.name);
   const coverage = known.length ? have.length / known.length : null;
 
   let score: number;
@@ -104,5 +109,5 @@ export function preScore(input: PreScoreInput): PreScore {
     score = cap;
   }
   score = half(Math.max(0, Math.min(10, score)));
-  return { score, coverage, have, missing, unknown, riesgos, cap, adjustments };
+  return { score, coverage, have, missing, unknown, unknownSkills, riesgos, cap, adjustments };
 }

@@ -54,3 +54,4 @@ export * from "./learning";
 export * from "./fit/fit-summary";
 export * from "./digest/build";
 export * from "./brand";
+export * from "./evaluator/skill-level-overlay";

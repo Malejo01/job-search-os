@@ -10,7 +10,7 @@ import {
   type SkillLevelEntry,
 } from "@job-search-os/pipeline";
 import { and, eq, inArray, sql } from "drizzle-orm";
-import { withUser } from "./db";
+import { withUser, type Tx } from "./db";
 
 /** Mapa rol → skills sugeridas (seed versionado), validado al cargar. */
 export const ROLE_SKILLS: RoleSkillsMap = roleSkillsSchema.parse(roleSkillsSeed);
@@ -125,6 +125,35 @@ export async function getSkillsSaveContext(userId: string): Promise<{
       englishLevels: Object.fromEntries(english.map((r) => [r.slug, r.level])),
     };
   });
+}
+
+/** Lo que muestra el modal de nivel de una skill (C-20): nombre, «¿Qué es?» y nivel ya cargado. */
+export type SkillInfo = { name: string; description: string | null; level: number | null };
+
+/** Nombre, descripción y nivel actual de la persona para unos pocos slugs; el resto no aparece. */
+export async function skillInfoIn(
+  tx: Tx,
+  userId: string,
+  slugs: readonly string[],
+): Promise<Record<string, SkillInfo>> {
+  const unique = [...new Set(slugs)];
+  if (unique.length === 0) return {};
+  const rows = await tx
+    .select({
+      slug: s.skills.slug,
+      name: s.skills.name,
+      description: s.skills.description,
+      level: s.skillLevels.level,
+    })
+    .from(s.skills)
+    .leftJoin(
+      s.skillLevels,
+      and(eq(s.skillLevels.skillId, s.skills.id), eq(s.skillLevels.userId, userId)),
+    )
+    .where(inArray(s.skills.slug, unique));
+  return Object.fromEntries(
+    rows.map((r) => [r.slug, { name: r.name, description: r.description, level: r.level }]),
+  );
 }
 
 /** Niveles de `english_intermediate` y `english_fluent` para un nivel CEFR, listos para `saveSkillLevels`. */

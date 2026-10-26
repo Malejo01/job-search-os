@@ -5,6 +5,7 @@ import {
   availableEvents,
   correctionTargets,
   correctStatus,
+  isEnglishSkillSlug,
   planDuplicateMerge,
   POSSIBLE_DUPLICATE_FLAG,
   prefilterReasonText,
@@ -19,6 +20,7 @@ import { z } from "zod";
 import { withUser } from "./db";
 import { evaluatingSql } from "./jobs";
 import { preScoresFor, type PreScoreView } from "./prescore";
+import { skillInfoIn, type SkillInfo } from "./skill-levels";
 
 /**
  * Detalle y acciones de una oferta (JS-016). Lecturas y escrituras con el rol de la app y
@@ -132,6 +134,8 @@ export type JobDetail = {
   evaluation: EvaluationView | null;
   /** Modo offline: lo que se sabe sin LLM (null si ya hay evaluación o la oferta fue descartada). */
   preScore: PreScoreView | null;
+  /** Nombre, «¿Qué es?» y nivel actual de las skills del aviso que se cargan desde esta pantalla. */
+  skillInfo: Record<string, SkillInfo>;
   application: { appliedAt: string | null; outcome: string | null } | null;
   /** Eventos manuales válidos desde el estado actual (para los botones). */
   events: JobEvent[];
@@ -256,6 +260,16 @@ export async function getJobDetail(userId: string, jobId: string): Promise<JobDe
       adjustments?: Adjustment[];
       accion_sugerida?: string;
     } | null;
+    const checklist = parseChecklist(decision);
+
+    // C-20: skills sin nivel que se cargan desde la oferta (checklist y pre-score). Las de inglés
+    // se cargan por CEFR en Ajustes y quedan afuera.
+    const skillSlugs = [
+      ...(checklist?.items.flatMap((i) => (i.id.startsWith("skill:") ? [i.id.slice(6)] : [])) ??
+        []),
+      ...(pre?.unknownSkills.map((u) => u.slug) ?? []),
+    ].filter((slug) => !isEnglishSkillSlug(slug));
+    const skillInfo = await skillInfoIn(tx, userId, skillSlugs);
 
     return {
       id: job.id,
@@ -302,7 +316,7 @@ export async function getJobDetail(userId: string, jobId: string): Promise<JobDe
             senales: ev.senalesPositivas,
             veredicto: ev.veredicto,
             adjustments: decision?.adjustments ?? [],
-            checklist: parseChecklist(decision),
+            checklist,
             humanScore: ev.humanScore,
             humanNote: ev.humanNote,
             humanVerdict: ev.humanVerdict,
@@ -310,6 +324,7 @@ export async function getJobDetail(userId: string, jobId: string): Promise<JobDe
           }
         : null,
       preScore: pre,
+      skillInfo,
       application: app
         ? { appliedAt: app.appliedAt?.toISOString() ?? null, outcome: app.outcome }
         : null,

@@ -27,8 +27,10 @@ const INGLES = item({
   tenes: "B2",
   status: "no_cumple",
 });
+// Slugs fuera de la taxonomía: el detalle superpone los niveles de hoy (C-20) y el usuario e2e puede
+// tener cargada una skill real; así el estado guardado de estos ítems no cambia
 const DOCKER = item({
-  id: "skill:docker",
+  id: "skill:zz_docker_e2e",
   kind: "skill",
   pide: "Docker",
   status: "no_se_sabe",
@@ -36,7 +38,7 @@ const DOCKER = item({
   evidencia: "experiencia con contenedores",
 });
 const NOMBRADA = item({
-  id: "skill:redis",
+  id: "skill:zz_redis_e2e",
   kind: "skill",
   nivel: "deseable",
   pide: "Redis",
@@ -95,11 +97,10 @@ test.describe("Flujo 63: requisitos del aviso", () => {
       await expect(section.getByText("Cumple", { exact: true }).first()).toBeVisible();
       await expect(section.getByText("No cumple", { exact: true })).toBeVisible();
       await expect(section.getByText("No se sabe", { exact: true })).toBeVisible();
-      // Lo desconocido pide cargar el nivel, con link a skills
-      await expect(section.getByRole("link", { name: "Cargá tu nivel de Docker" })).toHaveAttribute(
-        "href",
-        "/settings/skills",
-      );
+      // Lo desconocido pide cargar el nivel con un botón que abre el modal (C-20), no con un link
+      await expect(
+        section.getByRole("button", { name: "Cargar mi nivel de Docker" }),
+      ).toBeVisible();
       // Skills que solo nombra el aviso, aparte del titular
       await expect(
         section.getByRole("heading", { name: "Skills que nombra el aviso" }),
