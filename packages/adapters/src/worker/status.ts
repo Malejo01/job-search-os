@@ -19,10 +19,10 @@ export const QUEUE_FAILED_RATIO_MAX = 0.5;
 export const QUEUE_FAILED_RATIO_MIN_ATTEMPTS = 4;
 /** Con pendientes, una última evaluación de hace más de esto (misma cifra que la cola vieja). */
 export const EVALUATION_IDLE_MAX_HOURS = 26;
-/** Porcentaje de llamadas de `evaluate_job` de 24 h respondidas por el respaldo que hace fallar el check. */
-export const LLM_FALLBACK_MAX_PCT = 50;
-/** Mínimo de llamadas de 24 h para que el porcentaje de respaldo cuente. */
-export const LLM_FALLBACK_MIN_CALLS = 10;
+/** Porcentaje de llamadas de `evaluate_job` al modelo primario, en 24 h, que fallaron: sobre esto falla el check. */
+export const LLM_PRIMARY_FAILED_MAX_PCT = 50;
+/** Mínimo de llamadas al primario en 24 h para que el porcentaje cuente. */
+export const LLM_PRIMARY_MIN_CALLS = 10;
 /** Descargas seguidas en error de una misma fuente que hacen fallar el check. */
 export const SOURCE_CONSECUTIVE_ERRORS_MAX = 3;
 /** Cuántas descargas recientes por fuente alcanza para ver la racha de errores. */
@@ -43,6 +43,8 @@ export type StatusSnapshot = {
   sources: { source: string; recent: StatusFetch[] }[];
   queue: {
     pending: number;
+    /** Pendientes ya elegibles (`run_after` vencido); ausente = se usa `pending`. */
+    pendingEligible?: number;
     /** Mensajes en `failed` actualizados en las últimas 24 h. */
     failed24h: number;
     /** Mensajes terminados (`done` o `failed`) en las últimas 24 h; ausente = sin dato. */
@@ -52,8 +54,11 @@ export type StatusSnapshot = {
   };
   /** max(evaluations.created_at); solo la fecha, sin saber de quién. */
   lastEvaluationAt: Date | null;
-  /** Llamadas de `evaluate_job` de 24 h y cuántas respondió el modelo de respaldo; solo conteos. */
-  llm?: { calls24h: number; fallback24h: number };
+  /**
+   * Llamadas de `evaluate_job` al modelo primario en 24 h y cuántas fallaron; solo conteos.
+   * Quedan en 0 si no aplica (sin ruta, o primario igual al respaldo).
+   */
+  llm?: { primaryCalls24h: number; primaryFailed24h: number };
 };
 
 export type StatusCheck = {
@@ -139,24 +144,24 @@ export function evaluateStatus(snapshot: StatusSnapshot, now: Date): StatusRepor
   checks.push({
     name: "evaluation_idle_hours",
     ok:
-      snapshot.queue.pending === 0 ||
+      (snapshot.queue.pendingEligible ?? snapshot.queue.pending) === 0 ||
       (idleHours !== null && idleHours <= EVALUATION_IDLE_MAX_HOURS),
     value: idleHours,
     threshold: EVALUATION_IDLE_MAX_HOURS,
   });
 
-  const llmCalls = snapshot.llm?.calls24h ?? 0;
-  const fallbackPct =
-    llmCalls > 0 ? round1(((snapshot.llm?.fallback24h ?? 0) / llmCalls) * 100) : null;
+  const primaryCalls = snapshot.llm?.primaryCalls24h ?? 0;
+  const primaryFailedPct =
+    primaryCalls > 0 ? round1(((snapshot.llm?.primaryFailed24h ?? 0) / primaryCalls) * 100) : null;
   checks.push({
-    name: "llm_fallback_24h",
+    name: "llm_primary_failed_24h",
     ok: !(
-      llmCalls >= LLM_FALLBACK_MIN_CALLS &&
-      fallbackPct !== null &&
-      fallbackPct > LLM_FALLBACK_MAX_PCT
+      primaryCalls >= LLM_PRIMARY_MIN_CALLS &&
+      primaryFailedPct !== null &&
+      primaryFailedPct > LLM_PRIMARY_FAILED_MAX_PCT
     ),
-    value: fallbackPct,
-    threshold: LLM_FALLBACK_MAX_PCT,
+    value: primaryFailedPct,
+    threshold: LLM_PRIMARY_FAILED_MAX_PCT,
   });
 
   // Informativos: no tumban el estado, sirven para leer el JSON a mano
@@ -199,6 +204,9 @@ export async function readStatusSnapshot(db: Db, now: Date): Promise<StatusSnaps
     select
       count(*) filter (where status = 'pending')::int as pending,
       count(*) filter (
+        where status = 'pending' and (run_after is null or run_after <= ${nowIso}::timestamptz)
+      )::int as pending_eligible,
+      count(*) filter (
         where status = 'failed' and updated_at > ${nowIso}::timestamptz - interval '24 hours'
       )::int as failed_24h,
       count(*) filter (
@@ -213,20 +221,27 @@ export async function readStatusSnapshot(db: Db, now: Date): Promise<StatusSnaps
     where queue = 'evaluate_job'
   `)) as unknown as {
     pending: number;
+    pending_eligible: number;
     failed_24h: number;
     attempts_24h: number;
     oldest_pending_minutes: number | null;
   }[];
 
-  // Cada intento (primario o respaldo) deja una fila con su modelo: respaldo = el modelo de la ruta.
+  // Cada intento deja una fila con su modelo (una llamada que cae al respaldo deja dos: el primario
+  // con error y el respaldo). Se mide solo el primario: una fila por llamada lógica. Se ignoran las
+  // filas anteriores al último cambio de ruteo y la ruta con primario igual al respaldo.
   const [llm] = (await db.execute(sql`
     select
-      count(*)::int as calls,
-      count(*) filter (where c.model = r.fallback_model)::int as fallback
+      count(*)::int as primary_calls,
+      count(*) filter (where not c.ok)::int as primary_failed
     from llm_calls c
-    left join model_routing r on r.task = c.task
-    where c.task = 'evaluate_job' and c.created_at > ${nowIso}::timestamptz - interval '24 hours'
-  `)) as unknown as { calls: number; fallback: number }[];
+    join model_routing r on r.task = c.task
+    where c.task = 'evaluate_job'
+      and c.model = r.model
+      and r.model is distinct from r.fallback_model
+      and c.created_at > r.updated_at
+      and c.created_at > ${nowIso}::timestamptz - interval '24 hours'
+  `)) as unknown as { primary_calls: number; primary_failed: number }[];
 
   const [evaluation] = (await db.execute(
     sql`select max(created_at) as last_at from evaluations`,
@@ -270,11 +285,15 @@ export async function readStatusSnapshot(db: Db, now: Date): Promise<StatusSnaps
     sources: [...bySource].map(([source, recent]) => ({ source, recent })),
     queue: {
       pending: queue?.pending ?? 0,
+      pendingEligible: queue?.pending_eligible ?? 0,
       failed24h: queue?.failed_24h ?? 0,
       attempts24h: queue?.attempts_24h ?? 0,
       oldestPendingMinutes: queue?.oldest_pending_minutes ?? null,
     },
     lastEvaluationAt: toDate(evaluation?.last_at),
-    llm: { calls24h: llm?.calls ?? 0, fallback24h: llm?.fallback ?? 0 },
+    llm: {
+      primaryCalls24h: llm?.primary_calls ?? 0,
+      primaryFailed24h: llm?.primary_failed ?? 0,
+    },
   };
 }

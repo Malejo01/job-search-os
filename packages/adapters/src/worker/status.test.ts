@@ -7,7 +7,7 @@ import {
   POOL_STALE_MAX_HOURS,
   QUEUE_FAILED_24H_MAX,
   EVALUATION_IDLE_MAX_HOURS,
-  LLM_FALLBACK_MAX_PCT,
+  LLM_PRIMARY_FAILED_MAX_PCT,
   type StatusFetch,
   type StatusSnapshot,
 } from "./status";
@@ -197,29 +197,53 @@ describe("evaluation_idle_hours", () => {
   });
 });
 
-describe("llm_fallback_24h", () => {
-  const llm = (calls24h: number, fallback24h: number) => ({ llm: { calls24h, fallback24h } });
+describe("llm_primary_failed_24h", () => {
+  const llm = (primaryCalls24h: number, primaryFailed24h: number) => ({
+    llm: { primaryCalls24h, primaryFailed24h },
+  });
 
-  it("más del 50 % con al menos 10 llamadas falla", () => {
-    const snap = { ...healthy(), ...llm(10, 6) };
-    expect(check(snap, "llm_fallback_24h")).toMatchObject({
+  it("caída total del primario (100 % de fallos) falla y tumba el estado", () => {
+    const snap = { ...healthy(), ...llm(10, 10) };
+    expect(check(snap, "llm_primary_failed_24h")).toMatchObject({
       ok: false,
-      value: 60,
-      threshold: LLM_FALLBACK_MAX_PCT,
+      value: 100,
+      threshold: LLM_PRIMARY_FAILED_MAX_PCT,
     });
     expect(evaluateStatus(snap, NOW).ok).toBe(false);
   });
 
-  it("50 % justo, o menos de 10 llamadas, pasa", () => {
-    expect(check({ ...healthy(), ...llm(10, 5) }, "llm_fallback_24h")?.ok).toBe(true);
-    expect(check({ ...healthy(), ...llm(9, 9) }, "llm_fallback_24h")?.ok).toBe(true);
+  it("más del 50 % con al menos 10 llamadas falla; 50 % justo pasa", () => {
+    expect(check({ ...healthy(), ...llm(10, 6) }, "llm_primary_failed_24h")?.ok).toBe(false);
+    expect(check({ ...healthy(), ...llm(10, 5) }, "llm_primary_failed_24h")?.ok).toBe(true);
   });
 
-  it("sin llamadas o sin dato: pasa, valor null", () => {
-    expect(check({ ...healthy(), ...llm(0, 0) }, "llm_fallback_24h")).toMatchObject({
+  it("con menos de 10 llamadas al primario no falla", () => {
+    expect(check({ ...healthy(), ...llm(9, 9) }, "llm_primary_failed_24h")?.ok).toBe(true);
+  });
+
+  it("sin llamadas o sin dato (ruta sin primario aplicable): pasa, valor null", () => {
+    expect(check({ ...healthy(), ...llm(0, 0) }, "llm_primary_failed_24h")).toMatchObject({
       ok: true,
       value: null,
     });
-    expect(check(healthy(), "llm_fallback_24h")).toMatchObject({ ok: true, value: null });
+    expect(check(healthy(), "llm_primary_failed_24h")).toMatchObject({ ok: true, value: null });
+  });
+});
+
+describe("evaluation_idle_hours con diferidos", () => {
+  it("solo hay pendientes diferidos (run_after futuro): no falla", () => {
+    const snap = withQueue(
+      { pending: 3, pendingEligible: 0 },
+      { lastEvaluationAt: hoursAgo(EVALUATION_IDLE_MAX_HOURS + 10) },
+    );
+    expect(check(snap, "evaluation_idle_hours")?.ok).toBe(true);
+  });
+
+  it("hay un pendiente elegible y evaluación vieja: falla", () => {
+    const snap = withQueue(
+      { pending: 3, pendingEligible: 1 },
+      { lastEvaluationAt: hoursAgo(EVALUATION_IDLE_MAX_HOURS + 10) },
+    );
+    expect(check(snap, "evaluation_idle_hours")?.ok).toBe(false);
   });
 });
