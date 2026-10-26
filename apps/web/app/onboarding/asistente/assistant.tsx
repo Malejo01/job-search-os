@@ -22,9 +22,6 @@ import { CopyButton } from "./copy-button";
 import { PortalStats } from "./portal-stats";
 import { PrivacyDialog } from "./privacy-dialog";
 
-const LEGACY_NOTICE =
-  "Tu dirección es de un formato anterior: generá una nueva en Ajustes › Email entrante antes de configurar Gmail.";
-
 const STEP_TITLES: Record<(typeof ASSISTANT_STEPS)[number], string> = {
   agregar_direccion: "Agregá la dirección de reenvío",
   confirmar_reenvio: "Confirmá el reenvío",
@@ -68,9 +65,8 @@ export function Assistant({
   const { step } = state;
   const legacy = step === "direccion_vieja";
   const inOnboarding = context === "onboarding";
-  // Gmail ya empezado: llegó el pedido de confirmación o se importaron los filtros, sin primera alerta
-  const gmailInProgress =
-    step === "confirmar_reenvio" || step === "importar_filtros" || step === "esperando_alerta";
+  // Gmail ya empezado: cualquier paso distinto del inicial (tampoco se cierra solo al llegar a «listo»)
+  const gmailInProgress = step !== "agregar_direccion" && step !== "direccion_vieja";
   return (
     <section className="flex flex-col gap-4">
       {inOnboarding ? (
@@ -129,7 +125,7 @@ export function Assistant({
                     }
                   >
                     {view === "done" ? <span aria-hidden="true">✓ </span> : null}
-                    Paso {i + 1}: {STEP_TITLES[id]}
+                    Gmail, paso {i + 1}: {STEP_TITLES[id]}
                     <span className="sr-only">
                       {view === "done"
                         ? " (hecho)"
@@ -206,7 +202,7 @@ function StepBody({
   switch (step) {
     case "agregar_direccion":
       return current === "direccion_vieja" ? (
-        <p>{LEGACY_NOTICE}</p>
+        <p>Primero generá una dirección nueva: mirá el aviso de arriba.</p>
       ) : (
         <>
           <p>

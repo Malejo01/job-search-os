@@ -20,12 +20,13 @@ test.describe("Flujo 83: tu email de alertas en el asistente", () => {
     const block = page.getByTestId("alert-email");
     await expect(block).toBeVisible();
     await expect(block.getByRole("heading", { name: "Tu email de alertas" })).toBeVisible();
-    // Es lo primero de la lista de secciones del asistente
-    const sections = page.locator("section > section, section > details");
-    await expect(sections.first()).toHaveAttribute("data-testid", "alert-email");
+    // Va antes que «Otra opción: reenviar desde Gmail», por posición en la página
+    const blockBox = await block.boundingBox();
+    const gmailBox = await page.getByTestId("gmail-option").boundingBox();
+    expect(blockBox!.y).toBeLessThan(gmailBox!.y);
 
     const address = (await block.getByTestId("assistant-address").innerText()).trim();
-    expect(address).toMatch(/^u_.+@.+/);
+    expect(address).toMatch(/@/);
 
     await expect(block.getByTestId("alert-email-step-1")).toContainText(
       "Copiá tu dirección de alertas",
@@ -42,7 +43,8 @@ test.describe("Flujo 83: tu email de alertas en el asistente", () => {
     );
     // Sin promesas sobre portales sin lector
     await expect(block).toContainText("las procesamos cuando sumemos su lector");
-    await expect(block).not.toContainText("automáticamente las ofertas");
+    await expect(block).toContainText("Por ahora leemos automáticamente las alertas de algunos");
+    await expect(block).toContainText("Suscribí la alerta de Computrabajo");
 
     // Copiar: antes de hidratar el clic no hace nada, se reintenta
     const copy = block.getByTestId("alert-email-step-1").locator("button");

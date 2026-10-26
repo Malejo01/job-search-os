@@ -101,7 +101,8 @@ test.describe.serial("Flujo 24: asistente con el paso actual", () => {
     await login(page);
     await page.goto("/settings/asistente");
     await closePrivacyDialog(page);
-    await openGmailOption(page);
+    // Pasó por los pasos de Gmail: al llegar a «listo» no se cierra solo
+    await expect(page.getByTestId("gmail-option")).toHaveJSProperty("open", true);
     const current = page.locator('[aria-current="step"]');
     await expect(current).toContainText("Listo");
     await expect(current).toContainText("Primera alerta recibida");

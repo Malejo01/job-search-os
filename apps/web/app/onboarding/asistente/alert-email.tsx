@@ -24,7 +24,7 @@ export function AlertEmail({ address, legacy }: { address: string | null; legacy
         Tu email de alertas
       </h2>
       <p className="text-sm text-zinc-700">
-        Suscribí las alertas de los portales directamente con esta dirección. Los avisos llegan a tu
+        Suscribí la alerta de Computrabajo directamente con esta dirección: los avisos llegan a tu
         bandeja de Job Search sin pasar por tu correo.
       </p>
       {legacy ? (
