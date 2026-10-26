@@ -18,6 +18,32 @@ describe("normalizeLlmError", () => {
     expect(normalizeLlmError(apiError(42))).toBe("api_call");
   });
 
+  it("crédito agotado: 400 con la frase acotada o billing_error van a api_call:402", () => {
+    const body = (message: string, type = "invalid_request_error") =>
+      JSON.stringify({ type: "error", error: { type, message } });
+    const withBody = (statusCode: number, responseBody: string, data?: unknown) =>
+      new APICallError({
+        message: "TEXTO-DEL-JD",
+        url: "https://x.test",
+        requestBodyValues: {},
+        statusCode,
+        responseBody,
+        data,
+      });
+    const depleted = body("Your credit balance is too low to access the Anthropic API.");
+    expect(normalizeLlmError(withBody(400, depleted))).toBe("api_call:402");
+    expect(normalizeLlmError(withBody(400, "", { error: { type: "billing_error" } }))).toBe(
+      "api_call:402",
+    );
+    expect(normalizeLlmError(withBody(402, body("x", "billing_error")))).toBe("api_call:402");
+    // un 400 de validación sigue siendo 400, y la frase en otro status no cambia nada
+    expect(normalizeLlmError(withBody(400, body("max_tokens: must be positive")))).toBe(
+      "api_call:400",
+    );
+    expect(normalizeLlmError(withBody(500, depleted))).toBe("api_call:500");
+    expect(normalizeLlmError(withBody(400, depleted))).not.toContain("credit");
+  });
+
   it("desenvuelve el RetryError al último error del proveedor", () => {
     const retry = new RetryError({
       message: "Failed after 3 attempts. Last error: TEXTO-DEL-JD",
@@ -36,6 +62,14 @@ describe("normalizeLlmError", () => {
       finishReason: "length",
     });
     expect(normalizeLlmError(e)).toBe("no_object");
+    const refused = new NoObjectGeneratedError({
+      message: "TEXTO-DEL-JD",
+      response: { id: "r", timestamp: new Date(), modelId: "m" },
+      usage: { inputTokens: 1, outputTokens: 0, totalTokens: 1 } as never,
+      finishReason: "content-filter",
+    });
+    expect(normalizeLlmError(refused)).toBe("refusal");
+    expect(isLlmErrorCode("refusal")).toBe(true);
   });
 
   it("validation lleva solo los code de zod, sin paths ni valores", () => {

@@ -72,9 +72,10 @@ export interface CvUsageSource {
 
 /**
  * Una lectura que se cortó por tiempo (o que se canceló) no consume cupo: decisión de Mauro del
- * 21/10. El resto de los fallos del proveedor sí cuenta (pueden haber costado).
+ * 21/10. Tampoco `provider_unavailable` (primario sin clave: no se llamó, no costó nada; el
+ * cliente lo registra desde C-24 y sin esto una lectura gastaría dos cupos). El resto de los fallos del proveedor sí cuenta (pueden haber costado).
  */
-export const CV_ERRORS_NOT_COUNTED = ["timeout", "aborted"] as const;
+export const CV_ERRORS_NOT_COUNTED = ["timeout", "aborted", "provider_unavailable"] as const;
 
 /**
  * Reusa el patrón de `spend.ts`: filas de `llm_calls` por `user_id` y `task`, con el índice

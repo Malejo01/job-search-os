@@ -115,6 +115,22 @@ export function createLlmClient(deps: LlmClientDeps): LlmClient {
     const languageModel = deps.providers.modelFor(provider, model);
     if (!languageModel) {
       log.warn({ provider, model }, "proveedor sin API key: modelo no disponible");
+      // Queda rastro del intento: sin esto, un primario sin clave cae al respaldo en silencio
+      await deps.calls.record({
+        userId: ctx.userId ?? null,
+        task: ctx.recordTask ?? route.task,
+        model,
+        promptVersion,
+        jobId: ctx.jobId ?? null,
+        tokensIn: null,
+        tokensOut: null,
+        tokensReasoning: null,
+        latencyMs: 0,
+        costUsd: null,
+        label: ctx.label ?? null,
+        ok: false,
+        error: "provider_unavailable",
+      });
       return err({
         kind: "provider_unavailable",
         task: route.task,

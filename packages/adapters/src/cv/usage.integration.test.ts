@@ -42,7 +42,7 @@ beforeAll(async () => {
     row(true, null, DAYS_AGO(1)), // cuenta
     row(false, "timeout", DAYS_AGO(2)), // no cuenta
     row(false, "aborted", DAYS_AGO(3)), // no cuenta
-    row(false, "provider_unavailable", DAYS_AGO(4)), // cuenta: el proveedor falló
+    row(false, "provider_unavailable", DAYS_AGO(4)), // no cuenta: no se llegó a llamar
     row(true, null, DAYS_AGO(40)), // fuera de la ventana
     row(true, null, DAYS_AGO(1), "evaluate_job"), // otra tarea
   ]);
@@ -55,8 +55,8 @@ afterAll(async () => {
 });
 
 describe("drizzleCvUsage", () => {
-  it("no cuenta las lecturas cortadas por tiempo ni las canceladas", async () => {
+  it("no cuenta las lecturas cortadas por tiempo, canceladas ni sin proveedor", async () => {
     const used = await drizzleCvUsage(conn.db).countSince(USER, DAYS_AGO(30));
-    expect(used).toBe(2);
+    expect(used).toBe(1);
   });
 });

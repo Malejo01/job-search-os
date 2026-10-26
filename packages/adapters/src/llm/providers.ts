@@ -14,12 +14,20 @@ export type ProviderEnv = {
  */
 export function createProviderRegistry(
   env: ProviderEnv = process.env as ProviderEnv,
+  /** `fetch` inyectable: los tests de la petición corren sin red. */
+  options: { fetch?: typeof fetch } = {},
 ): ProviderRegistry {
   const google = env.GEMINI_API_KEY
-    ? createGoogleGenerativeAI({ apiKey: env.GEMINI_API_KEY })
+    ? createGoogleGenerativeAI({
+        apiKey: env.GEMINI_API_KEY,
+        ...(options.fetch ? { fetch: options.fetch } : {}),
+      })
     : null;
   const anthropic = env.ANTHROPIC_API_KEY
-    ? createAnthropic({ apiKey: env.ANTHROPIC_API_KEY })
+    ? createAnthropic({
+        apiKey: env.ANTHROPIC_API_KEY,
+        ...(options.fetch ? { fetch: options.fetch } : {}),
+      })
     : null;
 
   return {
