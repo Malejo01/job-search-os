@@ -5,6 +5,9 @@ import {
   statusExpectedSecret,
   QUEUE_OLDEST_MAX_HOURS,
   POOL_STALE_MAX_HOURS,
+  QUEUE_FAILED_24H_MAX,
+  EVALUATION_IDLE_MAX_HOURS,
+  LLM_FALLBACK_MAX_PCT,
   type StatusFetch,
   type StatusSnapshot,
 } from "./status";
@@ -114,5 +117,109 @@ describe("evaluateStatus", () => {
     expect(check(snap, "queue_failed_24h")).toMatchObject({ ok: true, value: 5, threshold: null });
     expect(check(snap, "last_evaluation_at")?.value).toBe(hoursAgo(5).toISOString());
     expect(Object.keys(r)).toEqual(["ok", "checks"]);
+  });
+});
+
+const withQueue = (q: Partial<StatusSnapshot["queue"]>, extra: Partial<StatusSnapshot> = {}) => ({
+  ...healthy(),
+  queue: { pending: 0, failed24h: 0, oldestPendingMinutes: null, ...q },
+  ...extra,
+});
+
+describe("queue_failed_24h_max", () => {
+  it("más de 10 fallidos falla y tumba el estado", () => {
+    const snap = withQueue({ failed24h: QUEUE_FAILED_24H_MAX + 1, attempts24h: 200 });
+    expect(check(snap, "queue_failed_24h_max")).toMatchObject({
+      ok: false,
+      value: QUEUE_FAILED_24H_MAX + 1,
+      threshold: QUEUE_FAILED_24H_MAX,
+    });
+    expect(evaluateStatus(snap, NOW).ok).toBe(false);
+  });
+
+  it("justo en el umbral, con pocos fallidos, pasa", () => {
+    const snap = withQueue({ failed24h: QUEUE_FAILED_24H_MAX, attempts24h: 200 });
+    expect(check(snap, "queue_failed_24h_max")?.ok).toBe(true);
+  });
+
+  it("más del 50 % de los intentos con al menos 4 intentos falla", () => {
+    expect(check(withQueue({ failed24h: 3, attempts24h: 4 }), "queue_failed_24h_max")?.ok).toBe(
+      false,
+    );
+    expect(check(withQueue({ failed24h: 2, attempts24h: 4 }), "queue_failed_24h_max")?.ok).toBe(
+      true,
+    );
+  });
+
+  it("pocos intentos (menos de 4) no fallan por porcentaje", () => {
+    expect(check(withQueue({ failed24h: 3, attempts24h: 3 }), "queue_failed_24h_max")?.ok).toBe(
+      true,
+    );
+    expect(check(withQueue({ failed24h: 2 }), "queue_failed_24h_max")?.ok).toBe(true);
+  });
+});
+
+describe("evaluation_idle_hours", () => {
+  it("pendientes y última evaluación vieja: falla", () => {
+    const snap = withQueue(
+      { pending: 2 },
+      { lastEvaluationAt: hoursAgo(EVALUATION_IDLE_MAX_HOURS + 1) },
+    );
+    expect(check(snap, "evaluation_idle_hours")).toMatchObject({
+      ok: false,
+      value: EVALUATION_IDLE_MAX_HOURS + 1,
+      threshold: EVALUATION_IDLE_MAX_HOURS,
+    });
+    expect(evaluateStatus(snap, NOW).ok).toBe(false);
+  });
+
+  it("pendientes y nunca hubo evaluaciones: falla", () => {
+    const snap = withQueue({ pending: 1 }, { lastEvaluationAt: null });
+    expect(check(snap, "evaluation_idle_hours")).toMatchObject({ ok: false, value: null });
+  });
+
+  it("pendientes y evaluación reciente: pasa", () => {
+    const snap = withQueue(
+      { pending: 1 },
+      { lastEvaluationAt: hoursAgo(EVALUATION_IDLE_MAX_HOURS) },
+    );
+    expect(check(snap, "evaluation_idle_hours")?.ok).toBe(true);
+  });
+
+  it("cola vacía: no falla nunca, ni vieja ni sin evaluaciones", () => {
+    expect(
+      check(withQueue({ pending: 0 }, { lastEvaluationAt: hoursAgo(500) }), "evaluation_idle_hours")
+        ?.ok,
+    ).toBe(true);
+    expect(
+      check(withQueue({ pending: 0 }, { lastEvaluationAt: null }), "evaluation_idle_hours")?.ok,
+    ).toBe(true);
+  });
+});
+
+describe("llm_fallback_24h", () => {
+  const llm = (calls24h: number, fallback24h: number) => ({ llm: { calls24h, fallback24h } });
+
+  it("más del 50 % con al menos 10 llamadas falla", () => {
+    const snap = { ...healthy(), ...llm(10, 6) };
+    expect(check(snap, "llm_fallback_24h")).toMatchObject({
+      ok: false,
+      value: 60,
+      threshold: LLM_FALLBACK_MAX_PCT,
+    });
+    expect(evaluateStatus(snap, NOW).ok).toBe(false);
+  });
+
+  it("50 % justo, o menos de 10 llamadas, pasa", () => {
+    expect(check({ ...healthy(), ...llm(10, 5) }, "llm_fallback_24h")?.ok).toBe(true);
+    expect(check({ ...healthy(), ...llm(9, 9) }, "llm_fallback_24h")?.ok).toBe(true);
+  });
+
+  it("sin llamadas o sin dato: pasa, valor null", () => {
+    expect(check({ ...healthy(), ...llm(0, 0) }, "llm_fallback_24h")).toMatchObject({
+      ok: true,
+      value: null,
+    });
+    expect(check(healthy(), "llm_fallback_24h")).toMatchObject({ ok: true, value: null });
   });
 });
