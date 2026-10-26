@@ -240,7 +240,23 @@ describe("purgeExpired", () => {
       waitlistIps: 0,
       invitations: 0,
       invitationEmails: 0,
+      betaFeedback: 0,
     });
+  });
+
+  it("borra los comentarios de la beta de más de 180 días y deja los demás", async () => {
+    const row = { userId: A, category: "idea", message: "Mensaje ficticio", path: "/hoy" };
+    await conn.db.delete(s.betaFeedback).where(eq(s.betaFeedback.userId, A));
+    await conn.db.insert(s.betaFeedback).values([
+      { ...row, createdAt: daysAgo(181) },
+      { ...row, createdAt: daysAgo(179) },
+      { ...row, createdAt: daysAgo(1) },
+    ]);
+    const r = await purgeExpired(conn.db, { now: NOW });
+    expect(r.betaFeedback).toBe(1);
+    const left = await conn.db.select().from(s.betaFeedback).where(eq(s.betaFeedback.userId, A));
+    expect(left).toHaveLength(2);
+    await conn.db.delete(s.betaFeedback).where(eq(s.betaFeedback.userId, A));
   });
 
   it("borra la invitación vencida sin usar, respeta la gracia y anula el email de la usada", async () => {

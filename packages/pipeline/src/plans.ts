@@ -96,6 +96,12 @@ export const PLANS: readonly PlanDef[] = [
   },
 ];
 
+/**
+ * Cupos del plan fundador por carrera (C-13b). A confirmar con Ani: mientras sea null el tablero del
+ * admin muestra solo cuántas personas hay, sin «de N», y no se bloquea nada.
+ */
+export const FOUNDER_SEATS_PER_CAREER: number | null = null;
+
 /** Días de garantía: si no te sirve, te devolvemos lo que pagaste. */
 export const GUARANTEE_DAYS = 14;
 

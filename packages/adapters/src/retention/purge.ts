@@ -19,7 +19,12 @@ export type PurgeResult = {
   invitations: number;
   /** Invitaciones usadas a las que se les anuló el email. */
   invitationEmails: number;
+  /** Comentarios de «Contanos qué pasó» de más de BETA_FEEDBACK_DAYS días. */
+  betaFeedback: number;
 };
+
+/** Retención de beta_feedback (C-23): 180 días, fija; no depende de `LEGAL_LOG_DAYS`. */
+export const BETA_FEEDBACK_DAYS = 180;
 
 const INVITATION_GRACE_DAYS = 7;
 
@@ -79,6 +84,7 @@ export async function purgeExpired(
     waitlistIps: 0,
     invitations: 0,
     invitationEmails: 0,
+    betaFeedback: 0,
   };
 
   // IP hasheada de la lista de espera: no se guarda más de un día (mismo UPDATE que waitlist_join)
@@ -112,6 +118,14 @@ export async function purgeExpired(
     .where(and(isNotNull(s.invitations.usedAt), isNotNull(s.invitations.email)))
     .returning({ id: s.invitations.id });
   result.invitationEmails = cleared.length;
+
+  // Comentarios de la beta: retención propia, corre aunque la purga técnica esté desactivada
+  result.betaFeedback = await deleteInBatches(
+    db,
+    s.betaFeedback,
+    lt(s.betaFeedback.createdAt, new Date(now.getTime() - BETA_FEEDBACK_DAYS * DAY_MS)),
+    batchSize,
+  );
 
   const logDays = input.logDays;
   if (
