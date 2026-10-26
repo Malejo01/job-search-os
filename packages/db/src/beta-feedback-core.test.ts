@@ -1,76 +1,67 @@
-import { describe, expect, it } from "vitest";
-// apps/web no tiene vitest: el test de su lógica pura vive acá (módulo sin dependencias)
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
-  FEEDBACK_DAILY_LIMIT,
+  FEEDBACK_CATEGORIES,
   FEEDBACK_MESSAGE_MAX,
   FEEDBACK_PATH_MAX,
-  isOverDailyLimit,
-  isValidFeedbackPath,
-  validateFeedback,
-} from "../../../apps/web/lib/beta-feedback-core";
+} from "@job-search-os/pipeline";
+import { getTableConfig } from "drizzle-orm/pg-core";
+import { describe, expect, it } from "vitest";
+import { betaFeedback } from "../schema";
 
-describe("isValidFeedbackPath", () => {
-  it("acepta pathnames simples", () => {
-    for (const p of ["/", "/hoy", "/jobs/abc-123", "/settings/metricas"]) {
-      expect(isValidFeedbackPath(p), p).toBe(true);
-    }
+/**
+ * Los límites de «Contanos qué pasó» viven en el pipeline (validación) y se repiten como CHECK en la
+ * base. Si cambian en un lado y no en el otro, el formulario acepta lo que la base rechaza (o al
+ * revés): este test compara las constantes con los CHECK del schema y de la migración 0045.
+ */
+const DRIZZLE_DIR = join(__dirname, "..", "drizzle");
+
+function migrationSql(): string {
+  const file = readdirSync(DRIZZLE_DIR).find(
+    (f) =>
+      f.endsWith(".sql") &&
+      readFileSync(join(DRIZZLE_DIR, f), "utf8").includes('CREATE TABLE "beta_feedback"'),
+  );
+  expect(file, "migración que crea beta_feedback").toBeDefined();
+  return readFileSync(join(DRIZZLE_DIR, file!), "utf8");
+}
+
+function checkSource(sql: string, name: string): string {
+  const m = new RegExp(`CONSTRAINT "${name}" CHECK \\((.*)\\)[,\\n]`).exec(sql);
+  expect(m, `CHECK ${name}`).not.toBeNull();
+  return m![1]!;
+}
+
+describe("beta_feedback: CHECK de la base contra las constantes del pipeline", () => {
+  const sql = migrationSql();
+
+  it("categorías", () => {
+    const listed = [...checkSource(sql, "beta_feedback_category").matchAll(/'([a-z_]+)'/g)].map(
+      (m) => m[1],
+    );
+    expect(listed.sort()).toEqual([...FEEDBACK_CATEGORIES].sort());
   });
 
-  it("rechaza query, fragmento, .., barra doble, relativos y control", () => {
-    for (const p of [
-      "",
-      "hoy",
-      "/jobs?id=1",
-      "/jobs#x",
-      "/a/../b",
-      "//otro.test",
-      "/a\\b",
-      "/a\nb",
-      "https://ejemplo.test/hoy",
-    ]) {
-      expect(isValidFeedbackPath(p), p).toBe(false);
-    }
-  });
-
-  it("respeta el largo máximo", () => {
-    expect(isValidFeedbackPath("/" + "a".repeat(FEEDBACK_PATH_MAX - 1))).toBe(true);
-    expect(isValidFeedbackPath("/" + "a".repeat(FEEDBACK_PATH_MAX))).toBe(false);
-  });
-
-  it("rechaza lo que no es texto", () => {
-    expect(isValidFeedbackPath(null)).toBe(false);
-    expect(isValidFeedbackPath(42)).toBe(false);
-  });
-});
-
-describe("validateFeedback", () => {
-  const ok = { category: "idea", message: "Una idea", path: "/hoy" };
-
-  it("acepta y normaliza el mensaje", () => {
-    expect(validateFeedback({ ...ok, message: "  hola\r\nchau  " })).toEqual({
-      ok: true,
-      value: { category: "idea", message: "hola\nchau", path: "/hoy" },
-    });
-  });
-
-  it("devuelve el primer campo inválido, sin contenido", () => {
-    expect(validateFeedback({ ...ok, category: "otra" })).toEqual({ ok: false, field: "category" });
-    expect(validateFeedback({ ...ok, message: "   " })).toEqual({ ok: false, field: "message" });
-    expect(validateFeedback({ ...ok, message: 5 })).toEqual({ ok: false, field: "message" });
-    expect(validateFeedback({ ...ok, path: "/a?b=1" })).toEqual({ ok: false, field: "path" });
-  });
-
-  it("el mensaje llega hasta el máximo y no más", () => {
-    expect(validateFeedback({ ...ok, message: "x".repeat(FEEDBACK_MESSAGE_MAX) }).ok).toBe(true);
-    expect(validateFeedback({ ...ok, message: "x".repeat(FEEDBACK_MESSAGE_MAX + 1) }).ok).toBe(
-      false,
+  it("largo del mensaje", () => {
+    expect(checkSource(sql, "beta_feedback_message_length")).toMatch(
+      new RegExp(`between 1 and ${FEEDBACK_MESSAGE_MAX}$`),
     );
   });
-});
 
-describe("isOverDailyLimit", () => {
-  it("bloquea desde el décimo envío ya hecho", () => {
-    expect(isOverDailyLimit(FEEDBACK_DAILY_LIMIT - 1)).toBe(false);
-    expect(isOverDailyLimit(FEEDBACK_DAILY_LIMIT)).toBe(true);
+  it("largo del path", () => {
+    expect(checkSource(sql, "beta_feedback_path_length")).toMatch(
+      new RegExp(`<= ${FEEDBACK_PATH_MAX}$`),
+    );
+  });
+
+  it("el schema de Drizzle declara los mismos tres CHECK", () => {
+    const names = getTableConfig(betaFeedback)
+      .checks.map((c) => c.name)
+      .sort();
+    expect(names).toEqual([
+      "beta_feedback_category",
+      "beta_feedback_message_length",
+      "beta_feedback_path_length",
+    ]);
   });
 });

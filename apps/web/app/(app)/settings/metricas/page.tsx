@@ -1,15 +1,16 @@
 import {
+  FEEDBACK_CATEGORY_LABELS,
   FOUNDER_SEATS_PER_CAREER,
   betaMetricRows,
   betaMetricsCsv,
   founderSeatRows,
+  isFeedbackCategory,
   isRoleKey,
   type BetaMetricRow,
 } from "@job-search-os/pipeline";
 import { notFound } from "next/navigation";
 import { careerLabel } from "@/lib/career-market";
 import { getBetaFeedback, type FeedbackListResult } from "@/lib/beta-feedback";
-import { FEEDBACK_CATEGORY_LABELS, isFeedbackCategory } from "@/lib/beta-feedback-core";
 import { getBetaMetrics, getFounderCounts, type FounderCountsResult } from "@/lib/beta-metrics";
 import { requireUserId } from "@/lib/session";
 
@@ -125,7 +126,7 @@ function FounderSeats({ founders, k }: { founders: FounderCountsResult; k: numbe
 
 /**
  * «Lo que nos contaron» (C-23): las últimas 50 de «Contanos qué pasó». Sin email ni nombre: solo un
- * identificador corto y opaco. El mensaje es texto de una persona: se renderiza como texto (React
+ * identificador seudónimo corto. El mensaje es texto de una persona: se renderiza como texto (React
  * lo escapa), con los saltos de línea conservados por CSS, nunca como HTML.
  */
 function BetaFeedbackList({ feedback }: { feedback: FeedbackListResult }) {

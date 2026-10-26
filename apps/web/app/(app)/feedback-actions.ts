@@ -1,8 +1,8 @@
 "use server";
 
 import { createLogger, safeDbError } from "@job-search-os/adapters";
+import { validateFeedback, type FeedbackField } from "@job-search-os/pipeline";
 import { saveFeedback } from "@/lib/beta-feedback";
-import { validateFeedback, type FeedbackField } from "@/lib/beta-feedback-core";
 import { requireActiveUserId } from "@/lib/session";
 
 export type FeedbackResult = { ok: true } | { ok: false; field: FeedbackField | "_error" };

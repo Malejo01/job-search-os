@@ -24,7 +24,7 @@ DROP POLICY IF EXISTS "beta_feedback_definer_delete" ON "beta_feedback";
 CREATE POLICY "beta_feedback_definer_delete" ON "beta_feedback" FOR DELETE TO CURRENT_USER USING (true);
 
 -- Lectura del admin (/settings/metricas): las últimas 50, sin email ni nombre. La persona sale como
--- un identificador corto y opaco: los primeros 6 caracteres del sha256 del user_id. Mismo patrón que
+-- un identificador seudónimo corto: los primeros 6 caracteres del sha256 del user_id. Mismo patrón que
 -- admin_beta_metrics (0009): SECURITY DEFINER, search_path fijo, objetos calificados, REVOKE de
 -- PUBLIC y EXECUTE solo para authenticated; solo quien está en app_admins.
 DROP FUNCTION IF EXISTS public.admin_beta_feedback();

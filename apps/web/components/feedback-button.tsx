@@ -1,13 +1,13 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
-import { sendFeedbackAction } from "@/app/(app)/feedback-actions";
 import {
   FEEDBACK_CATEGORIES,
   FEEDBACK_CATEGORY_LABELS,
   FEEDBACK_MESSAGE_MAX,
-} from "@/lib/beta-feedback-core";
+} from "@job-search-os/pipeline";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
+import { sendFeedbackAction } from "@/app/(app)/feedback-actions";
 import { TextareaWithCounter, countChars } from "./char-counter";
 
 const ERRORS: Record<string, string> = {
@@ -66,7 +66,7 @@ export function FeedbackButton() {
       <button
         type="button"
         onClick={open}
-        className="text-sm text-zinc-600 underline-offset-2 hover:underline"
+        className="text-sm text-zinc-600 underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
       >
         Contanos qué pasó
       </button>
@@ -89,7 +89,7 @@ export function FeedbackButton() {
           </h2>
           <p className="text-sm text-zinc-700">
             Guardamos tu mensaje y la pantalla en la que estabas. No incluyas datos personales de
-            otras personas.
+            otras personas ni datos sensibles tuyos.
           </p>
           <input type="hidden" name="path" value={pathname} />
           <fieldset className="flex flex-col gap-1">

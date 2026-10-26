@@ -2,7 +2,7 @@ import { schema as s } from "@job-search-os/db";
 import { and, eq, gt, sql } from "drizzle-orm";
 import { withUser } from "./db";
 import { canCreateInvitations } from "./invitations";
-import { isOverDailyLimit, type FeedbackInput } from "./beta-feedback-core";
+import { isOverDailyLimit, type FeedbackInput } from "@job-search-os/pipeline";
 
 /**
  * «Contanos qué pasó» (C-23), solo servidor. El envío corre en una transacción de la persona
@@ -35,7 +35,7 @@ export type FeedbackRow = {
   category: string;
   path: string;
   message: string;
-  /** 6 caracteres del sha256 del user_id: opaco, sin email ni nombre. */
+  /** 6 caracteres del sha256 del user_id: identificador seudónimo, sin email ni nombre. */
   person: string;
 };
 
