@@ -55,3 +55,4 @@ export * from "./learning";
 export * from "./fit/fit-summary";
 export * from "./digest/build";
 export * from "./brand";
+export * from "./feedback/beta-feedback";

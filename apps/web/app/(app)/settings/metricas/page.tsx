@@ -1,13 +1,16 @@
 import {
+  FEEDBACK_CATEGORY_LABELS,
   FOUNDER_SEATS_PER_CAREER,
   betaMetricRows,
   betaMetricsCsv,
   founderSeatRows,
+  isFeedbackCategory,
   isRoleKey,
   type BetaMetricRow,
 } from "@job-search-os/pipeline";
 import { notFound } from "next/navigation";
 import { careerLabel } from "@/lib/career-market";
+import { getBetaFeedback, type FeedbackListResult } from "@/lib/beta-feedback";
 import { getBetaMetrics, getFounderCounts, type FounderCountsResult } from "@/lib/beta-metrics";
 import { requireUserId } from "@/lib/session";
 
@@ -49,6 +52,7 @@ export default async function MetricasPage() {
   const rows = betaMetricRows(metrics);
   const groups = [...new Set(rows.map((r) => r.group))];
   const founders = await getFounderCounts(userId);
+  const feedback = await getBetaFeedback(userId);
   const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(betaMetricsCsv(metrics))}`;
 
   return (
@@ -64,6 +68,7 @@ export default async function MetricasPage() {
         <MetricTable key={group} title={group} rows={rows.filter((r) => r.group === group)} />
       ))}
       <FounderSeats founders={founders} k={metrics.k} />
+      <BetaFeedbackList feedback={feedback} />
       <a
         href={csvHref}
         download="metricas-beta.csv"
@@ -115,6 +120,43 @@ function FounderSeats({ founders, k }: { founders: FounderCountsResult; k: numbe
         </tbody>
       </table>
       <p className="mt-2 text-xs text-zinc-600">{note + pending}</p>
+    </section>
+  );
+}
+
+/**
+ * «Lo que nos contaron» (C-23): las últimas 50 de «Contanos qué pasó». Sin email ni nombre: solo un
+ * identificador seudónimo corto. El mensaje es texto de una persona: se renderiza como texto (React
+ * lo escapa), con los saltos de línea conservados por CSS, nunca como HTML.
+ */
+function BetaFeedbackList({ feedback }: { feedback: FeedbackListResult }) {
+  if (!feedback.ok) {
+    return (
+      <p role="status" className="rounded-md border border-zinc-200 bg-white p-4 text-sm">
+        Lo que nos contaron: todavía no hay datos (falta aplicar la migración de la base o no se
+        pudieron leer).
+      </p>
+    );
+  }
+  return (
+    <section className="rounded-md border border-zinc-200 bg-white p-4">
+      <h2 className="mb-2 font-medium">Lo que nos contaron</h2>
+      {feedback.rows.length === 0 ? (
+        <p className="text-sm text-zinc-700">Todavía no hay comentarios.</p>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {feedback.rows.map((r, i) => (
+            <li key={i} className="border-t border-zinc-100 pt-2 text-sm">
+              <p className="text-xs text-zinc-600">
+                {DATE.format(r.createdAt)} ·{" "}
+                {isFeedbackCategory(r.category) ? FEEDBACK_CATEGORY_LABELS[r.category] : r.category}{" "}
+                · <code>{r.path}</code> · persona {r.person}
+              </p>
+              <p className="mt-1 whitespace-pre-wrap break-words">{r.message}</p>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

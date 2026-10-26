@@ -22,8 +22,10 @@ export type UserTableEntry = {
    * `delete_unapproved`: como delete pero solo las filas con approved = false (learning_resources).
    * `release_invitations`: función SECURITY DEFINER de rls/0001 que pone used_by_user_id y email en
    * null en las invitaciones ajenas que canjeó el usuario (la RLS no deja a quien canjeó verlas).
+   * `cascade`: la app no puede borrar esas filas (sin policy de DELETE); caen por ON DELETE CASCADE
+   * al borrar `users`. Acá solo se cuentan, antes del borrado, para que el conteo sea explícito.
    */
-  action: "delete" | "nullify" | "delete_unapproved" | "release_invitations";
+  action: "delete" | "nullify" | "delete_unapproved" | "release_invitations" | "cascade";
 };
 
 export const USER_TABLES: readonly UserTableEntry[] = [
@@ -63,6 +65,9 @@ export const USER_TABLES: readonly UserTableEntry[] = [
   { table: "invitations", column: "used_by_user_id", action: "release_invitations" },
   // Cascade desde users; se lista para que el conteo y la cobertura sean explícitos
   { table: "password_reset_tokens", column: "user_id", action: "delete" },
+  // «Contanos qué pasó» (C-23, rls/0013): la app no tiene policy de DELETE a propósito; las filas
+  // caen por ON DELETE CASCADE al borrar `users`. La purga las retiene 180 días.
+  { table: "beta_feedback", column: "user_id", action: "cascade" },
 ];
 
 /**
@@ -95,6 +100,11 @@ export async function deleteUserData(db: Db, userId: string): Promise<Record<str
     let count: number;
     if (e.action === "release_invitations") {
       const rows = await db.execute(sql`select public.release_invitations(${userId}::uuid) as n`);
+      count = Number((rows as unknown as { n: number }[])[0]?.n ?? 0);
+    } else if (e.action === "cascade") {
+      const rows = await db.execute(
+        sql`select count(*)::int as n from ${table} where ${column} = ${userId}`,
+      );
       count = Number((rows as unknown as { n: number }[])[0]?.n ?? 0);
     } else {
       const result =

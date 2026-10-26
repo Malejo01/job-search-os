@@ -156,6 +156,8 @@ async function seed(id: string, tag: string): Promise<{ jobId: string }> {
   await owner`insert into inbound_sender_domains (user_id, domain, verdict)
                values (${id}, 'example.test', 'empleo')`;
   await owner`insert into invitations (code_hash, created_by_user_id) values (${"hash-creada-" + tag}, ${id})`;
+  await owner`insert into beta_feedback (user_id, category, message, path)
+               values (${id}, 'idea', 'Mensaje ficticio', '/hoy')`;
   return { jobId: job!.id };
 }
 
@@ -644,6 +646,12 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
     admin_founder_counts: async () => {
       await expect(asUser(A, (tx) => tx`select * from admin_founder_counts()`)).rejects.toThrow(
         /admin_founder_counts: no autorizado/,
+      );
+    },
+    // C-23: comentarios de la beta, solo app_admins
+    admin_beta_feedback: async () => {
+      await expect(asUser(A, (tx) => tx`select * from admin_beta_feedback()`)).rejects.toThrow(
+        /admin_beta_feedback: no autorizado/,
       );
     },
     // Lookup por email: acá solo un email inexistente.

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { signOut } from "@/auth";
+import { FeedbackButton } from "@/components/feedback-button";
 import { countFollowUps } from "@/lib/applications";
 import { assertAppRole } from "@/lib/db";
 import { canCreateInvitations } from "@/lib/invitations";
@@ -75,6 +76,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                 Invitar
               </Link>
             ) : null}
+            <FeedbackButton />
             <Link
               href="/settings"
               className="text-sm text-zinc-600 underline-offset-2 hover:underline"
