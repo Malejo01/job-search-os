@@ -158,6 +158,8 @@ async function seed(id: string, tag: string): Promise<{ jobId: string }> {
   await owner`insert into invitations (code_hash, created_by_user_id) values (${"hash-creada-" + tag}, ${id})`;
   await owner`insert into beta_feedback (user_id, category, message, path)
                values (${id}, 'idea', 'Mensaje ficticio', '/hoy')`;
+  await owner`insert into career_history (user_id, kind, organization, title, start_month, bullets)
+               values (${id}, 'trabajo', 'Empresa A', 'Cargo Ficticio', '2022-03', '{"Viñeta ficticia"}')`;
   return { jobId: job!.id };
 }
 

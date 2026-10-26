@@ -58,6 +58,8 @@ export const USER_TABLES: readonly UserTableEntry[] = [
   { table: "jobs", column: "user_id", action: "delete" },
   { table: "evaluation_criteria", column: "user_id", action: "delete" },
   { table: "profiles", column: "user_id", action: "delete" },
+  // Historial del CV (C-25, rls/0014): la policy es FOR ALL, así que se borra de forma explícita
+  { table: "career_history", column: "user_id", action: "delete" },
   // Invitaciones (JS-091): las que creó se borran; si el usuario canjeó una ajena, se
   // desvincula (la invitación es de quien la creó).
   { table: "invitations", column: "created_by_user_id", action: "delete" },

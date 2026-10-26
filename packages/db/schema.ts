@@ -504,6 +504,35 @@ export const betaFeedback = pgTable("beta_feedback", {
   check("beta_feedback_path_length", sql`char_length(${t.path}) <= 200`),
 ]);
 
+// Historial laboral, de estudios y certificaciones confirmado por la persona (C-25, CVC-0; diseño de
+// la ronda 100 §3.1.1). Es la fuente del CV: solo lo que la persona confirmó. No guarda teléfono,
+// foto, fecha de nacimiento, documento ni dirección. Los topes finos (20 filas por persona, 6
+// viñetas de hasta 220 caracteres, sin URLs) se validan en código; acá van los de forma. Policy en
+// rls/0014; se borra con la cuenta.
+export const careerHistory = pgTable("career_history", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  kind: text("kind").notNull(),                // trabajo | educacion | certificacion
+  organization: text("organization").notNull(), // empresa o institución
+  title: text("title").notNull(),               // cargo o título
+  startMonth: text("start_month"),              // 'AAAA-MM'
+  endMonth: text("end_month"),                  // null = actual o no dice
+  bullets: text("bullets").array().notNull().default(sql`'{}'::text[]`),
+  source: text("source").notNull().default("manual"), // manual | cv | chat
+  sort: integer("sort").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index("career_history_user_sort").on(t.userId, t.sort),
+  check("career_history_kind", sql`${t.kind} in ('trabajo', 'educacion', 'certificacion')`),
+  check("career_history_source", sql`${t.source} in ('manual', 'cv', 'chat')`),
+  check("career_history_organization_length", sql`char_length(${t.organization}) between 1 and 120`),
+  check("career_history_title_length", sql`char_length(${t.title}) between 1 and 120`),
+  check("career_history_start_month", sql`${t.startMonth} is null or ${t.startMonth} ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'`),
+  check("career_history_end_month", sql`${t.endMonth} is null or ${t.endMonth} ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'`),
+  check("career_history_bullets", sql`coalesce(cardinality(${t.bullets}), 0) <= 6 and char_length(array_to_string(${t.bullets}, E'\n')) <= 1500`),
+]);
+
 export const skillEvidence = pgTable("skill_evidence", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull(),
