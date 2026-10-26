@@ -273,7 +273,28 @@ describe("createLlmClient.generateStructured", () => {
     if (r.ok) return;
     expect(r.error.detail).toBe("unknown");
     expect(r.error.detail).not.toContain("boom");
-    expect(calls.calls).toHaveLength(1);
+    // el intento fallido del primario y el respaldo sin clave (provider_unavailable) quedan registrados
+    expect(calls.calls.map((c) => c.error)).toEqual(["unknown", "provider_unavailable"]);
+  });
+
+  it("primario sin API key: registra provider_unavailable y sigue con el respaldo", async () => {
+    const calls = memoryCallSink();
+    const client = createLlmClient({
+      routes: staticRouteSource([
+        { ...route, provider: "anthropic", model: "claude-primario", fallbackModel: "gemini-fb" },
+      ]),
+      calls,
+      providers: providers(["google"]),
+      generate: okGenerate({ score: 5, veredicto: "respaldo" }),
+      logger: silent,
+    });
+    const r = await client.generateStructured("evaluate_job", Schema, vars, { userId: "u1" });
+    expect(r).toMatchObject({ ok: true, value: { usedFallback: true } });
+    expect(calls.calls.map((c) => [c.model, c.ok, c.error])).toEqual([
+      ["claude-primario", false, "provider_unavailable"],
+      ["gemini-fb", true, null],
+    ]);
+    expect(calls.calls[0]).toMatchObject({ userId: "u1", task: "evaluate_job", tokensIn: null });
   });
 
   it("un error de API con texto arbitrario guarda solo api_call:<status>", async () => {
