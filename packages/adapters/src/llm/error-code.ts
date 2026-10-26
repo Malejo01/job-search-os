@@ -52,7 +52,8 @@ export function normalizeLlmError(e: unknown): string {
     return codes.length > 0 ? `validation:${codes.join(",")}` : "validation";
   }
   if (NoObjectGeneratedError.isInstance(e)) {
-    // `stop_reason: "refusal"` de Anthropic llega como finishReason `content-filter`
+    // `stop_reason: "refusal"` de Anthropic llega como finishReason `content-filter`; los filtros
+    // de seguridad de Gemini también, así que `refusal` puede venir de cualquiera de los dos
     return e.finishReason === "content-filter" ? "refusal" : "no_object";
   }
   // generateObject envuelve el último error del proveedor en un RetryError tras los reintentos
@@ -74,6 +75,7 @@ export function normalizeLlmError(e: unknown): string {
  * Crédito agotado de Anthropic: llega como 400 `invalid_request_error` con «credit balance is too
  * low» o como 402 `billing_error`. Se clasifica por el `type` estructurado del cuerpo y, si el SDK
  * no lo parseó, por esa frase acotada. El texto solo se compara: no se guarda ni se devuelve.
+ * Un 402 real entra por la rama normal (`api_call:402`) y no necesita este camino.
  */
 function isCreditsDepleted(e: object, status: unknown): boolean {
   if (status !== 400) return false;
