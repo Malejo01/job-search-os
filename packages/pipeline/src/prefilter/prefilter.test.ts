@@ -1035,6 +1035,26 @@ describe("prefilter: licencia o matrícula profesional (ronda 107)", () => {
     expect(r).toMatchObject({ pass: false, reason: "licencia_profesional" });
   });
 
+  it("T1: «matrícula habilitante en Chile» descarta; «licensed in Argentina» pasa con el flag", () => {
+    const out = prefilter(
+      { ...job, jdText: "Se requiere matrícula habilitante en Chile." },
+      rules,
+      {
+        userCountry: "AR",
+      },
+    );
+    expect(out).toMatchObject({ pass: false, reason: "licencia_profesional" });
+    const own = prefilter({ ...job, jdText: "Must be licensed in Argentina." }, rules, {
+      userCountry: "AR",
+    });
+    expect(own.pass).toBe(true);
+    if (own.pass) expect(own.flags).toContain("licencia_profesional:licensed in argentina");
+    const t1 = prefilter({ ...job, jdText: "Licensed in California. Bar exam required." }, rules, {
+      userCountry: "AR",
+    });
+    expect(t1).toMatchObject({ pass: false, reason: "licencia_profesional" });
+  });
+
   describe("contaduría (C-2b)", () => {
     const acc: PrefilterInput = {
       title: "Senior Accountant",
