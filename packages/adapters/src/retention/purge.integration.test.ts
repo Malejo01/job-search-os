@@ -3,6 +3,7 @@ import { applyMigrations } from "@job-search-os/db/src/migrate";
 import { createDb, schema as s } from "@job-search-os/db";
 import { eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { POOL_PARSER } from "../inbound/pool-mailbox";
 import { PURGE_MAX_BATCHES, parseLogDays, purgeExpired } from "./purge";
 
 /** JS-107 · la purga borra solo lo vencido, respeta la ventana del tope y la cola viva. */
@@ -241,7 +242,55 @@ describe("purgeExpired", () => {
       invitations: 0,
       invitationEmails: 0,
       betaFeedback: 0,
+      poolEmails: 0,
     });
+  });
+
+  it("purga la cola del pool a los 30 días con su crudo y no toca emails de personas", async () => {
+    const mk = async (userId: string | null, parser: string, age: number) => {
+      const [blob] = await conn.db
+        .insert(s.rawBlobs)
+        .values({ userId, kind: TAG, contentType: "text/plain", body: "x", bytes: 1 })
+        .returning({ id: s.rawBlobs.id });
+      const [row] = await conn.db
+        .insert(s.inboundEmails)
+        .values({
+          userId,
+          fromAddress: "a@example.com",
+          rawRef: `pg:${blob!.id}`,
+          parser,
+          receivedAt: daysAgo(age),
+        })
+        .returning({ id: s.inboundEmails.id });
+      return { blob: blob!.id, email: row!.id };
+    };
+    const oldPool = await mk(null, POOL_PARSER, 31);
+    const freshPool = await mk(null, POOL_PARSER, 29);
+    const oldOther = await mk(null, "none", 60);
+    const oldPerson = await mk(A, POOL_PARSER, 60);
+    const r = await purgeExpired(conn.db, { now: NOW });
+    expect(r.poolEmails).toBe(1);
+    const emails = await conn.db
+      .select({ id: s.inboundEmails.id })
+      .from(s.inboundEmails)
+      .where(
+        inArray(s.inboundEmails.id, [
+          oldPool.email,
+          freshPool.email,
+          oldOther.email,
+          oldPerson.email,
+        ]),
+      );
+    expect(emails.map((e) => e.id).sort()).toEqual(
+      [freshPool.email, oldOther.email, oldPerson.email].sort(),
+    );
+    const blobs = await conn.db
+      .select({ id: s.rawBlobs.id })
+      .from(s.rawBlobs)
+      .where(inArray(s.rawBlobs.id, [oldPool.blob, freshPool.blob, oldOther.blob, oldPerson.blob]));
+    expect(blobs.map((b) => b.id).sort()).toEqual(
+      [freshPool.blob, oldOther.blob, oldPerson.blob].sort(),
+    );
   });
 
   it("borra los comentarios de la beta de más de 180 días y deja los demás", async () => {

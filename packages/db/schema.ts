@@ -21,7 +21,7 @@ export const locationOk = pgEnum("location_ok", ["ok", "riesgo", "no"]);
 export const suggestedAction = pgEnum("suggested_action", ["aplicar_personalizado", "aplicar", "guardar", "descartar"]);
 export const englishLevel = pgEnum("english_level", ["no_menciona", "no", "basico", "intermedio", "avanzado", "nativo"]);
 export const companyType = pgEnum("company_type", ["producto", "startup", "consultora", "staffing", "agencia", "desconocido"]);
-export const sourceKind = pgEnum("source_kind", ["getonboard_api", "email_linkedin", "email_getonboard", "email_generic", "manual", "hn_whoishiring", "remotive", "other", "remoteok", "jobicy", "himalayas", "wwr", "greenhouse", "lever", "ashby", "teamtailor"]);
+export const sourceKind = pgEnum("source_kind", ["getonboard_api", "email_linkedin", "email_getonboard", "email_generic", "manual", "hn_whoishiring", "remotive", "other", "remoteok", "jobicy", "himalayas", "wwr", "greenhouse", "lever", "ashby", "teamtailor", "computrabajo_alerts"]);
 export const applicationOutcome = pgEnum("application_outcome", [
   "sin_respuesta", "rechazo_automatico_ubicacion", "rechazo_automatico_otro", "rechazo_humano", "entrevista", "oferta", "cerrada_antes", "retirada",
 ]);
