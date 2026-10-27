@@ -93,6 +93,7 @@ const OTHER_COUNTRY_NAMES: Readonly<Record<string, readonly string[]>> = {
     "estados unidos",
     "eeuu",
     "new mexico",
+    "nuevo mexico",
     // Regiones y estados de EE.UU. Sin esto "Remote, Bay Area, CA" quedaba unknown (fail-open).
     // "CA" suelto no se interpreta: sigue ambiguo entre Canada y California.
     "bay area",

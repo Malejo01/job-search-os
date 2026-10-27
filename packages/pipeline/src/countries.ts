@@ -260,3 +260,36 @@ const ISO_SET: ReadonlySet<string> = new Set(ISO_COUNTRY_CODES);
 export function isIsoCountry(code: string | null | undefined): boolean {
   return typeof code === "string" && ISO_SET.has(code);
 }
+
+/**
+ * Países de la región (JS-111): la única tabla. De acá salen las opciones del onboarding
+ * (`COUNTRY_OPTIONS`, en este orden) y los nombres que reconoce el texto de una ubicación
+ * (`countryNames`: el label sin acentos más los alias). `aliases` va ya plegado (minúsculas, sin
+ * acentos): solo los nombres que no salen del label, como el inglés cuando difiere.
+ */
+export const REGION_COUNTRIES: readonly {
+  code: string;
+  label: string;
+  aliases: readonly string[];
+}[] = [
+  { code: "AR", label: "Argentina", aliases: [] },
+  { code: "BO", label: "Bolivia", aliases: [] },
+  { code: "BR", label: "Brasil", aliases: ["brazil"] },
+  { code: "CL", label: "Chile", aliases: [] },
+  { code: "CO", label: "Colombia", aliases: [] },
+  { code: "CR", label: "Costa Rica", aliases: [] },
+  { code: "CU", label: "Cuba", aliases: [] },
+  { code: "DO", label: "República Dominicana", aliases: ["dominican republic"] },
+  { code: "EC", label: "Ecuador", aliases: [] },
+  { code: "SV", label: "El Salvador", aliases: [] },
+  { code: "GT", label: "Guatemala", aliases: [] },
+  { code: "HN", label: "Honduras", aliases: [] },
+  { code: "MX", label: "México", aliases: [] },
+  { code: "NI", label: "Nicaragua", aliases: [] },
+  { code: "PA", label: "Panamá", aliases: [] },
+  { code: "PY", label: "Paraguay", aliases: [] },
+  { code: "PE", label: "Perú", aliases: [] },
+  { code: "PR", label: "Puerto Rico", aliases: [] },
+  { code: "UY", label: "Uruguay", aliases: [] },
+  { code: "VE", label: "Venezuela", aliases: [] },
+];

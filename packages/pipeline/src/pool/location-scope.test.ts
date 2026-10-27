@@ -189,6 +189,14 @@ describe("allowsCountry", () => {
     }
   });
 
+  it("New Mexico y Nuevo México son EE.UU.: no admiten a MX (JS-111)", () => {
+    expect(locationScope("Remote - New Mexico, USA", null)).toMatchObject({ countries: ["US"] });
+    expect(allows("Remote - New Mexico, USA", null, "MX")).toBe(false);
+    expect(allows("Albuquerque, Nuevo México", null, "MX")).toBe(false);
+    expect(allows("Ciudad de México", null, "MX")).toBe(true);
+    expect(allows("Nuevo León, México", null, "MX")).toBe(true);
+  });
+
   it("San Francisco ya es US (ronda 51-c): no admite a AR", () => {
     expect(allows("San Francisco, CA", null)).toBe(false);
   });
