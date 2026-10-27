@@ -42,14 +42,17 @@ export async function RoleNudge({ userId }: { userId: string }) {
     >
       <p>
         Elegí tu puesto para recibir ofertas que te sirvan.{" "}
-        <Link href="/settings#puesto" className="font-medium underline">
+        <Link
+          href="/settings#puesto"
+          className="font-medium underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
+        >
           Elegir mi puesto
         </Link>
       </p>
       <form action={dismissRoleNudgeAction}>
         <button
           type="submit"
-          className="rounded-control border border-info-line bg-surface px-3 py-1 text-sm text-info focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
+          className="min-h-11 rounded-control border border-current bg-surface px-3 py-1 text-sm text-info focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
         >
           Ahora no
         </button>

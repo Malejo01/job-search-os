@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, MotionConfig, motion } from "framer-motion";
+import { AnimatePresence, MotionConfig, motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import { Badge } from "@/components/ui";
 import type { JobListRow } from "@/lib/jobs";
@@ -29,6 +29,8 @@ import { CardVerdict } from "./card-verdict";
  * Un riesgo se ve (chip ámbar), no frena; un bloqueador frena (chip rojo).
  */
 export function JobList({ rows, query = "" }: { rows: JobListRow[]; query?: string }) {
+  // Con «reducir movimiento», solo opacidad: sin el salto de 6 px que MotionConfig deja en initial/exit
+  const shift = useReducedMotion() ? 0 : 6;
   return (
     // reducedMotion="user": con «reducir movimiento» del sistema no hay desplazamientos, solo opacidad
     <MotionConfig reducedMotion="user">
@@ -38,9 +40,9 @@ export function JobList({ rows, query = "" }: { rows: JobListRow[]; query?: stri
             <motion.li
               key={job.id}
               layout
-              initial={{ opacity: 0, y: 6 }}
+              initial={{ opacity: 0, y: shift }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
+              exit={{ opacity: 0, y: -shift }}
               transition={{ duration: 0.18 }}
             >
               <JobCard job={job} query={query} tour={i === 0} />
@@ -65,12 +67,13 @@ function JobCard({ job, query, tour }: { job: JobListRow; query: string; tour: b
       {/* El link al detalle cubre toda la card; el link a la oferta va encima (z-10) */}
       <Link
         href={`/jobs/${job.id}${query}`}
-        className="absolute inset-0 rounded-card"
+        className="absolute inset-0 rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
         aria-label={`Abrir el detalle de ${job.title}`}
       />
       {job.evaluating ? (
         <div
           className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-control border-2 border-info-line text-info"
+          role="img"
           aria-label="en cola"
           title="Esperando la evaluación"
           {...anchor("jobs:puntaje")}
@@ -81,6 +84,7 @@ function JobCard({ job, query, tour }: { job: JobListRow; query: string; tour: b
       ) : job.score === null && job.preScore !== null ? (
         <div
           className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-control border-2 border-dashed border-line-control text-fg-muted"
+          role="img"
           aria-label={`estimación previa ${job.preScore}`}
           title={PRE_SCORE_EXPLAIN}
           {...anchor("jobs:puntaje")}
@@ -93,6 +97,7 @@ function JobCard({ job, query, tour }: { job: JobListRow; query: string; tour: b
       ) : (
         <div
           className={`flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-control ring-1 ${SCORE_CLASSES[tone]}`}
+          role="img"
           aria-label={job.score === null ? "sin evaluar" : `score ${job.score}`}
           {...anchor("jobs:puntaje")}
         >

@@ -59,7 +59,10 @@ export async function EmailNudge({
           <p className="font-medium">{title}</p>
           <p>{body}</p>
           <p>
-            <Link href={href} className="inline-flex min-h-11 items-center font-medium underline">
+            <Link
+              href={href}
+              className="inline-flex min-h-11 items-center font-medium underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
+            >
               {cta}
             </Link>
           </p>
@@ -67,7 +70,10 @@ export async function EmailNudge({
       ) : (
         <p>
           {title}{" "}
-          <Link href={href} className="font-medium underline">
+          <Link
+            href={href}
+            className="font-medium underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
+          >
             {cta}
           </Link>
         </p>
@@ -75,7 +81,7 @@ export async function EmailNudge({
       <form action={dismissEmailNudgeAction}>
         <button
           type="submit"
-          className="min-h-11 rounded-control border border-info-line bg-surface px-3 py-1 text-sm text-info focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
+          className="min-h-11 rounded-control border border-current bg-surface px-3 py-1 text-sm text-info focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
         >
           No, gracias
         </button>
