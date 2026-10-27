@@ -17,7 +17,7 @@ export function MergeButton({ jobId, otherTitle }: { jobId: string; otherTitle: 
       <input type="hidden" name="jobId" value={jobId} />
       <button
         type="submit"
-        className="rounded-md border border-amber-700 bg-amber-700 px-3 py-2 text-sm text-white"
+        className="rounded-control border border-warning-strong bg-warning-strong px-3 py-2 text-sm text-on-strong"
       >
         Fusionar
       </button>

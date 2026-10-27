@@ -30,15 +30,15 @@ export function StatusCorrection({
         if (!ok) e.preventDefault();
       }}
     >
-      <fieldset className="flex flex-wrap items-end gap-2 rounded-md border border-dashed border-zinc-300 p-3">
-        <legend className="px-1 text-xs text-zinc-600">Corregir estado</legend>
+      <fieldset className="flex flex-wrap items-end gap-2 rounded-card border border-dashed border-line-strong p-3">
+        <legend className="px-1 text-xs text-fg-subtle">Corregir estado</legend>
         <input type="hidden" name="jobId" value={jobId} />
-        <label className="flex flex-col gap-1 text-xs text-zinc-600">
+        <label className="flex flex-col gap-1 text-xs text-fg-subtle">
           Estado correcto
           <select
             name="to"
             defaultValue={targets[0]}
-            className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm text-zinc-900"
+            className="rounded-control border border-line-strong px-2 py-1.5 text-sm text-fg"
           >
             {targets.map((t) => (
               <option key={t} value={t}>
@@ -49,11 +49,11 @@ export function StatusCorrection({
         </label>
         <button
           type="submit"
-          className="rounded-md border border-zinc-400 px-3 py-1.5 text-sm text-zinc-800"
+          className="rounded-control border border-line-control px-3 py-1.5 text-sm text-fg"
         >
           Corregir
         </button>
-        <p className="w-full text-[11px] text-zinc-600">
+        <p className="w-full text-[11px] text-fg-subtle">
           Para cuando marcaste un estado por error. Volver a Evaluada o Descartada borra la
           postulación registrada.
         </p>

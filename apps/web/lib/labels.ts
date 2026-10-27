@@ -267,9 +267,9 @@ export const CHECKLIST_STATUS: Record<
   "cumple" | "no_cumple" | "no_se_sabe",
   { icon: string; label: string; classes: string }
 > = {
-  cumple: { icon: "✓", label: "Cumple", classes: "bg-emerald-50 text-emerald-900" },
-  no_cumple: { icon: "✗", label: "No cumple", classes: "bg-red-50 text-red-900" },
-  no_se_sabe: { icon: "?", label: "No se sabe", classes: "bg-zinc-100 text-zinc-800" },
+  cumple: { icon: "✓", label: "Cumple", classes: "bg-success-soft text-success" },
+  no_cumple: { icon: "✗", label: "No cumple", classes: "bg-danger-soft text-danger" },
+  no_se_sabe: { icon: "?", label: "No se sabe", classes: "bg-surface-muted text-fg" },
 };
 
 /** De dónde sale cada lado de un requisito. */

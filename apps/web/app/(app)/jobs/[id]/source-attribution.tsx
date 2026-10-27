@@ -47,7 +47,7 @@ export function SourceAttribution({
 
   return (
     <div className="flex flex-col gap-1">
-      <ul aria-label="Origen del aviso" className="flex flex-col gap-0.5 text-xs text-zinc-700">
+      <ul aria-label="Origen del aviso" className="flex flex-col gap-0.5 text-xs text-fg-muted">
         {items.map(({ key, attribution, url }) => {
           const home = safeHttpUrl(attribution.homeUrl);
           return (
@@ -62,7 +62,7 @@ export function SourceAttribution({
               {url ? (
                 <>
                   {" · "}
-                  <a href={url} target="_blank" rel="noopener" className="text-sky-700 underline">
+                  <a href={url} target="_blank" rel="noopener" className="text-link underline">
                     Ver el aviso original ↗
                   </a>
                 </>
@@ -73,14 +73,14 @@ export function SourceAttribution({
       </ul>
       {isWwr ? (
         <div className="flex flex-col gap-0.5 text-xs">
-          <p className="text-amber-800">{WWR_PAYWALL_NOTICE}</p>
+          <p className="text-warning">{WWR_PAYWALL_NOTICE}</p>
           {atsLinks.map(({ provider, href }) => (
             <a
               key={href}
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sky-700 underline"
+              className="text-link underline"
             >
               Postular en el sitio de la empresa ({ATS_NAMES[provider]}) ↗
             </a>

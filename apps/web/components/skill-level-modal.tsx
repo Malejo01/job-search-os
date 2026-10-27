@@ -6,7 +6,7 @@ import { useId, useRef, useState, useTransition } from "react";
 import { saveSkillLevelFromJobAction } from "@/app/(app)/jobs/[id]/skill-level-actions";
 
 const FOCUS_RING =
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900";
+  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 const ERROR_TEXT: Record<string, string> = {
   level: "Elegí uno de los cuatro niveles.",
@@ -83,7 +83,7 @@ export function SkillLevelButton({
         type="button"
         data-testid={`skill-level-open-${slug}`}
         onClick={() => dialogRef.current?.showModal()}
-        className={`inline-flex min-h-11 items-center rounded-md border border-zinc-400 px-3 py-2 text-left text-sm font-medium text-zinc-900 ${FOCUS_RING} ${className}`.trim()}
+        className={`inline-flex min-h-11 items-center rounded-control border border-line-control px-3 py-2 text-left text-sm font-medium text-fg ${FOCUS_RING} ${className}`.trim()}
       >
         Cargar mi nivel de {name}
       </button>
@@ -92,7 +92,7 @@ export function SkillLevelButton({
         aria-labelledby={titleId}
         onClose={reset}
         data-testid="skill-level-modal"
-        className="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-md overflow-y-auto rounded-md p-4 text-sm backdrop:bg-black/50"
+        className="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-md overflow-y-auto rounded-card bg-surface p-4 text-sm text-fg backdrop:bg-black/50"
       >
         <form
           onSubmit={(e) => {
@@ -105,7 +105,7 @@ export function SkillLevelButton({
             Tu nivel de {name}
           </h2>
           {description ? (
-            <p className="break-words text-zinc-700">
+            <p className="break-words text-fg-muted">
               <span className="font-medium">¿Qué es? </span>
               {description}
             </p>
@@ -116,7 +116,7 @@ export function SkillLevelButton({
               <label
                 key={l.level}
                 htmlFor={`${uid}-${l.level}`}
-                className="flex min-h-11 items-center gap-2 rounded-md px-1 py-1 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-zinc-900"
+                className="flex min-h-11 items-center gap-2 rounded-control px-1 py-1 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-focus"
               >
                 <input
                   id={`${uid}-${l.level}`}
@@ -136,7 +136,11 @@ export function SkillLevelButton({
             ))}
           </fieldset>
           {error ? (
-            <p id={errorId} role="alert" className="rounded-md bg-red-50 px-3 py-2 text-red-800">
+            <p
+              id={errorId}
+              role="alert"
+              className="rounded-control bg-danger-soft px-3 py-2 text-danger"
+            >
               {error}
             </p>
           ) : null}
@@ -145,14 +149,14 @@ export function SkillLevelButton({
               type="button"
               onClick={() => dialogRef.current?.close()}
               disabled={pending}
-              className={`min-h-11 rounded-md border border-zinc-400 px-4 py-2 text-base ${FOCUS_RING}`}
+              className={`min-h-11 rounded-control border border-line-control px-4 py-2 text-base ${FOCUS_RING}`}
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={pending}
-              className={`min-h-11 rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white disabled:opacity-60 ${FOCUS_RING}`}
+              className={`min-h-11 rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast disabled:opacity-60 ${FOCUS_RING}`}
             >
               {pending ? "Guardando…" : "Guardar"}
             </button>

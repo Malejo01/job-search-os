@@ -1,6 +1,8 @@
+import * as s from "@job-search-os/db/schema";
 import { expect, test } from "@playwright/test";
+import { eq } from "drizzle-orm";
 import { axeSummary } from "./axe-helpers";
-import { login } from "./helpers";
+import { createEvaluation, createJob, deleteJob, login, ownerDb } from "./helpers";
 
 /**
  * Flujo 86 (N3): axe en modo oscuro de las pantallas ya migradas a los tokens (docs/ux/tokens.md).
@@ -13,22 +15,62 @@ const VIEWPORTS = [
   { name: "1280x800", width: 1280, height: 800 },
 ] as const;
 
-const ROUTES = ["/hoy", "/jobs"] as const;
+type Seeded = { jobId: string };
+
+/** Ruta fija, o función que la arma con lo sembrado (el detalle necesita una oferta). */
+const ROUTES: Array<{ label: string; path: string | ((ids: Seeded) => string) }> = [
+  { label: "/hoy", path: "/hoy" },
+  { label: "/jobs", path: "/jobs" },
+  { label: "/jobs/[id]", path: (ids) => `/jobs/${ids.jobId}` },
+];
 
 test.describe("Flujo 86: axe en oscuro", () => {
+  const tag = Date.now();
+  const seeded: Seeded = { jobId: "" };
+
+  test.beforeAll(async () => {
+    // Con riesgos y bloqueadores: el detalle muestra sus avisos ámbar y rojo, lo que más arriesga contraste
+    seeded.jobId = await createJob({
+      title: `Oferta Ficticia Oscuro ${tag}`,
+      status: "evaluada",
+      jdText: "Descripción ficticia para el flujo de axe en oscuro.",
+    });
+    await createEvaluation(seeded.jobId, { score: 6, accion: "aplicar" });
+    const { db, close } = ownerDb();
+    try {
+      await db
+        .update(s.evaluations)
+        .set({
+          matchFuerte: ["TypeScript ficticio"],
+          gaps: ["Skill ficticia que falta"],
+          bloqueadoresDuros: ["Bloqueador ficticio"],
+          riesgos: ["Riesgo ficticio"],
+        })
+        .where(eq(s.evaluations.jobId, seeded.jobId));
+    } finally {
+      await close();
+    }
+  });
+
+  test.afterAll(async () => {
+    await deleteJob(seeded.jobId).catch(() => {});
+  });
+
   for (const viewport of VIEWPORTS) {
     for (const route of ROUTES) {
-      test(`${route} a ${viewport.name}: sin violaciones de axe en oscuro`, async ({ page }) => {
+      test(`${route.label} a ${viewport.name}: sin violaciones de axe en oscuro`, async ({
+        page,
+      }) => {
         await page.setViewportSize({ width: viewport.width, height: viewport.height });
         await page.addInitScript(() => localStorage.setItem("jso-tema", "oscuro"));
         await login(page);
-        await page.goto(route);
+        await page.goto(typeof route.path === "function" ? route.path(seeded) : route.path);
         await expect(page.locator("html")).toHaveClass(/\bdark\b/);
         await expect(page.locator("h1").first()).toBeVisible();
         await page.waitForLoadState("networkidle");
         const { violations, unmeasured } = await axeSummary(page);
-        expect(violations, `Violaciones en ${route} (oscuro, ${viewport.name})`).toEqual([]);
-        expect(unmeasured, `axe no midió el contraste en ${route} (oscuro)`).toEqual([]);
+        expect(violations, `Violaciones en ${route.label} (oscuro, ${viewport.name})`).toEqual([]);
+        expect(unmeasured, `axe no midió el contraste en ${route.label} (oscuro)`).toEqual([]);
       });
     }
   }
