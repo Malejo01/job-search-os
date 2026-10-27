@@ -66,6 +66,13 @@
 
 /* Radios y tipografía: no cambian con el modo, van en `@theme` directo. */
 @theme {
+  /*
+   * Tailwind 4.3 define zinc-50 con tono `none` (`oklch(98.5% 0 none)`) y axe-core 4.13 no sabe
+   * leerlo: la regla de contraste se cortaba en el <body> (bg-zinc-50 desde antes de los tokens)
+   * y no medía ni un nodo de ninguna pantalla. Mismo color, con tono 0.
+   */
+  --color-zinc-50: oklch(98.5% 0 0);
+
   /* Botones, campos, chips cuadrados y avisos. */
   --radius-control: 0.375rem;
   /* Tarjetas y paneles. Hoy es el mismo valor que control: separarlos permite redondear las tarjetas sin tocar los botones. */
