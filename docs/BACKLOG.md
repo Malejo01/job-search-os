@@ -364,8 +364,8 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 
 ## Bloque 6 — Plataforma (después)
 
-### JS-054 · Orden de prioridad en la lista: score y despues riesgos
-`deps:` JS-052 · `est:` 1 h · `estado:` en revisión (nube N2, PR #252, 2026-10-27): `listJobs` desempata por cantidad de riesgos a igual score; lo heredan siguiente/anterior, «Lo nuevo» de `/hoy` y `list_jobs` del MCP. e2e `86-orden-por-riesgos`. `first-offers.ts` y `first-steps.ts` siguen sin mirar riesgos
+### JS-054 · Orden de prioridad en la lista: score y despues riesgos ✅ done 2026-10-27
+`deps:` JS-052 · `est:` 1 h · `estado:` done (nube N2, PR #252, mergeado 2026-10-27): `listJobs` desempata por cantidad de riesgos a igual score; lo heredan siguiente/anterior, «Lo nuevo» de `/hoy` y `list_jobs` del MCP. e2e `86-orden-por-riesgos`. `first-offers.ts` y `first-steps.ts` siguen sin mirar riesgos
 - Con las penalizaciones de `decide()` corregidas (JS-052), los riesgos pasan a ser el unico canal de viabilidad: dos ofertas con el mismo score ya no se diferencian por el score.
 - Ordenar la lista por score descendente y, dentro de cada score, por cantidad de riesgos ascendente (menos riesgos primero).
 - **Acepta:** dos ofertas con score 7, una con 1 riesgo y otra con 3, salen en ese orden; el orden es estable y se testea sin LLM.
@@ -581,8 +581,8 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - En alertas sin JD, comparar tambien ubicacion, modalidad o URL base antes de marcar; o marcar solo con similitud 1,0 y la misma fuente.
 - **Acepta:** tests con casos inventados; los pares del golden no cambian.
 
-### JS-086 · `normalizeCompany`: sufijos `labs` y `group`
-`deps:` — · `est:` S · `estado:` en revisión (nube N2, PR #246, 2026-10-27): `labs` y `group` salen de los sufijos. Solo código y tests; la migración de datos de `companies.name_normalized` y `public_jobs.company_normalized` queda como propuesta en el PR (decisión de Mauro)
+### JS-086 · `normalizeCompany`: sufijos `labs` y `group` ✅ done 2026-10-27
+`deps:` — · `est:` S · `estado:` done (nube N2, PR #246, mergeado 2026-10-27): `labs` y `group` salen de los sufijos. Solo código y tests; la migración de datos de `companies.name_normalized` y `public_jobs.company_normalized` queda como propuesta en el PR (decisión de Mauro)
 - "Empresa X Labs" y "Empresa X Group" colapsan y marcan. Quitar el sufijo solo si queda un nombre de 2 o mas tokens, o sacarlos de la lista. Toca `companies.name_normalized`: puede pedir migracion de datos (decision de Mauro).
 - **Acepta:** test de normalizacion; el golden publico no cambia de identidad de empresa.
 
@@ -665,8 +665,8 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Por que:** `cron.yml` imprime la respuesta en el log de Actions, que es publico en un repo publico.
 - La respuesta lleva solo conteos y errores por categoria cerrada (`llm`, `validacion`, `otro`); el detalle va a pino con `job_id`. Test de que un error con email, uuid o texto de la base no aparece.
 
-### JS-111 · Prefiltro: colisiones de nombres de pais y paises fuera de la region
-`deps:` JS-104 · `est:` S · `estado:` en revisión (nube N2, PR #244, 2026-10-27): tabla única `REGION_COUNTRIES`, «New Mexico» no es MX, fallback por código eliminado (sí era alcanzable). Queda abierto: países fuera de la región sin «remote» («Madrid, Spain») y perfiles de fuera de la región que nombran su país
+### JS-111 · Prefiltro: colisiones de nombres de pais y paises fuera de la region ✅ done 2026-10-27
+`deps:` JS-104 · `est:` S · `estado:` done (nube N2, PR #244, mergeado 2026-10-27): tabla única `REGION_COUNTRIES`, «New Mexico» no es MX, fallback por código eliminado (sí era alcanzable). Queda abierto: países fuera de la región sin «remote» («Madrid, Spain») y perfiles de fuera de la región que nombran su país
 - "New Mexico" cuenta como mencion de Mexico: para un perfil MX una oferta de EE.UU. pasa sin riesgo de ubicacion. `COUNTRY_NAMES` (`normalize/location.ts`) duplica `COUNTRY_OPTIONS` del onboarding y el fallback por codigo es inalcanzable hoy. Paises fuera de la region ("Spain only") no se detectan.
 - **Acepta:** test con "New Mexico"; test que compare las dos tablas (o una sola tabla); fallback eliminado.
 
@@ -740,8 +740,8 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 `deps:` JS-113 · `est:` XS + RLS · `estado:` todo (2026-10-08) — lleva migracion: va con plan y se aplica en Neon
 - Retirar la version anterior de la funcion de registro (detalle en las notas privadas de la ronda 23).
 
-### JS-125 · Ingesta del onboarding sin red en e2e/CI
-`deps:` JS-122 · `est:` XS · `estado:` en revisión (nube N2, PR #250, 2026-10-27): `planFirstIngestNetwork` apaga Get on Board y las fuentes extra con `LLM_DEMO=1`
+### JS-125 · Ingesta del onboarding sin red en e2e/CI ✅ done 2026-10-27
+`deps:` JS-122 · `est:` XS · `estado:` done (nube N2, PR #250, mergeado 2026-10-27): `planFirstIngestNetwork` apaga Get on Board y las fuentes extra con `LLM_DEMO=1`
 - La primera ingesta al terminar el onboarding (ronda 22a) sale a la red real de las fuentes por API si el entorno no esta en modo demo; en e2e y CI puede volver flaky un test o crear ofertas despues de la limpieza. Apagarla cuando `LLM_DEMO=1` o con una variable propia del entorno de e2e.
 - **Acepta:** con el entorno de e2e, la primera ingesta no hace pedidos de red (test).
 
@@ -756,8 +756,8 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 `deps:` JS-122 · `est:` S · `estado:` todo (2026-10-08, ronda 26)
 - Hallazgo de severidad baja de la revision de la ronda 26 (detalle en las notas privadas de la ronda). La UI ya pide confirmar solo si la cuenta es propia.
 
-### JS-128 · Guarda de host en la conexion de duenio de los helpers de e2e
-`deps:` — · `est:` XS · `estado:` en revisión (nube N2, PR #247, 2026-10-27): la guarda ya estaba en `ownerDb()`; el spec `85-guarda-helpers` lo prueba. Fuera de alcance: `runDemoWorker` y `computeRoleMarketAndPlan` abren conexión en procesos hijos sin la guarda
+### JS-128 · Guarda de host en la conexion de duenio de los helpers de e2e ✅ done 2026-10-27
+`deps:` — · `est:` XS · `estado:` done (nube N2, PR #247, mergeado 2026-10-27): la guarda ya estaba en `ownerDb()`; el spec `85-guarda-helpers` lo prueba. Fuera de alcance: `runDemoWorker` y `computeRoleMarketAndPlan` abren conexión en procesos hijos sin la guarda
 - La conexion de duenio de los helpers de e2e usa la misma guarda de base local que los tests de integracion.
 - **Acepta:** con una URL remota, los helpers fallan antes de conectarse (test).
 
