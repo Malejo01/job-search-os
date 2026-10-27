@@ -295,7 +295,7 @@ function ReviewProgress({
         className="h-1.5 overflow-hidden rounded-pill bg-surface-strong"
       >
         <div
-          className={`h-full rounded-pill ${done ? "bg-success-strong" : "bg-info-strong"}`}
+          className={`h-full rounded-pill ${done ? "bg-success" : "bg-info"}`}
           style={{ width: `${pct}%` }}
         />
       </div>

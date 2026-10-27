@@ -40,7 +40,7 @@ export function JobFilters({
     value.score || value.fuente || value.estado || value.desde || value.periodo,
   );
   const select =
-    "rounded-control border border-line-strong bg-surface px-2 py-2 text-sm text-fg min-w-0";
+    "min-h-11 min-w-0 rounded-control border border-line-strong bg-surface px-2 py-2 text-sm text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus";
 
   return (
     <form
@@ -123,7 +123,7 @@ export function JobFilters({
           type="button"
           disabled={!hasFilters}
           onClick={() => startTransition(() => router.replace(pathname))}
-          className="w-full rounded-control border border-line-strong px-2 py-2 text-sm text-fg-muted disabled:opacity-40"
+          className="min-h-11 w-full rounded-control border border-line-strong px-2 py-2 text-sm text-fg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-40"
         >
           Limpiar
         </button>
