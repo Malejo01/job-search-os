@@ -22,7 +22,7 @@ function NavCount({ item }: { item: NavItem }) {
     <span
       data-testid="nav-count"
       aria-hidden="true"
-      className="ml-1.5 rounded-full bg-zinc-200 px-1.5 text-xs font-medium text-zinc-800"
+      className="ml-1.5 rounded-pill bg-surface-strong px-1.5 text-xs font-medium text-fg"
     >
       {item.count}
     </span>
@@ -51,9 +51,12 @@ function activeHref(pathname: string, items: readonly NavItem[]): string | null 
 /** Link «Sin descripción»: ancla de la guía de /jobs. */
 const PENDING_JD_HREF = "/jobs/pending-jd";
 
+// El color del texto va en ACTIVE o INACTIVE, nunca en BASE: con dos `text-*` en la misma clase gana
+// el que Tailwind genera después (`text-fg-muted` va después de `text-fg`), no el último escrito
 const LINK_BASE =
-  "rounded-md px-3 text-zinc-700 hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900";
-const LINK_ACTIVE = "bg-zinc-100 font-medium text-zinc-900";
+  "rounded-control px-3 hover:bg-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus";
+const LINK_ACTIVE = "bg-surface-muted font-medium text-fg";
+const LINK_INACTIVE = "text-fg-muted";
 
 /**
  * Navegación principal. Client component solo para saber la ruta (aria-current) y cerrar el menú
@@ -88,7 +91,7 @@ export function MainNav({ items }: { items: readonly NavItem[] }) {
                 href={item.href}
                 data-tour={item.href === PENDING_JD_HREF ? "jobs:menu" : undefined}
                 aria-current={item.href === active ? "page" : undefined}
-                className={`flex min-h-11 items-center whitespace-nowrap ${LINK_BASE} ${item.href === active ? LINK_ACTIVE : ""}`}
+                className={`flex min-h-11 items-center whitespace-nowrap ${LINK_BASE} ${item.href === active ? LINK_ACTIVE : LINK_INACTIVE}`}
               >
                 {item.label}
                 <NavCount item={item} />
@@ -102,7 +105,7 @@ export function MainNav({ items }: { items: readonly NavItem[] }) {
         {/* Ancla de la guía en el «Menú» y no en todo el <details>: abierto, sería un recuadro enorme */}
         <summary
           data-tour="jobs:menu"
-          className="flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-md border border-zinc-300 px-3 font-medium text-zinc-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
+          className="flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-control border border-line-strong px-3 font-medium text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
         >
           <span>
             Menú{activeLabel ? <span className="font-normal"> · {activeLabel}</span> : null}
@@ -110,7 +113,7 @@ export function MainNav({ items }: { items: readonly NavItem[] }) {
               <>
                 <span
                   aria-hidden="true"
-                  className="ml-1.5 rounded-full bg-zinc-200 px-1.5 text-xs font-medium text-zinc-800"
+                  className="ml-1.5 rounded-pill bg-surface-strong px-1.5 text-xs font-medium text-fg"
                 >
                   {pending}
                 </span>
@@ -133,7 +136,7 @@ export function MainNav({ items }: { items: readonly NavItem[] }) {
                   href={item.href}
                   aria-current={item.href === active ? "page" : undefined}
                   onClick={closeMenu}
-                  className={`flex min-h-11 items-center ${LINK_BASE} ${item.href === active ? LINK_ACTIVE : ""}`}
+                  className={`flex min-h-11 items-center ${LINK_BASE} ${item.href === active ? LINK_ACTIVE : LINK_INACTIVE}`}
                 >
                   {item.label}
                   <NavCount item={item} />

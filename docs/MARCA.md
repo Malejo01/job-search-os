@@ -7,7 +7,7 @@ El nombre, los colores, el ícono, la URL y el remitente salen de pocos lugares.
 |---|---|---|
 | Nombre visible: títulos, header, emails y filtros de Gmail | `packages/pipeline/src/brand.ts` (`BRAND.name`; `PRODUCT_NAME` sale de ahí) | Una línea |
 | Repositorio público («Cómo está hecho») | `BRAND.repoUrl` | Una línea |
-| Colores de marca | `apps/web/app/globals.css`: `--color-brand`, `--color-brand-hover` y `--color-brand-contrast` | Tres líneas |
+| Colores de marca | `apps/web/app/globals.css`: `--jso-brand`, `--jso-brand-hover` y `--jso-brand-contrast`, en `:root` (claro) y en `.dark` (oscuro). Los demás tokens están en `docs/ux/tokens.md` | Seis líneas |
 | Ícono de la pestaña | `apps/web/app/icon.svg` (provisorio, sin letras) | Reemplazar el archivo |
 | URL pública (metadata, sitemap, robots, links de email) | Variable `SITE_URL` (`apps/web/lib/site-url.ts`) | Vercel, Puerta 3 |
 | Remitente de los emails | Variable `EMAIL_FROM`; sin ella, `BRAND.name` con el sandbox de Resend | Vercel, Puerta 3 |

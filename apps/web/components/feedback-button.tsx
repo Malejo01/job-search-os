@@ -66,14 +66,14 @@ export function FeedbackButton() {
       <button
         type="button"
         onClick={open}
-        className="text-sm text-zinc-600 underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
+        className="text-sm text-fg-subtle underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
       >
         Contanos qué pasó
       </button>
       {thanks ? (
         <p
           role="status"
-          className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-md bg-zinc-900 px-4 py-2 text-sm text-white"
+          className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-control bg-brand px-4 py-2 text-sm text-brand-contrast"
         >
           ¡Gracias! Lo leemos todo.
         </p>
@@ -81,13 +81,13 @@ export function FeedbackButton() {
       <dialog
         ref={dialogRef}
         aria-labelledby="feedback-title"
-        className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-md p-4 backdrop:bg-black/50"
+        className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-card bg-surface p-4 text-fg backdrop:bg-black/50"
       >
         <form key={formKey} onSubmit={onSubmit} className="flex flex-col gap-3">
           <h2 id="feedback-title" className="text-lg font-semibold">
             Contanos qué pasó
           </h2>
-          <p className="text-sm text-zinc-700">
+          <p className="text-sm text-fg-muted">
             Guardamos tu mensaje y la pantalla en la que estabas. No incluyas datos personales de
             otras personas ni datos sensibles tuyos.
           </p>
@@ -109,11 +109,11 @@ export function FeedbackButton() {
               name="message"
               max={FEEDBACK_MESSAGE_MAX}
               rows={5}
-              className="w-full rounded-md border border-zinc-400 p-2 text-base"
+              className="w-full rounded-control border border-line-control bg-surface p-2 text-base"
             />
           </div>
           {error ? (
-            <p role="alert" className="text-sm text-red-700">
+            <p role="alert" className="text-sm text-danger">
               {error}
             </p>
           ) : null}
@@ -121,14 +121,14 @@ export function FeedbackButton() {
             <button
               type="button"
               onClick={() => dialogRef.current?.close()}
-              className="min-h-11 rounded-md border border-zinc-400 px-4 py-2 text-base focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
+              className="min-h-11 rounded-control border border-line-control px-4 py-2 text-base focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={pending}
-              className="min-h-11 rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
+              className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast hover:bg-brand-hover disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
             >
               {pending ? "Enviando…" : "Enviar"}
             </button>
