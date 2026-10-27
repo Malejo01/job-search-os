@@ -9,8 +9,8 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
 function tabClass(active: boolean): string {
-  return `inline-flex min-h-11 items-center rounded-md border px-3 text-sm ${
-    active ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-300 text-zinc-800"
+  return `inline-flex min-h-11 items-center rounded-control border px-3 text-sm ${
+    active ? "border-brand bg-brand text-brand-contrast" : "border-line-strong text-fg"
   }`;
 }
 
@@ -31,8 +31,8 @@ export default async function NewJobPage({
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between gap-2">
-        <h1 className="text-xl font-semibold">Nueva oferta</h1>
-        <Link href="/jobs" className="text-xs text-zinc-600 hover:underline">
+        <h1 className="text-title font-semibold">Nueva oferta</h1>
+        <Link href="/jobs" className="text-xs text-fg-subtle hover:underline">
           ← Ofertas
         </Link>
       </div>
@@ -56,7 +56,7 @@ export default async function NewJobPage({
         <p
           id="alta-error"
           role="alert"
-          className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800"
+          className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger"
         >
           {error === "campos"
             ? "Título y empresa son obligatorios."
@@ -74,7 +74,7 @@ export default async function NewJobPage({
           <JobFields error={error} submitLabel="Cargar oferta" pendingLabel="Cargando…" />
         </form>
       )}
-      <p className="text-xs text-zinc-600">
+      <p className="text-xs text-fg-subtle">
         Si el link o la descripción ya existen en los últimos 14 días, se fusiona con la oferta
         existente en vez de duplicarla. Si solo coinciden empresa y título, se guarda aparte marcada
         como posible duplicado. El prefiltro determinista decide si va a evaluación.

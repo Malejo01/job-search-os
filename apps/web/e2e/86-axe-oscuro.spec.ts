@@ -34,6 +34,8 @@ const ROUTES: Array<{ label: string; path: string | ((ids: Seeded) => string) }>
   { label: "/encaje", path: "/encaje" },
   { label: "/market", path: "/market" },
   { label: "/applications", path: "/applications" },
+  { label: "/jobs/new", path: "/jobs/new" },
+  { label: "/jobs/pending-jd", path: "/jobs/pending-jd" },
   { label: "/inbox", path: "/inbox" },
   { label: "/inbox/[id]", path: (ids) => `/inbox/${ids.emailId}` },
 ];

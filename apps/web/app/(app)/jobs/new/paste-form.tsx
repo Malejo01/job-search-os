@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { createManualJobAction } from "./actions";
 import { JobFields } from "./job-fields";
 
-const input = "rounded-md border border-zinc-300 px-3 py-2 text-base";
+const input = "rounded-control border border-line-strong px-3 py-2 text-base";
 
 function filledCount(f: PastedJobFields): number {
   return [f.title, f.company, f.location, f.modality !== "desconocida" ? "x" : null].filter(
@@ -57,7 +57,7 @@ export function PasteForm({ error }: { error?: string }) {
             className={input}
           />
         </label>
-        <p id="pegar-ayuda" className="text-xs text-zinc-600">
+        <p id="pegar-ayuda" className="text-xs text-fg-subtle">
           Leemos el texto en tu navegador con reglas simples; revisá los datos antes de guardar.
         </p>
         <div className="flex justify-end">
@@ -66,7 +66,7 @@ export function PasteForm({ error }: { error?: string }) {
             disabled={text.trim() === ""}
             aria-describedby="pegar-ayuda"
             onClick={() => setFields(extractPastedJob(text))}
-            className="min-h-11 rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white disabled:cursor-not-allowed disabled:bg-zinc-500"
+            className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast disabled:cursor-not-allowed disabled:bg-fg-subtle"
           >
             Leer el aviso
           </button>
@@ -84,8 +84,8 @@ export function PasteForm({ error }: { error?: string }) {
         ref={statusRef}
         role="status"
         tabIndex={-1}
-        className={`rounded-md px-3 py-2 text-sm ${
-          missing.length > 0 ? "bg-red-50 text-red-800" : "bg-amber-50 text-amber-900"
+        className={`rounded-control px-3 py-2 text-sm ${
+          missing.length > 0 ? "bg-danger-soft text-danger" : "bg-warning-soft text-warning"
         }`}
       >
         Leímos el aviso. Completamos {filledCount(fields)} de 4 campos (título, empresa, ubicación y
@@ -106,7 +106,7 @@ export function PasteForm({ error }: { error?: string }) {
               cameBack.current = true;
               setFields(null);
             }}
-            className="min-h-11 rounded-md border border-zinc-300 px-4 py-2 text-base text-zinc-800"
+            className="min-h-11 rounded-control border border-line-strong px-4 py-2 text-base text-fg"
           >
             Volver a pegar
           </button>
