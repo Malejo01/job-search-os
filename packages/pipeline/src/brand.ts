@@ -1,6 +1,6 @@
 /**
  * Marca del producto en un solo lugar (C-15). Cambiar de nombre (por ejemplo, a uno definitivo antes
- * de la beta paga) es editar este archivo, los tokens `--color-brand*` de `apps/web/app/globals.css`
+ * de la beta paga) es editar este archivo, los tokens `--jso-brand*` de `apps/web/app/globals.css`
  * y lo que lista `docs/MARCA.md` (textos legales, README y docs, que se cambian a mano).
  *
  * Lo que depende del entorno NO va acá: la URL pública sale de `SITE_URL` (`apps/web/lib/site-url.ts`)

@@ -25,7 +25,7 @@ const NAV = [
 ] as const;
 
 const SKIP_CLASS =
-  "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-zinc-900 focus:ring-2 focus:ring-zinc-900";
+  "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-control focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-fg focus:ring-2 focus:ring-focus";
 
 async function logout(): Promise<void> {
   "use server";
@@ -66,7 +66,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         Saltar al contenido
       </a>
       {/* z-20: las tarjetas de /jobs llevan links z-10 y no deben dibujarse sobre el header; la guía (z-40) y los modales (z-50) quedan arriba */}
-      <header className="sticky top-0 z-20 border-b border-zinc-200 bg-white/95 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-line bg-surface/95 backdrop-blur">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2">
           <Link href="/hoy" className="text-base font-semibold">
             {PRODUCT_NAME}
@@ -76,7 +76,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             {canInvite ? (
               <Link
                 href="/settings/invitations"
-                className="text-sm text-zinc-600 underline-offset-2 hover:underline"
+                className="text-sm text-fg-subtle underline-offset-2 hover:underline"
               >
                 Invitar
               </Link>
@@ -85,14 +85,14 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             <FeedbackButton />
             <Link
               href="/settings"
-              className="text-sm text-zinc-600 underline-offset-2 hover:underline"
+              className="text-sm text-fg-subtle underline-offset-2 hover:underline"
             >
               Ajustes
             </Link>
             <form action={logout}>
               <button
                 type="submit"
-                className="text-sm text-zinc-600 underline-offset-2 hover:underline"
+                className="text-sm text-fg-subtle underline-offset-2 hover:underline"
               >
                 Salir
               </button>
@@ -107,7 +107,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       <main id="contenido" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-4 py-4">
         {children}
       </main>
-      <footer className="border-t border-zinc-200 px-4 py-3 text-center text-xs text-zinc-600">
+      <footer className="border-t border-line px-4 py-3 text-center text-xs text-fg-subtle">
         <Link href="/legal/privacidad" className="underline-offset-2 hover:underline">
           Privacidad
         </Link>
