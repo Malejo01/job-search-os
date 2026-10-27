@@ -13,7 +13,7 @@ import {
 } from "./helpers";
 
 /**
- * Flujo 86 (N3): axe en modo oscuro de las pantallas ya migradas a los tokens (docs/ux/tokens.md).
+ * Flujo 88 (N3): axe en modo oscuro de las pantallas ya migradas a los tokens (docs/ux/tokens.md).
  * Cada PR que migra una pantalla la suma a `ROUTES`. El oscuro se activa con la preferencia
  * `jso-tema` en localStorage, como lo haría una persona; el claro ya lo cubre el flujo 70.
  */
@@ -47,7 +47,7 @@ const ROUTES: Array<{ label: string; path: string | ((ids: Seeded) => string) }>
   { label: "/settings/skills", path: "/settings/skills" },
 ];
 
-test.describe("Flujo 86: axe en oscuro", () => {
+test.describe("Flujo 88: axe en oscuro", () => {
   const tag = Date.now();
   const seeded: Seeded = { jobId: "", emailId: "" };
 
