@@ -22,7 +22,13 @@ import {
   type ThinkingLevel,
 } from "@job-search-os/adapters";
 import { createDb, requireDatabaseUrl, type DbTarget } from "@job-search-os/db";
-import { decide, outputSchemaFor, type Adjustment, type Evaluation } from "@job-search-os/pipeline";
+import {
+  decide,
+  evaluationWireFor,
+  outputSchemaFor,
+  type Adjustment,
+  type Evaluation,
+} from "@job-search-os/pipeline";
 import type { PromptRef } from "@job-search-os/prompts";
 import routingSeed from "../../packages/db/seeds/model_routing.json";
 import { createSpendGuard, cutLine, type SpendGuard } from "./cost-guard";
@@ -499,6 +505,7 @@ async function evaluateOnce(
     const r = await client.generateStructured("evaluate_job", schema, goldenVars(job, prompt), {
       promptVersion: prompt,
       signal,
+      wire: evaluationWireFor(prompt),
       ...ctx,
     });
     // Una llamada fallida no informa costo: cuenta el esperado (puede haberse facturado)

@@ -1,4 +1,4 @@
-import type { Result } from "@job-search-os/pipeline";
+import type { LlmWire, Result } from "@job-search-os/pipeline";
 import type { PromptRef } from "@job-search-os/prompts";
 import type { LanguageModel } from "ai";
 import type { z } from "zod";
@@ -68,6 +68,11 @@ export type GenerateContext = {
   recordTask?: string;
   /** Etiqueta de la corrida para llm_calls.label (evals: --label). */
   label?: string;
+  /**
+   * Esquema de viaje sin límites + normalización (C-26 F0). Al proveedor va `wire.schema`; lo que
+   * vuelve pasa por `wire.normalize` y recién entonces por el `schema` estricto de la llamada.
+   */
+  wire?: LlmWire;
 };
 
 export type GenerateUsage = {

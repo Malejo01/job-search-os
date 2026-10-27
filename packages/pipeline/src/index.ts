@@ -57,4 +57,5 @@ export * from "./digest/build";
 export * from "./brand";
 
 export * from "./evaluator/skill-level-overlay";
+export * from "./evaluator/wire";
 export * from "./feedback/beta-feedback";
