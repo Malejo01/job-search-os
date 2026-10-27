@@ -3,7 +3,7 @@ import { axeSummary } from "./axe-helpers";
 import { login } from "./helpers";
 
 /**
- * Flujo 85 (N3-3): los componentes base de `/ui` (Button, Card, Badge, EmptyState, Alert) sin
+ * Flujo 87 (N3-3): los componentes base de `/ui` (Button, Card, Badge, EmptyState, Alert) sin
  * violaciones de axe en claro y en oscuro, a 360 y 1280 px. El oscuro se activa como lo haría una
  * persona: con la preferencia `jso-tema` en localStorage, que lee `app/theme-script.tsx` antes de
  * pintar. Así el spec prueba también que el script ponga la clase `dark` en `<html>`.
@@ -16,7 +16,7 @@ const VIEWPORTS = [
 
 const THEMES = ["claro", "oscuro"] as const;
 
-test.describe("Flujo 85: componentes base", () => {
+test.describe("Flujo 87: componentes base", () => {
   for (const viewport of VIEWPORTS) {
     for (const theme of THEMES) {
       test(`/ui en ${theme} a ${viewport.name}: sin violaciones de axe`, async ({ page }) => {
