@@ -9,7 +9,7 @@ import { PROPOSAL_DESTINATIONS, type ProposalDestination } from "./types";
  * turno y acá se valida (es la frontera) y se resume sin LLM para que entre en el tope de entrada.
  *
  * Orden en la ruta (AG-3): `screenUserMessage` sobre el mensaje nuevo (un CV se deriva antes del
- * tope de largo) → `validateHistory` (tope de 2.000 por mensaje de la persona) → `sanitizeHistory`
+ * tope de largo) → `validateAgentHistory` (tope de 2.000 por mensaje de la persona) → `sanitizeHistory`
  * → `summarizeHistory` y `groundingSourcesFrom`. El resumen va al modelo como un bloque de DATOS
  * delimitado, nunca en el system prompt, y nunca entra a las fuentes de fundamento.
  */
@@ -44,7 +44,7 @@ const messageSchema = z.discriminatedUnion("role", [
  * Valida el historial que manda el cliente: hasta 20 mensajes que alternan, empiezan y terminan
  * con la persona, y respetan los largos máximos.
  */
-export function validateHistory(raw: unknown): Result<AgentMessage[], "historial_invalido"> {
+export function validateAgentHistory(raw: unknown): Result<AgentMessage[], "historial_invalido"> {
   const parsed = z.array(messageSchema).min(1).max(MAX_HISTORY_MESSAGES).safeParse(raw);
   if (!parsed.success) return err("historial_invalido");
   const messages = parsed.data;
