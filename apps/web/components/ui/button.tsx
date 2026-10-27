@@ -13,7 +13,7 @@ export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 export type ButtonSize = "sm" | "md";
 
 const BASE =
-  "inline-flex items-center justify-center gap-2 rounded-control font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60 aria-disabled:cursor-not-allowed aria-disabled:opacity-60";
+  "inline-flex min-w-11 items-center justify-center gap-2 rounded-control font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60 aria-disabled:cursor-not-allowed aria-disabled:opacity-60";
 
 // Las dos alturas mantienen 44 px: el tamaño táctil mínimo no depende de la variante
 const SIZES: Record<ButtonSize, string> = {
@@ -59,6 +59,25 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   size?: ButtonSize;
 };
 
-export function Button({ variant, size, className, type = "button", ...props }: ButtonProps) {
-  return <button type={type} className={buttonClasses({ variant, size, className })} {...props} />;
+/**
+ * `disabled` saca el botón del Tab. `aria-disabled` lo deja enfocable (para que se lea por qué no
+ * se puede) y acá también lo bloquea: sin esto el estilo dice «deshabilitado» pero el clic anda.
+ */
+export function Button({
+  variant,
+  size,
+  className,
+  type = "button",
+  onClick,
+  ...props
+}: ButtonProps) {
+  const blocked = props["aria-disabled"] === true || props["aria-disabled"] === "true";
+  return (
+    <button
+      type={blocked ? "button" : type}
+      onClick={blocked ? undefined : onClick}
+      className={buttonClasses({ variant, size, className })}
+      {...props}
+    />
+  );
 }

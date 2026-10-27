@@ -110,7 +110,7 @@ export default function UiPage() {
         <Alert tone="info" role="note" title="Información">
           Un aviso fijo de la página.
         </Alert>
-        <Alert tone="success" role={null}>
+        <Alert tone="success" role="status">
           Guardado. Los cambios ya se ven en tus ofertas.
         </Alert>
         <Alert tone="warning" role={null} bordered>
@@ -118,7 +118,7 @@ export default function UiPage() {
         </Alert>
         <Alert
           tone="danger"
-          role={null}
+          role="alert"
           bordered
           title="No se pudo guardar"
           action={

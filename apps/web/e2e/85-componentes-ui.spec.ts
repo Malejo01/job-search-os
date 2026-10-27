@@ -1,5 +1,5 @@
-import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { axeSummary } from "./axe-helpers";
 import { login } from "./helpers";
 
 /**
@@ -16,16 +16,6 @@ const VIEWPORTS = [
 
 const THEMES = ["claro", "oscuro"] as const;
 
-async function axeViolations(page: Page): Promise<string[]> {
-  const { violations } = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-    .analyze();
-  return violations.map(
-    (v) =>
-      `${v.id} (${v.impact ?? "sin impacto"}): ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`,
-  );
-}
-
 test.describe("Flujo 85: componentes base", () => {
   for (const viewport of VIEWPORTS) {
     for (const theme of THEMES) {
@@ -38,10 +28,9 @@ test.describe("Flujo 85: componentes base", () => {
         if (theme === "oscuro") await expect(page.locator("html")).toHaveClass(/\bdark\b/);
         else await expect(page.locator("html")).not.toHaveClass(/\bdark\b/);
         await page.waitForLoadState("networkidle");
-        expect(
-          await axeViolations(page),
-          `Violaciones en /ui (${theme}, ${viewport.name})`,
-        ).toEqual([]);
+        const { violations, unmeasured } = await axeSummary(page);
+        expect(violations, `Violaciones en /ui (${theme}, ${viewport.name})`).toEqual([]);
+        expect(unmeasured, `axe no midió el contraste en /ui (${theme})`).toEqual([]);
       });
     }
   }
