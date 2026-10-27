@@ -104,7 +104,7 @@ describe("groundingSourcesFrom", () => {
 });
 
 describe("buildProfileProposal", () => {
-  it("arma la diferencia de lo fundamentado y carga el formulario entero", () => {
+  it("arma la diferencia de lo fundamentado y carga solo los campos que cambian", () => {
     const r = buildProfileProposal(
       {
         changes: [
@@ -132,14 +132,12 @@ describe("buildProfileProposal", () => {
       ["englishCefr", "B1", "C1"],
       ["acceptedModalities", "Remoto", "Remoto, Híbrido"],
     ]);
-    expect(p.formValues).toMatchObject({
+    // Solo lo propuesto: ciudad, resumen y autorización no viajan al formulario
+    expect(p.formValues).toEqual({
       country: "UY",
       yearsTotal: "5",
       englishCefr: "C1",
       acceptedModalities: ["remoto", "hibrido"],
-      city: "Ciudad Ejemplo",
-      workAuthUs: "",
-      summary: PROFILE.summary,
     });
     expect(p.dropped).toEqual([]);
     expect(p.warnings).toEqual([]);
@@ -444,6 +442,28 @@ describe("buildSkillLevelsProposal", () => {
 describe("buildCriteriaProposal", () => {
   const current = criteriaFormDefaults(DEFAULT_CRITERIA_RULES);
 
+  it("lleva la versión de criterios con la que se armó (si el llamador la pasa)", () => {
+    const input = {
+      changes: [
+        {
+          field: "max_weekly_hours",
+          value: 30,
+          source: msg("quiero trabajar 30 horas por semana"),
+        },
+      ],
+    };
+    const ctx = { sources: { ...SOURCES, userMessages: ["quiero trabajar 30 horas por semana"] } };
+    const withVersion = buildProposal("propose_criteria", input, {
+      ...ctx,
+      criteria: current,
+      criteriaVersion: 7,
+    });
+    expect(withVersion.ok && withVersion.value.criteriaVersion).toBe(7);
+    expect(withVersion.ok && withVersion.value.formValues).toEqual({ max_weekly_hours: "30" });
+    const without = buildProposal("propose_criteria", input, { ...ctx, criteria: current });
+    expect(without.ok && "criteriaVersion" in without.value).toBe(false);
+  });
+
   it("propone el piso con su fundamento (con o sin separador de miles)", () => {
     const r = buildCriteriaProposal(
       {
@@ -461,7 +481,7 @@ describe("buildCriteriaProposal", () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.value.diffs[0]).toMatchObject({ before: "Sin piso", after: "USD 2500" });
-    expect(r.value.formValues).toEqual({ ...current, salary_floor_usd_monthly: "2500" });
+    expect(r.value.formValues).toEqual({ salary_floor_usd_monthly: "2500" });
   });
 
   it("un número que no está en la cita no se propone", () => {

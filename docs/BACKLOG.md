@@ -847,9 +847,9 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 `deps:` C-11 (planes) · `estado:` en curso (nube N1, 2026-10-27), detrás de `ASSISTANT_ENABLED=admin`
 - Regla única: ninguna herramienta escribe. Las `propose_*` devuelven una diferencia antes/después; la persona la carga en el formulario y guarda con la Server Action de esa pantalla.
 - **AG-0** · `packages/pipeline/src/agent/**`: topes (10 turnos, 6 pasos, 600 tokens de salida, 12.000 de entrada, USD 0,12 por charla, cupo mensual por plan), contexto de pantalla, tools y `activeToolsFor`, diffs por destino con regla de fundamento, historial y detección de CV · done 2026-10-27 (PR draft).
-- **AG-1** · `streamAgent` en `packages/adapters/src/llm/agent.ts` · en curso.
-- **AG-3** · ruta `/api/assistant`, panel, tarjetas y e2e con el modelo simulado · todo.
-- **AG-5** · propuestas de acciones (estado de una postulación, pegar un aviso) · todo.
+- **AG-1** · `streamAgent` en `packages/adapters/src/llm/agent.ts`: bucle propio de un paso por vuelta, deadline de 50 s, una fila de `llm_calls` por paso sin contenido, una propuesta por turno, modelo desde `model_routing` (`assistant_chat`) y fake guionado para `LLM_DEMO` · done 2026-10-27 (PR draft).
+- **AG-3** · ruta `/api/assistant` (mismo origen, sesión, gate `ASSISTANT_ENABLED=admin` + `ADMIN_EMAILS`, topes desde `llm_calls`, CV fuera del modelo, NDJSON), tools sobre `apps/web/lib/*`, botón «Asistente» y panel, tarjeta de diferencia con «Cargar en el formulario» / «Descartar» y e2e `85-asistente` con el modelo simulado · done 2026-10-27 (PR draft). Faltan los prompts `assistant_chat@v1` y `assistant_propose@v1` en `packages/prompts` y la fila `assistant_chat` en `model_routing`: sin ellos, fuera del modo demo, falla cerrado.
+- **AG-5** · propuestas de acciones como tarjetas-formulario: `propose_status_change` (marcar aplicada, entrevista, oferta, rechazada, descartada o cerrada con `changeStatusAction`; «aplicada» solo marca, nunca postula) y `propose_new_job` (alta manual prellenada con lo que la persona escribió literal, con `createManualJobAction`); fundamento del evento por palabras de la persona y e2e `86-asistente-acciones` · done 2026-10-27 (PR draft).
 
 ### JS-040 · SST y migración 3a (workers a Lambda)
 ### JS-041 · Onboarding de terceros, BYOK, planes

@@ -27,6 +27,7 @@ import {
   type CriteriaField,
   type ProfileField,
 } from "./tools";
+import { hasUnsafeChars, INVISIBLE_CHARS } from "./text-safety";
 import type {
   DroppedReason,
   FieldDiff,
@@ -103,14 +104,14 @@ const PROPOSAL_TITLE: Record<ProposalDestination, string> = {
   target_roles: "Cambios para Tus puestos",
 };
 
-/** Caracteres de formato invisibles (bidi, ancho cero): no van en citas ni en textos propuestos. */
-const FORMAT_CHARS = /\p{Cf}/u;
+/** Caracteres de formato invisibles (bidi, ancho cero, separadores de Unicode): no van en citas. */
+const FORMAT_CHARS = INVISIBLE_CHARS;
 
 const MIN_QUOTE_CHARS = 8;
 const MAX_GROUNDING_MESSAGE_CHARS = 600;
 
 /** Comillas rectas, sin acentos, minúsculas y espacios colapsados: lo que importa es el texto. */
-function normalizeForQuote(text: string): string {
+export function normalizeForQuote(text: string): string {
   // Los reemplazos van antes de NFKD: después, «´» ya se descompuso en espacio + acento
   const straight = text.replace(/[‘’‚‛´`]/g, "'").replace(/[“”„‟«»]/g, '"');
   return squash(foldText(straight));
@@ -155,7 +156,7 @@ export function groundingSourcesFrom(
 const escapeRegExp = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** ¿`term` aparece en `text` como palabra entera? Los dos ya normalizados. */
-function hasWord(text: string, term: string): boolean {
+export function hasWord(text: string, term: string): boolean {
   if (term === "") return false;
   return new RegExp(`(?<![\\p{L}\\p{N}])${escapeRegExp(term)}(?![\\p{L}\\p{N}])`, "u").test(text);
 }
@@ -238,14 +239,7 @@ const show = (v: string | readonly string[] | boolean): string => {
 
 const sameValue = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
 
-function hasControlChars(text: string, allowNewlines = false): boolean {
-  for (const ch of text) {
-    const code = ch.codePointAt(0)!;
-    if (allowNewlines && code === 0x0a) continue;
-    if (code < 0x20 || code === 0x7f) return true;
-  }
-  return FORMAT_CHARS.test(text);
-}
+const hasControlChars = hasUnsafeChars;
 
 /** Normaliza un valor numérico propuesto a string (el formulario trabaja con strings). */
 function numText(v: unknown): string | null {
@@ -393,16 +387,23 @@ function finish(
   formValues: Record<string, string | string[]>,
   dropped: Dropped[],
   warnings: string[] = [],
+  criteriaVersion?: number,
 ): Result<Proposal, ProposalFailure> {
   if (diffs.length === 0) return err({ code: "sin_cambios", dropped });
+  // Solo los campos que cambian: el cargador no toca nada más del formulario
+  const changed = new Set(diffs.map((d) => d.field));
+  const onlyChanged = Object.fromEntries(
+    Object.entries(formValues).filter(([name]) => changed.has(name)),
+  );
   return ok({
     destination,
     href: PROPOSAL_HREF[destination],
     title: PROPOSAL_TITLE[destination],
     diffs,
-    formValues,
+    formValues: onlyChanged,
     dropped,
     warnings,
+    ...(criteriaVersion !== undefined ? { criteriaVersion } : {}),
   });
 }
 
@@ -621,6 +622,7 @@ export function buildCriteriaProposal(
   current: CriteriaFormValues,
   sources: GroundingSources,
   disciplineLabels: Readonly<Record<string, string>> = {},
+  criteriaVersion?: number,
 ): Result<Proposal, ProposalFailure> {
   const parsed = proposeCriteriaInput.safeParse(input);
   if (!parsed.success) return err({ code: "entrada_invalida", dropped: [] });
@@ -659,7 +661,7 @@ export function buildCriteriaProposal(
       source,
     });
   }
-  return finish("criteria", diffs, { ...next }, dropped);
+  return finish("criteria", diffs, { ...next }, dropped, [], criteriaVersion);
 }
 
 /**
@@ -710,6 +712,8 @@ export type ProposalContext = {
   profile?: ProfileSnapshot;
   skills?: SkillLevelsSnapshot;
   criteria?: CriteriaFormValues;
+  /** Versión de los criterios con la que se arma la propuesta (el form la compara con la suya). */
+  criteriaVersion?: number;
   targetRoles?: TargetRolesSnapshot;
   roleLabels?: Readonly<Partial<Record<RoleKey, string>>>;
   disciplineLabels?: Readonly<Record<string, string>>;
@@ -728,7 +732,13 @@ export function buildProposal(
       return ctx.skills ? buildSkillLevelsProposal(input, ctx.skills, ctx.sources) : missing;
     case "propose_criteria":
       return ctx.criteria
-        ? buildCriteriaProposal(input, ctx.criteria, ctx.sources, ctx.disciplineLabels)
+        ? buildCriteriaProposal(
+            input,
+            ctx.criteria,
+            ctx.sources,
+            ctx.disciplineLabels,
+            ctx.criteriaVersion,
+          )
         : missing;
     case "propose_target_roles":
       return ctx.targetRoles

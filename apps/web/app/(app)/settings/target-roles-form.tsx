@@ -4,7 +4,7 @@ import {
   type RoleKey,
 } from "@job-search-os/pipeline";
 import { FieldError, GuardedForm, PendingSubmit } from "@/app/components/guarded-form";
-import { RolePicker } from "@/components/role-picker";
+import { RolePickerWithProposal } from "@/components/role-picker-with-proposal";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
 import { saveTargetRolesAction } from "./actions";
 
@@ -54,7 +54,7 @@ export function TargetRolesForm({
           ¿Qué puestos buscás? Elegí hasta {limit}. Te mostramos primero las ofertas de esos
           puestos.
         </p>
-        <RolePicker
+        <RolePickerWithProposal
           name="targetRoles"
           selected={current}
           limit={limit}

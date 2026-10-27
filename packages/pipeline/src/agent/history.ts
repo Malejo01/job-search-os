@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { err, ok, type Result } from "../result";
 import { CV_OMITTED_MARKER, looksLikeCv } from "./cv-detect";
+import { MANUAL_JOB_EVENTS, type ManualJobEvent } from "../status";
 import { AGENT_LIMITS } from "./limits";
 import { PROPOSAL_DESTINATIONS, type ProposalDestination } from "./types";
 
@@ -9,8 +10,9 @@ import { PROPOSAL_DESTINATIONS, type ProposalDestination } from "./types";
  * turno y acá se valida (es la frontera) y se resume sin LLM para que entre en el tope de entrada.
  *
  * Orden en la ruta (AG-3): `screenUserMessage` sobre el mensaje nuevo (un CV se deriva antes del
- * tope de largo) → `validateAgentHistory` (tope de 2.000 por mensaje de la persona) → `sanitizeHistory`
- * → `summarizeHistory` y `groundingSourcesFrom`. El resumen va al modelo como un bloque de DATOS
+ * tope de largo) → `sanitizeHistory` (un CV de un turno anterior pasa a marcador, así no lo
+ * rechaza el tope) → `validateAgentHistory` (tope de 2.000 por mensaje de la persona) →
+ * `summarizeHistory` y `groundingSourcesFrom`. El resumen va al modelo como un bloque de DATOS
  * delimitado, nunca en el system prompt, y nunca entra a las fuentes de fundamento.
  */
 
@@ -22,7 +24,11 @@ export type ProposalOutcome = {
   status: "pendiente" | "cargada" | "descartada";
 };
 
-export const MAX_HISTORY_MESSAGES = 20;
+/**
+ * 10 turnos de ida y vuelta (20 mensajes) más el mensaje del turno 11: ese llega para que la ruta
+ * conteste con el aviso fijo de tope (con links) y no con un error de historial.
+ */
+export const MAX_HISTORY_MESSAGES = AGENT_LIMITS.maxTurnsPerConversation * 2 + 1;
 export const MAX_ASSISTANT_MESSAGE_CHARS = 4_000;
 
 const messageSchema = z.discriminatedUnion("role", [
@@ -41,7 +47,7 @@ const messageSchema = z.discriminatedUnion("role", [
 ]);
 
 /**
- * Valida el historial que manda el cliente: hasta 20 mensajes que alternan, empiezan y terminan
+ * Valida el historial que manda el cliente: hasta 21 mensajes que alternan, empiezan y terminan
  * con la persona, y respetan los largos máximos.
  */
 export function validateAgentHistory(raw: unknown): Result<AgentMessage[], "historial_invalido"> {
@@ -79,7 +85,28 @@ export const proposalOutcomeSchema = z
 
 export const proposalOutcomesSchema = z.array(proposalOutcomeSchema).max(20);
 
+/** Resultado de una acción anterior (AG-5): tipo, evento (un enum) y qué hizo la persona. */
+export type ActionOutcome = {
+  kind: "status_change" | "new_job";
+  event?: ManualJobEvent;
+  status: "pendiente" | "enviada" | "descartada";
+};
+
+export const actionOutcomeSchema = z
+  .object({
+    kind: z.enum(["status_change", "new_job"]),
+    event: z.enum(MANUAL_JOB_EVENTS).optional(),
+    status: z.enum(["pendiente", "enviada", "descartada"]),
+  })
+  .strict();
+export const actionOutcomesSchema = z.array(actionOutcomeSchema).max(20);
+
 const SNIPPET_CHARS = 120;
+const ACTION_STATUS: Record<ActionOutcome["status"], string> = {
+  pendiente: "la persona todavía no la confirmó",
+  enviada: "la persona la confirmó",
+  descartada: "la persona la descartó",
+};
 const ROLE_NAME: Record<AgentMessage["role"], string> = { user: "Persona", assistant: "Asistente" };
 
 /** Primeros 120 caracteres, cortando por code points (un emoji no queda partido). */
@@ -117,7 +144,7 @@ const intOr = (v: number | undefined, fallback: number): number =>
 export function summarizeHistory(
   messages: readonly AgentMessage[],
   outcomes: readonly ProposalOutcome[],
-  opts: { keepLast?: number; maxChars?: number } = {},
+  opts: { keepLast?: number; maxChars?: number; actions?: readonly ActionOutcome[] } = {},
 ): { summary: string | null; recent: AgentMessage[] } {
   const keepLast = Math.max(1, intOr(opts.keepLast, 4));
   const maxChars = Math.max(200, intOr(opts.maxChars, 6000));
@@ -132,6 +159,9 @@ export function summarizeHistory(
     ...outcomes.map(
       (o) =>
         `Propuesta para ${o.destination} (${o.fields.join(", ") || "sin campos"}): ${o.status}`,
+    ),
+    ...(opts.actions ?? []).map(
+      (a) => `Acción ${a.kind}${a.event ? ` (${a.event})` : ""}: ${ACTION_STATUS[a.status]}`,
     ),
   ];
 

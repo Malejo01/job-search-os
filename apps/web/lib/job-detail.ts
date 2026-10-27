@@ -6,6 +6,7 @@ import {
   correctionTargets,
   correctStatus,
   isEnglishSkillSlug,
+  MANUAL_JOB_EVENTS,
   planDuplicateMerge,
   POSSIBLE_DUPLICATE_FLAG,
   prefilterReasonText,
@@ -18,6 +19,7 @@ import {
 import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { withUser } from "./db";
+import { isUuid } from "./ids";
 import { evaluatingSql } from "./jobs";
 import { preScoresFor, type PreScoreView } from "./prescore";
 import { skillInfoIn, type SkillInfo } from "./skill-levels";
@@ -152,15 +154,53 @@ export type JobDetail = {
 export type DuplicateRef = { id: string; title: string; company: string; status: JobStatus };
 
 /** Eventos que puede disparar la persona desde la UI (el resto los dispara el pipeline). */
-export const MANUAL_EVENTS: readonly JobEvent[] = [
-  "apply",
-  "interview",
-  "offer",
-  "reject",
-  "auto_reject",
-  "discard",
-  "close",
-];
+export const MANUAL_EVENTS: readonly JobEvent[] = MANUAL_JOB_EVENTS;
+
+export type ChangeStatusResult =
+  | { ok: true; status: JobStatus }
+  | {
+      ok: false;
+      code: "evento" | "transicion" | "cambio_estado" | "inexistente";
+      /** Estado actual, si la oferta cambió desde que se armó la tarjeta. */
+      current?: JobStatus;
+    };
+
+/**
+ * Núcleo común del cambio de estado manual (botones del detalle y tarjetas del asistente): valida que
+ * el evento sea de los manuales y aplica la transición con `transition()`. Con `expected`, además,
+ * compara y cambia en la misma transacción (`FOR UPDATE`): si la oferta ya no está en ese estado no
+ * toca nada y devuelve `cambio_estado` (una tarjeta vieja no pisa un cambio hecho después).
+ */
+export async function changeJobStatus(
+  userId: string,
+  jobId: string,
+  event: string,
+  expected?: JobStatus | null,
+): Promise<ChangeStatusResult> {
+  if (!(MANUAL_EVENTS as readonly string[]).includes(event)) return { ok: false, code: "evento" };
+  if (!isUuid(jobId)) return { ok: false, code: "inexistente" };
+  return withUser(userId, async (tx): Promise<ChangeStatusResult> => {
+    const [row] = await tx
+      .select({ status: s.jobs.status })
+      .from(s.jobs)
+      .where(and(eq(s.jobs.id, jobId), eq(s.jobs.userId, userId)))
+      .for("update")
+      .limit(1);
+    if (!row) return { ok: false, code: "inexistente" };
+    if (expected && row.status !== expected) {
+      return { ok: false, code: "cambio_estado", current: row.status };
+    }
+    try {
+      const status = await applyJobEventIn(tx, userId, jobId, event as JobEvent);
+      return { ok: true, status };
+    } catch (e) {
+      if (e instanceof Error && e.name === "InvalidTransitionError") {
+        return { ok: false, code: "transicion" };
+      }
+      throw e;
+    }
+  });
+}
 
 export async function getJobDetail(userId: string, jobId: string): Promise<JobDetail | null> {
   return withUser(userId, async (tx) => {
