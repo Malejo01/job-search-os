@@ -37,20 +37,30 @@ export function estimateTokens(text: string): number {
   return Math.ceil(text.length / 3);
 }
 
-/** Suma de costos; un null contagia (no se puede controlar lo que no se conoce). */
-export function addCost(a: number | null, b: number | null): number | null {
-  return a === null || b === null ? null : a + b;
+/** Número finito y no negativo. Todo lo demás (NaN, ±Infinity, negativos, null) no se usa. */
+export function isNonNegFinite(x: unknown): x is number {
+  return typeof x === "number" && Number.isFinite(x) && x >= 0;
 }
 
-/** Costo real de un paso; null si falta una tarifa o un conteo de tokens. */
+/** Contador válido: entero no negativo. */
+const isCount = (x: unknown): x is number => isNonNegFinite(x) && Number.isInteger(x);
+
+/** Suma de costos; un null o un valor inválido contagia (no se controla lo que no se conoce). */
+export function addCost(a: number | null, b: number | null): number | null {
+  return isNonNegFinite(a) && isNonNegFinite(b) ? a + b : null;
+}
+
+/** Costo real de un paso; null si falta (o es inválida) una tarifa o un conteo de tokens. */
 export function stepCostUsd(
   rates: AgentRates,
   tokensIn: number | null,
   tokensOut: number | null,
 ): number | null {
-  if (rates.inputUsdPerMtok === null || rates.outputUsdPerMtok === null) return null;
-  if (tokensIn === null || tokensOut === null) return null;
-  return (tokensIn * rates.inputUsdPerMtok + tokensOut * rates.outputUsdPerMtok) / 1_000_000;
+  const { inputUsdPerMtok: inRate, outputUsdPerMtok: outRate } = rates;
+  if (!isNonNegFinite(inRate) || !isNonNegFinite(outRate)) return null;
+  if (!isNonNegFinite(tokensIn) || !isNonNegFinite(tokensOut)) return null;
+  const cost = (tokensIn * inRate + tokensOut * outRate) / 1_000_000;
+  return isNonNegFinite(cost) ? cost : null;
 }
 
 /** Peor caso de un paso: la entrada estimada más la salida máxima. null si falta una tarifa. */
@@ -58,25 +68,42 @@ export function maxStepCostUsd(rates: AgentRates, inputTokens: number): number |
   return stepCostUsd(rates, inputTokens, AGENT_LIMITS.maxOutputTokensPerStep);
 }
 
+/** En micro-dólares: 0,1 + 0,02 en coma flotante da 0,12000000000000001. */
+const micro = (usd: number): number => Math.round(usd * 1e6);
+
 /**
  * ¿Puede empezar un turno? Una conversación nueva cuenta contra el cupo mensual; después se miran
- * los turnos y lo gastado. Costo desconocido = no sigue.
+ * los turnos y lo gastado. Las comparaciones van en forma positiva («sigue solo si está por
+ * debajo»), así un NaN o un dato faltante corta en vez de dejar pasar.
+ *
+ * CONTRATO para la ruta (AG-3): `isNewConversation`, `usage.costUsd` y `monthly.used` se calculan
+ * en el servidor desde `llm_calls` (label `conv:<id>`: gasto de esa conversación y cantidad de
+ * labels distintos del mes), nunca desde lo que manda el cliente. `usage.turns` sale del historial
+ * del cliente: un cliente que miente ahí solo consigue más turnos dentro del mismo tope en USD.
+ * Contadores inválidos cortan por su motivo («monthly_conversations», «turns»); costo inválido,
+ * por «cost_unknown».
  */
 export function checkTurnStart(
   usage: ConversationUsage,
   monthly: { used: number; limit: number },
   isNewConversation: boolean,
 ): Result<void, AgentCapReason> {
-  if (isNewConversation && monthly.used >= monthly.limit) return err("monthly_conversations");
-  if (usage.turns >= AGENT_LIMITS.maxTurnsPerConversation) return err("turns");
-  if (usage.costUsd === null) return err("cost_unknown");
-  if (usage.costUsd >= AGENT_LIMITS.maxUsdPerConversation) return err("usd");
+  if (isNewConversation && !(isCount(monthly.used) && isCount(monthly.limit))) {
+    return err("monthly_conversations");
+  }
+  if (isNewConversation && !(monthly.used < monthly.limit)) return err("monthly_conversations");
+  if (!isCount(usage.turns) || !(usage.turns < AGENT_LIMITS.maxTurnsPerConversation)) {
+    return err("turns");
+  }
+  if (!isNonNegFinite(usage.costUsd)) return err("cost_unknown");
+  if (!(micro(usage.costUsd) < micro(AGENT_LIMITS.maxUsdPerConversation))) return err("usd");
   return ok(undefined);
 }
 
 /**
  * ¿Puede correr el paso `step` (0-based) de un turno? Exige que el peor caso del paso entre en lo
- * que queda de la conversación.
+ * que queda de la conversación. Un paso inválido corta por «steps»; una estimación inválida, por
+ * «input_tokens»; un costo inválido, por «cost_unknown».
  */
 export function checkStep(
   step: number,
@@ -84,11 +111,15 @@ export function checkStep(
   spentUsd: number | null,
   nextStepMaxUsd: number | null,
 ): Result<void, AgentCapReason> {
-  if (step >= AGENT_LIMITS.maxStepsPerTurn) return err("steps");
-  if (inputTokensEstimate > AGENT_LIMITS.maxInputTokensPerCall) return err("input_tokens");
-  if (spentUsd === null || nextStepMaxUsd === null) return err("cost_unknown");
-  // En micro-dólares: 0,1 + 0,02 en coma flotante da 0,12000000000000001
-  if (Math.round((spentUsd + nextStepMaxUsd) * 1e6) > AGENT_LIMITS.maxUsdPerConversation * 1e6) {
+  if (!isCount(step) || !(step < AGENT_LIMITS.maxStepsPerTurn)) return err("steps");
+  if (
+    !isNonNegFinite(inputTokensEstimate) ||
+    !(inputTokensEstimate <= AGENT_LIMITS.maxInputTokensPerCall)
+  ) {
+    return err("input_tokens");
+  }
+  if (!isNonNegFinite(spentUsd) || !isNonNegFinite(nextStepMaxUsd)) return err("cost_unknown");
+  if (!(micro(spentUsd + nextStepMaxUsd) <= micro(AGENT_LIMITS.maxUsdPerConversation))) {
     return err("usd");
   }
   return ok(undefined);

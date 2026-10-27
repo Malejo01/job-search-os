@@ -2,18 +2,22 @@ import { isIsoCountry } from "../countries";
 import { ENGLISH_RISK_LEVELS, type CriteriaFormValues } from "../criteria-form";
 import { DISCIPLINES } from "../evaluation";
 import { detectEvaluatorInjection } from "../evaluator/injection";
-import { squash } from "../normalize/text";
+import { foldText, squash } from "../normalize/text";
 import {
   CEFR_LEVELS,
+  COUNTRY_OPTIONS,
   MAX_SUMMARY_CHARS,
   MIN_SUMMARY_CHARS,
   MODALITIES,
+  parseOnboarding,
   SUMMARY_IGNORED_SIGNALS,
 } from "../onboarding";
 import { err, ok, type Result } from "../result";
 import { isEnglishSkillSlug } from "../skills/english";
-import { SELF_LEVELS, type RoleKey } from "../skills/self-assessment";
+import { SELF_LEVELS, selectableRoleGroups, type RoleKey } from "../skills/self-assessment";
 import { parseTargetRoles } from "../skills/target-roles";
+import { CV_OMITTED_MARKER, looksLikeCv } from "./cv-detect";
+import type { AgentMessage } from "./history";
 import {
   proposeCriteriaInput,
   proposeProfileInput,
@@ -34,13 +38,21 @@ import type {
 
 /**
  * Diferencias por destino y regla de fundamento del asistente. El modelo propone y el código
- * decide: cada valor tiene que citar literalmente lo que escribió la persona o su perfil (nunca
- * una respuesta del asistente ni el resultado de una tool: una JD no puede fundamentar un dato del
- * perfil), tiene que ser válido para el formulario de destino y tiene que cambiar algo. Lo que no
- * cumple se descarta con su motivo; si no queda nada, no hay propuesta.
+ * decide. Cada cambio tiene que:
+ * 1. citar literalmente lo que escribió la persona o su perfil, con al menos 8 caracteres y 2
+ *    palabras (nunca una respuesta del asistente ni el resultado de una tool: una JD no puede
+ *    fundamentar un dato del perfil);
+ * 2. llevar el valor DENTRO de la cita cuando el campo lo permite: números, nivel de inglés, país,
+ *    ciudad y nombre de la skill. Límite conocido: en los campos de opciones (modalidades, idioma
+ *    de las ofertas, autorizaciones, inglés que marca riesgo, disciplinas) y en los puestos solo
+ *    rige la regla 1, porque la persona los dice con palabras que no son la clave; tampoco se
+ *    detectan negaciones («todavía no tengo 5 años»). Por eso nada se escribe sin su clic;
+ * 3. ser válido para el formulario de destino y cambiar algo.
+ * El resumen no lo redacta el modelo: proponerlo es agregar al final la cita de la persona.
+ * Lo que no cumple se descarta con su motivo; si no queda nada, no hay propuesta.
  */
 
-/** Textos contra los que se verifica una cita. Los arma el llamador con lo que ya cargó. */
+/** Textos contra los que se verifica una cita. Se arman con `groundingSourcesFrom`. */
 export type GroundingSources = {
   /** Mensajes de la persona en esta conversación (nunca los del asistente). */
   userMessages: readonly string[];
@@ -65,7 +77,7 @@ export type ProfileSnapshot = {
 export type SkillLevelsSnapshot = {
   /** slug → nivel guardado (0..3). */
   levels: Readonly<Record<string, number>>;
-  taxonomy: readonly { slug: string; name: string }[];
+  taxonomy: readonly { slug: string; name: string; aliases?: readonly string[] }[];
 };
 
 export type TargetRolesSnapshot = { roles: readonly RoleKey[]; limit: number };
@@ -91,24 +103,130 @@ const PROPOSAL_TITLE: Record<ProposalDestination, string> = {
   target_roles: "Cambios para Tus puestos",
 };
 
-/** Minúsculas, sin acentos, comillas rectas y espacios colapsados: lo que importa es el texto. */
+/** Caracteres de formato invisibles (bidi, ancho cero): no van en citas ni en textos propuestos. */
+const FORMAT_CHARS = /\p{Cf}/u;
+
+const MIN_QUOTE_CHARS = 8;
+const MAX_GROUNDING_MESSAGE_CHARS = 600;
+
+/** Comillas rectas, sin acentos, minúsculas y espacios colapsados: lo que importa es el texto. */
 function normalizeForQuote(text: string): string {
-  return squash(
-    text
-      .normalize("NFKD")
-      .replace(/[̀-ͯ]/g, "")
-      .replace(/[‘’‚‛´`]/g, "'")
-      .replace(/[“”„‟«»]/g, '"')
-      .toLowerCase(),
-  );
+  // Los reemplazos van antes de NFKD: después, «´» ya se descompuso en espacio + acento
+  const straight = text.replace(/[‘’‚‛´`]/g, "'").replace(/[“”„‟«»]/g, '"');
+  return squash(foldText(straight));
 }
+
+const wordCount = (text: string): number =>
+  text.split(" ").filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
 
 /** ¿La cita aparece literal en un mensaje de la persona o en su perfil, según dice `from`? */
 export function isGrounded(g: Grounding, sources: GroundingSources): boolean {
+  if (FORMAT_CHARS.test(g.quote)) return false;
   const quote = normalizeForQuote(g.quote);
-  if (quote.length < 2) return false;
+  if (quote.length < MIN_QUOTE_CHARS || wordCount(quote) < 2) return false;
   const pool = g.from === "message" ? sources.userMessages : sources.profileTexts;
   return pool.some((text) => normalizeForQuote(text).includes(quote));
+}
+
+/**
+ * Fuentes de fundamento a partir del historial: solo los mensajes de la persona, y no los que son
+ * un CV (o su marcador), los que traen frases dirigidas al modelo ni los de más de 600 caracteres
+ * (un texto pegado de afuera no es lo que la persona dice de sí misma).
+ */
+export function groundingSourcesFrom(
+  messages: readonly AgentMessage[],
+  profileTexts: readonly string[],
+): GroundingSources {
+  const userMessages = messages
+    .filter((m) => m.role === "user")
+    .map((m) => m.text)
+    .filter(
+      (text) =>
+        text !== CV_OMITTED_MARKER &&
+        text.length <= MAX_GROUNDING_MESSAGE_CHARS &&
+        !looksLikeCv(text) &&
+        !detectEvaluatorInjection(text).signals.some(
+          (name) => !SUMMARY_IGNORED_SIGNALS.includes(name),
+        ),
+    );
+  return { userMessages, profileTexts: [...profileTexts] };
+}
+
+const escapeRegExp = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** ¿`term` aparece en `text` como palabra entera? Los dos ya normalizados. */
+function hasWord(text: string, term: string): boolean {
+  if (term === "") return false;
+  return new RegExp(`(?<![\\p{L}\\p{N}])${escapeRegExp(term)}(?![\\p{L}\\p{N}])`, "u").test(text);
+}
+
+/**
+ * Números enteros que aparecen en la cita (no pegados a una letra ni a otro dígito), con y sin
+ * separadores: «1.500» y «1500» valen 1500; «2,5» vale también 2,5.
+ */
+function numbersIn(quote: string): number[] {
+  const out: number[] = [];
+  for (const m of quote.matchAll(/(?<![\p{L}\d.,])\d(?:[\d.,]*\d)?(?!\d)/gu)) {
+    const token = m[0];
+    out.push(Number(token.replace(/[.,]/g, "")));
+    if (/^\d+[.,]\d{1,2}$/.test(token)) out.push(Number(token.replace(",", ".")));
+  }
+  return out;
+}
+
+const numberInQuote = (value: string, quote: string): boolean =>
+  numbersIn(quote).includes(Number(value));
+
+let regionNames: Intl.DisplayNames | null | undefined;
+
+/** Nombre del país en español, plegado; null si el entorno no tiene los nombres. */
+function countryNameEs(code: string): string | null {
+  const option = COUNTRY_OPTIONS.find((c) => c.code === code);
+  if (option) return normalizeForQuote(option.label);
+  if (regionNames === undefined) {
+    try {
+      regionNames = new Intl.DisplayNames(["es"], { type: "region" });
+    } catch {
+      regionNames = null;
+    }
+  }
+  const name = regionNames?.of(code);
+  return name && name !== code ? normalizeForQuote(name) : null;
+}
+
+function countryInQuote(code: string, quote: string): boolean {
+  if (hasWord(quote, code.toLowerCase())) return true;
+  const name = countryNameEs(code);
+  return name !== null && quote.includes(name);
+}
+
+/** ¿El valor propuesto aparece en la cita? Solo para los campos donde se puede verificar. */
+function profileValueInQuote(
+  field: ProfileField,
+  value: ProfileSnapshot[ProfileField],
+  current: ProfileSnapshot,
+  rawQuote: string,
+): boolean {
+  const quote = normalizeForQuote(rawQuote);
+  switch (field) {
+    case "yearsTotal":
+      return numberInQuote(String(value), quote);
+    case "englishCefr":
+      return hasWord(quote, String(value).toLowerCase());
+    case "country":
+      return countryInQuote(String(value), quote);
+    case "workAuthOther":
+      return (value as string[])
+        .filter((c) => !current.workAuthOther.includes(c))
+        .every((c) => countryInQuote(c, quote));
+    case "city": {
+      const city = normalizeForQuote(String(value));
+      // Borrar la ciudad (vacío) solo exige la cita
+      return city === "" || quote.includes(city);
+    }
+    default:
+      return true;
+  }
 }
 
 const show = (v: string | readonly string[] | boolean): string => {
@@ -126,7 +244,7 @@ function hasControlChars(text: string, allowNewlines = false): boolean {
     if (allowNewlines && code === 0x0a) continue;
     if (code < 0x20 || code === 0x7f) return true;
   }
-  return false;
+  return FORMAT_CHARS.test(text);
 }
 
 /** Normaliza un valor numérico propuesto a string (el formulario trabaja con strings). */
@@ -142,6 +260,10 @@ function intInRange(v: unknown, min: number, max: number): string | null {
   const n = Number(t);
   return n >= min && n <= max ? String(n) : null;
 }
+
+/** Lista en el orden canónico de `all` (comparar como conjunto, no por orden). */
+const canonical = <T extends string>(all: readonly T[], list: readonly string[]): T[] =>
+  all.filter((x) => list.includes(x));
 
 const MODALITY_LABEL: Record<string, string> = {
   remoto: "Remoto",
@@ -183,7 +305,7 @@ function profileValue(field: ProfileField, v: unknown): ProfileSnapshot[ProfileF
     case "acceptedModalities": {
       if (!Array.isArray(v)) return null;
       if (!v.every((m) => (MODALITIES as readonly string[]).includes(m))) return null;
-      const list = MODALITIES.filter((m) => v.includes(m));
+      const list = canonical(MODALITIES, v);
       return list.length ? list : null;
     }
     case "jobLanguage":
@@ -202,10 +324,11 @@ function profileValue(field: ProfileField, v: unknown): ProfileSnapshot[ProfileF
       return (CEFR_LEVELS as readonly string[]).includes(c) ? c : null;
     }
     case "yearsTotal": {
+      // Múltiplos de 0,5: el campo del formulario tiene step="0.5"
       const t = numText(v);
       if (t === null || !/^\d{1,2}(\.\d)?$/.test(t)) return null;
       const n = Number(t);
-      return n >= 0 && n <= 60 ? String(n) : null;
+      return n >= 0 && n <= 60 && Number.isInteger(n * 2) ? String(n) : null;
     }
     case "summary": {
       if (typeof v !== "string") return null;
@@ -221,9 +344,14 @@ function profileValue(field: ProfileField, v: unknown): ProfileSnapshot[ProfileF
   }
 }
 
+/** Valor de un campo del perfil para comparar (las modalidades, como conjunto). */
+function profileComparable(field: ProfileField, v: ProfileSnapshot[ProfileField]): unknown {
+  return field === "acceptedModalities" && Array.isArray(v) ? canonical(MODALITIES, v) : v;
+}
+
 function showProfile(field: ProfileField, v: ProfileSnapshot[ProfileField]): string {
   if (field === "acceptedModalities" && Array.isArray(v))
-    return show(v.map((m) => MODALITY_LABEL[m] ?? m));
+    return show(canonical(MODALITIES, v).map((m) => MODALITY_LABEL[m] ?? m));
   if (field === "jobLanguage" && typeof v === "string")
     return JOB_LANGUAGE_LABEL[v as ProfileSnapshot["jobLanguage"]] ?? v;
   return show(v);
@@ -245,11 +373,26 @@ function profileFormValues(p: ProfileSnapshot): Record<string, string | string[]
   };
 }
 
+/**
+ * Campo del formulario de «Tu perfil» que rechazaría el guardado, o null. Usa el mismo
+ * `parseOnboarding` que la Server Action; los puestos, el piso y las horas no se editan en ese
+ * formulario (la acción usa los guardados), así que acá van con valores neutros.
+ */
+function profileFormError(p: ProfileSnapshot): string | null {
+  const parsed = parseOnboarding(
+    { ...profileFormValues(p), targetRoles: ["frontend"], salaryFloorUsd: "", maxWeeklyHours: "" },
+    1,
+  );
+  if (parsed.ok) return null;
+  return parsed.field === "profileSummary" ? "summary" : parsed.field;
+}
+
 function finish(
   destination: ProposalDestination,
   diffs: FieldDiff[],
   formValues: Record<string, string | string[]>,
   dropped: Dropped[],
+  warnings: string[] = [],
 ): Result<Proposal, ProposalFailure> {
   if (diffs.length === 0) return err({ code: "sin_cambios", dropped });
   return ok({
@@ -259,18 +402,21 @@ function finish(
     diffs,
     formValues,
     dropped,
+    warnings,
   });
 }
 
-/** Revisa fundamento y repetidos comunes a todos los destinos; devuelve el motivo o null. */
+/**
+ * Revisa repetidos y la cita (regla 1). El campo se marca como visto recién cuando el cambio se
+ * acepta: un primer intento descartado no bloquea uno bueno después.
+ */
 function precheck(
   field: string,
   source: Grounding,
-  seen: Set<string>,
+  accepted: ReadonlySet<string>,
   sources: GroundingSources,
 ): DroppedReason | null {
-  if (seen.has(field)) return "invalido";
-  seen.add(field);
+  if (accepted.has(field)) return "invalido";
   return isGrounded(source, sources) ? null : "sin_fundamento";
 }
 
@@ -284,33 +430,66 @@ export function buildProfileProposal(
   const next: ProfileSnapshot = structuredClone(current);
   const diffs: FieldDiff[] = [];
   const dropped: Dropped[] = [];
-  const seen = new Set<string>();
+  const accepted = new Set<string>();
   for (const change of parsed.data.changes) {
-    const reason = precheck(change.field, change.source, seen, sources);
+    const { field, source } = change;
+    const reason = precheck(field, source, accepted, sources);
     if (reason) {
-      dropped.push({ field: change.field, reason });
+      dropped.push({ field, reason });
       continue;
     }
-    const value = profileValue(change.field, change.value);
+    // El resumen no lo redacta el modelo: se agrega al final la cita de la persona
+    let raw: unknown = change.value;
+    if (field === "summary") {
+      if (source.from !== "message") {
+        dropped.push({ field, reason: "invalido" });
+        continue;
+      }
+      const base = current.summary.trim();
+      const quote = source.quote.trim();
+      raw = base ? `${base}\n\n${quote}` : quote;
+    }
+    const value = profileValue(field, raw);
     if (value === null) {
-      dropped.push({ field: change.field, reason: "invalido" });
+      dropped.push({ field, reason: "invalido" });
       continue;
     }
-    const before = current[change.field];
-    if (sameValue(before, value)) {
-      dropped.push({ field: change.field, reason: "sin_cambio" });
+    if (!profileValueInQuote(field, value, current, source.quote)) {
+      dropped.push({ field, reason: "sin_fundamento" });
       continue;
     }
-    (next as Record<ProfileField, unknown>)[change.field] = value;
+    const before = current[field];
+    if (sameValue(profileComparable(field, before), profileComparable(field, value))) {
+      dropped.push({ field, reason: "sin_cambio" });
+      continue;
+    }
+    accepted.add(field);
+    (next as Record<ProfileField, unknown>)[field] = value;
     diffs.push({
-      field: change.field,
-      label: PROFILE_LABEL[change.field],
-      before: showProfile(change.field, before),
-      after: showProfile(change.field, value),
-      source: change.source,
+      field,
+      label: PROFILE_LABEL[field],
+      before: showProfile(field, before),
+      after: showProfile(field, value),
+      source,
     });
   }
-  return finish("profile", diffs, profileFormValues(next), dropped);
+
+  // El formulario entero tiene que poder guardarse: un cambio propuesto que lo rompe se descarta;
+  // un campo guardado que ya no pasa se avisa
+  const warnings: string[] = [];
+  for (let guard = 0; guard <= diffs.length; guard++) {
+    const field = profileFormError(next);
+    if (field === null) break;
+    const i = diffs.findIndex((d) => d.field === field);
+    if (i < 0) {
+      warnings.push(field);
+      break;
+    }
+    (next as Record<string, unknown>)[field] = current[field as ProfileField];
+    diffs.splice(i, 1);
+    dropped.push({ field, reason: "invalido" });
+  }
+  return finish("profile", diffs, profileFormValues(next), dropped, warnings);
 }
 
 const levelLabel = (level: number | undefined): string =>
@@ -318,6 +497,11 @@ const levelLabel = (level: number | undefined): string =>
     ? "sin nivel"
     : (SELF_LEVELS.find((l) => l.level === level)?.label ?? "sin nivel");
 
+/**
+ * Niveles de skills. `formValues` trae solo `level:<slug>` de lo que cambia; una skill de la
+ * taxonomía puede no tener fila visible en el formulario (no es de la carrera de la persona): el
+ * cargador de la app (AG-3) agrega un input oculto para esos slugs.
+ */
 export function buildSkillLevelsProposal(
   input: unknown,
   current: SkillLevelsSnapshot,
@@ -325,11 +509,11 @@ export function buildSkillLevelsProposal(
 ): Result<Proposal, ProposalFailure> {
   const parsed = proposeSkillLevelsInput.safeParse(input);
   if (!parsed.success) return err({ code: "entrada_invalida", dropped: [] });
-  const names = new Map(current.taxonomy.map((s) => [s.slug, s.name]));
+  const bySlug = new Map(current.taxonomy.map((s) => [s.slug, s]));
   const diffs: FieldDiff[] = [];
   const formValues: Record<string, string> = {};
   const dropped: Dropped[] = [];
-  const seen = new Set<string>();
+  const accepted = new Set<string>();
   for (const change of parsed.data.changes) {
     const field = `level:${change.slug}`;
     // El inglés se deriva del CEFR del perfil, nunca de una fila suelta
@@ -337,13 +521,21 @@ export function buildSkillLevelsProposal(
       dropped.push({ field, reason: "invalido" });
       continue;
     }
-    if (!names.has(change.slug)) {
-      dropped.push({ field, reason: "desconocido" });
+    const skill = bySlug.get(change.slug);
+    if (!skill) {
+      // Sin el slug: lo inventó el modelo y no tiene por qué llegar a un log
+      dropped.push({ field: "level:?", reason: "desconocido" });
       continue;
     }
-    const reason = precheck(field, change.source, seen, sources);
+    const reason = precheck(field, change.source, accepted, sources);
     if (reason) {
       dropped.push({ field, reason });
+      continue;
+    }
+    const quote = normalizeForQuote(change.source.quote);
+    const names = [skill.name, skill.slug, skill.slug.replace(/_/g, " "), ...(skill.aliases ?? [])];
+    if (!names.some((n) => hasWord(quote, normalizeForQuote(n)))) {
+      dropped.push({ field, reason: "sin_fundamento" });
       continue;
     }
     const before = current.levels[change.slug];
@@ -351,10 +543,11 @@ export function buildSkillLevelsProposal(
       dropped.push({ field, reason: "sin_cambio" });
       continue;
     }
+    accepted.add(field);
     formValues[field] = String(change.level);
     diffs.push({
       field,
-      label: names.get(change.slug)!,
+      label: skill.name,
       before: levelLabel(before),
       after: levelLabel(change.level),
       source: change.source,
@@ -377,7 +570,7 @@ function criteriaValue(field: CriteriaField, v: unknown): CriteriaValue | null {
   switch (field) {
     case "salary_floor_usd_monthly": {
       // Vacío = sin piso
-      if (v === "" || (typeof v === "string" && v.trim() === "")) return "";
+      if (typeof v === "string" && v.trim() === "") return "";
       return intInRange(v, 0, 100000);
     }
     case "max_weekly_hours":
@@ -391,11 +584,26 @@ function criteriaValue(field: CriteriaField, v: unknown): CriteriaValue | null {
     case "allowed_disciplines": {
       if (!Array.isArray(v)) return null;
       if (!v.every((d) => (DISCIPLINES as readonly string[]).includes(d))) return null;
-      const list = DISCIPLINES.filter((d) => v.includes(d));
+      const list = canonical(DISCIPLINES, v);
       return list.length ? list : null;
     }
   }
 }
+
+function criteriaValueInQuote(field: CriteriaField, value: CriteriaValue, quote: string): boolean {
+  if (field === "salary_floor_usd_monthly" && value === "") return true;
+  if (
+    field === "salary_floor_usd_monthly" ||
+    field === "max_weekly_hours" ||
+    field === "max_years_hard"
+  ) {
+    return numberInQuote(String(value), normalizeForQuote(quote));
+  }
+  return true;
+}
+
+const criteriaComparable = (field: CriteriaField, v: CriteriaValue): unknown =>
+  field === "allowed_disciplines" && Array.isArray(v) ? canonical(DISCIPLINES, v) : v;
 
 function showCriteria(
   field: CriteriaField,
@@ -404,7 +612,7 @@ function showCriteria(
 ): string {
   if (field === "salary_floor_usd_monthly") return v === "" ? "Sin piso" : `USD ${String(v)}`;
   if (field === "allowed_disciplines" && Array.isArray(v))
-    return show(v.map((d) => disciplineLabels[d] ?? d));
+    return show(canonical(DISCIPLINES, v).map((d) => disciplineLabels[d] ?? d));
   return show(v);
 }
 
@@ -419,35 +627,46 @@ export function buildCriteriaProposal(
   const next: CriteriaFormValues = structuredClone(current);
   const diffs: FieldDiff[] = [];
   const dropped: Dropped[] = [];
-  const seen = new Set<string>();
+  const accepted = new Set<string>();
   for (const change of parsed.data.changes) {
-    const reason = precheck(change.field, change.source, seen, sources);
+    const { field, source } = change;
+    const reason = precheck(field, source, accepted, sources);
     if (reason) {
-      dropped.push({ field: change.field, reason });
+      dropped.push({ field, reason });
       continue;
     }
-    const value = criteriaValue(change.field, change.value);
+    const value = criteriaValue(field, change.value);
     if (value === null) {
-      dropped.push({ field: change.field, reason: "invalido" });
+      dropped.push({ field, reason: "invalido" });
       continue;
     }
-    const before = current[change.field] as CriteriaValue;
-    if (sameValue(before, value)) {
-      dropped.push({ field: change.field, reason: "sin_cambio" });
+    if (!criteriaValueInQuote(field, value, source.quote)) {
+      dropped.push({ field, reason: "sin_fundamento" });
       continue;
     }
-    (next as Record<CriteriaField, unknown>)[change.field] = value;
+    const before = current[field] as CriteriaValue;
+    if (sameValue(criteriaComparable(field, before), criteriaComparable(field, value))) {
+      dropped.push({ field, reason: "sin_cambio" });
+      continue;
+    }
+    accepted.add(field);
+    (next as Record<CriteriaField, unknown>)[field] = value;
     diffs.push({
-      field: change.field,
-      label: CRITERIA_LABEL[change.field],
-      before: showCriteria(change.field, before, disciplineLabels),
-      after: showCriteria(change.field, value, disciplineLabels),
-      source: change.source,
+      field,
+      label: CRITERIA_LABEL[field],
+      before: showCriteria(field, before, disciplineLabels),
+      after: showCriteria(field, value, disciplineLabels),
+      source,
     });
   }
   return finish("criteria", diffs, { ...next }, dropped);
 }
 
+/**
+ * Puestos: la lista completa y ordenada (el primero es el principal). Solo las carreras que el
+ * formulario muestra como casilla (`selectableRoleGroups`, que conserva las no listadas que la
+ * persona ya tiene).
+ */
 export function buildTargetRolesProposal(
   input: unknown,
   current: TargetRolesSnapshot,
@@ -461,7 +680,10 @@ export function buildTargetRolesProposal(
     return err({ code: "sin_cambios", dropped: [{ field, reason: "sin_fundamento" }] });
   }
   const roles = parseTargetRoles(parsed.data.roles, current.limit);
-  if (!roles.ok) return err({ code: "sin_cambios", dropped: [{ field, reason: "invalido" }] });
+  const selectable = selectableRoleGroups(current.roles).flatMap((g) => g.roles);
+  if (!roles.ok || !roles.roles.every((r) => selectable.includes(r))) {
+    return err({ code: "sin_cambios", dropped: [{ field, reason: "invalido" }] });
+  }
   if (sameValue([...current.roles], roles.roles)) {
     return err({ code: "sin_cambios", dropped: [{ field, reason: "sin_cambio" }] });
   }
@@ -513,4 +735,20 @@ export function buildProposal(
         ? buildTargetRolesProposal(input, ctx.targetRoles, ctx.sources, ctx.roleLabels)
         : missing;
   }
+}
+
+/**
+ * Lo único de una propuesta que puede ir a un log o a una métrica: destino, nombres de campo y
+ * motivos de descarte. Nunca citas, valores ni etiquetas.
+ */
+export function proposalLogMeta(p: Proposal | ProposalFailure): {
+  destination?: ProposalDestination;
+  fields: string[];
+  dropped: { field: string; reason: DroppedReason }[];
+} {
+  const dropped = p.dropped.map((d) => ({ field: d.field, reason: d.reason }));
+  if ("destination" in p) {
+    return { destination: p.destination, fields: p.diffs.map((d) => d.field), dropped };
+  }
+  return { fields: [], dropped };
 }

@@ -29,6 +29,14 @@ describe("activeToolsFor", () => {
     expect(tools.some(isProposeTool)).toBe(false);
   });
 
+  it("con contadores inválidos no hay tools", () => {
+    for (const x of [NaN, -1, 1.5, Infinity]) {
+      expect(activeToolsFor({ ...base, turn: x })).toEqual([]);
+      expect(activeToolsFor({ ...base, step: x })).toEqual([]);
+      expect(activeToolsFor({ ...base, proposalsThisTurn: x })).toEqual([]);
+    }
+  });
+
   it("pasado el tope de turnos no hay tools", () => {
     expect(activeToolsFor({ ...base, turn: 10 })).toEqual([]);
   });
@@ -58,7 +66,7 @@ describe("catálogo", () => {
     expect(
       proposeInputSchemas.propose_target_roles.safeParse({
         roles: ["frontend"],
-        source: { from: "message", quote: "frontend" },
+        source: { from: "message", quote: "quiero frontend" },
         apply: true,
       }).success,
     ).toBe(false);

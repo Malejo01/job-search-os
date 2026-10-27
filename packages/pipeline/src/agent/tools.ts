@@ -51,7 +51,7 @@ export function proposeToolDestination(name: AgentProposeTool): ProposalDestinat
 
 /** Fundamento de cada valor propuesto: cita literal del mensaje de la persona o de su perfil. */
 export const groundingSchema = z
-  .object({ from: z.enum(["message", "profile"]), quote: z.string().min(2).max(300) })
+  .object({ from: z.enum(["message", "profile"]), quote: z.string().min(8).max(300) })
   .strict();
 
 /** Campos del formulario de «Tu perfil» (ProfileFormValues de la app). */
@@ -173,6 +173,11 @@ export type TurnState = {
  * sola propuesta por turno: después de proponer, solo lectura. Orden estable.
  */
 export function activeToolsFor(state: TurnState): AgentToolName[] {
+  // Contadores inválidos (NaN, negativos, fracciones): sin tools, falla cerrado
+  const valid = [state.turn, state.step, state.proposalsThisTurn].every(
+    (n) => Number.isInteger(n) && n >= 0,
+  );
+  if (!valid) return [];
   if (state.turn >= AGENT_LIMITS.maxTurnsPerConversation) return [];
   if (state.step >= AGENT_LIMITS.maxStepsPerTurn - 1) return [];
   if (state.proposalsThisTurn >= 1) return [...AGENT_READ_TOOLS];

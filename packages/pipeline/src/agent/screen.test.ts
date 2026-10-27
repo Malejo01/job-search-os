@@ -25,6 +25,24 @@ describe("screenFromPath", () => {
     expect(screenFromPath("/jobs/[id]")).toBeNull();
   });
 
+  it("lo que sale de screenFromPath siempre pasa parseScreenContext", () => {
+    for (const id of [
+      JOB,
+      "00000000-0000-0000-0000-000000000000",
+      "123e4567-e89b-12d3-a456-426614174000",
+    ]) {
+      const ctx = screenFromPath(`/jobs/${id}`);
+      if (ctx) expect(parseScreenContext(ctx).ok).toBe(true);
+    }
+  });
+
+  it("una ruta enorme devuelve null sin colgarse", () => {
+    const t0 = performance.now();
+    expect(screenFromPath("/".repeat(100_000) + "a")).toBeNull();
+    expect(screenFromPath("/jobs/" + "a".repeat(300))).toBeNull();
+    expect(performance.now() - t0).toBeLessThan(200);
+  });
+
   it("lo desconocido devuelve null", () => {
     expect(screenFromPath("/")).toBeNull();
     expect(screenFromPath("/admin")).toBeNull();

@@ -1,11 +1,17 @@
 import { z } from "zod";
 import { err, ok, type Result } from "../result";
+import { CV_OMITTED_MARKER, looksLikeCv } from "./cv-detect";
 import { AGENT_LIMITS } from "./limits";
 import { PROPOSAL_DESTINATIONS, type ProposalDestination } from "./types";
 
 /**
  * Historial del asistente. Las conversaciones no se guardan: el cliente manda el historial en cada
  * turno y acá se valida (es la frontera) y se resume sin LLM para que entre en el tope de entrada.
+ *
+ * Orden en la ruta (AG-3): `screenUserMessage` sobre el mensaje nuevo (un CV se deriva antes del
+ * tope de largo) → `validateHistory` (tope de 2.000 por mensaje de la persona) → `sanitizeHistory`
+ * → `summarizeHistory` y `groundingSourcesFrom`. El resumen va al modelo como un bloque de DATOS
+ * delimitado, nunca en el system prompt, y nunca entra a las fuentes de fundamento.
  */
 
 export type AgentMessage = { role: "user" | "assistant"; text: string };
@@ -23,11 +29,14 @@ const messageSchema = z.discriminatedUnion("role", [
   z
     .object({
       role: z.literal("user"),
-      text: z.string().min(1).max(AGENT_LIMITS.maxUserMessageChars),
+      text: z.string().trim().min(1).max(AGENT_LIMITS.maxUserMessageChars),
     })
     .strict(),
   z
-    .object({ role: z.literal("assistant"), text: z.string().max(MAX_ASSISTANT_MESSAGE_CHARS) })
+    .object({
+      role: z.literal("assistant"),
+      text: z.string().trim().min(1).max(MAX_ASSISTANT_MESSAGE_CHARS),
+    })
     .strict(),
 ]);
 
@@ -46,25 +55,57 @@ export function validateHistory(raw: unknown): Result<AgentMessage[], "historial
   return ok(messages);
 }
 
+/**
+ * Mensajes con un CV (de cualquier rol) → marcador fijo: el texto de un CV nunca vuelve al modelo,
+ * ni en el resumen ni como fuente de fundamento. La ruta lo llama siempre, antes de resumir.
+ */
+export function sanitizeHistory(messages: readonly AgentMessage[]): AgentMessage[] {
+  return messages.map((m) => (looksLikeCv(m.text) ? { ...m, text: CV_OMITTED_MARKER } : { ...m }));
+}
+
+/**
+ * Lo que el cliente manda de las propuestas anteriores. Los campos son solo nombres de campo del
+ * formulario (`country`, `level:react`), nunca texto libre: van al resumen que lee el modelo.
+ */
 export const proposalOutcomeSchema = z
   .object({
     destination: z.enum(PROPOSAL_DESTINATIONS),
-    fields: z.array(z.string().max(80)).max(20),
+    fields: z
+      .array(z.string().regex(/^(?:[A-Za-z_]{1,40}|level:[a-z][a-z0-9_]{0,39}|level:\?)$/))
+      .max(20),
     status: z.enum(["pendiente", "cargada", "descartada"]),
   })
   .strict();
 
+export const proposalOutcomesSchema = z.array(proposalOutcomeSchema).max(20);
+
 const SNIPPET_CHARS = 120;
 const ROLE_NAME: Record<AgentMessage["role"], string> = { user: "Persona", assistant: "Asistente" };
 
+/** Primeros 120 caracteres, cortando por code points (un emoji no queda partido). */
 const snippet = (text: string): string => {
-  const flat = text.replace(/\s+/g, " ").trim();
-  return flat.length > SNIPPET_CHARS ? `${flat.slice(0, SNIPPET_CHARS)}…` : flat;
+  const flat = Array.from(text.replace(/\s+/g, " ").trim());
+  return flat.length > SNIPPET_CHARS ? `${flat.slice(0, SNIPPET_CHARS).join("")}…` : flat.join("");
 };
 
-/** Recorta un texto desde el final (lo último que dijo la persona es lo que importa). */
-const keepTail = (text: string, max: number): string =>
-  text.length <= max ? text : `…${text.slice(text.length - Math.max(0, max - 1))}`;
+/**
+ * Recorta un texto desde el final (lo último que dijo la persona es lo que importa) a `max`
+ * unidades UTF-16 como mucho, contando la «…», sin partir un code point.
+ */
+function keepTail(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const points = Array.from(text);
+  let tail = "";
+  for (let i = points.length - 1; i >= 0; i--) {
+    const next = points[i]! + tail;
+    if (next.length + 1 > max) break;
+    tail = next;
+  }
+  return `…${tail}`;
+}
+
+const intOr = (v: number | undefined, fallback: number): number =>
+  v !== undefined && Number.isFinite(v) ? Math.floor(v) : fallback;
 
 /**
  * Resumen determinista del historial (misma entrada → misma salida, sin LLM). Los últimos
@@ -78,8 +119,8 @@ export function summarizeHistory(
   outcomes: readonly ProposalOutcome[],
   opts: { keepLast?: number; maxChars?: number } = {},
 ): { summary: string | null; recent: AgentMessage[] } {
-  const keepLast = Math.max(1, opts.keepLast ?? 4);
-  const maxChars = Math.max(200, opts.maxChars ?? 6000);
+  const keepLast = Math.max(1, intOr(opts.keepLast, 4));
+  const maxChars = Math.max(200, intOr(opts.maxChars, 6000));
   let cut = Math.max(0, messages.length - keepLast);
   // Los recientes empiezan siempre con la persona (los proveedores lo exigen)
   if (messages[cut]?.role === "assistant") cut++;

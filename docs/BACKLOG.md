@@ -843,6 +843,14 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - UI de revisión: cada respuesta se aprueba, edita o descarta; al aprobar va a `answer_bank`, y el formulario final a `application_answers`. Botón "copiar todo"; nunca "enviar".
 - **Acepta (Fase 2):** con un formulario de ejemplo anonimizado, ninguna respuesta afirma algo sin clave de `candidate_facts` que la respalde (test sobre la salida del prompt con el LLM falso) y las respuestas fijas salen idénticas a `application_settings`.
 
+### AG · Asistente que lee, explica y propone (Fase 7, etapa 3)
+`deps:` C-11 (planes) · `estado:` en curso (nube N1, 2026-10-27), detrás de `ASSISTANT_ENABLED=admin`
+- Regla única: ninguna herramienta escribe. Las `propose_*` devuelven una diferencia antes/después; la persona la carga en el formulario y guarda con la Server Action de esa pantalla.
+- **AG-0** · `packages/pipeline/src/agent/**`: topes (10 turnos, 6 pasos, 600 tokens de salida, 12.000 de entrada, USD 0,12 por charla, cupo mensual por plan), contexto de pantalla, tools y `activeToolsFor`, diffs por destino con regla de fundamento, historial y detección de CV · done 2026-10-27 (PR draft).
+- **AG-1** · `streamAgent` en `packages/adapters/src/llm/agent.ts` · en curso.
+- **AG-3** · ruta `/api/assistant`, panel, tarjetas y e2e con el modelo simulado · todo.
+- **AG-5** · propuestas de acciones (estado de una postulación, pegar un aviso) · todo.
+
 ### JS-040 · SST y migración 3a (workers a Lambda)
 ### JS-041 · Onboarding de terceros, BYOK, planes
 ### JS-042 · Recruiter CRM y follow-ups

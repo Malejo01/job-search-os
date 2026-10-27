@@ -40,15 +40,21 @@ export function parseScreenContext(raw: unknown): Result<ScreenContext, "screen_
   return parsed.success ? ok(parsed.data) : err("screen_invalida");
 }
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MAX_PATH_CHARS = 200;
 
-/** Ruta del navegador → contexto. Ignora query y hash; lo que no es una pantalla conocida → null. */
+/**
+ * Ruta del navegador → contexto. Ignora query y hash; lo que no es una pantalla conocida → null.
+ * El id de la oferta se valida con el mismo esquema que `parseScreenContext`, así lo que sale de
+ * acá siempre lo acepta la ruta.
+ */
 export function screenFromPath(pathname: string): ScreenContext | null {
+  // Antes de cualquier regex: una ruta enorme no se procesa
+  if (pathname.length > MAX_PATH_CHARS) return null;
   const path = (pathname.split(/[?#]/)[0] ?? "").replace(/\/+$/, "") || "/";
   const job = /^\/jobs\/([^/]+)$/.exec(path);
   if (job) {
-    const id = job[1] ?? "";
-    return UUID.test(id) ? { screen: "/jobs/[id]", jobId: id.toLowerCase() } : null;
+    const ctx = { screen: "/jobs/[id]" as const, jobId: (job[1] ?? "").toLowerCase() };
+    return screenContextSchema.safeParse(ctx).success ? ctx : null;
   }
   if (path === "/jobs/[id]") return null;
   return (AGENT_SCREENS as readonly string[]).includes(path)
