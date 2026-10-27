@@ -150,7 +150,7 @@ export const MAX_ROLE_SKILLS = 12;
  */
 export const MAX_SKILL_ENTRIES = 200;
 
-const SKILL_SLUG = /^[a-z][a-z0-9_]{0,39}$/;
+export const SKILL_SLUG = /^[a-z][a-z0-9_]{0,39}$/;
 
 const roleEntrySchema = z.object({
   label: z.string().min(1).max(40),

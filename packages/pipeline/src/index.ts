@@ -35,6 +35,8 @@ export * from "./onboarding";
 export * from "./inbound-address";
 export * from "./criteria-form";
 export * from "./assistant-step";
+// Fase 7 etapa 3 (asistente, nube N1): en el medio y no al final, para no chocar con otras ramas
+export * from "./agent";
 export * from "./product";
 export { inferRoleHints, SOURCE_CATEGORY_ROLES } from "./skills/role-hints";
 export * from "./pool";
