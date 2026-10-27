@@ -40,6 +40,13 @@ export default defineConfig({
     reuseExistingServer: false,
     timeout: 120_000,
     // AUTH_URL: el login redirige a este puerto aunque .env.local apunte a :3000
-    env: { DB_TARGET: "local", LLM_DEMO: "1", AUTH_URL: BASE_URL },
+    // Asistente (AG-3): encendido para admins con el modelo simulado; cupo alto para las corridas
+    env: {
+      DB_TARGET: "local",
+      LLM_DEMO: "1",
+      AUTH_URL: BASE_URL,
+      ASSISTANT_ENABLED: "admin",
+      ASSISTANT_MONTHLY_CONVERSATIONS: "500",
+    },
   },
 });
