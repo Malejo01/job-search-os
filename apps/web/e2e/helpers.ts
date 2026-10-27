@@ -149,10 +149,15 @@ export async function queueStatus(jobId: string): Promise<string | null> {
 /**
  * Evaluación falsa. Por defecto score 7 y `aplicar` (lo que asumen los flujos viejos); JS-061
  * necesita scores altos para ordenar sus ofertas arriba de todo y acciones que no sean verdes.
+ * `riesgos` (por defecto ninguno): JS-054 desempata por cantidad de riesgos a igual score.
  */
 export async function createEvaluation(
   jobId: string,
-  options: { score?: number; accion?: "aplicar" | "guardar" | "descartar" } = {},
+  options: {
+    score?: number;
+    accion?: "aplicar" | "guardar" | "descartar";
+    riesgos?: string[];
+  } = {},
 ): Promise<void> {
   const { db, close } = ownerDb();
   try {
@@ -173,6 +178,7 @@ export async function createEvaluation(
       senalesPositivas: [],
       veredicto: "Evaluación de prueba (e2e).",
       accion: options.accion ?? "aplicar",
+      riesgos: options.riesgos ?? [],
     });
   } finally {
     await close();
