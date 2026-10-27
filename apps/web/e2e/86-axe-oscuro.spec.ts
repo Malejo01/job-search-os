@@ -22,6 +22,7 @@ const ROUTES: Array<{ label: string; path: string | ((ids: Seeded) => string) }>
   { label: "/hoy", path: "/hoy" },
   { label: "/jobs", path: "/jobs" },
   { label: "/jobs/[id]", path: (ids) => `/jobs/${ids.jobId}` },
+  { label: "/plan", path: "/plan" },
 ];
 
 test.describe("Flujo 86: axe en oscuro", () => {
