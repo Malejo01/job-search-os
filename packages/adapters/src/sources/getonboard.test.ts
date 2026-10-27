@@ -143,6 +143,36 @@ describe("htmlToText", () => {
       "a &#99999999; b &#x110000; c é",
     );
   });
+
+  it("entidades con nombre: acentos, eñe, diéresis y portugués", () => {
+    expect(
+      htmlToText(
+        "&aacute; &eacute; &iacute; &oacute; &uacute; &Aacute; &Eacute; &Iacute; &Oacute; &Uacute;",
+      ),
+    ).toBe("á é í ó ú Á É Í Ó Ú");
+    expect(htmlToText("&ntilde; &Ntilde; &uuml; &Uuml;")).toBe("ñ Ñ ü Ü");
+    expect(
+      htmlToText(
+        "&ccedil; &atilde; &otilde; &acirc; &ecirc; &ocirc; &agrave; &Ccedil; &Atilde; &Otilde; &Acirc; &Ecirc; &Ocirc; &Agrave;",
+      ),
+    ).toBe("ç ã õ â ê ô à Ç Ã Õ Â Ê Ô À");
+  });
+
+  it("entidades con nombre: puntuación y símbolos; &shy; desaparece", () => {
+    expect(
+      htmlToText(
+        "&iexcl; &iquest; &laquo; &raquo; &lsquo; &rsquo; &ldquo; &rdquo; &bull; &middot; &deg; &ordf; &ordm; &euro; &copy; &reg; &trade; &times;",
+      ),
+    ).toBe("¡ ¿ « » ‘ ’ “ ” • · ° ª º € © ® ™ ×");
+    expect(htmlToText("Desa&shy;rrollador")).toBe("Desarrollador");
+  });
+
+  it("entidades con nombre distinguen mayúsculas; las básicas toleran mayúsculas", () => {
+    expect(htmlToText("&Eacute;xito y caf&eacute;")).toBe("Éxito y café");
+    expect(htmlToText("&EACUTE; &foo; &constructor;")).toBe("&EACUTE; &foo; &constructor;");
+    expect(htmlToText("a &AMP; b&NBSP;c &LT;x&GT;")).toBe("a & b c <x>");
+    expect(htmlToText("&COPY; &REG;")).toBe("© ®");
+  });
 });
 
 describe("fetchGetOnBoardJobs (fetch inyectado)", () => {

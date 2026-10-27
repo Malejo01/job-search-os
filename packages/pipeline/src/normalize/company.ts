@@ -1,8 +1,10 @@
 import { foldText, squash, stripBrackets } from "./text";
 
 /**
- * Sufijos legales o genéricos que no identifican a la empresa. Se quitan solo al final
- * del nombre y de forma repetida ("Acme Labs LLC" → "acme").
+ * Sufijos legales que no identifican a la empresa. Se quitan solo al final del nombre y de
+ * forma repetida ("Acme Corp Inc" → "acme", "Acme Labs LLC" → "acme labs").
+ * "labs" y "group" no van (JS-086): son parte del nombre, y quitarlos hacía colapsar
+ * "Delta Labs" con "Delta Group" y marcar `posible_duplicado` entre empresas distintas.
  */
 const LEGAL_SUFFIXES = new Set([
   "inc",
@@ -24,8 +26,6 @@ const LEGAL_SUFFIXES = new Set([
   "plc",
   "bv",
   "pty",
-  "labs",
-  "group",
 ]);
 
 /** Separadores "recruiter → empresa": nos quedamos con la empresa (último tramo). */

@@ -195,3 +195,23 @@
   --jso-info-line: var(--color-sky-800);
   --jso-info-strong: var(--color-sky-700);
 }
+
+/*
+ * Impresión del CV (C-25): en /cv la hoja `.cv-sheet` es lo único que sale al PDF. Una columna, sin
+ * nav, sin encabezado ni pie de la app, sin bordes ni sombras. Solo afecta a páginas que tengan la hoja.
+ */
+@media print {
+  body:has(.cv-sheet) header,
+  body:has(.cv-sheet) footer,
+  body:has(.cv-sheet) .no-print {
+    display: none !important;
+  }
+  body:has(.cv-sheet) main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  body:has(.cv-sheet) .cv-sheet {
+    border: 0 !important;
+    padding: 0 !important;
+  }
+}

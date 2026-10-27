@@ -108,6 +108,8 @@ async function seed(id: string, tag: string): Promise<void> {
                values (${"hash-" + tag}, ${id})`;
   await owner`insert into beta_feedback (user_id, category, message, path)
                values (${id}, 'idea', 'Mensaje ficticio', '/hoy')`;
+  await owner`insert into career_history (user_id, kind, organization, title)
+               values (${id}, 'trabajo', 'Empresa A', 'Cargo Ficticio')`;
 }
 
 /** Filas del usuario por entrada de USER_TABLES (como dueño, sin RLS) */
@@ -160,6 +162,7 @@ describe("borrado de cuenta (JS-092)", () => {
     // Los comentarios de la beta caen por cascade (la app no tiene DELETE sobre la tabla):
     // rowsOf(A) ya comprobó 0 filas; acá, que el conteo previo los vio
     expect(counts["beta_feedback.user_id"]).toBe(1);
+    expect(counts["career_history.user_id"]).toBe(1);
 
     expect(counts.users).toBe(1);
     expect(counts["jobs.user_id"]).toBe(1);

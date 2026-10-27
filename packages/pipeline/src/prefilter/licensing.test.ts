@@ -82,6 +82,16 @@ describe("detectProfessionalLicense", () => {
       expect(detect("Bar admission in Brazil preferred", "BR")?.ownCountry).toBe(true);
     });
 
+    it("'New Mexico' no es México (JS-111)", () => {
+      expect(detect("Active RN license in New Mexico required", "MX")?.ownCountry).toBe(false);
+      expect(detect("CPA required", "MX", "Albuquerque, New Mexico")?.ownCountry).toBe(false);
+      expect(detect("Active RN license in Mexico required", "MX")?.ownCountry).toBe(true);
+      // La ubicación propia no vuelve propia una licencia de New Mexico
+      expect(
+        detect("Active RN license in New Mexico required", "MX", "Ciudad de México")?.ownCountry,
+      ).toBe(false);
+    });
+
     it("con otro país al lado no es la propia", () => {
       expect(detect("Se requiere matrícula profesional en Chile.", "AR")?.ownCountry).toBe(false);
     });
