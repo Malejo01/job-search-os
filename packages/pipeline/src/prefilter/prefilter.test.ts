@@ -778,6 +778,29 @@ describe("prefilter: reglas una por una", () => {
       expect(risk("Mexico only")).toBe(false);
       expect(risk("Remote", undefined, ["AR"])).toBe(false);
     });
+
+    it("perfil MX: 'New Mexico' es EE.UU., no México (JS-111)", () => {
+      expect(risk("Remote (New Mexico)", "MX")).toBe(true);
+      expect(risk("Remote - New Mexico, US", "MX")).toBe(true);
+      expect(risk("Remoto (Nuevo México)", "MX")).toBe(true);
+      expect(risk("Remote - Ciudad de México", "MX")).toBe(false);
+      expect(risk("Remote - New Mexico or Mexico", "MX")).toBe(false);
+    });
+
+    it("los gentilicios siguen contando como el país de la persona (JS-111)", () => {
+      expect(risk("LATAM remote - empresas argentinas", "AR")).toBe(false);
+      expect(risk("Remote, Brazilian residents only", "BR")).toBe(false);
+      expect(risk("LATAM remote, peruanos", "PE")).toBe(false);
+    });
+
+    it("país fuera de la tabla: sin fallback por código, una restricción queda con riesgo (JS-111)", () => {
+      // Antes buscaba la subcadena "es" en la ubicación: "states" y "estados" la contienen.
+      expect(risk("Remote - United States", "ES")).toBe(true);
+      expect(risk("Remoto, Estados Unidos", "ES")).toBe(true);
+      expect(risk("LATAM remote", "ES")).toBe(true);
+      expect(risk("Work from anywhere", "ES")).toBe(false);
+      expect(risk("Remote", "ES", ["ES"])).toBe(false);
+    });
   });
 
   it("candidatos ≥ 100 → flag many_candidates, no descarta", () => {

@@ -232,3 +232,101 @@ describe("--tree", () => {
     expect(r.code).toBe(2);
   });
 });
+
+describe("--pre-push", () => {
+  /**
+   * Entorno sin las variables que un hook de git deja puestas (GIT_DIR, GIT_INDEX_FILE...): si
+   * vitest corre desde un hook, git actuaría sobre el repo de afuera y no sobre el temporal.
+   */
+  const gitEnv = (): NodeJS.ProcessEnv => ({
+    ...Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("GIT_"))),
+    GIT_CONFIG_NOSYSTEM: "1",
+  });
+  const ZERO = "0".repeat(40);
+
+  function git(cwd: string, ...args: string[]): string {
+    const r = spawnSync(
+      "git",
+      [
+        "-c",
+        "user.name=Prueba",
+        "-c",
+        "user.email=prueba@example.com",
+        // Sin hooks de la config global: el repo temporal no depende de la máquina
+        "-c",
+        "core.hooksPath=/dev/null",
+        ...args,
+      ],
+      { cwd, encoding: "utf8", env: gitEnv() },
+    );
+    if (r.status !== 0) throw new Error(`git ${args[0]} falló: ${r.stderr}`);
+    return r.stdout.trim();
+  }
+
+  /** Repo temporal con un commit por contenido; devuelve los sha en orden. */
+  function repo(contents: string[]): { root: string; shas: string[] } {
+    const root = tmpDir("repo");
+    git(root, "init", "-q");
+    const shas = contents.map((text, i) => {
+      writeFileSync(join(root, `a${i}.txt`), text);
+      git(root, "add", ".");
+      git(root, "commit", "-q", "--no-gpg-sign", "-m", `commit ${i}`);
+      return git(root, "rev-parse", "HEAD");
+    });
+    return { root, shas };
+  }
+
+  function prePush(root: string, stdin: string, patterns = "Fabrikam\n") {
+    const dir = patternsDir({ patterns });
+    const r = spawnSync(
+      process.execPath,
+      [SCRIPT, "--pre-push", "--root", root, "--patterns-dir", dir],
+      { encoding: "utf8", input: stdin, env: gitEnv() },
+    );
+    return { code: r.status, out: r.stdout, err: r.stderr };
+  }
+
+  const line = (local: string, remote: string) =>
+    `refs/heads/feat/x ${local} refs/heads/feat/x ${remote}\n`;
+
+  it("rama nueva (remote sha en ceros): OK con todos los commits", () => {
+    const { root, shas } = repo(["uno\n", "dos\n", "tres\n"]);
+    const r = prePush(root, line(shas[2]!, ZERO));
+    expect(r.code).toBe(0);
+    expect(r.out).toBe("pre-push: OK (3 commits)\n");
+    expect(r.err).toBe("");
+  });
+
+  it("rama existente: cuenta solo los commits nuevos (remote..local)", () => {
+    const { root, shas } = repo(["uno\n", "dos\n", "tres\n"]);
+    const r = prePush(root, line(shas[2]!, shas[0]!));
+    expect(r.code).toBe(0);
+    expect(r.out).toBe("pre-push: OK (2 commits)\n");
+  });
+
+  it("varias refs en un push: suma los commits de cada una", () => {
+    const { root, shas } = repo(["uno\n", "dos\n", "tres\n"]);
+    const r = prePush(root, line(shas[2]!, shas[1]!) + line(shas[1]!, shas[0]!));
+    expect(r.code).toBe(0);
+    expect(r.out).toBe("pre-push: OK (2 commits)\n");
+  });
+
+  it("solo borrado de rama (local sha en ceros): OK con 0 commits", () => {
+    const { root, shas } = repo(["uno\n"]);
+    const r = prePush(root, line(ZERO, shas[0]!));
+    expect(r.code).toBe(0);
+    expect(r.out).toBe("pre-push: OK (0 commits)\n");
+  });
+
+  it("con hallazgos: mismo mensaje de error que antes y sin OK", () => {
+    const { root, shas } = repo(["uno\n", "habla de Fabrikam\n"]);
+    const r = prePush(root, line(shas[1]!, ZERO));
+    expect(r.code).toBe(1);
+    expect(r.out).toBe("");
+    expect(r.err).toBe(
+      "[pre-push] Push frenado por privacidad. 1 hallazgo(s):\n" +
+        `  commit ${shas[1]!.slice(0, 8)} a1.txt:1 · patrón #1 (privacy-patterns.txt)\n` +
+        "Arreglá con alias y rehacé los commits afectados.\n",
+    );
+  });
+});

@@ -1,5 +1,8 @@
 import { err, ok } from "@job-search-os/pipeline";
+import { demoCvInterview, demoCvWrite } from "./demo-cv";
 import type { CallSink, GenerateContext, LlmClient } from "./types";
+
+const DEMO_TASKS = ["evaluate_job", "draft_application_answers", "cv_interview", "cv_write"];
 
 /**
  * Modo demo: evaluaciones falsas pero verosímiles, sin red ni gasto, para ver el flujo entero en
@@ -149,24 +152,28 @@ export function demoDrafts(vars: Vars): Record<string, unknown> {
 export function createDemoLlm(options: { calls?: CallSink } = {}): LlmClient {
   return {
     async generateStructured(task, schema, vars, ctx: GenerateContext = {}) {
-      if (task !== "evaluate_job" && task !== "draft_application_answers") {
+      if (!DEMO_TASKS.includes(task)) {
         return err({
           kind: "no_route",
           task,
-          detail: `modo demo: solo evaluate_job y draft_application_answers (pedido: ${task})`,
+          detail: `modo demo: solo ${DEMO_TASKS.join(", ")} (pedido: ${task})`,
         });
       }
       const candidates =
-        task === "draft_application_answers"
-          ? [demoDrafts(vars)]
-          : (() => {
-              const typed = demoEvaluation(vars);
-              const legacy = {
-                ...typed,
-                gaps: (typed.gaps as { skill: string }[]).map((g) => g.skill),
-              };
-              return [typed, legacy];
-            })();
+        task === "cv_interview"
+          ? [demoCvInterview(vars)]
+          : task === "cv_write"
+            ? [demoCvWrite(vars)]
+            : task === "draft_application_answers"
+              ? [demoDrafts(vars)]
+              : (() => {
+                  const typed = demoEvaluation(vars);
+                  const legacy = {
+                    ...typed,
+                    gaps: (typed.gaps as { skill: string }[]).map((g) => g.skill),
+                  };
+                  return [typed, legacy];
+                })();
       const parsed = candidates.map((o) => schema.safeParse(o)).find((p) => p.success);
       if (!parsed?.success) {
         return err({
