@@ -7,7 +7,7 @@ import type { DataState } from "@/lib/market";
 export function MissingDataNotice({ state }: { state: DataState }) {
   if (state.jobsCount === 0) {
     return (
-      <p className="rounded-control border border-dashed border-line-strong p-6 text-center text-sm text-fg-subtle">
+      <p className="rounded-card border border-dashed border-line-strong p-6 text-center text-sm text-fg-subtle">
         Todavía no llegaron ofertas. Cuando lleguen tus primeras ofertas, acá vas a ver qué piden y
         qué te falta.{" "}
         <Link href="/settings/asistente" className="text-fg underline">
@@ -18,7 +18,7 @@ export function MissingDataNotice({ state }: { state: DataState }) {
   }
   if (state.noSkillsFound) {
     return (
-      <p className="rounded-control border border-dashed border-line-strong p-6 text-center text-sm text-fg-subtle">
+      <p className="rounded-card border border-dashed border-line-strong p-6 text-center text-sm text-fg-subtle">
         Todavía no encontramos skills en tus ofertas. Cuando lleguen ofertas con más detalle,
         aparecen acá. Mientras tanto podés{" "}
         <Link href="/jobs/new" className="text-fg underline">
@@ -30,7 +30,7 @@ export function MissingDataNotice({ state }: { state: DataState }) {
   }
   if (!state.hasSnapshot) {
     return (
-      <p className="rounded-control border border-dashed border-line-strong p-6 text-center text-sm text-fg-subtle">
+      <p className="rounded-card border border-dashed border-line-strong p-6 text-center text-sm text-fg-subtle">
         Estamos armando tu mercado con las ofertas que llegaron. Volvé en unos minutos; también se
         actualiza cuando guardás tus skills y cada lunes.
       </p>

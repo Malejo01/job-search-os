@@ -17,7 +17,7 @@ export function CareerPicker({
     <form
       method="get"
       aria-label="Explorar otra carrera"
-      className="flex flex-col gap-2 text-xs text-zinc-600"
+      className="flex flex-col gap-2 text-xs text-fg-subtle"
     >
       {tab ? <input type="hidden" name="rol" value={tab} /> : null}
       <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-end">
@@ -26,7 +26,7 @@ export function CareerPicker({
           <select
             name="carrera"
             defaultValue={current ?? ""}
-            className="min-h-11 w-full rounded-md border border-zinc-300 px-2 py-2 text-sm text-zinc-800 sm:w-auto"
+            className="min-h-11 w-full rounded-control border border-line-strong px-2 py-2 text-sm text-fg sm:w-auto"
           >
             {current ? null : (
               <option value="" disabled>
@@ -44,7 +44,7 @@ export function CareerPicker({
         </label>
         <button
           type="submit"
-          className="min-h-11 w-full rounded-md border border-zinc-400 px-4 py-2 text-sm text-zinc-800 sm:w-auto"
+          className="min-h-11 w-full rounded-control border border-line-control px-4 py-2 text-sm text-fg sm:w-auto"
         >
           Ver mercado
         </button>

@@ -24,7 +24,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Mercado" };
 
 const INPUT_CLASS =
-  "w-full rounded-md border border-zinc-300 px-2 py-2 text-sm text-zinc-800 sm:w-auto";
+  "w-full rounded-control border border-line-strong px-2 py-2 text-sm text-fg sm:w-auto";
 
 /** «2026-10-19» -> «19/10»: la semana, sin año ni formato técnico. */
 const shortDate = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
@@ -60,8 +60,8 @@ export default async function MarketPage({
   return (
     <section className="flex flex-col gap-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-xl font-semibold">Mercado</h1>
-        <p className="text-xs text-zinc-600">
+        <h1 className="text-title font-semibold">Mercado</h1>
+        <p className="text-xs text-fg-subtle">
           {view.weekStart
             ? `Datos de la semana del ${shortDate(view.weekStart)}`
             : "Sin datos todavía"}{" "}
@@ -80,10 +80,10 @@ export default async function MarketPage({
       {careerRole && maturity ? (
         <p
           data-testid="carrera-madurez"
-          className={`w-fit rounded-full px-3 py-1 text-xs font-medium ${
+          className={`w-fit rounded-pill px-3 py-1 text-xs font-medium ${
             maturity === "madura"
-              ? "bg-emerald-100 text-emerald-900"
-              : "bg-amber-100 text-amber-900"
+              ? "bg-success-muted text-success"
+              : "bg-warning-muted text-warning"
           }`}
         >
           {CAREER_MATURITY_LABEL[maturity]}
@@ -96,24 +96,24 @@ export default async function MarketPage({
           backHref={carrera && role && carrera !== role ? `/market?rol=${role}` : undefined}
         />
       ) : (
-        <p className="text-xs text-zinc-600">
+        <p className="text-xs text-fg-subtle">
           Elegí una carrera y mirá qué piden las ofertas públicas de los últimos 30 días.
         </p>
       )}
 
       <h2 className="text-lg font-semibold">Tu agenda</h2>
-      <p className="-mt-3 text-xs text-zinc-600">
+      <p className="-mt-3 text-xs text-fg-subtle">
         Lo que piden las ofertas que ya pasaron por tu cuenta, cruzado con tus niveles.
       </p>
       <Link
         href={role ? `/encaje?rol=${role}` : "/encaje"}
-        className="-mt-2 inline-flex min-h-11 w-fit items-center text-sm font-medium text-sky-800 underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
+        className="-mt-2 inline-flex min-h-11 w-fit items-center text-sm font-medium text-link underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
       >
         Explicado en llano: Tu encaje
       </Link>
       <RoleMarket view={roleMarket} />
 
-      <form method="get" className="flex flex-col gap-2 text-xs text-zinc-600">
+      <form method="get" className="flex flex-col gap-2 text-xs text-fg-subtle">
         {role ? <input type="hidden" name="rol" value={role} /> : null}
         <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-end">
           <label className="flex flex-col gap-1">
@@ -131,7 +131,7 @@ export default async function MarketPage({
           </label>
           <button
             type="submit"
-            className="min-h-11 w-full rounded-md border border-zinc-400 px-4 py-2 text-sm text-zinc-800 sm:w-auto"
+            className="min-h-11 w-full rounded-control border border-line-control px-4 py-2 text-sm text-fg sm:w-auto"
           >
             Aplicar
           </button>
@@ -147,7 +147,7 @@ export default async function MarketPage({
         !state.hasSnapshot ? (
           <MissingDataNotice state={state} />
         ) : (
-          <p className="rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-600">
+          <p className="rounded-card border border-dashed border-line-strong p-6 text-center text-sm text-fg-subtle">
             No hay datos de mercado en ese rango de semanas.{" "}
             <Link href={role ? `/market?rol=${role}` : "/market"} className="underline">
               Ver todas las semanas
@@ -161,7 +161,7 @@ export default async function MarketPage({
             hint="Lo que más piden las ofertas que te interesan y hoy no tenés. Orden: demanda ponderada."
             rows={agenda.gaps}
             view={view}
-            tone="border-red-200"
+            tone="border-danger-line"
             testId="market-gaps"
           />
           <Section
@@ -169,7 +169,7 @@ export default async function MarketPage({
             hint="Lo que ya tenés y el mercado pide: para destacar en la postulación."
             rows={agenda.differentials}
             view={view}
-            tone="border-emerald-200"
+            tone="border-success-line"
             testId="market-differentials"
           />
           <Section
@@ -177,21 +177,21 @@ export default async function MarketPage({
             hint="Productivo pero no fuerte; candidatos a subir con evidencia."
             rows={agenda.growing}
             view={view}
-            tone="border-amber-200"
+            tone="border-warning-line"
             testId="market-growing"
           />
-          <details className="rounded-md border border-zinc-200 p-3 text-sm">
+          <details className="rounded-card border border-line p-3 text-sm">
             <summary className="flex min-h-11 cursor-pointer items-center font-semibold">
               Tabla completa ({agenda.all.length} skills)
             </summary>
             <SkillRows rows={agenda.all} view={view} compact />
           </details>
           <SkillCandidates candidates={view.candidates} />
-          <details className="rounded-md border border-zinc-200 p-3 text-sm">
+          <details className="rounded-card border border-line p-3 text-sm">
             <summary className="flex min-h-11 cursor-pointer items-center font-semibold">
               ¿Cómo se calcula?
             </summary>
-            <p className="mt-2 text-xs text-zinc-600">
+            <p className="mt-2 text-xs text-fg-subtle">
               La demanda de cada skill suma el puntaje de las ofertas que la piden: cuenta entero si
               es un requisito y 0,4 si es deseable. Si una oferta todavía no tiene puntaje, cuenta
               como 5 de 10. Las skills se reconocen por nombre en cada aviso, sin inteligencia
@@ -221,13 +221,13 @@ function Section({
   testId: string;
 }) {
   return (
-    <section data-testid={testId} className={`rounded-md border p-3 ${tone}`}>
+    <section data-testid={testId} className={`rounded-card border p-3 ${tone}`}>
       <h2 className="text-sm font-semibold">{title}</h2>
-      <p className="text-xs text-zinc-600">{hint}</p>
+      <p className="text-xs text-fg-subtle">{hint}</p>
       {rows.length ? (
         <SkillRows rows={rows} view={view} />
       ) : (
-        <p className="mt-2 text-xs text-zinc-600">
+        <p className="mt-2 text-xs text-fg-subtle">
           Por ahora ninguna skill entra en esta categoría. Si tus niveles cambiaron, actualizalos en{" "}
           <Link href="/settings/skills" className="underline">
             Mis skills
