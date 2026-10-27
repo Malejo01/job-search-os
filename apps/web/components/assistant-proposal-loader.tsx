@@ -67,8 +67,9 @@ export function applyFormValues(
 }
 
 /**
- * Aviso de propuesta cargada. El contenedor `role="status"` existe siempre (vacío) y se llena al
- * cargar; recibe el foco para que se lea entero. Se vacía cuando la persona envía el formulario.
+ * Aviso de propuesta cargada. Aparece solo con una propuesta (un `role="status"` vacío siempre
+ * presente chocaba con los avisos de «Guardado» de la misma sección) y recibe el foco al cargar,
+ * así se lee entero. Se vacía cuando la persona envía el formulario.
  */
 export function ProposalLoadedNotice({
   proposal,
@@ -79,41 +80,33 @@ export function ProposalLoadedNotice({
   missing?: string[];
   noticeRef?: RefObject<HTMLDivElement | null>;
 }) {
-  const labels = new Map(proposal?.diffs.map((d) => [d.field, d.label]) ?? []);
+  if (!proposal) return null;
+  const labels = new Map(proposal.diffs.map((d) => [d.field, d.label]));
   return (
     <div
       ref={noticeRef}
       role="status"
       tabIndex={-1}
-      data-testid={proposal ? "assistant-proposal-loaded" : undefined}
-      className={
-        proposal
-          ? "flex flex-col gap-1 rounded-md bg-sky-50 px-3 py-2 text-sm text-sky-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
-          : "sr-only"
-      }
+      data-testid="assistant-proposal-loaded"
+      className="flex flex-col gap-1 rounded-md bg-sky-50 px-3 py-2 text-sm text-sky-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
     >
-      {proposal ? (
-        <>
-          <p className="font-medium">
-            Cargamos la propuesta del asistente. Revisá los cambios y tocá Guardar: todavía no se
-            guardó nada.
-          </p>
-          {proposal.diffs.length > 0 ? (
-            <ul className="list-disc pl-5">
-              {proposal.diffs.map((d) => (
-                <li key={d.field} className="break-words">
-                  {d.label}: {d.after}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          {missing.length > 0 ? (
-            <p className="text-amber-900">
-              No se pudo cargar en esta pantalla:{" "}
-              {missing.map((m) => labels.get(m) ?? m).join(", ")}.
-            </p>
-          ) : null}
-        </>
+      <p className="font-medium">
+        Cargamos la propuesta del asistente. Revisá los cambios y tocá Guardar: todavía no se guardó
+        nada.
+      </p>
+      {proposal.diffs.length > 0 ? (
+        <ul className="list-disc pl-5">
+          {proposal.diffs.map((d) => (
+            <li key={d.field} className="break-words">
+              {d.label}: {d.after}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {missing.length > 0 ? (
+        <p className="text-amber-900">
+          No se pudo cargar en esta pantalla: {missing.map((m) => labels.get(m) ?? m).join(", ")}.
+        </p>
       ) : null}
     </div>
   );
