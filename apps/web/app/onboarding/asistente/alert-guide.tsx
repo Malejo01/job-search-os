@@ -16,14 +16,14 @@ export const PORTAL_STATUS_VIEW: Record<
   activo: {
     icon: "✅",
     text: "Activo: te llegó un aviso en los últimos 14 días",
-    className: "text-green-800",
+    className: "text-success",
   },
   sin_novedad: {
     icon: "⚠️",
     text: "Sin novedad: hubo avisos, pero ninguno en los últimos 14 días",
-    className: "text-amber-900",
+    className: "text-warning",
   },
-  nunca: { icon: "⬜", text: "Nunca llegó un aviso de este portal", className: "text-zinc-600" },
+  nunca: { icon: "⬜", text: "Nunca llegó un aviso de este portal", className: "text-fg-subtle" },
 };
 
 export type AlertGuideProps = {

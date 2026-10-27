@@ -31,14 +31,16 @@ Colores, radios y tipografía salen de un solo lugar: `apps/web/app/globals.css`
 
 Estados: cada uno tiene texto, fondo suave, borde y relleno fuerte.
 
-| Estado | `text-*` | `bg-*-soft` | `border-*-line` | `bg-*-strong` | Reemplaza |
-|---|---|---|---|---|---|
-| `success` | emerald-900 / emerald-200 | emerald-50 / emerald-950 | emerald-200 / emerald-800 | emerald-700 | `emerald-*`, `green-*` |
-| `warning` | amber-900 / amber-200 | amber-50 / amber-950 | amber-200 / amber-800 | amber-700 | `amber-*` |
-| `danger` | red-800 / red-200 | red-50 / red-950 | red-200 / red-800 | red-700 | `red-*` |
-| `info` | sky-900 / sky-200 | sky-50 / sky-950 | sky-200 / sky-800 | sky-700 | `sky-*`, `blue-*` |
+| Estado | `text-*` | `bg-*-soft` | `bg-*-muted` | `border-*-line` | `bg-*-strong` | Reemplaza |
+|---|---|---|---|---|---|---|
+| `success` | emerald-900 / emerald-200 | emerald-50 / emerald-950 | emerald-100 / emerald-900 | emerald-200 / emerald-800 | emerald-700 | `emerald-*`, `green-*` |
+| `warning` | amber-900 / amber-200 | amber-50 / amber-950 | amber-100 / amber-900 | amber-200 / amber-800 | amber-700 | `amber-*` |
+| `danger` | red-800 / red-200 | red-50 / red-950 | red-100 / red-900 | red-200 / red-800 | red-700 | `red-*` |
+| `info` | sky-900 / sky-200 | sky-50 / sky-950 | sky-100 / sky-900 | sky-200 / sky-800 | sky-700 | `sky-*`, `blue-*` |
 
-(claro / oscuro). En oscuro el texto de estado sube a los tonos 200 para pasar AA (4.5:1) sobre el fondo 950.
+(claro / oscuro). En oscuro el texto de estado sube a los tonos 200 para pasar AA (4.5:1) sobre los fondos 950 y 900.
+
+`-soft` es el fondo de un aviso o un panel. `-muted` es un fondo enfático para lo que tiene que resaltar en una lista: la caja del puntaje y los badges de bloqueador o duplicado. No usar `-muted` para avisos.
 
 ## Radios y tipografía
 

@@ -95,11 +95,12 @@ export function scoreTone(score: number | null): "alto" | "medio" | "bajo" | "no
   return "bajo";
 }
 
+/** Caja del puntaje (/hoy, /jobs, detalle y demo). Tokens de docs/ux/tokens.md: cambian solos en oscuro. */
 export const SCORE_CLASSES: Record<ReturnType<typeof scoreTone>, string> = {
-  alto: "bg-emerald-100 text-emerald-900 ring-emerald-300",
-  medio: "bg-amber-100 text-amber-900 ring-amber-300",
-  bajo: "bg-zinc-100 text-zinc-700 ring-zinc-300",
-  none: "bg-zinc-50 text-zinc-600 ring-zinc-200",
+  alto: "bg-success-muted text-success ring-success-line",
+  medio: "bg-warning-muted text-warning ring-warning-line",
+  bajo: "bg-surface-muted text-fg-muted ring-line-strong",
+  none: "bg-surface-subtle text-fg-subtle ring-line",
 };
 
 export const LOCATION_CLASSES: Record<string, string> = {

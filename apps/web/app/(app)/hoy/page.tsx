@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { PORTAL_STATUS_VIEW } from "@/app/onboarding/asistente/alert-guide";
 import { careerLabel } from "@/lib/career-market";
 import { getHoyData, type HoyData } from "@/lib/hoy";
+import { Card as UiCard, EmptyState, textLinkClasses } from "@/components/ui";
 import { requireActiveUserId } from "@/lib/session";
 import { MarkVisit } from "./mark-visit";
 import { NewJobRow } from "./new-job-row";
@@ -16,11 +17,8 @@ const VISIT_MAX_AGE = 60 * 60 * 24 * 365;
 const SHOWN = 5;
 const FOLLOW_UPS_SHOWN = 3;
 
-const CARD = "flex min-w-0 flex-col gap-2 rounded-md border border-zinc-200 px-3 py-3";
-const LINK =
-  "inline-flex min-h-11 w-fit items-center font-medium text-sky-800 underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900";
-const LINK_INLINE =
-  "font-medium text-sky-800 underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900";
+const LINK = textLinkClasses({ block: true });
+const LINK_INLINE = textLinkClasses();
 
 /**
  * Guarda la marca de visita. No recibe nada del cliente: lee la cookie actual y recalcula la marca
@@ -53,8 +51,8 @@ export default async function HoyPage() {
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <h1 className="text-xl font-semibold">Hoy</h1>
-        <p data-testid="hoy-visita" className="text-xs text-zinc-600">
+        <h1 className="text-title font-semibold">Hoy</h1>
+        <p data-testid="hoy-visita" className="text-xs text-fg-subtle">
           {data.since
             ? `Tu última visita: ${formatDate(data.since, data.timeZone)}`
             : "Primera vez por acá"}
@@ -64,12 +62,12 @@ export default async function HoyPage() {
         <section
           data-testid="hoy-resumen"
           aria-labelledby="hoy-resumen-titulo"
-          className="rounded-md bg-zinc-50 px-3 py-3"
+          className="rounded-card bg-surface-subtle px-3 py-3"
         >
-          <h2 id="hoy-resumen-titulo" className="text-base font-semibold text-zinc-900">
+          <h2 id="hoy-resumen-titulo" className="text-base font-semibold text-fg">
             En resumen
           </h2>
-          <p className="text-sm text-zinc-700">{data.digest}</p>
+          <p className="text-sm text-fg-muted">{data.digest}</p>
         </section>
       ) : null}
       <div className="grid gap-3 sm:grid-cols-2">
@@ -77,7 +75,7 @@ export default async function HoyPage() {
         <FollowUpCard data={data} />
         {data.fit ? (
           <Card id="hoy-encaje-titulo" testId="hoy-encaje" title="Tu encaje">
-            <p className="text-sm text-zinc-700">{data.fit.headline}</p>
+            <p className="text-sm text-fg-muted">{data.fit.headline}</p>
             <Link href="/encaje" className={LINK}>
               Ver tu encaje
             </Link>
@@ -105,16 +103,19 @@ function Card({
   children: ReactNode;
 }) {
   return (
-    <section
+    // Sin fondo: las tarjetas de «Hoy» siempre dejaron ver el de la página
+    <UiCard
+      as="section"
+      surface="none"
       data-testid={testId}
       aria-labelledby={id}
-      className={`${CARD} ${wide ? "sm:col-span-2" : ""}`}
+      className={`flex min-w-0 flex-col gap-2 ${wide ? "sm:col-span-2" : ""}`}
     >
-      <h2 id={id} className="text-base font-semibold text-zinc-900">
+      <h2 id={id} className="text-base font-semibold text-fg">
         {title}
       </h2>
       {children}
-    </section>
+    </UiCard>
   );
 }
 
@@ -135,46 +136,55 @@ function NewCard({ data }: { data: HoyData }) {
           </Link>
         </>
       ) : empty && empty.counts.total === 0 ? (
-        <div data-testid="hoy-vacio-sin-ofertas" className="flex flex-col gap-1 text-sm">
-          <p className="text-zinc-700">
-            Todavía no llegaron ofertas para vos: las buscamos todos los días.
-          </p>
-          {roles.length === 0 ? (
-            <Link href="/settings#puesto" className={LINK}>
-              Elegí tu carrera
-            </Link>
-          ) : !empty.hasReceivedEmail ? (
-            <Link href="/settings/asistente" className={LINK}>
-              Sumá tus alertas de empleo por email
-            </Link>
-          ) : (
-            <Link href="/jobs/new" className={LINK}>
-              Pegá una oferta
-            </Link>
-          )}
-        </div>
+        <EmptyState
+          variant="inline"
+          data-testid="hoy-vacio-sin-ofertas"
+          action={
+            roles.length === 0 ? (
+              <Link href="/settings#puesto" className={LINK}>
+                Elegí tu carrera
+              </Link>
+            ) : !empty.hasReceivedEmail ? (
+              <Link href="/settings/asistente" className={LINK}>
+                Sumá tus alertas de empleo por email
+              </Link>
+            ) : (
+              <Link href="/jobs/new" className={LINK}>
+                Pegá una oferta
+              </Link>
+            )
+          }
+        >
+          Todavía no llegaron ofertas para vos: las buscamos todos los días.
+        </EmptyState>
       ) : empty && empty.counts.porEvaluar > 0 ? (
-        <div data-testid="hoy-vacio-en-cola" className="flex flex-col gap-1 text-sm">
-          <p className="text-zinc-700">
-            {empty.counts.porEvaluar === 1
-              ? "Estamos evaluando 1 oferta: volvé en un rato."
-              : `Estamos evaluando ${empty.counts.porEvaluar} ofertas: volvé en un rato.`}
-          </p>
-          <Link href="/jobs?estado=prefiltrada" className={LINK}>
-            Ver las que esperan
-          </Link>
-        </div>
+        <EmptyState
+          variant="inline"
+          data-testid="hoy-vacio-en-cola"
+          action={
+            <Link href="/jobs?estado=prefiltrada" className={LINK}>
+              Ver las que esperan
+            </Link>
+          }
+        >
+          {empty.counts.porEvaluar === 1
+            ? "Estamos evaluando 1 oferta: volvé en un rato."
+            : `Estamos evaluando ${empty.counts.porEvaluar} ofertas: volvé en un rato.`}
+        </EmptyState>
       ) : (
-        <div data-testid="hoy-vacio-nada-nuevo" className="flex flex-col gap-1 text-sm">
-          <p className="text-zinc-700">
-            {since
-              ? `Nada nuevo desde tu última visita (${formatDate(since, data.timeZone)}).`
-              : "Nada nuevo en la última semana."}
-          </p>
-          <Link href="/jobs?estado=todas" className={LINK}>
-            Ver todas las ofertas
-          </Link>
-        </div>
+        <EmptyState
+          variant="inline"
+          data-testid="hoy-vacio-nada-nuevo"
+          action={
+            <Link href="/jobs?estado=todas" className={LINK}>
+              Ver todas las ofertas
+            </Link>
+          }
+        >
+          {since
+            ? `Nada nuevo desde tu última visita (${formatDate(since, data.timeZone)}).`
+            : "Nada nuevo en la última semana."}
+        </EmptyState>
       )}
     </Card>
   );
@@ -189,15 +199,18 @@ function FollowUpCard({ data }: { data: HoyData }) {
   return (
     <Card id="hoy-seguimiento-titulo" testId="hoy-seguimiento" title="Para hacer seguimiento">
       {followUps.length === 0 ? (
-        <div data-testid="hoy-vacio-seguimiento" className="flex flex-col gap-1 text-sm">
-          <p className="text-zinc-700">
-            Nada pendiente. Te lo mostramos acá a los 7 días sin respuesta (5 después de una
-            entrevista).
-          </p>
-          <Link href="/applications" className={LINK}>
-            Ver mis postulaciones
-          </Link>
-        </div>
+        <EmptyState
+          variant="inline"
+          data-testid="hoy-vacio-seguimiento"
+          action={
+            <Link href="/applications" className={LINK}>
+              Ver mis postulaciones
+            </Link>
+          }
+        >
+          Nada pendiente. Te lo mostramos acá a los 7 días sin respuesta (5 después de una
+          entrevista).
+        </EmptyState>
       ) : (
         <>
           <ul className="m-0 flex list-none flex-col gap-2 p-0">
@@ -210,7 +223,7 @@ function FollowUpCard({ data }: { data: HoyData }) {
                 >
                   <span className="truncate">{f.title}</span>
                 </Link>
-                <p className="truncate text-xs text-zinc-600">
+                <p className="truncate text-xs text-fg-subtle">
                   {f.company} · hace {f.daysSince} {f.daysSince === 1 ? "día" : "días"}
                 </p>
               </li>
@@ -231,7 +244,7 @@ function AlertsCard({ data }: { data: HoyData }) {
   return (
     <Card id="hoy-alertas-titulo" testId="hoy-alertas" title="Tus alertas">
       {none ? (
-        <p data-testid="hoy-vacio-alertas" className="text-sm text-zinc-700">
+        <p data-testid="hoy-vacio-alertas" className="text-sm text-fg-muted">
           Todavía no recibimos ninguna alerta de empleo por email. Configurarlas te lleva 5 minutos.
         </p>
       ) : (
@@ -245,7 +258,7 @@ function AlertsCard({ data }: { data: HoyData }) {
                 data-status={coverage[portal.id].status}
                 className="text-sm"
               >
-                <span className="font-medium text-zinc-900">{portal.name}</span>
+                <span className="font-medium text-fg">{portal.name}</span>
                 <p className={status.className}>
                   <span aria-hidden="true">{status.icon} </span>
                   {status.text}
@@ -267,12 +280,17 @@ function MarketCard({ data }: { data: HoyData }) {
   return (
     <Card id="hoy-mercado-titulo" testId="hoy-mercado" title="Tu mercado esta semana">
       {roles.length === 0 ? (
-        <div data-testid="hoy-vacio-mercado" className="flex flex-col gap-1 text-sm">
-          <p className="text-zinc-700">Todavía no elegiste carrera.</p>
-          <Link href="/settings#puesto" className={LINK}>
-            Elegí tu carrera
-          </Link>
-        </div>
+        <EmptyState
+          variant="inline"
+          data-testid="hoy-vacio-mercado"
+          action={
+            <Link href="/settings#puesto" className={LINK}>
+              Elegí tu carrera
+            </Link>
+          }
+        >
+          Todavía no elegiste carrera.
+        </EmptyState>
       ) : (
         <ul className="m-0 flex list-none flex-col gap-2 p-0">
           {careers.map(({ role, market }) => {
@@ -281,18 +299,18 @@ function MarketCard({ data }: { data: HoyData }) {
             return (
               <li key={role} data-testid={`hoy-mercado-${role}`} className="text-sm">
                 {total === 0 ? (
-                  <p className="text-zinc-700">
+                  <p className="text-fg-muted">
                     Todavía no hay ofertas públicas de {label} en los últimos 7 días.
                   </p>
                 ) : (
-                  <p className="text-zinc-700">
-                    <span className="font-medium text-zinc-900">{label}:</span>{" "}
+                  <p className="text-fg-muted">
+                    <span className="font-medium text-fg">{label}:</span>{" "}
                     {total === 1 ? "1 oferta nueva" : `${total} ofertas nuevas`} en 7 días,{" "}
                     {writtenInSpanish} en español{market.english.estimated ? " (estimado)" : ""}.
                   </p>
                 )}
                 {onlySpanish && writtenInSpanish < 5 ? (
-                  <p data-testid={`hoy-puente-idioma-${role}`} className="text-zinc-700">
+                  <p data-testid={`hoy-puente-idioma-${role}`} className="text-fg-muted">
                     Casi todo está en inglés. Si aceptás ofertas en los dos idiomas{" "}
                     <Link href="/settings/perfil" className={LINK_INLINE}>
                       vas a ver más

@@ -2,8 +2,9 @@ import type { HTMLAttributes, ReactNode } from "react";
 import { cx } from "./cx";
 
 /**
- * Badge (N3-3): estado, fuente, riesgo, contador. `soft` es fondo suave y texto del tono; `strong`
- * es relleno fuerte y texto blanco. `square` es el rectángulo chico de las listas; `pill`, el
+ * Badge (N3-3): estado, fuente, riesgo, contador. `soft` es fondo suave y texto del tono; `muted`,
+ * un fondo un tono más fuerte para lo que tiene que resaltar en una lista (bloqueador, duplicado);
+ * `strong` es relleno fuerte y texto blanco. `square` es el rectángulo chico de las listas; `pill`, el
  * redondo. El texto va adentro: el color nunca es la única señal.
  */
 export type BadgeTone = "neutral" | "success" | "warning" | "danger" | "info" | "brand";
@@ -17,6 +18,15 @@ const SOFT: Record<BadgeTone, string> = {
   brand: "bg-brand text-brand-contrast",
 };
 
+const MUTED: Record<BadgeTone, string> = {
+  neutral: "bg-surface-strong text-fg",
+  success: "bg-success-muted text-success",
+  warning: "bg-warning-muted text-warning",
+  danger: "bg-danger-muted text-danger",
+  info: "bg-info-muted text-info",
+  brand: "bg-brand text-brand-contrast",
+};
+
 const STRONG: Record<BadgeTone, string> = {
   neutral: "bg-surface-strong text-fg",
   success: "bg-success-strong text-on-strong",
@@ -26,6 +36,8 @@ const STRONG: Record<BadgeTone, string> = {
   brand: "bg-brand text-brand-contrast",
 };
 
+const EMPHASIS = { soft: SOFT, muted: MUTED, strong: STRONG } as const;
+
 const SHAPES = {
   square: "rounded-badge px-1.5 py-0.5",
   pill: "rounded-pill px-2 py-0.5",
@@ -33,7 +45,7 @@ const SHAPES = {
 
 export type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
   tone?: BadgeTone;
-  emphasis?: "soft" | "strong";
+  emphasis?: keyof typeof EMPHASIS;
   shape?: keyof typeof SHAPES;
   children: ReactNode;
 };
@@ -47,7 +59,7 @@ export function badgeClasses({
   return cx(
     "inline-flex items-center gap-1 text-xs font-medium",
     SHAPES[shape],
-    (emphasis === "strong" ? STRONG : SOFT)[tone],
+    EMPHASIS[emphasis][tone],
     className,
   );
 }

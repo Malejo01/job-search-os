@@ -68,7 +68,7 @@ export default function UiPage() {
         <h2 id="ui-badges" className="text-heading font-semibold">
           Badges
         </h2>
-        {(["soft", "strong"] as const).map((emphasis) =>
+        {(["soft", "muted", "strong"] as const).map((emphasis) =>
           (["pill", "square"] as const).map((shape) => (
             <div key={`${emphasis}-${shape}`} className="flex flex-wrap gap-2">
               {BADGE_TONES.map((tone) => (
