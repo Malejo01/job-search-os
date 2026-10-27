@@ -3,7 +3,7 @@ import { axeSummary } from "./axe-helpers";
 import { login } from "./helpers";
 
 /**
- * Flujo 86 (N3): axe en modo oscuro de las pantallas ya migradas a los tokens (docs/ux/tokens.md).
+ * Flujo 88 (N3): axe en modo oscuro de las pantallas ya migradas a los tokens (docs/ux/tokens.md).
  * Cada PR que migra una pantalla la suma a `ROUTES`. El oscuro se activa con la preferencia
  * `jso-tema` en localStorage, como lo haría una persona; el claro ya lo cubre el flujo 70.
  */
@@ -15,7 +15,7 @@ const VIEWPORTS = [
 
 const ROUTES = ["/hoy"] as const;
 
-test.describe("Flujo 86: axe en oscuro", () => {
+test.describe("Flujo 88: axe en oscuro", () => {
   for (const viewport of VIEWPORTS) {
     for (const route of ROUTES) {
       test(`${route} a ${viewport.name}: sin violaciones de axe en oscuro`, async ({ page }) => {
