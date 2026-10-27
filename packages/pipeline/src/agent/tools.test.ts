@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   activeToolsFor,
+  AGENT_ACTION_TOOLS,
   AGENT_PROPOSE_TOOLS,
   AGENT_READ_TOOLS,
   isAgentTool,
@@ -14,7 +15,11 @@ const base = { turn: 0, step: 0, proposalsThisTurn: 0, screen: null };
 
 describe("activeToolsFor", () => {
   it("al empezar el turno ofrece lectura y propuesta, en orden estable", () => {
-    expect(activeToolsFor(base)).toEqual([...AGENT_READ_TOOLS, ...AGENT_PROPOSE_TOOLS]);
+    expect(activeToolsFor(base)).toEqual([
+      ...AGENT_READ_TOOLS,
+      ...AGENT_PROPOSE_TOOLS,
+      ...AGENT_ACTION_TOOLS,
+    ]);
   });
 
   it("el último paso del turno (el sexto) no tiene tools: responde en texto", () => {

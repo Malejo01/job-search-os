@@ -1,12 +1,15 @@
 "use client";
 
 import {
+  actionOutcomesFrom,
+  historyFrom,
+  proposalOutcomesFrom,
   screenFromPath,
   screenLabel,
+  type ActionProposal,
   type AgentLink,
   type AssistantStreamEvent,
   type Proposal,
-  type ProposalOutcome,
 } from "@job-search-os/pipeline";
 import { MotionConfig, motion } from "framer-motion";
 import Link from "next/link";
@@ -20,6 +23,7 @@ import {
   PROPOSAL_MAX_AGE_MS,
   stashProposal,
 } from "@/components/assistant-proposal";
+import { AssistantActionCard, type ActionStatus } from "./assistant-action-card";
 import { AssistantProposalCard, type ProposalStatus } from "./assistant-proposal-card";
 
 const FOCUS_RING =
@@ -43,58 +47,16 @@ type Item =
       status: ProposalStatus;
       /** Cuándo llegó al navegador: la propuesta vence a los 10 minutos de esto. */
       receivedAt: number;
+    }
+  | {
+      id: number;
+      turn: number;
+      kind: "action";
+      action: ActionProposal;
+      status: ActionStatus;
+      /** Cuándo llegó: la tarjeta vence a los 10 minutos de esto. */
+      receivedAt: number;
     };
-
-type HistoryMessage = { role: "user" | "assistant"; text: string };
-
-const DESTINATION_NAME: Record<Proposal["destination"], string> = {
-  profile: "Tu perfil",
-  skill_levels: "Tus skills",
-  criteria: "Criterios",
-  target_roles: "Tus puestos",
-};
-
-/**
- * Historial para el servidor, armado solo en memoria (la charla no se guarda en ningún lado). Un
- * turno sin respuesta del asistente ni propuesta (CV derivado, tope, error) no entra: así un CV
- * pegado no vuelve a viajar en el turno siguiente y los roles siguen alternando.
- */
-export function historyFrom(items: readonly Item[]): HistoryMessage[] {
-  const turns = new Map<number, Item[]>();
-  for (const item of items) turns.set(item.turn, [...(turns.get(item.turn) ?? []), item]);
-  const out: HistoryMessage[] = [];
-  for (const group of turns.values()) {
-    const user = group.find((i) => i.kind === "user");
-    if (!user || user.kind !== "user") continue;
-    const text = group
-      .filter((i) => i.kind === "assistant")
-      .map((i) => (i.kind === "assistant" ? i.text : ""))
-      .join("")
-      .trim();
-    const proposals = group.filter((i) => i.kind === "proposal");
-    const reply =
-      text ||
-      (proposals.length > 0
-        ? `[Propuse cambios para ${proposals
-            .map((p) => (p.kind === "proposal" ? DESTINATION_NAME[p.proposal.destination] : ""))
-            .join(", ")}]`
-        : "");
-    if (!reply) continue;
-    out.push({ role: "user", text: user.text }, { role: "assistant", text: reply.slice(0, 4000) });
-  }
-  return out;
-}
-
-function outcomesFrom(items: readonly Item[]): ProposalOutcome[] {
-  return items
-    .filter((i): i is Extract<Item, { kind: "proposal" }> => i.kind === "proposal")
-    .slice(-20)
-    .map((i) => ({
-      destination: i.proposal.destination,
-      fields: i.proposal.diffs.map((d) => d.field).slice(0, 20),
-      status: i.status,
-    }));
-}
 
 const ERROR_BY_STATUS: Record<number, string> = {
   413: "Ese mensaje es muy largo para el asistente.",
@@ -176,6 +138,29 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
     setItems((prev) =>
       prev.map((i) => (i.id === id && i.kind === "proposal" ? { ...i, status } : i)),
     );
+  }
+
+  function setActionStatus(id: number, status: ActionStatus) {
+    setItems((prev) =>
+      prev.map((i) => (i.id === id && i.kind === "action" ? { ...i, status } : i)),
+    );
+  }
+
+  function discardAction(id: number) {
+    setActionStatus(id, "descartada");
+    say("Descartada. No se cambió nada.");
+    requestAnimationFrame(() => statusRefs.current.get(id)?.focus());
+  }
+
+  function sentAction(id: number, action: ActionProposal, toLabel?: string) {
+    setActionStatus(id, "enviada");
+    say(
+      action.kind === "status_change"
+        ? `Listo: la oferta quedó en ${toLabel ?? action.toLabel}.`
+        : "Listo: la oferta quedó cargada.",
+    );
+    // El botón desaparece: el foco va al texto de estado de la tarjeta, como al descartar
+    requestAnimationFrame(() => statusRefs.current.get(id)?.focus());
   }
 
   function discardProposal(id: number) {
@@ -266,6 +251,21 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
             `${event.proposal.title}: ${event.proposal.diffs.length} cambios para revisar.`,
           );
           break;
+        case "action":
+          push({
+            id: nextId(),
+            turn,
+            kind: "action",
+            action: event.action,
+            status: "pendiente",
+            receivedAt: Date.now(),
+          });
+          said.push(
+            event.action.kind === "status_change"
+              ? `Cambio de estado propuesto para revisar: ${event.action.toLabel}.`
+              : "Oferta para cargar, para revisar.",
+          );
+          break;
         case "notice":
           push({ id: nextId(), turn, kind: "notice", text: event.text, links: event.links });
           said.push(event.text);
@@ -297,7 +297,8 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
           conversationId,
           messages: history,
           screen,
-          outcomes: outcomesFrom(items),
+          outcomes: proposalOutcomesFrom(items),
+          actions: actionOutcomesFrom(items),
         }),
         signal: controller.signal,
       });
@@ -479,6 +480,21 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
                         }}
                         onLoad={() => loadProposal(item)}
                         onDiscard={() => discardProposal(item.id)}
+                      />
+                    );
+                  case "action":
+                    return (
+                      <AssistantActionCard
+                        key={item.id}
+                        action={item.action}
+                        status={item.status}
+                        statusRef={(el) => {
+                          if (el) statusRefs.current.set(item.id, el);
+                          else statusRefs.current.delete(item.id);
+                        }}
+                        receivedAt={item.receivedAt}
+                        onSent={(r) => sentAction(item.id, item.action, r.toLabel)}
+                        onDiscard={() => discardAction(item.id)}
                       />
                     );
                 }

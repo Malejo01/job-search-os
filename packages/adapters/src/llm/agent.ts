@@ -3,7 +3,7 @@ import {
   AGENT_LIMITS,
   checkStep,
   estimateTokens,
-  isProposeTool,
+  isProposalTool,
   maxStepCostUsd,
   type AgentCapReason,
 } from "@job-search-os/pipeline";
@@ -145,7 +145,7 @@ export type StreamAgentInput = {
   signal?: AbortSignal;
   /** Tools activas en cada paso (la app usa `activeToolsFor`). Por defecto, todas. */
   activeTools?: (step: number, state: { proposalsSoFar: number }) => string[];
-  /** Qué tools son propuestas (una por turno). Por defecto, `isProposeTool` del pipeline. */
+  /** Qué tools son propuestas (una por turno). Por defecto, `isProposalTool` del pipeline. */
   isProposal?: (toolName: string) => boolean;
   /** Gasto de turnos anteriores de esta conversación; null = desconocido → no sigue. */
   spentUsd: number | null;
@@ -356,7 +356,7 @@ async function* runTurn(
 ): AsyncGenerator<AgentEvent> {
   const now = deps.now ?? Date.now;
   const streamFn = deps.streamFn ?? defaultAgentStreamFn;
-  const isProposal = input.isProposal ?? isProposeTool;
+  const isProposal = input.isProposal ?? isProposalTool;
 
   const record = async (route: RouteConfig, partial: Partial<LlmCallRecord>) => {
     try {

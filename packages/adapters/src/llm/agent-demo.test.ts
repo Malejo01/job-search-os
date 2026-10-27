@@ -36,6 +36,76 @@ async function parts(content: string, extra: { lastTool?: boolean } = {}) {
   return out;
 }
 
+const JOB = "11111111-2222-4333-8444-555555555555";
+
+async function runAction(content: string, system: string) {
+  const out: unknown[] = [];
+  for await (const p of demoAgentStreamFn({
+    model: {} as never,
+    system,
+    messages: [{ role: "user" as const, content }],
+    tools: {},
+    activeTools: ["get_profile", "propose_profile", "propose_status_change", "propose_new_job"],
+    maxOutputTokens: 600,
+    temperature: 0,
+    abortSignal: new AbortController().signal,
+  })) {
+    out.push(p);
+  }
+  return out;
+}
+
+describe("demoAgentStreamFn · acciones (AG-5)", () => {
+  it("«ya me postulé» en el detalle de una oferta propone el cambio de estado", async () => {
+    const parts = await runAction("Ya me postulé a esta oferta ayer", `screen_job_id=${JOB}`);
+    expect(parts[0]).toEqual({
+      type: "tool-call",
+      toolCallId: "demo-0",
+      toolName: "propose_status_change",
+      input: {
+        job_id: JOB,
+        event: "apply",
+        source: { from: "message", quote: "Ya me postulé" },
+      },
+    });
+  });
+
+  it("«todavía no me postulé» no propone nada", async () => {
+    for (const text of ["Todavía no me postulé a esta", "No me postulé"]) {
+      const parts = await runAction(text, `screen_job_id=${JOB}`);
+      expect(
+        parts.some((p) => (p as { toolName?: string }).toolName === "propose_status_change"),
+        text,
+      ).toBe(false);
+    }
+  });
+
+  it("sin oferta en pantalla no inventa un id", async () => {
+    const parts = await runAction("Ya me postulé a esta oferta ayer", "");
+    expect(
+      parts.some((p) => (p as { toolName?: string }).toolName === "propose_status_change"),
+    ).toBe(false);
+  });
+
+  it("«agregá la oferta X de Y» propone cargar el aviso con lo citado", async () => {
+    const parts = await runAction(
+      "Agregá la oferta Analista de Datos de Empresa Inventada: https://empleos.example.com/x/1",
+      "",
+    );
+    expect(parts[0]).toEqual({
+      type: "tool-call",
+      toolCallId: "demo-0",
+      toolName: "propose_new_job",
+      input: {
+        title: "Analista de Datos",
+        company: "Empresa Inventada",
+        url: "https://empleos.example.com/x/1",
+        source: { from: "message", quote: "Agregá la oferta Analista de Datos" },
+      },
+    });
+  });
+});
+
 describe("demoAgentStreamFn", () => {
   it("«me mudé a Uruguay» propone el país en ISO con la cita exacta", async () => {
     const out = await parts("Hola. Me mudé a Uruguay el mes pasado");

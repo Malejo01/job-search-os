@@ -76,9 +76,48 @@ function demoProfileChange(message: string): Change | null {
   return null;
 }
 
+const APPLIED_RE = /(?:ya )?me postul[ée]/iu;
+/** «no me postulé», «todavía no me postulé»: no es un hecho, no se propone nada. */
+const NOT_APPLIED_RE = /\b(?:no|todav[íi]a)\b[^.?!]{0,20}me postul/iu;
+// El título va hasta el último «de» (como «Analista de Datos de Empresa X»): es solo para el demo
+const NEW_JOB_RE = /(agreg[áa] la oferta (.{3,80})) de (.{1,80}?)(?=[.,:;!?]|$)/iu;
+const URL_RE = /https?:\/\/[^\s<>"]{1,300}/u;
+/** En modo demo la ruta pasa como `system` solo una línea de datos con la oferta en pantalla. */
+const SCREEN_JOB_RE = /screen_job_id=([0-9a-f-]{36})/u;
+
+type DemoAction = { toolName: string; input: Record<string, unknown> };
+
+/** Acción reconocible en el mensaje (AG-5), con la cita EXACTA que la fundamenta. */
+function demoAction(message: string, system: string): DemoAction | null {
+  const applied = APPLIED_RE.exec(message);
+  const jobId = SCREEN_JOB_RE.exec(system)?.[1];
+  if (applied && jobId && !NOT_APPLIED_RE.test(message)) {
+    return {
+      toolName: "propose_status_change",
+      input: { job_id: jobId, event: "apply", source: { from: "message", quote: applied[0] } },
+    };
+  }
+  const job = NEW_JOB_RE.exec(message);
+  if (job) {
+    const url = URL_RE.exec(message)?.[0];
+    return {
+      toolName: "propose_new_job",
+      input: {
+        title: job[2]!.trim(),
+        company: job[3]!.trim(),
+        ...(url ? { url } : {}),
+        source: { from: "message", quote: job[1]! },
+      },
+    };
+  }
+  return null;
+}
+
 /**
  * Guion por reglas sobre el último mensaje de la persona:
- * - sin resultado de tool todavía: si reconoce un cambio del perfil y `propose_profile` está activa,
+ * - sin resultado de tool todavía: si reconoce una acción (AG-5: «ya me postulé» con una oferta en
+ *   pantalla, «agregá la oferta X de Y») y su tool está activa, la llama; si reconoce un cambio del
+ *   perfil y `propose_profile` está activa,
  *   la llama; si no, y `get_profile` está activa, lee el perfil; si no, contesta en texto;
  * - con resultado de tool: texto fijo «DEMO: …» y fin.
  */
@@ -97,8 +136,11 @@ export const demoAgentStreamFn: AgentStreamFn = async function* (args) {
   }
   const userText = [...args.messages].reverse().find((m) => m.role === "user");
   const message = userText?.role === "user" ? userText.content : "";
+  const action = demoAction(message, args.system);
   const change = demoProfileChange(message);
-  if (change && args.activeTools.includes("propose_profile")) {
+  if (action && args.activeTools.includes(action.toolName)) {
+    yield { type: "tool-call", toolCallId: "demo-0", ...action };
+  } else if (change && args.activeTools.includes("propose_profile")) {
     yield {
       type: "tool-call",
       toolCallId: "demo-0",

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { err, ok, type Result } from "../result";
 import { CV_OMITTED_MARKER, looksLikeCv } from "./cv-detect";
+import { MANUAL_JOB_EVENTS, type ManualJobEvent } from "../status";
 import { AGENT_LIMITS } from "./limits";
 import { PROPOSAL_DESTINATIONS, type ProposalDestination } from "./types";
 
@@ -84,7 +85,28 @@ export const proposalOutcomeSchema = z
 
 export const proposalOutcomesSchema = z.array(proposalOutcomeSchema).max(20);
 
+/** Resultado de una acción anterior (AG-5): tipo, evento (un enum) y qué hizo la persona. */
+export type ActionOutcome = {
+  kind: "status_change" | "new_job";
+  event?: ManualJobEvent;
+  status: "pendiente" | "enviada" | "descartada";
+};
+
+export const actionOutcomeSchema = z
+  .object({
+    kind: z.enum(["status_change", "new_job"]),
+    event: z.enum(MANUAL_JOB_EVENTS).optional(),
+    status: z.enum(["pendiente", "enviada", "descartada"]),
+  })
+  .strict();
+export const actionOutcomesSchema = z.array(actionOutcomeSchema).max(20);
+
 const SNIPPET_CHARS = 120;
+const ACTION_STATUS: Record<ActionOutcome["status"], string> = {
+  pendiente: "la persona todavía no la confirmó",
+  enviada: "la persona la confirmó",
+  descartada: "la persona la descartó",
+};
 const ROLE_NAME: Record<AgentMessage["role"], string> = { user: "Persona", assistant: "Asistente" };
 
 /** Primeros 120 caracteres, cortando por code points (un emoji no queda partido). */
@@ -122,7 +144,7 @@ const intOr = (v: number | undefined, fallback: number): number =>
 export function summarizeHistory(
   messages: readonly AgentMessage[],
   outcomes: readonly ProposalOutcome[],
-  opts: { keepLast?: number; maxChars?: number } = {},
+  opts: { keepLast?: number; maxChars?: number; actions?: readonly ActionOutcome[] } = {},
 ): { summary: string | null; recent: AgentMessage[] } {
   const keepLast = Math.max(1, intOr(opts.keepLast, 4));
   const maxChars = Math.max(200, intOr(opts.maxChars, 6000));
@@ -137,6 +159,9 @@ export function summarizeHistory(
     ...outcomes.map(
       (o) =>
         `Propuesta para ${o.destination} (${o.fields.join(", ") || "sin campos"}): ${o.status}`,
+    ),
+    ...(opts.actions ?? []).map(
+      (a) => `Acción ${a.kind}${a.event ? ` (${a.event})` : ""}: ${ACTION_STATUS[a.status]}`,
     ),
   ];
 
