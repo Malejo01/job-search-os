@@ -17,16 +17,6 @@ const conv = (n: number): AgentMessage[] =>
 
 describe("validateAgentHistory", () => {
   it("acepta un historial que alterna y termina con la persona", () => {
-<<<<<<< HEAD
-    expect(validateAgentHistory([{ role: "user", text: "hola" }]).ok).toBe(true);
-    expect(validateAgentHistory(conv(19)).ok).toBe(true);
-  });
-
-  it("rechaza vacío, más de 20, sin alternar, terminado en asistente o con campos de más", () => {
-    expect(validateAgentHistory([]).ok).toBe(false);
-    expect(validateAgentHistory(conv(21)).ok).toBe(false);
-    expect(validateAgentHistory(conv(2)).ok).toBe(false);
-=======
     expect(validateAgentHistory([{ role: "user", text: "hola" }]).ok).toBe(true);
     expect(validateAgentHistory(conv(19)).ok).toBe(true);
     // El turno 11 llega entero (21 mensajes) para que la ruta conteste con el aviso de tope
@@ -37,7 +27,6 @@ describe("validateAgentHistory", () => {
     expect(validateAgentHistory([]).ok).toBe(false);
     expect(validateAgentHistory(conv(23)).ok).toBe(false);
     expect(validateAgentHistory(conv(2)).ok).toBe(false);
->>>>>>> origin/nube/n1-ag1-stream-agent
     expect(
       validateAgentHistory([
         { role: "user", text: "a" },
