@@ -38,7 +38,7 @@ export async function RoleNudge({ userId }: { userId: string }) {
     <div
       role="note"
       data-testid="role-nudge"
-      className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-sky-50 px-3 py-2 text-sm text-sky-900"
+      className="flex flex-wrap items-center justify-between gap-2 rounded-control bg-info-soft px-3 py-2 text-sm text-info"
     >
       <p>
         Elegí tu puesto para recibir ofertas que te sirvan.{" "}
@@ -49,7 +49,7 @@ export async function RoleNudge({ userId }: { userId: string }) {
       <form action={dismissRoleNudgeAction}>
         <button
           type="submit"
-          className="rounded-md border border-sky-300 bg-white px-3 py-1 text-sm text-sky-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-900"
+          className="rounded-control border border-info-line bg-surface px-3 py-1 text-sm text-info focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
         >
           Ahora no
         </button>

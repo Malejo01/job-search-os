@@ -52,7 +52,7 @@ export async function EmailNudge({
     <div
       role="note"
       data-testid="email-nudge"
-      className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-sky-50 px-3 py-2 text-sm text-sky-900"
+      className="flex flex-wrap items-center justify-between gap-2 rounded-control bg-info-soft px-3 py-2 text-sm text-info"
     >
       {body ? (
         <div className="flex flex-col gap-1">
@@ -75,7 +75,7 @@ export async function EmailNudge({
       <form action={dismissEmailNudgeAction}>
         <button
           type="submit"
-          className="min-h-11 rounded-md border border-sky-300 bg-white px-3 py-1 text-sm text-sky-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-900"
+          className="min-h-11 rounded-control border border-info-line bg-surface px-3 py-1 text-sm text-info focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
         >
           No, gracias
         </button>

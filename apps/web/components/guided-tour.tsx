@@ -28,11 +28,11 @@ export type TourInvite = {
 };
 
 const BUTTON =
-  "inline-flex min-h-11 items-center justify-center rounded-md border border-zinc-300 bg-white px-3 text-sm text-zinc-900 aria-disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900";
+  "inline-flex min-h-11 items-center justify-center rounded-control border border-line-strong bg-surface px-3 text-sm text-fg aria-disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus";
 const BUTTON_PRIMARY =
-  "inline-flex min-h-11 items-center justify-center rounded-md bg-zinc-900 px-3 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900";
+  "inline-flex min-h-11 items-center justify-center rounded-control bg-brand px-3 text-sm font-medium text-brand-contrast focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 const OPENER_DEFAULT =
-  "inline-flex min-h-11 shrink-0 items-center justify-center rounded-md border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900";
+  "inline-flex min-h-11 shrink-0 items-center justify-center rounded-control border border-line-strong bg-surface px-3 text-sm font-medium text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus";
 
 /** Primer elemento con esa ancla que tenga caja (el menú, por ejemplo, está dos veces: según el ancho). */
 function findAnchor(anchor: string): HTMLElement | null {
@@ -166,7 +166,8 @@ export function GuidedTour({
         sticky && ["sticky", "fixed"].includes(getComputedStyle(sticky).position)
           ? sticky.getBoundingClientRect().height
           : 0;
-      el.style.outline = "3px solid #18181b";
+      // Token de foco (docs/ux/tokens.md): un gris fijo desaparecía sobre el fondo oscuro
+      el.style.outline = "3px solid var(--jso-focus)";
       el.style.outlineOffset = "2px";
       el.style.scrollMarginTop = `${Math.round(headerHeight) + 16}px`;
       el.style.scrollMarginBottom = `${panelHeightRef.current + 16}px`;
@@ -189,7 +190,7 @@ export function GuidedTour({
         <div
           role="note"
           data-testid={invite.testId}
-          className="flex w-full flex-wrap items-center justify-between gap-2 rounded-md bg-sky-50 px-3 py-2 text-sm text-sky-900"
+          className="flex w-full flex-wrap items-center justify-between gap-2 rounded-control bg-info-soft px-3 py-2 text-sm text-info"
         >
           <p>{invite.text}</p>
           <div className="flex gap-2">
@@ -215,16 +216,16 @@ export function GuidedTour({
         aria-label={label}
         data-testid={testId}
         hidden={!open}
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-300 bg-white px-4 py-1.5 shadow-lg"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-line-strong bg-surface px-4 py-1.5 shadow-lg"
       >
         <div aria-live="polite" className="mx-auto flex max-w-5xl flex-col gap-1">
           <div className="flex flex-wrap items-baseline gap-x-2">
-            <span className="text-xs text-zinc-600">
+            <span className="text-xs text-fg-subtle">
               Paso {step + 1} de {active.length}
             </span>
             <p className="text-sm font-semibold">{current?.title}</p>
           </div>
-          <p className="text-sm leading-snug text-zinc-800">{current?.text}</p>
+          <p className="text-sm leading-snug text-fg">{current?.text}</p>
           <div className="mt-1 grid w-full grid-cols-3 gap-2 sm:max-w-md sm:self-end">
             {/* aria-disabled y no disabled: un botón con foco que se deshabilita lo pierde */}
             <button

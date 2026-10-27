@@ -40,7 +40,7 @@ export function JobFilters({
     value.score || value.fuente || value.estado || value.desde || value.periodo,
   );
   const select =
-    "rounded-md border border-zinc-300 bg-white px-2 py-2 text-sm text-zinc-800 min-w-0";
+    "rounded-control border border-line-strong bg-surface px-2 py-2 text-sm text-fg min-w-0";
 
   return (
     <form
@@ -48,7 +48,7 @@ export function JobFilters({
       onSubmit={(e) => e.preventDefault()}
       aria-label="Filtros"
     >
-      <label className="flex flex-col gap-1 text-xs text-zinc-600">
+      <label className="flex flex-col gap-1 text-xs text-fg-subtle">
         Score mín.
         <select
           className={select}
@@ -64,7 +64,7 @@ export function JobFilters({
           ))}
         </select>
       </label>
-      <label className="flex flex-col gap-1 text-xs text-zinc-600">
+      <label className="flex flex-col gap-1 text-xs text-fg-subtle">
         Fuente
         <select
           className={select}
@@ -79,7 +79,7 @@ export function JobFilters({
           ))}
         </select>
       </label>
-      <label className="flex flex-col gap-1 text-xs text-zinc-600">
+      <label className="flex flex-col gap-1 text-xs text-fg-subtle">
         Estado
         <select
           className={select}
@@ -97,7 +97,7 @@ export function JobFilters({
           ))}
         </select>
       </label>
-      <label className="flex flex-col gap-1 text-xs text-zinc-600">
+      <label className="flex flex-col gap-1 text-xs text-fg-subtle">
         Período
         <select
           className={select}
@@ -109,7 +109,7 @@ export function JobFilters({
           <option value="semana">esta semana</option>
         </select>
       </label>
-      <label className="flex flex-col gap-1 text-xs text-zinc-600">
+      <label className="flex flex-col gap-1 text-xs text-fg-subtle">
         Desde
         <input
           type="date"
@@ -123,7 +123,7 @@ export function JobFilters({
           type="button"
           disabled={!hasFilters}
           onClick={() => startTransition(() => router.replace(pathname))}
-          className="w-full rounded-md border border-zinc-300 px-2 py-2 text-sm text-zinc-700 disabled:opacity-40"
+          className="w-full rounded-control border border-line-strong px-2 py-2 text-sm text-fg-muted disabled:opacity-40"
         >
           Limpiar
         </button>

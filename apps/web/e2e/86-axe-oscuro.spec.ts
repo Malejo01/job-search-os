@@ -13,7 +13,7 @@ const VIEWPORTS = [
   { name: "1280x800", width: 1280, height: 800 },
 ] as const;
 
-const ROUTES = ["/hoy"] as const;
+const ROUTES = ["/hoy", "/jobs"] as const;
 
 test.describe("Flujo 86: axe en oscuro", () => {
   for (const viewport of VIEWPORTS) {

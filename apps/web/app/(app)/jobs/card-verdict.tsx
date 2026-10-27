@@ -25,10 +25,10 @@ function VerdictButton({
       aria-label={label}
       aria-pressed={pressed}
       disabled={pending}
-      className={`flex min-h-[44px] min-w-[44px] items-center justify-center gap-1 rounded-md border-2 p-2 text-base leading-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 ${
+      className={`flex min-h-[44px] min-w-[44px] items-center justify-center gap-1 rounded-control border-2 p-2 text-base leading-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 ${
         pressed
-          ? "border-zinc-900 bg-zinc-900 text-white"
-          : "border-zinc-500 bg-white hover:border-zinc-700"
+          ? "border-brand bg-brand text-brand-contrast"
+          : "border-fg-subtle bg-surface hover:border-fg-muted"
       }`}
     >
       <span aria-hidden="true">{emoji}</span>

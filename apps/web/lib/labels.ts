@@ -86,7 +86,7 @@ export const ACTIVE_STATUSES = [
 /** evaluations.model del modo demo (adapters/llm/demo.ts): la UI lo marca con badge DEMO. */
 export const DEMO_MODEL = "fake";
 export const DEMO_BADGE_CLASSES =
-  "rounded bg-violet-100 px-1.5 py-0.5 font-semibold text-violet-900";
+  "rounded-badge bg-brand px-1.5 py-0.5 text-xs font-semibold text-brand-contrast";
 
 export function scoreTone(score: number | null): "alto" | "medio" | "bajo" | "none" {
   if (score === null) return "none";
@@ -103,10 +103,18 @@ export const SCORE_CLASSES: Record<ReturnType<typeof scoreTone>, string> = {
   none: "bg-surface-subtle text-fg-subtle ring-line",
 };
 
+/** Tono del badge de ubicación (`Badge` de components/ui): ok, riesgo o no. */
+export const LOCATION_TONES: Record<string, "success" | "warning" | "danger"> = {
+  ok: "success",
+  riesgo: "warning",
+  no: "danger",
+};
+
+/** Clases del mismo badge para quien todavía no usa `Badge` (detalle de la oferta). */
 export const LOCATION_CLASSES: Record<string, string> = {
-  ok: "bg-emerald-50 text-emerald-800",
-  riesgo: "bg-amber-50 text-amber-900",
-  no: "bg-red-50 text-red-800",
+  ok: "bg-success-soft text-success",
+  riesgo: "bg-warning-soft text-warning",
+  no: "bg-danger-soft text-danger",
 };
 
 export function formatDate(iso: string | null): string {

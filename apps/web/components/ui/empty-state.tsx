@@ -26,10 +26,10 @@ export function EmptyState({
   return (
     <div
       className={cx(
-        "flex flex-col gap-1 text-sm",
+        "flex flex-col text-sm text-fg-muted",
         boxed
-          ? "items-center rounded-card border border-dashed border-line-strong p-6 text-center text-fg-subtle"
-          : "text-fg-muted",
+          ? "items-center gap-2 rounded-card border border-dashed border-line-strong p-6 text-center"
+          : "gap-1",
         className,
       )}
       {...props}

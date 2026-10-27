@@ -4,7 +4,7 @@ import { cx } from "./cx";
 /**
  * Badge (N3-3): estado, fuente, riesgo, contador. `soft` es fondo suave y texto del tono; `muted`,
  * un fondo un tono más fuerte para lo que tiene que resaltar en una lista (bloqueador, duplicado);
- * `strong` es relleno fuerte y texto blanco. `square` es el rectángulo chico de las listas; `pill`, el
+ * `strong` es relleno fuerte y texto blanco. `muted` y `strong` van en negrita; `soft`, no. `square` es el rectángulo chico de las listas; `pill`, el
  * redondo. El texto va adentro: el color nunca es la única señal.
  */
 export type BadgeTone = "neutral" | "success" | "warning" | "danger" | "info" | "brand";
@@ -62,7 +62,8 @@ export function badgeClasses({
   className,
 }: Pick<BadgeProps, "tone" | "emphasis" | "shape" | "className"> = {}): string {
   return cx(
-    "inline-flex items-center gap-1 text-xs font-medium",
+    "inline-flex items-center gap-1 text-xs",
+    emphasis !== "soft" && "font-medium",
     SHAPES[shape],
     EMPHASIS[emphasis][tone],
     className,
