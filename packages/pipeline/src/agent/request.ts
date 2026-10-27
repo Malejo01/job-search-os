@@ -8,6 +8,7 @@ import {
   type ProposalOutcome,
 } from "./history";
 import { parseScreenContext, type ScreenContext } from "./screen";
+import type { ActionProposal } from "./actions";
 import type { Proposal } from "./types";
 
 /**
@@ -180,6 +181,7 @@ export type AssistantStreamEvent =
   | { type: "conv"; id: string }
   | { type: "text"; text: string }
   | { type: "proposal"; proposal: Proposal }
+  | { type: "action"; action: ActionProposal }
   | { type: "notice"; text: string; links: AgentLink[] }
   | { type: "error"; message: string }
   | { type: "done" };

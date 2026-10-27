@@ -110,7 +110,7 @@ const MIN_QUOTE_CHARS = 8;
 const MAX_GROUNDING_MESSAGE_CHARS = 600;
 
 /** Comillas rectas, sin acentos, minúsculas y espacios colapsados: lo que importa es el texto. */
-function normalizeForQuote(text: string): string {
+export function normalizeForQuote(text: string): string {
   // Los reemplazos van antes de NFKD: después, «´» ya se descompuso en espacio + acento
   const straight = text.replace(/[‘’‚‛´`]/g, "'").replace(/[“”„‟«»]/g, '"');
   return squash(foldText(straight));
@@ -155,7 +155,7 @@ export function groundingSourcesFrom(
 const escapeRegExp = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** ¿`term` aparece en `text` como palabra entera? Los dos ya normalizados. */
-function hasWord(text: string, term: string): boolean {
+export function hasWord(text: string, term: string): boolean {
   if (term === "") return false;
   return new RegExp(`(?<![\\p{L}\\p{N}])${escapeRegExp(term)}(?![\\p{L}\\p{N}])`, "u").test(text);
 }

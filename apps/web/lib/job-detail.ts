@@ -6,6 +6,7 @@ import {
   correctionTargets,
   correctStatus,
   isEnglishSkillSlug,
+  MANUAL_JOB_EVENTS,
   planDuplicateMerge,
   POSSIBLE_DUPLICATE_FLAG,
   prefilterReasonText,
@@ -152,15 +153,7 @@ export type JobDetail = {
 export type DuplicateRef = { id: string; title: string; company: string; status: JobStatus };
 
 /** Eventos que puede disparar la persona desde la UI (el resto los dispara el pipeline). */
-export const MANUAL_EVENTS: readonly JobEvent[] = [
-  "apply",
-  "interview",
-  "offer",
-  "reject",
-  "auto_reject",
-  "discard",
-  "close",
-];
+export const MANUAL_EVENTS: readonly JobEvent[] = MANUAL_JOB_EVENTS;
 
 export async function getJobDetail(userId: string, jobId: string): Promise<JobDetail | null> {
   return withUser(userId, async (tx) => {

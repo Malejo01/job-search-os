@@ -13,6 +13,8 @@ import {
   type StreamAgentDeps,
 } from "@job-search-os/adapters";
 import {
+  actionLogMeta,
+  actionSourcesFrom,
   activeToolsFor,
   assistantMode,
   ASSISTANT_ERROR_MESSAGE,
@@ -24,6 +26,8 @@ import {
   CV_REDIRECT_MESSAGE,
   encodeAssistantEvent,
   groundingSourcesFrom,
+  isActionOutput,
+  isActionTool,
   isProposeOutput,
   isProposeTool,
   MAX_ASSISTANT_BODY_BYTES,
@@ -301,7 +305,8 @@ async function runTurn(
   let system: string;
   if (process.env.LLM_DEMO === "1") {
     deps = { ...createDemoAgentDeps({ calls }), logger: log };
-    system = "";
+    // El demo no tiene prompt: solo una línea de datos con la oferta en pantalla (AG-5)
+    system = request.screen?.jobId ? `screen_job_id=${request.screen.jobId}` : "";
   } else {
     const vars = {
       screen_label: request.screen ? screenLabel(request.screen.screen) : "sin pantalla",
@@ -334,7 +339,7 @@ async function runTurn(
     messages,
     [profile?.summary ?? "", profile?.city ?? ""].filter((t) => t.trim() !== ""),
   );
-  const tools = assistantTools(userId, sources);
+  const tools = assistantTools(userId, sources, actionSourcesFrom(messages));
 
   for await (const event of streamAgent(
     ASSISTANT_TASK,
@@ -368,6 +373,13 @@ async function runTurn(
             "asistente: propuesta",
           );
           if (out.ok) emit({ type: "proposal", proposal: out.proposal });
+        } else if (isActionTool(event.name) && isActionOutput(event.output)) {
+          const out = event.output;
+          log.info(
+            { tool: event.name, ok: out.ok, ...actionLogMeta(out.ok ? out.action : out) },
+            "asistente: acción propuesta",
+          );
+          if (out.ok) emit({ type: "action", action: out.action });
         }
         break;
       case "cap":

@@ -3,6 +3,7 @@
 import {
   screenFromPath,
   screenLabel,
+  type ActionProposal,
   type AgentLink,
   type AssistantStreamEvent,
   type Proposal,
@@ -20,6 +21,7 @@ import {
   PROPOSAL_MAX_AGE_MS,
   stashProposal,
 } from "@/components/assistant-proposal";
+import { AssistantActionCard, type ActionStatus } from "./assistant-action-card";
 import { AssistantProposalCard, type ProposalStatus } from "./assistant-proposal-card";
 
 const FOCUS_RING =
@@ -43,7 +45,8 @@ type Item =
       status: ProposalStatus;
       /** Cuándo llegó al navegador: la propuesta vence a los 10 minutos de esto. */
       receivedAt: number;
-    };
+    }
+  | { id: number; turn: number; kind: "action"; action: ActionProposal; status: ActionStatus };
 
 type HistoryMessage = { role: "user" | "assistant"; text: string };
 
@@ -72,13 +75,24 @@ export function historyFrom(items: readonly Item[]): HistoryMessage[] {
       .join("")
       .trim();
     const proposals = group.filter((i) => i.kind === "proposal");
+    const actions = group.filter((i) => i.kind === "action");
     const reply =
       text ||
       (proposals.length > 0
         ? `[Propuse cambios para ${proposals
             .map((p) => (p.kind === "proposal" ? DESTINATION_NAME[p.proposal.destination] : ""))
             .join(", ")}]`
-        : "");
+        : actions.length > 0
+          ? `[Propuse ${actions
+              .map((a) =>
+                a.kind === "action"
+                  ? a.action.kind === "status_change"
+                    ? "un cambio de estado"
+                    : "cargar una oferta"
+                  : "",
+              )
+              .join(", ")}]`
+          : "");
     if (!reply) continue;
     out.push({ role: "user", text: user.text }, { role: "assistant", text: reply.slice(0, 4000) });
   }
@@ -178,6 +192,27 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
     );
   }
 
+  function setActionStatus(id: number, status: ActionStatus) {
+    setItems((prev) =>
+      prev.map((i) => (i.id === id && i.kind === "action" ? { ...i, status } : i)),
+    );
+  }
+
+  function discardAction(id: number) {
+    setActionStatus(id, "descartada");
+    say("Descartada. No se cambió nada.");
+    requestAnimationFrame(() => statusRefs.current.get(id)?.focus());
+  }
+
+  function sentAction(id: number, action: ActionProposal) {
+    setActionStatus(id, "enviada");
+    say(
+      action.kind === "status_change"
+        ? `Listo: la oferta quedó en ${action.toLabel}.`
+        : "Enviada: la oferta se está cargando.",
+    );
+  }
+
   function discardProposal(id: number) {
     setStatus(id, "descartada");
     say("Propuesta descartada. No se cambió nada.");
@@ -264,6 +299,14 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
           });
           said.push(
             `${event.proposal.title}: ${event.proposal.diffs.length} cambios para revisar.`,
+          );
+          break;
+        case "action":
+          push({ id: nextId(), turn, kind: "action", action: event.action, status: "pendiente" });
+          said.push(
+            event.action.kind === "status_change"
+              ? `Cambio de estado propuesto para revisar: ${event.action.toLabel}.`
+              : "Oferta para cargar, para revisar.",
           );
           break;
         case "notice":
@@ -479,6 +522,20 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
                         }}
                         onLoad={() => loadProposal(item)}
                         onDiscard={() => discardProposal(item.id)}
+                      />
+                    );
+                  case "action":
+                    return (
+                      <AssistantActionCard
+                        key={item.id}
+                        action={item.action}
+                        status={item.status}
+                        statusRef={(el) => {
+                          if (el) statusRefs.current.set(item.id, el);
+                          else statusRefs.current.delete(item.id);
+                        }}
+                        onSent={() => sentAction(item.id, item.action)}
+                        onDiscard={() => discardAction(item.id)}
                       />
                     );
                 }
