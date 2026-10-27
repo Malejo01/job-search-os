@@ -46,6 +46,8 @@ export * from "./trust";
 export * from "./first-steps";
 export * from "./demo";
 export * from "./cv";
+export * from "./cv-chat";
+export * from "./cv-out";
 export * from "./alerts/portal-guide";
 export * from "./applications/followup";
 export * from "./alerts/portal-stats";

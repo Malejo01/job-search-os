@@ -330,6 +330,13 @@
       "when": 1793054912749,
       "tag": "0046_equal_jetstream",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1793058455056,
+      "tag": "0047_slimy_mindworm",
+      "breakpoints": true
     }
   ]
 }

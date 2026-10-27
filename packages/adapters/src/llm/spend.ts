@@ -1,5 +1,11 @@
 import { schema as s, type Db } from "@job-search-os/db";
-import { and, desc, eq, gte, isNotNull, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNotNull, notInArray, sql } from "drizzle-orm";
+
+/**
+ * Filas de `llm_calls` que no son llamadas al modelo: la reserva de gasto del chat de CV (en vuelo, se borra
+ * al terminar) y el registro de inicio de charla (costo 0). No suman llamadas, tokens ni USD en los reportes.
+ */
+const NOT_MODEL_CALLS = ["cv_reserve", "cv_start"];
 
 /**
  * Gasto acumulado en `llm_calls` (guardarraíl de costo). La ventana es móvil de 24 h, no
@@ -68,6 +74,7 @@ export async function spendSince(
     .where(
       and(
         gte(s.llmCalls.createdAt, since),
+        notInArray(s.llmCalls.task, NOT_MODEL_CALLS),
         options.userId ? eq(s.llmCalls.userId, options.userId) : undefined,
       ),
     );
@@ -134,7 +141,7 @@ export async function spendBreakdown(db: Db, since: Date): Promise<SpendRow[]> {
       usd: sql<number>`coalesce(sum(${s.llmCalls.costUsd}), 0)::float8`,
     })
     .from(s.llmCalls)
-    .where(gte(s.llmCalls.createdAt, since))
+    .where(and(gte(s.llmCalls.createdAt, since), notInArray(s.llmCalls.task, NOT_MODEL_CALLS)))
     .groupBy(sql`1`, s.llmCalls.task, s.llmCalls.model)
     .orderBy(sql`1`, s.llmCalls.task, s.llmCalls.model);
   return rows;
