@@ -397,8 +397,80 @@ describe("NoObjectGeneratedError", () => {
     const r = await client.generateStructured("evaluate_job", Schema, vars);
     expect(r.ok).toBe(false);
     const detail = r.ok ? "" : r.error.detail;
-    expect(detail).toBe("no_object");
-    expect(calls.calls[0]!.error).toBe("no_object");
+    expect(detail).toBe("no_object:finish:stop");
+    expect(calls.calls[0]!.error).toBe("no_object:finish:stop");
+  });
+
+  it("el motivo sale del ZodError de la causa: campo y código, sin el valor", async () => {
+    const calls = memoryCallSink();
+    const zodError = z
+      .object({ veredicto: z.string().max(5) })
+      .safeParse({ veredicto: "TEXTO-DEL-JD demasiado largo" }).error;
+    const client = createLlmClient({
+      routes: staticRouteSource([{ ...route, fallbackModel: null }]),
+      calls,
+      providers: providers(["google"]),
+      generate: async () => {
+        throw new NoObjectGeneratedError({
+          message: "TEXTO-DEL-JD",
+          text: "TEXTO-DEL-JD",
+          cause: zodError,
+          response: { id: "r", timestamp: new Date(), modelId: "m" },
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 } as never,
+          finishReason: "stop",
+        });
+      },
+      logger: silent,
+    });
+    const r = await client.generateStructured("evaluate_job", Schema, vars);
+    expect(r.ok).toBe(false);
+    expect(r.ok ? "" : r.error.detail).toBe("no_object:too_big:veredicto");
+    expect(calls.calls[0]!.error).toBe("no_object:too_big:veredicto");
+  });
+});
+
+describe("wire (esquema de viaje + normalización)", () => {
+  const Strict = z.object({ score: z.number().min(0).max(10), veredicto: z.string().max(5) });
+  const wire = {
+    schema: z.object({ score: z.number(), veredicto: z.string() }),
+    normalize: (raw: unknown) => ({
+      ...(raw as object),
+      score: 10,
+      veredicto: "corto",
+    }),
+  };
+
+  it("al proveedor viaja el esquema sin límites; lo que vuelve se normaliza y se valida estricto", async () => {
+    let sent: unknown;
+    const client = createLlmClient({
+      routes: staticRouteSource([{ ...route, fallbackModel: null }]),
+      calls: memoryCallSink(),
+      providers: providers(["google"]),
+      generate: async (args) => {
+        sent = args.schema;
+        return { object: { score: 11, veredicto: "demasiado largo" }, usage: {}, validated: true };
+      },
+      logger: silent,
+    });
+    const r = await client.generateStructured("evaluate_job", Strict, vars, { wire });
+    expect(sent).toBe(wire.schema);
+    expect(r.ok && r.value.object).toEqual({ score: 10, veredicto: "corto" });
+  });
+
+  it("si la normalización no alcanza, falla cerrado con validation", async () => {
+    const calls = memoryCallSink();
+    const client = createLlmClient({
+      routes: staticRouteSource([{ ...route, fallbackModel: null }]),
+      calls,
+      providers: providers(["google"]),
+      generate: okGenerate({ score: "alto" }),
+      logger: silent,
+    });
+    const r = await client.generateStructured("evaluate_job", Strict, vars, {
+      wire: { schema: wire.schema, normalize: (raw) => raw },
+    });
+    expect(r.ok).toBe(false);
+    expect(calls.calls[0]!.error).toBe("validation:invalid_type");
   });
 });
 

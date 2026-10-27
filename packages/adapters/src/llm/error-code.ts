@@ -5,11 +5,12 @@ import { APICallError, NoObjectGeneratedError, RetryError } from "ai";
  * `llm_calls.error` y lo que viaja en `LlmError.detail`: nunca `e.message`, que en los errores de
  * proveedor puede citar el prompt (el JD) o la salida del modelo.
  *
- * Formato: `api_call[:<status>]`, `no_object`, `refusal`, `validation[:<code>,…]`, `timeout`, `aborted`,
- * `no_route`, `provider_unavailable`, `unknown`.
+ * Formato: `api_call[:<status>]`, `no_object[:<motivo>]`, `refusal`, `validation[:<code>,…]`, `timeout`,
+ * `aborted`, `no_route`, `provider_unavailable`, `unknown`. Motivos de `no_object` (C-26 F0):
+ * `too_big|too_small|invalid_type:<campo>` (campo del schema, nunca un valor), `parse`, `finish:<finishReason>`.
  */
 export const LLM_ERROR_CODE_PATTERN =
-  "^(api_call(:[1-5][0-9]{2})?|no_object|refusal|validation(:[a-z_]+(,[a-z_]+){0,2})?|timeout|aborted|no_route|provider_unavailable|unknown)$";
+  "^(api_call(:[1-5][0-9]{2})?|no_object(:(too_big|too_small|invalid_type):[a-z][a-z0-9_]{0,39}|:parse|:finish:[a-z][a-z-]{0,19})?|refusal|validation(:[a-z_]+(,[a-z_]+){0,2})?|timeout|aborted|no_route|provider_unavailable|unknown)$";
 
 const CODE_RE = new RegExp(LLM_ERROR_CODE_PATTERN);
 
@@ -39,6 +40,47 @@ export function llmErrorDetail(code: string): string {
   return code;
 }
 
+const SIZE_CODES = new Set(["too_big", "too_small", "invalid_type"]);
+const FIELD_RE = /^[a-z][a-z0-9_]{0,39}$/;
+const FINISH_RE = /^[a-z][a-z-]{0,19}$/;
+
+/** Primer ZodError (o error con `issues`) en la cadena de `cause`, hasta 3 niveles. */
+function findIssues(e: unknown): readonly { code?: unknown; path?: unknown }[] | null {
+  let cur: unknown = e;
+  for (let i = 0; i < 3 && cur !== null && typeof cur === "object"; i++) {
+    const { issues, cause } = cur as { issues?: unknown; cause?: unknown };
+    if (Array.isArray(issues)) return issues;
+    cur = cause;
+  }
+  return null;
+}
+
+/**
+ * Motivo de un `NoObjectGeneratedError` desde propiedades estructuradas: el primer issue de zod
+ * (`code` de un enum cerrado + nombre de campo del schema) o el `finishReason`. Nunca `message` ni
+ * `text`, que traen la salida del modelo.
+ */
+function noObjectReason(e: NoObjectGeneratedError): string {
+  // Un JSON truncado por max_tokens también falla en el parseo o en zod; la causa real es el corte
+  if (e.finishReason === "length") return "no_object:finish:length";
+  const issues = findIssues(e.cause);
+  if (issues) {
+    // Un límite excedido es lo que se busca: se prefiere sobre un issue de otro tipo
+    const issue = issues.find((i) => SIZE_CODES.has(String(i.code))) ?? issues[0];
+    const path = issue?.path;
+    const head = Array.isArray(path) ? path[0] : undefined;
+    const field = typeof head === "string" && FIELD_RE.test(head) ? head : "root";
+    // Otros códigos de zod (enum, claves de más...) se informan como invalid_type
+    const code = SIZE_CODES.has(String(issue?.code)) ? String(issue?.code) : "invalid_type";
+    return `no_object:${code}:${field}`;
+  }
+  const causeName = (e.cause as { name?: unknown } | undefined)?.name;
+  if (causeName === "AI_JSONParseError" || causeName === "SyntaxError") return "no_object:parse";
+  const finish = e.finishReason;
+  if (typeof finish === "string" && FINISH_RE.test(finish)) return `no_object:finish:${finish}`;
+  return "no_object";
+}
+
 const validStatus = (n: unknown): n is number =>
   typeof n === "number" && Number.isInteger(n) && n >= 100 && n <= 599;
 
@@ -54,7 +96,7 @@ export function normalizeLlmError(e: unknown): string {
   if (NoObjectGeneratedError.isInstance(e)) {
     // `stop_reason: "refusal"` de Anthropic llega como finishReason `content-filter`; los filtros
     // de seguridad de Gemini también, así que `refusal` puede venir de cualquiera de los dos
-    return e.finishReason === "content-filter" ? "refusal" : "no_object";
+    return e.finishReason === "content-filter" ? "refusal" : noObjectReason(e);
   }
   // generateObject envuelve el último error del proveedor en un RetryError tras los reintentos
   if (RetryError.isInstance(e)) return normalizeLlmError(e.lastError);

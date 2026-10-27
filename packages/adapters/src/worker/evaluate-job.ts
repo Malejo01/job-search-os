@@ -9,6 +9,7 @@ import {
   detectEvaluatorInjection,
   detectResidencyRestriction,
   effectiveAcceptedModalities,
+  evaluationWireFor,
   INJECTION_FLAG,
   outputSchemaFor,
   RESIDENCY_FLAG,
@@ -261,7 +262,7 @@ export async function evaluateForProfile(
     "evaluate_job",
     outputSchemaFor(promptVersion),
     vars,
-    { ...input.ctx, promptVersion, signal: input.signal },
+    { ...input.ctx, promptVersion, signal: input.signal, wire: evaluationWireFor(promptVersion) },
   );
   if (!result.ok) return { ok: false, error: result.error, injection };
 
