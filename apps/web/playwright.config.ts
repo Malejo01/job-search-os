@@ -40,6 +40,7 @@ export default defineConfig({
     reuseExistingServer: false,
     timeout: 120_000,
     // AUTH_URL: el login redirige a este puerto aunque .env.local apunte a :3000
-    env: { DB_TARGET: "local", LLM_DEMO: "1", AUTH_URL: BASE_URL },
+    // CV_CHAT_ENABLED=admin: el chat de CV (86) solo lo ve quien está en ADMIN_EMAILS, como en producción
+    env: { DB_TARGET: "local", LLM_DEMO: "1", AUTH_URL: BASE_URL, CV_CHAT_ENABLED: "admin" },
   },
 });

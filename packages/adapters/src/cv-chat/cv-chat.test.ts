@@ -161,7 +161,7 @@ describe("falla cerrado", () => {
     expect(out).toMatchObject({ kind: "error", error: { kind: "generation_failed" } });
   });
 
-  it("sin prompt cargado (todavía) el cliente real devuelve error y no llama a ningún modelo", async () => {
+  it("sin API key del proveedor el cliente real devuelve error y no llama a ningún modelo", async () => {
     const calls = memoryCallSink();
     let generated = 0;
     const llm = createLlmClient({
