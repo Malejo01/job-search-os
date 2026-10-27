@@ -19,7 +19,7 @@ const BADGE_TONES: BadgeTone[] = ["neutral", "success", "warning", "danger", "in
 
 /**
  * Vitrina de los componentes base (N3-3): cada variante en una pantalla, para revisarlos a ojo y
- * para que el e2e 85 los pase por axe en claro y en oscuro. Sin datos de nadie y fuera del menú.
+ * para que el e2e 87 los pase por axe en claro y en oscuro. Sin datos de nadie y fuera del menú.
  */
 export default function UiPage() {
   return (
