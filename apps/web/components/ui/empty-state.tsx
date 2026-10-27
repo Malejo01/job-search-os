@@ -9,7 +9,8 @@ import { cx } from "./cx";
 export type EmptyStateProps = Omit<HTMLAttributes<HTMLDivElement>, "title"> & {
   variant?: "boxed" | "inline";
   title?: ReactNode;
-  action?: ReactNode;
+  /** Qué hacer ahora. `null` solo si de verdad no hay salida, y que quede dicho en el PR. */
+  action: ReactNode | null;
   children: ReactNode;
 };
 

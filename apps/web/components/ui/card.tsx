@@ -18,22 +18,30 @@ const TONES: Record<CardTone, string> = {
 
 const PADDING = { none: "", sm: "p-3", md: "p-4" } as const;
 
-type CardElement = "section" | "div" | "li" | "article" | "aside";
-
-export type CardProps = HTMLAttributes<HTMLElement> & {
-  as?: CardElement;
+type CardBase = HTMLAttributes<HTMLElement> & {
   tone?: CardTone;
   padding?: keyof typeof PADDING;
   surface?: "surface" | "none";
   children: ReactNode;
 };
 
+/**
+ * `section` y `aside` son regiones: sin nombre, el lector de pantalla anuncia una región anónima.
+ * Por eso piden `aria-labelledby` (el id del título) o `aria-label`. `li` va dentro de un `ul`/`ol`.
+ */
+export type CardProps = CardBase &
+  (
+    | { as?: "div" | "li" | "article" }
+    | { as: "section" | "aside"; "aria-labelledby": string }
+    | { as: "section" | "aside"; "aria-label": string }
+  );
+
 export function cardClasses({
   tone = "neutral",
   padding = "sm",
   surface = "surface",
   className,
-}: Pick<CardProps, "tone" | "padding" | "surface" | "className"> = {}): string {
+}: Pick<CardBase, "tone" | "padding" | "surface" | "className"> = {}): string {
   return cx(
     "rounded-card border",
     TONES[tone],

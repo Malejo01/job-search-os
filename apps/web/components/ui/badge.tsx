@@ -47,6 +47,11 @@ export type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
   tone?: BadgeTone;
   emphasis?: keyof typeof EMPHASIS;
   shape?: keyof typeof SHAPES;
+  /**
+   * Qué es, para quien no ve el color: «Puntaje», «Bloqueador». Va oculto antes del texto. Hace falta
+   * cuando el texto solo no dice el estado (`<Badge tone="danger">3</Badge>`).
+   */
+  srLabel?: string;
   children: ReactNode;
 };
 
@@ -64,9 +69,18 @@ export function badgeClasses({
   );
 }
 
-export function Badge({ tone, emphasis, shape, className, children, ...props }: BadgeProps) {
+export function Badge({
+  tone,
+  emphasis,
+  shape,
+  srLabel,
+  className,
+  children,
+  ...props
+}: BadgeProps) {
   return (
     <span className={badgeClasses({ tone, emphasis, shape, className })} {...props}>
+      {srLabel ? <span className="sr-only">{`${srLabel}: `}</span> : null}
       {children}
     </span>
   );
