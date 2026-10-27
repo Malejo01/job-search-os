@@ -44,6 +44,7 @@ export * from "./beta-metrics";
 export * from "./founder-seats";
 export * from "./trust";
 export * from "./first-steps";
+export * from "./first-ingest";
 export * from "./demo";
 export * from "./cv";
 export * from "./alerts/portal-guide";
