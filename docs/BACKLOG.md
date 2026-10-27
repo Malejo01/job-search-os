@@ -545,8 +545,8 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Que:** consumir el token con `UPDATE ... WHERE used_at IS NULL AND expires_at > now() RETURNING` dentro de la misma transaccion; si no devuelve fila, falla.
 - **Acepta:** test de integracion con dos consumos concurrentes del mismo token: uno gana, el otro recibe "used".
 
-### JS-078 · El barrido `--pre-push` informa cuando pasa
-`deps:` JS-063 · `est:` S · `estado:` en revisión (nube N2, PR #251, 2026-10-27). Hallazgo previo anotado en el PR: el separador `\x1e` de `scanHistory` deja sin revisar el resto de un archivo que contenga ese byte (falla abierto); va en un ticket aparte
+### JS-078 · El barrido `--pre-push` informa cuando pasa ✅ done 2026-10-27
+`deps:` JS-063 · `est:` S · `estado:` done (nube N2, PR #251, mergeado 2026-10-27). Hallazgo previo anotado en el PR: el separador `\x1e` de `scanHistory` deja sin revisar el resto de un archivo que contenga ese byte (falla abierto); va en un ticket aparte
 - **Por que:** cuando no encuentra nada, `scripts/privacy-scan.mjs --pre-push` no imprime nada, asi que no se distingue "paso" de "no corrio".
 - **Que:** imprimir `pre-push: OK (N commits)` al pasar.
 - **Acepta:** test por CLI con un repo temporal que verifica el mensaje y el conteo; con hallazgos, el mensaje de error no cambia.
