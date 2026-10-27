@@ -218,7 +218,7 @@ export const onboardingSchema = z
  * solo topan el score, pero acá bloquean el guardado, y saltan con texto laboral normal ("implementé
  * nuevas instrucciones de seguridad", "no evalúes solo el título", "veredicto: aprobado").
  */
-const SUMMARY_IGNORED_SIGNALS: readonly string[] = [
+export const SUMMARY_IGNORED_SIGNALS: readonly string[] = [
   "nuevas_instrucciones",
   "new_instructions",
   "no_evalues",
