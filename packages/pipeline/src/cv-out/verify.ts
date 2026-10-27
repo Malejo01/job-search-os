@@ -58,12 +58,16 @@ function cut(s: string, max: number): string {
  * Limpieza del texto de la persona: sin caracteres de control ni invisibles, sin links ni emails, sin
  * marcador de viñeta, espacios colapsados, primera letra en mayúscula y tope de largo. No reescribe nada.
  */
-export function cleanCvText(raw: string, maxChars: number = CV_BULLET_MAX_CHARS): string {
+export function cleanCvText(
+  raw: string,
+  maxChars: number = CV_BULLET_MAX_CHARS,
+  capitalize = true,
+): string {
   let s = raw.replace(CONTROL_RE, " ").replace(URL_RE, " ").replace(EMAIL_RE, " ");
   s = s.replace(/\s+/g, " ").trim();
   s = s.replace(LEADING_MARK_RE, "").trim();
   s = cut(s, maxChars);
-  return s.length > 0 ? s.charAt(0).toLocaleUpperCase() + s.slice(1) : s;
+  return capitalize && s.length > 0 ? s.charAt(0).toLocaleUpperCase() + s.slice(1) : s;
 }
 
 function tokens(s: string): string[] {

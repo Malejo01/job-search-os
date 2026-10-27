@@ -124,7 +124,8 @@ function fmtMonth(m: string | null): string | null {
   return hit ? `${hit[2]}/${hit[1]}` : null;
 }
 
-function dateRange(entry: CvHistoryInput, lang: CvLang): string {
+/** `MM/AAAA – MM/AAAA`, `MM/AAAA – Actual` (solo trabajos) o vacío. */
+export function cvDateRange(entry: CvHistoryInput, lang: CvLang): string {
   const start = fmtMonth(entry.startMonth);
   const end = fmtMonth(entry.endMonth);
   const now = lang === "es" ? "Actual" : "Present";
@@ -161,13 +162,13 @@ function historyBlocks(
     const title = plain(e.title, 120);
     const org = plain(e.organization, 120);
     if (title === "" && org === "") continue;
-    const detail = [org, dateRange(e, lang)].filter((x) => x !== "").join(" | ");
+    const detail = [org, cvDateRange(e, lang)].filter((x) => x !== "").join(" | ");
     const bullets = uniqueFolded(
       e.bullets.map((b) => cleanCvText(b, CV_BULLET_MAX_CHARS)).filter((b) => b !== ""),
     ).slice(0, CV_MAX_BULLETS);
     blocks.push({
       heading: title || org,
-      detail: title ? detail || null : dateRange(e, lang) || null,
+      detail: title ? detail || null : cvDateRange(e, lang) || null,
       bullets,
     });
   }
