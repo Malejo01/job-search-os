@@ -136,7 +136,7 @@ export type CriteriaRules = {
 // ─────────────────────────────────────────────────────────────
 export const companies = pgTable("companies", {
   id: uuid("id").primaryKey().defaultRandom(),
-  nameNormalized: text("name_normalized").notNull().unique(), // lower, sin sufijos (inc, srl, sa, labs)
+  nameNormalized: text("name_normalized").notNull().unique(), // lower, sin sufijos legales (inc, srl, sa)
   displayName: text("display_name").notNull(),
   type: companyType("type").default("desconocido"),
   size: integer("size"),
