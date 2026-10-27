@@ -52,17 +52,23 @@ y el gasto en LLM tiene que quedar acotado (`docs/LLM_COSTOS.md`).
 6. **Reservas para la concurrencia.** Los topes leen `llm_calls` antes de llamar y el registro real
    se escribe después, así que dos pedidos en paralelo pasaban los dos. Antes de cada llamada, una
    transacción corta con `pg_advisory_xact_lock` por persona mide los topes sumando las reservas
-   vigentes e inserta una reserva (estimado: USD 0,01 por turno y USD 0,05 por redacción); la
+   vigentes e inserta una reserva; la reserva es el **máximo** del paso, no el promedio: USD 0,025
+   por turno y USD 0,07 por redacción (máximos calculados de 0,0241 y 0,0693: el prompt más largo
+   que acepta la ruta, el primario agotando `max_tokens` y el respaldo agotando el suyo; un test de
+   adapters los recalcula con el seed). La
    llamada al modelo va afuera de la transacción y la reserva se borra al terminar. Una reserva
    huérfana deja de contar a los 2 minutos. No se usan locks de sesión: no son seguros detrás del
    pooler de Neon en modo transacción. Las filas `cv_reserve` y `cv_start` no suman USD en ningún
    reporte. Queda aceptado que el tope global no tiene lock propio y el exceso es de pocos estimados.
 7. **Gate `CV_CHAT_ENABLED`:** `admin` (solo las cuentas de `ADMIN_EMAILS`) o `all`; cualquier otro
-   valor, apagado. Arranca en `admin` hasta que Mauro lo pruebe. Antes de pasar a `all` hay que
-   calibrar las reservas con el costo máximo (p100) que mida CVC-6.
+   valor, apagado (una sola función, `cvChatMode` en el pipeline, la usan la página y la ruta).
+   Arranca en `admin` hasta que Mauro lo pruebe. Antes de pasar a `all`, conviene contrastar las
+   reservas (calculadas como máximo del paso) con el costo real de la medición con llamadas reales.
 8. **Modelos por `model_routing`**, tareas `cv_interview` y `cv_write`, con respaldo en otro
-   proveedor. Primario propuesto: el que recomiende la medición; si no, Haiku 4.5 para la entrevista y
-   Sonnet 5.5 para la redacción. Nada hardcodeado fuera del seed.
+   proveedor. **Primario `gemini-3.5-flash` (thinking `minimal`) en las dos**; respaldo Haiku 4.5 en
+   la entrevista y Sonnet 5.5 en la redacción. El motivo: los modelos de Anthropic fallan con
+   `no_object` del 10 al 40 % de las veces (C-24, hipótesis: el SDK saca los límites del esquema que
+   ve el modelo y zod los valida igual) y Gemini no falla. Nada hardcodeado fuera del seed.
 9. **El CV se genera sin dependencias nuevas:** DOCX propio y PDF por impresión del navegador
    (ronda 100, §3.2). El DOCX sale de `career_history` y los datos del perfil, no del chat.
 
@@ -86,8 +92,9 @@ y el gasto en LLM tiene que quedar acotado (`docs/LLM_COSTOS.md`).
   suma hechos. A cambio, parte de las viñetas va a salir sin reescribir (falsos positivos del
   verificador, por ejemplo un verbo inicial que no comparte raíz con la respuesta). La proporción
   de descartes es una métrica de CVC-6 y puede afinar el verificador.
-- **El costo por CV es una incógnita hasta medirla** (CVC-6): ver la sección de `docs/LLM_COSTOS.md`.
-  Hasta entonces los topes de arriba acotan el peor caso.
+- **El costo por CV es un estimado sin red** (CVC-6): USD 0,019 a 0,028 con Gemini Flash y 0,013 a
+  0,019 con el respaldo, con 12 a 18 turnos; falta medirlo con llamadas reales. Ver la sección de
+  `docs/LLM_COSTOS.md`. Los topes de arriba acotan el peor caso.
 - **Cada charla es una unidad de gasto con tres líneas de defensa:** topes, reservas y gate. Subir
   `CV_CHAT_ENABLED` a `all` es una decisión de Mauro, después de CVC-6 y de calibrar las reservas.
 - **Los datos que las respuestas envían a Google o Anthropic** (lo que escribe la persona sobre su

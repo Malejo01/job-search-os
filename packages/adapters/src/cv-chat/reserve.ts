@@ -165,13 +165,22 @@ export async function reserveCvChatStep<R>(
   });
 }
 
-/** Borra la reserva (otra transacción corta). Idempotente. */
+/**
+ * Borra la reserva (otra transacción corta). Idempotente. Nunca lanza: se llama en un `finally` y un error
+ * acá no puede tapar el resultado del paso. Devuelve `false` si falló, para que el llamador lo loguee; la
+ * reserva que quede deja de contar a los 2 minutos.
+ */
 export async function releaseCvChatReservation(
   db: Db,
   reservationId: string | null,
-): Promise<void> {
-  if (!reservationId) return;
-  await db
-    .delete(s.llmCalls)
-    .where(and(eq(s.llmCalls.id, reservationId), eq(s.llmCalls.task, CV_RESERVE_TASK)));
+): Promise<boolean> {
+  if (!reservationId) return true;
+  try {
+    await db
+      .delete(s.llmCalls)
+      .where(and(eq(s.llmCalls.id, reservationId), eq(s.llmCalls.task, CV_RESERVE_TASK)));
+    return true;
+  } catch {
+    return false;
+  }
 }

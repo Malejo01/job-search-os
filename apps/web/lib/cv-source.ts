@@ -116,7 +116,4 @@ export async function buildUserCv(userId: string, opts: CvOptions): Promise<CvDo
  * Interruptor del chat «Armá tu CV con IA» (CVC-5): `CV_CHAT_ENABLED` = `admin` | `all`; apagado por
  * defecto. Acá solo decide si se muestra el link; la ruta del chat repite el chequeo.
  */
-export function cvChatMode(env: Record<string, string | undefined>): "off" | "admin" | "all" {
-  const v = (env.CV_CHAT_ENABLED ?? "").trim().toLowerCase();
-  return v === "all" ? "all" : v === "admin" ? "admin" : "off";
-}
+export { cvChatMode } from "@job-search-os/pipeline";

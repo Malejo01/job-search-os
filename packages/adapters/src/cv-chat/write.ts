@@ -25,6 +25,8 @@ export type CvWriteParams = {
   /** Nombres del catálogo de skills: una tecnología en minúsculas que no estaba en las respuestas se descarta. */
   knownTerms?: readonly string[];
   signal?: AbortSignal;
+  /** Solo para tests: el deadline del paso (primario y respaldo juntos). Por defecto 50 s. */
+  deadlineMs?: number;
 };
 
 export type CvWriteDrafted = CvWriteResult & {
@@ -44,7 +46,7 @@ export async function runCvWrite(
     {
       userId: p.userId,
       label: cvChatLabel(p.conversationId),
-      signal: cvChatSignal(p.signal),
+      signal: cvChatSignal(p.signal, p.deadlineMs),
     },
   );
   if (!r.ok) return err(r.error);

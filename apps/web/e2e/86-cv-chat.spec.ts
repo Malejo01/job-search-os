@@ -27,6 +27,20 @@ const e2eIsAdmin = (process.env.ADMIN_EMAILS ?? "")
   .map((e) => e.trim().toLowerCase())
   .includes(E2E_EMAIL.toLowerCase());
 
+/**
+ * El chat solo existe para admins (`CV_CHAT_ENABLED=admin`). En el CI el usuario e2e tiene que estar en
+ * `ADMIN_EMAILS`: si no, el flujo no se probaría y el verde engañaría, así que falla. En local se saltea.
+ */
+function requireAdmin(): void {
+  if (e2eIsAdmin) return;
+  if (process.env.CI) {
+    throw new Error(
+      "CI: ADMIN_EMAILS tiene que incluir al usuario de e2e; sin eso no se prueba el chat de CV",
+    );
+  }
+  test.skip(true, "ADMIN_EMAILS no incluye al usuario de e2e en este entorno");
+}
+
 test.use({ viewport: { width: 360, height: 800 } });
 test.describe.configure({ mode: "serial" });
 
@@ -137,7 +151,7 @@ test.describe("Flujo 86: Armá tu CV con IA", () => {
   });
 
   test("un CV pegado se deriva y no llega al modelo", async ({ page }) => {
-    test.skip(!e2eIsAdmin, "ADMIN_EMAILS no incluye al usuario de e2e en este entorno");
+    requireAdmin();
     await login(page);
     await page.goto("/cv");
     await page.getByRole("link", { name: "Armá tu CV con IA" }).click();
@@ -174,7 +188,7 @@ test.describe("Flujo 86: Armá tu CV con IA", () => {
   });
 
   test("S-2: como máximo 5 charlas nuevas por día, con el mensaje fijo", async ({ page }) => {
-    test.skip(!e2eIsAdmin, "ADMIN_EMAILS no incluye al usuario de e2e en este entorno");
+    requireAdmin();
     await clean();
     await login(page);
     const resultados: { status: number; cap?: string }[] = [];
@@ -197,7 +211,7 @@ test.describe("Flujo 86: Armá tu CV con IA", () => {
   test("recorrido completo: temas, corregir en la tarjeta, armar, confirmar y ver el CV", async ({
     page,
   }) => {
-    test.skip(!e2eIsAdmin, "ADMIN_EMAILS no incluye al usuario de e2e en este entorno");
+    requireAdmin();
     await login(page);
     await page.goto("/cv/armar");
     await page.getByRole("button", { name: "Empezar" }).click();
@@ -287,7 +301,7 @@ test.describe("Flujo 86: Armá tu CV con IA", () => {
   test("con el cupo mensual usado, empezar otra charla avisa con mensaje fijo", async ({
     page,
   }) => {
-    test.skip(!e2eIsAdmin, "ADMIN_EMAILS no incluye al usuario de e2e en este entorno");
+    requireAdmin();
     const { db, close } = ownerDb();
     let perfil: { plan: string } | undefined;
     try {

@@ -189,14 +189,14 @@ Lectura: los bloqueadores que el modelo devolvió eran del tipo correcto (Empres
 
 ## «Armá tu CV con IA» (C-25, ADR-026): `cv_interview` y `cv_write`
 
-Dos tareas nuevas en `model_routing`, ambas con `label = cv:<id de la charla>` en `llm_calls`. Tarifas de la tabla de arriba; el modelo primario se confirma con la medición de CVC-6.
+Dos tareas nuevas en `model_routing`, ambas con `label = cv:<id de la charla>` en `llm_calls`. Tarifas de la tabla de arriba. **Primario `gemini-3.5-flash` con thinking `minimal` en las dos**: los modelos de Anthropic fallan con `no_object` del 10 al 40 % de las veces (C-24) y quedan como respaldo.
 
-| Tarea | Qué hace | Llamadas por CV | Modelo propuesto (primario / respaldo) | Costo por llamada | Costo por CV |
+| Tarea | Qué hace | Llamadas por CV | Primario / respaldo | Costo por llamada (estimado) | Costo por CV (estimado) |
 |---|---|---|---|---|---|
-| `cv_interview` | Un turno: extrae la respuesta al esquema del tema y devuelve un acuse corto | una por mensaje de la persona, hasta 25 | claude-haiku-4-5 / gemini-3.5-flash | a medir en CVC-6 | a medir en CVC-6 |
-| `cv_write` | Una redacción estructurada: viñetas y resumen, es o en | una por charla | claude-sonnet-5-5 / gemini-3.5-flash | a medir en CVC-6 | a medir en CVC-6 |
+| `cv_interview` | Un turno: extrae la respuesta al esquema del tema y devuelve un acuse corto | una por mensaje de la persona: 12 a 18 en las 6 personas de prueba, hasta 25 | gemini-3.5-flash / claude-haiku-4-5 | ~USD 0,0015 (≈ 800 tokens de entrada, ≈ 25 de salida) | USD 0,019 a 0,028 con Gemini; 0,013 a 0,019 con el respaldo |
+| `cv_write` | Una redacción estructurada: viñetas y resumen, es o en | una por charla | gemini-3.5-flash / claude-sonnet-5-5 | ~USD 0,002 (≈ 800 tokens de entrada, ≈ 70 a 100 de salida) | (incluido arriba) |
 
-**Sin cifras todavía.** CVC-6 corre seis personas ficticias de carreras distintas con el modelo real y mide turnos, tokens, costo por CV, porcentaje de viñetas que el verificador descarta y si el DOCX pasa el test de ATS (tope de la medición: USD 1 de Anthropic). Ahí se completa esta tabla, y de ahí sale el costo máximo (p100) por turno y por redacción con el que se calibran las reservas.
+**Son estimados sin red** (CVC-6, `packages/adapters/src/cv-chat/estimate.test.ts`): seis personas ficticias recorridas con el fake, tamaño real de los prompts renderizados, 1 token cada 4 caracteres y thinking en 0 para Gemini `minimal`. Subestiman los reintentos, las salidas más largas de un modelo real y los `no_object`. El porcentaje de viñetas que descarta el verificador y el costo real faltan: requieren llamadas reales (propuesta de tarea en `ops/rondas/C25-cv-conversacional/informe-cvc6.md`). Los 6 DOCX pasan el test de ATS.
 
 **Qué acota el gasto mientras tanto** (todo falla cerrado, mensaje fijo):
 
@@ -204,9 +204,9 @@ Dos tareas nuevas en `model_routing`, ambas con `label = cv:<id de la charla>` e
 - por persona y día: USD 0,30 de entrevistas y 5 charlas nuevas;
 - global: `CV_CHAT_DAILY_CAP_USD` (USD 1,00 por día por defecto);
 - por mes: el cupo «CV por mes» del plan (gratis 1, pago 5);
-- reservas de USD 0,01 por turno y USD 0,05 por redacción antes de cada llamada, con lock por persona, para que dos pedidos a la vez no pasen el tope.
+- reservas de USD 0,025 por turno y USD 0,07 por redacción antes de cada llamada, en una transacción corta con lock por persona, para que dos pedidos a la vez no pasen el tope. Son el **máximo** del paso, no el promedio: máximos calculados de USD 0,0241 y 0,0693 (el prompt más largo que acepta la ruta, el primario agotando `max_tokens` y el respaldo agotando el suyo, con el presupuesto de thinking de Haiku). Un test recalcula el máximo con el seed.
 
-Las filas `cv_reserve` y `cv_start` de `llm_calls` no suman USD ni llamadas en `pnpm llm:spend` ni en las métricas. Las reservas son estimados: hay que revisarlas contra el p100 real antes de pasar `CV_CHAT_ENABLED` a `all`.
+Las filas `cv_reserve` y `cv_start` de `llm_calls` no suman USD ni llamadas en `pnpm llm:spend` ni en las métricas. Conviene contrastar las reservas con el costo real de una medición con llamadas reales antes de pasar `CV_CHAT_ENABLED` a `all`.
 
 ## Cómo ver el consumo por proyecto en Google
 

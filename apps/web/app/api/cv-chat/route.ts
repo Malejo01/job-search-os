@@ -258,6 +258,12 @@ export async function POST(request: Request): Promise<Response> {
         daySince: windows.daySince,
         decide,
       });
+    // Soltar la reserva nunca tapa el resultado del paso: si falla, solo se loguea y vence a los 2 minutos
+    const release = async (id: string | null): Promise<void> => {
+      if (!(await releaseCvChatReservation(db, id))) {
+        logger.warn({ run_id: ticket.conversationId }, "cv chat: no se pudo borrar la reserva");
+      }
+    };
     const refuse = (reject: ReserveReject): Response =>
       reject === "already_written" ? fail("already_written") : capped(reject);
 
@@ -322,7 +328,7 @@ export async function POST(request: Request): Promise<Response> {
               { userId, conversationId: ticket.conversationId, state, topic, message: req.message },
             );
           } finally {
-            await releaseCvChatReservation(db, r.reservationId);
+            await release(r.reservationId);
           }
           if (out.kind === "redirect_cv_reader") {
             return fail("pasted_cv", { href: "/settings/historial" });
@@ -387,7 +393,7 @@ export async function POST(request: Request): Promise<Response> {
             },
           );
         } finally {
-          await releaseCvChatReservation(db, slot.reservationId);
+          await release(slot.reservationId);
         }
         if (r.ok) {
           written = r.value;

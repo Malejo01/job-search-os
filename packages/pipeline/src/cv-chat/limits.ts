@@ -95,12 +95,16 @@ export function cvChatDailyCapUsd(env: Record<string, string | undefined>): numb
   return Number.isFinite(n) && n >= 0 ? n : 0;
 }
 
-/** `CV_CHAT_ENABLED`: `all` abre a todos, `admin` solo al admin, cualquier otro valor lo apaga. */
-export function cvChatEnabled(env: Record<string, string | undefined>, isAdmin: boolean): boolean {
+/** `CV_CHAT_ENABLED`: `all`, `admin`; cualquier otro valor, apagado. La única función que lo parsea. */
+export function cvChatMode(env: Record<string, string | undefined>): "off" | "admin" | "all" {
   const v = env.CV_CHAT_ENABLED?.trim().toLowerCase();
-  if (v === "all") return true;
-  if (v === "admin") return isAdmin;
-  return false;
+  return v === "all" ? "all" : v === "admin" ? "admin" : "off";
+}
+
+/** `all` abre a todos, `admin` solo al admin, cualquier otro valor lo apaga. */
+export function cvChatEnabled(env: Record<string, string | undefined>, isAdmin: boolean): boolean {
+  const mode = cvChatMode(env);
+  return mode === "all" || (mode === "admin" && isAdmin);
 }
 
 /** Desde cuándo se cuenta cada ventana, con `now` inyectado. */

@@ -32,6 +32,8 @@ export type CvInterviewParams = {
   topic: CvTopic;
   message: string;
   signal?: AbortSignal;
+  /** Solo para tests: el deadline del paso (primario y respaldo juntos). Por defecto 50 s. */
+  deadlineMs?: number;
 };
 
 export type CvInterviewOutcome =
@@ -111,7 +113,11 @@ export async function runCvInterviewTurn(
       context: contextOf(p.state, p.topic),
       message: p.message,
     },
-    { userId: p.userId, label: cvChatLabel(p.conversationId), signal: cvChatSignal(p.signal) },
+    {
+      userId: p.userId,
+      label: cvChatLabel(p.conversationId),
+      signal: cvChatSignal(p.signal, p.deadlineMs),
+    },
   );
   if (!r.ok) return { kind: "error", error: r.error };
 
