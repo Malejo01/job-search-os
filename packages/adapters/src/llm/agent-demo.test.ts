@@ -135,7 +135,7 @@ describe("createDemoAgentDeps", () => {
         spentUsd: 0,
         promptVersion: "assistant_chat@demo",
       },
-      { userId: "00000000-0000-4000-8000-000000000002", label: "conv:demo1" },
+      { userId: "00000000-0000-4000-8000-000000000002", label: "conv:demo01" },
       deps,
     )) {
       events.push(e);

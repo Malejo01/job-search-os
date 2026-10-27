@@ -6,6 +6,7 @@ import {
   type AgentStreamPart,
   type StreamAgentDeps,
 } from "./agent";
+import { DEMO_MODEL } from "./demo";
 import { staticRouteSource } from "./router";
 import type { CallSink, ProviderRegistry } from "./types";
 
@@ -16,7 +17,7 @@ import type { CallSink, ProviderRegistry } from "./types";
  * confirmación entero, no reemplazan al modelo.
  */
 
-export const DEMO_AGENT_MODEL = "fake";
+export const DEMO_AGENT_MODEL = DEMO_MODEL;
 
 /** Guion fijo: cada llamada consume el siguiente paso. Sin pasos, termina sin texto. */
 export function createScriptedStreamFn(

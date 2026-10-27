@@ -214,7 +214,11 @@ describe("streamAgent", () => {
     const { deps: d } = deps(streamFn);
     const events = await collect(streamAgent(ASSISTANT_TASK, input(), ctx, d));
     expect(events).toContainEqual(
-      expect.objectContaining({ name: "save_everything", output: { error: "tool_no_disponible" } }),
+      expect.objectContaining({
+        name: "unknown",
+        input: null,
+        output: { error: "tool_no_disponible" },
+      }),
     );
   });
 
