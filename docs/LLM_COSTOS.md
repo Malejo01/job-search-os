@@ -187,6 +187,27 @@ Lectura: los bloqueadores que el modelo devolvió eran del tipo correcto (Empres
 
 **Pregunta abierta (Empresa AB, golden 34):** con `decide()` completo la penalización por gap must de cloud lleva el score de 7 a 6 y la acción a "guardar", cuando el humano postuló. La regla de producción es más conservadora que el criterio humano. Candidato a recalibrar con ofertas reales y outcomes (JS-036): ¿`cloud_must_penalty` debería ser −0,5 en vez de −1? No se toca hasta tener datos.
 
+## «Armá tu CV con IA» (C-25, ADR-026): `cv_interview` y `cv_write`
+
+Dos tareas nuevas en `model_routing`, ambas con `label = cv:<id de la charla>` en `llm_calls`. Tarifas de la tabla de arriba; el modelo primario se confirma con la medición de CVC-6.
+
+| Tarea | Qué hace | Llamadas por CV | Modelo propuesto (primario / respaldo) | Costo por llamada | Costo por CV |
+|---|---|---|---|---|---|
+| `cv_interview` | Un turno: extrae la respuesta al esquema del tema y devuelve un acuse corto | una por mensaje de la persona, hasta 25 | claude-haiku-4-5 / gemini-3.5-flash | a medir en CVC-6 | a medir en CVC-6 |
+| `cv_write` | Una redacción estructurada: viñetas y resumen, es o en | una por charla | claude-sonnet-5-5 / gemini-3.5-flash | a medir en CVC-6 | a medir en CVC-6 |
+
+**Sin cifras todavía.** CVC-6 corre seis personas ficticias de carreras distintas con el modelo real y mide turnos, tokens, costo por CV, porcentaje de viñetas que el verificador descarta y si el DOCX pasa el test de ATS (tope de la medición: USD 1 de Anthropic). Ahí se completa esta tabla, y de ahí sale el costo máximo (p100) por turno y por redacción con el que se calibran las reservas.
+
+**Qué acota el gasto mientras tanto** (todo falla cerrado, mensaje fijo):
+
+- por conversación: 25 turnos y USD 0,15;
+- por persona y día: USD 0,30 de entrevistas y 5 charlas nuevas;
+- global: `CV_CHAT_DAILY_CAP_USD` (USD 1,00 por día por defecto);
+- por mes: el cupo «CV por mes» del plan (gratis 1, pago 5);
+- reservas de USD 0,01 por turno y USD 0,05 por redacción antes de cada llamada, con lock por persona, para que dos pedidos a la vez no pasen el tope.
+
+Las filas `cv_reserve` y `cv_start` de `llm_calls` no suman USD ni llamadas en `pnpm llm:spend` ni en las métricas. Las reservas son estimados: hay que revisarlas contra el p100 real antes de pasar `CV_CHAT_ENABLED` a `all`.
+
 ## Cómo ver el consumo por proyecto en Google
 
 Las API keys son credenciales de un proyecto de Google Cloud: heredan su facturación y su cuota, y el consumo se ve por proyecto, no por key.
