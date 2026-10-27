@@ -22,12 +22,12 @@ import { RoleTabs } from "../market/role-tabs";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Tu encaje" };
 
-const SECTION = "flex min-w-0 flex-col gap-2 rounded-md border border-zinc-200 px-3 py-3";
-const H2 = "text-base font-semibold text-zinc-900";
+const SECTION = "flex min-w-0 flex-col gap-2 rounded-card border border-line px-3 py-3";
+const H2 = "text-base font-semibold text-fg";
 const LIST = "m-0 flex list-none flex-col gap-2 p-0";
-const MUTED = "text-sm text-zinc-700";
+const MUTED = "text-sm text-fg-muted";
 const LINK =
-  "inline-flex min-h-11 w-fit items-center font-medium text-sky-800 underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900";
+  "inline-flex min-h-11 w-fit items-center font-medium text-link underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus";
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const offersText = (n: number) => plural(n, "oferta", "ofertas");
@@ -70,7 +70,7 @@ export default async function EncajePage({
   if (!role) {
     return (
       <div className="flex flex-col gap-3">
-        <h1 className="text-xl font-semibold">Tu encaje</h1>
+        <h1 className="text-title font-semibold">Tu encaje</h1>
         <div data-testid="encaje-vacio-sin-carrera" className={`${SECTION} text-sm`}>
           <p className={MUTED}>Para decirte cómo encajás primero necesitamos saber tu carrera.</p>
           <Link href="/settings#puesto" className={LINK}>
@@ -92,8 +92,8 @@ export default async function EncajePage({
   if (!fit) {
     return (
       <div className="flex flex-col gap-3">
-        <h1 className="text-xl font-semibold">Tu encaje</h1>
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-900">
+        <h1 className="text-title font-semibold">Tu encaje</h1>
+        <p role="alert" className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">
           No pudimos calcular tu encaje. Probá de nuevo en un rato.
         </p>
       </div>
@@ -109,8 +109,8 @@ export default async function EncajePage({
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <h1 className="text-xl font-semibold">Tu encaje</h1>
-        <p data-testid="encaje-base" className="text-xs text-zinc-600">
+        <h1 className="text-title font-semibold">Tu encaje</h1>
+        <p data-testid="encaje-base" className="text-xs text-fg-subtle">
           {basis.offers === 0 ? (
             <>
               Todavía no hay ofertas evaluadas en los últimos {fit.windowDays} días.{" "}
@@ -131,11 +131,11 @@ export default async function EncajePage({
       <RoleTabs basePath="/encaje" roles={roles} active={role} />
 
       <Block id="encaje-frase-titulo" testId="encaje-frase" title="En una frase">
-        <p className="text-sm text-zinc-900">{summary.headline}</p>
+        <p className="text-sm text-fg">{summary.headline}</p>
       </Block>
 
       {fit.withoutChecklist > 0 && basis.offers > 0 ? (
-        <p data-testid="encaje-vacio-viejas" className="text-xs text-zinc-600">
+        <p data-testid="encaje-vacio-viejas" className="text-xs text-fg-subtle">
           {fit.withoutChecklist === 1
             ? "1 oferta vieja no tiene el detalle de requisitos y no cuenta acá."
             : `${fit.withoutChecklist} ofertas viejas no tienen el detalle de requisitos y no cuentan acá.`}
@@ -202,13 +202,13 @@ export default async function EncajePage({
               testId="encaje-sin-nivel"
               title="Te piden y no cargaste tu nivel"
             >
-              <p className="text-xs text-zinc-600">
+              <p className="text-xs text-fg-subtle">
                 Si no cargaste tu nivel, no podemos decir si te falta o no.
               </p>
               <ul className={LIST}>
                 {summary.unrated.map((skill) => (
                   <li key={skill.slug} className="min-w-0 break-words text-sm">
-                    <span className="font-medium text-zinc-900">{skill.name}</span>
+                    <span className="font-medium text-fg">{skill.name}</span>
                     <span className={MUTED}>
                       : la piden {skill.count} de {basis.offers} ofertas
                     </span>
@@ -223,12 +223,12 @@ export default async function EncajePage({
           {summary.surplus.length > 0 ? (
             <details
               data-testid="encaje-sobra"
-              className="rounded-md border border-zinc-200 px-3 text-sm"
+              className="rounded-card border border-line px-3 text-sm"
             >
-              <summary className="flex min-h-11 cursor-pointer items-center font-semibold text-zinc-900">
+              <summary className="flex min-h-11 cursor-pointer items-center font-semibold text-fg">
                 Lo que tenés y casi no piden
               </summary>
-              <p className="pb-1 text-zinc-700">
+              <p className="pb-1 text-fg-muted">
                 Estas skills las manejás y casi no aparecen en tus ofertas ni en el mercado de{" "}
                 {label}: {summary.surplus.map((k) => k.name).join(", ")}. No es algo malo: solo no
                 es lo que hoy te piden.
@@ -240,11 +240,11 @@ export default async function EncajePage({
 
       <MarketBlock market={market} label={label} fit={fit} />
 
-      <details className="rounded-md border border-zinc-200 px-3 text-sm">
-        <summary className="flex min-h-11 cursor-pointer items-center font-semibold text-zinc-900">
+      <details className="rounded-card border border-line px-3 text-sm">
+        <summary className="flex min-h-11 cursor-pointer items-center font-semibold text-fg">
           Cómo se calcula
         </summary>
-        <p className="pb-2 text-xs text-zinc-700">
+        <p className="pb-2 text-xs text-fg-muted">
           Contamos los requisitos que ya revisamos en cada oferta. Para esta pantalla no usamos
           inteligencia artificial. Miramos tus ofertas evaluadas de los últimos {fit.windowDays}{" "}
           días (hasta 200) y las comparamos con tus niveles y con las ofertas públicas de tu
@@ -281,7 +281,7 @@ function Blockers({ groups, total, fit }: { groups: FitGroup[]; total: number; f
             >
               <p className="break-words">
                 <Mark>⚠</Mark>
-                <span className="font-medium text-zinc-900">{group.label}</span>
+                <span className="font-medium text-fg">{group.label}</span>
                 <span className={MUTED}>
                   : no se cumple en {group.count} de {total} ofertas
                 </span>
@@ -325,7 +325,7 @@ function Unknowns({ groups, total }: { groups: FitGroup[]; total: number }) {
             >
               <p className="break-words">
                 <Mark>?</Mark>
-                <span className="font-medium text-zinc-900">{group.label}</span>
+                <span className="font-medium text-fg">{group.label}</span>
                 <span className={MUTED}>
                   : en {group.count} de {total} ofertas no sabemos si lo cumplís
                 </span>
@@ -368,7 +368,7 @@ function SkillBlock({
         <ul className={LIST}>
           {rows.map((skill) => (
             <li key={skill.slug} className="min-w-0 break-words text-sm">
-              <span className="font-medium text-zinc-900">{skill.name}</span>
+              <span className="font-medium text-fg">{skill.name}</span>
               <span className={MUTED}>
                 : la piden {skill.count} de {total} ofertas{mustText(skill)}. Tu nivel:{" "}
                 {SELF_LEVELS[skill.level]?.label ?? "sin dato"}
@@ -431,12 +431,12 @@ function MarketBlock({
         </p>
       ) : (
         <>
-          <p className="text-xs text-zinc-600">
+          <p className="text-xs text-fg-subtle">
             Sobre {offersText(market.total)} públicas de {label} de los últimos 30 días.
           </p>
           <ul className={LIST}>
             {marketFacts(market, fit).map((fact) => (
-              <li key={fact} className="min-w-0 break-words text-sm text-zinc-700">
+              <li key={fact} className="min-w-0 break-words text-sm text-fg-muted">
                 {fact}
               </li>
             ))}
