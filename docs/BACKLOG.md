@@ -847,7 +847,7 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 `deps:` C-11 (planes) · `estado:` en curso (nube N1, 2026-10-27), detrás de `ASSISTANT_ENABLED=admin`
 - Regla única: ninguna herramienta escribe. Las `propose_*` devuelven una diferencia antes/después; la persona la carga en el formulario y guarda con la Server Action de esa pantalla.
 - **AG-0** · `packages/pipeline/src/agent/**`: topes (10 turnos, 6 pasos, 600 tokens de salida, 12.000 de entrada, USD 0,12 por charla, cupo mensual por plan), contexto de pantalla, tools y `activeToolsFor`, diffs por destino con regla de fundamento, historial y detección de CV · done 2026-10-27 (PR draft).
-- **AG-1** · `streamAgent` en `packages/adapters/src/llm/agent.ts` · en curso.
+- **AG-1** · `streamAgent` en `packages/adapters/src/llm/agent.ts`: bucle propio de un paso por vuelta, deadline de 50 s, una fila de `llm_calls` por paso sin contenido, una propuesta por turno, modelo desde `model_routing` (`assistant_chat`) y fake guionado para `LLM_DEMO` · done 2026-10-27 (PR draft).
 - **AG-3** · ruta `/api/assistant`, panel, tarjetas y e2e con el modelo simulado · todo.
 - **AG-5** · propuestas de acciones (estado de una postulación, pegar un aviso) · todo.
 
