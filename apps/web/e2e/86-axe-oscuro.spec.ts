@@ -47,6 +47,9 @@ const ROUTES: Array<{ label: string; path: string | ((ids: Seeded) => string) }>
   { label: "/settings/skills", path: "/settings/skills" },
 ];
 
+/** Sin sesión: se abren sin `login()`. */
+const PUBLIC_ROUTES = ["/login", "/forgot-password"] as const;
+
 test.describe("Flujo 86: axe en oscuro", () => {
   const tag = Date.now();
   const seeded: Seeded = { jobId: "", emailId: "" };
@@ -100,6 +103,24 @@ test.describe("Flujo 86: axe en oscuro", () => {
         const { violations, unmeasured } = await axeSummary(page);
         expect(violations, `Violaciones en ${route.label} (oscuro, ${viewport.name})`).toEqual([]);
         expect(unmeasured, `axe no midió el contraste en ${route.label} (oscuro)`).toEqual([]);
+      });
+    }
+  }
+
+  for (const viewport of VIEWPORTS) {
+    for (const route of PUBLIC_ROUTES) {
+      test(`${route} (sin sesión) a ${viewport.name}: sin violaciones de axe en oscuro`, async ({
+        page,
+      }) => {
+        await page.setViewportSize({ width: viewport.width, height: viewport.height });
+        await page.addInitScript(() => localStorage.setItem("jso-tema", "oscuro"));
+        await page.goto(route);
+        await expect(page.locator("html")).toHaveClass(/\bdark\b/);
+        await expect(page.locator("h1").first()).toBeVisible();
+        await page.waitForLoadState("networkidle");
+        const { violations, unmeasured } = await axeSummary(page);
+        expect(violations, `Violaciones en ${route} (oscuro, ${viewport.name})`).toEqual([]);
+        expect(unmeasured, `axe no midió el contraste en ${route} (oscuro)`).toEqual([]);
       });
     }
   }

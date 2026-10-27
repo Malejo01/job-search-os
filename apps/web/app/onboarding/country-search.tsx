@@ -133,7 +133,7 @@ export function CountrySearch({
           {selected.map((code) => (
             <li
               key={code}
-              className="flex min-h-11 items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 pl-3"
+              className="flex min-h-11 items-center gap-1 rounded-control border border-line-strong bg-surface-subtle pl-3"
             >
               <span>
                 {labelOf(code)} ({code})
@@ -142,7 +142,7 @@ export function CountrySearch({
                 type="button"
                 onClick={() => remove(code)}
                 aria-label={`Quitar ${labelOf(code)}`}
-                className="min-h-11 min-w-11 rounded-md text-zinc-700 hover:text-zinc-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
+                className="min-h-11 min-w-11 rounded-control text-fg-muted hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
               >
                 <span aria-hidden="true">×</span>
               </button>
@@ -184,7 +184,7 @@ export function CountrySearch({
             }}
             onKeyDown={onKeyDown}
             onBlur={() => setOpen(false)}
-            className="min-h-11 rounded-md border border-zinc-300 px-3 py-2 text-base aria-[invalid=true]:border-red-700 disabled:bg-zinc-100"
+            className="min-h-11 rounded-control border border-line-strong px-3 py-2 text-base aria-[invalid=true]:border-danger-strong disabled:bg-surface-muted"
           />
         </label>
         <ul
@@ -192,7 +192,7 @@ export function CountrySearch({
           role="listbox"
           aria-label="Países"
           hidden={!showList}
-          className="absolute z-10 mt-1 max-h-60 w-full list-none overflow-auto rounded-md border border-zinc-300 bg-white p-0 shadow-sm"
+          className="absolute z-10 mt-1 max-h-60 w-full list-none overflow-auto rounded-control border border-line-strong bg-surface p-0 shadow-sm"
         >
           {suggestions.map((o, i) => (
             <li
@@ -206,7 +206,7 @@ export function CountrySearch({
                 add(o.code);
               }}
               className={`flex min-h-11 cursor-pointer items-center border-l-4 px-3 ${
-                i === current ? "border-zinc-900 bg-zinc-200 font-medium" : "border-transparent"
+                i === current ? "border-fg bg-surface-strong font-medium" : "border-transparent"
               }`}
             >
               {o.label} ({o.code})
@@ -215,14 +215,14 @@ export function CountrySearch({
         </ul>
       </div>
       {/* Siempre montados: un lector de pantalla no anuncia un aviso que aparece ya armado */}
-      <p role="status" className="min-h-4 text-xs text-zinc-600">
+      <p role="status" className="min-h-4 text-xs text-fg-subtle">
         {showList && found === 0 ? "No encontramos ese país." : ""}
       </p>
       <p className="sr-only" role="status" aria-live="polite">
         {spoken}
       </p>
       {max > 1 ? (
-        <p className="text-xs text-zinc-600">
+        <p className="text-xs text-fg-subtle">
           Hasta {max} países. {selected.length}/{max} elegidos.
         </p>
       ) : null}

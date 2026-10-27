@@ -34,7 +34,7 @@ export default async function TermsUpdatedPage({
   const { error } = await searchParams;
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b border-zinc-200 bg-white">
+      <header className="border-b border-line bg-surface">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-2">
           <span className="text-base font-semibold">{PRODUCT_NAME}</span>
         </div>
@@ -43,7 +43,7 @@ export default async function TermsUpdatedPage({
         <h1 className="text-xl font-semibold">
           Actualizamos los términos y la política de privacidad
         </h1>
-        <p className="text-sm text-zinc-700">
+        <p className="text-sm text-fg-muted">
           Para seguir usando la app, leé los cambios y aceptalos.
         </p>
         <ul className="flex list-none flex-col p-0 text-sm">
@@ -61,16 +61,16 @@ export default async function TermsUpdatedPage({
           </li>
         </ul>
         <AcceptTermsForm />
-        <div className="mt-2 flex flex-col gap-3 border-t border-zinc-200 pt-4">
+        <div className="mt-2 flex flex-col gap-3 border-t border-line pt-4">
           <form action={logout}>
             <button
               type="submit"
-              className="min-h-11 text-sm text-zinc-700 underline underline-offset-2"
+              className="min-h-11 text-sm text-fg-muted underline underline-offset-2"
             >
               Cerrar sesión
             </button>
           </form>
-          <p className="text-sm text-zinc-700">
+          <p className="text-sm text-fg-muted">
             ¿No estás de acuerdo? Podés eliminar tu cuenta desde acá.
           </p>
           {/* A-12: el error vuelve acá; antes iba a /onboarding, que lo mandaba de vuelta sin mensaje */}

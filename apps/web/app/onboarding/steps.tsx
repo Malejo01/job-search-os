@@ -31,7 +31,7 @@ export function OnboardingSteps({
 function StepsList({ current, now }: { current: 1 | 2 | 3; now: (typeof STEPS)[number] }) {
   return (
     <div className="flex flex-col gap-1">
-      <p className="text-sm font-medium text-zinc-600">
+      <p className="text-sm font-medium text-fg-subtle">
         Paso {now.n} de 3 · {now.name}
       </p>
       <ol aria-label="Pasos" className="hidden list-none gap-4 p-0 text-sm sm:flex">
@@ -43,10 +43,10 @@ function StepsList({ current, now }: { current: 1 | 2 | 3; now: (typeof STEPS)[n
               aria-current={view === "current" ? "step" : undefined}
               className={
                 view === "current"
-                  ? "font-semibold text-zinc-900"
+                  ? "font-semibold text-fg"
                   : view === "done"
-                    ? "text-zinc-600"
-                    : "text-zinc-500"
+                    ? "text-fg-subtle"
+                    : "text-fg-subtle"
               }
             >
               {view === "done" ? <span aria-hidden="true">✓ </span> : null}

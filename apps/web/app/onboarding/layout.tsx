@@ -10,7 +10,7 @@ import { needsTermsAcceptance } from "@/lib/terms-status";
 export const metadata: Metadata = { title: "Completá tu perfil" };
 
 const SKIP_CLASS =
-  "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-zinc-900 focus:ring-2 focus:ring-zinc-900";
+  "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-control focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-fg focus:ring-2 focus:ring-focus";
 
 async function logout(): Promise<void> {
   "use server";
@@ -31,13 +31,13 @@ export default async function OnboardingLayout({ children }: { children: ReactNo
       <a href="#contenido" className={SKIP_CLASS}>
         Saltar al contenido
       </a>
-      <header className="border-b border-zinc-200 bg-white">
+      <header className="border-b border-line bg-surface">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-2">
           <span className="text-base font-semibold">{PRODUCT_NAME}</span>
           <form action={logout}>
             <button
               type="submit"
-              className="text-sm text-zinc-600 underline-offset-2 hover:underline"
+              className="text-sm text-fg-subtle underline-offset-2 hover:underline"
             >
               Salir
             </button>

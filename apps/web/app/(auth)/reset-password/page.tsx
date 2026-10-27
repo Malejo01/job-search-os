@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Contraseña nueva" };
 
 const SKIP_CLASS =
-  "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-zinc-900 focus:ring-2 focus:ring-zinc-900";
+  "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-control focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-fg focus:ring-2 focus:ring-focus";
 
 const REASON_MESSAGE: Record<"invalid" | "expired" | "used", string> = {
   invalid: "El link no es válido.",
@@ -69,7 +69,7 @@ export default async function ResetPasswordPage({
         <h1 className="text-2xl font-semibold">Elegir contraseña nueva</h1>
       </div>
       {!check.ok ? (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className="text-sm text-danger">
           {REASON_MESSAGE[check.reason]}
         </p>
       ) : (
@@ -84,7 +84,7 @@ export default async function ResetPasswordPage({
               minLength={8}
               required
               {...invalidProps("corta")}
-              className="rounded-md border border-zinc-300 px-3 py-2 text-base"
+              className="rounded-control border border-line-strong px-3 py-2 text-base"
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
@@ -96,23 +96,23 @@ export default async function ResetPasswordPage({
               minLength={8}
               required
               {...invalidProps("no_coincide")}
-              className="rounded-md border border-zinc-300 px-3 py-2 text-base"
+              className="rounded-control border border-line-strong px-3 py-2 text-base"
             />
           </label>
           {formError ? (
-            <p id="reset-error" role="alert" className="text-sm text-red-700">
+            <p id="reset-error" role="alert" className="text-sm text-danger">
               {formError}
             </p>
           ) : null}
           <button
             type="submit"
-            className="mt-2 rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white"
+            className="mt-2 rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast"
           >
             Guardar
           </button>
         </form>
       )}
-      <a href="/forgot-password" className="text-sm text-zinc-600 underline">
+      <a href="/forgot-password" className="text-sm text-fg-subtle underline">
         Pedir un link nuevo
       </a>
     </main>
