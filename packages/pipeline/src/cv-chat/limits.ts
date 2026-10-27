@@ -12,9 +12,15 @@ export const CV_CHAT_MONTH_DAYS = 30;
 /** Por persona y día: gasto de entrevistas (sin `write`, que ya cuenta en el cupo mensual) y charlas nuevas. */
 export const CV_CHAT_USER_DAILY_CAP_USD = 0.3;
 export const CV_CHAT_MAX_STARTS_PER_DAY = 5;
-/** Máximo que se reserva antes de llamar al modelo (la reserva se borra al terminar el paso). */
-export const CV_CHAT_TURN_RESERVE_USD = 0.01;
-export const CV_CHAT_WRITE_RESERVE_USD = 0.05;
+/**
+ * Máximo que se reserva antes de llamar al modelo (la reserva se borra al terminar el paso). Es el tope del
+ * paso, no el promedio: el prompt más largo que acepta la ruta, el primario agotando `max_tokens` y, si
+ * falla, el respaldo agotando el suyo (Haiku con su presupuesto de thinking). Con las filas de
+ * `model_routing` de hoy da USD 0,0241 por turno y 0,0693 por redacción; un test de adapters
+ * (`estimate.test.ts`) recalcula ese máximo con el seed y falla si estas constantes quedan cortas.
+ */
+export const CV_CHAT_TURN_RESERVE_USD = 0.025;
+export const CV_CHAT_WRITE_RESERVE_USD = 0.07;
 
 export type CvChatCap = "mes" | "turnos" | "conversacion" | "usuario" | "inicios" | "global";
 

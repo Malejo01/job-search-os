@@ -7,7 +7,8 @@
 type Vars = Record<string, string | number | boolean>;
 
 const NO_RE = /^\s*(no|ninguno|ninguna|nada|sin\s+\w+|no tengo.*|paso|saltear)\s*[.!]*\s*$/i;
-const YES_RE = /^\s*(si|sí|yes|dale|claro|ok)\b/i;
+// `\b` no sirve con «sí» (la í no es de palabra en JS): se mira que no siga otra letra
+const YES_RE = /^\s*(si|sí|yes|dale|claro|ok)(?!\p{L})/iu;
 
 const parts = (text: string): string[] =>
   text
