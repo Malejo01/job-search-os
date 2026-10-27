@@ -1,8 +1,15 @@
 import AxeBuilder from "@axe-core/playwright";
 import * as s from "@job-search-os/db/schema";
 import { expect, test, type Page } from "@playwright/test";
-import { eq } from "drizzle-orm";
-import { E2E_USER_ID, login, ownerDb } from "./helpers";
+import { and, desc, eq, sql } from "drizzle-orm";
+import {
+  E2E_USER_ID,
+  login,
+  ownerDb,
+  seedTargetRoles,
+  setSeedTargetRoles,
+  skillLevelsOf,
+} from "./helpers";
 
 /**
  * Flujo 85 (AG-3): el asistente propone y la base NO cambia sin la confirmación de la persona.
@@ -10,25 +17,70 @@ import { E2E_USER_ID, login, ownerDb } from "./helpers";
  * el país con la cita exacta. Verifica contra la base, no solo en la pantalla, que:
  * - ver la tarjeta no cambia nada;
  * - «Descartar» no cambia nada;
- * - «Cargar en el formulario» carga los valores en el formulario pero no guarda (recargar sin
- *   tocar Guardar deja lo de antes).
- * Además: un CV pegado no llega al modelo (aviso, sin tarjeta), Escape cierra y el foco vuelve al
- * botón, axe sin violaciones graves con el panel abierto y 360 px sin scroll horizontal.
+ * - «Cargar en el formulario» carga SOLO el campo propuesto y no guarda (recargar sin tocar
+ *   Guardar deja lo de antes);
+ * - en criterios, puestos (en el tope del plan) y skills el cargador llena el formulario y la base
+ *   no cambia hasta Guardar.
+ * Además: un CV pegado no llega al modelo (aviso, sin tarjeta y sin filas nuevas en llm_calls),
+ * Escape cierra y el foco vuelve al botón, axe sin violaciones graves con el panel abierto y
+ * 360 px sin scroll horizontal.
  *
  * Solo admins: en el CI `ADMIN_EMAILS` incluye al usuario e2e y playwright.config.ts enciende
- * `ASSISTANT_ENABLED=admin`. Si en otro entorno no es admin, no hay botón y el flujo se saltea.
+ * `ASSISTANT_ENABLED=admin`, así que ahí el botón TIENE que estar. Fuera del CI, si el usuario no
+ * es admin, el flujo se saltea.
  */
 
-async function storedProfile(): Promise<{ country: string; years: number | null }> {
+type StoredProfile = { country: string; years: number | null; summary: string | null };
+
+async function storedProfile(): Promise<StoredProfile> {
   const { db, close } = ownerDb();
   try {
     const [row] = await db
-      .select({ country: s.profiles.locationCountry, years: s.profiles.yearsTotal })
+      .select({
+        country: s.profiles.locationCountry,
+        years: s.profiles.yearsTotal,
+        summary: s.profiles.profileSummary,
+      })
       .from(s.profiles)
       .where(eq(s.profiles.userId, E2E_USER_ID))
       .limit(1);
     if (!row) throw new Error("el usuario e2e no tiene perfil");
-    return { country: row.country, years: row.years === null ? null : Number(row.years) };
+    return {
+      country: row.country,
+      years: row.years === null ? null : Number(row.years),
+      summary: row.summary,
+    };
+  } finally {
+    await close();
+  }
+}
+
+/** Criterios activos (versión y reglas enteras) del usuario e2e. */
+async function storedCriteria(): Promise<{ version: number; rules: string } | null> {
+  const { db, close } = ownerDb();
+  try {
+    const [row] = await db
+      .select({ version: s.evaluationCriteria.version, rules: s.evaluationCriteria.rules })
+      .from(s.evaluationCriteria)
+      .where(
+        and(eq(s.evaluationCriteria.userId, E2E_USER_ID), eq(s.evaluationCriteria.active, true)),
+      )
+      .orderBy(desc(s.evaluationCriteria.version))
+      .limit(1);
+    return row ? { version: row.version, rules: JSON.stringify(row.rules) } : null;
+  } finally {
+    await close();
+  }
+}
+
+async function assistantCallCount(): Promise<number> {
+  const { db, close } = ownerDb();
+  try {
+    const [row] = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(s.llmCalls)
+      .where(and(eq(s.llmCalls.userId, E2E_USER_ID), eq(s.llmCalls.task, "assistant_chat")));
+    return row?.n ?? 0;
   } finally {
     await close();
   }
@@ -40,10 +92,14 @@ const otherCountry = (current: string) =>
 
 async function openAssistant(page: Page) {
   const button = page.getByRole("button", { name: "Asistente", exact: true });
-  test.skip(
-    (await button.count()) === 0,
-    "El asistente no está encendido para el usuario e2e (ASSISTANT_ENABLED o ADMIN_EMAILS)",
-  );
+  if ((await button.count()) === 0) {
+    // En el CI el usuario e2e es admin y el flag está encendido: si falta el botón, es un error
+    expect(process.env.CI, "En el CI el botón «Asistente» tiene que estar").toBeFalsy();
+    test.skip(
+      true,
+      "El asistente no está encendido para el usuario e2e (ASSISTANT_ENABLED o ADMIN_EMAILS)",
+    );
+  }
   await button.click();
   const panel = page.getByTestId("assistant-panel");
   await expect(panel).toBeVisible();
@@ -55,6 +111,38 @@ async function ask(page: Page, text: string) {
   await panel.getByLabel("Tu mensaje").fill(text);
   await panel.getByRole("button", { name: "Enviar" }).click();
 }
+
+/**
+ * Deja una propuesta como lo hace «Cargar en el formulario» y avisa por evento, con la persona ya
+ * en la pantalla (el mismo camino que usa el panel cuando no hace falta navegar).
+ */
+async function loadOnScreen(
+  page: Page,
+  proposal: {
+    destination: string;
+    formValues: Record<string, string | string[]>;
+    criteriaVersion?: number;
+  },
+) {
+  await page.evaluate((p) => {
+    sessionStorage.setItem(
+      "asistente:propuesta",
+      JSON.stringify({
+        destination: p.destination,
+        formValues: p.formValues,
+        diffs: Object.keys(p.formValues).map((field) => ({ field, label: field, after: "x" })),
+        criteriaVersion: p.criteriaVersion ?? null,
+        receivedAt: Date.now(),
+      }),
+    );
+    window.dispatchEvent(new Event("asistente:propuesta"));
+  }, proposal);
+}
+
+const formValue = (page: Page, selector: string, name: string) =>
+  page
+    .locator(selector)
+    .evaluate((form, n) => new FormData(form as HTMLFormElement).getAll(n), name);
 
 test.describe("Flujo 85: asistente que propone sin escribir", () => {
   test.beforeEach(async ({ page }) => {
@@ -84,7 +172,7 @@ test.describe("Flujo 85: asistente que propone sin escribir", () => {
     expect(await storedProfile()).toEqual(before);
   });
 
-  test("«Cargar en el formulario» carga pero no guarda", async ({ page }) => {
+  test("«Cargar en el formulario» carga solo lo propuesto y no guarda", async ({ page }) => {
     const before = await storedProfile();
     const target = otherCountry(before.country);
     await page.goto("/hoy");
@@ -97,6 +185,11 @@ test.describe("Flujo 85: asistente que propone sin escribir", () => {
     await page.waitForURL("**/settings/perfil");
     await expect(page.getByTestId("assistant-proposal-loaded")).toBeVisible();
     await expect(page.locator('input[name="country"]')).toHaveValue(target.code);
+    // Los otros campos siguen como estaban guardados
+    await expect(page.locator('textarea[name="summary"]')).toHaveValue(before.summary ?? "");
+    await expect(page.locator('input[name="yearsTotal"]')).toHaveValue(
+      before.years === null ? "" : String(before.years),
+    );
     expect(await storedProfile()).toEqual(before);
 
     // Sin tocar Guardar: recargar deja lo guardado
@@ -106,9 +199,10 @@ test.describe("Flujo 85: asistente que propone sin escribir", () => {
     expect(await storedProfile()).toEqual(before);
   });
 
-  test("un CV pegado no va al modelo: aviso y sin tarjeta", async ({ page }) => {
+  test("un CV pegado no va al modelo: aviso, sin tarjeta y sin llamadas", async ({ page }) => {
     await page.goto("/hoy");
     const { panel } = await openAssistant(page);
+    const calls = await assistantCallCount();
     const cv = [
       "Persona Inventada",
       "persona.inventada@example.com · +1 555 0100",
@@ -125,48 +219,80 @@ test.describe("Flujo 85: asistente que propone sin escribir", () => {
     await ask(page, cv);
     await expect(panel.getByTestId("assistant-notice")).toContainText("pegaste un CV");
     await expect(panel.getByTestId("assistant-proposal")).toHaveCount(0);
+    expect(await assistantCallCount()).toBe(calls);
   });
 
-  test("el cargador llena criterios, puestos y skills sin guardar", async ({ page }) => {
-    const stash = (destination: string, formValues: Record<string, string | string[]>) =>
-      page.evaluate(
-        ([d, v]) =>
-          sessionStorage.setItem(
-            "asistente:propuesta",
-            JSON.stringify({ destination: d, formValues: v, diffs: [], savedAt: Date.now() }),
-          ),
-        [destination, formValues] as const,
-      );
-    const formValue = (selector: string, name: string) =>
-      page
-        .locator(selector)
-        .evaluate((form, n) => new FormData(form as HTMLFormElement).getAll(n), name);
+  test("criterios, puestos en el tope y skills: se cargan y la base no cambia", async ({
+    page,
+  }) => {
+    const rolesBefore = await seedTargetRoles();
+    // En el tope del plan gratis (2): la propuesta cambia los dos
+    await setSeedTargetRoles({ targetRoles: ["frontend", "backend"], targetRole: "frontend" });
+    try {
+      const criteria = await storedCriteria();
+      const skills = await skillLevelsOf(E2E_USER_ID);
+      expect(criteria).not.toBeNull();
 
-    await page.goto("/hoy");
-    await stash("criteria", { max_weekly_hours: "35" });
-    await page.goto("/settings/criteria");
-    await expect(page.getByTestId("assistant-proposal-loaded")).toBeVisible();
-    await expect(page.locator('input[name="max_weekly_hours"]')).toHaveValue("35");
+      // Criterios: un valor que seguro difiere del guardado
+      await page.goto("/settings/criteria");
+      const hours = await page.locator('input[name="max_weekly_hours"]').inputValue();
+      const wanted = hours === "33" ? "34" : "33";
+      await loadOnScreen(page, {
+        destination: "criteria",
+        formValues: { max_weekly_hours: wanted },
+        criteriaVersion: criteria!.version,
+      });
+      await expect(page.getByTestId("assistant-proposal-loaded")).toBeVisible();
+      await expect(page.locator('input[name="max_weekly_hours"]')).toHaveValue(wanted);
 
-    await stash("target_roles", { targetRoles: ["backend", "frontend"] });
-    await page.goto("/settings");
-    await expect(page.getByTestId("assistant-proposal-loaded")).toBeVisible();
-    expect((await formValue("#puesto form", "targetRoles")).sort()).toEqual([
-      "backend",
-      "frontend",
-    ]);
+      // Con otra versión de criterios no se carga
+      await page.reload();
+      await loadOnScreen(page, {
+        destination: "criteria",
+        formValues: { max_weekly_hours: wanted },
+        criteriaVersion: criteria!.version + 100,
+      });
+      await expect(page.getByText("Los criterios cambiaron")).toBeVisible();
+      await expect(page.locator('input[name="max_weekly_hours"]')).toHaveValue(hours);
 
-    await stash("skill_levels", { "level:python": "2" });
-    await page.goto("/settings/skills");
-    await expect(page.getByTestId("assistant-proposal-loaded")).toBeVisible();
-    expect(
-      await formValue('form:has([data-testid="assistant-proposal-loaded"])', "level:python"),
-    ).toEqual(["2"]);
+      // Puestos en el tope: se reemplazan los dos
+      await page.goto("/settings");
+      await loadOnScreen(page, {
+        destination: "target_roles",
+        formValues: { targetRoles: ["fullstack", "qa"] },
+      });
+      await expect(page.getByTestId("assistant-proposal-loaded")).toBeVisible();
+      expect((await formValue(page, "#puesto form", "targetRoles")).sort()).toEqual([
+        "fullstack",
+        "qa",
+      ]);
 
-    // Nada de eso se guardó: recargar vuelve a lo de siempre
-    await page.goto("/settings/criteria");
-    await expect(page.getByTestId("assistant-proposal-loaded")).toHaveCount(0);
-    await expect(page.locator('input[name="max_weekly_hours"]')).not.toHaveValue("35");
+      // Skills: la fila (visible u oculta) lleva el nivel propuesto
+      await page.goto("/settings/skills");
+      const level = skills.python === 2 ? "3" : "2";
+      await loadOnScreen(page, {
+        destination: "skill_levels",
+        formValues: { "level:python": level },
+      });
+      await expect(page.getByTestId("assistant-proposal-loaded")).toBeVisible();
+      expect(
+        await formValue(
+          page,
+          'form:has([data-testid="assistant-proposal-loaded"])',
+          "level:python",
+        ),
+      ).toContain(level);
+
+      // Nada de eso se guardó
+      expect(await storedCriteria()).toEqual(criteria);
+      expect(await seedTargetRoles()).toEqual({
+        targetRoles: ["frontend", "backend"],
+        targetRole: "frontend",
+      });
+      expect(await skillLevelsOf(E2E_USER_ID)).toEqual(skills);
+    } finally {
+      await setSeedTargetRoles(rolesBefore);
+    }
   });
 
   test("Escape cierra y el foco vuelve al botón; accesible y sin scroll a 360 px", async ({

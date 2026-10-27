@@ -4,7 +4,9 @@ import {
   buildProposal,
   criteriaFormDefaults,
   proposeInputSchemas,
+  proposeModelText,
   proposeToolDestination,
+  redactJobContacts,
   readInputSchemas,
   ROLE_KEYS,
   selectableRoleGroups,
@@ -12,9 +14,8 @@ import {
   type AgentReadTool,
   type GroundingSources,
   type JobStatus,
-  type Proposal,
   type ProposalContext,
-  type ProposalFailure,
+  type ProposeOutput,
   type RoleKey,
 } from "@job-search-os/pipeline";
 import type { z } from "zod";
@@ -37,15 +38,6 @@ import { getSkillsPageData } from "./skill-levels";
  * Lo que viene de afuera (avisos, empresas, títulos, mercado) vuelve al modelo dentro de un bloque
  * marcado como dato no confiable, como en el MCP.
  */
-
-/** Resultado de una `propose_*`: la tarjeta sale de `proposal`; al modelo, solo un resumen. */
-export type ProposeOutput =
-  | { ok: true; proposal: Proposal }
-  | { ok: false; code: ProposalFailure["code"]; dropped: ProposalFailure["dropped"] };
-
-export function isProposeOutput(v: unknown): v is ProposeOutput {
-  return typeof v === "object" && v !== null && "ok" in v && typeof v.ok === "boolean";
-}
 
 const JD_MAX = 3000;
 const json = (v: unknown) => JSON.stringify(v);
@@ -200,7 +192,8 @@ function readTools(userId: string): Record<AgentReadTool, AgentTool> {
                 veredicto: e.veredicto,
               }
             : null,
-          jd: job.jdText ? job.jdText.slice(0, JD_MAX) : null,
+          // Sin emails, teléfonos ni links de terceros: el modelo no los necesita
+          jd: job.jdText ? redactJobContacts(job.jdText, JD_MAX) : null,
         };
       },
       toModelText: untrusted,
@@ -228,21 +221,6 @@ function readTools(userId: string): Record<AgentReadTool, AgentTool> {
     },
   };
   return tools;
-}
-
-/** Lo que el modelo ve de una propuesta: cuántos cambios y qué se descartó, nunca los valores. */
-export function proposeModelText(out: unknown): string {
-  if (!isProposeOutput(out)) return json({ error: "tool_fallo" });
-  if (out.ok) {
-    return json({
-      propuesta_lista: true,
-      destino: out.proposal.destination,
-      cambios: out.proposal.diffs.map((d) => d.field),
-      descartados: out.proposal.dropped,
-      nota: "La persona la revisa en una tarjeta y decide si la carga en el formulario. No está guardada.",
-    });
-  }
-  return json({ propuesta_lista: false, motivo: out.code, descartados: out.dropped });
 }
 
 /** Contexto que necesita cada destino, leído en el momento (lo guardado ahora, no al empezar). */
@@ -273,7 +251,9 @@ async function proposalContext(
     }
     case "criteria": {
       const active = await getActiveCriteria(userId);
-      return active ? { ...ctx, criteria: criteriaFormDefaults(active.rules) } : ctx;
+      return active
+        ? { ...ctx, criteria: criteriaFormDefaults(active.rules), criteriaVersion: active.version }
+        : ctx;
     }
     case "target_roles": {
       const [roles, limit] = await Promise.all([

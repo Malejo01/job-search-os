@@ -19,11 +19,13 @@ describe("validateHistory", () => {
   it("acepta un historial que alterna y termina con la persona", () => {
     expect(validateHistory([{ role: "user", text: "hola" }]).ok).toBe(true);
     expect(validateHistory(conv(19)).ok).toBe(true);
+    // El turno 11 llega entero (21 mensajes) para que la ruta conteste con el aviso de tope
+    expect(validateHistory(conv(21)).ok).toBe(true);
   });
 
-  it("rechaza vacío, más de 20, sin alternar, terminado en asistente o con campos de más", () => {
+  it("rechaza vacío, más de 21, sin alternar, terminado en asistente o con campos de más", () => {
     expect(validateHistory([]).ok).toBe(false);
-    expect(validateHistory(conv(21)).ok).toBe(false);
+    expect(validateHistory(conv(23)).ok).toBe(false);
     expect(validateHistory(conv(2)).ok).toBe(false);
     expect(
       validateHistory([

@@ -8,3 +8,5 @@ export * from "./history";
 export * from "./cv-detect";
 export * from "./gate";
 export * from "./request";
+export * from "./job-text";
+export * from "./propose-output";

@@ -17,9 +17,12 @@ export function AssistantProposalCard({
   status,
   onLoad,
   onDiscard,
+  statusRef,
 }: {
   proposal: Proposal;
   status: ProposalStatus;
+  /** El texto de estado recibe el foco al descartar (el botón desaparece). */
+  statusRef?: (el: HTMLElement | null) => void;
   onLoad: () => void;
   onDiscard: () => void;
 }) {
@@ -72,7 +75,7 @@ export function AssistantProposalCard({
           </button>
         </div>
       ) : (
-        <p className="text-xs text-zinc-700">
+        <p ref={statusRef} tabIndex={-1} className="text-xs text-zinc-700">
           {status === "cargada"
             ? "Cargada en el formulario. Se guarda solo si tocás Guardar ahí."
             : "Descartada. No se cambió nada."}

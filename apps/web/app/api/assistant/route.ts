@@ -6,7 +6,6 @@ import {
   createLogger,
   createProviderRegistry,
   drizzleRouteSource,
-  safeDbError,
   streamAgent,
   type AgentChatMessage,
   type Logger,
@@ -15,6 +14,7 @@ import {
 } from "@job-search-os/adapters";
 import {
   activeToolsFor,
+  assistantMode,
   ASSISTANT_ERROR_MESSAGE,
   capMessage,
   checkTurnStart,
@@ -24,6 +24,7 @@ import {
   CV_REDIRECT_MESSAGE,
   encodeAssistantEvent,
   groundingSourcesFrom,
+  isProposeOutput,
   isProposeTool,
   MAX_ASSISTANT_BODY_BYTES,
   modelMessagesFrom,
@@ -43,7 +44,7 @@ import {
 } from "@job-search-os/pipeline";
 import { loadPrompt, renderPrompt } from "@job-search-os/prompts";
 import { canUseAssistant } from "@/lib/assistant";
-import { assistantTools, isProposeOutput } from "@/lib/assistant-tools";
+import { assistantTools } from "@/lib/assistant-tools";
 import { assistantCallSink, loadAssistantUsage } from "@/lib/assistant-usage";
 import { getAppDb } from "@/lib/db";
 import { getProfileForEdit, isOnboardingComplete } from "@/lib/onboarding";
@@ -71,8 +72,20 @@ const PROMPT_REF = "assistant_chat@v1" as const;
 /** Reglas de las propuestas: van después del prompt de charla, en el mismo sistema. */
 const PROPOSE_PROMPT_REF = "assistant_propose@v1" as const;
 
-/** Una charla en curso por persona y por instancia (dos pestañas no duplican el gasto). */
-const busy = new Set<string>();
+/**
+ * Una charla en curso por persona y por instancia (dos pestañas no duplican el gasto). Con vencimiento:
+ * si algo quedara colgado, a los 70 s (más que el deadline del turno) se libera solo. Entre instancias
+ * de Vercel no protege: queda como propuesta (lease o advisory lock en la base).
+ */
+const busy = new Map<string, number>();
+const LOCK_TTL_MS = 70_000;
+
+function tryLock(userId: string, now: number): boolean {
+  const until = busy.get(userId);
+  if (until !== undefined && until > now) return false;
+  busy.set(userId, now + LOCK_TTL_MS);
+  return true;
+}
 
 let routes: RouteSource | null = null;
 const routeSource = (): RouteSource =>
@@ -86,7 +99,44 @@ const CAP_EVENT = (reason: AgentCapReason): AssistantStreamEvent => ({
   ...capMessage(reason),
 });
 
+/** Para el log, solo identificadores cortos del error: nunca su mensaje. */
+function safeErr(e: unknown): { err_name: string; err_code: string | null } {
+  const name = e instanceof Error ? e.name : "";
+  const code = (e as { code?: unknown } | null)?.code;
+  return {
+    err_name: /^[A-Za-z0-9_$]{1,64}$/.test(name) ? name : "Error",
+    err_code: typeof code === "string" && /^[A-Za-z0-9_.-]{1,32}$/.test(code) ? code : null,
+  };
+}
+
+/** Lee el cuerpo cortando apenas pasa el tope, venga o no `Content-Length`. */
+async function readBody(req: Request): Promise<string | null> {
+  if (!req.body) return "";
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > MAX_ASSISTANT_BODY_BYTES) {
+      await reader.cancel().catch(() => undefined);
+      return null;
+    }
+    chunks.push(value);
+  }
+  const all = new Uint8Array(size);
+  let offset = 0;
+  for (const c of chunks) {
+    all.set(c, offset);
+    offset += c.byteLength;
+  }
+  return new TextDecoder().decode(all);
+}
+
 export async function POST(req: Request): Promise<Response> {
+  // Sin el flag, la ruta no existe y no se toca ni la sesión ni la base
+  if (assistantMode(process.env) !== "admin") return jsonError(404, "no_encontrado");
   const h = req.headers;
   if (
     !sameOriginRequest({
@@ -112,10 +162,8 @@ export async function POST(req: Request): Promise<Response> {
 
   const declared = Number(h.get("content-length") ?? "0");
   if (declared > MAX_ASSISTANT_BODY_BYTES) return jsonError(413, "muy_grande");
-  const raw = await req.text();
-  if (new TextEncoder().encode(raw).length > MAX_ASSISTANT_BODY_BYTES) {
-    return jsonError(413, "muy_grande");
-  }
+  const raw = await readBody(req);
+  if (raw === null) return jsonError(413, "muy_grande");
   let body: unknown;
   try {
     body = JSON.parse(raw);
@@ -125,12 +173,21 @@ export async function POST(req: Request): Promise<Response> {
   const parsed = parseAssistantRequest(body);
   if (!parsed.ok) return jsonError(400, "cuerpo");
 
-  if (busy.has(userId)) return jsonError(429, "en_curso");
-  busy.add(userId);
-
   const conversationId = parsed.value.conversationId ?? conversationIdFromBytes(randomBytes(12));
-  const log = createLogger({ user_id: userId, run_id: conversationId, task: ASSISTANT_TASK });
+  const log = createLogger({
+    user_id: userId,
+    run_id: conversationLabel(conversationId),
+    task: ASSISTANT_TASK,
+  });
   const encoder = new TextEncoder();
+  // Corte propio: la persona cerró el panel (cancel del stream o enqueue que falla) o la request
+  const turnAbort = new AbortController();
+  const signal = AbortSignal.any([req.signal, turnAbort.signal]);
+  let locked = false;
+  const release = () => {
+    if (locked) busy.delete(userId);
+    locked = false;
+  };
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -141,16 +198,22 @@ export async function POST(req: Request): Promise<Response> {
           controller.enqueue(encoder.encode(encodeAssistantEvent(event)));
         } catch {
           open = false;
+          turnAbort.abort();
         }
       };
       try {
         emit({ type: "conv", id: conversationId });
-        await runTurn(userId, conversationId, parsed.value, req.signal, emit, log);
+        if (!tryLock(userId, Date.now())) {
+          emit({ type: "error", message: BUSY_MESSAGE });
+          return;
+        }
+        locked = true;
+        await runTurn(userId, conversationId, parsed.value, signal, emit, log);
       } catch (e) {
-        log.error({ err: safeDbError(e) }, "asistente: el turno falló");
+        log.error(safeErr(e), "asistente: el turno falló");
         emit({ type: "error", message: ASSISTANT_ERROR_MESSAGE });
       } finally {
-        busy.delete(userId);
+        release();
         emit({ type: "done" });
         open = false;
         try {
@@ -161,7 +224,9 @@ export async function POST(req: Request): Promise<Response> {
       }
     },
     cancel() {
-      // La persona cerró el panel: req.signal corta el turno y el finally libera el lock
+      // La persona cerró el panel: se corta el turno y se libera el lock
+      turnAbort.abort();
+      release();
     },
   });
 
@@ -173,6 +238,8 @@ export async function POST(req: Request): Promise<Response> {
     },
   });
 }
+
+const BUSY_MESSAGE = "Ya hay una respuesta en curso. Esperá a que termine.";
 
 async function runTurn(
   userId: string,

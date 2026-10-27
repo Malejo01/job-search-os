@@ -9,8 +9,9 @@ import { PROPOSAL_DESTINATIONS, type ProposalDestination } from "./types";
  * turno y acá se valida (es la frontera) y se resume sin LLM para que entre en el tope de entrada.
  *
  * Orden en la ruta (AG-3): `screenUserMessage` sobre el mensaje nuevo (un CV se deriva antes del
- * tope de largo) → `validateHistory` (tope de 2.000 por mensaje de la persona) → `sanitizeHistory`
- * → `summarizeHistory` y `groundingSourcesFrom`. El resumen va al modelo como un bloque de DATOS
+ * tope de largo) → `sanitizeHistory` (un CV de un turno anterior pasa a marcador, así no lo
+ * rechaza el tope) → `validateHistory` (tope de 2.000 por mensaje de la persona) →
+ * `summarizeHistory` y `groundingSourcesFrom`. El resumen va al modelo como un bloque de DATOS
  * delimitado, nunca en el system prompt, y nunca entra a las fuentes de fundamento.
  */
 
@@ -22,7 +23,11 @@ export type ProposalOutcome = {
   status: "pendiente" | "cargada" | "descartada";
 };
 
-export const MAX_HISTORY_MESSAGES = 20;
+/**
+ * 10 turnos de ida y vuelta (20 mensajes) más el mensaje del turno 11: ese llega para que la ruta
+ * conteste con el aviso fijo de tope (con links) y no con un error de historial.
+ */
+export const MAX_HISTORY_MESSAGES = AGENT_LIMITS.maxTurnsPerConversation * 2 + 1;
 export const MAX_ASSISTANT_MESSAGE_CHARS = 4_000;
 
 const messageSchema = z.discriminatedUnion("role", [
@@ -41,7 +46,7 @@ const messageSchema = z.discriminatedUnion("role", [
 ]);
 
 /**
- * Valida el historial que manda el cliente: hasta 20 mensajes que alternan, empiezan y terminan
+ * Valida el historial que manda el cliente: hasta 21 mensajes que alternan, empiezan y terminan
  * con la persona, y respetan los largos máximos.
  */
 export function validateHistory(raw: unknown): Result<AgentMessage[], "historial_invalido"> {

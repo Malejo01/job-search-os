@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { checkTurnStart } from "./limits";
 import {
   conversationIdFromBytes,
   conversationLabel,
@@ -120,6 +121,28 @@ describe("parseAssistantRequest", () => {
   it("deja pasar un mensaje largo (para detectar el CV después) pero no uno enorme", () => {
     expect(parseAssistantRequest({ messages: [msg("a".repeat(5_000))] }).ok).toBe(true);
     expect(parseAssistantRequest({ messages: [msg("a".repeat(20_001))] }).ok).toBe(false);
+  });
+});
+
+describe("turno 11", () => {
+  it("llega entero y el tope de turnos contesta con el aviso fijo", () => {
+    const messages = Array.from({ length: 21 }, (_, i) => ({
+      role: i % 2 === 0 ? "user" : "assistant",
+      text: `mensaje ${i}`,
+    }));
+    const r = parseAssistantRequest({ messages });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(turnsUsed(r.value.messages)).toBe(10);
+    const start = checkTurnStart(
+      { turns: turnsUsed(r.value.messages), costUsd: 0 },
+      { used: 1, limit: 3 },
+      false,
+    );
+    expect(!start.ok && start.error).toBe("turns");
+    expect(parseAssistantRequest({ messages: [...messages, ...messages.slice(0, 2)] }).ok).toBe(
+      false,
+    );
   });
 });
 
