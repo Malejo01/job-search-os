@@ -23,7 +23,6 @@ export type LlmWire = {
 
 export const VEREDICTO_MAX_CHARS = 200;
 export const EVALUATION_LIST_MAX = 8;
-export const SCORE_MAX = 10;
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
@@ -31,22 +30,26 @@ const isRecord = (v: unknown): v is Record<string, unknown> =>
 /** Recorta a `max` caracteres sin partir una palabra (salvo que no haya un solo espacio donde cortar). */
 function clampText(text: string, max: number): string {
   if (text.length <= max) return text;
-  const head = text.slice(0, max);
+  let head = text.slice(0, max);
   if (/\s/.test(text.charAt(max))) return head.trimEnd();
   const lastSpace = head.search(/\s\S*$/);
-  return (lastSpace > 0 ? head.slice(0, lastSpace) : head).trimEnd();
+  if (lastSpace > 0) return head.slice(0, lastSpace).trimEnd();
+  // Sin espacio donde cortar: no se parte un par sustituto
+  if (/[\uD800-\uDBFF]$/.test(head)) head = head.slice(0, -1);
+  return head.trimEnd();
 }
 
 /**
  * Normaliza la salida cruda del evaluador: `veredicto` a 200 caracteres, `match_fuerte` y `gaps`
- * a los primeros 8, `score` a 0..10 con un decimal. Solo toca campos con el tipo esperado; el resto
+ * a los primeros 8, `score` a un decimal (el rango 0..10 lo valida el esquema estricto). Solo toca campos con el tipo esperado; el resto
  * queda igual para que la validación estricta falle cerrado. No muta la entrada.
  */
 export function normalizeEvaluationOutput(raw: unknown): unknown {
   if (!isRecord(raw)) return raw;
   const out: Record<string, unknown> = { ...raw };
   if (typeof out.score === "number" && Number.isFinite(out.score)) {
-    out.score = Math.round(Math.min(SCORE_MAX, Math.max(0, out.score)) * 10) / 10;
+    // Solo se redondea: un score fuera de 0..10 es una salida rota y falla en el esquema estricto
+    out.score = Math.round(out.score * 10) / 10;
   }
   if (typeof out.veredicto === "string") {
     out.veredicto = clampText(out.veredicto, VEREDICTO_MAX_CHARS);

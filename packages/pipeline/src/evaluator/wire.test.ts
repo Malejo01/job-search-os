@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { outputSchemaFor } from "../evaluation";
+import { EVALUATE_JOB_SCHEMA_VERSIONS, outputSchemaFor } from "../evaluation";
 import { evaluationWireFor, normalizeEvaluationOutput } from "./wire";
 
 const base = {
@@ -64,13 +64,27 @@ describe("normalizeEvaluationOutput", () => {
     expect(out.match_fuerte).toEqual(Array.from({ length: 8 }, (_, i) => `m${i}`));
   });
 
-  it("score fuera de rango queda en 0..10 con un decimal", () => {
-    expect((normalizeEvaluationOutput({ ...base, score: 11 }) as { score: number }).score).toBe(10);
-    expect((normalizeEvaluationOutput({ ...base, score: -2 }) as { score: number }).score).toBe(0);
-    expect((normalizeEvaluationOutput({ ...base, score: 7.46 }) as { score: number }).score).toBe(
-      7.5,
-    );
-    expect(parse({ ...base, score: 11 }).success).toBe(true);
+  it("el score se redondea a un decimal pero no se recorta: fuera de 0..10 falla el esquema estricto", () => {
+    const score = (n: number) =>
+      (normalizeEvaluationOutput({ ...base, score: n }) as { score: number }).score;
+    expect(score(7.46)).toBe(7.5);
+    expect(score(11)).toBe(11);
+    expect(score(-2)).toBe(-2);
+    expect(parse({ ...base, score: 7.46 }).success).toBe(true);
+    expect(parse({ ...base, score: 11 }).success).toBe(false);
+    expect(parse({ ...base, score: -2 }).success).toBe(false);
+  });
+
+  it("sin espacio donde cortar no parte un par sustituto", () => {
+    const v = (
+      normalizeEvaluationOutput({
+        ...base,
+        veredicto: `${"x".repeat(199)}\u{1F600}${"y".repeat(20)}`,
+      }) as {
+        veredicto: string;
+      }
+    ).veredicto;
+    expect(v).toBe("x".repeat(199));
   });
 
   it("lo que no se puede normalizar sigue fallando cerrado", () => {
@@ -120,6 +134,15 @@ describe("evaluationWireFor", () => {
     const json = JSON.stringify(z.toJSONSchema(outputSchemaFor(REF), { io: "input" }));
     expect(json).toContain('"maxLength":200');
   });
+
+  it.each(EVALUATE_JOB_SCHEMA_VERSIONS)(
+    "outputSchemaFor y evaluationWireFor aceptan la misma versión (%s)",
+    (version) => {
+      const ref = `evaluate_job@${version}`;
+      expect(() => outputSchemaFor(ref)).not.toThrow();
+      expect(() => evaluationWireFor(ref)).not.toThrow();
+    },
+  );
 
   it("falla con una ref sin esquema, igual que outputSchemaFor", () => {
     expect(() => evaluationWireFor("evaluate_job@v9")).toThrow();

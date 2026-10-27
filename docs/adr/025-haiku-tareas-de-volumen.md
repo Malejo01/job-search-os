@@ -58,7 +58,11 @@ errores de salida estructurada y sin regresión en ubicación ni idioma. Ninguna
   código recorta y después corre la validación estricta de siempre. Con eso, Haiku 5.5 da 0 salidas
   inválidas. Un JSON cortado por `max_tokens` queda como `no_object:finish:length`.
 - **Con thinking, `max_tokens` tiene que ser de 8192 o más.** Con 2048, el thinking se comía el
-  presupuesto y el JSON salía cortado.
+  presupuesto y el JSON salía cortado. Es un **requisito de configuración del ruteo** (filas de
+  `model_routing`, que aplica Mauro), no algo que el código arregle. Hoy `evaluate_job` usa Gemini con
+  `minimal` y no le afecta. Las filas de Sonnet con `thinking_level: null` piensan por defecto y
+  tienen `max_tokens` de 800 a 2048: hay que revisarlas antes de cargar la clave de Anthropic en
+  Vercel. Este PR no cambia el seed.
 - **Medición con un split fijo dev/test** (se afina en dev; test no se mira hasta el final):
   - **Prompt:** las variantes que mejoraban dev (rúbrica en orden fijo, ejemplos inventados,
     contrato de salida y reglas primero) no mejoraron test. Era sobreajuste.
