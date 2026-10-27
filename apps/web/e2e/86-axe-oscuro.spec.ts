@@ -1,5 +1,5 @@
-import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { axeSummary } from "./axe-helpers";
 import { login } from "./helpers";
 
 /**
@@ -26,14 +26,9 @@ test.describe("Flujo 86: axe en oscuro", () => {
         await expect(page.locator("html")).toHaveClass(/\bdark\b/);
         await expect(page.locator("h1").first()).toBeVisible();
         await page.waitForLoadState("networkidle");
-        const { violations } = await new AxeBuilder({ page })
-          .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-          .analyze();
-        const resumen = violations.map(
-          (v) =>
-            `${v.id} (${v.impact ?? "sin impacto"}): ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`,
-        );
-        expect(resumen, `Violaciones en ${route} (oscuro, ${viewport.name})`).toEqual([]);
+        const { violations, unmeasured } = await axeSummary(page);
+        expect(violations, `Violaciones en ${route} (oscuro, ${viewport.name})`).toEqual([]);
+        expect(unmeasured, `axe no midió el contraste en ${route} (oscuro)`).toEqual([]);
       });
     }
   }
