@@ -83,6 +83,9 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
   const generation = useRef(0);
   const seq = useRef(0);
   const statusRefs = useRef(new Map<number, HTMLElement>());
+  // Tarjeta cuyo texto de estado tiene que recibir el foco apenas se monte: al confirmar, el cambio
+  // de estado llega dentro de la transición de la Server Action y puede montarse después del frame
+  const pendingFocus = useRef<number | null>(null);
   const pathname = usePathname();
   const router = useRouter();
   const titleId = useId();
@@ -140,6 +143,30 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
     );
   }
 
+  function trackStatus(id: number, el: HTMLElement | null) {
+    if (!el) {
+      statusRefs.current.delete(id);
+      return;
+    }
+    statusRefs.current.set(id, el);
+    if (pendingFocus.current === id) {
+      pendingFocus.current = null;
+      el.focus();
+    }
+  }
+
+  /** Enfoca el texto de estado de una tarjeta ahora si ya está montado, o cuando se monte. */
+  function focusStatus(id: number) {
+    pendingFocus.current = id;
+    requestAnimationFrame(() => {
+      const el = statusRefs.current.get(id);
+      if (pendingFocus.current === id && el?.isConnected) {
+        pendingFocus.current = null;
+        el.focus();
+      }
+    });
+  }
+
   function setActionStatus(id: number, status: ActionStatus) {
     setItems((prev) =>
       prev.map((i) => (i.id === id && i.kind === "action" ? { ...i, status } : i)),
@@ -149,7 +176,7 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
   function discardAction(id: number) {
     setActionStatus(id, "descartada");
     say("Descartada. No se cambió nada.");
-    requestAnimationFrame(() => statusRefs.current.get(id)?.focus());
+    focusStatus(id);
   }
 
   function sentAction(id: number, action: ActionProposal, toLabel?: string) {
@@ -160,13 +187,13 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
         : "Listo: la oferta quedó cargada.",
     );
     // El botón desaparece: el foco va al texto de estado de la tarjeta, como al descartar
-    requestAnimationFrame(() => statusRefs.current.get(id)?.focus());
+    focusStatus(id);
   }
 
   function discardProposal(id: number) {
     setStatus(id, "descartada");
     say("Propuesta descartada. No se cambió nada.");
-    requestAnimationFrame(() => statusRefs.current.get(id)?.focus());
+    focusStatus(id);
   }
 
   function pushError(text: string) {
@@ -474,10 +501,7 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
                         key={item.id}
                         proposal={item.proposal}
                         status={item.status}
-                        statusRef={(el) => {
-                          if (el) statusRefs.current.set(item.id, el);
-                          else statusRefs.current.delete(item.id);
-                        }}
+                        statusRef={(el) => trackStatus(item.id, el)}
                         onLoad={() => loadProposal(item)}
                         onDiscard={() => discardProposal(item.id)}
                       />
@@ -488,10 +512,7 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
                         key={item.id}
                         action={item.action}
                         status={item.status}
-                        statusRef={(el) => {
-                          if (el) statusRefs.current.set(item.id, el);
-                          else statusRefs.current.delete(item.id);
-                        }}
+                        statusRef={(el) => trackStatus(item.id, el)}
                         receivedAt={item.receivedAt}
                         onSent={(r) => sentAction(item.id, item.action, r.toLabel)}
                         onDiscard={() => discardAction(item.id)}
