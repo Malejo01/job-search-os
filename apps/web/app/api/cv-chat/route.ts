@@ -2,18 +2,24 @@ import {
   createLogger,
   cvChatLabel,
   newCvConversationId,
+  releaseCvChatReservation,
+  reserveCvChatStep,
   runCvInterviewTurn,
   runCvWrite,
+  type CvChatMeasures,
 } from "@job-search-os/adapters";
 import { createDb, requireDatabaseUrl, type Db } from "@job-search-os/db";
 import {
   applyCvWrite,
   CV_CHAT_MAX_TURNS,
+  CV_CHAT_TURN_RESERVE_USD,
+  CV_CHAT_WRITE_RESERVE_USD,
   CV_WRITE_OUTPUT_SCHEMA,
   cvChatCapNotice,
   cvChatCloseReason,
   cvChatCapReason,
   cvChatDailyCapUsd,
+  cvChatStartCapReason,
   cvChatHistory,
   cvChecklistProgress,
   cvChatWindows,
@@ -33,10 +39,8 @@ import {
   buildChatPreview,
   cvChatAllowed,
   loadChatSeed,
-  measureCvChat,
   saveChatHistory,
   skillCatalogNames,
-  type CvChatMeasures,
 } from "@/lib/cv-chat-server";
 import { originAllowed, signCvTicket, verifyCvTicket } from "@/lib/cv-chat-ticket";
 import { serviceLlm } from "@/lib/llm-service";
@@ -49,6 +53,9 @@ import { needsTermsAcceptance } from "@/lib/terms-status";
 export const dynamic = "force-dynamic";
 
 const MAX_BODY_CHARS = 120_000;
+
+/** Por qué se rechaza un pedido antes de llamar al modelo: un tope o «ya redactado». */
+type ReserveReject = CvChatCap | "already_written";
 
 type ErrorCode =
   | "bad_origin"
@@ -204,7 +211,7 @@ export async function POST(request: Request): Promise<Response> {
   const issue = (turns: number): string | null =>
     signCvTicket(secret, userId, { conversationId: ticket.conversationId, turns }, Date.now());
 
-  let conn: ReturnType<typeof createDb> | null = null;
+  let conn = null as ReturnType<typeof createDb> | null;
   try {
     // Confirmar no llama al modelo ni mide gasto
     if (req.action === "confirm") {
@@ -218,158 +225,206 @@ export async function POST(request: Request): Promise<Response> {
     conn = createDb(requireDatabaseUrl({ purpose: "service" }), { max: 1 });
     const db: Db = conn.db;
     const windows = cvChatWindows(new Date(now));
-    const measures: CvChatMeasures = await measureCvChat(db, {
-      userId,
-      label,
-      monthSince: windows.monthSince,
-      daySince: windows.daySince,
-    });
     const plan = await getUserPlan(userId, new Date(now));
-    const capInput = (turns: number) => ({
-      turns,
-      conversationCostUsd: measures.conversationCostUsd,
-      cvThisMonth: measures.cvThisMonth,
-      cvPerMonth: plan.plan.limits.cvReadsPerMonth,
-      dailySpendUsd: measures.dailySpendUsd,
-      dailyCapUsd: cvChatDailyCapUsd(process.env),
-    });
-
-    if (req.action === "start") {
-      const cap = cvChatCapReason(capInput(0));
-      if (cap) return capped(cap);
-      const state = initialCvChatState(await loadChatSeed(userId));
-      const first = nextCvTopic(state);
-      const t = issue(0);
-      if (!t) return fail("server");
-      return succeed({
-        ticket: t,
-        state,
-        question: first ? cvTopicQuestion(first, state) : null,
-        progress: cvChecklistProgress(state),
-        maxTurns: CV_CHAT_MAX_TURNS,
+    // S-1: sin locks que crucen transacciones (no son seguros detrás del pooler). Una transacción corta
+    // con lock por persona mide los topes contando las reservas vigentes y anota la suya; la llamada al
+    // modelo va afuera; otra transacción corta borra la reserva.
+    const decideCap =
+      (turns: number, extra?: (m: CvChatMeasures) => ReserveReject | null) =>
+      (m: CvChatMeasures): ReserveReject | null =>
+        cvChatCapReason({
+          turns,
+          conversationCostUsd: m.conversationCostUsd,
+          cvThisMonth: m.cvThisMonth,
+          cvPerMonth: plan.plan.limits.cvReadsPerMonth,
+          userInterviewSpendUsd: m.userInterviewUsd,
+          dailySpendUsd: m.dailySpendUsd,
+          dailyCapUsd: cvChatDailyCapUsd(process.env),
+        }) ??
+        extra?.(m) ??
+        null;
+    const reserve = (
+      step: "interview" | "write" | "start" | "check",
+      estimateUsd: number,
+      decide: (m: CvChatMeasures) => ReserveReject | null,
+    ) =>
+      reserveCvChatStep<ReserveReject>(db, {
+        userId,
+        label,
+        step,
+        estimateUsd,
+        now: new Date(now),
+        monthSince: windows.monthSince,
+        daySince: windows.daySince,
+        decide,
       });
-    }
+    const refuse = (reject: ReserveReject): Response =>
+      reject === "already_written" ? fail("already_written") : capped(reject);
 
-    const state0 = parseCvChatState(req.state);
-    if (!state0) return fail("bad_request");
-    // Los turnos los fija el ticket firmado, no el navegador
-    const state: CvChatState = { ...state0, turns: ticket.turns };
-    const llm = serviceLlm(db, logger);
-
-    if (req.action === "turn" || req.action === "skip") {
-      const cap = cvChatCapReason(capInput(ticket.turns));
-      if (cap) return capped(cap);
-      const topic = nextCvTopic(state);
-      if (!topic) {
-        const t = issue(ticket.turns);
-        return t
-          ? succeed({
-              ticket: t,
-              state,
-              ack: null,
-              question: null,
-              closed: "complete",
-              progress: cvChecklistProgress(state),
-            })
-          : fail("server");
-      }
-      let next: CvChatState;
-      let ack: string | null = null;
-      if (req.action === "skip") {
-        next = skipCvTopic(state, topic);
-      } else {
-        const out = await runCvInterviewTurn(
-          { llm },
-          { userId, conversationId: ticket.conversationId, state, topic, message: req.message },
+    {
+      if (req.action === "start") {
+        const r = await reserve(
+          "start",
+          0,
+          decideCap(0, (m) => cvChatStartCapReason(m.startsToday)),
         );
-        if (out.kind === "redirect_cv_reader") {
-          return fail("pasted_cv", { href: "/settings/historial" });
+        if (!r.ok) return refuse(r.reject);
+        const state = initialCvChatState(await loadChatSeed(userId));
+        const first = nextCvTopic(state);
+        const t = issue(0);
+        if (!t) return fail("server");
+        return succeed({
+          ticket: t,
+          state,
+          question: first ? cvTopicQuestion(first, state) : null,
+          progress: cvChecklistProgress(state),
+          maxTurns: CV_CHAT_MAX_TURNS,
+        });
+      }
+
+      const state0 = parseCvChatState(req.state);
+      if (!state0) return fail("bad_request");
+      // Los turnos los fija el ticket firmado, no el navegador
+      const state: CvChatState = { ...state0, turns: ticket.turns };
+      const llm = serviceLlm(db, logger);
+
+      if (req.action === "turn" || req.action === "skip") {
+        const topic = nextCvTopic(state);
+        if (!topic) {
+          const r = await reserve("check", 0, decideCap(ticket.turns));
+          if (!r.ok) return refuse(r.reject);
+          const t = issue(ticket.turns);
+          return t
+            ? succeed({
+                ticket: t,
+                state,
+                ack: null,
+                question: null,
+                closed: "complete",
+                progress: cvChecklistProgress(state),
+              })
+            : fail("server");
         }
-        if (out.kind === "rejected") return fail(out.reason);
-        if (out.kind === "error") {
-          logger.warn(
-            { run_id: ticket.conversationId, llm_error: out.error.kind },
-            "cv chat: el modelo no respondió",
-          );
-          return fail("llm_unavailable");
+        let next: CvChatState;
+        let ack: string | null = null;
+        if (req.action === "skip") {
+          // «Saltear» no llama al modelo: se mide, no se reserva
+          const r = await reserve("check", 0, decideCap(ticket.turns));
+          if (!r.ok) return refuse(r.reject);
+          next = skipCvTopic(state, topic);
+        } else {
+          const r = await reserve("interview", CV_CHAT_TURN_RESERVE_USD, decideCap(ticket.turns));
+          if (!r.ok) return refuse(r.reject);
+          let out;
+          try {
+            out = await runCvInterviewTurn(
+              { llm },
+              { userId, conversationId: ticket.conversationId, state, topic, message: req.message },
+            );
+          } finally {
+            await releaseCvChatReservation(db, r.reservationId);
+          }
+          if (out.kind === "redirect_cv_reader") {
+            return fail("pasted_cv", { href: "/settings/historial" });
+          }
+          if (out.kind === "rejected") return fail(out.reason);
+          if (out.kind === "error") {
+            logger.warn(
+              { run_id: ticket.conversationId, llm_error: out.error.kind },
+              "cv chat: el modelo no respondió",
+            );
+            return fail("llm_unavailable");
+          }
+          next = out.state;
+          ack = out.ack;
         }
-        next = out.state;
-        ack = out.ack;
+        const upcoming = nextCvTopic(next);
+        const closed = cvChatCloseReason(next);
+        const t = issue(next.turns);
+        if (!t) return fail("server");
+        return succeed({
+          ticket: t,
+          state: next,
+          ack,
+          question: closed === null && upcoming ? cvTopicQuestion(upcoming, next) : null,
+          closed,
+          progress: cvChecklistProgress(next),
+        });
       }
-      const upcoming = nextCvTopic(next);
-      const closed = cvChatCloseReason(next);
-      const t = issue(next.turns);
-      if (!t) return fail("server");
-      return succeed({
-        ticket: t,
-        state: next,
-        ack,
-        question: closed === null && upcoming ? cvTopicQuestion(upcoming, next) : null,
-        closed,
-        progress: cvChecklistProgress(next),
-      });
-    }
 
-    // write: redactar con IA, verificar y armar la vista previa. No guarda nada.
-    if (measures.writesInConversation >= 1) return fail("already_written");
-    const cap = cvChatCapReason(capInput(0));
-    if (cap) return capped(cap);
-    const chatOnly = cvChatHistory({ ...state, confirmed: [] });
-    const input: CvWriteInput = {
-      lang: req.lang,
-      target: state.target,
-      history: chatOnly,
-      skills: state.skills,
-      languages: state.languages.map(fmtLanguage),
-    };
-    const hasWork = chatOnly.some((h) => h.kind === "trabajo");
-    let written = applyCvWrite(input, CV_WRITE_OUTPUT_SCHEMA.parse({ summary: "", entries: [] }));
-    let usedModel = false;
-    if (hasWork) {
-      const r = await runCvWrite(
-        { llm },
-        {
-          userId,
-          conversationId: ticket.conversationId,
-          input,
-          knownTerms: await skillCatalogNames(db),
-        },
-      );
-      if (r.ok) {
-        written = r.value;
-        usedModel = true;
-        logger.info(
-          { run_id: ticket.conversationId, ...r.value.stats },
-          "cv chat: redacción verificada",
-        );
-      } else {
-        logger.warn(
-          { run_id: ticket.conversationId, llm_error: r.error.kind },
-          "cv chat: sin redacción, va el texto de la persona",
-        );
-      }
-    }
-    const doc = await buildChatPreview(userId, {
-      lang: req.lang,
-      history: written.history,
-      summary: written.summary,
-      extras: {
-        skills: state.skills,
-        languages: state.languages,
-        links: state.links,
+      // write: redactar con IA, verificar y armar la vista previa. No guarda nada.
+      const chatOnly = cvChatHistory({ ...state, confirmed: [] });
+      const input: CvWriteInput = {
+        lang: req.lang,
         target: state.target,
-      },
-    });
-    if (!doc) return fail("server");
-    const t = issue(ticket.turns);
-    if (!t) return fail("server");
-    return succeed({
-      ticket: t,
-      doc,
-      written: { history: written.history, summary: written.summary },
-      usedModel,
-      stats: written.stats,
-    });
+        history: chatOnly,
+        skills: state.skills,
+        languages: state.languages.map(fmtLanguage),
+      };
+      const hasWork = chatOnly.some((h) => h.kind === "trabajo");
+      let written = applyCvWrite(input, CV_WRITE_OUTPUT_SCHEMA.parse({ summary: "", entries: [] }));
+      let usedModel = false;
+      // Un solo `write` por charla y dentro del cupo; la reserva sale solo si hay llamada al modelo
+      const decideWrite = decideCap(0, (m) =>
+        m.writesInConversation >= 1 ? "already_written" : null,
+      );
+      const slot = await reserve(
+        hasWork ? "write" : "check",
+        CV_CHAT_WRITE_RESERVE_USD,
+        decideWrite,
+      );
+      if (!slot.ok) return refuse(slot.reject);
+      if (hasWork) {
+        let r;
+        try {
+          r = await runCvWrite(
+            { llm },
+            {
+              userId,
+              conversationId: ticket.conversationId,
+              input,
+              knownTerms: await skillCatalogNames(db),
+            },
+          );
+        } finally {
+          await releaseCvChatReservation(db, slot.reservationId);
+        }
+        if (r.ok) {
+          written = r.value;
+          usedModel = true;
+          logger.info(
+            { run_id: ticket.conversationId, ...r.value.stats },
+            "cv chat: redacción verificada",
+          );
+        } else {
+          logger.warn(
+            { run_id: ticket.conversationId, llm_error: r.error.kind },
+            "cv chat: sin redacción, va el texto de la persona",
+          );
+        }
+      }
+      const doc = await buildChatPreview(userId, {
+        lang: req.lang,
+        history: written.history,
+        summary: written.summary,
+        extras: {
+          skills: state.skills,
+          languages: state.languages,
+          links: state.links,
+          target: state.target,
+        },
+      });
+      if (!doc) return fail("server");
+      const t = issue(ticket.turns);
+      if (!t) return fail("server");
+      return succeed({
+        ticket: t,
+        doc,
+        written: { history: written.history, summary: written.summary },
+        usedModel,
+        stats: written.stats,
+      });
+    }
   } catch (e) {
     // Nunca el mensaje de la excepción: puede citar datos de la persona
     logger.error(

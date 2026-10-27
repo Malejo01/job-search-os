@@ -4,6 +4,7 @@ import {
   cvChatCapReason,
   cvChatDailyCapUsd,
   cvChatEnabled,
+  cvChatStartCapReason,
   cvChatWindows,
   type CvChatCapInput,
 } from "./limits";
@@ -13,6 +14,7 @@ const ok: CvChatCapInput = {
   conversationCostUsd: 0.05,
   cvThisMonth: 0,
   cvPerMonth: 1,
+  userInterviewSpendUsd: 0.05,
   dailySpendUsd: 0.2,
   dailyCapUsd: 1,
 };
@@ -34,6 +36,17 @@ describe("cvChatCapReason", () => {
     expect(cvChatCapReason({ ...ok, conversationCostUsd: 0.149 })).toBeNull();
     expect(cvChatCapReason({ ...ok, conversationCostUsd: 0.15 })).toBe("conversacion");
   });
+  it("por persona y día: USD 0,30 de entrevistas, de todas sus charlas", () => {
+    expect(cvChatCapReason({ ...ok, userInterviewSpendUsd: 0.299 })).toBeNull();
+    expect(cvChatCapReason({ ...ok, userInterviewSpendUsd: 0.3 })).toBe("usuario");
+    expect(cvChatCapReason({ ...ok, userInterviewSpendUsd: Number.NaN })).toBe("usuario");
+  });
+  it("charlas nuevas: hasta 5 por día", () => {
+    expect(cvChatStartCapReason(0)).toBeNull();
+    expect(cvChatStartCapReason(4)).toBeNull();
+    expect(cvChatStartCapReason(5)).toBe("inicios");
+    expect(cvChatStartCapReason(Number.NaN)).toBe("inicios");
+  });
   it("global diario", () => {
     expect(cvChatCapReason({ ...ok, dailySpendUsd: 1 })).toBe("global");
     expect(cvChatCapReason({ ...ok, dailyCapUsd: 0 })).toBe("global");
@@ -49,7 +62,7 @@ describe("cvChatCapReason", () => {
 
 describe("mensaje fijo", () => {
   it("cada tope trae un texto fijo y los links a las pantallas", () => {
-    for (const cap of ["mes", "turnos", "conversacion", "global"] as const) {
+    for (const cap of ["mes", "turnos", "conversacion", "usuario", "inicios", "global"] as const) {
       const n = cvChatCapNotice(cap);
       expect(n.message.length).toBeGreaterThan(20);
       expect(n.links.map((l) => l.href)).toContain("/settings/historial");

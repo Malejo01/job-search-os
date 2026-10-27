@@ -163,13 +163,35 @@ test.describe("Flujo 86: Armá tu CV con IA", () => {
     const { db, close } = ownerDb();
     try {
       const rows = await db
-        .select({ id: s.llmCalls.id })
+        .select({ task: s.llmCalls.task })
         .from(s.llmCalls)
         .where(and(eq(s.llmCalls.userId, E2E_USER_ID), like(s.llmCalls.label, "cv:%")));
-      expect(rows).toHaveLength(0);
+      // Solo quedó el registro del inicio de la charla: ninguna llamada al modelo
+      expect(rows.map((r) => r.task)).toEqual(["cv_start"]);
     } finally {
       await close();
     }
+  });
+
+  test("S-2: como máximo 5 charlas nuevas por día, con el mensaje fijo", async ({ page }) => {
+    test.skip(!e2eIsAdmin, "ADMIN_EMAILS no incluye al usuario de e2e en este entorno");
+    await clean();
+    await login(page);
+    const resultados: { status: number; cap?: string }[] = [];
+    for (let i = 0; i < 7; i++) {
+      const r = await page.request.post("/api/cv-chat", {
+        data: { action: "start" },
+        headers: { Origin: BASE_URL },
+      });
+      const body = (await r.json()) as { cap?: string };
+      resultados.push({ status: r.status(), cap: body.cap });
+    }
+    expect(resultados.filter((r) => r.status === 200)).toHaveLength(5);
+    expect(resultados.slice(5)).toEqual([
+      { status: 429, cap: "inicios" },
+      { status: 429, cap: "inicios" },
+    ]);
+    await clean();
   });
 
   test("recorrido completo: temas, corregir en la tarjeta, armar, confirmar y ver el CV", async ({
@@ -247,7 +269,10 @@ test.describe("Flujo 86: Armá tu CV con IA", () => {
         .where(and(eq(s.llmCalls.userId, E2E_USER_ID), like(s.llmCalls.label, "cv:%")));
       expect(llamadas.filter((l) => l.task === "cv_write")).toHaveLength(1);
       expect(llamadas.filter((l) => l.task === "cv_interview").length).toBeGreaterThan(3);
-      expect(new Set(llamadas.map((l) => l.model))).toEqual(new Set(["fake"]));
+      expect(llamadas.filter((l) => l.task === "cv_start")).toHaveLength(1);
+      expect(new Set(llamadas.filter((l) => l.task !== "cv_start").map((l) => l.model))).toEqual(
+        new Set(["fake"]),
+      );
     } finally {
       await close();
     }

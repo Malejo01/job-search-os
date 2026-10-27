@@ -11,7 +11,7 @@ import {
   type CvSourceData,
   type CvStoredEntry,
 } from "@job-search-os/pipeline";
-import { and, asc, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { withUser } from "./db";
 import { listCareerHistory } from "./career-history";
 import { loadCvSource, cvChatMode, type CvOptions } from "./cv-source";
@@ -29,51 +29,6 @@ export async function cvChatAllowed(userId: string): Promise<boolean> {
   if (mode === "all") return true;
   if (mode === "admin") return canCreateInvitations(userId).catch(() => false);
   return false;
-}
-
-export type CvChatMeasures = {
-  cvThisMonth: number;
-  conversationCostUsd: number;
-  dailySpendUsd: number;
-  writesInConversation: number;
-};
-
-const CV_TASKS = ["cv_interview", "cv_write"];
-
-/** Lo que hay que saber de `llm_calls` para decidir los topes antes de llamar al modelo. */
-export async function measureCvChat(
-  db: Db,
-  input: { userId: string; label: string; monthSince: Date; daySince: Date },
-): Promise<CvChatMeasures> {
-  const c = s.llmCalls;
-  const [month] = await db
-    .select({ n: sql<number>`count(distinct ${c.label})::int` })
-    .from(c)
-    .where(
-      and(
-        eq(c.userId, input.userId),
-        eq(c.task, "cv_write"),
-        eq(c.ok, true),
-        gte(c.createdAt, input.monthSince),
-      ),
-    );
-  const [conv] = await db
-    .select({
-      usd: sql<number>`coalesce(sum(${c.costUsd}), 0)::float8`,
-      writes: sql<number>`count(*) filter (where ${c.task} = 'cv_write' and ${c.ok})::int`,
-    })
-    .from(c)
-    .where(and(eq(c.userId, input.userId), eq(c.label, input.label)));
-  const [day] = await db
-    .select({ usd: sql<number>`coalesce(sum(${c.costUsd}), 0)::float8` })
-    .from(c)
-    .where(and(inArray(c.task, CV_TASKS), gte(c.createdAt, input.daySince)));
-  return {
-    cvThisMonth: month?.n ?? 0,
-    conversationCostUsd: conv?.usd ?? 0,
-    dailySpendUsd: day?.usd ?? 0,
-    writesInConversation: conv?.writes ?? 0,
-  };
 }
 
 /** Nombres del catálogo de skills: una tecnología que el modelo nombra y la persona no dijo se descarta. */

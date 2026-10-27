@@ -9,7 +9,14 @@ export const CV_CHAT_DEFAULT_DAILY_CAP_USD = 1;
 /** Ventana del tope mensual: mismos 30 días móviles que el resto de los topes por `llm_calls`. */
 export const CV_CHAT_MONTH_DAYS = 30;
 
-export type CvChatCap = "mes" | "turnos" | "conversacion" | "global";
+/** Por persona y día: gasto de entrevistas (sin `write`, que ya cuenta en el cupo mensual) y charlas nuevas. */
+export const CV_CHAT_USER_DAILY_CAP_USD = 0.3;
+export const CV_CHAT_MAX_STARTS_PER_DAY = 5;
+/** Máximo que se reserva antes de llamar al modelo (la reserva se borra al terminar el paso). */
+export const CV_CHAT_TURN_RESERVE_USD = 0.01;
+export const CV_CHAT_WRITE_RESERVE_USD = 0.05;
+
+export type CvChatCap = "mes" | "turnos" | "conversacion" | "usuario" | "inicios" | "global";
 
 export interface CvChatCapInput {
   /** Mensajes de la persona ya procesados en esta conversación. */
@@ -20,19 +27,27 @@ export interface CvChatCapInput {
   cvThisMonth: number;
   /** Tope por mes del plan que rige hoy (gratis 1, pago 5), leído de `plans.ts` por el llamador. */
   cvPerMonth: number;
+  /** Gasto de entrevistas (`cv_interview`) de esta persona en las últimas 24 h, de todas sus charlas. */
+  userInterviewSpendUsd: number;
   /** Gasto global de la tarea en las últimas 24 h. */
   dailySpendUsd: number;
   dailyCapUsd: number;
 }
 
-/** Primer tope alcanzado, o `null`. Orden: mes, turnos, conversación, global. */
+/** Primer tope alcanzado, o `null`. Orden: mes, turnos, conversación, persona-día, global. */
 export function cvChatCapReason(i: CvChatCapInput): CvChatCap | null {
   // `!(a < b)` y no `a >= b`: con NaN o undefined el resultado es «alcanzado»
   if (!(i.cvThisMonth < i.cvPerMonth)) return "mes";
   if (!(i.turns < CV_CHAT_MAX_TURNS)) return "turnos";
   if (!(i.conversationCostUsd < CV_CHAT_MAX_COST_USD)) return "conversacion";
+  if (!(i.userInterviewSpendUsd < CV_CHAT_USER_DAILY_CAP_USD)) return "usuario";
   if (!(i.dailySpendUsd < i.dailyCapUsd) || !(i.dailyCapUsd > 0)) return "global";
   return null;
+}
+
+/** Charlas nuevas por persona y día (no hay llamada al modelo que las cuente: se registra una fila `cv_start`). */
+export function cvChatStartCapReason(startsToday: number): "inicios" | null {
+  return startsToday < CV_CHAT_MAX_STARTS_PER_DAY ? null : "inicios";
 }
 
 export interface CvChatCapNotice {
@@ -53,6 +68,10 @@ const CAP_MESSAGES: Record<CvChatCap, string> = {
     "Esta charla llegó al máximo de mensajes. Lo que armaste se puede revisar y completar desde las pantallas.",
   conversacion:
     "Esta charla llegó al tope de uso. Lo que armaste se puede revisar y completar desde las pantallas.",
+  usuario:
+    "Hoy llegaste al tope de uso del armado de CV con IA. Todo lo podés cargar a mano desde las pantallas y volver mañana.",
+  inicios:
+    "Hoy ya empezaste varias charlas para armar tu CV. Todo lo podés cargar a mano desde las pantallas y volver mañana.",
   global:
     "Hoy el armado de CV con IA no está disponible. Todo lo podés cargar a mano desde las pantallas y volver mañana.",
 };

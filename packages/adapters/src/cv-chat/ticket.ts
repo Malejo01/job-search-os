@@ -10,8 +10,15 @@ export const CV_TICKET_TTL_MS = 2 * 60 * 60 * 1000;
 
 export type CvTicket = { conversationId: string; turns: number };
 
+/** Subclave para este uso: `AUTH_SECRET` en crudo no firma nada que no sea de la sesión. */
+function subkey(secret: string): Buffer {
+  return createHmac("sha256", secret).update("cvchat-ticket-v1").digest();
+}
+
 function mac(secret: string, userId: string, payload: string): string {
-  return createHmac("sha256", secret).update(`cvchat|${userId}|${payload}`).digest("base64url");
+  return createHmac("sha256", subkey(secret))
+    .update(`cvchat|${userId}|${payload}`)
+    .digest("base64url");
 }
 
 export function signCvTicket(

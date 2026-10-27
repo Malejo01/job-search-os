@@ -7,11 +7,12 @@
 import {
   applyCvAnswer,
   classifyCvChatInput,
-  cleanCvText,
   CV_EXTRACTION_SCHEMAS,
   cvChatCloseReason,
   cvTopicQuestion,
+  extractionGrounded,
   nextCvTopic,
+  safeCvAck,
   skipCvTopic,
   type CvChatState,
   type CvCloseReason,
@@ -115,10 +116,11 @@ export async function runCvInterviewTurn(
   if (!r.ok) return { kind: "error", error: r.error };
 
   const { extraction, ack } = r.value.object;
-  // La extracción vuelve a pasar por el esquema estricto del pipeline; si no cumple, cuenta como falla
-  const state = applyCvAnswer(p.state, p.topic, extraction);
-  const cleanAck = ack ? cleanCvText(ack, 160) : "";
-  return advance(state, cleanAck === "" ? null : cleanAck, {
+  // Lo extraído tiene que estar en lo que escribió la persona (números, nombres, tecnologías, links);
+  // si no, se descarta y el tema cuenta como falla. Después vuelve a pasar por el esquema estricto.
+  const grounded = extractionGrounded(extraction, p.message);
+  const state = applyCvAnswer(p.state, p.topic, grounded ? extraction : null);
+  return advance(state, ack ? safeCvAck(ack) : null, {
     model: r.value.model,
     usedFallback: r.value.usedFallback,
     costUsd: r.value.costUsd,
