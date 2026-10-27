@@ -39,7 +39,10 @@ export type Proposal = {
   title: string;
   /** Solo lo que cambia (before !== after). */
   diffs: FieldDiff[];
-  /** Nombre del campo del formulario → valor, para «Cargar en el formulario». */
+  /**
+   * Nombre del campo del formulario → valor, para «Cargar en el formulario». SOLO los campos de
+   * `diffs`: el cargador no toca nada más del formulario.
+   */
   formValues: Record<string, string | string[]>;
   /** Lo que el modelo pidió y no se propone, con el motivo (sin el valor). */
   dropped: { field: string; reason: DroppedReason }[];
@@ -48,6 +51,8 @@ export type Proposal = {
    * hoy no pasa la validación): la tarjeta avisa que hay que corregirlos a mano.
    */
   warnings: string[];
+  /** Criterios: versión con la que se armó; si la pantalla tiene otra, no se carga. */
+  criteriaVersion?: number;
 };
 
 export type ProposalError = "sin_cambios" | "entrada_invalida" | "sin_contexto";

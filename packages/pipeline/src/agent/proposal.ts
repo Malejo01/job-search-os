@@ -393,16 +393,23 @@ function finish(
   formValues: Record<string, string | string[]>,
   dropped: Dropped[],
   warnings: string[] = [],
+  criteriaVersion?: number,
 ): Result<Proposal, ProposalFailure> {
   if (diffs.length === 0) return err({ code: "sin_cambios", dropped });
+  // Solo los campos que cambian: el cargador no toca nada más del formulario
+  const changed = new Set(diffs.map((d) => d.field));
+  const onlyChanged = Object.fromEntries(
+    Object.entries(formValues).filter(([name]) => changed.has(name)),
+  );
   return ok({
     destination,
     href: PROPOSAL_HREF[destination],
     title: PROPOSAL_TITLE[destination],
     diffs,
-    formValues,
+    formValues: onlyChanged,
     dropped,
     warnings,
+    ...(criteriaVersion !== undefined ? { criteriaVersion } : {}),
   });
 }
 
@@ -621,6 +628,7 @@ export function buildCriteriaProposal(
   current: CriteriaFormValues,
   sources: GroundingSources,
   disciplineLabels: Readonly<Record<string, string>> = {},
+  criteriaVersion?: number,
 ): Result<Proposal, ProposalFailure> {
   const parsed = proposeCriteriaInput.safeParse(input);
   if (!parsed.success) return err({ code: "entrada_invalida", dropped: [] });
@@ -659,7 +667,7 @@ export function buildCriteriaProposal(
       source,
     });
   }
-  return finish("criteria", diffs, { ...next }, dropped);
+  return finish("criteria", diffs, { ...next }, dropped, [], criteriaVersion);
 }
 
 /**
@@ -710,6 +718,8 @@ export type ProposalContext = {
   profile?: ProfileSnapshot;
   skills?: SkillLevelsSnapshot;
   criteria?: CriteriaFormValues;
+  /** Versión de los criterios con la que se arma la propuesta (el form la compara con la suya). */
+  criteriaVersion?: number;
   targetRoles?: TargetRolesSnapshot;
   roleLabels?: Readonly<Partial<Record<RoleKey, string>>>;
   disciplineLabels?: Readonly<Record<string, string>>;
@@ -728,7 +738,13 @@ export function buildProposal(
       return ctx.skills ? buildSkillLevelsProposal(input, ctx.skills, ctx.sources) : missing;
     case "propose_criteria":
       return ctx.criteria
-        ? buildCriteriaProposal(input, ctx.criteria, ctx.sources, ctx.disciplineLabels)
+        ? buildCriteriaProposal(
+            input,
+            ctx.criteria,
+            ctx.sources,
+            ctx.disciplineLabels,
+            ctx.criteriaVersion,
+          )
         : missing;
     case "propose_target_roles":
       return ctx.targetRoles

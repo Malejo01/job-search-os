@@ -40,7 +40,18 @@ export default defineConfig({
     reuseExistingServer: false,
     timeout: 120_000,
     // AUTH_URL: el login redirige a este puerto aunque .env.local apunte a :3000
+<<<<<<< HEAD
     // CV_CHAT_ENABLED=admin: el chat de CV (86) solo lo ve quien está en ADMIN_EMAILS, como en producción
     env: { DB_TARGET: "local", LLM_DEMO: "1", AUTH_URL: BASE_URL, CV_CHAT_ENABLED: "admin" },
+=======
+    // Asistente (AG-3): encendido para admins con el modelo simulado; cupo alto para las corridas
+    env: {
+      DB_TARGET: "local",
+      LLM_DEMO: "1",
+      AUTH_URL: BASE_URL,
+      ASSISTANT_ENABLED: "admin",
+      ASSISTANT_MONTHLY_CONVERSATIONS: "500",
+    },
+>>>>>>> origin/nube/n1-ag1-stream-agent
   },
 });
