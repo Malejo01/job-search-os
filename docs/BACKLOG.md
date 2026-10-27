@@ -812,8 +812,8 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Que:** calcular los candidatos una vez por usuario y guardarlos (en el snapshot semanal de mercado o en cache por usuario con invalidacion al ingerir ofertas); `/market` solo los lee. Verificar indice `(user_id, created_at)` en `jobs`.
 - **Acepta:** `/market` no lee `jd_text`; test de que los candidatos se recalculan al cambiar las ofertas; tiempo de render medido antes y despues.
 
-### JS-090 · `htmlToText`: entidades con nombre
-`deps:` — · `est:` XS · `estado:` en revisión (nube N2, PR #242, 2026-10-27): acentos, eñe, portugués y puntuación; distingue mayúsculas salvo las básicas
+### JS-090 · `htmlToText`: entidades con nombre ✅ done 2026-10-27
+`deps:` — · `est:` XS · `estado:` done (nube N2, PR #242, mergeado 2026-10-27): acentos, eñe, portugués y puntuación; distingue mayúsculas salvo las básicas
 - Solo decodifica unas pocas (`amp`, `lt`, `nbsp`...): `&eacute;` y similares quedan crudas. Ampliar la tabla cuando una fuente real las traiga.
 - **Acepta:** test con las entidades nuevas.
 
