@@ -27,6 +27,10 @@ export type FieldDiff = {
 
 export type DroppedReason = "sin_fundamento" | "invalido" | "sin_cambio" | "desconocido";
 
+/**
+ * Propuesta lista para la tarjeta de diferencia. NO se loguea ni se guarda: lleva citas de la
+ * persona y valores de su perfil. Para logs y métricas, `proposalLogMeta`.
+ */
 export type Proposal = {
   destination: ProposalDestination;
   /** Pantalla con el formulario que guarda estos cambios. */
@@ -39,6 +43,11 @@ export type Proposal = {
   formValues: Record<string, string | string[]>;
   /** Lo que el modelo pidió y no se propone, con el motivo (sin el valor). */
   dropped: { field: string; reason: DroppedReason }[];
+  /**
+   * Campos NO propuestos que el formulario rechazaría al guardar (p. ej. un resumen guardado que
+   * hoy no pasa la validación): la tarjeta avisa que hay que corregirlos a mano.
+   */
+  warnings: string[];
 };
 
 export type ProposalError = "sin_cambios" | "entrada_invalida" | "sin_contexto";

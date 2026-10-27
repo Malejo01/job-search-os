@@ -157,3 +157,61 @@ describe("capMessage", () => {
     expect(capMessage("usd").text).not.toBe(capMessage("turns").text);
   });
 });
+
+describe("valores inválidos fallan cerrado", () => {
+  const BAD = [NaN, -1, -Infinity, Infinity];
+  const rates = { inputUsdPerMtok: 1, outputUsdPerMtok: 4 };
+
+  it("costos: NaN, negativos o infinitos dan null", () => {
+    for (const x of BAD) {
+      expect(stepCostUsd({ inputUsdPerMtok: x, outputUsdPerMtok: 1 }, 1, 1)).toBeNull();
+      expect(stepCostUsd({ inputUsdPerMtok: 1, outputUsdPerMtok: x }, 1, 1)).toBeNull();
+      expect(stepCostUsd(rates, x, 1)).toBeNull();
+      expect(stepCostUsd(rates, 1, x)).toBeNull();
+      expect(maxStepCostUsd(rates, x)).toBeNull();
+      expect(addCost(x, 0.01)).toBeNull();
+      expect(addCost(0.01, x)).toBeNull();
+    }
+  });
+
+  it("checkTurnStart: costo inválido → cost_unknown; contadores inválidos → su motivo", () => {
+    for (const x of BAD) {
+      expect(checkTurnStart({ turns: 0, costUsd: x }, monthly, false)).toEqual({
+        ok: false,
+        error: "cost_unknown",
+      });
+      expect(checkTurnStart({ turns: x, costUsd: 0 }, monthly, false)).toEqual({
+        ok: false,
+        error: "turns",
+      });
+      expect(checkTurnStart({ turns: 0, costUsd: 0 }, { used: 0, limit: x }, true)).toEqual({
+        ok: false,
+        error: "monthly_conversations",
+      });
+      expect(checkTurnStart({ turns: 0, costUsd: 0 }, { used: x, limit: 3 }, true)).toEqual({
+        ok: false,
+        error: "monthly_conversations",
+      });
+    }
+    expect(checkTurnStart({ turns: 1.5, costUsd: 0 }, monthly, false).ok).toBe(false);
+  });
+
+  it("checkStep: paso, estimación y costos inválidos cortan", () => {
+    for (const x of BAD) {
+      expect(checkStep(x, 10, 0, 0.001)).toEqual({ ok: false, error: "steps" });
+      expect(checkStep(0, x, 0, 0.001)).toEqual({ ok: false, error: "input_tokens" });
+      expect(checkStep(0, 10, x, 0.001)).toEqual({ ok: false, error: "cost_unknown" });
+      expect(checkStep(0, 10, 0, x)).toEqual({ ok: false, error: "cost_unknown" });
+    }
+    expect(checkStep(1.5, 10, 0, 0)).toEqual({ ok: false, error: "steps" });
+  });
+
+  it("doce pasos de 0,01 llegan al tope aunque la suma flotante dé 0,12000000000000002", () => {
+    let c: number | null = 0;
+    for (let i = 0; i < 12; i++) c = addCost(c, 0.01);
+    expect(checkTurnStart({ turns: 1, costUsd: c }, monthly, false)).toEqual({
+      ok: false,
+      error: "usd",
+    });
+  });
+});
