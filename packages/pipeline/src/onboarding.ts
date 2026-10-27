@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isIsoCountry } from "./countries";
+import { isIsoCountry, REGION_COUNTRIES } from "./countries";
 import type { CriteriaRules } from "./criteria";
 import { DISCIPLINES } from "./evaluation";
 import { detectEvaluatorInjection } from "./evaluator/injection";
@@ -16,29 +16,10 @@ export { ISO_COUNTRY_CODES, isIsoCountry } from "./countries";
 export const MIN_SUMMARY_CHARS = 80;
 export const MAX_SUMMARY_CHARS = 2000;
 
-/** Países de LATAM: el buscador de país de residencia los muestra primero. */
-export const COUNTRY_OPTIONS = [
-  { code: "AR", label: "Argentina" },
-  { code: "BO", label: "Bolivia" },
-  { code: "BR", label: "Brasil" },
-  { code: "CL", label: "Chile" },
-  { code: "CO", label: "Colombia" },
-  { code: "CR", label: "Costa Rica" },
-  { code: "CU", label: "Cuba" },
-  { code: "DO", label: "República Dominicana" },
-  { code: "EC", label: "Ecuador" },
-  { code: "SV", label: "El Salvador" },
-  { code: "GT", label: "Guatemala" },
-  { code: "HN", label: "Honduras" },
-  { code: "MX", label: "México" },
-  { code: "NI", label: "Nicaragua" },
-  { code: "PA", label: "Panamá" },
-  { code: "PY", label: "Paraguay" },
-  { code: "PE", label: "Perú" },
-  { code: "PR", label: "Puerto Rico" },
-  { code: "UY", label: "Uruguay" },
-  { code: "VE", label: "Venezuela" },
-] as const;
+/** Países de LATAM: el buscador de país de residencia los muestra primero (tabla única, JS-111). */
+export const COUNTRY_OPTIONS: readonly { code: string; label: string }[] = REGION_COUNTRIES.map(
+  ({ code, label }) => ({ code, label }),
+);
 
 export const CEFR_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"] as const;
 

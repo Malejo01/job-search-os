@@ -58,6 +58,28 @@ export default async function SettingsPage({
         <span aria-hidden="true">›</span>
       </Link>
 
+      <Link
+        href="/cv"
+        className="flex min-h-11 items-center justify-between gap-3 rounded-md border border-zinc-200 px-4 py-2 text-sm hover:bg-zinc-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
+      >
+        <span className="flex flex-col">
+          <span className="font-medium text-zinc-900 underline">Tu CV</span>
+          <span className="text-zinc-700">Vista previa y descarga en DOCX o PDF</span>
+        </span>
+        <span aria-hidden="true">›</span>
+      </Link>
+
+      <Link
+        href="/settings/historial"
+        className="flex min-h-11 items-center justify-between gap-3 rounded-md border border-zinc-200 px-4 py-2 text-sm hover:bg-zinc-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
+      >
+        <span className="flex flex-col">
+          <span className="font-medium text-zinc-900 underline">Tu historial</span>
+          <span className="text-zinc-700">Trabajos, estudios y certificaciones para tu CV</span>
+        </span>
+        <span aria-hidden="true">›</span>
+      </Link>
+
       <section className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
         <h2 className="text-lg font-medium">Cuenta</h2>
         <p className="text-sm text-zinc-700">

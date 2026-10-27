@@ -5,7 +5,7 @@ import {
   proposalOutcomesSchema,
   sanitizeHistory,
   summarizeHistory,
-  validateHistory,
+  validateAgentHistory,
   type AgentMessage,
 } from "./history";
 
@@ -15,40 +15,40 @@ const conv = (n: number): AgentMessage[] =>
     text: `${i % 2 === 0 ? "pregunta" : "respuesta"} número ${i} ${"x".repeat(200)}`,
   }));
 
-describe("validateHistory", () => {
+describe("validateAgentHistory", () => {
   it("acepta un historial que alterna y termina con la persona", () => {
-    expect(validateHistory([{ role: "user", text: "hola" }]).ok).toBe(true);
-    expect(validateHistory(conv(19)).ok).toBe(true);
+    expect(validateAgentHistory([{ role: "user", text: "hola" }]).ok).toBe(true);
+    expect(validateAgentHistory(conv(19)).ok).toBe(true);
     // El turno 11 llega entero (21 mensajes) para que la ruta conteste con el aviso de tope
-    expect(validateHistory(conv(21)).ok).toBe(true);
+    expect(validateAgentHistory(conv(21)).ok).toBe(true);
   });
 
   it("rechaza vacío, más de 21, sin alternar, terminado en asistente o con campos de más", () => {
-    expect(validateHistory([]).ok).toBe(false);
-    expect(validateHistory(conv(23)).ok).toBe(false);
-    expect(validateHistory(conv(2)).ok).toBe(false);
+    expect(validateAgentHistory([]).ok).toBe(false);
+    expect(validateAgentHistory(conv(23)).ok).toBe(false);
+    expect(validateAgentHistory(conv(2)).ok).toBe(false);
     expect(
-      validateHistory([
+      validateAgentHistory([
         { role: "user", text: "a" },
         { role: "user", text: "b" },
       ]).ok,
     ).toBe(false);
-    expect(validateHistory([{ role: "assistant", text: "a" }]).ok).toBe(false);
-    expect(validateHistory([{ role: "system", text: "a" }]).ok).toBe(false);
-    expect(validateHistory([{ role: "user", text: "a", tool: "x" }]).ok).toBe(false);
-    expect(validateHistory("hola").ok).toBe(false);
+    expect(validateAgentHistory([{ role: "assistant", text: "a" }]).ok).toBe(false);
+    expect(validateAgentHistory([{ role: "system", text: "a" }]).ok).toBe(false);
+    expect(validateAgentHistory([{ role: "user", text: "a", tool: "x" }]).ok).toBe(false);
+    expect(validateAgentHistory("hola").ok).toBe(false);
   });
 
   it("respeta el largo máximo de cada mensaje", () => {
-    expect(validateHistory([{ role: "user", text: "a".repeat(2000) }]).ok).toBe(true);
-    expect(validateHistory([{ role: "user", text: "a".repeat(2001) }]).ok).toBe(false);
-    expect(validateHistory([{ role: "user", text: "" }]).ok).toBe(false);
+    expect(validateAgentHistory([{ role: "user", text: "a".repeat(2000) }]).ok).toBe(true);
+    expect(validateAgentHistory([{ role: "user", text: "a".repeat(2001) }]).ok).toBe(false);
+    expect(validateAgentHistory([{ role: "user", text: "" }]).ok).toBe(false);
   });
 
   it("un mensaje solo con espacios no cuenta, de ningún rol", () => {
-    expect(validateHistory([{ role: "user", text: "   " }]).ok).toBe(false);
+    expect(validateAgentHistory([{ role: "user", text: "   " }]).ok).toBe(false);
     expect(
-      validateHistory([
+      validateAgentHistory([
         { role: "user", text: "hola" },
         { role: "assistant", text: "" },
         { role: "user", text: "chau" },

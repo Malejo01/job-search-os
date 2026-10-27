@@ -1,5 +1,5 @@
 import type { CriteriaRules } from "../criteria";
-import { countriesMentioned, countryNames } from "../normalize/location";
+import { countriesMentioned, mentionsCountry } from "../normalize/location";
 import { foldText } from "../normalize/text";
 import { detectProfessionalLicense, LICENSE_FLAG } from "./licensing";
 import { detectResidencyRestriction, RESIDENCY_FLAG } from "./residency";
@@ -517,11 +517,10 @@ export function prefilter(
   //    La regla por texto de región ajena solo suma el flag, igual que el resto. El huso horario
   //    de EE.UU. es riesgo de horario, no de ubicación: no va acá.
   const countries = input.countriesAllowed?.map((c) => c.toUpperCase()) ?? null;
-  const userNames = userCountry ? countryNames(userCountry) : [];
+  // Sin fallback por código (JS-111): un país fuera de la tabla no cuenta como mencionado, así que
+  // una restricción de ubicación queda con riesgo. Por prefijo, como antes: los gentilicios cuentan.
   const mentionsUser = userCountry
-    ? userNames.length
-      ? userNames.some((n) => location.includes(n))
-      : location.includes(userCountry.toLowerCase())
+    ? mentionsCountry(location, userCountry, { wholeWord: false })
     : false;
   let locationRisk = false;
   if (countries?.length) {

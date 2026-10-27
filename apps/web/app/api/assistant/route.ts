@@ -41,7 +41,7 @@ import {
   screenUserMessage,
   summarizeHistory,
   turnsUsed,
-  validateHistory,
+  validateAgentHistory,
   type AgentCapReason,
   type AssistantRequest,
   type AssistantStreamEvent,
@@ -267,7 +267,7 @@ async function runTurn(
   }
 
   // 2. Historial del navegador: se sanea (CVs de turnos anteriores) y se valida
-  const history = validateHistory(sanitizeHistory(request.messages));
+  const history = validateAgentHistory(sanitizeHistory(request.messages));
   if (!history.ok) {
     log.warn({ reason: history.error }, "asistente: historial inválido");
     emit({ type: "error", message: ASSISTANT_ERROR_MESSAGE });

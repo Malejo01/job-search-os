@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { summarizeHistory, validateHistory } from "./history";
+import { summarizeHistory, validateAgentHistory } from "./history";
 import {
   actionOutcomesFrom,
   historyFrom,
@@ -38,7 +38,7 @@ describe("historial del panel", () => {
       { role: "assistant", text: "Te dejé la tarjeta." },
     ]);
     // Con el mensaje nuevo, valida como lo exige la ruta
-    expect(validateHistory([...history, { role: "user", text: "¿Y ahora?" }]).ok).toBe(true);
+    expect(validateAgentHistory([...history, { role: "user", text: "¿Y ahora?" }]).ok).toBe(true);
   });
 
   it("propuestas y acciones salen con su estado, sin textos", () => {
