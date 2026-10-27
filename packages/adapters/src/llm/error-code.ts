@@ -61,6 +61,8 @@ function findIssues(e: unknown): readonly { code?: unknown; path?: unknown }[] |
  * `text`, que traen la salida del modelo.
  */
 function noObjectReason(e: NoObjectGeneratedError): string {
+  // Un JSON truncado por max_tokens también falla en el parseo o en zod; la causa real es el corte
+  if (e.finishReason === "length") return "no_object:finish:length";
   const issues = findIssues(e.cause);
   if (issues) {
     // Un límite excedido es lo que se busca: se prefiere sobre un issue de otro tipo

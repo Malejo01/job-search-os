@@ -102,6 +102,36 @@ function harness(anthropicScript: Array<() => Response>) {
 
 const errBody = (type: string, message: string) => ({ type: "error", error: { type, message } });
 
+describe("JSON truncado por max_tokens (sin red)", () => {
+  it("el motivo es no_object:finish:length, aunque también falle el parseo", async () => {
+    const truncated = () =>
+      json(200, {
+        id: "msg_1",
+        type: "message",
+        role: "assistant",
+        model: HAIKU,
+        content: [
+          { type: "text", text: '{"score": 7, "veredicto": "TEXTO-DEL-JD cortado a la mit' },
+        ],
+        stop_reason: "max_tokens",
+        stop_sequence: null,
+        usage: { input_tokens: 100, output_tokens: 2048 },
+      });
+    const calls = memoryCallSink();
+    const fakeFetch = (async () => truncated()) as typeof fetch;
+    const client = createLlmClient({
+      routes: staticRouteSource([route({ fallbackModel: null })]),
+      calls,
+      providers: createProviderRegistry({ ANTHROPIC_API_KEY: "k-test" }, { fetch: fakeFetch }),
+      logger: silent,
+    });
+    const r = await client.generateStructured("evaluate_job", Schema, vars);
+    expect(r.ok).toBe(false);
+    expect(calls.calls[0]!.error).toBe("no_object:finish:length");
+    expect(r.ok ? "" : r.error.detail).not.toContain("TEXTO-DEL-JD");
+  });
+});
+
 describe("petición a Anthropic (Haiku 5.5, sin red)", () => {
   it("manda output_config.format, sin sampling ni prefill, y thinking disabled con 'none'", async () => {
     const h = harness([anthropicOk]);
