@@ -82,4 +82,7 @@ Cuando todas las pantallas usen tokens (ticket 4 de N3), `DEFAULT_THEME` pasa a 
 grep -rnE '\b(bg|text|border|outline|ring|divide|placeholder|from|to)-(white|black|zinc|red|amber|emerald|green|sky|blue)(-[0-9]+)?\b' apps/web/app/'(app)'/hoy
 ```
 
-`bg-black/50` en el fondo de un `<dialog>` es la única excepción: oscurece lo de atrás en los dos modos.
+Excepciones a propósito, las únicas con color de la paleta:
+
+- `bg-black/50` (o `/40`) en el fondo de un `<dialog>` o un modal: oscurece lo de atrás en los dos modos.
+- `bg-white [color-scheme:light]` en el `iframe` del email (`/inbox/[id]`): el HTML de afuera trae sus colores, casi siempre texto oscuro sin fondo, y sobre un fondo oscuro no se leería.

@@ -2,7 +2,15 @@ import * as s from "@job-search-os/db/schema";
 import { expect, test } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { axeSummary } from "./axe-helpers";
-import { createEvaluation, createJob, deleteJob, login, ownerDb } from "./helpers";
+import {
+  createEvaluation,
+  createInboundEmail,
+  createJob,
+  deleteInboundEmails,
+  deleteJob,
+  login,
+  ownerDb,
+} from "./helpers";
 
 /**
  * Flujo 86 (N3): axe en modo oscuro de las pantallas ya migradas a los tokens (docs/ux/tokens.md).
@@ -15,7 +23,7 @@ const VIEWPORTS = [
   { name: "1280x800", width: 1280, height: 800 },
 ] as const;
 
-type Seeded = { jobId: string };
+type Seeded = { jobId: string; emailId: string };
 
 /** Ruta fija, o función que la arma con lo sembrado (el detalle necesita una oferta). */
 const ROUTES: Array<{ label: string; path: string | ((ids: Seeded) => string) }> = [
@@ -26,11 +34,13 @@ const ROUTES: Array<{ label: string; path: string | ((ids: Seeded) => string) }>
   { label: "/encaje", path: "/encaje" },
   { label: "/market", path: "/market" },
   { label: "/applications", path: "/applications" },
+  { label: "/inbox", path: "/inbox" },
+  { label: "/inbox/[id]", path: (ids) => `/inbox/${ids.emailId}` },
 ];
 
 test.describe("Flujo 86: axe en oscuro", () => {
   const tag = Date.now();
-  const seeded: Seeded = { jobId: "" };
+  const seeded: Seeded = { jobId: "", emailId: "" };
 
   test.beforeAll(async () => {
     // Con riesgos y bloqueadores: el detalle muestra sus avisos ámbar y rojo, lo que más arriesga contraste
@@ -54,10 +64,16 @@ test.describe("Flujo 86: axe en oscuro", () => {
     } finally {
       await close();
     }
+    const email = await createInboundEmail({
+      subject: `Email ficticio oscuro ${tag}`,
+      text: "Cuerpo ficticio para el flujo de axe en oscuro.",
+    });
+    seeded.emailId = email.id;
   });
 
   test.afterAll(async () => {
     await deleteJob(seeded.jobId).catch(() => {});
+    await deleteInboundEmails(`Email ficticio oscuro ${tag}`).catch(() => {});
   });
 
   for (const viewport of VIEWPORTS) {

@@ -31,13 +31,13 @@ export function UndoNotice({
   return (
     <div role="status" aria-live="polite">
       {notice ? (
-        <p className="flex flex-wrap items-center gap-3 rounded-md bg-zinc-900 px-3 py-2 text-xs text-white">
+        <p className="flex flex-wrap items-center gap-3 rounded-control bg-brand px-3 py-2 text-xs text-brand-contrast">
           <span>{notice.message}</span>
           <button
             type="button"
             disabled={pending}
             onClick={onUndo}
-            className="rounded border border-white/60 px-2 py-1 font-medium"
+            className="rounded-control border border-surface/60 px-2 py-1 font-medium"
           >
             Deshacer
           </button>
