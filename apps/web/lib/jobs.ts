@@ -235,6 +235,9 @@ export async function listJobs(
       .orderBy(
         sql`${evaluatingSql()} desc`,
         sql`${latest.score} desc nulls last`,
+        // A igual score, menos riesgos primero (JS-054): con las penalizaciones de decide()
+        // corregidas, los riesgos son el único canal de viabilidad. Sin evaluación cuenta 0.
+        sql`coalesce(cardinality(${latest.riesgos}), 0) asc`,
         desc(s.jobs.firstSeenAt),
         // Desempate estable: sin esto, dos ofertas con el mismo score y la misma fecha pueden
         // cambiar de lugar entre consultas y "siguiente" saltea o repite (JS-061).
