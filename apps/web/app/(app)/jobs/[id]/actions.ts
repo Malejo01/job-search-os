@@ -1,12 +1,6 @@
 "use server";
 
-import {
-  HUMAN_VERDICTS,
-  JOB_EVENTS,
-  JOB_STATUSES,
-  type JobEvent,
-  type JobStatus,
-} from "@job-search-os/pipeline";
+import { HUMAN_VERDICTS, JOB_STATUSES, type JobStatus } from "@job-search-os/pipeline";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -18,12 +12,11 @@ import { dismissDuplicate, mergeDuplicate } from "@/lib/duplicates";
 import { evaluateInBackgroundOrExplain } from "@/lib/evaluate-now";
 import { isUuid } from "@/lib/ids";
 import {
-  applyJobEvent,
+  changeJobStatus,
   correctJobStatus,
   EvaluationNotFoundError,
   HUMAN_NOTE_MAX,
   HumanScoreError,
-  MANUAL_EVENTS,
   saveHumanNote,
   saveHumanScore,
   saveHumanVerdict,
@@ -35,21 +28,14 @@ import { requireActiveUserId } from "@/lib/session";
 export async function changeStatusAction(formData: FormData): Promise<void> {
   const userId = await requireActiveUserId();
   const jobId = String(formData.get("jobId") ?? "");
-  const event = String(formData.get("event") ?? "") as JobEvent;
-  if (
-    !jobId ||
-    !(JOB_EVENTS as readonly string[]).includes(event) ||
-    !MANUAL_EVENTS.includes(event)
-  ) {
-    redirect(`/jobs/${jobId}?error=evento`);
-  }
-  try {
-    await applyJobEvent(userId, jobId, event);
-  } catch (e) {
-    if (e instanceof Error && e.name === "InvalidTransitionError") {
-      redirect(`/jobs/${jobId}?error=transicion`);
-    }
-    throw e;
+  const event = String(formData.get("event") ?? "");
+  if (!jobId) redirect(`/jobs/${jobId}?error=evento`);
+  // Mismo núcleo que las tarjetas del asistente (AG-5); acá sin estado esperado
+  const result = await changeJobStatus(userId, jobId, event);
+  if (!result.ok) {
+    if (result.code === "evento") redirect(`/jobs/${jobId}?error=evento`);
+    if (result.code === "transicion") redirect(`/jobs/${jobId}?error=transicion`);
+    throw new Error("oferta inexistente");
   }
   revalidatePath(`/jobs/${jobId}`);
   revalidatePath("/jobs");

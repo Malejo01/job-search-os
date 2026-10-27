@@ -26,16 +26,34 @@ export const AGENT_PROPOSE_TOOLS = [
   "propose_target_roles",
 ] as const;
 
+/**
+ * Acciones (AG-5): tampoco escriben. Devuelven una tarjeta-formulario que, con el clic de la
+ * persona, llama a la Server Action de siempre (cambiar el estado de una oferta, cargar un aviso).
+ */
+export const AGENT_ACTION_TOOLS = ["propose_status_change", "propose_new_job"] as const;
+
 export type AgentReadTool = (typeof AGENT_READ_TOOLS)[number];
 export type AgentProposeTool = (typeof AGENT_PROPOSE_TOOLS)[number];
-export type AgentToolName = AgentReadTool | AgentProposeTool;
+export type AgentActionTool = (typeof AGENT_ACTION_TOOLS)[number];
+export type AgentToolName = AgentReadTool | AgentProposeTool | AgentActionTool;
 
+/** Propuestas de formulario (una diferencia antes/después). */
 export function isProposeTool(name: string): name is AgentProposeTool {
   return (AGENT_PROPOSE_TOOLS as readonly string[]).includes(name);
 }
 
+/** Propuestas de acción (tarjeta-formulario). */
+export function isActionTool(name: string): name is AgentActionTool {
+  return (AGENT_ACTION_TOOLS as readonly string[]).includes(name);
+}
+
+/** Todo lo que cuenta para «una propuesta por turno»: de formulario o de acción. */
+export function isProposalTool(name: string): name is AgentProposeTool | AgentActionTool {
+  return isProposeTool(name) || isActionTool(name);
+}
+
 export function isAgentTool(name: string): name is AgentToolName {
-  return isProposeTool(name) || (AGENT_READ_TOOLS as readonly string[]).includes(name);
+  return isProposalTool(name) || (AGENT_READ_TOOLS as readonly string[]).includes(name);
 }
 
 const DESTINATION_BY_TOOL: Record<AgentProposeTool, ProposalDestination> = {
@@ -181,5 +199,5 @@ export function activeToolsFor(state: TurnState): AgentToolName[] {
   if (state.turn >= AGENT_LIMITS.maxTurnsPerConversation) return [];
   if (state.step >= AGENT_LIMITS.maxStepsPerTurn - 1) return [];
   if (state.proposalsThisTurn >= 1) return [...AGENT_READ_TOOLS];
-  return [...AGENT_READ_TOOLS, ...AGENT_PROPOSE_TOOLS];
+  return [...AGENT_READ_TOOLS, ...AGENT_PROPOSE_TOOLS, ...AGENT_ACTION_TOOLS];
 }

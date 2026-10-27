@@ -93,6 +93,7 @@ describe("parseAssistantRequest", () => {
       messages: [{ role: "user", text: "hola, quiero cambiar mi país" }],
       screen: null,
       outcomes: [],
+      actions: [],
     });
   });
 
