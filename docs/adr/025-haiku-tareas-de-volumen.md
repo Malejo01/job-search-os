@@ -51,3 +51,20 @@ errores de salida estructurada y sin regresión en ubicación ni idioma. Ninguna
 ## Cuándo revisarlo
 - Con una versión nueva del prompt de `evaluate_job`: medir Haiku 5.5 de nuevo, con el mismo criterio.
 - Si cambian los precios o los créditos disponibles, o si sale un modelo chico nuevo.
+
+## Ampliación (C-26, 27/10): formato arreglado, prompt, thinking y Sonnet
+- **La salida inválida era nuestra.** `@ai-sdk/anthropic` no impone `maxLength`/`maxItems` del JSON
+  Schema, pero zod los validaba igual. Ahora el esquema que viaja al modelo no lleva esos límites, el
+  código recorta y después corre la validación estricta de siempre. Con eso, Haiku 5.5 da 0 salidas
+  inválidas. Un JSON cortado por `max_tokens` queda como `no_object:finish:length`.
+- **Con thinking, `max_tokens` tiene que ser de 8192 o más.** Con 2048, el thinking se comía el
+  presupuesto y el JSON salía cortado.
+- **Medición con un split fijo dev/test** (se afina en dev; test no se mira hasta el final):
+  - **Prompt:** las variantes que mejoraban dev (rúbrica en orden fijo, ejemplos inventados,
+    contrato de salida y reglas primero) no mejoraron test. Era sobreajuste.
+  - **Thinking de Haiku 5.5** (low, medium, high): en test, la acción quedó unos 10 puntos debajo
+    de Gemini y la disciplina, entre 11 y 17. En dev, «high» igualaba a Gemini.
+  - **Sonnet 5.5, thinking bajo:** pasa disciplina, descartes y ubicación, y queda a un caso de 18 del
+    umbral de acción. Cuesta alrededor del doble que Gemini Flash por evaluación.
+- **La decisión no cambia:** Gemini sigue como principal de `evaluate_job`. Sonnet 5.5 con thinking
+  bajo es la alternativa más cercana si se quiere usar los créditos de Anthropic.
