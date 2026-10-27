@@ -77,6 +77,8 @@ function demoProfileChange(message: string): Change | null {
 }
 
 const APPLIED_RE = /(?:ya )?me postul[ée]/iu;
+/** «no me postulé», «todavía no me postulé»: no es un hecho, no se propone nada. */
+const NOT_APPLIED_RE = /\b(?:no|todav[íi]a)\b[^.?!]{0,20}me postul/iu;
 // El título va hasta el último «de» (como «Analista de Datos de Empresa X»): es solo para el demo
 const NEW_JOB_RE = /(agreg[áa] la oferta (.{3,80})) de (.{1,80}?)(?=[.,:;!?]|$)/iu;
 const URL_RE = /https?:\/\/[^\s<>"]{1,300}/u;
@@ -89,7 +91,7 @@ type DemoAction = { toolName: string; input: Record<string, unknown> };
 function demoAction(message: string, system: string): DemoAction | null {
   const applied = APPLIED_RE.exec(message);
   const jobId = SCREEN_JOB_RE.exec(system)?.[1];
-  if (applied && jobId) {
+  if (applied && jobId && !NOT_APPLIED_RE.test(message)) {
     return {
       toolName: "propose_status_change",
       input: { job_id: jobId, event: "apply", source: { from: "message", quote: applied[0] } },

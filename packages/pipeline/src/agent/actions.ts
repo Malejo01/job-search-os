@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { MAX_JOB_FIELD_CHARS } from "../manual-paste";
 import { parseManualUrl } from "../manual-url";
+import { foldText } from "../normalize/text";
 import { err, ok, type Result } from "../result";
 import {
   canTransition,
@@ -12,15 +13,16 @@ import {
 } from "../status";
 import { CV_OMITTED_MARKER, looksLikeCv } from "./cv-detect";
 import type { AgentMessage } from "./history";
-import { isGrounded, normalizeForQuote, type GroundingSources } from "./proposal";
+import { hasWord, isGrounded } from "./proposal";
+import { hasUnsafeChars } from "./text-safety";
 import { groundingSchema, type AgentActionTool } from "./tools";
 import type { DroppedReason, Grounding } from "./types";
 
 /**
  * Propuestas de acción del asistente (AG-5). Como las de formulario, NO escriben: devuelven una
- * tarjeta-formulario que la persona confirma con un clic, y ese clic llama a la Server Action de
- * siempre (`changeStatusAction` del detalle o `createManualJobAction` del alta manual). ADR-004:
- * «aplicada» solo marca el estado; el sistema nunca postula por la persona.
+ * tarjeta-formulario que la persona confirma con un clic, y ese clic llama a una Server Action que
+ * comparte el núcleo con la de siempre (cambiar el estado desde el detalle, el alta manual).
+ * ADR-004: «aplicada» solo marca el estado; el sistema nunca postula por la persona.
  */
 
 export const JOB_MODALITIES = ["remoto", "hibrido", "presencial", "desconocida"] as const;
@@ -36,8 +38,8 @@ export const proposeStatusChangeInput = z
 
 export const proposeNewJobInput = z
   .object({
-    title: z.string().min(3).max(MAX_JOB_FIELD_CHARS),
-    company: z.string().min(1).max(MAX_JOB_FIELD_CHARS),
+    title: z.string().trim().min(3).max(MAX_JOB_FIELD_CHARS),
+    company: z.string().trim().min(2).max(MAX_JOB_FIELD_CHARS),
     url: z.string().max(2000).optional(),
     location: z.string().max(MAX_JOB_FIELD_CHARS).optional(),
     modality: z.enum(JOB_MODALITIES).optional(),
@@ -62,6 +64,8 @@ export type StatusChangeAction = {
   fromLabel: string;
   toLabel: string;
   source: Grounding;
+  /** La oración completa del mensaje de la persona que contiene la cita (la tarjeta muestra esto). */
+  sentence: string;
 };
 
 export type NewJobAction = {
@@ -96,8 +100,11 @@ export type ActionJob = {
 
 export type StatusChangeContext = {
   job: ActionJob | null;
-  /** Fuentes de fundamento de la persona (`groundingSourcesFrom`). */
-  sources: GroundingSources;
+  /**
+   * El mensaje de la persona de ESTE turno. Un cambio de estado solo se fundamenta en lo que la
+   * persona acaba de decir, no en algo de hace tres turnos.
+   */
+  lastUserMessage: string;
   statusLabels?: Readonly<Record<string, string>>;
 };
 
@@ -116,57 +123,154 @@ export function actionSourcesFrom(messages: readonly AgentMessage[]): NewJobCont
   };
 }
 
-/**
- * Palabras que nombran cada evento, ya plegadas (sin acentos, minúsculas). Se buscan al comienzo de
- * una palabra, así «postul» vale para «postulé» y «postulación». «oferta» sola no alcanza para
- * `offer`: «esta oferta» aparece en cualquier pedido sobre una oferta.
- */
-const EVENT_WORDS: Record<ManualJobEvent, readonly string[]> = {
-  apply: [
-    "postul",
-    "aplique",
-    "aplicado",
-    "me anote",
-    "mande el cv",
-    "mande mi cv",
-    "envie el cv",
-    "envie mi cv",
-  ],
-  interview: ["entrevista"],
-  offer: [
-    "me ofrecieron",
-    "me hicieron una oferta",
-    "me hicieron una propuesta",
-    "recibi una oferta",
-    "recibi la oferta",
-    "me llego una oferta",
-    "me llego la oferta",
-    "me llego una propuesta",
-  ],
-  reject: ["rechaz", "no quede", "no avance", "no avanzo", "no sigo en el proceso", "me bocharon"],
-  auto_reject: ["rechaz", "automatic", "ni me leyeron"],
-  discard: ["descart", "no me interesa", "no me sirve"],
-  close: ["cerr", "ya no esta", "la bajaron", "dieron de baja"],
-};
+// --- Fundamento de un cambio de estado ---------------------------------------------------------
 
-const escapeRegExp = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-/** ¿La cita (ya normalizada) nombra el evento? */
-export function eventInQuote(event: ManualJobEvent, quote: string): boolean {
-  const text = normalizeForQuote(quote);
-  return EVENT_WORDS[event].some((w) =>
-    new RegExp(`(?<![\\p{L}\\p{N}])${escapeRegExp(w)}`, "u").test(text),
-  );
+/** Palabras sin acentos, en minúscula. `keepSi` conserva «sí» (afirmación) distinto de «si». */
+function tokens(text: string): string[] {
+  const out: string[] = [];
+  for (const raw of text.toLowerCase().split(/[^\p{L}\p{N}]+/u)) {
+    if (raw === "") continue;
+    out.push(raw === "sí" ? "sí" : foldText(raw));
+  }
+  return out;
 }
 
-const FORMAT_CHARS = /\p{Cf}/u;
+/** Una frase clave: cada posición admite una o varias palabras (ya plegadas). */
+type Phrase = readonly (readonly string[])[];
+const p = (...parts: string[]): Phrase => parts.map((part) => part.split("|"));
 
-function hasControl(text: string): boolean {
-  for (const ch of text) {
-    const code = ch.codePointAt(0)!;
-    if (code < 0x20 || code === 0x7f) return true;
+/**
+ * Frases de hecho consumado, en primera persona, por evento. Palabras enteras: «postule» no
+ * matchea «postulantes» ni «postularme». Ni «oferta» ni «me ofrecieron» sueltos alcanzan para
+ * `offer` («esta oferta» aparece en cualquier pedido sobre una oferta).
+ */
+const EVENT_PHRASES: Record<ManualJobEvent, readonly Phrase[]> = {
+  apply: [
+    p("me", "postule"),
+    p("postule"),
+    p("aplique"),
+    p("me", "anote"),
+    p("mande|envie", "el|mi", "cv|curriculum"),
+    p("les", "mande|envie", "el|mi", "cv|curriculum"),
+  ],
+  interview: [
+    p("entrevista|entrevistas"),
+    p("me", "citaron"),
+    p("segunda", "instancia"),
+    p("siguiente", "etapa"),
+    p("me", "llamaron", "para"),
+  ],
+  offer: [
+    p("me", "ofrecieron", "el|un", "puesto|trabajo"),
+    p("me", "hicieron", "la|una", "oferta|propuesta"),
+    p("me", "mandaron|llego", "la|una", "propuesta|oferta"),
+    p("acepte", "la", "oferta|propuesta"),
+    p("me", "dieron", "el", "puesto"),
+  ],
+  reject: [
+    p("me", "rechazaron"),
+    p("no", "quede"),
+    p("me", "bocharon"),
+    p("me", "rebotaron"),
+    p("no", "avance"),
+    p("no", "sigo", "en", "el", "proceso"),
+  ],
+  auto_reject: [
+    p("rechazo", "automatico"),
+    p("mail", "automatico", "de", "rechazo"),
+    p("me", "rechazaron", "automaticamente"),
+  ],
+  discard: [
+    p("la", "descarte"),
+    p("descartala"),
+    p("no", "me", "interesa", "esta|la", "oferta"),
+    p("no", "me", "sirve"),
+  ],
+  close: [
+    p("cerraron", "la|el", "oferta|busqueda|aviso"),
+    p("ya", "no", "esta", "publicada"),
+    p("ya", "no", "esta", "el", "aviso"),
+    p("la", "bajaron"),
+  ],
+};
+
+/** Palabras que, justo antes de la frase clave, la vuelven negada, futura o hipotética. */
+const NEGATORS = new Set([
+  "no",
+  "nunca",
+  "ni",
+  "sin",
+  "todavia",
+  "quiero",
+  "queria",
+  "quisiera",
+  "deberia",
+  "conviene",
+  "si", // condicional («si me postulo…»); «sí» con acento es afirmación y no cuenta
+  "capaz",
+]);
+const NEGATOR_PAIRS = [
+  ["voy", "a"],
+  ["vamos", "a"],
+];
+const NEGATION_WINDOW = 3;
+
+function matchAt(words: readonly string[], at: number, phrase: Phrase): boolean {
+  return phrase.every((options, k) => options.includes(words[at + k] ?? ""));
+}
+
+function negatedBefore(words: readonly string[], at: number): boolean {
+  const window = words.slice(Math.max(0, at - NEGATION_WINDOW), at);
+  if (window.some((w) => NEGATORS.has(w))) return true;
+  return NEGATOR_PAIRS.some(([a, b]) => window.some((w, i) => w === a && window[i + 1] === b));
+}
+
+/** Oraciones del mensaje original, con su puntuación (la pregunta se reconoce por «¿» o «?»). */
+function sentences(message: string): string[] {
+  return message
+    .split(/(?<=[.!?;\n])|(?=[¿¡])/u)
+    .map((s) => s.trim())
+    .filter((s) => s !== "");
+}
+
+function indexOfSeq(haystack: readonly string[], needle: readonly string[]): number {
+  if (needle.length === 0) return -1;
+  for (let i = 0; i + needle.length <= haystack.length; i++) {
+    if (needle.every((w, k) => haystack[i + k] === w)) return i;
   }
-  return FORMAT_CHARS.test(text);
+  return -1;
+}
+
+/**
+ * ¿La cita del modelo respalda el evento en el mensaje de la persona? Tiene que estar en una oración
+ * que no sea pregunta, contener una frase clave del evento y esa frase no puede venir negada,
+ * futura ni hipotética. Devuelve la oración original para mostrarla.
+ */
+export function eventEvidence(
+  event: ManualJobEvent,
+  quote: string,
+  message: string,
+): { sentence: string } | null {
+  if (hasUnsafeChars(quote)) return null;
+  const q = tokens(quote).map((w) => (w === "sí" ? "si" : w));
+  if (q.length < 2 || q.join(" ").length < 8) return null;
+  for (const sentence of sentences(message)) {
+    const words = tokens(sentence);
+    const plain = words.map((w) => (w === "sí" ? "si" : w));
+    const start = indexOfSeq(plain, q);
+    if (start < 0) continue;
+    if (sentence.startsWith("¿") || sentence.endsWith("?")) return null;
+    for (let i = start; i < start + q.length; i++) {
+      const phrase = EVENT_PHRASES[event].find(
+        (ph) => i + ph.length <= start + q.length && matchAt(plain, i, ph),
+      );
+      if (!phrase) continue;
+      if (negatedBefore(words, i)) return null;
+      return { sentence: sentence.slice(0, 300) };
+    }
+    return null;
+  }
+  return null;
 }
 
 const fail = (code: ActionError, dropped: Dropped[] = []) => err<ActionFailure>({ code, dropped });
@@ -184,13 +288,9 @@ export function buildStatusChangeAction(
   if (!ctx.job.events.includes(event) || !canTransition(ctx.job.status, event)) {
     return fail("invalido", [{ field: "event", reason: "invalido" }]);
   }
-  if (
-    source.from !== "message" ||
-    !isGrounded(source, ctx.sources) ||
-    !eventInQuote(event, source.quote)
-  ) {
-    return fail("sin_fundamento", [{ field: "event", reason: "sin_fundamento" }]);
-  }
+  const evidence =
+    source.from === "message" ? eventEvidence(event, source.quote, ctx.lastUserMessage) : null;
+  if (!evidence) return fail("sin_fundamento", [{ field: "event", reason: "sin_fundamento" }]);
   const label = (status: string) => ctx.statusLabels?.[status] ?? status;
   const to = transition(ctx.job.status, event);
   return ok({
@@ -202,15 +302,52 @@ export function buildStatusChangeAction(
     fromLabel: label(ctx.job.status),
     toLabel: label(to),
     source,
+    sentence: evidence.sentence,
   });
 }
 
+// --- Alta de un aviso ---------------------------------------------------------------------------
+
 /** Palabras de cada modalidad (plegadas) que la persona tiene que haber escrito. */
 const MODALITY_WORDS: Record<Exclude<JobModality, "desconocida">, readonly string[]> = {
-  remoto: ["remot"],
-  hibrido: ["hibrid", "hybrid"],
-  presencial: ["presencial", "on-site", "onsite", "en oficina"],
+  remoto: ["remoto", "remota", "remote"],
+  hibrido: ["hibrido", "hibrida", "hybrid"],
+  presencial: ["presencial", "onsite"],
 };
+
+const URL_IN_TEXT = /https?:\/\/[^\s<>"'«»]{1,2000}/giu;
+
+/** URLs que escribió la persona, ya normalizadas por `parseManualUrl` (nunca plegadas). */
+function urlsIn(texts: readonly string[]): Set<string> {
+  const out = new Set<string>();
+  for (const text of texts) {
+    for (const m of text.slice(0, 20_000).matchAll(URL_IN_TEXT)) {
+      const parsed = parseManualUrl(m[0].replace(/[.,;:!?)\]]+$/u, ""));
+      if (parsed.ok && parsed.url) out.add(parsed.url);
+    }
+  }
+  return out;
+}
+
+/** Un email, un teléfono o un perfil de LinkedIn no son un título, una empresa ni una ubicación. */
+function looksLikeContact(value: string): boolean {
+  if (value.includes("@") || /linkedin\.com\/in\//iu.test(value)) return true;
+  const digits = value.replace(/\D/gu, "");
+  return digits.length >= 8 && digits.length <= 15 && /^[+\d\s().-]+$/u.test(value.trim());
+}
+
+/** Plegado sin colapsar espacios: lo que escribió la persona, sin acentos ni mayúsculas. */
+const fold = (text: string) => foldText(text);
+
+/** ¿La modalidad aparece afirmada (no «remoto no», «no es remoto», «sin remoto») en el texto? */
+function modalityStated(modality: Exclude<JobModality, "desconocida">, text: string): boolean {
+  const words = tokens(text).map((w) => (w === "sí" ? "si" : w));
+  return words.some((w, i) => {
+    if (!MODALITY_WORDS[modality].includes(w)) return false;
+    const before = words.slice(Math.max(0, i - 2), i);
+    return words[i + 1] !== "no" && !before.some((b) => b === "no" || b === "sin" || b === "nunca");
+  });
+}
 
 export function buildNewJobAction(
   input: unknown,
@@ -219,16 +356,17 @@ export function buildNewJobAction(
   const parsed = proposeNewJobInput.safeParse(input);
   if (!parsed.success) return fail("entrada_invalida");
   const v = parsed.data;
-  const texts = ctx.userTexts.map(normalizeForQuote);
+  const texts = ctx.userTexts.map(fold);
   const literal = (value: string): boolean => {
-    const needle = normalizeForQuote(value);
-    return needle !== "" && texts.some((t) => t.includes(needle));
+    const needle = fold(value);
+    return needle.trim() !== "" && texts.some((t) => hasWord(t, needle));
   };
 
-  const dropped: Dropped[] = [];
   for (const field of ["title", "company"] as const) {
-    const value = v[field].trim();
-    if (hasControl(value)) return fail("invalido", [{ field, reason: "invalido" }]);
+    const value = v[field];
+    if (hasUnsafeChars(value) || looksLikeContact(value)) {
+      return fail("invalido", [{ field, reason: "invalido" }]);
+    }
     if (!literal(value)) return fail("sin_fundamento", [{ field, reason: "sin_fundamento" }]);
   }
   if (
@@ -238,13 +376,15 @@ export function buildNewJobAction(
     return fail("sin_fundamento", [{ field: "source", reason: "sin_fundamento" }]);
   }
 
+  const dropped: Dropped[] = [];
   let url: string | null = null;
   if (v.url !== undefined && v.url.trim() !== "") {
     const raw = v.url.trim();
     const checked = parseManualUrl(raw);
-    if (hasControl(raw) || !checked.ok || checked.url === null) {
+    if (hasUnsafeChars(raw) || !checked.ok || checked.url === null) {
       dropped.push({ field: "url", reason: "invalido" });
-    } else if (!literal(raw)) {
+    } else if (!urlsIn(ctx.userTexts).has(checked.url)) {
+      // Exacta: ni mayúsculas en el path ni un dominio parecido (exámple.com) pasan
       dropped.push({ field: "url", reason: "sin_fundamento" });
     } else {
       url = checked.url;
@@ -254,24 +394,24 @@ export function buildNewJobAction(
   let location: string | null = null;
   if (v.location !== undefined && v.location.trim() !== "") {
     const raw = v.location.trim();
-    if (hasControl(raw)) dropped.push({ field: "location", reason: "invalido" });
-    else if (!literal(raw)) dropped.push({ field: "location", reason: "sin_fundamento" });
+    if (hasUnsafeChars(raw) || looksLikeContact(raw)) {
+      dropped.push({ field: "location", reason: "invalido" });
+    } else if (!literal(raw)) dropped.push({ field: "location", reason: "sin_fundamento" });
     else location = raw;
   }
 
   let modality: JobModality = "desconocida";
-  if (v.modality && v.modality !== "desconocida") {
-    const words = MODALITY_WORDS[v.modality];
-    const said = texts.some((t) =>
-      words.some((w) => new RegExp(`(?<![\\p{L}\\p{N}])${escapeRegExp(w)}`, "u").test(t)),
-    );
-    if (said) modality = v.modality;
+  const asked = v.modality;
+  if (asked && asked !== "desconocida") {
+    // Solo del mensaje que trae el título: la modalidad de otro aviso no cuenta
+    const titled = ctx.userTexts.filter((t) => hasWord(fold(t), fold(v.title)));
+    if (titled.some((t) => modalityStated(asked, t))) modality = asked;
     else dropped.push({ field: "modality", reason: "sin_fundamento" });
   }
 
   return ok({
     kind: "new_job",
-    fields: { title: v.title.trim(), company: v.company.trim(), url, location, modality },
+    fields: { title: v.title, company: v.company, url, location, modality },
     source: v.source,
     dropped,
   });
@@ -294,22 +434,30 @@ export function buildActionProposal(
   }
 }
 
-/** Lo único de una acción que va a un log: tipo, evento (un enum) y campos. Nunca títulos ni citas. */
+const projectDropped = (dropped: readonly Dropped[]): Dropped[] =>
+  dropped.map((d) => ({ field: d.field, reason: d.reason }));
+
+/**
+ * Lo único de una acción que va a un log: tipo, evento (un enum), nombres de campo y motivos.
+ * Nunca títulos, empresas, links ni citas.
+ */
 export function actionLogMeta(a: ActionProposal | ActionFailure): {
   kind?: ActionProposal["kind"];
   event?: ManualJobEvent;
+  code?: ActionError;
   fields: string[];
   dropped: Dropped[];
 } {
   if ("kind" in a) {
-    if (a.kind === "status_change")
+    if (a.kind === "status_change") {
       return { kind: a.kind, event: a.event, fields: ["event"], dropped: [] };
+    }
     const fields = (Object.keys(a.fields) as (keyof NewJobAction["fields"])[]).filter(
       (k) => a.fields[k] !== null && a.fields[k] !== "desconocida",
     );
-    return { kind: a.kind, fields, dropped: [...a.dropped] };
+    return { kind: a.kind, fields, dropped: projectDropped(a.dropped) };
   }
-  return { fields: [], dropped: [...a.dropped] };
+  return { code: a.code, fields: [], dropped: projectDropped(a.dropped) };
 }
 
 /** Resultado de una tool de acción: la tarjeta para la app y un resumen sin valores para el modelo. */
@@ -333,5 +481,9 @@ export function actionModelText(out: unknown): string {
       nota: "La persona la revisa en una tarjeta y decide si la confirma. Todavía no se hizo nada.",
     });
   }
-  return JSON.stringify({ tarjeta_lista: false, motivo: out.code, descartados: out.dropped });
+  return JSON.stringify({
+    tarjeta_lista: false,
+    motivo: out.code,
+    descartados: projectDropped(out.dropped),
+  });
 }

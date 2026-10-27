@@ -2,8 +2,10 @@ import { z } from "zod";
 import { err, ok, type Result } from "../result";
 import type { AgentLink } from "./limits";
 import {
+  actionOutcomesSchema,
   MAX_HISTORY_MESSAGES,
   proposalOutcomesSchema,
+  type ActionOutcome,
   type AgentMessage,
   type ProposalOutcome,
 } from "./history";
@@ -103,6 +105,7 @@ const requestSchema = z
       .max(MAX_HISTORY_MESSAGES),
     screen: z.unknown().optional(),
     outcomes: proposalOutcomesSchema.optional(),
+    actions: actionOutcomesSchema.optional(),
   })
   .strict();
 
@@ -114,6 +117,8 @@ export type AssistantRequest = {
   /** Pantalla actual; si no es una conocida, null (el asistente trabaja sin contexto). */
   screen: ScreenContext | null;
   outcomes: ProposalOutcome[];
+  /** Acciones anteriores (AG-5) y qué hizo la persona con cada una. */
+  actions: ActionOutcome[];
 };
 
 /**
@@ -123,7 +128,7 @@ export type AssistantRequest = {
 export function parseAssistantRequest(raw: unknown): Result<AssistantRequest, "cuerpo_invalido"> {
   const parsed = requestSchema.safeParse(raw);
   if (!parsed.success) return err("cuerpo_invalido");
-  const { conversationId, messages, screen, outcomes } = parsed.data;
+  const { conversationId, messages, screen, outcomes, actions } = parsed.data;
   if (conversationId != null && !isConversationId(conversationId)) return err("cuerpo_invalido");
   if (messages.at(-1)?.role !== "user") return err("cuerpo_invalido");
   const ctx = screen == null ? null : parseScreenContext(screen);
@@ -132,6 +137,7 @@ export function parseAssistantRequest(raw: unknown): Result<AssistantRequest, "c
     messages,
     screen: ctx?.ok ? ctx.value : null,
     outcomes: outcomes ?? [],
+    actions: actions ?? [],
   });
 }
 

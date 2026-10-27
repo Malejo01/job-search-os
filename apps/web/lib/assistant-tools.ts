@@ -302,12 +302,17 @@ const ACTION_DESCRIPTIONS: Record<AgentActionTool, string> = {
     "Propone cargar un aviso nuevo con título, empresa y, si están, link, ubicación y modalidad. NO escribe nada: arma una tarjeta-formulario editable que la persona envía si quiere. Cada valor tiene que estar escrito literal en los mensajes de la persona. No mandes la descripción del aviso: la persona la pega en la tarjeta. Una sola propuesta por turno.",
 };
 
+/**
+ * Contexto de las acciones: el mensaje de la persona de ESTE turno (un cambio de estado se
+ * fundamenta solo en eso) y sus textos para prellenar un aviso (`actionSourcesFrom`).
+ */
+export type AssistantActionContext = { lastUserMessage: string; newJob: NewJobContext };
+
 type ActionInput<T extends AgentActionTool> = z.infer<(typeof actionInputSchemas)[T]>;
 
 function actionTools(
   userId: string,
-  sources: GroundingSources,
-  newJob: NewJobContext,
+  ctx: AssistantActionContext,
 ): Record<AgentActionTool, AgentTool> {
   return {
     propose_status_change: {
@@ -328,7 +333,7 @@ function actionTools(
                   events: job.events,
                 }
               : null,
-            sources,
+            lastUserMessage: ctx.lastUserMessage,
             statusLabels: STATUS_LABELS,
           },
         });
@@ -342,7 +347,7 @@ function actionTools(
       description: ACTION_DESCRIPTIONS.propose_new_job,
       inputSchema: actionInputSchemas.propose_new_job,
       execute: async (input): Promise<ActionOutput> => {
-        const built = buildActionProposal("propose_new_job", input, { newJob });
+        const built = buildActionProposal("propose_new_job", input, { newJob: ctx.newJob });
         return built.ok
           ? { ok: true, action: built.value }
           : { ok: false, code: built.error.code, dropped: built.error.dropped };
@@ -357,8 +362,9 @@ function actionTools(
  * (`groundingSourcesFrom` sobre el historial saneado y el perfil): nunca el resumen ni las
  * respuestas del asistente.
  *
- * `newJob` son los textos de la persona para prellenar un aviso (`actionSourcesFrom`): ahí un aviso
- * pegado sí cuenta, porque los datos son del aviso y no de la persona.
+ * `actions.newJob` son los textos de la persona para prellenar un aviso (`actionSourcesFrom`): ahí
+ * un aviso pegado sí cuenta, porque los datos son del aviso y no de la persona. Un cambio de estado
+ * se fundamenta solo en `actions.lastUserMessage`.
  *
  * Una propuesta que no se pudo armar (sin fundamento, sin cambios) igual cuenta como la propuesta
  * del turno: así el modelo no puede probar citas hasta dar con una que pase. Las acciones (AG-5)
@@ -367,13 +373,13 @@ function actionTools(
 export function assistantTools(
   userId: string,
   sources: GroundingSources,
-  newJob: NewJobContext,
+  actions: AssistantActionContext,
 ): Record<string, AgentTool> {
   const read = readTools(userId);
   // Orden estable: lectura primero, como `activeToolsFor`
   return Object.fromEntries([
     ...AGENT_READ_TOOLS.map((name) => [name, read[name]] as const),
     ...Object.entries(proposeTools(userId, sources)),
-    ...Object.entries(actionTools(userId, sources, newJob)),
+    ...Object.entries(actionTools(userId, actions)),
   ]);
 }

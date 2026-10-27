@@ -332,14 +332,19 @@ async function runTurn(
   }
 
   // 5. Lo que va al modelo: el resumen como datos, los mensajes recientes y las tools
-  const { summary, recent } = summarizeHistory(messages, request.outcomes);
+  const { summary, recent } = summarizeHistory(messages, request.outcomes, {
+    actions: request.actions,
+  });
   const modelMessages: AgentChatMessage[] = modelMessagesFrom(summary, recent);
   const profile = await getProfileForEdit(userId);
   const sources = groundingSourcesFrom(
     messages,
     [profile?.summary ?? "", profile?.city ?? ""].filter((t) => t.trim() !== ""),
   );
-  const tools = assistantTools(userId, sources, actionSourcesFrom(messages));
+  const tools = assistantTools(userId, sources, {
+    lastUserMessage: messages.at(-1)?.text ?? "",
+    newJob: actionSourcesFrom(messages),
+  });
 
   for await (const event of streamAgent(
     ASSISTANT_TASK,

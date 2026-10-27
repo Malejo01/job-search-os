@@ -11,12 +11,16 @@ export function SubmitButton({
   children,
   pendingLabel,
   className,
+  pending: pendingOverride,
 }: {
   children: ReactNode;
   pendingLabel: string;
   className?: string;
+  /** Para formularios que se envían a mano (onSubmit + transición): `useFormStatus` no se entera. */
+  pending?: boolean;
 }) {
-  const { pending } = useFormStatus();
+  const status = useFormStatus();
+  const pending = pendingOverride ?? status.pending;
   return (
     <button
       type="submit"

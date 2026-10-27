@@ -70,6 +70,16 @@ describe("demoAgentStreamFn · acciones (AG-5)", () => {
     });
   });
 
+  it("«todavía no me postulé» no propone nada", async () => {
+    for (const text of ["Todavía no me postulé a esta", "No me postulé"]) {
+      const parts = await runAction(text, `screen_job_id=${JOB}`);
+      expect(
+        parts.some((p) => (p as { toolName?: string }).toolName === "propose_status_change"),
+        text,
+      ).toBe(false);
+    }
+  });
+
   it("sin oferta en pantalla no inventa un id", async () => {
     const parts = await runAction("Ya me postulé a esta oferta ayer", "");
     expect(
