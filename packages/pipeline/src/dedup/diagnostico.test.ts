@@ -211,10 +211,10 @@ describe("JS-085: modalidad y ubicación desmienten al título sin JD", () => {
 });
 
 describe("H5: otras causas", () => {
-  it("sufijos 'labs' y 'group' se quitan: empresas distintas colapsan en la misma", () => {
-    expect(normalizeCompany("Delta Labs")).toBe(normalizeCompany("Delta Group"));
+  it("JS-086: 'labs' y 'group' ya no se quitan: empresas distintas no colapsan ni marcan", () => {
+    expect(normalizeCompany("Delta Labs")).not.toBe(normalizeCompany("Delta Group"));
     const r = stored("a", "Delta Labs", "Backend Developer");
-    expect(flagged(candidate("Delta Group", "Backend Developer"), [r])).toBe(true);
+    expect(flagged(candidate("Delta Group", "Backend Developer"), [r])).toBe(false);
   });
 
   it("fuera de la ventana de 14 días no marca", () => {

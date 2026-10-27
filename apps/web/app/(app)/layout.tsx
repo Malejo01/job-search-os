@@ -5,11 +5,13 @@ import type { ReactNode } from "react";
 import { signOut } from "@/auth";
 import { FeedbackButton } from "@/components/feedback-button";
 import { countFollowUps } from "@/lib/applications";
+import { canUseAssistant } from "@/lib/assistant";
 import { assertAppRole } from "@/lib/db";
 import { canCreateInvitations } from "@/lib/invitations";
 import { isOnboardingComplete } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
 import { needsTermsAcceptance } from "@/lib/terms-status";
+import { AssistantButton } from "./assistant-button";
 import { MainNav } from "./main-nav";
 
 const NAV = [
@@ -50,6 +52,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const canInvite = process.env.ADMIN_EMAILS
     ? await canCreateInvitations(userId).catch(() => false)
     : false;
+  // Asistente (AG-3): solo admins con ASSISTANT_ENABLED=admin; sin el flag no hay consulta y si
+  // falla, no se muestra
+  const canAssist = await canUseAssistant(userId);
   // Contador de «Postulaciones»: si la consulta falla, el menú se muestra igual, sin número
   const followUps = await countFollowUps(userId, new Date()).catch(() => 0);
   const navItems = NAV.map((item) =>
@@ -76,6 +81,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                 Invitar
               </Link>
             ) : null}
+            {canAssist ? <AssistantButton /> : null}
             <FeedbackButton />
             <Link
               href="/settings"

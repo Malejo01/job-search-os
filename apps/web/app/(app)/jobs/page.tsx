@@ -55,7 +55,7 @@ export default async function JobsPage({
             {rows.length === LIST_LIMIT
               ? `Mostrando las primeras ${LIST_LIMIT}`
               : `${rows.length} ${rows.length === 1 ? "oferta" : "ofertas"}`}
-            , ordenadas por score y fecha
+            , ordenadas por score, riesgos y fecha
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
