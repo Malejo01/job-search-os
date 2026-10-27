@@ -6,7 +6,7 @@ import {
   MIN_SUMMARY_CHARS,
 } from "@job-search-os/pipeline";
 import Link from "next/link";
-import { ProfileForm } from "@/components/profile-form";
+import { ProfileFormWithProposal } from "@/components/profile-form-with-proposal";
 import { getProfileForEdit, getTargetRoles } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
 import { savePerfilAction } from "./actions";
@@ -50,7 +50,7 @@ export default async function PerfilPage() {
         </p>
       ) : null}
       {initial ? (
-        <ProfileForm
+        <ProfileFormWithProposal
           rolesNotice={rolesNotice}
           action={savePerfilAction}
           initial={initial}

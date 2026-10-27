@@ -6,3 +6,5 @@ export * from "./tools";
 export * from "./proposal";
 export * from "./history";
 export * from "./cv-detect";
+export * from "./gate";
+export * from "./request";

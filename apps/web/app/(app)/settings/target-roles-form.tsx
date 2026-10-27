@@ -4,6 +4,7 @@ import {
   type RoleKey,
 } from "@job-search-os/pipeline";
 import { FieldError, GuardedForm, PendingSubmit } from "@/app/components/guarded-form";
+import { AssistantProposalLoader } from "@/components/assistant-proposal-loader";
 import { RolePicker } from "@/components/role-picker";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
 import { saveTargetRolesAction } from "./actions";
@@ -50,6 +51,7 @@ export function TargetRolesForm({
         }}
         className="flex flex-col gap-3"
       >
+        <AssistantProposalLoader destination="target_roles" />
         <p className="text-xs text-zinc-600">
           ¿Qué puestos buscás? Elegí hasta {limit}. Te mostramos primero las ofertas de esos
           puestos.

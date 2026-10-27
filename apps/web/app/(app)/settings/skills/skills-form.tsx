@@ -8,6 +8,7 @@ import {
 } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { GuardedForm, PendingSubmit, type FormActionError } from "@/app/components/guarded-form";
+import { AssistantProposalLoader } from "@/components/assistant-proposal-loader";
 import type { CustomSkill, TaxonomySkill } from "@/lib/skill-levels";
 import { EnglishField } from "./english-field";
 import { SkillRow } from "./skill-row";
@@ -55,6 +56,7 @@ export function SkillsForm({
   skip,
   allowRemove = true,
   selectedRoles = [],
+  withAssistant = false,
 }: {
   action: (formData: FormData) => Promise<FormActionError | void>;
   /** Ruta de la pantalla: los links del selector de rol son `${basePath}?rol=<clave>`. */
@@ -74,6 +76,8 @@ export function SkillsForm({
   allowRemove?: boolean;
   /** Puestos que eligió la persona: van primero entre los pills (solo sugieren skills). */
   selectedRoles?: readonly RoleKey[];
+  /** Carga una propuesta del asistente (AG-3), solo en Ajustes; nada se guarda sin «Guardar». */
+  withAssistant?: boolean;
 }) {
   const byslug = new Map(taxonomy.map((t) => [t.slug, t]));
   const suggested = role
@@ -154,6 +158,8 @@ export function SkillsForm({
         <button type="submit" tabIndex={-1} aria-hidden="true" className="sr-only">
           Guardar
         </button>
+
+        {withAssistant ? <AssistantProposalLoader destination="skill_levels" /> : null}
 
         <EnglishField value={englishCefr} />
 
