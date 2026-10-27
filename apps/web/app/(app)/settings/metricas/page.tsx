@@ -39,7 +39,7 @@ export default async function MetricasPage() {
     return (
       <div className="mx-auto flex max-w-xl flex-col gap-4">
         <h1 className="text-2xl font-semibold">Métricas de la beta</h1>
-        <p role="status" className="rounded-md border border-zinc-200 bg-white p-4 text-sm">
+        <p role="status" className="rounded-card border border-line bg-surface p-4 text-sm">
           {result.reason === "no_habilitado"
             ? "Tu cuenta es admin en la app pero todavía no está habilitada en la base (app_admins)."
             : "Todavía no hay métricas: falta aplicar la migración de la base o no se pudieron leer."}
@@ -59,7 +59,7 @@ export default async function MetricasPage() {
     <div className="mx-auto flex max-w-xl flex-col gap-6">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold">Métricas de la beta</h1>
-        <p className="text-sm text-zinc-600">
+        <p className="text-sm text-fg-subtle">
           Al {DATE.format(new Date(metrics.generated_at))}. Solo agregados: lo que sale de menos de{" "}
           {metrics.k} personas aparece como «&lt;{metrics.k}».
         </p>
@@ -72,7 +72,7 @@ export default async function MetricasPage() {
       <a
         href={csvHref}
         download="metricas-beta.csv"
-        className="inline-flex min-h-11 items-center self-start rounded-md border border-zinc-900 px-4 text-sm font-medium text-zinc-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
+        className="inline-flex min-h-11 items-center self-start rounded-control border border-fg px-4 text-sm font-medium text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       >
         Descargar CSV
       </a>
@@ -87,7 +87,7 @@ export default async function MetricasPage() {
 function FounderSeats({ founders, k }: { founders: FounderCountsResult; k: number }) {
   if (!founders.ok) {
     return (
-      <p role="status" className="rounded-md border border-zinc-200 bg-white p-4 text-sm">
+      <p role="status" className="rounded-card border border-line bg-surface p-4 text-sm">
         Cupos de fundador: todavía no hay datos (falta aplicar la migración de la base o no se
         pudieron leer).
       </p>
@@ -99,18 +99,18 @@ function FounderSeats({ founders, k }: { founders: FounderCountsResult; k: numbe
   const pending = FOUNDER_SEATS_PER_CAREER === null ? " El cupo todavía no está definido." : "";
   const note = `Personas con plan fundador vigente, por su carrera principal. Menos de ${k}: «<${k}».`;
   return (
-    <section className="rounded-md border border-zinc-200 bg-white p-4">
+    <section className="rounded-card border border-line bg-surface p-4">
       <table className="w-full text-sm">
         <caption className="mb-2 text-left font-medium">Cupos de fundador</caption>
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td className="py-1 text-zinc-700">Todavía no hay personas con plan fundador.</td>
+              <td className="py-1 text-fg-muted">Todavía no hay personas con plan fundador.</td>
             </tr>
           ) : (
             rows.map((r) => (
-              <tr key={r.key} className="border-t border-zinc-100">
-                <th scope="row" className="py-1 pr-3 text-left font-normal text-zinc-700">
+              <tr key={r.key} className="border-t border-line">
+                <th scope="row" className="py-1 pr-3 text-left font-normal text-fg-muted">
                   {r.label}
                 </th>
                 <td className="py-1 text-right font-medium tabular-nums">{r.value}</td>
@@ -119,7 +119,7 @@ function FounderSeats({ founders, k }: { founders: FounderCountsResult; k: numbe
           )}
         </tbody>
       </table>
-      <p className="mt-2 text-xs text-zinc-600">{note + pending}</p>
+      <p className="mt-2 text-xs text-fg-subtle">{note + pending}</p>
     </section>
   );
 }
@@ -132,22 +132,22 @@ function FounderSeats({ founders, k }: { founders: FounderCountsResult; k: numbe
 function BetaFeedbackList({ feedback }: { feedback: FeedbackListResult }) {
   if (!feedback.ok) {
     return (
-      <p role="status" className="rounded-md border border-zinc-200 bg-white p-4 text-sm">
+      <p role="status" className="rounded-card border border-line bg-surface p-4 text-sm">
         Lo que nos contaron: todavía no hay datos (falta aplicar la migración de la base o no se
         pudieron leer).
       </p>
     );
   }
   return (
-    <section className="rounded-md border border-zinc-200 bg-white p-4">
+    <section className="rounded-card border border-line bg-surface p-4">
       <h2 className="mb-2 font-medium">Lo que nos contaron</h2>
       {feedback.rows.length === 0 ? (
-        <p className="text-sm text-zinc-700">Todavía no hay comentarios.</p>
+        <p className="text-sm text-fg-muted">Todavía no hay comentarios.</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {feedback.rows.map((r, i) => (
-            <li key={i} className="border-t border-zinc-100 pt-2 text-sm">
-              <p className="text-xs text-zinc-600">
+            <li key={i} className="border-t border-line pt-2 text-sm">
+              <p className="text-xs text-fg-subtle">
                 {DATE.format(r.createdAt)} ·{" "}
                 {isFeedbackCategory(r.category) ? FEEDBACK_CATEGORY_LABELS[r.category] : r.category}{" "}
                 · <code>{r.path}</code> · persona {r.person}
@@ -163,13 +163,13 @@ function BetaFeedbackList({ feedback }: { feedback: FeedbackListResult }) {
 
 function MetricTable({ title, rows }: { title: string; rows: BetaMetricRow[] }) {
   return (
-    <section className="rounded-md border border-zinc-200 bg-white p-4">
+    <section className="rounded-card border border-line bg-surface p-4">
       <table className="w-full text-sm">
         <caption className="mb-2 text-left font-medium">{title}</caption>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.metric} className="border-t border-zinc-100">
-              <th scope="row" className="py-1 pr-3 text-left font-normal text-zinc-700">
+            <tr key={r.metric} className="border-t border-line">
+              <th scope="row" className="py-1 pr-3 text-left font-normal text-fg-muted">
                 {r.metric}
               </th>
               <td className="py-1 text-right font-medium tabular-nums">{r.value}</td>

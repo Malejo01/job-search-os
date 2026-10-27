@@ -56,14 +56,14 @@ export function SkillInfo({
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((v) => !v)}
-        className={`min-h-11 rounded-md border border-zinc-300 px-3 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900 ${className}`.trim()}
+        className={`min-h-11 rounded-control border border-line-strong px-3 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus ${className}`.trim()}
       >
         ¿Qué es?
       </button>
       <span
         id={panelId}
         hidden={!open}
-        className="order-last w-full rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-700"
+        className="order-last w-full rounded-control bg-surface-subtle px-3 py-2 text-sm text-fg-muted"
       >
         {description}
       </span>

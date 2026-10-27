@@ -33,15 +33,15 @@ export default async function InvitationsPage() {
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-6">
       <h1 className="text-2xl font-semibold">Invitaciones</h1>
-      <p className="text-sm text-zinc-600">
+      <p className="text-sm text-fg-subtle">
         Cada invitación sirve una sola vez y vence a los 14 días.
       </p>
 
-      <section className="rounded-md border border-zinc-200 p-4">
+      <section className="rounded-card border border-line p-4">
         {isAdmin ? (
           <CreateInvitationForm />
         ) : (
-          <p className="text-sm text-zinc-700">
+          <p className="text-sm text-fg-muted">
             Tu cuenta no puede crear invitaciones: es una función de administración.
           </p>
         )}
@@ -50,14 +50,14 @@ export default async function InvitationsPage() {
       <section className="flex flex-col gap-2">
         <h2 className="text-lg font-medium">Tus invitaciones</h2>
         {invitations.length === 0 ? (
-          <p className="text-sm text-zinc-600">Todavía no creaste ninguna.</p>
+          <p className="text-sm text-fg-subtle">Todavía no creaste ninguna.</p>
         ) : (
-          <ul className="flex flex-col divide-y divide-zinc-200 rounded-md border border-zinc-200">
+          <ul className="flex flex-col divide-y divide-line rounded-card border border-line">
             {invitations.map((inv) => (
               <li key={inv.id} className="flex items-center justify-between gap-3 p-3 text-sm">
                 <div className="flex flex-col">
                   <span className="font-medium">{STATUS_LABEL[inv.status]}</span>
-                  <span className="text-zinc-600">
+                  <span className="text-fg-subtle">
                     {inv.email ?? "Cualquier email"} · creada {DATE.format(inv.createdAt)}
                     {inv.status === "usada" && inv.usedAt
                       ? ` · usada ${DATE.format(inv.usedAt)}`
@@ -67,7 +67,10 @@ export default async function InvitationsPage() {
                 {inv.status !== "usada" ? (
                   <form action={revokeInvitationAction}>
                     <input type="hidden" name="id" value={inv.id} />
-                    <button type="submit" className="rounded-md border border-zinc-300 px-3 py-1">
+                    <button
+                      type="submit"
+                      className="rounded-control border border-line-strong px-3 py-1"
+                    >
                       Revocar
                     </button>
                   </form>
@@ -79,7 +82,7 @@ export default async function InvitationsPage() {
       </section>
 
       {isAdmin && !waitlistEnabled ? (
-        <section className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <section className="rounded-control border border-warning-line bg-warning-soft p-4 text-sm text-warning">
           Tu cuenta es admin en la app pero falta habilitarla en la base (ver docs del PR).
         </section>
       ) : null}
@@ -89,13 +92,13 @@ export default async function InvitationsPage() {
           <h2 id="waitlist-heading" className="text-lg font-medium">
             Lista de espera ({waitlist.filter((w) => !w.invitedAt).length} sin invitar)
           </h2>
-          <p className="text-sm text-zinc-600">
+          <p className="text-sm text-fg-subtle">
             No se manda ningún email: copiá el link y enviáselo vos.
           </p>
           {waitlist.length === 0 ? (
-            <p className="text-sm text-zinc-600">Nadie se anotó todavía.</p>
+            <p className="text-sm text-fg-subtle">Nadie se anotó todavía.</p>
           ) : (
-            <ul className="flex flex-col divide-y divide-zinc-200 rounded-md border border-zinc-200">
+            <ul className="flex flex-col divide-y divide-line rounded-card border border-line">
               {waitlist.map((w) => (
                 <WaitlistRow
                   key={w.id}

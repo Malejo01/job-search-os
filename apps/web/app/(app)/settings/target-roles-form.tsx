@@ -30,16 +30,16 @@ export function TargetRolesForm({
   return (
     <section
       id="puesto"
-      className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4 scroll-mt-4"
+      className="flex flex-col gap-3 rounded-card border border-line p-4 scroll-mt-4"
     >
       <h2 className="text-lg font-medium">Tus puestos</h2>
-      <p data-testid="current-roles" className="text-sm text-zinc-700">
+      <p data-testid="current-roles" className="text-sm text-fg-muted">
         {current.length > 0
           ? `Tus puestos actuales: ${current.map((key) => ROLE_SKILLS[key].label).join(", ")}`
           : "Todavía no elegiste puesto"}
       </p>
       {status === "guardado" ? (
-        <p role="status" className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+        <p role="status" className="rounded-control bg-success-soft px-3 py-2 text-sm text-success">
           Guardado. Tus ofertas se actualizan con tus puestos.
         </p>
       ) : null}
@@ -50,7 +50,7 @@ export function TargetRolesForm({
         }}
         className="flex flex-col gap-3"
       >
-        <p className="text-xs text-zinc-600">
+        <p className="text-xs text-fg-subtle">
           ¿Qué puestos buscás? Elegí hasta {limit}. Te mostramos primero las ofertas de esos
           puestos.
         </p>
@@ -62,7 +62,7 @@ export function TargetRolesForm({
           groups={groups}
         />
         <FieldError name="targetRoles" />
-        <PendingSubmit className="self-start rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900">
+        <PendingSubmit className="self-start rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
           Guardar puestos
         </PendingSubmit>
       </GuardedForm>

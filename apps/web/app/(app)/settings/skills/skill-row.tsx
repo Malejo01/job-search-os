@@ -41,7 +41,7 @@ export function SkillRow({
   return (
     <fieldset
       data-testid={`skill-${slug}`}
-      className="flex flex-col gap-2 rounded-md border border-zinc-200 p-3"
+      className="flex flex-col gap-2 rounded-card border border-line p-3"
     >
       <legend className="px-1 text-sm font-medium">{name}</legend>
       <div className="grid grid-cols-2 gap-1 text-sm">
@@ -49,7 +49,7 @@ export function SkillRow({
           <label
             key={l.level}
             htmlFor={`${slug}-${l.level}`}
-            className="flex min-h-11 items-center gap-2 rounded-md px-1 py-1 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-zinc-900"
+            className="flex min-h-11 items-center gap-2 rounded-control px-1 py-1 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-focus"
           >
             <input
               id={`${slug}-${l.level}`}
@@ -74,7 +74,7 @@ export function SkillRow({
                 type="button"
                 onClick={onRemove}
                 aria-label={`Quitar ${name}`}
-                className="min-h-11 rounded-md border border-zinc-300 px-3 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
+                className="min-h-11 rounded-control border border-line-strong px-3 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
               >
                 Quitar
               </button>
@@ -84,7 +84,7 @@ export function SkillRow({
                 name={removeName}
                 value={removeValue}
                 aria-label={`Quitar ${name}`}
-                className="min-h-11 rounded-md border border-zinc-300 px-3 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
+                className="min-h-11 rounded-control border border-line-strong px-3 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
               >
                 Quitar
               </button>

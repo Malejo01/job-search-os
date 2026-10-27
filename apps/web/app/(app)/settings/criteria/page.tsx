@@ -15,8 +15,8 @@ import { SaveButton } from "./save-button";
 export const metadata = { title: "Criterios" };
 export const dynamic = "force-dynamic";
 
-const input = "rounded-md border border-zinc-300 px-3 py-2 text-base";
-const help = "text-xs text-zinc-600";
+const input = "rounded-control border border-line-strong px-3 py-2 text-base";
+const help = "text-xs text-fg-subtle";
 
 const DATE = new Intl.DateTimeFormat("es-AR", {
   dateStyle: "medium",
@@ -90,7 +90,7 @@ export default async function CriteriaPage({
     return (
       <div className="mx-auto flex max-w-2xl flex-col gap-3">
         <h1 className="text-2xl font-semibold">Criterios de evaluación</h1>
-        <p className="text-sm text-zinc-700">
+        <p className="text-sm text-fg-muted">
           Todavía no tenés criterios activos. Completá tu perfil primero.
         </p>
       </div>
@@ -102,24 +102,24 @@ export default async function CriteriaPage({
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-5">
       <div className="flex flex-col gap-1">
-        <p className="text-xs font-semibold tracking-wide text-zinc-700 uppercase">Avanzado</p>
+        <p className="text-xs font-semibold tracking-wide text-fg-muted uppercase">Avanzado</p>
         <h1 className="text-2xl font-semibold">Criterios de evaluación</h1>
-        <p className="text-sm text-zinc-600">
+        <p className="text-sm text-fg-subtle">
           Versión vigente: {active.version} · guardada el {DATE.format(active.createdAt)} (UTC)
         </p>
       </div>
 
-      <p role="note" className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+      <p role="note" className="rounded-control bg-warning-soft px-3 py-2 text-sm text-warning">
         Cambiar estos criterios puede hacer que se descarten ofertas que te sirven. Si no estás
         segura o seguro, dejalos como están.
       </p>
 
-      <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+      <p className="rounded-control bg-warning-soft px-3 py-2 text-sm text-warning">
         Los cambios valen para las ofertas nuevas; las ya evaluadas no se recalculan.
       </p>
 
       {saved ? (
-        <p role="status" className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+        <p role="status" className="rounded-control bg-success-soft px-3 py-2 text-sm text-success">
           {saved === "reset"
             ? "Volviste a los valores por defecto."
             : "Criterios guardados como una versión nueva."}
@@ -129,7 +129,7 @@ export default async function CriteriaPage({
         <p
           id="criteria-error"
           role="alert"
-          className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800"
+          className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger"
         >
           {FIELD_ERRORS[error] ?? "Revisá los datos del formulario."}
         </p>
@@ -340,17 +340,17 @@ export default async function CriteriaPage({
         </fieldset>
 
         <div className="flex justify-end">
-          <PendingSubmit className="rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white">
+          <PendingSubmit className="rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast">
             Guardar como versión nueva
           </PendingSubmit>
         </div>
       </GuardedForm>
 
-      <section className="border-t border-zinc-200 pt-4 text-sm">
+      <section className="border-t border-line pt-4 text-sm">
         {reset === "confirm" ? (
           <form action={resetCriteriaAction} className="flex flex-col gap-2">
             <input type="hidden" name="baseVersion" value={active.version} />
-            <p className="text-zinc-700">
+            <p className="text-fg-muted">
               Se crea una versión nueva con los valores por defecto. Tu piso salarial y tus horas
               del perfil se conservan. Las ofertas ya evaluadas no se recalculan.
             </p>
@@ -358,11 +358,11 @@ export default async function CriteriaPage({
               <SaveButton
                 label="Sí, volver a los valores por defecto"
                 pendingLabel="Restableciendo…"
-                className="rounded-md bg-red-700 px-3 py-2 font-medium text-white"
+                className="rounded-control bg-danger-strong px-3 py-2 font-medium text-on-strong"
               />
               <Link
                 href="/settings/criteria"
-                className="rounded-md border border-zinc-300 px-3 py-2"
+                className="rounded-control border border-line-strong px-3 py-2"
               >
                 Cancelar
               </Link>
@@ -371,7 +371,7 @@ export default async function CriteriaPage({
         ) : (
           <Link
             href="/settings/criteria?reset=confirm"
-            className="rounded-md border border-zinc-300 px-3 py-2"
+            className="rounded-control border border-line-strong px-3 py-2"
           >
             Volver a los valores por defecto
           </Link>

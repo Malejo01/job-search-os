@@ -115,7 +115,8 @@ test.describe("Flujo 50: el onboarding no pierde lo cargado", () => {
     // Contador en rojo con el aviso
     const contador = page.getByTestId("summary-counter");
     await expect(contador).toContainText("50 de más");
-    await expect(contador).toHaveClass(/text-red-700/);
+    // Token de error (docs/ux/tokens.md): red-800 en claro, red-200 en oscuro
+    await expect(contador).toHaveClass(/\btext-danger\b/);
 
     await page.getByRole("button", { name: "Guardar y continuar" }).click();
     await expect(page.getByRole("main").getByRole("alert")).toContainText("te pasaste por 50");

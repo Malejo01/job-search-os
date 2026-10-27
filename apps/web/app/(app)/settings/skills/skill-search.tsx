@@ -113,7 +113,7 @@ export function SkillSearch({
           autoComplete="off"
           aria-invalid={addError ? true : undefined}
           aria-describedby={addError ? "agregar-error" : undefined}
-          className="min-h-11 rounded-md border border-zinc-300 px-3 py-2 text-base"
+          className="min-h-11 rounded-control border border-line-strong px-3 py-2 text-base"
         />
       </label>
       <p role="status" className="sr-only">
@@ -140,7 +140,7 @@ export function SkillSearch({
                         });
                         setQuery("");
                       }}
-                      className="min-h-11 rounded-md border border-zinc-300 px-3 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
+                      className="min-h-11 rounded-control border border-line-strong px-3 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
                     >
                       {o.name}
                     </button>
@@ -151,12 +151,14 @@ export function SkillSearch({
             </ul>
           ) : (
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm text-zinc-600">No está en la lista: agregar «{query.trim()}»</p>
+              <p className="text-sm text-fg-subtle">
+                No está en la lista: agregar «{query.trim()}»
+              </p>
               <button
                 type="button"
                 onClick={addCustom}
                 aria-label={`Agregar ${query.trim()} como skill propia`}
-                className="min-h-11 rounded-md border border-zinc-300 px-3 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
+                className="min-h-11 rounded-control border border-line-strong px-3 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
               >
                 Agregar
               </button>
@@ -164,7 +166,7 @@ export function SkillSearch({
           )
         ) : null}
         {addError ? (
-          <p id="agregar-error" role="alert" className="text-sm font-medium text-red-800">
+          <p id="agregar-error" role="alert" className="text-sm font-medium text-danger">
             {addError}
           </p>
         ) : null}

@@ -123,14 +123,14 @@ export function GuardedForm({
         {field !== null ? (
           <div
             role="alert"
-            className="flex flex-wrap items-center gap-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-800"
+            className="flex flex-wrap items-center gap-3 rounded-control bg-danger-soft px-3 py-2 text-sm text-danger"
           >
             <span>{message}</span>
             {field === conflictField ? (
               <button
                 type="button"
                 onClick={() => window.location.reload()}
-                className="min-h-11 rounded-md border border-red-300 bg-white px-3 py-1 text-sm text-red-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-800"
+                className="min-h-11 rounded-control border border-danger-line bg-surface px-3 py-1 text-sm text-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
               >
                 Recargar
               </button>
@@ -148,7 +148,7 @@ export function FieldError({ name }: { name: string }) {
   const { field, message, prefix } = useContext(FormCtx);
   if (field !== name) return null;
   return (
-    <span id={`${prefix}-${name}`} className="text-xs font-medium text-red-800">
+    <span id={`${prefix}-${name}`} className="text-xs font-medium text-danger">
       {message}
     </span>
   );
