@@ -46,6 +46,7 @@ Estados: cada uno tiene texto, fondo suave, borde y relleno fuerte.
 |---|---|---|---|
 | `--radius-control` | `rounded-control` | 0.375rem | Botones, campos, avisos |
 | `--radius-card` | `rounded-card` | 0.375rem | Tarjetas y paneles. Hoy igual a control; separarlo permite redondear tarjetas sin tocar botones |
+| `--radius-badge` | `rounded-badge` | 0.25rem | Badges cuadrados de las listas |
 | `--radius-pill` | `rounded-pill` | 9999px | Badges redondos y contadores |
 | `--text-title` | `text-title` | 1.25rem / 1.75rem | `h1` de pantalla con sesión (hoy `text-xl`) |
 | `--text-heading` | `text-heading` | 1.125rem / 1.75rem | `h2` de sección (hoy `text-lg`); los h2 de tarjeta siguen en `text-base` |
