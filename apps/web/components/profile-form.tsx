@@ -506,7 +506,7 @@ export function ProfileForm({
               <p
                 key={key}
                 data-testid={`few-spanish-${key}`}
-                className="mb-1 break-words rounded-md bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900"
+                className="mb-1 break-words rounded-control border border-warning-line bg-warning-soft px-3 py-2 text-xs font-medium text-warning"
               >
                 Para {roleLabels?.[key] ?? key} casi no hay ofertas en español ({n}). Si aceptás
                 ofertas en inglés vas a ver muchas más.
