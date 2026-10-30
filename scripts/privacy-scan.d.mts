@@ -7,7 +7,7 @@ export interface Pattern {
   re: RegExp;
 }
 
-/** `id: 0` es un hallazgo de ruta prohibida (lleva `why`). */
+/** `id: 0` es una ruta prohibida o algo que no se pudo leer o parsear (falla cerrado); lleva `why`. */
 export interface Hit {
   where: string;
   id: number;

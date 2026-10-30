@@ -13,9 +13,30 @@
 //
 // Sin patrones el barrido falla cerrado (código 2): sin ellos no se puede verificar nada.
 //
+// Falla cerrado también con lo que no puede revisar (N4-1): un archivo ilegible, binario sin
+// extensión conocida o de más de 2 MB, un diff o una historia de git que no se pueden parsear
+// son hallazgos con id 0 («falla cerrado»), no se saltean. Si un comando de git falla (p. ej.
+// --root no es un repo) el barrido se corta con código 2, también en --hook, donde 2 es el
+// código que bloquea (1 no bloquea). El mensaje de error nunca cita texto de archivos.
+//
+// La historia se lee con `git log --remerge-diff` para revisar también lo que entra en un merge
+// (resoluciones de conflicto, archivos agregados en el merge): necesita git >= 2.36. Con uno más
+// viejo `git log` falla y el barrido sale con 2 (falla cerrado). Las opciones de diff que la
+// config del usuario podría cambiar (prefijos, textconv, renombres, commit raíz, replace) se
+// fijan en cada llamada.
+//
+// Nombres de archivo y ubicaciones también se revisan contra los patrones: un nombre con un dato
+// privado es un hallazgo, y el informe y los errores no lo citan (lo reemplazan por
+// «ubicación con dato privado (n.º K)» o «detalle omitido»).
+//
+// Códigos de salida: 0 sin hallazgos · 1 hallazgos (en --hook, 2) · 2 no se pudo verificar
+// (sin patrones, regex inválida, error de git/lectura, entrada de pre-push inválida, --history
+// con --all/--glob/--remotes/--branches/--tags que no revisó ningún commit) · 1 error de uso.
+//
 // Modos:
 //   (sin args)            rama actual vs main: diff, sin commitear, sin trackear,
-//                         mensajes de commit y nombre de rama
+//                         mensajes de commit y nombre de rama. Sin main ni origin/main,
+//                         revisa los commits de HEAD que no están en ningún remoto
 //   --hook                igual, para el hook TaskCompleted (sale con 2 si hay hallazgos)
 //   --pre-push            para .git/hooks/pre-push (lee refs por stdin); al pasar imprime
 //                         "pre-push: OK (N commits)"
@@ -32,7 +53,8 @@
 /* global console, process */
 
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { randomBytes } from "node:crypto";
+import { existsSync, lstatSync, readFileSync, readlinkSync, realpathSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -49,10 +71,74 @@ const FORBIDDEN_PATHS = [
 export const norm = (s) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-function git(root, args) {
-  const r = spawnSync("git", args, { cwd: root, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
-  return { ok: r.status === 0, out: r.stdout ?? "", err: r.stderr ?? "" };
+/**
+ * Error propio del barrido. `message` cita comandos, rutas o revs (nunca texto de archivos); igual
+ * se revisa contra los patrones antes de imprimirlo. `cmd`/`status` permiten un mensaje sin detalle.
+ */
+class ScanError extends Error {
+  constructor(message, { cmd = null, status = null } = {}) {
+    super(message);
+    this.cmd = cmd;
+    this.status = status;
+  }
 }
+
+/** Regex inválida en los patrones: el mensaje no cita la regex. */
+class PatternError extends Error {}
+
+// Opciones globales: sin objetos de reemplazo (refs/replace) y rutas sin comillas ni octales.
+const GIT_GLOBAL = ["--no-replace-objects", "-c", "core.quotePath=false"];
+// Opciones de diff que la config del usuario podría cambiar y alterarían lo que se revisa.
+const DIFF_OPTS = [
+  "-U0",
+  "--no-color",
+  "--no-ext-diff",
+  "--no-textconv",
+  "--no-renames",
+  "--src-prefix=a/",
+  "--dst-prefix=b/",
+];
+const MAX_BUFFER = 256 * 1024 * 1024;
+
+function git(root, args) {
+  const r = spawnSync("git", [...GIT_GLOBAL, ...args], {
+    cwd: root,
+    encoding: "utf8",
+    maxBuffer: MAX_BUFFER,
+  });
+  // Con ENOBUFS u otro error de spawn, stderr viene vacío y el motivo está en r.error.
+  return {
+    ok: r.status === 0,
+    status: r.status,
+    out: r.stdout ?? "",
+    err: r.stderr || r.error?.message || "",
+  };
+}
+
+/** Como git(), pero si el comando falla lanza: no hay salida parcial que revisar a medias. */
+function gitOrThrow(root, args) {
+  const r = git(root, args);
+  if (!r.ok) {
+    throw new ScanError(`git ${args[0]} falló (código ${r.status}): ${r.err.trim()}`, {
+      cmd: args[0],
+      status: r.status,
+    });
+  }
+  return r.out;
+}
+
+/** Contenido de `f` en el índice (stage 0), como Buffer; null si no se pudo. */
+function indexBlob(root, f) {
+  const r = spawnSync("git", [...GIT_GLOBAL, "cat-file", "blob", `:${f}`], {
+    cwd: root,
+    maxBuffer: MAX_BUFFER,
+  });
+  return r.status === 0 && r.stdout ? r.stdout : null;
+}
+
+/** Hallazgo de algo que no se pudo revisar: bloquea igual que una coincidencia. */
+const unchecked = (where, why) => ({ where, id: 0, why: `${why}, falla cerrado` });
+const skipped = (f) => SKIP_FILES.some((re) => re.test(f));
 
 /** Carga los patrones de `dir`. Un directorio inexistente da una lista vacía (el CLI falla cerrado). */
 export function loadPatterns(dir) {
@@ -82,13 +168,14 @@ export function loadPatterns(dir) {
         re: new RegExp(`(?<![\\p{L}\\p{N}])${body}(?![\\p{L}\\p{N}])`, "u"),
       });
     } else {
+      let re;
       try {
-        pats.push({ id: pats.length + 1, source, n: text, isRegex, re: new RegExp(text, "u") });
+        re = new RegExp(text, "u");
       } catch {
-        console.error(
-          `[privacy-scan] regex inválida en ${source} (se ignora el patrón #${pats.length + 1}).`,
-        );
+        // Ignorarla dejaría de buscar ese dato: falla cerrado, sin citar la regex.
+        throw new PatternError(`regex inválida en ${source} (patrón #${pats.length + 1})`);
       }
+      pats.push({ id: pats.length + 1, source, n: text, isRegex, re });
     }
   };
 
@@ -132,41 +219,130 @@ export function scanText(pats, label, text) {
   return hits;
 }
 
-/** Diff unificado (-U0) → hallazgos en líneas agregadas, con número de línea nuevo. */
+/** Ruta nueva de una línea `diff --git a/x b/y` (aproximada si hay espacios o comillas). */
+function diffGitPath(line) {
+  const rest = line.slice("diff --git ".length);
+  const quoted = rest.lastIndexOf(' "b/');
+  if (rest.endsWith('"') && quoted >= 0) return rest.slice(quoted + 4, -1);
+  const i = rest.lastIndexOf(" b/");
+  return i >= 0 ? rest.slice(i + 3) : null;
+}
+
+/**
+ * Diff unificado → hallazgos en líneas agregadas, con número de línea nuevo.
+ *
+ * Con estado: `diff --git` abre la cabecera de un archivo; `---`/`+++` solo son cabecera fuera
+ * de un hunk; dentro de un hunk, los contadores de `@@ -a,b +c,d @@` dicen cuántas líneas
+ * quedan, así que una línea agregada que empieza con «++ » es contenido. Sin `diff --git`
+ * (diffs sueltos) una línea `+++ ` fuera de un hunk sigue siendo cabecera. Lo que no encaja
+ * (hunk cortado, línea agregada fuera de un hunk, binario sin extensión conocida) es hallazgo
+ * con id 0: no se saltea.
+ */
 export function scanDiff(pats, diff, prefix = "") {
   const hits = [];
   const paths = [];
+  const addPath = (p) => {
+    if (p && p !== "/dev/null" && !paths.includes(p)) paths.push(p);
+  };
   let file = null;
+  // Ruta de `diff --git`: queda pendiente hasta cerrar el bloque y se descarta si es un borrado
+  // (borrar o renombrar a alias una ruta con un dato privado es justamente el arreglo).
+  let pending = null;
+  const flush = () => {
+    if (pending) addPath(pending);
+    pending = null;
+  };
   let ln = 0;
+  let oldLeft = 0;
+  let newLeft = 0;
+  const here = () => `${prefix}${file ?? "(archivo desconocido)"}`;
+  const malformed = (why) => hits.push(unchecked(here(), why));
+
   for (const line of diff.split(/\r?\n/)) {
-    if (line.startsWith("+++ ")) {
-      file = line.slice(4).replace(/^b\//, "");
-      if (file === "/dev/null") file = null;
-      else paths.push(file);
-      continue;
-    }
-    const h = line.match(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
-    if (h) {
-      ln = Number(h[1]);
-      continue;
-    }
-    if (!file || SKIP_FILES.some((re) => re.test(file))) continue;
-    if (line.startsWith("+") && !line.startsWith("+++")) {
-      for (const id of scanLine(pats, line.slice(1))) {
-        hits.push({ where: `${prefix}${file}:${ln}`, id });
+    if (oldLeft > 0 || newLeft > 0) {
+      const c = line[0];
+      if (c === "+" || c === " ") {
+        if (newLeft === 0 || (c === " " && oldLeft === 0)) {
+          malformed("diff con más líneas que las del hunk");
+        }
+        if (c === " ") oldLeft = Math.max(0, oldLeft - 1);
+        else if (!file) malformed("línea agregada sin archivo");
+        else if (!skipped(file)) {
+          for (const id of scanLine(pats, line.slice(1))) {
+            hits.push({ where: `${prefix}${file}:${ln}`, id });
+          }
+        }
+        newLeft = Math.max(0, newLeft - 1);
+        ln++;
+        continue;
       }
-      ln++;
+      if (c === "-") {
+        if (oldLeft === 0) malformed("diff con más líneas que las del hunk");
+        oldLeft = Math.max(0, oldLeft - 1);
+        continue;
+      }
+      if (c === "\\") continue; // «\ No newline at end of file»
+      // Una línea que no es de hunk antes de completar los contadores: el hunk quedó cortado.
+      // Se marca y la línea se procesa como cabecera.
+      malformed("hunk de diff incompleto");
+      oldLeft = newLeft = 0;
     }
+    // Fuera de un hunk: cabeceras.
+    if (line.startsWith("diff --git ")) {
+      flush();
+      file = pending = diffGitPath(line);
+      continue;
+    }
+    if (line.startsWith("deleted file mode ")) {
+      file = pending = null;
+      continue;
+    }
+    // Sin --no-renames (diffs sueltos), la ruta nueva de un renombre o copia viene acá.
+    const rc = line.match(/^(?:rename|copy) to (.+)$/);
+    if (rc) {
+      pending = null;
+      file = rc[1];
+      addPath(file);
+      continue;
+    }
+    if (line.startsWith("+++ ")) {
+      // git agrega un tab al final si la ruta tiene espacios.
+      file = line.slice(4).replace(/\t$/, "").replace(/^b\//, "");
+      if (file === "/dev/null") file = null;
+      pending = null;
+      addPath(file);
+      continue;
+    }
+    const h = line.match(/^@@ -\d+(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/);
+    if (h) {
+      oldLeft = h[1] === undefined ? 1 : Number(h[1]);
+      newLeft = h[3] === undefined ? 1 : Number(h[3]);
+      ln = Number(h[2]);
+      continue;
+    }
+    if (/^Binary files .* differ$/.test(line) || line === "GIT binary patch") {
+      if (line.endsWith(" and /dev/null differ")) pending = null;
+      else if (file && !skipped(file)) {
+        malformed("binario sin extensión conocida");
+      }
+      continue;
+    }
+    if (line.startsWith("+")) malformed("línea agregada fuera de un hunk");
+    // El resto (---, index, new file mode, rename, líneas en blanco, «-» sueltas) no agrega texto.
   }
+  if (oldLeft > 0 || newLeft > 0) malformed("hunk de diff incompleto");
+  flush();
   return { hits, paths };
 }
 
-function pathHits(paths, prefix = "") {
+/** Rutas prohibidas (id 0) y rutas cuyo nombre coincide con un patrón (id del patrón). */
+function pathHits(pats, paths, prefix = "") {
   const out = [];
   for (const p of new Set(paths)) {
     for (const f of FORBIDDEN_PATHS) {
       if (f.re.test(p)) out.push({ where: `${prefix}${p}`, id: 0, why: f.why });
     }
+    for (const id of scanLine(pats, p)) out.push({ where: `${prefix}${p}`, id });
   }
   return out;
 }
@@ -178,92 +354,192 @@ function baseRef(root) {
   return null;
 }
 
-/** Lee un archivo como texto; null si es muy grande, binario o ilegible. */
-function readScannable(root, f) {
-  if (SKIP_FILES.some((re) => re.test(f))) return null;
+/** Buffer → texto, o el motivo por el que no se revisa. */
+function bufText(buf) {
+  if (buf.length > MAX_FILE_BYTES) return { why: "demasiado grande para revisar" };
+  if (buf.includes(0)) return { why: "binario sin extensión conocida" };
+  return { text: buf.toString("utf8") };
+}
+
+/**
+ * Lee lo que se publicaría de `f`: `{ text }`; `{ skip: true }` si está en SKIP_FILES o es un
+ * directorio (submódulo, repo anidado: su ruta ya pasó por pathHits); `{ why }` si no se pudo
+ * revisar, que es un hallazgo y no se saltea.
+ *
+ * Un symlink se revisa por su destino (eso es lo que git guarda), aunque esté roto. Con
+ * `fromIndex`, un archivo versionado que no está en el disco se lee del índice.
+ */
+function readScannable(root, f, { fromIndex = false } = {}) {
+  if (skipped(f)) return { skip: true };
+  const full = join(root, f);
+  let st;
   try {
-    const full = join(root, f);
-    if (statSync(full).size > MAX_FILE_BYTES) return null;
-    const buf = readFileSync(full);
-    return buf.includes(0) ? null : buf.toString("utf8");
+    st = lstatSync(full);
+  } catch (err) {
+    if (fromIndex && err?.code === "ENOENT") {
+      const blob = indexBlob(root, f);
+      return blob ? bufText(blob) : { why: "versionado pero ausente del disco y del índice" };
+    }
+    return { why: "no se pudo leer" };
+  }
+  try {
+    if (st.isSymbolicLink()) return { text: readlinkSync(full, "utf8") };
+    if (st.isDirectory()) return { skip: true };
+    if (!st.isFile()) return { why: "no es un archivo regular" };
+    if (st.size > MAX_FILE_BYTES) return { why: "demasiado grande para revisar" };
+    return bufText(readFileSync(full));
   } catch {
-    return null;
+    return { why: "no se pudo leer" };
   }
 }
 
-/** Historia: mensajes + líneas agregadas por commit. */
+/** Revisa un archivo del disco: coincidencias por línea o un hallazgo id 0 si no se pudo. */
+function scanFile(pats, root, f, label, opts) {
+  const r = readScannable(root, f, opts);
+  if (r.why) return [unchecked(label, r.why)];
+  return r.text === undefined ? [] : scanText(pats, label, r.text);
+}
+
+/**
+ * Historia: mensajes + líneas agregadas por commit.
+ *
+ * Los separadores llevan un nonce aleatorio por corrida, así que ni un mensaje ni una línea de
+ * un archivo pueden imitarlos. Igual se valida: cada bloque empieza con un sha + salto de línea
+ * y tiene el fin de mensaje, y la cantidad de bloques coincide con `git rev-list --count` sobre
+ * los mismos argumentos. Si algo no cuadra, hallazgo id 0: la historia no se revisó entera.
+ */
 export function scanHistory(pats, revArgs, root = REPO_ROOT) {
-  const SEP = "\x1e";
-  const END = "\x1f";
-  const r = git(root, [
+  const nonce = randomBytes(16).toString("hex");
+  const SEP = `\x1e<privacy-scan ${nonce}>`;
+  const END = `\x1f<privacy-scan ${nonce}>`;
+  const out = gitOrThrow(root, [
     "log",
     "-p",
-    "-U0",
-    "--no-color",
-    "--no-ext-diff",
-    `--format=${SEP}%H%n%B${END}`,
+    ...DIFF_OPTS,
+    // Diff de los merges contra la fusión automática: resoluciones y archivos nuevos del merge.
+    "--remerge-diff",
+    // El commit raíz con su diff aunque log.showRoot=false.
+    "--root",
+    "--no-show-signature",
+    `--format=${SEP}%H%n%P%n%B${END}`,
     ...revArgs,
   ]);
-  if (!r.ok) throw new Error(`git log falló: ${r.err.trim()}`);
+  const expected = Number(gitOrThrow(root, ["rev-list", "--count", ...revArgs]).trim());
+
   const hits = [];
+  let parsedOk = true;
+  const parts = out.split(SEP);
+  if (parts[0] !== "") parsedOk = false;
+  const chunks = parts.slice(1);
+  if (!Number.isInteger(expected) || chunks.length !== expected) parsedOk = false;
   let commits = 0;
-  for (const chunk of r.out.split(SEP).slice(1)) {
-    commits++;
-    const sha = chunk.slice(0, 40);
+  // Cabecera de cada bloque: sha, salto de línea, padres (vacío en el commit raíz), salto.
+  const HEAD_RE = /^([0-9a-f]{40})\n((?:[0-9a-f]{40}(?: [0-9a-f]{40})*)?)\n/;
+  for (const chunk of chunks) {
     const endIdx = chunk.indexOf(END);
-    const msg = chunk.slice(41, endIdx);
-    const diff = chunk.slice(endIdx + 1);
-    hits.push(...scanText(pats, `commit ${sha.slice(0, 8)} (mensaje)`, msg));
-    const d = scanDiff(pats, diff, `commit ${sha.slice(0, 8)} `);
-    hits.push(...d.hits, ...pathHits(d.paths, `commit ${sha.slice(0, 8)} `));
+    const head = chunk.match(HEAD_RE);
+    if (!head || endIdx < head[0].length) {
+      parsedOk = false;
+      continue;
+    }
+    commits++;
+    const sha8 = head[1].slice(0, 8);
+    const where = `commit ${sha8} `;
+    // --remerge-diff no cubre merges octopus: lo que traen no se puede revisar.
+    if (head[2].split(" ").length > 2) {
+      hits.push(unchecked(`commit ${sha8}`, "merge con más de dos padres: no se puede revisar"));
+    }
+    const msg = chunk.slice(head[0].length, endIdx);
+    const diff = chunk.slice(endIdx + END.length);
+    hits.push(...scanText(pats, `${where}(mensaje)`, msg));
+    const d = scanDiff(pats, diff, where);
+    hits.push(...d.hits, ...pathHits(pats, d.paths, where));
   }
+  if (!parsedOk) hits.push(unchecked("historia de git", "no se pudo parsear la historia de git"));
   return { hits, commits };
 }
 
-/** Rama actual contra main + cambios sin commitear + archivos sin trackear. */
+/**
+ * Rama actual contra main + cambios sin commitear + archivos sin trackear. Sin main ni
+ * origin/main, los commits de HEAD que no están en ningún remoto (base null).
+ */
 export function scanWorktree(pats, root = REPO_ROOT) {
   const hits = [];
   const base = baseRef(root);
-  const branch = git(root, ["branch", "--show-current"]).out.trim();
+  const branch = gitOrThrow(root, ["branch", "--show-current"]).trim();
   hits.push(...scanText(pats, "nombre de rama", branch));
 
-  if (base) hits.push(...scanHistory(pats, [`${base}..HEAD`], root).hits);
+  const range = base ? [`${base}..HEAD`] : ["HEAD", "--not", "--remotes"];
+  hits.push(...scanHistory(pats, range, root).hits);
   // Cambios sin commitear (staged + unstaged).
-  const wd = git(root, ["diff", "HEAD", "-U0", "--no-color", "--no-ext-diff"]);
-  const d = scanDiff(pats, wd.out, "sin commitear ");
-  hits.push(...d.hits, ...pathHits(d.paths, "sin commitear "));
+  const wd = gitOrThrow(root, ["diff", "HEAD", ...DIFF_OPTS]);
+  const d = scanDiff(pats, wd, "sin commitear ");
+  hits.push(...d.hits, ...pathHits(pats, d.paths, "sin commitear "));
   // Archivos nuevos sin trackear (respetando .gitignore).
-  const untracked = git(root, ["ls-files", "--others", "--exclude-standard"])
-    .out.split(/\r?\n/)
+  const untracked = gitOrThrow(root, ["ls-files", "-z", "--others", "--exclude-standard"])
+    .split("\0")
     .filter(Boolean);
-  hits.push(...pathHits(untracked, "sin trackear "));
-  for (const f of untracked) {
-    const text = readScannable(root, f);
-    if (text !== null) hits.push(...scanText(pats, `sin trackear ${f}`, text));
-  }
+  hits.push(...pathHits(pats, untracked, "sin trackear "));
+  for (const f of untracked) hits.push(...scanFile(pats, root, f, `sin trackear ${f}`));
   return { hits, base };
 }
 
 /** Árbol: todos los archivos versionados (git ls-files), leídos del disco. */
 export function scanTree(pats, root = REPO_ROOT) {
-  const files = git(root, ["ls-files", "-z"]).out.split("\0").filter(Boolean);
-  const hits = pathHits(files);
-  for (const f of files) {
-    const text = readScannable(root, f);
-    if (text !== null) hits.push(...scanText(pats, f, text));
-  }
+  const files = gitOrThrow(root, ["ls-files", "-z"]).split("\0").filter(Boolean);
+  const hits = pathHits(pats, files);
+  for (const f of files) hits.push(...scanFile(pats, root, f, f, { fromIndex: true }));
   return { hits, files: files.length };
 }
 
-/** Informe sin texto de patrones ni de coincidencias: solo lugar y número. */
+/**
+ * Informe sin texto de patrones ni de coincidencias: solo lugar y número. Los id 0 son rutas
+ * prohibidas o cosas que no se pudieron revisar (falla cerrado); ambos bloquean.
+ */
 export function report(hits, pats) {
+  // Una ubicación que coincide con un patrón (nombre de archivo, de rama...) no se cita: se
+  // numera, con el mismo número para la misma ubicación.
+  // Solo se mira la ruta o etiqueta: el prefijo (commit <sha>, sin trackear...) y el número de
+  // línea se conservan, y una regex de dígitos o hex no oculta ubicaciones por el sha.
+  const hidden = new Map();
+  const place = (where) => {
+    const m = where.match(
+      /^((?:commit [0-9a-f]{8}|sin commitear|sin trackear|texto)(?: |$))?([\s\S]*?)(:\d+)?$/,
+    );
+    const [, pre = "", path = "", line = ""] = m ?? [];
+    if (!path || scanLine(pats, path).length === 0) return where;
+    if (!hidden.has(path)) hidden.set(path, hidden.size + 1);
+    return `${pre}ubicación con dato privado (n.º ${hidden.get(path)})${line}`;
+  };
   const lines = hits.map((h) =>
     h.id === 0
-      ? `  ${h.where} · ${h.why} (no puede publicarse)`
-      : `  ${h.where} · patrón #${h.id} (${pats[h.id - 1].source})`,
+      ? `  ${place(h.where)} · ${h.why} (no puede publicarse)`
+      : `  ${place(h.where)} · patrón #${h.id} (${pats[h.id - 1].source})`,
   );
   const uniq = [...new Set(lines)];
   return `${uniq.length} hallazgo(s):\n${uniq.slice(0, 200).join("\n")}${uniq.length > 200 ? "\n  …" : ""}`;
+}
+
+/**
+ * Error al barrer (git falló, archivo de --text-file ilegible...): falla cerrado con 2, que es
+ * lo que bloquea en --hook. Solo se imprime el mensaje de errores propios o del sistema (citan
+ * comandos y rutas); de cualquier otro, solo el tipo, por si citara texto de un archivo.
+ */
+function failClosed(err, pats) {
+  const safe =
+    err instanceof ScanError || (err instanceof Error && "code" in err && "syscall" in err);
+  let detail = safe ? err.message : (err?.name ?? "error desconocido");
+  if (safe && err.message.split(/\r?\n/).some((l) => scanLine(pats, l).length > 0)) {
+    detail =
+      err instanceof ScanError && err.cmd
+        ? `git ${err.cmd} falló (código ${err.status}; detalle omitido porque cita un dato privado)`
+        : `${err.code ?? "error"} (detalle omitido porque cita un dato privado)`;
+  }
+  console.error(
+    `[privacy-scan] No pude completar el barrido: ${detail}\n` +
+      "No se puede verificar nada, así que fallo cerrado. Avisale a Mauro.",
+  );
+  process.exit(2);
 }
 
 function needPatterns(pats, dir) {
@@ -305,10 +581,11 @@ export async function main(argv = process.argv.slice(2)) {
   let pats;
   try {
     pats = loadPatterns(patternsDir);
-  } catch {
+  } catch (err) {
     // El mensaje de la excepción puede citar un fragmento del archivo (o sea, de un patrón).
+    const what = err instanceof PatternError ? err.message : "archivo ilegible o JSON inválido";
     console.error(
-      `[privacy-scan] No pude leer los patrones de ${patternsDir} (archivo ilegible o JSON inválido).\n` +
+      `[privacy-scan] No pude leer los patrones de ${patternsDir} (${what}).\n` +
         "Sin patrones no puedo verificar nada, así que fallo cerrado. Avisale a Mauro.",
     );
     process.exit(2);
@@ -328,6 +605,15 @@ export async function main(argv = process.argv.slice(2)) {
 
   needPatterns(pats, patternsDir);
 
+  try {
+    await runMode(mode, args, pats, root);
+  } catch (err) {
+    failClosed(err, pats);
+  }
+}
+
+/** Modos que barren. Cualquier excepción la convierte main() en código 2 (falla cerrado). */
+async function runMode(mode, args, pats, root) {
   if (mode === "--self-test") {
     const lit = pats.find((p) => !p.isRegex);
     const fails = [];
@@ -352,6 +638,10 @@ export async function main(argv = process.argv.slice(2)) {
   }
 
   if (mode === "--text-file") {
+    if (args.length < 2) {
+      console.error(`[privacy-scan] --text-file necesita al menos un archivo.\n${USAGE}`);
+      process.exit(1);
+    }
     const hits = [];
     for (const f of args.slice(1)) {
       hits.push(...scanText(pats, `texto ${f}`, readFileSync(f, "utf8")));
@@ -374,6 +664,15 @@ export async function main(argv = process.argv.slice(2)) {
     }
     const { hits, commits } = scanHistory(pats, rev, root);
     console.log(`Commits revisados: ${commits}`);
+    // 0 commits con un patrón de refs que no resuelve ninguna ref (p. ej. sin fetch) es un
+    // barrido que no corrió. Con refs que existen (p. ej. «--all --not --all»), 0 es válido.
+    if (commits === 0) {
+      for (const a of rev.filter((x) => /^--(all|glob|remotes|branches|tags)(=|$)/.test(x))) {
+        if (!gitOrThrow(root, ["rev-parse", a]).trim()) {
+          throw new ScanError(`no se revisó ningún commit: ${a} no resuelve ninguna ref`);
+        }
+      }
+    }
     if (hits.length) {
       console.error(report(hits, pats));
       process.exit(1);
@@ -398,10 +697,17 @@ export async function main(argv = process.argv.slice(2)) {
     const hits = [];
     // Suma de commits revisados por ref (un commit compartido por dos refs cuenta dos veces).
     let commits = 0;
-    for (const line of stdin.split(/\r?\n/).filter(Boolean)) {
+    const refs = stdin.split(/\r?\n/).filter(Boolean);
+    for (const [i, line] of refs.entries()) {
       const [, localSha, remoteRef, remoteSha] = line.split(" ");
+      // Solo shas a git: nada de texto arbitrario de stdin como argumento.
+      const SHA = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
+      if (!SHA.test(localSha ?? "") || !SHA.test(remoteSha ?? "") || remoteRef === undefined) {
+        throw new ScanError(`línea ${i + 1} de pre-push con formato inesperado`);
+      }
       if (/^0+$/.test(localSha)) continue; // borrado de rama: lo bloquea el guard
-      hits.push(...scanText(pats, `rama remota ${remoteRef}`, remoteRef));
+      // La etiqueta no lleva el nombre de la rama: si coincide con un patrón, el informe lo citaría.
+      hits.push(...scanText(pats, `rama remota (ref ${i + 1} del push)`, remoteRef));
       const range = /^0+$/.test(remoteSha)
         ? [localSha, "--not", "--remotes=origin"]
         : [`${remoteSha}..${localSha}`];
@@ -434,15 +740,19 @@ export async function main(argv = process.argv.slice(2)) {
   const { hits, base } = scanWorktree(pats, root);
   if (!base) {
     console.error(
-      "[privacy-scan] Aviso: no encontré main ni origin/main; revisé solo lo no commiteado.",
+      "[privacy-scan] Aviso: no encontré main ni origin/main; revisé los commits de HEAD que " +
+        "no están en ningún remoto, más lo no commiteado.",
     );
   }
   if (hits.length === 0) {
     if (!isHook) console.log("Sin hallazgos.");
     process.exit(0);
   }
-  const who = hookInput.teammate_name ? ` (${hookInput.teammate_name})` : "";
-  const task = hookInput.task_subject ? `"${hookInput.task_subject}"` : "esta tarea";
+  const mate = typeof hookInput.teammate_name === "string" ? hookInput.teammate_name : "";
+  const who = mate && !scanLine(pats, mate).length ? ` (${mate})` : "";
+  // Si el título de la tarea tiene un dato privado, no se cita.
+  const subject = typeof hookInput.task_subject === "string" ? hookInput.task_subject : "";
+  const task = subject && !scanLine(pats, subject).length ? `"${subject}"` : "esta tarea";
   console.error(
     (isHook
       ? `No se puede cerrar ${task}${who}: hay datos privados en lo que se publicaría.\n`
@@ -454,4 +764,16 @@ export async function main(argv = process.argv.slice(2)) {
   process.exit(isHook ? 2 : 1);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await main();
+/** ¿Se corre este archivo como script? Compara rutas reales: puede invocarse por un symlink. */
+function isMain() {
+  if (!process.argv[1]) return false;
+  let path = process.argv[1];
+  try {
+    path = realpathSync(path);
+  } catch {
+    // sin ruta real: se compara la ruta tal cual
+  }
+  return import.meta.url === pathToFileURL(path).href;
+}
+
+if (isMain()) await main();
