@@ -37,3 +37,18 @@ describe("titleFit · comunicación", () => {
     expect(titleFit(title, "comunicacion")).toBe(fit);
   });
 });
+
+describe("titleFit · relaciones internacionales", () => {
+  it.each([
+    ["Analista de Comercio Exterior", 2],
+    ["International Sales Representative", 0],
+    ["Data Analyst, International", 0],
+    ["Coordinador Internacional", 1],
+  ] as [string, number][])("%s → %i", (title, fit) => {
+    expect(titleFit(title, "relaciones_internacionales")).toBe(fit);
+  });
+
+  it("un título con frase propia nunca se veta", () => {
+    expect(titleFit("Foreign Trade Data Specialist", "relaciones_internacionales")).toBe(2);
+  });
+});

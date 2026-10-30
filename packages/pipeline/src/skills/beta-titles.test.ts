@@ -297,3 +297,63 @@ describe("Marketing y relaciones públicas", () => {
     }
   });
 });
+
+describe("Relaciones internacionales y comex", () => {
+  it.each([
+    "Analista de Comercio Exterior",
+    "Asistente de Comex",
+    "Responsable de Comercio Exterior",
+    "Analista de Importaciones",
+    "Analista de Exportaciones",
+    "Foreign Trade Specialist",
+    "Import/Export Specialist",
+    "Customs Compliance Manager",
+    "Oficial de Programas",
+    "Program Officer",
+    "Programme Associate",
+    "Grants Officer",
+    "Partnerships Officer",
+    "Coordinador de Cooperación Internacional",
+    "Analista de Relaciones Institucionales",
+    "Government Affairs Manager",
+    "Public Policy Analyst",
+    "Political Risk Analyst",
+    "Geopolitical Analyst",
+    "Global Mobility Specialist",
+  ])("%s es de la carrera", (title) => {
+    expect(is(title, "relaciones_internacionales")).toBe(true);
+  });
+
+  it.each([
+    "International Sales Manager",
+    "Analista Internacional de Datos",
+    "Relaciones con Inversores",
+    "Data Migration Specialist",
+    "Migración de Datos",
+    "Embajador de Marca",
+    "Trade Marketing Analyst",
+    "Foreign Exchange Trader",
+    "FX Trade Support",
+    "Administrativo de Cooperativa",
+    "Public Policy Analyst, Insurance",
+    "Analista de Políticas de Seguros",
+  ])("%s no es de la carrera", (title) => {
+    expect(is(title, "relaciones_internacionales")).toBe(false);
+  });
+
+  it("las áreas compartidas suman hint en más de una carrera, sin vetarse", () => {
+    expect(hints("Relaciones Institucionales")).toEqual(
+      expect.arrayContaining(["marketing_digital", "relaciones_internacionales"]),
+    );
+    expect(hints("Public Affairs Manager")).toEqual(
+      expect.arrayContaining(["marketing_digital", "relaciones_internacionales"]),
+    );
+    expect(hints("Compliance Officer")).toContain("abogacia");
+    expect(hints("AML Analyst")).toContain("finanzas_contabilidad");
+    expect(hints("Jefe de Prensa")).toContain("comunicacion");
+    expect(hints("PR Specialist")).toContain("marketing_digital");
+    expect(hints("Analista de Control de Gestión")).toEqual(
+      expect.arrayContaining(["administracion_empresas", "finanzas_contabilidad"]),
+    );
+  });
+});

@@ -755,7 +755,30 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "content editor",
     "ux writer",
   ],
-  relaciones_internacionales: [],
+  // Nunca «internacional»/«international», «relaciones» ni «trade» sueltos.
+  relaciones_internacionales: [
+    "analista de comercio exterior",
+    "asistente de comex",
+    "comercio exterior",
+    "analista de importaciones",
+    "analista de exportaciones",
+    "foreign trade",
+    "import export specialist",
+    "customs compliance",
+    "oficial de programas",
+    "program officer",
+    "programme associate",
+    "grants officer",
+    "partnerships officer",
+    "cooperacion internacional",
+    "relaciones institucionales",
+    "public affairs",
+    "government affairs",
+    "public policy analyst",
+    "political risk analyst",
+    "geopolitical analyst",
+    "global mobility",
+  ],
 };
 
 /** Palabras que anulan el puesto aunque el título tenga uno de sus términos. */
@@ -809,6 +832,8 @@ export const TITLE_EXCLUSIONS: Partial<Record<RoleKey, readonly string[]>> = {
     "embajador de marca",
     "embajadora de marca",
   ],
+  // C1-3: divisas y cambio de moneda no son comercio exterior.
+  relaciones_internacionales: ["fx", "foreign exchange", "cooperativa"],
   // Encargados de local o sucursal no son administración de empresas.
   administracion_empresas: [
     "encargado de local",
@@ -955,6 +980,10 @@ export const TERM_EXCLUSIONS: Partial<
       ["video", "code", "codigo", "photo", "foto", "imagen", "audio", "sonido", "sound"],
     ),
     reporter: ["court"],
+  },
+  // «Public policy analyst» de seguros es un puesto de la aseguradora, no de política pública.
+  relaciones_internacionales: {
+    "public policy analyst": ["seguros", "insurance"],
   },
   // «Compliance officer» de seguridad, IT, SOC, farma o asuntos regulatorios no es derecho.
   abogacia: termExclusions(

@@ -31,13 +31,14 @@ Además, una carrera de estas es muy ancha. «Contaduría» abarca sueldos, impu
    - **Marketing y RR.PP. (11):** Marketing digital y anuncios · Redes y contenidos · Marca · Trade marketing y puntos de venta · Investigación de mercado · CRM y e-commerce · Agencia y medios · Prensa · Eventos y ceremonial · Relaciones institucionales · RSE y sustentabilidad.
    - Los chips de las otras cuatro carreras se agregan junto con su clave.
    - La selección de chips por persona (dónde se guarda y cómo filtra) queda para una ronda posterior; esta solo fija el catálogo.
-6. **Separación por título, no por prefiltro** (ADR-022 §2). `TITLE_TERMS` conservadores —nunca «sueldo», «administrador/a», «internacional», «relaciones», «contract» ni «legal» sueltos— con `TITLE_EXCLUSIONS` y `VETO_TERMS` por carrera:
-   - abogacía veta a quien trae engineer, developer, software o sistemas;
-   - administración, a engineer, developer, software y sistemas, y es la más genérica (puede llegar a `MAX_ROLE_HINTS`);
-   - comunicación, a telecom e ingeniería;
-   - relaciones internacionales, a sales y data.
+6. **Separación por título, no por prefiltro** (ADR-022 §2). `TITLE_TERMS` conservadores —nunca «sueldo», «administrador/a», «internacional», «relaciones», «contract», «legal» ni «trade» sueltos— con `TITLE_EXCLUSIONS` y `VETO_TERMS` por carrera:
+   - **Exclusiones por término** (`TERM_EXCLUSIONS`, nuevas): una palabra anula una sola frase del puesto y no toda la carrera. Evita perder títulos buenos: «Pharma Compliance Officer» sale, pero «Abogado» con el mismo texto no; «Auditor de calidad ISO» sale de contaduría, pero «Contador» no.
+   - abogacía veta a engineer, developer, software o sistemas; administración, a los mismos cuatro, y es la más genérica (puede llegar a `MAX_ROLE_HINTS`); comunicación, a telecom e ingeniería; relaciones internacionales, a sales y data. Los vetos solo actúan si el título no nombra el puesto.
+   - «Relaciones laborales» no es término de abogacía: encaja parcialmente, pero es RRHH.
+   - «Ejecutivo de cuentas» no es término de marketing: la regla del spec (solo con «agencia») no se puede expresar con frases contiguas, y sin ella es ventas.
+   - En comunicación, «redes» no se excluye suelto (lo usan «redes sociales»): se excluyen «redes de datos», «redes de comunicaciones», «redes ip» y «redes móviles».
+   - «Relaciones institucionales» y «public affairs» suman hint a marketing y a relaciones internacionales; compliance suma a abogacía (compliance officer) y a contaduría (AML analyst); prensa, a comunicación y a marketing (PR); control de gestión, a contaduría y a administración. Ninguna de esas áreas veta.
 
-   Las áreas compartidas (compliance, prensa, relaciones institucionales, control de gestión) suman hint en varias carreras y no vetan.
 7. **Prefiltro:**
    - «abogad» deja de descartar para quien eligió `abogacia`, y «administrativ» también para `administracion_empresas` (`exemptFor`);
    - los títulos propios del oficio que dicen «manager» (Brand Manager, Assistant Brand Manager, PR Manager, Communications Manager y Legal Manager) entran a `ROLE_OWN_TITLE_PHRASES`;

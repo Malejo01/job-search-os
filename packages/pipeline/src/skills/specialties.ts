@@ -221,6 +221,44 @@ export const ROLE_SPECIALTIES: Partial<Record<RoleKey, readonly RoleSpecialty[]>
     chip("audiovisual_y_radio", "Audiovisual y radio"),
     chip("opinion_publica", "Opinión pública"),
   ],
+  relaciones_internacionales: [
+    chip("comercio_exterior", "Comercio exterior", [
+      "analista de comercio exterior",
+      "asistente de comex",
+      "comercio exterior",
+      "analista de importaciones",
+      "analista de exportaciones",
+      "foreign trade",
+      "import export specialist",
+      "customs compliance",
+    ]),
+    chip("cooperacion_internacional_y_ong", "Cooperación internacional y ONG", [
+      "oficial de programas",
+      "program officer",
+      "programme associate",
+      "grants officer",
+      "partnerships officer",
+      "cooperacion internacional",
+    ]),
+    chip("organismos_internacionales", "Organismos internacionales"),
+    chip(
+      "relaciones_institucionales_y_asuntos_publicos",
+      "Relaciones institucionales y asuntos públicos",
+      [
+        "relaciones institucionales",
+        "public affairs",
+        "government affairs",
+        "public policy analyst",
+      ],
+    ),
+    chip("analisis_politico_y_riesgo", "Análisis político y riesgo", [
+      "political risk analyst",
+      "geopolitical analyst",
+    ]),
+    chip("integracion_y_negociaciones", "Integración y negociaciones"),
+    chip("migraciones_y_movilidad", "Migraciones y movilidad", ["global mobility"]),
+    chip("diplomacia", "Diplomacia"),
+  ],
   marketing_digital: [
     chip("marketing_digital_y_anuncios", "Marketing digital y anuncios", [
       "marketing digital",
