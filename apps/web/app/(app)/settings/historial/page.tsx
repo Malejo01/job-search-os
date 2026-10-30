@@ -16,9 +16,10 @@ import { addHistoryAction, deleteHistoryAction, updateHistoryAction } from "./ac
 export const metadata = { title: "Tu historial" };
 export const dynamic = "force-dynamic";
 
-const INPUT = "min-h-11 rounded-md border border-zinc-300 px-3 py-2 text-base";
+const INPUT =
+  "min-h-11 rounded-control border border-line-control bg-surface px-3 py-2 text-base text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 const BUTTON =
-  "inline-flex min-h-11 items-center rounded-md px-4 py-2 text-base font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900";
+  "inline-flex min-h-11 items-center rounded-control px-4 py-2 text-base font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 function months(row: Pick<HistoryRow, "startMonth" | "endMonth" | "kind">): string {
   if (!row.startMonth && !row.endMonth) return "";
@@ -30,7 +31,7 @@ function EntryFields({ row, prefix }: { row?: HistoryRow; prefix: string }) {
   const id = (name: string) => `${prefix}-${name}`;
   return (
     <>
-      <label htmlFor={id("kind")} className="flex flex-col gap-1 text-sm font-medium">
+      <label htmlFor={id("kind")} className="flex flex-col gap-1 text-sm font-medium text-fg">
         Tipo
         <select id={id("kind")} name="kind" defaultValue={row?.kind ?? "trabajo"} className={INPUT}>
           {HISTORY_KINDS.map((k) => (
@@ -40,7 +41,10 @@ function EntryFields({ row, prefix }: { row?: HistoryRow; prefix: string }) {
           ))}
         </select>
       </label>
-      <label htmlFor={id("organization")} className="flex flex-col gap-1 text-sm font-medium">
+      <label
+        htmlFor={id("organization")}
+        className="flex flex-col gap-1 text-sm font-medium text-fg"
+      >
         Empresa o institución
         <input
           id={id("organization")}
@@ -51,7 +55,7 @@ function EntryFields({ row, prefix }: { row?: HistoryRow; prefix: string }) {
           className={INPUT}
         />
       </label>
-      <label htmlFor={id("title")} className="flex flex-col gap-1 text-sm font-medium">
+      <label htmlFor={id("title")} className="flex flex-col gap-1 text-sm font-medium text-fg">
         Cargo o título
         <input
           id={id("title")}
@@ -63,7 +67,7 @@ function EntryFields({ row, prefix }: { row?: HistoryRow; prefix: string }) {
         />
       </label>
       <div className="flex flex-wrap gap-3">
-        <label htmlFor={id("start")} className="flex flex-col gap-1 text-sm font-medium">
+        <label htmlFor={id("start")} className="flex flex-col gap-1 text-sm font-medium text-fg">
           Inicio
           <input
             id={id("start")}
@@ -73,7 +77,7 @@ function EntryFields({ row, prefix }: { row?: HistoryRow; prefix: string }) {
             className={INPUT}
           />
         </label>
-        <label htmlFor={id("end")} className="flex flex-col gap-1 text-sm font-medium">
+        <label htmlFor={id("end")} className="flex flex-col gap-1 text-sm font-medium text-fg">
           Fin (vacío si sigue)
           <input
             id={id("end")}
@@ -84,7 +88,7 @@ function EntryFields({ row, prefix }: { row?: HistoryRow; prefix: string }) {
           />
         </label>
       </div>
-      <label htmlFor={id("bullets")} className="flex flex-col gap-1 text-sm font-medium">
+      <label htmlFor={id("bullets")} className="flex flex-col gap-1 text-sm font-medium text-fg">
         Qué hiciste y qué lograste
         <textarea
           id={id("bullets")}
@@ -94,7 +98,7 @@ function EntryFields({ row, prefix }: { row?: HistoryRow; prefix: string }) {
           aria-describedby={id("bullets-help")}
           className={INPUT}
         />
-        <span id={id("bullets-help")} className="text-xs font-normal text-zinc-700">
+        <span id={id("bullets-help")} className="text-xs font-normal text-fg-muted">
           Una viñeta por línea, hasta {HISTORY_MAX_BULLETS} de {HISTORY_BULLET_MAX_CHARS}{" "}
           caracteres, sin links.
         </span>
@@ -125,22 +129,22 @@ export default async function HistorialPage({
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-4">
-      <Link href="/settings" className="text-sm text-zinc-900 underline">
+      <Link href="/settings" className="text-sm text-fg underline">
         Ajustes
       </Link>
-      <h1 className="text-2xl font-semibold">Tu historial</h1>
-      <p className="text-sm text-zinc-700">
+      <h1 className="text-2xl font-semibold text-fg">Tu historial</h1>
+      <p className="text-sm text-fg-muted">
         Trabajos, estudios y certificaciones que aparecen en tu CV. Solo se usa lo que cargás acá;
         nada se inventa. Hasta {HISTORY_MAX_ENTRIES} entradas.
       </p>
 
       {errorText ? (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
+        <p role="alert" className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">
           {errorText}
         </p>
       ) : null}
       {ok === "saved" || ok === "deleted" ? (
-        <p role="status" className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-900">
+        <p role="status" className="rounded-control bg-success-soft px-3 py-2 text-sm text-success">
           {ok === "saved" ? "Guardado." : "Entrada borrada."}{" "}
           <Link href="/cv" className="underline">
             Ver mi CV
@@ -149,34 +153,37 @@ export default async function HistorialPage({
       ) : null}
 
       <section aria-labelledby="entradas" className="flex flex-col gap-3">
-        <h2 id="entradas" className="text-lg font-medium">
+        <h2 id="entradas" className="text-lg font-medium text-fg">
           Tus entradas
         </h2>
         {rows.length === 0 ? (
-          <p className="text-sm text-zinc-700">Todavía no cargaste nada.</p>
+          <p className="text-sm text-fg-muted">Todavía no cargaste nada.</p>
         ) : (
           <ul className="flex flex-col gap-3">
             {rows.map((row) => (
               <li
                 key={row.id}
                 data-testid="history-entry"
-                className="rounded-md border border-zinc-200 p-3"
+                className="rounded-card border border-line bg-surface p-3"
               >
-                <p className="text-sm font-medium text-zinc-900">
+                <p className="text-sm font-medium text-fg">
                   {row.title} · {row.organization}
                 </p>
-                <p className="text-xs text-zinc-700">
+                <p className="text-xs text-fg-muted">
                   {HISTORY_KIND_LABELS[row.kind]}
                   {months(row) ? ` · ${months(row)}` : ""}
                 </p>
                 <details className="mt-2">
-                  <summary className="min-h-11 cursor-pointer py-2 text-sm text-zinc-900 underline">
+                  <summary className="min-h-11 cursor-pointer py-2 text-sm text-fg underline">
                     Editar
                   </summary>
                   <form action={updateHistoryAction} className="flex flex-col gap-3 pt-2">
                     <input type="hidden" name="id" value={row.id} />
                     <EntryFields row={row} prefix={`e-${row.id}`} />
-                    <button type="submit" className={`self-start bg-zinc-900 text-white ${BUTTON}`}>
+                    <button
+                      type="submit"
+                      className={`self-start bg-brand text-brand-contrast hover:bg-brand-hover ${BUTTON}`}
+                    >
                       Guardar cambios
                     </button>
                   </form>
@@ -186,7 +193,7 @@ export default async function HistorialPage({
                   <button
                     type="submit"
                     aria-label={`Borrar ${row.title} en ${row.organization}`}
-                    className={`text-red-800 underline ${BUTTON}`}
+                    className={`text-danger underline ${BUTTON}`}
                   >
                     Borrar
                   </button>
@@ -199,17 +206,20 @@ export default async function HistorialPage({
 
       <section
         aria-labelledby="nueva"
-        className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4"
+        className="flex flex-col gap-3 rounded-card border border-line bg-surface p-4"
       >
-        <h2 id="nueva" className="text-lg font-medium">
+        <h2 id="nueva" className="text-lg font-medium text-fg">
           Sumar una entrada
         </h2>
         {full ? (
-          <p className="text-sm text-zinc-700">{HISTORY_ERROR_MESSAGES.limit}</p>
+          <p className="text-sm text-fg-muted">{HISTORY_ERROR_MESSAGES.limit}</p>
         ) : (
           <form action={addHistoryAction} className="flex flex-col gap-3">
             <EntryFields prefix="nueva" />
-            <button type="submit" className={`self-start bg-zinc-900 text-white ${BUTTON}`}>
+            <button
+              type="submit"
+              className={`self-start bg-brand text-brand-contrast hover:bg-brand-hover ${BUTTON}`}
+            >
               Agregar
             </button>
           </form>
