@@ -12,6 +12,8 @@ import {
   type ButtonVariant,
 } from "@/components/ui";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = { title: "Componentes", robots: { index: false } };
 
 const VARIANTS: ButtonVariant[] = ["primary", "secondary", "ghost", "danger"];
