@@ -33,15 +33,15 @@ export function JobCard({ card }: { card: ShowcaseCard }) {
     <li
       data-modality={modality}
       data-testid="showcase-card"
-      className="min-w-0 rounded-md border border-zinc-200 bg-white p-4"
+      className="min-w-0 rounded-card border border-line bg-surface p-4"
     >
       <article className="flex min-w-0 flex-col gap-2">
-        <h3 className="break-words text-base font-semibold">{card.title}</h3>
-        <p className="break-words text-sm text-zinc-800">
+        <h3 className="break-words text-base font-semibold text-fg">{card.title}</h3>
+        <p className="break-words text-sm text-fg">
           {card.company}
           {card.location ? ` · ${card.location}` : ""}
         </p>
-        <p className="text-xs text-zinc-700">
+        <p className="text-xs text-fg-subtle">
           {MODALITY_LABELS[modality]} · {DATE_FORMAT.format(new Date(card.publishedAt))}
         </p>
         {card.skills.length ? (
@@ -49,14 +49,14 @@ export function JobCard({ card }: { card: ShowcaseCard }) {
             {card.skills.map((name) => (
               <li
                 key={name}
-                className="rounded border border-zinc-300 px-2 py-0.5 text-xs text-zinc-800"
+                className="rounded border border-line-strong px-2 py-0.5 text-xs text-fg"
               >
                 {name}
               </li>
             ))}
           </ul>
         ) : null}
-        <p className="text-xs text-zinc-600">
+        <p className="text-xs text-fg-subtle">
           {attribution ? attribution.text : null}
           {url ? (
             <>
@@ -66,7 +66,7 @@ export function JobCard({ card }: { card: ShowcaseCard }) {
                 href={url}
                 target="_blank"
                 rel="noopener"
-                className="inline-flex min-h-11 items-center text-zinc-800 underline"
+                className="inline-flex min-h-11 items-center text-fg-muted underline underline-offset-2 hover:text-fg"
               >
                 Ver el aviso original ↗
               </a>
@@ -76,7 +76,7 @@ export function JobCard({ card }: { card: ShowcaseCard }) {
         <p className="text-xs">
           <Link
             href="/acceso"
-            className="inline-flex min-h-11 items-center text-zinc-800 underline"
+            className="inline-flex min-h-11 items-center text-fg-muted underline underline-offset-2 hover:text-fg"
           >
             ¿Qué tan bien te calza? Pedí acceso
           </Link>

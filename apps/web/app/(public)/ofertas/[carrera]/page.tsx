@@ -37,22 +37,25 @@ export default async function OfertasCarreraPage({ params }: Props) {
         <p className="text-sm">
           <Link
             href="/ofertas"
-            className="inline-flex min-h-11 items-center text-zinc-700 underline"
+            className="inline-flex min-h-11 items-center text-fg-muted underline underline-offset-2 hover:text-fg"
           >
             Todas las ofertas
           </Link>
         </p>
-        <h1 className="text-3xl font-semibold">Ofertas de {label}</h1>
+        <h1 className="text-3xl font-semibold text-fg">Ofertas de {label}</h1>
       </header>
       <OffersList cards={cards} contact={contactLink("Retirar un aviso")} />
       <section aria-labelledby="otras" className="flex flex-col gap-3">
-        <h2 id="otras" className="text-xl font-semibold">
+        <h2 id="otras" className="text-xl font-semibold text-fg">
           Cambiar de carrera
         </h2>
         <CareerChips base="/ofertas" current={role} label="Cambiar de carrera" />
       </section>
-      <p className="flex flex-wrap items-center gap-x-2 text-sm text-zinc-700">
-        <Link href={`/mercado/${role}`} className="inline-flex min-h-11 items-center underline">
+      <p className="flex flex-wrap items-center gap-x-2 text-sm text-fg-muted">
+        <Link
+          href={`/mercado/${role}`}
+          className="inline-flex min-h-11 items-center underline underline-offset-2 hover:text-fg"
+        >
           Ver qué piden las ofertas de {label}
         </Link>
       </p>

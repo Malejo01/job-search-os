@@ -57,6 +57,8 @@ const PUBLIC_ROUTES = [
   "/forgot-password",
   "/mercado",
   "/mercado/data_analyst",
+  "/ofertas",
+  "/ofertas/data_analyst",
 ] as const;
 
 test.describe("Flujo 88: axe en oscuro", () => {
