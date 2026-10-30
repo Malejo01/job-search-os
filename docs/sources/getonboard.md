@@ -58,7 +58,7 @@ Distribución observada en 60 avisos de programming: 20 híbridos Chile, 13 `rem
 
 La fuente también alimenta el pool global (`POOL_SOURCES`; apagada hasta que Mauro define la variable, y se prende de a una tras el `--dry-run`), además de la ingesta por usuario de abajo, que sigue igual hasta que la asignación desde el pool la reemplace.
 
-- Categorías: `GOB_POOL_CATEGORIES` = `programming`, `mobile-developer`, `machine-learning-ai`, `data-science-analytics`, `design-ux`, `sysadmin-devops-qa`, `customer-support`, más las carreras digitales de la ronda 40 (ADR-015): `digital-marketing`, `hr`, `innovation-agile`, `technical-support`, `cybersecurity`. Los tres de `GOB_CATEGORIES` están verificados (2026-09-10) y las cinco digitales también, en `/api/v0/categories` (2026-10-12); **`mobile-developer`, `design-ux`, `sysadmin-devops-qa` y `customer-support` están a verificar** con `pnpm pool:fetch getonboard --dry-run`. Desde la ronda 103 (ADR-020) entran también `operations-management` (→ `project_manager`) y `advertising-media` (→ `marketing_digital`). El 2026-10-21, `/api/v0/categories` listaba 18 categorías. Siguen fuera `sales` (espera una carrera de ventas), `education-coaching`, `other` y `hardware-electronics`. Toda categoría del pool tiene que mapear a una carrera en `role_hints`. `GOB_CATEGORIES` no cambia.
+- Categorías: `GOB_POOL_CATEGORIES` = `programming`, `mobile-developer`, `machine-learning-ai`, `data-science-analytics`, `design-ux`, `sysadmin-devops-qa`, `customer-support`, más las carreras digitales de la ronda 40 (ADR-015): `digital-marketing`, `hr`, `innovation-agile`, `technical-support`, `cybersecurity`. Desde la ronda 103 (ADR-020) entran `operations-management` (→ `project_manager`) y `advertising-media` (→ `marketing_digital`). Desde la ronda 107 (ADR-022) entra `sales` (→ `ventas_b2b`). Las 15 categorías del pool fueron verificadas en vivo con `pnpm pool:fetch getonboard --dry-run` con 0 errores 404 (ninguna faltante). Siguen fuera únicamente `education-coaching`, `other` y `hardware-electronics`. `GOB_CATEGORIES` no cambia.
 - Backfill de categorías nuevas: `since` sale de la última corrida ok de la fuente, así que una categoría recién sumada solo traería el último día. Después de sumar categorías se reinicia la bitácora de la fuente (lo hace Mauro) para que vuelva a hacer backfill; el dedup del pool absorbe lo repetido.
 - Llamada con `remoteOnly: false` (el pool guarda también híbridos y presenciales), `skipMissingCategories: true` (un 404 en la página 1 de una categoría se saltea y queda en `missingCategories`; cualquier otro error corta) y ventana de 48 h.
 - `RawJob.categories` = slugs de las categorías donde apareció el aviso; si aparece en otra, se **suma**.
@@ -66,6 +66,13 @@ La fuente también alimenta el pool global (`POOL_SOURCES`; apagada hasta que Ma
 - `User-Agent` identificable (`sourceUserAgent()`).
 - `externalId` es el `id` de la fuente, ya sin prefijo.
 - `--dry-run`: `pnpm pool:fetch getonboard --dry-run` informa páginas, avisos vistos, mapeados, categorías faltantes y qué campos trae la respuesta real (solo conteos y tipos, nunca valores). No escribe en ninguna base.
+- Verificación en vivo (`--dry-run` ventana 48 h):
+  - 18 páginas descargadas, 897 avisos vistos, 52 avisos dentro de la ventana de 48 h.
+  - Categorías faltantes (404): **ninguna** (incluidas `operations-management`, `digital-marketing`, `advertising-media` y `sales`).
+  - Avisos en español dentro de la ventana: 36 de 52 (en=16).
+  - Avisos contables / operaciones financieras en español: 2 (e.g. BNP Paribas Cardif: *Analista de Pagos Operacionales*, Rankmi: *Consultor de Implementación SaaS B2B*).
+  - Avisos de marketing en español: 1 en categoría explícita (`digital-marketing`: LemonTech: *Growth Hacker & Acquisition Manager*), 3 con pistas de marketing digital en total.
+  - `advertising-media` activa y respondiendo 200 (sin avisos nuevos en la ventana de 48 h).
 
 ### Atribución y términos
 Fuente: `ops/rondas/37-38-39/informes/riesgos-fuentes.md` §1 (consultado el 2026-10-12; no es asesoramiento legal). Es la fuente menos clara: la ayuda oficial invita a mostrar avisos en otro sitio, pero los Términos (sección 7) prohíben la descarga automática de su propiedad intelectual y entrenar modelos, y no publican límites ni atribución. Condiciones sugeridas: mostrar "Get on Board" y el link a `links.public_url`; consulta moderada con `User-Agent` identificable y retroceso ante 429; confirmación escrita del uso previsto (la decide y hace Mauro).
