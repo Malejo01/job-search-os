@@ -5,6 +5,7 @@ import criteria from "../../../db/seeds/criteria.example.json";
 import type { CriteriaRules } from "../criteria";
 import type { RoleKey } from "../skills/self-assessment";
 import { prefilter, ROLE_OWN_TITLE_PHRASES, type PrefilterResult } from "./prefilter";
+import { prefilterReasonText } from "./reason-text";
 
 /**
  * Arreglos del prefiltro para las carreras de la beta (C1-4, ADR-027). Todo inventado. Las reglas del
@@ -86,7 +87,7 @@ describe("licencia: alias de Argentina", () => {
 
   it.each([
     "Matrícula profesional vigente en el CPACF.",
-    "Se requiere matrícula profesional, inscripto en el Colegio de Abogados.",
+    "Se requiere matrícula profesional, inscripto en el Colegio Público de Abogados de la Capital Federal.",
   ])("«%s» es de Argentina: pasa con flag para un perfil AR", (text) => {
     const r = withCountry("AR", text);
     expect(r.pass).toBe(true);
@@ -98,6 +99,14 @@ describe("licencia: alias de Argentina", () => {
       pass: false,
       reason: "licencia_profesional",
     });
+  });
+
+  it.each([
+    "Matrícula profesional vigente en el Colegio de Abogados de Lima.",
+    "Matrícula profesional del Colegio de Abogados de Madrid (ICAM).",
+    "Matrícula profesional en el Colegio de Abogados.",
+  ])("«%s» no es de Argentina: descarta para un perfil AR", (text) => {
+    expect(withCountry("AR", text)).toMatchObject({ pass: false, reason: "licencia_profesional" });
   });
 
   it("sin el país de la persona sigue sin correr (falla abierta)", () => {
@@ -114,11 +123,21 @@ describe("multinivel", () => {
   it.each([
     "Sé tu propio jefe",
     "Asesor comercial: sé tu propia jefa",
+    "Ser tu propio jefe desde casa",
+    "Sea su propio jefe",
     "Oportunidad de negocio sin experiencia",
     "Ingresos extra desde casa",
     "Ingresos extras trabajando online",
+    "Ganancias extra mensuales",
     "Emprendedor independiente",
+    "Emprendedor/a independiente",
+    "Emprendedor(a) independiente",
     "Emprendedora independiente de belleza",
+    "Network marketing: sumate al equipo",
+    "Representante multinivel",
+    "Emprendé tu propio negocio",
+    "Be your own boss",
+    "Earn extra income from home",
   ])("el título «%s» descarta con cualquier carrera", (title) => {
     for (const roles of [undefined, ["abogacia"], ["marketing_digital"], ["ventas_b2b"]] as
       RoleKey[][] | undefined[]) {
@@ -129,25 +148,56 @@ describe("multinivel", () => {
     }
   });
 
-  it("el detalle nombra la frase", () => {
+  it("el detalle nombra la frase y el mensaje al usuario lo dice claro", () => {
     const r = run("Sé tu propio jefe");
     expect(r.pass).toBe(false);
-    if (!r.pass) expect(r.detail).toContain("tu propio jefe");
+    if (!r.pass) {
+      expect(r.detail).toContain("tu propio jefe");
+      expect(prefilterReasonText(`${r.reason}: ${r.detail}`)).toMatch(/multinivel/);
+    }
   });
 
-  it("en el texto del aviso hacen falta dos frases distintas", () => {
-    const one = run("Asesor comercial", undefined, {
-      jdText: "Buscamos asesores. Es una oportunidad de negocio para la empresa.",
+  describe("en el texto del aviso hace falta una frase de núcleo y otra más, o cuatro distintas", () => {
+    const jd = (text: string, title = "Asesor comercial", roles?: RoleKey[]) =>
+      run(title, roles, { jdText: text });
+
+    it("una sola frase, o varias comunes sin núcleo, no alcanzan", () => {
+      for (const text of [
+        "Buscamos asesores. Es una oportunidad de negocio para la empresa.",
+        "Ingresos extra. Más ingresos extra. Ingresos extra otra vez.",
+        "Identificá cada oportunidad de negocio. Comisiones: ingresos extra por objetivos.",
+        "Trabajamos con emprendedores independientes. Una oportunidad de negocio para nuestros clientes.",
+        "Ingresos extra por horas extras y emprendedores independientes como clientes.",
+      ]) {
+        expect(jd(text).pass, text).toBe(true);
+      }
     });
-    expect(one.pass).toBe(true);
-    const two = run("Asesor comercial", undefined, {
-      jdText: "Sé tu propio jefe y generá ingresos extra con nuestra oportunidad de negocio.",
+
+    it("«propio jefe de proyecto» o de equipo es un cargo, no el eslogan", () => {
+      expect(
+        jd("Serás tu propio jefe de proyecto. Una oportunidad de negocio con ingresos extra.").pass,
+      ).toBe(true);
     });
-    expect(two).toMatchObject({ pass: false, reason: "disciplina_distinta" });
-    const repeated = run("Asesor comercial", undefined, {
-      jdText: "Ingresos extra. Más ingresos extra. Ingresos extra otra vez.",
+
+    it("el eslogan más otra frase descarta", () => {
+      expect(
+        jd("Sé tu propio jefe y generá ingresos extra con nuestra oportunidad de negocio."),
+      ).toMatchObject({ pass: false, reason: "disciplina_distinta" });
+      expect(jd("Sé tu propia jefa. Ganancias extra desde el primer mes.").pass).toBe(false);
+      expect(jd("Network marketing con ingresos extra.").pass).toBe(false);
     });
-    expect(repeated.pass).toBe(true);
+
+    it("cuatro frases distintas descartan aunque ninguna sea de núcleo", () => {
+      expect(
+        jd(
+          "Una oportunidad de negocio para emprendedores independientes. Ingresos extra y extra income.",
+        ).pass,
+      ).toBe(false);
+    });
+
+    it("un título de tecnología no se descarta por el texto", () => {
+      expect(jd("Sé tu propio jefe y generá ingresos extra.", "Backend Developer").pass).toBe(true);
+    });
   });
 
   it.each([
@@ -158,6 +208,7 @@ describe("multinivel", () => {
     "Revenue Operations",
     "Propio Jefe de Obra",
     "Desarrollador Backend independiente",
+    "Líder de Proyecto, jefe de equipo",
   ])("no descarta «%s»", (title) => {
     expect(run(title, ["administracion_empresas", "marketing_digital"]).pass).toBe(true);
   });
