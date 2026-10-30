@@ -12,6 +12,7 @@ import {
   assignSeededPoolJobs,
   deleteSeededPublicJobs,
   chooseRoles,
+  localChildEnv,
   ownerDb,
   runDemoWorker,
   seedPublicJobs,
@@ -206,7 +207,7 @@ export function computeRoleMarketAndPlan(
   return execSync(`pnpm exec tsx "${COMPUTE_SCRIPT}"${arg}`, {
     cwd: resolve(ROOT, "packages/adapters"),
     encoding: "utf8",
-    env: { ...process.env, DB_TARGET: "local", LOG_LEVEL: "warn" },
+    env: localChildEnv({ LOG_LEVEL: "warn" }),
     timeout: 120_000,
   });
 }
