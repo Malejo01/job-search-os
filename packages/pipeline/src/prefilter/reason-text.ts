@@ -21,6 +21,9 @@ export function prefilterReasonText(stored: string | null | undefined): string |
           ? "El aviso está en español, y elegiste ofertas solo en inglés."
           : "El aviso está en un idioma que no elegiste.";
     case "disciplina_distinta": {
+      if (detail.startsWith("venta multinivel")) {
+        return "Parece una oferta de venta multinivel o de emprendimiento, no un puesto en relación de dependencia.";
+      }
       const area = quoted(detail);
       return area ? `El puesto es de otra área (${area}).` : "El puesto es de otra área.";
     }

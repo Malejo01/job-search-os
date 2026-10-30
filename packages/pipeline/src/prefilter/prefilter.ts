@@ -293,27 +293,53 @@ const NON_IT_TITLE: readonly { label: string; re: RegExp; exemptFor?: readonly R
  * Frases de venta multinivel o «emprendimiento» (ya sin acentos). «oportunidad de negocio» va en
  * singular: «oportunidades de negocio» es un aviso comercial común.
  */
-const MULTILEVEL_PHRASES: readonly { label: string; re: RegExp }[] = [
-  { label: "sé tu propio jefe", re: word("se\\s+tu\\s+propi[oa]\\s+jef[ea]") },
-  { label: "oportunidad de negocio", re: word("oportunidad\\s+de\\s+negocio") },
-  { label: "ingresos extra", re: word("ingresos\\s+extras?") },
+const MULTILEVEL_PHRASES: readonly { label: string; re: RegExp; core: boolean }[] = [
+  {
+    label: "sé tu propio jefe",
+    // «Sé tu propio jefe de proyecto» o «de equipo» es un cargo, no el eslogan.
+    re: word(
+      "(?:(?:se|sea|sos|ser)\\s+)?(?:tu|su)\\s+propi[oa]\\s+jef[ea](?!\\s+de\\s+(?:proyectos?|equipos?|cuentas?|areas?|mercado|cartera))",
+    ),
+    core: true,
+  },
+  { label: "multinivel", re: word("multinivel"), core: true },
+  { label: "network marketing", re: word("network\\s+marketing"), core: true },
+  {
+    label: "emprendé tu propio negocio",
+    re: word("emprende\\s+(?:tu|su)\\s+propio\\s+negocio"),
+    core: true,
+  },
+  { label: "be your own boss", re: word("be\\s+your\\s+own\\s+boss"), core: true },
+  { label: "oportunidad de negocio", re: word("oportunidad\\s+de\\s+negocio"), core: false },
+  { label: "ingresos extra", re: word("(?:ingresos?|ganancias?|dinero)\\s+extras?"), core: false },
+  { label: "extra income", re: word("extra\\s+income"), core: false },
   {
     label: "emprendedor independiente",
-    re: word("emprendedor(?:es|as?)?\\s+independientes?"),
+    // «Emprendedor/a», «emprendedor(a)» y «emprendedor@» quedan con el sufijo suelto tras foldText.
+    re: word("emprendedor(?:es|as?)?(?:\\s*[/(@]\\s*[ao]s?\\)?)?\\s+independientes?"),
+    core: false,
   },
 ];
 
 /** Tope del texto del aviso que se revisa (una JD normal está muy por debajo). */
 const MULTILEVEL_MAX_TEXT = 20_000;
 
-/** La frase de multinivel que descarta, o null. Título: una; texto del aviso: dos distintas. */
+/**
+ * La frase de multinivel que descarta, o null. Título: una cualquiera. Texto del aviso: una «de
+ * núcleo» (el eslogan, «multinivel», «network marketing») y al menos otra frase, o cuatro distintas.
+ * Las frases comunes («oportunidad de negocio», «ingresos extra», «emprendedores independientes»
+ * como clientes) aparecen juntas en avisos comerciales normales y solas no alcanzan.
+ */
 function detectMultilevel(foldedTitle: string, jdText: string | null | undefined): string | null {
   const inTitle = MULTILEVEL_PHRASES.find((p) => p.re.test(foldedTitle));
   if (inTitle) return inTitle.label;
-  if (!jdText) return null;
+  // Un título de tecnología con un texto largo no se descarta por el texto.
+  if (!jdText || hasItSignal(foldedTitle)) return null;
   const text = foldText(jdText.slice(0, MULTILEVEL_MAX_TEXT));
   const found = MULTILEVEL_PHRASES.filter((p) => p.re.test(text));
-  return found.length >= 2 ? found[0]!.label : null;
+  const core = found.find((p) => p.core);
+  if (core && found.length >= 2) return core.label;
+  return found.length >= 4 ? found[0]!.label : null;
 }
 
 /**
