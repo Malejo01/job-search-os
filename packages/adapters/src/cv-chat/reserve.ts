@@ -35,6 +35,8 @@ export type CvChatMeasures = {
   userInterviewUsd: number;
   /** Charlas que la persona empezó en 24 h. */
   startsToday: number;
+  /** Turnos de entrevista (llamadas al modelo) de la persona en la ventana mensual: reales más reservados. */
+  interviewTurnsThisMonth: number;
 };
 
 const CV_TASKS = ["cv_interview", "cv_write"];
@@ -73,6 +75,18 @@ export async function measureCvChat(
     })
     .from(c)
     .where(and(eq(c.userId, input.userId), gte(c.createdAt, input.daySince)));
+  // Turnos del mes: una fila `cv_interview` ok por llamada al modelo (los intentos fallidos no cuentan)
+  const [turnsMonth] = await q
+    .select({ n: sql<number>`count(*)::int` })
+    .from(c)
+    .where(
+      and(
+        eq(c.userId, input.userId),
+        eq(c.task, "cv_interview"),
+        eq(c.ok, true),
+        gte(c.createdAt, input.monthSince),
+      ),
+    );
   const live = await q
     .select({
       userId: c.userId,
@@ -99,6 +113,8 @@ export async function measureCvChat(
     writesInConversation: (conv?.writes ?? 0) + (convLive.some((r) => r.step === "write") ? 1 : 0),
     userInterviewUsd: (mine?.usd ?? 0) + usd(mineLive.filter((r) => r.step === "interview")),
     startsToday: mine?.starts ?? 0,
+    interviewTurnsThisMonth:
+      (turnsMonth?.n ?? 0) + mineLive.filter((r) => r.step === "interview").length,
   };
 }
 

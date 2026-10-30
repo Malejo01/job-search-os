@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { CV_CHAT_BETA_LIMITS } from "../plans";
 import {
   cvChatCapNotice,
   cvChatCapReason,
   cvChatDailyCapUsd,
+  cvChatBetaCvPerMonth,
   cvChatEnabled,
+  cvChatMonthTurnsReason,
   cvChatStartCapReason,
   cvChatWindows,
   type CvChatCapInput,
@@ -18,6 +21,34 @@ const ok: CvChatCapInput = {
   dailySpendUsd: 0.2,
   dailyCapUsd: 1,
 };
+
+describe("topes mensuales de la beta (C2-1)", () => {
+  it("CV_CHAT_BETA_LIMITS: 3 CV y 40 turnos de entrevista por mes", () => {
+    expect(CV_CHAT_BETA_LIMITS).toEqual({ cvPerMonth: 3, interviewTurnsPerMonth: 40 });
+  });
+  it("CV por mes: el plan gratis tiene 3 en la beta, un plan que da más conserva el suyo", () => {
+    expect(cvChatBetaCvPerMonth(1)).toBe(3);
+    expect(cvChatBetaCvPerMonth(3)).toBe(3);
+    expect(cvChatBetaCvPerMonth(5)).toBe(5);
+    expect(cvChatBetaCvPerMonth(Number.NaN)).toBe(3);
+  });
+  it("turnos por mes: se llega al tope con 40 y falla cerrado ante un número inválido", () => {
+    expect(cvChatMonthTurnsReason(0)).toBeNull();
+    expect(cvChatMonthTurnsReason(39)).toBeNull();
+    expect(cvChatMonthTurnsReason(40)).toBe("turnos_mes");
+    expect(cvChatMonthTurnsReason(41)).toBe("turnos_mes");
+    expect(cvChatMonthTurnsReason(Number.NaN)).toBe("turnos_mes");
+    expect(cvChatMonthTurnsReason(-1)).toBe("turnos_mes");
+    expect(cvChatMonthTurnsReason(10, 10)).toBe("turnos_mes");
+  });
+  it("el mensaje del tope mensual de turnos es claro y no promete lo que no hay", () => {
+    const n = cvChatCapNotice("turnos_mes");
+    expect(n.message).toContain("este mes");
+    expect(n.message).toContain("a mano");
+    expect(n.message).not.toMatch(/ATS|filtros/i);
+    expect(n.links.length).toBeGreaterThan(0);
+  });
+});
 
 describe("cvChatCapReason", () => {
   it("sin topes alcanzados devuelve null", () => {

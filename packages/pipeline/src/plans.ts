@@ -53,6 +53,15 @@ const PAID_LIMITS: PlanLimits = {
   targetRoles: 4,
 };
 
+/**
+ * Topes por persona y por mes del chat «Armá tu CV con IA» en la beta (C2-1), cuando `CV_CHAT_ENABLED`
+ * es `all`. Los números son una primera decisión sin medición de uso real: 3 CV da margen para armar
+ * uno, corregirlo y rehacerlo; 40 turnos de entrevista alcanzan para unas 3 charlas completas (la
+ * charla tiene un máximo propio por conversación). El tope diario global de gasto
+ * (`CV_CHAT_DAILY_CAP_USD`) sigue rigiendo por encima de estos topes.
+ */
+export const CV_CHAT_BETA_LIMITS = { cvPerMonth: 3, interviewTurnsPerMonth: 40 } as const;
+
 export const PLANS: readonly PlanDef[] = [
   {
     key: "gratis",

@@ -2,6 +2,7 @@
  * Topes y gate del chat de CV (C-25). Puro: el llamador mide (llm_calls, conteo por plan) y pasa los números;
  * acá solo se decide. Todo falla cerrado: un número ausente, negativo o no finito cuenta como tope alcanzado.
  */
+import { CV_CHAT_BETA_LIMITS } from "../plans";
 import { CV_CHAT_MAX_TURNS } from "./state";
 
 export const CV_CHAT_MAX_COST_USD = 0.15;
@@ -22,7 +23,8 @@ export const CV_CHAT_MAX_STARTS_PER_DAY = 5;
 export const CV_CHAT_TURN_RESERVE_USD = 0.025;
 export const CV_CHAT_WRITE_RESERVE_USD = 0.07;
 
-export type CvChatCap = "mes" | "turnos" | "conversacion" | "usuario" | "inicios" | "global";
+export type CvChatCap =
+  "mes" | "turnos_mes" | "turnos" | "conversacion" | "usuario" | "inicios" | "global";
 
 export interface CvChatCapInput {
   /** Mensajes de la persona ya procesados en esta conversación. */
@@ -51,6 +53,26 @@ export function cvChatCapReason(i: CvChatCapInput): CvChatCap | null {
   return null;
 }
 
+/**
+ * CV por mes en la beta: el piso es `CV_CHAT_BETA_LIMITS.cvPerMonth`; un plan que da más (el pago, 5)
+ * conserva el suyo. Un número inválido cae al piso.
+ */
+export function cvChatBetaCvPerMonth(planCvPerMonth: number): number {
+  const floor = CV_CHAT_BETA_LIMITS.cvPerMonth;
+  return Number.isFinite(planCvPerMonth) ? Math.max(planCvPerMonth, floor) : floor;
+}
+
+/**
+ * Turnos de entrevista (llamadas al modelo) de la persona en 30 días. Solo frena nuevos turnos: armar el CV
+ * con lo ya contestado, saltear y confirmar no pasan por acá. Falla cerrado ante un número inválido.
+ */
+export function cvChatMonthTurnsReason(
+  interviewTurnsThisMonth: number,
+  perMonth: number = CV_CHAT_BETA_LIMITS.interviewTurnsPerMonth,
+): "turnos_mes" | null {
+  return interviewTurnsThisMonth >= 0 && interviewTurnsThisMonth < perMonth ? null : "turnos_mes";
+}
+
 /** Charlas nuevas por persona y día (no hay llamada al modelo que las cuente: se registra una fila `cv_start`). */
 export function cvChatStartCapReason(startsToday: number): "inicios" | null {
   return startsToday < CV_CHAT_MAX_STARTS_PER_DAY ? null : "inicios";
@@ -70,6 +92,8 @@ const CAP_LINKS = [
 
 const CAP_MESSAGES: Record<CvChatCap, string> = {
   mes: "Llegaste al tope de CV armados con IA de este mes. Todo lo podés cargar a mano desde las pantallas.",
+  turnos_mes:
+    "Llegaste al tope de mensajes con la IA de este mes. Todo lo podés cargar a mano desde las pantallas y volver el mes que viene.",
   turnos:
     "Esta charla llegó al máximo de mensajes. Lo que armaste se puede revisar y completar desde las pantallas.",
   conversacion:

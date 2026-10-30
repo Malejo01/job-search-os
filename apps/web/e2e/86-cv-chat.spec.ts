@@ -3,6 +3,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { and, eq, like } from "drizzle-orm";
 import * as s from "@job-search-os/db/schema";
 import {
+  E2E_B_USER_ID,
   E2E_EMAIL,
   E2E_USER_ID,
   ensureSecondUser,
@@ -16,8 +17,9 @@ import {
  * Flujo 86 (C-25, CVC-5): «Armá tu CV con IA». Con LLM_DEMO (fake guionado, sin red ni gasto): responder
  * los temas, corregir algo en «Esto es lo que entendí», armar, ver la vista previa, confirmar y comprobar
  * que `career_history` queda con lo confirmado (source = chat). Un CV pegado se deriva, sin Origin da
- * 403, y una persona que no es admin (gate `CV_CHAT_ENABLED=admin`) recibe 404. axe y 360 px. Datos
- * inventados y únicos por corrida; se borran al final.
+ * 403, y con `CV_CHAT_ENABLED=all` una persona que no es admin (persona B) también usa el chat, con los
+ * topes de la beta por persona y por mes (3 CV, 40 turnos; C2-1). axe y 360 px. Datos inventados y
+ * únicos por corrida; se borran al final.
  */
 const EMPRESA = `Empresa Ficticia CV ${Date.now()}`;
 const CARGO_CORREGIDO = "Analista Corregido";
@@ -47,6 +49,9 @@ test.describe.configure({ mode: "serial" });
 async function clean() {
   const { db, close } = ownerDb();
   try {
+    await db
+      .delete(s.llmCalls)
+      .where(and(eq(s.llmCalls.userId, E2E_B_USER_ID), like(s.llmCalls.label, "cv:%")));
     await db.delete(s.careerHistory).where(eq(s.careerHistory.userId, E2E_USER_ID));
     await db
       .delete(s.llmCalls)
@@ -123,7 +128,7 @@ async function answerAll(page: Page, answer: Locator) {
 }
 
 test.describe("Flujo 86: Armá tu CV con IA", () => {
-  test("sin Origin el pedido da 403 y sin ser admin la página y la ruta dan 404", async ({
+  test("sin Origin el pedido da 403 y una persona que no es admin usa el chat (gate all)", async ({
     page,
     browser,
   }) => {
@@ -132,21 +137,75 @@ test.describe("Flujo 86: Armá tu CV con IA", () => {
     expect(sinOrigin.status()).toBe(403);
     expect((await sinOrigin.json()).error).toBe("bad_origin");
 
-    // Persona B: no está en ADMIN_EMAILS, así que con el gate en `admin` el chat no existe
+    // Persona B: no está en ADMIN_EMAILS; con `CV_CHAT_ENABLED=all` el chat existe para cualquier sesión
     await ensureSecondUser();
     const contextB = await browser.newContext({ baseURL: BASE_URL });
     const pageB = await contextB.newPage();
     await loginAsSecondUser(pageB);
     const respuesta = await pageB.goto("/cv/armar");
-    expect(respuesta?.status()).toBe(404);
+    expect(respuesta?.status()).toBe(200);
+    await expect(pageB.getByRole("button", { name: "Empezar" })).toBeVisible();
+    await expect(pageB.getByText(/legible por ATS/)).toBeVisible();
+    await expect(pageB.locator("body")).not.toContainText(/pasa los filtros|pasar los filtros/i);
     await pageB.goto("/cv");
-    await expect(pageB.getByRole("link", { name: "Armá tu CV con IA" })).toHaveCount(0);
+    await expect(pageB.getByRole("link", { name: "Armá tu CV con IA" })).toBeVisible();
     const api = await pageB.request.post("/api/cv-chat", {
       data: { action: "start" },
       headers: { Origin: BASE_URL },
     });
-    expect(api.status()).toBe(404);
-    expect((await api.json()).error).toBe("not_found");
+    expect(api.status()).toBe(200);
+    expect((await api.json()).ok).toBe(true);
+    await contextB.close();
+  });
+
+  test("persona B: al llegar al tope mensual el mensaje es claro (40 turnos, 3 CV)", async ({
+    browser,
+  }) => {
+    await ensureSecondUser();
+    const contextB = await browser.newContext({ baseURL: BASE_URL });
+    const pageB = await contextB.newPage();
+    await loginAsSecondUser(pageB);
+    const start = () =>
+      pageB.request.post("/api/cv-chat", {
+        data: { action: "start" },
+        headers: { Origin: BASE_URL },
+      });
+    const seed = async (rows: { task: string; label: string }[]) => {
+      const { db, close } = ownerDb();
+      try {
+        await db.insert(s.llmCalls).values(
+          rows.map((r) => ({
+            userId: E2E_B_USER_ID,
+            task: r.task,
+            model: "fake",
+            ok: true,
+            costUsd: 0,
+            label: r.label,
+          })),
+        );
+      } finally {
+        await close();
+      }
+    };
+
+    // 40 turnos de entrevista en el mes: no se puede empezar otra charla
+    await seed(
+      Array.from({ length: 40 }, (_, i) => ({ task: "cv_interview", label: `cv:e2e-t${i}` })),
+    );
+    const turnos = await start();
+    expect(turnos.status()).toBe(429);
+    const t = await turnos.json();
+    expect(t).toMatchObject({ ok: false, error: "capped", cap: "turnos_mes" });
+    expect(t.message).toContain("este mes");
+    expect(t.message).toContain("a mano");
+    await clean();
+
+    // 3 CV armados en el mes: el cuarto no
+    await seed(["a", "b", "c"].map((x) => ({ task: "cv_write", label: `cv:e2e-w${x}` })));
+    const cvs = await start();
+    expect(cvs.status()).toBe(429);
+    expect(await cvs.json()).toMatchObject({ ok: false, error: "capped", cap: "mes" });
+    await clean();
     await contextB.close();
   });
 
