@@ -1,6 +1,7 @@
 "use client";
 
 import type { HumanVerdict } from "@job-search-os/pipeline";
+import { motion, useReducedMotion } from "framer-motion";
 import { useFormStatus } from "react-dom";
 import { humanVerdictAction } from "./[id]/actions";
 
@@ -19,25 +20,39 @@ function VerdictButton({
   pressed: boolean;
 }) {
   const { pending } = useFormStatus();
+  const reduce = useReducedMotion();
   return (
-    <button
+    <motion.button
       type="submit"
       aria-label={label}
       aria-pressed={pressed}
       disabled={pending}
+      whileTap={reduce ? undefined : { scale: 0.92 }}
       className={`flex min-h-[44px] min-w-[44px] items-center justify-center gap-1 rounded-control border-2 p-2 text-base leading-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-50 ${
         pressed
           ? "border-brand bg-brand text-brand-contrast"
           : "border-fg-subtle bg-surface hover:border-fg-muted"
       }`}
     >
-      <span aria-hidden="true">{emoji}</span>
+      <motion.span
+        aria-hidden="true"
+        animate={pressed && !reduce ? { scale: [1, 1.25, 1] } : undefined}
+        transition={{ duration: 0.2 }}
+      >
+        {emoji}
+      </motion.span>
       {pressed ? (
-        <span aria-hidden="true" className="text-sm">
+        <motion.span
+          aria-hidden="true"
+          className="text-sm"
+          initial={reduce ? false : { scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.15 }}
+        >
           ✓
-        </span>
+        </motion.span>
       ) : null}
-    </button>
+    </motion.button>
   );
 }
 

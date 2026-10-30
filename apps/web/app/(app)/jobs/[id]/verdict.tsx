@@ -1,5 +1,6 @@
 import type { HumanVerdict } from "@job-search-os/pipeline";
 import { humanVerdictAction } from "./actions";
+import { VerdictButton } from "./verdict-button";
 import { VerdictReason } from "./verdict-reason";
 
 const TITLE = "¿Te sirve esta evaluación?";
@@ -35,20 +36,7 @@ export function Verdict({
               <input type="hidden" name="jobId" value={jobId} />
               <input type="hidden" name="evaluationId" value={evaluationId} />
               <input type="hidden" name="verdict" value={pressed ? "" : o.verdict} />
-              <button
-                type="submit"
-                aria-label={o.name}
-                aria-pressed={pressed}
-                className={`flex min-h-[44px] min-w-[88px] items-center justify-center gap-2 rounded-control border-2 px-4 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
-                  pressed
-                    ? "border-brand bg-brand text-brand-contrast"
-                    : "border-fg-subtle bg-surface text-fg hover:border-fg-muted"
-                }`}
-              >
-                <span aria-hidden="true">{o.emoji}</span>
-                {o.label}
-                {pressed ? <span aria-hidden="true">✓</span> : null}
-              </button>
+              <VerdictButton name={o.name} label={o.label} emoji={o.emoji} pressed={pressed} />
             </form>
           );
         })}

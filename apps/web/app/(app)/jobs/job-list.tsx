@@ -29,8 +29,8 @@ import { CardVerdict } from "./card-verdict";
  * Un riesgo se ve (chip ámbar), no frena; un bloqueador frena (chip rojo).
  */
 export function JobList({ rows, query = "" }: { rows: JobListRow[]; query?: string }) {
-  // Con «reducir movimiento», solo opacidad: sin el salto de 6 px que MotionConfig deja en initial/exit
-  const shift = useReducedMotion() ? 0 : 6;
+  const reduce = useReducedMotion();
+  const shift = reduce ? 0 : 6;
   return (
     // reducedMotion="user": con «reducir movimiento» del sistema no hay desplazamientos, solo opacidad
     <MotionConfig reducedMotion="user">
@@ -43,7 +43,10 @@ export function JobList({ rows, query = "" }: { rows: JobListRow[]; query?: stri
               initial={{ opacity: 0, y: shift }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -shift }}
-              transition={{ duration: 0.18 }}
+              transition={{
+                duration: 0.2,
+                delay: reduce ? 0 : Math.min(i * 0.03, 0.2),
+              }}
             >
               <JobCard job={job} query={query} tour={i === 0} />
             </motion.li>
