@@ -29,6 +29,54 @@ const summaryInput =
   "min-h-56 min-w-0 resize-y rounded-control border border-line-strong px-3 py-2 text-base leading-6 aria-[invalid=true]:border-danger-strong";
 const choice = "flex min-h-11 items-center gap-2";
 
+/** Debajo de este número de ofertas en español, «Solo en español» deja casi sin avisos (A-2). */
+const FEW_SPANISH_JOBS = 10;
+
+/**
+ * Ejemplos de resumen (A-9), uno por grupo de carrera. Todo inventado; muestran qué poner
+ * (experiencia concreta, herramientas, logros con números, y lo que no se domina) sin inflar.
+ */
+const SUMMARY_EXAMPLES = [
+  {
+    id: "tecnologia",
+    label: "Tecnología",
+    roles: [
+      "frontend",
+      "backend",
+      "fullstack",
+      "qa",
+      "data_analyst",
+      "soporte_it",
+      "ai_engineer",
+      "ux_ui",
+      "data_engineer",
+      "solutions_engineer",
+      "ciberseguridad",
+    ],
+    text: "Desarrolladora backend con 4 años en una empresa de logística: APIs en Node.js y PostgreSQL, bajé el tiempo de respuesta de un endpoint de 2 s a 400 ms. Uso Docker a diario; tuve contacto con AWS pero solo en pruebas; no tengo experiencia en Kubernetes. Inglés B2.",
+  },
+  {
+    id: "producto",
+    label: "Producto y carreras digitales",
+    roles: [
+      "product_manager",
+      "product_owner",
+      "project_manager",
+      "product_marketing",
+      "marketing_digital",
+      "rrhh_it",
+      "customer_success",
+    ],
+    text: "Product owner con 3 años en una app de turnos médicos: armé y prioricé el backlog de un equipo de 6 personas, escribí historias de usuario y medí adopción con Mixpanel (la reserva online subió de 18 % a 31 %). Domino Jira y entrevistas con usuarios; conozco SQL básico; nunca manejé un presupuesto. Inglés B1.",
+  },
+  {
+    id: "ventas",
+    label: "Ventas y atención",
+    roles: ["ventas_b2b", "atencion_cliente"],
+    text: "Vendedora B2B con 6 años en una empresa de software para comercios: hacía prospección en frío y cerré 30 cuentas nuevas en un año, con una cuota cumplida 8 de cada 12 meses. Uso un CRM a diario; di demos pero no negocié contratos grandes. Inglés A2.",
+  },
+] as const;
+
 export type ProfileFormError = {
   field: string;
   reason?: "min" | "max" | "injection";
@@ -77,7 +125,16 @@ export function ProfileForm({
   submitLabel,
   savedMessage,
   rolesNotice,
+  selectedRoles,
+  spanishCounts,
+  roleLabels,
 }: {
+  /** Puestos elegidos al abrir el formulario; después se leen de las casillas `targetRoles`. */
+  selectedRoles?: readonly string[] | undefined;
+  /** Ofertas en español por puesto (30 días), para el aviso de «Solo en español». */
+  spanishCounts?: Partial<Record<string, number>> | undefined;
+  /** Etiqueta de cada puesto, para nombrarlo en el aviso. */
+  roleLabels?: Partial<Record<string, string>> | undefined;
   /** Texto del error de puestos cuando el formulario no tiene ese campo (Ajustes). */
   rolesNotice?: ReactNode;
   action: (formData: FormData) => Promise<ProfileActionResult>;
@@ -105,6 +162,23 @@ export function ProfileForm({
   const [pending, startTransition] = useTransition();
   const [modalities, setModalities] = useState<string[]>(initial?.acceptedModalities ?? ["remoto"]);
   const [hasCity, setHasCity] = useState((initial?.city ?? "").trim() !== "");
+  const [jobLanguage, setJobLanguage] = useState<string>(initial?.jobLanguage ?? "both");
+  const [chosenRoles, setChosenRoles] = useState<readonly string[]>(selectedRoles ?? []);
+  // Aviso no bloqueante (A-2): «Solo en español» con una carrera que casi no tiene ofertas así
+  const fewInSpanish =
+    jobLanguage === "es"
+      ? chosenRoles.flatMap((key) => {
+          const n = spanishCounts?.[key];
+          return n !== undefined && n < FEW_SPANISH_JOBS ? [{ key, n }] : [];
+        })
+      : [];
+  // Ejemplos de resumen (A-9): primero el del grupo de la carrera elegida
+  const examples = SUMMARY_EXAMPLES.slice().sort(
+    (a, b) =>
+      Number(b.roles.some((r) => chosenRoles.includes(r))) -
+      Number(a.roles.some((r) => chosenRoles.includes(r))),
+  );
+  const hasChosenGroup = examples[0]!.roles.some((r) => chosenRoles.includes(r));
   // Aviso no bloqueante: sin ciudad no se puede comparar con la del aviso
   const needsCity =
     !hasCity && (modalities.includes("hibrido") || modalities.includes("presencial"));
@@ -225,7 +299,23 @@ export function ProfileForm({
 
   return (
     <ErrorContext.Provider value={{ error, text: error ? messageOf(error) : "" }}>
-      <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-3">
+      <form
+        ref={formRef}
+        onSubmit={onSubmit}
+        onChange={(e) => {
+          // Los puestos viven en un hijo (RolePicker): se leen de las casillas marcadas
+          if (e.target instanceof HTMLInputElement && e.target.name === "targetRoles") {
+            setChosenRoles(
+              Array.from(
+                e.currentTarget.querySelectorAll<HTMLInputElement>(
+                  'input[name="targetRoles"]:checked',
+                ),
+              ).map((i) => i.value),
+            );
+          }
+        }}
+        className="flex flex-col gap-3"
+      >
         {error ? (
           <p
             ref={alertRef}
@@ -382,6 +472,7 @@ export function ProfileForm({
               value="es"
               required
               defaultChecked={initial?.jobLanguage === "es"}
+              onChange={() => setJobLanguage("es")}
               {...fieldProps("jobLanguage")}
             />{" "}
             Solo en español
@@ -392,6 +483,7 @@ export function ProfileForm({
               type="radio"
               value="en"
               defaultChecked={initial?.jobLanguage === "en"}
+              onChange={() => setJobLanguage("en")}
               {...fieldProps("jobLanguage")}
             />{" "}
             Solo en inglés
@@ -402,11 +494,25 @@ export function ProfileForm({
               type="radio"
               value="both"
               defaultChecked={(initial?.jobLanguage ?? "both") === "both"}
+              onChange={() => setJobLanguage("both")}
               {...fieldProps("jobLanguage")}
             />{" "}
             En los dos
           </label>
           <FieldError name="jobLanguage" />
+          {/* Siempre montado: un lector de pantalla no anuncia un aviso que aparece ya armado */}
+          <div aria-live="polite" data-testid="few-spanish-notice" className="min-w-0">
+            {fewInSpanish.map(({ key, n }) => (
+              <p
+                key={key}
+                data-testid={`few-spanish-${key}`}
+                className="mb-1 break-words rounded-md bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900"
+              >
+                Para {roleLabels?.[key] ?? key} casi no hay ofertas en español ({n}). Si aceptás
+                ofertas en inglés vas a ver muchas más.
+              </p>
+            ))}
+          </div>
         </fieldset>
         <fieldset data-tour="perfil:autorizacion" className="flex min-w-0 flex-col gap-2 text-sm">
           <legend className="mb-1">Autorización de trabajo</legend>
@@ -450,11 +556,33 @@ export function ProfileForm({
           <p>
             Tu puesto y años de experiencia; qué dominás y ya hiciste en trabajos reales, qué usaste
             pero no es lo tuyo, y qué casi no conocés. Ser honesto con lo que no sabés evita que te
-            recomienden avisos que no podés cubrir. Ejemplo inventado: &ldquo;Analista con 5 años en
-            equipos de producto; dominio de investigación con usuarios y reportes en producción;
-            nivel intermedio en herramientas de datos; sin experiencia en gestión de equipos. Inglés
-            B2.&rdquo;
+            recomienden avisos que no podés cubrir. Incluí experiencia concreta, herramientas y
+            logros con números reales. No los infles: es un resumen, no un currículum.
           </p>
+          {hasChosenGroup ? (
+            <>
+              <p className="mt-1 font-medium">Ejemplo inventado para tu carrera</p>
+              {examples
+                .filter((ex) => ex.roles.some((r) => chosenRoles.includes(r)))
+                .map((ex) => (
+                  <p key={ex.id} data-testid={`summary-example-${ex.id}`}>
+                    <span className="font-medium">{ex.label}:</span> &ldquo;{ex.text}&rdquo;
+                  </p>
+                ))}
+            </>
+          ) : null}
+          <details className="mt-1" data-testid="summary-examples-more">
+            <summary className="min-h-11 cursor-pointer py-2 font-medium">
+              {hasChosenGroup ? "Ver ejemplos de otros grupos" : "Ver ejemplos inventados"}
+            </summary>
+            {examples
+              .filter((ex) => !ex.roles.some((r) => chosenRoles.includes(r)))
+              .map((ex) => (
+                <p key={ex.id} className="mb-1" data-testid={`summary-example-${ex.id}`}>
+                  <span className="font-medium">{ex.label}:</span> &ldquo;{ex.text}&rdquo;
+                </p>
+              ))}
+          </details>
           <p className="mt-1 font-medium">Qué no poner</p>
           <p>
             Documentos, direcciones, teléfonos, contraseñas ni datos de terceros. El texto se envía

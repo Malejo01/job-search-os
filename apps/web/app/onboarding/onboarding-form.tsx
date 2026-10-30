@@ -19,12 +19,14 @@ function groupsText(labels: string[]): string {
 function RolesSection({
   roleGroups,
   salaries,
+  spanishCounts,
   selectedRoles,
   rolesLimit,
   defaultRolesLimit,
 }: {
   roleGroups: RolePickerGroup[];
   salaries?: RolePickerSalaries | undefined;
+  spanishCounts?: Partial<Record<string, number>> | undefined;
   selectedRoles: readonly string[];
   rolesLimit: number;
   defaultRolesLimit: number;
@@ -47,6 +49,7 @@ function RolesSection({
         defaultLimit={defaultRolesLimit}
         groups={roleGroups}
         salaries={salaries}
+        spanishCounts={spanishCounts}
       />
       <FieldError name="targetRoles" />
     </fieldset>
@@ -60,6 +63,7 @@ function RolesSection({
 export function OnboardingForm({
   roleGroups,
   salaries,
+  spanishCounts,
   selectedRoles,
   rolesLimit,
   defaultRolesLimit,
@@ -72,6 +76,8 @@ export function OnboardingForm({
   roleGroups: RolePickerGroup[];
   /** Sueldos por puesto del pool público; sin ellos el selector no muestra la línea. */
   salaries?: RolePickerSalaries | undefined;
+  /** Ofertas en español por puesto; sin ellas no hay «en español: N» ni aviso. */
+  spanishCounts?: Partial<Record<string, number>> | undefined;
   selectedRoles: readonly string[];
   rolesLimit: number;
   defaultRolesLimit: number;
@@ -94,10 +100,16 @@ export function OnboardingForm({
       maxSummary={maxSummary}
       showLimits
       submitLabel="Guardar y continuar"
+      selectedRoles={selectedRoles}
+      spanishCounts={spanishCounts}
+      roleLabels={Object.fromEntries(
+        roleGroups.flatMap((g) => g.roles.map((r) => [r.key, r.label] as const)),
+      )}
     >
       <RolesSection
         roleGroups={roleGroups}
         salaries={salaries}
+        spanishCounts={spanishCounts}
         selectedRoles={selectedRoles}
         rolesLimit={rolesLimit}
         defaultRolesLimit={defaultRolesLimit}

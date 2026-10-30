@@ -9,7 +9,7 @@ import {
 } from "@job-search-os/pipeline";
 import { redirect } from "next/navigation";
 import { GuidedTour } from "@/components/guided-tour";
-import { getCareerSalaries } from "@/lib/career-market";
+import { getCareerSalaries, getCareerSpanishCounts } from "@/lib/career-market";
 import { dismissGuideAction } from "@/lib/guide-actions";
 import { GUIDE_INVITE, GUIDE_LABELS, GUIDE_STEPS, guideDismissed } from "@/lib/guide";
 import { getTargetRoles, getTargetRolesLimit, isOnboardingComplete } from "@/lib/onboarding";
@@ -35,14 +35,17 @@ export default async function OnboardingPage({
 }) {
   const userId = await requireUserId();
   if (await isOnboardingComplete(userId)) redirect("/hoy");
-  const [{ error }, targetRoles, rolesLimit, salaries, inviteDismissed] = await Promise.all([
-    searchParams,
-    getTargetRoles(userId),
-    getTargetRolesLimit(userId),
-    // Informativo: si el pool no responde, el selector se ve igual, sin sueldos
-    getCareerSalaries().catch(() => undefined),
-    guideDismissed(userId),
-  ]);
+  const [{ error }, targetRoles, rolesLimit, salaries, inviteDismissed, spanishCounts] =
+    await Promise.all([
+      searchParams,
+      getTargetRoles(userId),
+      getTargetRolesLimit(userId),
+      // Informativo: si el pool no responde, el selector se ve igual, sin sueldos
+      getCareerSalaries().catch(() => undefined),
+      guideDismissed(userId),
+      // Informativo, igual que los sueldos
+      getCareerSpanishCounts().catch(() => undefined),
+    ]);
   const roleGroups = selectableRoleGroups(targetRoles).map((group) => ({
     label: group.label,
     roles: group.roles.map((key) => ({ key, label: ROLE_SKILLS[key].label })),
@@ -71,6 +74,7 @@ export default async function OnboardingPage({
       <OnboardingForm
         roleGroups={roleGroups}
         salaries={salaries}
+        spanishCounts={spanishCounts}
         selectedRoles={targetRoles}
         rolesLimit={rolesLimit}
         defaultRolesLimit={TARGET_ROLES_DEFAULT_LIMIT}
