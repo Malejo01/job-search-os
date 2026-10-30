@@ -59,6 +59,7 @@ export * from "./alerts/portal-stats";
 export * from "./today/visit";
 export * from "./plans";
 export * from "./learning";
+export * from "./fit/fit-points";
 export * from "./fit/fit-summary";
 export * from "./digest/build";
 export * from "./brand";

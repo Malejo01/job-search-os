@@ -145,8 +145,8 @@ test.describe("Flujo 47: textos y navegación", () => {
       .getByRole("link", { name: new RegExp(`Oferta Ficticia Evaluada ${tag}`) })
       .first()
       .click();
-    await expect(page.getByRole("heading", { name: "Lo que ya tenés" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Lo que te falta" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "A tu favor" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Te falta o te frena" })).toBeVisible();
     await expect(page.locator("body")).not.toContainText(OLD_TEXTS);
     // A-10: el detalle del puntaje queda plegado en «Cómo se calculó»
     await expect(page.getByText("Puntaje de la IA")).toBeHidden();

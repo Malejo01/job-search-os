@@ -1,4 +1,5 @@
 import {
+  buildFitPoints,
   englishIsNotAGap,
   fitCrossSentence,
   isEnglishGap,
@@ -49,6 +50,7 @@ import { getSavedFormAnswers } from "./form-data";
 import { FormReview } from "./form-review";
 import { MergeButton } from "./merge-button";
 import { EvaluateNow } from "./evaluate-now";
+import { FitPointsPanel } from "./fit-points-panel";
 import { ReviewNav } from "./review-nav";
 import { SourceAttribution } from "./source-attribution";
 import { StatusCorrection } from "./status-correction";
@@ -376,18 +378,19 @@ export default async function JobDetailPage({
             </p>
           ) : null}
 
+          <FitPointsPanel
+            points={buildFitPoints({
+              matchFuerte: ev.matchFuerte,
+              senales: ev.senales,
+              gaps: englishIsNotAGap(job.jdText, null)
+                ? ev.gaps.filter((g) => !isEnglishGap(g))
+                : ev.gaps,
+              riesgos: ev.riesgos.map(riskLabel),
+              bloqueadores: ev.bloqueadores,
+              checklist: ev.checklist ? withCurrentSkillLevels(ev.checklist, currentLevels) : null,
+            })}
+          />
           <section className="grid gap-3 sm:grid-cols-2">
-            <Block title="Lo que ya tenés" items={ev.matchFuerte} tone="text-success" />
-            <Block
-              title="Lo que te falta"
-              items={
-                englishIsNotAGap(job.jdText, null)
-                  ? ev.gaps.filter((g) => !isEnglishGap(g))
-                  : ev.gaps
-              }
-              tone="text-fg"
-            />
-            <Block title="Señales positivas" items={ev.senales} tone="text-fg" />
             <div className="rounded-card border border-line p-3 text-sm">
               <h2 className="font-semibold">Veredicto</h2>
               <p className="mt-1 text-fg">{ev.veredicto}</p>
@@ -675,23 +678,6 @@ function SkillBox({ title, items, tone }: { title: string; items: string[]; tone
         <p className={`text-xs ${tone}`}>{items.join(" · ")}</p>
       ) : (
         <p className="text-xs text-fg-subtle">—</p>
-      )}
-    </div>
-  );
-}
-
-function Block({ title, items, tone }: { title: string; items: string[]; tone: string }) {
-  return (
-    <div className="rounded-card border border-line p-3 text-sm">
-      <h2 className="font-semibold">{title}</h2>
-      {items.length ? (
-        <ul className={`mt-1 list-disc pl-5 ${tone}`}>
-          {items.map((x) => (
-            <li key={x}>{x}</li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-1 text-xs text-fg-subtle">—</p>
       )}
     </div>
   );
