@@ -17,7 +17,7 @@ export function CopyButton({ text }: { text: string }) {
         }
         setTimeout(() => setState("idle"), 2000);
       }}
-      className="rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-700"
+      className="rounded-control border border-line-strong px-2 py-1 text-xs text-fg-muted"
     >
       {state === "ok" ? "Copiado" : state === "error" ? "No se pudo copiar" : "Copiar instrucción"}
     </button>

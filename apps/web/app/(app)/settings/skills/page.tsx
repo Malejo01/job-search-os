@@ -38,14 +38,14 @@ export default async function SkillsSettingsPage({
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold">Mis skills</h1>
-        <p className="text-sm text-zinc-600">
+        <p className="text-sm text-fg-subtle">
           Contá qué tanto usaste cada una. Con tus niveles, el mercado y el plan muestran lo que te
           falta de verdad.
         </p>
       </div>
 
       {guardado ? (
-        <p role="status" className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+        <p role="status" className="rounded-control bg-success-soft px-3 py-2 text-sm text-success">
           Guardado. Tu mercado y tu plan se actualizan en unos segundos.
         </p>
       ) : null}
@@ -64,7 +64,7 @@ export default async function SkillsSettingsPage({
         withAssistant
       />
 
-      <Link href="/settings" className="text-sm text-zinc-900 underline">
+      <Link href="/settings" className="text-sm text-fg underline">
         Volver a Ajustes
       </Link>
     </div>

@@ -20,7 +20,7 @@ function ScoreBadge({ offer }: { offer: FirstOffer }) {
     return (
       <span
         data-testid="first-offer-score"
-        className="shrink-0 rounded-md bg-zinc-900 px-2 py-0.5 text-sm font-semibold text-white"
+        className="shrink-0 rounded-control bg-brand px-2 py-0.5 text-sm font-semibold text-brand-contrast"
       >
         <span className="sr-only">Score </span>
         {formatScore(Math.round(offer.score * 10) / 10)}
@@ -28,7 +28,7 @@ function ScoreBadge({ offer }: { offer: FirstOffer }) {
     );
   }
   return (
-    <span className="shrink-0 rounded-md bg-zinc-100 px-2 py-0.5 text-sm text-zinc-700">
+    <span className="shrink-0 rounded-control bg-surface-muted px-2 py-0.5 text-sm text-fg-muted">
       {offer.evaluating ? "Evaluando…" : "Sin evaluar"}
     </span>
   );
@@ -50,16 +50,16 @@ export function FirstOffersList({ offers }: { offers: FirstOffer[] }) {
             <li
               key={o.id}
               data-testid="first-offer"
-              className="flex flex-col gap-1 rounded-md border border-zinc-200 bg-white px-3 py-2"
+              className="flex flex-col gap-1 rounded-control border border-line bg-surface px-3 py-2"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="font-medium break-words text-zinc-900">{o.title}</p>
-                  <p className="text-sm break-words text-zinc-700">{o.company}</p>
+                  <p className="font-medium break-words text-fg">{o.title}</p>
+                  <p className="text-sm break-words text-fg-muted">{o.company}</p>
                 </div>
                 <ScoreBadge offer={o} />
               </div>
-              <p className="text-xs text-zinc-600">
+              <p className="text-xs text-fg-subtle">
                 {attributionText(o)}
                 {url ? (
                   <>

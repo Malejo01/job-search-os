@@ -62,15 +62,15 @@ function SegmentBlock({
 }) {
   const main = range(segment);
   const rows = SENIORITY_ROWS.filter(([key]) => segment.bySeniority[key].total > 0);
-  const titleClass = "text-xs font-semibold text-zinc-800";
+  const titleClass = "text-xs font-semibold text-fg";
   return (
     <div className="flex min-w-0 flex-col gap-1">
       {asHeading ? <h4 className={titleClass}>{title}</h4> : <p className={titleClass}>{title}</p>}
-      <p className="break-words text-xs text-zinc-800">
+      <p className="break-words text-xs text-fg">
         {main ? `La mitad paga ${main}` : `${fewText(segment)}.`}
       </p>
       {main && rows.length ? (
-        <ul className="flex flex-col gap-0.5 text-xs text-zinc-700">
+        <ul className="flex flex-col gap-0.5 text-xs text-fg-muted">
           {rows.map(([key, label]) => {
             const cell = segment.bySeniority[key];
             return (
@@ -104,7 +104,7 @@ export function CareerSalary({
       {SEGMENTS.map(([key, title]) => (
         <SegmentBlock key={key} title={title} segment={salary[key]} asHeading={asHeading} />
       ))}
-      <p className="text-xs text-zinc-600">{NOTE}</p>
+      <p className="text-xs text-fg-subtle">{NOTE}</p>
     </div>
   );
 
@@ -118,12 +118,12 @@ export function CareerSalary({
 
   const line = typicalText(salary.latam);
   return (
-    <div data-testid={testId} className="flex min-w-0 flex-col gap-1 text-sm text-zinc-700">
+    <div data-testid={testId} className="flex min-w-0 flex-col gap-1 text-sm text-fg-muted">
       <p className="break-words" data-testid={`${testId}-line`}>
         LatAm: {line ?? fewText(salary.latam)}
       </p>
       <details className="group min-w-0">
-        <summary className="inline-flex min-h-11 cursor-pointer items-center gap-1 text-zinc-800 underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900">
+        <summary className="inline-flex min-h-11 cursor-pointer items-center gap-1 text-fg underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
           Ver sueldos
           {label ? <span className="sr-only"> de {label}</span> : null}
           <svg

@@ -55,7 +55,7 @@ export default async function OnboardingSkillsPage({
         }
       />
       <h1 className="text-xl font-semibold">Tus skills</h1>
-      <p className="text-sm text-zinc-600">
+      <p className="text-sm text-fg-subtle">
         Opcional. Con tus niveles, el mercado y el plan muestran lo que te falta de verdad. Lo podés
         cambiar después en Ajustes
       </p>

@@ -30,29 +30,29 @@ export default async function PendingJdPage({
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between gap-2">
-        <h1 className="text-xl font-semibold">Sin descripción</h1>
-        <p className="text-xs text-zinc-600">
+        <h1 className="text-title font-semibold">Sin descripción</h1>
+        <p className="text-xs text-fg-subtle">
           {rows.length === PENDING_LIMIT ? `primeras ${PENDING_LIMIT}` : rows.length} para completar
         </p>
       </div>
-      <p className="text-sm text-zinc-700">
+      <p className="text-sm text-fg-muted">
         ¿La oferta no está en la lista?{" "}
         <Link href="/jobs/new?modo=pegar" className="inline-block py-3 align-middle underline">
           Cargala a mano
         </Link>
       </p>
       {error ? (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
+        <p role="alert" className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">
           {ERRORS[error] ?? "Algo falló."}
         </p>
       ) : null}
       {capMessage ? (
-        <p role="status" className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+        <p role="status" className="rounded-control bg-warning-soft px-3 py-2 text-sm text-warning">
           Descripción guardada. {capMessage}
         </p>
       ) : null}
       {ok ? (
-        <p role="status" className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+        <p role="status" className="rounded-control bg-success-soft px-3 py-2 text-sm text-success">
           Descripción guardada: la oferta queda en cola para evaluar. Cuando termine la ves con
           score en{" "}
           <Link href={`/jobs/${ok}`} className="underline">
@@ -68,7 +68,7 @@ export default async function PendingJdPage({
 
       <details
         open={rows.length > 0}
-        className="group rounded-md border border-zinc-200 bg-zinc-50 p-3 text-sm"
+        className="group rounded-card border border-line bg-surface-subtle p-3 text-sm"
       >
         <summary className="flex min-h-11 cursor-pointer items-center gap-2 font-medium">
           <span aria-hidden="true" className="group-open:hidden">
@@ -79,30 +79,30 @@ export default async function PendingJdPage({
           </span>
           Cómo completar una oferta
         </summary>
-        <ol className="mt-2 list-decimal pl-5 text-zinc-700">
+        <ol className="mt-2 list-decimal pl-5 text-fg-muted">
           <li>Abrí el aviso con el link «abrir el aviso» de la oferta.</li>
           <li>Seleccioná y copiá el texto completo del puesto: tareas, requisitos y beneficios.</li>
           <li>Pegalo en el cuadro de abajo y tocá «Guardar descripción y evaluar».</li>
         </ol>
-        <p className="mt-2 text-xs text-zinc-600">
+        <p className="mt-2 text-xs text-fg-subtle">
           El sistema nunca postula por vos: la postulación la hacés vos en el sitio del aviso.
         </p>
       </details>
 
       {rows.length === 0 ? (
-        <p className="rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500">
+        <p className="rounded-card border border-dashed border-line-strong p-6 text-center text-sm text-fg-subtle">
           No hay ofertas esperando descripción.
         </p>
       ) : (
         <ul className="flex flex-col gap-3">
           {rows.map((job) => (
-            <li key={job.id} className="rounded-lg border border-zinc-200 bg-white p-3">
+            <li key={job.id} className="rounded-card border border-line bg-surface p-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <Link href={`/jobs/${job.id}`} className="text-sm font-medium hover:underline">
                     {job.title}
                   </Link>
-                  <p className="text-xs text-zinc-600">
+                  <p className="text-xs text-fg-subtle">
                     {job.company}
                     {job.locationRaw ? ` · ${job.locationRaw}` : ""} · {formatDate(job.firstSeenAt)}
                     {job.sourceKind ? ` · ${SOURCE_LABELS[job.sourceKind] ?? job.sourceKind}` : ""}
@@ -112,19 +112,19 @@ export default async function PendingJdPage({
                       href={safeHttpUrl(job.url) ?? undefined}
                       target="_blank"
                       rel="noreferrer noopener"
-                      className="text-xs text-sky-700 underline"
+                      className="text-xs text-link underline"
                     >
                       abrir el aviso
                     </a>
                   ) : (
-                    <span className="text-xs text-zinc-600">sin link al aviso</span>
+                    <span className="text-xs text-fg-subtle">sin link al aviso</span>
                   )}
                 </div>
                 <form action={closeJobAction}>
                   <input type="hidden" name="jobId" value={job.id} />
                   <button
                     type="submit"
-                    className="rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-600"
+                    className="rounded-control border border-line-strong px-2 py-1 text-xs text-fg-subtle"
                     title="La oferta ya no está disponible"
                   >
                     Cerrada
@@ -139,12 +139,12 @@ export default async function PendingJdPage({
                   minLength={200}
                   rows={4}
                   placeholder="Pegá acá la descripción completa del puesto"
-                  className="w-full rounded-md border border-zinc-300 px-2 py-2 text-sm"
+                  className="w-full rounded-control border border-line-strong px-2 py-2 text-sm"
                 />
                 <div className="flex justify-end">
                   <button
                     type="submit"
-                    className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white"
+                    className="rounded-control bg-brand px-3 py-2 text-sm font-medium text-brand-contrast"
                   >
                     Guardar descripción y evaluar
                   </button>

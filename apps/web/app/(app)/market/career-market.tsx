@@ -42,8 +42,9 @@ const MODALITY_LABELS = [
 ] as const;
 
 const STRIPES =
-  "bg-[repeating-linear-gradient(135deg,#71717a_0,#71717a_3px,#d4d4d8_3px,#d4d4d8_6px)]";
-const TRACK = "h-2 w-full overflow-hidden rounded bg-zinc-100 ring-1 ring-inset ring-zinc-200";
+  "bg-[repeating-linear-gradient(135deg,var(--jso-fg-subtle)_0,var(--jso-fg-subtle)_3px,var(--jso-line-strong)_3px,var(--jso-line-strong)_6px)]";
+const TRACK =
+  "h-2 w-full overflow-hidden rounded-badge bg-surface-muted ring-1 ring-inset ring-line";
 
 function updatedAgo(market: CareerMarketData): { text: string | null; stale: boolean } {
   if (!market.poolUpdatedAt) return { text: null, stale: false };
@@ -65,11 +66,11 @@ function SimpleRow({ label, count, total }: { label: string; count: number; tota
   const share = pct(count, total);
   return (
     <li className="flex min-w-0 flex-col gap-1">
-      <span className="break-words text-xs text-zinc-800">
+      <span className="break-words text-xs text-fg">
         {label} · {NF.format(count)} {plural(count, "oferta", "ofertas")} ({share} %)
       </span>
       <div aria-hidden="true" className={TRACK}>
-        <BarGrow className="h-full rounded bg-zinc-800" style={{ width: barWidth(count, share) }} />
+        <BarGrow className="h-full rounded-badge bg-fg" style={{ width: barWidth(count, share) }} />
       </div>
     </li>
   );
@@ -102,7 +103,7 @@ export function CareerMarket({
     <section
       aria-labelledby={headingId}
       data-testid="career-market"
-      className="flex min-w-0 flex-col gap-4 rounded-md border border-sky-200 p-3 text-sm"
+      className="flex min-w-0 flex-col gap-4 rounded-card border border-info-line p-3 text-sm"
     >
       <div>
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -112,35 +113,35 @@ export function CareerMarket({
           {backHref ? (
             <Link
               href={backHref}
-              className="inline-flex min-h-11 items-center text-xs text-zinc-800 underline"
+              className="inline-flex min-h-11 items-center text-xs text-fg underline"
             >
               Volver a mi puesto
             </Link>
           ) : null}
         </div>
         {total > 0 ? (
-          <p className="break-words text-xs text-zinc-600">
+          <p className="break-words text-xs text-fg-subtle">
             {NF.format(total)} {plural(total, "oferta activa", "ofertas activas")} de fuentes
             públicas en los últimos 30 días
             {ago.text ? ` · ofertas actualizadas ${ago.text}` : ""}
           </p>
         ) : null}
         {ago.stale ? (
-          <p role="note" className="mt-1 text-xs text-amber-800">
+          <p role="note" className="mt-1 text-xs text-warning">
             Las ofertas públicas no se actualizan hace más de dos días.
           </p>
         ) : null}
       </div>
 
       {total === 0 ? (
-        <p className="text-xs text-zinc-600">
+        <p className="text-xs text-fg-subtle">
           Todavía no hay ofertas públicas de {label}. Probá con otra carrera desde «Explorar otra
           carrera», arriba.
         </p>
       ) : (
         <>
           {market.smallSample ? (
-            <p role="note" className="text-xs text-amber-800">
+            <p role="note" className="text-xs text-warning">
               Muestra chica: tomalo como orientación.
             </p>
           ) : null}
@@ -148,10 +149,10 @@ export function CareerMarket({
           <Block title="Skills más pedidas">
             <p aria-hidden="true" className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
               <span className="flex items-center gap-1">
-                <span className="inline-block h-2 w-4 rounded bg-zinc-800" /> Excluyente
+                <span className="inline-block h-2 w-4 rounded-badge bg-fg" /> Excluyente
               </span>
               <span className="flex items-center gap-1">
-                <span className={`inline-block h-2 w-4 rounded ${STRIPES}`} /> Deseable
+                <span className={`inline-block h-2 w-4 rounded-badge ${STRIPES}`} /> Deseable
               </span>
             </p>
             <ul className="flex flex-col gap-2">
@@ -163,7 +164,7 @@ export function CareerMarket({
                 ].filter((p): p is string => p !== null);
                 return (
                   <li key={skill.slug} className="flex min-w-0 flex-col gap-1">
-                    <span className="break-words text-xs text-zinc-800">
+                    <span className="break-words text-xs text-fg">
                       {skill.name} · {NF.format(skill.jobs)} de {NF.format(total)} ofertas ({share}{" "}
                       %){parts.length ? ` · ${parts.join(", ")}` : ""}
                     </span>
@@ -172,7 +173,7 @@ export function CareerMarket({
                         className="flex h-full"
                         style={{ width: barWidth(skill.jobs, Math.min(100, share)) }}
                       >
-                        <div className="h-full bg-zinc-800" style={{ flexGrow: skill.must }} />
+                        <div className="h-full bg-fg" style={{ flexGrow: skill.must }} />
                         <div className={`h-full ${STRIPES}`} style={{ flexGrow: skill.nice }} />
                       </BarGrow>
                     </div>
@@ -200,18 +201,18 @@ export function CareerMarket({
               <h4 className="text-xs font-semibold">
                 Inglés
                 {market.english.estimated ? (
-                  <span className="ml-2 rounded border border-zinc-300 px-1 font-normal text-zinc-700">
+                  <span className="ml-2 rounded-badge border border-line-strong px-1 font-normal text-fg-muted">
                     estimado
                   </span>
                 ) : null}
               </h4>
-              <p className="break-words text-xs text-zinc-800">
+              <p className="break-words text-xs text-fg">
                 {pct(market.english.asks, total)} % pide inglés ({NF.format(market.english.asks)} de{" "}
                 {NF.format(total)} ofertas)
               </p>
               {market.english.asks > 0 ? (
                 <>
-                  <p className="text-xs text-zinc-600">
+                  <p className="text-xs text-fg-subtle">
                     Nivel pedido, sobre las {NF.format(market.english.asks)} ofertas que piden
                     inglés
                   </p>
@@ -227,16 +228,16 @@ export function CareerMarket({
                   </ul>
                 </>
               ) : (
-                <p className="text-xs text-zinc-600">Ninguna oferta pide inglés explícitamente.</p>
+                <p className="text-xs text-fg-subtle">Ninguna oferta pide inglés explícitamente.</p>
               )}
-              <p className="text-xs text-zinc-600">
+              <p className="text-xs text-fg-subtle">
                 Escritas en inglés: {NF.format(market.english.writtenInEnglish)}
               </p>
-              <p className="text-xs text-zinc-600">
+              <p className="text-xs text-fg-subtle">
                 Escritas en español: {NF.format(market.english.writtenInSpanish)}
               </p>
               {market.english.estimated ? (
-                <p role="note" className="text-xs text-zinc-600">
+                <p role="note" className="text-xs text-fg-subtle">
                   Se detecta leyendo el texto del aviso, sin inteligencia artificial; puede fallar.
                 </p>
               ) : null}
@@ -248,7 +249,7 @@ export function CareerMarket({
           </Block>
 
           <Block title="Volumen y movimiento">
-            <p className="text-xs text-zinc-800">
+            <p className="text-xs text-fg">
               Activas: {NF.format(market.volume.active)} · nuevas en las últimas 24 h:{" "}
               {NF.format(market.volume.new24h)}
             </p>
@@ -262,7 +263,7 @@ export function CareerMarket({
                 />
               ))}
             </ul>
-            <div className="text-xs text-zinc-800">
+            <div className="text-xs text-fg">
               <p>Se puede postular desde Argentina:</p>
               <ul>
                 <li>Sí: {pct(market.volume.fromArgentina.acepta, total)} %</li>
@@ -271,7 +272,7 @@ export function CareerMarket({
               </ul>
             </div>
             {market.volume.sources.length ? (
-              <div className="text-xs text-zinc-600">
+              <div className="text-xs text-fg-subtle">
                 <p>Fuentes:</p>
                 <ul className="flex flex-wrap gap-x-3">
                   {market.volume.sources.map((x) => (

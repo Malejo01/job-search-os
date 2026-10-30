@@ -61,12 +61,12 @@ export function TextareaWithCounter({
   const state = stateOf(length, max, softMin);
   const color =
     state === "over"
-      ? "text-red-700"
+      ? "text-danger"
       : state === "warn"
-        ? "text-amber-800"
+        ? "text-warning"
         : state === "short"
-          ? "text-sky-800"
-          : "text-zinc-600";
+          ? "text-info"
+          : "text-fg-subtle";
   const hint =
     state === "over"
       ? `${over} de más`

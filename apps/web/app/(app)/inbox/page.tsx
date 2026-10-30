@@ -73,7 +73,7 @@ export default async function InboxPage({
         <p
           role="alert"
           data-testid="error-webmail"
-          className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900"
+          className="rounded-control border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger"
         >
           {webmailError}
         </p>
@@ -83,7 +83,7 @@ export default async function InboxPage({
         <div
           role="region"
           aria-label="Confirmación del reenvío de Gmail"
-          className="flex flex-col gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-950"
+          className="flex flex-col gap-2 rounded-control border border-info-line bg-info-soft px-3 py-2 text-sm text-info"
         >
           <p className="font-medium">Confirmá el reenvío de Gmail</p>
           <p className="text-xs">
@@ -106,21 +106,24 @@ export default async function InboxPage({
                 href={gmail.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded bg-blue-700 px-3 py-1.5 font-medium text-white"
+                className="rounded-control bg-info-strong px-3 py-1.5 font-medium text-on-strong"
               >
                 Confirmar reenvío
               </a>
             ) : (
               <>
                 <span>Abrí el email para confirmarlo.</span>
-                <Link href={`/inbox/${gmail.id}`} className="text-blue-700 underline">
+                <Link href={`/inbox/${gmail.id}`} className="text-link underline">
                   Abrir el email
                 </Link>
               </>
             )}
             <form action={markSeenAction}>
               <input type="hidden" name="id" value={gmail.id} />
-              <button type="submit" className="rounded border border-blue-300 bg-white px-3 py-1.5">
+              <button
+                type="submit"
+                className="rounded-control border border-info-line bg-surface px-3 py-1.5"
+              >
                 Ya lo confirmé
               </button>
             </form>
@@ -129,8 +132,8 @@ export default async function InboxPage({
       ) : null}
 
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-xl font-semibold">Emails entrantes</h1>
-        <p className="text-xs text-zinc-600">
+        <h1 className="text-title font-semibold">Emails entrantes</h1>
+        <p className="text-xs text-fg-subtle">
           {volume.last24h} en 24 h · {volume.last24hNoParser} sin poder leer en 24 h · promedio{" "}
           {volume.averagePerDay}/día
           {volume.rejectedLast24h ? ` · ${volume.rejectedLast24h} rechazados` : ""}
@@ -141,7 +144,7 @@ export default async function InboxPage({
         <div
           role="alert"
           aria-label="Posible fuga del filtro de reenvío"
-          className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900"
+          className="rounded-control border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger"
         >
           <p className="font-medium">Posible fuga del filtro de reenvío</p>
           <p className="text-xs">
@@ -152,10 +155,10 @@ export default async function InboxPage({
             {leaks.map((l) => (
               <li
                 key={l.domain}
-                className="flex flex-wrap items-center gap-2 rounded bg-white/70 px-2 py-1.5 text-xs"
+                className="flex flex-wrap items-center gap-2 rounded-control bg-surface/70 px-2 py-1.5 text-xs"
               >
                 <span className="font-medium">{l.domain}</span>
-                <span className="rounded bg-red-100 px-1.5 py-0.5 text-red-900">
+                <span className="rounded-badge bg-danger-muted px-1.5 py-0.5 text-danger">
                   {l.category ?? "dominio nuevo"}
                 </span>
                 <span>
@@ -164,12 +167,12 @@ export default async function InboxPage({
                 </span>
                 <Link
                   href={`/inbox?vista=todos&dominio=${encodeURIComponent(l.domain)}`}
-                  className="text-blue-700 underline"
+                  className="text-link underline"
                 >
                   Ver
                 </Link>
                 {isWebmailDomain(l.domain) ? (
-                  <span className="text-zinc-700">
+                  <span className="text-fg-muted">
                     Correo personal: no se puede marcar como fuente
                   </span>
                 ) : (
@@ -179,7 +182,7 @@ export default async function InboxPage({
                     <input type="hidden" name="back" value="/inbox" />
                     <button
                       type="submit"
-                      className="rounded border border-zinc-300 bg-white px-2 py-1"
+                      className="rounded-control border border-line-strong bg-surface px-2 py-1"
                     >
                       Es fuente de empleo
                     </button>
@@ -190,7 +193,7 @@ export default async function InboxPage({
                   <input type="hidden" name="verdict" value="no_empleo" />
                   <button
                     type="submit"
-                    className="rounded border border-zinc-300 bg-white px-2 py-1"
+                    className="rounded-control border border-line-strong bg-surface px-2 py-1"
                   >
                     No es de empleo
                   </button>
@@ -206,7 +209,7 @@ export default async function InboxPage({
         <div
           role="alert"
           aria-label="Volumen fuera de lo normal"
-          className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900"
+          className="rounded-control bg-warning-soft px-3 py-2 text-sm text-warning"
         >
           <p className="font-medium">Volumen fuera de lo normal</p>
           <ul className="mt-1 list-disc pl-5 text-xs">
@@ -223,8 +226,10 @@ export default async function InboxPage({
             key={t.view}
             href={t.view === "pendientes" ? "/inbox" : `/inbox?vista=${t.view}`}
             aria-current={view === t.view ? "page" : undefined}
-            className={`flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-md px-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900 ${
-              view === t.view ? "bg-zinc-900 text-white" : "text-zinc-700 hover:bg-zinc-100"
+            className={`flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-control px-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus ${
+              view === t.view
+                ? "bg-brand text-brand-contrast"
+                : "text-fg-muted hover:bg-surface-muted"
             }`}
           >
             {t.label} ({counts[t.view]})
@@ -233,7 +238,7 @@ export default async function InboxPage({
       </nav>
 
       {domain ? (
-        <p className="rounded-md bg-zinc-100 px-3 py-2 text-xs text-zinc-700">
+        <p className="rounded-control bg-surface-muted px-3 py-2 text-xs text-fg-muted">
           Solo emails de <span className="font-medium">{domain}</span> ·{" "}
           <Link
             href={view === "pendientes" ? "/inbox" : `/inbox?vista=${view}`}
@@ -247,14 +252,14 @@ export default async function InboxPage({
       <BulkBar total={only ? rows.length : counts[view]} shown={rows.length} view={view} />
 
       {rows.length === 0 ? (
-        <p className="rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500">
+        <p className="rounded-card border border-dashed border-line-strong p-6 text-center text-sm text-fg-subtle">
           {EMPTY[view]}
           {counts.todos === 0 && address ? (
             <>
               <br />
-              Tu dirección: <span className="font-mono text-zinc-900 select-all">{address}</span>
+              Tu dirección: <span className="font-mono text-fg select-all">{address}</span>
               <br />
-              <Link href="/settings" className="text-blue-700 underline">
+              <Link href="/settings" className="text-link underline">
                 Cómo reenviar desde Gmail, en Ajustes
               </Link>
             </>
@@ -265,7 +270,7 @@ export default async function InboxPage({
           {rows.map((r) => (
             <li
               key={r.id}
-              className={`rounded-lg border border-zinc-200 bg-white p-3 text-sm ${
+              className={`rounded-card border border-line bg-surface p-3 text-sm ${
                 r.dismissed || r.seen ? "opacity-75" : ""
               }`}
             >
@@ -278,17 +283,17 @@ export default async function InboxPage({
                   aria-label={`Seleccionar «${r.subject ?? "(sin asunto)"}»`}
                   className="mt-0.5 h-4 w-4 shrink-0"
                 />
-                <p className="min-w-0 truncate font-medium text-zinc-900">
+                <p className="min-w-0 truncate font-medium text-fg">
                   {r.subject ?? "(sin asunto)"}
                 </p>
               </div>
-              <p className="truncate pl-6 text-xs text-zinc-600">
+              <p className="truncate pl-6 text-xs text-fg-subtle">
                 {r.from} · {formatDate(r.receivedAt.toISOString())} · {parserLabel(r.parser)} ·{" "}
                 {r.jobs ?? 0} avisos
                 {r.dismissed ? " · no me sirve" : r.seen ? " · visto" : ""}
               </p>
               {r.error ? (
-                <p className="mt-1 pl-6 text-xs text-amber-900">
+                <p className="mt-1 pl-6 text-xs text-warning">
                   {inboundErrorLabel(r.error)}{" "}
                   <Link href="/jobs/new" className="underline">
                     cargar a mano
@@ -296,7 +301,7 @@ export default async function InboxPage({
                 </p>
               ) : null}
               <div className="mt-2 flex flex-wrap items-center gap-2 pl-6 text-xs">
-                <Link href={`/inbox/${r.id}`} className="text-blue-700 underline">
+                <Link href={`/inbox/${r.id}`} className="text-link underline">
                   Ver contenido
                 </Link>
                 <EmailActions id={r.id} subject={r.subject} seen={r.seen} dismissed={r.dismissed} />

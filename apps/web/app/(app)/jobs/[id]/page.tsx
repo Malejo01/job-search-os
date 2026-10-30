@@ -148,17 +148,17 @@ export default async function JobDetailPage({
         nextHref={around.next ? `/jobs/${around.next}${query}` : null}
       />
       {error ? (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
+        <p role="alert" className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">
           {ERRORS[error] ?? "Algo falló."}
         </p>
       ) : null}
       {capNotice ? (
-        <p role="status" className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+        <p role="status" className="rounded-control bg-warning-soft px-3 py-2 text-sm text-warning">
           {capNotice}
         </p>
       ) : null}
       {job.evaluating && !capNotice ? (
-        <p role="status" className="rounded-md bg-sky-50 px-3 py-2 text-sm text-sky-900">
+        <p role="status" className="rounded-control bg-info-soft px-3 py-2 text-sm text-info">
           En cola para evaluar. Puede tardar de unos segundos a unas horas; esta página se actualiza
           sola un rato.
         </p>
@@ -167,7 +167,7 @@ export default async function JobDetailPage({
 
       <header className="flex gap-3">
         <div
-          className={`flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-md ring-1 ${SCORE_CLASSES[tone]}`}
+          className={`flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-control ring-1 ${SCORE_CLASSES[tone]}`}
         >
           <span className="text-2xl font-semibold leading-none">
             {ev ? formatScoreNumber(ev.score) : "–"}
@@ -176,8 +176,8 @@ export default async function JobDetailPage({
         </div>
         <div className="min-w-0">
           <h1 className="text-lg font-semibold leading-tight">{job.title}</h1>
-          <p className="text-sm text-zinc-700">{job.company}</p>
-          <p className="text-xs text-zinc-600">
+          <p className="text-sm text-fg-muted">{job.company}</p>
+          <p className="text-xs text-fg-subtle">
             {[
               job.locationRaw,
               job.modality && job.modality !== "desconocida"
@@ -197,21 +197,26 @@ export default async function JobDetailPage({
                 DEMO · evaluación falsa
               </span>
             ) : null}
-            <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-zinc-700">
+            <span className="rounded-badge bg-surface-muted px-1.5 py-0.5 text-fg-muted">
               {STATUS_LABELS[job.status] ?? job.status}
             </span>
             {ev ? (
-              <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-zinc-700">
+              <span className="rounded-badge bg-surface-muted px-1.5 py-0.5 text-fg-muted">
                 {ACTION_ADVICE[ev.accion] ?? ACTION_LABELS[ev.accion] ?? ev.accion}
               </span>
             ) : null}
             {ev ? (
-              <span className={`rounded px-1.5 py-0.5 ${LOCATION_CLASSES[ev.locationOk] ?? ""}`}>
+              <span
+                className={`rounded-badge px-1.5 py-0.5 ${LOCATION_CLASSES[ev.locationOk] ?? ""}`}
+              >
                 {LOCATION_LABELS[ev.locationOk] ?? ev.locationOk}
               </span>
             ) : null}
             {job.badges.map((b) => (
-              <span key={b} className="rounded bg-zinc-50 px-1.5 py-0.5 text-zinc-600">
+              <span
+                key={b}
+                className="rounded-badge bg-surface-subtle px-1.5 py-0.5 text-fg-subtle"
+              >
                 {b}
               </span>
             ))}
@@ -231,12 +236,12 @@ export default async function JobDetailPage({
             <input type="hidden" name="event" value={event} />
             <button
               type="submit"
-              className={`rounded-md border px-3 py-2 text-sm ${
+              className={`rounded-control border px-3 py-2 text-sm ${
                 event === "apply"
-                  ? "border-emerald-700 bg-emerald-700 text-white"
+                  ? "border-success-strong bg-success-strong text-on-strong"
                   : event === "discard" || event === "close"
-                    ? "border-zinc-300 text-zinc-600"
-                    : "border-zinc-400 text-zinc-800"
+                    ? "border-line-strong text-fg-subtle"
+                    : "border-line-control text-fg"
               }`}
             >
               {EVENT_LABELS[event]}
@@ -244,7 +249,7 @@ export default async function JobDetailPage({
           </form>
         ))}
         {job.application?.appliedAt ? (
-          <p className="self-center text-xs text-zinc-600">
+          <p className="self-center text-xs text-fg-subtle">
             aplicada el {formatDate(job.application.appliedAt)}
             {job.application.outcome
               ? ` · ${OUTCOME_LABELS[job.application.outcome] ?? job.application.outcome}`
@@ -262,10 +267,10 @@ export default async function JobDetailPage({
       {job.possibleDuplicateOf ? (
         <section
           aria-label="Posible duplicado"
-          className="flex flex-col gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm"
+          className="flex flex-col gap-2 rounded-card border border-warning-line bg-warning-soft p-3 text-sm"
         >
-          <h2 className="font-semibold text-amber-900">Posible duplicado</h2>
-          <p className="text-amber-900">
+          <h2 className="font-semibold text-warning">Posible duplicado</h2>
+          <p className="text-warning">
             Se parece a{" "}
             <Link href={`/jobs/${job.possibleDuplicateOf.id}`} className="underline">
               {job.possibleDuplicateOf.title}
@@ -276,7 +281,7 @@ export default async function JobDetailPage({
             aviso, fusionalas; si no, sacá la marca.
           </p>
           {job.possibleDuplicateOf.canMerge ? null : (
-            <p className="text-xs text-amber-900">
+            <p className="text-xs text-warning">
               Las dos ofertas tienen evaluación o postulación: no se fusionan para no perder
               ninguna. Si son la misma, descartá una a mano.
             </p>
@@ -289,7 +294,7 @@ export default async function JobDetailPage({
               <input type="hidden" name="jobId" value={job.id} />
               <button
                 type="submit"
-                className="rounded-md border border-zinc-400 bg-white px-3 py-2 text-sm text-zinc-800"
+                className="rounded-control border border-line-control bg-surface px-3 py-2 text-sm text-fg"
               >
                 No son la misma
               </button>
@@ -300,9 +305,9 @@ export default async function JobDetailPage({
       {job.possibleDuplicates.length ? (
         <section
           aria-label="Posibles duplicados de esta oferta"
-          className="rounded-md border border-amber-200 p-3 text-sm"
+          className="rounded-card border border-warning-line p-3 text-sm"
         >
-          <h2 className="font-semibold text-amber-900">
+          <h2 className="font-semibold text-warning">
             {job.possibleDuplicates.length === 1
               ? "Hay 1 posible duplicado de esta oferta"
               : `Hay ${job.possibleDuplicates.length} posibles duplicados de esta oferta`}
@@ -313,7 +318,7 @@ export default async function JobDetailPage({
                 <Link href={`/jobs/${d.id}`} className="underline">
                   {d.title}
                 </Link>{" "}
-                <span className="text-xs text-zinc-600">
+                <span className="text-xs text-fg-subtle">
                   {STATUS_LABELS[d.status] ?? d.status} · se revisa desde su detalle
                 </span>
               </li>
@@ -326,11 +331,11 @@ export default async function JobDetailPage({
         <>
           {/* Bloqueadores y riesgos SEPARADOS: un riesgo se ve, no frena; un bloqueador frena */}
           {ev.bloqueadores.length ? (
-            <section className="rounded-md border border-red-200 bg-red-50 p-3">
-              <h2 className="text-sm font-semibold text-red-900">
+            <section className="rounded-card border border-danger-line bg-danger-soft p-3">
+              <h2 className="text-sm font-semibold text-danger">
                 {BLOCKER_LABEL} ({ev.bloqueadores.length})
               </h2>
-              <ul className="mt-1 list-disc pl-5 text-sm text-red-900">
+              <ul className="mt-1 list-disc pl-5 text-sm text-danger">
                 {ev.bloqueadores.map((b) => (
                   <li key={b}>{b}</li>
                 ))}
@@ -338,11 +343,11 @@ export default async function JobDetailPage({
             </section>
           ) : null}
           {ev.riesgos.length ? (
-            <section className="rounded-md border border-amber-200 bg-amber-50 p-3">
-              <h2 className="text-sm font-semibold text-amber-900">
+            <section className="rounded-card border border-warning-line bg-warning-soft p-3">
+              <h2 className="text-sm font-semibold text-warning">
                 Riesgos ({ev.riesgos.length}) · se ven, no frenan
               </h2>
-              <ul className="mt-1 list-disc pl-5 text-sm text-amber-900">
+              <ul className="mt-1 list-disc pl-5 text-sm text-warning">
                 {ev.riesgos.map((r) => (
                   <li key={r}>{riskLabel(r)}</li>
                 ))}
@@ -359,11 +364,11 @@ export default async function JobDetailPage({
             />
           ) : null}
           {crossLine ? (
-            <p data-testid="encaje-cruce" className="text-sm text-zinc-700">
+            <p data-testid="encaje-cruce" className="text-sm text-fg-muted">
               {crossLine}{" "}
               <Link
                 href="/encaje"
-                className="inline-flex min-h-11 items-center font-medium text-sky-800 underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
+                className="inline-flex min-h-11 items-center font-medium text-link underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
               >
                 Ver Tu encaje
               </Link>
@@ -371,7 +376,7 @@ export default async function JobDetailPage({
           ) : null}
 
           <section className="grid gap-3 sm:grid-cols-2">
-            <Block title="Lo que ya tenés" items={ev.matchFuerte} tone="text-emerald-900" />
+            <Block title="Lo que ya tenés" items={ev.matchFuerte} tone="text-success" />
             <Block
               title="Lo que te falta"
               items={
@@ -379,13 +384,13 @@ export default async function JobDetailPage({
                   ? ev.gaps.filter((g) => !isEnglishGap(g))
                   : ev.gaps
               }
-              tone="text-zinc-800"
+              tone="text-fg"
             />
-            <Block title="Señales positivas" items={ev.senales} tone="text-zinc-800" />
-            <div className="rounded-md border border-zinc-200 p-3 text-sm">
+            <Block title="Señales positivas" items={ev.senales} tone="text-fg" />
+            <div className="rounded-card border border-line p-3 text-sm">
               <h2 className="font-semibold">Veredicto</h2>
-              <p className="mt-1 text-zinc-800">{ev.veredicto}</p>
-              <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-zinc-600">
+              <p className="mt-1 text-fg">{ev.veredicto}</p>
+              <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-fg-subtle">
                 <dt>Inglés</dt>
                 <dd>{ENGLISH_LABEL[ev.englishRequired] ?? ev.englishRequired}</dd>
                 <dt>Años pedidos</dt>
@@ -393,8 +398,8 @@ export default async function JobDetailPage({
               </dl>
               {/* A-10 (C-5 P2-3): el detalle técnico del puntaje queda plegado, para no
                   recibir con jerga a quien no es de tecnología */}
-              <details className="mt-2 text-xs text-zinc-600">
-                <summary className="cursor-pointer py-1 font-medium text-zinc-700">
+              <details className="mt-2 text-xs text-fg-subtle">
+                <summary className="cursor-pointer py-1 font-medium text-fg-muted">
                   Cómo se calculó
                 </summary>
                 <p className="mt-1">
@@ -445,7 +450,7 @@ export default async function JobDetailPage({
           />
           <details
             open={ev.humanScore !== null}
-            className="rounded-md border border-zinc-200 p-3 text-sm"
+            className="rounded-card border border-line p-3 text-sm"
           >
             <summary className="cursor-pointer font-semibold">Corregir el puntaje</summary>
             {/* key: al guardar un motivo o un score el formulario se remonta con lo guardado */}
@@ -458,7 +463,7 @@ export default async function JobDetailPage({
               <input type="hidden" name="jobId" value={job.id} />
               <input type="hidden" name="evaluationId" value={ev.id} />
               <div className="flex flex-wrap items-end gap-2">
-                <label className="flex flex-col gap-1 text-xs text-zinc-600">
+                <label className="flex flex-col gap-1 text-xs text-fg-subtle">
                   Score humano (0–10)
                   <input
                     name="humanScore"
@@ -468,28 +473,28 @@ export default async function JobDetailPage({
                     step={0.5}
                     inputMode="decimal"
                     defaultValue={ev.humanScore ?? ""}
-                    className="w-28 rounded-md border border-zinc-300 px-2 py-2 text-base"
+                    className="w-28 rounded-control border border-line-strong px-2 py-2 text-base"
                   />
                 </label>
-                <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs text-zinc-600">
+                <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs text-fg-subtle">
                   Nota
                   <input
                     name="humanNote"
                     type="text"
                     defaultValue={ev.humanNote ?? ""}
                     placeholder="por qué difiere del modelo"
-                    className="rounded-md border border-zinc-300 px-2 py-2 text-base"
+                    className="rounded-control border border-line-strong px-2 py-2 text-base"
                   />
                 </label>
                 <button
                   type="submit"
-                  className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white"
+                  className="rounded-control bg-brand px-3 py-2 text-sm font-medium text-brand-contrast"
                 >
                   Guardar
                 </button>
               </div>
               {ev.humanScore !== null ? (
-                <p className="text-xs text-zinc-600">
+                <p className="text-xs text-fg-subtle">
                   guardado: {ev.humanScore} · diferencia con el modelo{" "}
                   {(ev.humanScore - ev.score).toFixed(1)}
                 </p>
@@ -498,23 +503,23 @@ export default async function JobDetailPage({
           </details>
         </>
       ) : job.preScore ? (
-        <section className="flex flex-col gap-2 rounded-md border-2 border-dashed border-zinc-400 p-3 text-sm">
+        <section className="flex flex-col gap-2 rounded-card border-2 border-dashed border-line-control p-3 text-sm">
           <div className="flex items-baseline justify-between gap-2">
             <h2 className="font-semibold">Sin evaluar</h2>
             <span className="text-lg font-semibold">
               Estimación previa {formatScore(job.preScore.score)}
             </span>
           </div>
-          <p className="text-xs text-zinc-600">
+          <p className="text-xs text-fg-subtle">
             La IA todavía no evaluó esta oferta. La estimación previa sale de reglas, sin
             inteligencia artificial: skills del aviso contra tu nivel, riesgos y salario contra tu
             piso. No es la evaluación completa.
           </p>
           <div>{evaluateNow}</div>
           {job.preScore.riesgos.length ? (
-            <div className="rounded-md border border-amber-200 bg-amber-50 p-2">
-              <p className="text-xs font-semibold text-amber-900">Riesgos detectados</p>
-              <ul className="list-disc pl-5 text-xs text-amber-900">
+            <div className="rounded-card border border-warning-line bg-warning-soft p-2">
+              <p className="text-xs font-semibold text-warning">Riesgos detectados</p>
+              <ul className="list-disc pl-5 text-xs text-warning">
                 {job.preScore.riesgos.map((r) => (
                   <li key={r}>{riskLabel(r)}</li>
                 ))}
@@ -525,14 +530,14 @@ export default async function JobDetailPage({
             <SkillBox
               title={`Tenés (${job.preScore.have.length})`}
               items={job.preScore.have}
-              tone="text-emerald-900"
+              tone="text-success"
             />
             <SkillBox
               title={`Te faltan (${job.preScore.missing.length})`}
               items={job.preScore.missing}
-              tone="text-red-900"
+              tone="text-danger"
             />
-            <div className="min-w-0 rounded-md border border-zinc-200 p-2">
+            <div className="min-w-0 rounded-card border border-line p-2">
               <p className="text-xs font-semibold">
                 Sin nivel cargado ({job.preScore.unknownSkills.length})
               </p>
@@ -541,7 +546,7 @@ export default async function JobDetailPage({
                   {job.preScore.unknownSkills.map((u) => (
                     <li key={u.slug} className="min-w-0 max-w-full">
                       {isEnglishSkillSlug(u.slug) ? (
-                        <span className="text-xs text-zinc-600">{u.name}</span>
+                        <span className="text-xs text-fg-subtle">{u.name}</span>
                       ) : (
                         <SkillLevelButton
                           slug={u.slug}
@@ -554,11 +559,11 @@ export default async function JobDetailPage({
                   ))}
                 </ul>
               ) : (
-                <p className="text-xs text-zinc-600">—</p>
+                <p className="text-xs text-fg-subtle">—</p>
               )}
             </div>
           </div>
-          <p className="text-xs text-zinc-600">
+          <p className="text-xs text-fg-subtle">
             {job.preScore.skillsMentioned} aptitudes reconocidas en la descripción
             {job.preScore.coverage !== null
               ? ` · cobertura ${(job.preScore.coverage * 100).toFixed(0)} %`
@@ -569,7 +574,7 @@ export default async function JobDetailPage({
               : ""}
           </p>
           {job.status === "pendiente_jd" ? (
-            <p className="text-xs text-zinc-600">
+            <p className="text-xs text-fg-subtle">
               Sin descripción: la estimación previa usa solo las señales del aviso y el salario.{" "}
               <Link href="/jobs/pending-jd" className="underline">
                 pegar la descripción
@@ -578,7 +583,7 @@ export default async function JobDetailPage({
           ) : null}
         </section>
       ) : (
-        <div className="flex flex-col gap-2 rounded-md border border-dashed border-zinc-300 p-3 text-sm text-zinc-600">
+        <div className="flex flex-col gap-2 rounded-card border border-dashed border-line-strong p-3 text-sm text-fg-subtle">
           <p>
             Sin evaluación todavía
             {job.prefilterReason ? ` · descartada automáticamente: ${job.prefilterReason}` : ""}
@@ -599,22 +604,22 @@ export default async function JobDetailPage({
       {/* Formulario de postulación (JS-053, fase 2): se pega, se revisa y se copia; la app no envía nada */}
       <section
         aria-label="Formulario de postulación"
-        className="rounded-md border border-zinc-200 p-3 text-sm"
+        className="rounded-card border border-line p-3 text-sm"
       >
         <h2 className="font-semibold">Formulario de postulación</h2>
-        <p className="mb-2 text-xs text-zinc-600">
+        <p className="mb-2 text-xs text-fg-subtle">
           Pegá las preguntas, revisá los borradores y copiá lo aprobado. Nada se envía desde acá.
         </p>
         {savedForm.length ? (
-          <details className="mb-2 rounded-md bg-zinc-50 p-2">
+          <details className="mb-2 rounded-control bg-surface-subtle p-2">
             <summary className="cursor-pointer text-xs font-semibold">
               Respuestas guardadas ({savedForm.length})
             </summary>
             <dl className="mt-1 flex flex-col gap-1 text-xs">
               {savedForm.map((qa, i) => (
                 <div key={i}>
-                  <dt className="font-medium text-zinc-800">{qa.question}</dt>
-                  <dd className="whitespace-pre-wrap text-zinc-600">{qa.answer}</dd>
+                  <dt className="font-medium text-fg">{qa.question}</dt>
+                  <dd className="whitespace-pre-wrap text-fg-subtle">{qa.answer}</dd>
                 </div>
               ))}
             </dl>
@@ -628,35 +633,33 @@ export default async function JobDetailPage({
         <ul className="mt-1 flex flex-col gap-1">
           {job.sources.map((src, i) => (
             <li key={i} className="flex flex-wrap items-center gap-2 text-xs">
-              <span className="rounded bg-sky-50 px-1.5 py-0.5 text-sky-800">
+              <span className="rounded-badge bg-info-soft px-1.5 py-0.5 text-info">
                 {SOURCE_LABELS[src.kind] ?? src.kind}
               </span>
-              {src.name ? <span className="text-zinc-600">{src.name}</span> : null}
+              {src.name ? <span className="text-fg-subtle">{src.name}</span> : null}
               {safeHttpUrl(src.url) ? (
                 <a
                   href={safeHttpUrl(src.url) ?? undefined}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="truncate text-sky-700 underline"
+                  className="truncate text-link underline"
                 >
                   {src.url}
                 </a>
               ) : null}
-              <span className="text-zinc-600">{formatDate(src.seenAt)}</span>
+              <span className="text-fg-subtle">{formatDate(src.seenAt)}</span>
             </li>
           ))}
         </ul>
         {flagTexts.length ? (
-          <p className="mt-2 text-xs text-zinc-600">Señales del aviso: {flagTexts.join(", ")}</p>
+          <p className="mt-2 text-xs text-fg-subtle">Señales del aviso: {flagTexts.join(", ")}</p>
         ) : null}
       </section>
 
       {job.jdText ? (
-        <details className="rounded-md border border-zinc-200 p-3 text-sm">
+        <details className="rounded-card border border-line p-3 text-sm">
           <summary className="cursor-pointer font-semibold">Descripción del puesto</summary>
-          <pre className="mt-2 whitespace-pre-wrap font-sans text-sm text-zinc-800">
-            {job.jdText}
-          </pre>
+          <pre className="mt-2 whitespace-pre-wrap font-sans text-sm text-fg">{job.jdText}</pre>
         </details>
       ) : null}
     </article>
@@ -665,12 +668,12 @@ export default async function JobDetailPage({
 
 function SkillBox({ title, items, tone }: { title: string; items: string[]; tone: string }) {
   return (
-    <div className="rounded-md border border-zinc-200 p-2">
+    <div className="rounded-card border border-line p-2">
       <p className="text-xs font-semibold">{title}</p>
       {items.length ? (
         <p className={`text-xs ${tone}`}>{items.join(" · ")}</p>
       ) : (
-        <p className="text-xs text-zinc-600">—</p>
+        <p className="text-xs text-fg-subtle">—</p>
       )}
     </div>
   );
@@ -678,7 +681,7 @@ function SkillBox({ title, items, tone }: { title: string; items: string[]; tone
 
 function Block({ title, items, tone }: { title: string; items: string[]; tone: string }) {
   return (
-    <div className="rounded-md border border-zinc-200 p-3 text-sm">
+    <div className="rounded-card border border-line p-3 text-sm">
       <h2 className="font-semibold">{title}</h2>
       {items.length ? (
         <ul className={`mt-1 list-disc pl-5 ${tone}`}>
@@ -687,7 +690,7 @@ function Block({ title, items, tone }: { title: string; items: string[]; tone: s
           ))}
         </ul>
       ) : (
-        <p className="mt-1 text-xs text-zinc-600">—</p>
+        <p className="mt-1 text-xs text-fg-subtle">—</p>
       )}
     </div>
   );

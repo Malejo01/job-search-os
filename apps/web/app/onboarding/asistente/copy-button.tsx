@@ -42,7 +42,7 @@ export function CopyButton({
             show("failed");
           }
         }}
-        className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md border border-zinc-300 px-3 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
+        className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-control border border-line-strong px-3 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
       >
         {state === "copied" ? "Copiado" : state === "failed" ? "No se pudo copiar" : label}
       </button>

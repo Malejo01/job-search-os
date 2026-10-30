@@ -22,7 +22,7 @@ export function EvaluateNow({
       <input type="hidden" name="jobId" value={jobId} />
       <SubmitButton
         pendingLabel="Enviando…"
-        className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white"
+        className="rounded-control bg-brand px-3 py-2 text-sm font-medium text-brand-contrast"
       >
         Evaluar ahora
       </SubmitButton>

@@ -23,10 +23,10 @@ const MODALITY_OPTIONS = [
 ] as const;
 
 const input =
-  "min-h-11 min-w-0 rounded-md border border-zinc-300 px-3 py-2 text-base aria-[invalid=true]:border-red-700";
+  "min-h-11 min-w-0 rounded-control border border-line-strong px-3 py-2 text-base aria-[invalid=true]:border-danger-strong";
 // Resumen: alto fijo de varias líneas (no crece al escribir, el usuario puede estirarlo) y sin el min-h-11 de `input`
 const summaryInput =
-  "min-h-56 min-w-0 resize-y rounded-md border border-zinc-300 px-3 py-2 text-base leading-6 aria-[invalid=true]:border-red-700";
+  "min-h-56 min-w-0 resize-y rounded-control border border-line-strong px-3 py-2 text-base leading-6 aria-[invalid=true]:border-danger-strong";
 const choice = "flex min-h-11 items-center gap-2";
 
 export type ProfileFormError = {
@@ -51,7 +51,7 @@ export function FieldError({ name }: { name: string }) {
   const current = useContext(ErrorContext);
   if (current?.error?.field !== name) return null;
   return (
-    <p id={`${name}-error`} className="text-sm font-medium text-red-800">
+    <p id={`${name}-error`} className="text-sm font-medium text-danger">
       {current.text}
     </p>
   );
@@ -231,7 +231,7 @@ export function ProfileForm({
             ref={alertRef}
             tabIndex={-1}
             role="alert"
-            className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800"
+            className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger"
           >
             {error.field === "targetRoles" && rolesNotice ? rolesNotice : messageOf(error)}
           </p>
@@ -285,7 +285,7 @@ export function ProfileForm({
             </select>
             <FieldError name="englishCefr" />
           </label>
-          <p id="cefr-help" className="text-xs text-zinc-600 sm:col-span-2">
+          <p id="cefr-help" className="text-xs text-fg-subtle sm:col-span-2">
             Se mide con la escala CEFR, que usan muchos avisos. Si dudás entre dos niveles, elegí el
             más bajo.
           </p>
@@ -362,12 +362,12 @@ export function ProfileForm({
             </label>
           ))}
           <FieldError name="acceptedModalities" />
-          <p id="modalities-help" className="text-xs text-zinc-600">
+          <p id="modalities-help" className="text-xs text-fg-subtle">
             Si marcás Híbrido o Presencial, usamos la ciudad de tu perfil para avisarte si la oferta
             es en otro lado
           </p>
           {/* Siempre montado: solo cambia el texto, así el lector de pantalla lo anuncia */}
-          <p role="status" className="min-h-4 text-xs font-medium text-amber-800">
+          <p role="status" className="min-h-4 text-xs font-medium text-warning">
             {needsCity
               ? "Sin ciudad no podemos avisarte si la oferta es en otro lado. Cargala arriba."
               : ""}
@@ -410,7 +410,7 @@ export function ProfileForm({
         </fieldset>
         <fieldset data-tour="perfil:autorizacion" className="flex min-w-0 flex-col gap-2 text-sm">
           <legend className="mb-1">Autorización de trabajo</legend>
-          <p className="text-xs text-zinc-600">
+          <p className="text-xs text-fg-subtle">
             Completalo solo si tenés ciudadanía, residencia o visa de trabajo en otro país. Si no,
             dejalo vacío.
           </p>
@@ -442,7 +442,10 @@ export function ProfileForm({
           />
           <FieldError name="workAuthOther" />
         </fieldset>
-        <div id="summary-help" className="rounded-md bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+        <div
+          id="summary-help"
+          className="rounded-control bg-surface-subtle px-3 py-2 text-xs text-fg-subtle"
+        >
           <p className="font-medium">Qué poner</p>
           <p>
             Tu puesto y años de experiencia; qué dominás y ya hiciste en trabajos reales, qué usaste
@@ -473,7 +476,7 @@ export function ProfileForm({
           <FieldError name="summary" />
         </div>
         {/* Siempre montado: un lector de pantalla no anuncia un aviso que aparece ya armado */}
-        <p role="status" className="min-h-5 text-sm font-medium text-green-800">
+        <p role="status" className="min-h-5 text-sm font-medium text-success">
           {saved && savedMessage ? savedMessage : ""}
         </p>
         <div className="flex justify-end">
@@ -481,7 +484,7 @@ export function ProfileForm({
             type="submit"
             data-tour="perfil:guardar"
             disabled={pending}
-            className="min-h-11 w-full rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 disabled:opacity-60 sm:w-auto"
+            className="min-h-11 w-full rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-60 sm:w-auto"
           >
             {pending ? "Guardando…" : submitLabel}
           </button>

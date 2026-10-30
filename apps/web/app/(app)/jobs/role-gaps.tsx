@@ -14,9 +14,9 @@ export async function RoleGaps({ userId, title = true }: { userId: string; title
     <div
       role="note"
       data-testid="role-gaps"
-      className="flex flex-col gap-1 rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-700"
+      className="flex flex-col gap-1 rounded-control bg-surface-subtle px-3 py-2 text-sm text-fg-muted"
     >
-      {title ? <p className="font-medium text-zinc-900">Puestos sin ofertas</p> : null}
+      {title ? <p className="font-medium text-fg">Puestos sin ofertas</p> : null}
       <ul className="flex flex-col gap-1">
         {gaps.map((gap) => (
           <li key={gap.role}>

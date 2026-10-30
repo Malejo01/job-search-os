@@ -1,9 +1,7 @@
 import { MAX_JOB_FIELD_CHARS } from "@job-search-os/pipeline";
 import { SubmitButton } from "@/app/components/submit-button";
 
-const input = "rounded-md border border-zinc-300 px-3 py-2 text-base";
-const FOCUS_RING =
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900";
+const input = "rounded-control border border-line-strong px-3 py-2 text-base";
 
 export type JobFieldsDefaults = {
   url?: string | null;
@@ -124,7 +122,7 @@ export function JobFields({
         <SubmitButton
           pendingLabel={pendingLabel}
           pending={pending}
-          className={`min-h-11 rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white ${FOCUS_RING}`}
+          className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast"
         >
           {submitLabel}
         </SubmitButton>

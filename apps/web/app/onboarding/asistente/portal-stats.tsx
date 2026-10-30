@@ -12,13 +12,13 @@ export function PortalStats({ rows }: { rows: PortalStatsRow[] }) {
     <section
       data-testid="portal-stats"
       aria-labelledby="portal-stats-title"
-      className="flex flex-col gap-3 rounded-md border border-zinc-200 px-3 py-3"
+      className="flex flex-col gap-3 rounded-control border border-line px-3 py-3"
     >
-      <h2 id="portal-stats-title" className="text-base font-semibold text-zinc-900">
+      <h2 id="portal-stats-title" className="text-base font-semibold text-fg">
         Qué portal te sirve (últimos 30 días)
       </h2>
       {rows.length === 0 ? (
-        <p data-testid="portal-stats-empty" className="text-sm text-zinc-700">
+        <p data-testid="portal-stats-empty" className="text-sm text-fg-muted">
           Todavía no hay ofertas en los últimos 30 días
         </p>
       ) : (
@@ -28,7 +28,7 @@ export function PortalStats({ rows }: { rows: PortalStatsRow[] }) {
               Ofertas de los últimos 30 días por portal, con puntaje alto, aplicadas y entrevistas
             </caption>
             <thead>
-              <tr className="border-b border-zinc-200 text-zinc-600">
+              <tr className="border-b border-line text-fg-subtle">
                 <th scope="col" className="py-1 pr-2 font-medium">
                   Portal
                 </th>
@@ -49,14 +49,14 @@ export function PortalStats({ rows }: { rows: PortalStatsRow[] }) {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.group} data-testid="portal-stats-row" data-group={r.group}>
-                  <th scope="row" className="py-1 pr-2 font-medium text-zinc-900">
+                  <th scope="row" className="py-1 pr-2 font-medium text-fg">
                     {r.group}
                   </th>
                   <td className="py-1 pr-2" data-testid="portal-stats-total">
                     {r.total}
                   </td>
                   {r.fewData ? (
-                    <td colSpan={3} className="py-1 text-zinc-600" data-testid="portal-stats-few">
+                    <td colSpan={3} className="py-1 text-fg-subtle" data-testid="portal-stats-few">
                       pocos datos
                     </td>
                   ) : (
@@ -79,14 +79,14 @@ export function PortalStats({ rows }: { rows: PortalStatsRow[] }) {
 
           <ul className="flex list-none flex-col gap-2 p-0 sm:hidden" aria-label="Por portal">
             {rows.map((r) => (
-              <li key={r.group} className="rounded-md bg-zinc-50 px-3 py-2 text-sm">
-                <p className="font-medium text-zinc-900">
+              <li key={r.group} className="rounded-control bg-surface-subtle px-3 py-2 text-sm">
+                <p className="font-medium text-fg">
                   {r.group} · {r.total} {r.total === 1 ? "oferta" : "ofertas"}
                 </p>
                 {r.fewData ? (
-                  <p className="text-zinc-600">pocos datos</p>
+                  <p className="text-fg-subtle">pocos datos</p>
                 ) : (
-                  <p className="text-zinc-700">
+                  <p className="text-fg-muted">
                     Puntaje ≥ 7: {r.highScore} ({pct(r.highScore, r.total)}) · Aplicadas:{" "}
                     {r.applied} ({pct(r.applied, r.total)}) · Entrevistas: {r.interview} (
                     {pct(r.interview, r.total)})
@@ -97,7 +97,7 @@ export function PortalStats({ rows }: { rows: PortalStatsRow[] }) {
           </ul>
         </>
       )}
-      <p className="text-xs text-zinc-600">
+      <p className="text-xs text-fg-subtle">
         Cuenta las ofertas que llegaron en los últimos 30 días, según la primera fuente en que
         aparecieron. Como no se guarda el historial de estados, una entrevista que después terminó
         en rechazo no cuenta.

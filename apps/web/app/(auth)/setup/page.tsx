@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Primer usuario" };
 
 const SKIP_CLASS =
-  "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-zinc-900 focus:ring-2 focus:ring-zinc-900";
+  "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-control focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-fg focus:ring-2 focus:ring-focus";
 
 const ERROR_MESSAGE: Record<string, string> = {
   corta: `La contraseña tiene que tener entre 8 y ${MAX_PASSWORD_LENGTH} caracteres.`,
@@ -64,7 +64,7 @@ export default async function SetupPage({
       </a>
       <div>
         <h1 className="text-2xl font-semibold">{PRODUCT_NAME}</h1>
-        <p className="text-sm text-zinc-600">
+        <p className="text-sm text-fg-subtle">
           Todavía no hay ningún usuario. Creá el único usuario de la app.
         </p>
       </div>
@@ -77,7 +77,7 @@ export default async function SetupPage({
             autoComplete="username"
             required
             {...invalidProps("email")}
-            className="rounded-md border border-zinc-300 px-3 py-2 text-base"
+            className="rounded-control border border-line-strong px-3 py-2 text-base"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -89,7 +89,7 @@ export default async function SetupPage({
             minLength={8}
             required
             {...invalidProps("corta")}
-            className="rounded-md border border-zinc-300 px-3 py-2 text-base"
+            className="rounded-control border border-line-strong px-3 py-2 text-base"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -101,17 +101,17 @@ export default async function SetupPage({
             minLength={8}
             required
             {...invalidProps("no_coincide")}
-            className="rounded-md border border-zinc-300 px-3 py-2 text-base"
+            className="rounded-control border border-line-strong px-3 py-2 text-base"
           />
         </label>
         {error ? (
-          <p id="setup-error" role="alert" className="text-sm text-red-700">
+          <p id="setup-error" role="alert" className="text-sm text-danger">
             {ERROR_MESSAGE[error] ?? "No se pudo crear el usuario."}
           </p>
         ) : null}
         <SubmitButton
           pendingLabel="Creando la cuenta…"
-          className="mt-2 rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white"
+          className="mt-2 rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast"
         >
           Crear cuenta
         </SubmitButton>

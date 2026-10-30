@@ -26,7 +26,7 @@ export function SkillRows({
         <ul className="mt-2 sm:hidden">
           <li
             aria-hidden="true"
-            className="flex items-baseline justify-between gap-2 py-1 text-xs text-zinc-600"
+            className="flex items-baseline justify-between gap-2 py-1 text-xs text-fg-subtle"
           >
             <span className="min-w-0 flex-1">Skill</span>
             <span>Nivel</span>
@@ -37,16 +37,16 @@ export function SkillRows({
             return (
               <li
                 key={r.slug}
-                className="flex items-baseline justify-between gap-2 border-t border-zinc-100 py-1.5 text-sm"
+                className="flex items-baseline justify-between gap-2 border-t border-line py-1.5 text-sm"
               >
-                <span className="min-w-0 flex-1 truncate font-medium text-zinc-900">
+                <span className="min-w-0 flex-1 truncate font-medium text-fg">
                   {k?.name ?? r.slug}
                 </span>
-                <span className="text-xs text-zinc-600">
+                <span className="text-xs text-fg-subtle">
                   <span className="sr-only">Nivel: </span>
                   {levelText(r.level)}
                 </span>
-                <span className="w-12 text-right tabular-nums text-zinc-800">
+                <span className="w-12 text-right tabular-nums text-fg">
                   <span className="sr-only">Demanda: </span>
                   {r.weightedDemand.toFixed(1)}
                 </span>
@@ -59,34 +59,34 @@ export function SkillRows({
         {(compact ? [] : rows).map((r) => {
           const k = view.skills[r.slug];
           return (
-            <li key={r.slug} className="rounded-md border border-zinc-200 bg-white p-3">
+            <li key={r.slug} className="rounded-card border border-line bg-surface p-3">
               <div className="flex items-baseline justify-between gap-2">
-                <span className="font-medium text-zinc-900">{k?.name ?? r.slug}</span>
-                <span className="text-xs text-zinc-600">
+                <span className="font-medium text-fg">{k?.name ?? r.slug}</span>
+                <span className="text-xs text-fg-subtle">
                   {k ? (SKILL_CATEGORY_LABEL[k.category] ?? k.category) : ""}
                 </span>
               </div>
               <dl className="mt-2 grid grid-cols-3 gap-2 text-xs">
                 <div>
-                  <dt className="text-zinc-600">Nivel</dt>
-                  <dd className="text-sm font-medium text-zinc-800">{levelText(r.level)}</dd>
+                  <dt className="text-fg-subtle">Nivel</dt>
+                  <dd className="text-sm font-medium text-fg">{levelText(r.level)}</dd>
                 </div>
                 <div>
-                  <dt className="text-zinc-600">Demanda</dt>
-                  <dd className="text-sm font-medium tabular-nums text-zinc-800">
+                  <dt className="text-fg-subtle">Demanda</dt>
+                  <dd className="text-sm font-medium tabular-nums text-fg">
                     {r.weightedDemand.toFixed(1)}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-zinc-600">Excluyente</dt>
-                  <dd className="text-sm font-medium text-zinc-800">
+                  <dt className="text-fg-subtle">Excluyente</dt>
+                  <dd className="text-sm font-medium text-fg">
                     <span className="tabular-nums">{r.mustMentions}</span> de{" "}
                     <span className="tabular-nums">{r.mentions}</span> avisos
                   </dd>
                 </div>
               </dl>
               {k?.closureHours ? (
-                <p className="mt-2 text-xs text-zinc-600">Horas para cerrar: {k.closureHours}</p>
+                <p className="mt-2 text-xs text-fg-subtle">Horas para cerrar: {k.closureHours}</p>
               ) : null}
             </li>
           );
@@ -95,7 +95,7 @@ export function SkillRows({
 
       <div className="mt-2 hidden overflow-x-auto sm:block">
         <table className="w-full text-left text-sm">
-          <thead className="text-xs text-zinc-600">
+          <thead className="text-xs text-fg-subtle">
             <tr>
               <th scope="col" className="py-1 pr-2 font-medium">
                 Skill
@@ -124,18 +124,18 @@ export function SkillRows({
             {rows.map((r) => {
               const k = view.skills[r.slug];
               return (
-                <tr key={r.slug} className="border-t border-zinc-100">
-                  <td className="py-1 pr-2 font-medium text-zinc-900">{k?.name ?? r.slug}</td>
-                  <td className="py-1 pr-2 text-zinc-600">
+                <tr key={r.slug} className="border-t border-line">
+                  <td className="py-1 pr-2 font-medium text-fg">{k?.name ?? r.slug}</td>
+                  <td className="py-1 pr-2 text-fg-subtle">
                     {k ? (SKILL_CATEGORY_LABEL[k.category] ?? k.category) : ""}
                   </td>
-                  <td className="py-1 pr-2 text-zinc-700">{levelText(r.level)}</td>
+                  <td className="py-1 pr-2 text-fg-muted">{levelText(r.level)}</td>
                   <td className="py-1 pr-2 text-right tabular-nums">{r.mentions}</td>
                   <td className="py-1 pr-2 text-right tabular-nums">{r.mustMentions}</td>
                   <td className="py-1 pr-2 text-right tabular-nums">
                     {r.weightedDemand.toFixed(1)}
                   </td>
-                  <td className="py-1 text-right tabular-nums text-zinc-600">
+                  <td className="py-1 text-right tabular-nums text-fg-subtle">
                     {k?.closureHours ?? ""}
                   </td>
                 </tr>

@@ -47,7 +47,7 @@ export function AcceptTermsForm() {
           Leí y acepto los términos y la política de privacidad
         </label>
         {error ? (
-          <p id="terminos-error" role="alert" className="text-sm text-red-700">
+          <p id="terminos-error" role="alert" className="text-sm text-danger">
             {error}
           </p>
         ) : null}
@@ -55,7 +55,7 @@ export function AcceptTermsForm() {
       <button
         type="submit"
         disabled={pending}
-        className="min-h-11 rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white disabled:opacity-60"
+        className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast disabled:opacity-60"
       >
         {pending ? "Guardando…" : "Aceptar y seguir"}
       </button>

@@ -47,27 +47,27 @@ export function ApplyButton({
         target="_blank"
         rel="noopener noreferrer"
         onClick={() => canApply && setEsperandoVuelta(true)}
-        className="rounded-md border border-emerald-700 bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800"
+        className="rounded-control border border-success-strong bg-success-strong px-4 py-2 text-sm font-medium text-on-strong hover:brightness-110"
       >
         {canApply ? "Postular ↗" : "Ver oferta ↗"}
       </a>
       {preguntando ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-zinc-900/40 p-4 sm:items-center">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
           <div
             role="dialog"
             aria-modal="true"
             aria-label="¿Te postulaste a esta oferta?"
-            className="w-full max-w-sm rounded-lg border border-zinc-200 bg-white p-4 shadow-lg"
+            className="w-full max-w-sm rounded-card border border-line bg-surface p-4 shadow-lg"
           >
-            <p className="text-sm font-medium text-zinc-900">¿Te postulaste a esta oferta?</p>
-            <p className="mt-1 text-xs text-zinc-600">
+            <p className="text-sm font-medium text-fg">¿Te postulaste a esta oferta?</p>
+            <p className="mt-1 text-xs text-fg-subtle">
               Lo marcamos por lo que digas: la app no puede verlo en el sitio de la empresa.
             </p>
             <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setPreguntando(false)}
-                className="rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-700"
+                className="rounded-control border border-line-strong px-3 py-2 text-sm text-fg-muted"
               >
                 No
               </button>
@@ -76,7 +76,7 @@ export function ApplyButton({
                 <input type="hidden" name="event" value="apply" />
                 <button
                   type="submit"
-                  className="rounded-md border border-emerald-700 bg-emerald-700 px-3 py-2 text-sm font-medium text-white"
+                  className="rounded-control border border-success-strong bg-success-strong px-3 py-2 text-sm font-medium text-on-strong"
                 >
                   Sí
                 </button>

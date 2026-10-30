@@ -36,16 +36,16 @@ export default async function PerfilPage() {
   );
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-4">
-      <Link href="/settings" className="text-sm text-zinc-900 underline">
+      <Link href="/settings" className="text-sm text-fg underline">
         Ajustes
       </Link>
       <h1 className="text-2xl font-semibold">Tu perfil</h1>
-      <p className="text-sm text-zinc-700">
+      <p className="text-sm text-fg-muted">
         Modalidad, país, idioma de las ofertas, inglés, años y resumen. Con estos datos se filtran y
         evalúan los avisos. Los puestos se cambian en Ajustes, en «Tus puestos».
       </p>
       {initial && targetRoles.length === 0 ? (
-        <p role="note" className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+        <p role="note" className="rounded-control bg-warning-soft px-3 py-2 text-sm text-warning">
           {rolesNotice}
         </p>
       ) : null}
@@ -64,7 +64,7 @@ export default async function PerfilPage() {
           savedMessage="Guardado"
         />
       ) : (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
+        <p role="alert" className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">
           No se encontró tu perfil. Escribile a quien te invitó.
         </p>
       )}

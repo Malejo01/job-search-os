@@ -17,15 +17,15 @@ export function TrustBox({ className = "" }: { className?: string }) {
     <aside
       aria-labelledby="trust-box-title"
       data-testid="trust-box"
-      className={`rounded-md border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-700 ${className}`.trim()}
+      className={`rounded-control border border-line bg-surface-subtle px-3 py-3 text-sm text-fg-muted ${className}`.trim()}
     >
-      <h2 id="trust-box-title" className="text-base font-semibold text-zinc-900">
+      <h2 id="trust-box-title" className="text-base font-semibold text-fg">
         Tu privacidad, en pocas palabras
       </h2>
       <dl className="mt-2 flex flex-col gap-2">
         {TRUST_TEXTS.map((t) => (
           <div key={t.id}>
-            <dt className="font-medium text-zinc-900">{t.title}</dt>
+            <dt className="font-medium text-fg">{t.title}</dt>
             <dd>
               {fillTrustBody(t.body, responsable)}
               {t.id === "responsable" ? (

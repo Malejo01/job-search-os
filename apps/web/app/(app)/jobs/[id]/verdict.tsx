@@ -25,7 +25,7 @@ export function Verdict({
   note: string | null;
 }) {
   return (
-    <section className="flex flex-col gap-2 rounded-md border border-zinc-200 p-3 text-sm">
+    <section className="flex flex-col gap-2 rounded-card border border-line p-3 text-sm">
       <h2 className="font-semibold">{TITLE}</h2>
       <div role="group" aria-label={TITLE} className="flex gap-2">
         {OPTIONS.map((o) => {
@@ -39,10 +39,10 @@ export function Verdict({
                 type="submit"
                 aria-label={o.name}
                 aria-pressed={pressed}
-                className={`flex min-h-[44px] min-w-[88px] items-center justify-center gap-2 rounded-md border-2 px-4 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 ${
+                className={`flex min-h-[44px] min-w-[88px] items-center justify-center gap-2 rounded-control border-2 px-4 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
                   pressed
-                    ? "border-zinc-900 bg-zinc-900 text-white"
-                    : "border-zinc-500 bg-white text-zinc-800 hover:border-zinc-700"
+                    ? "border-brand bg-brand text-brand-contrast"
+                    : "border-fg-subtle bg-surface text-fg hover:border-fg-muted"
                 }`}
               >
                 <span aria-hidden="true">{o.emoji}</span>

@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Crear cuenta", referrer: "no-referrer" } as const;
 
 const SKIP_CLASS =
-  "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-zinc-900 focus:ring-2 focus:ring-zinc-900";
+  "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-control focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-fg focus:ring-2 focus:ring-focus";
 
 const ERROR_MESSAGE: Record<string, string> = {
   corta: "La contraseña tiene que tener entre 8 y 128 caracteres.",
@@ -79,10 +79,10 @@ export default async function RegisterPage({
           Saltar al contenido
         </a>
         <h1 className="text-2xl font-semibold">Cuenta creada</h1>
-        <p className="text-sm text-emerald-700">Ya podés entrar con tu email y tu contraseña.</p>
+        <p className="text-sm text-success">Ya podés entrar con tu email y tu contraseña.</p>
         <a
           href="/login"
-          className="rounded-md bg-zinc-900 px-4 py-2 text-center text-base font-medium text-white"
+          className="rounded-control bg-brand px-4 py-2 text-center text-base font-medium text-brand-contrast"
         >
           Ir a entrar
         </a>
@@ -102,9 +102,9 @@ export default async function RegisterPage({
       </a>
       <div>
         <h1 className="text-2xl font-semibold">{PRODUCT_NAME}</h1>
-        <p className="text-sm text-zinc-600">Creá tu cuenta con tu invitación.</p>
+        <p className="text-sm text-fg-subtle">Creá tu cuenta con tu invitación.</p>
         {code ? null : (
-          <p role="note" className="mt-2 text-sm text-amber-800">
+          <p role="note" className="mt-2 text-sm text-warning">
             Abrí el link completo que te mandaron: sin el código de la invitación no se puede crear
             la cuenta.
           </p>
@@ -120,7 +120,7 @@ export default async function RegisterPage({
             autoComplete="username"
             required
             {...invalidProps("email")}
-            className="rounded-md border border-zinc-300 px-3 py-2 text-base"
+            className="rounded-control border border-line-strong px-3 py-2 text-base"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -131,7 +131,7 @@ export default async function RegisterPage({
             autoComplete="name"
             maxLength={100}
             {...invalidProps("nombre")}
-            className="rounded-md border border-zinc-300 px-3 py-2 text-base"
+            className="rounded-control border border-line-strong px-3 py-2 text-base"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -144,7 +144,7 @@ export default async function RegisterPage({
             maxLength={128}
             required
             {...invalidProps("corta")}
-            className="rounded-md border border-zinc-300 px-3 py-2 text-base"
+            className="rounded-control border border-line-strong px-3 py-2 text-base"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -156,16 +156,16 @@ export default async function RegisterPage({
             minLength={8}
             required
             {...invalidProps("no_coincide")}
-            className="rounded-md border border-zinc-300 px-3 py-2 text-base"
+            className="rounded-control border border-line-strong px-3 py-2 text-base"
           />
         </label>
-        <details className="rounded-md border border-zinc-200 p-3 text-sm">
+        <details className="rounded-control border border-line p-3 text-sm">
           <summary className="cursor-pointer font-medium">Leer los términos</summary>
           <div className="mt-3">
             <LegalPage name="terminos" />
           </div>
         </details>
-        <details className="rounded-md border border-zinc-200 p-3 text-sm">
+        <details className="rounded-control border border-line p-3 text-sm">
           <summary className="cursor-pointer font-medium">Leer la política de privacidad</summary>
           <div className="mt-3">
             <LegalPage name="privacidad" />
@@ -192,19 +192,19 @@ export default async function RegisterPage({
           </span>
         </label>
         {error ? (
-          <p id="register-error" role="alert" className="text-sm text-red-700">
+          <p id="register-error" role="alert" className="text-sm text-danger">
             {ERROR_MESSAGE[error] ?? "No se pudo crear la cuenta."}
             {error === "invitacion" ? " Si te invitaron con otro email, usá ese." : null}
           </p>
         ) : null}
         <SubmitButton
           pendingLabel="Creando la cuenta…"
-          className="mt-2 rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white"
+          className="mt-2 rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast"
         >
           Crear cuenta
         </SubmitButton>
       </form>
-      <a href="/login" className="text-sm text-zinc-600 underline">
+      <a href="/login" className="text-sm text-fg-subtle underline">
         Ya tengo cuenta
       </a>
     </main>

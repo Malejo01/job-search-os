@@ -31,14 +31,16 @@ Colores, radios y tipografía salen de un solo lugar: `apps/web/app/globals.css`
 
 Estados: cada uno tiene texto, fondo suave, borde y relleno fuerte.
 
-| Estado | `text-*` | `bg-*-soft` | `border-*-line` | `bg-*-strong` | Reemplaza |
-|---|---|---|---|---|---|
-| `success` | emerald-900 / emerald-200 | emerald-50 / emerald-950 | emerald-200 / emerald-800 | emerald-700 | `emerald-*`, `green-*` |
-| `warning` | amber-900 / amber-200 | amber-50 / amber-950 | amber-200 / amber-800 | amber-700 | `amber-*` |
-| `danger` | red-800 / red-200 | red-50 / red-950 | red-200 / red-800 | red-700 | `red-*` |
-| `info` | sky-900 / sky-200 | sky-50 / sky-950 | sky-200 / sky-800 | sky-700 | `sky-*`, `blue-*` |
+| Estado | `text-*` | `bg-*-soft` | `bg-*-muted` | `border-*-line` | `bg-*-strong` | Reemplaza |
+|---|---|---|---|---|---|---|
+| `success` | emerald-900 / emerald-200 | emerald-50 / emerald-950 | emerald-100 / emerald-900 | emerald-200 / emerald-800 | emerald-700 | `emerald-*`, `green-*` |
+| `warning` | amber-900 / amber-200 | amber-50 / amber-950 | amber-100 / amber-900 | amber-200 / amber-800 | amber-700 | `amber-*` |
+| `danger` | red-800 / red-200 | red-50 / red-950 | red-100 / red-900 | red-200 / red-800 | red-700 | `red-*` |
+| `info` | sky-900 / sky-200 | sky-50 / sky-950 | sky-100 / sky-900 | sky-200 / sky-800 | sky-700 | `sky-*`, `blue-*` |
 
-(claro / oscuro). En oscuro el texto de estado sube a los tonos 200 para pasar AA (4.5:1) sobre el fondo 950.
+(claro / oscuro). En oscuro el texto de estado sube a los tonos 200 para pasar AA (4.5:1) sobre los fondos 950 y 900.
+
+`-soft` es el fondo de un aviso o un panel. `-muted` es un fondo enfático para lo que tiene que resaltar en una lista: la caja del puntaje y los badges de bloqueador o duplicado. No usar `-muted` para avisos.
 
 ## Radios y tipografía
 
@@ -46,6 +48,7 @@ Estados: cada uno tiene texto, fondo suave, borde y relleno fuerte.
 |---|---|---|---|
 | `--radius-control` | `rounded-control` | 0.375rem | Botones, campos, avisos |
 | `--radius-card` | `rounded-card` | 0.375rem | Tarjetas y paneles. Hoy igual a control; separarlo permite redondear tarjetas sin tocar botones |
+| `--radius-badge` | `rounded-badge` | 0.25rem | Badges cuadrados de las listas |
 | `--radius-pill` | `rounded-pill` | 9999px | Badges redondos y contadores |
 | `--text-title` | `text-title` | 1.25rem / 1.75rem | `h1` de pantalla con sesión (hoy `text-xl`) |
 | `--text-heading` | `text-heading` | 1.125rem / 1.75rem | `h2` de sección (hoy `text-lg`); los h2 de tarjeta siguen en `text-base` |
@@ -79,4 +82,7 @@ Cuando todas las pantallas usen tokens (ticket 4 de N3), `DEFAULT_THEME` pasa a 
 grep -rnE '\b(bg|text|border|outline|ring|divide|placeholder|from|to)-(white|black|zinc|red|amber|emerald|green|sky|blue)(-[0-9]+)?\b' apps/web/app/'(app)'/hoy
 ```
 
-`bg-black/50` en el fondo de un `<dialog>` es la única excepción: oscurece lo de atrás en los dos modos.
+Excepciones a propósito, las únicas con color de la paleta:
+
+- `bg-black/50` (o `/40`) en el fondo de un `<dialog>` o un modal: oscurece lo de atrás en los dos modos.
+- `bg-white [color-scheme:light]` en el `iframe` del email (`/inbox/[id]`): el HTML de afuera trae sus colores, casi siempre texto oscuro sin fondo, y sobre un fondo oscuro no se leería.

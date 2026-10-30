@@ -70,10 +70,10 @@ export function Assistant({
   return (
     <section className="flex flex-col gap-4">
       {inOnboarding ? (
-        <p className="text-sm font-medium text-zinc-600">Opcional · Conectar alertas</p>
+        <p className="text-sm font-medium text-fg-subtle">Opcional · Conectar alertas</p>
       ) : null}
       <h1 className="text-xl font-semibold">Conectá tus alertas de email (opcional)</h1>
-      <p className="text-sm text-zinc-700">Ya tenés ofertas de las fuentes públicas.</p>
+      <p className="text-sm text-fg-muted">Ya tenés ofertas de las fuentes públicas.</p>
       <AlertEmail address={address} legacy={legacy} />
 
       {guide ? <AlertGuide {...guide} /> : null}
@@ -82,22 +82,22 @@ export function Assistant({
       <details
         data-testid="gmail-option"
         open={gmailInProgress}
-        className="rounded-md border border-zinc-200 px-3 py-1"
+        className="rounded-control border border-line px-3 py-1"
       >
-        <summary className="flex min-h-11 cursor-pointer items-center text-base font-medium text-zinc-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900">
+        <summary className="flex min-h-11 cursor-pointer items-center text-base font-medium text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus">
           Otra opción: reenviar desde Gmail
         </summary>
         <div className="flex flex-col gap-4 py-3">
-          <p role="note" className="rounded-md bg-sky-50 px-3 py-2 text-sm text-sky-900">
+          <p role="note" className="rounded-control bg-info-soft px-3 py-2 text-sm text-info">
             Por ahora este asistente es solo para Gmail. Si usás otro correo (Outlook, Hotmail,
             Yahoo), reenviá a mano las alertas a tu dirección de la app.
           </p>
-          <p className="text-sm text-zinc-700">
+          <p className="text-sm text-fg-muted">
             Si además recibís alertas de LinkedIn, Get on Board, Indeed u otro portal en tu Gmail,
             podés reenviarlas a tu dirección personal y se cargan solas. No la compartas.
           </p>
           {address ? (
-            <div className="flex items-center gap-2 rounded-md bg-zinc-100 px-3 py-2">
+            <div className="flex items-center gap-2 rounded-control bg-surface-muted px-3 py-2">
               <p className="min-w-0 flex-1 font-mono text-sm break-all select-all">{address}</p>
               <CopyButton text={address} />
             </div>
@@ -113,16 +113,14 @@ export function Assistant({
                   aria-current={view === "current" ? "step" : undefined}
                   className={
                     view === "current"
-                      ? "rounded-md border border-zinc-900 bg-white px-3 py-2"
+                      ? "rounded-control border border-fg bg-surface px-3 py-2"
                       : view === "done"
-                        ? "px-3 py-1 text-zinc-600"
-                        : "px-3 py-1 text-zinc-500"
+                        ? "px-3 py-1 text-fg-subtle"
+                        : "px-3 py-1 text-fg-subtle"
                   }
                 >
                   <h2
-                    className={
-                      view === "current" ? "text-base font-semibold text-zinc-900" : "text-sm"
-                    }
+                    className={view === "current" ? "text-base font-semibold text-fg" : "text-sm"}
                   >
                     {view === "done" ? <span aria-hidden="true">✓ </span> : null}
                     Gmail, paso {i + 1}: {STEP_TITLES[id]}
@@ -135,7 +133,7 @@ export function Assistant({
                     </span>
                   </h2>
                   {view === "current" ? (
-                    <div className="mt-2 flex flex-col gap-2 text-zinc-700">
+                    <div className="mt-2 flex flex-col gap-2 text-fg-muted">
                       <StepBody step={id} state={state} />
                     </div>
                   ) : null}
@@ -161,14 +159,14 @@ export function Assistant({
         {inOnboarding ? (
           <Link
             href="/onboarding/ofertas"
-            className="rounded-md border border-zinc-300 px-4 py-2 text-base focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
+            className="rounded-control border border-line-strong px-4 py-2 text-base focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
           >
             Volver a Tus primeras ofertas
           </Link>
         ) : null}
         <Link
           href="/jobs"
-          className="rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
+          className="rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         >
           {step === "listo" ? "Ir a mis ofertas" : "Lo hago después"}
         </Link>
@@ -236,14 +234,14 @@ function StepBody({
                 href={confirmation.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded bg-blue-700 px-3 py-1.5 font-medium text-white"
+                className="rounded-control bg-info-strong px-3 py-1.5 font-medium text-on-strong"
               >
                 Confirmar reenvío
               </a>
             ) : confirmation ? (
               <>
                 <span>Abrí el email para confirmarlo.</span>
-                <Link href={`/inbox/${confirmation.id}`} className="text-blue-700 underline">
+                <Link href={`/inbox/${confirmation.id}`} className="text-link underline">
                   Abrir el email
                 </Link>
               </>
@@ -253,7 +251,7 @@ function StepBody({
                 <input type="hidden" name="id" value={confirmation.id} />
                 <button
                   type="submit"
-                  className="rounded border border-zinc-300 bg-white px-3 py-1.5"
+                  className="rounded-control border border-line-strong bg-surface px-3 py-1.5"
                 >
                   Ya lo confirmé
                 </button>
@@ -289,7 +287,10 @@ function StepBody({
             guardarse, y en Gmail quedan en Todos los mensajes.
           </p>
           <form action={filtersImportedAction}>
-            <button type="submit" className="rounded border border-zinc-300 bg-white px-3 py-1.5">
+            <button
+              type="submit"
+              className="rounded-control border border-line-strong bg-surface px-3 py-1.5"
+            >
               Ya importé los filtros
             </button>
           </form>
@@ -305,7 +306,7 @@ function StepBody({
     case "listo":
       return (
         <>
-          <p className="font-medium text-green-800">✓ Primera alerta recibida</p>
+          <p className="font-medium text-success">✓ Primera alerta recibida</p>
           <p>
             <Link href="/jobs" className="underline">
               Ver mis avisos

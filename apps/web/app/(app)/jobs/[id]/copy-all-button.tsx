@@ -24,7 +24,7 @@ export function CopyAllButton({ text, disabled }: { text: string; disabled: bool
       type="button"
       onClick={copy}
       disabled={disabled}
-      className="rounded-md border border-zinc-400 px-3 py-2 text-sm text-zinc-800 disabled:opacity-50"
+      className="rounded-control border border-line-control px-3 py-2 text-sm text-fg disabled:opacity-50"
     >
       {state === "copied" ? "Copiado" : state === "failed" ? "No se pudo copiar" : "Copiar todo"}
     </button>

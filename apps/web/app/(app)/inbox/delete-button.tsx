@@ -24,7 +24,10 @@ export function DeleteButton({
     >
       <input type="hidden" name="id" value={id} />
       {volver ? <input type="hidden" name="volver" value="1" /> : null}
-      <button type="submit" className="rounded border border-red-200 px-2 py-1 text-red-700">
+      <button
+        type="submit"
+        className="rounded-control border border-danger-line px-2 py-1 text-danger"
+      >
         Eliminar
       </button>
     </form>

@@ -121,17 +121,17 @@ export function SkillsForm({
         <h2 className="text-base font-medium">Skills sugeridas de</h2>
         {pillGroups.map((group) => (
           <div key={group.label} className="flex flex-col gap-1">
-            <h3 className="text-xs font-medium text-zinc-600">{group.label}</h3>
+            <h3 className="text-xs font-medium text-fg-subtle">{group.label}</h3>
             <ul className="flex flex-wrap gap-2">
               {group.roles.map((key) => (
                 <li key={key}>
                   <Link
                     href={`${basePath}?rol=${key}`}
                     aria-current={key === role ? "true" : undefined}
-                    className={`inline-block rounded-md border px-3 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900 ${
+                    className={`inline-block rounded-control border px-3 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus ${
                       key === role
-                        ? "border-zinc-900 bg-zinc-900 text-white"
-                        : "border-zinc-300 text-zinc-900"
+                        ? "border-brand bg-brand text-brand-contrast"
+                        : "border-line-strong text-fg"
                     }`}
                   >
                     {roleMap[key].label}
@@ -141,14 +141,14 @@ export function SkillsForm({
             </ul>
           </div>
         ))}
-        <p className="text-xs text-zinc-600">
+        <p className="text-xs text-fg-subtle">
           Solo cambia las skills que ves; tus puestos se cambian en Ajustes. Cambiar de puesto acá
           descarta lo que no guardaste.
         </p>
       </nav>
 
       {role === null && own.length === 0 ? (
-        <p className="rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
+        <p className="rounded-control bg-surface-subtle px-3 py-2 text-sm text-fg-muted">
           Elegí un rol para ver las skills más comunes de ese puesto.
         </p>
       ) : null}
@@ -239,10 +239,10 @@ export function SkillsForm({
 
         {/* «Guardar» va primero en el DOM (Enter guarda, nunca saltea); row-reverse lo deja a la derecha.
             `--tour-panel-h` lo fija la guía mientras está abierta: la barra queda encima del panel */}
-        <div className="sticky bottom-[var(--tour-panel-h,0px)] flex flex-row-reverse flex-wrap items-center justify-start gap-3 border-t border-zinc-200 bg-white p-3">
+        <div className="sticky bottom-[var(--tour-panel-h,0px)] flex flex-row-reverse flex-wrap items-center justify-start gap-3 border-t border-line bg-surface p-3">
           <PendingSubmit
             pendingLabel="Guardando…"
-            className="rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
+            className="rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           >
             {submitLabel}
           </PendingSubmit>
@@ -252,7 +252,7 @@ export function SkillsForm({
               name="saltear"
               value="1"
               data-tour="skills:saltear"
-              className="rounded-md border border-zinc-300 px-4 py-2 text-base focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
+              className="rounded-control border border-line-strong px-4 py-2 text-base focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
             >
               {skip.label}
             </button>

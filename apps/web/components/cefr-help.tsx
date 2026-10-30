@@ -5,9 +5,9 @@
  */
 export function CefrHelp({ className = "" }: { className?: string }) {
   return (
-    <details className={`rounded-md border border-zinc-200 px-3 py-1 text-sm ${className}`.trim()}>
+    <details className={`rounded-card border border-line px-3 py-1 text-sm ${className}`.trim()}>
       <summary className="min-h-11 cursor-pointer py-2.5 font-medium">¿Qué es CEFR?</summary>
-      <ul className="mb-2 flex list-none flex-col gap-1 p-0 text-xs leading-5 text-zinc-700">
+      <ul className="mb-2 flex list-none flex-col gap-1 p-0 text-xs leading-5 text-fg-muted">
         <li>
           <span className="font-medium">A1–A2 · básico:</span> entendés frases y textos cortos.
         </li>

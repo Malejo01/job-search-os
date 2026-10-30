@@ -31,10 +31,10 @@ export function RoleTabs({
           key={key}
           href={hrefFor(key)}
           aria-current={key === active ? "page" : undefined}
-          className={`inline-flex min-h-11 items-center rounded-md border px-3 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 ${
+          className={`inline-flex min-h-11 items-center rounded-control border px-3 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
             key === active
-              ? "border-zinc-900 bg-zinc-900 text-white"
-              : "border-zinc-300 text-zinc-900"
+              ? "border-brand bg-brand text-brand-contrast"
+              : "border-line-strong text-fg"
           }`}
         >
           {ROLE_SKILLS[key].label}

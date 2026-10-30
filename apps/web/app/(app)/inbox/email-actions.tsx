@@ -1,7 +1,7 @@
 import { dismissAction, markSeenAction, restoreAction } from "./actions";
 import { DeleteButton } from "./delete-button";
 
-const small = "rounded border border-zinc-300 px-2 py-1 text-zinc-700";
+const small = "rounded-control border border-line-strong px-2 py-1 text-fg-muted";
 
 /**
  * Acciones de un email (JS-038), las mismas en la lista de /inbox y arriba del detalle

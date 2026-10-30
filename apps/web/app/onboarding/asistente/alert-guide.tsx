@@ -16,14 +16,14 @@ export const PORTAL_STATUS_VIEW: Record<
   activo: {
     icon: "✅",
     text: "Activo: te llegó un aviso en los últimos 14 días",
-    className: "text-green-800",
+    className: "text-success",
   },
   sin_novedad: {
     icon: "⚠️",
     text: "Sin novedad: hubo avisos, pero ninguno en los últimos 14 días",
-    className: "text-amber-900",
+    className: "text-warning",
   },
-  nunca: { icon: "⬜", text: "Nunca llegó un aviso de este portal", className: "text-zinc-600" },
+  nunca: { icon: "⬜", text: "Nunca llegó un aviso de este portal", className: "text-fg-subtle" },
 };
 
 export type AlertGuideProps = {
@@ -44,13 +44,13 @@ export function AlertGuide({ roles, language, coverage }: AlertGuideProps) {
     <section
       data-testid="alert-guide"
       aria-labelledby="alert-guide-title"
-      className="flex flex-col gap-3 rounded-md border border-zinc-200 px-3 py-3"
+      className="flex flex-col gap-3 rounded-control border border-line px-3 py-3"
     >
-      <h2 id="alert-guide-title" className="text-base font-semibold text-zinc-900">
+      <h2 id="alert-guide-title" className="text-base font-semibold text-fg">
         Qué alertas crear
       </h2>
       {roles.length === 0 ? (
-        <p data-testid="alert-guide-generic" className="text-sm text-zinc-700">
+        <p data-testid="alert-guide-generic" className="text-sm text-fg-muted">
           Todavía no elegiste carrera, así que son palabras generales de tecnología.{" "}
           <Link href="/settings#puesto" className="underline">
             Elegí tu carrera
@@ -58,14 +58,17 @@ export function AlertGuide({ roles, language, coverage }: AlertGuideProps) {
           para ver las tuyas. Creá una alerta por cada palabra en cada portal.
         </p>
       ) : (
-        <p className="text-sm text-zinc-700">
+        <p className="text-sm text-fg-muted">
           Palabras para tus carreras. Creá una alerta por cada palabra en cada portal.
         </p>
       )}
       <div className="flex flex-wrap items-center gap-2" data-testid="alert-guide-keywords">
         <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
           {keywords.map((word) => (
-            <li key={word} className="flex items-center gap-2 rounded-md bg-zinc-100 pl-3 text-sm">
+            <li
+              key={word}
+              className="flex items-center gap-2 rounded-control bg-surface-muted pl-3 text-sm"
+            >
               <span data-testid="alert-keyword">{word}</span>
               <CopyButton text={word} ariaLabel={`Copiar “${word}”`} />
             </li>
@@ -88,19 +91,19 @@ export function AlertGuide({ roles, language, coverage }: AlertGuideProps) {
               data-status={coverage[portal.id].status}
               className="flex flex-col gap-1 text-sm"
             >
-              <h3 className="font-medium text-zinc-900">{portal.name}</h3>
+              <h3 className="font-medium text-fg">{portal.name}</h3>
               <p className={status.className}>
                 <span aria-hidden="true">{status.icon} </span>
                 <span data-testid={`alert-portal-${portal.id}-status`}>{status.text}</span>
               </p>
-              <p className="text-zinc-700">{portal.howTo}</p>
+              <p className="text-fg-muted">{portal.howTo}</p>
               {url ? (
                 <a
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
                   data-testid={`alert-portal-${portal.id}-link`}
-                  className="inline-flex min-h-11 w-fit items-center underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
+                  className="inline-flex min-h-11 w-fit items-center underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
                 >
                   Abrir una búsqueda de ejemplo en {portal.name}
                   <span className="sr-only"> (se abre en otra pestaña)</span>
@@ -111,7 +114,7 @@ export function AlertGuide({ roles, language, coverage }: AlertGuideProps) {
           );
         })}
       </ul>
-      <p className="text-sm text-zinc-600">
+      <p className="text-sm text-fg-subtle">
         El estado se arma con los avisos que ya leemos: si un portal todavía no tiene lector, puede
         decir “nunca” aunque sus emails lleguen a tu bandeja.
       </p>

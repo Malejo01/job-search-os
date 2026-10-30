@@ -2,7 +2,8 @@
 
 import { useFormStatus } from "react-dom";
 
-const DEFAULT_CLASS = "rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white";
+const DEFAULT_CLASS =
+  "rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast";
 
 export function SaveButton({
   label,

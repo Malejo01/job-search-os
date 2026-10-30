@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Recuperar contraseña" };
 
 const SKIP_CLASS =
-  "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-zinc-900 focus:ring-2 focus:ring-zinc-900";
+  "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-control focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-fg focus:ring-2 focus:ring-focus";
 
 /** Pide el link de recuperación (JS-045); server action sin JS de cliente. */
 async function forgotPassword(formData: FormData): Promise<void> {
@@ -34,13 +34,13 @@ export default async function ForgotPasswordPage({
       </a>
       <div>
         <h1 className="text-2xl font-semibold">Olvidé mi contraseña</h1>
-        <p className="text-sm text-zinc-600">
+        <p className="text-sm text-fg-subtle">
           Escribí tu email. Si existe una cuenta, te mandamos un link para elegir una contraseña
           nueva.
         </p>
       </div>
       {sent ? (
-        <p role="status" className="text-sm text-emerald-700">
+        <p role="status" className="text-sm text-success">
           Si el email existe, te va a llegar un link en unos minutos.
         </p>
       ) : (
@@ -52,18 +52,18 @@ export default async function ForgotPasswordPage({
               type="email"
               autoComplete="username"
               required
-              className="rounded-md border border-zinc-300 px-3 py-2 text-base"
+              className="rounded-control border border-line-strong px-3 py-2 text-base"
             />
           </label>
           <button
             type="submit"
-            className="mt-2 rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white"
+            className="mt-2 rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast"
           >
             Mandar link
           </button>
         </form>
       )}
-      <a href="/login" className="text-sm text-zinc-600 underline">
+      <a href="/login" className="text-sm text-fg-subtle underline">
         Volver al login
       </a>
     </main>

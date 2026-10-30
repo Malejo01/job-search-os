@@ -50,7 +50,7 @@ const checkedIds = () =>
   );
 
 const button =
-  "h-8 w-full rounded border px-2 text-center text-xs disabled:cursor-not-allowed disabled:opacity-50";
+  "h-8 w-full rounded-control border px-2 text-center text-xs disabled:cursor-not-allowed disabled:opacity-50";
 
 /**
  * Selección múltiple en /inbox (JS-049). Las casillas de las filas son inputs sin estado de
@@ -134,7 +134,7 @@ export function BulkBar({ total, shown, view }: { total: number; shown: number; 
   return (
     <div className="flex flex-col gap-2">
       {shown > 0 ? (
-        <label className="flex items-center gap-2 text-xs text-zinc-600">
+        <label className="flex items-center gap-2 text-xs text-fg-subtle">
           <input
             type="checkbox"
             checked={all}
@@ -154,19 +154,19 @@ export function BulkBar({ total, shown, view }: { total: number; shown: number; 
           <div
             role="toolbar"
             aria-label="Acciones en lote"
-            className={`fixed inset-x-2 bottom-2 z-20 mx-auto flex max-w-5xl flex-col gap-2 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-xs shadow-md ${
+            className={`fixed inset-x-2 bottom-2 z-20 mx-auto flex max-w-5xl flex-col gap-2 rounded-control border border-line-strong bg-surface-subtle px-3 py-2 text-xs shadow-md ${
               pending ? "opacity-60" : ""
             }`}
           >
             <div className="flex h-5 items-center justify-between gap-2">
-              <span className="font-medium text-zinc-800">
+              <span className="font-medium text-fg">
                 {ids.size} {ids.size === 1 ? "seleccionado" : "seleccionados"}
               </span>
               <button
                 type="button"
                 disabled={pending}
                 onClick={() => toggleAll(false)}
-                className="text-zinc-600 underline"
+                className="text-fg-subtle underline"
               >
                 Cancelar selección
               </button>
@@ -181,8 +181,8 @@ export function BulkBar({ total, shown, view }: { total: number; shown: number; 
                   title={kind === "dismiss" ? "Estas fuentes no me sirven" : undefined}
                   className={`${button} ${
                     kind === "delete"
-                      ? "border-red-200 bg-white text-red-700"
-                      : "border-zinc-300 bg-white text-zinc-700"
+                      ? "border-danger-line bg-surface text-danger"
+                      : "border-line-strong bg-surface text-fg-muted"
                   }`}
                 >
                   {LABEL[kind]}

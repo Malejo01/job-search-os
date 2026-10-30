@@ -50,14 +50,14 @@ export default async function FirstOffersPage() {
         <h1 className="text-xl font-semibold">Tus primeras ofertas</h1>
         <Link
           href="/jobs"
-          className="inline-flex min-h-11 items-center text-sm font-medium underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900 sm:rounded-md sm:bg-zinc-900 sm:px-4 sm:py-2 sm:text-base sm:text-white sm:no-underline sm:focus-visible:outline-offset-2"
+          className="inline-flex min-h-11 items-center text-sm font-medium underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus sm:rounded-control sm:bg-brand sm:px-4 sm:py-2 sm:text-base sm:text-brand-contrast sm:no-underline sm:focus-visible:outline-offset-2"
         >
           Ir a mis ofertas
         </Link>
       </div>
       {offers.length > 0 ? (
         <div data-tour="ofertas:lista" className="flex flex-col gap-4">
-          <p className="text-sm text-zinc-700">
+          <p className="text-sm text-fg-muted">
             Las ordenamos por lo que nos contaste.
             {offers.some((o) => o.evaluating)
               ? " La IA está evaluando las primeras: el puntaje aparece en unos segundos."
@@ -72,7 +72,7 @@ export default async function FirstOffersPage() {
           <p
             role="status"
             data-testid="first-offers-searching"
-            className="rounded-md border border-dashed border-zinc-300 p-4 text-sm text-zinc-700"
+            className="rounded-control border border-dashed border-line-strong p-4 text-sm text-fg-muted"
           >
             Estamos buscando ofertas para tus puestos. Puede tardar un par de minutos; esta página
             se actualiza sola.
@@ -84,9 +84,9 @@ export default async function FirstOffersPage() {
         <div
           data-tour="ofertas:lista"
           data-testid="first-offers-empty"
-          className="flex flex-col gap-2 rounded-md border border-dashed border-zinc-300 p-4 text-sm text-zinc-700"
+          className="flex flex-col gap-2 rounded-control border border-dashed border-line-strong p-4 text-sm text-fg-muted"
         >
-          <p className="font-medium text-zinc-900">Por ahora no hay ofertas para tus puestos</p>
+          <p className="font-medium text-fg">Por ahora no hay ofertas para tus puestos</p>
           <ul className="list-disc pl-5">
             <li>
               <Link href="/jobs/new" className="underline">
@@ -120,7 +120,7 @@ export default async function FirstOffersPage() {
         <Link
           href="/jobs"
           data-tour="ofertas:seguir"
-          className="rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
+          className="rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         >
           Ir a mis ofertas
         </Link>

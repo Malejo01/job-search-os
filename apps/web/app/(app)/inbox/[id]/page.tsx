@@ -46,7 +46,7 @@ export default async function InboundEmailPage({
 
   return (
     <article className="flex flex-col gap-3">
-      <Link href="/inbox" className="text-xs text-zinc-600 underline">
+      <Link href="/inbox" className="text-xs text-fg-subtle underline">
         ← Emails entrantes
       </Link>
 
@@ -54,15 +54,15 @@ export default async function InboundEmailPage({
         <p
           role="alert"
           data-testid="error-webmail"
-          className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900"
+          className="rounded-control border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger"
         >
           {webmailError}
         </p>
       ) : null}
 
-      <header className="flex flex-col gap-2 rounded-lg border border-zinc-200 bg-white p-3">
+      <header className="flex flex-col gap-2 rounded-card border border-line bg-surface p-3">
         <h1 className="text-lg font-semibold leading-snug">{email.subject ?? "(sin asunto)"}</h1>
-        <div className="text-xs text-zinc-600">
+        <div className="text-xs text-fg-subtle">
           <p className="break-all">{email.from}</p>
           <p>
             {formatDate(email.receivedAt.toISOString())} · {parserLabel(email.parser)} ·{" "}
@@ -71,7 +71,7 @@ export default async function InboundEmailPage({
           </p>
         </div>
         {email.error ? (
-          <p className="text-xs text-amber-900">
+          <p className="text-xs text-warning">
             {inboundErrorLabel(email.error)}{" "}
             <Link href="/jobs/new" className="underline">
               cargar a mano
@@ -91,7 +91,7 @@ export default async function InboundEmailPage({
         // JS-051: remitente no esperado. El contenido nunca se guardó, por privacidad
         <section
           aria-label="Cuerpo no guardado"
-          className="flex flex-col gap-2 rounded-lg border border-zinc-300 bg-zinc-50 p-3 text-sm text-zinc-700"
+          className="flex flex-col gap-2 rounded-card border border-line-strong bg-surface-subtle p-3 text-sm text-fg-muted"
         >
           <p>
             Por privacidad no se guardó el cuerpo: el remitente no es una fuente de empleo esperada.
@@ -99,11 +99,11 @@ export default async function InboundEmailPage({
           </p>
           {email.senderDomain ? (
             email.senderIsJobSource ? (
-              <p className="text-xs text-emerald-800">
+              <p className="text-xs text-success">
                 Los próximos emails de {email.senderDomain} se guardan completos. Este queda así.
               </p>
             ) : isWebmailDomain(email.senderDomain) ? (
-              <p className="text-xs text-zinc-700">
+              <p className="text-xs text-fg-muted">
                 Correo personal: no se puede marcar como fuente
               </p>
             ) : (
@@ -113,7 +113,7 @@ export default async function InboundEmailPage({
                 <input type="hidden" name="back" value={`/inbox/${email.id}`} />
                 <button
                   type="submit"
-                  className="rounded border border-zinc-400 bg-white px-2 py-1 text-xs"
+                  className="rounded-control border border-line-control bg-surface px-2 py-1 text-xs"
                 >
                   Marcar {email.senderDomain} como fuente de empleo
                 </button>
@@ -127,32 +127,34 @@ export default async function InboundEmailPage({
           sandbox=""
           referrerPolicy="no-referrer"
           srcDoc={buildEmailFrameDoc(email.html)}
-          className="h-[75vh] w-full rounded-lg border border-zinc-200 bg-white"
+          // Blanco también en oscuro, a propósito: el HTML del email trae sus propios colores (casi
+          // siempre texto oscuro sin fondo) y sobre `bg-surface` oscuro no se leería
+          className="h-[75vh] w-full rounded-card border border-line bg-white [color-scheme:light]"
         />
       ) : email.text ? (
-        <div className="rounded-lg border border-zinc-200 bg-white p-3">
-          <p className="max-h-[75vh] overflow-auto text-sm break-words whitespace-pre-wrap text-zinc-800">
+        <div className="rounded-card border border-line bg-surface p-3">
+          <p className="max-h-[75vh] overflow-auto text-sm break-words whitespace-pre-wrap text-fg">
             {email.text}
           </p>
         </div>
       ) : (
-        <p className="rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500">
+        <p className="rounded-card border border-dashed border-line-strong p-6 text-center text-sm text-fg-subtle">
           No se guardó el cuerpo de este email (llegó sin `RESEND_API_KEY` configurada).
         </p>
       )}
 
       {email.html && email.text ? (
-        <details className="rounded-lg border border-zinc-200 bg-white p-3">
-          <summary className="cursor-pointer text-sm text-zinc-700">Ver como texto plano</summary>
-          <pre className="mt-2 max-h-[60vh] overflow-auto text-xs break-words whitespace-pre-wrap text-zinc-800">
+        <details className="rounded-card border border-line bg-surface p-3">
+          <summary className="cursor-pointer text-sm text-fg-muted">Ver como texto plano</summary>
+          <pre className="mt-2 max-h-[60vh] overflow-auto text-xs break-words whitespace-pre-wrap text-fg">
             {email.text}
           </pre>
         </details>
       ) : null}
 
       {email.links.length > 0 ? (
-        <details className="rounded-lg border border-zinc-200 bg-white p-3 text-sm">
-          <summary className="cursor-pointer text-zinc-700">
+        <details className="rounded-card border border-line bg-surface p-3 text-sm">
+          <summary className="cursor-pointer text-fg-muted">
             Links del email ({email.links.length})
           </summary>
           <ul className="mt-2 flex flex-col gap-1">
@@ -162,7 +164,7 @@ export default async function InboundEmailPage({
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer nofollow"
-                  className="text-xs text-blue-700 underline"
+                  className="text-xs text-link underline"
                 >
                   {href}
                 </a>

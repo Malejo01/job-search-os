@@ -64,7 +64,7 @@ export default async function OnboardingPage({
         }
       />
       <h1 className="text-xl font-semibold">Completá tu perfil</h1>
-      <p className="text-sm text-zinc-600">
+      <p className="text-sm text-fg-subtle">
         Antes de ver ofertas necesitamos unos datos: con ellos se filtran y evalúan los avisos. Los
         podés cambiar más adelante.
       </p>
@@ -80,7 +80,7 @@ export default async function OnboardingPage({
         minSummary={MIN_SUMMARY_CHARS}
         maxSummary={MAX_SUMMARY_CHARS}
       />
-      <div className="mt-4 border-t border-zinc-200 pt-4">
+      <div className="mt-4 border-t border-line pt-4">
         <DeleteAccountForm error={error === "confirmacion"} returnTo="/onboarding" />
       </div>
     </section>

@@ -13,7 +13,7 @@ function StatusBadge({ status }: { status: ChecklistItemView["status"] }) {
   const st = CHECKLIST_STATUS[status];
   return (
     <span
-      className={`inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium ${st.classes}`}
+      className={`inline-flex shrink-0 items-center gap-1 rounded-badge px-1.5 py-0.5 text-xs font-medium ${st.classes}`}
     >
       <span aria-hidden="true">{st.icon}</span>
       {/* El rótulo en su propio nodo: un lector (o un test) lo encuentra sin el ícono pegado */}
@@ -59,26 +59,26 @@ function Item({
 }) {
   const cta = item.status === "no_se_sabe" && !compact ? missingCta(item) : null;
   return (
-    <li className="flex min-w-0 flex-col gap-0.5 border-t border-zinc-200 py-2 first:border-t-0">
+    <li className="flex min-w-0 flex-col gap-0.5 border-t border-line py-2 first:border-t-0">
       <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <StatusBadge status={item.status} />
         <span className="min-w-0 break-words font-medium">{item.pide}</span>
         {item.nivel === "deseable" ? (
-          <span className="text-xs text-zinc-600">(deseable)</span>
+          <span className="text-xs text-fg-subtle">(deseable)</span>
         ) : null}
-        {item.bloquea ? <span className="text-xs font-medium text-red-900">(frena)</span> : null}
+        {item.bloquea ? <span className="text-xs font-medium text-danger">(frena)</span> : null}
       </p>
-      <p className="break-words text-xs text-zinc-600">
+      <p className="break-words text-xs text-fg-subtle">
         Lo que pide ({CHECKLIST_PIDE_SOURCE[item.fuente.pide]})
         {!compact && item.evidencia ? <span className="italic"> · «{item.evidencia}»</span> : null}
       </p>
-      <p className="break-words text-xs text-zinc-600">
+      <p className="break-words text-xs text-fg-subtle">
         {item.tenes !== null && item.fuente.tenes
           ? `Tenés (${CHECKLIST_TENES_SOURCE[item.fuente.tenes]}): ${item.tenes}`
           : "Tenés: no lo sabemos"}
       </p>
       {item.nota ? (
-        <p data-testid="requisito-nota" className="break-words text-xs text-zinc-600">
+        <p data-testid="requisito-nota" className="break-words text-xs text-fg-subtle">
           {item.nota}
         </p>
       ) : null}
@@ -96,7 +96,7 @@ function Item({
         <p className="text-xs">
           <Link
             href={"href" in cta ? cta.href : "/settings/skills"}
-            className="inline-flex min-h-8 items-center text-sky-800 underline"
+            className="inline-flex min-h-8 items-center text-link underline"
           >
             {"href" in cta ? cta.text : `Cargá tu nivel de ${cta.name}`}
           </Link>
@@ -126,7 +126,7 @@ export function RequisitosDelAviso({
   return (
     <section
       aria-label="Requisitos del aviso"
-      className="flex min-w-0 flex-col gap-2 rounded-md border border-zinc-200 p-3 text-sm"
+      className="flex min-w-0 flex-col gap-2 rounded-card border border-line p-3 text-sm"
     >
       <Heading className="font-semibold">Requisitos del aviso</Heading>
       <p data-testid="requisitos-titular">
@@ -146,19 +146,19 @@ export function RequisitosDelAviso({
         )}
       </p>
       {!compact && (deseableTotal > 0 || deseable.no_se_sabe > 0) ? (
-        <p className="text-xs text-zinc-700">
+        <p className="text-xs text-fg-muted">
           Deseables: cumplís {deseable.cumple} de {deseableTotal}
           {deseable.no_se_sabe > 0 ? ` y ${deseable.no_se_sabe} sin verificar` : ""}
         </p>
       ) : null}
       {parcial ? (
-        <p className="text-xs text-amber-900">
+        <p className="text-xs text-warning">
           Sin la descripción completa: esta lista sale del resumen del aviso y puede estar
           incompleta.
         </p>
       ) : null}
 
-      <div className="rounded-md bg-zinc-50 p-2" data-testid="requisitos-descarte">
+      <div className="rounded-control bg-surface-subtle p-2" data-testid="requisitos-descarte">
         <p className="text-xs font-semibold">Lo primero que mira un reclutador</p>
         <p className="break-words">
           {descarte
@@ -180,7 +180,7 @@ export function RequisitosDelAviso({
       {!compact && named.length ? (
         <div>
           <h3 className="text-xs font-semibold">Skills que nombra el aviso</h3>
-          <p className="text-xs text-zinc-600">
+          <p className="text-xs text-fg-subtle">
             El aviso las menciona, pero no sabemos si las exige: no cuentan en el titular.
           </p>
           <ul className="flex flex-col">

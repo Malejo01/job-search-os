@@ -22,7 +22,7 @@ export function DeleteDomainButton({ domain, total }: { domain: string; total: n
           router.refresh();
         });
       }}
-      className="rounded border border-red-200 bg-white px-2 py-1 text-red-700"
+      className="rounded-control border border-danger-line bg-surface px-2 py-1 text-danger"
     >
       Eliminar todos
     </button>

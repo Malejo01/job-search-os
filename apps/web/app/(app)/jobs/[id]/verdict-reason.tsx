@@ -79,7 +79,7 @@ export function VerdictReason({
       }}
       className="flex flex-col gap-2"
     >
-      <p className="text-xs font-medium text-zinc-700">¿Por qué? (opcional)</p>
+      <p className="text-xs font-medium text-fg-muted">¿Por qué? (opcional)</p>
       <div className="flex flex-wrap gap-2">
         {CHIPS.map((chip) => (
           <button
@@ -89,14 +89,14 @@ export function VerdictReason({
               setDone(false);
               setText((t) => addReason(t, chip));
             }}
-            className="min-h-11 rounded-full border border-zinc-500 bg-white px-3 text-xs text-zinc-800 hover:border-zinc-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+            className="min-h-11 rounded-pill border border-fg-subtle bg-surface px-3 text-xs text-fg hover:border-fg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
           >
             {chip}
           </button>
         ))}
       </div>
       <div className="flex flex-wrap items-end gap-2">
-        <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs text-zinc-600">
+        <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs text-fg-subtle">
           Motivo
           <input
             name="humanNote"
@@ -108,13 +108,13 @@ export function VerdictReason({
               setDone(false);
               setText(e.target.value);
             }}
-            className="rounded-md border border-zinc-500 px-2 py-2 text-base focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+            className="rounded-control border border-fg-subtle px-2 py-2 text-base focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
           />
         </label>
         <button
           type="submit"
           disabled={pending || trimmed === "" || trimmed === saved}
-          className="min-h-[44px] rounded-md bg-zinc-900 px-3 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
+          className="min-h-[44px] rounded-control bg-brand px-3 text-sm font-medium text-brand-contrast focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
         >
           {pending ? "Guardando…" : "Guardar motivo"}
         </button>
@@ -123,16 +123,16 @@ export function VerdictReason({
             type="button"
             disabled={pending}
             onClick={() => save("")}
-            className="min-h-[44px] rounded-md border border-zinc-500 bg-white px-3 text-sm text-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
+            className="min-h-[44px] rounded-control border border-fg-subtle bg-surface px-3 text-sm text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
           >
             Quitar motivo
           </button>
         ) : null}
       </div>
-      <p role="status" aria-live="polite" className="min-h-[1rem] text-xs text-green-700">
+      <p role="status" aria-live="polite" className="min-h-[1rem] text-xs text-success">
         {done && !pending && !failed ? "Guardado ✓" : ""}
       </p>
-      <p aria-live="polite" className="min-h-[1rem] text-xs text-red-700">
+      <p aria-live="polite" className="min-h-[1rem] text-xs text-danger">
         {failed && !pending ? "No se pudo guardar el motivo. Probá de nuevo." : ""}
       </p>
     </form>

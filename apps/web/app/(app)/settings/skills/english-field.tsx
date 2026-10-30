@@ -21,7 +21,7 @@ export function EnglishField({ value }: { value: string | null }) {
           name="englishCefr"
           defaultValue={current}
           aria-describedby="cefr-help-skills"
-          className="min-h-11 rounded-md border border-zinc-300 px-3 py-2 text-base"
+          className="min-h-11 rounded-control border border-line-strong px-3 py-2 text-base"
         >
           {current === "" ? <option value="">Sin dato</option> : null}
           {CEFR_LEVELS.map((l) => (
@@ -32,7 +32,7 @@ export function EnglishField({ value }: { value: string | null }) {
         </select>
         <FieldError name="englishCefr" />
       </label>
-      <p id="cefr-help-skills" className="text-xs text-zinc-600">
+      <p id="cefr-help-skills" className="text-xs text-fg-subtle">
         Escala CEFR, la que usan muchos avisos. Si dudás entre dos, elegí el más bajo.
       </p>
       <CefrHelp />

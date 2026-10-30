@@ -16,6 +16,7 @@ import { GUIDE_LABELS, GUIDE_STEPS } from "@/lib/guide";
 import { PRE_SCORE_EXPLAIN, SOURCE_LABELS, STATUS_LABELS } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import Link from "next/link";
+import { Alert, EmptyState, buttonClasses, textLinkClasses } from "@/components/ui";
 import { AutoRefresh } from "./auto-refresh";
 import { EmailNudge } from "./email-nudge";
 import { FirstSteps, firstStepsHidden } from "./first-steps";
@@ -50,8 +51,8 @@ export default async function JobsPage({
     <section className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
-          <h1 className="text-xl font-semibold">Ofertas</h1>
-          <p className="text-xs text-zinc-600">
+          <h1 className="text-title font-semibold">Ofertas</h1>
+          <p className="text-xs text-fg-subtle">
             {rows.length === LIST_LIMIT
               ? `Mostrando las primeras ${LIST_LIMIT}`
               : `${rows.length} ${rows.length === 1 ? "oferta" : "ofertas"}`}
@@ -66,10 +67,7 @@ export default async function JobsPage({
             openerLabel={GUIDE_LABELS.opener}
             resume
           />
-          <Link
-            href="/jobs/new"
-            className="inline-flex min-h-11 shrink-0 items-center rounded-md bg-zinc-900 px-3 text-sm font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
-          >
+          <Link href="/jobs/new" className={buttonClasses({ size: "sm", className: "shrink-0" })}>
             + Cargar oferta
           </Link>
         </div>
@@ -81,20 +79,24 @@ export default async function JobsPage({
       <RoleGaps userId={userId} />
       {/* Posibles duplicados (JS-025): se revisan a mano, desde el detalle */}
       {filters.duplicates ? (
-        <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          Viendo solo posibles duplicados ·{" "}
-          <Link href="/jobs" className="underline">
-            ver todas
-          </Link>
-        </p>
+        <Alert tone="warning" role={null}>
+          <p>
+            Viendo solo posibles duplicados ·{" "}
+            <Link href="/jobs" className="underline">
+              ver todas
+            </Link>
+          </p>
+        </Alert>
       ) : duplicates > 0 ? (
-        <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          <Link href="/jobs?duplicados=1" className="underline">
-            {duplicates === 1
-              ? "1 posible duplicado para revisar"
-              : `${duplicates} posibles duplicados para revisar`}
-          </Link>
-        </p>
+        <Alert tone="warning" role={null}>
+          <p>
+            <Link href="/jobs?duplicados=1" className="underline">
+              {duplicates === 1
+                ? "1 posible duplicado para revisar"
+                : `${duplicates} posibles duplicados para revisar`}
+            </Link>
+          </p>
+        </Alert>
       ) : null}
       <div className="flex flex-wrap items-center gap-2">
         <Link
@@ -102,16 +104,16 @@ export default async function JobsPage({
           aria-current={filters.idioma === "es" ? "true" : undefined}
           data-testid="chip-en-espanol"
           aria-describedby={filters.idioma === "es" ? "chip-en-espanol-ayuda" : undefined}
-          className={`inline-flex min-h-11 items-center rounded-full border px-4 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 ${
+          className={`inline-flex min-h-11 items-center rounded-pill border px-4 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
             filters.idioma === "es"
-              ? "border-zinc-900 bg-zinc-900 text-white"
-              : "border-zinc-300 bg-white text-zinc-800"
+              ? "border-brand bg-brand text-brand-contrast"
+              : "border-line-strong bg-surface text-fg"
           }`}
         >
           En español
         </Link>
         {filters.idioma === "es" ? (
-          <p id="chip-en-espanol-ayuda" className="text-xs text-zinc-600">
+          <p id="chip-en-espanol-ayuda" className="text-xs text-fg-subtle">
             Solo las ofertas que encontramos nosotros: las que cargaste vos no tienen idioma
             guardado.
           </p>
@@ -139,7 +141,7 @@ export default async function JobsPage({
       ) : (
         <>
           {rows.some((r) => !r.evaluating && r.score === null && r.preScore !== null) ? (
-            <p className="text-xs text-zinc-600" data-testid="pre-score-explain">
+            <p className="text-xs text-fg-subtle" data-testid="pre-score-explain">
               {PRE_SCORE_EXPLAIN} El número va de 0 a 10.
             </p>
           ) : null}
@@ -151,10 +153,7 @@ export default async function JobsPage({
   );
 }
 
-const EMPTY_BOX =
-  "flex flex-col gap-2 rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-700";
-const EMPTY_LINK =
-  "inline-flex min-h-11 items-center font-medium text-sky-800 underline underline-offset-2";
+const EMPTY_LINK = textLinkClasses({ block: true });
 
 /**
  * Lista vacía. Si hay ofertas sin evaluar que los filtros esconden, lo dice y las muestra; si no
@@ -163,19 +162,23 @@ const EMPTY_LINK =
 function EmptyList({ counts, reviewedAll }: { counts: JobCounts | null; reviewedAll: boolean }) {
   if (reviewedAll) {
     return (
-      <p className={EMPTY_BOX}>
-        No quedan ofertas sin revisar en este período.{" "}
-        <Link href="/jobs?estado=todas" className={EMPTY_LINK}>
-          Ver todas las ofertas
-        </Link>
-      </p>
+      <EmptyState
+        action={
+          <Link href="/jobs?estado=todas" className={EMPTY_LINK}>
+            Ver todas las ofertas
+          </Link>
+        }
+      >
+        No quedan ofertas sin revisar en este período.
+      </EmptyState>
     );
   }
   const porEvaluar = counts?.porEvaluar ?? 0;
   const sinDescripcion = counts?.sinDescripcion ?? 0;
   if (porEvaluar > 0 || sinDescripcion > 0) {
+    // Las acciones van dentro de cada bloque: son dos caminos distintos, no uno solo
     return (
-      <div className={EMPTY_BOX} data-testid="jobs-empty-unevaluated">
+      <EmptyState data-testid="jobs-empty-unevaluated" action={null}>
         <p>
           Ninguna oferta coincide con estos filtros.{" "}
           <Link href="/jobs?estado=todas" className={EMPTY_LINK}>
@@ -206,13 +209,12 @@ function EmptyList({ counts, reviewedAll }: { counts: JobCounts | null; reviewed
             </Link>
           </div>
         ) : null}
-      </div>
+      </EmptyState>
     );
   }
   if (counts !== null && counts.total === 0) {
     return (
-      <div className={EMPTY_BOX} data-testid="jobs-empty-none">
-        <p className="font-medium text-zinc-900">Todavía no tenés ofertas</p>
+      <EmptyState data-testid="jobs-empty-none" title="Todavía no tenés ofertas" action={null}>
         <p>Podés empezar de tres maneras:</p>
         <ul className="flex flex-col items-center">
           <li>
@@ -231,18 +233,19 @@ function EmptyList({ counts, reviewedAll }: { counts: JobCounts | null; reviewed
             </Link>
           </li>
         </ul>
-      </div>
+      </EmptyState>
     );
   }
   return (
-    <div className={EMPTY_BOX}>
-      <p>Ninguna oferta coincide con estos filtros.</p>
-      <p>
+    <EmptyState
+      action={
         <Link href="/jobs?estado=todas" className={EMPTY_LINK}>
           Ver todas las ofertas
         </Link>
-      </p>
-    </div>
+      }
+    >
+      Ninguna oferta coincide con estos filtros.
+    </EmptyState>
   );
 }
 
@@ -273,7 +276,7 @@ function ReviewProgress({
   const pct = Math.round((revisadas / total) * 100);
   return (
     <div
-      className={`flex flex-col gap-1 rounded-md px-3 py-2 text-sm ${done ? "bg-emerald-50 text-emerald-900" : "bg-zinc-50 text-zinc-700"}`}
+      className={`flex flex-col gap-1 rounded-control px-3 py-2 text-sm ${done ? "bg-success-soft text-success" : "bg-surface-subtle text-fg-muted"}`}
     >
       <p>
         <strong>
@@ -289,10 +292,10 @@ function ReviewProgress({
         aria-valuemin={0}
         aria-valuemax={total}
         aria-valuenow={revisadas}
-        className="h-1.5 overflow-hidden rounded-full bg-zinc-200"
+        className="h-1.5 overflow-hidden rounded-pill bg-surface-strong"
       >
         <div
-          className={`h-full rounded-full ${done ? "bg-emerald-500" : "bg-sky-500"}`}
+          className={`h-full rounded-pill ${done ? "bg-success" : "bg-info"}`}
           style={{ width: `${pct}%` }}
         />
       </div>
