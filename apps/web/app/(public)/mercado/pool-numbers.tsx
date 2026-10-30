@@ -32,14 +32,14 @@ export function PoolNumbers({
   const en = lang === "en";
   if (!showcase) {
     return (
-      <p data-testid="pool-numbers" role="note" className="text-sm text-zinc-600">
+      <p data-testid="pool-numbers" role="note" className="text-sm text-fg-muted">
         {en ? "Data being prepared." : "Datos en preparación."}
       </p>
     );
   }
   if (showcase.active === 0 && showcase.updatedHoursAgo === null) {
     return (
-      <p data-testid="pool-numbers" className="text-sm text-zinc-600">
+      <p data-testid="pool-numbers" className="text-sm text-fg-muted">
         {en ? "Loading the first postings." : "Estamos cargando las primeras ofertas."}
       </p>
     );
@@ -62,13 +62,13 @@ export function PoolNumbers({
     <div data-testid="pool-numbers" className="flex flex-col gap-2">
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {items.map(([label, value]) => (
-          <div key={label} className="min-w-0 rounded-md border border-zinc-200 bg-white p-3">
-            <dt className="text-xs text-zinc-600">{label}</dt>
-            <dd className="break-words text-lg font-semibold">{value}</dd>
+          <div key={label} className="min-w-0 rounded-card border border-line bg-surface p-3">
+            <dt className="text-xs text-fg-muted">{label}</dt>
+            <dd className="break-words text-lg font-semibold text-fg">{value}</dd>
           </div>
         ))}
       </dl>
-      <p className="text-xs text-zinc-600">
+      <p className="text-xs text-fg-muted">
         {en
           ? "Counts the distinct postings we saw in the last 7 days across the sources we read."
           : "Cuenta los avisos distintos que vimos en los últimos 7 días en las fuentes que leemos."}
