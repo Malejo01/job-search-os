@@ -141,6 +141,10 @@ describe("skills.json: integridad", () => {
       "pmp",
       "psm",
       "wbs",
+      // C1-2 (ADR-027): siglas de compliance, inequívocas en un aviso legal
+      "aml",
+      "kyc",
+      "uif",
     ]);
     for (const s of taxonomy) {
       for (const a of s.aliases) {

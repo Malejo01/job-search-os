@@ -163,6 +163,41 @@ export const ALERT_KEYWORDS: Partial<Record<AlertRoleKey, Keywords>> = {
       "data entry",
     ],
   },
+  // C1-2 (ADR-027): las carreras de la beta. C1-5 revisa las palabras de todas.
+  abogacia: {
+    es: ["abogado", "asesor legal", "analista legal", "paralegal", "oficial de cumplimiento"],
+    en: ["legal counsel", "paralegal", "legal analyst", "compliance officer"],
+  },
+  administracion_empresas: {
+    es: [
+      "analista administrativo",
+      "analista de compras",
+      "analista de control de gestión",
+      "analista comercial",
+      "analista de procesos",
+    ],
+    en: ["procurement analyst", "supply chain analyst", "pricing analyst", "management consultant"],
+  },
+  comunicacion: {
+    es: [
+      "analista de comunicación",
+      "comunicación institucional",
+      "comunicación interna",
+      "periodista",
+      "jefe de prensa",
+    ],
+    en: ["communications specialist", "internal communications", "journalist", "press officer"],
+  },
+  relaciones_internacionales: {
+    es: [
+      "analista de comercio exterior",
+      "comercio exterior",
+      "cooperación internacional",
+      "relaciones institucionales",
+      "analista de importaciones",
+    ],
+    en: ["foreign trade", "program officer", "government affairs", "public policy analyst"],
+  },
 };
 
 /** Para quien todavía no eligió carrera. */

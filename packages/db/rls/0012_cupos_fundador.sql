@@ -36,7 +36,8 @@ DECLARE
     'ux_ui', 'marketing_digital', 'rrhh_it', 'customer_success', 'ciberseguridad',
     'product_manager', 'product_owner', 'project_manager', 'product_marketing',
     'data_engineer', 'solutions_engineer', 'ventas_b2b', 'atencion_cliente',
-    'finanzas_contabilidad', 'asistencia_operaciones'
+    'finanzas_contabilidad', 'asistencia_operaciones', 'abogacia', 'administracion_empresas',
+    'comunicacion', 'relaciones_internacionales'
   ];
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.app_admins a WHERE a.user_id = auth.uid()) THEN

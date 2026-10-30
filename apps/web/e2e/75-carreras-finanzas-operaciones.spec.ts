@@ -6,17 +6,17 @@ import { ownerDb } from "./helpers";
 import { cleanup, createInvitation, newRun, register } from "./personas/flow";
 
 /**
- * Flujo 75 (C-2b, ADR-023): se abren «Finanzas y contabilidad» y, sin listar, «Asistencia y
+ * Flujo 75 (C-2b, ADR-023): se abren «Contaduría, impuestos y finanzas» y, sin listar, «Asistencia y
  * operaciones». Se verifica lo que ve la gente:
  * - `/mercado/finanzas_contabilidad` carga con su rótulo y está en el sitemap;
- * - «Pedir acceso» guarda «Finanzas y contabilidad» (check de `waitlist` ampliado);
+ * - «Pedir acceso» guarda «Contaduría, impuestos y finanzas» (check de `waitlist` ampliado);
  * - el onboarding con finanzas ofrece «Contabilidad y conciliaciones»;
  * - operaciones no se ofrece en el selector del onboarding, pero su página de mercado responde 200.
  * Todo inventado (persona `@personas.test`, emails de ejemplo). Requiere las migraciones 0043 y
  * 0044 aplicadas en la base local (`node .claude/bin/local.mjs migrate`).
  */
 const FINANZAS = "finanzas_contabilidad";
-const FINANZAS_LABEL = "Finanzas y contabilidad";
+const FINANZAS_LABEL = "Contaduría, impuestos y finanzas";
 const OPERACIONES = "asistencia_operaciones";
 
 test.describe("Flujo 75: carreras de finanzas y operaciones (públicas)", () => {
@@ -53,7 +53,9 @@ test.describe("Flujo 75: lista de espera con finanzas", () => {
     }
   });
 
-  test("/acceso guarda «Finanzas y contabilidad» y no ofrece operaciones", async ({ page }) => {
+  test("/acceso guarda «Contaduría, impuestos y finanzas» y no ofrece operaciones", async ({
+    page,
+  }) => {
     await page.goto("/acceso");
     const select = page.getByLabel("Carrera");
     const options = await select.locator("option").allInnerTexts();
