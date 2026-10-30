@@ -337,6 +337,13 @@
       "when": 1793058455056,
       "tag": "0047_slimy_mindworm",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1793386918608,
+      "tag": "0048_organic_mandarin",
+      "breakpoints": true
     }
   ]
 }

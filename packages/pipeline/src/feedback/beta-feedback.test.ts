@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  FEEDBACK_ACTIONS_MAX,
+  FEEDBACK_ACTION_TEXT_MAX,
+  FEEDBACK_CONTEXT_MAX_BYTES,
   FEEDBACK_DAILY_LIMIT,
   FEEDBACK_MESSAGE_MAX,
   FEEDBACK_PATH_MAX,
@@ -7,7 +10,10 @@ import {
   isValidFeedbackPath,
   normalizeFeedbackMessage,
   normalizeFeedbackPath,
+  pushAction,
   validateFeedback,
+  validateFeedbackContext,
+  type FeedbackAction,
 } from "./beta-feedback";
 
 describe("isValidFeedbackPath", () => {
@@ -81,8 +87,23 @@ describe("validateFeedback", () => {
   it("acepta y normaliza mensaje y ruta", () => {
     expect(validateFeedback({ ...ok, message: "  hola\r\nchau  ", path: "/jobs/12345" })).toEqual({
       ok: true,
-      value: { category: "idea", message: "hola\nchau", path: "/jobs/[id]" },
+      value: { category: "idea", message: "hola\nchau", path: "/jobs/[id]", context: null },
     });
+  });
+
+  it("acepta contexto válido y lo valida", () => {
+    const res = validateFeedback({
+      ...ok,
+      context: {
+        pathname: "/hoy",
+        actions: [{ type: "click", text: "Guardar", time: "2026-10-30T10:00:00Z" }],
+      },
+    });
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.value.context?.pathname).toBe("/hoy");
+      expect(res.value.context?.actions?.[0]?.text).toBe("Guardar");
+    }
   });
 
   it("devuelve el primer campo inválido, sin contenido", () => {
@@ -108,5 +129,85 @@ describe("isOverDailyLimit", () => {
   it("bloquea desde el décimo envío ya hecho", () => {
     expect(isOverDailyLimit(FEEDBACK_DAILY_LIMIT - 1)).toBe(false);
     expect(isOverDailyLimit(FEEDBACK_DAILY_LIMIT)).toBe(true);
+  });
+});
+
+describe("pushAction", () => {
+  it("agrega acciones respetando el tope de 10 (FIFO)", () => {
+    let buf: FeedbackAction[] = [];
+    for (let i = 1; i <= 15; i++) {
+      buf = pushAction(buf, { type: "click", text: `Accion ${i}` });
+    }
+    expect(buf).toHaveLength(FEEDBACK_ACTIONS_MAX);
+    expect(buf[0]?.text).toBe("Accion 6");
+    expect(buf[FEEDBACK_ACTIONS_MAX - 1]?.text).toBe("Accion 15");
+  });
+
+  it("trunca el texto a 60 caracteres y colapsa espacios", () => {
+    const largo = "   " + "x".repeat(100) + "   ";
+    const buf = pushAction([], { type: "click", text: largo });
+    expect(buf).toHaveLength(1);
+    expect(buf[0]?.text).toBe("x".repeat(FEEDBACK_ACTION_TEXT_MAX));
+  });
+
+  it("ignora acciones con texto vacío", () => {
+    const buf = pushAction([], { type: "click", text: "   " });
+    expect(buf).toHaveLength(0);
+  });
+});
+
+describe("validateFeedbackContext", () => {
+  it("acepta null, undefined y vacío devolviendo null", () => {
+    expect(validateFeedbackContext(null)).toEqual({ ok: true, value: null });
+    expect(validateFeedbackContext(undefined)).toEqual({ ok: true, value: null });
+    expect(validateFeedbackContext("")).toEqual({ ok: true, value: null });
+  });
+
+  it("parsea JSON string y normaliza acciones", () => {
+    const jsonStr = JSON.stringify({
+      pathname: "/jobs?tab=1",
+      pageTitle: "Ofertas",
+      screen: "1920x1080",
+      userAgent: "Mozilla/5.0",
+      theme: "dark",
+      actions: [
+        { type: "click", text: "  Postularme  ", time: "2026-10-30T10:00:00Z" },
+        { type: "navigate", text: "Ir a /jobs" },
+      ],
+    });
+    const res = validateFeedbackContext(jsonStr);
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.value?.pathname).toBe("/jobs");
+      expect(res.value?.pageTitle).toBe("Ofertas");
+      expect(res.value?.screen).toBe("1920x1080");
+      expect(res.value?.theme).toBe("dark");
+      expect(res.value?.actions).toHaveLength(2);
+      expect(res.value?.actions?.[0]?.text).toBe("Postularme");
+    }
+  });
+
+  it("rechaza contexto mayor a 4096 bytes", () => {
+    const gigante = {
+      pathname: "/hoy",
+      actions: [{ type: "click", text: "x".repeat(60), time: "2026-10-30T10:00:00Z" }],
+      extra: "y".repeat(FEEDBACK_CONTEXT_MAX_BYTES),
+    };
+    const res = validateFeedbackContext(gigante);
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.reason).toBe("too_large");
+    }
+  });
+
+  it("rechaza si contiene más de 10 acciones", () => {
+    const muchas = {
+      actions: Array.from({ length: 15 }, (_, i) => ({ type: "click", text: `Accion ${i}` })),
+    };
+    const res = validateFeedbackContext(muchas);
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.reason).toBe("too_many_actions");
+    }
   });
 });
