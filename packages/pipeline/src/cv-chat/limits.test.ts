@@ -31,6 +31,8 @@ describe("topes mensuales de la beta (C2-1)", () => {
     expect(cvChatBetaCvPerMonth(3)).toBe(3);
     expect(cvChatBetaCvPerMonth(5)).toBe(5);
     expect(cvChatBetaCvPerMonth(Number.NaN)).toBe(3);
+    expect(cvChatBetaCvPerMonth(Number.POSITIVE_INFINITY)).toBe(3);
+    expect(cvChatBetaCvPerMonth(0)).toBe(3);
   });
   it("turnos por mes: se llega al tope con 40 y falla cerrado ante un número inválido", () => {
     expect(cvChatMonthTurnsReason(0)).toBeNull();
@@ -40,6 +42,7 @@ describe("topes mensuales de la beta (C2-1)", () => {
     expect(cvChatMonthTurnsReason(Number.NaN)).toBe("turnos_mes");
     expect(cvChatMonthTurnsReason(-1)).toBe("turnos_mes");
     expect(cvChatMonthTurnsReason(10, 10)).toBe("turnos_mes");
+    expect(cvChatMonthTurnsReason(1, Number.NaN)).toBe("turnos_mes");
   });
   it("el mensaje del tope mensual de turnos es claro y no promete lo que no hay", () => {
     const n = cvChatCapNotice("turnos_mes");

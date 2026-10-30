@@ -30,8 +30,9 @@ const e2eIsAdmin = (process.env.ADMIN_EMAILS ?? "")
   .includes(E2E_EMAIL.toLowerCase());
 
 /**
- * El chat solo existe para admins (`CV_CHAT_ENABLED=admin`). En el CI el usuario e2e tiene que estar en
- * `ADMIN_EMAILS`: si no, el flujo no se probaría y el verde engañaría, así que falla. En local se saltea.
+ * Los flujos de la persona A siguen exigiendo que esté en `ADMIN_EMAILS` (el gate `admin` es el de
+ * producción hasta el cambio a `all`). En el CI, si no está, el flujo no se probaría y el verde engañaría,
+ * así que falla. En local se saltea. La persona B no lo necesita: con `all` el chat es de cualquier sesión.
  */
 function requireAdmin(): void {
   if (e2eIsAdmin) return;
