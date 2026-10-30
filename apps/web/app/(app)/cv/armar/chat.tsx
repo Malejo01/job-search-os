@@ -24,10 +24,11 @@ type ApiErr = {
 };
 
 const BUTTON =
-  "inline-flex min-h-11 items-center justify-center rounded-md px-4 py-2 text-base font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 disabled:opacity-50";
-const PRIMARY = `${BUTTON} bg-zinc-900 text-white`;
-const SECONDARY = `${BUTTON} border border-zinc-300 text-zinc-900 hover:bg-zinc-50`;
-const FIELD = "min-h-11 w-full rounded-md border border-zinc-300 px-3 py-2 text-base";
+  "inline-flex min-h-11 items-center justify-center rounded-control px-4 py-2 text-base font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-50";
+const PRIMARY = `${BUTTON} bg-brand text-brand-contrast hover:bg-brand-hover`;
+const SECONDARY = `${BUTTON} border border-line-strong text-fg hover:bg-surface-muted`;
+const FIELD =
+  "min-h-11 w-full rounded-control border border-line-control bg-surface px-3 py-2 text-base text-fg focus-visible:outline-focus";
 
 async function post(body: Record<string, unknown>): Promise<ApiOk | ApiErr> {
   try {
@@ -156,7 +157,7 @@ export function CvChat() {
   }
 
   const alert = notice ? (
-    <div role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
+    <div role="alert" className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">
       <p>{notice.message}</p>
       {notice.links && notice.links.length > 0 ? (
         <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
@@ -175,13 +176,13 @@ export function CvChat() {
   if (phase === "intro") {
     return (
       <section className="flex flex-col gap-3" aria-label="Cómo funciona">
-        <p className="text-sm text-zinc-700">
+        <p className="text-sm text-fg-muted">
           Te hago preguntas de a una (puesto, experiencia, estudios, skills, idiomas y links), vos
           corregís lo que entendí y al final armo un CV en formato ATS. La IA redacta las viñetas,
           pero un control descarta cualquier cifra, nombre o tecnología que vos no hayas dicho. Nada
           se guarda hasta que lo confirmes.
         </p>
-        <p className="text-sm text-zinc-700">
+        <p className="text-sm text-fg-muted">
           Si tenés un CV hecho, no lo pegues acá: cargá tu historial a mano.
         </p>
         {alert}
@@ -201,7 +202,7 @@ export function CvChat() {
     return (
       <section className="flex flex-col gap-3" aria-label="Charla">
         {progress ? (
-          <p className="text-sm text-zinc-700" data-testid="cv-progress">
+          <p className="text-sm text-fg-muted" data-testid="cv-progress">
             Avance: {progress.done} de {progress.total} temas
           </p>
         ) : null}
@@ -210,15 +211,15 @@ export function CvChat() {
           aria-live="polite"
           aria-label="Mensajes"
           data-testid="cv-messages"
-          className="flex max-h-[50vh] flex-col gap-2 overflow-y-auto rounded-md border border-zinc-200 p-3"
+          className="flex max-h-[50vh] flex-col gap-2 overflow-y-auto rounded-card border border-line bg-surface p-3"
         >
           {messages.map((m, i) => (
             <p
               key={i}
               className={
                 m.role === "assistant"
-                  ? "max-w-[90%] self-start break-words rounded-md bg-zinc-100 px-3 py-2 text-sm text-zinc-900"
-                  : "max-w-[90%] self-end break-words rounded-md bg-zinc-900 px-3 py-2 text-sm text-white"
+                  ? "max-w-[90%] self-start break-words rounded-control bg-surface-muted px-3 py-2 text-sm text-fg"
+                  : "max-w-[90%] self-end break-words rounded-control bg-brand px-3 py-2 text-sm text-brand-contrast"
               }
             >
               <span className="sr-only">{m.role === "assistant" ? "Asistente: " : "Vos: "}</span>
@@ -234,7 +235,7 @@ export function CvChat() {
           }}
           className="flex flex-col gap-2"
         >
-          <label htmlFor="cv-answer" className="text-sm font-medium text-zinc-900">
+          <label htmlFor="cv-answer" className="text-sm font-medium text-fg">
             Tu respuesta
           </label>
           <textarea
@@ -278,21 +279,21 @@ export function CvChat() {
   if (phase === "review" && state) {
     return (
       <section className="flex flex-col gap-4" aria-labelledby="cv-review">
-        <h2 id="cv-review" ref={headingRef} tabIndex={-1} className="text-xl font-semibold">
+        <h2 id="cv-review" ref={headingRef} tabIndex={-1} className="text-xl font-semibold text-fg">
           Esto es lo que entendí
         </h2>
-        <p className="text-sm text-zinc-700">
+        <p className="text-sm text-fg-muted">
           Corregí lo que haga falta. Si algo está vacío, queda vacío: no lo completo yo.
         </p>
         <ReviewEditor state={state} onChange={setState} />
         {alert}
         <div className="flex flex-wrap items-end gap-3">
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-900">
+          <label className="flex flex-col gap-1 text-sm font-medium text-fg">
             Idioma del CV
             <select
               value={lang}
               onChange={(e) => setLang(e.target.value === "en" ? "en" : "es")}
-              className="min-h-11 rounded-md border border-zinc-300 px-2 text-base"
+              className="min-h-11 rounded-control border border-line-control bg-surface px-2 text-base text-fg focus-visible:outline-focus"
             >
               <option value="es">Español</option>
               <option value="en">English</option>
@@ -317,10 +318,15 @@ export function CvChat() {
   if (phase === "preview" && doc && written) {
     return (
       <section className="flex flex-col gap-4" aria-labelledby="cv-preview-title">
-        <h2 id="cv-preview-title" ref={headingRef} tabIndex={-1} className="text-xl font-semibold">
+        <h2
+          id="cv-preview-title"
+          ref={headingRef}
+          tabIndex={-1}
+          className="text-xl font-semibold text-fg"
+        >
           Así queda tu CV
         </h2>
-        <p className="text-sm text-zinc-700" data-testid="cv-verify-note">
+        <p className="text-sm text-fg-muted" data-testid="cv-verify-note">
           {usedModel
             ? "Redactado por IA y verificado contra tus respuestas: lo que traía cifras, nombres o tecnologías que no dijiste se reemplazó por tus palabras."
             : "Va con tus palabras, sin redacción de IA."}{" "}
@@ -343,10 +349,10 @@ export function CvChat() {
 
   return (
     <section className="flex flex-col gap-3" aria-labelledby="cv-done">
-      <h2 id="cv-done" ref={headingRef} tabIndex={-1} className="text-xl font-semibold">
+      <h2 id="cv-done" ref={headingRef} tabIndex={-1} className="text-xl font-semibold text-fg">
         Listo
       </h2>
-      <p role="status" className="text-sm text-zinc-800" data-testid="cv-saved">
+      <p role="status" className="text-sm text-fg-muted" data-testid="cv-saved">
         Guardamos {saved?.inserted ?? 0}{" "}
         {saved?.inserted === 1 ? "entrada nueva" : "entradas nuevas"}
         {saved && saved.updated > 0 ? ` y actualizamos ${saved.updated}` : ""} en tu historial.
@@ -375,7 +381,7 @@ function DutiesField({
 }) {
   const [text, setText] = useState(duties.join("\n"));
   return (
-    <label className="flex flex-col gap-1 text-sm text-zinc-900">
+    <label className="flex flex-col gap-1 text-sm text-fg">
       Qué hacías {n} (una por línea)
       <textarea
         rows={3}
@@ -400,7 +406,7 @@ function SkillsField({
 }) {
   const [text, setText] = useState(skills.join(", "));
   return (
-    <label className="flex flex-col gap-1 text-sm text-zinc-900">
+    <label className="flex flex-col gap-1 text-sm text-fg">
       Skills (separadas por coma)
       <input
         value={text}
@@ -426,13 +432,13 @@ function ReviewEditor({
   const set = (patch: Partial<CvChatState>) => onChange({ ...state, ...patch });
   const setWork = (i: number, patch: Partial<CvChatState["works"][number]>) =>
     set({ works: state.works.map((w, j) => (j === i ? { ...w, ...patch } : w)) });
-  const empty = <p className="text-sm text-zinc-600">Nada cargado.</p>;
+  const empty = <p className="text-sm text-fg-subtle">Nada cargado.</p>;
 
   return (
     <div className="flex flex-col gap-4" data-testid="cv-card">
-      <fieldset className="flex flex-col gap-2 rounded-md border border-zinc-200 p-3">
-        <legend className="px-1 text-base font-medium">Puesto objetivo</legend>
-        <label className="flex flex-col gap-1 text-sm text-zinc-900">
+      <fieldset className="flex flex-col gap-2 rounded-card border border-line p-3">
+        <legend className="px-1 text-base font-medium text-fg">Puesto objetivo</legend>
+        <label className="flex flex-col gap-1 text-sm text-fg">
           Puesto
           <input
             value={state.target ?? ""}
@@ -443,15 +449,15 @@ function ReviewEditor({
         </label>
       </fieldset>
 
-      <fieldset className="flex flex-col gap-3 rounded-md border border-zinc-200 p-3">
-        <legend className="px-1 text-base font-medium">Experiencia</legend>
+      <fieldset className="flex flex-col gap-3 rounded-card border border-line p-3">
+        <legend className="px-1 text-base font-medium text-fg">Experiencia</legend>
         {state.works.length === 0 ? empty : null}
         {state.works.map((w, i) => (
           <div
             key={`${version}-${i}`}
-            className="flex flex-col gap-2 border-b border-zinc-100 pb-3 last:border-0"
+            className="flex flex-col gap-2 border-b border-line pb-3 last:border-0"
           >
-            <label className="flex flex-col gap-1 text-sm text-zinc-900">
+            <label className="flex flex-col gap-1 text-sm text-fg">
               Empresa {i + 1}
               <input
                 value={w.organization ?? ""}
@@ -460,7 +466,7 @@ function ReviewEditor({
                 className={FIELD}
               />
             </label>
-            <label className="flex flex-col gap-1 text-sm text-zinc-900">
+            <label className="flex flex-col gap-1 text-sm text-fg">
               Cargo {i + 1}
               <input
                 value={w.title ?? ""}
@@ -474,7 +480,7 @@ function ReviewEditor({
               duties={w.duties}
               onChange={(duties) => setWork(i, { duties })}
             />
-            <label className="flex flex-col gap-1 text-sm text-zinc-900">
+            <label className="flex flex-col gap-1 text-sm text-fg">
               Logro {i + 1}
               <input
                 value={w.achievement ?? ""}
@@ -497,12 +503,12 @@ function ReviewEditor({
         ))}
       </fieldset>
 
-      <fieldset className="flex flex-col gap-3 rounded-md border border-zinc-200 p-3">
-        <legend className="px-1 text-base font-medium">Estudios y certificaciones</legend>
+      <fieldset className="flex flex-col gap-3 rounded-card border border-line p-3">
+        <legend className="px-1 text-base font-medium text-fg">Estudios y certificaciones</legend>
         {state.education.length + state.certifications.length === 0 ? empty : null}
         {state.education.map((e, i) => (
           <div key={`e${i}`} className="flex flex-col gap-2">
-            <label className="flex flex-col gap-1 text-sm text-zinc-900">
+            <label className="flex flex-col gap-1 text-sm text-fg">
               Institución {i + 1}
               <input
                 value={e.institution}
@@ -517,7 +523,7 @@ function ReviewEditor({
                 className={FIELD}
               />
             </label>
-            <label className="flex flex-col gap-1 text-sm text-zinc-900">
+            <label className="flex flex-col gap-1 text-sm text-fg">
               Título {i + 1}
               <input
                 value={e.title}
@@ -542,7 +548,7 @@ function ReviewEditor({
           </div>
         ))}
         {state.certifications.map((c, i) => (
-          <div key={`c${i}`} className="flex items-center justify-between gap-2 text-sm">
+          <div key={`c${i}`} className="flex items-center justify-between gap-2 text-sm text-fg">
             <span className="break-words">
               {c.title} ({c.issuer})
             </span>
@@ -559,16 +565,16 @@ function ReviewEditor({
         ))}
       </fieldset>
 
-      <fieldset className="flex flex-col gap-2 rounded-md border border-zinc-200 p-3">
-        <legend className="px-1 text-base font-medium">Skills, idiomas y links</legend>
+      <fieldset className="flex flex-col gap-2 rounded-card border border-line p-3">
+        <legend className="px-1 text-base font-medium text-fg">Skills, idiomas y links</legend>
         <SkillsField skills={state.skills} onChange={(skills) => set({ skills })} />
-        <p className="text-sm text-zinc-800">
+        <p className="text-sm text-fg-muted">
           Idiomas:{" "}
           {state.languages.length === 0
             ? "ninguno"
             : state.languages.map((l) => (l.level ? `${l.name} ${l.level}` : l.name)).join(", ")}
         </p>
-        <p className="text-sm text-zinc-800">
+        <p className="text-sm text-fg-muted">
           Links:{" "}
           {[state.links.linkedin, state.links.github, state.links.portfolio]
             .filter(Boolean)

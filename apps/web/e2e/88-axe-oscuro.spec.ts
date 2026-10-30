@@ -38,9 +38,12 @@ const ROUTES: Array<{ label: string; path: string | ((ids: Seeded) => string) }>
   { label: "/jobs/pending-jd", path: "/jobs/pending-jd" },
   { label: "/inbox", path: "/inbox" },
   { label: "/inbox/[id]", path: (ids) => `/inbox/${ids.emailId}` },
+  { label: "/cv", path: "/cv" },
+  { label: "/cv/armar", path: "/cv/armar" },
   // Sin /settings/asistente (lo migra otra sesión) ni /settings/metricas (solo admin, flujo 77)
   { label: "/settings", path: "/settings" },
   { label: "/settings/criteria", path: "/settings/criteria" },
+  { label: "/settings/historial", path: "/settings/historial" },
   { label: "/settings/invitations", path: "/settings/invitations" },
   { label: "/settings/perfil", path: "/settings/perfil" },
   { label: "/settings/senders", path: "/settings/senders" },
