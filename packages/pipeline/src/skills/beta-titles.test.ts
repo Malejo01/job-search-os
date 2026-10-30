@@ -65,3 +65,59 @@ describe("Contaduría, impuestos y finanzas", () => {
     expect(hints("Auditor de Calidad ISO")).not.toContain("finanzas_contabilidad");
   });
 });
+
+describe("Abogacía y legales", () => {
+  it.each([
+    "Abogado/a Corporativo",
+    "Abogada Laboralista",
+    "Asesor Legal",
+    "Analista Legal Jr",
+    "Procurador",
+    "Paralegal",
+    "Asistente Legal",
+    "Legal Counsel",
+    "Corporate Counsel",
+    "Legal Analyst",
+    "Contracts Counsel",
+    "Contract Manager",
+    "Analista de Contratos",
+    "Compliance Officer",
+    "Oficial de Cumplimiento",
+    "Privacy Counsel",
+    "IP Associate",
+    "Trademark Paralegal",
+    "Legal Operations Manager",
+  ])("%s es de la carrera", (title) => {
+    expect(is(title, "abogacia")).toBe(true);
+  });
+
+  it.each([
+    "Legal Engineer",
+    "Legal Software Developer",
+    "Legal Nurse Consultant",
+    "Legal Interpreter",
+    "Legal Translator",
+    "Traductor Jurado Legal",
+    "Legal Sales Representative",
+    "Security Compliance Officer",
+    "IT Compliance Officer",
+    "SOC Compliance Officer",
+    "Pharma Compliance Officer",
+    "Regulatory Affairs Compliance Officer",
+    "Privacy Engineer",
+    "Analista de Relaciones Laborales",
+    "Contract Specialist",
+    "Legal Assistant to the CEO",
+  ])("%s no es de la carrera", (title) => {
+    expect(is(title, "abogacia")).toBe(false);
+  });
+
+  it("«legal» y «contract» sueltos no alcanzan", () => {
+    expect(hints("Legal")).not.toContain("abogacia");
+    expect(hints("Contract Administrator")).not.toContain("abogacia");
+  });
+
+  it("la exclusión de «compliance officer» no anula a un abogado del mismo título", () => {
+    expect(is("Abogado y Security Compliance Officer", "abogacia")).toBe(true);
+  });
+});

@@ -155,6 +155,8 @@ const VETO_TERMS: Partial<Record<RoleKey, readonly string[]>> = {
     "engineer",
     "developer",
   ],
+  // C1-3 (ADR-027): títulos técnicos con categoría de derecho o gestión no son de la carrera.
+  abogacia: ["engineer", "developer", "software", "sistemas"],
   // Nunca "customer support": «Customer Support Engineer» con categoría de soporte técnico sigue
   // siendo soporte_it.
   soporte_it: [

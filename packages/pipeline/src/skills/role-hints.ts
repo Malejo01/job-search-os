@@ -648,7 +648,30 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
   ],
   // C1-2 (ADR-027): las carreras de la beta nacen sin términos de título; los suma C1-3 junto con
   // sus exclusiones y vetos.
-  abogacia: [],
+  // Nunca «legal» ni «contract» sueltos: solo frases.
+  abogacia: [
+    "abogado",
+    "abogada",
+    "asesor legal",
+    "asesora legal",
+    "analista legal",
+    "procurador",
+    "procuradora",
+    "paralegal",
+    "asistente legal",
+    "legal counsel",
+    "corporate counsel",
+    "legal analyst",
+    "contracts counsel",
+    "contract manager",
+    "analista de contratos",
+    "compliance officer",
+    "oficial de cumplimiento",
+    "privacy counsel",
+    "ip associate",
+    "trademark paralegal",
+    "legal operations",
+  ],
   administracion_empresas: [],
   comunicacion: [],
   relaciones_internacionales: [],
@@ -656,6 +679,20 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
 
 /** Palabras que anulan el puesto aunque el título tenga uno de sus términos. */
 export const TITLE_EXCLUSIONS: Partial<Record<RoleKey, readonly string[]>> = {
+  // C1-3 (ADR-027): derecho de otra disciplina (ingeniería legal, enfermería legal, traducción
+  // jurídica, ventas). «Relaciones laborales» queda sin término: es RRHH y solo encaja parcialmente.
+  abogacia: [
+    "engineer",
+    "developer",
+    "software",
+    "nurse",
+    "medical",
+    "interpreter",
+    "translator",
+    "traductor",
+    "interprete",
+    "sales",
+  ],
   ciberseguridad: ["physical security", "data center security"],
   // Esas infraestructuras y plataformas son de seguridad y de datos, ya tienen su carrera.
   soporte_it: ["security infrastructure", "data platform", "data infrastructure"],
@@ -757,6 +794,11 @@ export const TITLE_EXCLUSIONS: Partial<Record<RoleKey, readonly string[]>> = {
 export const TERM_EXCLUSIONS: Partial<
   Record<RoleKey, Readonly<Record<string, readonly string[]>>>
 > = {
+  // «Compliance officer» de seguridad, IT, SOC, farma o asuntos regulatorios no es derecho.
+  abogacia: termExclusions(
+    ["compliance officer", "oficial de cumplimiento"],
+    ["security", "it", "soc", "pharma", "regulatory affairs"],
+  ),
   finanzas_contabilidad: termExclusions(
     ["auditor", "auditora", "auditoria", "internal audit", "control interno"],
     // Auditorías de calidad, de obra, de llamadas, de accesibilidad o médicas no son contables.

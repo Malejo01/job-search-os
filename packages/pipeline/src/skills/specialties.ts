@@ -107,6 +107,42 @@ export const ROLE_SPECIALTIES: Partial<Record<RoleKey, readonly RoleSpecialty[]>
     chip("concursos_y_pericias_judiciales", "Concursos y pericias judiciales", ["perito contable"]),
     chip("sector_publico", "Sector público"),
   ],
+  abogacia: [
+    // Los títulos genéricos (abogado, asesor legal, paralegal) caen en el primer chip.
+    chip("empresas_y_contratos", "Empresas y contratos", [
+      "abogado",
+      "abogada",
+      "asesor legal",
+      "asesora legal",
+      "analista legal",
+      "paralegal",
+      "asistente legal",
+      "legal counsel",
+      "corporate counsel",
+      "legal analyst",
+      "contracts counsel",
+      "contract manager",
+      "analista de contratos",
+      "legal operations",
+    ]),
+    chip("laboral", "Laboral"),
+    chip("impuestos", "Impuestos"),
+    chip("juicios_y_tribunales", "Juicios y tribunales", ["procurador", "procuradora"]),
+    chip("penal", "Penal"),
+    chip("familia_y_sucesiones", "Familia y sucesiones"),
+    chip("cumplimiento_y_prevencion_de_lavado", "Cumplimiento y prevención de lavado", [
+      "compliance officer",
+      "oficial de cumplimiento",
+    ]),
+    chip("marcas_patentes_y_datos_personales", "Marcas, patentes y datos personales", [
+      "privacy counsel",
+      "ip associate",
+      "trademark paralegal",
+    ]),
+    chip("sector_publico", "Sector público"),
+    chip("inmobiliario_y_registral", "Inmobiliario y registral"),
+    chip("internacional_e_inmigracion", "Internacional e inmigración"),
+  ],
   marketing_digital: [
     chip("marketing_digital_y_anuncios", "Marketing digital y anuncios", [
       "marketing digital",
