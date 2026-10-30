@@ -106,6 +106,21 @@ describe("validateFeedback", () => {
     }
   });
 
+  it("si el contexto es inválido o excede 4 KB, no rechaza el feedback: guarda con context: null", () => {
+    const res = validateFeedback({
+      ...ok,
+      context: {
+        pathname: "/hoy",
+        extra: "x".repeat(5000), // Excede 4096 bytes
+      },
+    });
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.value.message).toBe("Una idea");
+      expect(res.value.context).toBeNull();
+    }
+  });
+
   it("devuelve el primer campo inválido, sin contenido", () => {
     expect(validateFeedback({ ...ok, category: "otra" })).toEqual({ ok: false, field: "category" });
     expect(validateFeedback({ ...ok, message: "   " })).toEqual({ ok: false, field: "message" });

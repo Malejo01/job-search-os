@@ -100,7 +100,7 @@ async function notifyFeedbackAdmins(
         apiKey,
       );
     } catch (err) {
-      log.error({ admin: adminEmail, err: safeDbError(err) }, "feedback: falló envío a admin");
+      log.error({ err: safeDbError(err) }, "feedback: falló envío a admin");
     }
   }
 }

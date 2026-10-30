@@ -129,19 +129,28 @@ export function validateFeedbackContext(raw: unknown): FeedbackContextValidation
     return { ok: true, value: null };
   }
   let obj: unknown = raw;
+  let rawString: string;
   if (typeof raw === "string") {
+    rawString = raw;
     try {
       obj = JSON.parse(raw);
     } catch {
       return { ok: false, reason: "invalid_json" };
     }
+  } else {
+    try {
+      rawString = JSON.stringify(raw);
+    } catch {
+      return { ok: false, reason: "invalid_json" };
+    }
   }
+
+  if (new TextEncoder().encode(rawString).length > FEEDBACK_CONTEXT_MAX_BYTES) {
+    return { ok: false, reason: "too_large" };
+  }
+
   if (typeof obj !== "object" || obj === null || Array.isArray(obj)) {
     return { ok: false, reason: "not_an_object" };
-  }
-  const serialized = JSON.stringify(obj);
-  if (new TextEncoder().encode(serialized).length > FEEDBACK_CONTEXT_MAX_BYTES) {
-    return { ok: false, reason: "too_large" };
   }
   const rec = obj as Record<string, unknown>;
   const actionsRaw = Array.isArray(rec.actions) ? rec.actions : [];
@@ -171,22 +180,30 @@ export function validateFeedbackContext(raw: unknown): FeedbackContextValidation
   const theme = rec.theme === "dark" || rec.theme === "light" ? rec.theme : undefined;
   const appVersion = typeof rec.appVersion === "string" ? rec.appVersion.slice(0, 50) : null;
 
+  const sanitized: FeedbackContext = {
+    pathname,
+    pageTitle,
+    screen,
+    userAgent,
+    theme,
+    appVersion,
+    actions,
+  };
+
+  const serialized = JSON.stringify(sanitized);
+  if (new TextEncoder().encode(serialized).length > FEEDBACK_CONTEXT_MAX_BYTES) {
+    return { ok: false, reason: "too_large" };
+  }
+
   return {
     ok: true,
-    value: {
-      pathname,
-      pageTitle,
-      screen,
-      userAgent,
-      theme,
-      appVersion,
-      actions,
-    },
+    value: sanitized,
   };
 }
 
 export type FeedbackValidation =
-  { ok: true; value: FeedbackInput } | { ok: false; field: Exclude<FeedbackField, "limit"> };
+  | { ok: true; value: FeedbackInput }
+  | { ok: false; field: Exclude<FeedbackField, "limit" | "context"> };
 
 /** Valida los campos en orden; devuelve el primero inválido, nunca su contenido. */
 export function validateFeedback(raw: {
@@ -206,8 +223,9 @@ export function validateFeedback(raw: {
   let context: FeedbackContext | null = null;
   if (raw.context !== undefined && raw.context !== null && raw.context !== "") {
     const ctxVal = validateFeedbackContext(raw.context);
-    if (!ctxVal.ok) return { ok: false, field: "context" };
-    context = ctxVal.value;
+    // El contexto técnico es accesorio: si excede el tamaño o es inválido,
+    // se descarta suavemente (context = null) para nunca perder el mensaje del usuario.
+    context = ctxVal.ok ? ctxVal.value : null;
   }
 
   return {

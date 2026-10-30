@@ -24,12 +24,11 @@ export function ActionTracker() {
     function handleClick(e: MouseEvent) {
       const target = (e.target as HTMLElement | null)?.closest("button, a");
       if (!target) return;
-      // NUNCA inputs, textareas, ni selects
-      if (target.matches("input, textarea, select")) return;
       // Solo el texto visible o aria-label, nunca valores de formulario
       const label = target.getAttribute("aria-label") || target.textContent || "";
       const text = label.trim().replace(/\s+/g, " ").slice(0, 60);
-      if (text) {
+      // Descartar si está vacío o si contiene '@' (para no registrar correos electrónicos)
+      if (text && !text.includes("@")) {
         recordAction({ type: "click", text });
       }
     }
