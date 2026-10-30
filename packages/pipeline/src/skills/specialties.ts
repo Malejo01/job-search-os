@@ -1,0 +1,163 @@
+import { hasTerm, normalizeTitleText } from "./role-hints";
+import type { RoleKey } from "./self-assessment";
+
+/**
+ * Chips de especialidad de las carreras de la beta (ADR-027). Cada carrera se parte en
+ * subespecialidades que la persona marca para acotar los avisos de su carrera: los chips no crean
+ * carreras ni claves nuevas. Puro: solo mira el título.
+ *
+ * Invariante (lo vigila `specialties.test.ts`): la unión de los `terms` de los chips de una carrera es
+ * exactamente `TITLE_TERMS[role]`. Así un término nuevo del título no queda sin chip, y un chip no
+ * promete un título que la carrera no reconoce. Un término puede estar en más de un chip. Un chip sin
+ * `terms` se elige por otra señal (el sector público o el tipo de organización no se leen del título).
+ */
+export type RoleSpecialty = {
+  /** snake_case, estable: es lo que se guarda en el perfil. */
+  id: string;
+  /** Lo que ve la persona. */
+  label: string;
+  /** Frases del título, ya sin acentos ni mayúsculas, con las reglas de `hasTerm`. */
+  terms: readonly string[];
+};
+
+const chip = (id: string, label: string, terms: readonly string[] = []): RoleSpecialty => ({
+  id,
+  label,
+  terms,
+});
+
+export const ROLE_SPECIALTIES: Partial<Record<RoleKey, readonly RoleSpecialty[]>> = {
+  finanzas_contabilidad: [
+    chip("impuestos", "Impuestos", [
+      "tax analyst",
+      "tax associate",
+      "tax specialist",
+      "impuestos",
+      "impositivo",
+      "impositiva",
+    ]),
+    chip("sueldos", "Sueldos", ["payroll", "nomina", "liquidacion de sueldos"]),
+    chip("contabilidad_y_balances", "Contabilidad y balances", [
+      "accountant",
+      "accounting",
+      "bookkeeper",
+      "bookkeeping",
+      "billing specialist",
+      "billing analyst",
+      "financial controller",
+      "assistant controller",
+      "contador",
+      "contadora",
+      "contable",
+      "contabilidad",
+      "facturacion",
+    ]),
+    chip("auditoria", "Auditoría", ["auditor", "auditora", "internal audit"]),
+    chip("costos", "Costos"),
+    // Los títulos genéricos de finanzas (financial analyst, finanzas...) caen acá porque no hay un chip
+    // «general»; no prometen FP&A.
+    chip("presupuesto_y_control_de_gestion", "Presupuesto y control de gestión", [
+      "fp a",
+      "financial planning",
+      "financial analyst",
+      "finance analyst",
+      "finance associate",
+      "finance specialist",
+      "finance coordinator",
+      "finance assistant",
+      "finance operations",
+      "financial operations",
+      "analista financiero",
+      "analista financiera",
+      "analista de finanzas",
+      "finanzas",
+      "control de gestion",
+    ]),
+    // Pagos y cobranzas: cuentas a pagar y a cobrar. Facturación queda en contabilidad.
+    chip("tesoreria_pagos_y_cobranzas", "Tesorería, pagos y cobranzas", [
+      "treasury",
+      "tesoreria",
+      "accounts payable",
+      "accounts receivable",
+      "ap specialist",
+      "ar specialist",
+      "ap clerk",
+      "ap ar",
+      "cuentas por pagar",
+      "cuentas por cobrar",
+    ]),
+    chip("prevencion_de_lavado_y_compliance", "Prevención de lavado y compliance"),
+    chip("concursos_y_pericias_judiciales", "Concursos y pericias judiciales"),
+    chip("sector_publico", "Sector público"),
+  ],
+  marketing_digital: [
+    chip("marketing_digital_y_anuncios", "Marketing digital y anuncios", [
+      "marketing digital",
+      "digital marketing",
+      "seo",
+      "sem",
+      "performance marketing",
+      "growth marketing",
+      "paid media",
+      "media buyer",
+      "trafficker",
+      "email marketing",
+    ]),
+    chip("redes_y_contenidos", "Redes y contenidos", [
+      "community manager",
+      "social media",
+      "content marketing",
+      "copywriter",
+      "content creator",
+      "content writer",
+      "content producer",
+      "content specialist",
+      "redactor",
+      "redactora",
+      "graphic designer",
+      "disenador grafico",
+      "disenadora grafica",
+      "video editor",
+      "editor de video",
+      "editora de video",
+      "motion graphics",
+      "motion designer",
+      "creador de contenido",
+      "creadora de contenido",
+    ]),
+    chip("marca", "Marca"),
+    chip("trade_marketing_y_puntos_de_venta", "Trade marketing y puntos de venta"),
+    chip("investigacion_de_mercado", "Investigación de mercado"),
+    chip("crm_y_ecommerce", "CRM y e-commerce"),
+    chip("agencia_y_medios", "Agencia y medios"),
+    chip("prensa", "Prensa"),
+    chip("eventos_y_ceremonial", "Eventos y ceremonial"),
+    chip("relaciones_institucionales", "Relaciones institucionales"),
+    chip("rse_y_sustentabilidad", "RSE y sustentabilidad"),
+  ],
+};
+
+/** Los chips de la carrera, en el orden en que se muestran; vacío si la carrera no tiene. */
+export function specialtiesFor(role: RoleKey): readonly RoleSpecialty[] {
+  return ROLE_SPECIALTIES[role] ?? [];
+}
+
+/** Los términos de título de los chips pedidos, sin repetir. Los ids que no existen se ignoran. */
+export function termsForSpecialties(role: RoleKey, ids: readonly string[]): string[] {
+  const wanted = new Set(ids);
+  const terms = specialtiesFor(role)
+    .filter((c) => wanted.has(c.id))
+    .flatMap((c) => c.terms);
+  return [...new Set(terms)];
+}
+
+/**
+ * Ids de los chips de la carrera que el título nombra, en el orden del catálogo. No aplica las
+ * exclusiones de la carrera (`matchesRoleTitle`): quien llama ya decidió que el título es de la carrera.
+ */
+export function specialtyIdsForTitle(title: string, role: RoleKey): string[] {
+  const padded = normalizeTitleText(title);
+  return specialtiesFor(role)
+    .filter((c) => c.terms.some((t) => hasTerm(padded, t)))
+    .map((c) => c.id);
+}

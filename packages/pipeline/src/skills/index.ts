@@ -12,3 +12,4 @@ export * from "./target-roles";
 export * from "./english";
 export * from "./english-gap";
 export * from "./custom-skills";
+export * from "./specialties";
