@@ -244,7 +244,7 @@ const HEADLINE_KEYWORDS: Record<RoleKey, RegExp> = {
     /asistente (?:virtual|ejecutiv[oa]|administrativ[oa])|(?:virtual|executive|administrative) assistant|operations (?:coordinator|specialist|associate)|data entry/,
   abogacia: /\babogad[oa]s?\b|\blawyer\b|\battorney\b|\bparalegal\b|legal counsel|asesor[a]? legal/,
   administracion_empresas:
-    /administracion de empresas|business administration|licenciad[oa] en administracion|\bmba\b/,
+    /administracion de empresas|business administration|licenciad[oa] en administracion/,
   comunicacion:
     /\bperiodista\b|\bjournalist\b|\bcomunicador(?:a)? social|comunicacion (?:institucional|interna|social)|licenciad[oa] en comunicacion|(?:jefe|jefa|responsable) de prensa|communications? (?:specialist|manager|officer)/,
   relaciones_internacionales:

@@ -128,10 +128,37 @@ describe("skills por carrera", () => {
     ["data_privacy", "Backups y protección de datos del servidor."],
     ["ip_law", "Copyright 2024 Acme Inc. All rights reserved."],
     ["global_mobility", "We offer visa sponsorship and relocation support."],
-    ["pricing", "Build the checkout flow with Stripe."],
+    ["pricing_strategy", "Build the checkout flow and the pricing page with Stripe."],
     ["supply_chain", "Deploy the chain of services with Kubernetes."],
   ])("no marca %s en: %s", (slug, text) => {
     expect(extract(text)).not.toContain(slug);
+  });
+});
+
+describe("avisos técnicos: las 30 skills nuevas no se activan", () => {
+  const newSlugs = new Set(
+    NEW_KEYS.flatMap((r) => roleSkills[r].skills).filter(
+      (s) =>
+        !ROLE_KEYS.filter((r) => !NEW_KEYS.includes(r))
+          .flatMap((r) => roleSkills[r].skills)
+          .includes(s),
+    ),
+  );
+
+  it.each([
+    "Migraciones de base de datos e infraestructura con Terraform.",
+    "OAuth2 grants y GRANT SELECT sobre las tablas de reporting.",
+    "Tableros de control en Power BI y tablero de comando con Grafana.",
+    "Control de costos cloud (FinOps) y cost control en AWS.",
+    "Developer advocacy y public policy engine (OPA) para autorización.",
+    "Motor de pricing y pricing page del producto. Análisis comercial de datos.",
+    "Marketplace de logística: servicios de logística para tiendas.",
+    "Data storytelling con Power BI; UX writing y content design.",
+    "Benchmarking de performance; pipeline de import export de datos CSV.",
+    "Mapeo de procesos con BPMN y Camunda; mejora continua en el equipo de ingeniería.",
+    "Cumplimos SOC 2 compliance y Copyright 2024. Visa sponsorship y relocation.",
+  ])("%s", (text) => {
+    expect(extract(text).filter((s) => newSlugs.has(s))).toEqual([]);
   });
 });
 
@@ -151,6 +178,10 @@ describe("defaultRole: titulares de las carreras de la beta", () => {
     ["Contadora pública", "finanzas_contabilidad"],
   ] as [string, RoleKey][])("%s → %s", (headline, expected) => {
     expect(role(headline)).toBe(expected);
+  });
+
+  it("«MBA» no pisa la carrera que ya declara el titular", () => {
+    expect(role("MBA | Product Manager")).toBe("product_manager");
   });
 
   it("no cambia lo de antes", () => {

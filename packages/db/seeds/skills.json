@@ -819,7 +819,7 @@
     "slug": "user_stories",
     "name": "Historias de usuario y backlog",
     "category": "dominio",
-    "aliases": ["user stories", "historias de usuario", "product backlog", "backlog grooming", "backlog refinement","acceptance criteria", "criterios de aceptación", "criterios de aceptacion"],
+    "aliases": ["user stories", "historias de usuario", "product backlog", "backlog grooming", "backlog refinement", "acceptance criteria", "criterios de aceptación", "criterios de aceptacion"],
     "closure_hours": 8,
     "description": "Historias de usuario y backlog: escribir qué necesita la persona usuaria y ordenar el trabajo pendiente del equipo"
   },
@@ -843,7 +843,7 @@
     "slug": "pm_certifications",
     "name": "Certificaciones (PMP, PSM, CSPO)",
     "category": "dominio",
-    "aliases": ["pmp", "capm", "prince2", "psm", "pspo", "cspo", "certified scrum master","safe agilist"],
+    "aliases": ["pmp", "capm", "prince2", "psm", "pspo", "cspo", "certified scrum master", "safe agilist"],
     "closure_hours": 40,
     "description": "Certificaciones de gestión de proyectos y producto, como PMP, PSM o CSPO, que se rinden con examen"
   },
@@ -1035,7 +1035,7 @@
     "slug": "supply_chain",
     "name": "Logística y cadena de suministro",
     "category": "dominio",
-    "aliases": ["supply chain", "cadena de suministro", "cadena de abastecimiento", "logística", "logistica", "inventory management", "gestión de stock", "gestion de stock", "gestión de inventarios", "gestion de inventarios", "demand planning", "planificación de la demanda", "planificacion de la demanda", "supply planning"],
+    "aliases": ["supply chain", "cadena de suministro", "cadena de abastecimiento", "inventory management", "gestión de stock", "gestion de stock", "gestión de inventarios", "gestion de inventarios", "demand planning", "planificación de la demanda", "planificacion de la demanda", "supply planning"],
     "closure_hours": 32,
     "description": "Cadena de suministro: planificar la demanda, el stock y el transporte para que el producto llegue en tiempo"
   },
@@ -1043,7 +1043,7 @@
     "slug": "process_improvement",
     "name": "Procesos y mejora continua",
     "category": "dominio",
-    "aliases": ["mejora continua", "process improvement", "continuous improvement", "six sigma", "lean six sigma", "kaizen", "bpmn", "process mapping", "mapeo de procesos", "relevamiento de procesos", "optimización de procesos", "optimizacion de procesos"],
+    "aliases": ["process improvement", "six sigma", "lean six sigma", "kaizen", "relevamiento de procesos"],
     "closure_hours": 24,
     "description": "Mejora de procesos: relevar cómo se trabaja, detectar desperdicios y rediseñar los pasos con Lean o Six Sigma"
   },
@@ -1051,15 +1051,15 @@
     "slug": "management_control",
     "name": "Control de gestión y tableros",
     "category": "dominio",
-    "aliases": ["control de gestión", "control de gestion", "management control", "tablero de control", "tableros de control", "tablero de comando", "cuadro de mando", "balanced scorecard", "control de costos", "cost control"],
+    "aliases": ["control de gestión", "control de gestion", "management control", "balanced scorecard"],
     "closure_hours": 32,
     "description": "Control de gestión: armar tableros de indicadores y controlar costos y desvíos contra el plan de la empresa"
   },
   {
-    "slug": "pricing",
+    "slug": "pricing_strategy",
     "name": "Precios y análisis comercial",
     "category": "dominio",
-    "aliases": ["pricing", "pricing analysis", "estrategia de precios", "política de precios", "politica de precios", "listas de precios", "análisis de márgenes", "analisis de margenes", "margin analysis", "análisis comercial", "analisis comercial", "revenue management"],
+    "aliases": ["pricing analysis", "estrategia de precios", "política de precios", "politica de precios", "listas de precios", "análisis de márgenes", "analisis de margenes", "margin analysis", "revenue management"],
     "closure_hours": 24,
     "description": "Precios: definir listas y descuentos y analizar márgenes y rentabilidad por producto o cliente"
   },
@@ -1067,7 +1067,7 @@
     "slug": "business_strategy",
     "name": "Estrategia y planificación de negocio",
     "category": "dominio",
-    "aliases": ["business strategy", "estrategia de negocio", "planificación estratégica", "planificacion estrategica", "strategic planning", "plan de negocios", "business plan", "business case", "análisis foda", "analisis foda", "swot", "benchmarking", "management consulting", "consultoría de gestión", "consultoria de gestion"],
+    "aliases": ["business strategy", "estrategia de negocio", "planificación estratégica", "planificacion estrategica", "strategic planning", "plan de negocios", "business plan", "business case", "análisis foda", "analisis foda", "swot", "management consulting", "consultoría de gestión", "consultoria de gestion"],
     "closure_hours": 40,
     "description": "Estrategia: analizar el mercado y la empresa, armar planes de negocio y proponer decisiones con casos y números"
   },
@@ -1099,7 +1099,7 @@
     "slug": "content_strategy",
     "name": "Estrategia de contenidos",
     "category": "dominio",
-    "aliases": ["content strategy", "estrategia de contenidos", "editorial calendar", "calendario editorial", "content calendar", "storytelling", "ux writing", "content design"],
+    "aliases": ["content strategy", "estrategia de contenidos", "editorial calendar", "calendario editorial", "content calendar"],
     "closure_hours": 24,
     "description": "Estrategia de contenidos: definir qué contar, en qué canales y con qué calendario editorial"
   },
@@ -1131,7 +1131,7 @@
     "slug": "foreign_trade",
     "name": "Comercio exterior y aduanas",
     "category": "dominio",
-    "aliases": ["comercio exterior", "foreign trade", "comex", "importaciones", "exportaciones", "import export", "importación y exportación", "importacion y exportacion", "aduana", "aduanas", "customs compliance", "despachante de aduana", "incoterms", "nomenclatura arancelaria", "logística internacional", "logistica internacional"],
+    "aliases": ["comercio exterior", "foreign trade", "comex", "importaciones", "exportaciones", "importación y exportación", "importacion y exportacion", "aduana", "aduanas", "customs compliance", "despachante de aduana", "incoterms", "nomenclatura arancelaria", "logística internacional", "logistica internacional"],
     "closure_hours": 32,
     "description": "Comercio exterior: importar y exportar, preparar documentación y cumplir trámites aduaneros y arancelarios"
   },
@@ -1147,7 +1147,7 @@
     "slug": "grant_writing",
     "name": "Formulación de proyectos y grants",
     "category": "dominio",
-    "aliases": ["grant writing", "grant management", "grants management", "grants", "formulación de proyectos", "formulacion de proyectos", "presentación de proyectos", "presentacion de proyectos", "fundraising", "captación de fondos", "captacion de fondos", "proposal writing", "donantes"],
+    "aliases": ["grant writing", "grant management", "grants management", "formulación de proyectos", "formulacion de proyectos", "presentación de proyectos", "presentacion de proyectos", "fundraising", "captación de fondos", "captacion de fondos", "proposal writing", "donantes"],
     "closure_hours": 24,
     "description": "Formulación de proyectos: escribir propuestas a financiadores, gestionar fondos y rendir cuentas de un grant"
   },
@@ -1155,7 +1155,7 @@
     "slug": "public_affairs",
     "name": "Asuntos públicos e institucionales",
     "category": "dominio",
-    "aliases": ["public affairs", "government affairs", "asuntos públicos", "asuntos publicos", "relaciones institucionales", "relaciones gubernamentales", "institutional relations", "advocacy", "lobbying", "incidencia política", "incidencia politica", "public policy", "políticas públicas", "politicas publicas"],
+    "aliases": ["public affairs", "government affairs", "asuntos públicos", "asuntos publicos", "relaciones institucionales", "relaciones gubernamentales", "institutional relations", "lobbying", "incidencia política", "incidencia politica", "políticas públicas", "politicas publicas"],
     "closure_hours": 24,
     "description": "Asuntos públicos: vincular a la organización con gobiernos y actores del sector para influir en decisiones"
   },
@@ -1163,7 +1163,7 @@
     "slug": "political_analysis",
     "name": "Análisis político y geopolítico",
     "category": "dominio",
-    "aliases": ["political analysis", "análisis político", "analisis politico", "geopolitics", "geopolítica", "geopolitica", "political risk", "riesgo político", "riesgo politico", "country risk", "riesgo país", "riesgo pais", "policy analysis", "análisis de políticas", "analisis de politicas", "relaciones internacionales", "international relations"],
+    "aliases": ["political analysis", "análisis político", "analisis politico", "geopolitics", "geopolítica", "geopolitica", "political risk", "riesgo político", "riesgo politico", "country risk", "riesgo país", "riesgo pais", "análisis de políticas", "analisis de politicas", "relaciones internacionales", "international relations"],
     "closure_hours": 32,
     "description": "Análisis político: leer el contexto de un país o región y estimar riesgos para decisiones de una organización"
   },
@@ -1187,7 +1187,7 @@
     "slug": "global_mobility",
     "name": "Migraciones y movilidad global",
     "category": "dominio",
-    "aliases": ["global mobility", "movilidad global", "movilidad internacional", "migraciones", "inmigración", "inmigracion", "trámites migratorios", "tramites migratorios", "derecho migratorio", "immigration law"],
+    "aliases": ["global mobility", "movilidad global", "movilidad internacional", "inmigración", "inmigracion", "trámites migratorios", "tramites migratorios", "derecho migratorio", "immigration law"],
     "closure_hours": 24,
     "description": "Movilidad global: trámites migratorios, residencias y traslados internacionales de personas y equipos"
   }
