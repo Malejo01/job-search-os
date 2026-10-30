@@ -23,7 +23,7 @@ The Muse (operado por FGB Muse Group Inc.) es una plataforma estadounidense de b
 
 ## 2. Endpoint y API técnica
 
-The Muse cuenta con una API REST pública documentada para desarrolladores.
+The Muse cuenta con una API REST pública documentada para desarrolladores. *(Datos extraídos de la documentación oficial `https://www.themuse.com/developers/api/v2`; pendientes de verificación empírica en llamada real).*
 
 - **URL base:** `https://www.themuse.com/api/public` (la URL heredada `https://api-v2.themuse.com` redirige a esta).
 - **Endpoint principal:** `GET https://www.themuse.com/api/public/jobs`
@@ -36,7 +36,7 @@ The Muse cuenta con una API REST pública documentada para desarrolladores.
   - `api_key`: Clave de aplicación registrada (opcional; amplía los límites de tasa).
 - **Endpoint individual:** `GET https://www.themuse.com/api/public/jobs/{id}` (detalle por ID numérico).
 
-### Formato de respuesta (JSON)
+### Formato documentado de respuesta (JSON de ejemplo según spec)
 Devuelve un objeto JSON con metadatos de paginación y la lista de resultados:
 ```json
 {
@@ -131,9 +131,10 @@ Fuentes consultadas:
 
 ## 7. Recomendación para Mauro
 
-1. Evaluar si el volumen de puestos remotos elegibles para candidatos en América Latina justifica sumar la fuente frente a las fuentes ya existentes orientadas a la región (Get on Board, Torre, LinkedIn, WWR).
+1. Evaluar si el volumen de puestos remotos elegibles para candidatos en América Latina justifica sumar la fuente frente a las fuentes del pool ya existentes orientadas a la región o a trabajo remoto (Get on Board, Torre, WWR, Jobicy). (Nota: LinkedIn no forma parte del pool del scraper conforme a ADR-004, solo de reenvío de emails).
 2. Si se decide avanzar:
-   - Registrar una API key en `themuse.com/developers` para contar con el cupo de 3.600 req/h.
-   - Implementar el adapter en `packages/adapters/src/sources/themuse.ts` integrando el parámetro `location=Flexible%20/%20Remote` y filtrando por categorías afines.
+   - Realizar una corrida exploratoria de prueba contra el endpoint con `location=Flexible%20/%20Remote` para medir qué porcentaje de los avisos admite contratación de contratistas independientes fuera de EE. UU.
+   - Registrar una API key en `themuse.com/developers` para contar con el cupo documentado de 3.600 req/h (frente al límite anónimo de 500 req/h).
+   - Implementar el adapter en `packages/adapters/src/sources/themuse.ts` filtrando por categorías afines.
    - Agregar `themuse` al enum de fuentes de la base de datos mediante migración y habilitarla detrás de la variable `POOL_SOURCES`.
 

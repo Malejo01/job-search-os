@@ -123,7 +123,7 @@ Fuentes consultadas:
 | `fields.source[0].name` | `companyRaw` | Nombre de la ONG o agencia internacional (ej. "UNICEF", "Oxfam"). |
 | `fields.body` | `jdText` | Texto descriptivo completo de la vacante. |
 | `fields.date.created` | `postedAt` | Fecha de publicación en formato ISO 8601. |
-| `fields.country` | `countriesAllowed`, `locationRaw` | Mapeo mediante códigos ISO3 provistos en la respuesta (ej. `"COL"` → `["CO"]`). |
+| `fields.country` | `locationRaw`, `countriesAllowed` (con recaudos) | `fields.country` indica dónde opera o radica la oficina/misión. Si el puesto es presencial, mapea a `countriesAllowed` (`"COL"` → `["CO"]`). Si se clasifica como remoto (*home-based*), **no asumir** restricción exclusiva a ese país salvo que la descripción lo exija expresamente; si no se especifica restricción de residencia, dejar `countriesAllowed: null` (para que el prefiltro lo marque como riesgo y no active el bloqueo de país de la regla H-1 / PR #300). |
 | `fields.career_categories` | `categories`, `tags` | Clasificación profesional oficial. |
 | `fields.job_type.name` | `contractType` | Ej. `"Staff"`, `"Consultancy"`, `"Internship"`. |
 | Modalidad de trabajo | `modality` | Si la descripción o país indica "Home-based" o teletrabajo → `modality: "remoto"`; si está asignado a un país/sede física → `modality: "presencial"` o `"hibrido"`. |
@@ -136,20 +136,23 @@ Fuentes consultadas:
 - **Nivel de esfuerzo:** **Bajo a Medio** (estimado en 1 a 2 jornadas de desarrollo).
 - **Ventajas:**
   - API v2 moderna, robusta y con excelente documentación de endpoints y filtros.
-  - Soporte nativo de filtrado por países (`country.iso3`), permitiendo consultar exclusivamente puestos en países de LATAM o puestos globales.
+  - Soporte nativo de filtrado por países (`country.iso3`), permitiendo consultar puestos en países de LATAM o puestos globales.
   - Descripción íntegra disponible en la misma respuesta (`fields[include][]=body`), eliminando llamadas de detalle N+1.
   - Taxonomía de carreras muy cercana a las carreras de AfiniaJobs (administración, finanzas, protección/legal, comunicación).
 - **Consideraciones:**
-  - Debe parsearse la modalidad de trabajo (muchas posiciones de agencias son en terreno o sedes fijas, distinguiendo las que son remotas o *home-based*).
+  - La inmensa mayoría de las publicaciones son posiciones de terreno, base de operaciones o sede física presencial.
+  - Para alimentar un buscador orientado a trabajo remoto, requiere filtrar estrictamente puestos con mención de *home-based*, teletrabajo o consultoría externa no presencial.
 
 ---
 
 ## 7. Recomendación para Mauro
 
-1. **Avanzar con la integración:** ReliefWeb es una de las fuentes de mayor calidad para posiciones formales en carreras de ciencias sociales, administración, finanzas y legales fuera del ámbito puramente corporativo/tecnológico.
-2. Pasos sugeridos para la implementación:
-   - Definir y registrar el `appname` (ej. `job-search-os-afinia`) en la documentación de ReliefWeb.
-   - Crear el adapter `packages/adapters/src/sources/reliefweb.ts` utilizando la API v2 con filtros predefinidos por países de LATAM y categorías afines.
-   - Diseñar la heurística para identificar avisos *home-based* / remotos frente a puestos presenciales de misión en terreno.
+1. **Evaluar la integración mediante medición previa:**
+   - La plataforma es de muy alta calidad institucional para carreras no tecnológicas (ciencias sociales, administración, finanzas, legal, comex).
+   - Sin embargo, **antes de crear el adapter se recomienda medir con una consulta real a la API v2** (`query[value]=home-based` o `query[value]=remote` con filtros por categorías y países de LATAM) cuántas ofertas remotas reales en español o inglés publica por semana, para confirmar si el volumen justifica el mantenimiento del adapter.
+2. Si los números confirman volumen útil:
+   - Registrar el identificador `appname` (ej. `job-search-os-afinia`) en la documentación de ReliefWeb (`https://apidoc.rwlabs.org/`).
+   - Crear el adapter `packages/adapters/src/sources/reliefweb.ts` utilizando la API v2 con filtros estructurados.
+   - Diseñar la heurística cuidadosa de `modality` y `countriesAllowed` (ver sección 5).
    - Agregar `reliefweb` al enum de fuentes y a `POOL_SOURCES`.
 
