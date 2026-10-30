@@ -238,3 +238,62 @@ describe("Comunicación y prensa", () => {
     expect(hints("Operario de Prensa")).not.toContain("comunicacion");
   });
 });
+
+describe("Marketing y relaciones públicas", () => {
+  it.each([
+    "Brand Manager",
+    "Assistant Brand Manager",
+    "Asistente de Marca",
+    "Trade Marketing Analyst",
+    "Market Research Analyst",
+    "Insights Analyst",
+    "Analista de Investigación de Mercado",
+    "CRM Specialist",
+    "Analista de CRM",
+    "Media Planner",
+    "Planificador de Medios",
+    "Ejecutiva de RRPP",
+    "Ejecutivo de RR.PP.",
+    "Relacionista Público",
+    "PR Specialist",
+    "PR Executive",
+    "Public Affairs Manager",
+    "Responsable de Relaciones Públicas",
+    "Organizador de Eventos",
+    "Events Coordinator",
+    "Analista de RSE",
+    "CSR Analyst",
+  ])("%s es de la carrera", (title) => {
+    expect(is(title, "marketing_digital")).toBe(true);
+  });
+
+  it.each([
+    "RRPP para boliche",
+    "Relaciones Públicas - Fiesta Nocturna",
+    "RRPP con entradas y comisión",
+    "Promotor de Relaciones Públicas",
+    "Telemarketing",
+    "Telemarketer",
+    "Network Marketing",
+    "Marketing Multinivel",
+    "Marketing Engineer",
+    "Marketing Technologist",
+    "Brand Ambassador",
+    "Embajadora de Marca",
+    "Ejecutivo de Cuentas",
+    "Ejecutivo de Cuentas - Agencia de Publicidad",
+  ])("%s no es de la carrera", (title) => {
+    expect(is(title, "marketing_digital")).toBe(false);
+  });
+
+  it("lo que ya era marketing sigue siéndolo", () => {
+    for (const t of [
+      "SEO Specialist",
+      "Community Manager",
+      "Copywriter",
+      "Growth Marketing Lead",
+    ]) {
+      expect(is(t, "marketing_digital")).toBe(true);
+    }
+  });
+});
