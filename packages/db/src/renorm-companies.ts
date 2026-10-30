@@ -81,6 +81,18 @@ SELECT
   (SELECT count(*) FROM renorm_jobs r JOIN jobs j ON j.id = r.id
     JOIN companies c ON c.id = j.company_id WHERE c.name_normalized <> r.new_norm) AS ofertas_sin_aplicar;
 
+-- Guarda: si el control no da 0, la transacción entera se aborta y no se aplica nada
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM renorm_public_jobs r JOIN public_jobs p ON p.id = r.id
+             WHERE p.company_normalized <> r.new_norm)
+     OR EXISTS (SELECT 1 FROM renorm_jobs r JOIN jobs j ON j.id = r.id
+                JOIN companies c ON c.id = j.company_id WHERE c.name_normalized <> r.new_norm)
+  THEN
+    RAISE EXCEPTION 'JS-086: el control no dio 0, no se aplica nada';
+  END IF;
+END $$;
+
 COMMIT;
 `;
 }
