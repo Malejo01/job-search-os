@@ -19,7 +19,7 @@ export default async function DemoPage() {
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-2">
         <h1 className="text-3xl font-semibold">Demo: así evalúa ofertas reales</h1>
-        <p className="max-w-2xl text-base text-zinc-700">
+        <p className="max-w-2xl text-base text-fg-muted">
           Así evalúa ofertas reales para tres perfiles inventados. Elegí uno y mirá el puntaje, por
           qué sí, por qué no y qué haríamos.
         </p>
@@ -28,7 +28,7 @@ export default async function DemoPage() {
         <p
           role="status"
           data-testid="demo-preparando"
-          className="rounded-md border border-zinc-200 bg-white p-4 text-sm text-zinc-800"
+          className="rounded-card border border-line bg-surface p-4 text-sm text-fg"
         >
           Estamos preparando la demo. Volvé en un rato.
         </p>
@@ -44,24 +44,24 @@ export default async function DemoPage() {
               <li
                 key={p.key}
                 data-testid="demo-profile-card"
-                className="flex min-w-0 flex-col gap-2 rounded-md border border-zinc-200 bg-white p-4"
+                className="flex min-w-0 flex-col gap-2 rounded-card border border-line bg-surface p-4"
               >
                 <h3 className="text-base font-semibold">{p.label}</h3>
-                <p className="text-sm text-zinc-700">{p.tagline}</p>
+                <p className="text-sm text-fg-muted">{p.tagline}</p>
                 {count > 0 ? (
-                  <p className="text-xs text-zinc-700">
+                  <p className="text-xs text-fg-muted">
                     {`${count} ${count === 1 ? "oferta evaluada" : "ofertas evaluadas"}`}
                   </p>
                 ) : null}
                 {empty ? (
-                  <p className="inline-flex min-h-11 items-center text-sm text-zinc-700">Pronto</p>
+                  <p className="inline-flex min-h-11 items-center text-sm text-fg-muted">Pronto</p>
                 ) : (
                   <Link
                     href={`/demo/${p.key}`}
                     // Sin prefetch (ronda 85): cada perfil es una página ISR que lee la base
                     prefetch={false}
                     aria-label={`Ver la demo de ${p.label}`}
-                    className="inline-flex min-h-11 items-center text-sm font-medium text-zinc-900 underline"
+                    className="inline-flex min-h-11 items-center text-sm font-medium text-fg-muted underline underline-offset-2 hover:text-fg"
                   >
                     Ver la demo
                   </Link>
@@ -71,8 +71,11 @@ export default async function DemoPage() {
           })}
         </ul>
       </section>
-      <p className="text-sm text-zinc-700">
-        <Link href="/acceso" className="inline-flex min-h-11 items-center underline">
+      <p className="text-sm text-fg-muted">
+        <Link
+          href="/acceso"
+          className="inline-flex min-h-11 items-center underline underline-offset-2 hover:text-fg"
+        >
           ¿Querés probarlo con tu perfil? Pedí acceso
         </Link>
       </p>
