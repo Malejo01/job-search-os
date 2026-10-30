@@ -71,11 +71,15 @@ test.describe("Flujo 75: lista de espera con finanzas", () => {
 
     const { db, close } = ownerDb();
     try {
-      const [row] = await db
-        .select({ role: s.waitlist.role })
-        .from(s.waitlist)
-        .where(eq(s.waitlist.email, email));
-      expect(row?.role).toBe(FINANZAS);
+      await expect
+        .poll(async () => {
+          const [row] = await db
+            .select({ role: s.waitlist.role })
+            .from(s.waitlist)
+            .where(eq(s.waitlist.email, email));
+          return row?.role;
+        })
+        .toBe(FINANZAS);
     } finally {
       await close();
     }
@@ -106,7 +110,10 @@ test.describe("Flujo 75: onboarding con finanzas", () => {
     const { persona } = run;
     await register(page, run);
 
-    const group = page.getByRole("group", { name: "Finanzas y operaciones", exact: true });
+    const group = page.getByRole("group", {
+      name: "Derecho, contabilidad y gestión",
+      exact: true,
+    });
     await expect(group.locator(`input[name="targetRoles"][value="${FINANZAS}"]`)).toHaveCount(1);
     await expect(group).toContainText(FINANZAS_LABEL);
     await expect(page.locator(`input[name="targetRoles"][value="${OPERACIONES}"]`)).toHaveCount(0);

@@ -97,13 +97,13 @@ describe("ROLE_GROUPS", () => {
     ]);
     expect(ROLE_KEYS as readonly string[]).not.toContain("producto_proyectos");
   });
-  it("C-2b: las dos claves nuevas van en su grupo, y cuentan como no IT", () => {
+  it("C-2b / G2-1: asistencia_operaciones queda en operaciones y finanzas_contabilidad migra a derecho/contabilidad", () => {
     expect(ROLE_KEYS.slice(20, 22)).toEqual(["finanzas_contabilidad", "asistencia_operaciones"]);
-    expect(BACKOFFICE_ROLE_KEYS).toEqual(["finanzas_contabilidad", "asistencia_operaciones"]);
+    expect(BACKOFFICE_ROLE_KEYS).toEqual(["asistencia_operaciones"]);
     expect(ROLE_GROUPS).toHaveLength(7);
     expect(ROLE_GROUPS[4]).toEqual({
       label: "Finanzas y operaciones",
-      roles: ["finanzas_contabilidad", "asistencia_operaciones"],
+      roles: ["asistencia_operaciones"],
     });
     for (const k of BACKOFFICE_ROLE_KEYS) {
       expect(DIGITAL_ROLE_KEYS).toContain(k);
