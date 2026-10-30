@@ -143,6 +143,43 @@ export const ROLE_SPECIALTIES: Partial<Record<RoleKey, readonly RoleSpecialty[]>
     chip("inmobiliario_y_registral", "Inmobiliario y registral"),
     chip("internacional_e_inmigracion", "Internacional e inmigración"),
   ],
+  administracion_empresas: [
+    chip("administracion_general", "Administración general", [
+      "analista administrativo",
+      "analista administrativa",
+      "jefe de administracion",
+      "jefa de administracion",
+      "responsable administrativo",
+      "responsable administrativa",
+    ]),
+    chip("presupuesto_y_control_de_gestion", "Presupuesto y control de gestión", [
+      "analista de control de gestion",
+    ]),
+    chip("compras", "Compras", [
+      "comprador",
+      "compradora",
+      "analista de compras",
+      "buyer",
+      "procurement analyst",
+    ]),
+    chip("logistica_y_cadena_de_suministro", "Logística y cadena de suministro", [
+      "analista de logistica",
+      "supply chain analyst",
+      "demand planner",
+    ]),
+    chip("procesos_y_mejora_continua", "Procesos y mejora continua", [
+      "analista de procesos",
+      "process improvement analyst",
+    ]),
+    chip("comercial_y_precios", "Comercial y precios", ["analista comercial", "pricing analyst"]),
+    chip("finanzas_de_la_empresa", "Finanzas de la empresa"),
+    chip("personas_rrhh", "Personas (RRHH)"),
+    chip("estrategia_y_consultoria", "Estrategia y consultoría", [
+      "analista de estrategia",
+      "management consultant",
+    ]),
+    chip("sector_publico", "Sector público"),
+  ],
   marketing_digital: [
     chip("marketing_digital_y_anuncios", "Marketing digital y anuncios", [
       "marketing digital",

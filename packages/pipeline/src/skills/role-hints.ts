@@ -672,7 +672,30 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "trademark paralegal",
     "legal operations",
   ],
-  administracion_empresas: [],
+  // Nunca «administrador/a» suelto («Administrador de Sistemas», «Administradora de Consorcios»).
+  administracion_empresas: [
+    "analista administrativo",
+    "analista administrativa",
+    "jefe de administracion",
+    "jefa de administracion",
+    "responsable administrativo",
+    "responsable administrativa",
+    "analista de control de gestion",
+    "comprador",
+    "compradora",
+    "analista de compras",
+    "buyer",
+    "procurement analyst",
+    "analista de logistica",
+    "supply chain analyst",
+    "demand planner",
+    "analista de procesos",
+    "process improvement analyst",
+    "analista comercial",
+    "pricing analyst",
+    "analista de estrategia",
+    "management consultant",
+  ],
   comunicacion: [],
   relaciones_internacionales: [],
 };
@@ -681,6 +704,15 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
 export const TITLE_EXCLUSIONS: Partial<Record<RoleKey, readonly string[]>> = {
   // C1-3 (ADR-027): derecho de otra disciplina (ingeniería legal, enfermería legal, traducción
   // jurídica, ventas). «Relaciones laborales» queda sin término: es RRHH y solo encaja parcialmente.
+  // Encargados de local o sucursal no son administración de empresas.
+  administracion_empresas: [
+    "encargado de local",
+    "encargada de local",
+    "encargado de sucursal",
+    "encargada de sucursal",
+    "jefe de sucursal",
+    "jefa de sucursal",
+  ],
   abogacia: [
     "engineer",
     "developer",
@@ -794,6 +826,14 @@ export const TITLE_EXCLUSIONS: Partial<Record<RoleKey, readonly string[]>> = {
 export const TERM_EXCLUSIONS: Partial<
   Record<RoleKey, Readonly<Record<string, readonly string[]>>>
 > = {
+  // «Analista de procesos» de planta o químicos es ingeniería; «buyer» de medios es marketing.
+  administracion_empresas: {
+    ...termExclusions(
+      ["analista de procesos", "process improvement analyst"],
+      ["engineer", "quimico", "quimica", "planta", "plant"],
+    ),
+    buyer: ["media", "paid", "real estate", "travel"],
+  },
   // «Compliance officer» de seguridad, IT, SOC, farma o asuntos regulatorios no es derecho.
   abogacia: termExclusions(
     ["compliance officer", "oficial de cumplimiento"],

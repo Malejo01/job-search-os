@@ -15,3 +15,14 @@ describe("titleFit · carreras de la beta", () => {
     expect(titleFit(title, role)).toBe(fit);
   });
 });
+
+describe("titleFit · administración de empresas", () => {
+  it.each([
+    ["Analista de Compras", 2],
+    ["Analista de Sistemas", 0],
+    ["Software Procurement Tools", 0],
+    ["Coordinador", 1],
+  ] as [string, number][])("%s → %i", (title, fit) => {
+    expect(titleFit(title, "administracion_empresas")).toBe(fit);
+  });
+});

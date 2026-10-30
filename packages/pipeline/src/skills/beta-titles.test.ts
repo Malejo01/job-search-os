@@ -121,3 +121,56 @@ describe("Abogacía y legales", () => {
     expect(is("Abogado y Security Compliance Officer", "abogacia")).toBe(true);
   });
 });
+
+describe("Administración de empresas", () => {
+  it.each([
+    "Analista Administrativo",
+    "Analista Administrativa Contable",
+    "Jefe de Administración",
+    "Jefa de Administración y Finanzas",
+    "Responsable Administrativo",
+    "Analista de Control de Gestión",
+    "Comprador",
+    "Compradora Senior",
+    "Analista de Compras",
+    "Buyer",
+    "Procurement Analyst",
+    "Analista de Logística",
+    "Supply Chain Analyst",
+    "Demand Planner",
+    "Analista de Procesos",
+    "Process Improvement Analyst",
+    "Analista Comercial",
+    "Pricing Analyst",
+    "Analista de Estrategia",
+    "Management Consultant",
+  ])("%s es de la carrera", (title) => {
+    expect(is(title, "administracion_empresas")).toBe(true);
+  });
+
+  it.each([
+    "Administrador de Sistemas",
+    "Administrador de Base de Datos",
+    "Administradora de Consorcios",
+    "Administrador",
+    "Business Analyst SAP",
+    "Business Analyst IT",
+    "Process Engineer",
+    "Analista de Procesos Químicos",
+    "Analista de Procesos de Planta",
+    "Encargado de Local",
+    "Encargada de Sucursal",
+    "Jefe de Sucursal y Analista Administrativo",
+    "Media Buyer",
+    "Real Estate Buyer",
+  ])("%s no es de la carrera", (title) => {
+    expect(is(title, "administracion_empresas")).toBe(false);
+  });
+
+  it("es la más genérica: un título puede sumar también otra carrera, no solo esta", () => {
+    expect(hints("Analista Administrativo")).toContain("administracion_empresas");
+    expect(hints("Analista de Control de Gestión")).toEqual(
+      expect.arrayContaining(["administracion_empresas", "finanzas_contabilidad"]),
+    );
+  });
+});
