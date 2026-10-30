@@ -35,7 +35,7 @@ export function JobList({ rows, query = "" }: { rows: JobListRow[]; query?: stri
     // reducedMotion="user": con «reducir movimiento» del sistema no hay desplazamientos, solo opacidad
     <MotionConfig reducedMotion="user">
       <motion.ul layout className="flex flex-col gap-2">
-        <AnimatePresence>
+        <AnimatePresence initial={false}>
           {rows.map((job, i) => (
             <motion.li
               key={job.id}

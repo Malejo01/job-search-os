@@ -7,18 +7,16 @@ import type { ReactNode } from "react";
  * Transición al abrir el detalle de una oferta (N3-5).
  * Client wrapper chico (Server Component por defecto).
  * Fade sutil con leve desplazamiento (6px) en 200 ms, sin layout shift.
- * Con `useReducedMotion()`, se muestra directo sin animación.
+ * Sin opacity:0 en SSR (initial={false}): el contenido nunca depende de JS para verse.
+ * Con `useReducedMotion()`, se mantiene el mismo árbol con duración 0.
  */
 export function DetailMotion({ children }: { children: ReactNode }) {
   const reduce = useReducedMotion();
-  if (reduce) {
-    return <article className="flex flex-col gap-4">{children}</article>;
-  }
   return (
     <motion.article
-      initial={{ opacity: 0, y: 6 }}
+      initial={false}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
+      transition={{ duration: reduce ? 0 : 0.2 }}
       className="flex flex-col gap-4"
     >
       {children}
