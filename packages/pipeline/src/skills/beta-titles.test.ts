@@ -107,7 +107,6 @@ describe("Abogacía y legales", () => {
     "Privacy Engineer",
     "Analista de Relaciones Laborales",
     "Contract Specialist",
-    "Legal Assistant to the CEO",
   ])("%s no es de la carrera", (title) => {
     expect(is(title, "abogacia")).toBe(false);
   });
@@ -334,7 +333,7 @@ describe("Relaciones internacionales y comex", () => {
     "Trade Marketing Analyst",
     "Foreign Exchange Trader",
     "FX Trade Support",
-    "Administrativo de Cooperativa",
+
     "Public Policy Analyst, Insurance",
     "Analista de Políticas de Seguros",
   ])("%s no es de la carrera", (title) => {
@@ -355,5 +354,116 @@ describe("Relaciones internacionales y comex", () => {
     expect(hints("Analista de Control de Gestión")).toEqual(
       expect.arrayContaining(["administracion_empresas", "finanzas_contabilidad"]),
     );
+  });
+});
+
+describe("revisión C1-3: formas con barra, exclusiones por término y falsos negativos", () => {
+  it.each([
+    ["Liquidador/a de Sueldos", "finanzas_contabilidad"],
+    ["Jefe/a de Prensa", "comunicacion"],
+    ["Jefe/a de Administración", "administracion_empresas"],
+    ["Ejecutivo/a de RRPP", "marketing_digital"],
+    ["Planificador/a de Medios", "marketing_digital"],
+    ["Organizador/a de Eventos", "marketing_digital"],
+    ["Productor/a Periodístico", "comunicacion"],
+    ["Asesor/a Legal", "abogacia"],
+    ["Abogado(a) Laboralista", "abogacia"],
+    ["Contador/a Público/a", "finanzas_contabilidad"],
+  ] as [string, RoleKey][])("%s es de %s", (title, role) => {
+    expect(is(title, role)).toBe(true);
+  });
+
+  it("«n/a» y «a/b» no se tocan", () => {
+    expect(normalizeTitleText("Salary n/a")).toBe(" salary n a ");
+    expect(normalizeTitleText("A/B Testing")).toBe(" a b testing ");
+  });
+
+  it.each([
+    "Abogado Corporativo - Industria Software",
+    "Abogado/a para Empresa de Software",
+    "Abogado de Contratos de Sales",
+    "Corporate Counsel, Software & AI",
+    "Contracts Counsel, Sales",
+    "Attorney",
+    "Lawyer",
+    "Legal Assistant",
+  ])("%s sí es de abogacía", (title) => {
+    expect(is(title, "abogacia")).toBe(true);
+  });
+
+  it.each([
+    "Legal Software Specialist Analyst",
+    "Legal Analyst, Medical Billing",
+    "Legal Sales Operations",
+    "Cybersecurity Compliance Officer",
+    "Oficial de Cumplimiento - Seguridad",
+  ])("%s no es de abogacía", (title) => {
+    expect(is(title, "abogacia")).toBe(false);
+  });
+
+  it.each([
+    "Community Manager - Promotora Inmobiliaria",
+    "Social Media Manager - Comisiones",
+    "Digital Marketing Specialist - Entradas Online",
+    "SEO Specialist - Entradas",
+    "Performance Marketing Manager - Comisión",
+  ])("%s sigue siendo marketing (la exclusión es solo de RR.PP.)", (title) => {
+    expect(is(title, "marketing_digital")).toBe(true);
+  });
+
+  it.each(["Product Insights Analyst", "Data Insights Analyst"])(
+    "%s es de datos, no de marketing",
+    (title) => {
+      expect(is(title, "marketing_digital")).toBe(false);
+    },
+  );
+
+  it("comunicación: desarrolladores y datos no entran; títulos de gestión sí", () => {
+    for (const t of [
+      "Desarrollador de Editor de Texto",
+      "Frontend Developer - Editor",
+      "Reporter - Data Analytics",
+    ]) {
+      expect(is(t, "comunicacion")).toBe(false);
+    }
+    for (const t of [
+      "Communications Manager",
+      "PR Manager",
+      "Corporate Communications Specialist",
+      "Comunicación Corporativa",
+      "Jefe de Comunicación",
+    ]) {
+      expect(is(t, "comunicacion")).toBe(true);
+    }
+  });
+
+  it.each([
+    "Auditora Médica",
+    "Auditor de Cuentas Médicas",
+    "Auditor Ambiental",
+    "Food Safety Auditor",
+  ])("%s no es de contaduría", (title) => {
+    expect(is(title, "finanzas_contabilidad")).toBe(false);
+  });
+
+  it.each([
+    "Analista de Procesos BPM Developer",
+    "Analista de Procesos RPA",
+    "Analista de Procesos - Sistemas",
+  ])("%s no es de administración", (title) => {
+    expect(is(title, "administracion_empresas")).toBe(false);
+  });
+
+  it("relaciones internacionales: la cooperativa ya no anula, y suma los títulos baratos", () => {
+    expect(
+      is("Analista de Comercio Exterior - Cooperativa Agrícola", "relaciones_internacionales"),
+    ).toBe(true);
+    for (const t of [
+      "Analista de Comex",
+      "Despachante de Aduana",
+      "Importaciones y Exportaciones",
+    ]) {
+      expect(is(t, "relaciones_internacionales")).toBe(true);
+    }
   });
 });

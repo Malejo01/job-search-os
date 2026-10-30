@@ -124,6 +124,9 @@ export const ROLE_SPECIALTIES: Partial<Record<RoleKey, readonly RoleSpecialty[]>
       "contract manager",
       "analista de contratos",
       "legal operations",
+      "legal assistant",
+      "attorney",
+      "lawyer",
     ]),
     chip("laboral", "Laboral"),
     chip("impuestos", "Impuestos"),
@@ -187,6 +190,12 @@ export const ROLE_SPECIALTIES: Partial<Record<RoleKey, readonly RoleSpecialty[]>
       "communications specialist",
       "communications coordinator",
       "communications officer",
+      "communications manager",
+      "comunicacion corporativa",
+      "corporate communications",
+      "jefe de comunicacion",
+      "jefa de comunicacion",
+      "responsable de comunicacion",
     ]),
     chip("comunicacion_interna", "Comunicación interna", [
       "comunicacion interna",
@@ -199,6 +208,7 @@ export const ROLE_SPECIALTIES: Partial<Record<RoleKey, readonly RoleSpecialty[]>
       "agente de prensa",
       "press officer",
       "media relations",
+      "pr manager",
     ]),
     chip("periodismo", "Periodismo", [
       "periodista",
@@ -231,6 +241,9 @@ export const ROLE_SPECIALTIES: Partial<Record<RoleKey, readonly RoleSpecialty[]>
       "foreign trade",
       "import export specialist",
       "customs compliance",
+      "analista de comex",
+      "despachante de aduana",
+      "importaciones y exportaciones",
     ]),
     chip("cooperacion_internacional_y_ong", "Cooperación internacional y ONG", [
       "oficial de programas",
@@ -324,6 +337,7 @@ export const ROLE_SPECIALTIES: Partial<Record<RoleKey, readonly RoleSpecialty[]>
       "relacionista publica",
       "pr specialist",
       "pr executive",
+      "pr manager",
     ]),
     chip("eventos_y_ceremonial", "Eventos y ceremonial", [
       "organizador de eventos",
