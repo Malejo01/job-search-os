@@ -3,6 +3,7 @@ import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { signIn } from "@/auth";
 import { SubmitButton } from "@/app/components/submit-button";
+import { ClearAssistantProposal } from "@/components/clear-assistant-proposal";
 import { hasAnyUser } from "@/lib/setup";
 
 // Igual que /setup: el gate hacia /setup depende de una lectura de la base en cada visita.
@@ -41,6 +42,7 @@ export default async function LoginPage({
       tabIndex={-1}
       className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-6"
     >
+      <ClearAssistantProposal />
       <a href="#contenido" className={SKIP_CLASS}>
         Saltar al contenido
       </a>

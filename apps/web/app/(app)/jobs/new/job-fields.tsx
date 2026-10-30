@@ -1,3 +1,4 @@
+import { MAX_JOB_FIELD_CHARS } from "@job-search-os/pipeline";
 import { SubmitButton } from "@/app/components/submit-button";
 
 const input = "rounded-control border border-line-strong px-3 py-2 text-base";
@@ -22,12 +23,15 @@ export function JobFields({
   submitLabel,
   pendingLabel,
   secondaryAction,
+  pending,
 }: {
   error?: string;
   defaults?: JobFieldsDefaults;
   submitLabel: string;
   pendingLabel: string;
   secondaryAction?: React.ReactNode;
+  /** Envío a mano (tarjeta del asistente): el botón no puede leerlo de `useFormStatus`. */
+  pending?: boolean;
 }) {
   const invalidProps = (key: string) =>
     error === key ? { "aria-invalid": true, "aria-describedby": "alta-error" } : {};
@@ -50,6 +54,7 @@ export function JobFields({
           <input
             name="title"
             required
+            maxLength={MAX_JOB_FIELD_CHARS}
             defaultValue={defaults.title ?? undefined}
             {...invalidProps("campos")}
             className={input}
@@ -60,6 +65,7 @@ export function JobFields({
           <input
             name="company"
             required
+            maxLength={MAX_JOB_FIELD_CHARS}
             defaultValue={defaults.company ?? undefined}
             {...invalidProps("campos")}
             className={input}
@@ -69,6 +75,7 @@ export function JobFields({
           Ubicación
           <input
             name="location"
+            maxLength={MAX_JOB_FIELD_CHARS}
             placeholder="Remoto (Argentina), CABA…"
             defaultValue={defaults.location ?? undefined}
             className={input}
@@ -114,6 +121,7 @@ export function JobFields({
         {secondaryAction}
         <SubmitButton
           pendingLabel={pendingLabel}
+          pending={pending}
           className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast"
         >
           {submitLabel}

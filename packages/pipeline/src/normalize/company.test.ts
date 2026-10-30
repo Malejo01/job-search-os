@@ -70,9 +70,24 @@ describe("normalizeCompany", () => {
     expect(normalizeCompany("Acme Inc.")).toBe("acme");
     expect(normalizeCompany("Acme S.A.")).toBe("acme");
     expect(normalizeCompany("Acme S.R.L.")).toBe("acme");
-    expect(normalizeCompany("Acme Labs LLC")).toBe("acme");
+    expect(normalizeCompany("Acme Labs LLC")).toBe("acme labs");
     expect(normalizeCompany("Acme Technologies Ltd")).toBe("acme technologies");
     expect(normalizeCompany("Inc Magazine")).toBe("inc magazine");
+  });
+
+  it("JS-086: 'labs' y 'group' no son sufijos legales y se conservan", () => {
+    expect(normalizeCompany("Delta Labs")).toBe("delta labs");
+    expect(normalizeCompany("Delta Group")).toBe("delta group");
+    expect(normalizeCompany("Delta Labs")).not.toBe(normalizeCompany("Delta Group"));
+    expect(normalizeCompany("Acme Data Labs")).not.toBe(normalizeCompany("Acme Data Group"));
+    // el sufijo legal que sigue a "labs" se sigue quitando
+    expect(normalizeCompany("Acme Labs LLC")).toBe("acme labs");
+    expect(normalizeCompany("Acme Group S.A.")).toBe("acme group");
+  });
+
+  it("JS-086, el costo: 'X Labs' y 'X' ya no son la misma empresa", () => {
+    // Un mismo aviso escrito así en dos fuentes deja de marcar posible_duplicado (decisión aceptada)
+    expect(normalizeCompany("Northwind Labs")).not.toBe(normalizeCompany("Northwind"));
   });
 
   it("quita 'vía X' y contenido entre paréntesis", () => {
@@ -88,6 +103,7 @@ describe("normalizeCompany", () => {
 
   it("nunca devuelve vacío si el nombre es solo un sufijo", () => {
     expect(normalizeCompany("Labs")).toBe("labs");
+    expect(normalizeCompany("Group")).toBe("group");
     expect(normalizeCompany("  ")).toBe("");
   });
 });

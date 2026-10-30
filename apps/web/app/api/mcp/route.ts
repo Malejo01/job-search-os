@@ -77,7 +77,7 @@ const handler = createMcpHandler(
       {
         title: "Listar ofertas",
         description:
-          "Ofertas ordenadas por score y fecha. Filtros: score mínimo, estado (nueva, prefiltrada, pendiente_jd, evaluada, aplicada, descartada, entrevista, oferta, cerrada… o 'todas'; default: activas) y cantidad.",
+          "Ofertas ordenadas por score (a igual score, menos riesgos primero) y fecha. Filtros: score mínimo, estado (nueva, prefiltrada, pendiente_jd, evaluada, aplicada, descartada, entrevista, oferta, cerrada… o 'todas'; default: activas) y cantidad.",
         inputSchema: listJobsInput,
       },
       async ({ score_min, status, limit }) => {

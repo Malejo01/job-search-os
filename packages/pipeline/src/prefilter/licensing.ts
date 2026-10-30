@@ -1,4 +1,4 @@
-import { countriesMentioned, countryNames } from "../normalize/location";
+import { countriesMentioned, mentionsCountry } from "../normalize/location";
 import { foldText } from "../normalize/text";
 
 /**
@@ -252,7 +252,7 @@ const PREFERRED_BEFORE = /\b(?:preferably|preferentemente)\b/;
 const SENTENCE_END = /[.;!?\n]/;
 /** Países fuera de la región que `countryNames` no cubre (S-2). */
 const OTHER_COUNTRY =
-  /(?<![a-z0-9])(?:united states|usa|u\.s\.a?|canada|united kingdom|uk|spain|espana|australia|germany|france|india|europe|europa)(?![a-z0-9])/;
+  /(?<![a-z0-9])(?:united states|usa|u\.s\.a?|new mexico|nuevo mexico|canada|united kingdom|uk|spain|espana|australia|germany|france|india|europe|europa)(?![a-z0-9])/;
 const PREFERRED_AFTER_WINDOW = 60;
 const PREFERRED_BEFORE_WINDOW = 40;
 
@@ -309,12 +309,14 @@ export function detectProfessionalLicense(
   const folded = tidy(foldText(text.slice(0, MAX_TEXT)));
   // Igual que `folded` pero con mayúsculas, para las siglas (RN, LPN, NCLEX).
   const cased = tidy(text.slice(0, MAX_TEXT).normalize("NFKD").replace(/[̀-ͯ]/g, ""));
-  const names = userCountry
-    ? [...countryNames(userCountry), ...(COUNTRY_ALIASES[userCountry.toUpperCase()] ?? [])]
-    : [];
+  const aliases = userCountry ? (COUNTRY_ALIASES[userCountry.toUpperCase()] ?? []) : [];
   const nameRe = (n: string) => new RegExp(`(?<![a-z0-9])${n}(?![a-z0-9])`);
+  // El nombre del país con el mismo regex que el prefiltro ("New Mexico" no es MX, JS-111).
+  const namesOwnCountry = (t: string) =>
+    (userCountry !== null && mentionsCountry(t, userCountry)) ||
+    aliases.some((n) => nameRe(n).test(t));
   const foldedLocation = locationRaw ? foldText(locationRaw) : "";
-  const locationIsOwn = names.some((n) => nameRe(n).test(foldedLocation));
+  const locationIsOwn = namesOwnCountry(foldedLocation);
 
   // 2 = propia, 1 = excluyente de otro país, 0 = preferida de otro país.
   const rank = (l: ProfessionalLicense) => (l.ownCountry ? 2 : l.preferred ? 0 : 1);
@@ -324,7 +326,7 @@ export function detectProfessionalLicense(
       Math.max(0, index - COUNTRY_WINDOW),
       Math.min(folded.length, index + length + COUNTRY_WINDOW),
     );
-    const namesOwn = names.some((n) => nameRe(n).test(around));
+    const namesOwn = namesOwnCountry(around);
     // S-2: la ubicación del aviso solo hace propia la frase si la ventana no nombra otro país.
     const namesOther = OTHER_COUNTRY.test(around) || otherRegionCountry(around, userCountry);
     const ownCountry = namesOwn || (locationIsOwn && !namesOther);

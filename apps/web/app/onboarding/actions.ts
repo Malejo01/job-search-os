@@ -11,7 +11,7 @@ import {
   safeDbError,
 } from "@job-search-os/adapters";
 import { createDb, requireDatabaseUrl } from "@job-search-os/db";
-import { parsePoolLimits } from "@job-search-os/pipeline";
+import { parsePoolLimits, planFirstIngestNetwork } from "@job-search-os/pipeline";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { upgradeLegacyInboundAddress } from "@/lib/inbound-address";
@@ -57,7 +57,8 @@ export async function saveOnboardingAction(formData: FormData): Promise<Onboardi
  * Primeras ofertas de la persona, después de responder (el usuario no espera ni se entera si algo
  * falla). En orden:
  * 1. Si `getonboard` no está en POOL_SOURCES (el pool todavía está apagado), la ingesta por usuario
- *    de siempre, para no dejar a nadie sin ofertas; y las fuentes de INGEST_EXTRA_SOURCES.
+ *    de siempre, para no dejar a nadie sin ofertas; y las fuentes de INGEST_EXTRA_SOURCES. Con
+ *    `LLM_DEMO=1` este paso se saltea entero (JS-125: e2e y CI no salen a la red).
  * 2. Asignación desde el pool global (`assignPoolToUser`): asigna, no encola ni llama al modelo.
  * 3. Primer mercado y plan (sin LLM).
  * Acá no se evalúa: la primera evaluación pasa a la salida de Mis skills (ronda 41, decisión 1),
@@ -72,15 +73,22 @@ function scheduleFirstIngest(userId: string): void {
     try {
       conn = createDb(requireDatabaseUrl({ purpose: "service" }), { max: 2 });
       const { db } = conn;
-      const pools = parsePoolSources(process.env.POOL_SOURCES);
-      if (!pools.enabled.includes("getonboard")) {
+      // JS-125: con LLM_DEMO=1 (e2e, CI, previews) no se sale a la red de las fuentes
+      const network = planFirstIngestNetwork(process.env, {
+        poolSources: parsePoolSources(process.env.POOL_SOURCES).enabled,
+        extraSources: parseEnabledSources(process.env.INGEST_EXTRA_SOURCES).enabled,
+      });
+      if (network.skippedForDemo) {
+        logger.info("primera ingesta: modo demo, sin pedidos de red a las fuentes");
+      }
+      if (network.getOnBoard) {
         try {
           await runGetOnBoardIngest({ db, logger, userId, sinceHours: 24 });
         } catch (e) {
           logger.error({ err: safeDbError(e) }, "primera ingesta: Get on Board falló");
         }
       }
-      const { enabled } = parseEnabledSources(process.env.INGEST_EXTRA_SOURCES);
+      const { extraSources: enabled } = network;
       if (enabled.length > 0) {
         try {
           await runExtraSourcesIngest({ db, logger, enabled, userId, sinceHours: 24 });

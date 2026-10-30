@@ -7,9 +7,11 @@ import {
 } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { getActiveCriteria } from "@/lib/criteria";
+import { DISCIPLINE_LABEL } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import { resetCriteriaAction, saveCriteriaAction } from "./actions";
 import { FieldError, GuardedForm, PendingSubmit } from "@/app/components/guarded-form";
+import { AssistantProposalLoader } from "@/components/assistant-proposal-loader";
 import { SaveButton } from "./save-button";
 
 export const metadata = { title: "Criterios" };
@@ -47,28 +49,6 @@ const ENGLISH_LABEL: Record<(typeof ENGLISH_RISK_LEVELS)[number], string> = {
   intermedio: "Intermedio",
   avanzado: "Avanzado",
   nativo: "Nativo",
-};
-
-const DISCIPLINE_LABEL: Record<(typeof DISCIPLINES)[number], string> = {
-  ai_engineer: "Ingeniería de IA",
-  ml_engineer: "Ingeniería de ML",
-  ai_evaluation: "Evaluación de IA",
-  creative_production: "Producción creativa con IA",
-  fullstack: "Fullstack",
-  frontend: "Frontend",
-  backend: "Backend",
-  devops: "DevOps",
-  data: "Datos",
-  ciberseguridad: "Ciberseguridad",
-  negocio: "Negocio",
-  project_management: "Gestión de proyectos",
-  administracion_plataformas: "Administración de plataformas",
-  arquitectura: "Arquitectura",
-  otra: "Otra",
-  marketing_digital: "Marketing digital",
-  producto: "Producto",
-  recursos_humanos: "Recursos humanos / recruiting",
-  customer_success: "Customer success",
 };
 
 /**
@@ -145,6 +125,7 @@ export default async function CriteriaPage({
         className="flex flex-col gap-4"
       >
         <input type="hidden" name="baseVersion" value={active.version} />
+        <AssistantProposalLoader destination="criteria" />
 
         <label className="flex flex-col gap-1 text-sm">
           Títulos bloqueados (uno por línea)

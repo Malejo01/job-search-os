@@ -110,6 +110,19 @@ export type Evaluation = z.output<typeof EvaluationSchema>;
 
 const toGaps = (gaps: string[]): Gap[] => gaps.map((skill) => ({ skill, nivel: "must" }));
 
+/** Versiones que acepta `outputSchemaFor` (y `evaluationWireFor`); un test exige que ambas coincidan. */
+export const EVALUATE_JOB_SCHEMA_VERSIONS = [
+  "v1",
+  "v1.1",
+  "v1.2",
+  "v1.3",
+  "v1.3.1",
+  "v1.3.2",
+  "v1.3.3",
+  "v1.3.4",
+  "v1.4.0",
+] as const;
+
 /** Schema de salida que corresponde a cada versión del prompt evaluate_job. */
 export function outputSchemaFor(promptRef: string): z.ZodType<Evaluation, unknown> {
   const version = promptRef.split("@")[1] ?? "v1";

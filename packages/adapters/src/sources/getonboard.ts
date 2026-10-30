@@ -130,17 +130,78 @@ export function countryToIso(nameOrSlug: string): string {
   return COUNTRY_TO_ISO[key] ?? COUNTRY_TO_ISO[key.replace(/\s+/g, "-")] ?? key.toUpperCase();
 }
 
-const ENTITIES: Record<string, string> = {
+// Las básicas se aceptan en cualquier caja (`&AMP;`, `&Nbsp;`); el resto distingue mayúsculas
+// (`&Eacute;` ≠ `&eacute;`). `&COPY;` y `&REG;` son válidas en mayúsculas y van aparte.
+const BASIC_ENTITIES: Record<string, string> = {
   amp: "&",
   lt: "<",
   gt: ">",
   quot: '"',
   apos: "'",
   nbsp: " ",
+};
+
+const ENTITIES: Record<string, string> = {
+  ...BASIC_ENTITIES,
   ndash: "–",
   mdash: "—",
   hellip: "…",
+  aacute: "á",
+  eacute: "é",
+  iacute: "í",
+  oacute: "ó",
+  uacute: "ú",
+  Aacute: "Á",
+  Eacute: "É",
+  Iacute: "Í",
+  Oacute: "Ó",
+  Uacute: "Ú",
+  ntilde: "ñ",
+  Ntilde: "Ñ",
+  uuml: "ü",
+  Uuml: "Ü",
+  ccedil: "ç",
+  Ccedil: "Ç",
+  atilde: "ã",
+  Atilde: "Ã",
+  otilde: "õ",
+  Otilde: "Õ",
+  acirc: "â",
+  Acirc: "Â",
+  ecirc: "ê",
+  Ecirc: "Ê",
+  ocirc: "ô",
+  Ocirc: "Ô",
+  agrave: "à",
+  Agrave: "À",
+  iexcl: "¡",
+  iquest: "¿",
+  laquo: "«",
+  raquo: "»",
+  lsquo: "‘",
+  rsquo: "’",
+  ldquo: "“",
+  rdquo: "”",
+  bull: "•",
+  middot: "·",
+  deg: "°",
+  ordf: "ª",
+  ordm: "º",
+  euro: "€",
+  copy: "©",
+  reg: "®",
+  COPY: "©",
+  REG: "®",
+  trade: "™",
+  times: "×",
+  shy: "",
 };
+
+function namedEntity(code: string): string | undefined {
+  if (Object.hasOwn(ENTITIES, code)) return ENTITIES[code];
+  const lower = code.toLowerCase();
+  return Object.hasOwn(BASIC_ENTITIES, lower) ? BASIC_ENTITIES[lower] : undefined;
+}
 
 /** HTML de GoB → texto plano legible: viñetas, saltos de párrafo, sin tags ni entidades. */
 export function htmlToText(html: string | null | undefined): string {
@@ -158,7 +219,7 @@ export function htmlToText(html: string | null | undefined): string {
             : parseInt(code.slice(1), 10);
         return Number.isInteger(n) && n >= 0 && n <= 0x10ffff ? String.fromCodePoint(n) : m;
       }
-      return ENTITIES[code.toLowerCase()] ?? m;
+      return namedEntity(code) ?? m;
     })
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")

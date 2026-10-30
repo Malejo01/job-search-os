@@ -61,6 +61,7 @@ export default async function SkillsSettingsPage({
         englishCefr={data.englishCefr}
         customSkills={data.customSkills}
         submitLabel="Guardar"
+        withAssistant
       />
 
       <Link href="/settings" className="text-sm text-fg underline">

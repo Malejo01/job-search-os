@@ -150,7 +150,7 @@ export function createLlmClient(deps: LlmClientDeps): LlmClient {
     try {
       const raw = await generate({
         model: languageModel,
-        schema,
+        schema: ctx.wire?.schema ?? schema,
         prompt,
         temperature: route.temperature,
         maxOutputTokens: route.maxTokens,
@@ -160,9 +160,12 @@ export function createLlmClient(deps: LlmClientDeps): LlmClient {
       const latencyMs = now() - startedAt;
       // Si el proveedor ya validó, el objeto es la SALIDA del schema (con transforms aplicados)
       // y volver a parsearlo con el mismo schema fallaría; solo se valida lo no validado (tests).
-      const parsed = raw.validated
-        ? { success: true as const, data: raw.object as T }
-        : schema.safeParse(raw.object);
+      // Con `wire`, el proveedor validó la forma sin límites: se normaliza y corre el schema estricto.
+      const parsed = ctx.wire
+        ? schema.safeParse(ctx.wire.normalize(raw.object))
+        : raw.validated
+          ? { success: true as const, data: raw.object as T }
+          : schema.safeParse(raw.object);
       if (!parsed.success) {
         throw new LlmValidationError(parsed.error.issues);
       }

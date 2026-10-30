@@ -1,5 +1,6 @@
 export { stripContacts } from "./strip-contacts";
 export { parsePoolLimits, POOL_LIMIT_DEFAULTS, POOL_LIMIT_MAX, type PoolLimits } from "./limits";
+export { isPoolMailboxAddress, parsePoolMailbox, type PoolMailboxResult } from "./mailbox";
 export { monthlyUsd, HOURS_PER_MONTH } from "./monthly-usd";
 export {
   rankCandidates,

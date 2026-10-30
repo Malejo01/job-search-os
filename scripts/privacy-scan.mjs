@@ -17,7 +17,8 @@
 //   (sin args)            rama actual vs main: diff, sin commitear, sin trackear,
 //                         mensajes de commit y nombre de rama
 //   --hook                igual, para el hook TaskCompleted (sale con 2 si hay hallazgos)
-//   --pre-push            para .git/hooks/pre-push (lee refs por stdin)
+//   --pre-push            para .git/hooks/pre-push (lee refs por stdin); al pasar imprime
+//                         "pre-push: OK (N commits)"
 //   --text-file <f>...    textos sueltos (título/cuerpo de PR)
 //   --history <rango>     historia: "--all", "origin/main", "a..b", "refs/remotes/origin/pr/*"
 //   --tree                todos los archivos versionados del HEAD (git ls-files)
@@ -395,6 +396,8 @@ export async function main(argv = process.argv.slice(2)) {
   if (mode === "--pre-push") {
     const stdin = readFileSync(0, "utf8");
     const hits = [];
+    // Suma de commits revisados por ref (un commit compartido por dos refs cuenta dos veces).
+    let commits = 0;
     for (const line of stdin.split(/\r?\n/).filter(Boolean)) {
       const [, localSha, remoteRef, remoteSha] = line.split(" ");
       if (/^0+$/.test(localSha)) continue; // borrado de rama: lo bloquea el guard
@@ -402,7 +405,9 @@ export async function main(argv = process.argv.slice(2)) {
       const range = /^0+$/.test(remoteSha)
         ? [localSha, "--not", "--remotes=origin"]
         : [`${remoteSha}..${localSha}`];
-      hits.push(...scanHistory(pats, range, root).hits);
+      const scanned = scanHistory(pats, range, root);
+      hits.push(...scanned.hits);
+      commits += scanned.commits;
     }
     if (hits.length) {
       console.error(
@@ -411,6 +416,8 @@ export async function main(argv = process.argv.slice(2)) {
       );
       process.exit(1);
     }
+    // Sin esto, "pasó" y "no corrió" se ven igual (JS-078). Un push que solo borra ramas da 0.
+    console.log(`pre-push: OK (${commits} commits)`);
     return;
   }
 

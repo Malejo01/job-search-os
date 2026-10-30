@@ -4,12 +4,14 @@ import {
   GMAIL_FORWARDING_PARSER,
   htmlToText,
   isExpectedSender,
+  isPoolMailboxAddress,
   LINKEDIN_APPLICATION_PARSER,
   maskDigits,
+  parsePoolMailbox,
   SECURITY_PARSER,
   type CriteriaRules,
 } from "@job-search-os/pipeline";
-import { and, desc, eq, gte, like, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, like, sql } from "drizzle-orm";
 import { applyLinkedinApplication } from "../applications/linkedin-application";
 import { ingestBatch } from "../ingest/ingest-job";
 import type { Logger } from "../logger";
@@ -23,6 +25,17 @@ import {
   type InboundEmailContent,
 } from "./parsers";
 import { linkedinParser } from "./linkedin";
+import {
+  isPoolAlertSender,
+  POOL_MANUAL_QUEUE_REASON,
+  POOL_OVERSIZE_REASON,
+  POOL_PARSER,
+  POOL_QUEUE_MAX_PER_DAY,
+  POOL_QUEUE_MAX_PER_HOUR,
+  POOL_RAW_MAX_BYTES,
+  readPoolInboundConfig,
+  type PoolInboundConfig,
+} from "./pool-mailbox";
 import type { ReceivedEmailContent, ResendReceivedEvent } from "./resend";
 
 /**
@@ -38,10 +51,13 @@ export type InboundDeps = {
   /** Máximo de emails por usuario en una hora (ARCHITECTURE §8). */
   hourlyLimit?: number;
   now?: () => Date;
+  /** Casillas del pool (ADR-024). Sin esto se lee del entorno: apagado salvo POOL_SOURCE_COMPUTRABAJO_ALERTS=1. */
+  pool?: PoolInboundConfig;
 };
 
 export type InboundOutcome =
   | { kind: "duplicate"; inboundId: string }
+  | { kind: "pool_queued"; inboundId: string; career: string }
   | { kind: "unknown_recipient"; recipientsCount: number }
   | { kind: "rate_limited"; userId: string }
   | {
@@ -107,6 +123,101 @@ export async function handleInboundEmail(
     : [];
   // Con varias direcciones del sistema, gana la primera por posición: received_for, to, cc
   const byAddress = new Map(profiles.map((p) => [p.inboundAddress?.toLowerCase(), p]));
+
+  // ADR-024: las casillas pool-* son entrada del pool, no de una persona. Se decide por el sobre
+  // (received_for) cuando existe; si entre esos destinatarios hay una dirección u_… válida, gana
+  // el flujo normal y el email no se desvía al pool. Apagado, ajena o inválida: se rechaza como un
+  // destinatario desconocido.
+  const envelope = event.data.received_for.map((r) =>
+    (/<([^>]+)>/.exec(r)?.[1] ?? r).trim().toLowerCase(),
+  );
+  const basis = envelope.length ? envelope : recipients;
+  if (!basis.some((r) => byAddress.has(r)) && basis.some(isPoolMailboxAddress)) {
+    const pool = deps.pool ?? readPoolInboundConfig();
+    const mailbox = basis
+      .filter(isPoolMailboxAddress)
+      .map((r) => parsePoolMailbox(r, pool))
+      .find((m) => m.ok);
+    if (!pool.enabled || !mailbox?.ok || !isPoolAlertSender(event.data.from, pool.senderDomains)) {
+      log.warn(
+        { recipients_count: recipients.length, pool_enabled: pool.enabled },
+        "inbound: casilla del pool rechazada",
+      );
+      return { kind: "unknown_recipient", recipientsCount: recipients.length };
+    }
+    // Tope de la cola del pool: el From se falsifica fácil, así que se limita el volumen
+    const [counts] = (await db
+      .select({
+        hour: sql<number>`count(*) filter (where ${s.inboundEmails.receivedAt} >= ${new Date(now.getTime() - 60 * 60 * 1000).toISOString()}::timestamptz)::int`,
+        day: sql<number>`count(*)::int`,
+      })
+      .from(s.inboundEmails)
+      .where(
+        and(
+          isNull(s.inboundEmails.userId),
+          eq(s.inboundEmails.parser, POOL_PARSER),
+          gte(s.inboundEmails.receivedAt, new Date(now.getTime() - 24 * 60 * 60 * 1000)),
+        ),
+      )) as { hour: number; day: number }[];
+    if (
+      (counts?.hour ?? 0) >= POOL_QUEUE_MAX_PER_HOUR ||
+      (counts?.day ?? 0) >= POOL_QUEUE_MAX_PER_DAY
+    ) {
+      log.warn(
+        { pool_last_hour: counts?.hour ?? 0, pool_last_day: counts?.day ?? 0 },
+        "inbound: cola del pool llena, rechazado",
+      );
+      return { kind: "unknown_recipient", recipientsCount: recipients.length };
+    }
+    // Sin lector validado todo va a la cola manual del pool (ADR-024 §9): fila sin usuario, con el
+    // crudo completo (remitente esperado) y marcada con el parser del pool. Nunca se extrae nada.
+    // Si el crudo pasa el tope de tamaño, solo metadatos (como JS-051).
+    const full = JSON.stringify({
+      event: JSON.parse(rawBody),
+      content,
+      pool_career: mailbox.career,
+    });
+    const oversize = Buffer.byteLength(full, "utf8") > POOL_RAW_MAX_BYTES;
+    const rawRef = await deps.storage.put({
+      userId: null,
+      kind: "inbound_email",
+      contentType: "application/json",
+      body: oversize
+        ? JSON.stringify({
+            event: {
+              type: event.type,
+              created_at: event.created_at,
+              data: {
+                email_id: event.data.email_id,
+                from: event.data.from,
+                to: event.data.to,
+                received_for: event.data.received_for,
+                subject: event.data.subject ? maskDigits(event.data.subject) : null,
+              },
+            },
+            content: null,
+            pool_career: mailbox.career,
+            redacted: POOL_OVERSIZE_REASON,
+          })
+        : full,
+    });
+    const [row] = await db
+      .insert(s.inboundEmails)
+      .values({
+        userId: null,
+        fromAddress: event.data.from,
+        subject: event.data.subject ? maskDigits(event.data.subject) : null,
+        rawRef,
+        parser: POOL_PARSER,
+        jobsExtracted: 0,
+        error: oversize ? POOL_OVERSIZE_REASON : POOL_MANUAL_QUEUE_REASON,
+        receivedAt: now,
+      })
+      .returning({ id: s.inboundEmails.id });
+    log.info({ career: mailbox.career, oversize }, "inbound: casilla del pool a la cola manual");
+    return { kind: "pool_queued", inboundId: row!.id, career: mailbox.career };
+  }
+
   const profile = recipients.map((r) => byAddress.get(r)).find((p) => p !== undefined);
   if (!profile) {
     // Solo la cantidad: las direcciones son secretos de usuarios y la respuesta del webhook sale

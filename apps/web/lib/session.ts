@@ -68,3 +68,16 @@ export const requireActiveUserId = cache(async (): Promise<string> => {
   if (!(await isOnboardingComplete(id))) redirect("/onboarding");
   return id;
 });
+
+/**
+ * Como `requireActiveUserId` pero sin redirigir: para las Server Actions que devuelven un resultado
+ * (las tarjetas del asistente, AG-5). null = sin sesión vigente, términos sin aceptar u onboarding
+ * incompleto; el llamador contesta un código y la tarjeta lo muestra sin perder lo escrito.
+ */
+export async function activeSessionUserId(): Promise<string | null> {
+  const id = await sessionUserId();
+  if (!id) return null;
+  if (await needsTermsAcceptance(id)) return null;
+  if (!(await isOnboardingComplete(id))) return null;
+  return id;
+}
