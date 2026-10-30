@@ -1,5 +1,5 @@
 import type { CriteriaRules } from "../criteria";
-import { COUNTRY_ONLY_BLOCKER, englishRankFromCefr, type Decision } from "../decide";
+import { COUNTRY_ONLY_RULE, englishRankFromCefr, type Decision } from "../decide";
 import type { Evaluation } from "../evaluation";
 import { foldText } from "../normalize/text";
 import { MAX_JD_CHARS } from "../pool/career/english";
@@ -143,7 +143,7 @@ export function buildChecklist(
 
   // ── Residencia / país / autorización: ¿puede trabajar acá? ───────────────────────────────────
   const residency = blockerWith(/residencia exigida/i);
-  const countryOnly = blockers.some((b) => b.startsWith(COUNTRY_ONLY_BLOCKER));
+  const countryOnly = d.adjustments.some((a) => a.rule === COUNTRY_ONLY_RULE);
   const countries = ev.paises_permitidos?.length
     ? ev.paises_permitidos
     : (job.countriesAllowed ?? []);

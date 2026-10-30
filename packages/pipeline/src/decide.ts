@@ -10,6 +10,7 @@ import {
   type JobFacts,
 } from "./evaluator/job-facts";
 import { inferSeniorityFromTitle } from "./normalize/seniority";
+import { ISO_COUNTRY_CODES } from "./countries";
 import { allowsCountry, locationScope, placesIn } from "./pool/location-scope";
 import { RESIDENCY_FLAG } from "./prefilter/residency";
 import { englishIsNotAGap } from "./skills/english-gap";
@@ -141,6 +142,10 @@ export const COUNTRY_ONLY_BLOCKER = "aviso limitado a";
 const TZ_WORDS =
   /\b(?:time ?zones?|tz|hours|overlap(?:ping)?|est|edt|pst|pdt|cst|cdt|mst|mdt|gmt|utc)\b/gi;
 const MAX_LOCATION_TEXT = 20_000;
+const ISO_CODES: ReadonlySet<string> = new Set(ISO_COUNTRY_CODES);
+/** «Desde cualquier lugar»: el aviso no se limita a un país, aunque otra parte nombre uno. */
+const ANYWHERE_TEXT =
+  /\b(?:work(?:ing)?\s+from\s+anywhere|from\s+anywhere|anywhere|any\s+(?:country|location)|all\s+countries|all\s+time\s*zones)\b/i;
 
 /** ¿Alguna frase del texto nombra el país de la persona o una región que lo incluye? */
 function textAcceptsCountry(text: string | null | undefined, country: string): boolean {
@@ -163,9 +168,17 @@ export function countryOnlyPlaces(
   job: JobLocation | undefined,
 ): string | null {
   const country = candidateCountry?.trim().toUpperCase();
-  if (!country || !job || job.modality !== "remoto") return null;
+  if (!country || !/^[A-Z]{2}$/.test(country) || !job || job.modality !== "remoto") return null;
+  const listed = (job.countriesAllowed ?? []).some((c) => c.trim());
+  // Sin lista de países, la ubicación tiene que decir que es remoto: en las fuentes ATS suele ser la
+  // sede u oficina, y eso no limita desde dónde se puede trabajar.
+  if (!listed && !/remot/i.test(job.locationRaw ?? "")) return null;
   const scope = locationScope(job.locationRaw, job.countriesAllowed);
   if (scope.kind !== "places" || allowsCountry(scope, country)) return null;
+  // Un código que no es un país asignado ("WW", "EU", "XX") no se interpreta: falla abierto
+  if (scope.countries.some((c) => !ISO_CODES.has(c))) return null;
+  if (ANYWHERE_TEXT.test(job.locationRaw ?? "") || ANYWHERE_TEXT.test(job.jdText ?? ""))
+    return null;
   if (textAcceptsCountry(job.locationRaw, country) || textAcceptsCountry(job.jdText, country)) {
     return null;
   }

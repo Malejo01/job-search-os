@@ -266,7 +266,7 @@ describe("buildChecklist: aviso remoto limitado a otro país (H-1)", () => {
       candidateCountry: "AR",
       jobLocation: { ...jobLocation, countriesAllowed: ["CA", "AR"] },
     });
-    expect(byId(c, "pais")?.bloquea).toBe(false);
+    expect(byId(c, "pais")).toMatchObject({ status: "cumple", bloquea: false });
   });
 });
 

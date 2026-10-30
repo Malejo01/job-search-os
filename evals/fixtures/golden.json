@@ -2388,11 +2388,11 @@
   "human_score_match": 7,
   "human_blockers": [],
   "human_risks": [],
-  "score_nota": "Agregada (H-1, caso Canadá) con datos inventados: empresa, puesto, países y salario son ficticios. El match es bueno y el score no baja: el aviso es remoto, la fuente lo limita a Canadá (paises: CA; el texto solo dice «Remote») y no dice que acepte Argentina ni LATAM. La acción es descartar por la regla de país de decide() (bloqueador de código, no del modelo), que usa paises y ubicacion_raw estructurados que el harness no pasa al prompt; por eso human_blockers queda vacío y el modelo no tiene que reportarlo.",
+  "score_nota": "Agregada (H-1, caso Canadá) con datos inventados: empresa, puesto, países y salario son ficticios. El match es bueno y el score no baja: el aviso es remoto, la fuente lo limita a Canadá (paises: CA; el texto solo dice «Remote») y no dice que acepte Argentina ni LATAM. El modelo solo ve «Remote», así que la ubicación de referencia es riesgo. La acción es descartar por la regla de país de decide() (bloqueador de código, no del modelo), que usa paises y ubicacion_raw estructurados que el harness no pasa al prompt; por eso human_blockers queda vacío y el modelo no tiene que reportarlo.",
   "accion": "descartar",
   "estado": "evaluada",
-  "location_ok": "no",
-  "human_location_ok": "no",
+  "location_ok": "riesgo",
+  "human_location_ok": "riesgo",
   "anchor_source": "human"
  }
  ],

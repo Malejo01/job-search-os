@@ -159,6 +159,72 @@ describe("decide(): aviso remoto limitado a otro país (H-1)", () => {
     expect(d.bloqueadores).toEqual([]);
   });
 
+  it("códigos que no son un país asignado (WW, EU, XX) no se interpretan: falla abierto", () => {
+    for (const code of ["WW", "EU", "XX"]) {
+      const d = decide(
+        base,
+        rules,
+        ctx({ modality: "remoto", locationRaw: "Remote", countriesAllowed: [code] }),
+      );
+      expect(d.bloqueadores, code).toEqual([]);
+    }
+  });
+
+  it("país de la persona que no es ISO-2 («Argentina») o vacío: no bloquea", () => {
+    const place = { modality: "remoto", locationRaw: "Remote", countriesAllowed: ["CA"] };
+    expect(decide(base, rules, ctx(place, "Argentina")).bloqueadores).toEqual([]);
+    expect(decide(base, rules, ctx(place, "  ")).bloqueadores).toEqual([]);
+    // en minúscula o con espacios sí se normaliza
+    expect(decide(base, rules, ctx(place, " ar ")).accion).toBe("descartar");
+  });
+
+  it("modalidad nula o «desconocida»: no bloquea", () => {
+    for (const modality of [null, undefined, "desconocida"]) {
+      const d = decide(
+        base,
+        rules,
+        ctx({ modality, locationRaw: "Remote", countriesAllowed: ["CA"] }),
+      );
+      expect(d.bloqueadores, String(modality)).toEqual([]);
+    }
+  });
+
+  it("«desde cualquier lugar» en la JD o la ubicación: no bloquea", () => {
+    const d = decide(
+      base,
+      rules,
+      ctx({
+        modality: "remoto",
+        locationRaw: "Remote (Canada)",
+        countriesAllowed: ["CA"],
+        jdText: "Work from anywhere. Our HQ is in Toronto.",
+      }),
+    );
+    expect(d.bloqueadores).toEqual([]);
+  });
+
+  it("sin lista de países, una sede en otro país no es una limitación (fuentes ATS)", () => {
+    const d = decide(
+      base,
+      rules,
+      ctx({ modality: "remoto", locationRaw: "London, United Kingdom", countriesAllowed: null }),
+    );
+    expect(d.bloqueadores).toEqual([]);
+  });
+
+  it("«LATAM except X» no se interpreta: falla abierto", () => {
+    const d = decide(
+      base,
+      rules,
+      ctx({
+        modality: "remoto",
+        locationRaw: "Remote, LATAM except Brazil",
+        countriesAllowed: null,
+      }),
+    );
+    expect(d.bloqueadores).toEqual([]);
+  });
+
   it("no duplica con la residencia exigida del prefiltro ni con un bloqueador de país del modelo", () => {
     const place = ctx({ modality: "remoto", locationRaw: "Remote", countriesAllowed: ["CA"] });
     const withResidency = decide(base, rules, {
