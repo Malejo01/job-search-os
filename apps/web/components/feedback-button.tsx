@@ -8,6 +8,7 @@ import {
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { sendFeedbackAction } from "@/app/(app)/feedback-actions";
+import { collectFeedbackContext } from "@/lib/action-tracker";
 import { TextareaWithCounter, countChars } from "./char-counter";
 
 const ERRORS: Record<string, string> = {
@@ -19,9 +20,9 @@ const GENERIC_ERROR = "No pudimos guardar tu mensaje. Probá de nuevo en un rato
 const THANKS_MS = 5000;
 
 /**
- * Botón «Contanos qué pasó» del header (C-23). `<dialog>` nativo: `showModal()` atrapa el foco y Esc
- * cierra. Manda categoría, mensaje y la ruta actual (`usePathname()`: solo el pathname, sin query).
- * El servidor valida igual; la respuesta nunca trae el texto.
+ * Chip fijo de soporte «¿Algo no anduvo?» (R1-9 / C-23). `<dialog>` nativo: `showModal()` atrapa el foco y Esc
+ * cierra. Manda categoría, mensaje, la ruta actual (`usePathname()`: solo el pathname, sin query)
+ * y el contexto de sesión (últimas acciones y metadatos de entorno).
  */
 export function FeedbackButton() {
   const pathname = usePathname();
@@ -49,6 +50,11 @@ export function FeedbackButton() {
     if (!data.get("category")) return setError(ERRORS.category!);
     const length = countChars(String(data.get("message") ?? ""));
     if (length < 1 || length > FEEDBACK_MESSAGE_MAX) return setError(ERRORS.message!);
+
+    // Adjunta contexto del entorno y buffer de acciones
+    const context = collectFeedbackContext();
+    data.set("context", JSON.stringify(context));
+
     setError(null);
     startTransition(async () => {
       const result = await sendFeedbackAction(data);
@@ -66,14 +72,18 @@ export function FeedbackButton() {
       <button
         type="button"
         onClick={open}
-        className="text-sm text-fg-subtle underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
+        aria-haspopup="dialog"
+        className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] right-[calc(1rem+env(safe-area-inset-right,0px))] z-40 inline-flex min-h-11 items-center gap-1.5 rounded-pill border border-line-strong bg-surface px-3.5 py-1.5 text-xs font-medium text-fg-muted shadow-sm hover:bg-surface-muted hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       >
-        Contanos qué pasó
+        <span aria-hidden="true" className="text-sm">
+          💬
+        </span>
+        ¿Algo no anduvo?
       </button>
       {thanks ? (
         <p
           role="status"
-          className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-control bg-brand px-4 py-2 text-sm text-brand-contrast"
+          className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] right-4 z-50 rounded-control bg-brand px-4 py-2 text-sm text-brand-contrast shadow-md"
         >
           ¡Gracias! Lo leemos todo.
         </p>

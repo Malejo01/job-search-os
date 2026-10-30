@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { signOut } from "@/auth";
+import { ActionTracker } from "@/components/action-tracker";
 import { FeedbackButton } from "@/components/feedback-button";
 import { countFollowUps } from "@/lib/applications";
 import { canUseAssistant } from "@/lib/assistant";
@@ -82,7 +83,6 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
               </Link>
             ) : null}
             {canAssist ? <AssistantButton /> : null}
-            <FeedbackButton />
             <Link
               href="/settings"
               className="text-sm text-fg-subtle underline-offset-2 hover:underline"
@@ -107,6 +107,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       <main id="contenido" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-4 py-4">
         {children}
       </main>
+      <ActionTracker />
+      <FeedbackButton />
       <footer className="border-t border-line px-4 py-3 text-center text-xs text-fg-subtle">
         <Link href="/legal/privacidad" className="underline-offset-2 hover:underline">
           Privacidad

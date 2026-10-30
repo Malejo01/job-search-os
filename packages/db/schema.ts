@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import type { FeedbackContext } from "@job-search-os/pipeline";
 import {
   pgTable, pgEnum, uuid, text, integer, smallint, real, boolean, timestamp, jsonb, date, index, uniqueIndex, primaryKey, check,
   type AnyPgColumn,
@@ -496,12 +497,14 @@ export const betaFeedback = pgTable("beta_feedback", {
   category: text("category").notNull(),
   message: text("message").notNull(),
   path: text("path").notNull(),
+  context: jsonb("context").$type<FeedbackContext>(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
   index("beta_feedback_user_created").on(t.userId, t.createdAt),
   check("beta_feedback_category", sql`${t.category} in ('algo_no_anduvo', 'idea', 'confuso')`),
   check("beta_feedback_message_length", sql`char_length(${t.message}) between 1 and 2000`),
   check("beta_feedback_path_length", sql`char_length(${t.path}) <= 200`),
+  check("beta_feedback_context_size", sql`${t.context} is null or octet_length(${t.context}::text) <= 4096`),
 ]);
 
 // Historial laboral, de estudios y certificaciones confirmado por la persona (C-25, CVC-0; diseño de
