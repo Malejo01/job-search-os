@@ -16,7 +16,7 @@ import { JobFields } from "./jobs/new/job-fields";
 export type ActionStatus = "pendiente" | "enviada" | "descartada";
 
 const FOCUS_RING =
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900";
+  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 const EVENT_BUTTON: Record<ManualJobEvent, string> = {
   apply: "Marcar como aplicada",
@@ -129,25 +129,25 @@ export function AssistantActionCard({
       type="button"
       onClick={onDiscard}
       disabled={pending}
-      className={`min-h-11 rounded-md border border-zinc-400 px-3 py-2 text-sm font-medium text-zinc-900 disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_RING}`}
+      className={`min-h-11 rounded-control border border-line-strong px-3 py-2 text-sm font-medium text-fg disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_RING}`}
     >
       {action.kind === "new_job" ? "No cargar" : "Descartar"}
     </button>
   );
 
   const errorBox = error ? (
-    <p role="alert" className="rounded-md bg-red-50 px-2 py-1.5 text-xs text-red-800">
+    <p role="alert" className="rounded-control bg-danger-soft px-2 py-1.5 text-xs text-danger">
       {error}
     </p>
   ) : null;
 
   const footer =
     status === "descartada" ? (
-      <p ref={statusRef} tabIndex={-1} className="text-xs text-zinc-700">
+      <p ref={statusRef} tabIndex={-1} className="text-xs text-fg-muted">
         Descartada. No se cambió nada.
       </p>
     ) : status === "enviada" ? (
-      <p ref={statusRef} tabIndex={-1} className="text-xs text-zinc-700">
+      <p ref={statusRef} tabIndex={-1} className="text-xs text-fg-muted">
         {action.kind === "status_change"
           ? `Listo: la oferta quedó en ${doneLabel ?? action.toLabel}.`
           : "Listo: la oferta quedó cargada. La evaluamos en un rato."}{" "}
@@ -158,7 +158,7 @@ export function AssistantActionCard({
         ) : null}
       </p>
     ) : expired ? (
-      <p className="text-xs text-zinc-700">Esta tarjeta venció; pedile una nueva.</p>
+      <p className="text-xs text-fg-muted">Esta tarjeta venció; pedile una nueva.</p>
     ) : null;
 
   if (action.kind === "status_change") {
@@ -166,25 +166,25 @@ export function AssistantActionCard({
       <section
         aria-labelledby={titleId}
         data-testid="assistant-action"
-        className="flex flex-col gap-2 rounded-md border border-emerald-300 bg-white p-3 text-sm"
+        className="flex flex-col gap-2 rounded-card border border-success-line bg-surface p-3 text-sm"
       >
         <h3 id={titleId} className="font-semibold break-words">
           Cambio de estado propuesto
         </h3>
         <p className="break-words">{action.jobLabel}</p>
         <p className="break-words">
-          <span className="text-zinc-600">Ahora:</span> {action.fromLabel}{" "}
+          <span className="text-fg-subtle">Ahora:</span> {action.fromLabel}{" "}
           <span aria-hidden="true">→</span>
           <span className="sr-only">pasaría a</span>{" "}
           <span className="font-medium">{action.toLabel}</span>
         </p>
         {action.event === "apply" ? (
-          <p className="text-xs text-zinc-700">
+          <p className="text-xs text-fg-muted">
             Solo marca el estado en la app: el sistema nunca postula por vos.
           </p>
         ) : null}
-        <p className="text-xs break-words text-zinc-700">
-          <span className="text-zinc-600">De dónde sale:</span> «{action.sentence}», de lo que
+        <p className="text-xs break-words text-fg-muted">
+          <span className="text-fg-subtle">De dónde sale:</span> «{action.sentence}», de lo que
           escribiste
         </p>
         {status === "pendiente" && !expired ? (
@@ -197,7 +197,7 @@ export function AssistantActionCard({
               <SubmitButton
                 pending={pending}
                 pendingLabel="Guardando…"
-                className={`min-h-11 rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white ${FOCUS_RING}`}
+                className={`min-h-11 rounded-control bg-brand hover:bg-brand-hover px-3 py-2 text-sm font-medium text-brand-contrast ${FOCUS_RING}`}
               >
                 {EVENT_BUTTON[action.event]}
               </SubmitButton>
@@ -215,17 +215,17 @@ export function AssistantActionCard({
     <section
       aria-labelledby={titleId}
       data-testid="assistant-action"
-      className="flex flex-col gap-2 rounded-md border border-emerald-300 bg-white p-3 text-sm"
+      className="flex flex-col gap-2 rounded-card border border-success-line bg-surface p-3 text-sm"
     >
       <h3 id={titleId} className="font-semibold break-words">
         Oferta para cargar
       </h3>
-      <p className="text-xs text-zinc-700">
+      <p className="text-xs text-fg-muted">
         Revisá los datos. No se carga nada hasta que toques «Agregar la oferta». Si pegás la
         descripción, la evaluamos en un rato.
       </p>
-      <p className="text-xs break-words text-zinc-700">
-        <span className="text-zinc-600">De dónde sale:</span> «{action.source.quote}», de lo que
+      <p className="text-xs break-words text-fg-muted">
+        <span className="text-fg-subtle">De dónde sale:</span> «{action.source.quote}», de lo que
         escribiste
       </p>
       {status === "pendiente" && !expired ? (
