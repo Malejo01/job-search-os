@@ -119,7 +119,7 @@ function JobCard({ job, query, tour }: { job: JobListRow; query: string; tour: b
         {job.fit.favor || job.fit.falta ? (
           <div className="flex min-w-0 flex-col gap-0.5 text-xs" data-testid="tarjeta-fit">
             {job.fit.favor ? (
-              <p className="truncate text-fg-muted">
+              <p className="line-clamp-2 break-words text-fg-muted" title={job.fit.favor.text}>
                 <span aria-hidden="true" className="text-success">
                   ✓{" "}
                 </span>
@@ -127,7 +127,7 @@ function JobCard({ job, query, tour }: { job: JobListRow; query: string; tour: b
               </p>
             ) : null}
             {job.fit.falta ? (
-              <p className="truncate text-fg-muted">
+              <p className="line-clamp-2 break-words text-fg-muted" title={job.fit.falta.text}>
                 <span
                   aria-hidden="true"
                   className={job.fit.falta.kind === "frena" ? "text-danger" : "text-warning"}

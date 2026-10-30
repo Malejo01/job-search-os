@@ -13,7 +13,14 @@ const FALTA_MARK: Record<FaltaKind, { icon: string; classes: string }> = {
  * lenguaje llano, armados con lo que la evaluación ya guardó (sin llamadas nuevas al modelo).
  * Server Component, sin estado.
  */
-export function FitPointsPanel({ points }: { points: FitPoints }) {
+export function FitPointsPanel({
+  points,
+  limited = false,
+}: {
+  points: FitPoints;
+  /** Sin la descripción completa (o sin checklist): «nada que te frene» no es una promesa. */
+  limited?: boolean;
+}) {
   return (
     <section aria-label="Cómo te queda esta oferta" className="grid gap-3 sm:grid-cols-2">
       <div className="rounded-card border border-line p-3 text-sm" data-testid="fit-favor">
@@ -57,7 +64,11 @@ export function FitPointsPanel({ points }: { points: FitPoints }) {
             })}
           </ul>
         ) : (
-          <p className="mt-1 text-xs text-fg-subtle">No encontramos nada que te frene.</p>
+          <p className="mt-1 text-xs text-fg-subtle">
+            {limited
+              ? "Con lo que dice el aviso no vimos nada que te frene; con la descripción completa puede cambiar."
+              : "No encontramos nada que te frene."}
+          </p>
         )}
       </div>
     </section>

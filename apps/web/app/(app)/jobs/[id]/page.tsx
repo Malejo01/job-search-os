@@ -332,6 +332,20 @@ export default async function JobDetailPage({
 
       {ev ? (
         <>
+          {/* Lo simple primero: lo técnico (bloqueadores, riesgos, requisitos) viene debajo */}
+          <FitPointsPanel
+            points={buildFitPoints({
+              matchFuerte: ev.matchFuerte,
+              senales: ev.senales,
+              gaps: englishIsNotAGap(job.jdText, null)
+                ? ev.gaps.filter((g) => !isEnglishGap(g))
+                : ev.gaps,
+              riesgos: ev.riesgos.map(riskLabel),
+              bloqueadores: ev.bloqueadores,
+              checklist: ev.checklist ? withCurrentSkillLevels(ev.checklist, currentLevels) : null,
+            })}
+            limited={!ev.checklist || ev.checklist.parcial}
+          />
           {/* Bloqueadores y riesgos SEPARADOS: un riesgo se ve, no frena; un bloqueador frena */}
           {ev.bloqueadores.length ? (
             <section className="rounded-card border border-danger-line bg-danger-soft p-3">
@@ -378,18 +392,6 @@ export default async function JobDetailPage({
             </p>
           ) : null}
 
-          <FitPointsPanel
-            points={buildFitPoints({
-              matchFuerte: ev.matchFuerte,
-              senales: ev.senales,
-              gaps: englishIsNotAGap(job.jdText, null)
-                ? ev.gaps.filter((g) => !isEnglishGap(g))
-                : ev.gaps,
-              riesgos: ev.riesgos.map(riskLabel),
-              bloqueadores: ev.bloqueadores,
-              checklist: ev.checklist ? withCurrentSkillLevels(ev.checklist, currentLevels) : null,
-            })}
-          />
           <section className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-card border border-line p-3 text-sm">
               <h2 className="font-semibold">Veredicto</h2>

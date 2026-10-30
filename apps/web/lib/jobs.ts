@@ -1,6 +1,7 @@
 import { schema as s } from "@job-search-os/db";
 import {
   DEFAULT_TIMEZONE,
+  isEnglishGap,
   JOB_STATUSES,
   neighbors,
   parsePeriod,
@@ -292,7 +293,8 @@ export async function listJobs(
       fit: summarizeFitCard({
         matchFuerte: r.matchFuerte ?? [],
         senales: r.senales ?? [],
-        gaps: r.gaps ?? [],
+        // Sin el texto del aviso no se sabe si el inglés es brecha: en la tarjeta no se muestra
+        gaps: (r.gaps ?? []).filter((g) => !isEnglishGap(g)),
         riesgos: (r.riesgos ?? []).map(riskLabel),
         bloqueadores: r.bloqueadores ?? [],
       }),
