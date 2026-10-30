@@ -51,7 +51,13 @@ const ROUTES: Array<{ label: string; path: string | ((ids: Seeded) => string) }>
 ];
 
 /** Sin sesión: se abren sin `login()`. */
-const PUBLIC_ROUTES = ["/", "/login", "/forgot-password"] as const;
+const PUBLIC_ROUTES = [
+  "/",
+  "/login",
+  "/forgot-password",
+  "/mercado",
+  "/mercado/data_analyst",
+] as const;
 
 test.describe("Flujo 88: axe en oscuro", () => {
   const tag = Date.now();
