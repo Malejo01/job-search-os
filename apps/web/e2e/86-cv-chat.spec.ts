@@ -374,8 +374,24 @@ test.describe("Flujo 86: Armá tu CV con IA", () => {
     }
     test.skip(
       perfil?.plan !== "gratis",
-      "el cupo del plan pago es de 5: este caso es del gratis (1)",
+      "el cupo del plan pago es de 5: este caso es del gratis (piso de 3 en la beta)",
     );
+    // El flujo anterior ya armó un CV: con otros dos queda el cupo de 3 de la beta usado
+    const seed = ownerDb();
+    try {
+      await seed.db.insert(s.llmCalls).values(
+        ["a", "b"].map((x) => ({
+          userId: E2E_USER_ID,
+          task: "cv_write",
+          model: "fake",
+          ok: true,
+          costUsd: 0,
+          label: `cv:e2e-cupo-${x}`,
+        })),
+      );
+    } finally {
+      await seed.close();
+    }
     await login(page);
     await page.goto("/cv/armar");
     await page.getByRole("button", { name: "Empezar" }).click();
