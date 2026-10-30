@@ -235,8 +235,10 @@ export async function listJobs(
       .orderBy(
         sql`${evaluatingSql()} desc`,
         sql`${latest.score} desc nulls last`,
-        // A igual score, menos riesgos primero (JS-054): con las penalizaciones de decide()
-        // corregidas, los riesgos son el único canal de viabilidad. Sin evaluación cuenta 0.
+        // A igual score, menos bloqueadores y después menos riesgos (JS-054 sumó riesgos: con las
+        // penalizaciones de decide() corregidas son el canal de viabilidad; N4-4 antepuso los
+        // bloqueadores). Misma regla que `compareJobPriority` de pipeline. Sin evaluación cuenta 0.
+        sql`coalesce(cardinality(${latest.bloqueadores}), 0) asc`,
         sql`coalesce(cardinality(${latest.riesgos}), 0) asc`,
         desc(s.jobs.firstSeenAt),
         // Desempate estable: sin esto, dos ofertas con el mismo score y la misma fecha pueden
