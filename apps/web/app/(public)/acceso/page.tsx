@@ -28,7 +28,7 @@ export default function AccesoPage() {
         contact={contactLink("Borrar mis datos de la lista de espera")}
       />
       <p className="text-sm">
-        <Link href="/login" className="underline">
+        <Link href="/login" className="underline underline-offset-2 hover:text-fg">
           Ya tengo cuenta
         </Link>
       </p>

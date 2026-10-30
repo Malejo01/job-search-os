@@ -99,9 +99,9 @@ const TEXTS = {
   },
 } as const;
 
-const BOX = "fill-white stroke-zinc-900";
-const HEAD = "fill-zinc-900 text-[15px] font-semibold";
-const SUB = "fill-zinc-700 text-[13px]";
+const BOX = "fill-surface stroke-fg";
+const HEAD = "fill-fg text-[15px] font-semibold";
+const SUB = "fill-fg-muted text-[13px]";
 
 function Defs({ id }: { id: string }) {
   return (
@@ -115,7 +115,7 @@ function Defs({ id }: { id: string }) {
         markerHeight="7"
         orient="auto-start-reverse"
       >
-        <path d="M0 0 L10 5 L0 10 z" className="fill-zinc-900" />
+        <path d="M0 0 L10 5 L0 10 z" className="fill-fg" />
       </marker>
     </defs>
   );
@@ -161,7 +161,7 @@ export function FlowDiagram({ lang = "es" }: { lang?: FlowLang }) {
               x2={x + 38}
               y2={y}
               strokeWidth={2}
-              className="stroke-zinc-900"
+              className="stroke-fg"
               markerEnd="url(#flow-h-arrow)"
             />
           );
@@ -170,7 +170,7 @@ export function FlowDiagram({ lang = "es" }: { lang?: FlowLang }) {
           points="600,110 600,150 120,150 120,188"
           fill="none"
           strokeWidth={2}
-          className="stroke-zinc-900"
+          className="stroke-fg"
           markerEnd="url(#flow-h-arrow)"
         />
       </svg>
@@ -203,7 +203,7 @@ export function FlowDiagram({ lang = "es" }: { lang?: FlowLang }) {
                   x2={160}
                   y2={y + 82}
                   strokeWidth={2}
-                  className="stroke-zinc-900"
+                  className="stroke-fg"
                   markerEnd="url(#flow-v-arrow)"
                 />
               ) : null}

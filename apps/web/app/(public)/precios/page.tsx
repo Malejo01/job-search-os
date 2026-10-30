@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 };
 
 const CTA =
-  "inline-flex min-h-11 items-center justify-center rounded-md px-4 text-base font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900";
+  "inline-flex min-h-11 items-center justify-center rounded-control px-4 text-base font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 const FAQ: readonly { q: string; a: string }[] = [
   {
@@ -59,7 +59,7 @@ export default function PreciosPage() {
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10">
       <header className="flex flex-col gap-2">
         <h1 className="text-3xl font-semibold">Precios</h1>
-        <p className="max-w-2xl text-base text-zinc-700">
+        <p className="max-w-2xl text-base text-fg-muted">
           Empezá gratis con tu carrera principal. Si te sirve, un plan pago evalúa más ofertas por
           día y suma carreras.
         </p>
@@ -78,12 +78,12 @@ export default function PreciosPage() {
 
       <section
         aria-labelledby="garantia"
-        className="rounded-lg border border-emerald-200 bg-emerald-50 p-4"
+        className="rounded-card border border-success-line bg-success-soft p-4"
       >
-        <h2 id="garantia" className="text-lg font-semibold text-emerald-950">
+        <h2 id="garantia" className="text-lg font-semibold text-success">
           Garantía de {GUARANTEE_DAYS} días
         </h2>
-        <p className="mt-1 text-sm text-emerald-950">
+        <p className="mt-1 text-sm text-success">
           Si en los primeros {GUARANTEE_DAYS} días ves que no te sirve, escribinos y te devolvemos
           lo que pagaste.
         </p>
@@ -96,8 +96,8 @@ export default function PreciosPage() {
         <dl className="flex flex-col gap-4">
           {FAQ.map(({ q, a }) => (
             <div key={q}>
-              <dt className="font-medium text-zinc-900">{q}</dt>
-              <dd className="mt-1 text-sm text-zinc-700">{a}</dd>
+              <dt className="font-medium text-fg">{q}</dt>
+              <dd className="mt-1 text-sm text-fg-muted">{a}</dd>
             </div>
           ))}
         </dl>
@@ -105,7 +105,7 @@ export default function PreciosPage() {
 
       <p className="text-sm">
         La beta es por invitación.{" "}
-        <Link href="/acceso" className="font-medium underline underline-offset-2">
+        <Link href="/acceso" className="font-medium underline underline-offset-2 hover:text-fg">
           Pedí acceso
         </Link>{" "}
         y te avisamos cuando haya lugar.
@@ -119,26 +119,29 @@ function PlanCard({ plan, lines, link }: { plan: PlanDef; lines: string[]; link:
   return (
     <li
       data-testid={`plan-${plan.key}`}
-      className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4"
+      className="flex flex-col gap-3 rounded-card border border-line bg-surface p-4"
     >
       <div>
         <h2 className="text-lg font-semibold">{plan.name}</h2>
-        <p className="text-sm text-zinc-700">{plan.summary}</p>
+        <p className="text-sm text-fg-muted">{plan.summary}</p>
       </div>
       <p className="text-xl font-semibold" data-testid={`precio-${plan.key}`}>
         {priceLabel(plan)}
       </p>
       {plan.durationDays ? (
-        <p className="text-xs text-zinc-600">Dura {plan.durationDays} días.</p>
+        <p className="text-xs text-fg-subtle">Dura {plan.durationDays} días.</p>
       ) : null}
-      <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-zinc-800">
+      <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-fg">
         {lines.map((l) => (
           <li key={l}>{l}</li>
         ))}
       </ul>
       <div className="mt-auto">
         {free ? (
-          <Link href="/acceso" className={`${CTA} bg-zinc-900 text-white`}>
+          <Link
+            href="/acceso"
+            className={`${CTA} bg-brand text-brand-contrast hover:bg-brand-hover`}
+          >
             Pedir acceso
           </Link>
         ) : link ? (
@@ -147,13 +150,13 @@ function PlanCard({ plan, lines, link }: { plan: PlanDef; lines: string[]; link:
             href={link}
             target="_blank"
             rel="noopener noreferrer"
-            className={`${CTA} border border-zinc-900 text-zinc-900`}
+            className={`${CTA} border border-fg bg-surface text-fg hover:bg-surface-muted`}
           >
             Pagar con Mercado Pago
             <span className="sr-only"> (se abre en otra pestaña)</span>
           </a>
         ) : (
-          <p className="text-sm text-zinc-600">Pronto</p>
+          <p className="text-sm text-fg-subtle">Pronto</p>
         )}
       </div>
     </li>
