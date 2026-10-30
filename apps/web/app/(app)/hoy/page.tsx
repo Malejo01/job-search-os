@@ -9,6 +9,7 @@ import { Card as UiCard, EmptyState, textLinkClasses } from "@/components/ui";
 import { requireActiveUserId } from "@/lib/session";
 import { MarkVisit } from "./mark-visit";
 import { NewJobRow } from "./new-job-row";
+import { StaggerCard } from "./stagger-cards";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Hoy" };
@@ -71,18 +72,18 @@ export default async function HoyPage() {
         </section>
       ) : null}
       <div className="grid gap-3 sm:grid-cols-2">
-        <NewCard data={data} />
-        <FollowUpCard data={data} />
+        <NewCard data={data} index={0} />
+        <FollowUpCard data={data} index={1} />
         {data.fit ? (
-          <Card id="hoy-encaje-titulo" testId="hoy-encaje" title="Tu encaje">
+          <Card id="hoy-encaje-titulo" testId="hoy-encaje" title="Tu encaje" index={2}>
             <p className="text-sm text-fg-muted">{data.fit.headline}</p>
             <Link href="/encaje" className={LINK}>
               Ver tu encaje
             </Link>
           </Card>
         ) : null}
-        <AlertsCard data={data} />
-        <MarketCard data={data} />
+        <AlertsCard data={data} index={3} />
+        <MarketCard data={data} index={4} />
       </div>
       {data.stamp ? <MarkVisit action={markVisitAction} /> : null}
     </div>
@@ -94,36 +95,40 @@ function Card({
   testId,
   title,
   wide,
+  index = 0,
   children,
 }: {
   id: string;
   testId: string;
   title: string;
   wide?: boolean;
+  index?: number;
   children: ReactNode;
 }) {
   return (
     // Sin fondo: las tarjetas de «Hoy» siempre dejaron ver el de la página
-    <UiCard
-      as="section"
-      surface="none"
-      data-testid={testId}
-      aria-labelledby={id}
-      className={`flex min-w-0 flex-col gap-2 ${wide ? "sm:col-span-2" : ""}`}
-    >
-      <h2 id={id} className="text-base font-semibold text-fg">
-        {title}
-      </h2>
-      {children}
-    </UiCard>
+    <StaggerCard wide={wide} index={index}>
+      <UiCard
+        as="section"
+        surface="none"
+        data-testid={testId}
+        aria-labelledby={id}
+        className="flex min-w-0 flex-col gap-2"
+      >
+        <h2 id={id} className="text-base font-semibold text-fg">
+          {title}
+        </h2>
+        {children}
+      </UiCard>
+    </StaggerCard>
   );
 }
 
-function NewCard({ data }: { data: HoyData }) {
+function NewCard({ data, index = 0 }: { data: HoyData; index?: number }) {
   const { jobs, since, empty, roles } = data;
   const title = since ? "Lo nuevo para vos" : "Tus mejores ofertas de la semana";
   return (
-    <Card id="hoy-nuevo-titulo" testId="hoy-nuevo" title={title} wide>
+    <Card id="hoy-nuevo-titulo" testId="hoy-nuevo" title={title} wide index={index}>
       {jobs.length > 0 ? (
         <>
           <ul className="m-0 flex list-none flex-col gap-2 p-0">
@@ -194,10 +199,15 @@ function NewCard({ data }: { data: HoyData }) {
  * «Para hacer seguimiento» (C-9, diseño de la 119 §2): las tres primeras y el link a la lista. Sin
  * botones: las acciones viven en /applications.
  */
-function FollowUpCard({ data }: { data: HoyData }) {
+function FollowUpCard({ data, index = 0 }: { data: HoyData; index?: number }) {
   const { followUps } = data;
   return (
-    <Card id="hoy-seguimiento-titulo" testId="hoy-seguimiento" title="Para hacer seguimiento">
+    <Card
+      id="hoy-seguimiento-titulo"
+      testId="hoy-seguimiento"
+      title="Para hacer seguimiento"
+      index={index}
+    >
       {followUps.length === 0 ? (
         <EmptyState
           variant="inline"
@@ -238,11 +248,11 @@ function FollowUpCard({ data }: { data: HoyData }) {
   );
 }
 
-function AlertsCard({ data }: { data: HoyData }) {
+function AlertsCard({ data, index = 0 }: { data: HoyData; index?: number }) {
   const { coverage } = data;
   const none = ALERT_PORTALS.every((p) => coverage[p.id].status === "nunca");
   return (
-    <Card id="hoy-alertas-titulo" testId="hoy-alertas" title="Tus alertas">
+    <Card id="hoy-alertas-titulo" testId="hoy-alertas" title="Tus alertas" index={index}>
       {none ? (
         <p data-testid="hoy-vacio-alertas" className="text-sm text-fg-muted">
           Todavía no recibimos ninguna alerta de empleo por email. Configurarlas te lleva 5 minutos.
@@ -275,10 +285,10 @@ function AlertsCard({ data }: { data: HoyData }) {
   );
 }
 
-function MarketCard({ data }: { data: HoyData }) {
+function MarketCard({ data, index = 0 }: { data: HoyData; index?: number }) {
   const { careers, roles, onlySpanish } = data;
   return (
-    <Card id="hoy-mercado-titulo" testId="hoy-mercado" title="Tu mercado esta semana">
+    <Card id="hoy-mercado-titulo" testId="hoy-mercado" title="Tu mercado esta semana" index={index}>
       {roles.length === 0 ? (
         <EmptyState
           variant="inline"

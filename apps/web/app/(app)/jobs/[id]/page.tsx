@@ -44,6 +44,7 @@ import { requireUserId } from "@/lib/session";
 import { changeStatusAction, dismissDuplicateAction, humanScoreAction } from "./actions";
 import { AutoRefresh } from "../auto-refresh";
 import { ApplyButton } from "./apply-button";
+import { DetailMotion } from "./detail-motion";
 import { getSavedFormAnswers } from "./form-data";
 import { FormReview } from "./form-review";
 import { MergeButton } from "./merge-button";
@@ -141,7 +142,7 @@ export default async function JobDetailPage({
       : null;
 
   return (
-    <article className="flex flex-col gap-4">
+    <DetailMotion>
       <ReviewNav
         backHref={`/jobs${query}`}
         prevHref={around.prev ? `/jobs/${around.prev}${query}` : null}
@@ -662,7 +663,7 @@ export default async function JobDetailPage({
           <pre className="mt-2 whitespace-pre-wrap font-sans text-sm text-fg">{job.jdText}</pre>
         </details>
       ) : null}
-    </article>
+    </DetailMotion>
   );
 }
 
