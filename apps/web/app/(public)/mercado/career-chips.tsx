@@ -28,10 +28,10 @@ export function CareerChips({
               href={`${base}/${key}`}
               prefetch={false}
               aria-current={key === current ? "page" : undefined}
-              className={`inline-flex min-h-11 items-center rounded-full border px-3 text-sm ${
+              className={`inline-flex min-h-11 items-center rounded-full border px-3 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
                 key === current
-                  ? "border-zinc-900 bg-zinc-900 text-white"
-                  : "border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-100"
+                  ? "border-brand bg-brand text-brand-contrast"
+                  : "border-line-strong bg-surface text-fg hover:bg-surface-muted"
               }`}
             >
               {careerLabel(key)}

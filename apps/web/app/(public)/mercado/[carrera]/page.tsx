@@ -23,7 +23,8 @@ export function generateStaticParams() {
 
 type Props = { params: Promise<{ carrera: string }> };
 
-const SIBLING_LINK = "inline-flex min-h-11 items-center underline";
+const SIBLING_LINK =
+  "inline-flex min-h-11 items-center text-fg-muted underline underline-offset-2 hover:text-fg";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const role = careerFromSlug((await params).carrera);
@@ -73,20 +74,20 @@ export default async function CareerMarketPage({ params }: Props) {
         <p className="text-sm">
           <Link
             href="/mercado"
-            className="inline-flex min-h-11 items-center text-zinc-700 underline"
+            className="inline-flex min-h-11 items-center text-fg-muted underline underline-offset-2 hover:text-fg"
           >
             Todo el mercado
           </Link>
         </p>
-        <h1 className="text-3xl font-semibold">Qué piden las ofertas de {label}</h1>
+        <h1 className="text-3xl font-semibold text-fg">Qué piden las ofertas de {label}</h1>
       </header>
       <CareerMarket market={market} label={label} />
       {group && siblings.length ? (
         <section aria-labelledby="parecidas" className="flex flex-col gap-2">
-          <h2 id="parecidas" className="text-xl font-semibold">
+          <h2 id="parecidas" className="text-xl font-semibold text-fg">
             Carreras parecidas
           </h2>
-          <p className="text-sm text-zinc-700">Del mismo grupo: {group.label}.</p>
+          <p className="text-sm text-fg-muted">Del mismo grupo: {group.label}.</p>
           <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
             {siblings.map((r) => (
               <li key={r}>
@@ -99,17 +100,23 @@ export default async function CareerMarketPage({ params }: Props) {
         </section>
       ) : null}
       <section aria-labelledby="otras" className="flex flex-col gap-3">
-        <h2 id="otras" className="text-xl font-semibold">
+        <h2 id="otras" className="text-xl font-semibold text-fg">
           Cambiar de carrera
         </h2>
         <CareerChips base="/mercado" current={role} label="Cambiar de carrera" />
       </section>
-      <p className="flex flex-wrap items-center gap-x-2 text-sm text-zinc-700">
-        <Link href={`/ofertas/${role}`} className="inline-flex min-h-11 items-center underline">
+      <p className="flex flex-wrap items-center gap-x-2 text-sm text-fg-muted">
+        <Link
+          href={`/ofertas/${role}`}
+          className="inline-flex min-h-11 items-center underline underline-offset-2 hover:text-fg"
+        >
           Ver ofertas de muestra de {label}
         </Link>
         <span aria-hidden="true"> · </span>
-        <Link href="/acceso" className="inline-flex min-h-11 items-center underline">
+        <Link
+          href="/acceso"
+          className="inline-flex min-h-11 items-center underline underline-offset-2 hover:text-fg"
+        >
           Pedir acceso
         </Link>
       </p>
