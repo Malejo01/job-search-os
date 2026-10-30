@@ -52,3 +52,22 @@ describe("titleFit · relaciones internacionales", () => {
     expect(titleFit("Foreign Trade Data Specialist", "relaciones_internacionales")).toBe(2);
   });
 });
+
+describe("titleFit · categorías compartidas de las fuentes (C1-6)", () => {
+  it.each([
+    ["Accountant", "administracion_empresas", 0],
+    ["Financial Analyst", "administracion_empresas", 0],
+    ["Account Executive", "administracion_empresas", 0],
+    ["Business Development Representative", "administracion_empresas", 0],
+    ["Analista de Control de Gestión", "administracion_empresas", 2],
+    ["Operations Manager", "finanzas_contabilidad", 1],
+    ["Procurement Analyst", "finanzas_contabilidad", 0],
+    ["Account Executive", "marketing_digital", 0],
+    ["Sales Manager", "marketing_digital", 0],
+    ["SEO Specialist", "marketing_digital", 2],
+    ["Digital Marketing Manager", "marketing_digital", 2],
+    ["Marketing Specialist", "marketing_digital", 1],
+  ] as [string, RoleKey, number][])("%s · %s → %i", (title, role, fit) => {
+    expect(titleFit(title, role)).toBe(fit);
+  });
+});

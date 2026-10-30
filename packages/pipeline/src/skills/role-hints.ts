@@ -89,6 +89,9 @@ export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleK
     legal: ["abogacia"],
     "accounting-finance": ["finanzas_contabilidad"],
     copywriting: ["marketing_digital", "comunicacion"],
+    // A VERIFICAR con `pool:fetch jobicy --dry-run`: slugs que Jobicy usa para redes sociales.
+    smm: ["marketing_digital"],
+    "social-media-marketing": ["marketing_digital"],
     management: ["administracion_empresas"],
     business: ["administracion_empresas"],
     "admin-support": ["asistencia_operaciones"],
@@ -169,6 +172,10 @@ export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleK
     "sales-and-marketing": ["marketing_digital"],
     "remote-management-and-finance-jobs": MANAGEMENT_FINANCE,
     "management-and-finance": MANAGEMENT_FINANCE,
+    // A VERIFICAR con `pool:fetch wwr --dry-run`: otros nombres de categoría del feed.
+    "remote-copywriting-jobs": ["marketing_digital", "comunicacion"],
+    "remote-business-exec-management-jobs": ["administracion_empresas"],
+    "remote-finance-and-legal-jobs": ["finanzas_contabilidad", "abogacia"],
   },
 };
 
