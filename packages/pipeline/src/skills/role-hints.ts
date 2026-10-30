@@ -590,6 +590,19 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "impositiva",
     "auditora",
     "control de gestion",
+    // C1-3 (ADR-027). Nunca «sueldo» suelto: «sueldo + comisiones» es un aviso de ventas.
+    "liquidador de sueldos",
+    "liquidadora de sueldos",
+    "analista de sueldos",
+    "liquidacion de haberes",
+    "analista de costos",
+    "auditoria",
+    "control interno",
+    "creditos y cobranzas",
+    "cuentas corrientes",
+    "perito contable",
+    "analista impositivo",
+    "aml analyst",
   ],
   // Nunca "operations" ni "assistant" sueltos.
   asistencia_operaciones: [
@@ -737,6 +750,29 @@ export const TITLE_EXCLUSIONS: Partial<Record<RoleKey, readonly string[]>> = {
 };
 
 /**
+ * Exclusiones de un solo término (C1-3, ADR-027): la palabra anula únicamente esa frase del puesto,
+ * no toda la carrera. Sirve cuando un término es ambiguo ("auditor de calidad" no es contaduría) pero
+ * otros términos del mismo puesto son claros ("contador"). La clave es el término de `TITLE_TERMS`.
+ */
+export const TERM_EXCLUSIONS: Partial<
+  Record<RoleKey, Readonly<Record<string, readonly string[]>>>
+> = {
+  finanzas_contabilidad: termExclusions(
+    ["auditor", "auditora", "auditoria", "internal audit", "control interno"],
+    // Auditorías de calidad, de obra, de llamadas, de accesibilidad o médicas no son contables.
+    ["calidad", "quality", "iso", "obra", "higiene", "llamadas", "call", "accesibilidad", "medico"],
+  ),
+};
+
+/** Misma lista de exclusiones para varios términos. */
+function termExclusions(
+  terms: readonly string[],
+  words: readonly string[],
+): Record<string, readonly string[]> {
+  return Object.fromEntries(terms.map((t) => [t, words]));
+}
+
+/**
  * "Product engineer" es fullstack, salvo en manufactura, hardware o mecánica. La exclusión aplica
  * solo a este término: "Full Stack Engineer, Hardware Platform" sigue siendo fullstack.
  */
@@ -826,7 +862,10 @@ export function matchesRoleTitle(
 ): boolean {
   if ((TITLE_EXCLUSIONS[role] ?? []).some((w) => hasTerm(padded, w))) return false;
   if (role === "soporte_it" && matchesAiWithTechRole(padded)) return false;
-  if ([...TITLE_TERMS[role], ...extraTerms].some((term) => hasTerm(padded, term))) return true;
+  const termExclusions = TERM_EXCLUSIONS[role] ?? {};
+  const counts = (term: string) =>
+    hasTerm(padded, term) && !(termExclusions[term] ?? []).some((w) => hasTerm(padded, w));
+  if ([...TITLE_TERMS[role], ...extraTerms].some(counts)) return true;
   return (
     role === "fullstack" &&
     hasTerm(padded, PRODUCT_ENGINEER) &&

@@ -29,6 +29,7 @@ const chip = (id: string, label: string, terms: readonly string[] = []): RoleSpe
 export const ROLE_SPECIALTIES: Partial<Record<RoleKey, readonly RoleSpecialty[]>> = {
   finanzas_contabilidad: [
     chip("impuestos", "Impuestos", [
+      "analista impositivo",
       "tax analyst",
       "tax associate",
       "tax specialist",
@@ -36,7 +37,15 @@ export const ROLE_SPECIALTIES: Partial<Record<RoleKey, readonly RoleSpecialty[]>
       "impositivo",
       "impositiva",
     ]),
-    chip("sueldos", "Sueldos", ["payroll", "nomina", "liquidacion de sueldos"]),
+    chip("sueldos", "Sueldos", [
+      "payroll",
+      "nomina",
+      "liquidacion de sueldos",
+      "liquidador de sueldos",
+      "liquidadora de sueldos",
+      "analista de sueldos",
+      "liquidacion de haberes",
+    ]),
     chip("contabilidad_y_balances", "Contabilidad y balances", [
       "accountant",
       "accounting",
@@ -52,8 +61,14 @@ export const ROLE_SPECIALTIES: Partial<Record<RoleKey, readonly RoleSpecialty[]>
       "contabilidad",
       "facturacion",
     ]),
-    chip("auditoria", "Auditoría", ["auditor", "auditora", "internal audit"]),
-    chip("costos", "Costos"),
+    chip("auditoria", "Auditoría", [
+      "auditor",
+      "auditora",
+      "auditoria",
+      "internal audit",
+      "control interno",
+    ]),
+    chip("costos", "Costos", ["analista de costos"]),
     // Los títulos genéricos de finanzas (financial analyst, finanzas...) caen acá porque no hay un chip
     // «general»; no prometen FP&A.
     chip("presupuesto_y_control_de_gestion", "Presupuesto y control de gestión", [
@@ -85,9 +100,11 @@ export const ROLE_SPECIALTIES: Partial<Record<RoleKey, readonly RoleSpecialty[]>
       "ap ar",
       "cuentas por pagar",
       "cuentas por cobrar",
+      "creditos y cobranzas",
+      "cuentas corrientes",
     ]),
-    chip("prevencion_de_lavado_y_compliance", "Prevención de lavado y compliance"),
-    chip("concursos_y_pericias_judiciales", "Concursos y pericias judiciales"),
+    chip("prevencion_de_lavado_y_compliance", "Prevención de lavado y compliance", ["aml analyst"]),
+    chip("concursos_y_pericias_judiciales", "Concursos y pericias judiciales", ["perito contable"]),
     chip("sector_publico", "Sector público"),
   ],
   marketing_digital: [
