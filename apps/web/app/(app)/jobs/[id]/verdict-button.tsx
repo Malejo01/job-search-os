@@ -1,7 +1,6 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { useFormStatus } from "react-dom";
 
 /**
  * Botón con microinteracción de 👍/👎 en el detalle (N3-5).
@@ -19,16 +18,14 @@ export function VerdictButton({
   emoji: string;
   pressed: boolean;
 }) {
-  const { pending } = useFormStatus();
   const reduce = useReducedMotion();
   return (
     <motion.button
       type="submit"
       aria-label={name}
       aria-pressed={pressed}
-      disabled={pending}
       whileTap={reduce ? undefined : { scale: 0.95 }}
-      className={`flex min-h-[44px] min-w-[88px] items-center justify-center gap-2 rounded-control border-2 px-4 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-50 ${
+      className={`flex min-h-[44px] min-w-[88px] items-center justify-center gap-2 rounded-control border-2 px-4 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
         pressed
           ? "border-brand bg-brand text-brand-contrast"
           : "border-fg-subtle bg-surface text-fg hover:border-fg-muted"
