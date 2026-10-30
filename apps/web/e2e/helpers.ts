@@ -10,7 +10,7 @@ import { resolve } from "node:path";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { expect, type Locator, type Page } from "@playwright/test";
 // Import relativo directo, como global-setup: test-guard.ts no importa nada
-import { assertLocalTestDatabase } from "../../../packages/db/src/test-guard";
+import { assertLocalTestDatabase, assertLocalTestEnv } from "../../../packages/db/src/test-guard";
 import { TERMS_VERSION } from "../lib/terms";
 
 /** Credenciales del usuario seed local (pnpm db:seed --local con SEED_USER_EMAIL/PASSWORD). */
@@ -22,6 +22,8 @@ const ROOT = resolve(__dirname, "../../..");
 
 /** Conexión como dueño a la base local (Docker o el servicio de CI): solo para preparar datos. */
 const LOCAL_DATABASE_URL = "postgres://postgres:postgres@localhost:54322/jobsearch";
+/** Ídem como la app (rol jobsearch_app), el default de packages/db/src/env.ts. */
+const LOCAL_APP_DATABASE_URL = "postgres://jobsearch_app:jobsearch_app@localhost:54322/jobsearch";
 
 export function ownerDb() {
   const url = process.env.DATABASE_URL_LOCAL ?? LOCAL_DATABASE_URL;
@@ -32,6 +34,36 @@ export function ownerDb() {
     prepare: false,
   });
   return { db: drizzle(sql, { schema: s }), close: () => sql.end() };
+}
+
+/**
+ * Entorno para los procesos hijos que se conectan a la base (worker demo, compute-market.ts),
+ * con la misma guarda que `ownerDb()` antes de lanzar nada: si algo apunta afuera, lanza acá y el
+ * hijo no se crea. En el hijo, con destino local, `resolveDatabaseUrl` lee DATABASE_URL_LOCAL
+ * (dueño) o DATABASE_URL_APP_LOCAL (app); se fijan explícitas, igual que DB_TARGET, para que lo que
+ * resuelva el hijo sea exactamente lo validado. `loadLocalEnv()` (process.loadEnvFile) no pisa
+ * variables ya definidas, así que un `.env.local` no puede reemplazarlas. Después se valida el env
+ * entero del hijo: un DATABASE_URL o PGHOST remoto heredado también corta. Los errores son los de
+ * la guarda, sin imprimir URLs (pueden traer credenciales). `extra` no se tipa como ProcessEnv
+ * porque los tipos de Next exigen NODE_ENV, que ya viene de process.env.
+ */
+export function localChildEnv(extra: Record<string, string | undefined> = {}): NodeJS.ProcessEnv {
+  const ownerUrl = process.env.DATABASE_URL_LOCAL ?? LOCAL_DATABASE_URL;
+  const appUrl = process.env.DATABASE_URL_APP_LOCAL ?? LOCAL_APP_DATABASE_URL;
+  // Explícitas aunque assertLocalTestEnv también las mire: esa solo valida valores con forma de
+  // URL de Postgres, y una URL ilegible tiene que cortar igual
+  assertLocalTestDatabase(ownerUrl);
+  assertLocalTestDatabase(appUrl);
+  // Las fijadas van al final: `extra` no puede cambiar la base del hijo
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    ...extra,
+    DB_TARGET: "local",
+    DATABASE_URL_LOCAL: ownerUrl,
+    DATABASE_URL_APP_LOCAL: appUrl,
+  };
+  assertLocalTestEnv(env);
+  return env;
 }
 
 /** Cookie de «Ocultar» de la checklist «Primeros pasos» (ronda 49): el valor es el id del usuario. */
@@ -426,7 +458,8 @@ export function runDemoWorker(): string {
   return execSync("pnpm worker:evaluate --local --demo --limit 10", {
     cwd: ROOT,
     encoding: "utf8",
-    env: { ...process.env, LOG_LEVEL: "warn" },
+    // localChildEnv corre la guarda antes de execSync: si lanza, el hijo no se crea
+    env: localChildEnv({ LOG_LEVEL: "warn" }),
     timeout: 120_000,
   });
 }
