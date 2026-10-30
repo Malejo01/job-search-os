@@ -47,7 +47,10 @@ export default async function DemoProfilePage({ params }: Props) {
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-2">
         <p className="text-sm">
-          <Link href="/demo" className="inline-flex min-h-11 items-center text-zinc-700 underline">
+          <Link
+            href="/demo"
+            className="inline-flex min-h-11 items-center text-fg-muted underline underline-offset-2 hover:text-fg"
+          >
             Todos los perfiles
           </Link>
         </p>
@@ -55,11 +58,11 @@ export default async function DemoProfilePage({ params }: Props) {
         <div
           data-tour="demo:perfil"
           data-testid="demo-profile"
-          className="flex flex-col gap-1 rounded-md border border-zinc-200 bg-white p-4"
+          className="flex flex-col gap-1 rounded-card border border-line bg-surface p-4"
         >
-          <p className="text-xs font-semibold uppercase text-zinc-600">Perfil inventado</p>
-          <p className="text-sm text-zinc-800">{profile.tagline}</p>
-          <p className="text-sm text-zinc-700">
+          <p className="text-xs font-semibold uppercase text-fg-subtle">Perfil inventado</p>
+          <p className="text-sm text-fg">{profile.tagline}</p>
+          <p className="text-sm text-fg-muted">
             {`Inglés ${english} · ${years} ${years === 1 ? "año" : "años"} de experiencia · busca trabajo remoto`}
           </p>
         </div>
@@ -75,7 +78,7 @@ export default async function DemoProfilePage({ params }: Props) {
           Ofertas evaluadas
         </h2>
         {hasRows ? (
-          <p className="text-sm text-zinc-700">
+          <p className="text-sm text-fg-muted">
             Puntaje de 0 a 10: qué tan bien calza cada oferta con este perfil.
           </p>
         ) : null}
@@ -93,21 +96,24 @@ export default async function DemoProfilePage({ params }: Props) {
         ) : (
           <div
             data-testid="demo-preparando"
-            className="rounded-md border border-zinc-200 bg-white p-4 text-sm text-zinc-800"
+            className="rounded-card border border-line bg-surface p-4 text-sm text-fg"
           >
             <p>Estamos preparando la demo. Volvé en un rato.</p>
-            <Link href="/ofertas" className="inline-flex min-h-11 items-center underline">
+            <Link
+              href="/ofertas"
+              className="inline-flex min-h-11 items-center underline underline-offset-2 hover:text-fg"
+            >
               Mientras tanto, mirá las ofertas de muestra
             </Link>
           </div>
         )}
       </section>
 
-      <p className="text-sm text-zinc-700">
+      <p className="text-sm text-fg-muted">
         <Link
           href="/acceso"
           data-tour="demo:acceso"
-          className="inline-flex min-h-11 items-center underline"
+          className="inline-flex min-h-11 items-center underline underline-offset-2 hover:text-fg"
         >
           ¿Querés probarlo con tu perfil? Pedí acceso
         </Link>

@@ -35,7 +35,7 @@ const STEPS: readonly TourStep[] = [
 ];
 
 const OPENER =
-  "inline-flex min-h-11 items-center justify-center rounded-md bg-zinc-900 px-4 text-sm font-medium text-white";
+  "inline-flex min-h-11 items-center justify-center rounded-control bg-brand px-4 text-sm font-medium text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 export function Tour() {
   return (
