@@ -25,7 +25,7 @@ Antes de abrir un PR: `pnpm lint && pnpm typecheck && pnpm test`. Los tests de i
 
 ## Dataset de ejemplo y datos privados
 
-El repo es público y trae un **dataset de ejemplo**, a propósito: un golden de 36 ofertas con las empresas anonimizadas (Empresa A, B, C…; la misma letra para la misma empresa, así los pares de dedup y las expectativas del prefiltro siguen valiendo), más 4 avisos adversariales inventados, un perfil, unos criterios y unos niveles de skills genéricos (`packages/db/seeds/*.example.json`). Los casos de frontera que calibran el evaluador (disciplina, ubicación, modalidad, títulos, duplicados) se conservan; la situación laboral real del autor no está. Es una decisión de diseño, no un repo incompleto.
+El repo es público y trae un **dataset de ejemplo**, a propósito: un golden de 37 ofertas con las empresas anonimizadas (Empresa A, B, C…; la misma letra para la misma empresa, así los pares de dedup y las expectativas del prefiltro siguen valiendo), más 4 avisos adversariales inventados, un perfil, unos criterios y unos niveles de skills genéricos (`packages/db/seeds/*.example.json`). Los casos de frontera que calibran el evaluador (disciplina, ubicación, modalidad, títulos, duplicados) se conservan; la situación laboral real del autor no está. Es una decisión de diseño, no un repo incompleto.
 
 Los datos reales van en `fixtures-private/` (ignorado por git) con el mismo formato. Si existen, `pnpm db:seed` y `pnpm evals run` los usan; si no, caen al ejemplo. `loadFixture()` en `packages/db/src/fixtures.ts` es el único punto de decisión.
 

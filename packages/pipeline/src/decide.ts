@@ -10,6 +10,8 @@ import {
   type JobFacts,
 } from "./evaluator/job-facts";
 import { inferSeniorityFromTitle } from "./normalize/seniority";
+import { ISO_COUNTRY_CODES } from "./countries";
+import { allowsCountry, locationScope, placesIn } from "./pool/location-scope";
 import { RESIDENCY_FLAG } from "./prefilter/residency";
 import { englishIsNotAGap } from "./skills/english-gap";
 
@@ -28,6 +30,7 @@ import { englishIsNotAGap } from "./skills/english-gap";
  * | sin riesgos + score entre guardar y aplicar | guardar                |
  * | location_ok = "no" (país excluido)          | tope: guardar como máximo, aunque el score sea alto |
  * | flag residencia_exigida:<países> (prefiltro) | bloqueador duro → descartar; location_ok efectivo = "no" |
+ * | remoto limitado a un país que no es el de la persona (H-1) | bloqueador duro → descartar; location_ok efectivo = "no" |
  * | bloqueador de modalidad del modelo, modalidad aceptada | pasa a riesgos, no descarta (ronda 84) |
  */
 export type ActionThresholds = { personalizado: number; aplicar: number; guardar: number };
@@ -77,6 +80,21 @@ export type DecideContext = {
    * modelo (salario, jornada, seniority del título, idioma del aviso). Ausente = todo como antes.
    */
   jobFacts?: JobFacts;
+  /** País de la persona (ISO-2, `profiles.location_country`). Sin esto no se evalúa la regla de país. */
+  candidateCountry?: string | null;
+  /**
+   * Dónde dice el aviso que se puede trabajar. Con `candidateCountry`, un aviso remoto limitado a
+   * otros países es bloqueador (H-1). Ausente = todo como antes.
+   */
+  jobLocation?: JobLocation;
+};
+
+/** Datos de ubicación del aviso que usa la regla de país (todo opcional: lo que falta falla abierto). */
+export type JobLocation = {
+  modality?: string | null;
+  locationRaw?: string | null;
+  countriesAllowed?: readonly string[] | null;
+  jdText?: string | null;
 };
 
 export type Adjustment = { rule: string; delta: number; detail: string };
@@ -115,6 +133,57 @@ const FLAG_TO_RISK: Record<string, { text: string; already: RegExp }> = {
     already: /otra ciudad|ciudad distinta/i,
   },
 };
+
+/** Nombre del ajuste (sin delta) y prefijo del bloqueador de la regla de país (H-1). */
+export const COUNTRY_ONLY_RULE = "pais_excluido";
+export const COUNTRY_ONLY_BLOCKER = "aviso limitado a";
+
+/** Menciones de huso u horario: no son lugares, se sacan antes de leer qué lugares nombra una frase. */
+const TZ_WORDS =
+  /\b(?:time ?zones?|tz|hours|overlap(?:ping)?|est|edt|pst|pdt|cst|cdt|mst|mdt|gmt|utc)\b/gi;
+const MAX_LOCATION_TEXT = 20_000;
+const ISO_CODES: ReadonlySet<string> = new Set(ISO_COUNTRY_CODES);
+/** «Desde cualquier lugar»: el aviso no se limita a un país, aunque otra parte nombre uno. */
+const ANYWHERE_TEXT =
+  /\b(?:work(?:ing)?\s+from\s+anywhere|from\s+anywhere|anywhere|any\s+(?:country|location)|all\s+countries|all\s+time\s*zones)\b/i;
+
+/** ¿Alguna frase del texto nombra el país de la persona o una región que lo incluye? */
+function textAcceptsCountry(text: string | null | undefined, country: string): boolean {
+  if (!text) return false;
+  for (const sentence of text.slice(0, MAX_LOCATION_TEXT).split(/[.\n;!?]+/)) {
+    const places = placesIn(sentence.replace(TZ_WORDS, " "));
+    if (places && allowsCountry({ kind: "places", ...places }, country)) return true;
+  }
+  return false;
+}
+
+/**
+ * Regla de país (H-1): un aviso REMOTO limitado a países entre los que no está el de la persona.
+ * Devuelve los lugares a los que se limita, o `null`. Falla abierto ante cualquier duda: sin país de
+ * la persona, modalidad no remota, ubicación que no se entiende, o un texto del aviso (ubicación o
+ * JD) que nombra su país o una región que lo incluye ("LATAM", "worldwide") → no bloquea.
+ */
+export function countryOnlyPlaces(
+  candidateCountry: string | null | undefined,
+  job: JobLocation | undefined,
+): string | null {
+  const country = candidateCountry?.trim().toUpperCase();
+  if (!country || !/^[A-Z]{2}$/.test(country) || !job || job.modality !== "remoto") return null;
+  const listed = (job.countriesAllowed ?? []).some((c) => c.trim());
+  // Sin lista de países, la ubicación tiene que decir que es remoto: en las fuentes ATS suele ser la
+  // sede u oficina, y eso no limita desde dónde se puede trabajar.
+  if (!listed && !/remot/i.test(job.locationRaw ?? "")) return null;
+  const scope = locationScope(job.locationRaw, job.countriesAllowed);
+  if (scope.kind !== "places" || allowsCountry(scope, country)) return null;
+  // Un código que no es un país asignado ("WW", "EU", "XX") no se interpreta: falla abierto
+  if (scope.countries.some((c) => !ISO_CODES.has(c))) return null;
+  if (ANYWHERE_TEXT.test(job.locationRaw ?? "") || ANYWHERE_TEXT.test(job.jdText ?? ""))
+    return null;
+  if (textAcceptsCountry(job.locationRaw, country) || textAcceptsCountry(job.jdText, country)) {
+    return null;
+  }
+  return [...scope.countries, ...scope.regions].join(", ");
+}
 
 const RANGE_RISK = "el rango salarial empieza abajo de tu piso";
 const LOCAL_RISK = "salario en USD pagado en moneda local";
@@ -498,6 +567,25 @@ export function decide(
       rule: "residencia_exigida",
       delta: 0,
       detail: `el aviso exige residir en ${places}`,
+    });
+    locationOk = "no";
+  }
+
+  /**
+   * Aviso remoto limitado a otro país (H-1): "Remote (Canada)", lista de países sin el de la
+   * persona. Es bloqueador y no solo riesgo, salvo que el aviso diga que acepta su país o su región
+   * (`countryOnlyPlaces` falla abierto). Va después de la residencia exigida, que ya cubre el caso
+   * de la frase literal, para no duplicar el bloqueador.
+   */
+  const onlyPlaces = countryOnlyPlaces(context.candidateCountry, context.jobLocation);
+  if (onlyPlaces && !residencyFlag) {
+    if (!bloqueadores.some((b) => /pa[ií]s|residen|ubicaci/i.test(b))) {
+      bloqueadores.push(`${COUNTRY_ONLY_BLOCKER} ${onlyPlaces} (no incluye tu país)`);
+    }
+    adjustments.push({
+      rule: COUNTRY_ONLY_RULE,
+      delta: 0,
+      detail: `el aviso remoto se limita a ${onlyPlaces}`,
     });
     locationOk = "no";
   }

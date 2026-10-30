@@ -287,6 +287,14 @@ export async function evaluateForProfile(
     candidateYearsTotal: profile.yearsTotal,
     acceptedModalities,
     jobFacts,
+    // Regla de país (H-1): remoto limitado a otro país es bloqueador, salvo que acepte el suyo
+    candidateCountry: profile.locationCountry,
+    jobLocation: {
+      modality: job.modality,
+      locationRaw: job.locationRaw,
+      countriesAllowed: job.countriesAllowed,
+      jdText: job.jdText,
+    },
   });
   // El checklist solo explica: si falla, la evaluación se guarda igual, sin la clave `checklist`.
   // Se loguea sin datos (el error de la base puede citar la consulta y el aviso).
