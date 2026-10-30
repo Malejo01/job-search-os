@@ -39,13 +39,13 @@ Además, una carrera de estas es muy ancha. «Contaduría» abarca sueldos, impu
    - En comunicación, «redes» no se excluye suelto (lo usan «redes sociales»): se excluyen «redes de datos», «redes de comunicaciones», «redes ip» y «redes móviles».
    - «Relaciones institucionales» y «public affairs» suman hint a marketing y a relaciones internacionales; compliance suma a abogacía (compliance officer) y a contaduría (AML analyst); prensa, a comunicación y a marketing (PR); control de gestión, a contaduría y a administración. Ninguna de esas áreas veta.
 
-7. **Prefiltro:**
+7. **Prefiltro** (carril rojo):
    - «abogad» deja de descartar para quien eligió `abogacia`, y «administrativ» también para `administracion_empresas` (`exemptFor`);
-   - los títulos propios del oficio que dicen «manager» (Brand Manager, Assistant Brand Manager, PR Manager, Communications Manager y Legal Manager) entran a `ROLE_OWN_TITLE_PHRASES`;
-   - regla de multinivel para todas las carreras: «sé tu propio jefe», «oportunidad de negocio», «ingresos extra» y «emprendedor/a independiente» descartan. Es el ruido típico de las categorías no técnicas;
-   - licencias (`licensing.ts`): «cpacf» y «colegio de abogados» son alias de Argentina.
-   - El golden y el adversarial no pueden cambiar de resultado.
-8. **Fuentes:** `SOURCE_CATEGORY_ROLES` mapea las categorías no técnicas de Jobicy (legal, accounting-finance, marketing, copywriting, management, business, project-management, admin-support) y de WWR (`remote-sales-and-marketing-jobs`, `remote-management-and-finance-jobs`). Va al revés de lo que parece en un caso: la categoría `admin` de Jobicy es DevOps y no se mapea. El adapter que las pide es de otro ticket.
+   - Brand Manager, Assistant Brand Manager, PR Manager y Communications Manager (marketing), Communications Manager y PR Manager (comunicación) y Legal Manager (abogacía) entran a `ROLE_OWN_TITLE_PHRASES`. Liberan solo «manager»; «Head of», «Director» y «Lead» siguen bloqueando;
+   - **multinivel para todas las carreras:** en el título descarta una frase («sé/ser tu propio jefe», «oportunidad de negocio», «ingresos/ganancias extra», «emprendedor/a independiente», «multinivel», «network marketing»...). En el texto del aviso hace falta una frase de núcleo (el eslogan, multinivel, network marketing) más otra, o cuatro distintas: «oportunidad de negocio» e «ingresos extra» aparecen en avisos comerciales normales. Un título de tecnología no se descarta por el texto. Usa la razón `disciplina_distinta` con un mensaje propio;
+   - licencias (`licensing.ts`): «cpacf» y los colegios públicos de abogados de Buenos Aires son alias de Argentina. «Colegio de abogados» a secas no: hay uno en cada país;
+   - el golden y el adversarial no cambian de resultado (probado y con test permanente).
+8. **Fuentes:** `SOURCE_CATEGORY_ROLES` mapea las categorías no técnicas de Jobicy (`legal`, `accounting-finance`, `marketing`, `copywriting`, `management`, `business`, `project-management`, `admin-support`) y de WWR (`remote-sales-and-marketing-jobs`, `remote-management-and-finance-jobs`). La categoría `admin` de Jobicy es DevOps y no se mapea. Como esas categorías juntan carreras, `title-fit.ts` suma vetos cruzados: administración y contaduría se vetan entre sí, administración veta ventas, y marketing veta ventas. El adapter que pide las categorías es de otro PR.
 9. **Skills:** 8 a 12 por carrera nueva en `role_skills.json`, con la regla de ADR-023: dos skills no comparten término, así que las skills que ya existen se reutilizan en vez de duplicarse.
 
 ## Datos y orden de aplicación
