@@ -801,6 +801,88 @@ describe("prefilter: reglas una por una", () => {
       expect(risk("Work from anywhere", "ES")).toBe(false);
       expect(risk("Remote", "ES", ["ES"])).toBe(false);
     });
+
+    describe("países fuera de la región (N4-2)", () => {
+      it("perfil ES: una ubicación que nombra España no marca; Europa sí", () => {
+        expect(risk("Remote - Spain", "ES")).toBe(false);
+        expect(risk("Remoto, España", "ES")).toBe(false);
+        // FOREIGN_REGION no sabe que España está en Europa: queda con riesgo, el lado seguro
+        expect(risk("Remote - Europe", "ES")).toBe(true);
+      });
+
+      it("perfil US: su país o una ciudad suya no marcan; Canadá sí", () => {
+        expect(risk("Remote - United States", "US")).toBe(false);
+        expect(risk("San Francisco, CA", "US")).toBe(false);
+        expect(risk("Remote - Canada", "US")).toBe(true);
+      });
+
+      it("perfil CA: 'Remote (Canada)' no marca", () => {
+        expect(risk("Remote (Canada)", "CA")).toBe(false);
+      });
+
+      it("perfil AR explícito: un país de fuera de la región sin Argentina marca", () => {
+        expect(risk("Madrid, Spain", "AR")).toBe(true);
+        expect(risk("Bangalore, India", "AR")).toBe(true);
+        expect(risk("Buenos Aires, Argentina", "AR")).toBe(false);
+        expect(risk("Argentina or Spain", "AR")).toBe(false);
+      });
+
+      it("perfil AR explícito: lo que no nombra países sigue como hoy", () => {
+        expect(risk("Remote", "AR")).toBe(true);
+        expect(risk("LATAM", "AR")).toBe(true);
+        expect(risk("Buenos Aires", "AR")).toBe(false);
+        // "india" no matchea dentro de "Indiana": palabra entera
+        expect(risk("Indiana", "AR")).toBe(false);
+        expect(risk("Ciudad Ejemplo (remoto)", "AR")).toBe(true);
+      });
+
+      it("sin userCountry (evals) no cambia: 'Madrid, Spain' sigue sin riesgo", () => {
+        expect(risk("Madrid, Spain")).toBe(false);
+        expect(risk("Bangalore, India")).toBe(false);
+      });
+
+      it("perfil US: el 'US' de un huso u horario no es mención del país", () => {
+        expect(risk("Remote - LATAM (US hours)", "US")).toBe(true);
+        expect(risk("Brazil (US time zone)", "US")).toBe(true);
+        expect(risk("Remote - Brazil, overlap with US", "US")).toBe(true);
+      });
+
+      it("perfil US: un lugar que nombra un país de la región o 'Baja California' marca", () => {
+        expect(risk("Tijuana, Baja California, México", "US")).toBe(true);
+        expect(risk("San Francisco, Córdoba, Argentina", "US")).toBe(true);
+        expect(risk("Remote - Baja California", "US")).toBe(true);
+        // Lado seguro: si también nombra un país de la región, no cuenta como mención del suyo
+        expect(risk("US or Mexico", "US")).toBe(true);
+      });
+
+      it("GB e IE: 'New England', 'New South Wales' y 'Northern Ireland' no son su país", () => {
+        expect(risk("Remote - New England", "GB")).toBe(true);
+        expect(risk("Sydney, New South Wales, Australia", "GB")).toBe(true);
+        expect(risk("Belfast, Northern Ireland", "IE")).toBe(true);
+        expect(risk("London, England", "GB")).toBe(false);
+        expect(risk("Dublin, Ireland", "IE")).toBe(false);
+      });
+
+      it("perfil AR explícito: 'San Francisco, Córdoba' sin Argentina marca (la ciudad es US)", () => {
+        // Falso positivo conocido: San Francisco también es una ciudad de Córdoba. Con el país
+        // escrito no marca.
+        expect(risk("San Francisco, Córdoba", "AR")).toBe(true);
+        expect(risk("San Francisco, Córdoba, Argentina", "AR")).toBe(false);
+      });
+
+      it("'San Francisco de …' no es la ciudad de EE.UU.", () => {
+        expect(risk("San Francisco de Macorís", "DO")).toBe(false);
+        expect(risk("San Francisco de Quito", "EC")).toBe(false);
+        expect(risk("San Francisco de Quito, Ecuador", "US")).toBe(true);
+        expect(risk("San Francisco, CA", "US")).toBe(false);
+      });
+
+      it("perfil MX: 'New Mexico' marca porque nombra EE.UU.", () => {
+        expect(risk("New Mexico", "MX")).toBe(true);
+        expect(risk("Albuquerque, New Mexico", "MX")).toBe(true);
+        expect(risk("Ciudad de México", "MX")).toBe(false);
+      });
+    });
   });
 
   it("candidatos ≥ 100 → flag many_candidates, no descarta", () => {

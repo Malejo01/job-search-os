@@ -1,5 +1,10 @@
 import type { CriteriaRules } from "../criteria";
-import { countriesMentioned, mentionsCountry } from "../normalize/location";
+import {
+  countriesMentioned,
+  countryNames,
+  mentionsCountry,
+  mentionsTimeZone,
+} from "../normalize/location";
 import { foldText } from "../normalize/text";
 import { detectProfessionalLicense, LICENSE_FLAG } from "./licensing";
 import { detectResidencyRestriction, RESIDENCY_FLAG } from "./residency";
@@ -335,6 +340,25 @@ const containsKeyword = (text: string, keywords: readonly string[]): string | nu
   return null;
 };
 
+/**
+ * ¿La ubicación (ya pasada por foldText) nombra el país de la persona? Sin fallback por código
+ * (JS-111). Un país de la región, por prefijo como antes: los gentilicios cuentan. Uno de fuera
+ * (N4-2), por sus nombres y palabra entera ("Remote - Spain" para un perfil ES), y solo si la
+ * ubicación no habla de huso u horario (el "US" de "US hours" no es el país) ni nombra un país de la
+ * región ("San Francisco, Córdoba, Argentina", "US or Mexico"): ante la duda no cuenta y la
+ * restricción queda con riesgo. Un país que no está en ninguna tabla nunca cuenta.
+ */
+function locationNamesUserCountry(location: string, userCountry: string): boolean {
+  if (countryNames(userCountry).length) {
+    return mentionsCountry(location, userCountry, { wholeWord: false });
+  }
+  return (
+    mentionsCountry(location, userCountry, { outsideRegion: true }) &&
+    !mentionsTimeZone(location) &&
+    !countriesMentioned(location).length
+  );
+}
+
 export function prefilter(
   input: PrefilterInput,
   rules: CriteriaRules,
@@ -517,11 +541,7 @@ export function prefilter(
   //    La regla por texto de región ajena solo suma el flag, igual que el resto. El huso horario
   //    de EE.UU. es riesgo de horario, no de ubicación: no va acá.
   const countries = input.countriesAllowed?.map((c) => c.toUpperCase()) ?? null;
-  // Sin fallback por código (JS-111): un país fuera de la tabla no cuenta como mencionado, así que
-  // una restricción de ubicación queda con riesgo. Por prefijo, como antes: los gentilicios cuentan.
-  const mentionsUser = userCountry
-    ? mentionsCountry(location, userCountry, { wholeWord: false })
-    : false;
+  const mentionsUser = userCountry ? locationNamesUserCountry(location, userCountry) : false;
   let locationRisk = false;
   if (countries?.length) {
     locationRisk =
@@ -533,8 +553,13 @@ export function prefilter(
     }
     // "US-based", "Americas", "EMEA": región o país ajeno sin el del candidato
     if (FOREIGN_REGION.test(location) && !mentionsUser) locationRisk = true;
-    // País de la región que no es el del candidato ("Argentina only" para un perfil MX)
-    if (explicitCountry && !mentionsUser && countriesMentioned(location).length)
+    // País que no es el del candidato: de la región ("Argentina only" para un perfil MX) o de
+    // fuera, por palabra entera (N4-2: "Madrid, Spain" para un perfil AR, "New Mexico" para uno MX).
+    if (
+      explicitCountry &&
+      !mentionsUser &&
+      countriesMentioned(location, { outsideRegion: true }).length
+    )
       locationRisk = true;
   }
   if (locationRisk) flags.push("location_risk");
