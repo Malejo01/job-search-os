@@ -35,19 +35,32 @@ describe("claves y grupos", () => {
     expect(ROLE_KEYS.slice(20, 22)).toEqual(["finanzas_contabilidad", "asistencia_operaciones"]);
   });
 
-  it("dos grupos nuevos al final del selector, sin mover las carreras que ya estaban", () => {
+  it("dos grupos nuevos al final del selector, con las carreras de la beta y las migradas (G2-1)", () => {
     expect(ROLE_GROUPS.slice(-2)).toEqual([
-      { label: "Derecho, contabilidad y gestión", roles: ["abogacia", "administracion_empresas"] },
-      { label: "Comunicación y relaciones", roles: ["comunicacion", "relaciones_internacionales"] },
+      {
+        label: "Derecho, contabilidad y gestión",
+        roles: ["abogacia", "finanzas_contabilidad", "administracion_empresas"],
+      },
+      {
+        label: "Comunicación y relaciones",
+        roles: ["marketing_digital", "comunicacion", "relaciones_internacionales"],
+      },
     ]);
-    expect(LEGAL_MANAGEMENT_ROLE_KEYS).toEqual(["abogacia", "administracion_empresas"]);
-    expect(COMMUNICATION_ROLE_KEYS).toEqual(["comunicacion", "relaciones_internacionales"]);
-    const flat = (label: string) => ROLE_GROUPS.find((g) => g.label === label)!.roles;
-    expect(flat("Finanzas y operaciones")).toEqual([
+    expect(LEGAL_MANAGEMENT_ROLE_KEYS).toEqual([
+      "abogacia",
       "finanzas_contabilidad",
-      "asistencia_operaciones",
+      "administracion_empresas",
     ]);
-    expect(flat("Carreras digitales")).toContain("marketing_digital");
+    expect(COMMUNICATION_ROLE_KEYS).toEqual([
+      "marketing_digital",
+      "comunicacion",
+      "relaciones_internacionales",
+    ]);
+    const flat = (label: string) => ROLE_GROUPS.find((g) => g.label === label)!.roles;
+    expect(flat("Finanzas y operaciones")).toEqual(["asistencia_operaciones"]);
+    expect(flat("Carreras digitales")).not.toContain("marketing_digital");
+    expect(flat("Derecho, contabilidad y gestión")).toContain("finanzas_contabilidad");
+    expect(flat("Comunicación y relaciones")).toContain("marketing_digital");
   });
 
   it("salen sin listar hasta medir volumen (ADR-022 §7), pero las conserva quien las tiene", () => {
@@ -58,8 +71,9 @@ describe("claves y grupos", () => {
       expect(ids([k])).toContain(k);
     }
     const labels = selectableRoleGroups().map((g) => g.label);
-    expect(labels).not.toContain("Derecho, contabilidad y gestión");
-    expect(labels).not.toContain("Comunicación y relaciones");
+    expect(labels).toContain("Derecho, contabilidad y gestión");
+    expect(labels).toContain("Comunicación y relaciones");
+    expect(labels).not.toContain("Finanzas y operaciones");
   });
 });
 
