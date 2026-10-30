@@ -19,20 +19,20 @@ export default async function OfertasPage() {
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-2">
-        <h1 className="text-3xl font-semibold">Ofertas de muestra</h1>
-        <p className="max-w-2xl text-base text-zinc-700">
+        <h1 className="text-3xl font-semibold text-fg">Ofertas de muestra</h1>
+        <p className="max-w-2xl text-base text-fg-muted">
           Las ofertas más recientes del pool, de fuentes públicas. Cada una lleva el link al aviso
           original.
         </p>
       </header>
       <section aria-labelledby="carreras" className="flex flex-col gap-3">
-        <h2 id="carreras" className="text-xl font-semibold">
+        <h2 id="carreras" className="text-xl font-semibold text-fg">
           Por carrera
         </h2>
         <CareerChips base="/ofertas" label="Carreras" />
       </section>
       <section aria-labelledby="lista" className="flex flex-col gap-3">
-        <h2 id="lista" className="text-xl font-semibold">
+        <h2 id="lista" className="text-xl font-semibold text-fg">
           Más recientes
         </h2>
         <OffersList cards={cards} contact={contactLink("Retirar un aviso")} />

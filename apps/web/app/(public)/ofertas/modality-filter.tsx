@@ -32,7 +32,7 @@ export function ModalityFilter({ listId }: { listId: string }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <p id={`${listId}-filtro`} className="text-sm font-semibold">
+      <p id={`${listId}-filtro`} className="text-sm font-semibold text-fg">
         Modalidad
       </p>
       <div role="group" aria-labelledby={`${listId}-filtro`} className="flex flex-wrap gap-2">
@@ -42,17 +42,17 @@ export function ModalityFilter({ listId }: { listId: string }) {
             type="button"
             aria-pressed={value === key}
             onClick={() => choose(key)}
-            className={`inline-flex min-h-11 items-center rounded-full border px-3 text-sm ${
+            className={`inline-flex min-h-11 items-center rounded-full border px-3 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
               value === key
-                ? "border-zinc-900 bg-zinc-900 text-white"
-                : "border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-100"
+                ? "border-brand bg-brand text-brand-contrast"
+                : "border-line-strong bg-surface text-fg hover:bg-surface-muted"
             }`}
           >
             {label}
           </button>
         ))}
       </div>
-      <p role="status" className="text-xs text-zinc-600">
+      <p role="status" className="text-xs text-fg-subtle">
         {shown === null
           ? null
           : shown === 0
