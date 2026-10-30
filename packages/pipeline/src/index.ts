@@ -46,6 +46,8 @@ export * from "./beta-metrics";
 export * from "./founder-seats";
 export * from "./trust";
 export * from "./first-steps";
+// N4-4: en el medio y no al final, para no chocar con los export que agregan otras ramas
+export * from "./job-priority";
 export * from "./first-ingest";
 export * from "./demo";
 export * from "./cv";

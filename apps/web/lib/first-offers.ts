@@ -1,4 +1,5 @@
 import { schema as s } from "@job-search-os/db";
+import { compareJobPriority } from "@job-search-os/pipeline";
 import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { withUser } from "./db";
 import { preScoresFor } from "./prescore";
@@ -75,11 +76,13 @@ export async function listFirstOffers(
 ): Promise<FirstOffer[]> {
   const take = Math.max(1, Math.min(limit, FIRST_OFFERS_LIMIT));
   return withUser(userId, async (tx) => {
-    // Última evaluación por oferta (la que manda para el score)
+    // Última evaluación por oferta (la que manda para el score y para bloqueadores/riesgos)
     const latest = tx
       .selectDistinctOn([s.evaluations.jobId], {
         jobId: s.evaluations.jobId,
         score: s.evaluations.score,
+        bloqueadores: s.evaluations.bloqueadoresDuros,
+        riesgos: s.evaluations.riesgos,
       })
       .from(s.evaluations)
       .orderBy(s.evaluations.jobId, desc(s.evaluations.createdAt))
@@ -107,6 +110,8 @@ export async function listFirstOffers(
         sourceName: source.sourceName,
         sourceUrl: source.url,
         score: latest.score,
+        bloqueadores: latest.bloqueadores,
+        riesgos: latest.riesgos,
         evaluating: evaluatingSql(),
         firstSeenAt: s.jobs.firstSeenAt,
         postedAt: s.jobs.postedAt,
@@ -128,12 +133,18 @@ export async function listFirstOffers(
       pending.map((r) => ({ id: r.id, flags: r.flags ?? [], salaryMaxUsd: r.salaryMaxUsd })),
     );
     const time = (d: Date | null) => d?.getTime() ?? 0;
-    // Evaluadas por score; después las demás por pre-score; después las más recientes; id al final
+    const priority = (r: (typeof rows)[number]) => ({
+      score: r.score,
+      blockers: r.bloqueadores?.length ?? 0,
+      risks: r.riesgos?.length ?? 0,
+    });
+    // Evaluadas con la regla de pipeline (N4-4: score; a igual score, menos bloqueadores y después
+    // menos riesgos); las no evaluadas empatan ahí (sin score, conteos 0) y siguen por pre-score;
+    // después las más recientes; id al final
     const ordered = [...rows]
       .sort(
         (a, b) =>
-          (a.score === null ? 1 : 0) - (b.score === null ? 1 : 0) ||
-          (b.score ?? 0) - (a.score ?? 0) ||
+          compareJobPriority(priority(a), priority(b)) ||
           (pre.get(b.id)?.score ?? 0) - (pre.get(a.id)?.score ?? 0) ||
           time(b.postedAt) - time(a.postedAt) ||
           (a.id < b.id ? -1 : 1),
