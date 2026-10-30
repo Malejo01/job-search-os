@@ -40,6 +40,7 @@ const expectedByGoldenId: Record<number, string> = {
   34: "ai engineer",
   35: "genai creator",
   36: "software developer",
+  37: "data analyst",
 };
 
 const jaccard = (a: string[], b: string[]) => {
@@ -56,8 +57,8 @@ describe("normalizeTitle", () => {
     expect(normalizeTitle(titulo)).toBe(expectedByGoldenId[id]);
   });
 
-  it("cubre los 36 jobs del golden", () => {
-    expect(Object.keys(expectedByGoldenId)).toHaveLength(36);
+  it("cubre los 37 jobs del golden", () => {
+    expect(Object.keys(expectedByGoldenId)).toHaveLength(37);
   });
 
   it("titleTokens devuelve tokens únicos en orden de aparición", () => {

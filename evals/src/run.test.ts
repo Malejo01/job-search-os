@@ -112,7 +112,7 @@ describe("runEvals: subset y presupuesto", () => {
       outDir: "",
       client: fake(),
     });
-    expect(forced.jobs).toHaveLength(40);
+    expect(forced.jobs).toHaveLength(41);
     await expect(
       runEvals({
         prompt: "evaluate_job@v1.1",
@@ -135,7 +135,7 @@ describe("runEvals: guardarraíles de costo", () => {
     expect(e.tokensOutPerCall).toBe(measured.out);
     expect(e.source).toContain("medido");
     expect(e.usd).toBeCloseTo((20 * (measured.in * 1.5 + measured.out * 9)) / 1e6, 9);
-    expect(estimateRunCost({ runs: 3 }).calls).toBe(120);
+    expect(estimateRunCost({ runs: 3 }).calls).toBe(123);
     // Sin medición para ese thinking: supuesto conservador (el caso caro), y lo dice
     const high = estimateRunCost({
       subset: true,
@@ -509,7 +509,7 @@ describe("evaluate_job@v1.4.0 sin LLM (ronda 43)", () => {
       expect(String(call.vars.job)).toContain("<<<AVISO>>>");
     }
     // El resto de los jobs sigue viendo el aviso delimitado solo con v1.4+
-    expect(goldenJobs.length).toBe(40);
+    expect(goldenJobs.length).toBe(41);
   });
 });
 
