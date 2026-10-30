@@ -365,7 +365,7 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 ## Bloque 6 — Plataforma (después)
 
 ### JS-054 · Orden de prioridad en la lista: score y despues riesgos ✅ done 2026-10-27
-`deps:` JS-052 · `est:` 1 h · `estado:` done (nube N2, PR #252, mergeado 2026-10-27): `listJobs` desempata por cantidad de riesgos a igual score; lo heredan siguiente/anterior, «Lo nuevo» de `/hoy` y `list_jobs` del MCP. e2e `86-orden-por-riesgos`. `first-offers.ts` y `first-steps.ts` siguen sin mirar riesgos
+`deps:` JS-052 · `est:` 1 h · `estado:` done (nube N2, PR #252, mergeado 2026-10-27): `listJobs` desempata por cantidad de riesgos a igual score; lo heredan siguiente/anterior, «Lo nuevo» de `/hoy` y `list_jobs` del MCP. e2e `86-orden-por-riesgos`. `first-offers.ts` y `first-steps.ts` siguen sin mirar riesgos. Seguimiento nube N4 (PR #271, abierto, 2026-10-30): regla única `compareJobPriority` en pipeline (score; a igual score, menos bloqueadores y después menos riesgos) en `first-offers`, `first-steps` y `listJobs`
 - Con las penalizaciones de `decide()` corregidas (JS-052), los riesgos pasan a ser el unico canal de viabilidad: dos ofertas con el mismo score ya no se diferencian por el score.
 - Ordenar la lista por score descendente y, dentro de cada score, por cantidad de riesgos ascendente (menos riesgos primero).
 - **Acepta:** dos ofertas con score 7, una con 1 riesgo y otra con 3, salen en ese orden; el orden es estable y se testea sin LLM.
@@ -546,7 +546,7 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Acepta:** test de integracion con dos consumos concurrentes del mismo token: uno gana, el otro recibe "used".
 
 ### JS-078 · El barrido `--pre-push` informa cuando pasa ✅ done 2026-10-27
-`deps:` JS-063 · `est:` S · `estado:` done (nube N2, PR #251, mergeado 2026-10-27). Hallazgo previo anotado en el PR: el separador `\x1e` de `scanHistory` deja sin revisar el resto de un archivo que contenga ese byte (falla abierto); va en un ticket aparte
+`deps:` JS-063 · `est:` S · `estado:` done (nube N2, PR #251, mergeado 2026-10-27). Hallazgo previo anotado en el PR: el separador `\x1e` de `scanHistory` deja sin revisar el resto de un archivo que contenga ese byte (falla abierto); va en un ticket aparte. Seguimiento nube N4 (PR #275, abierto, 2026-10-30, carril rojo): el barrido falla cerrado (separador con nonce validado, merges con `--remerge-diff`, opciones de diff fijas, errores y archivos ilegibles marcados, informe sin citar patrones). Requiere git ≥ 2.36
 - **Por que:** cuando no encuentra nada, `scripts/privacy-scan.mjs --pre-push` no imprime nada, asi que no se distingue "paso" de "no corrio".
 - **Que:** imprimir `pre-push: OK (N commits)` al pasar.
 - **Acepta:** test por CLI con un repo temporal que verifica el mensaje y el conteo; con hallazgos, el mensaje de error no cambia.
@@ -667,7 +667,7 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - La respuesta lleva solo conteos y errores por categoria cerrada (`llm`, `validacion`, `otro`); el detalle va a pino con `job_id`. Test de que un error con email, uuid o texto de la base no aparece.
 
 ### JS-111 · Prefiltro: colisiones de nombres de pais y paises fuera de la region ✅ done 2026-10-27
-`deps:` JS-104 · `est:` S · `estado:` done (nube N2, PR #244, mergeado 2026-10-27): tabla única `REGION_COUNTRIES`, «New Mexico» no es MX, fallback por código eliminado (sí era alcanzable). Queda abierto: países fuera de la región sin «remote» («Madrid, Spain») y perfiles de fuera de la región que nombran su país
+`deps:` JS-104 · `est:` S · `estado:` done (nube N2, PR #244, mergeado 2026-10-27): tabla única `REGION_COUNTRIES`, «New Mexico» no es MX, fallback por código eliminado (sí era alcanzable). Queda abierto: países fuera de la región sin «remote» («Madrid, Spain») y perfiles de fuera de la región que nombran su país. Seguimiento nube N4 (PR #273, abierto, 2026-10-30, carril rojo): los dos casos, con país explícito; sin `userCountry` (evals) no cambia y el golden da 0 diferencias
 - "New Mexico" cuenta como mencion de Mexico: para un perfil MX una oferta de EE.UU. pasa sin riesgo de ubicacion. `COUNTRY_NAMES` (`normalize/location.ts`) duplica `COUNTRY_OPTIONS` del onboarding y el fallback por codigo es inalcanzable hoy. Paises fuera de la region ("Spain only") no se detectan.
 - **Acepta:** test con "New Mexico"; test que compare las dos tablas (o una sola tabla); fallback eliminado.
 
@@ -758,7 +758,7 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - Hallazgo de severidad baja de la revision de la ronda 26 (detalle en las notas privadas de la ronda). La UI ya pide confirmar solo si la cuenta es propia.
 
 ### JS-128 · Guarda de host en la conexion de duenio de los helpers de e2e ✅ done 2026-10-27
-`deps:` — · `est:` XS · `estado:` done (nube N2, PR #247, mergeado 2026-10-27): la guarda ya estaba en `ownerDb()`; el spec `85-guarda-helpers` lo prueba. Fuera de alcance: `runDemoWorker` y `computeRoleMarketAndPlan` abren conexión en procesos hijos sin la guarda
+`deps:` — · `est:` XS · `estado:` done (nube N2, PR #247, mergeado 2026-10-27): la guarda ya estaba en `ownerDb()`; el spec `85-guarda-helpers` lo prueba. Fuera de alcance: `runDemoWorker` y `computeRoleMarketAndPlan` abren conexión en procesos hijos sin la guarda. Seguimiento nube N4 (PR #272, abierto, 2026-10-30): `localChildEnv()` aplica la guarda al env de los hijos. De la revisión salió un hueco previo en `test-guard.ts` (comas o varios `@` en la URL, esquemas no Postgres): PR #274, abierto, carril rojo
 - La conexion de duenio de los helpers de e2e usa la misma guarda de base local que los tests de integracion.
 - **Acepta:** con una URL remota, los helpers fallan antes de conectarse (test).
 
@@ -808,7 +808,7 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - Un invitado sin perfil completo (pais, resumen, criterios) solo accede al onboarding, que crea los criterios por defecto. Sin esto no puede evaluar nada.
 
 ### JS-102 · Cachear los candidatos a skill de `/market`
-`deps:` JS-031 · `est:` S · `estado:` parcial (rondas 13 y 14): cache por usuario de 1 h hecho; la invalidacion en la ingesta de la app y el borrado va en la 14; falta medir el render. Nube N2 (2026-10-27): no se tomó; que `/market` no lea `jd_text` exige guardar los candidatos (tabla o columna nueva), o sea migración
+`deps:` JS-031 · `est:` S · `estado:` parcial (rondas 13 y 14): cache por usuario de 1 h hecho; la invalidacion en la ingesta de la app y el borrado va en la 14; falta medir el render. Nube N2 (2026-10-27): no se tomó; que `/market` no lea `jd_text` exige guardar los candidatos (tabla o columna nueva), o sea migración. Nube N4 (2026-10-30): salteado por lo mismo; la propuesta (tabla `market_candidates` con RLS, calculada en `recomputeMarketForUser`, invalidación por fingerprint de ofertas) está en el issue #241. Además: no hay índice `(user_id, created_at)` en `jobs` (sí `jobs_user_first_seen`)
 - **Por que:** `getMarket` trae y tokeniza los JD de las ultimas 300 ofertas en cada request (`force-dynamic`). Con varios usuarios es CPU y base por cada visita.
 - **Que:** calcular los candidatos una vez por usuario y guardarlos (en el snapshot semanal de mercado o en cache por usuario con invalidacion al ingerir ofertas); `/market` solo los lee. Verificar indice `(user_id, created_at)` en `jobs`.
 - **Acepta:** `/market` no lee `jd_text`; test de que los candidatos se recalculan al cambiar las ofertas; tiempo de render medido antes y despues.
