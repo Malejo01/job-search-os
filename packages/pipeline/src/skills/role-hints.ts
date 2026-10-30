@@ -22,6 +22,9 @@ const PRODUCT_PROJECT: readonly RoleKey[] = [...PRODUCT_ONLY, "project_manager"]
  */
 const CUSTOMER_SUPPORT: readonly RoleKey[] = ["atencion_cliente", "customer_success"];
 
+/** Gestión y finanzas comparten categoría en We Work Remotely; `titleFit` separa por título. */
+const MANAGEMENT_FINANCE: readonly RoleKey[] = ["finanzas_contabilidad", "administracion_empresas"];
+
 /**
  * Fuente → categoría → roles. Las categorías se comparan normalizadas: minúsculas, sin acentos y
  * con todo lo que no sea letra o número convertido en un guion ("Machine Learning" → "machine-learning").
@@ -77,10 +80,18 @@ export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleK
     "human-resources": ["rrhh_it"],
     recruiting: ["rrhh_it"],
     product: PRODUCT_ONLY,
-    "project-management": ["project_manager"],
+    "project-management": ["project_manager", "administracion_empresas"],
     "customer-success": ["customer_success"],
     security: ["ciberseguridad"],
     cybersecurity: ["ciberseguridad"],
+    // C1-6 (ADR-027): categorías no técnicas de Jobicy. Ojo: «admin» es DevOps y no se mapea;
+    // «admin-support» es asistencia administrativa.
+    legal: ["abogacia"],
+    "accounting-finance": ["finanzas_contabilidad"],
+    copywriting: ["marketing_digital", "comunicacion"],
+    management: ["administracion_empresas"],
+    business: ["administracion_empresas"],
+    "admin-support": ["asistencia_operaciones"],
     programming: DEV,
     "software-development": DEV,
     "web-development": DEV,
@@ -152,6 +163,12 @@ export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleK
     "customer-support": CUSTOMER_SUPPORT,
     "remote-design-jobs": ["ux_ui"],
     design: ["ux_ui"],
+    // C1-6 (ADR-027). Ventas y marketing trae también ventas puras: solo se mapea marketing, y los
+    // títulos de ventas los toma `ventas_b2b` por título. Gestión y finanzas dan las dos carreras.
+    "remote-sales-and-marketing-jobs": ["marketing_digital"],
+    "sales-and-marketing": ["marketing_digital"],
+    "remote-management-and-finance-jobs": MANAGEMENT_FINANCE,
+    "management-and-finance": MANAGEMENT_FINANCE,
   },
 };
 
