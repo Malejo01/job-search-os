@@ -241,7 +241,8 @@ const EXTRA: readonly Extra[] = [
 
 /** Cómo se llama el organismo de matriculación de un país, además de su nombre (cpce/facpce → AR). */
 const COUNTRY_ALIASES: Readonly<Record<string, readonly string[]>> = {
-  AR: ["cpce", "facpce"],
+  // CPACF y los colegios de abogados: la habilitación para ejercer en Argentina.
+  AR: ["cpce", "facpce", "cpacf", "colegio de abogados"],
 };
 
 /** Palabras que vuelven deseable la frase si aparecen hasta 60 caracteres después. */

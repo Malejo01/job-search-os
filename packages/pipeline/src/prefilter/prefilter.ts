@@ -149,12 +149,19 @@ export const ROLE_OWN_TITLE_PHRASES: Partial<Record<RoleKey, readonly string[]>>
   // `other_discipline_keywords`; esta libera la palabra "architect" de la blocklist. Son dos filtros.
   solutions_engineer: ["solutions architect", "solution architect"],
   customer_success: ["customer success manager", "technical account manager", "account manager"],
+  // C1-4 (ADR-027): marca y relaciones públicas también dicen «manager».
   marketing_digital: [
     "marketing manager",
     "community manager",
     "social media manager",
     "growth manager",
+    "brand manager",
+    "assistant brand manager",
+    "pr manager",
+    "communications manager",
   ],
+  comunicacion: ["communications manager", "pr manager"],
+  abogacia: ["legal manager"],
   rrhh_it: [
     "talent acquisition manager",
     "recruiting manager",
@@ -252,7 +259,7 @@ const NON_IT_TITLE: readonly { label: string; re: RegExp; exemptFor?: readonly R
   {
     label: "administrativ",
     re: word(`administrativ${GENDER}`),
-    exemptFor: ["asistencia_operaciones", "finanzas_contabilidad"],
+    exemptFor: ["asistencia_operaciones", "finanzas_contabilidad", "administracion_empresas"],
   },
   {
     label: "auxiliar contable",
@@ -278,8 +285,36 @@ const NON_IT_TITLE: readonly { label: string; re: RegExp; exemptFor?: readonly R
   { label: "repositor", re: word("repositor(?:es|as?|@)?") },
   { label: "chofer", re: word("chofer(?:es)?") },
   { label: "moz", re: word(`moz${GENDER}`) },
-  { label: "abogad", re: word(`abogad${GENDER}`) },
+  // C1-4 (ADR-027): es el oficio propio de quien eligió abogacía.
+  { label: "abogad", re: word(`abogad${GENDER}`), exemptFor: ["abogacia"] },
 ];
+
+/**
+ * Frases de venta multinivel o «emprendimiento» (ya sin acentos). «oportunidad de negocio» va en
+ * singular: «oportunidades de negocio» es un aviso comercial común.
+ */
+const MULTILEVEL_PHRASES: readonly { label: string; re: RegExp }[] = [
+  { label: "sé tu propio jefe", re: word("se\\s+tu\\s+propi[oa]\\s+jef[ea]") },
+  { label: "oportunidad de negocio", re: word("oportunidad\\s+de\\s+negocio") },
+  { label: "ingresos extra", re: word("ingresos\\s+extras?") },
+  {
+    label: "emprendedor independiente",
+    re: word("emprendedor(?:es|as?)?\\s+independientes?"),
+  },
+];
+
+/** Tope del texto del aviso que se revisa (una JD normal está muy por debajo). */
+const MULTILEVEL_MAX_TEXT = 20_000;
+
+/** La frase de multinivel que descarta, o null. Título: una; texto del aviso: dos distintas. */
+function detectMultilevel(foldedTitle: string, jdText: string | null | undefined): string | null {
+  const inTitle = MULTILEVEL_PHRASES.find((p) => p.re.test(foldedTitle));
+  if (inTitle) return inTitle.label;
+  if (!jdText) return null;
+  const text = foldText(jdText.slice(0, MULTILEVEL_MAX_TEXT));
+  const found = MULTILEVEL_PHRASES.filter((p) => p.re.test(text));
+  return found.length >= 2 ? found[0]!.label : null;
+}
 
 /**
  * Bases genéricas de RR. HH. ("cargá tu CV", "talent pool"): no son un aviso. Descartan SIEMPRE,
@@ -440,6 +475,16 @@ export function prefilter(
       pass: false,
       reason: "disciplina_distinta",
       detail: `título fuera de IT: '${hrPool.label}'`,
+    };
+  }
+  // Venta multinivel (C1-4, ADR-027): ruido típico de las categorías no técnicas, para todas las
+  // carreras. En el título alcanza una frase; en el texto del aviso hacen falta dos distintas.
+  const mlm = detectMultilevel(title, input.jdText);
+  if (mlm) {
+    return {
+      pass: false,
+      reason: "disciplina_distinta",
+      detail: `venta multinivel: '${mlm}' en el aviso`,
     };
   }
   if (!hasItSignal(title)) {
