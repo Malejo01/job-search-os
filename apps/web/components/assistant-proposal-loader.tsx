@@ -88,7 +88,7 @@ export function ProposalLoadedNotice({
       role="status"
       tabIndex={-1}
       data-testid="assistant-proposal-loaded"
-      className="flex flex-col gap-1 rounded-md bg-sky-50 px-3 py-2 text-sm text-sky-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
+      className="flex flex-col gap-1 rounded-card border border-info-line bg-info-soft px-3 py-2 text-sm text-info focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
     >
       <p className="font-medium">
         Cargamos la propuesta del asistente. Revisá los cambios y tocá Guardar: todavía no se guardó
@@ -104,7 +104,7 @@ export function ProposalLoadedNotice({
         </ul>
       ) : null}
       {missing.length > 0 ? (
-        <p className="text-amber-900">
+        <p className="text-warning">
           No se pudo cargar en esta pantalla: {missing.map((m) => labels.get(m) ?? m).join(", ")}.
         </p>
       ) : null}
@@ -188,7 +188,10 @@ export function AssistantProposalLoader({
         <input key={name} type="hidden" name={name} value={value} data-asistente="" />
       ))}
       {stale ? (
-        <p role="alert" className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+        <p
+          role="alert"
+          className="rounded-control border border-warning-line bg-warning-soft px-3 py-2 text-sm text-warning"
+        >
           Los criterios cambiaron desde que se armó la propuesta. Pedile al asistente una nueva.
         </p>
       ) : null}

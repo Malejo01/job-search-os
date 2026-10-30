@@ -110,7 +110,7 @@ export function RolePicker({
                   ) : null}
                   {spanish !== undefined ? (
                     <p
-                      className="pb-1 pl-9 pr-3 text-xs text-zinc-600"
+                      className="pb-1 pl-9 pr-3 text-xs text-fg-subtle"
                       data-testid={`career-spanish-${role.key}`}
                       data-count={spanish}
                     >

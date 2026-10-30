@@ -86,3 +86,4 @@ Excepciones a propósito, las únicas con color de la paleta:
 
 - `bg-black/50` (o `/40`) en el fondo de un `<dialog>` o un modal: oscurece lo de atrás en los dos modos.
 - `bg-white [color-scheme:light]` en el `iframe` del email (`/inbox/[id]`): el HTML de afuera trae sus colores, casi siempre texto oscuro sin fondo, y sobre un fondo oscuro no se leería.
+- `cv-preview.tsx` (`.cv-sheet`): emula una hoja de papel físico en pantalla y al imprimir; mantiene fondo blanco (`bg-white`) y texto oscuro fijos en ambos modos (`[color-scheme:light]`) para que la impresión y exportación a PDF no genere texto claro sobre papel blanco.
