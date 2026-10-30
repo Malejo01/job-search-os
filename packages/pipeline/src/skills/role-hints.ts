@@ -367,6 +367,7 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "relacionista publica",
     "pr specialist",
     "pr executive",
+    "pr manager",
     "public affairs",
     "relaciones institucionales",
     "organizador de eventos",
@@ -703,6 +704,9 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "ip associate",
     "trademark paralegal",
     "legal operations",
+    "legal assistant",
+    "attorney",
+    "lawyer",
   ],
   // Nunca «administrador/a» suelto («Administrador de Sistemas», «Administradora de Consorcios»).
   administracion_empresas: [
@@ -754,6 +758,13 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "content writer",
     "content editor",
     "ux writer",
+    "communications manager",
+    "pr manager",
+    "comunicacion corporativa",
+    "corporate communications",
+    "jefe de comunicacion",
+    "jefa de comunicacion",
+    "responsable de comunicacion",
   ],
   // Nunca «internacional»/«international», «relaciones» ni «trade» sueltos.
   relaciones_internacionales: [
@@ -778,6 +789,9 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "political risk analyst",
     "geopolitical analyst",
     "global mobility",
+    "analista de comex",
+    "despachante de aduana",
+    "importaciones y exportaciones",
   ],
 };
 
@@ -801,6 +815,11 @@ export const TITLE_EXCLUSIONS: Partial<Record<RoleKey, readonly string[]>> = {
     "network",
     "fibra",
     "engineer",
+    "developer",
+    "desarrollador",
+    "desarrolladora",
+    "programador",
+    "software",
     "ingeniero",
     "ingeniera",
     "tecnico",
@@ -811,17 +830,9 @@ export const TITLE_EXCLUSIONS: Partial<Record<RoleKey, readonly string[]>> = {
     "rater",
     "medios de pago",
   ],
-  // C1-3: RR.PP. de boliche o de promoción, telemarketing, multinivel y perfiles técnicos o de
-  // embajadores de marca no son marketing.
+  // C1-3: telemarketing, multinivel y perfiles técnicos o de embajadores de marca no son marketing.
+  // Los RR.PP. de boliche o de promoción se excluyen por término (`TERM_EXCLUSIONS`).
   marketing_digital: [
-    "boliche",
-    "fiesta",
-    "nocturno",
-    "entradas",
-    "comision",
-    "comisiones",
-    "promotor",
-    "promotora",
     "telemarketing",
     "telemarketer",
     "network marketing",
@@ -833,7 +844,7 @@ export const TITLE_EXCLUSIONS: Partial<Record<RoleKey, readonly string[]>> = {
     "embajadora de marca",
   ],
   // C1-3: divisas y cambio de moneda no son comercio exterior.
-  relaciones_internacionales: ["fx", "foreign exchange", "cooperativa"],
+  relaciones_internacionales: ["fx", "foreign exchange"],
   // Encargados de local o sucursal no son administración de empresas.
   administracion_empresas: [
     "encargado de local",
@@ -843,18 +854,9 @@ export const TITLE_EXCLUSIONS: Partial<Record<RoleKey, readonly string[]>> = {
     "jefe de sucursal",
     "jefa de sucursal",
   ],
-  abogacia: [
-    "engineer",
-    "developer",
-    "software",
-    "nurse",
-    "medical",
-    "interpreter",
-    "translator",
-    "traductor",
-    "interprete",
-    "sales",
-  ],
+  // Las demás (software, ventas, medicina, traducción) anulan solo los títulos «legal ...»: ver
+  // `TERM_EXCLUSIONS`. Un abogado de una empresa de software sigue siendo abogado.
+  abogacia: ["engineer", "developer"],
   ciberseguridad: ["physical security", "data center security"],
   // Esas infraestructuras y plataformas son de seguridad y de datos, ya tienen su carrera.
   soporte_it: ["security infrastructure", "data platform", "data infrastructure"],
@@ -960,7 +962,19 @@ export const TERM_EXCLUSIONS: Partial<
   administracion_empresas: {
     ...termExclusions(
       ["analista de procesos", "process improvement analyst"],
-      ["engineer", "quimico", "quimica", "planta", "plant"],
+      [
+        "engineer",
+        "quimico",
+        "quimica",
+        "planta",
+        "plant",
+        "developer",
+        "desarrollador",
+        "software",
+        "sistemas",
+        "rpa",
+        "bpm",
+      ],
     ),
     buyer: ["media", "paid", "real estate", "travel"],
   },
@@ -979,21 +993,107 @@ export const TERM_EXCLUSIONS: Partial<
       ["editor", "editora"],
       ["video", "code", "codigo", "photo", "foto", "imagen", "audio", "sonido", "sound"],
     ),
-    reporter: ["court"],
+    reporter: ["court", "data", "analytics", "bi", "sql"],
   },
   // «Public policy analyst» de seguros es un puesto de la aseguradora, no de política pública.
   relaciones_internacionales: {
     "public policy analyst": ["seguros", "insurance"],
   },
-  // «Compliance officer» de seguridad, IT, SOC, farma o asuntos regulatorios no es derecho.
-  abogacia: termExclusions(
-    ["compliance officer", "oficial de cumplimiento"],
-    ["security", "it", "soc", "pharma", "regulatory affairs"],
-  ),
+  abogacia: {
+    // «Compliance officer» de seguridad, IT, SOC, farma o asuntos regulatorios no es derecho.
+    ...termExclusions(
+      ["compliance officer", "oficial de cumplimiento"],
+      [
+        "security",
+        "seguridad",
+        "cybersecurity",
+        "cyber",
+        "ciberseguridad",
+        "infosec",
+        "it",
+        "soc",
+        "pharma",
+        "farma",
+        "regulatory",
+        "regulatorio",
+      ],
+    ),
+    // «Legal» con software, ventas, medicina o traducción es otra cosa («Legal Nurse», «Legal
+    // Translator»). Los títulos de abogado, procurador y «... counsel» no se anulan.
+    ...termExclusions(
+      [
+        "asesor legal",
+        "asesora legal",
+        "analista legal",
+        "asistente legal",
+        "legal assistant",
+        "legal analyst",
+        "legal operations",
+        "legal counsel",
+      ],
+      [
+        "software",
+        "sales",
+        "medical",
+        "nurse",
+        "interpreter",
+        "translator",
+        "traductor",
+        "interprete",
+      ],
+    ),
+  },
+  // Boliches, fiestas, entradas y promotores: RR.PP. de salida nocturna, no de comunicación.
+  // «Insights analyst» de datos o de producto es de la carrera de datos.
+  marketing_digital: {
+    ...termExclusions(
+      [
+        "relaciones publicas",
+        "public relations",
+        "ejecutivo de rrpp",
+        "ejecutiva de rrpp",
+        "ejecutivo de rr pp",
+        "ejecutiva de rr pp",
+        "relacionista publico",
+        "relacionista publica",
+        "pr specialist",
+        "pr executive",
+        "pr manager",
+      ],
+      [
+        "boliche",
+        "fiesta",
+        "nocturno",
+        "entradas",
+        "comision",
+        "comisiones",
+        "promotor",
+        "promotora",
+      ],
+    ),
+    "insights analyst": ["data", "product", "analytics", "bi"],
+  },
   finanzas_contabilidad: termExclusions(
     ["auditor", "auditora", "auditoria", "internal audit", "control interno"],
     // Auditorías de calidad, de obra, de llamadas, de accesibilidad o médicas no son contables.
-    ["calidad", "quality", "iso", "obra", "higiene", "llamadas", "call", "accesibilidad", "medico"],
+    [
+      "calidad",
+      "quality",
+      "iso",
+      "obra",
+      "higiene",
+      "llamadas",
+      "call",
+      "accesibilidad",
+      "medico",
+      "medica",
+      "medicos",
+      "medicas",
+      "ambiental",
+      "environmental",
+      "safety",
+      "alimentaria",
+    ],
   ),
 };
 
@@ -1074,6 +1174,9 @@ export function matchesAiWithTechRole(padded: string): boolean {
 
 export function normalizeTitleText(title: string): string {
   return ` ${foldText(title)
+    // «Jefe/a», «Planificador/a», «Abogado(a)»: la marca de género se pega a la palabra, para que
+    // «jefe/a de prensa» siga siendo «jefe de prensa». Solo terminaciones del español.
+    .replace(/(o|e|or)(?:\/a|\(a\))(?![a-z0-9])/g, "$1")
     .replace(/[^a-z0-9]+/g, " ")
     .trim()} `;
 }
