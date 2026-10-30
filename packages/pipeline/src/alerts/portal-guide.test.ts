@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ROLE_KEYS } from "../skills/self-assessment";
+import { matchesRoleTitle, normalizeTitleText } from "../skills/role-hints";
+import { ROLE_KEYS, type RoleKey } from "../skills/self-assessment";
 import {
   ALERT_KEYWORDS,
   ALERT_PORTALS,
@@ -22,6 +23,43 @@ describe("ALERT_KEYWORDS", () => {
         expect(entry![lang].length, `${role}/${lang}`).toBeLessThanOrEqual(6);
       }
     }
+  });
+
+  describe("carreras de la beta (C1-5)", () => {
+    const BETA: RoleKey[] = [
+      "finanzas_contabilidad",
+      "abogacia",
+      "administracion_empresas",
+      "comunicacion",
+      "marketing_digital",
+      "relaciones_internacionales",
+    ];
+
+    it.each(BETA)("%s: cada palabra es un título que la carrera reconoce", (role) => {
+      for (const lang of ["es", "en"] as const) {
+        for (const word of ALERT_KEYWORDS[role]![lang]) {
+          expect(matchesRoleTitle(normalizeTitleText(word), role), `${role}/${lang}: ${word}`).toBe(
+            true,
+          );
+        }
+      }
+    });
+
+    it.each(BETA)("%s: sin palabras repetidas ni vacías", (role) => {
+      for (const lang of ["es", "en"] as const) {
+        const words = ALERT_KEYWORDS[role]![lang];
+        expect(new Set(words).size).toBe(words.length);
+        for (const w of words) expect(w.trim()).not.toBe("");
+      }
+    });
+
+    it("alertKeywordsFor junta las de varias carreras sin repetir", () => {
+      const out = alertKeywordsFor(["abogacia", "relaciones_internacionales"], "both");
+      expect(out).toContain("abogado");
+      expect(out).toContain("legal counsel");
+      expect(out).toContain("comercio exterior");
+      expect(new Set(out).size).toBe(out.length);
+    });
   });
 
   it("cubre también data_engineer y solutions_engineer", () => {
