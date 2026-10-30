@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { ISO_COUNTRY_CODES, isIsoCountry } from "./countries";
+import {
+  ISO_COUNTRY_CODES,
+  isIsoCountry,
+  OTHER_COUNTRY_NAMES,
+  REGION_COUNTRIES,
+} from "./countries";
 
 describe("ISO_COUNTRY_CODES", () => {
   it("tiene los países asignados, sin repetir y en mayúsculas", () => {
@@ -23,5 +28,16 @@ describe("isIsoCountry", () => {
     expect(isIsoCountry("CAN")).toBe(false);
     expect(isIsoCountry(null)).toBe(false);
     expect(isIsoCountry(undefined)).toBe(false);
+  });
+});
+
+describe("OTHER_COUNTRY_NAMES (N4-2)", () => {
+  it("son códigos ISO de fuera de la región, con nombres plegados", () => {
+    const region = new Set(REGION_COUNTRIES.map((c) => c.code));
+    for (const [code, names] of Object.entries(OTHER_COUNTRY_NAMES)) {
+      expect(isIsoCountry(code), code).toBe(true);
+      expect(region.has(code), code).toBe(false);
+      for (const n of names) expect(n, code).toMatch(/^[a-z]+(?: [a-z]+)*$/);
+    }
   });
 });
