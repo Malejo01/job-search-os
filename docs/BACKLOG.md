@@ -365,7 +365,7 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 ## Bloque 6 — Plataforma (después)
 
 ### JS-054 · Orden de prioridad en la lista: score y despues riesgos ✅ done 2026-10-27
-`deps:` JS-052 · `est:` 1 h · `estado:` done (nube N2, PR #252, mergeado 2026-10-27): `listJobs` desempata por cantidad de riesgos a igual score; lo heredan siguiente/anterior, «Lo nuevo» de `/hoy` y `list_jobs` del MCP. e2e `86-orden-por-riesgos`. `first-offers.ts` y `first-steps.ts` siguen sin mirar riesgos. Seguimiento nube N4 (PR #271, abierto, 2026-10-30): regla única `compareJobPriority` en pipeline (score; a igual score, menos bloqueadores y después menos riesgos) en `first-offers`, `first-steps` y `listJobs`
+`deps:` JS-052 · `est:` 1 h · `estado:` done (nube N2, PR #252, mergeado 2026-10-27): `listJobs` desempata por cantidad de riesgos a igual score; lo heredan siguiente/anterior, «Lo nuevo» de `/hoy` y `list_jobs` del MCP. e2e `86-orden-por-riesgos`. `first-offers.ts` y `first-steps.ts` siguen sin mirar riesgos. Seguimiento nube N4 (PR #271, mergeado 2026-10-30): regla única `compareJobPriority` en pipeline (score; a igual score, menos bloqueadores y después menos riesgos) en `first-offers`, `first-steps` y `listJobs`
 - Con las penalizaciones de `decide()` corregidas (JS-052), los riesgos pasan a ser el unico canal de viabilidad: dos ofertas con el mismo score ya no se diferencian por el score.
 - Ordenar la lista por score descendente y, dentro de cada score, por cantidad de riesgos ascendente (menos riesgos primero).
 - **Acepta:** dos ofertas con score 7, una con 1 riesgo y otra con 3, salen en ese orden; el orden es estable y se testea sin LLM.
@@ -546,7 +546,7 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Acepta:** test de integracion con dos consumos concurrentes del mismo token: uno gana, el otro recibe "used".
 
 ### JS-078 · El barrido `--pre-push` informa cuando pasa ✅ done 2026-10-27
-`deps:` JS-063 · `est:` S · `estado:` done (nube N2, PR #251, mergeado 2026-10-27). Hallazgo previo anotado en el PR: el separador `\x1e` de `scanHistory` deja sin revisar el resto de un archivo que contenga ese byte (falla abierto); va en un ticket aparte. Seguimiento nube N4 (PR #275, abierto, 2026-10-30, carril rojo): el barrido falla cerrado (separador con nonce validado, merges con `--remerge-diff`, opciones de diff fijas, errores y archivos ilegibles marcados, informe sin citar patrones). Requiere git ≥ 2.36
+`deps:` JS-063 · `est:` S · `estado:` done (nube N2, PR #251, mergeado 2026-10-27). Hallazgo previo anotado en el PR: el separador `\x1e` de `scanHistory` deja sin revisar el resto de un archivo que contenga ese byte (falla abierto); va en un ticket aparte. Seguimiento nube N4 (PR #275, mergeado 2026-10-30, carril rojo): el barrido falla cerrado (separador con nonce validado, merges con `--remerge-diff`, opciones de diff fijas, errores y archivos ilegibles marcados, informe sin citar patrones). Requiere git ≥ 2.36
 - **Por que:** cuando no encuentra nada, `scripts/privacy-scan.mjs --pre-push` no imprime nada, asi que no se distingue "paso" de "no corrio".
 - **Que:** imprimir `pre-push: OK (N commits)` al pasar.
 - **Acepta:** test por CLI con un repo temporal que verifica el mensaje y el conteo; con hallazgos, el mensaje de error no cambia.
@@ -667,7 +667,7 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - La respuesta lleva solo conteos y errores por categoria cerrada (`llm`, `validacion`, `otro`); el detalle va a pino con `job_id`. Test de que un error con email, uuid o texto de la base no aparece.
 
 ### JS-111 · Prefiltro: colisiones de nombres de pais y paises fuera de la region ✅ done 2026-10-27
-`deps:` JS-104 · `est:` S · `estado:` done (nube N2, PR #244, mergeado 2026-10-27): tabla única `REGION_COUNTRIES`, «New Mexico» no es MX, fallback por código eliminado (sí era alcanzable). Queda abierto: países fuera de la región sin «remote» («Madrid, Spain») y perfiles de fuera de la región que nombran su país. Seguimiento nube N4 (PR #273, abierto, 2026-10-30, carril rojo): los dos casos, con país explícito; sin `userCountry` (evals) no cambia y el golden da 0 diferencias
+`deps:` JS-104 · `est:` S · `estado:` done (nube N2, PR #244, mergeado 2026-10-27): tabla única `REGION_COUNTRIES`, «New Mexico» no es MX, fallback por código eliminado (sí era alcanzable). Queda abierto: países fuera de la región sin «remote» («Madrid, Spain») y perfiles de fuera de la región que nombran su país. Seguimiento nube N4 (PR #273, mergeado 2026-10-30, carril rojo): los dos casos, con país explícito; sin `userCountry` (evals) no cambia y el golden da 0 diferencias
 - "New Mexico" cuenta como mencion de Mexico: para un perfil MX una oferta de EE.UU. pasa sin riesgo de ubicacion. `COUNTRY_NAMES` (`normalize/location.ts`) duplica `COUNTRY_OPTIONS` del onboarding y el fallback por codigo es inalcanzable hoy. Paises fuera de la region ("Spain only") no se detectan.
 - **Acepta:** test con "New Mexico"; test que compare las dos tablas (o una sola tabla); fallback eliminado.
 
@@ -758,7 +758,7 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - Hallazgo de severidad baja de la revision de la ronda 26 (detalle en las notas privadas de la ronda). La UI ya pide confirmar solo si la cuenta es propia.
 
 ### JS-128 · Guarda de host en la conexion de duenio de los helpers de e2e ✅ done 2026-10-27
-`deps:` — · `est:` XS · `estado:` done (nube N2, PR #247, mergeado 2026-10-27): la guarda ya estaba en `ownerDb()`; el spec `85-guarda-helpers` lo prueba. Fuera de alcance: `runDemoWorker` y `computeRoleMarketAndPlan` abren conexión en procesos hijos sin la guarda. Seguimiento nube N4 (PR #272, abierto, 2026-10-30): `localChildEnv()` aplica la guarda al env de los hijos. De la revisión salió un hueco previo en `test-guard.ts` (comas o varios `@` en la URL, esquemas no Postgres): PR #274, abierto, carril rojo
+`deps:` — · `est:` XS · `estado:` done (nube N2, PR #247, mergeado 2026-10-27): la guarda ya estaba en `ownerDb()`; el spec `85-guarda-helpers` lo prueba. Fuera de alcance: `runDemoWorker` y `computeRoleMarketAndPlan` abren conexión en procesos hijos sin la guarda. Seguimiento nube N4 (PR #272, mergeado 2026-10-30): `localChildEnv()` aplica la guarda al env de los hijos. De la revisión salió un hueco previo en `test-guard.ts` (comas o varios `@` en la URL, esquemas no Postgres): PR #274, mergeado 2026-10-30, carril rojo
 - La conexion de duenio de los helpers de e2e usa la misma guarda de base local que los tests de integracion.
 - **Acepta:** con una URL remota, los helpers fallan antes de conectarse (test).
 
