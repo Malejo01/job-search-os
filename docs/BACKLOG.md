@@ -980,6 +980,13 @@ Resumen por tema de lo mergeado en ese período. Un ítem por tema, no uno por P
   - tests de cobertura de pipeline · #223;
   - recorrido de una persona nueva en Finanzas · #224 (abiertos).
 
+### Hallazgos de la beta (H-1 a H-3)
+- **H-1 · Avisos remotos limitados a otro país** (caso Canadá) · en revisión, PR #300 (`nube/c2-regla-pais`, C2-3): remoto + países que no incluyen el de la persona pasa de riesgo a bloqueador, salvo que el aviso acepte su país o su región. Antes, solo la frase literal «must be based in…» descartaba (ronda 66).
+- **H-2 · Aviso del muro de pago de We Work Remotely** · done 2026-10-20 · `33f70e0`. Verificado el 2026-10-30 contra el código: `WWR_PAYWALL_NOTICE` (`packages/pipeline/src/pool/attribution.ts`) se muestra en `source-attribution.tsx` cuando alguna fuente del aviso es `wwr`, con el link al sitio de empleos de la empresa si la JD lo trae (`findAtsLinks`). Cubierto por el e2e `45-wwr-aviso.spec.ts`.
+- **H-3 · «+ Cargar oferta» visible y pegar el aviso entero** · done 2026-10-20 · `0947dfb` y `66408e8`. Verificado el 2026-10-30: el botón «+ Cargar oferta» está junto al título de `/jobs` (`apps/web/app/(app)/jobs/page.tsx`) y `/jobs/new` ofrece «Pegar el aviso entero» (`paste-form.tsx`, lectura con reglas simples en el navegador). Cubierto por los e2e `47-textos-y-navegacion.spec.ts` (botón visible, 44 px, lleva a `/jobs/new`) y `42-pegar-aviso.spec.ts`.
+- **Tanda C2 de la beta** (2026-10-30, todos en draft, sin mergear): C2-3 regla de país · #300; C2-2 «A tu favor» y «Te falta o te frena» · #303; C2-1 CV para ATS abierto a todos, con topes por persona y por mes (3 CV, 40 turnos) · #304.
+- Los e2e no se corrieron en la nube (necesitan Docker/Postgres; CLAUDE.md §9): la confirmación sale de leer el código y los specs; los corre el CI.
+
 ## Reglas del backlog
 
 - Techo semanal después del finde: 8 hs. Si el bloque 4 no está en producción en 2 semanas, se congela el bloque 5.
