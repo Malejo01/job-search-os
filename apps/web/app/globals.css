@@ -1,1 +1,217 @@
 @import "tailwindcss";
+
+/*
+ * Modo oscuro por clase (N3-2): `dark:` aplica cuando `<html>` lleva la clase `dark`. Quién la pone
+ * está en `app/theme-script.tsx`. Las pantallas no usan `dark:` para colores: usan los tokens de
+ * abajo, que cambian solos de valor. `dark:` queda para excepciones (una imagen, una sombra).
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Tokens de diseño (N3-2). Un solo lugar para colores, radios y tipografía; ver docs/ux/tokens.md.
+ *
+ * - Las páginas usan las clases semánticas (`bg-surface`, `text-fg-muted`, `border-line`,
+ *   `bg-danger-soft`…), nunca un color de la paleta (`bg-zinc-50`, `text-red-800`).
+ * - Cada token es una variable `--jso-*` con un valor en claro (`:root`) y otro en oscuro (`.dark`).
+ *   `@theme inline` hace que la clase lea la variable en el momento, así el cambio de clase alcanza.
+ * - En claro valen exactamente lo que usaba la app antes de los tokens: migrar una pantalla no
+ *   cambia nada a la vista.
+ *
+ * Colores de marca (C-15): `--jso-brand*`. Hoy valen el gris oscuro de la app. Para cambiar de
+ * marca se editan esas líneas (claro y oscuro); las clases son `bg-brand`, `hover:bg-brand-hover`
+ * y `text-brand-contrast`. Ver docs/MARCA.md.
+ */
+@theme inline {
+  --color-canvas: var(--jso-canvas);
+  --color-surface: var(--jso-surface);
+  --color-surface-subtle: var(--jso-surface-subtle);
+  --color-surface-muted: var(--jso-surface-muted);
+  --color-surface-strong: var(--jso-surface-strong);
+
+  --color-line: var(--jso-line);
+  --color-line-strong: var(--jso-line-strong);
+  --color-line-control: var(--jso-line-control);
+
+  --color-fg: var(--jso-fg);
+  --color-fg-muted: var(--jso-fg-muted);
+  --color-fg-subtle: var(--jso-fg-subtle);
+  --color-link: var(--jso-link);
+  --color-focus: var(--jso-focus);
+  --color-on-strong: var(--jso-on-strong);
+
+  --color-brand: var(--jso-brand);
+  --color-brand-hover: var(--jso-brand-hover);
+  --color-brand-contrast: var(--jso-brand-contrast);
+
+  --color-success: var(--jso-success);
+  --color-success-soft: var(--jso-success-soft);
+  --color-success-line: var(--jso-success-line);
+  --color-success-strong: var(--jso-success-strong);
+
+  --color-warning: var(--jso-warning);
+  --color-warning-soft: var(--jso-warning-soft);
+  --color-warning-line: var(--jso-warning-line);
+  --color-warning-strong: var(--jso-warning-strong);
+
+  --color-danger: var(--jso-danger);
+  --color-danger-soft: var(--jso-danger-soft);
+  --color-danger-line: var(--jso-danger-line);
+  --color-danger-strong: var(--jso-danger-strong);
+
+  --color-info: var(--jso-info);
+  --color-info-soft: var(--jso-info-soft);
+  --color-info-line: var(--jso-info-line);
+  --color-info-strong: var(--jso-info-strong);
+}
+
+/* Radios y tipografía: no cambian con el modo, van en `@theme` directo. */
+@theme {
+  /*
+   * Tailwind 4.3 define zinc-50 con tono `none` (`oklch(98.5% 0 none)`) y axe-core 4.13 no sabe
+   * leerlo: la regla de contraste se cortaba en el <body> (bg-zinc-50 desde antes de los tokens)
+   * y no medía ni un nodo de ninguna pantalla. Mismo color, con tono 0.
+   */
+  --color-zinc-50: oklch(98.5% 0 0);
+
+  /* Botones, campos, chips cuadrados y avisos. */
+  --radius-control: 0.375rem;
+  /* Tarjetas y paneles. Hoy es el mismo valor que control: separarlos permite redondear las tarjetas sin tocar los botones. */
+  --radius-card: 0.375rem;
+  /* Badges redondos y contadores. */
+  --radius-pill: 9999px;
+
+  /*
+   * Títulos de la app con sesión: h1 de pantalla (hoy `text-xl`) y h2 de sección (hoy `text-lg`).
+   * La vitrina pública usa títulos más grandes a propósito y no lleva estos tokens.
+   */
+  --text-title: 1.25rem;
+  --text-title--line-height: 1.75rem;
+  --text-heading: 1.125rem;
+  --text-heading--line-height: 1.75rem;
+}
+
+:root {
+  color-scheme: light;
+
+  /*
+   * Fondos: la página (canvas), tarjetas (surface), un recuadro dentro de una tarjeta (subtle),
+   * chips neutros, hover y la sección activa del menú (muted), contadores (strong).
+   */
+  --jso-canvas: var(--color-zinc-50);
+  --jso-surface: var(--color-white);
+  --jso-surface-subtle: var(--color-zinc-50);
+  --jso-surface-muted: var(--color-zinc-100);
+  --jso-surface-strong: var(--color-zinc-200);
+
+  /* Bordes: separadores y tarjetas (line), botones secundarios (strong), campos de formulario (control). */
+  --jso-line: var(--color-zinc-200);
+  --jso-line-strong: var(--color-zinc-300);
+  --jso-line-control: var(--color-zinc-400);
+
+  /* Texto: principal, secundario y terciario. Los tres pasan AA sobre todos los fondos de arriba. */
+  --jso-fg: var(--color-zinc-900);
+  --jso-fg-muted: var(--color-zinc-700);
+  --jso-fg-subtle: var(--color-zinc-600);
+  --jso-link: var(--color-sky-800);
+  --jso-focus: var(--color-zinc-900);
+  /* Texto sobre los rellenos fuertes de estado (`bg-success-strong`…). */
+  --jso-on-strong: var(--color-white);
+
+  --jso-brand: var(--color-zinc-900);
+  --jso-brand-hover: var(--color-zinc-800);
+  --jso-brand-contrast: var(--color-white);
+
+  /*
+   * Estados: texto (`text-success`), fondo suave (`bg-success-soft`), borde (`border-success-line`)
+   * y relleno fuerte con texto blanco encima (`bg-success-strong`, para badges sólidos).
+   */
+  --jso-success: var(--color-emerald-900);
+  --jso-success-soft: var(--color-emerald-50);
+  --jso-success-line: var(--color-emerald-200);
+  --jso-success-strong: var(--color-emerald-700);
+
+  --jso-warning: var(--color-amber-900);
+  --jso-warning-soft: var(--color-amber-50);
+  --jso-warning-line: var(--color-amber-200);
+  --jso-warning-strong: var(--color-amber-700);
+
+  --jso-danger: var(--color-red-800);
+  --jso-danger-soft: var(--color-red-50);
+  --jso-danger-line: var(--color-red-200);
+  --jso-danger-strong: var(--color-red-700);
+
+  --jso-info: var(--color-sky-900);
+  --jso-info-soft: var(--color-sky-50);
+  --jso-info-line: var(--color-sky-200);
+  --jso-info-strong: var(--color-sky-700);
+}
+
+/*
+ * Oscuro: superficies zinc 950/900/800 y texto claro. Los colores de estado bajan a los tonos 950
+ * de fondo y suben a los 200/300 de texto, para que el texto pase AA (4.5:1) sobre su fondo suave.
+ */
+.dark {
+  color-scheme: dark;
+
+  --jso-canvas: var(--color-zinc-950);
+  --jso-surface: var(--color-zinc-900);
+  /* Hundido respecto de la tarjeta: en oscuro, un recuadro interno se lee mejor más oscuro. */
+  --jso-surface-subtle: var(--color-zinc-950);
+  --jso-surface-muted: var(--color-zinc-800);
+  --jso-surface-strong: var(--color-zinc-700);
+
+  --jso-line: var(--color-zinc-800);
+  --jso-line-strong: var(--color-zinc-600);
+  --jso-line-control: var(--color-zinc-500);
+
+  --jso-fg: var(--color-zinc-50);
+  --jso-fg-muted: var(--color-zinc-300);
+  --jso-fg-subtle: var(--color-zinc-400);
+  --jso-link: var(--color-sky-300);
+  --jso-focus: var(--color-zinc-100);
+  --jso-on-strong: var(--color-white);
+
+  --jso-brand: var(--color-zinc-100);
+  --jso-brand-hover: var(--color-white);
+  --jso-brand-contrast: var(--color-zinc-900);
+
+  --jso-success: var(--color-emerald-200);
+  --jso-success-soft: var(--color-emerald-950);
+  --jso-success-line: var(--color-emerald-800);
+  --jso-success-strong: var(--color-emerald-700);
+
+  --jso-warning: var(--color-amber-200);
+  --jso-warning-soft: var(--color-amber-950);
+  --jso-warning-line: var(--color-amber-800);
+  --jso-warning-strong: var(--color-amber-700);
+
+  --jso-danger: var(--color-red-200);
+  --jso-danger-soft: var(--color-red-950);
+  --jso-danger-line: var(--color-red-800);
+  --jso-danger-strong: var(--color-red-700);
+
+  --jso-info: var(--color-sky-200);
+  --jso-info-soft: var(--color-sky-950);
+  --jso-info-line: var(--color-sky-800);
+  --jso-info-strong: var(--color-sky-700);
+}
+
+/*
+ * Impresión del CV (C-25): en /cv la hoja `.cv-sheet` es lo único que sale al PDF. Una columna, sin
+ * nav, sin encabezado ni pie de la app, sin bordes ni sombras. Solo afecta a páginas que tengan la hoja.
+ */
+@media print {
+  body:has(.cv-sheet) header,
+  body:has(.cv-sheet) footer,
+  body:has(.cv-sheet) .no-print {
+    display: none !important;
+  }
+  body:has(.cv-sheet) main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  body:has(.cv-sheet) .cv-sheet {
+    border: 0 !important;
+    padding: 0 !important;
+  }
+}

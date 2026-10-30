@@ -57,6 +57,29 @@ pnpm inbound:replay packages/adapters/src/admin/fixtures/replay-linkedin-ejemplo
 
 Si el usuario no tiene criterios activos, el email queda en la cola manual con ese motivo: es el comportamiento normal del despacho, no un fallo del comando.
 
+## Asignar un plan (beta paga, C-11b)
+
+El cobro es externo, con el link de Mercado Pago. Cuando alguien paga, el plan se asigna a mano con un `UPDATE` puntual en el SQL Editor de Neon, **conectado como dueño**. El rol de la app no puede cambiarlo: lo frena el trigger `profiles_plan_guard` (`packages/db/rls/0010_plan.sql`).
+
+```sql
+begin;
+-- Las claves válidas son gratis, fundador, lista y pase_3_meses (packages/pipeline/src/plans.ts).
+-- El pase de 3 meses lleva su fecha de fin; el mensual, la del próximo vencimiento.
+update profiles p
+   set plan = 'pase_3_meses', plan_until = now() + interval '90 days', updated_at = now()
+  from users u
+ where u.id = p.user_id and u.email = 'persona@ejemplo.test';
+-- Tiene que dar exactamente 1 fila antes de confirmar
+select p.plan, p.plan_until from profiles p join users u on u.id = p.user_id
+ where u.email = 'persona@ejemplo.test';
+commit;
+```
+
+- **Vencimiento:** un plan pago con `plan_until` vencido rige como gratis, sin que haga falta tocar nada. Con `plan_until` en null el plan no vence: usalo solo si es a propósito.
+- **Topes:** el plan cuenta solo con `PRICING_ENABLED=1`. Un tope propio del perfil (`max_target_roles` o `pool_daily_eval_limit`) le gana al del plan.
+- **Primeras ofertas:** las 9 primeras evaluaciones del onboarding no dependen del plan.
+- **La web nunca se conecta como dueño:** `DATABASE_URL_APP` tiene que ser `jobsearch_app`. Con el rol dueño, el trigger dejaría pasar cualquier cambio de plan sin avisar (y RLS tampoco aplicaría; `assertAppRole` lo frena al arrancar).
+
 ## Smoke post-deploy
 
 Después de cada deploy exitoso a Production, `.github/workflows/smoke.yml` corre `apps/web/e2e-smoke/smoke.spec.ts` contra la URL de producción, que está fija en el workflow (nunca la del evento). Es **de solo lectura**: `/api/health`, login, `/jobs`, abrir la primera oferta si hay y `/applications`. No toca botones que escriban.
@@ -69,3 +92,33 @@ Sin secrets corre solo `/api/health` y el resto queda `skipped`. Para el recorri
 Si falla, el job queda en rojo y GitHub avisa. No sube trazas ni capturas: podrían mostrar datos de la cuenta de prueba.
 
 Corrida manual, desde `apps/web`: `SMOKE_BASE_URL=<url> pnpm smoke`.
+
+**Al publicar `TERMS_VERSION` el smoke falla** hasta que la cuenta de prueba entre a la app y vuelva a aceptar los términos. Después de subir la versión, hacer ese re-aceptado a mano y recién entonces volver a correr el smoke.
+
+## Piloto: qué mirar cada día
+
+Unos 15 minutos por día, en este orden:
+
+1. **Mail.** Avisos de GitHub (el workflow `cron` en rojo, `smoke-roto`) y, cuando exista, el monitor externo.
+2. **Gasto de IA.** `pnpm llm:spend --days 1`. Si pasa de USD 1,5 en un día, mirar de quién es el gasto (`llm_calls.user_id`) antes de subir el tope.
+3. **Estado del servicio.** `/api/cron/status` (un `curl` con el token). `queue_oldest_pending_hours` y `queue_failed_24h` dicen si el evaluador está atascado.
+4. **Actividad de las cuentas del piloto.**
+   - **Agregados:** el tablero de la beta, en `/settings/metricas` (solo admin, #197). Muestra usuarios activos, evaluaciones, % de 👍, postulaciones y carreras «maduras» o «en pulido». Con menos de 3 personas en un grupo, no muestra el número.
+   - **Detalle por cuenta:** `pnpm admin:test-users --list --allowlist <archivo>` devuelve por cada email la fecha de alta, si completó el onboarding y cuántos jobs, evaluaciones y postulaciones tiene. Usar un archivo aparte, no versionado (un email por línea), distinto de la allowlist de cuentas de prueba. **Nunca `--reset` con esa lista**: borraría los datos de una persona real.
+5. **👍/👎 y «Calibración».** El % de 👍 está en el tablero de la beta. El porqué de cada 👎 solo se ve por cuenta: durante el piloto, preguntarles directamente a las personas.
+6. **Una vez por semana.** `pnpm pool:rehint` sin `--apply`, para ver si las carreras que estaban sobre el tope de ofertas siguen igual.
+
+## Casillas del pool por alertas de email (ADR-024)
+
+Fuente de la beta cerrada, **apagada por defecto**. Las casillas `pool-<carrera>@<INGEST_DOMAIN>` reciben las alertas que suscribe Job Search; `<carrera>` es una clave de `ROLE_KEYS` (por ejemplo `pool-rrhh_it@`).
+
+- **Prender:** variable `POOL_SOURCE_COMPUTRABAJO_ALERTS=1` en Vercel (solo Mauro). Cualquier otro valor es apagado. Hace falta `INGEST_DOMAIN`.
+- **Crear las casillas:** no hay que crear nada en Resend; la dirección se usa como email de la alerta en el portal. El dominio de remitente aceptado está en `POOL_ALERT_SENDER_DOMAINS` (`packages/adapters/src/inbound/pool-mailbox.ts`); si el portal manda desde otro dominio o variante por país, se agrega ahí tras ver un email real.
+- **Qué pasa hoy:** sin lector validado con emails reales, un email del portal a una casilla va a la cola manual del pool (fila de `inbound_emails` sin usuario, parser `pool_computrabajo_alerts`, `jobs_extracted` 0). No se extrae nada y no aparece en la bandeja de ninguna persona.
+- **Rechazos:** interruptor apagado, otro remitente, carrera inexistente u otro dominio: no se guarda nada y el webhook responde como con un destinatario desconocido.
+- **Si hay una `u_…` entre los destinatarios:** gana el flujo normal y el email no va al pool. Se decide primero por el sobre (`received_for`) cuando existe.
+- **Topes de la cola:** 30 emails por hora y 200 por día (filas sin usuario con el parser del pool); pasados los topes se rechaza como destinatario desconocido, sin guardar, solo con un contador en el log. Un crudo de más de 256 KB guarda solo remitente, asunto y fecha.
+- **Purga:** las filas del pool y su crudo se borran a los 30 días (la purga programada, solo `user_id IS NULL` y parser del pool).
+- **Verla:** la cola del pool no tiene pantalla. Se mira solo con SQL (`inbound_emails` con `user_id IS NULL` y `parser = 'pool_computrabajo_alerts'`), que corre Mauro.
+- **Apagar:** quitar la variable o ponerla en `0`. Vale desde el siguiente email.
+- **Migración:** el valor `computrabajo_alerts` de `source_kind` (0046) lo aplica Mauro con `pnpm db:migrate` antes del merge.

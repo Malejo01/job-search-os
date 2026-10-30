@@ -44,7 +44,8 @@ test.describe("Flujo 8: oferta evaluándose visible y actualización sin recarga
     const card = page.getByRole("listitem").filter({ hasText: title });
     await expect(card.getByText("En cola")).toBeVisible();
     runDemoWorker();
-    await expect(card.getByText("DEMO")).toBeVisible({ timeout: 20_000 });
+    // El refresco se espacia hasta 10 s después de las primeras vueltas (C-7a): margen de sobra
+    await expect(card.getByText("DEMO")).toBeVisible({ timeout: 30_000 });
     await expect(card.getByText("En cola")).toHaveCount(0);
   });
 });

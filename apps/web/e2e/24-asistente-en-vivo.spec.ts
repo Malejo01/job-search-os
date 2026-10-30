@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import {
   closePrivacyDialog,
   createInboundEmail,
@@ -13,6 +13,15 @@ import {
 const TAG = "E2E asistente en vivo";
 const NEW_ADDRESS = "u_abcdefghijklmnopqrst@ingest.test";
 const CONFIRM_LINK = "https://mail.google.com/mail/vf-ejemplo-123";
+
+/** Los pasos de Gmail están en «Otra opción»: plegado salvo que ya estén en curso; se abre si hace falta. */
+async function openGmailOption(page: Page): Promise<void> {
+  const option = page.getByTestId("gmail-option");
+  if ((await option.getAttribute("open")) === null) {
+    await option.locator("summary").click();
+  }
+  await expect(option).toHaveJSProperty("open", true);
+}
 
 /**
  * Flujo 24: el asistente avanza solo según lo que llegó. El usuario de e2e tiene una dirección del
@@ -39,6 +48,7 @@ test.describe.serial("Flujo 24: asistente con el paso actual", () => {
     await login(page);
     await page.goto("/settings/asistente");
     await closePrivacyDialog(page);
+    await openGmailOption(page);
     const current = page.locator('[aria-current="step"]');
     await expect(current).toHaveCount(1);
     await expect(current).toContainText("Agregá la dirección de reenvío");
@@ -57,6 +67,7 @@ test.describe.serial("Flujo 24: asistente con el paso actual", () => {
     await login(page);
     await page.goto("/settings/asistente");
     await closePrivacyDialog(page);
+    await openGmailOption(page);
     const current = page.locator('[aria-current="step"]');
     await expect(current).toContainText("Confirmá el reenvío");
     const confirm = current.getByRole("link", { name: "Confirmar reenvío" });
@@ -72,6 +83,7 @@ test.describe.serial("Flujo 24: asistente con el paso actual", () => {
     await login(page);
     await page.goto("/settings/asistente");
     await closePrivacyDialog(page);
+    await openGmailOption(page);
     const current = page.locator('[aria-current="step"]');
     await expect(current).toContainText("Importá los filtros");
     await current.getByRole("button", { name: "Ya importé los filtros" }).click();
@@ -89,6 +101,8 @@ test.describe.serial("Flujo 24: asistente con el paso actual", () => {
     await login(page);
     await page.goto("/settings/asistente");
     await closePrivacyDialog(page);
+    // Pasó por los pasos de Gmail: al llegar a «listo» no se cierra solo
+    await expect(page.getByTestId("gmail-option")).toHaveJSProperty("open", true);
     const current = page.locator('[aria-current="step"]');
     await expect(current).toContainText("Listo");
     await expect(current).toContainText("Primera alerta recibida");

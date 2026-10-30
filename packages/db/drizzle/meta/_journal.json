@@ -267,6 +267,76 @@
       "when": 1792612473865,
       "tag": "0037_carreras_ventas",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1792623089066,
+      "tag": "0038_stormy_sphinx",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1792762168207,
+      "tag": "0039_glorious_piledriver",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1792765116527,
+      "tag": "0040_high_captain_marvel",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1792793522228,
+      "tag": "0041_lively_nehzno",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1792794519084,
+      "tag": "0042_volatile_thunderbolts",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1792795529699,
+      "tag": "0043_red_tattoo",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1792795534091,
+      "tag": "0044_carreras_finanzas_operaciones",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1793047508320,
+      "tag": "0045_puzzling_pretty_boy",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1793054912749,
+      "tag": "0046_equal_jetstream",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1793058455056,
+      "tag": "0047_slimy_mindworm",
+      "breakpoints": true
     }
   ]
 }

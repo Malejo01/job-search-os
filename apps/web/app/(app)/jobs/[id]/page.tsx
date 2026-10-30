@@ -1,8 +1,17 @@
-import { englishIsNotAGap, isEnglishGap, type JobEvent } from "@job-search-os/pipeline";
+import {
+  englishIsNotAGap,
+  fitCrossSentence,
+  isEnglishGap,
+  isEnglishSkillSlug,
+  withCurrentSkillLevels,
+  type JobEvent,
+} from "@job-search-os/pipeline";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { RequisitosDelAviso } from "@/components/requisitos-del-aviso";
+import { SkillLevelButton } from "@/components/skill-level-modal";
 import { notEvaluatedMessage } from "@/lib/evaluate-now";
+import { getMainFitSummary } from "@/lib/fit";
 import { isUuid } from "@/lib/ids";
 import { getJobDetail } from "@/lib/job-detail";
 import { jobNeighbors, listQuery, parseJobFilters } from "@/lib/jobs";
@@ -114,6 +123,16 @@ export default async function JobDetailPage({
       evaluated={Boolean(ev)}
       evaluating={job.evaluating}
     />
+  );
+  // C-6 E4b: si el descarte de esta oferta es el freno más común de la persona, se cruza con «Tu
+  // encaje». Solo se calcula cuando la oferta tiene descarte: el resto de los detalles no lo paga
+  const descarteId = ev?.checklist?.descarte_rapido?.id ?? null;
+  const fitSummary = descarteId ? await getMainFitSummary(userId, new Date()) : null;
+  const crossLine = fitSummary ? fitCrossSentence(fitSummary, descarteId) : null;
+  const currentLevels = new Map(
+    Object.entries(job.skillInfo).flatMap(([slug, info]) =>
+      info.level === null ? [] : [[slug, info.level] as const],
+    ),
   );
   const tone = scoreTone(ev?.score ?? null);
   const salary =
@@ -332,7 +351,24 @@ export default async function JobDetailPage({
           ) : null}
 
           {/* Requisitos del aviso (ronda 104): solo si la evaluación guardó el checklist */}
-          {ev.checklist ? <RequisitosDelAviso checklist={ev.checklist} /> : null}
+          {/* C-20: el checklist guardado es una foto; se superponen los niveles de hoy (sin LLM) */}
+          {ev.checklist ? (
+            <RequisitosDelAviso
+              checklist={withCurrentSkillLevels(ev.checklist, currentLevels)}
+              modal={{ jobId: job.id, skillInfo: job.skillInfo }}
+            />
+          ) : null}
+          {crossLine ? (
+            <p data-testid="encaje-cruce" className="text-sm text-zinc-700">
+              {crossLine}{" "}
+              <Link
+                href="/encaje"
+                className="inline-flex min-h-11 items-center font-medium text-sky-800 underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
+              >
+                Ver Tu encaje
+              </Link>
+            </p>
+          ) : null}
 
           <section className="grid gap-3 sm:grid-cols-2">
             <Block title="Lo que ya tenés" items={ev.matchFuerte} tone="text-emerald-900" />
@@ -350,31 +386,53 @@ export default async function JobDetailPage({
               <h2 className="font-semibold">Veredicto</h2>
               <p className="mt-1 text-zinc-800">{ev.veredicto}</p>
               <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-zinc-600">
-                <dt>Disciplina</dt>
-                <dd>{DISCIPLINE_LABEL[ev.discipline] ?? ev.discipline}</dd>
                 <dt>Inglés</dt>
                 <dd>{ENGLISH_LABEL[ev.englishRequired] ?? ev.englishRequired}</dd>
                 <dt>Años pedidos</dt>
                 <dd>{ev.yearsRequired ?? "no dice"}</dd>
-                <dt>Empresa</dt>
-                <dd>
-                  {ev.companyType
-                    ? (COMPANY_TYPE_LABEL[ev.companyType] ?? ev.companyType)
-                    : COMPANY_TYPE_LABEL.desconocido}
-                </dd>
-                <dt>Fecha de la evaluación</dt>
-                <dd>
-                  {formatDate(ev.createdAt)}
-                  {ev.hadFullJd ? "" : " · sin la descripción completa"}
-                </dd>
-                <dt>Score de la evaluación</dt>
-                <dd>
-                  {ev.scoreModel ?? ev.score}
-                  {ev.adjustments.length
-                    ? ` → ${ev.score} (${ev.adjustments.map(adjustmentText).join(", ")})`
-                    : ""}
-                </dd>
               </dl>
+              {/* A-10 (C-5 P2-3): el detalle técnico del puntaje queda plegado, para no
+                  recibir con jerga a quien no es de tecnología */}
+              <details className="mt-2 text-xs text-zinc-600">
+                <summary className="cursor-pointer py-1 font-medium text-zinc-700">
+                  Cómo se calculó
+                </summary>
+                <p className="mt-1">
+                  La IA lee el aviso y tu perfil y propone un puntaje. Después la app aplica reglas
+                  fijas que lo suben o lo bajan.
+                </p>
+                <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1">
+                  <dt>Área del aviso</dt>
+                  <dd>{DISCIPLINE_LABEL[ev.discipline] ?? ev.discipline}</dd>
+                  <dt>Tipo de empresa</dt>
+                  <dd>
+                    {ev.companyType
+                      ? (COMPANY_TYPE_LABEL[ev.companyType] ?? ev.companyType)
+                      : COMPANY_TYPE_LABEL.desconocido}
+                  </dd>
+                  <dt>Puntaje de la IA</dt>
+                  <dd>{ev.scoreModel ?? ev.score}</dd>
+                  <dt>Ajustes</dt>
+                  <dd>
+                    {ev.adjustments.length ? (
+                      <ul>
+                        {ev.adjustments.map((a, i) => (
+                          <li key={`${i}|${a.rule}`}>{adjustmentText(a)}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      "ninguno"
+                    )}
+                  </dd>
+                  <dt>Puntaje final</dt>
+                  <dd>{ev.score}</dd>
+                  <dt>Fecha de la evaluación</dt>
+                  <dd>
+                    {formatDate(ev.createdAt)}
+                    {ev.hadFullJd ? "" : " · sin la descripción completa"}
+                  </dd>
+                </dl>
+              </details>
             </div>
           </section>
 
@@ -474,11 +532,31 @@ export default async function JobDetailPage({
               items={job.preScore.missing}
               tone="text-red-900"
             />
-            <SkillBox
-              title={`Sin nivel cargado (${job.preScore.unknown.length})`}
-              items={job.preScore.unknown}
-              tone="text-zinc-600"
-            />
+            <div className="min-w-0 rounded-md border border-zinc-200 p-2">
+              <p className="text-xs font-semibold">
+                Sin nivel cargado ({job.preScore.unknownSkills.length})
+              </p>
+              {job.preScore.unknownSkills.length ? (
+                <ul className="mt-1 flex flex-col items-start gap-1">
+                  {job.preScore.unknownSkills.map((u) => (
+                    <li key={u.slug} className="min-w-0 max-w-full">
+                      {isEnglishSkillSlug(u.slug) ? (
+                        <span className="text-xs text-zinc-600">{u.name}</span>
+                      ) : (
+                        <SkillLevelButton
+                          slug={u.slug}
+                          name={u.name}
+                          description={job.skillInfo[u.slug]?.description ?? null}
+                          jobId={job.id}
+                        />
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-zinc-600">—</p>
+              )}
+            </div>
           </div>
           <p className="text-xs text-zinc-600">
             {job.preScore.skillsMentioned} aptitudes reconocidas en la descripción

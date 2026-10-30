@@ -3,6 +3,7 @@ import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { signIn } from "@/auth";
 import { SubmitButton } from "@/app/components/submit-button";
+import { MAX_PASSWORD_LENGTH } from "@/lib/invitations-core";
 import { createFirstUser, hasAnyUser } from "@/lib/setup";
 
 // Sin esto, Next puede congelar esta página como estática en el build si en ese momento
@@ -16,7 +17,7 @@ const SKIP_CLASS =
   "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-zinc-900 focus:ring-2 focus:ring-zinc-900";
 
 const ERROR_MESSAGE: Record<string, string> = {
-  corta: "La contraseña tiene que tener al menos 8 caracteres.",
+  corta: `La contraseña tiene que tener entre 8 y ${MAX_PASSWORD_LENGTH} caracteres.`,
   no_coincide: "Las contraseñas no coinciden.",
   email: "Ese email no es válido o ya hay un usuario creado.",
 };
@@ -27,7 +28,8 @@ async function setup(formData: FormData): Promise<void> {
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
   const confirm = String(formData.get("confirm") ?? "");
-  if (password.length < 8) redirect("/setup?error=corta");
+  // S-3: con tope, para que un texto enorme no pase por scrypt
+  if (password.length < 8 || password.length > MAX_PASSWORD_LENGTH) redirect("/setup?error=corta");
   if (password !== confirm) redirect("/setup?error=no_coincide");
   try {
     await createFirstUser(email, password);

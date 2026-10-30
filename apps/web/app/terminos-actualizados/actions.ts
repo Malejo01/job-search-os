@@ -18,5 +18,5 @@ export async function acceptTermsAction(formData: FormData): Promise<AcceptTerms
   const accepted = validateTermsAcceptance(formData.get("terminos"));
   if (!accepted.ok) return { error: "Para seguir tenés que aceptar los términos." };
   await acceptCurrentTerms(userId);
-  redirect((await isOnboardingComplete(userId)) ? "/jobs" : "/onboarding");
+  redirect((await isOnboardingComplete(userId)) ? "/hoy" : "/onboarding");
 }

@@ -143,6 +143,26 @@ export const ALERT_KEYWORDS: Partial<Record<AlertRoleKey, Keywords>> = {
     es: ["atención al cliente", "servicio al cliente", "soporte al cliente", "call center"],
     en: ["customer support", "customer service", "support agent", "customer care"],
   },
+  finanzas_contabilidad: {
+    es: ["contador", "contabilidad", "analista financiero", "cuentas por pagar", "impuestos"],
+    en: ["accountant", "bookkeeper", "accounts payable", "financial analyst", "fp&a"],
+  },
+  asistencia_operaciones: {
+    es: [
+      "asistente virtual",
+      "asistente administrativo",
+      "asistente ejecutiva",
+      "coordinador de operaciones",
+      "carga de datos",
+    ],
+    en: [
+      "virtual assistant",
+      "executive assistant",
+      "administrative assistant",
+      "operations coordinator",
+      "data entry",
+    ],
+  },
 };
 
 /** Para quien todavía no eligió carrera. */

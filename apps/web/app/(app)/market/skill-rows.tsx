@@ -78,7 +78,7 @@ export function SkillRows({
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-zinc-600">Requisito</dt>
+                  <dt className="text-zinc-600">Excluyente</dt>
                   <dd className="text-sm font-medium text-zinc-800">
                     <span className="tabular-nums">{r.mustMentions}</span> de{" "}
                     <span className="tabular-nums">{r.mentions}</span> avisos
@@ -110,7 +110,7 @@ export function SkillRows({
                 Menciones
               </th>
               <th scope="col" className="py-1 pr-2 text-right font-medium">
-                Must
+                Excluyente
               </th>
               <th scope="col" className="py-1 pr-2 text-right font-medium">
                 Demanda

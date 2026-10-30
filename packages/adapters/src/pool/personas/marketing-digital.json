@@ -1,0 +1,16 @@
+{
+  "targetRoles": ["marketing_digital"],
+  "locationCountry": "CL",
+  "remoteOnly": true,
+  "yearsTotal": 2,
+  "skills": [
+    { "slug": "seo", "level": 2 },
+    { "slug": "google_ads", "level": 2 },
+    { "slug": "email_marketing", "level": 2 },
+    { "slug": "social_media", "level": 2 },
+    { "slug": "ga4", "level": 1 },
+    { "slug": "copywriting", "level": 2 },
+    { "slug": "growth_marketing", "level": 1 },
+    { "slug": "excel", "level": 2 }
+  ]
+}

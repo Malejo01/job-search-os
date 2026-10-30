@@ -1,3 +1,4 @@
+import { BRAND } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { getPoolShowcase } from "@/lib/showcase";
 import { FlowDiagram, FLOW_STEPS_EN } from "../../../(public)/como-esta-hecho/flow-diagram";
@@ -15,7 +16,7 @@ export const metadata = {
   },
 };
 
-const REPO_URL = "https://github.com/Malejo01/job-search-os";
+const REPO_URL = BRAND.repoUrl;
 const PRINCIPLES_URL = `${REPO_URL}/blob/main/docs/ARCHITECTURE.md`;
 
 // Mismo conteo fijo que la página en español (aproximado, al 20/10/2026)

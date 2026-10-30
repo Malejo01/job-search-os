@@ -16,13 +16,11 @@ import {
   filtersImportedAction,
   privacyAcknowledgedAction,
 } from "./actions";
+import { AlertEmail } from "./alert-email";
 import { AlertGuide, type AlertGuideProps } from "./alert-guide";
 import { CopyButton } from "./copy-button";
 import { PortalStats } from "./portal-stats";
 import { PrivacyDialog } from "./privacy-dialog";
-
-const LEGACY_NOTICE =
-  "Tu dirección es de un formato anterior: generá una nueva en Ajustes › Email entrante antes de configurar Gmail.";
 
 const STEP_TITLES: Record<(typeof ASSISTANT_STEPS)[number], string> = {
   agregar_direccion: "Agregá la dirección de reenvío",
@@ -67,74 +65,86 @@ export function Assistant({
   const { step } = state;
   const legacy = step === "direccion_vieja";
   const inOnboarding = context === "onboarding";
+  // Gmail ya empezado: cualquier paso distinto del inicial (tampoco se cierra solo al llegar a «listo»)
+  const gmailInProgress = step !== "agregar_direccion" && step !== "direccion_vieja";
   return (
     <section className="flex flex-col gap-4">
       {inOnboarding ? (
         <p className="text-sm font-medium text-zinc-600">Opcional · Conectar alertas</p>
       ) : null}
       <h1 className="text-xl font-semibold">Conectá tus alertas de email (opcional)</h1>
-      <p className="text-sm text-zinc-700">
-        Ya tenés ofertas de las fuentes públicas. Si además recibís alertas de LinkedIn, Get on
-        Board, Indeed u otro portal, podés sumarlas: reenviá esos emails a tu dirección personal y
-        se cargan solas. No la compartas.
-      </p>
-      {legacy ? (
-        <p role="alert" className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          {LEGACY_NOTICE}{" "}
-          <Link href="/settings" className="underline">
-            Ir a Ajustes
-          </Link>
-        </p>
-      ) : null}
-      {address ? (
-        <div className="flex items-center gap-2 rounded-md bg-zinc-100 px-3 py-2">
-          <p className="min-w-0 flex-1 font-mono text-sm break-all select-all">
-            <span data-testid="assistant-address">{address}</span>
-          </p>
-          <CopyButton text={address} />
-        </div>
-      ) : (
-        <p role="alert" className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          Todavía no tenés una dirección de reenvío. Generá una en Ajustes.
-        </p>
-      )}
-
-      <ol className="flex list-none flex-col gap-2 p-0 text-sm" aria-label="Pasos">
-        {ASSISTANT_STEPS.map((id, i) => {
-          const view = viewOf(id, step);
-          return (
-            <li
-              key={id}
-              data-testid={`assistant-step-${id}`}
-              aria-current={view === "current" ? "step" : undefined}
-              className={
-                view === "current"
-                  ? "rounded-md border border-zinc-900 bg-white px-3 py-2"
-                  : view === "done"
-                    ? "px-3 py-1 text-zinc-600"
-                    : "px-3 py-1 text-zinc-500"
-              }
-            >
-              <h2
-                className={view === "current" ? "text-base font-semibold text-zinc-900" : "text-sm"}
-              >
-                {view === "done" ? <span aria-hidden="true">✓ </span> : null}
-                Paso {i + 1}: {STEP_TITLES[id]}
-                <span className="sr-only">
-                  {view === "done" ? " (hecho)" : view === "current" ? " (actual)" : " (pendiente)"}
-                </span>
-              </h2>
-              {view === "current" ? (
-                <div className="mt-2 flex flex-col gap-2 text-zinc-700">
-                  <StepBody step={id} state={state} />
-                </div>
-              ) : null}
-            </li>
-          );
-        })}
-      </ol>
+      <p className="text-sm text-zinc-700">Ya tenés ofertas de las fuentes públicas.</p>
+      <AlertEmail address={address} legacy={legacy} />
 
       {guide ? <AlertGuide {...guide} /> : null}
+
+      {/* Reenvío desde Gmail: fuera del camino principal; abierto si la persona ya lo había empezado */}
+      <details
+        data-testid="gmail-option"
+        open={gmailInProgress}
+        className="rounded-md border border-zinc-200 px-3 py-1"
+      >
+        <summary className="flex min-h-11 cursor-pointer items-center text-base font-medium text-zinc-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900">
+          Otra opción: reenviar desde Gmail
+        </summary>
+        <div className="flex flex-col gap-4 py-3">
+          <p role="note" className="rounded-md bg-sky-50 px-3 py-2 text-sm text-sky-900">
+            Por ahora este asistente es solo para Gmail. Si usás otro correo (Outlook, Hotmail,
+            Yahoo), reenviá a mano las alertas a tu dirección de la app.
+          </p>
+          <p className="text-sm text-zinc-700">
+            Si además recibís alertas de LinkedIn, Get on Board, Indeed u otro portal en tu Gmail,
+            podés reenviarlas a tu dirección personal y se cargan solas. No la compartas.
+          </p>
+          {address ? (
+            <div className="flex items-center gap-2 rounded-md bg-zinc-100 px-3 py-2">
+              <p className="min-w-0 flex-1 font-mono text-sm break-all select-all">{address}</p>
+              <CopyButton text={address} />
+            </div>
+          ) : null}
+
+          <ol className="flex list-none flex-col gap-2 p-0 text-sm" aria-label="Pasos">
+            {ASSISTANT_STEPS.map((id, i) => {
+              const view = viewOf(id, step);
+              return (
+                <li
+                  key={id}
+                  data-testid={`assistant-step-${id}`}
+                  aria-current={view === "current" ? "step" : undefined}
+                  className={
+                    view === "current"
+                      ? "rounded-md border border-zinc-900 bg-white px-3 py-2"
+                      : view === "done"
+                        ? "px-3 py-1 text-zinc-600"
+                        : "px-3 py-1 text-zinc-500"
+                  }
+                >
+                  <h2
+                    className={
+                      view === "current" ? "text-base font-semibold text-zinc-900" : "text-sm"
+                    }
+                  >
+                    {view === "done" ? <span aria-hidden="true">✓ </span> : null}
+                    Gmail, paso {i + 1}: {STEP_TITLES[id]}
+                    <span className="sr-only">
+                      {view === "done"
+                        ? " (hecho)"
+                        : view === "current"
+                          ? " (actual)"
+                          : " (pendiente)"}
+                    </span>
+                  </h2>
+                  {view === "current" ? (
+                    <div className="mt-2 flex flex-col gap-2 text-zinc-700">
+                      <StepBody step={id} state={state} />
+                    </div>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      </details>
 
       {portalStats ? <PortalStats rows={portalStats} /> : null}
 
@@ -192,7 +202,7 @@ function StepBody({
   switch (step) {
     case "agregar_direccion":
       return current === "direccion_vieja" ? (
-        <p>{LEGACY_NOTICE}</p>
+        <p>Primero generá una dirección nueva: mirá el aviso de arriba.</p>
       ) : (
         <>
           <p>

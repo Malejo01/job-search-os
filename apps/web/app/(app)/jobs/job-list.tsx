@@ -148,7 +148,7 @@ function JobCard({ job, query, tour }: { job: JobListRow; query: string; tour: b
           ) : null}
           {job.flags.includes("posible_duplicado") ? (
             <span className="rounded bg-amber-100 px-1.5 py-0.5 font-medium text-amber-900">
-              posible duplicado
+              Posible duplicado
             </span>
           ) : null}
           {job.flags.flatMap((f) => {

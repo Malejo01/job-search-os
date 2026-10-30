@@ -7,9 +7,11 @@ import {
 } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { getActiveCriteria } from "@/lib/criteria";
+import { DISCIPLINE_LABEL } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import { resetCriteriaAction, saveCriteriaAction } from "./actions";
 import { FieldError, GuardedForm, PendingSubmit } from "@/app/components/guarded-form";
+import { AssistantProposalLoader } from "@/components/assistant-proposal-loader";
 import { SaveButton } from "./save-button";
 
 export const metadata = { title: "Criterios" };
@@ -49,28 +51,6 @@ const ENGLISH_LABEL: Record<(typeof ENGLISH_RISK_LEVELS)[number], string> = {
   nativo: "Nativo",
 };
 
-const DISCIPLINE_LABEL: Record<(typeof DISCIPLINES)[number], string> = {
-  ai_engineer: "Ingeniería de IA",
-  ml_engineer: "Ingeniería de ML",
-  ai_evaluation: "Evaluación de IA",
-  creative_production: "Producción creativa con IA",
-  fullstack: "Fullstack",
-  frontend: "Frontend",
-  backend: "Backend",
-  devops: "DevOps",
-  data: "Datos",
-  ciberseguridad: "Ciberseguridad",
-  negocio: "Negocio",
-  project_management: "Gestión de proyectos",
-  administracion_plataformas: "Administración de plataformas",
-  arquitectura: "Arquitectura",
-  otra: "Otra",
-  marketing_digital: "Marketing digital",
-  producto: "Producto",
-  recursos_humanos: "Recursos humanos / recruiting",
-  customer_success: "Customer success",
-};
-
 /**
  * Criterios editables (JS-096): un subconjunto de las reglas del prefiltro y de decide(). Cada
  * guardado crea una versión nueva; las ofertas ya evaluadas no se recalculan.
@@ -102,11 +82,17 @@ export default async function CriteriaPage({
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-5">
       <div className="flex flex-col gap-1">
+        <p className="text-xs font-semibold tracking-wide text-zinc-700 uppercase">Avanzado</p>
         <h1 className="text-2xl font-semibold">Criterios de evaluación</h1>
         <p className="text-sm text-zinc-600">
           Versión vigente: {active.version} · guardada el {DATE.format(active.createdAt)} (UTC)
         </p>
       </div>
+
+      <p role="note" className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+        Cambiar estos criterios puede hacer que se descarten ofertas que te sirven. Si no estás
+        segura o seguro, dejalos como están.
+      </p>
 
       <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
         Los cambios valen para las ofertas nuevas; las ya evaluadas no se recalculan.
@@ -139,6 +125,7 @@ export default async function CriteriaPage({
         className="flex flex-col gap-4"
       >
         <input type="hidden" name="baseVersion" value={active.version} />
+        <AssistantProposalLoader destination="criteria" />
 
         <label className="flex flex-col gap-1 text-sm">
           Títulos bloqueados (uno por línea)

@@ -148,6 +148,11 @@ test.describe("Flujo 47: textos y navegación", () => {
     await expect(page.getByRole("heading", { name: "Lo que ya tenés" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Lo que te falta" })).toBeVisible();
     await expect(page.locator("body")).not.toContainText(OLD_TEXTS);
+    // A-10: el detalle del puntaje queda plegado en «Cómo se calculó»
+    await expect(page.getByText("Puntaje de la IA")).toBeHidden();
+    await page.getByText("Cómo se calculó", { exact: true }).click();
+    await expect(page.getByText("Puntaje de la IA")).toBeVisible();
+    await expect(page.getByText("Puntaje final")).toBeVisible();
 
     await page.goto("/market");
     await expect(page.locator("body")).not.toContainText(/Match fuerte|Pendientes de JD/);
@@ -161,15 +166,14 @@ test.describe("Flujo 47: textos y navegación", () => {
     await page.goto("/jobs?fuente=ashby&estado=todas");
     const box = page.getByTestId("jobs-empty-unevaluated");
     await expect(box).toContainText(/Tenés (1 oferta|\d+ ofertas) que todavía no evaluamos/);
-    await expect(box.getByRole("link", { name: "verlas" })).toHaveAttribute(
+    await expect(box.getByRole("link", { name: "Ver las ofertas sin evaluar" })).toHaveAttribute(
       "href",
       "/jobs?estado=prefiltrada",
     );
     await expect(box).toContainText(/Tenés (1 oferta|\d+ ofertas) sin descripción/);
-    await expect(box.getByRole("link", { name: /completarlas?/ })).toHaveAttribute(
-      "href",
-      "/jobs/pending-jd",
-    );
+    await expect(
+      box.getByRole("link", { name: /Completar (la descripción|las descripciones)/ }),
+    ).toHaveAttribute("href", "/jobs/pending-jd");
     await expect(page.locator("body")).not.toContainText("Sin ofertas con estos filtros");
   });
 

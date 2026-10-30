@@ -103,11 +103,7 @@ export async function register(page: Page, run: Run): Promise<void> {
   await page.getByLabel("Repetí la contraseña").fill(persona.password);
   await page.getByLabel(/Leí y acepto/).check();
   await page.getByRole("button", { name: "Crear cuenta" }).click();
-  await expect(page.getByRole("heading", { name: "Cuenta creada" })).toBeVisible();
-  await page.getByRole("link", { name: "Ir a entrar" }).click();
-  await page.getByLabel("Email").fill(persona.email);
-  await page.getByLabel("Contraseña").fill(persona.password);
-  await page.getByRole("button", { name: "Entrar" }).click();
+  // El registro deja la sesión iniciada: va directo al onboarding
   await page.waitForURL("**/onboarding**");
 }
 
@@ -345,7 +341,9 @@ export function definePersonaSpec(key: PersonaKey): void {
         // La etiqueta sale del seed de roles: así no depende de cómo la nombre la 44
         const label = (roleSkills as Record<string, { label: string }>)[persona.role]!.label;
         await expect(market).toContainText(`El mercado de ${label}`);
-        await expect(market).not.toContainText("Todavía no hay datos para este rol");
+        await expect(market).not.toContainText(
+          `Todavía no hay ofertas públicas de ${label} para mostrar`,
+        );
         const text = await market.innerText();
         expect(
           wanted.some((name) => text.includes(name)),

@@ -36,6 +36,9 @@ export const ROLE_KEYS = [
   // Ronda 107 (ADR-022): ventas y atención, siempre al final.
   "ventas_b2b",
   "atencion_cliente",
+  // C-2b (ADR-023): finanzas y asistencia/operaciones, siempre al final.
+  "finanzas_contabilidad",
+  "asistencia_operaciones",
 ] as const;
 export type RoleKey = (typeof ROLE_KEYS)[number];
 
@@ -76,11 +79,18 @@ export const PRODUCT_ROLE_KEYS: readonly RoleKey[] = [
 /** Las carreras comerciales y de atención (ronda 107, ADR-022). */
 export const COMMERCIAL_ROLE_KEYS: readonly RoleKey[] = ["ventas_b2b", "atencion_cliente"];
 
-/** Todo lo que no es IT: carreras digitales, de producto, ventas y atención. */
+/** Las carreras de finanzas y de asistencia/operaciones (C-2b, ADR-023). */
+export const BACKOFFICE_ROLE_KEYS: readonly RoleKey[] = [
+  "finanzas_contabilidad",
+  "asistencia_operaciones",
+];
+
+/** Todo lo que no es IT: carreras digitales, de producto, ventas, atención, finanzas y operaciones. */
 export const DIGITAL_ROLE_KEYS: readonly RoleKey[] = [
   ...OTHER_DIGITAL_ROLE_KEYS,
   ...PRODUCT_ROLE_KEYS,
   ...COMMERCIAL_ROLE_KEYS,
+  ...BACKOFFICE_ROLE_KEYS,
 ];
 
 /** Grupos del selector de puesto: juntos cubren `ROLE_KEYS` sin repetir. */
@@ -89,13 +99,14 @@ export const ROLE_GROUPS: readonly { label: string; roles: readonly RoleKey[] }[
   { label: "Producto y proyectos", roles: PRODUCT_ROLE_KEYS },
   { label: "Carreras digitales", roles: OTHER_DIGITAL_ROLE_KEYS },
   { label: "Ventas y atención", roles: COMMERCIAL_ROLE_KEYS },
+  { label: "Finanzas y operaciones", roles: BACKOFFICE_ROLE_KEYS },
 ];
 
 /**
  * Carreras que existen pero todavía no se ofrecen en los selectores (menos de 10 ofertas, ADR-022).
  * Quien ya la tiene la conserva: `isRoleKey`, la ingesta y `/mercado/<clave>` no cambian.
  */
-export const UNLISTED_ROLE_KEYS: readonly RoleKey[] = [];
+export const UNLISTED_ROLE_KEYS: readonly RoleKey[] = ["asistencia_operaciones"];
 
 /**
  * `ROLE_GROUPS` sin las carreras no listadas, salvo las de `keep` (las del perfil de la persona), y
@@ -139,7 +150,7 @@ export const MAX_ROLE_SKILLS = 12;
  */
 export const MAX_SKILL_ENTRIES = 200;
 
-const SKILL_SLUG = /^[a-z][a-z0-9_]{0,39}$/;
+export const SKILL_SLUG = /^[a-z][a-z0-9_]{0,39}$/;
 
 const roleEntrySchema = z.object({
   label: z.string().min(1).max(40),
@@ -196,6 +207,10 @@ const HEADLINE_KEYWORDS: Record<RoleKey, RegExp> = {
   atencion_cliente:
     /customer (?:support|service|care)|atencion al cliente|servicio al cliente|call center/,
   ciberseguridad: /ciberseguridad|cybersecurity|seguridad informatica|\binfosec\b/,
+  finanzas_contabilidad:
+    /\bcontador(?:a)?\b|contab|accountant|bookkeep|fp&a|financial analyst|analista financier[oa]|\bfinanzas\b/,
+  asistencia_operaciones:
+    /asistente (?:virtual|ejecutiv[oa]|administrativ[oa])|(?:virtual|executive|administrative) assistant|operations (?:coordinator|specialist|associate)|data entry/,
 };
 
 /** disciplina de los criterios → rol (en orden de prioridad). */

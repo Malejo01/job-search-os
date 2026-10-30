@@ -10,8 +10,9 @@ import {
 import { revalidatePath } from "next/cache";
 import type { ProfileActionResult } from "@/components/profile-form";
 import { withUser } from "@/lib/db";
+import { invalidateUserInsights } from "@/lib/insights-cache";
 import { saveProfileFromForm } from "@/lib/onboarding";
-import { requireUserId } from "@/lib/session";
+import { requireActiveUserId } from "@/lib/session";
 
 /**
  * Guarda «Tu perfil» (CV-00): modalidad, país, idioma de las ofertas, inglés, años, autorización y
@@ -25,7 +26,7 @@ import { requireUserId } from "@/lib/session";
  * perfil igual queda guardado: se loguea y la acción no se rompe.
  */
 export async function savePerfilAction(formData: FormData): Promise<ProfileActionResult> {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   // Si no se puede leer el perfil anterior, no hay con qué comparar: se guarda sin re-prefiltrar
   const before = await withUser(userId, (tx) => loadProfilePrefilterPrefs(tx, userId)).catch(
     (e) => {
@@ -38,6 +39,8 @@ export async function savePerfilAction(formData: FormData): Promise<ProfileActio
   );
   const result = await saveProfileFromForm(userId, formData, { keepStored: true });
   if (!result.ok) return result;
+  // País, modalidad, idioma e inglés cambian el prefiltro de «Si aprendés…» y el texto de «Tu encaje» (E-2b)
+  invalidateUserInsights(userId);
   if (before) {
     const log = createLogger({ user_id: userId, task: "reprefilter" });
     try {

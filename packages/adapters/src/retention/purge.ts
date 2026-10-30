@@ -1,11 +1,12 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import { inArray, isNotNull, isNull, lt, or, and } from "drizzle-orm";
 import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
-import type { SQL } from "drizzle-orm";
+import { sql, type SQL } from "drizzle-orm";
+import { POOL_PARSER } from "../inbound/pool-mailbox";
 
 /**
  * Purga programada (JS-107). Borra solo filas técnicas; nunca `raw_blobs`, `inbound_emails` ni
- * datos del usuario (esos se van con la cuenta). `db` es la conexión de servicio: ve las filas de
+ * datos del usuario (esos se van con la cuenta); única excepción: la cola del pool, sin dueño. `db` es la conexión de servicio: ve las filas de
  * todos los usuarios y el borrado es global por antigüedad, sin cruzar datos entre usuarios.
  */
 export type PurgeResult = {
@@ -19,7 +20,16 @@ export type PurgeResult = {
   invitations: number;
   /** Invitaciones usadas a las que se les anuló el email. */
   invitationEmails: number;
+  /** Comentarios de «Contanos qué pasó» de más de BETA_FEEDBACK_DAYS días. */
+  betaFeedback: number;
+  /** Emails de la cola manual del pool (sin dueño) con más de 30 días, con su crudo. */
+  poolEmails: number;
 };
+
+export const POOL_EMAIL_RETENTION_DAYS = 30;
+
+/** Retención de beta_feedback (C-23): 180 días, fija; no depende de `LEGAL_LOG_DAYS`. */
+export const BETA_FEEDBACK_DAYS = 180;
 
 const INVITATION_GRACE_DAYS = 7;
 
@@ -64,6 +74,29 @@ async function deleteInBatches(
   return total;
 }
 
+/** Borra las filas del pool vencidas y sus raw_blobs, en lotes. Devuelve las filas de inbound_emails. */
+async function purgePoolEmails(db: Db, cutoff: Date, batchSize: number): Promise<number> {
+  let total = 0;
+  for (let i = 0; i < PURGE_MAX_BATCHES; i++) {
+    const rows = (await db.execute(sql`
+      WITH old AS (
+        SELECT id, raw_ref FROM inbound_emails
+        WHERE user_id IS NULL AND parser = ${POOL_PARSER}
+          AND received_at < ${cutoff.toISOString()}::timestamptz
+        LIMIT ${batchSize}
+      ),
+      blobs AS (
+        DELETE FROM raw_blobs
+        WHERE user_id IS NULL AND 'pg:' || id::text IN (SELECT raw_ref FROM old)
+      )
+      DELETE FROM inbound_emails WHERE id IN (SELECT id FROM old) RETURNING id
+    `)) as unknown as unknown[];
+    total += rows.length;
+    if (rows.length < batchSize) break;
+  }
+  return total;
+}
+
 export async function purgeExpired(
   db: Db,
   input: { now: Date; logDays?: number | null; batchSize?: number },
@@ -79,6 +112,8 @@ export async function purgeExpired(
     waitlistIps: 0,
     invitations: 0,
     invitationEmails: 0,
+    betaFeedback: 0,
+    poolEmails: 0,
   };
 
   // IP hasheada de la lista de espera: no se guarda más de un día (mismo UPDATE que waitlist_join)
@@ -112,6 +147,22 @@ export async function purgeExpired(
     .where(and(isNotNull(s.invitations.usedAt), isNotNull(s.invitations.email)))
     .returning({ id: s.invitations.id });
   result.invitationEmails = cleared.length;
+
+  // Comentarios de la beta: retención propia, corre aunque la purga técnica esté desactivada
+  result.betaFeedback = await deleteInBatches(
+    db,
+    s.betaFeedback,
+    lt(s.betaFeedback.createdAt, new Date(now.getTime() - BETA_FEEDBACK_DAYS * DAY_MS)),
+    batchSize,
+  );
+
+  // Cola manual del pool (ADR-024): sin dueño, se purga a los 30 días con su crudo. Acotada a
+  // user_id NULL y al parser del pool: nunca toca emails de personas.
+  result.poolEmails = await purgePoolEmails(
+    db,
+    new Date(now.getTime() - POOL_EMAIL_RETENTION_DAYS * DAY_MS),
+    batchSize,
+  );
 
   const logDays = input.logDays;
   if (

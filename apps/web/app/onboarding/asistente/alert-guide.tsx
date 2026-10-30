@@ -112,7 +112,8 @@ export function AlertGuide({ roles, language, coverage }: AlertGuideProps) {
         })}
       </ul>
       <p className="text-sm text-zinc-600">
-        Si reenviás los avisos a mano, el estado puede decir “nunca” aunque sí te lleguen.
+        El estado se arma con los avisos que ya leemos: si un portal todavía no tiene lector, puede
+        decir “nunca” aunque sus emails lleguen a tu bandeja.
       </p>
     </section>
   );

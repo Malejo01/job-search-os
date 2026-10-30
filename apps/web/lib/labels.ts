@@ -29,6 +29,7 @@ export const SOURCE_LABELS: Record<string, string> = {
   greenhouse: "Greenhouse",
   lever: "Lever",
   ashby: "Ashby",
+  teamtailor: "Teamtailor",
   other: "Otra",
 };
 
@@ -164,7 +165,8 @@ export function riskLabel(text: string): string {
 }
 
 /** Lo que implica el riesgo de ubicación, en llano (ronda 44). */
-export const LOCATION_RISK_TEXT = "ubicación (la oferta pide otro país o no confirma el tuyo)";
+export const LOCATION_RISK_TEXT =
+  "El aviso no dice desde qué países contrata: confirmalo antes de postular";
 
 /** Score con escala y coma decimal: 7,5/10. Solo para mostrar; los aria-label siguen con punto. */
 export function formatScore(score: number): string {

@@ -364,8 +364,8 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 
 ## Bloque 6 — Plataforma (después)
 
-### JS-054 · Orden de prioridad en la lista: score y despues riesgos
-`deps:` JS-052 · `est:` 1 h · `estado:` todo (no bloquea)
+### JS-054 · Orden de prioridad en la lista: score y despues riesgos ✅ done 2026-10-27
+`deps:` JS-052 · `est:` 1 h · `estado:` done (nube N2, PR #252, mergeado 2026-10-27): `listJobs` desempata por cantidad de riesgos a igual score; lo heredan siguiente/anterior, «Lo nuevo» de `/hoy` y `list_jobs` del MCP. e2e `86-orden-por-riesgos`. `first-offers.ts` y `first-steps.ts` siguen sin mirar riesgos
 - Con las penalizaciones de `decide()` corregidas (JS-052), los riesgos pasan a ser el unico canal de viabilidad: dos ofertas con el mismo score ya no se diferencian por el score.
 - Ordenar la lista por score descendente y, dentro de cada score, por cantidad de riesgos ascendente (menos riesgos primero).
 - **Acepta:** dos ofertas con score 7, una con 1 riesgo y otra con 3, salen en ese orden; el orden es estable y se testea sin LLM.
@@ -545,8 +545,8 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Que:** consumir el token con `UPDATE ... WHERE used_at IS NULL AND expires_at > now() RETURNING` dentro de la misma transaccion; si no devuelve fila, falla.
 - **Acepta:** test de integracion con dos consumos concurrentes del mismo token: uno gana, el otro recibe "used".
 
-### JS-078 · El barrido `--pre-push` informa cuando pasa
-`deps:` JS-063 · `est:` S · `estado:` todo (2026-10-06)
+### JS-078 · El barrido `--pre-push` informa cuando pasa ✅ done 2026-10-27
+`deps:` JS-063 · `est:` S · `estado:` done (nube N2, PR #251, mergeado 2026-10-27). Hallazgo previo anotado en el PR: el separador `\x1e` de `scanHistory` deja sin revisar el resto de un archivo que contenga ese byte (falla abierto); va en un ticket aparte
 - **Por que:** cuando no encuentra nada, `scripts/privacy-scan.mjs --pre-push` no imprime nada, asi que no se distingue "paso" de "no corrio".
 - **Que:** imprimir `pre-push: OK (N commits)` al pasar.
 - **Acepta:** test por CLI con un repo temporal que verifica el mensaje y el conteo; con hallazgos, el mensaje de error no cambia.
@@ -576,18 +576,18 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Que:** con el snapshot, agregados por fuente (email vs API), por empresa generica y por similitud (1,0 vs 0,6-0,99). Grupos de menos de 5 como "<5". Decide cual de JS-085/086/087 va primero.
 - **Acepta:** informe con los agregados y la fecha del snapshot.
 
-### JS-085 · Dedup sin JD: desmentir el titulo con otro campo
-`deps:` JS-084 · `est:` M · `estado:` todo (2026-10-07)
+### JS-085 · Dedup sin JD: desmentir el titulo con otro campo ✅ done 2026-10-19
+`deps:` JS-084 · `est:` M · `estado:` done (PR #94, ronda 52b; verificado en el código el 2026-10-27, nube N2): modalidad conocida y distinta o ubicación normalizada distinta desmienten al título; `ingest-job.ts` pasa los dos campos. La URL base no se usa
 - En alertas sin JD, comparar tambien ubicacion, modalidad o URL base antes de marcar; o marcar solo con similitud 1,0 y la misma fuente.
 - **Acepta:** tests con casos inventados; los pares del golden no cambian.
 
-### JS-086 · `normalizeCompany`: sufijos `labs` y `group`
-`deps:` — · `est:` S · `estado:` todo (2026-10-07)
+### JS-086 · `normalizeCompany`: sufijos `labs` y `group` ✅ done 2026-10-27
+`deps:` — · `est:` S · `estado:` done (nube N2, PR #246, mergeado 2026-10-27): `labs` y `group` salen de los sufijos. Solo código y tests; la migración de datos de `companies.name_normalized` y `public_jobs.company_normalized` queda como propuesta en el PR (decisión de Mauro)
 - "Empresa X Labs" y "Empresa X Group" colapsan y marcan. Quitar el sufijo solo si queda un nombre de 2 o mas tokens, o sacarlos de la lista. Toca `companies.name_normalized`: puede pedir migracion de datos (decision de Mauro).
 - **Acepta:** test de normalizacion; el golden publico no cambia de identidad de empresa.
 
-### JS-087 · Dedup: umbral de titulo con 4 tokens y uno distinto
-`deps:` JS-084 · `est:` S · `estado:` todo (2026-10-07)
+### JS-087 · Dedup: umbral de titulo con 4 tokens y uno distinto ✅ done 2026-10-19
+`deps:` JS-084 · `est:` S · `estado:` done (PR #94, ronda 52b; verificado en el código el 2026-10-27, nube N2): el umbral es estricto (`> 0,6`); cubierto en `diagnostico.test.ts` (H3)
 - Jaccard 0,6 marca roles distintos con 4 tokens y uno distinto. Subir el umbral a mas de 0,6 o exigir 3 o mas tokens en comun.
 - **Acepta:** probado contra el golden y los casos de `diagnostico.test.ts`.
 
@@ -600,8 +600,8 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Que:** verificar cada formato contra la fuente real (lista en `docs/sources/*.md`), revisar terminos de uso, migracion del enum `source_kind` con las fuentes que pasen, y conectarlas al cron detras de un flag apagado. Torre, solo si los terminos permiten uso automatizado. Himalayas, solo con el periodo del salario verificado.
 - **Acepta:** cada fuente conectada con su formato verificado y el flag apagado por defecto.
 
-### JS-099 · Navegacion en el celular
-`deps:` — · `est:` S · `estado:` todo (2026-10-07)
+### JS-099 · Navegacion en el celular ✅ done 2026-10-20
+`deps:` — · `est:` S · `estado:` done (ronda 73, PR #114; verificado el 2026-10-27, nube N2): por debajo de `sm` la nav es un menú desplegable; el e2e `47-textos-y-navegacion` a 360 px llega a todas las secciones
 - **Por que:** a 375 px la barra de navegacion se corta y "Mercado" y "Plan" quedan fuera de pantalla.
 - **Que:** navegacion que entre en 375 px (scroll horizontal con indicador, o menu).
 - **Acepta:** e2e o captura a 375 px con todas las secciones alcanzables.
@@ -611,8 +611,8 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Que:** agregar `packages/prompts/extract_skills.v1.md`, correr el backfill sobre los JD con estimado aprobado (≈ USD 0,006 por JD) y revisar las propuestas antes de sumarlas a la taxonomia.
 - **Acepta:** propuestas revisadas a mano; la taxonomia solo crece con aprobacion.
 
-### JS-101 · `/market`: accesibilidad
-`deps:` — · `est:` S · `estado:` todo (2026-10-07)
+### JS-101 · `/market`: accesibilidad ✅ done 2026-10-21
+`deps:` — · `est:` S · `estado:` done (PR #86 y C-4, PR #167; verificado el 2026-10-27, nube N2): `scope="col"`, etiquetas `sr-only` de nivel y demanda, ayuda de candidatos y `/market` en la auditoría axe AA de `70-axe-sesion`
 - `scope="col"` en los `<th>`; etiquetas `sr-only` para nivel y demanda en la lista compacta; decir en la ayuda que los candidatos salen de las ultimas ofertas y no del rango de semanas.
 - **Acepta:** auditoria de accesibilidad sin hallazgos en `/market`.
 
@@ -665,8 +665,8 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Por que:** `cron.yml` imprime la respuesta en el log de Actions, que es publico en un repo publico.
 - La respuesta lleva solo conteos y errores por categoria cerrada (`llm`, `validacion`, `otro`); el detalle va a pino con `job_id`. Test de que un error con email, uuid o texto de la base no aparece.
 
-### JS-111 · Prefiltro: colisiones de nombres de pais y paises fuera de la region
-`deps:` JS-104 · `est:` S · `estado:` todo (2026-10-08, revisor de la 14c)
+### JS-111 · Prefiltro: colisiones de nombres de pais y paises fuera de la region ✅ done 2026-10-27
+`deps:` JS-104 · `est:` S · `estado:` done (nube N2, PR #244, mergeado 2026-10-27): tabla única `REGION_COUNTRIES`, «New Mexico» no es MX, fallback por código eliminado (sí era alcanzable). Queda abierto: países fuera de la región sin «remote» («Madrid, Spain») y perfiles de fuera de la región que nombran su país
 - "New Mexico" cuenta como mencion de Mexico: para un perfil MX una oferta de EE.UU. pasa sin riesgo de ubicacion. `COUNTRY_NAMES` (`normalize/location.ts`) duplica `COUNTRY_OPTIONS` del onboarding y el fallback por codigo es inalcanzable hoy. Paises fuera de la region ("Spain only") no se detectan.
 - **Acepta:** test con "New Mexico"; test que compare las dos tablas (o una sola tabla); fallback eliminado.
 
@@ -740,8 +740,8 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 `deps:` JS-113 · `est:` XS + RLS · `estado:` todo (2026-10-08) — lleva migracion: va con plan y se aplica en Neon
 - Retirar la version anterior de la funcion de registro (detalle en las notas privadas de la ronda 23).
 
-### JS-125 · Ingesta del onboarding sin red en e2e/CI
-`deps:` JS-122 · `est:` XS · `estado:` todo (2026-10-08, ronda 27)
+### JS-125 · Ingesta del onboarding sin red en e2e/CI ✅ done 2026-10-27
+`deps:` JS-122 · `est:` XS · `estado:` done (nube N2, PR #250, mergeado 2026-10-27): `planFirstIngestNetwork` apaga Get on Board y las fuentes extra con `LLM_DEMO=1`
 - La primera ingesta al terminar el onboarding (ronda 22a) sale a la red real de las fuentes por API si el entorno no esta en modo demo; en e2e y CI puede volver flaky un test o crear ofertas despues de la limpieza. Apagarla cuando `LLM_DEMO=1` o con una variable propia del entorno de e2e.
 - **Acepta:** con el entorno de e2e, la primera ingesta no hace pedidos de red (test).
 
@@ -756,38 +756,38 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 `deps:` JS-122 · `est:` S · `estado:` todo (2026-10-08, ronda 26)
 - Hallazgo de severidad baja de la revision de la ronda 26 (detalle en las notas privadas de la ronda). La UI ya pide confirmar solo si la cuenta es propia.
 
-### JS-128 · Guarda de host en la conexion de duenio de los helpers de e2e
-`deps:` — · `est:` XS · `estado:` todo (2026-10-08, ronda 27)
+### JS-128 · Guarda de host en la conexion de duenio de los helpers de e2e ✅ done 2026-10-27
+`deps:` — · `est:` XS · `estado:` done (nube N2, PR #247, mergeado 2026-10-27): la guarda ya estaba en `ownerDb()`; el spec `85-guarda-helpers` lo prueba. Fuera de alcance: `runDemoWorker` y `computeRoleMarketAndPlan` abren conexión en procesos hijos sin la guarda
 - La conexion de duenio de los helpers de e2e usa la misma guarda de base local que los tests de integracion.
 - **Acepta:** con una URL remota, los helpers fallan antes de conectarse (test).
 
-### JS-129 · `/api/health` con el commit del deploy en curso
-`deps:` — · `est:` XS · `estado:` código hecho 2026-10-09 (ronda 29): `turbo.json` declara `VERCEL_GIT_COMMIT_SHA` en `build`, `/api/health` responde con `Cache-Control: no-store` y un test cubre que la ruta es dinámica. Falta verificar después del deploy que el commit coincide con el de Vercel (Mauro).
+### JS-129 · `/api/health` con el commit del deploy en curso ✅ done 2026-10-12
+`deps:` — · `est:` XS · `estado:` done (ronda 29, PR #66, mergeado 2026-10-12): `turbo.json` declara `VERCEL_GIT_COMMIT_SHA` en `build`, `/api/health` responde con `Cache-Control: no-store` y un test cubre que la ruta es dinámica. Falta que Mauro confirme después de un deploy que el commit coincide con el de Vercel.
 - En produccion `/api/health` muestra un commit anterior al deploy activo: la respuesta queda estatica o en cache. Tiene que ser dinamica (sin prerender ni cache) y mostrar el commit del deploy en curso.
 - La ruta ya tiene `force-dynamic` y lee `VERCEL_GIT_COMMIT_SHA` al responder. A verificar: (1) que el build de Vercel no reutilice una salida vieja del cache de Turborepo (la tarea `build` de `turbo.json` no declara variables de entorno); (2) que la variable de sistema llegue en tiempo de ejecucion y no solo al build; (3) los encabezados de cache de la respuesta.
 - **Acepta:** test de que la ruta es dinamica y lee el commit en tiempo de ejecucion; despues del deploy, el commit coincide con el de Vercel.
 
 ### JS-130 · Skills autodeclaradas y mercado bajo demanda ✅ done 2026-10-09
-`deps:` JS-094, JS-034 · `est:` M · `estado:` done (ronda 28, PR #65)
+`deps:` JS-094, JS-034 · `est:` M · `estado:` done (ronda 28, PR #65, mergeado 2026-10-12)
 - **Por qué:** para un invitado, `/market`, `/plan` y el prescore lo trataban como nivel 0 en todo (los niveles solo entraban por seed), y las pantallas vacías pedían comandos.
 - **Carga:** paso opcional del onboarding y `/settings/skills`. Unas 10 skills sugeridas por rol objetivo (seed `role_skills.json`: Frontend, Backend, Full-stack, QA, Data Analyst, Soporte IT, AI Engineer, UX/UI), buscador sobre la taxonomía y 4 niveles en palabras. El rol no se guarda: se elige en la pantalla y el default sale del titular o de las disciplinas de los criterios, salvo que sean las de fábrica. Server Actions con Zod sobre `skill_levels` (RLS de dueño), sin migración.
 - **Mercado y plan bajo demanda:** al terminar el onboarding (después de la primera ingesta) y al guardar skills, snapshot y plan sin LLM. Límite D-029: sin ofertas nuevas ni niveles cambiados, 1 cada 10 minutos; con cambios, un mínimo de 10 s entre recálculos (si cae adentro, espera lo que falta y reintenta una vez). Marca en `job_queue` con lock por usuario. El cron semanal no cambia.
 - **Pantallas para personas:** `/market` y `/plan` dicen qué falta (ofertas, skills, cálculo en curso), con link a la acción. Un test impide `pnpm`, `seeds/` o nombres de archivo en el texto de la UI.
 - **e2e:** invitado nuevo → carga 5 skills → `/market` deja de marcar todo como gap y el plan ya no lista lo que domina.
 
-### JS-131 · Nombre del producto en una constante y limpieza pre-beta
-`deps:` — · `est:` XS · `estado:` en revisión (ronda 29)
+### JS-131 · Nombre del producto en una constante y limpieza pre-beta ✅ done 2026-10-12
+`deps:` — · `est:` XS · `estado:` done (ronda 29, PR #66). Después, la marca entera pasó a un solo módulo (C-15, PR #178).
 - `PRODUCT_NAME` único para el título, los metadatos, los encabezados, los emails y el XML de filtros. Los textos legales quedan para el cambio de nombre.
 - Se borran `/privacidad` y `/terminos` dentro de `(app)` (las URLs viejas ya redirigen a `/legal/*` desde `next.config.ts`) y `lib/safe-error.ts` de web, que no tenían uso.
 
-### JS-132 · Feedback de un toque (👍/👎) en el detalle de la oferta
-`deps:` — · `est:` S + migración · `estado:` diseño (2026-10-09, ronda 30) — lleva migración: va con plan y se aplica en Neon antes del deploy
+### JS-132 · Feedback de un toque (👍/👎) en el detalle de la oferta ✅ done 2026-10-14
+`deps:` — · `est:` S + migración · `estado:` done (PR #86, migración 0026, 2026-10-14). Después: guardar el motivo (#87) y botones accesibles (#93, 2026-10-19).
 - **Por qué no entra en `human_score`:** ese número lo usan el snapshot de mercado (peso de la demanda) y el MAE del reporte de feedback. Un 👍/👎 no tiene un número honesto: copiar el score del modelo mete errores 0 en el MAE, y un 👎 no dice si el score estaba alto o bajo.
 - **Diseño:** columnas `human_verdict` (enum `de_acuerdo`/`en_desacuerdo`) y `human_verdict_at` en `evaluations`. El motivo corto opcional va en `human_note`. El formulario numérico queda en "Ajustar el score (avanzado)". El reporte de feedback suma la tasa de acuerdo por banda, fuera del MAE.
 - **Acepta:** 👎 con motivo persiste; el numérico sigue igual y no pisa el veredicto; B no puede marcar la evaluación de A.
 
-### JS-133 · Taxonomía: skills de diseño, soporte y análisis de datos
-`deps:` JS-130 · `est:` S · `estado:` todo (2026-10-09, ronda 28)
+### JS-133 · Taxonomía: skills de diseño, soporte y análisis de datos ✅ done 2026-10-12
+`deps:` JS-130 · `est:` S · `estado:` done (ronda 28, PR #67)
 - Las sugerencias de UX/UI, Soporte IT y Data Analyst usan lo que hay en la taxonomía de 60 skills. Faltan, por ejemplo, herramientas de diseño, sistemas operativos y redes, y planillas o BI.
 - Sumar skills cambia un dato global en Neon (tabla `skills`, hoy cargada desde `skills.json`). Va con plan y lo aplica Mauro. Después se ajusta `role_skills.json`.
 
@@ -807,13 +807,13 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - Un invitado sin perfil completo (pais, resumen, criterios) solo accede al onboarding, que crea los criterios por defecto. Sin esto no puede evaluar nada.
 
 ### JS-102 · Cachear los candidatos a skill de `/market`
-`deps:` JS-031 · `est:` S · `estado:` parcial (rondas 13 y 14): cache por usuario de 1 h hecho; la invalidacion en la ingesta de la app y el borrado va en la 14; falta medir el render
+`deps:` JS-031 · `est:` S · `estado:` parcial (rondas 13 y 14): cache por usuario de 1 h hecho; la invalidacion en la ingesta de la app y el borrado va en la 14; falta medir el render. Nube N2 (2026-10-27): no se tomó; que `/market` no lea `jd_text` exige guardar los candidatos (tabla o columna nueva), o sea migración
 - **Por que:** `getMarket` trae y tokeniza los JD de las ultimas 300 ofertas en cada request (`force-dynamic`). Con varios usuarios es CPU y base por cada visita.
 - **Que:** calcular los candidatos una vez por usuario y guardarlos (en el snapshot semanal de mercado o en cache por usuario con invalidacion al ingerir ofertas); `/market` solo los lee. Verificar indice `(user_id, created_at)` en `jobs`.
 - **Acepta:** `/market` no lee `jd_text`; test de que los candidatos se recalculan al cambiar las ofertas; tiempo de render medido antes y despues.
 
-### JS-090 · `htmlToText`: entidades con nombre
-`deps:` — · `est:` XS · `estado:` todo (2026-10-07)
+### JS-090 · `htmlToText`: entidades con nombre ✅ done 2026-10-27
+`deps:` — · `est:` XS · `estado:` done (nube N2, PR #242, mergeado 2026-10-27): acentos, eñe, portugués y puntuación; distingue mayúsculas salvo las básicas
 - Solo decodifica unas pocas (`amp`, `lt`, `nbsp`...): `&eacute;` y similares quedan crudas. Ampliar la tabla cuando una fuente real las traiga.
 - **Acepta:** test con las entidades nuevas.
 
@@ -843,11 +843,141 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - UI de revisión: cada respuesta se aprueba, edita o descarta; al aprobar va a `answer_bank`, y el formulario final a `application_answers`. Botón "copiar todo"; nunca "enviar".
 - **Acepta (Fase 2):** con un formulario de ejemplo anonimizado, ninguna respuesta afirma algo sin clave de `candidate_facts` que la respalde (test sobre la salida del prompt con el LLM falso) y las respuestas fijas salen idénticas a `application_settings`.
 
+### AG · Asistente que lee, explica y propone (Fase 7, etapa 3)
+`deps:` C-11 (planes) · `estado:` en curso (nube N1, 2026-10-27), detrás de `ASSISTANT_ENABLED=admin`
+- Regla única: ninguna herramienta escribe. Las `propose_*` devuelven una diferencia antes/después; la persona la carga en el formulario y guarda con la Server Action de esa pantalla.
+- **AG-0** · `packages/pipeline/src/agent/**`: topes (10 turnos, 6 pasos, 600 tokens de salida, 12.000 de entrada, USD 0,12 por charla, cupo mensual por plan), contexto de pantalla, tools y `activeToolsFor`, diffs por destino con regla de fundamento, historial y detección de CV · done 2026-10-27 (PR draft).
+- **AG-1** · `streamAgent` en `packages/adapters/src/llm/agent.ts`: bucle propio de un paso por vuelta, deadline de 50 s, una fila de `llm_calls` por paso sin contenido, una propuesta por turno, modelo desde `model_routing` (`assistant_chat`) y fake guionado para `LLM_DEMO` · done 2026-10-27 (PR draft).
+- **AG-3** · ruta `/api/assistant` (mismo origen, sesión, gate `ASSISTANT_ENABLED=admin` + `ADMIN_EMAILS`, topes desde `llm_calls`, CV fuera del modelo, NDJSON), tools sobre `apps/web/lib/*`, botón «Asistente» y panel, tarjeta de diferencia con «Cargar en el formulario» / «Descartar» y e2e `85-asistente` con el modelo simulado · done 2026-10-27 (PR draft). Faltan los prompts `assistant_chat@v1` y `assistant_propose@v1` en `packages/prompts` y la fila `assistant_chat` en `model_routing`: sin ellos, fuera del modo demo, falla cerrado.
+- **AG-5** · propuestas de acciones como tarjetas-formulario: `propose_status_change` (marcar aplicada, entrevista, oferta, rechazada, descartada o cerrada con `changeStatusAction`; «aplicada» solo marca, nunca postula) y `propose_new_job` (alta manual prellenada con lo que la persona escribió literal, con `createManualJobAction`); fundamento del evento por palabras de la persona y e2e `86-asistente-acciones` · done 2026-10-27 (PR draft).
+
 ### JS-040 · SST y migración 3a (workers a Lambda)
 ### JS-041 · Onboarding de terceros, BYOK, planes
 ### JS-042 · Recruiter CRM y follow-ups
 ### JS-043 · Interview prep por oferta
 ### JS-044 · Application Kit RAG
+
+## Bloque 7 — Beta y pre-piloto (rondas 40 a 122, del 12/10 al 24/10)
+
+Resumen por tema de lo mergeado en ese período. Un ítem por tema, no uno por PR. «Mergeado» no implica «migración aplicada en producción»: las migraciones las aplica Mauro aparte.
+
+### Onboarding, guía y primer valor
+- **Onboarding** con varias modalidades, idioma de ofertas, país por nombre y skills más claras · done 2026-10-20 · #121. Un error de validación ya no borra lo cargado · #119.
+- **Primeros pasos y guía** dentro de la app · done 2026-10-20 · #92 y #139. Textos sin jerga, `/jobs` vacío que orienta y navegación a 360 px · #114.
+- **Textos para el piloto:**
+  - carreras, invitación, ubicación, Gmail y criterios · done 2026-10-21 · #169;
+  - el onboarding terminado aterriza en «Hoy» · #173;
+  - `/applications` sin jerga al empezar · #175 (2026-10-23).
+- **Primer valor en menos de 3 minutos (C-17):**
+  - e2e cronometrado · #193;
+  - la lista primero y el aviso de email después · #190;
+  - al crear la cuenta se entra directo · #199 (2026-10-23).
+
+  Quedan R1, R3 y R5, que esperan el #171.
+
+### «Hoy», seguimiento y postulaciones
+- **Pantalla «Hoy»** como aterrizaje después del login · done 2026-10-21 · #165 y #166.
+- **«Para hacer seguimiento»** en `/applications`, en el menú y en «Hoy» · done 2026-10-23 · #155 y #188.
+
+### Perfil, evaluador y prefiltro
+- **«Tu perfil» en Ajustes** · done 2026-10-20 · #129. Al cambiar modalidad, país o idioma se vuelven a prefiltrar los avisos sin evaluar · #135.
+- **Decide:** si la persona acepta la modalidad del aviso, el bloqueador del modelo pasa a riesgo · done 2026-10-21 · #134.
+- **Un aviso que exige residir en otro país se descarta** · done 2026-10-20 · #106. Más patrones de licencia de otro país · #208 (abierto).
+- **Evaluador:**
+  - checklist de requisitos del aviso; salario, jornada y seniority en código · done 2026-10-21 · #147;
+  - seguimientos · #150, #151 y #153;
+  - la demo muestra «Requisitos del aviso» · #161.
+- **Lectura de CV**, detrás de `CV_IMPORT_ENABLED` (apagado):
+  - pipeline puro · #130;
+  - orquestación · #160;
+  - una lectura cortada por tiempo no consume el cupo · #162;
+  - el código del CV pasa a carril rojo · #131.
+
+### Pool, fuentes y carreras
+- **Selección de primeras ofertas** que calzan con puesto, nivel y país · done 2026-10-16 · #90 y #96.
+- **Fuentes:**
+  - aviso de muro de pago y link al sitio de la empresa · #107;
+  - Get on Board suma operaciones y publicidad (ADR-020) · #145;
+  - fichas de fuentes · #152;
+  - Teamtailor por feed RSS, integrado y apagado · #196, con la migración 0041 · #200 (2026-10-23).
+- **Idioma en el pool**, chip «En español», y el inglés no es brecha en avisos en español · done 2026-10-21 · #144. Además: `pnpm pool:rehint` · #146; dry-run con desglose · #168.
+- **Carreras:**
+  - «Producto y proyectos» se parte en cuatro · #140;
+  - Data Engineering y Solutions Engineering · #148;
+  - Ventas B2B, Atención al cliente y licencias de otro país (ADR-022) · #154;
+  - Finanzas y contabilidad, y Asistencia y operaciones (migraciones 0043 y 0044) · #202;
+  - títulos sin carrera y vetos entre carreras vecinas · #210 (2026-10-24).
+- **Personas ficticias para `pool:explain`** · #211. Siguen #222 y #225 (abiertos).
+- **Alertas:** guía «Qué alertas crear» · #149; palabras sugeridas · #157; «Qué portal te sirve» · #156 (2026-10-21).
+
+### Mercado, plan y encaje
+- **Mercado por carrera en `/market`** · #101. Sueldos por carrera en dos mercados · #122.
+- **«Tu encaje»:**
+  - funciones puras · #180;
+  - `/encaje` y tarjeta en «Hoy» · #185;
+  - cruce con el detalle · #187;
+  - se actualiza al guardar · #203 (2026-10-23).
+- **Plan de estudio (C-3):**
+  - simulador y ruta, puros · #183;
+  - «Si aprendés…» en `/plan` · #186;
+  - selector de horas · #214;
+  - «Esta semana» · #217;
+  - el curso que lleva a nivel 2 · #216;
+  - «el evaluador te la marcó» · #218;
+  - «Ver 3 ofertas» · #220 (2026-10-24).
+- **Catálogo de cursos (C-3):**
+  - verificador de links, puro y sin red · #215;
+  - proveedores, todo «a verificar» · #219;
+  - más rangos rechazados en la validación de URLs · #221 (2026-10-24).
+
+  Quedan en carril rojo: columnas, CLI y cron.
+
+### Cuentas, planes y métricas de la beta
+- **Planes y topes en un solo lugar,** y `/precios` detrás de `PRICING_ENABLED` · done 2026-10-23 · #176. Plan de cada persona con vencimiento (migración 0039) · #179.
+- **Marca en un solo lugar** · done 2026-10-23 · #178.
+- **Carrera «madura» o «en pulido»** y tablero de la beta para el admin · done 2026-10-23 · #197. Cupos de fundador por carrera · #207 (abierto).
+- **Instituciones:** módulos puros de B2B · done 2026-10-23 · #184.
+- **Invitaciones y lista de espera** · #112 y #97.
+- **Legal:**
+  - volver a aceptar los términos cuando cambia la versión · #127;
+  - privacidad y términos para la beta · #158;
+  - contacto para borrar datos · #113.
+
+### Endurecimiento y operación
+- **Endurecimiento de las acciones del servidor y del restablecimiento de contraseña** · done 2026-10-23 · #174 y #182 (migración 0040).
+- **Endurecimiento del correo entrante y de los encabezados HTTP** · #110, #104 y #98. El MCP responde un error enseguida · #137.
+- **Operación:**
+  - presupuesto de tiempo del worker y `/api/cron/status` · #109;
+  - carril verde · #120;
+  - build local con Docker · #116;
+  - demo guiada semanal · #132.
+- **Rendimiento (C-7):**
+  - #192, #194, #195 y #206;
+  - seis índices (migración 0042) · #201;
+  - tope del caché de «Si aprendés…» · #209;
+  - sin prefetch en las listas ISR · #128.
+- **Pantallas de error en español** · #100.
+
+### Vitrina pública, documentación y calidad
+- **Vitrina:**
+  - portada, mercado y ofertas de muestra · #105;
+  - revalidación · #111;
+  - demo guiada · #115;
+  - URL canónica y metadatos · #136;
+  - `/en/how-its-built` · #141;
+  - build con la URL de la app · #138;
+  - imagen para compartir · #163;
+  - SEO por carrera · #181.
+- **Docs:** README · #133; ARCHITECTURE.md · #142.
+- **Accesibilidad AA (axe):**
+  - públicas · #143;
+  - con sesión · #167;
+  - registro y onboarding · #204;
+  - admin y `/precios` · #212.
+- **e2e y tests:**
+  - specs sin dependencias de orden ni de caché · #205 y #213;
+  - tests de cobertura de pipeline · #223;
+  - recorrido de una persona nueva en Finanzas · #224 (abiertos).
 
 ## Reglas del backlog
 

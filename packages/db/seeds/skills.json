@@ -883,8 +883,72 @@
     "slug": "hr_generalist",
     "name": "Generalista de RRHH",
     "category": "dominio",
-    "aliases": ["hr generalist", "people operations", "onboarding de empleados", "employee onboarding", "nómina", "nomina", "payroll", "legislación laboral", "legislacion laboral"],
+    "aliases": ["hr generalist", "people operations", "onboarding de empleados", "employee onboarding", "legislación laboral", "legislacion laboral"],
     "closure_hours": 16,
     "description": "Generalista de RRHH: ingreso de personal, nómina, legislación laboral y trámites del día a día de las personas de una empresa"
+  },
+  {
+    "slug": "general_accounting",
+    "name": "Contabilidad y conciliaciones",
+    "category": "dominio",
+    "aliases": ["contabilidad", "conciliaciones", "general ledger", "accounts payable", "accounts receivable", "month-end close", "cierre contable", "gaap", "ifrs", "bookkeeping"],
+    "closure_hours": 40,
+    "description": "Contabilidad general: registrar movimientos, conciliar cuentas y hacer el cierre contable de cada mes"
+  },
+  {
+    "slug": "financial_reporting",
+    "name": "Reporting financiero y FP&A",
+    "category": "dominio",
+    "aliases": ["fp&a", "financial reporting", "estados financieros", "financial modeling", "budgeting", "presupuesto", "variance analysis"],
+    "closure_hours": 24,
+    "description": "Reporting financiero y FP&A: armar estados financieros, presupuestos y análisis de desvíos para decidir con números"
+  },
+  {
+    "slug": "erp_accounting",
+    "name": "Software contable (NetSuite, QuickBooks, Xero)",
+    "category": "dominio",
+    "aliases": ["netsuite", "quickbooks", "xero", "sage intacct", "sap fi", "sap fico", "odoo", "tango gestion"],
+    "closure_hours": 16,
+    "description": "Software contable: sistemas como NetSuite, QuickBooks o Xero donde se cargan facturas, pagos y asientos"
+  },
+  {
+    "slug": "tax_compliance",
+    "name": "Impuestos, auditoría y controles",
+    "category": "dominio",
+    "aliases": ["impuestos", "tax compliance", "tax returns", "declaraciones juradas", "sales tax", "internal audit", "sox compliance", "controles internos"],
+    "closure_hours": 24,
+    "description": "Impuestos, auditoría y controles: presentar declaraciones, cumplir normas fiscales y revisar que los controles internos funcionen"
+  },
+  {
+    "slug": "payroll",
+    "name": "Liquidación de sueldos (payroll)",
+    "category": "dominio",
+    "aliases": ["payroll", "nómina", "nomina", "liquidación de sueldos", "payroll processing"],
+    "closure_hours": 16,
+    "description": "Liquidación de sueldos: calcular y pagar salarios, aportes y descuentos de cada período"
+  },
+  {
+    "slug": "calendar_inbox",
+    "name": "Agenda, correo y viajes",
+    "category": "dominio",
+    "aliases": ["calendar management", "gestión de agenda", "inbox management", "travel arrangements", "coordinación de reuniones"],
+    "closure_hours": 6,
+    "description": "Agenda, correo y viajes: ordenar el calendario y la casilla de otra persona y organizar sus reuniones y viajes"
+  },
+  {
+    "slug": "office_suite",
+    "name": "Google Workspace / Microsoft 365",
+    "category": "dominio",
+    "aliases": ["google workspace", "g suite", "google docs", "google drive", "gmail", "microsoft office", "office 365", "microsoft 365", "outlook", "powerpoint"],
+    "closure_hours": 6,
+    "description": "Google Workspace y Microsoft 365: documentos, correo, calendario y presentaciones de uso diario en una oficina"
+  },
+  {
+    "slug": "data_entry",
+    "name": "Carga de datos (data entry)",
+    "category": "dominio",
+    "aliases": ["data entry", "carga de datos", "ingreso de datos", "data input", "digitación", "mecanografía"],
+    "closure_hours": 4,
+    "description": "Carga de datos: pasar información de documentos o formularios a un sistema con rapidez y sin errores"
   }
 ]

@@ -153,7 +153,8 @@
       "client_facing",
       "excel",
       "english_intermediate",
-      "hr_generalist"
+      "hr_generalist",
+      "payroll"
     ]
   },
   "customer_success": {
@@ -312,6 +313,39 @@
       "churn_retention",
       "client_facing",
       "excel",
+      "english_fluent"
+    ]
+  },
+  "finanzas_contabilidad": {
+    "label": "Finanzas y contabilidad",
+    "skills": [
+      "general_accounting",
+      "financial_reporting",
+      "erp_accounting",
+      "tax_compliance",
+      "payroll",
+      "excel",
+      "power_bi",
+      "tableau",
+      "sql",
+      "client_facing",
+      "english_fluent"
+    ]
+  },
+  "asistencia_operaciones": {
+    "label": "Asistencia virtual y operaciones",
+    "skills": [
+      "calendar_inbox",
+      "office_suite",
+      "data_entry",
+      "excel",
+      "notion",
+      "trello",
+      "n8n",
+      "hubspot",
+      "salesforce",
+      "project_planning",
+      "client_facing",
       "english_fluent"
     ]
   }

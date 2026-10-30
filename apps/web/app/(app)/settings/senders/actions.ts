@@ -10,14 +10,14 @@ import {
   webmailErrorUrl,
   type SenderVerdict,
 } from "@/lib/filter-leak";
-import { requireUserId } from "@/lib/session";
+import { requireActiveUserId } from "@/lib/session";
 
 /**
  * Ajustes › Remitentes: cambia la decisión sobre un dominio. «sin_decidir» borra la fila de la
  * decisión. Valida el dominio y el veredicto en el servidor; el usuario sale de la sesión.
  */
 export async function setSenderAction(formData: FormData): Promise<void> {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const domain = cleanDomain(String(formData.get("domain") ?? ""));
   const verdict = String(formData.get("verdict") ?? "");
   if (!domain) return;

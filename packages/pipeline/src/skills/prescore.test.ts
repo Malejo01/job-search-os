@@ -15,6 +15,17 @@ describe("preScore: lo que se sabe sin LLM", () => {
     expect(p.adjustments[0]?.rule).toBe("sin_skills");
   });
 
+  it("las skills sin nivel traen también su slug (para cargarlo desde la oferta)", () => {
+    const p = preScore({
+      flags: [],
+      skills: [{ slug: "aws", name: "Amazon AWS", isMust: true, level: null }, sk("rag", 2)],
+      salaryMaxUsd: null,
+      salaryFloorUsd: null,
+    });
+    expect(p.unknown).toEqual(["Amazon AWS"]);
+    expect(p.unknownSkills).toEqual([{ slug: "aws", name: "Amazon AWS" }]);
+  });
+
   it("3 + 6 × cobertura: todo cubierto → 9, nada cubierto → 3; sin nivel no cuenta", () => {
     expect(
       preScore({

@@ -28,6 +28,13 @@ describe("ALERT_KEYWORDS", () => {
     expect(ALERT_KEYWORDS.data_engineer).toBeDefined();
     expect(ALERT_KEYWORDS.solutions_engineer).toBeDefined();
   });
+
+  it("C-2b: finanzas y asistencia/operaciones traen palabras propias en los dos idiomas", () => {
+    expect(alertKeywordsFor(["finanzas_contabilidad"], "es")).toContain("contador");
+    expect(alertKeywordsFor(["finanzas_contabilidad"], "en")).toContain("accountant");
+    expect(alertKeywordsFor(["asistencia_operaciones"], "es")).toContain("asistente virtual");
+    expect(alertKeywordsFor(["asistencia_operaciones"], "en")).toContain("virtual assistant");
+  });
 });
 
 describe("alertKeywordsFor", () => {

@@ -19,6 +19,29 @@ export {
   type SpendSummary,
 } from "./spend";
 export { createFakeLlm, generateFromEnv, hangingGenerate, type FakeCall } from "./fake";
+export {
+  AGENT_DEADLINE_MS,
+  ASSISTANT_TASK,
+  defaultAgentStreamFn,
+  streamAgent,
+  type AgentChatMessage,
+  type AgentErrorCode,
+  type AgentEvent,
+  type AgentStreamFn,
+  type AgentStreamPart,
+  type AgentTool,
+  type AgentToolCall,
+  type AgentToolResult,
+  type StreamAgentCtx,
+  type StreamAgentDeps,
+  type StreamAgentInput,
+} from "./agent";
+export {
+  createDemoAgentDeps,
+  createScriptedStreamFn,
+  DEMO_AGENT_MODEL,
+  demoAgentStreamFn,
+} from "./agent-demo";
 export { createDemoLlm, DEMO_MODEL, demoEvaluation } from "./demo";
 export { createProviderRegistry, providerForModel, type ProviderEnv } from "./providers";
 export {

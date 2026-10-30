@@ -248,6 +248,60 @@ describe("prefilter: targetRoles (ronda 40, varios en la 45)", () => {
     expect(run("HR Manager")).toMatchObject({ pass: false });
   });
 
+  it("C-2b: 'administrativ' y 'auxiliar contable' se liberan solo para las carreras que los usan", () => {
+    expect(run("Administrativo/a", "asistencia_operaciones").pass).toBe(true);
+    expect(run("Asistente Administrativa", "asistencia_operaciones").pass).toBe(true);
+    expect(run("Administrativo/a", "finanzas_contabilidad").pass).toBe(true);
+    expect(run("Auxiliar Contable", "finanzas_contabilidad").pass).toBe(true);
+    expect(run("Administrativo/a")).toMatchObject({ pass: false, reason: "disciplina_distinta" });
+    expect(run("Auxiliar Contable")).toMatchObject({ pass: false, reason: "disciplina_distinta" });
+    expect(run("Administrativo/a", "ventas_b2b")).toMatchObject({ pass: false });
+    expect(run("Administrativo/a", "frontend")).toMatchObject({ pass: false });
+    // «auxiliar contable» no se libera para operaciones, ni los otros oficios para nadie de estas
+    expect(run("Auxiliar Contable", "asistencia_operaciones")).toMatchObject({ pass: false });
+    expect(run("Recepcionista", "asistencia_operaciones")).toMatchObject({ pass: false });
+    expect(run("Cajero/a", "finanzas_contabilidad")).toMatchObject({ pass: false });
+    expect(run("Cajero administrativo", "finanzas_contabilidad")).toMatchObject({ pass: false });
+  });
+
+  it("C-2b: office manager es el cargo propio de asistencia_operaciones; el resto de los manager siguen bloqueados", () => {
+    expect(run("Office Manager", "asistencia_operaciones").pass).toBe(true);
+    expect(run("Office Manager")).toMatchObject({ pass: false });
+    expect(run("Office Manager", "finanzas_contabilidad")).toMatchObject({ pass: false });
+    expect(run("Accounting Manager", "finanzas_contabilidad")).toMatchObject({ pass: false });
+    expect(run("Finance Manager", "finanzas_contabilidad")).toMatchObject({ pass: false });
+    expect(run("Operations Manager", "asistencia_operaciones")).toMatchObject({ pass: false });
+    expect(run("Lead Office Manager", "asistencia_operaciones")).toMatchObject({ pass: false });
+  });
+
+  it("C-2b: el oficio propio de finanzas y operaciones no descarta si está en other_discipline_keywords", () => {
+    const strict = {
+      ...rules,
+      other_discipline_keywords: [
+        ...rules.other_discipline_keywords,
+        "accounting",
+        "contabilidad",
+        "finanzas",
+        "payroll",
+        "virtual assistant",
+        "asistente virtual",
+        "data entry",
+      ],
+    };
+    const go = (title: string, role?: RoleKey) =>
+      prefilter({ title, modality: "remoto" }, strict, role ? { targetRoles: [role] } : undefined);
+    for (const title of ["Accounting Specialist", "Analista de Finanzas", "Payroll Specialist"]) {
+      expect(go(title), title).toMatchObject({ pass: false });
+      expect(go(title, "finanzas_contabilidad").pass, title).toBe(true);
+      expect(go(title, "asistencia_operaciones"), title).toMatchObject({ pass: false });
+    }
+    for (const title of ["Virtual Assistant", "Asistente Virtual", "Data Entry Clerk"]) {
+      expect(go(title), title).toMatchObject({ pass: false });
+      expect(go(title, "asistencia_operaciones").pass, title).toBe(true);
+      expect(go(title, "finanzas_contabilidad"), title).toMatchObject({ pass: false });
+    }
+  });
+
   it("el oficio propio de ventas y atención no descarta si está en other_discipline_keywords", () => {
     const strict = {
       ...rules,
@@ -316,6 +370,9 @@ describe("prefilter: targetRoles (ronda 40, varios en la 45)", () => {
       "solutions_engineer",
       "ventas_b2b",
       "atencion_cliente",
+      // C-2b: ídem, el ejemplo público no lista contabilidad ni asistencia.
+      "finanzas_contabilidad",
+      "asistencia_operaciones",
     ];
     for (const [role, words] of Object.entries(ROLE_DOMAIN_KEYWORDS)) {
       if (PREVENTIVE.includes(role as RoleKey)) continue;
@@ -721,6 +778,29 @@ describe("prefilter: reglas una por una", () => {
       expect(risk("Mexico only")).toBe(false);
       expect(risk("Remote", undefined, ["AR"])).toBe(false);
     });
+
+    it("perfil MX: 'New Mexico' es EE.UU., no México (JS-111)", () => {
+      expect(risk("Remote (New Mexico)", "MX")).toBe(true);
+      expect(risk("Remote - New Mexico, US", "MX")).toBe(true);
+      expect(risk("Remoto (Nuevo México)", "MX")).toBe(true);
+      expect(risk("Remote - Ciudad de México", "MX")).toBe(false);
+      expect(risk("Remote - New Mexico or Mexico", "MX")).toBe(false);
+    });
+
+    it("los gentilicios siguen contando como el país de la persona (JS-111)", () => {
+      expect(risk("LATAM remote - empresas argentinas", "AR")).toBe(false);
+      expect(risk("Remote, Brazilian residents only", "BR")).toBe(false);
+      expect(risk("LATAM remote, peruanos", "PE")).toBe(false);
+    });
+
+    it("país fuera de la tabla: sin fallback por código, una restricción queda con riesgo (JS-111)", () => {
+      // Antes buscaba la subcadena "es" en la ubicación: "states" y "estados" la contienen.
+      expect(risk("Remote - United States", "ES")).toBe(true);
+      expect(risk("Remoto, Estados Unidos", "ES")).toBe(true);
+      expect(risk("LATAM remote", "ES")).toBe(true);
+      expect(risk("Work from anywhere", "ES")).toBe(false);
+      expect(risk("Remote", "ES", ["ES"])).toBe(false);
+    });
   });
 
   it("candidatos ≥ 100 → flag many_candidates, no descarta", () => {
@@ -976,6 +1056,104 @@ describe("prefilter: licencia o matrícula profesional (ronda 107)", () => {
       userCountry: "AR",
     });
     expect(r).toMatchObject({ pass: false, reason: "licencia_profesional" });
+  });
+
+  it("T1: «matrícula habilitante en Chile» descarta; «licensed in Argentina» pasa con el flag", () => {
+    const out = prefilter(
+      { ...job, jdText: "Se requiere matrícula habilitante en Chile." },
+      rules,
+      {
+        userCountry: "AR",
+      },
+    );
+    expect(out).toMatchObject({ pass: false, reason: "licencia_profesional" });
+    const own = prefilter({ ...job, jdText: "Must be licensed in Argentina." }, rules, {
+      userCountry: "AR",
+    });
+    expect(own.pass).toBe(true);
+    if (own.pass) expect(own.flags).toContain("licencia_profesional:licensed in argentina");
+    const t1 = prefilter({ ...job, jdText: "Licensed in California. Bar exam required." }, rules, {
+      userCountry: "AR",
+    });
+    expect(t1).toMatchObject({ pass: false, reason: "licencia_profesional" });
+  });
+
+  describe("contaduría (C-2b)", () => {
+    const acc: PrefilterInput = {
+      title: "Senior Accountant",
+      companyRaw: "Empresa A",
+      locationRaw: "Remote",
+      modality: "remoto",
+      jdText: "Empresa A busca contabilidad.",
+    };
+    const run = (over: Partial<PrefilterInput>, country: string | null = "AR") =>
+      prefilter({ ...acc, ...over }, rules, { userCountry: country });
+
+    it("«CPA required» con otro país descarta con licencia_profesional", () => {
+      const r = run({ jdText: "Empresa A busca contabilidad. CPA required." }, "MX");
+      expect(r).toMatchObject({ pass: false, reason: "licencia_profesional" });
+      expect(!r.pass && r.detail).toBe("'cpa required' en el aviso");
+    });
+
+    it("«Licensed CPA preferred» pasa con el flag, sin descartar", () => {
+      const r = run({ jdText: "Licensed CPA preferred." }, "MX");
+      expect(r.pass).toBe(true);
+      if (r.pass) expect(r.flags).toContain("licencia_profesional:licensed cpa");
+    });
+
+    it("«cost per acquisition (CPA)» no hace nada", () => {
+      const r = run({ jdText: "Reduce the cost per acquisition (CPA) in paid channels." });
+      expect(r.pass).toBe(true);
+      if (r.pass) expect(r.flags.some((f) => f.startsWith("licencia_profesional"))).toBe(false);
+    });
+
+    it("«título de Contador Público» no hace nada: es un título, no una matrícula", () => {
+      const r = run({ jdText: "Requisito: título de Contador Público." });
+      expect(r.pass).toBe(true);
+      if (r.pass) expect(r.flags.some((f) => f.startsWith("licencia_profesional"))).toBe(false);
+    });
+
+    it("contador público matriculado con CPCE pasa con flag para AR y descarta para MX", () => {
+      const jdText = "Contador público matriculado en el CPCE.";
+      const ar = run({ jdText }, "AR");
+      expect(ar.pass).toBe(true);
+      if (ar.pass) expect(ar.flags).toContain("licencia_profesional:contador publico matriculado");
+      expect(run({ jdText }, "MX")).toMatchObject({ pass: false, reason: "licencia_profesional" });
+    });
+
+    it("si la ubicación del aviso nombra el país de la persona, la licencia es propia", () => {
+      const jdText = "CPA required.";
+      const own = run({ jdText, locationRaw: "Buenos Aires, Argentina" }, "AR");
+      expect(own.pass).toBe(true);
+      if (own.pass) expect(own.flags).toContain("licencia_profesional:cpa required");
+      expect(run({ jdText, locationRaw: "Santiago, Chile" }, "AR")).toMatchObject({
+        pass: false,
+        reason: "licencia_profesional",
+      });
+    });
+
+    it("S-1: «CPA license required. NetSuite preferred» con otro país descarta", () => {
+      const r = run({ jdText: "CPA license required. NetSuite preferred" }, "MX");
+      expect(r).toMatchObject({ pass: false, reason: "licencia_profesional" });
+    });
+
+    it("S-2: locationRaw propia no salva una licencia de otro país nombrado en la frase", () => {
+      const r = run(
+        {
+          jdText: "Must hold an active CPA license in the United States.",
+          locationRaw: "Argentina",
+        },
+        "AR",
+      );
+      expect(r).toMatchObject({ pass: false, reason: "licencia_profesional" });
+      const ok = run({ jdText: "Licensed CPA required.", locationRaw: "Remote, Argentina" }, "AR");
+      expect(ok.pass).toBe(true);
+      if (ok.pass) expect(ok.flags).toContain("licencia_profesional:licensed cpa");
+    });
+
+    it("sin userCountry (evals) no corre la regla", () => {
+      expect(prefilter({ ...acc, jdText: "CPA required." }, rules).pass).toBe(true);
+    });
   });
 
   it.each([

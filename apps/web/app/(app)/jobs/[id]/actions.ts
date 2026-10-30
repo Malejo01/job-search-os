@@ -1,12 +1,6 @@
 "use server";
 
-import {
-  HUMAN_VERDICTS,
-  JOB_EVENTS,
-  JOB_STATUSES,
-  type JobEvent,
-  type JobStatus,
-} from "@job-search-os/pipeline";
+import { HUMAN_VERDICTS, JOB_STATUSES, type JobStatus } from "@job-search-os/pipeline";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -18,45 +12,37 @@ import { dismissDuplicate, mergeDuplicate } from "@/lib/duplicates";
 import { evaluateInBackgroundOrExplain } from "@/lib/evaluate-now";
 import { isUuid } from "@/lib/ids";
 import {
-  applyJobEvent,
+  changeJobStatus,
   correctJobStatus,
   EvaluationNotFoundError,
   HUMAN_NOTE_MAX,
   HumanScoreError,
-  MANUAL_EVENTS,
   saveHumanNote,
   saveHumanScore,
   saveHumanVerdict,
 } from "@/lib/job-detail";
 import { evaluatingSql } from "@/lib/jobs";
-import { requireUserId } from "@/lib/session";
+import { requireActiveUserId } from "@/lib/session";
 
 /** Server Actions del detalle (JS-016). Validan la entrada y delegan en lib/job-detail (transition()). */
 export async function changeStatusAction(formData: FormData): Promise<void> {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const jobId = String(formData.get("jobId") ?? "");
-  const event = String(formData.get("event") ?? "") as JobEvent;
-  if (
-    !jobId ||
-    !(JOB_EVENTS as readonly string[]).includes(event) ||
-    !MANUAL_EVENTS.includes(event)
-  ) {
-    redirect(`/jobs/${jobId}?error=evento`);
-  }
-  try {
-    await applyJobEvent(userId, jobId, event);
-  } catch (e) {
-    if (e instanceof Error && e.name === "InvalidTransitionError") {
-      redirect(`/jobs/${jobId}?error=transicion`);
-    }
-    throw e;
+  const event = String(formData.get("event") ?? "");
+  if (!jobId) redirect(`/jobs/${jobId}?error=evento`);
+  // Mismo núcleo que las tarjetas del asistente (AG-5); acá sin estado esperado
+  const result = await changeJobStatus(userId, jobId, event);
+  if (!result.ok) {
+    if (result.code === "evento") redirect(`/jobs/${jobId}?error=evento`);
+    if (result.code === "transicion") redirect(`/jobs/${jobId}?error=transicion`);
+    throw new Error("oferta inexistente");
   }
   revalidatePath(`/jobs/${jobId}`);
   revalidatePath("/jobs");
 }
 
 export async function humanScoreAction(formData: FormData): Promise<void> {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const jobId = String(formData.get("jobId") ?? "");
   const evaluationId = String(formData.get("evaluationId") ?? "");
   const rawScore = String(formData.get("humanScore") ?? "").trim();
@@ -81,7 +67,7 @@ const verdictInput = z.object({
 
 /** 👍/👎 de un toque (ronda 30). Sin redirect si sale bien: desde la lista se queda en la lista. */
 export async function humanVerdictAction(formData: FormData): Promise<void> {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const jobId = String(formData.get("jobId") ?? "");
   const parsed = verdictInput.safeParse({
     jobId,
@@ -116,7 +102,7 @@ const noteInput = z.object({
 
 /** Motivo corto (≤ 140) del veredicto: escribe human_note. */
 export async function humanNoteAction(formData: FormData): Promise<void> {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const jobId = String(formData.get("jobId") ?? "");
   const parsed = noteInput.safeParse({
     jobId,
@@ -143,7 +129,7 @@ export async function humanNoteAction(formData: FormData): Promise<void> {
 
 /** Corrección manual de un estado mal marcado (JS-028). La confirmación la pide el cliente. */
 export async function correctStatusAction(formData: FormData): Promise<void> {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const jobId = String(formData.get("jobId") ?? "");
   const to = String(formData.get("to") ?? "") as JobStatus;
   if (!jobId || !(JOB_STATUSES as readonly string[]).includes(to)) {
@@ -165,7 +151,7 @@ export async function correctStatusAction(formData: FormData): Promise<void> {
 
 /** Fusión manual de un posible duplicado (JS-025). La confirmación la pide el cliente. */
 export async function mergeDuplicateAction(formData: FormData): Promise<void> {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const jobId = String(formData.get("jobId") ?? "");
   let survivorId: string;
   let notEvaluated: string | null = null;
@@ -195,7 +181,7 @@ export async function mergeDuplicateAction(formData: FormData): Promise<void> {
  * envío no duplica: la cola es idempotente y el botón se deshabilita mientras corre.
  */
 export async function evaluateNowAction(formData: FormData): Promise<void> {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const jobId = String(formData.get("jobId") ?? "");
   if (!isUuid(jobId)) redirect("/jobs");
   const outcome = await withUser(userId, async (tx) => {
@@ -223,7 +209,7 @@ export async function evaluateNowAction(formData: FormData): Promise<void> {
 
 /** "No son la misma" (JS-025): saca la marca de posible duplicado. */
 export async function dismissDuplicateAction(formData: FormData): Promise<void> {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const jobId = String(formData.get("jobId") ?? "");
   await dismissDuplicate(userId, jobId);
   revalidatePath(`/jobs/${jobId}`);

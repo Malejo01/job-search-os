@@ -8,6 +8,7 @@ import {
   parseRemoveSlugs,
   parseSkillLevelsForm,
 } from "@job-search-os/pipeline";
+import { invalidateUserInsights } from "@/lib/insights-cache";
 import {
   englishSkillEntries,
   getSkillsSaveContext,
@@ -72,6 +73,8 @@ export async function saveSkillsFromForm(
   });
   if (saved.capExceeded) return { ok: false, field: "custom_max" };
   const { changed } = await saveSkillLevels(userId, entries, removeSlugs);
+  // Los niveles cambian «Tu encaje» y «Si aprendés…» (E-2b): se invalida apenas quedan guardados
+  invalidateUserInsights(userId);
   if (deriveCefr) await saveEnglishCefr(userId, deriveCefr);
   return { ok: true, changed };
 }

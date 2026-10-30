@@ -1,5 +1,38 @@
 import { describe, expect, it } from "vitest";
-import { buildPlan, easeFromClosureHours, planPriority } from "./plan";
+import { buildPlan, easeFromClosureHours, pickLearningResource, planPriority } from "./plan";
+
+describe("pickLearningResource (121 §7)", () => {
+  const r = (id: string, targetLevel: number, hours: number | null) => ({ id, targetLevel, hours });
+
+  it("sin recursos que suban el nivel, ninguno", () => {
+    expect(pickLearningResource([], 0)).toBeNull();
+    expect(pickLearningResource([r("a", 1, 4), r("b", 2, 10)], 2)).toBeNull();
+  });
+
+  it("el de menos horas que sube el nivel", () => {
+    expect(pickLearningResource([r("b", 2, 10), r("a", 2, 6)], 0)?.id).toBe("a");
+    // nivel 1: el de nivel 1 no sube nada
+    expect(pickLearningResource([r("a", 1, 2), r("b", 2, 10)], 1)?.id).toBe("b");
+  });
+
+  it("prefiere el que lleva a nivel 2 si cuesta como mucho el doble", () => {
+    expect(pickLearningResource([r("n1", 1, 5), r("n2", 2, 10)], 0)?.id).toBe("n2");
+    expect(pickLearningResource([r("n1", 1, 5), r("n2", 2, 11)], 0)?.id).toBe("n1");
+    expect(pickLearningResource([r("n1", 1, 5), r("n2", 3, 8)], null)?.id).toBe("n2");
+    // De los de nivel 2 dentro del límite, el de menos horas
+    const three = [r("caro", 2, 20), r("n1", 1, 5), r("medio", 2, 9)];
+    expect(pickLearningResource(three, 0)?.id).toBe("medio");
+  });
+
+  it("sin horas conocidas no compara: queda el de menos horas, y los sin dato al final", () => {
+    expect(pickLearningResource([r("x", 2, null), r("n1", 1, 5)], 0)?.id).toBe("n1");
+    expect(pickLearningResource([r("x", 2, null)], 0)?.id).toBe("x");
+  });
+
+  it("a igualdad de horas respeta el orden de entrada", () => {
+    expect(pickLearningResource([r("a", 2, 6), r("b", 2, 6)], 0)?.id).toBe("a");
+  });
+});
 
 describe("plan de formación: prioridad = demanda × (1 − nivel/3) × facilidad", () => {
   it("facilidad desde closure_hours: 16 h → 1, 40 h → 0,4, 80 h → 0,2, sin dato → 0,5", () => {

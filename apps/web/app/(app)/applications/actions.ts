@@ -4,11 +4,11 @@ import { APPLICATION_OUTCOMES, type ApplicationOutcome } from "@job-search-os/pi
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { setApplicationOutcome } from "@/lib/applications";
-import { requireUserId } from "@/lib/session";
+import { requireActiveUserId } from "@/lib/session";
 
 /** Cambia el resultado de una postulación (JS-036). */
 export async function setOutcomeAction(formData: FormData): Promise<void> {
-  const userId = await requireUserId();
+  const userId = await requireActiveUserId();
   const applicationId = String(formData.get("applicationId") ?? "");
   const outcome = String(formData.get("outcome") ?? "") as ApplicationOutcome;
   const note = String(formData.get("note") ?? "").trim();

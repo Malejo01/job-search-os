@@ -2,6 +2,7 @@ import { createLogger } from "@job-search-os/adapters";
 import { confirmsAccountDeletion, deleteUserData, schema as s } from "@job-search-os/db";
 import { eq } from "drizzle-orm";
 import { withUser } from "./db";
+import { invalidateUserInsights } from "./insights-cache";
 import { invalidateMarketCandidates } from "./market";
 
 export type DeleteAccountResult =
@@ -30,6 +31,8 @@ export async function deleteAccount(
   // Que los candidatos de /market del usuario borrado no queden en el caché (JS-102). Se llama
   // solo desde la Server Action de /settings, nunca durante un render.
   invalidateMarketCandidates(userId);
+  // Ni «Tu encaje» ni «Si aprendés…», que llevan niveles y ofertas de la persona (E-2b)
+  invalidateUserInsights(userId);
   createLogger({ user_id: userId, task: "delete_account" }).info({ counts }, "cuenta eliminada");
   return { ok: true, counts };
 }

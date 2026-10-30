@@ -110,9 +110,13 @@ test.describe("Flujo 52b: skills de Ajustes", () => {
       expect(await skillLevelsOf(E2E_USER_ID)).toEqual({ ...before, [slug]: level });
 
       await page.getByRole("button", { name: `Quitar ${name}`, exact: true }).click();
-      await page.waitForURL("**/settings/skills?guardado=1");
+      // La URL ya es ?guardado=1 del paso anterior: waitForURL no espera a la acción. Se espera la base
+      await expect.poll(() => skillLevelsOf(E2E_USER_ID)).toEqual(withoutTarget);
+      // T6: la URL no cambia, así que un waitForURL no esperaba nada; sin nivel guardado ya no hay
+      // «Quitar» (señal de la página re-renderizada) y recién ahí vale mirar que no haya alerta
+      const quitar = page.getByRole("button", { name: `Quitar ${name}`, exact: true });
+      await expect(quitar).toHaveCount(0);
       await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
-      expect(await skillLevelsOf(E2E_USER_ID)).toEqual(withoutTarget);
     } finally {
       await restoreSkillLevelRow(slug, backup);
     }

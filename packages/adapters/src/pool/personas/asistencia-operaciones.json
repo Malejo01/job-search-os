@@ -1,0 +1,13 @@
+{
+  "targetRoles": ["asistencia_operaciones"],
+  "locationCountry": "AR",
+  "remoteOnly": true,
+  "yearsTotal": 2,
+  "skills": [
+    { "slug": "calendar_inbox", "level": 3 },
+    { "slug": "office_suite", "level": 3 },
+    { "slug": "data_entry", "level": 3 },
+    { "slug": "excel", "level": 2 },
+    { "slug": "english_intermediate", "level": 2 }
+  ]
+}

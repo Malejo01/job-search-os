@@ -43,7 +43,7 @@ export type WwrItem = {
 
 const XML_ENTITIES: Record<string, string> = { lt: "<", gt: ">", amp: "&", quot: '"', apos: "'" };
 
-function decodeXml(text: string): string {
+export function decodeXml(text: string): string {
   return text.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (m, code: string) => {
     if (code[0] === "#") {
       const n =
@@ -55,7 +55,7 @@ function decodeXml(text: string): string {
 }
 
 /** Contenido de `<tag>` dentro de un item: CDATA literal, o texto con entidades XML decodificadas. */
-function tagText(xml: string, tag: string): string | null {
+export function tagText(xml: string, tag: string): string | null {
   const m = new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)</${tag}>`, "i").exec(xml);
   if (!m) return null;
   const inner = m[1]!.trim();

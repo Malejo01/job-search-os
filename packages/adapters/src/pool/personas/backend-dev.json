@@ -1,0 +1,16 @@
+{
+  "targetRoles": ["backend"],
+  "locationCountry": "MX",
+  "remoteOnly": true,
+  "yearsTotal": 3,
+  "skills": [
+    { "slug": "python_backend", "level": 3 },
+    { "slug": "nodejs", "level": 2 },
+    { "slug": "sql", "level": 3 },
+    { "slug": "rest_apis", "level": 3 },
+    { "slug": "docker", "level": 2 },
+    { "slug": "microservices", "level": 1 },
+    { "slug": "testing", "level": 2 },
+    { "slug": "java", "level": 0 }
+  ]
+}

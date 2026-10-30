@@ -156,6 +156,10 @@ const personaSchema = z
     yearsTotal: z.number().min(0).max(60),
     salaryFloorUsd: z.number().int().min(0).nullable().optional(),
     maxWeeklyHours: z.number().int().min(1).max(80).nullable().optional(),
+    jobLanguages: z
+      .array(z.enum(["es", "en"]))
+      .min(1)
+      .optional(),
     skills: z
       .array(z.object({ slug: z.string().min(1), level: z.number().int().min(0).max(3) }))
       .default([]),
@@ -169,6 +173,7 @@ export type Persona = {
   yearsTotal: number;
   salaryFloorUsd: number | null;
   maxWeeklyHours: number | null;
+  jobLanguages: ("es" | "en")[] | null;
   skills: { slug: string; level: number }[];
 };
 
@@ -193,6 +198,7 @@ export function parsePersona(
       yearsTotal: p.yearsTotal,
       salaryFloorUsd: p.salaryFloorUsd ?? null,
       maxWeeklyHours: p.maxWeeklyHours ?? null,
+      jobLanguages: p.jobLanguages ?? null,
       skills: p.skills,
     },
   };
@@ -447,6 +453,7 @@ async function personaProfile(tx: Db, persona: Persona, label: string): Promise<
     remoteOnly: persona.remoteOnly,
     targetRoles: persona.targetRoles,
     yearsTotal: persona.yearsTotal,
+    ...(persona.jobLanguages ? { jobLanguages: persona.jobLanguages } : {}),
   };
   return {
     header: describeProfile(`persona ${label}`, prefs),

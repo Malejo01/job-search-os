@@ -1,0 +1,13 @@
+{
+  "targetRoles": ["finanzas_contabilidad"],
+  "locationCountry": "AR",
+  "remoteOnly": true,
+  "yearsTotal": 3,
+  "skills": [
+    { "slug": "general_accounting", "level": 3 },
+    { "slug": "financial_reporting", "level": 2 },
+    { "slug": "erp_accounting", "level": 2 },
+    { "slug": "excel", "level": 3 },
+    { "slug": "english_intermediate", "level": 2 }
+  ]
+}

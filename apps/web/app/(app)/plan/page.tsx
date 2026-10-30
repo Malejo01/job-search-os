@@ -1,17 +1,18 @@
-import { SELF_LEVELS, type PlanStatus } from "@job-search-os/pipeline";
+import {
+  SELF_LEVELS,
+  pickWeekFocus,
+  type PlanStatus,
+  type WeekFocus,
+} from "@job-search-os/pipeline";
 import Link from "next/link";
 import { SKILL_CATEGORY_LABEL, safeHttpUrl } from "@/lib/labels";
 import { getTargetRoles } from "@/lib/onboarding";
-import {
-  getDataState,
-  getPlan,
-  getPlanRoleFallback,
-  hasFewOwnJobs,
-  type PlanItemView,
-} from "@/lib/plan";
+import { getDataState, getOwnJobsPlanState, getPlan, type PlanItemView } from "@/lib/plan";
+import { getPlanImpact } from "@/lib/plan-impact";
 import { requireUserId } from "@/lib/session";
 import { MissingDataNotice, NoLevelsNotice } from "../market/data-state-notice";
 import { setPlanStatusAction } from "./actions";
+import { SiAprendes } from "./si-aprendes";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Plan" };
@@ -43,6 +44,66 @@ function priorityBand(priority: number, max: number): "alta" | "media" | "baja" 
   return ratio >= 2 / 3 ? "alta" : ratio >= 1 / 3 ? "media" : "baja";
 }
 
+/** «Empezar», «Cerrar» o «Reabrir» según el estado: los mismos en la lista y en «Esta semana». */
+function StatusButtons({ item }: { item: PlanItemView }) {
+  return NEXT[item.status].map((next) => (
+    <form key={next} action={setPlanStatusAction}>
+      <input type="hidden" name="itemId" value={item.id} />
+      <input type="hidden" name="status" value={next} />
+      <button
+        type="submit"
+        className="rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-700"
+      >
+        {next === "en_curso" ? "Empezar" : next === "cerrada" ? "Cerrar" : "Reabrir"}
+      </button>
+    </form>
+  ));
+}
+
+/**
+ * «Esta semana» (121 §4.1, E4c): la skill de la ruta en la que conviene estar ahora, con las horas
+ * de la semana, el recurso y los botones de siempre. Solo con ruta: sin ella no hay qué proponer.
+ */
+function EstaSemana({ focus, item }: { focus: WeekFocus; item: PlanItemView | undefined }) {
+  const href = item?.resource ? safeHttpUrl(item.resource.url) : null;
+  return (
+    <section
+      data-testid="plan-semana"
+      aria-labelledby="plan-semana-titulo"
+      className="flex flex-col gap-2 rounded-lg border border-sky-200 bg-sky-50 p-3"
+    >
+      <h2 id="plan-semana-titulo" className="text-sm font-semibold text-sky-950">
+        Esta semana
+      </h2>
+      <p className="break-words text-sm font-medium text-zinc-900">{focus.step.name}</p>
+      <p className="text-xs text-zinc-700" data-testid="plan-semana-horas">
+        {focus.hoursThisWeek} h esta semana · te quedan {focus.hoursLeft} h
+        {focus.step.estimated ? " (estimado)" : ""}
+      </p>
+      {item?.resource && href ? (
+        <p className="text-xs">
+          <a
+            href={href}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="text-sky-800 underline"
+          >
+            {item.resource.title}
+          </a>{" "}
+          <span className="text-zinc-700">· {item.resource.provider}</span>
+        </p>
+      ) : (
+        <p className="text-xs text-zinc-700">Todavía no tenemos un curso para esta skill.</p>
+      )}
+      {item ? (
+        <div className="flex flex-wrap items-center gap-1">
+          <StatusButtons item={item} />
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 /**
  * Plan de formación (JS-034): skills por prioridad = demanda × (1 − nivel/3) × facilidad,
  * con horas estimadas, recurso asociado si hay y estado. Server Component + Server Actions.
@@ -51,37 +112,53 @@ function priorityBand(priority: number, max: number): "alta" | "media" | "baja" 
 export default async function PlanPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    simular?: string | string[];
+    horas?: string | string[];
+  }>;
 }) {
   const userId = await requireUserId();
-  const { error } = await searchParams;
+  const { error, simular, horas } = await searchParams;
   // El plan guardado es uno por persona: la nota usa siempre el puesto principal
   const role = (await getTargetRoles(userId))[0] ?? null;
-  const [items, state, roleFallback, fewOwnJobs] = await Promise.all([
+  const [items, state, { roleFallback, fewOwnJobs }] = await Promise.all([
     getPlan(userId),
     getDataState(userId),
-    getPlanRoleFallback(userId, role),
-    hasFewOwnJobs(userId),
+    getOwnJobsPlanState(userId, role),
   ]);
+  // El simulador necesita plan y niveles cargados; sin ellos la pantalla ya explica qué falta
+  const showSim = items.length > 0 && state.levelsKnown > 0;
+  const impact = showSim ? await getPlanImpact(userId, role, new Date(), simular, horas) : null;
   const maxPriority = items.reduce((m, i) => Math.max(m, i.priority), 0);
   const groups: Record<PlanStatus, PlanItemView[]> = { en_curso: [], pendiente: [], cerrada: [] };
   for (const it of items) groups[it.status].push(it);
   const hoursPending = items
     .filter((i) => i.status !== "cerrada")
     .reduce((a, i) => a + (i.hoursRemaining ?? 0), 0);
+  // Los estados salen de la base, no del caché del impacto: un «Empezar» se ve en el acto. Y solo
+  // cuentan los pasos que siguen en el plan (la ruta puede tener hasta 30 minutos)
+  const planSlugs = new Set(items.map((i) => i.slug));
+  const focus = impact?.enough
+    ? pickWeekFocus(
+        impact.route.filter((step) => planSlugs.has(step.slug)),
+        new Map(items.map((i) => [i.slug, i.status])),
+        impact.hoursPerWeek,
+      )
+    : null;
 
   return (
     <section className="flex flex-col gap-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-xl font-semibold">Plan de formación</h1>
         <p className="text-xs text-zinc-600">
-          {items.length} skills ·{" "}
+          {items.length} {items.length === 1 ? "skill" : "skills"} ·{" "}
           {hoursPending > 0 ? `~${hoursPending} h pendientes` : "horas sin estimar"}
         </p>
       </div>
       {error ? (
         <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
-          Estado inválido.
+          No pudimos cambiar el estado de esa skill. Probá de nuevo.
         </p>
       ) : null}
       {roleFallback && items.length > 0 ? (
@@ -90,7 +167,16 @@ export default async function PlanPage({
           las tuyas.
         </p>
       ) : null}
+      <Link
+        href="/encaje"
+        className="inline-flex min-h-11 w-fit items-center text-sm font-medium text-sky-800 underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
+      >
+        Ver Tu encaje: qué piden tus ofertas y qué te falta
+      </Link>
       <NoLevelsNotice state={state} />
+      {focus ? (
+        <EstaSemana focus={focus} item={items.find((i) => i.slug === focus.step.slug)} />
+      ) : null}
       {items.length === 0 ? (
         state.hasSnapshot ? (
           fewOwnJobs ? (
@@ -98,7 +184,7 @@ export default async function PlanPage({
               data-testid="plan-few-offers"
               className="rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-600"
             >
-              Con pocas ofertas todavía no podemos decirlo: sumá más o{" "}
+              Con pocas ofertas todavía no podemos armar tu plan: sumá más o{" "}
               <Link href="/jobs/new" className="underline">
                 pegá una oferta
               </Link>
@@ -106,7 +192,12 @@ export default async function PlanPage({
             </p>
           ) : (
             <p className="rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-600">
-              No hay skills para reforzar con las ofertas actuales.
+              No hay skills para reforzar con las ofertas actuales. Cuando sumes más ofertas o
+              cambies tus niveles en{" "}
+              <Link href="/settings/skills" className="underline">
+                Mis skills
+              </Link>
+              , se actualiza.
             </p>
           )
         ) : (
@@ -159,7 +250,8 @@ export default async function PlanPage({
                           </p>
                         ) : (
                           <p className="text-xs text-zinc-600">
-                            Todavía no tenemos un curso para esta skill
+                            Todavía no tenemos un curso para esta skill. Estamos sumando
+                            proveedores.
                           </p>
                         )}
                       </div>
@@ -169,22 +261,7 @@ export default async function PlanPage({
                         >
                           {STATUS_LABELS[it.status]}
                         </span>
-                        {NEXT[it.status].map((next) => (
-                          <form key={next} action={setPlanStatusAction}>
-                            <input type="hidden" name="itemId" value={it.id} />
-                            <input type="hidden" name="status" value={next} />
-                            <button
-                              type="submit"
-                              className="rounded-md border border-zinc-300 px-2 py-1 text-xs text-zinc-700"
-                            >
-                              {next === "en_curso"
-                                ? "Empezar"
-                                : next === "cerrada"
-                                  ? "Cerrar"
-                                  : "Reabrir"}
-                            </button>
-                          </form>
-                        ))}
+                        <StatusButtons item={it} />
                       </div>
                     </div>
                   </li>
@@ -194,15 +271,22 @@ export default async function PlanPage({
           ) : null,
         )
       )}
+      {showSim ? <SiAprendes impact={impact} selected={impact?.simulation?.slugs ?? []} /> : null}
       <details className="rounded-md border border-zinc-200 p-3 text-sm">
         <summary className="flex min-h-11 cursor-pointer items-center font-semibold">
           Cómo se calcula
         </summary>
         <p className="mt-2 text-xs text-zinc-600">
-          Prioridad = demanda ponderada del mercado × (1 − nivel/3) × facilidad (16 h de cierre → 1,
-          40 h → 0,4, 80 h → 0,2). «Alta», «media» y «baja» comparan cada skill con la de mayor
-          prioridad de tu plan. Se recalcula cuando guardás tus skills y cada lunes; los estados que
-          marcaste se conservan. Los recursos salen de un catálogo revisado a mano.
+          La prioridad sube cuando una skill se pide mucho, tu nivel es bajo y se aprende rápido
+          (menos horas). «Alta», «media» y «baja» comparan cada skill con la de mayor prioridad de
+          tu plan. Se recalcula cuando guardás tus skills y cada lunes; los estados que marcaste se
+          conservan. Los recursos salen de un catálogo revisado a mano.
+        </p>
+        <p className="mt-2 text-xs text-zinc-600">
+          «Si aprendés…» cuenta una oferta como «te calza» cuando su puntaje estimado llega a 7 de
+          10, el mismo corte que usa «Hoy». Es una cuenta rápida de cuántas de las skills que piden
+          ya manejás, sin leer la oferta entera. Aprender una skill es llevarla a nivel 2. No es el
+          puntaje de la evaluación: ese puede ser otro.
         </p>
       </details>
     </section>

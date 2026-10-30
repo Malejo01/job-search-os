@@ -5,7 +5,7 @@ import { login, ownerDb } from "./helpers";
 
 /**
  * Flujo 44 (ronda 63): vitrina pública. Portada, mercado, ofertas de muestra y pedido de acceso sin
- * sesión; con sesión `/` lleva a /jobs; y a 360 px nada se desborda. Las páginas son ISR y pueden
+ * sesión; con sesión `/` lleva a /hoy (ronda 119b); y a 360 px nada se desborda. Las páginas son ISR y pueden
  * haberse prerenderizado antes de cargar datos: se verifica la estructura (headings y secciones),
  * nunca cantidades. La lista de espera usa un email inventado con Date.now() y lo borra al final.
  */
@@ -113,6 +113,18 @@ test.describe("Flujo 44: vitrina pública", () => {
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
   });
 
+  test("una carrera trae datos estructurados de Dataset, nunca de JobPosting (C-18)", async ({
+    page,
+  }) => {
+    await page.goto("/mercado/data_analyst");
+    const raw = await page.locator('script[type="application/ld+json"]').first().textContent();
+    const data = JSON.parse(raw ?? "{}") as Record<string, unknown>;
+    expect(data["@type"]).toBe("Dataset");
+    expect(raw).not.toContain("JobPosting");
+    expect(raw).not.toContain("Job Search OS");
+    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", /Mercado/);
+  });
+
   test("los títulos públicos no llevan el nombre del producto", async ({ page }) => {
     for (const path of ["/", "/mercado", "/ofertas", "/acceso"]) {
       await page.goto(path);
@@ -131,12 +143,14 @@ test.describe("Flujo 44: vitrina pública", () => {
     expect(await sitemap.text()).toContain("/mercado");
   });
 
-  test("con sesión, la portada y /acceso redirigen a /jobs", async ({ page }) => {
+  test("con sesión, la portada, /acceso y /login redirigen a /hoy", async ({ page }) => {
     await login(page);
     await page.goto("/");
-    await expect(page).toHaveURL(/\/jobs/);
+    await expect(page).toHaveURL(/\/hoy$/);
     await page.goto("/acceso");
-    await expect(page).toHaveURL(/\/jobs/);
+    await expect(page).toHaveURL(/\/hoy$/);
+    await page.goto("/login");
+    await expect(page).toHaveURL(/\/hoy$/);
   });
 
   test("una página pública que no existe muestra el 404 con el layout público", async ({

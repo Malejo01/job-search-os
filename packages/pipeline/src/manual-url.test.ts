@@ -1,6 +1,41 @@
 import { describe, expect, it } from "vitest";
 import { parseManualUrl } from "./manual-url";
 
+describe("parseManualUrl: rangos reservados (S-2 del verificador de links, T7)", () => {
+  const rejected = (url: string) => expect(parseManualUrl(url)).toEqual({ ok: false });
+
+  it("rechaza las redes de documentación y reservadas de IPv4", () => {
+    rejected("http://192.0.0.8/");
+    rejected("http://192.0.2.10/");
+    rejected("http://198.51.100.7/");
+    rejected("http://203.0.113.1/");
+    rejected("http://192.88.99.1/");
+    rejected("http://240.0.0.1/");
+  });
+
+  it("deja pasar IPv4 públicas vecinas de esos rangos", () => {
+    expect(parseManualUrl("http://192.0.3.1/")).toMatchObject({ ok: true });
+    expect(parseManualUrl("http://198.51.101.1/")).toMatchObject({ ok: true });
+    expect(parseManualUrl("http://203.0.114.1/")).toMatchObject({ ok: true });
+  });
+
+  it("NAT64 y 6to4 se juzgan por la IPv4 que llevan adentro", () => {
+    rejected("http://[64:ff9b::a00:1]/"); // 10.0.0.1
+    rejected("http://[64:ff9b::7f00:1]/"); // 127.0.0.1
+    rejected("http://[2002:a00:1::]/"); // 6to4 de 10.0.0.1
+    rejected("http://[2002:c0a8:101::1]/"); // 6to4 de 192.168.1.1
+    rejected("http://[2002:7f00:1:1::]/"); // 6to4 de 127.0.0.1, con el grupo 3 distinto de cero
+    rejected("http://[64:ff9b::10.0.0.1]/"); // forma punteada: URL la normaliza a hex
+    expect(parseManualUrl("http://[64:ff9b::808:808]/")).toMatchObject({ ok: true }); // 8.8.8.8
+    expect(parseManualUrl("http://[2002:808:808::1]/")).toMatchObject({ ok: true });
+  });
+
+  it("rechaza Teredo y el NAT64 local", () => {
+    rejected("http://[2001:0:4136:e378:8000:63bf:3fff:fdd2]/");
+    rejected("http://[64:ff9b:1::1]/");
+  });
+});
+
 describe("parseManualUrl", () => {
   it("vacío es válido y queda null", () => {
     expect(parseManualUrl("")).toEqual({ ok: true, url: null });

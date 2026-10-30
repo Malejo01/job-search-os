@@ -4,6 +4,7 @@ import {
   createPgQueue,
   evaluateJobNow,
   hasPoolEvaluationActivity,
+  loadPoolEvalCap,
   loadPoolEvalLimit,
   safeDbError,
 } from "@job-search-os/adapters";
@@ -94,10 +95,12 @@ export async function reassignForRoleChange(
       return await reassignForSkills(userId);
     }
     const limits = poolLimits(logger);
-    const evalLimit = await loadPoolEvalLimit(db, userId);
+    // Tope propio > el del plan (con PRICING_ENABLED, C-11b) > la variable. Las 9 primeras del
+    // onboarding (arriba) no dependen del plan: son la primera impresión
+    const evalCap = await loadPoolEvalCap(db, userId, limits.dailyEvalPerUser);
     const assigned = await assignPoolToUser(db, userId, {
       limit: limits.dailyAssignLimit,
-      enqueueTop: evalLimit ?? limits.dailyEvalPerUser,
+      enqueueTop: evalCap,
       replaceUntouched: true,
       deductLast24h: true,
       logger,

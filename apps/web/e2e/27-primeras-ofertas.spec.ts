@@ -14,6 +14,8 @@ import {
   ownerDb,
   runDemoWorker,
   seedPublicJobs,
+  seedTargetRoles,
+  setSeedTargetRoles,
 } from "./helpers";
 
 /**
@@ -122,11 +124,7 @@ test.describe("Flujo 27: primeras ofertas del pool, del puesto a /jobs", () => {
     await page.getByLabel("Repetí la contraseña").fill(password);
     await page.getByLabel(/Leí y acepto/).check();
     await page.getByRole("button", { name: "Crear cuenta" }).click();
-    await expect(page.getByRole("heading", { name: "Cuenta creada" })).toBeVisible();
-    await page.getByRole("link", { name: "Ir a entrar" }).click();
-    await page.getByLabel("Email").fill(email);
-    await page.getByLabel("Contraseña").fill(password);
-    await page.getByRole("button", { name: "Entrar" }).click();
+    // El registro deja la sesión iniciada: va directo al onboarding
     await page.waitForURL("**/onboarding**");
 
     // El puesto es obligatorio y viene sin nada marcado
@@ -211,7 +209,7 @@ test.describe("Flujo 27: primeras ofertas del pool, del puesto a /jobs", () => {
 
   test("conectar el email es opcional y el asistente trae el recuadro de confianza en un modal", async () => {
     await page.goto("/onboarding/ofertas");
-    // Ronda 49: el acceso está en el aviso de arriba
+    // El acceso está en el aviso, después de la lista (C-17)
     await page.getByRole("link", { name: "Conectar mis alertas" }).click();
     await page.waitForURL("**/onboarding/asistente**");
     await expect(page.getByRole("heading", { name: /Conectá tus alertas de email/ })).toBeVisible();
@@ -296,6 +294,16 @@ test.describe("Flujo 27: primeras ofertas del pool, del puesto a /jobs", () => {
 });
 
 test.describe("Flujo 27b: aviso «Elegí tu puesto» en /jobs", () => {
+  // T6: el caso supone al usuario e2e sin puestos; se fija acá y se restaura, sin depender de lo que dejó otro spec
+  let originalRoles: Awaited<ReturnType<typeof seedTargetRoles>> | null = null;
+  test.beforeAll(async () => {
+    originalRoles = await seedTargetRoles();
+    await setSeedTargetRoles({ targetRoles: [], targetRole: null });
+  });
+  test.afterAll(async () => {
+    if (originalRoles) await setSeedTargetRoles(originalRoles).catch(() => {});
+  });
+
   test("una cuenta sin puesto ve el aviso, lo descarta y no vuelve", async ({ page }) => {
     // El usuario e2e principal no tiene puestos elegidos (target_roles vacío)
     const { db, close } = ownerDb();

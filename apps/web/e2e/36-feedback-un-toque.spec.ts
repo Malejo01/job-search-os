@@ -124,6 +124,10 @@ test.describe("Flujo 36: feedback de un toque", () => {
     await page.getByRole("button", { name: "el score está alto" }).click();
     await expect(page.getByLabel("Motivo")).toHaveValue("el score está alto");
     await page.getByRole("button", { name: "Guardar motivo" }).click();
+    // Recargar recién con la nota en la base: si no, la recarga le gana a la acción en curso
+    await expect
+      .poll(async () => (await evaluationFeedbackOf(detalle))?.humanNote)
+      .toBe("el score está alto");
 
     await page.reload();
     await expect(

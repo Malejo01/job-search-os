@@ -12,6 +12,8 @@ import {
   login,
   ownerDb,
   seedPublicJobs,
+  seedTargetRoles,
+  setSeedTargetRoles,
 } from "./helpers";
 
 /**
@@ -35,10 +37,14 @@ test.describe("Flujo 32: varios puestos", () => {
   let invitationId: string | undefined;
   let userId: string | null = null;
   let roles: string[] = [];
+  // T6: el último caso supone al usuario e2e sin puestos; se fija al empezar y se restaura al final
+  let originalRoles: Awaited<ReturnType<typeof seedTargetRoles>> | null = null;
   let context: BrowserContext;
   let page: Page;
 
   test.beforeAll(async ({ browser }) => {
+    originalRoles = await seedTargetRoles();
+    await setSeedTargetRoles({ targetRoles: [], targetRole: null });
     // Igual que createInvitation (lib/invitations.ts): código aleatorio, en la base solo su sha256
     code = randomBytes(32).toString("base64url");
     const codeHash = createHash("sha256").update(code).digest("hex");
@@ -98,10 +104,10 @@ test.describe("Flujo 32: varios puestos", () => {
         await db.delete(s.jobs).where(eq(s.jobs.userId, id));
       }
       if (invitationId) await db.delete(s.invitations).where(eq(s.invitations.id, invitationId));
-      // El usuario e2e principal vuelve a no tener puestos (otros specs lo suponen)
+      // El usuario e2e principal vuelve a los puestos que tenía antes (normalmente ninguno)
       await db
         .update(s.profiles)
-        .set({ targetRoles: [], targetRole: null })
+        .set(originalRoles ?? { targetRoles: [], targetRole: null })
         .where(eq(s.profiles.userId, E2E_USER_ID));
     } finally {
       await close();
@@ -116,11 +122,7 @@ test.describe("Flujo 32: varios puestos", () => {
     await page.getByLabel("Repetí la contraseña").fill(password);
     await page.getByLabel(/Leí y acepto/).check();
     await page.getByRole("button", { name: "Crear cuenta" }).click();
-    await expect(page.getByRole("heading", { name: "Cuenta creada" })).toBeVisible();
-    await page.getByRole("link", { name: "Ir a entrar" }).click();
-    await page.getByLabel("Email").fill(email);
-    await page.getByLabel("Contraseña").fill(password);
-    await page.getByRole("button", { name: "Entrar" }).click();
+    // El registro deja la sesión iniciada: va directo al onboarding
     await page.waitForURL("**/onboarding**");
 
     const count = page.getByTestId("role-picker-count");

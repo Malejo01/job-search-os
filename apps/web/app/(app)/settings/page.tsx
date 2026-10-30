@@ -1,17 +1,23 @@
 import { schema as s } from "@job-search-os/db";
-import { isLegacyInboundAddress } from "@job-search-os/pipeline";
+import { isLegacyInboundAddress, limitsText, pricingEnabled } from "@job-search-os/pipeline";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { withUser } from "@/lib/db";
 import { getInboundAddress } from "@/lib/inbound-address";
 import { canCreateInvitations } from "@/lib/invitations";
 import { getTargetRoles, getTargetRolesLimit } from "@/lib/onboarding";
+import { getUserPlan } from "@/lib/user-plan";
 import { requireUserId } from "@/lib/session";
 import { DeleteAccountForm } from "./delete-account-form";
 import { InboundAddressSection } from "./inbound-address";
 import { TargetRolesForm } from "./target-roles-form";
 
 export const metadata = { title: "Ajustes" };
+
+const PLAN_DATE = new Intl.DateTimeFormat("es-AR", {
+  dateStyle: "long",
+  timeZone: "America/Argentina/Buenos_Aires",
+});
 export const dynamic = "force-dynamic";
 // «Tus puestos» puede programar la primera evaluación en after(): corre dentro de este límite
 export const maxDuration = 120;
@@ -24,11 +30,14 @@ export default async function SettingsPage({
 }) {
   const userId = await requireUserId();
   const { error, direccion, puesto } = await searchParams;
-  const [address, targetRoles, rolesLimit, canInvite] = await Promise.all([
+  const pricing = pricingEnabled(process.env);
+  const [address, targetRoles, rolesLimit, canInvite, userPlan] = await Promise.all([
     getInboundAddress(userId),
     getTargetRoles(userId),
     getTargetRolesLimit(userId),
     canCreateInvitations(userId),
+    // «Tu plan» (C-11b) solo con los precios encendidos
+    pricing ? getUserPlan(userId) : null,
   ]);
   const [user] = await withUser(userId, (tx) =>
     tx.select({ email: s.users.email }).from(s.users).where(eq(s.users.id, userId)).limit(1),
@@ -49,6 +58,28 @@ export default async function SettingsPage({
         <span aria-hidden="true">›</span>
       </Link>
 
+      <Link
+        href="/cv"
+        className="flex min-h-11 items-center justify-between gap-3 rounded-md border border-zinc-200 px-4 py-2 text-sm hover:bg-zinc-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
+      >
+        <span className="flex flex-col">
+          <span className="font-medium text-zinc-900 underline">Tu CV</span>
+          <span className="text-zinc-700">Vista previa y descarga en DOCX o PDF</span>
+        </span>
+        <span aria-hidden="true">›</span>
+      </Link>
+
+      <Link
+        href="/settings/historial"
+        className="flex min-h-11 items-center justify-between gap-3 rounded-md border border-zinc-200 px-4 py-2 text-sm hover:bg-zinc-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
+      >
+        <span className="flex flex-col">
+          <span className="font-medium text-zinc-900 underline">Tu historial</span>
+          <span className="text-zinc-700">Trabajos, estudios y certificaciones para tu CV</span>
+        </span>
+        <span aria-hidden="true">›</span>
+      </Link>
+
       <section className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
         <h2 className="text-lg font-medium">Cuenta</h2>
         <p className="text-sm text-zinc-700">
@@ -56,6 +87,38 @@ export default async function SettingsPage({
         </p>
         <DeleteAccountForm error={Boolean(error)} />
       </section>
+
+      {userPlan ? (
+        <section
+          aria-labelledby="tu-plan"
+          data-testid="tu-plan"
+          className="flex flex-col gap-2 rounded-md border border-zinc-200 p-4"
+        >
+          <h2 id="tu-plan" className="text-lg font-medium">
+            Tu plan
+          </h2>
+          <p className="text-sm text-zinc-800">
+            <span className="font-medium">{userPlan.plan.name}</span>
+            {userPlan.until ? ` · hasta el ${PLAN_DATE.format(userPlan.until)}` : ""}
+          </p>
+          {userPlan.expired ? (
+            <p className="text-sm text-amber-900">
+              Tu plan anterior venció: ahora rigen los topes del plan gratis.
+            </p>
+          ) : null}
+          <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-zinc-700">
+            {limitsText(userPlan.plan.limits, {
+              cv: process.env.CV_IMPORT_ENABLED === "1",
+              assistant: false,
+            }).map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+          <Link href="/precios" className="text-sm text-zinc-900 underline">
+            Ver los planes
+          </Link>
+        </section>
+      ) : null}
 
       {canInvite ? (
         <section className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
@@ -66,6 +129,10 @@ export default async function SettingsPage({
             className="inline-flex min-h-11 items-center self-start rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
           >
             Crear invitación
+          </Link>
+          {/* C-14: el tablero de la beta es para las mismas cuentas que invitan */}
+          <Link href="/settings/metricas" className="text-sm text-zinc-900 underline">
+            Métricas de la beta
           </Link>
         </section>
       ) : null}
@@ -105,6 +172,11 @@ export default async function SettingsPage({
 
       <section className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
         <h2 className="text-lg font-medium">Criterios</h2>
+        <p className="text-xs font-semibold tracking-wide text-zinc-700 uppercase">Avanzado</p>
+        <p className="text-sm text-zinc-700">
+          Cambiar estos criterios puede hacer que se descarten ofertas que te sirven. Si no estás
+          segura o seguro, dejalos como están.
+        </p>
         <Link href="/settings/criteria" className="text-sm text-zinc-900 underline">
           Editar mis criterios de evaluación
         </Link>

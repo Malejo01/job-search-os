@@ -9,6 +9,9 @@ import { createEvaluation, createJob, deleteJob, jobStatus, login } from "./help
  * Las ofertas de este flujo llevan scores de 9,6 a 9,9 para quedar arriba de todo: el resto de
  * los flujos usa 7, así el orden es determinista aunque quede algún resto de otra corrida.
  */
+// T6: el 1.º y el 3.º comparten A y B; sin serial, el reintento del 3.º corre solo y con A y B vacíos
+test.describe.configure({ mode: "serial" });
+
 test.describe("Flujo 16: revisión de a una", () => {
   const tag = Date.now();
   const creados: string[] = [];

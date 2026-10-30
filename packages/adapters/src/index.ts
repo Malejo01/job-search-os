@@ -49,7 +49,17 @@ export {
 } from "./pool/fetch";
 export { upsertPoolJobs, type PoolUpsertSummary } from "./pool/upsert";
 export { POOL_RETENTION_DAYS, purgePool } from "./pool/retention";
+// E3b: lectura de candidatas para el simulador de /plan (lejos de las líneas que tocan #179 y #182)
+export { CANDIDATE_CAP, selectPoolCandidates } from "./pool/select";
 export { sourceUserAgent } from "./sources/user-agent";
+// T7.4: verificador de links del catálogo, sin base
+export {
+  checkLearningLink,
+  checkLearningLinks,
+  type CheckLinkItem,
+  type CheckLinkResult,
+  type CheckLinksResult,
+} from "./learning/check-links";
 export {
   ATS_PROVIDERS,
   isValidAtsToken,
@@ -57,8 +67,9 @@ export {
   type AtsProvider,
 } from "./sources/ats-common";
 export { assignPoolToUser, type AssignOptions, type AssignResult } from "./pool/assign";
-export { hasPoolEvaluationActivity, loadPoolEvalLimit } from "./pool/usage";
+export { hasPoolEvaluationActivity, loadPoolEvalCap, loadPoolEvalLimit } from "./pool/usage";
 export { explainEmptyRoles } from "./pool/role-coverage";
+export * from "./cv-chat";
 // Demo guiada (ronda 74): línea en el medio a propósito, el #102 toca las puntas de este archivo.
 export * from "./demo";
 export { assignPoolDaily, type PoolDailyOptions, type PoolDailyResult } from "./pool/daily";

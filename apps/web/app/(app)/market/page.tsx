@@ -1,4 +1,6 @@
-import type { AgendaRow } from "@job-search-os/pipeline";
+import { CAREER_MATURITY_LABEL, type AgendaRow } from "@job-search-os/pipeline";
+import Link from "next/link";
+import { getCareerMaturity } from "@/lib/career-maturity";
 import {
   getDataState,
   getMarket,
@@ -24,6 +26,9 @@ export const metadata = { title: "Mercado" };
 const INPUT_CLASS =
   "w-full rounded-md border border-zinc-300 px-2 py-2 text-sm text-zinc-800 sm:w-auto";
 
+/** «2026-10-19» -> «19/10»: la semana, sin año ni formato técnico. */
+const shortDate = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+
 /**
  * Mercado (ronda 58): arriba, "Mercado de <carrera>" con las ofertas públicas del pool (la carrera de
  * la pestaña o la que se explore con `?carrera=`, sin tocar `?rol=`); abajo, "Tu agenda": agenda de
@@ -43,11 +48,12 @@ export default async function MarketPage({
   const role = pickRole(roles, params.rol);
   const carrera = parseCareer(params.carrera);
   const careerRole = carrera ?? role;
-  const [view, state, roleMarket, careerMarket] = await Promise.all([
+  const [view, state, roleMarket, careerMarket, maturity] = await Promise.all([
     getMarket(userId, range),
     getDataState(userId),
     getRoleMarketView(userId, role),
     careerRole ? getCareerMarket(careerRole) : null,
+    careerRole ? getCareerMaturity(careerRole) : null,
   ]);
   const { agenda } = view;
 
@@ -56,8 +62,10 @@ export default async function MarketPage({
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-xl font-semibold">Mercado</h1>
         <p className="text-xs text-zinc-600">
-          {view.weekStart ? `datos de la semana del ${view.weekStart}` : "sin datos todavía"} ·{" "}
-          {view.levelsKnown} skills con nivel propio
+          {view.weekStart
+            ? `Datos de la semana del ${shortDate(view.weekStart)}`
+            : "Sin datos todavía"}{" "}
+          · cargaste el nivel de {view.levelsKnown} {view.levelsKnown === 1 ? "skill" : "skills"}
         </p>
       </div>
 
@@ -68,6 +76,19 @@ export default async function MarketPage({
         keep={{ desde: range.from, hasta: range.to }}
       />
       <CareerPicker current={careerRole} tab={role} />
+      {/* C-13: con el flag apagado, sin la función en la base o si falla, no se muestra nada */}
+      {careerRole && maturity ? (
+        <p
+          data-testid="carrera-madurez"
+          className={`w-fit rounded-full px-3 py-1 text-xs font-medium ${
+            maturity === "madura"
+              ? "bg-emerald-100 text-emerald-900"
+              : "bg-amber-100 text-amber-900"
+          }`}
+        >
+          {CAREER_MATURITY_LABEL[maturity]}
+        </p>
+      ) : null}
       {careerRole && careerMarket ? (
         <CareerMarket
           market={careerMarket}
@@ -76,7 +97,7 @@ export default async function MarketPage({
         />
       ) : (
         <p className="text-xs text-zinc-600">
-          Elegí una carrera y ves qué piden las ofertas públicas de los últimos 30 días.
+          Elegí una carrera y mirá qué piden las ofertas públicas de los últimos 30 días.
         </p>
       )}
 
@@ -84,6 +105,12 @@ export default async function MarketPage({
       <p className="-mt-3 text-xs text-zinc-600">
         Lo que piden las ofertas que ya pasaron por tu cuenta, cruzado con tus niveles.
       </p>
+      <Link
+        href={role ? `/encaje?rol=${role}` : "/encaje"}
+        className="-mt-2 inline-flex min-h-11 w-fit items-center text-sm font-medium text-sky-800 underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900"
+      >
+        Explicado en llano: Tu encaje
+      </Link>
       <RoleMarket view={roleMarket} />
 
       <form method="get" className="flex flex-col gap-2 text-xs text-zinc-600">
@@ -109,7 +136,9 @@ export default async function MarketPage({
             Aplicar
           </button>
         </div>
-        {view.weeks.length ? <p>semanas disponibles: {view.weeks.join(", ")}</p> : null}
+        {view.weeks.length ? (
+          <p>Semanas disponibles: {view.weeks.map(shortDate).join(", ")}</p>
+        ) : null}
       </form>
 
       <NoLevelsNotice state={state} />
@@ -119,13 +148,16 @@ export default async function MarketPage({
           <MissingDataNotice state={state} />
         ) : (
           <p className="rounded-md border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-600">
-            No hay datos de mercado en ese rango de semanas. Probá con otro rango.
+            No hay datos de mercado en ese rango de semanas.{" "}
+            <Link href={role ? `/market?rol=${role}` : "/market"} className="underline">
+              Ver todas las semanas
+            </Link>
           </p>
         )
       ) : (
         <>
           <Section
-            title="Lo que te falta · demanda alta y nivel ≤ básico"
+            title="Lo que te falta (se pide mucho y tu nivel es básico o menor)"
             hint="Lo que más piden las ofertas que te interesan y hoy no tenés. Orden: demanda ponderada."
             rows={agenda.gaps}
             view={view}
@@ -161,10 +193,10 @@ export default async function MarketPage({
             </summary>
             <p className="mt-2 text-xs text-zinc-600">
               La demanda de cada skill suma el puntaje de las ofertas que la piden: cuenta entero si
-              es un requisito y 0,4 si es deseable. Las ofertas sin puntaje pesan 5. Las skills se
-              reconocen por nombre en cada aviso, sin inteligencia artificial; lo que no está en la
-              lista de skills conocidas no cuenta. Tus niveles son los que cargaste en Mis skills.
-              Se actualiza cuando guardás tus skills y cada lunes.
+              es un requisito y 0,4 si es deseable. Si una oferta todavía no tiene puntaje, cuenta
+              como 5 de 10. Las skills se reconocen por nombre en cada aviso, sin inteligencia
+              artificial; lo que no está en la lista de skills conocidas no cuenta. Tus niveles son
+              los que cargaste en Mis skills. Se actualiza cuando guardás tus skills y cada lunes.
             </p>
           </details>
         </>
@@ -195,7 +227,13 @@ function Section({
       {rows.length ? (
         <SkillRows rows={rows} view={view} />
       ) : (
-        <p className="mt-2 text-xs text-zinc-600">— nada en esta categoría —</p>
+        <p className="mt-2 text-xs text-zinc-600">
+          Por ahora ninguna skill entra en esta categoría. Si tus niveles cambiaron, actualizalos en{" "}
+          <Link href="/settings/skills" className="underline">
+            Mis skills
+          </Link>
+          .
+        </p>
       )}
     </section>
   );

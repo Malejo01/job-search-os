@@ -120,6 +120,11 @@ export type ListOptions = {
   now?: Date;
   /** Solo ofertas cuya última evaluación se creó desde esta fecha (inclusive). */
   evaluatedSince?: Date;
+  /**
+   * Calcular el pre-score de las que no tienen evaluación (por defecto sí). `jobNeighbors` lo
+   * apaga: el pre-score no entra en el orden y cuesta 2 o 3 consultas más (C-7).
+   */
+  withPreScore?: boolean;
 };
 
 type Tx = Parameters<Parameters<typeof withUser>[1]>[0];
@@ -230,6 +235,9 @@ export async function listJobs(
       .orderBy(
         sql`${evaluatingSql()} desc`,
         sql`${latest.score} desc nulls last`,
+        // A igual score, menos riesgos primero (JS-054): con las penalizaciones de decide()
+        // corregidas, los riesgos son el único canal de viabilidad. Sin evaluación cuenta 0.
+        sql`coalesce(cardinality(${latest.riesgos}), 0) asc`,
         desc(s.jobs.firstSeenAt),
         // Desempate estable: sin esto, dos ofertas con el mismo score y la misma fecha pueden
         // cambiar de lugar entre consultas y "siguiente" saltea o repite (JS-061).
@@ -238,7 +246,10 @@ export async function listJobs(
       .limit(LIST_LIMIT);
 
     // Pre-score solo para las que todavía no tienen evaluación y no están descartadas
-    const pending = rows.filter((r) => r.score === null && r.status !== "descartada_prefiltro");
+    const pending =
+      options.withPreScore === false
+        ? []
+        : rows.filter((r) => r.score === null && r.status !== "descartada_prefiltro");
     const pre = await preScoresFor(
       tx,
       userId,
@@ -278,14 +289,14 @@ export async function listJobs(
 /**
  * Anterior y siguiente de una oferta con los filtros de la lista (JS-061). Usa la MISMA consulta
  * que la lista, así el orden no puede divergir; la oferta actual se incluye aunque ya no matchee
- * (acaba de postularse o descartarse) para encontrar su lugar.
+ * (acaba de postularse o descartarse) para encontrar su lugar. Sin pre-score: no cambia el orden.
  */
 export async function jobNeighbors(
   userId: string,
   jobId: string,
   filters: JobFilters,
 ): Promise<{ prev: string | null; next: string | null }> {
-  const rows = await listJobs(userId, filters, { include: jobId });
+  const rows = await listJobs(userId, filters, { include: jobId, withPreScore: false });
   return neighbors(
     rows.map((r) => r.id),
     jobId,

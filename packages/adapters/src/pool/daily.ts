@@ -1,5 +1,5 @@
 import { schema as s, type Db } from "@job-search-os/db";
-import type { PoolLimits } from "@job-search-os/pipeline";
+import { resolvePlanLimit, type PoolLimits } from "@job-search-os/pipeline";
 import { and, asc, eq } from "drizzle-orm";
 import type { Logger } from "../logger";
 import { safeDbError } from "../logging/safe-error";
@@ -34,6 +34,8 @@ export type PoolDailyOptions = {
   budgetMs?: number;
   /** Reloj en ms para medir el presupuesto (inyectable en tests). */
   clock?: () => number;
+  /** Entorno para `PRICING_ENABLED` (inyectable en tests); por defecto, `process.env`. */
+  env?: Record<string, string | undefined>;
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -53,7 +55,12 @@ export async function assignPoolDaily(db: Db, opts: PoolDailyOptions): Promise<P
   };
 
   const profiles = await db
-    .selectDistinct({ userId: s.profiles.userId, evalLimit: s.profiles.poolDailyEvalLimit })
+    .selectDistinct({
+      userId: s.profiles.userId,
+      evalLimit: s.profiles.poolDailyEvalLimit,
+      plan: s.profiles.plan,
+      planUntil: s.profiles.planUntil,
+    })
     .from(s.profiles)
     .innerJoin(
       s.evaluationCriteria,
@@ -64,13 +71,20 @@ export async function assignPoolDaily(db: Db, opts: PoolDailyOptions): Promise<P
     )
     .orderBy(asc(s.profiles.userId));
 
-  for (const { userId, evalLimit } of profiles) {
+  for (const { userId, evalLimit, plan, planUntil } of profiles) {
     if (opts.budgetMs !== undefined && clock() - startedAt >= opts.budgetMs) {
       result.stopped = true;
       break;
     }
     try {
-      const evalCap = evalLimit ?? opts.limits.dailyEvalPerUser;
+      // Tope propio > el del plan (solo con PRICING_ENABLED, C-11b) > el de la variable
+      const evalCap = resolvePlanLimit(opts.env ?? process.env, "evaluationsPerDay", {
+        override: evalLimit,
+        plan,
+        planUntil,
+        now,
+        fallback: opts.limits.dailyEvalPerUser,
+      });
       const limit = Math.max(
         0,
         opts.limits.dailyAssignLimit - (await countPoolAssigned(db, userId, since)),

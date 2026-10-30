@@ -39,6 +39,21 @@ export const JOB_EVENTS = [
 ] as const;
 export type JobEvent = (typeof JOB_EVENTS)[number];
 
+/**
+ * Eventos que puede disparar la persona (botones del detalle, MCP y tarjetas del asistente); el
+ * resto los dispara el pipeline.
+ */
+export const MANUAL_JOB_EVENTS = [
+  "apply",
+  "interview",
+  "offer",
+  "reject",
+  "auto_reject",
+  "discard",
+  "close",
+] as const satisfies readonly JobEvent[];
+export type ManualJobEvent = (typeof MANUAL_JOB_EVENTS)[number];
+
 const TRANSITIONS: Record<JobStatus, Partial<Record<JobEvent, JobStatus>>> = {
   nueva: { prefilter_pass: "prefiltrada", prefilter_discard: "descartada_prefiltro" },
   prefiltrada: { needs_jd: "pendiente_jd", evaluated: "evaluada" },

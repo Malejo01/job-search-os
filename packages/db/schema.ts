@@ -21,7 +21,7 @@ export const locationOk = pgEnum("location_ok", ["ok", "riesgo", "no"]);
 export const suggestedAction = pgEnum("suggested_action", ["aplicar_personalizado", "aplicar", "guardar", "descartar"]);
 export const englishLevel = pgEnum("english_level", ["no_menciona", "no", "basico", "intermedio", "avanzado", "nativo"]);
 export const companyType = pgEnum("company_type", ["producto", "startup", "consultora", "staffing", "agencia", "desconocido"]);
-export const sourceKind = pgEnum("source_kind", ["getonboard_api", "email_linkedin", "email_getonboard", "email_generic", "manual", "hn_whoishiring", "remotive", "other", "remoteok", "jobicy", "himalayas", "wwr", "greenhouse", "lever", "ashby"]);
+export const sourceKind = pgEnum("source_kind", ["getonboard_api", "email_linkedin", "email_getonboard", "email_generic", "manual", "hn_whoishiring", "remotive", "other", "remoteok", "jobicy", "himalayas", "wwr", "greenhouse", "lever", "ashby", "teamtailor", "computrabajo_alerts"]);
 export const applicationOutcome = pgEnum("application_outcome", [
   "sin_respuesta", "rechazo_automatico_ubicacion", "rechazo_automatico_otro", "rechazo_humano", "entrevista", "oferta", "cerrada_antes", "retirada",
 ]);
@@ -44,6 +44,9 @@ export const users = pgTable("users", {
   // Aceptación de términos (JS-106): fecha y versión vigente al registrarse; NULL = cuenta anterior.
   termsAcceptedAt: timestamp("terms_accepted_at", { withTimezone: true }),
   termsVersion: text("terms_version"),
+  // S-6: va en el JWT al iniciar sesión. Al resetear la contraseña sube, y las sesiones viejas dejan
+  // de valer (requireUserId compara las dos). Un JWT sin versión cuenta como 0
+  sessionVersion: integer("session_version").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [uniqueIndex("users_email").on(t.email)]);
@@ -84,9 +87,15 @@ export const profiles = pgTable("profiles", {
   targetRoles: text("target_roles").array().notNull().default(sql`'{}'::text[]`), // puestos elegidos (ADR-016): se validan en código contra ROLE_KEYS
   maxTargetRoles: integer("max_target_roles"), // tope de puestos del perfil; null = rige TARGET_ROLES_FREE_LIMIT
   poolDailyEvalLimit: integer("pool_daily_eval_limit"), // tope diario de evaluaciones del pool; null = rige el default de la variable
+  // Plan de la beta paga (C-11b): claves de PLAN_KEYS (pipeline/src/plans.ts). Lo cambia el dueño con un
+  // UPDATE puntual; la app no puede (trigger en rls/0010_plan.sql). plan_until null = sin vencimiento
+  plan: text("plan").notNull().default("gratis"),
+  planUntil: timestamp("plan_until", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  check("profiles_plan_check", sql`${t.plan} in ('gratis', 'fundador', 'lista', 'pase_3_meses')`),
+]);
 
 export const evaluationCriteria = pgTable("evaluation_criteria", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -127,7 +136,7 @@ export type CriteriaRules = {
 // ─────────────────────────────────────────────────────────────
 export const companies = pgTable("companies", {
   id: uuid("id").primaryKey().defaultRandom(),
-  nameNormalized: text("name_normalized").notNull().unique(), // lower, sin sufijos (inc, srl, sa, labs)
+  nameNormalized: text("name_normalized").notNull().unique(), // lower, sin sufijos legales (inc, srl, sa)
   displayName: text("display_name").notNull(),
   type: companyType("type").default("desconocido"),
   size: integer("size"),
@@ -174,6 +183,8 @@ export const jobs = pgTable("jobs", {
 }, (t) => [
   index("jobs_user_status").on(t.userId, t.status),
   index("jobs_user_company").on(t.userId, t.companyId, t.firstSeenAt),
+  // C-7: orden y filtro por fecha de la lista (/jobs, «Hoy»)
+  index("jobs_user_first_seen").on(t.userId, t.firstSeenAt.desc()),
   uniqueIndex("jobs_user_url").on(t.userId, t.canonicalUrl),
   uniqueIndex("jobs_user_public_job").on(t.userId, t.publicJobId).where(sql`${t.publicJobId} is not null`),
 ]);
@@ -255,6 +266,8 @@ export const demoEvaluations = pgTable("demo_evaluations", {
   riesgos: text("riesgos").array().notNull().default(sql`'{}'::text[]`),
   veredicto: text("veredicto").notNull(),                 // saneado
   locationOk: text("location_ok").notNull(),
+  // Requisitos del aviso (buildChecklist). Null en las filas anteriores a la ronda 115: la web lo valida al leer
+  checklist: jsonb("checklist"),
   evaluatedAt: timestamp("evaluated_at", { withTimezone: true }).notNull(),
 }, (t) => [
   uniqueIndex("demo_evaluations_profile_job").on(t.profileKey, t.publicJobId),
@@ -292,10 +305,10 @@ export const atsBoards = pgTable("ats_boards", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   uniqueIndex("ats_boards_provider_token").on(t.provider, t.token),
-  check("ats_boards_provider_check", sql`${t.provider} in ('greenhouse', 'lever', 'ashby')`),
+  check("ats_boards_provider_check", sql`${t.provider} in ('greenhouse', 'lever', 'ashby', 'teamtailor')`),
   // Defensa en profundidad (SSRF): el token va a una URL; la región solo existe en Lever
   check("ats_boards_token_check", sql`${t.token} ~* '^[a-z0-9][a-z0-9._-]{0,99}$'`),
-  check("ats_boards_region_check", sql`${t.region} is null or (${t.provider} = 'lever' and ${t.region} = 'eu')`),
+  check("ats_boards_region_check", sql`${t.region} is null or (${t.provider} = 'lever' and ${t.region} = 'eu') or (${t.provider} = 'teamtailor' and ${t.region} = 'na')`),
 ]);
 
 // Lista de espera de la vitrina pública (ronda 63): personas sin cuenta, por eso sin user_id. RLS sin
@@ -314,7 +327,7 @@ export const waitlist = pgTable("waitlist", {
   uniqueIndex("waitlist_email_unique").on(t.email),
   index("waitlist_ip_hash_created").on(t.ipHash, t.createdAt),
   index("waitlist_created").on(t.createdAt),
-  check("waitlist_role_check", sql`${t.role} in ('frontend', 'backend', 'fullstack', 'qa', 'data_analyst', 'soporte_it', 'ai_engineer', 'ux_ui', 'marketing_digital', 'producto_proyectos', 'rrhh_it', 'customer_success', 'ciberseguridad', 'product_manager', 'product_owner', 'project_manager', 'product_marketing', 'data_engineer', 'solutions_engineer', 'ventas_b2b', 'atencion_cliente')`),
+  check("waitlist_role_check", sql`${t.role} in ('frontend', 'backend', 'fullstack', 'qa', 'data_analyst', 'soporte_it', 'ai_engineer', 'ux_ui', 'marketing_digital', 'producto_proyectos', 'rrhh_it', 'customer_success', 'ciberseguridad', 'product_manager', 'product_owner', 'project_manager', 'product_marketing', 'data_engineer', 'solutions_engineer', 'ventas_b2b', 'atencion_cliente', 'finanzas_contabilidad', 'asistencia_operaciones')`),
 ]);
 
 // Administradores a nivel base (ronda 70): barrera de las funciones waitlist_admin_* (rls/0006). RLS sin
@@ -378,7 +391,13 @@ export const evaluations = pgTable("evaluations", {
   humanVerdict: humanVerdict("human_verdict"),          // veredicto de un toque; null = sin opinión. No entra en el MAE ni en el snapshot
   humanVerdictAt: timestamp("human_verdict_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-}, (t) => [index("evaluations_job").on(t.jobId), index("evaluations_user_score").on(t.userId, t.score)]);
+}, (t) => [
+  index("evaluations_job").on(t.jobId),
+  index("evaluations_user_score").on(t.userId, t.score),
+  // C-7: «la última evaluación por oferta» (DISTINCT ON job_id … created_at desc) y la ventana de «Tu encaje»
+  index("evaluations_job_created").on(t.jobId, t.createdAt.desc()),
+  index("evaluations_user_created").on(t.userId, t.createdAt.desc()),
+]);
 
 export const applications = pgTable("applications", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -394,7 +413,11 @@ export const applications = pgTable("applications", {
   outcomeNote: text("outcome_note"),
   followUpAt: date("follow_up_at"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-}, (t) => [index("applications_user_outcome").on(t.userId, t.outcome)]);
+}, (t) => [
+  index("applications_user_outcome").on(t.userId, t.outcome),
+  // C-7: FK sin índice; los joins de /applications y del informe de calibración van por acá
+  index("applications_job").on(t.jobId),
+]);
 
 export const contacts = pgTable("contacts", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -463,6 +486,53 @@ export const userSkills = pgTable("user_skills", {
   check("user_skills_name_length", sql`char_length(${t.name}) between 2 and 40`),
 ]);
 
+// «Contanos qué pasó» (C-23, V4): comentarios de la beta desde la app. `path` es solo el pathname
+// de la pantalla (sin query ni fragmento, que pueden traer ids). La persona inserta y lee lo suyo;
+// el admin lee todo por `admin_beta_feedback()` (rls/0013). Sin UPDATE ni DELETE para la app. Se
+// purga a los 180 días y se borra con la cuenta (cascade).
+export const betaFeedback = pgTable("beta_feedback", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  category: text("category").notNull(),
+  message: text("message").notNull(),
+  path: text("path").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index("beta_feedback_user_created").on(t.userId, t.createdAt),
+  check("beta_feedback_category", sql`${t.category} in ('algo_no_anduvo', 'idea', 'confuso')`),
+  check("beta_feedback_message_length", sql`char_length(${t.message}) between 1 and 2000`),
+  check("beta_feedback_path_length", sql`char_length(${t.path}) <= 200`),
+]);
+
+// Historial laboral, de estudios y certificaciones confirmado por la persona (C-25, CVC-0; diseño de
+// la ronda 100 §3.1.1). Es la fuente del CV: solo lo que la persona confirmó. No guarda teléfono,
+// foto, fecha de nacimiento, documento ni dirección. Los topes finos (20 filas por persona, 6
+// viñetas de hasta 220 caracteres, sin URLs) se validan en código; acá van los de forma. Policy en
+// rls/0014; se borra con la cuenta.
+export const careerHistory = pgTable("career_history", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  kind: text("kind").notNull(),                // trabajo | educacion | certificacion
+  organization: text("organization").notNull(), // empresa o institución
+  title: text("title").notNull(),               // cargo o título
+  startMonth: text("start_month"),              // 'AAAA-MM'
+  endMonth: text("end_month"),                  // null = actual o no dice
+  bullets: text("bullets").array().notNull().default(sql`'{}'::text[]`),
+  source: text("source").notNull().default("manual"), // manual | cv | chat
+  sort: integer("sort").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index("career_history_user_sort").on(t.userId, t.sort),
+  check("career_history_kind", sql`${t.kind} in ('trabajo', 'educacion', 'certificacion')`),
+  check("career_history_source", sql`${t.source} in ('manual', 'cv', 'chat')`),
+  check("career_history_organization_length", sql`char_length(${t.organization}) between 1 and 120`),
+  check("career_history_title_length", sql`char_length(${t.title}) between 1 and 120`),
+  check("career_history_start_month", sql`${t.startMonth} is null or ${t.startMonth} ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'`),
+  check("career_history_end_month", sql`${t.endMonth} is null or ${t.endMonth} ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'`),
+  check("career_history_bullets", sql`coalesce(cardinality(${t.bullets}), 0) <= 6 and char_length(array_to_string(${t.bullets}, E'\n')) <= 1500`),
+]);
+
 export const skillEvidence = pgTable("skill_evidence", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull(),
@@ -518,7 +588,10 @@ export const learningPlanItems = pgTable("learning_plan_items", {
   status: text("status").notNull().default("pendiente"), // pendiente, en_curso, cerrada
   startedAt: date("started_at"),
   closedAt: date("closed_at"),
-});
+}, (t) => [
+  // C-7: el plan de cada persona, por prioridad (/plan y «Si aprendés…»)
+  index("learning_plan_items_user_priority").on(t.userId, t.priority.desc()),
+]);
 
 // ─────────────────────────────────────────────────────────────
 // Operación
@@ -602,7 +675,10 @@ export const inboundEmails = pgTable("inbound_emails", {
   receivedAt: timestamp("received_at", { withTimezone: true }).defaultNow().notNull(),
   seenAt: timestamp("seen_at", { withTimezone: true }),          // JS-038: marcado como visto
   dismissedAt: timestamp("dismissed_at", { withTimezone: true }), // JS-038: "no me sirve"
-});
+}, (t) => [
+  // C-7: no tenía ningún índice; la bandeja, la cobertura de alertas de «Hoy» y «Primeros pasos» filtran así
+  index("inbound_emails_user_received").on(t.userId, t.receivedAt.desc()),
+]);
 
 // JS-038: emails que el webhook rechazó por el límite horario (no se guardan; esto los cuenta)
 export const inboundRejections = pgTable("inbound_rejections", {

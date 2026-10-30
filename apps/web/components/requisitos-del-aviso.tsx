@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ChecklistItemView, ChecklistView } from "@/lib/job-detail";
 import { CHECKLIST_PIDE_SOURCE, CHECKLIST_STATUS, CHECKLIST_TENES_SOURCE } from "@/lib/labels";
+import { SkillLevelButton } from "./skill-level-modal";
 
 /**
  * «Requisitos del aviso» (ronda 104, diseño 98 §2 y §4). Server Component: sin estado ni cliente.
@@ -24,12 +25,19 @@ function StatusBadge({ status }: { status: ChecklistItemView["status"] }) {
 /** Ítems cuyo dato faltante se carga en «Tu perfil». El resto no tiene a dónde ir a completarlo. */
 const PROFILE_CTA_IDS = new Set(["anos", "ingles", "jornada"]);
 
-/** Adónde mandar a cargar el dato que falta; null si no hay dónde cargarlo. */
-export function missingCta(item: ChecklistItemView): { href: string; text: string } | null {
+/**
+ * Cómo cargar el dato que falta; null si no hay dónde cargarlo. Las skills no linkean (C-20): llevan
+ * el slug para abrir el modal de nivel sin salir de la oferta. Años, inglés y jornada siguen
+ * linkeando a «Tu perfil».
+ */
+export type MissingCta =
+  { href: string; text: string } | { slug: string; name: string; text: string };
+
+export function missingCta(item: ChecklistItemView): MissingCta | null {
   if (item.id.startsWith("skill:")) {
     // El nombre sale de «Menciona {nombre}» (lo arma buildChecklist)
     const name = item.pide.replace(/^Menciona\s+/i, "");
-    return { href: "/settings/skills", text: `Cargá tu nivel de ${name}` };
+    return { slug: item.id.slice("skill:".length), name, text: `Cargar mi nivel de ${name}` };
   }
   if (PROFILE_CTA_IDS.has(item.id)) {
     return { href: "/settings/perfil", text: `Completá este dato en Tu perfil: ${item.pide}` };
@@ -37,7 +45,18 @@ export function missingCta(item: ChecklistItemView): { href: string; text: strin
   return null;
 }
 
-function Item({ item, compact }: { item: ChecklistItemView; compact: boolean }) {
+/** Datos para abrir el modal de nivel; sin ellos (otras pantallas) la skill linkea a Ajustes. */
+type SkillModalData = { jobId: string; skillInfo: Record<string, { description: string | null }> };
+
+function Item({
+  item,
+  compact,
+  modal,
+}: {
+  item: ChecklistItemView;
+  compact: boolean;
+  modal?: SkillModalData;
+}) {
   const cta = item.status === "no_se_sabe" && !compact ? missingCta(item) : null;
   return (
     <li className="flex min-w-0 flex-col gap-0.5 border-t border-zinc-200 py-2 first:border-t-0">
@@ -63,10 +82,23 @@ function Item({ item, compact }: { item: ChecklistItemView; compact: boolean }) 
           {item.nota}
         </p>
       ) : null}
-      {cta ? (
+      {/* El botón solo si el slug está en la taxonomía (`skillInfo`); si no, el link de siempre */}
+      {cta && "slug" in cta && modal && modal.skillInfo[cta.slug] ? (
+        <div className="pt-1">
+          <SkillLevelButton
+            slug={cta.slug}
+            name={cta.name}
+            description={modal.skillInfo[cta.slug]?.description ?? null}
+            jobId={modal.jobId}
+          />
+        </div>
+      ) : cta ? (
         <p className="text-xs">
-          <Link href={cta.href} className="inline-flex min-h-8 items-center text-sky-800 underline">
-            {cta.text}
+          <Link
+            href={"href" in cta ? cta.href : "/settings/skills"}
+            className="inline-flex min-h-8 items-center text-sky-800 underline"
+          >
+            {"href" in cta ? cta.text : `Cargá tu nivel de ${cta.name}`}
           </Link>
         </p>
       ) : null}
@@ -77,9 +109,12 @@ function Item({ item, compact }: { item: ChecklistItemView; compact: boolean }) 
 export function RequisitosDelAviso({
   checklist,
   compact = false,
+  modal,
 }: {
   checklist: ChecklistView;
   compact?: boolean;
+  /** Con esto, cada skill sin nivel abre el modal «Cargar mi nivel de X» (detalle de la oferta). */
+  modal?: SkillModalData;
 }) {
   const { must, deseable, items, parcial, descarte_rapido: descarte } = checklist;
   const total = must.cumple + must.no_cumple;
@@ -137,7 +172,7 @@ export function RequisitosDelAviso({
       {main.length ? (
         <ul className="flex flex-col">
           {(compact ? main.filter((i) => i.nivel === "must") : main).map((item) => (
-            <Item key={item.id} item={item} compact={compact} />
+            <Item key={item.id} item={item} compact={compact} modal={modal} />
           ))}
         </ul>
       ) : null}
@@ -150,7 +185,7 @@ export function RequisitosDelAviso({
           </p>
           <ul className="flex flex-col">
             {named.map((item) => (
-              <Item key={item.id} item={item} compact={compact} />
+              <Item key={item.id} item={item} compact={compact} modal={modal} />
             ))}
           </ul>
         </div>

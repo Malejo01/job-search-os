@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import * as s from "@job-search-os/db/schema";
 import { expect, test, type Page } from "@playwright/test";
+import { eq } from "drizzle-orm";
 import {
   E2E_B_USER_ID,
   E2E_USER_ID,
@@ -20,8 +21,9 @@ import {
 } from "./helpers";
 
 /**
- * Flujo 69 (ronda 119): «Hoy», la pantalla de aterrizaje. Tres tarjetas por ahora: «Lo nuevo»,
- * «Tus alertas» y «Tu mercado esta semana» (la de seguimiento entra con el #155). Todo inventado.
+ * Flujo 69 (ronda 119): «Hoy», la pantalla de aterrizaje. Tarjetas: «Lo nuevo», «Para hacer
+ * seguimiento» (C-9), «Tu encaje» (la cubre el 72), «Tus alertas» y «Tu mercado esta semana». Todo
+ * inventado.
  *
  * - A es el usuario seed; B es la persona nueva de los helpers (sin ofertas, mails ni carrera).
  * - La cookie `jso_ultima_visita` vale `${userId}.${anterior}.${actual}` (epoch en segundos). Para
@@ -78,7 +80,7 @@ test.describe("Flujo 69: Hoy", () => {
     await removeSecondUser().catch(() => {});
   });
 
-  test("el login aterriza en /hoy con el título, las tres tarjetas y «Hoy» marcado en el menú", async ({
+  test("el login aterriza en /hoy con el título, las tarjetas y «Hoy» marcado en el menú", async ({
     page,
     context,
   }) => {
@@ -87,7 +89,7 @@ test.describe("Flujo 69: Hoy", () => {
     await expect(page).toHaveURL(/\/hoy$/);
     await expect(page.getByRole("heading", { level: 1, name: "Hoy", exact: true })).toBeVisible();
     await expect(page.getByTestId("hoy-visita")).toHaveText("Primera vez por acá");
-    for (const id of ["hoy-nuevo", "hoy-alertas", "hoy-mercado"]) {
+    for (const id of ["hoy-nuevo", "hoy-seguimiento", "hoy-alertas", "hoy-mercado"]) {
       const section = page.getByTestId(id);
       await expect(section).toBeVisible();
       // Cada tarjeta es una región con nombre (section + aria-labelledby apuntando a su h2)
@@ -161,7 +163,7 @@ test.describe("Flujo 69: Hoy", () => {
       '[data-testid="hoy-vacio-nada-nuevo"], [data-testid="hoy-vacio-en-cola"]',
     );
     await expect(empty).toBeVisible();
-    await expect(empty).toContainText(/Nada nuevo desde tu última visita|en cola/);
+    await expect(empty).toContainText(/Nada nuevo desde tu última visita|Estamos evaluando/);
 
     // Una cookie de otra persona no sirve: vuelve el fallback de la semana
     await expect
@@ -190,7 +192,7 @@ test.describe("Flujo 69: Hoy", () => {
 
     const card = page.getByTestId("hoy-nuevo");
     const empty = card.getByTestId("hoy-vacio-sin-ofertas");
-    await expect(empty).toContainText("Todavía estamos leyendo ofertas para vos");
+    await expect(empty).toContainText("Todavía no llegaron ofertas para vos");
     // Sin carrera elegida, el paso siguiente es elegirla
     await expect(empty.getByRole("link", { name: "Elegí tu carrera" })).toHaveAttribute(
       "href",
@@ -198,11 +200,43 @@ test.describe("Flujo 69: Hoy", () => {
     );
     await expect(page.getByTestId("hoy-vacio-alertas")).toBeVisible();
     await expect(page.getByTestId("hoy-vacio-mercado")).toBeVisible();
+    await expect(page.getByTestId("hoy-vacio-seguimiento")).toContainText("Nada pendiente");
 
     const html = await page.content();
     expect(html, "aparece una oferta de A").not.toContain(titleHigh);
     expect(html, "aparece una oferta de A").not.toContain(titleLow);
     expect(html, "aparece la empresa de A").not.toContain("E2E Testing SA");
+  });
+
+  test("seguimiento (C-9): una postulación de hace 10 días aparece y lleva a /applications", async ({
+    page,
+  }) => {
+    const title = `Oferta Ficticia Hoy Seguimiento ${tag}`;
+    const jobId = await createJob({ title, status: "aplicada", jdText: "JD de prueba." });
+    jobIds.push(jobId);
+    const { db, close } = ownerDb();
+    try {
+      await db.insert(s.applications).values({
+        jobId,
+        userId: E2E_USER_ID,
+        appliedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+        outcome: "sin_respuesta",
+      });
+    } finally {
+      await close();
+    }
+    await login(page);
+    await page.goto("/hoy");
+    const card = page.getByTestId("hoy-seguimiento");
+    await expect(card.getByRole("heading", { level: 2 })).toHaveText("Para hacer seguimiento");
+    // Puede haber otras vencidas de otros specs: alcanza con que esta esté (o la cuente el link)
+    const seeAll = card.getByRole("link", { name: /^Ver la postulación$|^Ver las \d+$/ });
+    await expect(seeAll).toHaveAttribute("href", "/applications#seguimiento");
+    await seeAll.click();
+    await expect(page).toHaveURL(/\/applications#seguimiento$/);
+    await expect(page.getByTestId("seguimiento-item").filter({ hasText: title })).toContainText(
+      "hace 10 días",
+    );
   });
 
   test("A no ve nada de B en /hoy", async ({ page }) => {
@@ -304,6 +338,58 @@ test.describe("Flujo 69: Hoy", () => {
       await deleteSeededPublicJobs(tag).catch(() => {});
       await setSeedTargetRoles(original);
     }
+  });
+
+  /** Deja el perfil seed con esos idiomas y carrera, corre `fn` y restaura todo al final. */
+  async function withProfile(jobLanguages: string[], fn: () => Promise<void>): Promise<void> {
+    const originalRoles = await seedTargetRoles();
+    const { db, close } = ownerDb();
+    let originalLanguages: string[] = ["es", "en"];
+    try {
+      const [row] = await db
+        .select({ jobLanguages: s.profiles.jobLanguages })
+        .from(s.profiles)
+        .where(eq(s.profiles.userId, E2E_USER_ID));
+      originalLanguages = row?.jobLanguages ?? originalLanguages;
+      await db.update(s.profiles).set({ jobLanguages }).where(eq(s.profiles.userId, E2E_USER_ID));
+      await setSeedTargetRoles({ targetRoles: [MARKET_CAREER], targetRole: MARKET_CAREER });
+      await fn();
+    } finally {
+      await db
+        .update(s.profiles)
+        .set({ jobLanguages: originalLanguages })
+        .where(eq(s.profiles.userId, E2E_USER_ID));
+      await close();
+      await setSeedTargetRoles(originalRoles);
+    }
+  }
+
+  test("puente de idioma: solo español y menos de 5 ofertas en español muestra el link al perfil", async ({
+    page,
+  }) => {
+    await withProfile(["es"], async () => {
+      await login(page);
+      const bridge = page
+        .getByTestId("hoy-mercado")
+        .getByTestId(`hoy-puente-idioma-${MARKET_CAREER}`);
+      await expect(bridge).toBeVisible();
+      await expect(bridge).toContainText(
+        "Casi todo está en inglés. Si aceptás ofertas en los dos idiomas vas a ver más.",
+      );
+      await expect(bridge.getByRole("link", { name: "vas a ver más" })).toHaveAttribute(
+        "href",
+        "/settings/perfil",
+      );
+    });
+  });
+
+  test("puente de idioma: con español e inglés no aparece", async ({ page }) => {
+    await withProfile(["es", "en"], async () => {
+      await login(page);
+      await expect(page.getByTestId(`hoy-mercado-${MARKET_CAREER}`)).toBeVisible();
+      await expect(page.getByTestId(`hoy-puente-idioma-${MARKET_CAREER}`)).toHaveCount(0);
+      await expect(page.getByTestId("hoy-mercado")).not.toContainText("Casi todo está en inglés");
+    });
   });
 
   for (const viewport of [

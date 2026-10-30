@@ -1,55 +1,38 @@
 import { schema as s } from "@job-search-os/db";
 import type { FirstStepsFacts } from "@job-search-os/pipeline";
-import { and, desc, eq, gt, isNotNull, isNull } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { withUser } from "./db";
 
 /**
- * Hechos de la checklist «Primeros pasos»: una transacción con consultas de existencia (limit 1)
- * y la mejor evaluada sin opinión. No reusa las funciones pesadas de skills ni postulaciones.
+ * Hechos de la checklist «Primeros pasos»: una sola consulta con subconsultas de existencia y la
+ * mejor evaluada sin opinión (C-7: antes eran 6 idas y vueltas en serie). Corre con RLS y además
+ * filtra por `user_id`. No reusa las funciones pesadas de skills ni postulaciones.
  * `emailDeclined` sale de una cookie, así que lo completa quien llama.
  */
 export async function getFirstStepsFacts(
   userId: string,
 ): Promise<Omit<FirstStepsFacts, "emailDeclined">> {
   return withUser(userId, async (tx) => {
-    const [skill] = await tx
-      .select({ id: s.skillLevels.skillId })
-      .from(s.skillLevels)
-      .where(and(eq(s.skillLevels.userId, userId), gt(s.skillLevels.level, 0)))
-      .limit(1);
-    const [job] = await tx
-      .select({ id: s.jobs.id })
-      .from(s.jobs)
-      .where(eq(s.jobs.userId, userId))
-      .limit(1);
-    const [verdict] = await tx
-      .select({ id: s.evaluations.id })
-      .from(s.evaluations)
-      .where(and(eq(s.evaluations.userId, userId), isNotNull(s.evaluations.humanVerdict)))
-      .limit(1);
-    const [application] = await tx
-      .select({ id: s.applications.id })
-      .from(s.applications)
-      .where(eq(s.applications.userId, userId))
-      .limit(1);
-    const [email] = await tx
-      .select({ id: s.inboundEmails.id })
-      .from(s.inboundEmails)
-      .where(eq(s.inboundEmails.userId, userId))
-      .limit(1);
-    const [next] = await tx
-      .select({ jobId: s.evaluations.jobId })
-      .from(s.evaluations)
-      .where(and(eq(s.evaluations.userId, userId), isNull(s.evaluations.humanVerdict)))
-      .orderBy(desc(s.evaluations.score))
-      .limit(1);
+    const [row] = await tx
+      .select({
+        skillsLoaded: sql<boolean>`exists (select 1 from ${s.skillLevels} where ${s.skillLevels.userId} = ${userId} and ${s.skillLevels.level} > 0)`,
+        hasJobs: sql<boolean>`exists (select 1 from ${s.jobs} where ${s.jobs.userId} = ${userId})`,
+        hasVerdict: sql<boolean>`exists (select 1 from ${s.evaluations} where ${s.evaluations.userId} = ${userId} and ${s.evaluations.humanVerdict} is not null)`,
+        hasApplication: sql<boolean>`exists (select 1 from ${s.applications} where ${s.applications.userId} = ${userId})`,
+        hasEmail: sql<boolean>`exists (select 1 from ${s.inboundEmails} where ${s.inboundEmails.userId} = ${userId})`,
+        nextEvaluatedJobId: sql<
+          string | null
+        >`(select ${s.evaluations.jobId} from ${s.evaluations} where ${s.evaluations.userId} = ${userId} and ${s.evaluations.humanVerdict} is null order by ${s.evaluations.score} desc limit 1)`,
+      })
+      // SELECT sin tabla: las seis respuestas en una sola ida y vuelta
+      .from(sql`(select 1) as one`);
     return {
-      skillsLoaded: Boolean(skill),
-      hasJobs: Boolean(job),
-      hasVerdict: Boolean(verdict),
-      hasApplication: Boolean(application),
-      hasEmail: Boolean(email),
-      nextEvaluatedJobId: next?.jobId ?? null,
+      skillsLoaded: Boolean(row?.skillsLoaded),
+      hasJobs: Boolean(row?.hasJobs),
+      hasVerdict: Boolean(row?.hasVerdict),
+      hasApplication: Boolean(row?.hasApplication),
+      hasEmail: Boolean(row?.hasEmail),
+      nextEvaluatedJobId: row?.nextEvaluatedJobId ?? null,
     };
   });
 }

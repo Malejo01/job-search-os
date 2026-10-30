@@ -50,7 +50,7 @@ export function EvaluationCard({
 }: {
   row: DemoEvaluationRow;
   tour: boolean;
-  /** Checklist ya validado (ronda 104). `demo_evaluations` todavía no lo guarda: sin él no se muestra. */
+  /** Checklist ya validado (ronda 104). null en las evaluaciones anteriores a la ronda 115: sin él no se muestra. */
   checklist?: ChecklistView | null;
 }) {
   const modality = modalityKey(row.modality);

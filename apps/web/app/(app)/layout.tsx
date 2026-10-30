@@ -3,11 +3,15 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { signOut } from "@/auth";
+import { FeedbackButton } from "@/components/feedback-button";
+import { countFollowUps } from "@/lib/applications";
+import { canUseAssistant } from "@/lib/assistant";
 import { assertAppRole } from "@/lib/db";
 import { canCreateInvitations } from "@/lib/invitations";
 import { isOnboardingComplete } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
 import { needsTermsAcceptance } from "@/lib/terms-status";
+import { AssistantButton } from "./assistant-button";
 import { MainNav } from "./main-nav";
 
 const NAV = [
@@ -21,7 +25,7 @@ const NAV = [
 ] as const;
 
 const SKIP_CLASS =
-  "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-zinc-900 focus:ring-2 focus:ring-zinc-900";
+  "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-control focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-fg focus:ring-2 focus:ring-focus";
 
 async function logout(): Promise<void> {
   "use server";
@@ -48,13 +52,21 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const canInvite = process.env.ADMIN_EMAILS
     ? await canCreateInvitations(userId).catch(() => false)
     : false;
+  // Asistente (AG-3): solo admins con ASSISTANT_ENABLED=admin; sin el flag no hay consulta y si
+  // falla, no se muestra
+  const canAssist = await canUseAssistant(userId);
+  // Contador de «Postulaciones»: si la consulta falla, el menú se muestra igual, sin número
+  const followUps = await countFollowUps(userId, new Date()).catch(() => 0);
+  const navItems = NAV.map((item) =>
+    item.href === "/applications" ? { ...item, count: followUps } : item,
+  );
   return (
     <div className="flex min-h-screen flex-col">
       <a href="#contenido" className={SKIP_CLASS}>
         Saltar al contenido
       </a>
       {/* z-20: las tarjetas de /jobs llevan links z-10 y no deben dibujarse sobre el header; la guía (z-40) y los modales (z-50) quedan arriba */}
-      <header className="sticky top-0 z-20 border-b border-zinc-200 bg-white/95 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-line bg-surface/95 backdrop-blur">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2">
           <Link href="/hoy" className="text-base font-semibold">
             {PRODUCT_NAME}
@@ -64,21 +76,23 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             {canInvite ? (
               <Link
                 href="/settings/invitations"
-                className="text-sm text-zinc-600 underline-offset-2 hover:underline"
+                className="text-sm text-fg-subtle underline-offset-2 hover:underline"
               >
                 Invitar
               </Link>
             ) : null}
+            {canAssist ? <AssistantButton /> : null}
+            <FeedbackButton />
             <Link
               href="/settings"
-              className="text-sm text-zinc-600 underline-offset-2 hover:underline"
+              className="text-sm text-fg-subtle underline-offset-2 hover:underline"
             >
               Ajustes
             </Link>
             <form action={logout}>
               <button
                 type="submit"
-                className="text-sm text-zinc-600 underline-offset-2 hover:underline"
+                className="text-sm text-fg-subtle underline-offset-2 hover:underline"
               >
                 Salir
               </button>
@@ -87,13 +101,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         </div>
         {/* A 360 px seis links no entran en una fila: por debajo de `sm` van en un menú desplegable */}
         <div className="mx-auto max-w-5xl">
-          <MainNav items={NAV} />
+          <MainNav items={navItems} />
         </div>
       </header>
       <main id="contenido" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-4 py-4">
         {children}
       </main>
-      <footer className="border-t border-zinc-200 px-4 py-3 text-center text-xs text-zinc-600">
+      <footer className="border-t border-line px-4 py-3 text-center text-xs text-fg-subtle">
         <Link href="/legal/privacidad" className="underline-offset-2 hover:underline">
           Privacidad
         </Link>

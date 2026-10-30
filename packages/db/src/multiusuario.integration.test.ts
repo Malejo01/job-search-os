@@ -156,6 +156,10 @@ async function seed(id: string, tag: string): Promise<{ jobId: string }> {
   await owner`insert into inbound_sender_domains (user_id, domain, verdict)
                values (${id}, 'example.test', 'empleo')`;
   await owner`insert into invitations (code_hash, created_by_user_id) values (${"hash-creada-" + tag}, ${id})`;
+  await owner`insert into beta_feedback (user_id, category, message, path)
+               values (${id}, 'idea', 'Mensaje ficticio', '/hoy')`;
+  await owner`insert into career_history (user_id, kind, organization, title, start_month, bullets)
+               values (${id}, 'trabajo', 'Empresa A', 'Cargo Ficticio', '2022-03', '{"Viñeta ficticia"}')`;
   return { jobId: job!.id };
 }
 
@@ -406,6 +410,55 @@ describe("control negativo", () => {
   });
 });
 
+describe("filas sin dueño (user_id NULL): la cola del pool (ADR-024)", () => {
+  it("ninguna persona, con el rol de la app y RLS, ve ni toca inbound_emails o raw_blobs con user_id NULL", async () => {
+    const [blob] = await owner<{ id: string }[]>`
+      insert into raw_blobs (user_id, kind, content_type, body, bytes)
+      values (null, 'inbound_email', 'application/json', 'cuerpo ficticio del pool', 24) returning id`;
+    const [mail] = await owner<{ id: string }[]>`
+      insert into inbound_emails (user_id, from_address, raw_ref, parser)
+      values (null, 'alertas@example.test', ${"pg:" + blob!.id}, 'pool_computrabajo_alerts') returning id`;
+    try {
+      for (const who of [A, B]) {
+        const counts = await asUser(who, async (tx) => ({
+          mailSelect: (await tx`select 1 from inbound_emails where id = ${mail!.id}`).length,
+          blobSelect: (await tx`select 1 from raw_blobs where id = ${blob!.id}`).length,
+          nullMail: (await tx`select 1 from inbound_emails where user_id is null`).length,
+          nullBlob: (await tx`select 1 from raw_blobs where user_id is null`).length,
+          mailUpdate: (
+            await tx`update inbound_emails set dismissed_at = now() where id = ${mail!.id}`
+          ).count,
+          mailDelete: (await tx`delete from inbound_emails where id = ${mail!.id}`).count,
+          blobDelete: (await tx`delete from raw_blobs where id = ${blob!.id}`).count,
+        }));
+        expect(counts, who).toEqual({
+          mailSelect: 0,
+          blobSelect: 0,
+          nullMail: 0,
+          nullBlob: 0,
+          mailUpdate: 0,
+          mailDelete: 0,
+          blobDelete: 0,
+        });
+      }
+      // Tampoco pueden crear una fila sin dueño
+      await expect(
+        asUser(
+          A,
+          (tx) => tx`insert into inbound_emails (user_id, from_address, raw_ref)
+                     values (null, 'x@example.test', 'pg:x')`,
+        ),
+      ).rejects.toThrow(/row-level security/);
+      // Siguen ahí (control: el dueño las ve)
+      expect(await owner`select 1 from inbound_emails where id = ${mail!.id}`).toHaveLength(1);
+      expect(await owner`select 1 from raw_blobs where id = ${blob!.id}`).toHaveLength(1);
+    } finally {
+      await owner`delete from inbound_emails where id = ${mail!.id}`;
+      await owner`delete from raw_blobs where id = ${blob!.id}`;
+    }
+  });
+});
+
 describe("sin contexto (app.user_id vacío) las tablas dan 0 filas", () => {
   for (const t of TARGETS) {
     it(`${t.table}`, async () => {
@@ -552,6 +605,16 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
       );
       expect(r!.ok).toBe(false);
     },
+    // S-6: devuelve un entero o null; de la fila de B no sale nada más
+    user_session_version: async () => {
+      const query = "select user_session_version($1::uuid) as v";
+      const ghost = "d8000000-0000-4000-8000-0000000000ff";
+      const missing = await asUser(A, (tx) => tx.unsafe(query, [ghost]));
+      expect(missing[0]?.v ?? null).toBeNull();
+      const other = await asUser(A, (tx) => tx.unsafe(query, [B]));
+      expect(Object.keys(other[0] ?? {})).toEqual(["v"]);
+      expect(typeof other[0]?.v).toBe("number");
+    },
     // Lista de espera (sin user_id): no lee ni toca nada de B; solo inserta su propia fila.
     waitlist_join: async () => {
       const before = await fingerprint({ table: "invitations", column: "used_by_user_id" }, B);
@@ -612,6 +675,34 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
       ).rejects.toThrow(/waitlist_admin: no autorizado/);
       expect(await fingerprint({ table: "invitations", column: "used_by_user_id" }, B)).toBe(
         before,
+      );
+    },
+    // C-13: por carrera, solo sí/no por regla; nada que identifique a B
+    career_maturity_stats: async () => {
+      const rows = await asUser(
+        A,
+        (tx) => tx<Record<string, unknown>[]>`select * from career_maturity_stats()`,
+      );
+      for (const r of rows) {
+        expect(Object.keys(r).sort()).toEqual(["active_ok", "offers_ok", "role", "thumbs_ok"]);
+      }
+    },
+    // C-14: solo app_admins
+    admin_beta_metrics: async () => {
+      await expect(asUser(A, (tx) => tx`select admin_beta_metrics()`)).rejects.toThrow(
+        /admin_beta_metrics: no autorizado/,
+      );
+    },
+    // C-13b: cupos de fundador, solo app_admins
+    admin_founder_counts: async () => {
+      await expect(asUser(A, (tx) => tx`select * from admin_founder_counts()`)).rejects.toThrow(
+        /admin_founder_counts: no autorizado/,
+      );
+    },
+    // C-23: comentarios de la beta, solo app_admins
+    admin_beta_feedback: async () => {
+      await expect(asUser(A, (tx) => tx`select * from admin_beta_feedback()`)).rejects.toThrow(
+        /admin_beta_feedback: no autorizado/,
       );
     },
     // Lookup por email: acá solo un email inexistente.

@@ -1,0 +1,419 @@
+import AxeBuilder from "@axe-core/playwright";
+import * as s from "@job-search-os/db/schema";
+import { expect, test, type Page } from "@playwright/test";
+import { and, eq, inArray } from "drizzle-orm";
+import {
+  E2E_USER_ID,
+  assignSeededPoolJobs,
+  deleteSeededPublicJobs,
+  login,
+  ownerDb,
+  seedPublicJobs,
+  seedTargetRoles,
+  setSeedTargetRoles,
+} from "./helpers";
+
+/**
+ * Flujo 73 (ronda 121, E3b): «Si aprendés…» en /plan. El usuario e2e queda con tres skills en el
+ * plan y niveles conocidos, y el pool trae 12 avisos ficticios de una carrera que ningún otro spec
+ * usa (soporte_it; la de muestra chica, product_marketing). Todo inventado y sin red.
+ *
+ * Cuentas del pool sembrado (cada aviso pide `sql`, nivel 2 de la persona, y una skill más):
+ * - 6 avisos de sql + excel: ya le calzan (pre-score 9);
+ * - 3 de power_bi (excluyente), 2 de tableau y 1 de python, con la persona en nivel 1 en esas tres:
+ *   hoy dan 6 y con la skill a nivel 2 dan 9.
+ * Los números absolutos dependen de que no haya otros avisos sueltos en la carrera, así que los
+ * resultados se comparan contra el «hoy te calzan N de T» que muestra la misma página.
+ *
+ * `/plan` cachea el cálculo 30 minutos por persona y carrera (`?simular=` se combina afuera): por
+ * eso las dos carreras son propias de este spec. En local, reiniciá `next dev` entre corridas.
+ */
+test.describe.configure({ mode: "serial" });
+
+const CAREER = "soporte_it";
+// `personas` siembra pool de rrhh_it: la muestra chica usa una carrera que ningún spec siembra
+const FEW_CAREER = "product_marketing";
+const LEVELS: Record<string, number> = { sql: 2, excel: 3, python: 1, power_bi: 1, tableau: 1 };
+const PLAN: { slug: string; priority: number }[] = [
+  { slug: "power_bi", priority: 3 },
+  { slug: "tableau", priority: 2 },
+  { slug: "python", priority: 1 },
+];
+
+type Seed = { title: string; skills: { slug: string; isMust: boolean }[] };
+
+function pool(tag: number): Seed[] {
+  const out: Seed[] = [];
+  const add = (n: number, label: string, skills: Seed["skills"]) => {
+    for (let i = 1; i <= n; i += 1) {
+      out.push({ title: `Analista de Soporte IT Ficticio ${label}${i} ${tag}`, skills });
+    }
+  };
+  add(6, "A", [
+    { slug: "sql", isMust: true },
+    { slug: "excel", isMust: false },
+  ]);
+  add(3, "B", [
+    { slug: "sql", isMust: false },
+    { slug: "power_bi", isMust: true },
+  ]);
+  add(2, "C", [
+    { slug: "sql", isMust: false },
+    { slug: "tableau", isMust: false },
+  ]);
+  add(1, "D", [
+    { slug: "sql", isMust: false },
+    { slug: "python", isMust: false },
+  ]);
+  return out;
+}
+
+async function axeSummary(page: Page): Promise<string[]> {
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
+  return violations.map(
+    (v) =>
+      `${v.id} (${v.impact ?? "sin impacto"}): ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`,
+  );
+}
+
+/**
+ * `seedPublicJobs` deja «Remoto (Brasil)», y el pool descarta por ubicación lo que no habilita el
+ * país de la persona (el usuario e2e es de AR): sin esto la carrera queda con menos de 10.
+ */
+async function openToAnyCountry(ids: string[]): Promise<void> {
+  const { db, close } = ownerDb();
+  try {
+    await db
+      .update(s.publicJobs)
+      .set({ locationRaw: "Remoto (Anywhere in the World)" })
+      .where(inArray(s.publicJobs.id, ids));
+  } finally {
+    await close();
+  }
+}
+
+/** «Hoy te calzan N de T ofertas» de la página: base para comparar la simulación. */
+async function readToday(page: Page): Promise<{ now: number; total: number }> {
+  const text = await page.getByTestId("plan-sim-hoy").innerText();
+  const m = /Hoy te calzan (\d+) de (\d+) ofertas/.exec(text);
+  if (!m) throw new Error("no se encontró «Hoy te calzan N de T ofertas»");
+  return { now: Number(m[1]), total: Number(m[2]) };
+}
+
+test.describe("Flujo 73: si aprendés…", () => {
+  const tag = Date.now();
+  const fewTag = tag + 1;
+  let originalRoles: Awaited<ReturnType<typeof seedTargetRoles>> | null = null;
+  let levelsBackup: (typeof s.skillLevels.$inferSelect)[] = [];
+  let planBackup: (typeof s.learningPlanItems.$inferSelect)[] = [];
+
+  test.beforeAll(async () => {
+    originalRoles = await seedTargetRoles();
+    const slugs = Object.keys(LEVELS);
+    const { db, close } = ownerDb();
+    try {
+      const skillRows = await db
+        .select({ id: s.skills.id, slug: s.skills.slug })
+        .from(s.skills)
+        .where(inArray(s.skills.slug, slugs));
+      if (skillRows.length !== slugs.length) throw new Error("faltan skills en la taxonomía");
+      const idOf = new Map(skillRows.map((r) => [r.slug, r.id]));
+      const ids = skillRows.map((r) => r.id);
+
+      levelsBackup = await db
+        .select()
+        .from(s.skillLevels)
+        .where(and(eq(s.skillLevels.userId, E2E_USER_ID), inArray(s.skillLevels.skillId, ids)));
+      await db
+        .delete(s.skillLevels)
+        .where(and(eq(s.skillLevels.userId, E2E_USER_ID), inArray(s.skillLevels.skillId, ids)));
+      await db.insert(s.skillLevels).values(
+        slugs.map((slug) => ({
+          userId: E2E_USER_ID,
+          skillId: idOf.get(slug)!,
+          level: LEVELS[slug]!,
+          confidence: 0.8,
+          state: "respaldada" as const,
+        })),
+      );
+
+      planBackup = await db
+        .select()
+        .from(s.learningPlanItems)
+        .where(eq(s.learningPlanItems.userId, E2E_USER_ID));
+      await db.delete(s.learningPlanItems).where(eq(s.learningPlanItems.userId, E2E_USER_ID));
+      await db.insert(s.learningPlanItems).values(
+        PLAN.map((p) => ({
+          userId: E2E_USER_ID,
+          skillId: idOf.get(p.slug)!,
+          priority: p.priority,
+          status: "pendiente",
+        })),
+      );
+    } finally {
+      await close();
+    }
+    const ids = await seedPublicJobs(
+      tag,
+      pool(tag).map((p) => ({
+        title: p.title,
+        company: "Empresa Ficticia 1",
+        sourceKind: "getonboard_api" as const,
+        roleHints: [CAREER],
+        skills: p.skills,
+      })),
+    );
+    await openToAnyCountry(ids);
+    await setSeedTargetRoles({ targetRoles: [CAREER], targetRole: CAREER });
+    // E3d: copias propias de las ofertas sembradas, antes del primer render (el impacto se cachea,
+    // con los ids de esas copias: otra razón para reiniciar `next dev` entre corridas en local)
+    await assignSeededPoolJobs(E2E_USER_ID, tag);
+  });
+
+  // Cada paso de la limpieza por separado: si uno falla, los demás igual corren
+  test.afterAll(async () => {
+    await deleteSeededPublicJobs(tag).catch(() => {});
+    await deleteSeededPublicJobs(fewTag).catch(() => {});
+    if (originalRoles) await setSeedTargetRoles(originalRoles).catch(() => {});
+    const { db, close } = ownerDb();
+    try {
+      const skillRows = await db
+        .select({ id: s.skills.id })
+        .from(s.skills)
+        .where(inArray(s.skills.slug, Object.keys(LEVELS)));
+      await db
+        .delete(s.skillLevels)
+        .where(
+          and(
+            eq(s.skillLevels.userId, E2E_USER_ID),
+            inArray(
+              s.skillLevels.skillId,
+              skillRows.map((r) => r.id),
+            ),
+          ),
+        )
+        .catch(() => {});
+      if (levelsBackup.length) {
+        await db
+          .insert(s.skillLevels)
+          .values(levelsBackup)
+          .catch(() => {});
+      }
+      await db
+        .delete(s.learningPlanItems)
+        .where(eq(s.learningPlanItems.userId, E2E_USER_ID))
+        .catch(() => {});
+      if (planBackup.length) {
+        await db
+          .insert(s.learningPlanItems)
+          .values(planBackup)
+          .catch(() => {});
+      }
+    } finally {
+      await close();
+    }
+  });
+
+  test("a 1280 px una tabla con «+K ofertas» por skill y la ruta por semanas", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await login(page);
+    await page.goto("/plan");
+    const table = page.getByTestId("plan-sim-tabla");
+    await expect(table).toBeVisible();
+    await expect(table.locator("caption")).toBeVisible();
+    await expect(table.locator('th[scope="col"]').first()).toBeVisible();
+
+    await expect(page.getByTestId("plan-sim-fila-power_bi")).toContainText("+3 ofertas");
+    await expect(page.getByTestId("plan-sim-fila-power_bi")).toContainText("3 (3 excluyentes)");
+    await expect(page.getByTestId("plan-sim-fila-tableau")).toContainText("+2 ofertas");
+    await expect(page.getByTestId("plan-sim-fila-python")).toContainText("+1 oferta");
+    // Las tarjetas son la versión angosta: a 1280 px no se ven
+    await expect(page.getByTestId("plan-sim-tarjetas")).toBeHidden();
+
+    const route = page.getByTestId("plan-ruta");
+    await expect(route).toBeVisible();
+    await expect(route.getByRole("listitem")).toHaveCount(3);
+    await expect(route.getByRole("listitem").first()).toContainText("Semana 1");
+    await expect(page.getByText(/Ofertas de los últimos 30 días, al \d{2}\/\d{2}\./)).toBeVisible();
+    // «puntaje estimado» (antes «pre-score») solo aparece dentro de «Cómo se calcula»
+    await expect(page.getByTestId("plan-sim")).not.toContainText(/pre-?score|puntaje estimado/i);
+  });
+
+  test("?simular= cambia el «pasan X de T» y el botón queda presionado", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await login(page);
+    await page.goto("/plan");
+    const { now, total } = await readToday(page);
+    expect(total).toBeGreaterThanOrEqual(12);
+    await expect(page.getByTestId("plan-sim-resultado")).toHaveCount(0);
+
+    // Con el botón (formulario GET, sin JS)
+    await page.getByTestId("plan-sim-pick-power_bi").click();
+    await expect(page).toHaveURL(/simular=power_bi/);
+    await expect(page.getByTestId("plan-sim-resultado")).toContainText(
+      `pasan ${now + 3} de ${total} ofertas`,
+    );
+    await expect(page.getByTestId("plan-sim-pick-power_bi")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(page.getByTestId("plan-sim-pick-tableau")).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+
+    // Por la URL, con un slug que no está en el plan (se descarta) y otro con forma inválida
+    await page.goto("/plan?simular=power_bi,tableau,no_esta_en_el_plan,%3Cx%3E");
+    await expect(page.getByTestId("plan-sim-resultado")).toContainText(
+      `pasan ${now + 5} de ${total} ofertas`,
+    );
+    await expect(page.getByTestId("plan-sim-resultado")).not.toContainText("no_esta_en_el_plan");
+    await expect(page.getByTestId("plan-sim-pick-power_bi")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(page.getByTestId("plan-sim-pick-tableau")).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("«Ver 3 ofertas» lleva a las ofertas propias que se abrirían", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await login(page);
+    await page.goto("/plan");
+    // power_bi abre los 3 avisos «B» del pool, y el usuario e2e tiene una copia de cada uno
+    const examples = page.getByTestId("plan-sim-ejemplos-power_bi");
+    await expect(examples.locator("summary")).toContainText("Ver 3 ofertas");
+    await examples.locator("summary").click();
+    const links = examples.getByRole("link");
+    await expect(links).toHaveCount(3);
+    for (const link of await links.all()) {
+      await expect(link).toHaveAttribute("href", /^\/jobs\/[0-9a-f-]{36}$/);
+      await expect(link).toContainText(`Analista de Soporte IT Ficticio B`);
+    }
+  });
+
+  test("?horas= rearma la ruta y convive con ?simular=", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await login(page);
+    /** Semana en la que termina el último paso de la ruta («Semana 3» o «Semana 3-5»). */
+    const lastWeek = async (): Promise<number> => {
+      const text = await page.getByTestId("plan-ruta").getByRole("listitem").last().innerText();
+      const m = /Semana (\d+)(?:-(\d+))?/.exec(text);
+      if (!m) throw new Error("no se encontró «Semana N» en la ruta");
+      return Number(m[2] ?? m[1]);
+    };
+
+    await page.goto("/plan");
+    await expect(page.getByTestId("plan-horas-5")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("plan-ruta-pie")).toContainText("Con 5 h por semana.");
+    const weeksAt5 = await lastWeek();
+
+    // Con el botón (formulario GET, sin JS); la simulación elegida se conserva
+    await page.goto("/plan?simular=power_bi");
+    await page.getByTestId("plan-horas-10").click();
+    await expect(page).toHaveURL(/horas=10/);
+    await expect(page).toHaveURL(/simular=power_bi/);
+    await expect(page.getByTestId("plan-horas-10")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("plan-horas-5")).toHaveAttribute("aria-pressed", "false");
+    await expect(page.getByTestId("plan-ruta-pie")).toContainText("Con 10 h por semana.");
+    await expect(page.getByTestId("plan-sim-resultado")).toBeVisible();
+    const weeksAt10 = await lastWeek();
+    expect(weeksAt10).toBeLessThanOrEqual(weeksAt5);
+
+    // Simular otra skill conserva las horas
+    await page.getByTestId("plan-sim-pick-tableau").click();
+    await expect(page).toHaveURL(/simular=power_bi(%2C|,)tableau/);
+    await expect(page).toHaveURL(/horas=10/);
+
+    // Con 3 h la ruta dura lo mismo o más que con 5 y, con 3 skills, más que con 10 (prueba que
+    // la ruta se rehízo y no solo el pie); un valor fuera de la lista vuelve a 5
+    await page.goto("/plan?horas=3");
+    await expect(page.getByTestId("plan-ruta-pie")).toContainText("Con 3 h por semana.");
+    const weeksAt3 = await lastWeek();
+    expect(weeksAt3).toBeGreaterThanOrEqual(weeksAt5);
+    expect(weeksAt3).toBeGreaterThan(weeksAt10);
+    await page.goto("/plan?horas=4");
+    await expect(page.getByTestId("plan-horas-5")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("plan-ruta-pie")).toContainText("Con 5 h por semana.");
+  });
+
+  test("«Esta semana» propone el primer paso de la ruta con las horas elegidas", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 360, height: 740 });
+    await login(page);
+    await page.goto("/plan");
+    const week = page.getByTestId("plan-semana");
+    await expect(week).toBeVisible();
+    // Power BI es la que más ofertas suma por hora (3 en ~11 h): primer paso de la ruta
+    await expect(week).toContainText("Power BI");
+    await expect(page.getByTestId("plan-semana-horas")).toContainText(
+      /^5 h esta semana · te quedan \d+ h/,
+    );
+    await expect(week.getByRole("button", { name: "Empezar" })).toBeVisible();
+    const first = await page.getByTestId("plan-ruta").getByRole("listitem").first().innerText();
+    expect(first).toContain("Power BI");
+
+    await page.goto("/plan?horas=10");
+    await expect(page.getByTestId("plan-semana-horas")).toContainText(/^10 h esta semana/);
+    const width = await page.evaluate(() => document.documentElement.scrollWidth);
+    expect(width, "scrollWidth en /plan con «Esta semana»").toBeLessThanOrEqual(360);
+  });
+
+  for (const viewport of [
+    { width: 360, height: 740 },
+    { width: 1280, height: 800 },
+  ]) {
+    test(`a ${viewport.width} px no hay scroll horizontal y axe no encuentra violaciones`, async ({
+      page,
+    }) => {
+      await page.setViewportSize(viewport);
+      await login(page);
+      await page.goto("/plan?simular=power_bi,tableau");
+      const narrow = viewport.width === 360;
+      await expect(
+        page.getByTestId(narrow ? "plan-sim-tarjeta-power_bi" : "plan-sim-fila-power_bi"),
+      ).toBeVisible();
+      await expect(page.getByTestId("plan-sim-resultado")).toBeVisible();
+      if (narrow) {
+        await expect(page.getByTestId("plan-sim-tabla")).toBeHidden();
+        await expect(page.getByTestId("plan-sim-tarjeta-power_bi")).toContainText("+3 ofertas");
+        const width = await page.evaluate(() => document.documentElement.scrollWidth);
+        expect(width, "scrollWidth en /plan").toBeLessThanOrEqual(360);
+        // Botones de al menos 44 px de alto
+        const box = await page.getByTestId("plan-sim-pick-m-power_bi").boundingBox();
+        expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+      }
+      expect(await axeSummary(page), `Violaciones de axe en /plan a ${viewport.width} px`).toEqual(
+        [],
+      );
+    });
+  }
+
+  test("con menos de 10 ofertas dice que todavía no puede decirlo", async ({ page }) => {
+    const fewIds = await seedPublicJobs(
+      fewTag,
+      [1, 2, 3].map((i) => ({
+        title: `Product Marketing Ficticio ${i} ${fewTag}`,
+        company: "Empresa Ficticia 2",
+        sourceKind: "getonboard_api" as const,
+        roleHints: [FEW_CAREER],
+        skills: [{ slug: "sql", isMust: true }],
+      })),
+    );
+    // Abiertas a cualquier país: así el «pocas» sale de los 3 avisos y no del descarte por ubicación
+    await openToAnyCountry(fewIds);
+    await setSeedTargetRoles({ targetRoles: [FEW_CAREER], targetRole: FEW_CAREER });
+    await page.setViewportSize({ width: 360, height: 740 });
+    await login(page);
+    await page.goto("/plan");
+    const few = page.getByTestId("plan-sim-pocas");
+    await expect(few).toContainText("Con pocas ofertas todavía no podemos calcularlo");
+    await expect(page.getByTestId("plan-sim-tabla")).toHaveCount(0);
+    await expect(page.getByTestId("plan-sim-tarjetas")).toHaveCount(0);
+    const width = await page.evaluate(() => document.documentElement.scrollWidth);
+    expect(width, "scrollWidth en /plan").toBeLessThanOrEqual(360);
+    expect(await axeSummary(page), "Violaciones de axe en /plan con pocas ofertas").toEqual([]);
+  });
+});

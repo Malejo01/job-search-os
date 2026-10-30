@@ -8,18 +8,20 @@ import type { NextAuthConfig } from "next-auth";
  */
 export const authConfig = {
   pages: { signIn: "/login" },
-  session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
+  // 14 días (S-6, antes 30): con la versión de sesión, un reset corta las sesiones viejas igual
+  session: { strategy: "jwt", maxAge: 14 * 24 * 60 * 60 },
   trustHost: true,
   callbacks: {
     authorized({ auth, request }) {
       const loggedIn = Boolean(auth?.user?.id);
       const { pathname } = request.nextUrl;
+      // Con sesión, la entrada a la app es «Hoy» (ronda 119)
       if (pathname.startsWith("/login")) {
-        return loggedIn ? Response.redirect(new URL("/jobs", request.nextUrl)) : true;
+        return loggedIn ? Response.redirect(new URL("/hoy", request.nextUrl)) : true;
       }
-      // Portada y pedido de acceso (ronda 63): con sesión van a /jobs; sin sesión se ve la vitrina
+      // Portada y pedido de acceso (ronda 63): con sesión van a /hoy; sin sesión se ve la vitrina
       if (pathname === "/" || pathname === "/acceso") {
-        return loggedIn ? Response.redirect(new URL("/jobs", request.nextUrl)) : true;
+        return loggedIn ? Response.redirect(new URL("/hoy", request.nextUrl)) : true;
       }
       // Vitrina pública (ronda 63): mercado, ofertas de muestra y metadatos de compartir
       if (
@@ -31,6 +33,8 @@ export const authConfig = {
         pathname.startsWith("/demo/") ||
         pathname === "/como-esta-hecho" ||
         pathname === "/en/how-its-built" ||
+        // Precios (C-12): la página misma da 404 mientras PRICING_ENABLED esté apagado
+        pathname === "/precios" ||
         pathname.startsWith("/opengraph-image") ||
         pathname.startsWith("/twitter-image") ||
         pathname === "/sitemap.xml" ||
@@ -55,11 +59,16 @@ export const authConfig = {
       return loggedIn;
     },
     jwt({ token, user }) {
-      if (user?.id) token.sub = user.id;
+      if (user?.id) {
+        token.sub = user.id;
+        // S-6: la versión de sesión del momento del login; requireUserId la compara con la base
+        token.sv = user.sessionVersion ?? 0;
+      }
       return token;
     },
     session({ session, token }) {
       if (token.sub) session.user.id = token.sub;
+      session.sessionVersion = typeof token.sv === "number" ? token.sv : undefined;
       return session;
     },
   },

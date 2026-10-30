@@ -25,6 +25,8 @@ const ROLE_HELP: Readonly<Record<string, string>> = {
   ventas_b2b: "Prospección y cierre con empresas",
   atencion_cliente: "Soporte a clientes por chat, mail o teléfono; no es IT",
   rrhh_it: "Recruiting y RRHH, IT o no",
+  finanzas_contabilidad: "Contabilidad, pagos, impuestos y reportes",
+  asistencia_operaciones: "Agenda, correo, carga de datos y coordinación; no es DevOps",
 };
 
 /**

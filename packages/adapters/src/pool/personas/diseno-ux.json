@@ -1,0 +1,15 @@
+{
+  "targetRoles": ["ux_ui"],
+  "locationCountry": "UY",
+  "remoteOnly": true,
+  "yearsTotal": 0,
+  "skills": [
+    { "slug": "figma", "level": 2 },
+    { "slug": "ux_research", "level": 1 },
+    { "slug": "design_systems", "level": 1 },
+    { "slug": "prototyping", "level": 2 },
+    { "slug": "accessibility", "level": 1 },
+    { "slug": "canva", "level": 3 },
+    { "slug": "english_intermediate", "level": 2 }
+  ]
+}

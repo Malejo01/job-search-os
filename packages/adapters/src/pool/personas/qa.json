@@ -1,0 +1,16 @@
+{
+  "targetRoles": ["qa"],
+  "locationCountry": "CO",
+  "remoteOnly": false,
+  "yearsTotal": 6,
+  "skills": [
+    { "slug": "testing", "level": 3 },
+    { "slug": "ci_cd", "level": 2 },
+    { "slug": "sql", "level": 2 },
+    { "slug": "rest_apis", "level": 2 },
+    { "slug": "python", "level": 1 },
+    { "slug": "typescript", "level": 1 },
+    { "slug": "accessibility", "level": 0 },
+    { "slug": "english_intermediate", "level": 2 }
+  ]
+}

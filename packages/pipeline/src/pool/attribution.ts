@@ -32,13 +32,14 @@ export const SOURCE_ATTRIBUTION: Record<SourceKind, SourceAttribution | null> = 
   greenhouse: { name: "Sitio de empleos", text: ATS_TEXT },
   lever: { name: "Sitio de empleos", text: ATS_TEXT },
   ashby: { name: "Sitio de empleos", text: ATS_TEXT },
+  teamtailor: { name: "Sitio de empleos", text: ATS_TEXT },
 };
 
 /** We Work Remotely pide una suscripción paga para postular; el aviso suele estar gratis en el ATS. */
 export const WWR_PAYWALL_NOTICE =
   "We Work Remotely pide una suscripción paga para postular: buscá el aviso en el sitio de empleos de la empresa.";
 
-export type AtsProvider = "greenhouse" | "lever" | "ashby" | "workable";
+export type AtsProvider = "greenhouse" | "lever" | "ashby" | "workable" | "teamtailor";
 export type AtsLink = { provider: AtsProvider; url: string };
 
 const ATS_LINKS_MAX = 3;
@@ -53,6 +54,8 @@ function atsProviderOf(host: string, path: string): AtsProvider | null {
   if (host === "jobs.ashbyhq.com") return "ashby";
   if (host === "apply.workable.com") return "workable";
   if (host.endsWith(".workable.com") && path.startsWith("/j/")) return "workable";
+  // Sitios de empleos de Teamtailor: `<empresa>[.na].teamtailor.com/jobs/<id>-<slug>`
+  if (host.endsWith(".teamtailor.com") && path.startsWith("/jobs/")) return "teamtailor";
   return null;
 }
 
@@ -88,7 +91,7 @@ export function findAtsLinks(text: string | null): AtsLink[] {
   return out;
 }
 
-const ATS_KINDS: ReadonlySet<string> = new Set(["greenhouse", "lever", "ashby"]);
+const ATS_KINDS: ReadonlySet<string> = new Set(["greenhouse", "lever", "ashby", "teamtailor"]);
 const COMPANY_MAX = 80;
 
 /**

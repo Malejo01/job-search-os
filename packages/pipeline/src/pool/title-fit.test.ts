@@ -111,7 +111,8 @@ describe("titleFit · ventas y atención (ronda 107)", () => {
     expect(titleFit("Technical Account Manager", "customer_success")).toBe(2);
     expect(titleFit("Customer Support Specialist", "customer_success")).toBe(0);
     expect(titleFit("Account Executive", "customer_success")).toBe(0);
-    expect(titleFit("Account Manager", "customer_success")).toBe(1);
+    // T2: «account manager» pasó a ser término de customer_success (antes 1).
+    expect(titleFit("Account Manager", "customer_success")).toBe(2);
   });
 
   it("assessPoolTitle: con la categoría customer-support el título deja la carrera que corresponde", () => {
@@ -130,6 +131,51 @@ describe("titleFit · ventas y atención (ronda 107)", () => {
     });
     expect(csm.titleFit).toBe(0);
     expect(csm.effectiveHints).toEqual(["customer_success"]);
+  });
+});
+
+describe("titleFit · finanzas y asistencia/operaciones (C-2b)", () => {
+  it("finanzas_contabilidad: el cargo vale 2; datos y desarrollo se vetan", () => {
+    expect(titleFit("Senior Accountant", "finanzas_contabilidad")).toBe(2);
+    expect(titleFit("Sales Tax Analyst", "finanzas_contabilidad")).toBe(2);
+    expect(titleFit("Contador Público", "finanzas_contabilidad")).toBe(2);
+    expect(titleFit("Finance Specialist", "finanzas_contabilidad")).toBe(2);
+    expect(titleFit("Finance Manager", "finanzas_contabilidad")).toBe(1);
+    expect(titleFit("Financial Data Engineer", "finanzas_contabilidad")).toBe(0);
+    expect(titleFit("Accounting Software Engineer", "finanzas_contabilidad")).toBe(0);
+    expect(titleFit("Financial Engineer", "finanzas_contabilidad")).toBe(0);
+    expect(titleFit("Finance Developer", "finanzas_contabilidad")).toBe(0);
+  });
+
+  it("asistencia_operaciones: el cargo vale 2; proyectos, soporte IT y finanzas se vetan", () => {
+    expect(titleFit("Virtual Assistant", "asistencia_operaciones")).toBe(2);
+    expect(titleFit("Operations Coordinator", "asistencia_operaciones")).toBe(2);
+    expect(titleFit("Asistente Administrativa", "asistencia_operaciones")).toBe(2);
+    expect(titleFit("Operations Lead", "asistencia_operaciones")).toBe(1);
+    expect(titleFit("Project Manager", "asistencia_operaciones")).toBe(0);
+    expect(titleFit("IT Support Specialist", "asistencia_operaciones")).toBe(0);
+    expect(titleFit("Senior Accountant", "asistencia_operaciones")).toBe(0);
+    expect(titleFit("Operations Engineer", "asistencia_operaciones")).toBe(0);
+    // la exclusión de role-hints (otra operación) lo deja sin nombrar el cargo, pero sin veto
+    expect(titleFit("Sales Operations Coordinator", "asistencia_operaciones")).toBe(1);
+  });
+
+  it("project_manager veta los títulos de operaciones (D9), pero la frase propia gana", () => {
+    expect(titleFit("Virtual Assistant", "project_manager")).toBe(0);
+    expect(titleFit("Operations Coordinator", "project_manager")).toBe(0);
+    expect(titleFit("Project Manager", "project_manager")).toBe(2);
+    expect(titleFit("Operations Coordinator & Project Manager", "project_manager")).toBe(2);
+  });
+
+  it("assessPoolTitle: con la categoría de operaciones el título deja la carrera que corresponde", () => {
+    const r = assessPoolTitle({
+      title: "Executive Assistant",
+      roleHints: ["project_manager", "asistencia_operaciones"],
+      roles: ["project_manager"],
+      yearsTotal: null,
+    });
+    expect(r.titleFit).toBe(0);
+    expect(r.effectiveHints).toEqual(["asistencia_operaciones"]);
   });
 });
 
@@ -365,5 +411,51 @@ describe("assessPoolTitle", () => {
       expect(staff.seniorPenalty).toBe(0);
       expect(staff.level).toBe("staff_plus");
     }
+  });
+});
+
+describe("titleFit · vetos T2", () => {
+  it("frontend y backend se vetan entre sí, el fullstack sirve a los tres", () => {
+    expect(titleFit("Backend Engineer", "frontend")).toBe(0);
+    expect(titleFit("Backend Developer", "frontend")).toBe(0);
+    expect(titleFit("Desarrollador Backend", "frontend")).toBe(0);
+    expect(titleFit("Frontend Engineer", "backend")).toBe(0);
+    expect(titleFit("Frontend Developer", "backend")).toBe(0);
+    expect(titleFit("Desarrollador Frontend", "backend")).toBe(0);
+    expect(titleFit("Backend Engineer", "backend")).toBe(2);
+    expect(titleFit("Frontend Engineer", "frontend")).toBe(2);
+    for (const role of ["frontend", "backend", "fullstack"] as const) {
+      expect(titleFit("Full Stack Engineer", role)).not.toBe(0);
+    }
+    expect(titleFit("Full Stack Backend Engineer", "frontend")).not.toBe(0);
+    expect(titleFit("Software Engineer", "frontend")).toBe(1);
+  });
+
+  it("soporte_it veta QA", () => {
+    expect(titleFit("QA Engineer", "soporte_it")).toBe(0);
+    expect(titleFit("Test Automation Engineer", "soporte_it")).toBe(0);
+    expect(titleFit("IT Support Specialist", "soporte_it")).toBe(2);
+    for (const t of [
+      "Network Automation Engineer",
+      "IT Automation Engineer",
+      "Cloud Automation Engineer",
+    ]) {
+      expect(titleFit(t, "soporte_it")).not.toBe(0);
+    }
+  });
+
+  it("key account: CS con cuentas clave se mantiene; el Key Account Manager no es CS", () => {
+    expect(titleFit("Customer Success Manager, Key Accounts", "customer_success")).toBeGreaterThan(
+      0,
+    );
+    expect(titleFit("Technical Account Manager – Key Account", "customer_success")).toBe(2);
+    expect(titleFit("Key Account Manager", "customer_success")).toBe(0);
+  });
+
+  it("customer_success veta solutions engineer", () => {
+    expect(titleFit("Solutions Engineer", "customer_success")).toBe(0);
+    expect(titleFit("Implementation Consultant", "customer_success")).toBe(0);
+    expect(titleFit("Technical Account Manager", "customer_success")).toBe(2);
+    expect(titleFit("Account Manager", "customer_success")).toBe(2);
   });
 });

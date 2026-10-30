@@ -25,7 +25,7 @@ import {
 
 /**
  * Flujo 38 (ronda 49): «Primeros pasos». La checklist de /jobs, el «Paso N de 3» del onboarding, la
- * ayuda de CEFR, el aviso de alertas arriba de «Tus primeras ofertas», el modal de privacidad del
+ * ayuda de CEFR, el aviso de alertas debajo de «Tus primeras ofertas», el modal de privacidad del
  * asistente y la tarjeta «Invitar a alguien» de Ajustes. Con personas nuevas (`personas/flow.ts`),
  * no con el usuario e2e principal: `login()` le deja la cookie de «Ocultar» para que su checklist
  * no mueva los conteos de los demás specs. Sin LLM ni red; todo inventado.
@@ -110,7 +110,7 @@ test.describe("Flujo 38: primeros pasos, de la persona nueva a la checklist comp
     await expect(steps(page)).toHaveCount(1);
   });
 
-  test("38i: el aviso de alertas está arriba de «Tus primeras ofertas», con «Ir a mis ofertas» arriba y al final", async () => {
+  test("38i: el aviso de alertas va después de «Tus primeras ofertas», con «Ir a mis ofertas» arriba y al final", async () => {
     await page.goto("/onboarding/ofertas");
     const banner = page.getByTestId("email-nudge");
     await expect(banner).toContainText("LinkedIn, Get on Board e Indeed");
@@ -120,20 +120,20 @@ test.describe("Flujo 38: primeros pasos, de la persona nueva a la checklist comp
     );
     await expect(banner.getByRole("button", { name: "No, gracias" })).toBeVisible();
 
-    // Arriba de todo lo que muestra la página: «buscando…», el vacío o la lista
+    // Debajo de lo que muestra la página (C-17, R6): primero «buscando…», el vacío o la lista
     const content = page
       .locator(
         '[data-testid="first-offer"], [data-testid="first-offers-searching"], [data-testid="first-offers-empty"]',
       )
       .first();
     await expect(content).toBeVisible();
-    expect((await box(banner)).y).toBeLessThan((await box(content)).y);
+    expect((await box(content)).y).toBeLessThan((await box(banner)).y);
 
-    // «Ir a mis ofertas»: uno arriba del aviso y otro al final; «Conectar» ya no va abajo
+    // «Ir a mis ofertas»: uno arriba de todo y otro al final; «Conectar» ya no va abajo
     const goToJobs = page.getByRole("link", { name: "Ir a mis ofertas" });
     await expect(goToJobs).toHaveCount(2);
     expect((await box(goToJobs.first())).y).toBeLessThan((await box(banner)).y);
-    expect((await box(goToJobs.last())).y).toBeGreaterThan((await box(content)).y);
+    expect((await box(goToJobs.last())).y).toBeGreaterThan((await box(banner)).y);
     await expect(page.getByRole("link", { name: /Conectar mis alertas de email/ })).toHaveCount(0);
     // El recuadro de privacidad salió de esta página (es un modal del asistente)
     await expect(page.getByTestId("trust-box")).toHaveCount(0);
