@@ -1,9 +1,10 @@
 # Fuente: Jobicy
 
-Adapter: `packages/adapters/src/sources/jobicy.ts`. Estado: **pool global (JS-137)**, **apagada hasta definir `POOL_SOURCES`** (recomendada, de a una y tras el `--dry-run`). Formato **a verificar**: sale de la documentación pública, sin llamada real (ronda 37, sin red en tests).
+Adapter: `packages/adapters/src/sources/jobicy.ts`. Estado: **pool global (JS-137)**, **apagada hasta definir `POOL_SOURCES`** (recomendada, de a una y tras el `--dry-run`).
 
 ## Endpoint
-`GET https://jobicy.com/api/v2/remote-jobs?count=200` → `{ jobs: [...] }` (los otros campos se ignoran). **Una sola llamada** por corrida, sin `industry` ni `geo`. La ventana de la fuente es de 7 días; el filtro por fecha (48 h) se hace en cliente. Si `jobs` no es un array: error `Jobicy: respuesta inesperada`.
+`GET https://jobicy.com/api/v2/remote-jobs?count=200&industry=X` y `&geo=latam` → `{ jobs: [...] }` (los otros campos se ignoran).
+Llamadas en serie por industria (`legal`, `accounting-finance`, `marketing`, `copywriting`, `management`, `project-management`, `business`, `admin-support`) más una con `geo=latam` (R1-8). Deduplica en memoria por `id` (`externalId`) y combina categorías de distintas consultas para no perder pistas de puesto. La ventana de la fuente es de 7 días; el filtro por fecha (48 h) se hace en cliente. Si `jobs` no es un array: error `Jobicy: respuesta inesperada`.
 
 ## Mapeo
 | Jobicy | RawJob | Nota |
@@ -39,11 +40,11 @@ Fuente: `ops/rondas/37-38-39/informes/riesgos-fuentes.md` §3 (consultado el 202
 
 Consecuencias en el código: intervalo mínimo de 5 h entre corridas (mucho más que la hora exigida), `User-Agent` identificable, "Jobicy" y link canónico en cada aviso que se muestre.
 
-## A verificar contra la fuente real
-- Nombres exactos de campos (`jobTitle`, `companyName`, `jobGeo`, `jobIndustry`, `jobType`, `jobLevel`, `jobDescription`, `pubDate`, `salaryCurrency`, `salaryMin/Max`, `salaryPeriod`, `annualSalaryMin/Max`) y cuál de las dos formas del sueldo usa la API hoy; sus tipos (¿`jobGeo` string o lista?, ¿montos número o string?).
-- Formato de `pubDate` y su zona horaria.
-- Que `count=200` sea aceptado y alcance para 48 h.
-- Valores reales de `jobGeo` (nombres de país en inglés, "USA", "UK", regiones): hoy solo se mapean los nombres que conoce `COUNTRY_TO_ISO`.
+## Verificado contra la fuente real (R1-8)
+- Nombres de campos confirmados: `id`, `url`, `jobTitle`, `companyName`, `jobIndustry` (array de strings), `jobType` (array de strings), `jobGeo` (string), `jobLevel` (string), `jobDescription` (HTML string), `pubDate` (string ISO), `salaryCurrency` (string, en ~46% de los avisos).
+- Sueldos: la API v2 actual usa `salaryMin`, `salaryMax`, `salaryPeriod` y `salaryCurrency`. `annualSalaryMin/Max` no viene en las respuestas actuales.
+- Consultas por industria (`legal`, `accounting-finance`, `marketing`, `copywriting`, `management`, `project-management`, `business`, `admin-support`) y `geo=latam` devuelven HTTP 200 y traen puestos de dichas áreas.
+- Deduplicación por `id`: combina categorías de la fuente (p. ej. `legal-compliance`, `finance-accounting`, `sales`, etc.) para nutrir `role_hints`.
 
 ## Cómo prenderla
 El pool no consulta nada hasta que Mauro define `POOL_SOURCES` (las recomendadas son `getonboard,remoteok,jobicy`; se prenden de a una). Para apagarla, sacar `jobicy` de la variable. **Antes de prenderla**, correr `pnpm pool:fetch jobicy --dry-run`: informa avisos vistos, mapeados y salteados, y qué campos trae la respuesta real (solo conteos y tipos, nunca valores). No escribe en ninguna base.
