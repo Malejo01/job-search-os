@@ -5,7 +5,7 @@ import type { Proposal } from "@job-search-os/pipeline";
 export type ProposalStatus = "pendiente" | "cargada" | "descartada";
 
 const FOCUS_RING =
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900";
+  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 /**
  * Tarjeta de diferencia (AG-3): campo, antes, después y de dónde sale cada dato. Todo como texto
@@ -30,29 +30,32 @@ export function AssistantProposalCard({
     <section
       aria-label={proposal.title}
       data-testid="assistant-proposal"
-      className="flex flex-col gap-2 rounded-md border border-sky-300 bg-white p-3 text-sm"
+      className="flex flex-col gap-2 rounded-card border border-info-line bg-surface p-3 text-sm"
     >
       <h3 className="font-semibold break-words">{proposal.title}</h3>
       <dl className="flex flex-col gap-2">
         {proposal.diffs.map((d) => (
-          <div key={d.field} className="flex flex-col gap-0.5 rounded-md bg-zinc-50 px-2 py-1.5">
+          <div
+            key={d.field}
+            className="flex flex-col gap-0.5 rounded-control bg-surface-subtle px-2 py-1.5"
+          >
             <dt className="font-medium break-words">{d.label}</dt>
             <dd className="break-words">
-              <span className="text-zinc-600">Antes:</span> {d.before}
+              <span className="text-fg-subtle">Antes:</span> {d.before}
             </dd>
             <dd className="break-words">
-              <span className="text-zinc-600">Después:</span>{" "}
+              <span className="text-fg-subtle">Después:</span>{" "}
               <span className="font-medium">{d.after}</span>
             </dd>
-            <dd className="break-words text-xs text-zinc-700">
-              <span className="text-zinc-600">De dónde sale:</span> «{d.source.quote}»,{" "}
+            <dd className="break-words text-xs text-fg-muted">
+              <span className="text-fg-subtle">De dónde sale:</span> «{d.source.quote}»,{" "}
               {d.source.from === "message" ? "de lo que escribiste" : "de tu perfil"}
             </dd>
           </div>
         ))}
       </dl>
       {proposal.warnings.length > 0 ? (
-        <p className="rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-900">
+        <p className="rounded-control bg-warning-soft px-2 py-1.5 text-xs text-warning">
           Antes de guardar, revisá también estos campos del formulario, que hoy no pasan la
           validación: {proposal.warnings.join(", ")}.
         </p>
@@ -62,20 +65,20 @@ export function AssistantProposalCard({
           <button
             type="button"
             onClick={onLoad}
-            className={`min-h-11 rounded-md bg-zinc-900 px-3 py-2 font-medium text-white ${FOCUS_RING}`}
+            className={`min-h-11 rounded-control bg-brand hover:bg-brand-hover px-3 py-2 font-medium text-brand-contrast ${FOCUS_RING}`}
           >
             Cargar en el formulario
           </button>
           <button
             type="button"
             onClick={onDiscard}
-            className={`min-h-11 rounded-md border border-zinc-400 px-3 py-2 font-medium text-zinc-900 ${FOCUS_RING}`}
+            className={`min-h-11 rounded-control border border-line-strong px-3 py-2 font-medium text-fg ${FOCUS_RING}`}
           >
             Descartar
           </button>
         </div>
       ) : (
-        <p ref={statusRef} tabIndex={-1} className="text-xs text-zinc-700">
+        <p ref={statusRef} tabIndex={-1} className="text-xs text-fg-muted">
           {status === "cargada"
             ? "Cargada en el formulario. Se guarda solo si tocás Guardar ahí."
             : "Descartada. No se cambió nada."}

@@ -27,7 +27,7 @@ import { AssistantActionCard, type ActionStatus } from "./assistant-action-card"
 import { AssistantProposalCard, type ProposalStatus } from "./assistant-proposal-card";
 
 const FOCUS_RING =
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900";
+  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 /** Lo que entra en la request: el servidor corta a 2.000, pero un CV pegado tiene que llegar para detectarlo. */
 const MAX_INPUT_CHARS = 20_000;
@@ -392,7 +392,7 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
       aria-labelledby={titleId}
       onClose={onClose}
       data-testid="assistant-panel"
-      className="m-0 ml-auto h-dvh max-h-none w-full max-w-none overflow-hidden bg-white p-0 text-zinc-900 backdrop:bg-black/30 lg:w-[380px]"
+      className="m-0 ml-auto h-dvh max-h-none w-full max-w-none overflow-hidden bg-surface p-0 text-fg backdrop:bg-black/30 lg:w-[380px]"
     >
       {open ? (
         <MotionConfig reducedMotion="user">
@@ -402,7 +402,7 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
             transition={{ duration: 0.18, ease: "easeOut" }}
             className="flex h-full min-w-0 flex-col"
           >
-            <div className="flex flex-col gap-1 border-b border-zinc-200 px-4 py-3">
+            <div className="flex flex-col gap-1 border-b border-line px-4 py-3">
               <div className="flex items-center justify-between gap-2">
                 <h2 id={titleId} className="text-base font-semibold">
                   Asistente
@@ -411,20 +411,20 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
                   <button
                     type="button"
                     onClick={newConversation}
-                    className={`min-h-11 rounded-md px-2 text-sm text-zinc-700 underline-offset-2 hover:underline ${FOCUS_RING}`}
+                    className={`min-h-11 rounded-control px-2 text-sm text-fg-muted underline-offset-2 hover:underline ${FOCUS_RING}`}
                   >
                     Nueva charla
                   </button>
                   <button
                     type="button"
                     onClick={onClose}
-                    className={`min-h-11 rounded-md border border-zinc-300 px-3 text-sm ${FOCUS_RING}`}
+                    className={`min-h-11 rounded-control border border-line-strong px-3 text-sm ${FOCUS_RING}`}
                   >
                     Cerrar
                   </button>
                 </div>
               </div>
-              <p className="text-xs text-zinc-600">
+              <p className="text-xs text-fg-subtle">
                 {screen ? `Estás en: ${screenLabel(screen.screen)}. ` : ""}Lee tus datos, te explica
                 y te propone cambios. No guarda nada sin que vos lo confirmes en la pantalla.
               </p>
@@ -436,7 +436,7 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
               className="flex min-w-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto px-4 py-3"
             >
               {items.length === 0 ? (
-                <p className="text-sm text-zinc-600">
+                <p className="text-sm text-fg-subtle">
                   Preguntale, por ejemplo, «¿qué me falta para las ofertas que me interesan?» o
                   contale un cambio: «me mudé a Uruguay».
                 </p>
@@ -447,7 +447,7 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
                     return (
                       <p
                         key={item.id}
-                        className="self-end rounded-md bg-zinc-900 px-3 py-2 text-sm break-words whitespace-pre-wrap text-white"
+                        className="self-end rounded-control bg-brand px-3 py-2 text-sm break-words whitespace-pre-wrap text-brand-contrast"
                       >
                         <span className="sr-only">Vos: </span>
                         {item.text.length > 600 ? `${item.text.slice(0, 600)}…` : item.text}
@@ -457,7 +457,7 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
                     return (
                       <p
                         key={item.id}
-                        className="self-start rounded-md bg-zinc-100 px-3 py-2 text-sm break-words whitespace-pre-wrap"
+                        className="self-start rounded-control bg-surface-muted px-3 py-2 text-sm break-words whitespace-pre-wrap"
                       >
                         <span className="sr-only">Asistente: </span>
                         {item.text}
@@ -468,7 +468,7 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
                       <div
                         key={item.id}
                         data-testid="assistant-notice"
-                        className="flex flex-col gap-1 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-950"
+                        className="flex flex-col gap-1 rounded-control bg-warning-soft px-3 py-2 text-sm text-warning"
                       >
                         <p className="break-words">{item.text}</p>
                         <ul className="flex flex-wrap gap-x-3">
@@ -490,7 +490,7 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
                     return (
                       <p
                         key={item.id}
-                        className="rounded-md bg-red-50 px-3 py-2 text-sm break-words text-red-800"
+                        className="rounded-control bg-danger-soft px-3 py-2 text-sm break-words text-danger"
                       >
                         {item.text}
                       </p>
@@ -521,7 +521,7 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
                 }
               })}
               {pending ? (
-                <p className="text-sm text-zinc-600" aria-hidden="true">
+                <p className="text-sm text-fg-subtle" aria-hidden="true">
                   Pensando…
                 </p>
               ) : null}
@@ -533,7 +533,7 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
 
             <form
               onSubmit={onSubmit}
-              className="flex flex-col gap-2 border-t border-zinc-200 px-4 py-3"
+              className="flex flex-col gap-2 border-t border-line px-4 py-3"
             >
               <label htmlFor={`${titleId}-mensaje`} className="text-sm font-medium">
                 Tu mensaje
@@ -546,13 +546,13 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
                 onKeyDown={onKeyDown}
                 maxLength={MAX_INPUT_CHARS}
                 rows={3}
-                className={`w-full min-w-0 resize-none rounded-md border border-zinc-400 px-3 py-2 text-base ${FOCUS_RING}`}
+                className={`w-full min-w-0 resize-none rounded-control border border-line-control bg-surface px-3 py-2 text-base text-fg ${FOCUS_RING}`}
               />
               <div className="flex items-center gap-2">
                 <button
                   type="submit"
                   disabled={pending || draft.trim() === ""}
-                  className={`min-h-11 rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 ${FOCUS_RING}`}
+                  className={`min-h-11 rounded-control bg-brand hover:bg-brand-hover px-4 py-2 text-sm font-medium text-brand-contrast disabled:opacity-50 ${FOCUS_RING}`}
                 >
                   Enviar
                 </button>
@@ -560,13 +560,13 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
                   <button
                     type="button"
                     onClick={() => abortRef.current?.abort()}
-                    className={`min-h-11 rounded-md border border-zinc-400 px-3 py-2 text-sm ${FOCUS_RING}`}
+                    className={`min-h-11 rounded-control border border-line-strong px-3 py-2 text-sm ${FOCUS_RING}`}
                   >
                     Detener
                   </button>
                 ) : null}
               </div>
-              <p className="text-xs text-zinc-600">
+              <p className="text-xs text-fg-subtle">
                 No pegues tu CV acá: se carga en «Tu perfil» y «Tus skills».
               </p>
             </form>
