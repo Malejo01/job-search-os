@@ -163,10 +163,17 @@ export const ALERT_KEYWORDS: Partial<Record<AlertRoleKey, Keywords>> = {
       "contabilidad",
       "analista impositivo",
       "liquidación de sueldos",
-      "auditoría",
+      "auditor interno",
       "analista financiero",
     ],
-    en: ["accountant", "bookkeeper", "tax analyst", "payroll analyst", "internal auditor", "fp&a"],
+    en: [
+      "accountant",
+      "financial analyst",
+      "tax analyst",
+      "payroll analyst",
+      "internal auditor",
+      "fp&a",
+    ],
   },
   asistencia_operaciones: {
     es: [
@@ -210,14 +217,12 @@ export const ALERT_KEYWORDS: Partial<Record<AlertRoleKey, Keywords>> = {
       "analista de control de gestión",
       "analista comercial",
       "analista de procesos",
-      "comprador",
     ],
     en: [
       "procurement analyst",
       "supply chain analyst",
       "pricing analyst",
       "management consultant",
-      "buyer",
       "demand planner",
     ],
   },
@@ -228,7 +233,7 @@ export const ALERT_KEYWORDS: Partial<Record<AlertRoleKey, Keywords>> = {
       "comunicación interna",
       "periodista",
       "jefe de prensa",
-      "redactor",
+      "comunicación corporativa",
     ],
     en: [
       "communications specialist",
