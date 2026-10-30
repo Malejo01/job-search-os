@@ -116,6 +116,29 @@ function JobCard({ job, query, tour }: { job: JobListRow; query: string; tour: b
           {job.company}
           {job.locationRaw ? ` · ${job.locationRaw}` : ""}
         </p>
+        {job.fit.favor || job.fit.falta ? (
+          <div className="flex min-w-0 flex-col gap-0.5 text-xs" data-testid="tarjeta-fit">
+            {job.fit.favor ? (
+              <p className="line-clamp-2 break-words text-fg-muted" title={job.fit.favor.text}>
+                <span aria-hidden="true" className="text-success">
+                  ✓{" "}
+                </span>
+                A tu favor: {job.fit.favor.text}
+              </p>
+            ) : null}
+            {job.fit.falta ? (
+              <p className="line-clamp-2 break-words text-fg-muted" title={job.fit.falta.text}>
+                <span
+                  aria-hidden="true"
+                  className={job.fit.falta.kind === "frena" ? "text-danger" : "text-warning"}
+                >
+                  {job.fit.falta.kind === "frena" ? "✕ " : "! "}
+                </span>
+                {job.fit.falta.label}: {job.fit.falta.text}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         <div className="flex flex-wrap gap-1" {...anchor("jobs:etiquetas")}>
           {job.model === DEMO_MODEL ? (
             <span className={DEMO_BADGE_CLASSES} title="Evaluación falsa del modo demo, sin LLM">
