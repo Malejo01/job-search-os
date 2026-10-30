@@ -65,8 +65,8 @@ const STACK = [
 ];
 
 const CTA_CLASS =
-  "inline-flex min-h-11 items-center justify-center rounded-md bg-zinc-900 px-5 text-base font-medium text-white";
-const LINK_CLASS = "inline-flex min-h-11 items-center underline";
+  "inline-flex min-h-11 items-center justify-center rounded-control bg-brand px-5 text-base font-medium text-brand-contrast hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
+const LINK_CLASS = "inline-flex min-h-11 items-center underline underline-offset-2 hover:text-fg";
 
 export default async function HowItsBuiltPage() {
   const showcase = await getPoolShowcase();
@@ -79,7 +79,7 @@ export default async function HowItsBuiltPage() {
           </Link>
         </p>
         <h1 className="text-3xl font-semibold sm:text-4xl">How it&apos;s built</h1>
-        <p className="max-w-2xl text-base text-zinc-700">
+        <p className="max-w-2xl text-base text-fg-muted">
           A system that reads job postings and evaluates them against a profile. The AI model
           evaluates; rules in code decide; the person chooses. Here is how it works, in detail.
         </p>
@@ -94,15 +94,15 @@ export default async function HowItsBuiltPage() {
           {FLOW_STEPS_EN.map((step, i) => (
             <li
               key={step.title}
-              className="flex min-w-0 gap-3 rounded-md border border-zinc-200 bg-white p-4"
+              className="flex min-w-0 gap-3 rounded-card border border-line bg-surface p-4"
             >
               <span
                 aria-hidden="true"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-sm font-semibold text-white"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-sm font-semibold text-brand-contrast"
               >
                 {i + 1}
               </span>
-              <div className="min-w-0 text-sm leading-relaxed text-zinc-800 sm:text-base">
+              <div className="min-w-0 text-sm leading-relaxed text-fg sm:text-base">
                 <p className="font-semibold">{step.title}</p>
                 <p>{step.text}</p>
                 {step.note ? <p className="mt-1 italic">{step.note}</p> : null}
@@ -118,9 +118,9 @@ export default async function HowItsBuiltPage() {
         </h2>
         <ul className="grid gap-3 sm:grid-cols-2">
           {SAFEGUARDS.map(([title, text]) => (
-            <li key={title} className="min-w-0 rounded-md border border-zinc-200 bg-white p-4">
+            <li key={title} className="min-w-0 rounded-card border border-line bg-surface p-4">
               <p className="font-semibold">{title}</p>
-              <p className="text-sm leading-relaxed text-zinc-700 sm:text-base">{text}</p>
+              <p className="text-sm leading-relaxed text-fg-muted sm:text-base">{text}</p>
             </li>
           ))}
         </ul>
@@ -132,9 +132,9 @@ export default async function HowItsBuiltPage() {
         </h2>
         <dl className="grid gap-3 sm:grid-cols-2">
           {STACK.map(([label, text]) => (
-            <div key={label} className="min-w-0 rounded-md border border-zinc-200 bg-white p-4">
+            <div key={label} className="min-w-0 rounded-card border border-line bg-surface p-4">
               <dt className="font-semibold">{label}</dt>
-              <dd className="text-sm leading-relaxed text-zinc-700 sm:text-base">{text}</dd>
+              <dd className="text-sm leading-relaxed text-fg-muted sm:text-base">{text}</dd>
             </div>
           ))}
         </dl>
@@ -145,7 +145,7 @@ export default async function HowItsBuiltPage() {
           Live numbers
         </h2>
         <PoolNumbers showcase={showcase} lang="en" />
-        <p data-testid="tests-count" className="text-sm text-zinc-700">
+        <p data-testid="tests-count" className="text-sm text-fg-muted">
           {TESTS_LABEL} (as of {TESTS_AS_OF}).
         </p>
       </section>
@@ -154,8 +154,8 @@ export default async function HowItsBuiltPage() {
         <h2 id="code" className="text-xl font-semibold">
           The code
         </h2>
-        <p className="text-sm text-zinc-700">The code is public. Read it on GitHub.</p>
-        <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-zinc-800">
+        <p className="text-sm text-fg-muted">The code is public. Read it on GitHub.</p>
+        <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-fg">
           <a href={REPO_URL} target="_blank" rel="noopener" className={LINK_CLASS}>
             GitHub repository
             <span className="sr-only"> (opens in a new tab)</span>

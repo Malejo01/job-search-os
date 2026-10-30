@@ -5,7 +5,8 @@ import { useActionState, useEffect, useRef } from "react";
 import { submitWaitlist, type WaitlistState } from "./actions";
 
 const INITIAL: WaitlistState = { status: "idle" };
-const field = "min-h-11 rounded-md border border-zinc-300 px-3 py-2 text-base";
+const field =
+  "min-h-11 rounded-control border border-line-control bg-surface px-3 py-2 text-base text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 export type RoleOption = { key: string; label: string };
 export type RoleOptionGroup = { label: string; roles: RoleOption[] };
@@ -32,7 +33,7 @@ export function WaitlistForm({
 
   if (state.status === "done") {
     return (
-      <p role="status" className="rounded-md bg-emerald-50 px-4 py-3 text-base text-emerald-900">
+      <p role="status" className="rounded-control bg-success-soft px-4 py-3 text-base text-success">
         {state.message}
       </p>
     );
@@ -40,7 +41,7 @@ export function WaitlistForm({
 
   return (
     <form ref={formRef} action={action} className="flex flex-col gap-4" noValidate>
-      <p className="text-base text-zinc-700">
+      <p className="text-base text-fg-muted">
         La beta es por invitación. Dejá tus datos y, cuando haya lugar, te escribimos con un link
         para crear tu cuenta.
       </p>
@@ -58,7 +59,7 @@ export function WaitlistForm({
           className={field}
         />
         {errors.name ? (
-          <span id="acceso-name-error" className="text-sm text-red-700">
+          <span id="acceso-name-error" className="text-sm text-danger">
             {errors.name}
           </span>
         ) : null}
@@ -78,7 +79,7 @@ export function WaitlistForm({
           className={field}
         />
         {errors.email ? (
-          <span id="acceso-email-error" className="text-sm text-red-700">
+          <span id="acceso-email-error" className="text-sm text-danger">
             {errors.email}
           </span>
         ) : null}
@@ -109,7 +110,7 @@ export function WaitlistForm({
           ))}
         </select>
         {errors.role ? (
-          <span id="acceso-role-error" className="text-sm text-red-700">
+          <span id="acceso-role-error" className="text-sm text-danger">
             {errors.role}
           </span>
         ) : null}
@@ -127,11 +128,11 @@ export function WaitlistForm({
           }
           className={field}
         />
-        <span id="acceso-heard-hint" className="text-xs text-zinc-600">
+        <span id="acceso-heard-hint" className="text-xs text-fg-subtle">
           No pongas datos personales.
         </span>
         {errors.heardFrom ? (
-          <span id="acceso-heard-error" className="text-sm text-red-700">
+          <span id="acceso-heard-error" className="text-sm text-danger">
             {errors.heardFrom}
           </span>
         ) : null}
@@ -148,7 +149,7 @@ export function WaitlistForm({
       <button
         type="submit"
         disabled={pending}
-        className="min-h-11 rounded-md bg-zinc-900 px-4 py-2 text-base font-medium text-white disabled:cursor-not-allowed disabled:bg-zinc-500"
+        className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       >
         {pending ? "Enviando…" : "Pedir acceso"}
       </button>
@@ -156,12 +157,12 @@ export function WaitlistForm({
       {/* Gris mientras se envía; rojo y role="alert" solo con un error real */}
       <p
         role={showError ? "alert" : "status"}
-        className={`min-h-5 text-sm ${showError ? "text-red-700" : "text-zinc-700"}`}
+        className={`min-h-5 text-sm ${showError ? "text-danger" : "text-fg-muted"}`}
       >
         {showError && state.status === "error" ? state.message : ""}
       </p>
 
-      <p className="text-xs text-zinc-600">
+      <p className="text-xs text-fg-subtle">
         Guardamos tu nombre, email, carrera y cómo nos conociste solo para avisarte cuando haya
         lugar. Los ve solo quien administra el proyecto. Más info en{" "}
         <Link href="/legal/privacidad" className="underline">

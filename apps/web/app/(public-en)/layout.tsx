@@ -35,33 +35,29 @@ export const metadata: Metadata = {
 };
 
 const SKIP_CLASS =
-  "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-zinc-900 focus:ring-2 focus:ring-zinc-900";
+  "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-control focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-fg focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-focus";
 const LINK_CLASS =
-  "inline-flex min-h-11 items-center px-2 text-sm text-zinc-700 underline-offset-2 hover:underline";
+  "inline-flex min-h-11 items-center px-2 text-sm text-fg-muted underline-offset-2 hover:underline hover:text-fg";
 
 // Sin `inline-flex` en la base: junto con `hidden`, Tailwind deja ganar a `inline-flex` y el link se ve a 360 px
 const DESKTOP_LINK_CLASS =
-  "hidden min-h-11 items-center px-2 text-sm text-zinc-700 underline-offset-2 hover:underline sm:inline-flex";
+  "hidden min-h-11 items-center px-2 text-sm text-fg-muted underline-offset-2 hover:underline hover:text-fg sm:inline-flex";
 
-const FOOTER_LINK = "inline-flex min-h-11 items-center px-2 underline-offset-2 hover:underline";
+const FOOTER_LINK =
+  "inline-flex min-h-11 items-center px-2 text-fg-muted underline underline-offset-2 hover:text-fg";
 
 export default function PublicEnLayout({ children }: { children: ReactNode }) {
   return (
-    <div lang="en" className="flex min-h-screen flex-col">
+    <div lang="en" className="flex min-h-screen flex-col bg-surface text-fg">
       <a href="#content" className={SKIP_CLASS}>
         Skip to content
       </a>
-      <header className="border-b border-zinc-200 bg-white">
+      <header className="border-b border-line bg-surface">
         <nav
           aria-label="Main"
           className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-2 gap-y-1 px-4 py-1"
         >
-          <Link
-            href="/"
-            hrefLang="es"
-            lang="es"
-            className={`${LINK_CLASS} font-semibold text-zinc-900`}
-          >
+          <Link href="/" hrefLang="es" lang="es" className={`${LINK_CLASS} font-semibold text-fg`}>
             <span lang="en">Home</span>
           </Link>
           <div className="flex flex-wrap items-center justify-end gap-x-1 gap-y-1">
@@ -82,7 +78,7 @@ export default function PublicEnLayout({ children }: { children: ReactNode }) {
               href="/acceso"
               hrefLang="es"
               lang="es"
-              className="inline-flex min-h-11 items-center rounded-md bg-zinc-900 px-4 text-sm font-medium text-white"
+              className="inline-flex min-h-11 items-center rounded-control bg-brand px-4 text-sm font-medium text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
             >
               <span lang="en">Request access</span>
             </Link>
@@ -92,7 +88,7 @@ export default function PublicEnLayout({ children }: { children: ReactNode }) {
       <main id="content" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
         {children}
       </main>
-      <footer className="flex flex-wrap items-center justify-center gap-x-2 border-t border-zinc-200 px-4 py-3 text-center text-xs text-zinc-600">
+      <footer className="flex flex-wrap items-center justify-center gap-x-2 border-t border-line px-4 py-3 text-center text-xs text-fg-muted">
         <Link href="/mercado" hrefLang="es" lang="es" className={`${FOOTER_LINK} sm:hidden`}>
           <span lang="en">Market</span>
         </Link>
