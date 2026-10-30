@@ -1,5 +1,5 @@
 ---
-actualizado: 2026-10-07
+actualizado: 2026-10-27
 ---
 
 # Términos de uso de la beta cerrada
@@ -8,7 +8,7 @@ Estos términos se leen junto con la [Política de privacidad](/legal/privacidad
 
 ## 1. Qué es Job Search OS
 
-Una herramienta de apoyo para organizar tu búsqueda laboral: reúne los avisos que cargás, los que te llegan por los emails que reenviás y los que toma de fuentes públicas de avisos según los puestos que buscás; los evalúa con inteligencia artificial contra tu perfil y redacta borradores de respuestas para que los revises. La ofrece **[RESPONSABLE]** ("nosotros"), con domicilio en **[DOMICILIO]**. Contacto: **[EMAIL DE CONTACTO]**.
+Una herramienta de apoyo para organizar tu búsqueda laboral: reúne los avisos que cargás, los que te llegan por los emails que reenviás y los que toma de fuentes públicas de avisos según las carreras que buscás; los evalúa con inteligencia artificial contra tu perfil y redacta borradores de respuestas para que los revises. La ofrece **[RESPONSABLE]** ("nosotros"), con domicilio en **[DOMICILIO]**. Contacto: **[EMAIL DE CONTACTO]**.
 
 También hay una demo pública (`/demo`) que muestra cómo evalúa ofertas reales para tres perfiles inventados. No usa datos de ninguna persona: sus evaluaciones son de esos perfiles ficticios y sirven solo de ejemplo.
 
@@ -39,7 +39,7 @@ En la medida en que la ley lo permita, no respondemos por daños que resulten de
 
 ## 6. Topes de uso y costos
 
-El uso de IA tiene un costo que absorbemos. Para controlarlo hay **topes de uso por usuario** (por ejemplo, de evaluaciones por día, de puestos que podés seguir y de emails por hora) y un tope global: al alcanzarlos, algunas funciones (evaluaciones nuevas, borradores) se pausan hasta el período siguiente o hasta que los ajustemos. Los topes pueden cambiar. La beta es gratuita. Si en algún momento el servicio pasa a ser pago, te avisamos antes y no se te cobra nada sin que lo aceptes expresamente. Precio, reembolsos y forma de cobro: [A DEFINIR con Ani].
+El uso de IA tiene un costo que absorbemos. Para controlarlo hay **topes de uso por usuario** (por ejemplo, de evaluaciones por día, de carreras que podés seguir y de emails por hora) y un tope global: al alcanzarlos, algunas funciones (evaluaciones nuevas, borradores) se pausan hasta el período siguiente o hasta que los ajustemos. Los topes pueden cambiar. La beta es gratuita. Si en algún momento el servicio pasa a ser pago, te avisamos antes y no se te cobra nada sin que lo aceptes expresamente. Precio, reembolsos y forma de cobro: [A DEFINIR con Ani].
 
 ## 7. Suspensión y baja
 

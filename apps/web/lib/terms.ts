@@ -5,7 +5,7 @@ import { z } from "zod";
  * Subir la versión cuando cambie el texto de `content/legal/{terminos,privacidad}.md`: cada cuenta
  * nueva guarda la versión que aceptó (users.terms_version) junto con la fecha.
  */
-export const TERMS_VERSION = "2026-10-07";
+export const TERMS_VERSION = "2026-10-27";
 
 /** Casilla de /register: llega como "on" desde un checkbox HTML; cualquier otra cosa es "no aceptó". */
 const acceptedSchema = z.literal("on");
