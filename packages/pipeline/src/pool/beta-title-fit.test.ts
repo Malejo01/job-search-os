@@ -26,3 +26,14 @@ describe("titleFit · administración de empresas", () => {
     expect(titleFit(title, "administracion_empresas")).toBe(fit);
   });
 });
+
+describe("titleFit · comunicación", () => {
+  it.each([
+    ["Periodista", 2],
+    ["Telecom Specialist", 0],
+    ["Ingeniero de Redes", 0],
+    ["Analista", 1],
+  ] as [string, number][])("%s → %i", (title, fit) => {
+    expect(titleFit(title, "comunicacion")).toBe(fit);
+  });
+});

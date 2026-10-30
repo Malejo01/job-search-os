@@ -174,3 +174,67 @@ describe("Administración de empresas", () => {
     );
   });
 });
+
+describe("Comunicación y prensa", () => {
+  it.each([
+    "Analista de Comunicación",
+    "Responsable de Comunicación Institucional",
+    "Comunicación Interna",
+    "Internal Communications Manager",
+    "Communications Specialist",
+    "Communications Coordinator",
+    "Communications Officer",
+    "Jefe de Prensa",
+    "Jefa de Prensa",
+    "Responsable de Prensa",
+    "Agente de Prensa",
+    "Press Officer",
+    "Media Relations Manager",
+    "Periodista",
+    "Periodista de redes sociales",
+    "Redactor/a",
+    "Editor",
+    "Editora Digital",
+    "Productor Periodístico",
+    "Journalist",
+    "Reporter",
+    "Content Writer",
+    "Content Editor",
+    "UX Writer",
+  ])("%s es de la carrera", (title) => {
+    expect(is(title, "comunicacion")).toBe(true);
+  });
+
+  it.each([
+    "Técnico en Telecomunicaciones",
+    "Ingeniero de Telecomunicaciones",
+    "Communications Engineer",
+    "Analista de Comunicaciones Unificadas",
+    "Unified Communications Specialist",
+    "Network Communications Specialist",
+    "Especialista en Comunicación por Radiofrecuencia",
+    "Responsable de Redes de Datos y Comunicación",
+    "Técnico de Fibra Óptica",
+    "Operario de Prensa Hidráulica",
+    "Responsable de Prensa de Inyección",
+    "Jefe de Prensa Matricería",
+    "Emergency Communications Officer",
+    "911 Communications Specialist",
+    "Dispatch Communications Coordinator",
+    "Moderador de Contenido",
+    "Content Moderator / Content Writer",
+    "Video Editor",
+    "Editor de Video",
+    "Photo Editor",
+    "Court Reporter",
+    "Analista de Medios de Pago",
+    "Tele Operador",
+  ])("%s no es de la carrera", (title) => {
+    expect(is(title, "comunicacion")).toBe(false);
+  });
+
+  it("«prensista» y «prensa» industrial no suman la carrera", () => {
+    expect(hints("Prensista")).not.toContain("comunicacion");
+    expect(hints("Operario de Prensa")).not.toContain("comunicacion");
+  });
+});

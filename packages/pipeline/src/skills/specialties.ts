@@ -180,6 +180,47 @@ export const ROLE_SPECIALTIES: Partial<Record<RoleKey, readonly RoleSpecialty[]>
     ]),
     chip("sector_publico", "Sector público"),
   ],
+  comunicacion: [
+    chip("comunicacion_institucional", "Comunicación institucional", [
+      "analista de comunicacion",
+      "comunicacion institucional",
+      "communications specialist",
+      "communications coordinator",
+      "communications officer",
+    ]),
+    chip("comunicacion_interna", "Comunicación interna", [
+      "comunicacion interna",
+      "internal communications",
+    ]),
+    chip("prensa_y_medios", "Prensa y medios", [
+      "jefe de prensa",
+      "jefa de prensa",
+      "responsable de prensa",
+      "agente de prensa",
+      "press officer",
+      "media relations",
+    ]),
+    chip("periodismo", "Periodismo", [
+      "periodista",
+      "productor periodistico",
+      "productora periodistica",
+      "journalist",
+      "reporter",
+      "editor",
+      "editora",
+    ]),
+    chip("redaccion_y_contenidos", "Redacción y contenidos", [
+      "redactor",
+      "redactora",
+      "content writer",
+      "content editor",
+      "ux writer",
+    ]),
+    chip("comunicacion_politica_y_de_gobierno", "Comunicación política y de gobierno"),
+    chip("ong_y_comunidad", "ONG y comunidad"),
+    chip("audiovisual_y_radio", "Audiovisual y radio"),
+    chip("opinion_publica", "Opinión pública"),
+  ],
   marketing_digital: [
     chip("marketing_digital_y_anuncios", "Marketing digital y anuncios", [
       "marketing digital",

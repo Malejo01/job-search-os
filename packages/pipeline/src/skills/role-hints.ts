@@ -696,7 +696,33 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "analista de estrategia",
     "management consultant",
   ],
-  comunicacion: [],
+  comunicacion: [
+    "analista de comunicacion",
+    "comunicacion institucional",
+    "comunicacion interna",
+    "internal communications",
+    "communications specialist",
+    "communications coordinator",
+    "communications officer",
+    "jefe de prensa",
+    "jefa de prensa",
+    "responsable de prensa",
+    "agente de prensa",
+    "press officer",
+    "media relations",
+    "periodista",
+    "redactor",
+    "redactora",
+    "editor",
+    "editora",
+    "productor periodistico",
+    "productora periodistica",
+    "journalist",
+    "reporter",
+    "content writer",
+    "content editor",
+    "ux writer",
+  ],
   relaciones_internacionales: [],
 };
 
@@ -704,6 +730,32 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
 export const TITLE_EXCLUSIONS: Partial<Record<RoleKey, readonly string[]>> = {
   // C1-3 (ADR-027): derecho de otra disciplina (ingeniería legal, enfermería legal, traducción
   // jurídica, ventas). «Relaciones laborales» queda sin término: es RRHH y solo encaja parcialmente.
+  // C1-3: telecomunicaciones y redes de datos usan «comunicaciones»; moderación de contenido y medios
+  // de pago no son comunicación. «Redes» solo cuenta como red de datos, no como redes sociales.
+  comunicacion: [
+    "tele",
+    "telecom",
+    "telecomunicaciones",
+    "unificadas",
+    "unified",
+    "radiofrecuencia",
+    "redes de datos",
+    "redes de comunicaciones",
+    "redes ip",
+    "redes moviles",
+    "network",
+    "fibra",
+    "engineer",
+    "ingeniero",
+    "ingeniera",
+    "tecnico",
+    "tecnica",
+    "moderador",
+    "moderadora",
+    "moderator",
+    "rater",
+    "medios de pago",
+  ],
   // Encargados de local o sucursal no son administración de empresas.
   administracion_empresas: [
     "encargado de local",
@@ -833,6 +885,23 @@ export const TERM_EXCLUSIONS: Partial<
       ["engineer", "quimico", "quimica", "planta", "plant"],
     ),
     buyer: ["media", "paid", "real estate", "travel"],
+  },
+  // Prensa industrial, despachos de emergencia, editores de video o de código y taquígrafos no son
+  // comunicación.
+  comunicacion: {
+    ...termExclusions(
+      ["jefe de prensa", "jefa de prensa", "responsable de prensa", "agente de prensa"],
+      ["operario", "prensista", "hidraulica", "inyeccion", "matriceria"],
+    ),
+    ...termExclusions(
+      ["communications officer", "communications specialist", "communications coordinator"],
+      ["dispatch", "911", "emergency"],
+    ),
+    ...termExclusions(
+      ["editor", "editora"],
+      ["video", "code", "codigo", "photo", "foto", "imagen", "audio", "sonido", "sound"],
+    ),
+    reporter: ["court"],
   },
   // «Compliance officer» de seguridad, IT, SOC, farma o asuntos regulatorios no es derecho.
   abogacia: termExclusions(

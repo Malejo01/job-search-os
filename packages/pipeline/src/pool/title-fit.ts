@@ -159,6 +159,14 @@ const VETO_TERMS: Partial<Record<RoleKey, readonly string[]>> = {
   abogacia: ["engineer", "developer", "software", "sistemas"],
   // Administración es la más genérica: los títulos técnicos con categoría de gestión no son suyos.
   administracion_empresas: ["engineer", "developer", "software", "sistemas"],
+  comunicacion: [
+    "telecom",
+    "telecomunicaciones",
+    "engineer",
+    "ingeniero",
+    "ingeniera",
+    "ingenieria",
+  ],
   // Nunca "customer support": «Customer Support Engineer» con categoría de soporte técnico sigue
   // siendo soporte_it.
   soporte_it: [
