@@ -232,7 +232,7 @@ test.describe("Flujo 63: requisitos del aviso", () => {
       await login(page);
       for (const id of [sin, roto]) {
         await page.goto(`/jobs/${id}`);
-        await expect(page.getByRole("heading", { name: "Lo que te falta" })).toBeVisible();
+        await expect(page.getByRole("heading", { name: "Te falta o te frena" })).toBeVisible();
         await expect(page.getByRole("region", { name: "Requisitos del aviso" })).toHaveCount(0);
       }
     } finally {

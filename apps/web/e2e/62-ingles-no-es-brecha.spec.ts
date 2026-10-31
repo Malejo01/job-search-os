@@ -49,11 +49,9 @@ test.describe("Flujo 62: el inglés no es brecha si el aviso no lo pide", () => 
       await evaluateWithGaps(jobId, ["Inglés avanzado", "Experiencia con Kubernetes"]);
       await login(page);
       await page.goto(`/jobs/${jobId}`);
-      const block = page.locator("div", {
-        has: page.getByRole("heading", { name: "Lo que te falta" }),
-      });
-      await expect(block.first()).toContainText("Experiencia con Kubernetes");
-      await expect(block.first()).not.toContainText("Inglés avanzado");
+      const block = page.getByTestId("fit-falta");
+      await expect(block).toContainText("Experiencia con Kubernetes");
+      await expect(block).not.toContainText("Inglés avanzado");
     } finally {
       await deleteJob(jobId);
     }
