@@ -16,10 +16,13 @@ import { saveTargetRolesAction } from "./actions";
  */
 export function TargetRolesForm({
   current,
+  specialtySelection,
   limit,
   status,
 }: {
   current: RoleKey[];
+  /** Áreas guardadas por carrera (C3-3); null = «Todas las áreas». */
+  specialtySelection?: unknown;
   limit: number;
   status?: "guardado";
 }) {
@@ -57,6 +60,7 @@ export function TargetRolesForm({
         <RolePickerWithProposal
           name="targetRoles"
           selected={current}
+          specialtySelection={specialtySelection}
           limit={limit}
           defaultLimit={TARGET_ROLES_DEFAULT_LIMIT}
           groups={groups}

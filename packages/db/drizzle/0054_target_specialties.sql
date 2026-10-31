@@ -1,0 +1,2 @@
+ALTER TABLE "profiles" ADD COLUMN "target_specialties" jsonb;--> statement-breakpoint
+ALTER TABLE "profiles" ADD CONSTRAINT "profiles_target_specialties_shape" CHECK ("profiles"."target_specialties" is null or (jsonb_typeof("profiles"."target_specialties") = 'object' and octet_length("profiles"."target_specialties"::text) <= 8192));
