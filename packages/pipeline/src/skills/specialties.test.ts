@@ -14,6 +14,45 @@ it("cubre al menos las dos carreras que se amplían", () => {
   expect(roles).toEqual(expect.arrayContaining(["finanzas_contabilidad", "marketing_digital"]));
 });
 
+describe("ROLE_SPECIALTIES · las seis carreras de la beta", () => {
+  it.each([
+    ["finanzas_contabilidad", 10],
+    ["abogacia", 11],
+    ["administracion_empresas", 10],
+    ["comunicacion", 9],
+    ["marketing_digital", 11],
+    ["relaciones_internacionales", 8],
+  ] as [RoleKey, number][])("%s tiene %i chips", (role, n) => {
+    expect(specialtiesFor(role)).toHaveLength(n);
+  });
+
+  it("los rótulos son los del spec", () => {
+    expect(specialtiesFor("abogacia").map((c) => c.label)).toEqual([
+      "Empresas y contratos",
+      "Laboral",
+      "Impuestos",
+      "Juicios y tribunales",
+      "Penal",
+      "Familia y sucesiones",
+      "Cumplimiento y prevención de lavado",
+      "Marcas, patentes y datos personales",
+      "Sector público",
+      "Inmobiliario y registral",
+      "Internacional e inmigración",
+    ]);
+    expect(specialtiesFor("relaciones_internacionales").map((c) => c.label)).toEqual([
+      "Comercio exterior",
+      "Cooperación internacional y ONG",
+      "Organismos internacionales",
+      "Relaciones institucionales y asuntos públicos",
+      "Análisis político y riesgo",
+      "Integración y negociaciones",
+      "Migraciones y movilidad",
+      "Diplomacia",
+    ]);
+  });
+});
+
 describe("ROLE_SPECIALTIES · forma", () => {
   it("solo tiene claves de ROLE_KEYS", () => {
     for (const role of roles) expect(ROLE_KEYS).toContain(role);
