@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useActionState, useEffect, useRef } from "react";
 import { submitWaitlist, type WaitlistState } from "./actions";
 
@@ -19,6 +20,10 @@ export function WaitlistForm({
   groups: RoleOptionGroup[];
   contact: { email: string; href: string } | null;
 }) {
+  const searchParams = useSearchParams();
+  const origen = searchParams.get("origen");
+  const initialHeardFrom = origen === "voces-jovenes" ? "Voces Jóvenes" : "";
+
   const [state, action, pending] = useActionState(submitWaitlist, INITIAL);
   const formRef = useRef<HTMLFormElement>(null);
   // Mientras se envía no se muestran los errores del intento anterior
@@ -70,6 +75,7 @@ export function WaitlistForm({
         <input
           name="email"
           type="email"
+          inputMode="email"
           autoComplete="email"
           required
           aria-required="true"
@@ -121,6 +127,8 @@ export function WaitlistForm({
         <input
           name="heardFrom"
           type="text"
+          defaultValue={initialHeardFrom}
+          key={initialHeardFrom}
           list="acceso-heard-options"
           maxLength={200}
           aria-invalid={errors.heardFrom ? true : undefined}
