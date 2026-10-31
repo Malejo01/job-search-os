@@ -139,3 +139,30 @@ describe("specialtyIdsForTitle", () => {
     );
   });
 });
+
+describe("ROLE_SPECIALTIES · ejemplos y áreas poco publicadas (R2-2)", () => {
+  it.each(roles)("%s: cada chip tiene 2 o 3 ejemplos en lenguaje simple", (role) => {
+    for (const chip of specialtiesFor(role)) {
+      expect(chip.examples).toBeDefined();
+      expect(chip.examples!.length).toBeGreaterThanOrEqual(2);
+      expect(chip.examples!.length).toBeLessThanOrEqual(3);
+      for (const ex of chip.examples!) {
+        expect(ex.trim().length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("marca 'te avisamos si aparece' (rare) exactamente en las 3 áreas poco publicadas", () => {
+    const rareChips: { role: RoleKey; id: string }[] = [];
+    for (const role of roles) {
+      for (const chip of specialtiesFor(role)) {
+        if (chip.rare) rareChips.push({ role, id: chip.id });
+      }
+    }
+    expect(rareChips).toEqual([
+      { role: "finanzas_contabilidad", id: "concursos_y_pericias_judiciales" },
+      { role: "abogacia", id: "familia_y_sucesiones" },
+      { role: "relaciones_internacionales", id: "diplomacia" },
+    ]);
+  });
+});
