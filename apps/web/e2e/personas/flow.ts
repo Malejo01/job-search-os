@@ -106,12 +106,40 @@ export async function register(page: Page, run: Run): Promise<void> {
   await page.getByRole("button", { name: "Crear cuenta" }).click();
   // El registro deja la sesión iniciada: va directo al onboarding
   await page.waitForURL("**/onboarding**");
+
+  // Si la carrera de la persona es de la beta (sin listar en el catálogo público general),
+  // se vincula a su perfil para que el selector muestre el checkbox según la regla («las conserva quien las tiene»)
+  if (persona.role === "abogacia" || persona.role === "comunicacion") {
+    const { db, close } = ownerDb();
+    try {
+      const [user] = await db
+        .select({ id: s.users.id })
+        .from(s.users)
+        .where(eq(s.users.email, persona.email));
+      if (user) {
+        run.userId = user.id;
+        await db
+          .update(s.profiles)
+          .set({ targetRoles: [persona.role] })
+          .where(eq(s.profiles.userId, user.id));
+        await page.reload();
+      }
+    } finally {
+      await close();
+    }
+  }
 }
 
 /** Paso 1: el puesto está en su grupo del selector, se elige y se completa el perfil. */
 export async function completeStep1(page: Page, run: Run): Promise<void> {
   const { persona } = run;
-  await expect(page.locator('input[name="targetRoles"]:checked')).toHaveCount(0);
+  const isPreselected = await page
+    .locator(`input[name="targetRoles"][value="${persona.role}"]`)
+    .isChecked()
+    .catch(() => false);
+  if (!isPreselected) {
+    await expect(page.locator('input[name="targetRoles"]:checked')).toHaveCount(0);
+  }
   // El grupo se verifica por su fieldset/legend y el puesto por el value de la casilla
   const group = page.getByRole("group", { name: persona.roleGroup, exact: true });
   const box = group.locator(`input[name="targetRoles"][value="${persona.role}"]`);
