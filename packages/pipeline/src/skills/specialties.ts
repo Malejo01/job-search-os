@@ -18,6 +18,10 @@ export type RoleSpecialty = {
   label: string;
   /** Frases del título, ya sin acentos ni mayúsculas, con las reglas de `hasTerm`. */
   terms: readonly string[];
+  /** Ejemplos de puesto en lenguaje simple (2 o 3 por especialidad). */
+  examples?: readonly string[];
+  /** Áreas que casi no se publican («te avisamos si aparece»). */
+  rare?: boolean;
 };
 
 const chip = (id: string, label: string, terms: readonly string[] = []): RoleSpecialty => ({
@@ -353,9 +357,229 @@ export const ROLE_SPECIALTIES: Partial<Record<RoleKey, readonly RoleSpecialty[]>
   ],
 };
 
+/**
+ * Metadatos para la UI de cada especialidad (R2-2): 2 o 3 ejemplos de puesto en lenguaje simple
+ * y marca de áreas que casi no se publican («te avisamos si aparece»).
+ */
+export const SPECIALTY_METADATA: Readonly<
+  Record<string, { readonly examples: readonly string[]; readonly rare?: boolean }>
+> = {
+  // finanzas_contabilidad
+  "finanzas_contabilidad:impuestos": {
+    examples: ["analista impositivo/a", "tax analyst", "especialista en impuestos"],
+  },
+  "finanzas_contabilidad:sueldos": {
+    examples: ["liquidador/a de sueldos", "payroll", "analista de nómina"],
+  },
+  "finanzas_contabilidad:contabilidad_y_balances": {
+    examples: ["contador/a", "analista contable", "facturación"],
+  },
+  "finanzas_contabilidad:auditoria": {
+    examples: ["auditor/a interno/a", "control interno", "auditor/a contable"],
+  },
+  "finanzas_contabilidad:costos": {
+    examples: ["analista de costos", "control de costos"],
+  },
+  "finanzas_contabilidad:presupuesto_y_control_de_gestion": {
+    examples: ["analista financiero/a", "control de gestión", "planeamiento financiero"],
+  },
+  "finanzas_contabilidad:tesoreria_pagos_y_cobranzas": {
+    examples: ["analista de tesorería", "cuentas por pagar", "cobranzas"],
+  },
+  "finanzas_contabilidad:prevencion_de_lavado_y_compliance": {
+    examples: ["analista de compliance", "prevención de lavado", "AML"],
+  },
+  "finanzas_contabilidad:concursos_y_pericias_judiciales": {
+    examples: ["perito contable", "auxiliar de justicia"],
+    rare: true,
+  },
+  "finanzas_contabilidad:sector_publico": {
+    examples: ["administración pública", "contabilidad gubernamental"],
+  },
+
+  // abogacia
+  "abogacia:empresas_y_contratos": {
+    examples: ["abogado/a corporativo/a", "analista de contratos", "asesor/a legal"],
+  },
+  "abogacia:laboral": {
+    examples: ["abogado/a laboralista", "asesor/a en derecho laboral"],
+  },
+  "abogacia:impuestos": {
+    examples: ["abogado/a tributarista", "asesor/a fiscal"],
+  },
+  "abogacia:juicios_y_tribunales": {
+    examples: ["abogado/a litigante", "procurador/a"],
+  },
+  "abogacia:penal": {
+    examples: ["abogado/a penalista", "asesor/a legal penal"],
+  },
+  "abogacia:familia_y_sucesiones": {
+    examples: ["derecho de familia", "sucesiones", "divorcios"],
+    rare: true,
+  },
+  "abogacia:cumplimiento_y_prevencion_de_lavado": {
+    examples: ["compliance officer", "oficial de cumplimiento", "prevención de lavado"],
+  },
+  "abogacia:marcas_patentes_y_datos_personales": {
+    examples: ["abogado/a de marcas y patentes", "privacidad y datos personales"],
+  },
+  "abogacia:sector_publico": {
+    examples: ["abogado/a en sector público", "asesor/a legal en organismos"],
+  },
+  "abogacia:inmobiliario_y_registral": {
+    examples: ["derecho inmobiliario", "contratos de locación", "trámites registrales"],
+  },
+  "abogacia:internacional_e_inmigracion": {
+    examples: ["derecho internacional", "trámites migratorios y visas"],
+  },
+
+  // administracion_empresas
+  "administracion_empresas:administracion_general": {
+    examples: [
+      "analista administrativo/a",
+      "jefe/a de administración",
+      "coordinador/a administrativo/a",
+    ],
+  },
+  "administracion_empresas:presupuesto_y_control_de_gestion": {
+    examples: ["control de gestión", "analista de presupuesto", "planeamiento operativo"],
+  },
+  "administracion_empresas:compras": {
+    examples: ["analista de compras", "comprador/a", "procurement analyst"],
+  },
+  "administracion_empresas:logistica_y_cadena_de_suministro": {
+    examples: ["analista de logística", "supply chain analyst", "planificador/a de demanda"],
+  },
+  "administracion_empresas:procesos_y_mejora_continua": {
+    examples: ["analista de procesos", "mejora continua", "eficiencia operativa"],
+  },
+  "administracion_empresas:comercial_y_precios": {
+    examples: ["analista comercial", "analista de pricing", "gestión comercial"],
+  },
+  "administracion_empresas:finanzas_de_la_empresa": {
+    examples: ["finanzas corporativas", "tesorería operativa", "análisis financiero"],
+  },
+  "administracion_empresas:personas_rrhh": {
+    examples: ["administración de personal", "analista de recursos humanos"],
+  },
+  "administracion_empresas:estrategia_y_consultoria": {
+    examples: ["analista de estrategia", "consultor/a de negocios"],
+  },
+  "administracion_empresas:sector_publico": {
+    examples: ["gestión pública", "administración gubernamental"],
+  },
+
+  // comunicacion
+  "comunicacion:comunicacion_institucional": {
+    examples: [
+      "responsable de comunicación",
+      "comunicación corporativa",
+      "asuntos institucionales",
+    ],
+  },
+  "comunicacion:comunicacion_interna": {
+    examples: ["comunicación interna", "clima y cultura laboral", "canales internos"],
+  },
+  "comunicacion:prensa_y_medios": {
+    examples: ["jefe/a de prensa", "relaciones con medios", "vocero/a de prensa"],
+  },
+  "comunicacion:periodismo": {
+    examples: ["periodista", "redactor/a de noticias", "producción periodística"],
+  },
+  "comunicacion:redaccion_y_contenidos": {
+    examples: ["redactor/a de contenidos", "copywriter", "editor/a de contenidos"],
+  },
+  "comunicacion:comunicacion_politica_y_de_gobierno": {
+    examples: ["comunicación de gobierno", "vocería política", "campañas de comunicación"],
+  },
+  "comunicacion:ong_y_comunidad": {
+    examples: ["comunicación comunitaria", "proyectos sociales", "relaciones con la comunidad"],
+  },
+  "comunicacion:audiovisual_y_radio": {
+    examples: ["producción audiovisual", "edición de podcast", "contenidos multimedia"],
+  },
+  "comunicacion:opinion_publica": {
+    examples: ["analista de opinión pública", "estudios de opinión", "investigación social"],
+  },
+
+  // relaciones_internacionales
+  "relaciones_internacionales:comercio_exterior": {
+    examples: ["analista de comercio exterior", "asistente de comex", "despachante de aduana"],
+  },
+  "relaciones_internacionales:cooperacion_internacional_y_ong": {
+    examples: [
+      "oficial de programas internacionales",
+      "gestión de convenios",
+      "cooperación técnica",
+    ],
+  },
+  "relaciones_internacionales:organismos_internacionales": {
+    examples: ["analista en organismos internacionales", "relaciones multilaterales"],
+  },
+  "relaciones_internacionales:relaciones_institucionales_y_asuntos_publicos": {
+    examples: ["relaciones institucionales", "asuntos públicos", "government affairs"],
+  },
+  "relaciones_internacionales:analisis_politico_y_riesgo": {
+    examples: ["analista de riesgo político", "análisis geopolítico", "análisis de coyuntura"],
+  },
+  "relaciones_internacionales:integracion_y_negociaciones": {
+    examples: ["negociaciones internacionales", "acuerdos comerciales"],
+  },
+  "relaciones_internacionales:migraciones_y_movilidad": {
+    examples: ["movilidad global", "gestión de visados", "relocalización internacional"],
+  },
+  "relaciones_internacionales:diplomacia": {
+    examples: ["carrera diplomática", "cancillería", "representación exterior"],
+    rare: true,
+  },
+
+  // marketing_digital
+  "marketing_digital:marketing_digital_y_anuncios": {
+    examples: ["especialista en marketing digital", "paid media", "analista SEO y SEM"],
+  },
+  "marketing_digital:redes_y_contenidos": {
+    examples: ["community manager", "creador/a de contenido", "social media analyst"],
+  },
+  "marketing_digital:marca": {
+    examples: ["brand manager", "asistente de marca", "gestión de marca"],
+  },
+  "marketing_digital:trade_marketing_y_puntos_de_venta": {
+    examples: ["analista de trade marketing", "promociones en punto de venta"],
+  },
+  "marketing_digital:investigacion_de_mercado": {
+    examples: ["analista de investigación de mercado", "insights del consumidor"],
+  },
+  "marketing_digital:crm_y_ecommerce": {
+    examples: ["especialista en CRM", "email marketing", "analista de ecommerce"],
+  },
+  "marketing_digital:agencia_y_medios": {
+    examples: ["planificador/a de medios", "ejecutivo/a de cuentas en agencia"],
+  },
+  "marketing_digital:prensa": {
+    examples: ["relaciones públicas", "PR specialist", "prensa y difusión"],
+  },
+  "marketing_digital:eventos_y_ceremonial": {
+    examples: ["organizador/a de eventos", "coordinador/a de eventos y congresos"],
+  },
+  "marketing_digital:relaciones_institucionales": {
+    examples: ["relaciones institucionales", "asuntos corporativos"],
+  },
+  "marketing_digital:rse_y_sustentabilidad": {
+    examples: ["analista de sustentabilidad", "responsabilidad social empresaria"],
+  },
+};
+
 /** Los chips de la carrera, en el orden en que se muestran; vacío si la carrera no tiene. */
 export function specialtiesFor(role: RoleKey): readonly RoleSpecialty[] {
-  return ROLE_SPECIALTIES[role] ?? [];
+  const list = ROLE_SPECIALTIES[role] ?? [];
+  return list.map((c) => {
+    const meta = SPECIALTY_METADATA[`${role}:${c.id}`];
+    return {
+      ...c,
+      examples: meta?.examples ?? [],
+      ...(meta?.rare ? { rare: true } : {}),
+    };
+  });
 }
 
 /** Los términos de título de los chips pedidos, sin repetir. Los ids que no existen se ignoran. */
