@@ -35,7 +35,7 @@ test.describe("recuperar contraseña (JS-045)", () => {
     try {
       await page.goto(`/reset-password?token=${token}`);
       await page.getByLabel("Contraseña nueva").fill(E2E_RESET_VALUE);
-      await page.getByLabel("Repetila").fill(E2E_RESET_VALUE);
+      await page.getByLabel("Repetí la contraseña").fill(E2E_RESET_VALUE);
       await page.getByRole("button", { name: "Guardar" }).click();
       await page.waitForURL("**/login?reset=1");
       await expect(page.getByText("Contraseña actualizada.")).toBeVisible();
@@ -68,7 +68,7 @@ test.describe("recuperar contraseña (JS-045)", () => {
       const resetPage = await other.newPage();
       await resetPage.goto(`/reset-password?token=${token}`);
       await resetPage.getByLabel("Contraseña nueva").fill(E2E_RESET_VALUE);
-      await resetPage.getByLabel("Repetila").fill(E2E_RESET_VALUE);
+      await resetPage.getByLabel("Repetí la contraseña").fill(E2E_RESET_VALUE);
       await resetPage.getByRole("button", { name: "Guardar" }).click();
       await resetPage.waitForURL("**/login?reset=1");
       // La sesión que estaba abierta ya no vale: termina en /login
