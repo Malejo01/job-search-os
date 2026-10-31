@@ -57,23 +57,47 @@ pnpm inbound:replay packages/adapters/src/admin/fixtures/replay-linkedin-ejemplo
 
 Si el usuario no tiene criterios activos, el email queda en la cola manual con ese motivo: es el comportamiento normal del despacho, no un fallo del comando.
 
-## Asignar un plan (beta paga, C-11b)
+## Activar un plan (beta paga, C-11b y C3-1)
 
-El cobro es externo, con el link de Mercado Pago. Cuando alguien paga, el plan se asigna a mano con un `UPDATE` puntual en el SQL Editor de Neon, **conectado como dueño**. El rol de la app no puede cambiarlo: lo frena el trigger `profiles_plan_guard` (`packages/db/rls/0010_plan.sql`).
+El cobro es externo: la persona paga el mes con el link de Mercado Pago (ARS 20.000; los USD 15 son solo una referencia) o por transferencia, y **Mauro lo activa a mano**. La app no sabe si alguien pagó ni guarda datos de tarjetas.
+
+### Desde el panel (lo normal)
+
+`Ajustes → Planes de la beta` (`/settings/planes`, solo cuentas de `ADMIN_EMAILS` que además estén en `app_admins`; el link de Ajustes aparece con `PRICING_ENABLED=1`).
+
+- **Activar 30 días:** email de la persona (tiene que haber terminado el onboarding) y cómo llegó: **Pagó** o **Becado** (primer mes gratis). Los 30 días cuentan desde hoy; si la beta todavía no abrió, desde el 26/11/2026; si la persona ya tenía días, se suman a la fecha en la que vencía, así renovar antes de tiempo no hace perder días.
+- **Becados:** se los marca como «Becado» y cuando después pagan se los vuelve a activar como «Pagó» con el mismo link.
+- **Quitar el plan:** pasa a la persona a «gratis» y pierde los días que le quedaban. No borra nada de lo suyo.
+- **Quién tiene acceso:** la lista muestra origen y hasta cuándo llega cada persona, los que vencen antes arriba.
+- Si la persona tiene un plan viejo (fundador o pase de 3 meses), el panel no lo toca: se cambia a mano (abajo).
+
+Por dentro son las funciones `admin_plan_get`, `admin_plan_list` y `admin_plan_set` (`packages/db/rls/0015_admin_planes.sql`, `SECURITY DEFINER`, exigen `app_admins`). La fecha de fin la calcula el código (`packages/pipeline/src/plan-access.ts`); la base solo la acota (entre ahora y 400 días).
+
+### A mano (planes viejos o si el panel no anda)
+
+Con un `UPDATE` puntual en el SQL Editor de Neon, **conectado como dueño**. El rol de la app no puede cambiarlo: lo frena el trigger `profiles_plan_guard` (`packages/db/rls/0010_plan.sql`, que protege `plan`, `plan_until` y `plan_source`).
 
 ```sql
 begin;
 -- Las claves válidas son gratis, fundador, lista y pase_3_meses (packages/pipeline/src/plans.ts).
--- El pase de 3 meses lleva su fecha de fin; el mensual, la del próximo vencimiento.
+-- plan_source es 'pago', 'beca' o null.
 update profiles p
-   set plan = 'pase_3_meses', plan_until = now() + interval '90 days', updated_at = now()
+   set plan = 'lista', plan_source = 'pago', plan_until = now() + interval '30 days', updated_at = now()
   from users u
  where u.id = p.user_id and u.email = 'persona@ejemplo.test';
 -- Tiene que dar exactamente 1 fila antes de confirmar
-select p.plan, p.plan_until from profiles p join users u on u.id = p.user_id
+select p.plan, p.plan_source, p.plan_until from profiles p join users u on u.id = p.user_id
  where u.email = 'persona@ejemplo.test';
 commit;
 ```
+
+### Qué ve la persona y qué pasa al vencer
+
+- En **Ajustes → Tu plan** ve hasta qué fecha llega su acceso, si es una beca, y cómo renovar (link de Mercado Pago, transferencia por email).
+- **Tres días antes** de vencer aparece un aviso arriba de toda la app («Te quedan 2 días de acceso a la beta») con el link a cómo renovar. No hay email: ver la propuesta en el PR.
+- **Al vencer**, el plan pasa solo a «gratis» (`effectivePlan`), con los topes del gratis. El aviso cambia a «venció, tus datos siguen guardados». No se borra ni se oculta nada: ofertas, postulaciones, perfil y skills quedan igual. Al volver a activar, retoma el plan completo.
+
+### Reglas que no cambian
 
 - **Vencimiento:** un plan pago con `plan_until` vencido rige como gratis, sin que haga falta tocar nada. Con `plan_until` en null el plan no vence: usalo solo si es a propósito.
 - **Topes:** el plan cuenta solo con `PRICING_ENABLED=1`. Un tope propio del perfil (`max_target_roles` o `pool_daily_eval_limit`) le gana al del plan.

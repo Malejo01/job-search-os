@@ -1,0 +1,2 @@
+ALTER TABLE "profiles" ADD COLUMN "plan_source" text;--> statement-breakpoint
+ALTER TABLE "profiles" ADD CONSTRAINT "profiles_plan_source_check" CHECK ("profiles"."plan_source" is null or "profiles"."plan_source" in ('pago', 'beca'));

@@ -1,12 +1,19 @@
 import { schema as s } from "@job-search-os/db";
-import { isLegacyInboundAddress, limitsText, pricingEnabled } from "@job-search-os/pipeline";
+import {
+  BETA_PLAN,
+  isLegacyInboundAddress,
+  limitsText,
+  paymentLink,
+  pricingEnabled,
+} from "@job-search-os/pipeline";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { withUser } from "@/lib/db";
+import { contactLink } from "@/lib/contact";
 import { getInboundAddress } from "@/lib/inbound-address";
 import { canCreateInvitations } from "@/lib/invitations";
 import { getTargetRoles, getTargetRolesLimit } from "@/lib/onboarding";
-import { getUserPlan } from "@/lib/user-plan";
+import { getUserPlan, type UserPlan } from "@/lib/user-plan";
 import { requireUserId } from "@/lib/session";
 import { DeleteAccountForm } from "./delete-account-form";
 import { InboundAddressSection } from "./inbound-address";
@@ -88,37 +95,7 @@ export default async function SettingsPage({
         <DeleteAccountForm error={Boolean(error)} />
       </section>
 
-      {userPlan ? (
-        <section
-          aria-labelledby="tu-plan"
-          data-testid="tu-plan"
-          className="flex flex-col gap-2 rounded-card border border-line p-4"
-        >
-          <h2 id="tu-plan" className="text-lg font-medium">
-            Tu plan
-          </h2>
-          <p className="text-sm text-fg">
-            <span className="font-medium">{userPlan.plan.name}</span>
-            {userPlan.until ? ` · hasta el ${PLAN_DATE.format(userPlan.until)}` : ""}
-          </p>
-          {userPlan.expired ? (
-            <p className="text-sm text-warning">
-              Tu plan anterior venció: ahora rigen los topes del plan gratis.
-            </p>
-          ) : null}
-          <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-fg-muted">
-            {limitsText(userPlan.plan.limits, {
-              cv: process.env.CV_IMPORT_ENABLED === "1",
-              assistant: false,
-            }).map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-          <Link href="/precios" className="text-sm text-fg underline">
-            Ver los planes
-          </Link>
-        </section>
-      ) : null}
+      {userPlan ? <TuPlan userPlan={userPlan} /> : null}
 
       {canInvite ? (
         <section className="flex flex-col gap-3 rounded-card border border-line p-4">
@@ -134,6 +111,12 @@ export default async function SettingsPage({
           <Link href="/settings/metricas" className="text-sm text-fg underline">
             Métricas de la beta
           </Link>
+          {/* C3-1: activar planes (solo con los precios encendidos) */}
+          {pricing ? (
+            <Link href="/settings/planes" className="text-sm text-fg underline">
+              Planes de la beta
+            </Link>
+          ) : null}
         </section>
       ) : null}
 
@@ -182,5 +165,87 @@ export default async function SettingsPage({
         </Link>
       </section>
     </div>
+  );
+}
+
+/**
+ * «Tu plan» (C-11b y C3-1): hasta cuándo llega el acceso, si es una beca y cómo renovar. Cuando venció,
+ * lo dice y aclara que los datos siguen. El link de pago sale de `MP_LINK_LISTA`; sin link, se pide por
+ * email. El cobro y la activación son manuales: la app no sabe si la persona pagó.
+ */
+function TuPlan({ userPlan }: { userPlan: UserPlan }) {
+  const { access } = userPlan;
+  const link = paymentLink(process.env, BETA_PLAN);
+  const contact = contactLink("Renovar mi plan de la beta");
+  const renovar = access.status === "por_vencer" || access.status === "vencido";
+  return (
+    <section
+      id="tu-plan"
+      aria-labelledby="tu-plan-titulo"
+      data-testid="tu-plan"
+      className="flex scroll-mt-20 flex-col gap-2 rounded-card border border-line p-4"
+    >
+      <h2 id="tu-plan-titulo" className="text-lg font-medium">
+        Tu plan
+      </h2>
+      <p className="text-sm text-fg">
+        <span className="font-medium">{userPlan.plan.name}</span>
+        {access.status === "vencido" || !access.until
+          ? ""
+          : ` · hasta el ${PLAN_DATE.format(access.until)}`}
+        {access.becado && access.status !== "vencido" ? " · beca: primer mes gratis" : ""}
+      </p>
+      {access.status === "por_vencer" && access.daysLeft !== null ? (
+        <p data-testid="plan-por-vencer" className="text-sm text-info">
+          {access.daysLeft === 1 ? "Te queda 1 día" : `Te quedan ${access.daysLeft} días`} de
+          acceso.
+        </p>
+      ) : null}
+      {access.status === "vencido" ? (
+        <p data-testid="plan-vencido" className="text-sm text-warning">
+          Tu acceso a la beta venció
+          {access.until ? ` el ${PLAN_DATE.format(access.until)}` : ""}. Tus datos siguen guardados;
+          ahora rigen los topes del plan gratis.
+        </p>
+      ) : null}
+      <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-fg-muted">
+        {limitsText(userPlan.plan.limits, {
+          cv: process.env.CV_IMPORT_ENABLED === "1",
+          assistant: false,
+        }).map((line) => (
+          <li key={line}>{line}</li>
+        ))}
+      </ul>
+      {renovar || userPlan.plan.key === "gratis" ? (
+        <div className="flex flex-col gap-2 text-sm text-fg-muted">
+          <p>
+            {renovar ? "Para renovar" : "Para pasar al plan completo"}: pagá el mes con Mercado Pago
+            y, cuando se acredite, lo activamos a mano. También podés pagar por transferencia:
+            escribinos y te pasamos los datos.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            {link ? (
+              <a
+                href={link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-11 items-center rounded-control bg-brand px-4 text-base font-medium text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+              >
+                Pagar con Mercado Pago
+                <span className="sr-only"> (se abre en otra pestaña)</span>
+              </a>
+            ) : null}
+            {contact ? (
+              <a href={contact.href} className="text-fg underline">
+                Escribirnos a {contact.email}
+              </a>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+      <Link href="/precios" className="text-sm text-fg underline">
+        Ver los planes
+      </Link>
+    </section>
   );
 }
