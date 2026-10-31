@@ -676,6 +676,10 @@ export const inboundEmails = pgTable("inbound_emails", {
   fromAddress: text("from_address").notNull(),
   subject: text("subject"),
   rawRef: text("raw_ref").notNull(),
+  // JS-115: id del email en Resend. Idempotencia del webhook: Svix reintenta, y el mismo email_id no se
+  // guarda dos veces. Único y global (un email_id es único en Resend); null en las filas viejas sin
+  // rescatar y en las que carga el e2e a mano. Varios null no chocan entre sí.
+  emailId: text("email_id"),
   parser: text("parser"),                   // linkedin, getonboard, generic, none
   jobsExtracted: integer("jobs_extracted").default(0),
   error: text("error"),
@@ -685,6 +689,7 @@ export const inboundEmails = pgTable("inbound_emails", {
 }, (t) => [
   // C-7: no tenía ningún índice; la bandeja, la cobertura de alertas de «Hoy» y «Primeros pasos» filtran así
   index("inbound_emails_user_received").on(t.userId, t.receivedAt.desc()),
+  uniqueIndex("inbound_emails_email_id").on(t.emailId),
 ]);
 
 // JS-038: emails que el webhook rechazó por el límite horario (no se guardan; esto los cuenta)
@@ -762,7 +767,7 @@ export const applicationAnswers = pgTable("application_answers", {
 
 // Registro por invitación (JS-091): solo se guarda el sha256 del código; el valor en claro se
 // muestra una sola vez al crearla. Sin columna user_id a propósito: la policy es por
-// created_by_user_id y el canje pasa por register_with_invitation() (rls/0001_invitations.sql).
+// created_by_user_id y el canje pasa por register_with_invitation_v3() (rls/0003_auth_functions.sql).
 export const invitations = pgTable("invitations", {
   id: uuid("id").primaryKey().defaultRandom(),
   codeHash: text("code_hash").notNull(),
