@@ -17,7 +17,7 @@ export const WWR_BASE_URL = "https://weworkremotely.com/categories";
  * categoría que no exista devuelve HTTP 404 y el informe del dry-run la marca.
  */
 export const WWR_POOL_CATEGORIES: readonly string[] = [
-  // Las específicas primero y la general al final; igual, un aviso en varias categorías las junta todas
+  // Las específicas primero y las generales al final; igual, un aviso en varias categorías las junta todas
   "remote-full-stack-programming-jobs",
   "remote-back-end-programming-jobs",
   "remote-front-end-programming-jobs",
@@ -25,7 +25,10 @@ export const WWR_POOL_CATEGORIES: readonly string[] = [
   "remote-product-jobs",
   "remote-customer-support-jobs",
   "remote-design-jobs",
+  "remote-sales-and-marketing-jobs",
+  "remote-management-and-finance-jobs",
   "remote-programming-jobs",
+  "all-other-remote-jobs",
 ];
 
 export type WwrItem = {

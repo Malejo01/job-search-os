@@ -104,7 +104,7 @@ const DEFAULT_TIMEOUT_MS: Record<PoolSourceName, number> = {
   remoteok: 10_000,
   jobicy: 25_000,
   himalayas: 10_000,
-  wwr: 15_000,
+  wwr: 20_000,
   greenhouse: 20_000,
   lever: 20_000,
   ashby: 20_000,
