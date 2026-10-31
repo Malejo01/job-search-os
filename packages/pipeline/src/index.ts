@@ -63,6 +63,7 @@ export * from "./fit/fit-points";
 export * from "./fit/fit-summary";
 export * from "./digest/build";
 export * from "./brand";
+export * from "./public-url";
 
 export * from "./evaluator/skill-level-overlay";
 export * from "./evaluator/wire";

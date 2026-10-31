@@ -40,7 +40,7 @@ export async function createInvitationAction(
   if (!created.link) {
     return {
       status: "error",
-      message: "Falta AUTH_URL o NEXT_PUBLIC_APP_URL: no se puede armar el link.",
+      message: "Falta SITE_URL (o AUTH_URL / NEXT_PUBLIC_APP_URL): no se puede armar el link.",
     };
   }
   return {
@@ -72,7 +72,7 @@ export async function inviteFromWaitlistAction(
     if (!created.link) {
       return {
         status: "error",
-        message: "Falta AUTH_URL o NEXT_PUBLIC_APP_URL: no se puede armar el link.",
+        message: "Falta SITE_URL (o AUTH_URL / NEXT_PUBLIC_APP_URL): no se puede armar el link.",
       };
     }
     return {

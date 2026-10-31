@@ -1,4 +1,5 @@
 import { loadLocalEnv } from "@job-search-os/db";
+import { legacyHostRedirects } from "@job-search-os/pipeline";
 import type { NextConfig } from "next";
 
 // Variables del repo (.env.local en la raíz) también para next dev / next build local.
@@ -37,6 +38,9 @@ const nextConfig: NextConfig = {
         destination: "/ofertas/product_manager",
         permanent: true,
       },
+      // Cambio de dominio (C3-4): el dominio viejo (LEGACY_HOSTS) redirige al nuevo (SITE_URL) con la ruta
+      // y los parámetros, menos /api y /_next. Sin esas variables no agrega nada. Se evalúa al construir
+      ...legacyHostRedirects(process.env),
     ];
   },
   // Headers de seguridad globales. La CSP lleva solo frame-ancestors (la completa es otro ticket);
