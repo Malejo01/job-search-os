@@ -120,6 +120,9 @@ jobs:
 
   e2e:
     # Playwright: los 4 flujos de docs/TESTING_STRATEGY.md contra Postgres + worker en modo demo (sin LLM)
+    # Es el job más pesado: solo en PRs hacia main. En push a main no se repite (ya corrió en el PR)
+    # y los PRs entre ramas de trabajo no lo disparan. Un job salteado por `if` cuenta como verde.
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
     runs-on: ubuntu-latest
     services:
       postgres:
