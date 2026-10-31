@@ -169,7 +169,7 @@ describe("inferRoleHints · carreras de producto (ronda 97)", () => {
   it.each([
     ["getonboard_api", "innovation-agile", ["product_manager", "product_owner", "project_manager"]],
     ["jobicy", "Product", ["product_manager", "product_owner"]],
-    ["jobicy", "Project Management", ["project_manager"]],
+    ["jobicy", "Project Management", ["project_manager", "administracion_empresas"]],
     ["remoteok", "product", ["product_manager", "product_owner"]],
     ["remoteok", "product-manager", ["product_manager"]],
     ["remoteok", "project-manager", ["project_manager"]],
