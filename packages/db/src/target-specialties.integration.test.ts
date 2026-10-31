@@ -75,7 +75,7 @@ describe("profiles.target_specialties (C3-3)", () => {
     await asUser(
       A,
       (tx) =>
-        tx`update profiles set target_specialties = ${JSON.stringify(value)}::jsonb where user_id = ${A}`,
+        tx`update profiles set target_specialties = ${JSON.stringify(value)}::text::jsonb where user_id = ${A}`,
     );
     expect(await specialtiesOf(A)).toEqual(value);
     // B no ve las de A ni puede pisarlas
@@ -105,7 +105,8 @@ describe("profiles.target_specialties (C3-3)", () => {
     await expect(
       asUser(
         A,
-        (tx) => tx`update profiles set target_specialties = ${big}::jsonb where user_id = ${A}`,
+        (tx) =>
+          tx`update profiles set target_specialties = ${big}::text::jsonb where user_id = ${A}`,
       ),
     ).rejects.toThrow(/profiles_target_specialties_shape/);
     await asUser(A, (tx) => tx`update profiles set target_specialties = null where user_id = ${A}`);
