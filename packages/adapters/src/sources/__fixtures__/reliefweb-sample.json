@@ -1,0 +1,171 @@
+{
+  "time": 45,
+  "totalCount": 5,
+  "count": 5,
+  "data": [
+    {
+      "id": "4098765",
+      "score": 1,
+      "fields": {
+        "title": "Finance and Administration Officer",
+        "body": "<p>Responsible for managing financial transactions and accounting.</p><ul><li>5+ years of experience in budgeting</li><li>CPA or equivalent qualification</li></ul>",
+        "url": "https://reliefweb.int/job/4098765/finance-and-administration-officer",
+        "date": {
+          "created": "2026-10-29T10:15:00+00:00",
+          "closing": "2026-11-20T23:59:00+00:00"
+        },
+        "source": [
+          {
+            "id": 123,
+            "name": "United Nations High Commissioner for Refugees",
+            "shortname": "UNHCR"
+          }
+        ],
+        "country": [
+          {
+            "id": 61,
+            "name": "Colombia",
+            "iso3": "COL"
+          }
+        ],
+        "career_categories": [
+          {
+            "id": 6861,
+            "name": "Administration/Finance"
+          }
+        ],
+        "job_type": {
+          "id": 264,
+          "name": "Staff"
+        },
+        "how_to_apply": "Apply via UNHCR careers portal."
+      }
+    },
+    {
+      "id": "4098766",
+      "score": 1,
+      "fields": {
+        "title": "Legal and Protection Advisor (Home-based)",
+        "body": "Teleworking position for human rights and legal compliance analysis. Candidates can work remotely.",
+        "url": "https://reliefweb.int/job/4098766/legal-protection-advisor",
+        "date": {
+          "created": "2026-10-28T14:00:00+00:00",
+          "closing": "2026-11-15T23:59:00+00:00"
+        },
+        "source": [
+          {
+            "id": 456,
+            "name": "Oxfam International",
+            "shortname": "Oxfam"
+          }
+        ],
+        "country": [
+          {
+            "id": 999,
+            "name": "Worldwide",
+            "iso3": "WLD"
+          }
+        ],
+        "career_categories": [
+          {
+            "id": 6862,
+            "name": "Protection/Human Rights"
+          }
+        ],
+        "job_type": {
+          "id": 265,
+          "name": "Consultancy"
+        },
+        "how_to_apply": "Submit CV and proposal via email."
+      }
+    },
+    {
+      "id": "4098767",
+      "score": 1,
+      "fields": {
+        "title": "Public Information and Media Specialist",
+        "body": "Lead external communications, media relations, and institutional public affairs.",
+        "url": "https://reliefweb.int/job/4098767/media-specialist",
+        "date": {
+          "created": "2026-10-27T09:30:00+00:00",
+          "closing": "2026-11-10T23:59:00+00:00"
+        },
+        "source": [
+          {
+            "id": 789,
+            "name": "UNICEF",
+            "shortname": "UNICEF"
+          }
+        ],
+        "country": [
+          {
+            "id": 12,
+            "name": "Argentina",
+            "iso3": "ARG"
+          }
+        ],
+        "career_categories": [
+          {
+            "id": 6863,
+            "name": "Advocacy/Communications"
+          }
+        ],
+        "job_type": {
+          "id": 264,
+          "name": "Staff"
+        },
+        "how_to_apply": "Apply online at unicef.org/careers"
+      }
+    },
+    {
+      "id": "4098768",
+      "score": 1,
+      "fields": {
+        "title": "Regional Procurement and Supply Chain Officer",
+        "body": "Oversee international trade logistics, customs compliance, and vendor contracts across the region.",
+        "url": "https://reliefweb.int/job/4098768/procurement-officer",
+        "date": {
+          "created": "2026-10-26T16:45:00+00:00",
+          "closing": "2026-11-05T23:59:00+00:00"
+        },
+        "source": [
+          {
+            "id": 321,
+            "name": "World Food Programme",
+            "shortname": "WFP"
+          }
+        ],
+        "country": [
+          {
+            "id": 170,
+            "name": "Panama",
+            "iso3": "PAN"
+          }
+        ],
+        "career_categories": [
+          {
+            "id": 6864,
+            "name": "Logistics/Procurement"
+          }
+        ],
+        "job_type": {
+          "id": 264,
+          "name": "Staff"
+        },
+        "how_to_apply": "Submit application through WFP e-recruitment."
+      }
+    },
+    {
+      "id": "4098769",
+      "score": 1,
+      "fields": {
+        "title": null,
+        "body": "Aviso roto sin título",
+        "url": "https://reliefweb.int/job/4098769/broken",
+        "date": {
+          "created": "2026-10-25T12:00:00+00:00"
+        }
+      }
+    }
+  ]
+}
