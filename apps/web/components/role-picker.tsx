@@ -1,8 +1,9 @@
 "use client";
 
-import type { RoleKey } from "@job-search-os/pipeline";
+import { specialtiesFor, type RoleKey } from "@job-search-os/pipeline";
 import { useId, useState } from "react";
 import { CareerSalary, type CareerSalaryView } from "./career-salary";
+import { RoleSpecialties } from "./specialty-chips";
 
 export type RolePickerSalaries = Partial<Record<RoleKey, CareerSalaryView>>;
 
@@ -80,6 +81,8 @@ export function RolePicker({
               const spanish = spanishCounts?.[role.key as RoleKey];
               const help = ROLE_HELP[role.key];
               const helpId = `${noteId}-help-${role.key}`;
+              const specialties = specialtiesFor(role.key as RoleKey);
+              const hasSpecialties = specialties.length > 0;
               const describedBy = [help ? helpId : null, disabled ? noteId : null]
                 .filter(Boolean)
                 .join(" ");
@@ -88,7 +91,7 @@ export function RolePicker({
                   key={role.key}
                   className={`flex min-w-0 flex-col rounded-card border border-line ${
                     disabled ? "text-fg-subtle" : "text-fg"
-                  }`}
+                  } ${checked && hasSpecialties ? "sm:col-span-2" : ""}`}
                 >
                   <label className="flex min-h-11 items-center gap-2 px-3 py-2">
                     <input
@@ -125,6 +128,11 @@ export function RolePicker({
                         label={role.label}
                         testId={`career-salary-${role.key}`}
                       />
+                    </div>
+                  ) : null}
+                  {checked && hasSpecialties ? (
+                    <div className="border-t border-line p-3">
+                      <RoleSpecialties roleKey={role.key as RoleKey} roleLabel={role.label} />
                     </div>
                   ) : null}
                 </div>
