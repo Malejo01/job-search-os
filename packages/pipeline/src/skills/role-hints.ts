@@ -633,6 +633,12 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "ingreso de datos",
     "secretaria ejecutiva",
   ],
+  // C1-2 (ADR-027): las carreras de la beta nacen sin términos de título; los suma C1-3 junto con
+  // sus exclusiones y vetos.
+  abogacia: [],
+  administracion_empresas: [],
+  comunicacion: [],
+  relaciones_internacionales: [],
 };
 
 /** Palabras que anulan el puesto aunque el título tenga uno de sus términos. */

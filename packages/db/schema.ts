@@ -327,7 +327,7 @@ export const waitlist = pgTable("waitlist", {
   uniqueIndex("waitlist_email_unique").on(t.email),
   index("waitlist_ip_hash_created").on(t.ipHash, t.createdAt),
   index("waitlist_created").on(t.createdAt),
-  check("waitlist_role_check", sql`${t.role} in ('frontend', 'backend', 'fullstack', 'qa', 'data_analyst', 'soporte_it', 'ai_engineer', 'ux_ui', 'marketing_digital', 'producto_proyectos', 'rrhh_it', 'customer_success', 'ciberseguridad', 'product_manager', 'product_owner', 'project_manager', 'product_marketing', 'data_engineer', 'solutions_engineer', 'ventas_b2b', 'atencion_cliente', 'finanzas_contabilidad', 'asistencia_operaciones')`),
+  check("waitlist_role_check", sql`${t.role} in ('frontend', 'backend', 'fullstack', 'qa', 'data_analyst', 'soporte_it', 'ai_engineer', 'ux_ui', 'marketing_digital', 'producto_proyectos', 'rrhh_it', 'customer_success', 'ciberseguridad', 'product_manager', 'product_owner', 'project_manager', 'product_marketing', 'data_engineer', 'solutions_engineer', 'ventas_b2b', 'atencion_cliente', 'finanzas_contabilidad', 'asistencia_operaciones', 'abogacia', 'administracion_empresas', 'comunicacion', 'relaciones_internacionales')`),
 ]);
 
 // Administradores a nivel base (ronda 70): barrera de las funciones waitlist_admin_* (rls/0006). RLS sin

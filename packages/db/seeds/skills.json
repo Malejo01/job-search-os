@@ -819,7 +819,7 @@
     "slug": "user_stories",
     "name": "Historias de usuario y backlog",
     "category": "dominio",
-    "aliases": ["user stories", "historias de usuario", "product backlog", "backlog grooming", "backlog refinement","acceptance criteria", "criterios de aceptación", "criterios de aceptacion"],
+    "aliases": ["user stories", "historias de usuario", "product backlog", "backlog grooming", "backlog refinement", "acceptance criteria", "criterios de aceptación", "criterios de aceptacion"],
     "closure_hours": 8,
     "description": "Historias de usuario y backlog: escribir qué necesita la persona usuaria y ordenar el trabajo pendiente del equipo"
   },
@@ -843,7 +843,7 @@
     "slug": "pm_certifications",
     "name": "Certificaciones (PMP, PSM, CSPO)",
     "category": "dominio",
-    "aliases": ["pmp", "capm", "prince2", "psm", "pspo", "cspo", "certified scrum master","safe agilist"],
+    "aliases": ["pmp", "capm", "prince2", "psm", "pspo", "cspo", "certified scrum master", "safe agilist"],
     "closure_hours": 40,
     "description": "Certificaciones de gestión de proyectos y producto, como PMP, PSM o CSPO, que se rinden con examen"
   },
@@ -950,5 +950,245 @@
     "aliases": ["data entry", "carga de datos", "ingreso de datos", "data input", "digitación", "mecanografía"],
     "closure_hours": 4,
     "description": "Carga de datos: pasar información de documentos o formularios a un sistema con rapidez y sin errores"
+  },
+  {
+    "slug": "contract_drafting",
+    "name": "Redacción y revisión de contratos",
+    "category": "dominio",
+    "aliases": ["redacción de contratos", "redaccion de contratos", "revisión de contratos", "revision de contratos", "contract drafting", "contract review", "contract management", "gestión de contratos", "gestion de contratos"],
+    "closure_hours": 32,
+    "description": "Contratos: redactar, revisar y negociar cláusulas de acuerdos comerciales, laborales y de servicios"
+  },
+  {
+    "slug": "corporate_law",
+    "name": "Derecho societario y comercial",
+    "category": "dominio",
+    "aliases": ["derecho societario", "derecho comercial", "derecho corporativo", "corporate law", "commercial law", "sociedades comerciales", "fusiones y adquisiciones", "due diligence legal"],
+    "closure_hours": 40,
+    "description": "Derecho societario y comercial: constituir sociedades, armar actas y asesorar a empresas en operaciones y reorganizaciones"
+  },
+  {
+    "slug": "labor_law",
+    "name": "Derecho laboral",
+    "category": "dominio",
+    "aliases": ["derecho laboral", "derecho del trabajo", "labor law", "employment law", "relaciones laborales", "contrato de trabajo", "litigios laborales"],
+    "closure_hours": 32,
+    "description": "Derecho laboral: contratos de trabajo, despidos, convenios colectivos y reclamos de trabajadores y empleadores"
+  },
+  {
+    "slug": "litigation",
+    "name": "Litigio y procesos judiciales",
+    "category": "dominio",
+    "aliases": ["litigation", "litigio", "litigios", "procesos judiciales", "escritos judiciales", "derecho procesal", "contencioso", "tribunales"],
+    "closure_hours": 40,
+    "description": "Litigio: armar demandas y escritos, llevar expedientes y representar a clientes ante tribunales y audiencias"
+  },
+  {
+    "slug": "aml_compliance",
+    "name": "Compliance y prevención de lavado",
+    "category": "dominio",
+    "aliases": ["aml", "kyc", "uif", "anti money laundering", "anti-money laundering", "lavado de activos", "lavado de dinero", "prevención de lavado", "prevencion de lavado", "know your customer", "oficial de cumplimiento", "cumplimiento normativo", "regulatory compliance", "legal compliance", "corporate compliance", "programa de compliance"],
+    "closure_hours": 32,
+    "description": "Compliance: programas de cumplimiento, prevención de lavado de activos y conocimiento del cliente ante los reguladores"
+  },
+  {
+    "slug": "data_privacy",
+    "name": "Privacidad y protección de datos",
+    "category": "dominio",
+    "aliases": ["gdpr", "lgpd", "ccpa", "data privacy", "data protection", "privacy law", "protección de datos personales", "proteccion de datos personales", "habeas data"],
+    "closure_hours": 24,
+    "description": "Privacidad: cumplir normas de protección de datos personales como GDPR y la ley argentina, y asesorar sobre su uso"
+  },
+  {
+    "slug": "ip_law",
+    "name": "Propiedad intelectual",
+    "category": "dominio",
+    "aliases": ["propiedad intelectual", "intellectual property", "trademark", "trademarks", "marcas y patentes", "registro de marcas", "patentes", "derechos de autor"],
+    "closure_hours": 24,
+    "description": "Propiedad intelectual: registrar y defender marcas y patentes, y resolver conflictos sobre derechos de autor"
+  },
+  {
+    "slug": "legal_research",
+    "name": "Investigación jurídica",
+    "category": "dominio",
+    "aliases": ["legal research", "legal writing", "investigación jurídica", "investigacion juridica", "jurisprudencia", "dictámenes", "dictamenes", "informes legales"],
+    "closure_hours": 24,
+    "description": "Investigación jurídica: buscar normas y jurisprudencia y redactar dictámenes e informes legales fundados"
+  },
+  {
+    "slug": "legal_tools",
+    "name": "Software legal (Lex Doctor, CLM)",
+    "category": "dominio",
+    "aliases": ["lex doctor", "microjuris", "ironclad", "legaltech", "legal tech", "legal operations", "contract lifecycle management", "gestión de expedientes", "gestion de expedientes"],
+    "closure_hours": 8,
+    "description": "Software legal: sistemas de gestión de expedientes y contratos como Lex Doctor, Microjuris o Ironclad"
+  },
+  {
+    "slug": "procurement",
+    "name": "Compras y abastecimiento",
+    "category": "dominio",
+    "aliases": ["procurement", "purchasing", "gestión de compras", "gestion de compras", "abastecimiento", "gestión de proveedores", "gestion de proveedores", "supplier management", "vendor management", "licitaciones", "strategic sourcing", "órdenes de compra", "ordenes de compra", "purchase orders"],
+    "closure_hours": 24,
+    "description": "Compras: pedir cotizaciones, negociar con proveedores y gestionar órdenes de compra y licitaciones"
+  },
+  {
+    "slug": "supply_chain",
+    "name": "Logística y cadena de suministro",
+    "category": "dominio",
+    "aliases": ["supply chain", "cadena de suministro", "cadena de abastecimiento", "inventory management", "gestión de stock", "gestion de stock", "gestión de inventarios", "gestion de inventarios", "demand planning", "planificación de la demanda", "planificacion de la demanda", "supply planning"],
+    "closure_hours": 32,
+    "description": "Cadena de suministro: planificar la demanda, el stock y el transporte para que el producto llegue en tiempo"
+  },
+  {
+    "slug": "process_improvement",
+    "name": "Procesos y mejora continua",
+    "category": "dominio",
+    "aliases": ["process improvement", "six sigma", "lean six sigma", "kaizen", "relevamiento de procesos"],
+    "closure_hours": 24,
+    "description": "Mejora de procesos: relevar cómo se trabaja, detectar desperdicios y rediseñar los pasos con Lean o Six Sigma"
+  },
+  {
+    "slug": "management_control",
+    "name": "Control de gestión y tableros",
+    "category": "dominio",
+    "aliases": ["control de gestión", "control de gestion", "management control", "balanced scorecard"],
+    "closure_hours": 32,
+    "description": "Control de gestión: armar tableros de indicadores y controlar costos y desvíos contra el plan de la empresa"
+  },
+  {
+    "slug": "pricing_strategy",
+    "name": "Precios y análisis comercial",
+    "category": "dominio",
+    "aliases": ["pricing analysis", "estrategia de precios", "política de precios", "politica de precios", "listas de precios", "análisis de márgenes", "analisis de margenes", "margin analysis", "revenue management"],
+    "closure_hours": 24,
+    "description": "Precios: definir listas y descuentos y analizar márgenes y rentabilidad por producto o cliente"
+  },
+  {
+    "slug": "business_strategy",
+    "name": "Estrategia y planificación de negocio",
+    "category": "dominio",
+    "aliases": ["business strategy", "estrategia de negocio", "planificación estratégica", "planificacion estrategica", "strategic planning", "plan de negocios", "business plan", "business case", "análisis foda", "analisis foda", "swot", "management consulting", "consultoría de gestión", "consultoria de gestion"],
+    "closure_hours": 40,
+    "description": "Estrategia: analizar el mercado y la empresa, armar planes de negocio y proponer decisiones con casos y números"
+  },
+  {
+    "slug": "press_relations",
+    "name": "Relaciones con la prensa",
+    "category": "dominio",
+    "aliases": ["relaciones con la prensa", "relaciones con medios", "media relations", "press relations", "press release", "press releases", "comunicado de prensa", "comunicados de prensa", "gacetilla", "gacetillas", "press kit", "vocería", "voceria", "media training"],
+    "closure_hours": 24,
+    "description": "Prensa: redactar gacetillas, vincularse con periodistas y preparar voceros para entrevistas"
+  },
+  {
+    "slug": "corporate_communications",
+    "name": "Comunicación institucional e interna",
+    "category": "dominio",
+    "aliases": ["comunicación institucional", "comunicacion institucional", "comunicación interna", "comunicacion interna", "comunicación corporativa", "comunicacion corporativa", "corporate communications", "internal communications", "comunicación de crisis", "comunicacion de crisis", "crisis communication", "crisis communications", "reputación corporativa", "reputacion corporativa"],
+    "closure_hours": 32,
+    "description": "Comunicación institucional e interna: mensajes de la organización hacia afuera y hacia su equipo, incluida la crisis"
+  },
+  {
+    "slug": "journalism",
+    "name": "Periodismo y edición",
+    "category": "dominio",
+    "aliases": ["periodismo", "journalism", "periodismo digital", "redacción periodística", "redaccion periodistica", "investigación periodística", "investigacion periodistica", "fact checking", "fact-checking", "verificación de datos", "verificacion de datos", "edición de notas", "edicion de notas"],
+    "closure_hours": 40,
+    "description": "Periodismo: investigar, verificar datos, redactar notas y editar coberturas para medios gráficos, digitales o audiovisuales"
+  },
+  {
+    "slug": "content_strategy",
+    "name": "Estrategia de contenidos",
+    "category": "dominio",
+    "aliases": ["content strategy", "estrategia de contenidos", "editorial calendar", "calendario editorial", "content calendar"],
+    "closure_hours": 24,
+    "description": "Estrategia de contenidos: definir qué contar, en qué canales y con qué calendario editorial"
+  },
+  {
+    "slug": "audiovisual",
+    "name": "Producción audiovisual y radio",
+    "category": "dominio",
+    "aliases": ["producción audiovisual", "produccion audiovisual", "audiovisual", "edición de video", "edicion de video", "video editing", "premiere pro", "final cut", "davinci resolve", "podcast", "podcasting", "locución", "locucion", "producción radial", "produccion radial"],
+    "closure_hours": 32,
+    "description": "Producción audiovisual y radio: guion, locución, grabación y edición de video, podcast y programas"
+  },
+  {
+    "slug": "public_opinion",
+    "name": "Opinión pública y monitoreo de medios",
+    "category": "dominio",
+    "aliases": ["opinión pública", "opinion publica", "monitoreo de medios", "media monitoring", "social listening", "análisis de discurso", "analisis de discurso", "encuestas de opinión", "encuestas de opinion", "brandwatch", "análisis de medios", "analisis de medios"],
+    "closure_hours": 24,
+    "description": "Opinión pública: medir qué se dice en medios y redes y analizar encuestas y discursos para orientar mensajes"
+  },
+  {
+    "slug": "political_communication",
+    "name": "Comunicación política y de gobierno",
+    "category": "dominio",
+    "aliases": ["comunicación política", "comunicacion politica", "comunicación de gobierno", "comunicacion de gobierno", "political communication", "campañas políticas", "campanas politicas", "campaña electoral", "campana electoral", "speechwriting", "redacción de discursos", "redaccion de discursos"],
+    "closure_hours": 32,
+    "description": "Comunicación política y de gobierno: campañas, discursos y mensajes de organismos públicos y equipos de gestión"
+  },
+  {
+    "slug": "foreign_trade",
+    "name": "Comercio exterior y aduanas",
+    "category": "dominio",
+    "aliases": ["comercio exterior", "foreign trade", "comex", "importaciones", "exportaciones", "importación y exportación", "importacion y exportacion", "aduana", "aduanas", "customs compliance", "despachante de aduana", "incoterms", "nomenclatura arancelaria", "logística internacional", "logistica internacional"],
+    "closure_hours": 32,
+    "description": "Comercio exterior: importar y exportar, preparar documentación y cumplir trámites aduaneros y arancelarios"
+  },
+  {
+    "slug": "international_cooperation",
+    "name": "Cooperación internacional",
+    "category": "dominio",
+    "aliases": ["cooperación internacional", "cooperacion internacional", "international cooperation", "international development", "desarrollo internacional", "cooperación para el desarrollo", "cooperacion para el desarrollo", "marco lógico", "marco logico", "logframe", "objetivos de desarrollo sostenible", "agenda 2030", "monitoring and evaluation"],
+    "closure_hours": 32,
+    "description": "Cooperación internacional: diseñar y seguir proyectos de desarrollo con organismos, ONG y financiadores"
+  },
+  {
+    "slug": "grant_writing",
+    "name": "Formulación de proyectos y grants",
+    "category": "dominio",
+    "aliases": ["grant writing", "grant management", "grants management", "formulación de proyectos", "formulacion de proyectos", "presentación de proyectos", "presentacion de proyectos", "fundraising", "captación de fondos", "captacion de fondos", "proposal writing", "donantes"],
+    "closure_hours": 24,
+    "description": "Formulación de proyectos: escribir propuestas a financiadores, gestionar fondos y rendir cuentas de un grant"
+  },
+  {
+    "slug": "public_affairs",
+    "name": "Asuntos públicos e institucionales",
+    "category": "dominio",
+    "aliases": ["public affairs", "government affairs", "asuntos públicos", "asuntos publicos", "relaciones institucionales", "relaciones gubernamentales", "institutional relations", "lobbying", "incidencia política", "incidencia politica", "políticas públicas", "politicas publicas"],
+    "closure_hours": 24,
+    "description": "Asuntos públicos: vincular a la organización con gobiernos y actores del sector para influir en decisiones"
+  },
+  {
+    "slug": "political_analysis",
+    "name": "Análisis político y geopolítico",
+    "category": "dominio",
+    "aliases": ["political analysis", "análisis político", "analisis politico", "geopolitics", "geopolítica", "geopolitica", "political risk", "riesgo político", "riesgo politico", "country risk", "riesgo país", "riesgo pais", "análisis de políticas", "analisis de politicas", "relaciones internacionales", "international relations"],
+    "closure_hours": 32,
+    "description": "Análisis político: leer el contexto de un país o región y estimar riesgos para decisiones de una organización"
+  },
+  {
+    "slug": "diplomacy",
+    "name": "Diplomacia y negociación internacional",
+    "category": "dominio",
+    "aliases": ["diplomacia", "diplomacy", "diplomático", "diplomatico", "protocolo y ceremonial", "ceremonial", "negociaciones internacionales", "international negotiations", "organismos internacionales", "international organizations", "naciones unidas", "united nations"],
+    "closure_hours": 32,
+    "description": "Diplomacia: protocolo, representación y negociación entre Estados u organismos internacionales"
+  },
+  {
+    "slug": "trade_agreements",
+    "name": "Integración y acuerdos comerciales",
+    "category": "dominio",
+    "aliases": ["mercosur", "acuerdos comerciales", "trade agreements", "free trade agreements", "tratados de libre comercio", "integración regional", "integracion regional", "regional integration", "política comercial", "politica comercial", "trade policy", "organización mundial del comercio", "organizacion mundial del comercio"],
+    "closure_hours": 24,
+    "description": "Acuerdos comerciales: seguir tratados, el Mercosur y la política comercial que afectan a las exportaciones"
+  },
+  {
+    "slug": "global_mobility",
+    "name": "Migraciones y movilidad global",
+    "category": "dominio",
+    "aliases": ["global mobility", "movilidad global", "movilidad internacional", "inmigración", "inmigracion", "trámites migratorios", "tramites migratorios", "derecho migratorio", "immigration law"],
+    "closure_hours": 24,
+    "description": "Movilidad global: trámites migratorios, residencias y traslados internacionales de personas y equipos"
   }
 ]

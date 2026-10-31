@@ -126,7 +126,7 @@
     ]
   },
   "marketing_digital": {
-    "label": "Marketing digital",
+    "label": "Marketing y relaciones públicas",
     "skills": [
       "seo",
       "google_ads",
@@ -317,7 +317,7 @@
     ]
   },
   "finanzas_contabilidad": {
-    "label": "Finanzas y contabilidad",
+    "label": "Contaduría, impuestos y finanzas",
     "skills": [
       "general_accounting",
       "financial_reporting",
@@ -344,6 +344,73 @@
       "n8n",
       "hubspot",
       "salesforce",
+      "project_planning",
+      "client_facing",
+      "english_fluent"
+    ]
+  },
+  "abogacia": {
+    "label": "Abogacía y legales",
+    "skills": [
+      "contract_drafting",
+      "corporate_law",
+      "labor_law",
+      "litigation",
+      "aml_compliance",
+      "data_privacy",
+      "ip_law",
+      "legal_research",
+      "legal_tools",
+      "negotiation",
+      "client_facing",
+      "english_fluent"
+    ]
+  },
+  "administracion_empresas": {
+    "label": "Administración de empresas",
+    "skills": [
+      "procurement",
+      "supply_chain",
+      "process_improvement",
+      "management_control",
+      "pricing_strategy",
+      "business_strategy",
+      "excel",
+      "financial_reporting",
+      "erp_accounting",
+      "project_planning",
+      "leadership",
+      "english_fluent"
+    ]
+  },
+  "comunicacion": {
+    "label": "Comunicación y prensa",
+    "skills": [
+      "press_relations",
+      "corporate_communications",
+      "journalism",
+      "content_strategy",
+      "audiovisual",
+      "public_opinion",
+      "political_communication",
+      "copywriting",
+      "social_media",
+      "canva",
+      "client_facing",
+      "english_fluent"
+    ]
+  },
+  "relaciones_internacionales": {
+    "label": "Relaciones internacionales y comex",
+    "skills": [
+      "foreign_trade",
+      "international_cooperation",
+      "grant_writing",
+      "public_affairs",
+      "political_analysis",
+      "diplomacy",
+      "trade_agreements",
+      "global_mobility",
       "project_planning",
       "client_facing",
       "english_fluent"

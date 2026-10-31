@@ -48,8 +48,8 @@ Además, una carrera de estas es muy ancha. «Contaduría» abarca sueldos, impu
 9. **Skills:** 8 a 12 por carrera nueva en `role_skills.json`, con la regla de ADR-023: dos skills no comparten término, así que las skills que ya existen se reutilizan en vez de duplicarse.
 
 ## Datos y orden de aplicación
-- Una migración **generada** que amplía `waitlist_role_check` con las cuatro claves.
-- Una migración **custom, idempotente**, con las skills nuevas (como ADR-019 a ADR-023).
+- **0048 (generada):** amplía `waitlist_role_check` con las cuatro claves. También se suman a `admin_founder_counts()` (`rls/0012`), que tiene la lista fija: sin eso los cupos de fundador las contarían como «sin carrera».
+- **0049 (custom, idempotente):** las 30 skills nuevas, todas de `dominio` (9 de abogacía, 6 de administración, 7 de comunicación y 8 de relaciones internacionales). Las carreras comparten las ya existentes (`negotiation`, `excel`, `project_planning`, `client_facing`, `english_fluent`...).
 - **Orden:** `pnpm db:migrate`, después el merge y el deploy. Son pura expansión: antes del deploy el código viejo ignora las claves nuevas.
 - Después: `pnpm pool:rehint --remote`, primero sin `--apply` y después con `--apply`, y la auditoría de títulos que pide ADR-023 antes de sacar una clave de `UNLISTED_ROLE_KEYS`.
 

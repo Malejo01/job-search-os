@@ -12,7 +12,7 @@ import { E2E_USER_ID, deleteSeededPublicJobs, login, ownerDb } from "./helpers";
  * ya pueden haber visitado /market con QA o con Marketing digital antes de esta siembra: el caché
  * puede traer sus avisos y no los de acá. Por eso se verifica la estructura (títulos, orden,
  * avisos que valen con cualquier muestra chica, forma de cada fila), nunca números exactos.
- * Etiquetas de `ROLE_SKILLS`: QA = «QA», marketing_digital = «Marketing digital», ux_ui = «UX/UI».
+ * Etiquetas de `ROLE_SKILLS`: QA = «QA», marketing_digital = «Marketing y relaciones públicas», ux_ui = «UX/UI».
  */
 test.describe.configure({ mode: "serial" });
 
@@ -135,11 +135,13 @@ test.describe("Flujo 41: mercado por carrera", () => {
     await page.goto("/market");
     await page
       .getByRole("combobox", { name: "Explorar otra carrera" })
-      .selectOption({ label: "Marketing digital" });
+      .selectOption({ label: "Marketing y relaciones públicas" });
     await page.getByRole("form", { name: "Explorar otra carrera" }).getByRole("button").click();
     await page.waitForURL(/carrera=marketing_digital/);
 
-    await expect(page.getByRole("heading", { name: "Mercado de Marketing digital" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Mercado de Marketing y relaciones públicas" }),
+    ).toBeVisible();
     const section = page.getByTestId("career-market");
     await expect(section.getByRole("note").filter({ hasText: "Muestra chica" })).toBeVisible();
     await expect(section.getByRole("heading", { name: "Sueldos publicados" })).toBeVisible();
@@ -174,7 +176,9 @@ test.describe("Flujo 41: mercado por carrera", () => {
     await login(page);
     await page.goto("/market?carrera=marketing_digital");
     // Nombre completo: «Tu agenda» tiene otra región, «Mercado del rol», que un /^Mercado de/ también toma
-    const section = page.getByRole("region", { name: /^Mercado de Marketing digital/ });
+    const section = page.getByRole("region", {
+      name: /^Mercado de Marketing y relaciones públicas/,
+    });
     await expect(section).toBeVisible();
     await expect(page.getByRole("combobox", { name: "Explorar otra carrera" })).toBeVisible();
 
