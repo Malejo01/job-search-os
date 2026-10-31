@@ -33,6 +33,15 @@ Consecuencia: el `vercel.json` actual (`0 */6 * * *` y `15 */6 * * *`) **no desp
 2. Borrar `.github/workflows/cron.yml` (o dejarlo solo con `workflow_dispatch` como disparo manual).
 3. Se pierde el log visible en el repo: las ejecuciones se ven en Vercel › Cron Jobs.
 
+## Ahorro de Build CPU Minutes (Ignored Build Step)
+
+`apps/web/vercel.json` define `ignoreCommand`, que ejecuta `scripts/vercel-ignore.sh` (exit 0 = no construir, exit 1 = construir). El `vercel.json` vive en `apps/web` porque Vercel lo lee desde el Root Directory del proyecto; el comando ubica el script por la raíz del repo (`git rev-parse --show-toplevel`).
+
+- **Ramas que no son `main`:** no hay preview salvo que el mensaje del último commit contenga `[preview]`. La verificación de los PRs la hace GitHub Actions (`ci.yml`).
+- **`main`:** se construye solo si entre `VERCEL_GIT_PREVIOUS_SHA` y `VERCEL_GIT_COMMIT_SHA` cambió `apps/web`, `packages`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `turbo.json`, `tsconfig.base.json`, `.nvmrc`, `vercel.json` o `next.config.*`. Un merge que solo toca docs, evals o workflows no despliega.
+- **Fallar hacia construir:** sin `VERCEL_GIT_PREVIOUS_SHA`, con un clone superficial que no tiene ese commit, o ante cualquier error de git, el script construye. Cada ejecución loguea en una línea el motivo (`[vercel-ignore] ...`).
+- **Una variable o archivo nuevo que afecte al build** y viva fuera de esas rutas tiene que sumarse a `WEB_PATHS` en el script.
+
 ## Variables de entorno en Vercel
 
 | Variable | Entorno | Origen |

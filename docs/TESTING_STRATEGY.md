@@ -10,7 +10,7 @@ Objetivo doble: confiabilidad del sistema y evidencia verificable de "testing au
 | Contract | Vitest + fixtures | Parsers de email (LinkedIn, GoB, genérico) contra HTML real guardado en `fixtures/emails/` (anonimizado); adapter GoB contra respuestas JSON grabadas | cada PR |
 | Integration | Vitest + Testcontainers (Postgres 16 + pgvector) | Migraciones, RLS (user A no ve datos de user B), pipeline completo con LLM mockeado | cada PR, ~1 min |
 | Evals | harness propio | Prompt × modelo vs golden set | PR que toca prompts/evals; manual antes de cambiar `model_routing` |
-| E2E | Playwright | 4 flujos: login → lista con filtros; pegar JD → evaluación aparece; cambiar estado → persiste; postular → resultado (feedback loop). `apps/web/e2e/`, viewport 390 px, worker en modo demo (`--demo`, sin LLM). Local: `pnpm e2e` con Docker y `next dev` corriendo; CI: job `e2e` con Postgres + `next start` | cada PR (job `e2e`) |
+| E2E | Playwright | 4 flujos: login → lista con filtros; pegar JD → evaluación aparece; cambiar estado → persiste; postular → resultado (feedback loop). `apps/web/e2e/`, viewport 390 px, worker en modo demo (`--demo`, sin LLM). Local: `pnpm e2e` con Docker y `next dev` corriendo; CI: job `e2e` con Postgres + `next start` | cada PR hacia `main` (job `e2e`; no corre en push a `main` ni en PRs entre ramas) |
 | Smoke prod | script | `GET /api/health` (DB, LLM provider, inbound) tras deploy | post-deploy |
 
 ## Reglas
@@ -54,7 +54,7 @@ ci.yml
   build           → pnpm build
 ```
 
-Deploy a Vercel: preview por PR, producción en merge a `main`. Migraciones: `drizzle-kit migrate` como paso previo al deploy, con `DATABASE_URL` de producción en secret.
+Deploy a Vercel: preview solo a pedido (`[preview]` en el mensaje del último commit), producción en merge a `main` si cambió algo que afecta a la web (`scripts/vercel-ignore.sh`, enganchado desde `apps/web/vercel.json`). La verificación de cada PR la hace GitHub Actions, no Vercel. Migraciones: `drizzle-kit migrate` como paso previo al deploy, con `DATABASE_URL` de producción en secret.
 
 ## Docker
 
