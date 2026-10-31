@@ -253,6 +253,23 @@ describe("buildChecklist: país coherente con decide()", () => {
   });
 });
 
+describe("buildChecklist: aviso remoto limitado a otro país (H-1)", () => {
+  const jobLocation = { modality: "remoto", locationRaw: "Remote", countriesAllowed: ["CA"] };
+  it("el ítem país bloquea, no cumple y es el descarte rápido", () => {
+    const { d, c } = run(base, ctxBase(), { candidateCountry: "AR", jobLocation });
+    expect(d.locationOk).toBe("no");
+    expect(byId(c, "pais")).toMatchObject({ status: "no_cumple", bloquea: true });
+    expect(c.descarte_rapido?.id).toBe("pais");
+  });
+  it("si el aviso incluye su país, el ítem no bloquea", () => {
+    const { c } = run(base, ctxBase(), {
+      candidateCountry: "AR",
+      jobLocation: { ...jobLocation, countriesAllowed: ["CA", "AR"] },
+    });
+    expect(byId(c, "pais")).toMatchObject({ status: "cumple", bloquea: false });
+  });
+});
+
 describe("buildChecklist: piso y jornada salen de rules, como en decide()", () => {
   it("el piso es rules.salary_floor_usd_monthly", () => {
     const strict = { ...rules, salary_floor_usd_monthly: 5000 } as CriteriaRules;

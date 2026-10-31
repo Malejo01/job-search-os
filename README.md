@@ -64,7 +64,7 @@ Algunas decisiones tempranas fueron reemplazadas por otras posteriores (por ejem
 
 ## Cómo se evita que la IA invente
 
-- **Golden y evals** (`evals/`): un golden anonimizado de 36 ofertas más 4 avisos adversariales (`evals/fixtures/golden.json`, `evals/fixtures/adversarial.json`) contra el que se mide cada versión del prompt. Métricas estrictas y laxas: error absoluto del score, recall de bloqueadores, falsos "aplicar", falsos descartes y resistencia a instrucciones escondidas en el aviso. Detalle en [evals/README.md](evals/README.md).
+- **Golden y evals** (`evals/`): un golden anonimizado de 37 ofertas más 4 avisos adversariales (`evals/fixtures/golden.json`, `evals/fixtures/adversarial.json`) contra el que se mide cada versión del prompt. Métricas estrictas y laxas: error absoluto del score, recall de bloqueadores, falsos "aplicar", falsos descartes y resistencia a instrucciones escondidas en el aviso. Detalle en [evals/README.md](evals/README.md).
 - **Salida validada con Zod**: el cliente LLM (`packages/adapters/src/llm/client.ts`) pide un objeto con schema y un error de schema aborta en lugar de aceptar texto libre.
 - **El modelo no decide**: `decide()` en `packages/pipeline` aplica reglas verificables (años exigidos, inglés, residencia, techo por título) sobre lo que devuelve el modelo.
 - **Parsers de email que fallan cerrado**: si la estructura no es la esperada devuelven `{ ok: false }` y el email va a revisión manual; nunca extracción parcial ni campos inventados (`packages/adapters/src/inbound/`). Lo que el email no dice queda `null`.

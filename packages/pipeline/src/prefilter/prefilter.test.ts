@@ -40,7 +40,7 @@ const byId = (id: number) => fromEmail(jobs.find((j) => j.id === id)!);
 const PASS_BEFORE: boolean[] = [
   true, false, false, true, false, true, true, false, true, true, false, true, true, false,
   true, true, false, false, true, true, false, false, false, true, true, false, false, true,
-  true, true, false, true, true, true, true, true,
+  true, true, false, true, true, true, true, true, true,
 ];
 
 describe("prefilter: expectativas del golden (sin LLM)", () => {

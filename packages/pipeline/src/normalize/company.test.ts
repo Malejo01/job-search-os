@@ -44,6 +44,7 @@ const expectedByGoldenId: Record<number, string> = {
   34: "empresa ab",
   35: "empresa v",
   36: "empresa ad",
+  37: "empresa ae",
 };
 
 const empresaOf = (id: number) => golden.jobs.find((j) => j.id === id)!.empresa;
@@ -53,9 +54,9 @@ describe("normalizeCompany", () => {
     expect(normalizeCompany(empresa)).toBe(expectedByGoldenId[id]);
   });
 
-  it("cubre los 36 jobs del golden", () => {
-    expect(golden.jobs).toHaveLength(36);
-    expect(Object.keys(expectedByGoldenId)).toHaveLength(36);
+  it("cubre los 37 jobs del golden", () => {
+    expect(golden.jobs).toHaveLength(37);
+    expect(Object.keys(expectedByGoldenId)).toHaveLength(37);
   });
 
   it("misma empresa, dos ofertas (ids 6 y 7) normaliza igual", () => {
