@@ -67,7 +67,6 @@ const NEW_TECH_ROLE_KEYS: readonly RoleKey[] = ["data_engineer", "solutions_engi
 
 /** Los puestos de carreras digitales que no son de producto (ronda 40). */
 const OTHER_DIGITAL_ROLE_KEYS: readonly RoleKey[] = [
-  "marketing_digital",
   "rrhh_it",
   "customer_success",
   "ciberseguridad",
@@ -85,19 +84,18 @@ export const PRODUCT_ROLE_KEYS: readonly RoleKey[] = [
 export const COMMERCIAL_ROLE_KEYS: readonly RoleKey[] = ["ventas_b2b", "atencion_cliente"];
 
 /** Las carreras de finanzas y de asistencia/operaciones (C-2b, ADR-023). */
-export const BACKOFFICE_ROLE_KEYS: readonly RoleKey[] = [
-  "finanzas_contabilidad",
-  "asistencia_operaciones",
-];
+export const BACKOFFICE_ROLE_KEYS: readonly RoleKey[] = ["asistencia_operaciones"];
 
 /** Las carreras de derecho y de gestión de la beta (ADR-027). */
 export const LEGAL_MANAGEMENT_ROLE_KEYS: readonly RoleKey[] = [
   "abogacia",
+  "finanzas_contabilidad",
   "administracion_empresas",
 ];
 
 /** Las carreras de comunicación y de relaciones internacionales de la beta (ADR-027). */
 export const COMMUNICATION_ROLE_KEYS: readonly RoleKey[] = [
+  "marketing_digital",
   "comunicacion",
   "relaciones_internacionales",
 ];

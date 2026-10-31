@@ -21,7 +21,7 @@ export type Persona = {
   /** Clave del puesto (`ROLE_KEYS`); la etiqueta se lee del seed `role_skills.json`. */
   role: string;
   /** Grupo del selector del paso 1 (`legend` de su `fieldset`). */
-  roleGroup: "Tecnología" | "Carreras digitales";
+  roleGroup: "Tecnología" | "Carreras digitales" | "Comunicación y relaciones";
   country: string;
   cefr: "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
   years: string;
@@ -148,7 +148,7 @@ export function buildPersona(key: PersonaKey, tag: number = Date.now()): Persona
         ...base,
         name: "Valentina Ficticia",
         role: "marketing_digital",
-        roleGroup: "Carreras digitales",
+        roleGroup: "Comunicación y relaciones",
         country: "MX",
         cefr: "B2",
         years: "5",
