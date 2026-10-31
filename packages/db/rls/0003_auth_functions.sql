@@ -103,54 +103,21 @@ $fn$;
 REVOKE ALL ON FUNCTION public.sole_user_id() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.sole_user_id() TO authenticated;
 
--- Registro con aceptación de términos (JS-106). Igual que register_with_invitation (0001), que NO se
--- toca (el código anterior la llama), y además guarda terms_accepted_at = now() y terms_version.
--- Sin versión de términos no se registra (el chequeo de la casilla es del servidor; esto es el cinturón).
-CREATE OR REPLACE FUNCTION public.register_with_invitation_v2(
-  p_code_hash text,
-  p_email text,
-  p_password_hash text,
-  p_name text,
-  p_ingest_domain text,
-  p_terms_version text
-) RETURNS uuid
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = pg_catalog, public
-AS $fn$
-DECLARE
-  v_invitation uuid;
-  v_user uuid := gen_random_uuid();
-  v_email text := lower(btrim(p_email));
-  v_terms text := NULLIF(btrim(p_terms_version), '');
-BEGIN
-  IF v_terms IS NULL THEN
-    RAISE EXCEPTION 'register_with_invitation_v2: falta la versión de los términos aceptados';
-  END IF;
-  UPDATE public.invitations
-     SET used_at = now(), used_by_user_id = v_user
-   WHERE code_hash = p_code_hash
-     AND used_at IS NULL
-     AND expires_at > now()
-     AND (email IS NULL OR lower(email) = v_email)
-  RETURNING id INTO v_invitation;
-  IF v_invitation IS NULL THEN
-    RETURN NULL;
-  END IF;
-  INSERT INTO public.users (id, email, name, password_hash, terms_accepted_at, terms_version)
-    VALUES (v_user, v_email, NULLIF(btrim(p_name), ''), p_password_hash, now(), v_terms);
-  INSERT INTO public.profiles (user_id, display_name, location_country, inbound_address)
-    VALUES (v_user, COALESCE(NULLIF(btrim(p_name), ''), split_part(v_email, '@', 1)), 'XX',
-            'u_' || left(v_user::text, 8) || '@' || p_ingest_domain);
-  RETURN v_user;
-END
-$fn$;
-REVOKE ALL ON FUNCTION public.register_with_invitation_v2(text, text, text, text, text, text) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.register_with_invitation_v2(text, text, text, text, text, text) TO authenticated;
+-- La versión 2 del registro (JS-106: guardaba la aceptación de términos con la dirección de ingesta
+-- derivada del id) se retiró (JS-124): desde JS-113 el registro usa la v3. Un DROP explícito, y no solo
+-- borrar el CREATE, porque este archivo corre en cada db:migrate y limpia las bases donde sigue existiendo.
+DROP FUNCTION IF EXISTS public.register_with_invitation_v2(text, text, text, text, text, text);
 
--- Registro con dirección de ingesta aleatoria (JS-113). Igual que v2, que NO se toca (el código
--- desplegado la llama hasta el merge), pero la dirección ya no se deriva del id: la app genera el
--- token (20 caracteres base32, 100 bits) y la función solo valida el formato y lo guarda.
+-- Registro (JS-091, JS-106 y JS-113): canjea la invitación, crea el usuario y su perfil mínimo en un solo
+-- paso atómico y guarda la aceptación de términos (sin versión de términos no se registra: el chequeo
+-- de la casilla es del servidor, esto es el cinturón). La dirección de ingesta no se deriva del id: la
+-- app genera el token (20 caracteres base32, 100 bits) y la función solo valida el formato y lo guarda.
+-- El UPDATE ... WHERE used_at IS NULL toma el lock de la fila: dos canjes concurrentes del mismo código
+-- se serializan y el segundo no encuentra fila. Devuelve el id del usuario nuevo, o NULL si el código
+-- no existe, está usado, vencido o es de otro email (la app no distingue los casos). Si el email ya
+-- tiene cuenta, el INSERT falla por el índice único y la transacción entera se deshace: la invitación
+-- NO queda gastada. used_by_user_id no tiene FK a propósito: borrar la cuenta de quien se registró no
+-- debe tocar la invitación (queda como registro de quien la creó).
 CREATE OR REPLACE FUNCTION public.register_with_invitation_v3(
   p_code_hash text,
   p_email text,
