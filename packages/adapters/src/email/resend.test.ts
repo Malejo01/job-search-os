@@ -47,4 +47,16 @@ describe("sendEmail", () => {
       sendEmail({ to: "a@example.com", subject: "s", html: "h" }, "key", fetchImpl),
     ).rejects.toThrow(/HTTP 422.*dominio no verificado/);
   });
+
+  it("manda solo text si no hay html, y exige uno de los dos", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true } as Response);
+    await sendEmail({ to: "a@example.com", subject: "s", text: "hola" }, "key", fetchImpl);
+    const body = JSON.parse(fetchImpl.mock.calls[0]![1].body as string);
+    expect(body.text).toBe("hola");
+    expect(body).not.toHaveProperty("html");
+    await expect(
+      sendEmail({ to: "a@example.com", subject: "s" }, "key", fetchImpl),
+    ).rejects.toThrow(/falta el cuerpo/);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
 });

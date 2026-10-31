@@ -8,13 +8,14 @@ on:
     - cron: "0 */6 * * *" # UTC: 00, 06, 12, 18 → 21, 03, 09, 15 hora Argentina
     - cron: "30 6 * * 1" # lunes 06:30 UTC (03:30 AR): snapshot de mercado + plan de formación, sin LLM
     - cron: "0 7 * * 1" # lunes 07:00 UTC (04:00 AR): demo guiada (con LLM, tope de USD 1 por semana)
+    - cron: "15 12 * * *" # todos los días 12:15 UTC (09:15 AR): aviso por email de planes por vencer, sin LLM
   workflow_dispatch:
     inputs:
       step:
-        description: "ingest | evaluate | both | market | demo"
+        description: "ingest | evaluate | both | market | demo | plan-notices"
         default: both
         type: choice
-        options: [ingest, evaluate, both, market, demo]
+        options: [ingest, evaluate, both, market, demo, plan-notices]
 
 concurrency:
   group: cron
@@ -27,8 +28,8 @@ jobs:
     env:
       APP_URL: ${{ vars.APP_URL }}
       CRON_SECRET: ${{ secrets.CRON_SECRET }}
-      # Los schedules semanales corren solo market o demo; el de 6 h, ingesta + evaluación
-      STEP: ${{ github.event.inputs.step || (github.event.schedule == '0 7 * * 1' && 'demo' || (github.event.schedule == '30 6 * * 1' && 'market' || 'both')) }}
+      # Los schedules semanales corren solo market o demo, el diario solo los avisos de plan; el de 6 h, ingesta + evaluación
+      STEP: ${{ github.event.inputs.step || (github.event.schedule == '15 12 * * *' && 'plan-notices' || (github.event.schedule == '0 7 * * 1' && 'demo' || (github.event.schedule == '30 6 * * 1' && 'market' || 'both'))) }}
     steps:
       - name: Verificar configuración
         run: |
@@ -96,3 +97,22 @@ jobs:
             echo "::error::demo: 0 evaluadas y $skipped con error (prompt, modelo o key)"
             exit 1
           fi
+
+      # Aviso por email a quien le quedan 3 días de plan (C4-1). Un solo email por persona y por
+      # vencimiento, con tope diario; si faltan RESEND_API_KEY o EMAIL_FROM en Vercel no manda nada.
+      # La respuesta trae solo conteos: ni emails ni nombres llegan a este log.
+      - name: Aviso de planes por vencer
+        if: env.STEP == 'plan-notices'
+        run: |
+          set -o pipefail
+          body=$(curl --silent --show-error --fail-with-body --max-time 120 \
+            -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/plan-notices") || { echo "::error::plan-notices: el endpoint no respondió 2xx"; echo "$body"; exit 1; }
+          echo "$body" | jq .
+          echo "$body" | jq -e '.ok == true' > /dev/null || { echo "::error::plan-notices: la respuesta no trae ok:true"; exit 1; }
+          case "$(echo "$body" | jq -r '.skipped // empty')" in
+            sin_resend) echo "::warning::plan-notices: faltan RESEND_API_KEY o EMAIL_FROM en Vercel; no se mandó ningún aviso" ;;
+            sin_url) echo "::warning::plan-notices: falta AUTH_URL o NEXT_PUBLIC_APP_URL en Vercel; no se mandó ningún aviso" ;;
+            tope_diario) echo "::warning::plan-notices: tope diario alcanzado; los que falten se avisan mañana" ;;
+          esac
+          failed=$(echo "$body" | jq -r '.failed // 0')
+          if [ "$failed" != "0" ]; then echo "::warning::plan-notices: $failed avisos no se pudieron mandar; se reintentan mañana"; fi

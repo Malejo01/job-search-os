@@ -16,6 +16,7 @@ const SET_NAME = "update profiles set display_name = $2 where user_id = $1";
 const SET_PLAN = "update profiles set plan = 'fundador' where user_id = $1";
 const SET_UNTIL = "update profiles set plan_until = now() where user_id = $1";
 const SET_SOURCE = "update profiles set plan_source = 'beca' where user_id = $1";
+const SET_NOTIFIED = "update profiles set plan_notified_at = now() where user_id = $1";
 const INSERT_PAID = `insert into profiles (user_id, display_name, location_country, inbound_address, plan)
   values ($1, 'Ficticio', 'AR', 'plan0002', 'lista')`;
 
@@ -83,6 +84,8 @@ describe("plan del perfil (C-11b)", () => {
     await expect(asUser(USER, (tx) => tx.unsafe(SET_UNTIL, [USER]))).rejects.toThrow(GUARD);
     // C3-1: tampoco se marca sola como becada
     await expect(asUser(USER, (tx) => tx.unsafe(SET_SOURCE, [USER]))).rejects.toThrow(GUARD);
+    // C4-1: ni borra ni inventa la marca del aviso de vencimiento (la escribe solo el cron)
+    await expect(asUser(USER, (tx) => tx.unsafe(SET_NOTIFIED, [USER]))).rejects.toThrow(GUARD);
     expect(await planOf(USER)).toBe("gratis");
   });
 
@@ -100,5 +103,17 @@ describe("plan del perfil (C-11b)", () => {
     await expect(unknown).rejects.toThrow(/profiles_plan_check/);
     // Con el plan ya asignado, la app sigue pudiendo editar el resto de su perfil
     await asUser(USER, (tx) => tx.unsafe(SET_NAME, [USER, "Tercero"]));
+  });
+
+  it("el dueño marca el aviso de vencimiento (C4-1) y la app no lo toca", async () => {
+    await owner.unsafe(SET_NOTIFIED, [USER]);
+    const rows = await owner`select plan_notified_at from profiles where user_id = ${USER}`;
+    expect(rows[0]?.plan_notified_at).toBeInstanceOf(Date);
+    await expect(
+      asUser(USER, (tx) =>
+        tx.unsafe("update profiles set plan_notified_at = null where user_id = $1", [USER]),
+      ),
+    ).rejects.toThrow(GUARD);
+    await owner`update profiles set plan_notified_at = null where user_id = ${USER}`;
   });
 });
