@@ -6,9 +6,9 @@ import { humanNoteAction } from "./actions";
 const MAX = 140;
 
 const CHIPS = [
-  "no es mi rol",
-  "el score está alto",
-  "el score está bajo",
+  "no es mi puesto",
+  "el puntaje está alto",
+  "el puntaje está bajo",
   "ubicación o modalidad",
   "sueldo",
   "le faltó leer algo del aviso",

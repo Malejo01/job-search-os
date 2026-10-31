@@ -41,16 +41,29 @@ async function register(formData: FormData): Promise<void> {
   const password = String(formData.get("password") ?? "");
   const confirm = String(formData.get("confirm") ?? "");
   const name = String(formData.get("name") ?? "");
-  const back = `/register?code=${encodeURIComponent(code)}`;
-  if (password !== confirm) redirect(`${back}&error=no_coincide`);
+
+  const buildBack = (errorKey: string) => {
+    const params = new URLSearchParams();
+    if (code) params.set("code", code);
+    if (email) params.set("email", email);
+    if (name) params.set("name", name);
+    params.set("error", errorKey);
+    return `/register?${params.toString()}`;
+  };
+
+  if (password !== confirm) redirect(buildBack("no_coincide"));
   try {
     await registerWithInvitation({ code, email, password, name }, formData.get("terms"));
   } catch (error) {
-    if (error instanceof InvalidInvitationError) redirect(`${back}&error=invitacion`);
+    if (error instanceof InvalidInvitationError) redirect(buildBack("invitacion"));
     if (error instanceof InvalidRegistrationError) {
-      redirect(
-        `${back}&error=${{ password: "corta", name: "nombre", email: "email", terminos: "terminos" }[error.reason]}`,
-      );
+      const errMap = {
+        password: "corta",
+        name: "nombre",
+        email: "email",
+        terminos: "terminos",
+      } as const;
+      redirect(buildBack(errMap[error.reason]));
     }
     throw error;
   }
@@ -65,9 +78,15 @@ async function register(formData: FormData): Promise<void> {
 export default async function RegisterPage({
   searchParams,
 }: {
-  searchParams: Promise<{ code?: string; error?: string; done?: string }>;
+  searchParams: Promise<{
+    code?: string;
+    error?: string;
+    done?: string;
+    email?: string;
+    name?: string;
+  }>;
 }) {
-  const { code, error, done } = await searchParams;
+  const { code, error, done, email, name } = await searchParams;
   if (done) {
     return (
       <main
@@ -84,13 +103,13 @@ export default async function RegisterPage({
           href="/login"
           className="rounded-control bg-brand px-4 py-2 text-center text-base font-medium text-brand-contrast"
         >
-          Ir a entrar
+          Iniciar sesión
         </a>
       </main>
     );
   }
   const invalidProps = (key: string) =>
-    error === key ? { "aria-invalid": true, "aria-describedby": "register-error" } : {};
+    error === key ? { "aria-invalid": true, "aria-describedby": `${key}-error` } : {};
   return (
     <main
       id="contenido"
@@ -105,8 +124,8 @@ export default async function RegisterPage({
         <p className="text-sm text-fg-subtle">Creá tu cuenta con tu invitación.</p>
         {code ? null : (
           <p role="note" className="mt-2 text-sm text-warning">
-            Abrí el link completo que te mandaron: sin el código de la invitación no se puede crear
-            la cuenta.
+            Abrí el enlace completo que te enviaron: sin el código de la invitación no se puede
+            crear la cuenta.
           </p>
         )}
       </div>
@@ -119,9 +138,15 @@ export default async function RegisterPage({
             type="email"
             autoComplete="username"
             required
+            defaultValue={email ?? ""}
             {...invalidProps("email")}
             className="rounded-control border border-line-strong px-3 py-2 text-base"
           />
+          {error === "email" ? (
+            <p id="email-error" role="alert" className="text-xs text-danger">
+              {ERROR_MESSAGE.email}
+            </p>
+          ) : null}
         </label>
         <label className="flex flex-col gap-1 text-sm">
           Nombre (opcional)
@@ -130,9 +155,15 @@ export default async function RegisterPage({
             type="text"
             autoComplete="name"
             maxLength={100}
+            defaultValue={name ?? ""}
             {...invalidProps("nombre")}
             className="rounded-control border border-line-strong px-3 py-2 text-base"
           />
+          {error === "nombre" ? (
+            <p id="nombre-error" role="alert" className="text-xs text-danger">
+              {ERROR_MESSAGE.nombre}
+            </p>
+          ) : null}
         </label>
         <label className="flex flex-col gap-1 text-sm">
           Contraseña
@@ -146,6 +177,11 @@ export default async function RegisterPage({
             {...invalidProps("corta")}
             className="rounded-control border border-line-strong px-3 py-2 text-base"
           />
+          {error === "corta" ? (
+            <p id="corta-error" role="alert" className="text-xs text-danger">
+              {ERROR_MESSAGE.corta}
+            </p>
+          ) : null}
         </label>
         <label className="flex flex-col gap-1 text-sm">
           Repetí la contraseña
@@ -158,6 +194,11 @@ export default async function RegisterPage({
             {...invalidProps("no_coincide")}
             className="rounded-control border border-line-strong px-3 py-2 text-base"
           />
+          {error === "no_coincide" ? (
+            <p id="no_coincide-error" role="alert" className="text-xs text-danger">
+              {ERROR_MESSAGE.no_coincide}
+            </p>
+          ) : null}
         </label>
         <details className="rounded-control border border-line p-3 text-sm">
           <summary className="cursor-pointer font-medium">Leer los términos</summary>
@@ -171,26 +212,33 @@ export default async function RegisterPage({
             <LegalPage name="privacidad" />
           </div>
         </details>
-        <label className="flex items-start gap-2 text-sm">
-          <input
-            name="terms"
-            type="checkbox"
-            required
-            {...invalidProps("terminos")}
-            className="mt-1 h-4 w-4"
-          />
-          <span>
-            Leí y acepto los{" "}
-            <a href="/legal/terminos" target="_blank" rel="noopener" className="underline">
-              términos
-            </a>{" "}
-            y la{" "}
-            <a href="/legal/privacidad" target="_blank" rel="noopener" className="underline">
-              política de privacidad
-            </a>
-            .
-          </span>
-        </label>
+        <div>
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              name="terms"
+              type="checkbox"
+              required
+              {...invalidProps("terminos")}
+              className="mt-1 h-4 w-4"
+            />
+            <span>
+              Leí y acepto los{" "}
+              <a href="/legal/terminos" target="_blank" rel="noopener" className="underline">
+                términos
+              </a>{" "}
+              y la{" "}
+              <a href="/legal/privacidad" target="_blank" rel="noopener" className="underline">
+                política de privacidad
+              </a>
+              .
+            </span>
+          </label>
+          {error === "terminos" ? (
+            <p id="terminos-error" role="alert" className="mt-1 text-xs text-danger">
+              {ERROR_MESSAGE.terminos}
+            </p>
+          ) : null}
+        </div>
         {error ? (
           <p id="register-error" role="alert" className="text-sm text-danger">
             {ERROR_MESSAGE[error] ?? "No se pudo crear la cuenta."}

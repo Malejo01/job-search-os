@@ -77,7 +77,7 @@ const EVENT_LABELS: Record<JobEvent, string> = {
 const ERRORS: Record<string, string> = {
   evento: "Evento desconocido.",
   transicion: "Esa transición no vale desde el estado actual (la página estaba desactualizada).",
-  score: "El score humano va de 0 a 10 en pasos de 0,5.",
+  score: "Tu puntaje va de 0 a 10 en pasos de 0,5.",
   correccion: "Esa corrección no vale desde el estado actual (la página estaba desactualizada).",
   fusion:
     "No se pudo fusionar: las ofertas cambiaron (una ya tiene evaluación o postulación, o se está evaluando). Recargá y revisá.",
@@ -175,7 +175,7 @@ export default async function JobDetailPage({
           <span className="text-2xl font-semibold leading-none">
             {ev ? formatScoreNumber(ev.score) : "–"}
           </span>
-          <span className="text-[10px]">{ev ? "/10" : "score"}</span>
+          <span className="text-[10px]">{ev ? "/10" : "puntaje"}</span>
         </div>
         <div className="min-w-0">
           <h1 className="text-lg font-semibold leading-tight">{job.title}</h1>
@@ -465,12 +465,12 @@ export default async function JobDetailPage({
               action={humanScoreAction}
               className="mt-2 flex flex-col gap-2"
             >
-              <h2 className="font-semibold">Tu score</h2>
+              <h2 className="font-semibold">Tu puntaje</h2>
               <input type="hidden" name="jobId" value={job.id} />
               <input type="hidden" name="evaluationId" value={ev.id} />
               <div className="flex flex-wrap items-end gap-2">
                 <label className="flex flex-col gap-1 text-xs text-fg-subtle">
-                  Score humano (0–10)
+                  Tu puntaje (0–10)
                   <input
                     name="humanScore"
                     type="number"
@@ -488,7 +488,7 @@ export default async function JobDetailPage({
                     name="humanNote"
                     type="text"
                     defaultValue={ev.humanNote ?? ""}
-                    placeholder="por qué difiere del modelo"
+                    placeholder="por qué no coincide con la evaluación"
                     className="rounded-control border border-line-strong px-2 py-2 text-base"
                   />
                 </label>
@@ -501,7 +501,7 @@ export default async function JobDetailPage({
               </div>
               {ev.humanScore !== null ? (
                 <p className="text-xs text-fg-subtle">
-                  guardado: {ev.humanScore} · diferencia con el modelo{" "}
+                  guardado: {ev.humanScore} · diferencia con la evaluación{" "}
                   {(ev.humanScore - ev.score).toFixed(1)}
                 </p>
               ) : null}
@@ -518,8 +518,8 @@ export default async function JobDetailPage({
           </div>
           <p className="text-xs text-fg-subtle">
             La IA todavía no evaluó esta oferta. La estimación previa sale de reglas, sin
-            inteligencia artificial: skills del aviso contra tu nivel, riesgos y salario contra tu
-            piso. No es la evaluación completa.
+            inteligencia artificial: requisitos del aviso contra tu experiencia, riesgos y salario
+            contra tu piso. No es la evaluación completa.
           </p>
           <div>{evaluateNow}</div>
           {job.preScore.riesgos.length ? (
