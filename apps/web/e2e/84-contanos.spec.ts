@@ -5,10 +5,10 @@ import * as s from "@job-search-os/db/schema";
 import { eq } from "drizzle-orm";
 
 /**
- * Flujo 84 (C-23, V4): «Contanos qué pasó». Abrir el modal, elegir categoría, escribir y enviar;
- * mensaje de gracias; la fila aparece en `/settings/metricas` para el admin (test aparte, se
- * saltea si el usuario e2e no es admin en este entorno); axe con el modal abierto; Esc cierra; y todo a 390 px. El texto es inventado
- * y único por corrida; se borra al final.
+ * Flujo 84 (C-23, V4 / R1-9): «¿Algo no anduvo?» (chip de soporte). Abrir el modal desde el chip flotante,
+ * elegir categoría, escribir y enviar; mensaje de gracias; la fila aparece en `/settings/metricas`
+ * para el admin (test aparte, se saltea si el usuario e2e no es admin en este entorno); axe en claro y
+ * oscuro con el modal abierto; Esc cierra; y todo a 390 px. Verifica que se persista el contexto.
  */
 const MENSAJE = `Comentario ficticio de prueba ${Date.now()}`;
 const e2eIsAdmin = (process.env.ADMIN_EMAILS ?? "")
@@ -24,25 +24,46 @@ test.afterAll(async () => {
   await close();
 });
 
-test.describe("Flujo 84: Contanos qué pasó", () => {
-  test("Esc cierra el modal y axe no encuentra violaciones graves con el modal abierto", async ({
+test.describe("Flujo 84: Chip de soporte «¿Algo no anduvo?»", () => {
+  test("Esc cierra el modal y axe no encuentra violaciones en claro ni oscuro", async ({
     page,
   }) => {
     await login(page);
-    await page.getByRole("button", { name: "Contanos qué pasó" }).click();
+    const chip = page.getByRole("button", { name: "¿Algo no anduvo?" });
+    await expect(chip).toBeVisible();
+    await chip.click();
+
     const dialog = page.getByRole("dialog", { name: "Contanos qué pasó" });
     await expect(dialog).toBeVisible();
     await expect(
       dialog.getByText("No incluyas datos personales de otras personas ni datos sensibles tuyos."),
     ).toBeVisible();
 
-    const { violations } = await new AxeBuilder({ page })
+    // Axe en modo claro
+    const { violations: violacionesClaro } = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
       .analyze();
-    const graves = violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+    const gravesClaro = violacionesClaro.filter(
+      (v) => v.impact === "serious" || v.impact === "critical",
+    );
     expect(
-      graves.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`),
+      gravesClaro.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`),
     ).toEqual([]);
+
+    // Axe en modo oscuro
+    await page.evaluate(() => {
+      document.documentElement.classList.add("dark");
+    });
+    const { violations: violacionesOscuro } = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+      .analyze();
+    const gravesOscuro = violacionesOscuro.filter(
+      (v) => v.impact === "serious" || v.impact === "critical",
+    );
+    expect(
+      gravesOscuro.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`),
+    ).toEqual([]);
+
     const { scrollWidth, ancho } = await page.evaluate(() => ({
       scrollWidth: document.documentElement.scrollWidth,
       ancho: window.innerWidth,
@@ -55,7 +76,7 @@ test.describe("Flujo 84: Contanos qué pasó", () => {
 
   test("sin categoría o sin mensaje no envía y avisa", async ({ page }) => {
     await login(page);
-    await page.getByRole("button", { name: "Contanos qué pasó" }).click();
+    await page.getByRole("button", { name: "¿Algo no anduvo?" }).click();
     const dialog = page.getByRole("dialog", { name: "Contanos qué pasó" });
     await dialog.getByRole("button", { name: "Enviar" }).click();
     await expect(dialog.getByRole("alert")).toContainText("Elegí qué tipo de comentario es.");
@@ -65,11 +86,11 @@ test.describe("Flujo 84: Contanos qué pasó", () => {
     await expect(dialog).toBeVisible();
   });
 
-  test("envía el comentario, agradece, y el admin lo ve en métricas", async ({ page }) => {
+  test("envía el comentario con contexto, agradece, y persiste en base", async ({ page }) => {
     await login(page);
     await page.getByRole("link", { name: "Ajustes" }).click();
     await page.waitForURL("**/settings");
-    await page.getByRole("button", { name: "Contanos qué pasó" }).click();
+    await page.getByRole("button", { name: "¿Algo no anduvo?" }).click();
     const dialog = page.getByRole("dialog", { name: "Contanos qué pasó" });
     await dialog.getByRole("radio", { name: "Algo no anduvo" }).check();
     await dialog.getByLabel("Tu mensaje").fill(MENSAJE);
@@ -78,7 +99,7 @@ test.describe("Flujo 84: Contanos qué pasó", () => {
     await expect(page.getByText("¡Gracias! Lo leemos todo.")).toBeVisible();
     await expect(dialog).toBeHidden();
 
-    // Quedó guardado con la ruta (solo pathname) de donde estaba
+    // Quedó guardado con la ruta y contexto
     const { db, close } = ownerDb();
     const rows = await db
       .select()
@@ -88,6 +109,15 @@ test.describe("Flujo 84: Contanos qué pasó", () => {
     const row = rows.find((r) => r.message === MENSAJE);
     expect(row?.category).toBe("algo_no_anduvo");
     expect(row?.path).toBe("/settings");
+    expect(row?.context).toBeDefined();
+    expect(row?.context?.pathname).toBe("/settings");
+    expect(Array.isArray(row?.context?.actions)).toBe(true);
+    expect(row?.context?.actions?.length).toBeGreaterThan(0);
+    expect(
+      row?.context?.actions?.some(
+        (a) => a.text.includes("Ajustes") || a.text.includes("¿Algo no anduvo?"),
+      ),
+    ).toBe(true);
   });
 
   test("el admin ve el comentario en /settings/metricas, sin email", async ({ page }) => {
@@ -102,6 +132,12 @@ test.describe("Flujo 84: Contanos qué pasó", () => {
       category: "algo_no_anduvo",
       message: mensaje,
       path: "/settings",
+      context: {
+        pathname: "/settings",
+        pageTitle: "Ajustes",
+        theme: "light",
+        actions: [{ type: "click", text: "Ajustes", time: new Date().toISOString() }],
+      },
     });
     await close();
     await login(page);

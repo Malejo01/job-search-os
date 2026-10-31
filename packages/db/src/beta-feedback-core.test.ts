@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   FEEDBACK_CATEGORIES,
+  FEEDBACK_CONTEXT_MAX_BYTES,
   FEEDBACK_MESSAGE_MAX,
   FEEDBACK_PATH_MAX,
 } from "@job-search-os/pipeline";
@@ -54,14 +55,18 @@ describe("beta_feedback: CHECK de la base contra las constantes del pipeline", (
     );
   });
 
-  it("el schema de Drizzle declara los mismos tres CHECK", () => {
-    const names = getTableConfig(betaFeedback)
-      .checks.map((c) => c.name)
-      .sort();
+  it("el schema de Drizzle declara los cuatro CHECK esperados", () => {
+    const checks = getTableConfig(betaFeedback).checks;
+    const names = checks.map((c) => c.name).sort();
     expect(names).toEqual([
       "beta_feedback_category",
+      "beta_feedback_context_size",
       "beta_feedback_message_length",
       "beta_feedback_path_length",
     ]);
+
+    const contextCheck = checks.find((c) => c.name === "beta_feedback_context_size");
+    expect(contextCheck).toBeDefined();
+    expect(FEEDBACK_CONTEXT_MAX_BYTES).toBe(4096);
   });
 });

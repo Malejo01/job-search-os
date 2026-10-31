@@ -1,0 +1,2 @@
+ALTER TABLE "beta_feedback" ADD COLUMN "context" jsonb;--> statement-breakpoint
+ALTER TABLE "beta_feedback" ADD CONSTRAINT "beta_feedback_context_size" CHECK ("beta_feedback"."context" is null or octet_length("beta_feedback"."context"::text) <= 4096);

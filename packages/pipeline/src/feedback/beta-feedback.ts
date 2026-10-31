@@ -14,12 +14,36 @@ export const FEEDBACK_CATEGORY_LABELS: Record<FeedbackCategory, string> = {
 
 export const FEEDBACK_MESSAGE_MAX = 2000;
 export const FEEDBACK_PATH_MAX = 200;
+export const FEEDBACK_CONTEXT_MAX_BYTES = 4096;
+export const FEEDBACK_ACTIONS_MAX = 10;
+export const FEEDBACK_ACTION_TEXT_MAX = 60;
 /** Envíos por persona en una ventana de 24 h. */
 export const FEEDBACK_DAILY_LIMIT = 10;
 
-export type FeedbackField = "category" | "message" | "path" | "limit";
+export type FeedbackAction = {
+  type: "navigate" | "click";
+  text: string;
+  time: string;
+};
 
-export type FeedbackInput = { category: FeedbackCategory; message: string; path: string };
+export type FeedbackContext = {
+  pathname?: string;
+  pageTitle?: string;
+  screen?: string;
+  userAgent?: string;
+  theme?: "dark" | "light" | string;
+  appVersion?: string | null;
+  actions?: FeedbackAction[];
+};
+
+export type FeedbackField = "category" | "message" | "path" | "context" | "limit";
+
+export type FeedbackInput = {
+  category: FeedbackCategory;
+  message: string;
+  path: string;
+  context?: FeedbackContext | null;
+};
 
 export function isFeedbackCategory(value: unknown): value is FeedbackCategory {
   return typeof value === "string" && (FEEDBACK_CATEGORIES as readonly string[]).includes(value);
@@ -70,14 +94,123 @@ export function normalizeFeedbackPath(path: string): string {
     .join("/");
 }
 
-export type FeedbackValidation =
-  { ok: true; value: FeedbackInput } | { ok: false; field: Exclude<FeedbackField, "limit"> };
+/**
+ * Agrega una acción al buffer en memoria respetando el tope de 10 elementos (FIFO)
+ * y truncando el texto a 60 caracteres.
+ */
+export function pushAction(
+  buffer: readonly FeedbackAction[],
+  action: { type: "navigate" | "click"; text: string; time?: string },
+): FeedbackAction[] {
+  const cleanText = action.text.trim().replace(/\s+/g, " ").slice(0, FEEDBACK_ACTION_TEXT_MAX);
+  if (!cleanText) return [...buffer];
+  const item: FeedbackAction = {
+    type: action.type,
+    text: cleanText,
+    time: action.time ?? new Date().toISOString(),
+  };
+  const next = [...buffer, item];
+  if (next.length > FEEDBACK_ACTIONS_MAX) {
+    return next.slice(next.length - FEEDBACK_ACTIONS_MAX);
+  }
+  return next;
+}
 
-/** Valida los tres campos en orden; devuelve el primero inválido, nunca su contenido. */
+export type FeedbackContextValidation =
+  { ok: true; value: FeedbackContext | null } | { ok: false; reason: string };
+
+/**
+ * Valida el contexto del reporte de feedback (puro).
+ * Verifica que el tamaño serializado sea <= 4 KB (4096 bytes),
+ * que no exceda 10 acciones, y que los textos no superen 60 caracteres.
+ */
+export function validateFeedbackContext(raw: unknown): FeedbackContextValidation {
+  if (raw === undefined || raw === null || raw === "") {
+    return { ok: true, value: null };
+  }
+  let obj: unknown = raw;
+  let rawString: string;
+  if (typeof raw === "string") {
+    rawString = raw;
+    try {
+      obj = JSON.parse(raw);
+    } catch {
+      return { ok: false, reason: "invalid_json" };
+    }
+  } else {
+    try {
+      rawString = JSON.stringify(raw);
+    } catch {
+      return { ok: false, reason: "invalid_json" };
+    }
+  }
+
+  if (new TextEncoder().encode(rawString).length > FEEDBACK_CONTEXT_MAX_BYTES) {
+    return { ok: false, reason: "too_large" };
+  }
+
+  if (typeof obj !== "object" || obj === null || Array.isArray(obj)) {
+    return { ok: false, reason: "not_an_object" };
+  }
+  const rec = obj as Record<string, unknown>;
+  const actionsRaw = Array.isArray(rec.actions) ? rec.actions : [];
+  if (actionsRaw.length > FEEDBACK_ACTIONS_MAX) {
+    return { ok: false, reason: "too_many_actions" };
+  }
+  const actions: FeedbackAction[] = [];
+  for (const a of actionsRaw) {
+    if (typeof a !== "object" || a === null) continue;
+    const aRec = a as Record<string, unknown>;
+    const type = aRec.type === "click" || aRec.type === "navigate" ? aRec.type : "click";
+    const rawText = typeof aRec.text === "string" ? aRec.text : "";
+    const text = rawText.trim().replace(/\s+/g, " ").slice(0, FEEDBACK_ACTION_TEXT_MAX);
+    if (!text) continue;
+    const time = typeof aRec.time === "string" ? aRec.time.slice(0, 30) : new Date().toISOString();
+    actions.push({ type, text, time });
+  }
+
+  let pathname: string | undefined;
+  if (typeof rec.pathname === "string") {
+    pathname = rec.pathname.split(/[?#]/)[0]?.slice(0, FEEDBACK_PATH_MAX);
+  }
+
+  const pageTitle = typeof rec.pageTitle === "string" ? rec.pageTitle.slice(0, 100) : undefined;
+  const screen = typeof rec.screen === "string" ? rec.screen.slice(0, 30) : undefined;
+  const userAgent = typeof rec.userAgent === "string" ? rec.userAgent.slice(0, 200) : undefined;
+  const theme = rec.theme === "dark" || rec.theme === "light" ? rec.theme : undefined;
+  const appVersion = typeof rec.appVersion === "string" ? rec.appVersion.slice(0, 50) : null;
+
+  const sanitized: FeedbackContext = {
+    pathname,
+    pageTitle,
+    screen,
+    userAgent,
+    theme,
+    appVersion,
+    actions,
+  };
+
+  const serialized = JSON.stringify(sanitized);
+  if (new TextEncoder().encode(serialized).length > FEEDBACK_CONTEXT_MAX_BYTES) {
+    return { ok: false, reason: "too_large" };
+  }
+
+  return {
+    ok: true,
+    value: sanitized,
+  };
+}
+
+export type FeedbackValidation =
+  | { ok: true; value: FeedbackInput }
+  | { ok: false; field: Exclude<FeedbackField, "limit" | "context"> };
+
+/** Valida los campos en orden; devuelve el primero inválido, nunca su contenido. */
 export function validateFeedback(raw: {
   category: unknown;
   message: unknown;
   path: unknown;
+  context?: unknown;
 }): FeedbackValidation {
   if (!isFeedbackCategory(raw.category)) return { ok: false, field: "category" };
   if (typeof raw.message !== "string") return { ok: false, field: "message" };
@@ -86,9 +219,23 @@ export function validateFeedback(raw: {
     return { ok: false, field: "message" };
   }
   if (!isValidFeedbackPath(raw.path)) return { ok: false, field: "path" };
+
+  let context: FeedbackContext | null = null;
+  if (raw.context !== undefined && raw.context !== null && raw.context !== "") {
+    const ctxVal = validateFeedbackContext(raw.context);
+    // El contexto técnico es accesorio: si excede el tamaño o es inválido,
+    // se descarta suavemente (context = null) para nunca perder el mensaje del usuario.
+    context = ctxVal.ok ? ctxVal.value : null;
+  }
+
   return {
     ok: true,
-    value: { category: raw.category, message, path: normalizeFeedbackPath(raw.path) },
+    value: {
+      category: raw.category,
+      message,
+      path: normalizeFeedbackPath(raw.path),
+      context,
+    },
   };
 }
 
