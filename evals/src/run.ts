@@ -39,7 +39,9 @@ import {
   goldenMeta,
   goldenPrefilter,
   goldenVars,
+  loadGoldenFixture,
   profile,
+  type GoldenFile,
   type GoldenJob,
 } from "./golden";
 import {
@@ -134,6 +136,12 @@ export type RunOptions = {
   runs: number;
   concurrency: number;
   ids?: number[];
+  /** Archivo o nombre de fixture alternativo (ej. --fixture evals/fixtures/golden-carreras-beta.json). */
+  fixture?: string;
+  /** Casos inyectados directamente (para tests o fixtures en memoria). */
+  fixtureJobs?: GoldenJob[];
+  /** Metadatos del fixture alternativo. */
+  fixtureMeta?: GoldenFile["meta"];
   /** Solo los jobs ancla (ANCHOR_IDS). Se combina con ids si vienen ambos (intersección). */
   subset?: boolean;
   /** Tope de llamadas (jobs × corridas). Default DEFAULT_CALL_BUDGET. */
@@ -415,18 +423,25 @@ export function parseThinkingFlag(raw: string | undefined): ThinkingLevel | unde
 const defaultSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 /** Jobs que correría una corrida con estas opciones (misma regla que runEvals). */
-function selectJobs(options: Pick<RunOptions, "ids" | "subset">): GoldenJob[] {
+export function selectJobs(
+  options: Pick<RunOptions, "ids" | "subset" | "fixture" | "fixtureJobs">,
+): GoldenJob[] {
+  const sourceJobs =
+    options.fixtureJobs ?? (options.fixture ? loadGoldenFixture(options.fixture).jobs : goldenJobs);
   const wanted = new Set(
     options.subset
       ? ANCHOR_IDS.filter((id) => !options.ids?.length || options.ids.includes(id))
       : (options.ids ?? []),
   );
-  return wanted.size ? goldenJobs.filter((j) => wanted.has(j.id)) : goldenJobs;
+  return wanted.size ? sourceJobs.filter((j) => wanted.has(j.id)) : sourceJobs;
 }
 
 /** Costo estimado antes de la primera llamada: llamadas × tokens por llamada × tarifa de model_routing. */
 export function estimateRunCost(
-  options: Pick<RunOptions, "ids" | "subset" | "runs" | "model" | "thinking">,
+  options: Pick<
+    RunOptions,
+    "ids" | "subset" | "runs" | "model" | "thinking" | "fixture" | "fixtureJobs"
+  >,
   sample?: TokenSample,
 ): CostEstimate {
   const route = routeFor(options.model, options.thinking);
@@ -458,7 +473,10 @@ function resolveDbMode(options: Pick<RunOptions, "db" | "client">): DbTarget | "
  * medida o el supuesto conservador. Sin base (db none) cae a estimateRunCost.
  */
 export async function estimateRunCostWithHistory(
-  options: Pick<RunOptions, "ids" | "subset" | "runs" | "model" | "thinking" | "db" | "client">,
+  options: Pick<
+    RunOptions,
+    "ids" | "subset" | "runs" | "model" | "thinking" | "db" | "client" | "fixture" | "fixtureJobs"
+  >,
 ): Promise<CostEstimate> {
   const dbMode = resolveDbMode(options);
   if (dbMode === "none") return estimateRunCost(options);
@@ -793,7 +811,9 @@ async function runEvalsWith(options: RunOptions, env: RunEnv): Promise<Report> {
       anchor,
       runs: options.runs,
       date: new Date(startedAt).toISOString(),
-      golden_version: goldenMeta.version,
+      golden_version:
+        options.fixtureMeta?.version ??
+        (options.fixture ? loadGoldenFixture(options.fixture).meta.version : goldenMeta.version),
       criteria_hash: criteriaHash,
       adversarial_ids: jobReports.filter((j) => j.adversarial).map((j) => j.id),
       d019_excludes_adversarial: true,
