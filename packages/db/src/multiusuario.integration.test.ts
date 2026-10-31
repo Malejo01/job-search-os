@@ -678,6 +678,28 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
         /admin_beta_feedback: no autorizado/,
       );
     },
+    // C3-1: planes de la beta, solo app_admins. Una sesión común no lee ni cambia el plan de nadie.
+    admin_plan_get: async () => {
+      await expect(asUser(A, (tx) => tx`select * from admin_plan_get(${EMAIL_B})`)).rejects.toThrow(
+        /admin_plan: no autorizado/,
+      );
+    },
+    admin_plan_list: async () => {
+      await expect(asUser(A, (tx) => tx`select * from admin_plan_list(10)`)).rejects.toThrow(
+        /admin_plan: no autorizado/,
+      );
+    },
+    admin_plan_set: async () => {
+      const before = await fingerprint({ table: "profiles", column: "user_id" }, B);
+      await expect(
+        asUser(
+          A,
+          (tx) =>
+            tx`select * from admin_plan_set(${EMAIL_B}, 'lista', 'beca', now() + interval '30 days')`,
+        ),
+      ).rejects.toThrow(/admin_plan: no autorizado/);
+      expect(await fingerprint({ table: "profiles", column: "user_id" }, B)).toBe(before);
+    },
     // Lookup por email: acá solo un email inexistente.
     auth_user_by_email: async () => {
       expect(
