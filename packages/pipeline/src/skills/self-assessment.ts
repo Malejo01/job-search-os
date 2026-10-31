@@ -129,13 +129,15 @@ export const ROLE_GROUPS: readonly { label: string; roles: readonly RoleKey[] }[
  * Quien ya la tiene la conserva: `isRoleKey`, la ingesta y `/mercado/<clave>` no cambian. Las cuatro
  * de la beta (ADR-027) salen así hasta medir su volumen después de `pool:rehint`.
  */
-export const UNLISTED_ROLE_KEYS: readonly RoleKey[] = [
-  "asistencia_operaciones",
+/** Las cuatro carreras nuevas de la beta (ADR-027). La lista de espera las ofrece aunque estén ocultas. */
+export const BETA_ROLE_KEYS: readonly RoleKey[] = [
   "abogacia",
   "administracion_empresas",
   "comunicacion",
   "relaciones_internacionales",
 ];
+
+export const UNLISTED_ROLE_KEYS: readonly RoleKey[] = ["asistencia_operaciones", ...BETA_ROLE_KEYS];
 
 /**
  * `ROLE_GROUPS` sin las carreras no listadas, salvo las de `keep` (las del perfil de la persona), y

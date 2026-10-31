@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_CRITERIA_RULES } from "../onboarding";
 import {
   BACKOFFICE_ROLE_KEYS,
+  BETA_ROLE_KEYS,
   COMMERCIAL_ROLE_KEYS,
   DIGITAL_ROLE_KEYS,
   LEGAL_MANAGEMENT_ROLE_KEYS,
@@ -27,12 +28,6 @@ import {
 const read = (file: string) => JSON.parse(readFileSync(resolve(__dirname, file), "utf8"));
 const seed = read("../../../db/seeds/role_skills.json");
 const taxonomy: { slug: string }[] = read("../../../db/seeds/skills.json");
-const BETA_ROLE_KEYS: RoleKey[] = [
-  "abogacia",
-  "administracion_empresas",
-  "comunicacion",
-  "relaciones_internacionales",
-];
 const DEFAULTS = DEFAULT_CRITERIA_RULES.allowed_disciplines;
 
 describe("SELF_LEVELS", () => {
@@ -120,6 +115,12 @@ describe("selectableRoleGroups", () => {
     expect(flat(selectableRoleGroups())).toContain("finanzas_contabilidad");
     const kept = flat(selectableRoleGroups(["asistencia_operaciones"]));
     expect(kept).toContain("asistencia_operaciones");
+  });
+
+  it("la lista de espera ofrece las cuatro carreras de la beta aunque sigan ocultas", () => {
+    const offered = selectableRoleGroups(BETA_ROLE_KEYS).flatMap((g) => g.roles);
+    for (const key of BETA_ROLE_KEYS) expect(offered).toContain(key);
+    expect(offered).not.toContain("asistencia_operaciones");
   });
   it("las no listadas salen salvo las del perfil (keep), y los grupos no quedan vacíos", () => {
     // La lista es una constante: se prueba el mecanismo con una copia temporal y se restaura.

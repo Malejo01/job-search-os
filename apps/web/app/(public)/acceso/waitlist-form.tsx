@@ -121,6 +121,7 @@ export function WaitlistForm({
         <input
           name="heardFrom"
           type="text"
+          list="acceso-heard-options"
           maxLength={200}
           aria-invalid={errors.heardFrom ? true : undefined}
           aria-describedby={
@@ -128,6 +129,12 @@ export function WaitlistForm({
           }
           className={field}
         />
+        <datalist id="acceso-heard-options">
+          <option value="Voces Jóvenes" />
+          <option value="Instagram" />
+          <option value="LinkedIn" />
+          <option value="Me lo contó alguien" />
+        </datalist>
         <span id="acceso-heard-hint" className="text-xs text-fg-subtle">
           No pongas datos personales.
         </span>
