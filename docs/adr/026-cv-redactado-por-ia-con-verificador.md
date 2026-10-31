@@ -47,7 +47,7 @@ y el gasto en LLM tiene que quedar acotado (`docs/LLM_COSTOS.md`).
    - por conversación: 25 turnos y USD 0,15;
    - por persona y día: USD 0,30 de entrevistas y 5 charlas nuevas;
    - global: `CV_CHAT_DAILY_CAP_USD` (USD 1,00 por día si no se define; un valor mal escrito cierra);
-   - por mes: el cupo «CV por mes» del plan (`cvReadsPerMonth`: gratis 1, pago 5), contado por
+   - por mes (actualizado en C2-1, beta abierta con `CV_CHAT_ENABLED=all`): el cupo «CV por mes» es el del plan (`cvReadsPerMonth`: gratis 1, pago 5) con un piso de 3 (`CV_CHAT_BETA_LIMITS.cvPerMonth` en `plans.ts`), más 40 turnos de entrevista por persona (`interviewTurnsPerMonth`, motivo `turnos_mes`). Los intentos fallidos que llegaron al proveedor cuentan como turno y suman el máximo del paso al gasto (el proveedor los factura); solo `provider_unavailable` no cuenta. Los números son una primera decisión sin medición de uso real. Antes, el cupo se contaba por
      charlas con una redacción exitosa, y una sola redacción por charla.
 6. **Reservas para la concurrencia.** Los topes leen `llm_calls` antes de llamar y el registro real
    se escribe después, así que dos pedidos en paralelo pasaban los dos. Antes de cada llamada, una

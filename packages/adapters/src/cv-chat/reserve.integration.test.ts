@@ -3,6 +3,7 @@ import { applyMigrations } from "@job-search-os/db/src/migrate";
 import { createDb, isRemoteDatabase, schema as s } from "@job-search-os/db";
 import {
   cvChatCapReason,
+  cvChatMonthTurnsReason,
   cvChatStartCapReason,
   CV_CHAT_MAX_COST_USD,
   type CvChatCap,
@@ -116,6 +117,65 @@ const seedSpent = (usd: number) =>
     costUsd: usd,
     label: LABEL,
   });
+
+describe("intentos fallidos y turnos del mes (C2-1)", () => {
+  const row = (over: Record<string, unknown>) =>
+    conn.db.insert(s.llmCalls).values({
+      userId: USER,
+      task: "cv_interview",
+      model: "fake",
+      ok: true,
+      costUsd: 0.01,
+      label: LABEL,
+      ...over,
+    });
+  const measure = () =>
+    measureCvChat(conn.db, { userId: USER, label: LABEL, ...windows(new Date()) });
+
+  it("un intento fallido (costo null) cuenta como turno y suma el máximo del paso", async () => {
+    await row({});
+    await row({ ok: false, costUsd: null, error: "schema_invalid" });
+    const m = await measure();
+    expect(m.interviewTurnsThisMonth).toBe(2);
+    expect(m.userInterviewUsd).toBeCloseTo(0.01 + 0.025);
+    expect(m.dailySpendUsd).toBeCloseTo(0.01 + 0.025);
+  });
+
+  it("provider_unavailable (nunca se llamó), otra persona y más de 30 días no cuentan", async () => {
+    await row({ ok: false, costUsd: null, error: "provider_unavailable" });
+    await row({ userId: OTHER });
+    await row({ createdAt: new Date(Date.now() - 31 * 86_400_000) });
+    const m = await measure();
+    expect(m.interviewTurnsThisMonth).toBe(0);
+  });
+
+  it("un `write` fallido cuenta como CV del mes y como escritura de la charla", async () => {
+    await row({ task: "cv_write", ok: false, costUsd: null, error: "timeout" });
+    const m = await measure();
+    expect(m.cvThisMonth).toBe(1);
+    expect(m.writesInConversation).toBe(1);
+  });
+
+  it("39 turnos y dos pedidos en paralelo: pasa uno solo", async () => {
+    for (let i = 0; i < 39; i++) await row({ label: `cv:reserve-test-t${i}`, costUsd: 0 });
+    const go = async () => {
+      const r = await reserveCvChatStep(conn.db, {
+        userId: USER,
+        label: LABEL,
+        step: "interview",
+        estimateUsd: 0.01,
+        ...windows(new Date()),
+        decide: (m) => cvChatMonthTurnsReason(m.interviewTurnsThisMonth),
+      });
+      if (!r.ok) return r.reject;
+      await sleep(150);
+      await releaseCvChatReservation(conn.db, r.reservationId);
+      return "paso";
+    };
+    const out = await Promise.all([go(), go()]);
+    expect([...out].sort()).toEqual(["paso", "turnos_mes"]);
+  });
+});
 
 describe("reservas del chat de CV", () => {
   it("dos pedidos en paralelo: con lugar para uno, pasa uno y el otro se frena", async () => {
