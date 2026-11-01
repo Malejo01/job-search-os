@@ -1,4 +1,6 @@
 import {
+  CAREER_REVEAL_THRESHOLD,
+  CAREER_REVEAL_WINDOW_DAYS,
   FEEDBACK_CATEGORY_LABELS,
   FOUNDER_SEATS_PER_CAREER,
   betaMetricRows,
@@ -7,11 +9,18 @@ import {
   isFeedbackCategory,
   isRoleKey,
   type BetaMetricRow,
+  type CareerRevealRow,
 } from "@job-search-os/pipeline";
 import { notFound } from "next/navigation";
 import { careerLabel } from "@/lib/career-market";
 import { getBetaFeedback, type FeedbackListResult } from "@/lib/beta-feedback";
-import { getBetaMetrics, getFounderCounts, type FounderCountsResult } from "@/lib/beta-metrics";
+import {
+  getBetaMetrics,
+  getCareerReveal,
+  getFounderCounts,
+  type CareerRevealResult,
+  type FounderCountsResult,
+} from "@/lib/beta-metrics";
 import { requireUserId } from "@/lib/session";
 
 export const metadata = { title: "Métricas de la beta" };
@@ -53,6 +62,7 @@ export default async function MetricasPage() {
   const groups = [...new Set(rows.map((r) => r.group))];
   const founders = await getFounderCounts(userId);
   const feedback = await getBetaFeedback(userId);
+  const reveal = await getCareerReveal(userId);
   const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(betaMetricsCsv(metrics))}`;
 
   return (
@@ -68,6 +78,7 @@ export default async function MetricasPage() {
         <MetricTable key={group} title={group} rows={rows.filter((r) => r.group === group)} />
       ))}
       <FounderSeats founders={founders} k={metrics.k} />
+      <HiddenCareers reveal={reveal} />
       <BetaFeedbackList feedback={feedback} />
       <a
         href={csvHref}
@@ -77,6 +88,84 @@ export default async function MetricasPage() {
         Descargar CSV
       </a>
     </div>
+  );
+}
+
+/**
+ * Carreras ocultas (C4-3): las de `UNLISTED_ROLE_KEYS`, con las ofertas del pool de los últimos 30 días contra
+ * el umbral de 10 (ADR-022). «Lista para mostrarse» es una marca, no una acción: sacar la carrera del modo
+ * oculto es un cambio de una línea que hace una persona. Los números salen de `role_hints`, así que valen
+ * después de `pool:rehint`.
+ */
+function HiddenCareers({ reveal }: { reveal: CareerRevealResult }) {
+  if (!reveal.ok) {
+    return (
+      <p role="status" className="rounded-card border border-line bg-surface p-4 text-sm">
+        Carreras ocultas: no se pudieron leer las ofertas del pool.
+      </p>
+    );
+  }
+  const ready = reveal.rows.filter((r) => r.ready).length;
+  return (
+    <section
+      className="rounded-card border border-line bg-surface p-4"
+      data-testid="carreras-ocultas"
+    >
+      <table className="w-full text-sm">
+        <caption className="mb-2 text-left font-medium">Carreras ocultas</caption>
+        <thead>
+          <tr className="text-left text-xs text-fg-subtle">
+            <th scope="col" className="pb-1 font-normal">
+              Carrera
+            </th>
+            <th scope="col" className="pb-1 text-right font-normal">
+              Ofertas ({CAREER_REVEAL_WINDOW_DAYS} días)
+            </th>
+            <th scope="col" className="pb-1 text-right font-normal">
+              Estado
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {reveal.rows.map((r) => (
+            <HiddenCareerRow key={r.role} row={r} />
+          ))}
+        </tbody>
+      </table>
+      <p className="mt-2 text-xs text-fg-subtle">
+        Ofertas nuevas del pool (sin copias) contra el umbral de {CAREER_REVEAL_THRESHOLD}{" "}
+        (ADR-022).
+        {ready > 0
+          ? ` ${ready === 1 ? "Hay 1 carrera lista" : `Hay ${ready} carreras listas`}: sacarla de UNLISTED_ROLE_KEYS la muestra en los selectores.`
+          : " Todavía ninguna llega."}
+      </p>
+    </section>
+  );
+}
+
+function HiddenCareerRow({ row }: { row: CareerRevealRow }) {
+  const label = isRoleKey(row.role) ? careerLabel(row.role) : row.role;
+  return (
+    <tr className="border-t border-line">
+      <th scope="row" className="py-1 pr-3 text-left font-normal text-fg-muted">
+        {label}
+      </th>
+      <td className="py-1 text-right font-medium tabular-nums">
+        {row.received}
+        <span className="font-normal text-fg-subtle"> de {row.threshold}</span>
+      </td>
+      <td className="py-1 text-right">
+        {row.ready ? (
+          <span className="rounded-badge border border-success-line bg-success-soft px-2 py-0.5 text-xs font-medium text-success">
+            Lista para mostrarse
+          </span>
+        ) : (
+          <span className="text-xs text-fg-subtle">
+            {row.missing === 1 ? "Falta 1" : `Faltan ${row.missing}`}
+          </span>
+        )}
+      </td>
+    </tr>
   );
 }
 

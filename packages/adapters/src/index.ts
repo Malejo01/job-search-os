@@ -79,6 +79,7 @@ export {
   readCareerMarketInput,
   readCareerSalaryJobs,
 } from "./market/career-market";
+export { readCareerRevealCounts } from "./market/career-reveal";
 export {
   buildRoleMarketSnapshots,
   getRoleMarket,
