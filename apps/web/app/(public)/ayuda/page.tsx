@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pricingEnabled } from "@job-search-os/pipeline";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -23,8 +24,8 @@ const FAQS: FaqItem[] = [
       <p>
         Es un asistente personal para buscar trabajo. Te ayuda a revisar avisos laborales, compara
         lo que pide cada puesto con tus conocimientos y experiencia, y te muestra en simple qué
-        tenés a tu favor y qué te falta o te frena. Así ahorrás tiempo y sabés exactamente dónde te
-        conviene postularte.
+        tenés a tu favor y qué te falta o te frena. Así ahorrás tiempo para decidir dónde te
+        conviene postularte. El puntaje es una estimación: no garantiza que te llamen.
       </p>
     ),
   },
@@ -66,9 +67,9 @@ const FAQS: FaqItem[] = [
     q: "¿Cuándo abre el acceso?",
     a: (
       <p>
-        La beta cerrada abre el <strong>jueves 26 de noviembre</strong>. Antes de ese día te vamos a
-        escribir por correo electrónico con tu invitación y el enlace para crear tu cuenta y empezar
-        a usar la app.
+        La beta cerrada abre el <strong>jueves 26 de noviembre</strong>. El cupo es limitado y
+        anotarte no garantiza un lugar. Si hay lugar para vos, te escribimos con tu invitación y el
+        enlace para crear tu cuenta.
       </p>
     ),
   },
@@ -76,13 +77,19 @@ const FAQS: FaqItem[] = [
     q: "¿Cuánto cuesta?",
     a: (
       <p>
-        Podés empezar con un plan gratis para probar la experiencia. También contamos con planes
-        pagos para quienes quieren analizar más avisos por día y usar funciones avanzadas. Podés ver
-        todas las opciones vigentes en la sección de{" "}
-        <Link href="/precios" className="text-link underline hover:text-fg">
-          Precios
-        </Link>
-        .
+        Podés empezar con un plan gratis para probar la experiencia. También habrá un plan pago para
+        quienes quieren analizar más avisos por día.{" "}
+        {pricingEnabled(process.env) ? (
+          <>
+            Mirá las opciones vigentes en{" "}
+            <Link href="/precios" className="text-link underline hover:text-fg">
+              Precios
+            </Link>
+            .
+          </>
+        ) : (
+          "Los precios se publican antes de que abra la beta."
+        )}
       </p>
     ),
   },
@@ -107,9 +114,11 @@ const FAQS: FaqItem[] = [
     q: "¿Qué pasa con mis datos y mi privacidad?",
     a: (
       <p>
-        Tus datos son tuyos. Tu nombre, email, currículum y búsquedas se guardan de forma privada y
-        segura. No vendemos tus datos a nadie ni los compartimos con empresas sin tu autorización.
-        Podés consultar todos los detalles en nuestra{" "}
+        Tus datos se guardan en una base privada y solo vos ves los tuyos. No los vendemos, no los
+        usamos para publicidad ni para entrenar modelos de inteligencia artificial. Para evaluar los
+        avisos y redactar borradores usamos proveedores de inteligencia artificial (Google y
+        Anthropic): reciben datos del aviso y de tu perfil, pero no tu nombre, tu email ni tu
+        contraseña. Todos los detalles están en nuestra{" "}
         <Link href="/legal/privacidad" className="text-link underline hover:text-fg">
           Política de privacidad
         </Link>
@@ -123,7 +132,7 @@ const FAQS: FaqItem[] = [
       <p>
         En todas las pantallas de la app vas a ver un botón flotante que dice{" "}
         <strong>«¿Algo no anduvo?»</strong>. Al tocarlo podés describir qué problema tuviste o qué
-        no quedó claro. Leemos cada comentario para solucionarlo rápido durante la beta.
+        no quedó claro. Leemos los comentarios durante la beta.
       </p>
     ),
   },
@@ -131,9 +140,9 @@ const FAQS: FaqItem[] = [
     q: "¿Cómo me doy de baja si no quiero usar más la app?",
     a: (
       <p>
-        Podés pedir la baja cuando quieras. Nos mandás un mensaje desde el correo con el que te
-        anotaste solicitando el borrado de tu cuenta y eliminamos todos tus datos de nuestros
-        registros, sin vueltas ni complicaciones.
+        Si ya tenés cuenta, podés borrarla vos en Ajustes, en «Cuenta»: se borran tus datos de la
+        app. Si solo te anotaste en la lista de espera, escribinos desde el mismo email con el que
+        te anotaste y borramos tu pedido.
       </p>
     ),
   },
