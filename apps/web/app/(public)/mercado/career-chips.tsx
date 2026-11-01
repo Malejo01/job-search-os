@@ -1,6 +1,7 @@
-import { ROLE_KEYS, UNLISTED_ROLE_KEYS } from "@job-search-os/pipeline";
+import { ROLE_KEYS } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { careerLabel } from "@/lib/career-market";
+import { getPublicCareerKeys } from "@/lib/career-visibility";
 
 /**
  * Links a cada carrera (ronda 63): /mercado/<carrera> o /ofertas/<carrera>. Son rutas, no filtros
@@ -9,8 +10,11 @@ import { careerLabel } from "@/lib/career-market";
  * Sin prefetch (ronda 85): con 13 chips en pantalla, cada visita generaba las 13 páginas ISR en el
  * servidor (CPU de Vercel), y después de un deploy con el pool vacío dejaba carreras vacías en el
  * caché por 30 minutos. El link carga al tocarlo.
+ *
+ * Las carreras que se muestran salen de `getPublicCareerKeys()` (ADR-029): las de la beta aparecen solas al
+ * llegar a 10 ofertas. La carrera actual se muestra aunque esté oculta.
  */
-export function CareerChips({
+export async function CareerChips({
   base,
   current,
   label,
@@ -19,10 +23,11 @@ export function CareerChips({
   current?: string;
   label: string;
 }) {
+  const visible = await getPublicCareerKeys();
   return (
     <nav aria-label={label}>
       <ul className="flex flex-wrap gap-2">
-        {ROLE_KEYS.filter((k) => !UNLISTED_ROLE_KEYS.includes(k) || k === current).map((key) => (
+        {ROLE_KEYS.filter((k) => visible.includes(k) || k === current).map((key) => (
           <li key={key}>
             <Link
               href={`${base}/${key}`}

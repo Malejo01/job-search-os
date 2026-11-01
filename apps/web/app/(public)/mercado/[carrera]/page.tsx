@@ -9,6 +9,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CareerMarket } from "@/app/(app)/market/career-market";
 import { careerLabel, getCareerMarket } from "@/lib/career-market";
+import { getPublicCareerKeys } from "@/lib/career-visibility";
 import { careerFromSlug } from "@/lib/showcase";
 import { siteUrl } from "@/lib/site-url";
 import { CareerChips } from "../career-chips";
@@ -36,10 +37,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = market
     ? careerSeoDescription(market, label)
     : `Skills, inglés, seniority y sueldos que piden las ofertas públicas de ${label}.`;
+  // Una carrera oculta (ADR-029) responde, pero no se anuncia: tampoco se indexa
+  const listed = (await getPublicCareerKeys()).includes(role);
   return {
     title,
     description,
     alternates: { canonical: `/mercado/${role}` },
+    ...(listed ? {} : { robots: { index: false, follow: true } }),
     // Un openGraph propio reemplaza entero al del layout, imagen incluida: se repite la de (public)
     openGraph: {
       title,

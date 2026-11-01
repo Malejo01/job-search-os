@@ -9,7 +9,6 @@ import {
   isFeedbackCategory,
   isRoleKey,
   type BetaMetricRow,
-  type CareerRevealRow,
 } from "@job-search-os/pipeline";
 import { notFound } from "next/navigation";
 import { careerLabel } from "@/lib/career-market";
@@ -19,6 +18,7 @@ import {
   getCareerReveal,
   getFounderCounts,
   type CareerRevealResult,
+  type CareerVisibilityRow,
   type FounderCountsResult,
 } from "@/lib/beta-metrics";
 import { requireUserId } from "@/lib/session";
@@ -92,10 +92,10 @@ export default async function MetricasPage() {
 }
 
 /**
- * Carreras ocultas (C4-3): las de `UNLISTED_ROLE_KEYS`, con las ofertas del pool de los últimos 30 días contra
- * el umbral de 10 (ADR-022). «Lista para mostrarse» es una marca, no una acción: sacar la carrera del modo
- * oculto es un cambio de una línea que hace una persona. Los números salen de `role_hints`, así que valen
- * después de `pool:rehint`.
+ * Carreras de la beta en público (C4-3, ADR-029): las ofertas del pool de los últimos 30 días contra el
+ * umbral de 10 (ADR-022). Desde ADR-029 no hay nada que mergear: la carrera aparece sola en los chips, el
+ * sitemap y /mercado cuando llega al umbral (hasta unas 2 horas después, por el caché). Los números salen
+ * de `role_hints`, así que valen después de `pool:rehint`.
  */
 function HiddenCareers({ reveal }: { reveal: CareerRevealResult }) {
   if (!reveal.ok) {
@@ -105,14 +105,14 @@ function HiddenCareers({ reveal }: { reveal: CareerRevealResult }) {
       </p>
     );
   }
-  const ready = reveal.rows.filter((r) => r.ready).length;
+  const shown = reveal.rows.filter((r) => r.shown).length;
   return (
     <section
       className="rounded-card border border-line bg-surface p-4"
-      data-testid="carreras-ocultas"
+      data-testid="carreras-beta-publico"
     >
       <table className="w-full text-sm">
-        <caption className="mb-2 text-left font-medium">Carreras ocultas</caption>
+        <caption className="mb-2 text-left font-medium">Carreras de la beta en público</caption>
         <thead>
           <tr className="text-left text-xs text-fg-subtle">
             <th scope="col" className="pb-1 font-normal">
@@ -134,16 +134,16 @@ function HiddenCareers({ reveal }: { reveal: CareerRevealResult }) {
       </table>
       <p className="mt-2 text-xs text-fg-subtle">
         Ofertas nuevas del pool (sin copias) contra el umbral de {CAREER_REVEAL_THRESHOLD}{" "}
-        (ADR-022).
-        {ready > 0
-          ? ` ${ready === 1 ? "Hay 1 carrera lista" : `Hay ${ready} carreras listas`}: sacarla de UNLISTED_ROLE_KEYS la muestra en los selectores.`
+        (ADR-022). Al llegar, la carrera aparece sola en el sitio público (ADR-029).
+        {shown > 0
+          ? ` ${shown === 1 ? "Hay 1 carrera visible" : `Hay ${shown} carreras visibles`}.`
           : " Todavía ninguna llega."}
       </p>
     </section>
   );
 }
 
-function HiddenCareerRow({ row }: { row: CareerRevealRow }) {
+function HiddenCareerRow({ row }: { row: CareerVisibilityRow }) {
   const label = isRoleKey(row.role) ? careerLabel(row.role) : row.role;
   return (
     <tr className="border-t border-line">
@@ -155,10 +155,12 @@ function HiddenCareerRow({ row }: { row: CareerRevealRow }) {
         <span className="font-normal text-fg-subtle"> de {row.threshold}</span>
       </td>
       <td className="py-1 text-right">
-        {row.ready ? (
+        {row.shown ? (
           <span className="rounded-badge border border-success-line bg-success-soft px-2 py-0.5 text-xs font-medium text-success">
-            Lista para mostrarse
+            Visible en público
           </span>
+        ) : row.forcedHidden ? (
+          <span className="text-xs text-fg-subtle">Oculta a mano</span>
         ) : (
           <span className="text-xs text-fg-subtle">
             {row.missing === 1 ? "Falta 1" : `Faltan ${row.missing}`}
