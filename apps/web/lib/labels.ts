@@ -189,7 +189,7 @@ export function formatScoreNumber(score: number): string {
 
 /** Textos de la «estimación previa» (antes «pre-score»): una línea visible, no solo un title. */
 export const PRE_SCORE_EXPLAIN =
-  "Estimación previa: la calculamos con reglas, sin IA, mirando tus skills, los riesgos y el salario. Todavía no es la evaluación.";
+  "Estimación previa: la calculamos con reglas, sin IA, mirando tus conocimientos, los riesgos y el salario. Todavía no es la evaluación.";
 export const BLOCKER_LABEL = "Impide postular";
 
 export const DISCIPLINE_LABEL: Record<string, string> = {

@@ -43,14 +43,14 @@ test.describe("Flujo 36: feedback de un toque", () => {
     // Sin page.goto: el formulario numérico se remonta con la nota nueva al revalidar
     await page.getByText("Corregir el puntaje").click();
     await expect(page.getByLabel("Nota")).toHaveValue("sueldo");
-    await page.getByLabel("Score humano (0–10)").fill("6");
+    await page.getByLabel("Tu puntaje (0–10)").fill("6");
     await page.getByRole("button", { name: "Guardar", exact: true }).click();
     await expect.poll(async () => (await evaluationFeedbackOf(mismo))?.humanScore).toBe(6);
     const fila = await evaluationFeedbackOf(mismo);
     expect(fila?.humanNote).toBe("sueldo");
     expect(fila?.humanVerdict).toBe("en_desacuerdo");
     // Sin recargar: el formulario se remonta y muestra lo guardado
-    await expect(page.getByLabel("Score humano (0–10)")).toHaveValue("6");
+    await expect(page.getByLabel("Tu puntaje (0–10)")).toHaveValue("6");
   });
 
   test("guardar motivo no vacía el campo; sin cambios queda deshabilitado; quitar lo borra", async ({
@@ -121,13 +121,13 @@ test.describe("Flujo 36: feedback de un toque", () => {
     await no.click();
     await expect(no).toHaveAttribute("aria-pressed", "true");
 
-    await page.getByRole("button", { name: "el score está alto" }).click();
-    await expect(page.getByLabel("Motivo")).toHaveValue("el score está alto");
+    await page.getByRole("button", { name: "el puntaje está alto" }).click();
+    await expect(page.getByLabel("Motivo")).toHaveValue("el puntaje está alto");
     await page.getByRole("button", { name: "Guardar motivo" }).click();
     // Recargar recién con la nota en la base: si no, la recarga le gana a la acción en curso
     await expect
       .poll(async () => (await evaluationFeedbackOf(detalle))?.humanNote)
-      .toBe("el score está alto");
+      .toBe("el puntaje está alto");
 
     await page.reload();
     await expect(
@@ -135,26 +135,26 @@ test.describe("Flujo 36: feedback de un toque", () => {
         .getByRole("group", { name: "¿Te sirve esta evaluación?" })
         .getByRole("button", { name: "No, no me sirve", exact: true }),
     ).toHaveAttribute("aria-pressed", "true");
-    await expect(page.getByLabel("Motivo")).toHaveValue("el score está alto");
+    await expect(page.getByLabel("Motivo")).toHaveValue("el puntaje está alto");
 
     const fila = await evaluationFeedbackOf(detalle);
     expect(fila?.humanVerdict).toBe("en_desacuerdo");
     expect(fila?.humanVerdictAt).not.toBeNull();
-    expect(fila?.humanNote).toBe("el score está alto");
+    expect(fila?.humanNote).toBe("el puntaje está alto");
   });
 
   test("el score numérico no pisa el veredicto ni la nota", async ({ page }) => {
     await login(page);
     await page.goto(`/jobs/${detalle}`);
     await page.getByText("Corregir el puntaje").click();
-    await page.getByLabel("Score humano (0–10)").fill("6");
-    await expect(page.getByLabel("Nota")).toHaveValue("el score está alto");
+    await page.getByLabel("Tu puntaje (0–10)").fill("6");
+    await expect(page.getByLabel("Nota")).toHaveValue("el puntaje está alto");
     await page.getByRole("button", { name: "Guardar", exact: true }).click();
     await expect.poll(async () => (await evaluationFeedbackOf(detalle))?.humanScore).toBe(6);
 
-    const fila = await evaluationFeedbackOf(detalle);
-    expect(fila?.humanVerdict).toBe("en_desacuerdo");
-    expect(fila?.humanNote).toBe("el score está alto");
+    const fila2 = await evaluationFeedbackOf(detalle);
+    expect(fila2?.humanVerdict).toBe("en_desacuerdo");
+    expect(fila2?.humanNote).toBe("el puntaje está alto");
   });
 
   test("volver a tocar 'No' lo quita", async ({ page }) => {

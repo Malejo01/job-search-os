@@ -8,7 +8,7 @@ test.describe("Flujo 10: filtro de score libre", () => {
   }) => {
     await login(page);
     await page.goto("/jobs");
-    const filtro = page.getByLabel("Score mín.");
+    const filtro = page.getByLabel("Puntaje mín.");
     await expect(filtro.locator("option")).toHaveText([
       "cualquiera",
       ...Array.from({ length: 10 }, (_, n) => `≥ ${n}`),
@@ -17,14 +17,14 @@ test.describe("Flujo 10: filtro de score libre", () => {
     // Un valor que la lista fija vieja no tenía
     await filtro.selectOption("6");
     await expect(page).toHaveURL(/score=6/);
-    const scores = page.locator('[aria-label^="score "]');
+    const scores = page.locator('[aria-label^="puntaje "]');
     await expect
       .poll(
         async () => {
           const labels = await scores.evaluateAll((els) =>
             els.map((e) => e.getAttribute("aria-label") ?? ""),
           );
-          const seen = labels.map((l) => Number(l.replace("score ", "")));
+          const seen = labels.map((l) => Number(l.replace("puntaje ", "")));
           return seen.every((n) => n >= 6) ? "ok" : `hay < 6: ${seen.join(",")}`;
         },
         { timeout: 15_000 },
@@ -34,7 +34,7 @@ test.describe("Flujo 10: filtro de score libre", () => {
     // Fuera de rango o no entero en la URL: se ignora (sin filtro), no rompe la página
     for (const raro of ["12", "-1", "6.5", "abc"]) {
       await page.goto(`/jobs?score=${raro}`);
-      await expect(page.getByLabel("Score mín.")).toHaveValue("");
+      await expect(page.getByLabel("Puntaje mín.")).toHaveValue("");
     }
   });
 });

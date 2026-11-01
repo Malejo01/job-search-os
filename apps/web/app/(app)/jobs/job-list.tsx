@@ -82,7 +82,7 @@ function JobCard({ job, query, tour }: { job: JobListRow; query: string; tour: b
           {...anchor("jobs:puntaje")}
         >
           <span className="motion-safe:animate-pulse text-lg font-semibold leading-none">…</span>
-          <span className="text-[10px] uppercase">score</span>
+          <span className="text-[10px] uppercase">puntaje</span>
         </div>
       ) : job.score === null && job.preScore !== null ? (
         <div
@@ -101,13 +101,13 @@ function JobCard({ job, query, tour }: { job: JobListRow; query: string; tour: b
         <div
           className={`flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-control ring-1 ${SCORE_CLASSES[tone]}`}
           role="img"
-          aria-label={job.score === null ? "sin evaluar" : `score ${job.score}`}
+          aria-label={job.score === null ? "sin evaluar" : `puntaje ${job.score}`}
           {...anchor("jobs:puntaje")}
         >
           <span className="text-lg font-semibold leading-none">
             {job.score === null ? "–" : formatScoreNumber(job.score)}
           </span>
-          <span className="text-[10px]">{job.score === null ? "score" : "/10"}</span>
+          <span className="text-[10px]">{job.score === null ? "puntaje" : "/10"}</span>
         </div>
       )}
       <div className="flex min-w-0 flex-1 flex-col gap-1">

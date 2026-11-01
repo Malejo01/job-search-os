@@ -54,7 +54,7 @@ export default async function PendingJdPage({
       {ok ? (
         <p role="status" className="rounded-control bg-success-soft px-3 py-2 text-sm text-success">
           Descripción guardada: la oferta queda en cola para evaluar. Cuando termine la ves con
-          score en{" "}
+          puntaje en{" "}
           <Link href={`/jobs/${ok}`} className="underline">
             el detalle
           </Link>{" "}

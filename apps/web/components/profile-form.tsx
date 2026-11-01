@@ -75,6 +75,18 @@ const SUMMARY_EXAMPLES = [
     roles: ["ventas_b2b", "atencion_cliente"],
     text: "Vendedora B2B con 6 años en una empresa de software para comercios: hacía prospección en frío y cerré 30 cuentas nuevas en un año, con una cuota cumplida 8 de cada 12 meses. Uso un CRM a diario; di demos pero no negocié contratos grandes. Inglés A2.",
   },
+  {
+    id: "legal_gestion",
+    label: "Derecho, contabilidad y gestión",
+    roles: ["abogacia", "finanzas_contabilidad", "administracion_empresas"],
+    text: "Abogada corporativa con 5 años en empresas de servicios: redacción y negociación de contratos comerciales, cumplimiento normativo y seguimiento de litigios civiles y comerciales. Manejo plataformas de gestión documental y bases jurídicas; no tengo experiencia en derecho penal ni aduanero. Inglés C1.",
+  },
+  {
+    id: "comunicacion_relaciones",
+    label: "Comunicación y relaciones",
+    roles: ["marketing_digital", "comunicacion", "relaciones_internacionales"],
+    text: "Especialista en comunicación institucional con 4 años en organizaciones: redacción de gacetillas, relación con medios, comunicación interna para 200 personas y vocería de prensa. Manejo herramientas de diseño básico y métricas de prensa; no gestiono pauta publicitaria paga ni desarrollo web. Inglés B2.",
+  },
 ] as const;
 
 export type ProfileFormError = {
