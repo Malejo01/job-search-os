@@ -8,7 +8,7 @@
  */
 export const BRAND = {
   /** Nombre visible: títulos, header, emails y filtros de Gmail. */
-  name: "Job Search OS",
+  name: "AfinIAJobs",
   /** Repositorio público, enlazado desde «Cómo está hecho». */
   repoUrl: "https://github.com/Malejo01/job-search-os",
 } as const;
