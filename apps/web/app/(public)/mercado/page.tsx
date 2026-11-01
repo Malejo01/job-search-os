@@ -2,6 +2,7 @@ import { SHOWCASE_TOP_MIN_JOBS, UNLISTED_ROLE_KEYS } from "@job-search-os/pipeli
 import type { Metadata } from "next";
 import Link from "next/link";
 import { careerLabel } from "@/lib/career-market";
+import { getPublicCareerKeys } from "@/lib/career-visibility";
 import { getPoolShowcase } from "@/lib/showcase";
 import { CareerChips } from "./career-chips";
 import { PoolNumbers } from "./pool-numbers";
@@ -23,7 +24,9 @@ const DATE_FORMAT = new Intl.DateTimeFormat("es-AR", {
 const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0);
 
 export default async function MercadoPage() {
-  const showcase = await getPoolShowcase();
+  const [showcase, visible] = await Promise.all([getPoolShowcase(), getPublicCareerKeys()]);
+  // Una carrera oculta no se nombra en «Datos curiosos», igual que en los chips y el sitemap (ADR-029)
+  const remoteByRole = showcase?.remoteByRole.filter((r) => visible.includes(r.role)) ?? [];
   const ar = showcase?.argentina;
   const arTotal = ar ? ar.accepts + ar.excludes + ar.unknown : 0;
   const known = ar ? ar.accepts + ar.excludes : 0;
