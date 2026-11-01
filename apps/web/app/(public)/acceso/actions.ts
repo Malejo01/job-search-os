@@ -15,7 +15,8 @@ export type WaitlistState =
   | { status: "error"; message: string; fieldErrors?: WaitlistFieldErrors };
 
 // Igual para ok y duplicate: así no se puede averiguar si un email ya está anotado
-const DONE_MESSAGE = "Listo, te anotamos. Te escribimos cuando haya lugar.";
+const DONE_MESSAGE =
+  "Listo, te anotamos. Te escribimos antes del jueves 26/11 con el link para crear tu cuenta.";
 
 /** Pedir acceso (sin sesión). Honeypot → éxito falso sin guardar; Zod; tope por IP en la base. */
 export async function submitWaitlist(
