@@ -89,6 +89,13 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
         <Link href="/demo" className={`${FOOTER_LINK} sm:hidden`}>
           Demo
         </Link>
+        <Link href="/ayuda" className={FOOTER_LINK}>
+          Preguntas frecuentes
+        </Link>
+        <span aria-hidden="true" className="hidden sm:inline">
+          {" "}
+          ·{" "}
+        </span>
         <Link href="/legal/privacidad" className={FOOTER_LINK}>
           Privacidad
         </Link>
