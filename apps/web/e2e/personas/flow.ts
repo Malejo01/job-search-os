@@ -36,6 +36,11 @@ export type Run = {
   code: string;
   invitationId?: string;
   userId: string | null;
+  /**
+   * La invitación sale de la lista de espera (C5-1): la persona se anotó con su carrera y el registro la
+   * deja precargada en el paso 1. Las demás entran con una invitación común y la eligen a mano.
+   */
+  viaWaitlist: boolean;
 };
 
 export function newRun(key: PersonaKey): Run {
@@ -46,6 +51,7 @@ export function newRun(key: PersonaKey): Run {
     // Igual que createInvitation (lib/invitations.ts): código aleatorio, en la base solo su sha256
     code: randomBytes(32).toString("base64url"),
     userId: null,
+    viaWaitlist: key === "mariana",
   };
 }
 
@@ -76,6 +82,17 @@ export async function createInvitation(run: Run): Promise<void> {
       .values({ codeHash, email: run.persona.email, createdByUserId: E2E_USER_ID })
       .returning({ id: s.invitations.id });
     run.invitationId = row!.id;
+    if (run.viaWaitlist) {
+      // Igual que inviteFromWaitlist: la fila queda vinculada a la invitación (la invitación borra su
+      // email al usarse; el registro precarga la carrera por este vínculo)
+      await db.insert(s.waitlist).values({
+        email: run.persona.email,
+        name: run.persona.name,
+        role: run.persona.role,
+        invitationId: row!.id,
+        invitedAt: new Date(),
+      });
+    }
   } finally {
     await close();
   }
@@ -106,39 +123,18 @@ export async function register(page: Page, run: Run): Promise<void> {
   await page.getByRole("button", { name: "Crear cuenta" }).click();
   // El registro deja la sesión iniciada: va directo al onboarding
   await page.waitForURL("**/onboarding**");
-
-  // Si la carrera de la persona es de la beta (sin listar en el catálogo público general),
-  // se vincula a su perfil para que el selector muestre el checkbox según la regla («las conserva quien las tiene»)
-  if (persona.role === "abogacia" || persona.role === "comunicacion") {
-    const { db, close } = ownerDb();
-    try {
-      const [user] = await db
-        .select({ id: s.users.id })
-        .from(s.users)
-        .where(eq(s.users.email, persona.email));
-      if (user) {
-        run.userId = user.id;
-        await db
-          .update(s.profiles)
-          .set({ targetRoles: [persona.role] })
-          .where(eq(s.profiles.userId, user.id));
-        await page.reload();
-      }
-    } finally {
-      await close();
-    }
-  }
 }
 
 /** Paso 1: el puesto está en su grupo del selector, se elige y se completa el perfil. */
 export async function completeStep1(page: Page, run: Run): Promise<void> {
   const { persona } = run;
-  const isPreselected = await page
-    .locator(`input[name="targetRoles"][value="${persona.role}"]`)
-    .isChecked()
-    .catch(() => false);
-  if (!isPreselected) {
-    await expect(page.locator('input[name="targetRoles"]:checked')).toHaveCount(0);
+  const preselected = page.locator('input[name="targetRoles"]:checked');
+  if (run.viaWaitlist) {
+    // C5-1: la invitación de la lista de espera trae la carrera que la persona eligió al anotarse
+    await expect(preselected).toHaveCount(1);
+    await expect(preselected).toHaveAttribute("value", persona.role);
+  } else {
+    await expect(preselected).toHaveCount(0);
   }
   // El grupo se verifica por su fieldset/legend y el puesto por el value de la casilla
   const group = page.getByRole("group", { name: persona.roleGroup, exact: true });
@@ -263,6 +259,9 @@ export async function cleanup(run: Run, context: BrowserContext | undefined): Pr
         .catch(() => {});
       // Lo que corre en `after()` al guardar el perfil puede escribir después del borrado
       await db.delete(s.jobs).where(eq(s.jobs.userId, id));
+    }
+    if (run.viaWaitlist) {
+      await db.delete(s.waitlist).where(eq(s.waitlist.email, run.persona.email));
     }
     if (run.invitationId) {
       await db.delete(s.invitations).where(eq(s.invitations.id, run.invitationId));
