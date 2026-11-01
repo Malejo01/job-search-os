@@ -1082,3 +1082,27 @@ Cinco tareas de la nube, todas en draft. «Done» acá es «hecho y con CI en ve
 ### Pendiente después de la tanda
 - Mauro: `pnpm db:migrate` (0055 y `rls/0010`) antes de mergear #320; `RESEND_API_KEY` **y** `EMAIL_FROM` con dominio verificado en Vercel para que salgan los avisos.
 - Decidir antes del ensayo del 20/11 si las carreras ocultas de la beta salen de `UNLISTED_ROLE_KEYS` (hoy un invitado de abogacía, administración, comunicación o relaciones internacionales no la ve en el onboarding).
+
+## Bloque 11 — Beta cerrada: carreras elegibles, guías, seguridad e integración de la noche (tanda C5, 2026-11-01)
+
+Trece PRs nuevos de la nube (todos en draft, sin mergear; las migraciones **no** se aplicaron) y **un PR de integración** que junta todo lo abierto de la noche en `ronda/integracion-noche-1-11` (base `ronda/integracion-t1-g2`, #309). El detalle, las variables de Vercel y las decisiones están en el cuerpo de ese PR. Esta sección va al final del archivo a propósito.
+
+### Fase 1 · Bloqueantes
+- **C5-1 · Carreras de la beta elegibles al entrar** · `estado:` done (PR [#326](https://github.com/Malejo01/job-search-os/pull/326) sobre `nube/c3-seguridad`; e2e en [#327](https://github.com/Malejo01/job-search-os/pull/327) sobre `gemini/g3-ensayo`; sin migración, re-aplica `rls/0003`). `profileRoleGroups()` ofrece siempre `BETA_ROLE_KEYS` en el onboarding, «Tus puestos», las skills y el asistente; el mercado público y el sitemap siguen ocultándolas (ADR-022). La invitación que sale de la lista de espera precarga la carrera elegida al anotarse (`register_with_invitation_v3`, vía `waitlist.invitation_id`).
+- **C5-2 · Guía del ensayo** · done ([#328](https://github.com/Malejo01/job-search-os/pull/328)). Sin carga de CV por archivo (no existe), carreras en sus grupos reales, pasos del onboarding con sus nombres.
+- **C5-3 · Áreas sin promesa falsa** · done ([#330](https://github.com/Malejo01/job-search-os/pull/330) sobre `nube/c3-areas`). Texto honesto y baja de orden + marca `fuera_de_areas` detrás de `AREAS_FILTER_ENABLED` (apagado), sin descartar nada.
+
+### Fase 2 · Valor para la beta
+- **C5-4 · Personas e2e de las otras 4 carreras** · done ([#331](https://github.com/Malejo01/job-search-os/pull/331)): Agustina, Bruno, Rocío e Inés.
+- **C5-5 · Auditoría de seguridad** · done ([#335](https://github.com/Malejo01/job-search-os/pull/335), informe `docs/seguridad/auditoria-beta-1-11.md`). Correcciones: topes de la lista de espera para el 11/11 ([#332](https://github.com/Malejo01/job-search-os/pull/332), re-aplica `rls/0006`) y contexto del chip de soporte sin textos de terceros ([#333](https://github.com/Malejo01/job-search-os/pull/333)).
+- **C5-6 · Runbook del día de apertura** · done ([#336](https://github.com/Malejo01/job-search-os/pull/336), `docs/beta/runbook-apertura.md`).
+- **C5-7 · Ahorro de Neon, parte 1** · done ([#337](https://github.com/Malejo01/job-search-os/pull/337)): caché del catálogo de skills (worker y web), sin `jd_shingles` en el detalle y la evaluación, candidatos de `/market` cada 6 h; evaluación de JS-102 como propuesta. Lo que depende de `pg_stat_statements` queda para el 3/11.
+
+### Fase 3 · Después de la «cola vacía» de G4
+- **C5-8 · Bloqueantes de texto de G4** · done: [#338](https://github.com/Malejo01/job-search-os/pull/338) (`/acceso`, sin prometer invitación), [#339](https://github.com/Malejo01/job-search-os/pull/339) (`/ayuda`: sin promesas, privacidad con proveedores de IA, `/precios` solo con `PRICING_ENABLED`) y [#340](https://github.com/Malejo01/job-search-os/pull/340) (Gmail: la cuenta del asunto no habilita la confirmación, JS-127). Revisados sin bloqueantes propios: #329 y #325.
+- **C5-9 · PR de integración** · rama `ronda/integracion-noche-1-11`.
+
+### Pendiente después de la tanda
+- Mauro: `pnpm db:migrate` (0051 a 0055 y las policies `rls/0001`, `0003`, `0006`, `0010`, `0015`) antes del merge; variables de Vercel (ver el PR de integración); runbook y checklist.
+- Antes del 26/11: sacar de la lista de espera a quienes Ani no elija; antes del 13/11, actualizar `docs/legal/datos-por-proveedor.md` (hallazgo L-1 de la auditoría).
+- Ronda del 3/11: medición con `pg_stat_statements` y lo que pide migración (persistir el idioma del aviso, `market_candidates`, índice de `inbound_emails` por persona).
