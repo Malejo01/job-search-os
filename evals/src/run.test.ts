@@ -573,3 +573,46 @@ describe("runEvals con fixture alternativo (--fixture y --runs) (G3-1)", () => {
     expect(report.meta.adversarial_ids).toEqual([]);
   });
 });
+
+describe("runEvals con métricas por corrida y dispersión (JS-081)", () => {
+  it("con --runs 3 genera metrics_per_run con exactamente 3 métricas y calcula dispersión en formatReport", async () => {
+    let callIdx = 0;
+    const scores = [5, 6, 7];
+    const client = createFakeLlm({
+      evaluate_job: () => {
+        const score = scores[callIdx++ % scores.length]!;
+        return { ...evaluation, score };
+      },
+    });
+
+    const report = await runEvals({
+      prompt: "evaluate_job@v1.1",
+      ids: [1, 2],
+      runs: 3,
+      concurrency: 1,
+      outDir: "",
+      client,
+      sleep: async () => {},
+    });
+
+    expect(report.meta.runs).toBe(3);
+    expect(report.metrics_per_run).toBeDefined();
+    expect(report.metrics_per_run).toHaveLength(3);
+
+    // Cada corrida tiene su propio Metrics completo
+    for (const m of report.metrics_per_run!) {
+      expect(m.anchor).toBe("human_score_match");
+      expect(m.n_jobs).toBe(2);
+      expect(m.n_scored).toBe(2);
+      expect(m.n_failed).toBe(0);
+      expect(typeof m.action_acc).toBe("number");
+      expect(typeof m.score_mae).toBe("number");
+    }
+
+    // formatReport incluye el bloque de dispersión por corrida
+    const formatted = formatReport(report);
+    expect(formatted).toContain("Dispersión por corrida (3 corridas):");
+    expect(formatted).toMatch(/score_mae: media/);
+    expect(formatted).toMatch(/action_acc: media/);
+  });
+});
