@@ -10,6 +10,12 @@ on:
 permissions:
   contents: read
 
+# Un push nuevo a un PR cancela la corrida anterior del mismo PR (ahorra minutos de Actions).
+# En main no se cancela: cada merge termina su corrida.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # Escáner de secretos (gitleaks) sobre toda la historia: falla si encuentra algo. Lección del
   # 2026-09-11 (docs/AUDITORIA_2026-09-11.md): nunca publicar sin pasar esto antes.
