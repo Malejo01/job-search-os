@@ -1,4 +1,4 @@
-import { SHOWCASE_TOP_MIN_JOBS, UNLISTED_ROLE_KEYS } from "@job-search-os/pipeline";
+import { SHOWCASE_TOP_MIN_JOBS } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { careerLabel } from "@/lib/career-market";
@@ -30,9 +30,6 @@ export default async function MercadoPage() {
   const ar = showcase?.argentina;
   const arTotal = ar ? ar.accepts + ar.excludes + ar.unknown : 0;
   const known = ar ? ar.accepts + ar.excludes : 0;
-  // Igual que los chips y el sitemap: una carrera oculta no se nombra en «Datos curiosos» (ADR-022)
-  const remoteByRole =
-    showcase?.remoteByRole.filter((r) => !UNLISTED_ROLE_KEYS.includes(r.role)) ?? [];
 
   return (
     <div className="flex flex-col gap-8">
