@@ -162,6 +162,16 @@ BEGIN
   INSERT INTO public.profiles (user_id, display_name, location_country, inbound_address)
     VALUES (v_user, COALESCE(NULLIF(btrim(p_name), ''), split_part(v_email, '@', 1)), 'XX',
             'u_' || p_inbound_local || '@' || v_domain);
+  -- C5-1: si la invitación salió de la lista de espera, la carrera que la persona eligió al anotarse queda
+  -- precargada como su puesto (el onboarding la muestra marcada). Se vincula por waitlist.invitation_id, que
+  -- no guarda el email de la invitación (se borra al usarla). `producto_proyectos` es una clave retirada
+  -- (ADR-019) y no se precarga. Sin fila en la lista (invitación común), no cambia nada.
+  UPDATE public.profiles p
+     SET target_role = w.role, target_roles = ARRAY[w.role]
+    FROM public.waitlist w
+   WHERE p.user_id = v_user
+     AND w.invitation_id = v_invitation
+     AND w.role <> 'producto_proyectos';
   RETURN v_user;
 END
 $fn$;

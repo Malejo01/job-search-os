@@ -9,6 +9,7 @@ import {
   DIGITAL_ROLE_KEYS,
   LEGAL_MANAGEMENT_ROLE_KEYS,
   UNLISTED_ROLE_KEYS,
+  profileRoleGroups,
   selectableRoleGroups,
   type RoleKey,
   IT_ROLE_KEYS,
@@ -140,6 +141,40 @@ describe("selectableRoleGroups", () => {
       unlisted.length = 0;
       unlisted.push(...original);
     }
+  });
+});
+
+describe("profileRoleGroups: lo que ve quien elige carrera en la beta (C5-1)", () => {
+  const flat = (g: ReturnType<typeof profileRoleGroups>) => g.flatMap((x) => [...x.roles]);
+
+  it("ofrece siempre las 6 carreras de la beta, también las que siguen sin listar", () => {
+    const offered = flat(profileRoleGroups());
+    for (const key of BETA_ROLE_KEYS) expect(offered).toContain(key);
+    expect(offered).toContain("finanzas_contabilidad");
+    expect(offered).toContain("marketing_digital");
+  });
+
+  it("no suma asistencia_operaciones (la otra no listada) salvo que la persona ya la tenga", () => {
+    expect(flat(profileRoleGroups())).not.toContain("asistencia_operaciones");
+    expect(flat(profileRoleGroups(["asistencia_operaciones"]))).toContain("asistencia_operaciones");
+  });
+
+  it("deja el selector público como estaba: las 4 ocultas no vuelven a la lista general", () => {
+    for (const key of BETA_ROLE_KEYS) {
+      expect(flat(selectableRoleGroups())).not.toContain(key);
+    }
+  });
+
+  it("cada carrera sale en un solo grupo y los grupos no quedan vacíos", () => {
+    const all = flat(profileRoleGroups(["asistencia_operaciones"]));
+    expect(new Set(all).size).toBe(all.length);
+    for (const g of profileRoleGroups()) expect(g.roles.length).toBeGreaterThan(0);
+  });
+
+  it("conserva el orden de los grupos de ROLE_GROUPS", () => {
+    const labels = profileRoleGroups().map((g) => g.label);
+    const base = ROLE_GROUPS.map((g) => g.label).filter((l) => labels.includes(l));
+    expect(labels).toEqual(base);
   });
 });
 
