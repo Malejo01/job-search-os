@@ -109,9 +109,15 @@ describe("ROLE_GROUPS", () => {
 });
 
 describe("selectableRoleGroups", () => {
-  it("hoy están sin listar asistencia_operaciones y las 4 de la beta (ADR-027): salen del selector salvo que las tenga el perfil", () => {
-    expect(UNLISTED_ROLE_KEYS).toEqual(["asistencia_operaciones", ...BETA_ROLE_KEYS]);
+  it("hoy están sin listar asistencia_operaciones y 3 de las 4 de la beta (abogacía ya se publicó): salen del selector salvo que las tenga el perfil", () => {
+    expect(UNLISTED_ROLE_KEYS).toEqual([
+      "asistencia_operaciones",
+      "administracion_empresas",
+      "comunicacion",
+      "relaciones_internacionales",
+    ]);
     const flat = (g: ReturnType<typeof selectableRoleGroups>) => g.flatMap((x) => [...x.roles]);
+    expect(flat(selectableRoleGroups())).toContain("abogacia");
     expect(flat(selectableRoleGroups())).not.toContain("asistencia_operaciones");
     expect(flat(selectableRoleGroups())).toContain("finanzas_contabilidad");
     const kept = flat(selectableRoleGroups(["asistencia_operaciones"]));
@@ -159,8 +165,8 @@ describe("profileRoleGroups: lo que ve quien elige carrera en la beta (C5-1)", (
     expect(flat(profileRoleGroups(["asistencia_operaciones"]))).toContain("asistencia_operaciones");
   });
 
-  it("deja el selector público como estaba: las 4 ocultas no vuelven a la lista general", () => {
-    for (const key of BETA_ROLE_KEYS) {
+  it("deja el selector público como estaba: las que siguen ocultas no vuelven a la lista general", () => {
+    for (const key of BETA_ROLE_KEYS.filter((k) => UNLISTED_ROLE_KEYS.includes(k))) {
       expect(flat(selectableRoleGroups())).not.toContain(key);
     }
   });

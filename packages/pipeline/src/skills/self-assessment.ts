@@ -137,7 +137,14 @@ export const BETA_ROLE_KEYS: readonly RoleKey[] = [
   "relaciones_internacionales",
 ];
 
-export const UNLISTED_ROLE_KEYS: readonly RoleKey[] = ["asistencia_operaciones", ...BETA_ROLE_KEYS];
+/**
+ * Carreras que siguen ocultas. Abogacía se publicó el 1/11/2026: 17 ofertas vigentes después de
+ * `pool:rehint` (umbral de 10, ADR-022). Las demás salen de esta lista a medida que lo superan.
+ */
+export const UNLISTED_ROLE_KEYS: readonly RoleKey[] = [
+  "asistencia_operaciones",
+  ...BETA_ROLE_KEYS.filter((k) => k !== "abogacia"),
+];
 
 /**
  * `ROLE_GROUPS` sin las carreras no listadas, salvo las de `keep` (las del perfil de la persona), y
