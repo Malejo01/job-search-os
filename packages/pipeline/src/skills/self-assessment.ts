@@ -137,6 +137,20 @@ export const BETA_ROLE_KEYS: readonly RoleKey[] = [
   "relaciones_internacionales",
 ];
 
+/**
+ * Las seis carreras de la beta cerrada, en el orden del anuncio (abogacía, contaduría, administración,
+ * comunicación, marketing y RR.PP., relaciones internacionales): las cuatro nuevas de `BETA_ROLE_KEYS` más
+ * `finanzas_contabilidad` y `marketing_digital`, que ya existían y se ampliaron (ADR-027).
+ */
+export const BETA_LAUNCH_ROLE_KEYS: readonly RoleKey[] = [
+  "abogacia",
+  "finanzas_contabilidad",
+  "administracion_empresas",
+  "comunicacion",
+  "marketing_digital",
+  "relaciones_internacionales",
+];
+
 export const UNLISTED_ROLE_KEYS: readonly RoleKey[] = ["asistencia_operaciones", ...BETA_ROLE_KEYS];
 
 /**
@@ -163,6 +177,21 @@ export function profileRoleGroups(
   keep: readonly RoleKey[] = [],
 ): readonly { label: string; roles: readonly RoleKey[] }[] {
   return selectableRoleGroups([...keep, ...BETA_ROLE_KEYS]);
+}
+
+/**
+ * Selector de `/acceso` (C6-1): las 6 carreras de la beta primero, en un grupo propio, y después el resto
+ * con los grupos de siempre (sin repetir ninguna). Ofrece lo mismo que `selectableRoleGroups(BETA_ROLE_KEYS)`,
+ * solo reordenado: no cambia qué carreras se pueden elegir.
+ */
+export function waitlistRoleGroups(): readonly { label: string; roles: readonly RoleKey[] }[] {
+  const rest = selectableRoleGroups(BETA_ROLE_KEYS)
+    .map((g) => ({
+      label: g.label,
+      roles: g.roles.filter((r) => !BETA_LAUNCH_ROLE_KEYS.includes(r)),
+    }))
+    .filter((g) => g.roles.length > 0);
+  return [{ label: "Carreras de la beta", roles: BETA_LAUNCH_ROLE_KEYS }, ...rest];
 }
 
 export function isRoleKey(v: unknown): v is RoleKey {

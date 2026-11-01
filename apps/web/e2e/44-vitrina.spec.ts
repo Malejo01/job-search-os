@@ -58,6 +58,33 @@ test.describe("Flujo 44: vitrina pública", () => {
     await expect(done).toBeVisible();
   });
 
+  test("/acceso: las 6 carreras de la beta van primero, en su propio grupo (C6-1)", async ({
+    page,
+  }) => {
+    await page.goto("/acceso");
+    const groups = await page.getByLabel("Carrera").evaluate((select) =>
+      Array.from(select.querySelectorAll("optgroup")).map((g) => ({
+        label: g.label,
+        values: Array.from(g.querySelectorAll("option")).map((o) => o.value),
+      })),
+    );
+    expect(groups[0]).toEqual({
+      label: "Carreras de la beta",
+      values: [
+        "abogacia",
+        "finanzas_contabilidad",
+        "administracion_empresas",
+        "comunicacion",
+        "marketing_digital",
+        "relaciones_internacionales",
+      ],
+    });
+    // El resto sigue ofreciéndose, sin repetir ninguna de la beta
+    const rest = groups.slice(1).flatMap((g) => g.values);
+    expect(rest).toContain("data_analyst");
+    for (const key of groups[0]?.values ?? []) expect(rest).not.toContain(key);
+  });
+
   test("sin sesión: portada, mercado, una carrera, ofertas y pedir acceso", async ({ page }) => {
     await page.goto("/");
     await expect(

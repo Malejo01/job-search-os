@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { BETA_ROLE_KEYS, selectableRoleGroups } from "@job-search-os/pipeline";
+import { waitlistRoleGroups } from "@job-search-os/pipeline";
 import { contactLink } from "@/lib/contact";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
 import { WaitlistForm } from "./waitlist-form";
@@ -17,8 +17,8 @@ export const metadata: Metadata = {
 
 export default function AccesoPage() {
   // La lista de espera ofrece las carreras de la beta aunque sigan ocultas en los selectores (ADR-027):
-  // quien se anota el 11/11 tiene que poder elegir la suya.
-  const groups = selectableRoleGroups(BETA_ROLE_KEYS).map((group) => ({
+  // quien se anota el 11/11 tiene que poder elegir la suya. Las 6 van primero, en «Carreras de la beta».
+  const groups = waitlistRoleGroups().map((group) => ({
     label: group.label,
     roles: group.roles.map((key) => ({ key, label: ROLE_SKILLS[key].label })),
   }));

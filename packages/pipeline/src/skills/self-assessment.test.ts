@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_CRITERIA_RULES } from "../onboarding";
 import {
   BACKOFFICE_ROLE_KEYS,
+  BETA_LAUNCH_ROLE_KEYS,
   BETA_ROLE_KEYS,
   COMMERCIAL_ROLE_KEYS,
   DIGITAL_ROLE_KEYS,
@@ -11,6 +12,7 @@ import {
   UNLISTED_ROLE_KEYS,
   profileRoleGroups,
   selectableRoleGroups,
+  waitlistRoleGroups,
   type RoleKey,
   IT_ROLE_KEYS,
   MAX_SKILL_ENTRIES,
@@ -395,5 +397,48 @@ describe("parseSkillLevelsForm", () => {
 describe("parseRemoveSlugs", () => {
   it("deja los slugs válidos sin repetir", () => {
     expect(parseRemoveSlugs(["sql", "sql", "Bad Slug", "react"])).toEqual(["sql", "react"]);
+  });
+});
+
+describe("waitlistRoleGroups: el selector de /acceso (C6-1)", () => {
+  const flat = (g: ReturnType<typeof waitlistRoleGroups>) => g.flatMap((x) => [...x.roles]);
+
+  it("las 6 carreras de la beta, en el orden del anuncio: 4 nuevas + contaduría y marketing", () => {
+    expect(BETA_LAUNCH_ROLE_KEYS).toEqual([
+      "abogacia",
+      "finanzas_contabilidad",
+      "administracion_empresas",
+      "comunicacion",
+      "marketing_digital",
+      "relaciones_internacionales",
+    ]);
+    for (const key of BETA_ROLE_KEYS) expect(BETA_LAUNCH_ROLE_KEYS).toContain(key);
+  });
+
+  it("el primer grupo es «Carreras de la beta» y trae las 6", () => {
+    const first = waitlistRoleGroups()[0];
+    expect(first?.label).toBe("Carreras de la beta");
+    expect(first?.roles).toEqual(BETA_LAUNCH_ROLE_KEYS);
+  });
+
+  it("después va el resto sin repetir ninguna carrera de la beta", () => {
+    const rest = waitlistRoleGroups().slice(1);
+    expect(rest.length).toBeGreaterThan(0);
+    for (const g of rest) {
+      for (const key of BETA_LAUNCH_ROLE_KEYS) expect(g.roles).not.toContain(key);
+    }
+    expect(rest.map((g) => g.label)).toContain("Tecnología");
+  });
+
+  it("cada carrera aparece una sola vez, no hay grupos vacíos y asistencia_operaciones sigue oculta", () => {
+    const all = flat(waitlistRoleGroups());
+    expect(new Set(all).size).toBe(all.length);
+    expect(all).not.toContain("asistencia_operaciones");
+    for (const g of waitlistRoleGroups()) expect(g.roles.length).toBeGreaterThan(0);
+  });
+
+  it("ofrece lo mismo que antes (selector general + beta), solo reordenado", () => {
+    const before = flat(selectableRoleGroups(BETA_ROLE_KEYS)).sort();
+    expect(flat(waitlistRoleGroups()).sort()).toEqual(before);
   });
 });

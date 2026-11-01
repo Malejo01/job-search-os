@@ -115,7 +115,7 @@ export default async function DemoProfilePage({ params }: Props) {
           data-tour="demo:acceso"
           className="inline-flex min-h-11 items-center underline underline-offset-2 hover:text-fg"
         >
-          ¿Querés probarlo con tu perfil? Pedí acceso
+          ¿Querés verlo con tu perfil? Pedí acceso (el cupo de la beta es limitado)
         </Link>
       </p>
     </div>
