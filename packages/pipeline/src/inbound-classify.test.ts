@@ -232,6 +232,31 @@ describe("classifyInbound · reenvío de Gmail", () => {
     expect(out.category).toBe("seguridad");
   });
 
+  it("el pedido de cuenta que figura en el asunto no alcanza: lo que cuenta es el cuerpo (C5-8)", () => {
+    // Un asunto armado con «Receive Mail from …» y un cuerpo con el código de otro servicio no puede pasar
+    // por confirmación: se guardaría completo el código de seguridad de un tercero
+    const out = classifyInbound(
+      mail({
+        from: GMAIL,
+        subject: "Gmail Forwarding Confirmation - Receive Mail from persona.b@example.com",
+        text: "Tu código de verificación de Banco Ejemplo es 884821",
+      }),
+    );
+    expect(out.category).toBe("seguridad");
+  });
+
+  it("con el asunto oficial y un cuerpo con la señal de Gmail sigue siendo confirmación", () => {
+    const out = classifyInbound(
+      mail({
+        from: GMAIL,
+        subject:
+          "(#123456789019) Gmail Forwarding Confirmation - Receive Mail from persona.b@example.com",
+        text: "persona.b@example.com has requested to automatically forward mail to you. Confirmation code: 884821",
+      }),
+    );
+    expect(out.category).toBe("confirmacion_reenvio_gmail");
+  });
+
   it("cuerpo con enlaces a dominios no autorizados y sin señales de Gmail no es confirmación", () => {
     const out = classifyInbound(
       mail({
