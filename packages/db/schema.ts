@@ -89,13 +89,17 @@ export const profiles = pgTable("profiles", {
   maxTargetRoles: integer("max_target_roles"), // tope de puestos del perfil; null = rige TARGET_ROLES_FREE_LIMIT
   poolDailyEvalLimit: integer("pool_daily_eval_limit"), // tope diario de evaluaciones del pool; null = rige el default de la variable
   // Plan de la beta paga (C-11b): claves de PLAN_KEYS (pipeline/src/plans.ts). Lo cambia el dueño con un
-  // UPDATE puntual; la app no puede (trigger en rls/0010_plan.sql). plan_until null = sin vencimiento
+  // UPDATE puntual o la función admin_plan_set (rls/0015); la app no puede (trigger en rls/0010_plan.sql).
+  // plan_until null = sin vencimiento. plan_source (C3-1): cómo llegó el acceso, 'pago' o 'beca'
+  // (primer mes gratis); null = sin dato (planes asignados antes de la beta o a mano)
   plan: text("plan").notNull().default("gratis"),
   planUntil: timestamp("plan_until", { withTimezone: true }),
+  planSource: text("plan_source"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
   check("profiles_plan_check", sql`${t.plan} in ('gratis', 'fundador', 'lista', 'pase_3_meses')`),
+  check("profiles_plan_source_check", sql`${t.planSource} is null or ${t.planSource} in ('pago', 'beca')`),
 ]);
 
 export const evaluationCriteria = pgTable("evaluation_criteria", {

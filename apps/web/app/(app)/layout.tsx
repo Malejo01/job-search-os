@@ -1,4 +1,4 @@
-import { PRODUCT_NAME } from "@job-search-os/pipeline";
+import { PRODUCT_NAME, pricingEnabled } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
@@ -12,8 +12,10 @@ import { canCreateInvitations } from "@/lib/invitations";
 import { isOnboardingComplete } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
 import { needsTermsAcceptance } from "@/lib/terms-status";
+import { getUserPlan } from "@/lib/user-plan";
 import { AssistantButton } from "./assistant-button";
 import { MainNav } from "./main-nav";
+import { PlanNotice } from "./plan-notice";
 
 const NAV = [
   { href: "/hoy", label: "Hoy" },
@@ -58,6 +60,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const canAssist = await canUseAssistant(userId);
   // Contador de «Postulaciones»: si la consulta falla, el menú se muestra igual, sin número
   const followUps = await countFollowUps(userId, new Date()).catch(() => 0);
+  // Aviso de vigencia del plan (C3-1): solo con los precios encendidos; si la consulta falla, no se muestra
+  const planAccess = pricingEnabled(process.env)
+    ? await getUserPlan(userId)
+        .then((p) => p.access)
+        .catch(() => null)
+    : null;
   const navItems = NAV.map((item) =>
     item.href === "/applications" ? { ...item, count: followUps } : item,
   );
@@ -105,6 +113,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </header>
       <main id="contenido" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-4 py-4">
+        {planAccess ? <PlanNotice access={planAccess} /> : null}
         {children}
       </main>
       <ActionTracker />
