@@ -123,36 +123,51 @@ describe("lista de espera (ronda 63)", () => {
     );
   });
 
-  it("el sexto pedido de la misma IP en una hora da rate_limited", async () => {
-    for (let i = 1; i <= 5; i++) {
-      expect(await join(`ip${i}@example.com`, { ip: "hash-ip-a" })).toBe("ok");
-    }
-    expect(await join("ip6@example.com", { ip: "hash-ip-a" })).toBe("rate_limited");
-    expect(await join("ip6@example.com", { ip: "hash-ip-b" })).toBe("ok");
+  it("el pedido 41 de la misma IP en una hora da rate_limited (un salón con wifi compartido entra)", async () => {
+    await owner`insert into waitlist (email, name, role, ip_hash)
+                select 'ip' || g || '@example.com', 'Persona', 'frontend', 'hash-ip-a'
+                from generate_series(1, 40) g`;
+    expect(await join("ip41@example.com", { ip: "hash-ip-a" })).toBe("rate_limited");
+    expect(await join("ip41@example.com", { ip: "hash-ip-b" })).toBe("ok");
     const [row] =
-      await owner`select count(*)::int as n from waitlist where email = 'ip6@example.com'`;
+      await owner`select count(*)::int as n from waitlist where email = 'ip41@example.com'`;
     expect(row!.n).toBe(1);
   });
 
-  it("sin IP el límite igual corre: comparten un solo bucket", async () => {
-    for (let i = 1; i <= 5; i++) {
-      expect(await join(`sinip${i}@example.com`, { ip: null })).toBe("ok");
+  it("varios pedidos seguidos de la misma IP entran (un salón con wifi compartido)", async () => {
+    for (let i = 1; i <= 8; i++) {
+      expect(await join(`salon${i}@example.com`, { ip: "hash-salon" })).toBe("ok");
     }
-    expect(await join("sinip6@example.com", { ip: null })).toBe("rate_limited");
+    const [row] = await owner`select count(*)::int as n from waitlist where ip_hash = 'hash-salon'`;
+    expect(row!.n).toBe(8);
   });
 
-  it("el tope global de 30 cada 10 minutos frena la inundación", async () => {
+  it("sin IP el límite igual corre: comparten un solo bucket", async () => {
+    await owner`insert into waitlist (email, name, role, ip_hash)
+                select 'sinip' || g || '@example.com', 'Persona', 'frontend', 'none'
+                from generate_series(1, 40) g`;
+    expect(await join("sinip41@example.com", { ip: null })).toBe("rate_limited");
+  });
+
+  it("el tope global de 60 cada 10 minutos frena la inundación", async () => {
     await owner`insert into waitlist (email, name, role, ip_hash)
                 select 'flood' || g || '@example.com', 'Persona', 'frontend', 'hash-flood-' || g
-                from generate_series(1, 30) g`;
+                from generate_series(1, 60) g`;
     expect(await join("nueva@example.com", { ip: "hash-otra" })).toBe("rate_limited");
   });
 
-  it("el tope diario de 300 frena aunque pasaran más de 10 minutos", async () => {
+  it("con 59 pedidos en 10 minutos todavía entra uno más", async () => {
+    await owner`insert into waitlist (email, name, role, ip_hash)
+                select 'casi' || g || '@example.com', 'Persona', 'frontend', 'hash-casi-' || g
+                from generate_series(1, 59) g`;
+    expect(await join("ultima@example.com", { ip: "hash-otra" })).toBe("ok");
+  });
+
+  it("el tope diario de 600 frena aunque pasaran más de 10 minutos", async () => {
     await owner`insert into waitlist (email, name, role, ip_hash, created_at)
                 select 'dia' || g || '@example.com', 'Persona', 'frontend', 'hash-dia-' || g,
                        now() - interval '2 hours'
-                from generate_series(1, 300) g`;
+                from generate_series(1, 600) g`;
     expect(await join("nueva@example.com", { ip: "hash-otra" })).toBe("rate_limited");
   });
 
