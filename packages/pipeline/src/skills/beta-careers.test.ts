@@ -64,9 +64,13 @@ describe("claves y grupos", () => {
   });
 
   it("salen sin listar hasta medir volumen (ADR-022 §7), pero las conserva quien las tiene", () => {
-    for (const k of NEW_KEYS) expect(UNLISTED_ROLE_KEYS).toContain(k);
+    // Abogacía se publicó el 1/11 (17 ofertas, umbral 10); las otras tres siguen ocultas.
+    const hidden = NEW_KEYS.filter((k) => k !== "abogacia");
+    for (const k of hidden) expect(UNLISTED_ROLE_KEYS).toContain(k);
+    expect(UNLISTED_ROLE_KEYS).not.toContain("abogacia");
     const ids = (keep: RoleKey[]) => selectableRoleGroups(keep).flatMap((g) => [...g.roles]);
-    for (const k of NEW_KEYS) {
+    expect(ids([])).toContain("abogacia");
+    for (const k of hidden) {
       expect(ids([])).not.toContain(k);
       expect(ids([k])).toContain(k);
     }
