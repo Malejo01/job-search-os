@@ -1,5 +1,5 @@
 import {
-  selectableRoleGroups,
+  profileRoleGroups,
   TARGET_ROLES_DEFAULT_LIMIT,
   type RoleKey,
 } from "@job-search-os/pipeline";
@@ -26,7 +26,7 @@ export function TargetRolesForm({
   limit: number;
   status?: "guardado";
 }) {
-  const groups = selectableRoleGroups(current).map((group) => ({
+  const groups = profileRoleGroups(current).map((group) => ({
     label: group.label,
     roles: group.roles.map((key) => ({ key, label: ROLE_SKILLS[key].label })),
   }));

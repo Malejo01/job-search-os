@@ -30,7 +30,8 @@ const NEW_FNS = [
   "register_with_invitation_v3(text, text, text, text, text, text, text)",
 ];
 const OLD_FNS = ["invitation_is_redeemable(text, text)", "release_invitations(uuid)"];
-const TABLES = ["users", "profiles", "invitations", "password_reset_tokens"];
+// waitlist (C5-1): el registro v3 la lee para precargar la carrera, así que el dueño de la función tiene que ser también su dueño
+const TABLES = ["users", "profiles", "invitations", "password_reset_tokens", "waitlist"];
 
 const DB_DIR = join(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (...p: string[]) => readFileSync(join(DB_DIR, ...p), "utf8");
@@ -400,6 +401,47 @@ describe("users con lectura cerrada a la fila propia (JS-103, 14a)", () => {
         expect(p!.inbound_address).toMatch(/^u_[a-z2-7]{20}@ingest\.test$/);
         const [u] = await owner`select terms_version from users where id = ${r!.user_id}`;
         expect(u!.terms_version).toBe("2026-10-07");
+      });
+
+      it("precarga la carrera que la persona eligió en la lista de espera (C5-1)", async () => {
+        const [inv] = await owner<{ id: string }[]>`
+          insert into invitations (code_hash, created_by_user_id, email)
+          values ('hash-v3-espera', ${A}, 'espera@cuentas.test') returning id`;
+        await owner`insert into waitlist (email, name, role, invitation_id, invited_at)
+                    values ('espera@cuentas.test', 'Persona Espera', 'abogacia', ${inv!.id}, now())`;
+        try {
+          const [r] = await register("hash-v3-espera", "espera@cuentas.test", nextToken());
+          expect(r!.user_id).not.toBeNull();
+          const [p] =
+            await owner`select target_role, target_roles from profiles where user_id = ${r!.user_id}`;
+          expect(p!.target_role).toBe("abogacia");
+          expect(p!.target_roles).toEqual(["abogacia"]);
+        } finally {
+          await owner`delete from waitlist where email = 'espera@cuentas.test'`;
+        }
+      });
+
+      it("una invitación común, sin fila en la lista, no precarga nada", async () => {
+        await owner`insert into invitations (code_hash, created_by_user_id) values ('hash-v3-comun', ${A})`;
+        const [r] = await register("hash-v3-comun", "comun@cuentas.test", nextToken());
+        const [p] =
+          await owner`select target_role, target_roles from profiles where user_id = ${r!.user_id}`;
+        expect(p!.target_role).toBeNull();
+        expect(p!.target_roles).toEqual([]);
+      });
+
+      it("la carrera retirada producto_proyectos no se precarga", async () => {
+        const [inv] = await owner<{ id: string }[]>`
+          insert into invitations (code_hash, created_by_user_id) values ('hash-v3-retirada', ${A}) returning id`;
+        await owner`insert into waitlist (email, name, role, invitation_id, invited_at)
+                    values ('retirada@cuentas.test', 'Persona Vieja', 'producto_proyectos', ${inv!.id}, now())`;
+        try {
+          const [r] = await register("hash-v3-retirada", "retirada@cuentas.test", nextToken());
+          const [p] = await owner`select target_roles from profiles where user_id = ${r!.user_id}`;
+          expect(p!.target_roles).toEqual([]);
+        } finally {
+          await owner`delete from waitlist where email = 'retirada@cuentas.test'`;
+        }
       });
 
       it("un token inválido falla y no gasta la invitación", async () => {
