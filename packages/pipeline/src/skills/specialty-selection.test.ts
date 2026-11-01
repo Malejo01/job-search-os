@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  areasFilterEnabled,
   jobMatchesSpecialties,
   MAX_SPECIALTY_ENTRIES,
+  OUTSIDE_AREAS_FLAG,
+  outsideSelectedAreas,
   normalizeTargetSpecialties,
   parseSpecialtyEntries,
   selectedSpecialtyIds,
@@ -151,5 +154,98 @@ describe("jobMatchesSpecialties · referencia para filtrar avisos (todavía no s
 
   it("si el título nombra un área elegida y otra que no, pasa", () => {
     expect(jobMatchesSpecialties("Payroll & Tax Analyst", "finanzas_contabilidad", sel)).toBe(true);
+  });
+});
+
+describe("areasFilterEnabled · el interruptor (C5-3)", () => {
+  it("solo se enciende con «1»: ausente, vacío o cualquier otra cosa es apagado", () => {
+    expect(areasFilterEnabled({})).toBe(false);
+    expect(areasFilterEnabled({ AREAS_FILTER_ENABLED: "" })).toBe(false);
+    expect(areasFilterEnabled({ AREAS_FILTER_ENABLED: "0" })).toBe(false);
+    expect(areasFilterEnabled({ AREAS_FILTER_ENABLED: "true" })).toBe(false);
+    expect(areasFilterEnabled({ AREAS_FILTER_ENABLED: "1" })).toBe(true);
+  });
+});
+
+describe("outsideSelectedAreas · fuera de las áreas elegidas (C5-3)", () => {
+  const onlyTax = { finanzas_contabilidad: ["impuestos"] };
+
+  it("la marca tiene un nombre estable", () => {
+    expect(OUTSIDE_AREAS_FLAG).toBe("fuera_de_areas");
+  });
+
+  it("un aviso que nombra otra área está afuera; uno que nombra la elegida, adentro", () => {
+    expect(
+      outsideSelectedAreas(
+        "Payroll Specialist",
+        ["finanzas_contabilidad"],
+        ["finanzas_contabilidad"],
+        onlyTax,
+      ),
+    ).toBe(true);
+    expect(
+      outsideSelectedAreas(
+        "Tax Analyst",
+        ["finanzas_contabilidad"],
+        ["finanzas_contabilidad"],
+        onlyTax,
+      ),
+    ).toBe(false);
+  });
+
+  it("un título que ningún área nombra nunca queda afuera", () => {
+    expect(
+      outsideSelectedAreas(
+        "Analista",
+        ["finanzas_contabilidad"],
+        ["finanzas_contabilidad"],
+        onlyTax,
+      ),
+    ).toBe(false);
+  });
+
+  it("sin selección guardada (todas las áreas) nada queda afuera", () => {
+    for (const saved of [null, undefined, {}, "basura", []]) {
+      expect(
+        outsideSelectedAreas(
+          "Payroll Specialist",
+          ["finanzas_contabilidad"],
+          ["finanzas_contabilidad"],
+          saved,
+        ),
+      ).toBe(false);
+    }
+  });
+
+  it("solo cuentan las carreras que la persona eligió y que el aviso nombra", () => {
+    // El aviso es de contaduría, pero la persona eligió abogacía: no hay carrera común, no se marca
+    expect(
+      outsideSelectedAreas("Payroll Specialist", ["finanzas_contabilidad"], ["abogacia"], onlyTax),
+    ).toBe(false);
+    expect(outsideSelectedAreas("Payroll Specialist", [], ["finanzas_contabilidad"], onlyTax)).toBe(
+      false,
+    );
+  });
+
+  it("con dos carreras en común, queda afuera solo si lo está en todas", () => {
+    const both = { finanzas_contabilidad: ["impuestos"], abogacia: [ABO[0]!] };
+    // Una carrera sin selección acepta el aviso → no queda afuera
+    expect(
+      outsideSelectedAreas(
+        "Payroll Specialist",
+        ["finanzas_contabilidad", "abogacia"],
+        ["finanzas_contabilidad", "abogacia"],
+        onlyTax,
+      ),
+    ).toBe(false);
+    // Aviso de contaduría que abogacía no nombra: ahí no se esconde; contaduría lo deja afuera
+    expect(
+      outsideSelectedAreas(
+        "Payroll Specialist",
+        ["finanzas_contabilidad"],
+        ["finanzas_contabilidad", "abogacia"],
+        both,
+      ),
+    ).toBe(true);
   });
 });

@@ -1,4 +1,5 @@
 import {
+  areasFilterEnabled,
   profileRoleGroups,
   TARGET_ROLES_DEFAULT_LIMIT,
   type RoleKey,
@@ -61,6 +62,7 @@ export function TargetRolesForm({
           name="targetRoles"
           selected={current}
           specialtySelection={specialtySelection}
+          areasFilter={areasFilterEnabled(process.env)}
           limit={limit}
           defaultLimit={TARGET_ROLES_DEFAULT_LIMIT}
           groups={groups}

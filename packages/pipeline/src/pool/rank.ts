@@ -15,16 +15,25 @@ export type RankCandidate = {
   titleFit?: number;
   /** 1 si el título es Senior/Lead y la persona tiene pocos años. Sin el campo, 0. */
   seniorPenalty?: number;
+  /**
+   * Queda fuera de las áreas de especialidad que eligió la persona (C5-3, `AREAS_FILTER_ENABLED`). Baja de
+   * orden entre las del mismo rol exacto; nunca sale de la lista. Sin el campo, `false`: el orden no cambia.
+   */
+  outsideAreas?: boolean;
 };
 
 /**
- * Orden de asignación: rol exacto primero, después `titleFit` desc, `seniorPenalty` asc, score
+ * Orden de asignación: rol exacto primero, después las que están dentro de las áreas elegidas antes que
+ * las que quedan fuera (C5-3), después `titleFit` desc, `seniorPenalty` asc, score
  * desc, fecha de publicación desc (sin fecha al final) y, para que el resultado no dependa del
  * orden de entrada, id asc. Devuelve una copia; no muta la entrada.
  */
 export function rankCandidates<T extends RankCandidate>(rows: readonly T[]): T[] {
   return [...rows].sort((a, b) => {
     if (a.exactRole !== b.exactRole) return a.exactRole ? -1 : 1;
+    const oa = a.outsideAreas === true;
+    const ob = b.outsideAreas === true;
+    if (oa !== ob) return oa ? 1 : -1;
     const fa = a.titleFit ?? 2;
     const fb = b.titleFit ?? 2;
     if (fa !== fb) return fb - fa;

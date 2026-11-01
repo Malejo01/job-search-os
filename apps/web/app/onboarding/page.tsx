@@ -1,4 +1,5 @@
 import {
+  areasFilterEnabled,
   CEFR_LEVELS,
   COUNTRY_OPTIONS,
   ISO_COUNTRY_CODES,
@@ -90,6 +91,7 @@ export default async function OnboardingPage({
         spanishCounts={spanishCounts}
         selectedRoles={targetRoles}
         specialtySelection={targetSpecialties}
+        areasFilter={areasFilterEnabled(process.env)}
         rolesLimit={rolesLimit}
         defaultRolesLimit={TARGET_ROLES_DEFAULT_LIMIT}
         countries={COUNTRY_OPTIONS}

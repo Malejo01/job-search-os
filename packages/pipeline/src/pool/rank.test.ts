@@ -3,6 +3,35 @@ import { interleaveByRole, rankCandidates } from "./rank";
 
 const d = (day: number) => new Date(Date.UTC(2026, 9, day));
 
+describe("rankCandidates · áreas de especialidad (C5-3)", () => {
+  it("lo que está fuera de las áreas elegidas baja, pero no desaparece", () => {
+    const r = rankCandidates([
+      { id: "afuera", exactRole: true, score: 9, postedAt: d(10), outsideAreas: true },
+      { id: "adentro", exactRole: true, score: 4, postedAt: d(1), outsideAreas: false },
+    ]);
+    expect(r.map((x) => x.id)).toEqual(["adentro", "afuera"]);
+  });
+
+  it("el rol exacto sigue primero: bajar por áreas no pasa por encima de él", () => {
+    const r = rankCandidates([
+      { id: "otro-rol", exactRole: false, score: 9, postedAt: d(10), outsideAreas: false },
+      { id: "afuera-exacto", exactRole: true, score: 1, postedAt: d(1), outsideAreas: true },
+    ]);
+    expect(r.map((x) => x.id)).toEqual(["afuera-exacto", "otro-rol"]);
+  });
+
+  it("sin el campo, el orden es exactamente el de antes", () => {
+    const rows = [
+      { id: "a", exactRole: true, score: 5, postedAt: d(1) },
+      { id: "b", exactRole: true, score: 7, postedAt: d(1) },
+      { id: "c", exactRole: true, score: 5, postedAt: d(9) },
+    ];
+    expect(rankCandidates(rows).map((x) => x.id)).toEqual(
+      rankCandidates(rows.map((x) => ({ ...x, outsideAreas: false }))).map((x) => x.id),
+    );
+  });
+});
+
 describe("rankCandidates", () => {
   it("rol exacto primero, aunque tenga menos score", () => {
     const r = rankCandidates([

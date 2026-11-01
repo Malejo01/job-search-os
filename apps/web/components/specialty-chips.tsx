@@ -14,10 +14,16 @@ export function RoleSpecialties({
   roleKey,
   roleLabel,
   initialSpecialties,
+  areasFilter = false,
 }: {
   roleKey: RoleKey;
   roleLabel: string;
   initialSpecialties?: readonly string[] | undefined;
+  /**
+   * `AREAS_FILTER_ENABLED` prendido (C5-3): las ofertas de otras áreas bajan de orden y se marcan. Apagado
+   * (el default), todavía no filtran nada y el texto no puede prometerlo.
+   */
+  areasFilter?: boolean;
 }) {
   const specialties = specialtiesFor(roleKey);
   if (specialties.length === 0) return null;
@@ -30,7 +36,9 @@ export function RoleSpecialties({
       <div className="flex flex-col gap-0.5">
         <p className="text-xs font-semibold text-fg">Áreas de {roleLabel}</p>
         <p className="text-xs text-fg-subtle">
-          Elegí las áreas que te interesan. Por defecto buscamos en todas.
+          {areasFilter
+            ? "Elegí las áreas que más te interesan. Las ofertas de otras áreas de tu carrera te aparecen más abajo y marcadas: no se esconden."
+            : "Elegí las áreas que más te interesan. Por ahora te mostramos todas las ofertas de tu carrera."}
         </p>
       </div>
       <SpecialtyChipsToggle

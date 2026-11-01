@@ -14,7 +14,8 @@ import { assignPoolToUser } from "./assign";
 const USER_A = "a0000000-0000-4000-8000-0000000000a1"; // rol: qa
 const USER_B = "a0000000-0000-4000-8000-0000000000b2"; // sin rol
 const USER_NO_RULES = "a0000000-0000-4000-8000-0000000000c3";
-const USERS = [USER_A, USER_B, USER_NO_RULES];
+const USER_AREAS = "a0000000-0000-4000-8000-0000000000d4"; // contaduría, solo «impuestos» (C5-3)
+const USERS = [USER_A, USER_B, USER_NO_RULES, USER_AREAS];
 const PREFIX = "assign-test-";
 const SKILL_SLUG = "assign_test_skill";
 const logger = pino({ level: "silent" });
@@ -108,6 +109,7 @@ beforeAll(async () => {
     [USER_A, "a1"],
     [USER_B, "b2"],
     [USER_NO_RULES, "c3"],
+    [USER_AREAS, "d4"],
   ] as const) {
     await conn.db
       .insert(s.profiles)
@@ -117,6 +119,12 @@ beforeAll(async () => {
         locationCountry: "AR",
         remoteOnly: true,
         inboundAddress: `u_${tag}@ingest.test`,
+        ...(userId === USER_AREAS
+          ? {
+              ...rolesOf("finanzas_contabilidad"),
+              targetSpecialties: { finanzas_contabilidad: ["impuestos"] },
+            }
+          : {}),
       })
       .onConflictDoNothing();
     if (userId !== USER_NO_RULES) {
@@ -771,5 +779,87 @@ describe("assignPoolToUser · salario", () => {
     // Mismo score 5 para unknown y high (más reciente primero); low pierde 1 punto y queda último,
     // aunque sea el más reciente. Si el anual se leyera como mensual, low iría primero.
     expect(await publicIdsOf(r.enqueuedJobIds)).toEqual([unknown, high, low]);
+  });
+});
+
+describe("áreas de especialidad: baja de orden y marca, sin esconder (C5-3)", () => {
+  const FIN = { roleHints: ["finanzas_contabilidad"] };
+
+  async function seedAreas() {
+    // El aviso de «sueldos» es el más nuevo, pero la persona eligió solo «impuestos»
+    await pool({
+      ...FIN,
+      title: "Payroll Specialist",
+      titleNormalized: "payroll specialist",
+      postedAt: minutesAgo(1),
+    });
+    await pool({
+      ...FIN,
+      title: "Tax Analyst",
+      titleNormalized: "tax analyst",
+      postedAt: minutesAgo(5),
+    });
+    await pool({ ...FIN, title: "Analista", titleNormalized: "analista", postedAt: minutesAgo(3) });
+  }
+  const titles = async () =>
+    (await jobsOf(USER_AREAS))
+      .sort((a, b) => a.title.localeCompare(b.title))
+      .map((j) => [j.title, j.flags ?? []]);
+
+  it("apagado (el default) no cambia nada: elige por fecha, sin marcas", async () => {
+    await seedAreas();
+    await assignPoolToUser(conn.db, USER_AREAS, {
+      limit: 1,
+      enqueueTop: 0,
+      logger,
+      areasFilter: false,
+    });
+    const jobs = await jobsOf(USER_AREAS);
+    expect(jobs.map((j) => j.title)).toEqual(["Payroll Specialist"]);
+    expect(jobs[0]!.flags ?? []).not.toContain("fuera_de_areas");
+  });
+
+  it("prendido, con lugar para una sola, elige la del área elegida", async () => {
+    await seedAreas();
+    await assignPoolToUser(conn.db, USER_AREAS, {
+      limit: 1,
+      enqueueTop: 0,
+      logger,
+      areasFilter: true,
+    });
+    expect((await jobsOf(USER_AREAS)).map((j) => j.title)).toEqual(["Tax Analyst"]);
+  });
+
+  it("prendido, con lugar para todas, asigna las tres: la de otra área queda marcada, no escondida", async () => {
+    await seedAreas();
+    const res = await assignPoolToUser(conn.db, USER_AREAS, {
+      limit: 5,
+      enqueueTop: 0,
+      logger,
+      areasFilter: true,
+    });
+    expect(res.assigned).toBe(3);
+    const by = Object.fromEntries(await titles());
+    expect(by["Tax Analyst"]).not.toContain("fuera_de_areas");
+    expect(by["Payroll Specialist"]).toContain("fuera_de_areas");
+    // Un título que ningún área nombra no se marca
+    expect(by["Analista"] ?? []).not.toContain("fuera_de_areas");
+  });
+
+  it("sin áreas guardadas no marca nada aunque esté prendido", async () => {
+    await setProfile(USER_AREAS, { targetSpecialties: null });
+    try {
+      await seedAreas();
+      await assignPoolToUser(conn.db, USER_AREAS, {
+        limit: 5,
+        enqueueTop: 0,
+        logger,
+        areasFilter: true,
+      });
+      for (const j of await jobsOf(USER_AREAS))
+        expect(j.flags ?? []).not.toContain("fuera_de_areas");
+    } finally {
+      await setProfile(USER_AREAS, { targetSpecialties: { finanzas_contabilidad: ["impuestos"] } });
+    }
   });
 });
