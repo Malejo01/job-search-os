@@ -22,7 +22,14 @@ const INVITE_INITIAL: WaitlistInviteState = { status: "idle" };
 const DELETE_INITIAL: WaitlistDeleteState = { status: "idle" };
 
 /** Una persona de la lista de espera. Cliente solo para mostrar el link una vez y confirmar el borrado. */
-export function WaitlistRow({ entry }: { entry: WaitlistRowData }) {
+export function WaitlistRow({
+  entry,
+  selection,
+}: {
+  entry: WaitlistRowData;
+  /** Casilla para invitar en tanda (C4-2); solo se ofrece a quien todavía no tiene invitación. */
+  selection?: { selected: boolean; onChange: (selected: boolean) => void };
+}) {
   const [invite, inviteAction, invitePending] = useActionState(
     inviteFromWaitlistAction,
     INVITE_INITIAL,
@@ -39,6 +46,17 @@ export function WaitlistRow({ entry }: { entry: WaitlistRowData }) {
 
   return (
     <li className="flex flex-col gap-2 p-3 text-sm" data-testid="waitlist-row">
+      {selection && !invited ? (
+        <label className="flex min-h-11 items-center gap-2 text-fg-muted">
+          <input
+            type="checkbox"
+            checked={selection.selected}
+            onChange={(e) => selection.onChange(e.target.checked)}
+            className="size-5"
+          />
+          Elegir para invitar a {entry.name}
+        </label>
+      ) : null}
       <div className="flex flex-col">
         <span className="font-medium">{entry.name}</span>
         <span className="break-all text-fg-subtle">{entry.email}</span>
