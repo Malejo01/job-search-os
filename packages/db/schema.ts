@@ -95,6 +95,9 @@ export const profiles = pgTable("profiles", {
   plan: text("plan").notNull().default("gratis"),
   planUntil: timestamp("plan_until", { withTimezone: true }),
   planSource: text("plan_source"),
+  // Cuándo se mandó el aviso de vencimiento (C4-1): vale para el vencimiento en curso; al renovar, plan_until
+  // se corre y el siguiente aviso vuelve a corresponder. Lo escribe solo el cron (dueño), no la app
+  planNotifiedAt: timestamp("plan_notified_at", { withTimezone: true }),
   // Áreas de especialidad que eligió la persona (C3-3, ADR-027): { carrera: [id de área, …] } solo para las
   // carreras que acotó. null = «Todas las áreas». Se valida en código (pipeline/skills/specialty-selection.ts)
   // y acá solo se acota la forma y el tamaño. Todavía no filtra avisos: queda guardado

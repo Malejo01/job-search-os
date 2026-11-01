@@ -70,6 +70,7 @@ Consecuencia: el `vercel.json` actual (`0 */6 * * *` y `15 */6 * * *`) **no desp
 | `RESEND_WEBHOOK_SECRET`, `INGEST_DOMAIN` | bloque 4 | |
 | `RESEND_API_KEY` | prod | también usada para mandar el email de "olvidé mi contraseña" (JS-045, ADR-012) |
 | `EMAIL_FROM` | opcional | remitente del email de recuperación; vacío usa el sandbox `onboarding@resend.dev`. Con dominio propio verificado en Resend: `<nombre del producto> <no-reply@afiniajobs.com.ar>` (ver «Pasar a afiniajobs.com.ar») |
+| `PLAN_NOTICE_DAILY_CAP` | opcional | tope diario de avisos de «tu plan vence» (C4-1); default 30, máximo 80 (Resend gratis permite 100 por día y los reseteos y avisos de feedback comparten ese cupo). El aviso necesita `RESEND_API_KEY` **y** `EMAIL_FROM` con un dominio verificado: sin alguna de las dos no manda nada y el cron lo avisa con un warning |
 
 ## Pool de ofertas públicas (JS-137)
 

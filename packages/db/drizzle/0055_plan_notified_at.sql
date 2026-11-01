@@ -1,0 +1,1 @@
+ALTER TABLE "profiles" ADD COLUMN "plan_notified_at" timestamp with time zone;
