@@ -30,7 +30,7 @@ Además, una carrera de estas es muy ancha. «Contaduría» abarca sueldos, impu
    - **Contaduría (10):** Impuestos · Sueldos · Contabilidad y balances · Auditoría · Costos · Presupuesto y control de gestión · Tesorería, pagos y cobranzas · Prevención de lavado y compliance · Concursos y pericias judiciales · Sector público.
    - **Marketing y RR.PP. (11):** Marketing digital y anuncios · Redes y contenidos · Marca · Trade marketing y puntos de venta · Investigación de mercado · CRM y e-commerce · Agencia y medios · Prensa · Eventos y ceremonial · Relaciones institucionales · RSE y sustentabilidad.
    - Los chips de las otras cuatro carreras se agregan junto con su clave.
-   - La selección de chips por persona (dónde se guarda y cómo filtra) queda para una ronda posterior; esta solo fija el catálogo.
+   - La selección de chips por persona se guarda desde C3-3 (ver «Elección de la persona»); cómo filtra queda para una ronda posterior.
 6. **Separación por título, no por prefiltro** (ADR-022 §2). `TITLE_TERMS` conservadores —nunca «sueldo», «administrador/a», «internacional», «relaciones», «contract», «legal» ni «trade» sueltos— con `TITLE_EXCLUSIONS` y `VETO_TERMS` por carrera:
    - **Exclusiones por término** (`TERM_EXCLUSIONS`, nuevas): una palabra anula una sola frase del puesto y no toda la carrera. Evita perder títulos buenos: «Pharma Compliance Officer» sale, pero «Abogado» con el mismo texto no; «Auditor de calidad ISO» sale de contaduría, pero «Contador» no.
    - abogacía veta a engineer, developer, software o sistemas; administración, a los mismos cuatro, y es la más genérica (puede llegar a `MAX_ROLE_HINTS`); comunicación, a telecom e ingeniería; relaciones internacionales, a sales y data. Los vetos solo actúan si el título no nombra el puesto.
@@ -54,9 +54,16 @@ Además, una carrera de estas es muy ancha. «Contaduría» abarca sueldos, impu
 - **Orden:** `pnpm db:migrate`, después el merge y el deploy. Son pura expansión: antes del deploy el código viejo ignora las claves nuevas.
 - Después: `pnpm pool:rehint --remote`, primero sin `--apply` y después con `--apply`, y la auditoría de títulos que pide ADR-023 antes de sacar una clave de `UNLISTED_ROLE_KEYS`.
 
+## Elección de la persona (C3-3)
+- **Dónde:** `profiles.target_specialties`, `jsonb` nullable (migración 0054). Forma: `{ "<carrera>": ["<id de área>", …] }`, solo para las carreras que la persona **acotó**. `null`, o una carrera sin entrada, es «Todas las áreas». Marcar todos los chips equivale a no marcar ninguno y se guarda como `null`. La base solo acota la forma (objeto, hasta 8 KB); el contenido se valida en código.
+- **RLS:** no hace falta policy nueva. Es una columna de `profiles`, que ya tiene `profiles_owner` (`user_id = auth.uid()`, con `FORCE`); la persona la lee y la escribe sola.
+- **Validación** (`skills/specialty-selection.ts`, pura): `parseSpecialtyEntries` lee los `carrera:área` que manda el formulario y `normalizeTargetSpecialties` deja solo las carreras elegidas que tienen áreas, solo ids del catálogo (en su orden) y solo si acotan. Un valor raro falla cerrado a «todas».
+- **Cómo se guarda:** el onboarding y «Tus puestos» (Ajustes) mandan un campo oculto `specialties` por chip marcado, y nada si es «Todas las áreas». «Tu perfil» (Ajustes) no manda puestos ni áreas y no las pisa. Si la persona saca una carrera, sus áreas se van con ella.
+- **Cómo filtraría** (no implementado): en `pool/select.ts`, después de asignar `matchedRole` a una oferta, descartar (razón nueva, p. ej. `area`) la que `jobMatchesSpecialties(título, carrera, selección)` rechace. Un título que ningún chip nombra nunca se descarta. Toca la selección del pool, el ranking y `pool:explain`, y el golden/adversarial del prefiltro: va con evals y con su propio ticket.
+
 ## Consequences
 - **El evaluador no tiene disciplina para estas carreras** (límite de ADR-015). Un aviso de abogacía puede salir como «otra disciplina» aunque sea la carrera elegida. El código no lo deshace sin tocar el prompt, que pide evals y gasto.
 - **Administración de empresas es la más genérica.** Con títulos como «analista» o «jefe de» puede dar falsos positivos. Si tras `pool:rehint` aparecen avisos con más de `MAX_ROLE_HINTS` carreras, se vuelve a ajustar con la misma auditoría.
 - **Contaduría y abogacía comparten áreas** (impuestos, compliance, prevención de lavado): un mismo aviso puede sumar hint a las dos. Es intencional.
-- **Los chips no filtran todavía.** El catálogo y su invariante quedan; guardar la elección y usarla en la selección es una ronda aparte.
+- **Los chips no filtran todavía.** La elección se guarda (C3-3), pero ni el pool ni el prefiltro la leen: usarla en la selección es una ronda aparte, con su propio ticket.
 - El golden por carrera (evals con avisos reales) queda para la tanda siguiente; esta no gasta LLM.

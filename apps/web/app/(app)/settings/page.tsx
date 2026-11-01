@@ -12,7 +12,7 @@ import { withUser } from "@/lib/db";
 import { contactLink } from "@/lib/contact";
 import { getInboundAddress } from "@/lib/inbound-address";
 import { canCreateInvitations } from "@/lib/invitations";
-import { getTargetRoles, getTargetRolesLimit } from "@/lib/onboarding";
+import { getTargetRoles, getTargetRolesLimit, getTargetSpecialties } from "@/lib/onboarding";
 import { getUserPlan, type UserPlan } from "@/lib/user-plan";
 import { requireUserId } from "@/lib/session";
 import { DeleteAccountForm } from "./delete-account-form";
@@ -38,14 +38,16 @@ export default async function SettingsPage({
   const userId = await requireUserId();
   const { error, direccion, puesto } = await searchParams;
   const pricing = pricingEnabled(process.env);
-  const [address, targetRoles, rolesLimit, canInvite, userPlan] = await Promise.all([
-    getInboundAddress(userId),
-    getTargetRoles(userId),
-    getTargetRolesLimit(userId),
-    canCreateInvitations(userId),
-    // «Tu plan» (C-11b) solo con los precios encendidos
-    pricing ? getUserPlan(userId) : null,
-  ]);
+  const [address, targetRoles, targetSpecialties, rolesLimit, canInvite, userPlan] =
+    await Promise.all([
+      getInboundAddress(userId),
+      getTargetRoles(userId),
+      getTargetSpecialties(userId),
+      getTargetRolesLimit(userId),
+      canCreateInvitations(userId),
+      // «Tu plan» (C-11b) solo con los precios encendidos
+      pricing ? getUserPlan(userId) : null,
+    ]);
   const [user] = await withUser(userId, (tx) =>
     tx.select({ email: s.users.email }).from(s.users).where(eq(s.users.id, userId)).limit(1),
   );
@@ -122,6 +124,7 @@ export default async function SettingsPage({
 
       <TargetRolesForm
         current={targetRoles}
+        specialtySelection={targetSpecialties}
         limit={rolesLimit}
         status={puesto === "guardado" ? puesto : undefined}
       />

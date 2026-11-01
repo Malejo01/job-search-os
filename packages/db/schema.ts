@@ -95,11 +95,16 @@ export const profiles = pgTable("profiles", {
   plan: text("plan").notNull().default("gratis"),
   planUntil: timestamp("plan_until", { withTimezone: true }),
   planSource: text("plan_source"),
+  // Áreas de especialidad que eligió la persona (C3-3, ADR-027): { carrera: [id de área, …] } solo para las
+  // carreras que acotó. null = «Todas las áreas». Se valida en código (pipeline/skills/specialty-selection.ts)
+  // y acá solo se acota la forma y el tamaño. Todavía no filtra avisos: queda guardado
+  targetSpecialties: jsonb("target_specialties").$type<Record<string, string[]>>(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
   check("profiles_plan_check", sql`${t.plan} in ('gratis', 'fundador', 'lista', 'pase_3_meses')`),
   check("profiles_plan_source_check", sql`${t.planSource} is null or ${t.planSource} in ('pago', 'beca')`),
+  check("profiles_target_specialties_shape", sql`${t.targetSpecialties} is null or (jsonb_typeof(${t.targetSpecialties}) = 'object' and octet_length(${t.targetSpecialties}::text) <= 8192)`),
 ]);
 
 export const evaluationCriteria = pgTable("evaluation_criteria", {

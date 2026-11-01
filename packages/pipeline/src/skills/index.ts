@@ -13,3 +13,4 @@ export * from "./english";
 export * from "./english-gap";
 export * from "./custom-skills";
 export * from "./specialties";
+export * from "./specialty-selection";

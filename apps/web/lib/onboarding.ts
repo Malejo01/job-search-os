@@ -3,12 +3,15 @@ import { schema as s } from "@job-search-os/db";
 import {
   criteriaFromOnboarding,
   isProfileComplete,
+  normalizeTargetSpecialties,
   type OnboardingInput,
   parseOnboarding,
+  parseSpecialtyEntries,
   resolvePlanLimit,
   targetRolesLimit,
   toRoleKey,
   type RoleKey,
+  type TargetSpecialties,
 } from "@job-search-os/pipeline";
 import { and, eq, sql } from "drizzle-orm";
 import { withUser } from "./db";
@@ -65,6 +68,33 @@ export async function getTargetRoles(userId: string): Promise<RoleKey[]> {
       .limit(1);
     return knownRoles(row?.targetRoles);
   });
+}
+
+/**
+ * Áreas de especialidad que eligió la persona (`profiles.target_specialties`, C3-3), validadas contra
+ * sus puestos de hoy y el catálogo. `null` = «Todas las áreas». Hoy solo se guardan y se muestran: ningún
+ * filtro las lee todavía.
+ */
+export async function getTargetSpecialties(userId: string): Promise<TargetSpecialties | null> {
+  return withUser(userId, async (tx) => {
+    const [row] = await tx
+      .select({
+        targetRoles: s.profiles.targetRoles,
+        targetSpecialties: s.profiles.targetSpecialties,
+      })
+      .from(s.profiles)
+      .where(eq(s.profiles.userId, userId))
+      .limit(1);
+    return normalizeTargetSpecialties(row?.targetSpecialties, knownRoles(row?.targetRoles));
+  });
+}
+
+/** Las áreas que mandó el formulario (`specialties`, un `carrera:área` por chip marcado), ya normalizadas. */
+export function specialtiesFromForm(
+  formData: FormData,
+  roles: readonly string[],
+): TargetSpecialties | null {
+  return normalizeTargetSpecialties(parseSpecialtyEntries(formData.getAll("specialties")), roles);
 }
 
 /**
@@ -138,7 +168,7 @@ export type SaveProfileResult =
 
 /**
  * Núcleo de guardado del perfil, común al onboarding y a Ajustes: FormData → `parseOnboarding` →
- * `completeOnboarding`. Con `keepStored` (Ajustes) los puestos, el piso salarial y las horas no
+ * `completeOnboarding`. Con `keepStored` (Ajustes) los puestos, las áreas, el piso salarial y las horas no
  * vienen en el formulario: se usan los guardados, sin pisarlos. Si el resumen trae frases dirigidas
  * al modelo no se guarda y solo se loguean los nombres de las señales, nunca el texto.
  */
@@ -192,7 +222,15 @@ export async function saveProfileFromForm(
   }
   // Solo la primera vez dispara la ingesta: un POST repetido a la acción no la repite
   const wasComplete = await isOnboardingComplete(userId);
-  const { saved, roleChanged } = await completeOnboarding(userId, parsed.value);
+  // Las áreas viajan con los puestos; en «Tu perfil» (keepStored) los puestos no vienen y las áreas
+  // guardadas no se tocan
+  const { saved, roleChanged } = await completeOnboarding(
+    userId,
+    parsed.value,
+    options.keepStored
+      ? {}
+      : { targetSpecialties: specialtiesFromForm(formData, parsed.value.targetRoles) },
+  );
   if (!saved) return { ok: false, field: "perfil" };
   return { ok: true, roleChanged, wasComplete };
 }
@@ -218,21 +256,30 @@ export async function hasReceivedEmail(userId: string): Promise<boolean> {
 export async function setTargetRoles(
   userId: string,
   roles: unknown,
+  options: { targetSpecialties?: TargetSpecialties | null } = {},
 ): Promise<{ saved: boolean; changed: boolean }> {
   if (!Array.isArray(roles) || roles.length === 0) return { saved: false, changed: false };
   const next = knownRoles(roles);
   if (next.length !== new Set(roles).size) return { saved: false, changed: false };
   return withUser(userId, async (tx) => {
     const [before] = await tx
-      .select({ targetRoles: s.profiles.targetRoles })
+      .select({
+        targetRoles: s.profiles.targetRoles,
+        targetSpecialties: s.profiles.targetSpecialties,
+      })
       .from(s.profiles)
       .where(eq(s.profiles.userId, userId))
       .limit(1);
     if (!before) return { saved: false, changed: false };
     const previous = knownRoles(before.targetRoles);
+    // Sin áreas nuevas, las guardadas se conservan solo para las carreras que siguen elegidas
+    const targetSpecialties =
+      options.targetSpecialties !== undefined
+        ? normalizeTargetSpecialties(options.targetSpecialties, next)
+        : normalizeTargetSpecialties(before.targetSpecialties, next);
     await tx
       .update(s.profiles)
-      .set({ targetRoles: next, targetRole: next[0], updatedAt: new Date() })
+      .set({ targetRoles: next, targetRole: next[0], targetSpecialties, updatedAt: new Date() })
       .where(eq(s.profiles.userId, userId));
     return { saved: true, changed: !sameRoleSet(previous, next) };
   });
@@ -247,6 +294,7 @@ export async function setTargetRoles(
 export async function completeOnboarding(
   userId: string,
   input: OnboardingInput,
+  options: { targetSpecialties?: TargetSpecialties | null } = {},
 ): Promise<{ saved: boolean; roleChanged: boolean }> {
   return withUser(userId, async (tx) => {
     const [before] = await tx
@@ -261,6 +309,15 @@ export async function completeOnboarding(
         targetRoles: input.targetRoles,
         // El principal es el primero de la lista y se escribe siempre junto con ella
         targetRole: input.targetRoles[0] ?? null,
+        // Áreas de especialidad (C3-3): solo si quien llama las trae (el onboarding); «Tu perfil» no las pisa
+        ...(options.targetSpecialties !== undefined
+          ? {
+              targetSpecialties: normalizeTargetSpecialties(
+                options.targetSpecialties,
+                input.targetRoles,
+              ),
+            }
+          : {}),
         locationCountry: input.locationCountry,
         locationCity: input.locationCity,
         // remote_only se mantiene en sincronía: lo leen el MCP, los borradores y el prompt
