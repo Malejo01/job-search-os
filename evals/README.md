@@ -47,7 +47,7 @@ Flags de `run`: `--model` (default: `evaluate_job` en `seeds/model_routing.json`
 
 Al prompt entran solo datos del aviso (título, empresa, ubicación, contrato, salario, años, nivel, inglés, stack, candidatos, badges) con `had_full_jd=false`. Nunca entran `match`, `gaps`, `bloqueadores`, `senales` ni notas: son la referencia (hay un test que lo verifica). `accion` se compara después de `decide()`; `aplicar_personalizado` y `aplicar` cuentan como la misma decisión porque la referencia humana solo usa `aplicar`.
 
-Cada corrida escribe `reports/<fecha>_<modelo>.json` con métricas y el detalle por job (score modelo, score humano, delta, veredicto). Los reportes se versionan en git.
+Cada corrida escribe `reports/<fecha>_<modelo>.json` con métricas, métricas por corrida (`metrics_per_run` con `--runs N`) y el detalle por job (score modelo, score humano, delta, veredicto). Al comparar con `pnpm evals compare` se muestra la media y el rango de dispersión entre corridas. Los reportes se versionan en git.
 
 ## Cómo iterar sin quemar créditos
 
@@ -58,7 +58,7 @@ Cada corrida escribe `reports/<fecha>_<modelo>.json` con métricas y el detalle 
 ## Determinismo
 
 - `temperature: 0`, `seed` cuando el proveedor lo soporte.
-- 3 corridas por job; se reporta la mediana del score y se marca `unstable: true` si el rango > 1.5. Un prompt con > 10% de jobs inestables no se acepta.
+- 3 corridas por job; se reporta la mediana del score y se marca `unstable: true` si el rango > 1.5. Un prompt con > 10% de jobs inestables no se acepta. Además, cada corrida individual calcula sus métricas (`metrics_per_run`), permitiendo evaluar la dispersión (media y rango) en `compare`.
 
 ## Cuándo correr
 

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { anchorFor, computeMetrics, splitByAnchorSource } from "./metrics";
+import { anchorFor, computeMetrics, splitByAnchorSource, type Metrics } from "./metrics";
 import { cutLine } from "./cost-guard";
 import type { Report } from "./run";
 
@@ -14,6 +14,98 @@ const fmt = (v: number | null | undefined, digits = 2) =>
   v === null || v === undefined ? "n/a" : v.toFixed(digits);
 const pct = (v: number | null | undefined) =>
   v === null || v === undefined ? "n/a" : `${(v * 100).toFixed(0)}%`;
+const fmtCount = (v: number | null | undefined) => {
+  if (v === null || v === undefined) return "n/a";
+  return Number.isInteger(v) ? `${v}` : v.toFixed(1);
+};
+
+export type Dispersion = {
+  mean: number;
+  min: number;
+  max: number;
+  runs: number;
+};
+
+/**
+ * Calcula la dispersión (media, mínimo, máximo y cantidad de corridas) para una métrica
+ * numérica sobre las métricas individuales de cada corrida (JS-081).
+ * Devuelve null si el reporte no tiene múltiples corridas (runs ≤ 1 o ausente).
+ */
+export function metricDispersion(
+  report: Report,
+  getValue: (m: Metrics) => number | null | undefined,
+): Dispersion | null {
+  if (!report.metrics_per_run || report.metrics_per_run.length <= 1) return null;
+  const values = report.metrics_per_run
+    .map(getValue)
+    .filter((v): v is number => v !== null && v !== undefined);
+  if (!values.length) return null;
+  const sum = values.reduce((acc, v) => acc + v, 0);
+  return {
+    mean: sum / values.length,
+    min: Math.min(...values),
+    max: Math.max(...values),
+    runs: values.length,
+  };
+}
+
+function metricCell(
+  report: Report,
+  getValue: (m: Metrics) => number | null | undefined,
+  formatter: (v: number | null | undefined) => string,
+): string {
+  const base = formatter(getValue(report.metrics));
+  const disp = metricDispersion(report, getValue);
+  if (!disp) return base;
+  return `${base} (media ${formatter(disp.mean)}, rango ${formatter(disp.min)}–${formatter(disp.max)})`;
+}
+
+/**
+ * Tabla explícita de dispersión por corrida con media y rango (JS-081) cuando al menos
+ * uno de los reportes comparados posee múltiples corridas.
+ */
+function runsDispersionSection(a: Report, b: Report, A: string, B: string): string[] {
+  const hasA = Boolean(a.metrics_per_run && a.metrics_per_run.length > 1);
+  const hasB = Boolean(b.metrics_per_run && b.metrics_per_run.length > 1);
+  if (!hasA && !hasB) return [];
+
+  const out = [
+    "Métricas por corrida (media y rango):",
+    `| métrica | ${A} | ${B} |`,
+    "|---|---|---|",
+  ];
+
+  const items: {
+    name: string;
+    get: (m: Metrics) => number | null | undefined;
+    fmt: (v: number | null | undefined) => string;
+  }[] = [
+    { name: "score_mae", get: (m) => m.score_mae, fmt },
+    { name: "blockers_recall", get: (m) => m.blockers_recall, fmt: pct },
+    { name: "blockers_precision", get: (m) => m.blockers_precision, fmt: pct },
+    { name: "risks_recall", get: (m) => m.risks_recall, fmt: pct },
+    { name: "discipline_acc", get: (m) => m.discipline_acc, fmt: pct },
+    { name: "action_acc", get: (m) => m.action_acc, fmt: pct },
+    { name: "false_apply", get: (m) => m.false_apply, fmt: fmtCount },
+    { name: "**false_discard**", get: (m) => m.false_discard, fmt: fmtCount },
+    { name: "location_risk_recall", get: (m) => m.location_risk_recall, fmt: pct },
+    { name: "location_risk_recall_final", get: (m) => m.location_risk_recall_final, fmt: pct },
+  ];
+
+  for (const item of items) {
+    const dispA = metricDispersion(a, item.get);
+    const dispB = metricDispersion(b, item.get);
+    const textA = dispA
+      ? `media ${item.fmt(dispA.mean)}, rango ${item.fmt(dispA.min)}–${item.fmt(dispA.max)} (${dispA.runs} corridas)`
+      : `${item.fmt(item.get(a.metrics))} (${a.meta.runs ?? 1} corrida)`;
+    const textB = dispB
+      ? `media ${item.fmt(dispB.mean)}, rango ${item.fmt(dispB.min)}–${item.fmt(dispB.max)} (${dispB.runs} corridas)`
+      : `${item.fmt(item.get(b.metrics))} (${b.meta.runs ?? 1} corrida)`;
+    out.push(`| ${item.name} | ${textA} | ${textB} |`);
+  }
+  out.push("");
+  return out;
+}
 
 /**
  * Métricas separadas por origen del ancla (JS-052). Un ancla "assisted" (rúbrica fija revisada por
@@ -76,21 +168,37 @@ export function compareReports(a: Report, b: Report): string {
     `| métrica | ${A} | ${B} |`,
     "|---|---|---|",
     `| ancla del score | ${ma.anchor ?? "human_score"} | ${mb.anchor ?? "human_score"} |`,
-    `| score_mae (ancla) | ${fmt(ma.score_mae)} | ${fmt(mb.score_mae)} |`,
-    `| score_mae vs human_score | ${fmt(ma.score_mae_legacy ?? ma.score_mae)} | ${fmt(mb.score_mae_legacy ?? mb.score_mae)} |`,
-    `| score_mae vs human_score_match | ${fmt(ma.score_mae_match)} | ${fmt(mb.score_mae_match)} |`,
-    `| blockers_recall | ${pct(ma.blockers_recall)} | ${pct(mb.blockers_recall)} |`,
-    `| blockers_precision | ${pct(ma.blockers_precision)} | ${pct(mb.blockers_precision)} |`,
-    `| risks_recall | ${pct(ma.risks_recall)} | ${pct(mb.risks_recall)} |`,
-    `| discipline_acc | ${pct(ma.discipline_acc)} | ${pct(mb.discipline_acc)} |`,
-    `| action_acc | ${pct(ma.action_acc)} | ${pct(mb.action_acc)} |`,
-    `| false_apply | ${ma.false_apply} | ${mb.false_apply} |`,
-    `| **false_discard** | ${ma.false_discard} | ${mb.false_discard} |`,
-    `| false_discard_action (informativa) | ${ma.false_discard_action} | ${mb.false_discard_action} |`,
-    `| location_risk_recall | ${pct(ma.location_risk_recall)} | ${pct(mb.location_risk_recall)} |`,
-    `| location_risk_recall_final (después de decide()) | ${pct(ma.location_risk_recall_final)} | ${pct(mb.location_risk_recall_final)} |`,
-    `| false_discard_prefilter | ${fmt(ma.false_discard_prefilter, 0)} | ${fmt(mb.false_discard_prefilter, 0)} |`,
-    `| false_discard_total (modelo + prefiltro) | ${fmt(ma.false_discard_total, 0)} | ${fmt(mb.false_discard_total, 0)} |`,
+    `| score_mae (ancla) | ${metricCell(a, (m) => m.score_mae, fmt)} | ${metricCell(b, (m) => m.score_mae, fmt)} |`,
+    `| score_mae vs human_score | ${metricCell(a, (m) => m.score_mae_legacy ?? m.score_mae, fmt)} | ${metricCell(b, (m) => m.score_mae_legacy ?? m.score_mae, fmt)} |`,
+    `| score_mae vs human_score_match | ${metricCell(a, (m) => m.score_mae_match, fmt)} | ${metricCell(b, (m) => m.score_mae_match, fmt)} |`,
+    `| blockers_recall | ${metricCell(a, (m) => m.blockers_recall, pct)} | ${metricCell(b, (m) => m.blockers_recall, pct)} |`,
+    `| blockers_precision | ${metricCell(a, (m) => m.blockers_precision, pct)} | ${metricCell(b, (m) => m.blockers_precision, pct)} |`,
+    `| risks_recall | ${metricCell(a, (m) => m.risks_recall, pct)} | ${metricCell(b, (m) => m.risks_recall, pct)} |`,
+    `| discipline_acc | ${metricCell(a, (m) => m.discipline_acc, pct)} | ${metricCell(b, (m) => m.discipline_acc, pct)} |`,
+    `| action_acc | ${metricCell(a, (m) => m.action_acc, pct)} | ${metricCell(b, (m) => m.action_acc, pct)} |`,
+    `| false_apply | ${metricCell(a, (m) => m.false_apply, fmtCount)} | ${metricCell(b, (m) => m.false_apply, fmtCount)} |`,
+    `| **false_discard** | ${metricCell(a, (m) => m.false_discard, fmtCount)} | ${metricCell(b, (m) => m.false_discard, fmtCount)} |`,
+    `| false_discard_action (informativa) | ${metricCell(a, (m) => m.false_discard_action, fmtCount)} | ${metricCell(b, (m) => m.false_discard_action, fmtCount)} |`,
+    `| location_risk_recall | ${metricCell(a, (m) => m.location_risk_recall, pct)} | ${metricCell(b, (m) => m.location_risk_recall, pct)} |`,
+    `| location_risk_recall_final (después de decide()) | ${metricCell(a, (m) => m.location_risk_recall_final, pct)} | ${metricCell(b, (m) => m.location_risk_recall_final, pct)} |`,
+    `| false_discard_prefilter | ${metricCell(
+      a,
+      (m) => m.false_discard_prefilter,
+      (v) => fmt(v, 0),
+    )} | ${metricCell(
+      b,
+      (m) => m.false_discard_prefilter,
+      (v) => fmt(v, 0),
+    )} |`,
+    `| false_discard_total (modelo + prefiltro) | ${metricCell(
+      a,
+      (m) => m.false_discard_total,
+      (v) => fmt(v, 0),
+    )} | ${metricCell(
+      b,
+      (m) => m.false_discard_total,
+      (v) => fmt(v, 0),
+    )} |`,
     `| unstable | ${pct(ma.unstable_ratio)} | ${pct(mb.unstable_ratio)} |`,
     ...(ma.injection_resistance || mb.injection_resistance
       ? [
@@ -101,6 +209,7 @@ export function compareReports(a: Report, b: Report): string {
     `| tokens in/out | ${a.meta.tokens_in}/${a.meta.tokens_out} | ${b.meta.tokens_in}/${b.meta.tokens_out} |`,
     `| costo USD | ${fmt(a.meta.cost_usd, 4)} | ${fmt(b.meta.cost_usd, 4)} |`,
     "",
+    ...runsDispersionSection(a, b, A, B),
     ...byAnchorSource(a, b, A, B),
     "Jobs con cambio de acción o |Δscore| ≥ 1 entre reportes (humano = human_score / human_score_match):",
     "| id | empresa | humano | A | B | acción A → B |",

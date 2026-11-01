@@ -325,6 +325,8 @@ export type Report = {
     };
   };
   metrics: Metrics;
+  /** Métricas individuales de cada corrida (JS-081). Con runs=1 tiene 1 elemento; con runs=3 tiene 3. */
+  metrics_per_run?: Metrics[];
   thresholds: ReturnType<typeof checkThresholds>;
   diagnostics: {
     missed_blockers: MissedBlocker[];
@@ -685,14 +687,14 @@ async function runEvalsWith(options: RunOptions, env: RunEnv): Promise<Report> {
   const rawResults = await mapWithConcurrency(
     units,
     options.concurrency,
-    async ({ job }) => {
+    async ({ job, run }) => {
       const r = await evaluateOnce(client, job, options.prompt, sleep, options.signal, ctx, guard);
       if ("cut" in r) cut = true;
       done++;
       if (done % 10 === 0 || done === units.length) {
         process.stderr.write(`  ${done}/${units.length} llamadas\n`);
       }
-      return { jobId: job.id, r };
+      return { jobId: job.id, run, r };
     },
     () => cut,
   );
@@ -747,6 +749,42 @@ async function runEvalsWith(options: RunOptions, env: RunEnv): Promise<Report> {
   });
 
   const metrics = computeMetrics(jobReports, anchor, criteriaRules.thresholds.guardar);
+
+  const metrics_per_run: Metrics[] = Array.from({ length: options.runs }, (_, runIdx) => {
+    const runJobReports: JobRow[] = jobs.map((job) => {
+      const match = results.find((x) => x.jobId === job.id && x.run === runIdx);
+      const ev = match && match.r.ok ? match.r.value : null;
+      const modelScore = ev ? ev.score : null;
+      const { action: modelAction, decision } = productionDecision(job, ev, modelScore);
+      const signals = decisionSignals(decision);
+      return {
+        id: job.id,
+        human_score: job.human_score,
+        human_score_match: job.human_score_match,
+        human_blockers: job.human_blockers,
+        human_blockers_legacy: job.bloqueadores,
+        human_risks: job.human_risks,
+        human_discipline: job.disciplina,
+        human_action: job.accion,
+        anchor_source: job.anchor_source ?? "human",
+        human_location_ok: job.location_ok,
+        human_location_ok_clean: job.human_location_ok,
+        model_score: modelScore,
+        model_score_final: decision?.score_final ?? null,
+        scores: modelScore !== null ? [modelScore] : [],
+        model_blockers: ev?.bloqueadores_duros ?? [],
+        model_risks: ev?.riesgos ?? [],
+        model_discipline: ev?.disciplina ?? null,
+        model_action: modelAction,
+        model_location_ok: ev?.location_ok ?? null,
+        model_location_risk_final: signals.location_risk_final,
+        prefilter_discard: signals.prefilter_discard,
+        ...(job.adversarial ? { adversarial: true } : {}),
+        unstable: false,
+      };
+    });
+    return computeMetrics(runJobReports, anchor, criteriaRules.thresholds.guardar);
+  });
   // Los diagnósticos acompañan a las métricas de D-019: sin los adversariales (van en injection)
   const okJobs = jobReports.filter((j) => j.model_score !== null && !j.adversarial);
   const missedBlockers: MissedBlocker[] = okJobs
@@ -836,6 +874,7 @@ async function runEvalsWith(options: RunOptions, env: RunEnv): Promise<Report> {
         : {}),
     },
     metrics,
+    metrics_per_run,
     thresholds: checkThresholds(metrics),
     diagnostics: {
       missed_blockers: missedBlockers,
@@ -869,6 +908,32 @@ async function runEvalsWith(options: RunOptions, env: RunEnv): Promise<Report> {
     );
   }
   return report;
+}
+
+function formatDispersionSummary(runs: Metrics[]): string[] {
+  const p = (v: number | null | undefined) =>
+    v === null || v === undefined ? "n/a" : `${(v * 100).toFixed(0)}%`;
+  const f = (v: number | null | undefined) =>
+    v === null || v === undefined ? "n/a" : v.toFixed(2);
+  const c = (v: number | null | undefined) =>
+    v === null || v === undefined ? "n/a" : Number.isInteger(v) ? `${v}` : v.toFixed(1);
+  const disp = (
+    get: (m: Metrics) => number | null | undefined,
+    formatter: (v: number | null | undefined) => string,
+  ) => {
+    const vals = runs.map(get).filter((v): v is number => v !== null && v !== undefined);
+    if (!vals.length) return "n/a";
+    const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    return `media ${formatter(mean)}, rango ${formatter(min)}–${formatter(max)}`;
+  };
+  return [
+    `  score_mae: ${disp((m) => m.score_mae, f)} · action_acc: ${disp((m) => m.action_acc, p)}`,
+    `  blockers_recall: ${disp((m) => m.blockers_recall, p)} · blockers_precision: ${disp((m) => m.blockers_precision, p)}`,
+    `  risks_recall: ${disp((m) => m.risks_recall, p)} · discipline_acc: ${disp((m) => m.discipline_acc, p)}`,
+    `  false_apply: ${disp((m) => m.false_apply, c)} · false_discard: ${disp((m) => m.false_discard, c)}`,
+  ];
 }
 
 export function formatReport(report: Report): string {
@@ -911,6 +976,13 @@ export function formatReport(report: Report): string {
       ? [
           "Las métricas de arriba excluyen los adversariales (ids " +
             `${(report.meta.adversarial_ids ?? []).join(", ") || "-"}); se leen en injection_resistance.`,
+          "",
+        ]
+      : []),
+    ...(report.metrics_per_run && report.metrics_per_run.length > 1
+      ? [
+          `Dispersión por corrida (${report.metrics_per_run.length} corridas):`,
+          ...formatDispersionSummary(report.metrics_per_run),
           "",
         ]
       : []),
