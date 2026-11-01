@@ -75,8 +75,22 @@ export const LINKEDIN_APPLICATION_PARSER = "linkedin_postulacion";
 
 /** Único remitente de la confirmación de reenvío de Gmail. */
 export const GMAIL_FORWARDING_SENDER = "forwarding-noreply@google.com";
+
+/**
+ * Asunto oficial de la confirmación de reenvío de Gmail.
+ * En Gmail siempre comienza con el ticket numérico opcional (#123...) y la frase oficial;
+ * no se aceptan prefijos de reenvío o respuesta (Re:, Fwd:, Rv:) ni menciones incidentales (JS-127).
+ */
 const GMAIL_FORWARDING_SUBJECT =
-  /gmail forwarding confirmation|confirmaci[oó]n de reenv[ií]o de gmail/i;
+  /^(?:\(#\d+\)\s+)?(?:gmail forwarding confirmation|confirmaci[oó]n de reenv[ií]o de gmail)(?:\s+-\s+.*)?$/i;
+
+/** Señales legítimas de confirmación de Gmail en el cuerpo del mensaje (JS-127). */
+const GMAIL_CONFIRM_BODY_SIGNALS: readonly RegExp[] = [
+  /has requested to automatically forward/i,
+  /ha solicitado (?:el reenv[ií]o|reenviar)/i,
+  /(?:your\s+)?confirmation code\s*(?:is|:)\s*\d+/i,
+  /(?:tu\s+)?c[oó]digo de confirmaci[oó]n\s*(?:es|:)\s*\d+/i,
+];
 
 /** Enlace mágico: el link mismo inicia la sesión. */
 const MAGIC_LINK =
@@ -161,15 +175,31 @@ function linkedinJob(text: string | null | undefined): { id: string | null; url:
   return { id, url: id ? `https://www.linkedin.com/jobs/view/${id}/` : null };
 }
 
+function hasGmailConfirmSignal(text: string | null | undefined, html?: string | null): boolean {
+  if (gmailConfirmLink(text, html)) return true;
+  const s = text ?? "";
+  return GMAIL_CONFIRM_BODY_SIGNALS.some((p) => p.test(s));
+}
+
 export function classifyInbound(input: ClassifyInput): InboundClassification {
   const subject = (input.subject ?? "").trim();
   const text = input.text ?? null;
   const addr = senderAddr(input.from);
   const normal: InboundClassification = { category: "normal", application: null };
 
-  // 1. Confirmación de reenvío de Gmail: antes de seguridad, porque su cuerpo trae un código
+  // 1. Confirmación de reenvío de Gmail: antes de seguridad, porque su cuerpo trae un código.
+  // JS-127: endurecido. Si trae texto en el cuerpo, debe incluir un link de Gmail, código de
+  // confirmación o el pedido de la cuenta; si solo trae códigos de terceros o enlaces ajenos,
+  // no se clasifica como confirmación de reenvío.
   if (addr === GMAIL_FORWARDING_SENDER && GMAIL_FORWARDING_SUBJECT.test(subject)) {
-    return { category: "confirmacion_reenvio_gmail", application: null };
+    const hasBody = typeof text === "string" && text.trim().length > 0;
+    const isAuthenticBody =
+      !hasBody ||
+      hasGmailConfirmSignal(text) ||
+      Boolean(gmailForwardRequester(text, null, subject));
+    if (isAuthenticBody) {
+      return { category: "confirmacion_reenvio_gmail", application: null };
+    }
   }
 
   // 2. Seguridad, de cualquier remitente
@@ -215,17 +245,25 @@ export function maskDigits(s: string): string {
 
 /**
  * Cuenta de Gmail que pidió el reenvío, si el cuerpo la nombra ("x@… has requested to
- * automatically forward…" / "x@… ha solicitado…"). Null si no aparece: no se infiere de otro
- * lado. Solo lee texto.
+ * automatically forward…" / "x@… ha solicitado…") o si figura en el asunto oficial de Gmail
+ * ("Receive Mail from x@…" / "Recibir correo de x@…"). Null si no aparece: no se infiere de
+ * otro lado. Solo lee texto.
  */
 export function gmailForwardRequester(
   text: string | null | undefined,
   html: string | null | undefined,
+  subject?: string | null | undefined,
 ): string | null {
   const re =
     /([A-Z0-9._%+-]+@[A-Z0-9-]+(?:\.[A-Z0-9-]+)*\.[A-Z]{2,})\s*\)?\s+(?:has requested|ha solicitado|solicit[oó])/i;
   for (const source of [text ?? "", htmlToText(html)]) {
     const m = re.exec(source);
+    if (m) return m[1]!.toLowerCase();
+  }
+  if (subject) {
+    const subjectRe =
+      /(?:receive mail from|recibir correo de)\s+([A-Z0-9._%+-]+@[A-Z0-9-]+(?:\.[A-Z0-9-]+)*\.[A-Z]{2,})/i;
+    const m = subjectRe.exec(subject);
     if (m) return m[1]!.toLowerCase();
   }
   return null;
