@@ -5,6 +5,7 @@
 # Reglas (ahorro de Build CPU Minutes; la verificación la hace GitHub Actions, ver .github/workflows/ci.yml):
 #   - Rama distinta de main: solo se construye el preview si el mensaje del último commit contiene "[preview]".
 #   - main: se construye solo si cambió algo que afecta a la web entre VERCEL_GIT_PREVIOUS_SHA y VERCEL_GIT_COMMIT_SHA.
+#   - main, redeploy del mismo commit que el último deploy: se construye (es un cambio de variables).
 #   - Ante la duda (sin SHA previo, clone superficial, git roto, rama desconocida): se construye.
 #     Saltear un deploy real por error es peor que gastar unos minutos de build.
 #
@@ -58,6 +59,11 @@ if [ -z "$prev" ]; then
 fi
 if [ -z "$sha" ]; then
   build "main sin VERCEL_GIT_COMMIT_SHA"
+fi
+# Redeploy del mismo commit (por ejemplo, después de cambiar variables en Vercel): el diff da vacío
+# y se omitiría, así que las variables nuevas nunca llegarían a producción. Pasó el 1/11/2026.
+if [ "$prev" = "$sha" ]; then
+  build "redeploy de ${sha:0:7} (mismo commit que el último deploy: cambio de variables)"
 fi
 
 # Vercel puede ejecutar el comando desde apps/web (Root Directory); los pathspecs son de la raíz.
