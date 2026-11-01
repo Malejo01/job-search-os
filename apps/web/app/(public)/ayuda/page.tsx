@@ -77,8 +77,9 @@ const FAQS: FaqItem[] = [
     q: "¿Cuánto cuesta?",
     a: (
       <p>
-        Podés empezar con un plan gratis para probar la experiencia. También habrá un plan pago para
-        quienes quieren analizar más avisos por día.{" "}
+        La beta es por invitación y se usa con el Plan Beta, que es pago, mes a mes. El plan gratis
+        es lo que queda cuando termina tu mes: tus datos siguen guardados, con menos avisos
+        evaluados por día.{" "}
         {pricingEnabled(process.env) ? (
           <>
             Mirá las opciones vigentes en{" "}
@@ -187,7 +188,8 @@ export default function AyudaPage() {
         <div>
           <h2 className="text-lg font-semibold text-fg">¿Querés sumarte a la beta?</h2>
           <p className="text-sm text-fg-muted">
-            Dejá tus datos en la lista de espera y te contactamos cuando abramos el acceso.
+            Dejá tus datos en la lista de espera. El cupo es limitado y anotarte no garantiza un
+            lugar: si hay lugar, te escribimos.
           </p>
         </div>
         <Link

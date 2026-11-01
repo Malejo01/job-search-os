@@ -1,4 +1,4 @@
-import { ROLE_KEYS, UNLISTED_ROLE_KEYS, type RoleKey } from "@job-search-os/pipeline";
+import { ROLE_KEYS, type RoleKey } from "@job-search-os/pipeline";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
 
 /**
@@ -8,10 +8,13 @@ import { ROLE_SKILLS } from "@/lib/skill-levels";
 export function CareerPicker({
   current,
   tab,
+  visible,
 }: {
   current: RoleKey | null;
   /** Puesto de la pestaña activa, si la persona eligió puestos. */
   tab: RoleKey | null;
+  /** Carreras que se muestran hoy (`getPublicCareerKeys`, ADR-029). */
+  visible: readonly RoleKey[];
 }) {
   return (
     <form
@@ -33,13 +36,13 @@ export function CareerPicker({
                 Elegí una carrera
               </option>
             )}
-            {ROLE_KEYS.filter(
-              (k) => !UNLISTED_ROLE_KEYS.includes(k) || k === current || k === tab,
-            ).map((key) => (
-              <option key={key} value={key}>
-                {ROLE_SKILLS[key].label}
-              </option>
-            ))}
+            {ROLE_KEYS.filter((k) => visible.includes(k) || k === current || k === tab).map(
+              (key) => (
+                <option key={key} value={key}>
+                  {ROLE_SKILLS[key].label}
+                </option>
+              ),
+            )}
           </select>
         </label>
         <button

@@ -508,8 +508,17 @@ async function explainWhy(
   } catch {
     return { pattern, matches: [], error: "la expresión regular no es válida" };
   }
+  // Solo lo que lee classifyWhy: no hace falta la fila completa (descripción, shingles...)
   const rows = await tx
-    .select()
+    .select({
+      id: s.publicJobs.id,
+      title: s.publicJobs.title,
+      sourceKind: s.publicJobs.sourceKind,
+      dedupOfId: s.publicJobs.dedupOfId,
+      lastSeenAt: s.publicJobs.lastSeenAt,
+      postedAt: s.publicJobs.postedAt,
+      roleHints: s.publicJobs.roleHints,
+    })
     .from(s.publicJobs)
     .where(sql`${s.publicJobs.title} ~* ${pattern}`)
     .orderBy(sql`${s.publicJobs.postedAt} desc nulls last`, desc(s.publicJobs.id))

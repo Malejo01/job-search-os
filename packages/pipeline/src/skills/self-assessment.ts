@@ -138,8 +138,24 @@ export const BETA_ROLE_KEYS: readonly RoleKey[] = [
 ];
 
 /**
- * Carreras que siguen ocultas. Abogacía se publicó el 1/11/2026: 17 ofertas vigentes después de
- * `pool:rehint` (umbral de 10, ADR-022). Las demás salen de esta lista a medida que lo superan.
+/**
+ * Las seis carreras de la beta cerrada, en el orden del anuncio (abogacía, contaduría, administración,
+ * comunicación, marketing y RR.PP., relaciones internacionales): las cuatro nuevas de `BETA_ROLE_KEYS` más
+ * `finanzas_contabilidad` y `marketing_digital`, que ya existían y se ampliaron (ADR-027).
+ */
+export const BETA_LAUNCH_ROLE_KEYS: readonly RoleKey[] = [
+  "abogacia",
+  "finanzas_contabilidad",
+  "administracion_empresas",
+  "comunicacion",
+  "marketing_digital",
+  "relaciones_internacionales",
+];
+
+/**
+ * Carreras que siguen ocultas en los selectores generales. Abogacía se publicó el 1/11/2026: 17 ofertas
+ * vigentes después de `pool:rehint` (umbral de 10, ADR-022). Las páginas públicas ya no dependen de esta
+ * lista: las carreras de la beta aparecen solas al llegar al umbral (`career-visibility.ts`, ADR-029).
  */
 export const UNLISTED_ROLE_KEYS: readonly RoleKey[] = [
   "asistencia_operaciones",
@@ -163,13 +179,28 @@ export function selectableRoleGroups(
  * Carreras que se ofrecen a quien elige o cambia su carrera dentro de la app (onboarding, «Tus puestos»,
  * asistente): las del selector general más las de la beta (`BETA_ROLE_KEYS`) aunque sigan sin listar, y
  * las no listadas que la persona ya tiene (`keep`). La beta las ofrece en `/acceso`, así que quien entra por
- * una invitación tiene que poder elegirlas. Las páginas públicas de mercado y el sitemap siguen usando
- * `selectableRoleGroups()` y las ocultan hasta que tengan ofertas (ADR-022, ADR-027).
+ * una invitación tiene que poder elegirlas. Las páginas públicas de mercado, los chips y el sitemap no usan esto:
+ * muestran cada carrera de la beta solo cuando llega al umbral de ofertas (ADR-029).
  */
 export function profileRoleGroups(
   keep: readonly RoleKey[] = [],
 ): readonly { label: string; roles: readonly RoleKey[] }[] {
   return selectableRoleGroups([...keep, ...BETA_ROLE_KEYS]);
+}
+
+/**
+ * Selector de `/acceso` (C6-1): las 6 carreras de la beta primero, en un grupo propio, y después el resto
+ * con los grupos de siempre (sin repetir ninguna). Ofrece lo mismo que `selectableRoleGroups(BETA_ROLE_KEYS)`,
+ * solo reordenado: no cambia qué carreras se pueden elegir.
+ */
+export function waitlistRoleGroups(): readonly { label: string; roles: readonly RoleKey[] }[] {
+  const rest = selectableRoleGroups(BETA_ROLE_KEYS)
+    .map((g) => ({
+      label: g.label,
+      roles: g.roles.filter((r) => !BETA_LAUNCH_ROLE_KEYS.includes(r)),
+    }))
+    .filter((g) => g.roles.length > 0);
+  return [{ label: "Carreras de la beta", roles: BETA_LAUNCH_ROLE_KEYS }, ...rest];
 }
 
 export function isRoleKey(v: unknown): v is RoleKey {

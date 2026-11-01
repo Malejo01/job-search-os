@@ -23,7 +23,7 @@ La H2 del roadmap suma carreras no técnicas. Con un snapshot del pool de 1752 o
    - Corre solo si la persona cargó su país, igual que la residencia, así que el golden y los evals no cambian. Si el país es desconocido, no corre: falla abierta.
    - Si el texto nombra el país de la persona cerca de la frase, la licencia es de su país: pasa con un flag.
    - Si no, descarta con la razón `licencia_profesional`.
-7. **Publicación:** se publican las dos carreras. `UNLISTED_ROLE_KEYS` y `selectableRoleGroups(keep)` quedan como mecanismo para ocultar del selector una carrera con menos de 10 ofertas, sin quitársela a quien ya la tiene.
+7. **Publicación:** se publican las dos carreras. `UNLISTED_ROLE_KEYS` y `selectableRoleGroups(keep)` quedan como mecanismo para ocultar del selector una carrera con menos de 10 ofertas, sin quitársela a quien ya la tiene. **Actualización (C6-4):** en las páginas públicas, las carreras de la beta aparecen solas al llegar a las 10 ofertas, con dos listas de override en código (ver ADR-029).
 
 ## Datos y orden de aplicación
 - **0036 (generada):** amplía el check de `waitlist` con las dos claves.

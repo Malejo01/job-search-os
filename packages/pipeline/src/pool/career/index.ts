@@ -5,7 +5,7 @@ export {
   SMALL_SAMPLE_JOBS,
   TOP_SKILLS,
 } from "./career-market";
-export { detectEnglish, ENGLISH_ESTIMATED, type EnglishDetection } from "./english";
+export { detectEnglish, ENGLISH_ESTIMATED, MAX_JD_CHARS, type EnglishDetection } from "./english";
 export {
   monthlySalaryPoint,
   percentile,

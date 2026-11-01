@@ -29,8 +29,8 @@ const STEPS: readonly TourStep[] = [
   },
   {
     anchor: "demo:acceso",
-    title: "¿Querés probarlo con tu perfil?",
-    text: "Pedí acceso y cargá el tuyo.",
+    title: "¿Querés verlo con tu perfil?",
+    text: "Pedí acceso: la beta es por invitación y el cupo es limitado.",
   },
 ];
 

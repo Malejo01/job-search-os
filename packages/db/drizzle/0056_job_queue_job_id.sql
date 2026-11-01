@@ -1,0 +1,1 @@
+CREATE INDEX "job_queue_job_id" ON "job_queue" USING btree (("payload"->>'jobId'));
