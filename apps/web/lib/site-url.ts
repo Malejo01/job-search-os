@@ -1,20 +1,21 @@
+import { siteOrigin } from "@job-search-os/pipeline";
+
 /**
- * URL pública del sitio para metadata, sitemap y robots (ronda 63). `SITE_URL` gana si está (el
- * dominio propio); si no, el dominio de producción que da Vercel, que puede ser el `*.vercel.app`.
- * Sin ninguna de las dos (local, CI), localhost. Se valida: un valor que no es http(s) no se usa.
+ * URL pública del sitio para metadata, sitemap, robots y Open Graph (ronda 63, C3-4). `SITE_URL` gana si
+ * está (el dominio propio, la única variable que hay que cambiar al mudar de dominio); si no, el dominio
+ * de producción que da Vercel, que puede ser el `*.vercel.app`. Sin ninguna de las dos (local, CI),
+ * localhost. Se valida: un valor que no es http(s) no se usa.
  */
 export function siteUrl(env: NodeJS.ProcessEnv = process.env): string {
-  const candidates = [
-    env.SITE_URL,
-    env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${env.VERCEL_PROJECT_PRODUCTION_URL}` : undefined,
-  ];
-  for (const value of candidates) {
-    if (!value) continue;
+  const site = siteOrigin(env);
+  if (site) return site;
+  const vercel = env.VERCEL_PROJECT_PRODUCTION_URL;
+  if (vercel) {
     try {
-      const url = new URL(value);
-      if (url.protocol === "https:" || url.protocol === "http:") return url.origin;
+      const url = new URL(`https://${vercel}`);
+      if (url.host) return url.origin;
     } catch {
-      // valor inválido: se prueba el siguiente
+      // valor inválido: se usa el respaldo local
     }
   }
   return "http://localhost:3000";

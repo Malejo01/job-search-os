@@ -4,7 +4,14 @@
     "build": {
       "dependsOn": ["^build"],
       "env": ["VERCEL_GIT_COMMIT_SHA"],
-      "passThroughEnv": ["DB_TARGET", "LLM_DEMO", "DATABASE_URL_APP", "CONTACT_EMAIL", "SITE_URL"],
+      "passThroughEnv": [
+        "DB_TARGET",
+        "LLM_DEMO",
+        "DATABASE_URL_APP",
+        "CONTACT_EMAIL",
+        "SITE_URL",
+        "LEGACY_HOSTS"
+      ],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "typecheck": {

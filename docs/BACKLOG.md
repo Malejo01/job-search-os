@@ -539,8 +539,8 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 `deps:` — · `est:` S · `estado:` done (ronda 03, PR #38)
 - **Que se hizo:** `/api/health` devuelve un 503 sin detalle; los tres crons comparan `CRON_SECRET` en tiempo constante; el reset usa `AUTH_URL` (o `NEXT_PUBLIC_APP_URL`) y nunca `Host`, invalida todos los tokens del usuario al consumir uno y manda `Referrer-Policy: no-referrer`.
 
-### JS-079 · Consumir el token de reset de forma atomica
-`deps:` JS-068 · `est:` S · `estado:` todo (nuevo, 2026-10-07)
+### JS-079 · Consumir el token de reset de forma atomica ✅ done 2026-10-31
+`deps:` JS-068 · `est:` S · `estado:` done (ya resuelto en el código, verificado en la tanda C3, PR #314): `consumeResetToken` (`packages/adapters/src/auth/reset-tokens.ts`) hace `UPDATE … WHERE used_at IS NULL AND expires_at > now RETURNING` dentro de la misma transacción que cambia la contraseña (`resetPassword`); sin fila, vuelve `used`. Lo hizo `71c6617` (S-3). Test de dos consumos concurrentes en `reset-tokens.integration.test.ts`
 - **Por que:** `checkResetToken` corre fuera de la transaccion que cambia la contrasena, asi que dos pedidos concurrentes con el mismo token pueden pasar el chequeo (ya existia antes de JS-068).
 - **Que:** consumir el token con `UPDATE ... WHERE used_at IS NULL AND expires_at > now() RETURNING` dentro de la misma transaccion; si no devuelve fila, falla.
 - **Acepta:** test de integracion con dos consumos concurrentes del mismo token: uno gana, el otro recibe "used".
@@ -701,12 +701,12 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - Endurecer las policies de `evaluations` y `applications` (detalle en las notas privadas de la ronda 18). Toca `rls/0000`; se aplica en Neon.
 - **Acepta:** los `it.fails` de la ronda 18 pasan a `it`.
 
-### JS-115 · Idempotencia del webhook por columna
-`deps:` — · `est:` S + migracion · `estado:` todo (2026-10-08, seguridad)
+### JS-115 · Idempotencia del webhook por columna ✅ done 2026-10-31
+`deps:` — · `est:` S + migracion · `estado:` done (tanda C3, PR #314; ⚠️ migraciones 0052 y 0053 sin aplicar): `inbound_emails.email_id` con índice único (0052) y backfill desde los crudos (0053, la fila más vieja se queda con el valor); el webhook busca por la columna y los dos inserts usan `ON CONFLICT DO NOTHING`, así que tres entregas simultáneas del mismo email dejan una fila (test de integración)
 - Columna `email_id` en `inbound_emails` con indice unico, en lugar de buscar en los crudos.
 
-### JS-116 · Vigencia de sesiones ante cambios de credenciales
-`deps:` — · `est:` M + migracion · `estado:` todo (2026-10-08, seguridad)
+### JS-116 · Vigencia de sesiones ante cambios de credenciales ✅ done 2026-10-31
+`deps:` — · `est:` M + migracion · `estado:` done (ya resuelto en el código, verificado en la tanda C3, PR #314): `users.session_version` (migración 0040, `3e6c0e8`, 2026-10-23) + `user_session_version()` (`rls/0011`) + `sv` en el JWT; `resetPassword` sube la versión en la misma transacción y toda lectura de sesión pasa por `currentSession`/`requireUserId` (`lib/session.ts`, única llamada a `auth()`). Tests: `session-version.test.ts`, `multiusuario.integration.test.ts`, e2e `05`. **El reset es hoy el único cambio de credencial que existe**: quien agregue «cambiar contraseña» o «cambiar email» tiene que subir `session_version` en la misma transacción
 - Revisar la vigencia de las sesiones despues de cambios de credenciales (detalle en las notas privadas de la ronda 18).
 
 ### JS-117 · Inbound: eleccion del destinatario ✅ done 2026-10-08
@@ -737,8 +737,8 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 `deps:` — · `est:` XS · `estado:` done (ronda 25, PR #62; limpieza aplicada en produccion despues del deploy, control en 0)
 - El registro guarda solo metadatos (tarea, modelo, tokens, costo, fecha, usuario) y un codigo de error normalizado (tipo y status HTTP), nunca el texto del proveedor. Las filas viejas con texto pasaron a `legacy_text`. La purga de 90 dias, cubierta por un test en el borde.
 
-### JS-124 · Retirar la version anterior de la funcion de registro
-`deps:` JS-113 · `est:` XS + RLS · `estado:` todo (2026-10-08) — lleva migracion: va con plan y se aplica en Neon
+### JS-124 · Retirar la version anterior de la funcion de registro ✅ done 2026-10-31
+`deps:` JS-113 · `est:` XS + RLS · `estado:` done (tanda C3, PR #314; ⚠️ `pnpm db:migrate` aplica `rls/0001` y `rls/0003`): `DROP FUNCTION IF EXISTS` de `register_with_invitation` (v1) y `register_with_invitation_v2`; el registro usa solo la v3. Los tests de registro pasan a v3 y uno verifica que no existen y que re-aplicar `rls/` no las revive
 - Retirar la version anterior de la funcion de registro (detalle en las notas privadas de la ronda 23).
 
 ### JS-125 · Ingesta del onboarding sin red en e2e/CI ✅ done 2026-10-27
@@ -747,7 +747,7 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Acepta:** con el entorno de e2e, la primera ingesta no hace pedidos de red (test).
 
 ### JS-126 · Pulido del onboarding y del registro
-`deps:` — · `est:` S · `estado:` todo (2026-10-08, ronda 27)
+`deps:` — · `est:` S · `estado:` parcial (2026-10-31, tanda C3): la parte de **onboarding ya estaba resuelta** (el país se elige con `CountrySearch`, sin «código de 2 letras»; `ProfileForm` muestra el error junto a cada campo y conserva lo cargado, cubierto por el e2e `50-onboarding-no-pierde`). Falta unificar «Repetila» (`setup`, `reset-password`) con «Repetí la contraseña» del registro y los e2e 05 y 06
 - "Otro pais: codigo de 2 letras" visible solo al elegir "Otro"; errores junto a cada campo y conservar lo cargado al volver con error; unificar "Repeti la contrasenia" en `setup` y `reset-password` (y los e2e 05 y 06).
 - Asistente: si se agrega retencion de la bandeja, derivar "primera alerta recibida" tambien de las fuentes de los avisos, para que no vuelva al paso 1.
 - Sumar lo que salga del ensayo de invitacion.
@@ -1020,6 +1020,33 @@ Seis carreras de la beta cerrada (ADR-027). Los PR están en draft y apilados: s
 ### Pendiente después de la tanda
 - Mauro: `pnpm db:migrate` (0048 y 0049), merge en orden y deploy; después `pnpm pool:rehint --remote` (sin y con `--apply`) y medir volumen para sacar cada carrera de `UNLISTED_ROLE_KEYS`.
 - Golden por carrera con avisos reales (evals pagos) y selección de personas por chip: tanda siguiente.
+
+## Bloque 9 — Beta cerrada: cobro, seguridad, áreas y dominio (tanda C3, 2026-10-31)
+
+Cuatro PR de la nube, todos en draft y con base `ronda/integracion-t1-g2` (#309). «Done» acá es «hecho y con CI en verde en el PR»; ningún PR está mergeado y las migraciones **no** se aplicaron (las aplica Mauro con `pnpm db:migrate` antes del merge). **Orden de merge: #312 → #314 → #315** (cada una sale de la anterior); #316 es independiente. La beta abre el jueves 26/11; precio ARS 20.000 o USD 15 por mes, sin garantía, cobro con link de Mercado Pago y activación manual.
+
+### C3-1 · Cobro de la beta
+`deps:` — · `estado:` done (2026-10-31; PR #312; ⚠️ migración 0051 + `rls/0010` y `rls/0015`)
+- Plan «Beta» (`lista`: ARS 20.000 por mes, USD 15 de referencia, 30 días por pago, sin «garantía»); `/precios` ofrece solo gratis y Beta. `plan-access.ts` (puro): estado del acceso, aviso a 3 días y fecha de fin al activar o renovar (nada se gasta antes del 26/11; renovar suma días).
+- Panel `/settings/planes` (admin): activar 30 días como pago o beca, ver quién tiene acceso y quitar el plan (`admin_plan_get/list/set`, `SECURITY DEFINER`, `app_admins`). Migración 0051: `profiles.plan_source` (`pago` | `beca`).
+- La persona ve hasta cuándo llega su acceso en Ajustes y un aviso en la app a 3 días; al vencer rige el plan gratis y no se borra nada.
+- **Sin hacer:** email de aviso (hace falta un cron en `.github/` y `plan_notified_at`); términos legales sobre pagos y devoluciones.
+
+### C3-2 · Seguridad antes de cobrar
+`deps:` C3-1 · `estado:` done (2026-10-31; PR #314; ⚠️ migraciones 0052 y 0053 + `rls/0001` y `rls/0003`)
+- **JS-079** y **JS-116**: ya estaban resueltos en el código (ver la evidencia en cada ticket). **JS-115**: `inbound_emails.email_id` único + backfill. **JS-124**: se retiran las versiones 1 y 2 de la función de registro.
+
+### C3-3 · Guardar las áreas de cada persona
+`deps:` C3-2 · `estado:` done (2026-10-31; PR #315; ⚠️ migración 0054)
+- `profiles.target_specialties` (`jsonb`, `null` = «Todas las áreas»), validación en pipeline, guardado en el onboarding y en «Tus puestos» (Ajustes). **Todavía no filtra avisos**: la propuesta (descartar con `jobMatchesSpecialties` en `pool/select.ts`) está en el PR y en ADR-027.
+
+### C3-4 · Dominio listo para afiniajobs.com.ar
+`deps:` — · `estado:` done (2026-10-31; PR #316; sin migración)
+- `SITE_URL` única para canonical, sitemap, robots, Open Graph y links de emails; `LEGACY_HOSTS` redirige el dominio viejo al nuevo sin tocar `/api/*`. Pasos para Mauro en `docs/DEPLOY.md` («Pasar a afiniajobs.com.ar»). No se cambió ninguna variable en Vercel.
+
+### Pendiente después de la tanda
+- Mauro: `pnpm db:migrate` (0051 a 0054 y las policies de `rls/`), merge en orden, `MP_LINK_LISTA` y `PRICING_ENABLED=1` en Vercel cuando corresponda, y los pasos de `docs/DEPLOY.md` para el dominio.
+- Decidir los textos de las áreas (hoy no filtran), el aviso por email del vencimiento y los términos sobre pagos.
 
 ## Reglas del backlog
 

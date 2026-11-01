@@ -34,7 +34,7 @@ async function main(): Promise<void> {
     console.log(
       result.link
         ? `link: ${result.link}`
-        : `falta AUTH_URL o NEXT_PUBLIC_APP_URL: armá el link a mano como <base>/register?code=${result.code}`,
+        : `falta SITE_URL (o AUTH_URL / NEXT_PUBLIC_APP_URL): armá el link a mano como <base>/register?code=${result.code}`,
     );
   } finally {
     await close();
