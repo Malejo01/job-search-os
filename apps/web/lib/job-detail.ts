@@ -16,7 +16,7 @@ import {
   type JobEvent,
   type JobStatus,
 } from "@job-search-os/pipeline";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, getTableColumns, sql } from "drizzle-orm";
 import { z } from "zod";
 import { withUser } from "./db";
 import { isUuid } from "./ids";
@@ -204,7 +204,9 @@ export async function changeJobStatus(
 
 export async function getJobDetail(userId: string, jobId: string): Promise<JobDetail | null> {
   return withUser(userId, async (tx) => {
-    const [job] = await tx.select().from(s.jobs).where(eq(s.jobs.id, jobId)).limit(1);
+    // Sin `jd_shingles` (miles de enteros para detectar duplicados, que esta pantalla no usa): C5-7
+    const { jdShingles: _shingles, ...jobColumns } = getTableColumns(s.jobs);
+    const [job] = await tx.select(jobColumns).from(s.jobs).where(eq(s.jobs.id, jobId)).limit(1);
     if (!job) return null;
     const [queued] = await tx
       .select({ evaluating: evaluatingSql() })

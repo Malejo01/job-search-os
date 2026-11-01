@@ -27,7 +27,7 @@ import {
 } from "@job-search-os/pipeline";
 import type { PromptRef } from "@job-search-os/prompts";
 import { randomUUID } from "node:crypto";
-import { and, count, desc, eq, lte } from "drizzle-orm";
+import { and, count, desc, eq, getTableColumns, lte } from "drizzle-orm";
 import { DEFAULT_PROMPT_VERSIONS } from "../llm/client";
 import type { GenerateContext, LlmClient, LlmError } from "../llm/types";
 import { dailyCapFromEnv, spendLast24h, userDailyCapUsd } from "../llm/spend";
@@ -141,12 +141,45 @@ export type ChecklistSkills = {
   skillNames?: ReadonlyMap<string, string>;
 };
 
+/**
+ * Catálogo de skills compilado, con caché en memoria (C5-7, ahorro de Neon). Antes `loadChecklistSkills`
+ * lo leía y lo compilaba entero por cada oferta: un lote de 50 evaluaciones bajaba la tabla `skills`
+ * (≈110 filas con alias) 50 veces. Es un catálogo casi estático, así que se guarda unos minutos por
+ * proceso; la persona sigue leyendo sus propios niveles en cada llamada.
+ */
+export const SKILLS_CATALOG_TTL_MS = 5 * 60_000;
+type CompiledCatalog = {
+  terms: readonly Term[];
+  skillNames: ReadonlyMap<string, string>;
+};
+let catalogCache: { at: number; value: CompiledCatalog } | null = null;
+
+/** Borra el caché del catálogo (tests, o si se sabe que cambió). */
+export function clearSkillsCatalogCache(): void {
+  catalogCache = null;
+}
+
+async function loadCompiledCatalog(db: Db, now: number): Promise<CompiledCatalog> {
+  if (catalogCache && now - catalogCache.at < SKILLS_CATALOG_TTL_MS) return catalogCache.value;
+  const catalog = await db
+    .select({ slug: s.skills.slug, name: s.skills.name, aliases: s.skills.aliases })
+    .from(s.skills);
+  const value: CompiledCatalog = {
+    terms: compileTaxonomy(catalog),
+    skillNames: new Map(catalog.map((k) => [k.slug, k.name])),
+  };
+  catalogCache = { at: now, value };
+  return value;
+}
+
 /** skill_levels, user_skills y taxonomía de UNA persona (filtra por user_id: el worker no tiene RLS). */
-export async function loadChecklistSkills(db: Db, userId: string): Promise<ChecklistSkills> {
+export async function loadChecklistSkills(
+  db: Db,
+  userId: string,
+  now: number = Date.now(),
+): Promise<ChecklistSkills> {
   const [catalog, levels, own] = await Promise.all([
-    db
-      .select({ slug: s.skills.slug, name: s.skills.name, aliases: s.skills.aliases })
-      .from(s.skills),
+    loadCompiledCatalog(db, now),
     db
       .select({ slug: s.skills.slug, level: s.skillLevels.level })
       .from(s.skillLevels)
@@ -160,8 +193,8 @@ export async function loadChecklistSkills(db: Db, userId: string): Promise<Check
   return {
     skillLevels: new Map(levels.map((l) => [l.slug, l.level])),
     userSkills: own,
-    terms: compileTaxonomy(catalog),
-    skillNames: new Map(catalog.map((k) => [k.slug, k.name])),
+    terms: catalog.terms,
+    skillNames: catalog.skillNames,
   };
 }
 
@@ -346,7 +379,9 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
     deps.promptVersion ?? DEFAULT_PROMPT_VERSIONS.evaluate_job ?? "evaluate_job@v1";
   const log = deps.logger.child({ job_id: jobId });
 
-  const [job] = await db.select().from(s.jobs).where(eq(s.jobs.id, jobId)).limit(1);
+  // Sin `jd_shingles` (miles de enteros que la evaluación no usa): C5-7
+  const { jdShingles: _shingles, ...jobColumns } = getTableColumns(s.jobs);
+  const [job] = await db.select(jobColumns).from(s.jobs).where(eq(s.jobs.id, jobId)).limit(1);
   if (!job) return { ok: false, jobId, error: "job inexistente", retry: "failed" };
   if (!job.jdText?.trim()) {
     return { ok: false, jobId, error: "job sin jd_text: no se evalúa", retry: "skipped" };

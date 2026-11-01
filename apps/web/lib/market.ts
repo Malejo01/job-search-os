@@ -11,6 +11,7 @@ import { revalidateTag, unstable_cache } from "next/cache";
 import { withUser } from "./db";
 import { candidatesCacheConfig } from "./market-cache";
 import { ROLE_SKILLS } from "./skill-levels";
+import { getSkillTaxonomy } from "./skill-taxonomy";
 
 /**
  * Agenda de mercado (/market, adelanto de JS-031): lee el snapshot más reciente dentro del rango
@@ -45,10 +46,13 @@ export function parseRange(params: Record<string, string | string[] | undefined>
  * Sin caché; consulta con su propia transacción `withUser` (RLS).
  */
 async function computeCandidates(userId: string): Promise<SkillCandidate[]> {
+  // Catálogo global con caché de una hora (C5-7): fuera de la transacción de la persona
+  const taxonomyRows = (await getSkillTaxonomy()).map((k) => ({
+    slug: k.slug,
+    name: k.name,
+    aliases: k.aliases,
+  }));
   return withUser(userId, async (tx) => {
-    const taxonomyRows = await tx
-      .select({ slug: s.skills.slug, name: s.skills.name, aliases: s.skills.aliases })
-      .from(s.skills);
     const jdRows = await tx
       .select({
         jdText: s.jobs.jdText,
@@ -186,6 +190,8 @@ export async function getDataState(userId: string): Promise<DataState> {
 export async function getMarket(userId: string, range: MarketRange): Promise<MarketView> {
   // Fuera de la transacción de abajo: el caché abre la suya y no debe anidarse (otra conexión).
   const candidates = await getCandidates(userId);
+  // Catálogo global con caché de una hora (C5-7): también fuera de la transacción
+  const skillRows = await getSkillTaxonomy();
   return withUser(userId, async (tx) => {
     const weekRows = await tx
       .selectDistinct({ weekStart: s.marketSnapshots.weekStart })
@@ -208,14 +214,6 @@ export async function getMarket(userId: string, range: MarketRange): Promise<Mar
       .select({ slug: s.skills.slug, level: s.skillLevels.level })
       .from(s.skillLevels)
       .innerJoin(s.skills, eq(s.skills.id, s.skillLevels.skillId));
-    const skillRows = await tx
-      .select({
-        slug: s.skills.slug,
-        name: s.skills.name,
-        category: s.skills.category,
-        closureHours: s.skills.closureHours,
-      })
-      .from(s.skills);
     const skills = Object.fromEntries(
       skillRows.map((k) => [
         k.slug,
