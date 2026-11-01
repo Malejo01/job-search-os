@@ -3,9 +3,12 @@ import {
   adversarialJobs,
   baseGoldenJobs,
   goldenJobs,
+  goldenMeta,
   goldenToJob,
   goldenVars,
   hashCriteria,
+  loadGoldenFixture,
+  resolveFixturePath,
   targetRoleLabel,
 } from "./golden";
 
@@ -119,5 +122,45 @@ describe("golden → prompt", () => {
     expect(goldenToJob(golden36).jdText).toContain("Excellent written English");
     expect(goldenToJob(golden36).jdText).toMatch(/US Eastern/);
     expect(goldenVars(golden36).had_full_jd).toBe(true);
+  });
+});
+
+describe("loadGoldenFixture y fixtures alternativas (G3-1)", () => {
+  it("sin argumento devuelve el golden por defecto sin marcar como custom", () => {
+    const fixture = loadGoldenFixture();
+    expect(fixture.isCustom).toBe(false);
+    expect(fixture.jobs).toEqual(goldenJobs);
+    expect(fixture.meta.version).toBe(goldenMeta.version);
+  });
+
+  it("carga el fixture golden-carreras-beta.json con sus 48 casos sintéticos y metadatos", () => {
+    const fixture = loadGoldenFixture("evals/fixtures/golden-carreras-beta.json");
+    expect(fixture.isCustom).toBe(true);
+    expect(fixture.jobs).toHaveLength(48);
+    expect(fixture.jobs.map((j) => j.id)).toEqual([...Array(48)].map((_, i) => i + 1));
+    expect(fixture.meta.version).toBe("2026-10-30");
+    expect(fixture.meta.carreras).toEqual([
+      "finanzas_contabilidad",
+      "marketing_digital",
+      "abogacia",
+      "administracion_empresas",
+      "comunicacion",
+      "relaciones_internacionales",
+    ]);
+  });
+
+  it("resuelve rutas relativas y nombres de fixture sin extensión", () => {
+    const resolved = resolveFixturePath("golden-carreras-beta");
+    expect(resolved).toMatch(/golden-carreras-beta\.json$/);
+    const conExt = loadGoldenFixture("golden-carreras-beta.json");
+    const sinExt = loadGoldenFixture("golden-carreras-beta");
+    expect(conExt.jobs).toHaveLength(48);
+    expect(sinExt.jobs).toHaveLength(48);
+  });
+
+  it("lanza un error descriptivo si el archivo de fixture no existe", () => {
+    expect(() => loadGoldenFixture("fixtures/no-existe.json")).toThrow(
+      /archivo de fixture no encontrado/,
+    );
   });
 });

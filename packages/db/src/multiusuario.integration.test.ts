@@ -522,20 +522,6 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
       );
       await expect(asUser(A, (tx) => tx`select release_invitations(null)`)).rejects.toThrow();
     },
-    // Sin EXECUTE para el rol de la app desde JS-113: llamarla falla y no toca la invitación de B.
-    register_with_invitation: async () => {
-      const before = await fingerprint({ table: "invitations", column: "used_by_user_id" }, B);
-      await expect(
-        asUser(
-          A,
-          (tx) => tx`select register_with_invitation(
-          'hash-canjeada-por-b', ${EMAIL_B}, 'x', 'Intruso', 'ingest.test') as id`,
-        ),
-      ).rejects.toThrow(/permission denied/);
-      expect(await fingerprint({ table: "invitations", column: "used_by_user_id" }, B)).toBe(
-        before,
-      );
-    },
     register_with_invitation_v3: async () => {
       const before = await fingerprint({ table: "invitations", column: "used_by_user_id" }, B);
       const [r] = await asUser(
@@ -543,19 +529,6 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
         (tx) => tx<{ id: string | null }[]>`select register_with_invitation_v3(
           'hash-canjeada-por-b', ${EMAIL_B}, 'x', 'Intruso', 'ingest.test', '2026-10-07',
           'abcdefghijklmnopqrst') as id`,
-      );
-      expect(r!.id).toBeNull();
-      expect(await fingerprint({ table: "invitations", column: "used_by_user_id" }, B)).toBe(
-        before,
-      );
-      expect(await owner`select 1 from users where name = 'Intruso'`).toHaveLength(0);
-    },
-    register_with_invitation_v2: async () => {
-      const before = await fingerprint({ table: "invitations", column: "used_by_user_id" }, B);
-      const [r] = await asUser(
-        A,
-        (tx) => tx<{ id: string | null }[]>`select register_with_invitation_v2(
-          'hash-canjeada-por-b', ${EMAIL_B}, 'x', 'Intruso', 'ingest.test', '2026-10-07') as id`,
       );
       expect(r!.id).toBeNull();
       expect(await fingerprint({ table: "invitations", column: "used_by_user_id" }, B)).toBe(
@@ -704,6 +677,28 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
       await expect(asUser(A, (tx) => tx`select * from admin_beta_feedback()`)).rejects.toThrow(
         /admin_beta_feedback: no autorizado/,
       );
+    },
+    // C3-1: planes de la beta, solo app_admins. Una sesión común no lee ni cambia el plan de nadie.
+    admin_plan_get: async () => {
+      await expect(asUser(A, (tx) => tx`select * from admin_plan_get(${EMAIL_B})`)).rejects.toThrow(
+        /admin_plan: no autorizado/,
+      );
+    },
+    admin_plan_list: async () => {
+      await expect(asUser(A, (tx) => tx`select * from admin_plan_list(10)`)).rejects.toThrow(
+        /admin_plan: no autorizado/,
+      );
+    },
+    admin_plan_set: async () => {
+      const before = await fingerprint({ table: "profiles", column: "user_id" }, B);
+      await expect(
+        asUser(
+          A,
+          (tx) =>
+            tx`select * from admin_plan_set(${EMAIL_B}, 'lista', 'beca', now() + interval '30 days')`,
+        ),
+      ).rejects.toThrow(/admin_plan: no autorizado/);
+      expect(await fingerprint({ table: "profiles", column: "user_id" }, B)).toBe(before);
     },
     // Lookup por email: acá solo un email inexistente.
     auth_user_by_email: async () => {

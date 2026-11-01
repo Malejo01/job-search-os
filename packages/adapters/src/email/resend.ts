@@ -8,7 +8,10 @@ import { PRODUCT_NAME } from "@job-search-os/pipeline";
 export type SendEmailParams = {
   to: string;
   subject: string;
-  html: string;
+  /** Cuerpo HTML. Hace falta `html` o `text` (o los dos). */
+  html?: string;
+  /** Cuerpo en texto simple (los avisos de vencimiento del plan, C4-1). */
+  text?: string;
   from?: string;
 };
 
@@ -19,6 +22,9 @@ export async function sendEmail(
   apiKey: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<void> {
+  if (params.html === undefined && params.text === undefined) {
+    throw new Error("sendEmail: falta el cuerpo (html o text)");
+  }
   const res = await fetchImpl("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
@@ -26,7 +32,8 @@ export async function sendEmail(
       from: params.from ?? DEFAULT_FROM,
       to: [params.to],
       subject: params.subject,
-      html: params.html,
+      ...(params.html !== undefined ? { html: params.html } : {}),
+      ...(params.text !== undefined ? { text: params.text } : {}),
     }),
   });
   if (!res.ok) throw new Error(`Resend POST /emails: HTTP ${res.status} ${await res.text()}`);

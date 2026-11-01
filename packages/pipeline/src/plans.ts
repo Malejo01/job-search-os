@@ -30,6 +30,10 @@ export type PlanDef = {
   summary: string;
   /** Precio en pesos argentinos; null = todavía no está decidido y la página dice «a confirmar». */
   priceArs: number | null;
+  /** Precio en dólares, solo como referencia: el cobro es en pesos. null = no se muestra. */
+  priceUsdRef: number | null;
+  /** Se ofrece en `/precios`. Los planes viejos siguen siendo válidos en la base pero no se ofrecen. */
+  listed: boolean;
   billing: "gratis" | "mensual" | "pago_unico";
   /** Cuánto dura lo que se paga; null = mientras siga pagando (o para siempre, en el gratis). */
   durationDays: number | null;
@@ -38,8 +42,8 @@ export type PlanDef = {
   limits: PlanLimits;
 };
 
-// A confirmar con Ani: precios, duración y topes. Mientras tanto, los precios quedan en null para no
-// publicar una cifra inventada; los topes salen de lo que ya rige (la 81, la 100 y ADR-016).
+// Beta cerrada (decidido por Mauro): un solo plan pago, ARS 20.000 por mes (USD 15 de referencia), sin
+// garantía, 30 días por cada pago. Los topes salen de lo que ya rige (la 81, la 100 y ADR-016).
 const FREE_LIMITS: PlanLimits = {
   evaluationsPerDay: 3,
   cvReadsPerMonth: 1,
@@ -66,8 +70,11 @@ export const PLANS: readonly PlanDef[] = [
   {
     key: "gratis",
     name: "Gratis",
-    summary: "Para probar con tu carrera principal.",
+    summary:
+      "Lo que queda cuando termina tu mes de la beta: tus datos siguen, con menos ofertas por día.",
     priceArs: 0,
+    priceUsdRef: null,
+    listed: true,
     billing: "gratis",
     durationDays: null,
     paymentLinkEnv: null,
@@ -78,6 +85,8 @@ export const PLANS: readonly PlanDef[] = [
     name: "Fundador",
     summary: "Precio de lanzamiento para las primeras personas de cada carrera.",
     priceArs: null,
+    priceUsdRef: null,
+    listed: false,
     billing: "mensual",
     durationDays: null,
     paymentLinkEnv: "MP_LINK_FUNDADOR",
@@ -85,11 +94,13 @@ export const PLANS: readonly PlanDef[] = [
   },
   {
     key: "lista",
-    name: "Mensual",
-    summary: "El plan completo, mes a mes.",
-    priceArs: null,
+    name: "Beta",
+    summary: "El plan completo de la beta. Pagás un mes por vez, con un link de Mercado Pago.",
+    priceArs: 20_000,
+    priceUsdRef: 15,
+    listed: true,
     billing: "mensual",
-    durationDays: null,
+    durationDays: 30,
     paymentLinkEnv: "MP_LINK_LISTA",
     limits: PAID_LIMITS,
   },
@@ -98,6 +109,8 @@ export const PLANS: readonly PlanDef[] = [
     name: "Pase de 3 meses",
     summary: "Un solo pago para una búsqueda entera.",
     priceArs: null,
+    priceUsdRef: null,
+    listed: false,
     billing: "pago_unico",
     durationDays: 90,
     paymentLinkEnv: "MP_LINK_PASE_3_MESES",
@@ -111,8 +124,8 @@ export const PLANS: readonly PlanDef[] = [
  */
 export const FOUNDER_SEATS_PER_CAREER: number | null = null;
 
-/** Días de garantía: si no te sirve, te devolvemos lo que pagaste. */
-export const GUARANTEE_DAYS = 14;
+/** El plan que se vende en la beta cerrada: el que Mauro activa desde el panel de admin. */
+export const BETA_PLAN: PlanKey = "lista";
 
 export function isPlanKey(v: unknown): v is PlanKey {
   return typeof v === "string" && (PLAN_KEYS as readonly string[]).includes(v);
@@ -196,6 +209,16 @@ export function resolvePlanLimit(
   if (input.override !== null) return input.override;
   const limits = planLimitsFor(env, effectivePlan(input.plan, input.planUntil, input.now));
   return limits ? limits[key] : input.fallback;
+}
+
+/** Planes que `/precios` ofrece, en orden. */
+export function listedPlans(): PlanDef[] {
+  return PLANS.filter((p) => p.listed);
+}
+
+/** Referencia en dólares («USD 15 como referencia»), o null si el plan no la tiene. */
+export function priceReference(plan: PlanDef): string | null {
+  return plan.priceUsdRef === null ? null : `USD ${plan.priceUsdRef} como referencia`;
 }
 
 /** Precio para mostrar: «Gratis», «$ 1.234 por mes» o «Precio a confirmar». */

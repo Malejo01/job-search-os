@@ -1,7 +1,12 @@
+import { readCareerRevealCounts } from "@job-search-os/adapters";
+import type { Db } from "@job-search-os/db";
 import {
+  buildCareerRevealRows,
   parseBetaMetrics,
   parseFounderCounts,
+  UNLISTED_ROLE_KEYS,
   type BetaMetrics,
+  type CareerRevealRow,
   type FounderCountRow,
 } from "@job-search-os/pipeline";
 import { sql } from "drizzle-orm";
@@ -62,6 +67,25 @@ export async function getBetaMetrics(userId: string): Promise<BetaMetricsResult>
         return { ok: false, reason: "no_habilitado" };
       }
     }
+    return { ok: false, reason: "sin_datos" };
+  }
+}
+
+export type CareerRevealResult =
+  { ok: true; rows: CareerRevealRow[] } | { ok: false; reason: "no_admin" | "sin_datos" };
+
+/**
+ * Carreras ocultas y cuántas ofertas tienen (C4-3), solo admins. Una consulta agregada a `public_jobs`
+ * (que la app ya lee): vuelven números por carrera, ningún aviso. La decisión de mostrarla es de una persona.
+ */
+export async function getCareerReveal(userId: string): Promise<CareerRevealResult> {
+  if (!(await canCreateInvitations(userId))) return { ok: false, reason: "no_admin" };
+  try {
+    const counts = await withUser(userId, (tx) =>
+      readCareerRevealCounts(tx as unknown as Db, UNLISTED_ROLE_KEYS, new Date()),
+    );
+    return { ok: true, rows: buildCareerRevealRows(UNLISTED_ROLE_KEYS, counts) };
+  } catch {
     return { ok: false, reason: "sin_datos" };
   }
 }

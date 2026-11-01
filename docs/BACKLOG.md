@@ -539,8 +539,8 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 `deps:` — · `est:` S · `estado:` done (ronda 03, PR #38)
 - **Que se hizo:** `/api/health` devuelve un 503 sin detalle; los tres crons comparan `CRON_SECRET` en tiempo constante; el reset usa `AUTH_URL` (o `NEXT_PUBLIC_APP_URL`) y nunca `Host`, invalida todos los tokens del usuario al consumir uno y manda `Referrer-Policy: no-referrer`.
 
-### JS-079 · Consumir el token de reset de forma atomica
-`deps:` JS-068 · `est:` S · `estado:` todo (nuevo, 2026-10-07)
+### JS-079 · Consumir el token de reset de forma atomica ✅ done 2026-10-31
+`deps:` JS-068 · `est:` S · `estado:` done (ya resuelto en el código, verificado en la tanda C3, PR #314): `consumeResetToken` (`packages/adapters/src/auth/reset-tokens.ts`) hace `UPDATE … WHERE used_at IS NULL AND expires_at > now RETURNING` dentro de la misma transacción que cambia la contraseña (`resetPassword`); sin fila, vuelve `used`. Lo hizo `71c6617` (S-3). Test de dos consumos concurrentes en `reset-tokens.integration.test.ts`
 - **Por que:** `checkResetToken` corre fuera de la transaccion que cambia la contrasena, asi que dos pedidos concurrentes con el mismo token pueden pasar el chequeo (ya existia antes de JS-068).
 - **Que:** consumir el token con `UPDATE ... WHERE used_at IS NULL AND expires_at > now() RETURNING` dentro de la misma transaccion; si no devuelve fila, falla.
 - **Acepta:** test de integracion con dos consumos concurrentes del mismo token: uno gana, el otro recibe "used".
@@ -701,12 +701,12 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - Endurecer las policies de `evaluations` y `applications` (detalle en las notas privadas de la ronda 18). Toca `rls/0000`; se aplica en Neon.
 - **Acepta:** los `it.fails` de la ronda 18 pasan a `it`.
 
-### JS-115 · Idempotencia del webhook por columna
-`deps:` — · `est:` S + migracion · `estado:` todo (2026-10-08, seguridad)
+### JS-115 · Idempotencia del webhook por columna ✅ done 2026-10-31
+`deps:` — · `est:` S + migracion · `estado:` done (tanda C3, PR #314; ⚠️ migraciones 0052 y 0053 sin aplicar): `inbound_emails.email_id` con índice único (0052) y backfill desde los crudos (0053, la fila más vieja se queda con el valor); el webhook busca por la columna y los dos inserts usan `ON CONFLICT DO NOTHING`, así que tres entregas simultáneas del mismo email dejan una fila (test de integración)
 - Columna `email_id` en `inbound_emails` con indice unico, en lugar de buscar en los crudos.
 
-### JS-116 · Vigencia de sesiones ante cambios de credenciales
-`deps:` — · `est:` M + migracion · `estado:` todo (2026-10-08, seguridad)
+### JS-116 · Vigencia de sesiones ante cambios de credenciales ✅ done 2026-10-31
+`deps:` — · `est:` M + migracion · `estado:` done (ya resuelto en el código, verificado en la tanda C3, PR #314): `users.session_version` (migración 0040, `3e6c0e8`, 2026-10-23) + `user_session_version()` (`rls/0011`) + `sv` en el JWT; `resetPassword` sube la versión en la misma transacción y toda lectura de sesión pasa por `currentSession`/`requireUserId` (`lib/session.ts`, única llamada a `auth()`). Tests: `session-version.test.ts`, `multiusuario.integration.test.ts`, e2e `05`. **El reset es hoy el único cambio de credencial que existe**: quien agregue «cambiar contraseña» o «cambiar email» tiene que subir `session_version` en la misma transacción
 - Revisar la vigencia de las sesiones despues de cambios de credenciales (detalle en las notas privadas de la ronda 18).
 
 ### JS-117 · Inbound: eleccion del destinatario ✅ done 2026-10-08
@@ -737,8 +737,8 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 `deps:` — · `est:` XS · `estado:` done (ronda 25, PR #62; limpieza aplicada en produccion despues del deploy, control en 0)
 - El registro guarda solo metadatos (tarea, modelo, tokens, costo, fecha, usuario) y un codigo de error normalizado (tipo y status HTTP), nunca el texto del proveedor. Las filas viejas con texto pasaron a `legacy_text`. La purga de 90 dias, cubierta por un test en el borde.
 
-### JS-124 · Retirar la version anterior de la funcion de registro
-`deps:` JS-113 · `est:` XS + RLS · `estado:` todo (2026-10-08) — lleva migracion: va con plan y se aplica en Neon
+### JS-124 · Retirar la version anterior de la funcion de registro ✅ done 2026-10-31
+`deps:` JS-113 · `est:` XS + RLS · `estado:` done (tanda C3, PR #314; ⚠️ `pnpm db:migrate` aplica `rls/0001` y `rls/0003`): `DROP FUNCTION IF EXISTS` de `register_with_invitation` (v1) y `register_with_invitation_v2`; el registro usa solo la v3. Los tests de registro pasan a v3 y uno verifica que no existen y que re-aplicar `rls/` no las revive
 - Retirar la version anterior de la funcion de registro (detalle en las notas privadas de la ronda 23).
 
 ### JS-125 · Ingesta del onboarding sin red en e2e/CI ✅ done 2026-10-27
@@ -747,7 +747,7 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Acepta:** con el entorno de e2e, la primera ingesta no hace pedidos de red (test).
 
 ### JS-126 · Pulido del onboarding y del registro
-`deps:` — · `est:` S · `estado:` todo (2026-10-08, ronda 27)
+`deps:` — · `est:` S · `estado:` parcial (2026-10-31, tanda C3): la parte de **onboarding ya estaba resuelta** (el país se elige con `CountrySearch`, sin «código de 2 letras»; `ProfileForm` muestra el error junto a cada campo y conserva lo cargado, cubierto por el e2e `50-onboarding-no-pierde`). Falta unificar «Repetila» (`setup`, `reset-password`) con «Repetí la contraseña» del registro y los e2e 05 y 06
 - "Otro pais: codigo de 2 letras" visible solo al elegir "Otro"; errores junto a cada campo y conservar lo cargado al volver con error; unificar "Repeti la contrasenia" en `setup` y `reset-password` (y los e2e 05 y 06).
 - Asistente: si se agrega retencion de la bandeja, derivar "primera alerta recibida" tambien de las fuentes de los avisos, para que no vuelva al paso 1.
 - Sumar lo que salga del ensayo de invitacion.
@@ -1021,8 +1021,88 @@ Seis carreras de la beta cerrada (ADR-027). Los PR están en draft y apilados: s
 - Mauro: `pnpm db:migrate` (0048 y 0049), merge en orden y deploy; después `pnpm pool:rehint --remote` (sin y con `--apply`) y medir volumen para sacar cada carrera de `UNLISTED_ROLE_KEYS`.
 - Golden por carrera con avisos reales (evals pagos) y selección de personas por chip: tanda siguiente.
 
+## Bloque 9 — Beta cerrada: cobro, seguridad, áreas y dominio (tanda C3, 2026-10-31)
+
+Cuatro PR de la nube, todos en draft y con base `ronda/integracion-t1-g2` (#309). «Done» acá es «hecho y con CI en verde en el PR»; ningún PR está mergeado y las migraciones **no** se aplicaron (las aplica Mauro con `pnpm db:migrate` antes del merge). **Orden de merge: #312 → #314 → #315** (cada una sale de la anterior); #316 es independiente. La beta abre el jueves 26/11; precio ARS 20.000 o USD 15 por mes, sin garantía, cobro con link de Mercado Pago y activación manual.
+
+### C3-1 · Cobro de la beta
+`deps:` — · `estado:` done (2026-10-31; PR #312; ⚠️ migración 0051 + `rls/0010` y `rls/0015`)
+- Plan «Beta» (`lista`: ARS 20.000 por mes, USD 15 de referencia, 30 días por pago, sin «garantía»); `/precios` ofrece solo gratis y Beta. `plan-access.ts` (puro): estado del acceso, aviso a 3 días y fecha de fin al activar o renovar (nada se gasta antes del 26/11; renovar suma días).
+- Panel `/settings/planes` (admin): activar 30 días como pago o beca, ver quién tiene acceso y quitar el plan (`admin_plan_get/list/set`, `SECURITY DEFINER`, `app_admins`). Migración 0051: `profiles.plan_source` (`pago` | `beca`).
+- La persona ve hasta cuándo llega su acceso en Ajustes y un aviso en la app a 3 días; al vencer rige el plan gratis y no se borra nada.
+- **Sin hacer:** email de aviso (hace falta un cron en `.github/` y `plan_notified_at`); términos legales sobre pagos y devoluciones.
+
+### C3-2 · Seguridad antes de cobrar
+`deps:` C3-1 · `estado:` done (2026-10-31; PR #314; ⚠️ migraciones 0052 y 0053 + `rls/0001` y `rls/0003`)
+- **JS-079** y **JS-116**: ya estaban resueltos en el código (ver la evidencia en cada ticket). **JS-115**: `inbound_emails.email_id` único + backfill. **JS-124**: se retiran las versiones 1 y 2 de la función de registro.
+
+### C3-3 · Guardar las áreas de cada persona
+`deps:` C3-2 · `estado:` done (2026-10-31; PR #315; ⚠️ migración 0054)
+- `profiles.target_specialties` (`jsonb`, `null` = «Todas las áreas»), validación en pipeline, guardado en el onboarding y en «Tus puestos» (Ajustes). **Todavía no filtra avisos**: la propuesta (descartar con `jobMatchesSpecialties` en `pool/select.ts`) está en el PR y en ADR-027.
+
+### C3-4 · Dominio listo para afiniajobs.com.ar
+`deps:` — · `estado:` done (2026-10-31; PR #316; sin migración)
+- `SITE_URL` única para canonical, sitemap, robots, Open Graph y links de emails; `LEGACY_HOSTS` redirige el dominio viejo al nuevo sin tocar `/api/*`. Pasos para Mauro en `docs/DEPLOY.md` («Pasar a afiniajobs.com.ar»). No se cambió ninguna variable en Vercel.
+
+### Pendiente después de la tanda
+- Mauro: `pnpm db:migrate` (0051 a 0054 y las policies de `rls/`), merge en orden, `MP_LINK_LISTA` y `PRICING_ENABLED=1` en Vercel cuando corresponda, y los pasos de `docs/DEPLOY.md` para el dominio.
+- Decidir los textos de las áreas (hoy no filtran), el aviso por email del vencimiento y los términos sobre pagos.
+
 ## Reglas del backlog
 
 - Techo semanal después del finde: 8 hs. Si el bloque 4 no está en producción en 2 semanas, se congela el bloque 5.
 - Ningún ticket nuevo entra sin criterio de aceptación.
 - Los tickets del bloque 5 se detallan cuando el bloque 4 esté done.
+
+## Bloque 10 — Beta cerrada: avisos, lista de espera y carreras ocultas (tanda C4, 2026-10-31)
+
+Cinco tareas de la nube, todas en draft. «Done» acá es «hecho y con CI en verde en el PR» (los e2e corren cuando el PR apunta a main); nada está mergeado y la migración **no** se aplicó. Esta sección va al final del archivo a propósito, para no chocar con la de la tanda C3 al mergear. Cadena de bases: C4-1 sale de `nube/c3-areas` (#315 → #314 → #312 → #309); C4-2, C4-3 y C4-4 salen de `ronda/integracion-t1-g2` (#309) y son independientes entre sí. La beta abre el jueves 26/11.
+
+### C4-1 · Aviso por email antes de que venza el plan
+`deps:` C3-1 · `estado:` done (2026-10-31; PR #320; ⚠️ migración 0055 + `rls/0010`)
+- `profiles.plan_notified_at` (0055) y cron diario `15 12 * * *` en `cron.yml` (paso `plan-notices`) → `/api/cron/plan-notices`. Un email de texto por persona y vencimiento cuando le quedan 3 días o menos, con la fecha, el link de pago y qué pasa si no renueva (pasa al plan gratis y no pierde nada).
+- Criterio puro en `pipeline/plan-expiry-notice.ts`; runner con reclamo atómico (`UPDATE … RETURNING`) en `adapters/billing/plan-expiry-notices.ts`. Tope diario `PLAN_NOTICE_DAILY_CAP` (default 30, máximo 80), sin PII en logs y sin enviar nada si faltan `RESEND_API_KEY` o `EMAIL_FROM`.
+
+### C4-2 · Panel de la lista de espera
+`deps:` — · `estado:` done (2026-10-31; PR #321; sin migración)
+- `/settings/invitations`: filtros (carrera, origen, fecha, estado), contador por carrera, selección múltiple con tope (20 por defecto, máximo 100) y confirmación, mensaje de invitación con «la beta abre el jueves 26/11» y exportación a CSV (nombre, email, carrera, origen, fecha). No manda emails y no cambia cómo se guarda la lista. e2e `91-lista-espera-tanda` (sin correr).
+
+### C4-3 · Cuándo mostrar cada carrera nueva
+`deps:` — · `estado:` done (2026-10-31; PR #323; sin migración)
+- `/settings/metricas`: tabla de `UNLISTED_ROLE_KEYS` con las ofertas nuevas de 30 días contra el umbral de 10 (ADR-022) y la marca «lista para mostrarse». Una consulta agregada a `public_jobs`. Sacar una carrera del modo oculto sigue siendo un cambio de una línea en `self-assessment.ts` (más dos tests de la lista).
+
+### C4-4 · «Repetí la contraseña» (resto de JS-126)
+`deps:` — · `estado:` done (2026-10-31; PR #324; sin migración)
+- `setup` y `reset-password` usan el mismo rótulo que el registro; ajustados los e2e 05 y 06. Con esto JS-126 queda hecho salvo «sumar lo que salga del ensayo»; la línea de estado de JS-126 no se tocó para no chocar con la edición de la tanda C3 (#316).
+
+### C4-5 · Revisión cruzada de los PRs de G3 y G4
+`deps:` — · `estado:` done (2026-10-31; comentarios en #313, #317, #318, #319 y #322)
+- **Bloqueantes de texto o de producto:** #318 (la guía manda a elegir en el selector carreras que están ocultas; pide cargar un CV por archivo que no existe; `/cv/armar` depende de `CV_CHAT_ENABLED=all`), #319 y #322 (prometen un link o una invitación antes del 26/11 a todo el que se anote; #322 además omite que el texto va a proveedores de IA y manda a `/precios`, que da 404 con `PRICING_ENABLED` apagado). #313 y #317 sin bloqueantes (GitGuardian marca un falso positivo en `register/page.tsx:61`).
+
+### Pendiente después de la tanda
+- Mauro: `pnpm db:migrate` (0055 y `rls/0010`) antes de mergear #320; `RESEND_API_KEY` **y** `EMAIL_FROM` con dominio verificado en Vercel para que salgan los avisos.
+- Decidir antes del ensayo del 20/11 si las carreras ocultas de la beta salen de `UNLISTED_ROLE_KEYS` (hoy un invitado de abogacía, administración, comunicación o relaciones internacionales no la ve en el onboarding).
+
+## Bloque 11 — Beta cerrada: carreras elegibles, guías, seguridad e integración de la noche (tanda C5, 2026-11-01)
+
+Trece PRs nuevos de la nube (todos en draft, sin mergear; las migraciones **no** se aplicaron) y **un PR de integración** que junta todo lo abierto de la noche en `ronda/integracion-noche-1-11` (base `ronda/integracion-t1-g2`, #309). El detalle, las variables de Vercel y las decisiones están en el cuerpo de ese PR. Esta sección va al final del archivo a propósito.
+
+### Fase 1 · Bloqueantes
+- **C5-1 · Carreras de la beta elegibles al entrar** · `estado:` done (PR [#326](https://github.com/Malejo01/job-search-os/pull/326) sobre `nube/c3-seguridad`; e2e en [#327](https://github.com/Malejo01/job-search-os/pull/327) sobre `gemini/g3-ensayo`; sin migración, re-aplica `rls/0003`). `profileRoleGroups()` ofrece siempre `BETA_ROLE_KEYS` en el onboarding, «Tus puestos», las skills y el asistente; el mercado público y el sitemap siguen ocultándolas (ADR-022). La invitación que sale de la lista de espera precarga la carrera elegida al anotarse (`register_with_invitation_v3`, vía `waitlist.invitation_id`).
+- **C5-2 · Guía del ensayo** · done ([#328](https://github.com/Malejo01/job-search-os/pull/328)). Sin carga de CV por archivo (no existe), carreras en sus grupos reales, pasos del onboarding con sus nombres.
+- **C5-3 · Áreas sin promesa falsa** · done ([#330](https://github.com/Malejo01/job-search-os/pull/330) sobre `nube/c3-areas`). Texto honesto y baja de orden + marca `fuera_de_areas` detrás de `AREAS_FILTER_ENABLED` (apagado), sin descartar nada.
+
+### Fase 2 · Valor para la beta
+- **C5-4 · Personas e2e de las otras 4 carreras** · done ([#331](https://github.com/Malejo01/job-search-os/pull/331)): Agustina, Bruno, Rocío e Inés.
+- **C5-5 · Auditoría de seguridad** · done ([#335](https://github.com/Malejo01/job-search-os/pull/335), informe `docs/seguridad/auditoria-beta-1-11.md`). Correcciones: topes de la lista de espera para el 11/11 ([#332](https://github.com/Malejo01/job-search-os/pull/332), re-aplica `rls/0006`) y contexto del chip de soporte sin textos de terceros ([#333](https://github.com/Malejo01/job-search-os/pull/333)).
+- **C5-6 · Runbook del día de apertura** · done ([#336](https://github.com/Malejo01/job-search-os/pull/336), `docs/beta/runbook-apertura.md`).
+- **C5-7 · Ahorro de Neon, parte 1** · done ([#337](https://github.com/Malejo01/job-search-os/pull/337)): caché del catálogo de skills (worker y web), sin `jd_shingles` en el detalle y la evaluación, candidatos de `/market` cada 6 h; evaluación de JS-102 como propuesta. Lo que depende de `pg_stat_statements` queda para el 3/11.
+
+### Fase 3 · Después de la «cola vacía» de G4
+- **C5-8 · Bloqueantes de texto de G4** · done: [#338](https://github.com/Malejo01/job-search-os/pull/338) (`/acceso`, sin prometer invitación), [#339](https://github.com/Malejo01/job-search-os/pull/339) (`/ayuda`: sin promesas, privacidad con proveedores de IA, `/precios` solo con `PRICING_ENABLED`) y [#340](https://github.com/Malejo01/job-search-os/pull/340) (Gmail: la cuenta del asunto no habilita la confirmación, JS-127). Revisados sin bloqueantes propios: #329 y #325.
+- **C5-9 · PR de integración** · rama `ronda/integracion-noche-1-11`.
+
+### Pendiente después de la tanda
+- Mauro: `pnpm db:migrate` (0051 a 0055 y las policies `rls/0001`, `0003`, `0006`, `0010`, `0015`) antes del merge; variables de Vercel (ver el PR de integración); runbook y checklist.
+- Antes del 26/11: sacar de la lista de espera a quienes Ani no elija; antes del 13/11, actualizar `docs/legal/datos-por-proveedor.md` (hallazgo L-1 de la auditoría).
+- Ronda del 3/11: medición con `pg_stat_statements` y lo que pide migración (persistir el idioma del aviso, `market_candidates`, índice de `inbound_emails` por persona).

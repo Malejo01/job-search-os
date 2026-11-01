@@ -49,7 +49,7 @@ export function JobFilters({
       aria-label="Filtros"
     >
       <label className="flex flex-col gap-1 text-xs text-fg-subtle">
-        Score mín.
+        Puntaje mín.
         <select
           className={select}
           value={value.score}

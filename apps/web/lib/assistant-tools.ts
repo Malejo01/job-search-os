@@ -12,7 +12,7 @@ import {
   redactJobContacts,
   readInputSchemas,
   ROLE_KEYS,
-  selectableRoleGroups,
+  profileRoleGroups,
   type ActionOutput,
   type AgentActionTool,
   type AgentProposeTool,
@@ -136,7 +136,7 @@ function readTools(userId: string): Record<AgentReadTool, AgentTool> {
         return {
           roles: roles.map((key) => ({ key, label: ROLE_LABELS[key] })),
           limit,
-          selectable: selectableRoleGroups(roles).flatMap((g) =>
+          selectable: profileRoleGroups(roles).flatMap((g) =>
             g.roles.map((key) => ({ key, label: ROLE_LABELS[key] })),
           ),
         };

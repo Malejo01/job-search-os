@@ -30,6 +30,7 @@ export * from "./inbound/handle";
 export * from "./applications/apply-event";
 export * from "./applications/linkedin-application";
 export * from "./email/resend";
+export * from "./billing/plan-expiry-notices";
 export * from "./applicant/context";
 export * from "./mcp/auth";
 export * from "./mcp/untrusted";
@@ -78,6 +79,7 @@ export {
   readCareerMarketInput,
   readCareerSalaryJobs,
 } from "./market/career-market";
+export { readCareerRevealCounts } from "./market/career-reveal";
 export {
   buildRoleMarketSnapshots,
   getRoleMarket,

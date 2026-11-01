@@ -14,7 +14,7 @@ import {
 } from "../onboarding";
 import { err, ok, type Result } from "../result";
 import { isEnglishSkillSlug } from "../skills/english";
-import { SELF_LEVELS, selectableRoleGroups, type RoleKey } from "../skills/self-assessment";
+import { SELF_LEVELS, profileRoleGroups, type RoleKey } from "../skills/self-assessment";
 import { parseTargetRoles } from "../skills/target-roles";
 import { CV_OMITTED_MARKER, looksLikeCv } from "./cv-detect";
 import type { AgentMessage } from "./history";
@@ -666,7 +666,7 @@ export function buildCriteriaProposal(
 
 /**
  * Puestos: la lista completa y ordenada (el primero es el principal). Solo las carreras que el
- * formulario muestra como casilla (`selectableRoleGroups`, que conserva las no listadas que la
+ * formulario muestra como casilla (`profileRoleGroups`, que suma las de la beta y conserva las no listadas que la
  * persona ya tiene).
  */
 export function buildTargetRolesProposal(
@@ -682,7 +682,7 @@ export function buildTargetRolesProposal(
     return err({ code: "sin_cambios", dropped: [{ field, reason: "sin_fundamento" }] });
   }
   const roles = parseTargetRoles(parsed.data.roles, current.limit);
-  const selectable = selectableRoleGroups(current.roles).flatMap((g) => g.roles);
+  const selectable = profileRoleGroups(current.roles).flatMap((g) => g.roles);
   if (!roles.ok || !roles.roles.every((r) => selectable.includes(r))) {
     return err({ code: "sin_cambios", dropped: [{ field, reason: "invalido" }] });
   }

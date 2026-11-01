@@ -11,7 +11,7 @@ import {
   SECURITY_PARSER,
   type CriteriaRules,
 } from "@job-search-os/pipeline";
-import { and, desc, eq, gte, isNull, like, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, sql } from "drizzle-orm";
 import { applyLinkedinApplication } from "../applications/linkedin-application";
 import { ingestBatch } from "../ingest/ingest-job";
 import type { Logger } from "../logger";
@@ -89,6 +89,33 @@ function senderDomain(from: string): string | null {
   return at >= 0 && at < addr.length - 1 ? addr.slice(at + 1) : null;
 }
 
+/** Id de la fila ya guardada para ese email_id de Resend, o null. */
+async function findByEmailId(db: Db, emailId: string): Promise<string | null> {
+  const [row] = await db
+    .select({ id: s.inboundEmails.id })
+    .from(s.inboundEmails)
+    .where(eq(s.inboundEmails.emailId, emailId))
+    .limit(1);
+  return row?.id ?? null;
+}
+
+/**
+ * El índice único `inbound_emails_email_id` frenó el insert: otra entrega del mismo email llegó primero
+ * (Svix reintentó mientras la primera seguía procesándose). Es un duplicado como cualquier otro: se
+ * devuelve la fila ganadora. El crudo que esta entrega alcanzó a guardar no se borra: un aviso que ya
+ * ingestó podría apuntarlo (`source.rawRef`) y quedaría colgando. Es un crudo de más, solo en esta carrera.
+ */
+async function duplicateAfterRace(
+  db: Db,
+  emailId: string,
+  log: Pick<Logger, "warn">,
+): Promise<InboundOutcome> {
+  const winner = await findByEmailId(db, emailId);
+  log.warn({}, "inbound: dos entregas del mismo email a la vez, gana la primera");
+  if (!winner) throw new Error("inbound: el índice de email_id frenó el insert pero no hay fila");
+  return { kind: "duplicate", inboundId: winner };
+}
+
 export async function handleInboundEmail(
   event: ResendReceivedEvent,
   content: ReceivedEmailContent | null,
@@ -102,14 +129,11 @@ export async function handleInboundEmail(
     from_domain: senderDomain(event.data.from),
   });
 
-  // Idempotencia: Svix reintenta; el mismo email_id no se guarda dos veces
-  const [dup] = await db
-    .select({ id: s.inboundEmails.id })
-    .from(s.inboundEmails)
-    .innerJoin(s.rawBlobs, sql`${s.inboundEmails.rawRef} = 'pg:' || ${s.rawBlobs.id}::text`)
-    .where(like(s.rawBlobs.body, `%"email_id":"${event.data.email_id}"%`))
-    .limit(1);
-  if (dup) return { kind: "duplicate", inboundId: dup.id };
+  // Idempotencia (JS-115): Svix reintenta; el mismo email_id no se guarda dos veces. Se busca por la
+  // columna `email_id` (índice único) y no dentro de los crudos. Si dos entregas del mismo email corren
+  // a la vez y las dos pasan este chequeo, el índice deja entrar solo una: ver `claimedOrDuplicate`.
+  const dup = await findByEmailId(db, event.data.email_id);
+  if (dup) return { kind: "duplicate", inboundId: dup };
 
   // Usuario por dirección de destino (u_<id>@ingest.<dominio>)
   const recipients = [...event.data.received_for, ...event.data.to, ...event.data.cc].map((r) =>
@@ -205,6 +229,7 @@ export async function handleInboundEmail(
       .insert(s.inboundEmails)
       .values({
         userId: null,
+        emailId: event.data.email_id,
         fromAddress: event.data.from,
         subject: event.data.subject ? maskDigits(event.data.subject) : null,
         rawRef,
@@ -213,9 +238,11 @@ export async function handleInboundEmail(
         error: oversize ? POOL_OVERSIZE_REASON : POOL_MANUAL_QUEUE_REASON,
         receivedAt: now,
       })
+      .onConflictDoNothing({ target: s.inboundEmails.emailId })
       .returning({ id: s.inboundEmails.id });
+    if (!row) return duplicateAfterRace(db, event.data.email_id, log);
     log.info({ career: mailbox.career, oversize }, "inbound: casilla del pool a la cola manual");
-    return { kind: "pool_queued", inboundId: row!.id, career: mailbox.career };
+    return { kind: "pool_queued", inboundId: row.id, career: mailbox.career };
   }
 
   const profile = recipients.map((r) => byAddress.get(r)).find((p) => p !== undefined);
@@ -421,6 +448,7 @@ export async function handleInboundEmail(
     .insert(s.inboundEmails)
     .values({
       userId,
+      emailId: event.data.email_id,
       fromAddress: event.data.from,
       subject: storedSubject,
       rawRef,
@@ -433,7 +461,9 @@ export async function handleInboundEmail(
       seenAt: seen || (jobsExtracted > 0 && error === null) ? now : null,
       dismissedAt,
     })
+    .onConflictDoNothing({ target: s.inboundEmails.emailId })
     .returning({ id: s.inboundEmails.id });
+  if (!row) return duplicateAfterRace(db, event.data.email_id, log);
   // Nunca el asunto ni el cuerpo: pueden traer códigos
   log.info(
     {
@@ -447,7 +477,7 @@ export async function handleInboundEmail(
   );
   return {
     kind: "stored",
-    inboundId: row!.id,
+    inboundId: row.id,
     userId,
     parser: parserUsed,
     jobsExtracted,

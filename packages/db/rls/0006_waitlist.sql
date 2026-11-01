@@ -25,11 +25,14 @@ SECURITY DEFINER
 SET search_path = pg_catalog, public
 AS $fn$
 DECLARE
-  -- Topes anti-abuso. Por IP: 5 pedidos por hora. Globales: 30 cada 10 minutos y 300 por día,
-  -- contra inundaciones desde muchas IPs. Un pedido legítimo en una beta chica queda muy por debajo.
-  c_ip_max constant integer := 5;
-  c_burst_max constant integer := 30;
-  c_day_max constant integer := 300;
+  -- Topes anti-abuso. Por IP: 40 pedidos por hora. Globales: 60 cada 10 minutos y 600 por día, contra
+  -- inundaciones desde muchas IPs. Los topes por IP y de ráfaga tienen que dejar pasar una presentación en
+  -- vivo con QR (11/11, C5-5): decenas de personas anotándose desde el mismo wifi (una sola IP pública) o
+  -- desde datos móviles compartidos (CGNAT) en pocos minutos. Antes eran 5, 30 y 300, y el sexto celular
+  -- del mismo salón quedaba afuera. Subirlos es solo cambiar estas constantes (y waitlist.integration.test).
+  c_ip_max constant integer := 40;
+  c_burst_max constant integer := 60;
+  c_day_max constant integer := 600;
   v_email text := lower(btrim(p_email));
   v_name text := btrim(p_name);
   v_heard text := NULLIF(btrim(p_heard_from), '');

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   buildEvaluateJobVars,
@@ -18,11 +18,17 @@ import roleSkills from "../../packages/db/seeds/role_skills.json";
  * evals miden contra el criterio del usuario real cuando está; en CI y en un clon del repo,
  * contra el dataset de ejemplo anonimizado (mismos casos de frontera, empresas Empresa A…AB).
  */
-type GoldenFile = {
-  meta: { version: string; descripcion: string; perfil_referencia: string; notas_campos: string };
+export type GoldenFile = {
+  meta: {
+    version: string;
+    descripcion: string;
+    perfil_referencia?: string;
+    notas_campos?: string;
+    carreras?: string[];
+  };
   jobs: GoldenJob[];
-  dedup_pairs: unknown[];
-  prefilter_expectations: unknown;
+  dedup_pairs?: unknown[];
+  prefilter_expectations?: unknown;
 };
 type ProfileFile = {
   profile: {
@@ -113,6 +119,73 @@ export const adversarialJobs = adversarial.jobs
 /** Lo que corre el harness: golden (privado o público) + adversariales, siempre. */
 export const goldenJobs = [...baseGoldenJobs, ...adversarialJobs];
 export const criteriaRules = criteriaSeed as unknown as CriteriaRules;
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+
+/**
+ * Resuelve la ruta a un archivo de fixture (por ejemplo `--fixture evals/fixtures/golden-carreras-beta.json`
+ * o `--fixture golden-carreras-beta`). Busca en cwd, raíz del repo y directorio `evals/fixtures/`.
+ */
+export function resolveFixturePath(ref: string): string {
+  if (isAbsolute(ref) && existsSync(ref)) return ref;
+  const cwdCandidate = resolve(process.cwd(), ref);
+  if (existsSync(cwdCandidate)) return cwdCandidate;
+  const rootCandidate = resolve(ROOT, ref);
+  if (existsSync(rootCandidate)) return rootCandidate;
+  const fixturesCandidate = resolve(ROOT, "evals/fixtures", ref);
+  if (existsSync(fixturesCandidate)) return fixturesCandidate;
+  const fixturesJsonCandidate = resolve(ROOT, "evals/fixtures", `${ref}.json`);
+  if (existsSync(fixturesJsonCandidate)) return fixturesJsonCandidate;
+  const dirFixturesCandidate = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures", ref);
+  if (existsSync(dirFixturesCandidate)) return dirFixturesCandidate;
+  const dirFixturesJsonCandidate = resolve(
+    dirname(fileURLToPath(import.meta.url)),
+    "../fixtures",
+    `${ref}.json`,
+  );
+  if (existsSync(dirFixturesJsonCandidate)) return dirFixturesJsonCandidate;
+
+  throw new Error(`archivo de fixture no encontrado: '${ref}'`);
+}
+
+/**
+ * Carga el archivo de casos para evaluación: por defecto golden.json (+ adversariales),
+ * o una fixture específica indicada por parámetro (por ejemplo golden-carreras-beta.json).
+ */
+export function loadGoldenFixture(fixtureRef?: string): {
+  meta: GoldenFile["meta"];
+  jobs: GoldenJob[];
+  source: string;
+  isCustom: boolean;
+} {
+  if (!fixtureRef) {
+    return {
+      meta: goldenMeta,
+      jobs: goldenJobs,
+      source: goldenSource,
+      isCustom: false,
+    };
+  }
+  const resolved = resolveFixturePath(fixtureRef);
+  const raw = readFileSync(resolved, "utf8");
+  const parsed = JSON.parse(raw) as Partial<GoldenFile>;
+  if (!parsed || !Array.isArray(parsed.jobs)) {
+    throw new Error(`fixture inválida en '${resolved}': falta el arreglo 'jobs'`);
+  }
+  const meta: GoldenFile["meta"] = {
+    version: parsed.meta?.version ?? "custom",
+    descripcion: parsed.meta?.descripcion ?? "",
+    ...(parsed.meta?.carreras ? { carreras: parsed.meta.carreras } : {}),
+    ...(parsed.meta?.perfil_referencia ? { perfil_referencia: parsed.meta.perfil_referencia } : {}),
+    ...(parsed.meta?.notas_campos ? { notas_campos: parsed.meta.notas_campos } : {}),
+  };
+  return {
+    meta,
+    jobs: (parsed.jobs as GoldenJob[]).slice().sort((a, b) => a.id - b.id),
+    source: resolved,
+    isCustom: true,
+  };
+}
 
 const stableStringify = (v: unknown): string => {
   if (Array.isArray(v)) return `[${v.map(stableStringify).join(",")}]`;

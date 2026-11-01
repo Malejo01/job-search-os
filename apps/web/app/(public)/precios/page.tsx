@@ -1,9 +1,12 @@
 import {
-  GUARANTEE_DAYS,
+  BETA_OPENS_AT,
+  BETA_PLAN,
   limitsText,
+  listedPlans,
   paymentLink,
-  PLANS,
+  planDef,
   priceLabel,
+  priceReference,
   pricingEnabled,
   type PlanDef,
 } from "@job-search-os/pipeline";
@@ -14,10 +17,16 @@ import { notFound } from "next/navigation";
 // El flag y los links salen de variables: con ISR se releen al revalidar, sin pasar por la base
 export const revalidate = 3600;
 
+const BETA = planDef(BETA_PLAN);
+const OPENS = new Intl.DateTimeFormat("es-AR", {
+  day: "numeric",
+  month: "long",
+  timeZone: "America/Argentina/Buenos_Aires",
+}).format(BETA_OPENS_AT);
+
 export const metadata: Metadata = {
   title: { absolute: "Precios" },
-  description:
-    "Un plan gratis para probar y planes pagos con más ofertas evaluadas por día. Garantía de 14 días.",
+  description: `Un plan gratis y el plan de la beta: ${priceLabel(BETA)}, con un link de Mercado Pago.`,
   alternates: { canonical: "/precios" },
 };
 
@@ -31,26 +40,34 @@ const FAQ: readonly { q: string; a: string }[] = [
   },
   {
     q: "¿Cómo pago?",
-    a: "Con Mercado Pago, desde un link de pago. La app no guarda datos de tarjetas.",
+    a: `Con un link de Mercado Pago, en pesos (${priceReference(BETA) ?? "sin referencia en dólares"}). También podés pagar por transferencia: escribinos y te pasamos los datos. La app no guarda datos de tarjetas.`,
   },
   {
-    q: "¿Qué pasa si no me sirve?",
-    a: `Tenés ${GUARANTEE_DAYS} días de garantía desde que pagás: si no te sirve, escribinos y te devolvemos lo que pagaste.`,
+    q: "¿Cuándo empieza mi acceso?",
+    a: `Cuando se acredita tu pago, lo activamos a mano y tenés ${BETA.durationDays} días desde ese momento. Si pagás antes del ${OPENS}, los ${BETA.durationDays} días cuentan desde ese día.`,
+  },
+  {
+    q: "¿Se renueva solo?",
+    a: "No. Cada mes pagás de nuevo, con el mismo link. Tres días antes de que venza te avisamos dentro de la app, y ahí mismo ves hasta cuándo tenés acceso.",
+  },
+  {
+    q: "¿Qué pasa cuando vence?",
+    a: "Pasás al plan gratis: tus datos, tus ofertas y tus postulaciones siguen guardados, con menos ofertas evaluadas por día. Si volvés a pagar, retomás el plan completo.",
+  },
+  {
+    q: "¿Dan factura?",
+    a: "Durante la beta no emitimos factura.",
   },
   {
     q: "¿Qué es una carrera «en pulido»?",
     a: "Una carrera que todavía tiene pocas ofertas o en la que estamos ajustando cómo se evalúa. Se puede usar igual, y tu 👍 o 👎 en cada oferta la mejora.",
   },
-  {
-    q: "¿Qué es el plan Fundador?",
-    a: "Un precio de lanzamiento para las primeras personas de cada carrera. Los cupos son pocos por carrera.",
-  },
 ];
 
 /**
- * Precios (C-12). Pública y solo con `PRICING_ENABLED`: apagado, 404. Los planes, los topes y los
- * precios salen de `PLANS` (pipeline): acá no hay ninguna cifra propia. Un precio sin decidir dice
- * «Precio a confirmar» y un plan sin link de pago dice «Pronto», sin botón.
+ * Precios (C-12 y C3-1). Pública y solo con `PRICING_ENABLED`: apagado, 404. Los planes, los topes y los
+ * precios salen de `PLANS` (pipeline): acá no hay ninguna cifra propia. Solo se ofrecen los planes
+ * `listed` (gratis y Beta). Un plan sin link de pago dice «Pronto», sin botón.
  */
 export default function PreciosPage() {
   if (!pricingEnabled(process.env)) notFound();
@@ -60,13 +77,13 @@ export default function PreciosPage() {
       <header className="flex flex-col gap-2">
         <h1 className="text-3xl font-semibold">Precios</h1>
         <p className="max-w-2xl text-base text-fg-muted">
-          Empezá gratis con tu carrera principal. Si te sirve, un plan pago evalúa más ofertas por
-          día y suma carreras.
+          La beta es cerrada y abre el {OPENS}. Un solo plan pago, mes a mes: evalúa más ofertas por
+          día y te deja seguir más carreras a la vez. Si no renovás, no perdés nada de lo tuyo.
         </p>
       </header>
 
-      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" data-testid="precios-planes">
-        {PLANS.map((plan) => (
+      <ul className="grid gap-4 sm:grid-cols-2" data-testid="precios-planes">
+        {listedPlans().map((plan) => (
           <PlanCard
             key={plan.key}
             plan={plan}
@@ -75,19 +92,6 @@ export default function PreciosPage() {
           />
         ))}
       </ul>
-
-      <section
-        aria-labelledby="garantia"
-        className="rounded-card border border-success-line bg-success-soft p-4"
-      >
-        <h2 id="garantia" className="text-lg font-semibold text-success">
-          Garantía de {GUARANTEE_DAYS} días
-        </h2>
-        <p className="mt-1 text-sm text-success">
-          Si en los primeros {GUARANTEE_DAYS} días ves que no te sirve, escribinos y te devolvemos
-          lo que pagaste.
-        </p>
-      </section>
 
       <section aria-labelledby="preguntas" className="flex flex-col gap-3">
         <h2 id="preguntas" className="text-xl font-semibold">
@@ -125,11 +129,20 @@ function PlanCard({ plan, lines, link }: { plan: PlanDef; lines: string[]; link:
         <h2 className="text-lg font-semibold">{plan.name}</h2>
         <p className="text-sm text-fg-muted">{plan.summary}</p>
       </div>
-      <p className="text-xl font-semibold" data-testid={`precio-${plan.key}`}>
-        {priceLabel(plan)}
-      </p>
+      <div>
+        <p className="text-xl font-semibold" data-testid={`precio-${plan.key}`}>
+          {priceLabel(plan)}
+        </p>
+        {priceReference(plan) ? (
+          <p className="text-xs text-fg-subtle" data-testid={`referencia-${plan.key}`}>
+            {priceReference(plan)}. Se cobra en pesos.
+          </p>
+        ) : null}
+      </div>
       {plan.durationDays ? (
-        <p className="text-xs text-fg-subtle">Dura {plan.durationDays} días.</p>
+        <p className="text-xs text-fg-subtle">
+          Cada pago dura {plan.durationDays} días y no se renueva solo.
+        </p>
       ) : null}
       <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-fg">
         {lines.map((l) => (

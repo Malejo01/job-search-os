@@ -105,6 +105,17 @@ test.describe("Flujo 25: ensayo de invitación, de la invitación a la primera o
     await pageB.getByLabel("Email").fill(emailB);
     await pageB.getByLabel("Nombre (opcional)").fill("Persona Ensayo");
     await pageB.getByLabel("Contraseña", { exact: true }).fill(passwordB);
+    await pageB.getByLabel("Repetí la contraseña").fill(`${passwordB}-distinta`);
+    await pageB.getByLabel(/Leí y acepto/).check();
+    await pageB.getByRole("button", { name: "Crear cuenta" }).click();
+    await pageB.waitForURL("**/register?**error=no_coincide**");
+    // JS-126: conserva lo cargado (email y nombre) y muestra el error junto al campo
+    await expect(pageB.getByLabel("Email")).toHaveValue(emailB);
+    await expect(pageB.getByLabel("Nombre (opcional)")).toHaveValue("Persona Ensayo");
+    await expect(pageB.locator("#no_coincide-error")).toContainText("Las contraseñas no coinciden");
+
+    // Con la confirmación corregida avanza al onboarding
+    await pageB.getByLabel("Contraseña", { exact: true }).fill(passwordB);
     await pageB.getByLabel("Repetí la contraseña").fill(passwordB);
     await pageB.getByLabel(/Leí y acepto/).check();
     await pageB.getByRole("button", { name: "Crear cuenta" }).click();

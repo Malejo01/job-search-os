@@ -1,5 +1,6 @@
 import {
-  selectableRoleGroups,
+  areasFilterEnabled,
+  profileRoleGroups,
   TARGET_ROLES_DEFAULT_LIMIT,
   type RoleKey,
 } from "@job-search-os/pipeline";
@@ -16,14 +17,17 @@ import { saveTargetRolesAction } from "./actions";
  */
 export function TargetRolesForm({
   current,
+  specialtySelection,
   limit,
   status,
 }: {
   current: RoleKey[];
+  /** Áreas guardadas por carrera (C3-3); null = «Todas las áreas». */
+  specialtySelection?: unknown;
   limit: number;
   status?: "guardado";
 }) {
-  const groups = selectableRoleGroups(current).map((group) => ({
+  const groups = profileRoleGroups(current).map((group) => ({
     label: group.label,
     roles: group.roles.map((key) => ({ key, label: ROLE_SKILLS[key].label })),
   }));
@@ -57,6 +61,8 @@ export function TargetRolesForm({
         <RolePickerWithProposal
           name="targetRoles"
           selected={current}
+          specialtySelection={specialtySelection}
+          areasFilter={areasFilterEnabled(process.env)}
           limit={limit}
           defaultLimit={TARGET_ROLES_DEFAULT_LIMIT}
           groups={groups}

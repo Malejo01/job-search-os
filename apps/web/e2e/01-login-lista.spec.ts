@@ -19,12 +19,12 @@ test.describe("Flujo 1: login → lista con filtros", () => {
     await page.getByLabel("Estado").selectOption("todas");
     await expect(page).toHaveURL(/estado=todas/);
 
-    // Filtro por score mínimo: cambia la URL y la lista solo muestra scores ≥ 7
-    await page.getByLabel("Score mín.").selectOption("7");
+    // Filtro por puntaje mínimo: cambia la URL y la lista solo muestra puntajes ≥ 7
+    await page.getByLabel("Puntaje mín.").selectOption("7");
     await expect(page).toHaveURL(/score=7/);
     // La lista nueva llega después del cambio de URL (Server Component): se espera a que ningún
-    // score visible sea menor a 7
-    const scores = page.locator('[aria-label^="score "]');
+    // puntaje visible sea menor a 7
+    const scores = page.locator('[aria-label^="puntaje "]');
     await expect
       .poll(
         async () => {
@@ -32,7 +32,7 @@ test.describe("Flujo 1: login → lista con filtros", () => {
             els.map((e) => e.getAttribute("aria-label") ?? ""),
           );
           if (!labels.length) return "vacía";
-          const scoresSeen = labels.map((l) => Number(l.replace("score ", "")));
+          const scoresSeen = labels.map((l) => Number(l.replace("puntaje ", "")));
           return scoresSeen.every((n) => n >= 7) ? "ok" : `hay < 7: ${scoresSeen.join(",")}`;
         },
         { timeout: 15_000 },
@@ -41,7 +41,7 @@ test.describe("Flujo 1: login → lista con filtros", () => {
 
     // El filtro sobrevive a una recarga: vive en la URL, no en estado de cliente
     await page.reload();
-    await expect(page.getByLabel("Score mín.")).toHaveValue("7");
+    await expect(page.getByLabel("Puntaje mín.")).toHaveValue("7");
     await page.getByRole("button", { name: "Limpiar" }).click();
     await expect(page).not.toHaveURL(/score=/);
     // Limpiar vuelve al default, que es "sin revisar"

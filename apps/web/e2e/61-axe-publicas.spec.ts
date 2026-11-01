@@ -15,6 +15,7 @@ const PATHS = [
   "/demo",
   "/como-esta-hecho",
   "/acceso",
+  "/ayuda",
 ] as const;
 
 const VIEWPORTS = [

@@ -15,7 +15,10 @@ export type WaitlistState =
   | { status: "error"; message: string; fieldErrors?: WaitlistFieldErrors };
 
 // Igual para ok y duplicate: así no se puede averiguar si un email ya está anotado
-const DONE_MESSAGE = "Listo, te anotamos. Te escribimos cuando haya lugar.";
+// No promete una invitación: el cupo es limitado y anotarse no garantiza lugar (C5-8). Igual para ok y
+// duplicate. Sin una fecha de aviso: el mensaje tiene que seguir siendo cierto después del 26/11
+const DONE_MESSAGE =
+  "Listo, te anotamos. La beta abre el jueves 26/11 y el cupo es limitado: si hay lugar, te escribimos con el link para crear tu cuenta.";
 
 /** Pedir acceso (sin sesión). Honeypot → éxito falso sin guardar; Zod; tope por IP en la base. */
 export async function submitWaitlist(

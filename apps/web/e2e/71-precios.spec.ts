@@ -15,7 +15,7 @@ test.describe("Flujo 71: precios", () => {
     expect(await (await request.get("/sitemap.xml")).text()).not.toContain("/precios");
   });
 
-  test("con los precios encendidos, muestra los cuatro planes sin cifras inventadas", async ({
+  test("con los precios encendidos, muestra el plan gratis y el de la beta, sin garantía (C3-1)", async ({
     page,
   }) => {
     test.skip(!ON, "PRICING_ENABLED apagado en este entorno");
@@ -23,11 +23,17 @@ test.describe("Flujo 71: precios", () => {
     const response = await page.goto("/precios");
     expect(response?.status()).toBe(200);
     await expect(page.getByRole("heading", { level: 1, name: "Precios" })).toBeVisible();
-    for (const key of ["gratis", "fundador", "lista", "pase_3_meses"]) {
+    // Solo se ofrecen los dos planes de la beta: los viejos siguen válidos en la base, pero no se muestran
+    for (const key of ["gratis", "lista"]) {
       await expect(page.getByTestId(`plan-${key}`)).toBeVisible();
     }
+    for (const key of ["fundador", "pase_3_meses"]) {
+      await expect(page.getByTestId(`plan-${key}`)).toHaveCount(0);
+    }
     await expect(page.getByTestId("precio-gratis")).toHaveText("Gratis");
-    await expect(page.getByRole("heading", { name: /Garantía de 14 días/ })).toBeVisible();
+    await expect(page.getByTestId("precio-lista")).toHaveText(/^\$ 20[.\s]?000 por mes$/);
+    await expect(page.getByTestId("referencia-lista")).toContainText("USD 15 como referencia");
+    await expect(page.getByText(/garant/i)).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Pedí acceso" })).toHaveAttribute(
       "href",
       "/acceso",

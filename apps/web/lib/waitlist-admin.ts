@@ -148,3 +148,53 @@ export async function deleteFromWaitlist(userId: string, waitlistId: string): Pr
   )) as unknown as { deleted: boolean }[];
   return rows[0]?.deleted === true;
 }
+
+export type BulkInviteItem =
+  | { id: string; ok: true; email: string; link: string; expiresAt: Date }
+  | {
+      id: string;
+      ok: false;
+      reason: "ya_invitada" | "no_esta" | "sin_link" | "error";
+    };
+
+/**
+ * Invita a varias personas de la lista, una por vez (cada una es atómica: crea la invitación atada a su
+ * email y marca la fila; ver `inviteFromWaitlist`). Un error en una persona no frena a las demás. El
+ * llamador valida antes la cantidad contra el tope. No manda ningún email. Sin PII en los errores.
+ */
+export async function inviteManyFromWaitlist(
+  userId: string,
+  waitlistIds: readonly string[],
+): Promise<BulkInviteItem[]> {
+  await assertAdmin(userId);
+  const out: BulkInviteItem[] = [];
+  for (const id of waitlistIds) {
+    try {
+      const created = await inviteFromWaitlist(userId, id);
+      if (!created.link) {
+        // Sin URL base no hay link: la invitación quedó creada pero no se puede entregar
+        out.push({ id, ok: false, reason: "sin_link" });
+        continue;
+      }
+      out.push({
+        id,
+        ok: true,
+        email: created.email,
+        link: created.link,
+        expiresAt: created.expiresAt,
+      });
+    } catch (error) {
+      if (error instanceof WaitlistAlreadyInvitedError)
+        out.push({ id, ok: false, reason: "ya_invitada" });
+      else if (error instanceof WaitlistEntryNotFoundError)
+        out.push({ id, ok: false, reason: "no_esta" });
+      else if (
+        error instanceof NotInvitationAdminError ||
+        error instanceof WaitlistNotEnabledInDbError
+      )
+        throw error;
+      else out.push({ id, ok: false, reason: "error" });
+    }
+  }
+  return out;
+}

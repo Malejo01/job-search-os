@@ -88,7 +88,7 @@ export default async function ResetPasswordPage({
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            Repetila
+            Repetí la contraseña
             <input
               name="confirm"
               type="password"

@@ -62,6 +62,7 @@ const PUBLIC_ROUTES = [
   "/demo",
   "/demo/data_analyst_jr",
   "/acceso",
+  "/ayuda",
   "/como-esta-hecho",
   "/en/how-its-built",
 ] as const;

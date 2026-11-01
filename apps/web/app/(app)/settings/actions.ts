@@ -7,7 +7,7 @@ import { signOut } from "@/auth";
 import type { FormActionError } from "@/app/components/guarded-form";
 import { deleteAccount } from "@/lib/delete-account";
 import { assignRandomInboundAddress } from "@/lib/inbound-address";
-import { getTargetRolesLimit, setTargetRoles } from "@/lib/onboarding";
+import { getTargetRolesLimit, setTargetRoles, specialtiesFromForm } from "@/lib/onboarding";
 import { reassignForRoleChange, scheduleImmediateEvaluation } from "@/lib/pool-reassign";
 import { requireActiveUserId, requireUserId } from "@/lib/session";
 
@@ -36,14 +36,18 @@ export async function deleteAccountAction(formData: FormData): Promise<void> {
  * valida en el servidor (solo claves conocidas, sin repetir, entre 1 y el tope de su plan); si no
  * pasa, devuelve `{ ok: false, field: "targetRoles" }` y la selección queda como estaba. Si el
  * conjunto cambió, reasigna las ofertas del pool; si la reasignación falla, los puestos igual
- * quedan guardados.
+ * quedan guardados. Cambiar solo las áreas de una carrera (C3-3) se guarda sin reasignar: todavía
+ * ningún filtro las lee.
  */
 export async function saveTargetRolesAction(formData: FormData): Promise<FormActionError | void> {
   const userId = await requireActiveUserId();
   const values = formData.getAll("targetRoles").filter((v): v is string => typeof v === "string");
   const parsed = parseTargetRoles(values, await getTargetRolesLimit(userId));
   if (!parsed.ok) return { ok: false, field: "targetRoles" };
-  const { saved, changed } = await setTargetRoles(userId, parsed.roles);
+  // Las áreas de cada carrera viajan en el mismo formulario (C3-3); «Todas las áreas» no manda nada
+  const { saved, changed } = await setTargetRoles(userId, parsed.roles, {
+    targetSpecialties: specialtiesFromForm(formData, parsed.roles),
+  });
   if (!saved) return { ok: false, field: "targetRoles" };
   if (changed) {
     const result = await reassignForRoleChange(userId);

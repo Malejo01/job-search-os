@@ -7,6 +7,10 @@ import { useState } from "react";
  * Selector interactivo de áreas de especialidad (R2-2).
  * Client component chico solo para manejar el toggle de chips.
  * «Todas las áreas» marcado por defecto (todo incluido).
+ *
+ * Qué se envía (C3-3): un campo oculto `specialties` = `carrera:área` por cada chip marcado, y solo si la
+ * persona acotó. Con «Todas las áreas» no se envía nada, que es como se guarda (null). El servidor
+ * vuelve a validar todo contra el catálogo.
  */
 export function SpecialtyChipsToggle({
   roleKey,
@@ -61,6 +65,18 @@ export function SpecialtyChipsToggle({
 
   return (
     <div role="group" aria-label={`Áreas de ${roleLabel}`} className="grid gap-1.5 sm:grid-cols-2">
+      {isAllSelected
+        ? null
+        : specialties
+            .filter((chip) => selected.has(chip.id))
+            .map((chip) => (
+              <input
+                key={chip.id}
+                type="hidden"
+                name="specialties"
+                value={`${roleKey}:${chip.id}`}
+              />
+            ))}
       {/* Opción «Todas las áreas» (marcada por defecto) */}
       <button
         type="button"

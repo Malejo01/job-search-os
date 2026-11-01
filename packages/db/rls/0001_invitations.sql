@@ -21,7 +21,7 @@ DROP FUNCTION IF EXISTS public.invitations_guard_update();
 DROP POLICY IF EXISTS "invitations_redeemer_select" ON "invitations";
 DROP POLICY IF EXISTS "invitations_redeemer_release" ON "invitations";
 
--- Con FORCE RLS el dueño de register_with_invitation queda sujeto a las policies si su rol no
+-- Con FORCE RLS el dueño de las funciones del canje queda sujeto a las policies si su rol no
 -- tiene BYPASSRLS (puede pasar en Neon; Docker y CI son superusuario). TO CURRENT_USER se resuelve
 -- al rol que aplica la migración (dueño de las tablas y de la función): el rol de la app no
 -- queda alcanzado por estas policies.
@@ -80,52 +80,9 @@ $fn$;
 REVOKE ALL ON FUNCTION public.invitation_is_redeemable(text, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.invitation_is_redeemable(text, text) TO authenticated;
 
--- Canje: llega SIN sesión y el rol de la app no puede leer invitaciones ajenas ni insertar en
--- users (solo el bootstrap). Por eso es una función SECURITY DEFINER (corre como dueño, que saltea
--- RLS) que, en un solo paso atómico, canjea el código, crea el usuario y su perfil mínimo.
--- El UPDATE ... WHERE used_at IS NULL toma el lock de la fila: dos canjes concurrentes del mismo
--- código se serializan y el segundo no encuentra fila. Devuelve el id del usuario nuevo, o NULL si
--- el código no existe, está usado, vencido o es de otro email (la app no distingue los casos).
--- Si el email ya tiene cuenta, el INSERT falla por el índice único y la transacción entera se
--- deshace: la invitación NO queda gastada.
-CREATE OR REPLACE FUNCTION public.register_with_invitation(
-  p_code_hash text,
-  p_email text,
-  p_password_hash text,
-  p_name text,
-  p_ingest_domain text
-) RETURNS uuid
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = pg_catalog, public
-AS $fn$
-DECLARE
-  v_invitation uuid;
-  v_user uuid := gen_random_uuid();
-  v_email text := lower(btrim(p_email));
-BEGIN
-  UPDATE public.invitations
-     SET used_at = now(), used_by_user_id = v_user
-   WHERE code_hash = p_code_hash
-     AND used_at IS NULL
-     AND expires_at > now()
-     AND (email IS NULL OR lower(email) = v_email)
-  RETURNING id INTO v_invitation;
-  IF v_invitation IS NULL THEN
-    RETURN NULL;
-  END IF;
-  INSERT INTO public.users (id, email, name, password_hash)
-    VALUES (v_user, v_email, NULLIF(btrim(p_name), ''), p_password_hash);
-  INSERT INTO public.profiles (user_id, display_name, location_country, inbound_address)
-    VALUES (v_user, COALESCE(NULLIF(btrim(p_name), ''), split_part(v_email, '@', 1)), 'XX',
-            'u_' || left(v_user::text, 8) || '@' || p_ingest_domain);
-  RETURN v_user;
-END
-$fn$;
-
--- used_by_user_id sin FK a propósito: borrar la cuenta de quien se registró no debe tocar la
--- invitación (queda como registro de quien la creó).
-REVOKE ALL ON FUNCTION public.register_with_invitation(text, text, text, text, text) FROM PUBLIC;
--- Desde JS-113 nadie la llama (el registro usa v3, 0003): sin EXECUTE para el rol de la app. La función
--- queda por si hace falta reintroducirla; el dueño la sigue pudiendo ejecutar.
-REVOKE EXECUTE ON FUNCTION public.register_with_invitation(text, text, text, text, text) FROM authenticated;
+-- Canje + alta del usuario: lo hace register_with_invitation_v3 (0003), en un solo paso atómico. La
+-- primera versión de esa función (register_with_invitation, sin términos ni token de ingesta) se
+-- retiró (JS-124): desde JS-113 nadie la llamaba y el rol de la app ya no podía ejecutarla. El DROP
+-- va acá, y no solo borrando el CREATE, porque este archivo corre en cada db:migrate y el DROP limpia
+-- las bases donde la función todavía existe.
+DROP FUNCTION IF EXISTS public.register_with_invitation(text, text, text, text, text);

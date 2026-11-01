@@ -152,6 +152,23 @@ describe("htmlToText y gmailForwardRequester", () => {
       gmailForwardRequester("Escribinos a soporte@example.com por consultas", null),
     ).toBeNull();
   });
+
+  it("extrae la cuenta que pidió el reenvío desde el asunto oficial de Gmail", () => {
+    expect(
+      gmailForwardRequester(
+        null,
+        null,
+        "(#123456789019) Gmail Forwarding Confirmation - Receive Mail from persona.b@example.com",
+      ),
+    ).toBe("persona.b@example.com");
+    expect(
+      gmailForwardRequester(
+        null,
+        null,
+        "Confirmación de reenvío de Gmail - Recibir correo de Persona.C@Example.com",
+      ),
+    ).toBe("persona.c@example.com");
+  });
 });
 
 describe("classifyInbound · reenvío de Gmail", () => {
@@ -169,7 +186,22 @@ describe("classifyInbound · reenvío de Gmail", () => {
     ).toBe("confirmacion_reenvio_gmail");
   });
 
-  it("gana sobre seguridad aunque el cuerpo traiga un código de confirmación", () => {
+  it("asuntos con prefijos de reenvío o respuesta (Re:, Fwd:) no son confirmación", () => {
+    expect(
+      classifyInbound(mail({ from: GMAIL, subject: "Re: Gmail Forwarding Confirmation" })).category,
+    ).toBe("normal");
+    expect(
+      classifyInbound(mail({ from: GMAIL, subject: "Fwd: Confirmación de reenvío de Gmail" }))
+        .category,
+    ).toBe("normal");
+    expect(
+      classifyInbound(
+        mail({ from: GMAIL, subject: "Consulta sobre gmail forwarding confirmation" }),
+      ).category,
+    ).toBe("normal");
+  });
+
+  it("gana sobre seguridad cuando el cuerpo trae código de confirmación o link de Gmail", () => {
     const out = classifyInbound(
       mail({
         from: GMAIL,
@@ -178,6 +210,62 @@ describe("classifyInbound · reenvío de Gmail", () => {
       }),
     );
     expect(out.category).toBe("confirmacion_reenvio_gmail");
+
+    const withLink = classifyInbound(
+      mail({
+        from: GMAIL,
+        subject: "Gmail Forwarding Confirmation",
+        text: `Hacé clic en https://${OK_HOST}/mail/vf-12345 para confirmar`,
+      }),
+    );
+    expect(withLink.category).toBe("confirmacion_reenvio_gmail");
+  });
+
+  it("cuerpo con código de seguridad de otro servicio y sin señales de Gmail va a seguridad", () => {
+    const out = classifyInbound(
+      mail({
+        from: GMAIL,
+        subject: "Gmail Forwarding Confirmation",
+        text: "Tu código de verificación de Banco Ejemplo es 884821",
+      }),
+    );
+    expect(out.category).toBe("seguridad");
+  });
+
+  it("el pedido de cuenta que figura en el asunto no alcanza: lo que cuenta es el cuerpo (C5-8)", () => {
+    // Un asunto armado con «Receive Mail from …» y un cuerpo con el código de otro servicio no puede pasar
+    // por confirmación: se guardaría completo el código de seguridad de un tercero
+    const out = classifyInbound(
+      mail({
+        from: GMAIL,
+        subject: "Gmail Forwarding Confirmation - Receive Mail from persona.b@example.com",
+        text: "Tu código de verificación de Banco Ejemplo es 884821",
+      }),
+    );
+    expect(out.category).toBe("seguridad");
+  });
+
+  it("con el asunto oficial y un cuerpo con la señal de Gmail sigue siendo confirmación", () => {
+    const out = classifyInbound(
+      mail({
+        from: GMAIL,
+        subject:
+          "(#123456789019) Gmail Forwarding Confirmation - Receive Mail from persona.b@example.com",
+        text: "persona.b@example.com has requested to automatically forward mail to you. Confirmation code: 884821",
+      }),
+    );
+    expect(out.category).toBe("confirmacion_reenvio_gmail");
+  });
+
+  it("cuerpo con enlaces a dominios no autorizados y sin señales de Gmail no es confirmación", () => {
+    const out = classifyInbound(
+      mail({
+        from: GMAIL,
+        subject: "Gmail Forwarding Confirmation",
+        text: "Para ver tus ofertas entrá a https://phishing.evil.example/login",
+      }),
+    );
+    expect(out.category).not.toBe("confirmacion_reenvio_gmail");
   });
 
   it("otro remitente con el mismo asunto no es la confirmación", () => {

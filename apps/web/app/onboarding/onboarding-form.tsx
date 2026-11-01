@@ -21,6 +21,8 @@ function RolesSection({
   salaries,
   spanishCounts,
   selectedRoles,
+  specialtySelection,
+  areasFilter,
   rolesLimit,
   defaultRolesLimit,
 }: {
@@ -28,6 +30,8 @@ function RolesSection({
   salaries?: RolePickerSalaries | undefined;
   spanishCounts?: Partial<Record<string, number>> | undefined;
   selectedRoles: readonly string[];
+  specialtySelection?: unknown;
+  areasFilter?: boolean | undefined;
   rolesLimit: number;
   defaultRolesLimit: number;
 }) {
@@ -50,6 +54,8 @@ function RolesSection({
         groups={roleGroups}
         salaries={salaries}
         spanishCounts={spanishCounts}
+        specialtySelection={specialtySelection}
+        areasFilter={areasFilter ?? false}
       />
       <FieldError name="targetRoles" />
     </fieldset>
@@ -65,6 +71,8 @@ export function OnboardingForm({
   salaries,
   spanishCounts,
   selectedRoles,
+  specialtySelection,
+  areasFilter,
   rolesLimit,
   defaultRolesLimit,
   countries,
@@ -79,6 +87,10 @@ export function OnboardingForm({
   /** Ofertas en español por puesto; sin ellas no hay «en español: N» ni aviso. */
   spanishCounts?: Partial<Record<string, number>> | undefined;
   selectedRoles: readonly string[];
+  /** Áreas ya guardadas por carrera (C3-3); sin ellas, «Todas las áreas». */
+  specialtySelection?: unknown;
+  /** `AREAS_FILTER_ENABLED` prendido (C5-3): el texto de las áreas dice que las otras bajan y se marcan. */
+  areasFilter?: boolean | undefined;
   rolesLimit: number;
   defaultRolesLimit: number;
   /** Países de LATAM: van primero en el buscador de residencia. */
@@ -111,6 +123,8 @@ export function OnboardingForm({
         salaries={salaries}
         spanishCounts={spanishCounts}
         selectedRoles={selectedRoles}
+        specialtySelection={specialtySelection}
+        areasFilter={areasFilter}
         rolesLimit={rolesLimit}
         defaultRolesLimit={defaultRolesLimit}
       />

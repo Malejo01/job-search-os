@@ -1,5 +1,5 @@
 import { schema as s, type Db } from "@job-search-os/db";
-import type { JobStatus } from "@job-search-os/pipeline";
+import { areasFilterEnabled, type JobStatus } from "@job-search-os/pipeline";
 import { and, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { loadActiveRules } from "../ingest/run-getonboard";
 import { loadProfilePrefilterPrefs, upsertCompany } from "../ingest/ingest-job";
@@ -45,6 +45,11 @@ export type AssignOptions = {
    */
   deductLast24h?: boolean;
   /**
+   * Baja de orden y marca lo que queda fuera de las áreas de especialidad que eligió la persona (C5-3).
+   * Sin valor lee `AREAS_FILTER_ENABLED` (apagado por defecto). Nunca descarta una oferta.
+   */
+  areasFilter?: boolean;
+  /**
    * Antes de asignar, borra (mismo lock y transacción) las ofertas del pool del usuario que no se
    * tocaron: estado inicial, sin evaluación, sin mensaje en la cola y sin referencias de usuario. El
    * aviso sigue en `public_jobs` y puede volver a asignarse. Sin reglas activas no se borra nada.
@@ -56,6 +61,16 @@ export type AssignOptions = {
 
 // Los topes y ventanas viven en select.ts; se reexportan para quien los importaba de acá
 export { CANDIDATE_CAP, POSTED_WINDOW_DAYS, SEEN_WINDOW_DAYS } from "./select";
+
+/** `profiles.target_specialties` tal como está guardado; `null` = «Todas las áreas». */
+async function loadTargetSpecialties(tx: Db, userId: string): Promise<unknown> {
+  const [row] = await tx
+    .select({ saved: s.profiles.targetSpecialties })
+    .from(s.profiles)
+    .where(eq(s.profiles.userId, userId))
+    .limit(1);
+  return row?.saved ?? null;
+}
 
 const empty = (replaced = 0): AssignResult => ({
   assigned: 0,
@@ -130,6 +145,12 @@ export async function assignPoolToUser(
       .where(eq(s.skillLevels.userId, userId));
     const levelBySkill = new Map(levelRows.map((l) => [l.skillId, l.level]));
 
+    // 3b. Áreas de especialidad elegidas (C5-3): solo se leen con el interruptor prendido
+    const areas =
+      (opts.areasFilter ?? areasFilterEnabled(process.env))
+        ? { saved: await loadTargetSpecialties(tx, userId) }
+        : null;
+
     // 4. Candidatas, prefiltro, pre-score y ranking (select.ts, solo lectura)
     const selection = await selectPoolCandidates(tx, {
       userId,
@@ -138,6 +159,7 @@ export async function assignPoolToUser(
       levelBySkill,
       now,
       limit,
+      areas,
     });
     const discarded = selection.discarded.length;
     if (!selection.ranked.length) return { ...empty(replaced), discarded };

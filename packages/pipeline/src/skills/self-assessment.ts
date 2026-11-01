@@ -152,6 +152,19 @@ export function selectableRoleGroups(
   })).filter((g) => g.roles.length > 0);
 }
 
+/**
+ * Carreras que se ofrecen a quien elige o cambia su carrera dentro de la app (onboarding, «Tus puestos»,
+ * asistente): las del selector general más las de la beta (`BETA_ROLE_KEYS`) aunque sigan sin listar, y
+ * las no listadas que la persona ya tiene (`keep`). La beta las ofrece en `/acceso`, así que quien entra por
+ * una invitación tiene que poder elegirlas. Las páginas públicas de mercado y el sitemap siguen usando
+ * `selectableRoleGroups()` y las ocultan hasta que tengan ofertas (ADR-022, ADR-027).
+ */
+export function profileRoleGroups(
+  keep: readonly RoleKey[] = [],
+): readonly { label: string; roles: readonly RoleKey[] }[] {
+  return selectableRoleGroups([...keep, ...BETA_ROLE_KEYS]);
+}
+
 export function isRoleKey(v: unknown): v is RoleKey {
   return typeof v === "string" && (ROLE_KEYS as readonly string[]).includes(v);
 }

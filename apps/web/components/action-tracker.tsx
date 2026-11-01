@@ -1,5 +1,6 @@
 "use client";
 
+import { feedbackClickLabel } from "@job-search-os/pipeline";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { recordAction } from "@/lib/action-tracker";
@@ -24,13 +25,14 @@ export function ActionTracker() {
     function handleClick(e: MouseEvent) {
       const target = (e.target as HTMLElement | null)?.closest("button, a");
       if (!target) return;
-      // Solo el texto visible o aria-label, nunca valores de formulario
-      const label = target.getAttribute("aria-label") || target.textContent || "";
-      const text = label.trim().replace(/\s+/g, " ").slice(0, 60);
-      // Descartar si está vacío o si contiene '@' (para no registrar correos electrónicos)
-      if (text && !text.includes("@")) {
-        recordAction({ type: "click", text });
-      }
+      // Solo el texto visible o aria-label, nunca valores de formulario. Los links al detalle de una oferta,
+      // un email o una postulación no llevan su título (C5-5): ver feedbackClickLabel
+      const text = feedbackClickLabel({
+        ariaLabel: target.getAttribute("aria-label"),
+        text: target.textContent ?? "",
+        href: target instanceof HTMLAnchorElement ? target.getAttribute("href") : null,
+      });
+      if (text) recordAction({ type: "click", text });
     }
 
     window.addEventListener("click", handleClick, { capture: true, passive: true });

@@ -89,13 +89,25 @@ export const profiles = pgTable("profiles", {
   maxTargetRoles: integer("max_target_roles"), // tope de puestos del perfil; null = rige TARGET_ROLES_FREE_LIMIT
   poolDailyEvalLimit: integer("pool_daily_eval_limit"), // tope diario de evaluaciones del pool; null = rige el default de la variable
   // Plan de la beta paga (C-11b): claves de PLAN_KEYS (pipeline/src/plans.ts). Lo cambia el dueño con un
-  // UPDATE puntual; la app no puede (trigger en rls/0010_plan.sql). plan_until null = sin vencimiento
+  // UPDATE puntual o la función admin_plan_set (rls/0015); la app no puede (trigger en rls/0010_plan.sql).
+  // plan_until null = sin vencimiento. plan_source (C3-1): cómo llegó el acceso, 'pago' o 'beca'
+  // (primer mes gratis); null = sin dato (planes asignados antes de la beta o a mano)
   plan: text("plan").notNull().default("gratis"),
   planUntil: timestamp("plan_until", { withTimezone: true }),
+  planSource: text("plan_source"),
+  // Cuándo se mandó el aviso de vencimiento (C4-1): vale para el vencimiento en curso; al renovar, plan_until
+  // se corre y el siguiente aviso vuelve a corresponder. Lo escribe solo el cron (dueño), no la app
+  planNotifiedAt: timestamp("plan_notified_at", { withTimezone: true }),
+  // Áreas de especialidad que eligió la persona (C3-3, ADR-027): { carrera: [id de área, …] } solo para las
+  // carreras que acotó. null = «Todas las áreas». Se valida en código (pipeline/skills/specialty-selection.ts)
+  // y acá solo se acota la forma y el tamaño. Todavía no filtra avisos: queda guardado
+  targetSpecialties: jsonb("target_specialties").$type<Record<string, string[]>>(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
   check("profiles_plan_check", sql`${t.plan} in ('gratis', 'fundador', 'lista', 'pase_3_meses')`),
+  check("profiles_plan_source_check", sql`${t.planSource} is null or ${t.planSource} in ('pago', 'beca')`),
+  check("profiles_target_specialties_shape", sql`${t.targetSpecialties} is null or (jsonb_typeof(${t.targetSpecialties}) = 'object' and octet_length(${t.targetSpecialties}::text) <= 8192)`),
 ]);
 
 export const evaluationCriteria = pgTable("evaluation_criteria", {
@@ -672,6 +684,10 @@ export const inboundEmails = pgTable("inbound_emails", {
   fromAddress: text("from_address").notNull(),
   subject: text("subject"),
   rawRef: text("raw_ref").notNull(),
+  // JS-115: id del email en Resend. Idempotencia del webhook: Svix reintenta, y el mismo email_id no se
+  // guarda dos veces. Único y global (un email_id es único en Resend); null en las filas viejas sin
+  // rescatar y en las que carga el e2e a mano. Varios null no chocan entre sí.
+  emailId: text("email_id"),
   parser: text("parser"),                   // linkedin, getonboard, generic, none
   jobsExtracted: integer("jobs_extracted").default(0),
   error: text("error"),
@@ -681,6 +697,7 @@ export const inboundEmails = pgTable("inbound_emails", {
 }, (t) => [
   // C-7: no tenía ningún índice; la bandeja, la cobertura de alertas de «Hoy» y «Primeros pasos» filtran así
   index("inbound_emails_user_received").on(t.userId, t.receivedAt.desc()),
+  uniqueIndex("inbound_emails_email_id").on(t.emailId),
 ]);
 
 // JS-038: emails que el webhook rechazó por el límite horario (no se guardan; esto los cuenta)
@@ -758,7 +775,7 @@ export const applicationAnswers = pgTable("application_answers", {
 
 // Registro por invitación (JS-091): solo se guarda el sha256 del código; el valor en claro se
 // muestra una sola vez al crearla. Sin columna user_id a propósito: la policy es por
-// created_by_user_id y el canje pasa por register_with_invitation() (rls/0001_invitations.sql).
+// created_by_user_id y el canje pasa por register_with_invitation_v3() (rls/0003_auth_functions.sql).
 export const invitations = pgTable("invitations", {
   id: uuid("id").primaryKey().defaultRandom(),
   codeHash: text("code_hash").notNull(),

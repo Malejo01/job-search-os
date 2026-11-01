@@ -127,7 +127,7 @@ test.describe("Flujo 76: axe en el registro y el onboarding", () => {
     await page.waitForURL(/\/(onboarding|register)/);
     await expect(created.or(page.getByText("Paso 1 de 3"))).toBeVisible();
     if (await created.isVisible()) {
-      await page.getByRole("link", { name: "Ir a entrar" }).click();
+      await page.getByRole("link", { name: /Iniciar sesión|Ir a entrar/ }).click();
       await page.waitForURL("**/login**");
       await page.getByLabel("Email").fill(email);
       await page.getByLabel("Contraseña").fill(secret);

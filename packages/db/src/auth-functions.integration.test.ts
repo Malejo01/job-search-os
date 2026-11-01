@@ -11,7 +11,7 @@ import { hashPassword, verifyPassword } from "./password";
  * Rondas 14a/14c · `users` sin lectura cruzada. Como jobsearch_app (NOBYPASSRLS) y con un dueño de
  * tablas y funciones SIN BYPASSRLS (como puede pasar en Neon), sobre rls/ (que desde la 14c ya
  * cierra users_read y el bootstrap va por función) prueba que login, sesión, reset, MCP, /setup y
- * el registro v2 siguen andando por las funciones de rls/0003_auth_functions.sql. Datos inventados.
+ * el registro v3 siguen andando por las funciones de rls/0003_auth_functions.sql. Datos inventados.
  */
 const A = "a3000000-0000-4000-8000-000000000001";
 const B = "b3000000-0000-4000-8000-000000000002";
@@ -27,15 +27,11 @@ const NEW_FNS = [
   "check_reset_token(text)",
   "has_any_user()",
   "sole_user_id()",
-  "register_with_invitation_v2(text, text, text, text, text, text)",
   "register_with_invitation_v3(text, text, text, text, text, text, text)",
 ];
-const OLD_FNS = [
-  "register_with_invitation(text, text, text, text, text)",
-  "invitation_is_redeemable(text, text)",
-  "release_invitations(uuid)",
-];
-const TABLES = ["users", "profiles", "invitations", "password_reset_tokens"];
+const OLD_FNS = ["invitation_is_redeemable(text, text)", "release_invitations(uuid)"];
+// waitlist (C5-1): el registro v3 la lee para precargar la carrera, así que el dueño de la función tiene que ser también su dueño
+const TABLES = ["users", "profiles", "invitations", "password_reset_tokens", "waitlist"];
 
 const DB_DIR = join(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (...p: string[]) => readFileSync(join(DB_DIR, ...p), "utf8");
@@ -54,10 +50,24 @@ async function asUser<T>(userId: string, fn: (tx: postgres.TransactionSql) => Pr
   })) as T;
 }
 
-async function registerV2(codeHash: string, email: string, terms: string | null) {
+/** Token válido y distinto en cada llamada: 20 caracteres de [a-z2-7] */
+let tokenCounter = 0;
+function nextToken(): string {
+  const alphabet = "abcdefghijklmnopqrstuvwxyz234567";
+  let n = ++tokenCounter;
+  let out = "";
+  for (let i = 0; i < 20; i++) {
+    out = alphabet[n % 32] + out;
+    n = Math.floor(n / 32);
+  }
+  return out;
+}
+
+async function registerV3(codeHash: string, email: string, terms: string | null) {
   const rows = await app<{ user_id: string | null }[]>`
-    select register_with_invitation_v2(${codeHash}, ${email}, ${hashPassword("contraseña-test")},
-                                       ${"Persona Nueva"}, 'ingest.test', ${terms}) as user_id`;
+    select register_with_invitation_v3(${codeHash}, ${email}, ${hashPassword("contraseña-test")},
+                                       ${"Persona Nueva"}, 'ingest.test', ${terms},
+                                       ${nextToken()}) as user_id`;
   return rows[0]!.user_id;
 }
 
@@ -285,9 +295,9 @@ describe("users con lectura cerrada a la fila propia (JS-103, 14a)", () => {
       await owner`insert into users (id, email, password_hash) values (${B}, ${EMAIL_B}, ${hashPassword(PASSWORD_B)})`;
     });
 
-    it("registro v2: guarda versión y fecha de los términos, y deja el perfil mínimo", async () => {
+    it("registro: guarda versión y fecha de los términos, y deja el perfil mínimo", async () => {
       const before = Date.now();
-      const userId = await registerV2("hash-v2-ok", "  Nueva@Cuentas.test ", "2026-10-07");
+      const userId = await registerV3("hash-v2-ok", "  Nueva@Cuentas.test ", "2026-10-07");
       expect(userId).toMatch(/^[0-9a-f-]{36}$/);
       const [user] =
         await owner`select email, terms_version, terms_accepted_at from users where id = ${userId}`;
@@ -325,35 +335,53 @@ describe("users con lectura cerrada a la fila propia (JS-103, 14a)", () => {
       await owner`delete from password_reset_tokens where token_hash like 'tok-%-cuentas'`;
     });
 
-    it("registro v2 con un email ya registrado falla por unicidad y no gasta la invitación", async () => {
+    it("registro con un email ya registrado falla por unicidad y no gasta la invitación", async () => {
       await owner`insert into invitations (code_hash, created_by_user_id) values ('hash-v2-dup', ${A})`;
-      await expect(registerV2("hash-v2-dup", EMAIL_A, "2026-10-07")).rejects.toMatchObject({
+      await expect(registerV3("hash-v2-dup", EMAIL_A, "2026-10-07")).rejects.toMatchObject({
         code: "23505",
       });
       const [inv] = await owner`select used_at from invitations where code_hash = 'hash-v2-dup'`;
       expect(inv!.used_at).toBeNull();
     });
 
-    it("registro v2 sin versión de términos no registra y no gasta la invitación", async () => {
-      await expect(registerV2("hash-v2-sin-terminos", "sin@cuentas.test", null)).rejects.toThrow(
+    it("registro sin versión de términos no registra y no gasta la invitación", async () => {
+      await expect(registerV3("hash-v2-sin-terminos", "sin@cuentas.test", null)).rejects.toThrow(
         /falta la versión de los términos/,
       );
-      await expect(registerV2("hash-v2-sin-terminos", "sin@cuentas.test", "  ")).rejects.toThrow();
+      await expect(registerV3("hash-v2-sin-terminos", "sin@cuentas.test", "  ")).rejects.toThrow();
       expect(await owner`select 1 from users where email = 'sin@cuentas.test'`).toHaveLength(0);
       const [inv] =
         await owner`select used_at from invitations where code_hash = 'hash-v2-sin-terminos'`;
       expect(inv!.used_at).toBeNull();
     });
 
-    it("la v1 existe pero el rol de la app ya no puede ejecutarla (JS-113)", async () => {
-      await owner`insert into invitations (code_hash, created_by_user_id) values ('hash-v1', ${A})`;
+    it("las versiones 1 y 2 de la función de registro ya no existen (JS-124)", async () => {
+      const rows = await owner<{ proname: string }[]>`
+        select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname like 'register_with_invitation%'
+         order by p.proname`;
+      expect(rows.map((r) => r.proname)).toEqual(["register_with_invitation_v3"]);
       await expect(
-        app`select register_with_invitation('hash-v1', 'v1@cuentas.test', ${hashPassword("contraseña-test")},
-                                            null, 'ingest.test') as user_id`,
-      ).rejects.toThrow(/permission denied/);
-      expect(await owner`select 1 from users where email = 'v1@cuentas.test'`).toHaveLength(0);
-      const [inv] = await owner`select used_at from invitations where code_hash = 'hash-v1'`;
-      expect(inv!.used_at).toBeNull();
+        app`select register_with_invitation('x', 'x@cuentas.test', 'x', null, 'ingest.test')`,
+      ).rejects.toThrow(/does not exist|no existe/i);
+      await expect(
+        app`select register_with_invitation_v2('x', 'x@cuentas.test', 'x', null, 'ingest.test', '2026-10-07')`,
+      ).rejects.toThrow(/does not exist|no existe/i);
+    });
+
+    it("volver a aplicar los archivos de rls/ no las revive (JS-124)", async () => {
+      // Como en el beforeAll: los aplica el dueño sin BYPASSRLS, para no cambiar a quién atan sus policies
+      try {
+        await owner.unsafe(
+          `SET ROLE jso_nobypass; ${read("rls", "0001_invitations.sql")} ${read("rls", "0003_auth_functions.sql")}`,
+        );
+      } finally {
+        await owner.unsafe("RESET ROLE");
+      }
+      const rows = await owner<{ n: number }[]>`
+        select count(*)::int as n from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = 'public' and p.proname in ('register_with_invitation', 'register_with_invitation_v2')`;
+      expect(rows[0]!.n).toBe(0);
     });
 
     describe("registro v3 con dirección aleatoria (JS-113)", () => {
@@ -373,6 +401,47 @@ describe("users con lectura cerrada a la fila propia (JS-103, 14a)", () => {
         expect(p!.inbound_address).toMatch(/^u_[a-z2-7]{20}@ingest\.test$/);
         const [u] = await owner`select terms_version from users where id = ${r!.user_id}`;
         expect(u!.terms_version).toBe("2026-10-07");
+      });
+
+      it("precarga la carrera que la persona eligió en la lista de espera (C5-1)", async () => {
+        const [inv] = await owner<{ id: string }[]>`
+          insert into invitations (code_hash, created_by_user_id, email)
+          values ('hash-v3-espera', ${A}, 'espera@cuentas.test') returning id`;
+        await owner`insert into waitlist (email, name, role, invitation_id, invited_at)
+                    values ('espera@cuentas.test', 'Persona Espera', 'abogacia', ${inv!.id}, now())`;
+        try {
+          const [r] = await register("hash-v3-espera", "espera@cuentas.test", nextToken());
+          expect(r!.user_id).not.toBeNull();
+          const [p] =
+            await owner`select target_role, target_roles from profiles where user_id = ${r!.user_id}`;
+          expect(p!.target_role).toBe("abogacia");
+          expect(p!.target_roles).toEqual(["abogacia"]);
+        } finally {
+          await owner`delete from waitlist where email = 'espera@cuentas.test'`;
+        }
+      });
+
+      it("una invitación común, sin fila en la lista, no precarga nada", async () => {
+        await owner`insert into invitations (code_hash, created_by_user_id) values ('hash-v3-comun', ${A})`;
+        const [r] = await register("hash-v3-comun", "comun@cuentas.test", nextToken());
+        const [p] =
+          await owner`select target_role, target_roles from profiles where user_id = ${r!.user_id}`;
+        expect(p!.target_role).toBeNull();
+        expect(p!.target_roles).toEqual([]);
+      });
+
+      it("la carrera retirada producto_proyectos no se precarga", async () => {
+        const [inv] = await owner<{ id: string }[]>`
+          insert into invitations (code_hash, created_by_user_id) values ('hash-v3-retirada', ${A}) returning id`;
+        await owner`insert into waitlist (email, name, role, invitation_id, invited_at)
+                    values ('retirada@cuentas.test', 'Persona Vieja', 'producto_proyectos', ${inv!.id}, now())`;
+        try {
+          const [r] = await register("hash-v3-retirada", "retirada@cuentas.test", nextToken());
+          const [p] = await owner`select target_roles from profiles where user_id = ${r!.user_id}`;
+          expect(p!.target_roles).toEqual([]);
+        } finally {
+          await owner`delete from waitlist where email = 'retirada@cuentas.test'`;
+        }
       });
 
       it("un token inválido falla y no gasta la invitación", async () => {
@@ -444,9 +513,9 @@ describe("users con lectura cerrada a la fila propia (JS-103, 14a)", () => {
           from pg_proc p join pg_namespace n on n.oid = p.pronamespace
          where n.nspname = 'public'
            and p.proname in ('auth_user_by_email', 'user_id_by_email', 'user_exists', 'has_any_user',
-                             'sole_user_id', 'register_with_invitation_v2', 'register_with_invitation_v3',
+                             'sole_user_id', 'register_with_invitation_v3',
                              'check_reset_token')`;
-      expect(rows).toHaveLength(8);
+      expect(rows).toHaveLength(7);
       for (const r of rows) {
         expect(r.public_exec, r.proname).toBe(false);
         expect(r.auth_exec, r.proname).toBe(true);

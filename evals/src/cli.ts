@@ -15,6 +15,7 @@ import {
 
 /**
  * pnpm evals run --prompt evaluate_job@v1 [--model gemini-3.5-flash] [--runs 3] [--concurrency 3]
+ *   [--fixture evals/fixtures/golden-carreras-beta.json]
  *   [--ids 1,2,33] [--subset] [--budget 150] [--force] [--label paso1] [--no-report]
  *   [--max-usd 1] [--yes] [--max-minutes 30] [--thinking minimal] [--db cloud|local|none]
  * pnpm evals compare reports/a.json reports/b.json
@@ -74,6 +75,7 @@ async function main(): Promise<void> {
       runs: Number(flags.runs ?? 3),
       concurrency: Number(flags.concurrency ?? 3),
       ids: flags.ids ? flags.ids.split(",").map(Number) : undefined,
+      fixture: flags.fixture,
       outDir: flags["no-report"] ? "" : undefined,
       label: flags.label,
       subset: flags.subset === "true",

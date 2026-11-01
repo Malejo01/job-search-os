@@ -6,6 +6,7 @@ import {
   FEEDBACK_DAILY_LIMIT,
   FEEDBACK_MESSAGE_MAX,
   FEEDBACK_PATH_MAX,
+  feedbackClickLabel,
   isOverDailyLimit,
   isValidFeedbackPath,
   normalizeFeedbackMessage,
@@ -224,5 +225,66 @@ describe("validateFeedbackContext", () => {
     if (!res.ok) {
       expect(res.reason).toBe("too_many_actions");
     }
+  });
+});
+
+describe("feedbackClickLabel · qué se anota de un clic (C5-5)", () => {
+  it("anota el texto corto de un botón o link de la interfaz", () => {
+    expect(feedbackClickLabel({ text: "  Guardar   y continuar " })).toBe("Guardar y continuar");
+    expect(feedbackClickLabel({ ariaLabel: "Sí, me sirve", text: "👍 Sí" })).toBe("Sí, me sirve");
+  });
+
+  it("no anota nada de lo vacío ni de lo que tiene un email", () => {
+    expect(feedbackClickLabel({ text: "   " })).toBeNull();
+    expect(feedbackClickLabel({ text: "Escribirnos a ana@example.com" })).toBeNull();
+    expect(feedbackClickLabel({ ariaLabel: "ana@example.com", text: "x" })).toBeNull();
+  });
+
+  it("el link al detalle de una oferta, un email o una postulación no lleva su título", () => {
+    const card = "Contador/a Senior · Empresa Ficticia SA · Remoto · 8/10 A tu favor: Excel";
+    expect(feedbackClickLabel({ text: card, href: "/jobs/3f2b9d0e" })).toBe(
+      "Abrir el detalle de una oferta",
+    );
+    expect(feedbackClickLabel({ text: "Entrevista con María Gómez", href: "/inbox/abc123" })).toBe(
+      "Abrir el detalle de un email",
+    );
+    expect(
+      feedbackClickLabel({ text: "Mi postulación a Empresa X", href: "/applications/9" }),
+    ).toBe("Abrir el detalle de una postulación");
+  });
+
+  it("las pantallas fijas de esas secciones sí conservan su texto", () => {
+    expect(feedbackClickLabel({ text: "+ Cargar oferta", href: "/jobs/new" })).toBe(
+      "+ Cargar oferta",
+    );
+    expect(feedbackClickLabel({ text: "Sin descripción", href: "/jobs/pending-jd" })).toBe(
+      "Sin descripción",
+    );
+    expect(feedbackClickLabel({ text: "Ofertas", href: "/jobs" })).toBe("Ofertas");
+  });
+
+  it("un texto largo se toma por contenido y no se anota", () => {
+    const long = "Analista de impuestos y contabilidad para una empresa de servicios de la región";
+    expect(feedbackClickLabel({ text: long })).toBe("(texto largo omitido)");
+  });
+
+  it("saca números largos (teléfonos, documentos, ids) y direcciones web", () => {
+    expect(feedbackClickLabel({ text: "Llamar al 1155551234" })).toBe("Llamar al #");
+    expect(feedbackClickLabel({ text: "Ver https://example.com/x" })).toBe("Ver #");
+  });
+});
+
+describe("validateFeedbackContext · defensa en profundidad (C5-5)", () => {
+  it("el servidor también saca emails y números largos de las acciones", () => {
+    const res = validateFeedbackContext({
+      actions: [
+        { type: "click", text: "ana@example.com pidió algo", time: "2026-11-01T00:00:00Z" },
+        { type: "click", text: "Documento 30123456789", time: "2026-11-01T00:00:01Z" },
+        { type: "click", text: "Guardar", time: "2026-11-01T00:00:02Z" },
+      ],
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok || !res.value) return;
+    expect((res.value.actions ?? []).map((a) => a.text)).toEqual(["Documento #", "Guardar"]);
   });
 });

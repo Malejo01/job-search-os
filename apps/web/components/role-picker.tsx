@@ -1,6 +1,6 @@
 "use client";
 
-import { specialtiesFor, type RoleKey } from "@job-search-os/pipeline";
+import { selectedSpecialtyIds, specialtiesFor, type RoleKey } from "@job-search-os/pipeline";
 import { useId, useState } from "react";
 import { CareerSalary, type CareerSalaryView } from "./career-salary";
 import { RoleSpecialties } from "./specialty-chips";
@@ -43,7 +43,16 @@ export function RolePicker({
   defaultLimit,
   salaries,
   spanishCounts,
+  specialtySelection,
+  areasFilter = false,
 }: {
+  /** `AREAS_FILTER_ENABLED` prendido (C5-3): cambia el texto de las áreas, que hasta ahora no filtraban. */
+  areasFilter?: boolean;
+  /**
+   * Áreas guardadas por carrera (`profiles.target_specialties`, C3-3); null o ausente = «Todas las
+   * áreas». El selector no la valida: `selectedSpecialtyIds` ignora lo que no sea del catálogo.
+   */
+  specialtySelection?: unknown;
   /** Ofertas en español por puesto (30 días); sin esto, el selector no muestra «en español: N». */
   spanishCounts?: Partial<Record<RoleKey, number>> | undefined;
   /** Sueldos del pool por puesto (ronda 80); sin esto, el selector no muestra nada de sueldos. */
@@ -132,7 +141,14 @@ export function RolePicker({
                   ) : null}
                   {checked && hasSpecialties ? (
                     <div className="border-t border-line p-3">
-                      <RoleSpecialties roleKey={role.key as RoleKey} roleLabel={role.label} />
+                      <RoleSpecialties
+                        roleKey={role.key as RoleKey}
+                        roleLabel={role.label}
+                        areasFilter={areasFilter}
+                        initialSpecialties={
+                          selectedSpecialtyIds(specialtySelection, role.key as RoleKey) ?? undefined
+                        }
+                      />
                     </div>
                   ) : null}
                 </div>
