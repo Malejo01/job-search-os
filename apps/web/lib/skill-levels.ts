@@ -11,6 +11,7 @@ import {
 } from "@job-search-os/pipeline";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { withUser, type Tx } from "./db";
+import { getSkillTaxonomy } from "./skill-taxonomy";
 
 /** Mapa rol → skills sugeridas (seed versionado), validado al cargar. */
 export const ROLE_SKILLS: RoleSkillsMap = roleSkillsSchema.parse(roleSkillsSeed);
@@ -44,17 +45,15 @@ export type SkillsPageData = {
 };
 
 export async function getSkillsPageData(userId: string): Promise<SkillsPageData> {
+  // Catálogo global con caché de una hora (C5-7): fuera de la transacción de la persona
+  const taxonomy: TaxonomySkill[] = (await getSkillTaxonomy()).map((k) => ({
+    slug: k.slug,
+    name: k.name,
+    category: k.category,
+    aliases: k.aliases,
+    description: k.description,
+  }));
   return withUser(userId, async (tx) => {
-    const taxonomy = await tx
-      .select({
-        slug: s.skills.slug,
-        name: s.skills.name,
-        category: s.skills.category,
-        aliases: s.skills.aliases,
-        description: s.skills.description,
-      })
-      .from(s.skills)
-      .orderBy(s.skills.name);
     const rows = await tx
       .select({ slug: s.skills.slug, level: s.skillLevels.level })
       .from(s.skillLevels)
@@ -98,10 +97,12 @@ export async function getSkillsSaveContext(userId: string): Promise<{
   englishCefr: string | null;
   englishLevels: Record<string, number>;
 }> {
+  const taxonomy = (await getSkillTaxonomy()).map((k) => ({
+    slug: k.slug,
+    name: k.name,
+    aliases: k.aliases,
+  }));
   return withUser(userId, async (tx) => {
-    const taxonomy = await tx
-      .select({ slug: s.skills.slug, name: s.skills.name, aliases: s.skills.aliases })
-      .from(s.skills);
     const existing = await tx
       .select({ id: s.userSkills.id, name: s.userSkills.name })
       .from(s.userSkills)

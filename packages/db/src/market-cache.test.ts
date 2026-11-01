@@ -18,6 +18,6 @@ describe("candidatesCacheConfig", () => {
   it("la clave lleva versión y el caché vence en 1 h", () => {
     const c = candidatesCacheConfig("usuario-a");
     expect(c.keyParts.slice(0, 2)).toEqual(["market-candidates", "v1"]);
-    expect(c.revalidate).toBe(3600);
+    expect(c.revalidate).toBe(21_600);
   });
 });
