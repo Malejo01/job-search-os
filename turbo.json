@@ -3,7 +3,14 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "env": ["VERCEL_GIT_COMMIT_SHA"],
+      "env": [
+        "VERCEL_GIT_COMMIT_SHA",
+        "PRICING_ENABLED",
+        "CV_IMPORT_ENABLED",
+        "MP_LINK_FUNDADOR",
+        "MP_LINK_LISTA",
+        "MP_LINK_PASE_3_MESES"
+      ],
       "passThroughEnv": [
         "DB_TARGET",
         "LLM_DEMO",
