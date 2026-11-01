@@ -352,7 +352,11 @@ export type GmailConfirmation = {
 export async function pendingGmailConfirmation(userId: string): Promise<GmailConfirmation | null> {
   return withUser(userId, async (tx) => {
     const [row] = await tx
-      .select({ id: s.inboundEmails.id, rawRef: s.inboundEmails.rawRef })
+      .select({
+        id: s.inboundEmails.id,
+        rawRef: s.inboundEmails.rawRef,
+        subject: s.inboundEmails.subject,
+      })
       .from(s.inboundEmails)
       .where(
         and(
@@ -382,7 +386,7 @@ export async function pendingGmailConfirmation(userId: string): Promise<GmailCon
     return {
       id: row.id,
       link: gmailConfirmLink(text, html),
-      requester: gmailForwardRequester(text, html),
+      requester: gmailForwardRequester(text, html, row.subject),
     };
   });
 }
