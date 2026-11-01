@@ -116,6 +116,46 @@ export function pushAction(
   return next;
 }
 
+/** Un texto de clic más largo que esto es contenido (un título, un asunto), no una etiqueta de la interfaz. */
+export const FEEDBACK_CLICK_LABEL_MAX = 40;
+
+/**
+ * Limpia el texto de un clic antes de anotarlo (C5-5): `null` si trae un email; direcciones web y números
+ * de 6 o más cifras (teléfonos, documentos, ids) se reemplazan por «#».
+ */
+export function scrubClickText(text: string): string | null {
+  const clean = text.trim().replace(/\s+/g, " ");
+  if (!clean || clean.includes("@")) return null;
+  return clean.replace(/https?:\/\/\S+/gi, "#").replace(/\d{6,}/g, "#");
+}
+
+const DETAIL_LABELS: Record<string, string> = {
+  jobs: "Abrir el detalle de una oferta",
+  inbox: "Abrir el detalle de un email",
+  applications: "Abrir el detalle de una postulación",
+};
+/** Pantallas fijas colgadas de esas secciones: su texto es de la interfaz y se conserva. */
+const FIXED_SUBPAGES = new Set(["new", "pending-jd"]);
+
+/**
+ * Qué se anota de un clic en un botón o link (C5-5). Los links al detalle de una oferta, un email o una
+ * postulación envuelven la tarjeta entera (título, empresa, asunto de un email de un tercero): no se anota
+ * ese texto sino «Abrir el detalle de …». Un texto largo se toma por contenido y tampoco se anota.
+ * Sin esto, el contexto del reporte de soporte podría llevar datos de avisos o de terceros. Puro.
+ */
+export function feedbackClickLabel(input: {
+  ariaLabel?: string | null | undefined;
+  text: string;
+  href?: string | null | undefined;
+}): string | null {
+  const detail = /^\/(jobs|inbox|applications)\/([^/?#]+)/.exec(input.href ?? "");
+  if (detail && !FIXED_SUBPAGES.has(detail[2]!)) return DETAIL_LABELS[detail[1]!] ?? null;
+  const scrubbed = scrubClickText(input.ariaLabel?.trim() || input.text);
+  if (scrubbed === null) return null;
+  if (scrubbed.length > FEEDBACK_CLICK_LABEL_MAX) return "(texto largo omitido)";
+  return scrubbed;
+}
+
 export type FeedbackContextValidation =
   { ok: true; value: FeedbackContext | null } | { ok: false; reason: string };
 
@@ -163,7 +203,9 @@ export function validateFeedbackContext(raw: unknown): FeedbackContextValidation
     const aRec = a as Record<string, unknown>;
     const type = aRec.type === "click" || aRec.type === "navigate" ? aRec.type : "click";
     const rawText = typeof aRec.text === "string" ? aRec.text : "";
-    const text = rawText.trim().replace(/\s+/g, " ").slice(0, FEEDBACK_ACTION_TEXT_MAX);
+    // Defensa en profundidad (C5-5): los clics se vuelven a limpiar acá; las pantallas (navigate) son rutas
+    const cleaned = type === "click" ? scrubClickText(rawText) : rawText;
+    const text = (cleaned ?? "").trim().replace(/\s+/g, " ").slice(0, FEEDBACK_ACTION_TEXT_MAX);
     if (!text) continue;
     const time = typeof aRec.time === "string" ? aRec.time.slice(0, 30) : new Date().toISOString();
     actions.push({ type, text, time });
