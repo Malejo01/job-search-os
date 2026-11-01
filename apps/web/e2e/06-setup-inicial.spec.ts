@@ -16,8 +16,9 @@ test.describe("setup inicial (JS-045/ADR-012)", () => {
       await page.waitForURL("**/setup");
       await expect(page.getByText("Todavía no hay ningún usuario.")).toBeVisible();
       await page.getByLabel("Email").fill(E2E_EMAIL);
-      await page.getByLabel("Contraseña").fill(E2E_PASSWORD);
-      await page.getByLabel("Repetila").fill(E2E_PASSWORD);
+      // exact: el rótulo «Repetí la contraseña» también contiene «contraseña»
+      await page.getByLabel("Contraseña", { exact: true }).fill(E2E_PASSWORD);
+      await page.getByLabel("Repetí la contraseña").fill(E2E_PASSWORD);
       await page.getByRole("button", { name: "Crear cuenta" }).click();
       // Gate de términos (ronda 83): /setup deja terms_version en null, así que el primer usuario
       // también acepta los términos antes de seguir.

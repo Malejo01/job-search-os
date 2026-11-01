@@ -1053,3 +1053,32 @@ Cuatro PR de la nube, todos en draft y con base `ronda/integracion-t1-g2` (#309)
 - Techo semanal después del finde: 8 hs. Si el bloque 4 no está en producción en 2 semanas, se congela el bloque 5.
 - Ningún ticket nuevo entra sin criterio de aceptación.
 - Los tickets del bloque 5 se detallan cuando el bloque 4 esté done.
+
+## Bloque 10 — Beta cerrada: avisos, lista de espera y carreras ocultas (tanda C4, 2026-10-31)
+
+Cinco tareas de la nube, todas en draft. «Done» acá es «hecho y con CI en verde en el PR» (los e2e corren cuando el PR apunta a main); nada está mergeado y la migración **no** se aplicó. Esta sección va al final del archivo a propósito, para no chocar con la de la tanda C3 al mergear. Cadena de bases: C4-1 sale de `nube/c3-areas` (#315 → #314 → #312 → #309); C4-2, C4-3 y C4-4 salen de `ronda/integracion-t1-g2` (#309) y son independientes entre sí. La beta abre el jueves 26/11.
+
+### C4-1 · Aviso por email antes de que venza el plan
+`deps:` C3-1 · `estado:` done (2026-10-31; PR #320; ⚠️ migración 0055 + `rls/0010`)
+- `profiles.plan_notified_at` (0055) y cron diario `15 12 * * *` en `cron.yml` (paso `plan-notices`) → `/api/cron/plan-notices`. Un email de texto por persona y vencimiento cuando le quedan 3 días o menos, con la fecha, el link de pago y qué pasa si no renueva (pasa al plan gratis y no pierde nada).
+- Criterio puro en `pipeline/plan-expiry-notice.ts`; runner con reclamo atómico (`UPDATE … RETURNING`) en `adapters/billing/plan-expiry-notices.ts`. Tope diario `PLAN_NOTICE_DAILY_CAP` (default 30, máximo 80), sin PII en logs y sin enviar nada si faltan `RESEND_API_KEY` o `EMAIL_FROM`.
+
+### C4-2 · Panel de la lista de espera
+`deps:` — · `estado:` done (2026-10-31; PR #321; sin migración)
+- `/settings/invitations`: filtros (carrera, origen, fecha, estado), contador por carrera, selección múltiple con tope (20 por defecto, máximo 100) y confirmación, mensaje de invitación con «la beta abre el jueves 26/11» y exportación a CSV (nombre, email, carrera, origen, fecha). No manda emails y no cambia cómo se guarda la lista. e2e `91-lista-espera-tanda` (sin correr).
+
+### C4-3 · Cuándo mostrar cada carrera nueva
+`deps:` — · `estado:` done (2026-10-31; PR #323; sin migración)
+- `/settings/metricas`: tabla de `UNLISTED_ROLE_KEYS` con las ofertas nuevas de 30 días contra el umbral de 10 (ADR-022) y la marca «lista para mostrarse». Una consulta agregada a `public_jobs`. Sacar una carrera del modo oculto sigue siendo un cambio de una línea en `self-assessment.ts` (más dos tests de la lista).
+
+### C4-4 · «Repetí la contraseña» (resto de JS-126)
+`deps:` — · `estado:` done (2026-10-31; PR #324; sin migración)
+- `setup` y `reset-password` usan el mismo rótulo que el registro; ajustados los e2e 05 y 06. Con esto JS-126 queda hecho salvo «sumar lo que salga del ensayo»; la línea de estado de JS-126 no se tocó para no chocar con la edición de la tanda C3 (#316).
+
+### C4-5 · Revisión cruzada de los PRs de G3 y G4
+`deps:` — · `estado:` done (2026-10-31; comentarios en #313, #317, #318, #319 y #322)
+- **Bloqueantes de texto o de producto:** #318 (la guía manda a elegir en el selector carreras que están ocultas; pide cargar un CV por archivo que no existe; `/cv/armar` depende de `CV_CHAT_ENABLED=all`), #319 y #322 (prometen un link o una invitación antes del 26/11 a todo el que se anote; #322 además omite que el texto va a proveedores de IA y manda a `/precios`, que da 404 con `PRICING_ENABLED` apagado). #313 y #317 sin bloqueantes (GitGuardian marca un falso positivo en `register/page.tsx:61`).
+
+### Pendiente después de la tanda
+- Mauro: `pnpm db:migrate` (0055 y `rls/0010`) antes de mergear #320; `RESEND_API_KEY` **y** `EMAIL_FROM` con dominio verificado en Vercel para que salgan los avisos.
+- Decidir antes del ensayo del 20/11 si las carreras ocultas de la beta salen de `UNLISTED_ROLE_KEYS` (hoy un invitado de abogacía, administración, comunicación o relaciones internacionales no la ve en el onboarding).
