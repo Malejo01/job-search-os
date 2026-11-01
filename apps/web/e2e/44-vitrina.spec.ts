@@ -1,4 +1,5 @@
 import { waitlist } from "@job-search-os/db/schema";
+import { BRAND } from "@job-search-os/pipeline";
 import { expect, test } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { login, ownerDb } from "./helpers";
@@ -69,7 +70,7 @@ test.describe("Flujo 44: vitrina pública", () => {
     await expect(page.getByRole("heading", { name: "Cómo funciona" })).toBeVisible();
     await expect(page.getByTestId("pool-numbers")).toBeVisible();
     // El header no lleva el nombre del producto
-    await expect(page.locator("header")).not.toContainText("Job Search OS");
+    await expect(page.locator("header")).not.toContainText(BRAND.name);
 
     // A 390 px (viewport de los e2e) Mercado y Ofertas están en el pie, no en el header: se busca
     // en toda la página el primero visible (getByRole ignora los ocultos con display: none).
@@ -121,14 +122,14 @@ test.describe("Flujo 44: vitrina pública", () => {
     const data = JSON.parse(raw ?? "{}") as Record<string, unknown>;
     expect(data["@type"]).toBe("Dataset");
     expect(raw).not.toContain("JobPosting");
-    expect(raw).not.toContain("Job Search OS");
+    expect(raw).not.toContain(BRAND.name);
     await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", /Mercado/);
   });
 
   test("los títulos públicos no llevan el nombre del producto", async ({ page }) => {
     for (const path of ["/", "/mercado", "/ofertas", "/acceso"]) {
       await page.goto(path);
-      expect(await page.title(), path).not.toContain("Job Search OS");
+      expect(await page.title(), path).not.toContain(BRAND.name);
     }
   });
 
