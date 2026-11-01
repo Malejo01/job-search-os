@@ -37,6 +37,7 @@ import {
   formatReport,
   RunAbortedError,
   runEvals,
+  selectJobs,
   type Report,
 } from "./run";
 
@@ -525,5 +526,50 @@ describe("classifyError: cuota por minuto vs. por día (nivel gratuito)", () => 
     expect(classifyError("API key not valid. Please pass a valid API key.")).toBe("fatal");
     expect(classifyError("Error: salida no cumple el schema: [...]")).toBe("fatal");
     expect(classifyError("AI_APICallError: 503 Service Unavailable")).toBe("retry");
+  });
+});
+
+describe("runEvals con fixture alternativo (--fixture y --runs) (G3-1)", () => {
+  it("selectJobs usa los 48 casos de golden-carreras-beta.json sin sumar adversariales ajenos", () => {
+    const jobs = selectJobs({ fixture: "evals/fixtures/golden-carreras-beta.json" });
+    expect(jobs).toHaveLength(48);
+    expect(jobs.map((j) => j.id)).toEqual([...Array(48)].map((_, i) => i + 1));
+  });
+
+  it("selectJobs con fixture e ids filtra solo los ids pedidos", () => {
+    const jobs = selectJobs({
+      fixture: "evals/fixtures/golden-carreras-beta.json",
+      ids: [1, 10, 48],
+    });
+    expect(jobs.map((j) => j.id)).toEqual([1, 10, 48]);
+  });
+
+  it("estimateRunCost calcula exactamente 48 llamadas con --runs 1 y fixture carreras beta", () => {
+    const estimate = estimateRunCost({
+      fixture: "evals/fixtures/golden-carreras-beta.json",
+      runs: 1,
+    });
+    expect(estimate.calls).toBe(48);
+    expect(estimate.usd).not.toBeNull();
+    expect(estimate.usd!).toBeGreaterThan(0);
+  });
+
+  it("runEvals corre 48 casos sintéticos con --runs 1 sin LLM real y reporta metadatos del fixture", async () => {
+    const client = fake();
+    const report = await runEvals({
+      prompt: "evaluate_job@v1.1",
+      fixture: "evals/fixtures/golden-carreras-beta.json",
+      runs: 1,
+      concurrency: 8,
+      outDir: "",
+      client,
+      sleep: async () => {},
+    });
+
+    expect(client.calls).toHaveLength(48);
+    expect(report.jobs).toHaveLength(48);
+    expect(report.meta.runs).toBe(1);
+    expect(report.meta.golden_version).toBe("2026-10-30");
+    expect(report.meta.adversarial_ids).toEqual([]);
   });
 });
