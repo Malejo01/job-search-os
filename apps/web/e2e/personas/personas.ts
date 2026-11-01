@@ -6,7 +6,7 @@ import type { SeedPublicJob } from "../helpers";
  * tiene 3 ofertas de su puesto y 1 de otro puesto (control negativo: no tiene que aparecer).
  * Para sumar una persona, ver docs/panel/personas-e2e.md.
  */
-export type PersonaKey = "lucia" | "valentina" | "martin" | "tomas";
+export type PersonaKey = "lucia" | "valentina" | "martin" | "tomas" | "mariana" | "camila";
 
 export type PersonaOffer = SeedPublicJob & {
   /** Es del puesto de la persona (false = control negativo, de otro puesto). */
@@ -21,7 +21,11 @@ export type Persona = {
   /** Clave del puesto (`ROLE_KEYS`); la etiqueta se lee del seed `role_skills.json`. */
   role: string;
   /** Grupo del selector del paso 1 (`legend` de su `fieldset`). */
-  roleGroup: "Tecnología" | "Carreras digitales" | "Comunicación y relaciones";
+  roleGroup:
+    | "Tecnología"
+    | "Carreras digitales"
+    | "Comunicación y relaciones"
+    | "Derecho, contabilidad y gestión";
   country: string;
   cefr: "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
   years: string;
@@ -49,6 +53,15 @@ export const SKILL_NAMES: Record<string, string> = {
   rest_apis: "REST APIs",
   docker: "Docker",
   testing: "Testing automatizado",
+  contract_drafting: "Redacción y revisión de contratos",
+  corporate_law: "Derecho societario y comercial",
+  labor_law: "Derecho laboral",
+  litigation: "Litigio y procesos judiciales",
+  legal_tools: "Software legal (Lex Doctor, CLM)",
+  press_relations: "Relaciones con la prensa",
+  corporate_communications: "Comunicación institucional e interna",
+  copywriting: "Copywriting",
+  audiovisual: "Producción audiovisual y radio",
 };
 
 type RawOffer = {
@@ -312,7 +325,130 @@ export function buildPersona(key: PersonaKey, tag: number = Date.now()): Persona
           },
         ),
       };
+    case "mariana":
+      return {
+        ...base,
+        name: "Mariana Ficticia",
+        role: "abogacia",
+        roleGroup: "Derecho, contabilidad y gestión",
+        country: "AR",
+        cefr: "C1",
+        years: "5",
+        remoteOnly: true,
+        summary:
+          "Perfil ficticio de la persona Mariana: abogada corporativa con cinco años de experiencia en redacción de contratos comerciales, cumplimiento societario y litigios civiles.",
+        skills: [
+          { slug: "contract_drafting", level: 3 },
+          { slug: "corporate_law", level: 3 },
+          { slug: "litigation", level: 2 },
+          { slug: "legal_tools", level: 2 },
+        ],
+        offers: offers(
+          tag,
+          "Legales",
+          "abogacia",
+          [
+            {
+              sourceKind: "jobicy",
+              skills: [
+                ["contract_drafting", true],
+                ["corporate_law", true],
+                ["legal_tools", false],
+              ],
+            },
+            {
+              sourceKind: "remoteok",
+              skills: [
+                ["contract_drafting", true],
+                ["labor_law", true],
+                ["litigation", false],
+              ],
+            },
+            {
+              sourceKind: "getonboard_api",
+              skills: [
+                ["corporate_law", true],
+                ["legal_tools", true],
+                ["contract_drafting", false],
+              ],
+            },
+          ],
+          "backend",
+          {
+            sourceKind: "getonboard_api",
+            skills: [
+              ["nodejs", true],
+              ["docker", true],
+            ],
+          },
+        ),
+      };
+    case "camila":
+      return {
+        ...base,
+        name: "Camila Ficticia",
+        role: "comunicacion",
+        roleGroup: "Comunicación y relaciones",
+        country: "UY",
+        cefr: "B2",
+        years: "4",
+        remoteOnly: true,
+        summary:
+          "Perfil ficticio de la persona Camila: especialista en comunicación institucional, redacción de gacetillas, relación con medios de prensa y comunicación interna para empresas.",
+        skills: [
+          { slug: "press_relations", level: 3 },
+          { slug: "corporate_communications", level: 3 },
+          { slug: "copywriting", level: 2 },
+          { slug: "audiovisual", level: 1 },
+        ],
+        offers: offers(
+          tag,
+          "Comunicación",
+          "comunicacion",
+          [
+            {
+              sourceKind: "jobicy",
+              skills: [
+                ["press_relations", true],
+                ["corporate_communications", true],
+                ["copywriting", false],
+              ],
+            },
+            {
+              sourceKind: "remoteok",
+              skills: [
+                ["corporate_communications", true],
+                ["copywriting", true],
+                ["audiovisual", false],
+              ],
+            },
+            {
+              sourceKind: "getonboard_api",
+              skills: [
+                ["press_relations", true],
+                ["copywriting", true],
+                ["corporate_communications", false],
+              ],
+            },
+          ],
+          "data_analyst",
+          {
+            sourceKind: "getonboard_api",
+            skills: [
+              ["sql", true],
+              ["power_bi", true],
+            ],
+          },
+        ),
+      };
   }
 }
 
-export const PERSONA_KEYS: PersonaKey[] = ["lucia", "valentina", "martin", "tomas"];
+export const PERSONA_KEYS: PersonaKey[] = [
+  "lucia",
+  "valentina",
+  "martin",
+  "tomas",
+  "mariana",
+  "camila",
+];
