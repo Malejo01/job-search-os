@@ -1,6 +1,6 @@
 # Personas sintéticas en los e2e
 
-Seis personas inventadas recorren el producto de punta a punta, sin red ni LLM (el pool se siembra y el worker corre en modo demo). Entran solas al job `e2e` del CI.
+Diez personas inventadas recorren el producto de punta a punta, sin red ni LLM (el pool se siembra y el worker corre en modo demo). Entran solas al job `e2e` del CI.
 
 | Spec | Persona | Puesto (grupo) |
 |---|---|---|
@@ -10,6 +10,10 @@ Seis personas inventadas recorren el producto de punta a punta, sin red ni LLM (
 | `31-persona-tomas` | Tomás, dev junior en Node | Backend (Tecnología) |
 | `93-persona-abogacia` | Mariana, abogada corporativa | Abogacía y legales (Derecho, contabilidad y gestión) |
 | `94-persona-comunicacion` | Camila, comunicación institucional | Comunicación y prensa (Comunicación y relaciones) |
+| `97-persona-contaduria` | Agustina, contadora de estudio contable | Contaduría, impuestos y finanzas (Derecho, contabilidad y gestión) |
+| `98-persona-administracion` | Bruno, compras y control de gestión | Administración de empresas (Derecho, contabilidad y gestión) |
+| `99-persona-marketing-rrpp` | Rocío, relaciones públicas y contenidos | Marketing y relaciones públicas (Comunicación y relaciones) |
+| `100-persona-relaciones-internacionales` | Inés, comercio exterior y cooperación | Relaciones internacionales y comex (Comunicación y relaciones) |
 
 ## Qué recorre cada una
 
