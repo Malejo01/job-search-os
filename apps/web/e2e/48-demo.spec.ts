@@ -1,4 +1,5 @@
 import { demoEvaluations, publicJobs } from "@job-search-os/db/schema";
+import { BRAND } from "@job-search-os/pipeline";
 import { expect, test } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { ownerDb } from "./helpers";
@@ -96,7 +97,7 @@ test.describe("Flujo 48: demo guiada", () => {
       page.getByRole("heading", { level: 1, name: /así evalúa ofertas reales/i }),
     ).toBeVisible();
     await expect(page.getByTestId("demo-profile-card")).toHaveCount(3);
-    expect(await page.title()).not.toContain("Job Search OS");
+    expect(await page.title()).not.toContain(BRAND.name);
 
     // /demo es ISR: si se cacheó vacía no hay links ("Pronto"), pero el perfil se abre igual
     const link = page.getByRole("link", { name: "Ver la demo de Full stack semi senior" });

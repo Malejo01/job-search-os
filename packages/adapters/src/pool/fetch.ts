@@ -16,6 +16,7 @@ import {
   type AtsProvider,
 } from "../sources/ats-common";
 import { sourceErrorCode, type SourceErrorCode } from "../sources/error-code";
+import { SOURCE_USER_AGENT_BASE } from "../sources/user-agent";
 import { fetchGetOnBoardJobs, GOB_POOL_CATEGORIES } from "../sources/getonboard";
 import { fetchGreenhouseBoard } from "../sources/greenhouse";
 import { fetchHimalayasJobs } from "../sources/himalayas";
@@ -639,7 +640,7 @@ export async function runPoolFetch(
   }
   const budgetMs = options.budgetMs ?? 45_000;
   const downloaders = options.downloaders ?? POOL_DOWNLOADERS;
-  const userAgent = options.userAgent ?? "JobSearchOS/1.0";
+  const userAgent = options.userAgent ?? SOURCE_USER_AGENT_BASE;
   const d = deps ?? defaultDeps(options, now);
   const totalLeftMs = () => budgetMs - (clock() - started);
   const log = options.logger.child({ run_id: `pool-${started}` });

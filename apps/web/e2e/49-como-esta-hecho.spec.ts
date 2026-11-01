@@ -1,3 +1,4 @@
+import { BRAND } from "@job-search-os/pipeline";
 import { expect, test } from "@playwright/test";
 
 /**
@@ -12,7 +13,7 @@ test.describe("Flujo 49: cómo está hecho", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Cómo está hecho");
     await expect(page).toHaveTitle("Cómo está hecho");
-    expect(await page.title()).not.toContain("Job Search OS");
+    expect(await page.title()).not.toContain(BRAND.name);
 
     // Solo un SVG visible por viewport, con nombre accesible
     const diagram = page.getByRole("img", { name: /Recorrido de una oferta/ });
