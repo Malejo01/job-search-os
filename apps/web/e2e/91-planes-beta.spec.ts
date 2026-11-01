@@ -78,7 +78,7 @@ test.describe("Flujo 91: planes de la beta", () => {
     await expect(fila).toContainText("Becado");
     await expect(fila).toContainText(/Hasta el .+ \(faltan \d+ días\)/);
 
-    await fila.getByText("Quitar el plan").click();
+    await fila.getByText("Quitar el plan", { exact: true }).click();
     await fila.getByRole("button", { name: "Sí, quitar el plan" }).click();
     await expect(page.getByTestId("planes-ok")).toContainText("plan gratis");
     expect((await readPlan())?.plan).toBe("gratis");
