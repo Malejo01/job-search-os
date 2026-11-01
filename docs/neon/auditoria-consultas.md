@@ -191,3 +191,22 @@ El análisis de código identificó **8 focos principales de desperdicio** de tr
    - **JS-102 (/market):** Crear la tabla `market_candidates` con RLS y el índice `(user_id, created_at desc)` en `jobs`, desacoplando completamente `/market` del texto de las ofertas.
    - **Detección de idioma en pool:** Agregar columnas `english_level` y `lang_confirmed` en `public_jobs` para suprimir permanentemente el texto de los avisos en las estadísticas de mercado.
 
+
+---
+
+## 5. Estado al 2/11/2026 (C5-7 y C6-3)
+
+Con la foto de `pg_stat_statements` del 1/11 aparecieron dos consultas que la auditoría no había visto: la selección de candidatas del pool sobre `public_jobs` (unos 21 MB por llamada) y el conteo de la cola sobre `job_queue` (unos 12 MB en 9 llamadas). Las dos están resueltas en C6-3. Para medir antes y después: `docs/neon/neon-stats.sql` (solo lectura, se corre en el editor SQL de Neon).
+
+| # | Propuesta | Estado | Dónde |
+|---|---|---|---|
+| — | **Candidatas del pool**: `select()` de las 300 filas completas (~70 KB por fila, casi todo `jd_shingles` y `jd_text`) | **Hecho (C6-3)** | `select.ts`: lee solo las columnas del prefiltro y el ranking; la fila completa solo de las elegidas, por tandas de 25. `explain.ts` (`--why`) también proyecta |
+| — | **Conteo de la cola**: `jobs.id::text = job_queue.payload->>'jobId'` recorre toda la cola | **Hecho (C6-3), migración 0056** | Índice de expresión `job_queue_job_id` sobre `(payload->>'jobId')`. Sirve también al resto de las consultas por `payload->>'jobId'` (ya está en cola, fusión de duplicados, backlog, listas) |
+| 1 | `left(jd_text, 30000)` en `readCareerMarketInput` | **No se hizo, a propósito** | La auditoría dice que el texto solo se usa para el idioma, pero `detectEnglish` también saca `asks` y `level` (el nivel de inglés que piden las ofertas) de todo el texto. Truncarlo a 800 caracteres cambiaría esas estadísticas. Lo correcto es persistir el resultado en `public_jobs` al ingerir (migración y backfill): ronda aparte |
+| 2 | Vitrina: agregar en SQL | **No se hizo** | La agregación de `buildPoolShowcase` usa `locationScope` y los hints por carrera, que son lógica del pipeline: llevarla a SQL duplicaría reglas. Las páginas son ISR de 1 hora |
+| 3 | JS-102: candidatos de skills de `/market` | **Hecho en C5-7** (caché de 6 h) | Falta la tabla `market_candidates` y el índice `(user_id, created_at)`: ronda aparte |
+| 4 | N+1 del catálogo de skills en el worker | **Hecho en C5-7** | — |
+| 5 | `/api/cron/status` con `s-maxage` | **No se hizo: no es seguro** | La ruta exige `Authorization: Bearer`. Con `Cache-Control: public, s-maxage=60` el CDN puede servir la respuesta guardada a quien no mande el token. Para que el monitor deje de despertar la base hay que bajar su frecuencia (cada 30 a 60 min, `docs/MONITOREO.md`) o guardar el snapshot que escribe el worker |
+| 6 | `/fit`: solo `decision->'checklist'` | **Hecho (C6-3)** | `apps/web/lib/fit.ts` |
+| 7 | Shingles en `loadRecentJobs` | **No se hizo** | Los shingles son la entrada de la similitud de Jaccard del dedup: no se pueden sacar sin cambiar cómo se detectan los duplicados. Un cortocircuito por URL o `external_id` cambia el comportamiento: ronda aparte con tests |
+| 8 | Proyección de `select()` | **Hecho en lo que quedaba** | `profiles` ya no trae `raw_resume_text` (la columna no existe); el detalle y la evaluación ya salieron sin shingles (C5-7). `job-detail.ts` sigue leyendo `evaluations` completa porque la pantalla usa casi todo el JSON |
