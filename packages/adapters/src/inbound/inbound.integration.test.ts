@@ -110,6 +110,57 @@ describe("handleInboundEmail", () => {
     expect(again).toMatchObject({ kind: "duplicate", inboundId: out.inboundId });
   });
 
+  it("guarda el email_id en su columna y lo reconoce sin mirar los crudos (JS-115)", async () => {
+    const deps = { db: conn.db, storage: pgBlobStorage(conn.db), logger };
+    const ev = event("em_col_1", undefined, SIN_PARSER);
+    const out = await handleInboundEmail(ev, null, JSON.stringify(ev), deps);
+    expect(out.kind).toBe("stored");
+    if (out.kind !== "stored") return;
+    const [row] = await conn.db
+      .select({ emailId: s.inboundEmails.emailId, rawRef: s.inboundEmails.rawRef })
+      .from(s.inboundEmails)
+      .where(eq(s.inboundEmails.id, out.inboundId));
+    expect(row!.emailId).toBe("em_col_1");
+    // Aunque el crudo ya no esté (o diga otra cosa), la columna alcanza para frenar el reintento
+    await conn.db.delete(s.rawBlobs).where(eq(s.rawBlobs.id, row!.rawRef.replace(/^pg:/, "")));
+    const again = await handleInboundEmail(ev, null, JSON.stringify(ev), deps);
+    expect(again).toMatchObject({ kind: "duplicate", inboundId: out.inboundId });
+  });
+
+  it("dos entregas del mismo email a la vez dejan una sola fila (JS-115)", async () => {
+    const deps = { db: conn.db, storage: pgBlobStorage(conn.db), logger };
+    const ev = event("em_carrera_1", undefined, SIN_PARSER);
+    const raw = JSON.stringify(ev);
+    const results = await Promise.all([
+      handleInboundEmail(ev, null, raw, deps),
+      handleInboundEmail(ev, null, raw, deps),
+      handleInboundEmail(ev, null, raw, deps),
+    ]);
+    expect(results.filter((r) => r.kind === "stored")).toHaveLength(1);
+    expect(results.filter((r) => r.kind === "duplicate")).toHaveLength(2);
+    const rows = await conn.db
+      .select({ id: s.inboundEmails.id })
+      .from(s.inboundEmails)
+      .where(eq(s.inboundEmails.emailId, "em_carrera_1"));
+    expect(rows).toHaveLength(1);
+    const stored = results.find((r) => r.kind === "stored");
+    for (const r of results.filter((x) => x.kind === "duplicate")) {
+      expect(r).toMatchObject({ inboundId: (stored as { inboundId: string }).inboundId });
+    }
+  });
+
+  it("la base no deja dos filas con el mismo email_id, pero sí varias sin él (JS-115)", async () => {
+    const row = (emailId: string | null) => ({
+      userId: USER,
+      fromAddress: "x@example.com",
+      rawRef: "pg:00000000-0000-4000-8000-000000000000",
+      emailId,
+    });
+    await conn.db.insert(s.inboundEmails).values(row("em_unico_1"));
+    await expect(conn.db.insert(s.inboundEmails).values(row("em_unico_1"))).rejects.toThrow();
+    await conn.db.insert(s.inboundEmails).values([row(null), row(null)]);
+  });
+
   it("un dominio marcado como fuente de empleo se guarda completo (JS-051)", async () => {
     const deps = { db: conn.db, storage: pgBlobStorage(conn.db), logger };
     await conn.db

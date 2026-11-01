@@ -244,8 +244,9 @@ describe("registro por invitación (JS-091)", () => {
     );
     const [ownerRow] = await owner<{ name: string }[]>`select current_user as name`;
     const ownerName = ownerRow!.name;
+    // El canje es register_with_invitation_v3 (rls/0003); las otras dos viven en rls/0001
     const fns = [
-      "register_with_invitation(text, text, text, text, text)",
+      "register_with_invitation_v3(text, text, text, text, text, text, text)",
       "invitation_is_redeemable(text, text)",
       "release_invitations(uuid)",
     ];
@@ -270,12 +271,12 @@ describe("registro por invitación (JS-091)", () => {
         await owner.unsafe("RESET ROLE");
       }
       await createInvitation(CREATOR, "hash-sin-bypass");
-      // La v1 ya no la ejecuta el rol de la app: se llama como dueño de la sesión, y la función
-      // corre con los privilegios de jso_nobypass (SECURITY DEFINER), que es lo que se prueba
+      // El rol de la app lo llama sin sesión; acá se llama como dueño de la sesión y la función corre
+      // con los privilegios de jso_nobypass (SECURITY DEFINER), que es lo que se prueba
       const [r] = await owner<{ user_id: string | null }[]>`
-        select register_with_invitation('hash-sin-bypass', 'sinbypass@invitado.test',
-                                        ${hashPassword("contraseña-test")}, 'Sin Bypass',
-                                        'ingest.test') as user_id`;
+        select register_with_invitation_v3('hash-sin-bypass', 'sinbypass@invitado.test',
+                                           ${hashPassword("contraseña-test")}, 'Sin Bypass',
+                                           'ingest.test', '2026-10-07', ${nextToken()}) as user_id`;
       const userId = r!.user_id;
       expect(userId).not.toBeNull();
       const [profile] = await owner`select display_name from profiles where user_id = ${userId}`;

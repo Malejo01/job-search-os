@@ -522,20 +522,6 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
       );
       await expect(asUser(A, (tx) => tx`select release_invitations(null)`)).rejects.toThrow();
     },
-    // Sin EXECUTE para el rol de la app desde JS-113: llamarla falla y no toca la invitación de B.
-    register_with_invitation: async () => {
-      const before = await fingerprint({ table: "invitations", column: "used_by_user_id" }, B);
-      await expect(
-        asUser(
-          A,
-          (tx) => tx`select register_with_invitation(
-          'hash-canjeada-por-b', ${EMAIL_B}, 'x', 'Intruso', 'ingest.test') as id`,
-        ),
-      ).rejects.toThrow(/permission denied/);
-      expect(await fingerprint({ table: "invitations", column: "used_by_user_id" }, B)).toBe(
-        before,
-      );
-    },
     register_with_invitation_v3: async () => {
       const before = await fingerprint({ table: "invitations", column: "used_by_user_id" }, B);
       const [r] = await asUser(
@@ -543,19 +529,6 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
         (tx) => tx<{ id: string | null }[]>`select register_with_invitation_v3(
           'hash-canjeada-por-b', ${EMAIL_B}, 'x', 'Intruso', 'ingest.test', '2026-10-07',
           'abcdefghijklmnopqrst') as id`,
-      );
-      expect(r!.id).toBeNull();
-      expect(await fingerprint({ table: "invitations", column: "used_by_user_id" }, B)).toBe(
-        before,
-      );
-      expect(await owner`select 1 from users where name = 'Intruso'`).toHaveLength(0);
-    },
-    register_with_invitation_v2: async () => {
-      const before = await fingerprint({ table: "invitations", column: "used_by_user_id" }, B);
-      const [r] = await asUser(
-        A,
-        (tx) => tx<{ id: string | null }[]>`select register_with_invitation_v2(
-          'hash-canjeada-por-b', ${EMAIL_B}, 'x', 'Intruso', 'ingest.test', '2026-10-07') as id`,
       );
       expect(r!.id).toBeNull();
       expect(await fingerprint({ table: "invitations", column: "used_by_user_id" }, B)).toBe(
