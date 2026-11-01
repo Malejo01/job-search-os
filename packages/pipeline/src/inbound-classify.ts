@@ -193,10 +193,10 @@ export function classifyInbound(input: ClassifyInput): InboundClassification {
   // no se clasifica como confirmación de reenvío.
   if (addr === GMAIL_FORWARDING_SENDER && GMAIL_FORWARDING_SUBJECT.test(subject)) {
     const hasBody = typeof text === "string" && text.trim().length > 0;
+    // Solo el cuerpo cuenta: la cuenta que figura en el asunto no es una señal (se arma con una línea y
+    // dejaría pasar, como confirmación, un cuerpo con el código de seguridad de un tercero)
     const isAuthenticBody =
-      !hasBody ||
-      hasGmailConfirmSignal(text) ||
-      Boolean(gmailForwardRequester(text, null, subject));
+      !hasBody || hasGmailConfirmSignal(text) || Boolean(gmailForwardRequester(text, null));
     if (isAuthenticBody) {
       return { category: "confirmacion_reenvio_gmail", application: null };
     }
