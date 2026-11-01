@@ -44,7 +44,10 @@ export function RolePicker({
   salaries,
   spanishCounts,
   specialtySelection,
+  areasFilter = false,
 }: {
+  /** `AREAS_FILTER_ENABLED` prendido (C5-3): cambia el texto de las áreas, que hasta ahora no filtraban. */
+  areasFilter?: boolean;
   /**
    * Áreas guardadas por carrera (`profiles.target_specialties`, C3-3); null o ausente = «Todas las
    * áreas». El selector no la valida: `selectedSpecialtyIds` ignora lo que no sea del catálogo.
@@ -141,6 +144,7 @@ export function RolePicker({
                       <RoleSpecialties
                         roleKey={role.key as RoleKey}
                         roleLabel={role.label}
+                        areasFilter={areasFilter}
                         initialSpecialties={
                           selectedSpecialtyIds(specialtySelection, role.key as RoleKey) ?? undefined
                         }

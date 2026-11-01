@@ -1,5 +1,5 @@
 import { specialtiesFor, specialtyIdsForTitle } from "./specialties";
-import { toRoleKey, type RoleKey } from "./self-assessment";
+import { isRoleKey, toRoleKey, type RoleKey } from "./self-assessment";
 
 /**
  * Áreas de especialidad que la persona eligió (C3-3), lo que se guarda en `profiles.target_specialties`.
@@ -11,8 +11,9 @@ import { toRoleKey, type RoleKey } from "./self-assessment";
  * solo lo que restringe hace que `null` sea el valor por defecto y que marcar todos los chips sea lo
  * mismo que no marcar ninguno.
  *
- * Todavía no filtra ningún aviso: el pool y el prefiltro no lo leen. `jobMatchesSpecialties` es la
- * referencia de cómo se aplicaría (ver el PR de C3-3).
+ * No descarta ningún aviso. Con `AREAS_FILTER_ENABLED=1` (apagado por defecto, C5-3) la selección del
+ * pool lo usa solo para **bajar de orden** y **marcar** (`fuera_de_areas`) lo que queda fuera de las áreas
+ * elegidas; nada se esconde.
  */
 export type TargetSpecialties = Partial<Record<RoleKey, string[]>>;
 
@@ -89,4 +90,32 @@ export function jobMatchesSpecialties(title: string, role: RoleKey, saved: unkno
   const named = specialtyIdsForTitle(title, role);
   if (named.length === 0) return true;
   return named.some((id) => selected.includes(id));
+}
+
+/** Marca que se guarda en `jobs.flags` de una oferta que queda fuera de las áreas que la persona eligió. */
+export const OUTSIDE_AREAS_FLAG = "fuera_de_areas";
+
+/**
+ * Interruptor de la baja de orden y la marca por áreas (C5-3). Ausente o distinto de «1» = apagado: sin
+ * él, la selección del pool se comporta exactamente como antes.
+ */
+export function areasFilterEnabled(env: Record<string, string | undefined>): boolean {
+  return env.AREAS_FILTER_ENABLED === "1";
+}
+
+/**
+ * ¿La oferta queda **fuera** de las áreas elegidas? Se mira cada carrera que la persona eligió (`roles`) y
+ * que el aviso nombra (`roleHints`): queda afuera solo si en todas ellas el título nombra áreas y ninguna es
+ * una elegida. Sin carrera en común, sin selección guardada o con un título que ningún área nombra, no queda
+ * afuera: solo se acota por lo que el título dice, igual que `jobMatchesSpecialties`.
+ */
+export function outsideSelectedAreas(
+  title: string,
+  roleHints: readonly string[],
+  roles: readonly string[],
+  saved: unknown,
+): boolean {
+  const shared = roles.filter((r): r is RoleKey => isRoleKey(r) && roleHints.includes(r));
+  if (shared.length === 0) return false;
+  return shared.every((role) => !jobMatchesSpecialties(title, role, saved));
 }

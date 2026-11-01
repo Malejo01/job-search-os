@@ -161,6 +161,8 @@ export function flagLabel(flag: string): string | null {
       return "buena coincidencia de aptitudes";
     case "volume_recruiting":
       return "búsqueda masiva";
+    case "fuera_de_areas":
+      return "fuera de las áreas que elegiste";
     default:
       return null;
   }

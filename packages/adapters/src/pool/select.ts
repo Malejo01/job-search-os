@@ -6,6 +6,8 @@ import {
   assessPoolTitle,
   interleaveByRole,
   locationScope,
+  OUTSIDE_AREAS_FLAG,
+  outsideSelectedAreas,
   prefilter,
   rankCandidates,
   isTooSenior,
@@ -77,6 +79,12 @@ export type SelectInput = {
   levelBySkill: ReadonlyMap<string, number>;
   now: Date;
   limit: number;
+  /**
+   * Áreas de especialidad que eligió la persona (`profiles.target_specialties`, C5-3). Solo viene con
+   * `AREAS_FILTER_ENABLED=1`: lo que el título deja fuera de las áreas elegidas baja de orden y se marca con
+   * `fuera_de_areas`, pero nunca se descarta. Sin esto (el default), el orden es el de siempre.
+   */
+  areas?: { saved: unknown } | null;
 };
 
 export type RankedPick = {
@@ -303,8 +311,13 @@ export async function selectPoolCandidates(tx: Db, input: SelectInput): Promise<
           roles,
           yearsTotal: prefs.yearsTotal ?? null,
         });
+        const outsideAreas = input.areas
+          ? outsideSelectedAreas(p.row.title, a.effectiveHints, roles, input.areas.saved)
+          : false;
         return {
           ...p,
+          flags: outsideAreas ? [...p.flags, OUTSIDE_AREAS_FLAG] : p.flags,
+          outsideAreas,
           id: p.row.id,
           postedAt: p.row.postedAt,
           roleHints: a.effectiveHints,

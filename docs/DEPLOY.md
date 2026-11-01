@@ -68,6 +68,7 @@ Consecuencia: el `vercel.json` actual (`0 */6 * * *` y `15 */6 * * *`) **no desp
 | `RESEND_WEBHOOK_SECRET`, `INGEST_DOMAIN` | bloque 4 | |
 | `RESEND_API_KEY` | prod | también usada para mandar el email de "olvidé mi contraseña" (JS-045, ADR-012) |
 | `EMAIL_FROM` | opcional | remitente del email de recuperación; vacío usa el sandbox `onboarding@resend.dev` |
+| `AREAS_FILTER_ENABLED` | opcional | `1` prende la baja de orden y la marca de las ofertas que quedan fuera de las áreas de especialidad que eligió cada persona (C5-3). Apagado por defecto: no cambia la asignación ni el orden. No esconde nada: las ofertas marcadas llevan «fuera de las áreas que elegiste». Antes de prenderlo, ver «Cómo filtra» en ADR-027 |
 
 ## Pool de ofertas públicas (JS-137)
 
