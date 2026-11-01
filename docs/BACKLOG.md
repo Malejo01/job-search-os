@@ -1106,3 +1106,21 @@ Trece PRs nuevos de la nube (todos en draft, sin mergear; las migraciones **no**
 - Mauro: `pnpm db:migrate` (0051 a 0055 y las policies `rls/0001`, `0003`, `0006`, `0010`, `0015`) antes del merge; variables de Vercel (ver el PR de integración); runbook y checklist.
 - Antes del 26/11: sacar de la lista de espera a quienes Ani no elija; antes del 13/11, actualizar `docs/legal/datos-por-proveedor.md` (hallazgo L-1 de la auditoría).
 - Ronda del 3/11: medición con `pg_stat_statements` y lo que pide migración (persistir el idioma del aviso, `market_candidates`, índice de `inbound_emails` por persona).
+
+## Bloque 12 — Textos de la beta, marca, ahorro de Neon, carreras por umbral y kit del QR (tanda C6, 2026-11-02)
+
+Seis tickets de la nube en una noche: cinco PRs en draft hacia `ronda/integracion-c6` (más uno apilado que **no** entra), la limpieza de los PRs viejos y **un PR de integración** `ronda/integracion-c6` → `main`. Nada se mergeó a `main`; la migración **no** se aplicó. El detalle, las migraciones, los paths rojos y las «Decisiones para Mauro» están en el PR de integración.
+
+- **C6-1 · Textos públicos alineados con la beta** · `estado:` done, 2026-11-02 (PR [#345](https://github.com/Malejo01/job-search-os/pull/345)). `/ayuda` habla del Plan Beta (por invitación, pago) y del gratis como lo que queda al vencer, y cierra con cupo limitado; `/acceso` pone las 6 carreras de la beta primero en el grupo «Carreras de la beta» (`waitlistRoleGroups`); «Datos curiosos» de `/mercado` respeta las carreras ocultas; `/demo` sin «probarlo» ni «cargá el tuyo».
+- **C6-2 · Nombre del producto en un solo lugar** · done, 2026-11-02 ([#346](https://github.com/Malejo01/job-search-os/pull/346)). La UI ya leía `PRODUCT_NAME`; faltaba el `User-Agent` de las fuentes y tres e2e que repetían el nombre. Guarda `brand.test.ts`. El valor no cambia. **Aparte, sin integrar:** [#347](https://github.com/Malejo01/job-search-os/pull/347) cambia el valor a «AfinIAJobs» (NO MERGEAR hasta aprobar la marca el 6/11).
+- **C6-3 · Ahorro de Neon, parte 2** · done, 2026-11-02 ([#348](https://github.com/Malejo01/job-search-os/pull/348), **migración 0056**, carril rojo). La selección de candidatas del pool leía 300 filas completas (~70 KB c/u, ~21 MB por llamada): ahora lee columnas acotadas y la fila completa solo de las elegidas, por tandas de 25. Índice `job_queue_job_id` sobre `payload->>'jobId'` para el conteo de la cola. `/fit` con `decision->'checklist'`. `docs/neon/neon-stats.sql` (solo lectura) para medir antes y después. Estado de la auditoría en `docs/neon/auditoria-consultas.md` §5.
+- **C6-4 · Carreras de la beta en público por umbral** · done, 2026-11-02 ([#349](https://github.com/Malejo01/job-search-os/pull/349), ADR-029). Aparecen solas al llegar a 10 ofertas (mismo conteo que la tabla de `/settings/metricas`), con caché de 1 hora, dos listas de override en código y falla cerrado. Vuelve innecesario el PR de una línea de #343.
+- **C6-5 · Kit del QR para el 11/11** · done, 2026-11-02 ([#350](https://github.com/Malejo01/job-search-os/pull/350), `docs/beta/voces-jovenes/`): dos QR (dominio nuevo y respaldo) en SVG y PNG, README y checklist del evento.
+- **C6-6 · Limpieza de PRs viejos** · done, 2026-11-02: 38 PRs en draft (#290–#296 salvo el 293, #305–#307, #312–#340) cerrados porque su contenido ya estaba en `main` por #309 (9 PRs) o #341 (29 PRs), verificado con `git merge-base --is-ancestor` y `git cherry`. Sin tocar #69, #308 (ReliefWeb, aplazado), #343 y #344.
+- **C6-7 · PR de integración** · rama `ronda/integracion-c6`.
+
+### Pendiente después de la tanda
+- Mauro: `pnpm db:migrate` (0056) antes del merge; después de mergear, correr `docs/neon/neon-stats.sql` y comparar con la foto del 1/11.
+- 9/11: decidir qué QR se usa el 11/11 (README del kit). 6/11: aprobación de marca; recién ahí se mergea #347 y se cambian los textos legales (13/11).
+- Ronda del 3/11 (lo que quedó de la auditoría de Neon y pide migración): persistir el idioma y el nivel de inglés del aviso en `public_jobs` (hoy `readCareerMarketInput` lee el texto), `market_candidates`, índice de `inbound_emails` por persona, y los shingles del dedup.
+- Si algún día se quiere que una carrera ya publicada se oculte sola al bajar de 10 ofertas: sumarla a `PUBLIC_THRESHOLD_ROLE_KEYS` (ADR-029).
