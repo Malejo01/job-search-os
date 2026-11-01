@@ -48,7 +48,16 @@ test.describe("Flujo 96: Página pública de ayuda y preguntas frecuentes (/ayud
       "href",
       "/acceso",
     );
-    await expect(body.getByRole("link", { name: "Precios" })).toHaveAttribute("href", "/precios");
+    // El enlace a /precios solo existe con PRICING_ENABLED=1 (sin eso la página da 404)
+    if (process.env.PRICING_ENABLED === "1") {
+      await expect(body.getByRole("link", { name: "Precios" })).toHaveAttribute("href", "/precios");
+    } else {
+      await expect(body.getByRole("link", { name: "Precios" })).toHaveCount(0);
+      await expect(body).toContainText("Los precios se publican antes de que abra la beta");
+    }
+    // Sin prometer una invitación a todos, y la privacidad nombra a los proveedores de IA
+    await expect(body).toContainText("anotarte no garantiza un lugar");
+    await expect(body).toContainText("proveedores de inteligencia artificial");
     await expect(body.getByRole("link", { name: "Política de privacidad" })).toHaveAttribute(
       "href",
       "/legal/privacidad",
