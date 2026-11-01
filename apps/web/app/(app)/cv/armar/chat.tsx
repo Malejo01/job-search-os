@@ -178,9 +178,10 @@ export function CvChat() {
       <section className="flex flex-col gap-3" aria-label="Cómo funciona">
         <p className="text-sm text-fg-muted">
           Te hago preguntas de a una (puesto, experiencia, estudios, skills, idiomas y links), vos
-          corregís lo que entendí y al final armo un CV en formato ATS. La IA redacta las viñetas,
-          pero un control descarta cualquier cifra, nombre o tecnología que vos no hayas dicho. Nada
-          se guarda hasta que lo confirmes.
+          corregís lo que entendí y al final armo un CV legible por ATS (los sistemas que leen CV:
+          sin tablas ni columnas). La IA redacta las viñetas, pero un control descarta cualquier
+          cifra, nombre o tecnología que vos no hayas dicho. No te asegura pasar ningún filtro: es
+          un CV claro y fiel a lo que contás. Nada se guarda hasta que lo confirmes.
         </p>
         <p className="text-sm text-fg-muted">
           Si tenés un CV hecho, no lo pegues acá: cargá tu historial a mano.

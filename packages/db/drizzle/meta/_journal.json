@@ -337,6 +337,27 @@
       "when": 1793058455056,
       "tag": "0047_slimy_mindworm",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1793380621407,
+      "tag": "0048_carreras_beta_waitlist",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1793380636341,
+      "tag": "0049_carreras_beta_skills",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1793466176632,
+      "tag": "0050_beta_feedback_context",
+      "breakpoints": true
     }
   ]
 }

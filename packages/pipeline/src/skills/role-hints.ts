@@ -22,6 +22,9 @@ const PRODUCT_PROJECT: readonly RoleKey[] = [...PRODUCT_ONLY, "project_manager"]
  */
 const CUSTOMER_SUPPORT: readonly RoleKey[] = ["atencion_cliente", "customer_success"];
 
+/** Gestión y finanzas comparten categoría en We Work Remotely; `titleFit` separa por título. */
+const MANAGEMENT_FINANCE: readonly RoleKey[] = ["finanzas_contabilidad", "administracion_empresas"];
+
 /**
  * Fuente → categoría → roles. Las categorías se comparan normalizadas: minúsculas, sin acentos y
  * con todo lo que no sea letra o número convertido en un guion ("Machine Learning" → "machine-learning").
@@ -77,10 +80,21 @@ export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleK
     "human-resources": ["rrhh_it"],
     recruiting: ["rrhh_it"],
     product: PRODUCT_ONLY,
-    "project-management": ["project_manager"],
+    "project-management": ["project_manager", "administracion_empresas"],
     "customer-success": ["customer_success"],
     security: ["ciberseguridad"],
     cybersecurity: ["ciberseguridad"],
+    // C1-6 (ADR-027): categorías no técnicas de Jobicy. Ojo: «admin» es DevOps y no se mapea;
+    // «admin-support» es asistencia administrativa.
+    legal: ["abogacia"],
+    "accounting-finance": ["finanzas_contabilidad"],
+    copywriting: ["marketing_digital", "comunicacion"],
+    // A VERIFICAR con `pool:fetch jobicy --dry-run`: slugs que Jobicy usa para redes sociales.
+    smm: ["marketing_digital"],
+    "social-media-marketing": ["marketing_digital"],
+    management: ["administracion_empresas"],
+    business: ["administracion_empresas"],
+    "admin-support": ["asistencia_operaciones"],
     programming: DEV,
     "software-development": DEV,
     "web-development": DEV,
@@ -152,6 +166,16 @@ export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleK
     "customer-support": CUSTOMER_SUPPORT,
     "remote-design-jobs": ["ux_ui"],
     design: ["ux_ui"],
+    // C1-6 (ADR-027). Ventas y marketing trae también ventas puras: solo se mapea marketing, y los
+    // títulos de ventas los toma `ventas_b2b` por título. Gestión y finanzas dan las dos carreras.
+    "remote-sales-and-marketing-jobs": ["marketing_digital"],
+    "sales-and-marketing": ["marketing_digital"],
+    "remote-management-and-finance-jobs": MANAGEMENT_FINANCE,
+    "management-and-finance": MANAGEMENT_FINANCE,
+    // A VERIFICAR con `pool:fetch wwr --dry-run`: otros nombres de categoría del feed.
+    "remote-copywriting-jobs": ["marketing_digital", "comunicacion"],
+    "remote-business-exec-management-jobs": ["administracion_empresas"],
+    "remote-finance-and-legal-jobs": ["finanzas_contabilidad", "abogacia"],
   },
 };
 
@@ -343,6 +367,39 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "motion designer",
     "creador de contenido",
     "creadora de contenido",
+    // C1-3 (ADR-027): marca, trade, investigación, CRM, medios, RR.PP., eventos y RSE. «RR.PP.» se
+    // normaliza a «rr pp». «Ejecutivo de cuentas» no entra: sin «agencia» es ventas.
+    "brand manager",
+    "assistant brand manager",
+    "asistente de marca",
+    "trade marketing",
+    "market research analyst",
+    "insights analyst",
+    "analista de investigacion de mercado",
+    "crm specialist",
+    "analista de crm",
+    "media planner",
+    "planificador de medios",
+    "planificadora de medios",
+    "relaciones publicas",
+    "public relations",
+    "ejecutivo de rrpp",
+    "ejecutiva de rrpp",
+    "ejecutivo de rr pp",
+    "ejecutiva de rr pp",
+    "relacionista publico",
+    "relacionista publica",
+    "pr specialist",
+    "pr executive",
+    "pr manager",
+    "public affairs",
+    "relaciones institucionales",
+    "organizador de eventos",
+    "organizadora de eventos",
+    "events coordinator",
+    "event coordinator",
+    "analista de rse",
+    "csr analyst",
   ],
   product_manager: [
     "product manager",
@@ -590,6 +647,19 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "impositiva",
     "auditora",
     "control de gestion",
+    // C1-3 (ADR-027). Nunca «sueldo» suelto: «sueldo + comisiones» es un aviso de ventas.
+    "liquidador de sueldos",
+    "liquidadora de sueldos",
+    "analista de sueldos",
+    "liquidacion de haberes",
+    "analista de costos",
+    "auditoria",
+    "control interno",
+    "creditos y cobranzas",
+    "cuentas corrientes",
+    "perito contable",
+    "analista impositivo",
+    "aml analyst",
   ],
   // Nunca "operations" ni "assistant" sueltos.
   asistencia_operaciones: [
@@ -633,10 +703,184 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "ingreso de datos",
     "secretaria ejecutiva",
   ],
+  // C1-2 (ADR-027): las carreras de la beta nacen sin términos de título; los suma C1-3 junto con
+  // sus exclusiones y vetos.
+  // Nunca «legal» ni «contract» sueltos: solo frases.
+  abogacia: [
+    "abogado",
+    "abogada",
+    "asesor legal",
+    "asesora legal",
+    "analista legal",
+    "procurador",
+    "procuradora",
+    "paralegal",
+    "asistente legal",
+    "legal counsel",
+    "corporate counsel",
+    "legal analyst",
+    "contracts counsel",
+    "contract manager",
+    "analista de contratos",
+    "compliance officer",
+    "oficial de cumplimiento",
+    "privacy counsel",
+    "ip associate",
+    "trademark paralegal",
+    "legal operations",
+    "legal assistant",
+    "attorney",
+    "lawyer",
+  ],
+  // Nunca «administrador/a» suelto («Administrador de Sistemas», «Administradora de Consorcios»).
+  administracion_empresas: [
+    "analista administrativo",
+    "analista administrativa",
+    "jefe de administracion",
+    "jefa de administracion",
+    "responsable administrativo",
+    "responsable administrativa",
+    "analista de control de gestion",
+    "comprador",
+    "compradora",
+    "analista de compras",
+    "buyer",
+    "procurement analyst",
+    "analista de logistica",
+    "supply chain analyst",
+    "demand planner",
+    "analista de procesos",
+    "process improvement analyst",
+    "analista comercial",
+    "pricing analyst",
+    "analista de estrategia",
+    "management consultant",
+  ],
+  comunicacion: [
+    "analista de comunicacion",
+    "comunicacion institucional",
+    "comunicacion interna",
+    "internal communications",
+    "communications specialist",
+    "communications coordinator",
+    "communications officer",
+    "jefe de prensa",
+    "jefa de prensa",
+    "responsable de prensa",
+    "agente de prensa",
+    "press officer",
+    "media relations",
+    "periodista",
+    "redactor",
+    "redactora",
+    "editor",
+    "editora",
+    "productor periodistico",
+    "productora periodistica",
+    "journalist",
+    "reporter",
+    "content writer",
+    "content editor",
+    "ux writer",
+    "communications manager",
+    "pr manager",
+    "comunicacion corporativa",
+    "corporate communications",
+    "jefe de comunicacion",
+    "jefa de comunicacion",
+    "responsable de comunicacion",
+  ],
+  // Nunca «internacional»/«international», «relaciones» ni «trade» sueltos.
+  relaciones_internacionales: [
+    "analista de comercio exterior",
+    "asistente de comex",
+    "comercio exterior",
+    "analista de importaciones",
+    "analista de exportaciones",
+    "foreign trade",
+    "import export specialist",
+    "customs compliance",
+    "oficial de programas",
+    "program officer",
+    "programme associate",
+    "grants officer",
+    "partnerships officer",
+    "cooperacion internacional",
+    "relaciones institucionales",
+    "public affairs",
+    "government affairs",
+    "public policy analyst",
+    "political risk analyst",
+    "geopolitical analyst",
+    "global mobility",
+    "analista de comex",
+    "despachante de aduana",
+    "importaciones y exportaciones",
+  ],
 };
 
 /** Palabras que anulan el puesto aunque el título tenga uno de sus términos. */
 export const TITLE_EXCLUSIONS: Partial<Record<RoleKey, readonly string[]>> = {
+  // C1-3 (ADR-027): derecho de otra disciplina (ingeniería legal, enfermería legal, traducción
+  // jurídica, ventas). «Relaciones laborales» queda sin término: es RRHH y solo encaja parcialmente.
+  // C1-3: telecomunicaciones y redes de datos usan «comunicaciones»; moderación de contenido y medios
+  // de pago no son comunicación. «Redes» solo cuenta como red de datos, no como redes sociales.
+  comunicacion: [
+    "tele",
+    "telecom",
+    "telecomunicaciones",
+    "unificadas",
+    "unified",
+    "radiofrecuencia",
+    "redes de datos",
+    "redes de comunicaciones",
+    "redes ip",
+    "redes moviles",
+    "network",
+    "fibra",
+    "engineer",
+    "developer",
+    "desarrollador",
+    "desarrolladora",
+    "programador",
+    "software",
+    "ingeniero",
+    "ingeniera",
+    "tecnico",
+    "tecnica",
+    "moderador",
+    "moderadora",
+    "moderator",
+    "rater",
+    "medios de pago",
+  ],
+  // C1-3: telemarketing, multinivel y perfiles técnicos o de embajadores de marca no son marketing.
+  // Los RR.PP. de boliche o de promoción se excluyen por término (`TERM_EXCLUSIONS`).
+  marketing_digital: [
+    "telemarketing",
+    "telemarketer",
+    "network marketing",
+    "multinivel",
+    "marketing engineer",
+    "marketing technologist",
+    "brand ambassador",
+    "embajador de marca",
+    "embajadora de marca",
+  ],
+  // C1-3: divisas y cambio de moneda no son comercio exterior.
+  relaciones_internacionales: ["fx", "foreign exchange"],
+  // Encargados de local o sucursal no son administración de empresas.
+  administracion_empresas: [
+    "encargado de local",
+    "encargada de local",
+    "encargado de sucursal",
+    "encargada de sucursal",
+    "jefe de sucursal",
+    "jefa de sucursal",
+  ],
+  // Las demás (software, ventas, medicina, traducción) anulan solo los títulos «legal ...»: ver
+  // `TERM_EXCLUSIONS`. Un abogado de una empresa de software sigue siendo abogado.
+  abogacia: ["engineer", "developer"],
   ciberseguridad: ["physical security", "data center security"],
   // Esas infraestructuras y plataformas son de seguridad y de datos, ya tienen su carrera.
   soporte_it: ["security infrastructure", "data platform", "data infrastructure"],
@@ -731,6 +975,161 @@ export const TITLE_EXCLUSIONS: Partial<Record<RoleKey, readonly string[]>> = {
 };
 
 /**
+ * Exclusiones de un solo término (C1-3, ADR-027): la palabra anula únicamente esa frase del puesto,
+ * no toda la carrera. Sirve cuando un término es ambiguo ("auditor de calidad" no es contaduría) pero
+ * otros términos del mismo puesto son claros ("contador"). La clave es el término de `TITLE_TERMS`.
+ */
+export const TERM_EXCLUSIONS: Partial<
+  Record<RoleKey, Readonly<Record<string, readonly string[]>>>
+> = {
+  // «Analista de procesos» de planta o químicos es ingeniería; «buyer» de medios es marketing.
+  administracion_empresas: {
+    ...termExclusions(
+      ["analista de procesos", "process improvement analyst"],
+      [
+        "engineer",
+        "quimico",
+        "quimica",
+        "planta",
+        "plant",
+        "developer",
+        "desarrollador",
+        "software",
+        "sistemas",
+        "rpa",
+        "bpm",
+      ],
+    ),
+    buyer: ["media", "paid", "real estate", "travel"],
+  },
+  // Prensa industrial, despachos de emergencia, editores de video o de código y taquígrafos no son
+  // comunicación.
+  comunicacion: {
+    ...termExclusions(
+      ["jefe de prensa", "jefa de prensa", "responsable de prensa", "agente de prensa"],
+      ["operario", "prensista", "hidraulica", "inyeccion", "matriceria"],
+    ),
+    ...termExclusions(
+      ["communications officer", "communications specialist", "communications coordinator"],
+      ["dispatch", "911", "emergency"],
+    ),
+    ...termExclusions(
+      ["editor", "editora"],
+      ["video", "code", "codigo", "photo", "foto", "imagen", "audio", "sonido", "sound"],
+    ),
+    reporter: ["court", "data", "analytics", "bi", "sql"],
+  },
+  // «Public policy analyst» de seguros es un puesto de la aseguradora, no de política pública.
+  relaciones_internacionales: {
+    "public policy analyst": ["seguros", "insurance"],
+  },
+  abogacia: {
+    // «Compliance officer» de seguridad, IT, SOC, farma o asuntos regulatorios no es derecho.
+    ...termExclusions(
+      ["compliance officer", "oficial de cumplimiento"],
+      [
+        "security",
+        "seguridad",
+        "cybersecurity",
+        "cyber",
+        "ciberseguridad",
+        "infosec",
+        "it",
+        "soc",
+        "pharma",
+        "farma",
+        "regulatory",
+        "regulatorio",
+      ],
+    ),
+    // «Legal» con software, ventas, medicina o traducción es otra cosa («Legal Nurse», «Legal
+    // Translator»). Los títulos de abogado, procurador y «... counsel» no se anulan.
+    ...termExclusions(
+      [
+        "asesor legal",
+        "asesora legal",
+        "analista legal",
+        "asistente legal",
+        "legal assistant",
+        "legal analyst",
+        "legal operations",
+        "legal counsel",
+      ],
+      [
+        "software",
+        "sales",
+        "medical",
+        "nurse",
+        "interpreter",
+        "translator",
+        "traductor",
+        "interprete",
+      ],
+    ),
+  },
+  // Boliches, fiestas, entradas y promotores: RR.PP. de salida nocturna, no de comunicación.
+  // «Insights analyst» de datos o de producto es de la carrera de datos.
+  marketing_digital: {
+    ...termExclusions(
+      [
+        "relaciones publicas",
+        "public relations",
+        "ejecutivo de rrpp",
+        "ejecutiva de rrpp",
+        "ejecutivo de rr pp",
+        "ejecutiva de rr pp",
+        "relacionista publico",
+        "relacionista publica",
+        "pr specialist",
+        "pr executive",
+        "pr manager",
+      ],
+      [
+        "boliche",
+        "fiesta",
+        "nocturno",
+        "entradas",
+        "comision",
+        "comisiones",
+        "promotor",
+        "promotora",
+      ],
+    ),
+    "insights analyst": ["data", "product", "analytics", "bi"],
+  },
+  finanzas_contabilidad: termExclusions(
+    ["auditor", "auditora", "auditoria", "internal audit", "control interno"],
+    // Auditorías de calidad, de obra, de llamadas, de accesibilidad o médicas no son contables.
+    [
+      "calidad",
+      "quality",
+      "iso",
+      "obra",
+      "higiene",
+      "llamadas",
+      "call",
+      "accesibilidad",
+      "medico",
+      "medica",
+      "medicos",
+      "medicas",
+      "ambiental",
+      "environmental",
+      "safety",
+      "alimentaria",
+    ],
+  ),
+};
+
+/** Misma lista de exclusiones para varios términos. */
+function termExclusions(
+  terms: readonly string[],
+  words: readonly string[],
+): Record<string, readonly string[]> {
+  return Object.fromEntries(terms.map((t) => [t, words]));
+}
+
+/**
  * "Product engineer" es fullstack, salvo en manufactura, hardware o mecánica. La exclusión aplica
  * solo a este término: "Full Stack Engineer, Hardware Platform" sigue siendo fullstack.
  */
@@ -799,6 +1198,9 @@ export function matchesAiWithTechRole(padded: string): boolean {
 
 export function normalizeTitleText(title: string): string {
   return ` ${foldText(title)
+    // «Jefe/a», «Planificador/a», «Abogado(a)»: la marca de género se pega a la palabra, para que
+    // «jefe/a de prensa» siga siendo «jefe de prensa». Solo terminaciones del español.
+    .replace(/(o|e|or)(?:\/a|\(a\))(?![a-z0-9])/g, "$1")
     .replace(/[^a-z0-9]+/g, " ")
     .trim()} `;
 }
@@ -820,7 +1222,10 @@ export function matchesRoleTitle(
 ): boolean {
   if ((TITLE_EXCLUSIONS[role] ?? []).some((w) => hasTerm(padded, w))) return false;
   if (role === "soporte_it" && matchesAiWithTechRole(padded)) return false;
-  if ([...TITLE_TERMS[role], ...extraTerms].some((term) => hasTerm(padded, term))) return true;
+  const termExclusions = TERM_EXCLUSIONS[role] ?? {};
+  const counts = (term: string) =>
+    hasTerm(padded, term) && !(termExclusions[term] ?? []).some((w) => hasTerm(padded, w));
+  if ([...TITLE_TERMS[role], ...extraTerms].some(counts)) return true;
   return (
     role === "fullstack" &&
     hasTerm(padded, PRODUCT_ENGINEER) &&

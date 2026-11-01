@@ -102,9 +102,9 @@ export const POOL_MIN_INTERVAL_MS: Record<PoolSourceName, number> = {
 const DEFAULT_TIMEOUT_MS: Record<PoolSourceName, number> = {
   getonboard: 25_000,
   remoteok: 10_000,
-  jobicy: 10_000,
+  jobicy: 25_000,
   himalayas: 10_000,
-  wwr: 15_000,
+  wwr: 20_000,
   greenhouse: 20_000,
   lever: 20_000,
   ashby: 20_000,

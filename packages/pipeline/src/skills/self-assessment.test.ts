@@ -4,8 +4,10 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_CRITERIA_RULES } from "../onboarding";
 import {
   BACKOFFICE_ROLE_KEYS,
+  BETA_ROLE_KEYS,
   COMMERCIAL_ROLE_KEYS,
   DIGITAL_ROLE_KEYS,
+  LEGAL_MANAGEMENT_ROLE_KEYS,
   UNLISTED_ROLE_KEYS,
   selectableRoleGroups,
   type RoleKey,
@@ -53,6 +55,7 @@ describe("ROLE_GROUPS", () => {
     expect([...DIGITAL_ROLE_KEYS].sort()).toEqual(
       [...ROLE_KEYS.slice(8, 16), ...ROLE_KEYS.slice(18)].sort(),
     );
+    expect(DIGITAL_ROLE_KEYS).toEqual(expect.arrayContaining([...LEGAL_MANAGEMENT_ROLE_KEYS]));
     expect(ROLE_GROUPS[0]!.roles).toEqual([...ROLE_KEYS.slice(0, 8), ...ROLE_KEYS.slice(16, 18)]);
     expect(ROLE_GROUPS[0]!.roles.slice(-2)).toEqual(["data_engineer", "solutions_engineer"]);
     expect(ROLE_GROUPS.map((g) => g.label)).toEqual([
@@ -61,6 +64,8 @@ describe("ROLE_GROUPS", () => {
       "Carreras digitales",
       "Ventas y atención",
       "Finanzas y operaciones",
+      "Derecho, contabilidad y gestión",
+      "Comunicación y relaciones",
     ]);
     expect(ROLE_GROUPS[3]!.roles).toEqual(["ventas_b2b", "atencion_cliente"]);
     expect(ROLE_GROUPS[1]!.roles).toEqual([
@@ -87,13 +92,13 @@ describe("ROLE_GROUPS", () => {
     ]);
     expect(ROLE_KEYS as readonly string[]).not.toContain("producto_proyectos");
   });
-  it("C-2b: las dos claves nuevas van al final, en su grupo, y cuentan como no IT", () => {
-    expect(ROLE_KEYS.slice(-2)).toEqual(["finanzas_contabilidad", "asistencia_operaciones"]);
-    expect(BACKOFFICE_ROLE_KEYS).toEqual(["finanzas_contabilidad", "asistencia_operaciones"]);
-    expect(ROLE_GROUPS).toHaveLength(5);
+  it("C-2b / G2-1: asistencia_operaciones queda en operaciones y finanzas_contabilidad migra a derecho/contabilidad", () => {
+    expect(ROLE_KEYS.slice(20, 22)).toEqual(["finanzas_contabilidad", "asistencia_operaciones"]);
+    expect(BACKOFFICE_ROLE_KEYS).toEqual(["asistencia_operaciones"]);
+    expect(ROLE_GROUPS).toHaveLength(7);
     expect(ROLE_GROUPS[4]).toEqual({
       label: "Finanzas y operaciones",
-      roles: ["finanzas_contabilidad", "asistencia_operaciones"],
+      roles: ["asistencia_operaciones"],
     });
     for (const k of BACKOFFICE_ROLE_KEYS) {
       expect(DIGITAL_ROLE_KEYS).toContain(k);
@@ -103,13 +108,19 @@ describe("ROLE_GROUPS", () => {
 });
 
 describe("selectableRoleGroups", () => {
-  it("hoy solo asistencia_operaciones está sin listar (C-2b): sale del selector salvo que la tenga el perfil", () => {
-    expect(UNLISTED_ROLE_KEYS).toEqual(["asistencia_operaciones"]);
+  it("hoy están sin listar asistencia_operaciones y las 4 de la beta (ADR-027): salen del selector salvo que las tenga el perfil", () => {
+    expect(UNLISTED_ROLE_KEYS).toEqual(["asistencia_operaciones", ...BETA_ROLE_KEYS]);
     const flat = (g: ReturnType<typeof selectableRoleGroups>) => g.flatMap((x) => [...x.roles]);
     expect(flat(selectableRoleGroups())).not.toContain("asistencia_operaciones");
     expect(flat(selectableRoleGroups())).toContain("finanzas_contabilidad");
     const kept = flat(selectableRoleGroups(["asistencia_operaciones"]));
     expect(kept).toContain("asistencia_operaciones");
+  });
+
+  it("la lista de espera ofrece las cuatro carreras de la beta aunque sigan ocultas", () => {
+    const offered = selectableRoleGroups(BETA_ROLE_KEYS).flatMap((g) => g.roles);
+    for (const key of BETA_ROLE_KEYS) expect(offered).toContain(key);
+    expect(offered).not.toContain("asistencia_operaciones");
   });
   it("las no listadas salen salvo las del perfil (keep), y los grupos no quedan vacíos", () => {
     // La lista es una constante: se prueba el mecanismo con una copia temporal y se restaura.
@@ -147,8 +158,8 @@ describe("toRoleKey", () => {
 describe("role_skills.json", () => {
   const parsed = roleSkillsSchema.safeParse(seed);
   it("valida contra el esquema", () => expect(parsed.success).toBe(true));
-  it("tiene los 22 roles", () => {
-    expect(ROLE_KEYS).toHaveLength(22);
+  it("tiene los 26 roles", () => {
+    expect(ROLE_KEYS).toHaveLength(26);
     expect(Object.keys(seed).sort()).toEqual([...ROLE_KEYS].sort());
   });
   it("todos los slugs existen en la taxonomía", () => {

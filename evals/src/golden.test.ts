@@ -20,9 +20,9 @@ describe("hashCriteria (JS-067)", () => {
 });
 
 describe("golden → prompt", () => {
-  it("carga las 36 ofertas del golden ordenadas por id, más los 4 adversariales (101–104)", () => {
-    expect(baseGoldenJobs).toHaveLength(36);
-    expect(baseGoldenJobs.map((j) => j.id)).toEqual([...Array(36)].map((_, i) => i + 1));
+  it("carga las 37 ofertas del golden ordenadas por id, más los 4 adversariales (101–104)", () => {
+    expect(baseGoldenJobs).toHaveLength(37);
+    expect(baseGoldenJobs.map((j) => j.id)).toEqual([...Array(37)].map((_, i) => i + 1));
     expect(adversarialJobs.map((j) => j.id)).toEqual([101, 102, 103, 104]);
     expect(goldenJobs.map((j) => j.id)).toEqual(
       [...baseGoldenJobs, ...adversarialJobs].map((j) => j.id),

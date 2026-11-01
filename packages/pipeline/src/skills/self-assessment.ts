@@ -39,6 +39,11 @@ export const ROLE_KEYS = [
   // C-2b (ADR-023): finanzas y asistencia/operaciones, siempre al final.
   "finanzas_contabilidad",
   "asistencia_operaciones",
+  // C1-2 (ADR-027): carreras de la beta, siempre al final.
+  "abogacia",
+  "administracion_empresas",
+  "comunicacion",
+  "relaciones_internacionales",
 ] as const;
 export type RoleKey = (typeof ROLE_KEYS)[number];
 
@@ -62,7 +67,6 @@ const NEW_TECH_ROLE_KEYS: readonly RoleKey[] = ["data_engineer", "solutions_engi
 
 /** Los puestos de carreras digitales que no son de producto (ronda 40). */
 const OTHER_DIGITAL_ROLE_KEYS: readonly RoleKey[] = [
-  "marketing_digital",
   "rrhh_it",
   "customer_success",
   "ciberseguridad",
@@ -80,17 +84,33 @@ export const PRODUCT_ROLE_KEYS: readonly RoleKey[] = [
 export const COMMERCIAL_ROLE_KEYS: readonly RoleKey[] = ["ventas_b2b", "atencion_cliente"];
 
 /** Las carreras de finanzas y de asistencia/operaciones (C-2b, ADR-023). */
-export const BACKOFFICE_ROLE_KEYS: readonly RoleKey[] = [
+export const BACKOFFICE_ROLE_KEYS: readonly RoleKey[] = ["asistencia_operaciones"];
+
+/** Las carreras de derecho y de gestión de la beta (ADR-027). */
+export const LEGAL_MANAGEMENT_ROLE_KEYS: readonly RoleKey[] = [
+  "abogacia",
   "finanzas_contabilidad",
-  "asistencia_operaciones",
+  "administracion_empresas",
 ];
 
-/** Todo lo que no es IT: carreras digitales, de producto, ventas, atención, finanzas y operaciones. */
+/** Las carreras de comunicación y de relaciones internacionales de la beta (ADR-027). */
+export const COMMUNICATION_ROLE_KEYS: readonly RoleKey[] = [
+  "marketing_digital",
+  "comunicacion",
+  "relaciones_internacionales",
+];
+
+/**
+ * Todo lo que no es IT: carreras digitales, de producto, ventas, atención, finanzas, operaciones,
+ * derecho, gestión y comunicación.
+ */
 export const DIGITAL_ROLE_KEYS: readonly RoleKey[] = [
   ...OTHER_DIGITAL_ROLE_KEYS,
   ...PRODUCT_ROLE_KEYS,
   ...COMMERCIAL_ROLE_KEYS,
   ...BACKOFFICE_ROLE_KEYS,
+  ...LEGAL_MANAGEMENT_ROLE_KEYS,
+  ...COMMUNICATION_ROLE_KEYS,
 ];
 
 /** Grupos del selector de puesto: juntos cubren `ROLE_KEYS` sin repetir. */
@@ -100,13 +120,24 @@ export const ROLE_GROUPS: readonly { label: string; roles: readonly RoleKey[] }[
   { label: "Carreras digitales", roles: OTHER_DIGITAL_ROLE_KEYS },
   { label: "Ventas y atención", roles: COMMERCIAL_ROLE_KEYS },
   { label: "Finanzas y operaciones", roles: BACKOFFICE_ROLE_KEYS },
+  { label: "Derecho, contabilidad y gestión", roles: LEGAL_MANAGEMENT_ROLE_KEYS },
+  { label: "Comunicación y relaciones", roles: COMMUNICATION_ROLE_KEYS },
 ];
 
 /**
  * Carreras que existen pero todavía no se ofrecen en los selectores (menos de 10 ofertas, ADR-022).
- * Quien ya la tiene la conserva: `isRoleKey`, la ingesta y `/mercado/<clave>` no cambian.
+ * Quien ya la tiene la conserva: `isRoleKey`, la ingesta y `/mercado/<clave>` no cambian. Las cuatro
+ * de la beta (ADR-027) salen así hasta medir su volumen después de `pool:rehint`.
  */
-export const UNLISTED_ROLE_KEYS: readonly RoleKey[] = ["asistencia_operaciones"];
+/** Las cuatro carreras nuevas de la beta (ADR-027). La lista de espera las ofrece aunque estén ocultas. */
+export const BETA_ROLE_KEYS: readonly RoleKey[] = [
+  "abogacia",
+  "administracion_empresas",
+  "comunicacion",
+  "relaciones_internacionales",
+];
+
+export const UNLISTED_ROLE_KEYS: readonly RoleKey[] = ["asistencia_operaciones", ...BETA_ROLE_KEYS];
 
 /**
  * `ROLE_GROUPS` sin las carreras no listadas, salvo las de `keep` (las del perfil de la persona), y
@@ -190,7 +221,7 @@ const HEADLINE_KEYWORDS: Record<RoleKey, RegExp> = {
   ai_engineer: /ai engineer|\bia\b/,
   ux_ui: /\bux\b|\bui\b/,
   marketing_digital:
-    /marketing digital|digital marketing|\bseo\b|performance marketing|community manager/,
+    /marketing digital|digital marketing|\bseo\b|performance marketing|community manager|relaciones publicas|public relations|\brrpp\b|brand manager/,
   product_manager: /product manager|(?:gerente|jefe|jefa) de producto/,
   product_owner: /product owner|due[nñ][oa] de producto/,
   project_manager:
@@ -211,6 +242,13 @@ const HEADLINE_KEYWORDS: Record<RoleKey, RegExp> = {
     /\bcontador(?:a)?\b|contab|accountant|bookkeep|fp&a|financial analyst|analista financier[oa]|\bfinanzas\b/,
   asistencia_operaciones:
     /asistente (?:virtual|ejecutiv[oa]|administrativ[oa])|(?:virtual|executive|administrative) assistant|operations (?:coordinator|specialist|associate)|data entry/,
+  abogacia: /\babogad[oa]s?\b|\blawyer\b|\battorney\b|\bparalegal\b|legal counsel|asesor[a]? legal/,
+  administracion_empresas:
+    /administracion de empresas|business administration|licenciad[oa] en administracion/,
+  comunicacion:
+    /\bperiodista\b|\bjournalist\b|\bcomunicador(?:a)? social|comunicacion (?:institucional|interna|social)|licenciad[oa] en comunicacion|(?:jefe|jefa|responsable) de prensa|communications? (?:specialist|manager|officer)/,
+  relaciones_internacionales:
+    /relaciones internacionales|international relations|comercio exterior|foreign trade|cooperacion internacional|\bcomex\b/,
 };
 
 /** disciplina de los criterios → rol (en orden de prioridad). */

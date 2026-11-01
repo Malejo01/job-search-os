@@ -30,7 +30,7 @@ import {
 const CAREERS = [
   {
     key: "finanzas_contabilidad",
-    label: "Finanzas y contabilidad",
+    label: "Contaduría, impuestos y finanzas",
     titles: ["Analista Contable Ficticio", "Analista de Finanzas Ficticio", "Tesorería Ficticia"],
   },
 ] as const;

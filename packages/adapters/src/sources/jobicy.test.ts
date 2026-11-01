@@ -3,6 +3,8 @@ import sample from "./__fixtures__/jobicy-sample.json";
 import {
   fetchJobicyJobs,
   JOBICY_BASE_URL,
+  JOBICY_POOL_GEOS,
+  JOBICY_POOL_INDUSTRIES,
   mapJobicyJob,
   parseJobicyDate,
   type JobicyItem,
@@ -201,21 +203,61 @@ describe("Jobicy: contrato con una respuesta de ejemplo (formato a verificar)", 
 describe("fetchJobicyJobs (fetch inyectado)", () => {
   const since = new Date("2026-10-09T00:00:00Z");
 
-  it("una sola llamada con ?count, filtra por fecha y cuenta los rotos", async () => {
+  it("llamadas por industria y geo en serie, filtra por fecha y deduplica por id", async () => {
     const urls: string[] = [];
     const fetchImpl = (async (url: string | URL | Request) => {
       urls.push(String(url));
       return new Response(JSON.stringify(fixture));
     }) as unknown as typeof fetch;
     const r = await fetchJobicyJobs({ since, fetchImpl });
-    expect(urls).toEqual([`${JOBICY_BASE_URL}?count=200`]);
-    expect(r.seen).toBe(5);
-    // 880004 no tiene url (skipped); 880005 es del 1/10 (fuera de la ventana)
-    expect(r.skipped).toBe(1);
+
+    const expectedUrls = [
+      ...JOBICY_POOL_INDUSTRIES.map((ind) => `${JOBICY_BASE_URL}?count=200&industry=${ind}`),
+      ...JOBICY_POOL_GEOS.map((geo) => `${JOBICY_BASE_URL}?count=200&geo=${geo}`),
+    ];
+    expect(urls).toEqual(expectedUrls);
+    // Cada llamada procesó el fixture de 5 items (9 llamadas = 45 vistos en total)
+    expect(r.seen).toBe(45);
+    // 880004 no tiene url (skipped, 9 veces); 880005 es del 1/10 (fuera de la ventana)
+    expect(r.skipped).toBe(9);
+    // Deduplicados a solo los 3 válidos
     expect(r.jobs.map((j) => j.source.externalId)).toEqual(["880001", "880002", "880003"]);
+    expect(r.byQuery).toBeDefined();
+    expect(r.byQuery?.["industry=legal"]).toBe(5);
+    expect(r.byQuery?.["geo=latam"]).toBe(5);
   });
 
-  it("respeta count y baseUrl; deduplica por id", async () => {
+  it("deduplica por id y combina categorías de distintas consultas", async () => {
+    const itemA: JobicyItem = {
+      ...anywhere,
+      id: "990001",
+      jobIndustry: ["Legal & Compliance"],
+    };
+    const itemB: JobicyItem = {
+      ...anywhere,
+      id: "990001",
+      jobIndustry: ["Finance & Accounting"],
+    };
+
+    let callCount = 0;
+    const fetchImpl = (async () => {
+      callCount++;
+      return new Response(JSON.stringify({ jobs: [callCount === 1 ? itemA : itemB] }));
+    }) as unknown as typeof fetch;
+
+    const r = await fetchJobicyJobs({
+      since,
+      industries: ["legal", "accounting-finance"],
+      geos: [],
+      fetchImpl,
+    });
+
+    expect(r.jobs).toHaveLength(1);
+    expect(r.jobs[0]?.source.externalId).toBe("990001");
+    expect(r.jobs[0]?.categories).toEqual(["legal-compliance", "finance-accounting"]);
+  });
+
+  it("respeta count, baseUrl e industrias customizadas", async () => {
     const urls: string[] = [];
     const fetchImpl = (async (url: string | URL | Request) => {
       urls.push(String(url));
@@ -225,9 +267,11 @@ describe("fetchJobicyJobs (fetch inyectado)", () => {
       since,
       count: 50,
       baseUrl: "https://x.example/api",
+      industries: ["marketing"],
+      geos: [],
       fetchImpl,
     });
-    expect(urls).toEqual(["https://x.example/api?count=50"]);
+    expect(urls).toEqual(["https://x.example/api?count=50&industry=marketing"]);
     expect(r.jobs).toHaveLength(1);
     expect(r.seen).toBe(2);
   });
@@ -235,6 +279,8 @@ describe("fetchJobicyJobs (fetch inyectado)", () => {
   it("un aviso con pubDate inválida no pasa el filtro y cuenta como skipped", async () => {
     const r = await fetchJobicyJobs({
       since,
+      industries: ["legal"],
+      geos: [],
       fetchImpl: jsonFetch({ jobs: [{ ...anywhere, pubDate: "nunca" }] }),
     });
     expect(r.jobs).toEqual([]);
@@ -242,21 +288,26 @@ describe("fetchJobicyJobs (fetch inyectado)", () => {
   });
 
   it("jobs que no es un array → error", async () => {
-    await expect(fetchJobicyJobs({ since, fetchImpl: jsonFetch({ jobs: {} }) })).rejects.toThrow(
-      "Jobicy: respuesta inesperada",
-    );
-    await expect(fetchJobicyJobs({ since, fetchImpl: jsonFetch({}) })).rejects.toThrow(
-      "Jobicy: respuesta inesperada",
-    );
-    await expect(fetchJobicyJobs({ since, fetchImpl: jsonFetch([]) })).rejects.toThrow(
-      "Jobicy: respuesta inesperada",
-    );
+    await expect(
+      fetchJobicyJobs({
+        since,
+        industries: ["legal"],
+        geos: [],
+        fetchImpl: jsonFetch({ jobs: {} }),
+      }),
+    ).rejects.toThrow("Jobicy: respuesta inesperada");
+    await expect(
+      fetchJobicyJobs({ since, industries: ["legal"], geos: [], fetchImpl: jsonFetch({}) }),
+    ).rejects.toThrow("Jobicy: respuesta inesperada");
+    await expect(
+      fetchJobicyJobs({ since, industries: ["legal"], geos: [], fetchImpl: jsonFetch([]) }),
+    ).rejects.toThrow("Jobicy: respuesta inesperada");
   });
 
   it("HTTP no-OK → error con la fuente y el status", async () => {
-    await expect(fetchJobicyJobs({ since, fetchImpl: jsonFetch({}, 429) })).rejects.toThrow(
-      /Jobicy: HTTP 429/,
-    );
+    await expect(
+      fetchJobicyJobs({ since, industries: ["legal"], geos: [], fetchImpl: jsonFetch({}, 429) }),
+    ).rejects.toThrow(/Jobicy: HTTP 429/);
   });
 
   it("manda user-agent solo si viene", async () => {
@@ -265,8 +316,14 @@ describe("fetchJobicyJobs (fetch inyectado)", () => {
       headers.push(init?.headers as Record<string, string>);
       return new Response(JSON.stringify({ jobs: [] }));
     }) as unknown as typeof fetch;
-    await fetchJobicyJobs({ since, userAgent: "JobSearchOS/1.0", fetchImpl });
-    await fetchJobicyJobs({ since, fetchImpl });
+    await fetchJobicyJobs({
+      since,
+      industries: ["legal"],
+      geos: [],
+      userAgent: "JobSearchOS/1.0",
+      fetchImpl,
+    });
+    await fetchJobicyJobs({ since, industries: ["legal"], geos: [], fetchImpl });
     expect(headers[0]?.["user-agent"]).toBe("JobSearchOS/1.0");
     expect(headers[1]?.["user-agent"]).toBeUndefined();
   });

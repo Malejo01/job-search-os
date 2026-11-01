@@ -1,4 +1,5 @@
 import { schema as s, type Db } from "@job-search-os/db";
+import { CV_CHAT_TURN_RESERVE_USD, CV_CHAT_WRITE_RESERVE_USD } from "@job-search-os/pipeline";
 import { and, eq, gte, inArray, sql } from "drizzle-orm";
 
 /**
@@ -35,9 +36,24 @@ export type CvChatMeasures = {
   userInterviewUsd: number;
   /** Charlas que la persona empezó en 24 h. */
   startsToday: number;
+  /** Turnos de entrevista (llamadas al modelo) de la persona en la ventana mensual: reales más reservados. */
+  interviewTurnsThisMonth: number;
 };
 
 const CV_TASKS = ["cv_interview", "cv_write"];
+
+/**
+ * Un intento que llegó al proveedor cuenta aunque haya fallado (esquema inválido, timeout, sin objeto):
+ * el proveedor lo factura y `cost_usd` queda null. Solo `provider_unavailable` (nunca se llamó) no cuenta.
+ */
+const attempted = (c: typeof s.llmCalls) => sql`${c.error} is distinct from 'provider_unavailable'`;
+
+/**
+ * Costo de una fila: el real si se conoce; si no, y fue un intento fallido, el máximo del paso (lo
+ * conservador). Las reservas y los `cv_start` valen 0 acá: ya cuentan por su cuenta.
+ */
+const billedUsd = (c: typeof s.llmCalls) =>
+  sql`coalesce(${c.costUsd}, case when ${c.ok} = false and ${attempted(c)} then (case when ${c.task} = 'cv_write' then ${CV_CHAT_WRITE_RESERVE_USD}::float8 else ${CV_CHAT_TURN_RESERVE_USD}::float8 end) end, 0)`;
 
 export async function measureCvChat(
   q: Pick<Db, "select">,
@@ -51,28 +67,40 @@ export async function measureCvChat(
       and(
         eq(c.userId, input.userId),
         eq(c.task, "cv_write"),
-        eq(c.ok, true),
+        attempted(c),
         gte(c.createdAt, input.monthSince),
       ),
     );
   const [conv] = await q
     .select({
-      usd: sql<number>`coalesce(sum(${c.costUsd}), 0)::float8`,
-      writes: sql<number>`count(*) filter (where ${c.task} = 'cv_write' and ${c.ok})::int`,
+      usd: sql<number>`coalesce(sum(${billedUsd(c)}), 0)::float8`,
+      writes: sql<number>`count(*) filter (where ${c.task} = 'cv_write' and ${attempted(c)})::int`,
     })
     .from(c)
     .where(and(eq(c.userId, input.userId), eq(c.label, input.label)));
   const [day] = await q
-    .select({ usd: sql<number>`coalesce(sum(${c.costUsd}), 0)::float8` })
+    .select({ usd: sql<number>`coalesce(sum(${billedUsd(c)}), 0)::float8` })
     .from(c)
     .where(and(inArray(c.task, CV_TASKS), gte(c.createdAt, input.daySince)));
   const [mine] = await q
     .select({
-      usd: sql<number>`coalesce(sum(${c.costUsd}) filter (where ${c.task} = 'cv_interview'), 0)::float8`,
+      usd: sql<number>`coalesce(sum(${billedUsd(c)}) filter (where ${c.task} = 'cv_interview'), 0)::float8`,
       starts: sql<number>`count(*) filter (where ${c.task} = ${CV_START_TASK})::int`,
     })
     .from(c)
     .where(and(eq(c.userId, input.userId), gte(c.createdAt, input.daySince)));
+  // Turnos del mes: una fila `cv_interview` por intento al proveedor, también los que fallaron
+  const [turnsMonth] = await q
+    .select({ n: sql<number>`count(*)::int` })
+    .from(c)
+    .where(
+      and(
+        eq(c.userId, input.userId),
+        eq(c.task, "cv_interview"),
+        attempted(c),
+        gte(c.createdAt, input.monthSince),
+      ),
+    );
   const live = await q
     .select({
       userId: c.userId,
@@ -99,6 +127,8 @@ export async function measureCvChat(
     writesInConversation: (conv?.writes ?? 0) + (convLive.some((r) => r.step === "write") ? 1 : 0),
     userInterviewUsd: (mine?.usd ?? 0) + usd(mineLive.filter((r) => r.step === "interview")),
     startsToday: mine?.starts ?? 0,
+    interviewTurnsThisMonth:
+      (turnsMonth?.n ?? 0) + mineLive.filter((r) => r.step === "interview").length,
   };
 }
 

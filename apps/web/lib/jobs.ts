@@ -1,6 +1,7 @@
 import { schema as s } from "@job-search-os/db";
 import {
   DEFAULT_TIMEZONE,
+  isEnglishGap,
   JOB_STATUSES,
   neighbors,
   parsePeriod,
@@ -10,10 +11,12 @@ import {
   type JobStatus,
   type Period,
   type ReviewProgress,
+  summarizeFitCard,
+  type FitCardSummary,
 } from "@job-search-os/pipeline";
 import { and, asc, desc, eq, gte, inArray, or, sql } from "drizzle-orm";
 import { withUser } from "./db";
-import { ACTIVE_STATUSES } from "./labels";
+import { ACTIVE_STATUSES, riskLabel } from "./labels";
 import { preScoresFor } from "./prescore";
 
 /**
@@ -59,6 +62,8 @@ export type JobListRow = {
   accion: string | null;
   riesgos: string[];
   bloqueadores: string[];
+  /** Un punto a favor y uno que falta o frena, en llano (resumen de la tarjeta); sin evaluación, vacío. */
+  fit: FitCardSummary;
   /** evaluations.model; "fake" = modo demo (badge DEMO). */
   model: string | null;
   /** Última evaluación (para el 👍/👎 de la tarjeta); null si no hay. */
@@ -157,6 +162,9 @@ export async function listJobs(
         accion: s.evaluations.accion,
         riesgos: s.evaluations.riesgos,
         bloqueadores: s.evaluations.bloqueadoresDuros,
+        matchFuerte: s.evaluations.matchFuerte,
+        gaps: s.evaluations.gaps,
+        senales: s.evaluations.senalesPositivas,
         model: s.evaluations.model,
         humanVerdict: s.evaluations.humanVerdict,
         createdAt: s.evaluations.createdAt,
@@ -216,6 +224,9 @@ export async function listJobs(
         accion: latest.accion,
         riesgos: latest.riesgos,
         bloqueadores: latest.bloqueadores,
+        matchFuerte: latest.matchFuerte,
+        gaps: latest.gaps,
+        senales: latest.senales,
         model: latest.model,
         evaluationId: latest.evaluationId,
         humanVerdict: latest.humanVerdict,
@@ -279,6 +290,14 @@ export async function listJobs(
       accion: r.accion,
       riesgos: r.riesgos ?? [],
       bloqueadores: r.bloqueadores ?? [],
+      fit: summarizeFitCard({
+        matchFuerte: r.matchFuerte ?? [],
+        senales: r.senales ?? [],
+        // Sin el texto del aviso no se sabe si el inglés es brecha: en la tarjeta no se muestra
+        gaps: (r.gaps ?? []).filter((g) => !isEnglishGap(g)),
+        riesgos: (r.riesgos ?? []).map(riskLabel),
+        bloqueadores: r.bloqueadores ?? [],
+      }),
       model: r.model,
       evaluationId: r.evaluationId,
       humanVerdict: r.humanVerdict,

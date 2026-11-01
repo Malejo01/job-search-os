@@ -177,8 +177,11 @@ describe("fetchWwrJobs (fetch inyectado)", () => {
     ).rejects.toThrow(/HTTP 404/);
   });
 
-  it("las categorías específicas van antes que la general", () => {
-    expect(WWR_POOL_CATEGORIES.at(-1)).toBe("remote-programming-jobs");
+  it("las categorías específicas van antes que las generales", () => {
+    expect(WWR_POOL_CATEGORIES.indexOf("remote-programming-jobs")).toBeGreaterThan(
+      WWR_POOL_CATEGORIES.indexOf("remote-back-end-programming-jobs"),
+    );
+    expect(WWR_POOL_CATEGORIES.at(-1)).toBe("all-other-remote-jobs");
   });
 
   it("sin partialOnError, el primer error corta", async () => {
@@ -209,9 +212,11 @@ describe("fetchWwrJobs (fetch inyectado)", () => {
     expect(seenHeaders[0]!["user-agent"]).toBe("agente-ficticio/1.0");
   });
 
-  it("WWR_POOL_CATEGORIES: las 8 categorías con el patrón remote-…-jobs", () => {
-    expect(WWR_POOL_CATEGORIES).toHaveLength(8);
-    for (const c of WWR_POOL_CATEGORIES) expect(c).toMatch(/^remote-[a-z-]+-jobs$/);
+  it("WWR_POOL_CATEGORIES: las 11 categorías con el patrón permitido", () => {
+    expect(WWR_POOL_CATEGORIES).toHaveLength(11);
+    for (const c of WWR_POOL_CATEGORIES) {
+      expect(c).toMatch(/^(remote-[a-z-]+-jobs|all-other-remote-jobs)$/);
+    }
   });
 
   it("una categoría que falla no corta las demás y queda en errors (partialOnError)", async () => {

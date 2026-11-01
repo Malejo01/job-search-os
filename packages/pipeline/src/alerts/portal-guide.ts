@@ -90,8 +90,22 @@ export const ALERT_KEYWORDS: Partial<Record<AlertRoleKey, Keywords>> = {
     en: ["ux designer", "ui designer", "product designer", "ux researcher", "figma"],
   },
   marketing_digital: {
-    es: ["marketing digital", "community manager", "seo", "performance", "redes sociales"],
-    en: ["digital marketing", "seo", "content marketing", "performance marketing", "social media"],
+    es: [
+      "marketing digital",
+      "community manager",
+      "seo",
+      "brand manager",
+      "relaciones públicas",
+      "trade marketing",
+    ],
+    en: [
+      "digital marketing",
+      "seo",
+      "content marketing",
+      "brand manager",
+      "public relations",
+      "market research analyst",
+    ],
   },
   rrhh_it: {
     es: ["reclutador it", "recursos humanos", "talent acquisition", "selección de personal"],
@@ -144,8 +158,22 @@ export const ALERT_KEYWORDS: Partial<Record<AlertRoleKey, Keywords>> = {
     en: ["customer support", "customer service", "support agent", "customer care"],
   },
   finanzas_contabilidad: {
-    es: ["contador", "contabilidad", "analista financiero", "cuentas por pagar", "impuestos"],
-    en: ["accountant", "bookkeeper", "accounts payable", "financial analyst", "fp&a"],
+    es: [
+      "contador",
+      "contabilidad",
+      "analista impositivo",
+      "liquidación de sueldos",
+      "auditor interno",
+      "analista financiero",
+    ],
+    en: [
+      "accountant",
+      "financial analyst",
+      "tax analyst",
+      "payroll analyst",
+      "internal auditor",
+      "fp&a",
+    ],
   },
   asistencia_operaciones: {
     es: [
@@ -161,6 +189,77 @@ export const ALERT_KEYWORDS: Partial<Record<AlertRoleKey, Keywords>> = {
       "administrative assistant",
       "operations coordinator",
       "data entry",
+    ],
+  },
+  // C1-5 (ADR-027): las carreras de la beta. Cada palabra es un término de título de la carrera.
+  abogacia: {
+    es: [
+      "abogado",
+      "asesor legal",
+      "analista legal",
+      "paralegal",
+      "oficial de cumplimiento",
+      "analista de contratos",
+    ],
+    en: [
+      "legal counsel",
+      "paralegal",
+      "legal analyst",
+      "compliance officer",
+      "corporate counsel",
+      "contracts counsel",
+    ],
+  },
+  administracion_empresas: {
+    es: [
+      "analista administrativo",
+      "analista de compras",
+      "analista de control de gestión",
+      "analista comercial",
+      "analista de procesos",
+    ],
+    en: [
+      "procurement analyst",
+      "supply chain analyst",
+      "pricing analyst",
+      "management consultant",
+      "demand planner",
+    ],
+  },
+  comunicacion: {
+    es: [
+      "analista de comunicación",
+      "comunicación institucional",
+      "comunicación interna",
+      "periodista",
+      "jefe de prensa",
+      "comunicación corporativa",
+    ],
+    en: [
+      "communications specialist",
+      "internal communications",
+      "journalist",
+      "press officer",
+      "content writer",
+      "media relations",
+    ],
+  },
+  relaciones_internacionales: {
+    es: [
+      "analista de comercio exterior",
+      "comercio exterior",
+      "cooperación internacional",
+      "relaciones institucionales",
+      "analista de importaciones",
+      "oficial de programas",
+    ],
+    en: [
+      "foreign trade",
+      "program officer",
+      "government affairs",
+      "public policy analyst",
+      "import export specialist",
+      "grants officer",
     ],
   },
 };

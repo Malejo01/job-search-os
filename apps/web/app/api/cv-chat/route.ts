@@ -17,7 +17,9 @@ import {
   CV_WRITE_OUTPUT_SCHEMA,
   cvChatCapNotice,
   cvChatCloseReason,
+  cvChatBetaCvPerMonth,
   cvChatCapReason,
+  cvChatMonthTurnsReason,
   cvChatDailyCapUsd,
   cvChatStartCapReason,
   cvChatHistory,
@@ -236,7 +238,7 @@ export async function POST(request: Request): Promise<Response> {
           turns,
           conversationCostUsd: m.conversationCostUsd,
           cvThisMonth: m.cvThisMonth,
-          cvPerMonth: plan.plan.limits.cvReadsPerMonth,
+          cvPerMonth: cvChatBetaCvPerMonth(plan.plan.limits.cvReadsPerMonth),
           userInterviewSpendUsd: m.userInterviewUsd,
           dailySpendUsd: m.dailySpendUsd,
           dailyCapUsd: cvChatDailyCapUsd(process.env),
@@ -272,7 +274,12 @@ export async function POST(request: Request): Promise<Response> {
         const r = await reserve(
           "start",
           0,
-          decideCap(0, (m) => cvChatStartCapReason(m.startsToday)),
+          decideCap(
+            0,
+            (m) =>
+              cvChatStartCapReason(m.startsToday) ??
+              cvChatMonthTurnsReason(m.interviewTurnsThisMonth),
+          ),
         );
         if (!r.ok) return refuse(r.reject);
         const state = initialCvChatState(await loadChatSeed(userId));
@@ -319,7 +326,11 @@ export async function POST(request: Request): Promise<Response> {
           if (!r.ok) return refuse(r.reject);
           next = skipCvTopic(state, topic);
         } else {
-          const r = await reserve("interview", CV_CHAT_TURN_RESERVE_USD, decideCap(ticket.turns));
+          const r = await reserve(
+            "interview",
+            CV_CHAT_TURN_RESERVE_USD,
+            decideCap(ticket.turns, (m) => cvChatMonthTurnsReason(m.interviewTurnsThisMonth)),
+          );
           if (!r.ok) return refuse(r.reject);
           let out;
           try {

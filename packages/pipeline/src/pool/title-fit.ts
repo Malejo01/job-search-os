@@ -147,13 +147,43 @@ const VETO_TERMS: Partial<Record<RoleKey, readonly string[]>> = {
   ],
   // C-2b (ADR-023): cada carrera veta a las vecinas que comparten categoría. Un título con frase
   // propia nunca se veta.
-  finanzas_contabilidad: [...TITLE_TERMS.data_engineer, "engineer", "developer", "software"],
+  finanzas_contabilidad: [
+    ...TITLE_TERMS.data_engineer,
+    ...TITLE_TERMS.administracion_empresas,
+    "engineer",
+    "developer",
+    "software",
+  ],
   asistencia_operaciones: [
     ...TITLE_TERMS.project_manager,
     ...TITLE_TERMS.soporte_it,
     ...TITLE_TERMS.finanzas_contabilidad,
     "engineer",
     "developer",
+  ],
+  // C1-3 (ADR-027): títulos técnicos con categoría de derecho o gestión no son de la carrera.
+  abogacia: ["engineer", "developer", "software", "sistemas"],
+  // Administración es la más genérica: los títulos técnicos con categoría de gestión no son suyos.
+  administracion_empresas: [
+    ...TITLE_TERMS.finanzas_contabilidad,
+    ...TITLE_TERMS.ventas_b2b,
+    "engineer",
+    "developer",
+    "software",
+    "sistemas",
+  ],
+  relaciones_internacionales: ["sales", "data", "ventas", "datos"],
+  // Gestión y finanzas comparten categoría en Jobicy y We Work Remotely (C1-6): cada una veta los
+  // títulos de la otra, y administración también los de ventas («business» trae Business Development).
+  // Marketing veta ventas: «Sales and Marketing» trae ejecutivos de cuentas.
+  marketing_digital: TITLE_TERMS.ventas_b2b,
+  comunicacion: [
+    "telecom",
+    "telecomunicaciones",
+    "engineer",
+    "ingeniero",
+    "ingeniera",
+    "ingenieria",
   ],
   // Nunca "customer support": «Customer Support Engineer» con categoría de soporte técnico sigue
   // siendo soporte_it.

@@ -2,10 +2,9 @@ import type { RawJob } from "@job-search-os/pipeline";
 import { COUNTRY_TO_ISO, countryToIso, htmlToText } from "./getonboard";
 
 /**
- * Jobicy, API pública de avisos remotos. FORMATO A VERIFICAR: sale de su documentación pública
- * (https://jobicy.com/jobs-rss-feed), sin llamada real (ronda 37, sin red). Ver docs/sources/jobicy.md.
- * - `GET https://jobicy.com/api/v2/remote-jobs?count=N` → `{ jobs: [...] }` (otros campos se ignoran).
- *   Una sola llamada por corrida, sin `industry` ni `geo`. Ventana de la fuente: 7 días.
+ * Jobicy, API pública de avisos remotos. Ver docs/sources/jobicy.md.
+ * - `GET https://jobicy.com/api/v2/remote-jobs?count=N&industry=X` / `&geo=latam`
+ *   Llamadas en serie por industria y geo (R1-8). Ventana de la fuente: 7 días.
  * - Términos (ops/rondas/37-38-39/informes/riesgos-fuentes.md, consultado el 2026-10-12): máximo una
  *   pasada automatizada por hora; "Please credit Jobicy and link to the source"; "Keep Jobicy as the
  *   original source and preserve the canonical Jobicy job URL when displaying listings". Por eso
@@ -17,6 +16,23 @@ import { COUNTRY_TO_ISO, countryToIso, htmlToText } from "./getonboard";
  *   `salaryMin`/`salaryMax`/`salaryPeriod` y, si no están, `annualSalaryMin`/`annualSalaryMax`.
  */
 export const JOBICY_BASE_URL = "https://jobicy.com/api/v2/remote-jobs";
+
+/**
+ * Industrias del pool para Jobicy (R1-8). Llamadas en serie para capturar avisos
+ * fuera de IT (legales, finanzas, marketing, etc.).
+ */
+export const JOBICY_POOL_INDUSTRIES: readonly string[] = [
+  "legal",
+  "accounting-finance",
+  "marketing",
+  "copywriting",
+  "management",
+  "project-management",
+  "business",
+  "admin-support",
+];
+
+export const JOBICY_POOL_GEOS: readonly string[] = ["latam"];
 
 export type JobicyItem = {
   id?: string | number;
@@ -189,47 +205,103 @@ export function mapJobicyJob(item: JobicyItem): RawJob | null {
 export type FetchJobicyOptions = {
   /** Solo avisos publicados desde esta fecha (filtro en cliente por `pubDate`). */
   since: Date;
-  /** Avisos pedidos en la única llamada (la API admite 1 a 200). */
+  /** Avisos pedidos por llamada (la API admite 1 a 200). */
   count?: number;
   /** Si viene, se manda como cabecera `user-agent`. */
   userAgent?: string;
   fetchImpl?: typeof fetch;
   baseUrl?: string;
+  /** Industrias a consultar (por defecto JOBICY_POOL_INDUSTRIES). */
+  industries?: readonly string[];
+  /** Regiones a consultar (por defecto JOBICY_POOL_GEOS). */
+  geos?: readonly string[];
 };
 
 export type FetchJobicyResult = {
   jobs: RawJob[];
-  /** Avisos vistos antes de filtrar. */
+  /** Avisos vistos antes de filtrar (suma de todas las llamadas). */
   seen: number;
   /** Avisos descartados por estructura incompleta o `pubDate` inválida. */
   skipped: number;
+  /** Conteo de avisos vistos por cada consulta realizada. */
+  byQuery?: Record<string, number>;
 };
 
-/** Una sola llamada (la fuente pide como máximo una pasada por hora); filtra por fecha en cliente. */
+/**
+ * Llamadas por industria y geo en serie (R1-8); deduplica por id y acumula categorías
+ * en caso de avisos que aparezcan en múltiples consultas.
+ */
 export async function fetchJobicyJobs(options: FetchJobicyOptions): Promise<FetchJobicyResult> {
   const fetchImpl = options.fetchImpl ?? fetch;
   const baseUrl = options.baseUrl ?? JOBICY_BASE_URL;
   const count = options.count ?? 200;
   const sinceMs = options.since.getTime();
 
+  const industries =
+    options.industries !== undefined
+      ? options.industries
+      : options.geos !== undefined
+        ? []
+        : JOBICY_POOL_INDUSTRIES;
+  const geos =
+    options.geos !== undefined
+      ? options.geos
+      : options.industries !== undefined
+        ? []
+        : JOBICY_POOL_GEOS;
+
   const headers: Record<string, string> = { accept: "application/json" };
   if (options.userAgent) headers["user-agent"] = options.userAgent;
-  const res = await fetchImpl(`${baseUrl}?count=${count}`, { headers });
-  if (!res.ok) throw new Error(`Jobicy: HTTP ${res.status}`);
-  const body = (await res.json()) as { jobs?: unknown } | null;
-  const items = body?.jobs;
-  if (!Array.isArray(items)) throw new Error("Jobicy: respuesta inesperada");
+
+  type QueryTarget = { kind: "industry" | "geo"; value: string; url: string };
+  const targets: QueryTarget[] = [
+    ...industries.map((ind) => ({
+      kind: "industry" as const,
+      value: ind,
+      url: `${baseUrl}?count=${count}&industry=${encodeURIComponent(ind)}`,
+    })),
+    ...geos.map((geo) => ({
+      kind: "geo" as const,
+      value: geo,
+      url: `${baseUrl}?count=${count}&geo=${encodeURIComponent(geo)}`,
+    })),
+  ];
 
   const byId = new Map<string, RawJob>();
+  const byQuery: Record<string, number> = {};
+  let seen = 0;
   let skipped = 0;
-  for (const item of items as JobicyItem[]) {
-    const raw = item && typeof item === "object" ? mapJobicyJob(item) : null;
-    if (!raw || !raw.postedAt) {
-      skipped++;
-      continue;
+
+  for (const target of targets) {
+    const res = await fetchImpl(target.url, { headers });
+    if (!res.ok) throw new Error(`Jobicy: HTTP ${res.status}`);
+    const body = (await res.json()) as { jobs?: unknown } | null;
+    const items = body?.jobs;
+    if (!Array.isArray(items)) throw new Error("Jobicy: respuesta inesperada");
+
+    const queryKey =
+      target.kind === "industry" ? `industry=${target.value}` : `geo=${target.value}`;
+    byQuery[queryKey] = items.length;
+    seen += items.length;
+
+    for (const item of items as JobicyItem[]) {
+      const raw = item && typeof item === "object" ? mapJobicyJob(item) : null;
+      if (!raw || !raw.postedAt) {
+        skipped++;
+        continue;
+      }
+      if (raw.postedAt.getTime() < sinceMs) continue;
+
+      const id = raw.source.externalId!;
+      const existing = byId.get(id);
+      if (!existing) {
+        byId.set(id, raw);
+      } else if (raw.categories?.length) {
+        const set = new Set([...(existing.categories ?? []), ...raw.categories]);
+        existing.categories = [...set];
+      }
     }
-    if (raw.postedAt.getTime() < sinceMs) continue;
-    if (!byId.has(raw.source.externalId!)) byId.set(raw.source.externalId!, raw);
   }
-  return { jobs: [...byId.values()], seen: items.length, skipped };
+
+  return { jobs: [...byId.values()], seen, skipped, byQuery };
 }

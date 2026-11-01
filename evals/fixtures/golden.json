@@ -1,6 +1,6 @@
 {
  "meta": {
-  "descripcion": "Dataset de evaluación de EJEMPLO: 36 ofertas con empresas anonimizadas (Empresa A…AB, identidad estable entre registros). Las JD de los ids 35 y 36 están reescritas, las fechas son ficticias, los estados de postulación están neutralizados, los salarios son sintéticos y los campos de análisis (match, gaps, bloqueadores, señales) no llevan datos personales. Los casos de frontera (disciplina, ubicación, modalidad, título, duplicados) se conservan. human_score es la referencia. Ofertas con human_score null no se usan para MAE pero sí para disciplina/bloqueadores. Existe una versión privada que no se versiona.",
+  "descripcion": "Dataset de evaluación de EJEMPLO: 37 ofertas con empresas anonimizadas (Empresa A…AB, identidad estable entre registros). Las JD de los ids 35 y 36 están reescritas, las fechas son ficticias, los estados de postulación están neutralizados, los salarios son sintéticos y los campos de análisis (match, gaps, bloqueadores, señales) no llevan datos personales. Los casos de frontera (disciplina, ubicación, modalidad, título, duplicados) se conservan. human_score es la referencia. Ofertas con human_score null no se usan para MAE pero sí para disciplina/bloqueadores. Existe una versión privada que no se versiona.",
   "perfil_referencia": "Perfil de ejemplo: AI Engineer / Fullstack en Argentina, solo remoto, ~5 años, inglés B2 (intermedio-alto), sin autorización laboral en EE.UU. ni Europa, piso salarial y horas máximas genéricos (seeds *.example.json).",
   "version": "2026-09-24",
   "notas_campos": "ubicacion_raw: texto de ubicación tal como figuraba en el aviso; es lo único sobre ubicación que entra al prompt. paises y location_ok son la referencia humana. human_score_match: score de MATCH puro según el prompt v1.1 (sin descontar por bloqueadores ni ubicación); human_score se conserva para comparar con reportes v1. human_blockers y human_risks: bloqueadores y riesgos con la definición v1.1. human_location_ok: ubicación pura según el prompt v1.1 (ok = AR explícito o work from anywhere; riesgo = remoto sin AR listado / LATAM sin países / lista fuera del aviso; no = AR excluido o lista sin AR). La modalidad no entra: se mide en modalidad y bloqueadores. location_ok original se conserva para reportes v1. jd (JS-052): JD recortada del aviso (mision + responsabilidades + requisitos) solo en los ids 35 y 36; con jd el harness marca had_full_jd=true. El resto sigue con el resumen de campos y had_full_jd=false. anchor_source (JS-052): 'human' = puntuada a mano por el autor; 'assisted' = puntuada por Claude con una rubrica fija y revisada por el autor. Las metricas se pueden leer separadas por origen: un ancla assisted es evidencia mas debil para juzgar al modelo, y donde la rubrica usa la misma regla que decide() (tope 4 por disciplina) coincide por construccion. estado es un valor único neutral en este dataset; fecha es ficticia (solo importa el orden relativo); salario, donde figura, es sintético y relativo al piso genérico de los seeds de ejemplo."
@@ -2344,7 +2344,57 @@
    "location_ok": "ok",
    "human_location_ok": "ok",
    "anchor_source": "human"
-  }
+  },
+ {
+  "id": 37,
+  "empresa": "Empresa AE",
+  "titulo": "Data Analyst",
+  "fuente": "getonboard_api",
+  "fecha": "2026-03-20",
+  "ubicacion": "Remoto (Canadá)",
+  "ubicacion_raw": "Remote",
+  "paises": [
+   "CA"
+  ],
+  "modalidad": "remoto",
+  "contrato": "Full time",
+  "salario": {
+   "min": 3800,
+   "max": 5200,
+   "periodo": "mensual"
+  },
+  "anos": 3,
+  "nivel": null,
+  "disciplina": "data_analyst",
+  "ingles": "intermedio",
+  "tipo_empresa": "producto",
+  "stack": [
+   "SQL",
+   "Python",
+   "dashboards"
+  ],
+  "match": [
+   "SQL",
+   "Python"
+  ],
+  "gaps": [],
+  "bloqueadores": [],
+  "senales": [
+   "salario publicado sobre el piso"
+  ],
+  "candidatos": 12,
+  "badges": [],
+  "human_score": 7,
+  "human_score_match": 7,
+  "human_blockers": [],
+  "human_risks": [],
+  "score_nota": "Agregada (H-1, caso Canadá) con datos inventados: empresa, puesto, países y salario son ficticios. El match es bueno y el score no baja: el aviso es remoto, la fuente lo limita a Canadá (paises: CA; el texto solo dice «Remote») y no dice que acepte Argentina ni LATAM. El modelo solo ve «Remote», así que la ubicación de referencia es riesgo. La acción es descartar por la regla de país de decide() (bloqueador de código, no del modelo), que usa paises y ubicacion_raw estructurados que el harness no pasa al prompt; por eso human_blockers queda vacío y el modelo no tiene que reportarlo.",
+  "accion": "descartar",
+  "estado": "evaluada",
+  "location_ok": "riesgo",
+  "human_location_ok": "riesgo",
+  "anchor_source": "human"
+ }
  ],
  "dedup_pairs": [
   {

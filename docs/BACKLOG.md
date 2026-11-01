@@ -980,6 +980,47 @@ Resumen por tema de lo mergeado en ese período. Un ítem por tema, no uno por P
   - tests de cobertura de pipeline · #223;
   - recorrido de una persona nueva en Finanzas · #224 (abiertos).
 
+### Hallazgos de la beta (H-1 a H-3)
+- **H-1 · Avisos remotos limitados a otro país** (caso Canadá) · en revisión, PR #300 (`nube/c2-regla-pais`, C2-3): remoto + países que no incluyen el de la persona pasa de riesgo a bloqueador, salvo que el aviso acepte su país o su región. Antes, solo la frase literal «must be based in…» descartaba (ronda 66).
+- **H-2 · Aviso del muro de pago de We Work Remotely** · done 2026-10-20 · `33f70e0`. Verificado el 2026-10-30 contra el código: `WWR_PAYWALL_NOTICE` (`packages/pipeline/src/pool/attribution.ts`) se muestra en `source-attribution.tsx` cuando alguna fuente del aviso es `wwr`, con el link al sitio de empleos de la empresa si la JD lo trae (`findAtsLinks`). Cubierto por el e2e `45-wwr-aviso.spec.ts`.
+- **H-3 · «+ Cargar oferta» visible y pegar el aviso entero** · done 2026-10-20 · `0947dfb` y `66408e8`. Verificado el 2026-10-30: el botón «+ Cargar oferta» está junto al título de `/jobs` (`apps/web/app/(app)/jobs/page.tsx`) y `/jobs/new` ofrece «Pegar el aviso entero» (`paste-form.tsx`, lectura con reglas simples en el navegador). Cubierto por los e2e `47-textos-y-navegacion.spec.ts` (botón visible, 44 px, lleva a `/jobs/new`) y `42-pegar-aviso.spec.ts`.
+- **Tanda C2 de la beta** (2026-10-30, todos en draft, sin mergear): C2-3 regla de país · #300; C2-2 «A tu favor» y «Te falta o te frena» · #303; C2-1 CV para ATS abierto a todos, con topes por persona y por mes (3 CV, 40 turnos) · #304.
+- Los e2e no se corrieron en la nube (necesitan Docker/Postgres; CLAUDE.md §9): la confirmación sale de leer el código y los specs; los corre el CI.
+
+## Bloque 8 — Carreras de la beta (tanda C1, 2026-10-30)
+
+Seis carreras de la beta cerrada (ADR-027). Los PR están en draft y apilados: se mergean en orden C1-1 a C1-6. «Done» acá es «hecho y con CI en verde en el PR»; ningún PR está mergeado y las migraciones **no** se aplicaron (las aplica Mauro con `pnpm db:migrate` antes del merge).
+
+### C1-1 · ADR-027 y chips de especialidad
+`deps:` — · `estado:` done (2026-10-30; PR #288)
+- `docs/adr/027-carreras-de-la-beta-y-chips-de-especialidad.md` y `skills/specialties.ts` (`ROLE_SPECIALTIES`) con el test de cobertura: la unión de los términos de los chips es `TITLE_TERMS[role]`.
+- **Acepta:** el test de cobertura pasa para las 6 carreras.
+
+### C1-2 · Claves nuevas
+`deps:` C1-1 · `estado:` done (2026-10-30; PR #290; ⚠️ migraciones 0048 y 0049 sin aplicar)
+- `abogacia`, `administracion_empresas`, `comunicacion` y `relaciones_internacionales` al final de `ROLE_KEYS`, sin listar (`UNLISTED_ROLE_KEYS`); rótulos nuevos de `finanzas_contabilidad` y `marketing_digital`; 30 skills; `HEADLINE_KEYWORDS`; `rls/0012`.
+- **Acepta:** `taxonomy.test.ts` (ningún término compartido) y el test de integración de las migraciones en el CI.
+
+### C1-3 · Títulos, exclusiones, vetos y chips
+`deps:` C1-2 · `estado:` done (2026-10-30; PR #291)
+- `TITLE_TERMS`, `TITLE_EXCLUSIONS`, `TERM_EXCLUSIONS` (nuevo), `VETO_TERMS` y chips de las 6 carreras, un commit por carrera.
+
+### C1-4 · Arreglos del prefiltro (carril rojo)
+`deps:` C1-3 · `estado:` done (2026-10-30; PR #292)
+- `exemptFor` de «abogad» y «administrativ», cargos propios «manager», alias de AR en licencias y regla de multinivel. Golden y adversarial sin cambios (probado).
+
+### C1-5 · Palabras de alerta
+`deps:` C1-4 · `estado:` done (2026-10-30; PR #294)
+- `ALERT_KEYWORDS` de las 6 carreras; cada palabra es un título que la carrera reconoce.
+
+### C1-6 · Mapeo de categorías de fuentes
+`deps:` C1-5 · `estado:` done (2026-10-30; PR #295)
+- `SOURCE_CATEGORY_ROLES` de Jobicy y We Work Remotely, más vetos cruzados en `title-fit.ts`. El adapter que las pide es de otro PR (#289).
+
+### Pendiente después de la tanda
+- Mauro: `pnpm db:migrate` (0048 y 0049), merge en orden y deploy; después `pnpm pool:rehint --remote` (sin y con `--apply`) y medir volumen para sacar cada carrera de `UNLISTED_ROLE_KEYS`.
+- Golden por carrera con avisos reales (evals pagos) y selección de personas por chip: tanda siguiente.
+
 ## Reglas del backlog
 
 - Techo semanal después del finde: 8 hs. Si el bloque 4 no está en producción en 2 semanas, se congela el bloque 5.

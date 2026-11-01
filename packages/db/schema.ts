@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import type { FeedbackContext } from "@job-search-os/pipeline";
 import {
   pgTable, pgEnum, uuid, text, integer, smallint, real, boolean, timestamp, jsonb, date, index, uniqueIndex, primaryKey, check,
   type AnyPgColumn,
@@ -327,7 +328,7 @@ export const waitlist = pgTable("waitlist", {
   uniqueIndex("waitlist_email_unique").on(t.email),
   index("waitlist_ip_hash_created").on(t.ipHash, t.createdAt),
   index("waitlist_created").on(t.createdAt),
-  check("waitlist_role_check", sql`${t.role} in ('frontend', 'backend', 'fullstack', 'qa', 'data_analyst', 'soporte_it', 'ai_engineer', 'ux_ui', 'marketing_digital', 'producto_proyectos', 'rrhh_it', 'customer_success', 'ciberseguridad', 'product_manager', 'product_owner', 'project_manager', 'product_marketing', 'data_engineer', 'solutions_engineer', 'ventas_b2b', 'atencion_cliente', 'finanzas_contabilidad', 'asistencia_operaciones')`),
+  check("waitlist_role_check", sql`${t.role} in ('frontend', 'backend', 'fullstack', 'qa', 'data_analyst', 'soporte_it', 'ai_engineer', 'ux_ui', 'marketing_digital', 'producto_proyectos', 'rrhh_it', 'customer_success', 'ciberseguridad', 'product_manager', 'product_owner', 'project_manager', 'product_marketing', 'data_engineer', 'solutions_engineer', 'ventas_b2b', 'atencion_cliente', 'finanzas_contabilidad', 'asistencia_operaciones', 'abogacia', 'administracion_empresas', 'comunicacion', 'relaciones_internacionales')`),
 ]);
 
 // Administradores a nivel base (ronda 70): barrera de las funciones waitlist_admin_* (rls/0006). RLS sin
@@ -496,12 +497,14 @@ export const betaFeedback = pgTable("beta_feedback", {
   category: text("category").notNull(),
   message: text("message").notNull(),
   path: text("path").notNull(),
+  context: jsonb("context").$type<FeedbackContext>(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
   index("beta_feedback_user_created").on(t.userId, t.createdAt),
   check("beta_feedback_category", sql`${t.category} in ('algo_no_anduvo', 'idea', 'confuso')`),
   check("beta_feedback_message_length", sql`char_length(${t.message}) between 1 and 2000`),
   check("beta_feedback_path_length", sql`char_length(${t.path}) <= 200`),
+  check("beta_feedback_context_size", sql`${t.context} is null or octet_length(${t.context}::text) <= 4096`),
 ]);
 
 // Historial laboral, de estudios y certificaciones confirmado por la persona (C-25, CVC-0; diseño de
