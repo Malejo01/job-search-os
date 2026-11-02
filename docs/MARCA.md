@@ -38,12 +38,17 @@ Logotipo: «AfinIA» en Sora 800 y «Jobs» en Sora 300, con tracking −4 %. So
 
 Dónde está: headers de la app con sesión, onboarding, legales, `terminos-actualizados`, la vitrina pública (en español e inglés; a menos de 640 px va solo el logotipo para que entre con «Entrar» y «Pedir acceso») y las pantallas de cuenta (login, registro, setup, olvidé y reset).
 
+## Dónde revisarla
+
+**`/settings/marca`** (solo para quien administra la beta, R-1): el logo en sus variantes y fondos, y dos paneles lado a lado, claro y oscuro, con los tokens y su valor real, las tipografías y todos los componentes con sus estados. Es la página para que Ani revise la marca sin recorrer la app.
+
 ## Guardas (tests)
 
 - `packages/pipeline/src/brand.test.ts`:
   - ningún archivo de código, salvo `brand.ts`, escribe el nombre a mano (C6-2);
   - ningún texto de la app (código, contenido, SVG, JSON) escribe «Job Search OS» ni una variante mal escrita del nombre («afiniajobs», «AfiniaJobs», «Afinia Jobs»…). Se permiten URLs, dominios, emails y la clave técnica `job-search-os` (C7-2);
   - `BRAND_COLORS` coincide con los tokens de `globals.css`.
+- e2e 105: `/settings/marca` sin violaciones de axe en los dos paneles (el logo sobre naranja queda afuera: es un logotipo, exceptuado del contraste por WCAG 1.4.3).
 - e2e 44: el header público lleva el logo con el nombre, los títulos públicos llevan el nombre, y el favicon, el ícono de iPhone, el manifest y las imágenes OG se sirven sin sesión.
 
 ## Lo que no cambia con el nombre (a propósito)

@@ -6,7 +6,8 @@ La fuente de los valores es el manual de marca: `docs/ux/rediseno-afiniajobs/` (
 
 ## Cómo funciona
 
-- Cada token es una variable `--jso-*` con un valor en `:root` (claro) y otro en `.dark` (oscuro).
+- Cada token es una variable `--jso-*` con un valor en `:root` (claro) y otro en `.dark` (oscuro). `.light` comparte el bloque de `:root`: sirve para mostrar claro dentro de una página en oscuro (la vitrina `/settings/marca`).
+- Dentro de un `style` o de una clase arbitraria (`shadow-[…]`), usar `var(--jso-*)` y no `var(--color-*)`: Tailwind resuelve las `--color-*` en `:root`, así que no cambian dentro de un panel `.light` o `.dark`.
 - `@theme inline` registra las clases de Tailwind (`--color-surface: var(--jso-surface)`), así la clase lee la variable en el momento y el cambio de `.dark` en `<html>` alcanza sin recompilar.
 - Los valores van en hexadecimal: axe-core no sabe leer algunos `oklch` de Tailwind (tono `none`) y deja el contraste sin medir.
 - `dark:` está definido por clase (`@custom-variant dark`) y queda para excepciones (una imagen, una sombra). Los colores no llevan `dark:`: el token ya cambia solo.
@@ -36,7 +37,7 @@ La fuente de los valores es el manual de marca: `docs/ux/rediseno-afiniajobs/` (
 | `fg-muted` | Texto secundario | `#44403C` | `#D6D3D1` |
 | `fg-subtle` | Ayudas, fechas, pie | `#57534E` | `#A8A29E` |
 | `link` / `link-hover` | Links dentro del texto | `#C2410C` / `#9A3412` | `#FF6A13` / `#FB923C` |
-| `focus` | Anillo de foco (2 px, separación de 2) | `#C2410C` | `#FF6A13` |
+| `focus` | Anillo de foco (2 px, separación de 2). Los campos lo llevan siempre (regla base) además del borde | `#C2410C` | `#FF6A13` |
 | `brand` / `brand-hover` / `brand-contrast` | Botón primario, su hover y su texto | `#FF6A13` / `#EA580C` / tinta | `#FF6A13` / `#FB923C` / tinta |
 | `brand-text` | Texto naranja (sección activa, acento) | `#C2410C` | `#FF6A13` |
 | `ink` / `on-ink` / `on-ink-muted` / `ink-line` | Header y bloques tinta (iguales en los dos modos) | `#050505` / blanco / `#D6D3D1` / `#2A2A2A` | ídem |
@@ -75,7 +76,7 @@ Estados (manual M4): cada uno tiene texto, fondo suave, fondo enfático, borde y
 | `font-sans` (por defecto) | Manrope | 500, 600, 700 | Todo el texto de la app |
 | `font-display` | Sora | 300, 700, 800 | Logo y títulos. Todo `h1` va en Sora por la capa base de `globals.css` |
 
-Los espacios siguen la escala de Tailwind (`--spacing`, 0.25rem = el espacio base 4 del manual). Áreas táctiles: 44 px como mínimo (`min-h-11`).
+Los espacios siguen la escala de Tailwind (`--spacing`, 0.25rem = el espacio base 4 del manual). Áreas táctiles: 44 px como mínimo (`min-h-11`); campos, selects y `summary` lo tienen por la capa base de `globals.css` (C7-15).
 
 ## Tema claro u oscuro
 
