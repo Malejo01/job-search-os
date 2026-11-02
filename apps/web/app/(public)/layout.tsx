@@ -11,7 +11,7 @@ import { Logo } from "@/components/brand/logo";
  * comparte. Server Component, sin sesión ni cookies, para que las páginas puedan ser ISR.
  */
 const DESCRIPTION =
-  "Cargás tu perfil, la IA lee cada aviso contra lo que sabés y lo que buscás, y vos decidís. Nunca postula por vos.";
+  "Cargás tu perfil, la IA lee cada aviso contra lo que sabés y lo que buscás, y vos decidís. Nunca postulamos por vos.";
 
 const site = siteUrl();
 

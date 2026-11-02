@@ -12,13 +12,14 @@ export const metadata: Metadata = { alternates: { canonical: "/" } };
 const STEPS = [
   "Cargás tu perfil: qué sabés, qué buscás y qué no.",
   "La IA lee cada aviso contra tu perfil y te dice por qué sí y por qué no.",
-  "Vos decidís: si te postulás, a cuáles y cuándo.",
+  "Vos decidís: si te postulás, a cuáles y cuándo. Nunca postulamos por vos.",
 ];
 
+// Voz del manual (M7): en primera persona, frases cortas y la decisión siempre del lado de la persona
 const PROMISES = [
-  ["Nunca postula por vos", "Cada postulación la hacés vos, desde el sitio original."],
-  ["No lee tu bandeja", "Solo mira lo que vos reenviás."],
-  ["Tus datos son tuyos", "Podés pedir que se borren cuando quieras."],
+  ["Nunca postulamos por vos", "Cada postulación la hacés vos, en el sitio del aviso."],
+  ["No leemos tu bandeja", "Solo vemos lo que vos reenviás."],
+  ["Tus datos son tuyos", "Podés pedir que los borremos cuando quieras."],
 ];
 
 const CTA_CLASS =
@@ -39,7 +40,8 @@ export default async function HomePage() {
           Leemos cada oferta contra tu perfil y te decimos por qué sí y por qué no.
         </h1>
         <p className="max-w-2xl text-base text-on-ink-muted">
-          Menos postulaciones, mejores. Vos ponés el criterio; la IA hace la lectura pesada.
+          Menos postulaciones, mejor elegidas. Vos ponés el criterio; la IA hace la lectura pesada y
+          te explica cada puntaje.
         </p>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
           <Link href="/acceso" className={CTA_CLASS}>

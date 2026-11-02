@@ -207,7 +207,7 @@ export function ProfileForm({
     yearsTotal: "Los años de experiencia tienen que ser un número entre 0 y 60.",
     salaryFloorUsd: "El piso salarial tiene que ser un número entero en USD (o dejalo vacío).",
     maxWeeklyHours: "Las horas máximas tienen que ser un entero entre 1 y 80 (o dejalo vacío).",
-    perfil: "No se encontró tu perfil. Escribile a quien te invitó.",
+    perfil: "No encontramos tu perfil. Escribile a quien te invitó.",
     _error: "No se pudo guardar. Probá de nuevo; lo que cargaste sigue acá.",
   };
   function messageOf(e: ProfileFormError): string {

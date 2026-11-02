@@ -65,7 +65,7 @@ export default async function PerfilPage() {
         />
       ) : (
         <p role="alert" className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">
-          No se encontró tu perfil. Escribile a quien te invitó.
+          No encontramos tu perfil. Escribile a quien te invitó.
         </p>
       )}
     </div>
