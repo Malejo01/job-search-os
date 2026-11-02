@@ -166,7 +166,7 @@ function JobsAside({ pending }: { pending: number }) {
   return (
     <aside aria-label="Atajos" className="hidden w-72 shrink-0 flex-col gap-3 lg:flex">
       {pending > 0 ? (
-        <div className="flex flex-col gap-2 rounded-card bg-ink p-4 text-on-ink">
+        <div className="flex flex-col gap-2 rounded-card border border-ink-line bg-ink p-4 text-on-ink">
           <p className="font-display text-lg font-bold">
             {pending === 1
               ? "1 oferta espera descripción"

@@ -32,7 +32,7 @@ export default async function HomePage() {
   return (
     <div className="flex flex-col gap-10">
       {/* Hero tinta (C7-10, manual Main y P2): la bajada en naranja, la propuesta y el pedido de acceso */}
-      <section className="flex flex-col gap-4 rounded-card bg-ink px-5 py-8 text-on-ink sm:px-10 sm:py-12">
+      <section className="flex flex-col gap-4 rounded-card border border-ink-line bg-ink px-5 py-8 text-on-ink sm:px-10 sm:py-12">
         <p className="font-display text-lg font-extrabold tracking-tight text-brand sm:text-xl">
           {BRAND.tagline}
         </p>

@@ -34,7 +34,7 @@ export default function AccesoPage() {
       {/* Bloque de marca (C7-10): lo primero que ve quien llega por el QR desde el celular */}
       <section
         aria-labelledby="acceso-marca"
-        className="flex flex-col gap-2 rounded-card bg-ink p-4 text-on-ink sm:p-5"
+        className="flex flex-col gap-2 rounded-card border border-ink-line bg-ink p-4 text-on-ink sm:p-5"
       >
         <p id="acceso-marca" className="font-display text-2xl leading-tight font-extrabold">
           {BRAND.tagline}

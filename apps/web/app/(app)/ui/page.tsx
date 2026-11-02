@@ -81,7 +81,7 @@ export default function UiPage() {
           <Logo size="md" />
           <Logo variant="mark" size="md" />
           <Logo variant="wordmark" size="md" />
-          <span className="inline-flex rounded-card bg-ink p-3">
+          <span className="inline-flex rounded-card border border-ink-line bg-ink p-3">
             <Logo tone="dark" />
           </span>
         </div>
