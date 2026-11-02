@@ -92,7 +92,7 @@ describe("runPlanExpiryNotices (C4-1)", () => {
     expect(calls.claim).toEqual([]);
   });
 
-  it("manda un solo email por persona, en texto simple, con la fecha y el link de pago", async () => {
+  it("manda un solo email por persona, en texto y en HTML de marca, con la fecha y el link de pago", async () => {
     const { store, calls } = fakeStore([cand("a"), cand("b", { planUntil: days(1) })]);
     const send = vi.fn().mockResolvedValue(undefined);
     const res = await runPlanExpiryNotices({
@@ -108,7 +108,9 @@ describe("runPlanExpiryNotices (C4-1)", () => {
     const [params, apiKey] = send.mock.calls[0]!;
     expect(apiKey).toBe("re_test");
     expect(params).toMatchObject({ to: "b@ejemplo.test", from: ENV.EMAIL_FROM });
-    expect(params.html).toBeUndefined();
+    // C7-2: además del texto, la versión HTML con el encabezado de marca (sin imágenes remotas)
+    expect(params.html).toContain('<a href="https://mpago.la/abc"');
+    expect(params.html).not.toMatch(/<img\b/i);
     expect(params.text).toContain("https://mpago.la/abc");
     expect(params.text).toContain("11 de diciembre");
     expect(params.text).toContain("https://app.example.test/settings#tu-plan");

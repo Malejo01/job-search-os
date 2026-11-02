@@ -1,7 +1,9 @@
+import { BRAND } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { siteUrl } from "@/lib/site-url";
+import { Logo } from "@/components/brand/logo";
 
 /**
  * Layout de la vitrina pública en inglés (ronda 96): copia de `(public)/layout.tsx` con cabecera y
@@ -16,7 +18,8 @@ const site = siteUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(site),
-  title: { absolute: TAGLINE, template: "%s" },
+  title: { absolute: `${BRAND.name} · ${TAGLINE}`, template: `%s · ${BRAND.name}` },
+  applicationName: BRAND.name,
   description: DESCRIPTION,
   // La imagen en inglés es el route handler `opengraph-image-en/route.tsx` (ronda 122)
   openGraph: {
@@ -24,6 +27,7 @@ export const metadata: Metadata = {
     description: DESCRIPTION,
     type: "website",
     locale: "en_US",
+    siteName: BRAND.name,
     images: [{ url: "/opengraph-image-en", width: 1200, height: 630, alt: TAGLINE }],
   },
   twitter: {
@@ -57,8 +61,18 @@ export default function PublicEnLayout({ children }: { children: ReactNode }) {
           aria-label="Main"
           className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-2 gap-y-1 px-4 py-1"
         >
-          <Link href="/" hrefLang="es" lang="es" className={`${LINK_CLASS} font-semibold text-fg`}>
-            <span lang="en">Home</span>
+          {/* A 360 px el logo completo no entra junto a «Entrar» y «Pedir acceso»: abajo de sm va solo el texto */}
+          <Link
+            href="/"
+            hrefLang="es"
+            className="inline-flex min-h-11 items-center rounded-control px-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          >
+            <span className="sm:hidden">
+              <Logo variant="wordmark" />
+            </span>
+            <span className="hidden sm:block">
+              <Logo />
+            </span>
           </Link>
           <div className="flex flex-wrap items-center justify-end gap-x-1 gap-y-1">
             {/* Market, Postings y Demo van en el pie por debajo de sm: así el header entra en una fila a 360 px */}

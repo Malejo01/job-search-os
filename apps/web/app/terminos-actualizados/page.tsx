@@ -1,4 +1,3 @@
-import { PRODUCT_NAME } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { signOut } from "@/auth";
@@ -7,6 +6,7 @@ import { requireUserId } from "@/lib/session";
 import { needsTermsAcceptance } from "@/lib/terms-status";
 import { DeleteAccountForm } from "../(app)/settings/delete-account-form";
 import { AcceptTermsForm } from "./form";
+import { Logo } from "@/components/brand/logo";
 
 export const metadata: Metadata = { title: "Actualizamos los términos" };
 export const dynamic = "force-dynamic";
@@ -36,7 +36,7 @@ export default async function TermsUpdatedPage({
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-line bg-surface">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-2">
-          <span className="text-base font-semibold">{PRODUCT_NAME}</span>
+          <Logo />
         </div>
       </header>
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-4">

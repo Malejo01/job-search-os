@@ -1,36 +1,66 @@
-# Marca: dónde está y cómo se cambia (C-15)
+# Marca: dónde está y cómo se cambia (C-15, C7-2)
 
-El nombre, los colores, el ícono, la URL y el remitente salen de pocos lugares. Cambiar de marca es un PR chico y un par de variables.
+El nombre es **AfinIAJobs** («IA» y la «J» en mayúscula) en todas partes: UI, títulos, metadata, logo, favicon, ícono de app, imágenes OG, emails, manifest y textos legales. La fuente del diseño es `docs/ux/rediseno-afiniajobs/` (README y artboards M2 a M8).
+
+Ani todavía no revisó la marca: lo que pida tiene que ser un PR chico. Por eso todo sale de pocos lugares.
 
 ## Lo que sale de un solo lugar
 | Qué | Dónde | Cómo se cambia |
 |---|---|---|
-| Nombre visible: títulos, header, emails y filtros de Gmail | `packages/pipeline/src/brand.ts` (`BRAND.name`; `PRODUCT_NAME` sale de ahí) | Una línea |
-| `User-Agent` hacia las fuentes públicas del pool | `SOURCE_USER_AGENT_BASE` (`packages/adapters/src/sources/user-agent.ts`): `BRAND.name` sin espacios + `/1.0` | Sale solo de `BRAND.name` |
+| Nombre visible: títulos, header, emails, filtros de Gmail, manifest, `aria-label` del logo | `packages/pipeline/src/brand.ts`: `BRAND.wordmark` (las dos partes del logotipo) y `BRAND.name`, que es su unión. `PRODUCT_NAME` sale de ahí | Una línea |
+| Bajada («Ofertas afines. CV afinado.») | `BRAND.tagline` | Una línea |
+| Logo en pantalla (monograma, logotipo y variantes) | `apps/web/components/brand/logo.tsx` (`<Logo>`) y la geometría del monograma en `components/brand/monogram.ts` | Un componente |
+| Colores del logo según el modo | Tokens `--jso-logo-*` en `apps/web/app/globals.css` (claro y oscuro) | Ocho líneas |
+| Colores de la app | `apps/web/app/globals.css` (ver `docs/ux/tokens.md`) | Tokens |
+| Colores fuera de CSS (imágenes OG, manifest, emails) | `BRAND_COLORS` en `brand.ts`. Un test (`brand.test.ts`) verifica que coincidan con `globals.css` | Una línea por color |
+| Tipografías | `apps/web/app/fonts.ts` (Sora y Manrope con `next/font`) y, para las imágenes OG, `apps/web/assets/fonts/` | Un archivo |
+| Favicon | `apps/web/app/icon.svg` (monograma tinta sobre naranja, sin el punto: a 16 px no se lee) | Reemplazar el archivo |
+| Ícono de iPhone y del manifest | `apps/web/app/apple-icon.png` (180 px) y `apps/web/public/icons/` (192, 512 y 512 `maskable`) | Reemplazar los PNG |
+| Manifest | `apps/web/app/manifest.ts` (nombre, colores e íconos) | Sale de `BRAND` y `BRAND_COLORS` |
+| Imágenes para compartir | `apps/web/lib/og-image.tsx`, usada por `(public)/opengraph-image.tsx`, `twitter-image.tsx` y `(public-en)/opengraph-image-en` | Un componente |
+| Encabezado de los emails | `packages/pipeline/src/email-layout.ts` (`brandedEmailHtml`): logotipo en texto sobre tinta, sin imágenes remotas | Un archivo |
+| `User-Agent` hacia las fuentes públicas del pool | `SOURCE_USER_AGENT_BASE` (`packages/adapters/src/sources/user-agent.ts`): `BRAND.name` + `/1.0` | Sale solo de `BRAND.name` |
 | Repositorio público («Cómo está hecho») | `BRAND.repoUrl` | Una línea |
-| Colores de marca | `apps/web/app/globals.css`: `--jso-brand`, `--jso-brand-hover` y `--jso-brand-contrast`, en `:root` (claro) y en `.dark` (oscuro). Los demás tokens están en `docs/ux/tokens.md` | Seis líneas |
-| Ícono de la pestaña | `apps/web/app/icon.svg` (provisorio, sin letras) | Reemplazar el archivo |
 | URL pública (metadata, sitemap, robots, links de email) | Variable `SITE_URL` (`apps/web/lib/site-url.ts`) | Vercel, Puerta 3 |
 | Remitente de los emails | Variable `EMAIL_FROM`; sin ella, `BRAND.name` con el sandbox de Resend | Vercel, Puerta 3 |
 | Dominio del email entrante | Variables de ingesta (`docs/DEPLOY.md`) | Vercel y DNS, Puerta 3 |
 
-**Guarda (C6-2).** `packages/pipeline/src/brand.test.ts` recorre `apps/web/app`, `apps/web/components`, `apps/web/lib` y `packages/*` y falla si algún archivo de código (salvo `brand.ts`) escribe el nombre a mano, con o sin espacios. Quedan afuera los textos legales, los tests, los e2e y las fixtures; los e2e que comprueban que la vitrina pública **no** nombra el producto leen `BRAND.name` en vez de repetirlo, así siguen sirviendo después de un cambio de nombre.
+## El logo
 
-La vitrina pública (`(public)/layout.tsx`, `opengraph-image.tsx`) no lleva el nombre a propósito; no hay `manifest`. Por eso un cambio de nombre no la toca.
+`<Logo>` es un Server Component sin JS:
+
+- `variant`: `full` (monograma + logotipo), `mark` (solo monograma) o `wordmark` (solo el texto).
+- `tone`: el fondo. `auto` acompaña al modo (tinta y naranja profundo en claro; naranja y blanco en oscuro). `light`, `dark` y `orange` son fijos; el header tinta lleva `dark`.
+- `size`: `sm` (header: monograma de 30 px, letra de 22 px), `md` (login) y `lg`.
+- Para lectores de pantalla es una imagen con el nombre `BRAND.name`; con `decorative` se oculta.
+
+Logotipo: «AfinIA» en Sora 800 y «Jobs» en Sora 300, con tracking −4 %. Sobre oscuro, «AfinIA» naranja `#FF6A13` y «Jobs» blanco; sobre claro, «AfinIA» tinta `#050505` y «Jobs» naranja profundo `#C2410C`; sobre naranja, tinta y blanco. Reglas del manual (M3): zona de seguridad del alto del monograma; tamaño mínimo 20 px de letra (debajo, solo el monograma); no estirar, no cambiar colores, no rotar ni agregar sombras.
+
+Dónde está: headers de la app con sesión, onboarding, legales, `terminos-actualizados`, la vitrina pública (en español e inglés; a menos de 640 px va solo el logotipo para que entre con «Entrar» y «Pedir acceso») y las pantallas de cuenta (login, registro, setup, olvidé y reset).
+
+## Guardas (tests)
+
+- `packages/pipeline/src/brand.test.ts`:
+  - ningún archivo de código, salvo `brand.ts`, escribe el nombre a mano (C6-2);
+  - ningún texto de la app (código, contenido, SVG, JSON) escribe «Job Search OS» ni una variante mal escrita del nombre («afiniajobs», «AfiniaJobs», «Afinia Jobs»…). Se permiten URLs, dominios, emails y la clave técnica `job-search-os` (C7-2);
+  - `BRAND_COLORS` coincide con los tokens de `globals.css`.
+- e2e 44: el header público lleva el logo con el nombre, los títulos públicos llevan el nombre, y el favicon, el ícono de iPhone, el manifest y las imágenes OG se sirven sin sesión.
+
+## Lo que no cambia con el nombre (a propósito)
+
+- **Servidor MCP:** `serverInfo.name` sigue siendo `job-search-os`. Cambiarlo rompe el conector ya configurado en claude.ai.
+- **Direcciones de ingesta de email, `EMAIL_FROM` y `SITE_URL`:** son variables de Vercel; no se tocan desde el código.
+- **Repo, paquetes (`@job-search-os/*`) y la clave `jso-` del `localStorage`:** son identificadores técnicos, no texto visible.
+- **Filtros de Gmail ya creados:** siguen funcionando (filtran por remitente); solo su título lleva el nombre viejo. Los nuevos llevan el nuevo.
 
 ## Lo que todavía hay que cambiar a mano
-- **Color primario de los botones:** hay 59 usos de `bg-zinc-900` en 51 archivos de `apps/web/app` y `apps/web/components`.
-  - Hoy el token `brand` vale lo mismo, así que no hay diferencia visible.
-  - El día que la marca tenga color propio, se reemplaza `bg-zinc-900` por `bg-brand` y `hover:bg-zinc-800` por `hover:bg-brand-hover` en los botones primarios. Es un reemplazo mecánico; revisá el contraste con el e2e 70 (axe).
-- **Textos legales:** `apps/web/content/legal/terminos.md` (§1, «Qué es…») y `privacidad.md` (primer párrafo) nombran el producto en el texto. Son carril rojo y los revisa Mauro. Cambiar el nombre ahí implica subir `TERMS_VERSION` y que todos vuelvan a aceptar.
-- **Docs y README:** `README.md`, `docs/PRD.md`, `docs/ARCHITECTURE.md`, `docs/USO_DIARIO.md` y `docs/DEPLOY.md` (el nombre del conector MCP en claude.ai). Son historia del proyecto: se actualizan si hace falta, sin apuro.
-- **Smoke:** el ejemplo de `SMOKE_BASE_URL` en `apps/web/playwright.smoke.config.ts` es solo un comentario.
-- **Logo dibujado:** no hay. Cuando lo haya, va como `apps/web/app/icon.svg` (y `apple-icon.png` si hace falta), y en el header de `(app)/layout.tsx`, `onboarding/layout.tsx` y `legal/layout.tsx`, que hoy muestran `PRODUCT_NAME` como texto.
+- **Textos legales** (`apps/web/content/legal/`): carril rojo, con `TERMS_VERSION` (C7-3).
+- **Docs y README:** `README.md`, `docs/PRD.md`, `docs/ARCHITECTURE.md`, `docs/USO_DIARIO.md` y `docs/DEPLOY.md` cuentan la historia del proyecto con el nombre viejo. Se actualizan si hace falta, sin apuro.
 
-## Checklist para un cambio de nombre
-1. `BRAND.name` y, si cambia, `BRAND.repoUrl`.
-2. Colores e ícono, si cambian.
-3. Variables en Vercel: `SITE_URL`, `EMAIL_FROM` y el dominio de entrada.
-4. PR rojo de legales con el nombre nuevo y `TERMS_VERSION`.
-5. Los filtros de Gmail ya creados siguen funcionando: filtran por el remitente de cada alerta y reenvían a la dirección de la persona, así que el nombre solo aparece en su título. Los que se generen después llevan el nombre nuevo.
+## Checklist para un cambio de nombre o de logo
+1. `BRAND.wordmark` (y `BRAND.repoUrl` si cambia).
+2. Colores: tokens de `globals.css` y `BRAND_COLORS`.
+3. Ícono: `icon.svg`, `apple-icon.png` y `public/icons/` (se regeneran desde el monograma).
+4. Variables en Vercel si cambian: `SITE_URL`, `EMAIL_FROM` y el dominio de entrada.
+5. PR rojo de legales con el nombre nuevo y `TERMS_VERSION`.
 6. Smoke ✅ después del deploy.

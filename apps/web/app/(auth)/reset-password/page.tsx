@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { MAX_PASSWORD_LENGTH } from "@/lib/invitations-core";
 import { checkResetToken, resetPassword } from "@/lib/password-reset";
+import { Logo } from "@/components/brand/logo";
 
 // Ver la nota en /setup: nunca dejar que Next congele una página que depende de estado en vivo.
 export const dynamic = "force-dynamic";
@@ -66,6 +68,12 @@ export default async function ResetPasswordPage({
         Saltar al contenido
       </a>
       <div>
+        <Link
+          href="/"
+          className="inline-flex min-h-11 items-center rounded-control focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        >
+          <Logo />
+        </Link>
         <h1 className="text-2xl font-semibold">Elegir contraseña nueva</h1>
       </div>
       {!check.ok ? (

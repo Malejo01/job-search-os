@@ -1,4 +1,4 @@
-import { PRODUCT_NAME } from "@job-search-os/pipeline";
+import Link from "next/link";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { signIn } from "@/auth";
@@ -10,6 +10,7 @@ import {
 import { INVALID_INVITATION_MESSAGE } from "@/lib/invitations-core";
 import { LegalPage } from "@/lib/legal";
 import { SubmitButton } from "@/app/components/submit-button";
+import { Logo } from "@/components/brand/logo";
 
 export const dynamic = "force-dynamic";
 
@@ -97,6 +98,12 @@ export default async function RegisterPage({
         <a href="#contenido" className={SKIP_CLASS}>
           Saltar al contenido
         </a>
+        <Link
+          href="/"
+          className="inline-flex min-h-11 items-center rounded-control focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        >
+          <Logo />
+        </Link>
         <h1 className="text-2xl font-semibold">Cuenta creada</h1>
         <p className="text-sm text-success">Ya podés entrar con tu email y tu contraseña.</p>
         <a
@@ -120,7 +127,9 @@ export default async function RegisterPage({
         Saltar al contenido
       </a>
       <div>
-        <h1 className="text-2xl font-semibold">{PRODUCT_NAME}</h1>
+        <h1 className="mb-2">
+          <Logo size="md" />
+        </h1>
         <p className="text-sm text-fg-subtle">Creá tu cuenta con tu invitación.</p>
         {code ? null : (
           <p role="note" className="mt-2 text-sm text-warning">

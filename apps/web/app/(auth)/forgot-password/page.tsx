@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requestPasswordReset } from "@/lib/password-reset";
+import { Logo } from "@/components/brand/logo";
 
 // Ver la nota en /setup: nunca dejar que Next congele una página que depende de estado en vivo.
 export const dynamic = "force-dynamic";
@@ -33,6 +35,12 @@ export default async function ForgotPasswordPage({
         Saltar al contenido
       </a>
       <div>
+        <Link
+          href="/"
+          className="inline-flex min-h-11 items-center rounded-control focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        >
+          <Logo />
+        </Link>
         <h1 className="text-2xl font-semibold">Olvidé mi contraseña</h1>
         <p className="text-sm text-fg-subtle">
           Escribí tu email. Si existe una cuenta, te mandamos un link para elegir una contraseña

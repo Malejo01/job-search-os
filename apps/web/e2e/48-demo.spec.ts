@@ -97,7 +97,7 @@ test.describe("Flujo 48: demo guiada", () => {
       page.getByRole("heading", { level: 1, name: /así evalúa ofertas reales/i }),
     ).toBeVisible();
     await expect(page.getByTestId("demo-profile-card")).toHaveCount(3);
-    expect(await page.title()).not.toContain(BRAND.name);
+    expect(await page.title()).toContain(BRAND.name);
 
     // /demo es ISR: si se cacheó vacía no hay links ("Pronto"), pero el perfil se abre igual
     const link = page.getByRole("link", { name: "Ver la demo de Full stack semi senior" });

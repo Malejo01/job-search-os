@@ -142,7 +142,10 @@ export async function runPlanExpiryNotices(deps: {
         contactEmail: contact,
         becado: candidate.planSource === "beca",
       });
-      await send({ to: candidate.email, subject: email.subject, text: email.text, from }, apiKey);
+      await send(
+        { to: candidate.email, subject: email.subject, text: email.text, html: email.html, from },
+        apiKey,
+      );
       sent++;
       consecutiveFailures = 0;
       logger.info(log, "plan-notices: aviso enviado");
