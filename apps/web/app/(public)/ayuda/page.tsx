@@ -79,10 +79,10 @@ const FAQS: FaqItem[] = [
       <p>
         La beta es por invitación y se usa con el Plan Beta, que es pago, mes a mes. El plan gratis
         es lo que queda cuando termina tu mes: tus datos siguen guardados, con menos avisos
-        evaluados por día.{" "}
+        evaluados por día. El link de pago te lo mandamos con la invitación.{" "}
         {pricingEnabled(process.env) ? (
           <>
-            Mirá las opciones vigentes en{" "}
+            Mirá los planes en{" "}
             <Link href="/precios" className="text-link underline hover:text-fg">
               Precios
             </Link>

@@ -265,6 +265,7 @@ describe("buildWaitlistInvitationText", () => {
     name: "Ana Pérez",
     link: "https://app.example/register?code=abc",
     expiresAt: new Date("2026-11-14T15:00:00Z"),
+    payment: { price: "$ 20.000 por mes", days: 30, link: "https://mpago.la/beta" },
   };
 
   it("dice que la beta abre el jueves 26/11 y lleva el link y el vencimiento", () => {
@@ -284,5 +285,24 @@ describe("buildWaitlistInvitationText", () => {
 
   it("sin nombre saluda sin nombre", () => {
     expect(buildWaitlistInvitationText({ ...base, name: "  " }).startsWith("Hola,")).toBe(true);
+  });
+
+  it("C7-12: dice el precio, que son 30 días y lleva el link de pago de Mercado Pago", () => {
+    const text = buildWaitlistInvitationText(base);
+    expect(text).toContain("$ 20.000 por mes");
+    expect(text).toContain("30 días");
+    expect(text).toContain("https://mpago.la/beta");
+    // La activación es manual y al vencer no se pierde nada
+    expect(text).toMatch(/activamos a mano/);
+    expect(text).toMatch(/plan gratis/);
+    // El link de registro va antes que el de pago: primero la cuenta
+    expect(text.indexOf(base.link)).toBeLessThan(text.indexOf("https://mpago.la/beta"));
+  });
+
+  it("C7-12: sin link de pago configurado lo dice y no inventa uno", () => {
+    const text = buildWaitlistInvitationText({ ...base, payment: { ...base.payment, link: null } });
+    expect(text).toContain("$ 20.000 por mes");
+    expect(text).not.toMatch(/mpago|mercadopago/i);
+    expect(text).toMatch(/link de pago.*todavía no/i);
   });
 });
