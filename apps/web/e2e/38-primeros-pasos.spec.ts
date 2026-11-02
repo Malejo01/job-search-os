@@ -91,9 +91,9 @@ test.describe("Flujo 38: primeros pasos, de la persona nueva a la checklist comp
     await expect(cefr).toHaveAttribute("aria-describedby", "cefr-help");
     await expect(page.locator("#cefr-help")).toBeVisible();
 
-    const help = page.locator("details").filter({ hasText: "¿Qué es CEFR?" });
+    const help = page.locator("details").filter({ hasText: "¿Qué es A1, B2, C1…?" });
     await expect(help).toHaveJSProperty("open", false);
-    await help.getByText("¿Qué es CEFR?").click();
+    await help.getByText("¿Qué es A1, B2, C1…?").click();
     await expect(help).toHaveJSProperty("open", true);
     for (const level of ["B1 · intermedio", "B2 · intermedio alto", "C1 · avanzado"]) {
       await expect(help.getByText(level)).toBeVisible();

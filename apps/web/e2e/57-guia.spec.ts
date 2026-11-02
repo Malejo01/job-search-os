@@ -257,8 +257,8 @@ test.describe("Flujo 57: guía del onboarding y de /jobs", () => {
 
       await test.step("CEFR a 360 px: no es demasiado alta ni genera scroll horizontal", async () => {
         await page.setViewportSize({ width: 360, height: 740 });
-        const help = page.locator("details").filter({ hasText: "¿Qué es CEFR?" });
-        await help.getByText("¿Qué es CEFR?").click();
+        const help = page.locator("details").filter({ hasText: "¿Qué es A1, B2, C1…?" });
+        await help.getByText("¿Qué es A1, B2, C1…?").click();
         await expect(help).toHaveJSProperty("open", true);
         expect((await help.boundingBox())!.height).toBeLessThanOrEqual(320);
         expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
