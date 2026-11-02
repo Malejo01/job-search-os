@@ -23,12 +23,12 @@ import { cx } from "./cx";
 export type ScoreSize = "sm" | "md" | "lg";
 
 const STATES: Record<ScoreState, string> = {
-  alto: "bg-success-muted text-success shadow-[inset_0_0_0_2px_var(--color-success-line)]",
-  medio: "bg-warning-muted text-warning shadow-[inset_0_0_0_2px_var(--color-warning-line)]",
-  bajo: "bg-surface-muted text-fg-muted shadow-[inset_0_0_0_2px_var(--color-line-strong)]",
+  alto: "bg-success-muted text-success shadow-[inset_0_0_0_2px_var(--jso-success-line)]",
+  medio: "bg-warning-muted text-warning shadow-[inset_0_0_0_2px_var(--jso-warning-line)]",
+  bajo: "bg-surface-muted text-fg-muted shadow-[inset_0_0_0_2px_var(--jso-line-strong)]",
   estimacion: "border-2 border-dashed border-line-control text-fg-muted",
   pendiente: "border-2 border-info-line text-info",
-  sin: "bg-surface-subtle text-fg-subtle shadow-[inset_0_0_0_1px_var(--color-line)]",
+  sin: "bg-surface-subtle text-fg-subtle shadow-[inset_0_0_0_1px_var(--jso-line)]",
 };
 
 const SIZES: Record<ScoreSize, { box: string; number: string }> = {

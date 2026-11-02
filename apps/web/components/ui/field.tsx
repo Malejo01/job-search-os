@@ -13,7 +13,7 @@ export function inputClasses({
   className,
 }: { invalid?: boolean; multiline?: boolean; className?: string } = {}): string {
   return cx(
-    "w-full rounded-control border-2 bg-surface px-3 text-base text-fg placeholder:text-fg-subtle focus:outline-none focus-visible:border-focus disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-fg-subtle",
+    "w-full rounded-control border-2 bg-surface px-3 text-base text-fg placeholder:text-fg-subtle focus-visible:border-focus disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-fg-subtle",
     multiline ? "min-h-32 py-2.5" : "min-h-11 py-2",
     invalid ? "border-danger-strong" : "border-line-control",
     className,

@@ -1,5 +1,6 @@
 "use client";
 
+import { MAX_JD_INPUT_CHARS } from "@job-search-os/pipeline";
 import { useState } from "react";
 import { TextareaWithCounter } from "@/components/char-counter";
 import { buttonClasses, inputClasses } from "@/components/ui";
@@ -19,7 +20,7 @@ export function DemoPaste() {
         id="demo-jd"
         name="demoJd"
         softMin={200}
-        max={20000}
+        max={MAX_JD_INPUT_CHARS}
         rows={5}
         placeholder="Pegá acá la descripción completa del puesto"
         className={inputClasses({ multiline: true, className: "text-sm" })}

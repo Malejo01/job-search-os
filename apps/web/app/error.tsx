@@ -16,8 +16,7 @@ export default function ErrorPage({
       <Logo className="mb-4" />
       <h1 className="text-title font-bold">Algo falló de nuestro lado</h1>
       <p className="text-sm text-fg-muted">
-        No es algo que hiciste vos. Probá de nuevo; si sigue pasando, avisanos con «¿Algo no
-        anduvo?».
+        No es algo que hiciste vos. Probá de nuevo; si sigue pasando, avisanos.
       </p>
       <div className="flex flex-wrap gap-3">
         <button type="button" onClick={() => reset()} className={buttonClasses()}>

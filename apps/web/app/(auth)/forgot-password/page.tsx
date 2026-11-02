@@ -60,7 +60,7 @@ export default async function ForgotPasswordPage({
               type="email"
               autoComplete="username"
               required
-              className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus:outline-none focus-visible:border-focus aria-invalid:border-danger-strong"
+              className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus-visible:border-focus aria-invalid:border-danger-strong"
             />
           </label>
           <button

@@ -117,7 +117,7 @@ export default async function SettingsPage({
           <p className="text-sm text-fg-muted">Mandale un link a quien quieras sumar a la beta.</p>
           <Link
             href="/settings/invitations"
-            className="inline-flex min-h-11 items-center self-start min-h-11 rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            className="inline-flex min-h-11 items-center self-start rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           >
             Crear invitación
           </Link>

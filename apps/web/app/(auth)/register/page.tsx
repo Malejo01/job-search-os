@@ -149,7 +149,7 @@ export default async function RegisterPage({
             required
             defaultValue={email ?? ""}
             {...invalidProps("email")}
-            className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus:outline-none focus-visible:border-focus aria-invalid:border-danger-strong"
+            className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus-visible:border-focus aria-invalid:border-danger-strong"
           />
           {error === "email" ? (
             <p id="email-error" role="alert" className="text-xs text-danger">
@@ -166,7 +166,7 @@ export default async function RegisterPage({
             maxLength={100}
             defaultValue={name ?? ""}
             {...invalidProps("nombre")}
-            className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus:outline-none focus-visible:border-focus aria-invalid:border-danger-strong"
+            className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus-visible:border-focus aria-invalid:border-danger-strong"
           />
           {error === "nombre" ? (
             <p id="nombre-error" role="alert" className="text-xs text-danger">
@@ -184,7 +184,7 @@ export default async function RegisterPage({
             maxLength={128}
             required
             {...invalidProps("corta")}
-            className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus:outline-none focus-visible:border-focus aria-invalid:border-danger-strong"
+            className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus-visible:border-focus aria-invalid:border-danger-strong"
           />
           {error === "corta" ? (
             <p id="corta-error" role="alert" className="text-xs text-danger">
@@ -201,7 +201,7 @@ export default async function RegisterPage({
             minLength={8}
             required
             {...invalidProps("no_coincide")}
-            className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus:outline-none focus-visible:border-focus aria-invalid:border-danger-strong"
+            className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus-visible:border-focus aria-invalid:border-danger-strong"
           />
           {error === "no_coincide" ? (
             <p id="no_coincide-error" role="alert" className="text-xs text-danger">

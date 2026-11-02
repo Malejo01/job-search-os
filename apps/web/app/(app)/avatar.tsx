@@ -11,7 +11,7 @@ export function Avatar({ name }: { name: string | null }) {
   return (
     <Link
       href="/settings/perfil"
-      aria-label={name ? `Perfil de ${name}` : "Perfil"}
+      aria-label={name ? `Perfil de ${name}${letters ? ` (${letters})` : ""}` : "Perfil"}
       className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-pill focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
     >
       <span
