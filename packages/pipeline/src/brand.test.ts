@@ -70,7 +70,7 @@ const NAME_SCAN_DIRS = [
   "packages/adapters/src",
 ];
 const NAME_EXT = /\.(ts|tsx|mjs|json|md|svg)$/;
-// Los legales se cambian en C7-3 (carril rojo, con TERMS_VERSION)
+// Incluye los legales desde C7-3
 const NAME_SKIP = new Set(["node_modules", ".next", "dist", "e2e", "__fixtures__", "fixtures"]);
 
 function* walkNames(dir: string): Generator<string> {
@@ -120,7 +120,6 @@ describe("nombre AfinIAJobs bien escrito (C7-2)", () => {
     for (const d of NAME_SCAN_DIRS) {
       for (const file of walkNames(join(ROOT, d))) {
         const rel = relative(ROOT, file).split(sep).join("/");
-        if (rel.startsWith("apps/web/content/legal/")) continue;
         for (const p of brandNameProblems(readFileSync(file, "utf8")))
           offenders.push(`${rel}: «${p}»`);
       }

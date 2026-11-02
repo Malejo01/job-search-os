@@ -1,3 +1,4 @@
+import { BRAND } from "@job-search-os/pipeline";
 import { z } from "zod";
 
 /**
@@ -5,7 +6,13 @@ import { z } from "zod";
  * Subir la versión cuando cambie el texto de `content/legal/{terminos,privacidad}.md`: cada cuenta
  * nueva guarda la versión que aceptó (users.terms_version) junto con la fecha.
  */
-export const TERMS_VERSION = "2026-10-27";
+export const TERMS_VERSION = "2026-11-02";
+
+/**
+ * Qué cambió en la versión vigente, en una línea, para la pantalla de re-aceptación. Se reescribe
+ * cada vez que se sube `TERMS_VERSION`. 2026-11-02 (C7-3): solo el nombre del producto.
+ */
+export const TERMS_CHANGE_SUMMARY = `Cambió el nombre del producto: ahora se llama ${BRAND.name}. El resto de los términos y de la política de privacidad sigue igual.`;
 
 /** Casilla de /register: llega como "on" desde un checkbox HTML; cualquier otra cosa es "no aceptó". */
 const acceptedSchema = z.literal("on");

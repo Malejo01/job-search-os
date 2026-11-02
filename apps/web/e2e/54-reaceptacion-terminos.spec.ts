@@ -1,4 +1,5 @@
 import * as s from "@job-search-os/db/schema";
+import { BRAND } from "@job-search-os/pipeline";
 import { expect, test } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { TERMS_VERSION } from "../lib/terms";
@@ -29,7 +30,42 @@ async function setTerms(version: string | null, acceptedAt: Date | null): Promis
   }
 }
 
+// Versión anterior a C7-3 (cambio de nombre a AfinIAJobs): toda cuenta que la tenga vuelve a aceptar
+const PREVIOUS_TERMS_VERSION = "2026-10-27";
+
 test.describe("re-aceptación de los términos (ronda 83)", () => {
+  test("una cuenta con la versión anterior al cambio de nombre vuelve a aceptar (C7-3)", async ({
+    page,
+  }) => {
+    expect(TERMS_VERSION).not.toBe(PREVIOUS_TERMS_VERSION);
+    const original = await termsOf();
+    try {
+      await setTerms(PREVIOUS_TERMS_VERSION, new Date("2026-10-28T00:00:00Z"));
+      await page.goto("/login");
+      await page.getByLabel("Email").fill(E2E_EMAIL);
+      await page.getByLabel("Contraseña").fill(E2E_PASSWORD);
+      await page.getByRole("button", { name: "Entrar" }).click();
+      await page.waitForURL("**/terminos-actualizados");
+      await expect(page.getByRole("note")).toContainText(BRAND.name);
+
+      // Los textos legales ya dicen el nombre nuevo
+      await page.goto("/legal/terminos");
+      await expect(page.getByRole("heading", { name: `1. Qué es ${BRAND.name}` })).toBeVisible();
+      await page.goto("/legal/privacidad");
+      await expect(
+        page.getByText(`${BRAND.name} es una herramienta en beta cerrada`),
+      ).toBeVisible();
+
+      await page.goto("/terminos-actualizados");
+      await page.getByLabel("Leí y acepto los términos y la política de privacidad").check();
+      await page.getByRole("button", { name: "Aceptar y seguir" }).click();
+      await page.waitForURL("**/hoy**");
+      expect((await termsOf()).version).toBe(TERMS_VERSION);
+    } finally {
+      await setTerms(original.version, original.acceptedAt);
+    }
+  });
+
   test("con una versión vieja redirige, exige la casilla y al aceptar vuelve a /hoy", async ({
     page,
   }) => {
