@@ -2,6 +2,7 @@
 
 import { createLogger, safeDbError, sendEmail } from "@job-search-os/adapters";
 import {
+  brandedEmailHtml,
   FEEDBACK_CATEGORY_LABELS,
   PRODUCT_NAME,
   validateFeedback,
@@ -73,20 +74,24 @@ async function notifyFeedbackAdmins(
     .filter(Boolean)
     .join("");
 
-  const html = `
-    <h2>Nuevo reporte de soporte</h2>
+  // Encabezado de marca (C7-2): el cuerpo sigue escapado campo por campo
+  const html = brandedEmailHtml({
+    preheader: `${categoryLabel} en ${feedback.path}`,
+    bodyHtml: `
+    <h2 style="margin:0 0 12px;">Nuevo reporte de soporte</h2>
     <p><strong>Página:</strong> <code>${escapeHtml(feedback.path)}</code></p>
     <p><strong>Categoría:</strong> ${escapeHtml(categoryLabel)} (<code>${escapeHtml(feedback.category)}</code>)</p>
     ${contextMeta}
     <hr />
     <p><strong>Mensaje:</strong></p>
-    <blockquote style="white-space: pre-wrap; background: #f4f4f5; padding: 12px; border-left: 4px solid #71717a; border-radius: 4px;">
+    <blockquote style="white-space: pre-wrap; background: #f5f5f4; padding: 12px; border-left: 4px solid #78716c; border-radius: 8px;">
       ${escapeHtml(feedback.message)}
     </blockquote>
     <hr />
     <h3>Últimas acciones</h3>
     ${actionsHtml}
-  `;
+  `,
+  });
 
   for (const adminEmail of adminEmails) {
     try {

@@ -1,10 +1,10 @@
-import { PRODUCT_NAME } from "@job-search-os/pipeline";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { signIn } from "@/auth";
 import { SubmitButton } from "@/app/components/submit-button";
 import { ClearAssistantProposal } from "@/components/clear-assistant-proposal";
 import { hasAnyUser } from "@/lib/setup";
+import { Logo } from "@/components/brand/logo";
 
 // Igual que /setup: el gate hacia /setup depende de una lectura de la base en cada visita.
 export const dynamic = "force-dynamic";
@@ -47,7 +47,9 @@ export default async function LoginPage({
         Saltar al contenido
       </a>
       <div>
-        <h1 className="text-2xl font-semibold">{PRODUCT_NAME}</h1>
+        <h1 className="mb-2">
+          <Logo size="md" />
+        </h1>
         <p className="text-sm text-fg-subtle">Entrá con tu email y contraseña.</p>
       </div>
       <form action={login} className="flex flex-col gap-3">

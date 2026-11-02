@@ -1,4 +1,4 @@
-import { PRODUCT_NAME, pricingEnabled } from "@job-search-os/pipeline";
+import { pricingEnabled } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
@@ -16,6 +16,7 @@ import { getUserPlan } from "@/lib/user-plan";
 import { AssistantButton } from "./assistant-button";
 import { MainNav } from "./main-nav";
 import { PlanNotice } from "./plan-notice";
+import { Logo } from "@/components/brand/logo";
 
 const NAV = [
   { href: "/hoy", label: "Hoy" },
@@ -77,8 +78,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       {/* z-20: las tarjetas de /jobs llevan links z-10 y no deben dibujarse sobre el header; la guía (z-40) y los modales (z-50) quedan arriba */}
       <header className="sticky top-0 z-20 border-b border-line bg-surface/95 backdrop-blur">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2">
-          <Link href="/hoy" className="text-base font-semibold">
-            {PRODUCT_NAME}
+          <Link
+            href="/hoy"
+            className="inline-flex min-h-11 items-center rounded-control focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          >
+            <Logo />
           </Link>
           <div className="flex flex-wrap items-center gap-x-4">
             {" "}

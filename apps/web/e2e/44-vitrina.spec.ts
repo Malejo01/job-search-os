@@ -96,8 +96,10 @@ test.describe("Flujo 44: vitrina pública", () => {
     await expect(page.getByText("Tus datos son tuyos")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Cómo funciona" })).toBeVisible();
     await expect(page.getByTestId("pool-numbers")).toBeVisible();
-    // El header no lleva el nombre del producto
-    await expect(page.locator("header")).not.toContainText(BRAND.name);
+    // C7-2: el header lleva el logo, con el nombre como nombre accesible, y lleva a la portada
+    await expect(
+      page.locator("header").getByRole("link", { name: BRAND.name, exact: true }),
+    ).toHaveAttribute("href", "/");
 
     // A 390 px (viewport de los e2e) Mercado y Ofertas están en el pie, no en el header: se busca
     // en toda la página el primero visible (getByRole ignora los ocultos con display: none).
@@ -149,14 +151,52 @@ test.describe("Flujo 44: vitrina pública", () => {
     const data = JSON.parse(raw ?? "{}") as Record<string, unknown>;
     expect(data["@type"]).toBe("Dataset");
     expect(raw).not.toContain("JobPosting");
+    // El Dataset describe el mercado, no la marca
     expect(raw).not.toContain(BRAND.name);
     await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", /Mercado/);
   });
 
-  test("los títulos públicos no llevan el nombre del producto", async ({ page }) => {
+  test("los títulos públicos llevan el nombre del producto (C7-2)", async ({ page }) => {
     for (const path of ["/", "/mercado", "/ofertas", "/acceso"]) {
       await page.goto(path);
-      expect(await page.title(), path).not.toContain(BRAND.name);
+      expect(await page.title(), path).toContain(BRAND.name);
+    }
+    await page.goto("/");
+    expect(await page.title()).toBe(`${BRAND.name} · ${BRAND.tagline}`);
+  });
+
+  test("el favicon, el ícono de iPhone y el manifest se sirven sin sesión (C7-2)", async ({
+    request,
+  }) => {
+    const manifest = await request.get("/manifest.webmanifest");
+    expect(manifest.status()).toBe(200);
+    const data = (await manifest.json()) as {
+      name: string;
+      short_name: string;
+      icons: { src: string }[];
+    };
+    expect(data.name).toBe(BRAND.name);
+    expect(data.short_name).toBe(BRAND.name);
+    for (const icon of data.icons) {
+      const res = await request.get(icon.src, { maxRedirects: 0 });
+      expect(res.status(), icon.src).toBe(200);
+      expect(res.headers()["content-type"], icon.src).toContain("image/png");
+    }
+    for (const path of ["/icon.svg", "/apple-icon.png"]) {
+      const res = await request.get(path, { maxRedirects: 0 });
+      expect(res.status(), path).toBe(200);
+    }
+  });
+
+  test("las imágenes para compartir se sirven sin sesión (C7-2)", async ({ page, request }) => {
+    await page.goto("/");
+    // La ruta lleva un sufijo que pone Next (grupo de rutas): se lee de los metadatos
+    for (const selector of ['meta[property="og:image"]', 'meta[name="twitter:image"]']) {
+      const content = await page.locator(selector).first().getAttribute("content");
+      expect(content, selector).not.toBeNull();
+      const res = await request.get(new URL(content!).pathname, { maxRedirects: 0 });
+      expect(res.status(), selector).toBe(200);
+      expect(res.headers()["content-type"], selector).toContain("image/png");
     }
   });
 

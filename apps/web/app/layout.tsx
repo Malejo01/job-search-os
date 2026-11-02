@@ -1,15 +1,18 @@
-import { PRODUCT_NAME } from "@job-search-os/pipeline";
-import type { Metadata } from "next";
+import { BRAND, BRAND_COLORS } from "@job-search-os/pipeline";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { manrope, sora } from "./fonts";
 import "./globals.css";
 import { ThemeScript } from "./theme-script";
 
 export const metadata: Metadata = {
-  title: { default: PRODUCT_NAME, template: `%s · ${PRODUCT_NAME}` },
-  description:
-    "Menos postulaciones, mejores. El modelo evalúa, el código decide, el humano interviene.",
+  title: { default: BRAND.name, template: `%s · ${BRAND.name}` },
+  applicationName: BRAND.name,
+  description: `${BRAND.tagline} Leemos cada oferta contra tu perfil y vos decidís.`,
 };
+
+// Color de la barra del navegador en el celular: tinta, como el header (C7-2)
+export const viewport: Viewport = { themeColor: BRAND_COLORS.ink };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { BRAND } from "./brand";
+import { BRAND, BRAND_COLORS } from "./brand";
 import { PRODUCT_NAME } from "./product";
 
 /**
@@ -52,5 +52,89 @@ describe("marca en un solo lugar", () => {
       }
     }
     expect(offenders).toEqual([]);
+  });
+});
+
+/**
+ * C7-2: el nombre se escribe «AfinIAJobs» en todas partes. Falla si en el código o el contenido de
+ * la app (UI, emails, metadata, manifest, textos) queda el nombre viejo o una variante mal escrita
+ * («afiniajobs», «AfiniaJobs», «Afinia Jobs»…). Se permiten las URLs, los dominios y los emails
+ * (`afiniajobs.com.ar`) y la clave técnica `job-search-os` (paquetes, MCP, repo).
+ */
+const NAME_SCAN_DIRS = [
+  "apps/web/app",
+  "apps/web/components",
+  "apps/web/lib",
+  "apps/web/content",
+  "packages/pipeline/src",
+  "packages/adapters/src",
+];
+const NAME_EXT = /\.(ts|tsx|mjs|json|md|svg)$/;
+// Los legales se cambian en C7-3 (carril rojo, con TERMS_VERSION)
+const NAME_SKIP = new Set(["node_modules", ".next", "dist", "e2e", "__fixtures__", "fixtures"]);
+
+function* walkNames(dir: string): Generator<string> {
+  for (const name of readdirSync(dir)) {
+    if (NAME_SKIP.has(name)) continue;
+    const full = join(dir, name);
+    const st = statSync(full);
+    if (st.isDirectory()) yield* walkNames(full);
+    else if (NAME_EXT.test(name) && !/\.test\.tsx?$/.test(name)) yield full;
+  }
+}
+
+/** Saca URLs, emails y dominios: ahí el nombre va en minúsculas y está bien. */
+function withoutAddresses(text: string): string {
+  return text
+    .replace(/https?:\/\/[^\s"'`)<>]+/g, " ")
+    .replace(/[\w.+-]+@[\w.-]+/g, " ")
+    .replace(/\b[\w-]*afinia-?jobs\.[a-z.]+/gi, " ");
+}
+
+export function brandNameProblems(text: string): string[] {
+  const clean = withoutAddresses(text);
+  const problems: string[] = [];
+  for (const m of clean.matchAll(/job\s*search\s*os/gi)) problems.push(m[0]);
+  for (const m of clean.matchAll(/afinia[\s_-]*jobs/gi))
+    if (m[0] !== BRAND.name) problems.push(m[0]);
+  return problems;
+}
+
+describe("nombre AfinIAJobs bien escrito (C7-2)", () => {
+  it("el nombre es AfinIAJobs", () => {
+    expect(BRAND.name).toBe("AfinIA" + "Jobs");
+  });
+
+  it("detecta las variantes y deja pasar URLs, dominios y la clave técnica", () => {
+    expect(brandNameProblems("Bienvenida a afiniajobs")).toEqual(["afiniajobs"]);
+    expect(brandNameProblems("AfiniaJobs y Afinia Jobs")).toEqual(["AfiniaJobs", "Afinia Jobs"]);
+    expect(brandNameProblems("Job Search OS")).toEqual(["Job Search OS"]);
+    expect(brandNameProblems("https://afiniajobs.com.ar/acceso")).toEqual([]);
+    expect(brandNameProblems("hola@afiniajobs.com.ar")).toEqual([]);
+    expect(brandNameProblems("app.afiniajobs.com.ar")).toEqual([]);
+    expect(brandNameProblems('serverInfo: { name: "job-search-os" }')).toEqual([]);
+  });
+
+  it("ningún texto de la app escribe mal el nombre", () => {
+    const offenders: string[] = [];
+    for (const d of NAME_SCAN_DIRS) {
+      for (const file of walkNames(join(ROOT, d))) {
+        const rel = relative(ROOT, file).split(sep).join("/");
+        if (rel.startsWith("apps/web/content/legal/")) continue;
+        for (const p of brandNameProblems(readFileSync(file, "utf8")))
+          offenders.push(`${rel}: «${p}»`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("BRAND_COLORS coincide con los tokens de globals.css", () => {
+    const css = readFileSync(join(ROOT, "apps/web/app/globals.css"), "utf8").toLowerCase();
+    const root = css.slice(css.indexOf(":root {"), css.indexOf("\n}", css.indexOf(":root {")));
+    expect(root).toContain(`--jso-ink: ${BRAND_COLORS.ink.toLowerCase()};`);
+    expect(root).toContain(`--jso-brand: ${BRAND_COLORS.orange.toLowerCase()};`);
+    expect(root).toContain(`--jso-brand-text: ${BRAND_COLORS.deepOrange.toLowerCase()};`);
+    expect(root).toContain(`--jso-canvas: ${BRAND_COLORS.stone100.toLowerCase()};`);
+    expect(root).toContain(`--jso-fg-subtle: ${BRAND_COLORS.stone600.toLowerCase()};`);
   });
 });

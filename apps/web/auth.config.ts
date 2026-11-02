@@ -39,7 +39,12 @@ export const authConfig = {
         pathname.startsWith("/opengraph-image") ||
         pathname.startsWith("/twitter-image") ||
         pathname === "/sitemap.xml" ||
-        pathname === "/robots.txt"
+        pathname === "/robots.txt" ||
+        // Marca (C7-2): favicon, ícono de iPhone, íconos del manifest y el manifest. Sin esto, sin
+        // sesión el navegador recibía una redirección a /login en vez del ícono.
+        pathname.startsWith("/icon") ||
+        pathname.startsWith("/apple-icon") ||
+        pathname === "/manifest.webmanifest"
       ) {
         return true;
       }

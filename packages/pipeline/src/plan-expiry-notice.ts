@@ -7,6 +7,7 @@
  * corresponder. Vencer nunca borra nada (C3-1): el texto lo dice, y es lo que muestra Ajustes.
  */
 import { EXPIRY_WARNING_DAYS, planAccess } from "./plan-access";
+import { brandedEmailHtml, textToEmailHtml } from "./email-layout";
 import { PRODUCT_NAME } from "./product";
 
 const DAY_MS = 86_400_000;
@@ -126,6 +127,8 @@ function firstName(displayName: string): string {
 export function buildPlanNoticeEmail(input: PlanNoticeEmailInput): {
   subject: string;
   text: string;
+  /** El mismo texto con el encabezado de marca (C7-2). */
+  html: string;
 } {
   const date = formatNoticeDate(input.until);
   const name = firstName(input.displayName);
@@ -166,5 +169,11 @@ export function buildPlanNoticeEmail(input: PlanNoticeEmailInput): {
   lines.push("");
   lines.push("Este aviso te llega una sola vez por vencimiento.");
   lines.push(PRODUCT_NAME);
-  return { subject, text: lines.join("\n") };
+  const text = lines.join("\n");
+  // En el HTML el nombre ya va en el encabezado y el pie: el cuerpo termina en el aviso
+  const html = brandedEmailHtml({
+    preheader: subject,
+    bodyHtml: textToEmailHtml(lines.slice(0, -1).join("\n")),
+  });
+  return { subject, text, html };
 }

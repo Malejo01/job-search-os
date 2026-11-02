@@ -1,3 +1,4 @@
+import { BRAND } from "./brand";
 import { describe, expect, it } from "vitest";
 import {
   buildPlanNoticeEmail,
@@ -212,5 +213,29 @@ describe("buildPlanNoticeEmail: el texto del aviso", () => {
   it("no promete garantía ni reintegros", () => {
     const { text } = buildPlanNoticeEmail(base);
     expect(text).not.toMatch(/garant|reintegr|devoluci/i);
+  });
+});
+
+describe("buildPlanNoticeEmail: versión HTML con la marca (C7-2)", () => {
+  const base = {
+    displayName: "Ana Pérez",
+    until: new Date("2026-12-10T12:00:00Z"),
+    paymentUrl: "https://mpago.la/abc",
+    settingsUrl: "https://app.example.com/settings#tu-plan",
+    contactEmail: null,
+    becado: false,
+  };
+
+  it("lleva el encabezado de marca, el link de pago clickeable y el mismo contenido", () => {
+    const { html, text } = buildPlanNoticeEmail(base);
+    expect(html).toContain(BRAND.wordmark.strong);
+    expect(html).toContain('<a href="https://mpago.la/abc"');
+    expect(html).toContain("Hola Ana:");
+    expect(text).toContain("https://mpago.la/abc");
+  });
+
+  it("escapa el nombre de la persona", () => {
+    const { html } = buildPlanNoticeEmail({ ...base, displayName: "<script>x" });
+    expect(html).not.toContain("<script>");
   });
 });

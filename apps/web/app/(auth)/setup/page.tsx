@@ -1,10 +1,10 @@
-import { PRODUCT_NAME } from "@job-search-os/pipeline";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { signIn } from "@/auth";
 import { SubmitButton } from "@/app/components/submit-button";
 import { MAX_PASSWORD_LENGTH } from "@/lib/invitations-core";
 import { createFirstUser, hasAnyUser } from "@/lib/setup";
+import { Logo } from "@/components/brand/logo";
 
 // Sin esto, Next puede congelar esta página como estática en el build si en ese momento
 // hasAnyUser() da true (el redirect corre antes de tocar searchParams): el gate quedaría
@@ -63,7 +63,9 @@ export default async function SetupPage({
         Saltar al contenido
       </a>
       <div>
-        <h1 className="text-2xl font-semibold">{PRODUCT_NAME}</h1>
+        <h1 className="mb-2">
+          <Logo size="md" />
+        </h1>
         <p className="text-sm text-fg-subtle">
           Todavía no hay ningún usuario. Creá el único usuario de la app.
         </p>

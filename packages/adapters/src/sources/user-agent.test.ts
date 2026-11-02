@@ -4,7 +4,7 @@ import { sourceUserAgent } from "./user-agent";
 describe("sourceUserAgent", () => {
   it("usa el host de APP_URL, sin ruta ni query", () => {
     expect(sourceUserAgent({ APP_URL: "https://app.example.com/ruta?x=1" })).toBe(
-      "JobSearchOS/1.0 (+https://app.example.com)",
+      "AfinIAJobs/1.0 (+https://app.example.com)",
     );
   });
 
@@ -27,19 +27,19 @@ describe("sourceUserAgent", () => {
 
   it("una URL inválida o con otro protocolo se ignora y pasa a la siguiente", () => {
     expect(sourceUserAgent({ APP_URL: "no es una url", AUTH_URL: "https://ok.example.com" })).toBe(
-      "JobSearchOS/1.0 (+https://ok.example.com)",
+      "AfinIAJobs/1.0 (+https://ok.example.com)",
     );
-    expect(sourceUserAgent({ APP_URL: "ftp://x.example.com" })).toBe("JobSearchOS/1.0");
+    expect(sourceUserAgent({ APP_URL: "ftp://x.example.com" })).toBe("AfinIAJobs/1.0");
   });
 
   it("acepta http y conserva el puerto del origen", () => {
     expect(sourceUserAgent({ APP_URL: "http://localhost:3000/x" })).toBe(
-      "JobSearchOS/1.0 (+http://localhost:3000)",
+      "AfinIAJobs/1.0 (+http://localhost:3000)",
     );
   });
 
   it("sin ninguna variable → solo el producto", () => {
-    expect(sourceUserAgent({})).toBe("JobSearchOS/1.0");
-    expect(sourceUserAgent({ APP_URL: "  " })).toBe("JobSearchOS/1.0");
+    expect(sourceUserAgent({})).toBe("AfinIAJobs/1.0");
+    expect(sourceUserAgent({ APP_URL: "  " })).toBe("AfinIAJobs/1.0");
   });
 });
