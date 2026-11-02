@@ -8,7 +8,12 @@ import { AssistantPanel } from "./assistant-panel";
  * vive acá (en el layout de la app), así la charla sigue al cambiar de pantalla; al recargar se
  * pierde, a propósito: no se guarda en ningún lado.
  */
-export function AssistantButton() {
+export function AssistantButton({
+  className = "inline-flex min-h-11 items-center text-sm text-fg-muted underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
+}: {
+  /** El header tinta (C7-5) le pasa sus colores; sin clase, los de siempre. */
+  className?: string;
+}) {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   return (
@@ -19,7 +24,7 @@ export function AssistantButton() {
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen(true)}
-        className="inline-flex min-h-11 items-center text-sm text-fg-muted underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        className={className}
       >
         Asistente
       </button>

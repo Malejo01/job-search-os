@@ -88,15 +88,14 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       {/* Header tinta (C7-5, manual P1 a P4), igual en claro y en oscuro. z-20: las tarjetas de /jobs
           llevan links z-10 y no deben dibujarse sobre el header; la guía (z-40) y los modales (z-50) quedan arriba */}
       <header className="sticky top-0 z-20 bg-ink text-on-ink">
+        {/* Una sola nav: desde lg va al lado del logo (P1); entre sm y lg pasa a su propia fila
+            (`order-last basis-full`). Una sola copia: la guía y los e2e buscan su ancla una vez */}
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-1 px-4 py-1 sm:min-h-16">
-          <div className="flex min-w-0 items-center gap-x-8">
-            <Link href="/hoy" className={LOGO_LINK}>
-              <Logo tone="dark" />
-            </Link>
-            {/* Desde lg, la nav va al lado del logo (P1); entre sm y lg, en su propia fila */}
-            <div className="hidden lg:block">
-              <DesktopNav items={navItems} />
-            </div>
+          <Link href="/hoy" className={LOGO_LINK}>
+            <Logo tone="dark" />
+          </Link>
+          <div className="order-last basis-full lg:order-none lg:flex-1 lg:basis-auto">
+            <DesktopNav items={navItems} />
           </div>
           <div className="flex flex-wrap items-center gap-x-4">
             {canInvite ? (
@@ -104,7 +103,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                 Invitar
               </Link>
             ) : null}
-            {canAssist ? <AssistantButton /> : null}
+            {canAssist ? <AssistantButton className={HEADER_LINK} /> : null}
             <Link href="/settings" className={HEADER_LINK}>
               Ajustes
             </Link>
@@ -115,9 +114,6 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             </form>
             <Avatar name={displayName} />
           </div>
-        </div>
-        <div className="mx-auto max-w-6xl px-4 lg:hidden">
-          <DesktopNav items={navItems} />
         </div>
         {/* A 360 px siete links no entran en una fila: por debajo de `sm` van en un menú desplegable */}
         <MobileNav items={navItems} />
