@@ -1,17 +1,11 @@
 import { attributionFor } from "@job-search-os/pipeline";
-import {
-  ACTION_LABELS,
-  SCORE_CLASSES,
-  formatScoreNumber,
-  riskLabel,
-  safeHttpUrl,
-  scoreTone,
-} from "@/lib/labels";
+import { ACTION_LABELS, riskLabel, safeHttpUrl, scoreTone } from "@/lib/labels";
 import { RequisitosDelAviso } from "@/components/requisitos-del-aviso";
 import type { DemoEvaluationRow } from "@/lib/demo";
 import type { ChecklistView } from "@/lib/job-detail";
 import { MODALITY_LABELS, modalityKey } from "../../ofertas/job-card";
 import { Feedback } from "./feedback";
+import { ScoreBadge } from "@/components/ui";
 
 const BAR_COLOR = {
   alto: "bg-success-strong",
@@ -72,14 +66,7 @@ export function EvaluationCard({
         </div>
 
         <div {...step("demo:puntaje")} className="flex flex-col gap-1 rounded-control p-1">
-          <p className="flex items-baseline gap-2 text-sm">
-            <span
-              className={`rounded-control px-2 py-0.5 text-base font-semibold ring-1 ${SCORE_CLASSES[tone]}`}
-            >
-              {formatScoreNumber(row.score)}
-            </span>
-            <span className="text-fg-muted">de 10</span>
-          </p>
+          <ScoreBadge score={row.score} />
           <div aria-hidden="true" className="h-2 w-full rounded-pill bg-surface-muted">
             <div
               className={`h-2 rounded-pill ${BAR_COLOR[tone]}`}

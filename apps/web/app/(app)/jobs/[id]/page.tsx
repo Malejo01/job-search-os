@@ -29,15 +29,12 @@ import {
   flagLabel,
   formatDate,
   formatScore,
-  formatScoreNumber,
   LOCATION_CLASSES,
   LOCATION_LABELS,
   MODALITY_LABELS,
   OUTCOME_LABELS,
   riskLabel,
   safeHttpUrl,
-  SCORE_CLASSES,
-  scoreTone,
   SOURCE_LABELS,
   STATUS_LABELS,
 } from "@/lib/labels";
@@ -55,6 +52,7 @@ import { ReviewNav } from "./review-nav";
 import { SourceAttribution } from "./source-attribution";
 import { StatusCorrection } from "./status-correction";
 import { Verdict } from "./verdict";
+import { ScoreBadge } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -137,7 +135,6 @@ export default async function JobDetailPage({
       info.level === null ? [] : [[slug, info.level] as const],
     ),
   );
-  const tone = scoreTone(ev?.score ?? null);
   const salary =
     job.salaryMinUsd || job.salaryMaxUsd
       ? `USD ${[job.salaryMinUsd, job.salaryMaxUsd].filter(Boolean).join("–")}${job.salaryPeriod ? ` ${job.salaryPeriod}` : ""}`
@@ -169,14 +166,7 @@ export default async function JobDetailPage({
       <AutoRefresh active={job.evaluating} />
 
       <header className="flex gap-3">
-        <div
-          className={`flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-control ring-1 ${SCORE_CLASSES[tone]}`}
-        >
-          <span className="text-2xl font-semibold leading-none">
-            {ev ? formatScoreNumber(ev.score) : "–"}
-          </span>
-          <span className="text-[10px]">{ev ? "/10" : "puntaje"}</span>
-        </div>
+        <ScoreBadge score={ev ? ev.score : null} pending={job.evaluating} size="lg" />
         <div className="min-w-0">
           <h1 className="text-lg font-semibold leading-tight">{job.title}</h1>
           <p className="text-sm text-fg-muted">{job.company}</p>

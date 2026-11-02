@@ -2,28 +2,32 @@ import type { HTMLAttributes, ReactNode } from "react";
 import { cx } from "./cx";
 
 /**
- * Badge (N3-3): estado, fuente, riesgo, contador. `soft` es fondo suave y texto del tono; `muted`,
- * un fondo un tono más fuerte para lo que tiene que resaltar en una lista (bloqueador, duplicado);
- * `strong` es relleno fuerte y texto blanco. `muted` y `strong` van en negrita; `soft`, no. `square` es el rectángulo chico de las listas; `pill`, el
+ * Badge o etiqueta (N3-3, manual M8 en C7-4): estado, fuente, riesgo, contador. `soft` es la
+ * etiqueta del manual (fondo enfático del estado y su texto); `muted` le suma un borde del estado,
+ * para lo que tiene que resaltar en una lista (bloqueador, duplicado); `strong` es relleno fuerte y
+ * texto blanco. Todas en semibold. `square` es el rectángulo de las listas (radio 6); `pill`, el
  * redondo. El texto va adentro: el color nunca es la única señal.
  */
 export type BadgeTone = "neutral" | "success" | "warning" | "danger" | "info" | "brand";
 
+// Etiquetas del manual (M8): el fondo enfático del estado (`-muted`) con su texto. El naranja de
+// marca no es un estado: `brand` queda para la marca DEMO y contadores de acción.
 const SOFT: Record<BadgeTone, string> = {
   neutral: "bg-surface-muted text-fg-muted",
-  success: "bg-success-soft text-success",
-  warning: "bg-warning-soft text-warning",
-  danger: "bg-danger-soft text-danger",
-  info: "bg-info-soft text-info",
-  brand: "bg-brand text-brand-contrast",
-};
-
-const MUTED: Record<BadgeTone, string> = {
-  neutral: "bg-surface-strong text-fg",
   success: "bg-success-muted text-success",
   warning: "bg-warning-muted text-warning",
   danger: "bg-danger-muted text-danger",
   info: "bg-info-muted text-info",
+  brand: "bg-brand text-brand-contrast",
+};
+
+// Igual que `soft` con un borde del estado: para lo que tiene que resaltar en una lista
+const MUTED: Record<BadgeTone, string> = {
+  neutral: "bg-surface-strong text-fg",
+  success: "bg-success-muted text-success ring-1 ring-inset ring-success-line",
+  warning: "bg-warning-muted text-warning ring-1 ring-inset ring-warning-line",
+  danger: "bg-danger-muted text-danger ring-1 ring-inset ring-danger-line",
+  info: "bg-info-muted text-info ring-1 ring-inset ring-info-line",
   brand: "bg-brand text-brand-contrast",
 };
 
@@ -39,7 +43,7 @@ const STRONG: Record<BadgeTone, string> = {
 const EMPHASIS = { soft: SOFT, muted: MUTED, strong: STRONG } as const;
 
 const SHAPES = {
-  square: "rounded-badge px-1.5 py-0.5",
+  square: "rounded-badge px-2 py-0.5",
   pill: "rounded-pill px-2 py-0.5",
 } as const;
 
@@ -62,8 +66,7 @@ export function badgeClasses({
   className,
 }: Pick<BadgeProps, "tone" | "emphasis" | "shape" | "className"> = {}): string {
   return cx(
-    "inline-flex items-center gap-1 text-xs",
-    emphasis !== "soft" && "font-medium",
+    "inline-flex items-center gap-1 text-xs font-semibold",
     SHAPES[shape],
     EMPHASIS[emphasis][tone],
     className,

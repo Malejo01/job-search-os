@@ -95,14 +95,6 @@ export function scoreTone(score: number | null): "alto" | "medio" | "bajo" | "no
   return "bajo";
 }
 
-/** Caja del puntaje (/hoy, /jobs, detalle y demo). Tokens de docs/ux/tokens.md: cambian solos en oscuro. */
-export const SCORE_CLASSES: Record<ReturnType<typeof scoreTone>, string> = {
-  alto: "bg-success-muted text-success ring-success-line",
-  medio: "bg-warning-muted text-warning ring-warning-line",
-  bajo: "bg-surface-muted text-fg-muted ring-line-strong",
-  none: "bg-surface-subtle text-fg-subtle ring-line",
-};
-
 /** Tono del badge de ubicación (`Badge` de components/ui): ok, riesgo o no. */
 export const LOCATION_TONES: Record<string, "success" | "warning" | "danger"> = {
   ok: "success",

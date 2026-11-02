@@ -2,7 +2,7 @@
 
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
-import { Badge } from "@/components/ui";
+import { Badge, ScoreBadge } from "@/components/ui";
 import type { JobListRow } from "@/lib/jobs";
 import {
   BLOCKER_LABEL,
@@ -10,14 +10,11 @@ import {
   DEMO_MODEL,
   flagLabel,
   formatDate,
-  formatScoreNumber,
   LOCATION_TONES,
   LOCATION_LABELS,
   PRE_SCORE_EXPLAIN,
   riskLabel,
   safeHttpUrl,
-  SCORE_CLASSES,
-  scoreTone,
   SOURCE_LABELS,
   STATUS_LABELS,
 } from "@/lib/labels";
@@ -62,7 +59,6 @@ export function JobList({ rows, query = "" }: { rows: JobListRow[]; query?: stri
  * `tour`: la primera tarjeta lleva las anclas de la guía de /jobs (ronda 92).
  */
 function JobCard({ job, query, tour }: { job: JobListRow; query: string; tour: boolean }) {
-  const tone = scoreTone(job.score);
   const url = safeHttpUrl(job.url);
   const anchor = (name: string) => (tour ? { "data-tour": name } : {});
   return (
@@ -73,43 +69,19 @@ function JobCard({ job, query, tour }: { job: JobListRow; query: string; tour: b
         className="absolute inset-0 rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
         aria-label={`Abrir el detalle de ${job.title}`}
       />
-      {job.evaluating ? (
-        <div
-          className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-control border-2 border-info-line text-info"
-          role="img"
-          aria-label="en cola"
-          title="Esperando la evaluación"
-          {...anchor("jobs:puntaje")}
-        >
-          <span className="motion-safe:animate-pulse text-lg font-semibold leading-none">…</span>
-          <span className="text-[10px] uppercase">puntaje</span>
-        </div>
-      ) : job.score === null && job.preScore !== null ? (
-        <div
-          className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-control border-2 border-dashed border-line-control text-fg-muted"
-          role="img"
-          aria-label={`estimación previa ${job.preScore}`}
-          title={PRE_SCORE_EXPLAIN}
-          {...anchor("jobs:puntaje")}
-        >
-          <span className="text-lg font-semibold leading-none">
-            {formatScoreNumber(job.preScore)}
-          </span>
-          <span className="text-[10px]">/10</span>
-        </div>
-      ) : (
-        <div
-          className={`flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-control ring-1 ${SCORE_CLASSES[tone]}`}
-          role="img"
-          aria-label={job.score === null ? "sin evaluar" : `puntaje ${job.score}`}
-          {...anchor("jobs:puntaje")}
-        >
-          <span className="text-lg font-semibold leading-none">
-            {job.score === null ? "–" : formatScoreNumber(job.score)}
-          </span>
-          <span className="text-[10px]">{job.score === null ? "puntaje" : "/10"}</span>
-        </div>
-      )}
+      <ScoreBadge
+        score={job.score}
+        preScore={job.preScore}
+        pending={job.evaluating}
+        title={
+          job.evaluating
+            ? "Esperando la evaluación"
+            : job.score === null && job.preScore !== null
+              ? PRE_SCORE_EXPLAIN
+              : undefined
+        }
+        {...anchor("jobs:puntaje")}
+      />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <p className="truncate text-sm font-medium text-fg">{job.title}</p>
         <p className="truncate text-xs text-fg-subtle">
