@@ -18,6 +18,7 @@ import { requireUserId } from "@/lib/session";
 import { DeleteAccountForm } from "./delete-account-form";
 import { InboundAddressSection } from "./inbound-address";
 import { TargetRolesForm } from "./target-roles-form";
+import { ThemeSelect } from "./theme-select";
 
 export const metadata = { title: "Ajustes" };
 
@@ -95,6 +96,17 @@ export default async function SettingsPage({
           Email: <span className="font-medium">{user?.email ?? "—"}</span>
         </p>
         <DeleteAccountForm error={Boolean(error)} />
+      </section>
+
+      <section
+        aria-labelledby="apariencia-titulo"
+        className="flex flex-col gap-3 rounded-card border border-line p-4"
+      >
+        <h2 id="apariencia-titulo" className="text-lg font-medium">
+          Apariencia
+        </h2>
+        <p className="text-sm text-fg-muted">Modo claro u oscuro. Se guarda en este navegador.</p>
+        <ThemeSelect />
       </section>
 
       {userPlan ? <TuPlan userPlan={userPlan} /> : null}

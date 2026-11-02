@@ -1,6 +1,7 @@
 import { PRODUCT_NAME } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { manrope, sora } from "./fonts";
 import "./globals.css";
 import { ThemeScript } from "./theme-script";
 
@@ -13,11 +14,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     // suppressHydrationWarning: ThemeScript pone la clase `dark` en <html> antes de hidratar
-    <html lang="es" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning className={`${sora.variable} ${manrope.variable}`}>
       <head>
         <ThemeScript />
       </head>
-      <body className="min-h-screen bg-canvas text-fg antialiased">{children}</body>
+      <body className="min-h-screen bg-canvas font-sans text-fg antialiased">{children}</body>
     </html>
   );
 }
