@@ -11,3 +11,6 @@ export {
 export { Card, cardClasses, type CardProps, type CardTone } from "./card";
 export { cx } from "./cx";
 export { EmptyState, type EmptyStateProps } from "./empty-state";
+export { Field, inputClasses, type FieldProps } from "./field";
+export { Icon, ICON_PATHS, type IconName, type IconProps } from "./icons";
+export { ScoreBadge, scoreState, type ScoreSize, type ScoreState } from "./score-badge";

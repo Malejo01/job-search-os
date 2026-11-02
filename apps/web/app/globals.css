@@ -273,6 +273,15 @@
  * Manrope, que es `font-sans`. Un título que necesite Manrope lleva `font-sans`.
  */
 @layer base {
+  /*
+   * Foco de los campos (C7-4, manual M8): anillo naranja aunque el campo no traiga su propia clase
+   * de foco. Con `:where` no pesa nada: cualquier utilidad `focus-visible:` del campo lo pisa.
+   */
+  :where(input, select, textarea):focus-visible {
+    outline: 2px solid var(--jso-focus);
+    outline-offset: 2px;
+  }
+
   h1 {
     font-family: var(--font-display);
     letter-spacing: -0.01em;

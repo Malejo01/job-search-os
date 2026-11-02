@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Logo } from "@/components/brand/logo";
+import { OfferCard } from "@/components/offer-card";
 import {
   Alert,
   Badge,
@@ -7,16 +9,21 @@ import {
   buttonClasses,
   Card,
   EmptyState,
+  Field,
+  Icon,
+  ICON_PATHS,
+  ScoreBadge,
   textLinkClasses,
   type BadgeTone,
   type ButtonVariant,
+  type IconName,
 } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = { title: "Componentes", robots: { index: false } };
 
-const VARIANTS: ButtonVariant[] = ["primary", "secondary", "ghost", "danger"];
+const VARIANTS: ButtonVariant[] = ["primary", "secondary", "dark", "ghost", "danger"];
 const BADGE_TONES: BadgeTone[] = ["neutral", "success", "warning", "danger", "info", "brand"];
 
 /**
@@ -64,6 +71,99 @@ export default function UiPage() {
             .
           </p>
         </div>
+      </section>
+
+      <section aria-labelledby="ui-logo" className="flex flex-col gap-2">
+        <h2 id="ui-logo" className="text-heading font-semibold">
+          Logo
+        </h2>
+        <div className="flex flex-wrap items-center gap-4">
+          <Logo size="md" />
+          <Logo variant="mark" size="md" />
+          <Logo variant="wordmark" size="md" />
+          <span className="inline-flex rounded-card bg-ink p-3">
+            <Logo tone="dark" />
+          </span>
+        </div>
+      </section>
+
+      <section aria-labelledby="ui-campos" className="flex flex-col gap-2">
+        <h2 id="ui-campos" className="text-heading font-semibold">
+          Campos
+        </h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field
+            label="Título del puesto"
+            placeholder="Analista contable"
+            hint="Como dice el aviso."
+          />
+          <Field label="Empresa" defaultValue="" error="Falta la empresa." />
+          <Field
+            multiline
+            label="Descripción"
+            placeholder="Pegá acá la descripción completa del puesto"
+            className="sm:col-span-2"
+          />
+        </div>
+      </section>
+
+      <section aria-labelledby="ui-score" className="flex flex-col gap-2">
+        <h2 id="ui-score" className="text-heading font-semibold">
+          Score
+        </h2>
+        <div className="flex flex-wrap items-center gap-3">
+          <ScoreBadge score={8.5} />
+          <ScoreBadge score={5.5} />
+          <ScoreBadge score={3} />
+          <ScoreBadge score={null} preScore={6} />
+          <ScoreBadge score={null} pending />
+          <ScoreBadge score={null} />
+          <ScoreBadge score={8} size="sm" />
+          <ScoreBadge score={8} size="lg" />
+        </div>
+      </section>
+
+      <section aria-labelledby="ui-iconos" className="flex flex-col gap-2">
+        <h2 id="ui-iconos" className="text-heading font-semibold">
+          Íconos
+        </h2>
+        <ul className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+          {(Object.keys(ICON_PATHS) as IconName[]).map((name) => (
+            <li
+              key={name}
+              className="flex flex-col items-center gap-1 rounded-card bg-surface-muted p-3 text-xs font-semibold"
+            >
+              <Icon name={name} />
+              {name}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section aria-labelledby="ui-oferta" className="flex flex-col gap-2">
+        <h2 id="ui-oferta" className="text-heading font-semibold">
+          Tarjeta de oferta
+        </h2>
+        <ul className="flex flex-col gap-2">
+          <OfferCard
+            href="/ui"
+            title="Analista contable semi senior"
+            meta={["Empresa de ejemplo", "Salta", "28 oct"]}
+            score={8.5}
+            tags={[
+              { label: "Evaluada", tone: "neutral" },
+              { label: "Ubicación ok", tone: "success" },
+            ]}
+          />
+          <OfferCard
+            href="/ui"
+            title="Asistente de administración"
+            meta={["Otra empresa", "Jujuy"]}
+            score={null}
+            pending
+            tags={[{ label: "En cola", tone: "info" }]}
+          />
+        </ul>
       </section>
 
       <section aria-labelledby="ui-badges" className="flex flex-col gap-2">
