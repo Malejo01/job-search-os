@@ -15,15 +15,18 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
       <a href="#contenido" className={SKIP_CLASS}>
         Saltar al contenido
       </a>
-      <header className="border-b border-line bg-surface">
+      <header className="bg-ink text-on-ink">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-2">
           <Link
             href="/"
-            className="inline-flex min-h-11 items-center rounded-control focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            className="inline-flex min-h-11 items-center rounded-control focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
-            <Logo />
+            <Logo tone="dark" />
           </Link>
-          <Link href="/login" className="text-sm text-fg-subtle underline-offset-2 hover:underline">
+          <Link
+            href="/login"
+            className="inline-flex min-h-11 items-center text-sm font-semibold text-on-ink-muted underline-offset-2 hover:text-on-ink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
+          >
             Entrar
           </Link>
         </div>

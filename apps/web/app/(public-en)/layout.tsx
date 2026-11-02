@@ -40,23 +40,24 @@ export const metadata: Metadata = {
 
 const SKIP_CLASS =
   "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-control focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-fg focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-focus";
+// Header tinta (C7-10), como el de la app: links en gris claro, foco en naranja de marca
 const LINK_CLASS =
-  "inline-flex min-h-11 items-center px-2 text-sm text-fg-muted underline-offset-2 hover:underline hover:text-fg";
+  "inline-flex min-h-11 items-center px-2 text-sm font-semibold text-on-ink-muted underline-offset-2 hover:text-on-ink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand";
 
 // Sin `inline-flex` en la base: junto con `hidden`, Tailwind deja ganar a `inline-flex` y el link se ve a 360 px
 const DESKTOP_LINK_CLASS =
-  "hidden min-h-11 items-center px-2 text-sm text-fg-muted underline-offset-2 hover:underline hover:text-fg sm:inline-flex";
+  "hidden min-h-11 items-center px-2 text-sm font-semibold text-on-ink-muted underline-offset-2 hover:text-on-ink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand sm:inline-flex";
 
 const FOOTER_LINK =
   "inline-flex min-h-11 items-center px-2 text-fg-muted underline underline-offset-2 hover:text-fg";
 
 export default function PublicEnLayout({ children }: { children: ReactNode }) {
   return (
-    <div lang="en" className="flex min-h-screen flex-col bg-surface text-fg">
+    <div lang="en" className="flex min-h-screen flex-col bg-canvas text-fg">
       <a href="#content" className={SKIP_CLASS}>
         Skip to content
       </a>
-      <header className="border-b border-line bg-surface">
+      <header className="bg-ink text-on-ink">
         <nav
           aria-label="Main"
           className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-2 gap-y-1 px-4 py-1"
@@ -65,13 +66,13 @@ export default function PublicEnLayout({ children }: { children: ReactNode }) {
           <Link
             href="/"
             hrefLang="es"
-            className="inline-flex min-h-11 items-center rounded-control px-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            className="inline-flex min-h-11 items-center rounded-control px-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             <span className="sm:hidden">
-              <Logo variant="wordmark" />
+              <Logo variant="wordmark" tone="dark" />
             </span>
             <span className="hidden sm:block">
-              <Logo />
+              <Logo tone="dark" />
             </span>
           </Link>
           <div className="flex flex-wrap items-center justify-end gap-x-1 gap-y-1">
@@ -92,7 +93,7 @@ export default function PublicEnLayout({ children }: { children: ReactNode }) {
               href="/acceso"
               hrefLang="es"
               lang="es"
-              className="inline-flex min-h-11 items-center rounded-control bg-brand px-4 text-sm font-medium text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+              className="inline-flex min-h-11 items-center rounded-control bg-brand px-4 text-sm font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
               <span lang="en">Request access</span>
             </Link>

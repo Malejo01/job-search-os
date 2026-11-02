@@ -140,7 +140,7 @@ export default async function RegisterPage({
       </div>
       <form action={register} className="flex flex-col gap-3">
         <input type="hidden" name="code" value={code ?? ""} />
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1.5 text-sm font-semibold">
           Email
           <input
             name="email"
@@ -149,7 +149,7 @@ export default async function RegisterPage({
             required
             defaultValue={email ?? ""}
             {...invalidProps("email")}
-            className="rounded-control border border-line-strong px-3 py-2 text-base"
+            className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus:outline-none focus-visible:border-focus aria-invalid:border-danger-strong"
           />
           {error === "email" ? (
             <p id="email-error" role="alert" className="text-xs text-danger">
@@ -157,7 +157,7 @@ export default async function RegisterPage({
             </p>
           ) : null}
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1.5 text-sm font-semibold">
           Nombre (opcional)
           <input
             name="name"
@@ -166,7 +166,7 @@ export default async function RegisterPage({
             maxLength={100}
             defaultValue={name ?? ""}
             {...invalidProps("nombre")}
-            className="rounded-control border border-line-strong px-3 py-2 text-base"
+            className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus:outline-none focus-visible:border-focus aria-invalid:border-danger-strong"
           />
           {error === "nombre" ? (
             <p id="nombre-error" role="alert" className="text-xs text-danger">
@@ -174,7 +174,7 @@ export default async function RegisterPage({
             </p>
           ) : null}
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1.5 text-sm font-semibold">
           Contraseña
           <input
             name="password"
@@ -184,7 +184,7 @@ export default async function RegisterPage({
             maxLength={128}
             required
             {...invalidProps("corta")}
-            className="rounded-control border border-line-strong px-3 py-2 text-base"
+            className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus:outline-none focus-visible:border-focus aria-invalid:border-danger-strong"
           />
           {error === "corta" ? (
             <p id="corta-error" role="alert" className="text-xs text-danger">
@@ -192,7 +192,7 @@ export default async function RegisterPage({
             </p>
           ) : null}
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1.5 text-sm font-semibold">
           Repetí la contraseña
           <input
             name="confirm"
@@ -201,7 +201,7 @@ export default async function RegisterPage({
             minLength={8}
             required
             {...invalidProps("no_coincide")}
-            className="rounded-control border border-line-strong px-3 py-2 text-base"
+            className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus:outline-none focus-visible:border-focus aria-invalid:border-danger-strong"
           />
           {error === "no_coincide" ? (
             <p id="no_coincide-error" role="alert" className="text-xs text-danger">
@@ -256,7 +256,7 @@ export default async function RegisterPage({
         ) : null}
         <SubmitButton
           pendingLabel="Creando la cuenta…"
-          className="mt-2 rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast"
+          className="mt-2 inline-flex min-h-12 items-center justify-center rounded-control bg-brand px-4 text-base font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         >
           Crear cuenta
         </SubmitButton>

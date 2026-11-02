@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useActionState, useEffect, useRef } from "react";
+import { buttonClasses } from "@/components/ui";
 import { submitWaitlist, type WaitlistState } from "./actions";
 
 const INITIAL: WaitlistState = { status: "idle" };
+// Campo del manual (M8, C7-10): borde de 2 px, radio 12, 44 px y foco naranja
 const field =
-  "min-h-11 rounded-control border border-line-control bg-surface px-3 py-2 text-base text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
+  "min-h-12 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg focus:outline-none focus-visible:border-focus aria-invalid:border-danger-strong";
 
 export type RoleOption = { key: string; label: string };
 export type RoleOptionGroup = { label: string; roles: RoleOption[] };
@@ -38,7 +40,10 @@ export function WaitlistForm({
 
   if (state.status === "done") {
     return (
-      <p role="status" className="rounded-control bg-success-soft px-4 py-3 text-base text-success">
+      <p
+        role="status"
+        className="rounded-card bg-success-soft px-4 py-4 text-base font-semibold text-success"
+      >
         {state.message}
       </p>
     );
@@ -50,7 +55,7 @@ export function WaitlistForm({
         La beta es por invitación. Dejá tus datos y, cuando haya lugar, te escribimos con un link
         para crear tu cuenta.
       </p>
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex flex-col gap-1.5 text-sm font-semibold">
         Nombre
         <input
           name="name"
@@ -64,13 +69,13 @@ export function WaitlistForm({
           className={field}
         />
         {errors.name ? (
-          <span id="acceso-name-error" className="text-sm text-danger">
+          <span id="acceso-name-error" className="text-sm font-semibold text-danger">
             {errors.name}
           </span>
         ) : null}
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex flex-col gap-1.5 text-sm font-semibold">
         Email
         <input
           name="email"
@@ -85,13 +90,13 @@ export function WaitlistForm({
           className={field}
         />
         {errors.email ? (
-          <span id="acceso-email-error" className="text-sm text-danger">
+          <span id="acceso-email-error" className="text-sm font-semibold text-danger">
             {errors.email}
           </span>
         ) : null}
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex flex-col gap-1.5 text-sm font-semibold">
         Carrera
         <select
           name="role"
@@ -116,13 +121,13 @@ export function WaitlistForm({
           ))}
         </select>
         {errors.role ? (
-          <span id="acceso-role-error" className="text-sm text-danger">
+          <span id="acceso-role-error" className="text-sm font-semibold text-danger">
             {errors.role}
           </span>
         ) : null}
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex flex-col gap-1.5 text-sm font-semibold">
         ¿Cómo te enteraste? (opcional)
         <input
           name="heardFrom"
@@ -143,11 +148,11 @@ export function WaitlistForm({
           <option value="LinkedIn" />
           <option value="Me lo contó alguien" />
         </datalist>
-        <span id="acceso-heard-hint" className="text-xs text-fg-subtle">
+        <span id="acceso-heard-hint" className="text-xs font-medium text-fg-subtle">
           No pongas datos personales.
         </span>
         {errors.heardFrom ? (
-          <span id="acceso-heard-error" className="text-sm text-danger">
+          <span id="acceso-heard-error" className="text-sm font-semibold text-danger">
             {errors.heardFrom}
           </span>
         ) : null}
@@ -164,7 +169,7 @@ export function WaitlistForm({
       <button
         type="submit"
         disabled={pending}
-        className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        className={buttonClasses({ className: "min-h-12 w-full text-base" })}
       >
         {pending ? "Enviando…" : "Pedir acceso"}
       </button>
