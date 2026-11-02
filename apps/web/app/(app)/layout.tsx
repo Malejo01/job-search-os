@@ -122,7 +122,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       <main
         id="contenido"
         tabIndex={-1}
-        className="mx-auto w-full max-w-5xl flex-1 px-4 pt-4 pb-24 sm:pb-6"
+        className="mx-auto w-full max-w-6xl flex-1 px-4 pt-4 pb-24 sm:pb-6"
       >
         {planAccess ? <PlanNotice access={planAccess} /> : null}
         {children}
