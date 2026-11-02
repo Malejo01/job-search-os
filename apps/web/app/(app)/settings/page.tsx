@@ -121,6 +121,13 @@ export default async function SettingsPage({
           >
             Crear invitación
           </Link>
+          {/* R-1 (C7): la marca en un solo lugar, para revisarla */}
+          <Link
+            href="/settings/marca"
+            className="inline-flex min-h-11 items-center text-sm text-fg underline"
+          >
+            Marca: logo, colores y componentes
+          </Link>
           {/* C-14: el tablero de la beta es para las mismas cuentas que invitan */}
           <Link
             href="/settings/metricas"
