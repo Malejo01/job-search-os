@@ -25,7 +25,7 @@ const OPENS = new Intl.DateTimeFormat("es-AR", {
 }).format(BETA_OPENS_AT);
 
 export const metadata: Metadata = {
-  title: { absolute: "Precios" },
+  title: "Precios",
   description: `Un plan gratis y el plan de la beta: ${priceLabel(BETA)}, con un link de Mercado Pago.`,
   alternates: { canonical: "/precios" },
 };
