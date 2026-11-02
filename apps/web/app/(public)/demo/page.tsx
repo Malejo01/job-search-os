@@ -24,6 +24,22 @@ export default async function DemoPage() {
           qué sí, por qué no y qué haríamos.
         </p>
       </header>
+      {/* C7-13: un ejemplo fijo de una carrera no tech, sin base ni IA (para mostrar y grabar) */}
+      <Link
+        href="/demo/contaduria"
+        data-testid="demo-contaduria-link"
+        className="flex flex-col gap-1 rounded-card border border-ink-line bg-ink p-4 text-on-ink hover:bg-ink/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:p-5"
+      >
+        <span className="text-xs font-bold tracking-wide text-brand uppercase">
+          Ejemplo con datos inventados
+        </span>
+        <span className="font-display text-lg font-extrabold">
+          Así se ve para alguien de contaduría
+        </span>
+        <span className="text-sm text-on-ink-muted">
+          Perfil, ofertas con puntaje, por qué sí y por qué no, y una oferta sin descripción.
+        </span>
+      </Link>
       {empty ? (
         <p
           role="status"
