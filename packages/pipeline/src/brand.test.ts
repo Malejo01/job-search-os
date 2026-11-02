@@ -129,7 +129,9 @@ describe("nombre AfinIAJobs bien escrito (C7-2)", () => {
 
   it("BRAND_COLORS coincide con los tokens de globals.css", () => {
     const css = readFileSync(join(ROOT, "apps/web/app/globals.css"), "utf8").toLowerCase();
-    const root = css.slice(css.indexOf(":root {"), css.indexOf("\n}", css.indexOf(":root {")));
+    // El bloque de claro empieza en «:root,» (lo comparte con `.light`)
+    const start = css.indexOf(":root,");
+    const root = css.slice(start, css.indexOf("\n}", start));
     expect(root).toContain(`--jso-ink: ${BRAND_COLORS.ink.toLowerCase()};`);
     expect(root).toContain(`--jso-brand: ${BRAND_COLORS.orange.toLowerCase()};`);
     expect(root).toContain(`--jso-brand-text: ${BRAND_COLORS.deepOrange.toLowerCase()};`);

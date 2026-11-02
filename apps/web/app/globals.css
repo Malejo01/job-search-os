@@ -122,7 +122,12 @@
   --text-heading--line-height: 1.75rem;
 }
 
-:root {
+/*
+ * `.light` repite los valores de claro para una parte de la página (la vitrina de marca de
+ * /settings/marca muestra claro y oscuro lado a lado). `.dark` hace lo mismo con los de oscuro.
+ */
+:root,
+.light {
   color-scheme: light;
 
   /*
