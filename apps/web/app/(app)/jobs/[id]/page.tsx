@@ -166,7 +166,7 @@ export default async function JobDetailPage({
       <AutoRefresh active={job.evaluating} />
 
       <header className="flex gap-3">
-        <ScoreBadge score={ev ? ev.score : null} pending={job.evaluating} size="lg" />
+        <ScoreBadge score={ev ? ev.score : null} pending={job.evaluating && !ev} size="lg" />
         <div className="min-w-0">
           <h1 className="text-lg font-semibold leading-tight">{job.title}</h1>
           <p className="text-sm text-fg-muted">{job.company}</p>

@@ -1,5 +1,7 @@
 "use client";
 
+import { BRAND_COLORS } from "@job-search-os/pipeline";
+
 // Reemplaza al layout raíz: sin Tailwind ni componentes compartidos, porque el layout puede ser lo que falló.
 export default function GlobalError({
   error,
@@ -13,15 +15,15 @@ export default function GlobalError({
     padding: "8px 16px",
     border: 0,
     borderRadius: 12,
-    background: "#ff6a13",
-    color: "#050505",
+    background: BRAND_COLORS.orange,
+    color: BRAND_COLORS.ink,
     fontSize: 14,
     fontWeight: 500,
     cursor: "pointer",
   } as const;
   return (
     <html lang="es">
-      <body style={{ margin: 0, fontFamily: "system-ui, sans-serif", color: "#050505" }}>
+      <body style={{ margin: 0, fontFamily: "system-ui, sans-serif", color: BRAND_COLORS.ink }}>
         <main
           id="contenido"
           style={{
@@ -34,7 +36,7 @@ export default function GlobalError({
           }}
         >
           <h1 style={{ fontSize: 20, fontWeight: 600, margin: 0 }}>Algo falló de nuestro lado</h1>
-          <p style={{ fontSize: 14, color: "#57534e", margin: 0 }}>
+          <p style={{ fontSize: 14, color: BRAND_COLORS.stone600, margin: 0 }}>
             Probá de nuevo. Si sigue pasando, avisanos.
           </p>
           <div>
@@ -44,7 +46,9 @@ export default function GlobalError({
           </div>
           {/* Nunca error.message: puede citar datos. */}
           {error.digest ? (
-            <p style={{ fontSize: 12, color: "#57534e", margin: 0 }}>Código: {error.digest}</p>
+            <p style={{ fontSize: 12, color: BRAND_COLORS.stone600, margin: 0 }}>
+              Código: {error.digest}
+            </p>
           ) : null}
         </main>
       </body>

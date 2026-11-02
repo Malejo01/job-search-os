@@ -25,10 +25,10 @@ type ToneColors = { strong: string; light: string; mark: string; dot: string };
 
 const TONES: Record<LogoTone, ToneColors> = {
   auto: {
-    strong: "var(--color-logo-strong)",
-    light: "var(--color-logo-light)",
-    mark: "var(--color-logo-mark)",
-    dot: "var(--color-logo-dot)",
+    strong: "var(--jso-logo-strong)",
+    light: "var(--jso-logo-light)",
+    mark: "var(--jso-logo-mark)",
+    dot: "var(--jso-logo-dot)",
   },
   light: {
     strong: BRAND_COLORS.ink,

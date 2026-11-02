@@ -60,7 +60,7 @@ export default async function LoginPage({
             type="email"
             autoComplete="username"
             required
-            className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus:outline-none focus-visible:border-focus aria-invalid:border-danger-strong"
+            className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus-visible:border-focus aria-invalid:border-danger-strong"
           />
         </label>
         <label className="flex flex-col gap-1.5 text-sm font-semibold">
@@ -70,7 +70,7 @@ export default async function LoginPage({
             type="password"
             autoComplete="current-password"
             required
-            className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus:outline-none focus-visible:border-focus aria-invalid:border-danger-strong"
+            className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus-visible:border-focus aria-invalid:border-danger-strong"
           />
         </label>
         {reset ? (

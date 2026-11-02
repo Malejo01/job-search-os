@@ -42,8 +42,9 @@ export const authConfig = {
         pathname === "/robots.txt" ||
         // Marca (C7-2): favicon, ícono de iPhone, íconos del manifest y el manifest. Sin esto, sin
         // sesión el navegador recibía una redirección a /login en vez del ícono.
-        pathname.startsWith("/icon") ||
-        pathname.startsWith("/apple-icon") ||
+        pathname === "/icon.svg" ||
+        pathname.startsWith("/icons/") ||
+        pathname === "/apple-icon.png" ||
         pathname === "/manifest.webmanifest"
       ) {
         return true;

@@ -9,7 +9,7 @@ import { submitWaitlist, type WaitlistState } from "./actions";
 const INITIAL: WaitlistState = { status: "idle" };
 // Campo del manual (M8, C7-10): borde de 2 px, radio 12, 44 px y foco naranja
 const field =
-  "min-h-12 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg focus:outline-none focus-visible:border-focus aria-invalid:border-danger-strong";
+  "min-h-12 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg focus-visible:border-focus aria-invalid:border-danger-strong";
 
 export type RoleOption = { key: string; label: string };
 export type RoleOptionGroup = { label: string; roles: RoleOption[] };
