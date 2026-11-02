@@ -22,7 +22,7 @@ function NavCount({ item }: { item: NavItem }) {
     <span
       data-testid="nav-count"
       aria-hidden="true"
-      className="ml-1.5 rounded-pill bg-surface-strong px-1.5 text-xs font-medium text-fg"
+      className="ml-1.5 rounded-pill bg-brand px-1.5 text-xs font-bold text-brand-contrast"
     >
       {item.count}
     </span>
@@ -51,20 +51,54 @@ function activeHref(pathname: string, items: readonly NavItem[]): string | null 
 /** Link «Sin descripción»: ancla de la guía de /jobs. */
 const PENDING_JD_HREF = "/jobs/pending-jd";
 
-// El color del texto va en ACTIVE o INACTIVE, nunca en BASE: con dos `text-*` en la misma clase gana
-// el que Tailwind genera después (`text-fg-muted` va después de `text-fg`), no el último escrito
-const LINK_BASE =
-  "rounded-control px-3 hover:bg-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus";
-const LINK_ACTIVE = "bg-surface-muted font-medium text-fg";
-const LINK_INACTIVE = "text-fg-muted";
+// Header tinta (C7-5, manual P1 a P4). El color del texto va en ACTIVE o INACTIVE, nunca en BASE:
+// con dos `text-*` en la misma clase gana el que Tailwind genera después, no el último escrito.
+// Sobre tinta el foco va en naranja de marca (7,1:1): el naranja profundo da 3,9:1.
+const FOCUS = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand";
+
+// Escritorio: la sección activa en naranja con una línea de 3 px abajo (P1)
+const DESKTOP_BASE = `flex min-h-11 items-center whitespace-nowrap border-b-[3px] px-1 font-semibold hover:text-on-ink ${FOCUS}`;
+const DESKTOP_ACTIVE = "border-brand text-brand";
+const DESKTOP_INACTIVE = "border-transparent text-on-ink-muted";
+
+// Celular: lista dentro del «Menú», la activa en naranja sobre un fondo apenas más claro
+const MOBILE_BASE = `flex min-h-11 items-center rounded-control px-3 font-semibold hover:bg-ink-line ${FOCUS}`;
+const MOBILE_ACTIVE = "bg-ink-line text-brand";
+const MOBILE_INACTIVE = "text-on-ink-muted";
 
 /**
- * Navegación principal. Client component solo para saber la ruta (aria-current) y cerrar el menú
- * al navegar. Desde `sm`, fila de links; por debajo, un <details> «Menú» (sin JS para abrirlo).
- * Son dos bloques con display excluyente (`hidden sm:block` / `sm:hidden`), sin mezclar con
- * `inline-flex`: cuando conviven en una misma clase gana la que Tailwind genera después.
+ * Navegación principal. Client components solo para saber la ruta (aria-current) y cerrar el menú
+ * al navegar. Desde `sm`, fila de links (`DesktopNav`); por debajo, un <details> «Menú»
+ * (`MobileNav`, sin JS para abrirlo). Van en filas distintas del header y con display excluyente
+ * (`hidden sm:block` / `sm:hidden`).
  */
-export function MainNav({ items }: { items: readonly NavItem[] }) {
+export function DesktopNav({ items }: { items: readonly NavItem[] }) {
+  const pathname = usePathname();
+  const active = activeHref(pathname, items);
+  return (
+    // `data-tour`: ancla de la guía de /jobs (ronda 92); el menú móvil lleva la suya abajo
+    <nav aria-label="Secciones" className="hidden min-w-0 sm:block">
+      <ul className="flex gap-x-5 gap-y-0 overflow-x-auto text-[15px]">
+        {items.map((item) => (
+          <li key={item.href}>
+            <Link
+              href={item.href}
+              data-tour={item.href === PENDING_JD_HREF ? "jobs:menu" : undefined}
+              aria-current={item.href === active ? "page" : undefined}
+              className={`${DESKTOP_BASE} ${item.href === active ? DESKTOP_ACTIVE : DESKTOP_INACTIVE}`}
+            >
+              {item.label}
+              <NavCount item={item} />
+            </Link>
+            <NavCountText item={item} />
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+export function MobileNav({ items }: { items: readonly NavItem[] }) {
   const pathname = usePathname();
   const active = activeHref(pathname, items);
   const activeLabel = items.find((i) => i.href === active)?.label ?? null;
@@ -81,17 +115,43 @@ export function MainNav({ items }: { items: readonly NavItem[] }) {
   }, [pathname]);
 
   return (
-    <>
-      {/* `data-tour`: ancla de la guía de /jobs (ronda 92); el menú móvil lleva la suya abajo */}
-      <nav aria-label="Secciones" className="hidden px-2 sm:block">
-        <ul className="flex gap-1 text-sm">
+    <details ref={details} className="group px-4 pb-2 text-sm sm:hidden" data-testid="menu-movil">
+      {/* Ancla de la guía en el «Menú» y no en todo el <details>: abierto, sería un recuadro enorme */}
+      <summary
+        data-tour="jobs:menu"
+        className={`flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-control border-2 border-ink-line px-3 font-semibold text-on-ink ${FOCUS}`}
+      >
+        <span>
+          Menú
+          {activeLabel ? <span className="font-medium text-brand"> · {activeLabel}</span> : null}
+          {pending ? (
+            <>
+              <span
+                aria-hidden="true"
+                className="ml-1.5 rounded-pill bg-brand px-1.5 text-xs font-bold text-brand-contrast"
+              >
+                {pending}
+              </span>
+              <span className="sr-only">{`, ${pending} para hacer seguimiento`}</span>
+            </>
+          ) : null}
+        </span>
+        <span aria-hidden="true" className="text-on-ink-muted group-open:hidden">
+          ▸
+        </span>
+        <span aria-hidden="true" className="hidden text-on-ink-muted group-open:inline">
+          ▾
+        </span>
+      </summary>
+      <nav aria-label="Secciones" className="mt-1">
+        <ul className="flex flex-col">
           {items.map((item) => (
             <li key={item.href}>
               <Link
                 href={item.href}
-                data-tour={item.href === PENDING_JD_HREF ? "jobs:menu" : undefined}
                 aria-current={item.href === active ? "page" : undefined}
-                className={`flex min-h-11 items-center whitespace-nowrap ${LINK_BASE} ${item.href === active ? LINK_ACTIVE : LINK_INACTIVE}`}
+                onClick={closeMenu}
+                className={`${MOBILE_BASE} ${item.href === active ? MOBILE_ACTIVE : MOBILE_INACTIVE}`}
               >
                 {item.label}
                 <NavCount item={item} />
@@ -101,52 +161,6 @@ export function MainNav({ items }: { items: readonly NavItem[] }) {
           ))}
         </ul>
       </nav>
-      <details ref={details} className="group px-4 pb-2 text-sm sm:hidden" data-testid="menu-movil">
-        {/* Ancla de la guía en el «Menú» y no en todo el <details>: abierto, sería un recuadro enorme */}
-        <summary
-          data-tour="jobs:menu"
-          className="flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-control border border-line-strong px-3 font-medium text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
-        >
-          <span>
-            Menú{activeLabel ? <span className="font-normal"> · {activeLabel}</span> : null}
-            {pending ? (
-              <>
-                <span
-                  aria-hidden="true"
-                  className="ml-1.5 rounded-pill bg-surface-strong px-1.5 text-xs font-medium text-fg"
-                >
-                  {pending}
-                </span>
-                <span className="sr-only">{`, ${pending} para hacer seguimiento`}</span>
-              </>
-            ) : null}
-          </span>
-          <span aria-hidden="true" className="group-open:hidden">
-            ▸
-          </span>
-          <span aria-hidden="true" className="hidden group-open:inline">
-            ▾
-          </span>
-        </summary>
-        <nav aria-label="Secciones" className="mt-1">
-          <ul className="flex flex-col">
-            {items.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  aria-current={item.href === active ? "page" : undefined}
-                  onClick={closeMenu}
-                  className={`flex min-h-11 items-center ${LINK_BASE} ${item.href === active ? LINK_ACTIVE : LINK_INACTIVE}`}
-                >
-                  {item.label}
-                  <NavCount item={item} />
-                </Link>
-                <NavCountText item={item} />
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </details>
-    </>
+    </details>
   );
 }
