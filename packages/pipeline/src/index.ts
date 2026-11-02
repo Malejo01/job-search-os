@@ -67,6 +67,7 @@ export * from "./digest/build";
 export * from "./brand";
 export * from "./email-layout";
 export * from "./initials";
+export * from "./greeting";
 export * from "./public-url";
 
 export * from "./evaluator/skill-level-overlay";
