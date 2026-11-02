@@ -35,12 +35,25 @@ test.describe("Flujo 87: componentes base", () => {
     }
   }
 
-  test("sin preferencia guardada, la app queda en claro aunque el sistema esté en oscuro", async ({
-    page,
-  }) => {
+  test("sin preferencia guardada, la app sigue al dispositivo (C7-1)", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "dark" });
     await login(page);
     await page.goto("/ui");
+    await expect(page.locator("html")).toHaveClass(/\bdark\b/);
+    await page.emulateMedia({ colorScheme: "light" });
+    await expect(page.locator("html")).not.toHaveClass(/\bdark\b/);
+  });
+
+  test("en Ajustes se elige claro u oscuro y queda guardado (C7-1)", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await login(page);
+    await page.goto("/settings");
+    const apariencia = page.getByRole("region", { name: "Apariencia" });
+    await apariencia.getByText("Oscuro", { exact: true }).click();
+    await expect(page.locator("html")).toHaveClass(/\bdark\b/);
+    await page.reload();
+    await expect(page.locator("html")).toHaveClass(/\bdark\b/);
+    await page.getByRole("region", { name: "Apariencia" }).getByText("Como el dispositivo").click();
     await expect(page.locator("html")).not.toHaveClass(/\bdark\b/);
   });
 
