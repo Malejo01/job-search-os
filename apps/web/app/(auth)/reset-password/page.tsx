@@ -83,7 +83,7 @@ export default async function ResetPasswordPage({
       ) : (
         <form action={submitNewPassword} className="flex flex-col gap-3">
           <input type="hidden" name="token" value={token} />
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex flex-col gap-1.5 text-sm font-semibold">
             Contraseña nueva
             <input
               name="password"
@@ -92,10 +92,10 @@ export default async function ResetPasswordPage({
               minLength={8}
               required
               {...invalidProps("corta")}
-              className="rounded-control border border-line-strong px-3 py-2 text-base"
+              className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus:outline-none focus-visible:border-focus aria-invalid:border-danger-strong"
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex flex-col gap-1.5 text-sm font-semibold">
             Repetí la contraseña
             <input
               name="confirm"
@@ -104,7 +104,7 @@ export default async function ResetPasswordPage({
               minLength={8}
               required
               {...invalidProps("no_coincide")}
-              className="rounded-control border border-line-strong px-3 py-2 text-base"
+              className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus:outline-none focus-visible:border-focus aria-invalid:border-danger-strong"
             />
           </label>
           {formError ? (
@@ -114,7 +114,7 @@ export default async function ResetPasswordPage({
           ) : null}
           <button
             type="submit"
-            className="mt-2 rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast"
+            className="mt-2 inline-flex min-h-12 items-center justify-center rounded-control bg-brand px-4 text-base font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           >
             Guardar
           </button>
