@@ -388,8 +388,8 @@ export function ProfileForm({
             <FieldError name="englishCefr" />
           </label>
           <p id="cefr-help" className="text-xs text-fg-subtle sm:col-span-2">
-            Se mide con la escala CEFR, que usan muchos avisos. Si dudás entre dos niveles, elegí el
-            más bajo.
+            Usamos la escala de A1 a C2 (el Marco Común Europeo, CEFR), la que usan muchos avisos.
+            Si dudás entre dos niveles, elegí el más bajo.
           </p>
           <CefrHelp className="sm:col-span-2" />
           <label className="flex min-w-0 flex-col gap-1 text-sm">
@@ -597,8 +597,8 @@ export function ProfileForm({
           </details>
           <p className="mt-1 font-medium">Qué no poner</p>
           <p>
-            Documentos, direcciones, teléfonos, contraseñas ni datos de terceros. El texto se envía
-            al modelo que evalúa las ofertas.
+            Documentos, direcciones, teléfonos, contraseñas ni datos de terceros. El texto lo lee la
+            inteligencia artificial que evalúa las ofertas.
           </p>
         </div>
         <div data-tour="perfil:resumen" className="flex min-w-0 flex-col gap-1 text-sm">
