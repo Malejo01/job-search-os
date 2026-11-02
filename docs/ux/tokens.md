@@ -68,7 +68,7 @@ Estados (manual M4): cada uno tiene texto, fondo suave, fondo enfático, borde y
 | `--text-title` | `text-title` | 1.5rem / 1.875rem | `h1` de pantalla con sesión (el manual pide 28/34 en escritorio; 24 entra mejor a 390 px) |
 | `--text-heading` | `text-heading` | 1.125rem / 1.75rem | `h2` de sección; los h2 de tarjeta siguen en `text-base` |
 
-**Familias** (`apps/web/app/fonts.ts`, con `next/font/google`: subset latin, `display: swap`, servidas desde el mismo dominio):
+**Familias** (`apps/web/app/fonts.ts`, con `next/font/local` y los archivos de `apps/web/assets/fonts`: subset latin, `display: swap`, servidas desde el mismo dominio y sin depender de la red en el build):
 
 | Clase | Fuente | Pesos | Para qué |
 |---|---|---|---|

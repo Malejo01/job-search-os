@@ -1,13 +1,10 @@
-# Fuentes para las imágenes generadas (C7-2)
+# Fuentes de la marca (C7-1 y C7-2)
 
-Las imágenes OG (`opengraph-image`, `twitter-image`, `opengraph-image-en`) se dibujan en el servidor
-con `next/og`, que no puede usar `next/font`. Estas fuentes se leen del repo, nunca por red.
+Sora y Manrope, solo el subset latin, tomadas del paquete `@fontsource` (v5.3.0). Licencia SIL Open
+Font License 1.1: `OFL-Sora.txt` y `OFL-Manrope.txt`. Nada se baja por red, ni en el build ni en el
+navegador.
 
-| Archivo | Fuente | Uso |
-|---|---|---|
-| `sora-800.woff` | Sora 800 | «AfinIA» del logotipo y título |
-| `sora-300.woff` | Sora 300 | «Jobs» del logotipo |
-| `manrope-600.woff` | Manrope 600 | Bajada |
-
-Solo el subset latin, tomado del paquete `@fontsource` (v5.3.0). Licencia SIL Open Font License 1.1:
-`OFL-Sora.txt` y `OFL-Manrope.txt`. La app en sí carga las fuentes con `next/font` (`app/fonts.ts`).
+| Archivos | Para qué |
+|---|---|
+| `sora-300.woff2`, `sora-700.woff2`, `sora-800.woff2`, `manrope-500.woff2`, `manrope-600.woff2`, `manrope-700.woff2` | La app, con `next/font/local` (`app/fonts.ts`) |
+| `sora-800.woff`, `sora-300.woff`, `manrope-600.woff` | Las imágenes OG (`lib/og-image.tsx`): `next/og` no lee `woff2` ni `next/font` |

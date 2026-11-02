@@ -13,7 +13,7 @@ Ani todavía no revisó la marca: lo que pida tiene que ser un PR chico. Por eso
 | Colores del logo según el modo | Tokens `--jso-logo-*` en `apps/web/app/globals.css` (claro y oscuro) | Ocho líneas |
 | Colores de la app | `apps/web/app/globals.css` (ver `docs/ux/tokens.md`) | Tokens |
 | Colores fuera de CSS (imágenes OG, manifest, emails) | `BRAND_COLORS` en `brand.ts`. Un test (`brand.test.ts`) verifica que coincidan con `globals.css` | Una línea por color |
-| Tipografías | `apps/web/app/fonts.ts` (Sora y Manrope con `next/font`) y, para las imágenes OG, `apps/web/assets/fonts/` | Un archivo |
+| Tipografías | `apps/web/app/fonts.ts` (Sora y Manrope con `next/font/local`, archivos en `apps/web/assets/fonts`) y, para las imágenes OG, `apps/web/assets/fonts/` | Un archivo |
 | Favicon | `apps/web/app/icon.svg` (monograma tinta sobre naranja, sin el punto: a 16 px no se lee) | Reemplazar el archivo |
 | Ícono de iPhone y del manifest | `apps/web/app/apple-icon.png` (180 px) y `apps/web/public/icons/` (192, 512 y 512 `maskable`) | Reemplazar los PNG |
 | Manifest | `apps/web/app/manifest.ts` (nombre, colores e íconos) | Sale de `BRAND` y `BRAND_COLORS` |
