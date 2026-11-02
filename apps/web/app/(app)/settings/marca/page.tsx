@@ -83,6 +83,7 @@ export default async function MarcaPage() {
           {LOGO_BACKGROUNDS.map(([tone, bg, label]) => (
             <li
               key={tone}
+              data-logo-fondo={tone}
               className={`flex flex-col items-start gap-3 rounded-card border border-line p-5 ${bg}`}
             >
               <Logo tone={tone} size="md" decorative />

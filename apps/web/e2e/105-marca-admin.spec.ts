@@ -28,7 +28,9 @@ test.describe("Flujo 105: vitrina de marca", () => {
       await expect(light.getByText("#FFFFFF").first()).toBeVisible();
       await expect(dark.getByText("#121212").first()).toBeVisible();
       await page.waitForLoadState("networkidle");
-      const { violations, unmeasured } = await axeSummary(page);
+      // El logo sobre naranja lleva «Jobs» en blanco (manual M2): es un logotipo, exceptuado del
+      // contraste por WCAG 1.4.3; el resto de la página se mide entero
+      const { violations, unmeasured } = await axeSummary(page, ['[data-logo-fondo="orange"]']);
       expect(violations).toEqual([]);
       expect(unmeasured).toEqual([]);
       const { scrollWidth, innerWidth } = await page.evaluate(() => ({
