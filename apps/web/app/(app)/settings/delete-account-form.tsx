@@ -57,7 +57,7 @@ export function DeleteAccountForm({
           </label>
           <button
             type="submit"
-            className="rounded-control bg-danger-strong px-4 py-2 text-base font-medium text-on-strong"
+            className="min-h-11 rounded-control bg-danger-strong px-4 py-2 text-base font-bold text-on-strong hover:brightness-110"
           >
             Eliminar mi cuenta para siempre
           </button>

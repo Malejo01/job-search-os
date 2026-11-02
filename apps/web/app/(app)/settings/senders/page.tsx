@@ -30,7 +30,10 @@ export default async function SendersPage({
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
-      <Link href="/settings" className="text-xs text-fg-subtle underline">
+      <Link
+        href="/settings"
+        className="inline-flex min-h-11 items-center text-sm text-fg-subtle underline"
+      >
         ← Ajustes
       </Link>
       <h1 className="text-2xl font-semibold">Remitentes</h1>

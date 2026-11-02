@@ -72,7 +72,7 @@ export function InboundAddressSection({
           <form action={rotateInboundAddressAction}>
             <button
               type="submit"
-              className="rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast"
+              className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover"
             >
               Sí, generar una dirección nueva
             </button>

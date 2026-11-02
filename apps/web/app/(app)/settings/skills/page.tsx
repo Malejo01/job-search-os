@@ -64,7 +64,10 @@ export default async function SkillsSettingsPage({
         withAssistant
       />
 
-      <Link href="/settings" className="text-sm text-fg underline">
+      <Link
+        href="/settings"
+        className="inline-flex min-h-11 items-center text-sm text-fg underline"
+      >
         Volver a Ajustes
       </Link>
     </div>

@@ -72,7 +72,10 @@ function renderInline(nodes: InlineNode[]): ReactNode[] {
         return <strong key={i}>{renderInline(n.children)}</strong>;
       case "code":
         return (
-          <code key={i} className="break-words rounded bg-zinc-100 px-1 py-0.5 text-[0.9em]">
+          <code
+            key={i}
+            className="break-words rounded-badge bg-surface-muted px-1 py-0.5 text-[0.9em]"
+          >
             {n.text}
           </code>
         );
@@ -82,7 +85,7 @@ function renderInline(nodes: InlineNode[]): ReactNode[] {
           <a
             key={i}
             href={n.href}
-            className="text-zinc-900 underline underline-offset-2"
+            className="text-link underline underline-offset-2 hover:text-link-hover"
             {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
           >
             {renderInline(n.children)}
@@ -122,7 +125,7 @@ function renderBlock(b: BlockNode, key: number): ReactNode {
     }
     case "quote":
       return (
-        <blockquote key={key} className="mt-3 border-l-4 border-zinc-300 pl-3 text-zinc-700">
+        <blockquote key={key} className="mt-3 border-l-4 border-line-strong pl-3 text-fg-muted">
           {renderInline(b.children)}
         </blockquote>
       );
@@ -151,7 +154,7 @@ function renderBlock(b: BlockNode, key: number): ReactNode {
             <thead>
               <tr>
                 {b.header.map((c, i) => (
-                  <th key={i} className="border-b border-zinc-300 px-2 py-1 font-semibold">
+                  <th key={i} className="border-b border-line-strong px-2 py-1 font-semibold">
                     {renderInline(c)}
                   </th>
                 ))}
@@ -161,7 +164,7 @@ function renderBlock(b: BlockNode, key: number): ReactNode {
               {b.rows.map((r, ri) => (
                 <tr key={ri}>
                   {r.map((c, ci) => (
-                    <td key={ci} className="border-b border-zinc-200 px-2 py-1 align-top">
+                    <td key={ci} className="border-b border-line px-2 py-1 align-top">
                       {renderInline(c)}
                     </td>
                   ))}
@@ -192,13 +195,13 @@ export function LegalPage({ name }: { name: LegalName }) {
       {draft ? (
         <p
           role="note"
-          className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+          className="rounded-control border border-warning-line bg-warning-soft px-3 py-2 text-sm text-warning"
         >
           <strong>Borrador en revisión:</strong> todavía no vigente.
         </p>
       ) : null}
       {updated ? (
-        <p className="mt-2 text-xs text-zinc-600">Última actualización: {updated}</p>
+        <p className="mt-2 text-xs text-fg-subtle">Última actualización: {updated}</p>
       ) : null}
       {renderLegalBlocks(doc.blocks)}
     </article>

@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { BETA_OPENING_LABEL, BRAND, waitlistRoleGroups } from "@job-search-os/pipeline";
 import { contactLink } from "@/lib/contact";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
-import { WaitlistForm } from "./waitlist-form";
+import { WaitlistForm, WaitlistFormFields } from "./waitlist-form";
 
 export const revalidate = 3600;
 
@@ -29,6 +29,7 @@ export default function AccesoPage() {
     label: group.label,
     roles: group.roles.map((key) => ({ key, label: ROLE_SKILLS[key].label })),
   }));
+  const formProps = { groups, contact: contactLink("Borrar mis datos de la lista de espera") };
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-5 py-2 sm:py-8">
       {/* Bloque de marca (C7-10): lo primero que ve quien llega por el QR desde el celular */}
@@ -61,11 +62,9 @@ export default function AccesoPage() {
       </section>
       <h1 className="text-title font-bold">Pedir acceso</h1>
       {/* La frase introductoria vive en el formulario: desaparece cuando el pedido se envió */}
-      <Suspense fallback={null}>
-        <WaitlistForm
-          groups={groups}
-          contact={contactLink("Borrar mis datos de la lista de espera")}
-        />
+      {/* Fallback = el mismo formulario sin el origen: sin salto de layout al leer la URL (C7-15) */}
+      <Suspense fallback={<WaitlistFormFields {...formProps} initialHeardFrom="" />}>
+        <WaitlistForm {...formProps} />
       </Suspense>
       <p className="text-sm">
         <Link

@@ -53,7 +53,7 @@ function StatusButtons({ item }: { item: PlanItemView }) {
       <input type="hidden" name="status" value={next} />
       <button
         type="submit"
-        className="rounded-control border border-line-strong px-2 py-1 text-xs text-fg-muted"
+        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-control border border-line-strong px-3 text-xs font-semibold text-fg-muted"
       >
         {next === "en_curso" ? "Empezar" : next === "cerrada" ? "Cerrar" : "Reabrir"}
       </button>
