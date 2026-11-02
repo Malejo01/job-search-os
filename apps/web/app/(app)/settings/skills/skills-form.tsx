@@ -239,7 +239,7 @@ export function SkillsForm({
 
         {/* «Guardar» va primero en el DOM (Enter guarda, nunca saltea); row-reverse lo deja a la derecha.
             `--tour-panel-h` lo fija la guía mientras está abierta: la barra queda encima del panel */}
-        <div className="sticky bottom-[var(--tour-panel-h,0px)] flex flex-row-reverse flex-wrap items-center justify-start gap-3 border-t border-line bg-surface p-3">
+        <div className="sticky bottom-[var(--tour-panel-h,0px)] flex flex-row-reverse flex-wrap items-center justify-start gap-3 border-t border-line bg-surface p-3 pr-16 sm:pr-3">
           <PendingSubmit
             pendingLabel="Guardando…"
             className="rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
