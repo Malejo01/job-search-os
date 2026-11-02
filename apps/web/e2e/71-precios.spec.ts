@@ -34,6 +34,12 @@ test.describe("Flujo 71: precios", () => {
     await expect(page.getByTestId("precio-lista")).toHaveText(/^\$ 20[.\s]?000 por mes$/);
     await expect(page.getByTestId("referencia-lista")).toContainText("USD 15 como referencia");
     await expect(page.getByText(/garant/i)).toHaveCount(0);
+    // C7-12: ni botón ni link de pago; el link llega con la invitación
+    await expect(page.locator('a[href*="mpago"], a[href*="mercadopago"]')).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /Mercado Pago/ })).toHaveCount(0);
+    await expect(page.getByTestId("plan-lista")).toContainText(
+      "Te pasamos el link de pago cuando te invitemos",
+    );
     await expect(page.getByRole("link", { name: "Pedí acceso" })).toHaveAttribute(
       "href",
       "/acceso",

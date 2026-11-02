@@ -72,6 +72,12 @@ test.describe("Flujo 91: lista de espera en tanda (admin)", () => {
     await expect(result).toContainText("jueves 26/11");
     await expect(result).toContainText("/register?code=");
     await expect(result).toContainText("Hola Ana:");
+    // C7-12: el mensaje dice el precio y los 30 días; el link de pago sale de MP_LINK_LISTA y, sin la
+    // variable (como en el CI), lo dice en vez de inventar uno
+    await expect(result).toContainText(/\$ 20[.\s]?000 por mes/);
+    await expect(result).toContainText("30 días");
+    if (process.env.MP_LINK_LISTA) await expect(result).toContainText("Mercado Pago");
+    else await expect(result).toContainText("El link de pago todavía no está listo");
 
     // Recargar: las dos quedan marcadas como invitadas
     await page.goto(

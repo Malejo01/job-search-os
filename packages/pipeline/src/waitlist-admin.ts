@@ -225,16 +225,30 @@ function longDate(date: Date): string {
   return `${ar.getUTCDate()} de ${MONTHS[ar.getUTCMonth()]}`;
 }
 
+/** Lo que hace falta para hablar del pago en la invitación (C7-12). */
+export type InvitationPayment = {
+  /** Precio en palabras, de `priceLabel` (p. ej. «$ 20.000 por mes»). */
+  price: string;
+  /** Días que dura cada pago. */
+  days: number;
+  /** Link de Mercado Pago ya validado (`paymentLink`); null si la variable no está cargada. */
+  link: string | null;
+};
+
 /**
  * Texto de la invitación para mandar por el medio que prefiera quien administra (el panel no manda
- * emails). Dice cuándo abre la beta, que el link es personal y cuándo vence. No promete resultados.
+ * emails). Dice cuándo abre la beta, que el link es personal y cuándo vence, y (C7-12) cuánto cuesta,
+ * cuánto dura y el link de pago: es el único lugar donde va el link de Mercado Pago (/precios no lo
+ * muestra). Sin link configurado, lo dice en vez de inventar uno. No promete resultados.
  */
 export function buildWaitlistInvitationText(input: {
   name: string;
   link: string;
   expiresAt: Date;
+  payment: InvitationPayment;
 }): string {
   const first = input.name.trim().split(/\s+/)[0]?.slice(0, 40) ?? "";
+  const { price, days, link } = input.payment;
   return [
     first ? `Hola ${first}:` : "Hola,",
     "",
@@ -243,6 +257,12 @@ export function buildWaitlistInvitationText(input: {
     input.link,
     "",
     `El link es personal: sirve una sola vez y vence el ${longDate(input.expiresAt)}.`,
+    "",
+    `El plan Beta cuesta ${price} y cada pago dura ${days} días.`,
+    ...(link
+      ? ["Para activarlo, pagá con este link de Mercado Pago:", "", link, ""]
+      : ["El link de pago todavía no está listo: te lo mandamos aparte.", ""]),
+    "Cuando se acredita el pago lo activamos a mano. Si no renovás, tu cuenta pasa al plan gratis y no perdés nada de lo tuyo.",
     "",
     PRODUCT_NAME,
   ].join("\n");
