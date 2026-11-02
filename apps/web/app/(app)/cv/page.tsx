@@ -115,7 +115,7 @@ export default async function CvPage({ searchParams }: { searchParams: Promise<P
               <select
                 name="lang"
                 defaultValue={opts.lang}
-                className="min-h-11 rounded-control border border-line-control bg-surface px-2 text-base text-fg focus-visible:outline-focus"
+                className="min-h-11 rounded-control border-2 border-line-control bg-surface px-2 text-base text-fg focus-visible:outline-focus"
               >
                 <option value="es">Español</option>
                 <option value="en">English</option>

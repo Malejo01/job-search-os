@@ -23,10 +23,10 @@ const MODALITY_OPTIONS = [
 ] as const;
 
 const input =
-  "min-h-11 min-w-0 rounded-control border border-line-strong px-3 py-2 text-base aria-[invalid=true]:border-danger-strong";
+  "min-h-11 min-w-0 rounded-control border-2 border-line-strong px-3 py-2 text-base aria-[invalid=true]:border-danger-strong";
 // Resumen: alto fijo de varias líneas (no crece al escribir, el usuario puede estirarlo) y sin el min-h-11 de `input`
 const summaryInput =
-  "min-h-56 min-w-0 resize-y rounded-control border border-line-strong px-3 py-2 text-base leading-6 aria-[invalid=true]:border-danger-strong";
+  "min-h-56 min-w-0 resize-y rounded-control border-2 border-line-strong px-3 py-2 text-base leading-6 aria-[invalid=true]:border-danger-strong";
 const choice = "flex min-h-11 items-center gap-2";
 
 /** Debajo de este número de ofertas en español, «Solo en español» deja casi sin avisos (A-2). */

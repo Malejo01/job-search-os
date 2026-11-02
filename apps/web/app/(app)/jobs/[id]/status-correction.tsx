@@ -38,7 +38,7 @@ export function StatusCorrection({
           <select
             name="to"
             defaultValue={targets[0]}
-            className="rounded-control border border-line-strong px-2 py-1.5 text-sm text-fg"
+            className="rounded-control border-2 border-line-strong px-2 py-1.5 text-sm text-fg"
           >
             {targets.map((t) => (
               <option key={t} value={t}>

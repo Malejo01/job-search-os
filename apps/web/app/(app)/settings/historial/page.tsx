@@ -17,7 +17,7 @@ export const metadata = { title: "Tu historial" };
 export const dynamic = "force-dynamic";
 
 const INPUT =
-  "min-h-11 rounded-control border border-line-control bg-surface px-3 py-2 text-base text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
+  "min-h-11 rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 const BUTTON =
   "inline-flex min-h-11 items-center rounded-control px-4 py-2 text-base font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 

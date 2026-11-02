@@ -184,7 +184,7 @@ export function CountrySearch({
             }}
             onKeyDown={onKeyDown}
             onBlur={() => setOpen(false)}
-            className="min-h-11 rounded-control border border-line-strong px-3 py-2 text-base aria-[invalid=true]:border-danger-strong disabled:bg-surface-muted"
+            className="min-h-11 rounded-control border-2 border-line-strong px-3 py-2 text-base aria-[invalid=true]:border-danger-strong disabled:bg-surface-muted"
           />
         </label>
         <ul

@@ -42,7 +42,7 @@ export function DeleteAccountForm({
               type="email"
               autoComplete="off"
               required
-              className="rounded-control border border-line-strong px-3 py-2 text-base"
+              className="rounded-control border-2 border-line-strong px-3 py-2 text-base"
             />
           </label>
           <label className="flex flex-col gap-1">
@@ -52,7 +52,7 @@ export function DeleteAccountForm({
               type="password"
               autoComplete="current-password"
               required
-              className="rounded-control border border-line-strong px-3 py-2 text-base"
+              className="rounded-control border-2 border-line-strong px-3 py-2 text-base"
             />
           </label>
           <button

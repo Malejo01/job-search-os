@@ -21,7 +21,7 @@ export function EnglishField({ value }: { value: string | null }) {
           name="englishCefr"
           defaultValue={current}
           aria-describedby="cefr-help-skills"
-          className="min-h-11 rounded-control border border-line-strong px-3 py-2 text-base"
+          className="min-h-11 rounded-control border-2 border-line-strong px-3 py-2 text-base"
         >
           {current === "" ? <option value="">Sin dato</option> : null}
           {CEFR_LEVELS.map((l) => (

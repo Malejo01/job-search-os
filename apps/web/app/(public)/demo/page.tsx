@@ -27,6 +27,8 @@ export default async function DemoPage() {
       {/* C7-13: un ejemplo fijo de una carrera no tech, sin base ni IA (para mostrar y grabar) */}
       <Link
         href="/demo/contaduria"
+        // Sin prefetch, como los perfiles (ronda 85, e2e 55): se pide solo al tocarla
+        prefetch={false}
         data-testid="demo-contaduria-link"
         className="flex flex-col gap-1 rounded-card border border-ink-line bg-ink p-4 text-on-ink hover:bg-ink/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:p-5"
       >
