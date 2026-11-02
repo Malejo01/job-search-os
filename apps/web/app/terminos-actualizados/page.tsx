@@ -35,9 +35,9 @@ export default async function TermsUpdatedPage({
   const { error } = await searchParams;
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b border-line bg-surface">
+      <header className="bg-ink text-on-ink">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-2">
-          <Logo />
+          <Logo tone="dark" />
         </div>
       </header>
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-4">
