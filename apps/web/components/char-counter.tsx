@@ -30,6 +30,8 @@ function stateOf(length: number, max: number, softMin: number): CounterState {
  */
 export function TextareaWithCounter({
   name,
+  id,
+  placeholder,
   min,
   softMin = 0,
   max,
@@ -41,6 +43,9 @@ export function TextareaWithCounter({
   className = "",
 }: {
   name: string;
+  /** Id del textarea; por defecto, `name`. Hace falta cuando hay varios con el mismo `name`. */
+  id?: string;
+  placeholder?: string;
   min?: number;
   /** Mínimo solo informativo (el contador avisa cuánto falta); no pone `minLength` en el textarea. */
   softMin?: number;
@@ -100,8 +105,9 @@ export function TextareaWithCounter({
   return (
     <>
       <textarea
-        id={name}
+        id={id ?? name}
         name={name}
+        placeholder={placeholder}
         rows={rows}
         required={required}
         minLength={min}
