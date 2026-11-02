@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { createManualJobAction } from "./actions";
 import { JobFields } from "./job-fields";
 
-const input = "rounded-control border border-line-strong px-3 py-2 text-base";
+const input = "rounded-control border-2 border-line-strong px-3 py-2 text-base";
 
 function filledCount(f: PastedJobFields): number {
   return [f.title, f.company, f.location, f.modality !== "desconocida" ? "x" : null].filter(

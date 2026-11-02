@@ -17,7 +17,7 @@ import { SaveButton } from "./save-button";
 export const metadata = { title: "Criterios" };
 export const dynamic = "force-dynamic";
 
-const input = "rounded-control border border-line-strong px-3 py-2 text-base";
+const input = "rounded-control border-2 border-line-strong px-3 py-2 text-base";
 const help = "text-xs text-fg-subtle";
 
 const DATE = new Intl.DateTimeFormat("es-AR", {

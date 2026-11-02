@@ -28,7 +28,7 @@ const BUTTON =
 const PRIMARY = `${BUTTON} bg-brand text-brand-contrast hover:bg-brand-hover`;
 const SECONDARY = `${BUTTON} border border-line-strong text-fg hover:bg-surface-muted`;
 const FIELD =
-  "min-h-11 w-full rounded-control border border-line-control bg-surface px-3 py-2 text-base text-fg focus-visible:outline-focus";
+  "min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg focus-visible:outline-focus";
 
 async function post(body: Record<string, unknown>): Promise<ApiOk | ApiErr> {
   try {
@@ -294,7 +294,7 @@ export function CvChat() {
             <select
               value={lang}
               onChange={(e) => setLang(e.target.value === "en" ? "en" : "es")}
-              className="min-h-11 rounded-control border border-line-control bg-surface px-2 text-base text-fg focus-visible:outline-focus"
+              className="min-h-11 rounded-control border-2 border-line-control bg-surface px-2 text-base text-fg focus-visible:outline-focus"
             >
               <option value="es">Español</option>
               <option value="en">English</option>

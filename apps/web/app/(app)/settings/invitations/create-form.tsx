@@ -18,7 +18,7 @@ export function CreateInvitationForm() {
           <input
             name="email"
             type="email"
-            className="rounded-control border border-line-strong px-3 py-2 text-base"
+            className="rounded-control border-2 border-line-strong px-3 py-2 text-base"
           />
         </label>
         <button

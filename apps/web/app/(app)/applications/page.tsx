@@ -176,7 +176,7 @@ export default async function ApplicationsPage({
                 <select
                   name="outcome"
                   defaultValue={a.outcome}
-                  className="rounded-control border border-line-strong px-2 py-1 text-xs"
+                  className="rounded-control border-2 border-line-strong px-2 py-1 text-xs"
                   aria-label="Resultado"
                 >
                   {APPLICATION_OUTCOMES.map((o) => (
@@ -189,7 +189,7 @@ export default async function ApplicationsPage({
                   name="note"
                   defaultValue={a.outcomeNote ?? ""}
                   placeholder="Nota (opcional)"
-                  className="min-w-0 flex-1 rounded-control border border-line-strong px-2 py-1 text-xs"
+                  className="min-w-0 flex-1 rounded-control border-2 border-line-strong px-2 py-1 text-xs"
                 />
                 <button
                   type="submit"

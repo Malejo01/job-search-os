@@ -469,7 +469,7 @@ export default async function JobDetailPage({
                     step={0.5}
                     inputMode="decimal"
                     defaultValue={ev.humanScore ?? ""}
-                    className="w-28 rounded-control border border-line-strong px-2 py-2 text-base"
+                    className="w-28 rounded-control border-2 border-line-strong px-2 py-2 text-base"
                   />
                 </label>
                 <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs text-fg-subtle">
@@ -479,7 +479,7 @@ export default async function JobDetailPage({
                     type="text"
                     defaultValue={ev.humanNote ?? ""}
                     placeholder="por qué no coincide con la evaluación"
-                    className="rounded-control border border-line-strong px-2 py-2 text-base"
+                    className="rounded-control border-2 border-line-strong px-2 py-2 text-base"
                   />
                 </label>
                 <button

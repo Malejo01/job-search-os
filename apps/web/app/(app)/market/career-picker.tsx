@@ -29,7 +29,7 @@ export function CareerPicker({
           <select
             name="carrera"
             defaultValue={current ?? ""}
-            className="min-h-11 w-full rounded-control border border-line-strong px-2 py-2 text-sm text-fg sm:w-auto"
+            className="min-h-11 w-full rounded-control border-2 border-line-strong px-2 py-2 text-sm text-fg sm:w-auto"
           >
             {current ? null : (
               <option value="" disabled>

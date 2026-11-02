@@ -62,7 +62,7 @@ export function FormReview({ jobId }: { jobId: string }) {
             required
             defaultValue={raw ?? ""}
             placeholder="Pegá acá las preguntas del formulario de la empresa"
-            className="rounded-control border border-line-strong px-2 py-2 font-mono text-sm text-fg"
+            className="rounded-control border-2 border-line-strong px-2 py-2 font-mono text-sm text-fg"
           />
         </label>
         <div>
@@ -122,7 +122,7 @@ export function FormReview({ jobId }: { jobId: string }) {
               <select
                 value={lang}
                 onChange={(e) => setLang(e.target.value === "en" ? "en" : "es")}
-                className="rounded-control border border-line-strong px-2 py-2 text-sm"
+                className="rounded-control border-2 border-line-strong px-2 py-2 text-sm"
               >
                 <option value="es">Español</option>
                 <option value="en">Inglés</option>
@@ -261,7 +261,7 @@ function DraftList({
                   rows={3}
                   aria-label={`Respuesta: ${it.label}`}
                   placeholder="Sin borrador: escribila vos"
-                  className="rounded-control border border-line-strong bg-surface px-2 py-2 text-sm text-fg"
+                  className="rounded-control border-2 border-line-strong bg-surface px-2 py-2 text-sm text-fg"
                 />
                 <div className="flex flex-wrap items-center gap-2">
                   <button

@@ -25,7 +25,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Mercado" };
 
 const INPUT_CLASS =
-  "w-full rounded-control border border-line-strong px-2 py-2 text-sm text-fg sm:w-auto";
+  "w-full rounded-control border-2 border-line-strong px-2 py-2 text-sm text-fg sm:w-auto";
 
 /** «2026-10-19» -> «19/10»: la semana, sin año ni formato técnico. */
 const shortDate = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
