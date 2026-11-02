@@ -8,7 +8,7 @@ export function NewJobRow({ job }: { job: JobListRow }) {
   const action = job.accion ? (ACTION_LABELS[job.accion] ?? null) : null;
   return (
     <li data-testid="hoy-nuevo-fila" className="flex items-center gap-3">
-      <ScoreBadge score={job.score} size="sm" />
+      <ScoreBadge score={job.score} size="sm" as="text" />
       <Link
         href={`/jobs/${job.id}`}
         className="flex min-h-11 min-w-0 flex-1 flex-col justify-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"

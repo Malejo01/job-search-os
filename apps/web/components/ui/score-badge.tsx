@@ -47,6 +47,14 @@ const SIZES: Record<ScoreSize, { box: string; number: string }> = {
   lg: { box: "h-16 w-16", number: "text-2xl" },
 };
 
+/** La misma información como frase, para el modo `text` (lectores de pantalla y textos de los e2e). */
+function sentence(state: ScoreState, value: number | null): string {
+  if (state === "pendiente") return "En cola para evaluar";
+  if (state === "sin") return "Sin evaluar";
+  if (state === "estimacion") return `Estimación previa ${value} de 10`;
+  return `Puntaje ${value} de 10`;
+}
+
 function label(state: ScoreState, value: number | null): string {
   if (state === "pendiente") return "en cola";
   if (state === "sin") return "sin evaluar";
@@ -60,6 +68,7 @@ export function ScoreBadge({
   pending = false,
   size = "md",
   title,
+  as = "img",
   className,
   ...props
 }: {
@@ -69,6 +78,11 @@ export function ScoreBadge({
   size?: ScoreSize;
   /** Ayuda al pasar el mouse (p. ej. qué es una estimación previa). */
   title?: string;
+  /**
+   * `img` (por defecto): una imagen con `aria-label` («puntaje 8.5»). `text`: la caja es decorativa
+   * y al lado va la frase oculta («Puntaje 8.5 de 10»), que también ven los e2e como texto (/hoy).
+   */
+  as?: "img" | "text";
   className?: string;
 } & { [key: `data-${string}`]: string | undefined }) {
   const state = scoreState({ score, preScore, pending });
@@ -83,8 +97,7 @@ export function ScoreBadge({
     state === "estimacion" ? "estim." : state === "pendiente" || state === "sin" ? "score" : "/10";
   return (
     <span
-      role="img"
-      aria-label={label(state, value)}
+      {...(as === "img" ? { role: "img", "aria-label": label(state, value) } : {})}
       title={title}
       data-score-state={state}
       className={cx(
@@ -95,7 +108,9 @@ export function ScoreBadge({
       )}
       {...props}
     >
+      {as === "text" ? <span className="sr-only">{sentence(state, value)}</span> : null}
       <span
+        aria-hidden={as === "text" ? true : undefined}
         className={cx(
           "font-display leading-none font-bold",
           SIZES[size].number,
@@ -104,7 +119,11 @@ export function ScoreBadge({
       >
         {main}
       </span>
-      {size === "sm" ? null : <span className="text-[10px] font-semibold">{unit}</span>}
+      {size === "sm" ? null : (
+        <span aria-hidden={as === "text" ? true : undefined} className="text-[10px] font-semibold">
+          {unit}
+        </span>
+      )}
     </span>
   );
 }
