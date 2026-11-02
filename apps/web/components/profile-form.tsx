@@ -624,7 +624,7 @@ export function ProfileForm({
             type="submit"
             data-tour="perfil:guardar"
             disabled={pending}
-            className="min-h-11 w-full rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-60 sm:w-auto"
+            className="min-h-11 w-full min-h-11 rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-60 sm:w-auto"
           >
             {pending ? "Guardando…" : submitLabel}
           </button>

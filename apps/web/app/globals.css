@@ -282,6 +282,18 @@
     outline-offset: 2px;
   }
 
+  /*
+   * Áreas táctiles (C7-15): 44 px como mínimo para campos, selects y el «summary» de los
+   * desplegables, aunque su clase no lo diga. Con `:where` no pesa nada: una clase propia lo pisa.
+   */
+  :where(input:not([type="checkbox"], [type="radio"], [type="hidden"], [type="range"]), select) {
+    min-height: 2.75rem;
+  }
+  :where(summary) {
+    min-height: 2.75rem;
+    padding-block: 0.625rem;
+  }
+
   h1 {
     font-family: var(--font-display);
     letter-spacing: -0.01em;

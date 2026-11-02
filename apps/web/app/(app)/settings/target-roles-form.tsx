@@ -68,7 +68,7 @@ export function TargetRolesForm({
           groups={groups}
         />
         <FieldError name="targetRoles" />
-        <PendingSubmit className="self-start rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+        <PendingSubmit className="self-start min-h-11 rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
           Guardar puestos
         </PendingSubmit>
       </GuardedForm>

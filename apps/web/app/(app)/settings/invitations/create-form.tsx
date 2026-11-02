@@ -24,7 +24,7 @@ export function CreateInvitationForm() {
         <button
           type="submit"
           disabled={pending}
-          className="rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast disabled:opacity-60"
+          className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover disabled:opacity-60"
         >
           Crear invitación
         </button>

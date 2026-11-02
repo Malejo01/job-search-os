@@ -14,18 +14,33 @@ const field =
 export type RoleOption = { key: string; label: string };
 export type RoleOptionGroup = { label: string; roles: RoleOption[] };
 
-/** Formulario "Pedir acceso". Las carreras las arma la página (servidor) para no traer la base al cliente. */
-export function WaitlistForm({
-  groups,
-  contact,
-}: {
+type FormProps = {
   groups: RoleOptionGroup[];
   contact: { email: string; href: string } | null;
-}) {
+};
+
+/**
+ * Formulario "Pedir acceso" con el origen del QR (`?origen=voces-jovenes`). Lee la URL en el
+ * cliente; mientras tanto la página muestra el mismo formulario sin el origen
+ * (`WaitlistFormFields` como fallback del Suspense), así no hay salto de layout al hidratar (C7-15).
+ */
+export function WaitlistForm(props: FormProps) {
   const searchParams = useSearchParams();
   const origen = searchParams.get("origen");
-  const initialHeardFrom = origen === "voces-jovenes" ? "Voces Jóvenes" : "";
+  return (
+    <WaitlistFormFields
+      {...props}
+      initialHeardFrom={origen === "voces-jovenes" ? "Voces Jóvenes" : ""}
+    />
+  );
+}
 
+/** El formulario en sí. Las carreras las arma la página (servidor) para no traer la base al cliente. */
+export function WaitlistFormFields({
+  groups,
+  contact,
+  initialHeardFrom,
+}: FormProps & { initialHeardFrom: string }) {
   const [state, action, pending] = useActionState(submitWaitlist, INITIAL);
   const formRef = useRef<HTMLFormElement>(null);
   // Mientras se envía no se muestran los errores del intento anterior

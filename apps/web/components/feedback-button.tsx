@@ -140,7 +140,7 @@ export function FeedbackButton() {
             <button
               type="submit"
               disabled={pending}
-              className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast hover:bg-brand-hover disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+              className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover hover:bg-brand-hover disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
             >
               {pending ? "Enviando…" : "Enviar"}
             </button>

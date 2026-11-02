@@ -156,7 +156,7 @@ export function SkillLevelButton({
             <button
               type="submit"
               disabled={pending}
-              className={`min-h-11 rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast disabled:opacity-60 ${FOCUS_RING}`}
+              className={`min-h-11 rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover disabled:opacity-60 ${FOCUS_RING}`}
             >
               {pending ? "Guardando…" : "Guardar"}
             </button>
