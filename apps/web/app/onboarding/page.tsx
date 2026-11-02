@@ -80,10 +80,10 @@ export default async function OnboardingPage({
           />
         }
       />
-      <h1 className="text-xl font-semibold">Completá tu perfil</h1>
+      <h1 className="text-title font-bold">Completá tu perfil</h1>
       <p className="text-sm text-fg-subtle">
-        Antes de ver ofertas necesitamos unos datos: con ellos se filtran y evalúan los avisos. Los
-        podés cambiar más adelante.
+        Antes de ver ofertas, contanos un poco de vos: con esto leemos cada aviso contra tu perfil.
+        Lo podés cambiar cuando quieras.
       </p>
       <OnboardingForm
         roleGroups={roleGroups}

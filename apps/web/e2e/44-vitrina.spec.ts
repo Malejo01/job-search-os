@@ -91,8 +91,10 @@ test.describe("Flujo 44: vitrina pública", () => {
     await expect(
       page.getByRole("heading", { level: 1, name: /por qué sí y por qué no/ }),
     ).toBeVisible();
-    await expect(page.getByText("Nunca postula por vos")).toBeVisible();
-    await expect(page.getByText("No lee tu bandeja")).toBeVisible();
+    // C7-11: la voz del manual (M7), en primera persona
+    await expect(page.getByText("Nunca postulamos por vos", { exact: true })).toBeVisible();
+    await expect(page.getByText("No leemos tu bandeja")).toBeVisible();
+    await expect(page.getByText(BRAND.tagline).first()).toBeVisible();
     await expect(page.getByText("Tus datos son tuyos")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Cómo funciona" })).toBeVisible();
     await expect(page.getByTestId("pool-numbers")).toBeVisible();
