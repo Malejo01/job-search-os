@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { BETA_OPENING_LABEL, BRAND, waitlistRoleGroups } from "@job-search-os/pipeline";
-import { Logo } from "@/components/brand/logo";
 import { contactLink } from "@/lib/contact";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
 import { WaitlistForm } from "./waitlist-form";
@@ -31,13 +30,12 @@ export default function AccesoPage() {
     roles: group.roles.map((key) => ({ key, label: ROLE_SKILLS[key].label })),
   }));
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col gap-6 py-4 sm:py-8">
+    <div className="mx-auto flex w-full max-w-md flex-col gap-5 py-2 sm:py-8">
       {/* Bloque de marca (C7-10): lo primero que ve quien llega por el QR desde el celular */}
       <section
         aria-labelledby="acceso-marca"
-        className="flex flex-col gap-3 rounded-card bg-ink p-5 text-on-ink"
+        className="flex flex-col gap-2 rounded-card bg-ink p-4 text-on-ink sm:p-5"
       >
-        <Logo tone="dark" decorative />
         <p id="acceso-marca" className="font-display text-2xl leading-tight font-extrabold">
           {BRAND.tagline}
         </p>
