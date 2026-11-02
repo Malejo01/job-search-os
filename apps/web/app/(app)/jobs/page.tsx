@@ -44,112 +44,155 @@ export default async function JobsPage({
   ]);
   const query = listQuery(filters);
   // Solo hace falta cuando la lista queda vacía: distingue "los filtros no coinciden" de "no hay nada"
-  const counts = rows.length === 0 ? await countJobs(userId) : null;
+  // Una consulta agregada: el vacío la necesita y la columna de la derecha (P1) muestra las pendientes
+  const counts = await countJobs(userId).catch(() => null);
   const stepsHidden = await firstStepsHidden(userId);
 
   return (
-    <section className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="min-w-0">
-          <h1 className="text-title font-semibold">Ofertas</h1>
-          <p className="text-xs text-fg-subtle">
-            {rows.length === LIST_LIMIT
-              ? `Mostrando las primeras ${LIST_LIMIT}`
-              : `${rows.length} ${rows.length === 1 ? "oferta" : "ofertas"}`}
-            , ordenadas por puntaje, riesgos y fecha
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <GuidedTour
-            steps={GUIDE_STEPS.jobs}
-            label={GUIDE_LABELS.panel}
-            testId="guide"
-            openerLabel={GUIDE_LABELS.opener}
-            resume
-          />
-          <Link href="/jobs/new" className={buttonClasses({ size: "sm", className: "shrink-0" })}>
-            + Cargar oferta
-          </Link>
-        </div>
-      </div>
-      <FirstSteps userId={userId} />
-      <RoleNudge userId={userId} />
-      {/* D2: mientras la checklist está visible, su ítem 6 reemplaza al aviso de email */}
-      {stepsHidden ? <EmailNudge userId={userId} /> : null}
-      <RoleGaps userId={userId} />
-      {/* Posibles duplicados (JS-025): se revisan a mano, desde el detalle */}
-      {filters.duplicates ? (
-        <Alert tone="warning" role={null}>
-          <p>
-            Viendo solo posibles duplicados ·{" "}
-            <Link href="/jobs" className="underline">
-              ver todas
+    <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+      <section className="flex min-w-0 flex-1 flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="min-w-0">
+            <h1 className="text-title font-semibold">Ofertas</h1>
+            <p className="text-xs text-fg-subtle">
+              {rows.length === LIST_LIMIT
+                ? `Mostrando las primeras ${LIST_LIMIT}`
+                : `${rows.length} ${rows.length === 1 ? "oferta" : "ofertas"}`}
+              , ordenadas por puntaje, riesgos y fecha
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <GuidedTour
+              steps={GUIDE_STEPS.jobs}
+              label={GUIDE_LABELS.panel}
+              testId="guide"
+              openerLabel={GUIDE_LABELS.opener}
+              resume
+            />
+            <Link href="/jobs/new" className={buttonClasses({ size: "sm", className: "shrink-0" })}>
+              + Cargar oferta
             </Link>
-          </p>
-        </Alert>
-      ) : duplicates > 0 ? (
-        <Alert tone="warning" role={null}>
-          <p>
-            <Link href="/jobs?duplicados=1" className="underline">
-              {duplicates === 1
-                ? "1 posible duplicado para revisar"
-                : `${duplicates} posibles duplicados para revisar`}
-            </Link>
-          </p>
-        </Alert>
-      ) : null}
-      <div className="flex flex-wrap items-center gap-2">
-        <Link
-          href={`/jobs${listQuery({ ...filters, idioma: filters.idioma ? null : "es" })}`}
-          aria-current={filters.idioma === "es" ? "true" : undefined}
-          data-testid="chip-en-espanol"
-          aria-describedby={filters.idioma === "es" ? "chip-en-espanol-ayuda" : undefined}
-          className={`inline-flex min-h-11 items-center rounded-pill border px-4 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
-            filters.idioma === "es"
-              ? "border-brand bg-brand text-brand-contrast"
-              : "border-line-strong bg-surface text-fg"
-          }`}
-        >
-          En español
-        </Link>
-        {filters.idioma === "es" ? (
-          <p id="chip-en-espanol-ayuda" className="text-xs text-fg-subtle">
-            Solo las ofertas que encontramos nosotros: las que cargaste vos no tienen idioma
-            guardado.
-          </p>
+          </div>
+        </div>
+        <FirstSteps userId={userId} />
+        <RoleNudge userId={userId} />
+        {/* D2: mientras la checklist está visible, su ítem 6 reemplaza al aviso de email */}
+        {stepsHidden ? <EmailNudge userId={userId} /> : null}
+        <RoleGaps userId={userId} />
+        {/* Posibles duplicados (JS-025): se revisan a mano, desde el detalle */}
+        {filters.duplicates ? (
+          <Alert tone="warning" role={null}>
+            <p>
+              Viendo solo posibles duplicados ·{" "}
+              <Link href="/jobs" className="underline">
+                ver todas
+              </Link>
+            </p>
+          </Alert>
+        ) : duplicates > 0 ? (
+          <Alert tone="warning" role={null}>
+            <p>
+              <Link href="/jobs?duplicados=1" className="underline">
+                {duplicates === 1
+                  ? "1 posible duplicado para revisar"
+                  : `${duplicates} posibles duplicados para revisar`}
+              </Link>
+            </p>
+          </Alert>
         ) : null}
-      </div>
-      {progress.total > 0 ? <ReviewProgress {...progress} filters={filters} /> : null}
-      <JobFilters
-        value={{
-          score: filters.scoreMin === null ? "" : String(filters.scoreMin),
-          fuente: filters.source ?? "",
-          estado: filters.status ?? "",
-          desde: filters.since ?? "",
-          periodo: filters.periodo ?? "",
-        }}
-        sources={s.sourceKind.enumValues.map((k) => ({ value: k, label: SOURCE_LABELS[k] ?? k }))}
-        statuses={JOB_STATUSES.map((k) => ({ value: k, label: STATUS_LABELS[k] ?? k }))}
-      />
-      {rows.length === 0 ? (
-        <EmptyList
-          counts={counts}
-          reviewedAll={
-            filters.status === null && progress.total > 0 && progress.revisadas === progress.total
-          }
-        />
-      ) : (
-        <>
-          {rows.some((r) => !r.evaluating && r.score === null && r.preScore !== null) ? (
-            <p className="text-xs text-fg-subtle" data-testid="pre-score-explain">
-              {PRE_SCORE_EXPLAIN} El número va de 0 a 10.
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={`/jobs${listQuery({ ...filters, idioma: filters.idioma ? null : "es" })}`}
+            aria-current={filters.idioma === "es" ? "true" : undefined}
+            data-testid="chip-en-espanol"
+            aria-describedby={filters.idioma === "es" ? "chip-en-espanol-ayuda" : undefined}
+            className={`inline-flex min-h-11 items-center rounded-pill border-2 px-4 text-sm font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
+              filters.idioma === "es"
+                ? "border-fg bg-fg text-canvas"
+                : "border-line-strong bg-surface text-fg"
+            }`}
+          >
+            En español
+          </Link>
+          {filters.idioma === "es" ? (
+            <p id="chip-en-espanol-ayuda" className="text-xs text-fg-subtle">
+              Solo las ofertas que encontramos nosotros: las que cargaste vos no tienen idioma
+              guardado.
             </p>
           ) : null}
-          <JobList rows={rows} query={query} />
-        </>
-      )}
-      <AutoRefresh active={rows.some((r) => r.evaluating)} />
-    </section>
+        </div>
+        {progress.total > 0 ? <ReviewProgress {...progress} filters={filters} /> : null}
+        <JobFilters
+          value={{
+            score: filters.scoreMin === null ? "" : String(filters.scoreMin),
+            fuente: filters.source ?? "",
+            estado: filters.status ?? "",
+            desde: filters.since ?? "",
+            periodo: filters.periodo ?? "",
+          }}
+          sources={s.sourceKind.enumValues.map((k) => ({ value: k, label: SOURCE_LABELS[k] ?? k }))}
+          statuses={JOB_STATUSES.map((k) => ({ value: k, label: STATUS_LABELS[k] ?? k }))}
+        />
+        {rows.length === 0 ? (
+          <EmptyList
+            counts={counts}
+            reviewedAll={
+              filters.status === null && progress.total > 0 && progress.revisadas === progress.total
+            }
+          />
+        ) : (
+          <>
+            {rows.some((r) => !r.evaluating && r.score === null && r.preScore !== null) ? (
+              <p className="text-xs text-fg-subtle" data-testid="pre-score-explain">
+                {PRE_SCORE_EXPLAIN} El número va de 0 a 10.
+              </p>
+            ) : null}
+            <JobList rows={rows} query={query} />
+          </>
+        )}
+        <AutoRefresh active={rows.some((r) => r.evaluating)} />
+      </section>
+      <JobsAside pending={counts?.sinDescripcion ?? 0} />
+    </div>
+  );
+}
+
+/**
+ * Columna de la derecha (C7-6, manual P1), solo en pantalla ancha: cuántas ofertas esperan la
+ * descripción, cargar una a mano y el recordatorio de que la postulación la hace la persona. En el
+ * celular, lo mismo está en el menú y en «+ Cargar oferta».
+ */
+function JobsAside({ pending }: { pending: number }) {
+  return (
+    <aside aria-label="Atajos" className="hidden w-72 shrink-0 flex-col gap-3 lg:flex">
+      {pending > 0 ? (
+        <div className="flex flex-col gap-2 rounded-card bg-ink p-4 text-on-ink">
+          <p className="font-display text-lg font-bold">
+            {pending === 1
+              ? "1 oferta espera descripción"
+              : `${pending} ofertas esperan descripción`}
+          </p>
+          <p className="text-sm text-on-ink-muted">
+            Pegá el texto del aviso y la evaluamos con tu perfil.
+          </p>
+          <Link
+            href="/jobs/pending-jd"
+            className="inline-flex min-h-11 items-center self-start rounded-control bg-brand px-4 text-sm font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          >
+            {pending === 1 ? "Completarla" : "Completarlas"}
+          </Link>
+        </div>
+      ) : null}
+      <div className="flex flex-col gap-2 rounded-card border border-line bg-surface p-4">
+        <p className="text-sm font-bold">¿La oferta no está en la lista?</p>
+        <Link href="/jobs/new" className={buttonClasses({ variant: "secondary", size: "sm" })}>
+          Cargala a mano
+        </Link>
+      </div>
+      <p className="text-xs text-fg-subtle">
+        Vos decidís: la postulación la hacés vos en el sitio del aviso. Nunca postulamos por vos.
+      </p>
+    </aside>
   );
 }
 
@@ -276,7 +319,7 @@ function ReviewProgress({
   const pct = Math.round((revisadas / total) * 100);
   return (
     <div
-      className={`flex flex-col gap-1 rounded-control px-3 py-2 text-sm ${done ? "bg-success-soft text-success" : "bg-surface-subtle text-fg-muted"}`}
+      className={`flex flex-col gap-1.5 rounded-control px-3 py-2 text-sm font-semibold ${done ? "bg-success-soft text-success" : "text-fg-muted"}`}
     >
       <p>
         <strong>
@@ -292,10 +335,10 @@ function ReviewProgress({
         aria-valuemin={0}
         aria-valuemax={total}
         aria-valuenow={revisadas}
-        className="h-1.5 overflow-hidden rounded-pill bg-surface-strong"
+        className="h-1.5 overflow-hidden rounded-pill bg-line"
       >
         <div
-          className={`h-full rounded-pill ${done ? "bg-success" : "bg-info"}`}
+          className={`h-full rounded-pill ${done ? "bg-success-strong" : "bg-brand"}`}
           style={{ width: `${pct}%` }}
         />
       </div>
