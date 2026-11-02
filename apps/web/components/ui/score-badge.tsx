@@ -1,10 +1,17 @@
+import {
+  scoreAriaLabel,
+  scoreSentence,
+  scoreState,
+  type ScoreState,
+} from "@job-search-os/pipeline";
 import { formatScoreNumber } from "@/lib/labels";
 import { cx } from "./cx";
 
 /**
  * Score de 0 a 10 (C7-4, manual M8). Una sola caja para /jobs, el detalle, /hoy y la demo.
  *
- * Estados:
+ * La lógica (estado, `aria-label` y frase) vive en `@job-search-os/pipeline` (score-display.ts),
+ * con tests. Estados:
  * - `alto` (7 o más), `medio` (5 a 6,9) y `bajo`: relleno suave del estado con un borde interior;
  * - `estimacion`: la estimación previa por reglas, con borde punteado y «estim.»;
  * - `pendiente`: en cola para evaluar, con «…» y borde celeste;
@@ -13,24 +20,7 @@ import { cx } from "./cx";
  * Es una imagen con nombre para el lector de pantalla: «puntaje 8.5», «estimación previa 6», «en
  * cola», «sin evaluar». Los e2e leen ese formato (`[aria-label^="puntaje "]`): no cambiarlo.
  */
-export type ScoreState = "alto" | "medio" | "bajo" | "estimacion" | "pendiente" | "sin";
 export type ScoreSize = "sm" | "md" | "lg";
-
-export function scoreState({
-  score,
-  preScore = null,
-  pending = false,
-}: {
-  score: number | null;
-  preScore?: number | null;
-  pending?: boolean;
-}): ScoreState {
-  if (pending) return "pendiente";
-  if (score === null) return preScore === null ? "sin" : "estimacion";
-  if (score >= 7) return "alto";
-  if (score >= 5) return "medio";
-  return "bajo";
-}
 
 const STATES: Record<ScoreState, string> = {
   alto: "bg-success-muted text-success shadow-[inset_0_0_0_2px_var(--color-success-line)]",
@@ -46,21 +36,6 @@ const SIZES: Record<ScoreSize, { box: string; number: string }> = {
   md: { box: "h-[52px] w-[52px]", number: "text-xl" },
   lg: { box: "h-16 w-16", number: "text-2xl" },
 };
-
-/** La misma información como frase, para el modo `text` (lectores de pantalla y textos de los e2e). */
-function sentence(state: ScoreState, value: number | null): string {
-  if (state === "pendiente") return "En cola para evaluar";
-  if (state === "sin") return "Sin evaluar";
-  if (state === "estimacion") return `Estimación previa ${value} de 10`;
-  return `Puntaje ${value} de 10`;
-}
-
-function label(state: ScoreState, value: number | null): string {
-  if (state === "pendiente") return "en cola";
-  if (state === "sin") return "sin evaluar";
-  if (state === "estimacion") return `estimación previa ${value}`;
-  return `puntaje ${value}`;
-}
 
 export function ScoreBadge({
   score,
@@ -97,7 +72,7 @@ export function ScoreBadge({
     state === "estimacion" ? "estim." : state === "pendiente" || state === "sin" ? "score" : "/10";
   return (
     <span
-      {...(as === "img" ? { role: "img", "aria-label": label(state, value) } : {})}
+      {...(as === "img" ? { role: "img", "aria-label": scoreAriaLabel(state, value) } : {})}
       title={title}
       data-score-state={state}
       className={cx(
@@ -108,7 +83,7 @@ export function ScoreBadge({
       )}
       {...props}
     >
-      {as === "text" ? <span className="sr-only">{sentence(state, value)}</span> : null}
+      {as === "text" ? <span className="sr-only">{scoreSentence(state, value)}</span> : null}
       <span
         aria-hidden={as === "text" ? true : undefined}
         className={cx(
