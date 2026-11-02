@@ -21,6 +21,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Las carreras ocultas (ADR-029) responden pero no se anuncian
     ...careers.map((k) => `/mercado/${k}`),
     "/demo",
+    "/demo/contaduria",
     ...DEMO_PROFILE_KEYS.map((k) => `/demo/${k}`),
     "/acceso",
     "/como-esta-hecho",

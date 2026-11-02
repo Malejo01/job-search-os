@@ -17,11 +17,15 @@ const FALTA_MARK: Record<FaltaKind, { icon: string; classes: string }> = {
 export function FitPointsPanel({
   points,
   limited = false,
+  headingLevel = 2,
 }: {
   points: FitPoints;
+  /** Nivel de los dos títulos: 2 en el detalle; más abajo cuando va dentro de otra sección (demo). */
+  headingLevel?: 2 | 3 | 4;
   /** Sin la descripción completa (o sin checklist): «nada que te frene» no es una promesa. */
   limited?: boolean;
 }) {
+  const H = `h${headingLevel}` as const;
   return (
     <section aria-label="Cómo te queda esta oferta" className="grid gap-3 sm:grid-cols-2">
       {/* C7-6: fortalezas con borde verde arriba, debilidades con borde ámbar (manual M8) */}
@@ -29,9 +33,9 @@ export function FitPointsPanel({
         className="rounded-card border border-line border-t-4 border-t-success-line bg-surface p-4 text-sm"
         data-testid="fit-favor"
       >
-        <h2 className="flex items-center gap-2 font-display text-base font-bold">
+        <H className="flex items-center gap-2 font-display text-base font-bold">
           <Icon name="fortalezas" size={20} className="text-success" />A tu favor
-        </h2>
+        </H>
         {points.favor.length ? (
           <ul className="mt-2 flex flex-col gap-1.5">
             {points.favor.map((p) => (
@@ -53,10 +57,10 @@ export function FitPointsPanel({
         className="rounded-card border border-line border-t-4 border-t-warning-line bg-surface p-4 text-sm"
         data-testid="fit-falta"
       >
-        <h2 className="flex items-center gap-2 font-display text-base font-bold">
+        <H className="flex items-center gap-2 font-display text-base font-bold">
           <Icon name="afinar" size={20} className="text-warning" />
           Te falta o te frena
-        </h2>
+        </H>
         {points.falta.length ? (
           <ul className="mt-2 flex flex-col gap-1.5">
             {points.falta.map((p) => {

@@ -81,7 +81,7 @@ export default async function PendingJdPage({
             El sistema nunca postula por vos: la postulación la hacés vos en el sitio del aviso.
           </p>
         </div>
-        <div className="flex flex-col gap-2 rounded-card bg-ink p-4 text-on-ink">
+        <div className="flex flex-col gap-2 rounded-card border border-ink-line bg-ink p-4 text-on-ink">
           <p className="text-sm font-bold">¿La oferta no está en la lista?</p>
           <Link
             href="/jobs/new?modo=pegar"

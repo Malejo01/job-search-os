@@ -259,7 +259,7 @@ function NextSteps({
     <section
       aria-labelledby="hoy-pasos-titulo"
       data-testid="hoy-pasos"
-      className="flex flex-col gap-2 rounded-card bg-ink p-4 text-on-ink"
+      className="flex flex-col gap-2 rounded-card border border-ink-line bg-ink p-4 text-on-ink"
     >
       <h2 id="hoy-pasos-titulo" className="text-base font-bold">
         Próximos pasos
