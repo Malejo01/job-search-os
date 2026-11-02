@@ -1,12 +1,12 @@
 ---
-actualizado: 2026-10-27
+actualizado: 2026-11-02
 ---
 
 # Política de privacidad
 
 ## 1. Quién es el responsable
 
-Job Search OS es una herramienta en beta cerrada. El responsable del tratamiento de tus datos es **[RESPONSABLE]**, con domicilio en **[DOMICILIO]**. Para cualquier consulta o pedido sobre tus datos, escribí a **[EMAIL DE CONTACTO]**.
+AfinIAJobs es una herramienta en beta cerrada. El responsable del tratamiento de tus datos es **[RESPONSABLE]**, con domicilio en **[DOMICILIO]**. Para cualquier consulta o pedido sobre tus datos, escribí a **[EMAIL DE CONTACTO]**.
 
 ## 2. Qué datos tratamos
 

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { signOut } from "@/auth";
 import { assertAppRole } from "@/lib/db";
 import { requireUserId } from "@/lib/session";
+import { TERMS_CHANGE_SUMMARY } from "@/lib/terms";
 import { needsTermsAcceptance } from "@/lib/terms-status";
 import { DeleteAccountForm } from "../(app)/settings/delete-account-form";
 import { AcceptTermsForm } from "./form";
@@ -45,6 +46,10 @@ export default async function TermsUpdatedPage({
         </h1>
         <p className="text-sm text-fg-muted">
           Para seguir usando la app, leé los cambios y aceptalos.
+        </p>
+        <p className="rounded-control bg-info-soft px-3 py-2 text-sm text-info" role="note">
+          <span className="font-semibold">Qué cambió: </span>
+          {TERMS_CHANGE_SUMMARY}
         </p>
         <ul className="flex list-none flex-col p-0 text-sm">
           <li>

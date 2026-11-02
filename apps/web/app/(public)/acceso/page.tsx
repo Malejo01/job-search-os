@@ -9,7 +9,7 @@ import { WaitlistForm } from "./waitlist-form";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: { absolute: "Pedir acceso" },
+  title: "Pedir acceso",
   description:
     "La beta es por invitación. Dejá tu nombre, email y carrera y te avisamos cuando haya lugar.",
   alternates: { canonical: "/acceso" },

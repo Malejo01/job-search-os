@@ -1,12 +1,12 @@
 ---
-actualizado: 2026-10-27
+actualizado: 2026-11-02
 ---
 
 # Términos de uso de la beta cerrada
 
 Estos términos se leen junto con la [Política de privacidad](/legal/privacidad).
 
-## 1. Qué es Job Search OS
+## 1. Qué es AfinIAJobs
 
 Una herramienta de apoyo para organizar tu búsqueda laboral: reúne los avisos que cargás, los que te llegan por los emails que reenviás y los que toma de fuentes públicas de avisos según las carreras que buscás; los evalúa con inteligencia artificial contra tu perfil y redacta borradores de respuestas para que los revises. La ofrece **[RESPONSABLE]** ("nosotros"), con domicilio en **[DOMICILIO]**. Contacto: **[EMAIL DE CONTACTO]**.
 
