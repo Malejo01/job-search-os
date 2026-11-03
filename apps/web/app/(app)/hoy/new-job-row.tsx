@@ -1,47 +1,47 @@
-import Link from "next/link";
-import { Badge, Seal } from "@/components/ui";
+import { offerAge, offerPlace } from "@job-search-os/pipeline";
+import { OfferCard } from "@/components/offer-card";
+import { Badge } from "@/components/ui";
 import type { JobListRow } from "@/lib/jobs";
-import { ACTION_LABELS } from "@/lib/labels";
+import { ACTION_LABELS, MODALITY_LABELS } from "@/lib/labels";
 
 /**
- * Fila de «Lo nuevo» (C7-7, manual P2): score, título, empresa y lugar, una línea de por qué (lo
- * que tenés a favor, o lo que te falta) y la acción sugerida. Un solo link (el título) cubre toda
- * la fila; «Ver detalle» es la señal visual de que se puede tocar. Server Component.
+ * Fila de «Lo nuevo» (C7-7; tarjeta K2 en C9-10): la primera es la oferta destacada de Hoy
+ * (`featured`, borde inferior de 6 px y sello grande) y el resto van en lista. Lo que tenés y lo
+ * que te falta en chips, la acción sugerida y el sello con su frase para lectores de pantalla
+ * («Puntaje 9 de 10, muy afín»). Un solo link cubre toda la tarjeta. Server Component.
  */
-export function NewJobRow({ job }: { job: JobListRow }) {
+export function NewJobRow({
+  job,
+  featured = false,
+  now,
+}: {
+  job: JobListRow;
+  featured?: boolean;
+  now: Date;
+}) {
   const action = job.accion ? (ACTION_LABELS[job.accion] ?? null) : null;
-  const why = job.fit.favor
-    ? job.fit.favor.text
-    : job.fit.falta
-      ? `${job.fit.falta.label}: ${job.fit.falta.text}`
+  const modality =
+    job.modality && job.modality !== "desconocida"
+      ? (MODALITY_LABELS[job.modality] ?? job.modality)
       : null;
   return (
-    <li
-      data-testid="hoy-nuevo-fila"
-      className="relative flex items-start gap-3 rounded-control border border-line p-3 hover:border-line-control"
-    >
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <Link
-          href={`/jobs/${job.id}`}
-          className="truncate text-[15px] font-bold text-fg after:absolute after:inset-0 after:rounded-control focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:outline-focus"
-        >
-          {job.title}
-        </Link>
-        <span className="truncate text-xs text-fg-subtle">
-          {[job.company, job.locationRaw].filter(Boolean).join(" · ")}
-        </span>
-        {why ? <span className="line-clamp-2 text-xs text-fg-muted">{why}</span> : null}
-      </div>
-      <div className="flex shrink-0 flex-col items-end gap-1.5">
-        <Seal score={job.score} as="text" />
-        {action ? <Badge shape="square">{action}</Badge> : null}
-        <span
-          aria-hidden="true"
-          className="hidden rounded-control border-2 border-fg px-2.5 py-1 text-xs font-bold text-fg sm:inline-block"
-        >
-          Ver detalle
-        </span>
-      </div>
-    </li>
+    <OfferCard
+      testId="hoy-nuevo-fila"
+      href={`/jobs/${job.id}`}
+      title={job.title}
+      place={offerPlace({
+        company: job.company,
+        location: job.locationRaw,
+        modality: job.modality,
+      })}
+      chips={job.card.chips}
+      more={job.card.more}
+      count={job.card.count}
+      meta={`${modality ? `${modality}. ` : ""}${offerAge(new Date(job.postedAt ?? job.firstSeenAt), now)}`}
+      score={job.score}
+      sealAs="text"
+      featured={featured}
+      aside={action ? <Badge>{action}</Badge> : null}
+    />
   );
 }
