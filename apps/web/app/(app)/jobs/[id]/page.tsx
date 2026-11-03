@@ -53,6 +53,7 @@ import { SourceAttribution } from "./source-attribution";
 import { StatusCorrection } from "./status-correction";
 import { Verdict } from "./verdict";
 import { ScoreBadge } from "@/components/ui";
+import { HelpTip } from "@/components/help-tip";
 
 export const dynamic = "force-dynamic";
 
@@ -216,6 +217,8 @@ export default async function JobDetailPage({
           </div>
         </div>
       </header>
+      {/* C8-6: qué es el número del puntaje */}
+      {ev ? <HelpTip topic="puntaje" /> : null}
 
       {/* Acciones de estado: Server Actions + transition(); solo los eventos válidos desde el estado actual */}
       <section aria-label="Estado" className="flex flex-wrap gap-2">
@@ -336,6 +339,8 @@ export default async function JobDetailPage({
             })}
             limited={!ev.checklist || ev.checklist.parcial}
           />
+          {/* C8-6: qué es «A tu favor» y «Te falta o te frena», en llano */}
+          <HelpTip topic="aFavorTeFalta" />
           {/* Bloqueadores y riesgos SEPARADOS: un riesgo se ve, no frena; un bloqueador frena */}
           {ev.bloqueadores.length ? (
             <section className="rounded-card border border-danger-line bg-danger-soft p-3">

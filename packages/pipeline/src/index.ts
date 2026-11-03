@@ -65,6 +65,7 @@ export * from "./fit/fit-points";
 export * from "./fit/fit-summary";
 export * from "./digest/build";
 export * from "./brand";
+export * from "./help/ayuda-en-contexto";
 export * from "./email-layout";
 export * from "./initials";
 export * from "./greeting";

@@ -1,4 +1,5 @@
 import { MAX_JD_INPUT_CHARS } from "@job-search-os/pipeline";
+import { HelpTip } from "@/components/help-tip";
 import Link from "next/link";
 import { TextareaWithCounter } from "@/components/char-counter";
 import {
@@ -59,6 +60,7 @@ export default async function PendingJdPage({
             Ofertas que llegaron por email sin el texto del aviso. Con la descripción completa las
             evaluamos contra tu perfil.
           </p>
+          <HelpTip topic="sinDescripcion" />
         </div>
         <div className="flex flex-col gap-3 rounded-card border border-line bg-surface p-4">
           <h2 className="text-base font-bold">Cómo completar una oferta</h2>

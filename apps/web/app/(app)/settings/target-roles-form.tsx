@@ -1,9 +1,11 @@
 import {
   areasFilterEnabled,
   profileRoleGroups,
+  specialtiesFor,
   TARGET_ROLES_DEFAULT_LIMIT,
   type RoleKey,
 } from "@job-search-os/pipeline";
+import { HelpTip } from "@/components/help-tip";
 import { FieldError, GuardedForm, PendingSubmit } from "@/app/components/guarded-form";
 import { RolePickerWithProposal } from "@/components/role-picker-with-proposal";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
@@ -67,6 +69,8 @@ export function TargetRolesForm({
           defaultLimit={TARGET_ROLES_DEFAULT_LIMIT}
           groups={groups}
         />
+        {/* C8-6: qué son las áreas, solo si alguna carrera las tiene */}
+        {current.some((r) => specialtiesFor(r).length > 0) ? <HelpTip topic="areas" /> : null}
         <FieldError name="targetRoles" />
         <PendingSubmit className="self-start min-h-11 rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
           Guardar puestos
