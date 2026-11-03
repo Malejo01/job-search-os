@@ -59,6 +59,7 @@ export * from "./alerts/portal-stats";
 export * from "./today/visit";
 export * from "./plan-access";
 export * from "./plan-expiry-notice";
+export * from "./welcome-email";
 export * from "./plans";
 export * from "./learning";
 export * from "./fit/fit-points";

@@ -31,6 +31,7 @@ export * from "./applications/apply-event";
 export * from "./applications/linkedin-application";
 export * from "./email/resend";
 export * from "./billing/plan-expiry-notices";
+export * from "./billing/welcome-email";
 export * from "./applicant/context";
 export * from "./mcp/auth";
 export * from "./mcp/untrusted";

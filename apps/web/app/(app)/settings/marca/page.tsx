@@ -1,4 +1,4 @@
-import { BRAND, BRAND_COLORS } from "@job-search-os/pipeline";
+import { BRAND, BRAND_COLORS, buildWelcomeEmail, cvChatMode } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Logo, type LogoTone } from "@/components/brand/logo";
@@ -15,6 +15,7 @@ import {
   type IconName,
 } from "@/components/ui";
 import { canCreateInvitations } from "@/lib/invitations";
+import { siteUrl } from "@/lib/site-url";
 import { requireUserId } from "@/lib/session";
 import { TokenValue } from "./token-value";
 
@@ -104,6 +105,8 @@ export default async function MarcaPage() {
           lima {BRAND_COLORS.accent}, índigo vivo {BRAND_COLORS.accentDeep}.
         </p>
       </section>
+
+      <WelcomeEmailPreview />
 
       <div className="grid gap-4 lg:grid-cols-2">
         {(["light", "dark"] as const).map((mode) => (
@@ -244,5 +247,44 @@ function ModePanel() {
         </ul>
       </div>
     </>
+  );
+}
+
+/**
+ * Vista previa del email de bienvenida (C8-7) con datos de ejemplo: el mismo HTML que se manda al marcar
+ * «Pagó» o «Becado» en /settings/planes. Va en un iframe con `sandbox` vacío: sin scripts ni
+ * formularios, y sus estilos no se mezclan con los de la página.
+ */
+function WelcomeEmailPreview() {
+  // Fecha fija de ejemplo: la apertura de la beta (26/11) más los 30 días del plan
+  const until = new Date("2026-12-26T15:00:00Z");
+  const { subject, html } = buildWelcomeEmail({
+    displayName: "Lucía",
+    until,
+    becado: false,
+    appUrl: siteUrl(),
+    contactEmail: null,
+    cvEnabled: cvChatMode(process.env) === "all",
+  });
+  return (
+    <section
+      aria-labelledby="marca-email"
+      className="flex flex-col gap-3"
+      data-testid="marca-email"
+    >
+      <h2 id="marca-email" className="text-heading font-bold">
+        Email de bienvenida
+      </h2>
+      <p className="text-sm text-fg-muted">
+        Sale una sola vez cuando activás el plan de alguien (no al renovarlo), si
+        <code> WELCOME_EMAIL_ENABLED=1</code>. Asunto: «{subject}». Datos de ejemplo.
+      </p>
+      <iframe
+        title="Vista previa del email de bienvenida"
+        sandbox=""
+        srcDoc={html}
+        className="h-[640px] w-full max-w-xl rounded-card border border-line"
+      />
+    </section>
   );
 }
