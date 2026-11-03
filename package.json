@@ -28,6 +28,7 @@
     "db:sql": "pnpm --filter @job-search-os/db db:sql",
     "ingest:getonboard": "pnpm --filter @job-search-os/adapters ingest:getonboard",
     "worker:evaluate": "pnpm --filter @job-search-os/adapters worker:evaluate",
+    "legal:check": "pnpm --filter @job-search-os/adapters legal:check",
     "llm:spend": "pnpm --filter @job-search-os/adapters llm:spend",
     "market:snapshot": "pnpm --filter @job-search-os/adapters market:snapshot",
     "plan:build": "pnpm --filter @job-search-os/adapters plan:build",

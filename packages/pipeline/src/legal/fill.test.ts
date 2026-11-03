@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fillLegalPlaceholders, legalTextIsDraft } from "./fill";
+import { fillLegalPlaceholders, legalMissing, legalTextIsDraft } from "./fill";
 import { parseLegalMarkdown, type InlineNode } from "./markdown";
 
 const TEXTO =
@@ -120,5 +120,41 @@ describe("legalTextIsDraft", () => {
     "[A DEFINIR con Ani]",
   ])("%s deja el texto como borrador aunque estén todas las variables", (marca) => {
     expect(legalTextIsDraft(`${LIMPIO} ${marca}`, COMPLETO)).toBe(true);
+  });
+});
+
+describe("legalMissing (C8-12, pnpm legal:check)", () => {
+  const MD = [
+    "# Título",
+    "Responsable: **[RESPONSABLE]**, domicilio **[DOMICILIO]**.",
+    "Contacto: [EMAIL DE CONTACTO].",
+    "Se conservan por [A DEFINIR: plazo de retención de los logs].",
+    "Precio: [A DEFINIR con Ani].",
+  ].join("\n");
+
+  it("sin variables lista cada marcador con su línea y la variable que lo completa", () => {
+    expect(legalMissing(MD, {})).toEqual([
+      { marker: "[RESPONSABLE]", line: 2, envKey: "LEGAL_RESPONSABLE" },
+      { marker: "[DOMICILIO]", line: 2, envKey: "LEGAL_DOMICILIO" },
+      { marker: "[EMAIL DE CONTACTO]", line: 3, envKey: "LEGAL_EMAIL" },
+      { marker: "[A DEFINIR: plazo de retención de los logs]", line: 4, envKey: "LEGAL_LOG_DAYS" },
+      { marker: "[A DEFINIR", line: 5, envKey: null },
+    ]);
+  });
+
+  it("con las variables solo queda lo que hay que reescribir en el texto", () => {
+    expect(legalMissing(MD, COMPLETO)).toEqual([{ marker: "[A DEFINIR", line: 5, envKey: null }]);
+  });
+
+  it("una variable inválida (días fuera de rango o texto vacío) cuenta como faltante", () => {
+    const missing = legalMissing(MD, { ...COMPLETO, LEGAL_LOG_DAYS: "0", LEGAL_EMAIL: "   " });
+    expect(missing.map((m) => m.envKey)).toEqual(["LEGAL_EMAIL", "LEGAL_LOG_DAYS", null]);
+  });
+
+  it("coincide con legalTextIsDraft: sin faltantes, el texto es vigente", () => {
+    const clean = "Responsable: [RESPONSABLE].";
+    expect(legalMissing(clean, COMPLETO)).toEqual([]);
+    expect(legalTextIsDraft(clean, COMPLETO)).toBe(false);
+    expect(legalTextIsDraft(MD, COMPLETO)).toBe(true);
   });
 });
