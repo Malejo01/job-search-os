@@ -1155,3 +1155,53 @@ Una noche de la nube: la marca AfinIAJobs (nombre, logo, paleta, tipografías, �
 - Ani: revisar la marca en `/settings/marca` y los textos de R-2; los cambios salen de tokens, `components/brand/logo.tsx` y `brand.ts`.
 - Si la cola de evaluación crece la primera semana: cron de `evaluate` cada hora (PR rojo, `docs/beta/capacidad.md` §2).
 - Confirmar si los emails entrantes cuentan en el cupo gratis de Resend.
+
+## Bloque 14 — 11/11, apertura de la beta y carreras (tanda C8, 2026-11-03 al 04)
+
+Una noche de la nube, sin supervisión: lo que hace falta para la charla del 11/11 en Voces Jóvenes, la apertura de la beta del 26/11 y las 6 carreras no tech. Cada ticket fue un PR `[nube C8]` en draft hacia `ronda/integracion-c8`, mergeado con `--no-ff` con su CI en verde, y **un solo PR de integración** hacia `main` ([#376](https://github.com/Malejo01/job-search-os/pull/376)). Base: `ronda/integracion-c7` (#353 seguía abierto). Nada se mergeó a `main`; **tres migraciones nuevas (0057, 0058, 0059), ninguna aplicada**. Reglas, decisiones y variables en `docs/beta/tanda-c8.md`; paths rojos y «Decisiones para Mauro» en #376.
+
+### Evento del 11/11
+- **C8-1 · Reglas de la tanda** · `estado:` done, 2026-11-03 ([#375](https://github.com/Malejo01/job-search-os/pull/375)). `docs/beta/tanda-c8.md`.
+- **C8-2 · Embudo de `/acceso`** · done ([#377](https://github.com/Malejo01/job-search-os/pull/377), **migración 0057** + `rls/0016`). Visitas, formularios empezados, carrera, envíos y topes por hora y origen, sin datos personales; panel en `/settings/metricas`. `ACCESO_FUNNEL_ENABLED`.
+- **C8-3 · `/acceso` aguanta la sala** · done ([#378](https://github.com/Malejo01/job-search-os/pull/378)). Topes del evento por ventana (`WAITLIST_EVENT_WINDOW`, solo `?origen=voces-jovenes`), confirmación «Qué sigue» (anotarse no garantiza lugar) y botón para compartir. `rls/0006` refactorizado.
+- **C8-4 · Guion de la demo** · done ([#379](https://github.com/Malejo01/job-search-os/pull/379)). `docs/beta/voces-jovenes/guion-demo.md`.
+- **C8-14 · Segunda auditoría de seguridad** · done ([#391](https://github.com/Malejo01/job-search-os/pull/391)). 0 bloqueantes; tope por IP del evento a 120. `docs/seguridad/auditoria-beta-3-11.md`.
+
+### Primeros días de la beta
+- **C8-5 · «Empezá acá» en `/hoy`** · done ([#380](https://github.com/Malejo01/job-search-os/pull/380)). `START_HERE_ENABLED`.
+- **C8-6 · Ayuda en contexto** · done ([#381](https://github.com/Malejo01/job-search-os/pull/381)). «¿Qué es esto?» en puntaje, a favor / te falta, sin descripción, CV y áreas. `HELP_TIPS_ENABLED`.
+- **C8-7 · Email de bienvenida al activar el plan** · done ([#382](https://github.com/Malejo01/job-search-os/pull/382), arreglo [#386](https://github.com/Malejo01/job-search-os/pull/386)). Una sola vez, en `after()`; vista previa en `/settings/marca`. `WELCOME_EMAIL_ENABLED`.
+- **C8-11 · Semáforo de la mañana** · done ([#387](https://github.com/Malejo01/job-search-os/pull/387)). `/settings/salud`: evaluaciones, ingesta, emails contra el tope de Resend y gasto de 24 h. Sin migración.
+- **C8-13 · Ensayo del 23 y 24/11** · done ([#389](https://github.com/Malejo01/job-search-os/pull/389)). `docs/beta/ensayo.md` y e2e 110 con una persona por carrera.
+- **C8-17 · Triage del feedback** · done ([#393](https://github.com/Malejo01/job-search-os/pull/393), **migración 0059** + `rls/0018`). Filtros, estado y CSV en `/settings/feedback`. `FEEDBACK_TRIAGE_ENABLED`.
+
+### Carreras no tech
+- **C8-8 · Golden sintético de carreras** · done ([#383](https://github.com/Malejo01/job-search-os/pull/383)). 48 avisos inventados en `packages/pipeline/test/fixtures/carreras/`, fuera de `evals/` para no disparar el job pago.
+- **C8-9 · Prefiltro contra el golden** · done ([#385](https://github.com/Malejo01/job-search-os/pull/385)). 46/48 → 48/48 («cuentas a pagar», «redes sociales»).
+- **C8-10 · Fuentes no tech** · done ([#384](https://github.com/Malejo01/job-search-os/pull/384)). Ningún adapter nuevo; ADR-030 (The Muse) propuesto.
+
+### Textos, legales y Neon
+- **C8-12 · Legales** · done ([#388](https://github.com/Malejo01/job-search-os/pull/388)). `pnpm legal:check`, `docs/legal/preguntas-ani.md` y datos por proveedor. Los marcadores siguen sin completar (respuestas de Ani hasta el 13/11).
+- **C8-15 · Neon, ronda 3** · done ([#390](https://github.com/Malejo01/job-search-os/pull/390), **migración 0058** + `rls/0017`). Idioma del aviso persistido en `public_jobs` y candidatos de `/market` en `market_candidates`, con backfill. `PUBLIC_JOBS_LANGUAGE_ENABLED`, `MARKET_CANDIDATES_ENABLED`.
+- **C8-16 · `evaluate` cada hora** · PR aparte hacia `main`, **sin integrar** ([#392](https://github.com/Malejo01/job-search-os/pull/392)). Workflow detrás de `vars.EVALUATE_HOURLY`.
+- **C8-18 · Textos para Ani** · done ([#394](https://github.com/Malejo01/job-search-os/pull/394)). `/settings/textos` y `docs/beta/textos-para-ani.md`.
+- **C8-19 · Voz y tono** · done ([#395](https://github.com/Malejo01/job-search-os/pull/395)).
+- **C8-20 · Cierre** · done. Este bloque, la vista previa y el cuerpo de #376.
+
+### Reserva
+- **R-1 · Rendimiento** · done ([#400](https://github.com/Malejo01/job-search-os/pull/400)). `pipeline` con `"sideEffects": false`: First Load JS de `/acceso` 161 → 109 kB y de `/jobs` 205 → 156 kB.
+- **R-2 · Skeletons** · no se hizo: un `loading.tsx` no puede ir detrás de una variable sin empeorar la navegación.
+- **R-3 · Pestañas abajo en el celular** · done ([#399](https://github.com/Malejo01/job-search-os/pull/399)). `MOBILE_TABBAR_ENABLED`.
+- **R-4 · `/ayuda` para carreras no tech** · done ([#397](https://github.com/Malejo01/job-search-os/pull/397)).
+- **R-5 · Revisión del diff** · done ([#396](https://github.com/Malejo01/job-search-os/pull/396)). Tres bloqueantes arreglados.
+- **R-6 · Arquitectura para entrevistas** · done ([#398](https://github.com/Malejo01/job-search-os/pull/398)). `docs/arquitectura-para-entrevistas.md`.
+
+### Pendiente después de la tanda
+- **Mauro, antes del merge de #376:** revisar el SQL y aplicar `pnpm db:migrate` (0056 de C6 si falta, 0057, 0058, 0059 y los `rls/` 0006, 0016, 0017, 0018). Las variables apagadas no protegen un despliegue antes de migrar.
+- **Mauro, después:** prender las variables en el orden de `docs/beta/tanda-c8.md`; `WAITLIST_EVENT_WINDOW` con el horario real de la charla; correr `pnpm pool:backfill-language --remote` (cuenta) y después `--remote --apply`, con `PUBLIC_JOBS_LANGUAGE_ENABLED=1` ya prendida.
+- **Firewall de Vercel para `POST /acceso`** (S-2 de la auditoría): regla de rate limit por IP antes del 11/11.
+- **Presupuesto de Resend** (S-3 / M-3) antes de prender `WELCOME_EMAIL_ENABLED`.
+- **Ani:** `docs/legal/preguntas-ani.md` (incluye `terminos.md:42`, «La beta es gratuita»), `/settings/textos` y `/settings/marca`.
+- **Fuentes no tech:** decidir ADR-030 (The Muse); Workable queda sin grabar (necesita red).
+- **C8-16:** decidir #392 y `vars.EVALUATE_HOURLY` si la cola de evaluación crece.
+- **Pestañas del celular:** antes de prenderlas por defecto, anclar los e2e de 390 px al `nav` correspondiente.
