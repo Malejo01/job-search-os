@@ -76,5 +76,6 @@ export * from "./evaluator/wire";
 export * from "./feedback/beta-feedback";
 export * from "./waitlist-admin";
 export * from "./acceso-funnel";
+export * from "./waitlist-event";
 export * from "./career-reveal";
 export * from "./career-visibility";

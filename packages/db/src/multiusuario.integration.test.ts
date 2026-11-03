@@ -606,6 +606,22 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
       );
       await owner`delete from waitlist where email = 'multiusuario-espera@ejemplo.test'`;
     },
+    // Topes del evento con QR (C8-3): igual que waitlist_join, con topes más altos.
+    waitlist_join_event: async () => {
+      const before = await fingerprint({ table: "invitations", column: "used_by_user_id" }, B);
+      const [r] = await asUser(
+        A,
+        (tx) =>
+          tx<
+            { s: string }[]
+          >`select waitlist_join_event('Persona', 'multiusuario-evento@ejemplo.test', 'abogacia', null, null) as s`,
+      );
+      expect(r!.s).toBe("ok");
+      expect(await fingerprint({ table: "invitations", column: "used_by_user_id" }, B)).toBe(
+        before,
+      );
+      await owner`delete from waitlist where email = 'multiusuario-evento@ejemplo.test'`;
+    },
     // Embudo de /acceso (C8-2): contadores sin personas; sumar no lee ni toca nada de B.
     acceso_funnel_hit: async () => {
       const before = await fingerprint({ table: "invitations", column: "used_by_user_id" }, B);
