@@ -175,7 +175,8 @@ function readTools(userId: string): Record<AgentReadTool, AgentTool> {
       execute: async (raw) => {
         const { id } = raw as ReadInput<"get_job">;
         // Siempre con el usuario de la sesión: un id ajeno no existe para RLS
-        const job = await getJobDetail(userId, id);
+        // Sin checklist al leer: esta herramienta no lo devuelve (C9-6)
+        const job = await getJobDetail(userId, id, { checklistOnRead: false });
         if (!job) return { inexistente: true };
         const e = job.evaluation;
         return {
@@ -321,7 +322,7 @@ function actionTools(
       execute: async (raw): Promise<ActionOutput> => {
         const input = raw as ActionInput<"propose_status_change">;
         // La oferta se lee con el usuario de la sesión: un id ajeno no existe para RLS
-        const job = await getJobDetail(userId, input.job_id);
+        const job = await getJobDetail(userId, input.job_id, { checklistOnRead: false });
         const built = buildActionProposal("propose_status_change", input, {
           statusChange: {
             job: job
