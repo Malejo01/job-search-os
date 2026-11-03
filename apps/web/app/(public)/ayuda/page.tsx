@@ -213,7 +213,7 @@ export default function AyudaPage() {
         </div>
         <Link
           href="/acceso"
-          className="inline-flex min-h-11 items-center justify-center rounded-control bg-brand px-5 text-base font-medium text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          className="inline-flex min-h-11 items-center justify-center pressable edge-6 rounded-pill border-edge-brand bg-brand px-5 text-base font-extrabold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         >
           Pedir acceso
         </Link>

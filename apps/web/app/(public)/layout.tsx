@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { siteUrl } from "@/lib/site-url";
 import { Logo } from "@/components/brand/logo";
+import { buttonClasses } from "@/components/ui";
 
 /**
  * Layout de la vitrina pública (ronda 63): portada, mercado, ofertas de muestra y pedido de acceso.
@@ -61,7 +62,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
           {/* A 360 px el logo completo no entra junto a «Entrar» y «Pedir acceso»: abajo de sm va solo el texto */}
           <Link
             href="/"
-            className="inline-flex min-h-11 items-center rounded-control px-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            className="inline-flex min-h-11 items-center rounded-pill px-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             <span className="sm:hidden">
               <Logo variant="wordmark" tone="dark" />
@@ -88,14 +89,18 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
             </Link>
             <Link
               href="/acceso"
-              className="inline-flex min-h-11 items-center rounded-control bg-brand px-4 text-sm font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              className={buttonClasses({ size: "sm", className: "focus-visible:outline-brand" })}
             >
               Pedir acceso
             </Link>
           </div>
         </nav>
       </header>
-      <main id="contenido" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
+      <main
+        id="contenido"
+        tabIndex={-1}
+        className="mx-auto w-full max-w-5xl flex-1 px-4 pt-6 pb-12 sm:pt-10"
+      >
         {children}
       </main>
       <footer className="flex flex-wrap items-center justify-center gap-x-2 border-t border-line px-4 py-3 text-center text-xs text-fg-muted">

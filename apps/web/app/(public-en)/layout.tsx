@@ -93,7 +93,7 @@ export default function PublicEnLayout({ children }: { children: ReactNode }) {
               href="/acceso"
               hrefLang="es"
               lang="es"
-              className="inline-flex min-h-11 items-center rounded-control bg-brand px-4 text-sm font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              className="inline-flex min-h-11 items-center pressable edge-6 rounded-pill border-edge-brand bg-brand px-4 text-sm font-extrabold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
               <span lang="en">Request access</span>
             </Link>
