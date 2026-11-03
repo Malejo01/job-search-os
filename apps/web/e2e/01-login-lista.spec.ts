@@ -32,7 +32,7 @@ test.describe("Flujo 1: login → lista con filtros", () => {
             els.map((e) => e.getAttribute("aria-label") ?? ""),
           );
           if (!labels.length) return "vacía";
-          const scoresSeen = labels.map((l) => Number(l.replace("puntaje ", "")));
+          const scoresSeen = labels.map((l) => parseFloat(l.replace("puntaje ", "")));
           return scoresSeen.every((n) => n >= 7) ? "ok" : `hay < 7: ${scoresSeen.join(",")}`;
         },
         { timeout: 15_000 },

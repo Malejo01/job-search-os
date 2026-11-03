@@ -174,25 +174,27 @@ export async function listJobs(
         gaps: s.evaluations.gaps,
         senales: s.evaluations.senalesPositivas,
         // Tarjeta K2 (C9-8): del checklist guardado, solo los primeros `pide` de cada lado y los
-        // totales, no el jsonb entero (puede pesar varios KB por oferta). Sin checklist, null.
+        // totales, no el jsonb entero (puede pesar varios KB por oferta). Sin las skills que el aviso
+        // solo nombra: no entran en `must`/`deseable`, así la tarjeta cuenta lo mismo que el detalle
+        // (R-3). Los totales solo si son números: un valor raro en el jsonb no rompe la lista.
         checklistHave: sql<
           string[] | null
-        >`case when ${s.evaluations.decision} ? 'checklist' then array(select x #>> '{}' from jsonb_path_query(${s.evaluations.decision}, '$.checklist.items[*] ? (@.status == "cumple").pide') as t(x) limit 3) end`.as(
+        >`case when ${s.evaluations.decision} ? 'checklist' then array(select x #>> '{}' from jsonb_path_query(${s.evaluations.decision}, '$.checklist.items[*] ? (@.status == "cumple" && @.kind != "skill").pide') as t(x) limit 3) end`.as(
           "checklist_have",
         ),
         checklistMissing: sql<
           string[] | null
-        >`case when ${s.evaluations.decision} ? 'checklist' then array(select x #>> '{}' from jsonb_path_query(${s.evaluations.decision}, '$.checklist.items[*] ? (@.status == "no_cumple").pide') as t(x) limit 3) end`.as(
+        >`case when ${s.evaluations.decision} ? 'checklist' then array(select x #>> '{}' from jsonb_path_query(${s.evaluations.decision}, '$.checklist.items[*] ? (@.status == "no_cumple" && @.kind != "skill").pide') as t(x) limit 3) end`.as(
           "checklist_missing",
         ),
         checklistHaveCount: sql<
           number | null
-        >`(${s.evaluations.decision} #>> '{checklist,must,cumple}')::int + (${s.evaluations.decision} #>> '{checklist,deseable,cumple}')::int`.as(
+        >`case when jsonb_typeof(${s.evaluations.decision} #> '{checklist,must,cumple}') = 'number' and jsonb_typeof(${s.evaluations.decision} #> '{checklist,deseable,cumple}') = 'number' then (${s.evaluations.decision} #>> '{checklist,must,cumple}')::numeric::int + (${s.evaluations.decision} #>> '{checklist,deseable,cumple}')::numeric::int end`.as(
           "checklist_have_count",
         ),
         checklistMissingCount: sql<
           number | null
-        >`(${s.evaluations.decision} #>> '{checklist,must,no_cumple}')::int + (${s.evaluations.decision} #>> '{checklist,deseable,no_cumple}')::int`.as(
+        >`case when jsonb_typeof(${s.evaluations.decision} #> '{checklist,must,no_cumple}') = 'number' and jsonb_typeof(${s.evaluations.decision} #> '{checklist,deseable,no_cumple}') = 'number' then (${s.evaluations.decision} #>> '{checklist,must,no_cumple}')::numeric::int + (${s.evaluations.decision} #>> '{checklist,deseable,no_cumple}')::numeric::int end`.as(
           "checklist_missing_count",
         ),
         model: s.evaluations.model,
@@ -369,7 +371,7 @@ export async function jobNeighbors(
 ): Promise<{ prev: string | null; next: string | null }> {
   const rows = await listJobs(userId, filters, { include: jobId, withPreScore: false });
   // Mismo orden que se ve en /jobs: las «Lejos de tu perfil» al final (C9-5)
-  const { near, far } = splitFarFromProfile(rows, (r) => r.score);
+  const { near, far } = splitFarFromProfile(rows, (r) => (r.evaluating ? null : r.score));
   return neighbors(
     [...near, ...far].map((r) => r.id),
     jobId,

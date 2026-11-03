@@ -1,5 +1,7 @@
 "use client";
 
+import { buttonClasses } from "@/components/ui/button";
+
 import { Icon } from "@/components/ui/icons";
 
 import {
@@ -139,11 +141,7 @@ export function FeedbackButton() {
             >
               Cancelar
             </button>
-            <button
-              type="submit"
-              disabled={pending}
-              className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover hover:bg-brand-hover disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-            >
+            <button type="submit" disabled={pending} className={buttonClasses()}>
               {pending ? "Enviando…" : "Enviar"}
             </button>
           </div>

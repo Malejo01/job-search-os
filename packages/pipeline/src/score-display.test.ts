@@ -101,8 +101,9 @@ describe("scoreAriaLabel: el formato que leen los e2e", () => {
   it("puntaje con punto decimal, estimación previa, en cola y sin evaluar", () => {
     expect(scoreAriaLabel("alto", 8.5)).toBe("puntaje 8.5");
     expect(scoreAriaLabel("bajo", 3)).toBe("puntaje 3");
-    expect(scoreAriaLabel("muy", 8.5)).toBe("puntaje 8.5");
-    expect(scoreAriaLabel("lejos", 2.9)).toBe("puntaje 2.9");
+    // El sello suma la palabra del nivel: el lector de pantalla no depende del color (C9-5, R-3)
+    expect(scoreAriaLabel("muy", 8.5)).toBe("puntaje 8.5, muy afín");
+    expect(scoreAriaLabel("lejos", 2.9)).toBe("puntaje 2.9, lejos de tu perfil");
     expect(scoreAriaLabel("estimacion", 6)).toBe("estimación previa 6");
     expect(scoreAriaLabel("pendiente", null)).toBe("en cola");
     expect(scoreAriaLabel("sin", null)).toBe("sin evaluar");

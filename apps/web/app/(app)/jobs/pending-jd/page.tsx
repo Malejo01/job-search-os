@@ -14,7 +14,7 @@ import {
 } from "@/components/ui";
 import { CAP_MESSAGES } from "@/lib/evaluate-now";
 import { formatDate, safeHttpUrl, SOURCE_LABELS } from "@/lib/labels";
-import { JdDraft } from "./jd-draft";
+import { JdDraft, JdDraftsReset } from "./jd-draft";
 import { listPendingJd, PENDING_LIMIT } from "@/lib/pending-jd";
 import { requireUserId } from "@/lib/session";
 import { closeJobAction, pasteJdAction } from "./actions";
@@ -50,6 +50,7 @@ export default async function PendingJdPage({
 
   return (
     <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+      <JdDraftsReset saved={Boolean(ok)} />
       {/* Columna de la izquierda (P3): qué es, cómo se completa y cargar una a mano */}
       <section
         aria-labelledby="sin-descripcion-titulo"
@@ -215,7 +216,11 @@ export default async function PendingJdPage({
                     <JdDraft
                       jobId={job.id}
                       textareaId={`jd-${job.id}`}
-                      error={error && error !== "oferta" ? (ERRORS[error] ?? null) : null}
+                      error={
+                        error && error !== "oferta"
+                          ? (ERRORS[error] ?? "Algo no funcionó de nuestro lado.")
+                          : null
+                      }
                       saved={ok === job.id}
                     />
                     <div className="flex flex-wrap items-center gap-2">

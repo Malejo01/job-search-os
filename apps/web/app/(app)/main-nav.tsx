@@ -22,7 +22,8 @@ export function NavCount({ count, active }: { count?: number; active: boolean })
       data-testid="nav-count"
       aria-hidden="true"
       className={`ml-1.5 rounded-pill px-1.5 text-xs font-extrabold ${
-        active ? "bg-brand-contrast text-brand" : "bg-brand text-brand-contrast"
+        // Sin lima (decisión 2): blanco sobre índigo; en la píldora activa (lima), índigo
+        active ? "bg-ink text-on-ink" : "bg-on-ink text-ink"
       }`}
     >
       {count}

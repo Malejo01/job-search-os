@@ -40,8 +40,10 @@ export function offerCardChips(input: {
   const c = input.checklist;
   const have = clean(c ? c.have : input.strengths);
   const missing = clean(c ? c.missing : input.gaps);
-  const totalHave = c ? Math.max(c.haveCount, have.length) : have.length;
-  const totalMissing = c ? Math.max(c.missingCount, missing.length) : missing.length;
+  // Con checklist, los totales son los del checklist (`must` + `deseable`, sin las skills que el
+  // aviso solo nombra): la misma cuenta que el detalle (R-3)
+  const totalHave = c ? c.haveCount : have.length;
+  const totalMissing = c ? c.missingCount : missing.length;
 
   const firstHave = have.slice(0, missing.length ? 2 : MAX_CHIPS);
   const takenMissing = missing.slice(0, MAX_CHIPS - firstHave.length);
@@ -65,7 +67,7 @@ function countLine(have: number, missing: number): string | null {
   return parts.length ? parts.join(", ") : null;
 }
 
-const REMOTE_PLACE = /^\s*(100\s*%\s*)?(remot[oa]|remote|anywhere|worldwide)\b/i;
+const REMOTE_PLACE = /^\s*(100\s*%\s*)?(remot[oa]|remote|anywhere|worldwide)(-[a-z]+)?(?![\w-])/i;
 
 /**
  * Lo que queda del lugar después de sacarle «Remoto», «Remote (…)», etc.: «Remote - LATAM» →
@@ -122,17 +124,31 @@ type Counts = { cumple: number; no_cumple: number; no_se_sabe: number };
  * en la cuenta. Sin requisitos verificables, null (no se inventa un «X de Y»). Nunca promete
  * trabajo: habla de quedar más cerca, no de conseguirlo.
  */
-export function closenessPhrase(checklist: { must: Counts; deseable: Counts }): string | null {
+export function closenessPhrase(checklist: {
+  must: Counts;
+  deseable: Counts;
+  /** Lista incompleta (sin la JD entera o armada al leer): se dice (R-3). */
+  parcial?: boolean;
+  /** Si lo que falta frena la postulación, la frase no promete quedar entre las mejores (R-3). */
+  items?: ReadonlyArray<{ status: string; bloquea: boolean }>;
+}): string | null {
   const have = checklist.must.cumple + checklist.deseable.cumple;
   const missing = checklist.must.no_cumple + checklist.deseable.no_cumple;
   const total = have + missing;
   if (total === 0) return null;
+  const partial = checklist.parcial === true;
   if (missing === 0) {
+    const tail = partial ? ", de una lista incompleta." : ".";
     return total === 1
-      ? "Cumplís el requisito que pudimos verificar."
-      : `Cumplís los ${total} requisitos que pudimos verificar.`;
+      ? `Cumplís el requisito que pudimos verificar${tail}`
+      : `Cumplís los ${total} requisitos que pudimos verificar${tail}`;
   }
-  const head = `Cumplís ${have} de ${total} requisitos.`;
+  const head = partial
+    ? `Cumplís ${have} de ${total} requisitos que pudimos verificar.`
+    : `Cumplís ${have} de ${total} requisitos.`;
+  if (checklist.items?.some((i) => i.status === "no_cumple" && i.bloquea)) {
+    return `${head} Lo que falta frena la postulación: revisalo antes de seguir.`;
+  }
   return missing === 1
     ? `${head} Te falta uno para quedar entre las mejores postulaciones.`
     : `${head} Te faltan ${missing}: sumá uno y esta oferta te queda más cerca.`;

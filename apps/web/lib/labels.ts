@@ -86,7 +86,7 @@ export const ACTIVE_STATUSES = [
 /** evaluations.model del modo demo (adapters/llm/demo.ts): la UI lo marca con badge DEMO. */
 export const DEMO_MODEL = "fake";
 export const DEMO_BADGE_CLASSES =
-  "rounded-badge bg-brand px-1.5 py-0.5 text-xs font-semibold text-brand-contrast";
+  "rounded-badge bg-info-strong px-1.5 py-0.5 text-xs font-semibold text-on-strong";
 
 export function scoreTone(score: number | null): "alto" | "medio" | "bajo" | "none" {
   if (score === null) return "none";
