@@ -128,6 +128,13 @@ export default async function SettingsPage({
           >
             Marca: logo, colores y componentes
           </Link>
+          {/* C8-18: los textos públicos clave para revisar */}
+          <Link
+            href="/settings/textos"
+            className="inline-flex min-h-11 items-center text-sm text-fg underline"
+          >
+            Textos para revisar
+          </Link>
           {/* C8-11: el semáforo de la mañana */}
           <Link
             href="/settings/salud"
