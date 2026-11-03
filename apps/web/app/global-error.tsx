@@ -1,8 +1,10 @@
 "use client";
 
 import { BRAND_COLORS } from "@job-search-os/pipeline";
+import { MONOGRAM } from "@/components/brand/monogram";
 
 // Reemplaza al layout raíz: sin Tailwind ni componentes compartidos, porque el layout puede ser lo que falló.
+// F1 (C9-13): el recuadro lavanda con el monograma, una frase clara y una salida, con estilos en línea.
 export default function GlobalError({
   error,
   reset,
@@ -12,18 +14,26 @@ export default function GlobalError({
 }) {
   const button = {
     minHeight: 44,
-    padding: "8px 16px",
+    padding: "8px 24px",
     border: 0,
-    borderRadius: 12,
+    borderBottom: `6px solid ${BRAND_COLORS.accentEdge}`,
+    borderRadius: 9999,
     background: BRAND_COLORS.accent,
     color: BRAND_COLORS.ink,
-    fontSize: 14,
-    fontWeight: 500,
+    fontSize: 15,
+    fontWeight: 800,
     cursor: "pointer",
   } as const;
   return (
     <html lang="es">
-      <body style={{ margin: 0, fontFamily: "system-ui, sans-serif", color: BRAND_COLORS.ink }}>
+      <body
+        style={{
+          margin: 0,
+          fontFamily: "system-ui, sans-serif",
+          color: BRAND_COLORS.ink,
+          background: BRAND_COLORS.canvas,
+        }}
+      >
         <main
           id="contenido"
           style={{
@@ -32,10 +42,30 @@ export default function GlobalError({
             padding: "64px 16px",
             display: "flex",
             flexDirection: "column",
-            gap: 12,
+            alignItems: "center",
+            textAlign: "center",
+            gap: 16,
           }}
         >
-          <h1 style={{ fontSize: 20, fontWeight: 600, margin: 0 }}>Algo falló de nuestro lado</h1>
+          <div
+            aria-hidden="true"
+            style={{
+              width: 224,
+              aspectRatio: "4 / 3",
+              borderRadius: 32,
+              background: BRAND_COLORS.canvas,
+              border: `2px solid ${BRAND_COLORS.line}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <svg width={56} height={56} viewBox={MONOGRAM.viewBox} style={{ opacity: 0.4 }}>
+              <path d={MONOGRAM.path} fillRule="evenodd" fill={BRAND_COLORS.ink} />
+              <circle {...MONOGRAM.dot} fill={BRAND_COLORS.accentDeep} />
+            </svg>
+          </div>
+          <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Algo falló de nuestro lado</h1>
           <p style={{ fontSize: 14, color: BRAND_COLORS.textMuted, margin: 0 }}>
             Probá de nuevo. Si sigue pasando, avisanos.
           </p>
