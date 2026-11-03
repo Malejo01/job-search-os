@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { createManualJobAction } from "./actions";
 import { JobFields } from "./job-fields";
 
-const input = "rounded-control border border-line-strong px-3 py-2 text-base";
+const input = "rounded-control border-2 border-line-strong px-3 py-2 text-base";
 
 function filledCount(f: PastedJobFields): number {
   return [f.title, f.company, f.location, f.modality !== "desconocida" ? "x" : null].filter(
@@ -66,7 +66,7 @@ export function PasteForm({ error }: { error?: string }) {
             disabled={text.trim() === ""}
             aria-describedby="pegar-ayuda"
             onClick={() => setFields(extractPastedJob(text))}
-            className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast disabled:cursor-not-allowed disabled:bg-fg-subtle"
+            className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover disabled:cursor-not-allowed disabled:bg-fg-subtle"
           >
             Leer el aviso
           </button>

@@ -65,6 +65,10 @@ export * from "./fit/fit-points";
 export * from "./fit/fit-summary";
 export * from "./digest/build";
 export * from "./brand";
+export * from "./email-layout";
+export * from "./initials";
+export * from "./greeting";
+export * from "./score-display";
 export * from "./public-url";
 
 export * from "./evaluator/skill-level-overlay";
@@ -72,3 +76,4 @@ export * from "./evaluator/wire";
 export * from "./feedback/beta-feedback";
 export * from "./waitlist-admin";
 export * from "./career-reveal";
+export * from "./career-visibility";

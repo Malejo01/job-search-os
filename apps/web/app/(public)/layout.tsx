@@ -1,37 +1,47 @@
+import { BRAND } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { siteUrl } from "@/lib/site-url";
+import { Logo } from "@/components/brand/logo";
 
 /**
  * Layout de la vitrina pública (ronda 63): portada, mercado, ofertas de muestra y pedido de acceso.
- * Sin nombre de producto a propósito: se muestra la propuesta de valor. Server Component, sin
- * sesión ni cookies, para que las páginas puedan ser ISR.
+ * Desde C7-2 lleva la marca: el logo en el header y el nombre (`BRAND.name`) en los títulos y en lo que se
+ * comparte. Server Component, sin sesión ni cookies, para que las páginas puedan ser ISR.
  */
-const TAGLINE = "Leemos cada oferta contra tu perfil y te decimos por qué sí y por qué no";
 const DESCRIPTION =
-  "Cargás tu perfil, la IA lee cada aviso contra lo que sabés y lo que buscás, y vos decidís. Nunca postula por vos.";
+  "Cargás tu perfil, la IA lee cada aviso contra lo que sabés y lo que buscás, y vos decidís. Nunca postulamos por vos.";
 
 const site = siteUrl();
 
+// Portada: nombre y bajada. Las páginas de abajo: «<título> · <nombre>».
+const HOME_TITLE = `${BRAND.name} · ${BRAND.tagline}`;
+
 export const metadata: Metadata = {
   metadataBase: new URL(site),
-  // `absolute`: con `default`, el título de este layout heredaba la plantilla del raíz
-  // ("%s · <nombre del producto>"). Las páginas de abajo usan "%s", sin nombre.
-  title: { absolute: TAGLINE, template: "%s" },
+  title: { absolute: HOME_TITLE, template: `%s · ${BRAND.name}` },
   description: DESCRIPTION,
-  openGraph: { title: TAGLINE, description: DESCRIPTION, type: "website", locale: "es_AR" },
-  twitter: { card: "summary_large_image", title: TAGLINE, description: DESCRIPTION },
+  applicationName: BRAND.name,
+  openGraph: {
+    title: HOME_TITLE,
+    description: DESCRIPTION,
+    type: "website",
+    locale: "es_AR",
+    siteName: BRAND.name,
+  },
+  twitter: { card: "summary_large_image", title: HOME_TITLE, description: DESCRIPTION },
 };
 
 const SKIP_CLASS =
   "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-control focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-fg focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-focus";
+// Header índigo (C7-10), como el de la app: links en gris claro, foco en lima de marca
 const LINK_CLASS =
-  "inline-flex min-h-11 items-center px-2 text-sm text-fg-muted underline-offset-2 hover:text-fg hover:underline";
+  "inline-flex min-h-11 items-center px-2 text-sm font-semibold text-on-ink-muted underline-offset-2 hover:text-on-ink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand";
 
 // Sin `inline-flex` en la base: junto con `hidden`, Tailwind deja ganar a `inline-flex` y el link se ve a 360 px
 const DESKTOP_LINK_CLASS =
-  "hidden min-h-11 items-center px-2 text-sm text-fg-muted underline-offset-2 hover:text-fg hover:underline sm:inline-flex";
+  "hidden min-h-11 items-center px-2 text-sm font-semibold text-on-ink-muted underline-offset-2 hover:text-on-ink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand sm:inline-flex";
 
 // Subrayados siempre: el pie mezcla links con "·" y sin subrayado el link no se distingue del texto (link-in-text-block)
 const FOOTER_LINK =
@@ -39,17 +49,26 @@ const FOOTER_LINK =
 
 export default function PublicLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col bg-surface text-fg">
+    <div className="flex min-h-screen flex-col bg-canvas text-fg">
       <a href="#contenido" className={SKIP_CLASS}>
         Saltar al contenido
       </a>
-      <header className="border-b border-line bg-surface">
+      <header className="bg-ink text-on-ink">
         <nav
           aria-label="Principal"
           className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-2 gap-y-1 px-4 py-1"
         >
-          <Link href="/" className={`${LINK_CLASS} font-semibold text-fg`}>
-            Inicio
+          {/* A 360 px el logo completo no entra junto a «Entrar» y «Pedir acceso»: abajo de sm va solo el texto */}
+          <Link
+            href="/"
+            className="inline-flex min-h-11 items-center rounded-control px-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          >
+            <span className="sm:hidden">
+              <Logo variant="wordmark" tone="dark" />
+            </span>
+            <span className="hidden sm:block">
+              <Logo tone="dark" />
+            </span>
           </Link>
           <div className="flex flex-wrap items-center justify-end gap-x-1 gap-y-1">
             {/* Mercado y Ofertas van en el pie por debajo de sm: así el header entra en una fila a 360 px */}
@@ -69,7 +88,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
             </Link>
             <Link
               href="/acceso"
-              className="inline-flex min-h-11 items-center rounded-control bg-brand px-4 text-sm font-medium text-brand-contrast focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+              className="inline-flex min-h-11 items-center rounded-control bg-brand px-4 text-sm font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
               Pedir acceso
             </Link>

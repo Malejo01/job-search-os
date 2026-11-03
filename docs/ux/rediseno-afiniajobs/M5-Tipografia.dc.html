@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Tipografía</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;600;700;800&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 960px; height: 600px; box-sizing: border-box; background: #050505; padding: 40px 56px; display: flex; flex-direction: column; gap: 18px; font-family: 'Manrope', sans-serif; color: #FFFFFF;">
+  <div style="font-family: 'Sora', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">Tipografía</div>
+  <div style="display: flex; gap: 32px; flex-grow: 1;">
+    <div style="flex: 0 0 330px; display: flex; flex-direction: column; justify-content: space-between;">
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <div style="font-size: 13px; font-weight: 600; color: #A8A29E;">Logo y títulos · Sora 300 / 700 / 800</div>
+        <div style="font-family: 'Sora', sans-serif; font-size: 150px; line-height: 1; font-weight: 800; letter-spacing: -6px; color: #FF6A13;">Aa</div>
+        <div style="font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 300; letter-spacing: 1px; color: #D6D3D1;">ABCDEFGHIJKLMNÑOPQRSTUVWXYZ<br>abcdefghijklmnñopqrstuvwxyz<br>0123456789 ¿?¡! % /10</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <div style="font-size: 13px; font-weight: 600; color: #A8A29E;">Texto de la app · Manrope 500 / 600 / 700</div>
+        <div style="font-size: 88px; line-height: 1; font-weight: 600; color: #FFFFFF;">Aa</div>
+        <div style="font-size: 15px; font-weight: 500; letter-spacing: 0.5px; color: #D6D3D1;">ABCDEFGHIJKLMNÑOPQRSTUVWXYZ<br>abcdefghijklmnñopqrstuvwxyz<br>0123456789 ¿?¡! % /10</div>
+      </div>
+    </div>
+    <div style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; border-left: 2px solid #2A2A2A; padding-left: 32px;">
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <div style="font-size: 12px; font-weight: 600; color: #A8A29E;">Display · Sora 800 · 56/60 · −2 %</div>
+        <div style="font-family: 'Sora', sans-serif; font-size: 56px; line-height: 1.05; font-weight: 800; letter-spacing: -2px;">Ofertas afines.</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <div style="font-size: 12px; font-weight: 600; color: #A8A29E;">Título de página · Sora 700 · 28/34</div>
+        <div style="font-family: 'Sora', sans-serif; font-size: 28px; line-height: 1.2; font-weight: 700; letter-spacing: -0.5px;">Sin descripción</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <div style="font-size: 12px; font-weight: 600; color: #A8A29E;">Título de tarjeta · Manrope 700 · 16/22</div>
+        <div style="font-size: 16px; line-height: 1.4; font-weight: 700;">Analista Contable Semi Senior</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <div style="font-size: 12px; font-weight: 600; color: #A8A29E;">Texto · Manrope 500 · 16/24</div>
+        <div style="font-size: 16px; line-height: 1.5; font-weight: 500; color: #E7E5E4; max-width: 420px;">Leemos cada oferta contra tu perfil y te mostramos por qué sí y por qué no.</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <div style="font-size: 12px; font-weight: 600; color: #A8A29E;">Apoyo y etiquetas · Manrope 600 · 12/16</div>
+        <div style="font-size: 12px; line-height: 1.35; font-weight: 600; color: #A8A29E;">Salta · híbrido · 28 oct · Computrabajo (email)</div>
+      </div>
+      <div style="background: #121212; border-radius: 12px; padding: 12px 14px; font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace; font-size: 12px; line-height: 1.55; color: #E7E5E4; white-space: pre;">const sora = Sora({ weight: ['300','700','800'] })
+const manrope = Manrope({ weight: ['500','600','700'] })</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":960,"height":600}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

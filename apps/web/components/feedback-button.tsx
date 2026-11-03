@@ -73,12 +73,14 @@ export function FeedbackButton() {
         type="button"
         onClick={open}
         aria-haspopup="dialog"
-        className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] right-[calc(1rem+env(safe-area-inset-right,0px))] z-40 inline-flex min-h-11 items-center gap-1.5 rounded-pill border border-line-strong bg-surface px-3.5 py-1.5 text-xs font-medium text-fg-muted shadow-sm hover:bg-surface-muted hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        // C7-5: en el celular es un círculo de 44 px (el texto queda para lectores de pantalla) para no
+        // tapar botones; las pantallas dejan 6rem libres abajo. Desde sm, la píldora con el texto.
+        className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] right-[calc(1rem+env(safe-area-inset-right,0px))] z-40 inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-pill border-2 border-line-strong bg-surface text-xs font-semibold text-fg-muted shadow-sm hover:bg-surface-muted hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:px-3.5 sm:py-1.5"
       >
-        <span aria-hidden="true" className="text-sm">
+        <span aria-hidden="true" className="text-base sm:text-sm">
           💬
         </span>
-        ¿Algo no anduvo?
+        <span className="sr-only sm:not-sr-only">¿Algo no anduvo?</span>
       </button>
       {thanks ? (
         <p
@@ -138,7 +140,7 @@ export function FeedbackButton() {
             <button
               type="submit"
               disabled={pending}
-              className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast hover:bg-brand-hover disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+              className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover hover:bg-brand-hover disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
             >
               {pending ? "Enviando…" : "Enviar"}
             </button>

@@ -1,31 +1,11 @@
-import { ImageResponse } from "next/og";
+import { BRAND } from "@job-search-os/pipeline";
+import { brandOgImage, OG_SIZE } from "@/lib/og-image";
 
-/** Imagen para compartir (ronda 63): la propuesta de valor, sin nombre ni logos. */
-export const alt = "Leemos cada oferta contra tu perfil y te decimos por qué sí y por qué no";
-export const size = { width: 1200, height: 630 };
+/** Imagen para compartir (ronda 63, marca en C7-2): logo, bajada y la propuesta de valor. */
+export const alt = `${BRAND.name}: ${BRAND.tagline} Leemos cada oferta contra tu perfil y vos decidís.`;
+export const size = OG_SIZE;
 export const contentType = "image/png";
 
 export default function OpengraphImage() {
-  return new ImageResponse(
-    <div
-      style={{
-        width: "100%",
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        background: "#18181b",
-        color: "#fafafa",
-        padding: 80,
-      }}
-    >
-      <div style={{ fontSize: 72, fontWeight: 700, lineHeight: 1.15 }}>
-        Leemos cada oferta contra tu perfil y te decimos por qué sí y por qué no.
-      </div>
-      <div style={{ fontSize: 34, marginTop: 40, color: "#d4d4d8" }}>
-        Nunca postula por vos. Vos decidís.
-      </div>
-    </div>,
-    size,
-  );
+  return brandOgImage({ line: "Leemos cada oferta contra tu perfil. Vos decidís." });
 }

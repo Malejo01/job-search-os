@@ -95,7 +95,7 @@ export function WaitlistPanel({
                 setCap(e.target.value);
                 setConfirming(false);
               }}
-              className="w-24 rounded-control border border-line-control bg-surface px-3 py-2 text-base"
+              className="w-24 rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base"
             />
           </label>
           <button

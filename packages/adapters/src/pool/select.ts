@@ -2,6 +2,7 @@ import { schema as s, type Db } from "@job-search-os/db";
 import {
   type AcceptedModality,
   IT_ROLE_KEYS,
+  MAX_JD_CHARS,
   allowsCountry,
   assessPoolTitle,
   interleaveByRole,
@@ -17,7 +18,18 @@ import {
   type RoleKey,
   type TitleLevel,
 } from "@job-search-os/pipeline";
-import { and, eq, gte, inArray, isNotNull, isNull, notExists, or, sql } from "drizzle-orm";
+import {
+  and,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  notExists,
+  or,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 import { jdLanguageFor } from "../ingest/ingest-job";
 import { poolPreScore } from "./usage";
 
@@ -51,6 +63,80 @@ export function postedWindowCondition(postedSince: Date) {
 }
 
 export type PublicJobRow = typeof s.publicJobs.$inferSelect;
+
+/**
+ * Lo que la selección lee de cada una de las `CANDIDATE_CAP` candidatas (C6-3): lo que usan el
+ * prefiltro, el título, el ranking y el pre-score. Sin la descripción completa, los shingles ni
+ * `raw_ref`: `select()` traía ~70 KB por fila (~21 MB por llamada) y solo se usa la fila completa de
+ * las pocas que quedan elegidas (`hydrateRows`).
+ */
+export type PoolCandidateRow = Pick<
+  PublicJobRow,
+  | "id"
+  | "sourceKind"
+  | "title"
+  | "companyRaw"
+  | "locationRaw"
+  | "modality"
+  | "candidatesCount"
+  | "countriesAllowed"
+  | "lang"
+  | "roleHints"
+  | "postedAt"
+  | "lastSeenAt"
+  | "salaryMaxUsd"
+  | "salaryPeriod"
+> & {
+  /**
+   * Texto para detectar el idioma del aviso, acotado a `MAX_JD_CHARS` (lo mismo que lee
+   * `detectEnglish`). Solo viene si la persona no acepta los dos idiomas y el aviso no trae `lang`
+   * en/es: en los demás casos el prefiltro no lo mira o el idioma sale de `lang`, y vale `null`.
+   */
+  jdForLanguage: string | null;
+};
+
+/** Filas completas que se leen por consulta cuando se hidratan las elegidas. */
+export const HYDRATE_BATCH = 25;
+
+function candidateColumns(needsLanguageText: boolean) {
+  return {
+    id: s.publicJobs.id,
+    sourceKind: s.publicJobs.sourceKind,
+    title: s.publicJobs.title,
+    companyRaw: s.publicJobs.companyRaw,
+    locationRaw: s.publicJobs.locationRaw,
+    modality: s.publicJobs.modality,
+    candidatesCount: s.publicJobs.candidatesCount,
+    countriesAllowed: s.publicJobs.countriesAllowed,
+    lang: s.publicJobs.lang,
+    roleHints: s.publicJobs.roleHints,
+    postedAt: s.publicJobs.postedAt,
+    lastSeenAt: s.publicJobs.lastSeenAt,
+    salaryMaxUsd: s.publicJobs.salaryMaxUsd,
+    salaryPeriod: s.publicJobs.salaryPeriod,
+    jdForLanguage: (needsLanguageText
+      ? sql`case when lower(left(btrim(${s.publicJobs.lang}), 2)) in ('en', 'es') then null else left(${s.publicJobs.jdText}, ${MAX_JD_CHARS}) end`
+      : sql`null`) as SQL<string | null>,
+  };
+}
+
+/**
+ * Filas completas de las elegidas, por tandas de `HYDRATE_BATCH`: la descripción completa y los
+ * shingles se leen solo de las que se van a asignar. Una fila que desapareció entre las dos lecturas
+ * (la retención del pool) no se devuelve.
+ */
+export async function hydrateRows(
+  tx: Db,
+  ids: readonly string[],
+): Promise<Map<string, PublicJobRow>> {
+  const rows = new Map<string, PublicJobRow>();
+  for (let i = 0; i < ids.length; i += HYDRATE_BATCH) {
+    const batch = ids.slice(i, i + HYDRATE_BATCH);
+    const got = await tx.select().from(s.publicJobs).where(inArray(s.publicJobs.id, batch));
+    for (const r of got) rows.set(r.id, r);
+  }
+  return rows;
+}
 
 export type PoolSkillRow = {
   publicJobId: string;
@@ -101,7 +187,7 @@ export type RankedPick = {
   rank: number;
 };
 
-export type DiscardedPick = { row: PublicJobRow; reason: PoolDiscardReason; detail: string };
+export type DiscardedPick = { row: PoolCandidateRow; reason: PoolDiscardReason; detail: string };
 
 export type PoolSelection = {
   /** Las elegidas (hasta `limit`), en orden de ranking. */
@@ -196,8 +282,10 @@ export async function selectPoolCandidates(tx: Db, input: SelectInput): Promise<
   const strongPattern = strongTitlePattern(roles);
 
   // Candidatas: vivas, recientes, sin copias, del rol (o sin señal de rol) y que la persona no tiene
+  // Solo hace falta el texto para detectar el idioma si la persona no acepta los dos (jdLanguageFor)
+  const needsLanguageText = Boolean(prefs.jobLanguages && prefs.jobLanguages.length < 2);
   const candidates = await tx
-    .select()
+    .select(candidateColumns(needsLanguageText))
     .from(s.publicJobs)
     .where(
       and(
@@ -235,7 +323,7 @@ export async function selectPoolCandidates(tx: Db, input: SelectInput): Promise<
   if (!candidates.length) return none;
 
   // Prefiltro por candidata
-  const passed: { row: PublicJobRow; flags: string[] }[] = [];
+  const passed: { row: PoolCandidateRow; flags: string[] }[] = [];
   const discarded: DiscardedPick[] = [];
   for (const pj of candidates) {
     const pre = prefilter(
@@ -247,7 +335,7 @@ export async function selectPoolCandidates(tx: Db, input: SelectInput): Promise<
         candidatesCount: pj.candidatesCount,
         countriesAllowed: pj.countriesAllowed,
         jdLanguage: prefs.jobLanguages
-          ? jdLanguageFor(prefs.jobLanguages, pj.jdText, pj.lang)
+          ? jdLanguageFor(prefs.jobLanguages, pj.jdForLanguage, pj.lang)
           : null,
       },
       rules,
@@ -343,9 +431,18 @@ export async function selectPoolCandidates(tx: Db, input: SelectInput): Promise<
     roles,
   );
 
-  return {
-    ranked: all.slice(0, limit).map((r, i) => ({
-      row: r.row,
+  // La fila completa (descripción, shingles, rawRef...) solo de las elegidas, por tandas
+  const top = all.slice(0, limit);
+  const fullRows = await hydrateRows(
+    tx,
+    top.map((r) => r.id),
+  );
+  const ranked: RankedPick[] = [];
+  for (const r of top) {
+    const row = fullRows.get(r.id);
+    if (!row) continue;
+    ranked.push({
+      row,
       flags: r.flags,
       matchedRole: r.matchedRole,
       score: r.score,
@@ -353,8 +450,12 @@ export async function selectPoolCandidates(tx: Db, input: SelectInput): Promise<
       titleFit: r.titleFit,
       seniorPenalty: r.seniorPenalty,
       level: r.level,
-      rank: i + 1,
-    })),
+      rank: ranked.length + 1,
+    });
+  }
+
+  return {
+    ranked,
     discarded,
     candidateCount: candidates.length,
     candidateIds,

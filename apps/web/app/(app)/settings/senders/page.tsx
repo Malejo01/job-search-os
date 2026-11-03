@@ -30,7 +30,10 @@ export default async function SendersPage({
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
-      <Link href="/settings" className="text-xs text-fg-subtle underline">
+      <Link
+        href="/settings"
+        className="inline-flex min-h-11 items-center text-sm text-fg-subtle underline"
+      >
         ← Ajustes
       </Link>
       <h1 className="text-2xl font-semibold">Remitentes</h1>
@@ -97,7 +100,7 @@ export default async function SendersPage({
                           aria-describedby={o.verdict === "empleo" ? "aviso-empleo" : undefined}
                           className={`h-8 w-36 rounded-badge border px-2 text-xs ${
                             current
-                              ? "border-brand bg-brand text-brand-contrast"
+                              ? "border-brand-contrast bg-brand text-brand-contrast"
                               : "border-line-strong bg-surface text-fg-muted"
                           }`}
                         >

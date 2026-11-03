@@ -1,3 +1,4 @@
+import { BRAND } from "@job-search-os/pipeline";
 import { expect, test, type Page } from "@playwright/test";
 import {
   createEvaluation,
@@ -94,6 +95,25 @@ test.describe("Flujo 47: textos y navegación", () => {
       await summary.click();
       expect(await scrollWidth(page), `scrollWidth en ${path}`).toBeLessThanOrEqual(360);
     }
+  });
+
+  test("header tinta: el logo lleva a /hoy y el avatar con iniciales a «Tu perfil» (C7-5)", async ({
+    page,
+  }) => {
+    await login(page);
+    const header = page.locator("header");
+    await expect(header.getByRole("link", { name: BRAND.name, exact: true })).toHaveAttribute(
+      "href",
+      "/hoy",
+    );
+    const avatar = header.getByRole("link", { name: /^Perfil/ });
+    await expect(avatar).toHaveAttribute("href", "/settings/perfil");
+    await expect(avatar).toHaveText(/^\p{Lu}{1,2}$/u);
+    // El header es índigo en claro y en oscuro
+    await expect(header).toHaveCSS("background-color", "rgb(30, 27, 75)");
+    // El chip de soporte no tapa el último botón: la página deja lugar abajo
+    const box = await page.getByRole("button", { name: "¿Algo no anduvo?" }).boundingBox();
+    expect(box?.width ?? 0).toBeLessThanOrEqual(48);
   });
 
   test("en pantalla ancha la nav es una fila de links y no hay menú", async ({ page }) => {

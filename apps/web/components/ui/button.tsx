@@ -9,15 +9,20 @@ import { cx } from "./cx";
  * padding ni el tamaño: sin tailwind-merge dos clases que se pisan no se resuelven por orden de
  * escritura sino por orden de Tailwind. Si hace falta otra variante, se suma acá.
  */
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+export type ButtonVariant = "primary" | "secondary" | "dark" | "ghost" | "danger";
 export type ButtonSize = "sm" | "md";
 
 const BASE =
-  "inline-flex min-w-11 items-center justify-center gap-2 rounded-control font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60 aria-disabled:cursor-not-allowed aria-disabled:opacity-60";
+  "inline-flex min-w-11 items-center justify-center gap-2 rounded-control font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed aria-disabled:cursor-not-allowed";
+
+// Deshabilitado (manual M8): borde gris, fondo de superficie y texto apagado, en vez de opacidad.
+// Va con `disabled:` y `aria-disabled:`, que Tailwind escribe después de los colores de la variante.
+const DISABLED =
+  "disabled:border-2 disabled:border-line-strong disabled:bg-surface disabled:text-fg-subtle disabled:shadow-none aria-disabled:border-2 aria-disabled:border-line-strong aria-disabled:bg-surface aria-disabled:text-fg-subtle";
 
 // Las dos alturas mantienen 44 px: el tamaño táctil mínimo no depende de la variante
 const SIZES: Record<ButtonSize, string> = {
-  md: "min-h-11 px-4 py-2 text-base",
+  md: "min-h-11 px-[18px] py-2 text-[15px]",
   sm: "min-h-11 px-3 text-sm",
 };
 
@@ -27,10 +32,15 @@ const GHOST_SIZES: Record<ButtonSize, string> = {
   sm: "min-h-11 text-sm",
 };
 
+/**
+ * Manual M8: primario lima con texto índigo; secundario con borde de 2 px del color del texto;
+ * oscuro (tinta, «Guardar y evaluar»), que en modo oscuro se invierte para seguir contrastando.
+ */
 const VARIANTS: Record<ButtonVariant, string> = {
   primary: "bg-brand text-brand-contrast hover:bg-brand-hover",
-  secondary: "border border-line-strong bg-surface text-fg hover:bg-surface-muted",
-  ghost: "text-fg-muted underline-offset-2 hover:underline",
+  secondary: "border-2 border-fg bg-surface text-fg hover:bg-surface-muted",
+  dark: "bg-fg text-canvas hover:bg-fg-muted",
+  ghost: "font-semibold text-fg-muted underline-offset-2 hover:underline",
   danger: "bg-danger-strong text-on-strong hover:brightness-110",
 };
 
@@ -39,7 +49,13 @@ export function buttonClasses({
   size = "md",
   className,
 }: { variant?: ButtonVariant; size?: ButtonSize; className?: string } = {}): string {
-  return cx(BASE, (variant === "ghost" ? GHOST_SIZES : SIZES)[size], VARIANTS[variant], className);
+  return cx(
+    BASE,
+    (variant === "ghost" ? GHOST_SIZES : SIZES)[size],
+    VARIANTS[variant],
+    variant === "ghost" ? "disabled:text-fg-subtle aria-disabled:text-fg-subtle" : DISABLED,
+    className,
+  );
 }
 
 /** Link dentro del texto o al pie de una tarjeta. `block`: con 44 px de alto, para tocar solo. */

@@ -18,6 +18,7 @@ import { requireUserId } from "@/lib/session";
 import { DeleteAccountForm } from "./delete-account-form";
 import { InboundAddressSection } from "./inbound-address";
 import { TargetRolesForm } from "./target-roles-form";
+import { ThemeSelect } from "./theme-select";
 
 export const metadata = { title: "Ajustes" };
 
@@ -97,6 +98,17 @@ export default async function SettingsPage({
         <DeleteAccountForm error={Boolean(error)} />
       </section>
 
+      <section
+        aria-labelledby="apariencia-titulo"
+        className="flex flex-col gap-3 rounded-card border border-line p-4"
+      >
+        <h2 id="apariencia-titulo" className="text-lg font-medium">
+          Apariencia
+        </h2>
+        <p className="text-sm text-fg-muted">Modo claro u oscuro. Se guarda en este navegador.</p>
+        <ThemeSelect />
+      </section>
+
       {userPlan ? <TuPlan userPlan={userPlan} /> : null}
 
       {canInvite ? (
@@ -105,17 +117,30 @@ export default async function SettingsPage({
           <p className="text-sm text-fg-muted">Mandale un link a quien quieras sumar a la beta.</p>
           <Link
             href="/settings/invitations"
-            className="inline-flex min-h-11 items-center self-start rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            className="inline-flex min-h-11 items-center self-start rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           >
             Crear invitación
           </Link>
+          {/* R-1 (C7): la marca en un solo lugar, para revisarla */}
+          <Link
+            href="/settings/marca"
+            className="inline-flex min-h-11 items-center text-sm text-fg underline"
+          >
+            Marca: logo, colores y componentes
+          </Link>
           {/* C-14: el tablero de la beta es para las mismas cuentas que invitan */}
-          <Link href="/settings/metricas" className="text-sm text-fg underline">
+          <Link
+            href="/settings/metricas"
+            className="inline-flex min-h-11 items-center text-sm text-fg underline"
+          >
             Métricas de la beta
           </Link>
           {/* C3-1: activar planes (solo con los precios encendidos) */}
           {pricing ? (
-            <Link href="/settings/planes" className="text-sm text-fg underline">
+            <Link
+              href="/settings/planes"
+              className="inline-flex min-h-11 items-center text-sm text-fg underline"
+            >
               Planes de la beta
             </Link>
           ) : null}
@@ -135,7 +160,10 @@ export default async function SettingsPage({
         notice={direccion === "nueva" || direccion === "sin_dominio" ? direccion : undefined}
       />
 
-      <Link href="/settings/asistente" className="text-sm text-fg underline">
+      <Link
+        href="/settings/asistente"
+        className="inline-flex min-h-11 items-center text-sm text-fg underline"
+      >
         Asistente de email
       </Link>
 
@@ -144,14 +172,20 @@ export default async function SettingsPage({
         <p className="text-sm text-fg-muted">
           Qué dominios son fuentes de empleo y se guardan completos.
         </p>
-        <Link href="/settings/senders" className="text-sm text-fg underline">
+        <Link
+          href="/settings/senders"
+          className="inline-flex min-h-11 items-center text-sm text-fg underline"
+        >
           Ver y cambiar remitentes
         </Link>
       </section>
 
       <section className="flex flex-col gap-3 rounded-card border border-line p-4">
         <h2 className="text-lg font-medium">Skills</h2>
-        <Link href="/settings/skills" className="text-sm text-fg underline">
+        <Link
+          href="/settings/skills"
+          className="inline-flex min-h-11 items-center text-sm text-fg underline"
+        >
           Mis skills
         </Link>
       </section>
@@ -163,7 +197,10 @@ export default async function SettingsPage({
           Cambiar estos criterios puede hacer que se descarten ofertas que te sirven. Si no estás
           segura o seguro, dejalos como están.
         </p>
-        <Link href="/settings/criteria" className="text-sm text-fg underline">
+        <Link
+          href="/settings/criteria"
+          className="inline-flex min-h-11 items-center text-sm text-fg underline"
+        >
           Editar mis criterios de evaluación
         </Link>
       </section>
@@ -246,7 +283,7 @@ function TuPlan({ userPlan }: { userPlan: UserPlan }) {
           </div>
         </div>
       ) : null}
-      <Link href="/precios" className="text-sm text-fg underline">
+      <Link href="/precios" className="inline-flex min-h-11 items-center text-sm text-fg underline">
         Ver los planes
       </Link>
     </section>

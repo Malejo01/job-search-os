@@ -28,7 +28,7 @@ const ERROR_MESSAGE: Record<string, string> = {
 };
 
 const FIELD =
-  "min-h-11 w-full rounded-control border border-line-control bg-surface px-3 text-base text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
+  "min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 text-base text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 const BUTTON =
   "inline-flex min-h-11 items-center justify-center rounded-control bg-brand px-4 text-base font-medium text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 

@@ -39,16 +39,17 @@ export function JobFilters({
   const hasFilters = Boolean(
     value.score || value.fuente || value.estado || value.desde || value.periodo,
   );
+  // Chips de filtro (C7-6, manual P1): píldoras con borde de 2 px; el foco, lima
   const select =
-    "min-h-11 min-w-0 rounded-control border border-line-strong bg-surface px-2 py-2 text-sm text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus";
+    "min-h-11 min-w-0 rounded-pill border-2 border-line-strong bg-surface px-3 py-2 text-sm font-semibold text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
   return (
     <form
-      className={`grid grid-cols-2 gap-2 sm:grid-cols-6 ${pending ? "opacity-60" : ""}`}
+      className={`grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6 ${pending ? "opacity-60" : ""}`}
       onSubmit={(e) => e.preventDefault()}
       aria-label="Filtros"
     >
-      <label className="flex flex-col gap-1 text-xs text-fg-subtle">
+      <label className="flex flex-col gap-1 text-xs font-semibold text-fg-subtle">
         Puntaje mín.
         <select
           className={select}
@@ -64,7 +65,7 @@ export function JobFilters({
           ))}
         </select>
       </label>
-      <label className="flex flex-col gap-1 text-xs text-fg-subtle">
+      <label className="flex flex-col gap-1 text-xs font-semibold text-fg-subtle">
         Fuente
         <select
           className={select}
@@ -79,7 +80,7 @@ export function JobFilters({
           ))}
         </select>
       </label>
-      <label className="flex flex-col gap-1 text-xs text-fg-subtle">
+      <label className="flex flex-col gap-1 text-xs font-semibold text-fg-subtle">
         Estado
         <select
           className={select}
@@ -97,7 +98,7 @@ export function JobFilters({
           ))}
         </select>
       </label>
-      <label className="flex flex-col gap-1 text-xs text-fg-subtle">
+      <label className="flex flex-col gap-1 text-xs font-semibold text-fg-subtle">
         Período
         <select
           className={select}
@@ -109,7 +110,7 @@ export function JobFilters({
           <option value="semana">esta semana</option>
         </select>
       </label>
-      <label className="flex flex-col gap-1 text-xs text-fg-subtle">
+      <label className="flex flex-col gap-1 text-xs font-semibold text-fg-subtle">
         Desde
         <input
           type="date"
@@ -123,7 +124,7 @@ export function JobFilters({
           type="button"
           disabled={!hasFilters}
           onClick={() => startTransition(() => router.replace(pathname))}
-          className="min-h-11 w-full rounded-control border border-line-strong px-2 py-2 text-sm text-fg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-40"
+          className="min-h-11 w-full rounded-pill px-3 py-2 text-sm font-semibold text-link underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus disabled:text-fg-subtle disabled:no-underline"
         >
           Limpiar
         </button>

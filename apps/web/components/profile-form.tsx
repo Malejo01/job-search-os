@@ -23,10 +23,10 @@ const MODALITY_OPTIONS = [
 ] as const;
 
 const input =
-  "min-h-11 min-w-0 rounded-control border border-line-strong px-3 py-2 text-base aria-[invalid=true]:border-danger-strong";
+  "min-h-11 min-w-0 rounded-control border-2 border-line-strong px-3 py-2 text-base aria-[invalid=true]:border-danger-strong";
 // Resumen: alto fijo de varias líneas (no crece al escribir, el usuario puede estirarlo) y sin el min-h-11 de `input`
 const summaryInput =
-  "min-h-56 min-w-0 resize-y rounded-control border border-line-strong px-3 py-2 text-base leading-6 aria-[invalid=true]:border-danger-strong";
+  "min-h-56 min-w-0 resize-y rounded-control border-2 border-line-strong px-3 py-2 text-base leading-6 aria-[invalid=true]:border-danger-strong";
 const choice = "flex min-h-11 items-center gap-2";
 
 /** Debajo de este número de ofertas en español, «Solo en español» deja casi sin avisos (A-2). */
@@ -207,7 +207,7 @@ export function ProfileForm({
     yearsTotal: "Los años de experiencia tienen que ser un número entre 0 y 60.",
     salaryFloorUsd: "El piso salarial tiene que ser un número entero en USD (o dejalo vacío).",
     maxWeeklyHours: "Las horas máximas tienen que ser un entero entre 1 y 80 (o dejalo vacío).",
-    perfil: "No se encontró tu perfil. Escribile a quien te invitó.",
+    perfil: "No encontramos tu perfil. Escribile a quien te invitó.",
     _error: "No se pudo guardar. Probá de nuevo; lo que cargaste sigue acá.",
   };
   function messageOf(e: ProfileFormError): string {
@@ -388,8 +388,8 @@ export function ProfileForm({
             <FieldError name="englishCefr" />
           </label>
           <p id="cefr-help" className="text-xs text-fg-subtle sm:col-span-2">
-            Se mide con la escala CEFR, que usan muchos avisos. Si dudás entre dos niveles, elegí el
-            más bajo.
+            Usamos la escala de A1 a C2 (el Marco Común Europeo, CEFR), la que usan muchos avisos.
+            Si dudás entre dos niveles, elegí el más bajo.
           </p>
           <CefrHelp className="sm:col-span-2" />
           <label className="flex min-w-0 flex-col gap-1 text-sm">
@@ -597,8 +597,8 @@ export function ProfileForm({
           </details>
           <p className="mt-1 font-medium">Qué no poner</p>
           <p>
-            Documentos, direcciones, teléfonos, contraseñas ni datos de terceros. El texto se envía
-            al modelo que evalúa las ofertas.
+            Documentos, direcciones, teléfonos, contraseñas ni datos de terceros. El texto lo lee la
+            inteligencia artificial que evalúa las ofertas.
           </p>
         </div>
         <div data-tour="perfil:resumen" className="flex min-w-0 flex-col gap-1 text-sm">
@@ -624,7 +624,7 @@ export function ProfileForm({
             type="submit"
             data-tour="perfil:guardar"
             disabled={pending}
-            className="min-h-11 w-full rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-60 sm:w-auto"
+            className="min-h-11 w-full min-h-11 rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-60 sm:w-auto"
           >
             {pending ? "Guardando…" : submitLabel}
           </button>

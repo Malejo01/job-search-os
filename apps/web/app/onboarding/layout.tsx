@@ -1,4 +1,3 @@
-import { PRODUCT_NAME } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
@@ -6,6 +5,7 @@ import { signOut } from "@/auth";
 import { assertAppRole } from "@/lib/db";
 import { requireUserId } from "@/lib/session";
 import { needsTermsAcceptance } from "@/lib/terms-status";
+import { Logo } from "@/components/brand/logo";
 
 export const metadata: Metadata = { title: "Completá tu perfil" };
 
@@ -31,13 +31,13 @@ export default async function OnboardingLayout({ children }: { children: ReactNo
       <a href="#contenido" className={SKIP_CLASS}>
         Saltar al contenido
       </a>
-      <header className="border-b border-line bg-surface">
+      <header className="bg-ink text-on-ink">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-2">
-          <span className="text-base font-semibold">{PRODUCT_NAME}</span>
+          <Logo tone="dark" />
           <form action={logout}>
             <button
               type="submit"
-              className="text-sm text-fg-subtle underline-offset-2 hover:underline"
+              className="inline-flex min-h-11 items-center text-sm font-semibold text-on-ink-muted underline-offset-2 hover:text-on-ink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
             >
               Salir
             </button>

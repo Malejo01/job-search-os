@@ -140,7 +140,7 @@ test.describe("Flujo 51: inglés, «¿Qué es?» y skills propias", () => {
     await expect(page.getByRole("heading", { name: "Tus skills" })).toBeVisible();
     // El select de inglés viene con el valor del perfil y la ayuda de CEFR
     await expect(englishSelect()).toHaveValue("B1");
-    await expect(page.getByText("¿Qué es CEFR?")).toBeVisible();
+    await expect(page.getByText("¿Qué es A1, B2, C1…?")).toBeVisible();
     // Las skills de inglés dejaron de ser filas
     await expect(page.getByTestId("skill-english_intermediate")).toHaveCount(0);
     await expect(page.getByTestId("skill-english_fluent")).toHaveCount(0);

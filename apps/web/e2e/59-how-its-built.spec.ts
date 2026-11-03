@@ -1,3 +1,4 @@
+import { BRAND } from "@job-search-os/pipeline";
 import { expect, test } from "@playwright/test";
 
 /**
@@ -12,7 +13,7 @@ test.describe("Flujo 59: how it's built (EN)", () => {
     await expect(page).toHaveURL(/\/en\/how-its-built$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("How it's built");
-    await expect(page).toHaveTitle("How it's built");
+    await expect(page).toHaveTitle(`How it's built · ${BRAND.name}`);
     await expect(page.locator("div[lang='en']").first()).toBeVisible();
     await expect(page.getByRole("img", { name: /Journey of a job posting/ })).toHaveCount(1);
     await expect(page.getByRole("list", { name: "The journey, step by step" })).toBeVisible();

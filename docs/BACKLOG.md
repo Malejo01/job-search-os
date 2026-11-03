@@ -1106,3 +1106,52 @@ Trece PRs nuevos de la nube (todos en draft, sin mergear; las migraciones **no**
 - Mauro: `pnpm db:migrate` (0051 a 0055 y las policies `rls/0001`, `0003`, `0006`, `0010`, `0015`) antes del merge; variables de Vercel (ver el PR de integración); runbook y checklist.
 - Antes del 26/11: sacar de la lista de espera a quienes Ani no elija; antes del 13/11, actualizar `docs/legal/datos-por-proveedor.md` (hallazgo L-1 de la auditoría).
 - Ronda del 3/11: medición con `pg_stat_statements` y lo que pide migración (persistir el idioma del aviso, `market_candidates`, índice de `inbound_emails` por persona).
+
+## Bloque 12 — Textos de la beta, marca, ahorro de Neon, carreras por umbral y kit del QR (tanda C6, 2026-11-02)
+
+Seis tickets de la nube en una noche: cinco PRs en draft hacia `ronda/integracion-c6` (más uno apilado que **no** entra), la limpieza de los PRs viejos y **un PR de integración** `ronda/integracion-c6` → `main`. Nada se mergeó a `main`; la migración **no** se aplicó. El detalle, las migraciones, los paths rojos y las «Decisiones para Mauro» están en el PR de integración.
+
+- **C6-1 · Textos públicos alineados con la beta** · `estado:` done, 2026-11-02 (PR [#345](https://github.com/Malejo01/job-search-os/pull/345)). `/ayuda` habla del Plan Beta (por invitación, pago) y del gratis como lo que queda al vencer, y cierra con cupo limitado; `/acceso` pone las 6 carreras de la beta primero en el grupo «Carreras de la beta» (`waitlistRoleGroups`); «Datos curiosos» de `/mercado` respeta las carreras ocultas; `/demo` sin «probarlo» ni «cargá el tuyo».
+- **C6-2 · Nombre del producto en un solo lugar** · done, 2026-11-02 ([#346](https://github.com/Malejo01/job-search-os/pull/346)). La UI ya leía `PRODUCT_NAME`; faltaba el `User-Agent` de las fuentes y tres e2e que repetían el nombre. Guarda `brand.test.ts`. El valor no cambia. **Aparte, sin integrar:** [#347](https://github.com/Malejo01/job-search-os/pull/347) cambia el valor a «AfinIAJobs» (NO MERGEAR hasta aprobar la marca el 6/11).
+- **C6-3 · Ahorro de Neon, parte 2** · done, 2026-11-02 ([#348](https://github.com/Malejo01/job-search-os/pull/348), **migración 0056**, carril rojo). La selección de candidatas del pool leía 300 filas completas (~70 KB c/u, ~21 MB por llamada): ahora lee columnas acotadas y la fila completa solo de las elegidas, por tandas de 25. Índice `job_queue_job_id` sobre `payload->>'jobId'` para el conteo de la cola. `/fit` con `decision->'checklist'`. `docs/neon/neon-stats.sql` (solo lectura) para medir antes y después. Estado de la auditoría en `docs/neon/auditoria-consultas.md` §5.
+- **C6-4 · Carreras de la beta en público por umbral** · done, 2026-11-02 ([#349](https://github.com/Malejo01/job-search-os/pull/349), ADR-029). Aparecen solas al llegar a 10 ofertas (mismo conteo que la tabla de `/settings/metricas`), con caché de 1 hora, dos listas de override en código y falla cerrado. Vuelve innecesario el PR de una línea de #343.
+- **C6-5 · Kit del QR para el 11/11** · done, 2026-11-02 ([#350](https://github.com/Malejo01/job-search-os/pull/350), `docs/beta/voces-jovenes/`): dos QR (dominio nuevo y respaldo) en SVG y PNG, README y checklist del evento.
+- **C6-6 · Limpieza de PRs viejos** · done, 2026-11-02: 38 PRs en draft (#290–#296 salvo el 293, #305–#307, #312–#340) cerrados porque su contenido ya estaba en `main` por #309 (9 PRs) o #341 (29 PRs), verificado con `git merge-base --is-ancestor` y `git cherry`. Sin tocar #69, #308 (ReliefWeb, aplazado), #343 y #344.
+- **C6-7 · PR de integración** · rama `ronda/integracion-c6`.
+
+### Pendiente después de la tanda
+- Mauro: `pnpm db:migrate` (0056) antes del merge; después de mergear, correr `docs/neon/neon-stats.sql` y comparar con la foto del 1/11.
+- 9/11: decidir qué QR se usa el 11/11 (README del kit). 6/11: aprobación de marca; recién ahí se mergea #347 y se cambian los textos legales (13/11).
+- Ronda del 3/11 (lo que quedó de la auditoría de Neon y pide migración): persistir el idioma y el nivel de inglés del aviso en `public_jobs` (hoy `readCareerMarketInput` lee el texto), `market_candidates`, índice de `inbound_emails` por persona, y los shingles del dedup.
+- Si algún día se quiere que una carrera ya publicada se oculte sola al bajar de 10 ofertas: sumarla a `PUBLIC_THRESHOLD_ROLE_KEYS` (ADR-029).
+
+## Bloque 13 — Rebranding AfinIAJobs y rediseño (tanda C7, 2026-11-02 al 03)
+
+Una noche de la nube: la marca AfinIAJobs (nombre, logo, paleta, tipografías, íconos, imágenes y emails) y el rediseño de toda la app según `docs/ux/rediseno-afiniajobs/`. Cada ticket fue un PR `[nube C7]` en draft hacia `ronda/integracion-c7`, mergeado con `--no-ff` con su CI en verde, y **un solo PR de integración** hacia `main` (#353). Nada se mergeó a `main`; **ninguna migración nueva** (la 0056 viene de C6). El detalle, los paths rojos y las «Decisiones para Mauro» están en #353.
+
+### Fase 1 · Marca
+- **C7-1 · Tokens y tipografías** · `estado:` done, 2026-11-02 ([#352](https://github.com/Malejo01/job-search-os/pull/352)). Paleta del manual en claro y oscuro con los mismos nombres semánticos, foco naranja, radios 12/16, Sora y Manrope (`next/font/local`, archivos en el repo), tema por defecto del dispositivo y selector en Ajustes → Apariencia.
+- **C7-2 · Nombre, logo e imágenes** · done ([#354](https://github.com/Malejo01/job-search-os/pull/354), reemplaza a #347). `BRAND.name` = AfinIAJobs, `<Logo>` único, favicon, apple-icon, manifest, imágenes OG/X con fuentes del repo, emails con encabezado de marca y test que falla con el nombre mal escrito.
+- **C7-3 · Legales con el nombre nuevo** · done ([#355](https://github.com/Malejo01/job-search-os/pull/355), carril rojo). Solo el nombre; `TERMS_VERSION` 2026-11-02: todas las cuentas vuelven a aceptar.
+
+### Fase 2 · Pantallas
+- **C7-4 · Componentes base** · done ([#356](https://github.com/Malejo01/job-search-os/pull/356)). Botones, campo, avisos, ScoreBadge, etiquetas, 12 íconos de M6 y tarjeta de oferta.
+- **C7-5 · Header y navegación** · done ([#357](https://github.com/Malejo01/job-search-os/pull/357)). Header tinta con la sección activa en naranja, menú del celular y avatar con iniciales; chip de soporte que no tapa botones.
+- **C7-6 · Ofertas (P1)** · done ([#358](https://github.com/Malejo01/job-search-os/pull/358)). **C7-7 · Hoy (P2)** · done ([#359](https://github.com/Malejo01/job-search-os/pull/359)). **C7-8 · Sin descripción (P3)** · done ([#360](https://github.com/Malejo01/job-search-os/pull/360)). **C7-9 · Celular y oscuro (P4)** · done ([#361](https://github.com/Malejo01/job-search-os/pull/361), e2e 102).
+- **C7-10 · El resto de las pantallas** · done ([#362](https://github.com/Malejo01/job-search-os/pull/362) y [#368](https://github.com/Malejo01/job-search-os/pull/368)). `/acceso` para el QR, portada, cuenta, headers tinta en lo público y campos internos de 2 px.
+- **C7-11 · Voz y tono (M7)** · done ([#363](https://github.com/Malejo01/job-search-os/pull/363)).
+
+### Fase 3 · Beta
+- **C7-12 · Pago solo con la invitación** · done ([#364](https://github.com/Malejo01/job-search-os/pull/364), carril rojo). `/precios` sin link; el mensaje de invitación lleva precio, 30 días y `MP_LINK_LISTA`.
+- **C7-13 · Demo para el 11/11** · done ([#365](https://github.com/Malejo01/job-search-os/pull/365)). `/demo/contaduria`, datos inventados y fijos.
+- **C7-14 · Capacidad para 25 personas** · done ([#366](https://github.com/Malejo01/job-search-os/pull/366), `docs/beta/capacidad.md`).
+- **C7-15 · Accesibilidad y rendimiento** · done ([#367](https://github.com/Malejo01/job-search-os/pull/367), carril rojo). Legales legibles en oscuro, `/acceso` sin salto de layout, 44 px; e2e 104.
+
+### Reserva
+- **R-1 · `/settings/marca`** · done ([#369](https://github.com/Malejo01/job-search-os/pull/369)). **R-2 · Onboarding sin jerga** · done ([#370](https://github.com/Malejo01/job-search-os/pull/370), textos para Ani en el PR). **R-3 · Error y 404** · done ([#371](https://github.com/Malejo01/job-search-os/pull/371)). **R-4 · Lógica del score con tests** · done ([#372](https://github.com/Malejo01/job-search-os/pull/372)). **R-5 · Revisión del diff** · ver #353.
+
+### Pendiente después de la tanda
+- Mauro: revisar y aplicar `pnpm db:migrate` (0056 de C6) antes del merge de #353; cargar `MP_LINK_LISTA`, `PRICING_ENABLED=1` y `LLM_DAILY_CAP_USD=4` (ver `docs/beta/capacidad.md` §6).
+- Ani: revisar la marca en `/settings/marca` y los textos de R-2; los cambios salen de tokens, `components/brand/logo.tsx` y `brand.ts`.
+- Si la cola de evaluación crece la primera semana: cron de `evaluate` cada hora (PR rojo, `docs/beta/capacidad.md` §2).
+- Confirmar si los emails entrantes cuentan en el cupo gratis de Resend.

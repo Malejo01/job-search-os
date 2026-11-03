@@ -6,14 +6,17 @@
  * Preferencia en `localStorage["jso-tema"]`: `"claro"`, `"oscuro"` o `"sistema"` (sigue a
  * `prefers-color-scheme`). Sin preferencia vale `DEFAULT_THEME`.
  *
- * `DEFAULT_THEME` es `"claro"` mientras las pantallas se migran a los tokens (docs/ux/tokens.md):
- * una pantalla sin migrar se vería a medias en oscuro. El oscuro se prueba a mano con
- * `localStorage.setItem("jso-tema", "oscuro")`. Cuando estén todas, pasa a `"sistema"`.
+ * `DEFAULT_THEME` es `"sistema"` desde C7-1: todas las pantallas usan tokens, así que sin
+ * preferencia guardada la app sigue al dispositivo. La preferencia se cambia en Ajustes
+ * (`settings/theme-select.tsx`).
  */
 export const THEME_STORAGE_KEY = "jso-tema";
-export const DEFAULT_THEME = "claro";
+export const THEME_VALUES = ["sistema", "claro", "oscuro"] as const;
+export type ThemePreference = (typeof THEME_VALUES)[number];
+export const DEFAULT_THEME: ThemePreference = "sistema";
 
-const SCRIPT = `(function(){try{var t=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)})||${JSON.stringify(DEFAULT_THEME)};var d=t==="oscuro"||(t==="sistema"&&matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d)}catch(e){}})()`;
+// Con «sistema», además escucha el cambio del dispositivo (p. ej. el modo oscuro automático de noche)
+const SCRIPT = `(function(){try{var k=${JSON.stringify(THEME_STORAGE_KEY)},m=matchMedia("(prefers-color-scheme: dark)");function a(){var t=localStorage.getItem(k)||${JSON.stringify(DEFAULT_THEME)};document.documentElement.classList.toggle("dark",t==="oscuro"||(t==="sistema"&&m.matches))}a();m.addEventListener("change",a)}catch(e){}})()`;
 
 export function ThemeScript() {
   return <script dangerouslySetInnerHTML={{ __html: SCRIPT }} />;

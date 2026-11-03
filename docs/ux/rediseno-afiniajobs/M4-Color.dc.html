@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Paleta de color</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;600;800&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 960px; height: 600px; box-sizing: border-box; background: #FFFFFF; padding: 40px 56px; display: flex; flex-direction: column; gap: 18px; font-family: 'Manrope', sans-serif; color: #050505;">
+  <div style="font-family: 'Sora', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">Color</div>
+  <div style="display: flex; gap: 20px; flex-grow: 1;">
+    <div style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
+        <div style="height: 118px; border-radius: 16px; background: #050505; padding: 14px; display: flex; flex-direction: column; justify-content: flex-end; color: #FFFFFF;"><div style="font-size: 16px; font-weight: 700;">Tinta</div><div style="font-size: 13px; color: #D6D3D1;">#050505 · fondo y texto</div></div>
+        <div style="height: 118px; border-radius: 16px; background: #FF6A13; padding: 14px; display: flex; flex-direction: column; justify-content: flex-end; color: #050505;"><div style="font-size: 16px; font-weight: 700;">Naranja</div><div style="font-size: 13px; font-weight: 600;">#FF6A13 · acción y marca</div></div>
+        <div style="height: 118px; border-radius: 16px; background: #FFFFFF; border: 2px solid #E7E5E4; box-sizing: border-box; padding: 14px; display: flex; flex-direction: column; justify-content: flex-end;"><div style="font-size: 16px; font-weight: 700;">Blanco</div><div style="font-size: 13px; color: #57534E;">#FFFFFF · superficies</div></div>
+        <div style="height: 118px; border-radius: 16px; background: #C2410C; padding: 14px; display: flex; flex-direction: column; justify-content: flex-end; color: #FFFFFF;"><div style="font-size: 16px; font-weight: 700;">Naranja profundo</div><div style="font-size: 13px;">#C2410C · texto sobre claro</div></div>
+      </div>
+      <div style="display: flex; height: 56px; border-radius: 14px; overflow: hidden; border: 2px solid #E7E5E4;">
+        <div style="flex: 1 1 0; background: #F5F5F4; display: flex; align-items: flex-end; padding: 6px 8px; font-size: 11px; font-weight: 600; color: #57534E;">#F5F5F4</div>
+        <div style="flex: 1 1 0; background: #E7E5E4; display: flex; align-items: flex-end; padding: 6px 8px; font-size: 11px; font-weight: 600; color: #57534E;">#E7E5E4</div>
+        <div style="flex: 1 1 0; background: #A8A29E; display: flex; align-items: flex-end; padding: 6px 8px; font-size: 11px; font-weight: 600; color: #050505;">#A8A29E</div>
+        <div style="flex: 1 1 0; background: #57534E; display: flex; align-items: flex-end; padding: 6px 8px; font-size: 11px; font-weight: 600; color: #FFFFFF;">#57534E</div>
+        <div style="flex: 1 1 0; background: #1C1917; display: flex; align-items: flex-end; padding: 6px 8px; font-size: 11px; font-weight: 600; color: #FFFFFF;">#1C1917</div>
+      </div>
+      <div style="font-size: 13px; font-weight: 500; color: #57534E; line-height: 1.45;">Neutros cálidos (escala Stone). El naranja de marca es de acción y nunca indica un estado: sobre blanco no se usa para texto, solo como relleno con texto tinta (7,1:1).</div>
+    </div>
+    <div style="flex: 0 0 300px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-size: 15px; font-weight: 700;">Estados del producto</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+        <span style="background: #D1FAE5; color: #064E3B; border-radius: 8px; padding: 6px 10px; font-size: 13px; font-weight: 600;">Score alto · 7 o más</span>
+        <span style="background: #FEF3C7; color: #78350F; border-radius: 8px; padding: 6px 10px; font-size: 13px; font-weight: 600;">Score medio · 5 a 6,9</span>
+        <span style="background: #F5F5F4; color: #44403C; border-radius: 8px; padding: 6px 10px; font-size: 13px; font-weight: 600;">Score bajo</span>
+        <span style="background: #FEF3C7; color: #78350F; border-radius: 8px; padding: 6px 10px; font-size: 13px; font-weight: 600;">Riesgo</span>
+        <span style="background: #FEE2E2; color: #991B1B; border-radius: 8px; padding: 6px 10px; font-size: 13px; font-weight: 600;">Impide postular</span>
+        <span style="background: #E0F2FE; color: #075985; border-radius: 8px; padding: 6px 10px; font-size: 13px; font-weight: 600;">En cola · fuente</span>
+      </div>
+      <div style="font-size: 15px; font-weight: 700; margin-top: 4px;">Modo oscuro</div>
+      <div style="display: flex; gap: 8px;">
+        <div style="flex: 1 1 0; height: 44px; border-radius: 10px; background: #050505; border: 2px solid #2A2A2A; box-sizing: border-box;"></div>
+        <div style="flex: 1 1 0; height: 44px; border-radius: 10px; background: #121212; border: 2px solid #2A2A2A; box-sizing: border-box;"></div>
+        <div style="flex: 1 1 0; height: 44px; border-radius: 10px; background: #2A2A2A;"></div>
+        <div style="flex: 1 1 0; height: 44px; border-radius: 10px; background: #F5F5F4;"></div>
+      </div>
+      <div style="font-size: 12px; font-weight: 600; color: #57534E; display: flex; justify-content: space-between;"><span>#050505</span><span>#121212</span><span>#2A2A2A</span><span>#F5F5F4</span></div>
+      <div style="background: #050505; border-radius: 14px; padding: 14px 16px; font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace; font-size: 12px; line-height: 1.6; color: #E7E5E4; white-space: pre;">@theme {
+  --color-tinta: #050505;
+  --color-naranja: #ff6a13;
+  --color-naranja-profundo: #c2410c;
+}</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":960,"height":600}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

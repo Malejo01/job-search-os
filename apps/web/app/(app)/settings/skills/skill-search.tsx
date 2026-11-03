@@ -113,7 +113,7 @@ export function SkillSearch({
           autoComplete="off"
           aria-invalid={addError ? true : undefined}
           aria-describedby={addError ? "agregar-error" : undefined}
-          className="min-h-11 rounded-control border border-line-strong px-3 py-2 text-base"
+          className="min-h-11 rounded-control border-2 border-line-strong px-3 py-2 text-base"
         />
       </label>
       <p role="status" className="sr-only">

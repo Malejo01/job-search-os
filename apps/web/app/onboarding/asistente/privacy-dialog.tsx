@@ -42,7 +42,7 @@ export function PrivacyDialog({
           <button
             type="submit"
             onClick={() => ref.current?.close()}
-            className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           >
             Entiendo y continúo
           </button>

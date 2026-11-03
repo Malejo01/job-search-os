@@ -1,4 +1,5 @@
 import { waitlist } from "@job-search-os/db/schema";
+import { BRAND } from "@job-search-os/pipeline";
 import { expect, test } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { login, ownerDb } from "./helpers";
@@ -58,18 +59,49 @@ test.describe("Flujo 44: vitrina pública", () => {
     await expect(done).toBeVisible();
   });
 
+  test("/acceso: las 6 carreras de la beta van primero, en su propio grupo (C6-1)", async ({
+    page,
+  }) => {
+    await page.goto("/acceso");
+    const groups = await page.getByLabel("Carrera").evaluate((select) =>
+      Array.from(select.querySelectorAll("optgroup")).map((g) => ({
+        label: g.label,
+        values: Array.from(g.querySelectorAll("option")).map((o) => o.value),
+      })),
+    );
+    expect(groups[0]).toEqual({
+      label: "Carreras de la beta",
+      values: [
+        "abogacia",
+        "finanzas_contabilidad",
+        "administracion_empresas",
+        "comunicacion",
+        "marketing_digital",
+        "relaciones_internacionales",
+      ],
+    });
+    // El resto sigue ofreciéndose, sin repetir ninguna de la beta
+    const rest = groups.slice(1).flatMap((g) => g.values);
+    expect(rest).toContain("data_analyst");
+    for (const key of groups[0]?.values ?? []) expect(rest).not.toContain(key);
+  });
+
   test("sin sesión: portada, mercado, una carrera, ofertas y pedir acceso", async ({ page }) => {
     await page.goto("/");
     await expect(
       page.getByRole("heading", { level: 1, name: /por qué sí y por qué no/ }),
     ).toBeVisible();
-    await expect(page.getByText("Nunca postula por vos")).toBeVisible();
-    await expect(page.getByText("No lee tu bandeja")).toBeVisible();
+    // C7-11: la voz del manual (M7), en primera persona
+    await expect(page.getByText("Nunca postulamos por vos", { exact: true })).toBeVisible();
+    await expect(page.getByText("No leemos tu bandeja")).toBeVisible();
+    await expect(page.getByText(BRAND.tagline).first()).toBeVisible();
     await expect(page.getByText("Tus datos son tuyos")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Cómo funciona" })).toBeVisible();
     await expect(page.getByTestId("pool-numbers")).toBeVisible();
-    // El header no lleva el nombre del producto
-    await expect(page.locator("header")).not.toContainText("Job Search OS");
+    // C7-2: el header lleva el logo, con el nombre como nombre accesible, y lleva a la portada
+    await expect(
+      page.locator("header").getByRole("link", { name: BRAND.name, exact: true }),
+    ).toHaveAttribute("href", "/");
 
     // A 390 px (viewport de los e2e) Mercado y Ofertas están en el pie, no en el header: se busca
     // en toda la página el primero visible (getByRole ignora los ocultos con display: none).
@@ -121,14 +153,52 @@ test.describe("Flujo 44: vitrina pública", () => {
     const data = JSON.parse(raw ?? "{}") as Record<string, unknown>;
     expect(data["@type"]).toBe("Dataset");
     expect(raw).not.toContain("JobPosting");
-    expect(raw).not.toContain("Job Search OS");
+    // El Dataset describe el mercado, no la marca
+    expect(raw).not.toContain(BRAND.name);
     await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", /Mercado/);
   });
 
-  test("los títulos públicos no llevan el nombre del producto", async ({ page }) => {
+  test("los títulos públicos llevan el nombre del producto (C7-2)", async ({ page }) => {
     for (const path of ["/", "/mercado", "/ofertas", "/acceso"]) {
       await page.goto(path);
-      expect(await page.title(), path).not.toContain("Job Search OS");
+      expect(await page.title(), path).toContain(BRAND.name);
+    }
+    await page.goto("/");
+    expect(await page.title()).toBe(`${BRAND.name} · ${BRAND.tagline}`);
+  });
+
+  test("el favicon, el ícono de iPhone y el manifest se sirven sin sesión (C7-2)", async ({
+    request,
+  }) => {
+    const manifest = await request.get("/manifest.webmanifest");
+    expect(manifest.status()).toBe(200);
+    const data = (await manifest.json()) as {
+      name: string;
+      short_name: string;
+      icons: { src: string }[];
+    };
+    expect(data.name).toBe(BRAND.name);
+    expect(data.short_name).toBe(BRAND.name);
+    for (const icon of data.icons) {
+      const res = await request.get(icon.src, { maxRedirects: 0 });
+      expect(res.status(), icon.src).toBe(200);
+      expect(res.headers()["content-type"], icon.src).toContain("image/png");
+    }
+    for (const path of ["/icon.svg", "/apple-icon.png"]) {
+      const res = await request.get(path, { maxRedirects: 0 });
+      expect(res.status(), path).toBe(200);
+    }
+  });
+
+  test("las imágenes para compartir se sirven sin sesión (C7-2)", async ({ page, request }) => {
+    await page.goto("/");
+    // La ruta lleva un sufijo que pone Next (grupo de rutas): se lee de los metadatos
+    for (const selector of ['meta[property="og:image"]', 'meta[name="twitter:image"]']) {
+      const content = await page.locator(selector).first().getAttribute("content");
+      expect(content, selector).not.toBeNull();
+      const res = await request.get(new URL(content!).pathname, { maxRedirects: 0 });
+      expect(res.status(), selector).toBe(200);
+      expect(res.headers()["content-type"], selector).toContain("image/png");
     }
   });
 

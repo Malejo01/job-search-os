@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Portada del manual</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;600;800&family=Manrope:wght@500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 960px; height: 600px; box-sizing: border-box; background: #050505; padding: 64px; display: flex; flex-direction: column; justify-content: space-between; font-family: 'Sora', sans-serif;">
+  <div style="display: flex; justify-content: space-between; align-items: center;">
+    <svg width="72" height="72" viewBox="0 0 200 200" role="img" aria-label="Monograma A"><path d="M42 164 L100 36 L158 164" fill="none" stroke="#FF6A13" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="100" cy="126" r="17" fill="#FFFFFF"></circle></svg>
+    <div style="font-family: 'Manrope', sans-serif; font-size: 16px; font-weight: 600; color: #A8A29E; letter-spacing: 1px;">VERSIÓN 1.0 · OCTUBRE 2026</div>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 20px;">
+    <div style="font-family: 'Manrope', sans-serif; font-size: 20px; font-weight: 600; color: #FF6A13; letter-spacing: 2px;">MANUAL DE MARCA</div>
+    <div style="font-size: 112px; line-height: 1; letter-spacing: -4px; color: #FF6A13; font-weight: 800; white-space: nowrap;">afinia<span style="font-weight: 300; color: #FFFFFF;">jobs</span></div>
+    <div style="font-family: 'Manrope', sans-serif; font-size: 24px; font-weight: 500; color: #D6D3D1;">Identidad, interfaz y piezas de comunicación.</div>
+  </div>
+  <div style="font-family: 'Manrope', sans-serif; font-size: 18px; font-weight: 500; color: #A8A29E;">Ofertas afines. CV afinado.</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":960,"height":600}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

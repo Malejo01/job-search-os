@@ -1,6 +1,6 @@
-import { PRODUCT_NAME } from "@job-search-os/pipeline";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Logo } from "@/components/brand/logo";
 
 const SKIP_CLASS =
   "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-control focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-fg focus:ring-2 focus:ring-focus";
@@ -15,10 +15,18 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
       <a href="#contenido" className={SKIP_CLASS}>
         Saltar al contenido
       </a>
-      <header className="border-b border-line bg-surface">
+      <header className="bg-ink text-on-ink">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-2">
-          <span className="text-base font-semibold">{PRODUCT_NAME}</span>
-          <Link href="/login" className="text-sm text-fg-subtle underline-offset-2 hover:underline">
+          <Link
+            href="/"
+            className="inline-flex min-h-11 items-center rounded-control focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          >
+            <Logo tone="dark" />
+          </Link>
+          <Link
+            href="/login"
+            className="inline-flex min-h-11 items-center text-sm font-semibold text-on-ink-muted underline-offset-2 hover:text-on-ink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
+          >
             Entrar
           </Link>
         </div>

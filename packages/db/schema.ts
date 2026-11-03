@@ -664,7 +664,12 @@ export const jobQueue = pgTable("job_queue", {
   lastError: text("last_error"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-}, (t) => [index("job_queue_pending").on(t.queue, t.status, t.runAfter)]);
+}, (t) => [
+  index("job_queue_pending").on(t.queue, t.status, t.runAfter),
+  // C6-3: las consultas `payload->>'jobId' = <id>` (conteo de la cola por persona, «ya está en cola», fusión de
+  // duplicados) recorrían toda la cola; con este índice entran por el id de la oferta.
+  index("job_queue_job_id").on(sql`(${t.payload}->>'jobId')`),
+]);
 
 // Crudos de ingesta (email completo tal como llegó): adapter `storage` sobre Postgres hoy, S3 mañana
 // (ADR-007). raw_ref de inbound_emails apunta acá ("pg:<id>").

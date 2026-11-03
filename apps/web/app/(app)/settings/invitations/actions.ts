@@ -4,7 +4,11 @@ import { createLogger } from "@job-search-os/adapters";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
+  BETA_PLAN,
   buildWaitlistInvitationText,
+  paymentLink,
+  planDef,
+  priceLabel,
   clampInviteCap,
   INVITE_CAP_MAX,
 } from "@job-search-os/pipeline";
@@ -150,6 +154,13 @@ export async function inviteSelectedFromWaitlistAction(input: {
       message: `Elegiste ${ids.length} personas y el tope de esta tanda es ${cap}.`,
     };
   }
+  // C7-12: precio, días y link de pago (`MP_LINK_LISTA`, leído acá, en el servidor) para el mensaje
+  const beta = planDef(BETA_PLAN);
+  const payment = {
+    price: priceLabel(beta),
+    days: beta.durationDays ?? 30,
+    link: paymentLink(process.env, BETA_PLAN),
+  };
   try {
     const items = await inviteManyFromWaitlist(userId, ids);
     revalidatePath("/settings/invitations");
@@ -169,6 +180,7 @@ export async function inviteSelectedFromWaitlistAction(input: {
                 name: parsed.data.names?.[item.id] ?? "",
                 link: item.link,
                 expiresAt: item.expiresAt,
+                payment,
               }),
             }
           : item,

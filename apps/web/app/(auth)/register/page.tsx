@@ -1,4 +1,4 @@
-import { PRODUCT_NAME } from "@job-search-os/pipeline";
+import Link from "next/link";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { signIn } from "@/auth";
@@ -10,6 +10,7 @@ import {
 import { INVALID_INVITATION_MESSAGE } from "@/lib/invitations-core";
 import { LegalPage } from "@/lib/legal";
 import { SubmitButton } from "@/app/components/submit-button";
+import { Logo } from "@/components/brand/logo";
 
 export const dynamic = "force-dynamic";
 
@@ -97,6 +98,12 @@ export default async function RegisterPage({
         <a href="#contenido" className={SKIP_CLASS}>
           Saltar al contenido
         </a>
+        <Link
+          href="/"
+          className="inline-flex min-h-11 items-center rounded-control focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        >
+          <Logo />
+        </Link>
         <h1 className="text-2xl font-semibold">Cuenta creada</h1>
         <p className="text-sm text-success">Ya podés entrar con tu email y tu contraseña.</p>
         <a
@@ -120,7 +127,9 @@ export default async function RegisterPage({
         Saltar al contenido
       </a>
       <div>
-        <h1 className="text-2xl font-semibold">{PRODUCT_NAME}</h1>
+        <h1 className="mb-2">
+          <Logo size="md" />
+        </h1>
         <p className="text-sm text-fg-subtle">Creá tu cuenta con tu invitación.</p>
         {code ? null : (
           <p role="note" className="mt-2 text-sm text-warning">
@@ -131,7 +140,7 @@ export default async function RegisterPage({
       </div>
       <form action={register} className="flex flex-col gap-3">
         <input type="hidden" name="code" value={code ?? ""} />
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1.5 text-sm font-semibold">
           Email
           <input
             name="email"
@@ -140,7 +149,7 @@ export default async function RegisterPage({
             required
             defaultValue={email ?? ""}
             {...invalidProps("email")}
-            className="rounded-control border border-line-strong px-3 py-2 text-base"
+            className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus-visible:border-focus aria-invalid:border-danger-strong"
           />
           {error === "email" ? (
             <p id="email-error" role="alert" className="text-xs text-danger">
@@ -148,7 +157,7 @@ export default async function RegisterPage({
             </p>
           ) : null}
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1.5 text-sm font-semibold">
           Nombre (opcional)
           <input
             name="name"
@@ -157,7 +166,7 @@ export default async function RegisterPage({
             maxLength={100}
             defaultValue={name ?? ""}
             {...invalidProps("nombre")}
-            className="rounded-control border border-line-strong px-3 py-2 text-base"
+            className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus-visible:border-focus aria-invalid:border-danger-strong"
           />
           {error === "nombre" ? (
             <p id="nombre-error" role="alert" className="text-xs text-danger">
@@ -165,7 +174,7 @@ export default async function RegisterPage({
             </p>
           ) : null}
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1.5 text-sm font-semibold">
           Contraseña
           <input
             name="password"
@@ -175,7 +184,7 @@ export default async function RegisterPage({
             maxLength={128}
             required
             {...invalidProps("corta")}
-            className="rounded-control border border-line-strong px-3 py-2 text-base"
+            className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus-visible:border-focus aria-invalid:border-danger-strong"
           />
           {error === "corta" ? (
             <p id="corta-error" role="alert" className="text-xs text-danger">
@@ -183,7 +192,7 @@ export default async function RegisterPage({
             </p>
           ) : null}
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1.5 text-sm font-semibold">
           Repetí la contraseña
           <input
             name="confirm"
@@ -192,7 +201,7 @@ export default async function RegisterPage({
             minLength={8}
             required
             {...invalidProps("no_coincide")}
-            className="rounded-control border border-line-strong px-3 py-2 text-base"
+            className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus-visible:border-focus aria-invalid:border-danger-strong"
           />
           {error === "no_coincide" ? (
             <p id="no_coincide-error" role="alert" className="text-xs text-danger">
@@ -247,7 +256,7 @@ export default async function RegisterPage({
         ) : null}
         <SubmitButton
           pendingLabel="Creando la cuenta…"
-          className="mt-2 rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast"
+          className="mt-2 inline-flex min-h-12 items-center justify-center rounded-control bg-brand px-4 text-base font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         >
           Crear cuenta
         </SubmitButton>

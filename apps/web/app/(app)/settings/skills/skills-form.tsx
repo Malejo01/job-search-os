@@ -128,9 +128,9 @@ export function SkillsForm({
                   <Link
                     href={`${basePath}?rol=${key}`}
                     aria-current={key === role ? "true" : undefined}
-                    className={`inline-block rounded-control border px-3 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus ${
+                    className={`inline-flex min-h-11 items-center rounded-control border px-3 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus ${
                       key === role
-                        ? "border-brand bg-brand text-brand-contrast"
+                        ? "border-brand-contrast bg-brand text-brand-contrast"
                         : "border-line-strong text-fg"
                     }`}
                   >
@@ -239,10 +239,10 @@ export function SkillsForm({
 
         {/* «Guardar» va primero en el DOM (Enter guarda, nunca saltea); row-reverse lo deja a la derecha.
             `--tour-panel-h` lo fija la guía mientras está abierta: la barra queda encima del panel */}
-        <div className="sticky bottom-[var(--tour-panel-h,0px)] flex flex-row-reverse flex-wrap items-center justify-start gap-3 border-t border-line bg-surface p-3">
+        <div className="sticky bottom-[var(--tour-panel-h,0px)] flex flex-row-reverse flex-wrap items-center justify-start gap-3 border-t border-line bg-surface p-3 pr-16 sm:pr-3">
           <PendingSubmit
             pendingLabel="Guardando…"
-            className="rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           >
             {submitLabel}
           </PendingSubmit>

@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requestPasswordReset } from "@/lib/password-reset";
+import { Logo } from "@/components/brand/logo";
 
 // Ver la nota en /setup: nunca dejar que Next congele una página que depende de estado en vivo.
 export const dynamic = "force-dynamic";
@@ -33,6 +35,12 @@ export default async function ForgotPasswordPage({
         Saltar al contenido
       </a>
       <div>
+        <Link
+          href="/"
+          className="inline-flex min-h-11 items-center rounded-control focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        >
+          <Logo />
+        </Link>
         <h1 className="text-2xl font-semibold">Olvidé mi contraseña</h1>
         <p className="text-sm text-fg-subtle">
           Escribí tu email. Si existe una cuenta, te mandamos un link para elegir una contraseña
@@ -45,19 +53,19 @@ export default async function ForgotPasswordPage({
         </p>
       ) : (
         <form action={forgotPassword} className="flex flex-col gap-3">
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex flex-col gap-1.5 text-sm font-semibold">
             Email
             <input
               name="email"
               type="email"
               autoComplete="username"
               required
-              className="rounded-control border border-line-strong px-3 py-2 text-base"
+              className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus-visible:border-focus aria-invalid:border-danger-strong"
             />
           </label>
           <button
             type="submit"
-            className="mt-2 rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast"
+            className="mt-2 inline-flex min-h-12 items-center justify-center rounded-control bg-brand px-4 text-base font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           >
             Mandar link
           </button>

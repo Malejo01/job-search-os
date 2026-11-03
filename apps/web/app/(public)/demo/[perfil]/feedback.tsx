@@ -20,7 +20,7 @@ export function Feedback({ title }: { title: string }) {
           aria-pressed={choice === "up"}
           aria-label={`Me sirvió la evaluación de ${title}`}
           onClick={() => setChoice("up")}
-          className={`${BUTTON} ${choice === "up" ? "border-brand bg-brand text-brand-contrast" : "border-line-strong bg-surface text-fg hover:bg-surface-muted"}`}
+          className={`${BUTTON} ${choice === "up" ? "border-brand-contrast bg-brand text-brand-contrast" : "border-line-strong bg-surface text-fg hover:bg-surface-muted"}`}
         >
           <span aria-hidden="true">👍</span>
         </button>
@@ -29,7 +29,7 @@ export function Feedback({ title }: { title: string }) {
           aria-pressed={choice === "down"}
           aria-label={`No me sirvió la evaluación de ${title}`}
           onClick={() => setChoice("down")}
-          className={`${BUTTON} ${choice === "down" ? "border-brand bg-brand text-brand-contrast" : "border-line-strong bg-surface text-fg hover:bg-surface-muted"}`}
+          className={`${BUTTON} ${choice === "down" ? "border-brand-contrast bg-brand text-brand-contrast" : "border-line-strong bg-surface text-fg hover:bg-surface-muted"}`}
         >
           <span aria-hidden="true">👎</span>
         </button>

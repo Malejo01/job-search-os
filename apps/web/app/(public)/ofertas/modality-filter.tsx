@@ -44,7 +44,7 @@ export function ModalityFilter({ listId }: { listId: string }) {
             onClick={() => choose(key)}
             className={`inline-flex min-h-11 items-center rounded-full border px-3 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
               value === key
-                ? "border-brand bg-brand text-brand-contrast"
+                ? "border-brand-contrast bg-brand text-brand-contrast"
                 : "border-line-strong bg-surface text-fg hover:bg-surface-muted"
             }`}
           >

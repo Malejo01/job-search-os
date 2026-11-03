@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Voz y tono</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;600;800&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 960px; height: 600px; box-sizing: border-box; background: #FFFFFF; padding: 40px 56px; display: flex; flex-direction: column; gap: 18px; font-family: 'Manrope', sans-serif; color: #050505;">
+  <div style="font-family: 'Sora', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">Voz y tono</div>
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px;">
+    <div style="background: #050505; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 8px; color: #FFFFFF;">
+      <div style="font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 800; color: #FF6A13;">Honestos</div>
+      <div style="font-size: 14px; line-height: 1.45; color: #E7E5E4;">Decimos qué sabemos y qué no. Una estimación se llama estimación.</div>
+    </div>
+    <div style="background: #050505; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 8px; color: #FFFFFF;">
+      <div style="font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 800; color: #FF6A13;">Cercanos</div>
+      <div style="font-size: 14px; line-height: 1.45; color: #E7E5E4;">Hablamos de vos, con frases cortas y sin jerga técnica ni de reclutadores.</div>
+    </div>
+    <div style="background: #050505; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 8px; color: #FFFFFF;">
+      <div style="font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 800; color: #FF6A13;">Respetuosos</div>
+      <div style="font-size: 14px; line-height: 1.45; color: #E7E5E4;">La decisión es siempre tuya. Nunca postulamos por vos.</div>
+    </div>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; flex-grow: 1;">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-size: 14px; font-weight: 700; color: #064E3B;">Decimos</div>
+      <div style="background: #ECFDF5; border-radius: 12px; padding: 10px 14px; font-size: 14px; font-weight: 600; color: #064E3B;">«Estimación previa: la calculamos con reglas, sin IA.»</div>
+      <div style="background: #ECFDF5; border-radius: 12px; padding: 10px 14px; font-size: 14px; font-weight: 600; color: #064E3B;">«Pegá acá la descripción completa del puesto.»</div>
+      <div style="background: #ECFDF5; border-radius: 12px; padding: 10px 14px; font-size: 14px; font-weight: 600; color: #064E3B;">«¿La oferta no está en la lista? Cargala a mano.»</div>
+      <div style="background: #ECFDF5; border-radius: 12px; padding: 10px 14px; font-size: 14px; font-weight: 600; color: #064E3B;">«Te falta experiencia en comercio exterior.»</div>
+      <div style="background: #ECFDF5; border-radius: 12px; padding: 10px 14px; font-size: 14px; font-weight: 600; color: #064E3B;">«La postulación la hacés vos en el sitio del aviso.»</div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-size: 14px; font-weight: 700; color: #991B1B;">Evitamos</div>
+      <div style="background: #FEF2F2; border-radius: 12px; padding: 10px 14px; font-size: 14px; font-weight: 600; color: #991B1B;">«¡Nuestra IA encontró tu trabajo ideal!»</div>
+      <div style="background: #FEF2F2; border-radius: 12px; padding: 10px 14px; font-size: 14px; font-weight: 600; color: #991B1B;">«Se ha producido un error de validación.»</div>
+      <div style="background: #FEF2F2; border-radius: 12px; padding: 10px 14px; font-size: 14px; font-weight: 600; color: #991B1B;">«Ingrese manualmente los datos de la vacante.»</div>
+      <div style="background: #FEF2F2; border-radius: 12px; padding: 10px 14px; font-size: 14px; font-weight: 600; color: #991B1B;">«Tu perfil es débil para este puesto.»</div>
+      <div style="background: #FEF2F2; border-radius: 12px; padding: 10px 14px; font-size: 14px; font-weight: 600; color: #991B1B;">«Postulate a todo con un clic.»</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 16px; border-top: 2px solid #E7E5E4; padding-top: 14px;">
+    <div style="font-family: 'Sora', sans-serif; font-size: 20px; font-weight: 800; color: #C2410C;">Ofertas afines. CV afinado.</div>
+    <div style="font-size: 14px; font-weight: 500; color: #57534E;">Bajada principal. Variante corta: «Vos decidís.»</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":960,"height":600}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

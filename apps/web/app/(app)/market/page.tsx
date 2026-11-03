@@ -1,6 +1,7 @@
 import { CAREER_MATURITY_LABEL, type AgendaRow } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { getCareerMaturity } from "@/lib/career-maturity";
+import { getPublicCareerKeys } from "@/lib/career-visibility";
 import {
   getDataState,
   getMarket,
@@ -24,7 +25,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Mercado" };
 
 const INPUT_CLASS =
-  "w-full rounded-control border border-line-strong px-2 py-2 text-sm text-fg sm:w-auto";
+  "w-full rounded-control border-2 border-line-strong px-2 py-2 text-sm text-fg sm:w-auto";
 
 /** «2026-10-19» -> «19/10»: la semana, sin año ni formato técnico. */
 const shortDate = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
@@ -48,12 +49,13 @@ export default async function MarketPage({
   const role = pickRole(roles, params.rol);
   const carrera = parseCareer(params.carrera);
   const careerRole = carrera ?? role;
-  const [view, state, roleMarket, careerMarket, maturity] = await Promise.all([
+  const [view, state, roleMarket, careerMarket, maturity, visibleCareers] = await Promise.all([
     getMarket(userId, range),
     getDataState(userId),
     getRoleMarketView(userId, role),
     careerRole ? getCareerMarket(careerRole) : null,
     careerRole ? getCareerMaturity(careerRole) : null,
+    getPublicCareerKeys(),
   ]);
   const { agenda } = view;
 
@@ -75,7 +77,7 @@ export default async function MarketPage({
         active={role}
         keep={{ desde: range.from, hasta: range.to }}
       />
-      <CareerPicker current={careerRole} tab={role} />
+      <CareerPicker current={careerRole} tab={role} visible={visibleCareers} />
       {/* C-13: con el flag apagado, sin la función en la base o si falla, no se muestra nada */}
       {careerRole && maturity ? (
         <p

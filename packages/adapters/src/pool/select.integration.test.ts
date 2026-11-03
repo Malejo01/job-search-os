@@ -5,7 +5,7 @@ import { criteriaFromOnboarding } from "@job-search-os/pipeline";
 import { eq, like } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { inReadOnlyTransaction, parsePersona, runExplain, type ExplainArgs } from "./explain";
-import { selectPoolCandidates } from "./select";
+import { HYDRATE_BATCH, selectPoolCandidates } from "./select";
 
 /**
  * Ronda 51 · Selección del pool en modo persona (sin usuario) y diagnóstico de solo lectura. Sin red
@@ -322,5 +322,75 @@ describe("runExplain", () => {
       .from(s.skills)
       .where(eq(s.skills.slug, "select_test_write"));
     expect(rows).toHaveLength(0);
+  });
+});
+
+describe("selectPoolCandidates · C6-3 (columnas acotadas)", () => {
+  const input = {
+    userId: null,
+    rules,
+    prefs,
+    levelBySkill: new Map<string, number>(),
+    now: NOW,
+    limit: 10,
+  };
+
+  it("las elegidas traen la fila completa y las descartadas solo las columnas del prefiltro", async () => {
+    const longText = "Descripcion ficticia larga del puesto. ".repeat(40);
+    const ok = await pool({
+      title: "Data Analyst Completo",
+      jdText: longText,
+      jdShingles: ["aaa", "bbb"],
+      rawRef: "pg:ficticio",
+    });
+    const blocked = await pool({ title: "Director de Datos", jdText: "Texto del descartado" });
+    const sel = await selectPoolCandidates(conn.db, input);
+
+    const pick = sel.ranked.find((r) => r.row.id === ok);
+    expect(pick?.row.jdText).toBe(longText);
+    expect(pick?.row.jdShingles).toEqual(["aaa", "bbb"]);
+    expect(pick?.row.rawRef).toBe("pg:ficticio");
+
+    const dropped = sel.discarded.find((d) => d.row.id === blocked);
+    expect(dropped?.row.title).toBe("Director de Datos");
+    expect(dropped?.row).not.toHaveProperty("jdText");
+    expect(dropped?.row).not.toHaveProperty("jdShingles");
+    expect(dropped?.row).not.toHaveProperty("rawRef");
+  });
+
+  it("hidrata por tandas: con más elegidas que HYDRATE_BATCH conserva orden y rank", async () => {
+    const ids: string[] = [];
+    for (let i = 0; i < HYDRATE_BATCH + 5; i++)
+      ids.push(await pool({ title: `Data Analyst ${i}` }));
+    const sel = await selectPoolCandidates(conn.db, { ...input, limit: 1000 });
+    expect(sel.ranked).toHaveLength(ids.length);
+    expect(sel.ranked.map((r) => r.rank)).toEqual(ids.map((_, i) => i + 1));
+    expect(sel.ranked.map((r) => r.row.id)).toEqual(sel.rankedIds);
+    for (const r of sel.ranked) expect(r.row.jdText).toBeTruthy();
+  });
+
+  it("idioma: sin `lang` se detecta por el texto; con `lang` en/es manda `lang`", async () => {
+    const english =
+      "We are looking for a data analyst with experience in SQL. You will work with the team to build dashboards and reports for our customers in the company.";
+    const spanish =
+      "Buscamos una persona analista de datos con experiencia en SQL para trabajar con el equipo en la construcción de tableros y reportes para nuestros clientes en la empresa.";
+    const enNoLang = await pool({ title: "Data Analyst EN sin lang", lang: null, jdText: english });
+    const enByLang = await pool({ title: "Data Analyst EN por lang", lang: "en", jdText: spanish });
+    const esNoLang = await pool({ title: "Data Analyst ES sin lang", lang: null, jdText: spanish });
+    const sel = await selectPoolCandidates(conn.db, {
+      ...input,
+      prefs: { ...prefs, jobLanguages: ["es"] as const },
+    });
+    const reasons = Object.fromEntries(sel.discarded.map((d) => [d.row.id, d.reason]));
+    expect(reasons[enNoLang]).toBe("idioma_no_aceptado");
+    expect(reasons[enByLang]).toBe("idioma_no_aceptado");
+    expect(sel.ranked.map((r) => r.row.id)).toContain(esNoLang);
+    expect(reasons[esNoLang]).toBeUndefined();
+    // Quien acepta los dos idiomas no necesita el texto: nada se descarta por idioma
+    const both = await selectPoolCandidates(conn.db, {
+      ...input,
+      prefs: { ...prefs, jobLanguages: ["es", "en"] as const },
+    });
+    expect(both.discarded.filter((d) => d.reason === "idioma_no_aceptado")).toEqual([]);
   });
 });

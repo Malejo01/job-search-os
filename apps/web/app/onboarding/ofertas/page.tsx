@@ -47,7 +47,7 @@ export default async function FirstOffersPage() {
         }
       />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Tus primeras ofertas</h1>
+        <h1 className="text-title font-bold">Tus primeras ofertas</h1>
         <Link
           href="/jobs"
           className="inline-flex min-h-11 items-center text-sm font-medium underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus sm:rounded-control sm:bg-brand sm:px-4 sm:py-2 sm:text-base sm:text-brand-contrast sm:no-underline sm:focus-visible:outline-offset-2"
@@ -120,7 +120,7 @@ export default async function FirstOffersPage() {
         <Link
           href="/jobs"
           data-tour="ofertas:seguir"
-          className="rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          className="inline-flex min-h-11 items-center rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         >
           Ir a mis ofertas
         </Link>

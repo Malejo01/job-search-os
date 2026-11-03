@@ -8,10 +8,12 @@ import type { Page } from "@playwright/test";
  */
 export async function axeSummary(
   page: Page,
+  /** Selectores que axe no mira (solo logotipos: WCAG 1.4.3 los exceptúa del contraste). */
+  exclude: string[] = [],
 ): Promise<{ violations: string[]; unmeasured: string[] }> {
-  const result = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-    .analyze();
+  let builder = new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]);
+  for (const selector of exclude) builder = builder.exclude(selector);
+  const result = await builder.analyze();
   const violations = result.violations.map(
     (v) =>
       `${v.id} (${v.impact ?? "sin impacto"}): ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`,

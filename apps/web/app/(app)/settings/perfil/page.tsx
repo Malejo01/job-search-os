@@ -36,7 +36,10 @@ export default async function PerfilPage() {
   );
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-4">
-      <Link href="/settings" className="text-sm text-fg underline">
+      <Link
+        href="/settings"
+        className="inline-flex min-h-11 items-center text-sm text-fg underline"
+      >
         Ajustes
       </Link>
       <h1 className="text-2xl font-semibold">Tu perfil</h1>
@@ -65,7 +68,7 @@ export default async function PerfilPage() {
         />
       ) : (
         <p role="alert" className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">
-          No se encontró tu perfil. Escribile a quien te invitó.
+          No encontramos tu perfil. Escribile a quien te invitó.
         </p>
       )}
     </div>

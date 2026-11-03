@@ -42,7 +42,7 @@ export function DeleteAccountForm({
               type="email"
               autoComplete="off"
               required
-              className="rounded-control border border-line-strong px-3 py-2 text-base"
+              className="rounded-control border-2 border-line-strong px-3 py-2 text-base"
             />
           </label>
           <label className="flex flex-col gap-1">
@@ -52,12 +52,12 @@ export function DeleteAccountForm({
               type="password"
               autoComplete="current-password"
               required
-              className="rounded-control border border-line-strong px-3 py-2 text-base"
+              className="rounded-control border-2 border-line-strong px-3 py-2 text-base"
             />
           </label>
           <button
             type="submit"
-            className="rounded-control bg-danger-strong px-4 py-2 text-base font-medium text-on-strong"
+            className="min-h-11 rounded-control bg-danger-strong px-4 py-2 text-base font-bold text-on-strong hover:brightness-110"
           >
             Eliminar mi cuenta para siempre
           </button>

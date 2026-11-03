@@ -1,12 +1,13 @@
-import { PRODUCT_NAME } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { signOut } from "@/auth";
 import { assertAppRole } from "@/lib/db";
 import { requireUserId } from "@/lib/session";
+import { TERMS_CHANGE_SUMMARY } from "@/lib/terms";
 import { needsTermsAcceptance } from "@/lib/terms-status";
 import { DeleteAccountForm } from "../(app)/settings/delete-account-form";
 import { AcceptTermsForm } from "./form";
+import { Logo } from "@/components/brand/logo";
 
 export const metadata: Metadata = { title: "Actualizamos los términos" };
 export const dynamic = "force-dynamic";
@@ -34,9 +35,9 @@ export default async function TermsUpdatedPage({
   const { error } = await searchParams;
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b border-line bg-surface">
+      <header className="bg-ink text-on-ink">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-2">
-          <span className="text-base font-semibold">{PRODUCT_NAME}</span>
+          <Logo tone="dark" />
         </div>
       </header>
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 px-4 py-4">
@@ -45,6 +46,10 @@ export default async function TermsUpdatedPage({
         </h1>
         <p className="text-sm text-fg-muted">
           Para seguir usando la app, leé los cambios y aceptalos.
+        </p>
+        <p className="rounded-control bg-info-soft px-3 py-2 text-sm text-info" role="note">
+          <span className="font-semibold">Qué cambió: </span>
+          {TERMS_CHANGE_SUMMARY}
         </p>
         <ul className="flex list-none flex-col p-0 text-sm">
           <li>

@@ -1,10 +1,12 @@
 import { readCareerRevealCounts } from "@job-search-os/adapters";
 import type { Db } from "@job-search-os/db";
 import {
+  CAREER_VISIBILITY_OVERRIDES,
   buildCareerRevealRows,
   parseBetaMetrics,
   parseFounderCounts,
-  UNLISTED_ROLE_KEYS,
+  publicCareerKeys,
+  watchedCareerKeys,
   type BetaMetrics,
   type CareerRevealRow,
   type FounderCountRow,
@@ -71,20 +73,36 @@ export async function getBetaMetrics(userId: string): Promise<BetaMetricsResult>
   }
 }
 
+/** Una carrera vigilada: su conteo (el de ADR-022) y si hoy se muestra en público (ADR-029). */
+export type CareerVisibilityRow = CareerRevealRow & {
+  /** Hoy aparece en los chips, el sitemap y /mercado. */
+  shown: boolean;
+  /** Está en la lista de «siempre oculta» (`CAREER_VISIBILITY_OVERRIDES`): el umbral no la muestra. */
+  forcedHidden: boolean;
+};
+
 export type CareerRevealResult =
-  { ok: true; rows: CareerRevealRow[] } | { ok: false; reason: "no_admin" | "sin_datos" };
+  { ok: true; rows: CareerVisibilityRow[] } | { ok: false; reason: "no_admin" | "sin_datos" };
 
 /**
- * Carreras ocultas y cuántas ofertas tienen (C4-3), solo admins. Una consulta agregada a `public_jobs`
- * (que la app ya lee): vuelven números por carrera, ningún aviso. La decisión de mostrarla es de una persona.
+ * Carreras de la beta y cuántas ofertas tienen (C4-3, ADR-029), solo admins. Una consulta agregada a
+ * `public_jobs` (que la app ya lee): vuelven números por carrera, ningún aviso. Desde ADR-029 la carrera
+ * se muestra sola al llegar al umbral; esta tabla dice cuáles se muestran hoy y cuánto falta a las demás.
  */
 export async function getCareerReveal(userId: string): Promise<CareerRevealResult> {
   if (!(await canCreateInvitations(userId))) return { ok: false, reason: "no_admin" };
   try {
+    const watched = watchedCareerKeys();
     const counts = await withUser(userId, (tx) =>
-      readCareerRevealCounts(tx as unknown as Db, UNLISTED_ROLE_KEYS, new Date()),
+      readCareerRevealCounts(tx as unknown as Db, watched, new Date()),
     );
-    return { ok: true, rows: buildCareerRevealRows(UNLISTED_ROLE_KEYS, counts) };
+    const shown = new Set<string>(publicCareerKeys(counts));
+    const rows = buildCareerRevealRows(watched, counts).map((row) => ({
+      ...row,
+      shown: shown.has(row.role),
+      forcedHidden: CAREER_VISIBILITY_OVERRIDES.alwaysHidden.some((k) => k === row.role),
+    }));
+    return { ok: true, rows };
   } catch {
     return { ok: false, reason: "sin_datos" };
   }

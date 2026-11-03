@@ -17,7 +17,7 @@ import { SaveButton } from "./save-button";
 export const metadata = { title: "Criterios" };
 export const dynamic = "force-dynamic";
 
-const input = "rounded-control border border-line-strong px-3 py-2 text-base";
+const input = "rounded-control border-2 border-line-strong px-3 py-2 text-base";
 const help = "text-xs text-fg-subtle";
 
 const DATE = new Intl.DateTimeFormat("es-AR", {
@@ -321,7 +321,7 @@ export default async function CriteriaPage({
         </fieldset>
 
         <div className="flex justify-end">
-          <PendingSubmit className="rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast">
+          <PendingSubmit className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover">
             Guardar como versión nueva
           </PendingSubmit>
         </div>

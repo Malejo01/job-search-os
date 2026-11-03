@@ -1,85 +1,98 @@
-# Tokens de diseño (N3-2)
+# Tokens de diseño (N3-2, paleta AfinIAJobs en C7-1)
 
-Colores, radios y tipografía salen de un solo lugar: `apps/web/app/globals.css`. Las pantallas usan clases semánticas de Tailwind (`bg-surface`, `text-fg-muted`, `border-line`, `bg-danger-soft`) y nunca un color de la paleta (`bg-white`, `text-zinc-700`, `text-red-800`). Así el modo oscuro y un cambio de marca se hacen en un archivo.
+Colores, radios y tipografía salen de un solo lugar: `apps/web/app/globals.css`. Las pantallas usan clases semánticas de Tailwind (`bg-surface`, `text-fg-muted`, `border-line`, `bg-danger-soft`) y nunca un color de la paleta (`bg-white`, `text-stone-700`, `text-red-800`). Así el modo oscuro y un cambio de marca se hacen en un archivo.
+
+La fuente de los valores es el manual de marca: `docs/ux/rediseno-afiniajobs/` (README y `M4-Color`, `M5-Tipografia`, `M8-Componentes`).
 
 ## Cómo funciona
 
-- Cada token es una variable `--jso-*` con un valor en `:root` (claro) y otro en `.dark` (oscuro).
+- Cada token es una variable `--jso-*` con un valor en `:root` (claro) y otro en `.dark` (oscuro). `.light` comparte el bloque de `:root`: sirve para mostrar claro dentro de una página en oscuro (la vitrina `/settings/marca`).
+- Dentro de un `style` o de una clase arbitraria (`shadow-[…]`), usar `var(--jso-*)` y no `var(--color-*)`: Tailwind resuelve las `--color-*` en `:root`, así que no cambian dentro de un panel `.light` o `.dark`.
 - `@theme inline` registra las clases de Tailwind (`--color-surface: var(--jso-surface)`), así la clase lee la variable en el momento y el cambio de `.dark` en `<html>` alcanza sin recompilar.
-- En claro, los tokens valen exactamente lo que usaba la app antes: migrar una pantalla no cambia nada a la vista, salvo las equivalencias de la tabla de abajo marcadas con «≈».
+- Los valores van en hexadecimal: axe-core no sabe leer algunos `oklch` de Tailwind (tono `none`) y deja el contraste sin medir.
 - `dark:` está definido por clase (`@custom-variant dark`) y queda para excepciones (una imagen, una sombra). Los colores no llevan `dark:`: el token ya cambia solo.
+
+## Marca (paleta «índigo y lima», elegida por Mauro el 3/11)
+
+Reemplaza a la «tinta y naranja» del manual (se parecía demasiado a otra marca). Las alternativas que se compararon están en el lienzo del manual, tablero «Alternativas de color».
+
+| Color | Valor | Para qué |
+|---|---|---|
+| Índigo | `#1E1B4B` | Base de marca: header, bloques oscuros, texto del botón primario, logotipo «AfinIA» sobre claro |
+| Lima | `#C6F25B` | Acción y marca: relleno del botón primario **con texto índigo** (12,4:1). Nunca indica un estado. Sobre claro no se usa como texto, ni como borde o foco (1,3:1) |
+| Índigo vivo | `#4338CA` | El acento como texto, borde o foco sobre claro (7,9:1): links, «Jobs» sobre claro, foco en claro |
+| Neutros | Escala Zinc fría (`#F5F5F7`, `#E4E4EA`, `#D4D4DC`, `#71717A`, `#52525B`, `#3F3F46`) | Fondos, bordes y textos secundarios |
+
+Un elemento seleccionado (chip, pestaña) va con relleno lima y **borde índigo** (`border-brand-contrast`), así el estado se distingue también sobre blanco.
 
 ## Colores
 
-| Token (clase) | Para qué | Claro | Oscuro | Reemplaza |
-|---|---|---|---|---|
-| `canvas` | Fondo de la página | zinc-50 | zinc-950 | `bg-zinc-50` del `<body>` |
-| `surface` | Tarjetas, header, diálogos, campos | white | zinc-900 | `bg-white` |
-| `surface-subtle` | Recuadro dentro de una tarjeta | zinc-50 | zinc-950 | `bg-zinc-50` dentro de tarjetas |
-| `surface-muted` | Chips neutros, hover, sección activa del menú | zinc-100 | zinc-800 | `bg-zinc-100` |
-| `surface-strong` | Contadores | zinc-200 | zinc-700 | `bg-zinc-200` |
-| `line` | Bordes de tarjeta y separadores | zinc-200 | zinc-800 | `border-zinc-200`, `border-zinc-100` (≈) |
-| `line-strong` | Botones secundarios, menú móvil | zinc-300 | zinc-600 | `border-zinc-300` |
-| `line-control` | Campos de formulario | zinc-400 | zinc-500 | `border-zinc-400`, `border-zinc-500` (≈) |
-| `fg` | Texto principal y títulos | zinc-900 | zinc-50 | `text-zinc-900`, `text-zinc-800` (≈) |
-| `fg-muted` | Texto secundario | zinc-700 | zinc-300 | `text-zinc-700` |
-| `fg-subtle` | Ayudas, fechas, pie | zinc-600 | zinc-400 | `text-zinc-600`, `text-zinc-500` (≈, más contraste) |
-| `link` | Links dentro del texto | sky-800 | sky-300 | `text-sky-800` |
-| `focus` | Anillo de foco | zinc-900 | zinc-100 | `outline-zinc-900`, `ring-zinc-900` |
-| `brand` / `brand-hover` / `brand-contrast` | Botón primario, su hover y su texto | zinc-900 / zinc-800 / white | zinc-100 / white / zinc-900 | `bg-zinc-900 text-white` |
-| `on-strong` | Texto sobre un relleno fuerte de estado | white | white | `text-white` sobre `bg-emerald-700`… |
+| Token (clase) | Para qué | Claro | Oscuro |
+|---|---|---|---|
+| `canvas` | Fondo de la página | `#F5F5F7` | `#14123A` |
+| `surface` | Tarjetas, diálogos, campos | `#FFFFFF` | `#24215A` |
+| `surface-subtle` | Recuadro dentro de una tarjeta | `#FAFAFC` | `#100E30` |
+| `surface-muted` | Chips neutros, hover | `#F4F4F7` | `#2A2766` |
+| `surface-strong` | Contadores | `#E4E4EA` | `#34316B` |
+| `line` | Bordes de tarjeta y separadores | `#E4E4EA` | `#34316B` |
+| `line-strong` | Botones secundarios, menú móvil | `#D4D4DC` | `#4B4890` |
+| `line-control` | Campos de formulario (3:1 o más, WCAG 1.4.11) | `#71717A` | `#8B89B8` |
+| `fg` | Texto principal y títulos | `#14123A` | `#F5F5F7` |
+| `fg-muted` | Texto secundario | `#3F3F46` | `#D4D4E0` |
+| `fg-subtle` | Ayudas, fechas, pie | `#52525B` | `#A9A8C8` |
+| `link` / `link-hover` | Links dentro del texto | `#4338CA` / `#3730A3` | `#C6F25B` / `#D9F78A` |
+| `focus` | Anillo de foco (2 px, separación de 2). Los campos lo llevan siempre (regla base) además del borde | `#4338CA` | `#C6F25B` |
+| `brand` / `brand-hover` / `brand-contrast` | Botón primario, su hover y su texto | `#C6F25B` / `#B4E046` / índigo | `#C6F25B` / `#D9F78A` / índigo |
+| `brand-text` | El acento como texto (sección activa, acento) | `#4338CA` | `#C6F25B` |
+| `ink` / `on-ink` / `on-ink-muted` / `ink-line` | Header y bloques índigo (iguales en los dos modos) | `#1E1B4B` / blanco / `#C7C6E6` / `#34316B` | ídem |
+| `on-strong` | Texto sobre un relleno fuerte de estado | blanco | blanco |
 
-Estados: cada uno tiene texto, fondo suave, borde y relleno fuerte.
+Estados (manual M4): cada uno tiene texto, fondo suave, fondo enfático, borde y relleno fuerte.
 
-| Estado | `text-*` | `bg-*-soft` | `bg-*-muted` | `border-*-line` | `bg-*-strong` | Reemplaza |
-|---|---|---|---|---|---|---|
-| `success` | emerald-900 / emerald-200 | emerald-50 / emerald-950 | emerald-100 / emerald-900 | emerald-200 / emerald-800 | emerald-700 | `emerald-*`, `green-*` |
-| `warning` | amber-900 / amber-200 | amber-50 / amber-950 | amber-100 / amber-900 | amber-200 / amber-800 | amber-700 | `amber-*` |
-| `danger` | red-800 / red-200 | red-50 / red-950 | red-100 / red-900 | red-200 / red-800 | red-700 | `red-*` |
-| `info` | sky-900 / sky-200 | sky-50 / sky-950 | sky-100 / sky-900 | sky-200 / sky-800 | sky-700 | `sky-*`, `blue-*` |
+| Estado | `text-*` | `bg-*-soft` (avisos) | `bg-*-muted` (etiquetas, score) | `border-*-line` | `bg-*-strong` |
+|---|---|---|---|---|---|
+| `success` (score alto, ubicación ok) | `#064E3B` / `#A7F3D0` | `#ECFDF5` / `#022C22` | `#D1FAE5` / `#064E3B` | `#A7F3D0` / `#065F46` | `#047857` |
+| `warning` (score medio, riesgo) | `#78350F` / `#FDE68A` | `#FFFBEB` / `#2A1606` | `#FEF3C7` / `#78350F` | `#FDE68A` / `#92400E` | `#B45309` |
+| `danger` (impide postular) | `#991B1B` / `#FECACA` | `#FEF2F2` / `#2A0A0A` | `#FEE2E2` / `#7F1D1D` | `#FECACA` / `#991B1B` | `#B91C1C` |
+| `info` (en cola, fuente) | `#075985` / `#BAE6FD` | `#F0F9FF` / `#082033` | `#E0F2FE` / `#0C4A6E` | `#BAE6FD` / `#075985` | `#0369A1` |
 
-(claro / oscuro). En oscuro el texto de estado sube a los tonos 200 para pasar AA (4.5:1) sobre los fondos 950 y 900.
+(claro / oscuro). El score bajo y la etiqueta neutra usan `surface-muted` con `fg-muted` (`#F5F5F4` / `#44403C` del manual).
 
-`-soft` es el fondo de un aviso o un panel. `-muted` es un fondo enfático para lo que tiene que resaltar en una lista: la caja del puntaje y los badges de bloqueador o duplicado. No usar `-muted` para avisos.
+`-soft` es el fondo de un aviso o un panel. `-muted` es un fondo enfático para lo que tiene que resaltar en una lista: la caja del puntaje y las etiquetas. No usar `-muted` para avisos.
+
+**Contraste.** Todos los pares texto/fondo de las tablas pasan AA (4,5:1) en los dos modos, salvo `link` sobre `surface-strong` en claro (4,1:1): no poner links sobre contadores. El script de chequeo está en el PR de C7-1; los e2e de axe (61, 70, 76, 77, 87, 88) lo verifican sobre las pantallas.
 
 ## Radios y tipografía
 
 | Token | Clase | Valor | Para qué |
 |---|---|---|---|
-| `--radius-control` | `rounded-control` | 0.375rem | Botones, campos, avisos |
-| `--radius-card` | `rounded-card` | 0.375rem | Tarjetas y paneles. Hoy igual a control; separarlo permite redondear tarjetas sin tocar botones |
-| `--radius-badge` | `rounded-badge` | 0.25rem | Badges cuadrados de las listas |
-| `--radius-pill` | `rounded-pill` | 9999px | Badges redondos y contadores |
-| `--text-title` | `text-title` | 1.25rem / 1.75rem | `h1` de pantalla con sesión (hoy `text-xl`) |
-| `--text-heading` | `text-heading` | 1.125rem / 1.75rem | `h2` de sección (hoy `text-lg`); los h2 de tarjeta siguen en `text-base` |
+| `--radius-control` | `rounded-control` | 0.75rem (12 px) | Botones, campos, avisos |
+| `--radius-card` | `rounded-card` | 1rem (16 px) | Tarjetas y paneles |
+| `--radius-badge` | `rounded-badge` | 0.375rem (6 px) | Etiquetas de las listas |
+| `--radius-pill` | `rounded-pill` | 9999px | Badges redondos, contadores, avatar |
+| `--text-title` | `text-title` | 1.5rem / 1.875rem | `h1` de pantalla con sesión (el manual pide 28/34 en escritorio; 24 entra mejor a 390 px) |
+| `--text-heading` | `text-heading` | 1.125rem / 1.75rem | `h2` de sección; los h2 de tarjeta siguen en `text-base` |
 
-La vitrina pública usa títulos más grandes (`text-2xl` a `text-4xl`) y no lleva estos dos tokens.
+**Familias** (`apps/web/app/fonts.ts`, con `next/font/local` y los archivos de `apps/web/assets/fonts`: subset latin, `display: swap`, servidas desde el mismo dominio y sin depender de la red en el build):
 
-Los espacios siguen la escala de Tailwind (`--spacing`, 0.25rem): no hace falta un token propio. La familia tipográfica es la de Tailwind por defecto (`--font-sans`).
+| Clase | Fuente | Pesos | Para qué |
+|---|---|---|---|
+| `font-sans` (por defecto) | Manrope | 500, 600, 700 | Todo el texto de la app |
+| `font-display` | Sora | 300, 700, 800 | Logo y títulos. Todo `h1` va en Sora por la capa base de `globals.css` |
+
+Los espacios siguen la escala de Tailwind (`--spacing`, 0.25rem = el espacio base 4 del manual). Áreas táctiles: 44 px como mínimo (`min-h-11`); campos, selects y `summary` lo tienen por la capa base de `globals.css` (C7-15).
 
 ## Tema claro u oscuro
 
-`apps/web/app/theme-script.tsx` pone la clase `dark` en `<html>` antes de pintar. Lee `localStorage["jso-tema"]`: `claro`, `oscuro` o `sistema`.
+`apps/web/app/theme-script.tsx` pone la clase `dark` en `<html>` antes de pintar. Lee `localStorage["jso-tema"]`: `claro`, `oscuro` o `sistema`. **Sin preferencia vale `sistema`** (C7-1): la app sigue a `prefers-color-scheme` del dispositivo, y cambia sola si el dispositivo cambia.
 
-Mientras haya pantallas sin migrar, el valor por defecto es `claro`: una pantalla con colores sueltos se vería a medias en oscuro. Para probar el oscuro a mano, en la consola del navegador:
-
-```js
-localStorage.setItem("jso-tema", "oscuro"); location.reload();
-```
-
-Cuando todas las pantallas usen tokens (ticket 4 de N3), `DEFAULT_THEME` pasa a `sistema` y se suma el selector en Ajustes.
-
-## Diferencias conocidas con lo que había
-
-- `danger` es red-800. Hay unos 22 `text-red-700`: al migrarlos quedan un tono más oscuros (más contraste).
-- `line-control` es zinc-400, pero la mayoría de los campos hoy usa `border-zinc-300` (1,5:1 contra blanco). Migrarlos a `line-control` los oscurece un poco a propósito; aun zinc-400 queda debajo del 3:1 de WCAG 1.4.11, y se revisa en el ticket 4 (contraste AA).
-- `success` es emerald-900; auth y perfil usan emerald-700 y green-800 para el mismo significado.
+La preferencia se elige en **Ajustes → Apariencia** (`settings/theme-select.tsx`): «Como el dispositivo», «Claro» u «Oscuro».
 
 ## Cómo saber qué falta migrar
 
 ```bash
 # Colores de la paleta en un archivo o carpeta (debería dar 0 en lo migrado)
-grep -rnE '\b(bg|text|border|outline|ring|divide|placeholder|from|to)-(white|black|zinc|red|amber|emerald|green|sky|blue)(-[0-9]+)?\b' apps/web/app/'(app)'/hoy
+grep -rnE '\b(bg|text|border|outline|ring|divide|placeholder|from|to)-(white|black|zinc|stone|red|amber|emerald|green|sky|blue|orange)(-[0-9]+)?\b' apps/web/app/'(app)'/hoy
 ```
 
 Excepciones a propósito, las únicas con color de la paleta:

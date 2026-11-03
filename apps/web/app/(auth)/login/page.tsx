@@ -1,10 +1,10 @@
-import { PRODUCT_NAME } from "@job-search-os/pipeline";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { signIn } from "@/auth";
 import { SubmitButton } from "@/app/components/submit-button";
 import { ClearAssistantProposal } from "@/components/clear-assistant-proposal";
 import { hasAnyUser } from "@/lib/setup";
+import { Logo } from "@/components/brand/logo";
 
 // Igual que /setup: el gate hacia /setup depende de una lectura de la base en cada visita.
 export const dynamic = "force-dynamic";
@@ -47,28 +47,30 @@ export default async function LoginPage({
         Saltar al contenido
       </a>
       <div>
-        <h1 className="text-2xl font-semibold">{PRODUCT_NAME}</h1>
+        <h1 className="mb-2">
+          <Logo size="md" />
+        </h1>
         <p className="text-sm text-fg-subtle">Entrá con tu email y contraseña.</p>
       </div>
       <form action={login} className="flex flex-col gap-3">
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1.5 text-sm font-semibold">
           Email
           <input
             name="email"
             type="email"
             autoComplete="username"
             required
-            className="rounded-control border border-line-strong px-3 py-2 text-base"
+            className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus-visible:border-focus aria-invalid:border-danger-strong"
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1.5 text-sm font-semibold">
           Contraseña
           <input
             name="password"
             type="password"
             autoComplete="current-password"
             required
-            className="rounded-control border border-line-strong px-3 py-2 text-base"
+            className="min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg placeholder:text-fg-subtle focus-visible:border-focus aria-invalid:border-danger-strong"
           />
         </label>
         {reset ? (
@@ -81,7 +83,7 @@ export default async function LoginPage({
         ) : null}
         <SubmitButton
           pendingLabel="Entrando…"
-          className="mt-2 rounded-control bg-brand px-4 py-2 text-base font-medium text-brand-contrast"
+          className="mt-2 inline-flex min-h-12 items-center justify-center rounded-control bg-brand px-4 text-base font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         >
           Entrar
         </SubmitButton>

@@ -3,7 +3,6 @@ import {
   BETA_PLAN,
   limitsText,
   listedPlans,
-  paymentLink,
   planDef,
   priceLabel,
   priceReference,
@@ -25,13 +24,13 @@ const OPENS = new Intl.DateTimeFormat("es-AR", {
 }).format(BETA_OPENS_AT);
 
 export const metadata: Metadata = {
-  title: { absolute: "Precios" },
-  description: `Un plan gratis y el plan de la beta: ${priceLabel(BETA)}, con un link de Mercado Pago.`,
+  title: "Precios",
+  description: `Un plan gratis y el plan de la beta: ${priceLabel(BETA)}. El link de pago llega con la invitación.`,
   alternates: { canonical: "/precios" },
 };
 
 const CTA =
-  "inline-flex min-h-11 items-center justify-center rounded-control px-4 text-base font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
+  "inline-flex min-h-11 items-center justify-center rounded-control px-4 text-base font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 const FAQ: readonly { q: string; a: string }[] = [
   {
@@ -40,7 +39,7 @@ const FAQ: readonly { q: string; a: string }[] = [
   },
   {
     q: "¿Cómo pago?",
-    a: `Con un link de Mercado Pago, en pesos (${priceReference(BETA) ?? "sin referencia en dólares"}). También podés pagar por transferencia: escribinos y te pasamos los datos. La app no guarda datos de tarjetas.`,
+    a: `Cuando te invitamos, te mandamos el link de Mercado Pago junto con la invitación. Se paga en pesos (${priceReference(BETA) ?? "sin referencia en dólares"}). También podés pagar por transferencia: escribinos y te pasamos los datos. La app no guarda datos de tarjetas.`,
   },
   {
     q: "¿Cuándo empieza mi acceso?",
@@ -48,7 +47,7 @@ const FAQ: readonly { q: string; a: string }[] = [
   },
   {
     q: "¿Se renueva solo?",
-    a: "No. Cada mes pagás de nuevo, con el mismo link. Tres días antes de que venza te avisamos dentro de la app, y ahí mismo ves hasta cuándo tenés acceso.",
+    a: "No. Cada mes pagás de nuevo, con el mismo link de la invitación. Tres días antes de que venza te avisamos, y en Ajustes ves hasta cuándo tenés acceso.",
   },
   {
     q: "¿Qué pasa cuando vence?",
@@ -84,12 +83,7 @@ export default function PreciosPage() {
 
       <ul className="grid gap-4 sm:grid-cols-2" data-testid="precios-planes">
         {listedPlans().map((plan) => (
-          <PlanCard
-            key={plan.key}
-            plan={plan}
-            lines={limitsText(plan.limits, enabled)}
-            link={paymentLink(process.env, plan.key)}
-          />
+          <PlanCard key={plan.key} plan={plan} lines={limitsText(plan.limits, enabled)} />
         ))}
       </ul>
 
@@ -118,7 +112,7 @@ export default function PreciosPage() {
   );
 }
 
-function PlanCard({ plan, lines, link }: { plan: PlanDef; lines: string[]; link: string | null }) {
+function PlanCard({ plan, lines }: { plan: PlanDef; lines: string[] }) {
   const free = plan.billing === "gratis";
   return (
     <li
@@ -157,19 +151,11 @@ function PlanCard({ plan, lines, link }: { plan: PlanDef; lines: string[]; link:
           >
             Pedir acceso
           </Link>
-        ) : link ? (
-          // Link externo de Mercado Pago (validado en paymentLink): otra pestaña y sin referrer
-          <a
-            href={link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`${CTA} border border-fg bg-surface text-fg hover:bg-surface-muted`}
-          >
-            Pagar con Mercado Pago
-            <span className="sr-only"> (se abre en otra pestaña)</span>
-          </a>
         ) : (
-          <p className="text-sm text-fg-subtle">Pronto</p>
+          // C7-12: sin botón ni link de pago acá; el link va solo en el mensaje de invitación
+          <p className="rounded-control bg-surface-muted px-3 py-2 text-sm font-semibold text-fg-muted">
+            Te pasamos el link de pago cuando te invitemos.
+          </p>
         )}
       </div>
     </li>

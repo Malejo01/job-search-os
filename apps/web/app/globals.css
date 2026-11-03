@@ -8,18 +8,21 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * Tokens de diseño (N3-2). Un solo lugar para colores, radios y tipografía; ver docs/ux/tokens.md.
+ * Tokens de diseño (N3-2, paleta AfinIAJobs en C7-1). Un solo lugar para colores, radios y
+ * tipografía; ver docs/ux/tokens.md y docs/ux/rediseno-afiniajobs/README.md.
  *
  * - Las páginas usan las clases semánticas (`bg-surface`, `text-fg-muted`, `border-line`,
- *   `bg-danger-soft`…), nunca un color de la paleta (`bg-zinc-50`, `text-red-800`).
+ *   `bg-danger-soft`…), nunca un color de la paleta (`bg-stone-50`, `text-red-800`).
  * - Cada token es una variable `--jso-*` con un valor en claro (`:root`) y otro en oscuro (`.dark`).
  *   `@theme inline` hace que la clase lea la variable en el momento, así el cambio de clase alcanza.
- * - En claro valen exactamente lo que usaba la app antes de los tokens: migrar una pantalla no
- *   cambia nada a la vista.
+ * - Los valores van en hexadecimal a propósito: axe-core no sabe leer algunos `oklch` de Tailwind
+ *   (tono `none`) y deja el contraste sin medir.
  *
- * Colores de marca (C-15): `--jso-brand*`. Hoy valen el gris oscuro de la app. Para cambiar de
- * marca se editan esas líneas (claro y oscuro); las clases son `bg-brand`, `hover:bg-brand-hover`
- * y `text-brand-contrast`. Ver docs/MARCA.md.
+ * Marca (C-15, C7-1; paleta «índigo y lima» del 3/11): índigo `#1E1B4B` (base, header y texto
+ * del botón), lima `#C6F25B` (acción, nunca estado) e índigo vivo `#4338CA` (el acento que se usa
+ * como texto y foco sobre claro). Neutros fríos (escala Zinc). Clases: `bg-brand` con
+ * `text-brand-contrast` (índigo sobre lima, 12,4:1), `text-brand-text` para el acento como texto,
+ * `bg-ink` con `text-on-ink` para el header. Ver docs/MARCA.md.
  */
 @theme inline {
   --color-canvas: var(--jso-canvas);
@@ -36,12 +39,29 @@
   --color-fg-muted: var(--jso-fg-muted);
   --color-fg-subtle: var(--jso-fg-subtle);
   --color-link: var(--jso-link);
+  --color-link-hover: var(--jso-link-hover);
   --color-focus: var(--jso-focus);
   --color-on-strong: var(--jso-on-strong);
 
   --color-brand: var(--jso-brand);
   --color-brand-hover: var(--jso-brand-hover);
   --color-brand-contrast: var(--jso-brand-contrast);
+  --color-brand-text: var(--jso-brand-text);
+
+  /* Tinta: header y bloques oscuros de marca. Igual en los dos modos. */
+  --color-ink: var(--jso-ink);
+  --color-on-ink: var(--jso-on-ink);
+  --color-on-ink-muted: var(--jso-on-ink-muted);
+  --color-ink-line: var(--jso-ink-line);
+
+  /*
+   * Logo que acompaña al modo (C7-2): «AfinIA», «Jobs», trazo del monograma y punto. En claro,
+   * índigo e índigo vivo; en oscuro, lima y blanco. Lo usa solo <Logo tone="auto">.
+   */
+  --color-logo-strong: var(--jso-logo-strong);
+  --color-logo-light: var(--jso-logo-light);
+  --color-logo-mark: var(--jso-logo-mark);
+  --color-logo-dot: var(--jso-logo-dot);
 
   --color-success: var(--jso-success);
   --color-success-soft: var(--jso-success-soft);
@@ -66,149 +86,224 @@
   --color-info-muted: var(--jso-info-muted);
   --color-info-line: var(--jso-info-line);
   --color-info-strong: var(--jso-info-strong);
+
+  /*
+   * Tipografías (C7-1): las variables las pone `next/font` en `<html>` (app/fonts.ts). Manrope es
+   * el texto de la app (`font-sans`, por defecto); Sora, el logo y los títulos (`font-display`).
+   */
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-sora), ui-sans-serif, system-ui, sans-serif;
 }
 
 /* Radios y tipografía: no cambian con el modo, van en `@theme` directo. */
 @theme {
   /*
    * Tailwind 4.3 define zinc-50 con tono `none` (`oklch(98.5% 0 none)`) y axe-core 4.13 no sabe
-   * leerlo: la regla de contraste se cortaba en el <body> (bg-zinc-50 desde antes de los tokens)
-   * y no medía ni un nodo de ninguna pantalla. Mismo color, con tono 0.
+   * leerlo. Ya no lo usa ningún token, pero queda corregido por si alguna excepción lo nombra.
    */
   --color-zinc-50: oklch(98.5% 0 0);
 
-  /* Botones, campos, chips cuadrados y avisos. */
-  --radius-control: 0.375rem;
-  /* Tarjetas y paneles. Hoy es el mismo valor que control: separarlos permite redondear las tarjetas sin tocar los botones. */
-  --radius-card: 0.375rem;
-  /* Badges cuadrados de las listas (estado, fuente, riesgo). */
-  --radius-badge: 0.25rem;
+  /* Botones, campos y avisos (manual: radio 12). */
+  --radius-control: 0.75rem;
+  /* Tarjetas y paneles (manual: 16). */
+  --radius-card: 1rem;
+  /* Etiquetas cuadradas de las listas (estado, fuente, riesgo). */
+  --radius-badge: 0.375rem;
   /* Badges redondos y contadores. */
   --radius-pill: 9999px;
 
   /*
-   * Títulos de la app con sesión: h1 de pantalla (hoy `text-xl`) y h2 de sección (hoy `text-lg`).
-   * La vitrina pública usa títulos más grandes a propósito y no lleva estos tokens.
+   * Títulos de la app con sesión: h1 de pantalla y h2 de sección. El manual pide 28/34 para el
+   * título de página en escritorio; en la app con sesión se usa 24/30 para que un título largo no
+   * ocupe tres líneas a 390 px. La vitrina pública usa títulos más grandes y no lleva estos tokens.
    */
-  --text-title: 1.25rem;
-  --text-title--line-height: 1.75rem;
+  --text-title: 1.5rem;
+  --text-title--line-height: 1.875rem;
   --text-heading: 1.125rem;
   --text-heading--line-height: 1.75rem;
 }
 
-:root {
+/*
+ * `.light` repite los valores de claro para una parte de la página (la vitrina de marca de
+ * /settings/marca muestra claro y oscuro lado a lado). `.dark` hace lo mismo con los de oscuro.
+ */
+:root,
+.light {
   color-scheme: light;
 
   /*
    * Fondos: la página (canvas), tarjetas (surface), un recuadro dentro de una tarjeta (subtle),
    * chips neutros, hover y la sección activa del menú (muted), contadores (strong).
    */
-  --jso-canvas: var(--color-zinc-50);
-  --jso-surface: var(--color-white);
-  --jso-surface-subtle: var(--color-zinc-50);
-  --jso-surface-muted: var(--color-zinc-100);
-  --jso-surface-strong: var(--color-zinc-200);
-
-  /* Bordes: separadores y tarjetas (line), botones secundarios (strong), campos de formulario (control). */
-  --jso-line: var(--color-zinc-200);
-  --jso-line-strong: var(--color-zinc-300);
-  --jso-line-control: var(--color-zinc-400);
-
-  /* Texto: principal, secundario y terciario. Los tres pasan AA sobre todos los fondos de arriba. */
-  --jso-fg: var(--color-zinc-900);
-  --jso-fg-muted: var(--color-zinc-700);
-  --jso-fg-subtle: var(--color-zinc-600);
-  --jso-link: var(--color-sky-800);
-  --jso-focus: var(--color-zinc-900);
-  /* Texto sobre los rellenos fuertes de estado (`bg-success-strong`…). */
-  --jso-on-strong: var(--color-white);
-
-  --jso-brand: var(--color-zinc-900);
-  --jso-brand-hover: var(--color-zinc-800);
-  --jso-brand-contrast: var(--color-white);
+  --jso-canvas: #f5f5f7;
+  --jso-surface: #ffffff;
+  --jso-surface-subtle: #fafafc;
+  --jso-surface-muted: #f4f4f7;
+  --jso-surface-strong: #e4e4ea;
 
   /*
-   * Estados: texto (`text-success`), fondo suave (`bg-success-soft`), fondo enfático
-   * (`bg-success-muted`, caja del puntaje y badges que tienen que resaltar en una lista), borde
-   * (`border-success-line`) y relleno fuerte con texto blanco encima (`bg-success-strong`).
+   * Bordes: separadores y tarjetas (line), botones secundarios (strong), campos de formulario
+   * (control: 4,8:1 contra blanco, pasa el 3:1 de WCAG 1.4.11).
    */
-  --jso-success: var(--color-emerald-900);
-  --jso-success-soft: var(--color-emerald-50);
-  --jso-success-muted: var(--color-emerald-100);
-  --jso-success-line: var(--color-emerald-200);
-  --jso-success-strong: var(--color-emerald-700);
+  --jso-line: #e4e4ea;
+  --jso-line-strong: #d4d4dc;
+  --jso-line-control: #71717a;
 
-  --jso-warning: var(--color-amber-900);
-  --jso-warning-soft: var(--color-amber-50);
-  --jso-warning-muted: var(--color-amber-100);
-  --jso-warning-line: var(--color-amber-200);
-  --jso-warning-strong: var(--color-amber-700);
+  /* Texto: principal (tinta), secundario y terciario. Los tres pasan AA sobre todos los fondos. */
+  --jso-fg: #14123a;
+  --jso-fg-muted: #3f3f46;
+  --jso-fg-subtle: #52525b;
+  --jso-link: #4338ca;
+  --jso-link-hover: #3730a3;
+  /*
+   * Foco: en claro, índigo vivo (7,9:1 contra blanco; la lima da 1,3:1 y el indicador de foco pide
+   * 3:1, WCAG 1.4.11). En oscuro, la lima de marca.
+   */
+  --jso-focus: #4338ca;
+  /* Texto sobre los rellenos fuertes de estado (`bg-success-strong`…). */
+  --jso-on-strong: #ffffff;
 
-  --jso-danger: var(--color-red-800);
-  --jso-danger-soft: var(--color-red-50);
-  --jso-danger-muted: var(--color-red-100);
-  --jso-danger-line: var(--color-red-200);
-  --jso-danger-strong: var(--color-red-700);
+  --jso-brand: #c6f25b;
+  --jso-brand-hover: #b4e046;
+  --jso-brand-contrast: #1e1b4b;
+  --jso-brand-text: #4338ca;
 
-  --jso-info: var(--color-sky-900);
-  --jso-info-soft: var(--color-sky-50);
-  --jso-info-muted: var(--color-sky-100);
-  --jso-info-line: var(--color-sky-200);
-  --jso-info-strong: var(--color-sky-700);
+  --jso-ink: #1e1b4b;
+  --jso-on-ink: #ffffff;
+  --jso-on-ink-muted: #c7c6e6;
+  --jso-ink-line: #34316b;
+
+  --jso-logo-strong: #1e1b4b;
+  --jso-logo-light: #4338ca;
+  --jso-logo-mark: #1e1b4b;
+  --jso-logo-dot: #4338ca;
+
+  /*
+   * Estados (manual M4): texto (`text-success`), fondo suave de avisos (`bg-success-soft`), fondo
+   * enfático de etiquetas y de la caja del score (`bg-success-muted`), borde (`border-success-line`)
+   * y relleno fuerte con texto blanco encima (`bg-success-strong`). La lima nunca es un estado.
+   */
+  --jso-success: #064e3b;
+  --jso-success-soft: #ecfdf5;
+  --jso-success-muted: #d1fae5;
+  --jso-success-line: #a7f3d0;
+  --jso-success-strong: #047857;
+
+  --jso-warning: #78350f;
+  --jso-warning-soft: #fffbeb;
+  --jso-warning-muted: #fef3c7;
+  --jso-warning-line: #fde68a;
+  --jso-warning-strong: #b45309;
+
+  --jso-danger: #991b1b;
+  --jso-danger-soft: #fef2f2;
+  --jso-danger-muted: #fee2e2;
+  --jso-danger-line: #fecaca;
+  --jso-danger-strong: #b91c1c;
+
+  --jso-info: #075985;
+  --jso-info-soft: #f0f9ff;
+  --jso-info-muted: #e0f2fe;
+  --jso-info-line: #bae6fd;
+  --jso-info-strong: #0369a1;
 }
 
 /*
- * Oscuro: superficies zinc 950/900/800 y texto claro. Los colores de estado bajan a los tonos 950
- * de fondo y suben a los 200/300 de texto, para que el texto pase AA (4.5:1) sobre su fondo suave.
+ * Oscuro (paleta del 3/11): fondo índigo #14123A, tarjetas #24215A y bordes #34316B. Los estados bajan a fondos
+ * muy oscuros y suben a texto claro, para que el texto pase AA (4.5:1) sobre su fondo.
  */
 .dark {
   color-scheme: dark;
 
-  --jso-canvas: var(--color-zinc-950);
-  --jso-surface: var(--color-zinc-900);
+  --jso-canvas: #14123a;
+  --jso-surface: #24215a;
   /* Hundido respecto de la tarjeta: en oscuro, un recuadro interno se lee mejor más oscuro. */
-  --jso-surface-subtle: var(--color-zinc-950);
-  --jso-surface-muted: var(--color-zinc-800);
-  --jso-surface-strong: var(--color-zinc-700);
+  --jso-surface-subtle: #100e30;
+  --jso-surface-muted: #2a2766;
+  --jso-surface-strong: #34316b;
 
-  --jso-line: var(--color-zinc-800);
-  --jso-line-strong: var(--color-zinc-600);
-  --jso-line-control: var(--color-zinc-500);
+  --jso-line: #34316b;
+  --jso-line-strong: #4b4890;
+  --jso-line-control: #8b89b8;
 
-  --jso-fg: var(--color-zinc-50);
-  --jso-fg-muted: var(--color-zinc-300);
-  --jso-fg-subtle: var(--color-zinc-400);
-  --jso-link: var(--color-sky-300);
-  --jso-focus: var(--color-zinc-100);
-  --jso-on-strong: var(--color-white);
+  --jso-fg: #f5f5f7;
+  --jso-fg-muted: #d4d4e0;
+  --jso-fg-subtle: #a9a8c8;
+  --jso-link: #c6f25b;
+  --jso-link-hover: #d9f78a;
+  --jso-focus: #c6f25b;
+  --jso-on-strong: #ffffff;
 
-  --jso-brand: var(--color-zinc-100);
-  --jso-brand-hover: var(--color-white);
-  --jso-brand-contrast: var(--color-zinc-900);
+  --jso-brand: #c6f25b;
+  --jso-brand-hover: #d9f78a;
+  --jso-brand-contrast: #1e1b4b;
+  --jso-brand-text: #c6f25b;
 
-  --jso-success: var(--color-emerald-200);
-  --jso-success-soft: var(--color-emerald-950);
-  --jso-success-muted: var(--color-emerald-900);
-  --jso-success-line: var(--color-emerald-800);
-  --jso-success-strong: var(--color-emerald-700);
+  --jso-ink: #1e1b4b;
+  --jso-on-ink: #ffffff;
+  --jso-on-ink-muted: #c7c6e6;
+  --jso-ink-line: #34316b;
 
-  --jso-warning: var(--color-amber-200);
-  --jso-warning-soft: var(--color-amber-950);
-  --jso-warning-muted: var(--color-amber-900);
-  --jso-warning-line: var(--color-amber-800);
-  --jso-warning-strong: var(--color-amber-700);
+  --jso-logo-strong: #c6f25b;
+  --jso-logo-light: #ffffff;
+  --jso-logo-mark: #c6f25b;
+  --jso-logo-dot: #ffffff;
 
-  --jso-danger: var(--color-red-200);
-  --jso-danger-soft: var(--color-red-950);
-  --jso-danger-muted: var(--color-red-900);
-  --jso-danger-line: var(--color-red-800);
-  --jso-danger-strong: var(--color-red-700);
+  --jso-success: #a7f3d0;
+  --jso-success-soft: #022c22;
+  --jso-success-muted: #064e3b;
+  --jso-success-line: #065f46;
+  --jso-success-strong: #047857;
 
-  --jso-info: var(--color-sky-200);
-  --jso-info-soft: var(--color-sky-950);
-  --jso-info-muted: var(--color-sky-900);
-  --jso-info-line: var(--color-sky-800);
-  --jso-info-strong: var(--color-sky-700);
+  --jso-warning: #fde68a;
+  --jso-warning-soft: #2a1606;
+  --jso-warning-muted: #78350f;
+  --jso-warning-line: #92400e;
+  --jso-warning-strong: #b45309;
+
+  --jso-danger: #fecaca;
+  --jso-danger-soft: #2a0a0a;
+  --jso-danger-muted: #7f1d1d;
+  --jso-danger-line: #991b1b;
+  --jso-danger-strong: #b91c1c;
+
+  --jso-info: #bae6fd;
+  --jso-info-soft: #082033;
+  --jso-info-muted: #0c4a6e;
+  --jso-info-line: #075985;
+  --jso-info-strong: #0369a1;
+}
+
+/*
+ * Base tipográfica (C7-1): los títulos de pantalla van en Sora (manual M5); el resto del texto en
+ * Manrope, que es `font-sans`. Un título que necesite Manrope lleva `font-sans`.
+ */
+@layer base {
+  /*
+   * Foco de los campos (C7-4, manual M8): anillo del color de foco aunque el campo no traiga su propia clase
+   * de foco. Con `:where` no pesa nada: cualquier utilidad `focus-visible:` del campo lo pisa.
+   */
+  :where(input, select, textarea):focus-visible {
+    outline: 2px solid var(--jso-focus);
+    outline-offset: 2px;
+  }
+
+  /*
+   * Áreas táctiles (C7-15): 44 px como mínimo para campos, selects y el «summary» de los
+   * desplegables, aunque su clase no lo diga. Con `:where` no pesa nada: una clase propia lo pisa.
+   */
+  :where(input:not([type="checkbox"], [type="radio"], [type="hidden"], [type="range"]), select) {
+    min-height: 2.75rem;
+  }
+  :where(summary) {
+    min-height: 2.75rem;
+    padding-block: 0.625rem;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
 }
 
 /*

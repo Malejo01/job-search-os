@@ -8,7 +8,7 @@ import {
   type FitSummary,
   type RoleKey,
 } from "@job-search-os/pipeline";
-import { and, desc, eq, gte, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 import { getCareerMarket } from "./career-market";
 import { withUser } from "./db";
@@ -51,7 +51,11 @@ function readOwnData(userId: string, since: Date) {
   return withUser(userId, async (tx) => {
     // Más nuevas primero: la primera fila de cada oferta es su última evaluación
     const evals = await tx
-      .select({ jobId: s.evaluations.jobId, decision: s.evaluations.decision })
+      // Solo `decision.checklist` (C6-3): el resto del jsonb (justificaciones, razonamiento) pesa 2 a 4 KB por fila
+      .select({
+        jobId: s.evaluations.jobId,
+        checklist: sql<unknown>`${s.evaluations.decision}->'checklist'`,
+      })
       .from(s.evaluations)
       .innerJoin(s.jobs, eq(s.jobs.id, s.evaluations.jobId))
       .where(
@@ -66,7 +70,7 @@ function readOwnData(userId: string, since: Date) {
     const latest = new Map<string, unknown>();
     for (const e of evals) {
       if (latest.size >= FIT_MAX_OFFERS) break;
-      if (!latest.has(e.jobId)) latest.set(e.jobId, e.decision);
+      if (!latest.has(e.jobId)) latest.set(e.jobId, e.checklist);
     }
     const jobIds = [...latest.keys()];
     const [asked, levels, profileRows] = await Promise.all([
@@ -114,9 +118,9 @@ async function readFitData(userId: string, role: RoleKey, now: Date): Promise<Fi
   }
   for (const row of raw.levels) skillNames.set(row.slug, row.name);
 
-  const offers: FitOffer[] = [...raw.latest].map(([jobId, decision]) => ({
+  const offers: FitOffer[] = [...raw.latest].map(([jobId, checklist]) => ({
     // `parseChecklist` valida la forma al leer; el tipo del pipeline es más estrecho (ids literales)
-    checklist: parseChecklist(decision) as Checklist | null,
+    checklist: parseChecklist({ checklist }) as Checklist | null,
     skills: skillsByJob.get(jobId) ?? [],
   }));
   const summary = buildFitSummary({

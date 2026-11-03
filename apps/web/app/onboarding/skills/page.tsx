@@ -54,10 +54,10 @@ export default async function OnboardingSkillsPage({
           />
         }
       />
-      <h1 className="text-xl font-semibold">Tus skills</h1>
+      <h1 className="text-title font-bold">Tus skills</h1>
       <p className="text-sm text-fg-subtle">
-        Opcional. Con tus niveles, el mercado y el plan muestran lo que te falta de verdad. Lo podés
-        cambiar después en Ajustes
+        Opcional. Con tus niveles te mostramos qué te falta de verdad en el mercado y en tu plan. Lo
+        podés cambiar después en Ajustes.
       </p>
       <SkillsForm
         action={saveOnboardingSkillsAction}

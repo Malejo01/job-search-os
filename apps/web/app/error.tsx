@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { Logo } from "@/components/brand/logo";
+import { buttonClasses } from "@/components/ui";
 
 export default function ErrorPage({
   error,
@@ -11,20 +13,16 @@ export default function ErrorPage({
 }) {
   return (
     <main id="contenido" className="mx-auto flex max-w-md flex-col gap-3 px-4 py-16">
-      <h1 className="text-xl font-semibold">Algo falló de nuestro lado</h1>
-      <p className="text-sm text-fg-subtle">Probá de nuevo. Si sigue pasando, avisanos.</p>
+      <Logo className="mb-4" />
+      <h1 className="text-title font-bold">Algo falló de nuestro lado</h1>
+      <p className="text-sm text-fg-muted">
+        No es algo que hiciste vos. Probá de nuevo; si sigue pasando, avisanos.
+      </p>
       <div className="flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={() => reset()}
-          className="inline-flex min-h-11 items-center rounded-control bg-brand px-4 py-2 text-sm font-medium text-brand-contrast"
-        >
+        <button type="button" onClick={() => reset()} className={buttonClasses()}>
           Probar de nuevo
         </button>
-        <Link
-          href="/jobs"
-          className="inline-flex min-h-11 items-center rounded-control border border-line-strong px-4 py-2 text-sm font-medium text-fg"
-        >
+        <Link href="/jobs" className={buttonClasses({ variant: "secondary" })}>
           Ir a mis ofertas
         </Link>
       </div>
