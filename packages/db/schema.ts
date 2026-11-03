@@ -550,9 +550,15 @@ export const betaFeedback = pgTable("beta_feedback", {
   message: text("message").notNull(),
   path: text("path").notNull(),
   context: jsonb("context").$type<FeedbackContext>(),
+  // Triage del admin (C8-17): nuevo | visto | resuelto. Lo cambia solo admin_beta_feedback_set_status
+  // (rls/0018); la app no tiene UPDATE.
+  status: text("status").notNull().default("nuevo"),
+  statusChangedAt: timestamp("status_changed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
   index("beta_feedback_user_created").on(t.userId, t.createdAt),
+  index("beta_feedback_created").on(t.createdAt.desc()),
+  check("beta_feedback_status_check", sql`${t.status} in ('nuevo', 'visto', 'resuelto')`),
   check("beta_feedback_category", sql`${t.category} in ('algo_no_anduvo', 'idea', 'confuso')`),
   check("beta_feedback_message_length", sql`char_length(${t.message}) between 1 and 2000`),
   check("beta_feedback_path_length", sql`char_length(${t.path}) <= 200`),

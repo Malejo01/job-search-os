@@ -138,6 +138,60 @@ describe("beta_feedback (C-23)", () => {
     );
   });
 
+  // C8-17 · triage del admin
+  it("el triage devuelve carrera, estado y acciones del chip, sin email ni nombre", async () => {
+    await owner`insert into beta_feedback (user_id, category, message, path, context)
+      values (${B}, 'confuso', 'Con acciones', '/jobs', ${owner.json({
+        pathname: "/jobs",
+        actions: [{ type: "click", text: "Ver oferta", time: "2026-11-27T13:59:30Z" }],
+      })})`;
+    const rows = await asUser(ADMIN_ID, (tx) => tx`select * from admin_beta_feedback_triage(500)`);
+    expect(Object.keys(rows[0]!).sort()).toEqual([
+      "actions",
+      "career",
+      "category",
+      "created_at",
+      "id",
+      "message",
+      "path",
+      "person",
+      "status",
+    ]);
+    const withActions = rows.find((r) => r.message === "Con acciones")!;
+    expect(withActions.status).toBe("nuevo");
+    expect(withActions.actions).toEqual([
+      { type: "click", text: "Ver oferta", time: "2026-11-27T13:59:30Z" },
+    ]);
+    expect(JSON.stringify(rows)).not.toMatch(/@/);
+  });
+
+  it("el admin cambia el estado; un estado inválido o quien no es admin, no", async () => {
+    const [f] = await owner<{ id: string }[]>`select id from beta_feedback limit 1`;
+    const [ok] = await asUser(
+      ADMIN_ID,
+      (tx) => tx`select admin_beta_feedback_set_status(${f!.id}::uuid, 'resuelto') as ok`,
+    );
+    expect(ok!.ok).toBe(true);
+    const [row] =
+      await owner`select status, status_changed_at from beta_feedback where id = ${f!.id}`;
+    expect(row!.status).toBe("resuelto");
+    expect(row!.status_changed_at).not.toBeNull();
+    await expect(
+      asUser(
+        ADMIN_ID,
+        (tx) => tx`select admin_beta_feedback_set_status(${f!.id}::uuid, 'borrado')`,
+      ),
+    ).rejects.toThrow(/estado inválido/);
+    await expect(
+      asUser(A, (tx) => tx`select admin_beta_feedback_set_status(${f!.id}::uuid, 'visto')`),
+    ).rejects.toThrow(/no autorizado/);
+    await expect(
+      asUser(A, (tx) => tx`update beta_feedback set status = 'visto' where id = ${f!.id}`),
+    ).resolves.toHaveLength(0);
+    const [still] = await owner`select status from beta_feedback where id = ${f!.id}`;
+    expect(still!.status).toBe("resuelto");
+  });
+
   it("borrar la cuenta se lleva sus filas (cascade)", async () => {
     await owner`delete from users where id = ${B}`;
     const [n] = await owner`select count(*)::int as n from beta_feedback where user_id = ${B}`;

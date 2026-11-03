@@ -713,6 +713,21 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
         /admin_beta_feedback: no autorizado/,
       );
     },
+    // C8-17: triage del feedback, solo app_admins
+    admin_beta_feedback_triage: async () => {
+      await expect(
+        asUser(A, (tx) => tx`select * from admin_beta_feedback_triage(10)`),
+      ).rejects.toThrow(/admin_beta_feedback: no autorizado/);
+    },
+    admin_beta_feedback_set_status: async () => {
+      await expect(
+        asUser(
+          A,
+          (tx) =>
+            tx`select admin_beta_feedback_set_status('d8000000-0000-4000-8000-0000000000fe'::uuid, 'visto')`,
+        ),
+      ).rejects.toThrow(/admin_beta_feedback: no autorizado/);
+    },
     // C3-1: planes de la beta, solo app_admins. Una sesión común no lee ni cambia el plan de nadie.
     admin_plan_get: async () => {
       await expect(asUser(A, (tx) => tx`select * from admin_plan_get(${EMAIL_B})`)).rejects.toThrow(
