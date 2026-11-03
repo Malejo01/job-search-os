@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useAnimationControls, useReducedMotion } from "framer-motion";
+import { domAnimation, LazyMotion, m, useAnimationControls, useReducedMotion } from "framer-motion";
 import { useLayoutEffect, type ReactNode } from "react";
 import { firstTimeSeen, markSeen } from "./seen-once";
 
@@ -36,9 +36,12 @@ export function CheckBounce({
       transition: { duration: 0.42, times: [0, 0.6, 1], ease: "easeOut" },
     });
   }, [controls, done, id, reduce]);
+  // R-1: `m` + `domAnimation` en vez de `motion` entero: menos JS en /jobs y /hoy
   return (
-    <motion.span initial={false} animate={controls} className="inline-flex">
-      {children}
-    </motion.span>
+    <LazyMotion features={domAnimation} strict>
+      <m.span initial={false} animate={controls} className="inline-flex">
+        {children}
+      </m.span>
+    </LazyMotion>
   );
 }
