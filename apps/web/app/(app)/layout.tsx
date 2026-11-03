@@ -84,8 +84,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     item.href === "/applications" ? { ...item, count: followUps } : item,
   );
   return (
-    // Con la barra de pestañas (R-3), el pie y el último contenido quedan por encima de ella
-    <div className={`flex min-h-screen flex-col ${tabBar ? "pb-16 sm:pb-0" : ""}`}>
+    // Con la barra de pestañas (R-3), el pie y el último contenido quedan por encima de ella, y
+    // `--tabbar-h` sube lo que va fijo abajo (chip de soporte, acciones en lote, guardar habilidades)
+    <div
+      className={`flex min-h-screen flex-col ${tabBar ? "pb-16 [--tabbar-h:calc(3.5rem+env(safe-area-inset-bottom,0px))] sm:pb-0 sm:[--tabbar-h:0px]" : ""}`}
+    >
       <a href="#contenido" className={SKIP_CLASS}>
         Saltar al contenido
       </a>
@@ -132,7 +135,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
       <ActionTracker />
-      <FeedbackButton aboveTabBar={tabBar} />
+      <FeedbackButton />
       {tabBar ? <MobileTabBar /> : null}
       <footer className="border-t border-line px-4 py-3 text-center text-xs text-fg-subtle">
         <Link href="/legal/privacidad" className="underline-offset-2 hover:underline">
