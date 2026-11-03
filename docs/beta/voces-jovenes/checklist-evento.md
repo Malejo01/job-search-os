@@ -17,8 +17,10 @@ La página frena a quien se anota muchas veces para evitar abusos. Los límites 
 Si alguien se pasa, ve: «Recibimos muchos pedidos desde tu conexión. Probá de nuevo en un rato.»
 
 - [ ] **Ani:** estimá cuánta gente va a anotarse y cuántos lo harán al mismo tiempo (por ejemplo, «80 personas, casi todas en los primeros 5 minutos»).
-- [ ] **Si pueden ser más de 40 con el mismo wifi:** hay dos salidas. La más simple: en la presentación decí «anótense con los datos de su celular, no con el wifi de la sala» (con datos, cada celular tiene su propia dirección). La otra: **(Mauro)** subir los topes en `packages/db/rls/0006_waitlist.sql` (un pull request chico) y correr `pnpm db:migrate`, **antes del 9/11**. Eso lo hace Mauro, nunca el mismo día.
-- [ ] **Si pueden ser más de 60 en 10 minutos en total:** ídem, hay que subir el tope global.
+- [ ] **Si pueden ser más de 40 con el mismo wifi o más de 60 en 10 minutos (C8-3):** la prueba de carga (`waitlist.integration.test.ts`) confirma que con los topes normales **la persona 41 del mismo wifi queda afuera**. Para el evento hay una **ventana con topes más altos**, solo para quien entra por el QR (`?origen=voces-jovenes`): 200 por hora desde el mismo wifi y 200 cada 10 minutos (el diario de 600 no cambia).
+  - **(Mauro, antes del 10/11):** con la integración de C8 mergeada y `pnpm db:migrate` aplicado (re-aplica `rls/0006`), cargá en Vercel `WAITLIST_EVENT_WINDOW=2026-11-11T17:00:00-03:00/2026-11-11T23:00:00-03:00` (ajustá el horario a la charla; como mucho 12 horas) y hacé redeploy. Fuera de esa ventana, o sin la variable, rigen los topes normales.
+  - **El 12/11:** borrá la variable (o dejala: la ventana ya pasó y no se vuelve a abrir).
+  - Igual conviene decir en la presentación «si el wifi anda lento, anótense con los datos del celular».
 - [ ] Avisale a Ani el mensaje de «Recibimos muchos pedidos…» para que sepa que no es una falla: es el freno.
 
 ### El código QR

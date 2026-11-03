@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useActionState, useEffect, useRef } from "react";
 import { buttonClasses } from "@/components/ui";
 import { submitWaitlist, trackAcceso, type WaitlistState } from "./actions";
+import { ShareButton } from "./share-button";
 
 const INITIAL: WaitlistState = { status: "idle" };
 // Campo del manual (M8, C7-10): borde de 2 px, radio 12, 44 px y foco lima
@@ -89,13 +90,44 @@ export function WaitlistFormFields({
   }, [state]);
 
   if (state.status === "done") {
+    // Confirmación (C8-3): qué pasa ahora, sin prometer lugar, y para pasárselo a otra persona
     return (
-      <p
-        role="status"
-        className="rounded-card bg-success-soft px-4 py-4 text-base font-semibold text-success"
-      >
-        {state.message}
-      </p>
+      <div className="flex flex-col gap-4" data-testid="acceso-confirmacion">
+        <p
+          role="status"
+          className="rounded-card bg-success-soft px-4 py-4 text-base font-semibold text-success"
+        >
+          {state.message}
+        </p>
+        <section
+          aria-labelledby="acceso-que-sigue"
+          className="flex flex-col gap-2 rounded-card border border-line bg-surface p-4"
+        >
+          <h2 id="acceso-que-sigue" className="text-base font-bold">
+            Qué sigue
+          </h2>
+          <ol className="m-0 flex list-decimal flex-col gap-1.5 pl-5 text-sm text-fg-muted">
+            <li>
+              Revisamos los pedidos y armamos el grupo de la beta, con lugar para cada carrera.
+            </li>
+            <li>
+              Si hay lugar para vos, te llega un email con el link para crear tu cuenta. Mirá
+              también en spam.
+            </li>
+            <li>
+              Mientras tanto, mirá{" "}
+              <Link
+                href="/demo/contaduria"
+                className="font-semibold text-link underline underline-offset-2 hover:text-link-hover"
+              >
+                cómo funciona con un ejemplo
+              </Link>
+              .
+            </li>
+          </ol>
+        </section>
+        <ShareButton />
+      </div>
     );
   }
 

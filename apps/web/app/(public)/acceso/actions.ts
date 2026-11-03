@@ -4,7 +4,9 @@ import { createLogger, safeDbError } from "@job-search-os/adapters";
 import {
   isHoneypotFilled,
   isRoleKey,
+  parseWaitlistEventWindow,
   parseWaitlistForm,
+  waitlistEventApplies,
   type WaitlistFieldErrors,
 } from "@job-search-os/pipeline";
 import { headers } from "next/headers";
@@ -20,7 +22,7 @@ export type WaitlistState =
 // No promete una invitación: el cupo es limitado y anotarse no garantiza lugar (C5-8). Igual para ok y
 // duplicate. Sin una fecha de aviso: el mensaje tiene que seguir siendo cierto después del 26/11
 const DONE_MESSAGE =
-  "Listo, te anotamos. La beta abre el jueves 26/11 y el cupo es limitado: si hay lugar, te escribimos con el link para crear tu cuenta.";
+  "Listo, te anotamos. La beta abre el jueves 26/11 y el cupo es limitado: te escribimos si hay lugar, con el link para crear tu cuenta.";
 
 /** Pedir acceso (sin sesión). Honeypot → éxito falso sin guardar; Zod; tope por IP en la base. */
 export async function submitWaitlist(
@@ -46,9 +48,15 @@ export async function submitWaitlist(
     null;
 
   try {
-    const status = await joinWaitlist(parsed.value, ip);
     // Embudo (C8-2): el origen viene del `?origen=` del QR, no del «cómo te enteraste»
     const origen = typeof raw.origen === "string" ? raw.origen : null;
+    // Topes del evento (C8-3): solo con el origen del QR y dentro de WAITLIST_EVENT_WINDOW (apagada)
+    const event = waitlistEventApplies(
+      parseWaitlistEventWindow(process.env.WAITLIST_EVENT_WINDOW),
+      new Date(),
+      origen,
+    );
+    const status = await joinWaitlist(parsed.value, ip, { event });
     if (status === "rate_limited") {
       await recordAccesoStep("tope", origen);
       return {
