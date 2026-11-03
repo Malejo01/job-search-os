@@ -8,7 +8,8 @@ export {
   type ButtonSize,
   type ButtonVariant,
 } from "./button";
-export { Card, cardClasses, type CardProps, type CardTone } from "./card";
+export { Card, cardClasses, type CardLevel, type CardProps, type CardTone } from "./card";
+export { Chip, chipClasses, filterChipClasses, type ChipProps, type ChipTone } from "./chip";
 export { cx } from "./cx";
 export { EmptyState, type EmptyStateProps } from "./empty-state";
 export { Field, inputClasses, type FieldProps } from "./field";

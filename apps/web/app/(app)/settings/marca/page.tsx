@@ -1,5 +1,6 @@
 import { BRAND, BRAND_COLORS } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Logo, type LogoTone } from "@/components/brand/logo";
 import { OfferCard } from "@/components/offer-card";
@@ -11,6 +12,7 @@ import {
   Icon,
   ICON_PATHS,
   ScoreBadge,
+  textLinkClasses,
   type BadgeTone,
   type IconName,
 } from "@/components/ui";
@@ -73,6 +75,11 @@ export default async function MarcaPage() {
           Logo, colores, tipografías y componentes de {BRAND.name}, en claro y en oscuro. Lo que se
           cambie sale de los tokens de <code>globals.css</code> y de un solo componente de logo (ver
           docs/MARCA.md).
+        </p>
+        <p className="mt-1 text-sm">
+          <Link href="/settings/marca/componentes" className={textLinkClasses({ block: true })}>
+            Ver los componentes del rediseño en todos sus estados
+          </Link>
         </p>
       </div>
 
@@ -278,7 +285,7 @@ function WelcomeEmailPreview() {
       <p className="text-sm">
         <span className="font-semibold">Asunto:</span> {subject}
       </p>
-      <pre className="max-w-xl overflow-x-auto rounded-card border border-line bg-surface p-4 font-sans text-sm whitespace-pre-wrap text-fg">
+      <pre className="max-w-xl overflow-x-auto rounded-card bg-surface p-4 font-sans text-sm whitespace-pre-wrap text-fg">
         {text}
       </pre>
       <a

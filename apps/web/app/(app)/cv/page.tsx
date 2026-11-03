@@ -110,7 +110,7 @@ export default async function CvPage({ searchParams }: { searchParams: Promise<P
           <form
             method="get"
             aria-label="Opciones del CV"
-            className="no-print flex flex-wrap items-end gap-x-6 gap-y-3 rounded-card border border-line bg-surface p-4"
+            className="no-print flex flex-wrap items-end gap-x-6 gap-y-3 rounded-card bg-surface p-4"
           >
             <label className="flex flex-col gap-1 text-sm font-medium text-fg">
               Idioma

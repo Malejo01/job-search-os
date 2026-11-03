@@ -161,11 +161,7 @@ export default async function HistorialPage({
         ) : (
           <ul className="flex flex-col gap-3">
             {rows.map((row) => (
-              <li
-                key={row.id}
-                data-testid="history-entry"
-                className="rounded-card border border-line bg-surface p-3"
-              >
+              <li key={row.id} data-testid="history-entry" className="rounded-card bg-surface p-3">
                 <p className="text-sm font-medium text-fg">
                   {row.title} · {row.organization}
                 </p>
@@ -204,10 +200,7 @@ export default async function HistorialPage({
         )}
       </section>
 
-      <section
-        aria-labelledby="nueva"
-        className="flex flex-col gap-3 rounded-card border border-line bg-surface p-4"
-      >
+      <section aria-labelledby="nueva" className="flex flex-col gap-3 rounded-card bg-surface p-4">
         <h2 id="nueva" className="text-lg font-medium text-fg">
           Sumar una entrada
         </h2>

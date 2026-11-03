@@ -54,7 +54,7 @@ export default function DemoContaduriaPage() {
         <h2 id="demo-perfil" className={H2}>
           El perfil de {DEMO_PERSON.name}
         </h2>
-        <div className="flex flex-col gap-3 rounded-card border border-line bg-surface p-4">
+        <div className="flex flex-col gap-3 rounded-card bg-surface p-4">
           <p className="flex items-center gap-2 text-sm font-bold">
             <Icon name="perfil" size={20} className="text-brand-text" />
             {DEMO_PERSON.career}
@@ -81,10 +81,7 @@ export default function DemoContaduriaPage() {
         </p>
         <ul className="m-0 flex list-none flex-col gap-2 p-0">
           {DEMO_OFFERS.map((o) => (
-            <li
-              key={o.id}
-              className="relative flex items-start gap-3 rounded-card border border-line bg-surface p-3"
-            >
+            <li key={o.id} className="relative flex items-start gap-3 rounded-card bg-surface p-3">
               <ScoreBadge score={o.score} />
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <a
@@ -116,7 +113,7 @@ export default function DemoContaduriaPage() {
         <h2 id="demo-sin-descripcion" className={H2}>
           Una oferta sin descripción
         </h2>
-        <div className="flex flex-col gap-3 rounded-card border border-line bg-surface p-4">
+        <div className="flex flex-col gap-3 rounded-card bg-surface p-4">
           <div>
             <p className="text-[15px] font-bold">{DEMO_PENDING.title}</p>
             <p className="text-xs text-fg-subtle">
@@ -167,7 +164,7 @@ function OfferDetail({ offer }: { offer: DemoOffer }) {
       id={offer.id}
       aria-labelledby={`${offer.id}-titulo`}
       data-testid="demo-contaduria-oferta"
-      className="flex scroll-mt-20 flex-col gap-3 rounded-card border border-line bg-surface p-4"
+      className="flex scroll-mt-20 flex-col gap-3 rounded-card bg-surface p-4"
     >
       <div className="flex items-start gap-3">
         <ScoreBadge score={offer.score} size="lg" />

@@ -58,7 +58,7 @@ export default async function DemoProfilePage({ params }: Props) {
         <div
           data-tour="demo:perfil"
           data-testid="demo-profile"
-          className="flex flex-col gap-1 rounded-card border border-line bg-surface p-4"
+          className="flex flex-col gap-1 rounded-card bg-surface p-4"
         >
           <p className="text-xs font-semibold uppercase text-fg-subtle">Perfil inventado</p>
           <p className="text-sm text-fg">{profile.tagline}</p>
@@ -96,7 +96,7 @@ export default async function DemoProfilePage({ params }: Props) {
         ) : (
           <div
             data-testid="demo-preparando"
-            className="rounded-card border border-line bg-surface p-4 text-sm text-fg"
+            className="rounded-card bg-surface p-4 text-sm text-fg"
           >
             <p>Estamos preparando la demo. Volvé en un rato.</p>
             <Link

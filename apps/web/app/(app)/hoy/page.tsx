@@ -182,7 +182,7 @@ function WeekCard({ newCount, week }: { newCount: number; week: ReviewProgress |
     <section
       aria-labelledby="hoy-semana-titulo"
       data-testid="hoy-semana"
-      className="flex flex-col gap-3 rounded-card border border-line bg-surface p-4"
+      className="flex flex-col gap-3 rounded-card bg-surface p-4"
     >
       <h2 id="hoy-semana-titulo" className="text-base font-bold text-fg">
         Tu semana

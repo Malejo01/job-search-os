@@ -270,7 +270,7 @@ export default async function InboxPage({
           {rows.map((r) => (
             <li
               key={r.id}
-              className={`rounded-card border border-line bg-surface p-3 text-sm ${
+              className={`rounded-card bg-surface p-3 text-sm ${
                 r.dismissed || r.seen ? "opacity-75" : ""
               }`}
             >

@@ -52,7 +52,7 @@ export default async function MetricasPage() {
     return (
       <div className="mx-auto flex max-w-xl flex-col gap-4">
         <h1 className="text-2xl font-semibold">Métricas de la beta</h1>
-        <p role="status" className="rounded-card border border-line bg-surface p-4 text-sm">
+        <p role="status" className="rounded-card bg-surface p-4 text-sm">
           {result.reason === "no_habilitado"
             ? "Tu cuenta es admin en la app pero todavía no está habilitada en la base (app_admins)."
             : "Todavía no hay métricas: falta aplicar la migración de la base o no se pudieron leer."}
@@ -106,17 +106,14 @@ export default async function MetricasPage() {
 function HiddenCareers({ reveal }: { reveal: CareerRevealResult }) {
   if (!reveal.ok) {
     return (
-      <p role="status" className="rounded-card border border-line bg-surface p-4 text-sm">
+      <p role="status" className="rounded-card bg-surface p-4 text-sm">
         Carreras ocultas: no se pudieron leer las ofertas del pool.
       </p>
     );
   }
   const shown = reveal.rows.filter((r) => r.shown).length;
   return (
-    <section
-      className="rounded-card border border-line bg-surface p-4"
-      data-testid="carreras-beta-publico"
-    >
+    <section className="rounded-card bg-surface p-4" data-testid="carreras-beta-publico">
       <table className="w-full text-sm">
         <caption className="mb-2 text-left font-medium">Carreras de la beta en público</caption>
         <thead>
@@ -184,7 +181,7 @@ function HiddenCareerRow({ row }: { row: CareerVisibilityRow }) {
 function FounderSeats({ founders, k }: { founders: FounderCountsResult; k: number }) {
   if (!founders.ok) {
     return (
-      <p role="status" className="rounded-card border border-line bg-surface p-4 text-sm">
+      <p role="status" className="rounded-card bg-surface p-4 text-sm">
         Cupos de fundador: todavía no hay datos (falta aplicar la migración de la base o no se
         pudieron leer).
       </p>
@@ -196,7 +193,7 @@ function FounderSeats({ founders, k }: { founders: FounderCountsResult; k: numbe
   const pending = FOUNDER_SEATS_PER_CAREER === null ? " El cupo todavía no está definido." : "";
   const note = `Personas con plan fundador vigente, por su carrera principal. Menos de ${k}: «<${k}».`;
   return (
-    <section className="rounded-card border border-line bg-surface p-4">
+    <section className="rounded-card bg-surface p-4">
       <table className="w-full text-sm">
         <caption className="mb-2 text-left font-medium">Cupos de fundador</caption>
         <tbody>
@@ -229,14 +226,14 @@ function FounderSeats({ founders, k }: { founders: FounderCountsResult; k: numbe
 function BetaFeedbackList({ feedback }: { feedback: FeedbackListResult }) {
   if (!feedback.ok) {
     return (
-      <p role="status" className="rounded-card border border-line bg-surface p-4 text-sm">
+      <p role="status" className="rounded-card bg-surface p-4 text-sm">
         Lo que nos contaron: todavía no hay datos (falta aplicar la migración de la base o no se
         pudieron leer).
       </p>
     );
   }
   return (
-    <section className="rounded-card border border-line bg-surface p-4">
+    <section className="rounded-card bg-surface p-4">
       <h2 className="mb-2 font-medium">Lo que nos contaron</h2>
       {/* C8-17: triage con filtros, estado y CSV (con FEEDBACK_TRIAGE_ENABLED=1) */}
       {feedbackTriageEnabled() ? (
@@ -268,7 +265,7 @@ function BetaFeedbackList({ feedback }: { feedback: FeedbackListResult }) {
 
 function MetricTable({ title, rows }: { title: string; rows: BetaMetricRow[] }) {
   return (
-    <section className="rounded-card border border-line bg-surface p-4">
+    <section className="rounded-card bg-surface p-4">
       <table className="w-full text-sm">
         <caption className="mb-2 text-left font-medium">{title}</caption>
         <tbody>

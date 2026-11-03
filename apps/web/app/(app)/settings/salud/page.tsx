@@ -34,7 +34,7 @@ export default async function SaludPage() {
     return (
       <div className="mx-auto flex max-w-xl flex-col gap-4">
         <h1 className="text-title font-bold">Salud de la beta</h1>
-        <p role="status" className="rounded-card border border-line bg-surface p-4 text-sm">
+        <p role="status" className="rounded-card bg-surface p-4 text-sm">
           No se pudieron leer los datos. Probá de nuevo en un rato.
         </p>
       </div>
@@ -67,7 +67,7 @@ export default async function SaludPage() {
               key={r.key}
               data-testid={`salud-${r.key}`}
               data-level={r.level}
-              className="flex items-start gap-3 rounded-card border border-line bg-surface p-4"
+              className="flex items-start gap-3 rounded-card bg-surface p-4"
             >
               <span
                 aria-hidden="true"
