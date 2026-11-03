@@ -198,9 +198,9 @@ describe("lista de espera (ronda 63)", () => {
       expect(row!.n).toBe(60);
     });
 
-    it("el evento sigue acotado: 200 por IP por hora, 200 cada 10 minutos y 600 por día", async () => {
+    it("el evento sigue acotado: 120 por IP por hora, 200 cada 10 minutos y 600 por día", async () => {
       await owner`insert into waitlist (email, name, role, ip_hash)
-                  select 'ev' || g || '@example.com', 'Persona', 'abogacia', 'hash-wifi'
+                  select 'ev' || g || '@example.com', 'Persona', 'abogacia', 'hash-ev-' || (g % 2)
                   from generate_series(1, 200) g`;
       expect(await joinEvent("ev201@example.com", "hash-wifi")).toBe("rate_limited");
       expect(await joinEvent("ev201@example.com", "hash-otro-celu")).toBe("rate_limited");
@@ -210,6 +210,15 @@ describe("lista de espera (ronda 63)", () => {
                          now() - interval '2 hours'
                   from generate_series(1, 600) g`;
       expect(await joinEvent("evd601@example.com", "hash-wifi")).toBe("rate_limited");
+    });
+
+    it("con el evento, una sola IP no se queda con toda la ráfaga (C8-14, S-1)", async () => {
+      await owner`insert into waitlist (email, name, role, ip_hash)
+                  select 'una-ip' || g || '@example.com', 'Persona', 'abogacia', 'hash-abuso'
+                  from generate_series(1, 120) g`;
+      expect(await joinEvent("una-ip-121@example.com", "hash-abuso")).toBe("rate_limited");
+      // En los mismos 10 minutos, el wifi del salón (otra IP) sigue entrando
+      expect(await joinEvent("salon-ok@example.com", "hash-salon-real")).toBe("ok");
     });
 
     it("la app no puede llamar a la función interna con topes propios", async () => {

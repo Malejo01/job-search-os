@@ -2,6 +2,7 @@ import { BETA_OPENS_AT, betaPeriodDays, BETA_PLAN, planAccess } from "@job-searc
 import { canCreateInvitations } from "@/lib/invitations";
 import { listPlans, PlanAdminNotEnabledInDbError, type AdminPlanRow } from "@/lib/plan-admin";
 import { requireUserId } from "@/lib/session";
+import { SubmitButton } from "@/app/components/submit-button";
 import { grantPlanAction, revokePlanAction } from "./actions";
 
 export const metadata = { title: "Planes de la beta" };
@@ -138,9 +139,10 @@ export default async function PlanesPage({
                   Becado (primer mes gratis)
                 </label>
               </fieldset>
-              <button type="submit" className={BUTTON}>
+              {/* C8-14: deshabilitado mientras activa, así un doble clic no manda dos bienvenidas */}
+              <SubmitButton className={BUTTON} pendingLabel="Activando…">
                 Activar {days} días
-              </button>
+              </SubmitButton>
             </form>
           </section>
 

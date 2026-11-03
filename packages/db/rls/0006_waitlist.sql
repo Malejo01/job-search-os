@@ -101,8 +101,9 @@ $fn$;
 REVOKE ALL ON FUNCTION public.waitlist_join(text, text, text, text, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.waitlist_join(text, text, text, text, text) TO authenticated;
 
--- Topes del evento con QR (C8-3, 11/11): 200 por IP por hora y 200 cada 10 minutos; el diario (600) no
--- cambia. La web la usa solo con `?origen=voces-jovenes` y dentro de la ventana de WAITLIST_EVENT_WINDOW
+-- Topes del evento con QR (C8-3, 11/11): 120 por IP por hora y 200 cada 10 minutos; el diario (600) no
+-- cambia. El de IP queda por debajo de la ráfaga a propósito (C8-14, S-1): una sola conexión no puede
+-- llenar la ráfaga y dejar afuera al resto del salón. La web la usa solo con `?origen=voces-jovenes` y dentro de la ventana de WAITLIST_EVENT_WINDOW
 -- (apagada por defecto, como mucho 12 horas: packages/pipeline/src/waitlist-event.ts). Abuso posible:
 -- quien conozca el origen puede usar estos topes durante la ventana; el diario lo acota igual.
 CREATE OR REPLACE FUNCTION public.waitlist_join_event(
@@ -116,7 +117,7 @@ LANGUAGE sql
 SECURITY DEFINER
 SET search_path = pg_catalog, public
 AS $fn$
-  SELECT public.waitlist_join_limited(p_name, p_email, p_role, p_heard_from, p_ip_hash, 200, 200);
+  SELECT public.waitlist_join_limited(p_name, p_email, p_role, p_heard_from, p_ip_hash, 120, 200);
 $fn$;
 REVOKE ALL ON FUNCTION public.waitlist_join_event(text, text, text, text, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.waitlist_join_event(text, text, text, text, text) TO authenticated;
