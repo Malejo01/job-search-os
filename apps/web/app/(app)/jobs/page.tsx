@@ -199,7 +199,7 @@ function JobsAside({ pending }: { pending: number }) {
           </p>
           <Link
             href="/jobs/pending-jd"
-            className="inline-flex min-h-11 items-center self-start rounded-control bg-brand px-4 text-sm font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            className="inline-flex min-h-11 items-center self-start pressable edge-4 rounded-pill border-edge-brand bg-brand px-4 text-sm font-extrabold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           >
             {pending === 1 ? "Completarla" : "Completarlas"}
           </Link>
@@ -386,7 +386,7 @@ function ReviewProgress({
         className="h-1.5 overflow-hidden rounded-pill bg-line"
       >
         <div
-          className={`h-full rounded-pill ${done ? "bg-success-strong" : "bg-brand"}`}
+          className={`h-full rounded-pill ${done ? "bg-success-strong" : "bg-brand-text"}`}
           style={{ width: `${pct}%` }}
         />
       </div>

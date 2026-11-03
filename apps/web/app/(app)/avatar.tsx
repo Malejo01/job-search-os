@@ -16,7 +16,7 @@ export function Avatar({ name }: { name: string | null }) {
     >
       <span
         aria-hidden="true"
-        className="flex h-9 w-9 items-center justify-center rounded-pill bg-brand text-sm font-extrabold text-brand-contrast"
+        className="flex h-9 w-9 items-center justify-center rounded-pill bg-ink-line text-sm font-extrabold text-on-ink"
       >
         {letters ?? <Icon name="perfil" size={20} />}
       </span>

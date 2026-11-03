@@ -69,7 +69,7 @@ export function FormReview({ jobId }: { jobId: string }) {
           <button
             type="submit"
             disabled={analyzing}
-            className="rounded-control bg-brand px-3 py-2 text-sm font-medium text-brand-contrast disabled:opacity-50"
+            className="pressable edge-4 rounded-pill border-edge-brand bg-brand px-4 py-2 text-sm font-extrabold text-brand-contrast disabled:opacity-50"
           >
             {analyzing ? "Analizando…" : "Analizar"}
           </button>
