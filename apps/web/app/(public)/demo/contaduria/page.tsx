@@ -93,7 +93,7 @@ export default function DemoContaduriaPage() {
                 >
                   {o.title}
                 </a>
-                <span className="truncate text-xs text-fg-subtle">
+                <span className="text-xs break-words text-fg-subtle">
                   {o.company} · {o.place}
                 </span>
                 <span className="line-clamp-2 text-xs text-fg-muted">{o.why}</span>
