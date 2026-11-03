@@ -8,6 +8,7 @@ import {
   withCurrentSkillLevels,
 } from "@job-search-os/pipeline";
 import Link from "next/link";
+import { SealStamp } from "@/components/motion/seal-stamp";
 import { RequisitosDelAviso } from "@/components/requisitos-del-aviso";
 import { buttonClasses, Icon, Seal, textLinkClasses } from "@/components/ui";
 import type { JobDetail } from "@/lib/job-detail";
@@ -59,7 +60,9 @@ export function OfferPanel({ job, detailHref }: { job: JobDetail; detailHref: st
               {offerAge(new Date(job.postedAt ?? job.firstSeenAt), new Date())}
             </p>
           </div>
-          <Seal score={ev ? ev.score : null} pending={pending} size="detail" />
+          <SealStamp jobId={job.id} evaluated={Boolean(ev)}>
+            <Seal score={ev ? ev.score : null} pending={pending} size="detail" />
+          </SealStamp>
         </div>
         {closeness ? <p className="text-base font-semibold text-fg">{closeness}</p> : null}
         {pending ? (

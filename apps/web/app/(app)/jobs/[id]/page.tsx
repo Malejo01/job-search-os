@@ -53,6 +53,7 @@ import { ReviewNav } from "./review-nav";
 import { SourceAttribution } from "./source-attribution";
 import { StatusCorrection } from "./status-correction";
 import { Verdict } from "./verdict";
+import { SealStamp } from "@/components/motion/seal-stamp";
 import { Seal } from "@/components/ui";
 import { HelpTip } from "@/components/help-tip";
 
@@ -237,7 +238,9 @@ export default async function JobDetailPage({
             </p>
           ) : null}
         </div>
-        <Seal score={ev ? ev.score : null} pending={job.evaluating && !ev} size="detail" />
+        <SealStamp jobId={job.id} evaluated={Boolean(ev)}>
+          <Seal score={ev ? ev.score : null} pending={job.evaluating && !ev} size="detail" />
+        </SealStamp>
       </header>
       {/* C8-6: qué es el número del puntaje */}
       {ev ? <HelpTip topic="puntaje" /> : null}
