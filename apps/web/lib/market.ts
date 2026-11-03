@@ -6,7 +6,7 @@ import {
   type MarketAgenda,
   type RoleKey,
 } from "@job-search-os/pipeline";
-import { and, count, desc, eq, gte, isNotNull, lte } from "drizzle-orm";
+import { and, count, desc, eq, gte, isNotNull, lte, sql } from "drizzle-orm";
 import { revalidateTag, unstable_cache } from "next/cache";
 import { withUser } from "./db";
 import { candidatesCacheConfig } from "./market-cache";
@@ -84,25 +84,27 @@ function marketCandidatesTableEnabled(): boolean {
 }
 
 /**
- * Candidatos con la tabla `market_candidates` (C8-15, JS-102): si el JD más nuevo de la persona es el
- * mismo con el que se calcularon, se devuelven las 15 filas guardadas (sin leer 300 textos); si entró
- * una oferta nueva, se recalcula y se reemplazan. El JD más nuevo sale del índice `jobs_user_created`.
+ * Candidatos con la tabla `market_candidates` (C8-15, JS-102): si nada cambió en los JD de la persona
+ * desde que se calcularon, se devuelven las 15 filas guardadas (sin leer 300 textos). La huella es el
+ * `updated_at` más nuevo de sus ofertas con JD (cambia con una oferta nueva y al pegar una JD en una
+ * que ya existía, R-5); además las filas vencen a las 24 h (bajas de ofertas, cambios de taxonomía).
  */
 async function candidatesFromTable(userId: string): Promise<SkillCandidate[]> {
   const latestOf = (rows: { at: Date | string | null }[]) =>
     rows[0]?.at ? new Date(rows[0].at).toISOString() : null;
   const [latest, stored] = await withUser(userId, async (tx) => {
     const l = await tx
-      .select({ at: s.jobs.createdAt })
+      .select({ at: s.jobs.updatedAt })
       .from(s.jobs)
       .where(and(eq(s.jobs.userId, userId), isNotNull(s.jobs.jdText)))
-      .orderBy(desc(s.jobs.createdAt))
+      .orderBy(desc(s.jobs.updatedAt))
       .limit(1);
     const st = await tx
       .select({
         term: s.marketCandidates.term,
         count: s.marketCandidates.count,
         at: s.marketCandidates.sourceLatestAt,
+        updatedAt: s.marketCandidates.updatedAt,
       })
       .from(s.marketCandidates)
       .where(eq(s.marketCandidates.userId, userId))
@@ -110,21 +112,35 @@ async function candidatesFromTable(userId: string): Promise<SkillCandidate[]> {
       .limit(15);
     return [latestOf(l), st] as const;
   });
-  if (stored.length > 0 && latestOf(stored) === latest) {
+  const fresh24h =
+    stored.length > 0 && Date.now() - new Date(stored[0]!.updatedAt).getTime() < 24 * 3_600_000;
+  if (stored.length > 0 && fresh24h && latestOf(stored) === latest) {
     return stored.map(({ term, count }) => ({ term, count }));
   }
   const fresh = await computeCandidates(userId);
   await withUser(userId, async (tx) => {
     await tx.delete(s.marketCandidates).where(eq(s.marketCandidates.userId, userId));
     if (fresh.length > 0) {
-      await tx.insert(s.marketCandidates).values(
-        fresh.map((c) => ({
-          userId,
-          term: c.term.slice(0, 80),
-          count: c.count,
-          sourceLatestAt: latest ? new Date(latest) : null,
-        })),
-      );
+      await tx
+        .insert(s.marketCandidates)
+        .values(
+          fresh.map((c) => ({
+            userId,
+            term: c.term.slice(0, 80),
+            count: c.count,
+            sourceLatestAt: latest ? new Date(latest) : null,
+            updatedAt: new Date(),
+          })),
+        )
+        .onConflictDoUpdate({
+          // Dos pedidos a la vez: el segundo pisa al primero en vez de fallar por la clave
+          target: [s.marketCandidates.userId, s.marketCandidates.term],
+          set: {
+            count: sql`excluded.count`,
+            sourceLatestAt: sql`excluded.source_latest_at`,
+            updatedAt: sql`now()`,
+          },
+        });
     }
   });
   return fresh;

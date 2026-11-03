@@ -60,9 +60,11 @@ function queueRow(input: BetaHealthInput): BetaHealthRow {
     key: "cola",
     label: "Cola de evaluación",
     value:
-      pending === 0 || !oldestPendingAt
+      pending === 0
         ? "Vacía"
-        : `${pending} en cola · la más vieja, ${ago(oldestPendingAt, input.now)}`,
+        : oldestPendingAt
+          ? `${pending} en cola · la más vieja, ${ago(oldestPendingAt, input.now)}`
+          : `${pending} en proceso`,
     detail:
       "El cron evalúa hasta 50 cada 6 h. Si crece día a día: evaluate cada hora (capacidad.md §2).",
     level,
@@ -124,7 +126,8 @@ export function betaHealth(input: BetaHealthInput): BetaHealth {
       key: "activas",
       label: "Personas activas hoy",
       value: String(input.activeToday),
-      detail: "Hicieron algo a mano: un 👍/👎, una postulación o una oferta cargada.",
+      detail:
+        "Hicieron algo: un 👍/👎, una postulación o una oferta que no vino del pool (pegada o por email).",
       level: input.activeToday > 0 ? "verde" : "gris",
     },
     {

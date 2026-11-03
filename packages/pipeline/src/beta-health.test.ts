@@ -45,6 +45,9 @@ describe("betaHealth (C8-11): semáforo de la mañana", () => {
       "rojo",
     );
     expect(level({ ...calm, queue: { pending: 0, oldestPendingAt: null } }, "cola")).toBe("verde");
+    // R-5: solo en proceso (ninguna pendiente) no es «Vacía»
+    const processing = betaHealth({ ...calm, queue: { pending: 3, oldestPendingAt: null } });
+    expect(processing.rows[0]!.value).toBe("3 en proceso");
   });
 
   it("IA: contra LLM_DAILY_CAP_USD; sin tope, gris", () => {

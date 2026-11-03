@@ -1,16 +1,17 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import { jobLanguageFacts } from "@job-search-os/pipeline";
-import { asc, eq, isNull, sql } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 
 /**
  * Relleno idempotente del idioma y el nivel de inglés de `public_jobs` (C8-15, migración 0058): calcula
- * `jobLanguageFacts` para las filas con `language_checked_at` null, por tandas. Volver a correrlo no
- * cambia nada de lo ya calculado. Sin `apply` solo cuenta. Lee el texto acotado a 30.000 caracteres,
+ * `jobLanguageFacts` para las filas sin calcular o vencidas (`language_checked_at` null o anterior a
+ * `updated_at`: el aviso cambió después, R-5), por tandas. Volver a correrlo no cambia lo vigente. Sin `apply` solo cuenta. Lee el texto acotado a 30.000 caracteres,
  * como el mercado por carrera.
  */
 export type LanguageBackfillReport = { pending: number; written: number; batches: number };
 
 const JD_MAX_CHARS = 30000;
+const STALE = sql`(${s.publicJobs.languageCheckedAt} is null or ${s.publicJobs.languageCheckedAt} < ${s.publicJobs.updatedAt})`;
 
 export async function backfillJobLanguage(
   db: Db,
@@ -21,7 +22,7 @@ export async function backfillJobLanguage(
   const [{ n: pending } = { n: 0 }] = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(s.publicJobs)
-    .where(isNull(s.publicJobs.languageCheckedAt));
+    .where(STALE);
   if (!opts.apply) return { pending, written: 0, batches: 0 };
 
   let written = 0;
@@ -34,7 +35,7 @@ export async function backfillJobLanguage(
         jdText: sql<string | null>`left(${s.publicJobs.jdText}, ${JD_MAX_CHARS})`,
       })
       .from(s.publicJobs)
-      .where(isNull(s.publicJobs.languageCheckedAt))
+      .where(STALE)
       .orderBy(asc(s.publicJobs.id))
       .limit(batch);
     if (rows.length === 0) break;
@@ -49,7 +50,8 @@ export async function backfillJobLanguage(
             englishLanguage: f.englishLanguage,
             englishAsks: f.englishAsks,
             englishLevel: f.englishLevel,
-            languageCheckedAt: at,
+            // Nunca antes que `updated_at`: si no, la fila seguiría vencida (relojes de app y base)
+            languageCheckedAt: sql`greatest(${at.toISOString()}::timestamptz, ${s.publicJobs.updatedAt})`,
           })
           .where(eq(s.publicJobs.id, r.id));
       }
