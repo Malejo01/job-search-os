@@ -1,5 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- Favicon de AfinIAJobs (C7-2): el monograma índigo sobre lima (paleta del 3/11). A 16 px va sin el punto (manual M3). Ver docs/MARCA.md -->
-  <rect width="32" height="32" rx="7" fill="#C6F25B"/>
-  <path d="M8.2 25 L16 7.6 L23.8 25" fill="none" stroke="#1E1B4B" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Favicon de AfinIAJobs (logo B2, C9-4): la «A» de Bricolage Grotesque 800 en índigo con el punto de la marca, sobre lima. Ver docs/MARCA.md -->
+  <rect width="32" height="32" rx="8" fill="#C6F25B"/>
+  <svg x="4" y="5.5" width="24" height="20.5" viewBox="0 0 960 820">
+    <path d="M14 740L238 80H474L698 740H522L485 616H227L190 740ZM453 508L364 206H348L259 508Z" fill-rule="evenodd" fill="#1E1B4B"/>
+    <circle cx="840" cy="664" r="96" fill="#4338CA"/>
+  </svg>
 </svg>
