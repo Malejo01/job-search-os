@@ -23,11 +23,14 @@ test.describe("Flujo 117: error de guardado sin perder el texto", () => {
     await login(page);
     await page.goto("/jobs/pending-jd");
     const field = page.getByLabel(`Descripción de ${title}`);
-    const text = "Texto ficticio demasiado corto para un aviso.";
+    // El navegador pide 200 caracteres (minLength) y el servidor cuenta sin los espacios de los
+    // bordes: con espacios al final pasa el navegador y el servidor la rechaza por corta
+    const text = `Texto ficticio demasiado corto para un aviso.${" ".repeat(220)}`;
     await field.fill(text);
     const item = page.getByRole("listitem").filter({ has: field });
     await item.getByRole("button", { name: "Guardar descripción y evaluar" }).click();
-    await page.waitForURL(/error=corta/);
+    // El redirect de la acción es una navegación del cliente: no hay evento «load»
+    await page.waitForURL(/error=corta/, { waitUntil: "commit" });
     const again = page.getByLabel(`Descripción de ${title}`);
     await expect(again).toHaveValue(text);
     await expect(again).toBeFocused();
