@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { buttonClasses } from "@/components/ui";
 import {
   deleteFromWaitlistAction,
   inviteFromWaitlistAction,
@@ -81,7 +82,7 @@ export function WaitlistRow({
             <button
               type="submit"
               disabled={invitePending}
-              className="rounded-control bg-brand px-3 py-1 text-brand-contrast disabled:opacity-60"
+              className={buttonClasses({ size: "sm" })}
             >
               Crear invitación
             </button>
@@ -93,14 +94,14 @@ export function WaitlistRow({
             <button
               type="submit"
               disabled={deletePending}
-              className="rounded-control border border-danger-line bg-danger-soft px-3 py-1 text-danger disabled:opacity-60"
+              className={buttonClasses({ variant: "danger", size: "sm" })}
             >
               ¿Seguro? Borrar
             </button>
             <button
               type="button"
               onClick={() => setConfirming(false)}
-              className="rounded-control border border-line-strong px-3 py-1"
+              className={buttonClasses({ variant: "secondary", size: "sm" })}
             >
               Cancelar
             </button>
@@ -109,7 +110,7 @@ export function WaitlistRow({
           <button
             type="button"
             onClick={() => setConfirming(true)}
-            className="rounded-control border border-line-strong px-3 py-1"
+            className={buttonClasses({ variant: "secondary", size: "sm" })}
           >
             Borrar
           </button>
@@ -140,7 +141,7 @@ export function WaitlistRow({
             onClick={() => {
               void navigator.clipboard.writeText(invite.link).then(() => setCopied(true));
             }}
-            className="self-start rounded-control border border-line-strong bg-surface px-3 py-1"
+            className={buttonClasses({ variant: "secondary", size: "sm", className: "self-start" })}
           >
             {copied ? "Copiado" : "Copiar"}
           </button>
