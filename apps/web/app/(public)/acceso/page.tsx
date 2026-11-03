@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { BETA_OPENING_LABEL, BRAND, waitlistRoleGroups } from "@job-search-os/pipeline";
+import { accesoFunnelEnabled } from "@/lib/acceso-funnel";
 import { contactLink } from "@/lib/contact";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
 import { WaitlistForm, WaitlistFormFields } from "./waitlist-form";
@@ -29,7 +30,13 @@ export default function AccesoPage() {
     label: group.label,
     roles: group.roles.map((key) => ({ key, label: ROLE_SKILLS[key].label })),
   }));
-  const formProps = { groups, contact: contactLink("Borrar mis datos de la lista de espera") };
+  const formProps = {
+    groups,
+    contact: contactLink("Borrar mis datos de la lista de espera"),
+    // Embudo (C8-2): apagado salvo `ACCESO_FUNNEL_ENABLED=1` (con la migración 0057 aplicada)
+    funnel: accesoFunnelEnabled(),
+    brandName: BRAND.name,
+  };
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-5 py-2 sm:py-8">
       {/* Bloque de marca (C7-10): lo primero que ve quien llega por el QR desde el celular */}

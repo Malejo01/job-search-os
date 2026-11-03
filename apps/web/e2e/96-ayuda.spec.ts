@@ -27,6 +27,9 @@ test.describe("Flujo 96: Página pública de ayuda y preguntas frecuentes (/ayud
       "¿Cómo aviso si algo no funciona o tengo una consulta?",
       "¿Cómo me doy de baja si no quiero usar más la app?",
       "¿Necesito conocimientos técnicos o saber de programación?",
+      // R-4 (C8): las dudas de las carreras no tech
+      "¿Sirve para trabajos presenciales, por ejemplo en Salta?",
+      "¿Puedo dejar el Plan Beta cuando quiera?",
     ];
 
     for (const q of expectedQuestions) {

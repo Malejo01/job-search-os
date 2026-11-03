@@ -10,7 +10,10 @@ import {
   isRoleKey,
   type BetaMetricRow,
 } from "@job-search-os/pipeline";
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getAccesoFunnel } from "@/lib/acceso-funnel";
+import { feedbackTriageEnabled } from "@/lib/feedback-triage";
 import { careerLabel } from "@/lib/career-market";
 import { getBetaFeedback, type FeedbackListResult } from "@/lib/beta-feedback";
 import {
@@ -22,6 +25,7 @@ import {
   type FounderCountsResult,
 } from "@/lib/beta-metrics";
 import { requireUserId } from "@/lib/session";
+import { AccesoFunnelPanel } from "./acceso-funnel-panel";
 
 export const metadata = { title: "Métricas de la beta" };
 export const dynamic = "force-dynamic";
@@ -63,6 +67,7 @@ export default async function MetricasPage() {
   const founders = await getFounderCounts(userId);
   const feedback = await getBetaFeedback(userId);
   const reveal = await getCareerReveal(userId);
+  const accesoFunnel = await getAccesoFunnel(userId);
   const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(betaMetricsCsv(metrics))}`;
 
   return (
@@ -77,6 +82,7 @@ export default async function MetricasPage() {
       {groups.map((group) => (
         <MetricTable key={group} title={group} rows={rows.filter((r) => r.group === group)} />
       ))}
+      <AccesoFunnelPanel result={accesoFunnel} />
       <FounderSeats founders={founders} k={metrics.k} />
       <HiddenCareers reveal={reveal} />
       <BetaFeedbackList feedback={feedback} />
@@ -232,6 +238,14 @@ function BetaFeedbackList({ feedback }: { feedback: FeedbackListResult }) {
   return (
     <section className="rounded-card border border-line bg-surface p-4">
       <h2 className="mb-2 font-medium">Lo que nos contaron</h2>
+      {/* C8-17: triage con filtros, estado y CSV (con FEEDBACK_TRIAGE_ENABLED=1) */}
+      {feedbackTriageEnabled() ? (
+        <p className="mb-2 text-sm">
+          <Link href="/settings/feedback" className="font-semibold text-link underline">
+            Ver todo, filtrar y marcar
+          </Link>
+        </p>
+      ) : null}
       {feedback.rows.length === 0 ? (
         <p className="text-sm text-fg-muted">Todavía no hay comentarios.</p>
       ) : (

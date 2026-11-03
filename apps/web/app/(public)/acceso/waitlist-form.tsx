@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useActionState, useEffect, useRef } from "react";
-import { buttonClasses } from "@/components/ui";
-import { submitWaitlist, type WaitlistState } from "./actions";
+// R-1: import directo (el barril de `@/components/ui` arrastra el de pipeline al navegador)
+import { buttonClasses } from "@/components/ui/button";
+import { submitWaitlist, trackAcceso, type WaitlistState } from "./actions";
+import { ShareButton } from "./share-button";
 
 const INITIAL: WaitlistState = { status: "idle" };
 // Campo del manual (M8, C7-10): borde de 2 px, radio 12, 44 px y foco lima
@@ -17,7 +19,29 @@ export type RoleOptionGroup = { label: string; roles: RoleOption[] };
 type FormProps = {
   groups: RoleOptionGroup[];
   contact: { email: string; href: string } | null;
+  /** Embudo de /acceso (C8-2): la página lo prende con `ACCESO_FUNNEL_ENABLED`. */
+  funnel?: boolean;
+  /** Nombre de la marca para compartir: lo pasa la página (servidor) para no traer pipeline al cliente. */
+  brandName: string;
 };
+
+type FieldsProps = FormProps & {
+  initialHeardFrom: string;
+  /** `?origen=` tal cual: el servidor lo normaliza a una lista cerrada antes de contarlo. */
+  origen?: string | null;
+};
+
+/** Una visita por pestaña y origen (recargar no suma). Sin almacenamiento disponible, cuenta igual. */
+function firstVisitInTab(origen: string | null): boolean {
+  const key = `jso-acceso-visita:${origen ?? ""}`;
+  try {
+    if (window.sessionStorage.getItem(key)) return false;
+    window.sessionStorage.setItem(key, "1");
+  } catch {
+    // modo privado o almacenamiento bloqueado
+  }
+  return true;
+}
 
 /**
  * Formulario "Pedir acceso" con el origen del QR (`?origen=voces-jovenes`). Lee la URL en el
@@ -27,9 +51,15 @@ type FormProps = {
 export function WaitlistForm(props: FormProps) {
   const searchParams = useSearchParams();
   const origen = searchParams.get("origen");
+  const { funnel } = props;
+  // Solo el formulario real cuenta la visita (no el fallback del Suspense)
+  useEffect(() => {
+    if (funnel && firstVisitInTab(origen)) void trackAcceso("visita", origen).catch(() => {});
+  }, [funnel, origen]);
   return (
     <WaitlistFormFields
       {...props}
+      origen={origen}
       initialHeardFrom={origen === "voces-jovenes" ? "Voces Jóvenes" : ""}
     />
   );
@@ -40,9 +70,19 @@ export function WaitlistFormFields({
   groups,
   contact,
   initialHeardFrom,
-}: FormProps & { initialHeardFrom: string }) {
+  funnel = false,
+  origen = null,
+  brandName,
+}: FieldsProps) {
   const [state, action, pending] = useActionState(submitWaitlist, INITIAL);
   const formRef = useRef<HTMLFormElement>(null);
+  const started = useRef(false);
+  // Embudo (C8-2): el primer campo tocado y cada carrera elegida. Nunca lo escrito.
+  const onFirstFocus = () => {
+    if (!funnel || started.current) return;
+    started.current = true;
+    void trackAcceso("empezado", origen).catch(() => {});
+  };
   // Mientras se envía no se muestran los errores del intento anterior
   const showError = state.status === "error" && !pending;
   const errors = showError && state.fieldErrors ? state.fieldErrors : {};
@@ -54,18 +94,56 @@ export function WaitlistFormFields({
   }, [state]);
 
   if (state.status === "done") {
+    // Confirmación (C8-3): qué pasa ahora, sin prometer lugar, y para pasárselo a otra persona
     return (
-      <p
-        role="status"
-        className="rounded-card bg-success-soft px-4 py-4 text-base font-semibold text-success"
-      >
-        {state.message}
-      </p>
+      <div className="flex flex-col gap-4" data-testid="acceso-confirmacion">
+        <p
+          role="status"
+          className="rounded-card bg-success-soft px-4 py-4 text-base font-semibold text-success"
+        >
+          {state.message}
+        </p>
+        <section
+          aria-labelledby="acceso-que-sigue"
+          className="flex flex-col gap-2 rounded-card border border-line bg-surface p-4"
+        >
+          <h2 id="acceso-que-sigue" className="text-base font-bold">
+            Qué sigue
+          </h2>
+          <ol className="m-0 flex list-decimal flex-col gap-1.5 pl-5 text-sm text-fg-muted">
+            <li>
+              Revisamos los pedidos y armamos el grupo de la beta, con lugar para cada carrera.
+            </li>
+            <li>
+              Si hay lugar para vos, te escribimos con el link para crear tu cuenta. Si es por
+              email, mirá también en spam.
+            </li>
+            <li>
+              Mientras tanto, mirá{" "}
+              <Link
+                href="/demo/contaduria"
+                className="font-semibold text-link underline underline-offset-2 hover:text-link-hover"
+              >
+                cómo funciona con un ejemplo
+              </Link>
+              .
+            </li>
+          </ol>
+        </section>
+        <ShareButton brandName={brandName} />
+      </div>
     );
   }
 
   return (
-    <form ref={formRef} action={action} className="flex flex-col gap-4" noValidate>
+    <form
+      ref={formRef}
+      action={action}
+      onFocus={funnel ? onFirstFocus : undefined}
+      className="flex flex-col gap-4"
+      noValidate
+    >
+      {origen ? <input type="hidden" name="origen" value={origen.slice(0, 40)} /> : null}
       <p className="text-base text-fg-muted">
         La beta es por invitación. Dejá tus datos y, cuando haya lugar, te escribimos con un link
         para crear tu cuenta.
@@ -118,6 +196,11 @@ export function WaitlistFormFields({
           required
           aria-required="true"
           defaultValue=""
+          onChange={
+            funnel
+              ? (e) => void trackAcceso("carrera", origen, e.target.value).catch(() => {})
+              : undefined
+          }
           aria-invalid={errors.role ? true : undefined}
           aria-describedby={errors.role ? "acceso-role-error" : undefined}
           className={field}

@@ -104,6 +104,8 @@ export const ROLE_SPECIALTIES: Partial<Record<RoleKey, readonly RoleSpecialty[]>
       "ap ar",
       "cuentas por pagar",
       "cuentas por cobrar",
+      "cuentas a pagar",
+      "cuentas a cobrar",
       "creditos y cobranzas",
       "cuentas corrientes",
     ]),
@@ -292,6 +294,7 @@ export const ROLE_SPECIALTIES: Partial<Record<RoleKey, readonly RoleSpecialty[]>
     chip("redes_y_contenidos", "Redes y contenidos", [
       "community manager",
       "social media",
+      "redes sociales",
       "content marketing",
       "copywriter",
       "content creator",

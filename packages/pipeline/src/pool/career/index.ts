@@ -6,6 +6,7 @@ export {
   TOP_SKILLS,
 } from "./career-market";
 export { detectEnglish, ENGLISH_ESTIMATED, MAX_JD_CHARS, type EnglishDetection } from "./english";
+export { jobLanguageFacts, type JobLanguageFacts } from "./language-facts";
 export {
   monthlySalaryPoint,
   percentile,

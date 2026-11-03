@@ -1,8 +1,9 @@
 "use server";
 
-import { createLogger } from "@job-search-os/adapters";
+import { createLogger, sendWelcomeEmail } from "@job-search-os/adapters";
 import { isPlanSource } from "@job-search-os/pipeline";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { NotInvitationAdminError } from "@/lib/invitations";
 import { grantBetaPlan, PlanAdminNotEnabledInDbError, revokePlan } from "@/lib/plan-admin";
@@ -33,6 +34,20 @@ export async function grantPlanAction(formData: FormData): Promise<void> {
         { source, until: result.until.toISOString() },
         "plan de la beta activado",
       );
+      // Bienvenida (C8-7): solo en una activación, después de responder (no frena el panel).
+      // Apagada salvo WELCOME_EMAIL_ENABLED=1
+      if (result.activated) {
+        const { email: to, until, source: planSource } = result;
+        after(async () => {
+          await sendWelcomeEmail({
+            to,
+            until,
+            source: planSource,
+            env: process.env,
+            logger: createLogger({ user_id: userId, task: "welcome_email" }),
+          });
+        });
+      }
     }
   } catch (error) {
     target = `${BACK}?error=${errorCode(error)}`;

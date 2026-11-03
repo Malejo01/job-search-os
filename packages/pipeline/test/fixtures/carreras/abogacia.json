@@ -1,0 +1,184 @@
+{
+  "meta": {
+    "carrera": "abogacia",
+    "version": "2026-11-03",
+    "descripcion": "Golden sintético de abogacia (C8-8): 8 avisos inventados con empresas ficticias. Etiquetas propuestas (anchor_source assisted), a validar por un profesional después de la beta. No lo usa el job pago de evals.",
+    "persona": {
+      "pais": "AR",
+      "ciudad": "Salta",
+      "anos_experiencia": 2,
+      "modalidades": ["remoto", "hibrido", "presencial"],
+      "idiomas_aviso": ["es", "en"]
+    }
+  },
+  "casos": [
+    {
+      "id": "abogacia-01",
+      "categoria": "nueve_mas",
+      "empresa": "Empresa A",
+      "titulo": "Abogado/a junior — Derecho laboral",
+      "ubicacion_raw": "Remoto (Argentina)",
+      "modalidad": "remoto",
+      "jd_text": "Empresa A busca incorporar: Abogado/a junior — Derecho laboral.\n\nEstudio con foco en derecho laboral de empresas medianas.\n\nQué vas a hacer:\n- Redactar contestaciones de demanda y escritos laborales\n- Seguir expedientes en el sistema de gestión judicial\n- Preparar audiencias de conciliación con el equipo\n- Responder consultas de clientes sobre liquidaciones finales\n\nQué buscamos:\n- Título de abogado/a y matrícula vigente\n- 1 a 3 años de experiencia en laboral\n- Buena redacción\n- Manejo de Word y Excel\n\nOfrecemos capacitación continua y horario flexible.\n\nModalidad: remoto. Ubicación: Remoto (Argentina). Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": [],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "postular",
+        "score_esperado": {
+          "min": 9,
+          "max": 10
+        },
+        "nota": "Encaje casi perfecto: junior, remoto para Argentina y tareas que la persona hace hoy."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "abogacia-02",
+      "categoria": "remoto_ar",
+      "empresa": "Empresa B",
+      "titulo": "Analista legal junior",
+      "ubicacion_raw": "Remoto · Argentina",
+      "modalidad": "remoto",
+      "jd_text": "Empresa B busca incorporar: Analista legal junior.\n\nÁrea legal de una empresa de servicios con clientes en todo el país.\n\nQué vas a hacer:\n- Revisar y redactar contratos de servicios\n- Llevar el registro de vencimientos contractuales\n- Asistir en reclamos de consumidores\n\nQué buscamos:\n- Abogado/a recibido/a\n- Hasta 3 años de experiencia\n- Interés en derecho del consumidor\n\nEquipo chico, trabajo 100 % remoto.\n\nModalidad: remoto. Ubicación: Remoto · Argentina. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": [],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "postular",
+        "score_esperado": {
+          "min": 7,
+          "max": 9
+        },
+        "nota": "Buen encaje: remoto para Argentina, nivel acorde y tareas de la carrera."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "abogacia-03",
+      "categoria": "presencial_salta",
+      "empresa": "Empresa C",
+      "titulo": "Asistente legal para estudio jurídico",
+      "ubicacion_raw": "Salta Capital, Salta",
+      "modalidad": "presencial",
+      "jd_text": "Empresa C busca incorporar: Asistente legal para estudio jurídico.\n\nEstudio con 20 años en Salta, civil y comercial.\n\nQué vas a hacer:\n- Procurar expedientes en tribunales de Salta\n- Redactar escritos simples\n- Atender a clientes en el estudio\n\nQué buscamos:\n- Estudiante avanzado/a o abogado/a recién recibido/a\n- Conocimiento de los tribunales locales\n\nSe valora movilidad propia.\n\nModalidad: presencial. Ubicación: Salta Capital, Salta. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["modalidad_no_remota"],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "postular",
+        "score_esperado": {
+          "min": 7,
+          "max": 9
+        },
+        "nota": "Presencial en la ciudad de la persona: no es riesgo, pasa con la marca de modalidad."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "abogacia-04",
+      "categoria": "presencial_caba",
+      "empresa": "Empresa D",
+      "titulo": "Paralegal — Contratos comerciales",
+      "ubicacion_raw": "CABA, Buenos Aires",
+      "modalidad": "presencial",
+      "jd_text": "Empresa D busca incorporar: Paralegal — Contratos comerciales.\n\nDepartamento legal de una distribuidora.\n\nQué vas a hacer:\n- Armar borradores de contratos de distribución\n- Ordenar la documentación societaria\n- Coordinar firmas con proveedores\n\nQué buscamos:\n- Estudiante de abogacía o abogado/a\n- Experiencia en contratos comerciales\n\nOficina en Microcentro.\n\nModalidad: presencial. Ubicación: CABA, Buenos Aires. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["modalidad_no_remota", "ciudad_distinta"],
+        "bloqueadores_esperados": ["ubicacion"],
+        "accion_esperada": "guardar",
+        "score_esperado": {
+          "min": 4,
+          "max": 7
+        },
+        "nota": "Presencial lejos de Salta: pasa el prefiltro con la marca de ciudad distinta; el evaluador lo baja."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "abogacia-05",
+      "categoria": "remoto_otro_pais",
+      "empresa": "Empresa E",
+      "titulo": "Legal Assistant (Remote, Spain only)",
+      "ubicacion_raw": "Remoto · solo residentes en España",
+      "modalidad": "remoto",
+      "jd_text": "Empresa E busca incorporar: Legal Assistant (Remote, Spain only).\n\nDespacho con clientes en la Unión Europea.\n\nQué vas a hacer:\n- Gestionar documentación de clientes\n- Preparar escritos en castellano\n- Coordinar agendas de abogados\n\nQué buscamos:\n- Residencia legal en España (excluyente)\n- Conocimiento de derecho español\n\nContrato laboral español.\n\nModalidad: remoto. Ubicación: Remoto · solo residentes en España. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["residencia_exigida"],
+        "bloqueadores_esperados": ["ubicacion"],
+        "accion_esperada": "descartar",
+        "score_esperado": {
+          "min": 1,
+          "max": 4
+        },
+        "nota": "Remoto pero solo para residentes de otro país: la ubicación nunca descarta en el prefiltro (CLAUDE.md), queda la marca y el evaluador lo descarta."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "abogacia-06",
+      "categoria": "senior_inalcanzable",
+      "empresa": "Empresa F",
+      "titulo": "Director/a de Asuntos Legales",
+      "ubicacion_raw": "Remoto (Argentina)",
+      "modalidad": "remoto",
+      "jd_text": "Empresa F busca incorporar: Director/a de Asuntos Legales.\n\nGrupo empresario con operaciones en cinco países.\n\nQué vas a hacer:\n- Liderar el equipo legal regional\n- Definir la estrategia de litigios\n- Reportar al directorio\n\nQué buscamos:\n- Más de 12 años de experiencia\n- Experiencia liderando equipos\n- Inglés avanzado\n\nPaquete de beneficios ejecutivo.\n\nModalidad: remoto. Ubicación: Remoto (Argentina). Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_discard",
+        "flags_esperados": [],
+        "bloqueadores_esperados": ["experiencia"],
+        "accion_esperada": "descartar",
+        "score_esperado": {
+          "min": 1,
+          "max": 3
+        },
+        "nota": "Cargo de dirección para alguien con 2 años: el pool no lo asigna (isTooSenior)."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "abogacia-07",
+      "categoria": "titulo_enganoso",
+      "empresa": "Empresa G",
+      "titulo": "Operador/a de call center — se valoran estudiantes de abogacía",
+      "ubicacion_raw": "Córdoba, Córdoba",
+      "modalidad": "presencial",
+      "jd_text": "Empresa G busca incorporar: Operador/a de call center — se valoran estudiantes de abogacía.\n\nCentro de contacto de una aseguradora.\n\nQué vas a hacer:\n- Atender llamadas entrantes de clientes\n- Registrar reclamos en el sistema\n- Cumplir objetivos de tiempo de atención\n\nQué buscamos:\n- Secundario completo\n- Disponibilidad horaria rotativa\n\nNo se requiere título.\n\nModalidad: presencial. Ubicación: Córdoba, Córdoba. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_discard",
+        "flags_esperados": [],
+        "bloqueadores_esperados": ["disciplina"],
+        "accion_esperada": "descartar",
+        "score_esperado": {
+          "min": 1,
+          "max": 3
+        },
+        "nota": "El título nombra la carrera pero el puesto es de otra disciplina: no debería mostrarse."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "abogacia-08",
+      "categoria": "encaje_parcial",
+      "empresa": "Empresa H",
+      "titulo": "Procurador/a judicial con movilidad propia",
+      "ubicacion_raw": "Híbrido · Salta",
+      "modalidad": "hibrido",
+      "jd_text": "Empresa H busca incorporar: Procurador/a judicial con movilidad propia.\n\nEstudio de cobranzas judiciales.\n\nQué vas a hacer:\n- Recorrer juzgados y registros\n- Retirar y presentar documentación\n- Controlar plazos procesales\n\nQué buscamos:\n- Estudiante de abogacía\n- Movilidad propia\n- Disponibilidad para viajar dentro de la provincia\n\nSe reintegra combustible.\n\nModalidad: hibrido. Ubicación: Híbrido · Salta. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["modalidad_no_remota"],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "guardar",
+        "score_esperado": {
+          "min": 5,
+          "max": 7
+        },
+        "nota": "Encaje parcial: área vecina o requisito que falta; se guarda para mirar."
+      },
+      "anchor_source": "assisted"
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import type { JobLanguageFacts } from "./language-facts";
 import type { RoleKey } from "../../skills/self-assessment";
 
 /**
@@ -22,6 +23,11 @@ export type CareerJobInput = {
   /** ISO. `coalesce(posted_at, first_seen_at)`. */
   publishedAt: string;
   jdText: string | null;
+  /**
+   * Idioma y nivel de inglés ya calculados (C8-15, columnas de `public_jobs`). Si vienen, el mercado los
+   * usa y no mira `jdText`; si no (filas sin relleno), los calcula del texto.
+   */
+  language?: JobLanguageFacts | null;
 };
 
 /** Lo único que necesita `buildCareerSalary` de un aviso. */
@@ -61,6 +67,13 @@ export type CareerSkillRow = {
 
 export type SeniorityBucket = "junior" | "semi" | "senior" | "lead" | "unknown";
 export type EnglishLevel = "basico" | "intermedio" | "avanzado" | "fluido";
+
+const ENGLISH_LEVELS: readonly string[] = ["basico", "intermedio", "avanzado", "fluido"];
+
+/** Valida un nivel leído de la base (C8-15). */
+export function isEnglishLevel(value: unknown): value is EnglishLevel {
+  return typeof value === "string" && ENGLISH_LEVELS.includes(value);
+}
 
 export type SalarySummary = {
   informed: number;

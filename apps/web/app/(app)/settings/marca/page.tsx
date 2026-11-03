@@ -15,6 +15,7 @@ import {
   type IconName,
 } from "@/components/ui";
 import { canCreateInvitations } from "@/lib/invitations";
+import { welcomeEmailSample } from "@/lib/welcome-email-sample";
 import { requireUserId } from "@/lib/session";
 import { TokenValue } from "./token-value";
 
@@ -104,6 +105,8 @@ export default async function MarcaPage() {
           lima {BRAND_COLORS.accent}, índigo vivo {BRAND_COLORS.accentDeep}.
         </p>
       </section>
+
+      <WelcomeEmailPreview />
 
       <div className="grid gap-4 lg:grid-cols-2">
         {(["light", "dark"] as const).map((mode) => (
@@ -244,5 +247,43 @@ function ModePanel() {
         </ul>
       </div>
     </>
+  );
+}
+
+/**
+ * Vista previa del email de bienvenida (C8-7) con datos de ejemplo: el texto acá y el HTML con la
+ * marca en `/settings/marca/email-bienvenida` (HTML propio, sin scripts). Sin iframe: axe no puede
+ * entrar a un iframe sin permisos y la página dejaría de medirse.
+ */
+function WelcomeEmailPreview() {
+  const { subject, text } = welcomeEmailSample();
+  return (
+    <section
+      aria-labelledby="marca-email"
+      className="flex flex-col gap-3"
+      data-testid="marca-email"
+    >
+      <h2 id="marca-email" className="text-heading font-bold">
+        Email de bienvenida
+      </h2>
+      <p className="text-sm text-fg-muted">
+        Sale una sola vez cuando activás el plan de alguien (no al renovarlo), si
+        <code> WELCOME_EMAIL_ENABLED=1</code>. Datos de ejemplo.
+      </p>
+      <p className="text-sm">
+        <span className="font-semibold">Asunto:</span> {subject}
+      </p>
+      <pre className="max-w-xl overflow-x-auto rounded-card border border-line bg-surface p-4 font-sans text-sm whitespace-pre-wrap text-fg">
+        {text}
+      </pre>
+      <a
+        href="/settings/marca/email-bienvenida"
+        target="_blank"
+        rel="noopener"
+        className="inline-flex min-h-11 items-center self-start text-sm font-semibold text-link underline"
+      >
+        Ver con el diseño (se abre aparte)
+      </a>
+    </section>
   );
 }

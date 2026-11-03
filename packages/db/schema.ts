@@ -198,6 +198,8 @@ export const jobs = pgTable("jobs", {
   index("jobs_user_company").on(t.userId, t.companyId, t.firstSeenAt),
   // C-7: orden y filtro por fecha de la lista (/jobs, «Hoy»)
   index("jobs_user_first_seen").on(t.userId, t.firstSeenAt.desc()),
+  // C8-15: candidatos de /market (los últimos 300 JD por created_at) sin ordenar en memoria
+  index("jobs_user_created").on(t.userId, t.createdAt.desc()),
   uniqueIndex("jobs_user_url").on(t.userId, t.canonicalUrl),
   uniqueIndex("jobs_user_public_job").on(t.userId, t.publicJobId).where(sql`${t.publicJobId} is not null`),
 ]);
@@ -231,6 +233,14 @@ export const publicJobs = pgTable("public_jobs", {
   jdText: text("jd_text"),
   jdHash: text("jd_hash"),
   jdShingles: jsonb("jd_shingles").$type<string[]>(),
+  // C8-15 (auditoría de Neon, propuesta 1): idioma y nivel de inglés del aviso, calculados una vez
+  // (`jobLanguageFacts`, pipeline) para que el mercado por carrera no lea el texto. null hasta el relleno
+  // (`pnpm pool:backfill-language`); `language_checked_at` dice si ya se calculó.
+  jdLanguage: text("jd_language"),                        // es | en | pt (detectJobLanguage)
+  englishLanguage: text("english_language"),              // en | es (detectEnglish().language)
+  englishAsks: boolean("english_asks"),
+  englishLevel: text("english_level"),                    // EnglishLevel o null
+  languageCheckedAt: timestamp("language_checked_at", { withTimezone: true }),
   tags: text("tags").array(),
   categories: text("categories").array(),                 // categoría o industria de la fuente
   roleHints: text("role_hints").array().notNull().default(sql`'{}'::text[]`), // roles de ROLE_KEYS; vacío = no se sabe
@@ -350,6 +360,36 @@ export const appAdmins = pgTable("app_admins", {
   userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Candidatos de skills de /market (C8-15, JS-102): los 15 términos que se calcularon con los JD de la
+// persona y la fecha de su JD más nuevo. Se reusan mientras no entre una oferta nueva (sin volver a leer
+// 300 textos). Datos de la persona: user_id + RLS del dueño (rls/0017).
+export const marketCandidates = pgTable("market_candidates", {
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  term: text("term").notNull(),
+  count: integer("count").notNull(),
+  sourceLatestAt: timestamp("source_latest_at", { withTimezone: true }),  // created_at del JD más nuevo usado
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  primaryKey({ columns: [t.userId, t.term] }),
+  check("market_candidates_term_length", sql`char_length(${t.term}) between 1 and 80`),
+]);
+
+// Embudo de /acceso (C8-2): contadores agregados por hora, origen, paso y carrera. Sin personas (ni
+// email, ni IP, ni id), por eso sin user_id. RLS sin policies (rls/0016): la app suma solo por
+// acceso_funnel_hit() y el admin lee solo por acceso_funnel_admin(). Pasos en ACCESO_FUNNEL_STEPS.
+export const accesoFunnel = pgTable("acceso_funnel", {
+  hour: timestamp("hour", { withTimezone: true }).notNull(),   // date_trunc('hour', now())
+  origin: text("origin").notNull(),                            // normalizeAccesoOrigin(): lista cerrada
+  step: text("step").notNull(),
+  role: text("role").notNull().default(""),                    // clave de carrera en `carrera` y `enviado`
+  count: integer("count").notNull().default(0),
+}, (t) => [
+  primaryKey({ columns: [t.hour, t.origin, t.step, t.role] }),
+  check("acceso_funnel_step_check", sql`${t.step} in ('visita', 'empezado', 'carrera', 'enviado', 'tope')`),
+  check("acceso_funnel_origin_check", sql`${t.origin} ~ '^[a-z0-9-]{1,40}$'`),
+  check("acceso_funnel_role_check", sql`${t.role} ~ '^[a-z_]{0,40}$'`),
+]);
 
 // Agregados de demanda por rol y semana (global, sin user_id). Los usa /market.
 export const roleMarketSnapshots = pgTable("role_market_snapshots", {
@@ -510,9 +550,15 @@ export const betaFeedback = pgTable("beta_feedback", {
   message: text("message").notNull(),
   path: text("path").notNull(),
   context: jsonb("context").$type<FeedbackContext>(),
+  // Triage del admin (C8-17): nuevo | visto | resuelto. Lo cambia solo admin_beta_feedback_set_status
+  // (rls/0018); la app no tiene UPDATE.
+  status: text("status").notNull().default("nuevo"),
+  statusChangedAt: timestamp("status_changed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
   index("beta_feedback_user_created").on(t.userId, t.createdAt),
+  index("beta_feedback_created").on(t.createdAt.desc()),
+  check("beta_feedback_status_check", sql`${t.status} in ('nuevo', 'visto', 'resuelto')`),
   check("beta_feedback_category", sql`${t.category} in ('algo_no_anduvo', 'idea', 'confuso')`),
   check("beta_feedback_message_length", sql`char_length(${t.message}) between 1 and 2000`),
   check("beta_feedback_path_length", sql`char_length(${t.path}) <= 200`),

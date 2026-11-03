@@ -3,10 +3,14 @@
 import { createLogger, safeDbError } from "@job-search-os/adapters";
 import {
   isHoneypotFilled,
+  isRoleKey,
+  parseWaitlistEventWindow,
   parseWaitlistForm,
+  waitlistEventApplies,
   type WaitlistFieldErrors,
 } from "@job-search-os/pipeline";
 import { headers } from "next/headers";
+import { recordAccesoStep } from "@/lib/acceso-funnel";
 import { joinWaitlist } from "@/lib/waitlist";
 
 export type WaitlistState =
@@ -18,7 +22,7 @@ export type WaitlistState =
 // No promete una invitación: el cupo es limitado y anotarse no garantiza lugar (C5-8). Igual para ok y
 // duplicate. Sin una fecha de aviso: el mensaje tiene que seguir siendo cierto después del 26/11
 const DONE_MESSAGE =
-  "Listo, te anotamos. La beta abre el jueves 26/11 y el cupo es limitado: si hay lugar, te escribimos con el link para crear tu cuenta.";
+  "Listo, te anotamos. La beta abre el jueves 26/11 y el cupo es limitado: te escribimos si hay lugar, con el link para crear tu cuenta.";
 
 /** Pedir acceso (sin sesión). Honeypot → éxito falso sin guardar; Zod; tope por IP en la base. */
 export async function submitWaitlist(
@@ -44,13 +48,23 @@ export async function submitWaitlist(
     null;
 
   try {
-    const status = await joinWaitlist(parsed.value, ip);
+    // Embudo (C8-2): el origen viene del `?origen=` del QR, no del «cómo te enteraste»
+    const origen = typeof raw.origen === "string" ? raw.origen : null;
+    // Topes del evento (C8-3): solo con el origen del QR y dentro de WAITLIST_EVENT_WINDOW (apagada)
+    const event = waitlistEventApplies(
+      parseWaitlistEventWindow(process.env.WAITLIST_EVENT_WINDOW),
+      new Date(),
+      origen,
+    );
+    const status = await joinWaitlist(parsed.value, ip, { event });
     if (status === "rate_limited") {
+      await recordAccesoStep("tope", origen);
       return {
         status: "error",
         message: "Recibimos muchos pedidos desde tu conexión. Probá de nuevo en un rato.",
       };
     }
+    await recordAccesoStep("enviado", origen, parsed.value.role);
     return { status: "done", message: DONE_MESSAGE };
   } catch (e) {
     // Sin datos personales: ni el email, ni el nombre, ni la IP
@@ -60,4 +74,21 @@ export async function submitWaitlist(
     );
     return { status: "error", message: "No pudimos anotarte. Probá de nuevo en un rato." };
   }
+}
+
+/**
+ * Embudo de /acceso (C8-2): visita, primer campo tocado y carrera elegida. Sin sesión y sin datos
+ * personales; solo pasos de esta lista (el envío y el tope los cuenta `submitWaitlist`). No hace nada
+ * con `ACCESO_FUNNEL_ENABLED` apagado.
+ */
+export async function trackAcceso(
+  step: "visita" | "empezado" | "carrera",
+  origen: string | null,
+  role?: string,
+): Promise<void> {
+  if (step !== "visita" && step !== "empezado" && step !== "carrera") return;
+  if (origen !== null && typeof origen !== "string") return;
+  const roleKey = step === "carrera" && typeof role === "string" && isRoleKey(role) ? role : null;
+  if (step === "carrera" && !roleKey) return;
+  await recordAccesoStep(step, origen, roleKey);
 }

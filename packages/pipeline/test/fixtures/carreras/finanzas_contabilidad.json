@@ -1,0 +1,184 @@
+{
+  "meta": {
+    "carrera": "finanzas_contabilidad",
+    "version": "2026-11-03",
+    "descripcion": "Golden sintético de finanzas_contabilidad (C8-8): 8 avisos inventados con empresas ficticias. Etiquetas propuestas (anchor_source assisted), a validar por un profesional después de la beta. No lo usa el job pago de evals.",
+    "persona": {
+      "pais": "AR",
+      "ciudad": "Salta",
+      "anos_experiencia": 2,
+      "modalidades": ["remoto", "hibrido", "presencial"],
+      "idiomas_aviso": ["es", "en"]
+    }
+  },
+  "casos": [
+    {
+      "id": "finanzas_contabilidad-01",
+      "categoria": "nueve_mas",
+      "empresa": "Empresa A",
+      "titulo": "Contador/a junior — Impuestos",
+      "ubicacion_raw": "Remoto (Argentina)",
+      "modalidad": "remoto",
+      "jd_text": "Empresa A busca incorporar: Contador/a junior — Impuestos.\n\nEstudio contable con cartera de pymes y monotributistas.\n\nQué vas a hacer:\n- Liquidar IVA, Ganancias e Ingresos Brutos\n- Presentar declaraciones juradas en AFIP\n- Conciliar cuentas bancarias\n- Atender consultas impositivas de clientes\n\nQué buscamos:\n- Contador/a público/a recibido/a\n- 1 a 3 años en estudio contable\n- Excel avanzado\n- Manejo de Tango o similar\n\nCapacitación en normas nuevas a cargo del estudio.\n\nModalidad: remoto. Ubicación: Remoto (Argentina). Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": [],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "postular",
+        "score_esperado": {
+          "min": 9,
+          "max": 10
+        },
+        "nota": "Encaje casi perfecto: junior, remoto para Argentina y tareas que la persona hace hoy."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "finanzas_contabilidad-02",
+      "categoria": "remoto_ar",
+      "empresa": "Empresa B",
+      "titulo": "Analista contable semi senior",
+      "ubicacion_raw": "Remoto · Argentina",
+      "modalidad": "remoto",
+      "jd_text": "Empresa B busca incorporar: Analista contable semi senior.\n\nEmpresa de software con administración centralizada.\n\nQué vas a hacer:\n- Registrar asientos y conciliaciones\n- Preparar cierres mensuales\n- Colaborar con la auditoría externa\n\nQué buscamos:\n- Contador/a o estudiante avanzado/a\n- 2 a 4 años de experiencia\n- Excel\n\nTrabajo remoto con viajes ocasionales.\n\nModalidad: remoto. Ubicación: Remoto · Argentina. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": [],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "postular",
+        "score_esperado": {
+          "min": 7,
+          "max": 9
+        },
+        "nota": "Buen encaje: remoto para Argentina, nivel acorde y tareas de la carrera."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "finanzas_contabilidad-03",
+      "categoria": "presencial_salta",
+      "empresa": "Empresa C",
+      "titulo": "Auxiliar contable",
+      "ubicacion_raw": "Salta Capital, Salta",
+      "modalidad": "presencial",
+      "jd_text": "Empresa C busca incorporar: Auxiliar contable.\n\nDistribuidora de alimentos del norte argentino.\n\nQué vas a hacer:\n- Cargar facturas de proveedores\n- Controlar cuentas corrientes\n- Preparar información para el estudio externo\n\nQué buscamos:\n- Estudiante de contador público\n- Conocimientos de Excel\n\nOficina en zona sur de Salta.\n\nModalidad: presencial. Ubicación: Salta Capital, Salta. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["modalidad_no_remota"],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "postular",
+        "score_esperado": {
+          "min": 7,
+          "max": 9
+        },
+        "nota": "Presencial en la ciudad de la persona: no es riesgo, pasa con la marca de modalidad."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "finanzas_contabilidad-04",
+      "categoria": "presencial_caba",
+      "empresa": "Empresa D",
+      "titulo": "Analista de cuentas a pagar",
+      "ubicacion_raw": "CABA, Buenos Aires",
+      "modalidad": "presencial",
+      "jd_text": "Empresa D busca incorporar: Analista de cuentas a pagar.\n\nRetail con 40 sucursales.\n\nQué vas a hacer:\n- Gestionar pagos a proveedores\n- Conciliar cuentas corrientes\n- Emitir retenciones\n\nQué buscamos:\n- Estudiante o graduado/a en contabilidad\n- Experiencia en cuentas a pagar\n\nOficina en Palermo.\n\nModalidad: presencial. Ubicación: CABA, Buenos Aires. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["modalidad_no_remota", "ciudad_distinta"],
+        "bloqueadores_esperados": ["ubicacion"],
+        "accion_esperada": "guardar",
+        "score_esperado": {
+          "min": 4,
+          "max": 7
+        },
+        "nota": "Presencial lejos de Salta: pasa el prefiltro con la marca de ciudad distinta; el evaluador lo baja."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "finanzas_contabilidad-05",
+      "categoria": "remoto_otro_pais",
+      "empresa": "Empresa E",
+      "titulo": "Accountant (Remote — Mexico residents only)",
+      "ubicacion_raw": "Remoto · solo residentes en España",
+      "modalidad": "remoto",
+      "jd_text": "Empresa E busca incorporar: Accountant (Remote — Mexico residents only).\n\nFirma de outsourcing contable.\n\nQué vas a hacer:\n- Registrar operaciones de clientes mexicanos\n- Preparar declaraciones ante el SAT\n- Conciliar bancos\n\nQué buscamos:\n- Residencia en México (excluyente)\n- Conocimiento de normativa fiscal mexicana\n\nPago en pesos mexicanos.\n\nModalidad: remoto. Ubicación: Remoto · solo residentes en España. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["residencia_exigida"],
+        "bloqueadores_esperados": ["ubicacion"],
+        "accion_esperada": "descartar",
+        "score_esperado": {
+          "min": 1,
+          "max": 4
+        },
+        "nota": "Remoto pero solo para residentes de otro país: la ubicación nunca descarta en el prefiltro (CLAUDE.md), queda la marca y el evaluador lo descarta."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "finanzas_contabilidad-06",
+      "categoria": "senior_inalcanzable",
+      "empresa": "Empresa F",
+      "titulo": "Director/a de Administración y Finanzas",
+      "ubicacion_raw": "Remoto (Argentina)",
+      "modalidad": "remoto",
+      "jd_text": "Empresa F busca incorporar: Director/a de Administración y Finanzas.\n\nHolding industrial.\n\nQué vas a hacer:\n- Conducir las áreas de contabilidad, tesorería e impuestos\n- Negociar con bancos\n- Presentar resultados al directorio\n\nQué buscamos:\n- Más de 15 años de experiencia\n- Liderazgo de equipos grandes\n\nReporta al CEO.\n\nModalidad: remoto. Ubicación: Remoto (Argentina). Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_discard",
+        "flags_esperados": [],
+        "bloqueadores_esperados": ["experiencia"],
+        "accion_esperada": "descartar",
+        "score_esperado": {
+          "min": 1,
+          "max": 3
+        },
+        "nota": "Cargo de dirección para alguien con 2 años: el pool no lo asigna (isTooSenior)."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "finanzas_contabilidad-07",
+      "categoria": "titulo_enganoso",
+      "empresa": "Empresa G",
+      "titulo": "Vendedor/a de seguros — ideal estudiantes de contabilidad",
+      "ubicacion_raw": "Córdoba, Córdoba",
+      "modalidad": "presencial",
+      "jd_text": "Empresa G busca incorporar: Vendedor/a de seguros — ideal estudiantes de contabilidad.\n\nProductora de seguros.\n\nQué vas a hacer:\n- Vender pólizas por teléfono y redes\n- Visitar clientes\n- Cumplir metas de ventas mensuales\n\nQué buscamos:\n- Secundario completo\n- Actitud comercial\n\nSueldo básico más comisiones.\n\nModalidad: presencial. Ubicación: Córdoba, Córdoba. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_discard",
+        "flags_esperados": [],
+        "bloqueadores_esperados": ["disciplina"],
+        "accion_esperada": "descartar",
+        "score_esperado": {
+          "min": 1,
+          "max": 3
+        },
+        "nota": "El título nombra la carrera pero el puesto es de otra disciplina: no debería mostrarse."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "finanzas_contabilidad-08",
+      "categoria": "encaje_parcial",
+      "empresa": "Empresa H",
+      "titulo": "Analista de liquidación de sueldos (payroll)",
+      "ubicacion_raw": "Híbrido · Salta",
+      "modalidad": "hibrido",
+      "jd_text": "Empresa H busca incorporar: Analista de liquidación de sueldos (payroll).\n\nConsultora de recursos humanos.\n\nQué vas a hacer:\n- Liquidar sueldos de clientes\n- Presentar F.931\n- Responder consultas de empleados\n\nQué buscamos:\n- Conocimiento del convenio de comercio\n- Experiencia en liquidación de sueldos\n\nSe ofrece capacitación en el sistema propio.\n\nModalidad: hibrido. Ubicación: Híbrido · Salta. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["modalidad_no_remota"],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "guardar",
+        "score_esperado": {
+          "min": 5,
+          "max": 7
+        },
+        "nota": "Encaje parcial: área vecina o requisito que falta; se guarda para mirar."
+      },
+      "anchor_source": "assisted"
+    }
+  ]
+}

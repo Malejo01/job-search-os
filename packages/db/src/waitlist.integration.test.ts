@@ -171,6 +171,63 @@ describe("lista de espera (ronda 63)", () => {
     expect(await join("nueva@example.com", { ip: "hash-otra" })).toBe("rate_limited");
   });
 
+  // C8-3 · Prueba de carga liviana del salón del 11/11: 60 personas en 10 minutos desde el mismo wifi
+  // (una sola IP pública). Corre en el CI contra el Postgres del job, sin red externa.
+  describe("salón del 11/11: 60 personas desde la misma IP en 10 minutos (C8-3)", () => {
+    async function joinEvent(email: string, ip: string | null): Promise<string> {
+      const rows = await app<{ status: string }[]>`
+        select waitlist_join_event('Persona Salon', ${email}, 'abogacia', 'Voces Jóvenes', ${ip}) as status`;
+      return rows[0]!.status;
+    }
+
+    it("con los topes normales la persona 41 queda afuera (por eso existe la excepción)", async () => {
+      const results: string[] = [];
+      for (let i = 1; i <= 60; i++)
+        results.push(await join(`salon-n${i}@example.com`, { ip: "hash-wifi" }));
+      expect(results.filter((r) => r === "ok")).toHaveLength(40);
+      expect(results.slice(40).every((r) => r === "rate_limited")).toBe(true);
+    });
+
+    it("con los topes del evento entran las 60, también en paralelo", async () => {
+      const results = await Promise.all(
+        Array.from({ length: 60 }, (_, i) => joinEvent(`salon-e${i + 1}@example.com`, "hash-wifi")),
+      );
+      expect(results.every((r) => r === "ok")).toBe(true);
+      const [row] =
+        await owner`select count(*)::int as n from waitlist where ip_hash = 'hash-wifi'`;
+      expect(row!.n).toBe(60);
+    });
+
+    it("el evento sigue acotado: 120 por IP por hora, 200 cada 10 minutos y 600 por día", async () => {
+      await owner`insert into waitlist (email, name, role, ip_hash)
+                  select 'ev' || g || '@example.com', 'Persona', 'abogacia', 'hash-ev-' || (g % 2)
+                  from generate_series(1, 200) g`;
+      expect(await joinEvent("ev201@example.com", "hash-wifi")).toBe("rate_limited");
+      expect(await joinEvent("ev201@example.com", "hash-otro-celu")).toBe("rate_limited");
+      await owner`delete from waitlist where email like 'ev%@example.com'`;
+      await owner`insert into waitlist (email, name, role, ip_hash, created_at)
+                  select 'evd' || g || '@example.com', 'Persona', 'abogacia', 'hash-d-' || g,
+                         now() - interval '2 hours'
+                  from generate_series(1, 600) g`;
+      expect(await joinEvent("evd601@example.com", "hash-wifi")).toBe("rate_limited");
+    });
+
+    it("con el evento, una sola IP no se queda con toda la ráfaga (C8-14, S-1)", async () => {
+      await owner`insert into waitlist (email, name, role, ip_hash)
+                  select 'una-ip' || g || '@example.com', 'Persona', 'abogacia', 'hash-abuso'
+                  from generate_series(1, 120) g`;
+      expect(await joinEvent("una-ip-121@example.com", "hash-abuso")).toBe("rate_limited");
+      // En los mismos 10 minutos, el wifi del salón (otra IP) sigue entrando
+      expect(await joinEvent("salon-ok@example.com", "hash-salon-real")).toBe("ok");
+    });
+
+    it("la app no puede llamar a la función interna con topes propios", async () => {
+      await expect(
+        app`select waitlist_join_limited('X', 'x@example.com', 'abogacia', null, 'h', 10000, 10000)`,
+      ).rejects.toThrow(/permission denied/);
+    });
+  });
+
   it("el rol de la app no tiene privilegios de tabla", async () => {
     const [row] = await owner<{ sel: boolean; ins: boolean }[]>`
       select has_table_privilege('jobsearch_app', 'waitlist', 'SELECT') as sel,

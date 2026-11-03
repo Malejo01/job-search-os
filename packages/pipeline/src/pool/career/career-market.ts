@@ -1,8 +1,8 @@
 import { SOURCE_ATTRIBUTION } from "../attribution";
 import { allowsCountry, locationScope } from "../location-scope";
 import { roleDemand } from "../role-demand";
-import { detectJobLanguage } from "../../normalize/language";
-import { detectEnglish, ENGLISH_ESTIMATED } from "./english";
+import { ENGLISH_ESTIMATED } from "./english";
+import { jobLanguageFacts } from "./language-facts";
 import { monthlySalaryPoint, summarizeSalaries } from "./salary";
 import { seniorityBucket } from "./seniority-bucket";
 import type {
@@ -129,9 +129,15 @@ export function buildCareerMarket(input: CareerMarketInput): CareerMarket {
   for (const job of jobs) {
     seniority[seniorityBucket(job.seniority, job.title)]++;
 
-    const en = detectEnglish(job.jdText, job.lang);
+    // C8-15: con el idioma ya persistido no hace falta el texto del aviso
+    const facts = job.language ?? jobLanguageFacts(job.jdText, job.lang);
+    const en = {
+      language: facts.englishLanguage,
+      asks: facts.englishAsks,
+      level: facts.englishLevel,
+    };
     if (en.language === "en") writtenInEnglish++;
-    const isSpanish = detectJobLanguage(job.jdText, job.lang) === "es";
+    const isSpanish = facts.jdLanguage === "es";
     if (isSpanish) writtenInSpanish++;
     if (Date.parse(job.publishedAt) >= nowMs - 7 * DAY_MS) {
       last7d.total++;

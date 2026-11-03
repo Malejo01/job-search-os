@@ -31,6 +31,7 @@ export * from "./applications/apply-event";
 export * from "./applications/linkedin-application";
 export * from "./email/resend";
 export * from "./billing/plan-expiry-notices";
+export * from "./billing/welcome-email";
 export * from "./applicant/context";
 export * from "./mcp/auth";
 export * from "./mcp/untrusted";
@@ -48,7 +49,7 @@ export {
   type PoolSourceResult,
   type RunPoolFetchResult,
 } from "./pool/fetch";
-export { upsertPoolJobs, type PoolUpsertSummary } from "./pool/upsert";
+export { languageColumnsEnabled, upsertPoolJobs, type PoolUpsertSummary } from "./pool/upsert";
 export { POOL_RETENTION_DAYS, purgePool } from "./pool/retention";
 // E3b: lectura de candidatas para el simulador de /plan (lejos de las líneas que tocan #179 y #182)
 export { CANDIDATE_CAP, selectPoolCandidates } from "./pool/select";

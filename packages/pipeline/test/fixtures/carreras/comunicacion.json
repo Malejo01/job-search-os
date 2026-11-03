@@ -1,0 +1,184 @@
+{
+  "meta": {
+    "carrera": "comunicacion",
+    "version": "2026-11-03",
+    "descripcion": "Golden sintético de comunicacion (C8-8): 8 avisos inventados con empresas ficticias. Etiquetas propuestas (anchor_source assisted), a validar por un profesional después de la beta. No lo usa el job pago de evals.",
+    "persona": {
+      "pais": "AR",
+      "ciudad": "Salta",
+      "anos_experiencia": 2,
+      "modalidades": ["remoto", "hibrido", "presencial"],
+      "idiomas_aviso": ["es", "en"]
+    }
+  },
+  "casos": [
+    {
+      "id": "comunicacion-01",
+      "categoria": "nueve_mas",
+      "empresa": "Empresa A",
+      "titulo": "Analista de comunicación interna",
+      "ubicacion_raw": "Remoto (Argentina)",
+      "modalidad": "remoto",
+      "jd_text": "Empresa A busca incorporar: Analista de comunicación interna.\n\nEmpresa de servicios con 800 personas.\n\nQué vas a hacer:\n- Redactar el newsletter interno\n- Organizar campañas para los equipos\n- Medir el alcance de las comunicaciones\n- Coordinar eventos internos\n\nQué buscamos:\n- Licenciado/a en Comunicación\n- 1 a 3 años de experiencia\n- Excelente redacción\n\nTrabajo remoto con encuentros trimestrales.\n\nModalidad: remoto. Ubicación: Remoto (Argentina). Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": [],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "postular",
+        "score_esperado": {
+          "min": 9,
+          "max": 10
+        },
+        "nota": "Encaje casi perfecto: junior, remoto para Argentina y tareas que la persona hace hoy."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "comunicacion-02",
+      "categoria": "remoto_ar",
+      "empresa": "Empresa B",
+      "titulo": "Redactor/a de contenidos institucionales",
+      "ubicacion_raw": "Remoto · Argentina",
+      "modalidad": "remoto",
+      "jd_text": "Empresa B busca incorporar: Redactor/a de contenidos institucionales.\n\nFundación educativa.\n\nQué vas a hacer:\n- Escribir notas para la web\n- Preparar informes anuales\n- Corregir textos de otras áreas\n\nQué buscamos:\n- Comunicación, Periodismo o Letras\n- Muy buena ortografía\n\nRemoto para todo el país.\n\nModalidad: remoto. Ubicación: Remoto · Argentina. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": [],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "postular",
+        "score_esperado": {
+          "min": 7,
+          "max": 9
+        },
+        "nota": "Buen encaje: remoto para Argentina, nivel acorde y tareas de la carrera."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "comunicacion-03",
+      "categoria": "presencial_salta",
+      "empresa": "Empresa C",
+      "titulo": "Periodista para medio digital local",
+      "ubicacion_raw": "Salta Capital, Salta",
+      "modalidad": "presencial",
+      "jd_text": "Empresa C busca incorporar: Periodista para medio digital local.\n\nDiario digital de Salta.\n\nQué vas a hacer:\n- Cubrir noticias de la ciudad\n- Hacer entrevistas\n- Publicar en la web y en redes del medio\n\nQué buscamos:\n- Estudios en Periodismo o Comunicación\n- Disponibilidad para coberturas\n\nRedacción en el centro de Salta.\n\nModalidad: presencial. Ubicación: Salta Capital, Salta. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["modalidad_no_remota"],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "postular",
+        "score_esperado": {
+          "min": 7,
+          "max": 9
+        },
+        "nota": "Presencial en la ciudad de la persona: no es riesgo, pasa con la marca de modalidad."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "comunicacion-04",
+      "categoria": "presencial_caba",
+      "empresa": "Empresa D",
+      "titulo": "Agente de prensa",
+      "ubicacion_raw": "CABA, Buenos Aires",
+      "modalidad": "presencial",
+      "jd_text": "Empresa D busca incorporar: Agente de prensa.\n\nAgencia de comunicación.\n\nQué vas a hacer:\n- Armar gacetillas\n- Gestionar notas con medios\n- Hacer seguimiento de publicaciones\n\nQué buscamos:\n- Comunicación o Periodismo\n- Agenda de medios nacionales\n\nOficina en Recoleta.\n\nModalidad: presencial. Ubicación: CABA, Buenos Aires. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["modalidad_no_remota", "ciudad_distinta"],
+        "bloqueadores_esperados": ["ubicacion"],
+        "accion_esperada": "guardar",
+        "score_esperado": {
+          "min": 4,
+          "max": 7
+        },
+        "nota": "Presencial lejos de Salta: pasa el prefiltro con la marca de ciudad distinta; el evaluador lo baja."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "comunicacion-05",
+      "categoria": "remoto_otro_pais",
+      "empresa": "Empresa E",
+      "titulo": "Communications Specialist (Remote — US residents only)",
+      "ubicacion_raw": "Remoto · solo residentes en España",
+      "modalidad": "remoto",
+      "jd_text": "Empresa E busca incorporar: Communications Specialist (Remote — US residents only).\n\nONG con sede en Washington.\n\nQué vas a hacer:\n- Write press releases\n- Manage media inquiries\n- Coordinate campaigns\n\nQué buscamos:\n- US work authorization required\n- Fluent English\n\nFull-time, US payroll.\n\nModalidad: remoto. Ubicación: Remoto · solo residentes en España. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["residencia_exigida"],
+        "bloqueadores_esperados": ["ubicacion"],
+        "accion_esperada": "descartar",
+        "score_esperado": {
+          "min": 1,
+          "max": 4
+        },
+        "nota": "Remoto pero solo para residentes de otro país: la ubicación nunca descarta en el prefiltro (CLAUDE.md), queda la marca y el evaluador lo descarta."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "comunicacion-06",
+      "categoria": "senior_inalcanzable",
+      "empresa": "Empresa F",
+      "titulo": "Director/a de Comunicación Corporativa",
+      "ubicacion_raw": "Remoto (Argentina)",
+      "modalidad": "remoto",
+      "jd_text": "Empresa F busca incorporar: Director/a de Comunicación Corporativa.\n\nMultinacional de consumo masivo.\n\nQué vas a hacer:\n- Definir la estrategia de comunicación\n- Gestionar crisis\n- Liderar a un equipo regional\n\nQué buscamos:\n- Más de 12 años de experiencia\n- Inglés avanzado\n\nReporta a la presidencia.\n\nModalidad: remoto. Ubicación: Remoto (Argentina). Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_discard",
+        "flags_esperados": [],
+        "bloqueadores_esperados": ["experiencia"],
+        "accion_esperada": "descartar",
+        "score_esperado": {
+          "min": 1,
+          "max": 3
+        },
+        "nota": "Cargo de dirección para alguien con 2 años: el pool no lo asigna (isTooSenior)."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "comunicacion-07",
+      "categoria": "titulo_enganoso",
+      "empresa": "Empresa G",
+      "titulo": "Técnico/a en telecomunicaciones — redes de fibra óptica",
+      "ubicacion_raw": "Córdoba, Córdoba",
+      "modalidad": "presencial",
+      "jd_text": "Empresa G busca incorporar: Técnico/a en telecomunicaciones — redes de fibra óptica.\n\nProveedor de internet.\n\nQué vas a hacer:\n- Instalar y reparar redes de fibra\n- Hacer tendidos\n- Atender reclamos técnicos\n\nQué buscamos:\n- Técnico electrónico o en telecomunicaciones\n- Carnet de conducir\n\nTrabajo en campo.\n\nModalidad: presencial. Ubicación: Córdoba, Córdoba. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_discard",
+        "flags_esperados": [],
+        "bloqueadores_esperados": ["disciplina"],
+        "accion_esperada": "descartar",
+        "score_esperado": {
+          "min": 1,
+          "max": 3
+        },
+        "nota": "El título nombra la carrera pero el puesto es de otra disciplina: no debería mostrarse."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "comunicacion-08",
+      "categoria": "encaje_parcial",
+      "empresa": "Empresa H",
+      "titulo": "Content writer para blog de turismo",
+      "ubicacion_raw": "Híbrido · Salta",
+      "modalidad": "hibrido",
+      "jd_text": "Empresa H busca incorporar: Content writer para blog de turismo.\n\nAgencia de viajes online.\n\nQué vas a hacer:\n- Escribir artículos sobre destinos\n- Optimizar textos para buscadores\n- Proponer temas\n\nQué buscamos:\n- Redacción impecable\n- Nociones de SEO\n\nHíbrido en Salta.\n\nModalidad: hibrido. Ubicación: Híbrido · Salta. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["modalidad_no_remota"],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "guardar",
+        "score_esperado": {
+          "min": 5,
+          "max": 7
+        },
+        "nota": "Encaje parcial: área vecina o requisito que falta; se guarda para mirar."
+      },
+      "anchor_source": "assisted"
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { schema as s, type Db } from "@job-search-os/db";
 import {
+  jobLanguageFacts,
   canonicalUrl,
   detectJobLanguage,
   inferRoleHints,
@@ -288,9 +289,26 @@ function contentSignature(f: ContentFields): string {
   ]);
 }
 
+/**
+ * Idioma y nivel de inglés del aviso (C8-15), solo con `PUBLIC_JOBS_LANGUAGE_ENABLED=1`. Apagado no
+ * los calcula, pero **la migración 0058 tiene que estar aplicada igual**: Drizzle arma el INSERT con
+ * todas las columnas del schema (R-5). La variable no protege un despliegue antes de migrar.
+ */
+export function languageColumnsEnabled(
+  env: Record<string, string | undefined> = process.env,
+): boolean {
+  return env.PUBLIC_JOBS_LANGUAGE_ENABLED === "1";
+}
+
+function languageColumns(jdText: string | null, lang: string | null) {
+  if (!languageColumnsEnabled()) return {};
+  return { ...jobLanguageFacts(jdText, lang), languageCheckedAt: new Date() };
+}
+
 /** Columnas que dependen del contenido del aviso (se reescriben cuando la firma cambia). */
 function contentColumns(raw: RawJob, n: Normalized, companyId: string | null) {
   return {
+    ...languageColumns(n.jdText, n.lang),
     sourceName: raw.source.name,
     sourceUrl: n.sourceUrl,
     canonicalUrl: n.canonical,
@@ -509,10 +527,16 @@ function hintsDiffer(stored: readonly string[] | null, incoming: readonly string
 function autoFix(
   stored: { roleHints: readonly string[] | null; lang: string | null } | undefined,
   n: Normalized,
-): { roleHints?: string[]; lang?: string | null } {
-  const fix: { roleHints?: string[]; lang?: string | null } = {};
+): { roleHints?: string[]; lang?: string | null } & Partial<ReturnType<typeof languageColumns>> {
+  const fix: { roleHints?: string[]; lang?: string | null } & Partial<
+    ReturnType<typeof languageColumns>
+  > = {};
   if (hintsDiffer(stored?.roleHints ?? null, n.roleHints)) fix.roleHints = n.roleHints;
-  if ((stored?.lang ?? null) !== n.lang) fix.lang = n.lang;
+  if ((stored?.lang ?? null) !== n.lang) {
+    fix.lang = n.lang;
+    // R-5: si cambia el idioma declarado, el idioma persistido (C8-15) se recalcula con él
+    Object.assign(fix, languageColumns(n.jdText, n.lang));
+  }
   return fix;
 }
 

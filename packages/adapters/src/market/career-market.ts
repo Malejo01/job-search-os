@@ -1,5 +1,11 @@
 import { schema as s, type Db } from "@job-search-os/db";
-import type { CareerMarketInput, CareerSalaryJob, RoleKey } from "@job-search-os/pipeline";
+import {
+  isEnglishLevel,
+  type CareerMarketInput,
+  type CareerSalaryJob,
+  type JobLanguageFacts,
+  type RoleKey,
+} from "@job-search-os/pipeline";
 import { and, eq, isNull, sql } from "drizzle-orm";
 
 /**
@@ -17,6 +23,11 @@ export async function readCareerMarketInput(
   db: Db,
   role: RoleKey,
   now: Date,
+  /**
+   * C8-15: con las columnas de idioma (migración 0058, `PUBLIC_JOBS_LANGUAGE_ENABLED=1`) el texto del
+   * aviso solo se trae para las filas que todavía no tienen el idioma calculado.
+   */
+  opts: { persistedLanguage?: boolean } = {},
 ): Promise<CareerMarketInput> {
   const since = new Date(now.getTime() - CAREER_MARKET_WINDOW_DAYS * DAY_MS);
   // Avisos del rol: sin copias, vistos por última vez dentro de la ventana
@@ -40,8 +51,23 @@ export async function readCareerMarketInput(
       locationRaw: s.publicJobs.locationRaw,
       sourceKind: s.publicJobs.sourceKind,
       publishedAt: sql<Date>`coalesce(${s.publicJobs.postedAt}, ${s.publicJobs.firstSeenAt})`,
-      // Acotado: solo se lee para detectar inglés; un aviso gigante no debe inflar la lectura
-      jdText: sql<string | null>`left(${s.publicJobs.jdText}, ${JD_MAX_CHARS})`,
+      // Acotado: solo se lee para detectar inglés; un aviso gigante no debe inflar la lectura. Con el
+      // idioma persistido (C8-15), solo para las filas que el relleno todavía no alcanzó
+      jdText: opts.persistedLanguage
+        ? sql<
+            string | null
+          >`case when ${s.publicJobs.languageCheckedAt} is null or ${s.publicJobs.languageCheckedAt} < ${s.publicJobs.updatedAt} then left(${s.publicJobs.jdText}, ${JD_MAX_CHARS}) end`
+        : sql<string | null>`left(${s.publicJobs.jdText}, ${JD_MAX_CHARS})`,
+      ...(opts.persistedLanguage
+        ? {
+            checkedAt: s.publicJobs.languageCheckedAt,
+            contentUpdatedAt: s.publicJobs.updatedAt,
+            jdLanguage: s.publicJobs.jdLanguage,
+            englishLanguage: s.publicJobs.englishLanguage,
+            englishAsks: s.publicJobs.englishAsks,
+            englishLevel: s.publicJobs.englishLevel,
+          }
+        : {}),
     })
     .from(s.publicJobs)
     .where(roleJobs);
@@ -67,10 +93,55 @@ export async function readCareerMarketInput(
 
   return {
     role,
-    jobs: jobRows.map((j) => ({ ...j, publishedAt: toIso(j.publishedAt) })),
+    jobs: jobRows.map((row) => {
+      const {
+        checkedAt,
+        contentUpdatedAt,
+        jdLanguage,
+        englishLanguage,
+        englishAsks,
+        englishLevel,
+        ...j
+      } = row as typeof row & PersistedLanguageRow;
+      // R-5: si el aviso cambió después de calcular el idioma, el dato está vencido y se usa el texto
+      const fresh =
+        checkedAt && contentUpdatedAt
+          ? new Date(checkedAt).getTime() >= new Date(contentUpdatedAt).getTime()
+          : Boolean(checkedAt);
+      return {
+        ...j,
+        publishedAt: toIso(j.publishedAt),
+        language: fresh
+          ? toLanguageFacts({ jdLanguage, englishLanguage, englishAsks, englishLevel })
+          : null,
+      };
+    }),
     skills: skillRows,
     poolUpdatedAt: pool?.last ? toIso(pool.last) : null,
     now: now.toISOString(),
+  };
+}
+
+type PersistedLanguageRow = {
+  checkedAt?: Date | null;
+  contentUpdatedAt?: Date | null;
+  jdLanguage?: string | null;
+  englishLanguage?: string | null;
+  englishAsks?: boolean | null;
+  englishLevel?: string | null;
+};
+
+/** Valida lo que vuelve de las columnas; un valor desconocido se trata como «no se sabe». */
+function toLanguageFacts(
+  r: Omit<PersistedLanguageRow, "checkedAt" | "contentUpdatedAt">,
+): JobLanguageFacts {
+  const jd = r.jdLanguage;
+  const en = r.englishLanguage;
+  return {
+    jdLanguage: jd === "es" || jd === "en" || jd === "pt" ? jd : null,
+    englishLanguage: en === "en" || en === "es" ? en : null,
+    englishAsks: r.englishAsks === true,
+    englishLevel: isEnglishLevel(r.englishLevel) ? r.englishLevel : null,
   };
 }
 

@@ -346,6 +346,8 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "trafficker",
     "community manager",
     "social media",
+    // C8-9: «redes» sola no (redes de datos); solo la frase completa
+    "redes sociales",
     "content marketing",
     "email marketing",
     // Ronda 107 (ADR-022): contenido, redes, gráfico y video son subespecialidades de la carrera.
@@ -639,6 +641,9 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "tesoreria",
     "cuentas por pagar",
     "cuentas por cobrar",
+    // C8-9: en Argentina se dice «cuentas a pagar / a cobrar»
+    "cuentas a pagar",
+    "cuentas a cobrar",
     "facturacion",
     "nomina",
     "liquidacion de sueldos",
