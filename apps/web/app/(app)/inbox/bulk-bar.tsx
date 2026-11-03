@@ -154,7 +154,7 @@ export function BulkBar({ total, shown, view }: { total: number; shown: number; 
           <div
             role="toolbar"
             aria-label="Acciones en lote"
-            className={`fixed inset-x-2 bottom-2 z-20 mx-auto flex max-w-5xl flex-col gap-2 rounded-control border border-line-strong bg-surface-subtle px-3 py-2 text-xs shadow-md ${
+            className={`fixed inset-x-2 bottom-[calc(0.5rem+var(--tabbar-h,0px))] z-20 mx-auto flex max-w-5xl flex-col gap-2 rounded-control border border-line-strong bg-surface-subtle px-3 py-2 text-xs shadow-md ${
               pending ? "opacity-60" : ""
             }`}
           >
