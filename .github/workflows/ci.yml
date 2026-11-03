@@ -161,10 +161,21 @@ jobs:
       - run: pnpm db:migrate:local && pnpm db:seed:local
       - run: pnpm --filter @job-search-os/web exec playwright install --with-deps chromium
       - run: pnpm --filter @job-search-os/web build
+      # CAPTURAS=1: el flujo 116 guarda capturas de las pantallas clave (C9-17, rediseño)
       - run: pnpm --filter @job-search-os/web e2e
+        env:
+          CAPTURAS: "1"
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-traces
           path: apps/web/test-results/
           retention-days: 7
+      # Capturas del rediseño (390 y 1280 px, claro y oscuro, datos inventados): artefacto, nunca al repo
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capturas
+          path: apps/web/test-results/capturas/
+          if-no-files-found: ignore
+          retention-days: 14

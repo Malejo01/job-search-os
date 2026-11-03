@@ -100,7 +100,7 @@ export default async function MarcaPage() {
                 <Logo tone={tone} variant="wordmark" size="sm" decorative />
               </span>
               <span
-                className={`rounded-badge bg-surface px-2 py-0.5 text-xs font-semibold text-fg ${tone === "auto" ? "" : "shadow-sm"}`}
+                className={`rounded-badge bg-surface px-2 py-0.5 text-xs font-semibold text-fg ${tone === "auto" ? "" : "ring-1 ring-line"}`}
               >
                 {label}
               </span>

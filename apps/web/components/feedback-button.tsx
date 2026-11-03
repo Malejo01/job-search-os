@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/ui/icons";
+
 import {
   FEEDBACK_CATEGORIES,
   FEEDBACK_CATEGORY_LABELS,
@@ -76,17 +78,16 @@ export function FeedbackButton() {
         // C7-5: en el celular es un círculo de 44 px (el texto queda para lectores de pantalla) para no
         // tapar botones; las pantallas dejan 6rem libres abajo. Desde sm, la píldora con el texto.
         // `--tabbar-h` (R-3) lo sube por encima de la barra de pestañas del celular cuando está prendida.
-        className="fixed bottom-[calc(1rem+var(--tabbar-h,0px)+env(safe-area-inset-bottom,0px))] right-[calc(1rem+env(safe-area-inset-right,0px))] z-40 inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-pill border-2 border-line-strong bg-surface text-xs font-semibold text-fg-muted shadow-sm hover:bg-surface-muted hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:px-3.5 sm:py-1.5"
+        className="fixed bottom-[calc(1rem+var(--tabbar-h,0px)+env(safe-area-inset-bottom,0px))] right-[calc(1rem+env(safe-area-inset-right,0px))] z-40 inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-pill border-2 border-line-strong bg-surface text-xs font-semibold text-fg-muted hover:bg-surface-muted hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:px-3.5 sm:py-1.5"
       >
-        <span aria-hidden="true" className="text-base sm:text-sm">
-          💬
-        </span>
+        {/* C9-17: ícono de la marca en vez del emoji */}
+        <Icon name="charla" size={18} />
         <span className="sr-only sm:not-sr-only">¿Algo no anduvo?</span>
       </button>
       {thanks ? (
         <p
           role="status"
-          className="fixed bottom-[calc(4.5rem+var(--tabbar-h,0px)+env(safe-area-inset-bottom,0px))] right-4 z-50 rounded-control bg-brand px-4 py-2 text-sm text-brand-contrast shadow-md"
+          className="fixed bottom-[calc(4.5rem+var(--tabbar-h,0px)+env(safe-area-inset-bottom,0px))] right-4 z-50 rounded-control bg-ink px-4 py-2 text-sm text-on-ink"
         >
           ¡Gracias! Lo leemos todo.
         </p>
