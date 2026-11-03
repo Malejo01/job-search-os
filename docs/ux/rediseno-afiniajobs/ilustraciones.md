@@ -24,6 +24,26 @@ Pesan entre 10 y 30 KB. Si una escena no tiene archivo, `<Illustration>` muestra
 | `error` | pendiente | 404, `error.tsx` y `global-error.tsx` (F1) | Lavanda | «» |
 | `acceso` | pendiente | Cabecera curva de `/acceso` | Índigo: va directo sobre la cabecera | «» |
 
+## Lugares y medidas (C9-12)
+
+Todas salen en 4:3: el alto es tres cuartos del ancho. El ancho lo fija la pantalla; la imagen de 600 px alcanza hasta 300 px de ancho en pantallas comunes y la @2x hasta 600 px en las de alta densidad.
+
+| Escena | Lugar | Ancho en el celular (390 px) | Ancho en la computadora (1280 px) |
+|---|---|---|---|
+| `hoy` | Cabecera curva de Hoy, a la derecha del saludo | 96 px (achicada) | 208 a 240 px |
+| `acceso` | Cabecera curva de `/acceso` | 120 px | 260 px |
+| `bienvenida` | Arriba del primer paso del onboarding | 160 px | 220 px |
+| `vacio`, `postulaciones`, `cv`, `sin-descripcion` | Estado vacío de su pantalla (V3), arriba del texto | 160 px | 200 px |
+| `error` | Pantallas de error (404, `error.tsx`, `global-error.tsx`) | 200 px | 280 px |
+
+**Peso máximo:** 40 KB por archivo (las de hoy pesan 13 y 30 KB). Si una pesa más, bajar la calidad de `cwebp` (`-q 75`).
+
+## Cómo funciona en el código
+
+- `packages/pipeline/src/illustrations.ts`: el manifiesto (`ILLUSTRATIONS`), con `available` y el fondo de cada escena. Un test (`illustrations.test.ts`) verifica que cada escena disponible tenga sus dos archivos y que no haya archivos fuera del manifiesto.
+- `apps/web/components/brand/illustration.tsx`: `<Illustration escena="vacio" className="w-40 sm:w-52" />`. Server Component, sin animación. Si la escena no tiene imagen, muestra el **marcador**: el recuadro lavanda con el monograma, del mismo tamaño, así la pantalla no salta cuando llegue.
+- Todas en `/settings/marca/componentes`, bloque «Ilustraciones».
+
 ## Reglas
 
 - Las de fondo lavanda van siempre dentro de un recuadro lavanda `#EEEDF9` con radio de 32 px, **igual en claro y en oscuro**: así el fondo de la imagen se funde con el recuadro.
@@ -37,3 +57,4 @@ Pesan entre 10 y 30 KB. Si una escena no tiene archivo, `<Illustration>` muestra
 1. Exportar en PNG 4:3 (1200 × 896 o mayor).
 2. Convertir: `cwebp -q 82 -resize 1200 896 in.png -o <escena>@2x.webp` y `cwebp -q 82 -resize 600 448 in.png -o <escena>.webp`.
 3. Copiar a `apps/web/public/ilustraciones/` y marcar la escena con ✅ en esta tabla.
+4. En `packages/pipeline/src/illustrations.ts`, pasar la escena a `available: true` (si no, el test falla).

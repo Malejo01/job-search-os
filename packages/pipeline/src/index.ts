@@ -69,6 +69,7 @@ export * from "./fit/offer-card";
 export * from "./fit/checklist-on-read";
 export * from "./digest/build";
 export * from "./brand";
+export * from "./illustrations";
 export * from "./help/ayuda-en-contexto";
 export * from "./email-layout";
 export * from "./initials";

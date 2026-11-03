@@ -17,6 +17,7 @@ import { parseJobFilters, reviewProgressFor } from "@/lib/jobs";
 import { listPendingJd, type PendingJdRow } from "@/lib/pending-jd";
 import { Card as UiCard, EmptyState, textLinkClasses } from "@/components/ui";
 import { requireActiveUserId } from "@/lib/session";
+import { Illustration } from "@/components/brand/illustration";
 import { MarkVisit } from "./mark-visit";
 import { NewJobRow } from "./new-job-row";
 import { StartHere } from "./start-here";
@@ -119,6 +120,8 @@ export default async function HoyPage() {
                 : "Primera vez por acá"}
             </p>
           </div>
+          {/* Ilustración de Hoy (C9-12): sobre la cabecera índigo, sin recuadro; achicada en el celular */}
+          <Illustration escena="hoy" priority className="w-24 sm:w-52 lg:w-60" />
         </div>
       </div>
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
