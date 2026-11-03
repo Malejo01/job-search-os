@@ -4,7 +4,8 @@ import { BRAND, BRAND_COLORS } from "./brand";
  * Encabezado y pie de marca para los emails transaccionales (C7-2): recuperación de contraseña,
  * aviso de vencimiento del plan y soporte. HTML simple con tablas y estilos en línea, como lo leen
  * los clientes de email. Sin imágenes ni fuentes remotas: el logotipo es texto con los colores de
- * marca (Sora si el cliente la tiene, si no la sans del sistema).
+ * marca (logo B2, C9-4: Bricolage Grotesque y Figtree si el cliente las tiene; si no, Arial: los
+ * clientes de correo no cargan fuentes).
  */
 export function escapeEmailHtml(s: string): string {
   return s
@@ -15,8 +16,8 @@ export function escapeEmailHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-const FONT = "Manrope, 'Segoe UI', Helvetica, Arial, sans-serif";
-const LOGO_FONT = "Sora, 'Segoe UI', Helvetica, Arial, sans-serif";
+const FONT = "Figtree, Arial, Helvetica, sans-serif";
+const LOGO_FONT = "'Bricolage Grotesque', Arial, Helvetica, sans-serif";
 
 /** Estilo de un link dentro del cuerpo: índigo vivo (7,9:1 sobre blanco). */
 export const EMAIL_LINK_STYLE = `color:${BRAND_COLORS.accentDeep};text-decoration:underline;`;
@@ -39,12 +40,13 @@ export function brandedEmailHtml({
     pre,
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BRAND_COLORS.canvas};"><tr><td align="center" style="padding:24px 12px;">`,
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">`,
-    // Encabezado: logotipo AfinIA (800, lima) + Jobs (300, blanco) sobre índigo
-    `<tr><td style="background:${BRAND_COLORS.ink};border-radius:16px 16px 0 0;padding:20px 24px;font-family:${LOGO_FONT};font-size:26px;line-height:1;letter-spacing:-1px;">`,
+    // Encabezado (logo B2): AfinIA (800, lima) + Jobs (500, blanco) + el punto lima, sobre índigo
+    `<tr><td style="background:${BRAND_COLORS.ink};border-radius:24px 24px 0 0;padding:22px 28px;font-family:${LOGO_FONT};font-size:28px;line-height:1;letter-spacing:-1px;">`,
     `<span style="font-weight:800;color:${BRAND_COLORS.accent};">${escapeEmailHtml(BRAND.wordmark.strong)}</span>`,
-    `<span style="font-weight:300;color:${BRAND_COLORS.white};">${escapeEmailHtml(BRAND.wordmark.light)}</span>`,
+    `<span style="font-weight:500;color:${BRAND_COLORS.white};">${escapeEmailHtml(BRAND.wordmark.light)}</span>`,
+    `<span aria-hidden="true" style="font-weight:800;color:${BRAND_COLORS.accent};">.</span>`,
     `</td></tr>`,
-    `<tr><td style="background:${BRAND_COLORS.white};border-radius:0 0 16px 16px;padding:24px;font-family:${FONT};font-size:15px;line-height:1.5;color:${BRAND_COLORS.ink};">`,
+    `<tr><td style="background:${BRAND_COLORS.white};border-radius:0 0 24px 24px;padding:28px;font-family:${FONT};font-size:15px;line-height:1.5;color:${BRAND_COLORS.ink};">`,
     bodyHtml,
     `</td></tr>`,
     `<tr><td style="padding:16px 8px;font-family:${FONT};font-size:12px;line-height:1.5;color:${BRAND_COLORS.textMuted};text-align:center;">`,

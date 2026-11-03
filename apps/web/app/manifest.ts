@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 
 /**
  * Manifest de la app (C7-2): nombre, colores e íconos para «Agregar a la pantalla de inicio». Los
- * PNG están en `public/icons` (monograma índigo sobre lima; el `maskable` deja margen para el
+ * PNG están en `public/icons` (logo B2, C9-4: la «A» índigo con el punto sobre lima; el `maskable` deja margen para el
  * recorte redondo de Android).
  */
 export default function manifest(): MetadataRoute.Manifest {

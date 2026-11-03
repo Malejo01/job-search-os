@@ -1,4 +1,4 @@
-# Marca: dónde está y cómo se cambia (C-15, C7-2)
+# Marca: dónde está y cómo se cambia (C-15, C7-2, logo B2 en C9-4)
 
 El nombre es **AfinIAJobs** («IA» y la «J» en mayúscula) en todas partes: UI, títulos, metadata, logo, favicon, ícono de app, imágenes OG, emails, manifest y textos legales. La fuente del diseño es `docs/ux/rediseno-afiniajobs/` (README y artboards M2 a M8).
 
@@ -13,12 +13,12 @@ Ani todavía no revisó la marca: lo que pida tiene que ser un PR chico. Por eso
 | Colores del logo según el modo | Tokens `--jso-logo-*` en `apps/web/app/globals.css` (claro y oscuro) | Ocho líneas |
 | Colores de la app | `apps/web/app/globals.css` (ver `docs/ux/tokens.md`) | Tokens |
 | Colores fuera de CSS (imágenes OG, manifest, emails) | `BRAND_COLORS` en `brand.ts`. Un test (`brand.test.ts`) verifica que coincidan con `globals.css` | Una línea por color |
-| Tipografías | `apps/web/app/fonts.ts` (Sora y Manrope con `next/font/local`, archivos en `apps/web/assets/fonts`) y, para las imágenes OG, `apps/web/assets/fonts/` | Un archivo |
-| Favicon | `apps/web/app/icon.svg` (monograma índigo sobre lima, sin el punto: a 16 px no se lee) | Reemplazar el archivo |
+| Tipografías | `apps/web/app/fonts.ts` (Bricolage Grotesque y Figtree con `next/font/local`, archivos en `apps/web/assets/fonts`, C9-2) y, para las imágenes OG, `apps/web/assets/fonts/` | Un archivo |
+| Favicon | `apps/web/app/icon.svg` (logo B2: la «A» de Bricolage 800 en índigo con el punto índigo vivo, sobre lima) | Reemplazar el archivo |
 | Ícono de iPhone y del manifest | `apps/web/app/apple-icon.png` (180 px) y `apps/web/public/icons/` (192, 512 y 512 `maskable`) | Reemplazar los PNG |
 | Manifest | `apps/web/app/manifest.ts` (nombre, colores e íconos) | Sale de `BRAND` y `BRAND_COLORS` |
 | Imágenes para compartir | `apps/web/lib/og-image.tsx`, usada por `(public)/opengraph-image.tsx`, `twitter-image.tsx` y `(public-en)/opengraph-image-en` | Un componente |
-| Encabezado de los emails | `packages/pipeline/src/email-layout.ts` (`brandedEmailHtml`): logotipo en texto sobre índigo, sin imágenes remotas | Un archivo |
+| Encabezado de los emails | `packages/pipeline/src/email-layout.ts` (`brandedEmailHtml`): logotipo B2 en texto sobre índigo, con el punto lima, sin imágenes remotas; fuentes con fallback a Arial | Un archivo |
 | `User-Agent` hacia las fuentes públicas del pool | `SOURCE_USER_AGENT_BASE` (`packages/adapters/src/sources/user-agent.ts`): `BRAND.name` + `/1.0` | Sale solo de `BRAND.name` |
 | Repositorio público («Cómo está hecho») | `BRAND.repoUrl` | Una línea |
 | URL pública (metadata, sitemap, robots, links de email) | Variable `SITE_URL` (`apps/web/lib/site-url.ts`) | Vercel, Puerta 3 |
@@ -29,12 +29,14 @@ Ani todavía no revisó la marca: lo que pida tiene que ser un PR chico. Por eso
 
 `<Logo>` es un Server Component sin JS:
 
-- `variant`: `full` (monograma + logotipo), `mark` (solo monograma) o `wordmark` (solo el texto).
+- `variant`: `full` o `wordmark` (el logotipo con el punto; desde B2 son lo mismo) o `mark` (el monograma: la «A» con el punto).
 - `tone`: el fondo. `auto` acompaña al modo (índigo e índigo vivo en claro; lima y blanco en oscuro). `light`, `dark` y `accent` (sobre lima) son fijos; el header tinta lleva `dark`.
-- `size`: `sm` (header: monograma de 30 px, letra de 22 px), `md` (login) y `lg`.
+- `size`: `sm` (header: letra de 24 px), `md` (login) y `lg`.
 - Para lectores de pantalla es una imagen con el nombre `BRAND.name`; con `decorative` se oculta.
 
-Logotipo: «AfinIA» en Sora 800 y «Jobs» en Sora 300, con tracking −4 %. Sobre oscuro (índigo), «AfinIA» lima `#C6F25B` y «Jobs» blanco; sobre claro, «AfinIA» índigo `#1E1B4B` y «Jobs» índigo vivo `#4338CA`. Paleta «índigo y lima» elegida el 3/11 (reemplaza a la tinta y naranja del manual); detalle en `docs/ux/tokens.md`.
+**Logo B2 (C9-4, decisión 4 de C9):** «AfinIA» en Bricolage Grotesque 800 y «Jobs» en 500, con tracking −3 % y **el punto de la marca** al final (un círculo sobre la línea de base). Sobre oscuro (índigo), «AfinIA» y el punto en lima `#C6F25B` y «Jobs» blanco; sobre claro, «AfinIA» índigo `#1E1B4B`, «Jobs» y el punto en índigo vivo `#4338CA`. El monograma es la «A» del mismo Bricolage 800 con el mismo punto (`components/brand/monogram.ts`, trazo sacado del glifo de la fuente): favicon, íconos y lugares chicos. Paleta «índigo y lima» elegida el 3/11; detalle en `docs/ux/tokens.md`.
+
+Los PNG (`apple-icon.png`, `public/icons/*`) se generan con Playwright desde el mismo SVG: un HTML con el monograma sobre lima, captura al tamaño exacto (180, 192, 512 y 512 `maskable` con más margen).
 
 Dónde está: headers de la app con sesión, onboarding, legales, `terminos-actualizados`, la vitrina pública (en español e inglés; a menos de 640 px va solo el logotipo para que entre con «Entrar» y «Pedir acceso») y las pantallas de cuenta (login, registro, setup, olvidé y reset).
 

@@ -2,10 +2,9 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { BRAND, BRAND_COLORS } from "@job-search-os/pipeline";
 import { ImageResponse } from "next/og";
-import { MONOGRAM } from "@/components/brand/monogram";
 
 /**
- * Imagen para compartir de la vitrina (C7-2): fondo tinta, monograma y logotipo AfinIA/Jobs, la
+ * Imagen para compartir de la vitrina (C7-2, logo B2 en C9-4): fondo índigo, logotipo AfinIA/Jobs con el punto, la
  * bajada «Ofertas afines. CV afinado.» y una línea de propuesta. Las fuentes salen del repo
  * (`apps/web/assets/fonts`), nunca por red: `next/og` no puede usar `next/font`.
  *
@@ -37,37 +36,29 @@ export async function brandOgImage({ line }: { line: string }): Promise<ImageRes
         fontFamily: "Figtree",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 36 }}>
-        <svg width={150} height={150} viewBox={MONOGRAM.viewBox}>
-          <path
-            d={MONOGRAM.path}
-            fill="none"
-            stroke={BRAND_COLORS.accent}
-            strokeWidth={MONOGRAM.strokeWidth}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <circle
-            cx={MONOGRAM.dot.cx}
-            cy={MONOGRAM.dot.cy}
-            r={MONOGRAM.dot.r}
-            fill={BRAND_COLORS.white}
-          />
-        </svg>
+      {/* Logo B2 (C9-4): «AfinIA» 800 en lima, «Jobs» 500 en blanco y el punto de la marca */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-end",
+          fontFamily: "Bricolage",
+          fontSize: 132,
+          lineHeight: 1,
+          letterSpacing: -4,
+        }}
+      >
+        <span style={{ fontWeight: 800, color: BRAND_COLORS.accent }}>{BRAND.wordmark.strong}</span>
+        <span style={{ fontWeight: 500, color: BRAND_COLORS.white }}>{BRAND.wordmark.light}</span>
         <div
           style={{
-            display: "flex",
-            fontFamily: "Bricolage",
-            fontSize: 120,
-            lineHeight: 1,
-            letterSpacing: -5,
+            width: 26,
+            height: 26,
+            marginLeft: 8,
+            marginBottom: 22,
+            borderRadius: 13,
+            background: BRAND_COLORS.accent,
           }}
-        >
-          <span style={{ fontWeight: 800, color: BRAND_COLORS.accent }}>
-            {BRAND.wordmark.strong}
-          </span>
-          <span style={{ fontWeight: 500, color: BRAND_COLORS.white }}>{BRAND.wordmark.light}</span>
-        </div>
+        />
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <div
