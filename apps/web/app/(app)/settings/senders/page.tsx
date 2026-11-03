@@ -4,6 +4,7 @@ import { webmailErrorFromParams } from "@/lib/filter-leak";
 import { formatDate } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import { listSenders } from "@/lib/senders";
+import { Alert, cardClasses, filterChipClasses, textLinkClasses } from "@/components/ui";
 import { setSenderAction } from "./actions";
 
 export const metadata = { title: "Remitentes" };
@@ -29,50 +30,39 @@ export default async function SendersPage({
   const webmailError = webmailErrorFromParams(await searchParams);
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-4">
-      <Link
-        href="/settings"
-        className="inline-flex min-h-11 items-center text-sm text-fg-subtle underline"
-      >
+    <div className="mx-auto flex max-w-2xl flex-col gap-5">
+      <Link href="/settings" className={textLinkClasses({ block: true, className: "text-sm" })}>
         ← Ajustes
       </Link>
-      <h1 className="text-2xl font-semibold">Remitentes</h1>
+      <h1 className="text-title font-bold">Remitentes</h1>
       <p className="text-sm text-fg-muted">
         Elegí qué dominios son fuentes de empleo. «Sin decidir» borra tu decisión y el aviso de fuga
         del filtro puede volver a saltar.
       </p>
       {webmailError ? (
-        <p
-          role="alert"
-          data-testid="error-webmail"
-          className="rounded-control border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger"
-        >
+        <Alert tone="danger" role="alert" bordered data-testid="error-webmail">
           {webmailError}
-        </p>
+        </Alert>
       ) : null}
-      <p
-        id="aviso-empleo"
-        className="rounded-control bg-warning-soft px-3 py-2 text-xs text-warning"
-        data-testid="aviso-empleo"
-      >
+      <Alert id="aviso-empleo" tone="warning" role={null} data-testid="aviso-empleo">
         Los emails de los dominios marcados como empleo se guardan completos.
-      </p>
+      </Alert>
 
       {senders.length === 0 ? (
-        <p className="rounded-control border border-dashed border-line-strong p-6 text-center text-sm text-fg-subtle">
+        <p className="rounded-container bg-surface px-6 py-8 text-center text-sm text-fg-muted">
           Todavía no llegó ningún email ni decidiste ningún dominio.
         </p>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-3">
           {senders.map((r) => {
             const webmail = isWebmailDomain(r.domain);
             return (
               <li
                 key={r.domain}
-                className="flex flex-col gap-2 rounded-card bg-surface p-3 text-sm"
+                className={cardClasses({ padding: "sm", className: "flex flex-col gap-3 text-sm" })}
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="font-medium break-all">{r.domain}</span>
+                  <span className="font-bold break-all">{r.domain}</span>
                   <span className="text-xs text-fg-subtle">
                     {r.emails} {r.emails === 1 ? "email" : "emails"}
                     {r.lastAt ? ` · último ${formatDate(r.lastAt.toISOString())}` : ""}
@@ -98,11 +88,8 @@ export default async function SendersPage({
                           type="submit"
                           aria-pressed={current}
                           aria-describedby={o.verdict === "empleo" ? "aviso-empleo" : undefined}
-                          className={`h-8 w-36 rounded-badge border px-2 text-xs ${
-                            current
-                              ? "border-brand-contrast bg-brand text-brand-contrast"
-                              : "border-line-strong bg-surface text-fg-muted"
-                          }`}
+                          // C9-11: filtro de 44 px (antes 32); el elegido en lima con borde índigo
+                          className={filterChipClasses({ selected: current })}
                         >
                           {o.label}
                         </button>

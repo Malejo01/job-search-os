@@ -11,6 +11,7 @@ import { AutoRefresh } from "@/app/(app)/jobs/auto-refresh";
 import { PRIVACY_OK_COOKIE, TrustBox } from "@/app/components/trust-box";
 import type { AssistantState } from "@/lib/assistant-state";
 import { requireUserId } from "@/lib/session";
+import { Alert, buttonClasses, cardClasses, textLinkClasses } from "@/components/ui";
 import {
   confirmedForwardingAction,
   filtersImportedAction,
@@ -68,11 +69,11 @@ export function Assistant({
   // Gmail ya empezado: cualquier paso distinto del inicial (tampoco se cierra solo al llegar a «listo»)
   const gmailInProgress = step !== "agregar_direccion" && step !== "direccion_vieja";
   return (
-    <section className="flex flex-col gap-4">
+    <section className="flex flex-col gap-5">
       {inOnboarding ? (
-        <p className="text-sm font-medium text-fg-subtle">Opcional · Conectar alertas</p>
+        <p className="text-sm font-bold text-fg-muted">Opcional · Conectar alertas</p>
       ) : null}
-      <h1 className="text-xl font-semibold">Conectá tus alertas de email (opcional)</h1>
+      <h1 className="text-title font-bold">Conectá tus alertas de email (opcional)</h1>
       <p className="text-sm text-fg-muted">Ya tenés ofertas de las fuentes públicas.</p>
       <AlertEmail address={address} legacy={legacy} />
 
@@ -82,22 +83,22 @@ export function Assistant({
       <details
         data-testid="gmail-option"
         open={gmailInProgress}
-        className="rounded-control border border-line px-3 py-1"
+        className={cardClasses({ padding: "none", className: "px-4 py-1 sm:px-5" })}
       >
-        <summary className="flex min-h-11 cursor-pointer items-center text-base font-medium text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus">
+        <summary className="flex min-h-11 cursor-pointer items-center text-base font-bold text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus">
           Otra opción: reenviar desde Gmail
         </summary>
         <div className="flex flex-col gap-4 py-3">
-          <p role="note" className="rounded-control bg-info-soft px-3 py-2 text-sm text-info">
+          <Alert tone="info" role="note">
             Por ahora este asistente es solo para Gmail. Si usás otro correo (Outlook, Hotmail,
             Yahoo), reenviá a mano las alertas a tu dirección de la app.
-          </p>
+          </Alert>
           <p className="text-sm text-fg-muted">
             Si además recibís alertas de LinkedIn, Get on Board, Indeed u otro portal en tu Gmail,
             podés reenviarlas a tu dirección personal y se cargan solas. No la compartas.
           </p>
           {address ? (
-            <div className="flex items-center gap-2 rounded-control bg-surface-muted px-3 py-2">
+            <div className="flex items-center gap-2 rounded-control bg-surface-muted px-4 py-2">
               <p className="min-w-0 flex-1 font-mono text-sm break-all select-all">{address}</p>
               <CopyButton text={address} />
             </div>
@@ -113,15 +114,13 @@ export function Assistant({
                   aria-current={view === "current" ? "step" : undefined}
                   className={
                     view === "current"
-                      ? "rounded-control border border-fg bg-surface px-3 py-2"
+                      ? "rounded-control border-2 border-brand-text bg-surface px-4 py-3"
                       : view === "done"
                         ? "px-3 py-1 text-fg-subtle"
                         : "px-3 py-1 text-fg-subtle"
                   }
                 >
-                  <h2
-                    className={view === "current" ? "text-base font-semibold text-fg" : "text-sm"}
-                  >
+                  <h2 className={view === "current" ? "text-base font-bold text-fg" : "text-sm"}>
                     {view === "done" ? <span aria-hidden="true">✓ </span> : null}
                     Gmail, paso {i + 1}: {STEP_TITLES[id]}
                     <span className="sr-only">
@@ -157,17 +156,11 @@ export function Assistant({
 
       <div className="flex flex-wrap items-center justify-end gap-3">
         {inOnboarding ? (
-          <Link
-            href="/onboarding/ofertas"
-            className="rounded-control border border-line-strong px-4 py-2 text-base focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
-          >
+          <Link href="/onboarding/ofertas" className={buttonClasses({ variant: "secondary" })}>
             Volver a Tus primeras ofertas
           </Link>
         ) : null}
-        <Link
-          href="/jobs"
-          className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-        >
+        <Link href="/jobs" className={buttonClasses()}>
           {step === "listo" ? "Ir a mis ofertas" : "Lo hago después"}
         </Link>
       </div>
@@ -234,14 +227,17 @@ function StepBody({
                 href={confirmation.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-control bg-info-strong px-3 py-1.5 font-medium text-on-strong"
+                className={buttonClasses({ size: "sm" })}
               >
                 Confirmar reenvío
               </a>
             ) : confirmation ? (
               <>
                 <span>Abrí el email para confirmarlo.</span>
-                <Link href={`/inbox/${confirmation.id}`} className="text-link underline">
+                <Link
+                  href={`/inbox/${confirmation.id}`}
+                  className={textLinkClasses({ block: true })}
+                >
                   Abrir el email
                 </Link>
               </>
@@ -251,7 +247,7 @@ function StepBody({
                 <input type="hidden" name="id" value={confirmation.id} />
                 <button
                   type="submit"
-                  className="rounded-control border border-line-strong bg-surface px-3 py-1.5"
+                  className={buttonClasses({ variant: "secondary", size: "sm" })}
                 >
                   Ya lo confirmé
                 </button>
@@ -264,7 +260,7 @@ function StepBody({
       return (
         <>
           <p>
-            <a href="/api/gmail-filters" download className="underline">
+            <a href="/api/gmail-filters" download className={textLinkClasses()}>
               Descargar filtros-job-search-os.xml
             </a>
           </p>
@@ -274,7 +270,7 @@ function StepBody({
               href={GMAIL_FILTERS_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="underline"
+              className={textLinkClasses()}
             >
               Filtros y direcciones bloqueadas
             </a>{" "}
@@ -287,10 +283,7 @@ function StepBody({
             guardarse, y en Gmail quedan en Todos los mensajes.
           </p>
           <form action={filtersImportedAction}>
-            <button
-              type="submit"
-              className="rounded-control border border-line-strong bg-surface px-3 py-1.5"
-            >
+            <button type="submit" className={buttonClasses({ variant: "secondary", size: "sm" })}>
               Ya importé los filtros
             </button>
           </form>
@@ -306,13 +299,13 @@ function StepBody({
     case "listo":
       return (
         <>
-          <p className="font-medium text-success">✓ Primera alerta recibida</p>
+          <p className="font-bold text-success">✓ Primera alerta recibida</p>
           <p>
-            <Link href="/jobs" className="underline">
+            <Link href="/jobs" className={textLinkClasses()}>
               Ver mis avisos
             </Link>{" "}
             ·{" "}
-            <Link href="/inbox" className="underline">
+            <Link href="/inbox" className={textLinkClasses()}>
               Ver la bandeja
             </Link>
           </p>

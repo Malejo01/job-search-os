@@ -1,9 +1,9 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
+import { buttonClasses } from "@/components/ui";
 
-const DEFAULT_CLASS =
-  "min-h-11 rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover";
+const DEFAULT_CLASS = buttonClasses();
 
 export function SaveButton({
   label,

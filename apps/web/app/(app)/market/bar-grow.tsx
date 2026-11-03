@@ -1,11 +1,9 @@
-"use client";
-
-import { motion, useReducedMotion } from "framer-motion";
 import type { CSSProperties, ReactNode } from "react";
 
 /**
- * Barra que crece de 0 a su ancho al aparecer (`scaleX`, desde la izquierda). Con "reducir
- * movimiento" no anima. El ancho llega en `style`; el texto de la fila ya dice el número.
+ * Barra de mercado. C9-11 (decisión 13 de C9): ya no crece al aparecer; se dibuja quieta con su
+ * ancho final. Queda como componente para no tocar a quién la usa. El ancho llega en `style`; el
+ * texto de la fila ya dice el número.
  */
 export function BarGrow({
   className,
@@ -16,23 +14,9 @@ export function BarGrow({
   style?: CSSProperties;
   children?: ReactNode;
 }) {
-  const reduce = useReducedMotion();
-  if (reduce) {
-    return (
-      <div className={className} style={style}>
-        {children}
-      </div>
-    );
-  }
   return (
-    <motion.div
-      className={className}
-      style={{ ...style, originX: 0 }}
-      initial={{ scaleX: 0 }}
-      animate={{ scaleX: 1 }}
-      transition={{ duration: 0.4 }}
-    >
+    <div className={className} style={style}>
       {children}
-    </motion.div>
+    </div>
   );
 }

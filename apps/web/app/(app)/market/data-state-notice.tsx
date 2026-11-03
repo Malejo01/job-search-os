@@ -1,5 +1,10 @@
 import Link from "next/link";
 import type { DataState } from "@/lib/market";
+import { Alert, textLinkClasses } from "@/components/ui";
+
+// C9-11: vacío como el `EmptyState` (panel blanco de radio 32), con el link dentro de la frase
+const EMPTY = "rounded-container bg-surface px-6 py-8 text-center text-sm text-fg-muted";
+const LINK = textLinkClasses();
 
 /** Avisos compartidos por /market y /plan: qué falta, en qué estado está y adónde ir. */
 
@@ -7,10 +12,10 @@ import type { DataState } from "@/lib/market";
 export function MissingDataNotice({ state }: { state: DataState }) {
   if (state.jobsCount === 0) {
     return (
-      <p className="rounded-card border border-dashed border-line-strong p-6 text-center text-sm text-fg-subtle">
+      <p className={EMPTY}>
         Todavía no llegaron ofertas. Cuando lleguen tus primeras ofertas, acá vas a ver qué piden y
         qué te falta.{" "}
-        <Link href="/settings/asistente" className="text-fg underline">
+        <Link href="/settings/asistente" className={LINK}>
           Conectar el asistente de email
         </Link>
       </p>
@@ -18,10 +23,10 @@ export function MissingDataNotice({ state }: { state: DataState }) {
   }
   if (state.noSkillsFound) {
     return (
-      <p className="rounded-card border border-dashed border-line-strong p-6 text-center text-sm text-fg-subtle">
+      <p className={EMPTY}>
         Todavía no encontramos skills en tus ofertas. Cuando lleguen ofertas con más detalle,
         aparecen acá. Mientras tanto podés{" "}
-        <Link href="/jobs/new" className="text-fg underline">
+        <Link href="/jobs/new" className={LINK}>
           pegar una oferta completa
         </Link>
         .
@@ -30,7 +35,7 @@ export function MissingDataNotice({ state }: { state: DataState }) {
   }
   if (!state.hasSnapshot) {
     return (
-      <p className="rounded-card border border-dashed border-line-strong p-6 text-center text-sm text-fg-subtle">
+      <p className={EMPTY}>
         Estamos armando tu mercado con las ofertas que llegaron. Volvé en unos minutos; también se
         actualiza cuando guardás tus skills y cada lunes.
       </p>
@@ -43,15 +48,14 @@ export function MissingDataNotice({ state }: { state: DataState }) {
 export function NoLevelsNotice({ state }: { state: DataState }) {
   if (state.levelsKnown > 0) return null;
   return (
-    <p
-      data-testid="market-sin-niveles"
-      className="rounded-control bg-warning-soft px-3 py-2 text-sm text-warning"
-    >
-      Todavía no cargaste tus skills: sin tus niveles, todo lo que piden las ofertas aparece como
-      brecha.{" "}
-      <Link href="/settings/skills" className="underline">
-        Cargar mis skills
-      </Link>
-    </p>
+    <Alert tone="warning" role={null} data-testid="market-sin-niveles">
+      <p>
+        Todavía no cargaste tus skills: sin tus niveles, todo lo que piden las ofertas aparece como
+        brecha.{" "}
+        <Link href="/settings/skills" className="font-semibold underline underline-offset-2">
+          Cargar mis skills
+        </Link>
+      </p>
+    </Alert>
   );
 }

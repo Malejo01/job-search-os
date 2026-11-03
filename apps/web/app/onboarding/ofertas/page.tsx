@@ -4,6 +4,7 @@ import { AutoRefresh } from "@/app/(app)/jobs/auto-refresh";
 import { RoleGaps } from "@/app/(app)/jobs/role-gaps";
 import { EmailNudge } from "@/app/components/email-nudge";
 import { GuidedTour } from "@/components/guided-tour";
+import { Alert, buttonClasses, textLinkClasses } from "@/components/ui";
 import { dismissGuideAction } from "@/lib/guide-actions";
 import { GUIDE_LABELS, GUIDE_STEPS } from "@/lib/guide";
 import {
@@ -32,7 +33,7 @@ export default async function FirstOffersPage() {
     offers.length === 0 && isSearchingWindow(await getProfileUpdatedAt(userId), new Date());
 
   return (
-    <section className="flex flex-col gap-4">
+    <section className="flex flex-col gap-5">
       <OnboardingSteps
         current={3}
         guide={
@@ -50,7 +51,8 @@ export default async function FirstOffersPage() {
         <h1 className="text-title font-bold">Tus primeras ofertas</h1>
         <Link
           href="/jobs"
-          className="inline-flex min-h-11 items-center text-sm font-medium underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus sm:rounded-control sm:bg-brand sm:px-4 sm:py-2 sm:text-base sm:text-brand-contrast sm:no-underline sm:focus-visible:outline-offset-2"
+          // C9-11: secundario; la acción lima de la pantalla es la de abajo, con el mismo destino
+          className={buttonClasses({ variant: "secondary", size: "sm" })}
         >
           Ir a mis ofertas
         </Link>
@@ -69,14 +71,10 @@ export default async function FirstOffersPage() {
         </div>
       ) : searching ? (
         <div data-tour="ofertas:lista" className="flex flex-col gap-4">
-          <p
-            role="status"
-            data-testid="first-offers-searching"
-            className="rounded-control border border-dashed border-line-strong p-4 text-sm text-fg-muted"
-          >
+          <Alert tone="info" role="status" data-testid="first-offers-searching">
             Estamos buscando ofertas para tus puestos. Puede tardar un par de minutos; esta página
             se actualiza sola.
-          </p>
+          </Alert>
           {/* Las ofertas se asignan después de guardar el perfil: un rato de espera por si llegan */}
           <AutoRefresh active everyMs={4000} maxMs={SEARCHING_WINDOW_MINUTES * 60_000} />
         </div>
@@ -84,17 +82,19 @@ export default async function FirstOffersPage() {
         <div
           data-tour="ofertas:lista"
           data-testid="first-offers-empty"
-          className="flex flex-col gap-2 rounded-control border border-dashed border-line-strong p-4 text-sm text-fg-muted"
+          className="flex flex-col gap-2 rounded-container bg-surface p-5 text-sm text-fg-muted sm:p-6"
         >
-          <p className="font-medium text-fg">Por ahora no hay ofertas para tus puestos</p>
+          <p className="font-display text-lg font-bold text-fg">
+            Por ahora no hay ofertas para tus puestos
+          </p>
           <ul className="list-disc pl-5">
             <li>
-              <Link href="/jobs/new" className="underline">
+              <Link href="/jobs/new" className={textLinkClasses()}>
                 Pegá una oferta que te interese
               </Link>
             </li>
             <li>
-              <Link href="/settings#puesto" className="underline">
+              <Link href="/settings#puesto" className={textLinkClasses()}>
                 Revisá tus puestos en Ajustes
               </Link>
             </li>
@@ -117,11 +117,7 @@ export default async function FirstOffersPage() {
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-3">
-        <Link
-          href="/jobs"
-          data-tour="ofertas:seguir"
-          className="inline-flex min-h-11 items-center rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-        >
+        <Link href="/jobs" data-tour="ofertas:seguir" className={buttonClasses()}>
           Ir a mis ofertas
         </Link>
       </div>

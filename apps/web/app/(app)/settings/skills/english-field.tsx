@@ -1,6 +1,7 @@
 import { CEFR_LEVELS } from "@job-search-os/pipeline";
 import { FieldError } from "@/app/components/guarded-form";
 import { CefrHelp } from "@/components/cefr-help";
+import { inputClasses } from "@/components/ui";
 
 /**
  * Nivel de inglés (CEFR) arriba de la pantalla de skills (ronda 78), en ajustes y en el onboarding.
@@ -12,16 +13,16 @@ export function EnglishField({ value }: { value: string | null }) {
   const current = (CEFR_LEVELS as readonly string[]).includes(value ?? "") ? (value ?? "") : "";
   return (
     <section className="flex flex-col gap-2" aria-labelledby="ingles-cefr">
-      <h2 id="ingles-cefr" className="text-base font-medium">
+      <h2 id="ingles-cefr" className="text-base font-bold">
         Inglés
       </h2>
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex flex-col gap-1.5 text-sm">
         Tu nivel de inglés
         <select
           name="englishCefr"
           defaultValue={current}
           aria-describedby="cefr-help-skills"
-          className="min-h-11 rounded-control border-2 border-line-strong px-3 py-2 text-base"
+          className={inputClasses()}
         >
           {current === "" ? <option value="">Sin dato</option> : null}
           {CEFR_LEVELS.map((l) => (

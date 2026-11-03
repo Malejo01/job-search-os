@@ -41,7 +41,7 @@ function RolesSection({
       className="flex flex-col gap-2 text-sm"
       aria-describedby={error?.field === "targetRoles" ? "targetRoles-error" : "roles-help"}
     >
-      <legend className="mb-1">¿Qué puestos buscás?</legend>
+      <legend className="mb-1 font-bold text-fg">¿Qué puestos buscás?</legend>
       <p id="roles-help" className="text-xs text-fg-subtle">
         Elegí hasta {rolesLimit}. Te mostramos primero las ofertas de esos puestos. Hay carreras de{" "}
         {groupsText(roleGroups.map((g) => g.label))}.

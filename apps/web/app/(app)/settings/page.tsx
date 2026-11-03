@@ -15,12 +15,25 @@ import { canCreateInvitations } from "@/lib/invitations";
 import { getTargetRoles, getTargetRolesLimit, getTargetSpecialties } from "@/lib/onboarding";
 import { getUserPlan, type UserPlan } from "@/lib/user-plan";
 import { requireUserId } from "@/lib/session";
+import { buttonClasses, cardClasses, textLinkClasses } from "@/components/ui";
 import { DeleteAccountForm } from "./delete-account-form";
 import { InboundAddressSection } from "./inbound-address";
 import { TargetRolesForm } from "./target-roles-form";
 import { ThemeSelect } from "./theme-select";
 
 export const metadata = { title: "Ajustes" };
+
+// C9-11: tarjetas blancas sin borde lateral; las que llevan a otra pantalla se tocan enteras
+const SECTION = cardClasses({ padding: "md", className: "flex flex-col gap-3" });
+const NAV_CARD = cardClasses({
+  level: "list",
+  pressable: true,
+  padding: "none",
+  className:
+    "flex min-h-11 items-center justify-between gap-3 px-5 py-4 text-sm hover:bg-surface-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
+});
+const H2 = "text-heading font-bold";
+const LINK = textLinkClasses({ block: true, className: "text-sm" });
 
 const PLAN_DATE = new Intl.DateTimeFormat("es-AR", {
   dateStyle: "long",
@@ -54,55 +67,49 @@ export default async function SettingsPage({
   );
 
   return (
-    <div className="mx-auto flex max-w-xl flex-col gap-6">
-      <h1 className="text-2xl font-semibold">Ajustes</h1>
+    <div className="mx-auto flex max-w-xl flex-col gap-5">
+      <h1 className="text-title font-bold">Ajustes</h1>
 
-      <Link
-        href="/settings/perfil"
-        className="flex min-h-11 items-center justify-between gap-3 rounded-control border border-line px-4 py-2 text-sm hover:bg-surface-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-      >
+      <Link href="/settings/perfil" className={NAV_CARD}>
         <span className="flex flex-col">
-          <span className="font-medium text-fg underline">Tu perfil</span>
+          <span className="font-bold text-fg underline underline-offset-2">Tu perfil</span>
           <span className="text-fg-muted">Modalidad, país, idioma de ofertas, resumen y años</span>
         </span>
-        <span aria-hidden="true">›</span>
+        <span aria-hidden="true" className="text-lg text-fg-subtle">
+          ›
+        </span>
       </Link>
 
-      <Link
-        href="/cv"
-        className="flex min-h-11 items-center justify-between gap-3 rounded-control border border-line px-4 py-2 text-sm hover:bg-surface-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-      >
+      <Link href="/cv" className={NAV_CARD}>
         <span className="flex flex-col">
-          <span className="font-medium text-fg underline">Tu CV</span>
+          <span className="font-bold text-fg underline underline-offset-2">Tu CV</span>
           <span className="text-fg-muted">Vista previa y descarga en DOCX o PDF</span>
         </span>
-        <span aria-hidden="true">›</span>
+        <span aria-hidden="true" className="text-lg text-fg-subtle">
+          ›
+        </span>
       </Link>
 
-      <Link
-        href="/settings/historial"
-        className="flex min-h-11 items-center justify-between gap-3 rounded-control border border-line px-4 py-2 text-sm hover:bg-surface-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-      >
+      <Link href="/settings/historial" className={NAV_CARD}>
         <span className="flex flex-col">
-          <span className="font-medium text-fg underline">Tu historial</span>
+          <span className="font-bold text-fg underline underline-offset-2">Tu historial</span>
           <span className="text-fg-muted">Trabajos, estudios y certificaciones para tu CV</span>
         </span>
-        <span aria-hidden="true">›</span>
+        <span aria-hidden="true" className="text-lg text-fg-subtle">
+          ›
+        </span>
       </Link>
 
-      <section className="flex flex-col gap-3 rounded-card border border-line p-4">
-        <h2 className="text-lg font-medium">Cuenta</h2>
+      <section className={SECTION}>
+        <h2 className={H2}>Cuenta</h2>
         <p className="text-sm text-fg-muted">
           Email: <span className="font-medium">{user?.email ?? "—"}</span>
         </p>
         <DeleteAccountForm error={Boolean(error)} />
       </section>
 
-      <section
-        aria-labelledby="apariencia-titulo"
-        className="flex flex-col gap-3 rounded-card border border-line p-4"
-      >
-        <h2 id="apariencia-titulo" className="text-lg font-medium">
+      <section aria-labelledby="apariencia-titulo" className={SECTION}>
+        <h2 id="apariencia-titulo" className={H2}>
           Apariencia
         </h2>
         <p className="text-sm text-fg-muted">Modo claro u oscuro. Se guarda en este navegador.</p>
@@ -112,49 +119,31 @@ export default async function SettingsPage({
       {userPlan ? <TuPlan userPlan={userPlan} /> : null}
 
       {canInvite ? (
-        <section className="flex flex-col gap-3 rounded-card border border-line p-4">
-          <h2 className="text-lg font-medium">Invitar a alguien</h2>
+        <section className={SECTION}>
+          <h2 className={H2}>Invitar a alguien</h2>
           <p className="text-sm text-fg-muted">Mandale un link a quien quieras sumar a la beta.</p>
-          <Link
-            href="/settings/invitations"
-            className="inline-flex min-h-11 items-center self-start rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-          >
+          <Link href="/settings/invitations" className={buttonClasses({ className: "self-start" })}>
             Crear invitación
           </Link>
           {/* R-1 (C7): la marca en un solo lugar, para revisarla */}
-          <Link
-            href="/settings/marca"
-            className="inline-flex min-h-11 items-center text-sm text-fg underline"
-          >
+          <Link href="/settings/marca" className={LINK}>
             Marca: logo, colores y componentes
           </Link>
           {/* C8-18: los textos públicos clave para revisar */}
-          <Link
-            href="/settings/textos"
-            className="inline-flex min-h-11 items-center text-sm text-fg underline"
-          >
+          <Link href="/settings/textos" className={LINK}>
             Textos para revisar
           </Link>
           {/* C8-11: el semáforo de la mañana */}
-          <Link
-            href="/settings/salud"
-            className="inline-flex min-h-11 items-center text-sm text-fg underline"
-          >
+          <Link href="/settings/salud" className={LINK}>
             Salud de la beta
           </Link>
           {/* C-14: el tablero de la beta es para las mismas cuentas que invitan */}
-          <Link
-            href="/settings/metricas"
-            className="inline-flex min-h-11 items-center text-sm text-fg underline"
-          >
+          <Link href="/settings/metricas" className={LINK}>
             Métricas de la beta
           </Link>
           {/* C3-1: activar planes (solo con los precios encendidos) */}
           {pricing ? (
-            <Link
-              href="/settings/planes"
-              className="inline-flex min-h-11 items-center text-sm text-fg underline"
-            >
+            <Link href="/settings/planes" className={LINK}>
               Planes de la beta
             </Link>
           ) : null}
@@ -174,47 +163,35 @@ export default async function SettingsPage({
         notice={direccion === "nueva" || direccion === "sin_dominio" ? direccion : undefined}
       />
 
-      <Link
-        href="/settings/asistente"
-        className="inline-flex min-h-11 items-center text-sm text-fg underline"
-      >
+      <Link href="/settings/asistente" className={LINK}>
         Asistente de email
       </Link>
 
-      <section className="flex flex-col gap-3 rounded-card border border-line p-4">
-        <h2 className="text-lg font-medium">Remitentes</h2>
+      <section className={SECTION}>
+        <h2 className={H2}>Remitentes</h2>
         <p className="text-sm text-fg-muted">
           Qué dominios son fuentes de empleo y se guardan completos.
         </p>
-        <Link
-          href="/settings/senders"
-          className="inline-flex min-h-11 items-center text-sm text-fg underline"
-        >
+        <Link href="/settings/senders" className={LINK}>
           Ver y cambiar remitentes
         </Link>
       </section>
 
-      <section className="flex flex-col gap-3 rounded-card border border-line p-4">
-        <h2 className="text-lg font-medium">Skills</h2>
-        <Link
-          href="/settings/skills"
-          className="inline-flex min-h-11 items-center text-sm text-fg underline"
-        >
+      <section className={SECTION}>
+        <h2 className={H2}>Skills</h2>
+        <Link href="/settings/skills" className={LINK}>
           Mis skills
         </Link>
       </section>
 
-      <section className="flex flex-col gap-3 rounded-card border border-line p-4">
-        <h2 className="text-lg font-medium">Criterios</h2>
+      <section className={SECTION}>
+        <h2 className={H2}>Criterios</h2>
         <p className="text-xs font-semibold tracking-wide text-fg-muted uppercase">Avanzado</p>
         <p className="text-sm text-fg-muted">
           Cambiar estos criterios puede hacer que se descarten ofertas que te sirven. Si no estás
           segura o seguro, dejalos como están.
         </p>
-        <Link
-          href="/settings/criteria"
-          className="inline-flex min-h-11 items-center text-sm text-fg underline"
-        >
+        <Link href="/settings/criteria" className={LINK}>
           Editar mis criterios de evaluación
         </Link>
       </section>
@@ -237,13 +214,13 @@ function TuPlan({ userPlan }: { userPlan: UserPlan }) {
       id="tu-plan"
       aria-labelledby="tu-plan-titulo"
       data-testid="tu-plan"
-      className="flex scroll-mt-20 flex-col gap-2 rounded-card border border-line p-4"
+      className={cardClasses({ padding: "md", className: "flex scroll-mt-20 flex-col gap-2" })}
     >
-      <h2 id="tu-plan-titulo" className="text-lg font-medium">
+      <h2 id="tu-plan-titulo" className={H2}>
         Tu plan
       </h2>
       <p className="text-sm text-fg">
-        <span className="font-medium">{userPlan.plan.name}</span>
+        <span className="font-bold">{userPlan.plan.name}</span>
         {access.status === "vencido" || !access.until
           ? ""
           : ` · hasta el ${PLAN_DATE.format(access.until)}`}
@@ -279,25 +256,20 @@ function TuPlan({ userPlan }: { userPlan: UserPlan }) {
           </p>
           <div className="flex flex-wrap items-center gap-3">
             {link ? (
-              <a
-                href={link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-11 items-center rounded-control bg-brand px-4 text-base font-medium text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-              >
+              <a href={link} target="_blank" rel="noopener noreferrer" className={buttonClasses()}>
                 Pagar con Mercado Pago
                 <span className="sr-only"> (se abre en otra pestaña)</span>
               </a>
             ) : null}
             {contact ? (
-              <a href={contact.href} className="text-fg underline">
+              <a href={contact.href} className={textLinkClasses()}>
                 Escribirnos a {contact.email}
               </a>
             ) : null}
           </div>
         </div>
       ) : null}
-      <Link href="/precios" className="inline-flex min-h-11 items-center text-sm text-fg underline">
+      <Link href="/precios" className={LINK}>
         Ver los planes
       </Link>
     </section>

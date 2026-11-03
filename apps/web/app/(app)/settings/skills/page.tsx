@@ -2,6 +2,7 @@ import { DEFAULT_CRITERIA_RULES, defaultRole } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { getTargetRoles } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
+import { Alert, textLinkClasses } from "@/components/ui";
 import { ROLE_SKILLS, getSkillsPageData } from "@/lib/skill-levels";
 import { saveSkillsAction } from "./actions";
 import { SkillsForm, parseRoleParam } from "./skills-form";
@@ -35,9 +36,9 @@ export default async function SkillsSettingsPage({
     });
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-4">
+    <div className="mx-auto flex max-w-2xl flex-col gap-5">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">Mis skills</h1>
+        <h1 className="text-title font-bold">Mis skills</h1>
         <p className="text-sm text-fg-subtle">
           Contá qué tanto usaste cada una. Con tus niveles, el mercado y el plan muestran lo que te
           falta de verdad.
@@ -45,9 +46,9 @@ export default async function SkillsSettingsPage({
       </div>
 
       {guardado ? (
-        <p role="status" className="rounded-control bg-success-soft px-3 py-2 text-sm text-success">
+        <Alert tone="success" role="status">
           Guardado. Tu mercado y tu plan se actualizan en unos segundos.
-        </p>
+        </Alert>
       ) : null}
 
       <SkillsForm
@@ -64,10 +65,7 @@ export default async function SkillsSettingsPage({
         withAssistant
       />
 
-      <Link
-        href="/settings"
-        className="inline-flex min-h-11 items-center text-sm text-fg underline"
-      >
+      <Link href="/settings" className={textLinkClasses({ block: true, className: "text-sm" })}>
         Volver a Ajustes
       </Link>
     </div>
