@@ -1,4 +1,8 @@
-import { readCareerMarketInput, readCareerSalaryJobs } from "@job-search-os/adapters";
+import {
+  languageColumnsEnabled,
+  readCareerMarketInput,
+  readCareerSalaryJobs,
+} from "@job-search-os/adapters";
 import { schema as s } from "@job-search-os/db";
 import {
   ROLE_KEYS,
@@ -45,7 +49,11 @@ export function getCareerMarket(role: RoleKey): Promise<CareerMarket> {
       await assertAppRole();
       // Sin `withUser`: no se fija `app.user_id`; las policies de estas tablas son `USING (true)`.
       const input = await getAppDb().transaction(
-        (tx) => readCareerMarketInput(tx, role, new Date()),
+        // C8-15: con PUBLIC_JOBS_LANGUAGE_ENABLED=1 usa el idioma persistido y casi no lee texto
+        (tx) =>
+          readCareerMarketInput(tx, role, new Date(), {
+            persistedLanguage: languageColumnsEnabled(),
+          }),
         { accessMode: "read only" },
       );
       return buildCareerMarket(input);

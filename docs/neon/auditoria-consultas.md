@@ -210,3 +210,17 @@ Con la foto de `pg_stat_statements` del 1/11 aparecieron dos consultas que la au
 | 6 | `/fit`: solo `decision->'checklist'` | **Hecho (C6-3)** | `apps/web/lib/fit.ts` |
 | 7 | Shingles en `loadRecentJobs` | **No se hizo** | Los shingles son la entrada de la similitud de Jaccard del dedup: no se pueden sacar sin cambiar cómo se detectan los duplicados. Un cortocircuito por URL o `external_id` cambia el comportamiento: ronda aparte con tests |
 | 8 | Proyección de `select()` | **Hecho en lo que quedaba** | `profiles` ya no trae `raw_resume_text` (la columna no existe); el detalle y la evaluación ya salieron sin shingles (C5-7). `job-detail.ts` sigue leyendo `evaluations` completa porque la pantalla usa casi todo el JSON |
+
+## 6. Ronda del 3/11 (C8-15): lo que pedía migración
+
+Una migración (**0058**, sin aplicar) y `rls/0017`. Todo el código nuevo queda detrás de variables apagadas hasta aplicarla.
+
+| # | Qué | Cómo | Variable | Ahorro estimado |
+| --- | --- | --- | --- | --- |
+| 1 | Idioma y nivel de inglés del aviso en `public_jobs` (`jd_language`, `english_language`, `english_asks`, `english_level`, `language_checked_at`) | Se calculan al ingerir (`jobLanguageFacts`, mismo resultado que leer el texto: test con el golden de carreras) y se rellenan las filas viejas con `pnpm pool:backfill-language --apply` (idempotente, por tandas de 200). `readCareerMarketInput` lee las columnas y trae el texto **solo** de las filas que todavía no tienen el idioma | `PUBLIC_JOBS_LANGUAGE_ENABLED=1` | La auditoría estimó 140 a 720 MB por día por el texto del mercado por carrera; con el ISR de 1 h y las cachés actuales, del orden de **100 a 300 MB por día** → casi 0 (solo las columnas chicas). Es lo que más pesa en el plan gratis (5 GB por mes) |
+| 3 | `market_candidates` (JS-102) | Los 15 candidatos de `/market` se guardan por persona con la fecha de su JD más nuevo; mientras no entre una oferta nueva se leen 15 filas en vez de 300 textos. Índice `jobs_user_created (user_id, created_at desc)` para saber cuál es el JD más nuevo sin ordenar en memoria | `MARKET_CANDIDATES_ENABLED=1` | ≈ 1,5 MB por recálculo de `/market` → ≈ 1 KB. Con 25 personas y la caché de 6 h: **≈ 30 a 80 MB por día** menos |
+| — | Índice de `inbound_emails` por persona | **Ya existía**: `inbound_emails_user_received (user_id, received_at desc)` desde C-7 | — | — |
+
+**Orden para prender:** `pnpm db:migrate` (0058 y `rls/0017`) → deploy → `pnpm pool:backfill-language --remote --apply` (pide confirmar con `si`) → `PUBLIC_JOBS_LANGUAGE_ENABLED=1` y `MARKET_CANDIDATES_ENABLED=1` → redeploy.
+
+**Queda propuesto (depende de medir con `pg_stat_statements`):** los shingles del dedup (propuesta 7) y la vitrina agregada en SQL (propuesta 2). Ojo: en Neon `pg_stat_statements` se reinicia cuando el compute se suspende, así que la foto tiene que tomarse después de un rato de uso continuo (por ejemplo, justo después de la corrida del cron) y compararse contra la del 1/11 con el mismo criterio.
