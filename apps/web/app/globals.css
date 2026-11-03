@@ -363,34 +363,39 @@
  * toca. `edge-4` (listas, chips, filtros) y `edge-6` (botones y tarjetas destacadas) ponen el
  * borde de abajo; el color lo da `border-edge`, `border-edge-brand` o `border-edge-ink`.
  *
- * `pressable` hunde 3 px al tocar: baja con `translate` y el borde de abajo se achica lo mismo, y
- * el `margin-bottom` de 3 px devuelve esos 3 px al layout, así nada de alrededor salta. Es CSS, no
- * Framer: sirve en Server Components. Con «reducir movimiento» se hunde igual, sin transición.
- * Un elemento `pressable` no lleva `margin-bottom` propio (para separar, `gap` en el padre).
+ * `pressable` hunde 3 px al tocar sin mover nada alrededor: el borde de abajo cede 3 px y el de
+ * arriba crece 3 px transparente (con el fondo recortado al borde), así la caja mide lo mismo y lo
+ * de adentro baja 3 px. Sin `transform` ni márgenes: no salta el layout aunque el elemento tenga
+ * un alto mínimo. Solo se hunde lo que tiene borde de abajo (`edge-4` o `edge-6`). Es CSS, no
+ * Framer: sirve en Server Components. Con «reducir movimiento» se hunde igual, sin transición. Si
+ * el elemento tiene borde de arriba (secundario, chips), su ancho va en `--jso-edge-top` para
+ * sumarle los 3 px.
  */
 @utility edge-4 {
   border-style: solid;
   border-bottom-width: 4px;
   --jso-edge-w: 4px;
+  --jso-press: 3px;
 }
 
 @utility edge-6 {
   border-style: solid;
   border-bottom-width: 6px;
   --jso-edge-w: 6px;
+  --jso-press: 3px;
 }
 
 @utility pressable {
   @media (prefers-reduced-motion: no-preference) {
     transition:
-      transform 90ms ease-out,
-      border-bottom-width 90ms ease-out,
-      margin-bottom 90ms ease-out;
+      border-top-width 90ms ease-out,
+      border-bottom-width 90ms ease-out;
   }
   &:active:not(:disabled, [aria-disabled="true"]) {
-    transform: translateY(3px);
-    border-bottom-width: calc(var(--jso-edge-w, 3px) - 3px);
-    margin-bottom: 3px;
+    border-top-width: calc(var(--jso-edge-top, 0px) + var(--jso-press, 0px));
+    border-top-color: transparent;
+    border-bottom-width: calc(var(--jso-edge-w, 0px) - var(--jso-press, 0px));
+    background-clip: padding-box;
   }
 }
 
