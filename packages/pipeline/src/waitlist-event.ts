@@ -6,7 +6,7 @@ import { normalizeAccesoOrigin } from "./acceso-funnel";
  * El salón entra por un solo wifi (una IP pública): con los topes normales (40 por IP por hora y 60
  * cada 10 minutos en total) la persona 41 del salón queda afuera. Durante una ventana horaria corta,
  * fijada por variable (`WAITLIST_EVENT_WINDOW`, apagada por defecto) y solo para `?origen=voces-jovenes`,
- * el servidor usa `waitlist_join_event()`, con topes más altos pero igual acotados (rls/0006). El tope
+ * el servidor usa `waitlist_join_event()`, con topes más altos pero igual acotados (rls/0006: 120 por IP por hora, 200 cada 10 minutos). El tope
  * diario no cambia. Puro: la web decide con la hora del servidor.
  */
 export const WAITLIST_EVENT_ORIGIN = "voces-jovenes";
