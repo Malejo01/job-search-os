@@ -42,6 +42,7 @@ export default defineConfig({
     // AUTH_URL: el login redirige a este puerto aunque .env.local apunte a :3000
     // Asistente (AG-3): encendido para admins con el modelo simulado; cupo alto para las corridas.
     // CV_CHAT_ENABLED=all: el chat de CV (86) está abierto a cualquier sesión, como en la beta (C2-1)
+    // START_HERE_ENABLED=1: «Empezá acá» en /hoy (C8-5, e2e 107), apagado por defecto en Vercel
     env: {
       DB_TARGET: "local",
       LLM_DEMO: "1",
@@ -49,6 +50,7 @@ export default defineConfig({
       ASSISTANT_ENABLED: "admin",
       ASSISTANT_MONTHLY_CONVERSATIONS: "500",
       CV_CHAT_ENABLED: "all",
+      START_HERE_ENABLED: "1",
       // C8-6: «¿Qué es esto?» en las 5 pantallas (e2e 108), apagado por defecto en Vercel
       HELP_TIPS_ENABLED: "1",
     },
