@@ -1,4 +1,5 @@
 import type { CvMissing } from "@job-search-os/pipeline";
+import { HelpTip } from "@/components/help-tip";
 import Link from "next/link";
 import { CvPreview } from "@/components/cv-preview";
 import { PrintButton } from "@/components/print-button";
@@ -67,6 +68,7 @@ export default async function CvPage({ searchParams }: { searchParams: Promise<P
         que lo lea cualquier sistema de selección. No lleva foto, fecha de nacimiento, documento ni
         dirección.
       </p>
+      <HelpTip topic="cv" className="no-print" />
 
       {chatVisible ? (
         <Link

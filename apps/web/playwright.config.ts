@@ -49,6 +49,8 @@ export default defineConfig({
       ASSISTANT_ENABLED: "admin",
       ASSISTANT_MONTHLY_CONVERSATIONS: "500",
       CV_CHAT_ENABLED: "all",
+      // C8-6: «¿Qué es esto?» en las 5 pantallas (e2e 108), apagado por defecto en Vercel
+      HELP_TIPS_ENABLED: "1",
     },
   },
 });
