@@ -1017,6 +1017,10 @@ Seis carreras de la beta cerrada (ADR-027). Los PR están en draft y apilados: s
 `deps:` C1-5 · `estado:` done (2026-10-30; PR #295)
 - `SOURCE_CATEGORY_ROLES` de Jobicy y We Work Remotely, más vetos cruzados en `title-fit.ts`. El adapter que las pide es de otro PR (#289).
 
+### CI
+
+Última corrida completa del e2e en #403 antes del cierre: **664 ok, 0 fallas** (6 salteados).
+
 ### Pendiente después de la tanda
 - Mauro: `pnpm db:migrate` (0048 y 0049), merge en orden y deploy; después `pnpm pool:rehint --remote` (sin y con `--apply`) y medir volumen para sacar cada carrera de `UNLISTED_ROLE_KEYS`.
 - Golden por carrera con avisos reales (evals pagos) y selección de personas por chip: tanda siguiente.
@@ -1205,3 +1209,41 @@ Una noche de la nube, sin supervisión: lo que hace falta para la charla del 11/
 - **Fuentes no tech:** decidir ADR-030 (The Muse); Workable queda sin grabar (necesita red).
 - **C8-16:** decidir #392 y `vars.EVALUATE_HOURLY` si la cola de evaluación crece.
 - **Pestañas del celular:** antes de prenderlas por defecto, anclar los e2e de 390 px al `nav` correspondiente.
+
+## Bloque 15 — Tanda C9 (rediseño), 2026-11-03 al 04
+
+Una noche de la nube, sin supervisión: el rediseño visual completo de AfinIAJobs (app y páginas públicas) según las 15 decisiones de Mauro del 3/11 (`docs/ux/rediseno-afiniajobs/decisiones-c9.md`). Cada ticket fue un PR `[nube C9]` en draft hacia `ronda/integracion-c9`, mergeado con `--no-ff` con su CI en verde, y **un solo PR de integración** hacia `main` ([#403](https://github.com/Malejo01/job-search-os/pull/403)). Nada se mergeó a `main`; **ninguna migración**; USD 0 de modelos. El rediseño no va detrás de ninguna variable. Mapa de pantallas: `docs/ux/rediseno-afiniajobs/inventario-c9.md`; guía para pantallas nuevas: `guia-rapida.md`.
+
+### Base y cimientos
+- **C9-1 · Base** · `estado:` done, 2026-11-03 ([#402](https://github.com/Malejo01/job-search-os/pull/402)). Inventario y decisiones en el repo.
+- **C9-2 · Tokens y tipografía** · done ([#404](https://github.com/Malejo01/job-search-os/pull/404), arreglo [#409](https://github.com/Malejo01/job-search-os/pull/409)). Lavanda `#EEEDF9`, tokens de borde inferior, radios 32/24/18/píldora, `edge-4`/`edge-6`/`pressable` en CSS (se hunde 3 px sin mover el layout), Bricolage Grotesque + Figtree.
+- **C9-3 · Primitivas** · done ([#405](https://github.com/Malejo01/job-search-os/pull/405)). Button, Card (`flat`/`list`/`featured`), Chip y filtros, Field, Alert, EmptyState, Badge; catálogo en `/settings/marca/componentes` (e2e 114).
+- **C9-4 · Logo B2** · done ([#406](https://github.com/Malejo01/job-search-os/pull/406)). Logotipo con el punto, monograma «A», favicon, PNG, OG y emails.
+
+### La firma
+- **C9-5 · El sello** · done ([#407](https://github.com/Malejo01/job-search-os/pull/407), e2e [#418](https://github.com/Malejo01/job-search-os/pull/418)). `aria-label` «puntaje 8.5, muy afín» desde R-3. Cinco niveles con su palabra, «Muy afín» inclinado en lima, estado C2, lejanas al final de `/jobs`.
+- **C9-6 · Checklist al leer** · done ([#408](https://github.com/Malejo01/job-search-os/pull/408)). Evaluaciones de antes del 21/10: solo la parte determinista, `parcial`, sin IA ni escritura; solo en el detalle.
+
+### Pantallas con sesión
+- **C9-7 · Navegación** · done ([#410](https://github.com/Malejo01/job-search-os/pull/410)). Barra índigo con píldoras; en el celular, cinco pestañas abajo siempre (sale `MOBILE_TABBAR_ENABLED` y el «Menú»), «Más» en Perfil.
+- **C9-8 · Tarjeta K2** · done ([#411](https://github.com/Malejo01/job-search-os/pull/411)). **C9-9 · Detalle D3 y O3** · done ([#412](https://github.com/Malejo01/job-search-os/pull/412)). **C9-10 · Hoy** · done ([#413](https://github.com/Malejo01/job-search-os/pull/413)). **C9-11 · El resto** · done ([#419](https://github.com/Malejo01/job-search-os/pull/419)).
+
+### Estados, ilustraciones y movimiento
+- **C9-12 · Ilustraciones** · done ([#414](https://github.com/Malejo01/job-search-os/pull/414)). Manifiesto con test, `<Illustration>` con marcador; `hoy` (de `assets/ilustraciones-c9`).
+- **C9-13 · Estados** · done ([#420](https://github.com/Malejo01/job-search-os/pull/420)). F1, V3 y F2 (el texto no se pierde, e2e 117).
+- **C9-14 · Movimiento** · done ([#415](https://github.com/Malejo01/job-search-os/pull/415)). El sello se estampa, el check rebota; nada con «reducir movimiento» (e2e 115).
+
+### Textos, públicas y revisión
+- **C9-15 · Textos** · done ([#417](https://github.com/Malejo01/job-search-os/pull/417)). «El cupo es limitado.»; voz en `docs/MARCA.md`.
+- **C9-16 · Públicas** · done ([#416](https://github.com/Malejo01/job-search-os/pull/416)). **C9-17 · Revisión** · done ([#421](https://github.com/Malejo01/job-search-os/pull/421)). e2e 116 con capturas como artefacto del CI.
+- **C9-18 · Cierre** · done. Este bloque, la vista previa y el cuerpo de #403.
+
+### Reserva
+- **R-1 · Rendimiento** · done ([#422](https://github.com/Malejo01/job-search-os/pull/422)). `/hoy` 146 → 138 kB y `/jobs` 156 → 166 kB de First Load JS.
+- **R-2 · Esqueletos** · descartado ([#424](https://github.com/Malejo01/job-search-os/pull/424), cerrado): sin JS el esqueleto quedaba para siempre y rompía los atajos del detalle.
+- **R-3 · Revisión del diff** · done ([#425](https://github.com/Malejo01/job-search-os/pull/425)). Revisor aparte: cuatro bloqueantes (tres arreglados; el de la ilustración de Hoy sin recuadro lo resuelve la guía de Mauro) y sugerencias aplicadas. **R-4 · Guía rápida** · done ([#423](https://github.com/Malejo01/job-search-os/pull/423)).
+
+### Pendiente después de la tanda
+- **Mauro:** mirar la vista previa (los enlaces están en #403), revisar las «Decisiones para Mauro» del cuerpo y mergear #403; el PR toca `.github/workflows/ci.yml` (capturas del e2e), así que va con bypass. Borrar `MOBILE_TABBAR_ENABLED` de Vercel y de `.env.example` (ya no se usa).
+- **Ilustraciones:** 7 de 8 escenas siguen con el marcador (todas menos `hoy`). Para sumarlas, `docs/ux/rediseno-afiniajobs/ilustraciones.md`.
+- **Ani:** los textos nuevos (tabla en #417) y el catálogo `/settings/marca/componentes`.
