@@ -47,3 +47,4 @@ Una noche de la nube, sin supervisión, con **un solo PR de integración** `rond
 | `WAITLIST_EVENT_WINDOW` | `2026-11-11T19:00:00-03:00/2026-11-11T22:00:00-03:00` (horario de la charla; máximo 12 h) | Topes del evento en `/acceso` para `?origen=voces-jovenes`: 120 por IP por hora y 200 cada 10 minutos (el diario sigue en 600) | C8-3 |
 | `START_HERE_ENABLED` | `1` | «Empezá acá» en `/hoy`: perfil, áreas, ofertas y CV (este último solo si `CV_CHAT_ENABLED` lo permite). Sin migración | C8-5 |
 | `HELP_TIPS_ENABLED` | `1` | «¿Qué es esto?» en el puntaje, «A tu favor / Te falta», Sin descripción, Tu CV y las áreas. Textos en `packages/pipeline/src/help/ayuda-en-contexto.ts` | C8-6 |
+| `MOBILE_TABBAR_ENABLED` | `1` si a Ani le cierra en el celular | Barra de pestañas abajo en el celular (Hoy, Ofertas, Pendientes, Perfil); el «Menú» de arriba sigue. Sin migración | R-3 |

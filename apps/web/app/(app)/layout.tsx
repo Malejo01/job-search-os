@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { signOut } from "@/auth";
 import { ActionTracker } from "@/components/action-tracker";
 import { FeedbackButton } from "@/components/feedback-button";
+import { MobileTabBar } from "./mobile-tabbar";
 import { countFollowUps } from "@/lib/applications";
 import { canUseAssistant } from "@/lib/assistant";
 import { assertAppRole } from "@/lib/db";
@@ -77,11 +78,14 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     : null;
   // Avatar del header (C7-5): si la consulta falla, el ícono de perfil
   const displayName = await getDisplayName(userId).catch(() => null);
+  // R-3: barra de pestañas de abajo en el celular, apagada salvo MOBILE_TABBAR_ENABLED=1
+  const tabBar = process.env.MOBILE_TABBAR_ENABLED === "1";
   const navItems = NAV.map((item) =>
     item.href === "/applications" ? { ...item, count: followUps } : item,
   );
   return (
-    <div className="flex min-h-screen flex-col">
+    // Con la barra de pestañas (R-3), el pie y el último contenido quedan por encima de ella
+    <div className={`flex min-h-screen flex-col ${tabBar ? "pb-16 sm:pb-0" : ""}`}>
       <a href="#contenido" className={SKIP_CLASS}>
         Saltar al contenido
       </a>
@@ -128,7 +132,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
       <ActionTracker />
-      <FeedbackButton />
+      <FeedbackButton aboveTabBar={tabBar} />
+      {tabBar ? <MobileTabBar /> : null}
       <footer className="border-t border-line px-4 py-3 text-center text-xs text-fg-subtle">
         <Link href="/legal/privacidad" className="underline-offset-2 hover:underline">
           Privacidad
