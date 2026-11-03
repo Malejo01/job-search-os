@@ -113,6 +113,21 @@ describe("offerPlace: empresa y lugar en una frase, sin «·»", () => {
     expect(offerPlace({ company: "Grupo Norte", location: null, modality: "remoto" })).toBe(
       "Grupo Norte, remoto",
     );
+    // El lugar ya dice que es remoto: no se repite («remoto en Remoto (work from anywhere)»)
+    expect(
+      offerPlace({
+        company: "Empresa AD",
+        location: "Remoto (work from anywhere)",
+        modality: "remoto",
+      }),
+    ).toBe("Empresa AD, remoto");
+    expect(
+      offerPlace({ company: "Empresa AD", location: "Remote - LATAM", modality: "remoto" }),
+    ).toBe("Empresa AD, remoto en LATAM");
+    // Sin modalidad, si el lugar dice remoto, es remoto
+    expect(offerPlace({ company: "Empresa AD", location: "Remote", modality: null })).toBe(
+      "Empresa AD, remoto",
+    );
   });
 
   it("sin lugar ni modalidad, la empresa sola", () => {

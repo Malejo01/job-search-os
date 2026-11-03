@@ -65,7 +65,20 @@ function countLine(have: number, missing: number): string | null {
   return parts.length ? parts.join(", ") : null;
 }
 
-const REMOTE_PLACE = /^\s*(remot[oa]|remote|anywhere|worldwide|100% remot[oa])\s*$/i;
+const REMOTE_PLACE = /^\s*(100\s*%\s*)?(remot[oa]|remote|anywhere|worldwide)\b/i;
+
+/**
+ * Lo que queda del lugar después de sacarle «Remoto», «Remote (…)», etc.: «Remote - LATAM» →
+ * «LATAM»; «Remoto (work from anywhere)» → nada. Así no se repite «remoto en Remoto».
+ */
+function placeAfterRemote(location: string): string | null {
+  const rest = location
+    .replace(REMOTE_PLACE, "")
+    .replace(/^\s*\([^)]*\)\s*/, "")
+    .replace(/^[\s\-–—:,/|·]+/, "")
+    .trim();
+  return rest || null;
+}
 
 /**
  * Empresa y lugar en una frase, sin separadores: «Estudio Ruiz y Asociados, en Salta» o «Grupo
@@ -80,8 +93,12 @@ export function offerPlace({
   location: string | null;
   modality: string | null;
 }): string {
-  const place = location?.trim() && !REMOTE_PLACE.test(location) ? location.trim() : null;
-  if (modality === "remoto") return place ? `${company}, remoto en ${place}` : `${company}, remoto`;
+  const raw = location?.trim() || null;
+  const saysRemote = raw !== null && REMOTE_PLACE.test(raw);
+  const place = saysRemote ? placeAfterRemote(raw) : raw;
+  if (modality === "remoto" || saysRemote) {
+    return place ? `${company}, remoto en ${place}` : `${company}, remoto`;
+  }
   return place ? `${company}, en ${place}` : company;
 }
 
