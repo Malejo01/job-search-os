@@ -400,6 +400,13 @@
       "when": 1793570742002,
       "tag": "0056_job_queue_job_id",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1793719642955,
+      "tag": "0057_acceso_funnel",
+      "breakpoints": true
     }
   ]
 }

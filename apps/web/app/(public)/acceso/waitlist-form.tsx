@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useActionState, useEffect, useRef } from "react";
 import { buttonClasses } from "@/components/ui";
-import { submitWaitlist, type WaitlistState } from "./actions";
+import { submitWaitlist, trackAcceso, type WaitlistState } from "./actions";
 
 const INITIAL: WaitlistState = { status: "idle" };
 // Campo del manual (M8, C7-10): borde de 2 px, radio 12, 44 px y foco naranja
@@ -17,7 +17,27 @@ export type RoleOptionGroup = { label: string; roles: RoleOption[] };
 type FormProps = {
   groups: RoleOptionGroup[];
   contact: { email: string; href: string } | null;
+  /** Embudo de /acceso (C8-2): la página lo prende con `ACCESO_FUNNEL_ENABLED`. */
+  funnel?: boolean;
 };
+
+type FieldsProps = FormProps & {
+  initialHeardFrom: string;
+  /** `?origen=` tal cual: el servidor lo normaliza a una lista cerrada antes de contarlo. */
+  origen?: string | null;
+};
+
+/** Una visita por pestaña y origen (recargar no suma). Sin almacenamiento disponible, cuenta igual. */
+function firstVisitInTab(origen: string | null): boolean {
+  const key = `jso-acceso-visita:${origen ?? ""}`;
+  try {
+    if (window.sessionStorage.getItem(key)) return false;
+    window.sessionStorage.setItem(key, "1");
+  } catch {
+    // modo privado o almacenamiento bloqueado
+  }
+  return true;
+}
 
 /**
  * Formulario "Pedir acceso" con el origen del QR (`?origen=voces-jovenes`). Lee la URL en el
@@ -27,9 +47,15 @@ type FormProps = {
 export function WaitlistForm(props: FormProps) {
   const searchParams = useSearchParams();
   const origen = searchParams.get("origen");
+  const { funnel } = props;
+  // Solo el formulario real cuenta la visita (no el fallback del Suspense)
+  useEffect(() => {
+    if (funnel && firstVisitInTab(origen)) void trackAcceso("visita", origen).catch(() => {});
+  }, [funnel, origen]);
   return (
     <WaitlistFormFields
       {...props}
+      origen={origen}
       initialHeardFrom={origen === "voces-jovenes" ? "Voces Jóvenes" : ""}
     />
   );
@@ -40,9 +66,18 @@ export function WaitlistFormFields({
   groups,
   contact,
   initialHeardFrom,
-}: FormProps & { initialHeardFrom: string }) {
+  funnel = false,
+  origen = null,
+}: FieldsProps) {
   const [state, action, pending] = useActionState(submitWaitlist, INITIAL);
   const formRef = useRef<HTMLFormElement>(null);
+  const started = useRef(false);
+  // Embudo (C8-2): el primer campo tocado y cada carrera elegida. Nunca lo escrito.
+  const onFirstFocus = () => {
+    if (!funnel || started.current) return;
+    started.current = true;
+    void trackAcceso("empezado", origen).catch(() => {});
+  };
   // Mientras se envía no se muestran los errores del intento anterior
   const showError = state.status === "error" && !pending;
   const errors = showError && state.fieldErrors ? state.fieldErrors : {};
@@ -65,7 +100,14 @@ export function WaitlistFormFields({
   }
 
   return (
-    <form ref={formRef} action={action} className="flex flex-col gap-4" noValidate>
+    <form
+      ref={formRef}
+      action={action}
+      onFocus={funnel ? onFirstFocus : undefined}
+      className="flex flex-col gap-4"
+      noValidate
+    >
+      {origen ? <input type="hidden" name="origen" value={origen.slice(0, 40)} /> : null}
       <p className="text-base text-fg-muted">
         La beta es por invitación. Dejá tus datos y, cuando haya lugar, te escribimos con un link
         para crear tu cuenta.
@@ -118,6 +160,11 @@ export function WaitlistFormFields({
           required
           aria-required="true"
           defaultValue=""
+          onChange={
+            funnel
+              ? (e) => void trackAcceso("carrera", origen, e.target.value).catch(() => {})
+              : undefined
+          }
           aria-invalid={errors.role ? true : undefined}
           aria-describedby={errors.role ? "acceso-role-error" : undefined}
           className={field}

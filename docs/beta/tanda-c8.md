@@ -38,3 +38,9 @@ Una noche de la nube, sin supervisión, con **un solo PR de integración** `rond
 
 1. **Base en C7, no en `main`** (arriba). Alternativa: esperar el merge de #353 y rebasar; descartada porque la tanda no se puede frenar y el rebase está prohibido.
 2. **Golden de carreras fuera de `evals/`** (arriba). Alternativa: `evals/fixtures/carreras/` como pedía el ticket, en un PR aparte sin integrar; descartada porque el test de C8-9 lo necesita en la integración y ahí dispararía el job pago.
+
+## Variables nuevas (todas apagadas por defecto)
+
+| Variable | Valor sugerido | Qué prende | Ticket |
+| --- | --- | --- | --- |
+| `ACCESO_FUNNEL_ENABLED` | `1` después de aplicar la 0057 | Cuenta visitas, formularios empezados, carreras elegidas, envíos y topes de `/acceso`, y muestra el embudo en `/settings/metricas` | C8-2 |

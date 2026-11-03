@@ -11,6 +11,7 @@ import {
   type BetaMetricRow,
 } from "@job-search-os/pipeline";
 import { notFound } from "next/navigation";
+import { getAccesoFunnel } from "@/lib/acceso-funnel";
 import { careerLabel } from "@/lib/career-market";
 import { getBetaFeedback, type FeedbackListResult } from "@/lib/beta-feedback";
 import {
@@ -22,6 +23,7 @@ import {
   type FounderCountsResult,
 } from "@/lib/beta-metrics";
 import { requireUserId } from "@/lib/session";
+import { AccesoFunnelPanel } from "./acceso-funnel-panel";
 
 export const metadata = { title: "Métricas de la beta" };
 export const dynamic = "force-dynamic";
@@ -63,6 +65,7 @@ export default async function MetricasPage() {
   const founders = await getFounderCounts(userId);
   const feedback = await getBetaFeedback(userId);
   const reveal = await getCareerReveal(userId);
+  const accesoFunnel = await getAccesoFunnel(userId);
   const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(betaMetricsCsv(metrics))}`;
 
   return (
@@ -77,6 +80,7 @@ export default async function MetricasPage() {
       {groups.map((group) => (
         <MetricTable key={group} title={group} rows={rows.filter((r) => r.group === group)} />
       ))}
+      <AccesoFunnelPanel result={accesoFunnel} />
       <FounderSeats founders={founders} k={metrics.k} />
       <HiddenCareers reveal={reveal} />
       <BetaFeedbackList feedback={feedback} />
