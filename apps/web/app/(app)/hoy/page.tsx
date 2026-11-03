@@ -19,6 +19,7 @@ import { Card as UiCard, EmptyState, textLinkClasses } from "@/components/ui";
 import { requireActiveUserId } from "@/lib/session";
 import { MarkVisit } from "./mark-visit";
 import { NewJobRow } from "./new-job-row";
+import { StartHere } from "./start-here";
 import { StaggerCard } from "./stagger-cards";
 
 export const dynamic = "force-dynamic";
@@ -108,6 +109,8 @@ export default async function HoyPage() {
               : "Primera vez por acá"}
           </p>
         </div>
+        {/* «Empezá acá» (C8-5): solo para quien recién empieza; apagada salvo START_HERE_ENABLED */}
+        <StartHere userId={userId} />
         {data.digest ? (
           <section
             data-testid="hoy-resumen"
