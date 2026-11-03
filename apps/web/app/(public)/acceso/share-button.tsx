@@ -1,8 +1,8 @@
 "use client";
 
-import { BRAND } from "@job-search-os/pipeline";
 import { useState } from "react";
-import { buttonClasses } from "@/components/ui";
+// R-1: import directo (el barril de `@/components/ui` arrastra el de pipeline, con zod, al navegador)
+import { buttonClasses } from "@/components/ui/button";
 
 type Shared = "idle" | "copied" | "manual";
 
@@ -11,17 +11,17 @@ type Shared = "idle" | "copied" | "manual";
  * se puede copiar, lo muestra para copiarlo a mano. El link lleva `?origen=compartido` para el embudo.
  * No manda nada a ningún servidor.
  */
-export function ShareButton() {
+export function ShareButton({ brandName }: { brandName: string }) {
   const [shared, setShared] = useState<Shared>("idle");
   const [url, setUrl] = useState("");
-  const text = `Me anoté en la beta de ${BRAND.name}: lee ofertas de trabajo contra tu perfil y te dice por qué sí y por qué no. Es para 6 carreras y el cupo es limitado.`;
+  const text = `Me anoté en la beta de ${brandName}: lee ofertas de trabajo contra tu perfil y te dice por qué sí y por qué no. Es para 6 carreras y el cupo es limitado.`;
 
   async function onShare() {
     const link = `${window.location.origin}/acceso?origen=compartido`;
     setUrl(link);
     if (typeof navigator.share === "function") {
       try {
-        await navigator.share({ title: BRAND.name, text, url: link });
+        await navigator.share({ title: brandName, text, url: link });
         return;
       } catch (e) {
         // Cerrar el menú de compartir no es un error: no hacemos nada

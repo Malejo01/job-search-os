@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useActionState, useEffect, useRef } from "react";
-import { buttonClasses } from "@/components/ui";
+// R-1: import directo (el barril de `@/components/ui` arrastra el de pipeline al navegador)
+import { buttonClasses } from "@/components/ui/button";
 import { submitWaitlist, trackAcceso, type WaitlistState } from "./actions";
 import { ShareButton } from "./share-button";
 
@@ -20,6 +21,8 @@ type FormProps = {
   contact: { email: string; href: string } | null;
   /** Embudo de /acceso (C8-2): la página lo prende con `ACCESO_FUNNEL_ENABLED`. */
   funnel?: boolean;
+  /** Nombre de la marca para compartir: lo pasa la página (servidor) para no traer pipeline al cliente. */
+  brandName: string;
 };
 
 type FieldsProps = FormProps & {
@@ -69,6 +72,7 @@ export function WaitlistFormFields({
   initialHeardFrom,
   funnel = false,
   origen = null,
+  brandName,
 }: FieldsProps) {
   const [state, action, pending] = useActionState(submitWaitlist, INITIAL);
   const formRef = useRef<HTMLFormElement>(null);
@@ -126,7 +130,7 @@ export function WaitlistFormFields({
             </li>
           </ol>
         </section>
-        <ShareButton />
+        <ShareButton brandName={brandName} />
       </div>
     );
   }
