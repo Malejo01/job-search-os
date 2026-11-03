@@ -1,6 +1,7 @@
 import { MAX_JD_INPUT_CHARS } from "@job-search-os/pipeline";
 import { HelpTip } from "@/components/help-tip";
 import Link from "next/link";
+import { Illustration } from "@/components/brand/illustration";
 import { TextareaWithCounter } from "@/components/char-counter";
 import {
   Alert,
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui";
 import { CAP_MESSAGES } from "@/lib/evaluate-now";
 import { formatDate, safeHttpUrl, SOURCE_LABELS } from "@/lib/labels";
+import { JdDraft } from "./jd-draft";
 import { listPendingJd, PENDING_LIMIT } from "@/lib/pending-jd";
 import { requireUserId } from "@/lib/session";
 import { closeJobAction, pasteJdAction } from "./actions";
@@ -141,6 +143,7 @@ export default async function PendingJdPage({
 
         {rows.length === 0 ? (
           <EmptyState
+            illustration={<Illustration escena="sin-descripcion" className="w-40 sm:w-52" />}
             action={
               <Link href="/jobs" className={textLinkClasses({ block: true })}>
                 Ver mis ofertas
@@ -208,6 +211,12 @@ export default async function PendingJdPage({
                       rows={5}
                       placeholder="Pegá acá la descripción completa del puesto"
                       className={inputClasses({ multiline: true, className: "text-sm" })}
+                    />
+                    <JdDraft
+                      jobId={job.id}
+                      textareaId={`jd-${job.id}`}
+                      error={error && error !== "oferta" ? (ERRORS[error] ?? null) : null}
+                      saved={ok === job.id}
                     />
                     <div className="flex flex-wrap items-center gap-2">
                       <button
