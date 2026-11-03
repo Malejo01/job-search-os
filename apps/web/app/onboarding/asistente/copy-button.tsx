@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { buttonClasses } from "@/components/ui";
 
 /**
  * Copia un texto al portapapeles; si el navegador lo niega, avisa y el texto sigue seleccionable.
@@ -42,7 +43,7 @@ export function CopyButton({
             show("failed");
           }
         }}
-        className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-control border border-line-strong px-3 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
+        className={buttonClasses({ variant: "secondary", size: "sm", className: "shrink-0" })}
       >
         {state === "copied" ? "Copiado" : state === "failed" ? "No se pudo copiar" : label}
       </button>

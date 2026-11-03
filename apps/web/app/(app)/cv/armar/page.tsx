@@ -15,8 +15,8 @@ export default async function ArmarCvPage() {
   const userId = await requireActiveUserId();
   if (!(await cvChatAllowed(userId))) notFound();
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-4">
-      <h1 className="text-2xl font-semibold">Armá tu CV con IA</h1>
+    <div className="mx-auto flex max-w-3xl flex-col gap-5">
+      <h1 className="text-title font-bold">Armá tu CV con IA</h1>
       <CvChat />
     </div>
   );

@@ -59,7 +59,7 @@ export function SkillRows({
         {(compact ? [] : rows).map((r) => {
           const k = view.skills[r.slug];
           return (
-            <li key={r.slug} className="rounded-card bg-surface p-3">
+            <li key={r.slug} className="rounded-control bg-surface-subtle p-3">
               <div className="flex items-baseline justify-between gap-2">
                 <span className="font-medium text-fg">{k?.name ?? r.slug}</span>
                 <span className="text-xs text-fg-subtle">

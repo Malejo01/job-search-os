@@ -1,6 +1,7 @@
 import type { RoleKey } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
+import { filterChipClasses } from "@/components/ui";
 
 /**
  * Pestañas por puesto de /market (ronda 45): links `?rol=<clave>` solo entre los puestos que
@@ -31,11 +32,7 @@ export function RoleTabs({
           key={key}
           href={hrefFor(key)}
           aria-current={key === active ? "page" : undefined}
-          className={`inline-flex min-h-11 items-center rounded-control border px-3 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
-            key === active
-              ? "border-brand-contrast bg-brand text-brand-contrast"
-              : "border-line-strong text-fg"
-          }`}
+          className={filterChipClasses({ selected: key === active })}
         >
           {ROLE_SKILLS[key].label}
         </Link>

@@ -9,6 +9,7 @@ import { HelpTip } from "@/components/help-tip";
 import { FieldError, GuardedForm, PendingSubmit } from "@/app/components/guarded-form";
 import { RolePickerWithProposal } from "@/components/role-picker-with-proposal";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
+import { Alert, buttonClasses, cardClasses } from "@/components/ui";
 import { saveTargetRolesAction } from "./actions";
 
 /**
@@ -36,18 +37,18 @@ export function TargetRolesForm({
   return (
     <section
       id="puesto"
-      className="flex flex-col gap-3 rounded-card border border-line p-4 scroll-mt-4"
+      className={cardClasses({ padding: "md", className: "flex scroll-mt-4 flex-col gap-3" })}
     >
-      <h2 className="text-lg font-medium">Tus puestos</h2>
+      <h2 className="text-heading font-bold">Tus puestos</h2>
       <p data-testid="current-roles" className="text-sm text-fg-muted">
         {current.length > 0
           ? `Tus puestos actuales: ${current.map((key) => ROLE_SKILLS[key].label).join(", ")}`
           : "Todavía no elegiste puesto"}
       </p>
       {status === "guardado" ? (
-        <p role="status" className="rounded-control bg-success-soft px-3 py-2 text-sm text-success">
+        <Alert tone="success" role="status">
           Guardado. Tus ofertas se actualizan con tus puestos.
-        </p>
+        </Alert>
       ) : null}
       <GuardedForm
         action={saveTargetRolesAction}
@@ -72,7 +73,7 @@ export function TargetRolesForm({
         {/* C8-6: qué son las áreas, solo si alguna carrera las tiene */}
         {current.some((r) => specialtiesFor(r).length > 0) ? <HelpTip topic="areas" /> : null}
         <FieldError name="targetRoles" />
-        <PendingSubmit className="self-start min-h-11 rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+        <PendingSubmit className={buttonClasses({ className: "self-start" })}>
           Guardar puestos
         </PendingSubmit>
       </GuardedForm>

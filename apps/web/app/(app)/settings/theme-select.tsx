@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { filterChipClasses } from "@/components/ui";
 import {
   DEFAULT_THEME,
   THEME_STORAGE_KEY,
@@ -72,7 +73,11 @@ export function ThemeSelect() {
         {THEME_VALUES.map((value) => (
           <label
             key={value}
-            className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-control border border-line-strong px-3 text-sm font-medium text-fg has-[:checked]:border-brand-contrast has-[:checked]:bg-brand has-[:checked]:text-brand-contrast has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus"
+            // C9-11: píldora de filtro; la elegida (radio marcado) en lima con borde índigo, por CSS
+            className={filterChipClasses({
+              className:
+                "cursor-pointer has-[:checked]:border-brand-contrast has-[:checked]:bg-brand has-[:checked]:text-brand-contrast has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus",
+            })}
           >
             <input
               type="radio"

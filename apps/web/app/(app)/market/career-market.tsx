@@ -2,6 +2,7 @@ import type { CareerMarket as CareerMarketData } from "@job-search-os/pipeline";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { CareerSalary } from "@/components/career-salary";
+import { cardClasses } from "@/components/ui";
 import { BarGrow } from "./bar-grow";
 
 /**
@@ -79,7 +80,7 @@ function SimpleRow({ label, count, total }: { label: string; count: number; tota
 function Block({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="flex min-w-0 flex-col gap-2">
-      <h3 className="text-sm font-semibold">{title}</h3>
+      <h3 className="text-sm font-bold">{title}</h3>
       {children}
     </div>
   );
@@ -103,17 +104,17 @@ export function CareerMarket({
     <section
       aria-labelledby={headingId}
       data-testid="career-market"
-      className="flex min-w-0 flex-col gap-4 rounded-card border border-info-line p-3 text-sm"
+      className={cardClasses({ padding: "md", className: "flex min-w-0 flex-col gap-5 text-sm" })}
     >
       <div>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id={headingId} className="font-semibold">
+          <h2 id={headingId} className="text-base font-bold">
             Mercado de {label}
           </h2>
           {backHref ? (
             <Link
               href={backHref}
-              className="inline-flex min-h-11 items-center text-xs text-fg underline"
+              className="inline-flex min-h-11 items-center text-xs font-semibold text-link underline underline-offset-2 hover:text-link-hover"
             >
               Volver a mi puesto
             </Link>

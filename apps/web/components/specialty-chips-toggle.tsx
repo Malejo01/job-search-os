@@ -84,10 +84,10 @@ export function SpecialtyChipsToggle({
         aria-checked={isAllSelected}
         onClick={selectAll}
         data-testid={`specialty-all-${roleKey}`}
-        className={`flex min-h-11 flex-col items-start justify-center gap-1 rounded-control border p-2.5 text-left transition-colors sm:col-span-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
+        className={`flex min-h-11 flex-col items-start justify-center gap-1 rounded-control p-2.5 text-left transition-colors sm:col-span-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
           isAllSelected
-            ? "border-line-strong bg-surface text-fg shadow-xs"
-            : "border-line bg-surface-subtle text-fg-muted hover:border-line-strong hover:bg-surface"
+            ? "border-2 border-brand-text bg-surface text-fg"
+            : "border-2 border-line bg-surface-subtle text-fg-muted hover:border-line-strong hover:bg-surface"
         }`}
       >
         <div className="flex w-full items-center justify-between gap-2">
@@ -99,7 +99,7 @@ export function SpecialtyChipsToggle({
             Todas las áreas
           </span>
           {isAllSelected ? (
-            <span className="shrink-0 rounded-badge border border-line bg-surface-muted px-1.5 py-0.5 text-[11px] font-medium text-fg">
+            <span className="shrink-0 rounded-badge bg-surface-muted px-2 py-0.5 text-[11px] font-bold text-fg">
               por defecto
             </span>
           ) : null}
@@ -120,10 +120,10 @@ export function SpecialtyChipsToggle({
             aria-checked={isChecked}
             onClick={() => toggle(chip.id)}
             data-testid={`specialty-chip-${roleKey}-${chip.id}`}
-            className={`flex min-h-11 flex-col items-start justify-center gap-1 rounded-control border p-2.5 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
+            className={`flex min-h-11 flex-col items-start justify-center gap-1 rounded-control p-2.5 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
               isChecked
-                ? "border-line-strong bg-surface text-fg shadow-xs"
-                : "border-line bg-surface-subtle text-fg-muted hover:border-line-strong hover:bg-surface"
+                ? "border-2 border-brand-text bg-surface text-fg"
+                : "border-2 border-line bg-surface-subtle text-fg-muted hover:border-line-strong hover:bg-surface"
             }`}
           >
             <div className="flex w-full items-center justify-between gap-2">
@@ -135,7 +135,7 @@ export function SpecialtyChipsToggle({
                 {chip.label}
               </span>
               {chip.rare ? (
-                <span className="shrink-0 rounded-badge border border-line bg-surface-muted px-1.5 py-0.5 text-[11px] text-fg-subtle">
+                <span className="shrink-0 rounded-badge bg-surface-muted px-2 py-0.5 text-[11px] font-semibold text-fg-subtle">
                   te avisamos si aparece
                 </span>
               ) : null}

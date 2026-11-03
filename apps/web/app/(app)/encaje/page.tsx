@@ -17,17 +17,22 @@ import { pickRole } from "@/lib/market";
 import { getTargetRoles } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
 import { missingCta } from "@/components/requisitos-del-aviso";
+import { Alert, cardClasses, textLinkClasses } from "@/components/ui";
 import { RoleTabs } from "../market/role-tabs";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Tu encaje" };
 
-const SECTION = "flex min-w-0 flex-col gap-2 rounded-card border border-line px-3 py-3";
-const H2 = "text-base font-semibold text-fg";
+// C9-11: bloques en tarjeta blanca sobre el lavanda, sin borde lateral
+const SECTION = cardClasses({
+  padding: "none",
+  className: "flex min-w-0 flex-col gap-2 p-4 sm:p-5",
+});
+const H2 = "text-base font-bold text-fg";
 const LIST = "m-0 flex list-none flex-col gap-2 p-0";
 const MUTED = "text-sm text-fg-muted";
-const LINK =
-  "inline-flex min-h-11 w-fit items-center font-medium text-link underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus";
+const LINK = textLinkClasses({ block: true });
+const DETAILS = cardClasses({ padding: "none", className: "px-4 text-sm sm:px-5" });
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const offersText = (n: number) => plural(n, "oferta", "ofertas");
@@ -69,8 +74,8 @@ export default async function EncajePage({
 
   if (!role) {
     return (
-      <div className="flex flex-col gap-3">
-        <h1 className="text-title font-semibold">Tu encaje</h1>
+      <div className="flex flex-col gap-5">
+        <h1 className="text-title font-bold">Tu encaje</h1>
         <div data-testid="encaje-vacio-sin-carrera" className={`${SECTION} text-sm`}>
           <p className={MUTED}>Para decirte cómo encajás primero necesitamos saber tu carrera.</p>
           <Link href="/settings#puesto" className={LINK}>
@@ -91,11 +96,11 @@ export default async function EncajePage({
   }
   if (!fit) {
     return (
-      <div className="flex flex-col gap-3">
-        <h1 className="text-title font-semibold">Tu encaje</h1>
-        <p role="alert" className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">
+      <div className="flex flex-col gap-5">
+        <h1 className="text-title font-bold">Tu encaje</h1>
+        <Alert tone="danger" role="alert">
           No pudimos calcular tu encaje. Probá de nuevo en un rato.
-        </p>
+        </Alert>
       </div>
     );
   }
@@ -107,9 +112,9 @@ export default async function EncajePage({
   const ranked = !basis.smallSample;
 
   return (
-    <div className="flex flex-col gap-3">
-      <div>
-        <h1 className="text-title font-semibold">Tu encaje</h1>
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-title font-bold">Tu encaje</h1>
         <p data-testid="encaje-base" className="text-xs text-fg-subtle">
           {basis.offers === 0 ? (
             <>
@@ -208,7 +213,7 @@ export default async function EncajePage({
               <ul className={LIST}>
                 {summary.unrated.map((skill) => (
                   <li key={skill.slug} className="min-w-0 break-words text-sm">
-                    <span className="font-medium text-fg">{skill.name}</span>
+                    <span className="font-semibold text-fg">{skill.name}</span>
                     <span className={MUTED}>
                       : la piden {skill.count} de {basis.offers} ofertas
                     </span>
@@ -221,10 +226,7 @@ export default async function EncajePage({
             </Block>
           ) : null}
           {summary.surplus.length > 0 ? (
-            <details
-              data-testid="encaje-sobra"
-              className="rounded-card border border-line px-3 text-sm"
-            >
+            <details data-testid="encaje-sobra" className={DETAILS}>
               <summary className="flex min-h-11 cursor-pointer items-center font-semibold text-fg">
                 Lo que tenés y casi no piden
               </summary>
@@ -240,7 +242,7 @@ export default async function EncajePage({
 
       <MarketBlock market={market} label={label} fit={fit} />
 
-      <details className="rounded-card border border-line px-3 text-sm">
+      <details className={DETAILS}>
         <summary className="flex min-h-11 cursor-pointer items-center font-semibold text-fg">
           Cómo se calcula
         </summary>
@@ -281,7 +283,7 @@ function Blockers({ groups, total, fit }: { groups: FitGroup[]; total: number; f
             >
               <p className="break-words">
                 <Mark>⚠</Mark>
-                <span className="font-medium text-fg">{group.label}</span>
+                <span className="font-semibold text-fg">{group.label}</span>
                 <span className={MUTED}>
                   : no se cumple en {group.count} de {total} ofertas
                 </span>
@@ -325,7 +327,7 @@ function Unknowns({ groups, total }: { groups: FitGroup[]; total: number }) {
             >
               <p className="break-words">
                 <Mark>?</Mark>
-                <span className="font-medium text-fg">{group.label}</span>
+                <span className="font-semibold text-fg">{group.label}</span>
                 <span className={MUTED}>
                   : en {group.count} de {total} ofertas no sabemos si lo cumplís
                 </span>
@@ -368,7 +370,7 @@ function SkillBlock({
         <ul className={LIST}>
           {rows.map((skill) => (
             <li key={skill.slug} className="min-w-0 break-words text-sm">
-              <span className="font-medium text-fg">{skill.name}</span>
+              <span className="font-semibold text-fg">{skill.name}</span>
               <span className={MUTED}>
                 : la piden {skill.count} de {total} ofertas{mustText(skill)}. Tu nivel:{" "}
                 {SELF_LEVELS[skill.level]?.label ?? "sin dato"}

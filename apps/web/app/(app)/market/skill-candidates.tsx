@@ -1,10 +1,11 @@
 import type { SkillCandidate } from "@/lib/market";
+import { cardClasses } from "@/components/ui";
 
 /** Términos frecuentes fuera de la taxonomía: propuesta, no entra a la demanda. */
 export function SkillCandidates({ candidates }: { candidates: SkillCandidate[] }) {
   return (
-    <details className="rounded-card border border-line p-3 text-sm">
-      <summary className="flex min-h-11 cursor-pointer items-center font-semibold">
+    <details className={cardClasses({ padding: "none", className: "px-4 py-1 text-sm sm:px-5" })}>
+      <summary className="flex min-h-11 cursor-pointer items-center font-bold">
         Términos que podrían ser skills nuevas ({candidates.length})
       </summary>
       <p className="mt-2 text-xs text-fg-subtle">
@@ -13,11 +14,11 @@ export function SkillCandidates({ candidates }: { candidates: SkillCandidate[] }
         hora. No cuentan en la demanda hasta que los sumemos a la lista.
       </p>
       {candidates.length ? (
-        <ul className="mt-2 flex flex-wrap gap-2">
+        <ul className="mt-2 mb-3 flex flex-wrap gap-2">
           {candidates.map((c) => (
             <li
               key={c.term}
-              className="rounded-control border border-line bg-surface px-2 py-1 text-xs text-fg"
+              className="rounded-pill bg-surface-muted px-3 py-1 text-xs font-semibold text-fg"
             >
               {c.term}{" "}
               <span className="tabular-nums text-fg-subtle">
@@ -30,7 +31,7 @@ export function SkillCandidates({ candidates }: { candidates: SkillCandidate[] }
           ))}
         </ul>
       ) : (
-        <p className="mt-2 text-xs text-fg-subtle">
+        <p className="mt-2 mb-3 text-xs text-fg-subtle">
           Por ahora no encontramos términos nuevos que se repitan.
         </p>
       )}

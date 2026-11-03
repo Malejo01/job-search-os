@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { Alert, cardClasses } from "@/components/ui";
 import { CopyButton } from "./copy-button";
 
 const OTHER_PORTALS = ["Bumeran", "ZonaJobs", "Indeed"] as const;
 
 const LINK_CLASS =
-  "inline-flex min-h-11 items-center underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus";
+  "inline-flex min-h-11 items-center font-semibold underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus";
 
 /**
  * «Tu email de alertas»: suscribir la alerta del portal directamente con la dirección de la app.
@@ -18,9 +19,9 @@ export function AlertEmail({ address, legacy }: { address: string | null; legacy
     <section
       data-testid="alert-email"
       aria-labelledby="alert-email-title"
-      className="flex flex-col gap-3 rounded-card border border-fg px-3 py-3"
+      className={cardClasses({ padding: "md", className: "flex flex-col gap-4" })}
     >
-      <h2 id="alert-email-title" className="text-lg font-semibold text-fg">
+      <h2 id="alert-email-title" className="text-heading font-bold text-fg">
         Tu email de alertas
       </h2>
       <p className="text-sm text-fg-muted">
@@ -28,10 +29,7 @@ export function AlertEmail({ address, legacy }: { address: string | null; legacy
         bandeja de Job Search sin pasar por tu correo.
       </p>
       {legacy ? (
-        <div
-          role="alert"
-          className="rounded-control bg-warning-soft px-3 py-2 text-sm text-warning"
-        >
+        <Alert tone="warning" role="alert">
           <p>
             Tu dirección es de un formato anterior: generá una nueva en Ajustes › Email entrante
             antes de suscribir alertas.
@@ -39,39 +37,36 @@ export function AlertEmail({ address, legacy }: { address: string | null; legacy
           <Link href="/settings" className={`${LINK_CLASS} w-fit`}>
             Ir a Ajustes
           </Link>
-        </div>
+        </Alert>
       ) : null}
       <ol
         className="m-0 flex list-none flex-col gap-3 p-0 text-sm text-fg-muted"
         aria-label="Pasos para tu email de alertas"
       >
         <li data-testid="alert-email-step-1" className="flex flex-col gap-2">
-          <h3 className="font-medium text-fg">Paso 1: Copiá tu dirección de alertas.</h3>
+          <h3 className="font-bold text-fg">Paso 1: Copiá tu dirección de alertas.</h3>
           {address ? (
-            <div className="flex items-center gap-2 rounded-control bg-surface-muted px-3 py-2">
+            <div className="flex items-center gap-2 rounded-control bg-surface-muted px-4 py-2">
               <p className="min-w-0 flex-1 font-mono text-sm break-all select-all">
                 <span data-testid="assistant-address">{address}</span>
               </p>
               <CopyButton text={address} />
             </div>
           ) : (
-            <p
-              role="alert"
-              className="rounded-control bg-warning-soft px-3 py-2 text-sm text-warning"
-            >
+            <Alert tone="warning" role="alert">
               Todavía no tenés una dirección de reenvío. Generá una en Ajustes.
-            </p>
+            </Alert>
           )}
         </li>
         <li data-testid="alert-email-step-2" className="flex flex-col gap-1">
-          <h3 className="font-medium text-fg">Paso 2: Creá la alerta en Computrabajo.</h3>
+          <h3 className="font-bold text-fg">Paso 2: Creá la alerta en Computrabajo.</h3>
           <p>
             En Computrabajo, buscá el puesto, tocá <span className="font-medium">Crear alerta</span>{" "}
             y pegá tu dirección. No hace falta crear una cuenta.
           </p>
         </li>
         <li data-testid="alert-email-step-3" className="flex flex-col gap-1">
-          <h3 className="font-medium text-fg">Paso 3: Confirmá desde tu bandeja.</h3>
+          <h3 className="font-bold text-fg">Paso 3: Confirmá desde tu bandeja.</h3>
           <p>
             Computrabajo te manda un email para confirmar. Abrilo en tu bandeja y tocá el link de
             confirmación.

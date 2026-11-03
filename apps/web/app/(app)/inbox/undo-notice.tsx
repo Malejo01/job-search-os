@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { buttonClasses } from "@/components/ui";
 
 /** Cuánto dura el aviso de «Deshacer» después de una acción en lote. */
 export const UNDO_MS = 10_000;
@@ -31,13 +32,14 @@ export function UndoNotice({
   return (
     <div role="status" aria-live="polite">
       {notice ? (
-        <p className="flex flex-wrap items-center gap-3 rounded-control bg-brand px-3 py-2 text-xs text-brand-contrast">
+        // C9-11: índigo y no lima (la lima no va de fondo de un bloque)
+        <p className="flex flex-wrap items-center gap-3 rounded-control bg-ink px-4 py-2 text-xs text-on-ink">
           <span>{notice.message}</span>
           <button
             type="button"
             disabled={pending}
             onClick={onUndo}
-            className="rounded-control border border-surface/60 px-2 py-1 font-medium"
+            className={buttonClasses({ variant: "secondary", size: "sm" })}
           >
             Deshacer
           </button>

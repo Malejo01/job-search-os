@@ -12,6 +12,7 @@ import {
 } from "@/lib/market";
 import { careerLabel, getCareerMarket, parseCareer } from "@/lib/career-market";
 import { getTargetRoles } from "@/lib/onboarding";
+import { buttonClasses, cardClasses, inputClasses, textLinkClasses } from "@/components/ui";
 import { requireUserId } from "@/lib/session";
 import { CareerMarket } from "./career-market";
 import { CareerPicker } from "./career-picker";
@@ -24,8 +25,16 @@ import { SkillRows } from "./skill-rows";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Mercado" };
 
-const INPUT_CLASS =
-  "w-full rounded-control border-2 border-line-strong px-2 py-2 text-sm text-fg sm:w-auto";
+const INPUT_CLASS = inputClasses({ className: "sm:w-auto" });
+// C9-11: paneles blancos sin borde lateral; los plegables, con el mismo radio
+const DETAILS = cardClasses({ padding: "none", className: "px-4 py-1 text-sm sm:px-5" });
+const SUMMARY = "flex min-h-11 cursor-pointer items-center font-bold";
+// El tono de cada bloque de la agenda va en un punto junto al título (el título ya lo dice)
+const DOT: Record<string, string> = {
+  "border-danger-line": "bg-danger-strong",
+  "border-success-line": "bg-success-strong",
+  "border-warning-line": "bg-warning-strong",
+};
 
 /** «2026-10-19» -> «19/10»: la semana, sin año ni formato técnico. */
 const shortDate = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
@@ -60,9 +69,9 @@ export default async function MarketPage({
   const { agenda } = view;
 
   return (
-    <section className="flex flex-col gap-4">
+    <section className="flex flex-col gap-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-title font-semibold">Mercado</h1>
+        <h1 className="text-title font-bold">Mercado</h1>
         <p className="text-xs text-fg-subtle">
           {view.weekStart
             ? `Datos de la semana del ${shortDate(view.weekStart)}`
@@ -82,7 +91,7 @@ export default async function MarketPage({
       {careerRole && maturity ? (
         <p
           data-testid="carrera-madurez"
-          className={`w-fit rounded-pill px-3 py-1 text-xs font-medium ${
+          className={`w-fit rounded-pill px-3 py-1 text-xs font-bold ${
             maturity === "madura"
               ? "bg-success-muted text-success"
               : "bg-warning-muted text-warning"
@@ -103,16 +112,18 @@ export default async function MarketPage({
         </p>
       )}
 
-      <h2 className="text-lg font-semibold">Tu agenda</h2>
-      <p className="-mt-3 text-xs text-fg-subtle">
-        Lo que piden las ofertas que ya pasaron por tu cuenta, cruzado con tus niveles.
-      </p>
-      <Link
-        href={role ? `/encaje?rol=${role}` : "/encaje"}
-        className="-mt-2 inline-flex min-h-11 w-fit items-center text-sm font-medium text-link underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
-      >
-        Explicado en llano: Tu encaje
-      </Link>
+      <div className="mt-2 flex flex-col gap-1">
+        <h2 className="text-heading font-bold">Tu agenda</h2>
+        <p className="text-xs text-fg-subtle">
+          Lo que piden las ofertas que ya pasaron por tu cuenta, cruzado con tus niveles.
+        </p>
+        <Link
+          href={role ? `/encaje?rol=${role}` : "/encaje"}
+          className={textLinkClasses({ block: true, className: "text-sm" })}
+        >
+          Explicado en llano: Tu encaje
+        </Link>
+      </div>
       <RoleMarket view={roleMarket} />
 
       <form method="get" className="flex flex-col gap-2 text-xs text-fg-subtle">
@@ -133,7 +144,7 @@ export default async function MarketPage({
           </label>
           <button
             type="submit"
-            className="min-h-11 w-full rounded-control border border-line-control px-4 py-2 text-sm text-fg sm:w-auto"
+            className={buttonClasses({ variant: "secondary", className: "w-full sm:w-auto" })}
           >
             Aplicar
           </button>
@@ -149,9 +160,9 @@ export default async function MarketPage({
         !state.hasSnapshot ? (
           <MissingDataNotice state={state} />
         ) : (
-          <p className="rounded-card border border-dashed border-line-strong p-6 text-center text-sm text-fg-subtle">
+          <p className="rounded-container bg-surface px-6 py-8 text-center text-sm text-fg-muted">
             No hay datos de mercado en ese rango de semanas.{" "}
-            <Link href={role ? `/market?rol=${role}` : "/market"} className="underline">
+            <Link href={role ? `/market?rol=${role}` : "/market"} className={textLinkClasses()}>
               Ver todas las semanas
             </Link>
           </p>
@@ -182,18 +193,16 @@ export default async function MarketPage({
             tone="border-warning-line"
             testId="market-growing"
           />
-          <details className="rounded-card border border-line p-3 text-sm">
-            <summary className="flex min-h-11 cursor-pointer items-center font-semibold">
-              Tabla completa ({agenda.all.length} skills)
-            </summary>
-            <SkillRows rows={agenda.all} view={view} compact />
+          <details className={DETAILS}>
+            <summary className={SUMMARY}>Tabla completa ({agenda.all.length} skills)</summary>
+            <div className="pb-3">
+              <SkillRows rows={agenda.all} view={view} compact />
+            </div>
           </details>
           <SkillCandidates candidates={view.candidates} />
-          <details className="rounded-card border border-line p-3 text-sm">
-            <summary className="flex min-h-11 cursor-pointer items-center font-semibold">
-              ¿Cómo se calcula?
-            </summary>
-            <p className="mt-2 text-xs text-fg-subtle">
+          <details className={DETAILS}>
+            <summary className={SUMMARY}>¿Cómo se calcula?</summary>
+            <p className="mt-2 mb-3 text-xs text-fg-subtle">
               La demanda de cada skill suma el puntaje de las ofertas que la piden: cuenta entero si
               es un requisito y 0,4 si es deseable. Si una oferta todavía no tiene puntaje, cuenta
               como 5 de 10. Las skills se reconocen por nombre en cada aviso, sin inteligencia
@@ -223,15 +232,21 @@ function Section({
   testId: string;
 }) {
   return (
-    <section data-testid={testId} className={`rounded-card border p-3 ${tone}`}>
-      <h2 className="text-sm font-semibold">{title}</h2>
+    <section data-testid={testId} className={cardClasses({ padding: "md" })}>
+      <h2 className="flex items-baseline gap-2 text-sm font-bold">
+        <span
+          aria-hidden="true"
+          className={`inline-block size-2.5 shrink-0 rounded-pill ${DOT[tone] ?? "bg-fg-subtle"}`}
+        />
+        {title}
+      </h2>
       <p className="text-xs text-fg-subtle">{hint}</p>
       {rows.length ? (
         <SkillRows rows={rows} view={view} />
       ) : (
         <p className="mt-2 text-xs text-fg-subtle">
           Por ahora ninguna skill entra en esta categoría. Si tus niveles cambiaron, actualizalos en{" "}
-          <Link href="/settings/skills" className="underline">
+          <Link href="/settings/skills" className={textLinkClasses()}>
             Mis skills
           </Link>
           .

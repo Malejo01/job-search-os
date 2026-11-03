@@ -1,5 +1,6 @@
 import { ROLE_KEYS, type RoleKey } from "@job-search-os/pipeline";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
+import { buttonClasses, inputClasses } from "@/components/ui";
 
 /**
  * "Explorar otra carrera": formulario GET con `?carrera=<clave>`. Conserva la pestaña (`rol`) para
@@ -29,7 +30,7 @@ export function CareerPicker({
           <select
             name="carrera"
             defaultValue={current ?? ""}
-            className="min-h-11 w-full rounded-control border-2 border-line-strong px-2 py-2 text-sm text-fg sm:w-auto"
+            className={inputClasses({ className: "sm:w-auto" })}
           >
             {current ? null : (
               <option value="" disabled>
@@ -47,7 +48,7 @@ export function CareerPicker({
         </label>
         <button
           type="submit"
-          className="min-h-11 w-full rounded-control border border-line-control px-4 py-2 text-sm text-fg sm:w-auto"
+          className={buttonClasses({ variant: "secondary", className: "w-full sm:w-auto" })}
         >
           Ver mercado
         </button>

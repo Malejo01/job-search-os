@@ -81,8 +81,8 @@ export function RolePicker({
     <div className="flex flex-col gap-3">
       {groups.map((group) => (
         <fieldset key={group.label} className="flex flex-col gap-1 text-sm">
-          <legend className="mb-1 text-xs font-medium text-fg-subtle">{group.label}</legend>
-          <div className="grid gap-1 sm:grid-cols-2">
+          <legend className="mb-1 text-xs font-bold text-fg-subtle">{group.label}</legend>
+          <div className="grid gap-2 sm:grid-cols-2">
             {group.roles.map((role) => {
               const checked = chosen.has(role.key);
               const disabled = atLimit && !checked;
@@ -98,9 +98,12 @@ export function RolePicker({
               return (
                 <div
                   key={role.key}
-                  className={`flex min-w-0 flex-col rounded-card border border-line ${
-                    disabled ? "text-fg-subtle" : "text-fg"
-                  } ${checked && hasSpecialties ? "sm:col-span-2" : ""}`}
+                  // C9-11: radio 18 y borde de 2 px; el puesto elegido, con borde índigo
+                  className={`flex min-w-0 flex-col rounded-control border-2 bg-surface ${
+                    checked ? "border-brand-text" : "border-line"
+                  } ${disabled ? "text-fg-subtle" : "text-fg"} ${
+                    checked && hasSpecialties ? "sm:col-span-2" : ""
+                  }`}
                 >
                   <label className="flex min-h-11 items-center gap-2 px-3 py-2">
                     <input
@@ -140,7 +143,7 @@ export function RolePicker({
                     </div>
                   ) : null}
                   {checked && hasSpecialties ? (
-                    <div className="border-t border-line p-3">
+                    <div className="border-t-2 border-line p-3">
                       <RoleSpecialties
                         roleKey={role.key as RoleKey}
                         roleLabel={role.label}

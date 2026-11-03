@@ -13,11 +13,13 @@ import { resetCriteriaAction, saveCriteriaAction } from "./actions";
 import { FieldError, GuardedForm, PendingSubmit } from "@/app/components/guarded-form";
 import { AssistantProposalLoader } from "@/components/assistant-proposal-loader";
 import { SaveButton } from "./save-button";
+import { Alert, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
 
 export const metadata = { title: "Criterios" };
 export const dynamic = "force-dynamic";
 
-const input = "rounded-control border-2 border-line-strong px-3 py-2 text-base";
+// C9-11: campos de las primitivas (radio 18)
+const input = inputClasses();
 const help = "text-xs text-fg-subtle";
 
 const DATE = new Intl.DateTimeFormat("es-AR", {
@@ -69,7 +71,7 @@ export default async function CriteriaPage({
   if (!active) {
     return (
       <div className="mx-auto flex max-w-2xl flex-col gap-3">
-        <h1 className="text-2xl font-semibold">Criterios de evaluación</h1>
+        <h1 className="text-title font-bold">Criterios de evaluación</h1>
         <p className="text-sm text-fg-muted">
           Todavía no tenés criterios activos. Completá tu perfil primero.
         </p>
@@ -82,37 +84,33 @@ export default async function CriteriaPage({
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-5">
       <div className="flex flex-col gap-1">
-        <p className="text-xs font-semibold tracking-wide text-fg-muted uppercase">Avanzado</p>
-        <h1 className="text-2xl font-semibold">Criterios de evaluación</h1>
+        <p className="text-xs font-bold tracking-wide text-fg-muted uppercase">Avanzado</p>
+        <h1 className="text-title font-bold">Criterios de evaluación</h1>
         <p className="text-sm text-fg-subtle">
           Versión vigente: {active.version} · guardada el {DATE.format(active.createdAt)} (UTC)
         </p>
       </div>
 
-      <p role="note" className="rounded-control bg-warning-soft px-3 py-2 text-sm text-warning">
+      <Alert tone="warning" role="note">
         Cambiar estos criterios puede hacer que se descarten ofertas que te sirven. Si no estás
         segura o seguro, dejalos como están.
-      </p>
+      </Alert>
 
-      <p className="rounded-control bg-warning-soft px-3 py-2 text-sm text-warning">
+      <Alert tone="warning" role={null}>
         Los cambios valen para las ofertas nuevas; las ya evaluadas no se recalculan.
-      </p>
+      </Alert>
 
       {saved ? (
-        <p role="status" className="rounded-control bg-success-soft px-3 py-2 text-sm text-success">
+        <Alert tone="success" role="status">
           {saved === "reset"
             ? "Volviste a los valores por defecto."
             : "Criterios guardados como una versión nueva."}
-        </p>
+        </Alert>
       ) : null}
       {error ? (
-        <p
-          id="criteria-error"
-          role="alert"
-          className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger"
-        >
+        <Alert id="criteria-error" tone="danger" role="alert">
           {FIELD_ERRORS[error] ?? "Revisá los datos del formulario."}
-        </p>
+        </Alert>
       ) : null}
 
       <GuardedForm
@@ -122,12 +120,12 @@ export default async function CriteriaPage({
           thresholds: ["threshold_personalizado", "threshold_aplicar", "threshold_guardar"],
         }}
         conflictField="conflict"
-        className="flex flex-col gap-4"
+        className={cardClasses({ padding: "md", className: "flex flex-col gap-5" })}
       >
         <input type="hidden" name="baseVersion" value={active.version} />
         <AssistantProposalLoader destination="criteria" />
 
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1.5 text-sm">
           Títulos bloqueados (uno por línea)
           <textarea
             name="title_blocklist"
@@ -142,7 +140,7 @@ export default async function CriteriaPage({
           </span>
         </label>
 
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1.5 text-sm">
           Títulos permitidos (uno por línea)
           <textarea
             name="title_allowlist"
@@ -157,7 +155,7 @@ export default async function CriteriaPage({
           </span>
         </label>
 
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1.5 text-sm">
           Palabras de otras disciplinas (una por línea)
           <textarea
             name="other_discipline_keywords"
@@ -173,10 +171,10 @@ export default async function CriteriaPage({
         </label>
 
         <fieldset className="flex flex-col gap-2 text-sm">
-          <legend className="mb-1">Disciplinas que buscás</legend>
+          <legend className="mb-1 font-bold text-fg">Disciplinas que buscás</legend>
           <div className="grid gap-1 sm:grid-cols-2">
             {DISCIPLINES.map((disc) => (
-              <label key={disc} className="flex items-center gap-2">
+              <label key={disc} className="flex min-h-11 items-center gap-2">
                 <input
                   type="checkbox"
                   name="allowed_disciplines"
@@ -195,7 +193,7 @@ export default async function CriteriaPage({
         </fieldset>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex flex-col gap-1.5 text-sm">
             Piso salarial mensual (USD, opcional)
             <input
               name="salary_floor_usd_monthly"
@@ -213,7 +211,7 @@ export default async function CriteriaPage({
               este piso se marca.
             </span>
           </label>
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex flex-col gap-1.5 text-sm">
             Horas máximas por semana
             <input
               name="max_weekly_hours"
@@ -229,7 +227,7 @@ export default async function CriteriaPage({
             <FieldError name="max_weekly_hours" />
             <span className={help}>Un aviso que pide más horas se marca como riesgo.</span>
           </label>
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex flex-col gap-1.5 text-sm">
             Años máximos que tolerás
             <input
               name="max_years_hard"
@@ -247,7 +245,7 @@ export default async function CriteriaPage({
               Si el aviso pide más años que estos, es un bloqueador (no se recomienda aplicar).
             </span>
           </label>
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex flex-col gap-1.5 text-sm">
             Riesgo de inglés desde
             <select name="english_risk_from" defaultValue={d.english_risk_from} className={input}>
               {ENGLISH_RISK_LEVELS.map((l) => (
@@ -264,9 +262,9 @@ export default async function CriteriaPage({
         </div>
 
         <fieldset className="flex flex-col gap-2 text-sm">
-          <legend className="mb-1">Umbrales de puntaje (0 a 10)</legend>
+          <legend className="mb-1 font-bold text-fg">Umbrales de puntaje (0 a 10)</legend>
           <div className="grid gap-4 sm:grid-cols-3">
-            <label className="flex flex-col gap-1">
+            <label className="flex flex-col gap-1.5">
               Personalizar desde
               <input
                 name="threshold_personalizado"
@@ -280,7 +278,7 @@ export default async function CriteriaPage({
                 className={input}
               />
             </label>
-            <label className="flex flex-col gap-1">
+            <label className="flex flex-col gap-1.5">
               Aplicar desde
               <input
                 name="threshold_aplicar"
@@ -294,7 +292,7 @@ export default async function CriteriaPage({
                 className={input}
               />
             </label>
-            <label className="flex flex-col gap-1">
+            <label className="flex flex-col gap-1.5">
               Guardar desde
               <input
                 name="threshold_guardar"
@@ -321,13 +319,11 @@ export default async function CriteriaPage({
         </fieldset>
 
         <div className="flex justify-end">
-          <PendingSubmit className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover">
-            Guardar como versión nueva
-          </PendingSubmit>
+          <PendingSubmit className={buttonClasses()}>Guardar como versión nueva</PendingSubmit>
         </div>
       </GuardedForm>
 
-      <section className="border-t border-line pt-4 text-sm">
+      <section className="border-t border-line pt-5 text-sm">
         {reset === "confirm" ? (
           <form action={resetCriteriaAction} className="flex flex-col gap-2">
             <input type="hidden" name="baseVersion" value={active.version} />
@@ -335,15 +331,15 @@ export default async function CriteriaPage({
               Se crea una versión nueva con los valores por defecto. Tu piso salarial y tus horas
               del perfil se conservan. Las ofertas ya evaluadas no se recalculan.
             </p>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <SaveButton
                 label="Sí, volver a los valores por defecto"
                 pendingLabel="Restableciendo…"
-                className="rounded-control bg-danger-strong px-3 py-2 font-medium text-on-strong"
+                className={buttonClasses({ variant: "danger", size: "sm" })}
               />
               <Link
                 href="/settings/criteria"
-                className="rounded-control border border-line-strong px-3 py-2"
+                className={buttonClasses({ variant: "secondary", size: "sm" })}
               >
                 Cancelar
               </Link>
@@ -352,7 +348,7 @@ export default async function CriteriaPage({
         ) : (
           <Link
             href="/settings/criteria?reset=confirm"
-            className="rounded-control border border-line-strong px-3 py-2"
+            className={buttonClasses({ variant: "secondary", size: "sm" })}
           >
             Volver a los valores por defecto
           </Link>

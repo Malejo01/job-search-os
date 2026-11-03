@@ -88,7 +88,7 @@ export function ProposalLoadedNotice({
       role="status"
       tabIndex={-1}
       data-testid="assistant-proposal-loaded"
-      className="flex flex-col gap-1 rounded-card border border-info-line bg-info-soft px-3 py-2 text-sm text-info focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
+      className="flex flex-col gap-1 rounded-control border border-info-line bg-info-soft px-4 py-3 text-sm text-info focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
     >
       <p className="font-medium">
         Cargamos la propuesta del asistente. Revisá los cambios y tocá Guardar: todavía no se guardó
@@ -190,7 +190,7 @@ export function AssistantProposalLoader({
       {stale ? (
         <p
           role="alert"
-          className="rounded-control border border-warning-line bg-warning-soft px-3 py-2 text-sm text-warning"
+          className="rounded-control border border-warning-line bg-warning-soft px-4 py-3 text-sm text-warning"
         >
           Los criterios cambiaron desde que se armó la propuesta. Pedile al asistente una nueva.
         </p>
