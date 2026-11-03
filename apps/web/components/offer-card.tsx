@@ -1,55 +1,75 @@
+import type { OfferChip } from "@job-search-os/pipeline";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Badge, type BadgeTone, cx, Seal } from "@/components/ui";
+import { Chip, cx, Seal } from "@/components/ui";
 
 /**
- * Tarjeta de oferta (C7-4, manual M8 y P1): score, título, empresa y lugar, etiquetas de estado y,
- * a la derecha, la fecha y lo que se pueda hacer (abrir el aviso). Server Component.
+ * Tarjeta de oferta K2 (C9-8, decisión 8 de C9). Server Component.
  *
- * Toda la tarjeta lleva al detalle (`href`) con un link que la cubre; lo que va en `aside` y
- * `children` queda encima (`relative z-10`) para que sus propios links y botones se puedan tocar.
+ * - El puesto en Bricolage 700 y, abajo, la empresa y el lugar dichos en una frase (`place`, de
+ *   `offerPlace` en pipeline: «Estudio Ruiz y Asociados, en Salta»), sin separadores «·».
+ * - Chips: lo que tenés (verde) y lo que te falta (ámbar), como mucho tres y «y 2 más», siempre con
+ *   ícono y texto (`offerCardChips` en pipeline).
+ * - La línea de conteo («4 a tu favor, 1 te falta»), solo si la evaluación tiene checklist.
+ * - Modalidad y antigüedad en texto chico (`meta`).
+ * - El sello a la derecha.
+ *
+ * `featured`: la tarjeta destacada de la pantalla (la oferta principal de Hoy), con borde inferior
+ * de 6 px y sello grande; las demás, 4 px. Toda la tarjeta lleva al detalle (`href`) con un link
+ * que la cubre; lo que va en `aside` y `children` queda encima (`relative z-10`).
  */
-export type OfferTag = { label: string; tone?: BadgeTone; srLabel?: string };
-
 export function OfferCard({
   href,
   title,
+  place,
+  chips = [],
+  more = 0,
+  count = null,
   meta,
   score,
   preScore = null,
   pending = false,
-  scoreTitle,
-  tags = [],
+  sealTitle,
+  sealAs,
+  featured = false,
   aside,
   children,
   className,
   testId,
-  scoreProps,
+  sealProps,
+  as: Tag = "li",
 }: {
   href: string;
   title: string;
-  /** Empresa, lugar, modalidad: se unen con « · ». Los vacíos se saltean. */
-  meta: Array<string | null | undefined>;
+  place: string;
+  chips?: readonly OfferChip[];
+  more?: number;
+  count?: string | null;
+  /** Texto chico: modalidad y antigüedad («Remoto. Publicada hace 3 días»). */
+  meta?: ReactNode;
   score: number | null;
   preScore?: number | null;
   pending?: boolean;
-  scoreTitle?: string;
-  tags?: OfferTag[];
-  /** Columna derecha: fecha, «abrir el aviso». */
+  sealTitle?: string;
+  /** `text`: el sello con su frase para lectores de pantalla adentro (Hoy). */
+  sealAs?: "img" | "text";
+  featured?: boolean;
+  /** Debajo del sello: «Ver oferta», 👍/👎. */
   aside?: ReactNode;
-  /** Debajo de las etiquetas: a tu favor / te falta, acciones. */
+  /** Debajo de los chips: una línea de por qué, acciones. */
   children?: ReactNode;
   className?: string;
   testId?: string;
-  /** Atributos extra para la caja del score (anclas de la guía). */
-  scoreProps?: { [key: `data-${string}`]: string | undefined };
+  /** Atributos extra para el sello (anclas de la guía). */
+  sealProps?: { [key: `data-${string}`]: string | undefined };
+  as?: "li" | "div" | "article";
 }) {
-  const metaText = meta.filter(Boolean).join(" · ");
   return (
-    <li
+    <Tag
       data-testid={testId}
       className={cx(
-        "relative flex gap-3 rounded-card bg-surface p-3.5 transition-colors hover:border-line-control",
+        "pressable relative flex gap-3 rounded-card border-edge bg-surface sm:gap-4",
+        featured ? "edge-6 p-5 sm:p-6" : "edge-4 p-4 sm:p-5",
         className,
       )}
     >
@@ -58,40 +78,58 @@ export function OfferCard({
         className="absolute inset-0 rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         aria-label={`Abrir el detalle de ${title}`}
       />
-      <Seal
-        score={score}
-        preScore={preScore}
-        pending={pending}
-        title={scoreTitle}
-        {...scoreProps}
-      />
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <p className="truncate text-[15px] font-bold text-fg">{title}</p>
-        {metaText ? <p className="truncate text-[13px] text-fg-subtle">{metaText}</p> : null}
-        {tags.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5">
-            {tags.map((tag) => (
-              <Badge
-                key={tag.label}
-                shape="square"
-                tone={tag.tone ?? "neutral"}
-                srLabel={tag.srLabel}
-                className="text-[11px]"
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <p
+            className={cx(
+              "font-display leading-snug font-bold break-words text-fg",
+              featured ? "text-xl" : "text-[17px]",
+            )}
+          >
+            {title}
+          </p>
+          <p className="text-sm break-words text-fg-muted">{place}</p>
+        </div>
+        {pending ? (
+          <p className="text-sm font-semibold text-fg-muted">Leyendo la oferta contra tu perfil…</p>
+        ) : null}
+        {chips.length ? (
+          <div className="flex min-w-0 flex-wrap gap-1.5">
+            {chips.map((c) => (
+              <Chip
+                key={`${c.tone}-${c.label}`}
+                tone={c.tone}
+                srLabel={c.tone === "have" ? "Tenés" : "Te falta"}
+                title={c.label}
               >
-                {tag.label}
-              </Badge>
+                {c.label}
+              </Chip>
             ))}
+            {more ? <Chip>{`y ${more} más`}</Chip> : null}
           </div>
         ) : null}
+        {count ? <p className="text-sm font-bold text-fg">{count}</p> : null}
         {children ? (
           <div className="relative z-10 flex min-w-0 flex-col gap-1">{children}</div>
         ) : null}
+        {meta ? <p className="text-xs text-fg-subtle">{meta}</p> : null}
       </div>
-      {aside ? (
-        <div className="relative z-10 flex shrink-0 flex-col items-end gap-1 text-xs text-fg-subtle">
-          {aside}
-        </div>
-      ) : null}
-    </li>
+      <div className="flex shrink-0 flex-col items-end gap-2">
+        <Seal
+          score={score}
+          preScore={preScore}
+          pending={pending}
+          title={sealTitle}
+          as={sealAs}
+          size={featured ? "detail" : "list"}
+          {...sealProps}
+        />
+        {aside ? (
+          <div className="relative z-10 flex flex-col items-end gap-1 text-xs text-fg-subtle">
+            {aside}
+          </div>
+        ) : null}
+      </div>
+    </Tag>
   );
 }

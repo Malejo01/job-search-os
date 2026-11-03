@@ -46,7 +46,9 @@ test.describe("Flujo 90: A tu favor / Te falta o te frena", () => {
     await login(page);
     await page.goto("/jobs?estado=todas");
     const card = page.getByRole("listitem").filter({ hasText: title }).first();
-    await expect(card.getByText("A tu favor: Excel ficticio")).toBeVisible();
+    // Tarjeta K2 (C9-8): sin checklist, los chips salen de fortalezas y debilidades
+    await expect(card.getByText("Excel ficticio")).toBeVisible();
+    await expect(card.getByText("Facturación ficticia")).toBeVisible();
     await expect(card.getByText("Te frena: Bloqueador ficticio")).toBeVisible();
 
     await page.goto(`/jobs/${jobId}`);
