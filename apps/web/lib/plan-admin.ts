@@ -2,6 +2,7 @@ import {
   BETA_PLAN,
   betaPeriodDays,
   grantPeriod,
+  isPlanActivation,
   isPlanSource,
   type PlanSource,
 } from "@job-search-os/pipeline";
@@ -75,7 +76,15 @@ export async function listPlans(userId: string): Promise<AdminPlanRow[]> {
 }
 
 export type GrantResult =
-  | { ok: true; source: PlanSource; until: Date }
+  | {
+      ok: true;
+      source: PlanSource;
+      until: Date;
+      /** El plan no estaba vigente (C8-7): es una activación, no una renovación. */
+      activated: boolean;
+      /** Email normalizado de la persona, para la bienvenida. Nunca va a los logs ni a la URL. */
+      email: string;
+    }
   | { ok: false; reason: "email_invalido" | "no_existe" | "plan_viejo" };
 
 /**
@@ -112,7 +121,17 @@ export async function grantBetaPlan(
     ),
   )) as unknown as PlanRowRaw[];
   if (!saved) return { ok: false, reason: "no_existe" };
-  return { ok: true, source: input.source, until: toDate(saved.plan_until) ?? until };
+  const activated = isPlanActivation(
+    { plan: current.plan, planUntil: toDate(current.plan_until) },
+    now,
+  );
+  return {
+    ok: true,
+    source: input.source,
+    until: toDate(saved.plan_until) ?? until,
+    activated,
+    email,
+  };
 }
 
 /** Pasa a la persona al plan gratis (sin borrar nada). Devuelve false si no existe o no terminó el onboarding. */

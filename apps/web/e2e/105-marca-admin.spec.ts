@@ -10,6 +10,21 @@ import { login } from "./helpers";
 test.describe("Flujo 105: vitrina de marca", () => {
   test.skip(!process.env.ADMIN_EMAILS, "sin ADMIN_EMAILS la cuenta del e2e no es admin");
 
+  test("email de bienvenida (C8-7): vista previa aislada en un iframe sin permisos", async ({
+    page,
+  }) => {
+    await login(page);
+    await page.goto("/settings/marca");
+    const section = page.getByTestId("marca-email");
+    await expect(section.getByRole("heading", { name: "Email de bienvenida" })).toBeVisible();
+    const frame = section.locator("iframe");
+    await expect(frame).toHaveAttribute("sandbox", "");
+    const html = await frame.getAttribute("srcdoc");
+    expect(html).toContain("Completá tu perfil");
+    expect(html).toContain("Contanos qué pasó");
+    expect(html).not.toMatch(/<script/i);
+  });
+
   for (const width of [390, 1280]) {
     test(`a ${width} px: logo, paleta en los dos modos y sin violaciones de axe`, async ({
       page,
