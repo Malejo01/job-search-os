@@ -137,3 +137,15 @@ export function closenessPhrase(checklist: { must: Counts; deseable: Counts }): 
     ? `${head} Te falta uno para quedar entre las mejores postulaciones.`
     : `${head} Te faltan ${missing}: sumá uno y esta oferta te queda más cerca.`;
 }
+
+const MODALITY_TEXT: Record<string, string> = {
+  remoto: "Remoto",
+  hibrido: "Híbrido",
+  presencial: "Presencial",
+};
+
+/** El texto chico de la tarjeta: «Remoto. Publicada hace 3 días». Sin modalidad, solo la fecha. */
+export function offerMeta(modality: string | null, postedAt: Date, now: Date): string {
+  const m = modality ? MODALITY_TEXT[modality] : undefined;
+  return m ? `${m}. ${offerAge(postedAt, now)}` : offerAge(postedAt, now);
+}

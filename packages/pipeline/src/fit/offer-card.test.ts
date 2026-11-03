@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { closenessPhrase, offerAge, offerCardChips, offerPlace } from "./offer-card";
+import { closenessPhrase, offerAge, offerCardChips, offerMeta, offerPlace } from "./offer-card";
 
 describe("offerCardChips (tarjeta K2, C9-8)", () => {
   it("con checklist: verdes y ámbar, como mucho 3, «y N más» y la línea de conteo", () => {
@@ -173,5 +173,19 @@ describe("closenessPhrase: la frase de cercanía del detalle D3 (C9-9)", () => {
     expect(closenessPhrase(counts(4, 0))).toBe("Cumplís los 4 requisitos que pudimos verificar.");
     expect(closenessPhrase(counts(1, 0))).toBe("Cumplís el requisito que pudimos verificar.");
     expect(closenessPhrase(counts(0, 0))).toBeNull();
+  });
+});
+
+describe("offerMeta: modalidad y antigüedad en texto chico", () => {
+  const now = new Date("2026-11-03T15:00:00Z");
+  it("la modalidad con mayúscula y punto; sin dato, solo la antigüedad", () => {
+    expect(offerMeta("remoto", new Date("2026-10-30T10:00:00Z"), now)).toBe(
+      "Remoto. Publicada hace 4 días",
+    );
+    expect(offerMeta("hibrido", new Date("2026-11-03T10:00:00Z"), now)).toBe(
+      "Híbrido. Publicada hoy",
+    );
+    expect(offerMeta("desconocida", new Date("2026-11-03T10:00:00Z"), now)).toBe("Publicada hoy");
+    expect(offerMeta(null, new Date("2026-11-03T10:00:00Z"), now)).toBe("Publicada hoy");
   });
 });

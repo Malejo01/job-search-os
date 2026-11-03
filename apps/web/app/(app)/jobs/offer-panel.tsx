@@ -3,7 +3,7 @@ import {
   closenessPhrase,
   englishIsNotAGap,
   isEnglishGap,
-  offerAge,
+  offerMeta,
   offerPlace,
   withCurrentSkillLevels,
 } from "@job-search-os/pipeline";
@@ -12,7 +12,7 @@ import { SealStamp } from "@/components/motion/seal-stamp";
 import { RequisitosDelAviso } from "@/components/requisitos-del-aviso";
 import { buttonClasses, Icon, Seal, textLinkClasses } from "@/components/ui";
 import type { JobDetail } from "@/lib/job-detail";
-import { MODALITY_LABELS, riskLabel, safeHttpUrl } from "@/lib/labels";
+import { riskLabel, safeHttpUrl } from "@/lib/labels";
 import { FitPointsPanel } from "./[id]/fit-points-panel";
 
 /**
@@ -32,10 +32,6 @@ export function OfferPanel({ job, detailHref }: { job: JobDetail; detailHref: st
   const checklist = ev?.checklist ? withCurrentSkillLevels(ev.checklist, levels) : null;
   const closeness = checklist ? closenessPhrase(checklist) : null;
   const pending = job.evaluating && !ev;
-  const modality =
-    job.modality && job.modality !== "desconocida"
-      ? (MODALITY_LABELS[job.modality] ?? job.modality)
-      : null;
   return (
     <aside
       aria-labelledby="panel-oferta-titulo"
@@ -56,8 +52,7 @@ export function OfferPanel({ job, detailHref }: { job: JobDetail; detailHref: st
               })}
             </p>
             <p className="text-xs text-fg-subtle">
-              {modality ? `${modality}. ` : ""}
-              {offerAge(new Date(job.postedAt ?? job.firstSeenAt), new Date())}
+              {offerMeta(job.modality, new Date(job.postedAt ?? job.firstSeenAt), new Date())}
             </p>
           </div>
           <SealStamp jobId={job.id} evaluated={Boolean(ev)}>

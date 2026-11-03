@@ -1,8 +1,8 @@
-import { offerAge, offerPlace } from "@job-search-os/pipeline";
+import { offerMeta, offerPlace } from "@job-search-os/pipeline";
 import { OfferCard } from "@/components/offer-card";
 import { Badge } from "@/components/ui";
 import type { JobListRow } from "@/lib/jobs";
-import { ACTION_LABELS, MODALITY_LABELS } from "@/lib/labels";
+import { ACTION_LABELS } from "@/lib/labels";
 
 /**
  * Fila de «Lo nuevo» (C7-7; tarjeta K2 en C9-10): la primera es la oferta destacada de Hoy
@@ -20,10 +20,6 @@ export function NewJobRow({
   now: Date;
 }) {
   const action = job.accion ? (ACTION_LABELS[job.accion] ?? null) : null;
-  const modality =
-    job.modality && job.modality !== "desconocida"
-      ? (MODALITY_LABELS[job.modality] ?? job.modality)
-      : null;
   return (
     <OfferCard
       testId="hoy-nuevo-fila"
@@ -37,7 +33,7 @@ export function NewJobRow({
       chips={job.card.chips}
       more={job.card.more}
       count={job.card.count}
-      meta={`${modality ? `${modality}. ` : ""}${offerAge(new Date(job.postedAt ?? job.firstSeenAt), now)}`}
+      meta={offerMeta(job.modality, new Date(job.postedAt ?? job.firstSeenAt), now)}
       score={job.score}
       sealAs="text"
       featured={featured}
