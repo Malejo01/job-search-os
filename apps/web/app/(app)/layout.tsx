@@ -17,7 +17,7 @@ import { getUserPlan } from "@/lib/user-plan";
 import { getDisplayName } from "@/lib/display-name";
 import { AssistantButton } from "./assistant-button";
 import { Avatar } from "./avatar";
-import { DesktopNav, MobileNav } from "./main-nav";
+import { DesktopNav } from "./main-nav";
 import { PlanNotice } from "./plan-notice";
 import { Logo } from "@/components/brand/logo";
 
@@ -31,11 +31,12 @@ const NAV = [
   { href: "/plan", label: "Plan" },
 ] as const;
 
-// Links de texto del header tinta: Invitar, Ajustes y Salir. Foco en lima de marca (12,4:1 sobre índigo)
+// Acciones de cuenta de la barra índigo: Invitar, Asistente, Ajustes y Salir. Foco en lima de
+// marca (12,4:1 sobre índigo). No son secciones: en el celular quedan arriba, chicas.
 const HEADER_LINK =
-  "inline-flex min-h-11 items-center text-sm font-semibold text-on-ink-muted underline-offset-2 hover:text-on-ink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+  "inline-flex min-h-11 items-center text-sm font-bold text-on-ink-muted underline-offset-2 hover:text-on-ink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
 const LOGO_LINK =
-  "inline-flex min-h-11 items-center rounded-control focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+  "inline-flex min-h-11 items-center rounded-pill focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
 
 const SKIP_CLASS =
   "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-control focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-fg focus:ring-2 focus:ring-focus";
@@ -78,26 +79,23 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     : null;
   // Avatar del header (C7-5): si la consulta falla, el ícono de perfil
   const displayName = await getDisplayName(userId).catch(() => null);
-  // R-3: barra de pestañas de abajo en el celular, apagada salvo MOBILE_TABBAR_ENABLED=1
-  const tabBar = process.env.MOBILE_TABBAR_ENABLED === "1";
   const navItems = NAV.map((item) =>
     item.href === "/applications" ? { ...item, count: followUps } : item,
   );
   return (
-    // Con la barra de pestañas (R-3), el pie y el último contenido quedan por encima de ella, y
-    // `--tabbar-h` sube lo que va fijo abajo (chip de soporte, acciones en lote, guardar habilidades)
-    <div
-      className={`flex min-h-screen flex-col ${tabBar ? "pb-16 [--tabbar-h:calc(3.5rem+env(safe-area-inset-bottom,0px))] sm:pb-0 sm:[--tabbar-h:0px]" : ""}`}
-    >
+    // Pestañas abajo en el celular (C9-7): el pie y el último contenido quedan por encima de ellas,
+    // y `--tabbar-h` sube lo que va fijo abajo (chip de soporte, acciones en lote, guardar skills)
+    <div className="flex min-h-screen flex-col pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))] [--tabbar-h:calc(4.25rem+env(safe-area-inset-bottom,0px))] sm:pb-0 sm:[--tabbar-h:0px]">
       <a href="#contenido" className={SKIP_CLASS}>
         Saltar al contenido
       </a>
-      {/* Header índigo (C7-5, manual P1 a P4), igual en claro y en oscuro. z-20: las tarjetas de /jobs
-          llevan links z-10 y no deben dibujarse sobre el header; la guía (z-40) y los modales (z-50) quedan arriba */}
+      {/* Barra índigo fina (C9-7, decisión 6), igual en claro y en oscuro: logo, píldoras y cuenta.
+          Hoy suma debajo su cabecera curva. z-20: las tarjetas de /jobs llevan links z-10 y no deben
+          dibujarse sobre el header; la guía (z-40) y los modales (z-50) quedan arriba */}
       <header className="sticky top-0 z-20 bg-ink text-on-ink">
-        {/* Una sola nav: desde lg va al lado del logo (P1); entre sm y lg pasa a su propia fila
-            (`order-last basis-full`). Una sola copia: la guía y los e2e buscan su ancla una vez */}
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-1 px-4 py-1 sm:min-h-16">
+        {/* Desde lg las píldoras van al lado del logo; entre sm y lg pasan a su propia fila
+            (`order-last basis-full`). En el celular no van: ahí están las pestañas de abajo */}
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-0 px-4 py-1 sm:min-h-16">
           <Link href="/hoy" className={LOGO_LINK}>
             <Logo tone="dark" />
           </Link>
@@ -122,21 +120,19 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             <Avatar name={displayName} />
           </div>
         </div>
-        {/* A 360 px siete links no entran en una fila: por debajo de `sm` van en un menú desplegable */}
-        <MobileNav items={navItems} />
       </header>
       {/* pb-24 en el celular: el chip de soporte (abajo a la derecha) no tapa el último botón */}
       <main
         id="contenido"
         tabIndex={-1}
-        className="mx-auto w-full max-w-6xl flex-1 px-4 pt-4 pb-24 sm:pb-6"
+        className="mx-auto w-full max-w-6xl flex-1 px-4 pt-5 pb-24 sm:pt-8 sm:pb-10"
       >
         {planAccess ? <PlanNotice access={planAccess} /> : null}
         {children}
       </main>
       <ActionTracker />
       <FeedbackButton />
-      {tabBar ? <MobileTabBar /> : null}
+      <MobileTabBar followUps={followUps} />
       <footer className="border-t border-line px-4 py-3 text-center text-xs text-fg-subtle">
         <Link href="/legal/privacidad" className="underline-offset-2 hover:underline">
           Privacidad

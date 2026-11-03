@@ -52,4 +52,4 @@ Una noche de la nube, sin supervisión, con **un solo PR de integración** `rond
 | `MARKET_CANDIDATES_ENABLED` | `1` después de aplicar la 0058 | Candidatos de `/market` guardados en `market_candidates` (vencen a las 24 h o cuando cambia una oferta) | C8-15 |
 | `FEEDBACK_TRIAGE_ENABLED` | `1` después de aplicar la 0059 | Filtros, estado y CSV del feedback en `/settings/feedback` | C8-17 |
 | `LEGAL_FINAL` | vacía; `1` solo para el chequeo final | `pnpm legal:check` sale con error si queda algún marcador sin completar. No cambia la app | C8-12 |
-| `MOBILE_TABBAR_ENABLED` | `1` si a Ani le cierra en el celular | Barra de pestañas abajo en el celular (Hoy, Ofertas, Pendientes, Perfil); el «Menú» de arriba sigue. Sin migración | R-3 |
+| ~~`MOBILE_TABBAR_ENABLED`~~ | ya no se usa (C9-7) | Desde el rediseño C9 las pestañas de abajo van siempre en el celular (Hoy, Ofertas, Postulaciones, Mi CV, Perfil) y reemplazan al «Menú»; la variable se puede borrar de Vercel | R-3 |

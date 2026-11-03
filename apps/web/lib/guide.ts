@@ -105,7 +105,7 @@ export const GUIDE_STEPS: Record<GuideScreen, readonly TourStep[]> = {
     {
       anchor: "jobs:menu",
       title: "Sin descripción",
-      text: 'Algunos avisos llegan sin texto. Entrá a "Sin descripción" (en el celular, desde "Menú"), pegalo ahí y se evalúa.',
+      text: 'Algunos avisos llegan sin texto. Entrá a "Sin descripción" (en el celular, desde Perfil, en "Más"), pegalo ahí y se evalúa.',
     },
   ],
 };
