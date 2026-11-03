@@ -958,3 +958,20 @@ describe("inferRoleHints · términos de carrera T2", () => {
     }
   });
 });
+
+describe("inferRoleHints · golden de carreras (C8-9)", () => {
+  it.each([
+    ["Analista de cuentas a pagar", "finanzas_contabilidad"],
+    ["Auxiliar de cuentas a cobrar", "finanzas_contabilidad"],
+    ["Responsable de redes sociales para hotel", "marketing_digital"],
+    ["Analista de redes sociales", "marketing_digital"],
+  ])("%s -> %s", (title, role) => {
+    expect(hints(title)).toContain(role);
+  });
+
+  it("negativos: «redes» de datos o de telecomunicaciones no son redes sociales", () => {
+    expect(hints("Técnico de redes de fibra óptica")).not.toContain("marketing_digital");
+    expect(hints("Administrador de redes y servidores")).not.toContain("marketing_digital");
+    expect(hints("Cuentas a pagar")).not.toContain("marketing_digital");
+  });
+});
