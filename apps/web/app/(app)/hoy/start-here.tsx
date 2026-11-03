@@ -34,7 +34,8 @@ async function closeStartHereAction(): Promise<void> {
 }
 
 /**
- * «Empezá acá» (C8-5): checklist de una persona nueva en /hoy. Se marca sola con lo que ya está
+ * «Para hacer hoy» («Empezá acá» de C8-5; C9-10): checklist de una persona nueva en /hoy, con el
+ * check de marca en cada paso hecho (el rebote al tildarse llega en C9-14). Se marca sola con lo que ya está
  * guardado, desaparece al completarla y se puede cerrar. Apagada salvo `START_HERE_ENABLED=1`.
  * Server Component: cerrada o apagada, no consulta nada.
  */
@@ -57,8 +58,8 @@ export async function StartHere({ userId }: { userId: string }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-0.5">
-          <h2 id="empeza-aca-titulo" className="text-base font-bold text-fg">
-            Empezá acá
+          <h2 id="empeza-aca-titulo" className="text-heading font-bold text-fg">
+            Para hacer hoy
           </h2>
           <p className="text-sm text-fg-muted">
             {done} de {total} listos. Con esto leemos cada oferta contra lo que buscás.
@@ -67,7 +68,7 @@ export async function StartHere({ userId }: { userId: string }) {
         <form action={closeStartHereAction}>
           <button
             type="submit"
-            aria-label="Cerrar «Empezá acá»"
+            aria-label="Cerrar «Para hacer hoy»"
             className={buttonClasses({ variant: "ghost", size: "sm", className: "min-h-11" })}
           >
             Cerrar
@@ -84,15 +85,17 @@ export async function StartHere({ userId }: { userId: string }) {
           >
             <span
               aria-hidden="true"
-              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-pill ${
-                step.done ? "bg-success-soft text-success" : "bg-surface-subtle text-fg-muted"
+              className={`flex size-9 shrink-0 items-center justify-center rounded-pill ${
+                step.done
+                  ? "bg-success-muted text-success"
+                  : "border-2 border-dashed border-line-control text-fg-muted"
               }`}
             >
-              {step.done ? "✓" : <Icon name={STEP_ICON[step.id]} size={16} />}
+              <Icon name={step.done ? "check" : STEP_ICON[step.id]} size={18} />
             </span>
             <div className="flex min-w-0 flex-col gap-0.5">
               <span
-                className={`text-sm ${step.done ? "text-fg-subtle" : "text-fg"} ${
+                className={`text-[15px] ${step.done ? "text-fg-subtle line-through decoration-1" : "text-fg"} ${
                   step.id === next ? "font-bold" : "font-semibold"
                 }`}
               >
@@ -101,7 +104,14 @@ export async function StartHere({ userId }: { userId: string }) {
               </span>
               {step.help ? <span className="text-sm text-fg-muted">{step.help}</span> : null}
               {step.link ? (
-                <Link href={step.link.href} className={textLinkClasses({ block: true })}>
+                <Link
+                  href={step.link.href}
+                  className={
+                    step.id === next
+                      ? buttonClasses({ size: "sm", className: "mt-1 self-start" })
+                      : textLinkClasses({ block: true })
+                  }
+                >
                   {step.link.label}
                 </Link>
               ) : null}

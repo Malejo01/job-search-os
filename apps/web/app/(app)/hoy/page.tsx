@@ -20,7 +20,6 @@ import { requireActiveUserId } from "@/lib/session";
 import { MarkVisit } from "./mark-visit";
 import { NewJobRow } from "./new-job-row";
 import { StartHere } from "./start-here";
-import { StaggerCard } from "./stagger-cards";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Hoy" };
@@ -75,77 +74,97 @@ export default async function HoyPage() {
   const name = firstName(displayName);
   const highScore = data.jobs.filter((j) => j.score !== null && j.score >= 7).length;
   return (
-    <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-      <div className="flex min-w-0 flex-1 flex-col gap-4">
-        <div className="flex flex-col gap-1">
-          <h1 className="font-sans text-sm font-bold tracking-wide text-brand-text uppercase">
-            Hoy
-          </h1>
-          <p className="text-xs font-semibold text-fg-subtle">
-            {capitalize(formatWeekday(now, data.timeZone))}
-          </p>
-          <p className="font-display text-[28px] leading-tight font-extrabold tracking-tight text-fg">
-            {greeting(now, data.timeZone)}
-            {name ? `, ${name}` : ""}.
-          </p>
-          <p data-testid="hoy-titular" className="text-[15px] text-fg-muted">
-            {highScore > 0 ? (
-              <>
-                Hay{" "}
-                <span className="font-bold text-brand-text">
-                  {highScore === 1 ? "1 oferta" : `${highScore} ofertas`}
-                </span>{" "}
-                con puntaje alto para mirar.
-              </>
-            ) : data.jobs.length > 0 ? (
-              "Hay ofertas nuevas evaluadas, ninguna con puntaje alto."
-            ) : (
-              "No hay ofertas nuevas evaluadas para mirar."
-            )}
-          </p>
-          <p data-testid="hoy-visita" className="text-xs text-fg-subtle">
-            {data.since
-              ? `Tu última visita: ${formatDate(data.since, data.timeZone)}`
-              : "Primera vez por acá"}
-          </p>
-        </div>
-        {/* «Empezá acá» (C8-5): solo para quien recién empieza; apagada salvo START_HERE_ENABLED */}
-        <StartHere userId={userId} />
-        {data.digest ? (
-          <section
-            data-testid="hoy-resumen"
-            aria-labelledby="hoy-resumen-titulo"
-            className="rounded-card bg-surface-subtle px-4 py-3"
-          >
-            <h2 id="hoy-resumen-titulo" className="text-base font-bold text-fg">
-              En resumen
-            </h2>
-            <p className="text-sm text-fg-muted">{data.digest}</p>
-          </section>
-        ) : null}
-        <div className="grid gap-3 sm:grid-cols-2">
-          <NewCard data={data} index={0} />
-          {pending.length > 0 ? <PendingCard rows={pending} index={1} /> : null}
-          <FollowUpCard data={data} index={2} />
-          {data.fit ? (
-            <Card id="hoy-encaje-titulo" testId="hoy-encaje" title="Tu encaje" index={3}>
-              <p className="text-sm text-fg-muted">{data.fit.headline}</p>
-              <Link href="/encaje" className={LINK}>
-                Ver tu encaje
-              </Link>
-            </Card>
-          ) : null}
-          <AlertsCard data={data} index={4} />
-          <MarketCard data={data} index={5} />
+    <div className="flex flex-col gap-6">
+      {/* Cabecera índigo curva y alta (C9-10, decisión 6): solo en Hoy y en /acceso. En el celular
+          se pega a la barra de arriba y se ve como una sola cabecera; en la computadora es un bloque
+          redondeado. La onda va acá, en el saludo: es un momento tranquilo (decisión 14) */}
+      <div
+        data-testid="hoy-cabecera"
+        className="-mx-4 -mt-5 rounded-b-[2.5rem] bg-ink px-5 pt-3 pb-9 text-on-ink sm:mx-0 sm:mt-0 sm:rounded-container sm:px-8 sm:pt-7 sm:pb-8"
+      >
+        <div className="flex items-end justify-between gap-6">
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <div className="flex flex-wrap items-baseline gap-x-2">
+              <h1 className="font-sans text-sm font-bold tracking-wide text-on-ink-muted uppercase">
+                Hoy
+              </h1>
+              <p className="text-xs font-semibold text-on-ink-muted">
+                {capitalize(formatWeekday(now, data.timeZone))}
+              </p>
+            </div>
+            <p className="font-display text-[30px] leading-tight font-extrabold tracking-tight sm:text-[38px]">
+              ¡{greeting(now, data.timeZone)}
+              {name ? `, ${name}` : ""}!
+            </p>
+            <p data-testid="hoy-titular" className="text-base text-on-ink-muted sm:text-lg">
+              {highScore > 0 ? (
+                <>
+                  Hoy hay{" "}
+                  <span className="font-bold text-on-ink">
+                    {highScore === 1 ? "1 oferta" : `${highScore} ofertas`}
+                  </span>{" "}
+                  {highScore === 1
+                    ? "que te puede quedar pintada."
+                    : "que te pueden quedar pintadas."}
+                </>
+              ) : data.jobs.length > 0 ? (
+                "Hay ofertas nuevas evaluadas, ninguna con puntaje alto."
+              ) : (
+                "No hay ofertas nuevas evaluadas para mirar."
+              )}
+            </p>
+            <p data-testid="hoy-visita" className="text-xs text-on-ink-muted">
+              {data.since
+                ? `Tu última visita: ${formatDate(data.since, data.timeZone)}`
+                : "Primera vez por acá"}
+            </p>
+          </div>
         </div>
       </div>
-      <aside aria-label="Tu semana y próximos pasos" className="flex w-full flex-col gap-3 lg:w-80">
-        <WeekCard newCount={data.jobs.length} week={week} />
-        <NextSteps data={data} highScore={highScore} pending={pending.length} />
-        <p className="text-xs text-fg-subtle">
-          Vos decidís. La postulación la hacés vos en el sitio del aviso: nunca postulamos por vos.
-        </p>
-      </aside>
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+        <div className="flex min-w-0 flex-1 flex-col gap-5">
+          {/* «Empezá acá» (C8-5): solo para quien recién empieza; apagada salvo START_HERE_ENABLED */}
+          <StartHere userId={userId} />
+          {data.digest ? (
+            <section
+              data-testid="hoy-resumen"
+              aria-labelledby="hoy-resumen-titulo"
+              className="rounded-card bg-surface-subtle px-4 py-3"
+            >
+              <h2 id="hoy-resumen-titulo" className="text-base font-bold text-fg">
+                En resumen
+              </h2>
+              <p className="text-sm text-fg-muted">{data.digest}</p>
+            </section>
+          ) : null}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <NewCard data={data} now={now} />
+            {pending.length > 0 ? <PendingCard rows={pending} index={1} /> : null}
+            <FollowUpCard data={data} index={2} />
+            {data.fit ? (
+              <Card id="hoy-encaje-titulo" testId="hoy-encaje" title="Tu encaje" index={3}>
+                <p className="text-sm text-fg-muted">{data.fit.headline}</p>
+                <Link href="/encaje" className={LINK}>
+                  Ver tu encaje
+                </Link>
+              </Card>
+            ) : null}
+            <AlertsCard data={data} index={4} />
+            <MarketCard data={data} index={5} />
+          </div>
+        </div>
+        <aside
+          aria-label="Tu semana y próximos pasos"
+          className="flex w-full flex-col gap-3 lg:w-80"
+        >
+          <WeekCard newCount={data.jobs.length} week={week} />
+          <NextSteps data={data} highScore={highScore} pending={pending.length} />
+          <p className="text-xs text-fg-subtle">
+            Vos decidís. La postulación la hacés vos en el sitio del aviso: nunca postulamos por
+            vos.
+          </p>
+        </aside>
+      </div>
       {data.stamp ? <MarkVisit action={markVisitAction} /> : null}
     </div>
   );
@@ -182,7 +201,7 @@ function WeekCard({ newCount, week }: { newCount: number; week: ReviewProgress |
     <section
       aria-labelledby="hoy-semana-titulo"
       data-testid="hoy-semana"
-      className="flex flex-col gap-3 rounded-card bg-surface p-4"
+      className="flex flex-col gap-3 rounded-card bg-surface p-5"
     >
       <h2 id="hoy-semana-titulo" className="text-base font-bold text-fg">
         Tu semana
@@ -209,7 +228,7 @@ function WeekCard({ newCount, week }: { newCount: number; week: ReviewProgress |
             className="h-1.5 overflow-hidden rounded-pill bg-line"
           >
             <div
-              className={`h-full rounded-pill ${week.revisadas === week.total ? "bg-success-strong" : "bg-brand"}`}
+              className={`h-full rounded-pill ${week.revisadas === week.total ? "bg-success-strong" : "bg-brand-text"}`}
               style={{ width: `${Math.round((week.revisadas / week.total) * 100)}%` }}
             />
           </div>
@@ -262,9 +281,9 @@ function NextSteps({
     <section
       aria-labelledby="hoy-pasos-titulo"
       data-testid="hoy-pasos"
-      className="flex flex-col gap-2 rounded-card border border-ink-line bg-ink p-4 text-on-ink"
+      className="flex flex-col gap-2 rounded-card bg-surface p-5"
     >
-      <h2 id="hoy-pasos-titulo" className="text-base font-bold">
+      <h2 id="hoy-pasos-titulo" className="text-base font-bold text-fg">
         Próximos pasos
       </h2>
       <ul className="m-0 flex list-none flex-col p-0">
@@ -272,9 +291,9 @@ function NextSteps({
           <li key={step.href}>
             <Link
               href={step.href}
-              className="flex min-h-11 items-center gap-2 rounded-control text-sm font-semibold text-on-ink-muted hover:text-on-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
+              className="flex min-h-11 items-center gap-2 rounded-control text-sm font-semibold text-fg-muted hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
             >
-              <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-pill bg-brand" />
+              <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-pill bg-brand-text" />
               {step.text}
             </Link>
           </li>
@@ -305,50 +324,58 @@ function PendingCard({ rows, index = 0 }: { rows: PendingJdRow[]; index?: number
   );
 }
 
+/**
+ * Tarjeta de sección de Hoy: blanca sobre el lavanda, sin animación de entrada (C9-10: nada entra
+ * escalonado). `bare` deja la sección sin fondo, para la lista de ofertas que trae sus tarjetas.
+ * `index` queda por compatibilidad con quien lo pasa; ya no hace nada.
+ */
 function Card({
   id,
   testId,
   title,
   wide,
-  index = 0,
+  bare = false,
   children,
 }: {
   id: string;
   testId: string;
   title: string;
   wide?: boolean;
+  bare?: boolean;
   index?: number;
   children: ReactNode;
 }) {
   return (
-    // C7-7: tarjetas blancas sobre el fondo de la página, como en P2
-    <StaggerCard wide={wide} index={index}>
-      <UiCard
-        as="section"
-        padding="md"
-        data-testid={testId}
-        aria-labelledby={id}
-        className="flex min-w-0 flex-col gap-2"
+    <UiCard
+      as="section"
+      padding={bare ? "none" : "md"}
+      surface={bare ? "none" : "surface"}
+      data-testid={testId}
+      aria-labelledby={id}
+      className={`flex min-w-0 flex-col gap-3 ${bare ? "border-0" : ""} ${wide ? "sm:col-span-2" : ""}`}
+    >
+      <h2
+        id={id}
+        className={bare ? "text-heading font-bold text-fg" : "text-base font-bold text-fg"}
       >
-        <h2 id={id} className="text-base font-bold text-fg">
-          {title}
-        </h2>
-        {children}
-      </UiCard>
-    </StaggerCard>
+        {title}
+      </h2>
+      {children}
+    </UiCard>
   );
 }
 
-function NewCard({ data, index = 0 }: { data: HoyData; index?: number }) {
+function NewCard({ data, now }: { data: HoyData; now: Date; index?: number }) {
   const { jobs, since, empty, roles } = data;
   const title = since ? "Lo nuevo para vos" : "Tus mejores ofertas de la semana";
   return (
-    <Card id="hoy-nuevo-titulo" testId="hoy-nuevo" title={title} wide index={index}>
+    <Card id="hoy-nuevo-titulo" testId="hoy-nuevo" title={title} wide bare={jobs.length > 0}>
       {jobs.length > 0 ? (
         <>
-          <ul className="m-0 flex list-none flex-col gap-2 p-0">
-            {jobs.slice(0, SHOWN).map((job) => (
-              <NewJobRow key={job.id} job={job} />
+          {/* La primera es la oferta destacada de Hoy (6 px y sello grande); el resto, en lista */}
+          <ul className="m-0 flex list-none flex-col gap-3 p-0">
+            {jobs.slice(0, SHOWN).map((job, i) => (
+              <NewJobRow key={job.id} job={job} featured={i === 0} now={now} />
             ))}
           </ul>
           <Link href="/jobs" className={LINK}>

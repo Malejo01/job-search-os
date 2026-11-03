@@ -42,7 +42,7 @@ for (const key of ["mariana", "agustina"] as PersonaKey[]) {
       await fillSkills(page, run);
       await page.goto("/hoy");
       const card = page.getByTestId("empeza-aca");
-      await expect(card.getByRole("heading", { name: "Empezá acá" })).toBeVisible();
+      await expect(card.getByRole("heading", { name: "Para hacer hoy" })).toBeVisible();
       await expect(card).toContainText("1 de 4 listos");
       await expect(page.getByTestId("empeza-aca-perfil")).toHaveAttribute("data-done", "true");
       await expect(page.getByTestId("empeza-aca-areas")).toHaveAttribute("data-done", "false");
@@ -78,7 +78,7 @@ for (const key of ["mariana", "agustina"] as PersonaKey[]) {
     });
 
     test("«Cerrar» la oculta y no vuelve", async () => {
-      await page.getByRole("button", { name: "Cerrar «Empezá acá»" }).click();
+      await page.getByRole("button", { name: "Cerrar «Para hacer hoy»" }).click();
       await expect(page.getByTestId("empeza-aca")).toHaveCount(0);
       await page.goto("/hoy");
       await expect(page.getByTestId("empeza-aca")).toHaveCount(0);
