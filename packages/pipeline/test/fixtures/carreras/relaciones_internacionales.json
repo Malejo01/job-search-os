@@ -1,0 +1,184 @@
+{
+  "meta": {
+    "carrera": "relaciones_internacionales",
+    "version": "2026-11-03",
+    "descripcion": "Golden sintético de relaciones_internacionales (C8-8): 8 avisos inventados con empresas ficticias. Etiquetas propuestas (anchor_source assisted), a validar por un profesional después de la beta. No lo usa el job pago de evals.",
+    "persona": {
+      "pais": "AR",
+      "ciudad": "Salta",
+      "anos_experiencia": 2,
+      "modalidades": ["remoto", "hibrido", "presencial"],
+      "idiomas_aviso": ["es", "en"]
+    }
+  },
+  "casos": [
+    {
+      "id": "relaciones_internacionales-01",
+      "categoria": "nueve_mas",
+      "empresa": "Empresa A",
+      "titulo": "Analista de comercio exterior junior",
+      "ubicacion_raw": "Remoto (Argentina)",
+      "modalidad": "remoto",
+      "jd_text": "Empresa A busca incorporar: Analista de comercio exterior junior.\n\nExportadora de legumbres del NOA.\n\nQué vas a hacer:\n- Preparar documentación de exportación\n- Coordinar con despachantes y navieras\n- Seguir embarques\n- Calcular costos de exportación\n\nQué buscamos:\n- Lic. en Relaciones Internacionales o Comercio Exterior\n- 1 a 3 años de experiencia\n- Inglés intermedio\n\nRemoto con visitas a planta.\n\nModalidad: remoto. Ubicación: Remoto (Argentina). Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": [],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "postular",
+        "score_esperado": {
+          "min": 9,
+          "max": 10
+        },
+        "nota": "Encaje casi perfecto: junior, remoto para Argentina y tareas que la persona hace hoy."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "relaciones_internacionales-02",
+      "categoria": "remoto_ar",
+      "empresa": "Empresa B",
+      "titulo": "Oficial de programas — cooperación internacional",
+      "ubicacion_raw": "Remoto · Argentina",
+      "modalidad": "remoto",
+      "jd_text": "Empresa B busca incorporar: Oficial de programas — cooperación internacional.\n\nONG de desarrollo.\n\nQué vas a hacer:\n- Seguir proyectos financiados por cooperación\n- Redactar informes para donantes\n- Coordinar con socios locales\n\nQué buscamos:\n- Relaciones Internacionales o Ciencia Política\n- Inglés intermedio\n\nRemoto para Argentina.\n\nModalidad: remoto. Ubicación: Remoto · Argentina. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": [],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "postular",
+        "score_esperado": {
+          "min": 7,
+          "max": 9
+        },
+        "nota": "Buen encaje: remoto para Argentina, nivel acorde y tareas de la carrera."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "relaciones_internacionales-03",
+      "categoria": "presencial_salta",
+      "empresa": "Empresa C",
+      "titulo": "Asistente de comex",
+      "ubicacion_raw": "Salta Capital, Salta",
+      "modalidad": "presencial",
+      "jd_text": "Empresa C busca incorporar: Asistente de comex.\n\nImportadora de insumos agrícolas en Salta.\n\nQué vas a hacer:\n- Gestionar permisos de importación\n- Seguir cargas en tránsito\n- Archivar documentación aduanera\n\nQué buscamos:\n- Estudiante de Relaciones Internacionales o Comercio Exterior\n- Excel\n\nOficina en el Parque Industrial.\n\nModalidad: presencial. Ubicación: Salta Capital, Salta. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["modalidad_no_remota"],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "postular",
+        "score_esperado": {
+          "min": 7,
+          "max": 9
+        },
+        "nota": "Presencial en la ciudad de la persona: no es riesgo, pasa con la marca de modalidad."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "relaciones_internacionales-04",
+      "categoria": "presencial_caba",
+      "empresa": "Empresa D",
+      "titulo": "Analista de relaciones institucionales",
+      "ubicacion_raw": "CABA, Buenos Aires",
+      "modalidad": "presencial",
+      "jd_text": "Empresa D busca incorporar: Analista de relaciones institucionales.\n\nCámara empresaria.\n\nQué vas a hacer:\n- Preparar informes de coyuntura\n- Organizar reuniones con organismos\n- Seguir la agenda legislativa\n\nQué buscamos:\n- Relaciones Internacionales o Ciencia Política\n- Buena redacción\n\nOficina en San Nicolás.\n\nModalidad: presencial. Ubicación: CABA, Buenos Aires. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["modalidad_no_remota", "ciudad_distinta"],
+        "bloqueadores_esperados": ["ubicacion"],
+        "accion_esperada": "guardar",
+        "score_esperado": {
+          "min": 4,
+          "max": 7
+        },
+        "nota": "Presencial lejos de Salta: pasa el prefiltro con la marca de ciudad distinta; el evaluador lo baja."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "relaciones_internacionales-05",
+      "categoria": "remoto_otro_pais",
+      "empresa": "Empresa E",
+      "titulo": "Program Officer (Remote — EU residents only)",
+      "ubicacion_raw": "Remoto · solo residentes en España",
+      "modalidad": "remoto",
+      "jd_text": "Empresa E busca incorporar: Program Officer (Remote — EU residents only).\n\nFundación europea.\n\nQué vas a hacer:\n- Manage grant portfolio\n- Draft donor reports\n- Coordinate with partners\n\nQué buscamos:\n- Right to work in the EU\n- Fluent English and French\n\nEU contract.\n\nModalidad: remoto. Ubicación: Remoto · solo residentes en España. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["residencia_exigida"],
+        "bloqueadores_esperados": ["ubicacion"],
+        "accion_esperada": "descartar",
+        "score_esperado": {
+          "min": 1,
+          "max": 4
+        },
+        "nota": "Remoto pero solo para residentes de otro país: la ubicación nunca descarta en el prefiltro (CLAUDE.md), queda la marca y el evaluador lo descarta."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "relaciones_internacionales-06",
+      "categoria": "senior_inalcanzable",
+      "empresa": "Empresa F",
+      "titulo": "Director/a de Asuntos Públicos",
+      "ubicacion_raw": "Remoto (Argentina)",
+      "modalidad": "remoto",
+      "jd_text": "Empresa F busca incorporar: Director/a de Asuntos Públicos.\n\nPetrolera multinacional.\n\nQué vas a hacer:\n- Conducir la relación con gobiernos\n- Definir la estrategia de asuntos públicos\n- Liderar equipos en tres países\n\nQué buscamos:\n- Más de 15 años de experiencia\n- Inglés bilingüe\n\nReporta al gerente general.\n\nModalidad: remoto. Ubicación: Remoto (Argentina). Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_discard",
+        "flags_esperados": [],
+        "bloqueadores_esperados": ["experiencia"],
+        "accion_esperada": "descartar",
+        "score_esperado": {
+          "min": 1,
+          "max": 3
+        },
+        "nota": "Cargo de dirección para alguien con 2 años: el pool no lo asigna (isTooSenior)."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "relaciones_internacionales-07",
+      "categoria": "titulo_enganoso",
+      "empresa": "Empresa G",
+      "titulo": "Vendedor/a de paquetes de viajes internacionales",
+      "ubicacion_raw": "Córdoba, Córdoba",
+      "modalidad": "presencial",
+      "jd_text": "Empresa G busca incorporar: Vendedor/a de paquetes de viajes internacionales.\n\nAgencia de turismo.\n\nQué vas a hacer:\n- Vender paquetes en el local\n- Armar presupuestos\n- Cumplir objetivos de ventas\n\nQué buscamos:\n- Secundario completo\n- Experiencia en ventas\n\nSueldo más comisiones.\n\nModalidad: presencial. Ubicación: Córdoba, Córdoba. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_discard",
+        "flags_esperados": [],
+        "bloqueadores_esperados": ["disciplina"],
+        "accion_esperada": "descartar",
+        "score_esperado": {
+          "min": 1,
+          "max": 3
+        },
+        "nota": "El título nombra la carrera pero el puesto es de otra disciplina: no debería mostrarse."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "relaciones_internacionales-08",
+      "categoria": "encaje_parcial",
+      "empresa": "Empresa H",
+      "titulo": "Analista de importaciones con inglés avanzado",
+      "ubicacion_raw": "Híbrido · Salta",
+      "modalidad": "hibrido",
+      "jd_text": "Empresa H busca incorporar: Analista de importaciones con inglés avanzado.\n\nDistribuidora de tecnología.\n\nQué vas a hacer:\n- Negociar con proveedores de Asia\n- Gestionar órdenes de compra internacionales\n- Seguir costos de importación\n\nQué buscamos:\n- Inglés avanzado (excluyente)\n- Experiencia en importaciones\n\nHíbrido en Salta.\n\nModalidad: hibrido. Ubicación: Híbrido · Salta. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["modalidad_no_remota"],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "guardar",
+        "score_esperado": {
+          "min": 5,
+          "max": 7
+        },
+        "nota": "Encaje parcial: área vecina o requisito que falta; se guarda para mirar."
+      },
+      "anchor_source": "assisted"
+    }
+  ]
+}

@@ -1,0 +1,184 @@
+{
+  "meta": {
+    "carrera": "marketing_digital",
+    "version": "2026-11-03",
+    "descripcion": "Golden sintético de marketing_digital (C8-8): 8 avisos inventados con empresas ficticias. Etiquetas propuestas (anchor_source assisted), a validar por un profesional después de la beta. No lo usa el job pago de evals.",
+    "persona": {
+      "pais": "AR",
+      "ciudad": "Salta",
+      "anos_experiencia": 2,
+      "modalidades": ["remoto", "hibrido", "presencial"],
+      "idiomas_aviso": ["es", "en"]
+    }
+  },
+  "casos": [
+    {
+      "id": "marketing_digital-01",
+      "categoria": "nueve_mas",
+      "empresa": "Empresa A",
+      "titulo": "Community manager junior",
+      "ubicacion_raw": "Remoto (Argentina)",
+      "modalidad": "remoto",
+      "jd_text": "Empresa A busca incorporar: Community manager junior.\n\nMarca de indumentaria con tiendas en el NOA.\n\nQué vas a hacer:\n- Planificar contenidos para Instagram y TikTok\n- Responder mensajes y comentarios\n- Medir resultados semanales\n- Coordinar con la diseñadora\n\nQué buscamos:\n- Estudiante avanzado/a o graduado/a en Marketing o Comunicación\n- 1 a 3 años de experiencia\n- Manejo de Meta Business Suite\n\nRemoto con producción mensual en Salta.\n\nModalidad: remoto. Ubicación: Remoto (Argentina). Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": [],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "postular",
+        "score_esperado": {
+          "min": 9,
+          "max": 10
+        },
+        "nota": "Encaje casi perfecto: junior, remoto para Argentina y tareas que la persona hace hoy."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "marketing_digital-02",
+      "categoria": "remoto_ar",
+      "empresa": "Empresa B",
+      "titulo": "Analista de marketing digital",
+      "ubicacion_raw": "Remoto · Argentina",
+      "modalidad": "remoto",
+      "jd_text": "Empresa B busca incorporar: Analista de marketing digital.\n\nEcommerce de electrodomésticos.\n\nQué vas a hacer:\n- Gestionar campañas en Google Ads y Meta\n- Armar reportes de rendimiento\n- Probar anuncios nuevos\n\nQué buscamos:\n- Marketing o afines\n- Experiencia en pauta digital\n\nRemoto en Argentina.\n\nModalidad: remoto. Ubicación: Remoto · Argentina. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": [],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "postular",
+        "score_esperado": {
+          "min": 7,
+          "max": 9
+        },
+        "nota": "Buen encaje: remoto para Argentina, nivel acorde y tareas de la carrera."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "marketing_digital-03",
+      "categoria": "presencial_salta",
+      "empresa": "Empresa C",
+      "titulo": "Responsable de redes sociales para hotel",
+      "ubicacion_raw": "Salta Capital, Salta",
+      "modalidad": "presencial",
+      "jd_text": "Empresa C busca incorporar: Responsable de redes sociales para hotel.\n\nHotel boutique en Salta.\n\nQué vas a hacer:\n- Producir contenido del hotel\n- Gestionar reseñas\n- Coordinar con influencers\n\nQué buscamos:\n- Marketing, Comunicación o Turismo\n- Buena fotografía con celular\n\nPresencial en el hotel.\n\nModalidad: presencial. Ubicación: Salta Capital, Salta. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["modalidad_no_remota"],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "postular",
+        "score_esperado": {
+          "min": 7,
+          "max": 9
+        },
+        "nota": "Presencial en la ciudad de la persona: no es riesgo, pasa con la marca de modalidad."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "marketing_digital-04",
+      "categoria": "presencial_caba",
+      "empresa": "Empresa D",
+      "titulo": "Ejecutivo/a de relaciones públicas",
+      "ubicacion_raw": "CABA, Buenos Aires",
+      "modalidad": "presencial",
+      "jd_text": "Empresa D busca incorporar: Ejecutivo/a de relaciones públicas.\n\nAgencia de RR.PP.\n\nQué vas a hacer:\n- Organizar lanzamientos\n- Gestionar prensa para clientes\n- Armar informes de repercusión\n\nQué buscamos:\n- Relaciones Públicas o Comunicación\n- Experiencia en agencia\n\nOficina en Palermo.\n\nModalidad: presencial. Ubicación: CABA, Buenos Aires. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["modalidad_no_remota", "ciudad_distinta"],
+        "bloqueadores_esperados": ["ubicacion"],
+        "accion_esperada": "guardar",
+        "score_esperado": {
+          "min": 4,
+          "max": 7
+        },
+        "nota": "Presencial lejos de Salta: pasa el prefiltro con la marca de ciudad distinta; el evaluador lo baja."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "marketing_digital-05",
+      "categoria": "remoto_otro_pais",
+      "empresa": "Empresa E",
+      "titulo": "Social Media Manager (Remote — Colombia residents only)",
+      "ubicacion_raw": "Remoto · solo residentes en España",
+      "modalidad": "remoto",
+      "jd_text": "Empresa E busca incorporar: Social Media Manager (Remote — Colombia residents only).\n\nAgencia de Bogotá.\n\nQué vas a hacer:\n- Gestionar cuentas de clientes\n- Planificar pauta\n- Reportar resultados\n\nQué buscamos:\n- Residencia en Colombia (excluyente)\n- Experiencia en agencia\n\nContrato colombiano.\n\nModalidad: remoto. Ubicación: Remoto · solo residentes en España. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["residencia_exigida"],
+        "bloqueadores_esperados": ["ubicacion"],
+        "accion_esperada": "descartar",
+        "score_esperado": {
+          "min": 1,
+          "max": 4
+        },
+        "nota": "Remoto pero solo para residentes de otro país: la ubicación nunca descarta en el prefiltro (CLAUDE.md), queda la marca y el evaluador lo descarta."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "marketing_digital-06",
+      "categoria": "senior_inalcanzable",
+      "empresa": "Empresa F",
+      "titulo": "Chief Marketing Officer (CMO)",
+      "ubicacion_raw": "Remoto (Argentina)",
+      "modalidad": "remoto",
+      "jd_text": "Empresa F busca incorporar: Chief Marketing Officer (CMO).\n\nFintech regional.\n\nQué vas a hacer:\n- Liderar marca, performance y producto\n- Gestionar el presupuesto de marketing\n- Reportar al directorio\n\nQué buscamos:\n- Más de 12 años de experiencia\n- Liderazgo regional\n\nPaquete ejecutivo con acciones.\n\nModalidad: remoto. Ubicación: Remoto (Argentina). Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_discard",
+        "flags_esperados": [],
+        "bloqueadores_esperados": ["experiencia"],
+        "accion_esperada": "descartar",
+        "score_esperado": {
+          "min": 1,
+          "max": 3
+        },
+        "nota": "Cargo de dirección para alguien con 2 años: el pool no lo asigna (isTooSenior)."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "marketing_digital-07",
+      "categoria": "titulo_enganoso",
+      "empresa": "Empresa G",
+      "titulo": "Emprendedor/a independiente — marketing multinivel",
+      "ubicacion_raw": "Córdoba, Córdoba",
+      "modalidad": "presencial",
+      "jd_text": "Empresa G busca incorporar: Emprendedor/a independiente — marketing multinivel.\n\nRed de venta directa.\n\nQué vas a hacer:\n- Vender productos a tu red de contactos\n- Sumar nuevos vendedores\n- Alcanzar niveles de bonificación\n\nQué buscamos:\n- Ganas de emprender\n- Inversión inicial en kit\n\nIngresos según ventas.\n\nModalidad: presencial. Ubicación: Córdoba, Córdoba. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_discard",
+        "flags_esperados": [],
+        "bloqueadores_esperados": ["disciplina"],
+        "accion_esperada": "descartar",
+        "score_esperado": {
+          "min": 1,
+          "max": 3
+        },
+        "nota": "El título nombra la carrera pero el puesto es de otra disciplina: no debería mostrarse."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "marketing_digital-08",
+      "categoria": "encaje_parcial",
+      "empresa": "Empresa H",
+      "titulo": "Diseñador/a gráfico/a para redes",
+      "ubicacion_raw": "Híbrido · Salta",
+      "modalidad": "hibrido",
+      "jd_text": "Empresa H busca incorporar: Diseñador/a gráfico/a para redes.\n\nAgencia de publicidad.\n\nQué vas a hacer:\n- Diseñar piezas para redes\n- Adaptar campañas\n- Editar videos cortos\n\nQué buscamos:\n- Manejo de Illustrator y Photoshop\n- Portfolio\n\nHíbrido en Salta.\n\nModalidad: hibrido. Ubicación: Híbrido · Salta. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["modalidad_no_remota"],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "guardar",
+        "score_esperado": {
+          "min": 5,
+          "max": 7
+        },
+        "nota": "Encaje parcial: área vecina o requisito que falta; se guarda para mirar."
+      },
+      "anchor_source": "assisted"
+    }
+  ]
+}

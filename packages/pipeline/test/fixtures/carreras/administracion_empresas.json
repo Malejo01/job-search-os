@@ -1,0 +1,184 @@
+{
+  "meta": {
+    "carrera": "administracion_empresas",
+    "version": "2026-11-03",
+    "descripcion": "Golden sintético de administracion_empresas (C8-8): 8 avisos inventados con empresas ficticias. Etiquetas propuestas (anchor_source assisted), a validar por un profesional después de la beta. No lo usa el job pago de evals.",
+    "persona": {
+      "pais": "AR",
+      "ciudad": "Salta",
+      "anos_experiencia": 2,
+      "modalidades": ["remoto", "hibrido", "presencial"],
+      "idiomas_aviso": ["es", "en"]
+    }
+  },
+  "casos": [
+    {
+      "id": "administracion_empresas-01",
+      "categoria": "nueve_mas",
+      "empresa": "Empresa A",
+      "titulo": "Analista administrativo/a junior",
+      "ubicacion_raw": "Remoto (Argentina)",
+      "modalidad": "remoto",
+      "jd_text": "Empresa A busca incorporar: Analista administrativo/a junior.\n\nPyme industrial en crecimiento.\n\nQué vas a hacer:\n- Armar reportes de gestión mensuales\n- Controlar órdenes de compra\n- Mejorar procesos administrativos\n- Coordinar con proveedores\n\nQué buscamos:\n- Licenciado/a en Administración o estudiante avanzado/a\n- 1 a 3 años de experiencia\n- Excel avanzado\n\nPlan de carrera interno.\n\nModalidad: remoto. Ubicación: Remoto (Argentina). Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": [],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "postular",
+        "score_esperado": {
+          "min": 9,
+          "max": 10
+        },
+        "nota": "Encaje casi perfecto: junior, remoto para Argentina y tareas que la persona hace hoy."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "administracion_empresas-02",
+      "categoria": "remoto_ar",
+      "empresa": "Empresa B",
+      "titulo": "Analista de compras",
+      "ubicacion_raw": "Remoto · Argentina",
+      "modalidad": "remoto",
+      "jd_text": "Empresa B busca incorporar: Analista de compras.\n\nEmpresa de logística con base en Rosario.\n\nQué vas a hacer:\n- Pedir cotizaciones y comparar proveedores\n- Emitir órdenes de compra\n- Seguir entregas\n\nQué buscamos:\n- Administración, Comercio o afines\n- Excel\n- Buena negociación\n\n100 % remoto.\n\nModalidad: remoto. Ubicación: Remoto · Argentina. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": [],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "postular",
+        "score_esperado": {
+          "min": 7,
+          "max": 9
+        },
+        "nota": "Buen encaje: remoto para Argentina, nivel acorde y tareas de la carrera."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "administracion_empresas-03",
+      "categoria": "presencial_salta",
+      "empresa": "Empresa C",
+      "titulo": "Analista de control de gestión",
+      "ubicacion_raw": "Salta Capital, Salta",
+      "modalidad": "presencial",
+      "jd_text": "Empresa C busca incorporar: Analista de control de gestión.\n\nCooperativa agrícola de Salta.\n\nQué vas a hacer:\n- Armar el presupuesto anual\n- Seguir desvíos contra lo presupuestado\n- Preparar tableros para la gerencia\n\nQué buscamos:\n- Administración o Economía\n- Excel y tablas dinámicas\n\nPlanta en Salta Capital.\n\nModalidad: presencial. Ubicación: Salta Capital, Salta. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["modalidad_no_remota"],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "postular",
+        "score_esperado": {
+          "min": 7,
+          "max": 9
+        },
+        "nota": "Presencial en la ciudad de la persona: no es riesgo, pasa con la marca de modalidad."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "administracion_empresas-04",
+      "categoria": "presencial_caba",
+      "empresa": "Empresa D",
+      "titulo": "Analista de procesos",
+      "ubicacion_raw": "CABA, Buenos Aires",
+      "modalidad": "presencial",
+      "jd_text": "Empresa D busca incorporar: Analista de procesos.\n\nBanco digital.\n\nQué vas a hacer:\n- Relevar procesos de back office\n- Proponer mejoras\n- Documentar procedimientos\n\nQué buscamos:\n- Administración, Ingeniería industrial o afines\n- Experiencia en relevamiento\n\nOficina en Puerto Madero.\n\nModalidad: presencial. Ubicación: CABA, Buenos Aires. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["modalidad_no_remota", "ciudad_distinta"],
+        "bloqueadores_esperados": ["ubicacion"],
+        "accion_esperada": "guardar",
+        "score_esperado": {
+          "min": 4,
+          "max": 7
+        },
+        "nota": "Presencial lejos de Salta: pasa el prefiltro con la marca de ciudad distinta; el evaluador lo baja."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "administracion_empresas-05",
+      "categoria": "remoto_otro_pais",
+      "empresa": "Empresa E",
+      "titulo": "Procurement Analyst (Remote, Chile only)",
+      "ubicacion_raw": "Remoto · solo residentes en España",
+      "modalidad": "remoto",
+      "jd_text": "Empresa E busca incorporar: Procurement Analyst (Remote, Chile only).\n\nMinera con operaciones en Chile.\n\nQué vas a hacer:\n- Gestionar licitaciones de insumos\n- Evaluar proveedores\n- Negociar contratos marco\n\nQué buscamos:\n- Residencia en Chile (excluyente)\n- Experiencia en minería\n\nContrato chileno.\n\nModalidad: remoto. Ubicación: Remoto · solo residentes en España. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["residencia_exigida"],
+        "bloqueadores_esperados": ["ubicacion"],
+        "accion_esperada": "descartar",
+        "score_esperado": {
+          "min": 1,
+          "max": 4
+        },
+        "nota": "Remoto pero solo para residentes de otro país: la ubicación nunca descarta en el prefiltro (CLAUDE.md), queda la marca y el evaluador lo descarta."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "administracion_empresas-06",
+      "categoria": "senior_inalcanzable",
+      "empresa": "Empresa F",
+      "titulo": "Head of Operations",
+      "ubicacion_raw": "Remoto (Argentina)",
+      "modalidad": "remoto",
+      "jd_text": "Empresa F busca incorporar: Head of Operations.\n\nStartup de comercio electrónico.\n\nQué vas a hacer:\n- Liderar operaciones, compras y logística\n- Definir objetivos trimestrales\n- Gestionar un equipo de 30 personas\n\nQué buscamos:\n- 10 años o más en operaciones\n- Experiencia en escalamiento\n\nReporta a los fundadores.\n\nModalidad: remoto. Ubicación: Remoto (Argentina). Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_discard",
+        "flags_esperados": [],
+        "bloqueadores_esperados": ["experiencia"],
+        "accion_esperada": "descartar",
+        "score_esperado": {
+          "min": 1,
+          "max": 3
+        },
+        "nota": "Cargo de dirección para alguien con 2 años: el pool no lo asigna (isTooSenior)."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "administracion_empresas-07",
+      "categoria": "titulo_enganoso",
+      "empresa": "Empresa G",
+      "titulo": "Administrador/a de consorcios — atención en edificios",
+      "ubicacion_raw": "Córdoba, Córdoba",
+      "modalidad": "presencial",
+      "jd_text": "Empresa G busca incorporar: Administrador/a de consorcios — atención en edificios.\n\nAdministración de consorcios.\n\nQué vas a hacer:\n- Recorrer edificios y atender a encargados\n- Cobrar expensas\n- Coordinar reparaciones\n\nQué buscamos:\n- Movilidad propia\n- Disponibilidad horaria\n\nTrabajo en la calle.\n\nModalidad: presencial. Ubicación: Córdoba, Córdoba. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_discard",
+        "flags_esperados": [],
+        "bloqueadores_esperados": ["disciplina"],
+        "accion_esperada": "descartar",
+        "score_esperado": {
+          "min": 1,
+          "max": 3
+        },
+        "nota": "El título nombra la carrera pero el puesto es de otra disciplina: no debería mostrarse."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "administracion_empresas-08",
+      "categoria": "encaje_parcial",
+      "empresa": "Empresa H",
+      "titulo": "Analista comercial junior",
+      "ubicacion_raw": "Híbrido · Salta",
+      "modalidad": "hibrido",
+      "jd_text": "Empresa H busca incorporar: Analista comercial junior.\n\nDistribuidora de bebidas.\n\nQué vas a hacer:\n- Armar reportes de ventas\n- Seguir el stock de clientes\n- Apoyar al equipo comercial\n\nQué buscamos:\n- Estudiante de Administración o Comercialización\n- Excel\n\nHíbrido: tres días en oficina.\n\nModalidad: hibrido. Ubicación: Híbrido · Salta. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["modalidad_no_remota"],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "guardar",
+        "score_esperado": {
+          "min": 5,
+          "max": 7
+        },
+        "nota": "Encaje parcial: área vecina o requisito que falta; se guarda para mirar."
+      },
+      "anchor_source": "assisted"
+    }
+  ]
+}
