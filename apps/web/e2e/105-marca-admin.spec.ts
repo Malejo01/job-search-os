@@ -10,18 +10,20 @@ import { login } from "./helpers";
 test.describe("Flujo 105: vitrina de marca", () => {
   test.skip(!process.env.ADMIN_EMAILS, "sin ADMIN_EMAILS la cuenta del e2e no es admin");
 
-  test("email de bienvenida (C8-7): vista previa aislada en un iframe sin permisos", async ({
+  test("email de bienvenida (C8-7): texto en la página y HTML aparte, sin scripts", async ({
     page,
   }) => {
     await login(page);
     await page.goto("/settings/marca");
     const section = page.getByTestId("marca-email");
     await expect(section.getByRole("heading", { name: "Email de bienvenida" })).toBeVisible();
-    const frame = section.locator("iframe");
-    await expect(frame).toHaveAttribute("sandbox", "");
-    const html = await frame.getAttribute("srcdoc");
+    await expect(section).toContainText("Completá tu perfil");
+    await expect(section).toContainText("Contanos qué pasó");
+    const res = await page.request.get("/settings/marca/email-bienvenida");
+    expect(res.status()).toBe(200);
+    expect(res.headers()["content-type"]).toContain("text/html");
+    const html = await res.text();
     expect(html).toContain("Completá tu perfil");
-    expect(html).toContain("Contanos qué pasó");
     expect(html).not.toMatch(/<script/i);
   });
 
