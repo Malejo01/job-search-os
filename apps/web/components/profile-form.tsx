@@ -15,6 +15,7 @@ import { CountrySearch } from "@/app/onboarding/country-search";
 import { CefrHelp } from "@/components/cefr-help";
 import { countChars, TextareaWithCounter } from "@/components/char-counter";
 import type { ProfileFormValues } from "@/lib/onboarding";
+import { alertClasses, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
 
 const MODALITY_OPTIONS = [
   { value: "remoto", label: "Remoto" },
@@ -22,11 +23,13 @@ const MODALITY_OPTIONS = [
   { value: "presencial", label: "Presencial" },
 ] as const;
 
-const input =
-  "min-h-11 min-w-0 rounded-control border-2 border-line-strong px-3 py-2 text-base aria-[invalid=true]:border-danger-strong";
-// Resumen: alto fijo de varias líneas (no crece al escribir, el usuario puede estirarlo) y sin el min-h-11 de `input`
+// C9-11: campos de las primitivas (radio 18, borde de 2 px); el rojo del error lo pone `aria-invalid`
+const input = inputClasses({ className: "min-w-0 aria-[invalid=true]:border-danger-strong" });
+// Resumen: alto fijo de varias líneas (no crece al escribir, el usuario puede estirarlo). Mismo
+// aspecto que `inputClasses` pero a mano: su `min-h-32` chocaría con este `min-h-56`
 const summaryInput =
-  "min-h-56 min-w-0 resize-y rounded-control border-2 border-line-strong px-3 py-2 text-base leading-6 aria-[invalid=true]:border-danger-strong";
+  "min-h-56 w-full min-w-0 resize-y rounded-control border-2 border-line-control bg-surface px-4 py-3 text-base leading-6 text-fg placeholder:text-fg-subtle focus-visible:border-focus aria-[invalid=true]:border-danger-strong";
+const LEGEND = "mb-1 font-bold text-fg";
 const choice = "flex min-h-11 items-center gap-2";
 
 /** Debajo de este número de ofertas en español, «Solo en español» deja casi sin avisos (A-2). */
@@ -326,21 +329,16 @@ export function ProfileForm({
             );
           }
         }}
-        className="flex flex-col gap-3"
+        className={cardClasses({ padding: "md", className: "flex flex-col gap-5" })}
       >
         {error ? (
-          <p
-            ref={alertRef}
-            tabIndex={-1}
-            role="alert"
-            className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger"
-          >
+          <p ref={alertRef} tabIndex={-1} role="alert" className={alertClasses({ tone: "danger" })}>
             {error.field === "targetRoles" && rolesNotice ? rolesNotice : messageOf(error)}
           </p>
         ) : null}
         {/* `data-tour`: anclas de la guía del paso 1 (ronda 92); en Ajustes no hay guía y no cambian nada */}
         {children ? <div data-tour="perfil:puestos">{children}</div> : null}
-        <div data-tour="perfil:pais-ingles" className="grid items-start gap-3 sm:grid-cols-2">
+        <div data-tour="perfil:pais-ingles" className="grid items-start gap-4 sm:grid-cols-2">
           <div className="flex min-w-0 flex-col gap-1 text-sm">
             <CountrySearch
               name="country"
@@ -444,7 +442,7 @@ export function ProfileForm({
             error?.field === "acceptedModalities" ? "acceptedModalities-error" : "modalities-help"
           }
         >
-          <legend className="mb-1">¿Qué modalidades aceptás? *</legend>
+          <legend className={LEGEND}>¿Qué modalidades aceptás? *</legend>
           {MODALITY_OPTIONS.map((m) => (
             <label key={m.value} className={choice}>
               <input
@@ -476,7 +474,7 @@ export function ProfileForm({
           </p>
         </fieldset>
         <fieldset className="flex min-w-0 flex-col gap-2 text-sm">
-          <legend className="mb-1">¿En qué idioma aceptás ofertas? *</legend>
+          <legend className={LEGEND}>¿En qué idioma aceptás ofertas? *</legend>
           <label className={choice}>
             <input
               name="jobLanguage"
@@ -527,7 +525,7 @@ export function ProfileForm({
           </div>
         </fieldset>
         <fieldset data-tour="perfil:autorizacion" className="flex min-w-0 flex-col gap-2 text-sm">
-          <legend className="mb-1">Autorización de trabajo</legend>
+          <legend className={LEGEND}>Autorización de trabajo</legend>
           <p className="text-xs text-fg-subtle">
             Completalo solo si tenés ciudadanía, residencia o visa de trabajo en otro país. Si no,
             dejalo vacío.
@@ -562,9 +560,9 @@ export function ProfileForm({
         </fieldset>
         <div
           id="summary-help"
-          className="rounded-control bg-surface-subtle px-3 py-2 text-xs text-fg-subtle"
+          className="rounded-control bg-surface-subtle px-4 py-3 text-xs text-fg-subtle"
         >
-          <p className="font-medium">Qué poner</p>
+          <p className="font-bold">Qué poner</p>
           <p>
             Tu puesto y años de experiencia; qué dominás y ya hiciste en trabajos reales, qué usaste
             pero no es lo tuyo, y qué casi no conocés. Ser honesto con lo que no sabés evita que te
@@ -595,7 +593,7 @@ export function ProfileForm({
                 </p>
               ))}
           </details>
-          <p className="mt-1 font-medium">Qué no poner</p>
+          <p className="mt-1 font-bold">Qué no poner</p>
           <p>
             Documentos, direcciones, teléfonos, contraseñas ni datos de terceros. El texto lo lee la
             inteligencia artificial que evalúa las ofertas.
@@ -624,7 +622,7 @@ export function ProfileForm({
             type="submit"
             data-tour="perfil:guardar"
             disabled={pending}
-            className="min-h-11 w-full min-h-11 rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-60 sm:w-auto"
+            className={buttonClasses({ className: "w-full sm:w-auto" })}
           >
             {pending ? "Guardando…" : submitLabel}
           </button>

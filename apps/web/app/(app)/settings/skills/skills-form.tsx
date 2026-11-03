@@ -9,6 +9,7 @@ import {
 import Link from "next/link";
 import { GuardedForm, PendingSubmit, type FormActionError } from "@/app/components/guarded-form";
 import { AssistantProposalLoader } from "@/components/assistant-proposal-loader";
+import { buttonClasses, filterChipClasses } from "@/components/ui";
 import type { CustomSkill, TaxonomySkill } from "@/lib/skill-levels";
 import { EnglishField } from "./english-field";
 import { SkillRow } from "./skill-row";
@@ -118,21 +119,17 @@ export function SkillsForm({
         data-tour="skills:puestos"
         className="flex flex-col gap-2"
       >
-        <h2 className="text-base font-medium">Skills sugeridas de</h2>
+        <h2 className="text-base font-bold">Skills sugeridas de</h2>
         {pillGroups.map((group) => (
           <div key={group.label} className="flex flex-col gap-1">
-            <h3 className="text-xs font-medium text-fg-subtle">{group.label}</h3>
+            <h3 className="text-xs font-bold text-fg-subtle">{group.label}</h3>
             <ul className="flex flex-wrap gap-2">
               {group.roles.map((key) => (
                 <li key={key}>
                   <Link
                     href={`${basePath}?rol=${key}`}
                     aria-current={key === role ? "true" : undefined}
-                    className={`inline-flex min-h-11 items-center rounded-control border px-3 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus ${
-                      key === role
-                        ? "border-brand-contrast bg-brand text-brand-contrast"
-                        : "border-line-strong text-fg"
-                    }`}
+                    className={filterChipClasses({ selected: key === role })}
                   >
                     {roleMap[key].label}
                   </Link>
@@ -148,7 +145,7 @@ export function SkillsForm({
       </nav>
 
       {role === null && own.length === 0 ? (
-        <p className="rounded-control bg-surface-subtle px-3 py-2 text-sm text-fg-muted">
+        <p className="rounded-control bg-surface px-4 py-3 text-sm text-fg-muted">
           Elegí un rol para ver las skills más comunes de ese puesto.
         </p>
       ) : null}
@@ -164,8 +161,8 @@ export function SkillsForm({
         <EnglishField value={englishCefr} />
 
         {suggested.length > 0 ? (
-          <section className="flex flex-col gap-2" aria-labelledby="skills-del-rol">
-            <h2 id="skills-del-rol" className="text-base font-medium">
+          <section className="flex flex-col gap-3" aria-labelledby="skills-del-rol">
+            <h2 id="skills-del-rol" className="text-base font-bold">
               Skills de {role ? roleMap[role].label : ""}
             </h2>
             {suggested.map((slug, i) => {
@@ -192,8 +189,8 @@ export function SkillsForm({
         ) : null}
 
         {own.length > 0 ? (
-          <section className="flex flex-col gap-2" aria-labelledby="skills-tuyas">
-            <h2 id="skills-tuyas" className="text-base font-medium">
+          <section className="flex flex-col gap-3" aria-labelledby="skills-tuyas">
+            <h2 id="skills-tuyas" className="text-base font-bold">
               Otras skills que ya cargaste
             </h2>
             {own.map((t) => (
@@ -210,8 +207,8 @@ export function SkillsForm({
         ) : null}
 
         {customSkills.length > 0 ? (
-          <section className="flex flex-col gap-2" aria-labelledby="skills-agregadas">
-            <h2 id="skills-agregadas" className="text-base font-medium">
+          <section className="flex flex-col gap-3" aria-labelledby="skills-agregadas">
+            <h2 id="skills-agregadas" className="text-base font-bold">
               Tus skills agregadas
             </h2>
             {customSkills.map((c) => (
@@ -240,11 +237,8 @@ export function SkillsForm({
         {/* «Guardar» va primero en el DOM (Enter guarda, nunca saltea); row-reverse lo deja a la derecha.
             `--tour-panel-h` lo fija la guía mientras está abierta: la barra queda encima del panel; con la
             barra de pestañas del celular (R-3), encima de ella por `--tabbar-h` */}
-        <div className="sticky bottom-[max(var(--tour-panel-h,0px),var(--tabbar-h,0px))] flex flex-row-reverse flex-wrap items-center justify-start gap-3 border-t border-line bg-surface p-3 pr-16 sm:pr-3">
-          <PendingSubmit
-            pendingLabel="Guardando…"
-            className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-          >
+        <div className="sticky bottom-[max(var(--tour-panel-h,0px),var(--tabbar-h,0px))] flex flex-row-reverse flex-wrap items-center justify-start gap-3 rounded-card border-2 border-line-strong bg-surface p-3 pr-16 sm:pr-3">
+          <PendingSubmit pendingLabel="Guardando…" className={buttonClasses()}>
             {submitLabel}
           </PendingSubmit>
           {skip ? (
@@ -253,7 +247,7 @@ export function SkillsForm({
               name="saltear"
               value="1"
               data-tour="skills:saltear"
-              className="rounded-control border border-line-strong px-4 py-2 text-base focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
+              className={buttonClasses({ variant: "secondary" })}
             >
               {skip.label}
             </button>

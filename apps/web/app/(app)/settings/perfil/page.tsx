@@ -9,6 +9,7 @@ import Link from "next/link";
 import { ProfileFormWithProposal } from "@/components/profile-form-with-proposal";
 import { getProfileForEdit, getTargetRoles } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
+import { Alert, textLinkClasses } from "@/components/ui";
 import { MoreNav } from "../../more-nav";
 import { savePerfilAction } from "./actions";
 
@@ -29,30 +30,27 @@ export default async function PerfilPage() {
   const rolesNotice = (
     <>
       Primero elegí tus puestos en{" "}
-      <Link href="/settings" className="underline">
+      <Link href="/settings" className="font-semibold underline underline-offset-2">
         Ajustes
       </Link>
       , en «Tus puestos», y volvé a guardar.
     </>
   );
   return (
-    <div className="mx-auto flex max-w-xl flex-col gap-4">
-      <Link
-        href="/settings"
-        className="inline-flex min-h-11 items-center text-sm text-fg underline"
-      >
+    <div className="mx-auto flex max-w-xl flex-col gap-5">
+      <Link href="/settings" className={textLinkClasses({ block: true, className: "text-sm" })}>
         Ajustes
       </Link>
-      <h1 className="text-2xl font-semibold">Tu perfil</h1>
+      <h1 className="text-title font-bold">Tu perfil</h1>
       <p className="text-sm text-fg-muted">
         Modalidad, país, idioma de las ofertas, inglés, años y resumen. Con estos datos se filtran y
         evalúan los avisos. Los puestos se cambian en Ajustes, en «Tus puestos».
       </p>
       <MoreNav />
       {initial && targetRoles.length === 0 ? (
-        <p role="note" className="rounded-control bg-warning-soft px-3 py-2 text-sm text-warning">
-          {rolesNotice}
-        </p>
+        <Alert tone="warning" role="note">
+          <p>{rolesNotice}</p>
+        </Alert>
       ) : null}
       {initial ? (
         <ProfileFormWithProposal
@@ -69,9 +67,9 @@ export default async function PerfilPage() {
           savedMessage="Guardado"
         />
       ) : (
-        <p role="alert" className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">
+        <Alert tone="danger" role="alert">
           No encontramos tu perfil. Escribile a quien te invitó.
-        </p>
+        </Alert>
       )}
     </div>
   );

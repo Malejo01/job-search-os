@@ -1,11 +1,9 @@
 "use client";
 
 import type { Proposal } from "@job-search-os/pipeline";
+import { buttonClasses } from "@/components/ui";
 
 export type ProposalStatus = "pendiente" | "cargada" | "descartada";
-
-const FOCUS_RING =
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 /**
  * Tarjeta de diferencia (AG-3): campo, antes, después y de dónde sale cada dato. Todo como texto
@@ -30,9 +28,9 @@ export function AssistantProposalCard({
     <section
       aria-label={proposal.title}
       data-testid="assistant-proposal"
-      className="flex flex-col gap-2 rounded-card border border-info-line bg-surface p-3 text-sm"
+      className="flex flex-col gap-2 rounded-card border-2 border-info-line bg-surface p-4 text-sm"
     >
-      <h3 className="font-semibold break-words">{proposal.title}</h3>
+      <h3 className="font-bold break-words">{proposal.title}</h3>
       <dl className="flex flex-col gap-2">
         {proposal.diffs.map((d) => (
           <div
@@ -62,17 +60,13 @@ export function AssistantProposalCard({
       ) : null}
       {status === "pendiente" ? (
         <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={onLoad}
-            className={`min-h-11 rounded-control bg-brand hover:bg-brand-hover px-3 py-2 font-medium text-brand-contrast ${FOCUS_RING}`}
-          >
+          <button type="button" onClick={onLoad} className={buttonClasses({ size: "sm" })}>
             Cargar en el formulario
           </button>
           <button
             type="button"
             onClick={onDiscard}
-            className={`min-h-11 rounded-control border border-line-strong px-3 py-2 font-medium text-fg ${FOCUS_RING}`}
+            className={buttonClasses({ variant: "secondary", size: "sm" })}
           >
             Descartar
           </button>

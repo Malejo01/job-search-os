@@ -8,6 +8,7 @@ import {
 } from "@job-search-os/pipeline";
 import { useEffect, useRef, useState } from "react";
 import { SkillInfo } from "@/components/skill-info";
+import { buttonClasses, inputClasses } from "@/components/ui";
 import { SkillRow } from "./skill-row";
 
 type Option = { slug: string; name: string; aliases: string[]; description: string | null };
@@ -91,10 +92,10 @@ export function SkillSearch({
 
   return (
     <section className="flex flex-col gap-2" aria-labelledby="agregar-skill">
-      <h2 id="agregar-skill" className="text-base font-medium">
+      <h2 id="agregar-skill" className="text-base font-bold">
         Agregar otra skill
       </h2>
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex flex-col gap-1.5 text-sm">
         Buscar por nombre
         <input
           ref={searchInput}
@@ -113,7 +114,7 @@ export function SkillSearch({
           autoComplete="off"
           aria-invalid={addError ? true : undefined}
           aria-describedby={addError ? "agregar-error" : undefined}
-          className="min-h-11 rounded-control border-2 border-line-strong px-3 py-2 text-base"
+          className={inputClasses()}
         />
       </label>
       <p role="status" className="sr-only">
@@ -140,7 +141,7 @@ export function SkillSearch({
                         });
                         setQuery("");
                       }}
-                      className="min-h-11 rounded-control border border-line-strong px-3 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
+                      className={buttonClasses({ variant: "secondary", size: "sm" })}
                     >
                       {o.name}
                     </button>
@@ -158,7 +159,7 @@ export function SkillSearch({
                 type="button"
                 onClick={addCustom}
                 aria-label={`Agregar ${query.trim()} como skill propia`}
-                className="min-h-11 rounded-control border border-line-strong px-3 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
+                className={buttonClasses({ variant: "secondary", size: "sm" })}
               >
                 Agregar
               </button>

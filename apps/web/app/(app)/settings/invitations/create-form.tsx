@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { buttonClasses, inputClasses } from "@/components/ui";
 import { createInvitationAction, type CreateInvitationState } from "./actions";
 
 const INITIAL: CreateInvitationState = { status: "idle" };
@@ -15,17 +16,9 @@ export function CreateInvitationForm() {
       <form action={action} className="flex flex-col gap-2 sm:flex-row sm:items-end">
         <label className="flex flex-1 flex-col gap-1 text-sm">
           Email (opcional): si lo ponés, solo ese email puede usarla
-          <input
-            name="email"
-            type="email"
-            className="rounded-control border-2 border-line-strong px-3 py-2 text-base"
-          />
+          <input name="email" type="email" className={inputClasses()} />
         </label>
-        <button
-          type="submit"
-          disabled={pending}
-          className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover disabled:opacity-60"
-        >
+        <button type="submit" disabled={pending} className={buttonClasses()}>
           Crear invitación
         </button>
       </form>
@@ -46,7 +39,7 @@ export function CreateInvitationForm() {
             onClick={() => {
               void navigator.clipboard.writeText(state.link).then(() => setCopied(true));
             }}
-            className="self-start rounded-control border border-line-strong bg-surface px-3 py-1"
+            className={buttonClasses({ variant: "secondary", size: "sm", className: "self-start" })}
           >
             {copied ? "Copiado" : "Copiar"}
           </button>

@@ -1,5 +1,13 @@
 import Link from "next/link";
-import { EmptyState, textLinkClasses } from "@/components/ui";
+import { Illustration } from "@/components/brand/illustration";
+import {
+  Alert,
+  buttonClasses,
+  cardClasses,
+  EmptyState,
+  inputClasses,
+  textLinkClasses,
+} from "@/components/ui";
 import {
   APPLICATION_OUTCOMES,
   type FeedbackReport,
@@ -11,8 +19,9 @@ import { requireUserId } from "@/lib/session";
 import { setOutcomeAction } from "./actions";
 import { closeApplicationAction, snoozeFollowUpAction } from "./followup-actions";
 
-const FOLLOW_BUTTON =
-  "inline-flex min-h-11 items-center justify-center rounded-control border border-line-strong bg-surface px-3 text-sm font-medium text-fg hover:bg-surface-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus";
+const FOLLOW_BUTTON = buttonClasses({ variant: "secondary", size: "sm" });
+// Panel blanco de la pantalla (C9-11): radio 24, sin borde lateral
+const PANEL = cardClasses({ padding: "none", className: "p-4 sm:p-5" });
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Postulaciones" };
@@ -57,46 +66,46 @@ export default async function ApplicationsPage({
   const calibration = <Calibration report={report} titleOf={titleOf} />;
 
   return (
-    <section className="flex flex-col gap-5">
+    <section className="flex flex-col gap-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-title font-semibold">Postulaciones</h1>
+        <h1 className="text-title font-bold">Postulaciones</h1>
         <p className="text-xs text-fg-subtle">
           {report.applied} postulaciones sobre {report.evaluated} evaluadas
         </p>
       </div>
       {error ? (
-        <p role="alert" className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">
+        <Alert tone="danger" role="alert">
           Resultado inválido.
-        </p>
+        </Alert>
       ) : null}
 
       {followUps.length ? (
         <section
           aria-labelledby="seguimiento"
-          className="flex flex-col gap-2 rounded-card border border-warning-line bg-warning-soft p-3"
+          className={cardClasses({
+            tone: "warning",
+            padding: "md",
+            className: "flex flex-col gap-3",
+          })}
         >
-          <h2 id="seguimiento" className="text-sm font-semibold text-fg">
+          <h2 id="seguimiento" className="text-base font-bold text-fg">
             Para hacer seguimiento ({followUps.length})
           </h2>
-          <p className="text-xs text-fg-muted">
+          <p className="text-sm text-fg-muted">
             Hace rato que no hay novedades de estas postulaciones. Fijate si te escribieron o
             escribiles vos. «Ya hice seguimiento» te la vuelve a mostrar en una semana.
           </p>
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col gap-3">
             {followUps.map((f) => (
-              <li
-                key={f.jobId}
-                data-testid="seguimiento-item"
-                className="rounded-control border border-warning-line bg-surface p-3"
-              >
-                <Link href={`/jobs/${f.jobId}`} className="text-sm font-medium text-fg">
+              <li key={f.jobId} data-testid="seguimiento-item" className={PANEL}>
+                <Link href={`/jobs/${f.jobId}`} className="font-bold text-fg hover:underline">
                   {f.title}
                 </Link>
                 <p className="text-xs text-fg-subtle">
                   {f.company} · {STATUS_LABELS[f.status] ?? f.status} · hace {f.daysSince}{" "}
                   {f.daysSince === 1 ? "día" : "días"}
                 </p>
-                <div className="mt-2 flex flex-wrap gap-2">
+                <div className="mt-3 flex flex-wrap items-center gap-2">
                   <form action={snoozeFollowUpAction.bind(null, f.jobId)}>
                     <button type="submit" className={FOLLOW_BUTTON}>
                       Ya hice seguimiento
@@ -131,6 +140,7 @@ export default async function ApplicationsPage({
 
       {apps.length === 0 ? (
         <EmptyState
+          illustration={<Illustration escena="postulaciones" className="w-40 sm:w-52" />}
           action={
             <Link href="/jobs" className={textLinkClasses({ block: true })}>
               Ver mis ofertas
@@ -140,12 +150,12 @@ export default async function ApplicationsPage({
           Sin postulaciones. Se crean al marcar &quot;Aplicar&quot; en el detalle de una oferta.
         </EmptyState>
       ) : (
-        <ol className="flex flex-col gap-2">
+        <ol className="flex flex-col gap-3">
           {apps.map((a) => (
-            <li key={a.id} className="rounded-card bg-surface p-3">
+            <li key={a.id} className={PANEL}>
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <Link href={`/jobs/${a.jobId}`} className="text-sm font-medium text-fg">
+                  <Link href={`/jobs/${a.jobId}`} className="font-bold text-fg hover:underline">
                     {a.title}
                   </Link>
                   <p className="text-xs text-fg-subtle">
@@ -160,7 +170,7 @@ export default async function ApplicationsPage({
                   {a.outcomeNote ? <p className="text-xs text-fg-subtle">{a.outcomeNote}</p> : null}
                 </div>
                 <span
-                  className={`rounded-pill px-2 py-0.5 text-xs ${OUTCOME_CLASSES[a.outcome] ?? ""}`}
+                  className={`rounded-pill px-2.5 py-0.5 text-xs font-bold ${OUTCOME_CLASSES[a.outcome] ?? ""}`}
                 >
                   {OUTCOME_LABELS[a.outcome] ?? a.outcome}
                   {a.outcomeAt ? ` · ${a.outcomeAt}` : ""}
@@ -170,13 +180,13 @@ export default async function ApplicationsPage({
                 // Con lo guardado en la key, el form se remonta y sus defaultValue siguen a la base
                 key={`${a.outcome}|${a.outcomeNote ?? ""}`}
                 action={setOutcomeAction}
-                className="mt-2 flex flex-wrap items-center gap-2"
+                className="mt-3 flex flex-wrap items-center gap-2"
               >
                 <input type="hidden" name="applicationId" value={a.id} />
                 <select
                   name="outcome"
                   defaultValue={a.outcome}
-                  className="rounded-control border-2 border-line-strong px-2 py-1 text-xs"
+                  className={inputClasses({ className: "sm:w-auto" })}
                   aria-label="Resultado"
                 >
                   {APPLICATION_OUTCOMES.map((o) => (
@@ -189,11 +199,12 @@ export default async function ApplicationsPage({
                   name="note"
                   defaultValue={a.outcomeNote ?? ""}
                   placeholder="Nota (opcional)"
-                  className="min-w-0 flex-1 rounded-control border-2 border-line-strong px-2 py-1 text-xs"
+                  className={inputClasses({ className: "min-w-40 flex-1" })}
                 />
+                {/* C9-11: secundario, no lima; es la misma acción repetida en cada fila de la lista */}
                 <button
                   type="submit"
-                  className="rounded-control bg-brand px-2 py-1 text-xs text-brand-contrast"
+                  className={buttonClasses({ variant: "secondary", size: "sm" })}
                 >
                   Guardar resultado
                 </button>
@@ -204,7 +215,7 @@ export default async function ApplicationsPage({
       )}
 
       {fewApps ? (
-        <details data-testid="calibracion-plegada" className="rounded-card bg-surface p-3">
+        <details data-testid="calibracion-plegada" className={PANEL}>
           <summary className="cursor-pointer text-sm font-semibold text-fg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus">
             Cómo viene la calibración
           </summary>
@@ -244,8 +255,8 @@ function Calibration({
     ) : null;
 
   return (
-    <section className="flex flex-col gap-2 rounded-card bg-surface p-3">
-      <h2 className="text-sm font-semibold text-fg-muted">Calibración con ofertas reales</h2>
+    <section className={`${PANEL} flex flex-col gap-3`}>
+      <h2 className="text-base font-bold text-fg">Calibración con ofertas reales</h2>
       <p className="text-sm">
         Respuesta positiva (entrevista u oferta) con score ≥ 7:{" "}
         <strong>{pct(report.highScore.rate)}</strong>{" "}

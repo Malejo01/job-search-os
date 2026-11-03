@@ -30,10 +30,19 @@ export function OnboardingSteps({
 
 function StepsList({ current, now }: { current: 1 | 2 | 3; now: (typeof STEPS)[number] }) {
   return (
-    <div className="flex flex-col gap-1">
-      <p className="text-sm font-medium text-fg-subtle">
+    <div className="flex flex-col gap-1.5">
+      <p className="text-sm font-bold text-fg-muted">
         Paso {now.n} de 3 · {now.name}
       </p>
+      {/* C9-11: barra de avance en tres tramos (decorativa: el texto de arriba ya dice el paso) */}
+      <div aria-hidden="true" className="flex w-40 gap-1">
+        {STEPS.map((step) => (
+          <span
+            key={step.n}
+            className={`h-1.5 flex-1 rounded-pill ${step.n <= current ? "bg-brand-text" : "bg-line-strong"}`}
+          />
+        ))}
+      </div>
       <ol aria-label="Pasos" className="hidden list-none gap-4 p-0 text-sm sm:flex">
         {STEPS.map((step) => {
           const view = step.n < current ? "done" : step.n === current ? "current" : "next";
@@ -43,7 +52,7 @@ function StepsList({ current, now }: { current: 1 | 2 | 3; now: (typeof STEPS)[n
               aria-current={view === "current" ? "step" : undefined}
               className={
                 view === "current"
-                  ? "font-semibold text-fg"
+                  ? "font-bold text-fg"
                   : view === "done"
                     ? "text-fg-subtle"
                     : "text-fg-subtle"

@@ -25,6 +25,7 @@ import {
   type FounderCountsResult,
 } from "@/lib/beta-metrics";
 import { requireUserId } from "@/lib/session";
+import { buttonClasses } from "@/components/ui";
 import { AccesoFunnelPanel } from "./acceso-funnel-panel";
 
 export const metadata = { title: "Métricas de la beta" };
@@ -51,7 +52,7 @@ export default async function MetricasPage() {
   if (!result.ok) {
     return (
       <div className="mx-auto flex max-w-xl flex-col gap-4">
-        <h1 className="text-2xl font-semibold">Métricas de la beta</h1>
+        <h1 className="text-title font-bold">Métricas de la beta</h1>
         <p role="status" className="rounded-card bg-surface p-4 text-sm">
           {result.reason === "no_habilitado"
             ? "Tu cuenta es admin en la app pero todavía no está habilitada en la base (app_admins)."
@@ -73,7 +74,7 @@ export default async function MetricasPage() {
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">Métricas de la beta</h1>
+        <h1 className="text-title font-bold">Métricas de la beta</h1>
         <p className="text-sm text-fg-subtle">
           Al {DATE.format(new Date(metrics.generated_at))}. Solo agregados: lo que sale de menos de{" "}
           {metrics.k} personas aparece como «&lt;{metrics.k}».
@@ -89,7 +90,7 @@ export default async function MetricasPage() {
       <a
         href={csvHref}
         download="metricas-beta.csv"
-        className="inline-flex min-h-11 items-center self-start rounded-control border border-fg px-4 text-sm font-medium text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        className={buttonClasses({ variant: "secondary", size: "sm", className: "self-start" })}
       >
         Descargar CSV
       </a>

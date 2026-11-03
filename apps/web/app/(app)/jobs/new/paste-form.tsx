@@ -2,10 +2,12 @@
 
 import { extractPastedJob, MAX_PASTE_CHARS, type PastedJobFields } from "@job-search-os/pipeline";
 import { useEffect, useRef, useState } from "react";
+import { alertClasses, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
 import { createManualJobAction } from "./actions";
 import { JobFields } from "./job-fields";
 
-const input = "rounded-control border-2 border-line-strong px-3 py-2 text-base";
+// C9-11: el formulario va en una tarjeta blanca, con los campos y botones de las primitivas
+const PANEL = cardClasses({ padding: "md", className: "flex flex-col gap-4" });
 
 function filledCount(f: PastedJobFields): number {
   return [f.title, f.company, f.location, f.modality !== "desconocida" ? "x" : null].filter(
@@ -44,8 +46,8 @@ export function PasteForm({ error }: { error?: string }) {
 
   if (!fields) {
     return (
-      <div className="flex flex-col gap-3">
-        <label className="flex flex-col gap-1 text-sm">
+      <div className={PANEL}>
+        <label className="flex flex-col gap-1.5 text-sm">
           Pegá el aviso completo (título, empresa, descripción…)
           <textarea
             ref={textRef}
@@ -54,7 +56,7 @@ export function PasteForm({ error }: { error?: string }) {
             onChange={(e) => setText(e.target.value)}
             rows={12}
             maxLength={MAX_PASTE_CHARS}
-            className={input}
+            className={inputClasses({ multiline: true })}
           />
         </label>
         <p id="pegar-ayuda" className="text-xs text-fg-subtle">
@@ -66,7 +68,7 @@ export function PasteForm({ error }: { error?: string }) {
             disabled={text.trim() === ""}
             aria-describedby="pegar-ayuda"
             onClick={() => setFields(extractPastedJob(text))}
-            className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover disabled:cursor-not-allowed disabled:bg-fg-subtle"
+            className={buttonClasses()}
           >
             Leer el aviso
           </button>
@@ -79,14 +81,12 @@ export function PasteForm({ error }: { error?: string }) {
     (v): v is string => v !== null,
   );
   return (
-    <form ref={formRef} action={createManualJobAction} className="flex flex-col gap-3">
+    <form ref={formRef} action={createManualJobAction} className={PANEL}>
       <p
         ref={statusRef}
         role="status"
         tabIndex={-1}
-        className={`rounded-control px-3 py-2 text-sm ${
-          missing.length > 0 ? "bg-danger-soft text-danger" : "bg-warning-soft text-warning"
-        }`}
+        className={alertClasses({ tone: missing.length > 0 ? "danger" : "warning" })}
       >
         Leímos el aviso. Completamos {filledCount(fields)} de 4 campos (título, empresa, ubicación y
         modalidad). Revisá los datos antes de guardar.
@@ -106,7 +106,7 @@ export function PasteForm({ error }: { error?: string }) {
               cameBack.current = true;
               setFields(null);
             }}
-            className="min-h-11 rounded-control border border-line-strong px-4 py-2 text-base text-fg"
+            className={buttonClasses({ variant: "secondary" })}
           >
             Volver a pegar
           </button>
