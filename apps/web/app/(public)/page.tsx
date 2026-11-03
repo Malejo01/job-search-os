@@ -35,9 +35,10 @@ export default async function HomePage() {
   const showcase = await getPoolShowcase();
   return (
     <div className="flex flex-col gap-10">
-      {/* Hero índigo (C9-16): cabecera curva con la propuesta, el pedido de acceso y, como lo único
-          memorable de la pantalla, una oferta de ejemplo con su sello */}
-      <section className="-mx-4 -mt-6 flex flex-col gap-8 rounded-b-[2.5rem] bg-ink px-5 pt-8 pb-10 text-on-ink sm:mx-0 sm:mt-0 sm:rounded-container sm:px-10 sm:py-12 lg:flex-row lg:items-center">
+      {/* Hero índigo (C9-16): un bloque redondeado (la cabecera curva pegada a la barra es solo de Hoy
+          y /acceso) con la propuesta, el pedido de acceso y, como lo único memorable de la
+          pantalla, una oferta de ejemplo con su sello */}
+      <section className="flex flex-col gap-8 rounded-container bg-ink px-5 pt-8 pb-10 text-on-ink sm:px-10 sm:py-12 lg:flex-row lg:items-center">
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           <p className="font-display text-lg font-extrabold tracking-tight text-on-ink-muted sm:text-xl">
             {BRAND.tagline}

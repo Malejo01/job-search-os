@@ -114,7 +114,7 @@ export default async function PendingJdPage({
         </div>
         {error ? (
           <Alert tone="danger" role="alert" className="font-semibold">
-            {ERRORS[error] ?? "Algo falló."}
+            {ERRORS[error] ?? "No pudimos hacerlo. Recargá la página y probá otra vez."}
           </Alert>
         ) : null}
         {capMessage ? (

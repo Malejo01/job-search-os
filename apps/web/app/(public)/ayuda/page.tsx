@@ -67,9 +67,8 @@ const FAQS: FaqItem[] = [
     q: "¿Cuándo abre el acceso?",
     a: (
       <p>
-        La beta cerrada abre el <strong>jueves 26 de noviembre</strong>. El cupo es limitado y
-        anotarte no garantiza un lugar. Si hay lugar para vos, te escribimos con tu invitación y el
-        enlace para crear tu cuenta.
+        La beta cerrada abre el <strong>jueves 26 de noviembre</strong>. El cupo es limitado. Si hay
+        lugar para vos, te escribimos con tu invitación y el enlace para crear tu cuenta.
       </p>
     ),
   },
@@ -207,8 +206,7 @@ export default function AyudaPage() {
         <div>
           <h2 className="text-lg font-semibold text-fg">¿Querés sumarte a la beta?</h2>
           <p className="text-sm text-fg-muted">
-            Dejá tus datos en la lista de espera. El cupo es limitado y anotarte no garantiza un
-            lugar: si hay lugar, te escribimos.
+            Dejá tus datos en la lista de espera. El cupo es limitado. Si hay lugar, te escribimos.
           </p>
         </div>
         <Link

@@ -54,7 +54,7 @@ import { SourceAttribution } from "./source-attribution";
 import { StatusCorrection } from "./status-correction";
 import { Verdict } from "./verdict";
 import { SealStamp } from "@/components/motion/seal-stamp";
-import { Seal } from "@/components/ui";
+import { buttonClasses, Seal } from "@/components/ui";
 import { HelpTip } from "@/components/help-tip";
 
 export const dynamic = "force-dynamic";
@@ -157,7 +157,7 @@ export default async function JobDetailPage({
       />
       {error ? (
         <p role="alert" className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">
-          {ERRORS[error] ?? "Algo falló."}
+          {ERRORS[error] ?? "No pudimos hacerlo. Recargá la página y probá otra vez."}
         </p>
       ) : null}
       {capNotice ? (
@@ -257,13 +257,11 @@ export default async function JobDetailPage({
             <input type="hidden" name="event" value={event} />
             <button
               type="submit"
-              className={`rounded-control border px-3 py-2 text-sm ${
-                event === "apply"
-                  ? "border-success-strong bg-success-strong text-on-strong"
-                  : event === "discard" || event === "close"
-                    ? "border-line-strong text-fg-subtle"
-                    : "border-line-control text-fg"
-              }`}
+              // C9-9: con las primitivas; «Marcar aplicada» se destaca sin usar la lima (es un estado)
+              className={buttonClasses({
+                size: "sm",
+                variant: event === "apply" ? "dark" : "secondary",
+              })}
             >
               {EVENT_LABELS[event]}
             </button>
@@ -313,10 +311,7 @@ export default async function JobDetailPage({
             ) : null}
             <form action={dismissDuplicateAction}>
               <input type="hidden" name="jobId" value={job.id} />
-              <button
-                type="submit"
-                className="rounded-control border border-line-control bg-surface px-3 py-2 text-sm text-fg"
-              >
+              <button type="submit" className={buttonClasses({ size: "sm", variant: "secondary" })}>
                 No son la misma
               </button>
             </form>

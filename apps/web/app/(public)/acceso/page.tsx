@@ -69,7 +69,7 @@ export default function AccesoPage() {
           </li>
           <li className="flex gap-2">
             <Icon name="check" size={18} className="shrink-0 text-on-ink" />
-            <span>El cupo es limitado: anotarte no garantiza un lugar.</span>
+            <span>El cupo es limitado.</span>
           </li>
         </ul>
       </section>
