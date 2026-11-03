@@ -69,10 +69,11 @@ test.describe("Flujo 114: catálogo de componentes del rediseño", () => {
     const seals = page.getByTestId("sellos-light");
     const top = seals.getByRole("img", { name: "puntaje 9.2" });
     await expect(top).toContainText("Muy afín");
-    expect(await top.evaluate((el) => getComputedStyle(el).transform)).not.toBe("none");
+    // Tailwind 4 inclina con la propiedad `rotate`, no con `transform`
+    expect(await top.evaluate((el) => getComputedStyle(el).rotate)).toBe("-8deg");
     const far = seals.getByRole("img", { name: "puntaje 1.5" });
     await expect(far).toContainText("Lejos de tu perfil");
-    expect(await far.evaluate((el) => getComputedStyle(el).transform)).toBe("none");
+    expect(await far.evaluate((el) => getComputedStyle(el).rotate)).toBe("none");
     for (const name of [
       "puntaje 7.5",
       "puntaje 5.5",
@@ -83,7 +84,7 @@ test.describe("Flujo 114: catálogo de componentes del rediseño", () => {
     ]) {
       const seal = seals.getByRole("img", { name });
       await expect(seal).toBeVisible();
-      expect(await seal.evaluate((el) => getComputedStyle(el).transform)).toBe("none");
+      expect(await seal.evaluate((el) => getComputedStyle(el).rotate)).toBe("none");
     }
     await expect(seals.getByRole("img", { name: "puntaje 7.5" })).toContainText("Bastante afín");
     await expect(seals.getByRole("img", { name: "puntaje 5.5" })).toContainText("Afín a medias");
