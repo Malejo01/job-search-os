@@ -84,7 +84,7 @@ export function SpecialtyChipsToggle({
         aria-checked={isAllSelected}
         onClick={selectAll}
         data-testid={`specialty-all-${roleKey}`}
-        className={`flex min-h-11 flex-col items-start justify-center gap-1 rounded-control p-2.5 text-left transition-colors sm:col-span-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
+        className={`flex min-h-11 flex-col items-start justify-center gap-1 rounded-control p-2.5 text-left sm:col-span-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
           isAllSelected
             ? "border-2 border-brand-text bg-surface text-fg"
             : "border-2 border-line bg-surface-subtle text-fg-muted hover:border-line-strong hover:bg-surface"
@@ -120,7 +120,7 @@ export function SpecialtyChipsToggle({
             aria-checked={isChecked}
             onClick={() => toggle(chip.id)}
             data-testid={`specialty-chip-${roleKey}-${chip.id}`}
-            className={`flex min-h-11 flex-col items-start justify-center gap-1 rounded-control p-2.5 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
+            className={`flex min-h-11 flex-col items-start justify-center gap-1 rounded-control p-2.5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
               isChecked
                 ? "border-2 border-brand-text bg-surface text-fg"
                 : "border-2 border-line bg-surface-subtle text-fg-muted hover:border-line-strong hover:bg-surface"
