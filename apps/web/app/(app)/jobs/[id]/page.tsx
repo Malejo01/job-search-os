@@ -1,5 +1,7 @@
 import {
   buildFitPoints,
+  closenessPhrase,
+  offerPlace,
   englishIsNotAGap,
   fitCrossSentence,
   isEnglishGap,
@@ -42,7 +44,6 @@ import { requireUserId } from "@/lib/session";
 import { changeStatusAction, dismissDuplicateAction, humanScoreAction } from "./actions";
 import { AutoRefresh } from "../auto-refresh";
 import { ApplyButton } from "./apply-button";
-import { DetailMotion } from "./detail-motion";
 import { getSavedFormAnswers } from "./form-data";
 import { FormReview } from "./form-review";
 import { MergeButton } from "./merge-button";
@@ -141,8 +142,13 @@ export default async function JobDetailPage({
       ? `USD ${[job.salaryMinUsd, job.salaryMaxUsd].filter(Boolean).join("–")}${job.salaryPeriod ? ` ${job.salaryPeriod}` : ""}`
       : null;
 
+  // Misma foto que «Requisitos del aviso»: con los niveles de hoy superpuestos (C-20)
+  const closeness = ev?.checklist
+    ? closenessPhrase(withCurrentSkillLevels(ev.checklist, currentLevels))
+    : null;
+
   return (
-    <DetailMotion>
+    <article className="flex flex-col gap-5">
       <ReviewNav
         backHref={`/jobs${query}`}
         prevHref={around.prev ? `/jobs/${around.prev}${query}` : null}
@@ -166,13 +172,19 @@ export default async function JobDetailPage({
       ) : null}
       <AutoRefresh active={job.evaluating} />
 
-      <header className="flex gap-4">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-lg font-semibold leading-tight">{job.title}</h1>
-          <p className="text-sm text-fg-muted">{job.company}</p>
+      {/* D3 (C9-9): la tarjeta destacada de la pantalla, con el sello grande y la frase de cercanía */}
+      <header className="edge-6 flex gap-4 rounded-card border-edge bg-surface p-5 sm:p-6">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <h1 className="text-title leading-tight font-bold break-words">{job.title}</h1>
+          <p className="text-sm text-fg-muted">
+            {offerPlace({
+              company: job.company,
+              location: job.locationRaw,
+              modality: job.modality,
+            })}
+          </p>
           <p className="text-xs text-fg-subtle">
             {[
-              job.locationRaw,
               job.modality && job.modality !== "desconocida"
                 ? (MODALITY_LABELS[job.modality] ?? job.modality)
                 : null,
@@ -214,6 +226,16 @@ export default async function JobDetailPage({
               </span>
             ))}
           </div>
+          {closeness ? (
+            <p className="mt-2 text-base font-semibold text-fg" data-testid="cercania">
+              {closeness}
+            </p>
+          ) : null}
+          {job.evaluating && !ev ? (
+            <p className="mt-2 text-base font-semibold text-fg-muted">
+              Leyendo la oferta contra tu perfil…
+            </p>
+          ) : null}
         </div>
         <Seal score={ev ? ev.score : null} pending={job.evaluating && !ev} size="detail" />
       </header>
@@ -373,6 +395,7 @@ export default async function JobDetailPage({
             <RequisitosDelAviso
               checklist={withCurrentSkillLevels(ev.checklist, currentLevels)}
               modal={{ jobId: job.id, skillInfo: job.skillInfo }}
+              rebuilt={ev.checklistRebuilt}
             />
           ) : null}
           {crossLine ? (
@@ -663,7 +686,7 @@ export default async function JobDetailPage({
           <pre className="mt-2 whitespace-pre-wrap font-sans text-sm text-fg">{job.jdText}</pre>
         </details>
       ) : null}
-    </DetailMotion>
+    </article>
   );
 }
 

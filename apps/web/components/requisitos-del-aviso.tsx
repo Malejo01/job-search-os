@@ -1,23 +1,32 @@
 import Link from "next/link";
+import { Icon, type IconName } from "@/components/ui";
 import type { ChecklistItemView, ChecklistView } from "@/lib/job-detail";
 import { CHECKLIST_PIDE_SOURCE, CHECKLIST_STATUS, CHECKLIST_TENES_SOURCE } from "@/lib/labels";
 import { SkillLevelButton } from "./skill-level-modal";
 
 /**
- * «Requisitos del aviso» (ronda 104, diseño 98 §2 y §4). Server Component: sin estado ni cliente.
- * Muestra el checklist guardado en `decision.checklist`; el estado de cada ítem lo calculó el código
- * (nunca el modelo) y se comunica con ícono y texto, no solo con color. `compact` es la versión de la
- * demo pública: titular, primera mirada y lista corta, sin citas ni links a pantallas privadas.
+ * «Requisitos del aviso» (ronda 104, diseño 98 §2 y §4; checklist para mejorar D3 en C9-9). Server
+ * Component: sin estado ni cliente. Muestra el checklist guardado en `decision.checklist` (o el que
+ * se armó al leer, C9-6); el estado de cada ítem lo calculó el código (nunca el modelo) y acá solo
+ * cambia cómo se ve: cada requisito con su check, su cruz o su signo de pregunta, con ícono y texto,
+ * y lo que falta con un paso concreto. «Cómo aprenderlo» no se muestra: el plan de estudios todavía
+ * no existe. `compact` es la versión de la demo pública: titular, primera mirada y lista corta, sin
+ * citas ni links a pantallas privadas.
  */
-function StatusBadge({ status }: { status: ChecklistItemView["status"] }) {
-  const st = CHECKLIST_STATUS[status];
+const STATUS_ICON: Record<ChecklistItemView["status"], { icon: IconName; box: string }> = {
+  cumple: { icon: "check", box: "bg-success-muted text-success" },
+  no_cumple: { icon: "cruz", box: "bg-warning-muted text-warning" },
+  no_se_sabe: { icon: "pregunta", box: "bg-surface-muted text-fg-muted" },
+};
+
+function StatusMark({ status }: { status: ChecklistItemView["status"] }) {
+  const mark = STATUS_ICON[status];
   return (
     <span
-      className={`inline-flex shrink-0 items-center gap-1 rounded-badge px-1.5 py-0.5 text-xs font-medium ${st.classes}`}
+      aria-hidden="true"
+      className={`flex size-7 shrink-0 items-center justify-center rounded-pill ${mark.box}`}
     >
-      <span aria-hidden="true">{st.icon}</span>
-      {/* El rótulo en su propio nodo: un lector (o un test) lo encuentra sin el ícono pegado */}
-      <span>{st.label}</span>
+      <Icon name={mark.icon} size={16} />
     </span>
   );
 }
@@ -32,6 +41,22 @@ const PROFILE_CTA_IDS = new Set(["anos", "ingles", "jornada"]);
  */
 export type MissingCta =
   { href: string; text: string } | { slug: string; name: string; text: string };
+
+/**
+ * Lo que falta, dicho como un paso (C9-9, decisión 14 regla 2): no «te falta Tango», sino «sumá
+ * Tango y esta oferta te queda más cerca». Solo para lo que no cumple; null si no hay un paso.
+ */
+export function missingStep(item: ChecklistItemView): string | null {
+  if (item.status !== "no_cumple") return null;
+  if (item.id.startsWith("skill:")) {
+    const name = item.pide.replace(/^Menciona\s+/i, "");
+    return `Sumá ${name} y esta oferta te queda mucho más cerca. Si ya la manejás, cargá tu nivel o sumala a tu CV.`;
+  }
+  if (PROFILE_CTA_IDS.has(item.id)) {
+    return "Si ya lo tenés y no está en tu perfil, completalo: puede cambiar este resultado.";
+  }
+  return null;
+}
 
 export function missingCta(item: ChecklistItemView): MissingCta | null {
   if (item.id.startsWith("skill:")) {
@@ -57,51 +82,61 @@ function Item({
   compact: boolean;
   modal?: SkillModalData;
 }) {
-  const cta = item.status === "no_se_sabe" && !compact ? missingCta(item) : null;
+  const cta = item.status !== "cumple" && !compact ? missingCta(item) : null;
+  const step = compact ? null : missingStep(item);
   return (
-    <li className="flex min-w-0 flex-col gap-0.5 border-t border-line py-2 first:border-t-0">
-      <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <StatusBadge status={item.status} />
-        <span className="min-w-0 break-words font-medium">{item.pide}</span>
-        {item.nivel === "deseable" ? (
-          <span className="text-xs text-fg-subtle">(deseable)</span>
+    <li className="flex min-w-0 gap-3 border-t border-line py-3 first:border-t-0">
+      <StatusMark status={item.status} />
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        {/* El rótulo en su propio nodo: un lector (o un test) lo encuentra sin el ícono pegado */}
+        <span className="text-xs font-bold text-fg-muted">
+          {CHECKLIST_STATUS[item.status].label}
+        </span>
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="min-w-0 font-bold break-words">{item.pide}</span>
+          {item.nivel === "deseable" ? (
+            <span className="text-xs text-fg-subtle">(deseable)</span>
+          ) : null}
+          {item.bloquea ? <span className="text-xs font-bold text-danger">(frena)</span> : null}
+        </p>
+        {step ? <p className="text-sm break-words text-fg">{step}</p> : null}
+        <p className="break-words text-xs text-fg-subtle">
+          Lo que pide ({CHECKLIST_PIDE_SOURCE[item.fuente.pide]})
+          {!compact && item.evidencia ? (
+            <span className="italic"> · «{item.evidencia}»</span>
+          ) : null}
+        </p>
+        <p className="break-words text-xs text-fg-subtle">
+          {item.tenes !== null && item.fuente.tenes
+            ? `Tenés (${CHECKLIST_TENES_SOURCE[item.fuente.tenes]}): ${item.tenes}`
+            : "Tenés: no lo sabemos"}
+        </p>
+        {item.nota ? (
+          <p data-testid="requisito-nota" className="break-words text-xs text-fg-subtle">
+            {item.nota}
+          </p>
         ) : null}
-        {item.bloquea ? <span className="text-xs font-medium text-danger">(frena)</span> : null}
-      </p>
-      <p className="break-words text-xs text-fg-subtle">
-        Lo que pide ({CHECKLIST_PIDE_SOURCE[item.fuente.pide]})
-        {!compact && item.evidencia ? <span className="italic"> · «{item.evidencia}»</span> : null}
-      </p>
-      <p className="break-words text-xs text-fg-subtle">
-        {item.tenes !== null && item.fuente.tenes
-          ? `Tenés (${CHECKLIST_TENES_SOURCE[item.fuente.tenes]}): ${item.tenes}`
-          : "Tenés: no lo sabemos"}
-      </p>
-      {item.nota ? (
-        <p data-testid="requisito-nota" className="break-words text-xs text-fg-subtle">
-          {item.nota}
-        </p>
-      ) : null}
-      {/* El botón solo si el slug está en la taxonomía (`skillInfo`); si no, el link de siempre */}
-      {cta && "slug" in cta && modal && modal.skillInfo[cta.slug] ? (
-        <div className="pt-1">
-          <SkillLevelButton
-            slug={cta.slug}
-            name={cta.name}
-            description={modal.skillInfo[cta.slug]?.description ?? null}
-            jobId={modal.jobId}
-          />
-        </div>
-      ) : cta ? (
-        <p className="text-xs">
-          <Link
-            href={"href" in cta ? cta.href : "/settings/skills"}
-            className="inline-flex min-h-8 items-center text-link underline"
-          >
-            {"href" in cta ? cta.text : `Cargá tu nivel de ${cta.name}`}
-          </Link>
-        </p>
-      ) : null}
+        {/* El botón solo si el slug está en la taxonomía (`skillInfo`); si no, el link de siempre */}
+        {cta && "slug" in cta && modal && modal.skillInfo[cta.slug] ? (
+          <div className="pt-1">
+            <SkillLevelButton
+              slug={cta.slug}
+              name={cta.name}
+              description={modal.skillInfo[cta.slug]?.description ?? null}
+              jobId={modal.jobId}
+            />
+          </div>
+        ) : cta ? (
+          <p className="text-sm">
+            <Link
+              href={"href" in cta ? cta.href : "/settings/skills"}
+              className="inline-flex min-h-11 items-center font-semibold text-link underline underline-offset-2"
+            >
+              {"href" in cta ? cta.text : `Cargá tu nivel de ${cta.name}`}
+            </Link>
+          </p>
+        ) : null}
+      </div>
     </li>
   );
 }
@@ -110,9 +145,12 @@ export function RequisitosDelAviso({
   checklist,
   compact = false,
   modal,
+  rebuilt = false,
 }: {
   checklist: ChecklistView;
   compact?: boolean;
+  /** Se armó al leer (C9-6) porque la evaluación es de antes de esta lista. */
+  rebuilt?: boolean;
   /** Con esto, cada skill sin nivel abre el modal «Cargar mi nivel de X» (detalle de la oferta). */
   modal?: SkillModalData;
 }) {
@@ -126,9 +164,9 @@ export function RequisitosDelAviso({
   return (
     <section
       aria-label="Requisitos del aviso"
-      className="flex min-w-0 flex-col gap-2 rounded-card border border-line p-3 text-sm"
+      className="flex min-w-0 flex-col gap-3 rounded-card bg-surface p-4 text-sm sm:p-5"
     >
-      <Heading className="font-semibold">Requisitos del aviso</Heading>
+      <Heading className="font-display text-heading font-bold">Requisitos del aviso</Heading>
       <p data-testid="requisitos-titular">
         {total === 0 ? (
           "No hay requisitos verificables; mirá la lista"
@@ -151,15 +189,20 @@ export function RequisitosDelAviso({
           {deseable.no_se_sabe > 0 ? ` y ${deseable.no_se_sabe} sin verificar` : ""}
         </p>
       ) : null}
-      {parcial ? (
+      {rebuilt ? (
+        <p className="text-xs text-fg-muted">
+          Esta oferta se evaluó antes de que existiera esta lista: la armamos con tu perfil, sin los
+          requisitos que leyó la IA, y puede estar incompleta.
+        </p>
+      ) : parcial ? (
         <p className="text-xs text-warning">
           Sin la descripción completa: esta lista sale del resumen del aviso y puede estar
           incompleta.
         </p>
       ) : null}
 
-      <div className="rounded-control bg-surface-subtle p-2" data-testid="requisitos-descarte">
-        <p className="text-xs font-semibold">Lo primero que mira un reclutador</p>
+      <div className="rounded-control bg-surface-subtle p-3" data-testid="requisitos-descarte">
+        <p className="text-xs font-bold">Lo primero que mira un reclutador</p>
         <p className="break-words">
           {descarte
             ? `Lo primero por lo que te descartarían: ${descarte.pide}${

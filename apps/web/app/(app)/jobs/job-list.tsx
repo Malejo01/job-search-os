@@ -28,18 +28,27 @@ export function JobList({
   rows,
   query = "",
   tour = true,
+  selected = null,
 }: {
   rows: JobListRow[];
   query?: string;
   /** La primera tarjeta lleva las anclas de la guía; la segunda lista (lejanas) no. */
   tour?: boolean;
+  /** La oferta abierta en el panel de la derecha (O3), marcada en la lista. */
+  selected?: string | null;
 }) {
   const now = new Date();
   return (
     <ul className="flex flex-col gap-3">
       {rows.map((job, i) => (
         <li key={job.id}>
-          <JobCard job={job} query={query} tour={tour && i === 0} now={now} />
+          <JobCard
+            job={job}
+            query={query}
+            tour={tour && i === 0}
+            now={now}
+            selected={job.id === selected}
+          />
         </li>
       ))}
     </ul>
@@ -55,11 +64,13 @@ function JobCard({
   query,
   tour,
   now,
+  selected,
 }: {
   job: JobListRow;
   query: string;
   tour: boolean;
   now: Date;
+  selected: boolean;
 }) {
   const url = safeHttpUrl(job.url);
   const anchor = (name: string) => (tour ? { "data-tour": name } : {});
@@ -69,11 +80,23 @@ function JobCard({
       ? (MODALITY_LABELS[job.modality] ?? job.modality)
       : null;
   return (
-    <div className="pressable edge-4 relative flex gap-3 rounded-card border-edge bg-surface p-4 sm:gap-4 sm:p-5">
-      {/* El link al detalle cubre toda la tarjeta; lo que se toca adentro va encima (z-10) */}
+    <div
+      className={`pressable edge-4 relative flex gap-3 rounded-card bg-surface p-4 sm:gap-4 sm:p-5 ${
+        selected ? "border-x-2 border-t-2 border-brand-text" : "border-edge"
+      }`}
+    >
+      {/* El link al detalle cubre toda la tarjeta; lo que se toca adentro va encima (z-10). Hasta
+          `lg` va al detalle; desde `lg` abre la oferta en el panel de la derecha (O3, C9-9) */}
       <Link
         href={`/jobs/${job.id}${query}`}
-        className="absolute inset-0 rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        className="absolute inset-0 rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus lg:hidden"
+        aria-label={`Abrir el detalle de ${job.title}`}
+      />
+      <Link
+        href={`/jobs${query ? `${query}&` : "?"}oferta=${job.id}`}
+        scroll={false}
+        aria-current={selected ? "true" : undefined}
+        className="absolute inset-0 hidden rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus lg:block"
         aria-label={`Abrir el detalle de ${job.title}`}
       />
       <div className="flex min-w-0 flex-1 flex-col gap-2">
