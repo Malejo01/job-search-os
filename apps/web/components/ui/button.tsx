@@ -7,12 +7,12 @@ import { cx } from "./cx";
  * `textLinkClasses()`.
  *
  * Forma (decisión 5 de C9): píldora, plano, sin sombra, con un borde inferior de 6 px (4 px en
- * `sm`) un tono más oscuro que el relleno; al tocarlo se hunde 3 px (`pressable`, CSS puro).
+ * `sm`) un tono más oscuro que el relleno; al tocarlo se hunde 3 px (`pressable`, CSS puro) sin
+ * cambiar de alto.
  *
  * `className` es para ubicarlo (`w-full`, `self-start`, `mt-2`), no para cambiarle el color, el
  * padding ni el tamaño: sin tailwind-merge dos clases que se pisan no se resuelven por orden de
- * escritura sino por orden de Tailwind. Si hace falta otra variante, se suma acá. No le pongas
- * `mb-*`: el hundimiento usa el margen de abajo (separá con `gap`).
+ * escritura sino por orden de Tailwind. Si hace falta otra variante, se suma acá.
  */
 export type ButtonVariant = "primary" | "secondary" | "dark" | "ghost" | "danger";
 export type ButtonSize = "sm" | "md";
@@ -49,7 +49,7 @@ const VARIANTS: Record<ButtonVariant, string> = {
   primary:
     "pressable border-x-0 border-t-0 border-edge-brand bg-brand font-extrabold text-brand-contrast hover:bg-brand-hover",
   secondary:
-    "pressable border-x-2 border-t-2 border-edge bg-surface font-bold text-fg hover:bg-surface-muted",
+    "pressable border-x-2 border-t-2 border-edge bg-surface font-bold text-fg [--jso-edge-top:2px] hover:bg-surface-muted",
   dark: "pressable border-x-0 border-t-0 border-edge-ink bg-fg font-bold text-canvas hover:bg-fg-muted",
   ghost: "font-bold text-fg-muted underline-offset-2 hover:underline",
   danger:

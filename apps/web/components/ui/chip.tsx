@@ -63,7 +63,7 @@ export function filterChipClasses({
   className,
 }: { selected?: boolean; className?: string } = {}): string {
   return cx(
-    "pressable edge-4 inline-flex min-h-11 items-center justify-center gap-1.5 rounded-pill border-x-2 border-t-2 px-4 text-sm font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
+    "pressable edge-4 inline-flex min-h-11 items-center justify-center gap-1.5 rounded-pill border-x-2 border-t-2 px-4 [--jso-edge-top:2px] text-sm font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
     selected
       ? "border-brand-contrast bg-brand text-brand-contrast"
       : "border-edge bg-surface text-fg hover:bg-surface-muted",

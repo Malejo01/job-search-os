@@ -101,7 +101,7 @@ Sin sombras. Lo que se toca lleva un borde inferior más grueso, de un tono más
 | `edge-6` | Borde inferior de 6 px | Botones y tarjetas destacadas (la oferta principal de Hoy, el detalle) |
 | `edge-4` | Borde inferior de 4 px | Tarjetas de las listas, chips y filtros |
 | `border-edge` / `border-edge-brand` / `border-edge-ink` | Color del borde: blanco → línea fuerte; lima → `#8FB82E`; índigo → índigo hondo | Junto con `edge-4` o `edge-6` |
-| `pressable` | Al tocar (`:active`) baja 3 px y el borde se achica lo mismo; un `margin-bottom` de 3 px compensa el layout | Todo lo que se toca. Es CSS: sirve en Server Components. No le pongas `margin-bottom` propio (usá `gap`) |
+| `pressable` | Al tocar (`:active`) el borde de abajo cede 3 px y el de arriba crece 3 px transparente: lo de adentro baja 3 px y la caja mide lo mismo (nada salta, aunque tenga alto mínimo). Solo se hunde lo que tiene `edge-4` o `edge-6` | Todo lo que se toca. Es CSS: sirve en Server Components. Si tiene borde de arriba, su ancho va en `--jso-edge-top` (el botón secundario y los chips lo traen) |
 
 Con «reducir movimiento» el hundimiento queda, sin transición.
 
