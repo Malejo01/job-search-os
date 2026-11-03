@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { buttonClasses } from "@/components/ui";
 
 /** Copia un texto al portapapeles. Client component mínimo (clipboard). Ya no se usa en esta página. */
 export function CopyButton({ text }: { text: string }) {
@@ -17,7 +18,7 @@ export function CopyButton({ text }: { text: string }) {
         }
         setTimeout(() => setState("idle"), 2000);
       }}
-      className="rounded-control border border-line-strong px-2 py-1 text-xs text-fg-muted"
+      className={buttonClasses({ variant: "secondary", size: "sm" })}
     >
       {state === "ok" ? "Copiado" : state === "error" ? "No se pudo copiar" : "Copiar instrucción"}
     </button>

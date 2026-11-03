@@ -11,7 +11,6 @@ import {
   type AssistantStreamEvent,
   type Proposal,
 } from "@job-search-os/pipeline";
-import { MotionConfig, motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
@@ -25,6 +24,7 @@ import {
 } from "@/components/assistant-proposal";
 import { AssistantActionCard, type ActionStatus } from "./assistant-action-card";
 import { AssistantProposalCard, type ProposalStatus } from "./assistant-proposal-card";
+import { buttonClasses } from "@/components/ui";
 
 const FOCUS_RING =
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
@@ -71,8 +71,8 @@ const FORM_NOT_FOUND =
  * y el foco vuelve al botón «Asistente». A ≥ 1024 px es un panel lateral de 380 px; en el celular,
  * una hoja completa. Los mensajes completos se anuncian en una región `aria-live` aparte (los
  * fragmentos que llegan mientras escribe no se leen uno por uno; «Pensando…» tampoco se anuncia:
- * el botón Enviar deshabilitado y el «Detener» ya lo dicen). El contenido animado se pinta solo
- * con el panel abierto, y `MotionConfig reducedMotion="user"` respeta prefers-reduced-motion.
+ * el botón Enviar deshabilitado y el «Detener» ya lo dicen). El contenido se pinta solo con el
+ * panel abierto. C9-11 (decisión 13 de C9): sin animación de entrada, el panel aparece quieto.
  */
 export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -395,183 +395,174 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
       className="m-0 ml-auto h-dvh max-h-none w-full max-w-none overflow-hidden bg-surface p-0 text-fg backdrop:bg-black/30 lg:w-[380px]"
     >
       {open ? (
-        <MotionConfig reducedMotion="user">
-          <motion.div
-            initial={{ opacity: 0, x: 24 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.18, ease: "easeOut" }}
-            className="flex h-full min-w-0 flex-col"
-          >
-            <div className="flex flex-col gap-1 border-b border-line px-4 py-3">
-              <div className="flex items-center justify-between gap-2">
-                <h2 id={titleId} className="text-base font-semibold">
-                  Asistente
-                </h2>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={newConversation}
-                    className={`min-h-11 rounded-control px-2 text-sm text-fg-muted underline-offset-2 hover:underline ${FOCUS_RING}`}
-                  >
-                    Nueva charla
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className={`min-h-11 rounded-control border border-line-strong px-3 text-sm ${FOCUS_RING}`}
-                  >
-                    Cerrar
-                  </button>
-                </div>
-              </div>
-              <p className="text-xs text-fg-subtle">
-                {screen ? `Estás en: ${screenLabel(screen.screen)}. ` : ""}Lee tus datos, te explica
-                y te propone cambios. No guarda nada sin que vos lo confirmes en la pantalla.
-              </p>
-            </div>
-
-            <div
-              ref={listRef}
-              data-testid="assistant-messages"
-              className="flex min-w-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto px-4 py-3"
-            >
-              {items.length === 0 ? (
-                <p className="text-sm text-fg-subtle">
-                  Preguntale, por ejemplo, «¿qué me falta para las ofertas que me interesan?» o
-                  contale un cambio: «me mudé a Uruguay».
-                </p>
-              ) : null}
-              {items.map((item) => {
-                switch (item.kind) {
-                  case "user":
-                    return (
-                      <p
-                        key={item.id}
-                        className="self-end rounded-control bg-brand px-3 py-2 text-sm break-words whitespace-pre-wrap text-brand-contrast"
-                      >
-                        <span className="sr-only">Vos: </span>
-                        {item.text.length > 600 ? `${item.text.slice(0, 600)}…` : item.text}
-                      </p>
-                    );
-                  case "assistant":
-                    return (
-                      <p
-                        key={item.id}
-                        className="self-start rounded-control bg-surface-muted px-3 py-2 text-sm break-words whitespace-pre-wrap"
-                      >
-                        <span className="sr-only">Asistente: </span>
-                        {item.text}
-                      </p>
-                    );
-                  case "notice":
-                    return (
-                      <div
-                        key={item.id}
-                        data-testid="assistant-notice"
-                        className="flex flex-col gap-1 rounded-control bg-warning-soft px-3 py-2 text-sm text-warning"
-                      >
-                        <p className="break-words">{item.text}</p>
-                        <ul className="flex flex-wrap gap-x-3">
-                          {item.links.map((l) => (
-                            <li key={l.href}>
-                              <Link
-                                href={l.href}
-                                onClick={onClose}
-                                className={`inline-flex min-h-11 items-center underline ${FOCUS_RING}`}
-                              >
-                                {l.label}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    );
-                  case "error":
-                    return (
-                      <p
-                        key={item.id}
-                        className="rounded-control bg-danger-soft px-3 py-2 text-sm break-words text-danger"
-                      >
-                        {item.text}
-                      </p>
-                    );
-                  case "proposal":
-                    return (
-                      <AssistantProposalCard
-                        key={item.id}
-                        proposal={item.proposal}
-                        status={item.status}
-                        statusRef={(el) => trackStatus(item.id, el)}
-                        onLoad={() => loadProposal(item)}
-                        onDiscard={() => discardProposal(item.id)}
-                      />
-                    );
-                  case "action":
-                    return (
-                      <AssistantActionCard
-                        key={item.id}
-                        action={item.action}
-                        status={item.status}
-                        statusRef={(el) => trackStatus(item.id, el)}
-                        receivedAt={item.receivedAt}
-                        onSent={(r) => sentAction(item.id, item.action, r.toLabel)}
-                        onDiscard={() => discardAction(item.id)}
-                      />
-                    );
-                }
-              })}
-              {pending ? (
-                <p className="text-sm text-fg-subtle" aria-hidden="true">
-                  Pensando…
-                </p>
-              ) : null}
-            </div>
-
-            <p aria-live="polite" role="status" className="sr-only">
-              {announce}
-            </p>
-
-            <form
-              onSubmit={onSubmit}
-              className="flex flex-col gap-2 border-t border-line px-4 py-3"
-            >
-              <label htmlFor={`${titleId}-mensaje`} className="text-sm font-medium">
-                Tu mensaje
-              </label>
-              <textarea
-                id={`${titleId}-mensaje`}
-                ref={inputRef}
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={onKeyDown}
-                maxLength={MAX_INPUT_CHARS}
-                rows={3}
-                className={`w-full min-w-0 resize-none rounded-control border border-line-control bg-surface px-3 py-2 text-base text-fg ${FOCUS_RING}`}
-              />
+        <div className="flex h-full min-w-0 flex-col">
+          <div className="flex flex-col gap-1 border-b border-line px-4 py-3">
+            <div className="flex items-center justify-between gap-2">
+              <h2 id={titleId} className="text-base font-bold">
+                Asistente
+              </h2>
               <div className="flex items-center gap-2">
                 <button
-                  type="submit"
-                  disabled={pending || draft.trim() === ""}
-                  className={`min-h-11 rounded-control bg-brand hover:bg-brand-hover px-4 py-2 text-sm font-medium text-brand-contrast disabled:opacity-50 ${FOCUS_RING}`}
+                  type="button"
+                  onClick={newConversation}
+                  className={buttonClasses({ variant: "ghost", size: "sm" })}
                 >
-                  Enviar
+                  Nueva charla
                 </button>
-                {pending ? (
-                  <button
-                    type="button"
-                    onClick={() => abortRef.current?.abort()}
-                    className={`min-h-11 rounded-control border border-line-strong px-3 py-2 text-sm ${FOCUS_RING}`}
-                  >
-                    Detener
-                  </button>
-                ) : null}
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className={buttonClasses({ variant: "secondary", size: "sm" })}
+                >
+                  Cerrar
+                </button>
               </div>
-              <p className="text-xs text-fg-subtle">
-                No pegues tu CV acá: se carga en «Tu perfil» y «Tus skills».
+            </div>
+            <p className="text-xs text-fg-subtle">
+              {screen ? `Estás en: ${screenLabel(screen.screen)}. ` : ""}Lee tus datos, te explica y
+              te propone cambios. No guarda nada sin que vos lo confirmes en la pantalla.
+            </p>
+          </div>
+
+          <div
+            ref={listRef}
+            data-testid="assistant-messages"
+            className="flex min-w-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto px-4 py-3"
+          >
+            {items.length === 0 ? (
+              <p className="text-sm text-fg-subtle">
+                Preguntale, por ejemplo, «¿qué me falta para las ofertas que me interesan?» o
+                contale un cambio: «me mudé a Uruguay».
               </p>
-            </form>
-          </motion.div>
-        </MotionConfig>
+            ) : null}
+            {items.map((item) => {
+              switch (item.kind) {
+                case "user":
+                  return (
+                    <p
+                      key={item.id}
+                      // C9-11: índigo; la lima no va de fondo de un bloque
+                      className="self-end rounded-control bg-ink px-3 py-2 text-sm break-words whitespace-pre-wrap text-on-ink"
+                    >
+                      <span className="sr-only">Vos: </span>
+                      {item.text.length > 600 ? `${item.text.slice(0, 600)}…` : item.text}
+                    </p>
+                  );
+                case "assistant":
+                  return (
+                    <p
+                      key={item.id}
+                      className="self-start rounded-control bg-surface-muted px-3 py-2 text-sm break-words whitespace-pre-wrap"
+                    >
+                      <span className="sr-only">Asistente: </span>
+                      {item.text}
+                    </p>
+                  );
+                case "notice":
+                  return (
+                    <div
+                      key={item.id}
+                      data-testid="assistant-notice"
+                      className="flex flex-col gap-1 rounded-control bg-warning-soft px-3 py-2 text-sm text-warning"
+                    >
+                      <p className="break-words">{item.text}</p>
+                      <ul className="flex flex-wrap gap-x-3">
+                        {item.links.map((l) => (
+                          <li key={l.href}>
+                            <Link
+                              href={l.href}
+                              onClick={onClose}
+                              className={`inline-flex min-h-11 items-center underline ${FOCUS_RING}`}
+                            >
+                              {l.label}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                case "error":
+                  return (
+                    <p
+                      key={item.id}
+                      className="rounded-control bg-danger-soft px-3 py-2 text-sm break-words text-danger"
+                    >
+                      {item.text}
+                    </p>
+                  );
+                case "proposal":
+                  return (
+                    <AssistantProposalCard
+                      key={item.id}
+                      proposal={item.proposal}
+                      status={item.status}
+                      statusRef={(el) => trackStatus(item.id, el)}
+                      onLoad={() => loadProposal(item)}
+                      onDiscard={() => discardProposal(item.id)}
+                    />
+                  );
+                case "action":
+                  return (
+                    <AssistantActionCard
+                      key={item.id}
+                      action={item.action}
+                      status={item.status}
+                      statusRef={(el) => trackStatus(item.id, el)}
+                      receivedAt={item.receivedAt}
+                      onSent={(r) => sentAction(item.id, item.action, r.toLabel)}
+                      onDiscard={() => discardAction(item.id)}
+                    />
+                  );
+              }
+            })}
+            {pending ? (
+              <p className="text-sm text-fg-subtle" aria-hidden="true">
+                Pensando…
+              </p>
+            ) : null}
+          </div>
+
+          <p aria-live="polite" role="status" className="sr-only">
+            {announce}
+          </p>
+
+          <form onSubmit={onSubmit} className="flex flex-col gap-2 border-t border-line px-4 py-3">
+            <label htmlFor={`${titleId}-mensaje`} className="text-sm font-medium">
+              Tu mensaje
+            </label>
+            <textarea
+              id={`${titleId}-mensaje`}
+              ref={inputRef}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={onKeyDown}
+              maxLength={MAX_INPUT_CHARS}
+              rows={3}
+              className={`w-full min-w-0 resize-none rounded-control border-2 border-line-control bg-surface px-4 py-2 text-base text-fg ${FOCUS_RING}`}
+            />
+            <div className="flex items-center gap-2">
+              <button
+                type="submit"
+                disabled={pending || draft.trim() === ""}
+                className={buttonClasses({ size: "sm" })}
+              >
+                Enviar
+              </button>
+              {pending ? (
+                <button
+                  type="button"
+                  onClick={() => abortRef.current?.abort()}
+                  className={buttonClasses({ variant: "secondary", size: "sm" })}
+                >
+                  Detener
+                </button>
+              ) : null}
+            </div>
+            <p className="text-xs text-fg-subtle">
+              No pegues tu CV acá: se carga en «Tu perfil» y «Tus skills».
+            </p>
+          </form>
+        </div>
       ) : null}
     </dialog>
   );

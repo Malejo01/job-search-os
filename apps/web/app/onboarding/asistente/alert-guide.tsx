@@ -7,6 +7,7 @@ import {
 } from "@job-search-os/pipeline";
 import Link from "next/link";
 import type { PortalCoverage } from "@/lib/portal-coverage";
+import { cardClasses, textLinkClasses } from "@/components/ui";
 import { CopyButton } from "./copy-button";
 
 export const PORTAL_STATUS_VIEW: Record<
@@ -44,15 +45,15 @@ export function AlertGuide({ roles, language, coverage }: AlertGuideProps) {
     <section
       data-testid="alert-guide"
       aria-labelledby="alert-guide-title"
-      className="flex flex-col gap-3 rounded-control border border-line px-3 py-3"
+      className={cardClasses({ padding: "md", className: "flex flex-col gap-4" })}
     >
-      <h2 id="alert-guide-title" className="text-base font-semibold text-fg">
+      <h2 id="alert-guide-title" className="text-base font-bold text-fg">
         Qué alertas crear
       </h2>
       {roles.length === 0 ? (
         <p data-testid="alert-guide-generic" className="text-sm text-fg-muted">
           Todavía no elegiste carrera, así que son palabras generales de tecnología.{" "}
-          <Link href="/settings#puesto" className="underline">
+          <Link href="/settings#puesto" className={textLinkClasses()}>
             Elegí tu carrera
           </Link>{" "}
           para ver las tuyas. Creá una alerta por cada palabra en cada portal.
@@ -67,7 +68,7 @@ export function AlertGuide({ roles, language, coverage }: AlertGuideProps) {
           {keywords.map((word) => (
             <li
               key={word}
-              className="flex items-center gap-2 rounded-control bg-surface-muted pl-3 text-sm"
+              className="flex items-center gap-2 rounded-pill bg-surface-muted pl-4 text-sm font-semibold"
             >
               <span data-testid="alert-keyword">{word}</span>
               <CopyButton text={word} ariaLabel={`Copiar “${word}”`} />
@@ -91,7 +92,7 @@ export function AlertGuide({ roles, language, coverage }: AlertGuideProps) {
               data-status={coverage[portal.id].status}
               className="flex flex-col gap-1 text-sm"
             >
-              <h3 className="font-medium text-fg">{portal.name}</h3>
+              <h3 className="font-bold text-fg">{portal.name}</h3>
               <p className={status.className}>
                 <span aria-hidden="true">{status.icon} </span>
                 <span data-testid={`alert-portal-${portal.id}-status`}>{status.text}</span>
@@ -103,7 +104,7 @@ export function AlertGuide({ roles, language, coverage }: AlertGuideProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                   data-testid={`alert-portal-${portal.id}-link`}
-                  className="inline-flex min-h-11 w-fit items-center underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
+                  className={textLinkClasses({ block: true })}
                 >
                   Abrir una búsqueda de ejemplo en {portal.name}
                   <span className="sr-only"> (se abre en otra pestaña)</span>

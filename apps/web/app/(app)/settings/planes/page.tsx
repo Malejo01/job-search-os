@@ -3,6 +3,7 @@ import { canCreateInvitations } from "@/lib/invitations";
 import { listPlans, PlanAdminNotEnabledInDbError, type AdminPlanRow } from "@/lib/plan-admin";
 import { requireUserId } from "@/lib/session";
 import { SubmitButton } from "@/app/components/submit-button";
+import { Alert, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
 import { grantPlanAction, revokePlanAction } from "./actions";
 
 export const metadata = { title: "Planes de la beta" };
@@ -28,10 +29,8 @@ const ERROR_MESSAGE: Record<string, string> = {
   sin_base: "Tu cuenta es admin en la app pero falta habilitarla en la base (app_admins).",
 };
 
-const FIELD =
-  "min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 text-base text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
-const BUTTON =
-  "inline-flex min-h-11 items-center justify-center rounded-control bg-brand px-4 text-base font-medium text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
+const FIELD = inputClasses();
+const BUTTON = buttonClasses({ className: "self-start" });
 
 function stateText(row: AdminPlanRow, now: Date): string {
   const access = planAccess({
@@ -72,40 +71,32 @@ export default async function PlanesPage({
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-6">
-      <h1 className="text-title font-semibold">Planes de la beta</h1>
+      <h1 className="text-title font-bold">Planes de la beta</h1>
 
       {!isAdmin ? (
         <p className="text-sm text-fg-muted">
           Tu cuenta no puede administrar planes: es una función de administración.
         </p>
       ) : rows === null ? (
-        <p role="alert" className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">
+        <Alert tone="danger" role="alert">
           {ERROR_MESSAGE.sin_base}
-        </p>
+        </Alert>
       ) : (
         <>
           {ok && OK_MESSAGE[ok] ? (
-            <p
-              role="status"
-              data-testid="planes-ok"
-              className="rounded-control bg-success-soft px-3 py-2 text-sm text-success"
-            >
+            <Alert tone="success" role="status" data-testid="planes-ok">
               {OK_MESSAGE[ok]}
-            </p>
+            </Alert>
           ) : null}
           {error && ERROR_MESSAGE[error] ? (
-            <p
-              role="alert"
-              data-testid="planes-error"
-              className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger"
-            >
+            <Alert tone="danger" role="alert" data-testid="planes-error">
               {ERROR_MESSAGE[error]}
-            </p>
+            </Alert>
           ) : null}
 
           <section
             aria-labelledby="activar"
-            className="flex flex-col gap-3 rounded-card border border-line p-4"
+            className={cardClasses({ padding: "md", className: "flex flex-col gap-3" })}
           >
             <h2 id="activar" className="text-heading font-medium">
               Activar {days} días
@@ -155,7 +146,7 @@ export default async function PlanesPage({
             ) : (
               <ul
                 data-testid="planes-lista"
-                className="flex flex-col divide-y divide-line rounded-card border border-line"
+                className="flex flex-col divide-y divide-line rounded-card bg-surface"
               >
                 {rows.map((row) => (
                   <li key={row.email} className="flex flex-col gap-2 p-3 text-sm">
@@ -182,7 +173,11 @@ export default async function PlanesPage({
                         <input type="hidden" name="email" value={row.email} />
                         <button
                           type="submit"
-                          className="inline-flex min-h-11 w-fit items-center rounded-control border border-line-strong px-4 text-fg"
+                          className={buttonClasses({
+                            variant: "secondary",
+                            size: "sm",
+                            className: "w-fit",
+                          })}
                         >
                           Sí, quitar el plan
                         </button>

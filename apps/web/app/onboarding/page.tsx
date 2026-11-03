@@ -65,7 +65,7 @@ export default async function OnboardingPage({
     roles: group.roles.map((key) => ({ key, label: ROLE_SKILLS[key].label })),
   }));
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex flex-col gap-5">
       <OnboardingSteps
         current={1}
         guide={
@@ -80,11 +80,13 @@ export default async function OnboardingPage({
           />
         }
       />
-      <h1 className="text-title font-bold">Completá tu perfil</h1>
-      <p className="text-sm text-fg-subtle">
-        Antes de ver ofertas, contanos un poco de vos: con esto leemos cada aviso contra tu perfil.
-        Lo podés cambiar cuando quieras.
-      </p>
+      <div className="flex flex-col gap-1">
+        <h1 className="text-title font-bold">Completá tu perfil</h1>
+        <p className="text-sm text-fg-subtle">
+          Antes de ver ofertas, contanos un poco de vos: con esto leemos cada aviso contra tu
+          perfil. Lo podés cambiar cuando quieras.
+        </p>
+      </div>
       <OnboardingForm
         roleGroups={roleGroups}
         salaries={salaries}
@@ -100,7 +102,7 @@ export default async function OnboardingPage({
         minSummary={MIN_SUMMARY_CHARS}
         maxSummary={MAX_SUMMARY_CHARS}
       />
-      <div className="mt-4 border-t border-line pt-4">
+      <div className="mt-2 border-t border-line pt-5">
         <DeleteAccountForm error={error === "confirmacion"} returnTo="/onboarding" />
       </div>
     </section>

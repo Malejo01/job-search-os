@@ -4,6 +4,7 @@ import type { ActionProposal, ManualJobEvent } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { useEffect, useId, useState, useTransition, type FormEvent } from "react";
 import { SubmitButton } from "@/app/components/submit-button";
+import { buttonClasses } from "@/components/ui";
 import { PROPOSAL_MAX_AGE_MS } from "@/components/assistant-proposal";
 import {
   assistantChangeStatusAction,
@@ -14,9 +15,6 @@ import {
 import { JobFields } from "./jobs/new/job-fields";
 
 export type ActionStatus = "pendiente" | "enviada" | "descartada";
-
-const FOCUS_RING =
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 const EVENT_BUTTON: Record<ManualJobEvent, string> = {
   apply: "Marcar como aplicada",
@@ -129,7 +127,7 @@ export function AssistantActionCard({
       type="button"
       onClick={onDiscard}
       disabled={pending}
-      className={`min-h-11 rounded-control border border-line-strong px-3 py-2 text-sm font-medium text-fg disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_RING}`}
+      className={buttonClasses({ variant: "secondary", size: "sm" })}
     >
       {action.kind === "new_job" ? "No cargar" : "Descartar"}
     </button>
@@ -166,9 +164,9 @@ export function AssistantActionCard({
       <section
         aria-labelledby={titleId}
         data-testid="assistant-action"
-        className="flex flex-col gap-2 rounded-card border border-success-line bg-surface p-3 text-sm"
+        className="flex flex-col gap-2 rounded-card border-2 border-success-line bg-surface p-4 text-sm"
       >
-        <h3 id={titleId} className="font-semibold break-words">
+        <h3 id={titleId} className="font-bold break-words">
           Cambio de estado propuesto
         </h3>
         <p className="break-words">{action.jobLabel}</p>
@@ -197,7 +195,7 @@ export function AssistantActionCard({
               <SubmitButton
                 pending={pending}
                 pendingLabel="Guardando…"
-                className={`min-h-11 rounded-control bg-brand hover:bg-brand-hover px-3 py-2 text-sm font-medium text-brand-contrast ${FOCUS_RING}`}
+                className={buttonClasses({ size: "sm" })}
               >
                 {EVENT_BUTTON[action.event]}
               </SubmitButton>
@@ -215,9 +213,9 @@ export function AssistantActionCard({
     <section
       aria-labelledby={titleId}
       data-testid="assistant-action"
-      className="flex flex-col gap-2 rounded-card border border-success-line bg-surface p-3 text-sm"
+      className="flex flex-col gap-2 rounded-card border-2 border-success-line bg-surface p-4 text-sm"
     >
-      <h3 id={titleId} className="font-semibold break-words">
+      <h3 id={titleId} className="font-bold break-words">
         Oferta para cargar
       </h3>
       <p className="text-xs text-fg-muted">

@@ -40,7 +40,7 @@ export default async function OnboardingSkillsPage({
     });
 
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex flex-col gap-5">
       <OnboardingSteps
         current={2}
         guide={
@@ -54,11 +54,13 @@ export default async function OnboardingSkillsPage({
           />
         }
       />
-      <h1 className="text-title font-bold">Tus skills</h1>
-      <p className="text-sm text-fg-subtle">
-        Opcional. Con tus niveles te mostramos qué te falta de verdad en el mercado y en tu plan. Lo
-        podés cambiar después en Ajustes.
-      </p>
+      <div className="flex flex-col gap-1">
+        <h1 className="text-title font-bold">Tus skills</h1>
+        <p className="text-sm text-fg-subtle">
+          Opcional. Con tus niveles te mostramos qué te falta de verdad en el mercado y en tu plan.
+          Lo podés cambiar después en Ajustes.
+        </p>
+      </div>
       <SkillsForm
         action={saveOnboardingSkillsAction}
         selectedRoles={targetRoles}

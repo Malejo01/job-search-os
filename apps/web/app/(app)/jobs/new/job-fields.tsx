@@ -1,7 +1,10 @@
 import { MAX_JOB_FIELD_CHARS } from "@job-search-os/pipeline";
 import { SubmitButton } from "@/app/components/submit-button";
+import { buttonClasses, inputClasses } from "@/components/ui";
 
-const input = "rounded-control border-2 border-line-strong px-3 py-2 text-base";
+// C9-11: campos de radio 18 y el botón lima de las primitivas
+const input = inputClasses();
+const LABEL = "flex flex-col gap-1.5 text-sm";
 
 export type JobFieldsDefaults = {
   url?: string | null;
@@ -37,7 +40,7 @@ export function JobFields({
     error === key ? { "aria-invalid": true, "aria-describedby": "alta-error" } : {};
   return (
     <>
-      <label className="flex flex-col gap-1 text-sm">
+      <label className={LABEL}>
         Link del aviso (opcional; sirve para no cargarlo dos veces)
         <input
           name="url"
@@ -48,8 +51,8 @@ export function JobFields({
           className={input}
         />
       </label>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className={LABEL}>
           Título *
           <input
             name="title"
@@ -60,7 +63,7 @@ export function JobFields({
             className={input}
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className={LABEL}>
           Empresa *
           <input
             name="company"
@@ -71,7 +74,7 @@ export function JobFields({
             className={input}
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className={LABEL}>
           Ubicación
           <input
             name="location"
@@ -81,7 +84,7 @@ export function JobFields({
             className={input}
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className={LABEL}>
           Modalidad
           <select
             name="modality"
@@ -94,36 +97,32 @@ export function JobFields({
             <option value="desconocida">No dice</option>
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className={LABEL}>
           Salario USD mensual (mín.)
           <input name="salaryMin" type="number" min={0} className={input} />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className={LABEL}>
           Salario USD mensual (máx.)
           <input name="salaryMax" type="number" min={0} className={input} />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className={LABEL}>
           Candidatos (si el aviso lo dice)
           <input name="candidates" type="number" min={0} className={input} />
         </label>
       </div>
-      <label className="flex flex-col gap-1 text-sm">
+      <label className={LABEL}>
         Descripción del puesto (pegá el texto completo; si la dejás vacía queda en «Sin
         descripción»)
         <textarea
           name="jdText"
           rows={8}
           defaultValue={defaults.jdText ?? undefined}
-          className={input}
+          className={inputClasses({ multiline: true })}
         />
       </label>
       <div className="flex flex-wrap items-center justify-end gap-2">
         {secondaryAction}
-        <SubmitButton
-          pendingLabel={pendingLabel}
-          pending={pending}
-          className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover"
-        >
+        <SubmitButton pendingLabel={pendingLabel} pending={pending} className={buttonClasses()}>
           {submitLabel}
         </SubmitButton>
       </div>

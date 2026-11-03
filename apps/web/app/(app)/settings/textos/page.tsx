@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { canCreateInvitations } from "@/lib/invitations";
 import { requireUserId } from "@/lib/session";
+import { alertClasses } from "@/components/ui";
 import { welcomeEmailSample } from "@/lib/welcome-email-sample";
 
 export const metadata: Metadata = { title: "Textos para revisar", robots: { index: false } };
@@ -112,7 +113,7 @@ function TextoItem({ texto: t }: { texto: TextoAni }) {
         Archivo: <code>{t.archivo}</code>
       </p>
       {t.decidir ? (
-        <p className="rounded-control bg-warning-soft px-3 py-2 text-warning">
+        <p className={alertClasses({ tone: "warning" })}>
           <span className="font-bold">Para decidir:</span> {t.decidir}
         </p>
       ) : null}

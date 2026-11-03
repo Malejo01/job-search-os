@@ -4,6 +4,7 @@ import type { CvChatState, CvDocument, CvHistoryInput } from "@job-search-os/pip
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { CvPreview } from "@/components/cv-preview";
+import { Alert, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
 
 /**
  * Chat de CV (C-25, CVC-5). Cliente: lleva el estado de la charla en memoria y lo manda en cada pedido a
@@ -23,12 +24,15 @@ type ApiErr = {
   links?: { label: string; href: string }[];
 };
 
-const BUTTON =
-  "inline-flex min-h-11 items-center justify-center rounded-control px-4 py-2 text-base font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:opacity-50";
-const PRIMARY = `${BUTTON} bg-brand text-brand-contrast hover:bg-brand-hover`;
-const SECONDARY = `${BUTTON} border border-line-strong text-fg hover:bg-surface-muted`;
-const FIELD =
-  "min-h-11 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg focus-visible:outline-focus";
+// C9-11: primitivas del rediseño. Una sola acción lima por paso de la charla
+const PRIMARY = buttonClasses();
+const SECONDARY = buttonClasses({ variant: "secondary" });
+const SECONDARY_SM = buttonClasses({ variant: "secondary", size: "sm" });
+const FIELD = inputClasses();
+const TEXTAREA = inputClasses({ multiline: true });
+const FIELDSET = cardClasses({ padding: "none", className: "flex flex-col gap-3 p-4 sm:p-5" });
+// `float-left w-full`: la leyenda queda dentro del panel (sin borde, una leyenda normal se pega arriba)
+const LEGEND = "float-left w-full text-base font-bold text-fg";
 
 async function post(body: Record<string, unknown>): Promise<ApiOk | ApiErr> {
   try {
@@ -157,20 +161,20 @@ export function CvChat() {
   }
 
   const alert = notice ? (
-    <div role="alert" className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">
+    <Alert tone="danger" role="alert">
       <p>{notice.message}</p>
       {notice.links && notice.links.length > 0 ? (
         <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
           {notice.links.map((l) => (
             <li key={l.href}>
-              <Link href={l.href} className="underline">
+              <Link href={l.href} className="font-semibold underline underline-offset-2">
                 {l.label}
               </Link>
             </li>
           ))}
         </ul>
       ) : null}
-    </div>
+    </Alert>
   ) : null;
 
   if (phase === "intro") {
@@ -212,7 +216,7 @@ export function CvChat() {
           aria-live="polite"
           aria-label="Mensajes"
           data-testid="cv-messages"
-          className="flex max-h-[50vh] flex-col gap-2 overflow-y-auto rounded-card bg-surface p-3"
+          className="flex max-h-[50vh] flex-col gap-2 overflow-y-auto rounded-card bg-surface p-4"
         >
           {messages.map((m, i) => (
             <p
@@ -220,7 +224,7 @@ export function CvChat() {
               className={
                 m.role === "assistant"
                   ? "max-w-[90%] self-start break-words rounded-control bg-surface-muted px-3 py-2 text-sm text-fg"
-                  : "max-w-[90%] self-end break-words rounded-control bg-brand px-3 py-2 text-sm text-brand-contrast"
+                  : "max-w-[90%] self-end break-words rounded-control bg-ink px-3 py-2 text-sm text-on-ink"
               }
             >
               <span className="sr-only">{m.role === "assistant" ? "Asistente: " : "Vos: "}</span>
@@ -246,7 +250,7 @@ export function CvChat() {
             onChange={(e) => setDraft(e.target.value)}
             rows={3}
             disabled={busy}
-            className={FIELD}
+            className={TEXTAREA}
           />
           <div className="flex flex-wrap gap-3">
             <button type="submit" disabled={busy} className={PRIMARY}>
@@ -280,7 +284,12 @@ export function CvChat() {
   if (phase === "review" && state) {
     return (
       <section className="flex flex-col gap-4" aria-labelledby="cv-review">
-        <h2 id="cv-review" ref={headingRef} tabIndex={-1} className="text-xl font-semibold text-fg">
+        <h2
+          id="cv-review"
+          ref={headingRef}
+          tabIndex={-1}
+          className="text-heading font-bold text-fg"
+        >
           Esto es lo que entendí
         </h2>
         <p className="text-sm text-fg-muted">
@@ -294,7 +303,7 @@ export function CvChat() {
             <select
               value={lang}
               onChange={(e) => setLang(e.target.value === "en" ? "en" : "es")}
-              className="min-h-11 rounded-control border-2 border-line-control bg-surface px-2 text-base text-fg focus-visible:outline-focus"
+              className={FIELD}
             >
               <option value="es">Español</option>
               <option value="en">English</option>
@@ -323,7 +332,7 @@ export function CvChat() {
           id="cv-preview-title"
           ref={headingRef}
           tabIndex={-1}
-          className="text-xl font-semibold text-fg"
+          className="text-heading font-bold text-fg"
         >
           Así queda tu CV
         </h2>
@@ -350,7 +359,7 @@ export function CvChat() {
 
   return (
     <section className="flex flex-col gap-3" aria-labelledby="cv-done">
-      <h2 id="cv-done" ref={headingRef} tabIndex={-1} className="text-xl font-semibold text-fg">
+      <h2 id="cv-done" ref={headingRef} tabIndex={-1} className="text-heading font-bold text-fg">
         Listo
       </h2>
       <p role="status" className="text-sm text-fg-muted" data-testid="cv-saved">
@@ -391,7 +400,7 @@ function DutiesField({
           setText(e.target.value);
           onChange(lines(e.target.value, 4).map((l) => l.slice(0, 220)));
         }}
-        className={FIELD}
+        className={TEXTAREA}
       />
     </label>
   );
@@ -437,8 +446,8 @@ function ReviewEditor({
 
   return (
     <div className="flex flex-col gap-4" data-testid="cv-card">
-      <fieldset className="flex flex-col gap-2 rounded-card border border-line p-3">
-        <legend className="px-1 text-base font-medium text-fg">Puesto objetivo</legend>
+      <fieldset className={FIELDSET}>
+        <legend className={LEGEND}>Puesto objetivo</legend>
         <label className="flex flex-col gap-1 text-sm text-fg">
           Puesto
           <input
@@ -450,8 +459,8 @@ function ReviewEditor({
         </label>
       </fieldset>
 
-      <fieldset className="flex flex-col gap-3 rounded-card border border-line p-3">
-        <legend className="px-1 text-base font-medium text-fg">Experiencia</legend>
+      <fieldset className={FIELDSET}>
+        <legend className={LEGEND}>Experiencia</legend>
         {state.works.length === 0 ? empty : null}
         {state.works.map((w, i) => (
           <div
@@ -496,7 +505,7 @@ function ReviewEditor({
                 set({ works: state.works.filter((_, j) => j !== i) });
                 setVersion((v) => v + 1);
               }}
-              className={`${SECONDARY} self-start`}
+              className={`${SECONDARY_SM} self-start`}
             >
               Quitar trabajo {i + 1}
             </button>
@@ -504,8 +513,8 @@ function ReviewEditor({
         ))}
       </fieldset>
 
-      <fieldset className="flex flex-col gap-3 rounded-card border border-line p-3">
-        <legend className="px-1 text-base font-medium text-fg">Estudios y certificaciones</legend>
+      <fieldset className={FIELDSET}>
+        <legend className={LEGEND}>Estudios y certificaciones</legend>
         {state.education.length + state.certifications.length === 0 ? empty : null}
         {state.education.map((e, i) => (
           <div key={`e${i}`} className="flex flex-col gap-2">
@@ -542,7 +551,7 @@ function ReviewEditor({
             <button
               type="button"
               onClick={() => set({ education: state.education.filter((_, j) => j !== i) })}
-              className={`${SECONDARY} self-start`}
+              className={`${SECONDARY_SM} self-start`}
             >
               Quitar estudio {i + 1}
             </button>
@@ -558,7 +567,7 @@ function ReviewEditor({
               onClick={() =>
                 set({ certifications: state.certifications.filter((_, j) => j !== i) })
               }
-              className={SECONDARY}
+              className={SECONDARY_SM}
             >
               Quitar certificación {i + 1}
             </button>
@@ -566,8 +575,8 @@ function ReviewEditor({
         ))}
       </fieldset>
 
-      <fieldset className="flex flex-col gap-2 rounded-card border border-line p-3">
-        <legend className="px-1 text-base font-medium text-fg">Skills, idiomas y links</legend>
+      <fieldset className={FIELDSET}>
+        <legend className={LEGEND}>Skills, idiomas y links</legend>
         <SkillsField skills={state.skills} onChange={(skills) => set({ skills })} />
         <p className="text-sm text-fg-muted">
           Idiomas:{" "}

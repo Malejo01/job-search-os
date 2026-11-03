@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { buttonClasses, cardClasses, inputClasses } from "@/components/ui";
 import { inviteSelectedFromWaitlistAction, type BulkInviteResult } from "./actions";
 import { WaitlistRow, type WaitlistRowData } from "./waitlist-row";
 
@@ -79,7 +80,7 @@ export function WaitlistPanel({
   return (
     <div className="flex flex-col gap-3">
       <div
-        className="flex flex-col gap-3 rounded-card border border-line p-3 text-sm"
+        className={cardClasses({ padding: "sm", className: "flex flex-col gap-3 text-sm" })}
         data-testid="waitlist-bulk"
       >
         <div className="flex flex-wrap items-end gap-3">
@@ -95,14 +96,14 @@ export function WaitlistPanel({
                 setCap(e.target.value);
                 setConfirming(false);
               }}
-              className="w-24 rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base"
+              className={inputClasses({ className: "max-w-24" })}
             />
           </label>
           <button
             type="button"
             onClick={selectFirst}
             disabled={invitable.length === 0 || pending}
-            className="min-h-11 rounded-control border border-line-strong px-3 py-2 disabled:opacity-60"
+            className={buttonClasses({ variant: "secondary", size: "sm" })}
           >
             Elegir las primeras {Math.min(capNumber, invitable.length)} sin invitar
           </button>
@@ -113,7 +114,7 @@ export function WaitlistPanel({
               setConfirming(false);
             }}
             disabled={selected.size === 0 || pending}
-            className="min-h-11 rounded-control border border-line-strong px-3 py-2 disabled:opacity-60"
+            className={buttonClasses({ variant: "secondary", size: "sm" })}
           >
             Quitar la selección
           </button>
@@ -148,14 +149,14 @@ export function WaitlistPanel({
                 type="button"
                 onClick={run}
                 disabled={pending}
-                className="min-h-11 rounded-control bg-brand px-4 py-2 font-medium text-brand-contrast disabled:opacity-60"
+                className={buttonClasses({ size: "sm" })}
               >
                 Confirmar e invitar
               </button>
               <button
                 type="button"
                 onClick={() => setConfirming(false)}
-                className="min-h-11 rounded-control border border-line-strong px-4 py-2"
+                className={buttonClasses({ variant: "secondary", size: "sm" })}
               >
                 Cancelar
               </button>
@@ -166,7 +167,7 @@ export function WaitlistPanel({
             type="button"
             onClick={() => setConfirming(true)}
             disabled={chosen.length === 0 || overCap || pending}
-            className="min-h-11 self-start rounded-control bg-brand px-4 py-2 font-medium text-brand-contrast disabled:opacity-60"
+            className={buttonClasses({ size: "sm", className: "self-start" })}
           >
             {pending ? "Creando invitaciones…" : "Invitar a los seleccionados"}
           </button>
@@ -192,7 +193,11 @@ export function WaitlistPanel({
             <button
               type="button"
               onClick={() => void copy("all", allMessages)}
-              className="min-h-11 self-start rounded-control border border-line-strong bg-surface px-3 py-2"
+              className={buttonClasses({
+                variant: "secondary",
+                size: "sm",
+                className: "self-start",
+              })}
             >
               {copied === "all" ? "Copiado" : "Copiar todos los mensajes"}
             </button>
@@ -211,7 +216,11 @@ export function WaitlistPanel({
                   <button
                     type="button"
                     onClick={() => void copy(item.id, item.message)}
-                    className="min-h-11 self-start rounded-control border border-line-strong bg-surface px-3 py-2"
+                    className={buttonClasses({
+                      variant: "secondary",
+                      size: "sm",
+                      className: "self-start",
+                    })}
                   >
                     {copied === item.id ? "Copiado" : `Copiar el mensaje de ${name}`}
                   </button>
@@ -229,7 +238,7 @@ export function WaitlistPanel({
       {entries.length === 0 ? (
         <p className="text-sm text-fg-subtle">Nadie coincide con estos filtros.</p>
       ) : (
-        <ul className="flex flex-col divide-y divide-line rounded-card border border-line">
+        <ul className="flex flex-col divide-y divide-line rounded-card bg-surface">
           {entries.map((entry) => (
             <WaitlistRow
               key={entry.id}

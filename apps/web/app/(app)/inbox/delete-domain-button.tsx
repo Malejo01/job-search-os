@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
+import { buttonClasses } from "@/components/ui";
 import { deleteDomainAction } from "./leak-actions";
 
 /** "Eliminar todos los de este dominio" (JS-048): una sola confirmación con la cantidad. */
@@ -22,7 +23,7 @@ export function DeleteDomainButton({ domain, total }: { domain: string; total: n
           router.refresh();
         });
       }}
-      className="rounded-control border border-danger-line bg-surface px-2 py-1 text-danger"
+      className={buttonClasses({ variant: "danger", size: "sm" })}
     >
       Eliminar todos
     </button>
