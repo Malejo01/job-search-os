@@ -94,6 +94,11 @@ test.describe("Flujo 92: áreas de especialidad guardadas (C3-3)", () => {
       localStorage.setItem("jso-tema", "oscuro");
       document.documentElement.classList.add("dark");
     });
+    // Los chips llevan `transition-colors`: axe tiene que medir cuando terminó el pasaje a oscuro,
+    // no a mitad de camino (fondo todavía claro con el texto ya claro)
+    await page.waitForFunction(() =>
+      document.getAnimations().every((a) => a.playState !== "running"),
+    );
     expect((await axeSummary(page)).violations).toEqual([]);
     await page.evaluate(() => {
       localStorage.removeItem("jso-tema");
