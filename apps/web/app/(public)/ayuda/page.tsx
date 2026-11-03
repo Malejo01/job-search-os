@@ -148,6 +148,28 @@ const FAQS: FaqItem[] = [
     ),
   },
   {
+    q: "¿Sirve para trabajos presenciales, por ejemplo en Salta?",
+    a: (
+      <p>
+        Sí. En tu perfil marcás si buscás remoto, híbrido o presencial, y en qué ciudad vivís. Las
+        ofertas que traemos de fuentes públicas son, en su mayoría, remotas. Para avisos de tu
+        ciudad, pegá la oferta que viste o reenviá a tu dirección de la app las alertas que te
+        llegan por email: las leemos igual contra tu perfil. Si un aviso es presencial en otra
+        ciudad, te lo marcamos.
+      </p>
+    ),
+  },
+  {
+    q: "¿Puedo dejar el Plan Beta cuando quiera?",
+    a: (
+      <p>
+        Sí. El Plan Beta se paga mes a mes y no se renueva solo: si no pagás el mes siguiente, tu
+        cuenta pasa al plan gratis y tus datos quedan guardados. Unos días antes de que venza te
+        avisamos por email. Si querés irte del todo, podés borrar tu cuenta en Ajustes.
+      </p>
+    ),
+  },
+  {
     q: "¿Necesito conocimientos técnicos o saber de programación?",
     a: (
       <p>
