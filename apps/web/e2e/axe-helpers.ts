@@ -11,6 +11,7 @@ export async function axeSummary(
   /** Selectores que axe no mira (solo logotipos: WCAG 1.4.3 los exceptúa del contraste). */
   exclude: string[] = [],
 ): Promise<{ violations: string[]; unmeasured: string[] }> {
+  await settleBrandMotion(page);
   let builder = new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]);
   for (const selector of exclude) builder = builder.exclude(selector);
   const result = await builder.analyze();
@@ -32,4 +33,26 @@ export async function axeSummary(
     ...unparsed.map((n) => `color sin leer: ${n.target.join(" ")}`),
   ];
   return { violations, unmeasured };
+}
+
+/**
+ * Espera a que terminen los momentos de marca (C9-14): el sello que se estampa entra transparente,
+ * grande y girado. Medido a mitad de camino, axe vería un contraste que no es el final. Sin sellos
+ * animándose, sale enseguida.
+ */
+export async function settleBrandMotion(page: Page): Promise<void> {
+  await page
+    .waitForFunction(
+      () =>
+        Array.from(document.querySelectorAll<HTMLElement>("[data-sello-estampa]")).every((el) => {
+          const css = getComputedStyle(el);
+          return (
+            css.opacity === "1" &&
+            (css.transform === "none" || css.transform === "matrix(1, 0, 0, 1, 0, 0)")
+          );
+        }),
+      undefined,
+      { timeout: 5_000 },
+    )
+    .catch(() => undefined);
 }

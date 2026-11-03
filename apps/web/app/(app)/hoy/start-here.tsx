@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { Card, Icon, buttonClasses, textLinkClasses, type IconName } from "@/components/ui";
+import { CheckBounce } from "@/components/motion/check-bounce";
 import { requireActiveUserId } from "@/lib/session";
 import { getStartHereFacts, startHereEnabled } from "@/lib/start-here";
 
@@ -91,7 +92,9 @@ export async function StartHere({ userId }: { userId: string }) {
                   : "border-2 border-dashed border-line-control text-fg-muted"
               }`}
             >
-              <Icon name={step.done ? "check" : STEP_ICON[step.id]} size={18} />
+              <CheckBounce id={`${userId}:${step.id}`} done={step.done}>
+                <Icon name={step.done ? "check" : STEP_ICON[step.id]} size={18} />
+              </CheckBounce>
             </span>
             <div className="flex min-w-0 flex-col gap-0.5">
               <span
