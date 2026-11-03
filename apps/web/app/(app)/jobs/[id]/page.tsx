@@ -157,7 +157,7 @@ export default async function JobDetailPage({
       />
       {error ? (
         <p role="alert" className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">
-          {ERRORS[error] ?? "Algo falló."}
+          {ERRORS[error] ?? "No pudimos hacerlo. Recargá la página y probá otra vez."}
         </p>
       ) : null}
       {capNotice ? (

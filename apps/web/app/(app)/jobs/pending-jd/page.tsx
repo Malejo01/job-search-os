@@ -118,7 +118,7 @@ export default async function PendingJdPage({
             role="alert"
             className="rounded-control bg-danger-soft px-3 py-2 text-sm font-semibold text-danger"
           >
-            {ERRORS[error] ?? "Algo falló."}
+            {ERRORS[error] ?? "No pudimos hacerlo. Recargá la página y probá otra vez."}
           </p>
         ) : null}
         {capMessage ? (

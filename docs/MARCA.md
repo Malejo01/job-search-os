@@ -40,6 +40,28 @@ Los PNG (`apple-icon.png`, `public/icons/*`) se generan con Playwright desde el 
 
 Dónde está: headers de la app con sesión, onboarding, legales, `terminos-actualizados`, la vitrina pública (en español e inglés; a menos de 640 px va solo el logotipo para que entre con «Entrar» y «Pedir acceso») y las pantallas de cuenta (login, registro, setup, olvidé y reset).
 
+## Voz y tono (C9-15)
+
+«Amigo con onda», profesional y con consejos de coach. Se trata de «vos» y **nunca se promete trabajo**. Tres reglas:
+
+1. **La onda va solo en los momentos tranquilos**: el saludo, los estados vacíos, los logros. Con un error o un puntaje bajo, el tono es claro y sereno: nada de «Uh», «Tranqui» ni chistes.
+2. **Todo lo que falta se dice como un paso concreto.** No «Te falta Tango», sino «Sumá Tango y esta oferta te queda mucho más cerca».
+3. **Guiños locales** (el mate, «te queda pintada», «te calza»): como mucho uno por pantalla.
+
+Los botones dicen exactamente qué hacen («Ver mis ofertas», «Guardar descripción»), sin onda. Los textos que genera el modelo (fortalezas, debilidades, veredicto) no se reescriben: solo cambia cómo se presentan.
+
+| Momento | Ejemplo |
+|---|---|
+| Saludo de Hoy | «¡Buen día, Lucía! Hoy hay 3 ofertas que te pueden quedar pintadas.» |
+| Por qué del puntaje | «Te queda muy bien por tus 3 años en sueldos. Sumá Tango Gestión y quedás entre las mejores postulaciones.» |
+| Cercanía en el detalle | «Cumplís 4 de 5 requisitos. Te falta uno para quedar entre las mejores postulaciones.» |
+| Sin ofertas | «Todavía no llegó nada, pero estamos buscando todos los días. Mientras, dejá tu perfil a punto: elegí tus áreas.» |
+| Error al guardar | «No pudimos guardar la descripción. Tu texto sigue acá: revisá la conexión y tocá Guardar otra vez.» |
+| Botón | «Ver mis ofertas» |
+| El sello | «Muy afín», «Bastante afín», «Afín a medias», «Poco afín», «Lejos de tu perfil»: la palabra siempre está, nunca solo el color |
+
+Dónde viven los textos: los de las pantallas, en cada pantalla; los de la ayuda en contexto, en `packages/pipeline/src/help/ayuda-en-contexto.ts`; los que revisa Ani, juntos en `/settings/textos`. Los del sello y la tarjeta, en `packages/pipeline/src/score-display.ts` y `fit/offer-card.ts`.
+
 ## Dónde revisarla
 
 **`/settings/marca`** (solo para quien administra la beta, R-1): el logo en sus variantes y fondos, y dos paneles lado a lado, claro y oscuro, con los tokens y su valor real, las tipografías y todos los componentes con sus estados. Es la página para que Ani revise la marca sin recorrer la app.
