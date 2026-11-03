@@ -7,6 +7,7 @@ import {
   parsePeriod,
   resolveSince,
   reviewProgress,
+  splitFarFromProfile,
   type HumanVerdict,
   type JobStatus,
   type Period,
@@ -318,8 +319,10 @@ export async function jobNeighbors(
   filters: JobFilters,
 ): Promise<{ prev: string | null; next: string | null }> {
   const rows = await listJobs(userId, filters, { include: jobId, withPreScore: false });
+  // Mismo orden que se ve en /jobs: las «Lejos de tu perfil» al final (C9-5)
+  const { near, far } = splitFarFromProfile(rows, (r) => r.score);
   return neighbors(
-    rows.map((r) => r.id),
+    [...near, ...far].map((r) => r.id),
     jobId,
   );
 }

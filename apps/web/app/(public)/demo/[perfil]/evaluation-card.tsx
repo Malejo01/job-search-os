@@ -5,7 +5,7 @@ import type { DemoEvaluationRow } from "@/lib/demo";
 import type { ChecklistView } from "@/lib/job-detail";
 import { MODALITY_LABELS, modalityKey } from "../../ofertas/job-card";
 import { Feedback } from "./feedback";
-import { ScoreBadge } from "@/components/ui";
+import { Seal } from "@/components/ui";
 
 const BAR_COLOR = {
   alto: "bg-success-strong",
@@ -66,7 +66,7 @@ export function EvaluationCard({
         </div>
 
         <div {...step("demo:puntaje")} className="flex flex-col gap-1 rounded-control p-1">
-          <ScoreBadge score={row.score} />
+          <Seal score={row.score} />
           <div aria-hidden="true" className="h-2 w-full rounded-pill bg-surface-muted">
             <div
               className={`h-2 rounded-pill ${BAR_COLOR[tone]}`}

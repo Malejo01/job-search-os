@@ -11,7 +11,7 @@ import {
   Field,
   Icon,
   ICON_PATHS,
-  ScoreBadge,
+  Seal,
   textLinkClasses,
   type BadgeTone,
   type IconName,
@@ -212,12 +212,14 @@ function ModePanel() {
       <div className="flex flex-col gap-2">
         <h3 className="text-sm font-bold">Score y etiquetas</h3>
         <div className="flex flex-wrap items-center gap-2">
-          <ScoreBadge score={8.5} />
-          <ScoreBadge score={5.5} />
-          <ScoreBadge score={3} />
-          <ScoreBadge score={null} preScore={6} />
-          <ScoreBadge score={null} pending />
-          <ScoreBadge score={null} />
+          <Seal score={8.5} />
+          <Seal score={7.5} />
+          <Seal score={5.5} />
+          <Seal score={3} />
+          <Seal score={1.5} />
+          <Seal score={null} preScore={6} />
+          <Seal score={null} pending />
+          <Seal score={null} />
         </div>
         <div className="flex flex-wrap gap-1.5">
           {BADGES.map(([tone, label]) => (

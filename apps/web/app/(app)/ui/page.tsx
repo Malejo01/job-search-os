@@ -12,7 +12,7 @@ import {
   Field,
   Icon,
   ICON_PATHS,
-  ScoreBadge,
+  Seal,
   textLinkClasses,
   type BadgeTone,
   type ButtonVariant,
@@ -112,14 +112,15 @@ export default function UiPage() {
           Score
         </h2>
         <div className="flex flex-wrap items-center gap-3">
-          <ScoreBadge score={8.5} />
-          <ScoreBadge score={5.5} />
-          <ScoreBadge score={3} />
-          <ScoreBadge score={null} preScore={6} />
-          <ScoreBadge score={null} pending />
-          <ScoreBadge score={null} />
-          <ScoreBadge score={8} size="sm" />
-          <ScoreBadge score={8} size="lg" />
+          <Seal score={8.5} />
+          <Seal score={7.5} />
+          <Seal score={5.5} />
+          <Seal score={3} />
+          <Seal score={1.5} />
+          <Seal score={null} preScore={6} />
+          <Seal score={null} pending />
+          <Seal score={null} />
+          <Seal score={9.2} size="detail" />
         </div>
       </section>
 
