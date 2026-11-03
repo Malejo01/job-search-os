@@ -35,6 +35,7 @@ export default function AccesoPage() {
     contact: contactLink("Borrar mis datos de la lista de espera"),
     // Embudo (C8-2): apagado salvo `ACCESO_FUNNEL_ENABLED=1` (con la migración 0057 aplicada)
     funnel: accesoFunnelEnabled(),
+    brandName: BRAND.name,
   };
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-5 py-2 sm:py-8">
