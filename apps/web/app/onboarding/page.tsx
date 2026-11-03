@@ -24,6 +24,7 @@ import { ROLE_SKILLS } from "@/lib/skill-levels";
 import { DeleteAccountForm } from "../(app)/settings/delete-account-form";
 import { OnboardingForm } from "./onboarding-form";
 import { OnboardingSteps } from "./steps";
+import { Illustration } from "@/components/brand/illustration";
 
 export const dynamic = "force-dynamic";
 // La primera ingesta corre en `after()` al guardar y hereda la duración de esta ruta
@@ -80,6 +81,8 @@ export default async function OnboardingPage({
           />
         }
       />
+      {/* Ilustración «bienvenida» (C9-13): una por pantalla, arriba del primer paso */}
+      <Illustration escena="bienvenida" priority className="w-40 sm:w-52" />
       <div className="flex flex-col gap-1">
         <h1 className="text-title font-bold">Completá tu perfil</h1>
         <p className="text-sm text-fg-subtle">

@@ -17,7 +17,15 @@ import { GUIDE_LABELS, GUIDE_STEPS } from "@/lib/guide";
 import { PRE_SCORE_EXPLAIN, SOURCE_LABELS, STATUS_LABELS } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import Link from "next/link";
-import { Alert, EmptyState, buttonClasses, textLinkClasses } from "@/components/ui";
+import { Illustration } from "@/components/brand/illustration";
+import {
+  Alert,
+  EmptyState,
+  Icon,
+  buttonClasses,
+  textLinkClasses,
+  type IconName,
+} from "@/components/ui";
 import { AutoRefresh } from "./auto-refresh";
 import { EmailNudge } from "./email-nudge";
 import { FirstSteps, firstStepsHidden } from "./first-steps";
@@ -212,6 +220,21 @@ function JobsAside({ pending }: { pending: number }) {
 
 const EMPTY_LINK = textLinkClasses({ block: true });
 
+/** Qué hacer mientras no hay ofertas (V3): los tres caminos de siempre, como checklist. */
+const EMPTY_STEPS: ReadonlyArray<{ href: string; label: string; icon: IconName }> = [
+  {
+    href: "/settings#puesto",
+    label: "Esperar las ofertas que sumamos cada día: elegí tus puestos",
+    icon: "filtro",
+  },
+  {
+    href: "/settings/asistente",
+    label: "Reenviar tus alertas de empleo por email",
+    icon: "alertas",
+  },
+  { href: "/jobs/new", label: "Cargar una oferta que viste", icon: "pegar" },
+];
+
 /**
  * Lista vacía. Si hay ofertas sin evaluar que los filtros esconden, lo dice y las muestra; si no
  * hay ninguna oferta, explica cómo conseguir las primeras.
@@ -271,24 +294,35 @@ function EmptyList({ counts, reviewedAll }: { counts: JobCounts | null; reviewed
   }
   if (counts !== null && counts.total === 0) {
     return (
-      <EmptyState data-testid="jobs-empty-none" title="Todavía no tenés ofertas" action={null}>
-        <p>Podés empezar de tres maneras:</p>
-        <ul className="flex flex-col items-center">
-          <li>
-            <Link href="/jobs/new" className={EMPTY_LINK}>
-              Cargar una oferta que viste
-            </Link>
-          </li>
-          <li>
-            <Link href="/settings/asistente" className={EMPTY_LINK}>
-              Reenviar tus alertas de empleo por email
-            </Link>
-          </li>
-          <li>
-            <Link href="/settings#puesto" className={EMPTY_LINK}>
-              Esperar las ofertas que sumamos cada día: elegí tus puestos
-            </Link>
-          </li>
+      // V3 (C9-13): ilustración chica, qué hacer mientras como checklist y una sola acción principal
+      <EmptyState
+        data-testid="jobs-empty-none"
+        title="Todavía no tenés ofertas"
+        illustration={<Illustration escena="vacio" className="w-40 sm:w-52" />}
+        action={
+          <Link href="/settings#puesto" className={buttonClasses()}>
+            Elegir mis áreas
+          </Link>
+        }
+      >
+        <p>
+          Todavía no llegó nada, pero estamos buscando todos los días. Mientras, dejá tu perfil a
+          punto:
+        </p>
+        <ul className="mt-2 flex flex-col gap-1 text-left">
+          {EMPTY_STEPS.map((step) => (
+            <li key={step.href} className="flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className="flex size-7 shrink-0 items-center justify-center rounded-pill border-2 border-dashed border-line-control text-fg-muted"
+              >
+                <Icon name={step.icon} size={14} />
+              </span>
+              <Link href={step.href} className={EMPTY_LINK}>
+                {step.label}
+              </Link>
+            </li>
+          ))}
         </ul>
       </EmptyState>
     );

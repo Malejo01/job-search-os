@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Illustration } from "@/components/brand/illustration";
 import {
   Alert,
   buttonClasses,
@@ -139,6 +140,7 @@ export default async function ApplicationsPage({
 
       {apps.length === 0 ? (
         <EmptyState
+          illustration={<Illustration escena="postulaciones" className="w-40 sm:w-52" />}
           action={
             <Link href="/jobs" className={textLinkClasses({ block: true })}>
               Ver mis ofertas
