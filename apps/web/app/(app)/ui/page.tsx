@@ -149,20 +149,24 @@ export default function UiPage() {
           <OfferCard
             href="/ui"
             title="Analista contable semi senior"
-            meta={["Empresa de ejemplo", "Salta", "28 oct"]}
-            score={8.5}
-            tags={[
-              { label: "Evaluada", tone: "neutral" },
-              { label: "Ubicación ok", tone: "success" },
+            place="Estudio Ruiz y Asociados, en Salta"
+            chips={[
+              { tone: "have", label: "Liquidación de sueldos" },
+              { tone: "have", label: "Excel avanzado" },
+              { tone: "missing", label: "Tango Gestión" },
             ]}
+            more={2}
+            count="4 a tu favor, 1 te falta"
+            meta="Presencial. Publicada hace 3 días"
+            score={8.5}
           />
           <OfferCard
             href="/ui"
             title="Asistente de administración"
-            meta={["Otra empresa", "Jujuy"]}
+            place="Grupo Norte, remoto en Argentina"
+            meta="Remoto. Publicada hoy"
             score={null}
             pending
-            tags={[{ label: "En cola", tone: "info" }]}
           />
         </ul>
       </section>

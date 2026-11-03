@@ -8,6 +8,8 @@ import {
   resolveSince,
   reviewProgress,
   splitFarFromProfile,
+  offerCardChips,
+  type OfferChip,
   type HumanVerdict,
   type JobStatus,
   type Period,
@@ -65,6 +67,11 @@ export type JobListRow = {
   bloqueadores: string[];
   /** Un punto a favor y uno que falta o frena, en llano (resumen de la tarjeta); sin evaluación, vacío. */
   fit: FitCardSummary;
+  /**
+   * Chips de la tarjeta K2 (C9-8): con checklist, lo que cumple y lo que no; sin checklist, las
+   * fortalezas y debilidades de la evaluación. Sin evaluación, vacío.
+   */
+  card: { chips: OfferChip[]; more: number; count: string | null };
   /** evaluations.model; "fake" = modo demo (badge DEMO). */
   model: string | null;
   /** Última evaluación (para el 👍/👎 de la tarjeta); null si no hay. */
@@ -166,6 +173,28 @@ export async function listJobs(
         matchFuerte: s.evaluations.matchFuerte,
         gaps: s.evaluations.gaps,
         senales: s.evaluations.senalesPositivas,
+        // Tarjeta K2 (C9-8): del checklist guardado, solo los primeros `pide` de cada lado y los
+        // totales, no el jsonb entero (puede pesar varios KB por oferta). Sin checklist, null.
+        checklistHave: sql<
+          string[] | null
+        >`case when ${s.evaluations.decision} ? 'checklist' then array(select x #>> '{}' from jsonb_path_query(${s.evaluations.decision}, '$.checklist.items[*] ? (@.status == "cumple").pide') as t(x) limit 3) end`.as(
+          "checklist_have",
+        ),
+        checklistMissing: sql<
+          string[] | null
+        >`case when ${s.evaluations.decision} ? 'checklist' then array(select x #>> '{}' from jsonb_path_query(${s.evaluations.decision}, '$.checklist.items[*] ? (@.status == "no_cumple").pide') as t(x) limit 3) end`.as(
+          "checklist_missing",
+        ),
+        checklistHaveCount: sql<
+          number | null
+        >`(${s.evaluations.decision} #>> '{checklist,must,cumple}')::int + (${s.evaluations.decision} #>> '{checklist,deseable,cumple}')::int`.as(
+          "checklist_have_count",
+        ),
+        checklistMissingCount: sql<
+          number | null
+        >`(${s.evaluations.decision} #>> '{checklist,must,no_cumple}')::int + (${s.evaluations.decision} #>> '{checklist,deseable,no_cumple}')::int`.as(
+          "checklist_missing_count",
+        ),
         model: s.evaluations.model,
         humanVerdict: s.evaluations.humanVerdict,
         createdAt: s.evaluations.createdAt,
@@ -228,6 +257,10 @@ export async function listJobs(
         matchFuerte: latest.matchFuerte,
         gaps: latest.gaps,
         senales: latest.senales,
+        checklistHave: latest.checklistHave,
+        checklistMissing: latest.checklistMissing,
+        checklistHaveCount: latest.checklistHaveCount,
+        checklistMissingCount: latest.checklistMissingCount,
         model: latest.model,
         evaluationId: latest.evaluationId,
         humanVerdict: latest.humanVerdict,
@@ -299,6 +332,22 @@ export async function listJobs(
         riesgos: (r.riesgos ?? []).map(riskLabel),
         bloqueadores: r.bloqueadores ?? [],
       }),
+      card:
+        r.score === null
+          ? { chips: [], more: 0, count: null }
+          : offerCardChips({
+              checklist: Array.isArray(r.checklistHave)
+                ? {
+                    have: stringsOf(r.checklistHave),
+                    missing: stringsOf(r.checklistMissing),
+                    haveCount: Number(r.checklistHaveCount) || 0,
+                    missingCount: Number(r.checklistMissingCount) || 0,
+                  }
+                : null,
+              strengths: r.matchFuerte ?? [],
+              // Sin el texto del aviso no se sabe si el inglés es brecha: en la tarjeta no se muestra
+              gaps: (r.gaps ?? []).filter((g) => !isEnglishGap(g)),
+            }),
       model: r.model,
       evaluationId: r.evaluationId,
       humanVerdict: r.humanVerdict,
@@ -410,4 +459,9 @@ export async function countPossibleDuplicates(userId: string): Promise<number> {
       .where(sql`'posible_duplicado' = any(${s.jobs.flags})`);
     return row?.n ?? 0;
   });
+}
+
+/** Lo que viene del jsonb no es de fiar: solo strings. */
+function stringsOf(v: unknown): string[] {
+  return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
 }
