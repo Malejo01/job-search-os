@@ -104,7 +104,8 @@ test.describe("Flujo 33: textos y vacíos", () => {
     await page.goto("/jobs?estado=todas");
     const card = page.getByRole("listitem").filter({ hasText: evaluatedTitle });
     await expect(card).toContainText("7,5");
-    await expect(card).toContainText("/10");
+    // C9-5: el sello dice el nivel en palabras en vez de la escala «/10»
+    await expect(card).toContainText("Bastante afín");
     await expect(page.getByTestId("pre-score-explain")).toContainText("Estimación previa");
     await expect(page.getByText(/pre-score/i)).toHaveCount(0);
   });
