@@ -66,6 +66,7 @@ export * from "./learning";
 export * from "./fit/fit-points";
 export * from "./fit/fit-summary";
 export * from "./fit/offer-card";
+export * from "./fit/checklist-on-read";
 export * from "./digest/build";
 export * from "./brand";
 export * from "./help/ayuda-en-contexto";

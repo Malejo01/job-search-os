@@ -1,10 +1,13 @@
-import { applyJobEventIn } from "@job-search-os/adapters";
+import { applyJobEventIn, loadChecklistSkills, salaryFromApiKinds } from "@job-search-os/adapters";
 import { schema as s } from "@job-search-os/db";
 import {
   applicationEffect,
   availableEvents,
+  checklistOnRead,
   correctionTargets,
   correctStatus,
+  effectiveAcceptedModalities,
+  EvaluationSchema,
   isEnglishSkillSlug,
   MANUAL_JOB_EVENTS,
   planDuplicateMerge,
@@ -12,13 +15,14 @@ import {
   prefilterReasonText,
   type Adjustment,
   type Checklist,
+  type CriteriaRules,
   type HumanVerdict,
   type JobEvent,
   type JobStatus,
 } from "@job-search-os/pipeline";
 import { and, desc, eq, getTableColumns, sql } from "drizzle-orm";
 import { z } from "zod";
-import { withUser } from "./db";
+import { withUser, type Tx } from "./db";
 import { isUuid } from "./ids";
 import { evaluatingSql } from "./jobs";
 import { preScoresFor, type PreScoreView } from "./prescore";
@@ -97,7 +101,10 @@ export type EvaluationView = {
   senales: string[];
   veredicto: string;
   adjustments: Adjustment[];
-  /** Requisitos del aviso (ronda 104); null en evaluaciones viejas o con forma inválida. */
+  /**
+   * Requisitos del aviso (ronda 104). En evaluaciones viejas se arma al leer, solo la parte
+   * determinista y con `parcial: true` (C9-6); null si tampoco así se puede.
+   */
   checklist: ChecklistView | null;
   humanScore: number | null;
   humanNote: string | null;
@@ -202,7 +209,112 @@ export async function changeJobStatus(
   });
 }
 
-export async function getJobDetail(userId: string, jobId: string): Promise<JobDetail | null> {
+/**
+ * Checklist al leer para evaluaciones sin `decision.checklist` (C9-6): las de antes de la ronda 104
+ * (2026-10-21, #147) o con uno guardado que no valida. Solo la parte determinista
+ * (`checklistOnRead`), siempre `parcial: true`. No escribe en la base ni llama a ningún LLM.
+ *
+ * Consultas extra, solo cuando falta el checklist Y `raw` es una evaluación del modelo válida (si
+ * no, ninguna: por ejemplo las filas del golden sembrado, cuyo `raw` es la fila del golden):
+ * - `profiles` (1) y `evaluation_criteria` activa (1);
+ * - `loadChecklistSkills`: `skill_levels` (1) y `user_skills` (1), más el catálogo `skills` (1),
+ *   que queda en caché del proceso 5 minutos (C5-7).
+ * Total: 4, o 5 con el catálogo frío. Si el checklist armado nombra skills, `skillInfoIn` (más
+ * abajo), que antes salía sin consultar con la lista vacía, hace 1 más: de 4 a 6 en el peor caso.
+ * El origen del salario sale de `job_sources`, que el detalle ya leyó. Sin perfil o sin criterios
+ * activos no hay checklist (2 consultas y nada más).
+ */
+async function checklistFromStored(
+  tx: Tx,
+  userId: string,
+  ev: typeof s.evaluations.$inferSelect,
+  adjustments: unknown,
+  job: {
+    title: string;
+    salaryMinUsd: number | null;
+    salaryMaxUsd: number | null;
+    salaryPeriod: string | null;
+    salaryNote: string | null;
+    weeklyHours: number | null;
+    jdText: string | null;
+    countriesAllowed: string[] | null;
+  },
+  sources: readonly { kind: string }[],
+): Promise<ChecklistView | null> {
+  // Sin una evaluación del modelo en `raw` no hay nada que armar: ni se consulta
+  if (!EvaluationSchema.safeParse(ev.raw).success) return null;
+  const [profile] = await tx
+    .select({
+      yearsTotal: s.profiles.yearsTotal,
+      englishCefr: s.profiles.englishCefr,
+      locationCountry: s.profiles.locationCountry,
+      workAuth: s.profiles.workAuth,
+      acceptedModalities: s.profiles.acceptedModalities,
+      remoteOnly: s.profiles.remoteOnly,
+    })
+    .from(s.profiles)
+    .where(eq(s.profiles.userId, userId))
+    .limit(1);
+  const [criteria] = await tx
+    .select({ rules: s.evaluationCriteria.rules })
+    .from(s.evaluationCriteria)
+    .where(and(eq(s.evaluationCriteria.userId, userId), eq(s.evaluationCriteria.active, true)))
+    .orderBy(desc(s.evaluationCriteria.version))
+    .limit(1);
+  if (!profile || !criteria) return null;
+  const skills = await loadChecklistSkills(tx, userId);
+  const computed = checklistOnRead(
+    {
+      raw: ev.raw,
+      score: ev.score,
+      scoreModel: ev.scoreModel,
+      accion: ev.accion,
+      bloqueadoresDuros: ev.bloqueadoresDuros,
+      riesgos: ev.riesgos,
+      locationOk: ev.locationOk,
+      hadFullJd: ev.hadFullJd,
+      adjustments,
+    },
+    criteria.rules as CriteriaRules,
+    {
+      profile: {
+        yearsTotal: profile.yearsTotal,
+        englishCefr: profile.englishCefr,
+        locationCountry: profile.locationCountry,
+        workAuth: profile.workAuth,
+        acceptedModalities: effectiveAcceptedModalities(profile),
+      },
+      job: {
+        title: job.title,
+        salaryMinUsd: job.salaryMinUsd,
+        salaryMaxUsd: job.salaryMaxUsd,
+        salaryPeriod: job.salaryPeriod,
+        salaryNote: job.salaryNote,
+        salaryFromApi: salaryFromApiKinds(sources.map((x) => x.kind)),
+        weeklyHours: job.weeklyHours,
+        jdText: job.jdText,
+        countriesAllowed: job.countriesAllowed,
+      },
+      skillLevels: skills.skillLevels,
+      userSkills: skills.userSkills,
+      terms: skills.terms,
+      skillNames: skills.skillNames,
+    },
+  );
+  // Pasa por el mismo schema que lo guardado: si no entra, no se muestra
+  return parseChecklist({ checklist: computed });
+}
+
+/**
+ * `checklistOnRead: false` saltea el checklist al leer (y sus consultas extra) para quien no muestra
+ * los requisitos: las herramientas del asistente. Lo guardado en `decision.checklist` se lee igual.
+ */
+export async function getJobDetail(
+  userId: string,
+  jobId: string,
+  options: { checklistOnRead?: boolean } = {},
+): Promise<JobDetail | null> {
+  const onRead = options.checklistOnRead ?? true;
   return withUser(userId, async (tx) => {
     // Sin `jd_shingles` (miles de enteros para detectar duplicados, que esta pantalla no usa): C5-7
     const { jdShingles: _shingles, ...jobColumns } = getTableColumns(s.jobs);
@@ -302,7 +414,11 @@ export async function getJobDetail(userId: string, jobId: string): Promise<JobDe
       adjustments?: Adjustment[];
       accion_sugerida?: string;
     } | null;
-    const checklist = parseChecklist(decision);
+    const checklist =
+      parseChecklist(decision) ??
+      (ev && onRead
+        ? await checklistFromStored(tx, userId, ev, decision?.adjustments, job, sources)
+        : null);
 
     // C-20: skills sin nivel que se cargan desde la oferta (checklist y pre-score). Las de inglés
     // se cargan por CEFR en Ajustes y quedan afuera.
