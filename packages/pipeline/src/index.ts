@@ -75,5 +75,6 @@ export * from "./evaluator/skill-level-overlay";
 export * from "./evaluator/wire";
 export * from "./feedback/beta-feedback";
 export * from "./waitlist-admin";
+export * from "./acceso-funnel";
 export * from "./career-reveal";
 export * from "./career-visibility";

@@ -351,6 +351,22 @@ export const appAdmins = pgTable("app_admins", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// Embudo de /acceso (C8-2): contadores agregados por hora, origen, paso y carrera. Sin personas (ni
+// email, ni IP, ni id), por eso sin user_id. RLS sin policies (rls/0016): la app suma solo por
+// acceso_funnel_hit() y el admin lee solo por acceso_funnel_admin(). Pasos en ACCESO_FUNNEL_STEPS.
+export const accesoFunnel = pgTable("acceso_funnel", {
+  hour: timestamp("hour", { withTimezone: true }).notNull(),   // date_trunc('hour', now())
+  origin: text("origin").notNull(),                            // normalizeAccesoOrigin(): lista cerrada
+  step: text("step").notNull(),
+  role: text("role").notNull().default(""),                    // clave de carrera en `carrera` y `enviado`
+  count: integer("count").notNull().default(0),
+}, (t) => [
+  primaryKey({ columns: [t.hour, t.origin, t.step, t.role] }),
+  check("acceso_funnel_step_check", sql`${t.step} in ('visita', 'empezado', 'carrera', 'enviado', 'tope')`),
+  check("acceso_funnel_origin_check", sql`${t.origin} ~ '^[a-z0-9-]{1,40}$'`),
+  check("acceso_funnel_role_check", sql`${t.role} ~ '^[a-z_]{0,40}$'`),
+]);
+
 // Agregados de demanda por rol y semana (global, sin user_id). Los usa /market.
 export const roleMarketSnapshots = pgTable("role_market_snapshots", {
   role: text("role").notNull(),
