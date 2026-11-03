@@ -61,40 +61,19 @@ test.describe("Flujo 47: textos y navegación", () => {
     }
   });
 
-  test("el menú llega a todas las secciones y marca la actual con aria-current", async ({
+  test("en el celular no hay «Menú»: las pestañas de abajo marcan la sección (C9-7)", async ({
     page,
   }) => {
     await login(page);
-    const menu = page.getByTestId("menu-movil");
-    const sections: Array<[string, string]> = [
-      ["Hoy", "/hoy"],
-      ["Ofertas", "/jobs"],
-      ["Sin descripción", "/jobs/pending-jd"],
-      ["Emails", "/inbox"],
-      ["Postulaciones", "/applications"],
-      ["Mercado", "/market"],
-      ["Plan", "/plan"],
-    ];
-    // Por debajo de `sm` solo se ve el botón «Menú»; la fila de links no ocupa lugar
-    await expect(menu).toBeVisible();
-    await expect(page.getByRole("navigation", { name: "Secciones" })).toHaveCount(0);
-    const summary = menu.locator("summary");
-    for (const [label, path] of sections) {
-      await summary.click();
-      await menu.getByRole("link", { name: label, exact: true }).click();
-      await page.waitForURL(`**${path}`);
-      // Navegar cierra el menú; al abrirlo, la sección actual está marcada y las demás no
-      await expect(menu).not.toHaveAttribute("open", "");
-      await expect(summary).toContainText(`Menú · ${label}`);
-      await summary.click();
-      await expect(menu.getByRole("link", { name: label, exact: true })).toHaveAttribute(
-        "aria-current",
-        "page",
-      );
-      await expect(menu.locator('a[aria-current="page"]')).toHaveCount(1);
-      await summary.click();
-      expect(await scrollWidth(page), `scrollWidth en ${path}`).toBeLessThanOrEqual(360);
-    }
+    // El recorrido de todas las secciones está en el e2e 113
+    await expect(page.getByTestId("menu-movil")).toHaveCount(0);
+    const tabs = page.getByRole("navigation", { name: "Secciones" });
+    await expect(tabs).toBeVisible();
+    await expect(tabs.getByRole("link", { name: "Hoy", exact: true })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(await scrollWidth(page)).toBeLessThanOrEqual(360);
   });
 
   test("header tinta: el logo lleva a /hoy y el avatar con iniciales a «Tu perfil» (C7-5)", async ({
@@ -122,7 +101,7 @@ test.describe("Flujo 47: textos y navegación", () => {
     await page.goto("/jobs/pending-jd");
     const nav = page.getByRole("navigation", { name: "Secciones" });
     await expect(nav).toBeVisible();
-    await expect(page.getByTestId("menu-movil")).toBeHidden();
+    await expect(page.getByTestId("tabbar")).toBeHidden();
     await expect(nav.getByRole("link", { name: "Sin descripción" })).toHaveAttribute(
       "aria-current",
       "page",

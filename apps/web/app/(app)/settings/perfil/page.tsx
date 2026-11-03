@@ -9,6 +9,7 @@ import Link from "next/link";
 import { ProfileFormWithProposal } from "@/components/profile-form-with-proposal";
 import { getProfileForEdit, getTargetRoles } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
+import { MoreNav } from "../../more-nav";
 import { savePerfilAction } from "./actions";
 
 export const metadata = { title: "Tu perfil" };
@@ -47,6 +48,7 @@ export default async function PerfilPage() {
         Modalidad, país, idioma de las ofertas, inglés, años y resumen. Con estos datos se filtran y
         evalúan los avisos. Los puestos se cambian en Ajustes, en «Tus puestos».
       </p>
+      <MoreNav />
       {initial && targetRoles.length === 0 ? (
         <p role="note" className="rounded-control bg-warning-soft px-3 py-2 text-sm text-warning">
           {rolesNotice}

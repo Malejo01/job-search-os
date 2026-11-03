@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef } from "react";
 
 export type NavItem = {
   href: string;
@@ -16,31 +15,33 @@ export type NavItem = {
  * Así el nombre accesible del link sigue siendo el label. La versión para lectores va después
  * del link (`NavCountText`).
  */
-function NavCount({ item }: { item: NavItem }) {
-  if (!item.count) return null;
+export function NavCount({ count, active }: { count?: number; active: boolean }) {
+  if (!count) return null;
   return (
     <span
       data-testid="nav-count"
       aria-hidden="true"
-      className="ml-1.5 rounded-pill bg-brand px-1.5 text-xs font-bold text-brand-contrast"
+      className={`ml-1.5 rounded-pill px-1.5 text-xs font-extrabold ${
+        active ? "bg-brand-contrast text-brand" : "bg-brand text-brand-contrast"
+      }`}
     >
-      {item.count}
+      {count}
     </span>
   );
 }
 
-function NavCountText({ item }: { item: NavItem }) {
-  if (!item.count) return null;
-  return <span className="sr-only">{`${item.count} para hacer seguimiento`}</span>;
+export function NavCountText({ count }: { count?: number }) {
+  if (!count) return null;
+  return <span className="sr-only">{`${count} para hacer seguimiento`}</span>;
 }
 
 /**
  * La sección activa es la de href más largo que prefija la ruta: /jobs/pending-jd no marca
  * "Ofertas" y /jobs/abc sí.
  */
-function activeHref(pathname: string, items: readonly NavItem[]): string | null {
+export function activeHref(pathname: string, hrefs: readonly string[]): string | null {
   let best: string | null = null;
-  for (const { href } of items) {
+  for (const href of hrefs) {
     if (pathname === href || pathname.startsWith(`${href}/`)) {
       if (best === null || href.length > best.length) best = href;
     }
@@ -48,119 +49,49 @@ function activeHref(pathname: string, items: readonly NavItem[]): string | null 
   return best;
 }
 
-/** Link «Sin descripción»: ancla de la guía de /jobs. */
+/** Link «Sin descripción»: ancla de la guía de /jobs en la computadora. */
 const PENDING_JD_HREF = "/jobs/pending-jd";
 
-// Header tinta (C7-5, manual P1 a P4). El color del texto va en ACTIVE o INACTIVE, nunca en BASE:
-// con dos `text-*` en la misma clase gana el que Tailwind genera después, no el último escrito.
-// Sobre índigo el foco va en lima de marca (12,4:1): el índigo vivo casi no se distingue.
+// Barra índigo (C9-7, decisión 6): el menú en píldoras; la sección activa es una píldora lima (uno
+// de los tres lugares de la lima). Sobre índigo el foco va en lima (12,4:1). El color del texto va
+// en ACTIVE o INACTIVE, nunca en BASE: con dos `text-*` gana el que Tailwind genera después.
 const FOCUS = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand";
-
-// Escritorio: la sección activa en lima con una línea de 3 px abajo (P1)
-const DESKTOP_BASE = `flex min-h-11 items-center whitespace-nowrap border-b-[3px] px-1 font-semibold hover:text-on-ink ${FOCUS}`;
-const DESKTOP_ACTIVE = "border-brand text-brand";
-const DESKTOP_INACTIVE = "border-transparent text-on-ink-muted";
-
-// Celular: lista dentro del «Menú», la activa en lima sobre un fondo apenas más claro
-const MOBILE_BASE = `flex min-h-11 items-center rounded-control px-3 font-semibold hover:bg-ink-line ${FOCUS}`;
-const MOBILE_ACTIVE = "bg-ink-line text-brand";
-const MOBILE_INACTIVE = "text-on-ink-muted";
+const PILL_BASE = `inline-flex min-h-11 items-center whitespace-nowrap rounded-pill px-3.5 text-[15px] font-bold ${FOCUS}`;
+const PILL_ACTIVE = "bg-brand text-brand-contrast";
+const PILL_INACTIVE = "text-on-ink-muted hover:bg-ink-line hover:text-on-ink";
 
 /**
- * Navegación principal. Client components solo para saber la ruta (aria-current) y cerrar el menú
- * al navegar. Desde `sm`, fila de links (`DesktopNav`); por debajo, un <details> «Menú»
- * (`MobileNav`, sin JS para abrirlo). Van en filas distintas del header y con display excluyente
- * (`hidden sm:block` / `sm:hidden`).
+ * Navegación de la computadora (desde `sm`): una fila de píldoras dentro de la barra índigo. En el
+ * celular no se ve: ahí van las pestañas de abajo (`MobileTabBar`). Client component solo para
+ * marcar la sección activa (`aria-current`).
  */
 export function DesktopNav({ items }: { items: readonly NavItem[] }) {
   const pathname = usePathname();
-  const active = activeHref(pathname, items);
-  return (
-    // `data-tour`: ancla de la guía de /jobs (ronda 92); el menú móvil lleva la suya abajo
-    <nav aria-label="Secciones" className="hidden min-w-0 sm:block">
-      <ul className="flex gap-x-5 gap-y-0 overflow-x-auto text-[15px]">
-        {items.map((item) => (
-          <li key={item.href}>
-            <Link
-              href={item.href}
-              data-tour={item.href === PENDING_JD_HREF ? "jobs:menu" : undefined}
-              aria-current={item.href === active ? "page" : undefined}
-              className={`${DESKTOP_BASE} ${item.href === active ? DESKTOP_ACTIVE : DESKTOP_INACTIVE}`}
-            >
-              {item.label}
-              <NavCount item={item} />
-            </Link>
-            <NavCountText item={item} />
-          </li>
-        ))}
-      </ul>
-    </nav>
+  const active = activeHref(
+    pathname,
+    items.map((i) => i.href),
   );
-}
-
-export function MobileNav({ items }: { items: readonly NavItem[] }) {
-  const pathname = usePathname();
-  const active = activeHref(pathname, items);
-  const activeLabel = items.find((i) => i.href === active)?.label ?? null;
-  // Con el menú del celular cerrado, el número de pendientes se ve igual en el «Menú»
-  const pending = items.reduce((n, i) => n + (i.count ?? 0), 0);
-  const details = useRef<HTMLDetailsElement>(null);
-
-  const closeMenu = () => {
-    if (details.current) details.current.open = false;
-  };
-  // También al cambiar la ruta (atrás/adelante): el layout no se vuelve a montar
-  useEffect(() => {
-    if (details.current) details.current.open = false;
-  }, [pathname]);
-
   return (
-    <details ref={details} className="group px-4 pb-2 text-sm sm:hidden" data-testid="menu-movil">
-      {/* Ancla de la guía en el «Menú» y no en todo el <details>: abierto, sería un recuadro enorme */}
-      <summary
-        data-tour="jobs:menu"
-        className={`flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-control border-2 border-ink-line px-3 font-semibold text-on-ink ${FOCUS}`}
-      >
-        <span>
-          Menú
-          {activeLabel ? <span className="font-medium text-brand"> · {activeLabel}</span> : null}
-          {pending ? (
-            <>
-              <span
-                aria-hidden="true"
-                className="ml-1.5 rounded-pill bg-brand px-1.5 text-xs font-bold text-brand-contrast"
-              >
-                {pending}
-              </span>
-              <span className="sr-only">{`, ${pending} para hacer seguimiento`}</span>
-            </>
-          ) : null}
-        </span>
-        <span aria-hidden="true" className="text-on-ink-muted group-open:hidden">
-          ▸
-        </span>
-        <span aria-hidden="true" className="hidden text-on-ink-muted group-open:inline">
-          ▾
-        </span>
-      </summary>
-      <nav aria-label="Secciones" className="mt-1">
-        <ul className="flex flex-col">
-          {items.map((item) => (
+    <nav aria-label="Secciones" className="hidden min-w-0 sm:block">
+      <ul className="flex gap-x-1 overflow-x-auto py-1">
+        {items.map((item) => {
+          const isActive = item.href === active;
+          return (
             <li key={item.href}>
               <Link
                 href={item.href}
-                aria-current={item.href === active ? "page" : undefined}
-                onClick={closeMenu}
-                className={`${MOBILE_BASE} ${item.href === active ? MOBILE_ACTIVE : MOBILE_INACTIVE}`}
+                data-tour={item.href === PENDING_JD_HREF ? "jobs:menu" : undefined}
+                aria-current={isActive ? "page" : undefined}
+                className={`${PILL_BASE} ${isActive ? PILL_ACTIVE : PILL_INACTIVE}`}
               >
                 {item.label}
-                <NavCount item={item} />
+                <NavCount count={item.count} active={isActive} />
               </Link>
-              <NavCountText item={item} />
+              <NavCountText count={item.count} />
             </li>
-          ))}
-        </ul>
-      </nav>
-    </details>
+          );
+        })}
+      </ul>
+    </nav>
   );
 }
