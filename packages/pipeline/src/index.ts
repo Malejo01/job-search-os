@@ -79,3 +79,4 @@ export * from "./acceso-funnel";
 export * from "./waitlist-event";
 export * from "./career-reveal";
 export * from "./career-visibility";
+export * from "./start-here";
