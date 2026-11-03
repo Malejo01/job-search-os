@@ -13,15 +13,20 @@ REVOKE ALL ON "waitlist" FROM jobsearch_app;
 -- tabla: ni el control de duplicados ni el límite por IP pueden hacerse desde afuera sin darle SELECT.
 -- Devuelve 'ok' | 'duplicate' | 'rate_limited'. La capa web responde igual a ok y duplicate para no
 -- revelar qué emails están anotados.
-CREATE OR REPLACE FUNCTION public.waitlist_join(
+--
+-- C8-3: el cuerpo vive en waitlist_join_limited(), con los topes por IP y de ráfaga como parámetros. No
+-- tiene EXECUTE para la app: solo la llaman waitlist_join() (topes normales) y waitlist_join_event()
+-- (topes del evento con QR), que son SECURITY DEFINER y corren como el dueño.
+CREATE OR REPLACE FUNCTION public.waitlist_join_limited(
   p_name text,
   p_email text,
   p_role text,
   p_heard_from text,
-  p_ip_hash text
+  p_ip_hash text,
+  p_ip_max integer,
+  p_burst_max integer
 ) RETURNS text
 LANGUAGE plpgsql
-SECURITY DEFINER
 SET search_path = pg_catalog, public
 AS $fn$
 DECLARE
@@ -29,9 +34,10 @@ DECLARE
   -- inundaciones desde muchas IPs. Los topes por IP y de ráfaga tienen que dejar pasar una presentación en
   -- vivo con QR (11/11, C5-5): decenas de personas anotándose desde el mismo wifi (una sola IP pública) o
   -- desde datos móviles compartidos (CGNAT) en pocos minutos. Antes eran 5, 30 y 300, y el sexto celular
-  -- del mismo salón quedaba afuera. Subirlos es solo cambiar estas constantes (y waitlist.integration.test).
-  c_ip_max constant integer := 40;
-  c_burst_max constant integer := 60;
+  -- del mismo salón quedaba afuera. Los topes por IP y de ráfaga llegan por parámetro (C8-3): 40 y 60 en
+  -- waitlist_join(), más altos en waitlist_join_event(). El diario es fijo para las dos.
+  c_ip_max constant integer := least(greatest(coalesce(p_ip_max, 40), 1), 200);
+  c_burst_max constant integer := least(greatest(coalesce(p_burst_max, 60), 1), 200);
   c_day_max constant integer := 600;
   v_email text := lower(btrim(p_email));
   v_name text := btrim(p_name);
@@ -75,8 +81,45 @@ BEGIN
   RETURN CASE WHEN v_inserted = 1 THEN 'ok' ELSE 'duplicate' END;
 END
 $fn$;
+REVOKE ALL ON FUNCTION public.waitlist_join_limited(text, text, text, text, text, integer, integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.waitlist_join_limited(text, text, text, text, text, integer, integer) FROM authenticated;
+
+-- Topes normales: 40 por IP por hora y 60 cada 10 minutos (más los 600 por día).
+CREATE OR REPLACE FUNCTION public.waitlist_join(
+  p_name text,
+  p_email text,
+  p_role text,
+  p_heard_from text,
+  p_ip_hash text
+) RETURNS text
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $fn$
+  SELECT public.waitlist_join_limited(p_name, p_email, p_role, p_heard_from, p_ip_hash, 40, 60);
+$fn$;
 REVOKE ALL ON FUNCTION public.waitlist_join(text, text, text, text, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.waitlist_join(text, text, text, text, text) TO authenticated;
+
+-- Topes del evento con QR (C8-3, 11/11): 200 por IP por hora y 200 cada 10 minutos; el diario (600) no
+-- cambia. La web la usa solo con `?origen=voces-jovenes` y dentro de la ventana de WAITLIST_EVENT_WINDOW
+-- (apagada por defecto, como mucho 12 horas: packages/pipeline/src/waitlist-event.ts). Abuso posible:
+-- quien conozca el origen puede usar estos topes durante la ventana; el diario lo acota igual.
+CREATE OR REPLACE FUNCTION public.waitlist_join_event(
+  p_name text,
+  p_email text,
+  p_role text,
+  p_heard_from text,
+  p_ip_hash text
+) RETURNS text
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $fn$
+  SELECT public.waitlist_join_limited(p_name, p_email, p_role, p_heard_from, p_ip_hash, 200, 200);
+$fn$;
+REVOKE ALL ON FUNCTION public.waitlist_join_event(text, text, text, text, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.waitlist_join_event(text, text, text, text, text) TO authenticated;
 
 -- Administración de la lista (ronda 70). La app sigue sin privilegios sobre la tabla: el admin lee,
 -- marca y borra solo por estas tres funciones.
