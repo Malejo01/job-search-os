@@ -297,7 +297,7 @@ export function SiAprendes({
           <li
             key={row.slug}
             data-testid={`plan-sim-tarjeta-${row.slug}`}
-            className="flex flex-col gap-1 rounded-card border border-line bg-surface p-3 text-sm"
+            className="flex flex-col gap-1 rounded-card bg-surface p-3 text-sm"
           >
             <p className="break-words font-medium text-fg">{row.name}</p>
             <EvaluatorGaps row={row} testId={`plan-sim-evaluador-m-${row.slug}`} />

@@ -62,10 +62,7 @@ export default async function HomePage() {
         </h2>
         <ol className="grid gap-3 sm:grid-cols-3">
           {STEPS.map((text, i) => (
-            <li
-              key={text}
-              className="flex min-w-0 gap-3 rounded-card border border-line bg-surface p-4"
-            >
+            <li key={text} className="flex min-w-0 gap-3 rounded-card bg-surface p-4">
               <span
                 aria-hidden="true"
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-pill bg-brand text-sm font-bold text-brand-contrast"
@@ -84,7 +81,7 @@ export default async function HomePage() {
         </h2>
         <ul className="grid gap-3 sm:grid-cols-3">
           {PROMISES.map(([title, text]) => (
-            <li key={title} className="min-w-0 rounded-card border border-line bg-surface p-4">
+            <li key={title} className="min-w-0 rounded-card bg-surface p-4">
               <p className="font-bold text-fg">{title}</p>
               <p className="text-sm text-fg-muted">{text}</p>
             </li>

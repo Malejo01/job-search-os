@@ -42,7 +42,7 @@ export function AccesoFunnelPanel({ result }: { result: AccesoFunnelResult }) {
           ? "Embudo de /acceso: tu cuenta todavía no está habilitada en la base (app_admins)."
           : "Embudo de /acceso: no se pudieron leer los contadores (¿falta aplicar la migración 0057?).";
     return (
-      <p role="status" className="rounded-card border border-line bg-surface p-4 text-sm">
+      <p role="status" className="rounded-card bg-surface p-4 text-sm">
         {text}
       </p>
     );
@@ -52,7 +52,7 @@ export function AccesoFunnelPanel({ result }: { result: AccesoFunnelResult }) {
   return (
     <section
       aria-labelledby="embudo-acceso"
-      className="flex flex-col gap-4 rounded-card border border-line bg-surface p-4"
+      className="flex flex-col gap-4 rounded-card bg-surface p-4"
       data-testid="embudo-acceso"
     >
       <div className="flex flex-col gap-1">

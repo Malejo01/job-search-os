@@ -33,7 +33,7 @@ export function JobCard({ card }: { card: ShowcaseCard }) {
     <li
       data-modality={modality}
       data-testid="showcase-card"
-      className="min-w-0 rounded-card border border-line bg-surface p-4"
+      className="min-w-0 rounded-card bg-surface p-4"
     >
       <article className="flex min-w-0 flex-col gap-2">
         <h3 className="break-words text-base font-semibold text-fg">{card.title}</h3>

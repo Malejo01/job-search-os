@@ -212,7 +212,7 @@ export function CvChat() {
           aria-live="polite"
           aria-label="Mensajes"
           data-testid="cv-messages"
-          className="flex max-h-[50vh] flex-col gap-2 overflow-y-auto rounded-card border border-line bg-surface p-3"
+          className="flex max-h-[50vh] flex-col gap-2 overflow-y-auto rounded-card bg-surface p-3"
         >
           {messages.map((m, i) => (
             <p

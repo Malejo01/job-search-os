@@ -62,7 +62,7 @@ function JobCard({ job, query, tour }: { job: JobListRow; query: string; tour: b
   const url = safeHttpUrl(job.url);
   const anchor = (name: string) => (tour ? { "data-tour": name } : {});
   return (
-    <div className="relative flex gap-3 rounded-card border border-line bg-surface p-3.5 transition-colors hover:border-line-control">
+    <div className="relative flex gap-3 rounded-card bg-surface p-3.5 transition-colors hover:border-line-control">
       {/* El link al detalle cubre toda la card; el link a la oferta va encima (z-10) */}
       <Link
         href={`/jobs/${job.id}${query}`}

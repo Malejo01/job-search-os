@@ -142,7 +142,7 @@ export default async function ApplicationsPage({
       ) : (
         <ol className="flex flex-col gap-2">
           {apps.map((a) => (
-            <li key={a.id} className="rounded-card border border-line bg-surface p-3">
+            <li key={a.id} className="rounded-card bg-surface p-3">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
                   <Link href={`/jobs/${a.jobId}`} className="text-sm font-medium text-fg">
@@ -204,10 +204,7 @@ export default async function ApplicationsPage({
       )}
 
       {fewApps ? (
-        <details
-          data-testid="calibracion-plegada"
-          className="rounded-card border border-line bg-surface p-3"
-        >
+        <details data-testid="calibracion-plegada" className="rounded-card bg-surface p-3">
           <summary className="cursor-pointer text-sm font-semibold text-fg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus">
             Cómo viene la calibración
           </summary>
@@ -247,7 +244,7 @@ function Calibration({
     ) : null;
 
   return (
-    <section className="flex flex-col gap-2 rounded-card border border-line bg-surface p-3">
+    <section className="flex flex-col gap-2 rounded-card bg-surface p-3">
       <h2 className="text-sm font-semibold text-fg-muted">Calibración con ofertas reales</h2>
       <p className="text-sm">
         Respuesta positiva (entrevista u oferta) con score ≥ 7:{" "}

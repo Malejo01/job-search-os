@@ -60,7 +60,7 @@ export default async function InboundEmailPage({
         </p>
       ) : null}
 
-      <header className="flex flex-col gap-2 rounded-card border border-line bg-surface p-3">
+      <header className="flex flex-col gap-2 rounded-card bg-surface p-3">
         <h1 className="text-lg font-semibold leading-snug">{email.subject ?? "(sin asunto)"}</h1>
         <div className="text-xs text-fg-subtle">
           <p className="break-all">{email.from}</p>
@@ -132,7 +132,7 @@ export default async function InboundEmailPage({
           className="h-[75vh] w-full rounded-card border border-line bg-white [color-scheme:light]"
         />
       ) : email.text ? (
-        <div className="rounded-card border border-line bg-surface p-3">
+        <div className="rounded-card bg-surface p-3">
           <p className="max-h-[75vh] overflow-auto text-sm break-words whitespace-pre-wrap text-fg">
             {email.text}
           </p>
@@ -144,7 +144,7 @@ export default async function InboundEmailPage({
       )}
 
       {email.html && email.text ? (
-        <details className="rounded-card border border-line bg-surface p-3">
+        <details className="rounded-card bg-surface p-3">
           <summary className="cursor-pointer text-sm text-fg-muted">Ver como texto plano</summary>
           <pre className="mt-2 max-h-[60vh] overflow-auto text-xs break-words whitespace-pre-wrap text-fg">
             {email.text}
@@ -153,7 +153,7 @@ export default async function InboundEmailPage({
       ) : null}
 
       {email.links.length > 0 ? (
-        <details className="rounded-card border border-line bg-surface p-3 text-sm">
+        <details className="rounded-card bg-surface p-3 text-sm">
           <summary className="cursor-pointer text-fg-muted">
             Links del email ({email.links.length})
           </summary>

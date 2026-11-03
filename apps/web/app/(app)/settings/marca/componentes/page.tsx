@@ -1,0 +1,232 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import {
+  Alert,
+  Badge,
+  Button,
+  buttonClasses,
+  Card,
+  Chip,
+  EmptyState,
+  Field,
+  filterChipClasses,
+  Icon,
+  ICON_PATHS,
+  textLinkClasses,
+  type IconName,
+} from "@/components/ui";
+import { canCreateInvitations } from "@/lib/invitations";
+import { requireUserId } from "@/lib/session";
+
+export const metadata: Metadata = { title: "Componentes", robots: { index: false } };
+export const dynamic = "force-dynamic";
+
+/**
+ * Catálogo de primitivas del rediseño (C9-3): cada una en todos sus estados, en claro y en oscuro
+ * lado a lado. Es lo que Mauro revisa en la vista previa antes de mirar las pantallas. Solo para las
+ * cuentas que administran la beta (las mismas que invitan); para el resto, 404. Sin datos de nadie:
+ * los textos son de ejemplo y las empresas, inventadas.
+ *
+ * Los botones no hacen nada (no tienen `onClick`): se pueden tocar para ver el hundimiento.
+ */
+export default async function ComponentesPage() {
+  const userId = await requireUserId();
+  if (!(await canCreateInvitations(userId).catch(() => false))) notFound();
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-title font-bold">Componentes</h1>
+        <p className="text-sm text-fg-muted">
+          Las primitivas del rediseño en todos sus estados, en claro y en oscuro. Tocá un botón, un
+          chip o una tarjeta para ver cómo se hunde. Las reglas están en{" "}
+          <code>docs/ux/tokens.md</code>; el logo, la paleta y las tipografías, en{" "}
+          <Link href="/settings/marca" className={textLinkClasses()}>
+            Marca
+          </Link>
+          .
+        </p>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Panel mode="light" />
+        <Panel mode="dark" />
+      </div>
+    </div>
+  );
+}
+
+function Panel({ mode }: { mode: "light" | "dark" }) {
+  const id = (s: string) => `componentes-${mode}-${s}`;
+  const label = mode === "light" ? "claro" : "oscuro";
+  return (
+    <section
+      aria-labelledby={id("titulo")}
+      className={`${mode} flex min-w-0 flex-col gap-6 rounded-container bg-canvas p-4 text-fg sm:p-6`}
+      data-testid={`componentes-${mode}`}
+    >
+      <h2 id={id("titulo")} className="text-heading font-bold">
+        En {label}
+      </h2>
+
+      <Block title="Botones" id={id("botones")}>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button>Ver mis ofertas</Button>
+          <Button variant="secondary">Ver el aviso</Button>
+          <Button variant="dark">Guardar y evaluar</Button>
+          <Button variant="ghost">Ahora no</Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button size="sm">Guardar</Button>
+          <Button size="sm" variant="secondary">
+            Copiar
+          </Button>
+          <Button size="sm" variant="danger">
+            Borrar cuenta
+          </Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button disabled>Guardar descripción</Button>
+          <Button variant="secondary" aria-disabled="true">
+            Sin cambios
+          </Button>
+          <Link
+            href="/settings/marca/componentes"
+            className={buttonClasses({ variant: "secondary" })}
+          >
+            Un link con forma de botón
+          </Link>
+        </div>
+      </Block>
+
+      <Block title="Tarjetas" id={id("tarjetas")}>
+        <Card>
+          <p className="font-semibold">Panel (`flat`)</p>
+          <p className="text-sm text-fg-muted">No se toca: sin borde inferior.</p>
+        </Card>
+        <Card level="list" pressable>
+          <p className="font-semibold">Tarjeta de lista (`list`, 4 px)</p>
+          <p className="text-sm text-fg-muted">Se toca y se hunde 3 px.</p>
+        </Card>
+        <Card level="featured" pressable padding="md">
+          <p className="font-display text-lg font-bold">Tarjeta destacada (`featured`, 6 px)</p>
+          <p className="text-sm text-fg-muted">Una por pantalla: la oferta principal de Hoy.</p>
+        </Card>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Card tone="success">
+            <p className="text-sm font-semibold text-success">Panel de éxito</p>
+          </Card>
+          <Card tone="warning">
+            <p className="text-sm font-semibold text-warning">Panel de riesgo</p>
+          </Card>
+        </div>
+      </Block>
+
+      <Block title="Chips y filtros" id={id("chips")}>
+        <div className="flex flex-wrap gap-2">
+          <Chip tone="have" srLabel="Tenés">
+            Liquidación de sueldos
+          </Chip>
+          <Chip tone="have" srLabel="Tenés">
+            Excel avanzado
+          </Chip>
+          <Chip tone="missing" srLabel="Te falta">
+            Tango Gestión
+          </Chip>
+          <Chip>y 2 más</Chip>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            aria-pressed="true"
+            className={filterChipClasses({ selected: true })}
+          >
+            Todas
+          </button>
+          <button type="button" aria-pressed="false" className={filterChipClasses()}>
+            Remoto
+          </button>
+          <button type="button" aria-pressed="false" className={filterChipClasses()}>
+            <Icon name="filtro" size={16} />
+            Más filtros
+          </button>
+        </div>
+      </Block>
+
+      <Block title="Campos" id={id("campos")}>
+        <Field label="Tu nombre" placeholder="Lucía" />
+        <Field label="Email" hint="Te escribimos solo para avisarte de ofertas." type="email" />
+        <Field
+          label="Años de experiencia"
+          error="Poné un número, por ejemplo 3."
+          defaultValue="tres"
+        />
+        <Field multiline label="Descripción del aviso" placeholder="Pegá el texto del aviso" />
+      </Block>
+
+      <Block title="Avisos" id={id("avisos")}>
+        <Alert tone="success" role={null} title="Listo">
+          Guardamos tu perfil.
+        </Alert>
+        <Alert tone="info" role={null}>
+          Leemos cada oferta contra tu perfil: vos decidís.
+        </Alert>
+        <Alert tone="warning" role={null}>
+          El aviso no dice el país: revisalo antes de postular.
+        </Alert>
+        <Alert tone="danger" role={null} title="No pudimos guardar la descripción">
+          Tu texto sigue acá: revisá la conexión y tocá Guardar otra vez.
+        </Alert>
+      </Block>
+
+      <Block title="Etiquetas" id={id("etiquetas")}>
+        <div className="flex flex-wrap gap-2">
+          <Badge>Evaluada</Badge>
+          <Badge tone="info">LinkedIn (email)</Badge>
+          <Badge tone="success">Ubicación ok</Badge>
+          <Badge tone="warning">Sueldo no publicado</Badge>
+          <Badge tone="danger" emphasis="muted">
+            Impide postular
+          </Badge>
+          <Badge tone="info" emphasis="strong">
+            3
+          </Badge>
+        </div>
+      </Block>
+
+      <Block title="Estado vacío" id={id("vacio")}>
+        <EmptyState
+          title="Todavía no llegó nada"
+          action={
+            <Link href="/settings/perfil" className={buttonClasses()}>
+              Elegir mis áreas
+            </Link>
+          }
+        >
+          Estamos buscando todos los días. Mientras, dejá tu perfil a punto.
+        </EmptyState>
+      </Block>
+
+      <Block title="Íconos" id={id("iconos")}>
+        <ul className="flex flex-wrap gap-3 text-fg">
+          {(Object.keys(ICON_PATHS) as IconName[]).map((name) => (
+            <li key={name} className="flex w-20 flex-col items-center gap-1 text-center">
+              <Icon name={name} />
+              <span className="text-[11px] text-fg-subtle">{name}</span>
+            </li>
+          ))}
+        </ul>
+      </Block>
+    </section>
+  );
+}
+
+function Block({ title, id, children }: { title: string; id: string; children: React.ReactNode }) {
+  return (
+    <div role="group" aria-labelledby={id} className="flex flex-col gap-3">
+      <h3 id={id} className="text-sm font-bold text-fg-muted">
+        {title}
+      </h3>
+      {children}
+    </div>
+  );
+}

@@ -57,7 +57,7 @@ export function ApplyButton({
             role="dialog"
             aria-modal="true"
             aria-label="¿Te postulaste a esta oferta?"
-            className="w-full max-w-sm rounded-card border border-line bg-surface p-4 shadow-lg"
+            className="w-full max-w-sm rounded-card bg-surface p-4 shadow-lg"
           >
             <p className="text-sm font-medium text-fg">¿Te postulaste a esta oferta?</p>
             <p className="mt-1 text-xs text-fg-subtle">

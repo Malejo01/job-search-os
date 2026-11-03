@@ -69,7 +69,7 @@ export default async function SendersPage({
             return (
               <li
                 key={r.domain}
-                className="flex flex-col gap-2 rounded-card border border-line bg-surface p-3 text-sm"
+                className="flex flex-col gap-2 rounded-card bg-surface p-3 text-sm"
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="font-medium break-all">{r.domain}</span>

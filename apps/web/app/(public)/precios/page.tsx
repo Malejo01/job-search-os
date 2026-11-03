@@ -117,7 +117,7 @@ function PlanCard({ plan, lines }: { plan: PlanDef; lines: string[] }) {
   return (
     <li
       data-testid={`plan-${plan.key}`}
-      className="flex flex-col gap-3 rounded-card border border-line bg-surface p-4"
+      className="flex flex-col gap-3 rounded-card bg-surface p-4"
     >
       <div>
         <h2 className="text-lg font-semibold">{plan.name}</h2>

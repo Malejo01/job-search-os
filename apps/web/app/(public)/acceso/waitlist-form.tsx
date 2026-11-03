@@ -105,7 +105,7 @@ export function WaitlistFormFields({
         </p>
         <section
           aria-labelledby="acceso-que-sigue"
-          className="flex flex-col gap-2 rounded-card border border-line bg-surface p-4"
+          className="flex flex-col gap-2 rounded-card bg-surface p-4"
         >
           <h2 id="acceso-que-sigue" className="text-base font-bold">
             Qué sigue

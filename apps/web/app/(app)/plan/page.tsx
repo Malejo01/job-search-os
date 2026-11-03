@@ -209,7 +209,7 @@ export default async function PlanPage({
               </h2>
               <ol className="flex flex-col gap-2">
                 {groups[status].map((it) => (
-                  <li key={it.id} className="rounded-card border border-line bg-surface p-3">
+                  <li key={it.id} className="rounded-card bg-surface p-3">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-fg">

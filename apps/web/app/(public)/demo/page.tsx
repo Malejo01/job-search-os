@@ -46,7 +46,7 @@ export default async function DemoPage() {
         <p
           role="status"
           data-testid="demo-preparando"
-          className="rounded-card border border-line bg-surface p-4 text-sm text-fg"
+          className="rounded-card bg-surface p-4 text-sm text-fg"
         >
           Estamos preparando la demo. Volvé en un rato.
         </p>
@@ -62,7 +62,7 @@ export default async function DemoPage() {
               <li
                 key={p.key}
                 data-testid="demo-profile-card"
-                className="flex min-w-0 flex-col gap-2 rounded-card border border-line bg-surface p-4"
+                className="flex min-w-0 flex-col gap-2 rounded-card bg-surface p-4"
               >
                 <h3 className="text-base font-semibold">{p.label}</h3>
                 <p className="text-sm text-fg-muted">{p.tagline}</p>

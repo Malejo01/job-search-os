@@ -94,10 +94,7 @@ export default async function ComoEstaHechoPage() {
         <FlowDiagram />
         <ol className="flex max-w-3xl flex-col gap-3" aria-label="El recorrido, paso a paso">
           {FLOW_STEPS.map((step, i) => (
-            <li
-              key={step.title}
-              className="flex min-w-0 gap-3 rounded-card border border-line bg-surface p-4"
-            >
+            <li key={step.title} className="flex min-w-0 gap-3 rounded-card bg-surface p-4">
               <span
                 aria-hidden="true"
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-sm font-semibold text-brand-contrast"
@@ -120,7 +117,7 @@ export default async function ComoEstaHechoPage() {
         </h2>
         <ul className="grid gap-3 sm:grid-cols-2">
           {SAFEGUARDS.map(([title, text]) => (
-            <li key={title} className="min-w-0 rounded-card border border-line bg-surface p-4">
+            <li key={title} className="min-w-0 rounded-card bg-surface p-4">
               <p className="font-semibold">{title}</p>
               <p className="text-sm leading-relaxed text-fg-muted sm:text-base">{text}</p>
             </li>
@@ -134,7 +131,7 @@ export default async function ComoEstaHechoPage() {
         </h2>
         <dl className="grid gap-3 sm:grid-cols-2">
           {STACK.map(([label, text]) => (
-            <div key={label} className="min-w-0 rounded-card border border-line bg-surface p-4">
+            <div key={label} className="min-w-0 rounded-card bg-surface p-4">
               <dt className="font-semibold">{label}</dt>
               <dd className="text-sm leading-relaxed text-fg-muted sm:text-base">{text}</dd>
             </div>

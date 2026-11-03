@@ -196,17 +196,14 @@ export default function AyudaPage() {
 
       <section className="flex flex-col gap-4" aria-label="Lista de preguntas frecuentes">
         {FAQS.map((faq, idx) => (
-          <article
-            key={idx}
-            className="flex flex-col gap-2 rounded-card border border-line bg-surface p-5"
-          >
+          <article key={idx} className="flex flex-col gap-2 rounded-card bg-surface p-5">
             <h2 className="text-lg font-semibold text-fg">{faq.q}</h2>
             <div className="text-base leading-relaxed text-fg-muted">{faq.a}</div>
           </article>
         ))}
       </section>
 
-      <section className="mt-4 flex flex-col items-center justify-between gap-4 rounded-card border border-line bg-surface-subtle p-6 text-center sm:flex-row sm:text-left">
+      <section className="mt-4 flex flex-col items-center justify-between gap-4 rounded-card bg-surface-subtle p-6 text-center sm:flex-row sm:text-left">
         <div>
           <h2 className="text-lg font-semibold text-fg">¿Querés sumarte a la beta?</h2>
           <p className="text-sm text-fg-muted">

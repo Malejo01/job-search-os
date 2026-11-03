@@ -49,7 +49,7 @@ export function OfferCard({
     <li
       data-testid={testId}
       className={cx(
-        "relative flex gap-3 rounded-card border border-line bg-surface p-3.5 transition-colors hover:border-line-control",
+        "relative flex gap-3 rounded-card bg-surface p-3.5 transition-colors hover:border-line-control",
         className,
       )}
     >

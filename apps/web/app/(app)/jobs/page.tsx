@@ -183,7 +183,7 @@ function JobsAside({ pending }: { pending: number }) {
           </Link>
         </div>
       ) : null}
-      <div className="flex flex-col gap-2 rounded-card border border-line bg-surface p-4">
+      <div className="flex flex-col gap-2 rounded-card bg-surface p-4">
         <p className="text-sm font-bold">¿La oferta no está en la lista?</p>
         <Link href="/jobs/new" className={buttonClasses({ variant: "secondary", size: "sm" })}>
           Cargala a mano

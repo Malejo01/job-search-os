@@ -62,7 +62,7 @@ export default async function PendingJdPage({
           </p>
           <HelpTip topic="sinDescripcion" />
         </div>
-        <div className="flex flex-col gap-3 rounded-card border border-line bg-surface p-4">
+        <div className="flex flex-col gap-3 rounded-card bg-surface p-4">
           <h2 className="text-base font-bold">Cómo completar una oferta</h2>
           <ol className="m-0 flex list-none flex-col gap-3 p-0 text-sm text-fg-muted">
             {STEPS.map(([strong, rest], i) => (
@@ -163,7 +163,7 @@ export default async function PendingJdPage({
             {rows.map((job) => {
               const url = safeHttpUrl(job.url);
               return (
-                <li key={job.id} className="rounded-card border border-line bg-surface p-4">
+                <li key={job.id} className="rounded-card bg-surface p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <Link
