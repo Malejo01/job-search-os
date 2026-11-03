@@ -43,6 +43,8 @@ const CATALOG_TABLES = [
   "app_admins",
   // Demo guiada (ronda 74): perfiles inventados, sin user_id; lectura abierta, escribe solo el servicio (rls/0007).
   "demo_evaluations",
+  // Embudo de /acceso (C8-2): contadores agregados sin personas; sin policy, solo por funciones (rls/0016).
+  "acceso_funnel",
 ];
 
 /**
@@ -603,6 +605,22 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
         before,
       );
       await owner`delete from waitlist where email = 'multiusuario-espera@ejemplo.test'`;
+    },
+    // Embudo de /acceso (C8-2): contadores sin personas; sumar no lee ni toca nada de B.
+    acceso_funnel_hit: async () => {
+      const before = await fingerprint({ table: "invitations", column: "used_by_user_id" }, B);
+      await asUser(A, (tx) => tx`select acceso_funnel_hit('directo', 'visita', null)`);
+      expect(await fingerprint({ table: "invitations", column: "used_by_user_id" }, B)).toBe(
+        before,
+      );
+      await owner`delete from acceso_funnel where origin = 'directo'`;
+    },
+    // Lectura del embudo: A no está en app_admins, la base la rechaza (el caso admin está en
+    // acceso-funnel.integration).
+    acceso_funnel_admin: async () => {
+      await expect(asUser(A, (tx) => tx`select * from acceso_funnel_admin(30)`)).rejects.toThrow(
+        /acceso_funnel_admin: no autorizado/,
+      );
     },
     // Administración de la lista (ronda 70): sin user_id y sin datos de usuarios; no tocan nada de B.
     // El control de admin es de la app; la base solo exige sesión (cubierto en waitlist.integration).
