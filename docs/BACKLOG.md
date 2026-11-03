@@ -1017,6 +1017,10 @@ Seis carreras de la beta cerrada (ADR-027). Los PR están en draft y apilados: s
 `deps:` C1-5 · `estado:` done (2026-10-30; PR #295)
 - `SOURCE_CATEGORY_ROLES` de Jobicy y We Work Remotely, más vetos cruzados en `title-fit.ts`. El adapter que las pide es de otro PR (#289).
 
+### CI
+
+Última corrida completa del e2e en #403 antes del cierre: **664 ok, 0 fallas** (6 salteados).
+
 ### Pendiente después de la tanda
 - Mauro: `pnpm db:migrate` (0048 y 0049), merge en orden y deploy; después `pnpm pool:rehint --remote` (sin y con `--apply`) y medir volumen para sacar cada carrera de `UNLISTED_ROLE_KEYS`.
 - Golden por carrera con avisos reales (evals pagos) y selección de personas por chip: tanda siguiente.
@@ -1217,7 +1221,7 @@ Una noche de la nube, sin supervisión: el rediseño visual completo de AfinIAJo
 - **C9-4 · Logo B2** · done ([#406](https://github.com/Malejo01/job-search-os/pull/406)). Logotipo con el punto, monograma «A», favicon, PNG, OG y emails.
 
 ### La firma
-- **C9-5 · El sello** · done ([#407](https://github.com/Malejo01/job-search-os/pull/407), e2e [#418](https://github.com/Malejo01/job-search-os/pull/418)). Cinco niveles con su palabra, «Muy afín» inclinado en lima, estado C2, lejanas al final de `/jobs`.
+- **C9-5 · El sello** · done ([#407](https://github.com/Malejo01/job-search-os/pull/407), e2e [#418](https://github.com/Malejo01/job-search-os/pull/418)). `aria-label` «puntaje 8.5, muy afín» desde R-3. Cinco niveles con su palabra, «Muy afín» inclinado en lima, estado C2, lejanas al final de `/jobs`.
 - **C9-6 · Checklist al leer** · done ([#408](https://github.com/Malejo01/job-search-os/pull/408)). Evaluaciones de antes del 21/10: solo la parte determinista, `parcial`, sin IA ni escritura; solo en el detalle.
 
 ### Pantallas con sesión
@@ -1237,9 +1241,9 @@ Una noche de la nube, sin supervisión: el rediseño visual completo de AfinIAJo
 ### Reserva
 - **R-1 · Rendimiento** · done ([#422](https://github.com/Malejo01/job-search-os/pull/422)). `/hoy` 146 → 138 kB y `/jobs` 156 → 166 kB de First Load JS.
 - **R-2 · Esqueletos** · descartado ([#424](https://github.com/Malejo01/job-search-os/pull/424), cerrado): sin JS el esqueleto quedaba para siempre y rompía los atajos del detalle.
-- **R-3 · Revisión del diff** · ver #403. **R-4 · Guía rápida** · done ([#423](https://github.com/Malejo01/job-search-os/pull/423)).
+- **R-3 · Revisión del diff** · done ([#425](https://github.com/Malejo01/job-search-os/pull/425)). Revisor aparte: cuatro bloqueantes (tres arreglados; el de la ilustración de Hoy sin recuadro lo resuelve la guía de Mauro) y sugerencias aplicadas. **R-4 · Guía rápida** · done ([#423](https://github.com/Malejo01/job-search-os/pull/423)).
 
 ### Pendiente después de la tanda
-- **Mauro:** mirar la vista previa (los enlaces están en #403) y mergear #403; el PR toca `.github/workflows/ci.yml` (capturas del e2e), así que va con bypass. Borrar `MOBILE_TABBAR_ENABLED` de Vercel y de `.env.example` (ya no se usa).
+- **Mauro:** mirar la vista previa (los enlaces están en #403), revisar las «Decisiones para Mauro» del cuerpo y mergear #403; el PR toca `.github/workflows/ci.yml` (capturas del e2e), así que va con bypass. Borrar `MOBILE_TABBAR_ENABLED` de Vercel y de `.env.example` (ya no se usa).
 - **Ilustraciones:** 7 de 8 escenas siguen con el marcador (todas menos `hoy`). Para sumarlas, `docs/ux/rediseno-afiniajobs/ilustraciones.md`.
 - **Ani:** los textos nuevos (tabla en #417) y el catálogo `/settings/marca/componentes`.
