@@ -111,8 +111,8 @@ export function WaitlistFormFields({
               Revisamos los pedidos y armamos el grupo de la beta, con lugar para cada carrera.
             </li>
             <li>
-              Si hay lugar para vos, te llega un email con el link para crear tu cuenta. Mirá
-              también en spam.
+              Si hay lugar para vos, te escribimos con el link para crear tu cuenta. Si es por
+              email, mirá también en spam.
             </li>
             <li>
               Mientras tanto, mirá{" "}

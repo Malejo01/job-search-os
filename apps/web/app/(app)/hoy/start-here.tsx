@@ -61,8 +61,7 @@ export async function StartHere({ userId }: { userId: string }) {
             Empezá acá
           </h2>
           <p className="text-sm text-fg-muted">
-            {done} de {total} listos. Con esto, las ofertas que te mostramos se parecen más a lo que
-            buscás.
+            {done} de {total} listos. Con esto leemos cada oferta contra lo que buscás.
           </p>
         </div>
         <form action={closeStartHereAction}>

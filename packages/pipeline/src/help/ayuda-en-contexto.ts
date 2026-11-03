@@ -18,7 +18,7 @@ export const AYUDA_EN_CONTEXTO = {
   puntaje: {
     tema: "El puntaje",
     parrafos: [
-      "Es un número del 1 al 10 que dice qué tan cerca está la oferta de tu perfil. Lo calculamos leyendo el aviso completo contra lo que nos contaste.",
+      "Es un número del 1 al 10 que dice qué tan cerca está la oferta de tu perfil. Lo calcula una inteligencia artificial que lee el aviso completo contra lo que nos contaste.",
       "Es una estimación, no una nota sobre vos. Un 8 o más suele valer la pena; con menos de 5, mirá qué te frena antes de postularte.",
     ],
   },
