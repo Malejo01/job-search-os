@@ -1,5 +1,7 @@
 "use client";
 
+import { buttonClasses } from "@/components/ui/button";
+
 import { SELF_LEVELS } from "@job-search-os/pipeline";
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState, useTransition } from "react";
@@ -153,11 +155,7 @@ export function SkillLevelButton({
             >
               Cancelar
             </button>
-            <button
-              type="submit"
-              disabled={pending}
-              className={`min-h-11 rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover disabled:opacity-60 ${FOCUS_RING}`}
-            >
+            <button type="submit" disabled={pending} className={buttonClasses()}>
               {pending ? "Guardando…" : "Guardar"}
             </button>
           </div>

@@ -24,7 +24,7 @@ test.describe("Flujo 10: filtro de score libre", () => {
           const labels = await scores.evaluateAll((els) =>
             els.map((e) => e.getAttribute("aria-label") ?? ""),
           );
-          const seen = labels.map((l) => Number(l.replace("puntaje ", "")));
+          const seen = labels.map((l) => parseFloat(l.replace("puntaje ", "")));
           return seen.every((n) => n >= 6) ? "ok" : `hay < 6: ${seen.join(",")}`;
         },
         { timeout: 15_000 },

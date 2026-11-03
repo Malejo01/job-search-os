@@ -29,6 +29,20 @@ function write(key: string, value: string | null): void {
  * con error para esta oferta, lo devuelve al campo, muestra el aviso ahí mismo y pone el foco.
  * Con el guardado bien hecho (`saved`), borra el borrador. Va dentro del `<form>`.
  */
+/**
+ * Después de guardar bien (`?ok=`), la oferta sale de la lista y su `JdDraft` ya no se monta: este
+ * componente, que va siempre en la página, borra el borrador de la última enviada (R-3).
+ */
+export function JdDraftsReset({ saved }: { saved: boolean }) {
+  useEffect(() => {
+    if (!saved) return;
+    const last = read(LAST);
+    if (last) write(keyOf(last), null);
+    write(LAST, null);
+  }, [saved]);
+  return null;
+}
+
 export function JdDraft({
   jobId,
   textareaId,

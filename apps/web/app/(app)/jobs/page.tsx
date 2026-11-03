@@ -23,6 +23,7 @@ import {
   EmptyState,
   Icon,
   buttonClasses,
+  filterChipClasses,
   textLinkClasses,
   type IconName,
 } from "@/components/ui";
@@ -123,11 +124,7 @@ export default async function JobsPage({
             aria-current={filters.idioma === "es" ? "true" : undefined}
             data-testid="chip-en-espanol"
             aria-describedby={filters.idioma === "es" ? "chip-en-espanol-ayuda" : undefined}
-            className={`inline-flex min-h-11 items-center rounded-pill border-2 px-4 text-sm font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
-              filters.idioma === "es"
-                ? "border-fg bg-fg text-canvas"
-                : "border-line-strong bg-surface text-fg"
-            }`}
+            className={filterChipClasses({ selected: filters.idioma === "es" })}
           >
             En español
           </Link>
@@ -407,7 +404,8 @@ function JobListSplit({
   query: string;
   selected: string | null;
 }) {
-  const { near, far } = splitFarFromProfile(rows, (r) => r.score);
+  // Una que se está reevaluando no es lejana todavía: se ve arriba con su sello «Leyendo…» (R-3)
+  const { near, far } = splitFarFromProfile(rows, (r) => (r.evaluating ? null : r.score));
   return (
     <>
       {near.length ? <JobList rows={near} query={query} selected={selected} /> : null}

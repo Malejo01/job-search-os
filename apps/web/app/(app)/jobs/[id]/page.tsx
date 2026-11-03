@@ -510,7 +510,7 @@ export default async function JobDetailPage({
                 </label>
                 <button
                   type="submit"
-                  className="pressable edge-4 rounded-pill border-edge-brand bg-brand px-4 py-2 text-sm font-extrabold text-brand-contrast"
+                  className={buttonClasses({ size: "sm", variant: "secondary" })}
                 >
                   Guardar
                 </button>

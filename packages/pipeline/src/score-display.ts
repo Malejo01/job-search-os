@@ -88,12 +88,17 @@ export function splitFarFromProfile<T>(
   return { near, far };
 }
 
-/** `aria-label` del sello o de la caja: «puntaje 8.5» (los e2e leen este formato, con punto). */
+/**
+ * `aria-label` del sello o de la caja: «puntaje 8.5» (los e2e leen este formato, con punto). En el
+ * sello suma la palabra del nivel («puntaje 8.5, muy afín»): el sello es una imagen y su palabra
+ * no se lee aparte, así el significado no depende del color tampoco para un lector (R-3).
+ */
 export function scoreAriaLabel(state: ScoreState | SealState, value: number | null): string {
   if (state === "pendiente") return "en cola";
   if (state === "sin") return "sin evaluar";
   if (state === "estimacion") return `estimación previa ${value}`;
-  return `puntaje ${value}`;
+  const base = `puntaje ${value}`;
+  return state in LEVEL_PHRASE ? `${base}, ${LEVEL_PHRASE[state as SealLevel]}` : base;
 }
 
 const LEVEL_PHRASE: Record<SealLevel, string> = {
