@@ -10,7 +10,7 @@ import { cx } from "./cx";
  */
 export type BadgeTone = "neutral" | "success" | "warning" | "danger" | "info" | "brand";
 
-// Etiquetas del manual (M8): el fondo enfático del estado (`-muted`) con su texto. El naranja de
+// Etiquetas del manual (M8): el fondo enfático del estado (`-muted`) con su texto. El lima de
 // marca no es un estado: `brand` queda para la marca DEMO y contadores de acción.
 const SOFT: Record<BadgeTone, string> = {
   neutral: "bg-surface-muted text-fg-muted",

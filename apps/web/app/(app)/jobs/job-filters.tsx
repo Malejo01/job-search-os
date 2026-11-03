@@ -39,7 +39,7 @@ export function JobFilters({
   const hasFilters = Boolean(
     value.score || value.fuente || value.estado || value.desde || value.periodo,
   );
-  // Chips de filtro (C7-6, manual P1): píldoras con borde de 2 px; el foco, naranja
+  // Chips de filtro (C7-6, manual P1): píldoras con borde de 2 px; el foco, lima
   const select =
     "min-h-11 min-w-0 rounded-pill border-2 border-line-strong bg-surface px-3 py-2 text-sm font-semibold text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 

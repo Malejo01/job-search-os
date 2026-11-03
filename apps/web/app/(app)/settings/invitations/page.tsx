@@ -171,7 +171,7 @@ function WaitlistSection({ waitlist, filters }: { waitlist: Entries; filters: Wa
                     aria-current={active ? "true" : undefined}
                     className={`inline-flex min-h-11 items-center gap-2 rounded-pill border px-3 text-sm ${
                       active
-                        ? "border-brand bg-brand text-brand-contrast"
+                        ? "border-brand-contrast bg-brand text-brand-contrast"
                         : "border-line-strong bg-surface text-fg"
                     }`}
                   >

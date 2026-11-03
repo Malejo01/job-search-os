@@ -30,19 +30,19 @@ export const BRAND = {
  * contextos y un test verifica que coincidan.
  */
 export const BRAND_COLORS = {
-  /** Tinta: texto sobre claro y fondo oscuro. */
-  ink: "#050505",
-  /** Naranja de acción y marca. Solo relleno con texto tinta, o texto sobre oscuro. */
-  orange: "#FF6A13",
-  /** Naranja profundo: el único naranja para texto sobre claro. */
-  deepOrange: "#C2410C",
+  /** Índigo: base de marca (header, fondo de las imágenes) y texto sobre la lima. */
+  ink: "#1E1B4B",
+  /** Lima: acción y marca. Solo relleno con texto índigo, o texto sobre índigo. Nunca un estado. */
+  accent: "#C6F25B",
+  /** Índigo vivo: el acento como texto o foco sobre claro (7,9:1 contra blanco). */
+  accentDeep: "#4338CA",
   white: "#FFFFFF",
-  /** Fondo de página claro (Stone 100). */
-  stone100: "#F5F5F4",
-  /** Bordes claros (Stone 200). */
-  stone200: "#E7E5E4",
-  /** Texto secundario claro (Stone 600). */
-  stone600: "#57534E",
-  /** Texto secundario sobre tinta (Stone 300). */
-  stone300: "#D6D3D1",
+  /** Fondo de página claro (Zinc 100 frío). */
+  canvas: "#F5F5F7",
+  /** Bordes claros. */
+  line: "#E4E4EA",
+  /** Texto secundario claro (Zinc 600). */
+  textMuted: "#52525B",
+  /** Texto secundario sobre índigo. */
+  onInkMuted: "#C7C6E6",
 } as const;

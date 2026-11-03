@@ -53,15 +53,15 @@ const PENDING_JD_HREF = "/jobs/pending-jd";
 
 // Header tinta (C7-5, manual P1 a P4). El color del texto va en ACTIVE o INACTIVE, nunca en BASE:
 // con dos `text-*` en la misma clase gana el que Tailwind genera después, no el último escrito.
-// Sobre tinta el foco va en naranja de marca (7,1:1): el naranja profundo da 3,9:1.
+// Sobre índigo el foco va en lima de marca (12,4:1): el índigo vivo casi no se distingue.
 const FOCUS = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand";
 
-// Escritorio: la sección activa en naranja con una línea de 3 px abajo (P1)
+// Escritorio: la sección activa en lima con una línea de 3 px abajo (P1)
 const DESKTOP_BASE = `flex min-h-11 items-center whitespace-nowrap border-b-[3px] px-1 font-semibold hover:text-on-ink ${FOCUS}`;
 const DESKTOP_ACTIVE = "border-brand text-brand";
 const DESKTOP_INACTIVE = "border-transparent text-on-ink-muted";
 
-// Celular: lista dentro del «Menú», la activa en naranja sobre un fondo apenas más claro
+// Celular: lista dentro del «Menú», la activa en lima sobre un fondo apenas más claro
 const MOBILE_BASE = `flex min-h-11 items-center rounded-control px-3 font-semibold hover:bg-ink-line ${FOCUS}`;
 const MOBILE_ACTIVE = "bg-ink-line text-brand";
 const MOBILE_INACTIVE = "text-on-ink-muted";

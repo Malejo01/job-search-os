@@ -177,7 +177,7 @@ function JobsAside({ pending }: { pending: number }) {
           </p>
           <Link
             href="/jobs/pending-jd"
-            className="inline-flex min-h-11 items-center self-start rounded-control bg-brand px-4 text-sm font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            className="inline-flex min-h-11 items-center self-start rounded-control bg-brand px-4 text-sm font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           >
             {pending === 1 ? "Completarla" : "Completarlas"}
           </Link>

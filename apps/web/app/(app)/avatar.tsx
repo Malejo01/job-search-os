@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Icon } from "@/components/ui";
 
 /**
- * Avatar del header (C7-5, manual P1 y P4): círculo naranja con las iniciales en tinta. Lleva a
+ * Avatar del header (C7-5, manual P1 y P4): círculo lima con las iniciales en índigo. Lleva a
  * «Tu perfil». Sin nombre, el ícono de perfil. Server Component.
  */
 export function Avatar({ name }: { name: string | null }) {

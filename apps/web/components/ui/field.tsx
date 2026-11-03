@@ -3,7 +3,7 @@ import { useId } from "react";
 import { cx } from "./cx";
 
 /**
- * Campo de texto (C7-4, manual M8): borde de 2 px, radio 12, 44 px de alto y foco naranja (el
+ * Campo de texto (C7-4, manual M8): borde de 2 px, radio 12, 44 px de alto y foco lima (el
  * borde pasa al color de foco). Con error, borde y mensaje rojos, `aria-invalid` y el mensaje
  * enlazado por `aria-describedby`. Para inputs sueltos que no usan `<Field>`, `inputClasses()`.
  */

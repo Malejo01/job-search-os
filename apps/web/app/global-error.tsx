@@ -15,7 +15,7 @@ export default function GlobalError({
     padding: "8px 16px",
     border: 0,
     borderRadius: 12,
-    background: BRAND_COLORS.orange,
+    background: BRAND_COLORS.accent,
     color: BRAND_COLORS.ink,
     fontSize: 14,
     fontWeight: 500,
@@ -36,7 +36,7 @@ export default function GlobalError({
           }}
         >
           <h1 style={{ fontSize: 20, fontWeight: 600, margin: 0 }}>Algo falló de nuestro lado</h1>
-          <p style={{ fontSize: 14, color: BRAND_COLORS.stone600, margin: 0 }}>
+          <p style={{ fontSize: 14, color: BRAND_COLORS.textMuted, margin: 0 }}>
             Probá de nuevo. Si sigue pasando, avisanos.
           </p>
           <div>
@@ -46,7 +46,7 @@ export default function GlobalError({
           </div>
           {/* Nunca error.message: puede citar datos. */}
           {error.digest ? (
-            <p style={{ fontSize: 12, color: BRAND_COLORS.stone600, margin: 0 }}>
+            <p style={{ fontSize: 12, color: BRAND_COLORS.textMuted, margin: 0 }}>
               Código: {error.digest}
             </p>
           ) : null}

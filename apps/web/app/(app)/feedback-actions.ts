@@ -84,7 +84,7 @@ async function notifyFeedbackAdmins(
     ${contextMeta}
     <hr />
     <p><strong>Mensaje:</strong></p>
-    <blockquote style="white-space: pre-wrap; background: #f5f5f4; padding: 12px; border-left: 4px solid #78716c; border-radius: 8px;">
+    <blockquote style="white-space: pre-wrap; background: #f5f5f7; padding: 12px; border-left: 4px solid #4338ca; border-radius: 8px;">
       ${escapeHtml(feedback.message)}
     </blockquote>
     <hr />

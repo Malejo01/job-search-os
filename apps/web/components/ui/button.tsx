@@ -33,7 +33,7 @@ const GHOST_SIZES: Record<ButtonSize, string> = {
 };
 
 /**
- * Manual M8: primario naranja con texto tinta; secundario con borde de 2 px del color del texto;
+ * Manual M8: primario lima con texto índigo; secundario con borde de 2 px del color del texto;
  * oscuro (tinta, «Guardar y evaluar»), que en modo oscuro se invierte para seguir contrastando.
  */
 const VARIANTS: Record<ButtonVariant, string> = {

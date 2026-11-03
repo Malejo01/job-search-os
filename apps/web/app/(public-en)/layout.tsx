@@ -40,7 +40,7 @@ export const metadata: Metadata = {
 
 const SKIP_CLASS =
   "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-control focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-fg focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-focus";
-// Header tinta (C7-10), como el de la app: links en gris claro, foco en naranja de marca
+// Header índigo (C7-10), como el de la app: links en gris claro, foco en lima de marca
 const LINK_CLASS =
   "inline-flex min-h-11 items-center px-2 text-sm font-semibold text-on-ink-muted underline-offset-2 hover:text-on-ink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand";
 

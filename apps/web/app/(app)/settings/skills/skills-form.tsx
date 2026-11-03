@@ -130,7 +130,7 @@ export function SkillsForm({
                     aria-current={key === role ? "true" : undefined}
                     className={`inline-flex min-h-11 items-center rounded-control border px-3 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus ${
                       key === role
-                        ? "border-brand bg-brand text-brand-contrast"
+                        ? "border-brand-contrast bg-brand text-brand-contrast"
                         : "border-line-strong text-fg"
                     }`}
                   >

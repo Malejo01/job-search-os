@@ -18,8 +18,8 @@ export function escapeEmailHtml(s: string): string {
 const FONT = "Manrope, 'Segoe UI', Helvetica, Arial, sans-serif";
 const LOGO_FONT = "Sora, 'Segoe UI', Helvetica, Arial, sans-serif";
 
-/** Estilo de un link dentro del cuerpo: naranja profundo (5,2:1 sobre blanco). */
-export const EMAIL_LINK_STYLE = `color:${BRAND_COLORS.deepOrange};text-decoration:underline;`;
+/** Estilo de un link dentro del cuerpo: índigo vivo (7,9:1 sobre blanco). */
+export const EMAIL_LINK_STYLE = `color:${BRAND_COLORS.accentDeep};text-decoration:underline;`;
 
 export function brandedEmailHtml({
   bodyHtml,
@@ -35,19 +35,19 @@ export function brandedEmailHtml({
     : "";
   return [
     `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"></head>`,
-    `<body style="margin:0;padding:0;background:${BRAND_COLORS.stone100};">`,
+    `<body style="margin:0;padding:0;background:${BRAND_COLORS.canvas};">`,
     pre,
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BRAND_COLORS.stone100};"><tr><td align="center" style="padding:24px 12px;">`,
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BRAND_COLORS.canvas};"><tr><td align="center" style="padding:24px 12px;">`,
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">`,
-    // Encabezado: logotipo AfinIA (800, naranja) + Jobs (300, blanco) sobre tinta
+    // Encabezado: logotipo AfinIA (800, lima) + Jobs (300, blanco) sobre índigo
     `<tr><td style="background:${BRAND_COLORS.ink};border-radius:16px 16px 0 0;padding:20px 24px;font-family:${LOGO_FONT};font-size:26px;line-height:1;letter-spacing:-1px;">`,
-    `<span style="font-weight:800;color:${BRAND_COLORS.orange};">${escapeEmailHtml(BRAND.wordmark.strong)}</span>`,
+    `<span style="font-weight:800;color:${BRAND_COLORS.accent};">${escapeEmailHtml(BRAND.wordmark.strong)}</span>`,
     `<span style="font-weight:300;color:${BRAND_COLORS.white};">${escapeEmailHtml(BRAND.wordmark.light)}</span>`,
     `</td></tr>`,
     `<tr><td style="background:${BRAND_COLORS.white};border-radius:0 0 16px 16px;padding:24px;font-family:${FONT};font-size:15px;line-height:1.5;color:${BRAND_COLORS.ink};">`,
     bodyHtml,
     `</td></tr>`,
-    `<tr><td style="padding:16px 8px;font-family:${FONT};font-size:12px;line-height:1.5;color:${BRAND_COLORS.stone600};text-align:center;">`,
+    `<tr><td style="padding:16px 8px;font-family:${FONT};font-size:12px;line-height:1.5;color:${BRAND_COLORS.textMuted};text-align:center;">`,
     `${escapeEmailHtml(BRAND.name)} · ${escapeEmailHtml(BRAND.tagline)}`,
     `</td></tr>`,
     `</table></td></tr></table></body></html>`,

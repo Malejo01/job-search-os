@@ -18,10 +18,11 @@
  * - Los valores van en hexadecimal a propósito: axe-core no sabe leer algunos `oklch` de Tailwind
  *   (tono `none`) y deja el contraste sin medir.
  *
- * Marca (C-15, C7-1): tinta `#050505`, naranja `#FF6A13` (acción, nunca estado) y naranja profundo
- * `#C2410C` (el único naranja que se usa como texto sobre claro). Neutros cálidos (escala Stone).
- * Clases: `bg-brand` con `text-brand-contrast` (tinta sobre naranja, 7,1:1), `text-brand-text`
- * para texto naranja, `bg-ink` con `text-on-ink` para el header. Ver docs/MARCA.md.
+ * Marca (C-15, C7-1; paleta «índigo y lima» del 3/11): índigo `#1E1B4B` (base, header y texto
+ * del botón), lima `#C6F25B` (acción, nunca estado) e índigo vivo `#4338CA` (el acento que se usa
+ * como texto y foco sobre claro). Neutros fríos (escala Zinc). Clases: `bg-brand` con
+ * `text-brand-contrast` (índigo sobre lima, 12,4:1), `text-brand-text` para el acento como texto,
+ * `bg-ink` con `text-on-ink` para el header. Ver docs/MARCA.md.
  */
 @theme inline {
   --color-canvas: var(--jso-canvas);
@@ -55,7 +56,7 @@
 
   /*
    * Logo que acompaña al modo (C7-2): «AfinIA», «Jobs», trazo del monograma y punto. En claro,
-   * tinta y naranja profundo; en oscuro, naranja y blanco (manual M2). Lo usa solo <Logo tone="auto">.
+   * índigo e índigo vivo; en oscuro, lima y blanco. Lo usa solo <Logo tone="auto">.
    */
   --color-logo-strong: var(--jso-logo-strong);
   --color-logo-light: var(--jso-logo-light);
@@ -134,53 +135,53 @@
    * Fondos: la página (canvas), tarjetas (surface), un recuadro dentro de una tarjeta (subtle),
    * chips neutros, hover y la sección activa del menú (muted), contadores (strong).
    */
-  --jso-canvas: #f5f5f4;
+  --jso-canvas: #f5f5f7;
   --jso-surface: #ffffff;
-  --jso-surface-subtle: #fafaf9;
-  --jso-surface-muted: #f5f5f4;
-  --jso-surface-strong: #e7e5e4;
+  --jso-surface-subtle: #fafafc;
+  --jso-surface-muted: #f4f4f7;
+  --jso-surface-strong: #e4e4ea;
 
   /*
    * Bordes: separadores y tarjetas (line), botones secundarios (strong), campos de formulario
    * (control: 4,8:1 contra blanco, pasa el 3:1 de WCAG 1.4.11).
    */
-  --jso-line: #e7e5e4;
-  --jso-line-strong: #d6d3d1;
-  --jso-line-control: #78716c;
+  --jso-line: #e4e4ea;
+  --jso-line-strong: #d4d4dc;
+  --jso-line-control: #71717a;
 
   /* Texto: principal (tinta), secundario y terciario. Los tres pasan AA sobre todos los fondos. */
-  --jso-fg: #050505;
-  --jso-fg-muted: #44403c;
-  --jso-fg-subtle: #57534e;
-  --jso-link: #c2410c;
-  --jso-link-hover: #9a3412;
+  --jso-fg: #14123a;
+  --jso-fg-muted: #3f3f46;
+  --jso-fg-subtle: #52525b;
+  --jso-link: #4338ca;
+  --jso-link-hover: #3730a3;
   /*
-   * Foco: anillo naranja. En claro va el naranja profundo: el naranja de marca da 2,9:1 contra
-   * blanco y el indicador de foco pide 3:1 (WCAG 1.4.11). En oscuro, el naranja de marca.
+   * Foco: en claro, índigo vivo (7,9:1 contra blanco; la lima da 1,3:1 y el indicador de foco pide
+   * 3:1, WCAG 1.4.11). En oscuro, la lima de marca.
    */
-  --jso-focus: #c2410c;
+  --jso-focus: #4338ca;
   /* Texto sobre los rellenos fuertes de estado (`bg-success-strong`…). */
   --jso-on-strong: #ffffff;
 
-  --jso-brand: #ff6a13;
-  --jso-brand-hover: #ea580c;
-  --jso-brand-contrast: #050505;
-  --jso-brand-text: #c2410c;
+  --jso-brand: #c6f25b;
+  --jso-brand-hover: #b4e046;
+  --jso-brand-contrast: #1e1b4b;
+  --jso-brand-text: #4338ca;
 
-  --jso-ink: #050505;
+  --jso-ink: #1e1b4b;
   --jso-on-ink: #ffffff;
-  --jso-on-ink-muted: #d6d3d1;
-  --jso-ink-line: #2a2a2a;
+  --jso-on-ink-muted: #c7c6e6;
+  --jso-ink-line: #34316b;
 
-  --jso-logo-strong: #050505;
-  --jso-logo-light: #c2410c;
-  --jso-logo-mark: #050505;
-  --jso-logo-dot: #ff6a13;
+  --jso-logo-strong: #1e1b4b;
+  --jso-logo-light: #4338ca;
+  --jso-logo-mark: #1e1b4b;
+  --jso-logo-dot: #4338ca;
 
   /*
    * Estados (manual M4): texto (`text-success`), fondo suave de avisos (`bg-success-soft`), fondo
    * enfático de etiquetas y de la caja del score (`bg-success-muted`), borde (`border-success-line`)
-   * y relleno fuerte con texto blanco encima (`bg-success-strong`). El naranja nunca es un estado.
+   * y relleno fuerte con texto blanco encima (`bg-success-strong`). La lima nunca es un estado.
    */
   --jso-success: #064e3b;
   --jso-success-soft: #ecfdf5;
@@ -208,44 +209,44 @@
 }
 
 /*
- * Oscuro (manual M4): fondo tinta, tarjetas #121212 y bordes #2A2A2A. Los estados bajan a fondos
+ * Oscuro (paleta del 3/11): fondo índigo #14123A, tarjetas #24215A y bordes #34316B. Los estados bajan a fondos
  * muy oscuros y suben a texto claro, para que el texto pase AA (4.5:1) sobre su fondo.
  */
 .dark {
   color-scheme: dark;
 
-  --jso-canvas: #050505;
-  --jso-surface: #121212;
+  --jso-canvas: #14123a;
+  --jso-surface: #24215a;
   /* Hundido respecto de la tarjeta: en oscuro, un recuadro interno se lee mejor más oscuro. */
-  --jso-surface-subtle: #0b0b0b;
-  --jso-surface-muted: #1f1f1f;
-  --jso-surface-strong: #2a2a2a;
+  --jso-surface-subtle: #100e30;
+  --jso-surface-muted: #2a2766;
+  --jso-surface-strong: #34316b;
 
-  --jso-line: #2a2a2a;
-  --jso-line-strong: #44403c;
-  --jso-line-control: #78716c;
+  --jso-line: #34316b;
+  --jso-line-strong: #4b4890;
+  --jso-line-control: #8b89b8;
 
-  --jso-fg: #f5f5f4;
-  --jso-fg-muted: #d6d3d1;
-  --jso-fg-subtle: #a8a29e;
-  --jso-link: #ff6a13;
-  --jso-link-hover: #fb923c;
-  --jso-focus: #ff6a13;
+  --jso-fg: #f5f5f7;
+  --jso-fg-muted: #d4d4e0;
+  --jso-fg-subtle: #a9a8c8;
+  --jso-link: #c6f25b;
+  --jso-link-hover: #d9f78a;
+  --jso-focus: #c6f25b;
   --jso-on-strong: #ffffff;
 
-  --jso-brand: #ff6a13;
-  --jso-brand-hover: #fb923c;
-  --jso-brand-contrast: #050505;
-  --jso-brand-text: #ff6a13;
+  --jso-brand: #c6f25b;
+  --jso-brand-hover: #d9f78a;
+  --jso-brand-contrast: #1e1b4b;
+  --jso-brand-text: #c6f25b;
 
-  --jso-ink: #050505;
+  --jso-ink: #1e1b4b;
   --jso-on-ink: #ffffff;
-  --jso-on-ink-muted: #d6d3d1;
-  --jso-ink-line: #2a2a2a;
+  --jso-on-ink-muted: #c7c6e6;
+  --jso-ink-line: #34316b;
 
-  --jso-logo-strong: #ff6a13;
+  --jso-logo-strong: #c6f25b;
   --jso-logo-light: #ffffff;
-  --jso-logo-mark: #ff6a13;
+  --jso-logo-mark: #c6f25b;
   --jso-logo-dot: #ffffff;
 
   --jso-success: #a7f3d0;
@@ -279,7 +280,7 @@
  */
 @layer base {
   /*
-   * Foco de los campos (C7-4, manual M8): anillo naranja aunque el campo no traiga su propia clase
+   * Foco de los campos (C7-4, manual M8): anillo del color de foco aunque el campo no traiga su propia clase
    * de foco. Con `:where` no pesa nada: cualquier utilidad `focus-visible:` del campo lo pisa.
    */
   :where(input, select, textarea):focus-visible {

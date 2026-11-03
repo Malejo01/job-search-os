@@ -52,7 +52,7 @@ const LOGO_BACKGROUNDS: Array<[LogoTone, string, string]> = [
   ["auto", "bg-surface", "Acompaña al modo"],
   ["light", "light bg-canvas", "Sobre claro"],
   ["dark", "bg-ink", "Sobre oscuro"],
-  ["orange", "bg-brand", "Sobre naranja"],
+  ["accent", "bg-brand", "Sobre lima"],
 ];
 
 /**
@@ -100,8 +100,8 @@ export default async function MarcaPage() {
           ))}
         </ul>
         <p className="text-xs text-fg-subtle">
-          Colores fijos fuera de CSS (imágenes OG, manifest, emails): tinta {BRAND_COLORS.ink},
-          naranja {BRAND_COLORS.orange}, naranja profundo {BRAND_COLORS.deepOrange}.
+          Colores fijos fuera de CSS (imágenes OG, manifest, emails): índigo {BRAND_COLORS.ink},
+          lima {BRAND_COLORS.accent}, índigo vivo {BRAND_COLORS.accentDeep}.
         </p>
       </section>
 
