@@ -55,7 +55,7 @@ describe("beta_feedback: CHECK de la base contra las constantes del pipeline", (
     );
   });
 
-  it("el schema de Drizzle declara los cuatro CHECK esperados", () => {
+  it("el schema de Drizzle declara los cinco CHECK esperados (el de estado es de C8-17)", () => {
     const checks = getTableConfig(betaFeedback).checks;
     const names = checks.map((c) => c.name).sort();
     expect(names).toEqual([
@@ -63,6 +63,7 @@ describe("beta_feedback: CHECK de la base contra las constantes del pipeline", (
       "beta_feedback_context_size",
       "beta_feedback_message_length",
       "beta_feedback_path_length",
+      "beta_feedback_status_check",
     ]);
 
     const contextCheck = checks.find((c) => c.name === "beta_feedback_context_size");
