@@ -70,6 +70,8 @@ export const USER_TABLES: readonly UserTableEntry[] = [
   // «Contanos qué pasó» (C-23, rls/0013): la app no tiene policy de DELETE a propósito; las filas
   // caen por ON DELETE CASCADE al borrar `users`. La purga las retiene 180 días.
   { table: "beta_feedback", column: "user_id", action: "cascade" },
+  // Candidatos de /market (C8-15, rls/0017): policy FOR ALL del dueño, se borran de forma explícita
+  { table: "market_candidates", column: "user_id", action: "delete" },
 ];
 
 /**

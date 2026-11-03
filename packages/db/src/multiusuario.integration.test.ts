@@ -162,6 +162,7 @@ async function seed(id: string, tag: string): Promise<{ jobId: string }> {
                values (${id}, 'idea', 'Mensaje ficticio', '/hoy')`;
   await owner`insert into career_history (user_id, kind, organization, title, start_month, bullets)
                values (${id}, 'trabajo', 'Empresa A', 'Cargo Ficticio', '2022-03', '{"Viñeta ficticia"}')`;
+  await owner`insert into market_candidates (user_id, term, count) values (${id}, 'termino ficticio', 3)`;
   return { jobId: job!.id };
 }
 

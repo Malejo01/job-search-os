@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { schema as s, type Db } from "@job-search-os/db";
 import {
+  jobLanguageFacts,
   canonicalUrl,
   detectJobLanguage,
   inferRoleHints,
@@ -288,9 +289,25 @@ function contentSignature(f: ContentFields): string {
   ]);
 }
 
+/**
+ * Idioma y nivel de inglés del aviso (C8-15), solo con `PUBLIC_JOBS_LANGUAGE_ENABLED=1` (después de
+ * aplicar la migración 0058). Apagado, no escribe nada: las columnas no existen todavía en la base.
+ */
+export function languageColumnsEnabled(
+  env: Record<string, string | undefined> = process.env,
+): boolean {
+  return env.PUBLIC_JOBS_LANGUAGE_ENABLED === "1";
+}
+
+function languageColumns(jdText: string | null, lang: string | null) {
+  if (!languageColumnsEnabled()) return {};
+  return { ...jobLanguageFacts(jdText, lang), languageCheckedAt: new Date() };
+}
+
 /** Columnas que dependen del contenido del aviso (se reescriben cuando la firma cambia). */
 function contentColumns(raw: RawJob, n: Normalized, companyId: string | null) {
   return {
+    ...languageColumns(n.jdText, n.lang),
     sourceName: raw.source.name,
     sourceUrl: n.sourceUrl,
     canonicalUrl: n.canonical,

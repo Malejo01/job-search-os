@@ -78,10 +78,65 @@ async function computeCandidates(userId: string): Promise<SkillCandidate[]> {
   });
 }
 
+/** C8-15: `market_candidates` (migración 0058) solo con `MARKET_CANDIDATES_ENABLED=1`. */
+function marketCandidatesTableEnabled(): boolean {
+  return process.env.MARKET_CANDIDATES_ENABLED === "1";
+}
+
+/**
+ * Candidatos con la tabla `market_candidates` (C8-15, JS-102): si el JD más nuevo de la persona es el
+ * mismo con el que se calcularon, se devuelven las 15 filas guardadas (sin leer 300 textos); si entró
+ * una oferta nueva, se recalcula y se reemplazan. El JD más nuevo sale del índice `jobs_user_created`.
+ */
+async function candidatesFromTable(userId: string): Promise<SkillCandidate[]> {
+  const latestOf = (rows: { at: Date | string | null }[]) =>
+    rows[0]?.at ? new Date(rows[0].at).toISOString() : null;
+  const [latest, stored] = await withUser(userId, async (tx) => {
+    const l = await tx
+      .select({ at: s.jobs.createdAt })
+      .from(s.jobs)
+      .where(and(eq(s.jobs.userId, userId), isNotNull(s.jobs.jdText)))
+      .orderBy(desc(s.jobs.createdAt))
+      .limit(1);
+    const st = await tx
+      .select({
+        term: s.marketCandidates.term,
+        count: s.marketCandidates.count,
+        at: s.marketCandidates.sourceLatestAt,
+      })
+      .from(s.marketCandidates)
+      .where(eq(s.marketCandidates.userId, userId))
+      .orderBy(desc(s.marketCandidates.count), s.marketCandidates.term)
+      .limit(15);
+    return [latestOf(l), st] as const;
+  });
+  if (stored.length > 0 && latestOf(stored) === latest) {
+    return stored.map(({ term, count }) => ({ term, count }));
+  }
+  const fresh = await computeCandidates(userId);
+  await withUser(userId, async (tx) => {
+    await tx.delete(s.marketCandidates).where(eq(s.marketCandidates.userId, userId));
+    if (fresh.length > 0) {
+      await tx.insert(s.marketCandidates).values(
+        fresh.map((c) => ({
+          userId,
+          term: c.term.slice(0, 80),
+          count: c.count,
+          sourceLatestAt: latest ? new Date(latest) : null,
+        })),
+      );
+    }
+  });
+  return fresh;
+}
+
 /** Cacheado por usuario (clave y tag incluyen `userId`: nunca se comparte entre usuarios). */
 function getCandidates(userId: string): Promise<SkillCandidate[]> {
   const { keyParts, tags, revalidate } = candidatesCacheConfig(userId);
-  return unstable_cache(() => computeCandidates(userId), keyParts, { revalidate, tags })();
+  const compute = marketCandidatesTableEnabled()
+    ? () => candidatesFromTable(userId).catch(() => computeCandidates(userId))
+    : () => computeCandidates(userId);
+  return unstable_cache(compute, keyParts, { revalidate, tags })();
 }
 
 /**

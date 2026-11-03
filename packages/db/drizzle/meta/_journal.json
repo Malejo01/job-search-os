@@ -407,6 +407,13 @@
       "when": 1793719642955,
       "tag": "0057_acceso_funnel",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1793725126140,
+      "tag": "0058_neon_ronda_3",
+      "breakpoints": true
     }
   ]
 }
