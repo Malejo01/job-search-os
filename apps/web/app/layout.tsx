@@ -1,7 +1,7 @@
 import { BRAND, BRAND_COLORS } from "@job-search-os/pipeline";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { manrope, sora } from "./fonts";
+import { bricolage, figtree } from "./fonts";
 import "./globals.css";
 import { ThemeScript } from "./theme-script";
 
@@ -17,7 +17,11 @@ export const viewport: Viewport = { themeColor: BRAND_COLORS.ink };
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     // suppressHydrationWarning: ThemeScript pone la clase `dark` en <html> antes de hidratar
-    <html lang="es" suppressHydrationWarning className={`${sora.variable} ${manrope.variable}`}>
+    <html
+      lang="es"
+      suppressHydrationWarning
+      className={`${bricolage.variable} ${figtree.variable}`}
+    >
       <head>
         <ThemeScript />
       </head>

@@ -151,11 +151,16 @@ function ModePanel() {
         <p className="font-display text-4xl leading-tight font-extrabold tracking-tight">
           Ofertas afines.
         </p>
-        <p className="font-display text-2xl font-bold">Título de página · Sora 700</p>
-        <p className="font-display text-xl font-light">Sora 300 · el «Jobs» del logo</p>
-        <p className="text-base font-bold">Título de tarjeta · Manrope 700</p>
-        <p className="text-base">Texto · Manrope 500: leemos cada oferta contra tu perfil.</p>
-        <p className="text-xs font-semibold text-fg-subtle">Apoyo · Manrope 600 · 12/16</p>
+        <p className="font-display text-2xl font-bold">
+          Título de página · Bricolage Grotesque 700
+        </p>
+        <p className="font-display text-xl font-medium">
+          Bricolage Grotesque 500 · el «Jobs» del logo
+        </p>
+        <p className="font-display text-xl font-extrabold">Bricolage Grotesque 800 · el sello</p>
+        <p className="text-base font-extrabold">Botón · Figtree 800</p>
+        <p className="text-base">Texto · Figtree 500: leemos cada oferta contra tu perfil.</p>
+        <p className="text-xs font-semibold text-fg-subtle">Apoyo · Figtree 600 · 12/16</p>
       </div>
 
       <div className="flex flex-col gap-2">
