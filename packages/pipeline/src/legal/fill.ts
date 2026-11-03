@@ -80,3 +80,34 @@ export function legalTextIsDraft(markdown: string, env: LegalEnv): boolean {
   // El marcador de los logs empieza con "[A DEFINIR": se quita antes de buscar marcas
   return DRAFT_MARKS.test(markdown.replace(PLACEHOLDERS, ""));
 }
+
+export type LegalMissing = {
+  /** El marcador tal cual, o el comienzo de la marca de borrador (`[A DEFINIR`, `{{MAURO:`…). */
+  marker: string;
+  /** Línea del Markdown (desde 1). */
+  line: number;
+  /** Variable que lo completa; null si hay que reescribir el texto (marca de borrador). */
+  envKey: keyof LegalEnv | null;
+};
+
+const DRAFT_MARKS_GLOBAL =
+  /\{\{MAURO:|\[(?:A REVISAR|A CONFIRMAR|CONFIRMAR|CONSULTAR|A DEFINIR)\b/g;
+
+/**
+ * Lo que impide dar el texto por vigente (C8-12, `pnpm legal:check`): cada marcador sin variable válida
+ * y cada marca de borrador, con su línea. Mismas reglas que `legalTextIsDraft`: vacío ⇔ vigente.
+ */
+export function legalMissing(markdown: string, env: LegalEnv): LegalMissing[] {
+  const out: LegalMissing[] = [];
+  markdown.split("\n").forEach((text, i) => {
+    for (const m of text.match(PLACEHOLDERS) ?? []) {
+      const key = ENV_KEY[m]!;
+      const value = m === LOG_MARKER ? daysValue(env[key]) : textValue(env[key]);
+      if (value === null) out.push({ marker: m, line: i + 1, envKey: key });
+    }
+    for (const m of text.replace(PLACEHOLDERS, "").match(DRAFT_MARKS_GLOBAL) ?? []) {
+      out.push({ marker: m, line: i + 1, envKey: null });
+    }
+  });
+  return out;
+}

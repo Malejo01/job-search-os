@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "llm:smoke": "tsx src/llm/smoke.ts",
+    "legal:check": "tsx src/legal/check-cli.ts",
     "llm:spend": "tsx src/llm/spend-cli.ts",
     "ingest:getonboard": "tsx src/ingest/cli.ts",
     "worker:evaluate": "tsx src/worker/cli.ts",
