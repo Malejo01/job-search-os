@@ -10,8 +10,10 @@ import {
   isRoleKey,
   type BetaMetricRow,
 } from "@job-search-os/pipeline";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAccesoFunnel } from "@/lib/acceso-funnel";
+import { feedbackTriageEnabled } from "@/lib/feedback-triage";
 import { careerLabel } from "@/lib/career-market";
 import { getBetaFeedback, type FeedbackListResult } from "@/lib/beta-feedback";
 import {
@@ -236,6 +238,14 @@ function BetaFeedbackList({ feedback }: { feedback: FeedbackListResult }) {
   return (
     <section className="rounded-card border border-line bg-surface p-4">
       <h2 className="mb-2 font-medium">Lo que nos contaron</h2>
+      {/* C8-17: triage con filtros, estado y CSV (con FEEDBACK_TRIAGE_ENABLED=1) */}
+      {feedbackTriageEnabled() ? (
+        <p className="mb-2 text-sm">
+          <Link href="/settings/feedback" className="font-semibold text-link underline">
+            Ver todo, filtrar y marcar
+          </Link>
+        </p>
+      ) : null}
       {feedback.rows.length === 0 ? (
         <p className="text-sm text-fg-muted">Todavía no hay comentarios.</p>
       ) : (

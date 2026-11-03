@@ -53,6 +53,8 @@ export default defineConfig({
       START_HERE_ENABLED: "1",
       // C8-6: «¿Qué es esto?» en las 5 pantallas (e2e 108), apagado por defecto en Vercel
       HELP_TIPS_ENABLED: "1",
+      // C8-17: triage del feedback (e2e 111), apagado por defecto en Vercel
+      FEEDBACK_TRIAGE_ENABLED: "1",
     },
   },
 });
