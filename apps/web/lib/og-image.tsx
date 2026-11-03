@@ -19,10 +19,10 @@ async function font(file: string): Promise<ArrayBuffer> {
 }
 
 export async function brandOgImage({ line }: { line: string }): Promise<ImageResponse> {
-  const [sora800, sora300, manrope600] = await Promise.all([
-    font("sora-800.woff"),
-    font("sora-300.woff"),
-    font("manrope-600.woff"),
+  const [bricolage800, bricolage500, figtree600] = await Promise.all([
+    font("bricolage-800.woff"),
+    font("bricolage-500.woff"),
+    font("figtree-600.woff"),
   ]);
   return new ImageResponse(
     <div
@@ -34,7 +34,7 @@ export async function brandOgImage({ line }: { line: string }): Promise<ImageRes
         justifyContent: "space-between",
         background: BRAND_COLORS.ink,
         padding: 80,
-        fontFamily: "Manrope",
+        fontFamily: "Figtree",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 36 }}>
@@ -57,7 +57,7 @@ export async function brandOgImage({ line }: { line: string }): Promise<ImageRes
         <div
           style={{
             display: "flex",
-            fontFamily: "Sora",
+            fontFamily: "Bricolage",
             fontSize: 120,
             lineHeight: 1,
             letterSpacing: -5,
@@ -66,13 +66,13 @@ export async function brandOgImage({ line }: { line: string }): Promise<ImageRes
           <span style={{ fontWeight: 800, color: BRAND_COLORS.accent }}>
             {BRAND.wordmark.strong}
           </span>
-          <span style={{ fontWeight: 300, color: BRAND_COLORS.white }}>{BRAND.wordmark.light}</span>
+          <span style={{ fontWeight: 500, color: BRAND_COLORS.white }}>{BRAND.wordmark.light}</span>
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <div
           style={{
-            fontFamily: "Sora",
+            fontFamily: "Bricolage",
             fontWeight: 800,
             fontSize: 64,
             letterSpacing: -2,
@@ -87,9 +87,9 @@ export async function brandOgImage({ line }: { line: string }): Promise<ImageRes
     {
       ...OG_SIZE,
       fonts: [
-        { name: "Sora", data: sora800, weight: 800, style: "normal" },
-        { name: "Sora", data: sora300, weight: 300, style: "normal" },
-        { name: "Manrope", data: manrope600, weight: 600, style: "normal" },
+        { name: "Bricolage", data: bricolage800, weight: 800, style: "normal" },
+        { name: "Bricolage", data: bricolage500, weight: 500, style: "normal" },
+        { name: "Figtree", data: figtree600, weight: 600, style: "normal" },
       ],
     },
   );

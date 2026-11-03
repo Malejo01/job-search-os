@@ -55,6 +55,18 @@
   --color-ink-line: var(--jso-ink-line);
 
   /*
+   * C9-2 (decisiones-c9.md, 2 y 5): borde inferior de lo que se toca (un tono más oscuro del fondo
+   * del elemento), recuadro lavanda de las ilustraciones y los colores del sello de afinidad.
+   */
+  --color-edge: var(--jso-edge);
+  --color-edge-brand: var(--jso-edge-brand);
+  --color-edge-ink: var(--jso-edge-ink);
+  --color-illustration: var(--jso-illustration);
+  --color-seal: var(--jso-seal);
+  --color-seal-line: var(--jso-seal-line);
+  --color-seal-line-muted: var(--jso-seal-line-muted);
+
+  /*
    * Logo que acompaña al modo (C7-2): «AfinIA», «Jobs», trazo del monograma y punto. En claro,
    * índigo e índigo vivo; en oscuro, lima y blanco. Lo usa solo <Logo tone="auto">.
    */
@@ -88,11 +100,12 @@
   --color-info-strong: var(--jso-info-strong);
 
   /*
-   * Tipografías (C7-1): las variables las pone `next/font` en `<html>` (app/fonts.ts). Manrope es
-   * el texto de la app (`font-sans`, por defecto); Sora, el logo y los títulos (`font-display`).
+   * Tipografías (C9-2): las variables las pone `next/font` en `<html>` (app/fonts.ts). Figtree es
+   * el texto de la app (`font-sans`, por defecto); Bricolage Grotesque, el logo, los títulos y el
+   * sello (`font-display`).
    */
-  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-sora), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
 }
 
 /* Radios y tipografía: no cambian con el modo, van en `@theme` directo. */
@@ -103,13 +116,16 @@
    */
   --color-zinc-50: oklch(98.5% 0 0);
 
-  /* Botones, campos y avisos (manual: radio 12). */
-  --radius-control: 0.75rem;
-  /* Tarjetas y paneles (manual: 16). */
-  --radius-card: 1rem;
-  /* Etiquetas cuadradas de las listas (estado, fuente, riesgo). */
-  --radius-badge: 0.375rem;
-  /* Badges redondos y contadores. */
+  /*
+   * Radios (C9-2, decisión 5): contenedores 32, tarjetas 24, campos y avisos 18; botones, chips,
+   * filtros y etiquetas en píldora.
+   */
+  --radius-container: 2rem;
+  --radius-card: 1.5rem;
+  --radius-control: 1.125rem;
+  /* Etiquetas de las listas (estado, fuente, riesgo): píldora desde C9 (antes, radio 6). */
+  --radius-badge: 9999px;
+  /* Botones, chips, filtros, contadores y avatar. */
   --radius-pill: 9999px;
 
   /*
@@ -135,7 +151,8 @@
    * Fondos: la página (canvas), tarjetas (surface), un recuadro dentro de una tarjeta (subtle),
    * chips neutros, hover y la sección activa del menú (muted), contadores (strong).
    */
-  --jso-canvas: #f5f5f7;
+  /* Lavanda (C9-2, decisión 2): el fondo de la app en claro. Las tarjetas siguen blancas. */
+  --jso-canvas: #eeedf9;
   --jso-surface: #ffffff;
   --jso-surface-subtle: #fafafc;
   --jso-surface-muted: #f4f4f7;
@@ -172,6 +189,23 @@
   --jso-on-ink: #ffffff;
   --jso-on-ink-muted: #c7c6e6;
   --jso-ink-line: #34316b;
+
+  /*
+   * Borde inferior de lo que se toca (C9-2, decisión 5): el de una superficie blanca es la línea
+   * fuerte; el de la lima, #8FB82E; el de un relleno índigo, un índigo más hondo.
+   */
+  --jso-edge: #d4d4dc;
+  --jso-edge-brand: #8fb82e;
+  --jso-edge-ink: #0d0b2a;
+  /* Recuadro de las ilustraciones: lavanda en los dos modos (decisión 15). */
+  --jso-illustration: #eeedf9;
+  /*
+   * Sello de afinidad (decisión 7): relleno blanco, borde índigo (niveles altos y medios) o gris
+   * (bajos). «Muy afín» usa la lima con borde índigo, igual en los dos modos.
+   */
+  --jso-seal: #ffffff;
+  --jso-seal-line: #1e1b4b;
+  --jso-seal-line-muted: #8e8e99;
 
   --jso-logo-strong: #1e1b4b;
   --jso-logo-light: #4338ca;
@@ -244,6 +278,18 @@
   --jso-on-ink-muted: #c7c6e6;
   --jso-ink-line: #34316b;
 
+  /*
+   * En oscuro el borde inferior de una tarjeta va más claro que la tarjeta: uno más oscuro se
+   * perdería contra el fondo índigo.
+   */
+  --jso-edge: #4b4890;
+  --jso-edge-brand: #8fb82e;
+  --jso-edge-ink: #0d0b2a;
+  --jso-illustration: #eeedf9;
+  --jso-seal: #24215a;
+  --jso-seal-line: #c7c6e6;
+  --jso-seal-line-muted: #6f6da3;
+
   --jso-logo-strong: #c6f25b;
   --jso-logo-light: #ffffff;
   --jso-logo-mark: #c6f25b;
@@ -275,8 +321,8 @@
 }
 
 /*
- * Base tipográfica (C7-1): los títulos de pantalla van en Sora (manual M5); el resto del texto en
- * Manrope, que es `font-sans`. Un título que necesite Manrope lleva `font-sans`.
+ * Base tipográfica (C9-2): los títulos (h1 a h3) van en Bricolage Grotesque; el resto del texto en
+ * Figtree 500, que es `font-sans`. Un título que necesite Figtree lleva `font-sans`.
  */
 @layer base {
   /*
@@ -300,9 +346,51 @@
     padding-block: 0.625rem;
   }
 
-  h1 {
+  body {
+    font-weight: 500;
+  }
+
+  h1,
+  h2,
+  h3 {
     font-family: var(--font-display);
     letter-spacing: -0.01em;
+  }
+}
+
+/*
+ * Forma P1 (C9-2, decisión 5): plano, sin sombras, con un borde inferior más grueso en lo que se
+ * toca. `edge-4` (listas, chips, filtros) y `edge-6` (botones y tarjetas destacadas) ponen el
+ * borde de abajo; el color lo da `border-edge`, `border-edge-brand` o `border-edge-ink`.
+ *
+ * `pressable` hunde 3 px al tocar: baja con `translate` y el borde de abajo se achica lo mismo, y
+ * el `margin-bottom` de 3 px devuelve esos 3 px al layout, así nada de alrededor salta. Es CSS, no
+ * Framer: sirve en Server Components. Con «reducir movimiento» se hunde igual, sin transición.
+ * Un elemento `pressable` no lleva `margin-bottom` propio (para separar, `gap` en el padre).
+ */
+@utility edge-4 {
+  border-style: solid;
+  border-bottom-width: 4px;
+  --jso-edge-w: 4px;
+}
+
+@utility edge-6 {
+  border-style: solid;
+  border-bottom-width: 6px;
+  --jso-edge-w: 6px;
+}
+
+@utility pressable {
+  @media (prefers-reduced-motion: no-preference) {
+    transition:
+      transform 90ms ease-out,
+      border-bottom-width 90ms ease-out,
+      margin-bottom 90ms ease-out;
+  }
+  &:active:not(:disabled, [aria-disabled="true"]) {
+    transform: translateY(3px);
+    border-bottom-width: calc(var(--jso-edge-w, 3px) - 3px);
+    margin-bottom: 3px;
   }
 }
 

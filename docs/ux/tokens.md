@@ -1,4 +1,4 @@
-# Tokens de diseño (N3-2, paleta AfinIAJobs en C7-1)
+# Tokens de diseño (N3-2, paleta AfinIAJobs en C7-1, rediseño C9)
 
 Colores, radios y tipografía salen de un solo lugar: `apps/web/app/globals.css`. Las pantallas usan clases semánticas de Tailwind (`bg-surface`, `text-fg-muted`, `border-line`, `bg-danger-soft`) y nunca un color de la paleta (`bg-white`, `text-stone-700`, `text-red-800`). Así el modo oscuro y un cambio de marca se hacen en un archivo.
 
@@ -25,11 +25,15 @@ Reemplaza a la «tinta y naranja» del manual (se parecía demasiado a otra marc
 
 Un elemento seleccionado (chip, pestaña) va con relleno lima y **borde índigo** (`border-brand-contrast`), así el estado se distingue también sobre blanco.
 
+### Reglas de la lima (C9, decisión 2)
+
+La lima va **solo** en tres lugares: el botón de acción principal, el sello «Muy afín» y la pestaña o píldora activa (navegación y filtros). Nunca como fondo de bloques grandes ni de secciones, nunca como texto sobre claro y nunca para indicar un estado. Índigo equilibrado: la cabecera es índigo (`bg-ink`) y el resto de la pantalla es claro.
+
 ## Colores
 
 | Token (clase) | Para qué | Claro | Oscuro |
 |---|---|---|---|
-| `canvas` | Fondo de la página | `#F5F5F7` | `#14123A` |
+| `canvas` | Fondo de la página: lavanda en claro (C9-2) | `#EEEDF9` | `#14123A` |
 | `surface` | Tarjetas, diálogos, campos | `#FFFFFF` | `#24215A` |
 | `surface-subtle` | Recuadro dentro de una tarjeta | `#FAFAFC` | `#100E30` |
 | `surface-muted` | Chips neutros, hover | `#F4F4F7` | `#2A2766` |
@@ -46,6 +50,11 @@ Un elemento seleccionado (chip, pestaña) va con relleno lima y **borde índigo*
 | `brand-text` | El acento como texto (sección activa, acento) | `#4338CA` | `#C6F25B` |
 | `ink` / `on-ink` / `on-ink-muted` / `ink-line` | Header y bloques índigo (iguales en los dos modos) | `#1E1B4B` / blanco / `#C7C6E6` / `#34316B` | ídem |
 | `on-strong` | Texto sobre un relleno fuerte de estado | blanco | blanco |
+| `edge` | Borde inferior de lo blanco que se toca (tarjetas, botón secundario, chips) | `#D4D4DC` (línea fuerte) | `#4B4890` |
+| `edge-brand` | Borde inferior del botón lima y del sello «Muy afín» | `#8FB82E` | `#8FB82E` |
+| `edge-ink` | Borde inferior de un relleno índigo | `#0D0B2A` | `#0D0B2A` |
+| `illustration` | Recuadro de las ilustraciones (decisión 15) | `#EEEDF9` | `#EEEDF9` |
+| `seal` / `seal-line` / `seal-line-muted` | Sello de afinidad: relleno, borde índigo (niveles altos y medios) y borde gris (bajos) | blanco / `#1E1B4B` / `#8E8E99` | `#24215A` / `#C7C6E6` / `#6F6DA3` |
 
 Estados (manual M4): cada uno tiene texto, fondo suave, fondo enfático, borde y relleno fuerte.
 
@@ -66,21 +75,37 @@ Estados (manual M4): cada uno tiene texto, fondo suave, fondo enfático, borde y
 
 | Token | Clase | Valor | Para qué |
 |---|---|---|---|
-| `--radius-control` | `rounded-control` | 0.75rem (12 px) | Botones, campos, avisos |
-| `--radius-card` | `rounded-card` | 1rem (16 px) | Tarjetas y paneles |
-| `--radius-badge` | `rounded-badge` | 0.375rem (6 px) | Etiquetas de las listas |
-| `--radius-pill` | `rounded-pill` | 9999px | Badges redondos, contadores, avatar |
+| `--radius-container` | `rounded-container` | 2rem (32 px) | Contenedores: cabecera curva, recuadro de ilustración, paneles grandes |
+| `--radius-card` | `rounded-card` | 1.5rem (24 px) | Tarjetas |
+| `--radius-control` | `rounded-control` | 1.125rem (18 px) | Campos y avisos |
+| `--radius-badge` | `rounded-badge` | 9999px | Etiquetas de las listas (píldora desde C9) |
+| `--radius-pill` | `rounded-pill` | 9999px | Botones, chips, filtros, contadores, avatar |
 | `--text-title` | `text-title` | 1.5rem / 1.875rem | `h1` de pantalla con sesión (el manual pide 28/34 en escritorio; 24 entra mejor a 390 px) |
 | `--text-heading` | `text-heading` | 1.125rem / 1.75rem | `h2` de sección; los h2 de tarjeta siguen en `text-base` |
 
-**Familias** (`apps/web/app/fonts.ts`, con `next/font/local` y los archivos de `apps/web/assets/fonts`: subset latin, `display: swap`, servidas desde el mismo dominio y sin depender de la red en el build):
+**Familias** (C9-2; `apps/web/app/fonts.ts`, con `next/font/local` y los archivos de `apps/web/assets/fonts`: subset latin, `display: swap`, servidas desde el mismo dominio y sin depender de la red en el build):
 
 | Clase | Fuente | Pesos | Para qué |
 |---|---|---|---|
-| `font-sans` (por defecto) | Manrope | 500, 600, 700 | Todo el texto de la app |
-| `font-display` | Sora | 300, 700, 800 | Logo y títulos. Todo `h1` va en Sora por la capa base de `globals.css` |
+| `font-sans` (por defecto) | Figtree | 500, 600, 700, 800 | El texto (500 y 600) y los botones (700 y 800). `body` va en 500 |
+| `font-display` | Bricolage Grotesque | 500, 700, 800 | Títulos (700), el sello (800) y el logotipo («AfinIA» 800, «Jobs» 500). `h1`, `h2` y `h3` van en Bricolage por la capa base de `globals.css` |
 
 Los espacios siguen la escala de Tailwind (`--spacing`, 0.25rem = el espacio base 4 del manual). Áreas táctiles: 44 px como mínimo (`min-h-11`); campos, selects y `summary` lo tienen por la capa base de `globals.css` (C7-15).
+
+## Forma: plano con borde de abajo (C9-2, decisión 5)
+
+Sin sombras. Lo que se toca lleva un borde inferior más grueso, de un tono más oscuro que su fondo, y al tocarlo se hunde 3 px.
+
+| Clase | Qué hace | Dónde |
+|---|---|---|
+| `edge-6` | Borde inferior de 6 px | Botones y tarjetas destacadas (la oferta principal de Hoy, el detalle) |
+| `edge-4` | Borde inferior de 4 px | Tarjetas de las listas, chips y filtros |
+| `border-edge` / `border-edge-brand` / `border-edge-ink` | Color del borde: blanco → línea fuerte; lima → `#8FB82E`; índigo → índigo hondo | Junto con `edge-4` o `edge-6` |
+| `pressable` | Al tocar (`:active`) baja 3 px y el borde se achica lo mismo; un `margin-bottom` de 3 px compensa el layout | Todo lo que se toca. Es CSS: sirve en Server Components. No le pongas `margin-bottom` propio (usá `gap`) |
+
+Con «reducir movimiento» el hundimiento queda, sin transición.
+
+**Contraste (C9-2).** Sobre el lavanda, todos los textos pasan AA: `fg` 15,4:1, `fg-muted` 9,0:1, `fg-subtle` 6,7:1, `link` 6,8:1 y los textos de estado entre 6,5 y 8,4:1. `line-control` queda en 4,2:1 (pide 3:1). El borde gris del sello pasa 3:1 contra su fondo en los dos modos (3,2 y 3,1); el borde índigo, 16:1 y 8,8:1. Lo verifican los e2e de axe (61, 70, 76, 77, 87, 88, 105).
 
 ## Tema claro u oscuro
 

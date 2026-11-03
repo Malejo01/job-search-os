@@ -136,6 +136,7 @@ describe("nombre AfinIAJobs bien escrito (C7-2)", () => {
     expect(root).toContain(`--jso-brand: ${BRAND_COLORS.accent.toLowerCase()};`);
     expect(root).toContain(`--jso-brand-text: ${BRAND_COLORS.accentDeep.toLowerCase()};`);
     expect(root).toContain(`--jso-canvas: ${BRAND_COLORS.canvas.toLowerCase()};`);
+    expect(root).toContain(`--jso-edge-brand: ${BRAND_COLORS.accentEdge.toLowerCase()};`);
     expect(root).toContain(`--jso-fg-subtle: ${BRAND_COLORS.textMuted.toLowerCase()};`);
   });
 });
