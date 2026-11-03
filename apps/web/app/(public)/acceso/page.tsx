@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { BETA_OPENING_LABEL, BRAND, waitlistRoleGroups } from "@job-search-os/pipeline";
+import { Illustration } from "@/components/brand/illustration";
+import { Icon } from "@/components/ui";
 import { accesoFunnelEnabled } from "@/lib/acceso-funnel";
 import { contactLink } from "@/lib/contact";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
@@ -38,31 +40,35 @@ export default function AccesoPage() {
     brandName: BRAND.name,
   };
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col gap-5 py-2 sm:py-8">
-      {/* Bloque de marca (C7-10): lo primero que ve quien llega por el QR desde el celular */}
+    <div className="mx-auto flex w-full max-w-md flex-col gap-6 sm:max-w-lg">
+      {/* Cabecera índigo curva (C9-16, decisión 6): lo primero que ve quien llega por el QR desde el
+          celular. En el celular se pega a la barra de arriba; la ilustración «acceso» va adentro */}
       <section
         aria-labelledby="acceso-marca"
-        className="flex flex-col gap-2 rounded-card border border-ink-line bg-ink p-4 text-on-ink sm:p-5"
+        className="-mx-4 -mt-6 flex flex-col gap-3 rounded-b-[2.5rem] bg-ink px-5 pt-5 pb-8 text-on-ink sm:mx-0 sm:mt-0 sm:rounded-container sm:p-7"
       >
-        <p id="acceso-marca" className="font-display text-2xl leading-tight font-extrabold">
-          {BRAND.tagline}
-        </p>
+        <div className="flex items-end justify-between gap-4">
+          <p id="acceso-marca" className="font-display text-[28px] leading-tight font-extrabold">
+            {BRAND.tagline}
+          </p>
+          <Illustration escena="acceso" priority className="w-28 sm:w-40" />
+        </div>
         <p className="text-sm text-on-ink-muted">
           Leemos cada oferta contra tu perfil y te decimos por qué sí y por qué no. Vos decidís.
         </p>
-        <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-sm text-on-ink-muted">
+        <ul className="m-0 flex list-none flex-col gap-2 p-0 text-sm text-on-ink-muted">
           <li className="flex gap-2">
-            <span aria-hidden="true" className="mt-1.5 h-2 w-2 shrink-0 rounded-pill bg-brand" />
+            <Icon name="check" size={18} className="shrink-0 text-on-ink" />
             <span>
               Beta cerrada: abre el <strong className="text-on-ink">{BETA_OPENING_LABEL}</strong>.
             </span>
           </li>
           <li className="flex gap-2">
-            <span aria-hidden="true" className="mt-1.5 h-2 w-2 shrink-0 rounded-pill bg-brand" />
+            <Icon name="check" size={18} className="shrink-0 text-on-ink" />
             <span>{BETA_CAREERS_TEXT}</span>
           </li>
           <li className="flex gap-2">
-            <span aria-hidden="true" className="mt-1.5 h-2 w-2 shrink-0 rounded-pill bg-brand" />
+            <Icon name="check" size={18} className="shrink-0 text-on-ink" />
             <span>El cupo es limitado: anotarte no garantiza un lugar.</span>
           </li>
         </ul>

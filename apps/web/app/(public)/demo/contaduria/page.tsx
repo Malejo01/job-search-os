@@ -36,8 +36,8 @@ export default function DemoContaduriaPage() {
   const high = DEMO_OFFERS.filter((o) => o.score >= 7).length;
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-8">
-      <header className="flex flex-col gap-2 rounded-card border border-ink-line bg-ink p-5 text-on-ink sm:p-8">
-        <p className="text-xs font-bold tracking-wide text-brand uppercase">
+      <header className="flex flex-col gap-2 rounded-container bg-ink p-5 text-on-ink sm:p-8">
+        <p className="text-xs font-bold tracking-wide text-on-ink-muted uppercase">
           Ejemplo con datos inventados
         </p>
         <h1 className="text-2xl leading-tight font-extrabold sm:text-3xl">
@@ -130,7 +130,7 @@ export default function DemoContaduriaPage() {
               <li key={strong} className="flex items-start gap-3">
                 <span
                   aria-hidden="true"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-pill bg-brand text-sm font-bold text-brand-contrast"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-pill bg-ink font-display text-sm font-extrabold text-on-ink"
                 >
                   {i + 1}
                 </span>
@@ -144,7 +144,7 @@ export default function DemoContaduriaPage() {
         </div>
       </section>
 
-      <section className="flex flex-col gap-3 rounded-card border border-ink-line bg-ink p-5 text-on-ink">
+      <section className="flex flex-col gap-3 rounded-container bg-ink p-5 text-on-ink">
         <p className="font-display text-xl font-extrabold">Vos decidís.</p>
         <p className="text-sm text-on-ink-muted">
           La postulación la hacés vos en el sitio del aviso: nunca postulamos por vos. El cupo de la

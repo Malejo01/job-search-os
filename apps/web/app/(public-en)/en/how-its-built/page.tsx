@@ -65,7 +65,7 @@ const STACK = [
 ];
 
 const CTA_CLASS =
-  "inline-flex min-h-11 items-center justify-center rounded-control bg-brand px-5 text-base font-medium text-brand-contrast hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
+  "inline-flex min-h-11 items-center justify-center pressable edge-6 rounded-pill border-edge-brand bg-brand px-5 text-base font-extrabold text-brand-contrast hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
 const LINK_CLASS = "inline-flex min-h-11 items-center underline underline-offset-2 hover:text-fg";
 
 export default async function HowItsBuiltPage() {
@@ -95,7 +95,7 @@ export default async function HowItsBuiltPage() {
             <li key={step.title} className="flex min-w-0 gap-3 rounded-card bg-surface p-4">
               <span
                 aria-hidden="true"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-sm font-semibold text-brand-contrast"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-pill bg-ink font-display text-sm font-extrabold text-on-ink"
               >
                 {i + 1}
               </span>

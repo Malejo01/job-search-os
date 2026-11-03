@@ -56,7 +56,7 @@ export function MobileTabBar({ followUps = 0 }: { followUps?: number }) {
                 href={t.href}
                 aria-current={isActive ? "page" : undefined}
                 data-tour={t.href === "/settings/perfil" ? "jobs:menu" : undefined}
-                className={`flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-[18px] px-0.5 text-[11px] leading-tight font-bold focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand ${
+                className={`flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-[18px] px-0.5 text-[10px] leading-tight font-bold tracking-tight focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand ${
                   isActive
                     ? "bg-brand text-brand-contrast"
                     : "text-on-ink-muted hover:bg-ink-line hover:text-on-ink"

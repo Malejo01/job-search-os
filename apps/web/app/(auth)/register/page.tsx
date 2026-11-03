@@ -108,7 +108,7 @@ export default async function RegisterPage({
         <p className="text-sm text-success">Ya podés entrar con tu email y tu contraseña.</p>
         <a
           href="/login"
-          className="rounded-control bg-brand px-4 py-2 text-center text-base font-medium text-brand-contrast"
+          className="pressable edge-6 rounded-pill border-edge-brand bg-brand px-4 py-2 text-center text-base font-extrabold text-brand-contrast"
         >
           Iniciar sesión
         </a>
@@ -256,7 +256,7 @@ export default async function RegisterPage({
         ) : null}
         <SubmitButton
           pendingLabel="Creando la cuenta…"
-          className="mt-2 inline-flex min-h-12 items-center justify-center rounded-control bg-brand px-4 text-base font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          className="mt-2 inline-flex min-h-12 items-center justify-center pressable edge-6 rounded-pill border-edge-brand bg-brand px-4 text-base font-extrabold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         >
           Crear cuenta
         </SubmitButton>
