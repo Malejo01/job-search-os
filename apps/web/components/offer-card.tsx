@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Badge, type BadgeTone, cx, ScoreBadge } from "@/components/ui";
+import { Badge, type BadgeTone, cx, Seal } from "@/components/ui";
 
 /**
  * Tarjeta de oferta (C7-4, manual M8 y P1): score, título, empresa y lugar, etiquetas de estado y,
@@ -58,7 +58,7 @@ export function OfferCard({
         className="absolute inset-0 rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         aria-label={`Abrir el detalle de ${title}`}
       />
-      <ScoreBadge
+      <Seal
         score={score}
         preScore={preScore}
         pending={pending}

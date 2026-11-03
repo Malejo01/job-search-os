@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Badge, ScoreBadge } from "@/components/ui";
+import { Badge, Seal } from "@/components/ui";
 import type { JobListRow } from "@/lib/jobs";
 import { ACTION_LABELS } from "@/lib/labels";
 
@@ -20,7 +20,6 @@ export function NewJobRow({ job }: { job: JobListRow }) {
       data-testid="hoy-nuevo-fila"
       className="relative flex items-start gap-3 rounded-control border border-line p-3 hover:border-line-control"
     >
-      <ScoreBadge score={job.score} as="text" />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <Link
           href={`/jobs/${job.id}`}
@@ -34,6 +33,7 @@ export function NewJobRow({ job }: { job: JobListRow }) {
         {why ? <span className="line-clamp-2 text-xs text-fg-muted">{why}</span> : null}
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1.5">
+        <Seal score={job.score} as="text" />
         {action ? <Badge shape="square">{action}</Badge> : null}
         <span
           aria-hidden="true"

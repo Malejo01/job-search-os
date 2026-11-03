@@ -52,7 +52,7 @@ import { ReviewNav } from "./review-nav";
 import { SourceAttribution } from "./source-attribution";
 import { StatusCorrection } from "./status-correction";
 import { Verdict } from "./verdict";
-import { ScoreBadge } from "@/components/ui";
+import { Seal } from "@/components/ui";
 import { HelpTip } from "@/components/help-tip";
 
 export const dynamic = "force-dynamic";
@@ -166,9 +166,8 @@ export default async function JobDetailPage({
       ) : null}
       <AutoRefresh active={job.evaluating} />
 
-      <header className="flex gap-3">
-        <ScoreBadge score={ev ? ev.score : null} pending={job.evaluating && !ev} size="lg" />
-        <div className="min-w-0">
+      <header className="flex gap-4">
+        <div className="min-w-0 flex-1">
           <h1 className="text-lg font-semibold leading-tight">{job.title}</h1>
           <p className="text-sm text-fg-muted">{job.company}</p>
           <p className="text-xs text-fg-subtle">
@@ -216,6 +215,7 @@ export default async function JobDetailPage({
             ))}
           </div>
         </div>
+        <Seal score={ev ? ev.score : null} pending={job.evaluating && !ev} size="detail" />
       </header>
       {/* C8-6: qué es el número del puntaje */}
       {ev ? <HelpTip topic="puntaje" /> : null}

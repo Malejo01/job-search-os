@@ -1,5 +1,5 @@
 import { schema as s } from "@job-search-os/db";
-import { JOB_STATUSES } from "@job-search-os/pipeline";
+import { JOB_STATUSES, splitFarFromProfile } from "@job-search-os/pipeline";
 import {
   countJobs,
   countPossibleDuplicates,
@@ -10,6 +10,7 @@ import {
   reviewProgressFor,
   type JobCounts,
   type JobFilters as ListFilters,
+  type JobListRow,
 } from "@/lib/jobs";
 import { GuidedTour } from "@/components/guided-tour";
 import { GUIDE_LABELS, GUIDE_STEPS } from "@/lib/guide";
@@ -147,7 +148,7 @@ export default async function JobsPage({
                 {PRE_SCORE_EXPLAIN} El número va de 0 a 10.
               </p>
             ) : null}
-            <JobList rows={rows} query={query} />
+            <JobListSplit rows={rows} query={query} />
           </>
         )}
         <AutoRefresh active={rows.some((r) => r.evaluating)} />
@@ -343,5 +344,33 @@ function ReviewProgress({
         />
       </div>
     </div>
+  );
+}
+
+/**
+ * La lista con las «Lejos de tu perfil» siempre al final, debajo de su separador, sea cual sea el
+ * orden (C9-5, decisión 7). La guía se ancla en la primera tarjeta de arriba.
+ */
+function JobListSplit({ rows, query }: { rows: JobListRow[]; query: string }) {
+  const { near, far } = splitFarFromProfile(rows, (r) => r.score);
+  return (
+    <>
+      {near.length ? <JobList rows={near} query={query} /> : null}
+      {far.length ? (
+        <section
+          aria-labelledby="lejos-titulo"
+          className="mt-4 flex flex-col gap-2"
+          data-testid="lejanas"
+        >
+          <h2
+            id="lejos-titulo"
+            className="flex items-center gap-3 font-sans text-sm font-bold text-fg-muted after:h-px after:flex-1 after:bg-line-strong"
+          >
+            Lejos de tu perfil ({far.length})
+          </h2>
+          <JobList rows={far} query={query} tour={near.length === 0} />
+        </section>
+      ) : null}
+    </>
   );
 }

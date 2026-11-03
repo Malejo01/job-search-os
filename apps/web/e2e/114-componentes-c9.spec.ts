@@ -60,4 +60,44 @@ test.describe("Flujo 114: catálogo de componentes del rediseño", () => {
     expect((await next.boundingBox())?.y).toBe(before.y);
     await page.mouse.up();
   });
+
+  test("sello (C9-5): «Muy afín» es el único inclinado, la palabra siempre está y no baja de 10 px", async ({
+    page,
+  }) => {
+    await login(page);
+    await page.goto("/settings/marca/componentes");
+    const seals = page.getByTestId("sellos-light");
+    const top = seals.getByRole("img", { name: "puntaje 9.2" });
+    await expect(top).toContainText("Muy afín");
+    expect(await top.evaluate((el) => getComputedStyle(el).transform)).not.toBe("none");
+    const far = seals.getByRole("img", { name: "puntaje 1.5" });
+    await expect(far).toContainText("Lejos de tu perfil");
+    expect(await far.evaluate((el) => getComputedStyle(el).transform)).toBe("none");
+    for (const name of [
+      "puntaje 7.5",
+      "puntaje 5.5",
+      "puntaje 3.5",
+      "estimación previa 6",
+      "sin evaluar",
+      "en cola",
+    ]) {
+      const seal = seals.getByRole("img", { name });
+      await expect(seal).toBeVisible();
+      expect(await seal.evaluate((el) => getComputedStyle(el).transform)).toBe("none");
+    }
+    await expect(seals.getByRole("img", { name: "puntaje 7.5" })).toContainText("Bastante afín");
+    await expect(seals.getByRole("img", { name: "puntaje 5.5" })).toContainText("Afín a medias");
+    await expect(seals.getByRole("img", { name: "puntaje 3.5" })).toContainText("Poco afín");
+    await expect(seals.getByRole("img", { name: "estimación previa 6" })).toContainText("Estimado");
+    await expect(seals.getByRole("img", { name: "sin evaluar" })).toContainText("Sin evaluar");
+    // La palabra de «Lejos de tu perfil» entra en el sello sin bajar de 10 px ni desbordar
+    const word = far.getByText("Lejos de tu perfil");
+    const size = await word.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+    expect(size).toBeGreaterThanOrEqual(10);
+    const [wordBox, sealBox] = [await word.boundingBox(), await far.boundingBox()];
+    if (!wordBox || !sealBox) throw new Error("sin caja");
+    expect(wordBox.x).toBeGreaterThanOrEqual(sealBox.x);
+    expect(wordBox.x + wordBox.width).toBeLessThanOrEqual(sealBox.x + sealBox.width);
+    expect(wordBox.y + wordBox.height).toBeLessThanOrEqual(sealBox.y + sealBox.height);
+  });
 });

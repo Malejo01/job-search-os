@@ -2,7 +2,7 @@ import { FALTA_KIND_LABEL } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { FitPointsPanel } from "@/app/(app)/jobs/[id]/fit-points-panel";
-import { Badge, buttonClasses, Icon, ScoreBadge } from "@/components/ui";
+import { Badge, buttonClasses, Icon, Seal } from "@/components/ui";
 import { DEMO_OFFERS, DEMO_PENDING, DEMO_PERSON, type DemoOffer } from "@/lib/demo-contaduria";
 import { ACTION_ADVICE, ACTION_LABELS } from "@/lib/labels";
 import { DemoPaste } from "./demo-paste";
@@ -82,7 +82,6 @@ export default function DemoContaduriaPage() {
         <ul className="m-0 flex list-none flex-col gap-2 p-0">
           {DEMO_OFFERS.map((o) => (
             <li key={o.id} className="relative flex items-start gap-3 rounded-card bg-surface p-3">
-              <ScoreBadge score={o.score} />
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <a
                   href={`#${o.id}`}
@@ -95,6 +94,7 @@ export default function DemoContaduriaPage() {
                 </span>
                 <span className="line-clamp-2 text-xs text-fg-muted">{o.why}</span>
               </div>
+              <Seal score={o.score} />
             </li>
           ))}
         </ul>
@@ -167,8 +167,7 @@ function OfferDetail({ offer }: { offer: DemoOffer }) {
       className="flex scroll-mt-20 flex-col gap-3 rounded-card bg-surface p-4"
     >
       <div className="flex items-start gap-3">
-        <ScoreBadge score={offer.score} size="lg" />
-        <div className="flex min-w-0 flex-col gap-1">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
           <h3 id={`${offer.id}-titulo`} className="text-base font-bold">
             {offer.title}
           </h3>
@@ -187,6 +186,7 @@ function OfferDetail({ offer }: { offer: DemoOffer }) {
             <Badge shape="square">{ACTION_LABELS[offer.action]}</Badge>
           </div>
         </div>
+        <Seal score={offer.score} size="detail" />
       </div>
       <FitPointsPanel points={offer.points} headingLevel={4} />
       <p className="text-sm font-semibold text-fg">

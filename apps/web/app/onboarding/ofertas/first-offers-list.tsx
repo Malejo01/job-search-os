@@ -1,6 +1,7 @@
 import { AutoRefresh } from "@/app/(app)/jobs/auto-refresh";
 import type { FirstOffer } from "@/lib/first-offers";
-import { formatScore, safeHttpUrl, SOURCE_LABELS } from "@/lib/labels";
+import { Seal } from "@/components/ui";
+import { safeHttpUrl, SOURCE_LABELS } from "@/lib/labels";
 import { attributionFor } from "@job-search-os/pipeline";
 
 /**
@@ -15,22 +16,14 @@ function attributionText(offer: FirstOffer): string {
   return `Publicado en ${(offer.sourceKind && SOURCE_LABELS[offer.sourceKind]) || "la fuente original"}`;
 }
 
-function ScoreBadge({ offer }: { offer: FirstOffer }) {
-  if (offer.score !== null) {
-    return (
-      <span
-        data-testid="first-offer-score"
-        className="shrink-0 rounded-control bg-brand px-2 py-0.5 text-sm font-semibold text-brand-contrast"
-      >
-        <span className="sr-only">Score </span>
-        {formatScore(Math.round(offer.score * 10) / 10)}
-      </span>
-    );
-  }
+/** Sello de afinidad (C9-5); el `data-testid` solo con puntaje: los e2e esperan el final. */
+function OfferSeal({ offer }: { offer: FirstOffer }) {
   return (
-    <span className="shrink-0 rounded-control bg-surface-muted px-2 py-0.5 text-sm text-fg-muted">
-      {offer.evaluating ? "Evaluando…" : "Sin evaluar"}
-    </span>
+    <Seal
+      score={offer.score === null ? null : Math.round(offer.score * 10) / 10}
+      pending={offer.score === null && offer.evaluating}
+      data-testid={offer.score !== null ? "first-offer-score" : undefined}
+    />
   );
 }
 
@@ -57,7 +50,7 @@ export function FirstOffersList({ offers }: { offers: FirstOffer[] }) {
                   <p className="font-medium break-words text-fg">{o.title}</p>
                   <p className="text-sm break-words text-fg-muted">{o.company}</p>
                 </div>
-                <ScoreBadge offer={o} />
+                <OfferSeal offer={o} />
               </div>
               <p className="text-xs text-fg-subtle">
                 {attributionText(o)}

@@ -13,6 +13,7 @@ import {
   filterChipClasses,
   Icon,
   ICON_PATHS,
+  Seal,
   textLinkClasses,
   type IconName,
 } from "@/components/ui";
@@ -68,6 +69,25 @@ function Panel({ mode }: { mode: "light" | "dark" }) {
         En {label}
       </h2>
 
+      <Block title="Sello de afinidad" id={id("sello")}>
+        <div className="flex flex-wrap items-center gap-4" data-testid={`sellos-${mode}`}>
+          <Seal score={9.2} />
+          <Seal score={7.5} />
+          <Seal score={5.5} />
+          <Seal score={3.5} />
+          <Seal score={1.5} />
+          <Seal score={null} preScore={6} />
+          <Seal score={null} />
+          <Seal score={null} pending />
+        </div>
+        <div className="flex flex-wrap items-center gap-4">
+          <Seal score={8.8} size="detail" />
+          <Seal score={2.4} size="detail" />
+          <Seal score={null} pending size="detail" />
+          <p className="text-sm text-fg-muted">Leyendo la oferta contra tu perfil…</p>
+        </div>
+      </Block>
+
       <Block title="Botones" id={id("botones")}>
         <div className="flex flex-wrap items-center gap-3">
           <Button>Ver mis ofertas</Button>
@@ -100,15 +120,15 @@ function Panel({ mode }: { mode: "light" | "dark" }) {
 
       <Block title="Tarjetas" id={id("tarjetas")}>
         <Card>
-          <p className="font-semibold">Panel (`flat`)</p>
+          <p className="font-semibold">Panel (flat)</p>
           <p className="text-sm text-fg-muted">No se toca: sin borde inferior.</p>
         </Card>
         <Card level="list" pressable>
-          <p className="font-semibold">Tarjeta de lista (`list`, 4 px)</p>
+          <p className="font-semibold">Tarjeta de lista (list, 4 px)</p>
           <p className="text-sm text-fg-muted">Se toca y se hunde 3 px.</p>
         </Card>
         <Card level="featured" pressable padding="md">
-          <p className="font-display text-lg font-bold">Tarjeta destacada (`featured`, 6 px)</p>
+          <p className="font-display text-lg font-bold">Tarjeta destacada (featured, 6 px)</p>
           <p className="text-sm text-fg-muted">Una por pantalla: la oferta principal de Hoy.</p>
         </Card>
         <div className="grid gap-3 sm:grid-cols-2">

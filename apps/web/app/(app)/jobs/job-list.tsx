@@ -2,7 +2,7 @@
 
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
-import { Badge, Icon, ScoreBadge } from "@/components/ui";
+import { Badge, Icon, Seal } from "@/components/ui";
 import type { JobListRow } from "@/lib/jobs";
 import {
   BLOCKER_LABEL,
@@ -25,7 +25,16 @@ import { CardVerdict } from "./card-verdict";
  * las transiciones cuando cambian los filtros. Los datos vienen ya resueltos del servidor.
  * Un riesgo se ve (chip ámbar), no frena; un bloqueador frena (chip rojo).
  */
-export function JobList({ rows, query = "" }: { rows: JobListRow[]; query?: string }) {
+export function JobList({
+  rows,
+  query = "",
+  tour = true,
+}: {
+  rows: JobListRow[];
+  query?: string;
+  /** La primera tarjeta lleva las anclas de la guía; la segunda lista (lejanas) no. */
+  tour?: boolean;
+}) {
   const reduce = useReducedMotion();
   const shift = reduce ? 0 : 6;
   return (
@@ -45,7 +54,7 @@ export function JobList({ rows, query = "" }: { rows: JobListRow[]; query?: stri
                 delay: reduce ? 0 : Math.min(i * 0.03, 0.2),
               }}
             >
-              <JobCard job={job} query={query} tour={i === 0} />
+              <JobCard job={job} query={query} tour={tour && i === 0} />
             </motion.li>
           ))}
         </AnimatePresence>
@@ -69,25 +78,15 @@ function JobCard({ job, query, tour }: { job: JobListRow; query: string; tour: b
         className="absolute inset-0 rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         aria-label={`Abrir el detalle de ${job.title}`}
       />
-      <ScoreBadge
-        score={job.score}
-        preScore={job.preScore}
-        pending={job.evaluating}
-        title={
-          job.evaluating
-            ? "Esperando la evaluación"
-            : job.score === null && job.preScore !== null
-              ? PRE_SCORE_EXPLAIN
-              : undefined
-        }
-        {...anchor("jobs:puntaje")}
-      />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <p className="truncate text-[15px] font-bold text-fg">{job.title}</p>
         <p className="truncate text-[13px] text-fg-subtle">
           {job.company}
           {job.locationRaw ? ` · ${job.locationRaw}` : ""}
         </p>
+        {job.evaluating ? (
+          <p className="text-xs font-semibold text-fg-muted">Leyendo la oferta contra tu perfil…</p>
+        ) : null}
         {job.fit.favor || job.fit.falta ? (
           <div className="flex min-w-0 flex-col gap-0.5 text-xs" data-testid="tarjeta-fit">
             {job.fit.favor ? (
@@ -174,6 +173,19 @@ function JobCard({ job, query, tour }: { job: JobListRow; query: string; tour: b
         </div>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-2">
+        <Seal
+          score={job.score}
+          preScore={job.preScore}
+          pending={job.evaluating}
+          title={
+            job.evaluating
+              ? "Esperando la evaluación"
+              : job.score === null && job.preScore !== null
+                ? PRE_SCORE_EXPLAIN
+                : undefined
+          }
+          {...anchor("jobs:puntaje")}
+        />
         <time className="text-xs font-semibold text-fg-subtle" dateTime={job.firstSeenAt}>
           {formatDate(job.postedAt ?? job.firstSeenAt)}
         </time>
