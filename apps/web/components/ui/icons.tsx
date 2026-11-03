@@ -31,6 +31,7 @@ export const ICON_PATHS = {
   mas: "M5 12h.01 M12 12h.01 M19 12h.01",
   postulaciones: "M21 3L10 14 M21 3l-7 18-4-7-7-4z",
   aviso: "M12 3a9 9 0 100 18 9 9 0 000-18z M12 7.5v5.5 M12 16.5h.01",
+  charla: "M5 5h14a1 1 0 011 1v9a1 1 0 01-1 1h-8l-5 4v-4H5a1 1 0 01-1-1V6a1 1 0 011-1z",
 } as const;
 
 export type IconName = keyof typeof ICON_PATHS;

@@ -216,7 +216,7 @@ export function GuidedTour({
         aria-label={label}
         data-testid={testId}
         hidden={!open}
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-line-strong bg-surface px-4 py-1.5 shadow-lg"
+        className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-line-strong bg-surface px-4 py-1.5"
       >
         <div aria-live="polite" className="mx-auto flex max-w-5xl flex-col gap-1">
           <div className="flex flex-wrap items-baseline gap-x-2">

@@ -114,7 +114,7 @@ export function VerdictReason({
         <button
           type="submit"
           disabled={pending || trimmed === "" || trimmed === saved}
-          className="min-h-[44px] rounded-control bg-brand px-3 text-sm font-medium text-brand-contrast focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
+          className="min-h-[44px] pressable edge-4 rounded-pill border-edge-brand bg-brand px-4 text-sm font-extrabold text-brand-contrast focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
         >
           {pending ? "Guardando…" : "Guardar motivo"}
         </button>
