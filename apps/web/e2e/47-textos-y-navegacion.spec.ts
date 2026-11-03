@@ -109,8 +109,8 @@ test.describe("Flujo 47: textos y navegación", () => {
     const avatar = header.getByRole("link", { name: /^Perfil/ });
     await expect(avatar).toHaveAttribute("href", "/settings/perfil");
     await expect(avatar).toHaveText(/^\p{Lu}{1,2}$/u);
-    // El header es tinta en claro y en oscuro
-    await expect(header).toHaveCSS("background-color", "rgb(5, 5, 5)");
+    // El header es índigo en claro y en oscuro
+    await expect(header).toHaveCSS("background-color", "rgb(30, 27, 75)");
     // El chip de soporte no tapa el último botón: la página deja lugar abajo
     const box = await page.getByRole("button", { name: "¿Algo no anduvo?" }).boundingBox();
     expect(box?.width ?? 0).toBeLessThanOrEqual(48);

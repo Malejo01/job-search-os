@@ -8,9 +8,9 @@ import { MONOGRAM } from "./monogram";
  * Ani sobre el logo se resuelve acá y en los tokens `--jso-logo-*` de `globals.css`.
  *
  * - `variant`: `full` (monograma + logotipo), `mark` (solo el monograma) o `wordmark` (solo el texto).
- * - `tone`: el fondo sobre el que va. `auto` acompaña al modo claro u oscuro (tinta y naranja
- *   profundo en claro; naranja y blanco en oscuro). `light`, `dark` y `orange` son fijos: el header
- *   tinta lleva `dark` en los dos modos.
+ * - `tone`: el fondo sobre el que va. `auto` acompaña al modo claro u oscuro (índigo e índigo
+ *   vivo en claro; lima y blanco en oscuro). `light`, `dark` y `accent` (sobre lima) son fijos: el
+ *   header índigo lleva `dark` en los dos modos. Paleta «índigo y lima» del 3/11.
  * - Para lectores de pantalla es una imagen con el nombre (`BRAND.name`). Con `decorative`, se
  *   oculta (cuando al lado ya está escrito el nombre).
  *
@@ -18,7 +18,7 @@ import { MONOGRAM } from "./monogram";
  * espacio alrededor lo da quien lo ubica.
  */
 export type LogoVariant = "full" | "mark" | "wordmark";
-export type LogoTone = "auto" | "light" | "dark" | "orange";
+export type LogoTone = "auto" | "light" | "dark" | "accent";
 export type LogoSize = "sm" | "md" | "lg";
 
 type ToneColors = { strong: string; light: string; mark: string; dot: string };
@@ -32,21 +32,21 @@ const TONES: Record<LogoTone, ToneColors> = {
   },
   light: {
     strong: BRAND_COLORS.ink,
-    light: BRAND_COLORS.deepOrange,
+    light: BRAND_COLORS.accentDeep,
     mark: BRAND_COLORS.ink,
-    dot: BRAND_COLORS.orange,
+    dot: BRAND_COLORS.accentDeep,
   },
   dark: {
-    strong: BRAND_COLORS.orange,
+    strong: BRAND_COLORS.accent,
     light: BRAND_COLORS.white,
-    mark: BRAND_COLORS.orange,
+    mark: BRAND_COLORS.accent,
     dot: BRAND_COLORS.white,
   },
-  orange: {
+  accent: {
     strong: BRAND_COLORS.ink,
-    light: BRAND_COLORS.white,
+    light: BRAND_COLORS.accentDeep,
     mark: BRAND_COLORS.ink,
-    dot: BRAND_COLORS.white,
+    dot: BRAND_COLORS.accentDeep,
   },
 };
 

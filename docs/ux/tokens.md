@@ -12,35 +12,39 @@ La fuente de los valores es el manual de marca: `docs/ux/rediseno-afiniajobs/` (
 - Los valores van en hexadecimal: axe-core no sabe leer algunos `oklch` de Tailwind (tono `none`) y deja el contraste sin medir.
 - `dark:` está definido por clase (`@custom-variant dark`) y queda para excepciones (una imagen, una sombra). Los colores no llevan `dark:`: el token ya cambia solo.
 
-## Marca
+## Marca (paleta «índigo y lima», elegida por Mauro el 3/11)
+
+Reemplaza a la «tinta y naranja» del manual (se parecía demasiado a otra marca). Las alternativas que se compararon están en el lienzo del manual, tablero «Alternativas de color».
 
 | Color | Valor | Para qué |
 |---|---|---|
-| Tinta | `#050505` | Texto principal en claro, fondo en oscuro, header |
-| Naranja | `#FF6A13` | Acción y marca: relleno del botón primario **con texto tinta** (7,1:1). Nunca indica un estado. Sobre claro no se usa como texto |
-| Naranja profundo | `#C2410C` | El naranja de texto sobre claro (links, logotipo «Jobs» sobre claro, foco en claro) |
-| Neutros | Escala Stone (`#F5F5F4`, `#E7E5E4`, `#D6D3D1`, `#A8A29E`, `#78716C`, `#57534E`, `#44403C`) | Fondos, bordes y textos secundarios |
+| Índigo | `#1E1B4B` | Base de marca: header, bloques oscuros, texto del botón primario, logotipo «AfinIA» sobre claro |
+| Lima | `#C6F25B` | Acción y marca: relleno del botón primario **con texto índigo** (12,4:1). Nunca indica un estado. Sobre claro no se usa como texto, ni como borde o foco (1,3:1) |
+| Índigo vivo | `#4338CA` | El acento como texto, borde o foco sobre claro (7,9:1): links, «Jobs» sobre claro, foco en claro |
+| Neutros | Escala Zinc fría (`#F5F5F7`, `#E4E4EA`, `#D4D4DC`, `#71717A`, `#52525B`, `#3F3F46`) | Fondos, bordes y textos secundarios |
+
+Un elemento seleccionado (chip, pestaña) va con relleno lima y **borde índigo** (`border-brand-contrast`), así el estado se distingue también sobre blanco.
 
 ## Colores
 
 | Token (clase) | Para qué | Claro | Oscuro |
 |---|---|---|---|
-| `canvas` | Fondo de la página | `#F5F5F4` | `#050505` |
-| `surface` | Tarjetas, diálogos, campos | `#FFFFFF` | `#121212` |
-| `surface-subtle` | Recuadro dentro de una tarjeta | `#FAFAF9` | `#0B0B0B` |
-| `surface-muted` | Chips neutros, hover | `#F5F5F4` | `#1F1F1F` |
-| `surface-strong` | Contadores | `#E7E5E4` | `#2A2A2A` |
-| `line` | Bordes de tarjeta y separadores | `#E7E5E4` | `#2A2A2A` |
-| `line-strong` | Botones secundarios, menú móvil | `#D6D3D1` | `#44403C` |
-| `line-control` | Campos de formulario (3:1 o más, WCAG 1.4.11) | `#78716C` | `#78716C` |
-| `fg` | Texto principal y títulos | `#050505` | `#F5F5F4` |
-| `fg-muted` | Texto secundario | `#44403C` | `#D6D3D1` |
-| `fg-subtle` | Ayudas, fechas, pie | `#57534E` | `#A8A29E` |
-| `link` / `link-hover` | Links dentro del texto | `#C2410C` / `#9A3412` | `#FF6A13` / `#FB923C` |
-| `focus` | Anillo de foco (2 px, separación de 2). Los campos lo llevan siempre (regla base) además del borde | `#C2410C` | `#FF6A13` |
-| `brand` / `brand-hover` / `brand-contrast` | Botón primario, su hover y su texto | `#FF6A13` / `#EA580C` / tinta | `#FF6A13` / `#FB923C` / tinta |
-| `brand-text` | Texto naranja (sección activa, acento) | `#C2410C` | `#FF6A13` |
-| `ink` / `on-ink` / `on-ink-muted` / `ink-line` | Header y bloques tinta (iguales en los dos modos) | `#050505` / blanco / `#D6D3D1` / `#2A2A2A` | ídem |
+| `canvas` | Fondo de la página | `#F5F5F7` | `#14123A` |
+| `surface` | Tarjetas, diálogos, campos | `#FFFFFF` | `#24215A` |
+| `surface-subtle` | Recuadro dentro de una tarjeta | `#FAFAFC` | `#100E30` |
+| `surface-muted` | Chips neutros, hover | `#F4F4F7` | `#2A2766` |
+| `surface-strong` | Contadores | `#E4E4EA` | `#34316B` |
+| `line` | Bordes de tarjeta y separadores | `#E4E4EA` | `#34316B` |
+| `line-strong` | Botones secundarios, menú móvil | `#D4D4DC` | `#4B4890` |
+| `line-control` | Campos de formulario (3:1 o más, WCAG 1.4.11) | `#71717A` | `#8B89B8` |
+| `fg` | Texto principal y títulos | `#14123A` | `#F5F5F7` |
+| `fg-muted` | Texto secundario | `#3F3F46` | `#D4D4E0` |
+| `fg-subtle` | Ayudas, fechas, pie | `#52525B` | `#A9A8C8` |
+| `link` / `link-hover` | Links dentro del texto | `#4338CA` / `#3730A3` | `#C6F25B` / `#D9F78A` |
+| `focus` | Anillo de foco (2 px, separación de 2). Los campos lo llevan siempre (regla base) además del borde | `#4338CA` | `#C6F25B` |
+| `brand` / `brand-hover` / `brand-contrast` | Botón primario, su hover y su texto | `#C6F25B` / `#B4E046` / índigo | `#C6F25B` / `#D9F78A` / índigo |
+| `brand-text` | El acento como texto (sección activa, acento) | `#4338CA` | `#C6F25B` |
+| `ink` / `on-ink` / `on-ink-muted` / `ink-line` | Header y bloques índigo (iguales en los dos modos) | `#1E1B4B` / blanco / `#C7C6E6` / `#34316B` | ídem |
 | `on-strong` | Texto sobre un relleno fuerte de estado | blanco | blanco |
 
 Estados (manual M4): cada uno tiene texto, fondo suave, fondo enfático, borde y relleno fuerte.

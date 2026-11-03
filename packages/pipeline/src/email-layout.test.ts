@@ -9,7 +9,7 @@ describe("brandedEmailHtml (C7-2)", () => {
     expect(html).toContain(BRAND.wordmark.strong);
     expect(html).toContain(BRAND.wordmark.light);
     expect(html).toContain(BRAND_COLORS.ink);
-    expect(html).toContain(BRAND_COLORS.orange);
+    expect(html).toContain(BRAND_COLORS.accent);
     expect(html).toContain("<p>Hola</p>");
   });
 
@@ -43,7 +43,7 @@ describe("textToEmailHtml", () => {
   it("convierte solo las URLs http(s) en links, con naranja profundo", () => {
     const out = textToEmailHtml("Pagá acá: https://mpago.la/abc?x=1&y=2");
     expect(out).toContain('<a href="https://mpago.la/abc?x=1&amp;y=2"');
-    expect(out).toContain(BRAND_COLORS.deepOrange);
+    expect(out).toContain(BRAND_COLORS.accentDeep);
     expect(textToEmailHtml("javascript:alert(1)")).not.toContain("<a ");
   });
 

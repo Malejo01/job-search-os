@@ -100,7 +100,7 @@ export default async function SendersPage({
                           aria-describedby={o.verdict === "empleo" ? "aviso-empleo" : undefined}
                           className={`h-8 w-36 rounded-badge border px-2 text-xs ${
                             current
-                              ? "border-brand bg-brand text-brand-contrast"
+                              ? "border-brand-contrast bg-brand text-brand-contrast"
                               : "border-line-strong bg-surface text-fg-muted"
                           }`}
                         >

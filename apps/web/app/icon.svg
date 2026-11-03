@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- Favicon de AfinIAJobs (C7-2): el monograma tinta sobre naranja. A 16 px va sin el punto (manual M3). Ver docs/MARCA.md -->
-  <rect width="32" height="32" rx="7" fill="#FF6A13"/>
-  <path d="M8.2 25 L16 7.6 L23.8 25" fill="none" stroke="#050505" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Favicon de AfinIAJobs (C7-2): el monograma índigo sobre lima (paleta del 3/11). A 16 px va sin el punto (manual M3). Ver docs/MARCA.md -->
+  <rect width="32" height="32" rx="7" fill="#C6F25B"/>
+  <path d="M8.2 25 L16 7.6 L23.8 25" fill="none" stroke="#1E1B4B" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

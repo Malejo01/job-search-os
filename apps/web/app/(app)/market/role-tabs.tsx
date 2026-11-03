@@ -33,7 +33,7 @@ export function RoleTabs({
           aria-current={key === active ? "page" : undefined}
           className={`inline-flex min-h-11 items-center rounded-control border px-3 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
             key === active
-              ? "border-brand bg-brand text-brand-contrast"
+              ? "border-brand-contrast bg-brand text-brand-contrast"
               : "border-line-strong text-fg"
           }`}
         >

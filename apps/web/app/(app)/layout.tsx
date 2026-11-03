@@ -30,7 +30,7 @@ const NAV = [
   { href: "/plan", label: "Plan" },
 ] as const;
 
-// Links de texto del header tinta: Invitar, Ajustes y Salir. Foco en naranja de marca (7,1:1 sobre tinta)
+// Links de texto del header tinta: Invitar, Ajustes y Salir. Foco en lima de marca (12,4:1 sobre índigo)
 const HEADER_LINK =
   "inline-flex min-h-11 items-center text-sm font-semibold text-on-ink-muted underline-offset-2 hover:text-on-ink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
 const LOGO_LINK =
@@ -85,7 +85,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       <a href="#contenido" className={SKIP_CLASS}>
         Saltar al contenido
       </a>
-      {/* Header tinta (C7-5, manual P1 a P4), igual en claro y en oscuro. z-20: las tarjetas de /jobs
+      {/* Header índigo (C7-5, manual P1 a P4), igual en claro y en oscuro. z-20: las tarjetas de /jobs
           llevan links z-10 y no deben dibujarse sobre el header; la guía (z-40) y los modales (z-50) quedan arriba */}
       <header className="sticky top-0 z-20 bg-ink text-on-ink">
         {/* Una sola nav: desde lg va al lado del logo (P1); entre sm y lg pasa a su propia fila

@@ -2,6 +2,10 @@
 
 Copia del lienzo «AfiniaJobs: manual de marca» (claude.ai, 30/10/2026), traída al repo el 2/11 para la tanda C7. Cada `.dc.html` es un artboard estático: HTML con estilos inline, se abre en el navegador (sin `support.js` no corre el script, pero el layout se ve igual). **Es referencia visual, no código para copiar**: la app usa los tokens de `apps/web/app/globals.css` y clases de Tailwind (ver `docs/ux/tokens.md`).
 
+## Cambio de paleta (3/11)
+
+Mauro reemplazó la «tinta y naranja» del manual por **índigo y lima**: se parecía demasiado a otra marca. Los artboards de este folder siguen con los colores viejos; los valores vigentes están en `docs/ux/tokens.md` y en `apps/web/app/globals.css`. Índigo `#1E1B4B` (base), lima `#C6F25B` (acción, con texto índigo) e índigo vivo `#4338CA` (acento como texto y foco sobre claro). Neutros fríos (Zinc).
+
 ## Decisiones de Mauro (2/11)
 
 - **Nombre:** se escribe **AfinIAJobs** en todas partes, incluidos el logo, las imágenes, el favicon, las imágenes OG, los emails y los textos legales. El manual dibuja el logo en minúsculas («afinia» + «jobs»): eso se reemplaza. El logotipo queda así:
@@ -29,7 +33,7 @@ Copia del lienzo «AfiniaJobs: manual de marca» (claude.ai, 30/10/2026), traíd
 | `P3-SinDescripcion.dc.html` | Pantalla Sin descripción, escritorio |
 | `P4-Movil.dc.html` | Celular en modo oscuro |
 
-## Tokens que salen del manual
+## Tokens que salían del manual (paleta vieja, reemplazada el 3/11)
 
 | Uso | Claro | Oscuro |
 |---|---|---|

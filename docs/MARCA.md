@@ -14,11 +14,11 @@ Ani todavía no revisó la marca: lo que pida tiene que ser un PR chico. Por eso
 | Colores de la app | `apps/web/app/globals.css` (ver `docs/ux/tokens.md`) | Tokens |
 | Colores fuera de CSS (imágenes OG, manifest, emails) | `BRAND_COLORS` en `brand.ts`. Un test (`brand.test.ts`) verifica que coincidan con `globals.css` | Una línea por color |
 | Tipografías | `apps/web/app/fonts.ts` (Sora y Manrope con `next/font/local`, archivos en `apps/web/assets/fonts`) y, para las imágenes OG, `apps/web/assets/fonts/` | Un archivo |
-| Favicon | `apps/web/app/icon.svg` (monograma tinta sobre naranja, sin el punto: a 16 px no se lee) | Reemplazar el archivo |
+| Favicon | `apps/web/app/icon.svg` (monograma índigo sobre lima, sin el punto: a 16 px no se lee) | Reemplazar el archivo |
 | Ícono de iPhone y del manifest | `apps/web/app/apple-icon.png` (180 px) y `apps/web/public/icons/` (192, 512 y 512 `maskable`) | Reemplazar los PNG |
 | Manifest | `apps/web/app/manifest.ts` (nombre, colores e íconos) | Sale de `BRAND` y `BRAND_COLORS` |
 | Imágenes para compartir | `apps/web/lib/og-image.tsx`, usada por `(public)/opengraph-image.tsx`, `twitter-image.tsx` y `(public-en)/opengraph-image-en` | Un componente |
-| Encabezado de los emails | `packages/pipeline/src/email-layout.ts` (`brandedEmailHtml`): logotipo en texto sobre tinta, sin imágenes remotas | Un archivo |
+| Encabezado de los emails | `packages/pipeline/src/email-layout.ts` (`brandedEmailHtml`): logotipo en texto sobre índigo, sin imágenes remotas | Un archivo |
 | `User-Agent` hacia las fuentes públicas del pool | `SOURCE_USER_AGENT_BASE` (`packages/adapters/src/sources/user-agent.ts`): `BRAND.name` + `/1.0` | Sale solo de `BRAND.name` |
 | Repositorio público («Cómo está hecho») | `BRAND.repoUrl` | Una línea |
 | URL pública (metadata, sitemap, robots, links de email) | Variable `SITE_URL` (`apps/web/lib/site-url.ts`) | Vercel, Puerta 3 |
@@ -30,11 +30,11 @@ Ani todavía no revisó la marca: lo que pida tiene que ser un PR chico. Por eso
 `<Logo>` es un Server Component sin JS:
 
 - `variant`: `full` (monograma + logotipo), `mark` (solo monograma) o `wordmark` (solo el texto).
-- `tone`: el fondo. `auto` acompaña al modo (tinta y naranja profundo en claro; naranja y blanco en oscuro). `light`, `dark` y `orange` son fijos; el header tinta lleva `dark`.
+- `tone`: el fondo. `auto` acompaña al modo (índigo e índigo vivo en claro; lima y blanco en oscuro). `light`, `dark` y `accent` (sobre lima) son fijos; el header tinta lleva `dark`.
 - `size`: `sm` (header: monograma de 30 px, letra de 22 px), `md` (login) y `lg`.
 - Para lectores de pantalla es una imagen con el nombre `BRAND.name`; con `decorative` se oculta.
 
-Logotipo: «AfinIA» en Sora 800 y «Jobs» en Sora 300, con tracking −4 %. Sobre oscuro, «AfinIA» naranja `#FF6A13` y «Jobs» blanco; sobre claro, «AfinIA» tinta `#050505` y «Jobs» naranja profundo `#C2410C`; sobre naranja, tinta y blanco. Reglas del manual (M3): zona de seguridad del alto del monograma; tamaño mínimo 20 px de letra (debajo, solo el monograma); no estirar, no cambiar colores, no rotar ni agregar sombras.
+Logotipo: «AfinIA» en Sora 800 y «Jobs» en Sora 300, con tracking −4 %. Sobre oscuro (índigo), «AfinIA» lima `#C6F25B` y «Jobs» blanco; sobre claro, «AfinIA» índigo `#1E1B4B` y «Jobs» índigo vivo `#4338CA`. Paleta «índigo y lima» elegida el 3/11 (reemplaza a la tinta y naranja del manual); detalle en `docs/ux/tokens.md`.
 
 Dónde está: headers de la app con sesión, onboarding, legales, `terminos-actualizados`, la vitrina pública (en español e inglés; a menos de 640 px va solo el logotipo para que entre con «Entrar» y «Pedir acceso») y las pantallas de cuenta (login, registro, setup, olvidé y reset).
 
@@ -48,7 +48,7 @@ Dónde está: headers de la app con sesión, onboarding, legales, `terminos-actu
   - ningún archivo de código, salvo `brand.ts`, escribe el nombre a mano (C6-2);
   - ningún texto de la app (código, contenido, SVG, JSON) escribe «Job Search OS» ni una variante mal escrita del nombre («afiniajobs», «AfiniaJobs», «Afinia Jobs»…). Se permiten URLs, dominios, emails y la clave técnica `job-search-os` (C7-2);
   - `BRAND_COLORS` coincide con los tokens de `globals.css`.
-- e2e 105: `/settings/marca` sin violaciones de axe en los dos paneles (el logo sobre naranja queda afuera: es un logotipo, exceptuado del contraste por WCAG 1.4.3).
+- e2e 105: `/settings/marca` sin violaciones de axe en los dos paneles (el logo sobre lima queda afuera: es un logotipo, exceptuado del contraste por WCAG 1.4.3).
 - e2e 44: el header público lleva el logo con el nombre, los títulos públicos llevan el nombre, y el favicon, el ícono de iPhone, el manifest y las imágenes OG se sirven sin sesión.
 
 ## Lo que no cambia con el nombre (a propósito)

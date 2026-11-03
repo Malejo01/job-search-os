@@ -42,7 +42,7 @@ export async function brandOgImage({ line }: { line: string }): Promise<ImageRes
           <path
             d={MONOGRAM.path}
             fill="none"
-            stroke={BRAND_COLORS.orange}
+            stroke={BRAND_COLORS.accent}
             strokeWidth={MONOGRAM.strokeWidth}
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -63,7 +63,7 @@ export async function brandOgImage({ line }: { line: string }): Promise<ImageRes
             letterSpacing: -5,
           }}
         >
-          <span style={{ fontWeight: 800, color: BRAND_COLORS.orange }}>
+          <span style={{ fontWeight: 800, color: BRAND_COLORS.accent }}>
             {BRAND.wordmark.strong}
           </span>
           <span style={{ fontWeight: 300, color: BRAND_COLORS.white }}>{BRAND.wordmark.light}</span>
@@ -81,7 +81,7 @@ export async function brandOgImage({ line }: { line: string }): Promise<ImageRes
         >
           {BRAND.tagline}
         </div>
-        <div style={{ fontSize: 34, fontWeight: 600, color: BRAND_COLORS.stone300 }}>{line}</div>
+        <div style={{ fontSize: 34, fontWeight: 600, color: BRAND_COLORS.onInkMuted }}>{line}</div>
       </div>
     </div>,
     {

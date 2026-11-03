@@ -10,7 +10,7 @@ export const maxDuration = 120;
 
 function tabClass(active: boolean): string {
   return `inline-flex min-h-11 items-center rounded-control border px-3 text-sm ${
-    active ? "border-brand bg-brand text-brand-contrast" : "border-line-strong text-fg"
+    active ? "border-brand-contrast bg-brand text-brand-contrast" : "border-line-strong text-fg"
   }`;
 }
 
