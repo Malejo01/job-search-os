@@ -1,3 +1,4 @@
+import { ILLUSTRATIONS, type IllustrationScene } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -17,6 +18,7 @@ import {
   textLinkClasses,
   type IconName,
 } from "@/components/ui";
+import { Illustration } from "@/components/brand/illustration";
 import { canCreateInvitations } from "@/lib/invitations";
 import { requireUserId } from "@/lib/session";
 
@@ -224,6 +226,26 @@ function Panel({ mode }: { mode: "light" | "dark" }) {
         >
           Estamos buscando todos los días. Mientras, dejá tu perfil a punto.
         </EmptyState>
+      </Block>
+
+      <Block title="Ilustraciones" id={id("ilustraciones")}>
+        <p className="text-sm text-fg-muted">
+          Las ocho escenas; las que todavía no tienen imagen muestran el marcador del mismo tamaño.
+          «hoy» y «acceso» van sobre la cabecera índigo.
+        </p>
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {(Object.keys(ILLUSTRATIONS) as IllustrationScene[]).map((scene) => (
+            <li
+              key={scene}
+              className={`flex flex-col items-center gap-1 rounded-card p-2 text-center ${
+                ILLUSTRATIONS[scene].background === "ink" ? "bg-ink text-on-ink" : ""
+              }`}
+            >
+              <Illustration escena={scene} className="w-full" />
+              <span className="text-[11px] font-bold">{scene}</span>
+            </li>
+          ))}
+        </ul>
       </Block>
 
       <Block title="Íconos" id={id("iconos")}>
