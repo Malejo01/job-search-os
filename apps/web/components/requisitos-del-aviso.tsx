@@ -2,7 +2,12 @@ import Link from "next/link";
 import { Icon, type IconName } from "@/components/ui";
 import type { ChecklistItemView, ChecklistView } from "@/lib/job-detail";
 import { CHECKLIST_PIDE_SOURCE, CHECKLIST_STATUS, CHECKLIST_TENES_SOURCE } from "@/lib/labels";
-import { SkillLevelButton } from "./skill-level-modal";
+import dynamic from "next/dynamic";
+
+// R-1: el modal de nivel se baja solo cuando hay una skill para cargar (en /jobs, con el panel abierto)
+const SkillLevelButton = dynamic(() =>
+  import("./skill-level-modal").then((mod) => mod.SkillLevelButton),
+);
 
 /**
  * «Requisitos del aviso» (ronda 104, diseño 98 §2 y §4; checklist para mejorar D3 en C9-9). Server

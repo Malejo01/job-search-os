@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useAnimationControls, useReducedMotion } from "framer-motion";
+import { domAnimation, LazyMotion, m, useAnimationControls, useReducedMotion } from "framer-motion";
 import { useLayoutEffect, type ReactNode } from "react";
 import { firstTimeSeen, markSeen } from "./seen-once";
 
@@ -44,14 +44,17 @@ export function SealStamp({
       transition: { type: "spring", stiffness: 520, damping: 16, mass: 0.9 },
     });
   }, [controls, evaluated, jobId, reduce]);
+  // R-1: `m` + `domAnimation` en vez de `motion` entero: menos JS en /jobs y /hoy
   return (
-    <motion.span
-      initial={false}
-      animate={controls}
-      data-sello-estampa=""
-      className="inline-flex shrink-0"
-    >
-      {children}
-    </motion.span>
+    <LazyMotion features={domAnimation} strict>
+      <m.span
+        initial={false}
+        animate={controls}
+        data-sello-estampa=""
+        className="inline-flex shrink-0"
+      >
+        {children}
+      </m.span>
+    </LazyMotion>
   );
 }

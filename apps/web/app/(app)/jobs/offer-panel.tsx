@@ -8,7 +8,12 @@ import {
   withCurrentSkillLevels,
 } from "@job-search-os/pipeline";
 import Link from "next/link";
-import { SealStamp } from "@/components/motion/seal-stamp";
+import dynamic from "next/dynamic";
+
+// R-1: la estampa (Framer) se baja solo cuando el panel está abierto
+const SealStamp = dynamic(() =>
+  import("@/components/motion/seal-stamp").then((mod) => mod.SealStamp),
+);
 import { RequisitosDelAviso } from "@/components/requisitos-del-aviso";
 import { buttonClasses, Icon, Seal, textLinkClasses } from "@/components/ui";
 import type { JobDetail } from "@/lib/job-detail";
