@@ -22,6 +22,16 @@ describe("offerCardChips (tarjeta K2, C9-8)", () => {
     expect(r.count).toBe("4 a tu favor, 1 te falta");
   });
 
+  it("la línea de conteo usa los totales del checklist, aunque falten pide en la lista", () => {
+    const r = offerCardChips({
+      checklist: { have: ["A"], missing: [], haveCount: 2, missingCount: 0 },
+      strengths: [],
+      gaps: [],
+    });
+    expect(r.count).toBe("2 a tu favor");
+    expect(r.more).toBe(1);
+  });
+
   it("plural y casos sin un lado", () => {
     const base = { strengths: [], gaps: [] };
     expect(
@@ -124,6 +134,10 @@ describe("offerPlace: empresa y lugar en una frase, sin «·»", () => {
     expect(
       offerPlace({ company: "Empresa AD", location: "Remote - LATAM", modality: "remoto" }),
     ).toBe("Empresa AD, remoto en LATAM");
+    // «Remote-first» no es un lugar: no queda «remoto en first»
+    expect(
+      offerPlace({ company: "Empresa AD", location: "Remote-first", modality: "remoto" }),
+    ).toBe("Empresa AD, remoto");
     // Sin modalidad, si el lugar dice remoto, es remoto
     expect(offerPlace({ company: "Empresa AD", location: "Remote", modality: null })).toBe(
       "Empresa AD, remoto",
@@ -167,6 +181,21 @@ describe("closenessPhrase: la frase de cercanía del detalle D3 (C9-9)", () => {
   it("varios faltantes: un paso a la vez", () => {
     expect(closenessPhrase(counts(2, 3))).toBe(
       "Cumplís 2 de 5 requisitos. Te faltan 3: sumá uno y esta oferta te queda más cerca.",
+    );
+  });
+  it("si lo que falta frena la postulación, no promete quedar entre las mejores", () => {
+    expect(
+      closenessPhrase({ ...counts(3, 1), items: [{ status: "no_cumple", bloquea: true }] }),
+    ).toBe(
+      "Cumplís 3 de 4 requisitos. Lo que falta frena la postulación: revisalo antes de seguir.",
+    );
+  });
+  it("con un checklist incompleto, lo dice", () => {
+    expect(closenessPhrase({ ...counts(3, 0), parcial: true })).toBe(
+      "Cumplís los 3 requisitos que pudimos verificar, de una lista incompleta.",
+    );
+    expect(closenessPhrase({ ...counts(1, 1), parcial: true })).toBe(
+      "Cumplís 1 de 2 requisitos que pudimos verificar. Te falta uno para quedar entre las mejores postulaciones.",
     );
   });
   it("sin faltantes y sin requisitos verificables", () => {
