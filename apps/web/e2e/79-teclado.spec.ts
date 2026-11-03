@@ -330,6 +330,15 @@ test.describe("Flujo 79: navegación solo con teclado", () => {
     // La oferta propia (score 10) está arriba; se busca su link, que cubre toda la tarjeta
     const card = page.getByRole("link", { name: `Abrir el detalle de ${jobTitle}` });
     await reach(page, card, "tarjeta de la oferta");
+    // Desde 1024 px la tarjeta abre la oferta en el panel de la derecha (O3, C9-9)
+    await page.keyboard.press("Enter");
+    await page.waitForURL(new RegExp(`oferta=${jobId}`));
+    const panel = page.getByTestId("panel-oferta");
+    await expect(panel.getByRole("heading", { name: jobTitle })).toBeVisible();
+    const full = panel.getByRole("link", { name: "Ver el detalle completo" });
+    // El panel va después de la lista en el orden de Tab: se enfoca directo y se abre con Enter
+    await full.focus();
+    await expectFocusVisible(page, "link al detalle completo");
     await page.keyboard.press("Enter");
     await page.waitForURL(new RegExp(`/jobs/${jobId}`));
     await expect(page.getByRole("group", { name: "¿Te sirve esta evaluación?" })).toBeVisible();

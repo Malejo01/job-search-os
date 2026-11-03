@@ -96,3 +96,27 @@ export function offerAge(postedAt: Date, now: Date): string {
   if (days <= 31) return `Publicada hace ${Math.floor(days / 7)} semanas`;
   return "Publicada hace más de un mes";
 }
+
+type Counts = { cumple: number; no_cumple: number; no_se_sabe: number };
+
+/**
+ * Frase de cercanía arriba del detalle (D3, decisión 9): cuántos requisitos cumplís, contando
+ * excluyentes y deseables, y qué falta dicho como un paso. Lo que no se puede verificar no entra
+ * en la cuenta. Sin requisitos verificables, null (no se inventa un «X de Y»). Nunca promete
+ * trabajo: habla de quedar más cerca, no de conseguirlo.
+ */
+export function closenessPhrase(checklist: { must: Counts; deseable: Counts }): string | null {
+  const have = checklist.must.cumple + checklist.deseable.cumple;
+  const missing = checklist.must.no_cumple + checklist.deseable.no_cumple;
+  const total = have + missing;
+  if (total === 0) return null;
+  if (missing === 0) {
+    return total === 1
+      ? "Cumplís el requisito que pudimos verificar."
+      : `Cumplís los ${total} requisitos que pudimos verificar.`;
+  }
+  const head = `Cumplís ${have} de ${total} requisitos.`;
+  return missing === 1
+    ? `${head} Te falta uno para quedar entre las mejores postulaciones.`
+    : `${head} Te faltan ${missing}: sumá uno y esta oferta te queda más cerca.`;
+}

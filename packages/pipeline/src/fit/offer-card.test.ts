@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { offerAge, offerCardChips, offerPlace } from "./offer-card";
+import { closenessPhrase, offerAge, offerCardChips, offerPlace } from "./offer-card";
 
 describe("offerCardChips (tarjeta K2, C9-8)", () => {
   it("con checklist: verdes y ámbar, como mucho 3, «y N más» y la línea de conteo", () => {
@@ -136,5 +136,27 @@ describe("offerAge: antigüedad del aviso", () => {
   });
   it("una fecha futura cuenta como hoy", () => {
     expect(offerAge(new Date("2026-11-05T10:00:00Z"), now)).toBe("Publicada hoy");
+  });
+});
+
+describe("closenessPhrase: la frase de cercanía del detalle D3 (C9-9)", () => {
+  const counts = (c: number, n: number, dc = 0, dn = 0) => ({
+    must: { cumple: c, no_cumple: n, no_se_sabe: 0 },
+    deseable: { cumple: dc, no_cumple: dn, no_se_sabe: 1 },
+  });
+  it("cuenta must y deseable", () => {
+    expect(closenessPhrase(counts(3, 1, 1, 0))).toBe(
+      "Cumplís 4 de 5 requisitos. Te falta uno para quedar entre las mejores postulaciones.",
+    );
+  });
+  it("varios faltantes: un paso a la vez", () => {
+    expect(closenessPhrase(counts(2, 3))).toBe(
+      "Cumplís 2 de 5 requisitos. Te faltan 3: sumá uno y esta oferta te queda más cerca.",
+    );
+  });
+  it("sin faltantes y sin requisitos verificables", () => {
+    expect(closenessPhrase(counts(4, 0))).toBe("Cumplís los 4 requisitos que pudimos verificar.");
+    expect(closenessPhrase(counts(1, 0))).toBe("Cumplís el requisito que pudimos verificar.");
+    expect(closenessPhrase(counts(0, 0))).toBeNull();
   });
 });

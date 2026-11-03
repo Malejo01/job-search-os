@@ -23,6 +23,9 @@ import { EmailNudge } from "./email-nudge";
 import { FirstSteps, firstStepsHidden } from "./first-steps";
 import { JobFilters } from "./job-filters";
 import { JobList } from "./job-list";
+import { OfferPanel, OfferPanelHint } from "./offer-panel";
+import { getJobDetail } from "@/lib/job-detail";
+import { isUuid } from "@/lib/ids";
 import { RoleGaps } from "./role-gaps";
 import { RoleNudge } from "./role-nudge";
 
@@ -48,6 +51,11 @@ export default async function JobsPage({
   // Una consulta agregada: el vacío la necesita y la columna de la derecha (P1) muestra las pendientes
   const counts = await countJobs(userId).catch(() => null);
   const stepsHidden = await firstStepsHidden(userId);
+  // O3 (C9-9): la oferta elegida para el panel de la derecha, en la URL. Solo un id válido; si no
+  // existe para esta persona (RLS), el panel muestra la indicación como si no hubiera ninguna.
+  const ofertaParam = typeof params.oferta === "string" ? params.oferta : null;
+  const selected = ofertaParam && isUuid(ofertaParam) ? ofertaParam : null;
+  const panelJob = selected ? await getJobDetail(userId, selected).catch(() => null) : null;
 
   return (
     <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
@@ -148,12 +156,16 @@ export default async function JobsPage({
                 {PRE_SCORE_EXPLAIN} El número va de 0 a 10.
               </p>
             ) : null}
-            <JobListSplit rows={rows} query={query} />
+            <JobListSplit rows={rows} query={query} selected={panelJob?.id ?? null} />
           </>
         )}
         <AutoRefresh active={rows.some((r) => r.evaluating)} />
       </section>
-      <JobsAside pending={counts?.sinDescripcion ?? 0} />
+      {panelJob ? (
+        <OfferPanel job={panelJob} detailHref={`/jobs/${panelJob.id}${query}`} />
+      ) : (
+        <JobsAside pending={counts?.sinDescripcion ?? 0} />
+      )}
     </div>
   );
 }
@@ -165,7 +177,8 @@ export default async function JobsPage({
  */
 function JobsAside({ pending }: { pending: number }) {
   return (
-    <aside aria-label="Atajos" className="hidden w-72 shrink-0 flex-col gap-3 lg:flex">
+    <aside aria-label="Atajos" className="hidden w-[460px] shrink-0 flex-col gap-3 lg:flex">
+      <OfferPanelHint />
       {pending > 0 ? (
         <div className="flex flex-col gap-2 rounded-card border border-ink-line bg-ink p-4 text-on-ink">
           <p className="font-display text-lg font-bold">
@@ -351,11 +364,19 @@ function ReviewProgress({
  * La lista con las «Lejos de tu perfil» siempre al final, debajo de su separador, sea cual sea el
  * orden (C9-5, decisión 7). La guía se ancla en la primera tarjeta de arriba.
  */
-function JobListSplit({ rows, query }: { rows: JobListRow[]; query: string }) {
+function JobListSplit({
+  rows,
+  query,
+  selected,
+}: {
+  rows: JobListRow[];
+  query: string;
+  selected: string | null;
+}) {
   const { near, far } = splitFarFromProfile(rows, (r) => r.score);
   return (
     <>
-      {near.length ? <JobList rows={near} query={query} /> : null}
+      {near.length ? <JobList rows={near} query={query} selected={selected} /> : null}
       {far.length ? (
         <section
           aria-labelledby="lejos-titulo"
@@ -368,7 +389,7 @@ function JobListSplit({ rows, query }: { rows: JobListRow[]; query: string }) {
           >
             Lejos de tu perfil ({far.length})
           </h2>
-          <JobList rows={far} query={query} tour={near.length === 0} />
+          <JobList rows={far} query={query} tour={near.length === 0} selected={selected} />
         </section>
       ) : null}
     </>

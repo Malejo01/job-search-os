@@ -106,6 +106,8 @@ export type EvaluationView = {
    * determinista y con `parcial: true` (C9-6); null si tampoco así se puede.
    */
   checklist: ChecklistView | null;
+  /** El checklist se armó al leer (C9-6), no lo guardó la evaluación: el detalle lo aclara (C9-9). */
+  checklistRebuilt: boolean;
   humanScore: number | null;
   humanNote: string | null;
   /** 👍/👎 de un toque (ronda 30); null = sin opinión. No es un score: no entra en el MAE. */
@@ -414,8 +416,9 @@ export async function getJobDetail(
       adjustments?: Adjustment[];
       accion_sugerida?: string;
     } | null;
+    const storedChecklist = parseChecklist(decision);
     const checklist =
-      parseChecklist(decision) ??
+      storedChecklist ??
       (ev && onRead
         ? await checklistFromStored(tx, userId, ev, decision?.adjustments, job, sources)
         : null);
@@ -475,6 +478,7 @@ export async function getJobDetail(
             veredicto: ev.veredicto,
             adjustments: decision?.adjustments ?? [],
             checklist,
+            checklistRebuilt: storedChecklist === null && checklist !== null,
             humanScore: ev.humanScore,
             humanNote: ev.humanNote,
             humanVerdict: ev.humanVerdict,
