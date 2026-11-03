@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { offerAge, offerPlace } from "@job-search-os/pipeline";
+import { offerMeta, offerPlace } from "@job-search-os/pipeline";
 import { Badge, Chip, Icon, Seal } from "@/components/ui";
 import type { JobListRow } from "@/lib/jobs";
 import {
@@ -7,7 +7,6 @@ import {
   DEMO_BADGE_CLASSES,
   DEMO_MODEL,
   flagLabel,
-  MODALITY_LABELS,
   LOCATION_TONES,
   LOCATION_LABELS,
   PRE_SCORE_EXPLAIN,
@@ -75,10 +74,6 @@ function JobCard({
   const url = safeHttpUrl(job.url);
   const anchor = (name: string) => (tour ? { "data-tour": name } : {});
   const frena = job.fit.falta?.kind === "frena" ? job.fit.falta : null;
-  const modality =
-    job.modality && job.modality !== "desconocida"
-      ? (MODALITY_LABELS[job.modality] ?? job.modality)
-      : null;
   return (
     <div
       className={`pressable edge-4 relative flex gap-3 rounded-card bg-surface p-4 sm:gap-4 sm:p-5 ${
@@ -144,9 +139,8 @@ function JobCard({
           </p>
         ) : null}
         <p className="text-xs text-fg-subtle">
-          {modality ? `${modality}. ` : ""}
           <time dateTime={job.postedAt ?? job.firstSeenAt}>
-            {offerAge(new Date(job.postedAt ?? job.firstSeenAt), now)}
+            {offerMeta(job.modality, new Date(job.postedAt ?? job.firstSeenAt), now)}
           </time>
         </p>
         <div className="flex flex-wrap gap-1.5" {...anchor("jobs:etiquetas")}>
