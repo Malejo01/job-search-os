@@ -94,6 +94,30 @@ describe("backfillJobLanguage (C8-15)", () => {
     expect(left).toEqual([]);
   });
 
+  it("si el aviso cambia después del relleno, el dato vence: el mercado lee el texto y el relleno lo recalcula (R-5)", async () => {
+    await conn.db
+      .update(s.publicJobs)
+      .set({ jdText: JD_ES, updatedAt: new Date(Date.now() + 60_000) })
+      .where(eq(s.publicJobs.externalId, `${PREFIX}en`));
+    const read = await readCareerMarketInput(conn.db, "relaciones_internacionales", NOW, {
+      persistedLanguage: true,
+    });
+    const [changed] = await conn.db
+      .select({ id: s.publicJobs.id })
+      .from(s.publicJobs)
+      .where(eq(s.publicJobs.externalId, `${PREFIX}en`));
+    const job = read.jobs.find((j) => j.id === changed!.id)!;
+    expect(job.language).toBeNull();
+    expect(job.jdText).toContain("Buscamos");
+    const again = await backfillJobLanguage(conn.db, { apply: true });
+    expect(again.written).toBeGreaterThanOrEqual(1);
+    const [row] = await conn.db
+      .select()
+      .from(s.publicJobs)
+      .where(eq(s.publicJobs.externalId, `${PREFIX}en`));
+    expect(row!.jdLanguage).toBe(jobLanguageFacts(JD_ES, null).jdLanguage);
+  });
+
   it("el mercado con las columnas no trae el texto y da los mismos datos de idioma", async () => {
     const withText = await readCareerMarketInput(conn.db, "relaciones_internacionales", NOW);
     const persisted = await readCareerMarketInput(conn.db, "relaciones_internacionales", NOW, {

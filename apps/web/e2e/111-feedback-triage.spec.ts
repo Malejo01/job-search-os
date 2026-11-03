@@ -15,6 +15,8 @@ test.describe("Flujo 111: triage del feedback (C8-17)", () => {
   test.beforeAll(async () => {
     const { db, close } = ownerDb();
     try {
+      // La lectura del triage exige app_admins (rls/0018), como 46 y 91: en una base nueva está vacía
+      await db.insert(s.appAdmins).values({ userId: E2E_USER_ID }).onConflictDoNothing();
       await db.insert(s.betaFeedback).values([
         {
           userId: E2E_USER_ID,

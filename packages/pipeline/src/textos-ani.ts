@@ -129,7 +129,7 @@ export const TEXTOS_ANI: readonly TextoAni[] = [
   {
     area: "Ayuda en contexto (C8-6)",
     nombre: "Las 5 explicaciones de «¿Qué es esto?»",
-    extracto: "Es un número del 1 al 10 que dice qué tan cerca está la oferta de tu perfil.",
+    extracto: "Es un número del 0 al 10 que dice qué tan cerca está la oferta de tu perfil.",
     archivo: "packages/pipeline/src/help/ayuda-en-contexto.ts",
     verEn: "/settings/textos",
     decidir: "La del puntaje da umbrales («un 8 o más suele valer la pena»): ¿los dejamos?",

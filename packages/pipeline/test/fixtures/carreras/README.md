@@ -29,13 +29,13 @@ Igual para las 6 carreras (`meta.persona`): vive en **Salta**, Argentina, tiene 
 - `etiquetas.prefiltro`: `must_pass` (tiene que llegar a la persona) o `must_discard` (no tiene que llegar).
 - `etiquetas.flags_esperados`: marcas que debería dejar el prefiltro (informativo; el test de C8-9 las reporta).
 - `etiquetas.bloqueadores_esperados`: lo que debería frenar al evaluador (`ubicacion`, `experiencia`, `disciplina`).
-- `etiquetas.accion_esperada` y `score_esperado`: lo que debería decir el evaluador (rango del 1 al 10).
+- `etiquetas.accion_esperada` y `score_esperado`: lo que debería decir el evaluador (rango del 0 al 10).
 - `anchor_source: "assisted"`: etiqueta **propuesta** con asistencia, todavía sin validar por un profesional.
 
 ## Cómo lo valida un profesional después de la beta
 
 1. **Quién:** una persona recibida de cada carrera (abogacía, contaduría, administración, comunicación, marketing y RR.PP., relaciones internacionales), idealmente de las que usaron la beta.
-2. **Qué hace:** lee los 8 avisos de su carrera **sin mirar las etiquetas** y anota, para la persona de referencia: ¿le mostrarías este aviso? (sí/no), ¿qué harías? (postular, guardar, descartar), un puntaje del 1 al 10 y, si descartás, por qué (ubicación, experiencia, otra disciplina u otro).
+2. **Qué hace:** lee los 8 avisos de su carrera **sin mirar las etiquetas** y anota, para la persona de referencia: ¿le mostrarías este aviso? (sí/no), ¿qué harías? (postular, guardar, descartar), un puntaje del 0 al 10 y, si descartás, por qué (ubicación, experiencia, otra disciplina u otro).
 3. **Comparación:** donde coincide con la etiqueta, el caso pasa a `anchor_source: "human"`. Donde no, se discute con Mauro: o se corrige la etiqueta, o se abre un ticket para el prefiltro o el evaluador.
 4. **Realismo:** si algún aviso «no existe así en la vida real», se reescribe con lo que diría un aviso de verdad (sin copiar uno real).
 5. **Cuándo:** después del 26/11, con los primeros 15 días de la beta, para sumar también avisos reales anonimizados (en `fixtures-private/`, nunca en el repo).

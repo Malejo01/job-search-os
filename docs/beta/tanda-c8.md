@@ -12,7 +12,7 @@ Una noche de la nube, sin supervisión, con **un solo PR de integración** `rond
 
 - **USD 0 de modelos.** Ninguna llamada a modelos pagos; los modelos salen solo de `model_routing`.
 - **Nada contra Neon.** Sin `db:migrate` remoto, `db:seed`, `db:sql`, `run-sql-file`, `pool:* --remote` ni `CONFIRM_PRODUCTION`. SQL de prueba en PGlite o en un Postgres del contenedor.
-- **Migraciones solo si son imprescindibles**, generadas con `drizzle-kit generate` desde la **0057** y **nunca aplicadas**. El PR de integración las lista con «⚠️ Mauro aplica `pnpm db:migrate` antes del merge».
+- **Migraciones solo si son imprescindibles**, generadas con `drizzle-kit generate` desde la **0057** y **nunca aplicadas**. El PR de integración las lista con «⚠️ Mauro aplica `pnpm db:migrate` antes del merge». **Las variables apagadas no protegen un despliegue antes de migrar**: Drizzle escribe todas las columnas del schema (revisión R-5).
 - **Variables apagadas por defecto.** Toda función visible nueva va detrás de una variable apagada (salvo que el ticket diga otra cosa), documentada en el PR y en `.env.example`.
 - **Sin `[preview]`** salvo el único commit de C8-20.
 - **El job pago de evals no se dispara.** El CI corre `evals` cuando el diff contra la base toca `evals/` o `packages/prompts/`. Por eso:

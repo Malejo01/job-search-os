@@ -56,11 +56,12 @@ export async function readCareerMarketInput(
       jdText: opts.persistedLanguage
         ? sql<
             string | null
-          >`case when ${s.publicJobs.languageCheckedAt} is null then left(${s.publicJobs.jdText}, ${JD_MAX_CHARS}) end`
+          >`case when ${s.publicJobs.languageCheckedAt} is null or ${s.publicJobs.languageCheckedAt} < ${s.publicJobs.updatedAt} then left(${s.publicJobs.jdText}, ${JD_MAX_CHARS}) end`
         : sql<string | null>`left(${s.publicJobs.jdText}, ${JD_MAX_CHARS})`,
       ...(opts.persistedLanguage
         ? {
             checkedAt: s.publicJobs.languageCheckedAt,
+            contentUpdatedAt: s.publicJobs.updatedAt,
             jdLanguage: s.publicJobs.jdLanguage,
             englishLanguage: s.publicJobs.englishLanguage,
             englishAsks: s.publicJobs.englishAsks,
@@ -93,8 +94,20 @@ export async function readCareerMarketInput(
   return {
     role,
     jobs: jobRows.map((row) => {
-      const { checkedAt, jdLanguage, englishLanguage, englishAsks, englishLevel, ...j } =
-        row as typeof row & PersistedLanguageRow;
+      const {
+        checkedAt,
+        contentUpdatedAt,
+        jdLanguage,
+        englishLanguage,
+        englishAsks,
+        englishLevel,
+        ...j
+      } = row as typeof row & PersistedLanguageRow;
+      // R-5: si el aviso cambió después de calcular el idioma, el dato está vencido y se usa el texto
+      const fresh =
+        checkedAt && contentUpdatedAt
+          ? new Date(checkedAt).getTime() >= new Date(contentUpdatedAt).getTime()
+          : Boolean(checkedAt);
       return {
         ...j,
         publishedAt: toIso(j.publishedAt),
@@ -111,6 +124,7 @@ export async function readCareerMarketInput(
 
 type PersistedLanguageRow = {
   checkedAt?: Date | null;
+  contentUpdatedAt?: Date | null;
   jdLanguage?: string | null;
   englishLanguage?: string | null;
   englishAsks?: boolean | null;
@@ -118,7 +132,9 @@ type PersistedLanguageRow = {
 };
 
 /** Valida lo que vuelve de las columnas; un valor desconocido se trata como «no se sabe». */
-function toLanguageFacts(r: Omit<PersistedLanguageRow, "checkedAt">): JobLanguageFacts {
+function toLanguageFacts(
+  r: Omit<PersistedLanguageRow, "checkedAt" | "contentUpdatedAt">,
+): JobLanguageFacts {
   const jd = r.jdLanguage;
   const en = r.englishLanguage;
   return {

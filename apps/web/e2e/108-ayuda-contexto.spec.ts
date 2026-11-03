@@ -56,7 +56,7 @@ test.describe("Flujo 108: ayuda en contexto (C8-6)", () => {
       name: "detalle de una oferta",
       path: () => `/jobs/${evaluatedId}`,
       topics: [
-        ["puntaje", /del 1 al 10/],
+        ["puntaje", /del 0 al 10/],
         ["aFavorTeFalta", /lo que el aviso pide y vos ya tenés/],
       ],
     },
