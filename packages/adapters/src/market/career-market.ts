@@ -111,7 +111,7 @@ export async function readCareerMarketInput(
       return {
         ...j,
         publishedAt: toIso(j.publishedAt),
-        language: checkedAt
+        language: fresh
           ? toLanguageFacts({ jdLanguage, englishLanguage, englishAsks, englishLevel })
           : null,
       };

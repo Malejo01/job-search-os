@@ -121,19 +121,26 @@ async function candidatesFromTable(userId: string): Promise<SkillCandidate[]> {
   await withUser(userId, async (tx) => {
     await tx.delete(s.marketCandidates).where(eq(s.marketCandidates.userId, userId));
     if (fresh.length > 0) {
-      await tx.insert(s.marketCandidates).values(
-        fresh.map((c) => ({
-          userId,
-          term: c.term.slice(0, 80),
-          count: c.count,
-          sourceLatestAt: latest ? new Date(latest) : null,
-          updatedAt: new Date(),
-        })),
-      ).onConflictDoUpdate({
-        // Dos pedidos a la vez: el segundo pisa al primero en vez de fallar por la clave
-        target: [s.marketCandidates.userId, s.marketCandidates.term],
-        set: { count: sql`excluded.count`, sourceLatestAt: sql`excluded.source_latest_at`, updatedAt: sql`now()` },
-      });
+      await tx
+        .insert(s.marketCandidates)
+        .values(
+          fresh.map((c) => ({
+            userId,
+            term: c.term.slice(0, 80),
+            count: c.count,
+            sourceLatestAt: latest ? new Date(latest) : null,
+            updatedAt: new Date(),
+          })),
+        )
+        .onConflictDoUpdate({
+          // Dos pedidos a la vez: el segundo pisa al primero en vez de fallar por la clave
+          target: [s.marketCandidates.userId, s.marketCandidates.term],
+          set: {
+            count: sql`excluded.count`,
+            sourceLatestAt: sql`excluded.source_latest_at`,
+            updatedAt: sql`now()`,
+          },
+        });
     }
   });
   return fresh;
