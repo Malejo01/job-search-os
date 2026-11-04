@@ -85,6 +85,16 @@ export async function login(page: Page): Promise<void> {
 }
 
 /**
+ * /acceso (C10): las carreras fuera de las 6 de la beta se eligen en «Otra carrera». En el celular
+ * ese chip aparece después de «+3».
+ */
+export async function openOtherCareer(page: Page): Promise<void> {
+  const more = page.getByRole("button", { name: /^Ver \d+ más$/ });
+  if (await more.isVisible()) await more.click();
+  await page.getByRole("button", { name: "Otra carrera", exact: true }).click();
+}
+
+/**
  * «Más filtros y herramientas» de /jobs (C10-7) va cerrado salvo que haya un filtro fino en la URL:
  * lo abre para usar los selectores.
  */

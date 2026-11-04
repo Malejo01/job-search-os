@@ -15,7 +15,8 @@ import type { PersonaKey } from "./personas/personas";
 /**
  * Flujo 107 (C8-5): «Empezá acá» en /hoy para una persona nueva de una carrera no tech, a 390 px.
  * Mariana (abogacía) y Agustina (contaduría): al terminar el onboarding, el perfil ya está; las áreas,
- * las ofertas y el CV quedan pendientes y se marcan solos con lo que se guarda. Se puede cerrar.
+ * las ofertas y el CV quedan pendientes y se marcan solos con lo que se guarda. Desde C10 no tiene
+ * «Cerrar» (hoy-pc.png): se va sola cuando no queda nada pendiente.
  * Sin red ni LLM: el pool se siembra como en los e2e de personas.
  */
 for (const key of ["mariana", "agustina"] as PersonaKey[]) {
@@ -77,13 +78,6 @@ for (const key of ["mariana", "agustina"] as PersonaKey[]) {
         expect(violations, tema).toEqual([]);
         expect(unmeasured, tema).toEqual([]);
       }
-    });
-
-    test("«Cerrar» la oculta y no vuelve", async () => {
-      await page.getByRole("button", { name: "Cerrar «Para hacer hoy»" }).click();
-      await expect(page.getByTestId("empeza-aca")).toHaveCount(0);
-      await page.goto("/hoy");
-      await expect(page.getByTestId("empeza-aca")).toHaveCount(0);
     });
   });
 }

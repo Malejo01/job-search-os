@@ -80,7 +80,6 @@ export function WaitlistForm(props: FormProps) {
 export function WaitlistFormFields({
   groups,
   betaCareers,
-  contact,
   initialHeardFrom,
   funnel = false,
   origen = null,
@@ -90,6 +89,8 @@ export function WaitlistFormFields({
   const formRef = useRef<HTMLFormElement>(null);
   const started = useRef(false);
   const [allCareers, setAllCareers] = useState(false);
+  // «Otra carrera» (C10): el selector con las demás carreras y «¿Cómo te enteraste?»
+  const [other, setOther] = useState(false);
   // Una sola carrera: la del chip o la de «Otra carrera», la última que se tocó. Va en un campo
   // oculto (`role`), así nunca viajan dos valores
   const [role, setRole] = useState("");
@@ -237,6 +238,15 @@ export function WaitlistFormFields({
               <span className={chipPill}>{c.label}</span>
             </label>
           ))}
+          <button
+            type="button"
+            onClick={() => setOther((v) => !v)}
+            aria-expanded={other}
+            aria-controls="acceso-otra-carrera"
+            className={`group/chip ${chipBox} ${allCareers ? "inline-flex" : "hidden sm:inline-flex"}`}
+          >
+            <span className={chipPill}>Otra carrera</span>
+          </button>
           {!allCareers && betaCareers.length > FIRST_CHIPS ? (
             <button
               type="button"
@@ -255,35 +265,9 @@ export function WaitlistFormFields({
         ) : null}
       </fieldset>
 
-      {/* Honeypot: fuera de pantalla y fuera del orden de tabulación; las personas no lo completan */}
-      <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
-        <label>
-          No completar este campo
-          <input name="website" type="text" tabIndex={-1} autoComplete="off" />
-        </label>
-      </div>
-
-      <div className="flex flex-col gap-3.5 sm:mt-1 sm:flex-row sm:items-center">
-        <button
-          type="submit"
-          disabled={pending}
-          className={buttonClasses({ size: "lg", className: "w-full sm:w-auto sm:px-8" })}
-        >
-          {pending ? "Enviando…" : "Anotarme"}
-        </button>
-        <div className="hidden sm:block">
-          <ShareButton brandName={brandName} compact />
-        </div>
-        <p className="hidden text-[13px] font-semibold text-fg-subtle sm:ml-auto sm:block">
-          Te escribimos si hay lugar.
-        </p>
-      </div>
-
-      {/* Lo que no está en la referencia va debajo de los botones (decisión de C10-5) */}
-      <details className="group text-sm">
-        <summary className="inline-flex min-h-11 cursor-pointer items-center font-semibold text-link underline underline-offset-2 hover:text-link-hover">
-          Otra carrera o cómo nos conociste
-        </summary>
+      {/* Las demás carreras y «¿Cómo te enteraste?» (C10): se abren con «Otra carrera». Cerrado
+          sigue en el formulario (el origen del QR completa «Voces Jóvenes» igual) */}
+      <div id="acceso-otra-carrera" className={other ? "contents" : "hidden"}>
         <div className="flex flex-col gap-3.5 pt-2">
           <label className={label}>
             Carrera
@@ -335,34 +319,66 @@ export function WaitlistFormFields({
             ) : null}
           </label>
         </div>
-      </details>
+      </div>
+
+      {/* Honeypot: fuera de pantalla y fuera del orden de tabulación; las personas no lo completan */}
+      <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
+        <label>
+          No completar este campo
+          <input name="website" type="text" tabIndex={-1} autoComplete="off" />
+        </label>
+      </div>
+
+      <div className="flex flex-col gap-3.5 sm:mt-1 sm:flex-row sm:items-center">
+        <button
+          type="submit"
+          disabled={pending}
+          className={buttonClasses({ size: "lg", className: "w-full sm:w-auto sm:px-8" })}
+        >
+          {pending ? "Enviando…" : "Anotarme"}
+        </button>
+        <div className="hidden sm:block">
+          <ShareButton brandName={brandName} compact />
+        </div>
+        <p className="hidden text-[13px] font-semibold text-fg-subtle sm:ml-auto sm:block">
+          Te escribimos si hay lugar.
+        </p>
+      </div>
 
       {/* Gris mientras se envía; rojo y role="alert" solo con un error real */}
       <p
         role={showError ? "alert" : "status"}
-        className={`min-h-5 text-sm ${showError ? "text-danger" : "text-fg-muted"}`}
+        className={`text-sm empty:hidden ${showError ? "text-danger" : "text-fg-muted"}`}
       >
         {showError && state.status === "error" ? state.message : ""}
       </p>
-
-      <p className="text-xs text-fg-subtle">
-        Guardamos tu nombre, email, carrera y cómo nos conociste solo para avisarte cuando haya
-        lugar. Los ve solo quien administra el proyecto. Más info en{" "}
-        <Link href="/legal/privacidad" className="underline">
-          Privacidad
-        </Link>
-        .
-        {contact ? (
-          <>
-            {" "}
-            Para borrar tus datos, escribinos a{" "}
-            <a href={contact.href} className="underline">
-              {contact.email}
-            </a>
-            .
-          </>
-        ) : null}
-      </p>
     </form>
+  );
+}
+
+/**
+ * Qué guardamos y para qué (C8): debajo de la tarjeta del formulario, fuera de la primera pantalla
+ * de acceso-pc.png (C10).
+ */
+export function WaitlistPrivacy({ contact }: { contact: FormProps["contact"] }) {
+  return (
+    <p className="text-xs text-fg-subtle">
+      Guardamos tu nombre, email, carrera y cómo nos conociste solo para avisarte cuando haya lugar.
+      Los ve solo quien administra el proyecto. Más info en{" "}
+      <Link href="/legal/privacidad" className="underline">
+        Privacidad
+      </Link>
+      .
+      {contact ? (
+        <>
+          {" "}
+          Para borrar tus datos, escribinos a{" "}
+          <a href={contact.href} className="underline">
+            {contact.email}
+          </a>
+          .
+        </>
+      ) : null}
+    </p>
   );
 }

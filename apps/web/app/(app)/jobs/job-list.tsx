@@ -72,6 +72,8 @@ function JobCard({
 }) {
   const anchor = (name: string) => (tour ? { "data-tour": name } : {});
   const frena = job.fit.falta?.kind === "frena" ? job.fit.falta : null;
+  // Las lejanas dicen lo que el aviso pide («! Pide 10 años de experiencia», ofertas-pc.png)
+  const far = !job.evaluating && job.score !== null && job.score < 3;
   const small = [
     job.card.count,
     offerMetaLine(job.modality, new Date(job.postedAt ?? job.firstSeenAt), now),
@@ -132,7 +134,7 @@ function JobCard({
               >
                 {c.tone === "missing" ? (
                   <span aria-hidden="true" className="hidden sm:inline">
-                    Te falta:{" "}
+                    {far ? "Pide " : "Te falta: "}
                   </span>
                 ) : null}
                 {c.label}

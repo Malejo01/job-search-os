@@ -2,6 +2,7 @@ import * as s from "@job-search-os/db/schema";
 import { expect, test } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import {
+  openJobFilters,
   E2E_USER_ID,
   assignSeededPoolJobs,
   deleteSeededPublicJobs,
@@ -85,6 +86,8 @@ test.describe("Flujo 61: En español", () => {
     await expect(page.getByText(esTitle)).toBeVisible();
     await expect(page.getByText(enTitle)).toBeVisible();
 
+    // C10: «En español» está en «Más filtros y herramientas»
+    await openJobFilters(page);
     const chip = page.getByTestId("chip-en-espanol");
     await expect(chip).not.toHaveAttribute("aria-current", "true");
     await chip.click();

@@ -6,7 +6,7 @@ import { cardClasses } from "@/components/ui";
 import { accesoFunnelEnabled } from "@/lib/acceso-funnel";
 import { contactLink } from "@/lib/contact";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
-import { WaitlistForm, WaitlistFormFields } from "./waitlist-form";
+import { WaitlistForm, WaitlistFormFields, WaitlistPrivacy } from "./waitlist-form";
 
 export const revalidate = 3600;
 
@@ -99,6 +99,9 @@ export default function AccesoPage() {
         <Suspense fallback={<WaitlistFormFields {...formProps} initialHeardFrom="" />}>
           <WaitlistForm {...formProps} />
         </Suspense>
+      </div>
+      <div className="mx-auto mt-5 w-full max-w-[828px] px-5 sm:px-8">
+        <WaitlistPrivacy contact={formProps.contact} />
       </div>
     </div>
   );

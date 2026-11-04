@@ -16,7 +16,7 @@ export function ShareButton({
   compact = false,
 }: {
   brandName: string;
-  /** Al lado de «Anotarme» (C10-5): ancho justo, 44 px, con el aviso de «copiado» flotando abajo. */
+  /** Al lado de «Anotarme» (C10-5): ancho justo, 50 px, con el aviso de «copiado» flotando abajo. */
   compact?: boolean;
 }) {
   const [shared, setShared] = useState<Shared>("idle");
@@ -50,7 +50,7 @@ export function ShareButton({
         onClick={onShare}
         className={
           compact
-            ? buttonClasses({ variant: "secondary", size: "sm" })
+            ? buttonClasses({ variant: "secondary", size: "mid" })
             : buttonClasses({ variant: "secondary", className: "min-h-12 w-full text-base" })
         }
       >

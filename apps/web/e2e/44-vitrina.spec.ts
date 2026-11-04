@@ -2,7 +2,7 @@ import { waitlist } from "@job-search-os/db/schema";
 import { BRAND } from "@job-search-os/pipeline";
 import { expect, test } from "@playwright/test";
 import { eq } from "drizzle-orm";
-import { login, ownerDb } from "./helpers";
+import { login, ownerDb, openOtherCareer } from "./helpers";
 
 /**
  * Flujo 44 (ronda 63): vitrina pública. Portada, mercado, ofertas de muestra y pedido de acceso sin
@@ -35,7 +35,7 @@ test.describe("Flujo 44: vitrina pública", () => {
       await page.getByLabel("Nombre").fill("Persona Vitrina");
       await page.getByLabel("Email").fill(email.toUpperCase());
       // Fuera de las 6 de la beta, la carrera está en «Otra carrera» (C10-5)
-      await page.getByText("Otra carrera o cómo nos conociste").click();
+      await openOtherCareer(page);
       await page.getByLabel("Carrera").selectOption("data_analyst");
       await page.getByRole("button", { name: "Anotarme", exact: true }).click();
     };

@@ -182,7 +182,7 @@ describe("closenessPhrase: la frase de cercanía del detalle D3 (C9-9)", () => {
   });
   it("cuenta must y deseable", () => {
     expect(closenessPhrase(counts(3, 1, 1, 0))).toBe(
-      "Cumplís 4 de 5 requisitos. Te falta uno para quedar entre las mejores postulaciones.",
+      "Cumplís 4 de 5 requisitos. Te falta uno para quedar entre las mejores.",
     );
   });
   it("varios faltantes: un paso a la vez", () => {
@@ -202,7 +202,7 @@ describe("closenessPhrase: la frase de cercanía del detalle D3 (C9-9)", () => {
       "Cumplís los 3 requisitos que pudimos verificar, de una lista incompleta.",
     );
     expect(closenessPhrase({ ...counts(1, 1), parcial: true })).toBe(
-      "Cumplís 1 de 2 requisitos que pudimos verificar. Te falta uno para quedar entre las mejores postulaciones.",
+      "Cumplís 1 de 2 requisitos que pudimos verificar. Te falta uno para quedar entre las mejores.",
     );
   });
   it("sin faltantes y sin requisitos verificables", () => {

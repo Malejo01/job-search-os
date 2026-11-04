@@ -20,6 +20,7 @@ import { AppBar } from "./app-bar";
 import { DesktopNav } from "./main-nav";
 import { PlanNotice } from "./plan-notice";
 import { Logo } from "@/components/brand/logo";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 // Acciones de administración de la barra índigo (solo admins): Invitar y Asistente. Foco en lima de
 // marca (12,4:1 sobre índigo). Ajustes y Salir están en Perfil, en «Más» (C10-3).
@@ -89,6 +90,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
               </Link>
             ) : null}
             {canAssist ? <AssistantButton className={HEADER_LINK} /> : null}
+            {/* Claro u oscuro, a mano en todas las pantallas (C10) */}
+            <ThemeToggle />
             <Avatar name={displayName} />
           </div>
         </div>

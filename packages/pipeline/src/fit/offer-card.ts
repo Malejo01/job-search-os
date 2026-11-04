@@ -150,7 +150,7 @@ export function closenessPhrase(checklist: {
     return `${head} Lo que falta frena la postulación: revisalo antes de seguir.`;
   }
   return missing === 1
-    ? `${head} Te falta uno para quedar entre las mejores postulaciones.`
+    ? `${head} Te falta uno para quedar entre las mejores.`
     : `${head} Te faltan ${missing}: sumá uno y esta oferta te queda más cerca.`;
 }
 
