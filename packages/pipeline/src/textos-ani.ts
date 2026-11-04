@@ -20,24 +20,23 @@ export type TextoAni = {
 export const TEXTOS_ANI: readonly TextoAni[] = [
   {
     area: "Portada",
-    nombre: "Bajada principal",
-    extracto: "Leemos cada oferta contra tu perfil y te decimos por qué sí y por qué no.",
+    nombre: "Titular",
+    extracto: "Las ofertas que te quedan bien, con el porqué.",
     archivo: "apps/web/app/(public)/page.tsx",
     verEn: "/",
   },
   {
     area: "Portada",
-    nombre: "Segunda frase",
-    extracto: "Menos postulaciones, mejor elegidas.",
+    nombre: "Bajada",
+    extracto: "Leemos cada aviso contra tu perfil y te decimos qué tan afín es",
     archivo: "apps/web/app/(public)/page.tsx",
     verEn: "/",
   },
   {
     area: "/acceso",
-    nombre: "Introducción del formulario",
-    extracto:
-      "La beta es por invitación. Dejá tus datos y, cuando haya lugar, te escribimos con un link",
-    archivo: "apps/web/app/(public)/acceso/waitlist-form.tsx",
+    nombre: "Bajada de la cabecera",
+    extracto: "Para estudiantes y recién recibidos de 6 carreras. Abrimos el 26 de noviembre.",
+    archivo: "apps/web/app/(public)/acceso/page.tsx",
     verEn: "/acceso",
   },
   {
