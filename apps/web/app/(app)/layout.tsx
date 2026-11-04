@@ -73,7 +73,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       </a>
       {/* Barra índigo (C10-3, pantallas aprobadas el 4/11): logo, las cinco secciones en píldoras y
           el avatar. En el celular, logo y avatar (las secciones son las pestañas de abajo) */}
-      <AppBar>
+      <AppBar adminTools={canInvite || canAssist}>
         {/* flex-wrap: con «Invitar» y «Asistente» (solo admins) la barra del celular pasa a dos filas */}
         <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-x-7 gap-y-1 px-5 sm:px-12">
           <Link href="/hoy" className={LOGO_LINK}>

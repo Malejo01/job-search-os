@@ -136,9 +136,11 @@ test.describe("Flujo 56: Tu perfil en Ajustes", () => {
     await page.getByLabel(/Ciudad/).fill("Otra Ciudad Ficticia");
     const summary = page.getByLabel(/Resumen de tu perfil/);
     await summary.fill("corto");
+    // El formulario del perfil (en «Más» también está el de «Salir», C10-3)
     await page
       .getByRole("main")
       .locator("form")
+      .filter({ has: summary })
       .evaluate((f) => ((f as HTMLFormElement).noValidate = true));
     await page.getByRole("button", { name: "Guardar", exact: true }).click();
 
@@ -186,7 +188,11 @@ test.describe("Flujo 56: Tu perfil en Ajustes", () => {
     await page.setViewportSize({ width: 360, height: 800 });
     await login(page);
     await page.goto("/settings/perfil");
-    const form = page.getByRole("main").locator("form");
+    // El formulario del perfil (en «Más» también está el de «Salir», C10-3)
+    const form = page
+      .getByRole("main")
+      .locator("form")
+      .filter({ has: page.getByLabel(/Resumen de tu perfil/) });
     await expect(form).toBeVisible();
     const box = await form.boundingBox();
     expect(box && box.x + box.width <= 360, "el formulario entra en 360 px").toBe(true);
