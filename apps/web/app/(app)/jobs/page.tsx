@@ -116,22 +116,21 @@ export default async function JobsPage({
           >
             Remoto
           </Link>
-          {/* En el celular entran tres chips (ofertas-cel.png): «En español» va desde `sm` */}
-          <span className="hidden sm:contents">
-            <Link
-              href={chip({ idioma: filters.idioma ? null : "es" })}
-              aria-current={filters.idioma === "es" ? "true" : undefined}
-              data-testid="chip-en-espanol"
-              aria-describedby={filters.idioma === "es" ? "chip-en-espanol-ayuda" : undefined}
-              className={filterChipClasses({
-                compact: true,
-                selected: filters.idioma === "es",
-                className: "shrink-0",
-              })}
-            >
-              En español
-            </Link>
-          </span>
+          {/* En el celular la fila se desliza: «En español» queda a la derecha de los tres de la
+              referencia (ofertas-cel.png) */}
+          <Link
+            href={chip({ idioma: filters.idioma ? null : "es" })}
+            aria-current={filters.idioma === "es" ? "true" : undefined}
+            data-testid="chip-en-espanol"
+            aria-describedby={filters.idioma === "es" ? "chip-en-espanol-ayuda" : undefined}
+            className={filterChipClasses({
+              compact: true,
+              selected: filters.idioma === "es",
+              className: "shrink-0",
+            })}
+          >
+            En español
+          </Link>
         </nav>
         <p className="ml-auto hidden text-[13px] font-bold text-fg-subtle sm:block">
           Ordenadas por afinidad

@@ -13,11 +13,18 @@ import type { ReactNode } from "react";
 /** `/jobs/<uuid>`: el detalle de una oferta. */
 export const DETAIL = /^\/jobs\/[0-9a-f-]{36}$/;
 
-export function AppBar({ children }: { children: ReactNode }) {
+export function AppBar({
+  children,
+  adminTools = false,
+}: {
+  children: ReactNode;
+  /** Hay «Invitar» o «Asistente» en la barra (solo admins): en el detalle del celular no se oculta. */
+  adminTools?: boolean;
+}) {
   const pathname = usePathname();
   const cabecera = pathname === "/hoy";
   // El detalle en el celular arranca con su propia cabecera índigo (detalle-cel.png, C10-8)
-  const detalle = DETAIL.test(pathname);
+  const detalle = DETAIL.test(pathname) && !adminTools;
   return (
     <header
       data-cabecera={cabecera ? "true" : undefined}
