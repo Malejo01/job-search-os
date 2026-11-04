@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { closenessPhrase, offerAge, offerCardChips, offerMeta, offerPlace } from "./offer-card";
+import {
+  closenessPhrase,
+  offerAge,
+  offerCardChips,
+  offerMeta,
+  offerMetaLine,
+  offerPlace,
+} from "./offer-card";
 
 describe("offerCardChips (tarjeta K2, C9-8)", () => {
   it("con checklist: verdes y ámbar, como mucho 3, «y N más» y la línea de conteo", () => {
@@ -216,5 +223,25 @@ describe("offerMeta: modalidad y antigüedad en texto chico", () => {
     );
     expect(offerMeta("desconocida", new Date("2026-11-03T10:00:00Z"), now)).toBe("Publicada hoy");
     expect(offerMeta(null, new Date("2026-11-03T10:00:00Z"), now)).toBe("Publicada hoy");
+  });
+});
+
+describe("offerMetaLine: modalidad y antigüedad en la línea chica de la tarjeta (C10)", () => {
+  const now = new Date("2026-11-03T12:00:00Z");
+  it("dice la modalidad y «hace N días», separadas por «·», como los tableros aprobados", () => {
+    expect(offerMetaLine("presencial", new Date("2026-11-01T10:00:00Z"), now)).toBe(
+      "Presencial · hace 2 días",
+    );
+    expect(offerMetaLine("remoto", new Date("2026-11-02T10:00:00Z"), now)).toBe(
+      "Remoto · hace 1 día",
+    );
+    expect(offerMetaLine("hibrido", new Date("2026-10-20T10:00:00Z"), now)).toBe(
+      "Híbrido · hace 2 semanas",
+    );
+  });
+  it("hoy, más de un mes y sin modalidad", () => {
+    expect(offerMetaLine("remoto", new Date("2026-11-03T08:00:00Z"), now)).toBe("Remoto · hoy");
+    expect(offerMetaLine(null, new Date("2026-09-01T10:00:00Z"), now)).toBe("hace más de un mes");
+    expect(offerMetaLine("desconocida", new Date("2026-11-05T10:00:00Z"), now)).toBe("hoy");
   });
 });

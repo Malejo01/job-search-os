@@ -1,5 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
-import { createEvaluation, createJob, deleteJob, jobStatus, login } from "./helpers";
+import {
+  createEvaluation,
+  createJob,
+  deleteJob,
+  jobStatus,
+  login,
+  openJobFilters,
+} from "./helpers";
 
 /**
  * Flujo 16 (JS-061): recorrer las ofertas de mayor a menor score salteando las que ya tienen una
@@ -65,6 +72,7 @@ test.describe("Flujo 16: revisión de a una", () => {
     await expect(tarjeta(page, "C")).toHaveCount(0);
 
     // Con "todas" vuelve a aparecer: el toggle de "mostrar todas" es el mismo select
+    await openJobFilters(page);
     await page.getByLabel("Estado").selectOption("todas");
     await expect(page).toHaveURL(/estado=todas/);
     await expect(tarjeta(page, "C")).toBeVisible();

@@ -36,22 +36,23 @@ for (const key of ["mariana", "agustina"] as PersonaKey[]) {
       await cleanup(run, context);
     });
 
-    test("recién llegada: perfil hecho, áreas, ofertas y CV pendientes", async () => {
+    test("recién llegada: áreas, ofertas y CV pendientes (el perfil hecho no se repite)", async () => {
       await register(page, run);
       await completeStep1(page, run);
       await fillSkills(page, run);
       await page.goto("/hoy");
       const card = page.getByTestId("empeza-aca");
       await expect(card.getByRole("heading", { name: "Para hacer hoy" })).toBeVisible();
-      await expect(card).toContainText("1 de 4 listos");
-      await expect(page.getByTestId("empeza-aca-perfil")).toHaveAttribute("data-done", "true");
+      // C10-6: lo hecho va tachado; el perfil ya completo no se repite en la lista
+      await expect(card).toContainText("0 de 3 listos");
+      await expect(page.getByTestId("empeza-aca-perfil")).toHaveCount(0);
       await expect(page.getByTestId("empeza-aca-areas")).toHaveAttribute("data-done", "false");
-      await expect(card.getByRole("link", { name: "Elegir mis áreas" })).toHaveAttribute(
+      await expect(card.getByRole("link", { name: /^Elegir tus áreas/ })).toHaveAttribute(
         "href",
         "/settings#puesto",
       );
       await expect(page.getByTestId("empeza-aca-ofertas")).toHaveAttribute("data-done", "false");
-      await expect(card.getByRole("link", { name: "Armar mi CV" })).toHaveAttribute(
+      await expect(card.getByRole("link", { name: /^Subir tu CV/ })).toHaveAttribute(
         "href",
         "/cv/armar",
       );
@@ -62,8 +63,9 @@ for (const key of ["mariana", "agustina"] as PersonaKey[]) {
     test("las ofertas del pool marcan el paso solas", async () => {
       await assignPool(run);
       await page.goto("/hoy");
-      await expect(page.getByTestId("empeza-aca-ofertas")).toHaveAttribute("data-done", "true");
-      await expect(page.getByTestId("empeza-aca")).toContainText("2 de 4 listos");
+      // Con ofertas, ese paso ya no se muestra: quedan áreas y CV
+      await expect(page.getByTestId("empeza-aca-ofertas")).toHaveCount(0);
+      await expect(page.getByTestId("empeza-aca")).toContainText("0 de 2 listos");
     });
 
     test("sin violaciones de axe en claro y oscuro", async () => {

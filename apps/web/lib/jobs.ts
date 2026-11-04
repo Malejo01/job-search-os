@@ -45,6 +45,8 @@ export type JobFilters = {
   duplicates: boolean;
   /** Solo ofertas del pool escritas en español (`public_jobs.lang = 'es'`); null = sin filtro. */
   idioma?: "es" | null;
+  /** Solo ofertas remotas (`jobs.modality = 'remoto'`), el chip «Remoto» de C10-7; null = todas. */
+  modalidad?: "remoto" | null;
 };
 
 export type JobListRow = {
@@ -118,6 +120,7 @@ export function parseJobFilters(params: Record<string, string | string[] | undef
     periodo: parsePeriod(one("periodo")),
     duplicates: one("duplicados") === "1",
     idioma: one("idioma") === "es" ? "es" : null,
+    modalidad: one("modalidad") === "remoto" ? "remoto" : null,
   };
 }
 
@@ -233,6 +236,7 @@ export async function listJobs(
       since ? gte(s.jobs.firstSeenAt, since) : undefined,
       filters.duplicates ? sql`'posible_duplicado' = any(${s.jobs.flags})` : undefined,
       filters.idioma ? eq(s.publicJobs.lang, filters.idioma) : undefined,
+      filters.modalidad ? eq(s.jobs.modality, filters.modalidad) : undefined,
     ].filter((c): c is NonNullable<typeof c> => c !== undefined);
 
     const rows = await tx
@@ -421,6 +425,7 @@ export function listQuery(filters: JobFilters): string {
   if (filters.periodo) q.set("periodo", filters.periodo);
   if (filters.duplicates) q.set("duplicados", "1");
   if (filters.idioma) q.set("idioma", filters.idioma);
+  if (filters.modalidad) q.set("modalidad", filters.modalidad);
   const str = q.toString();
   return str ? `?${str}` : "";
 }

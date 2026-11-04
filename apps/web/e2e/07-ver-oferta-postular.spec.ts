@@ -55,18 +55,19 @@ test.describe("Flujo 7: ir a la oferta original y confirmar la postulación", ()
     return popup;
   }
 
-  test("en la lista hay un link a la publicación que abre en pestaña nueva", async ({ page }) => {
+  test("la tarjeta lleva al detalle y ahí está el link a la publicación, en pestaña nueva", async ({
+    page,
+  }) => {
     await login(page);
     await page.goto("/jobs?estado=todas");
     const card = page.getByRole("listitem").filter({ hasText: "E2E link externo" });
-    const link = card.getByRole("link", { name: "Ver oferta" });
+    // C10-7: la tarjeta es la K2 del tablero; «Postularme en el sitio del aviso» está en el detalle
+    await card.getByRole("link", { name: /abrir el detalle/i }).click();
+    await expect(page).toHaveURL(new RegExp(`/jobs/${conUrl}`));
+    const link = page.getByRole("link", { name: /Postularme en el sitio del aviso/ });
     await expect(link).toHaveAttribute("href", OFERTA_URL);
     await expect(link).toHaveAttribute("target", "_blank");
     await expect(link).toHaveAttribute("rel", /noopener/);
-
-    // La card sigue llevando al detalle: un link cubre toda la card, debajo del de la oferta
-    await card.getByRole("link", { name: /abrir el detalle/i }).click();
-    await expect(page).toHaveURL(new RegExp(`/jobs/${conUrl}`));
   });
 
   test("en el detalle, Postular abre la oferta y al volver pregunta; Sí deja la oferta aplicada", async ({

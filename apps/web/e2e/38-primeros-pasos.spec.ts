@@ -284,7 +284,7 @@ test.describe("Flujo 38: primeros pasos, de la persona nueva a la checklist comp
     await checklist(page).getByRole("button", { name: "Ocultar" }).click();
     await expect(checklist(page)).toHaveCount(0);
     await page.reload();
-    await expect(page.getByRole("heading", { name: "Ofertas", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Tus ofertas", exact: true })).toBeVisible();
     await expect(checklist(page)).toHaveCount(0);
 
     // Misma cookie en el navegador, otra cuenta: se sale de la sesión conservando solo esa cookie
@@ -295,7 +295,7 @@ test.describe("Flujo 38: primeros pasos, de la persona nueva a la checklist comp
     await context!.addCookies(hidden);
     await loginAsSecondUser(page);
     await page.goto("/jobs");
-    await expect(page.getByRole("heading", { name: "Ofertas", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Tus ofertas", exact: true })).toBeVisible();
     await expect(checklist(page)).toBeVisible();
   });
 });

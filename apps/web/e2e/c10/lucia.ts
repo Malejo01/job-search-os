@@ -314,11 +314,13 @@ export async function seedLucia(): Promise<Record<Offer["key"], string>> {
   }
 }
 
-/** Entra como Lucía (sin «Primeros pasos»: no es parte de las referencias). */
+/** Entra como Lucía (sin «Primeros pasos» ni el aviso de alertas: no son parte de las referencias). */
 export async function loginAsLucia(page: Page): Promise<void> {
-  await page
-    .context()
-    .addCookies([{ name: FIRST_STEPS_COOKIE, value: LUCIA_USER_ID, url: BASE_URL }]);
+  // Como en las referencias: ya cerró «Primeros pasos» y el aviso de sumar alertas por email
+  await page.context().addCookies([
+    { name: FIRST_STEPS_COOKIE, value: LUCIA_USER_ID, url: BASE_URL },
+    { name: "jso_email_nudge", value: LUCIA_USER_ID, url: BASE_URL },
+  ]);
   await page.goto("/login");
   await page.getByLabel("Email").fill(LUCIA_EMAIL);
   await page.getByLabel("Contraseña").fill(LUCIA_PASSWORD);

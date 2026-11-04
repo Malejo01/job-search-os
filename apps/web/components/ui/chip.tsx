@@ -67,10 +67,20 @@ export function Chip({
 
 export function filterChipClasses({
   selected = false,
+  compact = false,
   className,
-}: { selected?: boolean; className?: string } = {}): string {
+}: {
+  selected?: boolean;
+  /**
+   * 38 px como el tablero (los filtros de Ofertas, C10-7); el área táctil llega a 44 con el
+   * `::before`. Sin `compact`, el chip mide 44 (las pantallas que no son referencia y sus e2e).
+   */
+  compact?: boolean;
+  className?: string;
+} = {}): string {
   return cx(
     "pressable edge-4 relative inline-flex items-center justify-center gap-1.5 rounded-pill border-x-2 border-t-2 px-3.5 py-2 [--jso-edge-top:2px] text-[13px] leading-[1.2] font-bold whitespace-nowrap before:absolute before:inset-x-0 before:-inset-y-[3px] before:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
+    !compact && "min-h-11",
     selected
       ? "border-brand-contrast bg-brand text-brand-contrast"
       : "border-line-strong bg-surface text-fg hover:bg-surface-muted",

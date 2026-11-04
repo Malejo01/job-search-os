@@ -343,7 +343,7 @@ export function definePersonaSpec(key: PersonaKey): void {
     test("/jobs muestra al menos una de sus ofertas", async () => {
       await timed("/jobs", async () => {
         await page.goto("/jobs");
-        await expect(page.getByRole("heading", { name: "Ofertas", exact: true })).toBeVisible();
+        await expect(page.getByRole("heading", { name: "Tus ofertas", exact: true })).toBeVisible();
         await expect
           .poll(
             async () => {

@@ -165,3 +165,24 @@ export function offerMeta(modality: string | null, postedAt: Date, now: Date): s
   const m = modality ? MODALITY_TEXT[modality] : undefined;
   return m ? `${m}. ${offerAge(postedAt, now)}` : offerAge(postedAt, now);
 }
+
+/** Antigüedad corta de la tarjeta (C10): «hoy», «hace 1 día», «hace 3 días», «hace 2 semanas». */
+function offerAgeShort(postedAt: Date, now: Date): string {
+  const days = Math.max(0, Math.floor((now.getTime() - postedAt.getTime()) / DAY_MS));
+  if (days === 0) return "hoy";
+  if (days === 1) return "hace 1 día";
+  if (days < 14) return `hace ${days} días`;
+  if (days <= 31) return `hace ${Math.floor(days / 7)} semanas`;
+  return "hace más de un mes";
+}
+
+/**
+ * La línea chica de la tarjeta K2 de los tableros aprobados el 4/11 (C10): «Presencial · hace 2
+ * días». Va después del conteo («4 a tu favor, 1 te falta · …»). Sin modalidad conocida, solo la
+ * antigüedad.
+ */
+export function offerMetaLine(modality: string | null, postedAt: Date, now: Date): string {
+  const m = modality ? MODALITY_TEXT[modality] : undefined;
+  const age = offerAgeShort(postedAt, now);
+  return m ? `${m} · ${age}` : age;
+}

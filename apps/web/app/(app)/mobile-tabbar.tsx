@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon } from "@/components/ui/icons";
 import { NavCount, NavCountText } from "./main-nav";
+import { DETAIL } from "./app-bar";
 import { activeSection, SECTIONS } from "./sections";
 
 /**
@@ -19,6 +20,8 @@ import { activeSection, SECTIONS } from "./sections";
 export function MobileTabBar({ followUps = 0 }: { followUps?: number }) {
   const pathname = usePathname();
   const active = activeSection(pathname);
+  // En el detalle del celular, abajo va «Postularme en el sitio del aviso» (detalle-cel.png)
+  if (DETAIL.test(pathname)) return null;
   return (
     <nav
       aria-label="Secciones"

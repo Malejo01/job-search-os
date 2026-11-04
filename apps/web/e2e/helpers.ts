@@ -85,6 +85,25 @@ export async function login(page: Page): Promise<void> {
 }
 
 /**
+ * «Más filtros y herramientas» de /jobs (C10-7) va cerrado salvo que haya un filtro fino en la URL:
+ * lo abre para usar los selectores.
+ */
+export async function openJobFilters(page: Page): Promise<void> {
+  const more = page.getByTestId("jobs-herramientas");
+  if (!(await more.evaluate((d) => (d as HTMLDetailsElement).open))) {
+    await more.locator("summary").click();
+  }
+}
+
+/** «Más de tu semana» de /hoy (C10-6) va cerrado: lo abre para mirar seguimiento, alertas y mercado. */
+export async function openHoyMore(page: Page): Promise<void> {
+  const more = page.getByTestId("hoy-mas");
+  if (!(await more.evaluate((d) => (d as HTMLDetailsElement).open))) {
+    await more.locator("summary").click();
+  }
+}
+
+/**
  * El asistente de alertas abre el modal de privacidad al entrar (ronda 49) y, abierto, deja el
  * resto de la página inerte. Lo cierra con «Entiendo y continúo»; la cookie queda en el contexto.
  */

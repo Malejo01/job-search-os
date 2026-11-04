@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { login } from "./helpers";
+import { login, openJobFilters } from "./helpers";
 
 /** Flujo 10 (JS-029): el score mínimo se elige de 0 a 9, de a un punto, y vive en la URL. */
 test.describe("Flujo 10: filtro de score libre", () => {
@@ -8,6 +8,7 @@ test.describe("Flujo 10: filtro de score libre", () => {
   }) => {
     await login(page);
     await page.goto("/jobs");
+    await openJobFilters(page);
     const filtro = page.getByLabel("Puntaje mín.");
     await expect(filtro.locator("option")).toHaveText([
       "cualquiera",
