@@ -1,7 +1,7 @@
 import * as s from "@job-search-os/db/schema";
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { eq } from "drizzle-orm";
-import { ownerDb } from "./helpers";
+import { ownerDb, openOtherCareer } from "./helpers";
 import { cleanup, createInvitation, newRun, register } from "./personas/flow";
 
 /**
@@ -67,7 +67,7 @@ test.describe("Flujo 60: lista de espera con una carrera nueva", () => {
   test("/acceso ofrece «Product Owner» y guarda la carrera", async ({ page }) => {
     await page.goto("/acceso");
     // Las carreras fuera de los chips de la beta están en «Otra carrera» (C10-5)
-    await page.getByText("Otra carrera o cómo nos conociste").click();
+    await openOtherCareer(page);
     const select = page.getByLabel("Carrera");
     const options = await select.locator("option").allInnerTexts();
     for (const label of LABELS) expect(options, label).toContain(label);

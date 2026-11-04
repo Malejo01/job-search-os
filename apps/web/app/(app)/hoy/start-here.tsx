@@ -1,31 +1,15 @@
 import { startHere, type StartHereStepId } from "@job-search-os/pipeline";
-import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import Link from "next/link";
-import { buttonClasses, cardClasses, CheckMark, Icon } from "@/components/ui";
+import { buttonClasses, cardClasses, CheckMark } from "@/components/ui";
 import { CheckBounce } from "@/components/motion/check-bounce";
-import { requireActiveUserId } from "@/lib/session";
 import { getStartHereFacts, startHereEnabled } from "@/lib/start-here";
 
-/** Cookie de «Cerrar»: solo UX (httpOnly, un año), con el id del usuario como valor. */
+/**
+ * Cookie de «Cerrar» de C8-5. Desde C10 la tarjeta no tiene «Cerrar» (hoy-pc.png): se va sola
+ * cuando no queda nada pendiente. Se sigue leyendo para quien ya la había cerrado.
+ */
 const START_HERE_COOKIE = "jso_empeza_aca";
-const MAX_AGE = 60 * 60 * 24 * 365;
-
-/** «Cerrar»: guarda la cookie y la tarjeta no vuelve. No toca la base. */
-async function closeStartHereAction(): Promise<void> {
-  "use server";
-  // El valor es el id del usuario: en un navegador compartido, cerrarla en una cuenta no la cierra en otra
-  const userId = await requireActiveUserId();
-  const jar = await cookies();
-  jar.set(START_HERE_COOKIE, userId, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: MAX_AGE,
-  });
-  revalidatePath("/hoy");
-}
 
 type Task = {
   id: StartHereStepId | "descripciones" | "seguimiento";
@@ -131,15 +115,6 @@ export async function StartHere({
         <span className="sr-only">
           {tasks.length - pending.length} de {tasks.length} listos.
         </span>
-        <form action={closeStartHereAction} className="-mt-2.5 -mr-2.5">
-          <button
-            type="submit"
-            aria-label="Cerrar «Para hacer hoy»"
-            className="inline-flex size-11 items-center justify-center rounded-pill text-fg-subtle hover:bg-surface-muted hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
-          >
-            <Icon name="cruz" size={16} />
-          </button>
-        </form>
       </div>
       <ol className="m-0 flex list-none flex-col gap-2.5 p-0 sm:gap-3.5">
         {tasks.map((task) => (

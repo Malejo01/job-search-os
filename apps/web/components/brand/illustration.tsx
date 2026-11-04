@@ -14,8 +14,9 @@ import { Monogram } from "./logo";
  *   en 1x y @2x (`srcSet`), 4:3.
  * - Las de fondo lavanda van dentro de un recuadro lavanda de radio 32, igual en claro y en
  *   oscuro; las de fondo índigo (`hoy`, `acceso`) van directo sobre la cabecera índigo.
- * - Si la escena todavía no tiene imagen, muestra el marcador: el recuadro lavanda con el monograma,
- *   del mismo tamaño, así la pantalla no salta cuando llegue.
+ * - Si la escena todavía no tiene imagen, muestra el marcador del mismo tamaño, así la pantalla no
+ *   salta cuando llegue: el recuadro lavanda con el monograma o, sobre el índigo (`acceso`), el
+ *   recuadro punteado con el nombre de la escena (acceso-pc.png, C10).
  * - Son decorativas (el texto de al lado dice lo que pasa): `alt=""`. Con `alt` se puede dar una
  *   descripción si alguna vez una dice algo propio.
  *
@@ -34,7 +35,9 @@ export function Illustration({
   priority?: boolean;
 }) {
   const info = ILLUSTRATIONS[escena];
-  const framed = !info.available || info.background === "lavanda";
+  const onInk = info.background === "ink";
+  const framed = !onInk;
+  const dashed = !info.available && onInk;
   return (
     <div
       data-ilustracion={escena}
@@ -43,10 +46,14 @@ export function Illustration({
       className={cx(
         "relative aspect-[4/3] shrink-0 overflow-hidden",
         framed && "rounded-container bg-illustration",
+        dashed &&
+          "flex items-center justify-center rounded-[28px] border-2 border-dashed border-ink-dash text-center text-[13px] font-bold text-on-ink-muted",
         className,
       )}
     >
-      {info.available ? (
+      {dashed ? (
+        <span>Ilustración «{escena}»</span>
+      ) : info.available ? (
         // Imagen estática del mismo dominio, ya en webp y en dos tamaños: sin el optimizador
         // eslint-disable-next-line @next/next/no-img-element
         <img

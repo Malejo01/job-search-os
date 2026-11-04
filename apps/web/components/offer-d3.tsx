@@ -59,8 +59,15 @@ function nextStep(
       ),
     };
   }
+  // Como la referencia («…y quedás entre las mejores»), solo si es lo único que falta y no frena
+  // la postulación: si faltan más, no se promete quedar entre las mejores (misma regla que la frase
+  // de cercanía)
+  const missing = items.filter((i) => i.status === "no_cumple");
+  const only = missing.length === 1 && !item.bloquea;
   return {
-    text: `¿Usaste ${item.pide} alguna vez? Sumalo a tu CV y esta oferta te queda más cerca.`,
+    text: `¿Usaste ${item.pide} alguna vez? Sumalo a tu CV y ${
+      only ? "quedás entre las mejores." : "esta oferta te queda más cerca."
+    }`,
     action: (
       <Link href="/cv" className={OUTLINE_LIME}>
         Sumarlo a mi CV
@@ -133,7 +140,15 @@ export function OfferD3({
   );
 
   return (
-    <div data-testid="d3" className="flex min-w-0 flex-col gap-3 sm:gap-4">
+    <div
+      data-testid="d3"
+      // En el celular el resumen ocupa la primera pantalla, como detalle-cel.png: lo demás del
+      // detalle empieza debajo
+      className={cx(
+        "flex min-w-0 flex-col gap-3 sm:gap-4",
+        page && "max-sm:min-h-[calc(100svh-1.25rem)]",
+      )}
+    >
       <section
         aria-labelledby={titleId}
         className={cx(

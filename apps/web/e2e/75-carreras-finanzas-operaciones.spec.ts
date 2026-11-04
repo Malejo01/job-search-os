@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import * as s from "@job-search-os/db/schema";
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { eq } from "drizzle-orm";
-import { ownerDb } from "./helpers";
+import { ownerDb, openOtherCareer } from "./helpers";
 import { cleanup, createInvitation, newRun, register } from "./personas/flow";
 
 /**
@@ -58,7 +58,7 @@ test.describe("Flujo 75: lista de espera con finanzas", () => {
   }) => {
     await page.goto("/acceso");
     // Las carreras fuera de los chips de la beta están en «Otra carrera» (C10-5)
-    await page.getByText("Otra carrera o cómo nos conociste").click();
+    await openOtherCareer(page);
     const select = page.getByLabel("Carrera");
     const options = await select.locator("option").allInnerTexts();
     expect(options).toContain(FINANZAS_LABEL);

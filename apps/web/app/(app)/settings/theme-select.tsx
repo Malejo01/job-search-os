@@ -2,50 +2,14 @@
 
 import { useSyncExternalStore } from "react";
 import { filterChipClasses } from "@/components/ui";
-import {
-  DEFAULT_THEME,
-  THEME_STORAGE_KEY,
-  THEME_VALUES,
-  type ThemePreference,
-} from "@/app/theme-script";
+import { DEFAULT_THEME, THEME_VALUES, type ThemePreference } from "@/app/theme-script";
+import { readTheme, setTheme, subscribeTheme } from "@/lib/theme";
 
 const LABELS: Record<ThemePreference, string> = {
   sistema: "Como el dispositivo",
   claro: "Claro",
   oscuro: "Oscuro",
 };
-
-function prefersDark(): boolean {
-  return window.matchMedia("(prefers-color-scheme: dark)").matches;
-}
-
-function apply(theme: ThemePreference): void {
-  const dark = theme === "oscuro" || (theme === "sistema" && prefersDark());
-  document.documentElement.classList.toggle("dark", dark);
-}
-
-const CHANGE_EVENT = "jso-tema";
-
-// Cambios desde esta pestaña (evento propio) o desde otra (`storage`)
-function subscribe(onChange: () => void): () => void {
-  window.addEventListener(CHANGE_EVENT, onChange);
-  window.addEventListener("storage", onChange);
-  return () => {
-    window.removeEventListener(CHANGE_EVENT, onChange);
-    window.removeEventListener("storage", onChange);
-  };
-}
-
-function read(): ThemePreference {
-  try {
-    const value = localStorage.getItem(THEME_STORAGE_KEY);
-    return (THEME_VALUES as readonly string[]).includes(value ?? "")
-      ? (value as ThemePreference)
-      : DEFAULT_THEME;
-  } catch {
-    return DEFAULT_THEME;
-  }
-}
 
 /**
  * Apariencia (C7-1): claro, oscuro o como el dispositivo. Guarda la preferencia en el mismo
@@ -54,16 +18,10 @@ function read(): ThemePreference {
  */
 export function ThemeSelect() {
   // En el servidor no hay localStorage: se pinta con el valor por defecto y se corrige al hidratar
-  const theme = useSyncExternalStore(subscribe, read, () => DEFAULT_THEME);
+  const theme = useSyncExternalStore(subscribeTheme, readTheme, () => DEFAULT_THEME);
 
   function choose(next: ThemePreference) {
-    try {
-      localStorage.setItem(THEME_STORAGE_KEY, next);
-    } catch {
-      // Sin localStorage (modo privado estricto) el cambio vale hasta recargar
-    }
-    apply(next);
-    window.dispatchEvent(new Event(CHANGE_EVENT));
+    setTheme(next);
   }
 
   return (

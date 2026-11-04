@@ -85,42 +85,45 @@ export default async function HoyPage() {
     <div data-ancho="completo" className="flex flex-col pb-10">
       {/* Cabecera índigo curva (decisión 6): continúa la barra de arriba, sin costura. La onda va
           acá, en el saludo: es un momento tranquilo (decisión 14) */}
-      <section
-        data-testid="hoy-cabecera"
-        aria-labelledby="hoy-saludo"
-        className="rounded-b-[40px] bg-ink text-on-ink sm:rounded-b-[56px]"
-      >
-        <div className="mx-auto mt-2.5 flex max-w-[1280px] items-end gap-1.5 px-5 sm:mt-0 sm:gap-6 sm:px-[72px]">
-          <div className="min-w-0 flex-[1_1_55%] pb-[26px] sm:flex-auto sm:pb-14">
-            <h1
-              id="hoy-saludo"
-              className="text-[28px] leading-[1.06] font-extrabold text-on-ink sm:text-5xl sm:leading-[1.05] sm:tracking-[-1.4px]"
-            >
-              ¡{greeting(now, data.timeZone)}
-              {name ? `, ${name}` : ""}!
-            </h1>
-            <p
-              data-testid="hoy-titular"
-              className="mt-1.5 text-sm leading-[1.45] font-medium text-on-ink-muted sm:mt-3 sm:text-[19px] sm:leading-[1.5]"
-            >
-              {highScore > 0
-                ? `Hoy hay ${highScore === 1 ? "1 oferta que te puede quedar pintada" : `${highScore} ofertas que te pueden quedar pintadas`}.`
-                : data.jobs.length > 0
-                  ? "Hay ofertas nuevas evaluadas, ninguna con puntaje alto."
-                  : "No hay ofertas nuevas evaluadas para mirar."}
-            </p>
+      {/* La primera pantalla es la de la referencia: «Más de tu semana» y el pie empiezan debajo
+          (en el celular, descontando la barra de arriba y las pestañas) */}
+      <div className="flex min-h-[calc(100svh-9rem)] flex-col sm:min-h-[calc(100svh-4rem)]">
+        <section
+          data-testid="hoy-cabecera"
+          aria-labelledby="hoy-saludo"
+          className="rounded-b-[40px] bg-ink text-on-ink sm:rounded-b-[56px]"
+        >
+          <div className="mx-auto mt-2.5 flex max-w-[1280px] items-end gap-1.5 px-5 sm:mt-0 sm:gap-6 sm:px-[72px]">
+            <div className="min-w-0 flex-[1_1_55%] pb-[26px] sm:flex-auto sm:pb-14">
+              <h1
+                id="hoy-saludo"
+                className="text-[28px] leading-[1.06] font-extrabold text-on-ink sm:text-5xl sm:leading-[1.05] sm:tracking-[-1.4px]"
+              >
+                ¡{greeting(now, data.timeZone)}
+                {name ? `, ${name}` : ""}!
+              </h1>
+              <p
+                data-testid="hoy-titular"
+                className="mt-1.5 text-sm leading-[1.45] font-medium text-on-ink-muted sm:mt-3 sm:text-[19px] sm:leading-[1.5]"
+              >
+                {highScore > 0
+                  ? `Hoy hay ${highScore === 1 ? "1 oferta que te puede quedar pintada" : `${highScore} ofertas que te pueden quedar pintadas`}.`
+                  : data.jobs.length > 0
+                    ? "Hay ofertas nuevas evaluadas, ninguna con puntaje alto."
+                    : "No hay ofertas nuevas evaluadas para mirar."}
+              </p>
+            </div>
+            {/* Ilustración de Hoy (C9-12): sobre el índigo, sin recuadro, apoyada en el borde */}
+            <Illustration escena="hoy" priority className="w-40 sm:w-[400px]" />
           </div>
-          {/* Ilustración de Hoy (C9-12): sobre el índigo, sin recuadro, apoyada en el borde */}
-          <Illustration escena="hoy" priority className="w-40 sm:w-[400px]" />
+        </section>
+
+        <div className="mx-auto grid w-full max-w-[1280px] items-start gap-3 px-3.5 pt-4 sm:gap-7 sm:px-[72px] sm:pt-7 lg:grid-cols-[400px_1fr]">
+          {/* «Para hacer hoy» (C8-5 y C10-6): los pasos de quien empieza y lo pendiente de sus datos */}
+          <StartHere userId={userId} pendingJd={pending.length} followUps={data.followUps.length} />
+          <NewCard data={data} />
         </div>
-      </section>
-
-      <div className="mx-auto grid w-full max-w-[1280px] items-start gap-3 px-3.5 pt-4 sm:gap-7 sm:px-[72px] sm:pt-7 lg:grid-cols-[400px_1fr]">
-        {/* «Para hacer hoy» (C8-5 y C10-6): los pasos de quien empieza y lo pendiente de sus datos */}
-        <StartHere userId={userId} pendingJd={pending.length} followUps={data.followUps.length} />
-        <NewCard data={data} />
       </div>
-
       <details
         data-testid="hoy-mas"
         className="group mx-auto mt-8 w-full max-w-[1280px] px-3.5 sm:mt-10 sm:px-[72px]"

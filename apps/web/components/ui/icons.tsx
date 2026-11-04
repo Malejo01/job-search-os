@@ -32,6 +32,9 @@ export const ICON_PATHS = {
   postulaciones: "M21 3L10 14 M21 3l-7 18-4-7-7-4z",
   aviso: "M12 3a9 9 0 100 18 9 9 0 000-18z M12 7.5v5.5 M12 16.5h.01",
   charla: "M5 5h14a1 1 0 011 1v9a1 1 0 01-1 1h-8l-5 4v-4H5a1 1 0 01-1-1V6a1 1 0 011-1z",
+  // C10: el botón de claro y oscuro de la barra
+  sol: "M12 8a4 4 0 100 8 4 4 0 000-8z M12 2.5v2 M12 19.5v2 M4.6 4.6l1.4 1.4 M18 18l1.4 1.4 M2.5 12h2 M19.5 12h2 M4.6 19.4L6 18 M18 6l1.4-1.4",
+  luna: "M20 14.5A8.5 8.5 0 019.5 4 8.5 8.5 0 1020 14.5z",
 } as const;
 
 export type IconName = keyof typeof ICON_PATHS;

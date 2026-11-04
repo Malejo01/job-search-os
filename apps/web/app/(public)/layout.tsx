@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { siteUrl } from "@/lib/site-url";
 import { Logo } from "@/components/brand/logo";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { buttonClasses } from "@/components/ui";
 
 /**
@@ -82,6 +83,8 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
             </Link>
           </div>
           <div className="ml-auto flex items-center gap-3">
+            {/* Claro u oscuro, a mano también sin sesión (C10) */}
+            <ThemeToggle />
             {/* En /acceso del celular la barra lleva solo el logo (acceso-cel.png) */}
             <Link
               href="/login"

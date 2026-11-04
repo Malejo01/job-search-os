@@ -13,3 +13,16 @@ export async function getDisplayName(userId: string): Promise<string | null> {
   );
   return row?.name ?? null;
 }
+
+/** Ciudad del perfil (el chip «En {ciudad}» de Ofertas, C10); null si no la cargó. */
+export async function getProfileCity(userId: string): Promise<string | null> {
+  const [row] = await withUser(userId, (tx) =>
+    tx
+      .select({ city: s.profiles.locationCity })
+      .from(s.profiles)
+      .where(eq(s.profiles.userId, userId))
+      .limit(1),
+  );
+  const city = row?.city?.trim();
+  return city ? city : null;
+}

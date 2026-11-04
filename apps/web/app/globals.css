@@ -57,6 +57,8 @@
   --color-ink-line: var(--jso-ink-line);
   /* Avatar de la barra (C10-3): índigo vivo sobre el índigo, igual en los dos modos */
   --color-ink-accent: var(--jso-ink-accent);
+  /* Borde punteado del lugar de una ilustración sobre el índigo (C10, acceso-pc.png) */
+  --color-ink-dash: var(--jso-ink-dash);
 
   /*
    * C9-2 (decisiones-c9.md, 2 y 5): borde inferior de lo que se toca (un tono más oscuro del fondo
@@ -194,6 +196,7 @@
   --jso-on-ink-muted: #c7c6e6;
   --jso-ink-line: #34316b;
   --jso-ink-accent: #4338ca;
+  --jso-ink-dash: #8b89b8;
 
   /*
    * Borde inferior de lo que se toca (C9-2, decisión 5): el de una superficie blanca es la línea
@@ -284,6 +287,7 @@
   --jso-on-ink-muted: #c7c6e6;
   --jso-ink-line: #34316b;
   --jso-ink-accent: #4338ca;
+  --jso-ink-dash: #8b89b8;
 
   /*
    * En oscuro el borde inferior de una tarjeta va más claro que la tarjeta: uno más oscuro se

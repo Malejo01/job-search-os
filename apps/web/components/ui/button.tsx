@@ -16,7 +16,7 @@ import { cx } from "./cx";
  * escritura sino por orden de Tailwind. Si hace falta otra variante, se suma acá.
  */
 export type ButtonVariant = "primary" | "secondary" | "dark" | "ghost" | "danger";
-export type ButtonSize = "sm" | "md" | "lg";
+export type ButtonSize = "sm" | "mid" | "md" | "lg";
 
 const BASE =
   "inline-flex min-w-11 items-center justify-center gap-2 rounded-pill text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed aria-disabled:cursor-not-allowed";
@@ -30,6 +30,8 @@ const DISABLED =
 const SIZES: Record<ButtonSize, string> = {
   lg: "min-h-14 px-7 text-[17px] edge-5",
   md: "min-h-[54px] px-7 text-base edge-5",
+  // El secundario al lado de una acción principal (`.btn2` de 50 px del tablero, /acceso)
+  mid: "min-h-[50px] px-[22px] text-[15px] edge-5",
   sm: "min-h-11 px-[18px] text-sm edge-5",
 };
 
@@ -37,6 +39,7 @@ const SIZES: Record<ButtonSize, string> = {
 const GHOST_SIZES: Record<ButtonSize, string> = {
   lg: "min-h-11 text-base",
   md: "min-h-11 text-base",
+  mid: "min-h-11 text-[15px]",
   sm: "min-h-11 text-sm",
 };
 

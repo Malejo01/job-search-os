@@ -53,8 +53,8 @@ Los botones dicen exactamente qué hacen («Ver mis ofertas», «Guardar descrip
 | Momento | Ejemplo |
 |---|---|
 | Saludo de Hoy | «¡Buen día, Lucía! Hoy hay 3 ofertas que te pueden quedar pintadas.» |
-| Por qué del puntaje | «Te queda muy bien por tus 3 años en sueldos. Sumá Tango Gestión y quedás entre las mejores postulaciones.» |
-| Cercanía en el detalle | «Cumplís 4 de 5 requisitos. Te falta uno para quedar entre las mejores postulaciones.» |
+| Por qué del puntaje | «Te queda muy bien por tus 3 años en sueldos. Sumá Tango Gestión y quedás entre las mejores.» |
+| Cercanía en el detalle | «Cumplís 4 de 5 requisitos. Te falta uno para quedar entre las mejores.» |
 | Sin ofertas | «Todavía no llegó nada, pero estamos buscando todos los días. Mientras, dejá tu perfil a punto: elegí tus áreas.» |
 | Error al guardar | «No pudimos guardar la descripción. Tu texto sigue acá: revisá la conexión y tocá Guardar otra vez.» |
 | Botón | «Ver mis ofertas» |

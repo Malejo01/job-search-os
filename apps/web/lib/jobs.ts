@@ -17,7 +17,7 @@ import {
   summarizeFitCard,
   type FitCardSummary,
 } from "@job-search-os/pipeline";
-import { and, asc, desc, eq, gte, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, inArray, or, sql } from "drizzle-orm";
 import { withUser } from "./db";
 import { ACTIVE_STATUSES, riskLabel } from "./labels";
 import { preScoresFor } from "./prescore";
@@ -47,6 +47,10 @@ export type JobFilters = {
   idioma?: "es" | null;
   /** Solo ofertas remotas (`jobs.modality = 'remoto'`), el chip «Remoto» de C10-7; null = todas. */
   modalidad?: "remoto" | null;
+  /** El chip «En {ciudad}» (C10): en la URL va `cerca=1`; la ciudad la pone la página, del perfil. */
+  cerca?: boolean;
+  /** Ciudad del perfil para `cerca`; sin ella el filtro no hace nada. Nunca sale de la URL. */
+  ciudad?: string | null;
 };
 
 export type JobListRow = {
@@ -121,6 +125,7 @@ export function parseJobFilters(params: Record<string, string | string[] | undef
     duplicates: one("duplicados") === "1",
     idioma: one("idioma") === "es" ? "es" : null,
     modalidad: one("modalidad") === "remoto" ? "remoto" : null,
+    cerca: one("cerca") === "1",
   };
 }
 
@@ -237,6 +242,10 @@ export async function listJobs(
       filters.duplicates ? sql`'posible_duplicado' = any(${s.jobs.flags})` : undefined,
       filters.idioma ? eq(s.publicJobs.lang, filters.idioma) : undefined,
       filters.modalidad ? eq(s.jobs.modality, filters.modalidad) : undefined,
+      // El lugar del aviso nombra la ciudad del perfil; `%` y `_` del nombre se escapan
+      filters.cerca && filters.ciudad
+        ? ilike(s.jobs.locationRaw, `%${filters.ciudad.replace(/[\\%_]/g, (c) => `\\${c}`)}%`)
+        : undefined,
     ].filter((c): c is NonNullable<typeof c> => c !== undefined);
 
     const rows = await tx
@@ -426,6 +435,7 @@ export function listQuery(filters: JobFilters): string {
   if (filters.duplicates) q.set("duplicados", "1");
   if (filters.idioma) q.set("idioma", filters.idioma);
   if (filters.modalidad) q.set("modalidad", filters.modalidad);
+  if (filters.cerca) q.set("cerca", "1");
   const str = q.toString();
   return str ? `?${str}` : "";
 }

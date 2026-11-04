@@ -34,6 +34,7 @@ import { JobFilters } from "./job-filters";
 import { JobList } from "./job-list";
 import { OfferPanel, OfferPanelHint } from "./offer-panel";
 import { getJobDetail } from "@/lib/job-detail";
+import { getProfileCity } from "@/lib/display-name";
 import { isUuid } from "@/lib/ids";
 import { RoleGaps } from "./role-gaps";
 import { RoleNudge } from "./role-nudge";
@@ -49,7 +50,9 @@ export default async function JobsPage({
 }) {
   const userId = await requireUserId();
   const params = await searchParams;
-  const filters = parseJobFilters(params);
+  // «En {ciudad}» (C10): la ciudad sale del perfil, no de la URL
+  const city = await getProfileCity(userId).catch(() => null);
+  const filters = { ...parseJobFilters(params), ciudad: city };
   const [rows, duplicates, progress] = await Promise.all([
     listJobs(userId, filters),
     countPossibleDuplicates(userId),
@@ -68,144 +71,143 @@ export default async function JobsPage({
 
   // Chips de filtro (C10-7, ofertas-pc.png): cada uno es un link con los filtros de la URL
   const chip = (patch: Partial<ListFilters>) => `/jobs${listQuery({ ...filters, ...patch })}`;
-  const onlyDefault = filters.status === null && !filters.modalidad && !filters.idioma;
+  const onlyDefault =
+    filters.status === null && !filters.modalidad && !filters.idioma && !filters.cerca;
 
   return (
     <div data-ancho="completo" className="flex flex-col pb-10">
-      <div className="mx-auto flex w-full max-w-[1280px] flex-col sm:flex-row sm:items-center sm:gap-2 sm:px-10 sm:pt-[22px]">
-        {/* En el celular el título va en el índigo, debajo de la barra (ofertas-cel.png) */}
-        <div className="bg-ink px-5 pb-[18px] sm:mr-3.5 sm:bg-transparent sm:p-0">
-          <h1 className="text-[26px] leading-tight font-extrabold text-on-ink sm:text-[28px] sm:text-fg">
-            Tus ofertas
-          </h1>
-        </div>
-        <nav
-          aria-label="Filtros rápidos"
-          className="flex gap-1.5 overflow-x-auto px-3.5 pt-1 sm:gap-2 sm:overflow-visible sm:p-0"
-        >
-          <Link
-            href={chip({ status: null, modalidad: null, idioma: null })}
-            aria-current={onlyDefault ? "true" : undefined}
-            className={filterChipClasses({
-              compact: true,
-              selected: onlyDefault,
-              className: "shrink-0",
-            })}
+      {/* La primera pantalla es la de la referencia: la guía, «+ Cargar oferta» y los filtros finos
+          empiezan debajo (en el celular, descontando la barra y las pestañas) */}
+      <div className="flex min-h-[calc(100svh-9rem)] flex-col sm:min-h-[calc(100svh-4.5rem)]">
+        <div className="mx-auto flex w-full max-w-[1280px] flex-col sm:flex-row sm:items-center sm:gap-2 sm:px-10 sm:pt-[22px]">
+          {/* En el celular el título va en el índigo, debajo de la barra (ofertas-cel.png) */}
+          <div className="bg-ink px-5 pb-[18px] sm:mr-3.5 sm:bg-transparent sm:p-0">
+            <h1 className="text-[26px] leading-tight font-extrabold text-on-ink sm:text-[28px] sm:text-fg">
+              Tus ofertas
+            </h1>
+          </div>
+          <nav
+            aria-label="Filtros rápidos"
+            className="flex gap-1.5 overflow-x-auto px-3.5 pt-1 sm:gap-2 sm:overflow-visible sm:p-0"
           >
-            {onlyDefault ? `Para revisar · ${rows.length}` : "Para revisar"}
-          </Link>
-          <Link
-            href={chip({ status: filters.status === "todas" ? null : "todas" })}
-            aria-current={filters.status === "todas" ? "true" : undefined}
-            className={filterChipClasses({
-              compact: true,
-              selected: filters.status === "todas",
-              className: "shrink-0",
-            })}
-          >
-            Todas
-          </Link>
-          <Link
-            href={chip({ modalidad: filters.modalidad ? null : "remoto" })}
-            aria-current={filters.modalidad ? "true" : undefined}
-            className={filterChipClasses({
-              compact: true,
-              selected: Boolean(filters.modalidad),
-              className: "shrink-0",
-            })}
-          >
-            Remoto
-          </Link>
-          {/* En el celular la fila se desliza: «En español» queda a la derecha de los tres de la
-              referencia (ofertas-cel.png) */}
-          <Link
-            href={chip({ idioma: filters.idioma ? null : "es" })}
-            aria-current={filters.idioma === "es" ? "true" : undefined}
-            data-testid="chip-en-espanol"
-            aria-describedby={filters.idioma === "es" ? "chip-en-espanol-ayuda" : undefined}
-            className={filterChipClasses({
-              compact: true,
-              selected: filters.idioma === "es",
-              className: "shrink-0",
-            })}
-          >
-            En español
-          </Link>
-        </nav>
-        <p className="ml-auto hidden text-[13px] font-bold text-fg-subtle sm:block">
-          Ordenadas por afinidad
-        </p>
-      </div>
-
-      <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-3 px-3.5 pt-3 sm:px-10 sm:pt-[18px]">
-        {filters.idioma === "es" ? (
-          <p id="chip-en-espanol-ayuda" className="text-xs text-fg-subtle">
-            Solo las ofertas que encontramos nosotros: las que cargaste vos no tienen idioma
-            guardado.
+            <Link
+              href={chip({ status: null, modalidad: null, idioma: null })}
+              aria-current={onlyDefault ? "true" : undefined}
+              className={filterChipClasses({
+                compact: true,
+                selected: onlyDefault,
+                className: "shrink-0",
+              })}
+            >
+              {onlyDefault ? `Para revisar · ${rows.length}` : "Para revisar"}
+            </Link>
+            <Link
+              href={chip({ status: filters.status === "todas" ? null : "todas" })}
+              aria-current={filters.status === "todas" ? "true" : undefined}
+              className={filterChipClasses({
+                compact: true,
+                selected: filters.status === "todas",
+                className: "shrink-0",
+              })}
+            >
+              Todas
+            </Link>
+            <Link
+              href={chip({ modalidad: filters.modalidad ? null : "remoto" })}
+              aria-current={filters.modalidad ? "true" : undefined}
+              className={filterChipClasses({
+                compact: true,
+                selected: Boolean(filters.modalidad),
+                className: "shrink-0",
+              })}
+            >
+              Remoto
+            </Link>
+            {/* «En Salta» de la referencia: la ciudad del perfil. Sin ciudad cargada, no va */}
+            {city ? (
+              <Link
+                href={chip({ cerca: !filters.cerca })}
+                aria-current={filters.cerca ? "true" : undefined}
+                className={filterChipClasses({
+                  compact: true,
+                  selected: Boolean(filters.cerca),
+                  className: "shrink-0",
+                })}
+              >
+                En {city}
+              </Link>
+            ) : null}
+          </nav>
+          <p className="ml-auto hidden text-[13px] font-bold text-fg-subtle sm:block">
+            Ordenadas por afinidad
           </p>
-        ) : null}
-        <FirstSteps userId={userId} />
-        <RoleNudge userId={userId} />
-        {/* D2: mientras la checklist está visible, su ítem 6 reemplaza al aviso de email */}
-        {stepsHidden ? <EmailNudge userId={userId} /> : null}
-        {/* Posibles duplicados (JS-025): se revisan a mano, desde el detalle */}
-        {filters.duplicates ? (
-          <Alert tone="warning" role={null}>
-            <p>
-              Viendo solo posibles duplicados ·{" "}
-              <Link href="/jobs" className="underline">
-                ver todas
-              </Link>
-            </p>
-          </Alert>
-        ) : duplicates > 0 ? (
-          <Alert tone="warning" role={null}>
-            <p>
-              <Link href="/jobs?duplicados=1" className="underline">
-                {duplicates === 1
-                  ? "1 posible duplicado para revisar"
-                  : `${duplicates} posibles duplicados para revisar`}
-              </Link>
-            </p>
-          </Alert>
-        ) : null}
-
-        <div className="grid items-start gap-6 lg:grid-cols-[470px_1fr]">
-          <section aria-labelledby="lista-titulo" className="flex min-w-0 flex-col gap-3">
-            <h2 id="lista-titulo" className="sr-only">
-              {rows.length === LIST_LIMIT
-                ? `Las primeras ${LIST_LIMIT} ofertas`
-                : `${rows.length} ${rows.length === 1 ? "oferta" : "ofertas"}`}
-              , ordenadas por afinidad
-            </h2>
-            {rows.length === 0 ? (
-              <EmptyList
-                counts={counts}
-                reviewedAll={
-                  filters.status === null &&
-                  progress.total > 0 &&
-                  progress.revisadas === progress.total
-                }
-              />
-            ) : (
-              <>
-                {rows.some((r) => !r.evaluating && r.score === null && r.preScore !== null) ? (
-                  <p className="text-xs text-fg-subtle" data-testid="pre-score-explain">
-                    {PRE_SCORE_EXPLAIN} El número va de 0 a 10.
-                  </p>
-                ) : null}
-                <JobListSplit rows={rows} query={query} selected={panelJob?.id ?? null} />
-              </>
-            )}
-            <AutoRefresh active={rows.some((r) => r.evaluating)} />
-          </section>
-          {panelJob ? (
-            <OfferPanel job={panelJob} detailHref={`/jobs/${panelJob.id}${query}`} />
-          ) : (
-            <JobsAside pending={counts?.sinDescripcion ?? 0} />
-          )}
         </div>
 
+        <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-3 px-3.5 pt-3 sm:px-10 sm:pt-[18px]">
+          <FirstSteps userId={userId} />
+          <RoleNudge userId={userId} />
+          {/* D2: mientras la checklist está visible, su ítem 6 reemplaza al aviso de email */}
+          {stepsHidden ? <EmailNudge userId={userId} /> : null}
+          {/* Posibles duplicados (JS-025): se revisan a mano, desde el detalle */}
+          {filters.duplicates ? (
+            <Alert tone="warning" role={null}>
+              <p>
+                Viendo solo posibles duplicados ·{" "}
+                <Link href="/jobs" className="underline">
+                  ver todas
+                </Link>
+              </p>
+            </Alert>
+          ) : duplicates > 0 ? (
+            <Alert tone="warning" role={null}>
+              <p>
+                <Link href="/jobs?duplicados=1" className="underline">
+                  {duplicates === 1
+                    ? "1 posible duplicado para revisar"
+                    : `${duplicates} posibles duplicados para revisar`}
+                </Link>
+              </p>
+            </Alert>
+          ) : null}
+
+          <div className="grid items-start gap-6 lg:grid-cols-[470px_1fr]">
+            <section aria-labelledby="lista-titulo" className="flex min-w-0 flex-col gap-3">
+              <h2 id="lista-titulo" className="sr-only">
+                {rows.length === LIST_LIMIT
+                  ? `Las primeras ${LIST_LIMIT} ofertas`
+                  : `${rows.length} ${rows.length === 1 ? "oferta" : "ofertas"}`}
+                , ordenadas por afinidad
+              </h2>
+              {rows.length === 0 ? (
+                <EmptyList
+                  counts={counts}
+                  reviewedAll={
+                    filters.status === null &&
+                    progress.total > 0 &&
+                    progress.revisadas === progress.total
+                  }
+                />
+              ) : (
+                <>
+                  {rows.some((r) => !r.evaluating && r.score === null && r.preScore !== null) ? (
+                    <p className="text-xs text-fg-subtle" data-testid="pre-score-explain">
+                      {PRE_SCORE_EXPLAIN} El número va de 0 a 10.
+                    </p>
+                  ) : null}
+                  <JobListSplit rows={rows} query={query} selected={panelJob?.id ?? null} />
+                </>
+              )}
+              <AutoRefresh active={rows.some((r) => r.evaluating)} />
+            </section>
+            {panelJob ? (
+              <OfferPanel job={panelJob} detailHref={`/jobs/${panelJob.id}${query}`} />
+            ) : (
+              <JobsAside pending={counts?.sinDescripcion ?? 0} />
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-3 px-3.5 sm:px-10">
         {/* Lo que no está en la referencia va debajo de la lista (C10-7): la guía y «+ Cargar
             oferta» a la vista (el panel de la guía no se vería dentro de un desplegable cerrado), y
             los filtros finos y el avance en «Más filtros y herramientas» */}
@@ -230,6 +232,7 @@ export default async function JobsPage({
             (filters.status !== null && filters.status !== "todas") ||
             filters.since !== null ||
             filters.periodo !== null ||
+            filters.idioma === "es" ||
             undefined
           }
         >
@@ -237,6 +240,27 @@ export default async function JobsPage({
             Más filtros y herramientas
           </summary>
           <div className="mt-3 flex flex-col gap-3">
+            {/* «En español» (ronda 61): no está en la referencia; va con los filtros finos */}
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href={chip({ idioma: filters.idioma ? null : "es" })}
+                aria-current={filters.idioma === "es" ? "true" : undefined}
+                data-testid="chip-en-espanol"
+                aria-describedby={filters.idioma === "es" ? "chip-en-espanol-ayuda" : undefined}
+                className={filterChipClasses({
+                  selected: filters.idioma === "es",
+                  className: "shrink-0",
+                })}
+              >
+                En español
+              </Link>
+              {filters.idioma === "es" ? (
+                <p id="chip-en-espanol-ayuda" className="text-xs text-fg-subtle">
+                  Solo las ofertas que encontramos nosotros: las que cargaste vos no tienen idioma
+                  guardado.
+                </p>
+              ) : null}
+            </div>
             <RoleGaps userId={userId} />
             {progress.total > 0 ? <ReviewProgress {...progress} filters={filters} /> : null}
             <JobFilters
