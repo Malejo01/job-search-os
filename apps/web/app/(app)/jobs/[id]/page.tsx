@@ -1,7 +1,5 @@
 import {
   buildFitPoints,
-  closenessPhrase,
-  offerPlace,
   englishIsNotAGap,
   fitCrossSentence,
   isEnglishGap,
@@ -53,8 +51,8 @@ import { ReviewNav } from "./review-nav";
 import { SourceAttribution } from "./source-attribution";
 import { StatusCorrection } from "./status-correction";
 import { Verdict } from "./verdict";
-import { SealStamp } from "@/components/motion/seal-stamp";
-import { buttonClasses, Seal } from "@/components/ui";
+import { OfferD3 } from "@/components/offer-d3";
+import { buttonClasses } from "@/components/ui";
 import { HelpTip } from "@/components/help-tip";
 
 export const dynamic = "force-dynamic";
@@ -143,13 +141,35 @@ export default async function JobDetailPage({
       ? `USD ${[job.salaryMinUsd, job.salaryMaxUsd].filter(Boolean).join("–")}${job.salaryPeriod ? ` ${job.salaryPeriod}` : ""}`
       : null;
 
-  // Misma foto que «Requisitos del aviso»: con los niveles de hoy superpuestos (C-20)
-  const closeness = ev?.checklist
-    ? closenessPhrase(withCurrentSkillLevels(ev.checklist, currentLevels))
-    : null;
-
   return (
-    <article className="flex flex-col gap-5">
+    <article
+      data-ancho="completo"
+      className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pb-28 sm:pt-8 sm:pb-10"
+    >
+      {/* D3 (C10-8): copia de detalle-cel.png y del panel de ofertas-pc.png */}
+      <OfferD3
+        job={job}
+        variant="page"
+        backHref={`/jobs${query}`}
+        actions={
+          jobUrl ? (
+            <div className="hidden sm:block">
+              <ApplyButton jobId={job.id} url={jobUrl} canApply={job.events.includes("apply")} />
+            </div>
+          ) : null
+        }
+      />
+      {/* En el celular, «Postularme» queda fijo abajo (detalle-cel.png) */}
+      {jobUrl ? (
+        <div className="fixed inset-x-4 bottom-[calc(22px+env(safe-area-inset-bottom,0px))] z-30 sm:hidden">
+          <ApplyButton
+            jobId={job.id}
+            url={jobUrl}
+            canApply={job.events.includes("apply")}
+            className="w-full"
+          />
+        </div>
+      ) : null}
       <ReviewNav
         backHref={`/jobs${query}`}
         prevHref={around.prev ? `/jobs/${around.prev}${query}` : null}
@@ -173,84 +193,55 @@ export default async function JobDetailPage({
       ) : null}
       <AutoRefresh active={job.evaluating} />
 
-      {/* D3 (C9-9): la tarjeta destacada de la pantalla, con el sello grande y la frase de cercanía */}
-      <header className="edge-6 flex gap-4 rounded-card border-edge bg-surface p-5 sm:p-6">
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <h1 className="text-title leading-tight font-bold break-words">{job.title}</h1>
-          <p className="text-sm text-fg-muted">
-            {offerPlace({
-              company: job.company,
-              location: job.locationRaw,
-              modality: job.modality,
-            })}
-          </p>
-          <p className="text-xs text-fg-subtle">
-            {[
-              job.modality && job.modality !== "desconocida"
-                ? (MODALITY_LABELS[job.modality] ?? job.modality)
-                : null,
-              job.contractType,
-              salary,
-              job.candidatesCount !== null ? `${job.candidatesCount} candidatos` : null,
-              formatDate(job.postedAt ?? job.firstSeenAt),
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
-          <div className="mt-1 flex flex-wrap gap-1 text-[11px]">
-            {ev?.model === DEMO_MODEL ? (
-              <span className={DEMO_BADGE_CLASSES} title="Evaluación falsa del modo demo, sin LLM">
-                DEMO · evaluación falsa
-              </span>
-            ) : null}
-            <span className="rounded-badge bg-surface-muted px-1.5 py-0.5 text-fg-muted">
-              {STATUS_LABELS[job.status] ?? job.status}
+      {/* Datos del aviso y etiquetas (lo que el resumen D3 no muestra) */}
+      <div className="flex flex-col gap-1">
+        <p className="text-xs text-fg-subtle">
+          {[
+            job.modality && job.modality !== "desconocida"
+              ? (MODALITY_LABELS[job.modality] ?? job.modality)
+              : null,
+            job.contractType,
+            salary,
+            job.candidatesCount !== null ? `${job.candidatesCount} candidatos` : null,
+            formatDate(job.postedAt ?? job.firstSeenAt),
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+        <div className="mt-1 flex flex-wrap gap-1 text-[11px]">
+          {ev?.model === DEMO_MODEL ? (
+            <span className={DEMO_BADGE_CLASSES} title="Evaluación falsa del modo demo, sin LLM">
+              DEMO · evaluación falsa
             </span>
-            {ev ? (
-              <span className="rounded-badge bg-surface-muted px-1.5 py-0.5 text-fg-muted">
-                {ACTION_ADVICE[ev.accion] ?? ACTION_LABELS[ev.accion] ?? ev.accion}
-              </span>
-            ) : null}
-            {ev ? (
-              <span
-                className={`rounded-badge px-1.5 py-0.5 ${LOCATION_CLASSES[ev.locationOk] ?? ""}`}
-              >
-                {LOCATION_LABELS[ev.locationOk] ?? ev.locationOk}
-              </span>
-            ) : null}
-            {job.badges.map((b) => (
-              <span
-                key={b}
-                className="rounded-badge bg-surface-subtle px-1.5 py-0.5 text-fg-subtle"
-              >
-                {b}
-              </span>
-            ))}
-          </div>
-          {closeness ? (
-            <p className="mt-2 text-base font-semibold text-fg" data-testid="cercania">
-              {closeness}
-            </p>
           ) : null}
-          {job.evaluating && !ev ? (
-            <p className="mt-2 text-base font-semibold text-fg-muted">
-              Leyendo la oferta contra tu perfil…
-            </p>
+          <span className="rounded-badge bg-surface-muted px-1.5 py-0.5 text-fg-muted">
+            {STATUS_LABELS[job.status] ?? job.status}
+          </span>
+          {ev ? (
+            <span className="rounded-badge bg-surface-muted px-1.5 py-0.5 text-fg-muted">
+              {ACTION_ADVICE[ev.accion] ?? ACTION_LABELS[ev.accion] ?? ev.accion}
+            </span>
           ) : null}
+          {ev ? (
+            <span
+              className={`rounded-badge px-1.5 py-0.5 ${LOCATION_CLASSES[ev.locationOk] ?? ""}`}
+            >
+              {LOCATION_LABELS[ev.locationOk] ?? ev.locationOk}
+            </span>
+          ) : null}
+          {job.badges.map((b) => (
+            <span key={b} className="rounded-badge bg-surface-subtle px-1.5 py-0.5 text-fg-subtle">
+              {b}
+            </span>
+          ))}
         </div>
-        <SealStamp jobId={job.id} evaluated={Boolean(ev)}>
-          <Seal score={ev ? ev.score : null} pending={job.evaluating && !ev} size="detail" />
-        </SealStamp>
-      </header>
+      </div>
       {/* C8-6: qué es el número del puntaje */}
       {ev ? <HelpTip topic="puntaje" /> : null}
 
       {/* Acciones de estado: Server Actions + transition(); solo los eventos válidos desde el estado actual */}
       <section aria-label="Estado" className="flex flex-wrap gap-2">
-        {/* Ir a la publicación original; al volver pregunta si hubo postulación (confirmación manual) */}
-        {jobUrl ? (
-          <ApplyButton jobId={job.id} url={jobUrl} canApply={job.events.includes("apply")} />
-        ) : null}
+        {/* «Postularme en el sitio del aviso» está arriba, en el resumen (C10-8) */}
         {job.events.map((event) => (
           <form key={event} action={changeStatusAction}>
             <input type="hidden" name="jobId" value={job.id} />

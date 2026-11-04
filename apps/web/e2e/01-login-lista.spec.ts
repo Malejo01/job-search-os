@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { login } from "./helpers";
+import { login, openJobFilters } from "./helpers";
 
 test.describe("Flujo 1: login → lista con filtros", () => {
   test("sin sesión redirige a /login; con sesión lista y el filtro persiste en la URL", async ({
@@ -10,12 +10,13 @@ test.describe("Flujo 1: login → lista con filtros", () => {
 
     await login(page);
     await page.goto("/jobs");
-    await expect(page.getByRole("heading", { name: "Ofertas" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Tus ofertas" })).toBeVisible();
     // Por defecto la lista muestra solo lo sin revisar (JS-061)
     await expect(page.getByLabel("Estado")).toHaveValue("");
 
     // Este flujo prueba el filtro de score, no el de estado: con "todas" hay datos con score alto
     // aunque en la semilla del e2e ninguno esté sin revisar
+    await openJobFilters(page);
     await page.getByLabel("Estado").selectOption("todas");
     await expect(page).toHaveURL(/estado=todas/);
 

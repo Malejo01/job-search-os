@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createEvaluation, createJob, deleteJob, login } from "./helpers";
+import { createEvaluation, createJob, deleteJob, login, openHoyMore } from "./helpers";
 
 /**
  * Flujo 89 (N3-5): microinteracciones y reduced-motion.
@@ -35,13 +35,14 @@ test.describe("Flujo 89: microinteracciones y reduced-motion", () => {
 
     // 1. /hoy
     await page.goto("/hoy");
-    await expect(page.locator("h1")).toHaveText("Hoy");
+    await expect(page.locator("h1")).toHaveText(/^¡Buen/);
+    await openHoyMore(page);
     await expect(page.getByTestId("hoy-visita")).toBeVisible();
     await expect(page.getByTestId("hoy-nuevo")).toBeVisible();
 
     // 2. /jobs
     await page.goto("/jobs");
-    await expect(page.locator("h1")).toHaveText("Ofertas");
+    await expect(page.locator("h1")).toHaveText("Tus ofertas");
     const jobItem = page.getByText(`Oferta Microinteracción Test ${tag}`).first();
     await expect(jobItem).toBeVisible();
     const jobOpacity = await jobItem.evaluate((el) => getComputedStyle(el).opacity);

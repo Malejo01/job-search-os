@@ -128,7 +128,8 @@ export function OfferCard({
           <div className="relative z-10 flex min-w-0 flex-col gap-1">{children}</div>
         ) : null}
         {small.length ? (
-          <p className="text-xs font-semibold text-fg-subtle">
+          // En el celular las tarjetas no llevan la línea chica (hoy-cel.png, ofertas-cel.png)
+          <p className="hidden text-xs font-semibold text-fg-subtle sm:block">
             {small.map((part, i) => (
               <span key={i}>
                 {i > 0 ? " · " : null}

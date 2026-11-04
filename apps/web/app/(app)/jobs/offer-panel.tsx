@@ -1,100 +1,44 @@
-import {
-  buildFitPoints,
-  closenessPhrase,
-  englishIsNotAGap,
-  isEnglishGap,
-  offerMeta,
-  offerPlace,
-  withCurrentSkillLevels,
-} from "@job-search-os/pipeline";
+import { buildFitPoints, englishIsNotAGap, isEnglishGap } from "@job-search-os/pipeline";
 import Link from "next/link";
-import dynamic from "next/dynamic";
-
-// R-1: la estampa (Framer) se baja solo cuando el panel está abierto
-const SealStamp = dynamic(() =>
-  import("@/components/motion/seal-stamp").then((mod) => mod.SealStamp),
-);
-import { RequisitosDelAviso } from "@/components/requisitos-del-aviso";
-import { buttonClasses, Icon, Seal, textLinkClasses } from "@/components/ui";
+import { OfferD3 } from "@/components/offer-d3";
+import { buttonClasses, cardClasses } from "@/components/ui";
 import type { JobDetail } from "@/lib/job-detail";
 import { riskLabel, safeHttpUrl } from "@/lib/labels";
+import { ApplyButton } from "./[id]/apply-button";
 import { FitPointsPanel } from "./[id]/fit-points-panel";
 
 /**
- * Ofertas en la computadora (O3, C9-9, decisión 11): el detalle D3 a la derecha de la lista, sin
- * cambiar de página. La oferta elegida vive en la URL (`?oferta=<id>`): anda el botón atrás y el
- * enlace se puede compartir. Server Component: se arma en el servidor con `getJobDetail`. Solo
+ * Ofertas en la computadora (O3, C9-9; D3 de C10-8, el panel derecho de ofertas-pc.png): el
+ * detalle a la derecha de la lista, sin cambiar de página. La oferta elegida vive en la URL
+ * (`?oferta=<id>`): anda el botón atrás y el enlace se puede compartir. Server Component. Solo
  * desde `lg`; en el celular y en la tablet tocar una oferta sigue yendo a `/jobs/[id]`.
+ *
+ * Sin checklist (evaluaciones viejas), debajo van los puntos a favor y en contra de siempre.
  */
 export function OfferPanel({ job, detailHref }: { job: JobDetail; detailHref: string }) {
   const ev = job.evaluation;
   const jobUrl = safeHttpUrl(job.url);
-  const levels = new Map(
-    Object.entries(job.skillInfo).flatMap(([slug, info]) =>
-      info.level === null ? [] : [[slug, info.level] as const],
-    ),
-  );
-  const checklist = ev?.checklist ? withCurrentSkillLevels(ev.checklist, levels) : null;
-  const closeness = checklist ? closenessPhrase(checklist) : null;
-  const pending = job.evaluating && !ev;
   return (
     <aside
       aria-labelledby="panel-oferta-titulo"
       data-testid="panel-oferta"
-      className="sticky top-24 hidden max-h-[calc(100vh-7rem)] w-[460px] shrink-0 flex-col gap-4 overflow-y-auto pb-4 lg:flex"
+      className="hidden min-w-0 flex-col gap-4 pb-4 lg:flex"
     >
-      <div className="edge-6 flex flex-col gap-4 rounded-card border-edge bg-surface p-5">
-        <div className="flex gap-4">
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <h2 id="panel-oferta-titulo" className="text-xl leading-tight font-bold break-words">
-              {job.title}
-            </h2>
-            <p className="text-sm text-fg-muted">
-              {offerPlace({
-                company: job.company,
-                location: job.locationRaw,
-                modality: job.modality,
-              })}
-            </p>
-            <p className="text-xs text-fg-subtle">
-              {offerMeta(job.modality, new Date(job.postedAt ?? job.firstSeenAt), new Date())}
-            </p>
-          </div>
-          <SealStamp jobId={job.id} evaluated={Boolean(ev)}>
-            <Seal score={ev ? ev.score : null} pending={pending} size="detail" />
-          </SealStamp>
-        </div>
-        {closeness ? <p className="text-base font-semibold text-fg">{closeness}</p> : null}
-        {pending ? (
-          <p className="text-base font-semibold text-fg-muted">
-            Leyendo la oferta contra tu perfil…
-          </p>
-        ) : null}
-        <div className="flex flex-wrap items-center gap-3">
-          <Link href={detailHref} className={buttonClasses({ variant: "secondary", size: "sm" })}>
-            Ver el detalle completo
-          </Link>
-          {jobUrl ? (
-            <a
-              href={jobUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={textLinkClasses({ block: true, className: "gap-1 text-sm" })}
-            >
-              Ver el aviso
-              <Icon name="abrirAviso" size={14} />
-              <span className="sr-only"> (se abre en otra pestaña)</span>
-            </a>
-          ) : null}
-        </div>
-      </div>
-      {checklist ? (
-        <RequisitosDelAviso
-          checklist={checklist}
-          modal={{ jobId: job.id, skillInfo: job.skillInfo }}
-          rebuilt={ev?.checklistRebuilt ?? false}
-        />
-      ) : ev ? (
+      <OfferD3
+        job={job}
+        variant="panel"
+        actions={
+          <>
+            {jobUrl ? (
+              <ApplyButton jobId={job.id} url={jobUrl} canApply={job.events.includes("apply")} />
+            ) : null}
+            <Link href={detailHref} className={buttonClasses({ variant: "secondary", size: "sm" })}>
+              Ver el detalle completo
+            </Link>
+          </>
+        }
+      />
+      {!ev?.checklist && ev ? (
         <FitPointsPanel
           headingLevel={3}
           stacked
@@ -110,12 +54,12 @@ export function OfferPanel({ job, detailHref }: { job: JobDetail; detailHref: st
           })}
           limited
         />
-      ) : (
+      ) : !ev && !job.evaluating ? (
         <p className="rounded-card bg-surface p-5 text-sm text-fg-muted">
           Todavía no la evaluamos: en el detalle completo podés pegar la descripción o pedir que la
           evaluemos.
         </p>
-      )}
+      ) : null}
     </aside>
   );
 }
@@ -123,7 +67,9 @@ export function OfferPanel({ job, detailHref }: { job: JobDetail; detailHref: st
 /** Sin oferta elegida: el lugar del panel con una indicación (y los atajos de siempre abajo). */
 export function OfferPanelHint() {
   return (
-    <p className="rounded-card bg-surface p-5 text-sm text-fg-muted">
+    <p
+      className={cardClasses({ level: "list", padding: "md", className: "text-sm text-fg-muted" })}
+    >
       Tocá una oferta de la lista para ver acá sus requisitos y qué te falta, sin salir de la
       página.
     </p>

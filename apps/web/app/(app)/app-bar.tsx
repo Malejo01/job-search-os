@@ -10,17 +10,22 @@ import type { ReactNode } from "react";
  * píldoras, avatar) llega armado del servidor. z-20: las tarjetas de /jobs llevan links z-10 y no
  * deben dibujarse encima; la guía (z-40) y los modales (z-50) quedan arriba.
  */
+/** `/jobs/<uuid>`: el detalle de una oferta. */
+export const DETAIL = /^\/jobs\/[0-9a-f-]{36}$/;
+
 export function AppBar({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const cabecera = pathname === "/hoy";
+  // El detalle en el celular arranca con su propia cabecera índigo (detalle-cel.png, C10-8)
+  const detalle = DETAIL.test(pathname);
   return (
     <header
       data-cabecera={cabecera ? "true" : undefined}
-      className={
+      className={`${
         cabecera
           ? "bg-ink pt-4 text-on-ink sm:pt-[18px]"
           : "sticky top-0 z-20 bg-ink pt-4 pb-3.5 text-on-ink sm:py-3.5"
-      }
+      } ${detalle ? "max-sm:hidden" : ""}`}
     >
       {children}
     </header>

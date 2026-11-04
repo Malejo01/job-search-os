@@ -9,6 +9,7 @@ import {
   ensureSecondUser,
   login,
   loginAsSecondUser,
+  openHoyMore,
   ownerDb,
   removeSecondUser,
   seedTargetRoles,
@@ -229,6 +230,7 @@ test.describe("Flujo 72: Tu encaje", () => {
 
   test("la tarjeta «Tu encaje» de «Hoy» lleva a /encaje", async ({ page }) => {
     await login(page);
+    await openHoyMore(page);
     const card = page.getByTestId("hoy-encaje");
     await expect(card).toBeVisible();
     await expect(card.getByRole("heading", { level: 2, name: "Tu encaje" })).toBeVisible();

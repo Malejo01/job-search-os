@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+// R-1: import directo (el barril de `@/components/ui` arrastra el de pipeline al navegador)
+import { buttonClasses } from "@/components/ui/button";
 import { changeStatusAction } from "./actions";
 
 /**
@@ -17,10 +19,13 @@ export function ApplyButton({
   jobId,
   url,
   canApply,
+  className,
 }: {
   jobId: string;
   url: string;
   canApply: boolean;
+  /** Para ubicarlo (`w-full`): el botón es el principal del detalle (C10-8). */
+  className?: string;
 }) {
   const [esperandoVuelta, setEsperandoVuelta] = useState(false);
   const [preguntando, setPreguntando] = useState(false);
@@ -47,9 +52,10 @@ export function ApplyButton({
         target="_blank"
         rel="noopener noreferrer"
         onClick={() => canApply && setEsperandoVuelta(true)}
-        className="rounded-control border border-success-strong bg-success-strong px-4 py-2 text-sm font-medium text-on-strong hover:brightness-110"
+        className={buttonClasses({ className })}
       >
-        {canApply ? "Postular ↗" : "Ver oferta ↗"}
+        {canApply ? "Postularme en el sitio del aviso" : "Ver oferta ↗"}
+        {canApply ? <span className="sr-only"> (se abre en otra pestaña)</span> : null}
       </a>
       {preguntando ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">

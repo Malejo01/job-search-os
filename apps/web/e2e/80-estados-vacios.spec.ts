@@ -6,7 +6,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 // Import relativo directo (no el índice de @job-search-os/db, que arrastra import.meta)
 import { deleteUserData } from "../../../packages/db/src/user-tables";
 import { TERMS_VERSION } from "../lib/terms";
-import { ownerDb } from "./helpers";
+import { openHoyMore, ownerDb } from "./helpers";
 
 /**
  * Flujo 80 (R2): los estados vacíos principales de una persona recién llegada, con el texto que
@@ -166,6 +166,7 @@ test.describe("Flujo 80: estados vacíos de una persona nueva", () => {
     await expect(news).toContainText(HOY_NO_OFFERS);
     await expectNextStep(page, news, "Elegí tu carrera", "/settings#puesto");
 
+    await openHoyMore(page);
     const alerts = page.getByTestId("hoy-alertas");
     await expect(alerts.getByTestId("hoy-vacio-alertas")).toContainText(HOY_NO_ALERTS);
     await expectNextStep(page, alerts, "Configurar mis alertas", "/settings/asistente");
@@ -236,6 +237,7 @@ test.describe("Flujo 80: estados vacíos de una persona nueva", () => {
     await expect(news).toContainText(HOY_NO_OFFERS);
     await expectNextStep(page, news, "Sumá tus alertas de empleo por email", "/settings/asistente");
     // Con carrera, el mercado de Hoy deja de pedirla y lleva al mercado de cada una
+    await openHoyMore(page);
     const market = page.getByTestId("hoy-mercado");
     await expect(market.getByTestId("hoy-vacio-mercado")).toHaveCount(0);
     await expectNextStep(page, market, /^Ver el mercado de /, `/market?carrera=${ROLE_A}`);

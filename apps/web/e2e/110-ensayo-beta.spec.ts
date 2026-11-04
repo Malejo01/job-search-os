@@ -59,7 +59,7 @@ for (const [key, carrera] of PERSONAS) {
     test("ofertas evaluadas y el detalle con su puntaje", async () => {
       await seedAndEvaluate(run);
       await page.goto("/jobs");
-      await expect(page.getByRole("heading", { name: "Ofertas", exact: true })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Tus ofertas", exact: true })).toBeVisible();
       const link = page.getByRole("link", { name: ownTitles[0]! }).first();
       await expect(link).toBeVisible({ timeout: 15_000 });
       await link.click();

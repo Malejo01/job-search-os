@@ -93,11 +93,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
       </AppBar>
-      {/* pb-24 en el celular: el chip de soporte (abajo a la derecha) no tapa el último botón */}
+      {/* pb-24 en el celular: el chip de soporte (abajo a la derecha) no tapa el último botón.
+          Con `data-ancho="completo"` (Hoy, Ofertas, el detalle) la página pone su ancho y su
+          margen, como las referencias de C10 */}
       <main
         id="contenido"
         tabIndex={-1}
-        className="mx-auto w-full max-w-6xl flex-1 px-4 pt-5 pb-24 sm:pt-8 sm:pb-10"
+        className="mx-auto w-full max-w-6xl flex-1 px-4 pt-5 pb-24 sm:pt-8 sm:pb-10 has-[[data-ancho=completo]]:max-w-none! has-[[data-ancho=completo]]:p-0!"
       >
         {planAccess ? <PlanNotice access={planAccess} /> : null}
         {children}
