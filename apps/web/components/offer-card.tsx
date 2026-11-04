@@ -1,29 +1,29 @@
 import type { OfferChip } from "@job-search-os/pipeline";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Chip, cx, Seal } from "@/components/ui";
+import { cardClasses, Chip, cx, Seal } from "@/components/ui";
 
 /**
- * Tarjeta de oferta K2 (C9-8, decisión 8 de C9). Server Component.
+ * Tarjeta de oferta K2 (C9-8; medidas de C10, tarjetas de los tableros aprobados el 4/11). Server
+ * Component.
  *
- * - El puesto en Bricolage 700 y, abajo, la empresa y el lugar dichos en una frase (`place`, de
- *   `offerPlace` en pipeline: «Estudio Ruiz y Asociados, en Salta»), sin separadores «·».
- * - Chips: lo que tenés (verde) y lo que te falta (ámbar), como mucho tres y «y 2 más», siempre con
- *   ícono y texto (`offerCardChips` en pipeline).
- * - La línea de conteo («4 a tu favor, 1 te falta»), solo si la evaluación tiene checklist.
- * - Modalidad y antigüedad en texto chico (`meta`).
- * - El sello a la derecha.
+ * - El puesto en Bricolage 700 (19 px la destacada, 17 las de lista, 16 en el celular) y, abajo, la
+ *   empresa y el lugar dichos en una frase (`place`: «Estudio Ruiz y Asociados, en Salta»), 13 px.
+ * - Chips: lo que tenés («✓», verde) y lo que te falta («!», ámbar, «Te falta: …» desde `sm`).
+ * - Una línea chica (12 px 600) con el conteo y lo que va en `meta`, separados por «·»: «4 a tu
+ *   favor, 1 te falta · Presencial · hace 2 días».
+ * - El sello a la derecha, alineado arriba.
  *
- * `featured`: la tarjeta destacada de la pantalla (la oferta principal de Hoy), con borde inferior
- * de 6 px y sello grande; las demás, 4 px. Toda la tarjeta lleva al detalle (`href`) con un link
- * que la cubre; lo que va en `aside` y `children` queda encima (`relative z-10`).
+ * `featured`: la destacada de la pantalla (`.card`, 6 px abajo, sello 60/72); las demás, `.cardl`
+ * (4 px, sello 56/62). `selected`: la oferta abierta al lado, con borde índigo. Con `href`, toda la
+ * tarjeta lleva al detalle con un link que la cubre (y se hunde al tocarla); lo que va en `aside` y
+ * `children` queda encima (`relative z-10`). Sin `href` es una muestra que no se toca (portada).
  */
 export function OfferCard({
   href,
   title,
   place,
   chips = [],
-  more = 0,
   count = null,
   meta,
   score,
@@ -32,6 +32,7 @@ export function OfferCard({
   sealTitle,
   sealAs,
   featured = false,
+  selected = false,
   aside,
   children,
   className,
@@ -39,13 +40,14 @@ export function OfferCard({
   sealProps,
   as: Tag = "li",
 }: {
-  href: string;
+  href?: string;
   title: string;
   place: string;
   chips?: readonly OfferChip[];
+  /** Ya no se muestra: el conteo dice cuántos hay. Queda por compatibilidad. */
   more?: number;
   count?: string | null;
-  /** Texto chico: modalidad y antigüedad («Remoto. Publicada hace 3 días»). */
+  /** Texto chico después del conteo: modalidad y antigüedad («Presencial · hace 2 días»). */
   meta?: ReactNode;
   score: number | null;
   preScore?: number | null;
@@ -54,6 +56,7 @@ export function OfferCard({
   /** `text`: el sello con su frase para lectores de pantalla adentro (Hoy). */
   sealAs?: "img" | "text";
   featured?: boolean;
+  selected?: boolean;
   /** Debajo del sello: «Ver oferta», 👍/👎. */
   aside?: ReactNode;
   /** Debajo de los chips: una línea de por qué, acciones. */
@@ -64,32 +67,41 @@ export function OfferCard({
   sealProps?: { [key: `data-${string}`]: string | undefined };
   as?: "li" | "div" | "article";
 }) {
+  const small = [count, meta].filter((part) => part !== null && part !== undefined && part !== "");
   return (
     <Tag
       data-testid={testId}
-      className={cx(
-        "pressable relative flex gap-3 rounded-card border-edge bg-surface sm:gap-4",
-        featured ? "edge-6 p-5 sm:p-6" : "edge-4 p-4 sm:p-5",
-        className,
-      )}
+      className={cardClasses({
+        level: featured ? "featured" : "list",
+        selected,
+        pressable: Boolean(href),
+        padding: "none",
+        className: cx(
+          "relative flex items-start gap-3",
+          featured
+            ? "py-3.5 pr-3 pl-3.5 sm:py-[18px] sm:pr-[18px] sm:pl-5"
+            : "py-3.5 pr-3 pl-3.5 sm:py-4 sm:pr-4 sm:pl-[18px]",
+          className,
+        ),
+      })}
     >
-      <Link
-        href={href}
-        className="absolute inset-0 rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-        aria-label={`Abrir el detalle de ${title}`}
-      />
-      <div className="flex min-w-0 flex-1 flex-col gap-2">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <p
-            className={cx(
-              "font-display leading-snug font-bold break-words text-fg",
-              featured ? "text-xl" : "text-[17px]",
-            )}
-          >
-            {title}
-          </p>
-          <p className="text-sm break-words text-fg-muted">{place}</p>
-        </div>
+      {href ? (
+        <Link
+          href={href}
+          className="absolute inset-0 rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          aria-label={`Abrir el detalle de ${title}`}
+        />
+      ) : null}
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <p
+          className={cx(
+            "font-display leading-[1.2] font-bold break-words text-fg",
+            featured ? "text-base sm:text-[19px]" : "text-base sm:text-[17px]",
+          )}
+        >
+          {title}
+        </p>
+        <p className="text-[13px] font-medium break-words text-fg-subtle">{place}</p>
         {pending ? (
           <p className="text-sm font-semibold text-fg-muted">Leyendo la oferta contra tu perfil…</p>
         ) : null}
@@ -102,17 +114,29 @@ export function OfferCard({
                 srLabel={c.tone === "have" ? "Tenés" : "Te falta"}
                 title={c.label}
               >
+                {c.tone === "missing" ? (
+                  <span aria-hidden="true" className="hidden sm:inline">
+                    Te falta:{" "}
+                  </span>
+                ) : null}
                 {c.label}
               </Chip>
             ))}
-            {more ? <Chip>{`y ${more} más`}</Chip> : null}
           </div>
         ) : null}
-        {count ? <p className="text-sm font-bold text-fg">{count}</p> : null}
         {children ? (
           <div className="relative z-10 flex min-w-0 flex-col gap-1">{children}</div>
         ) : null}
-        {meta ? <p className="text-xs text-fg-subtle">{meta}</p> : null}
+        {small.length ? (
+          <p className="text-xs font-semibold text-fg-subtle">
+            {small.map((part, i) => (
+              <span key={i}>
+                {i > 0 ? " · " : null}
+                {part}
+              </span>
+            ))}
+          </p>
+        ) : null}
       </div>
       <div className="flex shrink-0 flex-col items-end gap-2">
         <Seal
@@ -121,7 +145,7 @@ export function OfferCard({
           pending={pending}
           title={sealTitle}
           as={sealAs}
-          size={featured ? "detail" : "list"}
+          size={featured ? "featured" : "list"}
           {...sealProps}
         />
         {aside ? (

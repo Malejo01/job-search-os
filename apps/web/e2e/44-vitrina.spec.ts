@@ -26,7 +26,7 @@ test.describe("Flujo 44: vitrina pública", () => {
     page,
   }) => {
     await page.goto("/acceso");
-    const submit = page.getByRole("button", { name: "Pedir acceso" });
+    const submit = page.getByRole("button", { name: "Anotarme", exact: true });
     await submit.click();
     await expect(page.getByLabel("Nombre")).toHaveAttribute("aria-invalid", "true");
     await expect(page.getByLabel("Email")).toHaveAttribute("aria-invalid", "true");
@@ -34,8 +34,10 @@ test.describe("Flujo 44: vitrina pública", () => {
     const fill = async () => {
       await page.getByLabel("Nombre").fill("Persona Vitrina");
       await page.getByLabel("Email").fill(email.toUpperCase());
+      // Fuera de las 6 de la beta, la carrera está en «Otra carrera» (C10-5)
+      await page.getByText("Otra carrera o cómo nos conociste").click();
       await page.getByLabel("Carrera").selectOption("data_analyst");
-      await page.getByRole("button", { name: "Pedir acceso" }).click();
+      await page.getByRole("button", { name: "Anotarme", exact: true }).click();
     };
     await fill();
     const done = page.getByRole("status").filter({ hasText: "te anotamos" });
@@ -89,7 +91,7 @@ test.describe("Flujo 44: vitrina pública", () => {
   test("sin sesión: portada, mercado, una carrera, ofertas y pedir acceso", async ({ page }) => {
     await page.goto("/");
     await expect(
-      page.getByRole("heading", { level: 1, name: /por qué sí y por qué no/ }),
+      page.getByRole("heading", { level: 1, name: /quedan bien, con el porqué/ }),
     ).toBeVisible();
     // C7-11: la voz del manual (M7), en primera persona
     await expect(page.getByText("Nunca postulamos por vos", { exact: true })).toBeVisible();
@@ -127,7 +129,9 @@ test.describe("Flujo 44: vitrina pública", () => {
       .getByRole("link", { name: "Anotarme a la beta" })
       .click();
     await expect(page).toHaveURL(/\/acceso$/);
-    await expect(page.getByRole("heading", { name: "Pedir acceso" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: /Anotate para la beta/ }),
+    ).toBeVisible();
   });
 
   test("sin CONTACT_EMAIL no aparece ninguna línea de contacto", async ({ page }) => {

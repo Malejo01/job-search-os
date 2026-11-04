@@ -28,7 +28,9 @@ test.describe("Flujo 95: Pedir acceso desde celular (360x740) para el 11/11", ()
     page,
   }) => {
     await page.goto("/acceso?origen=voces-jovenes");
-    await expect(page.getByRole("heading", { name: "Pedir acceso" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: /Anotate para la beta/ }),
+    ).toBeVisible();
 
     // Campo email con type y autocomplete correctos para teclado de celular
     const emailInput = page.getByLabel("Email");
@@ -40,7 +42,7 @@ test.describe("Flujo 95: Pedir acceso desde celular (360x740) para el 11/11", ()
     await expect(heardInput).toHaveValue("Voces Jóvenes");
 
     // Botón de al menos 44 px de alto
-    const submitBtn = page.getByRole("button", { name: "Pedir acceso" });
+    const submitBtn = page.getByRole("button", { name: "Anotarme", exact: true });
     const btnBox = await submitBtn.boundingBox();
     expect(btnBox).not.toBeNull();
     expect(btnBox!.height).toBeGreaterThanOrEqual(44);
@@ -48,7 +50,7 @@ test.describe("Flujo 95: Pedir acceso desde celular (360x740) para el 11/11", ()
     // Completar el formulario con una carrera de la beta (contaduría)
     await page.getByLabel("Nombre").fill("Tester Voces");
     await emailInput.fill(testEmail);
-    await page.getByLabel("Carrera").selectOption("finanzas_contabilidad");
+    await page.getByRole("radio", { name: "Contaduría" }).check();
 
     await submitBtn.click();
 
@@ -63,7 +65,9 @@ test.describe("Flujo 95: Pedir acceso desde celular (360x740) para el 11/11", ()
 
   test("axe en claro (360x740) sin violaciones", async ({ page }) => {
     await page.goto("/acceso?origen=voces-jovenes");
-    await expect(page.getByRole("heading", { name: "Pedir acceso" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: /Anotate para la beta/ }),
+    ).toBeVisible();
     await page.waitForLoadState("networkidle");
 
     const { violations, unmeasured } = await axeSummary(page);
@@ -75,7 +79,9 @@ test.describe("Flujo 95: Pedir acceso desde celular (360x740) para el 11/11", ()
     await page.addInitScript(() => localStorage.setItem("jso-tema", "oscuro"));
     await page.goto("/acceso?origen=voces-jovenes");
     await expect(page.locator("html")).toHaveClass(/\bdark\b/);
-    await expect(page.getByRole("heading", { name: "Pedir acceso" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: /Anotate para la beta/ }),
+    ).toBeVisible();
     await page.waitForLoadState("networkidle");
 
     const { violations, unmeasured } = await axeSummary(page);
