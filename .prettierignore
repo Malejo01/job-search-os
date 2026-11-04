@@ -18,3 +18,4 @@ packages/db/schema.ts
 
 # HTML de emails reales capturado tal cual: reformatearlo cambiaría lo que prueban los parsers
 packages/adapters/src/inbound/fixtures/
+docs/ux/rediseno-afiniajobs/referencias/

@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Pantallas finales · Hoy y Ofertas</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.b{font-family:'Bricolage Grotesque',sans-serif}
+.lbl{font-family:'Bricolage Grotesque',sans-serif;font-size:22px;font-weight:800;color:#14123A}
+.pc{width:1280px;height:900px;border-radius:20px;overflow:hidden;background:#EEEDF9;box-shadow:0 0 0 1px #D4D4DC;display:flex;flex-direction:column;position:relative}
+.cel{width:390px;height:844px;border-radius:36px;overflow:hidden;background:#EEEDF9;box-shadow:0 0 0 10px #14123A;display:flex;flex-direction:column;position:relative}
+.logo{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.logo .t{font-family:'Bricolage Grotesque',sans-serif;letter-spacing:-0.8px}
+.logo .a{font-weight:800;color:#C6F25B}.logo .j{font-weight:500;color:#FFFFFF}
+.pill{padding:9px 16px;border-radius:999px;font-size:14px;font-weight:700;color:#C7C6E6}
+.btn{border:none;border-radius:999px;background:#C6F25B;color:#1E1B4B;box-shadow:inset 0 -5px 0 #8FB82E;font-family:'Figtree',sans-serif;font-weight:800}
+.btn2{border:2px solid #1E1B4B;border-bottom-width:5px;border-radius:999px;background:#FFFFFF;color:#1E1B4B;font-family:'Figtree',sans-serif;font-weight:800}
+.card{background:#FFFFFF;border-radius:24px;border:2px solid #D4D4DC;border-bottom-width:6px}
+.cardl{background:#FFFFFF;border-radius:24px;border:2px solid #E4E4EA;border-bottom-width:4px}
+.ok{background:#ECFDF5;color:#064E3B;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700}
+.fa{background:#FFFBEB;color:#78350F;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700}
+.sello{border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;color:#1E1B4B}
+.sello .n{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;line-height:1}
+.sello .p{font-weight:800;text-align:center;line-height:1.05}
+.muy{background:#C6F25B;transform:rotate(-8deg);box-shadow:inset 0 0 0 2px #1E1B4B}
+.bas{background:#FFFFFF;box-shadow:inset 0 0 0 2px #1E1B4B}
+.field{background:#FFFFFF;border:2px solid #D4D4DC;border-bottom-width:4px;border-radius:18px;padding:13px 16px;font-size:15px;font-weight:600;color:#71717A}
+.fl{font-size:13px;font-weight:800;color:#14123A;margin-bottom:6px}
+.chip{border:2px solid #D4D4DC;border-bottom-width:4px;border-radius:999px;padding:8px 14px;font-size:13px;font-weight:700;background:#FFFFFF;color:#14123A}
+.chipon{border-color:#1E1B4B;background:#C6F25B;color:#1E1B4B}
+.chk{width:26px;height:26px;border-radius:13px;background:#C6F25B;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#1E1B4B;flex-shrink:0}
+.ilu{border:2px dashed #8B89B8;border-radius:28px;display:flex;align-items:center;justify-content:center;text-align:center;color:#C7C6E6;font-size:13px;font-weight:700}
+.pon{background:#C6F25B;color:#1E1B4B}
+.av{width:40px;height:40px;border-radius:20px;background:#4338CA;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px}
+.row{display:flex;align-items:center;gap:10px}
+.chk0{width:26px;height:26px;border-radius:13px;border:3px solid #4338CA;box-sizing:border-box;flex-shrink:0}
+.tach{font-size:15px;font-weight:600;color:#71717A;text-decoration:line-through}
+.tabs{margin-top:auto;background:#FFFFFF;border-top:2px solid #E4E4EA;padding:8px 8px 22px;display:flex;justify-content:space-between}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:700;color:#52525B;width:72px}
+.tab i{width:44px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:15px}
+.tabon i{background:#C6F25B;color:#1E1B4B}.tabon{color:#1E1B4B}
+.gris{background:#FFFFFF;box-shadow:inset 0 0 0 2px #A1A1AA;color:#52525B}
+.selcard{border-color:#1E1B4B}
+</style>
+
+</helmet>
+<div style="width:2260px;height:2080px;box-sizing:border-box;background:#FFFFFF;padding:36px 48px;display:flex;flex-direction:column;gap:18px;font-family:'Figtree',sans-serif;color:#14123A">
+  <div style="display:flex;justify-content:space-between;align-items:baseline">
+    <div class="b" style="font-size:30px;font-weight:800;letter-spacing:-0.8px">Pantallas finales 2 · Hoy y Ofertas (con sesión)</div>
+    <div style="font-size:14px;font-weight:600;color:#52525B">PC (1280 px) y celular (390 px). En la PC, el menú va en píldoras dentro de la cabecera; en el celular, pestañas abajo.</div>
+  </div>
+
+  <div class="lbl">Hoy ( /hoy )</div>
+  <div style="display:flex;gap:60px;align-items:flex-start">
+    <!-- HOY PC -->
+    <div class="pc">
+      <div style="background:#1E1B4B;border-radius:0 0 56px 56px;padding:18px 48px 0;display:flex;flex-direction:column">
+        <div style="display:flex;align-items:center;gap:28px">
+          <div class="logo"><svg width="30" height="30" viewBox="0 0 200 200" aria-hidden="true"><path d="M42 164 L100 36 L158 164" fill="none" stroke="#C6F25B" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/><circle cx="100" cy="126" r="17" fill="#FFFFFF"/></svg><div class="t" style="font-size:26px"><span class="a">AfinIA</span><span class="j">Jobs</span></div></div>
+          <div style="display:flex;gap:4px;margin-left:16px"><span class="pill pon">Hoy</span><span class="pill">Ofertas</span><span class="pill">Postulaciones</span><span class="pill">Mi CV</span><span class="pill">Perfil</span></div>
+          <div class="av" style="margin-left:auto">L</div>
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:24px;padding:0 24px">
+          <div style="flex:1 1 auto;padding-bottom:56px">
+            <div class="b" style="font-size:48px;font-weight:800;line-height:1.05;letter-spacing:-1.4px;color:#FFFFFF">¡Buen día, Lucía!</div>
+            <div style="font-size:19px;font-weight:500;line-height:1.5;color:#C7C6E6;margin-top:12px">Hoy hay 3 ofertas que te pueden quedar pintadas.</div>
+          </div>
+          <img src="./ilustraciones/E2-hoy-2.webp" alt="" style="width:400px;aspect-ratio:1000/747;object-fit:cover;display:block">
+        </div>
+      </div>
+      <div style="padding:28px 72px 0;display:grid;grid-template-columns:400px 1fr;gap:28px;align-items:start">
+        <div class="cardl" style="padding:22px;display:flex;flex-direction:column;gap:14px">
+          <div class="b" style="font-size:20px;font-weight:800">Para hacer hoy</div>
+          <div class="row"><div class="chk">✓</div><div class="tach">Elegir tus áreas</div></div>
+          <div class="row"><div class="chk">✓</div><div class="tach">Subir tu CV</div></div>
+          <div class="row"><div class="chk0"></div><div style="font-size:15px;font-weight:700">Pegar la descripción de 2 ofertas</div></div>
+          <button class="btn2" style="align-self:flex-start;min-height:44px;padding:0 18px;font-size:14px;margin-top:4px">Pegar descripciones</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="font-size:13px;font-weight:800;color:#4338CA">La mejor de hoy</div>
+          <div class="card" style="padding:18px 18px 18px 20px;display:flex;gap:12px;align-items:flex-start"><div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px"><div class="b" style="font-size:19px;font-weight:700">Analista contable semi senior</div><div style="font-size:13px;font-weight:500;color:#52525B">Estudio Ruiz y Asociados, en Salta</div><div style="display:flex;flex-wrap:wrap;gap:6px"><span class="ok">✓ Liquidación de sueldos</span><span class="ok">✓ IVA y Ganancias</span><span class="fa">! Te falta: Tango</span></div><div style="font-size:12px;font-weight:600;color:#52525B">4 a tu favor, 1 te falta · Presencial · hace 2 días</div></div><div class="sello muy" style="width:72px;height:72px"><div class="n" style="font-size:22px">8,5</div><div class="p" style="font-size:10px">Muy afín</div></div></div>
+          <div style="font-size:13px;font-weight:800;color:#4338CA;margin-top:6px">También para vos</div>
+          <div class="cardl" style="padding:16px 16px 16px 18px;display:flex;gap:12px;align-items:flex-start"><div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px"><div class="b" style="font-size:17px;font-weight:700">Liquidador de sueldos</div><div style="font-size:13px;font-weight:500;color:#52525B">Grupo Norte, remoto en Argentina</div><div style="display:flex;flex-wrap:wrap;gap:6px"><span class="ok">✓ Convenios colectivos</span><span class="fa">! Te falta: inglés intermedio</span></div><div style="font-size:12px;font-weight:600;color:#52525B">3 a tu favor, 1 te falta · Remoto · hace 1 día</div></div><div class="sello bas" style="width:62px;height:62px"><div class="n" style="font-size:19px">7,4</div><div class="p" style="font-size:9px">Bastante<br>afín</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOY CELULAR -->
+    <div class="cel">
+      <div style="background:#1E1B4B;border-radius:0 0 40px 40px;padding:16px 20px 0;display:flex;flex-direction:column">
+        <div style="display:flex;align-items:center;justify-content:space-between"><div class="logo"><svg width="24" height="24" viewBox="0 0 200 200" aria-hidden="true"><path d="M42 164 L100 36 L158 164" fill="none" stroke="#C6F25B" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/><circle cx="100" cy="126" r="17" fill="#FFFFFF"/></svg><div class="t" style="font-size:21px"><span class="a">AfinIA</span><span class="j">Jobs</span></div></div><div class="av" style="width:34px;height:34px;font-size:14px">L</div></div>
+        <div style="display:flex;align-items:flex-end;gap:6px;margin-top:10px">
+          <div style="flex:1 1 55%;padding-bottom:26px">
+            <div class="b" style="font-size:28px;font-weight:800;line-height:1.06;color:#FFFFFF">¡Buen día, Lucía!</div>
+            <div style="font-size:14px;font-weight:500;line-height:1.45;color:#C7C6E6;margin-top:6px">Hoy hay 3 ofertas que te pueden quedar pintadas.</div>
+          </div>
+          <img src="./ilustraciones/E2-hoy-2.webp" alt="" style="width:160px;aspect-ratio:1000/747;object-fit:cover;display:block">
+        </div>
+      </div>
+      <div style="padding:16px 14px;display:flex;flex-direction:column;gap:12px">
+        <div class="cardl" style="padding:16px;display:flex;flex-direction:column;gap:10px">
+          <div class="b" style="font-size:17px;font-weight:800">Para hacer hoy</div>
+          <div class="row"><div class="chk">✓</div><div class="tach" style="font-size:14px">Subir tu CV</div></div>
+          <div class="row"><div class="chk0"></div><div style="font-size:14px;font-weight:700">Pegar la descripción de 2 ofertas</div></div>
+        </div>
+        <div style="font-size:12px;font-weight:800;color:#4338CA;padding-left:4px">La mejor de hoy</div>
+        <div class="card" style="padding:14px 12px 14px 14px;display:flex;gap:12px;align-items:flex-start"><div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px"><div class="b" style="font-size:16px;font-weight:700">Analista contable semi senior</div><div style="font-size:13px;font-weight:500;color:#52525B">Estudio Ruiz y Asociados, en Salta</div><div style="display:flex;flex-wrap:wrap;gap:6px"><span class="ok">✓ Sueldos</span><span class="ok">✓ IVA</span><span class="fa">! Tango</span></div></div><div class="sello muy" style="width:60px;height:60px"><div class="n" style="font-size:18px">8,5</div><div class="p" style="font-size:9px">Muy afín</div></div></div>
+      </div>
+      <div class="tabs"><div class="tab tabon"><i>⌂</i>Hoy</div><div class="tab"><i>▤</i>Ofertas</div><div class="tab"><i>➤</i>Postulaciones</div><div class="tab"><i>▦</i>Mi CV</div><div class="tab"><i>●</i>Perfil</div></div>
+    </div>
+  </div>
+
+  <div class="lbl" style="margin-top:20px">Ofertas ( /jobs ): en la PC, lista y detalle lado a lado; en el celular, la lista y el detalle aparte</div>
+  <div style="display:flex;gap:60px;align-items:flex-start">
+    <!-- OFERTAS PC -->
+    <div class="pc">
+      <div style="background:#1E1B4B;padding:14px 48px;display:flex;align-items:center;gap:28px">
+        <div class="logo"><svg width="30" height="30" viewBox="0 0 200 200" aria-hidden="true"><path d="M42 164 L100 36 L158 164" fill="none" stroke="#C6F25B" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/><circle cx="100" cy="126" r="17" fill="#FFFFFF"/></svg><div class="t" style="font-size:26px"><span class="a">AfinIA</span><span class="j">Jobs</span></div></div>
+        <div style="display:flex;gap:4px;margin-left:16px"><span class="pill">Hoy</span><span class="pill pon">Ofertas</span><span class="pill">Postulaciones</span><span class="pill">Mi CV</span><span class="pill">Perfil</span></div>
+        <div class="av" style="margin-left:auto">L</div>
+      </div>
+      <div style="padding:22px 40px 0;display:flex;align-items:center;gap:8px">
+        <div class="b" style="font-size:28px;font-weight:800;margin-right:14px">Tus ofertas</div>
+        <span class="chip chipon">Para revisar · 12</span><span class="chip">Guardadas · 3</span><span class="chip">Remoto</span><span class="chip">En Salta</span>
+        <span style="margin-left:auto;font-size:13px;font-weight:700;color:#52525B">Ordenadas por afinidad</span>
+      </div>
+      <div style="padding:18px 40px 0;display:grid;grid-template-columns:470px 1fr;gap:24px;align-items:start">
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="card selcard" style="padding:18px 18px 18px 20px;display:flex;gap:12px;align-items:flex-start"><div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px"><div class="b" style="font-size:19px;font-weight:700">Analista contable semi senior</div><div style="font-size:13px;font-weight:500;color:#52525B">Estudio Ruiz y Asociados, en Salta</div><div style="display:flex;flex-wrap:wrap;gap:6px"><span class="ok">✓ Liquidación de sueldos</span><span class="ok">✓ IVA y Ganancias</span><span class="fa">! Te falta: Tango</span></div><div style="font-size:12px;font-weight:600;color:#52525B">4 a tu favor, 1 te falta · Presencial · hace 2 días</div></div><div class="sello muy" style="width:72px;height:72px"><div class="n" style="font-size:22px">8,5</div><div class="p" style="font-size:10px">Muy afín</div></div></div>
+          <div class="cardl" style="padding:16px 16px 16px 18px;display:flex;gap:12px;align-items:flex-start"><div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px"><div class="b" style="font-size:17px;font-weight:700">Liquidador de sueldos</div><div style="font-size:13px;font-weight:500;color:#52525B">Grupo Norte, remoto en Argentina</div><div style="display:flex;flex-wrap:wrap;gap:6px"><span class="ok">✓ Convenios colectivos</span><span class="fa">! Te falta: inglés intermedio</span></div><div style="font-size:12px;font-weight:600;color:#52525B">3 a tu favor, 1 te falta · Remoto · hace 1 día</div></div><div class="sello bas" style="width:62px;height:62px"><div class="n" style="font-size:19px">7,4</div><div class="p" style="font-size:9px">Bastante<br>afín</div></div></div>
+          <div class="cardl" style="padding:16px 16px 16px 18px;display:flex;gap:12px;align-items:flex-start"><div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px"><div class="b" style="font-size:17px;font-weight:700">Asistente contable</div><div style="font-size:13px;font-weight:500;color:#52525B">Consultora Andina, híbrido en Salta</div><div style="display:flex;flex-wrap:wrap;gap:6px"><span class="ok">✓ IVA</span><span class="fa">! Te falta: 2 años de experiencia</span></div><div style="font-size:12px;font-weight:600;color:#52525B">2 a tu favor, 2 te faltan · Híbrido · hace 3 días</div></div><div class="sello bas" style="width:62px;height:62px"><div class="n" style="font-size:19px">6,1</div><div class="p" style="font-size:9px">Afín a<br>medias</div></div></div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:4px"><div style="flex:1;height:2px;background:#D4D4DC"></div><div style="font-size:12px;font-weight:800;color:#71717A">Lejos de tu perfil (2)</div><div style="flex:1;height:2px;background:#D4D4DC"></div></div>
+          <div class="cardl" style="padding:16px 16px 16px 18px;display:flex;gap:12px;align-items:flex-start"><div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px"><div class="b" style="font-size:17px;font-weight:700">Gerente de finanzas</div><div style="font-size:13px;font-weight:500;color:#52525B">Holding Sur, presencial en CABA</div><div style="display:flex;flex-wrap:wrap;gap:6px"><span class="fa">! Pide 10 años de experiencia</span></div><div style="font-size:12px;font-weight:600;color:#52525B">Presencial en otra provincia</div></div><div class="sello gris" style="width:62px;height:62px"><div class="n" style="font-size:19px">2,4</div><div class="p" style="font-size:8px">Lejos de<br>tu perfil</div></div></div>
+        </div>
+        <div class="card" style="padding:24px 26px;display:flex;flex-direction:column;gap:16px;height:640px;box-sizing:border-box">
+<div style="display:flex;align-items:flex-start;gap:16px"><div style="flex:1"><div class="b" style="font-size:26px;font-weight:800;line-height:1.1">Analista contable semi senior</div><div style="font-size:15px;font-weight:500;color:#52525B;margin-top:6px">Estudio Ruiz y Asociados, en Salta · Presencial · hace 2 días</div></div><div class="sello muy" style="width:88px;height:88px"><div class="n" style="font-size:27px">8,5</div><div class="p" style="font-size:11px">Muy afín</div></div></div>
+<div class="b" style="font-size:19px;font-weight:700">Cumplís 4 de 5 requisitos. Te falta uno para quedar entre las mejores.</div>
+<div style="height:10px;border-radius:5px;background:#E4E4EA;overflow:hidden;margin-top:-6px"><div style="width:80%;height:10px;background:#C6F25B;box-shadow:inset 0 -3px 0 #8FB82E"></div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px"><div class="cardl" style="padding:16px 18px;display:flex;flex-direction:column;gap:12px"><div class="row"><div class="chk">✓</div><div style="font-size:14px;font-weight:600">3 años liquidando sueldos</div></div><div class="row"><div class="chk">✓</div><div style="font-size:14px;font-weight:600">IVA y Ganancias</div></div><div class="row"><div class="chk">✓</div><div style="font-size:14px;font-weight:600">Vivís en Salta</div></div><div class="row"><div class="chk">✓</div><div style="font-size:14px;font-weight:600">Presencial, como querés</div></div><div class="row"><div class="chk0"></div><div style="font-size:14px;font-weight:700">Tango Gestión</div></div></div><div style="background:#1E1B4B;border-radius:24px;padding:16px 18px;display:flex;flex-direction:column;gap:10px"><div style="font-size:14px;font-weight:600;line-height:1.5;color:#C7C6E6">¿Usaste Tango alguna vez? Sumalo a tu CV y quedás entre las mejores candidatas.</div><button style="align-self:flex-start;min-height:44px;padding:0 18px;border:2px solid #C6F25B;border-bottom-width:5px;border-radius:999px;background:transparent;color:#C6F25B;font-family:'Figtree',sans-serif;font-size:14px;font-weight:800">Sumarlo a mi CV</button></div></div>
+<div style="font-size:14px;font-weight:500;color:#3F3F46;line-height:1.55">Estudio contable con 15 personas busca analista para liquidación de sueldos y presentación de impuestos. Jornada de lunes a viernes, de 9 a 17…</div>
+<div style="margin-top:auto;display:flex;gap:12px"><button class="btn" style="min-height:54px;padding:0 28px;font-size:16px">Postularme en el sitio del aviso</button><button class="btn2" style="min-height:50px;padding:0 22px;font-size:15px">Guardar</button></div></div>
+      </div>
+    </div>
+
+    <!-- OFERTAS CELULAR: LISTA -->
+    <div class="cel">
+      <div style="background:#1E1B4B;padding:16px 20px 18px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between"><div class="logo"><svg width="24" height="24" viewBox="0 0 200 200" aria-hidden="true"><path d="M42 164 L100 36 L158 164" fill="none" stroke="#C6F25B" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/><circle cx="100" cy="126" r="17" fill="#FFFFFF"/></svg><div class="t" style="font-size:21px"><span class="a">AfinIA</span><span class="j">Jobs</span></div></div><div class="av" style="width:34px;height:34px;font-size:14px">L</div></div>
+        <div class="b" style="font-size:26px;font-weight:800;color:#FFFFFF">Tus ofertas</div>
+      </div>
+      <div style="padding:14px 14px 0;display:flex;gap:6px;overflow:hidden"><span class="chip chipon">Para revisar · 12</span><span class="chip">Guardadas</span><span class="chip">Remoto</span></div>
+      <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
+        <div class="card" style="padding:14px 12px 14px 14px;display:flex;gap:12px;align-items:flex-start"><div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px"><div class="b" style="font-size:16px;font-weight:700">Analista contable semi senior</div><div style="font-size:13px;font-weight:500;color:#52525B">Estudio Ruiz y Asociados, en Salta</div><div style="display:flex;flex-wrap:wrap;gap:6px"><span class="ok">✓ Sueldos</span><span class="ok">✓ IVA</span><span class="fa">! Tango</span></div></div><div class="sello muy" style="width:60px;height:60px"><div class="n" style="font-size:18px">8,5</div><div class="p" style="font-size:9px">Muy afín</div></div></div>
+        <div class="cardl" style="padding:14px 12px 14px 14px;display:flex;gap:12px;align-items:flex-start"><div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px"><div class="b" style="font-size:16px;font-weight:700">Liquidador de sueldos</div><div style="font-size:13px;font-weight:500;color:#52525B">Grupo Norte, remoto en Argentina</div><div style="display:flex;flex-wrap:wrap;gap:6px"><span class="ok">✓ Convenios</span><span class="fa">! Inglés</span></div></div><div class="sello bas" style="width:56px;height:56px"><div class="n" style="font-size:17px">7,4</div><div class="p" style="font-size:8px">Bastante<br>afín</div></div></div>
+        <div class="cardl" style="padding:14px 12px 14px 14px;display:flex;gap:12px;align-items:flex-start"><div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px"><div class="b" style="font-size:16px;font-weight:700">Asistente contable</div><div style="font-size:13px;font-weight:500;color:#52525B">Consultora Andina, híbrido</div><div style="display:flex;flex-wrap:wrap;gap:6px"><span class="ok">✓ IVA</span><span class="fa">! 2 años</span></div></div><div class="sello bas" style="width:56px;height:56px"><div class="n" style="font-size:17px">6,1</div><div class="p" style="font-size:8px">Afín a<br>medias</div></div></div>
+      </div>
+      <div class="tabs"><div class="tab"><i>⌂</i>Hoy</div><div class="tab tabon"><i>▤</i>Ofertas</div><div class="tab"><i>➤</i>Postulaciones</div><div class="tab"><i>▦</i>Mi CV</div><div class="tab"><i>●</i>Perfil</div></div>
+    </div>
+
+    <!-- OFERTAS CELULAR: DETALLE -->
+    <div class="cel">
+      <div style="background:#1E1B4B;border-radius:0 0 36px 36px;padding:16px 20px 22px;display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:14px;font-weight:700;color:#C7C6E6">‹ Ofertas</div>
+        <div class="b" style="font-size:22px;font-weight:800;line-height:1.15;color:#FFFFFF">Analista contable semi senior</div>
+        <div style="font-size:13px;font-weight:500;color:#C7C6E6">Estudio Ruiz y Asociados, en Salta</div>
+      </div>
+      <div style="padding:16px 14px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:14px;padding:0 4px"><div class="sello muy" style="width:78px;height:78px"><div class="n" style="font-size:24px">8,5</div><div class="p" style="font-size:10px">Muy afín</div></div><div><div class="b" style="font-size:19px;font-weight:700;line-height:1.25">Cumplís 4 de 5 requisitos. Te falta uno para quedar entre las mejores.</div><div style="height:10px;border-radius:5px;background:#E4E4EA;overflow:hidden;margin-top:10px"><div style="width:80%;height:10px;background:#C6F25B;box-shadow:inset 0 -3px 0 #8FB82E"></div></div></div></div>
+        <div class="cardl" style="padding:16px 18px;display:flex;flex-direction:column;gap:12px"><div class="row"><div class="chk">✓</div><div style="font-size:14px;font-weight:600">3 años liquidando sueldos</div></div><div class="row"><div class="chk">✓</div><div style="font-size:14px;font-weight:600">IVA y Ganancias</div></div><div class="row"><div class="chk">✓</div><div style="font-size:14px;font-weight:600">Vivís en Salta</div></div><div class="row"><div class="chk">✓</div><div style="font-size:14px;font-weight:600">Presencial, como querés</div></div><div class="row"><div class="chk0"></div><div style="font-size:14px;font-weight:700">Tango Gestión</div></div></div>
+        <div style="background:#1E1B4B;border-radius:24px;padding:16px 18px;display:flex;flex-direction:column;gap:10px"><div style="font-size:14px;font-weight:600;line-height:1.5;color:#C7C6E6">¿Usaste Tango alguna vez? Sumalo a tu CV y quedás entre las mejores candidatas.</div><button style="align-self:flex-start;min-height:44px;padding:0 18px;border:2px solid #C6F25B;border-bottom-width:5px;border-radius:999px;background:transparent;color:#C6F25B;font-family:'Figtree',sans-serif;font-size:14px;font-weight:800">Sumarlo a mi CV</button></div>
+      </div>
+      <div style="margin:auto 16px 22px"><button class="btn" style="width:100%;min-height:54px;font-size:16px">Postularme en el sitio del aviso</button></div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2260,"height":2080}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>
