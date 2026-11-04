@@ -11,3 +11,16 @@ export const MONOGRAM = {
   /** El punto de la marca, al pie de la «A», donde termina el logotipo. */
   dot: { cx: 840, cy: 664, r: 96 },
 } as const;
+
+/**
+ * Ícono de la barra (C10-2, `.logo` del tablero aprobado el 4/11): la «A» de un solo trazo
+ * redondeado con el punto adentro. Va antes del logotipo en las barras índigo y en la cabecera.
+ * El favicon y los íconos de la app siguen con `MONOGRAM` (logo B2).
+ */
+export const BAR_MARK = {
+  viewBox: "0 0 200 200",
+  /** Trazo de la «A», sin relleno, 26 de ancho con puntas y uniones redondas. */
+  path: "M42 164 L100 36 L158 164",
+  strokeWidth: 26,
+  dot: { cx: 100, cy: 126, r: 17 },
+} as const;

@@ -18,7 +18,7 @@ test.describe("Flujo 39: Invitar visible en el header", () => {
   test("39a. un usuario común no ve Invitar", async ({ page }) => {
     test.skip(e2eIsAdmin, "El usuario de e2e es admin en este entorno: no es un usuario común");
     await login(page);
-    await expect(page.getByRole("link", { name: "Ajustes" })).toBeVisible();
+    await expect(page.locator("header").getByRole("link", { name: /^Perfil/ })).toBeVisible();
     await expect(page.getByRole("link", { name: "Invitar", exact: true })).toHaveCount(0);
   });
 

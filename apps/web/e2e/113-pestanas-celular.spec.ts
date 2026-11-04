@@ -23,8 +23,8 @@ test.describe("Flujo 113: pestañas del celular", () => {
       "aria-current",
       "page",
     );
-    // La pestaña activa va en lima con texto índigo
-    await expect(bar.getByRole("link", { name: "Ofertas" })).toHaveCSS(
+    // La pestaña activa lleva el ícono en una píldora lima (C10-3)
+    await expect(bar.getByRole("link", { name: "Ofertas" }).getByTestId("tab-icono")).toHaveCSS(
       "background-color",
       "rgb(198, 242, 91)",
     );

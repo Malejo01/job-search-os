@@ -2,7 +2,6 @@ import { pricingEnabled } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { signOut } from "@/auth";
 import { ActionTracker } from "@/components/action-tracker";
 import { FeedbackButton } from "@/components/feedback-button";
 import { MobileTabBar } from "./mobile-tabbar";
@@ -17,34 +16,20 @@ import { getUserPlan } from "@/lib/user-plan";
 import { getDisplayName } from "@/lib/display-name";
 import { AssistantButton } from "./assistant-button";
 import { Avatar } from "./avatar";
+import { AppBar } from "./app-bar";
 import { DesktopNav } from "./main-nav";
 import { PlanNotice } from "./plan-notice";
 import { Logo } from "@/components/brand/logo";
 
-const NAV = [
-  { href: "/hoy", label: "Hoy" },
-  { href: "/jobs", label: "Ofertas" },
-  { href: "/jobs/pending-jd", label: "Sin descripción" },
-  { href: "/inbox", label: "Emails" },
-  { href: "/applications", label: "Postulaciones" },
-  { href: "/market", label: "Mercado" },
-  { href: "/plan", label: "Plan" },
-] as const;
-
-// Acciones de cuenta de la barra índigo: Invitar, Asistente, Ajustes y Salir. Foco en lima de
-// marca (12,4:1 sobre índigo). No son secciones: en el celular quedan arriba, chicas.
+// Acciones de administración de la barra índigo (solo admins): Invitar y Asistente. Foco en lima de
+// marca (12,4:1 sobre índigo). Ajustes y Salir están en Perfil, en «Más» (C10-3).
 const HEADER_LINK =
   "inline-flex min-h-11 items-center text-sm font-bold text-on-ink-muted underline-offset-2 hover:text-on-ink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
 const LOGO_LINK =
-  "inline-flex min-h-11 items-center rounded-pill focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+  "-my-0.5 inline-flex min-h-11 shrink-0 items-center rounded-pill focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
 
 const SKIP_CLASS =
   "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-control focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-fg focus:ring-2 focus:ring-focus";
-
-async function logout(): Promise<void> {
-  "use server";
-  await signOut({ redirectTo: "/login" });
-}
 
 /**
  * Layout de la app con sesión: nav mobile-first (390 px), Server Component.
@@ -79,48 +64,35 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     : null;
   // Avatar del header (C7-5): si la consulta falla, el ícono de perfil
   const displayName = await getDisplayName(userId).catch(() => null);
-  const navItems = NAV.map((item) =>
-    item.href === "/applications" ? { ...item, count: followUps } : item,
-  );
   return (
     // Pestañas abajo en el celular (C9-7): el pie y el último contenido quedan por encima de ellas,
     // y `--tabbar-h` sube lo que va fijo abajo (chip de soporte, acciones en lote, guardar skills)
-    <div className="flex min-h-screen flex-col pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))] [--tabbar-h:calc(4.25rem+env(safe-area-inset-bottom,0px))] sm:pb-0 sm:[--tabbar-h:0px]">
+    <div className="flex min-h-screen flex-col pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))] [--tabbar-h:calc(4.75rem+env(safe-area-inset-bottom,0px))] sm:pb-0 sm:[--tabbar-h:0px]">
       <a href="#contenido" className={SKIP_CLASS}>
         Saltar al contenido
       </a>
-      {/* Barra índigo fina (C9-7, decisión 6), igual en claro y en oscuro: logo, píldoras y cuenta.
-          Hoy suma debajo su cabecera curva. z-20: las tarjetas de /jobs llevan links z-10 y no deben
-          dibujarse sobre el header; la guía (z-40) y los modales (z-50) quedan arriba */}
-      <header className="sticky top-0 z-20 bg-ink text-on-ink">
-        {/* Desde lg las píldoras van al lado del logo; entre sm y lg pasan a su propia fila
-            (`order-last basis-full`). En el celular no van: ahí están las pestañas de abajo */}
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-0 px-4 py-1 sm:min-h-16">
+      {/* Barra índigo (C10-3, pantallas aprobadas el 4/11): logo, las cinco secciones en píldoras y
+          el avatar. En el celular, logo y avatar (las secciones son las pestañas de abajo) */}
+      <AppBar>
+        {/* flex-wrap: con «Invitar» y «Asistente» (solo admins) la barra del celular pasa a dos filas */}
+        <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-x-7 gap-y-1 px-5 sm:px-12">
           <Link href="/hoy" className={LOGO_LINK}>
             <Logo tone="dark" />
           </Link>
-          <div className="order-last basis-full lg:order-none lg:flex-1 lg:basis-auto">
-            <DesktopNav items={navItems} />
+          <div className="min-w-0 sm:ml-4">
+            <DesktopNav followUps={followUps} />
           </div>
-          <div className="flex flex-wrap items-center gap-x-4">
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-x-4">
             {canInvite ? (
               <Link href="/settings/invitations" className={HEADER_LINK}>
                 Invitar
               </Link>
             ) : null}
             {canAssist ? <AssistantButton className={HEADER_LINK} /> : null}
-            <Link href="/settings" className={HEADER_LINK}>
-              Ajustes
-            </Link>
-            <form action={logout}>
-              <button type="submit" className={HEADER_LINK}>
-                Salir
-              </button>
-            </form>
             <Avatar name={displayName} />
           </div>
         </div>
-      </header>
+      </AppBar>
       {/* pb-24 en el celular: el chip de soporte (abajo a la derecha) no tapa el último botón */}
       <main
         id="contenido"

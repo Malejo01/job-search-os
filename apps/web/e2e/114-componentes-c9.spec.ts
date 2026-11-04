@@ -37,7 +37,7 @@ test.describe("Flujo 114: catálogo de componentes del rediseño", () => {
     });
   }
 
-  test("el botón principal tiene borde inferior de 6 px y se hunde 3 px sin mover el layout", async ({
+  test("el botón principal tiene borde inferior de 5 px y se hunde 3 px sin mover el layout", async ({
     page,
   }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -49,19 +49,20 @@ test.describe("Flujo 114: catálogo de componentes del rediseño", () => {
     const next = page
       .getByRole("region", { name: "En claro" })
       .getByRole("button", { name: "Guardar", exact: true });
-    expect(await button.evaluate((el) => getComputedStyle(el).borderBottomWidth)).toBe("6px");
+    expect(await button.evaluate((el) => getComputedStyle(el).borderBottomWidth)).toBe("5px");
+    await button.scrollIntoViewIfNeeded();
     const before = await next.boundingBox();
     const box = await button.boundingBox();
     if (!box || !before) throw new Error("sin caja");
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();
-    expect(await button.evaluate((el) => getComputedStyle(el).borderBottomWidth)).toBe("3px");
+    expect(await button.evaluate((el) => getComputedStyle(el).borderBottomWidth)).toBe("2px");
     // Lo de abajo no salta mientras está apretado
     expect((await next.boundingBox())?.y).toBe(before.y);
     await page.mouse.up();
   });
 
-  test("sello (C9-5): «Muy afín» es el único inclinado, la palabra siempre está y no baja de 10 px", async ({
+  test("sello (C9-5, C10-2): «Muy afín» es el único inclinado, la palabra siempre está y todos son círculos", async ({
     page,
   }) => {
     await login(page);
@@ -91,12 +92,14 @@ test.describe("Flujo 114: catálogo de componentes del rediseño", () => {
     await expect(seals.getByRole("img", { name: "puntaje 3.5" })).toContainText("Poco afín");
     await expect(seals.getByRole("img", { name: "estimación previa 6" })).toContainText("Estimado");
     await expect(seals.getByRole("img", { name: "sin evaluar" })).toContainText("Sin evaluar");
-    // La palabra de «Lejos de tu perfil» entra en el sello sin bajar de 10 px ni desbordar
+    // «Lejos de tu perfil» va en dos líneas dentro de un círculo (tablero aprobado el 4/11), sin
+    // bajar de 8 px ni desbordar
     const word = far.getByText("Lejos de tu perfil");
     const size = await word.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
-    expect(size).toBeGreaterThanOrEqual(10);
+    expect(size).toBeGreaterThanOrEqual(8);
     const [wordBox, sealBox] = [await word.boundingBox(), await far.boundingBox()];
     if (!wordBox || !sealBox) throw new Error("sin caja");
+    expect(Math.round(sealBox.width)).toBe(Math.round(sealBox.height));
     expect(wordBox.x).toBeGreaterThanOrEqual(sealBox.x);
     expect(wordBox.x + wordBox.width).toBeLessThanOrEqual(sealBox.x + sealBox.width);
     expect(wordBox.y + wordBox.height).toBeLessThanOrEqual(sealBox.y + sealBox.height);

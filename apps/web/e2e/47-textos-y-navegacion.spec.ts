@@ -95,14 +95,17 @@ test.describe("Flujo 47: textos y navegación", () => {
     expect(box?.width ?? 0).toBeLessThanOrEqual(48);
   });
 
-  test("en pantalla ancha la nav es una fila de links y no hay menú", async ({ page }) => {
+  test("en pantalla ancha la nav son las cinco secciones y «Sin descripción» marca Perfil (C10-3)", async ({
+    page,
+  }) => {
     await login(page);
     await page.setViewportSize({ width: 1024, height: 768 });
     await page.goto("/jobs/pending-jd");
     const nav = page.getByRole("navigation", { name: "Secciones" });
     await expect(nav).toBeVisible();
     await expect(page.getByTestId("tabbar")).toBeHidden();
-    await expect(nav.getByRole("link", { name: "Sin descripción" })).toHaveAttribute(
+    await expect(nav.getByRole("link")).toHaveCount(5);
+    await expect(nav.getByRole("link", { name: "Perfil", exact: true })).toHaveAttribute(
       "aria-current",
       "page",
     );

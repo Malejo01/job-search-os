@@ -8,6 +8,7 @@ import {
   Button,
   buttonClasses,
   Card,
+  CheckMark,
   Chip,
   EmptyState,
   Field,
@@ -19,6 +20,7 @@ import {
   type IconName,
 } from "@/components/ui";
 import { Illustration } from "@/components/brand/illustration";
+import { Logo } from "@/components/brand/logo";
 import { canCreateInvitations } from "@/lib/invitations";
 import { requireUserId } from "@/lib/session";
 
@@ -26,8 +28,8 @@ export const metadata: Metadata = { title: "Componentes", robots: { index: false
 export const dynamic = "force-dynamic";
 
 /**
- * Catálogo de primitivas del rediseño (C9-3): cada una en todos sus estados, en claro y en oscuro
- * lado a lado. Es lo que Mauro revisa en la vista previa antes de mirar las pantallas. Solo para las
+ * Catálogo de primitivas del rediseño (C9-3; piezas exactas de los tableros aprobados el 4/11 en
+ * C10-2): cada una en todos sus estados, en claro y en oscuro lado a lado. Es lo que Mauro revisa en la vista previa antes de mirar las pantallas. Solo para las
  * cuentas que administran la beta (las mismas que invitan); para el resto, 404. Sin datos de nadie:
  * los textos son de ejemplo y las empresas, inventadas.
  *
@@ -71,6 +73,57 @@ function Panel({ mode }: { mode: "light" | "dark" }) {
         En {label}
       </h2>
 
+      <Block title="Logo sobre índigo" id={id("logo")}>
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-card bg-ink px-5 py-4">
+          <Logo tone="dark" />
+          <span
+            aria-hidden="true"
+            className="flex size-10 items-center justify-center rounded-pill bg-ink-accent text-base font-extrabold text-on-ink"
+          >
+            L
+          </span>
+        </div>
+      </Block>
+
+      <Block title="Tarjeta de oferta" id={id("oferta")}>
+        <Card
+          level="featured"
+          padding="none"
+          className="flex items-start gap-3.5 py-[18px] pr-[18px] pl-5"
+        >
+          <div className="flex min-w-0 flex-1 flex-col gap-[7px]">
+            <p className="font-display text-[19px] font-bold">Analista contable semi senior</p>
+            <p className="text-sm font-medium text-fg-subtle">Estudio Ruiz y Asociados, en Salta</p>
+            <div className="flex flex-wrap gap-1.5">
+              <Chip tone="have" srLabel="Tenés">
+                Liquidación de sueldos
+              </Chip>
+              <Chip tone="have" srLabel="Tenés">
+                IVA y Ganancias
+              </Chip>
+              <Chip tone="missing">Te falta: Tango</Chip>
+            </div>
+            <p className="text-xs font-semibold text-fg-subtle">
+              4 a tu favor, 1 te falta · Presencial · hace 2 días
+            </p>
+          </div>
+          <Seal score={8.5} size="featured" />
+        </Card>
+        <Card level="list" padding="none" className="flex items-start gap-3.5 py-4 pr-[18px] pl-5">
+          <div className="flex min-w-0 flex-1 flex-col gap-[7px]">
+            <p className="font-display text-[17px] font-bold">Liquidador de sueldos</p>
+            <p className="text-sm font-medium text-fg-subtle">Grupo Norte, remoto en Argentina</p>
+            <div className="flex flex-wrap gap-1.5">
+              <Chip tone="have" srLabel="Tenés">
+                Convenios colectivos
+              </Chip>
+              <Chip tone="missing">Te falta: inglés intermedio</Chip>
+            </div>
+          </div>
+          <Seal score={7.4} />
+        </Card>
+      </Block>
+
       <Block title="Sello de afinidad" id={id("sello")}>
         <div className="flex flex-wrap items-center gap-4" data-testid={`sellos-${mode}`}>
           <Seal score={9.2} />
@@ -83,6 +136,8 @@ function Panel({ mode }: { mode: "light" | "dark" }) {
           <Seal score={null} pending />
         </div>
         <div className="flex flex-wrap items-center gap-4">
+          <Seal score={8.5} size="featured" />
+          <Seal score={6.1} size="featured" />
           <Seal score={8.8} size="detail" />
           <Seal score={2.4} size="detail" />
           <Seal score={null} pending size="detail" />
@@ -154,7 +209,7 @@ function Panel({ mode }: { mode: "light" | "dark" }) {
           <Chip tone="missing" srLabel="Te falta">
             Tango Gestión
           </Chip>
-          <Chip>y 2 más</Chip>
+          <Chip tone="missing">Te falta: Tango</Chip>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
@@ -162,16 +217,34 @@ function Panel({ mode }: { mode: "light" | "dark" }) {
             aria-pressed="true"
             className={filterChipClasses({ selected: true })}
           >
-            Todas
+            Para revisar · 12
+          </button>
+          <button type="button" aria-pressed="false" className={filterChipClasses()}>
+            Guardadas · 3
           </button>
           <button type="button" aria-pressed="false" className={filterChipClasses()}>
             Remoto
           </button>
-          <button type="button" aria-pressed="false" className={filterChipClasses()}>
-            <Icon name="filtro" size={16} />
-            Más filtros
-          </button>
         </div>
+      </Block>
+
+      <Block title="Checks" id={id("checks")}>
+        <ul className="m-0 flex list-none flex-col gap-3 p-0">
+          <li className="flex items-center gap-2.5">
+            <CheckMark done />
+            <span className="text-[15px] font-semibold text-fg-subtle line-through">
+              Subir tu CV
+            </span>
+          </li>
+          <li className="flex items-center gap-2.5">
+            <CheckMark done={false} />
+            <span className="text-[15px] font-bold">Pegar la descripción de 2 ofertas</span>
+          </li>
+          <li className="flex items-center gap-2.5">
+            <CheckMark done>1</CheckMark>
+            <span className="text-sm font-bold">Contanos tu carrera</span>
+          </li>
+        </ul>
       </Block>
 
       <Block title="Campos" id={id("campos")}>

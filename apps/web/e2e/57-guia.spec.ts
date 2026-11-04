@@ -386,11 +386,15 @@ test.describe("Flujo 57: guía del onboarding y de /jobs", () => {
         await expect(guide(page)).not.toContainText("El puntaje");
       }
 
-      // El último paso es «Sin descripción»: a 1280 px, el link de la barra y no todo el header
+      // El último paso es «Sin descripción»: a 1280 px, la píldora Perfil (está en «Más», C10-3) y
+      // no todo el header
       for (let n = 1; n < total; n++) await next(page);
       await expect(guide(page)).toContainText(`Paso ${total} de ${total}`);
       await expect(guide(page)).toContainText("Sin descripción");
-      const link = page.locator('a[data-tour="jobs:menu"]').filter({ hasText: "Sin descripción" });
+      const link = page
+        .locator("header")
+        .locator('a[data-tour="jobs:menu"]')
+        .filter({ hasText: "Perfil" });
       await expect(link).toHaveCSS("outline-style", "solid");
       await expect(page.locator("header")).toHaveCSS("outline-style", "none");
       await guide(page).getByRole("button", { name: "Listo" }).click();
