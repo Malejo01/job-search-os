@@ -179,3 +179,11 @@ jobs:
           path: apps/web/test-results/capturas/
           if-no-files-found: ignore
           retention-days: 14
+      # Comparaciones «referencia | real» de C10 (e2e 120, datos de Lucía, ficticios): artefacto, nunca al repo
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: comparaciones
+          path: apps/web/e2e/__comparaciones__/
+          if-no-files-found: ignore
+          retention-days: 14
