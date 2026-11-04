@@ -3,8 +3,9 @@ import Link from "next/link";
 import { Icon } from "@/components/ui";
 
 /**
- * Avatar del header (C7-5, manual P1 y P4): círculo lima con las iniciales en índigo. Lleva a
- * «Tu perfil». Sin nombre, el ícono de perfil. Server Component.
+ * Avatar de la barra (C7-5; C10-3, `.av` del tablero aprobado el 4/11): círculo índigo vivo con las
+ * iniciales en blanco 800, 40 px en la computadora y 34 en el celular. Lleva a «Tu perfil». Sin
+ * nombre, el ícono de perfil. Server Component.
  */
 export function Avatar({ name }: { name: string | null }) {
   const letters = name ? initials(name) : null;
@@ -12,11 +13,11 @@ export function Avatar({ name }: { name: string | null }) {
     <Link
       href="/settings/perfil"
       aria-label={name ? `Perfil de ${name}${letters ? ` (${letters})` : ""}` : "Perfil"}
-      className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-pill focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      className="-my-0.5 inline-flex min-h-11 min-w-11 items-center justify-center rounded-pill focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
     >
       <span
         aria-hidden="true"
-        className="flex h-9 w-9 items-center justify-center rounded-pill bg-ink-line text-sm font-extrabold text-on-ink"
+        className="flex size-[34px] items-center justify-center rounded-pill bg-ink-accent text-sm font-extrabold text-on-ink sm:size-10 sm:text-base"
       >
         {letters ?? <Icon name="perfil" size={20} />}
       </span>

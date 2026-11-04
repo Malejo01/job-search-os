@@ -34,6 +34,8 @@
   --color-line: var(--jso-line);
   --color-line-strong: var(--jso-line-strong);
   --color-line-control: var(--jso-line-control);
+  /* Borde índigo (C10-2): botón secundario, oferta elegida y anillo de los checks pendientes */
+  --color-line-ink: var(--jso-line-ink);
 
   --color-fg: var(--jso-fg);
   --color-fg-muted: var(--jso-fg-muted);
@@ -53,6 +55,8 @@
   --color-on-ink: var(--jso-on-ink);
   --color-on-ink-muted: var(--jso-on-ink-muted);
   --color-ink-line: var(--jso-ink-line);
+  /* Avatar de la barra (C10-3): índigo vivo sobre el índigo, igual en los dos modos */
+  --color-ink-accent: var(--jso-ink-accent);
 
   /*
    * C9-2 (decisiones-c9.md, 2 y 5): borde inferior de lo que se toca (un tono más oscuro del fondo
@@ -189,6 +193,7 @@
   --jso-on-ink: #ffffff;
   --jso-on-ink-muted: #c7c6e6;
   --jso-ink-line: #34316b;
+  --jso-ink-accent: #4338ca;
 
   /*
    * Borde inferior de lo que se toca (C9-2, decisión 5): el de una superficie blanca es la línea
@@ -205,7 +210,8 @@
    */
   --jso-seal: #ffffff;
   --jso-seal-line: #1e1b4b;
-  --jso-seal-line-muted: #8e8e99;
+  --jso-seal-line-muted: #a1a1aa;
+  --jso-line-ink: #1e1b4b;
 
   --jso-logo-strong: #1e1b4b;
   --jso-logo-light: #4338ca;
@@ -277,6 +283,7 @@
   --jso-on-ink: #ffffff;
   --jso-on-ink-muted: #c7c6e6;
   --jso-ink-line: #34316b;
+  --jso-ink-accent: #4338ca;
 
   /*
    * En oscuro el borde inferior de una tarjeta va más claro que la tarjeta: uno más oscuro se
@@ -289,6 +296,7 @@
   --jso-seal: #24215a;
   --jso-seal-line: #c7c6e6;
   --jso-seal-line-muted: #6f6da3;
+  --jso-line-ink: #c7c6e6;
 
   --jso-logo-strong: #c6f25b;
   --jso-logo-light: #ffffff;
@@ -375,6 +383,14 @@
   border-style: solid;
   border-bottom-width: 4px;
   --jso-edge-w: 4px;
+  --jso-press: 3px;
+}
+
+/* Botones (C10-2, `.btn` y `.btn2` de los tableros): 5 px abajo */
+@utility edge-5 {
+  border-style: solid;
+  border-bottom-width: 5px;
+  --jso-edge-w: 5px;
   --jso-press: 3px;
 }
 

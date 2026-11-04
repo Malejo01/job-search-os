@@ -6,16 +6,17 @@ import { cx } from "./cx";
  * Para un `<Link>` o un `<a>` con forma de botón, `buttonClasses()`; para un link dentro del texto,
  * `textLinkClasses()`.
  *
- * Forma (decisión 5 de C9): píldora, plano, sin sombra, con un borde inferior de 6 px (4 px en
- * `sm`) un tono más oscuro que el relleno; al tocarlo se hunde 3 px (`pressable`, CSS puro) sin
- * cambiar de alto.
+ * Forma (C10-2, `.btn` y `.btn2` del tablero aprobado el 4/11): píldora, plano, texto 800, con un
+ * borde inferior de 5 px un tono más oscuro que el relleno (la «sombra interior» de la referencia);
+ * al tocarlo se hunde 3 px (`pressable`, CSS puro) sin cambiar de alto. `md` mide 54 px (acciones
+ * principales), `lg` 56 (la portada y /acceso) y `sm` 44 (barras, tarjetas).
  *
  * `className` es para ubicarlo (`w-full`, `self-start`, `mt-2`), no para cambiarle el color, el
  * padding ni el tamaño: sin tailwind-merge dos clases que se pisan no se resuelven por orden de
  * escritura sino por orden de Tailwind. Si hace falta otra variante, se suma acá.
  */
 export type ButtonVariant = "primary" | "secondary" | "dark" | "ghost" | "danger";
-export type ButtonSize = "sm" | "md";
+export type ButtonSize = "sm" | "md" | "lg";
 
 const BASE =
   "inline-flex min-w-11 items-center justify-center gap-2 rounded-pill text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed aria-disabled:cursor-not-allowed";
@@ -27,12 +28,14 @@ const DISABLED =
 
 // Las dos alturas mantienen 44 px: el tamaño táctil mínimo no depende de la variante
 const SIZES: Record<ButtonSize, string> = {
-  md: "min-h-12 px-6 py-2 text-[15px] edge-6",
-  sm: "min-h-11 px-4 text-sm edge-4",
+  lg: "min-h-14 px-7 text-[17px] edge-5",
+  md: "min-h-[54px] px-7 text-base edge-5",
+  sm: "min-h-11 px-[18px] text-sm edge-5",
 };
 
 // `ghost` va sin padding lateral ni borde: se alinea con el texto de alrededor, como «Salir»
 const GHOST_SIZES: Record<ButtonSize, string> = {
+  lg: "min-h-11 text-base",
   md: "min-h-11 text-base",
   sm: "min-h-11 text-sm",
 };
@@ -40,7 +43,7 @@ const GHOST_SIZES: Record<ButtonSize, string> = {
 /**
  * - `primary`: la acción principal, lima con texto índigo y borde inferior #8FB82E. Es uno de los
  *   tres lugares donde va la lima (decisión 2): uno por pantalla o por tarjeta.
- * - `secondary`: blanco con borde de 2 px y el de abajo en línea fuerte.
+ * - `secondary`: blanco con borde índigo de 2 px y 5 px abajo (`.btn2`).
  * - `dark`: relleno del color del texto («Guardar y evaluar»); en oscuro se invierte solo.
  * - `ghost`: como un link, sin borde.
  * - `danger`: borrar o salir de algo que no vuelve.
@@ -49,11 +52,11 @@ const VARIANTS: Record<ButtonVariant, string> = {
   primary:
     "pressable border-x-0 border-t-0 border-edge-brand bg-brand font-extrabold text-brand-contrast hover:bg-brand-hover",
   secondary:
-    "pressable border-x-2 border-t-2 border-edge bg-surface font-bold text-fg [--jso-edge-top:2px] hover:bg-surface-muted",
-  dark: "pressable border-x-0 border-t-0 border-edge-ink bg-fg font-bold text-canvas hover:bg-fg-muted",
+    "pressable border-x-2 border-t-2 border-line-ink bg-surface font-extrabold text-fg [--jso-edge-top:2px] hover:bg-surface-muted",
+  dark: "pressable border-x-0 border-t-0 border-edge-ink bg-fg font-extrabold text-canvas hover:bg-fg-muted",
   ghost: "font-bold text-fg-muted underline-offset-2 hover:underline",
   danger:
-    "pressable border-x-0 border-t-0 border-[color-mix(in_srgb,var(--jso-danger-strong),black_35%)] bg-danger-strong font-bold text-on-strong hover:brightness-110",
+    "pressable border-x-0 border-t-0 border-[color-mix(in_srgb,var(--jso-danger-strong),black_35%)] bg-danger-strong font-extrabold text-on-strong hover:brightness-110",
 };
 
 export function buttonClasses({

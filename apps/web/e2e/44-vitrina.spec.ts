@@ -120,9 +120,11 @@ test.describe("Flujo 44: vitrina pública", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Ofertas de muestra" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Más recientes" })).toBeVisible();
 
+    // El botón de la barra se ve desde `sm` (C10-3): en el celular está en la página
+    await page.setViewportSize({ width: 1280, height: 900 });
     await page
       .getByRole("navigation", { name: "Principal" })
-      .getByRole("link", { name: "Pedir acceso" })
+      .getByRole("link", { name: "Anotarme a la beta" })
       .click();
     await expect(page).toHaveURL(/\/acceso$/);
     await expect(page.getByRole("heading", { name: "Pedir acceso" })).toBeVisible();

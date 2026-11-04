@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/ui";
+import { logout } from "./logout-action";
 
 const MORE: ReadonlyArray<{ href: string; label: string; icon: IconName; hint: string }> = [
   {
@@ -14,17 +15,20 @@ const MORE: ReadonlyArray<{ href: string; label: string; icon: IconName; hint: s
   { href: "/settings", label: "Ajustes", icon: "filtro", hint: "Puestos, apariencia y cuenta" },
 ];
 
+const ITEM =
+  "flex min-h-12 w-full items-center gap-3 rounded-control px-2 py-1.5 text-left hover:bg-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus";
+
 /**
- * «Más» (C9-7, decisión 6): en el celular las pestañas de abajo son cinco; lo que no entra vive
- * acá, dentro de Perfil. Solo por debajo de `sm`: en la computadora todo está en las píldoras de
- * arriba. Server Component.
+ * «Más» (C9-7; C10-3): las secciones son cinco, en las pestañas del celular y en las píldoras de
+ * la computadora; lo que no entra vive acá, dentro de Perfil, en los dos anchos. También «Salir».
+ * Server Component.
  */
 export function MoreNav() {
   return (
     <nav
       aria-labelledby="mas-titulo"
       data-testid="mas"
-      className="flex flex-col gap-2 rounded-card bg-surface p-4 sm:hidden"
+      className="flex flex-col gap-2 rounded-card bg-surface p-4"
     >
       <h2 id="mas-titulo" className="text-heading font-bold">
         Más
@@ -32,10 +36,7 @@ export function MoreNav() {
       <ul className="flex flex-col">
         {MORE.map((m) => (
           <li key={m.href}>
-            <Link
-              href={m.href}
-              className="flex min-h-12 items-center gap-3 rounded-control px-2 py-1.5 hover:bg-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
-            >
+            <Link href={m.href} className={ITEM}>
               <Icon name={m.icon} size={20} className="text-brand-text" />
               <span className="flex min-w-0 flex-col">
                 <span className="font-bold text-fg">{m.label}</span>
@@ -44,6 +45,17 @@ export function MoreNav() {
             </Link>
           </li>
         ))}
+        <li>
+          <form action={logout}>
+            <button type="submit" className={ITEM}>
+              <Icon name="perfil" size={20} className="text-brand-text" />
+              <span className="flex min-w-0 flex-col">
+                <span className="font-bold text-fg">Salir</span>
+                <span className="text-xs text-fg-subtle">Cerrar la sesión en este dispositivo</span>
+              </span>
+            </button>
+          </form>
+        </li>
       </ul>
     </nav>
   );

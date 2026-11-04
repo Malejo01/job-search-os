@@ -2,13 +2,17 @@ import type { HTMLAttributes, ReactNode } from "react";
 import { cx } from "./cx";
 
 /**
- * Tarjeta base (N3-3, forma P1 en C9-3): blanca sobre el lavanda, radio 24, sin borde lateral.
+ * Tarjeta base (N3-3; medidas de C10-2, `.card` y `.cardl` del tablero aprobado el 4/11): blanca
+ * sobre el lavanda, radio 24.
  *
- * `level` (decisión 5 de C9):
+ * `level`:
  * - `flat` (por defecto): un panel que no se toca, sin borde.
- * - `list`: una tarjeta de lista que se toca, con borde inferior de 4 px.
- * - `featured`: la tarjeta destacada de la pantalla (la oferta principal de Hoy, el detalle), con
- *   borde inferior de 6 px. Una por pantalla.
+ * - `list` (`.cardl`): borde de 2 px en `line` (#E4E4EA) y 4 px abajo. Las tarjetas de las listas
+ *   y los recuadros («Para hacer hoy», el checklist del detalle).
+ * - `featured` (`.card`): borde de 2 px en línea fuerte (#D4D4DC) y 6 px abajo. La destacada de la
+ *   pantalla (la mejor de Hoy, el detalle, el formulario de /acceso).
+ *
+ * `selected` pasa el borde a índigo: la oferta elegida en la lista de la computadora.
  *
  * `pressable` le suma el hundimiento de 3 px al tocarla (solo si toda la tarjeta lleva a algún
  * lado). `surface="none"` deja ver el fondo de la página. `tone` es para un panel con significado
@@ -27,8 +31,15 @@ const TONES: Record<CardTone, string> = {
 
 const LEVELS: Record<CardLevel, string> = {
   flat: "",
-  list: "edge-4 border-edge",
-  featured: "edge-6 border-edge",
+  list: "border-x-2 border-t-2 edge-4 [--jso-edge-top:2px]",
+  featured: "border-x-2 border-t-2 edge-6 [--jso-edge-top:2px]",
+};
+
+// El color va aparte: dos `border-*` de color en la misma clase no se resuelven por orden
+const LEVEL_LINE: Record<CardLevel, string> = {
+  flat: "",
+  list: "border-line",
+  featured: "border-line-strong",
 };
 
 const PADDING = { none: "", sm: "p-4", md: "p-5 sm:p-6" } as const;
@@ -37,6 +48,8 @@ type CardBase = HTMLAttributes<HTMLElement> & {
   tone?: CardTone;
   level?: CardLevel;
   pressable?: boolean;
+  /** Borde índigo: la tarjeta elegida (lista y detalle lado a lado). */
+  selected?: boolean;
   padding?: keyof typeof PADDING;
   surface?: "surface" | "none";
   children: ReactNode;
@@ -57,17 +70,19 @@ export function cardClasses({
   tone = "neutral",
   level = "flat",
   pressable = false,
+  selected = false,
   padding = "sm",
   surface = "surface",
   className,
 }: Pick<
   CardBase,
-  "tone" | "level" | "pressable" | "padding" | "surface" | "className"
+  "tone" | "level" | "pressable" | "selected" | "padding" | "surface" | "className"
 > = {}): string {
   return cx(
     "rounded-card",
     TONES[tone],
     tone === "neutral" && LEVELS[level],
+    tone === "neutral" && level !== "flat" && (selected ? "border-line-ink" : LEVEL_LINE[level]),
     tone === "neutral" && (surface === "surface" ? "bg-surface" : "border border-line"),
     pressable && "pressable",
     PADDING[padding],
@@ -80,6 +95,7 @@ export function Card({
   tone,
   level,
   pressable,
+  selected,
   padding,
   surface,
   className,
@@ -88,7 +104,7 @@ export function Card({
 }: CardProps) {
   return (
     <Tag
-      className={cardClasses({ tone, level, pressable, padding, surface, className })}
+      className={cardClasses({ tone, level, pressable, selected, padding, surface, className })}
       {...props}
     >
       {children}

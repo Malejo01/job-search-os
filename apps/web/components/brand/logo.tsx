@@ -1,17 +1,19 @@
 import { BRAND, BRAND_COLORS } from "@job-search-os/pipeline";
 import type { CSSProperties } from "react";
 import { cx } from "@/components/ui/cx";
-import { MONOGRAM } from "./monogram";
+import { BAR_MARK, MONOGRAM } from "./monogram";
 
 /**
  * Logo de la marca (C7-2; logo B2 en C9-4). El único componente que dibuja la marca: un pedido de
  * Ani sobre el logo se resuelve acá y en los tokens `--jso-logo-*` de `globals.css`.
  *
- * Logo B2: «AfinIA» en Bricolage Grotesque 800 y «Jobs» en 500, con el punto de la marca al final.
- * El monograma es la «A» de la misma fuente con el mismo punto (favicon, íconos, lugares chicos).
+ * Logo de las pantallas aprobadas el 4/11 (C10-2, `.logo` del tablero): el ícono (la «A» de un
+ * trazo con el punto adentro) y el logotipo «AfinIA» en Bricolage Grotesque 800 y «Jobs» en 500,
+ * tracking −0,03 em, sin punto final. Sobre índigo, la «A» y «AfinIA» lima, el punto y «Jobs»
+ * blancos. El monograma B2 (la «A» rellena con el punto al pie) queda para el favicon y los íconos.
  *
- * - `variant`: `full` y `wordmark` (el logotipo con el punto; desde B2 son lo mismo: el monograma
- *   ya no acompaña al texto) o `mark` (solo el monograma).
+ * - `variant`: `full` (ícono y logotipo: las barras y la cabecera), `wordmark` (solo el logotipo)
+ *   o `mark` (el monograma B2).
  * - `tone`: el fondo sobre el que va. `auto` acompaña al modo claro u oscuro («AfinIA» índigo,
  *   «Jobs» y el punto en índigo vivo en claro; «AfinIA» y el punto lima, «Jobs» blanco en oscuro). `light`, `dark` y `accent` (sobre lima) son fijos: el
  *   header índigo lleva `dark` en los dos modos. Paleta «índigo y lima» del 3/11.
@@ -54,9 +56,10 @@ const TONES: Record<LogoTone, ToneColors> = {
   },
 };
 
-// Alto del monograma y tamaño de letra del logotipo. sm es el del header (24 px).
+// Alto del monograma y tamaño de letra del logotipo. sm es el de las barras: 21 px en el celular y
+// 26 desde `sm`, con el ícono de 24 y 30 px (1,15 em).
 const SIZES: Record<LogoSize, { mark: number; text: string }> = {
-  sm: { mark: 30, text: "text-[24px]" },
+  sm: { mark: 30, text: "text-[21px] sm:text-[26px]" },
   md: { mark: 40, text: "text-[32px]" },
   lg: { mark: 56, text: "text-[46px]" },
 };
@@ -86,17 +89,37 @@ export function Monogram({
   );
 }
 
-function Wordmark({ tone, size }: { tone: LogoTone; size: LogoSize }) {
+/** Ícono de la barra: la «A» de un trazo (color fuerte) con el punto (color claro). */
+function BarMark({ tone }: { tone: LogoTone }) {
+  const colors = TONES[tone];
+  return (
+    <svg
+      viewBox={BAR_MARK.viewBox}
+      aria-hidden="true"
+      focusable="false"
+      className="size-[1.15em] shrink-0"
+    >
+      <path
+        d={BAR_MARK.path}
+        fill="none"
+        strokeWidth={BAR_MARK.strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ stroke: colors.strong }}
+      />
+      <circle {...BAR_MARK.dot} style={{ fill: colors.light }} />
+    </svg>
+  );
+}
+
+function Wordmark({ tone }: { tone: LogoTone }) {
   const colors = TONES[tone];
   const strong: CSSProperties = { color: colors.strong };
   const light: CSSProperties = { color: colors.light };
   return (
     <span
       aria-hidden="true"
-      className={cx(
-        "font-display leading-none tracking-[-0.03em] whitespace-nowrap",
-        SIZES[size].text,
-      )}
+      className="font-display leading-none tracking-[-0.03em] whitespace-nowrap"
     >
       <span className="font-extrabold" style={strong}>
         {BRAND.wordmark.strong}
@@ -104,11 +127,6 @@ function Wordmark({ tone, size }: { tone: LogoTone; size: LogoSize }) {
       <span className="font-medium" style={light}>
         {BRAND.wordmark.light}
       </span>
-      {/* El punto de la marca: un círculo del color del punto, sobre la línea de base */}
-      <span
-        className="ml-[0.06em] inline-block size-[0.2em] rounded-pill align-baseline"
-        style={{ backgroundColor: colors.dot }}
-      />
     </span>
   );
 }
@@ -133,12 +151,15 @@ export function Logo({
     <span
       {...a11y}
       data-logo={variant}
-      className={cx("inline-flex items-center gap-[0.35em]", SIZES[size].text, className)}
+      className={cx("inline-flex items-center gap-[0.3em]", SIZES[size].text, className)}
     >
       {variant === "mark" ? (
         <Monogram size={SIZES[size].mark} tone={tone} />
       ) : (
-        <Wordmark tone={tone} size={size} />
+        <>
+          {variant === "full" ? <BarMark tone={tone} /> : null}
+          <Wordmark tone={tone} />
+        </>
       )}
     </span>
   );

@@ -3,8 +3,9 @@ import { useId } from "react";
 import { cx } from "./cx";
 
 /**
- * Campo de texto (C7-4, manual M8; forma C9-3): borde de 2 px, radio 18, 48 px de alto y el
- * borde pasa al color de foco. Los campos no se hunden: no son algo que se toca para hacer algo. Con error, borde y mensaje rojos, `aria-invalid` y el mensaje
+ * Campo de texto (C7-4; medidas de C10-2, `.field` y `.fl` del tablero aprobado): borde de 2 px en
+ * línea fuerte y 4 px abajo, radio 18, 13×16 de relleno, 15 px 600; la etiqueta va arriba en 13 px
+ * 800. Con foco, el borde pasa al color de foco (y el anillo de la regla base). Los campos no se hunden: no son algo que se toca para hacer algo. Con error, borde y mensaje rojos, `aria-invalid` y el mensaje
  * enlazado por `aria-describedby`. Para inputs sueltos que no usan `<Field>`, `inputClasses()`.
  */
 export function inputClasses({
@@ -13,11 +14,16 @@ export function inputClasses({
   className,
 }: { invalid?: boolean; multiline?: boolean; className?: string } = {}): string {
   return cx(
-    "w-full rounded-control border-2 bg-surface px-4 text-base text-fg placeholder:text-fg-subtle focus-visible:border-focus disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-fg-subtle",
-    multiline ? "min-h-32 py-3" : "min-h-12 py-2",
-    invalid ? "border-danger-strong" : "border-line-control",
+    "w-full rounded-control border-x-2 border-t-2 border-b-4 bg-surface px-4 text-base font-semibold sm:text-[15px] text-fg placeholder:text-fg-subtle focus-visible:border-focus disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-fg-subtle",
+    multiline ? "min-h-32 py-3" : "min-h-[52px] py-[13px]",
+    invalid ? "border-danger-strong" : "border-line-strong",
     className,
   );
+}
+
+/** Etiqueta de campo (`.fl`): 13 px 800, arriba del campo. Para labels sueltos que no usan `<Field>`. */
+export function labelClasses({ className }: { className?: string } = {}): string {
+  return cx("text-[13px] font-extrabold text-fg", className);
 }
 
 type Common = {
@@ -45,7 +51,7 @@ export function Field(props: FieldProps) {
   } as const;
   return (
     <div className={cx("flex flex-col gap-1.5", className)}>
-      <label htmlFor={id} className="text-sm font-bold text-fg">
+      <label htmlFor={id} className={labelClasses()}>
         {label}
       </label>
       {rest.multiline ? (
