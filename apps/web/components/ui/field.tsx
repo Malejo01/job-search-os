@@ -14,8 +14,8 @@ export function inputClasses({
   className,
 }: { invalid?: boolean; multiline?: boolean; className?: string } = {}): string {
   return cx(
-    "w-full rounded-control border-x-2 border-t-2 border-b-4 bg-surface px-4 text-base font-semibold sm:text-[15px] text-fg placeholder:text-fg-subtle focus-visible:border-focus disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-fg-subtle",
-    multiline ? "min-h-32 py-3" : "min-h-[52px] py-[13px]",
+    "w-full rounded-control border-x-2 border-t-2 border-b-4 bg-surface px-4 text-base leading-[1.2] font-semibold sm:text-[15px] text-fg placeholder:text-fg-subtle focus-visible:border-focus disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-fg-subtle",
+    multiline ? "min-h-32 py-3" : "min-h-11 py-[13px]",
     invalid ? "border-danger-strong" : "border-line-strong",
     className,
   );

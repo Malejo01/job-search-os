@@ -11,7 +11,14 @@ type Shared = "idle" | "copied" | "manual";
  * se puede copiar, lo muestra para copiarlo a mano. El link lleva `?origen=compartido` para el embudo.
  * No manda nada a ningún servidor.
  */
-export function ShareButton({ brandName }: { brandName: string }) {
+export function ShareButton({
+  brandName,
+  compact = false,
+}: {
+  brandName: string;
+  /** Al lado de «Anotarme» (C10-5): ancho justo, 44 px, con el aviso de «copiado» flotando abajo. */
+  compact?: boolean;
+}) {
   const [shared, setShared] = useState<Shared>("idle");
   const [url, setUrl] = useState("");
   const text = `Me anoté en la beta de ${brandName}: lee ofertas de trabajo contra tu perfil y te dice por qué sí y por qué no. Es para 6 carreras y el cupo es limitado.`;
@@ -37,15 +44,28 @@ export function ShareButton({ brandName }: { brandName: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className={compact ? "relative" : "flex flex-col gap-2"}>
       <button
         type="button"
         onClick={onShare}
-        className={buttonClasses({ variant: "secondary", className: "min-h-12 w-full text-base" })}
+        className={
+          compact
+            ? buttonClasses({ variant: "secondary", size: "sm" })
+            : buttonClasses({ variant: "secondary", className: "min-h-12 w-full text-base" })
+        }
       >
         Pasáselo a alguien
       </button>
-      <p role="status" className="min-h-5 text-sm text-fg-muted">
+      {/* Al lado de «Anotarme», sin `role="status"`: el estado de la página es el del formulario */}
+      <p
+        role={compact ? undefined : "status"}
+        aria-live={compact ? "polite" : undefined}
+        className={
+          compact
+            ? "absolute top-full left-0 mt-1 w-max text-xs text-fg-muted"
+            : "min-h-5 text-sm text-fg-muted"
+        }
+      >
         {shared === "copied" ? "Copiamos el link. Pegalo donde quieras." : ""}
         {shared === "manual" ? "Copiá este link y pasáselo:" : ""}
       </p>

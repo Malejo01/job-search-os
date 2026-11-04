@@ -66,6 +66,8 @@ test.describe("Flujo 60: lista de espera con una carrera nueva", () => {
 
   test("/acceso ofrece «Product Owner» y guarda la carrera", async ({ page }) => {
     await page.goto("/acceso");
+    // Las carreras fuera de los chips de la beta están en «Otra carrera» (C10-5)
+    await page.getByText("Otra carrera o cómo nos conociste").click();
     const select = page.getByLabel("Carrera");
     const options = await select.locator("option").allInnerTexts();
     for (const label of LABELS) expect(options, label).toContain(label);
@@ -74,9 +76,10 @@ test.describe("Flujo 60: lista de espera con una carrera nueva", () => {
     await page.getByLabel("Nombre").fill("Persona Producto Ficticia");
     await page.getByLabel("Email").fill(email);
     await select.selectOption({ label: "Product Owner" });
-    await page.getByRole("button", { name: "Pedir acceso" }).click();
-    await expect(page.getByRole("status").first()).toBeVisible();
-    await expect(page.getByRole("button", { name: "Pedir acceso" })).toHaveCount(0);
+    await page.getByRole("button", { name: "Anotarme", exact: true }).click();
+    // La confirmación reemplaza al formulario cuando el pedido ya está guardado
+    await expect(page.getByTestId("acceso-confirmacion")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Anotarme", exact: true })).toHaveCount(0);
 
     const { db, close } = ownerDb();
     try {
