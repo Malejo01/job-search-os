@@ -140,6 +140,11 @@ function JobCard({
             ))}
           </div>
         ) : null}
+        {job.flags.includes("posible_duplicado") ? (
+          <span className="self-start">
+            <Chip tone="missing">Posible duplicado</Chip>
+          </span>
+        ) : null}
         {frena ? (
           <p className="flex min-w-0 items-start gap-1 text-sm font-semibold text-danger">
             <Icon name="descartar" size={18} className="mt-px" />

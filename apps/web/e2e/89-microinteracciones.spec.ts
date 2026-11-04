@@ -82,7 +82,7 @@ test.describe("Flujo 89: microinteracciones y reduced-motion", () => {
 
     // /jobs sin JS
     await noJsPage.goto("/jobs");
-    await expect(noJsPage.locator("h1")).toHaveText("Ofertas");
+    await expect(noJsPage.locator("h1")).toHaveText("Tus ofertas");
     await expect(noJsPage.getByText(`Oferta Microinteracción Test ${tag}`).first()).toBeVisible();
 
     // /jobs/[id] sin JS

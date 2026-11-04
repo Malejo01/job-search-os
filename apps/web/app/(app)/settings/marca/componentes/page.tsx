@@ -215,14 +215,22 @@ function Panel({ mode }: { mode: "light" | "dark" }) {
           <button
             type="button"
             aria-pressed="true"
-            className={filterChipClasses({ selected: true })}
+            className={filterChipClasses({ selected: true, compact: true })}
           >
             Para revisar · 12
           </button>
-          <button type="button" aria-pressed="false" className={filterChipClasses()}>
+          <button
+            type="button"
+            aria-pressed="false"
+            className={filterChipClasses({ compact: true })}
+          >
             Guardadas · 3
           </button>
-          <button type="button" aria-pressed="false" className={filterChipClasses()}>
+          <button
+            type="button"
+            aria-pressed="false"
+            className={filterChipClasses({ compact: true })}
+          >
             Remoto
           </button>
         </div>

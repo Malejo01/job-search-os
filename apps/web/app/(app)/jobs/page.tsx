@@ -86,7 +86,11 @@ export default async function JobsPage({
           <Link
             href={chip({ status: null, modalidad: null, idioma: null })}
             aria-current={onlyDefault ? "true" : undefined}
-            className={filterChipClasses({ selected: onlyDefault, className: "shrink-0" })}
+            className={filterChipClasses({
+              compact: true,
+              selected: onlyDefault,
+              className: "shrink-0",
+            })}
           >
             {onlyDefault ? `Para revisar · ${rows.length}` : "Para revisar"}
           </Link>
@@ -94,6 +98,7 @@ export default async function JobsPage({
             href={chip({ status: filters.status === "todas" ? null : "todas" })}
             aria-current={filters.status === "todas" ? "true" : undefined}
             className={filterChipClasses({
+              compact: true,
               selected: filters.status === "todas",
               className: "shrink-0",
             })}
@@ -104,6 +109,7 @@ export default async function JobsPage({
             href={chip({ modalidad: filters.modalidad ? null : "remoto" })}
             aria-current={filters.modalidad ? "true" : undefined}
             className={filterChipClasses({
+              compact: true,
               selected: Boolean(filters.modalidad),
               className: "shrink-0",
             })}
@@ -118,6 +124,7 @@ export default async function JobsPage({
               data-testid="chip-en-espanol"
               aria-describedby={filters.idioma === "es" ? "chip-en-espanol-ayuda" : undefined}
               className={filterChipClasses({
+                compact: true,
                 selected: filters.idioma === "es",
                 className: "shrink-0",
               })}

@@ -31,7 +31,8 @@ test.describe("Flujo 8: oferta evaluándose visible y actualización sin recarga
     await page.goto("/jobs?score=9");
     const filtrada = page.getByRole("listitem").filter({ hasText: title });
     await expect(filtrada).toBeVisible();
-    await expect(filtrada.getByText("En cola")).toBeVisible();
+    // C10-7: la tarjeta lo dice en texto y con el sello «Leyendo…» que gira
+    await expect(filtrada.getByText("Leyendo la oferta contra tu perfil…")).toBeVisible();
     // Arriba de todo, antes que las ya evaluadas
     await expect(page.getByRole("main").getByRole("listitem").first()).toContainText(title);
 
@@ -42,10 +43,10 @@ test.describe("Flujo 8: oferta evaluándose visible y actualización sin recarga
     // La lista abierta se actualiza sola cuando la evaluación termina (acá la termina el worker)
     await page.goto("/jobs?estado=todas");
     const card = page.getByRole("listitem").filter({ hasText: title });
-    await expect(card.getByText("En cola")).toBeVisible();
+    await expect(card.getByText("Leyendo la oferta contra tu perfil…")).toBeVisible();
     runDemoWorker();
     // El refresco se espacia hasta 10 s después de las primeras vueltas (C-7a): margen de sobra
-    await expect(card.getByText("DEMO")).toBeVisible({ timeout: 30_000 });
-    await expect(card.getByText("En cola")).toHaveCount(0);
+    await expect(card.getByRole("img", { name: /^puntaje / })).toBeVisible({ timeout: 30_000 });
+    await expect(card.getByText("Leyendo la oferta contra tu perfil…")).toHaveCount(0);
   });
 });

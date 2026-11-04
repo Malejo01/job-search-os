@@ -134,22 +134,6 @@ export function OfferD3({
 
   return (
     <div data-testid="d3" className="flex min-w-0 flex-col gap-3 sm:gap-4">
-      {page ? (
-        // Celular: la cabecera índigo curva de detalle-cel.png
-        <header className="-mx-4 flex flex-col gap-2 rounded-b-[36px] bg-ink px-5 pt-4 pb-[22px] text-on-ink sm:hidden">
-          <Link
-            href={backHref}
-            className="-my-3 inline-flex min-h-11 items-center gap-1 text-sm font-bold text-on-ink-muted hover:text-on-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
-          >
-            <span aria-hidden="true">‹</span> Ofertas
-          </Link>
-          <h1 className="text-[22px] leading-[1.15] font-extrabold break-words text-on-ink">
-            {job.title}
-          </h1>
-          <p className="text-[13px] font-medium text-on-ink-muted">{place}</p>
-        </header>
-      ) : null}
-
       <section
         aria-labelledby={titleId}
         className={cx(
@@ -159,20 +143,50 @@ export function OfferD3({
             "sm:rounded-card sm:border-x-2 sm:border-t-2 sm:border-b-[6px] sm:border-line-strong sm:bg-surface sm:px-[26px] sm:py-6",
         )}
       >
-        <div className={cx("items-start gap-4", page ? "hidden sm:flex" : "flex")}>
+        {/* Un solo título: en el celular es la cabecera índigo curva de detalle-cel.png (con
+            «‹ Ofertas»); desde `sm`, el encabezado de la tarjeta con el sello de 88 px */}
+        <header
+          className={cx(
+            "flex",
+            page
+              ? "-mx-4 flex-col gap-2 rounded-b-[36px] bg-ink px-5 pt-4 pb-[22px] text-on-ink sm:mx-0 sm:flex-row sm:items-start sm:gap-4 sm:rounded-none sm:bg-transparent sm:p-0 sm:text-fg"
+              : "items-start gap-4",
+          )}
+        >
+          {page ? (
+            <Link
+              href={backHref}
+              className="-my-3 inline-flex min-h-11 items-center gap-1 self-start text-sm font-bold text-on-ink-muted hover:text-on-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand sm:hidden"
+            >
+              <span aria-hidden="true">‹</span> Ofertas
+            </Link>
+          ) : null}
           <div className="min-w-0 flex-1">
             <Title
               id={titleId}
-              className="text-[26px] leading-[1.1] font-extrabold break-words text-fg"
+              className={cx(
+                "leading-[1.1] font-extrabold break-words",
+                page
+                  ? "text-[22px] leading-[1.15] text-on-ink sm:text-[26px] sm:leading-[1.1] sm:text-fg"
+                  : "text-[26px] text-fg",
+              )}
             >
               {job.title}
             </Title>
-            <p className="mt-1.5 text-[15px] font-medium text-fg-subtle">
-              {place} · {meta}
+            <p
+              className={cx(
+                "font-medium",
+                page
+                  ? "mt-2 text-[13px] text-on-ink-muted sm:mt-1.5 sm:text-[15px] sm:text-fg-subtle"
+                  : "mt-1.5 text-[15px] text-fg-subtle",
+              )}
+            >
+              {place}
+              <span className={page ? "hidden sm:inline" : undefined}> · {meta}</span>
             </p>
           </div>
-          {seal()}
-        </div>
+          <div className={page ? "hidden sm:block" : undefined}>{seal()}</div>
+        </header>
 
         <div className="flex items-center gap-3.5 px-1 sm:block sm:px-0">
           {page ? <div className="sm:hidden">{seal()}</div> : null}

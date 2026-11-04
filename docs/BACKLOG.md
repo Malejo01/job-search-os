@@ -1247,3 +1247,28 @@ Una noche de la nube, sin supervisión: el rediseño visual completo de AfinIAJo
 - **Mauro:** mirar la vista previa (los enlaces están en #403), revisar las «Decisiones para Mauro» del cuerpo y mergear #403; el PR toca `.github/workflows/ci.yml` (capturas del e2e), así que va con bypass. Borrar `MOBILE_TABBAR_ENABLED` de Vercel y de `.env.example` (ya no se usa).
 - **Ilustraciones:** 7 de 8 escenas siguen con el marcador (todas menos `hoy`). Para sumarlas, `docs/ux/rediseno-afiniajobs/ilustraciones.md`.
 - **Ani:** los textos nuevos (tabla en #417) y el catálogo `/settings/marca/componentes`.
+
+## Bloque 16 — Tanda C10 (fidelidad visual), 2026-11-04
+
+La nube rehízo las pantallas mirando las imágenes aprobadas por Mauro el 4/11 (`docs/ux/rediseno-afiniajobs/referencias/`), y no las decisiones en texto. Cada pantalla se compara contra su referencia con el e2e 120, que arma «referencia | real» a 390 y 1280 px con los datos de Lucía (ficticia) y la sube como artefacto «comparaciones» del job e2e. Se hizo en cuatro secciones, cada una en un PR `[nube C10]` hacia `ronda/integracion-c9` mergeado con `--no-ff`; el PR de integración sigue siendo [#403](https://github.com/Malejo01/job-search-os/pull/403). **Ninguna migración**; USD 0 de modelos. Diferencias de C9 contra cada referencia: `docs/ux/rediseno-afiniajobs/c10-brechas.md`.
+
+### Sección 1 · Herramienta
+- **C10-1 · Captura contra referencia y datos de prueba** · `estado:` done, 2026-11-04 ([#428](https://github.com/Malejo01/job-search-os/pull/428)). `e2e/c10/lucia.ts` (las 4 ofertas de las referencias con su checklist), e2e 120 y el artefacto «comparaciones» en `ci.yml`.
+
+### Sección 2 · Primitivas y navegación
+- **C10-2 · Primitivas exactas** · done ([#429](https://github.com/Malejo01/job-search-os/pull/429)). `.card`/`.cardl`, botones con 5 px abajo (`edge-5`), chips «✓»/«!», filtros de 38 px (área táctil de 44), campos, sello circular con anillo de 2 px en tres tamaños, `CheckMark`, logo con la «A» de trazo. Tokens `line-ink` e `ink-accent`.
+- **C10-3 · Navegación** · done (#429). Cinco píldoras y avatar en la barra; pestañas blancas con la activa en una píldora lima; barra pública con Cómo funciona, Precios, Ayuda, Entrar y «Anotarme a la beta». Ajustes, Salir y lo demás, en «Más» de Perfil.
+
+### Sección 3 · Sin sesión
+- **C10-4 · Portada** · done ([#430](https://github.com/Malejo01/job-search-os/pull/430)). Coincide con la referencia en 390 y 1280.
+- **C10-5 · /acceso** · done (#430). Cabecera curva, tarjeta montada, carreras como chips; lógica de C8 intacta.
+
+### Sección 4 · Con sesión y cierre
+- **C10-6 · Hoy** · done (PR de la sección 4). Cabecera curva con el saludo, «Para hacer hoy», «La mejor de hoy» y «También para vos»; lo demás en «Más de tu semana».
+- **C10-7 · Ofertas** · done (ídem). «Tus ofertas», chips de filtro (sale el filtro `modalidad=remoto`), lista de 470 px con la tarjeta K2 y el detalle al lado.
+- **C10-8 · Detalle D3** · done (ídem). `components/offer-d3.tsx`: el panel de PC y `/jobs/[id]` en el celular, con «Postularme en el sitio del aviso» fijo abajo.
+- **C10-9 · Integración y vista previa** · done (ídem). Este bloque, la vista previa y la sección C10 del cuerpo de #403.
+
+### Pendiente después de la tanda
+- **Mauro:** mirar las comparaciones (artefacto «comparaciones» del job e2e de #403) y la vista previa, revisar las «Decisiones para Mauro» de cada PR de C10 y mergear #403.
+- **Ilustración «acceso»:** sigue el marcador; la referencia la espera (`docs/ux/rediseno-afiniajobs/ilustraciones.md`).
