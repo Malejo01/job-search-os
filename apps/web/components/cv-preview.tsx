@@ -14,7 +14,7 @@ export function CvPreview({ doc }: { doc: CvDocument }) {
     <article
       data-testid="cv-preview"
       lang={doc.lang}
-      className="cv-sheet rounded-card border border-zinc-200 bg-white p-4 text-zinc-900 shadow-sm sm:p-6 [color-scheme:light]"
+      className="cv-sheet rounded-card border border-zinc-200 bg-white p-4 text-zinc-900 sm:p-6 [color-scheme:light]"
     >
       <h1 className="text-2xl font-bold text-zinc-900">{doc.name}</h1>
       {doc.headline ? <p className="text-base text-zinc-900">{doc.headline}</p> : null}

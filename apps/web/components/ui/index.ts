@@ -8,9 +8,11 @@ export {
   type ButtonSize,
   type ButtonVariant,
 } from "./button";
-export { Card, cardClasses, type CardProps, type CardTone } from "./card";
+export { Card, cardClasses, type CardLevel, type CardProps, type CardTone } from "./card";
+export { CheckMark } from "./check";
+export { Chip, chipClasses, filterChipClasses, type ChipProps, type ChipTone } from "./chip";
 export { cx } from "./cx";
 export { EmptyState, type EmptyStateProps } from "./empty-state";
-export { Field, inputClasses, type FieldProps } from "./field";
+export { Field, inputClasses, labelClasses, type FieldProps } from "./field";
 export { Icon, ICON_PATHS, type IconName, type IconProps } from "./icons";
-export { ScoreBadge, type ScoreSize } from "./score-badge";
+export { Seal, type SealSize } from "./seal";

@@ -67,10 +67,7 @@ export default async function FeedbackTriagePage({
         </p>
       </div>
 
-      <form
-        method="get"
-        className="grid gap-3 rounded-card border border-line bg-surface p-4 sm:grid-cols-3"
-      >
+      <form method="get" className="grid gap-3 rounded-card bg-surface p-4 sm:grid-cols-3">
         <label className={label}>
           Carrera
           <select name="carrera" defaultValue={filters.career ?? ""} className={inputClasses()}>
@@ -152,7 +149,7 @@ export default async function FeedbackTriagePage({
       </form>
 
       {!result.ok ? (
-        <p role="status" className="rounded-card border border-line bg-surface p-4 text-sm">
+        <p role="status" className="rounded-card bg-surface p-4 text-sm">
           No se pudieron leer los comentarios (¿falta aplicar la migración 0059?).
         </p>
       ) : (
@@ -178,7 +175,7 @@ function FeedbackList({ rows, total }: { rows: ReturnType<typeof filterFeedback>
           <li
             key={r.id}
             data-testid="feedback-item"
-            className="flex flex-col gap-2 rounded-card border border-line bg-surface p-4 text-sm"
+            className="flex flex-col gap-2 rounded-card bg-surface p-4 text-sm"
           >
             <div className="flex flex-wrap items-center gap-2 text-xs text-fg-subtle">
               <span className={`rounded-badge px-2 py-0.5 font-bold ${STATUS_TONE[r.status]}`}>

@@ -30,9 +30,9 @@ export default async function DemoPage() {
         // Sin prefetch, como los perfiles (ronda 85, e2e 55): se pide solo al tocarla
         prefetch={false}
         data-testid="demo-contaduria-link"
-        className="flex flex-col gap-1 rounded-card border border-ink-line bg-ink p-4 text-on-ink hover:bg-ink/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:p-5"
+        className="flex flex-col gap-1 rounded-container bg-ink p-4 text-on-ink hover:bg-ink/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:p-5"
       >
-        <span className="text-xs font-bold tracking-wide text-brand uppercase">
+        <span className="text-xs font-bold tracking-wide text-on-ink-muted uppercase">
           Ejemplo con datos inventados
         </span>
         <span className="font-display text-lg font-extrabold">
@@ -46,7 +46,7 @@ export default async function DemoPage() {
         <p
           role="status"
           data-testid="demo-preparando"
-          className="rounded-card border border-line bg-surface p-4 text-sm text-fg"
+          className="rounded-card bg-surface p-4 text-sm text-fg"
         >
           Estamos preparando la demo. Volvé en un rato.
         </p>
@@ -62,7 +62,7 @@ export default async function DemoPage() {
               <li
                 key={p.key}
                 data-testid="demo-profile-card"
-                className="flex min-w-0 flex-col gap-2 rounded-card border border-line bg-surface p-4"
+                className="flex min-w-0 flex-col gap-2 rounded-card bg-surface p-4"
               >
                 <h3 className="text-base font-semibold">{p.label}</h3>
                 <p className="text-sm text-fg-muted">{p.tagline}</p>

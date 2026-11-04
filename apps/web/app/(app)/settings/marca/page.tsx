@@ -1,5 +1,6 @@
 import { BRAND, BRAND_COLORS } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Logo, type LogoTone } from "@/components/brand/logo";
 import { OfferCard } from "@/components/offer-card";
@@ -10,7 +11,8 @@ import {
   Field,
   Icon,
   ICON_PATHS,
-  ScoreBadge,
+  Seal,
+  textLinkClasses,
   type BadgeTone,
   type IconName,
 } from "@/components/ui";
@@ -74,6 +76,11 @@ export default async function MarcaPage() {
           cambie sale de los tokens de <code>globals.css</code> y de un solo componente de logo (ver
           docs/MARCA.md).
         </p>
+        <p className="mt-1 text-sm">
+          <Link href="/settings/marca/componentes" className={textLinkClasses({ block: true })}>
+            Ver los componentes del rediseño en todos sus estados
+          </Link>
+        </p>
       </div>
 
       <section aria-labelledby="marca-logo" className="flex flex-col gap-3">
@@ -93,7 +100,7 @@ export default async function MarcaPage() {
                 <Logo tone={tone} variant="wordmark" size="sm" decorative />
               </span>
               <span
-                className={`rounded-badge bg-surface px-2 py-0.5 text-xs font-semibold text-fg ${tone === "auto" ? "" : "shadow-sm"}`}
+                className={`rounded-badge bg-surface px-2 py-0.5 text-xs font-semibold text-fg ${tone === "auto" ? "" : "ring-1 ring-line"}`}
               >
                 {label}
               </span>
@@ -151,11 +158,16 @@ function ModePanel() {
         <p className="font-display text-4xl leading-tight font-extrabold tracking-tight">
           Ofertas afines.
         </p>
-        <p className="font-display text-2xl font-bold">Título de página · Sora 700</p>
-        <p className="font-display text-xl font-light">Sora 300 · el «Jobs» del logo</p>
-        <p className="text-base font-bold">Título de tarjeta · Manrope 700</p>
-        <p className="text-base">Texto · Manrope 500: leemos cada oferta contra tu perfil.</p>
-        <p className="text-xs font-semibold text-fg-subtle">Apoyo · Manrope 600 · 12/16</p>
+        <p className="font-display text-2xl font-bold">
+          Título de página · Bricolage Grotesque 700
+        </p>
+        <p className="font-display text-xl font-medium">
+          Bricolage Grotesque 500 · el «Jobs» del logo
+        </p>
+        <p className="font-display text-xl font-extrabold">Bricolage Grotesque 800 · el sello</p>
+        <p className="text-base font-extrabold">Botón · Figtree 800</p>
+        <p className="text-base">Texto · Figtree 500: leemos cada oferta contra tu perfil.</p>
+        <p className="text-xs font-semibold text-fg-subtle">Apoyo · Figtree 600 · 12/16</p>
       </div>
 
       <div className="flex flex-col gap-2">
@@ -200,12 +212,14 @@ function ModePanel() {
       <div className="flex flex-col gap-2">
         <h3 className="text-sm font-bold">Score y etiquetas</h3>
         <div className="flex flex-wrap items-center gap-2">
-          <ScoreBadge score={8.5} />
-          <ScoreBadge score={5.5} />
-          <ScoreBadge score={3} />
-          <ScoreBadge score={null} preScore={6} />
-          <ScoreBadge score={null} pending />
-          <ScoreBadge score={null} />
+          <Seal score={8.5} />
+          <Seal score={7.5} />
+          <Seal score={5.5} />
+          <Seal score={3} />
+          <Seal score={1.5} />
+          <Seal score={null} preScore={6} />
+          <Seal score={null} pending />
+          <Seal score={null} />
         </div>
         <div className="flex flex-wrap gap-1.5">
           {BADGES.map(([tone, label]) => (
@@ -237,12 +251,16 @@ function ModePanel() {
           <OfferCard
             href="/settings/marca"
             title="Analista contable semi senior"
-            meta={["Empresa de ejemplo", "Salta", "28 oct"]}
-            score={8.5}
-            tags={[
-              { label: "Evaluada", tone: "neutral" },
-              { label: "Ubicación ok", tone: "success" },
+            place="Estudio Ruiz y Asociados, en Salta"
+            chips={[
+              { tone: "have", label: "Liquidación de sueldos" },
+              { tone: "have", label: "Excel avanzado" },
+              { tone: "missing", label: "Tango Gestión" },
             ]}
+            more={2}
+            count="4 a tu favor, 1 te falta"
+            meta="Presencial. Publicada hace 3 días"
+            score={8.5}
           />
         </ul>
       </div>
@@ -273,7 +291,7 @@ function WelcomeEmailPreview() {
       <p className="text-sm">
         <span className="font-semibold">Asunto:</span> {subject}
       </p>
-      <pre className="max-w-xl overflow-x-auto rounded-card border border-line bg-surface p-4 font-sans text-sm whitespace-pre-wrap text-fg">
+      <pre className="max-w-xl overflow-x-auto rounded-card bg-surface p-4 font-sans text-sm whitespace-pre-wrap text-fg">
         {text}
       </pre>
       <a

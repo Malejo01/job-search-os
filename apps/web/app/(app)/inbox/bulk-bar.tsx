@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, useTransition } from "react";
+import { buttonClasses } from "@/components/ui";
 import { bulkInboxAction, undoBulkAction, type BulkKind } from "./actions";
 import { UndoNotice } from "./undo-notice";
 
@@ -49,8 +50,13 @@ const checkedIds = () =>
       .map((b) => b.value),
   );
 
-const button =
-  "h-8 w-full rounded-control border px-2 text-center text-xs disabled:cursor-not-allowed disabled:opacity-50";
+// C9-11: botones de 44 px de las primitivas; «Eliminar» en rojo
+const buttonFor = (kind: BulkKind) =>
+  buttonClasses({
+    variant: kind === "delete" ? "danger" : "secondary",
+    size: "sm",
+    className: "w-full",
+  });
 
 /**
  * Selección múltiple en /inbox (JS-049). Las casillas de las filas son inputs sin estado de
@@ -154,19 +160,19 @@ export function BulkBar({ total, shown, view }: { total: number; shown: number; 
           <div
             role="toolbar"
             aria-label="Acciones en lote"
-            className={`fixed inset-x-2 bottom-[calc(0.5rem+var(--tabbar-h,0px))] z-20 mx-auto flex max-w-5xl flex-col gap-2 rounded-control border border-line-strong bg-surface-subtle px-3 py-2 text-xs shadow-md ${
+            className={`fixed inset-x-2 bottom-[calc(0.5rem+var(--tabbar-h,0px))] z-20 mx-auto flex max-w-5xl flex-col gap-2 rounded-card border-2 border-line-strong bg-surface px-4 py-3 text-xs ${
               pending ? "opacity-60" : ""
             }`}
           >
-            <div className="flex h-5 items-center justify-between gap-2">
-              <span className="font-medium text-fg">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-bold text-fg">
                 {ids.size} {ids.size === 1 ? "seleccionado" : "seleccionados"}
               </span>
               <button
                 type="button"
                 disabled={pending}
                 onClick={() => toggleAll(false)}
-                className="text-fg-subtle underline"
+                className={buttonClasses({ variant: "ghost", size: "sm" })}
               >
                 Cancelar selección
               </button>
@@ -179,11 +185,7 @@ export function BulkBar({ total, shown, view }: { total: number; shown: number; 
                   disabled={pending}
                   onClick={() => run(kind)}
                   title={kind === "dismiss" ? "Estas fuentes no me sirven" : undefined}
-                  className={`${button} ${
-                    kind === "delete"
-                      ? "border-danger-line bg-surface text-danger"
-                      : "border-line-strong bg-surface text-fg-muted"
-                  }`}
+                  className={buttonFor(kind)}
                 >
                   {LABEL[kind]}
                 </button>

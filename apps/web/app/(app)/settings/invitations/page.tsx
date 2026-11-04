@@ -13,6 +13,13 @@ import { canCreateInvitations, listInvitations } from "@/lib/invitations";
 import { requireUserId } from "@/lib/session";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
 import { listWaitlist, WaitlistNotEnabledInDbError } from "@/lib/waitlist-admin";
+import {
+  alertClasses,
+  buttonClasses,
+  cardClasses,
+  filterChipClasses,
+  inputClasses,
+} from "@/components/ui";
 import { revokeInvitationAction } from "./actions";
 import { CreateInvitationForm } from "./create-form";
 import { WaitlistPanel } from "./waitlist-panel";
@@ -69,12 +76,12 @@ export default async function InvitationsPage({
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
-      <h1 className="text-2xl font-semibold">Invitaciones</h1>
+      <h1 className="text-title font-bold">Invitaciones</h1>
       <p className="text-sm text-fg-subtle">
         Cada invitación sirve una sola vez y vence a los 14 días.
       </p>
 
-      <section className="rounded-card border border-line p-4">
+      <section className={cardClasses({ padding: "md" })}>
         {isAdmin ? (
           <CreateInvitationForm />
         ) : (
@@ -89,7 +96,7 @@ export default async function InvitationsPage({
         {invitations.length === 0 ? (
           <p className="text-sm text-fg-subtle">Todavía no creaste ninguna.</p>
         ) : (
-          <ul className="flex flex-col divide-y divide-line rounded-card border border-line">
+          <ul className="flex flex-col divide-y divide-line rounded-card bg-surface">
             {invitations.map((inv) => (
               <li key={inv.id} className="flex items-center justify-between gap-3 p-3 text-sm">
                 <div className="flex flex-col">
@@ -106,7 +113,7 @@ export default async function InvitationsPage({
                     <input type="hidden" name="id" value={inv.id} />
                     <button
                       type="submit"
-                      className="rounded-control border border-line-strong px-3 py-1"
+                      className={buttonClasses({ variant: "secondary", size: "sm" })}
                     >
                       Revocar
                     </button>
@@ -119,7 +126,7 @@ export default async function InvitationsPage({
       </section>
 
       {isAdmin && !waitlistEnabled ? (
-        <section className="rounded-control border border-warning-line bg-warning-soft p-4 text-sm text-warning">
+        <section className={alertClasses({ tone: "warning", bordered: true })}>
           Tu cuenta es admin en la app pero falta habilitarla en la base (ver docs del PR).
         </section>
       ) : null}
@@ -141,8 +148,7 @@ function WaitlistSection({ waitlist, filters }: { waitlist: Entries; filters: Wa
   const origins = originOptions(waitlist);
   const hasFilters = Object.keys(filters).length > 0;
   const defaultCap = clampInviteCap(undefined, process.env.WAITLIST_INVITE_CAP);
-  const fieldClass =
-    "min-h-11 rounded-control border border-line-control bg-surface px-3 py-2 text-base";
+  const fieldClass = inputClasses();
 
   return (
     <section className="flex flex-col gap-4" aria-labelledby="waitlist-heading">
@@ -169,11 +175,7 @@ function WaitlistSection({ waitlist, filters }: { waitlist: Entries; filters: Wa
                   <Link
                     href={`/settings/invitations${filterQuery(filters, { role: active ? undefined : c.role })}#waitlist-heading`}
                     aria-current={active ? "true" : undefined}
-                    className={`inline-flex min-h-11 items-center gap-2 rounded-pill border px-3 text-sm ${
-                      active
-                        ? "border-brand-contrast bg-brand text-brand-contrast"
-                        : "border-line-strong bg-surface text-fg"
-                    }`}
+                    className={filterChipClasses({ selected: active })}
                   >
                     {roleLabel(c.role)}
                     <span className="font-medium" title="sin invitar de un total">
@@ -191,7 +193,7 @@ function WaitlistSection({ waitlist, filters }: { waitlist: Entries; filters: Wa
       <form
         method="get"
         action="/settings/invitations"
-        className="grid gap-3 rounded-card border border-line p-3 text-sm sm:grid-cols-2"
+        className={cardClasses({ padding: "sm", className: "grid gap-3 text-sm sm:grid-cols-2" })}
         data-testid="waitlist-filters"
       >
         <label className="flex flex-col gap-1">
@@ -239,16 +241,13 @@ function WaitlistSection({ waitlist, filters }: { waitlist: Entries; filters: Wa
           </select>
         </label>
         <div className="flex flex-wrap items-end gap-2">
-          <button
-            type="submit"
-            className="min-h-11 rounded-control bg-brand px-4 py-2 font-medium text-brand-contrast"
-          >
+          <button type="submit" className={buttonClasses({ size: "sm" })}>
             Filtrar
           </button>
           {hasFilters ? (
             <Link
               href="/settings/invitations#waitlist-heading"
-              className="inline-flex min-h-11 items-center rounded-control border border-line-strong px-4"
+              className={buttonClasses({ variant: "secondary", size: "sm" })}
             >
               Limpiar filtros
             </Link>
@@ -266,7 +265,7 @@ function WaitlistSection({ waitlist, filters }: { waitlist: Entries; filters: Wa
           <a
             href={`/settings/invitations/export${filterQuery(filters)}`}
             download
-            className="inline-flex min-h-11 items-center rounded-control border border-line-strong px-4 text-fg"
+            className={buttonClasses({ variant: "secondary", size: "sm" })}
           >
             Exportar a CSV ({visible.length})
           </a>

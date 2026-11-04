@@ -30,7 +30,7 @@ export const metadata: Metadata = {
 };
 
 const CTA =
-  "inline-flex min-h-11 items-center justify-center rounded-control px-4 text-base font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
+  "inline-flex min-h-12 items-center justify-center rounded-pill px-5 text-base font-extrabold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 const FAQ: readonly { q: string; a: string }[] = [
   {
@@ -117,7 +117,7 @@ function PlanCard({ plan, lines }: { plan: PlanDef; lines: string[] }) {
   return (
     <li
       data-testid={`plan-${plan.key}`}
-      className="flex flex-col gap-3 rounded-card border border-line bg-surface p-4"
+      className="flex flex-col gap-3 rounded-card bg-surface p-4"
     >
       <div>
         <h2 className="text-lg font-semibold">{plan.name}</h2>
@@ -147,7 +147,7 @@ function PlanCard({ plan, lines }: { plan: PlanDef; lines: string[] }) {
         {free ? (
           <Link
             href="/acceso"
-            className={`${CTA} bg-brand text-brand-contrast hover:bg-brand-hover`}
+            className={`${CTA} pressable edge-6 border-edge-brand bg-brand text-brand-contrast hover:bg-brand-hover`}
           >
             Pedir acceso
           </Link>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { canCreateInvitations } from "@/lib/invitations";
 import { requireUserId } from "@/lib/session";
+import { alertClasses } from "@/components/ui";
 import { welcomeEmailSample } from "@/lib/welcome-email-sample";
 
 export const metadata: Metadata = { title: "Textos para revisar", robots: { index: false } };
@@ -56,10 +57,7 @@ export default async function TextosPage() {
           Archivo: <code>packages/pipeline/src/help/ayuda-en-contexto.ts</code>
         </p>
         {Object.values(AYUDA_EN_CONTEXTO).map((a) => (
-          <div
-            key={a.tema}
-            className="flex flex-col gap-1 rounded-card border border-line bg-surface p-4"
-          >
+          <div key={a.tema} className="flex flex-col gap-1 rounded-card bg-surface p-4">
             <h3 className="text-sm font-bold text-fg">{a.tema}</h3>
             {a.parrafos.map((p) => (
               <p key={p} className="text-sm text-fg-muted">
@@ -77,7 +75,7 @@ export default async function TextosPage() {
         <p className="text-sm">
           <span className="font-semibold">Asunto:</span> {email.subject}
         </p>
-        <pre className="overflow-x-auto rounded-card border border-line bg-surface p-4 font-sans text-sm whitespace-pre-wrap text-fg">
+        <pre className="overflow-x-auto rounded-card bg-surface p-4 font-sans text-sm whitespace-pre-wrap text-fg">
           {email.text}
         </pre>
       </section>
@@ -95,7 +93,7 @@ function slug(s: string): string {
 
 function TextoItem({ texto: t }: { texto: TextoAni }) {
   return (
-    <li className="flex flex-col gap-2 rounded-card border border-line bg-surface p-4 text-sm">
+    <li className="flex flex-col gap-2 rounded-card bg-surface p-4 text-sm">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="font-bold text-fg">{t.nombre}</h3>
         {t.verEn ? (
@@ -115,7 +113,7 @@ function TextoItem({ texto: t }: { texto: TextoAni }) {
         Archivo: <code>{t.archivo}</code>
       </p>
       {t.decidir ? (
-        <p className="rounded-control bg-warning-soft px-3 py-2 text-warning">
+        <p className={alertClasses({ tone: "warning" })}>
           <span className="font-bold">Para decidir:</span> {t.decidir}
         </p>
       ) : null}

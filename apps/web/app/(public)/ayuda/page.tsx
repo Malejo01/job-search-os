@@ -67,9 +67,8 @@ const FAQS: FaqItem[] = [
     q: "¿Cuándo abre el acceso?",
     a: (
       <p>
-        La beta cerrada abre el <strong>jueves 26 de noviembre</strong>. El cupo es limitado y
-        anotarte no garantiza un lugar. Si hay lugar para vos, te escribimos con tu invitación y el
-        enlace para crear tu cuenta.
+        La beta cerrada abre el <strong>jueves 26 de noviembre</strong>. El cupo es limitado. Si hay
+        lugar para vos, te escribimos con tu invitación y el enlace para crear tu cuenta.
       </p>
     ),
   },
@@ -196,27 +195,23 @@ export default function AyudaPage() {
 
       <section className="flex flex-col gap-4" aria-label="Lista de preguntas frecuentes">
         {FAQS.map((faq, idx) => (
-          <article
-            key={idx}
-            className="flex flex-col gap-2 rounded-card border border-line bg-surface p-5"
-          >
+          <article key={idx} className="flex flex-col gap-2 rounded-card bg-surface p-5">
             <h2 className="text-lg font-semibold text-fg">{faq.q}</h2>
             <div className="text-base leading-relaxed text-fg-muted">{faq.a}</div>
           </article>
         ))}
       </section>
 
-      <section className="mt-4 flex flex-col items-center justify-between gap-4 rounded-card border border-line bg-surface-subtle p-6 text-center sm:flex-row sm:text-left">
+      <section className="mt-4 flex flex-col items-center justify-between gap-4 rounded-card bg-surface-subtle p-6 text-center sm:flex-row sm:text-left">
         <div>
           <h2 className="text-lg font-semibold text-fg">¿Querés sumarte a la beta?</h2>
           <p className="text-sm text-fg-muted">
-            Dejá tus datos en la lista de espera. El cupo es limitado y anotarte no garantiza un
-            lugar: si hay lugar, te escribimos.
+            Dejá tus datos en la lista de espera. El cupo es limitado. Si hay lugar, te escribimos.
           </p>
         </div>
         <Link
           href="/acceso"
-          className="inline-flex min-h-11 items-center justify-center rounded-control bg-brand px-5 text-base font-medium text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          className="inline-flex min-h-11 items-center justify-center pressable edge-6 rounded-pill border-edge-brand bg-brand px-5 text-base font-extrabold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         >
           Pedir acceso
         </Link>

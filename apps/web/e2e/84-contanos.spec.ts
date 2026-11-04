@@ -88,8 +88,8 @@ test.describe("Flujo 84: Chip de soporte «¿Algo no anduvo?»", () => {
 
   test("envía el comentario con contexto, agradece, y persiste en base", async ({ page }) => {
     await login(page);
-    await page.getByRole("link", { name: "Ajustes" }).click();
-    await page.waitForURL("**/settings");
+    // Ajustes está en Perfil, dentro de «Más» (C10-3)
+    await page.goto("/settings");
     await page.getByRole("button", { name: "¿Algo no anduvo?" }).click();
     const dialog = page.getByRole("dialog", { name: "Contanos qué pasó" });
     await dialog.getByRole("radio", { name: "Algo no anduvo" }).check();

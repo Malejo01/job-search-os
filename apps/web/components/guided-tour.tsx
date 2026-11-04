@@ -1,5 +1,7 @@
 "use client";
 
+import { buttonClasses } from "@/components/ui/button";
+
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -29,8 +31,7 @@ export type TourInvite = {
 
 const BUTTON =
   "inline-flex min-h-11 items-center justify-center rounded-control border border-line-strong bg-surface px-3 text-sm text-fg aria-disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus";
-const BUTTON_PRIMARY =
-  "inline-flex min-h-11 items-center justify-center rounded-control bg-brand px-3 text-sm font-medium text-brand-contrast focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
+const BUTTON_PRIMARY = buttonClasses({ size: "sm" });
 const OPENER_DEFAULT =
   "inline-flex min-h-11 shrink-0 items-center justify-center rounded-control border border-line-strong bg-surface px-3 text-sm font-medium text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus";
 
@@ -216,7 +217,7 @@ export function GuidedTour({
         aria-label={label}
         data-testid={testId}
         hidden={!open}
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-line-strong bg-surface px-4 py-1.5 shadow-lg"
+        className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-line-strong bg-surface px-4 py-1.5"
       >
         <div aria-live="polite" className="mx-auto flex max-w-5xl flex-col gap-1">
           <div className="flex flex-wrap items-baseline gap-x-2">

@@ -23,6 +23,15 @@ export const ICON_PATHS = {
   filtro: "M4 5h16l-6 7v6l-4 2v-8z",
   hoy: "M12 3a9 9 0 100 18 9 9 0 000-18z M12 7v5l3 2",
   afinar: "M4 8h6 M14 8h6 M10 5h4v6h-4z M4 16h10 M18 16h2 M14 13h4v6h-4z",
+  // C9-3: checklist (cumple, no cumple, no se sabe), sumar un paso, más opciones, postulaciones y avisos
+  check: "M5 12.5l4.5 4.5L19 7.5",
+  cruz: "M6.5 6.5l11 11 M17.5 6.5l-11 11",
+  pregunta: "M9.2 9.2a2.8 2.8 0 015.4 1c0 2-2.6 2.4-2.6 4.3 M12 18.5h.01",
+  sumar: "M12 5v14 M5 12h14",
+  mas: "M5 12h.01 M12 12h.01 M19 12h.01",
+  postulaciones: "M21 3L10 14 M21 3l-7 18-4-7-7-4z",
+  aviso: "M12 3a9 9 0 100 18 9 9 0 000-18z M12 7.5v5.5 M12 16.5h.01",
+  charla: "M5 5h14a1 1 0 011 1v9a1 1 0 01-1 1h-8l-5 4v-4H5a1 1 0 01-1-1V6a1 1 0 011-1z",
 } as const;
 
 export type IconName = keyof typeof ICON_PATHS;

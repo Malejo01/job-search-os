@@ -5,7 +5,7 @@ import {
   type WeekFocus,
 } from "@job-search-os/pipeline";
 import Link from "next/link";
-import { EmptyState } from "@/components/ui";
+import { Alert, buttonClasses, cardClasses, EmptyState, textLinkClasses } from "@/components/ui";
 import { SKILL_CATEGORY_LABEL, safeHttpUrl } from "@/lib/labels";
 import { getTargetRoles } from "@/lib/onboarding";
 import { getDataState, getOwnJobsPlanState, getPlan, type PlanItemView } from "@/lib/plan";
@@ -51,10 +51,7 @@ function StatusButtons({ item }: { item: PlanItemView }) {
     <form key={next} action={setPlanStatusAction}>
       <input type="hidden" name="itemId" value={item.id} />
       <input type="hidden" name="status" value={next} />
-      <button
-        type="submit"
-        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-control border border-line-strong px-3 text-xs font-semibold text-fg-muted"
-      >
+      <button type="submit" className={buttonClasses({ variant: "secondary", size: "sm" })}>
         {next === "en_curso" ? "Empezar" : next === "cerrada" ? "Cerrar" : "Reabrir"}
       </button>
     </form>
@@ -71,12 +68,12 @@ function EstaSemana({ focus, item }: { focus: WeekFocus; item: PlanItemView | un
     <section
       data-testid="plan-semana"
       aria-labelledby="plan-semana-titulo"
-      className="flex flex-col gap-2 rounded-card border border-info-line bg-info-soft p-3"
+      className={cardClasses({ tone: "info", padding: "md", className: "flex flex-col gap-2" })}
     >
-      <h2 id="plan-semana-titulo" className="text-sm font-semibold text-info">
+      <h2 id="plan-semana-titulo" className="text-sm font-bold text-info">
         Esta semana
       </h2>
-      <p className="break-words text-sm font-medium text-fg">{focus.step.name}</p>
+      <p className="font-display text-lg font-bold break-words text-fg">{focus.step.name}</p>
       <p className="text-xs text-fg-muted" data-testid="plan-semana-horas">
         {focus.hoursThisWeek} h esta semana · te quedan {focus.hoursLeft} h
         {focus.step.estimated ? " (estimado)" : ""}
@@ -92,7 +89,7 @@ function EstaSemana({ focus, item }: { focus: WeekFocus; item: PlanItemView | un
         <p className="text-xs text-fg-muted">Todavía no tenemos un curso para esta skill.</p>
       )}
       {item ? (
-        <div className="flex flex-wrap items-center gap-1">
+        <div className="mt-1 flex flex-wrap items-center gap-2">
           <StatusButtons item={item} />
         </div>
       ) : null}
@@ -144,18 +141,18 @@ export default async function PlanPage({
     : null;
 
   return (
-    <section className="flex flex-col gap-4">
+    <section className="flex flex-col gap-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-title font-semibold">Plan de formación</h1>
+        <h1 className="text-title font-bold">Plan de formación</h1>
         <p className="text-xs text-fg-subtle">
           {items.length} {items.length === 1 ? "skill" : "skills"} ·{" "}
           {hoursPending > 0 ? `~${hoursPending} h pendientes` : "horas sin estimar"}
         </p>
       </div>
       {error ? (
-        <p role="alert" className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">
+        <Alert tone="danger" role="alert">
           No pudimos cambiar el estado de esa skill. Probá de nuevo.
-        </p>
+        </Alert>
       ) : null}
       {roleFallback && items.length > 0 ? (
         <p data-testid="plan-role-source" className="text-xs text-fg-subtle">
@@ -163,10 +160,7 @@ export default async function PlanPage({
           las tuyas.
         </p>
       ) : null}
-      <Link
-        href="/encaje"
-        className="inline-flex min-h-11 w-fit items-center text-sm font-medium text-link underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
-      >
+      <Link href="/encaje" className={textLinkClasses({ block: true, className: "text-sm" })}>
         Ver Tu encaje: qué piden tus ofertas y qué te falta
       </Link>
       <NoLevelsNotice state={state} />
@@ -179,7 +173,7 @@ export default async function PlanPage({
             <EmptyState data-testid="plan-few-offers" action={null}>
               <p>
                 Con pocas ofertas todavía no podemos armar tu plan: sumá más o{" "}
-                <Link href="/jobs/new" className="underline">
+                <Link href="/jobs/new" className={textLinkClasses()}>
                   pegá una oferta
                 </Link>
                 .
@@ -190,7 +184,7 @@ export default async function PlanPage({
               <p>
                 No hay skills para reforzar con las ofertas actuales. Cuando sumes más ofertas o
                 cambies tus niveles en{" "}
-                <Link href="/settings/skills" className="underline">
+                <Link href="/settings/skills" className={textLinkClasses()}>
                   Mis skills
                 </Link>
                 , se actualiza.
@@ -203,16 +197,19 @@ export default async function PlanPage({
       ) : (
         (["en_curso", "pendiente", "cerrada"] as const).map((status) =>
           groups[status].length ? (
-            <section key={status} className="flex flex-col gap-2">
-              <h2 className="text-sm font-semibold text-fg-muted">
+            <section key={status} className="flex flex-col gap-3">
+              <h2 className="text-base font-bold text-fg">
                 {STATUS_LABELS[status]} ({groups[status].length})
               </h2>
-              <ol className="flex flex-col gap-2">
+              <ol className="flex flex-col gap-3">
                 {groups[status].map((it) => (
-                  <li key={it.id} className="rounded-card border border-line bg-surface p-3">
+                  <li
+                    key={it.id}
+                    className={cardClasses({ padding: "none", className: "p-4 sm:p-5" })}
+                  >
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-fg">
+                        <p className="font-bold text-fg">
                           {it.name}{" "}
                           <span className="text-xs font-normal text-fg-subtle">
                             {SKILL_CATEGORY_LABEL[it.category] ?? it.category}
@@ -252,9 +249,9 @@ export default async function PlanPage({
                           </p>
                         )}
                       </div>
-                      <div className="flex items-center gap-1">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span
-                          className={`rounded-badge px-1.5 py-0.5 text-[11px] ${STATUS_CLASSES[it.status]}`}
+                          className={`rounded-badge px-2.5 py-0.5 text-xs font-bold ${STATUS_CLASSES[it.status]}`}
                         >
                           {STATUS_LABELS[it.status]}
                         </span>
@@ -269,8 +266,10 @@ export default async function PlanPage({
         )
       )}
       {showSim ? <SiAprendes impact={impact} selected={impact?.simulation?.slugs ?? []} /> : null}
-      <details className="rounded-control border border-line p-3 text-sm">
-        <summary className="flex min-h-11 cursor-pointer items-center font-semibold">
+      <details
+        className={cardClasses({ padding: "none", className: "px-4 pt-1 pb-3 text-sm sm:px-5" })}
+      >
+        <summary className="flex min-h-11 cursor-pointer items-center font-bold">
           Cómo se calcula
         </summary>
         <p className="mt-2 text-xs text-fg-subtle">

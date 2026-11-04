@@ -1,97 +1,160 @@
+import type { OfferChip } from "@job-search-os/pipeline";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Badge, type BadgeTone, cx, ScoreBadge } from "@/components/ui";
+import { cardClasses, Chip, cx, Seal } from "@/components/ui";
 
 /**
- * Tarjeta de oferta (C7-4, manual M8 y P1): score, título, empresa y lugar, etiquetas de estado y,
- * a la derecha, la fecha y lo que se pueda hacer (abrir el aviso). Server Component.
+ * Tarjeta de oferta K2 (C9-8; medidas de C10, tarjetas de los tableros aprobados el 4/11). Server
+ * Component.
  *
- * Toda la tarjeta lleva al detalle (`href`) con un link que la cubre; lo que va en `aside` y
- * `children` queda encima (`relative z-10`) para que sus propios links y botones se puedan tocar.
+ * - El puesto en Bricolage 700 (19 px la destacada, 17 las de lista, 16 en el celular) y, abajo, la
+ *   empresa y el lugar dichos en una frase (`place`: «Estudio Ruiz y Asociados, en Salta»), 13 px.
+ * - Chips: lo que tenés («✓», verde) y lo que te falta («!», ámbar, «Te falta: …» desde `sm`).
+ * - Una línea chica (12 px 600) con el conteo y lo que va en `meta`, separados por «·»: «4 a tu
+ *   favor, 1 te falta · Presencial · hace 2 días».
+ * - El sello a la derecha, alineado arriba.
+ *
+ * `featured`: la destacada de la pantalla (`.card`, 6 px abajo, sello 60/72); las demás, `.cardl`
+ * (4 px, sello 56/62). `selected`: la oferta abierta al lado, con borde índigo. Con `href`, toda la
+ * tarjeta lleva al detalle con un link que la cubre (y se hunde al tocarla); lo que va en `aside` y
+ * `children` queda encima (`relative z-10`). Sin `href` es una muestra que no se toca (portada).
  */
-export type OfferTag = { label: string; tone?: BadgeTone; srLabel?: string };
-
 export function OfferCard({
   href,
   title,
+  place,
+  chips = [],
+  count = null,
   meta,
   score,
   preScore = null,
   pending = false,
-  scoreTitle,
-  tags = [],
+  sealTitle,
+  sealAs,
+  featured = false,
+  selected = false,
   aside,
   children,
   className,
   testId,
-  scoreProps,
+  sealProps,
+  as: Tag = "li",
 }: {
-  href: string;
+  href?: string;
   title: string;
-  /** Empresa, lugar, modalidad: se unen con « · ». Los vacíos se saltean. */
-  meta: Array<string | null | undefined>;
+  place: string;
+  chips?: readonly OfferChip[];
+  /** Ya no se muestra: el conteo dice cuántos hay. Queda por compatibilidad. */
+  more?: number;
+  count?: string | null;
+  /** Texto chico después del conteo: modalidad y antigüedad («Presencial · hace 2 días»). */
+  meta?: ReactNode;
   score: number | null;
   preScore?: number | null;
   pending?: boolean;
-  scoreTitle?: string;
-  tags?: OfferTag[];
-  /** Columna derecha: fecha, «abrir el aviso». */
+  sealTitle?: string;
+  /** `text`: el sello con su frase para lectores de pantalla adentro (Hoy). */
+  sealAs?: "img" | "text";
+  featured?: boolean;
+  selected?: boolean;
+  /** Debajo del sello: «Ver oferta», 👍/👎. */
   aside?: ReactNode;
-  /** Debajo de las etiquetas: a tu favor / te falta, acciones. */
+  /** Debajo de los chips: una línea de por qué, acciones. */
   children?: ReactNode;
   className?: string;
   testId?: string;
-  /** Atributos extra para la caja del score (anclas de la guía). */
-  scoreProps?: { [key: `data-${string}`]: string | undefined };
+  /** Atributos extra para el sello (anclas de la guía). */
+  sealProps?: { [key: `data-${string}`]: string | undefined };
+  as?: "li" | "div" | "article";
 }) {
-  const metaText = meta.filter(Boolean).join(" · ");
+  const small = [count, meta].filter((part) => part !== null && part !== undefined && part !== "");
   return (
-    <li
+    <Tag
       data-testid={testId}
-      className={cx(
-        "relative flex gap-3 rounded-card border border-line bg-surface p-3.5 transition-colors hover:border-line-control",
-        className,
-      )}
+      className={cardClasses({
+        level: featured ? "featured" : "list",
+        selected,
+        pressable: Boolean(href),
+        padding: "none",
+        className: cx(
+          "relative flex items-start gap-3",
+          featured
+            ? "py-3.5 pr-3 pl-3.5 sm:py-[18px] sm:pr-[18px] sm:pl-5"
+            : "py-3.5 pr-3 pl-3.5 sm:py-4 sm:pr-4 sm:pl-[18px]",
+          className,
+        ),
+      })}
     >
-      <Link
-        href={href}
-        className="absolute inset-0 rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-        aria-label={`Abrir el detalle de ${title}`}
-      />
-      <ScoreBadge
-        score={score}
-        preScore={preScore}
-        pending={pending}
-        title={scoreTitle}
-        {...scoreProps}
-      />
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <p className="truncate text-[15px] font-bold text-fg">{title}</p>
-        {metaText ? <p className="truncate text-[13px] text-fg-subtle">{metaText}</p> : null}
-        {tags.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5">
-            {tags.map((tag) => (
-              <Badge
-                key={tag.label}
-                shape="square"
-                tone={tag.tone ?? "neutral"}
-                srLabel={tag.srLabel}
-                className="text-[11px]"
+      {href ? (
+        <Link
+          href={href}
+          className="absolute inset-0 rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          aria-label={`Abrir el detalle de ${title}`}
+        />
+      ) : null}
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <p
+          className={cx(
+            "font-display leading-[1.2] font-bold break-words text-fg",
+            featured ? "text-base sm:text-[19px]" : "text-base sm:text-[17px]",
+          )}
+        >
+          {title}
+        </p>
+        <p className="text-[13px] font-medium break-words text-fg-subtle">{place}</p>
+        {pending ? (
+          <p className="text-sm font-semibold text-fg-muted">Leyendo la oferta contra tu perfil…</p>
+        ) : null}
+        {chips.length ? (
+          <div className="flex min-w-0 flex-wrap gap-1.5">
+            {chips.map((c) => (
+              <Chip
+                key={`${c.tone}-${c.label}`}
+                tone={c.tone}
+                srLabel={c.tone === "have" ? "Tenés" : "Te falta"}
+                title={c.label}
               >
-                {tag.label}
-              </Badge>
+                {c.tone === "missing" ? (
+                  <span aria-hidden="true" className="hidden sm:inline">
+                    Te falta:{" "}
+                  </span>
+                ) : null}
+                {c.label}
+              </Chip>
             ))}
           </div>
         ) : null}
         {children ? (
           <div className="relative z-10 flex min-w-0 flex-col gap-1">{children}</div>
         ) : null}
+        {small.length ? (
+          // En el celular las tarjetas no llevan la línea chica (hoy-cel.png, ofertas-cel.png)
+          <p className="hidden text-xs font-semibold text-fg-subtle sm:block">
+            {small.map((part, i) => (
+              <span key={i}>
+                {i > 0 ? " · " : null}
+                {part}
+              </span>
+            ))}
+          </p>
+        ) : null}
       </div>
-      {aside ? (
-        <div className="relative z-10 flex shrink-0 flex-col items-end gap-1 text-xs text-fg-subtle">
-          {aside}
-        </div>
-      ) : null}
-    </li>
+      <div className="flex shrink-0 flex-col items-end gap-2">
+        <Seal
+          score={score}
+          preScore={preScore}
+          pending={pending}
+          title={sealTitle}
+          as={sealAs}
+          size={featured ? "featured" : "list"}
+          {...sealProps}
+        />
+        {aside ? (
+          <div className="relative z-10 flex flex-col items-end gap-1 text-xs text-fg-subtle">
+            {aside}
+          </div>
+        ) : null}
+      </div>
+    </Tag>
   );
 }

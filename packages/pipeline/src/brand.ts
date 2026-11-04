@@ -37,8 +37,10 @@ export const BRAND_COLORS = {
   /** Índigo vivo: el acento como texto o foco sobre claro (7,9:1 contra blanco). */
   accentDeep: "#4338CA",
   white: "#FFFFFF",
-  /** Fondo de página claro (Zinc 100 frío). */
-  canvas: "#F5F5F7",
+  /** Borde inferior de un botón lima (C9-2): un tono más oscuro de la lima. */
+  accentEdge: "#8FB82E",
+  /** Fondo de página claro: lavanda (C9-2). También el recuadro de las ilustraciones. */
+  canvas: "#EEEDF9",
   /** Bordes claros. */
   line: "#E4E4EA",
   /** Texto secundario claro (Zinc 600). */

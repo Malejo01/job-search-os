@@ -5,7 +5,7 @@ import type { DemoEvaluationRow } from "@/lib/demo";
 import type { ChecklistView } from "@/lib/job-detail";
 import { MODALITY_LABELS, modalityKey } from "../../ofertas/job-card";
 import { Feedback } from "./feedback";
-import { ScoreBadge } from "@/components/ui";
+import { Seal } from "@/components/ui";
 
 const BAR_COLOR = {
   alto: "bg-success-strong",
@@ -54,7 +54,7 @@ export function EvaluationCard({
   const step = (anchor: string) => (tour ? { "data-tour": anchor } : {});
   const against = [...row.gaps, ...row.bloqueadores, ...row.riesgos.map(riskLabel)];
   return (
-    <li data-testid="demo-card" className="min-w-0 rounded-card border border-line bg-surface p-4">
+    <li data-testid="demo-card" className="min-w-0 rounded-card bg-surface p-4">
       <article className="flex min-w-0 flex-col gap-3">
         <div className="flex flex-col gap-1">
           <h3 className="break-words text-base font-semibold">{row.title}</h3>
@@ -66,7 +66,7 @@ export function EvaluationCard({
         </div>
 
         <div {...step("demo:puntaje")} className="flex flex-col gap-1 rounded-control p-1">
-          <ScoreBadge score={row.score} />
+          <Seal score={row.score} />
           <div aria-hidden="true" className="h-2 w-full rounded-pill bg-surface-muted">
             <div
               className={`h-2 rounded-pill ${BAR_COLOR[tone]}`}

@@ -1,4 +1,5 @@
 import type { PortalStatsRow } from "@job-search-os/pipeline";
+import { cardClasses } from "@/components/ui";
 
 const pct = (n: number, total: number) => `${Math.round((n / total) * 100)} %`;
 
@@ -12,9 +13,9 @@ export function PortalStats({ rows }: { rows: PortalStatsRow[] }) {
     <section
       data-testid="portal-stats"
       aria-labelledby="portal-stats-title"
-      className="flex flex-col gap-3 rounded-control border border-line px-3 py-3"
+      className={cardClasses({ padding: "md", className: "flex flex-col gap-3" })}
     >
-      <h2 id="portal-stats-title" className="text-base font-semibold text-fg">
+      <h2 id="portal-stats-title" className="text-base font-bold text-fg">
         Qué portal te sirve (últimos 30 días)
       </h2>
       {rows.length === 0 ? (

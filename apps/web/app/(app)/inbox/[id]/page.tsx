@@ -7,6 +7,7 @@ import { getInboundEmail } from "@/lib/inbox";
 import { markInboundSeen } from "@/lib/inbox-list";
 import { formatDate, inboundErrorLabel, parserLabel } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
+import { Alert, buttonClasses, cardClasses, textLinkClasses } from "@/components/ui";
 import { EmailActions } from "../email-actions";
 import { senderVerdictAction } from "../leak-actions";
 
@@ -45,23 +46,19 @@ export default async function InboundEmailPage({
   }
 
   return (
-    <article className="flex flex-col gap-3">
-      <Link href="/inbox" className="text-xs text-fg-subtle underline">
+    <article className="flex flex-col gap-4">
+      <Link href="/inbox" className={textLinkClasses({ block: true, className: "text-sm" })}>
         ← Emails entrantes
       </Link>
 
       {webmailError ? (
-        <p
-          role="alert"
-          data-testid="error-webmail"
-          className="rounded-control border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger"
-        >
+        <Alert tone="danger" role="alert" bordered data-testid="error-webmail">
           {webmailError}
-        </p>
+        </Alert>
       ) : null}
 
-      <header className="flex flex-col gap-2 rounded-card border border-line bg-surface p-3">
-        <h1 className="text-lg font-semibold leading-snug">{email.subject ?? "(sin asunto)"}</h1>
+      <header className={cardClasses({ padding: "md", className: "flex flex-col gap-3" })}>
+        <h1 className="text-title font-bold break-words">{email.subject ?? "(sin asunto)"}</h1>
         <div className="text-xs text-fg-subtle">
           <p className="break-all">{email.from}</p>
           <p>
@@ -73,7 +70,7 @@ export default async function InboundEmailPage({
         {email.error ? (
           <p className="text-xs text-warning">
             {inboundErrorLabel(email.error)}{" "}
-            <Link href="/jobs/new" className="underline">
+            <Link href="/jobs/new" className="font-semibold underline underline-offset-2">
               cargar a mano
             </Link>
           </p>
@@ -91,7 +88,10 @@ export default async function InboundEmailPage({
         // JS-051: remitente no esperado. El contenido nunca se guardó, por privacidad
         <section
           aria-label="Cuerpo no guardado"
-          className="flex flex-col gap-2 rounded-card border border-line-strong bg-surface-subtle p-3 text-sm text-fg-muted"
+          className={cardClasses({
+            padding: "md",
+            className: "flex flex-col gap-2 text-sm text-fg-muted",
+          })}
         >
           <p>
             Por privacidad no se guardó el cuerpo: el remitente no es una fuente de empleo esperada.
@@ -113,7 +113,7 @@ export default async function InboundEmailPage({
                 <input type="hidden" name="back" value={`/inbox/${email.id}`} />
                 <button
                   type="submit"
-                  className="rounded-control border border-line-control bg-surface px-2 py-1 text-xs"
+                  className={buttonClasses({ variant: "secondary", size: "sm" })}
                 >
                   Marcar {email.senderDomain} como fuente de empleo
                 </button>
@@ -132,32 +132,36 @@ export default async function InboundEmailPage({
           className="h-[75vh] w-full rounded-card border border-line bg-white [color-scheme:light]"
         />
       ) : email.text ? (
-        <div className="rounded-card border border-line bg-surface p-3">
+        <div className={cardClasses({ padding: "md" })}>
           <p className="max-h-[75vh] overflow-auto text-sm break-words whitespace-pre-wrap text-fg">
             {email.text}
           </p>
         </div>
       ) : (
-        <p className="rounded-card border border-dashed border-line-strong p-6 text-center text-sm text-fg-subtle">
+        <p className="rounded-container bg-surface px-6 py-8 text-center text-sm text-fg-muted">
           No se guardó el cuerpo de este email (llegó sin `RESEND_API_KEY` configurada).
         </p>
       )}
 
       {email.html && email.text ? (
-        <details className="rounded-card border border-line bg-surface p-3">
-          <summary className="cursor-pointer text-sm text-fg-muted">Ver como texto plano</summary>
-          <pre className="mt-2 max-h-[60vh] overflow-auto text-xs break-words whitespace-pre-wrap text-fg">
+        <details className={cardClasses({ padding: "none", className: "px-4 py-1 sm:px-5" })}>
+          <summary className="flex cursor-pointer items-center text-sm font-bold text-fg">
+            Ver como texto plano
+          </summary>
+          <pre className="mt-2 mb-3 max-h-[60vh] overflow-auto text-xs break-words whitespace-pre-wrap text-fg">
             {email.text}
           </pre>
         </details>
       ) : null}
 
       {email.links.length > 0 ? (
-        <details className="rounded-card border border-line bg-surface p-3 text-sm">
-          <summary className="cursor-pointer text-fg-muted">
+        <details
+          className={cardClasses({ padding: "none", className: "px-4 py-1 text-sm sm:px-5" })}
+        >
+          <summary className="flex cursor-pointer items-center font-bold text-fg">
             Links del email ({email.links.length})
           </summary>
-          <ul className="mt-2 flex flex-col gap-1">
+          <ul className="mt-2 mb-3 flex flex-col gap-1">
             {email.links.map((href) => (
               <li key={href} className="break-all">
                 <a

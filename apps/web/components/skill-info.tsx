@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { buttonClasses } from "@/components/ui";
 
 /**
  * Botón «¿Qué es?» de una skill (ronda 78): abre en línea una frase que dice qué es y para qué se
@@ -56,7 +57,7 @@ export function SkillInfo({
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((v) => !v)}
-        className={`min-h-11 rounded-control border border-line-strong px-3 py-1 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus ${className}`.trim()}
+        className={buttonClasses({ variant: "secondary", size: "sm", className })}
       >
         ¿Qué es?
       </button>

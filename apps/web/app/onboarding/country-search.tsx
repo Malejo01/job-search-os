@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { inputClasses } from "@/components/ui";
 
 const MAX_SUGGESTIONS = 5;
 
@@ -133,7 +134,7 @@ export function CountrySearch({
           {selected.map((code) => (
             <li
               key={code}
-              className="flex min-h-11 items-center gap-1 rounded-control border border-line-strong bg-surface-subtle pl-3"
+              className="flex min-h-11 items-center gap-1 rounded-pill bg-surface-muted pl-4 font-semibold"
             >
               <span>
                 {labelOf(code)} ({code})
@@ -142,7 +143,7 @@ export function CountrySearch({
                 type="button"
                 onClick={() => remove(code)}
                 aria-label={`Quitar ${labelOf(code)}`}
-                className="min-h-11 min-w-11 rounded-control text-fg-muted hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                className="min-h-11 min-w-11 rounded-pill text-fg-muted hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
               >
                 <span aria-hidden="true">×</span>
               </button>
@@ -184,7 +185,7 @@ export function CountrySearch({
             }}
             onKeyDown={onKeyDown}
             onBlur={() => setOpen(false)}
-            className="min-h-11 rounded-control border-2 border-line-strong px-3 py-2 text-base aria-[invalid=true]:border-danger-strong disabled:bg-surface-muted"
+            className={inputClasses({ className: "aria-[invalid=true]:border-danger-strong" })}
           />
         </label>
         <ul
@@ -192,7 +193,7 @@ export function CountrySearch({
           role="listbox"
           aria-label="Países"
           hidden={!showList}
-          className="absolute z-10 mt-1 max-h-60 w-full list-none overflow-auto rounded-control border border-line-strong bg-surface p-0 shadow-sm"
+          className="absolute z-10 mt-1 max-h-60 w-full list-none overflow-auto rounded-control border-2 border-line-strong bg-surface p-0"
         >
           {suggestions.map((o, i) => (
             <li

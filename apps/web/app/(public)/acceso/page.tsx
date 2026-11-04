@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
-import { BETA_OPENING_LABEL, BRAND, waitlistRoleGroups } from "@job-search-os/pipeline";
+import { BETA_LAUNCH_ROLE_KEYS, BRAND, waitlistRoleGroups } from "@job-search-os/pipeline";
+import { Illustration } from "@/components/brand/illustration";
+import { cardClasses } from "@/components/ui";
 import { accesoFunnelEnabled } from "@/lib/acceso-funnel";
 import { contactLink } from "@/lib/contact";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
@@ -17,70 +18,88 @@ export const metadata: Metadata = {
 };
 
 /**
- * Las seis carreras de la beta, en el orden del anuncio (`BETA_LAUNCH_ROLE_KEYS`). Escritas como se
- * dicen: los nombres de los selectores son más largos y en el celular no entran en una línea.
+ * Las seis carreras de la beta como chips (C10-5, acceso-pc.png), en el orden del anuncio
+ * (`BETA_LAUNCH_ROLE_KEYS`) y con el nombre corto con que se dicen.
  */
-const BETA_CAREERS_TEXT =
-  "Para 6 carreras: abogacía, contaduría, administración, comunicación, marketing y RR.PP., y relaciones internacionales.";
+const BETA_CAREER_NAMES: Record<string, string> = {
+  abogacia: "Abogacía",
+  finanzas_contabilidad: "Contaduría",
+  administracion_empresas: "Administración",
+  comunicacion: "Comunicación",
+  marketing_digital: "Marketing y RR.PP.",
+  relaciones_internacionales: "Relaciones internacionales",
+};
 
+/**
+ * /acceso (C10-5): copia de las pantallas aprobadas el 4/11 (`referencias/acceso-pc.png` y
+ * `acceso-cel.png`, medidas de `S1-publicas.html`). Cabecera índigo curva pegada a la barra, con
+ * el titular, la bajada y el lugar de la ilustración «acceso» (va el marcador hasta que exista);
+ * la tarjeta del formulario se monta sobre la cabecera. La lógica es la de C8: embudo, topes del
+ * evento y confirmación. `data-ancho` y `data-pagina` le dicen al layout público que vaya a lo
+ * ancho y que la barra lleve solo el logo y «Entrar».
+ */
 export default function AccesoPage() {
   // La lista de espera ofrece las carreras de la beta aunque sigan ocultas en los selectores (ADR-027):
-  // quien se anota el 11/11 tiene que poder elegir la suya. Las 6 van primero, en «Carreras de la beta».
+  // las 6 van como chips; las demás, en «Otra carrera» (el grupo «Carreras de la beta» sigue primero)
   const groups = waitlistRoleGroups().map((group) => ({
     label: group.label,
     roles: group.roles.map((key) => ({ key, label: ROLE_SKILLS[key].label })),
   }));
   const formProps = {
     groups,
+    betaCareers: BETA_LAUNCH_ROLE_KEYS.map((key) => ({
+      key,
+      label: BETA_CAREER_NAMES[key] ?? ROLE_SKILLS[key].label,
+    })),
     contact: contactLink("Borrar mis datos de la lista de espera"),
     // Embudo (C8-2): apagado salvo `ACCESO_FUNNEL_ENABLED=1` (con la migración 0057 aplicada)
     funnel: accesoFunnelEnabled(),
     brandName: BRAND.name,
   };
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col gap-5 py-2 sm:py-8">
-      {/* Bloque de marca (C7-10): lo primero que ve quien llega por el QR desde el celular */}
+    <div data-ancho="completo" data-pagina="acceso" className="flex w-full flex-col pb-12">
       <section
-        aria-labelledby="acceso-marca"
-        className="flex flex-col gap-2 rounded-card border border-ink-line bg-ink p-4 text-on-ink sm:p-5"
+        aria-labelledby="acceso-titulo"
+        className="rounded-b-[40px] bg-ink px-5 pt-1 pb-[78px] text-on-ink sm:rounded-b-[56px] sm:pt-[18px] sm:pb-[120px]"
       >
-        <p id="acceso-marca" className="font-display text-2xl leading-tight font-extrabold">
-          {BRAND.tagline}
-        </p>
-        <p className="text-sm text-on-ink-muted">
-          Leemos cada oferta contra tu perfil y te decimos por qué sí y por qué no. Vos decidís.
-        </p>
-        <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-sm text-on-ink-muted">
-          <li className="flex gap-2">
-            <span aria-hidden="true" className="mt-1.5 h-2 w-2 shrink-0 rounded-pill bg-brand" />
-            <span>
-              Beta cerrada: abre el <strong className="text-on-ink">{BETA_OPENING_LABEL}</strong>.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <span aria-hidden="true" className="mt-1.5 h-2 w-2 shrink-0 rounded-pill bg-brand" />
-            <span>{BETA_CAREERS_TEXT}</span>
-          </li>
-          <li className="flex gap-2">
-            <span aria-hidden="true" className="mt-1.5 h-2 w-2 shrink-0 rounded-pill bg-brand" />
-            <span>El cupo es limitado: anotarte no garantiza un lugar.</span>
-          </li>
-        </ul>
+        <div className="mx-auto flex max-w-[1280px] flex-col gap-[18px] sm:flex-row-reverse sm:items-center sm:gap-10 sm:px-[72px]">
+          <Illustration
+            escena="acceso"
+            priority
+            className="h-[170px] w-full sm:h-[270px] sm:w-[360px]"
+          />
+          <div className="flex min-w-0 flex-1 flex-col gap-2.5 sm:gap-4">
+            <h1
+              id="acceso-titulo"
+              className="text-[31px] leading-[1.06] font-extrabold tracking-[-1px] text-on-ink sm:text-[54px] sm:leading-[1.04] sm:tracking-[-1.6px]"
+            >
+              Anotate para la beta<span className="hidden sm:inline"> de {BRAND.name}</span>
+            </h1>
+            <p className="max-w-[540px] text-[15px] leading-[1.5] font-medium text-on-ink-muted sm:text-lg">
+              <span className="sm:hidden">
+                Abrimos el 26 de noviembre para 6 carreras. El cupo es limitado.
+              </span>
+              <span className="hidden sm:inline">
+                Para estudiantes y recién recibidos de 6 carreras. Abrimos el 26 de noviembre. El
+                cupo es limitado.
+              </span>
+            </p>
+          </div>
+        </div>
       </section>
-      <h1 className="text-title font-bold">Pedir acceso</h1>
-      {/* La frase introductoria vive en el formulario: desaparece cuando el pedido se envió */}
-      {/* Fallback = el mismo formulario sin el origen: sin salto de layout al leer la URL (C7-15) */}
-      <Suspense fallback={<WaitlistFormFields {...formProps} initialHeardFrom="" />}>
-        <WaitlistForm {...formProps} />
-      </Suspense>
-      <p className="text-sm">
-        <Link
-          href="/login"
-          className="inline-flex min-h-11 items-center font-semibold text-link underline underline-offset-2 hover:text-link-hover"
-        >
-          Ya tengo cuenta
-        </Link>
-      </p>
+      <div
+        className={cardClasses({
+          level: "featured",
+          padding: "none",
+          className:
+            "relative mx-[14px] -mt-14 p-[18px] sm:mx-auto sm:-mt-[92px] sm:w-[828px] sm:max-w-[calc(100%-2rem)] sm:px-8 sm:py-7",
+        })}
+      >
+        {/* Fallback = el mismo formulario sin el origen: sin salto de layout al leer la URL (C7-15) */}
+        <Suspense fallback={<WaitlistFormFields {...formProps} initialHeardFrom="" />}>
+          <WaitlistForm {...formProps} />
+        </Suspense>
+      </div>
     </div>
   );
 }

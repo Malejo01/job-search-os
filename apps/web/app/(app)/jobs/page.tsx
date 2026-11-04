@@ -1,5 +1,5 @@
 import { schema as s } from "@job-search-os/db";
-import { JOB_STATUSES } from "@job-search-os/pipeline";
+import { JOB_STATUSES, splitFarFromProfile } from "@job-search-os/pipeline";
 import {
   countJobs,
   countPossibleDuplicates,
@@ -10,18 +10,31 @@ import {
   reviewProgressFor,
   type JobCounts,
   type JobFilters as ListFilters,
+  type JobListRow,
 } from "@/lib/jobs";
 import { GuidedTour } from "@/components/guided-tour";
 import { GUIDE_LABELS, GUIDE_STEPS } from "@/lib/guide";
 import { PRE_SCORE_EXPLAIN, SOURCE_LABELS, STATUS_LABELS } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import Link from "next/link";
-import { Alert, EmptyState, buttonClasses, textLinkClasses } from "@/components/ui";
+import { Illustration } from "@/components/brand/illustration";
+import {
+  Alert,
+  EmptyState,
+  Icon,
+  buttonClasses,
+  filterChipClasses,
+  textLinkClasses,
+  type IconName,
+} from "@/components/ui";
 import { AutoRefresh } from "./auto-refresh";
 import { EmailNudge } from "./email-nudge";
 import { FirstSteps, firstStepsHidden } from "./first-steps";
 import { JobFilters } from "./job-filters";
 import { JobList } from "./job-list";
+import { OfferPanel, OfferPanelHint } from "./offer-panel";
+import { getJobDetail } from "@/lib/job-detail";
+import { isUuid } from "@/lib/ids";
 import { RoleGaps } from "./role-gaps";
 import { RoleNudge } from "./role-nudge";
 
@@ -47,38 +60,94 @@ export default async function JobsPage({
   // Una consulta agregada: el vacío la necesita y la columna de la derecha (P1) muestra las pendientes
   const counts = await countJobs(userId).catch(() => null);
   const stepsHidden = await firstStepsHidden(userId);
+  // O3 (C9-9): la oferta elegida para el panel de la derecha, en la URL. Solo un id válido; si no
+  // existe para esta persona (RLS), el panel muestra la indicación como si no hubiera ninguna.
+  const ofertaParam = typeof params.oferta === "string" ? params.oferta : null;
+  const selected = ofertaParam && isUuid(ofertaParam) ? ofertaParam : null;
+  const panelJob = selected ? await getJobDetail(userId, selected).catch(() => null) : null;
+
+  // Chips de filtro (C10-7, ofertas-pc.png): cada uno es un link con los filtros de la URL
+  const chip = (patch: Partial<ListFilters>) => `/jobs${listQuery({ ...filters, ...patch })}`;
+  const onlyDefault = filters.status === null && !filters.modalidad && !filters.idioma;
 
   return (
-    <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-      <section className="flex min-w-0 flex-1 flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="min-w-0">
-            <h1 className="text-title font-semibold">Ofertas</h1>
-            <p className="text-xs text-fg-subtle">
-              {rows.length === LIST_LIMIT
-                ? `Mostrando las primeras ${LIST_LIMIT}`
-                : `${rows.length} ${rows.length === 1 ? "oferta" : "ofertas"}`}
-              , ordenadas por puntaje, riesgos y fecha
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <GuidedTour
-              steps={GUIDE_STEPS.jobs}
-              label={GUIDE_LABELS.panel}
-              testId="guide"
-              openerLabel={GUIDE_LABELS.opener}
-              resume
-            />
-            <Link href="/jobs/new" className={buttonClasses({ size: "sm", className: "shrink-0" })}>
-              + Cargar oferta
-            </Link>
-          </div>
+    <div data-ancho="completo" className="flex flex-col pb-10">
+      <div className="mx-auto flex w-full max-w-[1280px] flex-col sm:flex-row sm:items-center sm:gap-2 sm:px-10 sm:pt-[22px]">
+        {/* En el celular el título va en el índigo, debajo de la barra (ofertas-cel.png) */}
+        <div className="bg-ink px-5 pb-[18px] sm:mr-3.5 sm:bg-transparent sm:p-0">
+          <h1 className="text-[26px] leading-tight font-extrabold text-on-ink sm:text-[28px] sm:text-fg">
+            Tus ofertas
+          </h1>
         </div>
+        <nav
+          aria-label="Filtros rápidos"
+          className="flex gap-1.5 overflow-x-auto px-3.5 pt-1 sm:gap-2 sm:overflow-visible sm:p-0"
+        >
+          <Link
+            href={chip({ status: null, modalidad: null, idioma: null })}
+            aria-current={onlyDefault ? "true" : undefined}
+            className={filterChipClasses({
+              compact: true,
+              selected: onlyDefault,
+              className: "shrink-0",
+            })}
+          >
+            {onlyDefault ? `Para revisar · ${rows.length}` : "Para revisar"}
+          </Link>
+          <Link
+            href={chip({ status: filters.status === "todas" ? null : "todas" })}
+            aria-current={filters.status === "todas" ? "true" : undefined}
+            className={filterChipClasses({
+              compact: true,
+              selected: filters.status === "todas",
+              className: "shrink-0",
+            })}
+          >
+            Todas
+          </Link>
+          <Link
+            href={chip({ modalidad: filters.modalidad ? null : "remoto" })}
+            aria-current={filters.modalidad ? "true" : undefined}
+            className={filterChipClasses({
+              compact: true,
+              selected: Boolean(filters.modalidad),
+              className: "shrink-0",
+            })}
+          >
+            Remoto
+          </Link>
+          {/* En el celular la fila se desliza: «En español» queda a la derecha de los tres de la
+              referencia (ofertas-cel.png) */}
+          <Link
+            href={chip({ idioma: filters.idioma ? null : "es" })}
+            aria-current={filters.idioma === "es" ? "true" : undefined}
+            data-testid="chip-en-espanol"
+            aria-describedby={filters.idioma === "es" ? "chip-en-espanol-ayuda" : undefined}
+            className={filterChipClasses({
+              compact: true,
+              selected: filters.idioma === "es",
+              className: "shrink-0",
+            })}
+          >
+            En español
+          </Link>
+        </nav>
+        <p className="ml-auto hidden text-[13px] font-bold text-fg-subtle sm:block">
+          Ordenadas por afinidad
+        </p>
+      </div>
+
+      <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-3 px-3.5 pt-3 sm:px-10 sm:pt-[18px]">
+        {filters.idioma === "es" ? (
+          <p id="chip-en-espanol-ayuda" className="text-xs text-fg-subtle">
+            Solo las ofertas que encontramos nosotros: las que cargaste vos no tienen idioma
+            guardado.
+          </p>
+        ) : null}
         <FirstSteps userId={userId} />
         <RoleNudge userId={userId} />
         {/* D2: mientras la checklist está visible, su ítem 6 reemplaza al aviso de email */}
         {stepsHidden ? <EmailNudge userId={userId} /> : null}
-        <RoleGaps userId={userId} />
         {/* Posibles duplicados (JS-025): se revisan a mano, desde el detalle */}
         {filters.duplicates ? (
           <Alert tone="warning" role={null}>
@@ -100,59 +169,93 @@ export default async function JobsPage({
             </p>
           </Alert>
         ) : null}
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href={`/jobs${listQuery({ ...filters, idioma: filters.idioma ? null : "es" })}`}
-            aria-current={filters.idioma === "es" ? "true" : undefined}
-            data-testid="chip-en-espanol"
-            aria-describedby={filters.idioma === "es" ? "chip-en-espanol-ayuda" : undefined}
-            className={`inline-flex min-h-11 items-center rounded-pill border-2 px-4 text-sm font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
-              filters.idioma === "es"
-                ? "border-fg bg-fg text-canvas"
-                : "border-line-strong bg-surface text-fg"
-            }`}
-          >
-            En español
-          </Link>
-          {filters.idioma === "es" ? (
-            <p id="chip-en-espanol-ayuda" className="text-xs text-fg-subtle">
-              Solo las ofertas que encontramos nosotros: las que cargaste vos no tienen idioma
-              guardado.
-            </p>
-          ) : null}
+
+        <div className="grid items-start gap-6 lg:grid-cols-[470px_1fr]">
+          <section aria-labelledby="lista-titulo" className="flex min-w-0 flex-col gap-3">
+            <h2 id="lista-titulo" className="sr-only">
+              {rows.length === LIST_LIMIT
+                ? `Las primeras ${LIST_LIMIT} ofertas`
+                : `${rows.length} ${rows.length === 1 ? "oferta" : "ofertas"}`}
+              , ordenadas por afinidad
+            </h2>
+            {rows.length === 0 ? (
+              <EmptyList
+                counts={counts}
+                reviewedAll={
+                  filters.status === null &&
+                  progress.total > 0 &&
+                  progress.revisadas === progress.total
+                }
+              />
+            ) : (
+              <>
+                {rows.some((r) => !r.evaluating && r.score === null && r.preScore !== null) ? (
+                  <p className="text-xs text-fg-subtle" data-testid="pre-score-explain">
+                    {PRE_SCORE_EXPLAIN} El número va de 0 a 10.
+                  </p>
+                ) : null}
+                <JobListSplit rows={rows} query={query} selected={panelJob?.id ?? null} />
+              </>
+            )}
+            <AutoRefresh active={rows.some((r) => r.evaluating)} />
+          </section>
+          {panelJob ? (
+            <OfferPanel job={panelJob} detailHref={`/jobs/${panelJob.id}${query}`} />
+          ) : (
+            <JobsAside pending={counts?.sinDescripcion ?? 0} />
+          )}
         </div>
-        {progress.total > 0 ? <ReviewProgress {...progress} filters={filters} /> : null}
-        <JobFilters
-          value={{
-            score: filters.scoreMin === null ? "" : String(filters.scoreMin),
-            fuente: filters.source ?? "",
-            estado: filters.status ?? "",
-            desde: filters.since ?? "",
-            periodo: filters.periodo ?? "",
-          }}
-          sources={s.sourceKind.enumValues.map((k) => ({ value: k, label: SOURCE_LABELS[k] ?? k }))}
-          statuses={JOB_STATUSES.map((k) => ({ value: k, label: STATUS_LABELS[k] ?? k }))}
-        />
-        {rows.length === 0 ? (
-          <EmptyList
-            counts={counts}
-            reviewedAll={
-              filters.status === null && progress.total > 0 && progress.revisadas === progress.total
-            }
+
+        {/* Lo que no está en la referencia va debajo de la lista (C10-7): la guía y «+ Cargar
+            oferta» a la vista (el panel de la guía no se vería dentro de un desplegable cerrado), y
+            los filtros finos y el avance en «Más filtros y herramientas» */}
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <GuidedTour
+            steps={GUIDE_STEPS.jobs}
+            label={GUIDE_LABELS.panel}
+            testId="guide"
+            openerLabel={GUIDE_LABELS.opener}
+            resume
           />
-        ) : (
-          <>
-            {rows.some((r) => !r.evaluating && r.score === null && r.preScore !== null) ? (
-              <p className="text-xs text-fg-subtle" data-testid="pre-score-explain">
-                {PRE_SCORE_EXPLAIN} El número va de 0 a 10.
-              </p>
-            ) : null}
-            <JobList rows={rows} query={query} />
-          </>
-        )}
-        <AutoRefresh active={rows.some((r) => r.evaluating)} />
-      </section>
-      <JobsAside pending={counts?.sinDescripcion ?? 0} />
+          <Link href="/jobs/new" className={buttonClasses({ size: "sm", className: "shrink-0" })}>
+            + Cargar oferta
+          </Link>
+        </div>
+        {/* Abierto si la URL ya trae un filtro fino: se ve qué está filtrando */}
+        <details
+          data-testid="jobs-herramientas"
+          open={
+            filters.scoreMin !== null ||
+            filters.source !== null ||
+            (filters.status !== null && filters.status !== "todas") ||
+            filters.since !== null ||
+            filters.periodo !== null ||
+            undefined
+          }
+        >
+          <summary className="inline-flex min-h-11 cursor-pointer items-center text-sm font-bold text-brand-text hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus">
+            Más filtros y herramientas
+          </summary>
+          <div className="mt-3 flex flex-col gap-3">
+            <RoleGaps userId={userId} />
+            {progress.total > 0 ? <ReviewProgress {...progress} filters={filters} /> : null}
+            <JobFilters
+              value={{
+                score: filters.scoreMin === null ? "" : String(filters.scoreMin),
+                fuente: filters.source ?? "",
+                estado: filters.status ?? "",
+                desde: filters.since ?? "",
+                periodo: filters.periodo ?? "",
+              }}
+              sources={s.sourceKind.enumValues.map((k) => ({
+                value: k,
+                label: SOURCE_LABELS[k] ?? k,
+              }))}
+              statuses={JOB_STATUSES.map((k) => ({ value: k, label: STATUS_LABELS[k] ?? k }))}
+            />
+          </div>
+        </details>
+      </div>
     </div>
   );
 }
@@ -164,7 +267,8 @@ export default async function JobsPage({
  */
 function JobsAside({ pending }: { pending: number }) {
   return (
-    <aside aria-label="Atajos" className="hidden w-72 shrink-0 flex-col gap-3 lg:flex">
+    <aside aria-label="Atajos" className="hidden min-w-0 flex-col gap-3 lg:flex">
+      <OfferPanelHint />
       {pending > 0 ? (
         <div className="flex flex-col gap-2 rounded-card border border-ink-line bg-ink p-4 text-on-ink">
           <p className="font-display text-lg font-bold">
@@ -177,13 +281,13 @@ function JobsAside({ pending }: { pending: number }) {
           </p>
           <Link
             href="/jobs/pending-jd"
-            className="inline-flex min-h-11 items-center self-start rounded-control bg-brand px-4 text-sm font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            className="inline-flex min-h-11 items-center self-start pressable edge-4 rounded-pill border-edge-brand bg-brand px-4 text-sm font-extrabold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           >
             {pending === 1 ? "Completarla" : "Completarlas"}
           </Link>
         </div>
       ) : null}
-      <div className="flex flex-col gap-2 rounded-card border border-line bg-surface p-4">
+      <div className="flex flex-col gap-2 rounded-card bg-surface p-4">
         <p className="text-sm font-bold">¿La oferta no está en la lista?</p>
         <Link href="/jobs/new" className={buttonClasses({ variant: "secondary", size: "sm" })}>
           Cargala a mano
@@ -197,6 +301,21 @@ function JobsAside({ pending }: { pending: number }) {
 }
 
 const EMPTY_LINK = textLinkClasses({ block: true });
+
+/** Qué hacer mientras no hay ofertas (V3): los tres caminos de siempre, como checklist. */
+const EMPTY_STEPS: ReadonlyArray<{ href: string; label: string; icon: IconName }> = [
+  {
+    href: "/settings#puesto",
+    label: "Esperar las ofertas que sumamos cada día: elegí tus puestos",
+    icon: "filtro",
+  },
+  {
+    href: "/settings/asistente",
+    label: "Reenviar tus alertas de empleo por email",
+    icon: "alertas",
+  },
+  { href: "/jobs/new", label: "Cargar una oferta que viste", icon: "pegar" },
+];
 
 /**
  * Lista vacía. Si hay ofertas sin evaluar que los filtros esconden, lo dice y las muestra; si no
@@ -257,24 +376,35 @@ function EmptyList({ counts, reviewedAll }: { counts: JobCounts | null; reviewed
   }
   if (counts !== null && counts.total === 0) {
     return (
-      <EmptyState data-testid="jobs-empty-none" title="Todavía no tenés ofertas" action={null}>
-        <p>Podés empezar de tres maneras:</p>
-        <ul className="flex flex-col items-center">
-          <li>
-            <Link href="/jobs/new" className={EMPTY_LINK}>
-              Cargar una oferta que viste
-            </Link>
-          </li>
-          <li>
-            <Link href="/settings/asistente" className={EMPTY_LINK}>
-              Reenviar tus alertas de empleo por email
-            </Link>
-          </li>
-          <li>
-            <Link href="/settings#puesto" className={EMPTY_LINK}>
-              Esperar las ofertas que sumamos cada día: elegí tus puestos
-            </Link>
-          </li>
+      // V3 (C9-13): ilustración chica, qué hacer mientras como checklist y una sola acción principal
+      <EmptyState
+        data-testid="jobs-empty-none"
+        title="Todavía no tenés ofertas"
+        illustration={<Illustration escena="vacio" className="w-40 sm:w-52" />}
+        action={
+          <Link href="/settings#puesto" className={buttonClasses()}>
+            Elegir mis áreas
+          </Link>
+        }
+      >
+        <p>
+          Todavía no llegó nada, pero estamos buscando todos los días. Mientras, dejá tu perfil a
+          punto:
+        </p>
+        <ul className="mt-2 flex flex-col gap-1 text-left">
+          {EMPTY_STEPS.map((step) => (
+            <li key={step.href} className="flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className="flex size-7 shrink-0 items-center justify-center rounded-pill border-2 border-dashed border-line-control text-fg-muted"
+              >
+                <Icon name={step.icon} size={14} />
+              </span>
+              <Link href={step.href} className={EMPTY_LINK}>
+                {step.label}
+              </Link>
+            </li>
+          ))}
         </ul>
       </EmptyState>
     );
@@ -338,10 +468,47 @@ function ReviewProgress({
         className="h-1.5 overflow-hidden rounded-pill bg-line"
       >
         <div
-          className={`h-full rounded-pill ${done ? "bg-success-strong" : "bg-brand"}`}
+          className={`h-full rounded-pill ${done ? "bg-success-strong" : "bg-brand-text"}`}
           style={{ width: `${pct}%` }}
         />
       </div>
     </div>
+  );
+}
+
+/**
+ * La lista con las «Lejos de tu perfil» siempre al final, debajo de su separador, sea cual sea el
+ * orden (C9-5, decisión 7). La guía se ancla en la primera tarjeta de arriba.
+ */
+function JobListSplit({
+  rows,
+  query,
+  selected,
+}: {
+  rows: JobListRow[];
+  query: string;
+  selected: string | null;
+}) {
+  // Una que se está reevaluando no es lejana todavía: se ve arriba con su sello «Leyendo…» (R-3)
+  const { near, far } = splitFarFromProfile(rows, (r) => (r.evaluating ? null : r.score));
+  return (
+    <>
+      {near.length ? <JobList rows={near} query={query} selected={selected} featuredFirst /> : null}
+      {far.length ? (
+        <section
+          aria-labelledby="lejos-titulo"
+          className="mt-1 flex flex-col gap-3"
+          data-testid="lejanas"
+        >
+          <h2
+            id="lejos-titulo"
+            className="flex items-center gap-2.5 font-sans text-xs font-extrabold text-fg-subtle before:h-0.5 before:flex-1 before:bg-line-strong after:h-0.5 after:flex-1 after:bg-line-strong"
+          >
+            Lejos de tu perfil ({far.length})
+          </h2>
+          <JobList rows={far} query={query} tour={near.length === 0} selected={selected} />
+        </section>
+      ) : null}
+    </>
   );
 }

@@ -61,7 +61,7 @@ export default async function MercadoPage() {
             Datos curiosos
           </h2>
           <div className="grid gap-4 md:grid-cols-3">
-            <div className="flex min-w-0 flex-col gap-2 rounded-card border border-line bg-surface p-4">
+            <div className="flex min-w-0 flex-col gap-2 rounded-card bg-surface p-4">
               <h3 className="text-sm font-semibold text-fg">Carreras con más ofertas remotas</h3>
               {remoteByRole.length ? (
                 <ol className="flex flex-col gap-1 text-sm text-fg">
@@ -84,7 +84,7 @@ export default async function MercadoPage() {
               )}
             </div>
 
-            <div className="flex min-w-0 flex-col gap-2 rounded-card border border-line bg-surface p-4">
+            <div className="flex min-w-0 flex-col gap-2 rounded-card bg-surface p-4">
               <h3 className="text-sm font-semibold text-fg">
                 Ofertas que aceptan Argentina o LATAM
               </h3>
@@ -102,7 +102,7 @@ export default async function MercadoPage() {
               </p>
             </div>
 
-            <div className="flex min-w-0 flex-col gap-2 rounded-card border border-line bg-surface p-4">
+            <div className="flex min-w-0 flex-col gap-2 rounded-card bg-surface p-4">
               <h3 className="text-sm font-semibold text-fg">
                 Empresas con más avisos en la muestra
               </h3>

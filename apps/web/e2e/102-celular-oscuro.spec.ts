@@ -42,12 +42,12 @@ test.describe("Flujo 102: celular a 390 px en claro y oscuro", () => {
         await expect(page.getByRole("heading", { level: 1 }).first(), path).toBeVisible();
         if (theme === "oscuro") await expect(page.locator("html")).toHaveClass(/\bdark\b/);
         else await expect(page.locator("html")).not.toHaveClass(/\bdark\b/);
-        // El header es índigo en los dos modos y el menú del celular está a mano
+        // El header es índigo en los dos modos y las pestañas del celular están a mano
         await expect(page.locator("header").first()).toHaveCSS(
           "background-color",
           "rgb(30, 27, 75)",
         );
-        await expect(page.getByTestId("menu-movil"), path).toBeVisible();
+        await expect(page.getByTestId("tabbar"), path).toBeVisible();
         const { scrollWidth, width } = await page.evaluate(() => ({
           scrollWidth: document.documentElement.scrollWidth,
           width: window.innerWidth,

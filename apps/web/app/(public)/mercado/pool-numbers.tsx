@@ -62,7 +62,7 @@ export function PoolNumbers({
     <div data-testid="pool-numbers" className="flex flex-col gap-2">
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {items.map(([label, value]) => (
-          <div key={label} className="min-w-0 rounded-card border border-line bg-surface p-3">
+          <div key={label} className="min-w-0 rounded-card bg-surface p-3">
             <dt className="text-xs text-fg-muted">{label}</dt>
             <dd className="break-words text-lg font-semibold text-fg">{value}</dd>
           </div>

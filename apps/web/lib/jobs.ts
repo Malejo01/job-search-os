@@ -7,6 +7,9 @@ import {
   parsePeriod,
   resolveSince,
   reviewProgress,
+  splitFarFromProfile,
+  offerCardChips,
+  type OfferChip,
   type HumanVerdict,
   type JobStatus,
   type Period,
@@ -42,6 +45,8 @@ export type JobFilters = {
   duplicates: boolean;
   /** Solo ofertas del pool escritas en español (`public_jobs.lang = 'es'`); null = sin filtro. */
   idioma?: "es" | null;
+  /** Solo ofertas remotas (`jobs.modality = 'remoto'`), el chip «Remoto» de C10-7; null = todas. */
+  modalidad?: "remoto" | null;
 };
 
 export type JobListRow = {
@@ -64,6 +69,11 @@ export type JobListRow = {
   bloqueadores: string[];
   /** Un punto a favor y uno que falta o frena, en llano (resumen de la tarjeta); sin evaluación, vacío. */
   fit: FitCardSummary;
+  /**
+   * Chips de la tarjeta K2 (C9-8): con checklist, lo que cumple y lo que no; sin checklist, las
+   * fortalezas y debilidades de la evaluación. Sin evaluación, vacío.
+   */
+  card: { chips: OfferChip[]; more: number; count: string | null };
   /** evaluations.model; "fake" = modo demo (badge DEMO). */
   model: string | null;
   /** Última evaluación (para el 👍/👎 de la tarjeta); null si no hay. */
@@ -110,6 +120,7 @@ export function parseJobFilters(params: Record<string, string | string[] | undef
     periodo: parsePeriod(one("periodo")),
     duplicates: one("duplicados") === "1",
     idioma: one("idioma") === "es" ? "es" : null,
+    modalidad: one("modalidad") === "remoto" ? "remoto" : null,
   };
 }
 
@@ -165,6 +176,30 @@ export async function listJobs(
         matchFuerte: s.evaluations.matchFuerte,
         gaps: s.evaluations.gaps,
         senales: s.evaluations.senalesPositivas,
+        // Tarjeta K2 (C9-8): del checklist guardado, solo los primeros `pide` de cada lado y los
+        // totales, no el jsonb entero (puede pesar varios KB por oferta). Sin las skills que el aviso
+        // solo nombra: no entran en `must`/`deseable`, así la tarjeta cuenta lo mismo que el detalle
+        // (R-3). Los totales solo si son números: un valor raro en el jsonb no rompe la lista.
+        checklistHave: sql<
+          string[] | null
+        >`case when ${s.evaluations.decision} ? 'checklist' then array(select x #>> '{}' from jsonb_path_query(${s.evaluations.decision}, '$.checklist.items[*] ? (@.status == "cumple" && @.kind != "skill").pide') as t(x) limit 3) end`.as(
+          "checklist_have",
+        ),
+        checklistMissing: sql<
+          string[] | null
+        >`case when ${s.evaluations.decision} ? 'checklist' then array(select x #>> '{}' from jsonb_path_query(${s.evaluations.decision}, '$.checklist.items[*] ? (@.status == "no_cumple" && @.kind != "skill").pide') as t(x) limit 3) end`.as(
+          "checklist_missing",
+        ),
+        checklistHaveCount: sql<
+          number | null
+        >`case when jsonb_typeof(${s.evaluations.decision} #> '{checklist,must,cumple}') = 'number' and jsonb_typeof(${s.evaluations.decision} #> '{checklist,deseable,cumple}') = 'number' then (${s.evaluations.decision} #>> '{checklist,must,cumple}')::numeric::int + (${s.evaluations.decision} #>> '{checklist,deseable,cumple}')::numeric::int end`.as(
+          "checklist_have_count",
+        ),
+        checklistMissingCount: sql<
+          number | null
+        >`case when jsonb_typeof(${s.evaluations.decision} #> '{checklist,must,no_cumple}') = 'number' and jsonb_typeof(${s.evaluations.decision} #> '{checklist,deseable,no_cumple}') = 'number' then (${s.evaluations.decision} #>> '{checklist,must,no_cumple}')::numeric::int + (${s.evaluations.decision} #>> '{checklist,deseable,no_cumple}')::numeric::int end`.as(
+          "checklist_missing_count",
+        ),
         model: s.evaluations.model,
         humanVerdict: s.evaluations.humanVerdict,
         createdAt: s.evaluations.createdAt,
@@ -201,6 +236,7 @@ export async function listJobs(
       since ? gte(s.jobs.firstSeenAt, since) : undefined,
       filters.duplicates ? sql`'posible_duplicado' = any(${s.jobs.flags})` : undefined,
       filters.idioma ? eq(s.publicJobs.lang, filters.idioma) : undefined,
+      filters.modalidad ? eq(s.jobs.modality, filters.modalidad) : undefined,
     ].filter((c): c is NonNullable<typeof c> => c !== undefined);
 
     const rows = await tx
@@ -227,6 +263,10 @@ export async function listJobs(
         matchFuerte: latest.matchFuerte,
         gaps: latest.gaps,
         senales: latest.senales,
+        checklistHave: latest.checklistHave,
+        checklistMissing: latest.checklistMissing,
+        checklistHaveCount: latest.checklistHaveCount,
+        checklistMissingCount: latest.checklistMissingCount,
         model: latest.model,
         evaluationId: latest.evaluationId,
         humanVerdict: latest.humanVerdict,
@@ -298,6 +338,22 @@ export async function listJobs(
         riesgos: (r.riesgos ?? []).map(riskLabel),
         bloqueadores: r.bloqueadores ?? [],
       }),
+      card:
+        r.score === null
+          ? { chips: [], more: 0, count: null }
+          : offerCardChips({
+              checklist: Array.isArray(r.checklistHave)
+                ? {
+                    have: stringsOf(r.checklistHave),
+                    missing: stringsOf(r.checklistMissing),
+                    haveCount: Number(r.checklistHaveCount) || 0,
+                    missingCount: Number(r.checklistMissingCount) || 0,
+                  }
+                : null,
+              strengths: r.matchFuerte ?? [],
+              // Sin el texto del aviso no se sabe si el inglés es brecha: en la tarjeta no se muestra
+              gaps: (r.gaps ?? []).filter((g) => !isEnglishGap(g)),
+            }),
       model: r.model,
       evaluationId: r.evaluationId,
       humanVerdict: r.humanVerdict,
@@ -318,8 +374,10 @@ export async function jobNeighbors(
   filters: JobFilters,
 ): Promise<{ prev: string | null; next: string | null }> {
   const rows = await listJobs(userId, filters, { include: jobId, withPreScore: false });
+  // Mismo orden que se ve en /jobs: las «Lejos de tu perfil» al final (C9-5)
+  const { near, far } = splitFarFromProfile(rows, (r) => (r.evaluating ? null : r.score));
   return neighbors(
-    rows.map((r) => r.id),
+    [...near, ...far].map((r) => r.id),
     jobId,
   );
 }
@@ -367,6 +425,7 @@ export function listQuery(filters: JobFilters): string {
   if (filters.periodo) q.set("periodo", filters.periodo);
   if (filters.duplicates) q.set("duplicados", "1");
   if (filters.idioma) q.set("idioma", filters.idioma);
+  if (filters.modalidad) q.set("modalidad", filters.modalidad);
   const str = q.toString();
   return str ? `?${str}` : "";
 }
@@ -407,4 +466,9 @@ export async function countPossibleDuplicates(userId: string): Promise<number> {
       .where(sql`'posible_duplicado' = any(${s.jobs.flags})`);
     return row?.n ?? 0;
   });
+}
+
+/** Lo que viene del jsonb no es de fiar: solo strings. */
+function stringsOf(v: unknown): string[] {
+  return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
 }

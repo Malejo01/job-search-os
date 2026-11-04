@@ -119,7 +119,7 @@ export async function FirstSteps({ userId }: { userId: string }) {
       aria-labelledby="primeros-pasos-titulo"
       data-testid="first-steps"
       data-tour="jobs:primeros-pasos"
-      className="flex flex-col gap-2 rounded-card border border-line bg-surface p-3 text-sm"
+      className="flex flex-col gap-2 rounded-card bg-surface p-3 text-sm"
     >
       <div className="flex items-baseline justify-between gap-2">
         <h2 id="primeros-pasos-titulo" className="font-semibold">

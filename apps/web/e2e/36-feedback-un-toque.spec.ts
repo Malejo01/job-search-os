@@ -91,17 +91,15 @@ test.describe("Flujo 36: feedback de un toque", () => {
     await expect(page.getByRole("button", { name: "Quitar motivo", exact: true })).toHaveCount(0);
   });
 
-  test("tarjeta en 360 px: sin scroll horizontal y botones de al menos 44x44", async ({ page }) => {
+  test("tarjeta en 360 px: sin scroll horizontal y sin 👍/👎 (van en el detalle, C10-7)", async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 360, height: 800 });
     await login(page);
     await page.goto("/jobs");
     const item = page.getByRole("main").getByRole("listitem").filter({ hasText: tituloTarjeta });
-    for (const name of ["Me sirve la evaluación", "No me sirve la evaluación"]) {
-      // exact: "Me sirve…" es subcadena de "No me sirve…"
-      const box = await item.getByRole("button", { name, exact: true }).boundingBox();
-      expect(box?.width).toBeGreaterThanOrEqual(44);
-      expect(box?.height).toBeGreaterThanOrEqual(44);
-    }
+    await expect(item).toBeVisible();
+    await expect(item.getByRole("button")).toHaveCount(0);
     const sinScroll = await page.evaluate(
       () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
     );
@@ -169,15 +167,19 @@ test.describe("Flujo 36: feedback de un toque", () => {
     await expect.poll(async () => (await evaluationFeedbackOf(detalle))?.humanVerdict).toBeNull();
   });
 
-  test("tarjeta: 'Me sirve la evaluación' no navega y queda guardado", async ({ page }) => {
+  test("tarjeta: lleva al detalle, donde está «¿Te sirve esta evaluación?» y queda guardado", async ({
+    page,
+  }) => {
     await login(page);
     await page.goto("/jobs");
     const item = page.getByRole("main").getByRole("listitem").filter({ hasText: tituloTarjeta });
-    const boton = item.getByRole("button", { name: "Me sirve la evaluación", exact: true });
-    await expect(boton).toHaveAttribute("aria-pressed", "false");
-    await boton.click();
-    await expect(boton).toHaveAttribute("aria-pressed", "true");
-    await expect(page).toHaveURL(/\/jobs(\?.*)?$/);
+    await item.getByRole("link", { name: /abrir el detalle/i }).click();
+    await expect(page).toHaveURL(new RegExp(`/jobs/${tarjeta}`));
+    const si = page
+      .getByRole("group", { name: "¿Te sirve esta evaluación?" })
+      .getByRole("button", { name: "Sí, me sirve", exact: true });
+    await si.click();
+    await expect(si).toHaveAttribute("aria-pressed", "true");
     await expect
       .poll(async () => (await evaluationFeedbackOf(tarjeta))?.humanVerdict)
       .toBe("de_acuerdo");

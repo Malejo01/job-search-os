@@ -30,7 +30,7 @@ export function RoleSpecialties({
 
   return (
     <div
-      className="flex flex-col gap-2 rounded-card border border-line bg-surface-subtle p-3"
+      className="flex flex-col gap-2 rounded-card bg-surface-subtle p-3"
       data-testid={`role-specialties-${roleKey}`}
     >
       <div className="flex flex-col gap-0.5">

@@ -65,7 +65,7 @@ const STACK = [
 ];
 
 const CTA_CLASS =
-  "inline-flex min-h-11 items-center justify-center rounded-control bg-brand px-5 text-base font-medium text-brand-contrast hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
+  "inline-flex min-h-11 items-center justify-center pressable edge-6 rounded-pill border-edge-brand bg-brand px-5 text-base font-extrabold text-brand-contrast hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus";
 const LINK_CLASS = "inline-flex min-h-11 items-center underline underline-offset-2 hover:text-fg";
 
 export default async function HowItsBuiltPage() {
@@ -92,13 +92,10 @@ export default async function HowItsBuiltPage() {
         <FlowDiagram lang="en" />
         <ol className="flex max-w-3xl flex-col gap-3" aria-label="The journey, step by step">
           {FLOW_STEPS_EN.map((step, i) => (
-            <li
-              key={step.title}
-              className="flex min-w-0 gap-3 rounded-card border border-line bg-surface p-4"
-            >
+            <li key={step.title} className="flex min-w-0 gap-3 rounded-card bg-surface p-4">
               <span
                 aria-hidden="true"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-sm font-semibold text-brand-contrast"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-pill bg-ink font-display text-sm font-extrabold text-on-ink"
               >
                 {i + 1}
               </span>
@@ -118,7 +115,7 @@ export default async function HowItsBuiltPage() {
         </h2>
         <ul className="grid gap-3 sm:grid-cols-2">
           {SAFEGUARDS.map(([title, text]) => (
-            <li key={title} className="min-w-0 rounded-card border border-line bg-surface p-4">
+            <li key={title} className="min-w-0 rounded-card bg-surface p-4">
               <p className="font-semibold">{title}</p>
               <p className="text-sm leading-relaxed text-fg-muted sm:text-base">{text}</p>
             </li>
@@ -132,7 +129,7 @@ export default async function HowItsBuiltPage() {
         </h2>
         <dl className="grid gap-3 sm:grid-cols-2">
           {STACK.map(([label, text]) => (
-            <div key={label} className="min-w-0 rounded-card border border-line bg-surface p-4">
+            <div key={label} className="min-w-0 rounded-card bg-surface p-4">
               <dt className="font-semibold">{label}</dt>
               <dd className="text-sm leading-relaxed text-fg-muted sm:text-base">{text}</dd>
             </div>

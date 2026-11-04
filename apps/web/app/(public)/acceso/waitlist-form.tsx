@@ -2,22 +2,33 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 // R-1: import directo (el barril de `@/components/ui` arrastra el de pipeline al navegador)
 import { buttonClasses } from "@/components/ui/button";
 import { submitWaitlist, trackAcceso, type WaitlistState } from "./actions";
 import { ShareButton } from "./share-button";
 
 const INITIAL: WaitlistState = { status: "idle" };
-// Campo del manual (M8, C7-10): borde de 2 px, radio 12, 44 px y foco lima
+// Campo y etiqueta (C10-5, `.field` y `.fl` del tablero): R-1, sin el barril de `@/components/ui`
 const field =
-  "min-h-12 w-full rounded-control border-2 border-line-control bg-surface px-3 py-2 text-base text-fg focus-visible:border-focus aria-invalid:border-danger-strong";
+  "min-h-11 w-full rounded-control border-x-2 border-t-2 border-b-4 border-line-strong bg-surface px-4 py-[13px] text-base leading-[1.2] font-semibold text-fg placeholder:text-fg-subtle focus-visible:border-focus aria-invalid:border-danger-strong sm:text-[15px]";
+const label = "flex flex-col gap-1.5 text-[13px] font-extrabold text-fg";
+// Chip de carrera (`.chip` y `.chipon`): el `label` mide 44 px (el área táctil) y adentro va la
+// píldora de 38 px de la referencia. El radio, transparente, cubre todo el `label`: se toca donde
+// se toque. El elegido va en lima con borde índigo
+const chipBox = "relative min-h-11 cursor-pointer items-center py-[3px]";
+const chipPill =
+  "inline-flex items-center rounded-pill border-x-2 border-t-2 border-b-4 border-line-strong bg-surface px-3.5 py-2 text-[13px] leading-[1.2] font-bold whitespace-nowrap text-fg group-hover/chip:bg-surface-muted group-has-[:checked]/chip:border-brand-contrast group-has-[:checked]/chip:bg-brand group-has-[:checked]/chip:text-brand-contrast group-has-[:focus-visible]/chip:outline group-has-[:focus-visible]/chip:outline-2 group-has-[:focus-visible]/chip:outline-offset-2 group-has-[:focus-visible]/chip:outline-focus";
+// En el celular se ven tres y «+3» (acceso-cel.png)
+const FIRST_CHIPS = 3;
 
 export type RoleOption = { key: string; label: string };
 export type RoleOptionGroup = { label: string; roles: RoleOption[] };
 
 type FormProps = {
   groups: RoleOptionGroup[];
+  /** Las seis carreras de la beta, como chips, con el nombre corto. */
+  betaCareers: RoleOption[];
   contact: { email: string; href: string } | null;
   /** Embudo de /acceso (C8-2): la página lo prende con `ACCESO_FUNNEL_ENABLED`. */
   funnel?: boolean;
@@ -68,6 +79,7 @@ export function WaitlistForm(props: FormProps) {
 /** El formulario en sí. Las carreras las arma la página (servidor) para no traer la base al cliente. */
 export function WaitlistFormFields({
   groups,
+  betaCareers,
   contact,
   initialHeardFrom,
   funnel = false,
@@ -77,6 +89,14 @@ export function WaitlistFormFields({
   const [state, action, pending] = useActionState(submitWaitlist, INITIAL);
   const formRef = useRef<HTMLFormElement>(null);
   const started = useRef(false);
+  const [allCareers, setAllCareers] = useState(false);
+  // Una sola carrera: la del chip o la de «Otra carrera», la última que se tocó. Va en un campo
+  // oculto (`role`), así nunca viajan dos valores
+  const [role, setRole] = useState("");
+  const onCareer = (value: string) => {
+    setRole(value);
+    if (funnel) void trackAcceso("carrera", origen, value).catch(() => {});
+  };
   // Embudo (C8-2): el primer campo tocado y cada carrera elegida. Nunca lo escrito.
   const onFirstFocus = () => {
     if (!funnel || started.current) return;
@@ -105,7 +125,7 @@ export function WaitlistFormFields({
         </p>
         <section
           aria-labelledby="acceso-que-sigue"
-          className="flex flex-col gap-2 rounded-card border border-line bg-surface p-4"
+          className="flex flex-col gap-2 rounded-card bg-surface p-4"
         >
           <h2 id="acceso-que-sigue" className="text-base font-bold">
             Qué sigue
@@ -140,121 +160,100 @@ export function WaitlistFormFields({
       ref={formRef}
       action={action}
       onFocus={funnel ? onFirstFocus : undefined}
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-3.5 sm:gap-[18px]"
       noValidate
     >
       {origen ? <input type="hidden" name="origen" value={origen.slice(0, 40)} /> : null}
-      <p className="text-base text-fg-muted">
-        La beta es por invitación. Dejá tus datos y, cuando haya lugar, te escribimos con un link
-        para crear tu cuenta.
-      </p>
-      <label className="flex flex-col gap-1.5 text-sm font-semibold">
-        Nombre
-        <input
-          name="name"
-          type="text"
-          autoComplete="name"
-          required
-          aria-required="true"
-          maxLength={120}
-          aria-invalid={errors.name ? true : undefined}
-          aria-describedby={errors.name ? "acceso-name-error" : undefined}
-          className={field}
-        />
-        {errors.name ? (
-          <span id="acceso-name-error" className="text-sm font-semibold text-danger">
-            {errors.name}
-          </span>
-        ) : null}
-      </label>
+      <input type="hidden" name="role" value={role} />
+      <div className="grid gap-3.5 sm:grid-cols-2 sm:gap-4">
+        <label className={label}>
+          Tu nombre
+          <input
+            name="name"
+            type="text"
+            autoComplete="name"
+            placeholder="Lucía"
+            required
+            aria-required="true"
+            maxLength={120}
+            aria-invalid={errors.name ? true : undefined}
+            aria-describedby={errors.name ? "acceso-name-error" : undefined}
+            className={field}
+          />
+          {errors.name ? (
+            <span id="acceso-name-error" className="text-sm font-semibold text-danger">
+              {errors.name}
+            </span>
+          ) : null}
+        </label>
 
-      <label className="flex flex-col gap-1.5 text-sm font-semibold">
-        Email
-        <input
-          name="email"
-          type="email"
-          inputMode="email"
-          autoComplete="email"
-          required
-          aria-required="true"
-          maxLength={254}
-          aria-invalid={errors.email ? true : undefined}
-          aria-describedby={errors.email ? "acceso-email-error" : undefined}
-          className={field}
-        />
-        {errors.email ? (
-          <span id="acceso-email-error" className="text-sm font-semibold text-danger">
-            {errors.email}
-          </span>
-        ) : null}
-      </label>
+        <label className={label}>
+          Tu email
+          <input
+            name="email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            placeholder="lucia@gmail.com"
+            required
+            aria-required="true"
+            maxLength={254}
+            aria-invalid={errors.email ? true : undefined}
+            aria-describedby={errors.email ? "acceso-email-error" : undefined}
+            className={field}
+          />
+          {errors.email ? (
+            <span id="acceso-email-error" className="text-sm font-semibold text-danger">
+              {errors.email}
+            </span>
+          ) : null}
+        </label>
+      </div>
 
-      <label className="flex flex-col gap-1.5 text-sm font-semibold">
-        Carrera
-        <select
-          name="role"
-          required
-          aria-required="true"
-          defaultValue=""
-          onChange={
-            funnel
-              ? (e) => void trackAcceso("carrera", origen, e.target.value).catch(() => {})
-              : undefined
-          }
-          aria-invalid={errors.role ? true : undefined}
-          aria-describedby={errors.role ? "acceso-role-error" : undefined}
-          className={field}
-        >
-          <option value="" disabled>
-            Elegí una carrera
-          </option>
-          {groups.map((g) => (
-            <optgroup key={g.label} label={g.label}>
-              {g.roles.map((r) => (
-                <option key={r.key} value={r.key}>
-                  {r.label}
-                </option>
-              ))}
-            </optgroup>
+      {/* Las seis carreras como chips (radios). Las demás, en «Otra carrera». Las dos escriben la
+          misma carrera (`role`) */}
+      <fieldset
+        className="m-0 flex flex-col gap-1.5 border-0 p-0"
+        aria-describedby={errors.role ? "acceso-role-error" : undefined}
+      >
+        <legend className="mb-1.5 p-0 text-[13px] font-extrabold text-fg">
+          ¿Qué estudiaste o estudiás?
+        </legend>
+        <div className="flex flex-wrap gap-x-1.5 sm:gap-x-2 sm:gap-y-0.5">
+          {betaCareers.map((c, i) => (
+            <label
+              key={c.key}
+              className={`group/chip ${chipBox} ${i >= FIRST_CHIPS && !allCareers ? "hidden sm:inline-flex" : "inline-flex"}`}
+            >
+              <input
+                type="radio"
+                name="carrera-chip"
+                value={c.key}
+                checked={role === c.key}
+                onChange={() => onCareer(c.key)}
+                aria-invalid={errors.role ? true : undefined}
+                className="absolute inset-0 m-0 h-full w-full cursor-pointer appearance-none rounded-pill opacity-0"
+              />
+              <span className={chipPill}>{c.label}</span>
+            </label>
           ))}
-        </select>
+          {!allCareers && betaCareers.length > FIRST_CHIPS ? (
+            <button
+              type="button"
+              onClick={() => setAllCareers(true)}
+              aria-label={`Ver ${betaCareers.length - FIRST_CHIPS} más`}
+              className={`group/chip ${chipBox} inline-flex sm:hidden`}
+            >
+              <span className={chipPill}>+{betaCareers.length - FIRST_CHIPS}</span>
+            </button>
+          ) : null}
+        </div>
         {errors.role ? (
           <span id="acceso-role-error" className="text-sm font-semibold text-danger">
             {errors.role}
           </span>
         ) : null}
-      </label>
-
-      <label className="flex flex-col gap-1.5 text-sm font-semibold">
-        ¿Cómo te enteraste? (opcional)
-        <input
-          name="heardFrom"
-          type="text"
-          defaultValue={initialHeardFrom}
-          key={initialHeardFrom}
-          list="acceso-heard-options"
-          maxLength={200}
-          aria-invalid={errors.heardFrom ? true : undefined}
-          aria-describedby={
-            errors.heardFrom ? "acceso-heard-hint acceso-heard-error" : "acceso-heard-hint"
-          }
-          className={field}
-        />
-        <datalist id="acceso-heard-options">
-          <option value="Voces Jóvenes" />
-          <option value="Instagram" />
-          <option value="LinkedIn" />
-          <option value="Me lo contó alguien" />
-        </datalist>
-        <span id="acceso-heard-hint" className="text-xs font-medium text-fg-subtle">
-          No pongas datos personales.
-        </span>
-        {errors.heardFrom ? (
-          <span id="acceso-heard-error" className="text-sm font-semibold text-danger">
-            {errors.heardFrom}
-          </span>
-        ) : null}
-      </label>
+      </fieldset>
 
       {/* Honeypot: fuera de pantalla y fuera del orden de tabulación; las personas no lo completan */}
       <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
@@ -264,13 +263,79 @@ export function WaitlistFormFields({
         </label>
       </div>
 
-      <button
-        type="submit"
-        disabled={pending}
-        className={buttonClasses({ className: "min-h-12 w-full text-base" })}
-      >
-        {pending ? "Enviando…" : "Pedir acceso"}
-      </button>
+      <div className="flex flex-col gap-3.5 sm:mt-1 sm:flex-row sm:items-center">
+        <button
+          type="submit"
+          disabled={pending}
+          className={buttonClasses({ size: "lg", className: "w-full sm:w-auto sm:px-8" })}
+        >
+          {pending ? "Enviando…" : "Anotarme"}
+        </button>
+        <div className="hidden sm:block">
+          <ShareButton brandName={brandName} compact />
+        </div>
+        <p className="hidden text-[13px] font-semibold text-fg-subtle sm:ml-auto sm:block">
+          Te escribimos si hay lugar.
+        </p>
+      </div>
+
+      {/* Lo que no está en la referencia va debajo de los botones (decisión de C10-5) */}
+      <details className="group text-sm">
+        <summary className="inline-flex min-h-11 cursor-pointer items-center font-semibold text-link underline underline-offset-2 hover:text-link-hover">
+          Otra carrera o cómo nos conociste
+        </summary>
+        <div className="flex flex-col gap-3.5 pt-2">
+          <label className={label}>
+            Carrera
+            <select
+              value={betaCareers.some((c) => c.key === role) ? "" : role}
+              onChange={(e) => onCareer(e.target.value)}
+              className={field}
+            >
+              <option value="">Elegí una carrera</option>
+              {groups.map((g) => (
+                <optgroup key={g.label} label={g.label}>
+                  {g.roles.map((r) => (
+                    <option key={r.key} value={r.key}>
+                      {r.label}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </label>
+          <label className={label}>
+            ¿Cómo te enteraste? (opcional)
+            <input
+              name="heardFrom"
+              type="text"
+              defaultValue={initialHeardFrom}
+              key={initialHeardFrom}
+              list="acceso-heard-options"
+              maxLength={200}
+              aria-invalid={errors.heardFrom ? true : undefined}
+              aria-describedby={
+                errors.heardFrom ? "acceso-heard-hint acceso-heard-error" : "acceso-heard-hint"
+              }
+              className={field}
+            />
+            <datalist id="acceso-heard-options">
+              <option value="Voces Jóvenes" />
+              <option value="Instagram" />
+              <option value="LinkedIn" />
+              <option value="Me lo contó alguien" />
+            </datalist>
+            <span id="acceso-heard-hint" className="text-xs font-medium text-fg-subtle">
+              No pongas datos personales.
+            </span>
+            {errors.heardFrom ? (
+              <span id="acceso-heard-error" className="text-sm font-semibold text-danger">
+                {errors.heardFrom}
+              </span>
+            ) : null}
+          </label>
+        </div>
+      </details>
 
       {/* Gris mientras se envía; rojo y role="alert" solo con un error real */}
       <p

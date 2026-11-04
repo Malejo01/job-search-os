@@ -1,5 +1,7 @@
 "use client";
 
+import { buttonClasses } from "@/components/ui/button";
+
 import { buildEmailFrameDoc } from "@job-search-os/pipeline";
 import { useActionState, useState, useTransition } from "react";
 import {
@@ -69,7 +71,7 @@ export function FormReview({ jobId }: { jobId: string }) {
           <button
             type="submit"
             disabled={analyzing}
-            className="rounded-control bg-brand px-3 py-2 text-sm font-medium text-brand-contrast disabled:opacity-50"
+            className={buttonClasses({ size: "sm", variant: "secondary" })}
           >
             {analyzing ? "Analizando…" : "Analizar"}
           </button>

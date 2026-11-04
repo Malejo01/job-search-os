@@ -5,8 +5,8 @@
  */
 export function CefrHelp({ className = "" }: { className?: string }) {
   return (
-    <details className={`rounded-card border border-line px-3 py-1 text-sm ${className}`.trim()}>
-      <summary className="min-h-11 cursor-pointer py-2.5 font-medium">¿Qué es A1, B2, C1…?</summary>
+    <details className={`rounded-control bg-surface-subtle px-4 py-1 text-sm ${className}`.trim()}>
+      <summary className="min-h-11 cursor-pointer py-2.5 font-bold">¿Qué es A1, B2, C1…?</summary>
       <ul className="mb-2 flex list-none flex-col gap-1 p-0 text-xs leading-5 text-fg-muted">
         <li>
           <span className="font-medium">A1–A2 · básico:</span> entendés frases y textos cortos.

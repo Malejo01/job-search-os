@@ -42,6 +42,14 @@ function nowSec(): number {
 }
 
 /** Resumen de violaciones de axe: regla, impacto y selectores; nunca el HTML. */
+/** «Más de tu semana» (C10-6) va cerrado: lo abre para mirar seguimiento, alertas y mercado. */
+async function openHoyMore(page: Page): Promise<void> {
+  const more = page.getByTestId("hoy-mas");
+  if (!(await more.evaluate((d) => (d as HTMLDetailsElement).open))) {
+    await more.locator("summary").click();
+  }
+}
+
 async function axeSummary(page: Page): Promise<string[]> {
   const { violations } = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
@@ -87,8 +95,10 @@ test.describe("Flujo 69: Hoy", () => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await login(page);
     await expect(page).toHaveURL(/\/hoy$/);
-    await expect(page.getByRole("heading", { level: 1, name: "Hoy", exact: true })).toBeVisible();
+    // C10-6: el h1 es el saludo («¡Buen día, …!»)
+    await expect(page.getByRole("heading", { level: 1, name: /^¡Buen/ })).toBeVisible();
     await expect(page.getByTestId("hoy-visita")).toHaveText("Primera vez por acá");
+    await openHoyMore(page);
     for (const id of ["hoy-nuevo", "hoy-seguimiento", "hoy-alertas", "hoy-mercado"]) {
       const section = page.getByTestId(id);
       await expect(section).toBeVisible();
@@ -119,20 +129,18 @@ test.describe("Flujo 69: Hoy", () => {
     context,
     baseURL,
   }) => {
+    // «También para vos» se ve desde `sm` (C10-6)
+    await page.setViewportSize({ width: 1280, height: 800 });
     await login(page);
     const card = page.getByTestId("hoy-nuevo");
-    await expect(
-      card.getByRole("heading", { name: "Tus mejores ofertas de la semana" }),
-    ).toBeVisible();
+    await expect(card.getByRole("heading", { name: "La mejor de hoy" })).toBeVisible();
 
     const high = card.getByTestId("hoy-nuevo-fila").filter({ hasText: titleHigh });
     const low = card.getByTestId("hoy-nuevo-fila").filter({ hasText: titleLow });
     await expect(high).toBeVisible();
     await expect(high).toContainText("Puntaje 10");
-    await expect(high).toContainText("Aplicar");
     await expect(low).toBeVisible();
     await expect(low).toContainText("Puntaje 9");
-    await expect(low).toContainText("Aplicar");
     // Por score descendente: entre las filas que haya, la de 10 aparece antes que la de 9
     const rows = await card.getByTestId("hoy-nuevo-fila").allTextContents();
     const iHigh = rows.findIndex((t) => t.includes(titleHigh));
@@ -178,9 +186,7 @@ test.describe("Flujo 69: Hoy", () => {
     ]);
     await page.goto("/hoy");
     await expect(
-      page
-        .getByTestId("hoy-nuevo")
-        .getByRole("heading", { name: "Tus mejores ofertas de la semana" }),
+      page.getByTestId("hoy-nuevo").getByRole("heading", { name: "La mejor de hoy" }),
     ).toBeVisible();
     await expect(page.getByTestId("hoy-nuevo")).toContainText(titleHigh);
   });
@@ -198,6 +204,7 @@ test.describe("Flujo 69: Hoy", () => {
       "href",
       "/settings#puesto",
     );
+    await openHoyMore(page);
     await expect(page.getByTestId("hoy-vacio-alertas")).toBeVisible();
     await expect(page.getByTestId("hoy-vacio-mercado")).toBeVisible();
     await expect(page.getByTestId("hoy-vacio-seguimiento")).toContainText("Nada pendiente");
@@ -227,6 +234,7 @@ test.describe("Flujo 69: Hoy", () => {
     }
     await login(page);
     await page.goto("/hoy");
+    await openHoyMore(page);
     const card = page.getByTestId("hoy-seguimiento");
     await expect(card.getByRole("heading", { level: 2 })).toHaveText("Para hacer seguimiento");
     // Puede haber otras vencidas de otros specs: alcanza con que esta esté (o la cuente el link)
@@ -284,6 +292,7 @@ test.describe("Flujo 69: Hoy", () => {
     }
 
     await loginAsSecondUser(page);
+    await openHoyMore(page);
     const card = page.getByTestId("hoy-alertas");
     await expect(card.getByTestId("hoy-vacio-alertas")).toHaveCount(0);
     await expect(card.getByTestId("hoy-alerta-indeed")).toHaveAttribute("data-status", "activo");
@@ -325,6 +334,7 @@ test.describe("Flujo 69: Hoy", () => {
       await setSeedTargetRoles({ targetRoles: [MARKET_CAREER], targetRole: MARKET_CAREER });
 
       await login(page);
+      await openHoyMore(page);
       const item = page.getByTestId("hoy-mercado").getByTestId(`hoy-mercado-${MARKET_CAREER}`);
       await expect(item).toBeVisible();
       await expect(item).toContainText(/\d+ ofertas? nuevas? en 7 días, \d+ en español/);
@@ -369,6 +379,7 @@ test.describe("Flujo 69: Hoy", () => {
   }) => {
     await withProfile(["es"], async () => {
       await login(page);
+      await openHoyMore(page);
       const bridge = page
         .getByTestId("hoy-mercado")
         .getByTestId(`hoy-puente-idioma-${MARKET_CAREER}`);
@@ -386,6 +397,7 @@ test.describe("Flujo 69: Hoy", () => {
   test("puente de idioma: con español e inglés no aparece", async ({ page }) => {
     await withProfile(["es", "en"], async () => {
       await login(page);
+      await openHoyMore(page);
       await expect(page.getByTestId(`hoy-mercado-${MARKET_CAREER}`)).toBeVisible();
       await expect(page.getByTestId(`hoy-puente-idioma-${MARKET_CAREER}`)).toHaveCount(0);
       await expect(page.getByTestId("hoy-mercado")).not.toContainText("Casi todo está en inglés");
@@ -401,7 +413,7 @@ test.describe("Flujo 69: Hoy", () => {
     }) => {
       await page.setViewportSize(viewport);
       await login(page);
-      await expect(page.getByRole("heading", { level: 1, name: "Hoy", exact: true })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1, name: /^¡Buen/ })).toBeVisible();
       await expect(page.getByTestId("hoy-nuevo-fila").first()).toBeVisible();
       if (viewport.width === 360) {
         const width = await page.evaluate(() => document.documentElement.scrollWidth);

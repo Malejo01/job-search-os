@@ -1,6 +1,7 @@
 import { STUDY_HOURS_DEFAULT, STUDY_HOURS_OPTIONS } from "@job-search-os/pipeline";
 import { MAX_SIMULAR, type PlanImpact, type PlanImpactRow } from "@/lib/plan-impact";
 import Link from "next/link";
+import { Alert, cardClasses, filterChipClasses } from "@/components/ui";
 
 /**
  * «Si aprendés…» (ronda 121, E3b). Server Component sin JS: las skills a simular se eligen con
@@ -10,8 +11,15 @@ import Link from "next/link";
  * conserva el otro parámetro.
  */
 
-const BUTTON =
-  "inline-flex min-h-11 min-w-11 items-center justify-center rounded-control border px-3 py-2 text-xs font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60";
+// C9-11: los botones que se eligen (`aria-pressed`) son filtros: el elegido va en lima con borde
+// índigo. El chip no trae estilo de deshabilitado: va acá.
+const pick = (selected: boolean) =>
+  filterChipClasses({
+    selected,
+    className: "min-w-11 disabled:cursor-not-allowed disabled:opacity-60",
+  });
+const PANEL = cardClasses({ padding: "md", className: "flex flex-col gap-3" });
+const H2 = "text-base font-bold text-fg";
 
 const offers = (n: number) => `${n} ${n === 1 ? "oferta" : "ofertas"}`;
 
@@ -54,11 +62,7 @@ function PickButton({
         aria-pressed={pressed}
         disabled={full}
         data-testid={testId}
-        className={`${BUTTON} ${
-          pressed
-            ? "border-info-strong bg-info-strong text-on-strong"
-            : "border-line-strong bg-surface text-fg"
-        }`}
+        className={pick(pressed)}
       >
         Simular {row.name}
       </button>
@@ -90,11 +94,7 @@ function HoursPicker({ hours, selected }: { hours: number; selected: readonly st
               type="submit"
               aria-pressed={pressed}
               data-testid={`plan-horas-${option}`}
-              className={`${BUTTON} ${
-                pressed
-                  ? "border-info-strong bg-info-strong text-on-strong"
-                  : "border-line-strong bg-surface text-fg"
-              }`}
+              className={pick(pressed)}
             >
               {option} h
             </button>
@@ -123,7 +123,7 @@ function Examples({ row, testId }: { row: PlanImpactRow; testId: string }) {
   if (!row.examples.length) return null;
   return (
     <details className="text-xs" data-testid={testId}>
-      <summary className="flex min-h-11 cursor-pointer items-center gap-1 font-medium text-info">
+      <summary className="flex min-h-11 cursor-pointer items-center gap-1 font-semibold text-link">
         <span aria-hidden="true">▸</span>
         <span className="underline underline-offset-2">Ver {offers(row.examples.length)}</span>
       </summary>
@@ -132,7 +132,7 @@ function Examples({ row, testId }: { row: PlanImpactRow; testId: string }) {
           <li key={ex.jobId}>
             <Link
               href={`/jobs/${ex.jobId}`}
-              className="inline-flex min-h-11 items-center break-words text-link underline"
+              className="inline-flex min-h-11 items-center font-semibold break-words text-link underline underline-offset-2"
             >
               {ex.title}
             </Link>
@@ -156,12 +156,8 @@ export function SiAprendes({
 }) {
   if (!impact) {
     return (
-      <section
-        data-testid="plan-sim"
-        aria-labelledby="plan-sim-titulo"
-        className="flex flex-col gap-2"
-      >
-        <h2 id="plan-sim-titulo" className="text-sm font-semibold text-fg-muted">
+      <section data-testid="plan-sim" aria-labelledby="plan-sim-titulo" className={PANEL}>
+        <h2 id="plan-sim-titulo" className={H2}>
           Si aprendés…
         </h2>
         <p className="text-xs text-fg-subtle">
@@ -172,17 +168,13 @@ export function SiAprendes({
   }
   if (!impact.enough) {
     return (
-      <section
-        data-testid="plan-sim"
-        aria-labelledby="plan-sim-titulo"
-        className="flex flex-col gap-2"
-      >
-        <h2 id="plan-sim-titulo" className="text-sm font-semibold text-fg-muted">
+      <section data-testid="plan-sim" aria-labelledby="plan-sim-titulo" className={PANEL}>
+        <h2 id="plan-sim-titulo" className={H2}>
           Si aprendés…
         </h2>
         <p
           data-testid="plan-sim-pocas"
-          className="rounded-control border border-dashed border-line-strong p-4 text-sm text-fg-subtle"
+          className="rounded-control bg-surface-subtle p-4 text-sm text-fg-muted"
         >
           Con pocas ofertas todavía no podemos calcularlo: cuando haya más avisos de tu carrera vas
           a ver acá cuántos se te abren con cada skill.
@@ -196,12 +188,8 @@ export function SiAprendes({
   const hours = impact.hoursPerWeek;
 
   return (
-    <section
-      data-testid="plan-sim"
-      aria-labelledby="plan-sim-titulo"
-      className="flex flex-col gap-3"
-    >
-      <h2 id="plan-sim-titulo" className="text-sm font-semibold text-fg-muted">
+    <section data-testid="plan-sim" aria-labelledby="plan-sim-titulo" className={PANEL}>
+      <h2 id="plan-sim-titulo" className={H2}>
         Si aprendés…
       </h2>
       <p className="text-xs text-fg-subtle" data-testid="plan-sim-hoy">
@@ -210,23 +198,21 @@ export function SiAprendes({
       </p>
 
       {sim ? (
-        <p
-          role="status"
-          data-testid="plan-sim-resultado"
-          className="rounded-control border border-info-line bg-info-soft px-3 py-2 text-sm text-info"
-        >
-          Con {sim.slugs.map((slug) => names.get(slug) ?? slug).join(", ")} pasan{" "}
-          <strong>
-            {sim.passAfter} de {sim.total}
-          </strong>{" "}
-          ofertas (hoy pasan {sim.passNow}).{" "}
-          <Link
-            href={hours === STUDY_HOURS_DEFAULT ? "/plan" : `/plan?horas=${hours}`}
-            className="inline-flex min-h-11 items-center underline"
-          >
-            Limpiar la simulación
-          </Link>
-        </p>
+        <Alert tone="info" role="status" bordered data-testid="plan-sim-resultado">
+          <p>
+            Con {sim.slugs.map((slug) => names.get(slug) ?? slug).join(", ")} pasan{" "}
+            <strong>
+              {sim.passAfter} de {sim.total}
+            </strong>{" "}
+            ofertas (hoy pasan {sim.passNow}).{" "}
+            <Link
+              href={hours === STUDY_HOURS_DEFAULT ? "/plan" : `/plan?horas=${hours}`}
+              className="inline-flex min-h-11 items-center font-semibold underline underline-offset-2"
+            >
+              Limpiar la simulación
+            </Link>
+          </p>
+        </Alert>
       ) : null}
 
       <table className="hidden w-full text-left text-sm sm:table" data-testid="plan-sim-tabla">
@@ -297,9 +283,9 @@ export function SiAprendes({
           <li
             key={row.slug}
             data-testid={`plan-sim-tarjeta-${row.slug}`}
-            className="flex flex-col gap-1 rounded-card border border-line bg-surface p-3 text-sm"
+            className="flex flex-col gap-1 rounded-control bg-surface-subtle p-3 text-sm"
           >
-            <p className="break-words font-medium text-fg">{row.name}</p>
+            <p className="font-bold break-words text-fg">{row.name}</p>
             <EvaluatorGaps row={row} testId={`plan-sim-evaluador-m-${row.slug}`} />
             <p className="text-xs text-fg-muted">
               La piden {row.asks} ({row.asksMust} excluyente{row.asksMust === 1 ? "" : "s"})
@@ -326,7 +312,7 @@ export function SiAprendes({
 
       {impact.route.length ? (
         <section aria-labelledby="plan-ruta-titulo" className="flex flex-col gap-2">
-          <h3 id="plan-ruta-titulo" className="text-sm font-semibold text-fg-muted">
+          <h3 id="plan-ruta-titulo" className="text-sm font-bold text-fg">
             Ruta por semanas
           </h3>
           {impact.hoursAdjustable ? <HoursPicker hours={hours} selected={selected} /> : null}
@@ -334,11 +320,10 @@ export function SiAprendes({
             {impact.route.map((step) => (
               <li
                 key={step.slug}
-                className="break-words rounded-control border border-line bg-surface px-3 py-2 text-sm"
+                className="rounded-control bg-surface-subtle px-3 py-2 text-sm break-words"
               >
-                <span className="font-medium">{weeks(step.weekFrom, step.weekTo)}</span> ·{" "}
-                {step.name} · {step.hours} h{step.estimated ? " estimadas" : ""} · suma{" "}
-                {offers(step.delta)}
+                <span className="font-bold">{weeks(step.weekFrom, step.weekTo)}</span> · {step.name}{" "}
+                · {step.hours} h{step.estimated ? " estimadas" : ""} · suma {offers(step.delta)}
               </li>
             ))}
           </ol>

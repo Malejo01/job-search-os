@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Alert, cardClasses, filterChipClasses, textLinkClasses } from "@/components/ui";
 import { createManualJobAction } from "./actions";
 import { JobFields } from "./job-fields";
 import { PasteForm } from "./paste-form";
@@ -8,10 +9,9 @@ export const dynamic = "force-dynamic";
 // Con JD completo la evaluación corre en `after` dentro de esta invocación (JS-027)
 export const maxDuration = 120;
 
+// C9-11: los dos modos son filtros (el activo en lima con borde índigo)
 function tabClass(active: boolean): string {
-  return `inline-flex min-h-11 items-center rounded-control border px-3 text-sm ${
-    active ? "border-brand-contrast bg-brand text-brand-contrast" : "border-line-strong text-fg"
-  }`;
+  return filterChipClasses({ selected: active });
 }
 
 /**
@@ -29,10 +29,10 @@ export default async function NewJobPage({
   const { error, modo } = await searchParams;
   const pegar = modo === "pegar";
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex flex-col gap-5">
       <div className="flex items-baseline justify-between gap-2">
-        <h1 className="text-title font-semibold">Nueva oferta</h1>
-        <Link href="/jobs" className="text-xs text-fg-subtle hover:underline">
+        <h1 className="text-title font-bold">Nueva oferta</h1>
+        <Link href="/jobs" className={textLinkClasses({ block: true, className: "text-sm" })}>
           ← Ofertas
         </Link>
       </div>
@@ -53,11 +53,7 @@ export default async function NewJobPage({
         </Link>
       </nav>
       {error ? (
-        <p
-          id="alta-error"
-          role="alert"
-          className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger"
-        >
+        <Alert id="alta-error" tone="danger" role="alert">
           {error === "campos"
             ? "Título y empresa son obligatorios."
             : error === "url"
@@ -65,12 +61,15 @@ export default async function NewJobPage({
               : error === "larga"
                 ? "Algún campo es demasiado largo: pegá solo el aviso, sin el resto de la página."
                 : "No se pudo cargar la oferta. Probá de nuevo."}
-        </p>
+        </Alert>
       ) : null}
       {pegar ? (
         <PasteForm error={error} />
       ) : (
-        <form action={createManualJobAction} className="flex flex-col gap-3">
+        <form
+          action={createManualJobAction}
+          className={cardClasses({ padding: "md", className: "flex flex-col gap-4" })}
+        >
           <JobFields error={error} submitLabel="Cargar oferta" pendingLabel="Cargando…" />
         </form>
       )}

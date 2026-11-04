@@ -30,6 +30,8 @@ pnpm-debug.log*
 # Playwright / tests
 playwright-report/
 test-results/
+# Comparaciones «referencia | real» de C10 (e2e 120): artefacto del CI, nunca al repo
+apps/web/e2e/__comparaciones__/
 # Instantáneas del MCP de Playwright (ux-ui): copian el contenido de la página, con datos de la base local
 .playwright-mcp/
 

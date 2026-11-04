@@ -1,3 +1,4 @@
+import { buttonClasses } from "@/components/ui/button";
 import { SubmitButton } from "@/app/components/submit-button";
 import { evaluateNowAction } from "./actions";
 
@@ -20,10 +21,7 @@ export function EvaluateNow({
   return (
     <form action={evaluateNowAction}>
       <input type="hidden" name="jobId" value={jobId} />
-      <SubmitButton
-        pendingLabel="Enviando…"
-        className="rounded-control bg-brand px-3 py-2 text-sm font-medium text-brand-contrast"
-      >
+      <SubmitButton pendingLabel="Enviando…" className={buttonClasses({ size: "sm" })}>
         Evaluar ahora
       </SubmitButton>
     </form>

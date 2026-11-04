@@ -1,5 +1,6 @@
 "use client";
 
+import { buttonClasses } from "@/components/ui";
 import { deleteAction } from "./actions";
 
 /** "Eliminar" con confirmación: es la única acción de /inbox que borra de la base. */
@@ -24,10 +25,7 @@ export function DeleteButton({
     >
       <input type="hidden" name="id" value={id} />
       {volver ? <input type="hidden" name="volver" value="1" /> : null}
-      <button
-        type="submit"
-        className="rounded-control border border-danger-line px-2 py-1 text-danger"
-      >
+      <button type="submit" className={buttonClasses({ variant: "danger", size: "sm" })}>
         Eliminar
       </button>
     </form>

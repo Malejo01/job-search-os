@@ -93,19 +93,9 @@ export const GUIDE_STEPS: Record<GuideScreen, readonly TourStep[]> = {
       text: "De 0 a 10: qué tan bien calza con tu perfil. Si el borde es punteado, es una estimación sin IA.",
     },
     {
-      anchor: "jobs:etiquetas",
-      title: "Las etiquetas",
-      text: "Rojo: te impide postular. Ámbar: es un riesgo, podés postular igual. Abrí la oferta para ver el porqué.",
-    },
-    {
-      anchor: "jobs:opinion",
-      title: "Tu opinión",
-      text: "👍 si la evaluación te ayudó, 👎 si se equivocó. Nunca postulamos por vos.",
-    },
-    {
       anchor: "jobs:menu",
       title: "Sin descripción",
-      text: 'Algunos avisos llegan sin texto. Entrá a "Sin descripción" (en el celular, desde "Menú"), pegalo ahí y se evalúa.',
+      text: 'Algunos avisos llegan sin texto. Entrá a "Sin descripción" (desde Perfil, en "Más"), pegalo ahí y se evalúa.',
     },
   ],
 };

@@ -1,203 +1,178 @@
-"use client";
-
-import { AnimatePresence, MotionConfig, motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
-import { Badge, Icon, ScoreBadge } from "@/components/ui";
+import { offerMetaLine, offerPlace } from "@job-search-os/pipeline";
+import { cardClasses, Chip, cx, Icon, Seal } from "@/components/ui";
 import type { JobListRow } from "@/lib/jobs";
-import {
-  BLOCKER_LABEL,
-  DEMO_BADGE_CLASSES,
-  DEMO_MODEL,
-  flagLabel,
-  formatDate,
-  LOCATION_TONES,
-  LOCATION_LABELS,
-  PRE_SCORE_EXPLAIN,
-  riskLabel,
-  safeHttpUrl,
-  SOURCE_LABELS,
-  STATUS_LABELS,
-} from "@/lib/labels";
-import { CardVerdict } from "./card-verdict";
+import { PRE_SCORE_EXPLAIN } from "@/lib/labels";
 
 /**
- * Lista de ofertas como cards (JS-015). Client component únicamente por Framer Motion:
- * las transiciones cuando cambian los filtros. Los datos vienen ya resueltos del servidor.
- * Un riesgo se ve (chip ámbar), no frena; un bloqueador frena (chip rojo).
+ * Lista de ofertas (JS-015; tarjeta K2 de los tableros aprobados en C10-7). Server Component, sin
+ * animación de entrada (decisión 13). Lo único que se mueve es el hundimiento al tocar (CSS).
+ *
+ * `featured`: la tarjeta destacada (`.card`, sello 60/72): la elegida en el panel de la derecha o,
+ * si no hay ninguna elegida, la primera. Las demás son `.cardl`.
  */
-export function JobList({ rows, query = "" }: { rows: JobListRow[]; query?: string }) {
-  const reduce = useReducedMotion();
-  const shift = reduce ? 0 : 6;
+export function JobList({
+  rows,
+  query = "",
+  tour = true,
+  selected = null,
+  featuredFirst = false,
+}: {
+  rows: JobListRow[];
+  query?: string;
+  /** La primera tarjeta lleva las anclas de la guía; la segunda lista (lejanas) no. */
+  tour?: boolean;
+  /** La oferta abierta en el panel de la derecha (O3), marcada en la lista. */
+  selected?: string | null;
+  /** Sin oferta elegida, la primera va destacada (ofertas-cel.png). */
+  featuredFirst?: boolean;
+}) {
+  const now = new Date();
   return (
-    // reducedMotion="user": con «reducir movimiento» del sistema no hay desplazamientos, solo opacidad
-    <MotionConfig reducedMotion="user">
-      <motion.ul layout className="flex flex-col gap-2">
-        <AnimatePresence initial={false}>
-          {rows.map((job, i) => (
-            <motion.li
-              key={job.id}
-              layout
-              initial={{ opacity: 0, y: shift }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -shift }}
-              transition={{
-                duration: 0.2,
-                delay: reduce ? 0 : Math.min(i * 0.03, 0.2),
-              }}
-            >
-              <JobCard job={job} query={query} tour={i === 0} />
-            </motion.li>
-          ))}
-        </AnimatePresence>
-      </motion.ul>
-    </MotionConfig>
+    <ul className="m-0 flex list-none flex-col gap-2.5 p-0 sm:gap-3">
+      {rows.map((job, i) => (
+        <li key={job.id}>
+          <JobCard
+            job={job}
+            query={query}
+            tour={tour && i === 0}
+            now={now}
+            selected={job.id === selected}
+            featured={job.id === selected || (featuredFirst && selected === null && i === 0)}
+          />
+        </li>
+      ))}
+    </ul>
   );
 }
 
 /**
  * `query`: los filtros de la lista, para que el detalle sepa volver y calcular "siguiente" (JS-061).
  * `tour`: la primera tarjeta lleva las anclas de la guía de /jobs (ronda 92).
+ *
+ * La tarjeta dice lo del tablero: puesto, empresa y lugar en una frase, chips, la línea chica y el
+ * sello. Lo único que se suma es lo que frena la postulación (línea roja) y el «Leyendo…» mientras
+ * se evalúa. Las etiquetas (fuente, estado, ubicación, riesgos), «Ver oferta» y 👍/👎 están en el
+ * detalle (C10-7).
  */
-function JobCard({ job, query, tour }: { job: JobListRow; query: string; tour: boolean }) {
-  const url = safeHttpUrl(job.url);
+function JobCard({
+  job,
+  query,
+  tour,
+  now,
+  selected,
+  featured,
+}: {
+  job: JobListRow;
+  query: string;
+  tour: boolean;
+  now: Date;
+  selected: boolean;
+  featured: boolean;
+}) {
   const anchor = (name: string) => (tour ? { "data-tour": name } : {});
+  const frena = job.fit.falta?.kind === "frena" ? job.fit.falta : null;
+  const small = [
+    job.card.count,
+    offerMetaLine(job.modality, new Date(job.postedAt ?? job.firstSeenAt), now),
+  ].filter(Boolean);
   return (
-    <div className="relative flex gap-3 rounded-card border border-line bg-surface p-3.5 transition-colors hover:border-line-control">
-      {/* El link al detalle cubre toda la card; el link a la oferta va encima (z-10) */}
+    <div
+      data-testid="tarjeta-oferta"
+      className={cardClasses({
+        level: featured ? "featured" : "list",
+        selected,
+        pressable: true,
+        padding: "none",
+        className: cx(
+          "relative flex items-start gap-3",
+          featured
+            ? "py-3.5 pr-3 pl-3.5 sm:py-[18px] sm:pr-[18px] sm:pl-5"
+            : "py-3.5 pr-3 pl-3.5 sm:py-4 sm:pr-4 sm:pl-[18px]",
+        ),
+      })}
+    >
+      {/* El link al detalle cubre toda la tarjeta; lo que se toca adentro va encima (z-10). Hasta
+          `lg` va al detalle; desde `lg` abre la oferta en el panel de la derecha (O3, C9-9) */}
       <Link
         href={`/jobs/${job.id}${query}`}
-        className="absolute inset-0 rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        className="absolute inset-0 rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus lg:hidden"
         aria-label={`Abrir el detalle de ${job.title}`}
       />
-      <ScoreBadge
-        score={job.score}
-        preScore={job.preScore}
-        pending={job.evaluating}
-        title={
-          job.evaluating
-            ? "Esperando la evaluación"
-            : job.score === null && job.preScore !== null
-              ? PRE_SCORE_EXPLAIN
-              : undefined
-        }
-        {...anchor("jobs:puntaje")}
+      <Link
+        href={`/jobs${query ? `${query}&` : "?"}oferta=${job.id}`}
+        scroll={false}
+        aria-current={selected ? "true" : undefined}
+        className="absolute inset-0 hidden rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus lg:block"
+        aria-label={`Abrir el detalle de ${job.title}`}
       />
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <p className="truncate text-[15px] font-bold text-fg">{job.title}</p>
-        <p className="truncate text-[13px] text-fg-subtle">
-          {job.company}
-          {job.locationRaw ? ` · ${job.locationRaw}` : ""}
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <p
+          className={cx(
+            "font-display leading-[1.2] font-bold break-words text-fg",
+            featured ? "text-base sm:text-[19px]" : "text-base sm:text-[17px]",
+          )}
+        >
+          {job.title}
         </p>
-        {job.fit.favor || job.fit.falta ? (
-          <div className="flex min-w-0 flex-col gap-0.5 text-xs" data-testid="tarjeta-fit">
-            {job.fit.favor ? (
-              <p
-                className="flex min-w-0 items-start gap-1 text-fg-muted"
-                title={job.fit.favor.text}
+        <p className="text-[13px] font-medium break-words text-fg-subtle">
+          {offerPlace({ company: job.company, location: job.locationRaw, modality: job.modality })}
+        </p>
+        {job.evaluating ? (
+          <p className="text-sm font-semibold text-fg-muted">Leyendo la oferta contra tu perfil…</p>
+        ) : null}
+        {job.card.chips.length ? (
+          <div className="flex min-w-0 flex-wrap gap-1.5" data-testid="tarjeta-chips">
+            {job.card.chips.map((c) => (
+              <Chip
+                key={`${c.tone}-${c.label}`}
+                tone={c.tone}
+                srLabel={c.tone === "have" ? "Tenés" : "Te falta"}
+                title={c.label}
               >
-                <Icon name="fortalezas" size={16} className="mt-px text-success" />
-                <span className="line-clamp-2 break-words">A tu favor: {job.fit.favor.text}</span>
-              </p>
-            ) : null}
-            {job.fit.falta ? (
-              <p
-                className="flex min-w-0 items-start gap-1 text-fg-muted"
-                title={job.fit.falta.text}
-              >
-                <Icon
-                  name={job.fit.falta.kind === "frena" ? "descartar" : "afinar"}
-                  size={16}
-                  className={`mt-px ${job.fit.falta.kind === "frena" ? "text-danger" : "text-warning"}`}
-                />
-                <span className="line-clamp-2 break-words">
-                  {job.fit.falta.label}: {job.fit.falta.text}
-                </span>
-              </p>
-            ) : null}
+                {c.tone === "missing" ? (
+                  <span aria-hidden="true" className="hidden sm:inline">
+                    Te falta:{" "}
+                  </span>
+                ) : null}
+                {c.label}
+              </Chip>
+            ))}
           </div>
         ) : null}
-        <div className="flex flex-wrap gap-1.5" {...anchor("jobs:etiquetas")}>
-          {job.model === DEMO_MODEL ? (
-            <span className={DEMO_BADGE_CLASSES} title="Evaluación falsa del modo demo, sin LLM">
-              DEMO
+        {job.flags.includes("posible_duplicado") ? (
+          <span className="self-start">
+            <Chip tone="missing">Posible duplicado</Chip>
+          </span>
+        ) : null}
+        {frena ? (
+          <p className="flex min-w-0 items-start gap-1 text-sm font-semibold text-danger">
+            <Icon name="descartar" size={18} className="mt-px" />
+            <span className="line-clamp-2 break-words">
+              {frena.label}: {frena.text}
             </span>
-          ) : null}
-          {job.evaluating ? (
-            <Badge shape="square" tone="info" emphasis="muted">
-              En cola
-            </Badge>
-          ) : (
-            <Badge shape="square">{STATUS_LABELS[job.status] ?? job.status}</Badge>
-          )}
-          {job.sources.map((k) => (
-            <Badge key={k} shape="square" tone="info">
-              {SOURCE_LABELS[k] ?? k}
-            </Badge>
-          ))}
-          {job.locationOk ? (
-            <Badge shape="square" tone={LOCATION_TONES[job.locationOk] ?? "neutral"}>
-              {LOCATION_LABELS[job.locationOk] ?? job.locationOk}
-            </Badge>
-          ) : null}
-          {job.bloqueadores.length ? (
-            <Badge shape="square" tone="danger" emphasis="muted">
-              {job.bloqueadores.length === 1
-                ? `${BLOCKER_LABEL}: 1 motivo`
-                : `${BLOCKER_LABEL}: ${job.bloqueadores.length} motivos`}
-            </Badge>
-          ) : null}
-          {job.riesgos.slice(0, 2).map((r) => (
-            <Badge key={r} shape="square" tone="warning">
-              Riesgo: {riskLabel(r)}
-            </Badge>
-          ))}
-          {job.riesgos.length > 2 ? (
-            <Badge shape="square" tone="warning">
-              +{job.riesgos.length - 2} riesgos
-            </Badge>
-          ) : null}
-          {job.flags.includes("posible_duplicado") ? (
-            <Badge shape="square" tone="warning" emphasis="muted">
-              Posible duplicado
-            </Badge>
-          ) : null}
-          {job.flags.flatMap((f) => {
-            const label = flagLabel(f);
-            return label
-              ? [
-                  <Badge key={f} shape="square">
-                    {label}
-                  </Badge>,
-                ]
-              : [];
-          })}
-        </div>
+          </p>
+        ) : null}
+        {/* Conteo, modalidad y antigüedad: una línea chica (en el celular no va, ofertas-cel.png) */}
+        <p className="hidden text-xs font-semibold text-fg-subtle sm:block">
+          <span data-testid="tarjeta-conteo">{small.join(" · ")}</span>
+        </p>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-2">
-        <time className="text-xs font-semibold text-fg-subtle" dateTime={job.firstSeenAt}>
-          {formatDate(job.postedAt ?? job.firstSeenAt)}
-        </time>
-        {url ? (
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="relative z-10 inline-flex min-h-11 items-center gap-1 rounded-control px-1 text-xs font-semibold text-link underline underline-offset-2 hover:text-link-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
-            title="Abrir la publicación original en una pestaña nueva"
-          >
-            Ver oferta
-            <Icon name="abrirAviso" size={14} />
-            <span className="sr-only"> (se abre en otra pestaña)</span>
-          </a>
-        ) : null}
-        {job.evaluationId && !job.evaluating ? (
-          <CardVerdict
-            jobId={job.id}
-            evaluationId={job.evaluationId}
-            verdict={job.humanVerdict}
-            {...(tour ? { tourAnchor: "jobs:opinion" } : {})}
-          />
-        ) : null}
+        <Seal
+          score={job.score}
+          preScore={job.preScore}
+          pending={job.evaluating}
+          size={featured ? "featured" : "list"}
+          title={
+            job.evaluating
+              ? "Esperando la evaluación"
+              : job.score === null && job.preScore !== null
+                ? PRE_SCORE_EXPLAIN
+                : undefined
+          }
+          {...anchor("jobs:puntaje")}
+        />
       </div>
     </div>
   );

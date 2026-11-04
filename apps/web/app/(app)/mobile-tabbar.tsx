@@ -2,55 +2,62 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Icon, type IconName } from "@/components/ui/icons";
-
-const TABS: ReadonlyArray<{ href: string; label: string; icon: IconName }> = [
-  { href: "/hoy", label: "Hoy", icon: "hoy" },
-  { href: "/jobs", label: "Ofertas", icon: "ofertas" },
-  { href: "/jobs/pending-jd", label: "Pendientes", icon: "pegar" },
-  { href: "/settings/perfil", label: "Perfil", icon: "perfil" },
-];
-
-/** La pestaña activa es la de href más largo que prefija la ruta (/jobs/pending-jd no marca «Ofertas»). */
-function activeTab(pathname: string): string | null {
-  let best: string | null = null;
-  for (const { href } of TABS) {
-    if (pathname === href || pathname.startsWith(`${href}/`)) {
-      if (best === null || href.length > best.length) best = href;
-    }
-  }
-  return best;
-}
+import { Icon } from "@/components/ui/icons";
+import { NavCount, NavCountText } from "./main-nav";
+import { DETAIL } from "./app-bar";
+import { activeSection, SECTIONS } from "./sections";
 
 /**
- * Barra de pestañas de abajo en el celular (reserva R-3, manual P4): Hoy, Ofertas, Pendientes y Perfil.
- * Solo por debajo de `sm`; el «Menú» de arriba sigue igual (la guía y los e2e se anclan ahí). La
- * prende `MOBILE_TABBAR_ENABLED=1` en el layout. Client Component solo para marcar la activa.
+ * Pestañas fijas abajo en el celular (C9-7; C10-3, `.tabs` y `.tab` del tablero aprobado el 4/11):
+ * Hoy, Ofertas, Postulaciones, Mi CV y Perfil. Barra blanca con borde de arriba de 2 px; cada
+ * pestaña es el ícono y el nombre (11 px 700), y la activa lleva el ícono dentro de una píldora lima
+ * de 44×28. Solo por debajo de `sm`; en la computadora son las píldoras de arriba. Respeta la zona
+ * segura de abajo del iPhone. Lo que no entra está en Perfil, en «Más».
+ *
+ * Se llama «Secciones», como la nav de la computadora: en cada ancho hay una sola a la vista.
+ * Perfil es el ancla de la guía de /jobs en el celular («Sin descripción» está en Más).
  */
-export function MobileTabBar() {
+export function MobileTabBar({ followUps = 0 }: { followUps?: number }) {
   const pathname = usePathname();
-  const active = activeTab(pathname);
+  const active = activeSection(pathname);
+  // En el detalle del celular, abajo va «Postularme en el sitio del aviso» (detalle-cel.png)
+  if (DETAIL.test(pathname)) return null;
   return (
     <nav
-      aria-label="Pestañas"
+      aria-label="Secciones"
       data-testid="tabbar"
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-ink-line bg-ink pb-[env(safe-area-inset-bottom,0px)] text-on-ink sm:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 border-t-2 border-line bg-surface px-2 pt-2 pb-[calc(22px+env(safe-area-inset-bottom,0px))] sm:hidden"
     >
-      <ul className="m-0 grid list-none grid-cols-4 p-0">
-        {TABS.map((t) => {
+      <ul className="m-0 flex list-none justify-between p-0">
+        {SECTIONS.map((t) => {
           const isActive = t.href === active;
+          const count = t.href === "/applications" ? followUps : 0;
           return (
-            <li key={t.href}>
+            <li key={t.href} className="w-[72px] min-w-0">
               <Link
                 href={t.href}
                 aria-current={isActive ? "page" : undefined}
-                className={`flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand ${
-                  isActive ? "text-brand" : "text-on-ink-muted hover:text-on-ink"
+                data-tour={t.href === "/settings/perfil" ? "jobs:menu" : undefined}
+                className={`flex min-h-11 flex-col items-center gap-[3px] rounded-control text-[11px] leading-tight font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
+                  isActive ? "text-fg" : "text-fg-subtle hover:text-fg"
                 }`}
               >
-                <Icon name={t.icon} size={20} />
-                {t.label}
+                <span
+                  data-testid="tab-icono"
+                  className={`relative flex h-7 w-11 items-center justify-center rounded-[14px] ${
+                    isActive ? "bg-brand text-brand-contrast" : ""
+                  }`}
+                >
+                  <Icon name={t.icon} size={18} />
+                  {count ? (
+                    <span className="absolute -top-1.5 left-7">
+                      <NavCount count={count} active={isActive} />
+                    </span>
+                  ) : null}
+                </span>
+                <span className="max-w-full truncate">{t.label}</span>
               </Link>
+              <NavCountText count={count} />
             </li>
           );
         })}

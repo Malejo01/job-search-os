@@ -18,16 +18,22 @@ export function FitPointsPanel({
   points,
   limited = false,
   headingLevel = 2,
+  stacked = false,
 }: {
   points: FitPoints;
   /** Nivel de los dos títulos: 2 en el detalle; más abajo cuando va dentro de otra sección (demo). */
   headingLevel?: 2 | 3 | 4;
   /** Sin la descripción completa (o sin checklist): «nada que te frene» no es una promesa. */
   limited?: boolean;
+  /** Una columna aunque haya lugar (el panel de /jobs en la computadora, C9-9). */
+  stacked?: boolean;
 }) {
   const H = `h${headingLevel}` as const;
   return (
-    <section aria-label="Cómo te queda esta oferta" className="grid gap-3 sm:grid-cols-2">
+    <section
+      aria-label="Cómo te queda esta oferta"
+      className={`grid gap-3 ${stacked ? "" : "sm:grid-cols-2"}`}
+    >
       {/* C7-6: fortalezas con borde verde arriba, debilidades con borde ámbar (manual M8) */}
       <div
         className="rounded-card border border-line border-t-4 border-t-success-line bg-surface p-4 text-sm"

@@ -58,14 +58,16 @@ test.describe("Flujo 96: Página pública de ayuda y preguntas frecuentes (/ayud
       await expect(body.getByRole("link", { name: "Precios" })).toHaveCount(0);
       await expect(body).toContainText("Los precios se publican antes de que abra la beta");
     }
-    // Sin prometer una invitación a todos, y la privacidad nombra a los proveedores de IA
-    await expect(body).toContainText("anotarte no garantiza un lugar");
+    // Sin prometer una invitación a todos (C9-15: «El cupo es limitado.», sin «no garantiza un
+    // lugar»), y la privacidad nombra a los proveedores de IA
+    await expect(body).toContainText("El cupo es limitado. Si hay lugar para vos");
+    await expect(body).not.toContainText("garantiza un lugar");
     // La beta es por invitación y paga: el plan gratis es lo que queda al vencer, no una prueba (C6-1)
     await expect(body).toContainText("Plan Beta");
     await expect(body).toContainText("lo que queda cuando termina tu mes");
     await expect(body).not.toContainText("plan gratis para probar");
     await expect(body).not.toContainText("cuando abramos el acceso");
-    await expect(body).toContainText("El cupo es limitado y anotarte no garantiza un lugar");
+    await expect(body).toContainText("El cupo es limitado. Si hay lugar, te escribimos.");
     await expect(body).toContainText("proveedores de inteligencia artificial");
     await expect(body.getByRole("link", { name: "Política de privacidad" })).toHaveAttribute(
       "href",

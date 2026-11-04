@@ -1,9 +1,10 @@
-import { BRAND } from "@job-search-os/pipeline";
+import { BRAND, pricingEnabled } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { siteUrl } from "@/lib/site-url";
 import { Logo } from "@/components/brand/logo";
+import { buttonClasses } from "@/components/ui";
 
 /**
  * Layout de la vitrina pública (ronda 63): portada, mercado, ofertas de muestra y pedido de acceso.
@@ -35,13 +36,13 @@ export const metadata: Metadata = {
 
 const SKIP_CLASS =
   "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-control focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-fg focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-focus";
-// Header índigo (C7-10), como el de la app: links en gris claro, foco en lima de marca
-const LINK_CLASS =
-  "inline-flex min-h-11 items-center px-2 text-sm font-semibold text-on-ink-muted underline-offset-2 hover:text-on-ink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand";
-
+// Barra índigo sin sesión (C10-3, portada-pc.png): píldoras como las de la app (14 px 700 en
+// `#C7C6E6`), «Entrar» en blanco y el botón lima. Foco en lima de marca. Miden 37 px y el área que
+// se toca llega a 44 con un margen invisible.
+const PILL =
+  "relative items-center whitespace-nowrap rounded-pill py-[9px] text-sm leading-[1.35] font-bold before:absolute before:inset-x-0 before:-inset-y-1 before:content-[''] hover:bg-ink-line focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand";
 // Sin `inline-flex` en la base: junto con `hidden`, Tailwind deja ganar a `inline-flex` y el link se ve a 360 px
-const DESKTOP_LINK_CLASS =
-  "hidden min-h-11 items-center px-2 text-sm font-semibold text-on-ink-muted underline-offset-2 hover:text-on-ink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand sm:inline-flex";
+const DESKTOP_PILL = `${PILL} hidden px-4 text-on-ink-muted hover:text-on-ink sm:inline-flex`;
 
 // Subrayados siempre: el pie mezcla links con "·" y sin subrayado el link no se distingue del texto (link-in-text-block)
 const FOOTER_LINK =
@@ -49,63 +50,74 @@ const FOOTER_LINK =
 
 export default function PublicLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col bg-canvas text-fg">
+    // `group/publica`: la página dice cómo va la barra con `data-pagina` (CSS `:has`, sin JS). En
+    // /acceso la barra lleva solo el logo y «Entrar» y se pega a la cabecera curva (C10-5). Con
+    // `data-ancho="completo"` (portada y /acceso) el `main` no pone ancho máximo ni margen (C10-4)
+    <div className="group/publica flex min-h-screen flex-col bg-canvas text-fg">
       <a href="#contenido" className={SKIP_CLASS}>
         Saltar al contenido
       </a>
       <header className="bg-ink text-on-ink">
         <nav
           aria-label="Principal"
-          className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-2 gap-y-1 px-4 py-1"
+          className="mx-auto flex max-w-[1280px] items-center gap-7 px-5 py-[15px] sm:px-12 sm:py-[18px]"
         >
-          {/* A 360 px el logo completo no entra junto a «Entrar» y «Pedir acceso»: abajo de sm va solo el texto */}
           <Link
             href="/"
-            className="inline-flex min-h-11 items-center rounded-control px-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            className="-my-1.5 inline-flex min-h-11 shrink-0 items-center rounded-pill sm:-my-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
-            <span className="sm:hidden">
-              <Logo variant="wordmark" tone="dark" />
-            </span>
-            <span className="hidden sm:block">
-              <Logo tone="dark" />
-            </span>
+            <Logo tone="dark" />
           </Link>
-          <div className="flex flex-wrap items-center justify-end gap-x-1 gap-y-1">
-            {/* Mercado y Ofertas van en el pie por debajo de sm: así el header entra en una fila a 360 px */}
-            <Link href="/mercado" className={DESKTOP_LINK_CLASS}>
-              Mercado
+          <div className="hidden gap-1 sm:ml-3 sm:flex group-has-[[data-pagina=acceso]]/publica:sm:hidden">
+            <Link href="/#como-funciona" className={DESKTOP_PILL}>
+              Cómo funciona
             </Link>
-            <Link href="/ofertas" className={DESKTOP_LINK_CLASS}>
-              Ofertas
+            {pricingEnabled(process.env) ? (
+              <Link href="/precios" className={DESKTOP_PILL}>
+                Precios
+              </Link>
+            ) : null}
+            <Link href="/ayuda" className={DESKTOP_PILL}>
+              Ayuda
             </Link>
-            <Link href="/demo" className={DESKTOP_LINK_CLASS}>
-              Demo
-            </Link>
-            {/* A 360 px el texto largo deja el header justo en el borde: abajo de sm dice "Entrar" */}
-            <Link href="/login" className={LINK_CLASS}>
-              <span className="sm:hidden">Entrar</span>
-              <span className="hidden sm:inline">Ya tengo cuenta</span>
-            </Link>
+          </div>
+          <div className="ml-auto flex items-center gap-3">
+            {/* En /acceso del celular la barra lleva solo el logo (acceso-cel.png) */}
             <Link
-              href="/acceso"
-              className="inline-flex min-h-11 items-center rounded-control bg-brand px-4 text-sm font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              href="/login"
+              className="group/entrar -my-1.5 inline-flex min-h-11 items-center rounded-pill focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand group-has-[[data-pagina=acceso]]/publica:max-sm:hidden sm:-my-[3.5px]"
             >
-              Pedir acceso
+              <span className="rounded-pill px-1 py-1.5 text-sm leading-[1.35] font-bold whitespace-nowrap text-on-ink group-hover/entrar:bg-ink-line sm:px-4 sm:py-[9px]">
+                Entrar
+              </span>
             </Link>
+            {/* En el celular el botón está en la página: la barra lleva solo «Entrar» */}
+            <span className="hidden sm:block group-has-[[data-pagina=acceso]]/publica:sm:hidden">
+              <Link
+                href="/acceso"
+                className={buttonClasses({ size: "sm", className: "focus-visible:outline-brand" })}
+              >
+                Anotarme a la beta
+              </Link>
+            </span>
           </div>
         </nav>
       </header>
-      <main id="contenido" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
+      <main
+        id="contenido"
+        tabIndex={-1}
+        className="mx-auto w-full max-w-5xl flex-1 px-4 pt-6 pb-12 sm:pt-10 has-[[data-ancho=completo]]:max-w-none has-[[data-ancho=completo]]:p-0"
+      >
         {children}
       </main>
       <footer className="flex flex-wrap items-center justify-center gap-x-2 border-t border-line px-4 py-3 text-center text-xs text-fg-muted">
-        <Link href="/mercado" className={`${FOOTER_LINK} sm:hidden`}>
+        <Link href="/mercado" className={FOOTER_LINK}>
           Mercado
         </Link>
-        <Link href="/ofertas" className={`${FOOTER_LINK} sm:hidden`}>
+        <Link href="/ofertas" className={FOOTER_LINK}>
           Ofertas
         </Link>
-        <Link href="/demo" className={`${FOOTER_LINK} sm:hidden`}>
+        <Link href="/demo" className={FOOTER_LINK}>
           Demo
         </Link>
         <Link href="/ayuda" className={FOOTER_LINK}>

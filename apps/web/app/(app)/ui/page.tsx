@@ -12,7 +12,7 @@ import {
   Field,
   Icon,
   ICON_PATHS,
-  ScoreBadge,
+  Seal,
   textLinkClasses,
   type BadgeTone,
   type ButtonVariant,
@@ -112,14 +112,15 @@ export default function UiPage() {
           Score
         </h2>
         <div className="flex flex-wrap items-center gap-3">
-          <ScoreBadge score={8.5} />
-          <ScoreBadge score={5.5} />
-          <ScoreBadge score={3} />
-          <ScoreBadge score={null} preScore={6} />
-          <ScoreBadge score={null} pending />
-          <ScoreBadge score={null} />
-          <ScoreBadge score={8} size="sm" />
-          <ScoreBadge score={8} size="lg" />
+          <Seal score={8.5} />
+          <Seal score={7.5} />
+          <Seal score={5.5} />
+          <Seal score={3} />
+          <Seal score={1.5} />
+          <Seal score={null} preScore={6} />
+          <Seal score={null} pending />
+          <Seal score={null} />
+          <Seal score={9.2} size="detail" />
         </div>
       </section>
 
@@ -148,20 +149,24 @@ export default function UiPage() {
           <OfferCard
             href="/ui"
             title="Analista contable semi senior"
-            meta={["Empresa de ejemplo", "Salta", "28 oct"]}
-            score={8.5}
-            tags={[
-              { label: "Evaluada", tone: "neutral" },
-              { label: "Ubicación ok", tone: "success" },
+            place="Estudio Ruiz y Asociados, en Salta"
+            chips={[
+              { tone: "have", label: "Liquidación de sueldos" },
+              { tone: "have", label: "Excel avanzado" },
+              { tone: "missing", label: "Tango Gestión" },
             ]}
+            more={2}
+            count="4 a tu favor, 1 te falta"
+            meta="Presencial. Publicada hace 3 días"
+            score={8.5}
           />
           <OfferCard
             href="/ui"
             title="Asistente de administración"
-            meta={["Otra empresa", "Jujuy"]}
+            place="Grupo Norte, remoto en Argentina"
+            meta="Remoto. Publicada hoy"
             score={null}
             pending
-            tags={[{ label: "En cola", tone: "info" }]}
           />
         </ul>
       </section>

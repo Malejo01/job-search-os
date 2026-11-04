@@ -1,8 +1,10 @@
 import { MAX_JD_INPUT_CHARS } from "@job-search-os/pipeline";
 import { HelpTip } from "@/components/help-tip";
 import Link from "next/link";
+import { Illustration } from "@/components/brand/illustration";
 import { TextareaWithCounter } from "@/components/char-counter";
 import {
+  Alert,
   Badge,
   buttonClasses,
   EmptyState,
@@ -12,6 +14,7 @@ import {
 } from "@/components/ui";
 import { CAP_MESSAGES } from "@/lib/evaluate-now";
 import { formatDate, safeHttpUrl, SOURCE_LABELS } from "@/lib/labels";
+import { JdDraft, JdDraftsReset } from "./jd-draft";
 import { listPendingJd, PENDING_LIMIT } from "@/lib/pending-jd";
 import { requireUserId } from "@/lib/session";
 import { closeJobAction, pasteJdAction } from "./actions";
@@ -47,6 +50,7 @@ export default async function PendingJdPage({
 
   return (
     <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+      <JdDraftsReset saved={Boolean(ok)} />
       {/* Columna de la izquierda (P3): qué es, cómo se completa y cargar una a mano */}
       <section
         aria-labelledby="sin-descripcion-titulo"
@@ -62,14 +66,15 @@ export default async function PendingJdPage({
           </p>
           <HelpTip topic="sinDescripcion" />
         </div>
-        <div className="flex flex-col gap-3 rounded-card border border-line bg-surface p-4">
+        <div className="flex flex-col gap-3 rounded-card bg-surface p-4 sm:p-5">
           <h2 className="text-base font-bold">Cómo completar una oferta</h2>
           <ol className="m-0 flex list-none flex-col gap-3 p-0 text-sm text-fg-muted">
             {STEPS.map(([strong, rest], i) => (
               <li key={strong} className="flex items-start gap-3">
                 <span
                   aria-hidden="true"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-pill bg-brand text-sm font-bold text-brand-contrast"
+                  // C9-11: índigo; la lima queda para la acción principal
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-pill bg-ink text-sm font-bold text-on-ink"
                 >
                   {i + 1}
                 </span>
@@ -83,12 +88,9 @@ export default async function PendingJdPage({
             El sistema nunca postula por vos: la postulación la hacés vos en el sitio del aviso.
           </p>
         </div>
-        <div className="flex flex-col gap-2 rounded-card border border-ink-line bg-ink p-4 text-on-ink">
+        <div className="flex flex-col gap-3 rounded-card bg-ink p-4 text-on-ink sm:p-5">
           <p className="text-sm font-bold">¿La oferta no está en la lista?</p>
-          <Link
-            href="/jobs/new?modo=pegar"
-            className="inline-flex min-h-11 items-center justify-center self-start rounded-control bg-brand px-4 text-sm font-bold text-brand-contrast hover:bg-brand-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-          >
+          <Link href="/jobs/new?modo=pegar" className={buttonClasses({ className: "self-start" })}>
             Cargala a mano
           </Link>
         </div>
@@ -114,41 +116,35 @@ export default async function PendingJdPage({
           </Badge>
         </div>
         {error ? (
-          <p
-            role="alert"
-            className="rounded-control bg-danger-soft px-3 py-2 text-sm font-semibold text-danger"
-          >
-            {ERRORS[error] ?? "Algo falló."}
-          </p>
+          <Alert tone="danger" role="alert" className="font-semibold">
+            {ERRORS[error] ?? "No pudimos hacerlo. Recargá la página y probá otra vez."}
+          </Alert>
         ) : null}
         {capMessage ? (
-          <p
-            role="status"
-            className="rounded-control bg-warning-soft px-3 py-2 text-sm font-semibold text-warning"
-          >
+          <Alert tone="warning" role="status" className="font-semibold">
             Descripción guardada. {capMessage}
-          </p>
+          </Alert>
         ) : null}
         {ok ? (
-          <p
-            role="status"
-            className="rounded-control bg-success-soft px-3 py-2 text-sm font-semibold text-success"
-          >
-            Descripción guardada: la oferta queda en cola para evaluar. Cuando termine la ves con
-            puntaje en{" "}
-            <Link href={`/jobs/${ok}`} className="underline">
-              el detalle
-            </Link>{" "}
-            y en{" "}
-            <Link href="/jobs" className="underline">
-              Ofertas
-            </Link>
-            .
-          </p>
+          <Alert tone="success" role="status" className="font-semibold">
+            <p>
+              Descripción guardada: la oferta queda en cola para evaluar. Cuando termine la ves con
+              puntaje en{" "}
+              <Link href={`/jobs/${ok}`} className="underline underline-offset-2">
+                el detalle
+              </Link>{" "}
+              y en{" "}
+              <Link href="/jobs" className="underline underline-offset-2">
+                Ofertas
+              </Link>
+              .
+            </p>
+          </Alert>
         ) : null}
 
         {rows.length === 0 ? (
           <EmptyState
+            illustration={<Illustration escena="sin-descripcion" className="w-40 sm:w-52" />}
             action={
               <Link href="/jobs" className={textLinkClasses({ block: true })}>
                 Ver mis ofertas
@@ -163,7 +159,7 @@ export default async function PendingJdPage({
             {rows.map((job) => {
               const url = safeHttpUrl(job.url);
               return (
-                <li key={job.id} className="rounded-card border border-line bg-surface p-4">
+                <li key={job.id} className="rounded-card bg-surface p-4 sm:p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <Link
@@ -216,6 +212,16 @@ export default async function PendingJdPage({
                       rows={5}
                       placeholder="Pegá acá la descripción completa del puesto"
                       className={inputClasses({ multiline: true, className: "text-sm" })}
+                    />
+                    <JdDraft
+                      jobId={job.id}
+                      textareaId={`jd-${job.id}`}
+                      error={
+                        error && error !== "oferta"
+                          ? (ERRORS[error] ?? "Algo no funcionó de nuestro lado.")
+                          : null
+                      }
+                      saved={ok === job.id}
                     />
                     <div className="flex flex-wrap items-center gap-2">
                       <button

@@ -55,7 +55,7 @@ export function AcceptTermsForm() {
       <button
         type="submit"
         disabled={pending}
-        className="min-h-11 rounded-control bg-brand px-4 py-2 text-base font-bold text-brand-contrast hover:bg-brand-hover disabled:opacity-60"
+        className="min-h-11 pressable edge-6 rounded-pill border-edge-brand bg-brand px-4 py-2 text-base font-extrabold text-brand-contrast hover:bg-brand-hover disabled:opacity-60"
       >
         {pending ? "Guardando…" : "Aceptar y seguir"}
       </button>

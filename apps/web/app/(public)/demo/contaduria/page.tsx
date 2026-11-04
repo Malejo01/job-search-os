@@ -2,7 +2,7 @@ import { FALTA_KIND_LABEL } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { FitPointsPanel } from "@/app/(app)/jobs/[id]/fit-points-panel";
-import { Badge, buttonClasses, Icon, ScoreBadge } from "@/components/ui";
+import { Badge, buttonClasses, Icon, Seal } from "@/components/ui";
 import { DEMO_OFFERS, DEMO_PENDING, DEMO_PERSON, type DemoOffer } from "@/lib/demo-contaduria";
 import { ACTION_ADVICE, ACTION_LABELS } from "@/lib/labels";
 import { DemoPaste } from "./demo-paste";
@@ -36,8 +36,8 @@ export default function DemoContaduriaPage() {
   const high = DEMO_OFFERS.filter((o) => o.score >= 7).length;
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-8">
-      <header className="flex flex-col gap-2 rounded-card border border-ink-line bg-ink p-5 text-on-ink sm:p-8">
-        <p className="text-xs font-bold tracking-wide text-brand uppercase">
+      <header className="flex flex-col gap-2 rounded-container bg-ink p-5 text-on-ink sm:p-8">
+        <p className="text-xs font-bold tracking-wide text-on-ink-muted uppercase">
           Ejemplo con datos inventados
         </p>
         <h1 className="text-2xl leading-tight font-extrabold sm:text-3xl">
@@ -54,7 +54,7 @@ export default function DemoContaduriaPage() {
         <h2 id="demo-perfil" className={H2}>
           El perfil de {DEMO_PERSON.name}
         </h2>
-        <div className="flex flex-col gap-3 rounded-card border border-line bg-surface p-4">
+        <div className="flex flex-col gap-3 rounded-card bg-surface p-4">
           <p className="flex items-center gap-2 text-sm font-bold">
             <Icon name="perfil" size={20} className="text-brand-text" />
             {DEMO_PERSON.career}
@@ -81,11 +81,7 @@ export default function DemoContaduriaPage() {
         </p>
         <ul className="m-0 flex list-none flex-col gap-2 p-0">
           {DEMO_OFFERS.map((o) => (
-            <li
-              key={o.id}
-              className="relative flex items-start gap-3 rounded-card border border-line bg-surface p-3"
-            >
-              <ScoreBadge score={o.score} />
+            <li key={o.id} className="relative flex items-start gap-3 rounded-card bg-surface p-3">
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <a
                   href={`#${o.id}`}
@@ -98,6 +94,7 @@ export default function DemoContaduriaPage() {
                 </span>
                 <span className="line-clamp-2 text-xs text-fg-muted">{o.why}</span>
               </div>
+              <Seal score={o.score} />
             </li>
           ))}
         </ul>
@@ -116,7 +113,7 @@ export default function DemoContaduriaPage() {
         <h2 id="demo-sin-descripcion" className={H2}>
           Una oferta sin descripción
         </h2>
-        <div className="flex flex-col gap-3 rounded-card border border-line bg-surface p-4">
+        <div className="flex flex-col gap-3 rounded-card bg-surface p-4">
           <div>
             <p className="text-[15px] font-bold">{DEMO_PENDING.title}</p>
             <p className="text-xs text-fg-subtle">
@@ -133,7 +130,7 @@ export default function DemoContaduriaPage() {
               <li key={strong} className="flex items-start gap-3">
                 <span
                   aria-hidden="true"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-pill bg-brand text-sm font-bold text-brand-contrast"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-pill bg-ink font-display text-sm font-extrabold text-on-ink"
                 >
                   {i + 1}
                 </span>
@@ -147,7 +144,7 @@ export default function DemoContaduriaPage() {
         </div>
       </section>
 
-      <section className="flex flex-col gap-3 rounded-card border border-ink-line bg-ink p-5 text-on-ink">
+      <section className="flex flex-col gap-3 rounded-container bg-ink p-5 text-on-ink">
         <p className="font-display text-xl font-extrabold">Vos decidís.</p>
         <p className="text-sm text-on-ink-muted">
           La postulación la hacés vos en el sitio del aviso: nunca postulamos por vos. El cupo de la
@@ -167,11 +164,10 @@ function OfferDetail({ offer }: { offer: DemoOffer }) {
       id={offer.id}
       aria-labelledby={`${offer.id}-titulo`}
       data-testid="demo-contaduria-oferta"
-      className="flex scroll-mt-20 flex-col gap-3 rounded-card border border-line bg-surface p-4"
+      className="flex scroll-mt-20 flex-col gap-3 rounded-card bg-surface p-4"
     >
       <div className="flex items-start gap-3">
-        <ScoreBadge score={offer.score} size="lg" />
-        <div className="flex min-w-0 flex-col gap-1">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
           <h3 id={`${offer.id}-titulo`} className="text-base font-bold">
             {offer.title}
           </h3>
@@ -190,6 +186,7 @@ function OfferDetail({ offer }: { offer: DemoOffer }) {
             <Badge shape="square">{ACTION_LABELS[offer.action]}</Badge>
           </div>
         </div>
+        <Seal score={offer.score} size="detail" />
       </div>
       <FitPointsPanel points={offer.points} headingLevel={4} />
       <p className="text-sm font-semibold text-fg">

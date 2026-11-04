@@ -1,7 +1,14 @@
 import * as s from "@job-search-os/db/schema";
 import { expect, test } from "@playwright/test";
 import { and, desc, eq } from "drizzle-orm";
-import { E2E_USER_ID, deleteSeededPublicJobs, login, ownerDb, seedPublicJobs } from "./helpers";
+import {
+  E2E_USER_ID,
+  deleteSeededPublicJobs,
+  login,
+  openJobFilters,
+  ownerDb,
+  seedPublicJobs,
+} from "./helpers";
 
 /**
  * Flujo 34 (ronda 46): explicar el vacío por puesto. El usuario e2e de siempre (sin pasar por el
@@ -102,6 +109,8 @@ test.describe("Flujo 34: vacío por puesto", () => {
   }) => {
     await login(page);
     await page.goto("/jobs");
+    // C10-7: «Puestos sin ofertas» está en «Más filtros y herramientas»
+    await openJobFilters(page);
     const gaps = page.getByTestId("role-gaps");
     await expect(gaps).toContainText("Puestos sin ofertas");
     await expect(gaps).toContainText(/Hay 2 ofertas de Ciberseguridad: todas piden Senior/);

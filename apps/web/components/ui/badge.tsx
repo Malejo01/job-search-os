@@ -7,6 +7,10 @@ import { cx } from "./cx";
  * para lo que tiene que resaltar en una lista (bloqueador, duplicado); `strong` es relleno fuerte y
  * texto blanco. Todas en semibold. `square` es el rectángulo de las listas (radio 6); `pill`, el
  * redondo. El texto va adentro: el color nunca es la única señal.
+ *
+ * C9-3: las dos formas quedan en píldora (`rounded-badge` vale 9999px). Un badge no se toca: no
+ * lleva borde inferior. Para lo que se toca, `filterChipClasses`; para lo que tenés o te falta,
+ * `Chip`.
  */
 export type BadgeTone = "neutral" | "success" | "warning" | "danger" | "info" | "brand";
 
@@ -43,8 +47,8 @@ const STRONG: Record<BadgeTone, string> = {
 const EMPHASIS = { soft: SOFT, muted: MUTED, strong: STRONG } as const;
 
 const SHAPES = {
-  square: "rounded-badge px-2 py-0.5",
-  pill: "rounded-pill px-2 py-0.5",
+  square: "rounded-badge px-2.5 py-0.5",
+  pill: "rounded-pill px-2.5 py-0.5",
 } as const;
 
 export type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
@@ -66,7 +70,7 @@ export function badgeClasses({
   className,
 }: Pick<BadgeProps, "tone" | "emphasis" | "shape" | "className"> = {}): string {
   return cx(
-    "inline-flex items-center gap-1 text-xs font-semibold",
+    "inline-flex items-center gap-1 text-xs font-bold",
     SHAPES[shape],
     EMPHASIS[emphasis][tone],
     className,

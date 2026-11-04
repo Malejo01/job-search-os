@@ -26,8 +26,9 @@ test.describe("Flujo 106: /acceso a prueba del salón (C8-3)", () => {
     await page.goto("/acceso?origen=voces-jovenes");
     await page.getByLabel("Nombre").fill("Persona Salón");
     await page.getByLabel("Email").fill(`salon-${tag}-${n}@example.com`);
-    await page.getByLabel("Carrera").selectOption("abogacia");
-    await page.getByRole("button", { name: "Pedir acceso" }).click();
+    // Las carreras de la beta son chips (C10-5)
+    await page.getByRole("radio", { name: "Abogacía" }).check();
+    await page.getByRole("button", { name: "Anotarme", exact: true }).click();
     await expect(page.getByTestId("acceso-confirmacion")).toBeVisible();
   }
 

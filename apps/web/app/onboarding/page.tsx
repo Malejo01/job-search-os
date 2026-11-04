@@ -24,6 +24,7 @@ import { ROLE_SKILLS } from "@/lib/skill-levels";
 import { DeleteAccountForm } from "../(app)/settings/delete-account-form";
 import { OnboardingForm } from "./onboarding-form";
 import { OnboardingSteps } from "./steps";
+import { Illustration } from "@/components/brand/illustration";
 
 export const dynamic = "force-dynamic";
 // La primera ingesta corre en `after()` al guardar y hereda la duración de esta ruta
@@ -65,7 +66,7 @@ export default async function OnboardingPage({
     roles: group.roles.map((key) => ({ key, label: ROLE_SKILLS[key].label })),
   }));
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex flex-col gap-5">
       <OnboardingSteps
         current={1}
         guide={
@@ -80,11 +81,15 @@ export default async function OnboardingPage({
           />
         }
       />
-      <h1 className="text-title font-bold">Completá tu perfil</h1>
-      <p className="text-sm text-fg-subtle">
-        Antes de ver ofertas, contanos un poco de vos: con esto leemos cada aviso contra tu perfil.
-        Lo podés cambiar cuando quieras.
-      </p>
+      {/* Ilustración «bienvenida» (C9-13): una por pantalla, arriba del primer paso */}
+      <Illustration escena="bienvenida" priority className="w-40 sm:w-52" />
+      <div className="flex flex-col gap-1">
+        <h1 className="text-title font-bold">Completá tu perfil</h1>
+        <p className="text-sm text-fg-subtle">
+          Antes de ver ofertas, contanos un poco de vos: con esto leemos cada aviso contra tu
+          perfil. Lo podés cambiar cuando quieras.
+        </p>
+      </div>
       <OnboardingForm
         roleGroups={roleGroups}
         salaries={salaries}
@@ -100,7 +105,7 @@ export default async function OnboardingPage({
         minSummary={MIN_SUMMARY_CHARS}
         maxSummary={MAX_SUMMARY_CHARS}
       />
-      <div className="mt-4 border-t border-line pt-4">
+      <div className="mt-2 border-t border-line pt-5">
         <DeleteAccountForm error={error === "confirmacion"} returnTo="/onboarding" />
       </div>
     </section>

@@ -259,7 +259,7 @@ test.describe("Flujo 27: primeras ofertas del pool, del puesto a /jobs", () => {
     await expect(page.getByTestId("email-nudge")).toHaveCount(0);
 
     await page.reload();
-    await expect(page.getByRole("heading", { name: "Ofertas", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Tus ofertas", exact: true })).toBeVisible();
     await expect(page.getByTestId("email-nudge")).toHaveCount(0);
   });
 
@@ -330,7 +330,7 @@ test.describe("Flujo 27b: aviso «Elegí tu puesto» en /jobs", () => {
     await expect(page.getByTestId("role-nudge")).toHaveCount(0);
 
     await page.reload();
-    await expect(page.getByRole("heading", { name: "Ofertas", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Tus ofertas", exact: true })).toBeVisible();
     await expect(page.getByTestId("role-nudge")).toHaveCount(0);
   });
 });
