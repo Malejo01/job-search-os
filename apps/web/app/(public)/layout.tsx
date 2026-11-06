@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { siteUrl } from "@/lib/site-url";
 import { Logo } from "@/components/brand/logo";
+import { CopyrightNotice } from "@/components/copyright-notice";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { buttonClasses } from "@/components/ui";
 
@@ -147,6 +148,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
         <Link href="/como-esta-hecho" className={FOOTER_LINK}>
           Cómo está hecho
         </Link>
+        <CopyrightNotice className="basis-full" />
       </footer>
     </div>
   );

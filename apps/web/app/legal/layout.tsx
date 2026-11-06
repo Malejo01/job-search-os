@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Logo } from "@/components/brand/logo";
+import { CopyrightNotice } from "@/components/copyright-notice";
 
 const SKIP_CLASS =
   "sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-control focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-fg focus:ring-2 focus:ring-focus";
@@ -42,6 +43,7 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
         <Link href="/legal/terminos" className="underline-offset-2 hover:underline">
           Términos
         </Link>
+        <CopyrightNotice className="mt-1" />
       </footer>
     </div>
   );

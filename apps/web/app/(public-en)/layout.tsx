@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { siteUrl } from "@/lib/site-url";
 import { Logo } from "@/components/brand/logo";
+import { CopyrightNotice } from "@/components/copyright-notice";
 
 /**
  * Layout de la vitrina pública en inglés (ronda 96): copia de `(public)/layout.tsx` con cabecera y
@@ -130,6 +131,7 @@ export default function PublicEnLayout({ children }: { children: ReactNode }) {
         <Link href="/en/how-its-built" hrefLang="en" className={FOOTER_LINK}>
           How it&apos;s built
         </Link>
+        <CopyrightNotice className="basis-full" />
       </footer>
     </div>
   );

@@ -24,6 +24,15 @@ export const BRAND = {
   repoUrl: "https://github.com/Malejo01/job-search-os",
 } as const;
 
+/** Año del aviso de derechos reservados. */
+export const COPYRIGHT_YEAR = 2026;
+
+/**
+ * Aviso de derechos reservados del pie de la app y de los textos legales. Es solo este aviso: qué
+ * protección corresponde (marca, derecho de autor) lo define Camila (abogada), no este archivo.
+ */
+export const COPYRIGHT_NOTICE = `© ${COPYRIGHT_YEAR} ${BRAND.name}. Todos los derechos reservados.`;
+
 /**
  * Colores de marca para lo que no lee CSS: imágenes OG, ícono, manifest y emails. En la app los
  * colores salen de los tokens de `globals.css` (mismos valores); este objeto es su espejo para esos
