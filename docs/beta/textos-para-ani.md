@@ -26,7 +26,7 @@ Todo lo que Ani tiene que leer antes del 26/11, en un lugar. **En la app:** [`/s
 ## Lo que ya está decidido (no hace falta volver a mirarlo)
 
 - La marca es **AfinIAJobs** (logo, colores y tipografías en `/settings/marca`).
-- La beta abre el **jueves 26/11**, con 6 carreras y cupo limitado; anotarse en `/acceso` no garantiza lugar.
+- La beta abre el **jueves 26/11**, con 6 carreras y cupo limitado; la gente se anota en `/acceso`.
 - El precio (ARS 20.000 por mes) va en la invitación, con el link de Mercado Pago.
 
 ## Decisiones del 5/11 que tocan los textos

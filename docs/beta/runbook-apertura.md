@@ -2,7 +2,7 @@
 
 Para Mauro, en orden. Cada paso trae el enlace o el comando exacto. Lo que dice «(solo Mauro)» toca producción y no lo hace ningún agente. Convenciones: la app vive en el proyecto de Vercel `job-search-os` (equipo `lizarraga-mauros-projects`), la base en Neon y el repo en `Malejo01/job-search-os`. `<dominio>` es `afiniajobs.com.ar` cuando esté activo (hasta entonces, `busquedalaboral.malejo.com.ar`).
 
-> **Decidido y no se reabre acá.** La beta abre el jueves 26/11 para 6 carreras (abogacía, contaduría, administración, comunicación, marketing y RR.PP., relaciones internacionales). Cupo de 15 a 20 personas; los pagos, las becas y los combos están en «Decisiones del 5/11» (abajo). Plan Beta: ARS 20.000 por mes (USD 15 de referencia), 30 días por pago, **sin garantía**, activación manual (cómo se relaciona con los dos combos de Ani: [A DEFINIR: combos de Ani]). La gente se anota en `/acceso` y vos invitás desde el panel; **anotarse no garantiza lugar**.
+> **Decidido y no se reabre acá.** La beta abre el jueves 26/11 para 6 carreras (abogacía, contaduría, administración, comunicación, marketing y RR.PP., relaciones internacionales). Cupo de 15 a 20 personas; los pagos, las becas y los combos están en «Decisiones del 5/11» (abajo). Plan Beta: ARS 20.000 por mes (USD 15 de referencia), 30 días por pago, **sin garantía**, activación manual (cómo se relaciona con los dos combos de Ani: [A DEFINIR: combos de Ani]). La gente se anota en `/acceso` y vos invitás desde el panel; **el cupo es limitado**.
 
 ## Decisiones del 5/11
 
