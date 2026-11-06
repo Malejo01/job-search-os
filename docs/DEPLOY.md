@@ -94,10 +94,10 @@ Consecuencia: el `vercel.json` actual (`0 */6 * * *` y `15 */6 * * *`) **no desp
 | Qué | Valor |
 |---|---|
 | Proyecto Vercel | `job-search-os` (equipo `lizarraga-mauros-projects`), root `apps/web`, framework Next.js, Node 22 |
-| Producción | `https://afiniajobs.com.ar` desde el 6/11 (sección «Pasar a afiniajobs.com.ar»); el dominio viejo `https://busquedalaboral.malejo.com.ar` redirige al nuevo (certificado Let's Encrypt emitido por Vercel). `https://job-search-os-kohl.vercel.app` sigue sirviendo la misma app en paralelo (ojo: `job-search-os.vercel.app` es de otro proyecto) |
+| Producción | `https://afiniajobs.com.ar` desde el 6/11 (`SITE_URL` vale desde el siguiente build de producción; sección «Pasar a afiniajobs.com.ar»); el dominio viejo `https://busquedalaboral.malejo.com.ar` redirige al nuevo (certificado Let's Encrypt emitido por Vercel). `https://job-search-os-kohl.vercel.app` sigue sirviendo la misma app en paralelo (ojo: `job-search-os.vercel.app` es de otro proyecto) |
 | Git | repo `Malejo01/job-search-os` conectado: cada push a `main` despliega a producción |
 | Variables | prod: `DATABASE_URL`, `DATABASE_URL_APP`, `AUTH_SECRET`, `CRON_SECRET`, `GEMINI_API_KEY`, `MCP_TOKEN`, `RESEND_API_KEY`, `LLM_DAILY_CAP_USD=2`; preview: `DATABASE_URL`, `DATABASE_URL_APP`, `AUTH_SECRET` + `LLM_DEMO=1` |
-| GitHub | secrets `CRON_SECRET` y `GEMINI_API_KEY`; variable (no secret) `APP_URL=https://busquedalaboral.malejo.com.ar` |
+| GitHub | secrets `CRON_SECRET` y `GEMINI_API_KEY`; variable (no secret) `APP_URL=https://busquedalaboral.malejo.com.ar` (todavía el host viejo; se cambia en el paso 8 de «Pasar a afiniajobs.com.ar») |
 | Base | Neon: migraciones hasta 0011 + policies, seed con el usuario real y el golden privado. Las migraciones NO corren en el deploy: después de mergear una, `pnpm db:migrate` a mano |
 
 ### DNS de malejo.com.ar (Vercel DNS)
