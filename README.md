@@ -4,9 +4,9 @@ Sistema de búsqueda laboral para perfiles de tecnología y carreras digitales: 
 
 **Tesis:** el modelo evalúa, el código decide, el humano interviene solo donde hace falta.
 
-- App pública: <https://busquedalaboral.malejo.com.ar/>
-- Demo para recorrer sin registrarse: <https://busquedalaboral.malejo.com.ar/demo>
-- Cómo está hecho, explicado para quien no programa: <https://busquedalaboral.malejo.com.ar/como-esta-hecho>
+- App pública: <https://afiniajobs.com.ar/>
+- Demo para recorrer sin registrarse: <https://afiniajobs.com.ar/demo>
+- Cómo está hecho, explicado para quien no programa: <https://afiniajobs.com.ar/como-esta-hecho>
 
 ## In English
 
@@ -16,7 +16,7 @@ Engineering highlights: a pure TypeScript pipeline with no I/O, schema-validated
 
 ## Arquitectura
 
-El recorrido de una oferta, con las mismas seis etapas que muestra [/como-esta-hecho](https://busquedalaboral.malejo.com.ar/como-esta-hecho) (fuente del diagrama: `apps/web/app/(public)/como-esta-hecho/flow-diagram.tsx`):
+El recorrido de una oferta, con las mismas seis etapas que muestra [/como-esta-hecho](https://afiniajobs.com.ar/como-esta-hecho) (fuente del diagrama: `apps/web/app/(public)/como-esta-hecho/flow-diagram.tsx`):
 
 ```mermaid
 flowchart LR
