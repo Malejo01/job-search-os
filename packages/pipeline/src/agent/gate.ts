@@ -1,13 +1,15 @@
 /**
  * Encendido del asistente (AG-3). Puro: la app lee el entorno y el email de la sesión y los pasa.
- * Mismo patrón que lo demás que es solo para admin: `ASSISTANT_ENABLED=admin` y el email en
- * `ADMIN_EMAILS`. Apagado por defecto: cualquier otro valor (vacío, "1", "all") es «apagado».
+ * `ASSISTANT_ENABLED=admin`: solo los emails de `ADMIN_EMAILS`. `ASSISTANT_ENABLED=testers` (R4-15):
+ * `ADMIN_EMAILS` más `ASSISTANT_TESTER_EMAILS`, sin dar permisos de admin. Apagado por defecto:
+ * cualquier otro valor (vacío, "1", "all", "Testers") es «apagado».
  */
 
-export type AssistantMode = "off" | "admin";
+export type AssistantMode = "off" | "admin" | "testers";
 
 export function assistantMode(env: Record<string, string | undefined>): AssistantMode {
-  return env.ASSISTANT_ENABLED?.trim() === "admin" ? "admin" : "off";
+  const v = env.ASSISTANT_ENABLED?.trim();
+  return v === "admin" || v === "testers" ? v : "off";
 }
 
 const normalizeEmail = (email: string): string => email.trim().toLowerCase();
@@ -26,10 +28,16 @@ export function isAdminEmail(
     .some((admin) => admin !== "" && admin === wanted);
 }
 
-/** ¿Esta persona puede usar el asistente? Solo admins, y solo con el flag en "admin". */
+/**
+ * ¿Esta persona puede usar el asistente? Con "admin", solo `ADMIN_EMAILS`; con "testers", también
+ * `ASSISTANT_TESTER_EMAILS`. Ser tester no da permisos de admin: la lista solo vale acá.
+ */
 export function assistantAllowed(
   env: Record<string, string | undefined>,
   email: string | null | undefined,
 ): boolean {
-  return assistantMode(env) === "admin" && isAdminEmail(email, env.ADMIN_EMAILS);
+  const mode = assistantMode(env);
+  if (mode === "off") return false;
+  if (isAdminEmail(email, env.ADMIN_EMAILS)) return true;
+  return mode === "testers" && isAdminEmail(email, env.ASSISTANT_TESTER_EMAILS);
 }

@@ -130,9 +130,10 @@ const FAQS: FaqItem[] = [
     q: "¿Cómo aviso si algo no funciona o tengo una consulta?",
     a: (
       <p>
-        En todas las pantallas de la app vas a ver un botón flotante que dice{" "}
-        <strong>«¿Algo no anduvo?»</strong>. Al tocarlo podés describir qué problema tuviste o qué
-        no quedó claro. Leemos los comentarios durante la beta.
+        En todas las pantallas de la app vas a ver un botón flotante, abajo a la izquierda, que dice{" "}
+        <strong>«¿Algo no anduvo?»</strong> (en el celular es un círculo con una burbuja de charla,
+        arriba de las pestañas). Al tocarlo podés describir qué problema tuviste o qué no quedó
+        claro. Leemos los comentarios durante la beta.
       </p>
     ),
   },

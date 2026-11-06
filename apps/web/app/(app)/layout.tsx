@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { ActionTracker } from "@/components/action-tracker";
+import { AssistantMascot } from "@/components/assistant-mascot";
 import { FeedbackButton } from "@/components/feedback-button";
 import { MobileTabBar } from "./mobile-tabbar";
 import { countFollowUps } from "@/lib/applications";
@@ -14,7 +15,6 @@ import { requireUserId } from "@/lib/session";
 import { needsTermsAcceptance } from "@/lib/terms-status";
 import { getUserPlan } from "@/lib/user-plan";
 import { getDisplayName } from "@/lib/display-name";
-import { AssistantButton } from "./assistant-button";
 import { Avatar } from "./avatar";
 import { AppBar } from "./app-bar";
 import { DesktopNav } from "./main-nav";
@@ -53,8 +53,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const canInvite = process.env.ADMIN_EMAILS
     ? await canCreateInvitations(userId).catch(() => false)
     : false;
-  // Asistente (AG-3): solo admins con ASSISTANT_ENABLED=admin; sin el flag no hay consulta y si
-  // falla, no se muestra
+  // Asistente (AG-3): admins con ASSISTANT_ENABLED=admin, y también los emails de
+  // ASSISTANT_TESTER_EMAILS con =testers; sin el flag no hay consulta y si falla, no se muestra
   const canAssist = await canUseAssistant(userId);
   // Contador de «Postulaciones»: si la consulta falla, el menú se muestra igual, sin número
   const followUps = await countFollowUps(userId, new Date()).catch(() => 0);
@@ -75,8 +75,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       </a>
       {/* Barra índigo (C10-3, pantallas aprobadas el 4/11): logo, las cinco secciones en píldoras y
           el avatar. En el celular, logo y avatar (las secciones son las pestañas de abajo) */}
-      <AppBar adminTools={canInvite || canAssist}>
-        {/* flex-wrap: con «Invitar» y «Asistente» (solo admins) la barra del celular pasa a dos filas */}
+      <AppBar adminTools={canInvite}>
+        {/* flex-wrap: con «Invitar» (solo admins) la barra del celular pasa a dos filas */}
         <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-x-7 gap-y-1 px-5 sm:px-12">
           <Link href="/hoy" className={LOGO_LINK}>
             <Logo tone="dark" />
@@ -90,14 +90,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                 Invitar
               </Link>
             ) : null}
-            {canAssist ? <AssistantButton className={HEADER_LINK} /> : null}
             {/* Claro u oscuro, a mano en todas las pantallas (C10) */}
             <ThemeToggle />
             <Avatar name={displayName} />
           </div>
         </div>
       </AppBar>
-      {/* pb-24 en el celular: el chip de soporte (abajo a la derecha) no tapa el último botón.
+      {/* pb-24 en el celular: el chip de soporte (abajo a la izquierda) y la mascota (a la derecha) no tapan el último botón.
           Con `data-ancho="completo"` (Hoy, Ofertas, el detalle) la página pone su ancho y su
           margen, como las referencias de C10 */}
       <main
@@ -109,7 +108,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
       <ActionTracker />
+      {/* Dos botones separados: el chip de soporte abajo a la izquierda y la mascota del asistente
+          abajo a la derecha (R4-15); los dos por encima de las pestañas del celular */}
       <FeedbackButton />
+      {canAssist ? <AssistantMascot /> : null}
       <MobileTabBar followUps={followUps} />
       <footer className="border-t border-line px-4 py-3 text-center text-xs text-fg-subtle">
         <Link href="/legal/privacidad" className="underline-offset-2 hover:underline">

@@ -24,7 +24,7 @@ const GENERIC_ERROR = "No pudimos guardar tu mensaje. Probá de nuevo en un rato
 const THANKS_MS = 5000;
 
 /**
- * Chip fijo de soporte «¿Algo no anduvo?» (R1-9 / C-23). `<dialog>` nativo: `showModal()` atrapa el foco y Esc
+ * Chip fijo de soporte «¿Algo no anduvo?» (R1-9 / C-23), abajo a la izquierda (R4-15). `<dialog>` nativo: `showModal()` atrapa el foco y Esc
  * cierra. Manda categoría, mensaje, la ruta actual (`usePathname()`: solo el pathname, sin query)
  * y el contexto de sesión (últimas acciones y metadatos de entorno).
  */
@@ -80,7 +80,8 @@ export function FeedbackButton() {
         // C7-5: en el celular es un círculo de 44 px (el texto queda para lectores de pantalla) para no
         // tapar botones; las pantallas dejan 6rem libres abajo. Desde sm, la píldora con el texto.
         // `--tabbar-h` (R-3) lo sube por encima de la barra de pestañas del celular cuando está prendida.
-        className="fixed bottom-[calc(1rem+var(--tabbar-h,0px)+env(safe-area-inset-bottom,0px))] right-[calc(1rem+env(safe-area-inset-right,0px))] z-40 inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-pill border-2 border-line-strong bg-surface text-xs font-semibold text-fg-muted hover:bg-surface-muted hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:px-3.5 sm:py-1.5"
+        // R4-15: abajo a la IZQUIERDA en todos los anchos; la derecha es de la mascota del asistente.
+        className="fixed bottom-[calc(1rem+var(--tabbar-h,0px)+env(safe-area-inset-bottom,0px))] left-[calc(1rem+env(safe-area-inset-left,0px))] z-40 inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-pill border-2 border-line-strong bg-surface text-xs font-semibold text-fg-muted hover:bg-surface-muted hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:px-3.5 sm:py-1.5"
       >
         {/* C9-17: ícono de la marca en vez del emoji */}
         <Icon name="charla" size={18} />
@@ -89,7 +90,7 @@ export function FeedbackButton() {
       {thanks ? (
         <p
           role="status"
-          className="fixed bottom-[calc(4.5rem+var(--tabbar-h,0px)+env(safe-area-inset-bottom,0px))] right-4 z-50 rounded-control bg-ink px-4 py-2 text-sm text-on-ink"
+          className="fixed bottom-[calc(4.5rem+var(--tabbar-h,0px)+env(safe-area-inset-bottom,0px))] left-4 z-50 rounded-control bg-ink px-4 py-2 text-sm text-on-ink"
         >
           ¡Gracias! Lo leemos todo.
         </p>
