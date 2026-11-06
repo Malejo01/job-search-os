@@ -2,7 +2,7 @@
 
 Para Ani y Mauro. Está escrito sin jerga: cada paso dice qué hacer y qué tendrías que ver. Lo que dice **(Mauro)** lo hace Mauro porque toca producción o la base. Los QR y qué hacer si algo falla están en [`README.md`](./README.md).
 
-**Lo que ya está decidido y no se discute el día del evento:** la beta abre el jueves 26/11 para 6 carreras (abogacía, contaduría, administración, comunicación, marketing y RR.PP., relaciones internacionales). Cupo: 15 a 20 personas que pagan más 3 becadas. Plan Beta: ARS 20.000 por mes, sin garantía, sin factura. **Anotarse no asegura un lugar.**
+**Lo que ya está decidido y no se discute el día del evento:** la beta abre el jueves 26/11 para 6 carreras (abogacía, contaduría, administración, comunicación, marketing y RR.PP., relaciones internacionales). Cupo: 15 a 20 personas (becas y combos en `docs/beta/runbook-apertura.md`, «Decisiones del 5/11»; hay puntos abiertos). El evento es **Voces Jóvenes, con 10 proyectos y sin diapositivas**: se muestra el producto y un video de menos de 3 minutos. Plan Beta: ARS 20.000 por mes, sin garantía, sin factura (cómo encaja con los dos combos de Ani: [A DEFINIR: combos de Ani]). **Anotarse no asegura un lugar.**
 
 ---
 
@@ -18,17 +18,17 @@ Si alguien se pasa, ve: «Recibimos muchos pedidos desde tu conexión. Probá de
 
 - [ ] **Ani:** estimá cuánta gente va a anotarse y cuántos lo harán al mismo tiempo (por ejemplo, «80 personas, casi todas en los primeros 5 minutos»).
 - [ ] **Si pueden ser más de 40 con el mismo wifi o más de 60 en 10 minutos (C8-3):** la prueba de carga (`waitlist.integration.test.ts`) confirma que con los topes normales **la persona 41 del mismo wifi queda afuera**. Para el evento hay una **ventana con topes más altos**, solo para quien entra por el QR (`?origen=voces-jovenes`): 120 por hora desde el mismo wifi y 200 cada 10 minutos entre todas (el diario de 600 no cambia).
-  - **(Mauro, antes del 10/11):** con `pnpm db:migrate` aplicado **antes** de mergear la integración de C8 (re-aplica `rls/0006`; el código de C8 necesita las migraciones 0057 a 0059 aunque sus variables estén apagadas), cargá en Vercel `WAITLIST_EVENT_WINDOW=2026-11-11T19:00:00-03:00/2026-11-11T22:00:00-03:00` (**solo el horario real de la charla, 2 a 3 horas**; el sistema acepta como mucho 12) y hacé redeploy. Fuera de esa ventana, o sin la variable, rigen los topes normales.
+  - **(Mauro, antes del 10/11):** con `pnpm db:migrate` aplicado **antes** de mergear la integración de C8 (re-aplica `rls/0006`; el código de C8 necesita las migraciones 0057 a 0059 aunque sus variables estén apagadas), cargá en Vercel `WAITLIST_EVENT_WINDOW=2026-11-11T19:00:00-03:00/2026-11-11T22:00:00-03:00` (**solo el horario real del evento, 2 a 3 horas**; el sistema acepta como mucho 12) y hacé redeploy. Fuera de esa ventana, o sin la variable, rigen los topes normales.
   - **El 12/11:** borrá la variable (o dejala: la ventana ya pasó y no se vuelve a abrir).
-  - Igual conviene decir en la presentación «si el wifi anda lento, anótense con los datos del celular».
+  - Igual conviene decir en el evento «si el wifi anda lento, anótense con los datos del celular».
 - [ ] Avisale a Ani el mensaje de «Recibimos muchos pedidos…» para que sepa que no es una falla: es el freno.
 
 ### El código QR
 - [ ] **(Mauro)** El dominio nuevo (`afiniajobs.com.ar`) se conecta después del 6/11. **Lunes 9/11: decidir cuál QR se usa** (regla en el README: si el dominio nuevo abre bien en dos celulares, el nuevo; si no, el de respaldo).
 - [ ] Probar el QR con **dos celulares**, uno con wifi y otro con datos, **al mismo tiempo** (pasos en el README). Tiene que abrir «Pedir acceso» y tener «Voces Jóvenes» en «Cómo te enteraste».
-- [ ] **Ani:** poné el QR **grande** en la diapositiva (que ocupe al menos un tercio del alto), sobre fondo blanco, **sin recortar el borde blanco y sin logo encima**. Escribí debajo la dirección corta (`…/acceso`).
+- [ ] **Ani:** [A CONFIRMAR: dónde se muestra el QR, ya que no hay diapositivas.] Donde sea, ponelo **grande** (que ocupe al menos un tercio del alto), sobre fondo blanco, **sin recortar el borde blanco y sin logo encima**. Escribí debajo la dirección corta (`…/acceso`).
 - [ ] Probá desde **el fondo de la sala** (o a la distancia más lejana) que un celular lo lee. Si cuesta, agrandalo.
-- [ ] Tené una **segunda diapositiva escondida con el otro QR** por si falla el principal.
+- [ ] Tené **el otro QR a mano, sin mostrarlo**, por si falla el principal.
 - [ ] **Lo que dice Ani sobre el cupo,** palabra más, palabra menos: «Anotarse no asegura un lugar. El cupo es limitado y vamos a escribirles a quienes elijamos.»
 
 ### El panel de la lista de espera (Mauro)
@@ -68,9 +68,9 @@ Si alguien se pasa, ve: «Recibimos muchos pedidos desde tu conexión. Probá de
 - [ ] Pasale la planilla a Ani (o abrila juntos en pantalla).
 
 ### Elegir a quién invitar (Ani y Mauro)
-- [ ] **Ani trae los criterios** para elegir (los que definió para las 15 a 20 personas que pagan y las 3 becadas). **Hasta que estén definidos, no se invita a nadie.**
+- [ ] **Ani trae los criterios** para elegir (los que definió para las 15 a 20 personas; incluyen los dos combos [A DEFINIR: combos de Ani] y las becas). **Hasta que estén definidos, no se invita a nadie.**
 - [ ] Revisen la lista **carrera por carrera** con los contadores del panel: ¿alcanza gente en cada una de las 6?
-- [ ] Marquen en la planilla a quiénes eligen y quiénes quedan en espera. **Las 3 becas se marcan aparte.**
+- [ ] Marquen en la planilla a quiénes eligen y quiénes quedan en espera. **Las becas (un becado gratis y dos con 50 %) se marcan aparte;** quiénes son y si Camila y Virginia entran en esos lugares: [A CONFIRMAR con Mauro].
 - [ ] **(Mauro)** En el panel, tildá a las personas elegidas (hasta 20 por tanda), tocá **«Invitar a los seleccionados»** y confirmá.
 - [ ] **Copiá los mensajes en ese momento:** los enlaces se muestran **una sola vez**. Cada mensaje dice que la beta abre el jueves 26/11 y que el enlace es personal. Mandalos por WhatsApp o email desde tu cuenta: el panel no manda nada solo.
 - [ ] Cada invitación **vence a los 14 días** y sirve una sola vez. Si alguien no la usó, se revoca y se crea de nuevo desde el mismo panel.

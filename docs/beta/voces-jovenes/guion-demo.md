@@ -1,6 +1,6 @@
 # Guion del video de la demo (C8-4)
 
-Video de **2 a 3 minutos** de [`/demo/contaduria`](/demo/contaduria) grabado en el celular para la presentación de Voces Jóvenes del 11/11, más una **versión de 30 segundos** para un reel. Todo lo que aparece en la demo es inventado (Lucía, las empresas, los puntajes) y fijo: el video sale igual cada vez que se graba.
+Video de **menos de 3 minutos** (hoy dura 2:40) de [`/demo/contaduria`](/demo/contaduria) grabado en el celular para el evento Voces Jóvenes del 11/11 (10 proyectos; AfinIAJobs aparece en la premiación; sin diapositivas: se muestra el producto y este video), más una **versión de 30 segundos** para un reel. Todo lo que aparece en la demo es inventado (Lucía, las empresas, los puntajes) y fijo: el video sale igual cada vez que se graba.
 
 ## Antes de grabar
 

@@ -33,5 +33,5 @@ Revisión de lo que cambió desde la auditoría del 1/11 (`auditoria-beta-1-11.m
 
 ## Qué hace Mauro
 
-1. Antes del 11/11: regla del firewall de Vercel para `POST /acceso` (S-2) y `WAITLIST_EVENT_WINDOW` con el horario real de la charla (S-1).
+1. Antes del 11/11: regla del firewall de Vercel para `POST /acceso` (S-2) y `WAITLIST_EVENT_WINDOW` con el horario real del evento (S-1).
 2. Antes del 26/11: decidir el presupuesto de Resend (M-3) antes de prender `WELCOME_EMAIL_ENABLED` (S-3).
