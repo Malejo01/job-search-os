@@ -282,10 +282,11 @@
   --jso-brand-contrast: #1e1b4b;
   --jso-brand-text: #c6f25b;
 
-  --jso-ink: #1e1b4b;
+  /* Un paso más claro que en claro (R4-09): sobre el fondo #14123a la cabecera curva se perdía */
+  --jso-ink: #2a2766;
   --jso-on-ink: #ffffff;
   --jso-on-ink-muted: #c7c6e6;
-  --jso-ink-line: #34316b;
+  --jso-ink-line: #3d3a7d;
   --jso-ink-accent: #4338ca;
   --jso-ink-dash: #8b89b8;
 

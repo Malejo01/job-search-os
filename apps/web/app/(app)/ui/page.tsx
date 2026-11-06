@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { Logo } from "@/components/brand/logo";
+import { canCreateInvitations } from "@/lib/invitations";
+import { requireUserId } from "@/lib/session";
 import { OfferCard } from "@/components/offer-card";
 import {
   Alert,
@@ -30,7 +33,10 @@ const BADGE_TONES: BadgeTone[] = ["neutral", "success", "warning", "danger", "in
  * Vitrina de los componentes base (N3-3): cada variante en una pantalla, para revisarlos a ojo y
  * para que el e2e 87 los pase por axe en claro y en oscuro. Sin datos de nadie y fuera del menú.
  */
-export default function UiPage() {
+export default async function UiPage() {
+  // Catálogo interno: solo admin, como /settings/marca (404 para el resto)
+  const userId = await requireUserId();
+  if (!(await canCreateInvitations(userId).catch(() => false))) notFound();
   return (
     <div className="flex flex-col gap-6">
       <div>

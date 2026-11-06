@@ -49,7 +49,9 @@ async function readPlan() {
 
 async function abrirPanel(page: Page): Promise<boolean> {
   await login(page);
-  await page.goto("/settings/planes");
+  const res = await page.goto("/settings/planes");
+  // Sin ser admin la pantalla da 404 (R4-09): los casos se saltean
+  if (res?.status() === 404) return false;
   await expect(page.getByRole("heading", { level: 1, name: "Planes de la beta" })).toBeVisible();
   return (await page.getByRole("heading", { name: /^Activar \d+ días$/ }).count()) > 0;
 }

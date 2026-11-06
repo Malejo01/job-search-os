@@ -113,7 +113,7 @@ export default async function MarketPage({
       )}
 
       <div className="mt-2 flex flex-col gap-1">
-        <h2 className="text-heading font-bold">Tu agenda</h2>
+        <h2 className="text-heading font-bold">Tu agenda de skills</h2>
         <p className="text-xs text-fg-subtle">
           Lo que piden las ofertas que ya pasaron por tu cuenta, cruzado con tus niveles.
         </p>
@@ -126,33 +126,41 @@ export default async function MarketPage({
       </div>
       <RoleMarket view={roleMarket} />
 
-      <form method="get" className="flex flex-col gap-2 text-xs text-fg-subtle">
-        {role ? <input type="hidden" name="rol" value={role} /> : null}
-        <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-end">
-          <label className="flex flex-col gap-1">
-            Desde (semana)
-            <input
-              type="date"
-              name="desde"
-              defaultValue={range.from ?? ""}
-              className={INPUT_CLASS}
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            Hasta
-            <input type="date" name="hasta" defaultValue={range.to ?? ""} className={INPUT_CLASS} />
-          </label>
-          <button
-            type="submit"
-            className={buttonClasses({ variant: "secondary", className: "w-full sm:w-auto" })}
-          >
-            Aplicar
-          </button>
-        </div>
-        {view.weeks.length ? (
-          <p>Semanas disponibles: {view.weeks.map(shortDate).join(", ")}</p>
-        ) : null}
-      </form>
+      {/* El rango de semanas solo tiene sentido cuando hay semanas para elegir */}
+      {view.weekStart || view.weeks.length || range.from || range.to ? (
+        <form method="get" className="flex flex-col gap-2 text-xs text-fg-subtle">
+          {role ? <input type="hidden" name="rol" value={role} /> : null}
+          <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-end">
+            <label className="flex flex-col gap-1">
+              Desde (semana)
+              <input
+                type="date"
+                name="desde"
+                defaultValue={range.from ?? ""}
+                className={INPUT_CLASS}
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              Hasta
+              <input
+                type="date"
+                name="hasta"
+                defaultValue={range.to ?? ""}
+                className={INPUT_CLASS}
+              />
+            </label>
+            <button
+              type="submit"
+              className={buttonClasses({ variant: "secondary", className: "w-full sm:w-auto" })}
+            >
+              Aplicar
+            </button>
+          </div>
+          {view.weeks.length ? (
+            <p>Semanas disponibles: {view.weeks.map(shortDate).join(", ")}</p>
+          ) : null}
+        </form>
+      ) : null}
 
       <NoLevelsNotice state={state} />
 

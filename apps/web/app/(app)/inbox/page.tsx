@@ -221,9 +221,9 @@ export default async function InboxPage({
         </Alert>
       ) : null}
 
-      {/* C9-11: pestañas como filtros (la activa en lima con borde índigo). El padding deja ver el
-          anillo de foco y el borde de abajo dentro del scroll horizontal */}
-      <nav aria-label="Vistas" className="-mx-1 flex flex-nowrap gap-2 overflow-x-auto p-1">
+      {/* C9-11: pestañas como filtros (la activa en lima con borde índigo). Pasan a dos líneas en el
+          celular (auditoría R4, hallazgo 31); el padding deja ver el anillo de foco */}
+      <nav aria-label="Vistas" className="-mx-1 flex flex-wrap gap-2 p-1">
         {TABS.map((t) => (
           <Link
             key={t.view}

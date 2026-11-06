@@ -38,8 +38,8 @@ type Route = {
 
 type Seeded = { jobId: string; emailId: string };
 
-// `/settings/invitations` la ve cualquier persona logueada (sin ser admin muestra un estado
-// vacío), así que entra en la lista sin condiciones. Si se suma una página bajo
+// `/settings/invitations` es solo de admin (R4-09: 404 para una cuenta común); en el CI el usuario
+// e2e está en ADMIN_EMAILS, por eso entra en la lista. Si se suma una página bajo
 // `app/(app)/settings/`, sumarla acá.
 const ROUTES: Route[] = [
   { label: "/hoy", path: "/hoy" },

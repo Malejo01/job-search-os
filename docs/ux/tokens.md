@@ -49,7 +49,7 @@ La lima va **solo** en tres lugares: el botón de acción principal, el sello «
 | `focus` | Anillo de foco (2 px, separación de 2). Los campos lo llevan siempre (regla base) además del borde | `#4338CA` | `#C6F25B` |
 | `brand` / `brand-hover` / `brand-contrast` | Botón primario, su hover y su texto | `#C6F25B` / `#B4E046` / índigo | `#C6F25B` / `#D9F78A` / índigo |
 | `brand-text` | El acento como texto (sección activa, acento) | `#4338CA` | `#C6F25B` |
-| `ink` / `on-ink` / `on-ink-muted` / `ink-line` | Header y bloques índigo (iguales en los dos modos) | `#1E1B4B` / blanco / `#C7C6E6` / `#34316B` | ídem |
+| `ink` / `on-ink` / `on-ink-muted` / `ink-line` | Header y bloques índigo (en oscuro `ink` e `ink-line` suben un paso, R4-09, para que la cabecera se distinga del fondo) | `#1E1B4B` / blanco / `#C7C6E6` / `#34316B` | `#2A2766` / blanco / `#C7C6E6` / `#3D3A7D` |
 | `ink-accent` | Avatar de la barra (C10-3), índigo vivo sobre índigo | `#4338CA` | `#4338CA` |
 | `on-strong` | Texto sobre un relleno fuerte de estado | blanco | blanco |
 | `edge` | Borde inferior de lo blanco que se toca (tarjetas, botón secundario, chips) | `#D4D4DC` (línea fuerte) | `#4B4890` |

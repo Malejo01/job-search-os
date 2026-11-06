@@ -146,7 +146,7 @@ export function OfferD3({
       // detalle empieza debajo
       className={cx(
         "flex min-w-0 flex-col gap-3 sm:gap-4",
-        page && "max-sm:min-h-[calc(100svh-1.25rem)]",
+        page && items.length > 0 && "max-sm:min-h-[calc(100svh-1.25rem)]",
       )}
     >
       <section
