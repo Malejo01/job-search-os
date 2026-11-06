@@ -52,6 +52,17 @@ test.describe("Flujo 124: ilustraciones", () => {
     }
   });
 
+  test("la ruta pública /ilustraciones/ no abre otras pantallas sin sesión", async ({
+    request,
+  }) => {
+    // auth.config.ts deja pasar el prefijo /ilustraciones/: subir de carpeta no saltea la sesión
+    for (const path of ["/ilustraciones/../hoy", "/ilustraciones/%2e%2e/hoy"]) {
+      const res = await request.get(path, { maxRedirects: 0 });
+      expect(res.status(), path).not.toBe(200);
+      expect(res.headers()["location"] ?? "", path).toContain("/login");
+    }
+  });
+
   for (const theme of ["claro", "oscuro"] as const) {
     for (const width of [390, 1280]) {
       test(`/acceso en ${theme} a ${width} px: la escena es decorativa, carga y no desborda`, async ({
