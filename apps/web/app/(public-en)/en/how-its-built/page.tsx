@@ -1,5 +1,6 @@
 import { BRAND } from "@job-search-os/pipeline";
 import Link from "next/link";
+import { publicOpenGraph } from "@/lib/public-og";
 import { getPoolShowcase } from "@/lib/showcase";
 import { FlowDiagram, FLOW_STEPS_EN } from "../../../(public)/como-esta-hecho/flow-diagram";
 import { PoolNumbers } from "../../../(public)/mercado/pool-numbers";
@@ -14,6 +15,7 @@ export const metadata = {
     canonical: "/en/how-its-built",
     languages: { es: "/como-esta-hecho", en: "/en/how-its-built" },
   },
+  openGraph: publicOpenGraph({ path: "/en/how-its-built" }),
 };
 
 const REPO_URL = BRAND.repoUrl;

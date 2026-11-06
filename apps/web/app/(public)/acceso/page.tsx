@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { publicOpenGraph } from "@/lib/public-og";
 import { Suspense } from "react";
 import {
   BETA_LAUNCH_ROLE_KEYS,
@@ -20,6 +21,7 @@ export const metadata: Metadata = {
   description:
     "La beta es por invitación. Dejá tu nombre, email y carrera y te avisamos cuando haya lugar.",
   alternates: { canonical: "/acceso" },
+  openGraph: publicOpenGraph({ path: "/acceso" }),
 };
 
 /**

@@ -1,5 +1,6 @@
 import { FALTA_KIND_LABEL } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
+import { publicOpenGraph } from "@/lib/public-og";
 import Link from "next/link";
 import { FitPointsPanel } from "@/app/(app)/jobs/[id]/fit-points-panel";
 import { Badge, buttonClasses, Icon, Seal } from "@/components/ui";
@@ -15,6 +16,7 @@ export const metadata: Metadata = {
   description:
     "Un ejemplo con datos inventados: el perfil de una contadora, cinco ofertas con su puntaje, lo que tiene a favor y lo que le falta, y cómo completar una oferta sin descripción.",
   alternates: { canonical: "/demo/contaduria" },
+  openGraph: publicOpenGraph({ path: "/demo/contaduria" }),
 };
 
 const STEPS: Array<[string, string]> = [
