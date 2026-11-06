@@ -9,7 +9,7 @@ Todo lo que Ani tiene que leer antes del 26/11, en un lugar. **En la app:** [`/s
 | Dónde | Texto | Qué decidir |
 | --- | --- | --- |
 | Portada (`/`) | «Leemos cada oferta contra tu perfil y te decimos por qué sí y por qué no.» y «Menos postulaciones, mejor elegidas.» | ¿Suena a AfinIAJobs? ¿Se entiende para alguien de abogacía o contaduría? |
-| `/acceso` | Introducción, confirmación («te escribimos si hay lugar»), «Qué sigue» y el texto de «Pasáselo a alguien» | Que quede claro que **anotarse no asegura lugar** (decisión ya tomada); el tono del texto para compartir |
+| `/acceso` | Introducción, confirmación («te escribimos si hay lugar»), «Qué sigue» y el texto de «Pasáselo a alguien» | Que quede claro que **el cupo es limitado** (decisión ya tomada); el tono del texto para compartir |
 | `/precios` | «El link de pago llega con la invitación.» | Solo se ve con `PRICING_ENABLED=1`. ¿Se muestra el precio en la web o solo en la invitación? |
 | `/ayuda` | Las preguntas frecuentes | Faltan las de las carreras no tech: ¿sirve para trabajos presenciales en Salta?, ¿qué pasa con mis datos?, ¿puedo cancelar? (reserva R-4) |
 | Onboarding, paso 1 | **«Piso salarial mensual en USD (opcional)»** (R-2 de C7) | En Salta el sueldo de estas carreras es en pesos. ¿Lo dejamos, lo escondemos para estas carreras o pasamos a pesos (cambio grande, ronda aparte)? |

@@ -45,7 +45,7 @@ export const TEXTOS_ANI: readonly TextoAni[] = [
     extracto: "te escribimos si hay lugar, con el link para crear tu cuenta.",
     archivo: "apps/web/app/(public)/acceso/actions.ts",
     verEn: "/acceso",
-    decidir: "¿Se entiende que anotarse no asegura lugar?",
+    decidir: "¿Se entiende que el cupo es limitado?",
   },
   {
     area: "/acceso",
