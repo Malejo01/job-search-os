@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { publicOpenGraph } from "@/lib/public-og";
 import { contactLink } from "@/lib/contact";
 import { getShowcaseCards } from "@/lib/showcase";
 import { CareerChips } from "../mercado/career-chips";
@@ -10,6 +11,7 @@ export const metadata: Metadata = {
   title: "Ofertas de muestra",
   description: "Las ofertas públicas más recientes, con link al aviso original.",
   alternates: { canonical: "/ofertas" },
+  openGraph: publicOpenGraph({ path: "/ofertas" }),
   // La muestra cambia todos los días: no se indexa, pero el robot tiene que poder leer esto
   robots: { index: false, follow: true },
 };

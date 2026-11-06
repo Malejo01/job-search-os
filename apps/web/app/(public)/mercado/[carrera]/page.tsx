@@ -11,6 +11,7 @@ import { CareerMarket } from "@/app/(app)/market/career-market";
 import { careerLabel, getCareerMarket } from "@/lib/career-market";
 import { getPublicCareerKeys } from "@/lib/career-visibility";
 import { careerFromSlug } from "@/lib/showcase";
+import { publicOpenGraph } from "@/lib/public-og";
 import { siteUrl } from "@/lib/site-url";
 import { CareerChips } from "../career-chips";
 
@@ -44,15 +45,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description,
     alternates: { canonical: `/mercado/${role}` },
     ...(listed ? {} : { robots: { index: false, follow: true } }),
-    // Un openGraph propio reemplaza entero al del layout, imagen incluida: se repite la de (public)
-    openGraph: {
-      title,
-      description,
-      url: `/mercado/${role}`,
-      type: "website",
-      locale: "es_AR",
-      images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
-    },
+    // Un openGraph propio reemplaza entero al del layout: el helper repite la base (imagen incluida)
+    openGraph: publicOpenGraph({ path: `/mercado/${role}`, title, description }),
   };
 }
 

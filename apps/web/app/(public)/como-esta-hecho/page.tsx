@@ -1,5 +1,6 @@
 import { BRAND } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
+import { publicOpenGraph } from "@/lib/public-og";
 import Link from "next/link";
 import { getPoolShowcase } from "@/lib/showcase";
 import { PoolNumbers } from "../mercado/pool-numbers";
@@ -15,6 +16,7 @@ export const metadata: Metadata = {
     canonical: "/como-esta-hecho",
     languages: { es: "/como-esta-hecho", en: "/en/how-its-built" },
   },
+  openGraph: publicOpenGraph({ path: "/como-esta-hecho" }),
 };
 
 const REPO_URL = BRAND.repoUrl;

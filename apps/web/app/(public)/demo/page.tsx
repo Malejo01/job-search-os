@@ -1,5 +1,6 @@
 import { DEMO_PROFILES } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
+import { publicOpenGraph } from "@/lib/public-og";
 import Link from "next/link";
 import { getDemoCounts } from "@/lib/demo";
 
@@ -10,6 +11,7 @@ export const metadata: Metadata = {
   description:
     "Mirá cómo evalúa ofertas reales para tres perfiles inventados: puntaje, por qué sí, por qué no y acción sugerida.",
   alternates: { canonical: "/demo" },
+  openGraph: publicOpenGraph({ path: "/demo" }),
 };
 
 export default async function DemoPage() {

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { publicOpenGraph } from "@/lib/public-og";
 import { BRAND } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { getPoolShowcase } from "@/lib/showcase";
@@ -9,7 +10,10 @@ import { PoolNumbers } from "./mercado/pool-numbers";
 // ISR (ronda 63): la CPU de Vercel no alcanza para una consulta por visita. Nada dinámico acá.
 export const revalidate = 3600;
 // Título y descripción vienen del layout (propuesta de valor); acá solo la URL canónica
-export const metadata: Metadata = { alternates: { canonical: "/" } };
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+  openGraph: publicOpenGraph({ path: "/" }),
+};
 
 /** Los tres pasos (portada-pc.png): título y, en la computadora, una línea de cómo. */
 const STEPS = [

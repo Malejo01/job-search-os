@@ -10,6 +10,7 @@ import {
   type PlanDef,
 } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
+import { publicOpenGraph } from "@/lib/public-og";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -27,6 +28,7 @@ export const metadata: Metadata = {
   title: "Precios",
   description: `Un plan gratis y el plan de la beta: ${priceLabel(BETA)}. El link de pago llega con la invitación.`,
   alternates: { canonical: "/precios" },
+  openGraph: publicOpenGraph({ path: "/precios" }),
 };
 
 const CTA =

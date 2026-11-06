@@ -2,6 +2,7 @@ import { BRAND, pricingEnabled } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { ES_DESCRIPTION, ES_OPEN_GRAPH, ES_TITLE } from "@/lib/public-og";
 import { siteUrl } from "@/lib/site-url";
 import { Logo } from "@/components/brand/logo";
 import { CopyrightNotice } from "@/components/copyright-notice";
@@ -13,26 +14,19 @@ import { buttonClasses } from "@/components/ui";
  * Desde C7-2 lleva la marca: el logo en el header y el nombre (`BRAND.name`) en los títulos y en lo que se
  * comparte. Server Component, sin sesión ni cookies, para que las páginas puedan ser ISR.
  */
-const DESCRIPTION =
-  "Cargás tu perfil, la IA lee cada aviso contra lo que sabés y lo que buscás, y vos decidís. Nunca postulamos por vos.";
+const DESCRIPTION = ES_DESCRIPTION;
 
 const site = siteUrl();
 
 // Portada: nombre y bajada. Las páginas de abajo: «<título> · <nombre>».
-const HOME_TITLE = `${BRAND.name} · ${BRAND.tagline}`;
+const HOME_TITLE = ES_TITLE;
 
 export const metadata: Metadata = {
   metadataBase: new URL(site),
   title: { absolute: HOME_TITLE, template: `%s · ${BRAND.name}` },
   description: DESCRIPTION,
   applicationName: BRAND.name,
-  openGraph: {
-    title: HOME_TITLE,
-    description: DESCRIPTION,
-    type: "website",
-    locale: "es_AR",
-    siteName: BRAND.name,
-  },
+  openGraph: ES_OPEN_GRAPH,
   twitter: { card: "summary_large_image", title: HOME_TITLE, description: DESCRIPTION },
 };
 

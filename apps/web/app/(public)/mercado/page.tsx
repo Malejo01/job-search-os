@@ -1,5 +1,6 @@
 import { SHOWCASE_TOP_MIN_JOBS } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
+import { publicOpenGraph } from "@/lib/public-og";
 import Link from "next/link";
 import { careerLabel } from "@/lib/career-market";
 import { getPublicCareerKeys } from "@/lib/career-visibility";
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
   description:
     "Qué skills, nivel de inglés y sueldos piden las ofertas públicas de cada carrera, y datos curiosos del pool.",
   alternates: { canonical: "/mercado" },
+  openGraph: publicOpenGraph({ path: "/mercado" }),
 };
 
 const NF = new Intl.NumberFormat("es-AR");

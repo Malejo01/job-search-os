@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { publicOpenGraph } from "@/lib/public-og";
 import { pricingEnabled } from "@job-search-os/pipeline";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -10,6 +11,7 @@ export const metadata: Metadata = {
   description:
     "Todo lo que necesitás saber sobre la beta cerrada: para quién es, qué hace, cuándo abre y cómo anotarte.",
   alternates: { canonical: "/ayuda" },
+  openGraph: publicOpenGraph({ path: "/ayuda" }),
 };
 
 type FaqItem = {

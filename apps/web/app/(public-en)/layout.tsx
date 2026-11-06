@@ -2,6 +2,7 @@ import { BRAND } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { EN_DESCRIPTION, EN_OPEN_GRAPH, EN_TAGLINE } from "@/lib/public-og";
 import { siteUrl } from "@/lib/site-url";
 import { Logo } from "@/components/brand/logo";
 import { CopyrightNotice } from "@/components/copyright-notice";
@@ -11,9 +12,8 @@ import { CopyrightNotice } from "@/components/copyright-notice";
  * pie en inglés. Los destinos que solo existen en español llevan `lang="es"` y `hrefLang="es"`.
  * Server Component, sin sesión ni cookies, para que las páginas puedan ser ISR.
  */
-const TAGLINE = "We read each job posting against your profile and tell you why or why not";
-const DESCRIPTION =
-  "You load your profile, the AI reads each posting against what you know and what you look for, and you decide. It never applies for you.";
+const TAGLINE = EN_TAGLINE;
+const DESCRIPTION = EN_DESCRIPTION;
 
 const site = siteUrl();
 
@@ -22,15 +22,7 @@ export const metadata: Metadata = {
   title: { absolute: `${BRAND.name} · ${TAGLINE}`, template: `%s · ${BRAND.name}` },
   applicationName: BRAND.name,
   description: DESCRIPTION,
-  // La imagen en inglés es el route handler `opengraph-image-en/route.tsx` (ronda 122)
-  openGraph: {
-    title: TAGLINE,
-    description: DESCRIPTION,
-    type: "website",
-    locale: "en_US",
-    siteName: BRAND.name,
-    images: [{ url: "/opengraph-image-en", width: 1200, height: 630, alt: TAGLINE }],
-  },
+  openGraph: EN_OPEN_GRAPH,
   twitter: {
     card: "summary_large_image",
     title: TAGLINE,
