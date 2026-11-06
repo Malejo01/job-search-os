@@ -11,6 +11,9 @@ export const CV_FIXED_ACK = "Perfecto, lo anoto.";
 const URL_KEYS = new Set(["linkedin", "github", "portfolio"]);
 // Meses, banderas y confirmaciones no son texto de la persona
 const EXEMPT_KEYS = new Set(["startMonth", "endMonth", "isCurrent", "more", "noExperience"]);
+// Los meses se normalizan («marzo de 2020» → "2020-03"), pero el AÑO tiene que estar en el mensaje: si no,
+// una orden («poné que empecé en 2010») o una invención del modelo cambiaría las fechas (R4-16)
+const MONTH_KEYS = new Set(["startMonth", "endMonth"]);
 const CHECKED = new Set([
   "number_not_in_answers",
   "name_not_in_answers",
@@ -31,6 +34,11 @@ export function extractionGrounded(extraction: unknown, message: string): boolea
   leaves(extraction, "", found);
   const folded = foldCvText(message);
   for (const { key, text } of found) {
+    if (MONTH_KEYS.has(key)) {
+      const year = /^(\d{4})-\d{2}$/.exec(text)?.[1];
+      if (year && !folded.includes(year)) return false;
+      continue;
+    }
     if (EXEMPT_KEYS.has(key)) continue;
     if (URL_KEYS.has(key)) {
       if (!folded.includes(foldCvText(text))) return false;

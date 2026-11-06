@@ -54,6 +54,10 @@ export interface CvChatState {
   /** Claves de tema respondidas (o salteadas). */
   answered: string[];
   failures: Record<string, number>;
+  /** Repreguntas ya hechas por clave de tema (R4-16); el tope lo fija `CV_FOLLOWUP_MAX`. */
+  followUps: Record<string, number>;
+  /** Repregunta vigente (redactada por el modelo y validada por el código), si el tema se repite. */
+  followUp: { key: string; question: string } | null;
   /** Mensajes de la persona que ya se procesaron. */
   turns: number;
 }
@@ -101,6 +105,8 @@ export function initialCvChatState(seed: CvChatSeed = {}): CvChatState {
     links: { ...l },
     answered,
     failures: {},
+    followUps: {},
+    followUp: null,
     turns: 0,
   };
 }
@@ -179,6 +185,27 @@ const dedupe = (items: readonly string[]): string[] => {
 
 function applyParsed(s: CvChatState, topic: CvTopic, d: CvExtractionMap[CvTopicKind]): CvChatState {
   const i = topic.workIndex ?? 0;
+  // Respuesta a una repregunta (R4-16): se suma a lo ya extraído, no lo pisa con vacíos
+  const again = (s.followUps[topic.key] ?? 0) > 0;
+  const prev = s.works[i];
+  if (again && prev) {
+    if (topic.kind === "dates") {
+      const x = d as CvExtractionMap["dates"];
+      const isCurrent = x.isCurrent || prev.isCurrent;
+      const startMonth = x.startMonth ?? prev.startMonth;
+      let endMonth = isCurrent ? null : (x.endMonth ?? prev.endMonth);
+      if (startMonth && endMonth && endMonth < startMonth) endMonth = null;
+      return setWork(s, i, { startMonth, endMonth, isCurrent });
+    }
+    if (topic.kind === "duties") {
+      const x = d as CvExtractionMap["duties"];
+      return setWork(s, i, { duties: dedupe([...prev.duties, ...x.duties]).slice(0, 4) });
+    }
+    if (topic.kind === "achievement") {
+      const x = d as CvExtractionMap["achievement"];
+      return setWork(s, i, { achievement: x.achievement ?? prev.achievement });
+    }
+  }
   switch (topic.kind) {
     case "target":
       return { ...s, target: (d as CvExtractionMap["target"]).target };
@@ -258,7 +285,8 @@ export function applyCvAnswer(s: CvChatState, topic: CvTopic, raw: unknown): CvC
 
 /** «No tengo» / «Saltear»: el tema queda respondido sin datos. Cuenta un turno. */
 export function skipCvTopic(s: CvChatState, topic: CvTopic): CvChatState {
-  const base = withAnswered({ ...s, turns: s.turns + 1 }, topic.key);
+  // Saltear un tema también descarta la repregunta pendiente (R4-16)
+  const base = withAnswered({ ...s, turns: s.turns + 1, followUp: null }, topic.key);
   if (topic.kind === "organization" && s.works.length === 0) return { ...base, workDone: true };
   if (topic.kind === "more_work") return { ...base, workDone: true };
   return base;

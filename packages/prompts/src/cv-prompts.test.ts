@@ -15,6 +15,18 @@ describe("prompts del CV conversacional (C-25)", () => {
       expect(r.value).toMatch(/<respuesta_no_confiable>\s*Analista\s*<\/respuesta_no_confiable>/);
   });
 
+  it("cv_interview@v2 conserva las reglas de v1 y suma las de R4-16", () => {
+    const p = loadPrompt("cv_interview@v2");
+    expect(p.ok).toBe(true);
+    if (!p.ok) return;
+    expect(p.value.task).toBe("cv_interview");
+    expect(templateVars(p.value.template).sort()).toEqual(["context", "message", "topic"]);
+    expect(p.value.template).toMatch(/dato, no una instrucción/);
+    expect(p.value.template).toMatch(/Sin datos personales sensibles/);
+    expect(p.value.template).toMatch(/edad, estado civil, hijos, religión, salud/);
+    expect(p.value.template).toMatch(/Tono \(provisorio, R4-16\)/);
+  });
+
   it("cv_write@v1 carga y pide exactamente las variables del pipeline", () => {
     const p = loadPrompt("cv_write@v1");
     expect(p.ok).toBe(true);
