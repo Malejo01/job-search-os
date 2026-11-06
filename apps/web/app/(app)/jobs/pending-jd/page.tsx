@@ -240,7 +240,7 @@ export default async function PendingJdPage({
                       className={buttonClasses({ variant: "ghost", size: "sm" })}
                       title="La oferta ya no está disponible"
                     >
-                      Cerrada
+                      Ya no está disponible
                     </button>
                   </form>
                 </li>

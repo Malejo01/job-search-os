@@ -76,7 +76,7 @@ export default async function NewJobPage({
       <p className="text-xs text-fg-subtle">
         Si el link o la descripción ya existen en los últimos 14 días, se fusiona con la oferta
         existente en vez de duplicarla. Si solo coinciden empresa y título, se guarda aparte marcada
-        como posible duplicado. El prefiltro determinista decide si va a evaluación.
+        como posible duplicado. Antes de evaluarla, revisamos que cumpla tus filtros.
       </p>
     </section>
   );

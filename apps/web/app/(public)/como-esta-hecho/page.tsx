@@ -167,7 +167,9 @@ export default async function ComoEstaHechoPage() {
       </section>
 
       <section className="flex flex-col items-start gap-3 py-2">
-        <p className="text-base font-semibold">¿Buscás trabajo en tecnología?</p>
+        <p className="text-base font-semibold">
+          ¿Querés probarlo con tu búsqueda? La beta es para seis carreras.
+        </p>
         <Link href="/acceso" className={CTA_CLASS}>
           Pedí acceso
         </Link>

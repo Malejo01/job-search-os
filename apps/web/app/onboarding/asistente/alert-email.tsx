@@ -1,3 +1,4 @@
+import { BRAND } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { Alert, cardClasses } from "@/components/ui";
 import { CopyButton } from "./copy-button";
@@ -26,7 +27,7 @@ export function AlertEmail({ address, legacy }: { address: string | null; legacy
       </h2>
       <p className="text-sm text-fg-muted">
         Suscribí la alerta de Computrabajo directamente con esta dirección: los avisos llegan a tu
-        bandeja de Job Search sin pasar por tu correo.
+        bandeja de {BRAND.name} sin pasar por tu correo.
       </p>
       {legacy ? (
         <Alert tone="warning" role="alert">

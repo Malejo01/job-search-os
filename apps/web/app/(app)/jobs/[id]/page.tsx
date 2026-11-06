@@ -70,7 +70,7 @@ const EVENT_LABELS: Record<JobEvent, string> = {
   reject: "Rechazada",
   interview: "Entrevista",
   offer: "Oferta",
-  close: "Cerrar",
+  close: "Cerrar oferta",
 };
 
 const ERRORS: Record<string, string> = {

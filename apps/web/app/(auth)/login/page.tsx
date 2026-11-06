@@ -1,4 +1,5 @@
 import { AuthError } from "next-auth";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signIn } from "@/auth";
 import { SubmitButton } from "@/app/components/submit-button";
@@ -47,9 +48,10 @@ export default async function LoginPage({
         Saltar al contenido
       </a>
       <div>
-        <h1 className="mb-2">
+        <div className="mb-2">
           <Logo size="md" />
-        </h1>
+        </div>
+        <h1 className="mb-1 text-2xl font-semibold">Entrar</h1>
         <p className="text-sm text-fg-subtle">Entrá con tu email y contraseña.</p>
       </div>
       <form action={login} className="flex flex-col gap-3">
@@ -88,9 +90,20 @@ export default async function LoginPage({
           Entrar
         </SubmitButton>
       </form>
-      <a href="/forgot-password" className="text-sm text-fg-subtle underline">
-        Olvidé mi contraseña
-      </a>
+      <div className="flex flex-col gap-2 text-sm text-fg-subtle">
+        <a href="/forgot-password" className="underline">
+          Olvidé mi contraseña
+        </a>
+        <p>
+          ¿No tenés cuenta?{" "}
+          <Link href="/acceso" className="underline">
+            Anotate a la beta
+          </Link>
+        </p>
+        <Link href="/" className="underline">
+          Volver al inicio
+        </Link>
+      </div>
     </main>
   );
 }

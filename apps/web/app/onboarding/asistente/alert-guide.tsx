@@ -6,13 +6,15 @@ import {
   type PortalStatus,
 } from "@job-search-os/pipeline";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import type { PortalCoverage } from "@/lib/portal-coverage";
 import { cardClasses, textLinkClasses } from "@/components/ui";
+import { Icon } from "@/components/ui/icons";
 import { CopyButton } from "./copy-button";
 
 export const PORTAL_STATUS_VIEW: Record<
   PortalStatus,
-  { icon: string; text: string; className: string }
+  { icon: ReactNode; text: string; className: string }
 > = {
   activo: {
     icon: "✅",
@@ -24,7 +26,11 @@ export const PORTAL_STATUS_VIEW: Record<
     text: "Sin novedad: hubo avisos, pero ninguno en los últimos 14 días",
     className: "text-warning",
   },
-  nunca: { icon: "⬜", text: "Nunca llegó un aviso de este portal", className: "text-fg-subtle" },
+  nunca: {
+    icon: <Icon name="pregunta" size={16} className="inline-block align-text-bottom" />,
+    text: "Nunca llegó un aviso de este portal",
+    className: "text-fg-subtle",
+  },
 };
 
 export type AlertGuideProps = {

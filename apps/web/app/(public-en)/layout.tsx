@@ -131,7 +131,7 @@ export default function PublicEnLayout({ children }: { children: ReactNode }) {
         <Link href="/en/how-its-built" hrefLang="en" className={FOOTER_LINK}>
           How it&apos;s built
         </Link>
-        <CopyrightNotice className="basis-full" />
+        <CopyrightNotice className="basis-full" locale="en" />
       </footer>
     </div>
   );

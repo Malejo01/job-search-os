@@ -120,9 +120,14 @@ export default async function ResetPasswordPage({
           </button>
         </form>
       )}
-      <a href="/forgot-password" className="text-sm text-fg-subtle underline">
-        Pedir un link nuevo
-      </a>
+      <div className="flex flex-col gap-2 text-sm text-fg-subtle">
+        <a href="/forgot-password" className="underline">
+          Pedir un link nuevo
+        </a>
+        <Link href="/" className="underline">
+          Volver al inicio
+        </Link>
+      </div>
     </main>
   );
 }

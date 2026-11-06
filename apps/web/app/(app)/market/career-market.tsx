@@ -90,9 +90,12 @@ export function CareerMarket({
   market,
   label,
   backHref,
+  publico = false,
 }: {
   market: CareerMarketData;
   label: string;
+  /** En la página pública el selector es «Cambiar de carrera» y está abajo. */
+  publico?: boolean;
   /** Si se está explorando otra carrera, link para volver al puesto de la pestaña. */
   backHref?: string;
 }) {
@@ -136,8 +139,10 @@ export function CareerMarket({
 
       {total === 0 ? (
         <p className="text-xs text-fg-subtle">
-          Todavía no hay ofertas públicas de {label}. Probá con otra carrera desde «Explorar otra
-          carrera», arriba.
+          Todavía no hay ofertas públicas de {label}.{" "}
+          {publico
+            ? "Probá con otra carrera desde «Cambiar de carrera», abajo."
+            : "Probá con otra carrera desde «Explorar otra carrera», arriba."}
         </p>
       ) : (
         <>

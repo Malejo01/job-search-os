@@ -261,9 +261,14 @@ export default async function RegisterPage({
           Crear cuenta
         </SubmitButton>
       </form>
-      <a href="/login" className="text-sm text-fg-subtle underline">
-        Ya tengo cuenta
-      </a>
+      <div className="flex flex-col gap-2 text-sm text-fg-subtle">
+        <a href="/login" className="underline">
+          Ya tengo cuenta
+        </a>
+        <Link href="/" className="underline">
+          Volver al inicio
+        </Link>
+      </div>
     </main>
   );
 }
