@@ -257,7 +257,12 @@ function EmptyList({ counts, reviewedAll }: { counts: JobCounts | null; reviewed
   }
   if (counts !== null && counts.total === 0) {
     return (
-      <EmptyState data-testid="jobs-empty-none" title="Todavía no tenés ofertas" action={null}>
+      <EmptyState
+        data-testid="jobs-empty-none"
+        illustration="vacio"
+        title="Todavía no tenés ofertas"
+        action={null}
+      >
         <p>Podés empezar de tres maneras:</p>
         <ul className="flex flex-col items-center">
           <li>

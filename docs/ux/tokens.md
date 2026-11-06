@@ -45,6 +45,7 @@ Un elemento seleccionado (chip, pestaña) va con relleno lima y **borde índigo*
 | `brand` / `brand-hover` / `brand-contrast` | Botón primario, su hover y su texto | `#C6F25B` / `#B4E046` / índigo | `#C6F25B` / `#D9F78A` / índigo |
 | `brand-text` | El acento como texto (sección activa, acento) | `#4338CA` | `#C6F25B` |
 | `ink` / `on-ink` / `on-ink-muted` / `ink-line` | Header y bloques índigo (iguales en los dos modos) | `#1E1B4B` / blanco / `#C7C6E6` / `#34316B` | ídem |
+| `illustration` | Recuadro de las ilustraciones de fondo lavanda (`docs/ux/rediseno-afiniajobs/ilustraciones.md`). No cambia en oscuro: la imagen se funde con él | `#EEEDF9` | `#EEEDF9` |
 | `on-strong` | Texto sobre un relleno fuerte de estado | blanco | blanco |
 
 Estados (manual M4): cada uno tiene texto, fondo suave, fondo enfático, borde y relleno fuerte.

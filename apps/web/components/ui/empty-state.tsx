@@ -1,13 +1,17 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import { cx } from "./cx";
+import { Illustration, type IllustrationScene } from "./illustration";
 
 /**
  * Estado vacío (N3-3). `boxed`: recuadro punteado centrado, para una lista entera vacía (/jobs,
  * /applications). `inline`: frase y acción dentro de una tarjeta que ya tiene título (/hoy).
  * El texto dice qué pasa y la acción, qué hacer: nunca un vacío sin salida.
+ * `illustration`: escena de `<Illustration>` arriba del texto. Solo en `boxed` y solo en la lista
+ * principal de la pantalla (una ilustración por pantalla, nunca dentro de tarjetas).
  */
 export type EmptyStateProps = Omit<HTMLAttributes<HTMLDivElement>, "title"> & {
   variant?: "boxed" | "inline";
+  illustration?: IllustrationScene;
   title?: ReactNode;
   /** Qué hacer ahora. `null` solo si de verdad no hay salida, y que quede dicho en el PR. */
   action: ReactNode | null;
@@ -16,6 +20,7 @@ export type EmptyStateProps = Omit<HTMLAttributes<HTMLDivElement>, "title"> & {
 
 export function EmptyState({
   variant = "boxed",
+  illustration,
   title,
   action,
   className,
@@ -34,6 +39,7 @@ export function EmptyState({
       )}
       {...props}
     >
+      {boxed && illustration ? <Illustration scene={illustration} className="mb-2" /> : null}
       {title ? <p className="font-medium text-fg">{title}</p> : null}
       {typeof children === "string" ? <p>{children}</p> : children}
       {action}

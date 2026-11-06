@@ -54,6 +54,9 @@
   --color-on-ink-muted: var(--jso-on-ink-muted);
   --color-ink-line: var(--jso-ink-line);
 
+  /* Recuadro de las ilustraciones de fondo lavanda (docs/ux/rediseno-afiniajobs/ilustraciones.md). Igual en los dos modos. */
+  --color-illustration: var(--jso-illustration);
+
   /*
    * Logo que acompaña al modo (C7-2): «AfinIA», «Jobs», trazo del monograma y punto. En claro,
    * índigo e índigo vivo; en oscuro, lima y blanco. Lo usa solo <Logo tone="auto">.
@@ -173,6 +176,9 @@
   --jso-on-ink-muted: #c7c6e6;
   --jso-ink-line: #34316b;
 
+  /* Lavanda clara #EEEDF9: el fondo de las ilustraciones. No cambia en oscuro, así la imagen se funde con su recuadro. */
+  --jso-illustration: #eeedf9;
+
   --jso-logo-strong: #1e1b4b;
   --jso-logo-light: #4338ca;
   --jso-logo-mark: #1e1b4b;
@@ -243,6 +249,9 @@
   --jso-on-ink: #ffffff;
   --jso-on-ink-muted: #c7c6e6;
   --jso-ink-line: #34316b;
+
+  /* Lavanda clara #EEEDF9: el fondo de las ilustraciones. No cambia en oscuro, así la imagen se funde con su recuadro. */
+  --jso-illustration: #eeedf9;
 
   --jso-logo-strong: #c6f25b;
   --jso-logo-light: #ffffff;

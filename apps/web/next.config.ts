@@ -12,6 +12,8 @@ if (process.env.NODE_ENV !== "production" && !process.env.DB_TARGET) {
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Las ilustraciones ya vienen en dos tamaños (`x.webp` y `x@2x.webp`): se usan tal cual (lib/illustration-loader.ts)
+  images: { loader: "custom", loaderFile: "./lib/illustration-loader.ts" },
   // Los packages del monorepo se consumen como TypeScript fuente
   // Los prompts se leen del disco en runtime: sin esto no viajan en el bundle serverless de Vercel
   outputFileTracingIncludes: {

@@ -44,6 +44,8 @@ export const authConfig = {
         // sesión el navegador recibía una redirección a /login en vez del ícono.
         pathname === "/icon.svg" ||
         pathname.startsWith("/icons/") ||
+        // Ilustraciones (serie E2): las usan /acceso, el 404 y la pantalla de error, que se ven sin sesión
+        pathname.startsWith("/ilustraciones/") ||
         pathname === "/apple-icon.png" ||
         pathname === "/manifest.webmanifest"
       ) {

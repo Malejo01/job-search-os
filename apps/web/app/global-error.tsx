@@ -1,6 +1,10 @@
 "use client";
 
 import { BRAND_COLORS } from "@job-search-os/pipeline";
+import Image from "next/image";
+
+// Fondo lavanda de la escena `error` (token `illustration`, ver app/globals.css): acá no hay Tailwind
+const ILLUSTRATION_BG = "#EEEDF9";
 
 // Reemplaza al layout raíz: sin Tailwind ni componentes compartidos, porque el layout puede ser lo que falló.
 export default function GlobalError({
@@ -35,6 +39,25 @@ export default function GlobalError({
             gap: 12,
           }}
         >
+          {/* Misma escena y mismo recuadro que <Illustration scene="error" />, con estilos en línea */}
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 288,
+              overflow: "hidden",
+              borderRadius: 32,
+              background: ILLUSTRATION_BG,
+              lineHeight: 0,
+            }}
+          >
+            <Image
+              src="/ilustraciones/error.webp"
+              alt=""
+              width={600}
+              height={448}
+              style={{ display: "block", width: "100%", height: "auto" }}
+            />
+          </div>
           <h1 style={{ fontSize: 20, fontWeight: 600, margin: 0 }}>Algo falló de nuestro lado</h1>
           <p style={{ fontSize: 14, color: BRAND_COLORS.textMuted, margin: 0 }}>
             Probá de nuevo. Si sigue pasando, avisanos.

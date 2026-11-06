@@ -7,6 +7,7 @@ import {
   buttonClasses,
   EmptyState,
   Icon,
+  Illustration,
   inputClasses,
   textLinkClasses,
 } from "@/components/ui";
@@ -62,6 +63,7 @@ export default async function PendingJdPage({
           </p>
           <HelpTip topic="sinDescripcion" />
         </div>
+        <Illustration scene="sin-descripcion" size="lg" className="self-center" />
         <div className="flex flex-col gap-3 rounded-card border border-line bg-surface p-4">
           <h2 className="text-base font-bold">Cómo completar una oferta</h2>
           <ol className="m-0 flex list-none flex-col gap-3 p-0 text-sm text-fg-muted">

@@ -13,4 +13,11 @@ export { cx } from "./cx";
 export { EmptyState, type EmptyStateProps } from "./empty-state";
 export { Field, inputClasses, type FieldProps } from "./field";
 export { Icon, ICON_PATHS, type IconName, type IconProps } from "./icons";
+export {
+  Illustration,
+  ILLUSTRATION_SCENES,
+  type IllustrationProps,
+  type IllustrationScene,
+  type IllustrationSize,
+} from "./illustration";
 export { ScoreBadge, type ScoreSize } from "./score-badge";

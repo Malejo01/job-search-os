@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Illustration } from "@/components/ui";
 
 // 404 público (ronda 63): se muestra dentro del layout público, sin llevar a la app con sesión
 export const metadata: Metadata = { title: "Página no encontrada", robots: { index: false } };
@@ -7,6 +8,7 @@ export const metadata: Metadata = { title: "Página no encontrada", robots: { in
 export default function PublicNotFound() {
   return (
     <div className="flex max-w-md flex-col gap-3 py-10">
+      <Illustration scene="error" className="mb-2" />
       <h1 className="text-title font-bold text-fg">No encontramos esta página</h1>
       <p className="text-sm text-fg-muted">
         El enlace puede estar mal escrito o la página ya no existe.

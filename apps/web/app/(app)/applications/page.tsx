@@ -131,6 +131,7 @@ export default async function ApplicationsPage({
 
       {apps.length === 0 ? (
         <EmptyState
+          illustration="postulaciones"
           action={
             <Link href="/jobs" className={textLinkClasses({ block: true })}>
               Ver mis ofertas

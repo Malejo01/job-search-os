@@ -12,11 +12,14 @@ import {
   Field,
   Icon,
   ICON_PATHS,
+  Illustration,
+  ILLUSTRATION_SCENES,
   ScoreBadge,
   textLinkClasses,
   type BadgeTone,
   type ButtonVariant,
   type IconName,
+  type IllustrationScene,
 } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -121,6 +124,31 @@ export default function UiPage() {
           <ScoreBadge score={8} size="sm" />
           <ScoreBadge score={8} size="lg" />
         </div>
+      </section>
+
+      <section aria-labelledby="ui-ilustraciones" className="flex flex-col gap-2">
+        <h2 id="ui-ilustraciones" className="text-heading font-semibold">
+          Ilustraciones
+        </h2>
+        <p className="text-sm text-fg-subtle">
+          Las de fondo lavanda llevan recuadro y no cambian en oscuro; las de fondo índigo van sobre
+          un bloque de tinta. En las pantallas reales va una por pantalla; acá están todas.
+        </p>
+        <ul className="m-0 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2">
+          {(Object.keys(ILLUSTRATION_SCENES) as IllustrationScene[]).map((scene) => (
+            <li
+              key={scene}
+              className={`flex flex-col gap-1 text-xs font-semibold ${
+                ILLUSTRATION_SCENES[scene] === "ink"
+                  ? "rounded-card border border-ink-line bg-ink p-3 text-on-ink"
+                  : ""
+              }`}
+            >
+              <Illustration scene={scene} size="lg" />
+              {scene}
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section aria-labelledby="ui-iconos" className="flex flex-col gap-2">

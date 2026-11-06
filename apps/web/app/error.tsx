@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
-import { buttonClasses } from "@/components/ui";
+import { buttonClasses, Illustration } from "@/components/ui";
 
 export default function ErrorPage({
   error,
@@ -14,6 +14,7 @@ export default function ErrorPage({
   return (
     <main id="contenido" className="mx-auto flex max-w-md flex-col gap-3 px-4 py-16">
       <Logo className="mb-4" />
+      <Illustration scene="error" className="mb-2" />
       <h1 className="text-title font-bold">Algo falló de nuestro lado</h1>
       <p className="text-sm text-fg-muted">
         No es algo que hiciste vos. Probá de nuevo; si sigue pasando, avisanos.

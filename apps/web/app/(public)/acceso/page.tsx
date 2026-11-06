@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { BETA_OPENING_LABEL, BRAND, waitlistRoleGroups } from "@job-search-os/pipeline";
+import { Illustration } from "@/components/ui";
 import { accesoFunnelEnabled } from "@/lib/acceso-funnel";
 import { contactLink } from "@/lib/contact";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
@@ -50,6 +51,8 @@ export default function AccesoPage() {
         <p className="text-sm text-on-ink-muted">
           Leemos cada oferta contra tu perfil y te decimos por qué sí y por qué no. Vos decidís.
         </p>
+        {/* La imagen tiene el fondo índigo del bloque (igual en claro y en oscuro): va sin recuadro */}
+        <Illustration scene="acceso" priority className="self-center" />
         <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-sm text-on-ink-muted">
           <li className="flex gap-2">
             <span aria-hidden="true" className="mt-1.5 h-2 w-2 shrink-0 rounded-pill bg-brand" />

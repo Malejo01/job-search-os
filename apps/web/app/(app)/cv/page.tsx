@@ -3,6 +3,7 @@ import { HelpTip } from "@/components/help-tip";
 import Link from "next/link";
 import { CvPreview } from "@/components/cv-preview";
 import { PrintButton } from "@/components/print-button";
+import { Illustration } from "@/components/ui";
 import { canCreateInvitations } from "@/lib/invitations";
 import { buildUserCv, cvChatMode, parseCvOptions } from "@/lib/cv-source";
 import { requireUserId } from "@/lib/session";
@@ -80,11 +81,21 @@ export default async function CvPage({ searchParams }: { searchParams: Promise<P
       ) : null}
 
       {!doc ? (
-        <p role="alert" className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">
-          Completá tu perfil para armar el CV.
-        </p>
+        <>
+          <Illustration scene="cv" className="no-print self-center" />
+          <p role="alert" className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">
+            Completá tu perfil para armar el CV.{" "}
+            <Link href="/settings/perfil" className="font-medium underline">
+              Ir a Tu perfil
+            </Link>
+          </p>
+        </>
       ) : (
         <>
+          {/* Todavía no hay nada que mostrar: la escena acompaña a la lista de lo que falta */}
+          {doc.sections.length === 0 ? (
+            <Illustration scene="cv" className="no-print self-center" />
+          ) : null}
           {missing.length > 0 ? (
             <section
               aria-labelledby="cv-faltan"

@@ -10,6 +10,7 @@ import {
 } from "@job-search-os/pipeline";
 import { redirect } from "next/navigation";
 import { GuidedTour } from "@/components/guided-tour";
+import { Illustration } from "@/components/ui";
 import { getCareerSalaries, getCareerSpanishCounts } from "@/lib/career-market";
 import { dismissGuideAction } from "@/lib/guide-actions";
 import { GUIDE_INVITE, GUIDE_LABELS, GUIDE_STEPS, guideDismissed } from "@/lib/guide";
@@ -80,11 +81,22 @@ export default async function OnboardingPage({
           />
         }
       />
-      <h1 className="text-title font-bold">Completá tu perfil</h1>
-      <p className="text-sm text-fg-subtle">
-        Antes de ver ofertas, contanos un poco de vos: con esto leemos cada aviso contra tu perfil.
-        Lo podés cambiar cuando quieras.
-      </p>
+      {/* Bienvenida: arriba en el celular, a la derecha del texto desde `sm`. Una sola vez, en el primer paso */}
+      <div className="flex flex-col gap-3 sm:flex-row-reverse sm:items-center sm:gap-6">
+        <Illustration
+          scene="bienvenida"
+          size="sm"
+          priority
+          className="shrink-0 self-center sm:w-56"
+        />
+        <div className="flex flex-col gap-3">
+          <h1 className="text-title font-bold">Completá tu perfil</h1>
+          <p className="text-sm text-fg-subtle">
+            Antes de ver ofertas, contanos un poco de vos: con esto leemos cada aviso contra tu
+            perfil. Lo podés cambiar cuando quieras.
+          </p>
+        </div>
+      </div>
       <OnboardingForm
         roleGroups={roleGroups}
         salaries={salaries}
