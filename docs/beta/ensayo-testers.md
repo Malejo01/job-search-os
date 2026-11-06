@@ -92,7 +92,7 @@ Un CV armado por la app **no garantiza** que te llamen: es una versión ordenada
 
 ### Paso 7 · Probá que no se rompa
 
-- **Botón «¿Algo no anduvo?»** (abajo a la derecha, en todas las pantallas de dentro de la app): abre una ventana con tres opciones («Algo no anduvo», «Tengo una idea», «Algo es confuso») y un mensaje corto. Mandá al menos uno, aunque sea de prueba. Se envía lo que escribís, en qué pantalla estabas y algunos datos técnicos (navegador, tamaño de pantalla y tus últimas acciones); no se envía lo que tenés escrito en los formularios.
+- **Botón «¿Algo no anduvo?»** (abajo a la izquierda, en todas las pantallas de dentro de la app): abre una ventana con tres opciones («Algo no anduvo», «Tengo una idea», «Algo es confuso») y un mensaje corto. Mandá al menos uno, aunque sea de prueba. Se envía lo que escribís, en qué pantalla estabas y algunos datos técnicos (navegador, tamaño de pantalla y tus últimas acciones); no se envía lo que tenés escrito en los formularios.
 - **Salir y volver a entrar:** el link «Salir» está arriba a la derecha.
 - **Recuperar contraseña** desde la pantalla de entrada («Olvidé mi contraseña»): tiene que llegar un email con un link que vence en una hora.
 - **Ajustes → «Cuenta»:** ahí se borra la cuenta con todos tus datos. **No lo hagas en el ensayo**, solo comprobá que el texto se entiende.

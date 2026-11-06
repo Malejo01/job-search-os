@@ -237,7 +237,7 @@ export function SkillsForm({
         {/* «Guardar» va primero en el DOM (Enter guarda, nunca saltea); row-reverse lo deja a la derecha.
             `--tour-panel-h` lo fija la guía mientras está abierta: la barra queda encima del panel; con la
             barra de pestañas del celular (R-3), encima de ella por `--tabbar-h` */}
-        <div className="sticky bottom-[max(var(--tour-panel-h,0px),var(--tabbar-h,0px))] flex flex-row-reverse flex-wrap items-center justify-start gap-3 rounded-card border-2 border-line-strong bg-surface p-3 pr-16 sm:pr-3">
+        <div className="sticky bottom-[max(var(--tour-panel-h,0px),var(--tabbar-h,0px))] flex flex-row-reverse flex-wrap items-center justify-start gap-3 rounded-card border-2 border-line-strong bg-surface p-3 pr-20 sm:pr-3">
           <PendingSubmit pendingLabel="Guardando…" className={buttonClasses()}>
             {submitLabel}
           </PendingSubmit>

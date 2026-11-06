@@ -15,13 +15,13 @@ import { createJob, deleteJob, E2E_USER_ID, jobStatus, login, ownerDb } from "./
  * - «agregá la oferta X de Y» prellena el alta manual: no se crea nada hasta «Agregar la oferta»;
  *   un error (campo demasiado largo) aparece en la tarjeta sin perder la charla ni lo escrito.
  *
- * Solo admins, como el flujo 85: en el CI el botón «Asistente» tiene que estar.
+ * Solo admins, como el flujo 85: en el CI la mascota («Abrir asistente») tiene que estar.
  */
 
 async function openAssistant(page: Page) {
-  const button = page.getByRole("button", { name: "Asistente", exact: true });
+  const button = page.getByRole("button", { name: "Abrir asistente", exact: true });
   if ((await button.count()) === 0) {
-    expect(process.env.CI, "En el CI el botón «Asistente» tiene que estar").toBeFalsy();
+    expect(process.env.CI, "En el CI la mascota del asistente tiene que estar").toBeFalsy();
     test.skip(true, "El asistente no está encendido para el usuario e2e");
   }
   await button.click();

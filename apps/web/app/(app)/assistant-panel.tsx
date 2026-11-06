@@ -68,7 +68,7 @@ const FORM_NOT_FOUND =
 
 /**
  * Panel del asistente (AG-3). `<dialog>` nativo con `showModal()`: atrapa el foco, Escape cierra
- * y el foco vuelve al botón «Asistente». A ≥ 1024 px es un panel lateral de 380 px; en el celular,
+ * y el foco vuelve a la mascota que lo abrió. A ≥ 1024 px es un panel lateral de 380 px; en el celular,
  * una hoja completa. Los mensajes completos se anuncian en una región `aria-live` aparte (los
  * fragmentos que llegan mientras escribe no se leen uno por uno; «Pensando…» tampoco se anuncia:
  * el botón Enviar deshabilitado y el «Detener» ya lo dicen). El contenido se pinta solo con el
@@ -430,10 +430,24 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
             className="flex min-w-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto px-4 py-3"
           >
             {items.length === 0 ? (
-              <p className="text-sm text-fg-subtle">
-                Preguntale, por ejemplo, «¿qué me falta para las ofertas que me interesan?» o
-                contale un cambio: «me mudé a Uruguay».
-              </p>
+              <>
+                {/* Aviso de la primera charla (R4-15): va acá y no en los textos legales */}
+                <div
+                  data-testid="assistant-aviso"
+                  className="rounded-control bg-surface-muted px-3 py-2 text-sm text-fg-muted"
+                >
+                  <p className="font-bold text-fg">Antes de empezar</p>
+                  <p>
+                    Es una inteligencia artificial: lee tus datos de la app, te explica lo que ves y
+                    te propone cambios que vos confirmás. Puede equivocarse. No escribas datos
+                    sensibles (contraseñas, documentos, datos de salud) ni datos de otras personas.
+                  </p>
+                </div>
+                <p className="text-sm text-fg-subtle">
+                  Preguntale, por ejemplo, «¿qué me falta para las ofertas que me interesan?» o
+                  contale un cambio: «me mudé a Uruguay».
+                </p>
+              </>
             ) : null}
             {items.map((item) => {
               switch (item.kind) {
