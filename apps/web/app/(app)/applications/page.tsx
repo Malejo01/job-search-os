@@ -1,53 +1,45 @@
 import Link from "next/link";
 import { Illustration } from "@/components/brand/illustration";
+import { ApplicationRow } from "@/components/applications/application-row";
+import { CollapsibleGroup } from "@/components/applications/collapsible-group";
+import { ConfirmAction } from "@/components/applications/confirm-action";
+import { FollowUpRow } from "@/components/applications/follow-up-row";
+import { Alert, buttonClasses, cardClasses, EmptyState, textLinkClasses } from "@/components/ui";
 import {
-  Alert,
-  buttonClasses,
-  cardClasses,
-  EmptyState,
-  inputClasses,
-  textLinkClasses,
-} from "@/components/ui";
-import {
-  APPLICATION_OUTCOMES,
+  groupApplication,
+  type ApplicationGroup,
   type FeedbackReport,
   type FeedbackRow,
 } from "@job-search-os/pipeline";
-import { getFeedbackReport, listApplications, listFollowUps } from "@/lib/applications";
-import { ACTION_LABELS, OUTCOME_LABELS, STATUS_LABELS } from "@/lib/labels";
+import {
+  getFeedbackReport,
+  listApplications,
+  listFollowUps,
+  listStaleEvaluated,
+  type ApplicationView,
+} from "@/lib/applications";
 import { requireUserId } from "@/lib/session";
-import { setOutcomeAction } from "./actions";
+import { changeStatusAction, correctStatusAction } from "../jobs/[id]/actions";
 import { closeApplicationAction, snoozeFollowUpAction } from "./followup-actions";
 
-const FOLLOW_BUTTON = buttonClasses({ variant: "secondary", size: "sm" });
+const SMALL_BUTTON = buttonClasses({ variant: "secondary", size: "sm" });
 // Panel blanco de la pantalla (C9-11): radio 24, sin borde lateral
 const PANEL = cardClasses({ padding: "none", className: "p-4 sm:p-5" });
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Postulaciones" };
 
-/** Con menos postulaciones que esto, la calibración no dice nada: va plegada y debajo de la lista. */
+/** Con menos postulaciones que esto, la calibración no dice nada. Va siempre plegada; con pocas, se marca con un testid. */
 const CALIBRATION_MIN_APPS = 5;
 
 const pct = (v: number | null) => (v === null ? "—" : `${Math.round(v * 100)} %`);
 /** "Te sirve": 👍 y 👎 de un toque sobre la evaluación; "–" si todavía no hay ninguno. */
 const verdictText = (up: number, down: number) => (up + down === 0 ? "–" : `${up} 👍 · ${down} 👎`);
-const OUTCOME_CLASSES: Record<string, string> = {
-  entrevista: "bg-success-muted text-success",
-  oferta: "bg-success-line text-success",
-  rechazo_humano: "bg-danger-muted text-danger",
-  rechazo_automatico_ubicacion: "bg-danger-soft text-danger",
-  rechazo_automatico_otro: "bg-danger-soft text-danger",
-  sin_respuesta: "bg-surface-muted text-fg-muted",
-  cerrada_antes: "bg-surface-muted text-fg-subtle",
-  retirada: "bg-surface-muted text-fg-subtle",
-};
 
 /**
- * Postulaciones y feedback loop (JS-036). Server Component: lista de postulaciones con su resultado
- * (editable) y el reporte de calibración con ofertas reales: respuesta por banda de score, la
- * métrica del PRD (score ≥ 7) y las sorpresas que deberían mover el evaluador o el prefiltro.
- * Con menos de 5 postulaciones la calibración va plegada debajo de la lista (ronda C5, A-5).
+ * Postulaciones y feedback loop (JS-036, rediseño R4-07). Server Component. Cada postulación aparece
+ * en un solo grupo (`groupApplication`, pipeline puro): seguimiento, activas, esperando respuesta,
+ * y plegadas las inactivas, las cerradas, las ofertas descartadas por inactividad y la calibración.
  */
 export default async function ApplicationsPage({
   searchParams,
@@ -56,17 +48,42 @@ export default async function ApplicationsPage({
 }) {
   const userId = await requireUserId();
   const { error } = await searchParams;
-  const [apps, report, followUps] = await Promise.all([
+  const today = new Date();
+  const [apps, report, followUps, stale] = await Promise.all([
     listApplications(userId),
     getFeedbackReport(userId),
-    listFollowUps(userId, new Date()),
+    listFollowUps(userId, today),
+    listStaleEvaluated(userId, today),
   ]);
   const titleOf = new Map(apps.map((a) => [a.jobId, `${a.company} · ${a.title}`]));
   const fewApps = apps.length < CALIBRATION_MIN_APPS;
-  const calibration = <Calibration report={report} titleOf={titleOf} />;
+
+  const dueIds = new Set(followUps.map((f) => f.jobId));
+  const groups: Record<ApplicationGroup, ApplicationView[]> = {
+    seguimiento: [],
+    activas: [],
+    esperando: [],
+    inactivas: [],
+    cerradas: [],
+  };
+  for (const a of apps) {
+    const group = groupApplication(
+      {
+        status: a.status,
+        outcome: a.outcome,
+        ...a.dates,
+        followUpDue: dueIds.has(a.jobId),
+      },
+      today,
+    );
+    groups[group].push(a);
+  }
+  const followIds = new Set(groups.seguimiento.map((a) => a.jobId));
+  const followRows = followUps.filter((f) => followIds.has(f.jobId));
+  const nothingPending = followRows.length + groups.activas.length + groups.esperando.length === 0;
 
   return (
-    <section className="flex flex-col gap-6">
+    <section className="flex flex-col gap-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-title font-bold">Postulaciones</h1>
         <p className="text-xs text-fg-subtle">
@@ -79,7 +96,7 @@ export default async function ApplicationsPage({
         </Alert>
       ) : null}
 
-      {followUps.length ? (
+      {followRows.length ? (
         <section
           aria-labelledby="seguimiento"
           className={cardClasses({
@@ -89,54 +106,19 @@ export default async function ApplicationsPage({
           })}
         >
           <h2 id="seguimiento" className="text-base font-bold text-fg">
-            Para hacer seguimiento ({followUps.length})
+            Para hacer seguimiento ({followRows.length})
           </h2>
           <p className="text-sm text-fg-muted">
             Hace rato que no hay novedades de estas postulaciones. Fijate si te escribieron o
             escribiles vos. «Ya hice seguimiento» te la vuelve a mostrar en una semana.
           </p>
-          <ul className="flex flex-col gap-3">
-            {followUps.map((f) => (
-              <li key={f.jobId} data-testid="seguimiento-item" className={PANEL}>
-                <Link href={`/jobs/${f.jobId}`} className="font-bold text-fg hover:underline">
-                  {f.title}
-                </Link>
-                <p className="text-xs text-fg-subtle">
-                  {f.company} · {STATUS_LABELS[f.status] ?? f.status} · hace {f.daysSince}{" "}
-                  {f.daysSince === 1 ? "día" : "días"}
-                </p>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <form action={snoozeFollowUpAction.bind(null, f.jobId)}>
-                    <button type="submit" className={FOLLOW_BUTTON}>
-                      Ya hice seguimiento
-                    </button>
-                  </form>
-                  <Link href={`/jobs/${f.jobId}`} className={FOLLOW_BUTTON}>
-                    Me respondieron
-                  </Link>
-                  {/* Cerrar pide confirmación: está al lado de la acción más usada y no se deshace acá */}
-                  <details className="ml-auto">
-                    <summary className="flex min-h-11 cursor-pointer items-center px-2 text-sm text-fg-subtle underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus">
-                      Cerrar postulación
-                    </summary>
-                    <form
-                      action={closeApplicationAction.bind(null, f.jobId)}
-                      className="mt-1 flex items-center gap-2"
-                    >
-                      <span className="text-xs text-fg-muted">¿Ya no la seguís?</span>
-                      <button type="submit" className={FOLLOW_BUTTON}>
-                        Sí, cerrar
-                      </button>
-                    </form>
-                  </details>
-                </div>
-              </li>
+          <ul className={`${PANEL} divide-y divide-line`}>
+            {followRows.map((f) => (
+              <FollowUpRow key={f.jobId} f={f} />
             ))}
           </ul>
         </section>
       ) : null}
-
-      {fewApps ? null : calibration}
 
       {apps.length === 0 ? (
         <EmptyState
@@ -149,79 +131,145 @@ export default async function ApplicationsPage({
         >
           Sin postulaciones. Se crean al marcar &quot;Aplicar&quot; en el detalle de una oferta.
         </EmptyState>
-      ) : (
-        <ol className="flex flex-col gap-3">
-          {apps.map((a) => (
-            <li key={a.id} className={PANEL}>
-              <div className="flex flex-wrap items-start justify-between gap-2">
+      ) : null}
+
+      {apps.length > 0 && nothingPending ? (
+        <p className="text-sm text-fg-muted">
+          Nada pendiente hoy.
+          {groups.inactivas.length
+            ? ` Sin respuesta por inactividad: ${groups.inactivas.length}.`
+            : ""}
+          {groups.cerradas.length ? ` Cerradas: ${groups.cerradas.length}.` : ""}
+        </p>
+      ) : null}
+
+      {groups.activas.length ? (
+        <section aria-labelledby="grupo-activas" className={PANEL}>
+          <h2 id="grupo-activas" className="mb-2 text-base font-bold text-fg">
+            Activas ({groups.activas.length})
+          </h2>
+          <ul className="divide-y divide-line">
+            {groups.activas.map((a) => (
+              <ApplicationRow key={a.id} a={a} form="visible" />
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {groups.esperando.length ? (
+        <section aria-labelledby="grupo-esperando" className={PANEL}>
+          <h2 id="grupo-esperando" className="mb-2 text-base font-bold text-fg">
+            Esperando respuesta ({groups.esperando.length})
+          </h2>
+          <ul className="divide-y divide-line">
+            {groups.esperando.map((a) => (
+              <ApplicationRow key={a.id} a={a} form="visible" />
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {groups.inactivas.length ? (
+        <CollapsibleGroup
+          title="Sin respuesta (cerrada por inactividad)"
+          count={groups.inactivas.length}
+          testId="grupo-inactivas"
+        >
+          <ul className="divide-y divide-line">
+            {groups.inactivas.map((a) => (
+              <ApplicationRow
+                key={a.id}
+                a={a}
+                form="details"
+                actions={
+                  <>
+                    <form action={snoozeFollowUpAction.bind(null, a.jobId)}>
+                      <button type="submit" className={SMALL_BUTTON}>
+                        Reactivar
+                      </button>
+                    </form>
+                    <ConfirmAction
+                      summary="Cerrar por inactividad"
+                      question="¿La damos por cerrada?"
+                      confirmLabel="Sí, cerrar"
+                      action={closeApplicationAction.bind(null, a.jobId)}
+                    />
+                  </>
+                }
+              />
+            ))}
+          </ul>
+        </CollapsibleGroup>
+      ) : null}
+
+      {groups.cerradas.length ? (
+        <CollapsibleGroup title="Cerradas" count={groups.cerradas.length} testId="grupo-cerradas">
+          <ul className="divide-y divide-line">
+            {groups.cerradas.map((a) => (
+              <ApplicationRow
+                key={a.id}
+                a={a}
+                form="details"
+                actions={
+                  // Sin evaluación la corrección de estado falla: ahí no se ofrece
+                  a.status === "cerrada" && a.score !== null ? (
+                    <form action={correctStatusAction}>
+                      <input type="hidden" name="jobId" value={a.jobId} />
+                      <input type="hidden" name="to" value="aplicada" />
+                      <button type="submit" className={SMALL_BUTTON}>
+                        Reactivar
+                      </button>
+                    </form>
+                  ) : null
+                }
+              />
+            ))}
+          </ul>
+        </CollapsibleGroup>
+      ) : null}
+
+      {stale.length ? (
+        <CollapsibleGroup
+          title="Ofertas descartadas por inactividad"
+          count={stale.length}
+          testId="grupo-descartadas"
+        >
+          <ul className="divide-y divide-line">
+            {stale.map((j) => (
+              <li
+                key={j.jobId}
+                className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+              >
                 <div className="min-w-0">
-                  <Link href={`/jobs/${a.jobId}`} className="font-bold text-fg hover:underline">
-                    {a.title}
+                  <Link href={`/jobs/${j.jobId}`} className="font-bold text-fg hover:underline">
+                    {j.title}
                   </Link>
                   <p className="text-xs text-fg-subtle">
-                    {a.company} · {STATUS_LABELS[a.status] ?? a.status}
-                    {a.appliedAt ? ` · postulada ${a.appliedAt}` : ""}
-                    {a.channel ? ` · ${a.channel}` : ""}
-                    {a.score !== null
-                      ? ` · score ${a.score}${a.accion ? ` (${ACTION_LABELS[a.accion] ?? a.accion})` : ""}`
-                      : " · sin evaluación"}
-                    {a.model === "fake" ? " · modo demo" : ""}
+                    {j.company} · Evaluada · sin tocar desde{" "}
+                    {j.touchedAt.toISOString().slice(0, 10)}
                   </p>
-                  {a.outcomeNote ? <p className="text-xs text-fg-subtle">{a.outcomeNote}</p> : null}
                 </div>
-                <span
-                  className={`rounded-pill px-2.5 py-0.5 text-xs font-bold ${OUTCOME_CLASSES[a.outcome] ?? ""}`}
+                <ConfirmAction
+                  summary="Descartar"
+                  question="¿Ya no te interesa?"
+                  confirmLabel="Sí, descartar"
+                  action={changeStatusAction}
                 >
-                  {OUTCOME_LABELS[a.outcome] ?? a.outcome}
-                  {a.outcomeAt ? ` · ${a.outcomeAt}` : ""}
-                </span>
-              </div>
-              <form
-                // Con lo guardado en la key, el form se remonta y sus defaultValue siguen a la base
-                key={`${a.outcome}|${a.outcomeNote ?? ""}`}
-                action={setOutcomeAction}
-                className="mt-3 flex flex-wrap items-center gap-2"
-              >
-                <input type="hidden" name="applicationId" value={a.id} />
-                <select
-                  name="outcome"
-                  defaultValue={a.outcome}
-                  className={inputClasses({ className: "sm:w-auto" })}
-                  aria-label="Resultado"
-                >
-                  {APPLICATION_OUTCOMES.map((o) => (
-                    <option key={o} value={o}>
-                      {OUTCOME_LABELS[o] ?? o}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  name="note"
-                  defaultValue={a.outcomeNote ?? ""}
-                  placeholder="Nota (opcional)"
-                  className={inputClasses({ className: "min-w-40 flex-1" })}
-                />
-                {/* C9-11: secundario, no lima; es la misma acción repetida en cada fila de la lista */}
-                <button
-                  type="submit"
-                  className={buttonClasses({ variant: "secondary", size: "sm" })}
-                >
-                  Guardar resultado
-                </button>
-              </form>
-            </li>
-          ))}
-        </ol>
-      )}
-
-      {fewApps ? (
-        <details data-testid="calibracion-plegada" className={PANEL}>
-          <summary className="cursor-pointer text-sm font-semibold text-fg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus">
-            Cómo viene la calibración
-          </summary>
-          <div className="mt-2">{calibration}</div>
-        </details>
+                  <input type="hidden" name="jobId" value={j.jobId} />
+                  <input type="hidden" name="event" value="discard" />
+                </ConfirmAction>
+              </li>
+            ))}
+          </ul>
+        </CollapsibleGroup>
       ) : null}
+
+      <CollapsibleGroup
+        title="Cómo viene la calibración"
+        testId={fewApps ? "calibracion-plegada" : "calibracion"}
+      >
+        <Calibration report={report} titleOf={titleOf} />
+      </CollapsibleGroup>
 
       <p className="text-xs text-fg-subtle">
         El estado de la oferta (rechazada, entrevista, oferta) se cambia desde su detalle y
@@ -255,8 +303,7 @@ function Calibration({
     ) : null;
 
   return (
-    <section className={`${PANEL} flex flex-col gap-3`}>
-      <h2 className="text-base font-bold text-fg">Calibración con ofertas reales</h2>
+    <div className="flex flex-col gap-3">
       <p className="text-sm">
         Respuesta positiva (entrevista u oferta) con score ≥ 7:{" "}
         <strong>{pct(report.highScore.rate)}</strong>{" "}
@@ -339,6 +386,6 @@ function Calibration({
           {surprise("Score ≥ 7 sin respuesta", report.surprises.highScoreNoAnswer)}
         </ul>
       ) : null}
-    </section>
+    </div>
   );
 }

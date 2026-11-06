@@ -60,6 +60,12 @@ test.describe("Flujo 37a: resultado de una postulación", () => {
     await expect
       .poll(() => applicationOutcomeAndNote(applicationId))
       .toEqual({ outcome: "rechazo_humano", note: "nota uno" });
+    // R4-07: un rechazo pasa al grupo «Cerradas» (plegado) y su formulario va en «Cambiar resultado»
+    await page
+      .getByTestId("grupo-cerradas")
+      .getByRole("button", { name: /^Cerradas/ })
+      .click();
+    await card.getByText("Cambiar resultado").click();
     // Señal server-rendered del dato nuevo (badge y <p> de la nota): recién ahí ya hubo render y reset
     await expect(card.locator("span", { hasText: "Rechazo humano" })).toBeVisible();
     await expect(card.getByText("nota uno", { exact: true })).toBeVisible();
