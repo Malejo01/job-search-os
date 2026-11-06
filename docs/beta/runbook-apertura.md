@@ -1,6 +1,6 @@
 # Runbook de la apertura de la beta (jueves 26/11/2026)
 
-Para Mauro, en orden. Cada paso trae el enlace o el comando exacto. Lo que dice «(solo Mauro)» toca producción y no lo hace ningún agente. Convenciones: la app vive en el proyecto de Vercel `job-search-os` (equipo `lizarraga-mauros-projects`), la base en Neon y el repo en `Malejo01/job-search-os`. `<dominio>` es `afiniajobs.com.ar` cuando esté activo (hasta entonces, `busquedalaboral.malejo.com.ar`).
+Para Mauro, en orden. Cada paso trae el enlace o el comando exacto. Lo que dice «(solo Mauro)» toca producción y no lo hace ningún agente. Convenciones: la app vive en el proyecto de Vercel `job-search-os` (equipo `lizarraga-mauros-projects`), la base en Neon y el repo en `Malejo01/job-search-os`. `<dominio>` es `afiniajobs.com.ar` (principal desde el 6/11; el dominio viejo redirige).
 
 > **Decidido y no se reabre acá.** La beta abre el jueves 26/11 para 6 carreras (abogacía, contaduría, administración, comunicación, marketing y RR.PP., relaciones internacionales). Cupo de 15 a 20 personas; los pagos, las becas y los combos están en «Decisiones del 5/11» (abajo). Plan Beta: ARS 20.000 por mes (USD 15 de referencia), 30 días por pago, **sin garantía**, activación manual (cómo se relaciona con los dos combos de Ani: [A DEFINIR: combos de Ani]). La gente se anota en `/acceso` y vos invitás desde el panel; **el cupo es limitado**.
 
@@ -74,7 +74,7 @@ Vercel › `job-search-os` › Settings › Environment Variables, o por CLI (`n
 | `MP_LINK_LISTA` | el link de pago de Mercado Pago del plan Beta (ARS 20.000; `https://mpago.la/…`), **generado desde la cuenta nueva compartida** (5/11): hay que actualizarlo, y lo mismo con cualquier otro `MP_LINK_*` que se use | botón «Pagar con Mercado Pago» en `/precios` y «Tu plan», y en el email de aviso | no hay botón; se pide por email |
 | `PRICING_ENABLED` | `1` (solo ese valor lo enciende) | muestra `/precios`, «Tu plan» y aplica los topes de cada plan | `/precios` da 404 y rigen los topes de siempre |
 | `SITE_URL` | `https://afiniajobs.com.ar` (sin barra final) | links de emails, canonical, sitemap. De build | usa `AUTH_URL` o el dominio de Vercel |
-| `LEGACY_HOSTS` | `busquedalaboral.malejo.com.ar` | redirige el dominio viejo (308), sin tocar `/api/*`. De build | no hay redirección |
+| `LEGACY_HOSTS` | no hace falta desde el 6/11: la redirección del dominio viejo la hace Vercel (Domains). Si se usara: `busquedalaboral.malejo.com.ar` | redirige el dominio viejo (308), sin tocar `/api/*`. De build | no hay redirección desde la app (sí la de Vercel) |
 | `AUTH_URL` | igual que `SITE_URL` | los links de invitación y de recuperar contraseña salen de acá | **las invitaciones salen con el dominio viejo** |
 | `RESEND_API_KEY` | la key de Resend | reseteo de contraseña y avisos de vencimiento | no sale ningún email |
 | `EMAIL_FROM` | `Nombre <no-reply@afiniajobs.com.ar>` (dominio **verificado** en Resend) | remitente | sin dominio verificado, Resend solo entrega a su dueño: **los reseteos fallan en silencio para el resto** y los avisos de vencimiento no se mandan |
@@ -90,7 +90,7 @@ También en **GitHub** › Settings › Secrets and variables › Actions › *V
 
 ### 1.3 Cambio de dominio (solo Mauro, después del 6/11)
 
-**Estado al 5/11:** `afiniajobs.com.ar` ya está comprado; la migración y la redirección desde `busquedalaboral.malejo.com.ar` siguen pendientes (a cargo de Mauro). Además se compra `afiniajobs.com` como protección. Seguí `docs/DEPLOY.md` › «Pasar a afiniajobs.com.ar» paso por paso (DNS en NIC.ar, dominio en Vercel, Resend verificado, webhook de Resend, `APP_URL`, `SMOKE_BASE_URL`). Probalo todo **antes** de invitar a nadie.
+**Estado al 6/11:** `SITE_URL=https://afiniajobs.com.ar` cargada en Vercel y la redirección del dominio viejo hecha en Vercel; falta lo del paso 8 de `docs/DEPLOY.md` (webhook de Resend, `APP_URL`, smoke, MCP). **Estado al 5/11:** `afiniajobs.com.ar` ya está comprado; la migración y la redirección desde `busquedalaboral.malejo.com.ar` siguen pendientes (a cargo de Mauro). Además se compra `afiniajobs.com` como protección. Seguí `docs/DEPLOY.md` › «Pasar a afiniajobs.com.ar» paso por paso (DNS en NIC.ar, dominio en Vercel, Resend verificado, webhook de Resend, `APP_URL`, `SMOKE_BASE_URL`). Probalo todo **antes** de invitar a nadie.
 
 ### 1.4 Probar los correos y los pagos (solo Mauro, una vez por cambio de dominio)
 

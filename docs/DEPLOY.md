@@ -94,10 +94,10 @@ Consecuencia: el `vercel.json` actual (`0 */6 * * *` y `15 */6 * * *`) **no desp
 | Qué | Valor |
 |---|---|
 | Proyecto Vercel | `job-search-os` (equipo `lizarraga-mauros-projects`), root `apps/web`, framework Next.js, Node 22 |
-| Producción | `https://busquedalaboral.malejo.com.ar` (certificado Let's Encrypt emitido por Vercel). `https://job-search-os-kohl.vercel.app` sigue sirviendo la misma app en paralelo (ojo: `job-search-os.vercel.app` es de otro proyecto) |
+| Producción | `https://afiniajobs.com.ar` desde el 6/11 (`SITE_URL` vale desde el siguiente build de producción; sección «Pasar a afiniajobs.com.ar»); el dominio viejo `https://busquedalaboral.malejo.com.ar` redirige al nuevo (certificado Let's Encrypt emitido por Vercel). `https://job-search-os-kohl.vercel.app` sigue sirviendo la misma app en paralelo (ojo: `job-search-os.vercel.app` es de otro proyecto) |
 | Git | repo `Malejo01/job-search-os` conectado: cada push a `main` despliega a producción |
 | Variables | prod: `DATABASE_URL`, `DATABASE_URL_APP`, `AUTH_SECRET`, `CRON_SECRET`, `GEMINI_API_KEY`, `MCP_TOKEN`, `RESEND_API_KEY`, `LLM_DAILY_CAP_USD=2`; preview: `DATABASE_URL`, `DATABASE_URL_APP`, `AUTH_SECRET` + `LLM_DEMO=1` |
-| GitHub | secrets `CRON_SECRET` y `GEMINI_API_KEY`; variable (no secret) `APP_URL=https://busquedalaboral.malejo.com.ar` |
+| GitHub | secrets `CRON_SECRET` y `GEMINI_API_KEY`; variable (no secret) `APP_URL=https://busquedalaboral.malejo.com.ar` (todavía el host viejo; se cambia en el paso 8 de «Pasar a afiniajobs.com.ar») |
 | Base | Neon: migraciones hasta 0011 + policies, seed con el usuario real y el golden privado. Las migraciones NO corren en el deploy: después de mergear una, `pnpm db:migrate` a mano |
 
 ### DNS de malejo.com.ar (Vercel DNS)
@@ -109,6 +109,8 @@ Desde el 2026-09-17 el dominio completo está delegado en NIC.ar a `ns1.vercel-d
 ## Pasar a afiniajobs.com.ar (C3-4)
 
 **Estado al 5/11:** `afiniajobs.com.ar` ya está comprado; la migración y la redirección desde el dominio viejo siguen pendientes (a cargo de Mauro). `afiniajobs.com` se compra como protección.
+
+**Estado al 6/11:** `SITE_URL=https://afiniajobs.com.ar` cargada en Vercel (Production), vale desde el siguiente build de producción. La redirección del dominio viejo la hace Vercel (Domains), así que `LEGACY_HOSTS` no hace falta. `EMAIL_FROM` e `INGEST_DOMAIN` no se tocan (decisión del 6/11). Lo del paso 8 (webhook de Resend, `APP_URL` de GitHub, smoke y MCP) sigue a cargo de Mauro.
 
 **Qué cambió en el código:** la URL pública ya sale de una sola variable, `SITE_URL`. Con ella cargada, el canonical, el sitemap, el robots, Open Graph y los links de los emails usan el dominio nuevo, y `LEGACY_HOSTS` redirige el dominio viejo al nuevo. Sin las variables todo sigue como hoy: no hay nada que hacer hasta que decidas mudar. Ninguna variable de Vercel se cambió desde el repo.
 

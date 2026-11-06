@@ -2,14 +2,14 @@
 
 Voces Jóvenes es un **evento con 10 proyectos** (no una charla); AfinIAJobs aparece en la premiación y **no usa diapositivas**: se muestra el producto y un video de menos de 3 minutos. La gente se anota escaneando un código QR que lleva a la página «Pedir acceso». **[A CONFIRMAR: dónde se muestra el QR en el evento, ya que no hay diapositivas.]** Esta carpeta tiene los dos códigos, cuál usar y qué hacer si algo falla. La lista del día (antes, durante y después) está en [`checklist-evento.md`](./checklist-evento.md).
 
-> **Recordatorio para el evento:** anotarse **no asegura un lugar**. El cupo es limitado (15 a 20 personas; las becas y los combos están en `docs/beta/runbook-apertura.md`, «Decisiones del 5/11») y Mauro, con los criterios de Ani, elige a quién invitar desde el 12/11. Lo dice la propia página al anotarse.
+> **Recordatorio para el evento:** el cupo es limitado (15 a 20 personas; las becas y los combos están en `docs/beta/runbook-apertura.md`, «Decisiones del 5/11») y Mauro, con los criterios de Ani, elige a quién invitar desde el 12/11. Lo dice la propia página al anotarse.
 
 ## Los archivos
 
 | Archivo | Lleva a | Para qué |
 |---|---|---|
-| `qr-afiniajobs.png` y `.svg` | `https://afiniajobs.com.ar/acceso?origen=voces-jovenes` | El dominio nuevo (hoy todavía sin conectar) |
-| `qr-respaldo.png` y `.svg` | `https://busquedalaboral.malejo.com.ar/acceso?origen=voces-jovenes` | El dominio de hoy: **ya funciona** |
+| `qr-afiniajobs.png` y `.svg` | `https://afiniajobs.com.ar/acceso?origen=voces-jovenes` | El dominio nuevo (principal desde el 6/11) |
+| `qr-respaldo.png` y `.svg` | `https://busquedalaboral.malejo.com.ar/acceso?origen=voces-jovenes` | El dominio viejo: redirige al nuevo |
 
 - **PNG** (1024 × 1024 px): para pantalla y WhatsApp. **SVG**: para imprimir (no se pixela al agrandarlo).
 - Los dos tienen el margen blanco de 4 cuadraditos que pide el estándar y corrección de errores nivel M (aguantan hasta un 15 % de daño). **No recortes el margen blanco ni le pongas un logo encima**: el celular necesita ese borde.
@@ -17,12 +17,12 @@ Voces Jóvenes es un **evento con 10 proyectos** (no una charla); AfinIAJobs apa
 
 ## Cuál usar
 
-La decisión depende de una sola cosa: **¿el dominio nuevo (`afiniajobs.com.ar`) está conectado y probado antes de imprimir el QR o de mostrarlo en pantalla?** El dominio ya está comprado; la migración y la redirección las hace Mauro después de la aprobación de marca del 6/11 (`docs/DEPLOY.md`, «Pasar a afiniajobs.com.ar»).
+La decisión depende de una sola cosa: **¿el dominio nuevo (`afiniajobs.com.ar`) está conectado y probado antes de imprimir el QR o de mostrarlo en pantalla?** Desde el 6/11 `SITE_URL` apunta a `afiniajobs.com.ar` y Vercel redirige el dominio viejo al nuevo (`docs/DEPLOY.md`, «Pasar a afiniajobs.com.ar»); falta la prueba con dos celulares.
 
 1. **Fecha límite: lunes 9/11.** Ese día Mauro prueba el dominio nuevo con **dos celulares** (ver más abajo).
 2. **Si el dominio nuevo carga bien en los dos celulares → usá `qr-afiniajobs`.** Tené también el QR de respaldo a mano (ver «Si el día del evento la página no carga»).
 3. **Si no está listo o falla cualquier prueba → usá `qr-respaldo`.** No esperes: un QR que no abre es peor que uno con el nombre viejo.
-4. **El QR de respaldo sigue sirviendo si el dominio cambia después.** Cuando Mauro conecta el dominio nuevo, el viejo redirige solo (con la misma ruta y el `?origen=voces-jovenes`) mientras esté cargada la variable `LEGACY_HOSTS`. Por eso, si hay duda, el respaldo es la opción segura. Lo que **no** conviene es imprimir el QR nuevo antes de comprobar que el dominio nuevo funciona.
+4. **El QR de respaldo sigue sirviendo si el dominio cambia después.** Cuando Mauro conecta el dominio nuevo, el viejo redirige solo (la redirección está en Vercel › Domains; comprobá en la prueba con dos celulares que conserva la ruta y el `?origen=voces-jovenes`). Por eso, si hay duda, el respaldo es la opción segura. Lo que **no** conviene es imprimir el QR nuevo antes de comprobar que el dominio nuevo funciona.
 5. **Escribí la dirección corta debajo del QR**, para quien no pueda escanear: `afiniajobs.com.ar/acceso` (o `busquedalaboral.malejo.com.ar/acceso`). Quien la escribe a mano no trae el `?origen`: pedile que en «Cómo te enteraste» ponga «Voces Jóvenes».
 
 ## Cómo probarlo con dos celulares
