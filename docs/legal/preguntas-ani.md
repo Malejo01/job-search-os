@@ -13,7 +13,7 @@ Los marcadores `[RESPONSABLE]`, `[DOMICILIO]` y `[EMAIL DE CONTACTO]` **no se es
 | `[EMAIL DE CONTACTO]` | `LEGAL_EMAIL` | `privacidad.md:9`, `privacidad.md:22`, `privacidad.md:100`, `terminos.md:11`, `terminos.md:66` |
 | `[A DEFINIR: plazo de retención de los logs]` | `LEGAL_LOG_DAYS` (número de días, 1 a 3650) | `privacidad.md:75` |
 | `[A DEFINIR con Ani]` | — (hay que **reescribir el texto**, no es una variable) | `terminos.md:42` |
-| `[REVISAR CON CAMILA (abogada): protección de marca / derecho de autor]` | — (lo resuelve Camila y se **reescribe el texto**) | `terminos.md:72`, `privacidad.md:141` (sección «Derechos reservados», aviso «© 2026 AfinIAJobs. Todos los derechos reservados.») |
+| `[REVISAR CON ASESORÍA LEGAL: protección de marca / derecho de autor]` | — (lo resuelve la asesoría legal y se **reescribe el texto**) | `terminos.md:72`, `privacidad.md:141` (sección «Derechos reservados», aviso «© 2026 AfinIAJobs. Todos los derechos reservados.») |
 
 **Para revisar qué falta:** `pnpm legal:check` lista cada marcador sin valor (con archivo y línea) usando las variables del entorno. Con `LEGAL_FINAL=1` falla si queda alguno: así se corre antes de dar los textos por finales.
 

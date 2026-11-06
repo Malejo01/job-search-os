@@ -29,7 +29,7 @@ export const COPYRIGHT_YEAR = 2026;
 
 /**
  * Aviso de derechos reservados del pie de la app y de los textos legales. Es solo este aviso: qué
- * protección corresponde (marca, derecho de autor) lo define Camila (abogada), no este archivo.
+ * protección corresponde (marca, derecho de autor) lo define la asesoría legal, no este archivo.
  */
 export const COPYRIGHT_NOTICE = `© ${COPYRIGHT_YEAR} ${BRAND.name}. Todos los derechos reservados.`;
 

@@ -118,7 +118,7 @@ describe("legalTextIsDraft", () => {
     "[CONSULTAR: x]",
     "[A DEFINIR: jurisdicción]",
     "[A DEFINIR con Ani]",
-    "[REVISAR CON CAMILA (abogada): protección de marca / derecho de autor]",
+    "[REVISAR CON ASESORÍA LEGAL: protección de marca / derecho de autor]",
   ])("%s deja el texto como borrador aunque estén todas las variables", (marca) => {
     expect(legalTextIsDraft(`${LIMPIO} ${marca}`, COMPLETO)).toBe(true);
   });
