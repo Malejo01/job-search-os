@@ -63,6 +63,7 @@ export default function GlobalError({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/ilustraciones/error.webp"
+              srcSet="/ilustraciones/error.webp 1x, /ilustraciones/error@2x.webp 2x"
               alt=""
               width={224}
               height={167}
