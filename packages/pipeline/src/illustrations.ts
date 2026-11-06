@@ -18,13 +18,13 @@ export type IllustrationInfo = {
 
 export const ILLUSTRATIONS: Record<IllustrationScene, IllustrationInfo> = {
   hoy: { available: true, background: "ink" },
-  bienvenida: { available: false, background: "lavanda" },
-  cv: { available: false, background: "lavanda" },
-  "sin-descripcion": { available: false, background: "lavanda" },
-  vacio: { available: false, background: "lavanda" },
-  postulaciones: { available: false, background: "lavanda" },
-  error: { available: false, background: "lavanda" },
-  acceso: { available: false, background: "ink" },
+  bienvenida: { available: true, background: "lavanda" },
+  cv: { available: true, background: "lavanda" },
+  "sin-descripcion": { available: true, background: "lavanda" },
+  vacio: { available: true, background: "lavanda" },
+  postulaciones: { available: true, background: "lavanda" },
+  error: { available: true, background: "lavanda" },
+  acceso: { available: true, background: "ink" },
 };
 
 /** Proporción y tamaño base (4:3). */

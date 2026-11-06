@@ -44,6 +44,7 @@ export const authConfig = {
         // sesión el navegador recibía una redirección a /login en vez del ícono.
         pathname === "/icon.svg" ||
         pathname.startsWith("/icons/") ||
+        pathname.startsWith("/ilustraciones/") ||
         pathname === "/apple-icon.png" ||
         pathname === "/manifest.webmanifest"
       ) {

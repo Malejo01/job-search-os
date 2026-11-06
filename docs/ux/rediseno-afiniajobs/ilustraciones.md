@@ -16,13 +16,13 @@ Pesan entre 10 y 30 KB. Si una escena no tiene archivo, `<Illustration>` muestra
 | Escena | Estado | Dónde va | Fondo de la imagen | alt |
 |---|---|---|---|---|
 | `hoy` | ✅ | Cabecera curva de Hoy, a la derecha del saludo (en el celular, debajo o achicada) | Índigo `#1E1B4B`: va directo sobre la cabecera, sin recuadro | «» (decorativa) |
-| `bienvenida` | pendiente | Primer ingreso / onboarding y email de bienvenida | Lavanda | «» |
-| `cv` | pendiente | Mi CV, cuando todavía no hay CV | Lavanda | «» |
-| `sin-descripcion` | pendiente | Ofertas sin descripción (pegar el texto del aviso) | Lavanda | «» |
-| `vacio` | pendiente | Sin ofertas todavía (V3) | Lavanda | «» |
-| `postulaciones` | pendiente | Postulaciones vacías | Lavanda | «» |
-| `error` | pendiente | 404, `error.tsx` y `global-error.tsx` (F1) | Lavanda | «» |
-| `acceso` | pendiente | Cabecera curva de `/acceso` | Índigo: va directo sobre la cabecera | «» |
+| `bienvenida` | ✅ | Primer ingreso / onboarding y email de bienvenida | Lavanda | «» |
+| `cv` | ✅ | Mi CV, cuando todavía no hay CV | Lavanda | «» |
+| `sin-descripcion` | ✅ | Ofertas sin descripción (pegar el texto del aviso) | Lavanda | «» |
+| `vacio` | ✅ | Sin ofertas todavía (V3) | Lavanda | «» |
+| `postulaciones` | ✅ | Postulaciones vacías | Lavanda | «» |
+| `error` | ✅ | 404, `error.tsx` y `global-error.tsx` (F1) | Lavanda | «» |
+| `acceso` | ✅ | Cabecera curva de `/acceso` | Índigo: va directo sobre la cabecera | «» |
 
 ## Lugares y medidas (C9-12)
 
