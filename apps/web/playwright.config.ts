@@ -12,6 +12,10 @@ import { defineConfig, devices } from "@playwright/test";
 const isCi = Boolean(process.env.CI);
 const PORT = 3100;
 const BASE_URL = process.env.E2E_BASE_URL ?? `http://localhost:${PORT}`;
+// R4-15: el server corre el asistente en modo «testers» (admins + ASSISTANT_TESTER_EMAILS). El runner
+// lo sabe por esta variable (los workers heredan el entorno), así el spec 123 se saltea sin ella.
+const ASSISTANT_MODE = "testers";
+process.env.E2E_ASSISTANT_MODE = ASSISTANT_MODE;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -47,7 +51,9 @@ export default defineConfig({
       DB_TARGET: "local",
       LLM_DEMO: "1",
       AUTH_URL: BASE_URL,
-      ASSISTANT_ENABLED: "admin",
+      ASSISTANT_ENABLED: ASSISTANT_MODE,
+      // La persona B de los e2e de dos usuarios (helpers.ts: E2E_B_EMAIL) es la de prueba
+      ASSISTANT_TESTER_EMAILS: "usuario-b@dos.test",
       ASSISTANT_MONTHLY_CONVERSATIONS: "500",
       CV_CHAT_ENABLED: "all",
       START_HERE_ENABLED: "1",

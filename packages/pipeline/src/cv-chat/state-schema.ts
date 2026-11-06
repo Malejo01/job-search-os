@@ -58,6 +58,12 @@ export const CV_CHAT_STATE_SCHEMA = z.strictObject({
   links: z.strictObject({ linkedin: url, github: url, portfolio: url }),
   answered: z.array(name(40)).max(80),
   failures: z.record(name(40), z.number().int().min(0).max(5)),
+  // R4-16: opcionales para aceptar el estado de un navegador con la versión anterior de la página
+  followUps: z.record(name(40), z.number().int().min(0).max(5)).default({}),
+  followUp: z
+    .strictObject({ key: name(40), question: name(300) })
+    .nullable()
+    .default(null),
   turns: z.number().int().min(0).max(25),
 });
 

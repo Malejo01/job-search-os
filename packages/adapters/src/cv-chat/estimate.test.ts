@@ -13,6 +13,7 @@ import {
 import { describe, expect, it } from "vitest";
 import { anthropicRequestFor } from "./fallback-request.util";
 import { cvCostUsd, runPersona, stepUsd, tokensOf, type PersonaRun } from "./estimate";
+import { CV_INTERVIEW_PROMPT } from "./interview";
 import { PERSONAS } from "./personas.fixtures";
 
 type Route = {
@@ -122,10 +123,11 @@ it("resumen del estimado: turnos, tokens por turno y costo por CV dentro de lo d
   expect(rows.map((r) => r.turns).sort((a, b) => a - b)).toEqual([12, 12, 12, 18, 18, 18]);
   for (const r of rows) {
     expect(r.inAvg).toBeGreaterThan(700);
-    expect(r.inAvg).toBeLessThan(900);
+    // v1 rondaba 800; el prompt v2 (R4-16: repregunta, tono, regla 7) suma unos 350 tokens por turno
+    expect(r.inAvg).toBeLessThan(1300);
     expect(r.outAvg).toBeLessThan(60);
     expect(Number(r.gemini)).toBeGreaterThan(0.015);
-    expect(Number(r.gemini)).toBeLessThan(0.035);
+    expect(Number(r.gemini)).toBeLessThan(0.045); // v1: 0.035; el prompt v2 sube ~USD 0,007 por CV
     expect(Number(r.respaldo)).toBeLessThan(Number(r.gemini));
   }
 });
@@ -133,7 +135,7 @@ it("resumen del estimado: turnos, tokens por turno y costo por CV dentro de lo d
 describe("CVC-6 · calibración de las reservas de gasto (S-1): el máximo del paso, no el promedio", () => {
   /** Peor prompt de la entrevista: el mensaje más largo que acepta la ruta y un contexto de trabajo largo. */
   function maxInterviewInputTokens(): number {
-    const p = loadPrompt("cv_interview@v1");
+    const p = loadPrompt(CV_INTERVIEW_PROMPT);
     if (!p.ok) throw new Error("sin prompt");
     const r = renderPrompt(p.value, {
       lang: "es",

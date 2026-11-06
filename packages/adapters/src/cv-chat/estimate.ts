@@ -30,7 +30,7 @@ export type StepSize = { task: string; inChars: number; outChars: number };
 export function measuringLlm(inner: LlmClient, steps: StepSize[]): LlmClient {
   return {
     async generateStructured(task, schema, vars, ctx) {
-      const prompt = loadPrompt(`${task}@v1`);
+      const prompt = loadPrompt(ctx?.promptVersion ?? `${task}@v1`);
       const rendered = prompt.ok ? renderPrompt(prompt.value, vars) : null;
       const r = await inner.generateStructured(task, schema, vars, ctx);
       if (rendered?.ok && r.ok) {

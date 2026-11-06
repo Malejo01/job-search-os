@@ -140,7 +140,7 @@ async function readBody(req: Request): Promise<string | null> {
 
 export async function POST(req: Request): Promise<Response> {
   // Sin el flag, la ruta no existe y no se toca ni la sesión ni la base
-  if (assistantMode(process.env) !== "admin") return jsonError(404, "no_encontrado");
+  if (assistantMode(process.env) === "off") return jsonError(404, "no_encontrado");
   const h = req.headers;
   if (
     !sameOriginRequest({
@@ -161,8 +161,8 @@ export async function POST(req: Request): Promise<Response> {
   if ((await needsTermsAcceptance(userId)) || !(await isOnboardingComplete(userId))) {
     return jsonError(403, "perfil");
   }
-  // Para quien no puede usarlo, la ruta no existe (como /settings/metricas)
-  if (!(await canUseAssistant(userId))) return jsonError(404, "no_encontrado");
+  // Con el asistente encendido, quien tiene sesión pero no está habilitado recibe 403
+  if (!(await canUseAssistant(userId))) return jsonError(403, "sin_permiso");
 
   const declared = Number(h.get("content-length") ?? "0");
   if (declared > MAX_ASSISTANT_BODY_BYTES) return jsonError(413, "muy_grande");

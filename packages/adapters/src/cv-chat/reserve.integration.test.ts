@@ -137,8 +137,8 @@ describe("intentos fallidos y turnos del mes (C2-1)", () => {
     await row({ ok: false, costUsd: null, error: "schema_invalid" });
     const m = await measure();
     expect(m.interviewTurnsThisMonth).toBe(2);
-    expect(m.userInterviewUsd).toBeCloseTo(0.01 + 0.025);
-    expect(m.dailySpendUsd).toBeCloseTo(0.01 + 0.025);
+    expect(m.userInterviewUsd).toBeCloseTo(0.01 + 0.03);
+    expect(m.dailySpendUsd).toBeCloseTo(0.01 + 0.03);
   });
 
   it("provider_unavailable (nunca se llamó), otra persona y más de 30 días no cuentan", async () => {
