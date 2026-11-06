@@ -2,7 +2,7 @@
 
 Estimación con el código de `ronda/integracion-c7` (2/11/2026) para la beta cerrada. Se calculó para **25 cuentas** (el cupo de entonces más 2 cuentas de admin/prueba). Solo código y docs: no se tocó ninguna variable. Donde no hay medición real, el número es una cota y lo dice.
 
-> **Actualización del 5/11 (cupo y becas):** el cupo pasó a ser de **15 a 20 personas**, con un becado gratis y dos con 50 % de descuento (ya no «3 becadas»). Detalle y puntos abiertos en `docs/beta/runbook-apertura.md`, «Decisiones del 5/11»; no está claro si Camila y Virginia entran en esos lugares: [A CONFIRMAR con Mauro]. **No se recalculó nada:** las cuentas de abajo siguen estimadas para 25 y no se agregó ningún dato nuevo.
+> **Actualización del 5/11 (cupo y becas):** el cupo pasó a ser de **15 a 20 personas**, con un becado gratis y dos con 50 % de descuento (ya no «3 becadas»). Detalle y puntos abiertos en `docs/beta/runbook-apertura.md`, «Decisiones del 5/11»; no está claro si las dos personas que no pagan entran en esos lugares: [A CONFIRMAR con Mauro]. **No se recalculó nada:** las cuentas de abajo siguen estimadas para 25 y no se agregó ningún dato nuevo.
 
 ## Resumen
 

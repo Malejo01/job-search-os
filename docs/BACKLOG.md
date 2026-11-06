@@ -1283,6 +1283,6 @@ La nube rehízo las pantallas mirando las imágenes aprobadas por Mauro el 4/11 
 
 ### Pendiente después de D5-1
 - **[A DEFINIR: combos de Ani]:** los dos combos que paga el resto del cupo, y cómo encajan con el Plan Beta de ARS 20.000.
-- **[A CONFIRMAR]:** el becado gratis (candidato: Natanael, programación), si es solo el primer mes o toda la beta, y quién lleva relaciones internacionales.
-- **[A CONFIRMAR con Mauro]:** si Camila y Virginia son parte de los lugares de becas o van aparte; si programación es una carrera más de la beta (hoy son 6, ADR-027); dónde se muestra el QR en el evento, ya que no hay diapositivas.
+- **[A CONFIRMAR]:** quién es el becado gratis (se lleva en Notion), si es solo el primer mes o toda la beta, y quién lleva relaciones internacionales.
+- **[A CONFIRMAR con Mauro]:** si las dos personas que no pagan son parte de los lugares de becas o van aparte; si programación es una carrera más de la beta (hoy son 6, ADR-027); dónde se muestra el QR en el evento, ya que no hay diapositivas.
 - **Mauro:** actualizar los `MP_LINK_*` con la cuenta nueva; crear `contacto@afiniajobs.com.ar`; migrar y redirigir `afiniajobs.com.ar`; comprar `afiniajobs.com`. **Ani:** crear el WhatsApp Business y definir los combos.

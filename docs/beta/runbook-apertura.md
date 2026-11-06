@@ -10,11 +10,11 @@ Salen de la tarea de Notion «Actualizar los documentos de la beta del repositor
 
 **Cupo y combos**
 - El cupo es de **15 a 20 personas**.
-- **Solo Camila y Virginia no pagan.** El resto paga uno de **dos combos que arma Ani**: [A DEFINIR: combos de Ani].
+- **Solo dos personas no pagan** (quiénes son se lleva en Notion). El resto paga uno de **dos combos que arma Ani**: [A DEFINIR: combos de Ani].
 
 **Becas**
-- Ya no son «3 becadas». Es **un becado gratis** (candidato: Natanael, programación; [A CONFIRMAR]) y **dos con 50 % de descuento** sobre el precio fundador.
-- [A CONFIRMAR con Mauro]: no está claro si Camila y Virginia son parte de esos lugares o van aparte.
+- Ya no son «3 becadas». Es **un becado gratis** (quién es se lleva en Notion; [A CONFIRMAR]) y **dos con 50 % de descuento** sobre el precio fundador.
+- [A CONFIRMAR con Mauro]: no está claro si las dos personas que no pagan son parte de esos lugares o van aparte.
 - [A CONFIRMAR con Mauro]: si el becado gratis lo es solo el primer mes (así funciona hoy «Becado» en el panel, ver 2.1) o toda la beta.
 
 **El evento del 11/11 es «Voces Jóvenes», no una charla**
@@ -121,7 +121,7 @@ También en **GitHub** › Settings › Secrets and variables › Actions › *V
 5. **Copiá los mensajes ahora:** los links se muestran una sola vez. Cada mensaje dice que la beta abre el jueves 26/11 y que el link es personal. Mandalos por WhatsApp o email desde tu cuenta; el panel no manda nada.
 6. Cada invitación **vence a los 14 días** y sirve una sola vez. Una que no se usó se revoca y se crea de nuevo desde la misma pantalla.
 7. Cuando la persona se registra, **su carrera ya viene marcada** en el primer paso (la que eligió al anotarse); puede cambiarla.
-8. Becas: el becado gratis y los dos con 50 % se invitan igual; la beca se registra al activar el plan (ver 2.1). Quiénes son y si Camila y Virginia entran en esos lugares: [A CONFIRMAR con Mauro] (ver «Decisiones del 5/11»).
+8. Becas: el becado gratis y los dos con 50 % se invitan igual; la beca se registra al activar el plan (ver 2.1). Quiénes son y si las dos personas que no pagan entran en esos lugares: [A CONFIRMAR con Mauro] (ver «Decisiones del 5/11»).
 
 ## 2. El 26/11
 

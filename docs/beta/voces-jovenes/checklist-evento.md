@@ -70,7 +70,7 @@ Si alguien se pasa, ve: «Recibimos muchos pedidos desde tu conexión. Probá de
 ### Elegir a quién invitar (Ani y Mauro)
 - [ ] **Ani trae los criterios** para elegir (los que definió para las 15 a 20 personas; incluyen los dos combos [A DEFINIR: combos de Ani] y las becas). **Hasta que estén definidos, no se invita a nadie.**
 - [ ] Revisen la lista **carrera por carrera** con los contadores del panel: ¿alcanza gente en cada una de las 6?
-- [ ] Marquen en la planilla a quiénes eligen y quiénes quedan en espera. **Las becas (un becado gratis y dos con 50 %) se marcan aparte;** quiénes son y si Camila y Virginia entran en esos lugares: [A CONFIRMAR con Mauro].
+- [ ] Marquen en la planilla a quiénes eligen y quiénes quedan en espera. **Las becas (un becado gratis y dos con 50 %) se marcan aparte;** quiénes son y si las dos personas que no pagan entran en esos lugares: [A CONFIRMAR con Mauro].
 - [ ] **(Mauro)** En el panel, tildá a las personas elegidas (hasta 20 por tanda), tocá **«Invitar a los seleccionados»** y confirmá.
 - [ ] **Copiá los mensajes en ese momento:** los enlaces se muestran **una sola vez**. Cada mensaje dice que la beta abre el jueves 26/11 y que el enlace es personal. Mandalos por WhatsApp o email desde tu cuenta: el panel no manda nada solo.
 - [ ] Cada invitación **vence a los 14 días** y sirve una sola vez. Si alguien no la usó, se revoca y se crea de nuevo desde el mismo panel.

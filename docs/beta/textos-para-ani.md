@@ -33,7 +33,7 @@ Todo lo que Ani tiene que leer antes del 26/11, en un lugar. **En la app:** [`/s
 
 Detalle y puntos abiertos en `docs/beta/runbook-apertura.md`, «Decisiones del 5/11».
 
-- El cupo es de 15 a 20 personas. Solo Camila y Virginia no pagan; el resto paga uno de dos combos que arma Ani: [A DEFINIR: combos de Ani]. Hasta que estén, el precio de la invitación y de `/ayuda` puede cambiar.
+- El cupo es de 15 a 20 personas. Solo dos personas no pagan; el resto paga uno de dos combos que arma Ani: [A DEFINIR: combos de Ani]. Hasta que estén, el precio de la invitación y de `/ayuda` puede cambiar.
 - Becas: un becado gratis y dos con 50 % de descuento (ya no «3 becados»). El texto de becados de la invitación tiene que decir eso cuando Mauro confirme quiénes son: [A CONFIRMAR con Mauro].
 - El 11/11 es el evento «Voces Jóvenes», no una charla.
 - Soporte de la beta: WhatsApp Business (lo crea y etiqueta Ani) y `contacto@afiniajobs.com.ar` (la crea Mauro, la atiende Ani).
