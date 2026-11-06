@@ -46,10 +46,12 @@ test.describe("Flujo 37a: resultado de una postulación", () => {
   }) => {
     await login(page);
     await page.goto("/applications");
-    // La tarjeta con el formulario: la lista de "sorpresas" de arriba también nombra la oferta
+    // La tarjeta con el formulario: la lista de "sorpresas" de arriba también nombra la oferta.
+    // R4-07: se filtra por el input oculto del formulario (está en el DOM aunque el formulario vaya
+    // dentro de un «Cambiar resultado» cerrado), no por el rol del botón, que ahí no es accesible
     const card = page
       .locator("li", { hasText: title })
-      .filter({ has: page.getByRole("button", { name: "Guardar resultado", exact: true }) });
+      .filter({ has: page.locator('input[name="applicationId"]') });
     const save = card.getByRole("button", { name: "Guardar resultado", exact: true });
     await expect(card).toBeVisible();
 
@@ -60,6 +62,12 @@ test.describe("Flujo 37a: resultado de una postulación", () => {
     await expect
       .poll(() => applicationOutcomeAndNote(applicationId))
       .toEqual({ outcome: "rechazo_humano", note: "nota uno" });
+    // R4-07: un rechazo pasa al grupo «Cerradas» (plegado) y su formulario va en «Cambiar resultado»
+    await page
+      .getByTestId("grupo-cerradas")
+      .getByRole("button", { name: /^Cerradas/ })
+      .click();
+    await card.getByText("Cambiar resultado").click();
     // Señal server-rendered del dato nuevo (badge y <p> de la nota): recién ahí ya hubo render y reset
     await expect(card.locator("span", { hasText: "Rechazo humano" })).toBeVisible();
     await expect(card.getByText("nota uno", { exact: true })).toBeVisible();

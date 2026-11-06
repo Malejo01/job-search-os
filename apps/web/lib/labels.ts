@@ -57,6 +57,18 @@ export const OUTCOME_LABELS: Record<string, string> = {
   retirada: "Retirada",
 };
 
+/** Clases de la píldora de resultado de una postulación (tokens semánticos). */
+export const OUTCOME_CLASSES: Record<string, string> = {
+  entrevista: "bg-success-muted text-success",
+  oferta: "bg-success-line text-success",
+  rechazo_humano: "bg-danger-muted text-danger",
+  rechazo_automatico_ubicacion: "bg-danger-soft text-danger",
+  rechazo_automatico_otro: "bg-danger-soft text-danger",
+  sin_respuesta: "bg-surface-muted text-fg-muted",
+  cerrada_antes: "bg-surface-muted text-fg-subtle",
+  retirada: "bg-surface-muted text-fg-subtle",
+};
+
 export const ACTION_LABELS: Record<string, string> = {
   aplicar_personalizado: "Aplicar (personalizado)",
   aplicar: "Aplicar",

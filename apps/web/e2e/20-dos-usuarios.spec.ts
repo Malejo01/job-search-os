@@ -137,6 +137,12 @@ test.describe("Flujo 20: dos usuarios, sin lectura ni escritura cruzada", () => 
       .locator("li")
       .filter({ has: page.locator('input[name="applicationId"]') })
       .filter({ hasText: `Oferta Ficticia A ${tag}` });
+    // R4-07: una oferta evaluada con postulación va al grupo «Cerradas» (plegado), formulario en «Cambiar resultado»
+    await page
+      .getByTestId("grupo-cerradas")
+      .getByRole("button", { name: /^Cerradas/ })
+      .click();
+    await card.getByText("Cambiar resultado").click();
     await expect(card).toBeVisible();
     await card.locator('input[name="applicationId"]').evaluate((el, v) => {
       (el as HTMLInputElement).value = v;
@@ -216,6 +222,12 @@ test.describe("Flujo 20: dos usuarios, sin lectura ni escritura cruzada", () => 
         .locator("li")
         .filter({ has: page.locator('input[name="applicationId"]') })
         .filter({ hasText: `Oferta Ficticia A propia ${tag}` });
+      // R4-07: evaluada con postulación -> «Cerradas» (plegado), formulario en «Cambiar resultado»
+      await page
+        .getByTestId("grupo-cerradas")
+        .getByRole("button", { name: /^Cerradas/ })
+        .click();
+      await card.getByText("Cambiar resultado").click();
       await expect(card).toBeVisible();
       await card.getByLabel("Resultado").selectOption("rechazo_humano");
       await Promise.all([

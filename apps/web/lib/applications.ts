@@ -4,12 +4,16 @@ import {
   buildFeedbackReport,
   FOLLOW_UP_SNOOZE_DAYS,
   followUpDue,
+  INACTIVE_DAYS,
+  isInactiveEvaluated,
   type ApplicationOutcome,
   type FeedbackReport,
   type FeedbackRow,
 } from "@job-search-os/pipeline";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lte } from "drizzle-orm";
 import { withUser, type Tx } from "./db";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Postulaciones y feedback loop (JS-036): lectura y cambio de resultado con el rol de la app (RLS). */
 export type ApplicationView = {
@@ -26,9 +30,26 @@ export type ApplicationView = {
   score: number | null;
   accion: string | null;
   model: string | null;
+  /** Fechas completas para la regla de inactividad (pipeline puro): `appliedAt` y `outcomeAt` de arriba van recortados. */
+  dates: {
+    appliedAt: Date | null;
+    outcomeAt: Date | null;
+    /** `applications.follow_up_at` es `date` (string); acá ya es Date a medianoche UTC. */
+    followUpAt: Date | null;
+    /** `jobs.updated_at` */
+    touchedAt: Date | null;
+  };
 };
 
-const asOutcome = (v: string | null): ApplicationOutcome =>
+/** Oferta evaluada que nunca se aplicó (candidata a «Descartada por inactividad»). */
+export type StaleEvaluatedView = {
+  jobId: string;
+  title: string;
+  company: string;
+  touchedAt: Date;
+};
+
+export const asOutcome = (v: string | null): ApplicationOutcome =>
   (APPLICATION_OUTCOMES as readonly string[]).includes(v ?? "")
     ? (v as ApplicationOutcome)
     : "sin_respuesta";
@@ -65,6 +86,8 @@ export async function listApplications(userId: string): Promise<ApplicationView[
         outcome: s.applications.outcome,
         outcomeAt: s.applications.outcomeAt,
         outcomeNote: s.applications.outcomeNote,
+        followUpAt: s.applications.followUpAt,
+        touchedAt: s.jobs.updatedAt,
         score: latest.score,
         accion: latest.accion,
         model: latest.model,
@@ -73,12 +96,55 @@ export async function listApplications(userId: string): Promise<ApplicationView[
       .innerJoin(s.jobs, eq(s.jobs.id, s.applications.jobId))
       .leftJoin(latest, eq(latest.jobId, s.applications.jobId))
       .orderBy(desc(s.applications.appliedAt), desc(s.applications.createdAt));
-    return rows.map((r) => ({
+    return rows.map(({ followUpAt, touchedAt, ...r }) => ({
       ...r,
       appliedAt: r.appliedAt?.toISOString().slice(0, 10) ?? null,
       outcomeAt: r.outcomeAt?.toISOString().slice(0, 10) ?? null,
       outcome: asOutcome(r.outcome),
+      dates: {
+        appliedAt: r.appliedAt,
+        outcomeAt: r.outcomeAt,
+        followUpAt: followUpAt ? new Date(`${followUpAt}T00:00:00Z`) : null,
+        touchedAt,
+      },
     }));
+  });
+}
+
+const STALE_EVALUATED_LIMIT = 50;
+
+/**
+ * Ofertas evaluadas sin postulación con INACTIVE_DAYS o más sin tocar. La consulta acota por fecha;
+ * la regla final la decide `isInactiveEvaluated` (pipeline).
+ */
+export async function listStaleEvaluated(
+  userId: string,
+  today: Date,
+): Promise<StaleEvaluatedView[]> {
+  const cutoff = new Date(today.getTime() - INACTIVE_DAYS * DAY_MS);
+  return withUser(userId, async (tx) => {
+    const rows = await tx
+      .select({
+        jobId: s.jobs.id,
+        title: s.jobs.title,
+        company: s.jobs.companyRaw,
+        touchedAt: s.jobs.updatedAt,
+      })
+      .from(s.jobs)
+      .leftJoin(s.applications, eq(s.applications.jobId, s.jobs.id))
+      .where(
+        and(
+          eq(s.jobs.status, "evaluada"),
+          isNull(s.applications.id),
+          lte(s.jobs.updatedAt, cutoff),
+        ),
+      )
+      .orderBy(s.jobs.updatedAt)
+      // Tope para el grupo plegado: con cientos de ofertas viejas no se dibujan todas
+      .limit(STALE_EVALUATED_LIMIT);
+    return rows.filter((r) =>
+      isInactiveEvaluated({ status: "evaluada", touchedAt: r.touchedAt }, today),
+    );
   });
 }
 
@@ -124,8 +190,6 @@ export type FollowUpView = {
   /** Días desde la fecha de referencia (postulación, o entrevista si la hay). */
   daysSince: number;
 };
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Postulaciones que vencen hoy: una consulta con RLS; el vencimiento lo decide followUpDue (pipeline). */
 export async function listFollowUps(userId: string, today: Date): Promise<FollowUpView[]> {

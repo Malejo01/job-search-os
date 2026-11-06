@@ -42,6 +42,11 @@ test.describe("Flujo 4: postular → resultado (feedback loop, JS-036)", () => {
     await card.getByLabel("Resultado").selectOption("rechazo_humano");
     await card.getByPlaceholder("Nota (opcional)").fill("respondieron que buscan senior");
     await card.getByRole("button", { name: "Guardar resultado" }).click();
+    // R4-07: un rechazo pasa al grupo «Cerradas», que viene plegado
+    await page
+      .getByTestId("grupo-cerradas")
+      .getByRole("button", { name: /^Cerradas/ })
+      .click();
     await expect(card.locator("span", { hasText: "Rechazo humano" })).toBeVisible();
     await expect(card.getByText("respondieron que buscan senior")).toBeVisible();
     expect(await applicationOutcome(jobId)).toBe("rechazo_humano");
