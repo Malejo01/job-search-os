@@ -51,7 +51,7 @@ Los marcadores `[RESPONSABLE]`, `[DOMICILIO]` y `[EMAIL DE CONTACTO]` **no se es
   - ¿Qué pasa si alguien paga y no le sirve: hay reembolso? ¿En qué plazo?
   - ¿Aplica el derecho de arrepentimiento de la compra a distancia (10 días) y hace falta un «botón de arrepentimiento» visible en la web?
   - ¿Hace falta emitir factura? (Hoy la invitación dice «sin factura».)
-  - ¿Los becados aceptan los mismos términos?
+  - ¿Los becados aceptan los mismos términos? (Desde el 5/11 hay un becado gratis y dos con 50 % de descuento; la pregunta sigue abierta.)
 - **Dónde va:** reescribir el párrafo de `terminos.md:42` (carril rojo, sube `TERMS_VERSION` en `apps/web/lib/terms.ts` y todas las cuentas vuelven a aceptar).
 - **Ejemplo de redacción:** «Durante la beta hay dos planes: el gratis, con los topes de arriba, y el **Plan Beta**, de ARS 20.000 por 30 días, que se paga por Mercado Pago con el link de la invitación y se activa a mano. No se renueva solo: antes de que venza te avisamos por email. Si pagaste y en los primeros 10 días querés arrepentirte, escribinos a [EMAIL DE CONTACTO] y te devolvemos el pago completo.»
 

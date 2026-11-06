@@ -1162,7 +1162,7 @@ Una noche de la nube: la marca AfinIAJobs (nombre, logo, paleta, tipografías, �
 
 ## Bloque 14 — 11/11, apertura de la beta y carreras (tanda C8, 2026-11-03 al 04)
 
-Una noche de la nube, sin supervisión: lo que hace falta para la charla del 11/11 en Voces Jóvenes, la apertura de la beta del 26/11 y las 6 carreras no tech. Cada ticket fue un PR `[nube C8]` en draft hacia `ronda/integracion-c8`, mergeado con `--no-ff` con su CI en verde, y **un solo PR de integración** hacia `main` ([#376](https://github.com/Malejo01/job-search-os/pull/376)). Base: `ronda/integracion-c7` (#353 seguía abierto). Nada se mergeó a `main`; **tres migraciones nuevas (0057, 0058, 0059), ninguna aplicada**. Reglas, decisiones y variables en `docs/beta/tanda-c8.md`; paths rojos y «Decisiones para Mauro» en #376.
+Una noche de la nube, sin supervisión: lo que hace falta para el evento del 11/11 (Voces Jóvenes), la apertura de la beta del 26/11 y las 6 carreras no tech. Cada ticket fue un PR `[nube C8]` en draft hacia `ronda/integracion-c8`, mergeado con `--no-ff` con su CI en verde, y **un solo PR de integración** hacia `main` ([#376](https://github.com/Malejo01/job-search-os/pull/376)). Base: `ronda/integracion-c7` (#353 seguía abierto). Nada se mergeó a `main`; **tres migraciones nuevas (0057, 0058, 0059), ninguna aplicada**. Reglas, decisiones y variables en `docs/beta/tanda-c8.md`; paths rojos y «Decisiones para Mauro» en #376.
 
 ### Evento del 11/11
 - **C8-1 · Reglas de la tanda** · `estado:` done, 2026-11-03 ([#375](https://github.com/Malejo01/job-search-os/pull/375)). `docs/beta/tanda-c8.md`.
@@ -1202,7 +1202,7 @@ Una noche de la nube, sin supervisión: lo que hace falta para la charla del 11/
 
 ### Pendiente después de la tanda
 - **Mauro, antes del merge de #376:** revisar el SQL y aplicar `pnpm db:migrate` (0056 de C6 si falta, 0057, 0058, 0059 y los `rls/` 0006, 0016, 0017, 0018). Las variables apagadas no protegen un despliegue antes de migrar.
-- **Mauro, después:** prender las variables en el orden de `docs/beta/tanda-c8.md`; `WAITLIST_EVENT_WINDOW` con el horario real de la charla; correr `pnpm pool:backfill-language --remote` (cuenta) y después `--remote --apply`, con `PUBLIC_JOBS_LANGUAGE_ENABLED=1` ya prendida.
+- **Mauro, después:** prender las variables en el orden de `docs/beta/tanda-c8.md`; `WAITLIST_EVENT_WINDOW` con el horario real del evento; correr `pnpm pool:backfill-language --remote` (cuenta) y después `--remote --apply`, con `PUBLIC_JOBS_LANGUAGE_ENABLED=1` ya prendida.
 - **Firewall de Vercel para `POST /acceso`** (S-2 de la auditoría): regla de rate limit por IP antes del 11/11.
 - **Presupuesto de Resend** (S-3 / M-3) antes de prender `WELCOME_EMAIL_ENABLED`.
 - **Ani:** `docs/legal/preguntas-ani.md` (incluye `terminos.md:42`, «La beta es gratuita»), `/settings/textos` y `/settings/marca`.
@@ -1272,3 +1272,17 @@ La nube rehízo las pantallas mirando las imágenes aprobadas por Mauro el 4/11 
 ### Pendiente después de la tanda
 - **Mauro:** mirar las comparaciones (artefacto «comparaciones» del job e2e de #403) y la vista previa, revisar las «Decisiones para Mauro» de cada PR de C10 y mergear #403.
 - **Ilustración «acceso»:** sigue el marcador; la referencia la espera (`docs/ux/rediseno-afiniajobs/ilustraciones.md`).
+
+## Bloque 17 — Decisiones del 5/11 en los documentos de la beta
+
+### D5-1 · Alinear `docs/beta/*` con las decisiones del 5/11
+`deps:` — · `est:` 1 h · `estado:` done (2026-11-06)
+- Cupo de 15 a 20 personas; becas: un becado gratis y dos con 50 % (ya no «3 becadas»); el 11/11 es el evento «Voces Jóvenes» (10 proyectos, sin diapositivas), no una charla; soporte por WhatsApp Business y `contacto@afiniajobs.com.ar`; cobros por una cuenta nueva de Mercado Pago compartida (links `MP_LINK_*` a actualizar); carreras por responsable; dominio `afiniajobs.com.ar` comprado y `afiniajobs.com` como protección.
+- Texto canónico: `docs/beta/runbook-apertura.md`, «Decisiones del 5/11». Tocados además `capacidad.md`, `tanda-c8.md`, `preguntas-frecuentes.md`, `textos-para-ani.md`, `voces-jovenes/*`, `OPERACION.md`, `DEPLOY.md` y `legal/preguntas-ani.md`.
+- **Acepta:** `grep` de «3 becad», «charla» y «becadas» sin restos que hablen del evento o de las 3 becas. Solo documentación: no se cambió ninguna variable ni código.
+
+### Pendiente después de D5-1
+- **[A DEFINIR: combos de Ani]:** los dos combos que paga el resto del cupo, y cómo encajan con el Plan Beta de ARS 20.000.
+- **[A CONFIRMAR]:** quién es el becado gratis (se lleva en Notion), si es solo el primer mes o toda la beta, y quién lleva relaciones internacionales.
+- **[A CONFIRMAR con Mauro]:** si las dos personas que no pagan son parte de los lugares de becas o van aparte; si programación es una carrera más de la beta (hoy son 6, ADR-027); dónde se muestra el QR en el evento, ya que no hay diapositivas.
+- **Mauro:** actualizar los `MP_LINK_*` con la cuenta nueva; crear `contacto@afiniajobs.com.ar`; migrar y redirigir `afiniajobs.com.ar`; comprar `afiniajobs.com`. **Ani:** crear el WhatsApp Business y definir los combos.

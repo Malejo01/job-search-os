@@ -1,6 +1,8 @@
 # Capacidad para la beta: 25 personas (C7-14)
 
-Estimación con el código de `ronda/integracion-c7` (2/11/2026) para la beta cerrada: **15 a 20 personas que pagan, 3 becadas y 2 cuentas de admin/prueba = 25**. Solo código y docs: no se tocó ninguna variable. Donde no hay medición real, el número es una cota y lo dice.
+Estimación con el código de `ronda/integracion-c7` (2/11/2026) para la beta cerrada. Se calculó para **25 cuentas** (el cupo de entonces más 2 cuentas de admin/prueba). Solo código y docs: no se tocó ninguna variable. Donde no hay medición real, el número es una cota y lo dice.
+
+> **Actualización del 5/11 (cupo y becas):** el cupo pasó a ser de **15 a 20 personas**, con un becado gratis y dos con 50 % de descuento (ya no «3 becadas»). Detalle y puntos abiertos en `docs/beta/runbook-apertura.md`, «Decisiones del 5/11»; no está claro si las dos personas que no pagan entran en esos lugares: [A CONFIRMAR con Mauro]. **No se recalculó nada:** las cuentas de abajo siguen estimadas para 25 y no se agregó ningún dato nuevo.
 
 ## Resumen
 
@@ -101,7 +103,7 @@ Plan gratis: **100 envíos por día y 3.000 por mes**, compartidos por todo lo q
 | `CV_CHAT_DAILY_CAP_USD` | **2** si `CV_CHAT_ENABLED=all` | Con 25 personas, el default de USD 1 se agota con 3 o 4 charlas en el mismo día |
 | `PLAN_NOTICE_DAILY_CAP` | **30** (default) | 25 personas entran en un solo día |
 | `PRICING_ENABLED` | `1` (de build: redeploy) | `/precios` y «Tu plan» |
-| `MP_LINK_LISTA` | el link de Mercado Pago del plan Beta | Va solo en el mensaje de invitación (C7-12) |
+| `MP_LINK_LISTA` | el link de Mercado Pago del plan Beta, de la **cuenta nueva compartida** (5/11: hay que actualizar los `MP_LINK_*`) | Va solo en el mensaje de invitación (C7-12) |
 | `WAITLIST_INVITE_CAP` | **20** (default) | Una tanda de 20 invitaciones por vez |
 | `TARGET_ROLES_FREE_LIMIT` | **2** (default) | Puestos del plan gratis |
 

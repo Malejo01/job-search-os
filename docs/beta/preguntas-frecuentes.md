@@ -1,6 +1,8 @@
 # Preguntas frecuentes de la beta cerrada
 
-Texto público de la página `/ayuda` para personas interesadas en sumarse a la beta a partir de la presentación del 11/11 en Voces Jóvenes (Salta).
+Texto público de la página `/ayuda` para personas interesadas en sumarse a la beta a partir del evento Voces Jóvenes del 11/11 (Salta).
+
+> **Pendiente (decisiones del 5/11):** el precio de la pregunta 5 y los dos combos que arma Ani están sin definir ([A DEFINIR: combos de Ani]), y el soporte de la pregunta 8 depende de que existan el WhatsApp Business y la casilla `contacto@afiniajobs.com.ar`. Esos textos se actualizan cuando estén definidos; no se agregó ningún dato nuevo.
 
 ---
 
@@ -19,7 +21,7 @@ En esta primera etapa de prueba, la app está pensada para personas de 6 carrera
 Si te formaste o trabajás en alguna de estas áreas, las evaluaciones y recomendaciones están adaptadas a tu perfil. Con el tiempo se irán sumando más carreras.
 
 ### 3. ¿Cómo me anoto?
-Entrás a la página [Pedir acceso](/acceso) (o escaneás el código QR que viste en la presentación), completás tu nombre, email, elegís tu carrera y nos contás cómo te enteraste. No necesitás poner tarjeta ni crear una contraseña en ese momento.
+Entrás a la página [Pedir acceso](/acceso) (o escaneás el código QR que viste en el evento), completás tu nombre, email, elegís tu carrera y nos contás cómo te enteraste. No necesitás poner tarjeta ni crear una contraseña en ese momento.
 
 ### 4. ¿Cuándo abre el acceso?
 La beta cerrada abre el **jueves 26 de noviembre**. El cupo es limitado y anotarte no garantiza un lugar. Si hay lugar para vos, te escribimos con tu invitación y el enlace para crear tu cuenta.
@@ -35,7 +37,7 @@ La beta es por invitación y se usa con el Plan Beta, que es pago, mes a mes ($ 
 Tus datos se guardan en una base privada y solo vos ves los tuyos. No los vendemos, no los usamos para publicidad ni para entrenar modelos de inteligencia artificial. Para evaluar los avisos y redactar borradores usamos proveedores de inteligencia artificial (Google y Anthropic): reciben datos del aviso y de tu perfil, pero no tu nombre, tu email ni tu contraseña. Todos los detalles están en nuestra [Política de privacidad](/legal/privacidad).
 
 ### 8. ¿Cómo aviso si algo no funciona o tengo una consulta?
-En todas las pantallas de la app vas a ver un botón flotante que dice **«¿Algo no anduvo?»**. Al tocarlo podés describir qué problema tuviste o qué no quedó claro. Leemos los comentarios durante la beta.
+En todas las pantallas de la app vas a ver un botón flotante que dice **«¿Algo no anduvo?»**. Al tocarlo podés describir qué problema tuviste o qué no quedó claro. Leemos los comentarios durante la beta. Durante la beta también podés escribirnos por **WhatsApp** o a **contacto@afiniajobs.com.ar**. [A CONFIRMAR: publicar estas dos líneas en `/ayuda` solo cuando existan el WhatsApp Business (lo crea Ani) y la casilla (la crea Mauro; la atiende Ani).]
 
 ### 9. ¿Cómo me doy de baja si no quiero usar más la app?
 Si ya tenés cuenta, podés borrarla vos en Ajustes, en «Cuenta»: se borran tus datos de la app. Si solo te anotaste en la lista de espera, escribinos desde el mismo email con el que te anotaste y borramos tu pedido.

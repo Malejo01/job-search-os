@@ -59,14 +59,14 @@ Si el usuario no tiene criterios activos, el email queda en la cola manual con e
 
 ## Activar un plan (beta paga, C-11b y C3-1)
 
-El cobro es externo: la persona paga el mes con el link de Mercado Pago (ARS 20.000; los USD 15 son solo una referencia) o por transferencia, y **Mauro lo activa a mano**. La app no sabe si alguien pagó ni guarda datos de tarjetas.
+El cobro es externo: la persona paga el mes con el link de Mercado Pago (ARS 20.000; los USD 15 son solo una referencia) o por transferencia. Desde el 5/11 se cobra por una **cuenta nueva de Mercado Pago, compartida**: hay que actualizar los links `MP_LINK_*` (ver `docs/beta/runbook-apertura.md`, «Decisiones del 5/11»). Después de pagar, y **Mauro lo activa a mano**. La app no sabe si alguien pagó ni guarda datos de tarjetas.
 
 ### Desde el panel (lo normal)
 
 `Ajustes → Planes de la beta` (`/settings/planes`, solo cuentas de `ADMIN_EMAILS` que además estén en `app_admins`; el link de Ajustes aparece con `PRICING_ENABLED=1`).
 
 - **Activar 30 días:** email de la persona (tiene que haber terminado el onboarding) y cómo llegó: **Pagó** o **Becado** (primer mes gratis). Los 30 días cuentan desde hoy; si la beta todavía no abrió, desde el 26/11/2026; si la persona ya tenía días, se suman a la fecha en la que vencía, así renovar antes de tiempo no hace perder días.
-- **Becados:** se los marca como «Becado» y cuando después pagan se los vuelve a activar como «Pagó» con el mismo link.
+- **Becados:** se los marca como «Becado» y cuando después pagan se los vuelve a activar como «Pagó» con el mismo link. Desde el 5/11 las becas de la beta son **un becado gratis y dos con 50 % de descuento** (y dos personas más no pagan, definidas en Notion). El panel no tiene una opción de 50 % ni de combos: [A DEFINIR: combos de Ani]. Quiénes son y si las dos personas que no pagan entran en esos lugares: [A CONFIRMAR con Mauro]; los nombres se llevan en Notion, no acá.
 - **Quitar el plan:** pasa a la persona a «gratis» y pierde los días que le quedaban. No borra nada de lo suyo.
 - **Quién tiene acceso:** la lista muestra origen y hasta cuándo llega cada persona, los que vencen antes arriba.
 - Si la persona tiene un plan viejo (fundador o pase de 3 meses), el panel no lo toca: se cambia a mano (abajo).

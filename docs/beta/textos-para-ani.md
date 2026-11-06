@@ -28,3 +28,13 @@ Todo lo que Ani tiene que leer antes del 26/11, en un lugar. **En la app:** [`/s
 - La marca es **AfinIAJobs** (logo, colores y tipografías en `/settings/marca`).
 - La beta abre el **jueves 26/11**, con 6 carreras y cupo limitado; anotarse en `/acceso` no garantiza lugar.
 - El precio (ARS 20.000 por mes) va en la invitación, con el link de Mercado Pago.
+
+## Decisiones del 5/11 que tocan los textos
+
+Detalle y puntos abiertos en `docs/beta/runbook-apertura.md`, «Decisiones del 5/11».
+
+- El cupo es de 15 a 20 personas. Solo dos personas no pagan; el resto paga uno de dos combos que arma Ani: [A DEFINIR: combos de Ani]. Hasta que estén, el precio de la invitación y de `/ayuda` puede cambiar.
+- Becas: un becado gratis y dos con 50 % de descuento (ya no «3 becados»). El texto de becados de la invitación tiene que decir eso cuando Mauro confirme quiénes son: [A CONFIRMAR con Mauro].
+- El 11/11 es el evento «Voces Jóvenes», no una charla.
+- Soporte de la beta: WhatsApp Business (lo crea y etiqueta Ani) y `contacto@afiniajobs.com.ar` (la crea Mauro, la atiende Ani).
+- Los cobros van por una cuenta nueva de Mercado Pago compartida (hay que actualizar los links `MP_LINK_*`).
