@@ -50,7 +50,7 @@ La tabla de la lectura de CV (`extract_cv_profile`) tampoco tiene fila ni está 
 | Emails entrantes por persona | 100 por hora (sin tope diario) | Ingesta | `packages/adapters/src/inbound/handle.ts` |
 | CV con IA, por persona | 40 turnos/mes; **CV por mes = máx(plan, 3): 5 con plan pago, 3 gratis**; USD 0,30/día de entrevista; 5 charlas nuevas/día; USD 0,15 por conversación; 25 turnos por charla | La charla de CV | `packages/pipeline/src/cv-chat/limits.ts`, `plans.ts` (`CV_CHAT_BETA_LIMITS`) |
 | CV con IA, global | `CV_CHAT_DAILY_CAP_USD`, USD 1 por defecto (el runbook pide cargarlo a propósito) | idem | `cv-chat/limits.ts` |
-| Reservas del CV (máximo por paso) | USD 0,025 por turno, USD 0,07 por redacción | Evita pasarse con pedidos simultáneos | idem |
+| Reservas del CV (máximo por paso) | USD 0,025 por turno (**USD 0,03 con R4-16, PR #439**), USD 0,07 por redacción | Evita pasarse con pedidos simultáneos | idem |
 | Asistente | 3 charlas/mes gratis, 30 pago, USD 0,12 por conversación | **No aplica**: solo admins | `packages/pipeline/src/agent/limits.ts` |
 
 ### 1.3 Lo que no es LLM
@@ -124,7 +124,7 @@ Los docs usan USD 0,0068 (PRD §6, `LLM_COSTOS.md`, `capacidad.md`): es v1.3.1 (
 | Borradores de formulario por mes (Sonnet 5.5: `(5.500 × 2 + 800 × 10) / 1e6 = USD 0,019`) [S] | 0 | 4 | 20 |
 | CV con IA (turno `(1.200 × 1,5 + 60 × 9) / 1e6 = USD 0,00234`; redacción `(1.500 × 1,5 + 1.000 × 9) / 1e6 = USD 0,01125`) [S] | 0 | 20 turnos + 1 redacción | 40 turnos + 5 redacciones (el máximo del plan pago) |
 
-Los tokens de borradores salen de la plantilla (3.803 caracteres) más hechos del perfil más aviso (`MAX_JD_CHARS = 8000` en `drafts.ts`) más preguntas; los del CV, de las plantillas de 3.305 y 2.789 caracteres. **No hay medición real de ninguna de las dos tareas**; `docs/LLM_COSTOS.md` estima los turnos de CV en USD 0,0015 con 4 caracteres por token y salidas del fake. Sin la clave de Anthropic, un borrador sale por Gemini: USD 0,0155.
+Los tokens de borradores salen de la plantilla (3.803 caracteres) más hechos del perfil más aviso (`MAX_JD_CHARS = 8000` en `drafts.ts`) más preguntas; los del CV, de las plantillas de 3.305 y 2.789 caracteres. **No hay medición real de ninguna de las dos tareas**; `docs/LLM_COSTOS.md` estima los turnos de CV en USD 0,0015 con 4 caracteres por token y salidas del fake (**con R4-16, PR #439**: el prompt `cv_interview@v2` sube la entrada de ~800 a ~1160 tokens por turno, ~USD 0,002 por turno y ~USD 0,03 a ~0,039 por CV con Gemini; las repreguntas cuentan como turno; a confirmar con `pnpm llm:spend`). Sin la clave de Anthropic, un borrador sale por Gemini: USD 0,0155.
 
 ### 3.3 Resultado
 
