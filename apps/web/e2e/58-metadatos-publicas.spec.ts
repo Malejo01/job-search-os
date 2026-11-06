@@ -19,7 +19,10 @@ const PATHS = [
 
 test.describe("Flujo 58: metadatos de las páginas públicas", () => {
   for (const path of PATHS) {
-    test(`${path}: título, descripción, canónica e imagen para compartir`, async ({ page }) => {
+    test(`${path}: título, descripción, canónica e imagen para compartir`, async ({
+      page,
+      request,
+    }) => {
       await page.goto(path);
       await expect(page).toHaveTitle(/\S/);
       await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", /\S/);
@@ -28,6 +31,13 @@ test.describe("Flujo 58: metadatos de las páginas públicas", () => {
       expect(new URL(href!).pathname).toBe(path);
       await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", /\S/);
       await expect(page.locator('meta[property="og:image"]')).toHaveAttribute("content", /\S/);
+      // La imagen se sirve de verdad (la del grupo de rutas lleva un sufijo de Next: no se escribe a mano)
+      const ogImage = await page
+        .locator('meta[property="og:image"]')
+        .first()
+        .getAttribute("content");
+      const img = await request.get(new URL(ogImage!).pathname, { maxRedirects: 0 });
+      expect(img.status(), `og:image de ${path}`).toBe(200);
       // Las páginas en inglés comparten su propia imagen
       if (path.startsWith("/en/")) {
         await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(

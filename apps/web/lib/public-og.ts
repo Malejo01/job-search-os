@@ -11,8 +11,10 @@ type OpenGraph = NonNullable<Metadata["openGraph"]>;
 export const ES_DESCRIPTION =
   "Cargás tu perfil, la IA lee cada aviso contra lo que sabés y lo que buscás, y vos decidís. Nunca postulamos por vos.";
 export const ES_TITLE = `${BRAND.name} · ${BRAND.tagline}`;
-// La imagen en español es `(public)/opengraph-image.tsx`; el layout no la lista porque Next la agrega solo
-export const ES_IMAGE = { url: "/opengraph-image", width: 1200, height: 630 } as const;
+// La imagen en español con ruta fija: el route handler `(public)/opengraph-image-es/route.tsx`. La de
+// `(public)/opengraph-image.tsx` lleva un sufijo de Next (grupo de rutas; `/opengraph-image` a secas da
+// 404) y en las páginas anidadas con `openGraph` propio Next no la agrega
+export const ES_IMAGE = { url: "/opengraph-image-es", width: 1200, height: 630 } as const;
 
 export const EN_TAGLINE =
   "We read each job posting against your profile and tell you why or why not";
