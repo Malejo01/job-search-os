@@ -133,3 +133,9 @@ La **Agencia de Acceso a la Información Pública (AAIP)** es el órgano de cont
 ## 13. Usuarios de otros países
 
 El servicio se opera desde la Argentina y esta política se rige por la ley argentina. Si vivís en otro país, tus datos se tratan como se describe acá. Tu país puede tener normas propias de protección de datos: si tenés dudas, escribinos antes de crear tu cuenta.
+
+## 14. Derechos reservados
+
+© 2026 AfinIAJobs. Todos los derechos reservados. El uso y la reproducción del software, la marca y los contenidos de AfinIAJobs no están autorizados sin permiso escrito.
+
+[REVISAR CON CAMILA (abogada): protección de marca / derecho de autor]

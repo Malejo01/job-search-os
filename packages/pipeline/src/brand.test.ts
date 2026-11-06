@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { BRAND, BRAND_COLORS } from "./brand";
+import { BRAND, BRAND_COLORS, COPYRIGHT_NOTICE } from "./brand";
 import { PRODUCT_NAME } from "./product";
 
 /**
@@ -37,6 +37,21 @@ describe("marca en un solo lugar", () => {
   it("PRODUCT_NAME sale de BRAND.name", () => {
     expect(PRODUCT_NAME).toBe(BRAND.name);
   });
+
+  it("el aviso de derechos reservados sale de BRAND.name y dice lo pedido, sin más", () => {
+    expect(COPYRIGHT_NOTICE).toBe("© 2026 AfinIAJobs. Todos los derechos reservados.");
+  });
+
+  it.each(["terminos.md", "privacidad.md"])(
+    "%s lleva el aviso de derechos reservados y la marca de revisión con Camila",
+    (file) => {
+      const text = readFileSync(join(ROOT, "apps/web/content/legal", file), "utf8");
+      expect(text).toContain(COPYRIGHT_NOTICE);
+      expect(text).toContain(
+        "[REVISAR CON CAMILA (abogada): protección de marca / derecho de autor]",
+      );
+    },
+  );
 
   it("ningún archivo de código, salvo brand.ts, escribe el nombre a mano", () => {
     const names = [BRAND.name, BRAND.name.replace(/\s+/g, "")];

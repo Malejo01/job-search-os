@@ -20,6 +20,7 @@ import { AppBar } from "./app-bar";
 import { DesktopNav } from "./main-nav";
 import { PlanNotice } from "./plan-notice";
 import { Logo } from "@/components/brand/logo";
+import { CopyrightNotice } from "@/components/copyright-notice";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 // Acciones de administración de la barra índigo (solo admins): Invitar y Asistente. Foco en lima de
@@ -118,6 +119,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         <Link href="/legal/terminos" className="underline-offset-2 hover:underline">
           Términos
         </Link>
+        <CopyrightNotice className="mt-1" />
       </footer>
     </div>
   );

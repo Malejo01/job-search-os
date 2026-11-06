@@ -65,7 +65,8 @@ const ENV_KEY: Record<string, keyof LegalEnv> = {
 };
 
 /** Marcas que un texto vigente no puede tener (decisiones pendientes y notas de revisión). */
-const DRAFT_MARKS = /\{\{MAURO:|\[(?:A REVISAR|A CONFIRMAR|CONFIRMAR|CONSULTAR|A DEFINIR)\b/;
+const DRAFT_MARKS =
+  /\{\{MAURO:|\[(?:A REVISAR|A CONFIRMAR|CONFIRMAR|CONSULTAR|A DEFINIR|REVISAR CON)\b/;
 
 /**
  * true si el texto todavía no puede mostrarse como vigente: falta o es inválida alguna variable
@@ -91,7 +92,7 @@ export type LegalMissing = {
 };
 
 const DRAFT_MARKS_GLOBAL =
-  /\{\{MAURO:|\[(?:A REVISAR|A CONFIRMAR|CONFIRMAR|CONSULTAR|A DEFINIR)\b/g;
+  /\{\{MAURO:|\[(?:A REVISAR|A CONFIRMAR|CONFIRMAR|CONSULTAR|A DEFINIR|REVISAR CON)\b/g;
 
 /**
  * Lo que impide dar el texto por vigente (C8-12, `pnpm legal:check`): cada marcador sin variable válida
