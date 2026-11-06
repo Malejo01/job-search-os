@@ -16,14 +16,14 @@ test.describe("Flujo 122: derechos reservados", () => {
     });
   }
 
-  test("las páginas legales repiten el aviso y dejan la revisión con Camila a la vista", async ({
+  test("las páginas legales repiten el aviso y dejan la revisión con asesoría legal a la vista", async ({
     page,
   }) => {
     for (const url of ["/legal/terminos", "/legal/privacidad"]) {
       await page.goto(url);
       const main = page.locator("main");
       await expect(main).toContainText(COPYRIGHT_NOTICE);
-      await expect(main).toContainText("REVISAR CON CAMILA (abogada)");
+      await expect(main).toContainText("REVISAR CON ASESORÍA LEGAL");
     }
   });
 

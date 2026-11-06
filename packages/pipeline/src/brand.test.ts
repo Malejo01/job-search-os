@@ -43,12 +43,12 @@ describe("marca en un solo lugar", () => {
   });
 
   it.each(["terminos.md", "privacidad.md"])(
-    "%s lleva el aviso de derechos reservados y la marca de revisión con Camila",
+    "%s lleva el aviso de derechos reservados y la marca de revisión con asesoría legal",
     (file) => {
       const text = readFileSync(join(ROOT, "apps/web/content/legal", file), "utf8");
       expect(text).toContain(COPYRIGHT_NOTICE);
       expect(text).toContain(
-        "[REVISAR CON CAMILA (abogada): protección de marca / derecho de autor]",
+        "[REVISAR CON ASESORÍA LEGAL: protección de marca / derecho de autor]",
       );
     },
   );

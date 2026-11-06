@@ -69,4 +69,4 @@ Estos términos se rigen por las leyes de la República Argentina. Para cualquie
 
 © 2026 AfinIAJobs. Todos los derechos reservados. El uso y la reproducción del software, la marca y los contenidos de AfinIAJobs no están autorizados sin permiso escrito.
 
-[REVISAR CON CAMILA (abogada): protección de marca / derecho de autor]
+[REVISAR CON ASESORÍA LEGAL: protección de marca / derecho de autor]
