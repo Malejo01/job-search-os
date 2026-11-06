@@ -46,10 +46,12 @@ test.describe("Flujo 37a: resultado de una postulación", () => {
   }) => {
     await login(page);
     await page.goto("/applications");
-    // La tarjeta con el formulario: la lista de "sorpresas" de arriba también nombra la oferta
+    // La tarjeta con el formulario: la lista de "sorpresas" de arriba también nombra la oferta.
+    // R4-07: se filtra por el input oculto del formulario (está en el DOM aunque el formulario vaya
+    // dentro de un «Cambiar resultado» cerrado), no por el rol del botón, que ahí no es accesible
     const card = page
       .locator("li", { hasText: title })
-      .filter({ has: page.getByRole("button", { name: "Guardar resultado", exact: true }) });
+      .filter({ has: page.locator('input[name="applicationId"]') });
     const save = card.getByRole("button", { name: "Guardar resultado", exact: true });
     await expect(card).toBeVisible();
 
