@@ -30,10 +30,12 @@ Orden de arriba hacia abajo. Cada postulación aparece en **un solo** grupo, con
 | 1 | **Para hacer seguimiento** (qué hacer hoy) | `followUpDue` verdadero y no inactiva (`listFollowUps`, ya existe) | Abierta siempre |
 | 2 | **Activas** | `status` en `entrevista` u `oferta` (y no están en el grupo 1) | Abierta |
 | 3 | **Esperando respuesta** | `status === "aplicada"`, `outcome === "sin_respuesta"`, menos de `INACTIVE_DAYS` desde la última novedad y sin seguimiento vencido | Abierta |
-| 4 | **Sin respuesta (cerrada por inactividad)** | aplicada sin respuesta, 30 días o más sin novedades (regla de la sección 6), o `cerrada` con `outcome` sin respuesta | Colapsada |
-| 5 | **Cerradas** | `rechazada`, `rechazo_automatico`, `cerrada`, `descartada` | Colapsada |
+| 4 | **Sin respuesta (cerrada por inactividad)** | aplicada sin respuesta, 30 días o más sin novedades (regla de la sección 6). Se sugiere cerrarla; todavía no está cerrada en la base | Colapsada |
+| 5 | **Cerradas** | `rechazada`, `rechazo_automatico`, `cerrada` (incluidas las que se cerraron desde el grupo 4: `close` pone `outcome = cerrada_antes`) y todo lo que no entra en otro grupo (ver abajo) | Colapsada |
 | 6 | **Ofertas descartadas por inactividad** | `evaluada` que nunca se aplicó, 30 días o más sin tocar | Colapsada |
 | 7 | **Cómo viene la calibración** | el reporte actual, sin cambios de contenido | Colapsada siempre (hoy solo con menos de 5 postulaciones) |
+
+**El agrupado es total: toda postulación cae en exactamente un grupo.** Destinos por defecto: una `aplicada` cuyo resultado se cambió a mano (`setOutcomeAction`) sin tocar el estado va a «Activas» si el resultado es `entrevista` u `oferta`, y a «Cerradas» si es cualquier otro distinto de `sin_respuesta`. Cualquier otro `status` con postulación que no esté en la tabla (por ejemplo `evaluada` con fila en `applications`) va a «Cerradas». Las `descartada` no aparecen: al descartar, la postulación se borra (`status-correction.ts`) y `/applications` solo lista ofertas con postulación.
 
 Cada título lleva su contador: «Cerradas (5)». Un grupo vacío no se dibuja. Si no hay nada en 1 a 3, el estado vacío dice «Nada pendiente hoy» con los contadores de los grupos colapsados.
 
@@ -91,13 +93,12 @@ Se muestra como «Sin respuesta (cerrada por inactividad)» en el grupo 4 y **de
 
 | Caso | Botón | Action existente |
 |---|---|---|
-| Aplicada inactiva: confirmar el cierre | «Cerrar por inactividad» | `closeApplicationAction(jobId)` |
-| Aplicada inactiva: reactivar sin cambiar nada | «Reactivar» | `snoozeFollowUpAction(jobId)` (pone `follow_up_at = hoy + 7`, la novedad pasa a ser hoy y vuelve a «Para hacer seguimiento» en una semana) |
-| Cerrada por inactividad (`status` cerrada, resultado sin respuesta): reactivar | «Reactivar» | `correctStatusAction` con `jobId` y `to = "aplicada"` |
-| Evaluada inactiva: confirmar el descarte | «Descartar» | `changeStatusAction` con `jobId` y `event = "discard"` |
-| Descartada: reactivar | «Reactivar» | `correctStatusAction` con `jobId` y `to = "evaluada"` |
+| Aplicada inactiva (grupo 4): confirmar el cierre | «Cerrar por inactividad» | `closeApplicationAction(jobId)`: pasa a `cerrada` con `outcome = cerrada_antes` y cae en «Cerradas» |
+| Aplicada inactiva (grupo 4): reactivar sin cambiar nada | «Reactivar» | `snoozeFollowUpAction(jobId)` (pone `follow_up_at = hoy + 7`, la novedad pasa a ser hoy y vuelve a «Para hacer seguimiento» en una semana) |
+| Fila `cerrada` del grupo 5 (deshacer un cierre): reactivar | «Reactivar» | `correctStatusAction` con `jobId` y `to = "aplicada"`. Conserva el `appliedAt` viejo y deja el resultado en `null`, así que **entra en el acto a «Para hacer seguimiento»** (grupo 1: `followUpDue` usa `appliedAt` + 7 días) y no al grupo 4 (el `updated_at` nuevo cuenta como novedad) |
+| Evaluada inactiva (grupo 6): confirmar el descarte | «Descartar» | `changeStatusAction` con `jobId` y `event = "discard"`. La oferta sale de `/applications`; para deshacerlo, la corrección de estado del detalle de la oferta (`/jobs/[id]`), que ya existe |
 
-Cada botón es un `<form action={...}>` con campos ocultos, sin JavaScript. «Cerrar por inactividad» y «Descartar» llevan la misma confirmación en dos pasos que «Cerrar postulación» (`details` + «Sí, …»).
+Cómo se arma cada botón: `closeApplicationAction` y `snoozeFollowUpAction` reciben el `jobId` y se usan con `.bind(null, id)`, como hoy en `page.tsx`; `changeStatusAction` y `correctStatusAction` leen `FormData`, así que van en un `<form action={...}>` con campos ocultos (`jobId` y `event` o `to`). Todo sin JavaScript. «Cerrar por inactividad» y «Descartar» llevan la misma confirmación en dos pasos que «Cerrar postulación» (`details` + «Sí, …»).
 
 Límites de lo que se propone, a propósito (la opción más simple):
 
@@ -107,7 +108,7 @@ Límites de lo que se propone, a propósito (la opción más simple):
 
 ## 7. Qué es verde y qué sería rojo
 
-Nada de esto exige editar un `*actions.ts`: los cinco botones usan `closeApplicationAction`, `snoozeFollowUpAction` (en `apps/web/app/(app)/applications/followup-actions.ts`) y `changeStatusAction` y `correctStatusAction` (en `apps/web/app/(app)/jobs/[id]/actions.ts`). Todos devuelven `void`, no redirigen al salir bien y `/applications` es `force-dynamic`, así que la página se refresca sola. `changeStatusAction` no revalida `/applications`, pero no hace falta por eso.
+Nada de esto exige editar un `*actions.ts`: los cinco botones usan `closeApplicationAction`, `snoozeFollowUpAction` (en `apps/web/app/(app)/applications/followup-actions.ts`) y `changeStatusAction` y `correctStatusAction` (en `apps/web/app/(app)/jobs/[id]/actions.ts`). Todos devuelven `void` y no redirigen al salir bien (`changeStatusAction` sí redirige si falla), y `/applications` es `force-dynamic`, así que la página se refresca sola. `changeStatusAction` no revalida `/applications`, pero no hace falta por eso.
 
 - **Verde**: `packages/pipeline/src/applications/**`, `apps/web/lib/applications.ts`, `apps/web/app/(app)/applications/page.tsx` y los componentes nuevos en `apps/web/components/`.
 - **Rojo (solo si se agrega)**: «Mantener» una evaluada inactiva, o un botón que haga reactivar y postergar en un solo paso. No es parte de la propuesta base.
@@ -121,7 +122,8 @@ Archivos a tocar:
 | `packages/pipeline/src/applications/inactivity.ts` (nuevo) | Constante y funciones puras |
 | `packages/pipeline/src/applications/inactivity.test.ts` (nuevo) | Tests primero (regla del repo para `packages/pipeline`) |
 | `packages/pipeline/src/index.ts` | Exportar lo nuevo (si el índice es verde; si no, avisar) |
-| `apps/web/lib/applications.ts` | `listApplications` devuelve también `updatedAt`, `followUpAt` y `jobStatus`; función nueva `listStaleEvaluated(userId)` |
+| `apps/web/lib/applications.ts` | `listApplications` devuelve también `updatedAt` y `followUpAt` (`status` ya viene en `ApplicationView`); `followUpAt` es `date` en la base (un string): convertirlo a `Date` antes de pasarlo a las funciones puras. Exportar `asOutcome`. Función nueva `listStaleEvaluated(userId)` |
+| `apps/web/lib/labels.ts` (o el componente de fila) | Mover `OUTCOME_CLASSES`, que hoy es local de `page.tsx` |
 | `apps/web/app/(app)/applications/page.tsx` | Agrupar con las funciones puras y dibujar los grupos |
 | `apps/web/components/applications/collapsible-group.tsx` (nuevo, client) | Expandir y colapsar con Framer Motion |
 | `apps/web/components/applications/application-row.tsx` (nuevo, Server) | Fila plana con la píldora y el formulario opcional |
@@ -164,7 +166,7 @@ export function groupApplication(
 ): ApplicationGroup;
 ```
 
-Casos de test: justo 29 y 30 días; postergación reciente que reactiva; `outcomeAt` reciente; `updatedAt` reciente; entrevista y oferta nunca inactivas; `cerrada` con resultado sin respuesta cae en `inactivas`; precedencia (una vencida e inactiva va a `inactivas`).
+Casos de test: justo 29 y 30 días; postergación reciente que reactiva; `outcomeAt` reciente; `updatedAt` reciente; entrevista y oferta nunca inactivas; `cerrada` con `cerrada_antes` cae en `cerradas`; `aplicada` con resultado cambiado a mano (`entrevista` → `activas`, `rechazo_humano` → `cerradas`); precedencia (una vencida e inactiva va a `inactivas`); **todo par `status`/`outcome` devuelve un grupo** (recorrer los 12 estados por los 8 resultados).
 
 Componentes:
 
@@ -180,6 +182,8 @@ Cuidado con los e2e (grep de `/applications` en `apps/web/e2e/`):
 | `69-hoy.spec.ts` | link a `/applications#seguimiento` y `seguimiento-item` | Conservar el id `seguimiento` |
 | `70-axe-sesion`, `88-axe-oscuro`, `102-celular-oscuro`, `121-cambiar-tema`, `113-pestanas-celular`, `25-ensayo-invitacion` | solo cargan la ruta (axe, tema, celular) | Axe con grupos colapsados: sin regiones con scroll sin foco, sin ids duplicados, contraste en claro y oscuro |
 
-Pruebas nuevas en R4-07: tests Vitest de las funciones puras, y un e2e (spec nuevo) que cree una aplicada de 40 días y verifique que aparece en «Sin respuesta (cerrada por inactividad)», que «Reactivar» la lleva fuera de ese grupo y que «Cerrar por inactividad» pone `cerrada` en la base. Medir de nuevo la altura de página con los mismos datos y anotarla en el PR.
+Más cuidados: `20` y `37` buscan un `li` que contenga `input[name=applicationId]` o el botón, así que `ApplicationRow` tiene que seguir siendo un `li`. `67` filtra por `data-testid="seguimiento-item"` y por el texto «Cerrar postulación»: no reutilizar ese testid ni ese texto en filas de otros grupos.
+
+Pruebas nuevas en R4-07: tests Vitest de las funciones puras, y un e2e (spec nuevo) que cree una aplicada de 40 días y verifique que aparece en «Sin respuesta (cerrada por inactividad)», que «Reactivar» la lleva fuera de ese grupo y que «Cerrar por inactividad» pone `cerrada` en la base y la muestra en «Cerradas». Ojo: los helpers no fijan `jobs.updated_at` (vale `now`, que cuenta como novedad), así que el spec tiene que hacer además `update jobs set updated_at = <hace 40 días>`. Medir de nuevo la altura de página con los mismos datos y anotarla en el PR.
 
 Qué queda fuera de R4-07: cambiar la base con un proceso automático, «Mantener» una evaluada inactiva (parte roja), y tocar el contenido de la calibración.
