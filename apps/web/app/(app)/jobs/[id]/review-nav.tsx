@@ -54,8 +54,7 @@ export function ReviewNav({
 
   return (
     <nav aria-label="Revisión de ofertas" className="flex items-center justify-between gap-2">
-      {/* En el celular la cabecera índigo ya trae «‹ Ofertas»: acá solo desde sm (R4-09) */}
-      <Link href={backHref} className="hidden text-xs text-fg-subtle hover:underline sm:inline">
+      <Link href={backHref} className="text-xs text-fg-subtle hover:underline">
         ← Ofertas
       </Link>
       <div className="flex items-center gap-1.5">
