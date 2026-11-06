@@ -6,9 +6,7 @@ import { defineConfig, devices } from "@playwright/test";
  */
 const BASE_URL = process.env.SMOKE_BASE_URL;
 if (!BASE_URL) {
-  throw new Error(
-    "Falta SMOKE_BASE_URL (ej. https://afiniajobs.com.ar) para el smoke.",
-  );
+  throw new Error("Falta SMOKE_BASE_URL (ej. https://afiniajobs.com.ar) para el smoke.");
 }
 
 export default defineConfig({
