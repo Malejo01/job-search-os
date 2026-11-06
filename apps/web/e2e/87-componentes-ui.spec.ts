@@ -35,10 +35,15 @@ test.describe("Flujo 87: componentes base", () => {
     }
   }
 
-  test("sin preferencia guardada, la app sigue al dispositivo (C7-1)", async ({ page }) => {
+  test("sin preferencia guardada abre en claro; «Como el dispositivo» sigue al dispositivo (R4-02)", async ({
+    page,
+  }) => {
     await page.emulateMedia({ colorScheme: "dark" });
     await login(page);
     await page.goto("/ui");
+    await expect(page.locator("html")).not.toHaveClass(/\bdark\b/);
+    await page.goto("/settings");
+    await page.getByRole("region", { name: "Apariencia" }).getByText("Como el dispositivo").click();
     await expect(page.locator("html")).toHaveClass(/\bdark\b/);
     await page.emulateMedia({ colorScheme: "light" });
     await expect(page.locator("html")).not.toHaveClass(/\bdark\b/);

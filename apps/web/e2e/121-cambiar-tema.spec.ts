@@ -29,6 +29,37 @@ test.describe("Flujo 121: cambiar entre claro y oscuro desde la barra", () => {
     expect(await page.evaluate(() => localStorage.getItem("jso-tema"))).toBe("claro");
   });
 
+  test("sin preferencia carga en claro aunque el dispositivo esté en oscuro (R4-02)", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.goto("/");
+    await expect(page.locator("html")).not.toHaveClass(/\bdark\b/);
+    expect(await page.evaluate(() => localStorage.getItem("jso-tema"))).toBeNull();
+  });
+
+  test("con sesión: el oscuro elegido en la barra sigue al navegar y recargar, y claro lo revierte (R4-02)", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    await login(page);
+    const html = page.locator("html");
+    await expect(html).not.toHaveClass(/\bdark\b/);
+    await page.locator("header").getByRole("button", { name: "Pasar a modo oscuro" }).click();
+    await expect(html).toHaveClass(/\bdark\b/);
+    for (const ruta of ["/hoy", "/jobs", "/applications"]) {
+      await page.goto(ruta);
+      await expect(html).toHaveClass(/\bdark\b/);
+      await page.reload();
+      await expect(html).toHaveClass(/\bdark\b/);
+    }
+    await page.locator("header").getByRole("button", { name: "Pasar a modo claro" }).click();
+    await expect(html).not.toHaveClass(/\bdark\b/);
+    await page.goto("/jobs");
+    await expect(html).not.toHaveClass(/\bdark\b/);
+    expect(await page.evaluate(() => localStorage.getItem("jso-tema"))).toBe("claro");
+  });
+
   for (const width of [390, 1280]) {
     test(`con sesión a ${width} px: el botón está en la barra y mide 44 px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 844 });

@@ -34,7 +34,7 @@ export function subscribeTheme(onChange: () => void): () => void {
   };
 }
 
-/** La preferencia guardada (`sistema` si no hay o no se puede leer). */
+/** La preferencia guardada (`DEFAULT_THEME`, claro, si no hay o no se puede leer). */
 export function readTheme(): ThemePreference {
   try {
     const value = localStorage.getItem(THEME_STORAGE_KEY);
@@ -49,6 +49,33 @@ export function readTheme(): ThemePreference {
 /** ¿Se está viendo en oscuro ahora? (lo que puso el script del `<head>` o el último cambio). */
 export function isDarkNow(): boolean {
   return document.documentElement.classList.contains("dark");
+}
+
+/**
+ * Deja la clase `dark` de `<html>` igual a lo que dice la preferencia guardada. Solo toca el DOM si
+ * difiere (así el observer de abajo no entra en bucle). Devuelve si cambió algo.
+ */
+export function syncThemeClass(): boolean {
+  const theme = readTheme();
+  const dark = theme === "oscuro" || (theme === "sistema" && prefersDark());
+  if (dark === isDarkNow()) return false;
+  document.documentElement.classList.toggle("dark", dark);
+  return true;
+}
+
+/**
+ * Mantiene `<html class>` sincronizado con la preferencia: al montar y cada vez que algo (p. ej. React
+ * al reconciliar tras `router.refresh()`) reescribe el atributo `class` y pierde `dark`. Avisa a los
+ * suscriptores cuando corrige. Devuelve la función para dejar de observar.
+ */
+export function watchThemeClass(): () => void {
+  const notify = () => {
+    if (syncThemeClass()) window.dispatchEvent(new Event(CHANGE_EVENT));
+  };
+  notify();
+  const observer = new MutationObserver(notify);
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+  return () => observer.disconnect();
 }
 
 export function setTheme(next: ThemePreference): void {
