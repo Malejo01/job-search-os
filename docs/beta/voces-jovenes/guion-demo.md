@@ -43,7 +43,7 @@ Vertical (9:16), **con subtítulos quemados**: en el reel casi nadie activa el s
 - **El texto de un aviso real** pegado en el cuadro de la toma 6: es texto de terceros. Si querés mostrar el pegado, usá un texto inventado; si no, tocá el botón con el cuadro vacío como dice el guion.
 - **Notificaciones, la hora o la batería con datos personales**, y el teclado abierto con sugerencias de tu historial.
 - **El precio:** el monto va solo en la invitación (decisión de C7). En el video, «cupo limitado» y nada de cifras.
-- **Promesas que no son ciertas:** nada de «te conseguimos trabajo», «la IA encuentra tu trabajo ideal» ni «te avisamos seguro». El cupo es limitado (M7: honestos, cercanos, respetuosos).
+- **Promesas que no son ciertas:** nada de «te conseguimos trabajo», «la IA encuentra tu trabajo ideal» ni «te avisamos seguro». No prometas un lugar: el cupo es limitado (M7: honestos, cercanos, respetuosos).
 
 ## Si algo cambia en la demo
 
