@@ -1,7 +1,6 @@
 "use client";
 
 import { BRAND_COLORS } from "@job-search-os/pipeline";
-import { MONOGRAM } from "@/components/brand/monogram";
 
 // Reemplaza al layout raíz: sin Tailwind ni componentes compartidos, porque el layout puede ser lo que falló.
 // F1 (C9-13): el recuadro lavanda con el monograma, una frase clara y una salida, con estilos en línea.
@@ -60,10 +59,15 @@ export default function GlobalError({
               justifyContent: "center",
             }}
           >
-            <svg width={56} height={56} viewBox={MONOGRAM.viewBox} style={{ opacity: 0.4 }}>
-              <path d={MONOGRAM.path} fillRule="evenodd" fill={BRAND_COLORS.ink} />
-              <circle {...MONOGRAM.dot} fill={BRAND_COLORS.accentDeep} />
-            </svg>
+            {/* Img nativa, sin next/image ni Tailwind. Tamaño fijo 4:3, decorativa. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/ilustraciones/error.webp"
+              alt=""
+              width={224}
+              height={167}
+              style={{ display: "block", width: "100%", height: "100%", objectFit: "contain" }}
+            />
           </div>
           <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Algo falló de nuestro lado</h1>
           <p style={{ fontSize: 14, color: BRAND_COLORS.textMuted, margin: 0 }}>
