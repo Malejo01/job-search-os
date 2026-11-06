@@ -110,7 +110,7 @@ test.describe("Flujo 38: primeros pasos, de la persona nueva a la checklist comp
     await expect(steps(page)).toHaveCount(1);
   });
 
-  test("38i: el aviso de alertas va después de «Tus primeras ofertas», con «Ir a mis ofertas» arriba y al final", async () => {
+  test("38i: el aviso de alertas va después de «Tus primeras ofertas», con «Ir a mis ofertas» al final", async () => {
     await page.goto("/onboarding/ofertas");
     const banner = page.getByTestId("email-nudge");
     await expect(banner).toContainText("LinkedIn, Get on Board e Indeed");
@@ -129,11 +129,10 @@ test.describe("Flujo 38: primeros pasos, de la persona nueva a la checklist comp
     await expect(content).toBeVisible();
     expect((await box(content)).y).toBeLessThan((await box(banner)).y);
 
-    // «Ir a mis ofertas»: uno arriba de todo y otro al final; «Conectar» ya no va abajo
+    // «Ir a mis ofertas»: uno solo, al final; «Conectar» ya no va abajo
     const goToJobs = page.getByRole("link", { name: "Ir a mis ofertas" });
-    await expect(goToJobs).toHaveCount(2);
-    expect((await box(goToJobs.first())).y).toBeLessThan((await box(banner)).y);
-    expect((await box(goToJobs.last())).y).toBeGreaterThan((await box(banner)).y);
+    await expect(goToJobs).toHaveCount(1);
+    expect((await box(goToJobs)).y).toBeGreaterThan((await box(banner)).y);
     await expect(page.getByRole("link", { name: /Conectar mis alertas de email/ })).toHaveCount(0);
     // El recuadro de privacidad salió de esta página (es un modal del asistente)
     await expect(page.getByTestId("trust-box")).toHaveCount(0);

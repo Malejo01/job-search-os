@@ -47,16 +47,8 @@ export default async function FirstOffersPage() {
           />
         }
       />
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-title font-bold">Tus primeras ofertas</h1>
-        <Link
-          href="/jobs"
-          // C9-11: secundario; la acción lima de la pantalla es la de abajo, con el mismo destino
-          className={buttonClasses({ variant: "secondary", size: "sm" })}
-        >
-          Ir a mis ofertas
-        </Link>
-      </div>
+      {/* R4-09: un solo «Ir a mis ofertas», el lima de abajo (auditoría, hallazgo 27) */}
+      <h1 className="text-title font-bold">Tus primeras ofertas</h1>
       {offers.length > 0 ? (
         <div data-tour="ofertas:lista" className="flex flex-col gap-4">
           <p className="text-sm text-fg-muted">

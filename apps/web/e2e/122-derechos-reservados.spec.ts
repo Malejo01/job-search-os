@@ -1,5 +1,7 @@
-import { COPYRIGHT_NOTICE } from "@job-search-os/pipeline";
+import { BRAND, COPYRIGHT_NOTICE, COPYRIGHT_YEAR } from "@job-search-os/pipeline";
 import { expect, test } from "@playwright/test";
+
+const COPYRIGHT_NOTICE_EN = `© ${COPYRIGHT_YEAR} ${BRAND.name}. All rights reserved.`;
 
 /**
  * Flujo 122: el aviso «© 2026 AfinIAJobs. Todos los derechos reservados.» está en el pie de las
@@ -7,7 +9,7 @@ import { expect, test } from "@playwright/test";
  * Sin sesión alcanza; el pie de la app con sesión usa el mismo componente (`CopyrightNotice`).
  */
 test.describe("Flujo 122: derechos reservados", () => {
-  for (const url of ["/", "/en/how-its-built", "/legal/terminos", "/legal/privacidad"]) {
+  for (const url of ["/", "/legal/terminos", "/legal/privacidad"]) {
     test(`el pie de ${url} lleva el aviso`, async ({ page }) => {
       await page.goto(url);
       const notice = page.locator("footer").getByTestId("copyright-notice");
@@ -15,6 +17,13 @@ test.describe("Flujo 122: derechos reservados", () => {
       await expect(notice).toHaveText(COPYRIGHT_NOTICE);
     });
   }
+
+  test("el pie de /en/how-its-built lleva el aviso en inglés", async ({ page }) => {
+    await page.goto("/en/how-its-built");
+    const notice = page.locator("footer").getByTestId("copyright-notice");
+    await expect(notice).toBeVisible();
+    await expect(notice).toHaveText(COPYRIGHT_NOTICE_EN);
+  });
 
   test("las páginas legales repiten el aviso y dejan la revisión con asesoría legal a la vista", async ({
     page,

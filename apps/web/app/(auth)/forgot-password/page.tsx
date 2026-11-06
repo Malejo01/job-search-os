@@ -71,9 +71,14 @@ export default async function ForgotPasswordPage({
           </button>
         </form>
       )}
-      <a href="/login" className="text-sm text-fg-subtle underline">
-        Volver al login
-      </a>
+      <div className="flex flex-col gap-2 text-sm text-fg-subtle">
+        <a href="/login" className="underline">
+          Volver al login
+        </a>
+        <Link href="/" className="underline">
+          Volver al inicio
+        </Link>
+      </div>
     </main>
   );
 }

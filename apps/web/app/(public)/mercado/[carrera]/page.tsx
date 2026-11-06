@@ -85,7 +85,7 @@ export default async function CareerMarketPage({ params }: Props) {
         </p>
         <h1 className="text-3xl font-semibold text-fg">Qué piden las ofertas de {label}</h1>
       </header>
-      <CareerMarket market={market} label={label} />
+      <CareerMarket market={market} label={label} publico />
       {group && siblings.length ? (
         <section aria-labelledby="parecidas" className="flex flex-col gap-2">
           <h2 id="parecidas" className="text-xl font-semibold text-fg">

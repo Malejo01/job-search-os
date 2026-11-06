@@ -241,8 +241,8 @@ test.describe("Flujo 27: primeras ofertas del pool, del puesto a /jobs", () => {
   test("«Ir a mis ofertas» lleva a /jobs, donde el aviso de email se descarta y no vuelve", async () => {
     await page.getByRole("link", { name: "Volver a Tus primeras ofertas" }).click();
     await page.waitForURL("**/onboarding/ofertas**");
-    // Ronda 49: hay dos «Ir a mis ofertas» (arriba y al final de la lista)
-    await page.getByRole("link", { name: "Ir a mis ofertas" }).first().click();
+    // R4-09: queda un solo «Ir a mis ofertas» (al final de la página)
+    await page.getByRole("link", { name: "Ir a mis ofertas" }).click();
     await page.waitForURL("**/jobs**");
 
     // D2: mientras la checklist «Primeros pasos» está visible, el aviso de email no se muestra
