@@ -1286,3 +1286,94 @@ La nube rehízo las pantallas mirando las imágenes aprobadas por Mauro el 4/11 
 - **[A CONFIRMAR]:** quién es el becado gratis (se lleva en Notion), si es solo el primer mes o toda la beta, y quién lleva relaciones internacionales.
 - **[A CONFIRMAR con Mauro]:** si las dos personas que no pagan son parte de los lugares de becas o van aparte; si programación es una carrera más de la beta (hoy son 6, ADR-027); dónde se muestra el QR en el evento, ya que no hay diapositivas.
 - **Mauro:** actualizar los `MP_LINK_*` con la cuenta nueva; crear `contacto@afiniajobs.com.ar`; migrar y redirigir `afiniajobs.com.ar`; comprar `afiniajobs.com`. **Ani:** crear el WhatsApp Business y definir los combos.
+
+## Bloque 18 — Tanda R4 (Antigravity), 2026-11-06
+
+Fuente del estado: `ops/tanda-r4/estado.md`. Los PR de carril rojo se acumulan en #439 y los mergea Mauro.
+
+### R4-01 · Ilustraciones serie E2 sobre la arquitectura de main
+`deps:` — · `est:` a confirmar · `estado:` en rama local (sin push)
+- Rama `ronda/r4-01-ilustraciones` con 2 commits locales. Reemplaza al #437, que cierra Mauro.
+- Sin push: el barrido (pre-push y `pr.mjs`) marca con el patrón #64 los nombres de archivo `@2x` (falso positivo). Es PR rojo propio y lo mergea Mauro. El cuerpo del PR está en `ops/tanda-r4/pr-r4-01-cuerpo.md`.
+- **Acepta:** a confirmar.
+
+### R4-02 · Tema claro por defecto + ThemeSync
+`deps:` — · `est:` a confirmar · `estado:` done (2026-11-06)
+- #441 mergeado por carril verde: tema claro por defecto y el oscuro elegido no se pierde al navegar.
+- **Acepta:** `/` y las pantallas públicas sin preferencia guardada salen en claro; elegir oscuro se mantiene en `/mercado`, `/acceso` y `/ayuda`, también al recargar.
+
+### R4-03 · «El cupo es limitado»
+`deps:` — · `est:` a confirmar · `estado:` done (2026-11-06)
+- #442 mergeado por carril verde: texto de acceso en los docs de la beta.
+- **Acepta:** a confirmar.
+
+### R4-04 · Dominio nuevo en los docs
+`deps:` — · `est:` a confirmar · `estado:` parcial: docs done (2026-11-06), rojo en PR #439
+- #443 mergeado (`afiniajobs.com.ar` como dominio actual en los docs). La parte roja (config) está en #439.
+- Falta: `.github/workflows/smoke.yml` (`SMOKE_BASE_URL`) lo edita Mauro (`ops/tanda-r4/pendiente-mauro-smoke-yml.md`); verificar `canonical`, `og:url` y `og:image` de `/` en producción. `robots.txt` y `sitemap.xml` ya verificados.
+- **Acepta:** a confirmar.
+
+### R4-05 · Pasos manuales de la tanda
+`deps:` — · `est:` a confirmar · `estado:` done (2026-11-06)
+- #440 mergeado: `docs/beta/pasos-manuales-r4.md` con los pasos que hace solo Mauro. §12 y §13 se completaron con R4-15 y R4-17 (esta tarea).
+- **Acepta:** a confirmar.
+
+### R4-06 · Propuesta de `/applications`
+`deps:` — · `est:` a confirmar · `estado:` en PR #445
+- Documento de propuesta; se mergea junto con R4-07. Revisor (2.ª vuelta) y privacidad PASA.
+- **Acepta:** a confirmar.
+
+### R4-07 · `/applications` agrupada + inactividad
+`deps:` R4-06 · `est:` a confirmar · `estado:` en PR #446
+- Revisor y privacidad PASA. Falla un e2e en el CI (`37`: el locator filtra por un botón dentro de un `details` cerrado); arreglo pendiente: filtrar por `input[name="applicationId"]`.
+- **Acepta:** a confirmar.
+
+### R4-08 · Auditoría
+`deps:` — · `est:` a confirmar · `estado:` en PR #447
+- Documento con 35 hallazgos (3 altos, 9 medios, 23 bajos). 10 tareas «[Auditoría R4]» en Notion.
+- **Acepta:** a confirmar.
+
+### R4-09 · Arreglos chicos
+`deps:` a confirmar (sale de los hallazgos de R4-08) · `est:` a confirmar · `estado:` en PR #448 (textos) y #449 (estados, móvil y foco)
+- Textos: /demo y modalidad revertidos tras la revisión, con la excepción declarada. Excluidos por tener PR abierto: hallazgos 17, 25 y 32; a Notion: 10, 13 y 33; el 4 es rojo (legal).
+- **Acepta:** a confirmar.
+
+### R4-10 · Tarea que depende de Ani
+`deps:` Ani · `est:` a confirmar · `estado:` bloqueado (depende de Ani)
+
+### R4-11 · Combos de Ani y cuenta de Mercado Pago
+`deps:` Ani, cuenta de Mercado Pago · `est:` a confirmar · `estado:` bloqueado (combos de Ani y cuenta de Mercado Pago)
+
+### R4-12 · ADR-031
+`deps:` — · `est:` a confirmar · `estado:` en PR #439
+- La línea de la regla 5 de `CLAUDE.md` la aplica Mauro (`ops/tanda-r4/pendiente-mauro-claude-md.md`).
+- **Acepta:** a confirmar.
+
+### R4-13 · PR rojo acumulador
+`deps:` a confirmar (junta lo rojo de R4-04, R4-12, R4-15, R4-16 y R4-17) · `est:` a confirmar · `estado:` en PR #439, listo para Mauro
+- Traer `origin/main` con `git merge` no es posible para los agentes; si aparecen conflictos, los resuelve Mauro.
+- Un solo push al final por el costo del job `evals` (~USD 0,15 por corrida, tope USD 0,5), con OK de Mauro.
+
+### R4-14 · Este backlog
+`deps:` — · `est:` a confirmar · `estado:` en esta rama (`ronda/r4-14-backlog`)
+- Bloque 18, `docs/beta/pasos-manuales-r4.md` §12 y §13, y los docs de costos (`LLM_COSTOS.md`, `costos-por-usuario.md`, ADR-026) con la reserva y el prompt v2 de R4-16.
+
+### R4-15 · Asistente para testers, mascota y chip
+`deps:` — · `est:` a confirmar · `estado:` en PR #444 (verde) y #439 (rojo)
+- `ASSISTANT_ENABLED=testers` habilita a `ADMIN_EMAILS` más `ASSISTANT_TESTER_EMAILS`; ser tester no da admin. Mascota abajo a la derecha y chip «¿Algo no anduvo?».
+- Orden: mergear #444 antes que #439.
+- **Acepta:** a confirmar.
+
+### R4-16 · Repreguntas del chat de CV
+`deps:` — · `est:` a confirmar · `estado:` en PR #439
+- Prompt `cv_interview@v2`; `CV_CHAT_TURN_RESERVE_USD` de 0,025 a 0,03. Tono provisorio.
+- **Acepta:** a confirmar.
+
+### R4-17 · Prompts del asistente + fila `assistant_chat`
+`deps:` a confirmar · `est:` a confirmar · `estado:` en PR #439
+- Prompts del asistente y fila `assistant_chat` en `packages/db/seeds/model_routing.json`. Tono provisorio. La fila en Neon la aplica Mauro (`docs/beta/pasos-manuales-r4.md` §13).
+- **Acepta:** a confirmar.
+
+### Pendiente después de la tanda
+- **Mauro:** pushear o resolver R4-01 (patrón #64 del barrido) y cerrar el #437; mergear #444, #445 con #446, #447, #448, #449 y, al final, el PR rojo #439; editar `smoke.yml` y la regla 5 de `CLAUDE.md`; aplicar la fila `assistant_chat` y cargar las variables del asistente; revisar la pausa de auto-merge (smoke de #442 cancelado por timeout).
+- **Sin resolver:** R4-10 y R4-11 (Ani y cuenta de Mercado Pago); tono definitivo de R4-16 y R4-17; las 10 tareas «[Auditoría R4]» de Notion; medir el costo real del chat de CV con `pnpm llm:spend`.

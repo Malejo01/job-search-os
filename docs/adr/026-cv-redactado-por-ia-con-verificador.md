@@ -53,7 +53,7 @@ y el gasto en LLM tiene que quedar acotado (`docs/LLM_COSTOS.md`).
    se escribe después, así que dos pedidos en paralelo pasaban los dos. Antes de cada llamada, una
    transacción corta con `pg_advisory_xact_lock` por persona mide los topes sumando las reservas
    vigentes e inserta una reserva; la reserva es el **máximo** del paso, no el promedio: USD 0,025
-   por turno y USD 0,07 por redacción (máximos calculados de 0,0241 y 0,0693: el prompt más largo
+   por turno (USD 0,03 con R4-16, PR #439, por el prompt `cv_interview@v2`) y USD 0,07 por redacción (máximos calculados de 0,0241 y 0,0693: el prompt más largo
    que acepta la ruta, el primario agotando `max_tokens` y el respaldo agotando el suyo; un test de
    adapters los recalcula con el seed). La
    llamada al modelo va afuera de la transacción y la reserva se borra al terminar. Una reserva

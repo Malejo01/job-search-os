@@ -571,36 +571,36 @@ pnpm db:sql "select date_trunc('day', received_at) as dia, count(*) as emails, c
 
 ## §12. Prender el agente conversacional para Mauro y Ani (R4-15)
 
-**Qué es.** El asistente ya existe en el código, apagado y solo para admins. R4-15 (todavía **no implementado**) agrega una lista aparte de «personas de prueba» para que Ani lo use sin ser admin, la mascota abajo a la derecha y el chip «¿Algo no anduvo?» en otro lugar. Fuentes: Notion (R4-15 y «Agente conversacional: plan y lista de pruebas») y el código actual.
+**Qué es.** El asistente ya existe en el código, apagado y solo para admins. R4-15 agrega una lista aparte de «personas de prueba» para que Ani lo use sin ser admin, la mascota abajo a la derecha y el chip «¿Algo no anduvo?» en otro lugar. R4-15 está dividido: la parte verde en el PR #444 y la parte roja (la ruta y la config de Playwright) en el PR rojo #439. Fuentes: Notion (R4-15 y «Agente conversacional: plan y lista de pruebas») y el código de `ronda/r4-15-asistente-pruebas` y `ronda/r4-carril-rojo`.
 
-**Lo que ya se sabe del código actual** (`packages/pipeline/src/agent/gate.ts`, `apps/web/lib/assistant.ts`, `apps/web/app/api/assistant/route.ts`):
+**Cómo funciona** (`packages/pipeline/src/agent/gate.ts`, `apps/web/lib/assistant.ts`, `apps/web/app/api/assistant/route.ts`):
 
-- `ASSISTANT_ENABLED` hoy solo vale `admin`. **Cualquier otro valor (vacío, `1`, `all`, `Admin`) cuenta como apagado.**
-- Para usarlo hace falta, además, que el email de la sesión esté en `ADMIN_EMAILS`. Sin sesión o fuera de la lista, la ruta responde **404** `no_encontrado`.
-- Esa lista da permisos de admin: **no agregues a Ani a `ADMIN_EMAILS`** (el runbook y la auditoría del 1/11 piden un solo email ahí).
-
-**Lo que depende de R4-15** (no inventar): **A confirmar cuando R4-15 esté en main: el nombre de la variable nueva con los emails de prueba y el valor nuevo de `ASSISTANT_ENABLED`** (la página de Notion solo dice «variable nueva con los emails de prueba, sin dar permisos de admin»; el código actual no las tiene). Dejo el espacio para completarlo:
+- `ASSISTANT_ENABLED=admin`: lo usan solo los emails de `ADMIN_EMAILS` (como hasta ahora).
+- `ASSISTANT_ENABLED=testers`: lo usan `ADMIN_EMAILS` **más** `ASSISTANT_TESTER_EMAILS`. **Cualquier otro valor (vacío, `1`, `all`, `Testers`) cuenta como apagado.**
+- Ser tester **no da permisos de admin**: la lista solo vale para el asistente. **No agregues a Ani a `ADMIN_EMAILS`** (el runbook y la auditoría del 1/11 piden un solo email ahí).
+- Con el asistente apagado, la ruta `/api/assistant` da **404**. Con el asistente prendido, quien tiene sesión y no está habilitado recibe **403** `sin_permiso` (esto último está en el PR rojo #439).
 
 | Variable | Valor | Fuente |
 | --- | --- | --- |
-| `ASSISTANT_ENABLED` | A confirmar cuando R4-15 esté en main: el valor nuevo (hoy `admin`) | gate de R4-15 |
-| A confirmar cuando R4-15 esté en main: nombre de la lista de personas de prueba | `<tu email>,<email de Ani>` (separados por coma, sin espacios; los completás vos) | gate de R4-15 |
+| `ASSISTANT_ENABLED` | `testers` | `gate.ts` de R4-15 |
+| `ASSISTANT_TESTER_EMAILS` | `<tu email>,<email de Ani>` (lista separada por comas; la completás vos) | `gate.ts` de R4-15 |
 
-**Orden recomendado (el PR de R4-15 es carril rojo y lo mergeás vos).**
+**Orden recomendado (la ruta es carril rojo y la mergeás vos).**
 
-1. **Antes de todo:** aplicá la fila `assistant_chat` (§13). Sin ella el asistente responde `no_route` aunque la cuenta esté habilitada.
-2. Mergeá el PR de R4-15 y esperá el deploy en verde.
-3. Cargá en Vercel (https://vercel.com/lizarraga-mauros-projects/job-search-os/settings/environment-variables) las variables que diga R4-15, en Production.
-4. Redeploy (Deployments › ⋯ › **Redeploy**).
-5. Probá (abajo).
+1. Mergeá el PR **#444** (parte verde de R4-15: mascota, chip y el gate en `packages/pipeline`).
+2. Mergeá el PR rojo **#439** (la ruta con el 403 `sin_permiso`) y esperá el deploy en verde.
+3. Aplicá la fila `assistant_chat` (§13). Sin ella el asistente responde `no_route` aunque la cuenta esté habilitada.
+4. Cargá en Vercel (https://vercel.com/lizarraga-mauros-projects/job-search-os/settings/environment-variables), en Production, `ASSISTANT_ENABLED=testers` y `ASSISTANT_TESTER_EMAILS`.
+5. Redeploy (Deployments › ⋯ › **Redeploy**).
+6. Probá (abajo).
 
-Por qué en este orden: con el código actual, cualquier valor de `ASSISTANT_ENABLED` distinto de `admin` apaga el asistente, así que cargar el valor nuevo antes del merge lo apagaría también para vos. Merge primero y variables después evita ese hueco. A confirmar cuando R4-15 esté en main: si el PR cambia este orden.
+**No cargues `testers` antes de que #439 esté en main.** Con el código de main de hoy, cualquier valor de `ASSISTANT_ENABLED` distinto de `admin` apaga el asistente, también para vos. Merge primero y variables después evita ese hueco.
 
 **Cómo verificar.**
 
 1. Con tu cuenta: ves la mascota y podés chatear (lista de pruebas de Notion, punto A).
 2. Con la cuenta de Ani: la ve y chatea, y **no ve nada de admin** (`/settings/planes`, `/settings/metricas` dan 404).
-3. Con una **cuenta común de prueba** (no admin y fuera de la lista): **no aparece la mascota** y, llamando directo, la ruta responde 404. Con la sesión de esa cuenta: `curl -i -X POST https://<dominio>/api/assistant -H "content-type: application/json" -H "cookie: <la cookie de sesión de esa cuenta>" -d '{}'` (hoy devuelve `404`; A confirmar cuando R4-15 esté en main si cambia el código).
+3. Con una **cuenta común de prueba** (no admin y fuera de la lista): **no aparece la mascota** y, llamando directo, la ruta responde 403 `sin_permiso`. Con la sesión de esa cuenta: `curl -i -X POST https://<dominio>/api/assistant -H "content-type: application/json" -H "cookie: <la cookie de sesión de esa cuenta>" -d '{}'` (una cuenta común recibe `403`; con el asistente apagado, la ruta da `404`).
 4. Sin sesión: la mascota no aparece en ninguna página.
 
 **Cuánto tarda.** 15 minutos más lo que tarde el deploy. La decisión de publicarlo a la beta es el 20/11 (plan en Notion).
@@ -609,9 +609,9 @@ Por qué en este orden: con el código actual, cualquier valor de `ASSISTANT_ENA
 
 ## §13. Fila `assistant_chat` en `model_routing` (R4-17)
 
-**Qué es.** El asistente (`streamAgent`) lee su modelo de `model_routing`, tarea `assistant_chat` (`packages/adapters/src/llm/agent.ts`, `ASSISTANT_TASK`). **Sin fila falla cerrado (`no_route`).** Hoy `packages/db/seeds/model_routing.json` **no tiene** esa fila, así que no puedo sacar los valores del seed (la regla es no inventarlos). R4-17 (todavía **no implementado**) agrega los prompts con la ficha de Ani y el SQL de la fila.
+**Qué es.** El asistente (`streamAgent`) lee su modelo de `model_routing`, tarea `assistant_chat` (`packages/adapters/src/llm/agent.ts`, `ASSISTANT_TASK`). **Sin fila falla cerrado (`no_route`).** `packages/db/seeds/model_routing.json` de main todavía no tiene esa fila, pero **el seed del PR rojo #439 (R4-17) ya la trae**, con los mismos valores del SQL de abajo. R4-17 agrega además los prompts con la ficha de Ani.
 
-**A confirmar cuando R4-17 esté en main: el modelo, el respaldo, la temperatura y las tarifas definitivas, y que el seed tenga la fila.** Si el seed la trae, copiá los valores de ahí y reemplazá los de abajo.
+**Coincide con el seed de #439:** modelo, respaldo, temperatura, `max_tokens`, `thinking_level` y tarifas del SQL son los de la fila del seed. Si el seed de main cambia antes de que lo apliques, copiá los valores de ahí.
 
 **Lo que ya se puede saber del código:**
 
@@ -622,10 +622,10 @@ Por qué en este orden: con el código actual, cualquier valor de `ASSISTANT_ENA
 - Topes por conversación: 10 turnos, 6 pasos por turno y USD 0,12 (`packages/pipeline/src/agent/limits.ts`).
 - Nombres de modelos: solo los de `seeds/model_routing.json`.
 
-**SQL provisorio** (para revisar con R4-17; archivo `alta-assistant-chat.sql`). Es una **propuesta mía con los modelos del seed**, no el valor decidido: principal Sonnet 5.5 (como las demás tareas de charla: `skill_interview`, `recruiter_message`), respaldo Gemini 3.5 Flash, temperatura 0,3 (la de `skill_interview`). Si hoy ya hay una fila `assistant_chat`, la guarda frena el ensayo.
+**SQL** (archivo `alta-assistant-chat.sql`). Principal Sonnet 5.5, respaldo Gemini 3.5 Flash, temperatura 0,3, igual que la fila del seed de #439. Si hoy ya hay una fila `assistant_chat`, la guarda frena el ensayo.
 
 ```sql
--- assistant_chat: PROVISORIO hasta que R4-17 confirme los valores. Modelos y tarifas solo del seed.
+-- assistant_chat: mismos valores que la fila del seed de #439 (R4-17). Modelos y tarifas solo del seed.
 -- thinking_level NULL: el tope de salida del asistente es 600 por paso (menos de los 8192 que pide el thinking).
 BEGIN;
 
@@ -664,7 +664,7 @@ COMMIT;
 **Pasos.**
 
 1. Antes, mirá si hay fila (solo lectura): `pnpm db:sql "select * from model_routing where task = 'assistant_chat'"`. Esperado: 0 filas.
-2. Guardá el SQL en Descargas como `alta-assistant-chat.sql` (o el que traiga R4-17, cuando esté en main).
+2. Guardá el SQL en Descargas como `alta-assistant-chat.sql` (o el que traiga #439, si cambia).
 3. **Ensayo primero** (contra Neon, termina en `ROLLBACK`):
 
    ```bash
