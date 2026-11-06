@@ -9,6 +9,7 @@ import {
   type WaitlistFilters,
 } from "@job-search-os/pipeline";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { canCreateInvitations, listInvitations } from "@/lib/invitations";
 import { requireUserId } from "@/lib/session";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
@@ -60,17 +61,14 @@ export default async function InvitationsPage({
 }) {
   const filters = parseWaitlistFilters(await searchParams);
   const userId = await requireUserId();
-  const [invitations, isAdmin] = await Promise.all([
-    listInvitations(userId),
-    canCreateInvitations(userId),
-  ]);
+  // Como las demás pantallas de admin: 404 para una cuenta común
+  if (!(await canCreateInvitations(userId))) notFound();
+  const invitations = await listInvitations(userId);
   // Admin en la app pero sin fila en app_admins: la base rechaza la lista; se avisa en vez de romper
-  const loaded = isAdmin
-    ? await listWaitlist(userId).catch((error: unknown) => {
-        if (error instanceof WaitlistNotEnabledInDbError) return null;
-        throw error;
-      })
-    : [];
+  const loaded = await listWaitlist(userId).catch((error: unknown) => {
+    if (error instanceof WaitlistNotEnabledInDbError) return null;
+    throw error;
+  });
   const waitlistEnabled = loaded !== null;
   const waitlist = loaded ?? [];
 
@@ -82,13 +80,7 @@ export default async function InvitationsPage({
       </p>
 
       <section className={cardClasses({ padding: "md" })}>
-        {isAdmin ? (
-          <CreateInvitationForm />
-        ) : (
-          <p className="text-sm text-fg-muted">
-            Tu cuenta no puede crear invitaciones: es una función de administración.
-          </p>
-        )}
+        <CreateInvitationForm />
       </section>
 
       <section className="flex flex-col gap-2">
@@ -125,15 +117,13 @@ export default async function InvitationsPage({
         )}
       </section>
 
-      {isAdmin && !waitlistEnabled ? (
+      {!waitlistEnabled ? (
         <section className={alertClasses({ tone: "warning", bordered: true })}>
           Tu cuenta es admin en la app pero falta habilitarla en la base (ver docs del PR).
         </section>
       ) : null}
 
-      {isAdmin && waitlistEnabled ? (
-        <WaitlistSection waitlist={waitlist} filters={filters} />
-      ) : null}
+      {waitlistEnabled ? <WaitlistSection waitlist={waitlist} filters={filters} /> : null}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { BETA_OPENS_AT, betaPeriodDays, BETA_PLAN, planAccess } from "@job-search-os/pipeline";
+import { notFound } from "next/navigation";
 import { canCreateInvitations } from "@/lib/invitations";
 import { listPlans, PlanAdminNotEnabledInDbError, type AdminPlanRow } from "@/lib/plan-admin";
 import { requireUserId } from "@/lib/session";
@@ -59,13 +60,12 @@ export default async function PlanesPage({
 }) {
   const userId = await requireUserId();
   const { ok, error } = await searchParams;
-  const isAdmin = await canCreateInvitations(userId);
-  const rows = isAdmin
-    ? await listPlans(userId).catch((e: unknown) => {
-        if (e instanceof PlanAdminNotEnabledInDbError) return null;
-        throw e;
-      })
-    : [];
+  // Como las demás pantallas de admin: 404 para una cuenta común
+  if (!(await canCreateInvitations(userId))) notFound();
+  const rows = await listPlans(userId).catch((e: unknown) => {
+    if (e instanceof PlanAdminNotEnabledInDbError) return null;
+    throw e;
+  });
   const now = new Date();
   const days = betaPeriodDays(BETA_PLAN);
 
@@ -73,11 +73,7 @@ export default async function PlanesPage({
     <div className="mx-auto flex max-w-xl flex-col gap-6">
       <h1 className="text-title font-bold">Planes de la beta</h1>
 
-      {!isAdmin ? (
-        <p className="text-sm text-fg-muted">
-          Tu cuenta no puede administrar planes: es una función de administración.
-        </p>
-      ) : rows === null ? (
+      {rows === null ? (
         <Alert tone="danger" role="alert">
           {ERROR_MESSAGE.sin_base}
         </Alert>

@@ -12,6 +12,37 @@ function untouched(current: CriteriaRules): Raw {
 
 const BASE = DEFAULT_CRITERIA_RULES;
 
+describe("criteriaFormDefaults con criterios incompletos", () => {
+  it("con reglas vacías no rompe y usa los valores por defecto", () => {
+    const d = criteriaFormDefaults({} as CriteriaRules);
+    expect(d).toEqual(criteriaFormDefaults(BASE));
+  });
+
+  it("completa solo lo que falta y respeta lo que está", () => {
+    const d = criteriaFormDefaults({
+      max_weekly_hours: 12,
+      allowed_disciplines: undefined,
+    } as unknown as CriteriaRules);
+    expect(d.max_weekly_hours).toBe("12");
+    expect(d.allowed_disciplines).toEqual([...BASE.allowed_disciplines]);
+    expect(d.threshold_aplicar).toBe(String(BASE.thresholds.aplicar));
+  });
+
+  it("un null guardado en una lista también se completa", () => {
+    const d = criteriaFormDefaults({ title_blocklist: null } as unknown as CriteriaRules);
+    expect(d.title_blocklist).toBe(BASE.title_blocklist.join("\n"));
+  });
+
+  it("guardar con reglas vacías no rompe y arma reglas completas", () => {
+    const r = parseCriteriaForm(untouched({} as CriteriaRules), {} as CriteriaRules);
+    expect(r).toEqual({
+      ok: true,
+      rules: expect.objectContaining({ thresholds: BASE.thresholds }),
+    });
+    if (r.ok) expect(r.rules.title_blocklist).toEqual(BASE.title_blocklist);
+  });
+});
+
 describe("parseCriteriaForm", () => {
   it("enviar el formulario sin cambios devuelve las mismas reglas", () => {
     const r = parseCriteriaForm(untouched(BASE), BASE);

@@ -42,10 +42,11 @@ test.describe("Flujo 102: celular a 390 px en claro y oscuro", () => {
         await expect(page.getByRole("heading", { level: 1 }).first(), path).toBeVisible();
         if (theme === "oscuro") await expect(page.locator("html")).toHaveClass(/\bdark\b/);
         else await expect(page.locator("html")).not.toHaveClass(/\bdark\b/);
-        // El header es índigo en los dos modos y las pestañas del celular están a mano
+        // El header es índigo en los dos modos (en oscuro un paso más claro para separarse del
+        // fondo: auditoría R4, hallazgo 34) y las pestañas del celular están a mano
         await expect(page.locator("header").first()).toHaveCSS(
           "background-color",
-          "rgb(30, 27, 75)",
+          theme === "oscuro" ? "rgb(42, 39, 102)" : "rgb(30, 27, 75)",
         );
         await expect(page.getByTestId("tabbar"), path).toBeVisible();
         const { scrollWidth, width } = await page.evaluate(() => ({

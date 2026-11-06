@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { BETA_LAUNCH_ROLE_KEYS, BRAND, waitlistRoleGroups } from "@job-search-os/pipeline";
+import {
+  BETA_LAUNCH_ROLE_KEYS,
+  BRAND,
+  ILLUSTRATIONS,
+  waitlistRoleGroups,
+} from "@job-search-os/pipeline";
 import { Illustration } from "@/components/brand/illustration";
 import { cardClasses } from "@/components/ui";
 import { accesoFunnelEnabled } from "@/lib/acceso-funnel";
@@ -63,11 +68,14 @@ export default function AccesoPage() {
         className="rounded-b-[40px] bg-ink px-5 pt-1 pb-[78px] text-on-ink sm:rounded-b-[56px] sm:pt-[18px] sm:pb-[120px]"
       >
         <div className="mx-auto flex max-w-[1280px] flex-col gap-[18px] sm:flex-row-reverse sm:items-center sm:gap-10 sm:px-[72px]">
-          <Illustration
-            escena="acceso"
-            priority
-            className="h-[170px] w-full sm:h-[270px] sm:w-[360px]"
-          />
+          {/* Sin archivo no se muestra el marcador punteado; vuelve solo cuando el arte exista */}
+          {ILLUSTRATIONS.acceso.available ? (
+            <Illustration
+              escena="acceso"
+              priority
+              className="h-[170px] w-full sm:h-[270px] sm:w-[360px]"
+            />
+          ) : null}
           <div className="flex min-w-0 flex-1 flex-col gap-2.5 sm:gap-4">
             <h1
               id="acceso-titulo"

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { CriteriaRules } from "./criteria";
 import { DISCIPLINES } from "./evaluation";
+import { DEFAULT_CRITERIA_RULES } from "./onboarding";
 
 /**
  * Criterios editables desde la app (JS-096). Puro: la app lee la versión vigente y pasa los datos;
@@ -32,8 +33,25 @@ export type CriteriaFormValues = {
 
 export type CriteriaFormParse = { ok: true; rules: CriteriaRules } | { ok: false; field: string };
 
+/**
+ * Lectura tolerante (auditoría R4, hallazgo 22): lo que falte en las reglas guardadas (o venga en
+ * null) se completa con los valores por defecto, para precargar y para guardar. `salary_floor_usd_monthly`
+ * en null es un valor válido («sin piso») y se conserva. Con reglas completas no cambia nada.
+ */
+export function withCriteriaDefaults(stored: CriteriaRules | null | undefined): CriteriaRules {
+  const present = Object.entries(stored ?? {}).filter(
+    ([k, v]) => v !== undefined && (v !== null || k === "salary_floor_usd_monthly"),
+  );
+  return {
+    ...DEFAULT_CRITERIA_RULES,
+    ...Object.fromEntries(present),
+    thresholds: { ...DEFAULT_CRITERIA_RULES.thresholds, ...stored?.thresholds },
+  };
+}
+
 /** Valores para precargar el formulario: una entrada por línea. */
-export function criteriaFormDefaults(current: CriteriaRules): CriteriaFormValues {
+export function criteriaFormDefaults(stored: CriteriaRules): CriteriaFormValues {
+  const current = withCriteriaDefaults(stored);
   return {
     title_blocklist: current.title_blocklist.join("\n"),
     title_allowlist: current.title_allowlist.join("\n"),
@@ -139,7 +157,8 @@ function schemaFor(current: CriteriaRules) {
  * Valida el formulario y devuelve la versión siguiente de las reglas. Si falla, devuelve el primer
  * campo con error, sin eco del valor. `current` no se modifica.
  */
-export function parseCriteriaForm(raw: CriteriaFormRaw, current: CriteriaRules): CriteriaFormParse {
+export function parseCriteriaForm(raw: CriteriaFormRaw, stored: CriteriaRules): CriteriaFormParse {
+  const current = withCriteriaDefaults(stored);
   const text = (k: string) => {
     const v = raw[k];
     return Array.isArray(v) ? (v[0] ?? "") : (v ?? "");
