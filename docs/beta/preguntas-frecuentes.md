@@ -24,7 +24,7 @@ Si te formaste o trabajás en alguna de estas áreas, las evaluaciones y recomen
 Entrás a la página [Pedir acceso](/acceso) (o escaneás el código QR que viste en el evento), completás tu nombre, email, elegís tu carrera y nos contás cómo te enteraste. No necesitás poner tarjeta ni crear una contraseña en ese momento.
 
 ### 4. ¿Cuándo abre el acceso?
-La beta cerrada abre el **jueves 26 de noviembre**. El cupo es limitado y anotarte no garantiza un lugar. Si hay lugar para vos, te escribimos con tu invitación y el enlace para crear tu cuenta.
+La beta cerrada abre el **jueves 26 de noviembre**. El cupo es limitado. Si hay lugar para vos, te escribimos con tu invitación y el enlace para crear tu cuenta.
 
 ### 5. ¿Cuánto cuesta?
 La beta es por invitación y se usa con el Plan Beta, que es pago, mes a mes ($ 20.000 por mes, cada pago dura 30 días). El plan gratis es lo que queda cuando termina tu mes: tus datos siguen guardados, con menos avisos evaluados por día. El link de pago te lo mandamos con la invitación (C7-12): /precios muestra los planes pero no tiene botón ni link de pago. Mientras `PRICING_ENABLED` esté apagado, la página dice «Los precios se publican antes de que abra la beta» y no enlaza a [Precios](/precios), que da 404; cuando se prende, enlaza.

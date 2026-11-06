@@ -2,7 +2,7 @@
 
 Para Ani y Mauro. Está escrito sin jerga: cada paso dice qué hacer y qué tendrías que ver. Lo que dice **(Mauro)** lo hace Mauro porque toca producción o la base. Los QR y qué hacer si algo falla están en [`README.md`](./README.md).
 
-**Lo que ya está decidido y no se discute el día del evento:** la beta abre el jueves 26/11 para 6 carreras (abogacía, contaduría, administración, comunicación, marketing y RR.PP., relaciones internacionales). Cupo: 15 a 20 personas (becas y combos en `docs/beta/runbook-apertura.md`, «Decisiones del 5/11»; hay puntos abiertos). El evento es **Voces Jóvenes, con 10 proyectos y sin diapositivas**: se muestra el producto y un video de menos de 3 minutos. Plan Beta: ARS 20.000 por mes, sin garantía, sin factura (cómo encaja con los dos combos de Ani: [A DEFINIR: combos de Ani]). **Anotarse no asegura un lugar.**
+**Lo que ya está decidido y no se discute el día del evento:** la beta abre el jueves 26/11 para 6 carreras (abogacía, contaduría, administración, comunicación, marketing y RR.PP., relaciones internacionales). Cupo: 15 a 20 personas (becas y combos en `docs/beta/runbook-apertura.md`, «Decisiones del 5/11»; hay puntos abiertos). El evento es **Voces Jóvenes, con 10 proyectos y sin diapositivas**: se muestra el producto y un video de menos de 3 minutos. Plan Beta: ARS 20.000 por mes, sin garantía, sin factura (cómo encaja con los dos combos de Ani: [A DEFINIR: combos de Ani]). **El cupo es limitado.**
 
 ---
 
@@ -29,7 +29,7 @@ Si alguien se pasa, ve: «Recibimos muchos pedidos desde tu conexión. Probá de
 - [ ] **Ani:** [A CONFIRMAR: dónde se muestra el QR, ya que no hay diapositivas.] Donde sea, ponelo **grande** (que ocupe al menos un tercio del alto), sobre fondo blanco, **sin recortar el borde blanco y sin logo encima**. Escribí debajo la dirección corta (`…/acceso`).
 - [ ] Probá desde **el fondo de la sala** (o a la distancia más lejana) que un celular lo lee. Si cuesta, agrandalo.
 - [ ] Tené **el otro QR a mano, sin mostrarlo**, por si falla el principal.
-- [ ] **Lo que dice Ani sobre el cupo,** palabra más, palabra menos: «Anotarse no asegura un lugar. El cupo es limitado y vamos a escribirles a quienes elijamos.»
+- [ ] **Lo que dice Ani sobre el cupo,** palabra más, palabra menos: «El cupo es limitado y vamos a escribirles a quienes elijamos.»
 
 ### El panel de la lista de espera (Mauro)
 - [ ] Entrá con tu cuenta de administrador a `https://<dominio>/settings/invitations` (con `<dominio>` el que corresponda). Abajo, buscá **«Lista de espera (N sin invitar)»**. Si no aparece, tu cuenta no está habilitada como administrador: resolvelo antes del evento (`docs/beta/runbook-apertura.md`, 1.2).
@@ -45,7 +45,7 @@ Si alguien se pasa, ve: «Recibimos muchos pedidos desde tu conexión. Probá de
 
 ### Ani, en la sala
 1. Mostrá el QR y la dirección corta. Pedí que se anoten con **los datos del celular** si el wifi del lugar es flojo.
-2. Repetí que anotarse **no asegura lugar**.
+2. Repetí que **el cupo es limitado**.
 3. Si alguien no puede escanear, que escriba la dirección a mano y ponga «Voces Jóvenes» en «Cómo te enteraste».
 4. Si a alguien le dice «Recibimos muchos pedidos…», que espere unos minutos o use datos del celular.
 

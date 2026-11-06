@@ -9,7 +9,7 @@ Todo lo que Ani tiene que leer antes del 26/11, en un lugar. **En la app:** [`/s
 | Dónde | Texto | Qué decidir |
 | --- | --- | --- |
 | Portada (`/`) | «Leemos cada oferta contra tu perfil y te decimos por qué sí y por qué no.» y «Menos postulaciones, mejor elegidas.» | ¿Suena a AfinIAJobs? ¿Se entiende para alguien de abogacía o contaduría? |
-| `/acceso` | Introducción, confirmación («te escribimos si hay lugar»), «Qué sigue» y el texto de «Pasáselo a alguien» | Que quede claro que **anotarse no asegura lugar** (decisión ya tomada); el tono del texto para compartir |
+| `/acceso` | Introducción, confirmación («te escribimos si hay lugar»), «Qué sigue» y el texto de «Pasáselo a alguien» | Que quede claro que **el cupo es limitado** (decisión ya tomada); el tono del texto para compartir |
 | `/precios` | «El link de pago llega con la invitación.» | Solo se ve con `PRICING_ENABLED=1`. ¿Se muestra el precio en la web o solo en la invitación? |
 | `/ayuda` | Las preguntas frecuentes | Faltan las de las carreras no tech: ¿sirve para trabajos presenciales en Salta?, ¿qué pasa con mis datos?, ¿puedo cancelar? (reserva R-4) |
 | Onboarding, paso 1 | **«Piso salarial mensual en USD (opcional)»** (R-2 de C7) | En Salta el sueldo de estas carreras es en pesos. ¿Lo dejamos, lo escondemos para estas carreras o pasamos a pesos (cambio grande, ronda aparte)? |
@@ -26,7 +26,7 @@ Todo lo que Ani tiene que leer antes del 26/11, en un lugar. **En la app:** [`/s
 ## Lo que ya está decidido (no hace falta volver a mirarlo)
 
 - La marca es **AfinIAJobs** (logo, colores y tipografías en `/settings/marca`).
-- La beta abre el **jueves 26/11**, con 6 carreras y cupo limitado; anotarse en `/acceso` no garantiza lugar.
+- La beta abre el **jueves 26/11**, con 6 carreras y cupo limitado; la gente se anota en `/acceso`.
 - El precio (ARS 20.000 por mes) va en la invitación, con el link de Mercado Pago.
 
 ## Decisiones del 5/11 que tocan los textos

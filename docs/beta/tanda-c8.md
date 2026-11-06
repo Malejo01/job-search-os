@@ -26,7 +26,7 @@ Una noche de la nube, sin supervisión, con **un solo PR de integración** `rond
 
 - Beta cerrada: abre el **jueves 26/11**, con 6 carreras (abogacía, contaduría, administración, comunicación, marketing y RR.PP., relaciones internacionales) y un cupo de 15 a 20 personas. *Actualizado el 5/11:* ya no son «más 3 becados»; son un becado gratis y dos con 50 % de descuento, y solo dos personas no pagan (el resto paga uno de dos combos de Ani). Detalle y puntos abiertos en `docs/beta/runbook-apertura.md`, «Decisiones del 5/11».
 - Plan Beta: ARS 20.000 por mes, activación manual, link de pago solo en la invitación.
-- **11/11, Voces Jóvenes:** no es una charla sino un evento con 10 proyectos, y AfinIAJobs aparece en la premiación (decisión del 5/11). Sin diapositivas: se muestra el producto y un video de menos de 3 minutos. La gente se anota con un QR en `/acceso`. Anotarse **no** garantiza lugar.
+- **11/11, Voces Jóvenes:** no es una charla sino un evento con 10 proyectos, y AfinIAJobs aparece en la premiación (decisión del 5/11). Sin diapositivas: se muestra el producto y un video de menos de 3 minutos. La gente se anota con un QR en `/acceso`. El cupo es limitado.
 
 ## Control
 
