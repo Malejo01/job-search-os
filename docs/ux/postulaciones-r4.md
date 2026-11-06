@@ -95,7 +95,7 @@ Se muestra como «Sin respuesta (cerrada por inactividad)» en el grupo 4 y **de
 |---|---|---|
 | Aplicada inactiva (grupo 4): confirmar el cierre | «Cerrar por inactividad» | `closeApplicationAction(jobId)`: pasa a `cerrada` con `outcome = cerrada_antes` y cae en «Cerradas» |
 | Aplicada inactiva (grupo 4): reactivar sin cambiar nada | «Reactivar» | `snoozeFollowUpAction(jobId)` (pone `follow_up_at = hoy + 7`, la novedad pasa a ser hoy y vuelve a «Para hacer seguimiento» en una semana) |
-| Fila `cerrada` del grupo 5 (deshacer un cierre): reactivar | «Reactivar» | `correctStatusAction` con `jobId` y `to = "aplicada"`. Conserva el `appliedAt` viejo y deja el resultado en `null`, así que **entra en el acto a «Para hacer seguimiento»** (grupo 1: `followUpDue` usa `appliedAt` + 7 días) y no al grupo 4 (el `updated_at` nuevo cuenta como novedad) |
+| Fila `cerrada` del grupo 5 (deshacer un cierre): reactivar | «Reactivar» | `correctStatusAction` con `jobId` y `to = "aplicada"`. Conserva el `appliedAt` viejo y deja el resultado en `null`, así que **entra en el acto a «Para hacer seguimiento»** (grupo 1: `followUpDue` usa `appliedAt` + 7 días) y no al grupo 4 (el `updated_at` nuevo cuenta como novedad). Solo se muestra si la oferta tiene evaluación (sin ella la corrección falla y redirige con `?error=correccion`) |
 | Evaluada inactiva (grupo 6): confirmar el descarte | «Descartar» | `changeStatusAction` con `jobId` y `event = "discard"`. La oferta sale de `/applications`; para deshacerlo, la corrección de estado del detalle de la oferta (`/jobs/[id]`), que ya existe |
 
 Cómo se arma cada botón: `closeApplicationAction` y `snoozeFollowUpAction` reciben el `jobId` y se usan con `.bind(null, id)`, como hoy en `page.tsx`; `changeStatusAction` y `correctStatusAction` leen `FormData`, así que van en un `<form action={...}>` con campos ocultos (`jobId` y `event` o `to`). Todo sin JavaScript. «Cerrar por inactividad» y «Descartar» llevan la misma confirmación en dos pasos que «Cerrar postulación» (`details` + «Sí, …»).
@@ -108,7 +108,7 @@ Límites de lo que se propone, a propósito (la opción más simple):
 
 ## 7. Qué es verde y qué sería rojo
 
-Nada de esto exige editar un `*actions.ts`: los cinco botones usan `closeApplicationAction`, `snoozeFollowUpAction` (en `apps/web/app/(app)/applications/followup-actions.ts`) y `changeStatusAction` y `correctStatusAction` (en `apps/web/app/(app)/jobs/[id]/actions.ts`). Todos devuelven `void` y no redirigen al salir bien (`changeStatusAction` sí redirige si falla), y `/applications` es `force-dynamic`, así que la página se refresca sola. `changeStatusAction` no revalida `/applications`, pero no hace falta por eso.
+Nada de esto exige editar un `*actions.ts`: los botones usan `closeApplicationAction`, `snoozeFollowUpAction` (en `apps/web/app/(app)/applications/followup-actions.ts`) y `changeStatusAction` y `correctStatusAction` (en `apps/web/app/(app)/jobs/[id]/actions.ts`). Todos devuelven `void` y no redirigen al salir bien (`changeStatusAction` sí redirige si falla), y `/applications` es `force-dynamic`, así que la página se refresca sola. `changeStatusAction` no revalida `/applications`, pero no hace falta por eso.
 
 - **Verde**: `packages/pipeline/src/applications/**`, `apps/web/lib/applications.ts`, `apps/web/app/(app)/applications/page.tsx` y los componentes nuevos en `apps/web/components/`.
 - **Rojo (solo si se agrega)**: «Mantener» una evaluada inactiva, o un botón que haga reactivar y postergar en un solo paso. No es parte de la propuesta base.
