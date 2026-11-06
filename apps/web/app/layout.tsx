@@ -1,6 +1,7 @@
 import { BRAND, BRAND_COLORS } from "@job-search-os/pipeline";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { ThemeSync } from "@/components/theme-sync";
 import { bricolage, figtree } from "./fonts";
 import "./globals.css";
 import { ThemeScript } from "./theme-script";
@@ -25,7 +26,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         <ThemeScript />
       </head>
-      <body className="min-h-screen bg-canvas font-sans text-fg antialiased">{children}</body>
+      <body className="min-h-screen bg-canvas font-sans text-fg antialiased">
+        <ThemeSync />
+        {children}
+      </body>
     </html>
   );
 }

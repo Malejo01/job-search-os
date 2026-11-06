@@ -134,7 +134,7 @@ El catálogo `/settings/marca/componentes` muestra todas estas piezas en claro y
 
 ## Tema claro u oscuro
 
-`apps/web/app/theme-script.tsx` pone la clase `dark` en `<html>` antes de pintar. Lee `localStorage["jso-tema"]`: `claro`, `oscuro` o `sistema`. **Sin preferencia vale `sistema`** (C7-1): la app sigue a `prefers-color-scheme` del dispositivo, y cambia sola si el dispositivo cambia.
+`apps/web/app/theme-script.tsx` pone la clase `dark` en `<html>` antes de pintar. Lee `localStorage["jso-tema"]`: `claro`, `oscuro` o `sistema`. **Sin preferencia vale `claro`** (R4-02): la app abre en claro aunque el dispositivo esté en oscuro. Con `sistema` («Como el dispositivo») sigue a `prefers-color-scheme` y cambia sola si el dispositivo cambia. `ThemeSync` (`components/theme-sync.tsx`, en el layout raíz) mantiene la clase `dark` sincronizada con la preferencia en todas las rutas, aunque React reescriba `<html class>`.
 
 La preferencia se elige en **Ajustes → Apariencia** (`settings/theme-select.tsx`): «Como el dispositivo», «Claro» u «Oscuro».
 

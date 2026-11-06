@@ -51,7 +51,9 @@ test.describe("Flujo 84: Chip de soporte «¿Algo no anduvo?»", () => {
     ).toEqual([]);
 
     // Axe en modo oscuro
+    // Con la preferencia guardada: sin ella, ThemeSync (R4-02) vuelve a poner claro
     await page.evaluate(() => {
+      localStorage.setItem("jso-tema", "oscuro");
       document.documentElement.classList.add("dark");
     });
     const { violations: violacionesOscuro } = await new AxeBuilder({ page })
