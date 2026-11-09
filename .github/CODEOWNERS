@@ -43,6 +43,7 @@
 /apps/web/app/**/*-actions.ts @Malejo01
 /apps/web/lib/application-form.ts @Malejo01
 /apps/web/lib/mcp-user.ts @Malejo01
+/apps/web/lib/mcp-tokens.ts @Malejo01
 /apps/web/lib/password-reset.ts @Malejo01
 /apps/web/lib/invitations* @Malejo01
 /apps/web/lib/senders.ts @Malejo01

@@ -55,6 +55,10 @@ export default defineConfig({
       HELP_TIPS_ENABLED: "1",
       // C8-17: triage del feedback (e2e 111), apagado por defecto en Vercel
       FEEDBACK_TRIAGE_ENABLED: "1",
+      // MCP-1: tokens personales del MCP (e2e 124). El conector compartido (MCP_TOKEN, del job de CI)
+      // opera sobre la persona B de los e2e de dos usuarios, para comprobar que no se mezcla con A.
+      MCP_USER_TOKENS: "testers",
+      MCP_USER_ID: "b0000000-0000-4000-8000-000000000002",
     },
   },
 });

@@ -72,6 +72,8 @@ export const USER_TABLES: readonly UserTableEntry[] = [
   { table: "beta_feedback", column: "user_id", action: "cascade" },
   // Candidatos de /market (C8-15, rls/0017): policy FOR ALL del dueño, se borran de forma explícita
   { table: "market_candidates", column: "user_id", action: "delete" },
+  // Tokens personales del MCP (MCP-1, rls/0019): policy de DELETE propia; además caen por cascade
+  { table: "mcp_tokens", column: "user_id", action: "delete" },
 ];
 
 /**

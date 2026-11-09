@@ -234,6 +234,7 @@ Endpoint: `https://<app>/api/mcp` (Streamable HTTP, sin OAuth). Token compartido
 - **Claude Code**: `claude mcp add --transport http job-search-os https://<app>/api/mcp --header "Authorization: Bearer <MCP_TOKEN>"`.
 - **Claude Desktop**: mismo conector que claude.ai (Settings › Connectors), o `mcp-remote` con el header.
 - Prueba rápida: `curl -H "Authorization: Bearer <MCP_TOKEN>" -H "content-type: application/json" -H "accept: application/json, text/event-stream" -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' https://<app>/api/mcp` devuelve las once herramientas; sin token, 401.
+- **Tokens personales (MCP-1, ADR-032):** con `MCP_USER_TOKENS=testers`, cada persona de prueba (`ADMIN_EMAILS` + `ASSISTANT_TESTER_EMAILS`) genera su token en Ajustes › Conexiones con chats y conecta su chat con `https://<app>/api/mcp?token=<token>` (necesita `MCP_ALLOW_QUERY_TOKEN=1`) o con `Authorization: Bearer <token>`. El token opera solo sobre su cuenta, vence a los 30 días, se revoca desde la misma pantalla y tiene un tope de 60 llamadas por minuto (429). Revocado, vencido o fuera de la lista: 401. `MCP_TOKEN` sigue igual.
 
 ## Pasos (detalle)
 
