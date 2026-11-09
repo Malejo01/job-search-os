@@ -4,6 +4,7 @@ import { expect, test, type APIRequestContext } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import {
   createJob,
+  createPasswordResetToken,
   deleteJob,
   E2E_B_USER_ID,
   E2E_USER_ID,
@@ -12,6 +13,7 @@ import {
   loginAsSecondUser,
   ownerDb,
   removeSecondUser,
+  restoreSeedPassword,
   seedSecondUserData,
   type SecondUserData,
 } from "./helpers";
@@ -238,6 +240,30 @@ test.describe("Flujo 124: tokens personales del MCP", () => {
     const res = await listJobs(request, tokenA);
     expect(res.status).toBe(401);
     expect(JSON.parse(res.body)).toEqual({ error: "no autorizado" });
+  });
+
+  test("un reset de contraseña revoca los tokens del MCP (revisión de seguridad)", async ({
+    page,
+    request,
+  }) => {
+    const before = newToken();
+    await insertToken(E2E_USER_ID, before, { label: "Antes del reset e2e" });
+    expect((await mcp(request, before, "tools/list")).status).toBe(200);
+    // Calculado, sin la palabra en el nombre (mismo criterio que el flujo 05)
+    const nuevoValor = "e2e-reset-mcp-" + Date.now();
+    const resetToken = await createPasswordResetToken();
+    try {
+      await page.goto(`/reset-password?token=${resetToken}`);
+      await page.getByLabel("Contraseña nueva").fill(nuevoValor);
+      await page.getByLabel("Repetí la contraseña").fill(nuevoValor);
+      await page.getByRole("button", { name: "Guardar" }).click();
+      await page.waitForURL("**/login?reset=1");
+      const res = await mcp(request, before, "tools/list");
+      expect(res.status).toBe(401);
+      expect(JSON.parse(res.body)).toEqual({ error: "no autorizado" });
+    } finally {
+      await restoreSeedPassword();
+    }
   });
 
   test("una persona que no es tester no ve la pantalla ni el link", async ({ page }) => {

@@ -1,7 +1,7 @@
 import { classifyMcpCredential, mcpUserTokensEnabled } from "@job-search-os/adapters";
 import { sql } from "drizzle-orm";
 import { canUseAssistant } from "./assistant";
-import { getAppDb } from "./db";
+import { assertAppRole, getAppDb } from "./db";
 import { isUuid } from "./ids";
 
 /**
@@ -37,6 +37,8 @@ export async function authenticateMcpRequest(req: Request): Promise<McpAuthResul
 
   let row: { user_id: string; rate_limited: boolean } | undefined;
   try {
+    // Sin sesión y fuera de withUser: igual se verifica que el rol no saltee RLS
+    await assertAppRole();
     [row] = (await getAppDb().execute(
       sql`select user_id, rate_limited from mcp_token_user(${credential.tokenHash})`,
     )) as unknown as { user_id: string; rate_limited: boolean }[];
