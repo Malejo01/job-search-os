@@ -21,7 +21,7 @@ Video de **menos de 3 minutos** (hoy dura 2:40) de [`/demo/contaduria`](/demo/co
 | 4 | 1:00–1:40 (40 s) | Tocá **«Analista contable semi senior»** (8,5): la página baja al detalle. Quieto sobre «A tu favor», después sobre «Te falta o te frena» y al final sobre «Te conviene: postularte.». | «No es solo un número: le dice por qué. A favor: pide dos años en estudio contable y Lucía tiene dos; liquida IVA y Ganancias, que es lo que hace hoy. En contra, un ojo: piden Tango Gestión y ella lo tiene en nivel básico. Con eso decide ella. La postulación la hace ella en el sitio del aviso: nunca postulamos por vos.» |
 | 5 | 1:40–2:05 (25 s) | Desplazá hasta **«Controller bilingüe»** (3). Quieto sobre «Te frena: Inglés avanzado…». | «También te dice cuándo no vale la pena. Esta pide inglés avanzado y cinco años de experiencia. Te ahorra la tarde de armar una postulación que no va.» |
 | 6 | 2:05–2:25 (20 s) | Desplazá hasta **«Una oferta sin descripción»**. Quieto sobre los 3 pasos. Tocá **«Guardar descripción y evaluar»** (con el cuadro vacío) y quedate sobre el mensaje verde. | «A veces una oferta llega sin el texto del aviso. Copiás la descripción, la pegás acá, y en unos minutos la ves con su puntaje.» |
-| 7 | 2:25–2:40 (15 s) | Desplazá hasta el recuadro negro **«Vos decidís.»** con el botón «Pedir acceso». Quieto. **No lo toques.** | «Vos decidís. La beta abre el 26 de noviembre para seis carreras y el cupo es limitado. Anotate con el QR: si hay lugar, te escribimos.» |
+| 7 | 2:25–2:40 (15 s) | Desplazá hasta el recuadro negro **«Vos decidís.»** con el botón «Pedir acceso». Quieto. **No lo toques.** | «Vos decidís. La beta abre el 26 de noviembre para ocho carreras y el cupo es limitado. Anotate con el QR: si hay lugar, te escribimos.» |
 
 Si sobra tiempo, en la toma 3 tocá también **«Auxiliar de impuestos»** (7,5) y mostrá «Riesgo: Sueldo no publicado» y «No sabemos: No publica el sueldo» («cuando el aviso no dice algo, te lo decimos»). Suma 20 segundos.
 
@@ -34,7 +34,7 @@ Vertical (9:16), **con subtítulos quemados**: en el reel casi nadie activa el s
 | 1 | 0:00–0:05 | Lista de «Hoy» con los 4 puntajes. | «¿Cuál de estas ofertas vale la pena?» |
 | 2 | 0:05–0:15 | Detalle de «Analista contable semi senior»: «A tu favor» y «Te falta o te frena». | «Te decimos por qué sí y por qué no, contra tu perfil.» |
 | 3 | 0:15–0:22 | «Controller bilingüe»: «Te frena: Inglés avanzado». | «Y cuándo no vale la pena tu tiempo.» |
-| 4 | 0:22–0:30 | «Vos decidís.» con el logo arriba. | «AfinIAJobs. Beta cerrada desde el 26/11, 6 carreras, cupo limitado. Anotate en el link.» |
+| 4 | 0:22–0:30 | «Vos decidís.» con el logo arriba. | «AfinIAJobs. Beta cerrada desde el 26/11, 8 carreras, cupo limitado. Anotate en el link.» |
 
 ## Qué no mostrar
 

@@ -23,12 +23,14 @@ const chipPill =
 const FIRST_CHIPS = 3;
 
 export type RoleOption = { key: string; label: string };
+/** Chip de carrera: `key` lo identifica y `role` es la carrera que se guarda (dos chips pueden compartirla). */
+export type CareerChip = RoleOption & { role: string };
 export type RoleOptionGroup = { label: string; roles: RoleOption[] };
 
 type FormProps = {
   groups: RoleOptionGroup[];
-  /** Las seis carreras de la beta, como chips, con el nombre corto. */
-  betaCareers: RoleOption[];
+  /** Las ocho carreras de la beta, como chips, con el nombre corto. */
+  betaCareers: CareerChip[];
   contact: { email: string; href: string } | null;
   /** Embudo de /acceso (C8-2): la página lo prende con `ACCESO_FUNNEL_ENABLED`. */
   funnel?: boolean;
@@ -93,10 +95,13 @@ export function WaitlistFormFields({
   const [other, setOther] = useState(false);
   // Una sola carrera: la del chip o la de «Otra carrera», la última que se tocó. Va en un campo
   // oculto (`role`), así nunca viajan dos valores
-  const [role, setRole] = useState("");
+  // `choice` es el chip elegido o la carrera del selector; `role` es la carrera que se guarda
+  const [choice, setChoice] = useState("");
+  const role = betaCareers.find((c) => c.key === choice)?.role ?? choice;
   const onCareer = (value: string) => {
-    setRole(value);
-    if (funnel) void trackAcceso("carrera", origen, value).catch(() => {});
+    setChoice(value);
+    const saved = betaCareers.find((c) => c.key === value)?.role ?? value;
+    if (funnel) void trackAcceso("carrera", origen, saved).catch(() => {});
   };
   // Embudo (C8-2): el primer campo tocado y cada carrera elegida. Nunca lo escrito.
   const onFirstFocus = () => {
@@ -211,7 +216,7 @@ export function WaitlistFormFields({
         </label>
       </div>
 
-      {/* Las seis carreras como chips (radios). Las demás, en «Otra carrera». Las dos escriben la
+      {/* Las ocho carreras como chips (radios). Las demás, en «Otra carrera». Las dos escriben la
           misma carrera (`role`) */}
       <fieldset
         className="m-0 flex flex-col gap-1.5 border-0 p-0"
@@ -230,7 +235,7 @@ export function WaitlistFormFields({
                 type="radio"
                 name="carrera-chip"
                 value={c.key}
-                checked={role === c.key}
+                checked={choice === c.key}
                 onChange={() => onCareer(c.key)}
                 aria-invalid={errors.role ? true : undefined}
                 className="absolute inset-0 m-0 h-full w-full cursor-pointer appearance-none rounded-pill opacity-0"
@@ -272,7 +277,7 @@ export function WaitlistFormFields({
           <label className={label}>
             Carrera
             <select
-              value={betaCareers.some((c) => c.key === role) ? "" : role}
+              value={betaCareers.some((c) => c.key === choice) ? "" : choice}
               onChange={(e) => onCareer(e.target.value)}
               className={field}
             >

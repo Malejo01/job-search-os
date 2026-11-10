@@ -34,7 +34,7 @@ test.describe("Flujo 44: vitrina pública", () => {
     const fill = async () => {
       await page.getByLabel("Nombre").fill("Persona Vitrina");
       await page.getByLabel("Email").fill(email.toUpperCase());
-      // Fuera de las 6 de la beta, la carrera está en «Otra carrera» (C10-5)
+      // Fuera de las 8 de la beta, la carrera está en «Otra carrera» (C10-5)
       await openOtherCareer(page);
       await page.getByLabel("Carrera").selectOption("data_analyst");
       await page.getByRole("button", { name: "Anotarme", exact: true }).click();
@@ -61,7 +61,34 @@ test.describe("Flujo 44: vitrina pública", () => {
     await expect(done).toBeVisible();
   });
 
-  test("/acceso: las 6 carreras de la beta van primero, en su propio grupo (C6-1)", async ({
+  test("/acceso: las 8 carreras de la beta como chips (C1)", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/acceso");
+    await expect(page.locator("main")).toContainText("8 carreras");
+    const chips = page.locator('input[name="carrera-chip"]');
+    await expect(chips).toHaveCount(8);
+    for (const name of [
+      "Abogacía",
+      "Contaduría",
+      "Administración",
+      "Comunicación",
+      "Marketing",
+      "Relaciones públicas",
+      "Relaciones internacionales",
+      "Programación",
+    ]) {
+      await expect(page.getByRole("radio", { name, exact: true })).toBeVisible();
+    }
+    // Relaciones públicas y Programación guardan una carrera existente hasta C3
+    const role = page.locator('input[type="hidden"][name="role"]');
+    await page.getByRole("radio", { name: "Relaciones públicas", exact: true }).check();
+    await expect(role).toHaveValue("marketing_digital");
+    await expect(page.getByRole("radio", { name: "Marketing", exact: true })).not.toBeChecked();
+    await page.getByRole("radio", { name: "Programación", exact: true }).check();
+    await expect(role).toHaveValue("fullstack");
+  });
+
+  test("/acceso: las carreras de la beta van primero en el selector, en su propio grupo (C6-1)", async ({
     page,
   }) => {
     await page.goto("/acceso");

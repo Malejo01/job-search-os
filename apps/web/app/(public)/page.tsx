@@ -64,7 +64,7 @@ export default async function HomePage() {
             </span>
             <span className="hidden sm:inline">
               Leemos cada aviso contra tu perfil y te decimos qué tan afín es, qué tenés a favor y
-              qué paso te acerca. Para 6 carreras, en Salta y remoto.
+              qué paso te acerca. Para 8 carreras, en Salta y remoto.
             </span>
           </p>
           <div className="mt-5 flex gap-3.5 sm:mt-8">

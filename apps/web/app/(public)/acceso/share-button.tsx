@@ -21,7 +21,7 @@ export function ShareButton({
 }) {
   const [shared, setShared] = useState<Shared>("idle");
   const [url, setUrl] = useState("");
-  const text = `Me anoté en la beta de ${brandName}: lee ofertas de trabajo contra tu perfil y te dice por qué sí y por qué no. Es para 6 carreras y el cupo es limitado.`;
+  const text = `Me anoté en la beta de ${brandName}: lee ofertas de trabajo contra tu perfil y te dice por qué sí y por qué no. Es para 8 carreras y el cupo es limitado.`;
 
   async function onShare() {
     const link = `${window.location.origin}/acceso?origen=compartido`;

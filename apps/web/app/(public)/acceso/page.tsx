@@ -1,12 +1,7 @@
 import type { Metadata } from "next";
 import { publicOpenGraph } from "@/lib/public-og";
 import { Suspense } from "react";
-import {
-  BETA_LAUNCH_ROLE_KEYS,
-  BRAND,
-  ILLUSTRATIONS,
-  waitlistRoleGroups,
-} from "@job-search-os/pipeline";
+import { BRAND, ILLUSTRATIONS, waitlistRoleGroups, type RoleKey } from "@job-search-os/pipeline";
 import { Illustration } from "@/components/brand/illustration";
 import { cardClasses } from "@/components/ui";
 import { accesoFunnelEnabled } from "@/lib/acceso-funnel";
@@ -25,17 +20,28 @@ export const metadata: Metadata = {
 };
 
 /**
- * Las seis carreras de la beta como chips (C10-5, acceso-pc.png), en el orden del anuncio
- * (`BETA_LAUNCH_ROLE_KEYS`) y con el nombre corto con que se dicen.
+ * Las ocho carreras de la beta como chips (C1, 10/11), en el orden del anuncio y con el nombre corto
+ * con que se dicen. `key` identifica el chip y `role` es la carrera que se guarda.
+ *
+ * Relaciones públicas y Programación todavía no son carreras de la beta en el pipeline
+ * (`BETA_LAUNCH_ROLE_KEYS` sigue con seis; la clave `relaciones_publicas` llega con C3, carril rojo):
+ * por ahora Relaciones públicas se guarda como `marketing_digital` (antes era «Marketing y RR.PP.»)
+ * y Programación como `fullstack` (la casilla del pool de programación es `pool-fullstack`).
  */
-const BETA_CAREER_NAMES: Record<string, string> = {
-  abogacia: "Abogacía",
-  finanzas_contabilidad: "Contaduría",
-  administracion_empresas: "Administración",
-  comunicacion: "Comunicación",
-  marketing_digital: "Marketing y RR.PP.",
-  relaciones_internacionales: "Relaciones internacionales",
-};
+const BETA_CAREER_CHIPS: readonly { key: string; label: string; role: RoleKey }[] = [
+  { key: "abogacia", label: "Abogacía", role: "abogacia" },
+  { key: "finanzas_contabilidad", label: "Contaduría", role: "finanzas_contabilidad" },
+  { key: "administracion_empresas", label: "Administración", role: "administracion_empresas" },
+  { key: "comunicacion", label: "Comunicación", role: "comunicacion" },
+  { key: "marketing_digital", label: "Marketing", role: "marketing_digital" },
+  { key: "relaciones_publicas", label: "Relaciones públicas", role: "marketing_digital" },
+  {
+    key: "relaciones_internacionales",
+    label: "Relaciones internacionales",
+    role: "relaciones_internacionales",
+  },
+  { key: "programacion", label: "Programación", role: "fullstack" },
+];
 
 /**
  * /acceso (C10-5): copia de las pantallas aprobadas el 4/11 (`referencias/acceso-pc.png` y
@@ -47,17 +53,14 @@ const BETA_CAREER_NAMES: Record<string, string> = {
  */
 export default function AccesoPage() {
   // La lista de espera ofrece las carreras de la beta aunque sigan ocultas en los selectores (ADR-027):
-  // las 6 van como chips; las demás, en «Otra carrera» (el grupo «Carreras de la beta» sigue primero)
+  // las 8 van como chips; las demás, en «Otra carrera» (el grupo «Carreras de la beta» sigue primero)
   const groups = waitlistRoleGroups().map((group) => ({
     label: group.label,
     roles: group.roles.map((key) => ({ key, label: ROLE_SKILLS[key].label })),
   }));
   const formProps = {
     groups,
-    betaCareers: BETA_LAUNCH_ROLE_KEYS.map((key) => ({
-      key,
-      label: BETA_CAREER_NAMES[key] ?? ROLE_SKILLS[key].label,
-    })),
+    betaCareers: BETA_CAREER_CHIPS.map((c) => ({ ...c })),
     contact: contactLink("Borrar mis datos de la lista de espera"),
     // Embudo (C8-2): apagado salvo `ACCESO_FUNNEL_ENABLED=1` (con la migración 0057 aplicada)
     funnel: accesoFunnelEnabled(),
@@ -87,10 +90,10 @@ export default function AccesoPage() {
             </h1>
             <p className="max-w-[540px] text-[15px] leading-[1.5] font-medium text-on-ink-muted sm:text-lg">
               <span className="sm:hidden">
-                Abrimos el 26 de noviembre para 6 carreras. El cupo es limitado.
+                Abrimos el 26 de noviembre para 8 carreras. El cupo es limitado.
               </span>
               <span className="hidden sm:inline">
-                Para estudiantes y recién recibidos de 6 carreras. Abrimos el 26 de noviembre. El
+                Para estudiantes y recién recibidos de 8 carreras. Abrimos el 26 de noviembre. El
                 cupo es limitado.
               </span>
             </p>
