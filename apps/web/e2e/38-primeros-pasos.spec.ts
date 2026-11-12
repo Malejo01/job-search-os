@@ -249,6 +249,7 @@ test.describe("Flujo 38: primeros pasos, de la persona nueva a la checklist comp
   test("38b: «Abrir la mejor evaluada» lleva a la de mayor score y el 👍 pasa a «4 de 5»", async () => {
     const best = await bestEvaluatedJobIds(run.userId!);
     await page.goto("/jobs");
+    await openChecklist(page);
     const link = checklist(page).getByRole("link", { name: "Abrir la mejor evaluada" });
     await expect(link).toBeVisible();
     await link.click();
