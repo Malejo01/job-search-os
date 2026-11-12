@@ -22,8 +22,11 @@ const NEW_KEYS = [
 
 // Las skills que solo usan las carreras nuevas y no existían antes de C1-2: las que no están en
 // ninguna de las carreras anteriores.
+// Las carreras que llegaron después de C1-2 tampoco cuentan como anteriores: relaciones_publicas
+// (R5-C3, ADR-033) comparte skills con comunicación y las sacaría de la cuenta.
+const LATER_KEYS = ["relaciones_publicas"];
 const OLD_KEYS = Object.keys(roleSkills).filter(
-  (k) => !(NEW_KEYS as readonly string[]).includes(k),
+  (k) => !(NEW_KEYS as readonly string[]).includes(k) && !LATER_KEYS.includes(k),
 );
 const OLD_SLUGS = new Set(
   OLD_KEYS.flatMap((k) => (roleSkills as Record<string, { skills: string[] }>)[k]!.skills),
