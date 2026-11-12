@@ -1,6 +1,6 @@
 # Fuentes para las carreras no tech de la beta: estado al 3/11 (C8-10)
 
-Qué fuente puede traer ofertas de abogacía, contaduría, administración, comunicación, marketing y RR.PP. y relaciones internacionales, en qué estado está y qué falta. Regla de la tanda: adapters solo con **fixtures grabadas a mano y tests sin red**, cada uno detrás de su interruptor y apagado; lo que pide una key queda con el ADR propuesto; y **si no se puede armar una fixture fiel sin red, no se inventa el formato**: queda anotado.
+Qué fuente puede traer ofertas de abogacía, contaduría, administración, comunicación, marketing, relaciones públicas y relaciones internacionales (la octava carrera de la beta, programación, usa las fuentes tech de siempre), en qué estado está y qué falta. Regla de la tanda: adapters solo con **fixtures grabadas a mano y tests sin red**, cada uno detrás de su interruptor y apagado; lo que pide una key queda con el ADR propuesto; y **si no se puede armar una fixture fiel sin red, no se inventa el formato**: queda anotado.
 
 ## Resultado de C8-10: ningún adapter nuevo
 

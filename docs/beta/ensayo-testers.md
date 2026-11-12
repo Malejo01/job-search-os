@@ -12,14 +12,16 @@ La app te ayuda a buscar trabajo: junta avisos públicos de tu carrera, compara 
 
 Lo que **no** hace: no se postula por vos (nunca envía postulaciones ni entra a tus cuentas), no garantiza que te llamen para una entrevista y no reemplaza tu criterio. El puntaje de cada oferta es una estimación.
 
-La beta está pensada para 6 carreras:
+La beta está pensada para 8 carreras:
 
-1. Abogacía y legales
-2. Contaduría, impuestos y finanzas
-3. Administración de empresas
-4. Comunicación y prensa
-5. Marketing y relaciones públicas
-6. Relaciones internacionales y comex
+1. Abogacía
+2. Contaduría
+3. Administración
+4. Comunicación
+5. Marketing
+6. Relaciones públicas
+7. Relaciones internacionales (y comex)
+8. Programación
 
 Durante este ensayo (del **20 al 24 de noviembre**), 3 a 5 personas de confianza recorren la app para comprobar que todo se entienda y funcione, sin errores. **Tu opinión importa más que tu paciencia**: si algo te confunde, es un hallazgo, no un error tuyo.
 
@@ -40,9 +42,7 @@ Son 3 pasos de «primeros pasos» y después el uso diario. No hace falta comple
 
 ### Paso 1 · Tu perfil (primer paso, «Paso 1 de 3 · Tu perfil»)
 
-- **Tu carrera.** Buscala en la lista de carreras, dentro de su grupo:
-  - Abogacía y legales, Contaduría, impuestos y finanzas, y Administración de empresas: grupo **«Derecho, contabilidad y gestión»**.
-  - Comunicación y prensa, Marketing y relaciones públicas, y Relaciones internacionales y comex: grupo **«Comunicación y relaciones»**.
+- **Tu carrera.** Las 8 carreras de la beta aparecen primero, en el grupo **«Carreras de la beta»**; las demás quedan debajo, en **«Otras»**.
   - Si Mauro te invitó desde la lista de espera, tu carrera ya puede venir marcada. **Si no encontrás tu carrera o la lista no te alcanza, es el hallazgo más importante del ensayo: anotalo.**
 - **Tus datos:** país de residencia (empezá a escribir y elegí de la lista), nivel de inglés (hay una ayuda con ejemplos), años de experiencia y modalidad (remoto, híbrido, presencial).
 - **Resumen de tu perfil:** escribilo con tus palabras. Debajo hay ejemplos de resumen para distintas carreras: sirven de guía, pero el tuyo tiene que ser verdadero (que no te infle).
