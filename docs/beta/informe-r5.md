@@ -6,7 +6,7 @@ Tanda R5, rumbo a la beta del 26/11 (ensayo con testers del 20 al 24/11). Cuatro
 
 | Orden | PR | Ticket | Carril | Antes de mergear |
 |---|---|---|---|---|
-| 1 | PR del e2e 124 (ver §6) | Arreglo del spec 124 del MCP | verde | Destraba el e2e de todos los demás PR |
+| 1 | [#463](https://github.com/Malejo01/job-search-os/pull/463) | Arreglo del spec 124 del MCP (§6) | verde | Destraba el e2e de todos los demás PR |
 | 2 | [#456](https://github.com/Malejo01/job-search-os/pull/456) | C6 · estados de carga | verde | — |
 | 3 | [#455](https://github.com/Malejo01/job-search-os/pull/455) | C7 · /demo y pre-puntaje | verde | — |
 | 4 | [#458](https://github.com/Malejo01/job-search-os/pull/458) | C9 · Perfil, anchos, Primeros pasos y glosario | verde | — |
@@ -68,7 +68,7 @@ Todos: barrido de privacidad con veredicto PASA antes de cada push, y el pre-pus
 
 ## 6. CI: el e2e 124 del MCP
 
-El e2e `124-mcp-tokens-personales.spec.ts:196` falla en todos los PR (recibe 200 donde espera 401). El diagnóstico de seguridad dice que **no es un problema de acceso**: el servidor de e2e declara tester a la persona B (`apps/web/playwright.config.ts:54-56`, desde R4-15) y el spec supone que no lo es. El gate falla cerrado (`apps/web/lib/mcp-user.ts:52`, `packages/pipeline/src/agent/gate.ts:41-42`). El arreglo usa en el spec una tercera persona que no es tester ni admin.
+El e2e `124-mcp-tokens-personales.spec.ts:196` falla en todos los PR (recibe 200 donde espera 401). El diagnóstico de seguridad dice que **no es un problema de acceso**: el servidor de e2e declara tester a la persona B (`apps/web/playwright.config.ts:54-56`, desde R4-15) y el spec supone que no lo es. El gate falla cerrado (`apps/web/lib/mcp-user.ts:52`, `packages/pipeline/src/agent/gate.ts:41-42`). El arreglo ([#463](https://github.com/Malejo01/job-search-os/pull/463)) usa en el spec una tercera persona que no es tester ni admin.
 
 ## 7. Hallazgos de QA, priorizados
 

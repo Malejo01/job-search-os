@@ -1433,6 +1433,10 @@ Fuente del estado: `ops/tanda-r4/estado.md`. Los PR de carril rojo se acumulan e
 `deps:` C3 (parte 2) · `est:` 3 h · `estado:` en PR, para que lo revise Mauro ([#462](https://github.com/Malejo01/job-search-os/pull/462), 12/11)
 - 8 personas ficticias, spec 126 (recorrido con capturas a 390 y 1280 px), 12 avisos inventados de RR.PP. y programación, test de prefiltro de las 8 carreras e informes en `docs/beta/qa-carreras/` con hallazgos P0/P1/P2. Parte 2 sobre C3+C8 en una rama local sin push.
 
+### e2e 124 · Persona sin acceso al MCP que no sea tester
+`deps:` — · `est:` 30 min · `estado:` en PR, para que lo revise Mauro ([#463](https://github.com/Malejo01/job-search-os/pull/463), 12/11)
+- El spec 124 esperaba 401 para la persona B, que el servidor de e2e declara tester (`playwright.config.ts:54-56`): usa una tercera persona ficticia. No era un problema de acceso (revisión de seguridad). Destraba el e2e de todos los PR.
+
 ### C13 · Cierre de la tanda
 `deps:` todo en PR · `estado:` en PR, para que lo revise Mauro (12/11)
 - Este bloque al día y `docs/beta/informe-r5.md` (orden de merge, pruebas, migraciones sin aplicar, pasos manuales y hallazgos de QA).
