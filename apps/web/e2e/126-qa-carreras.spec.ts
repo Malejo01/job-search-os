@@ -4,6 +4,7 @@ import {
   cleanup,
   completeStep1,
   createInvitation,
+  ensureSkills,
   fillSkills,
   finding,
   newRun,
@@ -11,7 +12,7 @@ import {
   seedAndEvaluate,
   seedPool,
 } from "./personas/flow";
-import type { PersonaKey } from "./personas/personas";
+import { buildPersona, type PersonaKey } from "./personas/personas";
 
 /**
  * Flujo 126 (C12, R5): QA por carrera, una persona ficticia por cada una de las 8 carreras de la beta.
@@ -105,6 +106,43 @@ async function shoot(page: Page, carrera: string, pantalla: string): Promise<voi
   await page.setViewportSize({ width: 390, height: 844 });
 }
 
+// El servidor guarda el catálogo de skills una hora (`unstable_cache`, skill-taxonomy.ts): en una base
+// sin seed completo hay que cargar las skills de las 8 personas antes de que cualquiera abra /onboarding/skills
+test.beforeAll(async () => {
+  for (const carrera of CARRERAS) await ensureSkills(buildPersona(carrera.key));
+});
+
+// /acceso va aparte del recorrido en serie: un chip que hoy guarda otra carrera (RR.PP. sobre main) falla
+// su propia prueba pero no corta el registro ni el resto de la persona
+for (const carrera of CARRERAS) {
+  test(`Flujo 126: /acceso, el chip de ${carrera.nombre} guarda la carrera esperada`, async ({
+    browser,
+  }) => {
+    const wide = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    try {
+      const acceso = await wide.newPage();
+      await acceso.goto("/acceso");
+      const chip = acceso.locator(`input[name="carrera-chip"][value="${carrera.chip.key}"]`);
+      await expect(chip).toHaveCount(1);
+      await expect(acceso.getByText(carrera.chip.label, { exact: true }).first()).toBeVisible();
+      await chip.check({ force: true });
+      const saved = acceso.locator('input[type="hidden"][name="role"]');
+      const actual = await saved.inputValue();
+      if (actual !== carrera.expectedRole) {
+        finding(
+          `/acceso: el chip «${carrera.chip.label}» guarda «${actual}» y debería guardar «${carrera.expectedRole}»`,
+        );
+      }
+      await shoot(acceso, carrera.key, "acceso");
+      await expect(saved, `el chip «${carrera.chip.label}» guarda la carrera esperada`).toHaveValue(
+        carrera.expectedRole,
+      );
+    } finally {
+      await wide.close();
+    }
+  });
+}
+
 for (const carrera of CARRERAS) {
   test.describe(`Flujo 126: QA de ${carrera.nombre} (${carrera.key})`, () => {
     test.describe.configure({ mode: "serial" });
@@ -129,32 +167,6 @@ for (const carrera of CARRERAS) {
 
     test.afterAll(async () => {
       await cleanup(run, context);
-    });
-
-    test("/acceso: el chip existe y guarda la carrera esperada", async ({ browser }) => {
-      const wide = await browser.newContext({ viewport: { width: 1280, height: 900 } });
-      try {
-        const acceso = await wide.newPage();
-        await acceso.goto("/acceso");
-        const chip = acceso.locator(`input[name="carrera-chip"][value="${carrera.chip.key}"]`);
-        await expect(chip).toHaveCount(1);
-        await expect(acceso.getByText(carrera.chip.label, { exact: true }).first()).toBeVisible();
-        await chip.check({ force: true });
-        const saved = acceso.locator('input[type="hidden"][name="role"]');
-        // Lo que hoy está mal no corta el recorrido: expect.soft junta todo
-        await expect
-          .soft(saved, `el chip «${carrera.chip.label}» guarda la carrera esperada`)
-          .toHaveValue(carrera.expectedRole);
-        const actual = await saved.inputValue();
-        if (actual !== carrera.expectedRole) {
-          finding(
-            `/acceso: el chip «${carrera.chip.label}» guarda «${actual}» y debería guardar «${carrera.expectedRole}» (lo arregla C3)`,
-          );
-        }
-        await shoot(acceso, carrera.key, "acceso");
-      } finally {
-        await wide.close();
-      }
     });
 
     test("invitación, registro y onboarding", async () => {
