@@ -184,8 +184,24 @@ describe("prefiltro con relaciones públicas", () => {
     expect(run("Operations Manager", ["relaciones_publicas"])).toMatchObject({ pass: false });
   });
 
-  it("«Brand Manager» sigue siendo de marketing, no de relaciones públicas", () => {
+  it.each([
+    "Community Manager",
+    "Social Media Manager",
+    "Brand Manager",
+    "Assistant Brand Manager",
+    "Public Affairs Manager",
+    "Communications Manager",
+    "Event Manager",
+    "Events Manager",
+  ])("«%s» pasa para relaciones públicas y se bloquea sin la carrera", (title) => {
+    expect(run(title, ["relaciones_publicas"]).pass).toBe(true);
+    expect(run(title)).toMatchObject({ pass: false, reason: "titulo_blocklist" });
+    expect(run(title, ["backend"])).toMatchObject({ pass: false });
+  });
+
+  it("la frase libera «manager», no el resto de la blocklist ni otros cargos de marketing", () => {
+    expect(run("Brand Manager Lead", ["relaciones_publicas"])).toMatchObject({ pass: false });
+    expect(run("Marketing Manager", ["relaciones_publicas"])).toMatchObject({ pass: false });
     expect(run("Brand Manager", ["marketing_digital"]).pass).toBe(true);
-    expect(run("Brand Manager", ["relaciones_publicas"])).toMatchObject({ pass: false });
   });
 });

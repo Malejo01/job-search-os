@@ -159,8 +159,20 @@ export const ROLE_OWN_TITLE_PHRASES: Partial<Record<RoleKey, readonly string[]>>
     "assistant brand manager",
     "communications manager",
   ],
-  // ADR-033: relaciones públicas es carrera propia.
-  relaciones_publicas: ["pr manager", "public relations manager", "communications manager"],
+  // ADR-033: relaciones públicas es carrera propia. Además de sus cargos, comparte con marketing los de
+  // redes y marca (una persona de RR.PP. también hace community y contenidos).
+  relaciones_publicas: [
+    "pr manager",
+    "public relations manager",
+    "public affairs manager",
+    "communications manager",
+    "community manager",
+    "social media manager",
+    "brand manager",
+    "assistant brand manager",
+    "event manager",
+    "events manager",
+  ],
   comunicacion: ["communications manager", "pr manager"],
   abogacia: ["legal manager"],
   rrhh_it: [
