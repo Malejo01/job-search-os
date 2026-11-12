@@ -35,7 +35,7 @@ export const TEXTOS_ANI: readonly TextoAni[] = [
   {
     area: "/acceso",
     nombre: "Bajada de la cabecera",
-    extracto: "Para estudiantes y recién recibidos de 6 carreras. Abrimos el 26 de noviembre.",
+    extracto: "Para estudiantes y recién recibidos de 8 carreras. Abrimos el 26 de noviembre.",
     archivo: "apps/web/app/(public)/acceso/page.tsx",
     verEn: "/acceso",
   },

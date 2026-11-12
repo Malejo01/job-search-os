@@ -35,14 +35,16 @@ const FAQS: FaqItem[] = [
     q: "¿Para quién es esta beta cerrada?",
     a: (
       <div className="flex flex-col gap-2">
-        <p>En esta primera etapa de prueba, la app está pensada para personas de 6 carreras:</p>
+        <p>En esta primera etapa de prueba, la app está pensada para personas de 8 carreras:</p>
         <ul className="list-disc pl-5">
           <li>Abogacía</li>
           <li>Contaduría, impuestos y finanzas</li>
           <li>Administración de empresas</li>
           <li>Comunicación</li>
-          <li>Marketing digital y relaciones públicas</li>
+          <li>Marketing</li>
+          <li>Relaciones públicas</li>
           <li>Relaciones internacionales</li>
+          <li>Programación</li>
         </ul>
         <p>
           Si te formaste o trabajás en alguna de estas áreas, las evaluaciones y recomendaciones

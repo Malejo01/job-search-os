@@ -1377,3 +1377,12 @@ Fuente del estado: `ops/tanda-r4/estado.md`. Los PR de carril rojo se acumulan e
 ### Pendiente después de la tanda
 - **Mauro:** pushear o resolver R4-01 (patrón #64 del barrido) y cerrar el #437; mergear #444, #445 con #446, #447, #448, #449 y, al final, el PR rojo #439; editar `smoke.yml` y la regla 5 de `CLAUDE.md`; aplicar la fila `assistant_chat` y cargar las variables del asistente; revisar la pausa de auto-merge (smoke de #442 cancelado por timeout).
 - **Sin resolver:** R4-10 y R4-11 (Ani y cuenta de Mercado Pago); tono definitivo de R4-16 y R4-17; las 10 tareas «[Auditoría R4]» de Notion; medir el costo real del chat de CV con `pnpm llm:spend`.
+
+## Bloque 19 · Tanda R5 (10/11)
+
+### C1 · Textos públicos y /acceso a 8 carreras
+`deps:` — · `est:` 1 h · `estado:` en PR, para que lo revise Mauro (10/11)
+- Portada, /acceso (titular, bajada, chips y texto de «Pasáselo a alguien»), /ayuda y /como-esta-hecho pasan de 6 a 8 carreras: abogacía, contaduría, administración, comunicación, marketing, relaciones públicas, relaciones internacionales y programación. «Marketing y RR.PP.» pasa a ser «Marketing».
+- Los chips de Relaciones públicas y Programación guardan una carrera que ya existe hasta C3 (carril rojo): `marketing_digital` y `fullstack`. `BETA_LAUNCH_ROLE_KEYS` y el grupo «Carreras de la beta» del selector no cambian (eso es pipeline, C3).
+- e2e 44 (los 8 chips y la carrera que guarda cada uno) y 96 (la lista de /ayuda); guion del reel en `docs/beta/voces-jovenes/guion-demo.md`.
+- **Acepta:** /acceso muestra 8 chips; elegir Relaciones públicas envía `marketing_digital` y Programación envía `fullstack`.

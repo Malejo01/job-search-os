@@ -85,8 +85,8 @@ export async function login(page: Page): Promise<void> {
 }
 
 /**
- * /acceso (C10): las carreras fuera de las 6 de la beta se eligen en «Otra carrera». En el celular
- * ese chip aparece después de «+3».
+ * /acceso (C10): las carreras fuera de las 8 de la beta se eligen en «Otra carrera». En el celular
+ * ese chip aparece después de «+5».
  */
 export async function openOtherCareer(page: Page): Promise<void> {
   const more = page.getByRole("button", { name: /^Ver \d+ más$/ });

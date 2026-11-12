@@ -36,14 +36,17 @@ test.describe("Flujo 96: Página pública de ayuda y preguntas frecuentes (/ayud
       await expect(page.getByRole("heading", { level: 2, name: q })).toBeVisible();
     }
 
-    // 4. Mención de las 6 carreras y fecha clave
+    // 4. Mención de las 8 carreras y fecha clave (C1, 10/11)
     const body = page.locator("main");
     await expect(body).toContainText("Abogacía");
     await expect(body).toContainText("Contaduría, impuestos y finanzas");
     await expect(body).toContainText("Administración de empresas");
     await expect(body).toContainText("Comunicación");
-    await expect(body).toContainText("Marketing digital y relaciones públicas");
+    await expect(body).toContainText("Marketing");
+    await expect(body).toContainText("Relaciones públicas");
     await expect(body).toContainText("Relaciones internacionales");
+    await expect(body).toContainText("Programación");
+    await expect(body).toContainText("8 carreras");
     await expect(body).toContainText("jueves 26 de noviembre");
 
     // 5. Enlaces internos correctos
