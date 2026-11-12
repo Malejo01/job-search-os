@@ -52,7 +52,7 @@ Rama local sobre `ronda/r5-c8-catalogos` (incluye C3), sin push. Resultados:
 | Programación | 1 pasó, 1 falló, 4 sin correr | /acceso ok; falla `skill-typescript` en el onboarding, igual que sobre main: no concluyente en local (base sin seed), lo verifica el CI del PR |
 
 Hallazgos nuevos o cambiados:
-- **P1 · prefiltro de RR.PP. (en arreglo en #457):** `ROLE_OWN_TITLE_PHRASES.relaciones_publicas` (`packages/pipeline/src/prefilter/prefilter.ts:163`) no libera «community manager» ni «social media manager»; esos avisos se descartan para RR.PP. con `titulo_blocklist` y llegan a Marketing (`prefilter.ts:153-161`). Test: `relaciones_publicas-04` como `it.fails` en `golden-carreras-r5.test.ts`.
+- **P1 · prefiltro de RR.PP. (arreglado en #457, ccc3318):** `ROLE_OWN_TITLE_PHRASES.relaciones_publicas` (`packages/pipeline/src/prefilter/prefilter.ts:163`) no liberaba «community manager» ni «social media manager»; esos avisos se descartaban para RR.PP. con `titulo_blocklist` y llegaban a Marketing (`prefilter.ts:153-161`). Ahora libera community manager, social media manager, brand manager, assistant brand manager, public affairs manager, event manager y events manager, con tests. Verificado con el caso `relaciones_publicas-04` en la rama local de la parte 2, donde estaba como fallo esperado antes del arreglo.
 - **P2 · golden de marketing:** `marketing_digital-04` es un aviso de RR.PP.; C3 lo evalúa contra RR.PP. con un parche del test (`MOVED_TO_RRPP`). Hay que mover el caso al JSON de RR.PP.
 - Resuelto: el chip de RR.PP. de /acceso ya guarda `relaciones_publicas` (era P2 conocido).
 - Sin cambios: el P1 de criterios (`criteriaFromOnboarding` y `DISCIPLINES` no se tocaron en C3 ni en C8) y el P2 de la ayuda.
