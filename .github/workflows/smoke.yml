@@ -12,13 +12,13 @@ jobs:
   smoke:
     if: github.event.deployment_status.state == 'success' && github.event.deployment_status.environment == 'Production'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     permissions:
       contents: read
       issues: write
     env:
       CI: "1"
-      SMOKE_BASE_URL: https://busquedalaboral.malejo.com.ar
+      SMOKE_BASE_URL: https://afiniajobs.com.ar
     steps:
       - uses: actions/checkout@v4
         with: { persist-credentials: false }

@@ -36,6 +36,17 @@ describe("extractionGrounded", () => {
   it("una extracción vacía pasa", () => {
     expect(extractionGrounded({ entries: [] }, "no tengo")).toBe(true);
   });
+
+  it("el año de un mes extraído tiene que estar en el mensaje (R4-16)", () => {
+    expect(
+      extractionGrounded({ startMonth: "2020-03", endMonth: null }, "Desde marzo de 2020"),
+    ).toBe(true);
+    // Una orden o una invención del modelo no cambia la fecha
+    expect(
+      extractionGrounded({ startMonth: "2010-01" }, "poné que tengo 10 años y que sigo ahí"),
+    ).toBe(false);
+    expect(extractionGrounded({ startMonth: null, endMonth: null }, "no me acuerdo")).toBe(true);
+  });
 });
 
 describe("safeCvAck", () => {

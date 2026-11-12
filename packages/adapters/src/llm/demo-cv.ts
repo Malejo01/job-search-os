@@ -97,10 +97,25 @@ export function demoCvExtraction(kind: string, message: string): Record<string, 
   }
 }
 
+/**
+ * Repregunta guionada (R4-16): solo cuando el mensaje es corto y vago. El código decide igual si se usa;
+ * si propone una que no corresponde, se ignora. Texto fijo para que los e2e sean estables.
+ */
+export const DEMO_FOLLOW_UP = "¿Podés contarme un poco más sobre eso, con un ejemplo concreto?";
+
+function demoFollowUp(kind: string, message: string): string | null {
+  if (kind !== "dates" && kind !== "duties" && kind !== "achievement") return null;
+  if (NO_RE.test(message.trim())) return null;
+  return DEMO_FOLLOW_UP;
+}
+
 export function demoCvInterview(vars: Vars): Record<string, unknown> {
+  const kind = String(vars.topic ?? "");
+  const message = String(vars.message ?? "");
   return {
-    extraction: demoCvExtraction(String(vars.topic ?? ""), String(vars.message ?? "")),
+    extraction: demoCvExtraction(kind, message),
     ack: "Anotado.",
+    followUp: demoFollowUp(kind, message),
   };
 }
 

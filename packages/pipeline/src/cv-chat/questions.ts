@@ -12,6 +12,8 @@ const orgOf = (s: CvChatState, i: number | null): string => {
 
 /** Texto de la pregunta para un tema, con el contexto del trabajo si lo hay. */
 export function cvTopicQuestion(topic: CvTopic, s: CvChatState): string {
+  // Repregunta vigente (R4-16): texto ya validado por el código (`resolveCvFollowUp`)
+  if (s.followUp && s.followUp.key === topic.key) return s.followUp.question;
   const at = orgOf(s, topic.workIndex);
   switch (topic.kind) {
     case "target":
