@@ -2,28 +2,30 @@ import { createHash, randomBytes } from "node:crypto";
 import * as s from "@job-search-os/db/schema";
 import { expect, test, type APIRequestContext } from "@playwright/test";
 import { eq } from "drizzle-orm";
+import { hashPassword } from "@job-search-os/db/password";
+import { TERMS_VERSION } from "../lib/terms";
 import {
   createJob,
   createPasswordResetToken,
   deleteJob,
-  E2E_B_USER_ID,
   E2E_USER_ID,
-  ensureSecondUser,
   login,
-  loginAsSecondUser,
   ownerDb,
   removeSecondUser,
   restoreSeedPassword,
   seedSecondUserData,
   type SecondUserData,
 } from "./helpers";
+import type { Page } from "@playwright/test";
 
 /**
  * Flujo 124 (MCP-1): tokens personales del MCP, por HTTP contra /api/mcp.
  *
  * El server de e2e corre con `MCP_USER_TOKENS=testers` y `MCP_USER_ID` = la persona B
  * (playwright.config.ts). El usuario seed (A) es admin en el CI, así que pasa el gate de testers
- * (mismo criterio que el asistente); B no. Sin MCP_ALLOW_QUERY_TOKEN: todo va por Bearer.
+ * (mismo criterio que el asistente); B también es tester (`ASSISTANT_TESTER_EMAILS` incluye a
+ * usuario-b@dos.test, para el flujo 123). Para «alguien que no es tester» se usa una tercera persona
+ * (C) con un email fuera de esa lista y de `ADMIN_EMAILS`. Sin MCP_ALLOW_QUERY_TOKEN: todo va por Bearer.
  *
  * Los tokens que se crean a mano en la base son textos aleatorios del momento con el formato
  * `afj_…`: nunca valen fuera de esta corrida. Se generan acá con node:crypto (sin
@@ -34,6 +36,71 @@ const HEADERS = {
   "content-type": "application/json",
   accept: "application/json, text/event-stream",
 };
+
+/** Tercera persona ficticia: no es admin ni tester (su email no está en ninguna de las dos listas). */
+const NO_ACCESS_USER_ID = "c0000000-0000-4000-8000-000000000003";
+const NO_ACCESS_EMAIL = "sin-acceso@tres.test";
+const NO_ACCESS_PASSWORD = "dev-password-c-local";
+
+/** Crea a C con onboarding completo (si no, el layout la manda a /onboarding). Idempotente. */
+async function ensureNoAccessUser(): Promise<void> {
+  const { db, close } = ownerDb();
+  try {
+    await db
+      .insert(s.users)
+      .values({
+        id: NO_ACCESS_USER_ID,
+        email: NO_ACCESS_EMAIL,
+        name: "Persona C",
+        passwordHash: hashPassword(NO_ACCESS_PASSWORD),
+        termsVersion: TERMS_VERSION,
+        termsAcceptedAt: new Date(),
+      })
+      .onConflictDoNothing();
+    await db
+      .insert(s.profiles)
+      .values({
+        userId: NO_ACCESS_USER_ID,
+        displayName: "Persona C",
+        locationCountry: "AR",
+        inboundAddress: "u_tres_c@ingest.test",
+        profileSummary:
+          "Perfil ficticio de la persona C para los tests del MCP sin acceso. No corresponde a nadie real y solo existe en la base local.",
+      })
+      .onConflictDoNothing();
+    const [crit] = await db
+      .select({ id: s.evaluationCriteria.id })
+      .from(s.evaluationCriteria)
+      .where(eq(s.evaluationCriteria.userId, NO_ACCESS_USER_ID));
+    if (!crit) {
+      await db
+        .insert(s.evaluationCriteria)
+        .values({ userId: NO_ACCESS_USER_ID, version: 1, active: true, rules: {} as never });
+    }
+  } finally {
+    await close();
+  }
+}
+
+async function removeNoAccessUser(): Promise<void> {
+  const { db, close } = ownerDb();
+  try {
+    await db.delete(s.mcpTokens).where(eq(s.mcpTokens.userId, NO_ACCESS_USER_ID));
+    await db.delete(s.evaluationCriteria).where(eq(s.evaluationCriteria.userId, NO_ACCESS_USER_ID));
+    await db.delete(s.profiles).where(eq(s.profiles.userId, NO_ACCESS_USER_ID));
+    await db.delete(s.users).where(eq(s.users.id, NO_ACCESS_USER_ID));
+  } finally {
+    await close();
+  }
+}
+
+async function loginAsNoAccessUser(page: Page): Promise<void> {
+  await page.goto("/login");
+  await page.getByLabel("Email").fill(NO_ACCESS_EMAIL);
+  await page.getByLabel("Contraseña").fill(NO_ACCESS_PASSWORD);
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await page.waitForURL("**/hoy**");
+}
 
 const newToken = () => `afj_${randomBytes(32).toString("base64url")}`;
 const sha = (t: string) => createHash("sha256").update(t).digest("hex");
@@ -105,6 +172,7 @@ test.describe("Flujo 124: tokens personales del MCP", () => {
     await removeTokensOf(E2E_USER_ID);
     await deleteJob(jobA).catch(() => {});
     await removeSecondUser().catch(() => {});
+    await removeNoAccessUser().catch(() => {});
   });
 
   test("A (tester) genera un token y ve la URL una sola vez", async ({ page }) => {
@@ -194,13 +262,13 @@ test.describe("Flujo 124: tokens personales del MCP", () => {
   });
 
   test("el token de alguien fuera de la lista de testers da 401", async ({ request }) => {
-    await ensureSecondUser();
-    const tokenB = newToken();
-    await insertToken(E2E_B_USER_ID, tokenB);
-    const res = await listJobs(request, tokenB);
+    await ensureNoAccessUser();
+    const tokenC = newToken();
+    await insertToken(NO_ACCESS_USER_ID, tokenC);
+    const res = await listJobs(request, tokenC);
     expect(res.status).toBe(401);
     expect(JSON.parse(res.body)).toEqual({ error: "no autorizado" });
-    expect(res.body).not.toContain(tokenB);
+    expect(res.body).not.toContain(tokenC);
   });
 
   test("token vencido, inexistente o mal formado: 401 igual, sin el token en la respuesta", async ({
@@ -267,8 +335,8 @@ test.describe("Flujo 124: tokens personales del MCP", () => {
   });
 
   test("una persona que no es tester no ve la pantalla ni el link", async ({ page }) => {
-    await ensureSecondUser();
-    await loginAsSecondUser(page);
+    await ensureNoAccessUser();
+    await loginAsNoAccessUser(page);
     await page.goto("/settings");
     await expect(page.getByRole("link", { name: /Conexiones con chats/ })).toHaveCount(0);
     const res = await page.goto("/settings/conexiones");
