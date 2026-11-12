@@ -16,7 +16,8 @@ export type PersonaKey =
   | "agustina"
   | "bruno"
   | "rocio"
-  | "ines";
+  | "ines"
+  | "julian";
 
 export type PersonaOffer = SeedPublicJob & {
   /** Es del puesto de la persona (false = control negativo, de otro puesto). */
@@ -87,6 +88,10 @@ export const SKILL_NAMES: Record<string, string> = {
   public_affairs: "Asuntos públicos e institucionales",
   diplomacy: "Diplomacia y negociación internacional",
   trade_agreements: "Integración y acuerdos comerciales",
+  typescript: "TypeScript",
+  react: "React",
+  nextjs: "Next.js",
+  git: "Git / GitHub",
 };
 
 type RawOffer = {
@@ -698,6 +703,65 @@ export function buildPersona(key: PersonaKey, tag: number = Date.now()): Persona
           },
         ),
       };
+    case "julian":
+      // C12 (R5): programación. En main la carrera se guarda como `fullstack`.
+      return {
+        ...base,
+        name: "Julián Ficticio",
+        role: "fullstack",
+        roleGroup: "Tecnología",
+        country: "AR",
+        cefr: "B2",
+        years: "2",
+        remoteOnly: true,
+        summary:
+          "Perfil ficticio de la persona Julián: estudiante avanzado de programación con dos años de práctica en proyectos propios con TypeScript, React y Node.js, busca su primer puesto full-stack.",
+        skills: [
+          { slug: "typescript", level: 2 },
+          { slug: "react", level: 2 },
+          { slug: "nodejs", level: 2 },
+          { slug: "git", level: 3 },
+        ],
+        offers: offers(
+          tag,
+          "Programación",
+          "fullstack",
+          [
+            {
+              sourceKind: "getonboard_api",
+              skills: [
+                ["typescript", true],
+                ["react", true],
+                ["git", false],
+              ],
+            },
+            {
+              sourceKind: "remoteok",
+              skills: [
+                ["nodejs", true],
+                ["sql", true],
+                ["rest_apis", false],
+              ],
+            },
+            {
+              sourceKind: "jobicy",
+              skills: [
+                ["react", true],
+                ["nextjs", true],
+                ["typescript", false],
+              ],
+            },
+          ],
+          "marketing_digital",
+          {
+            sourceKind: "getonboard_api",
+            skills: [
+              ["seo", true],
+              ["google_ads", true],
+            ],
+          },
+        ),
+      };
   }
 }
 
@@ -712,4 +776,5 @@ export const PERSONA_KEYS: PersonaKey[] = [
   "bruno",
   "rocio",
   "ines",
+  "julian",
 ];
