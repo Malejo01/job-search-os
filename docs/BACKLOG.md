@@ -1021,6 +1021,13 @@ Seis carreras de la beta cerrada (ADR-027). Los PR están en draft y apilados: s
 
 Última corrida completa del e2e en #403 antes del cierre: **664 ok, 0 fallas** (6 salteados).
 
+### MCP-1 · Tokens personales del MCP
+`deps:` R4-15 (lista de testers) · `est:` 1 día · `estado:` done 2026-11-09, en PR rojo (Mauro mergea)
+- Tabla `mcp_tokens` (hash sha256, vence a los 30 días, revocable, máximo 3 activos) con RLS y `mcp_token_user()` (SECURITY DEFINER, tope de 60 llamadas por minuto). El MCP resuelve el usuario por request; se eliminó el `cachedUserId` global. `MCP_TOKEN` sin cambios.
+- Pantalla `/settings/conexiones` solo para testers con `MCP_USER_TOKENS=testers`. `readOnlyHint` en las 6 tools de lectura. ADR-032.
+- **Mauro:** aplicar 0060 y `rls/0019` en Neon antes del merge; en Vercel, `MCP_USER_TOKENS=testers`, `MCP_ALLOW_QUERY_TOKEN=1` y el email de Ani en `ASSISTANT_TESTER_EMAILS`.
+- **Fuera:** OAuth, antes de abrir el MCP a la beta.
+
 ### Pendiente después de la tanda
 - Mauro: `pnpm db:migrate` (0048 y 0049), merge en orden y deploy; después `pnpm pool:rehint --remote` (sin y con `--apply`) y medir volumen para sacar cada carrera de `UNLISTED_ROLE_KEYS`.
 - Golden por carrera con avisos reales (evals pagos) y selección de personas por chip: tanda siguiente.

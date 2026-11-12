@@ -75,6 +75,7 @@ const FN_TABLES: Target[] = [
   { table: "invitations", column: "used_by_user_id" },
   { table: "profiles", column: "user_id" },
   { table: "password_reset_tokens", column: "user_id" },
+  { table: "mcp_tokens", column: "user_id" },
 ];
 const key = (t: Target) => `${t.table}.${t.column}`;
 const snapshotB: Record<string, string> = {};
@@ -163,6 +164,9 @@ async function seed(id: string, tag: string): Promise<{ jobId: string }> {
   await owner`insert into career_history (user_id, kind, organization, title, start_month, bullets)
                values (${id}, 'trabajo', 'Empresa A', 'Cargo Ficticio', '2022-03', '{"Viñeta ficticia"}')`;
   await owner`insert into market_candidates (user_id, term, count) values (${id}, 'termino ficticio', 3)`;
+  // Hash ficticio de 64 hex, distinto por persona (no es el hash de ningún token real)
+  await owner`insert into mcp_tokens (user_id, token_hash, label, expires_at)
+               values (${id}, ${(tag.charCodeAt(0).toString(16) + "0".repeat(64)).slice(0, 64)}, 'Chat de prueba', now() + interval '30 days')`;
   return { jobId: job!.id };
 }
 
@@ -555,6 +559,16 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
           tx<{ ok: boolean }[]>`select invitation_is_redeemable('no-existe', ${EMAIL_B}) as ok`,
       );
       expect(noExiste!.ok).toBe(false);
+    },
+    // MCP-1: resuelve solo un token cuyo hash se conoce. Con contexto de A, un hash inventado o mal
+    // formado no devuelve nada ni toca filas (la huella de B en mcp_tokens se compara al final).
+    mcp_token_user: async () => {
+      for (const hash of ["f".repeat(64), "no-es-hex", ""]) {
+        const rows = await asUser(A, (tx) => tx`select * from mcp_token_user(${hash})`);
+        expect(rows).toHaveLength(0);
+      }
+      const rows = await asUser(A, (tx) => tx`select * from mcp_token_user(null)`);
+      expect(rows).toHaveLength(0);
     },
     // Solo devuelve la fila de un token cuyo hash se conoce; uno inventado no devuelve nada
     check_reset_token: async () => {

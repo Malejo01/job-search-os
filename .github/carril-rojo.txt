@@ -44,6 +44,7 @@ apps/web/app/**/actions.ts
 apps/web/app/**/*-actions.ts
 apps/web/lib/application-form.ts
 apps/web/lib/mcp-user.ts
+apps/web/lib/mcp-tokens.ts
 apps/web/lib/password-reset.ts
 apps/web/lib/invitations*
 apps/web/lib/senders.ts

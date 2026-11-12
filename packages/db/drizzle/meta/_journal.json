@@ -421,6 +421,13 @@
       "when": 1793726408289,
       "tag": "0059_beta_feedback_status",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1794262338773,
+      "tag": "0060_mcp_tokens",
+      "breakpoints": true
     }
   ]
 }

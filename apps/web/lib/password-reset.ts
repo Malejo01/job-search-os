@@ -14,7 +14,7 @@ import {
   escapeEmailHtml,
   PRODUCT_NAME,
 } from "@job-search-os/pipeline";
-import { and, eq, gt, sql } from "drizzle-orm";
+import { and, eq, gt, isNull, sql } from "drizzle-orm";
 import { after } from "next/server";
 import { getAppDb, withUser } from "./db";
 import { MAX_PASSWORD_LENGTH } from "./invitations-core";
@@ -151,6 +151,12 @@ export async function resetPassword(token: string, newPassword: string): Promise
       .where(eq(s.users.id, check.userId));
     // Todos los tokens del usuario, no solo el consumido: un link viejo no sobrevive al reset.
     await markAllResetTokensUsed(tx, check.userId, now);
+    // MCP-1: los tokens personales del MCP tampoco sobreviven al reset (quien tomó la cuenta y creó
+    // uno no conserva el acceso desde un chat). Misma transacción: o se revocan todos o no cambia nada.
+    await tx
+      .update(s.mcpTokens)
+      .set({ revokedAt: now })
+      .where(and(eq(s.mcpTokens.userId, check.userId), isNull(s.mcpTokens.revokedAt)));
     return true;
   });
   return changed ? check : { ok: false, reason: "used" };

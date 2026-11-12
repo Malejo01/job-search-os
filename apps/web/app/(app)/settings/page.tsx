@@ -12,6 +12,7 @@ import { withUser } from "@/lib/db";
 import { contactLink } from "@/lib/contact";
 import { getInboundAddress } from "@/lib/inbound-address";
 import { canCreateInvitations } from "@/lib/invitations";
+import { canUseMcpTokens } from "@/lib/mcp-tokens";
 import { getTargetRoles, getTargetRolesLimit, getTargetSpecialties } from "@/lib/onboarding";
 import { getUserPlan, type UserPlan } from "@/lib/user-plan";
 import { requireUserId } from "@/lib/session";
@@ -52,7 +53,7 @@ export default async function SettingsPage({
   const userId = await requireUserId();
   const { error, direccion, puesto } = await searchParams;
   const pricing = pricingEnabled(process.env);
-  const [address, targetRoles, targetSpecialties, rolesLimit, canInvite, userPlan] =
+  const [address, targetRoles, targetSpecialties, rolesLimit, canInvite, userPlan, canConnectChat] =
     await Promise.all([
       getInboundAddress(userId),
       getTargetRoles(userId),
@@ -61,6 +62,8 @@ export default async function SettingsPage({
       canCreateInvitations(userId),
       // «Tu plan» (C-11b) solo con los precios encendidos
       pricing ? getUserPlan(userId) : null,
+      // MCP-1: conexiones con chats, solo testers y con MCP_USER_TOKENS=testers
+      canUseMcpTokens(userId),
     ]);
   const [user] = await withUser(userId, (tx) =>
     tx.select({ email: s.users.email }).from(s.users).where(eq(s.users.id, userId)).limit(1),
@@ -166,6 +169,20 @@ export default async function SettingsPage({
       <Link href="/settings/asistente" className={LINK}>
         Asistente de email
       </Link>
+
+      {canConnectChat ? (
+        <Link href="/settings/conexiones" className={NAV_CARD}>
+          <span className="flex flex-col">
+            <span className="font-bold text-fg underline underline-offset-2">
+              Conexiones con chats
+            </span>
+            <span className="text-fg-muted">Conectá ChatGPT a tu cuenta con un token personal</span>
+          </span>
+          <span aria-hidden="true" className="text-lg text-fg-subtle">
+            ›
+          </span>
+        </Link>
+      ) : null}
 
       <section className={SECTION}>
         <h2 className={H2}>Remitentes</h2>

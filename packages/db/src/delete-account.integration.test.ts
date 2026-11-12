@@ -111,6 +111,9 @@ async function seed(id: string, tag: string): Promise<void> {
   await owner`insert into career_history (user_id, kind, organization, title)
                values (${id}, 'trabajo', 'Empresa A', 'Cargo Ficticio')`;
   await owner`insert into market_candidates (user_id, term, count) values (${id}, 'termino ficticio', 2)`;
+  // Hash ficticio de 64 hex, distinto por persona (no es el hash de ningún token real)
+  await owner`insert into mcp_tokens (user_id, token_hash, label, expires_at)
+               values (${id}, ${(tag.charCodeAt(0).toString(16) + "0".repeat(64)).slice(0, 64)}, 'Chat de prueba', now() + interval '30 days')`;
 }
 
 /** Filas del usuario por entrada de USER_TABLES (como dueño, sin RLS) */

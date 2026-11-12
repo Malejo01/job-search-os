@@ -3,7 +3,7 @@ import { createMcpHandler } from "mcp-handler";
 import { applyJobEvent, getJobDetail, MANUAL_EVENTS } from "@/lib/job-detail";
 import { listJobs } from "@/lib/jobs";
 import { getMarket } from "@/lib/market";
-import { mcpTokenOk, resolveMcpUserId } from "@/lib/mcp-user";
+import { authenticateMcpRequest, mcpUserIdFor, type McpPrincipal } from "@/lib/mcp-user";
 import { ingestManualJob, parseModality } from "@/lib/ingest-manual";
 import { evaluateInBackgroundOrExplain, notEvaluatedMessage } from "@/lib/evaluate-now";
 import { attachJd, listPendingJd } from "@/lib/pending-jd";
@@ -30,7 +30,7 @@ export const maxDuration = 120;
 
 /**
  * Servidor MCP propio (JS-035): la cola y las ofertas desde el chat de Claude, sin abrir la UI.
- * Streamable HTTP en /api/mcp, token compartido (lib/mcp-user.ts). Reutiliza las mismas
+ * Streamable HTTP en /api/mcp, token compartido o personal (MCP-1, lib/mcp-user.ts). Reutiliza las mismas
  * funciones que la UI (withUser + RLS; jobs.status solo vía transition()). El MCP nunca
  * postula ni navega LinkedIn (ADR-004): solo lee, cambia estados y recibe JD pegadas.
  * JS-053: contexto para responder formularios. Claude redacta en el chat; el servidor no llama
@@ -65,9 +65,10 @@ const handler = createMcpHandler(
         description:
           "Ofertas que pasaron el prefiltro pero llegaron sin descripción (máximo 10). Devuelve id, título, empresa y link al aviso para leerlo y pegar la JD con paste_jd.",
         inputSchema: emptyInput,
+        annotations: { readOnlyHint: true },
       },
-      async () => {
-        const userId = await resolveMcpUserId();
+      async (_args, ctx) => {
+        const userId = await mcpUserIdFor(ctx.http?.authInfo);
         return untrustedText(await listPendingJd(userId));
       },
     );
@@ -79,9 +80,10 @@ const handler = createMcpHandler(
         description:
           "Ofertas ordenadas por score (a igual score, menos riesgos primero) y fecha. Filtros: score mínimo, estado (nueva, prefiltrada, pendiente_jd, evaluada, aplicada, descartada, entrevista, oferta, cerrada… o 'todas'; default: activas) y cantidad.",
         inputSchema: listJobsInput,
+        annotations: { readOnlyHint: true },
       },
-      async ({ score_min, status, limit }) => {
-        const userId = await resolveMcpUserId();
+      async ({ score_min, status, limit }, ctx) => {
+        const userId = await mcpUserIdFor(ctx.http?.authInfo);
         const rows = await listJobs(userId, {
           scoreMin: score_min ?? null,
           source: null,
@@ -118,9 +120,10 @@ const handler = createMcpHandler(
         description:
           "Evaluación completa (match, gaps, bloqueadores, riesgos, veredicto), fuentes con link, estado actual y eventos válidos para set_status. Incluye la JD si está.",
         inputSchema: getJobInput,
+        annotations: { readOnlyHint: true },
       },
-      async ({ id }) => {
-        const userId = await resolveMcpUserId();
+      async ({ id }, ctx) => {
+        const userId = await mcpUserIdFor(ctx.http?.authInfo);
         const job = await getJobDetail(userId, id);
         if (!job) return { content: [{ type: "text", text: "oferta inexistente" }], isError: true };
         return untrustedText({ ...job, jdText: job.jdText ? job.jdText.slice(0, 6000) : null });
@@ -136,8 +139,8 @@ const handler = createMcpHandler(
           CONFIRM,
         inputSchema: setStatusInput(MANUAL_EVENTS as readonly [JobEvent, ...JobEvent[]]),
       },
-      async ({ id, event }) => {
-        const userId = await resolveMcpUserId();
+      async ({ id, event }, ctx) => {
+        const userId = await mcpUserIdFor(ctx.http?.authInfo);
         try {
           const status = await applyJobEvent(userId, id, event);
           return text({ id, event, status });
@@ -157,8 +160,8 @@ const handler = createMcpHandler(
           CONFIRM,
         inputSchema: pasteJdInput,
       },
-      async ({ id, text: jd }) => {
-        const userId = await resolveMcpUserId();
+      async ({ id, text: jd }, ctx) => {
+        const userId = await mcpUserIdFor(ctx.http?.authInfo);
         try {
           await attachJd(userId, id, jd);
           const notEvaluated = await evaluateInBackgroundOrExplain(userId, id);
@@ -186,8 +189,8 @@ const handler = createMcpHandler(
           CONFIRM,
         inputSchema: addJobInput,
       },
-      async (a) => {
-        const userId = await resolveMcpUserId();
+      async (a, ctx) => {
+        const userId = await mcpUserIdFor(ctx.http?.authInfo);
         try {
           const out = await ingestManualJob(userId, {
             url: a.url ?? null,
@@ -223,9 +226,10 @@ const handler = createMcpHandler(
         description:
           "Gaps (demanda alta y nivel bajo), diferenciales (nivel fuerte con demanda) y skills en crecimiento del último snapshot de mercado.",
         inputSchema: marketSummaryInput,
+        annotations: { readOnlyHint: true },
       },
-      async ({ top }) => {
-        const userId = await resolveMcpUserId();
+      async ({ top }, ctx) => {
+        const userId = await mcpUserIdFor(ctx.http?.authInfo);
         const view = await getMarket(userId, { from: null, to: null });
         const pick = (rows: typeof view.agenda.gaps) =>
           rows.slice(0, top).map((r) => ({
@@ -251,9 +255,10 @@ const handler = createMcpHandler(
         description:
           "Todo lo necesario para responder un formulario de postulación: perfil (resumen, años, inglés, ubicación), hechos verificables (proyecto, afirmación, métrica, fuente, verificable | autodeclarado) y respuestas fijas (disponibilidad, contratación, derecho a trabajar, links). Reglas: no afirmes nada que no esté en `facts` ni en `profile`; lo `autodeclarado` no se presenta como verificado; las respuestas fijas y el sueldo se copian textuales, no se redactan. Con job_id, `salary` es el monto a pedir para esa oferta (kind 'pedir'); si kind es part_time, no_normalizable, bajo_piso o piso_inconsistente NO hay número: avisale a la persona y no inventes uno. Si `facts` trae la marca 'sin_hechos_cargados', `fixed_answers` trae 'sin_respuestas_fijas_cargadas' o un campo dice 'SIN CARGAR', ese dato no existe: no lo completes vos, preguntáselo a la persona.",
         inputSchema: candidateProfileInput,
+        annotations: { readOnlyHint: true },
       },
-      async ({ job_id }) => {
-        const userId = await resolveMcpUserId();
+      async ({ job_id }, ctx) => {
+        const userId = await mcpUserIdFor(ctx.http?.authInfo);
         try {
           return text(await candidateProfile(userId, job_id ?? null));
         } catch (e) {
@@ -269,9 +274,10 @@ const handler = createMcpHandler(
         description:
           "Respuestas que la persona ya aprobó en formularios anteriores. Con query, las que comparten palabras con la pregunta (más coincidencias primero); sin query, las más recientes. Cada una trae source_job_id (oferta donde se aprobó) y fechas. Reutilizá una solo si la pregunta es la misma; si hay que adaptarla, es una respuesta nueva que la persona tiene que aprobar.",
         inputSchema: listAnswersInput,
+        annotations: { readOnlyHint: true },
       },
-      async ({ query, lang, limit }) => {
-        const userId = await resolveMcpUserId();
+      async ({ query, lang, limit }, ctx) => {
+        const userId = await mcpUserIdFor(ctx.http?.authInfo);
         return untrustedText(await answersFromBank(userId, { query, lang, limit }));
       },
     );
@@ -285,8 +291,8 @@ const handler = createMcpHandler(
           CONFIRM,
         inputSchema: saveAnswerInput,
       },
-      async ({ question, answer, lang, job_id }) => {
-        const userId = await resolveMcpUserId();
+      async ({ question, answer, lang, job_id }, ctx) => {
+        const userId = await mcpUserIdFor(ctx.http?.authInfo);
         try {
           return text(
             await approveAnswer(userId, { question, answer, lang, jobId: job_id ?? null }),
@@ -306,8 +312,8 @@ const handler = createMcpHandler(
           CONFIRM,
         inputSchema: saveApplicationAnswersInput,
       },
-      async ({ job_id, qa }) => {
-        const userId = await resolveMcpUserId();
+      async ({ job_id, qa }, ctx) => {
+        const userId = await mcpUserIdFor(ctx.http?.authInfo);
         try {
           return text(await saveFormAnswers(userId, job_id, qa));
         } catch (e) {
@@ -326,13 +332,33 @@ const handler = createMcpHandler(
   },
 );
 
+const json = (status: number, body: unknown, headers: Record<string, string> = {}) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json", ...headers },
+  });
+
+/**
+ * MCP-1: el usuario se resuelve UNA vez por request (lib/mcp-user.ts) y viaja a cada tool en
+ * `authInfo.extra.principal`: mcp-handler pasa `req.auth` al SDK, que lo entrega como
+ * `ctx.http.authInfo`. Nada se guarda entre requests. Las respuestas de falla son genéricas: no dicen si
+ * el token existe, está revocado o vencido, y nunca incluyen el token ni la URL.
+ */
 async function guarded(req: Request): Promise<Response> {
-  if (!mcpTokenOk(req)) {
-    return new Response(JSON.stringify({ error: "no autorizado" }), {
-      status: 401,
-      headers: { "content-type": "application/json" },
-    });
+  const auth = await authenticateMcpRequest(req);
+  if (!auth.ok) {
+    return auth.status === 429
+      ? json(429, { error: "demasiadas llamadas" }, { "retry-after": "60" })
+      : json(401, { error: "no autorizado" });
   }
+  const principal: McpPrincipal = auth.principal;
+  // `token` vacío a propósito: el valor en claro no viaja más allá de este punto
+  req.auth = {
+    token: "",
+    clientId: principal.kind === "user" ? "mcp-user-token" : "mcp-shared-token",
+    scopes: [],
+    extra: { principal },
+  };
   return handler(req);
 }
 

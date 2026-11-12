@@ -66,6 +66,28 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   index("password_reset_tokens_user").on(t.userId),
 ]);
 
+// Tokens personales del MCP (MCP-1): cada persona de prueba conecta su chat con un token propio que
+// opera solo sobre su cuenta. Se guarda el sha256, nunca el valor en claro. Vence a los 30 días y se
+// revoca al instante. window_start/window_count: tope de llamadas por minuto, que actualiza
+// mcp_token_user() (rls/0019) en la misma sentencia que resuelve el token. Cae con la cuenta (cascade).
+export const mcpTokens = pgTable("mcp_tokens", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull(),
+  label: text("label").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  windowStart: timestamp("window_start", { withTimezone: true }),
+  windowCount: integer("window_count").notNull().default(0),
+}, (t) => [
+  uniqueIndex("mcp_tokens_hash").on(t.tokenHash),
+  index("mcp_tokens_user").on(t.userId),
+  check("mcp_tokens_label_length", sql`char_length(${t.label}) between 1 and 60`),
+  check("mcp_tokens_hash_shape", sql`${t.tokenHash} ~ '^[0-9a-f]{64}$'`),
+]);
+
 export const profiles = pgTable("profiles", {
   userId: uuid("user_id").primaryKey(), // = auth.users.id
   displayName: text("display_name").notNull(),
