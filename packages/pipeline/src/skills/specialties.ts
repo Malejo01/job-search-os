@@ -333,7 +333,11 @@ export const ROLE_SPECIALTIES: Partial<Record<RoleKey, readonly RoleSpecialty[]>
       "planificador de medios",
       "planificadora de medios",
     ]),
-    chip("prensa", "Prensa", [
+  ],
+  // ADR-033: relaciones públicas es carrera propia; los chips de prensa, eventos, relaciones
+  // institucionales y RSE salieron de marketing.
+  relaciones_publicas: [
+    chip("relaciones_publicas_y_prensa", "Relaciones públicas y prensa", [
       "relaciones publicas",
       "public relations",
       "ejecutivo de rrpp",
@@ -558,16 +562,18 @@ export const SPECIALTY_METADATA: Readonly<
   "marketing_digital:agencia_y_medios": {
     examples: ["planificador/a de medios", "ejecutivo/a de cuentas en agencia"],
   },
-  "marketing_digital:prensa": {
+
+  // relaciones_publicas
+  "relaciones_publicas:relaciones_publicas_y_prensa": {
     examples: ["relaciones públicas", "PR specialist", "prensa y difusión"],
   },
-  "marketing_digital:eventos_y_ceremonial": {
+  "relaciones_publicas:eventos_y_ceremonial": {
     examples: ["organizador/a de eventos", "coordinador/a de eventos y congresos"],
   },
-  "marketing_digital:relaciones_institucionales": {
+  "relaciones_publicas:relaciones_institucionales": {
     examples: ["relaciones institucionales", "asuntos corporativos"],
   },
-  "marketing_digital:rse_y_sustentabilidad": {
+  "relaciones_publicas:rse_y_sustentabilidad": {
     examples: ["analista de sustentabilidad", "responsabilidad social empresaria"],
   },
 };

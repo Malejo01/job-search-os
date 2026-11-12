@@ -21,13 +21,13 @@ describe("targetRoleLabelFor", () => {
   it("prioriza el puesto del pool, luego el principal de la lista, luego el puesto único", () => {
     expect(
       targetRoleLabelFor("marketing_digital", { targetRoles: ["qa"], targetRole: "ux_ui" }),
-    ).toBe("Marketing y relaciones públicas");
+    ).toBe("Marketing digital");
     expect(
       targetRoleLabelFor(null, { targetRoles: ["marketing_digital", "qa"], targetRole: "ux_ui" }),
-    ).toBe("Marketing y relaciones públicas");
+    ).toBe("Marketing digital");
     expect(
       targetRoleLabelFor(undefined, { targetRoles: [], targetRole: "marketing_digital" }),
-    ).toBe("Marketing y relaciones públicas");
+    ).toBe("Marketing digital");
   });
 
   it("traduce la clave anterior producto_proyectos y rotula las carreras de producto", () => {
@@ -49,7 +49,7 @@ describe("targetRoleLabelFor", () => {
 
   it("ignora valores que no son un puesto conocido y devuelve null si no queda ninguno", () => {
     expect(targetRoleLabelFor("inventado", { targetRoles: ["marketing_digital"] })).toBe(
-      "Marketing y relaciones públicas",
+      "Marketing digital",
     );
     expect(targetRoleLabelFor("inventado", { targetRoles: ["otro"], targetRole: null })).toBeNull();
     expect(targetRoleLabelFor(null, {})).toBeNull();

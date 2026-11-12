@@ -369,8 +369,8 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "motion designer",
     "creador de contenido",
     "creadora de contenido",
-    // C1-3 (ADR-027): marca, trade, investigación, CRM, medios, RR.PP., eventos y RSE. «RR.PP.» se
-    // normaliza a «rr pp». «Ejecutivo de cuentas» no entra: sin «agencia» es ventas.
+    // C1-3 (ADR-027): marca, trade, investigación, CRM y medios. «Ejecutivo de cuentas» no entra: sin
+    // «agencia» es ventas. RR.PP., eventos y RSE pasaron a `relaciones_publicas` (ADR-033).
     "brand manager",
     "assistant brand manager",
     "asistente de marca",
@@ -383,6 +383,9 @@ export const TITLE_TERMS: Record<RoleKey, readonly string[]> = {
     "media planner",
     "planificador de medios",
     "planificadora de medios",
+  ],
+  // ADR-033: relaciones públicas es carrera propia. «RR.PP.» se normaliza a «rr pp».
+  relaciones_publicas: [
     "relaciones publicas",
     "public relations",
     "ejecutivo de rrpp",
@@ -1073,33 +1076,33 @@ export const TERM_EXCLUSIONS: Partial<
     ),
   },
   // Boliches, fiestas, entradas y promotores: RR.PP. de salida nocturna, no de comunicación.
+  relaciones_publicas: termExclusions(
+    [
+      "relaciones publicas",
+      "public relations",
+      "ejecutivo de rrpp",
+      "ejecutiva de rrpp",
+      "ejecutivo de rr pp",
+      "ejecutiva de rr pp",
+      "relacionista publico",
+      "relacionista publica",
+      "pr specialist",
+      "pr executive",
+      "pr manager",
+    ],
+    [
+      "boliche",
+      "fiesta",
+      "nocturno",
+      "entradas",
+      "comision",
+      "comisiones",
+      "promotor",
+      "promotora",
+    ],
+  ),
   // «Insights analyst» de datos o de producto es de la carrera de datos.
   marketing_digital: {
-    ...termExclusions(
-      [
-        "relaciones publicas",
-        "public relations",
-        "ejecutivo de rrpp",
-        "ejecutiva de rrpp",
-        "ejecutivo de rr pp",
-        "ejecutiva de rr pp",
-        "relacionista publico",
-        "relacionista publica",
-        "pr specialist",
-        "pr executive",
-        "pr manager",
-      ],
-      [
-        "boliche",
-        "fiesta",
-        "nocturno",
-        "entradas",
-        "comision",
-        "comisiones",
-        "promotor",
-        "promotora",
-      ],
-    ),
     "insights analyst": ["data", "product", "analytics", "bi"],
   },
   finanzas_contabilidad: termExclusions(

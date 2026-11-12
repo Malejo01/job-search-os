@@ -117,6 +117,7 @@ describe("selectableRoleGroups", () => {
       "administracion_empresas",
       "comunicacion",
       "relaciones_internacionales",
+      "relaciones_publicas",
     ]);
     const flat = (g: ReturnType<typeof selectableRoleGroups>) => g.flatMap((x) => [...x.roles]);
     expect(flat(selectableRoleGroups())).toContain("abogacia");
@@ -201,8 +202,8 @@ describe("toRoleKey", () => {
 describe("role_skills.json", () => {
   const parsed = roleSkillsSchema.safeParse(seed);
   it("valida contra el esquema", () => expect(parsed.success).toBe(true));
-  it("tiene los 26 roles", () => {
-    expect(ROLE_KEYS).toHaveLength(26);
+  it("tiene los 27 roles", () => {
+    expect(ROLE_KEYS).toHaveLength(27);
     expect(Object.keys(seed).sort()).toEqual([...ROLE_KEYS].sort());
   });
   it("todos los slugs existen en la taxonomía", () => {
@@ -409,19 +410,21 @@ describe("parseRemoveSlugs", () => {
 describe("waitlistRoleGroups: el selector de /acceso (C6-1)", () => {
   const flat = (g: ReturnType<typeof waitlistRoleGroups>) => g.flatMap((x) => [...x.roles]);
 
-  it("las 6 carreras de la beta, en el orden del anuncio: 4 nuevas + contaduría y marketing", () => {
+  it("las 8 carreras de la beta, en el orden del anuncio (ADR-033)", () => {
     expect(BETA_LAUNCH_ROLE_KEYS).toEqual([
       "abogacia",
       "finanzas_contabilidad",
       "administracion_empresas",
       "comunicacion",
       "marketing_digital",
+      "relaciones_publicas",
       "relaciones_internacionales",
+      "fullstack",
     ]);
     for (const key of BETA_ROLE_KEYS) expect(BETA_LAUNCH_ROLE_KEYS).toContain(key);
   });
 
-  it("el primer grupo es «Carreras de la beta» y trae las 6", () => {
+  it("el primer grupo es «Carreras de la beta» y trae las 8", () => {
     const first = waitlistRoleGroups()[0];
     expect(first?.label).toBe("Carreras de la beta");
     expect(first?.roles).toEqual(BETA_LAUNCH_ROLE_KEYS);
