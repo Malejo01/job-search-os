@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { EMAIL_NUDGE_COOKIE } from "@/app/components/email-nudge";
 import { getFirstStepsFacts } from "@/lib/first-steps";
+import { CheckMark, Icon } from "@/components/ui";
 import { requireActiveUserId } from "@/lib/session";
 
 /** Cookie de «Ocultar»: solo UX (httpOnly, un año), con el id del usuario como valor. */
@@ -67,16 +68,20 @@ export async function FirstSteps({ userId }: { userId: string }) {
         <h2 id="primeros-pasos-titulo" className="sr-only">
           Primeros pasos
         </h2>
-        <p>
-          <span aria-hidden="true">✓</span> ¡Listo! Ya sabés usar lo básico. Lo que sigue: revisar
-          cada día las ofertas con mejor puntaje (las verdes).
+        <p className="flex items-center gap-2">
+          <CheckMark done className="size-5" />
+          <span>
+            ¡Listo! Ya sabés usar lo básico. Lo que sigue: revisar cada día las ofertas con mejor
+            puntaje (las verdes).
+          </span>
         </p>
         {hide}
       </section>
     );
   }
 
-  // Con un solo paso obligatorio por hacer, la lista va plegada: el summary ya dice cuál es
+  // R5-C9 (hallazgo 18): la lista va siempre plegada, en una línea, para que la primera oferta
+  // quede a la vista. Con un solo paso por hacer, el summary ya dice cuál es.
   const pendingRequired = items.filter((i) => !i.optional && !i.done);
   const onlyOneMissing = pendingRequired.length === 1;
   const missing = pendingRequired[0];
@@ -89,9 +94,7 @@ export async function FirstSteps({ userId }: { userId: string }) {
             item.id === firstPending ? "font-semibold" : ""
           }`}
         >
-          <span aria-hidden="true" className="w-4 shrink-0">
-            {item.done ? "✓" : "○"}
-          </span>
+          <CheckMark done={item.done} className="mt-0.5 size-5 text-xs" />
           <div className="flex min-w-0 flex-col">
             <span>
               {item.text}
@@ -119,7 +122,7 @@ export async function FirstSteps({ userId }: { userId: string }) {
       aria-labelledby="primeros-pasos-titulo"
       data-testid="first-steps"
       data-tour="jobs:primeros-pasos"
-      className="flex flex-col gap-2 rounded-card bg-surface p-3 text-sm"
+      className="flex flex-col gap-1 rounded-card border-2 border-line bg-surface p-3 text-sm"
     >
       <div className="flex items-baseline justify-between gap-2">
         <h2 id="primeros-pasos-titulo" className="font-semibold">
@@ -129,22 +132,14 @@ export async function FirstSteps({ userId }: { userId: string }) {
           {done} de {total}
         </p>
       </div>
-      {onlyOneMissing ? (
-        <details className="group">
-          <summary className="flex min-h-11 cursor-pointer items-center gap-2 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus">
-            <span aria-hidden="true" className="group-open:hidden">
-              ▸
-            </span>
-            <span aria-hidden="true" className="hidden group-open:inline">
-              ▾
-            </span>
-            Te falta un paso: {missing?.text}
-          </summary>
-          {list}
-        </details>
-      ) : (
-        list
-      )}
+      <details className="group">
+        <summary className="flex min-h-11 cursor-pointer items-center gap-2 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus">
+          <Icon name="mas" size={16} className="shrink-0 text-fg-subtle group-open:hidden" />
+          <Icon name="cruz" size={16} className="hidden shrink-0 text-fg-subtle group-open:block" />
+          {onlyOneMissing ? `Te falta un paso: ${missing?.text}` : "Ver los pasos"}
+        </summary>
+        {list}
+      </details>
       <div className="flex justify-end">{hide}</div>
     </section>
   );

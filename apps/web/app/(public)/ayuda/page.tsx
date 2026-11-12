@@ -3,6 +3,7 @@ import { publicOpenGraph } from "@/lib/public-og";
 import { pricingEnabled } from "@job-search-os/pipeline";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Glosario } from "./glosario";
 
 export const revalidate = 3600;
 
@@ -206,6 +207,8 @@ export default function AyudaPage() {
           </article>
         ))}
       </section>
+
+      <Glosario />
 
       <section className="mt-4 flex flex-col items-center justify-between gap-4 rounded-card bg-surface-subtle p-6 text-center sm:flex-row sm:text-left">
         <div>

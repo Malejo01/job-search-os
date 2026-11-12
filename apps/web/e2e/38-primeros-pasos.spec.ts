@@ -37,6 +37,15 @@ const PRIVACY_COOKIE = "jso_privacidad_ok";
 const checklist = (page: Page) => page.getByTestId("first-steps");
 const steps = (page: Page) => page.locator('[aria-current="step"]');
 
+/** R5-C9: la lista de «Primeros pasos» va plegada; los roles de adentro solo existen abierta. */
+async function openChecklist(page: Page) {
+  const details = checklist(page).locator("details");
+  if (!(await details.evaluate((el) => (el as HTMLDetailsElement).open))) {
+    await details.locator("summary").click();
+  }
+  await expect(details).toHaveJSProperty("open", true);
+}
+
 /** Alto del elemento en px (falla si no tiene caja). */
 async function box(locator: ReturnType<Page["locator"]>) {
   const b = await locator.boundingBox();
@@ -144,6 +153,10 @@ test.describe("Flujo 38: primeros pasos, de la persona nueva a la checklist comp
 
     await expect(checklist(page)).toBeVisible();
     await expect(page.getByTestId("first-steps-count")).toHaveText(/3 de 5/);
+    // Plegada: una línea con «Ver los pasos» (con 2 o más pendientes)
+    await expect(checklist(page).locator("summary")).toContainText("Ver los pasos");
+    await expect(checklist(page).locator("details")).toHaveJSProperty("open", false);
+    await openChecklist(page);
     const items = checklist(page).getByRole("listitem");
     await expect(items).toHaveCount(6);
     await expect(items.nth(0)).toContainText("Completaste tu perfil");
@@ -205,6 +218,7 @@ test.describe("Flujo 38: primeros pasos, de la persona nueva a la checklist comp
     await page.goto("/jobs");
     await expect(page.getByTestId("email-nudge")).toHaveCount(0);
     // La misma cookie hace que el ítem de la checklist diga que no, y no vuelva a ofrecerlo
+    await openChecklist(page);
     const emailItem = checklist(page).getByRole("listitem").nth(5);
     await expect(emailItem).toContainText("Alertas de email: no por ahora");
     await expect(emailItem.getByRole("link")).toHaveCount(0);
@@ -214,6 +228,7 @@ test.describe("Flujo 38: primeros pasos, de la persona nueva a la checklist comp
     await page.setViewportSize({ width: 360, height: 800 });
     await page.goto("/jobs");
     await expect(checklist(page)).toBeVisible();
+    await openChecklist(page);
 
     const noHorizontalScroll = await page.evaluate(
       () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
@@ -324,6 +339,7 @@ test.describe("Flujo 38e: «Saltear por ahora» en skills deja el ítem 2 pendie
 
     await page.goto("/jobs");
     await expect(checklist(page)).toBeVisible();
+    await openChecklist(page);
     const item = checklist(page).getByRole("listitem").nth(1);
     await expect(item).toContainText("Cargá tus skills");
     await expect(item).toContainText("(pendiente)");
