@@ -1,4 +1,5 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
+import { E2E_B_USER_ID, ensureSecondUser } from "./helpers";
 import {
   cleanup,
   completeStep1,
@@ -117,7 +118,10 @@ for (const carrera of CARRERAS) {
     let detailUrl = "";
 
     test.beforeAll(async ({ browser }) => {
-      await createInvitation(run);
+      // En una base sin seed no existe el usuario e2e A (FK de la invitación): se crea B, que es
+      // idempotente, y firma la invitación
+      await ensureSecondUser();
+      await createInvitation(run, E2E_B_USER_ID);
       await seedPool(run);
       context = await browser.newContext({ viewport: { width: 390, height: 844 } });
       page = await context.newPage();

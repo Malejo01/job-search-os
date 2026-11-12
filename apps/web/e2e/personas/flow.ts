@@ -73,13 +73,16 @@ export async function timed<T>(step: string, fn: () => Promise<T>): Promise<T> {
   }
 }
 
-export async function createInvitation(run: Run): Promise<void> {
+export async function createInvitation(
+  run: Run,
+  createdByUserId: string = E2E_USER_ID,
+): Promise<void> {
   const codeHash = createHash("sha256").update(run.code).digest("hex");
   const { db, close } = ownerDb();
   try {
     const [row] = await db
       .insert(s.invitations)
-      .values({ codeHash, email: run.persona.email, createdByUserId: E2E_USER_ID })
+      .values({ codeHash, email: run.persona.email, createdByUserId })
       .returning({ id: s.invitations.id });
     run.invitationId = row!.id;
     if (run.viaWaitlist) {
