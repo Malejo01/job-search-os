@@ -135,7 +135,7 @@ test.describe("Flujo 26: skills autodeclaradas, del onboarding al mercado", () =
     await expect(page.getByRole("heading", { name: "Tus skills" })).toBeVisible();
     await expect(page.getByText(/Opcional\. Con tus niveles/)).toBeVisible();
     // El rol del paso 1 ya viene elegido: no pide elegirlo
-    await expect(page.getByRole("link", { name: "Full-stack" })).toHaveAttribute(
+    await expect(page.getByRole("link", { name: "Programación" })).toHaveAttribute(
       "aria-current",
       "true",
     );
@@ -158,7 +158,7 @@ test.describe("Flujo 26: skills autodeclaradas, del onboarding al mercado", () =
   test("elige un rol, carga 5 skills (3 con soltura) y las guarda", async () => {
     await page.goto("/settings/skills");
     await expect(page.getByRole("heading", { name: "Mis skills" })).toBeVisible();
-    await page.getByRole("link", { name: "Full-stack" }).click();
+    await page.getByRole("link", { name: "Programación" }).click();
     await page.waitForURL("**/settings/skills?rol=fullstack");
 
     const row = (slug: string) => page.getByTestId(`skill-${slug}`);
@@ -191,7 +191,7 @@ test.describe("Flujo 26: skills autodeclaradas, del onboarding al mercado", () =
       english_fluent: 1,
     });
     // Lo guardado vuelve marcado
-    await page.getByRole("link", { name: "Full-stack" }).click();
+    await page.getByRole("link", { name: "Programación" }).click();
     await expect(row("typescript").getByLabel(SOLTURA, { exact: true })).toBeChecked();
   });
 

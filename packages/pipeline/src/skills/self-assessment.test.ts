@@ -180,10 +180,21 @@ describe("profileRoleGroups: lo que ve quien elige carrera en la beta (C5-1)", (
     for (const g of profileRoleGroups()) expect(g.roles.length).toBeGreaterThan(0);
   });
 
-  it("conserva el orden de los grupos de ROLE_GROUPS", () => {
-    const labels = profileRoleGroups().map((g) => g.label);
+  it("abre con las 8 carreras de la beta, en el orden del anuncio, y conserva el orden del resto (R5-C8)", () => {
+    const groups = profileRoleGroups();
+    expect(groups[0]).toEqual({ label: "Carreras de la beta", roles: BETA_LAUNCH_ROLE_KEYS });
+    const labels = groups.slice(1).map((g) => g.label);
     const base = ROLE_GROUPS.map((g) => g.label).filter((l) => labels.includes(l));
     expect(labels).toEqual(base);
+    for (const g of groups.slice(1)) {
+      for (const key of BETA_LAUNCH_ROLE_KEYS) expect(g.roles).not.toContain(key);
+    }
+  });
+
+  it("la persona que ya tiene una carrera no listada la sigue viendo, debajo de la beta", () => {
+    const groups = profileRoleGroups(["asistencia_operaciones"]);
+    expect(groups[0]?.label).toBe("Carreras de la beta");
+    expect(groups.slice(1).flatMap((g) => [...g.roles])).toContain("asistencia_operaciones");
   });
 });
 

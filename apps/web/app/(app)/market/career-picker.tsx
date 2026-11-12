@@ -1,5 +1,5 @@
 import { ROLE_KEYS, type RoleKey } from "@job-search-os/pipeline";
-import { ROLE_SKILLS } from "@/lib/skill-levels";
+import { betaFirst, catalogLabel } from "@/lib/career-names";
 import { buttonClasses, inputClasses } from "@/components/ui";
 
 /**
@@ -17,6 +17,9 @@ export function CareerPicker({
   /** Carreras que se muestran hoy (`getPublicCareerKeys`, ADR-029). */
   visible: readonly RoleKey[];
 }) {
+  const { beta, others } = betaFirst(
+    ROLE_KEYS.filter((k) => visible.includes(k) || k === current || k === tab),
+  );
   return (
     <form
       method="get"
@@ -37,13 +40,25 @@ export function CareerPicker({
                 Elegí una carrera
               </option>
             )}
-            {ROLE_KEYS.filter((k) => visible.includes(k) || k === current || k === tab).map(
-              (key) => (
-                <option key={key} value={key}>
-                  {ROLE_SKILLS[key].label}
-                </option>
-              ),
-            )}
+            {/* R5-C8: las 8 carreras de la beta primero, con su nombre; el resto, en «Otras» */}
+            {beta.length > 0 ? (
+              <optgroup label="Carreras de la beta">
+                {beta.map((key) => (
+                  <option key={key} value={key}>
+                    {catalogLabel(key)}
+                  </option>
+                ))}
+              </optgroup>
+            ) : null}
+            {others.length > 0 ? (
+              <optgroup label="Otras carreras">
+                {others.map((key) => (
+                  <option key={key} value={key}>
+                    {catalogLabel(key)}
+                  </option>
+                ))}
+              </optgroup>
+            ) : null}
           </select>
         </label>
         <button
