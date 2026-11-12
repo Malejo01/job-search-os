@@ -42,5 +42,20 @@ Ninguno.
 - `packages/adapters/src/privacy/privacy-scan.test.ts`: 3 tests fallan en Windows con `EPERM` al crear symlinks.
 - «Ubicación permitida: aviso limitado a BR» en las ofertas del recorrido sale de cómo `seedPublicJobs` siembra el pool (`Remoto (Brasil)`), no de la app.
 
+## Parte 2 (sobre C3+C8)
+
+Rama local sobre `ronda/r5-c8-catalogos` (incluye C3), sin push. Resultados:
+
+| Carrera | Spec 126 filtrado | Resultado |
+| --- | --- | --- |
+| Relaciones públicas | 6 de 6 | verde: /acceso (guarda `relaciones_publicas`), registro, onboarding, /hoy, /jobs, detalle, Perfil, CV y ayuda |
+| Programación | 1 pasó, 1 falló, 4 sin correr | /acceso ok; falla `skill-typescript` en el onboarding, igual que sobre main: no concluyente en local (base sin seed), lo verifica el CI del PR |
+
+Hallazgos nuevos o cambiados:
+- **P1 · prefiltro de RR.PP. (en arreglo en #457):** `ROLE_OWN_TITLE_PHRASES.relaciones_publicas` (`packages/pipeline/src/prefilter/prefilter.ts:163`) no libera «community manager» ni «social media manager»; esos avisos se descartan para RR.PP. con `titulo_blocklist` y llegan a Marketing (`prefilter.ts:153-161`). Test: `relaciones_publicas-04` como `it.fails` en `golden-carreras-r5.test.ts`.
+- **P2 · golden de marketing:** `marketing_digital-04` es un aviso de RR.PP.; C3 lo evalúa contra RR.PP. con un parche del test (`MOVED_TO_RRPP`). Hay que mover el caso al JSON de RR.PP.
+- Resuelto: el chip de RR.PP. de /acceso ya guarda `relaciones_publicas` (era P2 conocido).
+- Sin cambios: el P1 de criterios (`criteriaFromOnboarding` y `DISCIPLINES` no se tocaron en C3 ni en C8) y el P2 de la ayuda.
+
 ## Qué quedó sin cubrir
-Lo marcado «sin verificar», evaluación con modelo real y la parte 2 (RR.PP. y programación sobre la rama de C3).
+Lo marcado «sin verificar», la evaluación con modelo real y el onboarding de contaduría, administración, marketing y programación en una base con seed (lo hace el CI del PR).
