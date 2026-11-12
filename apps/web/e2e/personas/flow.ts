@@ -7,6 +7,7 @@ import { resolve } from "node:path";
 // Import relativo directo (no el índice de @job-search-os/db, que arrastra import.meta)
 import { deleteUserData } from "../../../../packages/db/src/user-tables";
 import roleSkills from "../../../../packages/db/seeds/role_skills.json";
+import catalog from "../../../../packages/db/seeds/skills.json";
 import {
   E2E_USER_ID,
   assignSeededPoolJobs,
@@ -101,8 +102,51 @@ export async function createInvitation(
   }
 }
 
+type SeedSkill = {
+  slug: string;
+  name: string;
+  category: string;
+  aliases?: string[];
+  closure_hours?: number;
+  description?: string;
+};
+
+/**
+ * Asegura en `skills` las del catálogo del repo (`seeds/skills.json`) que usa la persona: las de su
+ * puesto, las de sus ofertas y las que se autoevalúa. En una base sin seed completo faltan; con el seed
+ * no hace nada (`ON CONFLICT DO NOTHING`). Es un catálogo global, sin datos de usuario.
+ */
+export async function ensureSkills(persona: Persona): Promise<void> {
+  const wanted = new Set<string>([
+    ...((roleSkills as Record<string, { skills: string[] }>)[persona.role]?.skills ?? []),
+    ...persona.skills.map((k) => k.slug),
+    ...persona.offers.flatMap((o) => (o.skills ?? []).map((k) => k.slug)),
+  ]);
+  const rows = (catalog as SeedSkill[]).filter((k) => wanted.has(k.slug));
+  if (rows.length === 0) return;
+  const { db, close } = ownerDb();
+  try {
+    await db
+      .insert(s.skills)
+      .values(
+        rows.map((k) => ({
+          slug: k.slug,
+          name: k.name,
+          category: k.category as never,
+          aliases: k.aliases ?? [],
+          closureHours: k.closure_hours ?? null,
+          description: k.description ?? null,
+        })),
+      )
+      .onConflictDoNothing();
+  } finally {
+    await close();
+  }
+}
+
 /** Siembra las 4 ofertas del pool de la persona (3 de su puesto y 1 de otro) con sus skills. */
 export async function seedPool(run: Run): Promise<void> {
+  await ensureSkills(run.persona);
   await seedPublicJobs(
     run.tag,
     run.persona.offers.map((o) => ({
