@@ -10,13 +10,15 @@ Texto público de la página `/ayuda` para personas interesadas en sumarse a la 
 Es un asistente personal para buscar trabajo. Te ayuda a revisar avisos laborales, compara lo que pide cada puesto con tus conocimientos y experiencia, y te muestra en simple qué tenés a tu favor y qué te falta o te frena. Así ahorrás tiempo para decidir dónde te conviene postularte. El puntaje es una estimación: no garantiza que te llamen.
 
 ### 2. ¿Para quién es esta beta cerrada?
-En esta primera etapa de prueba, la app está pensada para personas de 6 carreras:
+En esta primera etapa de prueba, la app está pensada para personas de 8 carreras:
 - **Abogacía**
-- **Contaduría, impuestos y finanzas**
-- **Administración de empresas**
+- **Contaduría**
+- **Administración**
 - **Comunicación**
-- **Marketing digital y relaciones públicas**
+- **Marketing**
+- **Relaciones públicas**
 - **Relaciones internacionales**
+- **Programación**
 
 Si te formaste o trabajás en alguna de estas áreas, las evaluaciones y recomendaciones están adaptadas a tu perfil. Con el tiempo se irán sumando más carreras.
 

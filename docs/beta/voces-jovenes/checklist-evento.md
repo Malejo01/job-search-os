@@ -2,7 +2,7 @@
 
 Para Ani y Mauro. Está escrito sin jerga: cada paso dice qué hacer y qué tendrías que ver. Lo que dice **(Mauro)** lo hace Mauro porque toca producción o la base. Los QR y qué hacer si algo falla están en [`README.md`](./README.md).
 
-**Lo que ya está decidido y no se discute el día del evento:** la beta abre el jueves 26/11 para 6 carreras (abogacía, contaduría, administración, comunicación, marketing y RR.PP., relaciones internacionales). Cupo: 15 a 20 personas (becas y combos en `docs/beta/runbook-apertura.md`, «Decisiones del 5/11»; hay puntos abiertos). El evento es **Voces Jóvenes, con 10 proyectos y sin diapositivas**: se muestra el producto y un video de menos de 3 minutos. Plan Beta: ARS 20.000 por mes, sin garantía, sin factura (cómo encaja con los dos combos de Ani: [A DEFINIR: combos de Ani]). **El cupo es limitado.**
+**Lo que ya está decidido y no se discute el día del evento:** la beta abre el jueves 26/11 para 8 carreras (abogacía, contaduría, administración, comunicación, marketing, relaciones públicas, relaciones internacionales y programación). Cupo: 15 a 20 personas (becas y combos en `docs/beta/runbook-apertura.md`, «Decisiones del 5/11»; hay puntos abiertos). El evento es **Voces Jóvenes, con 10 proyectos y sin diapositivas**: se muestra el producto y un video de menos de 3 minutos. Plan Beta: ARS 20.000 por mes, sin garantía, sin factura (cómo encaja con los dos combos de Ani: [A DEFINIR: combos de Ani]). **El cupo es limitado.**
 
 ---
 
@@ -51,7 +51,7 @@ Si alguien se pasa, ve: «Recibimos muchos pedidos desde tu conexión. Probá de
 
 ### Mauro, en el panel (recargá cada 10 o 15 minutos)
 - [ ] **El número «sin invitar» sube.** Si la sala dice que se anotó y el número no se mueve, probá la página desde tu celular: puede ser el freno de seguridad o un problema de la página (README, «Si el día del evento la página no carga»).
-- [ ] **Los contadores por carrera** muestran las 6 carreras de la beta y gente repartida. Si alguien eligió una carrera fuera de las 6, es normal: se anota igual, pero la beta es para esas 6.
+- [ ] **Los contadores por carrera** muestran las 8 carreras de la beta y gente repartida. Si alguien eligió una carrera fuera de las 8, es normal: se anota igual, pero la beta es para esas 8.
 - [ ] **«Cómo se enteró» dice «Voces Jóvenes»** en casi todas las filas. Si muchas dicen «Sin dato», el QR no está cargando el origen: usan la dirección escrita a mano. No es grave: igual quedan anotadas.
 - [ ] Filtrá por **«Cómo se enteró» → «Voces Jóvenes»** para ver solo a la gente del evento.
 - [ ] **Si las personas ven errores o la página no carga:** README, «Si el día del evento la página no carga». Cambiar al otro QR es lo primero.
@@ -69,7 +69,7 @@ Si alguien se pasa, ve: «Recibimos muchos pedidos desde tu conexión. Probá de
 
 ### Elegir a quién invitar (Ani y Mauro)
 - [ ] **Ani trae los criterios** para elegir (los que definió para las 15 a 20 personas; incluyen los dos combos [A DEFINIR: combos de Ani] y las becas). **Hasta que estén definidos, no se invita a nadie.**
-- [ ] Revisen la lista **carrera por carrera** con los contadores del panel: ¿alcanza gente en cada una de las 6?
+- [ ] Revisen la lista **carrera por carrera** con los contadores del panel: ¿alcanza gente en cada una de las 8?
 - [ ] Marquen en la planilla a quiénes eligen y quiénes quedan en espera. **Las becas (un becado gratis y dos con 50 %) se marcan aparte;** quiénes son y si las dos personas que no pagan entran en esos lugares: [A CONFIRMAR con Mauro].
 - [ ] **(Mauro)** En el panel, tildá a las personas elegidas (hasta 20 por tanda), tocá **«Invitar a los seleccionados»** y confirmá.
 - [ ] **Copiá los mensajes en ese momento:** los enlaces se muestran **una sola vez**. Cada mensaje dice que la beta abre el jueves 26/11 y que el enlace es personal. Mandalos por WhatsApp o email desde tu cuenta: el panel no manda nada solo.
