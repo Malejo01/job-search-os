@@ -1,6 +1,6 @@
 import type { RoleKey } from "@job-search-os/pipeline";
 import Link from "next/link";
-import { ROLE_SKILLS } from "@/lib/skill-levels";
+import { catalogLabel } from "@/lib/career-names";
 import { filterChipClasses } from "@/components/ui";
 
 /**
@@ -34,7 +34,7 @@ export function RoleTabs({
           aria-current={key === active ? "page" : undefined}
           className={filterChipClasses({ selected: key === active })}
         >
-          {ROLE_SKILLS[key].label}
+          {catalogLabel(key)}
         </Link>
       ))}
     </nav>

@@ -33,6 +33,7 @@ export type Persona = {
   /** Grupo del selector del paso 1 (`legend` de su `fieldset`). */
   roleGroup:
     | "Tecnología"
+    | "Carreras de la beta"
     | "Carreras digitales"
     | "Comunicación y relaciones"
     | "Derecho, contabilidad y gestión";
@@ -186,7 +187,7 @@ export function buildPersona(key: PersonaKey, tag: number = Date.now()): Persona
         ...base,
         name: "Valentina Ficticia",
         role: "marketing_digital",
-        roleGroup: "Comunicación y relaciones",
+        roleGroup: "Carreras de la beta",
         country: "MX",
         cefr: "B2",
         years: "5",
@@ -355,7 +356,7 @@ export function buildPersona(key: PersonaKey, tag: number = Date.now()): Persona
         ...base,
         name: "Mariana Ficticia",
         role: "abogacia",
-        roleGroup: "Derecho, contabilidad y gestión",
+        roleGroup: "Carreras de la beta",
         country: "AR",
         cefr: "C1",
         years: "5",
@@ -413,7 +414,7 @@ export function buildPersona(key: PersonaKey, tag: number = Date.now()): Persona
         ...base,
         name: "Camila Ficticia",
         role: "comunicacion",
-        roleGroup: "Comunicación y relaciones",
+        roleGroup: "Carreras de la beta",
         country: "UY",
         cefr: "B2",
         years: "4",
@@ -471,7 +472,7 @@ export function buildPersona(key: PersonaKey, tag: number = Date.now()): Persona
         ...base,
         name: "Agustina Ficticia",
         role: "finanzas_contabilidad",
-        roleGroup: "Derecho, contabilidad y gestión",
+        roleGroup: "Carreras de la beta",
         country: "AR",
         cefr: "B1",
         years: "6",
@@ -529,7 +530,7 @@ export function buildPersona(key: PersonaKey, tag: number = Date.now()): Persona
         ...base,
         name: "Bruno Ficticio",
         role: "administracion_empresas",
-        roleGroup: "Derecho, contabilidad y gestión",
+        roleGroup: "Carreras de la beta",
         country: "UY",
         cefr: "B2",
         years: "7",
@@ -587,7 +588,7 @@ export function buildPersona(key: PersonaKey, tag: number = Date.now()): Persona
         ...base,
         name: "Rocío Ficticia",
         role: "marketing_digital",
-        roleGroup: "Comunicación y relaciones",
+        roleGroup: "Carreras de la beta",
         country: "CO",
         cefr: "B2",
         years: "4",
@@ -645,7 +646,7 @@ export function buildPersona(key: PersonaKey, tag: number = Date.now()): Persona
         ...base,
         name: "Inés Ficticia",
         role: "relaciones_internacionales",
-        roleGroup: "Comunicación y relaciones",
+        roleGroup: "Carreras de la beta",
         country: "PE",
         cefr: "C1",
         years: "5",

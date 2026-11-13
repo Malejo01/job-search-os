@@ -1,6 +1,6 @@
 import { ROLE_KEYS } from "@job-search-os/pipeline";
 import Link from "next/link";
-import { careerLabel } from "@/lib/career-market";
+import { betaFirst, catalogLabel } from "@/lib/career-names";
 import { getPublicCareerKeys } from "@/lib/career-visibility";
 
 /**
@@ -24,10 +24,12 @@ export async function CareerChips({
   label: string;
 }) {
   const visible = await getPublicCareerKeys();
+  // R5-C8: las 8 carreras de la beta primero y con su nombre; el resto, después
+  const { beta, others } = betaFirst(ROLE_KEYS.filter((k) => visible.includes(k) || k === current));
   return (
     <nav aria-label={label}>
       <ul className="flex flex-wrap gap-2">
-        {ROLE_KEYS.filter((k) => visible.includes(k) || k === current).map((key) => (
+        {[...beta, ...others].map((key) => (
           <li key={key}>
             <Link
               href={`${base}/${key}`}
@@ -39,7 +41,7 @@ export async function CareerChips({
                   : "border-line-strong bg-surface text-fg hover:bg-surface-muted"
               }`}
             >
-              {careerLabel(key)}
+              {catalogLabel(key)}
             </Link>
           </li>
         ))}

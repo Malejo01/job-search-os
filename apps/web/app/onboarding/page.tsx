@@ -20,7 +20,7 @@ import {
   isOnboardingComplete,
 } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
-import { ROLE_SKILLS } from "@/lib/skill-levels";
+import { catalogLabel } from "@/lib/career-names";
 import { DeleteAccountForm } from "../(app)/settings/delete-account-form";
 import { OnboardingForm } from "./onboarding-form";
 import { OnboardingSteps } from "./steps";
@@ -63,7 +63,7 @@ export default async function OnboardingPage({
   ]);
   const roleGroups = profileRoleGroups(targetRoles).map((group) => ({
     label: group.label,
-    roles: group.roles.map((key) => ({ key, label: ROLE_SKILLS[key].label })),
+    roles: group.roles.map((key) => ({ key, label: catalogLabel(key) })),
   }));
   return (
     <section className="flex flex-col gap-5">

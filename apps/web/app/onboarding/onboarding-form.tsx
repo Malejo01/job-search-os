@@ -1,5 +1,6 @@
 "use client";
 
+import { BETA_GROUP_LABEL } from "@job-search-os/pipeline";
 import { FieldError, ProfileForm, useProfileError } from "@/components/profile-form";
 import {
   RolePicker,
@@ -43,8 +44,9 @@ function RolesSection({
     >
       <legend className="mb-1 font-bold text-fg">¿Qué puestos buscás?</legend>
       <p id="roles-help" className="text-xs text-fg-subtle">
-        Elegí hasta {rolesLimit}. Te mostramos primero las ofertas de esos puestos. Hay carreras de{" "}
-        {groupsText(roleGroups.map((g) => g.label))}.
+        Elegí hasta {rolesLimit}. Te mostramos primero las ofertas de esos puestos. Arriba están las
+        carreras de la beta; también hay de{" "}
+        {groupsText(roleGroups.filter((g) => g.label !== BETA_GROUP_LABEL).map((g) => g.label))}.
       </p>
       <RolePicker
         name="targetRoles"

@@ -135,7 +135,7 @@ test.describe("Flujo 41: mercado por carrera", () => {
     await page.goto("/market");
     await page
       .getByRole("combobox", { name: "Explorar otra carrera" })
-      .selectOption({ label: "Marketing digital" });
+      .selectOption({ label: "Marketing" }); // R5-C8: nombre de la beta en el selector
     await page.getByRole("form", { name: "Explorar otra carrera" }).getByRole("button").click();
     await page.waitForURL(/carrera=marketing_digital/);
 

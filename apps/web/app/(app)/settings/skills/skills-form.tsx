@@ -1,4 +1,5 @@
 import {
+  BETA_GROUP_LABEL,
   ENGLISH_SKILL_SLUGS,
   profileRoleGroups,
   suggestedSkills,
@@ -10,6 +11,7 @@ import Link from "next/link";
 import { GuardedForm, PendingSubmit, type FormActionError } from "@/app/components/guarded-form";
 import { AssistantProposalLoader } from "@/components/assistant-proposal-loader";
 import { buttonClasses, filterChipClasses } from "@/components/ui";
+import { catalogLabel } from "@/lib/career-names";
 import type { CustomSkill, TaxonomySkill } from "@/lib/skill-levels";
 import { EnglishField } from "./english-field";
 import { SkillRow } from "./skill-row";
@@ -119,9 +121,14 @@ export function SkillsForm({
         data-tour="skills:puestos"
         className="flex flex-col gap-2"
       >
-        <h2 className="text-base font-bold">Skills sugeridas de</h2>
-        {pillGroups.map((group) => (
+        <h2 className="text-base font-bold">Skills sugeridas</h2>
+        {pillGroups.map((group, index) => (
           <div key={group.label} className="flex flex-col gap-1">
+            {/* R5-C8: debajo de las carreras de la beta, el resto va bajo «Otras carreras» */}
+            {group.label !== BETA_GROUP_LABEL &&
+            pillGroups[index - 1]?.label === BETA_GROUP_LABEL ? (
+              <p className="mt-2 text-sm font-bold text-fg">Otras carreras</p>
+            ) : null}
             <h3 className="text-xs font-bold text-fg-subtle">{group.label}</h3>
             <ul className="flex flex-wrap gap-2">
               {group.roles.map((key) => (
@@ -131,7 +138,7 @@ export function SkillsForm({
                     aria-current={key === role ? "true" : undefined}
                     className={filterChipClasses({ selected: key === role })}
                   >
-                    {roleMap[key].label}
+                    {catalogLabel(key)}
                   </Link>
                 </li>
               ))}
