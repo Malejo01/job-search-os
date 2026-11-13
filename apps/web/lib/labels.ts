@@ -218,6 +218,11 @@ export const DISCIPLINE_LABEL: Record<string, string> = {
   producto: "Producto",
   recursos_humanos: "Recursos humanos / recruiting",
   customer_success: "Customer success",
+  abogacia: "Abogacía",
+  finanzas_contabilidad: "Finanzas y contabilidad",
+  comunicacion: "Comunicación",
+  relaciones_internacionales: "Relaciones internacionales",
+  relaciones_publicas: "Relaciones públicas",
 };
 
 export const ENGLISH_LABEL: Record<string, string> = {

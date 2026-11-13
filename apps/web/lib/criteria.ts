@@ -1,5 +1,10 @@
 import { schema as s } from "@job-search-os/db";
-import { criteriaFromOnboarding, type CriteriaRules } from "@job-search-os/pipeline";
+import {
+  criteriaFromOnboarding,
+  toRoleKey,
+  type CriteriaRules,
+  type RoleKey,
+} from "@job-search-os/pipeline";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { withUser, type Tx } from "./db";
 
@@ -101,6 +106,7 @@ export async function resetCriteriaToDefaults(
         .select({
           salaryFloorUsd: s.profiles.salaryFloorUsd,
           maxWeeklyHours: s.profiles.maxWeeklyHours,
+          targetRoles: s.profiles.targetRoles,
         })
         .from(s.profiles)
         .where(eq(s.profiles.userId, userId))
@@ -108,6 +114,10 @@ export async function resetCriteriaToDefaults(
       return criteriaFromOnboarding({
         salaryFloorUsd: profile?.salaryFloorUsd ?? null,
         maxWeeklyHours: profile?.maxWeeklyHours ?? null,
+        // Las disciplinas por defecto son las de su carrera (R6-2); claves viejas o ajenas no cuentan
+        targetRoles: (profile?.targetRoles ?? [])
+          .map((r) => toRoleKey(r))
+          .filter((r): r is RoleKey => r !== null),
       });
     },
     baseVersion,

@@ -1,0 +1,10 @@
+{
+  "carrera": "fullstack",
+  "propios": [
+    { "empresa": "Empresa A", "titulo": "Desarrollador fullstack", "disciplina": "fullstack" },
+    { "empresa": "Empresa B", "titulo": "Desarrollador backend", "disciplina": "backend" },
+    { "empresa": "Empresa C", "titulo": "Ingeniero de IA", "disciplina": "ai_engineer" },
+    { "empresa": "Empresa D", "titulo": "Analista de marketing", "disciplina": "marketing_digital" }
+  ],
+  "ajenos": []
+}

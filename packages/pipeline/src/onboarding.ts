@@ -111,13 +111,76 @@ export const DEFAULT_CRITERIA_RULES: CriteriaRules = {
   thresholds: { personalizado: 9, aplicar: 7, guardar: 5 },
 };
 
-/** Reglas por defecto con el piso salarial y las horas del formulario, si los cargó. */
+/**
+ * Disciplinas permitidas de cada carrera que NO es de tecnología (R6-2). El evaluador vigente
+ * (prompt v1.3) solo escribe las disciplinas de `DISCIPLINES_V13`: un aviso de abogacía llega como
+ * `otra` o `negocio`, por eso las dos están siempre. La disciplina propia de la carrera va igual,
+ * para cuando el prompt las emita. Fuera de la lista = bloqueador de disciplina (`decide`).
+ * Las carreras que no están acá (programación, producto, ventas...) no cambian: todas las disciplinas.
+ */
+export const CAREER_DISCIPLINES: Partial<Record<RoleKey, readonly string[]>> = {
+  abogacia: ["abogacia", "negocio", "otra"],
+  // `data`: un analista financiero con Excel y SQL puede llegar etiquetado como datos
+  finanzas_contabilidad: ["finanzas_contabilidad", "negocio", "data", "otra"],
+  // Carrera amplia: coordinar proyectos y procesos, RR.HH., atención o éxito de cliente y análisis
+  // con Excel y SQL (`data`) son puestos de entrada típicos
+  administracion_empresas: [
+    "negocio",
+    "project_management",
+    "recursos_humanos",
+    "customer_success",
+    "data",
+    "otra",
+  ],
+  comunicacion: ["comunicacion", "marketing_digital", "creative_production", "negocio", "otra"],
+  marketing_digital: ["marketing_digital", "creative_production", "negocio", "otra"],
+  relaciones_publicas: [
+    "relaciones_publicas",
+    "comunicacion",
+    "marketing_digital",
+    "creative_production",
+    "negocio",
+    "otra",
+  ],
+  relaciones_internacionales: [
+    "relaciones_internacionales",
+    "negocio",
+    "project_management",
+    "otra",
+  ],
+};
+
+/**
+ * Disciplinas permitidas para los puestos elegidos: la unión de las de cada carrera, en el orden de
+ * `DISCIPLINES`. `null` (= no acotar, todas) si no hay puestos o si alguno no tiene lista propia:
+ * ante la duda no se descarta a nadie por disciplina.
+ */
+export function disciplinesForRoles(roles: readonly RoleKey[] | null | undefined): string[] | null {
+  if (!roles || roles.length === 0) return null;
+  const union = new Set<string>();
+  for (const role of roles) {
+    const list = CAREER_DISCIPLINES[role];
+    if (!list) return null;
+    for (const d of list) union.add(d);
+  }
+  return DISCIPLINES.filter((d) => union.has(d));
+}
+
+/**
+ * Reglas por defecto con el piso salarial y las horas del formulario, si los cargó. Con los puestos
+ * elegidos (`targetRoles`) las disciplinas permitidas salen de la carrera (R6-2); sin ellos, o con
+ * una carrera de tecnología, son todas como siempre.
+ */
 export function criteriaFromOnboarding(input: {
   salaryFloorUsd: number | null;
   maxWeeklyHours: number | null;
+  targetRoles?: readonly RoleKey[] | null;
 }): CriteriaRules {
+  const disciplines = disciplinesForRoles(input.targetRoles);
   return {
     ...DEFAULT_CRITERIA_RULES,
+    // Copia: quien muta sus reglas no toca la constante compartida
+    allowed_disciplines: disciplines ?? [...DEFAULT_CRITERIA_RULES.allowed_disciplines],
     salary_floor_usd_monthly: input.salaryFloorUsd ?? null,
     max_weekly_hours: input.maxWeeklyHours ?? DEFAULT_CRITERIA_RULES.max_weekly_hours,
   };

@@ -1,0 +1,24 @@
+{
+  "carrera": "marketing_digital",
+  "propios": [
+    {
+      "empresa": "Agencia A",
+      "titulo": "Analista de marketing digital",
+      "disciplina": "marketing_digital"
+    },
+    {
+      "empresa": "Empresa B",
+      "titulo": "Diseñadora de piezas para redes",
+      "disciplina": "creative_production"
+    },
+    { "empresa": "Empresa C", "titulo": "Especialista en email marketing", "disciplina": "otra" }
+  ],
+  "ajenos": [
+    { "empresa": "Empresa D", "titulo": "Desarrollador backend Python", "disciplina": "backend" },
+    {
+      "empresa": "Empresa E",
+      "titulo": "Administrador de plataformas cloud",
+      "disciplina": "administracion_plataformas"
+    }
+  ]
+}

@@ -351,7 +351,12 @@ export async function completeOnboarding(
           userId,
           version: (crit?.maxVersion ?? 0) + 1,
           active: true,
-          rules: criteriaFromOnboarding(input),
+          // R6-2: las disciplinas permitidas salen de la carrera elegida, no de un default de tecnología
+          rules: criteriaFromOnboarding({
+            salaryFloorUsd: input.salaryFloorUsd,
+            maxWeeklyHours: input.maxWeeklyHours,
+            targetRoles: input.targetRoles,
+          }),
         })
         .onConflictDoNothing();
     }

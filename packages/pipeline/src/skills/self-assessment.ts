@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DISCIPLINES } from "../evaluation";
 
 /**
  * Skills autodeclaradas (ronda 28): roles objetivo, skills sugeridas por rol, niveles en palabras y
@@ -331,15 +332,26 @@ const DISCIPLINE_ROLES: [string, RoleKey][] = [
   ["fullstack", "fullstack"],
   ["frontend", "frontend"],
   ["backend", "backend"],
+  // R6-2: la lista de contaduría incluye `data` (analistas con Excel y SQL): su disciplina propia va antes
+  ["finanzas_contabilidad", "finanzas_contabilidad"],
   ["data", "data_analyst"],
   // Al final: los de arriba no cambian de prioridad
   ["ciberseguridad", "ciberseguridad"],
+  // R6-2: las carreras no técnicas van antes que las que comparten con ellas (comunicación y RR.PP.
+  // incluyen marketing_digital; RR.II. incluye project_management)
+  ["abogacia", "abogacia"],
+  ["relaciones_publicas", "relaciones_publicas"],
+  ["comunicacion", "comunicacion"],
+  ["relaciones_internacionales", "relaciones_internacionales"],
   ["project_management", "project_manager"],
   ["marketing_digital", "marketing_digital"],
   ["producto", "product_manager"],
   ["recursos_humanos", "rrhh_it"],
   ["customer_success", "customer_success"],
 ];
+
+/** Las 19 disciplinas de fábrica de antes de R6-2. */
+const LEGACY_FACTORY_DISCIPLINES: readonly string[] = DISCIPLINES.slice(0, 19);
 
 function sameSet(a: readonly string[], b: readonly string[]): boolean {
   const sa = new Set(a);
@@ -366,6 +378,8 @@ export function defaultRole(input: {
 
   const allowed = input.allowedDisciplines ?? [];
   if (allowed.length === 0 || sameSet(allowed, input.defaultDisciplines)) return null;
+  // Criterios de fábrica anteriores a R6-2 (19 disciplinas, sin las 5 de carreras no técnicas): tampoco dicen nada
+  if (LEGACY_FACTORY_DISCIPLINES.every((d) => allowed.includes(d))) return null;
   for (const [discipline, role] of DISCIPLINE_ROLES) {
     if (allowed.includes(discipline)) return role;
   }

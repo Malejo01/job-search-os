@@ -21,6 +21,8 @@ const dataSql = readFileSync(
 );
 
 const NEW_ONES = ["marketing_digital", "producto", "recursos_humanos", "customer_success"];
+/** Las 19 de la ronda 43: es lo que la 0023 deja (R6-2 suma 5 más al enum, no a los criterios existentes). */
+const LAS_19: string[] = DISCIPLINES.slice(0, 19);
 const DE_FABRICA = "a6000000-0000-4000-8000-000000000001";
 const ACOTADA = "a6000000-0000-4000-8000-000000000002";
 const YA_CON_19 = "a6000000-0000-4000-8000-000000000003";
@@ -65,7 +67,7 @@ beforeAll(async () => {
   const rows: [string, readonly string[] | null][] = [
     [DE_FABRICA, DISCIPLINES_V13],
     [ACOTADA, ["ai_engineer", "fullstack"]],
-    [YA_CON_19, DISCIPLINES],
+    [YA_CON_19, LAS_19],
     [SIN_LISTA, null],
   ];
   for (const [id, allowed] of rows) {
@@ -86,13 +88,14 @@ afterAll(async () => {
 });
 
 describe("0022: enum discipline", () => {
-  it("tiene los 19 valores, los 4 nuevos al final", async () => {
+  it("tiene los 24 valores: los 4 de la ronda 43 y las 5 de carreras no técnicas (R6-2) al final", async () => {
     const rows = await owner<{ enumlabel: string }[]>`
       select e.enumlabel from pg_enum e join pg_type t on t.oid = e.enumtypid
       where t.typname = 'discipline' order by e.enumsortorder`;
     const labels = rows.map((r) => r.enumlabel);
-    expect(labels).toHaveLength(19);
-    expect(labels.slice(-4)).toEqual(NEW_ONES);
+    expect(labels).toHaveLength(24);
+    expect(labels.slice(15, 19)).toEqual(NEW_ONES);
+    expect(labels.slice(19)).toEqual(DISCIPLINES.slice(19));
     expect([...labels].sort()).toEqual([...DISCIPLINES].sort());
   });
 
@@ -118,16 +121,16 @@ describe("0023: criterios de fábrica", () => {
 
   it("suma los 4 a los de fábrica; no toca la lista acotada, la ya completa ni la ausente", async () => {
     await runDataMigration();
-    expect(await disciplinesOf(DE_FABRICA)).toEqual([...DISCIPLINES]);
+    expect(await disciplinesOf(DE_FABRICA)).toEqual(LAS_19);
     expect(await disciplinesOf(ACOTADA)).toEqual(["ai_engineer", "fullstack"]);
-    expect(await disciplinesOf(YA_CON_19)).toEqual([...DISCIPLINES]);
+    expect(await disciplinesOf(YA_CON_19)).toEqual(LAS_19);
     expect(await disciplinesOf(SIN_LISTA)).toBeNull();
   });
 
   it("es idempotente: correrla de nuevo no duplica", async () => {
     await runDataMigration();
     await runDataMigration();
-    expect(await disciplinesOf(DE_FABRICA)).toEqual([...DISCIPLINES]);
+    expect(await disciplinesOf(DE_FABRICA)).toEqual(LAS_19);
     expect(await disciplinesOf(ACOTADA)).toEqual(["ai_engineer", "fullstack"]);
   });
 

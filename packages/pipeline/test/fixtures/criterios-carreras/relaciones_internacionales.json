@@ -1,0 +1,25 @@
+{
+  "carrera": "relaciones_internacionales",
+  "propios": [
+    {
+      "empresa": "ONG Internacional A",
+      "titulo": "Asistente de cooperación internacional",
+      "disciplina": "otra"
+    },
+    { "empresa": "Empresa B", "titulo": "Analista de comercio exterior", "disciplina": "negocio" },
+    {
+      "empresa": "Empresa C",
+      "titulo": "Oficial de proyectos de desarrollo",
+      "disciplina": "project_management"
+    },
+    {
+      "empresa": "Organismo D",
+      "titulo": "Analista de política internacional",
+      "disciplina": "relaciones_internacionales"
+    }
+  ],
+  "ajenos": [
+    { "empresa": "Empresa E", "titulo": "Ingeniero de IA", "disciplina": "ai_engineer" },
+    { "empresa": "Empresa F", "titulo": "Desarrollador backend", "disciplina": "backend" }
+  ]
+}
