@@ -37,6 +37,7 @@ import { dailyCapFromEnv, spendLast24h } from "./spend";
  */
 export const BUDGET_ALERT_TASK = "budget_alert";
 const LOCK_NAMESPACE = 7101;
+const SEND_TIMEOUT_MS = 8000;
 
 /** Operaciones sobre las marcas del día; dentro de `runExclusive` comparten transacción y lock. */
 export interface BudgetAlertMarks {
@@ -48,8 +49,11 @@ export interface BudgetAlertMarks {
 
 /** Lo que el runner necesita de la base. Separado para probar el orden de las cosas sin Postgres. */
 export interface BudgetAlertStore extends BudgetAlertMarks {
-  /** Corre `fn` con el lock del día tomado: otra corrida del mismo día espera y después ve las marcas. */
-  runExclusive<T>(day: string, fn: (marks: BudgetAlertMarks) => Promise<T>): Promise<T>;
+  /**
+   * Corre `fn` con el lock del día tomado. Si otra corrida ya lo tiene devuelve null sin esperar: esa corrida
+   * está avisando. Cada `mark` de `fn` es atómico por sí solo: si una falla, las ya anotadas se conservan.
+   */
+  runExclusive<T>(day: string, fn: (marks: BudgetAlertMarks) => Promise<T>): Promise<T | null>;
 }
 
 export type BudgetAlertLogger = {
@@ -60,7 +64,13 @@ export type BudgetAlertLogger = {
 
 export type BudgetAlertRun = {
   ok: true;
-  skipped?: "sin_tope" | "tope_invalido" | "sin_resend" | "sin_destinatarios" | "sin_url";
+  skipped?:
+    | "sin_tope"
+    | "tope_invalido"
+    | "sin_resend"
+    | "sin_destinatarios"
+    | "sin_url"
+    | "en_curso";
   spentUsd: number;
   capUsd: number;
   /** Umbrales que esta corrida avisó (a al menos un destinatario). */
@@ -94,7 +104,13 @@ export async function runBudgetAlerts(deps: {
   send?: (params: SendEmailParams, apiKey: string) => Promise<void>;
 }): Promise<BudgetAlertRun> {
   const { store, env, now, logger } = deps;
-  const send = deps.send ?? ((params, apiKey) => sendEmail(params, apiKey));
+  // Con el lock del día tomado no puede quedar colgado el fetch: tope de 8 s por envío (solo para estas alertas)
+  const send =
+    deps.send ??
+    ((params, apiKey) =>
+      sendEmail(params, apiKey, (url, init) =>
+        fetch(url, { ...init, signal: AbortSignal.timeout(SEND_TIMEOUT_MS) }),
+      ));
   const base = {
     spentUsd: 0,
     capUsd: 0,
@@ -140,7 +156,7 @@ export async function runBudgetAlerts(deps: {
   const common = { ...base, spentUsd: spent, capUsd: cap, crossedTop };
   if (crossedTop === 0) return { ok: true, ...common };
 
-  return store.runExclusive(day, async (marks) => {
+  const result = await store.runExclusive(day, async (marks) => {
     const plans = planBudgetAlerts({
       spentUsd: spent,
       capUsd: cap,
@@ -200,6 +216,9 @@ export async function runBudgetAlerts(deps: {
       complete: failed === 0,
     };
   });
+  // Lock tomado por otra corrida: ella está avisando; no se da el día por completo para volver a mirar
+  if (result === null) return { ok: true, skipped: "en_curso", ...common, complete: false };
+  return result;
 }
 
 /** Umbrales avisados hoy (UTC) a alguien, para la pantalla de salud. Solo lectura. */
@@ -214,7 +233,8 @@ export function createDbBudgetAlertStore(db: Db): BudgetAlertStore {
   const labelOf = (day: string, threshold: number, recipientId: string) =>
     `${day}:${threshold}:${recipientId}`;
 
-  const marksOn = (q: Runner): BudgetAlertMarks => ({
+  type Savepoint = (f: (tx: Runner) => Promise<unknown>) => Promise<unknown>;
+  const marksOn = (q: Runner, savepoints?: Savepoint): BudgetAlertMarks => ({
     async sentMarks(day) {
       const rows = await q
         .select({ label: s.llmCalls.label })
@@ -235,9 +255,9 @@ export function createDbBudgetAlertStore(db: Db): BudgetAlertStore {
           .filter((m) => m.recipientId === recipientId)
           .map((m) => m.threshold),
       );
-      for (const threshold of thresholds) {
-        if (existing.has(threshold)) continue;
-        await q.insert(s.llmCalls).values({
+      const rows = thresholds
+        .filter((t) => !existing.has(t))
+        .map((threshold) => ({
           userId: null,
           task: BUDGET_ALERT_TASK,
           model: "none",
@@ -252,19 +272,25 @@ export function createDbBudgetAlertStore(db: Db): BudgetAlertStore {
           ok: true,
           error: null,
           createdAt: now,
-        });
-      }
+        }));
+      if (rows.length === 0) return;
+      // Un solo INSERT por destinatario (atómico). Dentro del lock va en un savepoint: si falla, Postgres no
+      // deja la transacción abortada y las marcas de los destinatarios anteriores se conservan.
+      if (savepoints) await savepoints((tx) => tx.insert(s.llmCalls).values(rows));
+      else await q.insert(s.llmCalls).values(rows);
     },
   });
 
   return {
     ...marksOn(db),
-    runExclusive(day, fn) {
+    async runExclusive(day, fn) {
       return db.transaction(async (tx) => {
-        await tx.execute(
-          sql`select pg_advisory_xact_lock(hashtextextended(${day}, ${LOCK_NAMESPACE}))`,
-        );
-        return fn(marksOn(tx));
+        // Sin esperar: si otra corrida tiene el lock, ella está avisando. Y no se queda una conexión bloqueada.
+        const [lock] = (await tx.execute(
+          sql`select pg_try_advisory_xact_lock(hashtextextended(${day}, ${LOCK_NAMESPACE})) as ok`,
+        )) as unknown as { ok: boolean }[];
+        if (!lock?.ok) return null;
+        return fn(marksOn(tx, (f) => tx.transaction(f)));
       });
     },
   };

@@ -180,6 +180,15 @@ describe("runBudgetAlerts (R7-1, R8-5)", () => {
     expect(retry.mock.calls[0]![0].idempotencyKey).toBe(send.mock.calls[0]![0].idempotencyKey);
   });
 
+  it("si otra corrida tiene el lock del día, saltea sin mandar ni esperar", async () => {
+    const store = memoryStore();
+    store.runExclusive = async () => null;
+    const send = vi.fn();
+    const res = await run({ store, send });
+    expect(res).toMatchObject({ skipped: "en_curso", sent: 0, complete: false });
+    expect(send).not.toHaveBeenCalled();
+  });
+
   it("una marca vieja de R7-1 (sin destinatario) vale para todos", async () => {
     const send = vi.fn();
     const res = await run({ store: memoryStore(["2026-11-12:70"]), send });
