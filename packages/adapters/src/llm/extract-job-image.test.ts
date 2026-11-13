@@ -5,6 +5,7 @@ import { memoryCallSink } from "./calls";
 import {
   EXTRACT_IMAGE_TASK,
   extractJobFromImage,
+  IMAGE_ATTEMPTS_DAILY_LIMIT,
   IMAGE_DAILY_LIMIT,
   type ExtractImageDeps,
 } from "./extract-job-image";
@@ -48,6 +49,7 @@ function deps(over: Partial<ExtractImageDeps> & { response?: unknown } = {}) {
   const d: ExtractImageDeps = {
     llm,
     countSince: async () => 0,
+    countAttemptsSince: async () => 0,
     capReason: async () => null,
     lock: okLock(),
     ...rest,
@@ -101,7 +103,13 @@ describe("extractJobFromImage", () => {
       { failWith: { kind: "generation_failed", task: EXTRACT_IMAGE_TASK, detail: "x" } },
     );
     const r = await extractJobFromImage(
-      { llm, countSince: async () => 0, capReason: async () => null, lock: okLock() },
+      {
+        llm,
+        countSince: async () => 0,
+        countAttemptsSince: async () => 0,
+        capReason: async () => null,
+        lock: okLock(),
+      },
       { userId: "u1", image: jpeg() },
     );
     expect(r).toEqual({ ok: false, code: "modelo" });
@@ -168,6 +176,40 @@ describe("extractJobFromImage: imagen y topes (cortan antes del modelo)", () => 
     expect(ten.llm.calls).toHaveLength(0);
     // Ventana móvil de 24 h, como el tope de gasto
     expect(since[0]?.toISOString()).toBe("2026-11-11T12:00:00.000Z");
+  });
+
+  it("S2: muchos fallos igual cortan (el conteo de ok es 0 pero los intentos llegan a 30)", async () => {
+    const now = new Date("2026-11-12T12:00:00Z");
+    const attemptsSince: Date[] = [];
+    const countAttempts = (n: number) => async (s: Date) => {
+      attemptsSince.push(s);
+      return n;
+    };
+    const blocked = deps({
+      countSince: async () => 0,
+      countAttemptsSince: countAttempts(IMAGE_ATTEMPTS_DAILY_LIMIT),
+      now: () => now,
+    });
+    expect(await extractJobFromImage(blocked.d, { userId: "u1", image: jpeg() })).toEqual({
+      ok: false,
+      code: "limite_imagenes",
+    });
+    expect(blocked.llm.calls).toHaveLength(0);
+    // Misma ventana móvil de 24 h
+    expect(attemptsSince[0]?.toISOString()).toBe("2026-11-11T12:00:00.000Z");
+    // Con 29 intentos todavía deja pasar
+    const open = deps({ countAttemptsSince: countAttempts(IMAGE_ATTEMPTS_DAILY_LIMIT - 1) });
+    expect((await extractJobFromImage(open.d, { userId: "u1", image: jpeg() })).ok).toBe(true);
+  });
+
+  it("el cupo de 10 cuenta solo las que respondieron: no mira los intentos fallidos", async () => {
+    // 9 ok con 25 intentos en total: pasa; el cupo de 10 no se gasta con fallos
+    const { d, llm } = deps({
+      countSince: async () => IMAGE_DAILY_LIMIT - 1,
+      countAttemptsSince: async () => 25,
+    });
+    expect((await extractJobFromImage(d, { userId: "u1", image: jpeg() })).ok).toBe(true);
+    expect(llm.calls).toHaveLength(1);
   });
 
   it("el tope de gasto por persona y el global frenan antes del modelo", async () => {
@@ -241,6 +283,7 @@ describe("modo demo", () => {
       {
         llm: createDemoLlm({ calls }),
         countSince: async () => 0,
+        countAttemptsSince: async () => 0,
         capReason: async () => null,
         lock: okLock(),
       },

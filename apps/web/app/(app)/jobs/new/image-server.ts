@@ -37,6 +37,9 @@ export async function extractJobImageForUser(
           // onlyOk (S2): un intento que falló antes de responder no gasta el cupo de 10 por día
           countSince: (since) =>
             countTaskCallsSince(tx, { userId, task: EXTRACT_IMAGE_TASK, since, onlyOk: true }),
+          // Segundo tope sobre todos los intentos, también los fallidos (cost_usd null: el tope en USD no los ve)
+          countAttemptsSince: (since) =>
+            countTaskCallsSince(tx, { userId, task: EXTRACT_IMAGE_TASK, since }),
           capReason: () => spendCapReason(tx, { userId }),
           lock: {
             acquire: async () => {

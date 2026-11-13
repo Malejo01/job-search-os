@@ -12,6 +12,13 @@ export const EXTRACT_IMAGE_TASK = "extract_job_from_image";
 /** Máximo de imágenes por persona en una ventana de 24 h (R6-3). */
 export const IMAGE_DAILY_LIMIT = 10;
 
+/**
+ * Máximo de intentos (ok o fallidos) por persona en 24 h. Las llamadas fallidas no gastan el cupo de
+ * 10 y se registran con `cost_usd` null, así que el tope en USD no las ve: sin este segundo tope una
+ * cuenta que provoca fallos a propósito repetiría llamadas (que el proveedor cobra) sin freno.
+ */
+export const IMAGE_ATTEMPTS_DAILY_LIMIT = 30;
+
 export type ExtractImageFailure =
   | "imagen_vacia"
   | "imagen_grande"
@@ -29,8 +36,10 @@ export type ExtractImageOutcome =
 
 export type ExtractImageDeps = {
   llm: LlmClient;
-  /** Llamadas de `extract_job_from_image` de esta persona desde `since` (de `llm_calls`). */
+  /** Llamadas que respondieron (`ok`) de `extract_job_from_image` de esta persona desde `since`. */
   countSince: (since: Date) => Promise<number>;
+  /** TODAS las llamadas de la tarea de esta persona desde `since`, también las fallidas. */
+  countAttemptsSince: (since: Date) => Promise<number>;
   /** Tope de gasto en USD: el global y LLM_USER_DAILY_CAP_USD (`spendCapReason`). */
   capReason: () => Promise<"global" | "user" | null>;
   /**
@@ -78,8 +87,11 @@ async function readLocked(
   input: { userId: string; image: Uint8Array },
 ): Promise<ExtractImageOutcome> {
   const now = (deps.now ?? (() => new Date()))();
-  const used = await deps.countSince(new Date(now.getTime() - DAY_MS));
+  const since = new Date(now.getTime() - DAY_MS);
+  const used = await deps.countSince(since);
   if (used >= IMAGE_DAILY_LIMIT) return { ok: false, code: "limite_imagenes" };
+  const attempts = await deps.countAttemptsSince(since);
+  if (attempts >= IMAGE_ATTEMPTS_DAILY_LIMIT) return { ok: false, code: "limite_imagenes" };
 
   const cap = await deps.capReason();
   if (cap) return { ok: false, code: cap === "user" ? "tope_user" : "tope_global" };

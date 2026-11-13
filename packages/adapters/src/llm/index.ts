@@ -56,6 +56,7 @@ export { createDemoLlm, DEMO_MODEL, demoEvaluation, demoImageExtraction } from "
 export {
   EXTRACT_IMAGE_TASK,
   extractJobFromImage,
+  IMAGE_ATTEMPTS_DAILY_LIMIT,
   IMAGE_DAILY_LIMIT,
   type ExtractImageDeps,
   type ExtractImageFailure,
