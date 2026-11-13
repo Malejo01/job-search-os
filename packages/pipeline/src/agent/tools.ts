@@ -184,6 +184,8 @@ export type TurnState = {
   /** Propuestas ya devueltas en este turno. */
   proposalsThisTurn: number;
   screen: ScreenContext | null;
+  /** Tope de turnos de la charla; sin esto, el de siempre. */
+  maxTurns?: number;
 };
 
 /**
@@ -196,7 +198,7 @@ export function activeToolsFor(state: TurnState): AgentToolName[] {
     (n) => Number.isInteger(n) && n >= 0,
   );
   if (!valid) return [];
-  if (state.turn >= AGENT_LIMITS.maxTurnsPerConversation) return [];
+  if (state.turn >= (state.maxTurns ?? AGENT_LIMITS.maxTurnsPerConversation)) return [];
   if (state.step >= AGENT_LIMITS.maxStepsPerTurn - 1) return [];
   if (state.proposalsThisTurn >= 1) return [...AGENT_READ_TOOLS];
   return [...AGENT_READ_TOOLS, ...AGENT_PROPOSE_TOOLS, ...AGENT_ACTION_TOOLS];

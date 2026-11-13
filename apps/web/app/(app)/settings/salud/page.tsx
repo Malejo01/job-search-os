@@ -2,6 +2,7 @@ import { betaHealth, type HealthLevel } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getAssistantMetrics } from "@/lib/assistant-metrics";
 import { getBetaHealth } from "@/lib/beta-health";
 import { requireUserId } from "@/lib/session";
 
@@ -19,6 +20,94 @@ const LEVEL: Record<HealthLevel, { label: string; dot: string; box: string }> = 
   rojo: { label: "Actuar", dot: "bg-danger", box: "bg-danger-soft text-danger" },
   gris: { label: "Sin dato", dot: "bg-fg-subtle", box: "bg-surface-muted text-fg-muted" },
 };
+
+const USD = new Intl.NumberFormat("es-AR", {
+  style: "currency",
+  currency: "USD",
+  minimumFractionDigits: 3,
+  maximumFractionDigits: 3,
+});
+const ONE_DECIMAL = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 1 });
+const dash = (v: number | null, f: (n: number) => string) => (v === null ? "—" : f(v));
+
+/**
+ * Asistente, últimos 7 días (R9-2): charlas, mensajes y costo por charla, y cuántas cortaron por
+ * tope. Solo números agregados: sin contenido de charlas ni ids de personas. «—» = sin dato (las
+ * charlas anteriores a la medición no tienen mensajes contados).
+ */
+async function AssistantBlock({ userId }: { userId: string }) {
+  const result = await getAssistantMetrics(userId);
+  return (
+    <section
+      data-testid="salud-asistente"
+      aria-labelledby="asistente-7d"
+      className="flex flex-col gap-2 rounded-card bg-surface p-4"
+    >
+      <h2 id="asistente-7d" className="text-sm font-semibold text-fg">
+        Asistente, últimos 7 días
+      </h2>
+      {!result.ok ? (
+        <p role="status" className="text-xs text-fg-muted">
+          No se pudieron leer los datos del asistente.
+        </p>
+      ) : (
+        // Con teclado se puede desplazar a 360 px (axe: scrollable-region-focusable)
+        <div
+          role="region"
+          aria-label="Asistente, últimos 7 días"
+          tabIndex={0}
+          className="overflow-x-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
+        >
+          <table className="w-full min-w-[30rem] text-left text-xs tabular-nums">
+            <caption className="sr-only">Charlas del asistente por día</caption>
+            <thead className="text-fg-muted">
+              <tr>
+                <th scope="col" className="py-1 pr-2 font-medium">
+                  Día
+                </th>
+                <th scope="col" className="py-1 pr-2 font-medium">
+                  Charlas
+                </th>
+                <th scope="col" className="py-1 pr-2 font-medium">
+                  Mensajes (prom. / máx.)
+                </th>
+                <th scope="col" className="py-1 pr-2 font-medium">
+                  Costo por charla (prom. / p90)
+                </th>
+                <th scope="col" className="py-1 font-medium">
+                  Cortaron por tope
+                </th>
+              </tr>
+            </thead>
+            <tbody className="text-fg">
+              {result.days.map((d) => (
+                <tr key={d.day} className="border-t border-line">
+                  <th scope="row" className="py-1 pr-2 font-medium">
+                    {d.day}
+                  </th>
+                  <td className="py-1 pr-2">{d.conversations}</td>
+                  <td className="py-1 pr-2">
+                    {dash(d.messagesAvg, (n) => ONE_DECIMAL.format(n))} /{" "}
+                    {dash(d.messagesMax, (n) => String(n))}
+                  </td>
+                  <td className="py-1 pr-2">
+                    {dash(d.costAvgUsd, (n) => USD.format(n))} /{" "}
+                    {dash(d.costP90Usd, (n) => USD.format(n))}
+                    {d.costUnknown > 0 ? ` (${d.costUnknown} sin costo)` : ""}
+                  </td>
+                  <td className="py-1">{d.cappedConversations}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="text-xs text-fg-muted">
+        Por charla, no por persona. Los topes actuales están en <code>docs/OPERACION.md</code>.
+      </p>
+    </section>
+  );
+}
 
 /**
  * Salud diaria de la beta (C8-11): la pantalla que Mauro mira cada mañana. Solo para quien administra
@@ -105,6 +194,7 @@ export default async function SaludPage() {
           por umbral y por día (UTC). El gasto de 24 horas contra el tope está en «IA» más arriba.
         </p>
       </section>
+      <AssistantBlock userId={userId} />
       <p className="text-sm">
         <Link href="/settings/metricas" className="font-semibold text-link underline">
           Métricas de la beta

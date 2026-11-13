@@ -3,6 +3,7 @@ import { checkTurnStart } from "./limits";
 import {
   conversationIdFromBytes,
   conversationLabel,
+  effectiveTurns,
   encodeAssistantEvent,
   historyDataBlock,
   isConversationId,
@@ -125,16 +126,16 @@ describe("parseAssistantRequest", () => {
   });
 });
 
-describe("turno 11", () => {
+describe("turno 21", () => {
   it("llega entero y el tope de turnos contesta con el aviso fijo", () => {
-    const messages = Array.from({ length: 21 }, (_, i) => ({
+    const messages = Array.from({ length: 41 }, (_, i) => ({
       role: i % 2 === 0 ? "user" : "assistant",
       text: `mensaje ${i}`,
     }));
     const r = parseAssistantRequest({ messages });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(turnsUsed(r.value.messages)).toBe(10);
+    expect(turnsUsed(r.value.messages)).toBe(20);
     const start = checkTurnStart(
       { turns: turnsUsed(r.value.messages), costUsd: 0 },
       { used: 1, limit: 3 },
@@ -144,6 +145,37 @@ describe("turno 11", () => {
     expect(parseAssistantRequest({ messages: [...messages, ...messages.slice(0, 2)] }).ok).toBe(
       false,
     );
+  });
+
+  it("con otro tope de turnos, el largo admitido sale de ese tope", () => {
+    const mk = (n: number) =>
+      Array.from({ length: n }, (_, i) => ({
+        role: i % 2 === 0 ? "user" : "assistant",
+        text: `mensaje ${i}`,
+      }));
+    expect(parseAssistantRequest({ messages: mk(61) }, 30).ok).toBe(true);
+    expect(parseAssistantRequest({ messages: mk(61) }).ok).toBe(false);
+    expect(parseAssistantRequest({ messages: mk(21) }, 10).ok).toBe(true);
+    expect(parseAssistantRequest({ messages: mk(23) }, 10).ok).toBe(false);
+  });
+});
+
+describe("effectiveTurns", () => {
+  it("un historial recortado no baja el conteo del servidor", () => {
+    // La charla ya tuvo 20 turnos; el cliente manda solo el mensaje nuevo
+    const trimmed = turnsUsed([{ role: "user", text: "hola" }]);
+    expect(trimmed).toBe(0);
+    const turns = effectiveTurns(trimmed, 20);
+    expect(turns).toBe(20);
+    const start = checkTurnStart({ turns, costUsd: 0 }, { used: 1, limit: 3 }, false);
+    expect(!start.ok && start.error).toBe("turns");
+  });
+
+  it("toma el mayor y descarta contadores inválidos", () => {
+    expect(effectiveTurns(5, 3)).toBe(5);
+    expect(effectiveTurns(2, 7)).toBe(7);
+    expect(effectiveTurns(NaN, 4)).toBe(4);
+    expect(effectiveTurns(3, -1)).toBe(3);
   });
 });
 

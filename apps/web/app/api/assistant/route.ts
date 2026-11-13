@@ -18,17 +18,21 @@ import {
   activeToolsFor,
   assistantMode,
   ASSISTANT_ERROR_MESSAGE,
+  ASSISTANT_TURN_MARKER,
+  capMarker,
   capMessage,
   checkTurnStart,
   conversationIdFromBytes,
   conversationLabel,
   CV_REDIRECT_LINKS,
+  effectiveTurns,
   CV_REDIRECT_MESSAGE,
   encodeAssistantEvent,
   groundingSourcesFrom,
   isActionOutput,
   isActionTool,
   isFinalCap,
+  isMeasuredCap,
   isProposeOutput,
   isProposeTool,
   MAX_ASSISTANT_BODY_BYTES,
@@ -45,12 +49,18 @@ import {
   validateAgentHistory,
   type AgentCapReason,
   type AssistantRequest,
+  type ConversationLimits,
   type AssistantStreamEvent,
 } from "@job-search-os/pipeline";
 import { loadPrompt, renderPrompt } from "@job-search-os/prompts";
 import { canUseAssistant } from "@/lib/assistant";
+import { assistantLimits } from "@/lib/assistant-limits";
 import { assistantTools } from "@/lib/assistant-tools";
-import { assistantCallSink, loadAssistantUsage } from "@/lib/assistant-usage";
+import {
+  assistantCallSink,
+  loadAssistantUsage,
+  recordAssistantMarker,
+} from "@/lib/assistant-usage";
 import { getAppDb } from "@/lib/db";
 import { getProfileForEdit, isOnboardingComplete } from "@/lib/onboarding";
 import { sessionUserId } from "@/lib/session";
@@ -176,7 +186,8 @@ export async function POST(req: Request): Promise<Response> {
   } catch {
     return jsonError(400, "cuerpo");
   }
-  const parsed = parseAssistantRequest(body);
+  const limits = assistantLimits();
+  const parsed = parseAssistantRequest(body, limits.maxTurnsPerConversation);
   if (!parsed.ok) return jsonError(400, "cuerpo");
 
   const conversationId = parsed.value.conversationId ?? conversationIdFromBytes(randomBytes(12));
@@ -214,7 +225,7 @@ export async function POST(req: Request): Promise<Response> {
           return;
         }
         locked = true;
-        await runTurn(userId, conversationId, parsed.value, signal, emit, log);
+        await runTurn(userId, conversationId, parsed.value, signal, emit, log, limits);
       } catch (e) {
         log.error(safeErr(e), "asistente: el turno falló");
         emit({ type: "error", message: ASSISTANT_ERROR_MESSAGE });
@@ -254,6 +265,7 @@ async function runTurn(
   signal: AbortSignal,
   emit: (event: AssistantStreamEvent) => void,
   log: Logger,
+  limits: ConversationLimits,
 ): Promise<void> {
   // 1. El mensaje nuevo: un CV no va al modelo (ADR-008), y se mira antes del tope de largo
   const last = request.messages.at(-1)!;
@@ -269,7 +281,10 @@ async function runTurn(
   }
 
   // 2. Historial del navegador: se sanea (CVs de turnos anteriores) y se valida
-  const history = validateAgentHistory(sanitizeHistory(request.messages));
+  const history = validateAgentHistory(
+    sanitizeHistory(request.messages),
+    limits.maxTurnsPerConversation,
+  );
   if (!history.ok) {
     log.warn({ reason: history.error }, "asistente: historial inválido");
     emit({ type: "error", message: ASSISTANT_ERROR_MESSAGE });
@@ -289,17 +304,25 @@ async function runTurn(
     planUntil: plan.until,
     now,
   });
-  const turns = turnsUsed(messages);
+  // Piso del servidor: un historial recortado por el navegador no reinicia el tope de turnos
+  const turns = effectiveTurns(turnsUsed(messages), usage.conversationTurns);
   const start = checkTurnStart(
     { turns, costUsd: usage.conversationCostUsd },
     { used: usage.monthlyConversations, limit },
     usage.conversationRows === 0,
+    limits,
   );
   if (!start.ok) {
     log.info({ reason: start.error, turns }, "asistente: tope al empezar");
+    // Medición (R9-2): el corte de una charla que ya existe deja su marcador, sin contenido
+    if (usage.conversationRows > 0 && isMeasuredCap(start.error)) {
+      await recordAssistantMarker(userId, label, capMarker(start.error));
+    }
     emit(CAP_EVENT(start.error));
     return;
   }
+  // Un turno aceptado = un marcador (los pasos del modelo no dicen cuántos mensajes hubo)
+  await recordAssistantMarker(userId, label, ASSISTANT_TURN_MARKER);
 
   // 4. Modelo y prompt: demo sin red, o model_routing + prompt versionado (si falta, falla cerrado)
   const calls = assistantCallSink(userId);
@@ -361,8 +384,10 @@ async function runTurn(
           step,
           proposalsThisTurn: state.proposalsSoFar,
           screen: request.screen,
+          maxTurns: limits.maxTurnsPerConversation,
         }),
       spentUsd: usage.conversationCostUsd,
+      limits,
       promptVersion: PROMPT_REF,
     },
     { userId, label },
@@ -390,6 +415,9 @@ async function runTurn(
         }
         break;
       case "cap":
+        if (isMeasuredCap(event.reason)) {
+          await recordAssistantMarker(userId, label, capMarker(event.reason));
+        }
         emit(CAP_EVENT(event.reason));
         break;
       case "error":

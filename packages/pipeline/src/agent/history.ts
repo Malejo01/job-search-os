@@ -2,7 +2,7 @@ import { z } from "zod";
 import { err, ok, type Result } from "../result";
 import { CV_OMITTED_MARKER, looksLikeCv } from "./cv-detect";
 import { MANUAL_JOB_EVENTS, type ManualJobEvent } from "../status";
-import { AGENT_LIMITS } from "./limits";
+import { AGENT_LIMITS, MAX_CONFIGURABLE_TURNS } from "./limits";
 import { PROPOSAL_DESTINATIONS, type ProposalDestination } from "./types";
 
 /**
@@ -25,10 +25,19 @@ export type ProposalOutcome = {
 };
 
 /**
- * 10 turnos de ida y vuelta (20 mensajes) más el mensaje del turno 11: ese llega para que la ruta
- * conteste con el aviso fijo de tope (con links) y no con un error de historial.
+ * Mensajes que admite el historial con un tope de `maxTurns` turnos: los turnos de ida y vuelta
+ * más el mensaje del turno siguiente, que llega para que la ruta conteste con el aviso fijo de
+ * tope (con links) y no con un error de historial.
  */
-export const MAX_HISTORY_MESSAGES = AGENT_LIMITS.maxTurnsPerConversation * 2 + 1;
+export const maxHistoryMessages = (
+  maxTurns: number = AGENT_LIMITS.maxTurnsPerConversation,
+): number => maxTurns * 2 + 1;
+
+/** Con el tope por defecto (20 turnos): 41 mensajes. */
+export const MAX_HISTORY_MESSAGES = maxHistoryMessages();
+
+/** Techo absoluto de la forma de la request: el mayor tope configurable. */
+export const MAX_HISTORY_MESSAGES_CEILING = maxHistoryMessages(MAX_CONFIGURABLE_TURNS);
 export const MAX_ASSISTANT_MESSAGE_CHARS = 4_000;
 
 const messageSchema = z.discriminatedUnion("role", [
@@ -47,11 +56,14 @@ const messageSchema = z.discriminatedUnion("role", [
 ]);
 
 /**
- * Valida el historial que manda el cliente: hasta 21 mensajes que alternan, empiezan y terminan
- * con la persona, y respetan los largos máximos.
+ * Valida el historial que manda el cliente: hasta 41 mensajes (con el tope por defecto de 20
+ * turnos) que alternan, empiezan y terminan con la persona, y respetan los largos máximos.
  */
-export function validateAgentHistory(raw: unknown): Result<AgentMessage[], "historial_invalido"> {
-  const parsed = z.array(messageSchema).min(1).max(MAX_HISTORY_MESSAGES).safeParse(raw);
+export function validateAgentHistory(
+  raw: unknown,
+  maxTurns: number = AGENT_LIMITS.maxTurnsPerConversation,
+): Result<AgentMessage[], "historial_invalido"> {
+  const parsed = z.array(messageSchema).min(1).max(maxHistoryMessages(maxTurns)).safeParse(raw);
   if (!parsed.success) return err("historial_invalido");
   const messages = parsed.data;
   const alternates = messages.every((m, i) => m.role === (i % 2 === 0 ? "user" : "assistant"));

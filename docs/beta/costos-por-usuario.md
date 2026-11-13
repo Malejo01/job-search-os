@@ -56,7 +56,7 @@ La tabla de la lectura de CV (`extract_cv_profile`) tampoco tiene fila ni está 
 | CV con IA, por persona | 40 turnos/mes; **CV por mes = máx(plan, 3): 5 con plan pago, 3 gratis**; USD 0,30/día de entrevista; 5 charlas nuevas/día; USD 0,15 por conversación; 25 turnos por charla | La charla de CV | `packages/pipeline/src/cv-chat/limits.ts`, `plans.ts` (`CV_CHAT_BETA_LIMITS`) |
 | CV con IA, global | `CV_CHAT_DAILY_CAP_USD`, USD 1 por defecto (el runbook pide cargarlo a propósito) | idem | `cv-chat/limits.ts` |
 | Reservas del CV (máximo por paso) | USD 0,03 por turno (R4-16, ya en `main`), USD 0,07 por redacción [C: `cv-chat/limits.ts:24-25`] | Evita pasarse con pedidos simultáneos | idem |
-| Asistente | 3 charlas/mes gratis, 30 pago, USD 0,12 por conversación | Solo admins y testers (`ASSISTANT_ENABLED=testers`, `agent/gate.ts`): sin personas pagas, costo de unos pocos testers | `packages/pipeline/src/agent/limits.ts` |
+| Asistente | 3 charlas/mes gratis, 30 pago, USD 0,50 por conversación (antes 0,12; R9-2, configurable con `ASSISTANT_MAX_USD_PER_CONVERSATION`) | Solo admins y testers (`ASSISTANT_ENABLED=testers`, `agent/gate.ts`): sin personas pagas, costo de unos pocos testers | `packages/pipeline/src/agent/limits.ts` |
 
 ### 1.3 Lo que no es LLM
 

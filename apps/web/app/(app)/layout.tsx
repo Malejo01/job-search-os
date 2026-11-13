@@ -7,6 +7,7 @@ import { FeedbackButton } from "@/components/feedback-button";
 import { MobileTabBar } from "./mobile-tabbar";
 import { countFollowUps } from "@/lib/applications";
 import { canUseAssistant } from "@/lib/assistant";
+import { assistantLimits } from "@/lib/assistant-limits";
 import { assertAppRole } from "@/lib/db";
 import { canCreateInvitations } from "@/lib/invitations";
 import { requireActiveUserId, requireUserId } from "@/lib/session";
@@ -113,7 +114,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       {/* Dos botones separados: el chip de soporte abajo a la izquierda y la mascota del asistente
           abajo a la derecha (R4-15); los dos por encima de las pestañas del celular */}
       <FeedbackButton />
-      {canAssist ? <AssistantMascot /> : null}
+      {canAssist ? <AssistantMascot maxTurns={assistantLimits().maxTurnsPerConversation} /> : null}
       <MobileTabBar followUps={followUps} />
       <footer className="border-t border-line px-4 py-3 text-center text-xs text-fg-subtle">
         <Link href="/legal/privacidad" className="underline-offset-2 hover:underline">
