@@ -89,7 +89,10 @@ test.describe("Flujo 129: oferta desde una imagen", () => {
       mimeType: "text/plain",
       buffer: Buffer.from("no soy una imagen"),
     });
-    await expect(page.getByRole("alert")).toContainText("tiene que ser PNG, JPG o WebP");
+    // Playwright ve DOS role=alert: el nuestro y el route-announcer de Next; se acota a <main>
+    await expect(page.getByRole("main").getByRole("alert")).toContainText(
+      "tiene que ser PNG, JPG o WebP",
+    );
     await expect(page.getByRole("status").filter({ hasText: "Leímos" })).toHaveCount(0);
   });
 });
