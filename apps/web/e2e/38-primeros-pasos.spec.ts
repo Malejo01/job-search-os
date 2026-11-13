@@ -122,7 +122,8 @@ test.describe("Flujo 38: primeros pasos, de la persona nueva a la checklist comp
   test("38i: el aviso de alertas va después de «Tus primeras ofertas», con «Ir a mis ofertas» al final", async () => {
     await page.goto("/onboarding/ofertas");
     const banner = page.getByTestId("email-nudge");
-    await expect(banner).toContainText("LinkedIn, Get on Board e Indeed");
+    // R11-10: nombra los mismos portales que la guía, por carrera (para tecnología, tres)
+    await expect(banner).toContainText("LinkedIn, Indeed y Get on Board");
     await expect(banner.getByRole("link", { name: "Conectar mis alertas" })).toHaveAttribute(
       "href",
       "/onboarding/asistente",
