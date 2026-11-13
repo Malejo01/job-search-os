@@ -12,7 +12,7 @@ Cinco teammates (perfil, portales, seguridad, cargas y auditoria) más el lead. 
 | 4 | [#509](https://github.com/Malejo01/job-search-os/pull/509) | R11-11 · detalle de oferta coherente | rojo | #507 (apilado) | — |
 | 5 | [#508](https://github.com/Malejo01/job-search-os/pull/508) | R11-3 · parser de Bumeran (rama `-v2`) | rojo | — | — |
 | 6 | [#510](https://github.com/Malejo01/job-search-os/pull/510) | R11-4 · parser de Computrabajo | rojo | #508 (apilado) | — |
-| 7 | R11-5 + R11-10 (PR al cierre de este informe, ver §6) | guía de alertas, portada y onboarding honestos | verde | — | — |
+| 7 | [#515](https://github.com/Malejo01/job-search-os/pull/515) | R11-5 + R11-10 · guía de alertas, portada y onboarding honestos | verde | — | — |
 | 8 | [#511](https://github.com/Malejo01/job-search-os/pull/511) | R11-12 · CV sin autocrítica | rojo | — | — |
 | 9 | [#513](https://github.com/Malejo01/job-search-os/pull/513) | R11-13 · celular, Contaduría para Argentina y P2 | rojo | — (choca con #511 en `start-here.tsx`) | `R11-13/catalogo-neon.sql` (en `ops/`) |
 | 10 | [#514](https://github.com/Malejo01/job-search-os/pull/514) | R11-1 + R11-2 · agente de perfil integrado (trae la R10 entera) | rojo | — (choca con #507 en `plan.ts`) | fila `extract_cv_profile` de `model_routing` (SQL en el PR) |
@@ -140,7 +140,7 @@ Tope de la tanda: USD 3. Solo #514 toca `packages/prompts/`, porque trae los pro
 
 ## 6. Lo que quedó afuera o pendiente
 
-- **R11-5 + R11-10:** al cierre de este informe esperaba el veredicto de privacidad para pushear y abrir el PR (rama `ronda/r11-5-guia-alertas`).
+- **R11-5:** el cómo-se-crea de las alertas de Bumeran, ZonaJobs y Computrabajo (`howTo` en `portal-guide.ts`) es genérico y nadie lo contrastó con la pantalla real de cada portal. Hay que revisarlo antes de la apertura.
 - **R11-8:** el PR depende del paso manual 1.
 - **P2 de la auditoría:**
   - el 16, el 17 y el 22 no se pudieron reproducir sin correr la app;

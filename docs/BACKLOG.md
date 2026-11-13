@@ -1604,7 +1604,7 @@ Base: `main` con la integración de la R8, la R9 y T-1 (#505). La R10 entra por 
 - Recomendaciones con ID y URL del aviso; recordatorios y seguimientos de empresas dan `{ ok: false }`. ADR-037. Los dominios de país no se rutean.
 
 ### R11-5 + R11-10 · Guía de alertas, portada y onboarding honestos
-`deps:` — · `estado:` rama `ronda/r11-5-guia-alertas` (PR al cerrar)
+`deps:` — · `estado:` en PR ([#515](https://github.com/Malejo01/job-search-os/pull/515), 13/11)
 - «Automático» solo donde hay lector; Computrabajo sin recomendar hasta tener un aviso real; ADR-036 (pool de Bumeran, propuesto). Un solo mensaje de alertas por carrera, aviso de pocas ofertas en tu idioma y portada con el conteo real de las 8 carreras de la beta.
 
 ### R11-6 · Rol de admin en settings (carril rojo)
