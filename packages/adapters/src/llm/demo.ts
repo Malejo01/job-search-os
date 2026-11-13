@@ -2,7 +2,13 @@ import { err, ok } from "@job-search-os/pipeline";
 import { demoCvInterview, demoCvWrite } from "./demo-cv";
 import type { CallSink, GenerateContext, LlmClient } from "./types";
 
-const DEMO_TASKS = ["evaluate_job", "draft_application_answers", "cv_interview", "cv_write"];
+const DEMO_TASKS = [
+  "evaluate_job",
+  "draft_application_answers",
+  "cv_interview",
+  "cv_write",
+  "extract_cv_profile",
+];
 
 /**
  * Modo demo: evaluaciones falsas pero verosímiles, sin red ni gasto, para ver el flujo entero en
@@ -148,6 +154,35 @@ export function demoDrafts(vars: Vars): Record<string, unknown> {
   };
 }
 
+/**
+ * Lectura de CV falsa (extract_cv_profile): una propuesta inventada y válida para el esquema, sin leer el
+ * CV. Usa como skills las dos primeras candidatas que le pasó el código (el resto se descartaría igual).
+ */
+export function demoCvExtraction(vars: Vars): Record<string, unknown> {
+  const slugs = String(vars.candidate_skills ?? "")
+    .split("\n")
+    .map((l) => l.split("|")[0]?.trim() ?? "")
+    .filter((s) => s !== "")
+    .slice(0, 2);
+  return {
+    profile: {
+      target_title: "Analista (demo)",
+      years_total: null,
+      english_cefr: null,
+      location_country: null,
+      location_city: null,
+      summary: null,
+    },
+    skills: slugs.map((slug) => ({ slug, level: 2, years: null })),
+    facts: [],
+    work_history: [{ company: "Empresa Demo", title: "Analista", start: "2020-01", end: null }],
+    education: [{ institution: "Instituto Demo", title: "Tecnicatura", start: null, end: null }],
+    languages: [{ name: "Inglés", level: null }],
+    suggested_roles: ["data_analyst"],
+    other_terms: [],
+  };
+}
+
 /** LlmClient de demo: valida contra el schema pedido (v1: gaps como strings; v1.1+: tipados). */
 export function createDemoLlm(options: { calls?: CallSink } = {}): LlmClient {
   return {
@@ -164,16 +199,18 @@ export function createDemoLlm(options: { calls?: CallSink } = {}): LlmClient {
           ? [demoCvInterview(vars)]
           : task === "cv_write"
             ? [demoCvWrite(vars)]
-            : task === "draft_application_answers"
-              ? [demoDrafts(vars)]
-              : (() => {
-                  const typed = demoEvaluation(vars);
-                  const legacy = {
-                    ...typed,
-                    gaps: (typed.gaps as { skill: string }[]).map((g) => g.skill),
-                  };
-                  return [typed, legacy];
-                })();
+            : task === "extract_cv_profile"
+              ? [demoCvExtraction(vars)]
+              : task === "draft_application_answers"
+                ? [demoDrafts(vars)]
+                : (() => {
+                    const typed = demoEvaluation(vars);
+                    const legacy = {
+                      ...typed,
+                      gaps: (typed.gaps as { skill: string }[]).map((g) => g.skill),
+                    };
+                    return [typed, legacy];
+                  })();
       const parsed = candidates.map((o) => schema.safeParse(o)).find((p) => p.success);
       if (!parsed?.success) {
         return err({
