@@ -15,9 +15,12 @@ export const SECTIONS: ReadonlyArray<{ href: string; label: string; icon: IconNa
 
 /**
  * Lo que no entra en las cinco secciones vive en «Más», dentro de Perfil (`MoreNav`). Estando en
- * cualquiera de esas pantallas, la sección activa es Perfil.
+ * cualquiera de esas pantallas, la sección activa es Perfil. «Sin descripción» (`/jobs/pending-jd`)
+ * es trabajo con las ofertas: está en «Más» pero marca Ofertas, y `/jobs` la enlaza cuando hay
+ * pendientes (R5-C9, hallazgo 19). `/encaje` es del mismo grupo que Mercado y Plan, así que marca
+ * Perfil.
  */
-export const MORE_HREFS = ["/jobs/pending-jd", "/inbox", "/market", "/plan", "/settings"] as const;
+export const MORE_HREFS = ["/inbox", "/market", "/plan", "/encaje", "/settings"] as const;
 
 export function activeSection(pathname: string): string | null {
   const inMore = MORE_HREFS.some((h) => pathname === h || pathname.startsWith(`${h}/`));

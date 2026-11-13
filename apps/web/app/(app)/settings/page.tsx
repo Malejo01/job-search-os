@@ -70,7 +70,7 @@ export default async function SettingsPage({
   );
 
   return (
-    <div className="mx-auto flex max-w-xl flex-col gap-5">
+    <div className="mx-auto flex max-w-3xl flex-col gap-5">
       <h1 className="text-title font-bold">Ajustes</h1>
 
       <Link href="/settings/perfil" className={NAV_CARD}>
@@ -205,8 +205,8 @@ export default async function SettingsPage({
         <h2 className={H2}>Criterios</h2>
         <p className="text-xs font-semibold tracking-wide text-fg-muted uppercase">Avanzado</p>
         <p className="text-sm text-fg-muted">
-          Cambiar estos criterios puede hacer que se descarten ofertas que te sirven. Si no estás
-          segura o seguro, dejalos como están.
+          Cambiar estos criterios puede hacer que se descarten ofertas que te sirven. Si tenés
+          dudas, dejalos como están.
         </p>
         <Link href="/settings/criteria" className={LINK}>
           Editar mis criterios de evaluación

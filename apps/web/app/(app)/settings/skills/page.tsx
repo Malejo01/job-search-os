@@ -36,7 +36,7 @@ export default async function SkillsSettingsPage({
     });
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-5">
+    <div className="mx-auto flex max-w-3xl flex-col gap-5">
       <div className="flex flex-col gap-1">
         <h1 className="text-title font-bold">Mis skills</h1>
         <p className="text-sm text-fg-subtle">

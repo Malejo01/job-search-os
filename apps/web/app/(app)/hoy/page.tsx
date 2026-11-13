@@ -93,7 +93,7 @@ export default async function HoyPage() {
           aria-labelledby="hoy-saludo"
           className="rounded-b-[40px] bg-ink text-on-ink sm:rounded-b-[56px]"
         >
-          <div className="mx-auto mt-2.5 flex max-w-[1280px] items-end gap-1.5 px-5 sm:mt-0 sm:gap-6 sm:px-[72px]">
+          <div className="mx-auto mt-2.5 flex max-w-[1280px] items-end gap-1.5 px-5 sm:mt-0 sm:gap-6 sm:px-12">
             <div className="min-w-0 flex-[1_1_55%] pb-[26px] sm:flex-auto sm:pb-14">
               <h1
                 id="hoy-saludo"
@@ -118,7 +118,7 @@ export default async function HoyPage() {
           </div>
         </section>
 
-        <div className="mx-auto grid w-full max-w-[1280px] items-start gap-3 px-3.5 pt-4 sm:gap-7 sm:px-[72px] sm:pt-7 lg:grid-cols-[400px_1fr]">
+        <div className="mx-auto grid w-full max-w-[1280px] items-start gap-3 px-3.5 pt-4 sm:gap-7 sm:px-12 sm:pt-7 lg:grid-cols-[400px_1fr]">
           {/* «Para hacer hoy» (C8-5 y C10-6): los pasos de quien empieza y lo pendiente de sus datos */}
           <StartHere userId={userId} pendingJd={pending.length} followUps={data.followUps.length} />
           <NewCard data={data} />
@@ -126,7 +126,7 @@ export default async function HoyPage() {
       </div>
       <details
         data-testid="hoy-mas"
-        className="group mx-auto mt-8 w-full max-w-[1280px] px-3.5 sm:mt-10 sm:px-[72px]"
+        className="group mx-auto mt-8 w-full max-w-[1280px] px-3.5 sm:mt-10 sm:px-12"
       >
         <summary className="inline-flex min-h-11 cursor-pointer items-center gap-1.5 text-sm font-bold text-brand-text hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus">
           Más de tu semana
