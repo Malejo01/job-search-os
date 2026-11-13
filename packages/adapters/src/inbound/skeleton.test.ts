@@ -130,6 +130,55 @@ describe("parseEml", () => {
   });
 });
 
+describe("la palabra que sigue a un saludo se enmascara siempre (R11-7)", () => {
+  // Dos emails inventados idénticos: repiten «Hola Xavier», y el nombre y las etiquetas quedan en
+  // nodos de texto aparte, con lo que cumplen todo para pasar por «texto de plantilla»
+  const dos = () => [
+    { id: 1, raw: eml("saludo-a.eml") },
+    { id: 2, raw: eml("saludo-b.eml") },
+  ];
+
+  it("ningún nombre que sigue a «Hola», «Hola,», «Estimado/a» o «Buen día» sale en claro", () => {
+    const { results } = buildSkeletons(dos(), { patterns: patterns() });
+    for (const r of results) {
+      const html = okHtml(r);
+      for (const nombre of ["Xavier", "Zoe", "Ximena"]) expect(html).not.toContain(nombre);
+      expect(html).not.toMatch(/Hola|Estimad|Buen d/);
+    }
+    const html = okHtml(results[0]);
+    expect(html).toContain("<b>Xxxxxx</b>");
+    expect(html).toContain("<td>¡Xxxx Xxxxxx!</td>");
+    expect(html).toContain("<td>Xxx</td>");
+    expect(html).toContain("<i>Xxxxxx</i>");
+    expect(html).toContain("<td>Xxxxxx</td>");
+  });
+
+  it("el texto de plantilla que no sigue a un saludo se conserva", () => {
+    const html = okHtml(buildSkeletons(dos(), { patterns: patterns() }).results[0]);
+    expect(html).toContain(">Ver aviso</a>");
+    expect(html).toContain("<td>Cancelar suscripcion</td>");
+    expect(html).toContain("<title>Alertas de empleo</title>");
+  });
+
+  it("si el mismo texto es plantilla en otro lado, tampoco se conserva donde sigue a un saludo", () => {
+    const extra = (n: number) =>
+      eml("saludo-a.eml").replace(
+        "<tr><td>Cancelar suscripcion</td></tr>",
+        "<tr><td>Xavier</td></tr><tr><td>Cancelar suscripcion</td></tr>",
+      ) + `\n<!-- ${n} -->`;
+    const html = okHtml(
+      buildSkeletons(
+        [
+          { id: 1, raw: extra(1) },
+          { id: 2, raw: extra(2) },
+        ],
+        { patterns: patterns() },
+      ).results[0],
+    );
+    expect(html).not.toContain("Xavier");
+  });
+});
+
 describe("buildSkeletons", () => {
   const inputs = () => [
     { id: 1, raw: A() },

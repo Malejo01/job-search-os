@@ -438,7 +438,33 @@ function renderAttr(a: Attr, ctx: HostContext): string {
 // Render
 // ---------------------------------------------------------------------------------------------
 
-const GREETING_RE = /^(hola|hello|hi|hey|buen[oa]s|estimad|querid|dear)/i;
+/** Un texto que ARRANCA con un saludo (con o sin signos de apertura): nunca es plantilla. */
+const GREETING_RE = /^[¡¿"'(\s]*(hola|hello|hi|hey|buen[oa]s|buen\s+d[ií]a|estimad|querid|dear)/i;
+
+/**
+ * Un texto que TERMINA en un saludo («Hola», «Hola,», «Estimado/a», «Querido/a», «Buen día»): lo que
+ * viene después es el nombre de la persona, aunque esté en otro nodo de texto (`Hola <b>Nombre</b>`).
+ */
+const GREETING_END_RE =
+  /(?:^|[\s¡¿"'(])(?:hola|hello|hi|hey|buen[oa]s(?:\s+(?:d[ií]as|tardes|noches))?|buen\s+d[ií]a|estimad[oa](?:\/a)?s?|querid[oa](?:\/a)?s?|dear)[\s,:;.!-]*$/i;
+
+/**
+ * Textos que vienen justo después de un saludo (el siguiente nodo de texto con contenido). Nunca se
+ * conservan: un nombre repetido en dos emails no es plantilla.
+ */
+function greetingFollowers(tokens: Token[]): Set<string> {
+  const out = new Set<string>();
+  let afterGreeting = false;
+  for (const t of tokens) {
+    if (t.kind !== "text") continue;
+    const key = textKey(t.raw);
+    // Solo signos o entidades de espacio entre el saludo y el nombre: sigue esperando el nombre
+    if (!key || /^(?:&nbsp;|[\s,:;.!¡¿-])+$/i.test(key)) continue;
+    if (afterGreeting) out.add(key);
+    afterGreeting = GREETING_END_RE.test(key);
+  }
+  return out;
+}
 
 /** Texto sin espacios de más: la clave para comparar plantillas entre emails. */
 function textKey(raw: string): string {
@@ -768,6 +794,8 @@ type Prepared = {
   flags: TokenizeFlags;
   parsed: ParsedEml;
   texts: Set<string>;
+  /** Textos que siguen a un saludo en este email: nunca plantilla. */
+  followers: Set<string>;
 };
 
 /** ¿Hay algo con forma de dirección de email que no esté enmascarado (solo x, X, 9 y signos)? */
@@ -796,8 +824,11 @@ function templateKeys(prepared: Prepared[], patterns: Pattern[]): Set<string> {
   for (const p of prepared) for (const k of p.texts) count.set(k, (count.get(k) ?? 0) + 1);
   const minEmails = Math.max(2, Math.ceil(prepared.length / 2));
   const keep = new Set<string>();
+  // Si en algún email el texto sigue a un saludo, en ninguno se conserva: es un nombre
+  const names = new Set<string>();
+  for (const p of prepared) for (const k of p.followers) names.add(k);
   for (const [k, n] of count) {
-    if (n < minEmails) continue;
+    if (n < minEmails || names.has(k)) continue;
     if (k.length > 120 || /[@\p{N}]/u.test(k) || /[<>]/.test(k)) continue;
     if (GREETING_RE.test(k) || /&/.test(k)) continue;
     if (scanLine(patterns, k).length > 0 || scanLine(patterns, norm(k)).length > 0) continue;
@@ -840,7 +871,14 @@ export function buildSkeletons(
     }
     const texts = new Set<string>();
     for (const t of tk.tokens) if (t.kind === "text" && textKey(t.raw)) texts.add(textKey(t.raw));
-    prepared.push({ id: input.id, tokens: tk.tokens, flags: tk.flags, parsed, texts });
+    prepared.push({
+      id: input.id,
+      tokens: tk.tokens,
+      flags: tk.flags,
+      parsed,
+      texts,
+      followers: greetingFollowers(tk.tokens),
+    });
   }
 
   const keep =

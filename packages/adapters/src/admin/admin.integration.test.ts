@@ -10,7 +10,8 @@ import pino from "pino";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createInvitationAsAdmin } from "./invite";
 import { loadReplayFixture, replayInbound } from "./replay";
-import { listTestUsers, resetAllTestUsers, resetTestUser } from "./test-users";
+import { DEFAULT_CRITERIA_RULES } from "@job-search-os/pipeline";
+import { formatTestUserRow, listTestUsers, resetAllTestUsers, resetTestUser } from "./test-users";
 import { createTestUsers } from "./test-users-create";
 
 /** Comandos admin:* e inbound:replay contra Postgres real (datos 100 % ficticios). */
@@ -102,6 +103,34 @@ describe("admin:invite", () => {
 });
 
 describe("admin:test-users", () => {
+  it("--list no dice «onboarding completo» si la cuenta cae en el onboarding (mismo criterio que la app)", async () => {
+    // PRUEBA tiene fila de perfil con país, pero sin resumen ni criterios: la app la manda a /onboarding
+    const rows = await listTestUsers(conn.db, [PRUEBA.email]);
+    expect(rows[0]).toMatchObject({ exists: true, onboarded: false });
+    expect(formatTestUserRow(rows[0]!, true)).toContain("onboarding sin completar");
+    // Con resumen suficiente pero sin criterio activo, tampoco
+    await conn.db
+      .update(s.profiles)
+      .set({ profileSummary: "x".repeat(300) })
+      .where(eq(s.profiles.userId, PRUEBA.id));
+    expect((await listTestUsers(conn.db, [PRUEBA.email]))[0]!.onboarded).toBe(false);
+    // Con país válido, resumen y un criterio activo, sí
+    await conn.db
+      .insert(s.evaluationCriteria)
+      .values({ userId: PRUEBA.id, version: 1, active: true, rules: DEFAULT_CRITERIA_RULES });
+    expect((await listTestUsers(conn.db, [PRUEBA.email]))[0]!.onboarded).toBe(true);
+    // El país `XX` del alta por invitación no cuenta como elegido
+    await conn.db
+      .update(s.profiles)
+      .set({ locationCountry: "XX" })
+      .where(eq(s.profiles.userId, PRUEBA.id));
+    expect((await listTestUsers(conn.db, [PRUEBA.email]))[0]!.onboarded).toBe(false);
+    await conn.db
+      .update(s.profiles)
+      .set({ locationCountry: "AR" })
+      .where(eq(s.profiles.userId, PRUEBA.id));
+  });
+
   it("--list informa existencia, onboarding y conteos", async () => {
     const rows = await listTestUsers(conn.db, [PRUEBA.email, "fantasma@example.com"]);
     expect(rows[0]).toMatchObject({

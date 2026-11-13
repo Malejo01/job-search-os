@@ -81,6 +81,40 @@ function noObjectReason(e: NoObjectGeneratedError): string {
   return "no_object";
 }
 
+export type ReportedUsage = {
+  inputTokens: number | null;
+  outputTokens: number | null;
+  reasoningTokens: number | null;
+};
+
+const asTokens = (n: unknown): number | null =>
+  typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : null;
+
+/**
+ * Uso (tokens) que el proveedor informó junto con un error, si lo hay: un `NoObjectGeneratedError`
+ * trae `usage` porque el modelo sí generó (y el proveedor lo cobra). Solo lee números de propiedades
+ * estructuradas. null si el error no trae uso utilizable (red, timeout, 5xx: no se sabe qué se facturó).
+ */
+export function usageFromError(e: unknown): ReportedUsage | null {
+  if (RetryError.isInstance(e)) return usageFromError(e.lastError);
+  if (!NoObjectGeneratedError.isInstance(e)) return null;
+  const usage = e.usage as
+    | {
+        inputTokens?: unknown;
+        outputTokens?: unknown;
+        outputTokenDetails?: { reasoningTokens?: unknown };
+      }
+    | undefined;
+  const inputTokens = asTokens(usage?.inputTokens);
+  const outputTokens = asTokens(usage?.outputTokens);
+  if (inputTokens === null || outputTokens === null) return null;
+  return {
+    inputTokens,
+    outputTokens,
+    reasoningTokens: asTokens(usage?.outputTokenDetails?.reasoningTokens),
+  };
+}
+
 const validStatus = (n: unknown): n is number =>
   typeof n === "number" && Number.isInteger(n) && n >= 100 && n <= 599;
 
