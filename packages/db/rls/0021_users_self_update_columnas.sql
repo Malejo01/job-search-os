@@ -4,6 +4,12 @@
 -- `email` o su `id`. Una policy no puede mirar columnas, así que se restringe con privilegios por columna.
 -- No edita 0000 (ya aplicado). Idempotente: corre en cada db:migrate.
 --
+-- IMPORTANTE: este tiene que ser el ÚLTIMO archivo de rls/ que toque privilegios sobre `users`. Los
+-- archivos rls corren en orden alfabético en cada migrate y 0000 (línea «GRANT SELECT, INSERT, UPDATE,
+-- DELETE ON ALL TABLES ... TO authenticated») reotorga el UPDATE de tabla cada vez; este archivo lo
+-- vuelve a quitar justo después. Un archivo posterior con un GRANT sobre `users` (o sobre todas las
+-- tablas) deshace la restricción: si hace falta, repetir acá el REVOKE/GRANT en ese archivo.
+--
 -- Columnas que la app actualiza como jobsearch_app (dentro de withUser):
 --   password_hash, session_version, updated_at  -> reset de contraseña (apps/web/lib/password-reset.ts)
 --   terms_version, terms_accepted_at, updated_at -> re-aceptación de términos (apps/web/lib/terms-status.ts)

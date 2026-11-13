@@ -178,7 +178,8 @@ export async function spendBreakdown(db: Db, since: Date): Promise<SpendRow[]> {
       tokensOut: sql<number>`coalesce(sum(${s.llmCalls.tokensOut}), 0)::int`,
       tokensReasoning: sql<number>`coalesce(sum(${s.llmCalls.tokensReasoning}), 0)::int`,
       avgOut: sql<number>`coalesce(round(avg(${s.llmCalls.tokensOut})), 0)::int`,
-      usd: sql<number>`coalesce(sum(${s.llmCalls.costUsd}), 0)::float8`,
+      // Mismo criterio que los topes: el reporte no puede mostrar menos de lo que el tope contó
+      usd: sql<number>`coalesce(sum(${billedUsd}), 0)::float8`,
     })
     .from(s.llmCalls)
     .where(and(gte(s.llmCalls.createdAt, since), notInArray(s.llmCalls.task, NOT_MODEL_CALLS)))

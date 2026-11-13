@@ -160,6 +160,78 @@ describe("la palabra que sigue a un saludo se enmascara siempre (R11-7)", () => 
     expect(html).toContain("<title>Alertas de empleo</title>");
   });
 
+  /** Dos emails inventados con las mismas líneas: el nombre se repite y cumple todo para ser «plantilla». */
+  const conLineas = (lineas: string[]) => {
+    const raw = [
+      "Content-Type: text/html; charset=utf-8",
+      "",
+      "<html><body><table>",
+      ...lineas.map((l) => `<tr><td>${l}</td></tr>`),
+      "<tr><td>Ver aviso</td></tr>",
+      "</table></body></html>",
+    ]
+      .join("\n")
+      // buildSkeletons espera el .eml leído como latin1 (un carácter por byte)
+      .replace(/^[\s\S]*$/, (s) => Buffer.from(s, "utf8").toString("latin1"));
+    return buildSkeletons(
+      [
+        { id: 1, raw },
+        { id: 2, raw },
+      ],
+      { patterns: patterns() },
+    );
+  };
+
+  it("el espacio escrito como entidad (&nbsp;, &#32;, &#160;) no esconde el saludo (S-8)", () => {
+    const { results } = conLineas([
+      "Hola&nbsp;<b>Lautaro</b>",
+      "Hola&#32;<b>Marisol</b>",
+      "Hola&#160;<b>Octavio</b>",
+      "Hola&#xA0;<b>Renata</b>",
+      "Buen d&iacute;a&nbsp;<i>Facundo</i>",
+      "Hola,&nbsp;<b>Candela</b>",
+    ]);
+    for (const r of results) {
+      const html = okHtml(r);
+      for (const nombre of ["Lautaro", "Marisol", "Octavio", "Renata", "Facundo", "Candela"]) {
+        expect(html, nombre).not.toContain(nombre);
+      }
+    }
+    expect(okHtml(results[0])).toContain(">Ver aviso<");
+  });
+
+  it("también con saludos en inglés, francés, portugués e italiano y fórmulas de bienvenida (S-9)", () => {
+    const nombres = [
+      "Gaspar",
+      "Ailen",
+      "Bautista",
+      "Delfina",
+      "Emiliano",
+      "Jazmin",
+      "Lisandro",
+      "Pilar",
+      "Thiago",
+      "Violeta",
+    ];
+    const saludos = [
+      "Good morning",
+      "Good afternoon,",
+      "Good evening",
+      "Hi there",
+      "Welcome back,",
+      "Bienvenido/a",
+      "Saludos",
+      "Bonjour",
+      "Olá",
+      "Ciao",
+    ];
+    const { results } = conLineas(saludos.map((s, i) => `${s} <b>${nombres[i]}</b>`));
+    for (const r of results) {
+      const html = okHtml(r);
+      for (const nombre of nombres) expect(html, nombre).not.toContain(nombre);
+    }
+  });
+
   it("si el mismo texto es plantilla en otro lado, tampoco se conserva donde sigue a un saludo", () => {
     const extra = (n: number) =>
       eml("saludo-a.eml").replace(

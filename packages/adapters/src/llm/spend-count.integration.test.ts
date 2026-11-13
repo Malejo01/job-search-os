@@ -2,7 +2,13 @@ import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testconta
 import { createDb, schema as s } from "@job-search-os/db";
 import { applyMigrations } from "@job-search-os/db/src/migrate";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { countTaskCallsSince, FAILED_CALL_ESTIMATE_USD, spendCapReason, spendSince } from "./spend";
+import {
+  countTaskCallsSince,
+  FAILED_CALL_ESTIMATE_USD,
+  spendBreakdown,
+  spendCapReason,
+  spendSince,
+} from "./spend";
 
 /** Conteo por tarea y persona (R6-3, S2) contra Postgres real, con datos ficticios. */
 const NOW = new Date("2026-11-12T12:00:00.000Z");
@@ -93,21 +99,44 @@ describe("spendSince cuenta los intentos fallidos sin costo (R11-7)", () => {
     expect(mine.usd).toBeCloseTo(0.002 + 0.003 + FAILED_CALL_ESTIMATE_USD, 9);
   });
 
+  it("spendBreakdown suma lo mismo que los topes (S-4)", async () => {
+    await conn.db.delete(s.llmCalls);
+    await conn.db.insert(s.llmCalls).values([
+      call({ userId: SPEND_USER, task: "evaluate_job", costUsd: 0.002 }),
+      call({
+        userId: SPEND_USER,
+        task: "evaluate_job",
+        ok: false,
+        costUsd: null,
+        error: "timeout",
+      }),
+      call({
+        userId: SPEND_USER,
+        task: "evaluate_job",
+        ok: false,
+        costUsd: null,
+        error: "provider_unavailable",
+      }),
+    ]);
+    const rows = await spendBreakdown(conn.db, since);
+    const total = rows.reduce((a, r) => a + r.usd, 0);
+    expect(total).toBeCloseTo(0.002 + FAILED_CALL_ESTIMATE_USD, 9);
+    expect(total).toBeCloseTo((await spendSince(conn.db, since)).usd, 9);
+  });
+
   it("los fallos repetidos sin costo llegan al tope por persona", async () => {
     await conn.db.delete(s.llmCalls);
-    await conn.db
-      .insert(s.llmCalls)
-      .values(
-        Array.from({ length: 100 }, () =>
-          call({
-            userId: SPEND_USER,
-            task: "evaluate_job",
-            ok: false,
-            costUsd: null,
-            error: "timeout",
-          }),
-        ),
-      );
+    await conn.db.insert(s.llmCalls).values(
+      Array.from({ length: 100 }, () =>
+        call({
+          userId: SPEND_USER,
+          task: "evaluate_job",
+          ok: false,
+          costUsd: null,
+          error: "timeout",
+        }),
+      ),
+    );
     expect(
       await spendCapReason(conn.db, {
         userId: SPEND_USER,
