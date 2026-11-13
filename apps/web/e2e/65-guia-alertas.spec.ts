@@ -87,5 +87,22 @@ test.describe("Flujo 65: guía de alertas por portal", () => {
     );
     // Sin URL estable, no hay link
     await expect(guide.getByTestId("alert-portal-getonboard-link")).toHaveCount(0);
+
+    // R11-5: «automático» solo con lector; Bumeran y ZonaJobs dicen «pegá el aviso» y llevan a /jobs/new
+    for (const id of ["bumeran", "zonajobs"]) {
+      const portal = guide.getByTestId(`alert-portal-${id}`);
+      await expect(portal).toHaveAttribute("data-status", "manual");
+      await expect(portal.getByTestId(`alert-portal-${id}-manual`)).toContainText("Pegá el aviso");
+      await expect(portal.getByRole("link", { name: "pegala acá" })).toHaveAttribute(
+        "href",
+        "/jobs/new",
+      );
+    }
+    await expect(gob).toContainText("Automático");
+    // R11-10: Computrabajo no se recomienda hasta que haya lector y un aviso real
+    await expect(guide.getByTestId("alert-portal-computrabajo")).toHaveCount(0);
+    await expect(guide.getByTestId("alert-computrabajo-nota")).toContainText(
+      "todavía no lo recomendamos",
+    );
   });
 });

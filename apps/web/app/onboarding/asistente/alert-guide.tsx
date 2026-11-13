@@ -1,6 +1,8 @@
 import {
-  ALERT_PORTALS,
   alertKeywordsFor,
+  isAutomaticPortal,
+  isRecommendedPortal,
+  portalsForRoles,
   searchUrlFor,
   type AlertLanguage,
   type PortalStatus,
@@ -90,21 +92,39 @@ export function AlertGuide({ roles, language, coverage }: AlertGuideProps) {
         </div>
       ) : null}
       <ul className="m-0 flex list-none flex-col gap-3 p-0">
-        {ALERT_PORTALS.map((portal) => {
+        {portalsForRoles(roles).map((portal) => {
+          const automatic = isAutomaticPortal(portal.id);
           const status = PORTAL_STATUS_VIEW[coverage[portal.id].status];
           const url = searchUrlFor(portal.id, keywords);
           return (
             <li
               key={portal.id}
               data-testid={`alert-portal-${portal.id}`}
-              data-status={coverage[portal.id].status}
+              data-status={automatic ? coverage[portal.id].status : "manual"}
               className="flex flex-col gap-1 text-sm"
             >
               <h3 className="font-bold text-fg">{portal.name}</h3>
-              <p className={status.className}>
-                <span aria-hidden="true">{status.icon} </span>
-                <span data-testid={`alert-portal-${portal.id}-status`}>{status.text}</span>
-              </p>
+              {automatic ? (
+                <>
+                  <p className={status.className}>
+                    <span aria-hidden="true">{status.icon} </span>
+                    <span data-testid={`alert-portal-${portal.id}-status`}>{status.text}</span>
+                  </p>
+                  <p className="text-fg-muted">
+                    <strong className="font-semibold text-fg">Automático:</strong> reenviá cada mail
+                    a tu dirección y lo leemos solo.
+                  </p>
+                </>
+              ) : (
+                <p className="text-fg-muted" data-testid={`alert-portal-${portal.id}-manual`}>
+                  <strong className="font-semibold text-fg">Pegá el aviso:</strong> todavía no
+                  leemos los mails de {portal.name}. Cuando veas una oferta que te interese,{" "}
+                  <Link href="/jobs/new" className={textLinkClasses()}>
+                    pegala acá
+                  </Link>
+                  .
+                </p>
+              )}
               <p className="text-fg-muted">{portal.howTo}</p>
               {url ? (
                 <a
@@ -123,9 +143,15 @@ export function AlertGuide({ roles, language, coverage }: AlertGuideProps) {
           );
         })}
       </ul>
+      {isRecommendedPortal("computrabajo") ? null : (
+        <p data-testid="alert-computrabajo-nota" className="text-sm text-fg-muted">
+          Computrabajo: todavía no lo recomendamos, porque aún no leemos sus mails. Si encontrás una
+          oferta ahí, pegala.
+        </p>
+      )}
       <p className="text-sm text-fg-subtle">
-        El estado se arma con los avisos que ya leemos: si un portal todavía no tiene lector, puede
-        decir “nunca” aunque sus emails lleguen a tu bandeja.
+        El estado se arma con los avisos que ya leemos solos. De los portales donde hay que pegar el
+        aviso no podemos decir si te llegaron mails.
       </p>
     </section>
   );
