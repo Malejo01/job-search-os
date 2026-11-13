@@ -1555,3 +1555,34 @@ Base: `main` con la integración de la R5 a la R7 (#480). Detalle, orden de merg
 ### R8 · Cierre de la tanda
 `deps:` todo en PR · `estado:` en PR (13/11)
 - Este bloque y `docs/beta/informe-r8.md`.
+
+## Bloque 23 · Tanda R9 (13/11)
+
+Base: `main` (92467dd). Decisiones de Mauro del 13/11: «Pedir acceso», tope de la charla de USD 0,50, 404 sin sesión e imagen habilitada. Excepción de la tanda: se pueden tocar `packages/prompts/`, con un tope de USD 5 entre evals y modelo. Detalle en `docs/beta/informe-r9.md`. Ningún PR mergeado.
+
+### R9-1 · Oferta desde una imagen (carril rojo)
+`deps:` — · `est:` 3 h · `estado:` en PR ([#493](https://github.com/Malejo01/job-search-os/pull/493), 13/11)
+- Port de `ronda/r6-3-imagen` a `main`, archivo por archivo, sin merge. S2: el cupo de 10 cuenta solo las llamadas que respondieron, y se suma un segundo tope de 30 intentos por día, también los fallidos. S3: valida la estructura del JPEG (SOF y EOI). El SQL de la fila `extract_job_from_image` está en el PR.
+
+### R9-2 · Topes del asistente configurables y medibles (carril rojo)
+`deps:` — · `est:` 3 h · `estado:` en PR ([#495](https://github.com/Malejo01/job-search-os/pull/495), 13/11)
+- USD 0,50 y 20 turnos por charla, que se pueden cambiar con `ASSISTANT_MAX_USD_PER_CONVERSATION` y `ASSISTANT_MAX_TURNS` (validadas con Zod en el borde). Filas marcadoras `assistant_event` de costo 0 para medir mensajes y cortes. El tope de turnos usa como piso los marcadores, así que no se reinicia aunque el historial llegue recortado. Hay un bloque «Asistente, últimos 7 días» en `/settings/salud`.
+
+### R9-3 · «Pedir acceso» en todos lados
+`deps:` — · `est:` 1,5 h · `estado:` en PR ([#491](https://github.com/Malejo01/job-search-os/pull/491), 13/11)
+- La UI, `/ayuda`, los docs de la beta y 8 e2e pasan a «Pedir acceso». Queda «No pudimos anotarte» en `acceso/actions.ts`: ese archivo es carril rojo y va en un PR aparte.
+
+### R9-4 · 404 sin sesión (carril rojo)
+`deps:` — · `est:` 2 h · `estado:` en PR ([#492](https://github.com/Malejo01/job-search-os/pull/492), 13/11)
+- `route-access.ts` define una lista explícita de prefijos privados y normaliza la ruta: las inexistentes dan 404 con y sin sesión, y las privadas piden login. Un request de Server Action a una ruta inventada también pide sesión. Hay tests que fallan si una ruta nueva no está clasificada o si una acción privada no exige sesión. El 404 lleva a «Ir al inicio». e2e 133.
+
+### R9-5 · Pool de Bumeran (carril rojo)
+`deps:` R8-1 · `estado:` **bloqueado**: R8-1 no tiene parser, porque los agentes no pueden leer `fixtures-private/`.
+
+### R9-6 · Calidad de la evaluación por carrera
+`deps:` — · `est:` 2 h · `estado:` en PR ([#494](https://github.com/Malejo01/job-search-os/pull/494), 13/11), **sin correr**
+- Harness para las 24 combinaciones de aviso y persona (dry-run y tope duro) y `docs/beta/calidad-evaluacion-r9.md` con la estructura y la estimación (~USD 0,55). El guard no deja correr el modelo real: la corrida la hace Mauro.
+
+### R9 · Cierre de la tanda
+`deps:` todo en PR · `estado:` en PR (13/11)
+- Este bloque y `docs/beta/informe-r9.md`. Sale de `ronda/r8-cierre`.
