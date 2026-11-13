@@ -39,9 +39,13 @@ Contraste: los tokens de texto sobre fondos suaves (`text-warning` sobre `bg-war
 
 **Resultado: sin arreglos de código en esta pasada.** El e2e del PR #480 (run 43436317038) pasó, con los 131 en verde: 18 casos con medición (los dos `/precios` se saltean por `PRICING_ENABLED` apagado). Pasar significa que no hay violaciones `serious` ni `critical` en esas pantallas, en claro y oscuro.
 
-Las `moderate` y `minor` no se pudieron leer: el spec las deja solo como anotación y adjunto del reporte HTML de Playwright, que el job `e2e` sube únicamente si falla (artefacto `playwright-traces`), y el log de GitHub no las imprime. No se inventan arreglos sobre candidatas sin medir (las dos de la tabla de arriba siguen sin confirmar).
+En el run del #480 las `moderate` y `minor` no se pudieron leer: el spec las deja solo como anotación y adjunto del reporte HTML de Playwright, que el job `e2e` sube únicamente si falla (artefacto `playwright-traces`), y el log de GitHub no las imprime. Por eso el spec 131 ahora también escribe cada lista de leves en el log del CI con el prefijo `[a11y-leves]` (pantalla · regla (impacto): elemento).
 
-Para que la próxima pasada tenga datos, el spec 131 ahora también escribe cada lista de leves en el log del CI con el prefijo `[a11y-leves]` (pantalla · regla (impacto): elemento). Se leen con `gh run view <id> --log` y buscando ese prefijo. Cuando haya un run con el cambio, volcar acá la lista medida y arreglar solo lo que sea código propio (no de librerías).
+**Medición con ese cambio (PR #484, run 43447183867):** el e2e pasó y el flujo 131 corrió en las 18 pantallas (las dos de `/precios` se saltean) sin imprimir ninguna línea `[a11y-leves]`. Con los tags `wcag2a`, `wcag2aa`, `wcag21a` y `wcag21aa` hay **0 violaciones moderadas y 0 leves**, además de 0 serias y 0 críticas. No hay nada que arreglar en código propio por esta vía y no se cambió ningún componente.
+
+**Lo que esa medición no cubre:** `heading-order` y `region`, las dos candidatas de la tabla de arriba, son reglas «best-practice» de axe y el filtro de tags del spec no las evalúa. Siguen sin confirmar y sin descartar.
+
+**Recomendación:** una pasada aparte que mida también las reglas `best-practice` (agregar el tag a `withTags`, o un spec separado para no cambiar el criterio del 131), con el mismo criterio: que no corte el CI, que imprima el resultado en el log y que se arreglen solo los problemas de código propio. No se hace en esta ronda.
 
 ## Qué queda afuera
 
