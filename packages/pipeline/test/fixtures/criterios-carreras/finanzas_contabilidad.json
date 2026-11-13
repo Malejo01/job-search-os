@@ -11,6 +11,11 @@
       "empresa": "Empresa C",
       "titulo": "Analista de impuestos y liquidaciones",
       "disciplina": "finanzas_contabilidad"
+    },
+    {
+      "empresa": "Empresa D",
+      "titulo": "Analista financiero jr con Excel y SQL",
+      "disciplina": "data"
     }
   ],
   "ajenos": [

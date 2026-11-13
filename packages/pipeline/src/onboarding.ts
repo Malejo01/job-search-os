@@ -120,14 +120,16 @@ export const DEFAULT_CRITERIA_RULES: CriteriaRules = {
  */
 export const CAREER_DISCIPLINES: Partial<Record<RoleKey, readonly string[]>> = {
   abogacia: ["abogacia", "negocio", "otra"],
-  finanzas_contabilidad: ["finanzas_contabilidad", "negocio", "otra"],
-  // Coordinar proyectos y procesos es parte del oficio de quien administra
-  // Carrera amplia: sus puestos de entrada son también RR.HH. y atención o éxito de cliente
+  // `data`: un analista financiero con Excel y SQL puede llegar etiquetado como datos
+  finanzas_contabilidad: ["finanzas_contabilidad", "negocio", "data", "otra"],
+  // Carrera amplia: coordinar proyectos y procesos, RR.HH., atención o éxito de cliente y análisis
+  // con Excel y SQL (`data`) son puestos de entrada típicos
   administracion_empresas: [
     "negocio",
     "project_management",
     "recursos_humanos",
     "customer_success",
+    "data",
     "otra",
   ],
   comunicacion: ["comunicacion", "marketing_digital", "creative_production", "negocio", "otra"],

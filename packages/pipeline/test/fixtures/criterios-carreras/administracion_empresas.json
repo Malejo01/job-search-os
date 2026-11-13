@@ -21,6 +21,11 @@
       "empresa": "Empresa E",
       "titulo": "Asistente de éxito de cliente",
       "disciplina": "customer_success"
+    },
+    {
+      "empresa": "Empresa F",
+      "titulo": "Analista administrativo con Excel y SQL",
+      "disciplina": "data"
     }
   ],
   "ajenos": [

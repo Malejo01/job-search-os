@@ -95,7 +95,12 @@ describe("criteriaFromOnboarding con la carrera elegida", () => {
     for (const role of BETA_LAUNCH_ROLE_KEYS.filter((r) => r !== "fullstack")) {
       const allowed = rulesFor(role).allowed_disciplines;
       expect(allowed.length, role).toBeGreaterThan(0);
-      for (const d of tech) expect(allowed, `${role} lista ${d}`).not.toContain(d);
+      // Contaduría y administración sí listan `data`: un analista con Excel y SQL llega etiquetado así
+      const withData = role === "finanzas_contabilidad" || role === "administracion_empresas";
+      for (const d of tech) {
+        if (d === "data" && withData) continue;
+        expect(allowed, `${role} lista ${d}`).not.toContain(d);
+      }
       // Siempre incluye `otra` y `negocio`: el modelo (v1.3) no tiene disciplina propia para el oficio
       expect(allowed, role).toContain("otra");
       expect(allowed, role).toContain("negocio");
@@ -203,6 +208,25 @@ describe("decide() con los criterios de cada carrera", () => {
       "disciplina distinta (backend)",
     ]);
     expect(decide(backend, rulesFor("fullstack")).bloqueadores).toEqual([]);
+  });
+
+  it("un analista financiero etiquetado «data» no se descarta para contaduría ni administración, ni por años", () => {
+    for (const role of ["finanzas_contabilidad", "administracion_empresas"] as const) {
+      const d = decide(
+        evaluation("data", {
+          years_required: 2,
+          years_discipline: "data",
+          years_domain: "Excel y SQL",
+        }),
+        rulesFor(role),
+      );
+      expect(d.bloqueadores, role).toEqual([]);
+      expect(d.accion, role).toBe("aplicar");
+    }
+    // Para abogacía sigue siendo otro oficio
+    expect(decide(evaluation("data"), rulesFor("abogacia")).bloqueadores).toEqual([
+      "disciplina distinta (data)",
+    ]);
   });
 
   it("los años de otro oficio también cuentan contra la carrera", () => {

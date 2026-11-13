@@ -320,13 +320,14 @@ const DISCIPLINE_ROLES: [string, RoleKey][] = [
   ["fullstack", "fullstack"],
   ["frontend", "frontend"],
   ["backend", "backend"],
+  // R6-2: la lista de contaduría incluye `data` (analistas con Excel y SQL): su disciplina propia va antes
+  ["finanzas_contabilidad", "finanzas_contabilidad"],
   ["data", "data_analyst"],
   // Al final: los de arriba no cambian de prioridad
   ["ciberseguridad", "ciberseguridad"],
   // R6-2: las carreras no técnicas van antes que las que comparten con ellas (comunicación y RR.PP.
   // incluyen marketing_digital; RR.II. incluye project_management)
   ["abogacia", "abogacia"],
-  ["finanzas_contabilidad", "finanzas_contabilidad"],
   ["relaciones_publicas", "relaciones_publicas"],
   ["comunicacion", "comunicacion"],
   ["relaciones_internacionales", "relaciones_internacionales"],
