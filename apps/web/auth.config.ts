@@ -1,4 +1,5 @@
 import type { NextAuthConfig } from "next-auth";
+import { requiresLogin } from "./lib/route-access";
 
 /**
  * Configuración de Auth.js compartida entre el middleware (edge, sin base de datos) y el
@@ -23,46 +24,11 @@ export const authConfig = {
       if (pathname === "/" || pathname === "/acceso") {
         return loggedIn ? Response.redirect(new URL("/hoy", request.nextUrl)) : true;
       }
-      // Vitrina pública (ronda 63): mercado, ofertas de muestra y metadatos de compartir
-      if (
-        pathname === "/mercado" ||
-        pathname.startsWith("/mercado/") ||
-        pathname === "/ofertas" ||
-        pathname.startsWith("/ofertas/") ||
-        pathname === "/demo" ||
-        pathname.startsWith("/demo/") ||
-        pathname === "/como-esta-hecho" ||
-        pathname === "/en/how-its-built" ||
-        pathname === "/ayuda" ||
-        // Precios (C-12): la página misma da 404 mientras PRICING_ENABLED esté apagado
-        pathname === "/precios" ||
-        pathname.startsWith("/opengraph-image") ||
-        pathname.startsWith("/twitter-image") ||
-        pathname === "/sitemap.xml" ||
-        pathname === "/robots.txt" ||
-        // Marca (C7-2): favicon, ícono de iPhone, íconos del manifest y el manifest. Sin esto, sin
-        // sesión el navegador recibía una redirección a /login en vez del ícono.
-        pathname === "/icon.svg" ||
-        pathname.startsWith("/icons/") ||
-        pathname === "/apple-icon.png" ||
-        pathname === "/manifest.webmanifest"
-      ) {
-        return true;
-      }
-      // Recuperación de contraseña y setup inicial (JS-045): se usan sin sesión activa.
-      if (
-        pathname.startsWith("/forgot-password") ||
-        pathname.startsWith("/reset-password") ||
-        pathname.startsWith("/setup") ||
-        pathname.startsWith("/register") ||
-        // Páginas legales públicas (JS-106): se leen antes de registrarse
-        pathname === "/legal" ||
-        pathname.startsWith("/legal/") ||
-        pathname === "/privacidad" ||
-        pathname === "/terminos"
-      ) {
-        return true;
-      }
+      // R9-4: solo las rutas privadas conocidas piden sesión (lib/route-access.ts). Lo público pasa,
+      // y lo que no existe también: Next responde su 404 con o sin sesión. Una ruta privada nueva
+      // se suma a PRIVATE_PREFIXES; un test recorre `app/` y falla si se olvida.
+      // Un request de Server Action (`next-action`) pide sesión salvo en las páginas públicas con acciones propias
+      if (!requiresLogin(pathname, request.headers.has("next-action"))) return true;
       return loggedIn;
     },
     jwt({ token, user }) {
