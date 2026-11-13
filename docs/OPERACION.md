@@ -104,6 +104,21 @@ commit;
 - **Primeras ofertas:** las 9 primeras evaluaciones del onboarding no dependen del plan.
 - **La web nunca se conecta como dueño:** `DATABASE_URL_APP` tiene que ser `jobsearch_app`. Con el rol dueño, el trigger dejaría pasar cualquier cambio de plan sin avisar (y RLS tampoco aplicaría; `assertAppRole` lo frena al arrancar).
 
+## Topes del asistente por charla (R9-2)
+
+El asistente corta cada charla por mensajes y por gasto. Los defaults están en `packages/pipeline/src/agent/limits.ts` y se pueden cambiar sin deploy de código con dos variables de Vercel (paso manual de Mauro; hace falta un redeploy para que las tome):
+
+| Variable | Default | Valores válidos |
+|---|---|---|
+| `ASSISTANT_MAX_USD_PER_CONVERSATION` | `0.50` | número mayor que 0 y hasta 5, con punto decimal (`0.75`) |
+| `ASSISTANT_MAX_TURNS` | `20` | entero de 1 a 50 |
+
+- **Variable ausente o vacía:** rige el default, sin aviso.
+- **Variable inválida** (`abc`, `0,5`, `0`, fuera de rango): rige el default y queda un `warn` en el log de la app (`asistente: variable de tope inválida…`), una vez por proceso. No tumba al asistente.
+- **No cambia** `LLM_USER_DAILY_CAP_USD`, que sigue siendo el tope diario por persona.
+- **Contador de mensajes** («Te quedan 2 mensajes…»): sale del mismo valor de `ASSISTANT_MAX_TURNS`, que el servidor le pasa al panel.
+- **Medición:** `/settings/salud` (solo admins) tiene el bloque «Asistente, últimos 7 días» con charlas, mensajes por charla, costo por charla (promedio y p90) y cortes por tope. No muestra contenido de charlas ni ids de personas.
+
 ## Smoke post-deploy
 
 Después de cada deploy exitoso a Production, `.github/workflows/smoke.yml` corre `apps/web/e2e-smoke/smoke.spec.ts` contra la URL de producción, que está fija en el workflow (nunca la del evento). Es **de solo lectura**: `/api/health`, login, `/jobs`, abrir la primera oferta si hay y `/applications`. No toca botones que escriban.

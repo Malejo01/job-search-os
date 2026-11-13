@@ -1,6 +1,10 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import { ASSISTANT_TASK, drizzleCallSink, type CallSink } from "@job-search-os/adapters";
-import { ASSISTANT_WINDOW_DAYS } from "@job-search-os/pipeline";
+import {
+  ASSISTANT_EVENT_MODEL,
+  ASSISTANT_EVENT_TASK,
+  ASSISTANT_WINDOW_DAYS,
+} from "@job-search-os/pipeline";
 import { and, eq, gte, like, sql } from "drizzle-orm";
 import { withUser } from "./db";
 
@@ -57,6 +61,38 @@ export async function loadAssistantUsage(
       conversationCostUsd: rows === 0 ? 0 : conv?.unknown ? null : Number(conv?.cost ?? NaN),
     };
   });
+}
+
+/**
+ * Fila marcadora de costo 0 para medir las charlas sin migración (ver `metrics.ts` en pipeline):
+ * tarea `assistant_event`, motivo (`turn` o `cap:<motivo>`) en `prompt_version`, `error` null. Sin
+ * contenido. Si no se puede escribir, se sigue: medir nunca frena al asistente.
+ */
+export async function recordAssistantMarker(
+  userId: string,
+  label: string,
+  marker: string,
+): Promise<boolean> {
+  try {
+    await assistantCallSink(userId).record({
+      userId,
+      task: ASSISTANT_EVENT_TASK,
+      model: ASSISTANT_EVENT_MODEL,
+      promptVersion: marker,
+      jobId: null,
+      tokensIn: null,
+      tokensOut: null,
+      tokensReasoning: null,
+      latencyMs: 0,
+      costUsd: 0,
+      label,
+      ok: true,
+      error: null,
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**

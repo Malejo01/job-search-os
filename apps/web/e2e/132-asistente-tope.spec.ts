@@ -8,10 +8,12 @@ import { login } from "./helpers";
  * - con 2 y con 1 restante aparece «Te quedan 2 mensajes…» / «Te queda 1 mensaje…»;
  * - al llegar al tope sale UN solo aviso de tope, no se puede enviar más y «Nueva charla»
  *   vuelve a dejar escribir, sin aviso ni conteo.
- * El 10 sale de `AGENT_LIMITS.maxTurnsPerConversation`; acá solo se cuentan respuestas.
+ * El 20 sale de `AGENT_LIMITS.maxTurnsPerConversation` (R9-2: antes 10; se puede cambiar con
+ * `ASSISTANT_MAX_TURNS`, y el CI no la define); acá solo se cuentan respuestas. Con 20 vueltas el
+ * test dura el doble, por eso el timeout pasa de 120 a 240 s.
  */
 
-const TOTAL = 10;
+const TOTAL = 20;
 
 async function openAssistant(page: Page) {
   const button = page.getByRole("button", { name: "Abrir asistente", exact: true });
@@ -29,7 +31,7 @@ test.describe("Flujo 132: tope de mensajes del asistente", () => {
   test("avisa cuántos quedan, muestra el tope una sola vez y bloquea el envío", async ({
     page,
   }) => {
-    test.setTimeout(120_000);
+    test.setTimeout(240_000);
     await login(page);
     await page.goto("/hoy");
     const panel = await openAssistant(page);

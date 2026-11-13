@@ -125,16 +125,16 @@ describe("parseAssistantRequest", () => {
   });
 });
 
-describe("turno 11", () => {
+describe("turno 21", () => {
   it("llega entero y el tope de turnos contesta con el aviso fijo", () => {
-    const messages = Array.from({ length: 21 }, (_, i) => ({
+    const messages = Array.from({ length: 41 }, (_, i) => ({
       role: i % 2 === 0 ? "user" : "assistant",
       text: `mensaje ${i}`,
     }));
     const r = parseAssistantRequest({ messages });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(turnsUsed(r.value.messages)).toBe(10);
+    expect(turnsUsed(r.value.messages)).toBe(20);
     const start = checkTurnStart(
       { turns: turnsUsed(r.value.messages), costUsd: 0 },
       { used: 1, limit: 3 },
@@ -144,6 +144,18 @@ describe("turno 11", () => {
     expect(parseAssistantRequest({ messages: [...messages, ...messages.slice(0, 2)] }).ok).toBe(
       false,
     );
+  });
+
+  it("con otro tope de turnos, el largo admitido sale de ese tope", () => {
+    const mk = (n: number) =>
+      Array.from({ length: n }, (_, i) => ({
+        role: i % 2 === 0 ? "user" : "assistant",
+        text: `mensaje ${i}`,
+      }));
+    expect(parseAssistantRequest({ messages: mk(61) }, 30).ok).toBe(true);
+    expect(parseAssistantRequest({ messages: mk(61) }).ok).toBe(false);
+    expect(parseAssistantRequest({ messages: mk(21) }, 10).ok).toBe(true);
+    expect(parseAssistantRequest({ messages: mk(23) }, 10).ok).toBe(false);
   });
 });
 

@@ -316,10 +316,22 @@ describe("streamAgent", () => {
     const streamFn = vi.fn(createScriptedStreamFn([[finish()]]));
     const pricey = { ...ROUTE, inputUsdPerMtok: 3, outputUsdPerMtok: 15 };
     const { deps: d, calls } = deps(streamFn, {}, pricey);
-    const events = await collect(streamAgent(ASSISTANT_TASK, input({ spentUsd: 0.119 }), ctx, d));
+    const events = await collect(streamAgent(ASSISTANT_TASK, input({ spentUsd: 0.499 }), ctx, d));
     expect(events).toEqual([{ type: "cap", reason: "usd" }]);
     expect(streamFn).not.toHaveBeenCalled();
     expect(calls.calls).toHaveLength(0);
+  });
+
+  it("tope en USD propio: el configurado manda sobre el de siempre", async () => {
+    const streamFn = vi.fn(createScriptedStreamFn([[finish()]]));
+    const pricey = { ...ROUTE, inputUsdPerMtok: 3, outputUsdPerMtok: 15 };
+    const { deps: d } = deps(streamFn, {}, pricey);
+    const limits = { maxTurnsPerConversation: 20, maxUsdPerConversation: 0.12 };
+    const events = await collect(
+      streamAgent(ASSISTANT_TASK, input({ spentUsd: 0.119, limits }), ctx, d),
+    );
+    expect(events).toEqual([{ type: "cap", reason: "usd" }]);
+    expect(streamFn).not.toHaveBeenCalled();
   });
 
   it("gasto previo desconocido: cost_unknown", async () => {
