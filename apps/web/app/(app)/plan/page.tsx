@@ -114,15 +114,20 @@ export default async function PlanPage({
   const userId = await requireUserId();
   const { error, simular, horas } = await searchParams;
   // El plan guardado es uno por persona: la nota usa siempre el puesto principal
-  const role = (await getTargetRoles(userId))[0] ?? null;
-  const [items, state, { roleFallback, fewOwnJobs }] = await Promise.all([
+  // R7-6: dos tandas en paralelo en vez de tres en serie. Las que no dependen del puesto salen con
+  // él; después, las dos que lo usan (estado de ofertas propias e impacto) también juntas.
+  const [roles, items, state] = await Promise.all([
+    getTargetRoles(userId),
     getPlan(userId),
     getDataState(userId),
-    getOwnJobsPlanState(userId, role),
   ]);
+  const role = roles[0] ?? null;
   // El simulador necesita plan y niveles cargados; sin ellos la pantalla ya explica qué falta
   const showSim = items.length > 0 && state.levelsKnown > 0;
-  const impact = showSim ? await getPlanImpact(userId, role, new Date(), simular, horas) : null;
+  const [{ roleFallback, fewOwnJobs }, impact] = await Promise.all([
+    getOwnJobsPlanState(userId, role),
+    showSim ? getPlanImpact(userId, role, new Date(), simular, horas) : Promise.resolve(null),
+  ]);
   const maxPriority = items.reduce((m, i) => Math.max(m, i.priority), 0);
   const groups: Record<PlanStatus, PlanItemView[]> = { en_curso: [], pendiente: [], cerrada: [] };
   for (const it of items) groups[it.status].push(it);

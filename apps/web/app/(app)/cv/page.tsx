@@ -44,10 +44,16 @@ export default async function CvPage({ searchParams }: { searchParams: Promise<P
     email: first(raw.email),
     basicas: first(raw.basicas),
   });
-  const doc = await buildUserCv(userId, opts);
   const mode = cvChatMode(process.env);
-  const chatVisible =
-    mode === "all" || (mode === "admin" && (await canCreateInvitations(userId).catch(() => false)));
+  // R7-6: el CV y el permiso del chat no dependen uno del otro
+  const [doc, chatVisible] = await Promise.all([
+    buildUserCv(userId, opts),
+    mode === "all"
+      ? Promise.resolve(true)
+      : mode === "admin"
+        ? canCreateInvitations(userId).catch(() => false)
+        : Promise.resolve(false),
+  ]);
   const download = new URLSearchParams({
     lang: opts.lang,
     email: opts.includeEmail ? "1" : "0",
