@@ -141,6 +141,12 @@ export default async function JobsPage({
           <p className="ml-auto hidden text-[13px] font-bold text-fg-subtle sm:block">
             Ordenadas por afinidad
           </p>
+          {/* R6-1: siempre visible, con o sin oferta elegida (el panel reemplaza al aside) */}
+          <div className="px-3.5 pt-2 sm:p-0">
+            <Link href="/jobs/new" className={buttonClasses({ size: "sm", className: "shrink-0" })}>
+              + Cargar oferta
+            </Link>
+          </div>
         </div>
 
         <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-3 px-3.5 pt-3 sm:px-12 sm:pt-[18px]">
@@ -218,9 +224,9 @@ export default async function JobsPage({
         </div>
       </div>
       <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-3 px-3.5 sm:px-12">
-        {/* Lo que no está en la referencia va debajo de la lista (C10-7): la guía y «+ Cargar
-            oferta» a la vista (el panel de la guía no se vería dentro de un desplegable cerrado), y
-            los filtros finos y el avance en «Más filtros y herramientas» */}
+        {/* Lo que no está en la referencia va debajo de la lista (C10-7): la guía a la vista (el
+            panel de la guía no se vería dentro de un desplegable cerrado), y los filtros finos y el
+            avance en «Más filtros y herramientas». «+ Cargar oferta» está en la cabecera (R6-1) */}
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <GuidedTour
             steps={GUIDE_STEPS.jobs}
@@ -229,9 +235,6 @@ export default async function JobsPage({
             openerLabel={GUIDE_LABELS.opener}
             resume
           />
-          <Link href="/jobs/new" className={buttonClasses({ size: "sm", className: "shrink-0" })}>
-            + Cargar oferta
-          </Link>
         </div>
         {/* Abierto si la URL ya trae un filtro fino: se ve qué está filtrando */}
         <details
@@ -296,8 +299,8 @@ export default async function JobsPage({
 
 /**
  * Columna de la derecha (C7-6, manual P1), solo en pantalla ancha: cuántas ofertas esperan la
- * descripción, cargar una a mano y el recordatorio de que la postulación la hace la persona. En el
- * celular, lo mismo está en el menú y en «+ Cargar oferta».
+ * descripción, y el recordatorio de que la postulación la hace la persona. Cargar una a mano ya no está
+ * acá: «+ Cargar oferta» vive en la cabecera (R6-1).
  */
 function JobsAside({ pending }: { pending: number }) {
   return (
@@ -321,12 +324,6 @@ function JobsAside({ pending }: { pending: number }) {
           </Link>
         </div>
       ) : null}
-      <div className="flex flex-col gap-2 rounded-card bg-surface p-4">
-        <p className="text-sm font-bold">¿La oferta no está en la lista?</p>
-        <Link href="/jobs/new" className={buttonClasses({ variant: "secondary", size: "sm" })}>
-          Cargala a mano
-        </Link>
-      </div>
       <p className="text-xs text-fg-subtle">
         Vos decidís: la postulación la hacés vos en el sitio del aviso. Nunca postulamos por vos.
       </p>
