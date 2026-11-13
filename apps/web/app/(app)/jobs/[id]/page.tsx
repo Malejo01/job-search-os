@@ -13,13 +13,13 @@ import { RequisitosDelAviso } from "@/components/requisitos-del-aviso";
 import { SkillLevelButton } from "@/components/skill-level-modal";
 import { notEvaluatedMessage } from "@/lib/evaluate-now";
 import { getMainFitSummary } from "@/lib/fit";
+import { adjustmentLine } from "@/lib/adjustment-line";
 import { isUuid } from "@/lib/ids";
 import { getJobDetail } from "@/lib/job-detail";
 import { jobNeighbors, listQuery, parseJobFilters } from "@/lib/jobs";
 import {
   ACTION_ADVICE,
   ACTION_LABELS,
-  adjustmentText,
   COMPANY_TYPE_LABEL,
   DEMO_BADGE_CLASSES,
   DEMO_MODEL,
@@ -435,7 +435,7 @@ export default async function JobDetailPage({
                     {ev.adjustments.length ? (
                       <ul>
                         {ev.adjustments.map((a, i) => (
-                          <li key={`${i}|${a.rule}`}>{adjustmentText(a)}</li>
+                          <li key={`${i}|${a.rule}`}>{adjustmentLine(a)}</li>
                         ))}
                       </ul>
                     ) : (
@@ -583,7 +583,7 @@ export default async function JobDetailPage({
               : ""}
             {job.preScore.cap !== null ? ` · tope por el título ${job.preScore.cap}` : ""}
             {job.preScore.adjustments.length
-              ? ` · ${job.preScore.adjustments.map(adjustmentText).join(", ")}`
+              ? ` · ${job.preScore.adjustments.map(adjustmentLine).join(", ")}`
               : ""}
           </p>
           {job.status === "pendiente_jd" ? (
