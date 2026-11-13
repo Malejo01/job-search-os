@@ -12,6 +12,7 @@ import {
   clampInviteCap,
   INVITE_CAP_MAX,
 } from "@job-search-os/pipeline";
+import { requireAdminOr404, requireAdminOrThrow } from "@/lib/admin-guard";
 import { createInvitation, NotInvitationAdminError, revokeInvitation } from "@/lib/invitations";
 import { isValidEmail, normalizeEmail } from "@/lib/invitations-core";
 import { requireActiveUserId } from "@/lib/session";
@@ -39,6 +40,7 @@ export async function createInvitationAction(
   if (email && !isValidEmail(email)) return { status: "error", message: "El email no es válido." };
   let created;
   try {
+    await requireAdminOrThrow(userId);
     created = await createInvitation(userId, { email: email || undefined });
   } catch (error) {
     if (error instanceof NotInvitationAdminError) {
@@ -77,6 +79,7 @@ export async function inviteFromWaitlistAction(
   const id = WaitlistIdSchema.safeParse(formData.get("id"));
   if (!id.success) return { status: "error", message: "La persona no es válida." };
   try {
+    await requireAdminOrThrow(userId);
     const created = await inviteFromWaitlist(userId, id.data);
     revalidatePath("/settings/invitations");
     if (!created.link) {
@@ -162,6 +165,7 @@ export async function inviteSelectedFromWaitlistAction(input: {
     link: paymentLink(process.env, BETA_PLAN),
   };
   try {
+    await requireAdminOrThrow(userId);
     const items = await inviteManyFromWaitlist(userId, ids);
     revalidatePath("/settings/invitations");
     createLogger({ task: "waitlist_bulk_invite", user_id: userId }).info(
@@ -211,6 +215,7 @@ export async function deleteFromWaitlistAction(
   const id = WaitlistIdSchema.safeParse(formData.get("id"));
   if (!id.success) return { status: "error", message: "La persona no es válida." };
   try {
+    await requireAdminOrThrow(userId);
     await deleteFromWaitlist(userId, id.data);
   } catch (error) {
     if (error instanceof NotInvitationAdminError || error instanceof WaitlistNotEnabledInDbError) {
@@ -228,6 +233,7 @@ export async function deleteFromWaitlistAction(
 
 export async function revokeInvitationAction(formData: FormData): Promise<void> {
   const userId = await requireActiveUserId();
+  await requireAdminOr404(userId);
   await revokeInvitation(userId, String(formData.get("id") ?? ""));
   revalidatePath("/settings/invitations");
 }

@@ -15,6 +15,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { buttonClasses, inputClasses } from "@/components/ui";
+import { requireAdminOr404 } from "@/lib/admin-guard";
 import { careerLabel } from "@/lib/career-market";
 import { getFeedbackTriage } from "@/lib/feedback-triage";
 import { requireUserId } from "@/lib/session";
@@ -49,6 +50,7 @@ export default async function FeedbackTriagePage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const userId = await requireUserId();
+  await requireAdminOr404(userId);
   const result = await getFeedbackTriage(userId);
   if (!result.ok && (result.reason === "no_admin" || result.reason === "apagado")) notFound();
   const params = await searchParams;

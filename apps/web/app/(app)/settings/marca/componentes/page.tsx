@@ -1,7 +1,6 @@
 import { ILLUSTRATIONS, type IllustrationScene } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import {
   Alert,
   Badge,
@@ -21,7 +20,7 @@ import {
 } from "@/components/ui";
 import { Illustration } from "@/components/brand/illustration";
 import { Logo } from "@/components/brand/logo";
-import { canCreateInvitations } from "@/lib/invitations";
+import { requireAdminOr404 } from "@/lib/admin-guard";
 import { requireUserId } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Componentes", robots: { index: false } };
@@ -37,7 +36,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function ComponentesPage() {
   const userId = await requireUserId();
-  if (!(await canCreateInvitations(userId).catch(() => false))) notFound();
+  await requireAdminOr404(userId);
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">

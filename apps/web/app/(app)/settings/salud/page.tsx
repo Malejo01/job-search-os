@@ -2,6 +2,7 @@ import { betaHealth, type HealthLevel } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { requireAdminOr404 } from "@/lib/admin-guard";
 import { getAssistantMetrics } from "@/lib/assistant-metrics";
 import { getBetaHealth } from "@/lib/beta-health";
 import { requireUserId } from "@/lib/session";
@@ -116,6 +117,7 @@ async function AssistantBlock({ userId }: { userId: string }) {
  */
 export default async function SaludPage() {
   const userId = await requireUserId();
+  await requireAdminOr404(userId);
   const result = await getBetaHealth(userId);
   if (!result.ok && result.reason === "no_admin") notFound();
 

@@ -1,6 +1,5 @@
 import { BETA_OPENS_AT, betaPeriodDays, BETA_PLAN, planAccess } from "@job-search-os/pipeline";
-import { notFound } from "next/navigation";
-import { canCreateInvitations } from "@/lib/invitations";
+import { requireAdminOr404 } from "@/lib/admin-guard";
 import { listPlans, PlanAdminNotEnabledInDbError, type AdminPlanRow } from "@/lib/plan-admin";
 import { requireUserId } from "@/lib/session";
 import { SubmitButton } from "@/app/components/submit-button";
@@ -61,7 +60,7 @@ export default async function PlanesPage({
   const userId = await requireUserId();
   const { ok, error } = await searchParams;
   // Como las demás pantallas de admin: 404 para una cuenta común
-  if (!(await canCreateInvitations(userId))) notFound();
+  await requireAdminOr404(userId);
   const rows = await listPlans(userId).catch((e: unknown) => {
     if (e instanceof PlanAdminNotEnabledInDbError) return null;
     throw e;
