@@ -4,7 +4,8 @@ import type { Evaluation } from "../evaluation";
 import { foldText } from "../normalize/text";
 import { MAX_JD_CHARS } from "../pool/career/english";
 import { englishIsNotAGap } from "../skills/english-gap";
-import { extractSkillsFromText, type Term } from "../skills/match";
+import { countriesText, disciplineName, roleAskText } from "../fit/display-labels";
+import { extractJdSkills, type Term } from "../skills/match";
 import {
   monthlySalaryUsd,
   SALARY_FROM_TEXT_NOTE,
@@ -151,9 +152,12 @@ export function buildChecklist(
   if (d.locationOk !== "ok" || countries.length > 0) {
     const status: ChecklistStatus =
       d.locationOk === "ok" ? "cumple" : d.locationOk === "no" ? "no_cumple" : "no_se_sabe";
-    const shown = countries.slice(0, MAX_COUNTRIES).join(", ");
+    const anywhere = countries.includes("*");
+    const shown = countriesText(anywhere ? countries : countries.slice(0, MAX_COUNTRIES));
     const more =
-      countries.length > MAX_COUNTRIES ? ` y ${countries.length - MAX_COUNTRIES} más` : "";
+      !anywhere && countries.length > MAX_COUNTRIES
+        ? ` y ${countries.length - MAX_COUNTRIES} más`
+        : "";
     items.push(
       item({
         id: "pais",
@@ -221,8 +225,8 @@ export function buildChecklist(
   items.push(
     item({
       id: "disciplina",
-      pide: `Puesto de ${label(ev.disciplina)}`,
-      tenes: allowed ? allowed.map(label).join(", ") : null,
+      pide: roleAskText(ev.disciplina),
+      tenes: allowed ? allowed.map(disciplineName).join(", ") : null,
       status:
         allowed === null ? "no_se_sabe" : allowed.includes(ev.disciplina) ? "cumple" : "no_cumple",
       bloquea: blockers.some((b) => /disciplina distinta/i.test(b)),
@@ -338,7 +342,7 @@ export function buildChecklist(
         .map((t) => t.re.exec(jdFolded)?.index ?? Number.MAX_SAFE_INTEGER),
     );
   const slugs = jdText
-    ? extractSkillsFromText(jdText, ctx.terms)
+    ? extractJdSkills(jdText, ctx.terms)
         .filter((s) => !s.startsWith("english_"))
         .sort((a, b) => firstAt(a) - firstAt(b))
         .slice(0, MAX_NAMED_SKILLS)

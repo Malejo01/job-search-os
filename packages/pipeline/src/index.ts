@@ -65,6 +65,7 @@ export * from "./plans";
 export * from "./beta-health";
 export * from "./budget/alerts";
 export * from "./learning";
+export * from "./fit/display-labels";
 export * from "./fit/fit-points";
 export * from "./fit/fit-summary";
 export * from "./fit/offer-card";
