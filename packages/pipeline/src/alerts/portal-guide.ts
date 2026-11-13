@@ -5,29 +5,40 @@
  */
 import { DEFAULT_ALERT_SENDERS } from "../gmail-filters";
 import { baseDomain, EXPECTED_SOURCE_DOMAINS, senderHost } from "../filter-leak";
-import type { RoleKey } from "../skills/self-assessment";
+import { IT_ROLE_KEYS, PRODUCT_ROLE_KEYS, type RoleKey } from "../skills/self-assessment";
 
-export type AlertPortalId = "linkedin" | "indeed" | "getonboard";
+export type AlertPortalId =
+  "linkedin" | "indeed" | "getonboard" | "bumeran" | "zonajobs" | "computrabajo";
 
 export type AlertPortal = {
   id: AlertPortalId;
   name: string;
-  /** Dominios base del remitente (de `EXPECTED_SOURCE_DOMAINS`). */
+  /**
+   * Dominios base del remitente. Los de los portales con lector salen de `EXPECTED_SOURCE_DOMAINS`;
+   * los demás se declaran acá porque el lector (R11-3, R11-4) puede no estar en `main` todavía.
+   */
   domains: readonly string[];
   /** Cómo crear la alerta, en una línea. */
   howTo: string;
+  /** Solo tiene sentido para carreras de tecnología (Get on Board). */
+  techOnly: boolean;
 };
 
 const domainsStartingWith = (prefix: string): string[] =>
   EXPECTED_SOURCE_DOMAINS.filter((d) => d.startsWith(prefix));
 
-export const ALERT_PORTALS: readonly AlertPortal[] = [
+/**
+ * Los portales de la guía, en el orden en que se muestran. Que un portal figure acá no quiere decir
+ * que lo leamos: «automático» lo decide `AUTOMATIC_PORTAL_IDS`.
+ */
+export const GUIDE_PORTALS: readonly AlertPortal[] = [
   {
     id: "linkedin",
     name: "LinkedIn",
     domains: domainsStartingWith("linkedin"),
     howTo:
       "En LinkedIn, buscá en Empleos con la palabra, tocá «Crear alerta de empleo» y elegí frecuencia diaria.",
+    techOnly: false,
   },
   {
     id: "indeed",
@@ -35,6 +46,7 @@ export const ALERT_PORTALS: readonly AlertPortal[] = [
     domains: domainsStartingWith("indeed"),
     howTo:
       "En Indeed, buscá con la palabra y activá «Recibir nuevas ofertas por email» debajo del buscador.",
+    techOnly: false,
   },
   {
     id: "getonboard",
@@ -42,8 +54,103 @@ export const ALERT_PORTALS: readonly AlertPortal[] = [
     domains: domainsStartingWith("getonb"),
     howTo:
       "En Get on Board, entrá a tu cuenta › Alertas (o «Guardar búsqueda») y elegí las categorías o palabras.",
+    techOnly: true,
+  },
+  {
+    id: "bumeran",
+    name: "Bumeran",
+    domains: ["bumeran.com", "bumeran.com.ar"],
+    howTo:
+      "En Bumeran, buscá con la palabra y guardá la búsqueda como alerta por email (te pide iniciar sesión).",
+    techOnly: false,
+  },
+  {
+    id: "zonajobs",
+    name: "ZonaJobs",
+    domains: ["zonajobs.com.ar"],
+    howTo:
+      "En ZonaJobs, buscá con la palabra y guardá la búsqueda como alerta por email (te pide iniciar sesión).",
+    techOnly: false,
+  },
+  {
+    id: "computrabajo",
+    name: "Computrabajo",
+    domains: ["computrabajo.com", "computrabajo.com.ar"],
+    howTo:
+      "En Computrabajo, buscá con la palabra y activá «Crear alerta» (alcanza con tu email, sin cuenta).",
+    techOnly: false,
   },
 ];
+
+/**
+ * Portales cuyos mails lee un parser activo en `main`: solo esos figuran como «automático»; del
+ * resto la guía dice «pegá el aviso». Al mergear R11-3 (Bumeran) se suma `"bumeran"`; al mergear
+ * R11-4 (Computrabajo), `"computrabajo"`. ZonaJobs no tiene lector.
+ */
+export const AUTOMATIC_PORTAL_IDS: readonly AlertPortalId[] = ["linkedin", "indeed", "getonboard"];
+
+/**
+ * Computrabajo no se recomienda hasta que haya lector (`AUTOMATIC_PORTAL_IDS` lo incluye) y llegue
+ * al menos un aviso real de ese portal por la casilla de una persona (R11-10). Se pasa a `true` a
+ * mano, con ese hecho verificado.
+ */
+export const COMPUTRABAJO_RECOMMENDED = false;
+
+export const isAutomaticPortal = (id: AlertPortalId): boolean => AUTOMATIC_PORTAL_IDS.includes(id);
+
+export const isRecommendedPortal = (id: AlertPortalId): boolean =>
+  id !== "computrabajo" || (COMPUTRABAJO_RECOMMENDED && isAutomaticPortal(id));
+
+/**
+ * Los portales con lector activo. Son los que tienen estado («te llegó un aviso hace X días») y los
+ * que muestra «Hoy»: de los demás no podemos decir «nunca llegó» porque no los leemos.
+ */
+export const ALERT_PORTALS: readonly AlertPortal[] = GUIDE_PORTALS.filter((p) =>
+  isAutomaticPortal(p.id),
+);
+
+/** Carreras de tecnología y producto: las únicas para las que Get on Board tiene avisos. */
+const TECH_ROLE_KEYS: readonly string[] = [
+  ...IT_ROLE_KEYS,
+  "data_engineer",
+  "solutions_engineer",
+  "ciberseguridad",
+  ...PRODUCT_ROLE_KEYS,
+];
+
+/**
+ * Portales para recomendar a quien eligió estas carreras: los recomendados, y Get on Board solo si
+ * alguna es de tecnología. Sin carreras (todavía no eligió) van todos los recomendados.
+ */
+export function portalsForRoles(roles: readonly string[]): AlertPortal[] {
+  const tech = roles.length === 0 || roles.some((r) => TECH_ROLE_KEYS.includes(r));
+  return GUIDE_PORTALS.filter((p) => isRecommendedPortal(p.id) && (!p.techOnly || tech));
+}
+
+/**
+ * Los portales recomendados para estas carreras, separados en los que leemos solos («automático») y
+ * los de «pegá el aviso». El cierre del onboarding y la guía de alertas salen de acá, así que
+ * nombran siempre los mismos portales (hallazgo 11 de la auditoría del 13/11).
+ */
+export function portalGroupsForRoles(roles: readonly string[]): {
+  automatic: AlertPortal[];
+  manual: AlertPortal[];
+} {
+  const all = portalsForRoles(roles);
+  return {
+    automatic: all.filter((p) => isAutomaticPortal(p.id)),
+    manual: all.filter((p) => !isAutomaticPortal(p.id)),
+  };
+}
+
+/** «LinkedIn, Indeed y Get on Board»; con «e» si el último nombre empieza con «i». */
+export function portalListText(portals: readonly AlertPortal[]): string {
+  const names = portals.map((p) => p.name);
+  if (names.length <= 1) return names.join("");
+  const last = names[names.length - 1]!;
+  const joint = /^h?i/i.test(last) ? "e" : "y";
+  return `${names.slice(0, -1).join(", ")} ${joint} ${last}`;
+}
 
 /** Una carrera nueva (como las de los PR #148 y #154) todavía puede no estar en `RoleKey`. */
 export type AlertRoleKey =
@@ -325,6 +432,13 @@ function addressOf(fromAddress: string): string {
   return (/<([^>]+)>/.exec(fromAddress)?.[1] ?? fromAddress).trim().toLowerCase();
 }
 
+/** Portal de un dominio (con o sin subdominios), o `null`. Pura. */
+export function portalOfDomain(host: string): AlertPortalId | null {
+  if (!host.trim()) return null;
+  const domain = baseDomain(host);
+  return GUIDE_PORTALS.find((p) => p.domains.includes(domain))?.id ?? null;
+}
+
 /**
  * Portal de un remitente, o `null`. LinkedIn cuenta solo con los remitentes de empleo
  * (`DEFAULT_ALERT_SENDERS` con dirección completa), no con los sociales.
@@ -334,11 +448,7 @@ export function portalOfSender(fromAddress: string): AlertPortalId | null {
   if (!host) return null;
   const addr = addressOf(fromAddress);
   const exact = DEFAULT_ALERT_SENDERS.filter((s) => s.includes("@"));
-  if (exact.includes(addr)) {
-    const domain = baseDomain(host);
-    return ALERT_PORTALS.find((p) => p.domains.includes(domain))?.id ?? null;
-  }
-  const domain = baseDomain(host);
-  const portal = ALERT_PORTALS.find((p) => p.id !== "linkedin" && p.domains.includes(domain));
-  return portal?.id ?? null;
+  const portal = portalOfDomain(host);
+  if (exact.includes(addr)) return portal;
+  return portal === "linkedin" ? null : portal;
 }

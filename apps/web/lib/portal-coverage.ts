@@ -1,6 +1,6 @@
 import { schema as s } from "@job-search-os/db";
 import {
-  ALERT_PORTALS,
+  GUIDE_PORTALS,
   portalOfSender,
   portalStatus,
   type AlertPortalId,
@@ -41,7 +41,7 @@ export async function portalCoverage(userId: string, now: Date): Promise<PortalC
     if (!prev || row.last > prev) last.set(portal, row.last);
   }
   const out = {} as PortalCoverage;
-  for (const p of ALERT_PORTALS) {
+  for (const p of GUIDE_PORTALS) {
     const lastReceivedAt = last.get(p.id) ?? null;
     out[p.id] = { status: portalStatus(lastReceivedAt, now), lastReceivedAt };
   }

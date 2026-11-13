@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import { publicOpenGraph } from "@/lib/public-og";
 import { BRAND } from "@job-search-os/pipeline";
 import Link from "next/link";
-import { getPoolShowcase } from "@/lib/showcase";
+import { getBetaPoolCounts } from "@/lib/beta-pool-counts";
 import { buttonClasses, cardClasses, CheckMark } from "@/components/ui";
 import { OfferCard } from "@/components/offer-card";
-import { PoolNumbers } from "./mercado/pool-numbers";
+import { BetaPoolNumbers } from "./beta-pool-numbers";
 
 // ISR (ronda 63): la CPU de Vercel no alcanza para una consulta por visita. Nada dinámico acá.
 export const revalidate = 3600;
@@ -43,7 +43,7 @@ const LINK =
  * el de la referencia, 72 px a los costados en la computadora).
  */
 export default async function HomePage() {
-  const showcase = await getPoolShowcase();
+  const betaCounts = await getBetaPoolCounts();
   return (
     <div
       data-ancho="completo"
@@ -64,7 +64,7 @@ export default async function HomePage() {
             </span>
             <span className="hidden sm:inline">
               Leemos cada aviso contra tu perfil y te decimos qué tan afín es, qué tenés a favor y
-              qué paso te acerca. Para 8 carreras, en Salta y remoto.
+              qué paso te acerca. Para 8 carreras de la beta.
             </span>
           </p>
           <div className="mt-5 flex gap-3.5 sm:mt-8">
@@ -92,14 +92,12 @@ export default async function HomePage() {
           {STEPS.map(([title, text], i) => (
             <li
               key={title}
-              className="flex min-w-0 items-center gap-2.5 sm:items-start sm:gap-3.5 sm:rounded-card sm:border-x-2 sm:border-t-2 sm:border-b-4 sm:border-line sm:bg-surface sm:p-5"
+              className="flex min-w-0 items-start gap-2.5 sm:gap-3.5 sm:rounded-card sm:border-x-2 sm:border-t-2 sm:border-b-4 sm:border-line sm:bg-surface sm:p-5"
             >
               <CheckMark done>{i + 1}</CheckMark>
               <div className="min-w-0">
                 <p className="text-sm font-bold text-fg sm:font-display sm:text-[17px]">{title}</p>
-                <p className="mt-1 hidden text-sm leading-[1.45] font-medium text-fg-subtle sm:block">
-                  {text}
-                </p>
+                <p className="mt-1 text-sm leading-[1.45] font-medium text-fg-subtle">{text}</p>
               </div>
             </li>
           ))}
@@ -107,7 +105,7 @@ export default async function HomePage() {
       </section>
 
       {/* Lo aprobado antes de C10, debajo de la primera pantalla */}
-      <section aria-labelledby="promesas" className="mt-48 flex flex-col gap-3 sm:mt-44">
+      <section aria-labelledby="promesas" className="mt-10 flex flex-col gap-3 sm:mt-14">
         <p className="font-display text-sm font-extrabold text-brand-text">{BRAND.tagline}</p>
         <h2 id="promesas" className="font-display text-xl font-bold text-fg">
           Lo que prometemos
@@ -124,9 +122,9 @@ export default async function HomePage() {
 
       <section aria-labelledby="en-vivo" className="mt-10 flex flex-col gap-3">
         <h2 id="en-vivo" className="font-display text-xl font-bold text-fg">
-          El pool de ofertas, hoy
+          Las ofertas de las carreras de la beta, hoy
         </h2>
-        <PoolNumbers showcase={showcase} />
+        <BetaPoolNumbers counts={betaCounts} />
         <p className="text-sm text-fg-muted">
           <Link href="/mercado" className={LINK}>
             Ver el mercado por carrera
@@ -156,7 +154,7 @@ function SampleOffers() {
   return (
     <figure
       role="img"
-      aria-label="Ejemplo: «Analista contable semi senior» con el sello «Muy afín», 8,5 de 10, y «Liquidador de sueldos» con «Bastante afín», 7,4"
+      aria-label="Ejemplo inventado: «Analista contable semi senior» con el sello «Muy afín», 8,5 de 10, y «Liquidador de sueldos» con «Bastante afín», 7,4"
       className="-mx-1 flex flex-col gap-3.5 rounded-container bg-surface p-3.5 sm:mx-0 sm:p-[22px] lg:basis-[48%] lg:rotate-[1.5deg]"
     >
       <div aria-hidden="true" className="sm:hidden">
@@ -199,6 +197,9 @@ function SampleOffers() {
           score={7.4}
         />
       </div>
+      <figcaption className="text-xs font-medium text-fg-muted">
+        Ejemplo ilustrativo: avisos inventados para mostrar cómo se ve el sello, no ofertas reales.
+      </figcaption>
     </figure>
   );
 }
