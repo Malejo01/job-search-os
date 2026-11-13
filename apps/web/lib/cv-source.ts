@@ -42,7 +42,6 @@ export async function loadCvSource(userId: string, opts: CvOptions): Promise<CvS
         headline: s.profiles.headline,
         city: s.profiles.locationCity,
         country: s.profiles.locationCountry,
-        summary: s.profiles.profileSummary,
         english: s.profiles.englishCefr,
       })
       .from(s.profiles)
@@ -89,7 +88,10 @@ export async function loadCvSource(userId: string, opts: CvOptions): Promise<CvS
       country: profile.country,
       links: settings?.links ?? {},
       headline: profile.headline,
-      summary: profile.summary,
+      // R11-12: `profile_summary` está escrito para la IA y dice lo que la persona no sabe: no es
+      // el resumen del CV. Sin campo propio (no hay migración), queda vacío y el CV invita a
+      // escribirlo o a armarlo con el chat.
+      summary: null,
       skills: [...levels.map((r) => ({ name: r.name, category: r.category })), ...own],
       languages: profile.english ? [{ name: english, level: profile.english }] : [],
       achievements: facts.map((f) => (f.metric ? `${f.claim} (${f.metric})` : f.claim)),
