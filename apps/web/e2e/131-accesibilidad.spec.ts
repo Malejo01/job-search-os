@@ -37,6 +37,9 @@ async function revisar(page: Page, etiqueta: string): Promise<void> {
   const graves = resumir(["serious", "critical"]);
   const leves = resumir(["moderate", "minor"]);
   if (leves.length > 0) {
+    // R8-6: también al log del CI (anotaciones y adjuntos solo salen en el reporte HTML, que el job
+    // no sube si el e2e pasa). Son reglas y selectores de la propia app, sin datos de personas.
+    console.log(`[a11y-leves] ${etiqueta}: ${leves.join("; ")}`);
     test
       .info()
       .annotations.push({ type: "a11y-leves", description: `${etiqueta}: ${leves.join("; ")}` });

@@ -35,6 +35,14 @@ Candidatas a `moderate` para mirar en el primer reporte (no confirmadas):
 
 Contraste: los tokens de texto sobre fondos suaves (`text-warning` sobre `bg-warning-soft`, `text-danger` sobre `bg-danger-soft`) los mide `color-contrast` en el spec; no se calcularon a mano.
 
+## R8 · segunda pasada (2026-11-13)
+
+**Resultado: sin arreglos de código en esta pasada.** El e2e del PR #480 (run 43436317038) pasó, con los 131 en verde: 18 casos con medición (los dos `/precios` se saltean por `PRICING_ENABLED` apagado). Pasar significa que no hay violaciones `serious` ni `critical` en esas pantallas, en claro y oscuro.
+
+Las `moderate` y `minor` no se pudieron leer: el spec las deja solo como anotación y adjunto del reporte HTML de Playwright, que el job `e2e` sube únicamente si falla (artefacto `playwright-traces`), y el log de GitHub no las imprime. No se inventan arreglos sobre candidatas sin medir (las dos de la tabla de arriba siguen sin confirmar).
+
+Para que la próxima pasada tenga datos, el spec 131 ahora también escribe cada lista de leves en el log del CI con el prefijo `[a11y-leves]` (pantalla · regla (impacto): elemento). Se leen con `gh run view <id> --log` y buscando ese prefijo. Cuando haya un run con el cambio, volcar acá la lista medida y arreglar solo lo que sea código propio (no de librerías).
+
 ## Qué queda afuera
 
 - Correr el spec y volcar el resultado real (lo hace el CI).
