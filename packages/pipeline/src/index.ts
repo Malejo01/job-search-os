@@ -90,3 +90,4 @@ export * from "./career-visibility";
 export * from "./start-here";
 export * from "./feedback/triage";
 export * from "./textos-ani";
+export * from "./extract-image";

@@ -14,6 +14,7 @@ export {
   spendLast24h,
   spendSince,
   averageTokensFor,
+  countTaskCallsSince,
   type TokenAverage,
   type SpendRow,
   type SpendSummary,
@@ -51,7 +52,15 @@ export {
   DEMO_AGENT_MODEL,
   demoAgentStreamFn,
 } from "./agent-demo";
-export { createDemoLlm, DEMO_MODEL, demoEvaluation } from "./demo";
+export { createDemoLlm, DEMO_MODEL, demoEvaluation, demoImageExtraction } from "./demo";
+export {
+  EXTRACT_IMAGE_TASK,
+  extractJobFromImage,
+  IMAGE_DAILY_LIMIT,
+  type ExtractImageDeps,
+  type ExtractImageFailure,
+  type ExtractImageOutcome,
+} from "./extract-job-image";
 export { createProviderRegistry, providerForModel, type ProviderEnv } from "./providers";
 export {
   cachedRouteSource,
