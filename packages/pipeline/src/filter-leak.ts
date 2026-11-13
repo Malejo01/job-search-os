@@ -20,6 +20,11 @@ export const EXPECTED_SOURCE_DOMAINS = [
   "getonbrd.com",
   "getonboard.com",
   "indeed.com",
+  // R11-3: el mail «Bumeran te sugiere» llega de bumeran.com (ADR-035)
+  "bumeran.com",
+  "bumeran.com.ar",
+  // R11-4: los mails de recomendaciones de Computrabajo llegan de computrabajo.com (ADR-037)
+  "computrabajo.com",
 ] as const;
 
 /** Segundos niveles de país: `mails.banco.com.ar` → `banco.com.ar`, no `com.ar`. */
