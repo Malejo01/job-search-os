@@ -1,5 +1,5 @@
 import { schema as s, type Db } from "@job-search-os/db";
-import { compileTaxonomy, extractSkillsFromText, type Term } from "@job-search-os/pipeline";
+import { compileTaxonomy, extractJdSkills, type Term } from "@job-search-os/pipeline";
 import { eq, inArray } from "drizzle-orm";
 
 /**
@@ -20,7 +20,7 @@ export async function syncJobSkillsFromText(
   text: string,
   terms: readonly Term[],
 ): Promise<number> {
-  const slugs = extractSkillsFromText(text, terms);
+  const slugs = extractJdSkills(text, terms);
   await db.delete(s.jobSkills).where(eq(s.jobSkills.jobId, jobId));
   if (!slugs.length) return 0;
   const ids = await db
@@ -47,7 +47,7 @@ export async function syncPublicJobSkillsMany(
 ): Promise<number> {
   const perJob = items.map((i) => ({
     publicJobId: i.publicJobId,
-    slugs: extractSkillsFromText(i.text, terms),
+    slugs: extractJdSkills(i.text, terms),
   }));
   const union = [...new Set(perJob.flatMap((p) => p.slugs))];
   if (!union.length) return 0;
@@ -79,7 +79,7 @@ export async function syncPublicJobSkillsFromText(
   text: string,
   terms: readonly Term[],
 ): Promise<number> {
-  const slugs = extractSkillsFromText(text, terms);
+  const slugs = extractJdSkills(text, terms);
   await db.delete(s.publicJobSkills).where(eq(s.publicJobSkills.publicJobId, publicJobId));
   if (!slugs.length) return 0;
   const ids = await db

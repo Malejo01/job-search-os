@@ -126,24 +126,227 @@ export function matchStack(
 export function extractSkillsFromText(
   text: string,
   taxonomy: readonly SkillTaxonomyEntry[] | readonly Term[],
+  options: { requireContext?: boolean } = {},
 ): string[] {
   const terms: readonly Term[] =
     taxonomy.length && "re" in taxonomy[0]!
       ? (taxonomy as readonly Term[])
       : compileTaxonomy(taxonomy as readonly SkillTaxonomyEntry[]);
   let body = normalizeMention(text);
+  // Copia sin tapar: el contexto de un término ambiguo se mira acá, no en `body` (que va perdiendo
+  // los tramos ya contados).
+  const pristine = body;
   const slugs: string[] = [];
   for (const t of terms) {
+    const rule = options.requireContext ? CONTEXT_RULES.get(`${t.slug}:${t.term}`) : undefined;
     const global = new RegExp(t.re.source, "gi");
     let m: RegExpExecArray | null;
     let hit = false;
     while ((m = global.exec(body)) !== null) {
-      hit = true;
       const start = m.index + m[1]!.length;
-      body = body.slice(0, start) + " ".repeat(m[2]!.length) + body.slice(start + m[2]!.length);
-      global.lastIndex = start + m[2]!.length;
+      const end = start + m[2]!.length;
+      global.lastIndex = end;
+      if (rule && !hasContext(pristine, start, end, rule)) continue;
+      hit = true;
+      body = body.slice(0, start) + " ".repeat(m[2]!.length) + body.slice(end);
     }
     if (hit && !slugs.includes(t.slug)) slugs.push(t.slug);
   }
   return slugs;
 }
+
+/**
+ * Skills de la JD de un aviso (pool y avisos de la persona): como `extractSkillsFromText`, pero
+ * los términos ambiguos de `CONTEXT_RULES` cuentan solo con contexto. Para frases sueltas (un
+ * término que devolvió el modelo, un campo `stack`) se usa la función base: ahí no hay contexto.
+ */
+export function extractJdSkills(
+  text: string,
+  taxonomy: readonly SkillTaxonomyEntry[] | readonly Term[],
+): string[] {
+  return extractSkillsFromText(text, taxonomy, { requireContext: true });
+}
+
+/**
+ * Términos de la taxonomía que en una JD no alcanzan por sí solos (R11-9). «Growth» en «company
+ * growth», «identity» en «brand identity», «make» en «make sure», «security» en «social security»,
+ * «go» en «go-to-market»: una skill necesita evidencia en el texto.
+ *
+ * `cues`: el término cuenta solo si alguna de esas señales aparece dentro de `radius` caracteres
+ * (texto ya normalizado: minúsculas, sin acentos). `deny`: si aparece, no cuenta aunque haya
+ * señal. Las claves son `slug:término` tal como los compila `compileTaxonomy`. No se borra ningún
+ * alias de `skills.json`: los slugs ya guardados siguen valiendo y `matchStack` (campo `stack`,
+ * donde el término viene solo) no cambia.
+ */
+export type ContextRule = { cues: RegExp; deny?: RegExp; radius?: number };
+
+const DEFAULT_CONTEXT_RADIUS = 60;
+
+function hasContext(body: string, start: number, end: number, rule: ContextRule): boolean {
+  const radius = rule.radius ?? DEFAULT_CONTEXT_RADIUS;
+  const window = body.slice(Math.max(0, start - radius), end + radius);
+  if (rule.deny?.test(window)) return false;
+  return rule.cues.test(window);
+}
+
+function rules(
+  slug: string,
+  termsList: readonly string[],
+  rule: ContextRule,
+): [string, ContextRule][] {
+  return termsList.map((term) => [`${slug}:${term}`, rule]);
+}
+
+export const CONTEXT_RULES: ReadonlyMap<string, ContextRule> = new Map<string, ContextRule>([
+  // ── Contaduría y gestión: lo que más ensuciaba los avisos de nómina y contables ──
+  ...rules("growth_marketing", ["growth"], {
+    cues: /growth (marketing|hack|loop|team|lead|manager|experiment|channel|strategy|funnel)|(user|customer|product|paid|viral|subscriber) growth|acquisition|adquisicion|funnel|embudo|a\/b|experimentation|retention|conversion|\bcro\b|\bseo\b|\bsem\b|\bads\b|campaign|campana|lifecycle|performance marketing/,
+  }),
+  ...rules("growth_marketing", ["marketing"], {
+    cues: /(digital|performance|content|product|b2b|b2c|email|growth|lifecycle|inbound|affiliate|brand) marketing|marketing (experience|strategy|strategies|campaigns?|analytics|automation|manager|specialist|plan|funnel|channels?|metrics|ops|operations|mix|digital|de performance|de contenidos|de producto)|(experience|experiencia|background|skills|conocimientos?) (in|with|en|de) marketing/,
+  }),
+  ...rules("growth_marketing", ["lifecycle"], {
+    cues: /customer|user|email|crm|retention|growth|marketing|cliente|usuario/,
+  }),
+  ...rules("growth_marketing", ["funnels"], {
+    cues: /marketing|sales|conversion|growth|acquisition|ads|embudo|ventas/,
+  }),
+  ...rules("growth_marketing", ["cro"], {
+    cues: /conversion|optimi|a\/b|landing|growth|ux/,
+  }),
+  ...rules("iam", ["identity"], {
+    cues: /identity (and|&) access|identity access|identity management|identity governance|identity provider|identity federation|identity platform|identity lifecycle|identity security|\bidp\b|\biam\b|\bsso\b|saml|oauth|\bmfa\b|ldap|okta|auth0|entra|sailpoint|least privilege|privileged access|active directory|gestion de identidades|identidad y acceso/,
+  }),
+  ...rules("iam", ["sod", "iga"], {
+    cues: /segregation of duties|segregacion de funciones|separacion de funciones|access|acceso|identity|governance|rbac|sailpoint|saviynt/,
+  }),
+  ...rules("n8n", ["make"], {
+    cues: /zapier|n8n|integromat|power automate|workato|pipedream|no[- ]?code|low[- ]?code|make\.com|make scenarios?|make automations?/,
+    radius: 40,
+  }),
+  ...rules("multimodal", ["vision"], {
+    cues: /computer vision|vision (model|language|transformer|api|pipeline)|\bvlm\b|multimodal|multi-modal|image|imagen|video|audio|\bocr\b|gpt-4v|gemini|\bllm\b|\bai\b|\bia\b/,
+    radius: 50,
+  }),
+  ...rules(
+    "ip_law",
+    [
+      "intellectual property",
+      "propiedad intelectual",
+      "trademark",
+      "trademarks",
+      "patentes",
+      "derechos de autor",
+    ],
+    {
+      cues: /\blaw\b|legal (counsel|team|department|matters|advice|affairs)|attorney|counsel|lawyer|paralegal|litigation|prosecution|infringement|licensing (agreement|deal)s?|abogad|derecho|juridic|asesor(ia|a)? legal|registr(o|ar|ation) de|trademark (registration|application|filing|clearance|search)|patent (prosecution|filing|application)|\bip (law|counsel|portfolio|attorney)|solicitud de|portfolio de (marcas|patentes)/,
+    },
+  ),
+  ...rules("security", ["security", "seguridad"], {
+    cues: /cyber|ciber|infosec|information security|seguridad de la informacion|cloud|network|application security|appsec|owasp|pentest|\bsoc\b|siem|vulnerab|encrypt|cifrad|threat|amenaza|iso 27001|soc 2|identity|firewall|malware|zero trust|devsecops|security (engineer|analyst|team|review|best practices|controls|posture|incident|audit|architect)/,
+    deny: /social security|job security|security deposit|seguridad social|security guard|guardia de seguridad|seguridad e higiene|higiene y seguridad|seguridad laboral|seguridad vial|food security|security clearance/,
+    radius: 50,
+  }),
+  ...rules("payments", ["payments", "cards", "tarjetas"], {
+    cues: /payment (gateway|processor|processing|platform|system|api|infrastructure|integration|provider)|\bpci\b|\bpsp\b|acquir|issuer|fintech|stripe|adyen|card (network|processing|issuing|payments?)|tarjetas? de (credito|debito)|procesamiento de pagos|pasarela|medios de pago|iso 8583|merchant/,
+  }),
+  // ── Transversales: aparecen en cualquier JD sin ser la skill ──
+  ...rules("client_facing", ["communication"], {
+    cues: /client|customer|non[- ]?technical|no tecnic|cliente|explain|explicar|presentation|presentar/,
+  }),
+  ...rules("client_facing", ["stakeholders"], {
+    cues: /client|customer|external|executive|non[- ]?technical|cliente|externos|no tecnic/,
+  }),
+  ...rules("client_facing", ["discovery"], {
+    cues: /customer|client|product|user|requirements|cliente|requerimientos|workshop|calls?/,
+  }),
+  ...rules("go", ["go"], {
+    cues: /golang|\bgo (developer|engineer|programming|services?|microservices|backend|lang|language)|kubernetes|k8s|docker|grpc|protobuf|backend|microservic|concurrency|goroutine|(python|java|rust|node\.?js|typescript|c\+\+|ruby|php|kotlin)[,/ ]+(and |or |& |y |o )?go\b|\bgo[,/ ]+(and |or |& |y |o )?(python|java|rust|node|typescript|ruby|php|kotlin)|(experience|experiencia) (in|with|en|con) go\b/,
+    radius: 40,
+  }),
+  ...rules("rest_apis", ["rest"], {
+    cues: /\bapis?\b|http|json|endpoint|restful|web service|servicios web/,
+    radius: 30,
+  }),
+  ...rules("rest_apis", ["auth"], {
+    cues: /\bapis?\b|oauth|jwt|token|login|session|sso|endpoint/,
+    radius: 30,
+  }),
+  ...rules("nextjs", ["next"], {
+    cues: /next\.js|react|vercel|ssr|app router|front-?end/,
+    radius: 30,
+  }),
+  ...rules("nestjs", ["nest"], {
+    cues: /nest\.js|nestjs|node|typescript|backend/,
+    radius: 30,
+  }),
+  ...rules("nodejs", ["express"], {
+    cues: /node|javascript|\bjs\b|middleware|backend/,
+    radius: 30,
+  }),
+  ...rules("typescript", ["ts"], {
+    cues: /typescript|node|react|angular|javascript|\bjs\b/,
+    radius: 30,
+  }),
+  ...rules("java", ["spring"], { cues: /java|boot|kotlin|backend|jvm|framework/, radius: 30 }),
+  ...rules("react_native", ["expo"], { cues: /react|native|mobile|\beas\b|\bapp\b/, radius: 30 }),
+  ...rules("snowflake", ["spark"], {
+    cues: /apache|databricks|pyspark|hadoop|big data|scala|etl|sql|kafka|pipelines?/,
+    radius: 40,
+  }),
+  ...rules("aws", ["lambda", "glue", "athena"], {
+    cues: /aws|amazon|serverless|\bs3\b|cloud|etl|crawler|catalog|sql/,
+    radius: 40,
+  }),
+  ...rules("gcp", ["vertex"], { cues: /\bai\b|gcp|google|model|\bml\b/, radius: 30 }),
+  ...rules("vector_db", ["chroma"], {
+    cues: /vector|embedding|\brag\b|langchain|database/,
+    radius: 30,
+  }),
+  ...rules("rag", ["retrieval"], {
+    cues: /llm|vector|embedding|\brag\b|generation|semantic|\bai\b/,
+    radius: 40,
+  }),
+  ...rules("mlops", ["drift"], {
+    cues: /model|data|concept|\bml\b|monitoring|feature/,
+    radius: 30,
+  }),
+  ...rules("microservices", ["distributed"], {
+    cues: /systems?|architectures?|computing|services|databases?|tracing/,
+    radius: 25,
+  }),
+  ...rules("microservices", ["distribuidas"], {
+    cues: /sistemas|arquitecturas?|aplicaciones|servicios/,
+    radius: 25,
+  }),
+  ...rules("observability", ["monitoring", "logging", "tracing", "alerting"], {
+    cues: /application|infrastructure|system|cloud|metrics|alerts?|\blogs?\b|grafana|prometheus|uptime|\bapm\b|observab|production|servers?|\bsre\b|devops|incident|distributed/,
+    deny: /monitoring and evaluation|monitoreo y evaluacion|\bm&e\b/,
+    radius: 50,
+  }),
+  ...rules("agents", ["agentes"], {
+    cues: /\bia\b|\bai\b|llm|autonomo|orquest|langgraph|langchain|inteligencia artificial|multi/,
+    radius: 40,
+  }),
+  ...rules("agents", ["multi-step", "multi-paso"], {
+    cues: /agent|llm|\bai\b|prompt|tool/,
+    radius: 40,
+  }),
+  ...rules("amazon_connect", ["lex"], { cues: /amazon|connect|chatbot|\bbot\b|aws/, radius: 30 }),
+  ...rules("ai_coding_tools", ["cursor", "factory"], {
+    cues: /\bai\b|claude|copilot|codex|\bide\b|coding|droid|agents?/,
+    radius: 40,
+  }),
+  ...rules("salesforce", ["apollo"], {
+    cues: /sales|crm|outreach|prospect|lead|salesforce|hubspot/,
+    radius: 40,
+  }),
+  ...rules("office_suite", ["outlook"], {
+    cues: /microsoft|email|calendar|office|gmail|365|agenda|correo|calendario|inbox/,
+    radius: 40,
+  }),
+  ...rules("english_fluent", ["native", "fluent", "proficient", "highest level"], {
+    cues: /english|ingles/,
+    radius: 40,
+  }),
+]);

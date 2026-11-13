@@ -1,7 +1,10 @@
 import { schema as s, type Db } from "@job-search-os/db";
+import roleSkillsSeed from "@job-search-os/db/seeds/role_skills.json";
 import {
   buildPlan,
+  filterPlanByCareer,
   pickLearningResource,
+  roleSkillsSchema,
   type PlanRow,
   type RoleKey,
 } from "@job-search-os/pipeline";
@@ -32,12 +35,15 @@ export type PlanBuildResult = {
   demandSource: "usuario" | "rol";
 };
 
+const ROLE_SKILLS = roleSkillsSchema.parse(roleSkillsSeed);
+
 /** Con menos ofertas con skills que esto, la demanda sale del rol objetivo. */
 export const MIN_OWN_JOBS_FOR_PLAN = 10;
 
 type DemandRow = {
   skillId: string;
   slug: string;
+  category: string;
   closureHours: number | null;
   mentions: number;
   mustMentions: number;
@@ -60,6 +66,7 @@ async function loadRoleDemand(
     .select({
       skillId: s.skills.id,
       slug: s.skills.slug,
+      category: s.skills.category,
       closureHours: s.skills.closureHours,
       mentions: s.roleMarketSnapshots.mentions,
       mustMentions: s.roleMarketSnapshots.mustMentions,
@@ -134,6 +141,7 @@ export async function buildLearningPlan(
       .select({
         skillId: s.skills.id,
         slug: s.skills.slug,
+        category: s.skills.category,
         closureHours: s.skills.closureHours,
         mentions: s.marketSnapshots.mentions,
         mustMentions: s.marketSnapshots.mustMentions,
@@ -150,8 +158,10 @@ export async function buildLearningPlan(
     .where(eq(s.skillLevels.userId, userId));
   const levelBySkill = new Map(levels.map((l) => [l.skillId, l.level]));
 
+  // R11-9: sin skills de otra familia salvo que la demanda de la carrera las justifique
+  const demand = targetRole ? filterPlanByCareer(snapshot, targetRole, ROLE_SKILLS) : snapshot;
   const rows = buildPlan(
-    snapshot.map((r) => ({
+    demand.map((r) => ({
       slug: r.slug,
       mentions: r.mentions,
       mustMentions: r.mustMentions,

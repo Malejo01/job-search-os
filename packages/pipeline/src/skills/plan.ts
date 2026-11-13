@@ -1,4 +1,5 @@
 import type { SkillDemand } from "./market";
+import { ROLE_GROUPS, ROLE_KEYS, type RoleKey, type RoleSkillsMap } from "./self-assessment";
 
 /**
  * Plan de formación determinista (JS-034): prioridad = demanda_ponderada × (1 − nivel/3) × facilidad.
@@ -85,6 +86,91 @@ export function pickLearningResource<T extends { targetLevel: number; hours: num
     (r) => r.targetLevel >= RESOURCE_TARGET_LEVEL && r.hours !== null && r.hours <= limit,
   );
   return deeper ?? cheapest;
+}
+
+/**
+ * Plan sin skills de otra familia (R11-9). Una persona de Contaduría no tiene que ver «IAM» ni
+ * «Growth» en su plan porque dos avisos las nombren. Familia de una skill = los grupos de carrera
+ * (`ROLE_GROUPS`) en cuyos `role_skills` aparece. Para la carrera de la persona:
+ * - propia: la skill está en el `role_skills` de su carrera (en tecnología y producto, en el de
+ *   cualquiera del grupo);
+ * - transversal: está en `role_skills` de 3 o más grupos (Excel, inglés, Jira...);
+ * - sin dueño: no está en ningún `role_skills`. Si su categoría es de tecnología (`ai_core`,
+ *   `cloud`...) y la carrera no es de tecnología, es de otra familia; si no, se deja pasar.
+ * Cualquier otra es de otra familia y entra al plan solo si la demanda de la carrera la justifica:
+ * al menos `OFF_FAMILY_MIN_MENTIONS` avisos Y al menos `OFF_FAMILY_MIN_SHARE` de las menciones de
+ * la skill más pedida del mismo plan. El umbral es el mismo para las 8 carreras de la beta.
+ */
+export const OFF_FAMILY_MIN_MENTIONS = 5;
+export const OFF_FAMILY_MIN_SHARE = 0.25;
+const TRANSVERSAL_MIN_GROUPS = 3;
+const COHESIVE_GROUPS: readonly string[] = ["Tecnología", "Producto y proyectos"];
+
+export function planFamilies(roleSkills: RoleSkillsMap): {
+  /** Skills de las carreras del mismo grupo que `role`. */
+  own: (role: RoleKey) => Set<string>;
+  transversal: Set<string>;
+  /** Skills que figuran en algún `role_skills`. */
+  owned: Set<string>;
+} {
+  const groupOf = (role: RoleKey) => ROLE_GROUPS.find((g) => g.roles.includes(role));
+  // Solo en tecnología y producto las carreras del grupo comparten familia; en «Derecho, contabilidad
+  // y gestión» o «Comunicación» cada carrera es la suya (Contaduría no hereda IP de Abogacía).
+  const siblings = (role: RoleKey): readonly RoleKey[] => {
+    const group = groupOf(role);
+    return group && COHESIVE_GROUPS.includes(group.label) ? group.roles : [role];
+  };
+  const groupsBySkill = new Map<string, Set<string>>();
+  const owned = new Set<string>();
+  for (const role of ROLE_KEYS) {
+    const label = groupOf(role)?.label ?? role;
+    for (const slug of roleSkills[role].skills) {
+      owned.add(slug);
+      groupsBySkill.set(slug, (groupsBySkill.get(slug) ?? new Set()).add(label));
+    }
+  }
+  const transversal = new Set(
+    [...groupsBySkill].filter(([, g]) => g.size >= TRANSVERSAL_MIN_GROUPS).map(([slug]) => slug),
+  );
+  return {
+    own: (role) => new Set(siblings(role).flatMap((r) => roleSkills[r].skills)),
+    transversal,
+    owned,
+  };
+}
+
+/** Categorías de `skills` que son de tecnología: una skill sin dueño con una de estas es de IT. */
+const TECH_SKILL_CATEGORIES: readonly string[] = [
+  "cloud",
+  "infra",
+  "testing",
+  "ai_core",
+  "datos",
+  "framework",
+  "llm_ops",
+  "lenguaje",
+];
+
+export function filterPlanByCareer<T extends SkillDemand & { category?: string | null }>(
+  rows: readonly T[],
+  role: RoleKey,
+  roleSkills: RoleSkillsMap,
+): T[] {
+  const families = planFamilies(roleSkills);
+  const own = families.own(role);
+  const isTechRole = ROLE_GROUPS.find((g) => g.roles.includes(role))?.label === "Tecnología";
+  const maxMentions = rows.reduce((m, r) => Math.max(m, r.mentions), 0);
+  const minMentions = Math.max(
+    OFF_FAMILY_MIN_MENTIONS,
+    Math.ceil(maxMentions * OFF_FAMILY_MIN_SHARE),
+  );
+  const offFamily = (r: T): boolean => {
+    if (own.has(r.slug) || families.transversal.has(r.slug)) return false;
+    if (families.owned.has(r.slug)) return true;
+    // Sin dueño en `role_skills`: solo se sabe de quién es por la categoría (multimodal es de IT)
+    return !isTechRole && TECH_SKILL_CATEGORIES.includes(r.category ?? "");
+  };
+  return rows.filter((r) => !offFamily(r) || r.mentions >= minMentions);
 }
 
 export const PLAN_STATUSES = ["pendiente", "en_curso", "cerrada"] as const;
