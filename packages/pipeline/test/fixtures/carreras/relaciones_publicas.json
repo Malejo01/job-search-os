@@ -8,15 +8,8 @@
       "pais": "AR",
       "ciudad": "Salta",
       "anos_experiencia": 2,
-      "modalidades": [
-        "remoto",
-        "hibrido",
-        "presencial"
-      ],
-      "idiomas_aviso": [
-        "es",
-        "en"
-      ]
+      "modalidades": ["remoto", "hibrido", "presencial"],
+      "idiomas_aviso": ["es", "en"]
     }
   },
   "casos": [
@@ -72,13 +65,8 @@
       "jd_text": "Empresa C busca incorporar: Ejecutivo/a de cuentas de relaciones públicas.\n\nAgencia ficticia de RR.PP.\n\nQué vas a hacer:\n- Atender cuentas de clientes\n- Organizar lanzamientos\n- Gestionar prensa\n\nQué buscamos:\n- Relaciones Públicas o Comunicación\n- Experiencia en agencia\n\nOficina en Palermo.\n\nModalidad: presencial. Ubicación: CABA, Buenos Aires. Jornada completa, de lunes a viernes.",
       "etiquetas": {
         "prefiltro": "must_pass",
-        "flags_esperados": [
-          "modalidad_no_remota",
-          "ciudad_distinta"
-        ],
-        "bloqueadores_esperados": [
-          "ubicacion"
-        ],
+        "flags_esperados": ["modalidad_no_remota", "ciudad_distinta"],
+        "bloqueadores_esperados": ["ubicacion"],
         "accion_esperada": "guardar",
         "score_esperado": {
           "min": 4,
@@ -98,12 +86,8 @@
       "jd_text": "Empresa D busca incorporar: Community manager (Remote — Mexico residents only).\n\nMarca ficticia de consumo.\n\nQué vas a hacer:\n- Gestionar redes y comunidad\n- Coordinar eventos con influencers\n- Reportar resultados\n\nQué buscamos:\n- Residencia en México (excluyente)\n\nContrato mexicano.\n\nModalidad: remoto. Ubicación: Remoto · solo residentes en México. Jornada completa, de lunes a viernes.",
       "etiquetas": {
         "prefiltro": "must_pass",
-        "flags_esperados": [
-          "residencia_exigida"
-        ],
-        "bloqueadores_esperados": [
-          "ubicacion"
-        ],
+        "flags_esperados": ["residencia_exigida"],
+        "bloqueadores_esperados": ["ubicacion"],
         "accion_esperada": "descartar",
         "score_esperado": {
           "min": 1,
@@ -124,9 +108,7 @@
       "etiquetas": {
         "prefiltro": "must_discard",
         "flags_esperados": [],
-        "bloqueadores_esperados": [
-          "experiencia"
-        ],
+        "bloqueadores_esperados": ["experiencia"],
         "accion_esperada": "descartar",
         "score_esperado": {
           "min": 1,
@@ -147,9 +129,7 @@
       "etiquetas": {
         "prefiltro": "must_discard",
         "flags_esperados": [],
-        "bloqueadores_esperados": [
-          "disciplina"
-        ],
+        "bloqueadores_esperados": ["disciplina"],
         "accion_esperada": "descartar",
         "score_esperado": {
           "min": 1,
@@ -169,13 +149,8 @@
       "jd_text": "Empresa D busca incorporar: Ejecutivo/a de relaciones públicas.\n\nAgencia de RR.PP.\n\nQué vas a hacer:\n- Organizar lanzamientos\n- Gestionar prensa para clientes\n- Armar informes de repercusión\n\nQué buscamos:\n- Relaciones Públicas o Comunicación\n- Experiencia en agencia\n\nOficina en Palermo.\n\nModalidad: presencial. Ubicación: CABA, Buenos Aires. Jornada completa, de lunes a viernes.",
       "etiquetas": {
         "prefiltro": "must_pass",
-        "flags_esperados": [
-          "modalidad_no_remota",
-          "ciudad_distinta"
-        ],
-        "bloqueadores_esperados": [
-          "ubicacion"
-        ],
+        "flags_esperados": ["modalidad_no_remota", "ciudad_distinta"],
+        "bloqueadores_esperados": ["ubicacion"],
         "accion_esperada": "guardar",
         "score_esperado": {
           "min": 4,
