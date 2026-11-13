@@ -8,8 +8,11 @@ import {
   checkTurnStart,
   checkUserMessage,
   estimateTokens,
+  isFinalCap,
   maxStepCostUsd,
   monthlyConversationLimit,
+  remainingMessages,
+  remainingMessagesNotice,
   stepCostUsd,
 } from "./limits";
 
@@ -155,6 +158,35 @@ describe("capMessage", () => {
   it("el mensaje es siempre el mismo para el mismo motivo", () => {
     expect(capMessage("usd")).toEqual(capMessage("usd"));
     expect(capMessage("usd").text).not.toBe(capMessage("turns").text);
+  });
+});
+
+describe("remainingMessages y remainingMessagesNotice", () => {
+  const max = AGENT_LIMITS.maxTurnsPerConversation;
+
+  it("sale del mismo tope de turnos y nunca es negativo", () => {
+    expect(remainingMessages(0)).toBe(max);
+    expect(remainingMessages(max)).toBe(0);
+    expect(remainingMessages(max + 5)).toBe(0);
+    expect(remainingMessages(NaN)).toBe(0);
+  });
+
+  it("avisa solo cuando quedan 2 o menos (y más de 0)", () => {
+    expect(remainingMessagesNotice(0)).toBeNull();
+    expect(remainingMessagesNotice(max - 3)).toBeNull();
+    expect(remainingMessagesNotice(max - 2)).toBe("Te quedan 2 mensajes en esta charla");
+    expect(remainingMessagesNotice(max - 1)).toBe("Te queda 1 mensaje en esta charla");
+    expect(remainingMessagesNotice(max)).toBeNull();
+  });
+});
+
+describe("isFinalCap", () => {
+  it("los topes de la charla cierran; largo del mensaje y pasos no", () => {
+    expect(isFinalCap("turns")).toBe(true);
+    expect(isFinalCap("usd")).toBe(true);
+    expect(isFinalCap("monthly_conversations")).toBe(true);
+    expect(isFinalCap("message_too_long")).toBe(false);
+    expect(isFinalCap("steps")).toBe(false);
   });
 });
 
