@@ -58,35 +58,37 @@ export function AlertGuide({ roles, language, coverage }: AlertGuideProps) {
       </h2>
       {roles.length === 0 ? (
         <p data-testid="alert-guide-generic" className="text-sm text-fg-muted">
-          Todavía no elegiste carrera, así que son palabras generales de tecnología.{" "}
+          Todavía no elegiste carrera.{" "}
           <Link href="/settings#puesto" className={textLinkClasses()}>
             Elegí tu carrera
           </Link>{" "}
-          para ver las tuyas. Creá una alerta por cada palabra en cada portal.
+          y te sugerimos las palabras para crear las alertas en cada portal.
         </p>
       ) : (
         <p className="text-sm text-fg-muted">
           Palabras para tus carreras. Creá una alerta por cada palabra en cada portal.
         </p>
       )}
-      <div className="flex flex-wrap items-center gap-2" data-testid="alert-guide-keywords">
-        <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
-          {keywords.map((word) => (
-            <li
-              key={word}
-              className="flex items-center gap-2 rounded-pill bg-surface-muted pl-4 text-sm font-semibold"
-            >
-              <span data-testid="alert-keyword">{word}</span>
-              <CopyButton text={word} ariaLabel={`Copiar “${word}”`} />
-            </li>
-          ))}
-        </ul>
-        <CopyButton
-          text={keywords.join(", ")}
-          label="Copiar todas"
-          ariaLabel="Copiar todas las palabras"
-        />
-      </div>
+      {keywords.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2" data-testid="alert-guide-keywords">
+          <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
+            {keywords.map((word) => (
+              <li
+                key={word}
+                className="flex items-center gap-2 rounded-pill bg-surface-muted pl-4 text-sm font-semibold"
+              >
+                <span data-testid="alert-keyword">{word}</span>
+                <CopyButton text={word} ariaLabel={`Copiar “${word}”`} />
+              </li>
+            ))}
+          </ul>
+          <CopyButton
+            text={keywords.join(", ")}
+            label="Copiar todas"
+            ariaLabel="Copiar todas las palabras"
+          />
+        </div>
+      ) : null}
       <ul className="m-0 flex list-none flex-col gap-3 p-0">
         {ALERT_PORTALS.map((portal) => {
           const status = PORTAL_STATUS_VIEW[coverage[portal.id].status];
