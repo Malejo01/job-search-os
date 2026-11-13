@@ -14,20 +14,26 @@ import {
   outputSchemaFor,
   RESIDENCY_FLAG,
   roleSkillsSchema,
+  parseReuseInputs,
+  reuseInputsToJson,
+  reuseJobFingerprint,
   sanitizeEvaluation,
+  shouldReuseEvaluation,
   toRoleKey,
   transition,
   type Term,
   type Checklist,
   type CriteriaRules,
+  type Evaluation,
   type JobFacts,
   type JobForPrompt,
+  type ReuseInputs,
   type JobStatus,
   type ProfileForPrompt,
 } from "@job-search-os/pipeline";
 import type { PromptRef } from "@job-search-os/prompts";
 import { randomUUID } from "node:crypto";
-import { and, count, desc, eq, getTableColumns, lte } from "drizzle-orm";
+import { and, count, desc, eq, getTableColumns, lte, ne, sql } from "drizzle-orm";
 import { DEFAULT_PROMPT_VERSIONS } from "../llm/client";
 import type { GenerateContext, LlmClient, LlmError } from "../llm/types";
 import { dailyCapFromEnv, spendLast24h, userDailyCapUsd } from "../llm/spend";
@@ -215,6 +221,11 @@ export type EvaluateForProfileInput = {
    */
   salaryFromApi?: boolean;
   signal?: AbortSignal;
+  /**
+   * Respuesta del modelo de una evaluación previa del mismo aviso (R7-2): si viene, no se llama al modelo
+   * (costo 0) y se sigue con el saneado, `decide()` y el checklist de hoy.
+   */
+  reuse?: { evaluation: Evaluation; model: string };
   /** Para loguear (sin datos) si el checklist falla. */
   logger?: Logger;
   /** userId/jobId y, para la demo, recordTask/label. promptVersion y signal los pone el núcleo. */
@@ -291,12 +302,17 @@ export async function evaluateForProfile(
     job,
   });
 
-  const result = await input.llm.generateStructured(
-    "evaluate_job",
-    outputSchemaFor(promptVersion),
-    vars,
-    { ...input.ctx, promptVersion, signal: input.signal, wire: evaluationWireFor(promptVersion) },
-  );
+  const result = input.reuse
+    ? ({
+        ok: true,
+        value: { object: input.reuse.evaluation, model: input.reuse.model, costUsd: 0 },
+      } as const)
+    : await input.llm.generateStructured("evaluate_job", outputSchemaFor(promptVersion), vars, {
+        ...input.ctx,
+        promptVersion,
+        signal: input.signal,
+        wire: evaluationWireFor(promptVersion),
+      });
   if (!result.ok) return { ok: false, error: result.error, injection };
 
   // Texto libre del modelo: se sanea (largo, enlaces, caracteres de control) antes de decidir y guardar
@@ -372,6 +388,68 @@ export async function evaluateForProfile(
   };
 }
 
+/**
+ * Evaluación previa reutilizable del mismo aviso para la misma persona (R7-2): otro job suyo con el mismo
+ * `jd_hash` y una evaluación cuya respuesta del modelo sigue siendo válida. El criterio es de
+ * `shouldReuseEvaluation` (pipeline). Cualquier duda o error devuelve null y se evalúa con el modelo.
+ */
+async function findReusableEvaluation(
+  db: Db,
+  input: {
+    job: EvaluationJob & { id: string; userId: string; jdHash: string | null };
+    promptVersion: PromptRef;
+    criteriaVersion: number;
+    profileUpdatedAt: Date;
+  },
+): Promise<{
+  evaluation: Evaluation;
+  model: string;
+  evaluationId: string;
+  inputs: ReuseInputs;
+} | null> {
+  const { job } = input;
+  if (!job.jdHash) return null;
+  const [prev] = await db
+    .select({
+      id: s.evaluations.id,
+      promptVersion: s.evaluations.promptVersion,
+      model: s.evaluations.model,
+      raw: s.evaluations.raw,
+      decision: s.evaluations.decision,
+    })
+    .from(s.evaluations)
+    .where(
+      and(
+        eq(s.evaluations.userId, job.userId),
+        // Se compara el hash que LEYÓ esa evaluación (`decision.inputs`), no el `jd_hash` actual de su job:
+        // la ingesta puede reescribirlo después de evaluar (R7-2, M1)
+        sql`${s.evaluations.decision} -> 'inputs' ->> 'jd_hash' = ${job.jdHash}`,
+        ne(s.evaluations.jobId, job.id),
+        eq(s.evaluations.promptVersion, input.promptVersion),
+        eq(s.evaluations.criteriaVersion, input.criteriaVersion),
+      ),
+    )
+    .orderBy(desc(s.evaluations.createdAt))
+    .limit(1);
+  if (!prev) return null;
+  const inputs = parseReuseInputs(prev.decision);
+  const decision = shouldReuseEvaluation({
+    prev: { inputs, promptVersion: prev.promptVersion },
+    current: {
+      jdHash: job.jdHash,
+      promptVersion: input.promptVersion,
+      criteriaVersion: input.criteriaVersion,
+      profileUpdatedAt: input.profileUpdatedAt,
+      jobFingerprint: reuseJobFingerprint(job),
+    },
+  });
+  if (!decision.reuse || !inputs) return null;
+  // La respuesta guardada tiene que seguir cumpliendo el esquema del prompt; si no, se reevalúa
+  const parsed = outputSchemaFor(input.promptVersion).safeParse(prev.raw);
+  if (!parsed.success) return null;
+  return { evaluation: parsed.data, model: prev.model, evaluationId: prev.id, inputs };
+}
+
 /** Evalúa un job por id (fuera de la cola: útil para JS-017 "pegar JD" y para tests). */
 export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promise<EvaluateOutcome> {
   const { db } = deps;
@@ -422,12 +500,35 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
     .select({ kind: s.jobSources.kind })
     .from(s.jobSources)
     .where(eq(s.jobSources.jobId, job.id));
+  // R7-2: lo leído antes de la llamada al modelo; se guarda en `decision.inputs`
+  const readInputs: ReuseInputs = {
+    jdHash: job.jdHash ?? "",
+    profileUpdatedAt: profile.updatedAt.toISOString(),
+    criteriaVersion: criteria.version,
+    jobFingerprint: reuseJobFingerprint(job),
+  };
+  // R7-2: mismo aviso ya evaluado para esta persona y nada cambió → se reutiliza la respuesta del modelo
+  let reusable: Awaited<ReturnType<typeof findReusableEvaluation>> = null;
+  try {
+    reusable = await findReusableEvaluation(db, {
+      job,
+      promptVersion,
+      criteriaVersion: criteria.version,
+      profileUpdatedAt: profile.updatedAt,
+    });
+  } catch (e) {
+    log.error(
+      { user_id: job.userId, error: unexpectedError(e) },
+      "reuso de evaluación: no se pudo buscar",
+    );
+  }
   const evaluated = await evaluateForProfile({
     llm: deps.llm,
     promptVersion,
     profile,
     rules,
     job,
+    reuse: reusable ?? undefined,
     checklistSkills,
     salaryFromApi: salaryFromApiKinds(sources.map((r) => r.kind)),
     logger: log,
@@ -480,6 +581,14 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
       decision: {
         adjustments: decision.adjustments,
         accion_sugerida: evaluation.accion_sugerida,
+        ...(reusable ? { reused_from: reusable.evaluationId } : {}),
+        // Lo que se leyó ANTES de llamar al modelo (job, perfil y criterios de arriba): base de la igualdad
+        // exacta con la que se decide reutilizar (R7-2). Una reutilizada copia los de la original.
+        ...(reusable
+          ? { inputs: reuseInputsToJson(reusable.inputs) }
+          : job.jdHash
+            ? { inputs: reuseInputsToJson(readInputs) }
+            : {}),
         ...(checklist ? { checklist } : {}),
       },
       raw: evaluation,
@@ -506,7 +615,7 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
       status,
       sanitized,
     },
-    "evaluado",
+    reusable ? "evaluación reutilizada de un aviso idéntico: sin llamada al modelo" : "evaluado",
   );
   return {
     ok: true,
