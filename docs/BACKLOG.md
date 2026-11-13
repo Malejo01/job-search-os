@@ -1586,3 +1586,55 @@ Base: `main` (92467dd). Decisiones de Mauro del 13/11: «Pedir acceso», tope de
 ### R9 · Cierre de la tanda
 `deps:` todo en PR · `estado:` en PR (13/11)
 - Este bloque y `docs/beta/informe-r9.md`. Sale de `ronda/r8-cierre`.
+
+## Bloque 25 · Tanda R11 (13/11, noche)
+
+Base: `main` con la integración de la R8, la R9 y T-1 (#505). La R10 entra por #514 (su Bloque 24 viene en ese PR). R11-9 a R11-13 salen de la auditoría de primer uso (`docs/beta/auditoria-primer-uso-13-11.md`). Tope de evals: USD 3; gasto ~USD 0,16. Detalle, orden de merge y pasos manuales en `docs/beta/informe-r11.md`. Ningún PR mergeado.
+
+### R11-1 + R11-2 · Agente de perfil integrado (carril rojo)
+`deps:` R10 · `estado:` en PR ([#514](https://github.com/Malejo01/job-search-os/pull/514), 13/11; reemplaza a #497–#504)
+- Una puerta del flag, una medición de gasto, recarga sin gastar cupo, resumen del cierre desde la base, e2e 135 y `.gitleaksignore`. R11-2: `plan:build` no borra la skill sumada desde la guía, criterios y perfil en una transacción, reintento de la redacción y tope por persona y día dentro del lock. `pdfjs-dist` queda como paso manual.
+
+### R11-3 · Parser de Bumeran (carril rojo)
+`deps:` — · `estado:` en PR ([#508](https://github.com/Malejo01/job-search-os/pull/508), 13/11)
+- «Bumeran te sugiere», ruteo por dominio (ADR-035), sin URL ni ID del aviso (el link es un tracker personal). ZonaJobs no se rutea: no hay esqueleto.
+
+### R11-4 · Parser de Computrabajo (carril rojo)
+`deps:` R11-3 · `estado:` en PR ([#510](https://github.com/Malejo01/job-search-os/pull/510), 13/11)
+- Recomendaciones con ID y URL del aviso; recordatorios y seguimientos de empresas dan `{ ok: false }`. ADR-037. Los dominios de país no se rutean.
+
+### R11-5 + R11-10 · Guía de alertas, portada y onboarding honestos
+`deps:` — · `estado:` rama `ronda/r11-5-guia-alertas` (PR al cerrar)
+- «Automático» solo donde hay lector; Computrabajo sin recomendar hasta tener un aviso real; ADR-036 (pool de Bumeran, propuesto). Un solo mensaje de alertas por carrera, aviso de pocas ofertas en tu idioma y portada con el conteo real de las 8 carreras de la beta.
+
+### R11-6 · Rol de admin en settings (carril rojo)
+`deps:` — · `estado:` en PR ([#506](https://github.com/Malejo01/job-search-os/pull/506), 13/11)
+- Helper y lista única de rutas de admin con test que recorre `app/`; `revokeInvitationAction` comprueba el rol; `invitations/export` da 404. e2e 140.
+
+### R11-7 · Deuda de seguridad y costos (carril rojo)
+`deps:` — · `estado:` en PR ([#512](https://github.com/Malejo01/job-search-os/pull/512), 13/11)
+- Las llamadas fallidas cuentan para los topes en USD; `rls/0021` (sin aplicar) restringe el UPDATE de `users` a 5 columnas; `admin:test-users` con el onboarding real y `--remote` explícito; `inbound:skeleton` enmascara lo que sigue a un saludo.
+
+### R11-8 · Carga sin streaming
+`deps:` — · `estado:` rama `ronda/r11-8-carga-cliente` pusheada, sin PR (paso manual)
+- Indicador con `useLinkStatus` en la navegación, sin `loading.tsx` ni `<Suspense>`. Diseño en `docs/beta/carga-sin-streaming.md`.
+
+### R11-9 · Skills y carrera en los avisos del pool (carril rojo)
+`deps:` — · `estado:` en PR ([#507](https://github.com/Malejo01/job-search-os/pull/507), 13/11)
+- Términos ambiguos con contexto (`extractJdSkills`), categorías amplias de WWR con señal en el título, plan sin skills de otra familia (5 menciones y 25 %) y `skills:extract --pool`.
+
+### R11-11 · Detalle de oferta coherente (carril rojo)
+`deps:` R11-9 · `estado:` en PR ([#509](https://github.com/Malejo01/job-search-os/pull/509), 13/11)
+- Requisitos con los excluyentes de la evaluación, un mapeo de etiquetas internas, riesgos sin contradicciones y veredicto arriba en celular.
+
+### R11-12 · CV sin autocrítica (carril rojo)
+`deps:` — · `estado:` en PR ([#511](https://github.com/Malejo01/job-search-os/pull/511), 13/11)
+- El CV no copia el resumen del perfil; «Armar tu CV con IA» en Hoy; el chat de CV toma el puesto del perfil y arranca en 1.
+
+### R11-13 · Celular, Contaduría para Argentina y P2 (carril rojo)
+`deps:` — · `estado:` en PR ([#513](https://github.com/Malejo01/job-search-os/pull/513), 13/11)
+- «¿Algo no anduvo?» sin tapar contenido (e2e 138), «Primeros pasos» en una línea, catálogo de Contaduría para Argentina (SQL para producción en `ops/`), «Client-facing» renombrada y P2 12, 20, 23 y 25. Quedan el 16, el 17, el 18 y el 22.
+
+### R11 · Cierre de la tanda
+`deps:` todo en PR · `estado:` en PR (13/11)
+- Este bloque, `docs/beta/informe-r11.md` y `docs/beta/auditoria-primer-uso-13-11.md`.
