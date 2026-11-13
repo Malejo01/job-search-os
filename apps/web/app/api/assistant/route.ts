@@ -25,6 +25,7 @@ import {
   conversationIdFromBytes,
   conversationLabel,
   CV_REDIRECT_LINKS,
+  effectiveTurns,
   CV_REDIRECT_MESSAGE,
   encodeAssistantEvent,
   groundingSourcesFrom,
@@ -303,7 +304,8 @@ async function runTurn(
     planUntil: plan.until,
     now,
   });
-  const turns = turnsUsed(messages);
+  // Piso del servidor: un historial recortado por el navegador no reinicia el tope de turnos
+  const turns = effectiveTurns(turnsUsed(messages), usage.conversationTurns);
   const start = checkTurnStart(
     { turns, costUsd: usage.conversationCostUsd },
     { used: usage.monthlyConversations, limit },

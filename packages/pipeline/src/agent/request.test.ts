@@ -3,6 +3,7 @@ import { checkTurnStart } from "./limits";
 import {
   conversationIdFromBytes,
   conversationLabel,
+  effectiveTurns,
   encodeAssistantEvent,
   historyDataBlock,
   isConversationId,
@@ -156,6 +157,25 @@ describe("turno 21", () => {
     expect(parseAssistantRequest({ messages: mk(61) }).ok).toBe(false);
     expect(parseAssistantRequest({ messages: mk(21) }, 10).ok).toBe(true);
     expect(parseAssistantRequest({ messages: mk(23) }, 10).ok).toBe(false);
+  });
+});
+
+describe("effectiveTurns", () => {
+  it("un historial recortado no baja el conteo del servidor", () => {
+    // La charla ya tuvo 20 turnos; el cliente manda solo el mensaje nuevo
+    const trimmed = turnsUsed([{ role: "user", text: "hola" }]);
+    expect(trimmed).toBe(0);
+    const turns = effectiveTurns(trimmed, 20);
+    expect(turns).toBe(20);
+    const start = checkTurnStart({ turns, costUsd: 0 }, { used: 1, limit: 3 }, false);
+    expect(!start.ok && start.error).toBe("turns");
+  });
+
+  it("toma el mayor y descarta contadores inválidos", () => {
+    expect(effectiveTurns(5, 3)).toBe(5);
+    expect(effectiveTurns(2, 7)).toBe(7);
+    expect(effectiveTurns(NaN, 4)).toBe(4);
+    expect(effectiveTurns(3, -1)).toBe(3);
   });
 });
 

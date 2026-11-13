@@ -44,7 +44,8 @@ async function readSamples(nowIso: string): Promise<ConversationSample[]> {
   try {
     const rows = (await db.transaction(async (tx) => {
       await tx.execute(sql`set local statement_timeout = '3s'`);
-      // Sin user_id en la salida; el label no sale de la consulta (solo agrupa)
+      // Agrupa por (user_id, label): el id de la charla lo manda el navegador y dos personas
+      // podrían repetirlo. Ni user_id ni label salen de la consulta
       return tx.execute(sql`
         select
           min(created_at) as started_at,
@@ -59,7 +60,7 @@ async function readSamples(nowIso: string): Promise<ConversationSample[]> {
         where task in (${ASSISTANT_TASK}, ${ASSISTANT_EVENT_TASK})
           and label like 'conv:%'
           and created_at >= ${since}::timestamptz
-        group by label
+        group by user_id, label
         having min(created_at) >= ${since}::timestamptz
       `);
     })) as unknown as Row[];

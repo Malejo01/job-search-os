@@ -151,6 +151,16 @@ export function turnsUsed(messages: readonly AgentMessage[]): number {
   return Math.max(0, messages.filter((m) => m.role === "user").length - 1);
 }
 
+/**
+ * Turnos de la charla para el tope: el mayor entre lo que dice el historial del navegador y los
+ * turnos que el servidor ya aceptó (marcadores). Un cliente que recorta el historial dentro de la
+ * misma charla no consigue bajar el conteo. Un contador inválido del servidor no cuenta.
+ */
+export function effectiveTurns(historyTurns: number, serverTurns: number): number {
+  const ok = (n: number) => Number.isInteger(n) && n >= 0;
+  return Math.max(ok(historyTurns) ? historyTurns : 0, ok(serverTurns) ? serverTurns : 0);
+}
+
 const OPEN_TAG = "<historial_resumido>";
 const CLOSE_TAG = "</historial_resumido>";
 
