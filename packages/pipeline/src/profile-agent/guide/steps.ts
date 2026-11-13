@@ -116,6 +116,29 @@ export function applyGuideInput(
   return checked.success ? ok(checked.data) : err("invalid");
 }
 
+/**
+ * Las respuestas que vuelven del navegador se vuelven a filtrar (entrada no confiable): una palabra a evitar
+ * con datos sensibles o con una instrucción escondida se descarta, y unos años de experiencia que no son una
+ * de las opciones se borran (el paso se vuelve a preguntar). Se corre antes de usar o devolver las respuestas.
+ */
+export function sanitizeGuideAnswers(answers: ProfileGuideAnswers): ProfileGuideAnswers {
+  const out: ProfileGuideAnswers = { ...answers };
+  if (out.avoid !== undefined) {
+    out.avoid = out.avoid.filter(
+      (w) => screenProfileAnswer(w).length === 0 && detectCvInjection(w).signals.length === 0,
+    );
+  }
+  if (typeof out.maxYearsHard === "number" && !isGuideSeniority(out.maxYearsHard)) {
+    delete out.maxYearsHard;
+  }
+  return out;
+}
+
+/** ¿Estos años son una de las opciones de la guía? */
+export function isGuideSeniority(years: number): boolean {
+  return GUIDE_SENIORITY_OPTIONS.some((o) => o.years === years);
+}
+
 /** ¿Ya contestó este paso? `null` explícito (sin tope, sin piso) cuenta como contestado. */
 export function guideStepDone(answers: ProfileGuideAnswers, step: GuideStep): boolean {
   switch (step) {

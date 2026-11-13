@@ -46,6 +46,22 @@ export function applyGuideCriteria(
   return parsed.ok ? ok(parsed.rules) : err(parsed.field);
 }
 
+/** ¿Las reglas nuevas son iguales a las vigentes? Si sí, guardar no crea una versión nueva. */
+export function sameCriteriaRules(stored: CriteriaRules | null, next: CriteriaRules): boolean {
+  const eq = (a: unknown, b: unknown): boolean => {
+    if (a === b) return true;
+    if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
+    if (Array.isArray(a) !== Array.isArray(b)) return false;
+    const ka = Object.keys(a);
+    const kb = Object.keys(b);
+    return (
+      ka.length === kb.length &&
+      ka.every((k) => eq((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k]))
+    );
+  };
+  return eq(withCriteriaDefaults(stored), next);
+}
+
 /** Lo que la tarjeta cambia en el perfil (modalidades, país y mínimo salarial), solo lo elegido. */
 export type GuideProfilePatch = {
   acceptedModalities?: string[];

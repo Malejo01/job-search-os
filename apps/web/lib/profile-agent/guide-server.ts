@@ -8,6 +8,7 @@ import {
   guideReinforcePriority,
   guideRolesToSave,
   isRoleKey,
+  sameCriteriaRules,
   toRoleKey,
   type AlertLanguage,
   type GuideDemand,
@@ -146,8 +147,11 @@ export async function saveGuideCard(
       if (!active) return { ok: false, reason: "not_found" };
       const rules = applyGuideCriteria(active.rules, card);
       if (!rules.ok) return { ok: false, reason: "invalid", field: rules.error };
-      const saved = await saveCriteria(userId, rules.value, active.version);
-      if (!saved.ok) return { ok: false, reason: "invalid", field: "conflict" };
+      // Si las reglas no cambian no se crea una versión nueva (no-op)
+      if (!sameCriteriaRules(active.rules, rules.value)) {
+        const saved = await saveCriteria(userId, rules.value, active.version);
+        if (!saved.ok) return { ok: false, reason: "invalid", field: "conflict" };
+      }
       const patch = guideProfilePatch(card);
       if (Object.keys(patch).length > 0) {
         await withUser(userId, (tx) =>

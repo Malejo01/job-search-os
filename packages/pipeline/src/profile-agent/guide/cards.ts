@@ -12,6 +12,7 @@ import {
   type ProfileGuideCard,
 } from "../schemas";
 import { screenProfileCard } from "../screen";
+import { isGuideSeniority } from "./steps";
 
 /** Mínimo de ofertas del pool de la carrera para hablar de demanda: con menos, no se propone nada. */
 export const GUIDE_MIN_POOL = 10;
@@ -64,6 +65,36 @@ export function selectReinforceSkills(
       offersAsking: k.jobs,
       poolSize: demand.poolSize,
     }));
+}
+
+/**
+ * La tarjeta de skill a reforzar que vuelve del navegador no se cree: la evidencia y el nombre salen del pool
+ * de la carrera que calcula el servidor. Devuelve la tarjeta con los datos del servidor, o `null` si la skill
+ * no está entre las que hoy propondría la guía.
+ */
+export function verifyReinforceCard(
+  card: Extract<ProfileGuideCard, { kind: "reinforce" }>,
+  demand: GuideDemand | null,
+  levels: Readonly<Record<string, number>>,
+): Extract<ProfileGuideCard, { kind: "reinforce" }> | null {
+  if (!demand) return null;
+  const pick = selectReinforceSkills(demand, levels).find((k) => k.slug === card.slug);
+  if (!pick) return null;
+  const trusted = {
+    kind: "reinforce" as const,
+    slug: pick.slug,
+    name: pick.name,
+    evidence: { offersAsking: pick.offersAsking, poolSize: pick.poolSize },
+  };
+  const parsed = profileGuideCardSchema.safeParse(trusted);
+  return parsed.success && parsed.data.kind === "reinforce" ? parsed.data : null;
+}
+
+/** Reglas que el esquema compartido no expresa: los años de una tarjeta de criterios son los de las opciones. */
+export function guideCardAllowed(card: ProfileGuideCard): boolean {
+  return (
+    card.kind !== "criteria" || card.maxYearsHard === null || isGuideSeniority(card.maxYearsHard)
+  );
 }
 
 export type GuideCardsInput = {

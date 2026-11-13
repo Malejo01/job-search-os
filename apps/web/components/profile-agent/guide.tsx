@@ -165,7 +165,7 @@ export function ProfileGuide({ base }: { base: ProfileAgentBase }) {
       const res = await fetch(PROFILE_AGENT_API.guide, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "confirm", card }),
+        body: JSON.stringify({ action: "confirm", card, role: guide.roles?.[0] }),
       });
       const r = (await res.json()) as {
         ok: boolean;

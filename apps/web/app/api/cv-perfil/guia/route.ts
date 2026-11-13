@@ -3,7 +3,10 @@ import {
   GUIDE_FORWARD_LINKS,
   applyGuideInput,
   buildGuideCards,
+  guideCardAllowed,
   guidePrefillFromAnswers,
+  sanitizeGuideAnswers,
+  verifyReinforceCard,
   guideStepsLeft,
   isRoleKey,
   nextGuideStep,
@@ -102,7 +105,12 @@ const requestSchema = z.discriminatedUnion("action", [
     input: z.unknown(),
     suggestedRoles: z.array(z.string().max(40)).max(4).optional(),
   }),
-  z.strictObject({ action: z.literal("confirm"), card: z.unknown() }),
+  z.strictObject({
+    action: z.literal("confirm"),
+    card: z.unknown(),
+    /** Carrera cuyo pool respalda una skill a reforzar (se valida con `isRoleKey`). */
+    role: z.string().max(40).optional(),
+  }),
 ]);
 
 export async function POST(request: Request): Promise<Response> {
@@ -132,9 +140,20 @@ export async function POST(request: Request): Promise<Response> {
     if (req.action === "confirm") {
       const card = profileGuideCardSchema.safeParse(req.card);
       // la tarjeta vuelve del navegador: entrada no confiable, se revalida y se vuelve a filtrar
-      if (!card.success || !screenProfileCard(card.data).ok) return fail("invalid_card");
+      if (!card.success || !screenProfileCard(card.data).ok || !guideCardAllowed(card.data)) {
+        return fail("invalid_card");
+      }
       const ctx = await loadGuideContext(userId);
-      const saved = await saveGuideCard(userId, card.data, ctx.complete);
+      let toSave = card.data;
+      if (toSave.kind === "reinforce") {
+        // La evidencia que manda el navegador no se cree: se recalcula con el pool de la carrera, solo
+        // pasan los `slug` que hoy propondría la guía y se guarda lo del servidor
+        const role = req.role && isRoleKey(req.role) ? req.role : (ctx.profileRoles[0] ?? null);
+        const trusted = verifyReinforceCard(toSave, await loadGuideDemand(role), ctx.levels);
+        if (!trusted) return fail("invalid_card");
+        toSave = trusted;
+      }
+      const saved = await saveGuideCard(userId, toSave, ctx.complete);
       if (!saved.ok) return fail(saved.reason === "limit" ? "limit" : "invalid_card");
       logger.info({ kind: card.data.kind, saved: saved.saved }, "perfil: tarjeta de la guía");
       return Response.json(
@@ -145,7 +164,8 @@ export async function POST(request: Request): Promise<Response> {
 
     const guide0 = profileGuideAnswersSchema.safeParse(req.guide ?? {});
     if (!guide0.success) return fail("bad_request");
-    let guide = guide0.data;
+    // entrada no confiable: se vuelve a filtrar antes de usarla o devolverla (`prefill`)
+    let guide = sanitizeGuideAnswers(guide0.data);
     if (req.action === "answer") {
       const next = applyGuideInput(guide, req.input);
       if (!next.ok) {
