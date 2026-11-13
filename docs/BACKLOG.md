@@ -1515,7 +1515,7 @@ Fuente del estado: `ops/tanda-r4/estado.md`. Los PR de carril rojo se acumulan e
 Base: `main` con la integración de la R5 a la R7 (#480). Detalle, orden de merge y pasos manuales en `docs/beta/informe-r8.md`. Ningún PR mergeado.
 
 ### R8-0 · Estados de carga sin romper los 404
-`deps:` — · `est:` 2 h · `estado:` en PR ([#489](https://github.com/Malejo01/job-search-os/pull/489), 13/11; reemplaza al #483)
+`deps:` — · `est:` 2 h · `estado:` **abierta**: el [#489](https://github.com/Malejo01/job-search-os/pull/489) (reemplaza al #483) falla en el e2e 79 por el foco en `/hoy`; después de dos vueltas, decide Mauro (informe-r8 §3)
 - `loading.tsx` con esqueleto solo en `/hoy` y `/applications`. En `/jobs`, `/inbox`, `/market` y `/plan` el streaming con fallback rompía la navegación por searchParams (e2e 13, 21, 32 y 79) y el modo sin JavaScript (e2e 89). En los detalles `[id]`, además, dejaba el 404 con status 200. e2e 125: esqueleto en Postulaciones y 404 real en los detalles.
 
 ### R8-1 · Parser de Bumeran y ZonaJobs (carril rojo)
