@@ -26,7 +26,7 @@ test.describe("Flujo 44: vitrina pública", () => {
     page,
   }) => {
     await page.goto("/acceso");
-    const submit = page.getByRole("button", { name: "Anotarme", exact: true });
+    const submit = page.getByRole("button", { name: "Pedir acceso", exact: true });
     await submit.click();
     await expect(page.getByLabel("Nombre")).toHaveAttribute("aria-invalid", "true");
     await expect(page.getByLabel("Email")).toHaveAttribute("aria-invalid", "true");
@@ -37,7 +37,7 @@ test.describe("Flujo 44: vitrina pública", () => {
       // Fuera de las 8 de la beta, la carrera está en «Otra carrera» (C10-5)
       await openOtherCareer(page);
       await page.getByLabel("Carrera").selectOption("data_analyst");
-      await page.getByRole("button", { name: "Anotarme", exact: true }).click();
+      await page.getByRole("button", { name: "Pedir acceso", exact: true }).click();
     };
     await fill();
     const done = page.getByRole("status").filter({ hasText: "te anotamos" });
@@ -157,11 +157,11 @@ test.describe("Flujo 44: vitrina pública", () => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page
       .getByRole("navigation", { name: "Principal" })
-      .getByRole("link", { name: "Anotarme a la beta" })
+      .getByRole("link", { name: "Pedir acceso" })
       .click();
     await expect(page).toHaveURL(/\/acceso$/);
     await expect(
-      page.getByRole("heading", { level: 1, name: /Anotate para la beta/ }),
+      page.getByRole("heading", { level: 1, name: /Pedir acceso a la beta/ }),
     ).toBeVisible();
   });
 

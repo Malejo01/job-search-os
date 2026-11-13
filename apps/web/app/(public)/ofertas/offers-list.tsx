@@ -28,14 +28,13 @@ export function OffersList({
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-fg">
-        Para ver qué tan bien te calza cada una,{" "}
+        Para ver qué tan bien te calza cada una:{" "}
         <Link
           href="/acceso"
           className="inline-flex min-h-11 items-center underline underline-offset-2 hover:text-fg"
         >
-          pedí acceso
+          Pedir acceso
         </Link>
-        .
       </p>
       {cards.length === 0 ? (
         <p className="text-sm text-fg-subtle">

@@ -16,7 +16,7 @@ export function ShareButton({
   compact = false,
 }: {
   brandName: string;
-  /** Al lado de «Anotarme» (C10-5): ancho justo, 50 px, con el aviso de «copiado» flotando abajo. */
+  /** Al lado de «Pedir acceso» (C10-5): ancho justo, 50 px, con el aviso de «copiado» flotando abajo. */
   compact?: boolean;
 }) {
   const [shared, setShared] = useState<Shared>("idle");
@@ -56,7 +56,7 @@ export function ShareButton({
       >
         Pasáselo a alguien
       </button>
-      {/* Al lado de «Anotarme», sin `role="status"`: el estado de la página es el del formulario */}
+      {/* Al lado de «Pedir acceso»,sin `role="status"`: el estado de la página es el del formulario */}
       <p
         role={compact ? undefined : "status"}
         aria-live={compact ? "polite" : undefined}

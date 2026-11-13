@@ -95,7 +95,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                 href="/acceso"
                 className={buttonClasses({ size: "sm", className: "focus-visible:outline-brand" })}
               >
-                Anotarme a la beta
+                Pedir acceso
               </Link>
             </span>
           </div>

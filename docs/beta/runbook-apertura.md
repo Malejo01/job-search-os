@@ -115,12 +115,12 @@ También en **GitHub** › Settings › Secrets and variables › Actions › *V
 ### 1.6 Elegir a quién invitar (solo Mauro, con Ani)
 
 1. Abrí `https://<dominio>/settings/invitations`. Arriba de la lista de espera están los **contadores por carrera** («Abogacía 4 de 7», sin invitar de un total) y los filtros (carrera, cómo se enteró, fechas y estado).
-2. **Ani pasa los criterios.** Hasta que estén, no invites: anotarse no es un lugar.
+2. **Ani pasa los criterios.** Hasta que estén, no invites: pedir acceso no es un lugar.
 3. **Exportá la lista** (botón *Exportar a CSV*; solo nombre, email, carrera, origen y fecha) si Ani la quiere revisar en una planilla.
 4. Marcá a quienes elegiste (casilla en cada fila, hasta 20 por tanda; el tope se puede cambiar en la pantalla), tocá **«Invitar a los seleccionados»** y confirmá.
 5. **Copiá los mensajes ahora:** los links se muestran una sola vez. Cada mensaje dice que la beta abre el jueves 26/11 y que el link es personal. Mandalos por WhatsApp o email desde tu cuenta; el panel no manda nada.
 6. Cada invitación **vence a los 14 días** y sirve una sola vez. Una que no se usó se revoca y se crea de nuevo desde la misma pantalla.
-7. Cuando la persona se registra, **su carrera ya viene marcada** en el primer paso (la que eligió al anotarse); puede cambiarla.
+7. Cuando la persona se registra, **su carrera ya viene marcada** en el primer paso (la que eligió al pedir acceso); puede cambiarla.
 8. Becas: el becado gratis y los dos con 50 % se invitan igual; la beca se registra al activar el plan (ver 2.1). Quiénes son y si las dos personas que no pagan entran en esos lugares: [A CONFIRMAR con Mauro] (ver «Decisiones del 5/11»).
 
 ## 2. El 26/11
@@ -219,7 +219,7 @@ Síntoma: Vercel muestra *Error*, la app da 500, `/api/health` responde 503.
 2. ¿Cuota del día agotada (100)? Los reportes de soporte, los reseteos y los avisos comparten el cupo. Bajá `PLAN_NOTICE_DAILY_CAP` y dejá una sola dirección en `ADMIN_EMAILS`.
 3. Probá el reseteo con una cuenta que no sea la dueña de Resend (1.4).
 
-### 3.6 La lista de espera no deja anotarse
+### 3.6 «Pedir acceso» no deja enviar el pedido
 
 Síntoma: «hay muchos pedidos» a varias personas desde el mismo lugar. La base corta a 40 pedidos por hora por IP, 60 cada 10 minutos y 600 por día. Si Ani espera más gente en el mismo salón, subí las constantes de `waitlist_join` en `packages/db/rls/0006_waitlist.sql` (PR chico) y aplicá `pnpm db:migrate`.
 

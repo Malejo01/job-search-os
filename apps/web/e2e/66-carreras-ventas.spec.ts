@@ -63,10 +63,10 @@ test.describe("Flujo 66: lista de espera con una carrera de ventas", () => {
     await page.getByLabel("Nombre").fill("Persona Ventas Ficticia");
     await page.getByLabel("Email").fill(email);
     await select.selectOption({ label: "Ventas B2B (SDR, AE)" });
-    await page.getByRole("button", { name: "Anotarme", exact: true }).click();
+    await page.getByRole("button", { name: "Pedir acceso", exact: true }).click();
     // La confirmación reemplaza al formulario cuando el pedido ya está guardado
     await expect(page.getByTestId("acceso-confirmacion")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Anotarme", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Pedir acceso", exact: true })).toHaveCount(0);
 
     const { db, close } = ownerDb();
     try {

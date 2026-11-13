@@ -16,7 +16,7 @@ La página frena a quien se anota muchas veces para evitar abusos. Los límites 
 
 Si alguien se pasa, ve: «Recibimos muchos pedidos desde tu conexión. Probá de nuevo en un rato.»
 
-- [ ] **Ani:** estimá cuánta gente va a anotarse y cuántos lo harán al mismo tiempo (por ejemplo, «80 personas, casi todas en los primeros 5 minutos»).
+- [ ] **Ani:** estimá cuánta gente va a pedir acceso y cuántos lo harán al mismo tiempo (por ejemplo, «80 personas, casi todas en los primeros 5 minutos»).
 - [ ] **Si pueden ser más de 40 con el mismo wifi o más de 60 en 10 minutos (C8-3):** la prueba de carga (`waitlist.integration.test.ts`) confirma que con los topes normales **la persona 41 del mismo wifi queda afuera**. Para el evento hay una **ventana con topes más altos**, solo para quien entra por el QR (`?origen=voces-jovenes`): 120 por hora desde el mismo wifi y 200 cada 10 minutos entre todas (el diario de 600 no cambia).
   - **(Mauro, antes del 10/11):** con `pnpm db:migrate` aplicado **antes** de mergear la integración de C8 (re-aplica `rls/0006`; el código de C8 necesita las migraciones 0057 a 0059 aunque sus variables estén apagadas), cargá en Vercel `WAITLIST_EVENT_WINDOW=2026-11-11T19:00:00-03:00/2026-11-11T22:00:00-03:00` (**solo el horario real del evento, 2 a 3 horas**; el sistema acepta como mucho 12) y hacé redeploy. Fuera de esa ventana, o sin la variable, rigen los topes normales.
   - **El 12/11:** borrá la variable (o dejala: la ventana ya pasó y no se vuelve a abrir).
@@ -44,7 +44,7 @@ Si alguien se pasa, ve: «Recibimos muchos pedidos desde tu conexión. Probá de
 ## Durante (miércoles 11/11)
 
 ### Ani, en la sala
-1. Mostrá el QR y la dirección corta. Pedí que se anoten con **los datos del celular** si el wifi del lugar es flojo.
+1. Mostrá el QR y la dirección corta. Pedí que pidan acceso con **los datos del celular** si el wifi del lugar es flojo.
 2. Repetí que **el cupo es limitado**.
 3. Si alguien no puede escanear, que escriba la dirección a mano y ponga «Voces Jóvenes» en «Cómo te enteraste».
 4. Si a alguien le dice «Recibimos muchos pedidos…», que espere unos minutos o use datos del celular.
@@ -52,7 +52,7 @@ Si alguien se pasa, ve: «Recibimos muchos pedidos desde tu conexión. Probá de
 ### Mauro, en el panel (recargá cada 10 o 15 minutos)
 - [ ] **El número «sin invitar» sube.** Si la sala dice que se anotó y el número no se mueve, probá la página desde tu celular: puede ser el freno de seguridad o un problema de la página (README, «Si el día del evento la página no carga»).
 - [ ] **Los contadores por carrera** muestran las 8 carreras de la beta y gente repartida. Si alguien eligió una carrera fuera de las 8, es normal: se anota igual, pero la beta es para esas 8.
-- [ ] **«Cómo se enteró» dice «Voces Jóvenes»** en casi todas las filas. Si muchas dicen «Sin dato», el QR no está cargando el origen: usan la dirección escrita a mano. No es grave: igual quedan anotadas.
+- [ ] **«Cómo se enteró» dice «Voces Jóvenes»** en casi todas las filas. Si muchas dicen «Sin dato», el QR no está cargando el origen: usan la dirección escrita a mano. No es grave: igual quedan en la lista.
 - [ ] Filtrá por **«Cómo se enteró» → «Voces Jóvenes»** para ver solo a la gente del evento.
 - [ ] **Si las personas ven errores o la página no carga:** README, «Si el día del evento la página no carga». Cambiar al otro QR es lo primero.
 - [ ] El panel muestra solo las **500 personas más recientes**: si se llega a ese número, aparece un aviso (no debería pasar).
@@ -74,8 +74,8 @@ Si alguien se pasa, ve: «Recibimos muchos pedidos desde tu conexión. Probá de
 - [ ] **(Mauro)** En el panel, tildá a las personas elegidas (hasta 20 por tanda), tocá **«Invitar a los seleccionados»** y confirmá.
 - [ ] **Copiá los mensajes en ese momento:** los enlaces se muestran **una sola vez**. Cada mensaje dice que la beta abre el jueves 26/11 y que el enlace es personal. Mandalos por WhatsApp o email desde tu cuenta: el panel no manda nada solo.
 - [ ] Cada invitación **vence a los 14 días** y sirve una sola vez. Si alguien no la usó, se revoca y se crea de nuevo desde el mismo panel.
-- [ ] A quienes **no** quedan, escribirles un mensaje corto y amable: «Gracias por anotarte. Esta vez no tenemos lugar; si se libera uno, te escribimos.» **No prometan** una fecha ni un lugar.
-- [ ] Cuando alguien se registra, **su carrera ya viene marcada** en el primer paso (la que eligió al anotarse); puede cambiarla.
+- [ ] A quienes **no** quedan, escribirles un mensaje corto y amable: «Gracias por pedir acceso. Esta vez no tenemos lugar; si se libera uno, te escribimos.» **No prometan** una fecha ni un lugar.
+- [ ] Cuando alguien se registra, **su carrera ya viene marcada** en el primer paso (la que eligió al pedir acceso); puede cambiarla.
 
 ### Antes del jueves 26/11
 - [ ] Seguir `docs/beta/runbook-apertura.md`: las invitaciones, el ensayo con testers del 20 al 24/11 y la apertura.
