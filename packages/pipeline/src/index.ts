@@ -63,6 +63,7 @@ export * from "./plan-expiry-notice";
 export * from "./welcome-email";
 export * from "./plans";
 export * from "./beta-health";
+export * from "./budget/alerts";
 export * from "./learning";
 export * from "./fit/fit-points";
 export * from "./fit/fit-summary";

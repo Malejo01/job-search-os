@@ -87,6 +87,24 @@ export default async function SaludPage() {
           );
         })}
       </ul>
+      <section
+        data-testid="salud-alertas-gasto"
+        aria-labelledby="alertas-gasto"
+        className="flex flex-col gap-1 rounded-card bg-surface p-4"
+      >
+        <h2 id="alertas-gasto" className="text-sm font-semibold text-fg">
+          Alertas de gasto de hoy
+        </h2>
+        <p className="text-base font-bold text-fg tabular-nums">
+          {result.budgetAlertsToday.length === 0
+            ? "Ninguna"
+            : result.budgetAlertsToday.map((t) => `${t} %`).join(", ")}
+        </p>
+        <p className="text-xs text-fg-muted">
+          Se avisa por email a los admins al pasar el 70, el 85 y el 95 % del tope diario, una vez
+          por umbral y por día (UTC). El gasto de 24 horas contra el tope está en «IA» más arriba.
+        </p>
+      </section>
       <p className="text-sm">
         <Link href="/settings/metricas" className="font-semibold text-link underline">
           Métricas de la beta
