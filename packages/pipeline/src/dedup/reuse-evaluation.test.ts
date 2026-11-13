@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+  parseReuseInputs,
+  reuseInputsToJson,
   reuseJobFingerprint,
   shouldReuseEvaluation,
   type ReuseCurrent,
+  type ReuseInputs,
   type ReusePrev,
 } from "./reuse-evaluation";
 
-const EVALUATED_AT = new Date("2026-11-10T12:00:00.000Z");
+const PROFILE_AT = new Date("2026-11-01T00:00:00.000Z");
 const JOB = {
   title: "Ingeniera de Datos",
   companyRaw: "Empresa A",
@@ -26,86 +29,78 @@ const JOB = {
   jdText: "Texto del aviso.",
 };
 
-const prev: ReusePrev = {
+const inputs: ReuseInputs = {
   jdHash: "abc123",
-  promptVersion: "evaluate_job@v1.4.0",
+  profileUpdatedAt: PROFILE_AT.toISOString(),
   criteriaVersion: 3,
-  evaluatedAt: EVALUATED_AT,
-  hadFullJd: true,
   jobFingerprint: reuseJobFingerprint(JOB),
 };
+const prev: ReusePrev = { inputs, promptVersion: "evaluate_job@v1.4.0" };
 const current: ReuseCurrent = {
   jdHash: "abc123",
   promptVersion: "evaluate_job@v1.4.0",
   criteriaVersion: 3,
-  profileUpdatedAt: new Date("2026-11-01T00:00:00.000Z"),
+  profileUpdatedAt: PROFILE_AT,
   jobFingerprint: reuseJobFingerprint(JOB),
 };
+const no = (reason: string) => ({ reuse: false, reason });
 
 describe("shouldReuseEvaluation (R7-2)", () => {
   it("reutiliza con mismo hash, perfil y criterios sin cambios y mismo prompt", () => {
     expect(shouldReuseEvaluation({ prev, current })).toEqual({ reuse: true });
   });
 
-  it("reevalúa si el hash cambió, falta o está vacío", () => {
-    expect(shouldReuseEvaluation({ prev, current: { ...current, jdHash: "otro" } })).toEqual({
-      reuse: false,
-      reason: "jd_distinta",
-    });
+  it("evaluación sin inputs (todas las anteriores a R7-2): no se reutiliza nunca", () => {
+    expect(shouldReuseEvaluation({ prev: { ...prev, inputs: null }, current })).toEqual(
+      no("sin_inputs"),
+    );
+  });
+
+  it("JD cambiada después de evaluar: el hash de los inputs no coincide con el del aviso nuevo", () => {
+    expect(shouldReuseEvaluation({ prev, current: { ...current, jdHash: "jd-v2" } })).toEqual(
+      no("jd_distinta"),
+    );
+  });
+
+  it("hash ausente o vacío: reevalúa", () => {
+    expect(shouldReuseEvaluation({ prev, current: { ...current, jdHash: null } })).toEqual(
+      no("sin_hash"),
+    );
     expect(
       shouldReuseEvaluation({
-        prev: { ...prev, jdHash: null },
-        current: { ...current, jdHash: null },
+        prev: { ...prev, inputs: { ...inputs, jdHash: "" } },
+        current: { ...current, jdHash: "" },
       }),
-    ).toEqual({
-      reuse: false,
-      reason: "sin_hash",
-    });
-    expect(
-      shouldReuseEvaluation({ prev: { ...prev, jdHash: "" }, current: { ...current, jdHash: "" } }),
-    ).toEqual({
-      reuse: false,
-      reason: "sin_hash",
-    });
+    ).toEqual(no("sin_hash"));
   });
 
-  it("reevalúa si cambió la versión de los criterios", () => {
-    expect(shouldReuseEvaluation({ prev, current: { ...current, criteriaVersion: 4 } })).toEqual({
-      reuse: false,
-      reason: "criterios_cambiaron",
-    });
+  it("perfil editado durante la llamada al modelo (o después): el updated_at de hoy ya no es el leído antes", () => {
+    for (const ms of [1, 5_000, -1]) {
+      expect(
+        shouldReuseEvaluation({
+          prev,
+          current: { ...current, profileUpdatedAt: new Date(PROFILE_AT.getTime() + ms) },
+        }),
+      ).toEqual(no("perfil_cambio"));
+    }
   });
 
-  it("reevalúa si el perfil se tocó después de la evaluación previa (también en el mismo instante o después)", () => {
-    expect(
-      shouldReuseEvaluation({
-        prev,
-        current: { ...current, profileUpdatedAt: new Date(EVALUATED_AT.getTime() + 1) },
-      }),
-    ).toEqual({ reuse: false, reason: "perfil_cambio" });
-    // En el mismo instante no se puede asegurar el orden: ante la duda, se reevalúa
-    expect(
-      shouldReuseEvaluation({ prev, current: { ...current, profileUpdatedAt: EVALUATED_AT } }),
-    ).toEqual({ reuse: false, reason: "perfil_cambio" });
+  it("cambió la versión de los criterios", () => {
+    expect(shouldReuseEvaluation({ prev, current: { ...current, criteriaVersion: 4 } })).toEqual(
+      no("criterios_cambiaron"),
+    );
   });
 
-  it("reevalúa si cambió la versión del prompt", () => {
+  it("cambió la versión del prompt", () => {
     expect(
       shouldReuseEvaluation({
         prev,
         current: { ...current, promptVersion: "evaluate_job@v1.4.1" },
       }),
-    ).toEqual({ reuse: false, reason: "prompt_distinto" });
+    ).toEqual(no("prompt_distinto"));
   });
 
-  it("reevalúa si la evaluación previa no tenía la JD completa", () => {
-    expect(shouldReuseEvaluation({ prev: { ...prev, hadFullJd: false }, current })).toEqual({
-      reuse: false,
-      reason: "previa_sin_jd",
-    });
-  });
-
-  it("reevalúa si cambió algún dato del aviso que entra al prompt (título, sueldo, país...)", () => {
+  it("cambió algún dato del aviso que entra al prompt (título, sueldo, país...)", () => {
     for (const patch of [
       { title: "Ingeniera Senior de Datos" },
       { salaryMinUsd: 1000 },
@@ -115,20 +110,44 @@ describe("shouldReuseEvaluation (R7-2)", () => {
       { companyRaw: "Empresa B" },
     ]) {
       const c = { ...current, jobFingerprint: reuseJobFingerprint({ ...JOB, ...patch }) };
-      expect(shouldReuseEvaluation({ prev, current: c })).toEqual({
-        reuse: false,
-        reason: "aviso_distinto",
-      });
+      expect(shouldReuseEvaluation({ prev, current: c })).toEqual(no("aviso_distinto"));
     }
   });
 
-  it("falta de datos de la evaluación previa o fechas inválidas: reevalúa", () => {
+  it("fechas inválidas: reevalúa", () => {
     expect(
-      shouldReuseEvaluation({ prev: { ...prev, evaluatedAt: new Date("x") }, current }),
-    ).toEqual({ reuse: false, reason: "fecha_invalida" });
+      shouldReuseEvaluation({
+        prev: { ...prev, inputs: { ...inputs, profileUpdatedAt: "x" } },
+        current,
+      }),
+    ).toEqual(no("fecha_invalida"));
     expect(
       shouldReuseEvaluation({ prev, current: { ...current, profileUpdatedAt: new Date("x") } }),
-    ).toEqual({ reuse: false, reason: "fecha_invalida" });
+    ).toEqual(no("fecha_invalida"));
+  });
+
+  it("encadena: una evaluación reutilizada que copia los inputs de la original sigue siendo reutilizable", () => {
+    const copied = parseReuseInputs({ inputs: reuseInputsToJson(inputs) });
+    expect(shouldReuseEvaluation({ prev: { ...prev, inputs: copied }, current })).toEqual({
+      reuse: true,
+    });
+  });
+});
+
+describe("parseReuseInputs / reuseInputsToJson", () => {
+  it("ida y vuelta", () => {
+    expect(parseReuseInputs({ inputs: reuseInputsToJson(inputs) })).toEqual(inputs);
+  });
+
+  it("decision sin inputs o con forma inesperada devuelve null", () => {
+    expect(parseReuseInputs(null)).toBeNull();
+    expect(parseReuseInputs({})).toBeNull();
+    expect(parseReuseInputs({ inputs: "x" })).toBeNull();
+    expect(parseReuseInputs({ inputs: { jd_hash: "a" } })).toBeNull();
+    expect(
+      parseReuseInputs({ inputs: { ...reuseInputsToJson(inputs), criteria_version: "3" } }),
+    ).toBeNull();
+    expect(parseReuseInputs({ inputs: { ...reuseInputsToJson(inputs), jd_hash: "" } })).toBeNull();
   });
 });
 

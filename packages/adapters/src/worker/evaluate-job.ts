@@ -14,6 +14,8 @@ import {
   outputSchemaFor,
   RESIDENCY_FLAG,
   roleSkillsSchema,
+  parseReuseInputs,
+  reuseInputsToJson,
   reuseJobFingerprint,
   sanitizeEvaluation,
   shouldReuseEvaluation,
@@ -25,12 +27,13 @@ import {
   type Evaluation,
   type JobFacts,
   type JobForPrompt,
+  type ReuseInputs,
   type JobStatus,
   type ProfileForPrompt,
 } from "@job-search-os/pipeline";
 import type { PromptRef } from "@job-search-os/prompts";
 import { randomUUID } from "node:crypto";
-import { and, count, desc, eq, getTableColumns, lte, ne } from "drizzle-orm";
+import { and, count, desc, eq, getTableColumns, lte, ne, sql } from "drizzle-orm";
 import { DEFAULT_PROMPT_VERSIONS } from "../llm/client";
 import type { GenerateContext, LlmClient, LlmError } from "../llm/types";
 import { dailyCapFromEnv, spendLast24h, userDailyCapUsd } from "../llm/spend";
@@ -398,43 +401,30 @@ async function findReusableEvaluation(
     criteriaVersion: number;
     profileUpdatedAt: Date;
   },
-): Promise<{ evaluation: Evaluation; model: string; evaluationId: string } | null> {
+): Promise<{
+  evaluation: Evaluation;
+  model: string;
+  evaluationId: string;
+  inputs: ReuseInputs;
+} | null> {
   const { job } = input;
   if (!job.jdHash) return null;
   const [prev] = await db
     .select({
       id: s.evaluations.id,
       promptVersion: s.evaluations.promptVersion,
-      criteriaVersion: s.evaluations.criteriaVersion,
-      createdAt: s.evaluations.createdAt,
-      hadFullJd: s.evaluations.hadFullJd,
       model: s.evaluations.model,
       raw: s.evaluations.raw,
-      jdHash: s.jobs.jdHash,
-      title: s.jobs.title,
-      companyRaw: s.jobs.companyRaw,
-      locationRaw: s.jobs.locationRaw,
-      countriesAllowed: s.jobs.countriesAllowed,
-      modality: s.jobs.modality,
-      contractType: s.jobs.contractType,
-      salaryMinUsd: s.jobs.salaryMinUsd,
-      salaryMaxUsd: s.jobs.salaryMaxUsd,
-      salaryPeriod: s.jobs.salaryPeriod,
-      salaryNote: s.jobs.salaryNote,
-      weeklyHours: s.jobs.weeklyHours,
-      candidatesCount: s.jobs.candidatesCount,
-      badges: s.jobs.badges,
-      postedAt: s.jobs.postedAt,
-      matchedRole: s.jobs.matchedRole,
+      decision: s.evaluations.decision,
     })
     .from(s.evaluations)
-    .innerJoin(s.jobs, eq(s.jobs.id, s.evaluations.jobId))
     .where(
       and(
-        eq(s.jobs.userId, job.userId),
         eq(s.evaluations.userId, job.userId),
-        eq(s.jobs.jdHash, job.jdHash),
-        ne(s.jobs.id, job.id),
+        // Se compara el hash que LEYÓ esa evaluación (`decision.inputs`), no el `jd_hash` actual de su job:
+        // la ingesta puede reescribirlo después de evaluar (R7-2, M1)
+        sql`${s.evaluations.decision} -> 'inputs' ->> 'jd_hash' = ${job.jdHash}`,
+        ne(s.evaluations.jobId, job.id),
         eq(s.evaluations.promptVersion, input.promptVersion),
         eq(s.evaluations.criteriaVersion, input.criteriaVersion),
       ),
@@ -442,15 +432,9 @@ async function findReusableEvaluation(
     .orderBy(desc(s.evaluations.createdAt))
     .limit(1);
   if (!prev) return null;
+  const inputs = parseReuseInputs(prev.decision);
   const decision = shouldReuseEvaluation({
-    prev: {
-      jdHash: prev.jdHash,
-      promptVersion: prev.promptVersion,
-      criteriaVersion: prev.criteriaVersion,
-      evaluatedAt: prev.createdAt,
-      hadFullJd: prev.hadFullJd,
-      jobFingerprint: reuseJobFingerprint(prev),
-    },
+    prev: { inputs, promptVersion: prev.promptVersion },
     current: {
       jdHash: job.jdHash,
       promptVersion: input.promptVersion,
@@ -459,11 +443,11 @@ async function findReusableEvaluation(
       jobFingerprint: reuseJobFingerprint(job),
     },
   });
-  if (!decision.reuse) return null;
+  if (!decision.reuse || !inputs) return null;
   // La respuesta guardada tiene que seguir cumpliendo el esquema del prompt; si no, se reevalúa
   const parsed = outputSchemaFor(input.promptVersion).safeParse(prev.raw);
   if (!parsed.success) return null;
-  return { evaluation: parsed.data, model: prev.model, evaluationId: prev.id };
+  return { evaluation: parsed.data, model: prev.model, evaluationId: prev.id, inputs };
 }
 
 /** Evalúa un job por id (fuera de la cola: útil para JS-017 "pegar JD" y para tests). */
@@ -516,6 +500,13 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
     .select({ kind: s.jobSources.kind })
     .from(s.jobSources)
     .where(eq(s.jobSources.jobId, job.id));
+  // R7-2: lo leído antes de la llamada al modelo; se guarda en `decision.inputs`
+  const readInputs: ReuseInputs = {
+    jdHash: job.jdHash ?? "",
+    profileUpdatedAt: profile.updatedAt.toISOString(),
+    criteriaVersion: criteria.version,
+    jobFingerprint: reuseJobFingerprint(job),
+  };
   // R7-2: mismo aviso ya evaluado para esta persona y nada cambió → se reutiliza la respuesta del modelo
   let reusable: Awaited<ReturnType<typeof findReusableEvaluation>> = null;
   try {
@@ -591,6 +582,13 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
         adjustments: decision.adjustments,
         accion_sugerida: evaluation.accion_sugerida,
         ...(reusable ? { reused_from: reusable.evaluationId } : {}),
+        // Lo que se leyó ANTES de llamar al modelo (job, perfil y criterios de arriba): base de la igualdad
+        // exacta con la que se decide reutilizar (R7-2). Una reutilizada copia los de la original.
+        ...(reusable
+          ? { inputs: reuseInputsToJson(reusable.inputs) }
+          : job.jdHash
+            ? { inputs: reuseInputsToJson(readInputs) }
+            : {}),
         ...(checklist ? { checklist } : {}),
       },
       raw: evaluation,

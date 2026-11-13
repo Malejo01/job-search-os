@@ -26,10 +26,13 @@ export {
   words,
 } from "./similarity";
 export {
+  parseReuseInputs,
+  reuseInputsToJson,
   reuseJobFingerprint,
   shouldReuseEvaluation,
   type ReuseCurrent,
   type ReuseDecision,
+  type ReuseInputs,
   type ReusePrev,
 } from "./reuse-evaluation";
 export {

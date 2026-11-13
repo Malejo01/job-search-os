@@ -134,6 +134,79 @@ describe("no reevaluar duplicados (R7-2)", () => {
     expect((ev!.decision as { reused_from?: string }).reused_from).toBe(prev!.id);
   });
 
+  it("la evaluación con el modelo guarda decision.inputs, y la reutilizada los copia (se puede encadenar)", async () => {
+    const { q, original, clone, status } = await evaluatedAndClone(6);
+    const [prev] = await conn.db
+      .select({ decision: s.evaluations.decision })
+      .from(s.evaluations)
+      .where(eq(s.evaluations.jobId, original));
+    const [orig] = await conn.db
+      .select({ jdHash: s.jobs.jdHash })
+      .from(s.jobs)
+      .where(eq(s.jobs.id, original));
+    const inputs = (prev!.decision as { inputs: Record<string, unknown> }).inputs;
+    expect(inputs).toMatchObject({ jd_hash: orig!.jdHash, criteria_version: 1 });
+    expect(typeof inputs.profile_updated_at).toBe("string");
+
+    const llm = createFakeLlm({ evaluate_job: fakeEvaluation });
+    await evaluateJobById(clone, { db: conn.db, llm, queue: q, logger });
+    expect(llm.calls).toHaveLength(0);
+    const [copied] = await conn.db
+      .select({ decision: s.evaluations.decision })
+      .from(s.evaluations)
+      .where(eq(s.evaluations.jobId, clone));
+    expect((copied!.decision as { inputs: unknown }).inputs).toEqual(inputs);
+
+    // Tercer aviso: reutiliza la copia, también sin llamar al modelo
+    const [cloneRow] = await conn.db.select().from(s.jobs).where(eq(s.jobs.id, clone));
+    const { id: _i, jdShingles: _s, canonicalUrl: _u, createdAt: _c, ...rest } = cloneRow!;
+    const [third] = await conn.db
+      .insert(s.jobs)
+      .values({ ...rest, canonicalUrl: null, status })
+      .returning({ id: s.jobs.id });
+    const llm3 = createFakeLlm({ evaluate_job: fakeEvaluation });
+    await evaluateJobById(third!.id, { db: conn.db, llm: llm3, queue: q, logger });
+    expect(llm3.calls).toHaveLength(0);
+  });
+
+  it("M1: JD reescrita después de evaluar (el job previo cambió de hash): no reutiliza la evaluación de la JD vieja", async () => {
+    const { q, original, clone } = await evaluatedAndClone(7);
+    // La ingesta reescribe el hash del job ya evaluado (JD v2) y llega otro aviso con ese mismo hash
+    await conn.db.update(s.jobs).set({ jdHash: "hash-de-la-jd-v2" }).where(eq(s.jobs.id, original));
+    await conn.db.update(s.jobs).set({ jdHash: "hash-de-la-jd-v2" }).where(eq(s.jobs.id, clone));
+    const llm = createFakeLlm({ evaluate_job: fakeEvaluation });
+    await evaluateJobById(clone, { db: conn.db, llm, queue: q, logger });
+    expect(llm.calls).toHaveLength(1);
+  });
+
+  it("M2: perfil editado durante la llamada al modelo (updated_at distinto del leído antes): no reutiliza", async () => {
+    const { q, clone } = await evaluatedAndClone(8);
+    // Estado de la carrera: el perfil cambió, pero su updated_at quedó ANTES de la evaluación guardada
+    await conn.db
+      .update(s.profiles)
+      .set({ updatedAt: new Date(Date.now() - 3_600_000) })
+      .where(eq(s.profiles.userId, USER));
+    const llm = createFakeLlm({ evaluate_job: fakeEvaluation });
+    await evaluateJobById(clone, { db: conn.db, llm, queue: q, logger });
+    expect(llm.calls).toHaveLength(1);
+  });
+
+  it("evaluación sin decision.inputs (anteriores a R7-2): no se reutiliza nunca", async () => {
+    const { q, original, clone } = await evaluatedAndClone(9);
+    const [prev] = await conn.db
+      .select({ id: s.evaluations.id, decision: s.evaluations.decision })
+      .from(s.evaluations)
+      .where(eq(s.evaluations.jobId, original));
+    const { inputs: _inputs, ...withoutInputs } = prev!.decision as Record<string, unknown>;
+    await conn.db
+      .update(s.evaluations)
+      .set({ decision: withoutInputs })
+      .where(eq(s.evaluations.id, prev!.id));
+    const llm = createFakeLlm({ evaluate_job: fakeEvaluation });
+    await evaluateJobById(clone, { db: conn.db, llm, queue: q, logger });
+    expect(llm.calls).toHaveLength(1);
+  });
+
   it("si el perfil cambió después de la evaluación previa, vuelve a llamar al modelo", async () => {
     const { q, clone } = await evaluatedAndClone(2);
     await conn.db
