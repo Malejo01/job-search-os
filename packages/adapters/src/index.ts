@@ -72,6 +72,7 @@ export { assignPoolToUser, type AssignOptions, type AssignResult } from "./pool/
 export { hasPoolEvaluationActivity, loadPoolEvalCap, loadPoolEvalLimit } from "./pool/usage";
 export { explainEmptyRoles } from "./pool/role-coverage";
 export * from "./cv-chat";
+export * from "./profile-agent";
 // Demo guiada (ronda 74): línea en el medio a propósito, el #102 toca las puntas de este archivo.
 export * from "./demo";
 export { assignPoolDaily, type PoolDailyOptions, type PoolDailyResult } from "./pool/daily";

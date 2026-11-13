@@ -14,21 +14,32 @@ const STEPS = [
 export function OnboardingSteps({
   current,
   guide,
+  skillsFromCv,
 }: {
   current: 1 | 2 | 3;
+  /** El agente de perfil ya dejó las skills (ADR-034): el paso 2 se muestra como hecho con tu CV. */
+  skillsFromCv?: boolean;
   /** `GuidedTour` de la pantalla (ronda 92): su botón va a la derecha de «Paso N de 3». */
   guide?: ReactNode;
 }) {
   const now = STEPS.find((step) => step.n === current) ?? STEPS[0];
   return (
     <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
-      <StepsList current={current} now={now} />
+      <StepsList current={current} now={now} skillsFromCv={skillsFromCv === true} />
       {guide}
     </div>
   );
 }
 
-function StepsList({ current, now }: { current: 1 | 2 | 3; now: (typeof STEPS)[number] }) {
+function StepsList({
+  current,
+  now,
+  skillsFromCv,
+}: {
+  current: 1 | 2 | 3;
+  now: (typeof STEPS)[number];
+  skillsFromCv: boolean;
+}) {
   return (
     <div className="flex flex-col gap-1.5">
       <p className="text-sm font-bold text-fg-muted">
@@ -60,6 +71,7 @@ function StepsList({ current, now }: { current: 1 | 2 | 3; now: (typeof STEPS)[n
             >
               {view === "done" ? <span aria-hidden="true">✓ </span> : null}
               {step.n}. {step.name}
+              {skillsFromCv && step.n === 2 ? " (desde tu CV)" : null}
               <span className="sr-only">
                 {view === "done" ? " (hecho)" : view === "current" ? " (actual)" : " (pendiente)"}
               </span>
