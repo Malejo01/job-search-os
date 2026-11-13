@@ -1,2 +1,3 @@
-// Cierre: CV ATS y «qué sigue» (R10-5). Vacío a propósito: lo llena el ticket dueño, sin tocar ../index.ts.
-export {};
+// Cierre: redacción del CV (R10-5, ADR-034 §1 y §6).
+export * from "./reserve";
+export * from "./write";

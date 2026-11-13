@@ -5,6 +5,9 @@ import {
   ISO_COUNTRY_CODES,
   MAX_SUMMARY_CHARS,
   MIN_SUMMARY_CHARS,
+  profileAgentOnboardingChoiceVisible,
+  profileAgentSkipSkillsStep,
+  profileAgentUsed,
   profileRoleGroups,
   TARGET_ROLES_DEFAULT_LIMIT,
 } from "@job-search-os/pipeline";
@@ -13,7 +16,10 @@ import { GuidedTour } from "@/components/guided-tour";
 import { getCareerSalaries, getCareerSpanishCounts } from "@/lib/career-market";
 import { dismissGuideAction } from "@/lib/guide-actions";
 import { GUIDE_INVITE, GUIDE_LABELS, GUIDE_STEPS, guideDismissed } from "@/lib/guide";
+import { OnboardingChoice } from "@/components/profile-agent/onboarding-choice";
+import { loadAgentOnboardingFacts, profileAgentEnabledFor } from "@/lib/profile-agent/close-server";
 import {
+  getProfileForEdit,
   getTargetRoles,
   getTargetRolesLimit,
   getTargetSpecialties,
@@ -61,6 +67,20 @@ export default async function OnboardingPage({
     // Informativo, igual que los sueldos
     getCareerSpanishCounts().catch(() => undefined),
   ]);
+  // Agente de perfil desde el CV (ADR-034, R10-5): con el flag apagado no hay consulta y la pantalla queda
+  // exactamente como siempre. Lo completado por el agente se deriva de la base, sin banderas en la URL.
+  const agentOn = await profileAgentEnabledFor(userId);
+  const agentFacts = agentOn ? await loadAgentOnboardingFacts(userId) : null;
+  const showChoice = agentFacts !== null && profileAgentOnboardingChoiceVisible(true, agentFacts);
+  const saved =
+    agentFacts !== null && profileAgentUsed(agentFacts) ? await getProfileForEdit(userId) : null;
+  const agentInitial = saved
+    ? {
+        ...saved,
+        acceptedModalities:
+          saved.acceptedModalities.length > 0 ? saved.acceptedModalities : ["remoto"],
+      }
+    : undefined;
   const roleGroups = profileRoleGroups(targetRoles).map((group) => ({
     label: group.label,
     roles: group.roles.map((key) => ({ key, label: catalogLabel(key) })),
@@ -69,6 +89,7 @@ export default async function OnboardingPage({
     <section className="flex flex-col gap-5">
       <OnboardingSteps
         current={1}
+        skillsFromCv={agentFacts !== null && profileAgentSkipSkillsStep(true, agentFacts)}
         guide={
           <GuidedTour
             steps={GUIDE_STEPS.perfil}
@@ -90,7 +111,9 @@ export default async function OnboardingPage({
           perfil. Lo podés cambiar cuando quieras.
         </p>
       </div>
+      {showChoice ? <OnboardingChoice /> : null}
       <OnboardingForm
+        agentInitial={agentInitial}
         roleGroups={roleGroups}
         salaries={salaries}
         spanishCounts={spanishCounts}
