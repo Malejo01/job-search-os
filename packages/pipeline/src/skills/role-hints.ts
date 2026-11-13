@@ -180,6 +180,21 @@ export const SOURCE_CATEGORY_ROLES: Record<string, Record<string, readonly RoleK
 };
 
 /**
+ * Categorías demasiado amplias para asignar una carrera por sí solas (R11-9). «Management and
+ * Finance» de We Work Remotely trae reclutadores, oficiales de crédito y consultores de IA junto a
+ * contadores: para sumar la carrera de la categoría, el título tiene que nombrar el puesto
+ * (`matchesRoleTitle`). Normalizadas, como las claves de `SOURCE_CATEGORY_ROLES`.
+ */
+const TITLE_GATED_CATEGORIES: Record<string, readonly string[]> = {
+  wwr: [
+    "remote-management-and-finance-jobs",
+    "management-and-finance",
+    "remote-business-exec-management-jobs",
+    "remote-finance-and-legal-jobs",
+  ],
+};
+
+/**
  * Palabras y frases del título, ya sin acentos ni mayúsculas. Se buscan con límite de palabra
  * ("ui" no está en "build", "ia" no está en "media"); un plural simple con "s" también cuenta.
  */
@@ -1258,19 +1273,24 @@ export function inferRoleHints(input: {
 }): RoleKey[] {
   const found = new Set<RoleKey>();
 
+  const title = normalizeTitleText(input.title);
+
   // 1. Categoría (o tags) de la fuente
   const table = SOURCE_CATEGORY_ROLES[input.sourceKind];
   if (table) {
+    const gated = TITLE_GATED_CATEGORIES[input.sourceKind] ?? [];
     for (const raw of [...(input.categories ?? []), ...(input.tags ?? [])]) {
-      const roles = Object.hasOwn(table, normalizeCategory(raw))
-        ? table[normalizeCategory(raw)]
-        : undefined;
-      for (const role of roles ?? []) found.add(role);
+      const category = normalizeCategory(raw);
+      const roles = Object.hasOwn(table, category) ? table[category] : undefined;
+      for (const role of roles ?? []) {
+        // R11-9: una categoría amplia sola no asigna carrera; el título tiene que nombrar el puesto
+        if (gated.includes(category) && !matchesRoleTitle(title, role)) continue;
+        found.add(role);
+      }
     }
   }
 
   // 2. Título
-  const title = normalizeTitleText(input.title);
   const fromTitle = new Set<RoleKey>();
   for (const role of ROLE_KEYS) {
     if (matchesRoleTitle(title, role)) fromTitle.add(role);

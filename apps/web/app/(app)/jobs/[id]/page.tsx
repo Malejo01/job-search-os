@@ -3,8 +3,11 @@ import {
   englishIsNotAGap,
   fitCrossSentence,
   isEnglishGap,
+  gapText,
   isEnglishSkillSlug,
+  visibleRisks,
   withCurrentSkillLevels,
+  withMustGaps,
   type JobEvent,
 } from "@job-search-os/pipeline";
 import Link from "next/link";
@@ -136,6 +139,11 @@ export default async function JobDetailPage({
       info.level === null ? [] : [[slug, info.level] as const],
     ),
   );
+  // R11-11: los niveles de hoy y los excluyentes que nombra la evaluación («X (must)») entran en
+  // la cuenta de «Requisitos»; los riesgos que hablan de un tema con excluyente no van en «no frenan»
+  const checklistNow = ev?.checklist ? withCurrentSkillLevels(ev.checklist, currentLevels) : null;
+  const requisitos = checklistNow && ev ? withMustGaps(checklistNow, ev.gaps) : null;
+  const risks = ev ? visibleRisks(ev.riesgos.map(riskLabel), requisitos?.items) : [];
   const salary =
     job.salaryMinUsd || job.salaryMaxUsd
       ? `USD ${[job.salaryMinUsd, job.salaryMaxUsd].filter(Boolean).join("–")}${job.salaryPeriod ? ` ${job.salaryPeriod}` : ""}`
@@ -159,8 +167,18 @@ export default async function JobDetailPage({
           ) : null
         }
       />
-      {/* En el celular, «Postularme» queda fijo abajo (detalle-cel.png) */}
-      {jobUrl ? (
+      {/* R11-11: en el celular el veredicto va arriba, a la vista, antes de lo positivo */}
+      {ev ? (
+        <p
+          data-testid="veredicto-cel"
+          className="rounded-control bg-surface-muted px-3 py-2 text-sm font-semibold text-fg sm:hidden"
+        >
+          {ACTION_ADVICE[ev.accion] ?? ACTION_LABELS[ev.accion] ?? ev.accion}
+        </p>
+      ) : null}
+      {/* En el celular, «Postularme» queda fijo abajo (detalle-cel.png). R11-11: si el veredicto es
+          descartarla, el botón fijo no compite con él */}
+      {jobUrl && ev?.accion !== "descartar" ? (
         <div className="fixed inset-x-4 bottom-[calc(22px+env(safe-area-inset-bottom,0px))] z-30 sm:hidden">
           <ApplyButton
             jobId={job.id}
@@ -341,12 +359,13 @@ export default async function JobDetailPage({
             points={buildFitPoints({
               matchFuerte: ev.matchFuerte,
               senales: ev.senales,
-              gaps: englishIsNotAGap(job.jdText, null)
+              gaps: (englishIsNotAGap(job.jdText, null)
                 ? ev.gaps.filter((g) => !isEnglishGap(g))
-                : ev.gaps,
-              riesgos: ev.riesgos.map(riskLabel),
+                : ev.gaps
+              ).map(gapText),
+              riesgos: risks,
               bloqueadores: ev.bloqueadores,
-              checklist: ev.checklist ? withCurrentSkillLevels(ev.checklist, currentLevels) : null,
+              checklist: checklistNow,
             })}
             limited={!ev.checklist || ev.checklist.parcial}
           />
@@ -365,14 +384,14 @@ export default async function JobDetailPage({
               </ul>
             </section>
           ) : null}
-          {ev.riesgos.length ? (
+          {risks.length ? (
             <section className="rounded-card border border-warning-line bg-warning-soft p-3">
               <h2 className="text-sm font-semibold text-warning">
-                Riesgos ({ev.riesgos.length}) · se ven, no frenan
+                Riesgos ({risks.length}) · se ven, no frenan
               </h2>
               <ul className="mt-1 list-disc pl-5 text-sm text-warning">
-                {ev.riesgos.map((r) => (
-                  <li key={r}>{riskLabel(r)}</li>
+                {risks.map((r) => (
+                  <li key={r}>{r}</li>
                 ))}
               </ul>
             </section>
@@ -380,9 +399,9 @@ export default async function JobDetailPage({
 
           {/* Requisitos del aviso (ronda 104): solo si la evaluación guardó el checklist */}
           {/* C-20: el checklist guardado es una foto; se superponen los niveles de hoy (sin LLM) */}
-          {ev.checklist ? (
+          {requisitos ? (
             <RequisitosDelAviso
-              checklist={withCurrentSkillLevels(ev.checklist, currentLevels)}
+              checklist={requisitos}
               modal={{ jobId: job.id, skillInfo: job.skillInfo }}
               rebuilt={ev.checklistRebuilt}
             />
