@@ -35,7 +35,7 @@ Definidos en `apps/web/next.config.ts:48-71`, para todas las rutas.
 | `Content-Security-Policy` | Solo `frame-ancestors 'none'` (`:61`) |
 | `Strict-Transport-Security` | No lo define la app |
 
-No se tocó ningún archivo de la app: no faltaba ningún header chico, así que esta rama **no toca carril rojo**.
+No se tocó ningún archivo de la app: no faltaba ningún header chico. La rama es carril rojo solo por el test nuevo en `packages/db/src/`.
 
 ### P2-1 · Sin CSP completa
 - Dónde: `apps/web/next.config.ts:61`.
@@ -50,32 +50,30 @@ No se tocó ningún archivo de la app: no faltaba ningún header chico, así que
 
 ## 3. Rate limit
 
-| Superficie | Qué hay | Dónde |
-|---|---|---|
-| `/acceso` (lista de espera) | Honeypot, validación Zod y topes en la base: por IP (40 por hora, tope del evento hasta 200), ráfaga global (60 cada 10 min) y diario (600). Regla de firewall de Vercel a 60 POST por minuto por IP documentada en `docs/beta/pasos-manuales-r4.md` §2 | `apps/web/app/(public)/acceso/actions.ts:35-48`, `packages/db/rls/0006_waitlist.sql:39-41,64-75` |
-| Embudo de `/acceso` | Sin tope propio, pero solo suma contadores por hora y paso (no crece por pedido) | `packages/db/rls/0016_acceso_funnel.sql:17-49` |
-| Webhook de Resend | Firma Svix obligatoria con comparación en tiempo constante y tolerancia de 5 min; sin firma, 401 antes de tocar la base. Reenvíos del mismo email son idempotentes por `email_id`. Tope de rechazos por usuario y hora | `apps/web/app/api/inbound/route.ts:23-36,71`, `packages/adapters/src/inbound/svix.ts:38-45`, `handle.ts:241` |
-| Login, registro, reset | Solo regla de firewall de Vercel (10 por minuto por IP, JS-108). Sin límite propio en la app. Reset: un email por cuenta cada 5 min | `apps/web/auth.ts:24-36`, `apps/web/lib/password-reset.ts:52` |
-| `/api/mcp` | Token personal, 60 llamadas por minuto, 429 | `packages/db/rls/0019_mcp_tokens.sql:85`, `apps/web/app/api/mcp/route.ts:350` |
-| `/api/assistant`, `/api/cv-chat` | Sesión obligatoria (401), tope de cuerpo y topes por plan sobre `llm_calls`/inicios, 429 | `apps/web/app/api/assistant/route.ts:160-168`, `apps/web/app/api/cv-chat/route.ts:108-126` |
-| `/api/cv/docx`, `/api/gmail-filters` | Sesión obligatoria (401), descarga generada en memoria | `.../cv/docx/route.ts:17-18`, `.../gmail-filters/route.ts:21-22` |
-| `/api/cron/*` | `Authorization: Bearer` contra `CRON_SECRET` (o `STATUS_TOKEN`) | `checkBearerSecret` en cada route |
-| `/api/health` | Público, sin datos, una consulta `select 1` | `apps/web/app/api/health/route.ts:15` |
-| `/api/session/ended` | Sin sesión redirige; con sesión vigente no hace nada | `apps/web/app/api/session/ended/route.ts:11` |
+Por la regla de informes públicos, esta tabla dice qué controles hay, no sus umbrales exactos. Los números están en el código y en el informe privado de la ronda.
+
+| Superficie | Qué hay |
+|---|---|
+| `/acceso` (lista de espera) | Honeypot, validación Zod y topes en la base (por IP, de ráfaga y diario), más una regla de firewall de Vercel |
+| Embudo de `/acceso` | Sin tope propio, pero solo suma contadores por hora y paso (no crece por pedido) |
+| Webhook de Resend | Firma Svix obligatoria con comparación en tiempo constante y ventana de tolerancia; sin firma, 401 antes de tocar la base. Reenvíos del mismo email son idempotentes. Tope de rechazos por usuario |
+| Login, registro, reset | Regla de firewall de Vercel; el reset tiene además un tope por cuenta |
+| `/api/mcp` | Token personal y tope de llamadas por minuto, 429 |
+| `/api/assistant`, `/api/cv-chat` | Sesión obligatoria (401), tope de cuerpo y topes por plan, 429 |
+| `/api/cv/docx`, `/api/gmail-filters` | Sesión obligatoria (401), descarga generada en memoria |
+| `/api/cron/*` | `Authorization: Bearer` con secreto propio |
+| `/api/health` | Público, sin datos |
+| `/api/session/ended` | Sin sesión redirige; con sesión vigente no hace nada |
 
 `/demo` es una vitrina de solo lectura sin endpoint propio de escritura.
 
-### P2-3 · Login, registro y reset dependen de una regla manual del firewall
-- Dónde: `apps/web/auth.ts:24-36` (no hay conteo de intentos fallidos).
-- Escenario: si la regla del firewall (que se cargó a mano en el panel) se borra, se cambia de proyecto o no existe en un entorno nuevo, el login queda sin tope para probar contraseñas. Mitigan: costo de scrypt, comparación con hash de relleno para no distinguir email inexistente, y la contraseña mínima.
-- Arreglo: contador de intentos por email normalizado y ventana en la base (función SECURITY DEFINER, como `waitlist_join`) con respuesta uniforme. Requiere migración.
-- Estado: **ticket** (migración: la hace el lead, aplica Mauro). Mientras tanto, confirmar que la regla sigue activa en el panel antes del 26/11.
+### P2-3 · Tope de intentos de login propio de la app
+- Clase: endurecimiento de autenticación (defensa en profundidad).
+- Estado: **ticket**, requiere migración. El detalle queda fuera del repo público.
 
-### P2-4 · IP del pedido de `/acceso` con respaldo falsificable fuera de Vercel
-- Dónde: `apps/web/app/(public)/acceso/actions.ts:44-48`.
-- Escenario: si la IP no llega por `x-vercel-forwarded-for`, se cae a `x-real-ip` y `x-forwarded-for`, que un cliente puede inventar fuera de Vercel; el tope por IP serviría de poco. En Vercel el borde los pisa, y quedan igual los topes de ráfaga y diario, que no dependen de la IP.
-- Arreglo: aceptar el respaldo solo si no hay `VERCEL`, o eliminarlo. Cambio chico y verde.
-- Estado: **ticket** menor, no hecho (no es parte de lo que pidió la ronda y no afecta producción).
+### P2-4 · Origen de la IP en el tope por IP de `/acceso`
+- Clase: endurecimiento menor de un control que ya existe; no afecta producción en Vercel.
+- Estado: **ticket** menor, verde. El detalle queda fuera del repo público.
 
 ## Lo que no se pudo verificar desde acá
 - Headers reales en producción (se leyó la configuración, no se hizo una petición).
