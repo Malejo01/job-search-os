@@ -4,9 +4,10 @@ import { and, desc, eq, gte, isNotNull, notInArray, sql } from "drizzle-orm";
 /**
  * Filas de `llm_calls` que no son llamadas al modelo: la reserva de gasto del chat de CV (en vuelo, se borra
  * al terminar), el registro de inicio de charla (costo 0) y la marca de alerta de presupuesto enviada
- * (`budget_alert`, costo 0, R7-1). No suman llamadas, tokens ni USD en los reportes.
+ * (`budget_alert`, costo 0, R7-1) y los marcadores de charla del asistente (`assistant_event`, costo 0,
+ * R9-2). No suman llamadas, tokens ni USD en los reportes.
  */
-const NOT_MODEL_CALLS = ["cv_reserve", "cv_start", "budget_alert"];
+export const NOT_MODEL_CALLS = ["cv_reserve", "cv_start", "budget_alert", "assistant_event"];
 
 /**
  * Gasto acumulado en `llm_calls` (guardarraíl de costo). La ventana es móvil de 24 h, no
@@ -111,6 +112,31 @@ export async function spendCapReason(
     return "user";
   }
   return null;
+}
+
+/**
+ * Llamadas de una tarea que hizo un usuario desde `since`. Sirve para el tope de uso por persona,
+ * por ejemplo 10 imágenes por día (R6-3). Con `onlyOk` cuenta solo las que respondieron (`ok`): una
+ * llamada que falló en el transporte no consume el cupo (S2 de R6-3; el gasto lo cubre el tope en
+ * USD). `db` tiene que ver `llm_calls` de todos (conexión de servicio). No exige migración: ya hay
+ * `task`, `user_id`, `ok` y `created_at` en cada fila.
+ */
+export async function countTaskCallsSince(
+  db: Db,
+  input: { userId: string; task: string; since: Date; onlyOk?: boolean },
+): Promise<number> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(s.llmCalls)
+    .where(
+      and(
+        eq(s.llmCalls.userId, input.userId),
+        eq(s.llmCalls.task, input.task),
+        gte(s.llmCalls.createdAt, input.since),
+        ...(input.onlyOk ? [eq(s.llmCalls.ok, true)] : []),
+      ),
+    );
+  return row?.n ?? 0;
 }
 
 /** Desglose por día, tarea y modelo (comando `pnpm llm:spend`). */

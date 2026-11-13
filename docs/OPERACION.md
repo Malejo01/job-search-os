@@ -24,10 +24,15 @@ pnpm admin:invite --by admin@example.com --email nueva@example.com
 ## `pnpm admin:test-users`
 
 ```
-pnpm admin:test-users --list | --reset <email> [--allowlist <ruta>] [--show-emails] [--yes] [--remote]
+pnpm admin:test-users --list | --reset <email> | --reset-all | --create --by <email-admin> [--credentials <ruta>] [--allowlist <ruta>] [--show-emails] [--yes] [--remote]
 ```
 
-Lista y resetea **cuentas de prueba**, y solo las que figuran en la allowlist: un archivo de texto con un email por línea (`#` para comentarios). Por defecto `ops/test-users.txt` (no versionado), relativo a donde se lanzó `pnpm`. Sin allowlist, o vacía, el comando aborta.
+Lista, crea y resetea **cuentas de prueba**, y solo las que figuran en la allowlist: un archivo de texto con un email por línea (`#` para comentarios). Por defecto `ops/test-users.txt` (no versionado), relativo a donde se lanzó `pnpm`. Sin allowlist, o vacía, el comando aborta. El modelo de la lista está en `docs/beta/test-users.example.txt` (17 cuentas: una de auditoría y 2 por cada carrera de la beta, en el dominio reservado `example.com`): copiarlo a `ops/test-users.txt`.
+
+- `--create --by <email-admin>`: crea las cuentas de la allowlist **por el mismo camino que el registro real** (una invitación del admin de `--by`, que tiene que estar en `ADMIN_EMAILS`, y `register_with_invitation_v3`, con la casilla de ingesta y los términos vigentes de `apps/web/lib/terms.ts`). La contraseña de cada una es aleatoria (192 bits) y va **solo** a `ops/test-users-credenciales.json` (no versionado; `--credentials <ruta>` para otro archivo). Nunca se imprime: ni en la terminal ni en los logs. Es idempotente: las que ya existen se saltean y lo dice; una cuenta de `ADMIN_EMAILS` se omite. Si una cuenta existe pero no tiene contraseña guardada, `--reset <email>` y `--create` de nuevo.
+- `--credentials <ruta>` solo acepta rutas relativas bajo `ops/` (sin `..`). `--reset <email>` y `--reset-all` solo borran cuentas con `is_test`: `--reset-all` saltea con aviso las que no la tienen, y `--reset <email> --force` borra una cuenta de la allowlist sin marca (por ejemplo una creada antes de la 0065).
+- `--reset-all`: borra **todas** las cuentas de la allowlist marcadas como de prueba con una sola confirmación (hay que escribir la frase `borrar cuentas de prueba`, también en local; `--yes` solo vale en local). Informa cada cuenta (borrada, no existe u omitida por ser admin) y saca sus contraseñas del archivo de credenciales.
+- Las cuentas creadas se marcan `users.is_test = true` **después** del registro real (migración 0065). Esa marca las saca de `/settings/metricas` y de la madurez de las carreras (`rls/0020_cuentas_de_prueba.sql`, que redefine `admin_beta_metrics` y `career_maturity_stats`) y del aviso de vencimiento de plan. Además no reciben emails porque la bienvenida sale solo de acciones de un admin en `/settings/planes`, y los cupos de fundador solo cuentan planes que asigna un admin (una cuenta nueva queda en plan gratis). **Pendiente:** `/settings/salud` («personas activas hoy») todavía las cuenta. Requiere aplicar en Neon la 0065 y el rls nuevo, después de la 0064.
 
 - `--list`: por cada email de la allowlist, si existe, fecha de alta, si completó el onboarding y cuántos jobs, evaluaciones y postulaciones tiene. Los emails salen enmascarados salvo con `--show-emails`.
 - `--reset <email>`: borra todos los datos de esa cuenta con el mismo borrado que «Eliminar mi cuenta». Pide escribir el email completo para confirmar (también en local) salvo con `--yes`, que solo vale en local. Nunca borra un email de `ADMIN_EMAILS`, y con `--remote` solo acepta la allowlist por defecto. **No recrea la cuenta**: el siguiente paso es `admin:invite` y registrarse de nuevo.
@@ -37,7 +42,20 @@ Ejemplo en local:
 ```
 pnpm admin:test-users --list
 pnpm admin:test-users --reset prueba@example.com
+pnpm admin:test-users --create --by admin@example.com
+pnpm admin:test-users --reset-all
 ```
+
+### Recorrido por carreras (`pnpm recorrido <url>`)
+
+Para cada cuenta de `ops/test-users-credenciales.json` con un perfil de carrera (`apps/web/recorrido/perfiles.ts`: `<carrera>-junior` o `<carrera>-con-experiencia`; `auditoria` se saltea): inicia sesión, hace el onboarding con los datos del perfil, carga skills, espera las primeras ofertas y abre hasta 40 ofertas evaluadas. La URL tiene que ser https (http solo en localhost o 127.0.0.1). **Solo lee**: no postula ni marca estados, y aborta todo pedido a otro dominio que el de la URL. Guarda en `ops/recorrido-carreras/<fecha>/` capturas a 390 y 1280 px y un JSON por cuenta (ofertas vistas con fuente, título, puntaje, veredicto, motivos y requisitos faltantes; skills del catálogo pedidas y ausentes; tiempos). No corre en el CI: tiene su propia config (`apps/web/playwright.recorrido.config.ts`).
+
+```
+pnpm recorrido http://localhost:3000
+pnpm recorrido http://localhost:3000 -g abogacia-junior
+```
+
+Primero en local (`node .claude/bin/local.mjs dev` y, con el worker demo, sin gasto). **Contra producción** crea evaluaciones reales (gasto de LLM, ≈ USD 0,007 por oferta evaluada) y cuentas en Neon: es decisión de Mauro y conviene mirar `pnpm llm:spend --days 1` antes y después. Los selectores del onboarding y de la oferta se copiaron de los e2e de personas y no se probaron contra una app corriendo: la primera corrida puede pedir un ajuste.
 
 ## `pnpm inbound:replay`
 
@@ -104,6 +122,31 @@ commit;
 - **Primeras ofertas:** las 9 primeras evaluaciones del onboarding no dependen del plan.
 - **La web nunca se conecta como dueño:** `DATABASE_URL_APP` tiene que ser `jobsearch_app`. Con el rol dueño, el trigger dejaría pasar cualquier cambio de plan sin avisar (y RLS tampoco aplicaría; `assertAppRole` lo frena al arrancar).
 
+## Conexiones a la base: `DB_POOL_MAX` (R8-4)
+
+La web abre un pool de conexiones **por instancia** de Vercel (`apps/web/lib/db.ts`). `DB_POOL_MAX` fija el tamaño: entero de 1 a 20; ausente, vacía o inválida (con un aviso en el log) vale **5**, como antes. Se cambia en Vercel (solo Mauro) y rige en el próximo deploy.
+
+**La cuenta.** Conexiones simultáneas máximas = instancias activas × `DB_POOL_MAX`, y eso más lo que abren el worker y los crons (cada uno con su propia conexión) tiene que quedar por debajo del límite de la base. Ejemplo: 10 instancias × 5 = 50 conexiones.
+
+- **Límite de Neon Free: a confirmar.** No está anotado en `docs/` (`docs/beta/capacidad.md` solo cubre la transferencia). Se verifica en la consola de Neon y en <https://neon.com/docs/connect/connection-pooling>; el máximo de conexiones directas depende del tamaño de cómputo del plan.
+- **Pooler de Neon (`-pooler` en el host de la URL).** Acepta muchas más conexiones de cliente que el límite directo, a cambio de modo transacción (por eso `createDb` usa `prepare: false`; `withUser` fija `app.user_id` con `set_config(..., true)` dentro de la transacción, compatible). Si la cuenta se acerca al límite directo, la salida es usar la URL con `-pooler` en `DATABASE_URL_APP`, no subir `DB_POOL_MAX`.
+- **Subirlo no acelera nada** si las consultas de una página ya van en paralelo con 5: solo sirve cuando hay más de 5 consultas simultáneas por instancia. Ante la duda, dejarlo en 5.
+
+## Topes del asistente por charla (R9-2)
+
+El asistente corta cada charla por mensajes y por gasto. Los defaults están en `packages/pipeline/src/agent/limits.ts` y se pueden cambiar sin deploy de código con dos variables de Vercel (paso manual de Mauro; hace falta un redeploy para que las tome):
+
+| Variable | Default | Valores válidos |
+|---|---|---|
+| `ASSISTANT_MAX_USD_PER_CONVERSATION` | `0.50` | número mayor que 0 y hasta 5, con punto decimal (`0.75`) |
+| `ASSISTANT_MAX_TURNS` | `20` | entero de 1 a 50 |
+
+- **Variable ausente o vacía:** rige el default, sin aviso.
+- **Variable inválida** (`abc`, `0,5`, `0`, fuera de rango): rige el default y queda un `warn` en el log de la app (`asistente: variable de tope inválida…`), una vez por proceso. No tumba al asistente.
+- **No cambia** `LLM_USER_DAILY_CAP_USD`, que sigue siendo el tope diario por persona.
+- **Contador de mensajes** («Te quedan 2 mensajes…»): sale del mismo valor de `ASSISTANT_MAX_TURNS`, que el servidor le pasa al panel.
+- **Medición:** `/settings/salud` (solo admins) tiene el bloque «Asistente, últimos 7 días» con charlas, mensajes por charla, costo por charla (promedio y p90) y cortes por tope. No muestra contenido de charlas ni ids de personas.
+
 ## Smoke post-deploy
 
 Después de cada deploy exitoso a Production, `.github/workflows/smoke.yml` corre `apps/web/e2e-smoke/smoke.spec.ts` contra la URL de producción, que está fija en el workflow (nunca la del evento). Es **de solo lectura**: `/api/health`, login, `/jobs`, abrir la primera oferta si hay y `/applications`. No toca botones que escriban.
@@ -146,3 +189,12 @@ Fuente de la beta cerrada, **apagada por defecto**. Las casillas `pool-<carrera>
 - **Verla:** la cola del pool no tiene pantalla. Se mira solo con SQL (`inbound_emails` con `user_id IS NULL` y `parser = 'pool_computrabajo_alerts'`), que corre Mauro.
 - **Apagar:** quitar la variable o ponerla en `0`. Vale desde el siguiente email.
 - **Migración:** el valor `computrabajo_alerts` de `source_kind` (0046) lo aplica Mauro con `pnpm db:migrate` antes del merge.
+
+## Alertas de gasto de IA (R7-1, R8-5)
+
+Al pasar el 70, 85 y 95 % de `LLM_DAILY_CAP_USD` (gasto de 24 h) sale un email a **cada** admin de `ADMIN_EMAILS`, una vez por umbral, por destinatario y por día UTC. Sin migración: la marca es una fila `budget_alert` en `llm_calls` (label `<día>:<umbral>:<hash del email>`; las de R7-1, sin hash, valen para todos).
+
+- **Cuándo se revisa:** en cada corrida del cron de evaluación (cada 6 h) **y** al terminar una evaluación fuera del cron (pegar aviso, reasignación por cambio de puesto). Esas revisiones usan un memo en memoria del proceso: con el umbral más alto ya entregado a todos no consultan nada, y si no, miran como mucho cada 5 minutos. **En serverless el memo es por instancia**: una instancia en frío consulta una vez más. Lo que garantiza «una vez por umbral, destinatario y día» es la marca en base (con lock de asesoría por día), no el memo.
+- **Envío parcial:** se manda y recién después se anota, por destinatario. Si falla Resend para uno, no se anota y la próxima revisión reintenta solo a ese.
+- **Si el proceso muere entre mandar y anotar:** la próxima revisión reenvía con la misma clave de idempotencia de Resend (`budget-alert:<día>:<umbral>:<hash del email>`), que Resend deduplica durante 24 h; no llega dos veces. La clave es por destinatario, no por posición en `ADMIN_EMAILS`.
+- **Límite conocido:** el email que reenvía una alerta ya entregada pero sin anotar depende de esa ventana de 24 h de Resend. Para un reintento de otro día, la marca del día nuevo es otra y se manda de nuevo (es lo esperado: es otro día).

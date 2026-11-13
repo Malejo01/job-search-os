@@ -2,6 +2,7 @@
 
 import {
   actionOutcomesFrom,
+  AGENT_LIMITS,
   capMessage,
   historyFrom,
   proposalOutcomesFrom,
@@ -85,7 +86,16 @@ const FORM_NOT_FOUND =
  * el botón Enviar deshabilitado y el «Detener» ya lo dicen). El contenido se pinta solo con el
  * panel abierto. C9-11 (decisión 13 de C9): sin animación de entrada, el panel aparece quieto.
  */
-export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function AssistantPanel({
+  open,
+  onClose,
+  maxTurns = AGENT_LIMITS.maxTurnsPerConversation,
+}: {
+  open: boolean;
+  onClose: () => void;
+  /** Tope de mensajes de la charla (lo configurado en el servidor); sin esto, el de siempre. */
+  maxTurns?: number;
+}) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -399,9 +409,9 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
   // Tope de la charla: por el aviso del servidor o por los mensajes ya enviados (mismo límite)
   const userCount = items.filter((i) => i.kind === "user").length;
   const hasFinalNotice = items.some((i) => i.kind === "notice" && i.final);
-  const outOfMessages = !pending && userCount > 0 && remainingMessages(userCount) === 0;
+  const outOfMessages = !pending && userCount > 0 && remainingMessages(userCount, maxTurns) === 0;
   const capped = hasFinalNotice || outOfMessages;
-  const remainingNotice = pending || capped ? null : remainingMessagesNotice(userCount);
+  const remainingNotice = pending || capped ? null : remainingMessagesNotice(userCount, maxTurns);
   const turnsCap = capMessage("turns");
 
   function onSubmit(e: FormEvent) {

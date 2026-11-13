@@ -40,7 +40,7 @@ test.describe("Flujo 71: precios", () => {
     await expect(page.getByTestId("plan-lista")).toContainText(
       "Te pasamos el link de pago cuando te invitemos",
     );
-    await expect(page.getByRole("link", { name: "Pedí acceso" })).toHaveAttribute(
+    await expect(page.getByRole("link", { name: "Pedir acceso" }).last()).toHaveAttribute(
       "href",
       "/acceso",
     );

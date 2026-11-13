@@ -1,9 +1,10 @@
 import { z } from "zod";
 import { err, ok, type Result } from "../result";
-import type { AgentLink } from "./limits";
+import { AGENT_LIMITS, type AgentLink } from "./limits";
 import {
   actionOutcomesSchema,
-  MAX_HISTORY_MESSAGES,
+  maxHistoryMessages,
+  MAX_HISTORY_MESSAGES_CEILING,
   proposalOutcomesSchema,
   type ActionOutcome,
   type AgentMessage,
@@ -102,7 +103,7 @@ const requestSchema = z
           .strict(),
       )
       .min(1)
-      .max(MAX_HISTORY_MESSAGES),
+      .max(MAX_HISTORY_MESSAGES_CEILING),
     screen: z.unknown().optional(),
     outcomes: proposalOutcomesSchema.optional(),
     actions: actionOutcomesSchema.optional(),
@@ -125,10 +126,14 @@ export type AssistantRequest = {
  * Forma de la request. Un id de charla con otro formato es error (no se inventa uno nuevo en
  * silencio: el cupo mensual se cuenta por id). El último mensaje tiene que ser de la persona.
  */
-export function parseAssistantRequest(raw: unknown): Result<AssistantRequest, "cuerpo_invalido"> {
+export function parseAssistantRequest(
+  raw: unknown,
+  maxTurns: number = AGENT_LIMITS.maxTurnsPerConversation,
+): Result<AssistantRequest, "cuerpo_invalido"> {
   const parsed = requestSchema.safeParse(raw);
   if (!parsed.success) return err("cuerpo_invalido");
   const { conversationId, messages, screen, outcomes, actions } = parsed.data;
+  if (messages.length > maxHistoryMessages(maxTurns)) return err("cuerpo_invalido");
   if (conversationId != null && !isConversationId(conversationId)) return err("cuerpo_invalido");
   if (messages.at(-1)?.role !== "user") return err("cuerpo_invalido");
   const ctx = screen == null ? null : parseScreenContext(screen);
@@ -144,6 +149,16 @@ export function parseAssistantRequest(raw: unknown): Result<AssistantRequest, "c
 /** Turnos ya hechos en la charla: los mensajes de la persona antes del actual. */
 export function turnsUsed(messages: readonly AgentMessage[]): number {
   return Math.max(0, messages.filter((m) => m.role === "user").length - 1);
+}
+
+/**
+ * Turnos de la charla para el tope: el mayor entre lo que dice el historial del navegador y los
+ * turnos que el servidor ya aceptó (marcadores). Un cliente que recorta el historial dentro de la
+ * misma charla no consigue bajar el conteo. Un contador inválido del servidor no cuenta.
+ */
+export function effectiveTurns(historyTurns: number, serverTurns: number): number {
+  const ok = (n: number) => Number.isInteger(n) && n >= 0;
+  return Math.max(ok(historyTurns) ? historyTurns : 0, ok(serverTurns) ? serverTurns : 0);
 }
 
 const OPEN_TAG = "<historial_resumido>";

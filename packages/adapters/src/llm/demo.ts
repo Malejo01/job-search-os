@@ -2,7 +2,38 @@ import { err, ok } from "@job-search-os/pipeline";
 import { demoCvInterview, demoCvWrite } from "./demo-cv";
 import type { CallSink, GenerateContext, LlmClient } from "./types";
 
-const DEMO_TASKS = ["evaluate_job", "draft_application_answers", "cv_interview", "cv_write"];
+const DEMO_TASKS = [
+  "evaluate_job",
+  "draft_application_answers",
+  "cv_interview",
+  "cv_write",
+  "extract_job_from_image",
+];
+
+/**
+ * Extracción falsa de una imagen (R6-3): no mira la imagen, devuelve siempre el mismo aviso inventado
+ * con model = "fake". Alcanza para probar el flujo (e2e) sin llamar a ningún modelo.
+ */
+export function demoImageExtraction(): Record<string, unknown> {
+  return {
+    isJobPosting: true,
+    offers: [
+      {
+        title: "Analista de datos (demo)",
+        company: "Empresa Demo A",
+        location: "Remoto (Argentina)",
+        modality: "remoto",
+        countriesAllowed: null,
+        salary: null,
+        requirements: ["SQL", "Excel avanzado"],
+        howToApply: null,
+        url: null,
+        rawText:
+          "DEMO: aviso inventado. Empresa Demo A busca Analista de datos. Remoto. SQL y Excel avanzado.",
+      },
+    ],
+  };
+}
 
 /**
  * Modo demo: evaluaciones falsas pero verosímiles, sin red ni gasto, para ver el flujo entero en
@@ -164,16 +195,18 @@ export function createDemoLlm(options: { calls?: CallSink } = {}): LlmClient {
           ? [demoCvInterview(vars)]
           : task === "cv_write"
             ? [demoCvWrite(vars)]
-            : task === "draft_application_answers"
-              ? [demoDrafts(vars)]
-              : (() => {
-                  const typed = demoEvaluation(vars);
-                  const legacy = {
-                    ...typed,
-                    gaps: (typed.gaps as { skill: string }[]).map((g) => g.skill),
-                  };
-                  return [typed, legacy];
-                })();
+            : task === "extract_job_from_image"
+              ? [demoImageExtraction()]
+              : task === "draft_application_answers"
+                ? [demoDrafts(vars)]
+                : (() => {
+                    const typed = demoEvaluation(vars);
+                    const legacy = {
+                      ...typed,
+                      gaps: (typed.gaps as { skill: string }[]).map((g) => g.skill),
+                    };
+                    return [typed, legacy];
+                  })();
       const parsed = candidates.map((o) => schema.safeParse(o)).find((p) => p.success);
       if (!parsed?.success) {
         return err({

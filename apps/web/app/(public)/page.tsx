@@ -72,7 +72,7 @@ export default async function HomePage() {
               href="/acceso"
               className={buttonClasses({ size: "lg", className: "w-full sm:w-auto" })}
             >
-              Anotarme a la beta
+              Pedir acceso
             </Link>
             <span className="hidden sm:block">
               <Link href="/demo" className={buttonClasses({ size: "lg", variant: "secondary" })}>

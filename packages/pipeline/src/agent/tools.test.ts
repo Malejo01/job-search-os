@@ -43,7 +43,13 @@ describe("activeToolsFor", () => {
   });
 
   it("pasado el tope de turnos no hay tools", () => {
-    expect(activeToolsFor({ ...base, turn: 10 })).toEqual([]);
+    expect(activeToolsFor({ ...base, turn: 19 }).length).toBeGreaterThan(0);
+    expect(activeToolsFor({ ...base, turn: 20 })).toEqual([]);
+  });
+
+  it("con otro tope de turnos, corta en ese", () => {
+    expect(activeToolsFor({ ...base, turn: 25, maxTurns: 30 }).length).toBeGreaterThan(0);
+    expect(activeToolsFor({ ...base, turn: 5, maxTurns: 5 })).toEqual([]);
   });
 });
 

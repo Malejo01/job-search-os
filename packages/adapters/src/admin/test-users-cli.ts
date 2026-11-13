@@ -2,15 +2,27 @@ import { createDb, loadLocalEnv } from "@job-search-os/db";
 import { askInteractive, maskEmail, resolveTargetUrl, safeError } from "./common";
 import {
   DEFAULT_ALLOWLIST,
+  DEFAULT_CREDENTIALS,
   formatTestUserRow,
   listTestUsers,
   parseTestUsersArgs,
   readAllowlist,
+  RESET_ALL_PHRASE,
+  resetAllTestUsers,
   resetTestUser,
 } from "./test-users";
+import {
+  createTestUsers,
+  fileCredentialStore,
+  formatCreateRow,
+  readTermsVersion,
+} from "./test-users-create";
 
 /**
- * pnpm admin:test-users --list | --reset <email> [--allowlist <ruta>] [--show-emails] [--yes] [--remote]
+ * pnpm admin:test-users --list | --reset <email> | --reset-all | --create --by <email-admin>
+ *   [--credentials <ruta>] [--allowlist <ruta>] [--show-emails] [--yes] [--remote]
+ * --create: registra las cuentas de la allowlist por el camino real; las contraseñas van solo a
+ * ops/test-users-credenciales.json y nunca se imprimen. --reset-all: borra todas con una frase.
  * Solo toca cuentas de la allowlist (por defecto ops/test-users.txt, desde donde se lanzó pnpm).
  * Local por defecto; la nube solo con --remote (y --yes no saltea esa confirmación).
  */
@@ -64,11 +76,45 @@ async function main(): Promise<void> {
     }
   }
 
+  // --reset-all: UNA confirmación, escribiendo una frase (también con --remote; --yes solo vale en local)
+  if (args.mode.kind === "reset-all" && (!args.yes || args.remote)) {
+    const answer = await askInteractive(
+      `Esto borra TODAS las cuentas de la allowlist (${allowlist.emails.length}). Escribí «${RESET_ALL_PHRASE}» para confirmar: `,
+    );
+    if (answer === null) {
+      console.error(
+        args.remote
+          ? "no hay terminal para confirmar: contra la nube el borrado necesita una persona"
+          : "no hay terminal para confirmar: usá --yes si de verdad querés seguir",
+      );
+      process.exitCode = 1;
+      return;
+    }
+    if (answer.trim().toLowerCase() !== RESET_ALL_PHRASE) {
+      console.error("la frase no coincide: no se borra nada");
+      process.exitCode = 1;
+      return;
+    }
+  }
+
+  let termsVersion = "";
+  if (args.mode.kind === "create") {
+    const terms = readTermsVersion();
+    if (!terms.ok) {
+      console.error(terms.error);
+      process.exitCode = 1;
+      return;
+    }
+    termsVersion = terms.version;
+  }
+
   const target = await resolveTargetUrl(
     args.remote,
-    args.mode.kind === "reset"
-      ? "borrar una cuenta de prueba en"
-      : "consultar cuentas de prueba en",
+    args.mode.kind === "reset" || args.mode.kind === "reset-all"
+      ? "borrar cuentas de prueba en"
+      : args.mode.kind === "create"
+        ? "crear cuentas de prueba en"
+        : "consultar cuentas de prueba en",
   );
   if (!target.ok) {
     console.error(target.error);
@@ -84,7 +130,44 @@ async function main(): Promise<void> {
       }
       return;
     }
-    const result = await resetTestUser(db, args.mode.email, allowlist.emails);
+    if (args.mode.kind === "create") {
+      const store = fileCredentialStore(args.mode.credentials);
+      const created = await createTestUsers(db, allowlist.emails, {
+        by: args.mode.by,
+        termsVersion,
+        store,
+      });
+      if (!created.ok) {
+        console.error(created.error);
+        process.exitCode = 1;
+        return;
+      }
+      for (const row of created.rows) console.log(formatCreateRow(row, args.showEmails));
+      const n = created.rows.filter((r) => r.status === "creada").length;
+      console.log(
+        `${n} cuenta(s) creada(s). Las contraseñas están en ${args.mode.credentials} (no se imprimen).`,
+      );
+      if (created.rows.some((r) => r.status === "error")) process.exitCode = 1;
+      return;
+    }
+    if (args.mode.kind === "reset-all") {
+      const store = fileCredentialStore(DEFAULT_CREDENTIALS);
+      for (const row of await resetAllTestUsers(db, allowlist.emails)) {
+        if (row.status === "borrada") store.drop(row.email);
+        const who = args.showEmails ? row.email : maskEmail(row.email);
+        console.log(
+          `${who}  ${row.status}${row.status === "borrada" ? ` (${row.rows} filas)` : ""}${row.reason ? ` (${row.reason})` : ""}`,
+        );
+      }
+      return;
+    }
+    const result = await resetTestUser(
+      db,
+      args.mode.email,
+      allowlist.emails,
+      process.env.ADMIN_EMAILS,
+      { force: args.mode.force === true },
+    );
     if (!result.ok) {
       console.error(result.error);
       process.exitCode = 1;

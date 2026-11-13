@@ -68,10 +68,10 @@ test.describe("Flujo 75: lista de espera con finanzas", () => {
     await page.getByLabel("Nombre").fill("Persona Finanzas Ficticia");
     await page.getByLabel("Email").fill(email);
     await select.selectOption({ label: FINANZAS_LABEL });
-    await page.getByRole("button", { name: "Anotarme", exact: true }).click();
+    await page.getByRole("button", { name: "Pedir acceso", exact: true }).click();
     // La confirmación reemplaza al formulario cuando el pedido ya está guardado
     await expect(page.getByTestId("acceso-confirmacion")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Anotarme", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Pedir acceso", exact: true })).toHaveCount(0);
 
     const { db, close } = ownerDb();
     try {

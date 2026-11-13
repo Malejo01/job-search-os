@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+  BUDGET_ALERT_RECHECK_MS,
   BUDGET_ALERT_THRESHOLDS,
   budgetAlertDay,
   budgetAlertIdempotencyKey,
   buildBudgetAlertEmail,
   crossedThresholds,
+  nextBudgetAlertMemo,
   parseAlertRecipients,
+  planBudgetAlerts,
+  shouldCheckBudgetAlerts,
 } from "./alerts";
 
 describe("crossedThresholds (R7-1)", () => {
@@ -59,11 +63,102 @@ describe("clave del día y de idempotencia", () => {
     expect(budgetAlertDay(new Date("2026-11-13T00:00:00.000Z"))).toBe("2026-11-13");
   });
 
-  it("la clave de Resend es fecha:umbral:destinatario", () => {
-    expect(budgetAlertIdempotencyKey("2026-11-12", 85, 0)).toBe("budget-alert:2026-11-12:85:0");
-    expect(budgetAlertIdempotencyKey("2026-11-12", 85, 1)).not.toBe(
-      budgetAlertIdempotencyKey("2026-11-12", 85, 0),
+  it("la clave de Resend es fecha:umbral:id del destinatario (no su posición en la lista)", () => {
+    expect(budgetAlertIdempotencyKey("2026-11-12", 85, "aaaa1111")).toBe(
+      "budget-alert:2026-11-12:85:aaaa1111",
     );
+    expect(budgetAlertIdempotencyKey("2026-11-12", 85, "bbbb2222")).not.toBe(
+      budgetAlertIdempotencyKey("2026-11-12", 85, "aaaa1111"),
+    );
+  });
+});
+
+describe("planBudgetAlerts (R8-5): qué umbrales le faltan a cada destinatario", () => {
+  const base = { capUsd: 2, recipientIds: ["a", "b"] };
+
+  it("sin marcas, todos reciben todo lo cruzado, con el más alto como asunto", () => {
+    const plan = planBudgetAlerts({ ...base, spentUsd: 1.75, marks: [] });
+    expect(plan).toEqual([
+      { recipientId: "a", thresholds: [70, 85], top: 85 },
+      { recipientId: "b", thresholds: [70, 85], top: 85 },
+    ]);
+  });
+
+  it("reintenta solo al que falló: el que ya recibió el umbral no vuelve a la lista", () => {
+    const plan = planBudgetAlerts({
+      ...base,
+      spentUsd: 1.5,
+      marks: [{ recipientId: "a", threshold: 70 }],
+    });
+    expect(plan).toEqual([{ recipientId: "b", thresholds: [70], top: 70 }]);
+  });
+
+  it("a cada uno le faltan sus propios umbrales", () => {
+    const plan = planBudgetAlerts({
+      ...base,
+      spentUsd: 1.75,
+      marks: [
+        { recipientId: "a", threshold: 70 },
+        { recipientId: "a", threshold: 85 },
+        { recipientId: "b", threshold: 70 },
+      ],
+    });
+    expect(plan).toEqual([{ recipientId: "b", thresholds: [85], top: 85 }]);
+  });
+
+  it("una marca vieja sin destinatario (R7-1) cuenta como enviada a todos", () => {
+    expect(
+      planBudgetAlerts({ ...base, spentUsd: 1.5, marks: [{ recipientId: null, threshold: 70 }] }),
+    ).toEqual([]);
+  });
+
+  it("una marca de un destinatario que ya no está no afecta a los demás", () => {
+    const plan = planBudgetAlerts({
+      ...base,
+      spentUsd: 1.5,
+      marks: [{ recipientId: "viejo", threshold: 70 }],
+    });
+    expect(plan.map((p) => p.recipientId)).toEqual(["a", "b"]);
+  });
+
+  it("sin umbral cruzado, sin tope o sin destinatarios no hay plan", () => {
+    expect(planBudgetAlerts({ ...base, spentUsd: 1, marks: [] })).toEqual([]);
+    expect(planBudgetAlerts({ ...base, capUsd: 0, spentUsd: 9, marks: [] })).toEqual([]);
+    expect(planBudgetAlerts({ ...base, recipientIds: [], spentUsd: 9, marks: [] })).toEqual([]);
+  });
+});
+
+describe("memo por día (R8-5): evaluar sin consultar la base", () => {
+  const T0 = new Date("2026-11-12T15:00:00.000Z");
+  const at = (ms: number) => new Date(T0.getTime() + ms);
+
+  it("sin memo, o con memo de otro día, se consulta", () => {
+    expect(shouldCheckBudgetAlerts(null, T0)).toBe(true);
+    const old = { day: "2026-11-11", doneTop: 95, checkedAtMs: T0.getTime() };
+    expect(shouldCheckBudgetAlerts(old, T0)).toBe(true);
+  });
+
+  it("con el umbral más alto ya avisado a todos no se consulta más ese día", () => {
+    const memo = nextBudgetAlertMemo("2026-11-12", T0, { crossedTop: 95, complete: true });
+    expect(memo.doneTop).toBe(95);
+    expect(shouldCheckBudgetAlerts(memo, at(60 * 60_000))).toBe(false);
+  });
+
+  it("con umbrales todavía por delante se consulta como mucho una vez cada 5 minutos", () => {
+    const memo = nextBudgetAlertMemo("2026-11-12", T0, { crossedTop: 70, complete: true });
+    expect(shouldCheckBudgetAlerts(memo, at(60_000))).toBe(false);
+    expect(shouldCheckBudgetAlerts(memo, at(BUDGET_ALERT_RECHECK_MS))).toBe(true);
+  });
+
+  it("si algún envío falló, doneTop no se da por cumplido y se vuelve a mirar", () => {
+    const memo = nextBudgetAlertMemo("2026-11-12", T0, { crossedTop: 95, complete: false });
+    expect(memo.doneTop).toBe(0);
+    expect(shouldCheckBudgetAlerts(memo, at(BUDGET_ALERT_RECHECK_MS))).toBe(true);
+  });
+
+  it("al cambiar el día (UTC) vuelve a consultar aunque ayer estuviera completo", () => {
+    const memo = nextBudgetAlertMemo("2026-11-12", T0, { crossedTop: 95, complete: true });
+    expect(shouldCheckBudgetAlerts(memo, new Date("2026-11-13T00:00:01.000Z"))).toBe(true);
   });
 });
 

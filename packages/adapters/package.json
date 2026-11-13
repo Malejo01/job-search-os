@@ -29,7 +29,8 @@
     "pool:rehint": "tsx src/pool/rehint-cli.ts",
     "admin:invite": "tsx src/admin/invite-cli.ts",
     "admin:test-users": "tsx src/admin/test-users-cli.ts",
-    "inbound:replay": "tsx src/admin/replay-cli.ts"
+    "inbound:replay": "tsx src/admin/replay-cli.ts",
+    "inbound:skeleton": "tsx src/inbound/skeleton-cli.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.52",

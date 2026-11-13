@@ -73,7 +73,15 @@ export type GenerateContext = {
    * vuelve pasa por `wire.normalize` y recién entonces por el `schema` estricto de la llamada.
    */
   wire?: LlmWire;
+  /**
+   * Imágenes que acompañan al prompt (R6-3). Solo viajan al proveedor: no se guardan ni se loguean.
+   * `data` son los bytes; el cliente nunca los escribe en el registro de llamadas.
+   */
+  images?: LlmImage[];
 };
+
+/** Imagen de entrada para una llamada multimodal. */
+export type LlmImage = { mediaType: string; data: Uint8Array };
 
 export type GenerateUsage = {
   inputTokens: number | null;
@@ -112,6 +120,8 @@ export type GenerateFn = (args: {
   model: LanguageModel;
   schema: z.ZodType<unknown>;
   prompt: string;
+  /** Imágenes del mensaje del usuario (solo tareas que las piden). */
+  images?: LlmImage[];
   temperature: number;
   maxOutputTokens: number;
   abortSignal?: AbortSignal;

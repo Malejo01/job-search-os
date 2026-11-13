@@ -1509,3 +1509,80 @@ Fuente del estado: `ops/tanda-r4/estado.md`. Los PR de carril rojo se acumulan e
 `deps:` todo en PR · `estado:` en PR, para que lo revise Mauro (13/11)
 - Este bloque, `docs/beta/informe-r7.md` y `docs/beta/manana-13-11.md` (todos los PR de la R5, la R6 y la R7 en orden y las decisiones pendientes).
 - El PR de integración no se armó: el guard bloquea `git merge` para los agentes. Queda el plan con los comandos en `manana-13-11.md`.
+
+## Bloque 22 · Tanda R8 (13/11)
+
+Base: `main` con la integración de la R5 a la R7 (#480). Detalle, orden de merge y pasos manuales en `docs/beta/informe-r8.md`. Ningún PR mergeado.
+
+### R8-0 · Estados de carga sin romper los 404
+`deps:` — · `est:` 2 h · `estado:` **abierta**: el [#489](https://github.com/Malejo01/job-search-os/pull/489) (reemplaza al #483) falla en el e2e 79 por el foco en `/hoy`; después de dos vueltas, decide Mauro (informe-r8 §3)
+- `loading.tsx` con esqueleto solo en `/hoy` y `/applications`. En `/jobs`, `/inbox`, `/market` y `/plan` el streaming con fallback rompía la navegación por searchParams (e2e 13, 21, 32 y 79) y el modo sin JavaScript (e2e 89). En los detalles `[id]`, además, dejaba el 404 con status 200. e2e 125: esqueleto en Postulaciones y 404 real en los detalles.
+
+### R8-1 · Parser de Bumeran y ZonaJobs (carril rojo)
+`deps:` esqueletos de Mauro · `estado:` **bloqueado**. Hecho: R8-1a, herramienta `inbound:skeleton` ([#487](https://github.com/Malejo01/job-search-os/pull/487), 13/11)
+- Los agentes no pueden leer `fixtures-private/`. `inbound:skeleton` convierte los .eml en un esqueleto HTML sin datos (texto enmascarado por forma; hosts, clases e ids en lista blanca) y falla cerrado contra los patrones de privacidad. Mauro la corre con `!`, y el parser se escribe sobre los esqueletos (plan en el informe).
+
+### R8-2 · Parser de Computrabajo (carril rojo)
+`deps:` R8-1a y esqueletos · `estado:` **bloqueado**, igual que R8-1.
+
+### R8-3 · e2e locales reproducibles (carril rojo)
+`deps:` — · `est:` 2 h · `estado:` en PR ([#486](https://github.com/Malejo01/job-search-os/pull/486), 13/11)
+- `pnpm e2e:local:prepare` y `pnpm e2e:local [specs]` (`scripts/e2e-local.mjs`): base local con seed de ejemplo y usuario de e2e. Falla cerrado si algo no apunta a localhost. Falta que Mauro lo verifique con `!` y decida la propuesta para `.claude/bin/local.mjs`.
+
+### R8-4 · Rendimiento de base (carril rojo)
+`deps:` — · `est:` 1,5 h · `estado:` en PR ([#481](https://github.com/Malejo01/job-search-os/pull/481), 13/11)
+- Migración 0064: índice `evaluations_user_inputs_jd_hash` para la reutilización de R7-2, con test de EXPLAIN. `DB_POOL_MAX` (1 a 20, default 5) documentado en `docs/OPERACION.md`.
+
+### R8-5 · Alertas de gasto a tiempo y robustas (carril rojo)
+`deps:` — · `est:` 2 h · `estado:` en PR ([#485](https://github.com/Malejo01/job-search-os/pull/485), 13/11)
+- Las alertas también se revisan después de evaluar fuera del cron, con un memo por proceso. Cada destinatario lleva su propia marca y su propia clave de Resend, y si falla se reintenta solo ese. La marca va en un savepoint y se usa un try-lock por día. Sin migración.
+
+### R8-6 · Accesibilidad, segunda pasada
+`deps:` — · `est:` 1 h · `estado:` en PR ([#484](https://github.com/Malejo01/job-search-os/pull/484), 13/11)
+- Axe con tags WCAG A y AA en 18 pantallas: 0 serias, 0 moderadas y 0 leves. El 131 imprime las leves en el log del CI. Las reglas best-practice (`heading-order`, `region`) quedan para una pasada aparte.
+
+### R8-7 · Salud de la beta en /settings/salud
+`deps:` — · `est:` 2 h · `estado:` en PR ([#482](https://github.com/Malejo01/job-search-os/pull/482), 13/11)
+- El pedido llegó cortado y se interpretó así: cuatro señales nuevas, armadas con datos que ya existen (evaluaciones fallidas en 24 h, última descarga del pool, emails sin parser por portal en 7 días e invitaciones sin usar), con umbrales en `capacidad.md` §6b.
+
+### R8-8
+`estado:` **sin especificar** (el pedido llegó sin texto).
+
+### T-1 · Cuentas de prueba por base (carril rojo)
+`deps:` #481 · `est:` 4 h · `estado:` en PR ([#488](https://github.com/Malejo01/job-search-os/pull/488), 13/11)
+- `users.is_test` (0065) y `rls/0020`, que sacan a las cuentas de prueba de las métricas y de la madurez de carreras. `admin:test-users --create` va por el registro real y deja las contraseñas solo en `ops/`; `--reset-all` borra solo cuentas `is_test`. Incluye 17 cuentas modelo en `example.com`, 16 perfiles ficticios y el recorrido `pnpm recorrido <url>`, que no corre en el CI.
+
+### R8 · Cierre de la tanda
+`deps:` todo en PR · `estado:` en PR (13/11)
+- Este bloque y `docs/beta/informe-r8.md`.
+
+## Bloque 23 · Tanda R9 (13/11)
+
+Base: `main` (92467dd). Decisiones de Mauro del 13/11: «Pedir acceso», tope de la charla de USD 0,50, 404 sin sesión e imagen habilitada. Excepción de la tanda: se pueden tocar `packages/prompts/`, con un tope de USD 5 entre evals y modelo. Detalle en `docs/beta/informe-r9.md`. Ningún PR mergeado.
+
+### R9-1 · Oferta desde una imagen (carril rojo)
+`deps:` — · `est:` 3 h · `estado:` en PR ([#493](https://github.com/Malejo01/job-search-os/pull/493), 13/11)
+- Port de `ronda/r6-3-imagen` a `main`, archivo por archivo, sin merge. S2: el cupo de 10 cuenta solo las llamadas que respondieron, y se suma un segundo tope de 30 intentos por día, también los fallidos. S3: valida la estructura del JPEG (SOF y EOI). El SQL de la fila `extract_job_from_image` está en el PR.
+
+### R9-2 · Topes del asistente configurables y medibles (carril rojo)
+`deps:` — · `est:` 3 h · `estado:` en PR ([#495](https://github.com/Malejo01/job-search-os/pull/495), 13/11)
+- USD 0,50 y 20 turnos por charla, que se pueden cambiar con `ASSISTANT_MAX_USD_PER_CONVERSATION` y `ASSISTANT_MAX_TURNS` (validadas con Zod en el borde). Filas marcadoras `assistant_event` de costo 0 para medir mensajes y cortes. El tope de turnos usa como piso los marcadores, así que no se reinicia aunque el historial llegue recortado. Hay un bloque «Asistente, últimos 7 días» en `/settings/salud`.
+
+### R9-3 · «Pedir acceso» en todos lados
+`deps:` — · `est:` 1,5 h · `estado:` en PR ([#491](https://github.com/Malejo01/job-search-os/pull/491), 13/11)
+- La UI, `/ayuda`, los docs de la beta y 8 e2e pasan a «Pedir acceso». Queda «No pudimos anotarte» en `acceso/actions.ts`: ese archivo es carril rojo y va en un PR aparte.
+
+### R9-4 · 404 sin sesión (carril rojo)
+`deps:` — · `est:` 2 h · `estado:` en PR ([#492](https://github.com/Malejo01/job-search-os/pull/492), 13/11)
+- `route-access.ts` define una lista explícita de prefijos privados y normaliza la ruta: las inexistentes dan 404 con y sin sesión, y las privadas piden login. Un request de Server Action a una ruta inventada también pide sesión. Hay tests que fallan si una ruta nueva no está clasificada o si una acción privada no exige sesión. El 404 lleva a «Ir al inicio». e2e 133.
+
+### R9-5 · Pool de Bumeran (carril rojo)
+`deps:` R8-1 · `estado:` **bloqueado**: R8-1 no tiene parser, porque los agentes no pueden leer `fixtures-private/`.
+
+### R9-6 · Calidad de la evaluación por carrera
+`deps:` — · `est:` 2 h · `estado:` en PR ([#494](https://github.com/Malejo01/job-search-os/pull/494), 13/11), **sin correr**
+- Harness para las 24 combinaciones de aviso y persona (dry-run y tope duro) y `docs/beta/calidad-evaluacion-r9.md` con la estructura y la estimación (~USD 0,55). El guard no deja correr el modelo real: la corrida la hace Mauro.
+
+### R9 · Cierre de la tanda
+`deps:` todo en PR · `estado:` en PR (13/11)
+- Este bloque y `docs/beta/informe-r9.md`. Sale de `ronda/r8-cierre`.

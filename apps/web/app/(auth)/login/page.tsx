@@ -97,7 +97,7 @@ export default async function LoginPage({
         <p>
           ¿No tenés cuenta?{" "}
           <Link href="/acceso" className="underline">
-            Anotate a la beta
+            Pedir acceso
           </Link>
         </p>
         <Link href="/" className="underline">

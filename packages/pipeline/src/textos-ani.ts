@@ -41,7 +41,7 @@ export const TEXTOS_ANI: readonly TextoAni[] = [
   },
   {
     area: "/acceso",
-    nombre: "Confirmación al anotarse",
+    nombre: "Confirmación al pedir acceso",
     extracto: "te escribimos si hay lugar, con el link para crear tu cuenta.",
     archivo: "apps/web/app/(public)/acceso/actions.ts",
     verEn: "/acceso",
@@ -49,7 +49,7 @@ export const TEXTOS_ANI: readonly TextoAni[] = [
   },
   {
     area: "/acceso",
-    nombre: "«Qué sigue» después de anotarse",
+    nombre: "«Qué sigue» después de pedir acceso",
     extracto: "Revisamos los pedidos y armamos el grupo de la beta, con lugar para cada carrera.",
     archivo: "apps/web/app/(public)/acceso/waitlist-form.tsx",
     verEn: "/acceso",

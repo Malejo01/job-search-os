@@ -106,7 +106,7 @@ export default function PreciosPage() {
       <p className="text-sm">
         La beta es por invitación.{" "}
         <Link href="/acceso" className="font-medium underline underline-offset-2 hover:text-fg">
-          Pedí acceso
+          Pedir acceso
         </Link>{" "}
         y te avisamos cuando haya lugar.
       </p>

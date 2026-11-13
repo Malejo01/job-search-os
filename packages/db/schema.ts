@@ -49,6 +49,9 @@ export const users = pgTable("users", {
   // S-6: va en el JWT al iniciar sesión. Al resetear la contraseña sube, y las sesiones viejas dejan
   // de valer (requireUserId compara las dos). Un JWT sin versión cuenta como 0
   sessionVersion: integer("session_version").notNull().default(0),
+  // T-1: cuenta de prueba (la marca `admin:test-users --create` después de registrarla por el camino real).
+  // No cuenta en las métricas de la beta (rls/0020) ni recibe avisos de vencimiento de plan.
+  isTest: boolean("is_test").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [uniqueIndex("users_email").on(t.email)]);
@@ -473,6 +476,13 @@ export const evaluations = pgTable("evaluations", {
   // C-7: «la última evaluación por oferta» (DISTINCT ON job_id … created_at desc) y la ventana de «Tu encaje»
   index("evaluations_job_created").on(t.jobId, t.createdAt.desc()),
   index("evaluations_user_created").on(t.userId, t.createdAt.desc()),
+  // R8-4: reutilización de evaluaciones (R7-2): user_id + decision->'inputs'->>'jd_hash', la última primero.
+  // La expresión tiene que ser idéntica a la de findReusableEvaluation (packages/adapters/src/worker/evaluate-job.ts)
+  index("evaluations_user_inputs_jd_hash").on(
+    t.userId,
+    sql`((${t.decision} -> 'inputs' ->> 'jd_hash'))`,
+    t.createdAt.desc(),
+  ),
 ]);
 
 export const applications = pgTable("applications", {

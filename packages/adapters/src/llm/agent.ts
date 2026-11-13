@@ -6,6 +6,7 @@ import {
   isProposalTool,
   maxStepCostUsd,
   type AgentCapReason,
+  type ConversationLimits,
 } from "@job-search-os/pipeline";
 import {
   isStepCount,
@@ -149,6 +150,8 @@ export type StreamAgentInput = {
   isProposal?: (toolName: string) => boolean;
   /** Gasto de turnos anteriores de esta conversación; null = desconocido → no sigue. */
   spentUsd: number | null;
+  /** Topes de la charla (los configurados en el borde); sin esto, los de siempre. */
+  limits?: ConversationLimits;
   /** Versión del prompt de sistema (`assistant_chat@v1`); solo se registra. */
   promptVersion: string;
 };
@@ -428,7 +431,7 @@ async function* runTurn(
           ).filter((name) => name in input.tools);
     const estimate = estimateInput(input.system, messages, input.tools, active);
     const worstCase = maxStepCostUsd(rates, estimate);
-    const cap = checkStep(step, estimate, spent, worstCase);
+    const cap = checkStep(step, estimate, spent, worstCase, input.limits);
     if (!cap.ok) {
       log.info({ step, reason: cap.error }, "asistente: tope");
       yield { type: "cap", reason: cap.error };

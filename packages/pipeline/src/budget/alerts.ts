@@ -33,13 +33,83 @@ export function budgetAlertDay(now: Date): string {
   return now.toISOString().slice(0, 10);
 }
 
-/** Clave de idempotencia de Resend: refuerzo de la marca en base, una por día, umbral y destinatario. */
+/**
+ * Clave de idempotencia de Resend: una por día, umbral y destinatario. Usa el id estable del destinatario
+ * (hash de su email, lo calcula el adapter), no su posición: si cambia `ADMIN_EMAILS` la clave de los demás no cambia.
+ * Es lo que evita el doble envío si el proceso muere entre mandar y anotar (R8-5).
+ */
 export function budgetAlertIdempotencyKey(
   day: string,
   threshold: number,
-  recipient: number,
+  recipientId: string,
 ): string {
-  return `budget-alert:${day}:${threshold}:${recipient}`;
+  return `budget-alert:${day}:${threshold}:${recipientId}`;
+}
+
+/** Aviso ya entregado. `recipientId` null = marca de R7-1 (una por umbral, valía para todos). */
+export type BudgetAlertMark = { recipientId: string | null; threshold: number };
+export type BudgetAlertPlan = {
+  recipientId: string;
+  /** Umbrales cruzados que a esta persona todavía no se le avisaron. */
+  thresholds: BudgetAlertThreshold[];
+  /** El más alto: un solo email por destinatario, por ese. */
+  top: BudgetAlertThreshold;
+};
+
+/**
+ * Qué mandar y a quién: por destinatario, los umbrales cruzados que todavía no recibió. Así un envío parcial
+ * se reintenta solo para el que falló. Los destinatarios salen en el orden recibido.
+ */
+export function planBudgetAlerts(input: {
+  spentUsd: number;
+  capUsd: number;
+  recipientIds: readonly string[];
+  marks: readonly BudgetAlertMark[];
+}): BudgetAlertPlan[] {
+  const plans: BudgetAlertPlan[] = [];
+  for (const recipientId of input.recipientIds) {
+    const done = input.marks
+      .filter((m) => m.recipientId === null || m.recipientId === recipientId)
+      .map((m) => m.threshold);
+    const thresholds = crossedThresholds(input.spentUsd, input.capUsd, done);
+    if (thresholds.length > 0) {
+      plans.push({ recipientId, thresholds, top: thresholds[thresholds.length - 1]! });
+    }
+  }
+  return plans;
+}
+
+/** Entre dos consultas de las evaluaciones fuera del cron (por instancia). */
+export const BUDGET_ALERT_RECHECK_MS = 5 * 60_000;
+
+/**
+ * Memo en memoria del proceso para revisar el umbral desde las evaluaciones sin sumar consultas. En serverless es
+ * por instancia: la que arranca en frío consulta una vez. La marca en base sigue siendo la que garantiza «una
+ * vez por umbral, por destinatario y por día».
+ */
+export type BudgetAlertMemo = { day: string; doneTop: number; checkedAtMs: number };
+
+/** false = no hace falta consultar nada: el día ya está completo, o se miró hace menos de 5 minutos. */
+export function shouldCheckBudgetAlerts(memo: BudgetAlertMemo | null, now: Date): boolean {
+  if (!memo || memo.day !== budgetAlertDay(now)) return true;
+  if (memo.doneTop >= Math.max(...BUDGET_ALERT_THRESHOLDS)) return false;
+  return now.getTime() - memo.checkedAtMs >= BUDGET_ALERT_RECHECK_MS;
+}
+
+/**
+ * Memo tras una revisión. `crossedTop`: el umbral más alto que cruzó el gasto (0 si ninguno); `complete`: todos
+ * los destinatarios lo recibieron. Con un fallo `doneTop` queda en 0: no se da por cumplido.
+ */
+export function nextBudgetAlertMemo(
+  day: string,
+  now: Date,
+  result: { crossedTop: number; complete: boolean },
+): BudgetAlertMemo {
+  return {
+    day,
+    doneTop: result.complete ? result.crossedTop : 0,
+    checkedAtMs: now.getTime(),
+  };
 }
 
 /** Destinatarios desde `ADMIN_EMAILS` (separados por coma): recortados, sin vacíos ni repetidos. */

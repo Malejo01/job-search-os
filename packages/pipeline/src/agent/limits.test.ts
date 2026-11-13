@@ -13,6 +13,7 @@ import {
   monthlyConversationLimit,
   remainingMessages,
   remainingMessagesNotice,
+  resolveConversationLimits,
   stepCostUsd,
 } from "./limits";
 
@@ -33,24 +34,74 @@ describe("checkTurnStart", () => {
     expect(checkTurnStart({ turns: 2, costUsd: 0.01 }, full, false).ok).toBe(true);
   });
 
-  it("el turno 10 entra y el 11 no", () => {
-    expect(checkTurnStart({ turns: 9, costUsd: 0 }, monthly, false).ok).toBe(true);
-    expect(checkTurnStart({ turns: 10, costUsd: 0 }, monthly, false)).toEqual({
+  it("el turno 20 entra y el 21 no", () => {
+    expect(checkTurnStart({ turns: 19, costUsd: 0 }, monthly, false).ok).toBe(true);
+    expect(checkTurnStart({ turns: 20, costUsd: 0 }, monthly, false)).toEqual({
       ok: false,
       error: "turns",
     });
   });
 
-  it("costo desconocido falla cerrado y 0,12 exacto ya es tope", () => {
+  it("costo desconocido falla cerrado y 0,50 exacto ya es tope", () => {
     expect(checkTurnStart({ turns: 1, costUsd: null }, monthly, false)).toEqual({
       ok: false,
       error: "cost_unknown",
     });
-    expect(checkTurnStart({ turns: 1, costUsd: 0.12 }, monthly, false)).toEqual({
+    expect(checkTurnStart({ turns: 1, costUsd: 0.5 }, monthly, false)).toEqual({
       ok: false,
       error: "usd",
     });
-    expect(checkTurnStart({ turns: 1, costUsd: 0.1199 }, monthly, false).ok).toBe(true);
+    expect(checkTurnStart({ turns: 1, costUsd: 0.4999 }, monthly, false).ok).toBe(true);
+    // El tope viejo (0,12) ya no corta
+    expect(checkTurnStart({ turns: 1, costUsd: 0.12 }, monthly, false).ok).toBe(true);
+  });
+
+  it("con topes propios, los usa en vez de los de siempre", () => {
+    const own = { maxTurnsPerConversation: 3, maxUsdPerConversation: 0.2 };
+    expect(checkTurnStart({ turns: 2, costUsd: 0.19 }, monthly, false, own).ok).toBe(true);
+    expect(checkTurnStart({ turns: 3, costUsd: 0 }, monthly, false, own)).toEqual({
+      ok: false,
+      error: "turns",
+    });
+    expect(checkTurnStart({ turns: 1, costUsd: 0.2 }, monthly, false, own)).toEqual({
+      ok: false,
+      error: "usd",
+    });
+  });
+});
+
+describe("resolveConversationLimits", () => {
+  it("sin variables, los defaults (0,50 y 20) y sin avisos", () => {
+    expect(resolveConversationLimits({})).toEqual({
+      limits: { maxTurnsPerConversation: 20, maxUsdPerConversation: 0.5 },
+      invalid: [],
+    });
+    expect(resolveConversationLimits({ maxTurns: " ", maxUsd: "" }).invalid).toEqual([]);
+  });
+
+  it("toma valores válidos", () => {
+    const r = resolveConversationLimits({ maxTurns: "30", maxUsd: "0.75" });
+    expect(r.limits).toEqual({ maxTurnsPerConversation: 30, maxUsdPerConversation: 0.75 });
+    expect(r.invalid).toEqual([]);
+  });
+
+  it("un valor inválido vuelve al default y se informa", () => {
+    for (const bad of ["abc", "0", "-3", "2.5", "51", "1e2", "NaN"]) {
+      const r = resolveConversationLimits({ maxTurns: bad });
+      expect(r.limits.maxTurnsPerConversation).toBe(20);
+      expect(r.invalid).toEqual(["maxTurns"]);
+    }
+    for (const bad of ["abc", "0", "-1", "5.01", "99", "1e2", "0,5", "Infinity"]) {
+      const r = resolveConversationLimits({ maxUsd: bad });
+      expect(r.limits.maxUsdPerConversation).toBe(0.5);
+      expect(r.invalid).toEqual(["maxUsd"]);
+    }
+  });
+
+  it("cada variable se valida por separado", () => {
+    const r = resolveConversationLimits({ maxTurns: "x", maxUsd: "1" });
+    expect(r.limits).toEqual({ maxTurnsPerConversation: 20, maxUsdPerConversation: 1 });
+    expect(r.invalid).toEqual(["maxTurns"]);
   });
 });
 
@@ -72,7 +123,11 @@ describe("checkStep", () => {
 
   it("el peor caso del paso tiene que entrar en lo que queda", () => {
     expect(checkStep(1, 10, 0.1, 0.02).ok).toBe(true);
-    expect(checkStep(1, 10, 0.1, 0.0201)).toEqual({ ok: false, error: "usd" });
+    expect(checkStep(1, 10, 0.48, 0.02).ok).toBe(true);
+    expect(checkStep(1, 10, 0.48, 0.0201)).toEqual({ ok: false, error: "usd" });
+    const own = { maxTurnsPerConversation: 20, maxUsdPerConversation: 0.12 };
+    expect(checkStep(1, 10, 0.1, 0.02, own).ok).toBe(true);
+    expect(checkStep(1, 10, 0.1, 0.0201, own)).toEqual({ ok: false, error: "usd" });
   });
 });
 
@@ -171,6 +226,14 @@ describe("remainingMessages y remainingMessagesNotice", () => {
     expect(remainingMessages(NaN)).toBe(0);
   });
 
+  it("el default es 20 y con otro tope cuenta contra ese", () => {
+    expect(max).toBe(20);
+    expect(remainingMessages(0, 30)).toBe(30);
+    expect(remainingMessages(29, 30)).toBe(1);
+    expect(remainingMessagesNotice(28, 30)).toBe("Te quedan 2 mensajes en esta charla");
+    expect(remainingMessagesNotice(18, 30)).toBeNull();
+  });
+
   it("avisa solo cuando quedan 2 o menos (y más de 0)", () => {
     expect(remainingMessagesNotice(0)).toBeNull();
     expect(remainingMessagesNotice(max - 3)).toBeNull();
@@ -238,10 +301,18 @@ describe("valores inválidos fallan cerrado", () => {
     expect(checkStep(1.5, 10, 0, 0)).toEqual({ ok: false, error: "steps" });
   });
 
-  it("doce pasos de 0,01 llegan al tope aunque la suma flotante dé 0,12000000000000002", () => {
+  it("cincuenta pasos de 0,01 llegan al tope aunque la suma flotante no dé justo 0,5", () => {
     let c: number | null = 0;
-    for (let i = 0; i < 12; i++) c = addCost(c, 0.01);
+    for (let i = 0; i < 50; i++) c = addCost(c, 0.01);
     expect(checkTurnStart({ turns: 1, costUsd: c }, monthly, false)).toEqual({
+      ok: false,
+      error: "usd",
+    });
+    // Con el tope viejo configurado a mano, doce pasos de 0,01 también
+    let d: number | null = 0;
+    for (let i = 0; i < 12; i++) d = addCost(d, 0.01);
+    const old = { maxTurnsPerConversation: 20, maxUsdPerConversation: 0.12 };
+    expect(checkTurnStart({ turns: 1, costUsd: d }, monthly, false, old)).toEqual({
       ok: false,
       error: "usd",
     });

@@ -1,5 +1,6 @@
 import { createDb, requireDatabaseUrl } from "@job-search-os/db";
 import {
+  checkBudgetAlertsAfterEvaluation,
   createLogger,
   createPgQueue,
   evaluateJobNow,
@@ -117,6 +118,8 @@ function scheduleEvaluation(
         logger,
       });
       if (!result.ran) logger.info({ reason: result.reason }, "evaluación inmediata no corrió");
+      // R8-5: avisar el umbral de gasto también fuera del cron (memo por proceso: casi nunca consulta)
+      else await checkBudgetAlertsAfterEvaluation({ db, logger });
     } catch (e) {
       logger.error({ err: safeDbError(e) }, "evaluación inmediata falló: queda para el cron");
     } finally {

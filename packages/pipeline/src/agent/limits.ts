@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { err, ok, type Result } from "../result";
 import { planDef, resolvePlanLimit } from "../plans";
 
@@ -7,13 +8,63 @@ import { planDef, resolvePlanLimit } from "../plans";
  * gasto (una tarifa, el costo de una llamada), el asistente se corta en vez de seguir a ciegas.
  */
 export const AGENT_LIMITS = {
-  maxTurnsPerConversation: 10,
+  maxTurnsPerConversation: 20,
   maxStepsPerTurn: 6,
   maxOutputTokensPerStep: 600,
   maxInputTokensPerCall: 12_000,
-  maxUsdPerConversation: 0.12,
+  maxUsdPerConversation: 0.5,
   maxUserMessageChars: 2_000,
 } as const;
+
+/** Los dos topes que se pueden cambiar sin deploy (variables de entorno, leídas en el borde). */
+export type ConversationLimits = { maxTurnsPerConversation: number; maxUsdPerConversation: number };
+
+export const DEFAULT_CONVERSATION_LIMITS: ConversationLimits = {
+  maxTurnsPerConversation: AGENT_LIMITS.maxTurnsPerConversation,
+  maxUsdPerConversation: AGENT_LIMITS.maxUsdPerConversation,
+};
+
+/** Techos de lo configurable: un valor mal puesto (por ejemplo 500) no deja el tope sin efecto. */
+export const MAX_CONFIGURABLE_TURNS = 50;
+export const MAX_CONFIGURABLE_USD = 5;
+
+const turnsOverride = z
+  .string()
+  .regex(/^\d{1,3}$/)
+  .transform(Number)
+  .pipe(z.number().int().min(1).max(MAX_CONFIGURABLE_TURNS));
+const usdOverride = z
+  .string()
+  .regex(/^\d{1,2}(\.\d{1,4})?$/)
+  .transform(Number)
+  .pipe(z.number().gt(0).max(MAX_CONFIGURABLE_USD));
+
+/**
+ * Topes de la charla a partir de lo que dicen las variables `ASSISTANT_MAX_TURNS` y
+ * `ASSISTANT_MAX_USD_PER_CONVERSATION` (el borde pasa los textos crudos; acá no se lee el entorno).
+ * Ausente o vacía = el default, sin ruido. Inválida = el default y se informa en `invalid` para que
+ * el borde la loguee. Nunca falla: un error de configuración no debe tumbar al asistente.
+ */
+export function resolveConversationLimits(raw: {
+  maxTurns?: string | undefined;
+  maxUsd?: string | undefined;
+}): { limits: ConversationLimits; invalid: ("maxTurns" | "maxUsd")[] } {
+  const limits = { ...DEFAULT_CONVERSATION_LIMITS };
+  const invalid: ("maxTurns" | "maxUsd")[] = [];
+  const turns = raw.maxTurns?.trim() ?? "";
+  if (turns !== "") {
+    const p = turnsOverride.safeParse(turns);
+    if (p.success) limits.maxTurnsPerConversation = p.data;
+    else invalid.push("maxTurns");
+  }
+  const usd = raw.maxUsd?.trim() ?? "";
+  if (usd !== "") {
+    const p = usdOverride.safeParse(usd);
+    if (p.success) limits.maxUsdPerConversation = p.data;
+    else invalid.push("maxUsd");
+  }
+  return { limits, invalid };
+}
 
 export const AGENT_CAP_REASONS = [
   "turns",
@@ -87,16 +138,17 @@ export function checkTurnStart(
   usage: ConversationUsage,
   monthly: { used: number; limit: number },
   isNewConversation: boolean,
+  limits: ConversationLimits = DEFAULT_CONVERSATION_LIMITS,
 ): Result<void, AgentCapReason> {
   if (isNewConversation && !(isCount(monthly.used) && isCount(monthly.limit))) {
     return err("monthly_conversations");
   }
   if (isNewConversation && !(monthly.used < monthly.limit)) return err("monthly_conversations");
-  if (!isCount(usage.turns) || !(usage.turns < AGENT_LIMITS.maxTurnsPerConversation)) {
+  if (!isCount(usage.turns) || !(usage.turns < limits.maxTurnsPerConversation)) {
     return err("turns");
   }
   if (!isNonNegFinite(usage.costUsd)) return err("cost_unknown");
-  if (!(micro(usage.costUsd) < micro(AGENT_LIMITS.maxUsdPerConversation))) return err("usd");
+  if (!(micro(usage.costUsd) < micro(limits.maxUsdPerConversation))) return err("usd");
   return ok(undefined);
 }
 
@@ -110,6 +162,7 @@ export function checkStep(
   inputTokensEstimate: number,
   spentUsd: number | null,
   nextStepMaxUsd: number | null,
+  limits: ConversationLimits = DEFAULT_CONVERSATION_LIMITS,
 ): Result<void, AgentCapReason> {
   if (!isCount(step) || !(step < AGENT_LIMITS.maxStepsPerTurn)) return err("steps");
   if (
@@ -119,7 +172,7 @@ export function checkStep(
     return err("input_tokens");
   }
   if (!isNonNegFinite(spentUsd) || !isNonNegFinite(nextStepMaxUsd)) return err("cost_unknown");
-  if (!(micro(spentUsd + nextStepMaxUsd) <= micro(AGENT_LIMITS.maxUsdPerConversation))) {
+  if (!(micro(spentUsd + nextStepMaxUsd) <= micro(limits.maxUsdPerConversation))) {
     return err("usd");
   }
   return ok(undefined);
@@ -184,14 +237,20 @@ const CAP_TEXT: Record<AgentCapReason, string> = {
 export const REMAINING_WARN_AT = 2;
 
 /** Mensajes que le quedan a la charla, dados los que la persona ya envió (incluido el último). */
-export function remainingMessages(userMessagesSent: number): number {
+export function remainingMessages(
+  userMessagesSent: number,
+  maxTurns: number = AGENT_LIMITS.maxTurnsPerConversation,
+): number {
   if (!isCount(userMessagesSent)) return 0;
-  return Math.max(0, AGENT_LIMITS.maxTurnsPerConversation - userMessagesSent);
+  return Math.max(0, maxTurns - userMessagesSent);
 }
 
 /** «Te quedan N mensajes…» solo cuando quedan entre 1 y `REMAINING_WARN_AT`; si no, null. */
-export function remainingMessagesNotice(userMessagesSent: number): string | null {
-  const left = remainingMessages(userMessagesSent);
+export function remainingMessagesNotice(
+  userMessagesSent: number,
+  maxTurns: number = AGENT_LIMITS.maxTurnsPerConversation,
+): string | null {
+  const left = remainingMessages(userMessagesSent, maxTurns);
   if (left < 1 || left > REMAINING_WARN_AT) return null;
   return left === 1
     ? "Te queda 1 mensaje en esta charla"

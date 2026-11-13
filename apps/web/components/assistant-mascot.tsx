@@ -21,7 +21,7 @@ const MASCOT_BASE = "/mascota/quieta";
  * Esc cierra el panel (`<dialog>` nativo) y el foco vuelve al botón. Con «reducir movimiento» no
  * hay animación. Framer Motion solo se usa acá, para la entrada y el hover.
  */
-export function AssistantMascot() {
+export function AssistantMascot({ maxTurns }: { maxTurns?: number }) {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const reduce = useReducedMotion();
@@ -67,6 +67,7 @@ export function AssistantMascot() {
       </LazyMotion>
       <AssistantPanel
         open={open}
+        {...(maxTurns !== undefined ? { maxTurns } : {})}
         onClose={() => {
           setOpen(false);
           buttonRef.current?.focus();
