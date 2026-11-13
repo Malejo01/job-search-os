@@ -1,4 +1,5 @@
 import type { RawJob } from "@job-search-os/pipeline";
+import { bumeranParser } from "./bumeran";
 import { getonboardParser } from "./getonboard";
 import { indeedParser } from "./indeed";
 import { linkedinParser } from "./linkedin";
@@ -20,7 +21,7 @@ export type InboundEmailContent = {
 export type ParseResult = { ok: true; jobs: RawJob[] } | { ok: false; reason: string };
 
 export type EmailParser = {
-  name: "linkedin" | "getonboard" | "indeed" | "generic";
+  name: "linkedin" | "getonboard" | "indeed" | "bumeran" | "generic";
   parse(email: InboundEmailContent): ParseResult;
 };
 
@@ -54,10 +55,19 @@ export function linkedinSenderKind(
 /** Remitente → parser. `generic` es el último recurso y también falla cerrado. */
 export function chooseParserName(fromAddress: string): EmailParser["name"] {
   const addr = fromAddress.toLowerCase();
-  const domain = (/@([^>\s]+)/.exec(addr)?.[1] ?? addr).trim();
+  return parserForSenderDomain((/@([^>\s]+)/.exec(addr)?.[1] ?? addr).trim());
+}
+
+/** Dominio del remitente (ya en minúsculas, sin la parte local) → parser. Pura. */
+export function parserForSenderDomain(domain: string): EmailParser["name"] {
   if (domain.endsWith("linkedin.com")) return "linkedin";
   if (domain.endsWith("getonbrd.com") || domain.endsWith("getonboard.com")) return "getonboard";
   if (domain === "indeed.com" || domain.endsWith(".indeed.com")) return "indeed";
+  // R11-3 (ADR-035): Bumeran manda desde bumeran.com. Dominio exacto o subdominio, no
+  // `endsWith("bumeran.com")`, que aceptaría `notbumeran.com`. ZonaJobs no: sin esqueleto propio.
+  for (const d of ["bumeran.com", "bumeran.com.ar"]) {
+    if (domain === d || domain.endsWith("." + d)) return "bumeran";
+  }
   return "generic";
 }
 
@@ -73,4 +83,5 @@ export const EMAIL_PARSERS: Partial<Record<EmailParser["name"], EmailParser>> = 
   linkedin: linkedinParser,
   getonboard: getonboardParser,
   indeed: indeedParser,
+  bumeran: bumeranParser,
 };
