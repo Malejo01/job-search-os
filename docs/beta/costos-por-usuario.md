@@ -1,24 +1,29 @@
 # Costos por usuario de la beta, verificados contra el código
 
-**Fecha:** 2026-11-06 · **Código leído:** `main` en `e7e4767` · **Alcance:** análisis de solo lectura. No se corrió seed, no se tocó ninguna base y no se usaron credenciales, así que **no hay datos reales de `llm_calls`**: los tokens salen de los prompts, de las mediciones que ya están en los docs y de supuestos marcados. Para la tarea de Notion «Verificar contra el código los costos por usuario de la beta» (entregable: cargar esto en «Costos y stack»).
+**Fecha:** 2026-11-12 · **Código leído:** `main` en `d62cd33` (R5-C11; la versión del 2026-11-06 leía `e7e4767`) · **Alcance:** análisis de solo lectura. No se corrió seed, no se tocó ninguna base y no se usaron credenciales, así que **no hay datos reales de `llm_calls`**: los tokens salen de los prompts, de las mediciones que ya están en los docs y de supuestos marcados. Para la tarea de Notion «Verificar contra el código los costos por usuario de la beta» (entregable: cargar esto en «Costos y stack»).
 
-**Cómo leer las marcas:** **[C]** lo dice el código · **[D]** lo dice un doc del repo · **[W]** página oficial consultada el 2026-11-06 (URL en §2) · **[S]** supuesto mío, con su fórmula · **[?]** a confirmar, no lo inventé.
+**Qué cambió el 12/11.** Producción pasó `evaluate_job` a `claude-sonnet-5-5` (USD 2 entrada / 10 salida por Mtok), con respaldo `gemini-3.5-flash` (USD 1,5 / 9), `max_tokens` 8192 y thinking `low` **[D: pedido del 12/11; el seed del repo todavía dice Gemini, `max_tokens` 2048 y `minimal`; lo alinea el PR `ronda/r5-c11-routing`]**. Todo lo que dependía de la tarifa de Gemini para evaluar (§3.1 a §3.3, §5) se **recalcula en §3.5 y §5.5**; esas secciones viejas quedan como referencia de lo que valía hasta el 11/11.
+
+**Cómo leer las marcas:** **[C]** lo dice el código (archivo:línea) · **[D]** lo dice un doc del repo o un pedido de Mauro · **[W]** página oficial consultada el 2026-11-06 (URL en §2; no se volvió a consultar el 12/11) · **[S]** supuesto mío, con su fórmula · **[?]** a confirmar por Mauro, no lo inventé.
 
 ## 0. Resumen
 
+Con `evaluate_job` en Sonnet 5.5 (aviso de 4 KB, prompt `v1.3.4`), cotización de referencia **ARS 1.570 por dólar (oficial venta, dolarapi.com, 2026-11-06; no se actualizó: confirmar el 12/11)**. El thinking de `low` no se puede medir leyendo código: se presentan tres escenarios de salida facturada (A: sin thinking extra, B: +1.000 tokens, C: +3.000 tokens).
+
 | Qué | Cifra | De dónde |
 |---|---|---|
-| Costo por evaluación con el prompt de producción (`evaluate_job@v1.3.4`, `gemini-3.5-flash`, thinking `minimal`) | **USD 0,0105 / 0,0116 / 0,0154** (aviso de 2 / 4 / 10 KB). No es USD 0,0068 | §3.1 |
-| Costo variable por persona y mes (LLM, único costo variable real) | **bajo USD 1,04 · medio USD 2,67 · alto USD 12,22** · mezcla 60/30/10: **USD 2,65** | §3.3 |
-| Idem en pesos (dólar oficial venta 1.570) | bajo ARS 1.639 (8 % de 20.000) · medio ARS 4.184 (21 %) · alto ARS 19.187 (**96 %**) | §5.1 |
+| Costo por evaluación (aviso de 4 KB) | **A USD 0,0145 · B 0,0245 · C 0,0445**. Techo por llamada con `max_tokens` 8192: **USD 0,092** | §3.5 |
+| Costo variable por persona y mes, mezcla 60/30/10 | **A USD 3,30 · B 5,31 · C 9,33** (ARS 5.180 / 8.330 / 14.650) | §3.5 |
+| Usuarios activos 10 / 25 / 50, caso B: LLM por mes | **USD 53 / 133 / 265** | §3.5 |
+| Gasto global por día con 25 usuarios, caso B | **USD 4,4**: pasa el `LLM_DAILY_CAP_USD = 4` del runbook y el default de 2 (**D16**) | §3.5 |
+| Costo total por usuario y mes (LLM + fijos), caso B | **N=10: USD 8,58 (ARS 13.470) · N=25: USD 6,62 (ARS 10.390) · N=50: USD 6,55 (ARS 10.290)** | §5.5 |
 | Techo duro por persona (tope de código) | **USD 1 por día = USD 30 por mes** (`LLM_USER_DAILY_CAP_USD`), más que el precio | §3.4 |
-| Fijos mensuales | mínimo **USD 1,6** (incumple términos de Vercel) · recomendado **USD 31,5** · alto **USD 61,0** | §4 |
-| Fijos por persona, recomendado | **USD 2,10** con 15 y **USD 1,57** con 20 | §4 |
+| Fijos mensuales | mínimo **USD 1,6** (incumple términos de Vercel) · recomendado **USD 32,7** · alto **USD 62,3** (la demo semanal sube con Sonnet) | §4 |
 | Comisión de Mercado Pago (Link de pago, cobro al instante) | **6,29 %** = ARS 1.258 por cobro de 20.000; ARS 1.522 si además lleva IVA [?] | §5 |
-| Margen de la cohorte (1 becado + 2 al 50 % + resto a ARS 20.000), fijos recomendados, dólar de costos 1.570 | **N=15: ARS 131.000 (51 %) con uso medio · N=20: ARS 204.000 (57 %)**. Con todos en uso alto, **negativo** | §5.3 |
+| Margen de contribución a ARS 20.000, todos pagan, caso B | **N=10: 26 % · N=25: 42 % · N=50: 42 %** del ingreso bruto | §5.5 |
 | Referencia «USD 15» del plan | A hoy, ARS 20.000 son **USD 12,6 a 12,7**, no 15 | §5 |
 
-Lo que más mueve el resultado: (1) el costo por evaluación está subestimado en los docs por un cambio de prompt; (2) los topes por plan **no** frenan las evaluaciones por email reenviado ni por pegar un aviso, solo el tope diario en USD; (3) con cobro, Vercel Hobby deja de ser una opción.
+Lo que más mueve el resultado: (1) el thinking de Sonnet se factura como salida a USD 10 por Mtok y es la incógnita más cara: hay que medirlo con `pnpm llm:spend` en los primeros días de tráfico; (2) los topes por plan **no** frenan las evaluaciones por email reenviado ni por pegar un aviso, solo el tope diario en USD; (3) los topes diarios de dólares de hoy (2 por defecto, 4 del runbook) quedan chicos para 25 usuarios; (4) con cobro, Vercel Hobby deja de ser una opción.
 
 ## 1. Inventario: qué consume plata
 
@@ -26,10 +31,10 @@ Lo que más mueve el resultado: (1) el costo por evaluación está subestimado e
 
 | Tarea | Primario → respaldo (USD por Mtok entrada/salida) | ¿Se llama en producción con datos de personas? | Dónde | Quién la dispara |
 |---|---|---|---|---|
-| `evaluate_job` | gemini-3.5-flash, thinking `minimal`, `max_tokens` 2048 (1,50/9,00) → claude-haiku-4-5 (1/5) | **Sí. Es el gasto principal** | `packages/adapters/src/worker/evaluate-job.ts:295`; prompt vigente `evaluate_job@v1.3.4` (`DEFAULT_PROMPT_VERSIONS` en `llm/client.ts`) | Cron cada 6 h (50 por corrida, `apps/web/app/api/cron/evaluate/route.ts`); evaluación inmediata al pegar JD (`apps/web/lib/evaluate-now.ts`); las 9 primeras del onboarding y los cambios de skills o puesto (`apps/web/lib/pool-reassign.ts`); asignación diaria del pool (`packages/adapters/src/pool/daily.ts`); avisos que llegan por email reenviado (`inbound/handle.ts` → cola) |
+| `evaluate_job` | **Seed del repo:** gemini-3.5-flash, thinking `minimal`, `max_tokens` 2048 (1,50/9,00) → claude-haiku-4-5 (1/5) [C: `model_routing.json:2`]. **Producción desde el 12/11:** claude-sonnet-5-5 (2/10) → gemini-3.5-flash (1,5/9), `max_tokens` 8192, thinking `low` [D] | **Sí. Es el gasto principal** | `packages/adapters/src/worker/evaluate-job.ts:295`; prompt vigente `evaluate_job@v1.3.4` (`DEFAULT_PROMPT_VERSIONS`, `llm/client.ts:26`). `max_tokens` y thinking llegan del ruteo (`client.ts:156-158`) y el thinking se factura como salida (`client.ts:64`) | Cron cada 6 h (50 por corrida, `apps/web/app/api/cron/evaluate/route.ts`); evaluación inmediata al pegar JD (`apps/web/lib/evaluate-now.ts`); las 9 primeras del onboarding y los cambios de skills o puesto (`apps/web/lib/pool-reassign.ts`); asignación diaria del pool (`packages/adapters/src/pool/daily.ts`); avisos que llegan por email reenviado (`inbound/handle.ts` → cola) |
 | `draft_application_answers` | claude-sonnet-5-5 (2/10) → gemini-3.5-flash (1,50/9,00) | **Sí, a pedido** (botón de borradores de un formulario, `jobs/[id]/form-review.tsx`) | `packages/adapters/src/applicant/drafts.ts:340` | La persona. Sin `ANTHROPIC_API_KEY` cae a Gemini (ADR-025) [?] |
-| `cv_interview`, `cv_write` | gemini-3.5-flash minimal (1,50/9,00) → claude-haiku-4-5 / claude-sonnet-5-5 | **Solo con `CV_CHAT_ENABLED=all`** (opcional en el runbook §1.5); las filas hay que cargarlas a mano en Neon | `packages/adapters/src/cv-chat/{interview,write}.ts` | La persona, «Armá tu CV con IA» |
-| `assistant_chat` | **sin fila en el seed** (falla cerrado, `no_route`) | No. Solo admins (`ASSISTANT_ENABLED=admin`) | `apps/web/app/api/assistant/route.ts` | Admin |
+| `cv_interview` (prompt `cv_interview@v2`, `cv-chat/interview.ts:29`), `cv_write` | gemini-3.5-flash minimal (1,50/9,00) → claude-haiku-4-5 / claude-sonnet-5-5 | **Solo con `CV_CHAT_ENABLED=all`** (opcional en el runbook §1.5); las filas hay que cargarlas a mano en Neon | `packages/adapters/src/cv-chat/{interview,write}.ts` | La persona, «Armá tu CV con IA» |
+| `assistant_chat` | claude-sonnet-5-5 (2/10) → gemini-3.5-flash, `max_tokens` 600 [C: `model_routing.json:11`, agregada por R4-14; en Neon la fila la carga Mauro]. Sin fila en Neon falla cerrado (`client.ts:249`) | Solo admins y la lista de testers (`ASSISTANT_ENABLED=admin` o `testers`, `agent/gate.ts`); prompt `assistant_chat.v1` (6.340 caracteres) | `apps/web/app/api/assistant/route.ts` | Admin y testers |
 | `extract_skills` | gemini-3.5-flash (1,50/9,00) | **No**. Solo la CLI `pnpm skills:extract` (`packages/adapters/src/skills/cli.ts`, `candidates-cli.ts`) | — | Mauro, a mano |
 | `parse_email_fallback`, `recruiter_message`, `skill_interview`, `judge_calibration` | tienen fila | **No hay ninguna llamada** en `apps/` ni `packages/` fuera de tests y evals | — | — |
 | Demo semanal | mismo evaluador, 3 perfiles inventados | Sí, fijo, no por persona | `/api/cron/demo`, lunes 07:00 UTC; tope `DEMO_WEEKLY_CAP_USD = 1` (`packages/adapters/src/demo/run.ts`) | Cron |
@@ -50,8 +55,8 @@ La tabla de la lectura de CV (`extract_cv_profile`) tampoco tiene fila ni está 
 | Emails entrantes por persona | 100 por hora (sin tope diario) | Ingesta | `packages/adapters/src/inbound/handle.ts` |
 | CV con IA, por persona | 40 turnos/mes; **CV por mes = máx(plan, 3): 5 con plan pago, 3 gratis**; USD 0,30/día de entrevista; 5 charlas nuevas/día; USD 0,15 por conversación; 25 turnos por charla | La charla de CV | `packages/pipeline/src/cv-chat/limits.ts`, `plans.ts` (`CV_CHAT_BETA_LIMITS`) |
 | CV con IA, global | `CV_CHAT_DAILY_CAP_USD`, USD 1 por defecto (el runbook pide cargarlo a propósito) | idem | `cv-chat/limits.ts` |
-| Reservas del CV (máximo por paso) | USD 0,025 por turno (**USD 0,03 con R4-16, PR #439**), USD 0,07 por redacción | Evita pasarse con pedidos simultáneos | idem |
-| Asistente | 3 charlas/mes gratis, 30 pago, USD 0,12 por conversación | **No aplica**: solo admins | `packages/pipeline/src/agent/limits.ts` |
+| Reservas del CV (máximo por paso) | USD 0,03 por turno (R4-16, ya en `main`), USD 0,07 por redacción [C: `cv-chat/limits.ts:24-25`] | Evita pasarse con pedidos simultáneos | idem |
+| Asistente | 3 charlas/mes gratis, 30 pago, USD 0,12 por conversación | Solo admins y testers (`ASSISTANT_ENABLED=testers`, `agent/gate.ts`): sin personas pagas, costo de unos pocos testers | `packages/pipeline/src/agent/limits.ts` |
 
 ### 1.3 Lo que no es LLM
 
@@ -72,9 +77,9 @@ Consultadas el **2026-11-06**. Ninguna de las páginas muestra fecha de actualiz
 
 | Concepto | Precio | Fuente | ¿Coincide con el seed? |
 |---|---|---|---|
-| gemini-3.5-flash | entrada USD 1,50 · salida (incluye thinking) USD 9,00 por Mtok; Batch/Flex 0,75 / 4,50 | https://ai.google.dev/gemini-api/docs/pricing | Sí |
+| gemini-3.5-flash | entrada USD 1,50 · salida (incluye thinking) USD 9,00 por Mtok; Batch/Flex 0,75 / 4,50 | https://ai.google.dev/gemini-api/docs/pricing | Sí (hoy respaldo de `evaluate_job`) |
 | gemini-3.1-flash-lite | 0,25 / 1,50 | idem | Sí |
-| claude-sonnet-5-5 | 2 / 10 | https://platform.claude.com/docs/en/about-claude/pricing | Sí |
+| claude-sonnet-5-5 | 2 / 10 (el thinking se factura como salida) | https://platform.claude.com/docs/en/about-claude/pricing | Sí. **Primario de `evaluate_job` en producción desde el 12/11** |
 | claude-haiku-4-5 | 1 / 5 (Haiku 5.5 cuesta 0,10 / 0,50 y no está en el ruteo, ADR-025) | idem | Sí |
 | Vercel | Hobby USD 0 («personal, non-commercial use»); **Pro USD 20/mes** con USD 20 de crédito de uso; funciones desde USD 0,60 por millón de invocaciones; CPU activa desde USD 0,128 por hora | https://vercel.com/pricing | — |
 | Neon Free | USD 0 · 100 CU-hours · **1 GB** de almacenamiento por proyecto · 5 GB de egress; al agotar CU-hours o egress **el cómputo se suspende** hasta el período siguiente | https://neon.com/pricing | — |
@@ -89,6 +94,8 @@ Consultadas el **2026-11-06**. Ninguna de las páginas muestra fecha de actualiz
 **Parámetros de tipo de cambio** (los dejo como variables): `TC_costo` = pesos por dólar con que Mauro paga los servicios en USD; `TC_ingreso` = con el que valúa los pesos cobrados. En las cuentas de abajo uso `TC_costo = 1.570` (oficial venta) y `TC_costo = 2.041` (la cotización «Tarjeta» del agregador, por si estos servicios se pagan con tarjeta en dólares; no detalla qué impuestos incluye [?]), siempre con la fuente y fecha de arriba. Si Mauro paga con otro dólar, se recalcula con las fórmulas.
 
 ## 3. Costo variable por persona y mes (LLM)
+
+> **§3.1 a §3.4 valen para `evaluate_job` en Gemini 3.5 Flash con thinking `minimal` (hasta el 11/11).** Los tokens de entrada, el volumen por escenario y los costos de borradores y CV siguen sirviendo; el costo por evaluación y los totales vigentes están en **§3.5**.
 
 ### 3.1 Tokens y costo de una evaluación
 
@@ -124,7 +131,7 @@ Los docs usan USD 0,0068 (PRD §6, `LLM_COSTOS.md`, `capacidad.md`): es v1.3.1 (
 | Borradores de formulario por mes (Sonnet 5.5: `(5.500 × 2 + 800 × 10) / 1e6 = USD 0,019`) [S] | 0 | 4 | 20 |
 | CV con IA (turno `(1.200 × 1,5 + 60 × 9) / 1e6 = USD 0,00234`; redacción `(1.500 × 1,5 + 1.000 × 9) / 1e6 = USD 0,01125`) [S] | 0 | 20 turnos + 1 redacción | 40 turnos + 5 redacciones (el máximo del plan pago) |
 
-Los tokens de borradores salen de la plantilla (3.803 caracteres) más hechos del perfil más aviso (`MAX_JD_CHARS = 8000` en `drafts.ts`) más preguntas; los del CV, de las plantillas de 3.305 y 2.789 caracteres. **No hay medición real de ninguna de las dos tareas**; `docs/LLM_COSTOS.md` estima los turnos de CV en USD 0,0015 con 4 caracteres por token y salidas del fake (**con R4-16, PR #439**: el prompt `cv_interview@v2` sube la entrada de ~800 a ~1160 tokens por turno, ~USD 0,002 por turno y ~USD 0,03 a ~0,039 por CV con Gemini; las repreguntas cuentan como turno; a confirmar con `pnpm llm:spend`). Sin la clave de Anthropic, un borrador sale por Gemini: USD 0,0155.
+Los tokens de borradores salen de la plantilla (3.803 caracteres) más hechos del perfil más aviso (`MAX_JD_CHARS = 8000` en `drafts.ts`) más preguntas; los del CV, de las plantillas de 3.305 y 2.789 caracteres. **No hay medición real de ninguna de las dos tareas**; `docs/LLM_COSTOS.md` estima los turnos de CV en USD 0,0015 con 4 caracteres por token y salidas del fake (**R4-16, ya en `main`**: el prompt `cv_interview@v2` (4.774 caracteres) sube la entrada de ~800 a ~1160 tokens por turno, ~USD 0,002 por turno y ~USD 0,03 a ~0,039 por CV con Gemini; las repreguntas cuentan como turno; a confirmar con `pnpm llm:spend`). Sin la clave de Anthropic, un borrador sale por Gemini: USD 0,0155.
 
 ### 3.3 Resultado
 
@@ -143,6 +150,50 @@ Gasto global por día con 25 cuentas (15 a 20 que pagan, 3 becadas, 2 de prueba,
 - **Techo duro.** El único freno de las evaluaciones por email y por pegar aviso es `LLM_USER_DAILY_CAP_USD = 1` (chequeo antes de la llamada, puede pasarse por una): una persona puede llegar a **USD 30 por mes** (ARS 47.100 a 1.570), más que el precio de ARS 20.000. Es un techo, no un escenario.
 - **Gratis no es USD 0.** `assignPoolDaily` recorre todos los perfiles con criterios activos sin mirar el plan [C: `pool/daily.ts`]. Quien vence queda con 3 evaluaciones por día: `3 × 30 × 0,0105 = USD 0,95` por mes por persona que ya no paga.
 
+### 3.5 Desde el 12/11: `evaluate_job` con Sonnet 5.5, thinking `low`, `max_tokens` 8192
+
+**Qué se sabe y qué no.**
+
+- Tarifas [D, pedido del 12/11, coinciden con §2]: Sonnet 5.5 USD 2 entrada / 10 salida por Mtok; respaldo Gemini 3.5 Flash USD 1,5 / 9.
+- Entrada: la misma fórmula de §3.1, `T_in = 3.895 + aviso / 3,6` (v1.3.4 sin cambios, `client.ts:26`): **4.449 / 5.004 / 6.669** tokens para avisos de 2 / 4 / 10 KB. Es un conteo con el tokenizador de Gemini [S]; el de Anthropic puede dar más tokens para el mismo texto [?], y cada +10 % de entrada suma ≈ USD 0,001 por evaluación.
+- Salida: el thinking `low` **se factura como salida** (`client.ts:64`: `outputTokens` ya incluye el thinking) y **no tengo ninguna medición** de cuánto razona Sonnet 5.5 en `low` con este prompt [?]. Antes (`minimal`) la salida medida era 418 a 433 tokens y no había thinking [D: `LLM_COSTOS.md`]. Tres escenarios [S]:
+  - **A:** `low` casi no razona: salida facturada = la visible de antes (430 / 450 / 600).
+  - **B:** `low` agrega 1.000 tokens de razonamiento.
+  - **C:** `low` agrega 3.000 tokens.
+- Techo por llamada: con `max_tokens` 8192 una llamada que agote el presupuesto cuesta `5.004 × 2 + 8.192 × 10 = USD 0,092` (aviso de 4 KB). Si la salida se corta, el JSON falla el parseo y la evaluación se reintenta o va al respaldo, pagando dos veces (`error-code.ts:64`).
+
+`C_eval = (T_in × 2 + T_out × 10) / 1.000.000`
+
+| Aviso | `T_in` | A | B | C |
+|---|---|---|---|---|
+| 2 KB | 4.449 | 0,0132 | 0,0232 | 0,0432 |
+| **4 KB** | 5.004 | **0,0145** | **0,0245** | **0,0445** |
+| 10 KB | 6.669 | 0,0193 | 0,0293 | 0,0493 |
+
+**Por persona y mes**, con los mismos escenarios de uso de §3.2 (bajo 99 evaluaciones, medio 219, alto 759; bajo con aviso de 2 KB, medio de 4 KB y alto de 10 KB) y los mismos borradores y CV de §3.3 (medio USD 0,134, alto USD 0,530 por mes; bajo 0). USD:
+
+| Uso | A | B | C |
+|---|---|---|---|
+| Bajo | 1,31 | 2,30 | 4,28 |
+| Medio | 3,31 | 5,50 | 9,88 |
+| Alto | 15,21 | 22,80 | 37,98 (pasa el tope de USD 30 por mes: el tope de 1 por día frena antes) |
+| **Mezcla 60 / 30 / 10** | **3,30** | **5,31** | **9,33** |
+
+**Por escenario de usuarios activos** (mezcla; USD por mes; entre paréntesis, gasto global por día = mes / 30):
+
+| Usuarios activos | A | B | C |
+|---|---|---|---|
+| 10 | 33 (1,10) | 53 (1,77) | 93 (3,11) |
+| 25 | 82 (2,75) | 133 (4,42) | 233 (7,77) |
+| 50 | 165 (5,50) | 265 (8,85) | 466 (15,55) |
+
+**Lo que esto implica para los topes** [C: `spend.ts:28` y `:41`]:
+
+- `LLM_DAILY_CAP_USD` por defecto es 2 y el runbook sugiere 4. Con 25 usuarios en el caso B el gasto medio ya es USD 4,4 por día: el cron de evaluación se frena por tope todos los días y las evaluaciones pendientes pasan al día siguiente. Con 10 usuarios y el caso B (USD 1,8 por día) el default de 2 queda justo. **D16.**
+- `LLM_USER_DAILY_CAP_USD` = 1 equivale a 40 evaluaciones por día por persona en el caso B (`1 / 0,0245`) y a 22 en el C. El alta del onboarding (9 evaluaciones) cuesta USD 0,13 a 0,40 por persona, una vez.
+- La demo semanal (3 perfiles, tope `DEMO_WEEKLY_CAP_USD = 1` en `demo/run.ts:32`) usaba USD 0,26 por corrida con Gemini [D: comentario de `cron.yml`]; con la tarifa nueva escala ×2 aprox. [S: razón `0,0245 / 0,0116`], unos USD 0,55 por corrida y USD 2,4 por mes, con tope duro de 4,33.
+- **Respaldo.** Si Anthropic no responde o `ANTHROPIC_API_KEY` no está cargada, el proveedor primario queda «no disponible» (`providers.ts:26-31`) y la llamada va al respaldo Gemini (`client.ts:274-288`) con el mismo thinking `low`: el costo vuelve a ser el de Gemini con thinking (la salida también se factura a USD 9), no más barato que el caso A. Una falla de parseo por corte (`max_tokens`) paga el primario y el respaldo.
+
 ## 4. Costos fijos mensuales
 
 | Rubro | Mínimo | Recomendado | Alto | Fórmula y nota |
@@ -150,21 +201,24 @@ Gasto global por día con 25 cuentas (15 a 20 que pagan, 3 becadas, 2 de prueba,
 | Vercel | 0 (Hobby) | **20** (Pro) | 20 | [W] Hobby es «personal, non-commercial use»: con cobro corresponde Pro. El crédito de USD 20 incluido probablemente cubre las funciones: **a confirmar en *Usage*** [?] |
 | Neon | 0 (Free) | **9,89** (Launch, 12 h activas por día) | 19,43 (24 h) | Launch: `0,25 CU × horas_activas × 0,106 + 1 GB × 0,35`; `12 h × 30 = 360 h → 90 CU-h → 9,54 + 0,35`; `24 h → 720 h → 180 CU-h → 19,08 + 0,35`. [S: mínimo de 0,25 CU]. **Riesgo del Free:** 100 CU-hours = 400 h a 0,25 CU, y al agotarlas **se suspende el cómputo** (la app cae). Los crons cada 6 h y las visitas pueden mantener la base despierta más de 400 h; ningún doc lo estima [?] |
 | Resend | 0 (Free) | 0 (Free) | 20 (Pro) | Pro solo si los entrantes cuentan en el cupo de 100/día [?] o si se supera. Salientes: recuperación (~25/mes) + vencimientos (~25) + bienvenida (~25) + soporte, bien debajo de 3.000/mes |
-| Demo semanal | 1,13 | 1,13 | 1,13 | `0,26 × 52 / 12` (USD 0,26 por corrida según el comentario de `cron.yml`, medido con otro prompt); tope `1 × 52 / 12 = 4,33` |
+| Demo semanal | 1,13 | 2,40 | 2,40 | Mínimo: `0,26 × 52 / 12` (USD 0,26 por corrida con Gemini, comentario de `cron.yml`). Con Sonnet 5.5 (§3.5): `0,55 × 52 / 12 = 2,38` [S]; tope duro `1 × 52 / 12 = 4,33` |
 | Dominio | 0,45 | 0,45 | 0,45 | `ARS 8.500 / 12 / 1.570` con una tarifa de 2024 [?] |
 | GitHub Actions, fuentes, monitores gratis (UptimeRobot / Better Stack) | 0 | 0 | 0 | |
-| **Total** | **1,58** | **31,47** | **61,01** | |
+| **Total** | **1,58** | **32,74** | **62,28** | Con la demo a tarifa Sonnet (antes 31,47 y 61,01). Total recomendado `20 + 9,89 + 0 + 2,40 + 0,45 = 32,74`; alto `20 + 19,43 + 20 + 2,40 + 0,45 = 62,28` |
 
 **Almacenamiento por persona** [S, a medir con `docs/neon/neon-stats.sql`]: emails reenviados `90 por mes × 10 a 35 KB` (las fixtures reales de `inbound/fixtures` miden 4 a 33 KB) = 0,9 a 3,2 MB; avisos propios `200 × (4 KB de aviso + 3 KB de evaluación)` = 1,4 MB. Total **2 a 5 MB por persona y mes**, o 40 a 100 MB por mes con 20 personas, contra 1 GB del Free [W]. El pool (3.000 a 6.000 avisos de 30 días, `auditoria-consultas.md`) suma unos 20 a 40 MB. No es un costo mientras dure el Free, pero los crudos de email no se purgan.
 
 **Neon, transferencia:** `capacidad.md` estima 1,5 a 4 GB por mes contra 5 GB del Free (cotas de ese doc, no las remedí). En Launch vienen 500 GB incluidos: ahí el egress no es costo.
 
-**Peso por persona de los fijos** (`F / N`, USD; entre paréntesis ARS a 1.570):
+**Peso por persona de los fijos** (`F / N`, USD; entre paréntesis ARS a 1.570). Con los fijos de 12/11 (recomendado 32,74; alto 62,28):
 
 | | Mínimo | Recomendado | Alto |
 |---|---|---|---|
-| N = 15 | 0,11 (165) | **2,10** (3.294) | 4,07 (6.386) |
-| N = 20 | 0,08 (124) | **1,57** (2.470) | 3,05 (4.789) |
+| N = 10 | 0,16 (248) | **3,27** (5.140) | 6,23 (9.778) |
+| N = 25 | 0,06 (99) | **1,31** (2.056) | 2,49 (3.911) |
+| N = 50 | 0,03 (50) | 0,65 (1.028) | **1,25** (1.956) |
+
+(a 50 usuarios se usa la columna «alto»: Resend Free no alcanza con 100 a 200 correos entrantes por día si cuentan en el cupo [?] y Neon trabaja más de 12 h.)
 
 ## 5. Margen
 
@@ -231,6 +285,32 @@ No conozco la composición de los combos de Ani; estos dos son **ilustrativos** 
 
 Con TC 2.041, el combo B da 44.615 / 34.690 / 34.794 / −23.822 por los 3 meses. Un pago único trae un riesgo extra: el uso alto de los meses 2 y 3 no se compensa con ingresos nuevos.
 
+### 5.5 Recalculado con `evaluate_job` en Sonnet 5.5 (12/11)
+
+> §5.1 a §5.4 usaron el costo de Gemini (§3.3). Valen como referencia de la estructura de la cuenta, no como números vigentes.
+
+Cotización de referencia: **ARS 1.570 por dólar, oficial venta, dolarapi.com, 2026-11-06** (la última que tengo; no pude consultarla el 12/11: **a actualizar por Mauro**). Comisión de Mercado Pago 6,29 % (sin IVA [?]) → neto por cobro de ARS 20.000: **ARS 18.742**. Cohorte simplificada: **todas las personas pagan el precio completo** (sin becado ni descuentos, que cuestan lo mismo que un pagante, §5.1); fijos de §4 (recomendados a 10 y 25 usuarios, altos a 50).
+
+`margen = N × 18.742 − N × variable_ARS − fijos_ARS` · variable por persona (mezcla, §3.5): A ARS 5.178, B ARS 8.334, C ARS 14.645 · fijos: ARS 51.402 (N = 10 y 25) y 97.780 (N = 50).
+
+| Usuarios activos | Ingreso bruto | Margen A | Margen B | Margen C |
+|---|---|---|---|---|
+| 10 | 200.000 | 84.238 (42 %) | 52.678 (26 %) | **−10.432 (−5 %)** |
+| 25 | 500.000 | 287.698 (58 %) | 208.798 (42 %) | 51.023 (10 %) |
+| 50 | 1.000.000 | 580.420 (58 %) | 422.620 (42 %) | 107.070 (11 %) |
+
+Precio de equilibrio por persona (`(variable + F / N) × 1.570 / (1 − 0,0629)`, ARS): A **11.010 / 7.721 / 7.613**, B **14.378 / 11.088 / 10.980**, C **21.113 / 17.823 / 17.715** (N = 10 / 25 / 50). En el caso C con 10 usuarios el precio de ARS 20.000 no cubre el costo.
+
+Costo total por usuario y mes (LLM + fijos), en dólares y en pesos a 1.570:
+
+| Usuarios activos | A | B | C |
+|---|---|---|---|
+| 10 | 6,57 (10.318) | 8,58 (13.474) | 12,60 (19.785) |
+| 25 | 4,61 (7.235) | 6,62 (10.390) | 10,64 (16.702) |
+| 50 | 4,54 (7.134) | 6,55 (10.290) | 10,57 (16.601) |
+
+Un solo usuario en uso alto del caso B cuesta USD 22,80 por mes (ARS 35.800), más que el precio: los topes por plan no lo frenan (§3.4); solo el tope de USD 1 por día.
+
 ## 6. Discrepancias entre los docs y el código
 
 | # | Qué dice el doc | Qué hace el código | Impacto |
@@ -245,13 +325,33 @@ Con TC 2.041, el combo B da 44.615 / 34.690 / 34.794 / −23.822 por los 3 meses
 | D8 | `capacidad.md` §5 y runbook §3.2 asumen Vercel **Hobby**; `docs/DEPLOY.md` opción 4: «Pro no se justifica hoy» | Con cobro en pesos corresponde Pro [W: Hobby es «personal, non-commercial use»] | +USD 20 por mes en fijos, previsto en §4 |
 | D9 | `docs/AUDITORIA_2026-09-11.md` #12: «Neon Free de 0,5 GB». `capacidad.md` §3 solo mira el egress | La página de Neon dice hoy **1 GB** por proyecto y **100 CU-hours**; al agotar cualquiera de los dos topes el cómputo se suspende o se bloquean las escrituras | Falta estimar CU-hours; es el riesgo operativo más alto de seguir en Free |
 | D10 | `docs/DEPLOY.md` opción 3: «los minutos de Actions de un repo privado alcanzan» | El repo es público: Actions no se cobra | Ninguno |
-| D11 | `plans.ts` da 3/30 charlas por mes de asistente y `limitsText` las lista si `enabled.assistant` | El asistente es solo admin (`ASSISTANT_ENABLED=admin`) y `assistant_chat` no tiene fila en el seed (falla cerrado) | Hoy no cuesta ni se vende; no hay que mostrarlo en el combo |
+| D11 | `plans.ts` da 3/30 charlas por mes de asistente y `limitsText` las lista si `enabled.assistant` | El asistente es solo admin y testers (`ASSISTANT_ENABLED=admin` o `testers`, `agent/gate.ts`); `assistant_chat` tiene fila en el seed desde R4-14 (en Neon falla cerrado hasta que Mauro la cargue) | Hoy no se vende; no hay que mostrarlo en el combo |
 | D12 | `plans.ts` (`priceUsdRef: 15`), runbook y `OPERACION.md`: ARS 20.000 = USD 15 | Implica 1.333 pesos por dólar. Con las cotizaciones de §2, ARS 20.000 son USD 12,59 a 12,74 (bolsa y oficial venta) y USD 9,80 a tarjeta | La referencia en dólares sobrevalora el precio 18 a 19 % |
 | D13 | Runbook y notas hablan de «precio fundador» y «50 %» | `fundador` y `pase_3_meses` tienen `priceArs: null` y `listed: false`; hay una sola variable de pago listada (`MP_LINK_LISTA`). Un descuento es otro link de Mercado Pago más una activación manual como «Pagó» | Sin ADR ni código para precios por persona |
 | D14 | Runbook §2.3: «si pasa de USD 1,5 en un día, mirá de quién es» | Con 25 cuentas, el uso medio ya gasta USD 2,2 por día | El umbral de alerta saltaría todos los días; conviene 3 a 4 |
 | D15 | `.env.example` y `spend.ts`: `LLM_DAILY_CAP_USD` = 2 por defecto | Si Mauro no carga el 4 del runbook, el uso medio de 25 cuentas ya lo toca | Ver D14 |
+| D16 | Runbook y `capacidad.md`: `LLM_DAILY_CAP_USD` = 4 «cubre» a 25 cuentas | Con `evaluate_job` en Sonnet 5.5 (12/11) el gasto medio de 25 cuentas es USD 2,8 a 7,8 por día según cuánto razone `low` (§3.5) | El 4 se alcanza todos los días en el caso B. Subirlo a 6 a 8 o medir primero con `pnpm llm:spend` |
+| D17 | `model_routing.json:2` (seed): Gemini, `max_tokens` 2048, `minimal` | Producción usa Sonnet 5.5, 8192 y `low` desde el 12/11 | Seed desalineado; lo corrige el PR `ronda/r5-c11-routing` (sin aplicar nada en Neon) |
 
-## 7. Qué quedó «a confirmar»
+## 7. Los 11 puntos de `pasos-manuales-r4.md` §9, respondidos con el código (12/11)
+
+Qué responde el código, qué queda como supuesto y qué tiene que confirmar Mauro. Ningún dato de esta tabla sale de una base ni de una consola.
+
+| # | Punto | Lo que dice el código | Estado |
+|---|---|---|---|
+| 1 | Tokens reales por evaluación (`evaluate_job@v1.3.4`) | Cada llamada guarda `tokens_in`, `tokens_out` y `tokens_reasoning` en `llm_calls` (`llm/spend.ts:22-24`, `llm/types.ts:39-41`); `tokens_out` ya incluye el thinking (`client.ts:64`). Con la fórmula de §3.1 la entrada es 5.004 tokens para un aviso de 4 KB [S]. **La salida con Sonnet 5.5 y thinking `low` no se puede deducir del código** (§3.5: tres escenarios) | **A confirmar por Mauro** con `pnpm llm:spend --days 7` o `/settings/metricas` tras unos días con tráfico: es el número que más mueve el costo |
+| 2 | Comisión de Mercado Pago: ¿suma IVA? | El cobro es un link externo (`MP_LINK_LISTA`, `plans.ts:104`), sin API ni webhook: el código no ve la comisión | **A confirmar por Mauro** con un cobro real. Se usa 6,29 % [W, 6/11] y se marca 7,61 % si lleva IVA |
+| 3 | Resend: ¿los entrantes cuentan en el cupo de 100 por día? | Los correos reenviados **entran** por webhook y `GET /emails/receiving/<id>` (`inbound/resend.ts`); tope de 100 por hora por persona (`inbound/handle.ts`), sin tope diario. Las salidas (recuperación, vencimientos 3 días antes, bienvenida, soporte) son pocas decenas por mes. Si cuentan, el volumen es el de los reenvíos de las alertas | **A confirmar por Mauro** (consola de Resend o soporte). Ni el código ni la página de precios lo dicen |
+| 4 | Plan de Vercel y Neon; CU-hours | Los crons los dispara GitHub Actions (`.github/workflows/cron.yml`): ingesta y evaluación cada 6 h (4 por día), mercado y demo los lunes, avisos de plan a las 12:15 UTC; no usan los crons de Vercel. La evaluación procesa hasta 50 mensajes por corrida (`api/cron/evaluate/route.ts:23`, 200 por día). Neon es la única base (ADR-009). El código no dice en qué plan están | **A confirmar por Mauro** (Billing y Monitoring de cada consola). Con cobro, Vercel Hobby no corresponde [W] |
+| 5 | `ANTHROPIC_API_KEY` en producción y filas `cv_*` en Neon | Sin la clave, el proveedor Anthropic queda «no disponible» (`llm/providers.ts:26-31`) y cada llamada cae al respaldo (`client.ts:274-288`); **desde el 12/11 eso incluye `evaluate_job`**. Sin fila en `model_routing`, la tarea falla cerrado con `no_route` (`client.ts:247-251`); el seed no se corre contra Neon (`CLAUDE.md`), así que `cv_interview`, `cv_write` y `assistant_chat` están solo si Mauro las cargó | **A confirmar por Mauro** (variables de Vercel; consulta de solo lectura a `model_routing`) |
+| 6 | Valores de `PRICING_ENABLED`, `LLM_DAILY_CAP_USD`, `LLM_USER_DAILY_CAP_USD`, `CV_CHAT_ENABLED`, `CV_CHAT_DAILY_CAP_USD` | Defaults sin variable: `LLM_DAILY_CAP_USD` 2 (`spend.ts:28`), `LLM_USER_DAILY_CAP_USD` 1 (`spend.ts:41`), `CV_CHAT_DAILY_CAP_USD` 1 (`cv-chat/limits.ts:115`), `CV_CHAT_ENABLED` apagado salvo `all` o `admin` (`limits.ts:123-126`), `PRICING_ENABLED` apagado: el tope del plan no rige y vale `POOL_DAILY_EVAL_PER_USER` = 3 (`pool/limits.ts:21`, `pool/daily.ts:80-86`). Con Sonnet, §3.5 recomienda `LLM_DAILY_CAP_USD` de 6 a 8 para 25 usuarios | **A confirmar por Mauro** (qué hay cargado) |
+| 7 | Costo real de un turno de CV, una redacción y un borrador | Sin cambios de código desde el 6/11 salvo el prompt `cv_interview@v2` (4.774 caracteres): ≈ USD 0,002 a 0,0023 por turno y 0,011 por redacción con Gemini; borrador de USD 0,019 con Sonnet o 0,0155 por Gemini [S, §3.2]. El tope de reserva por turno subió a USD 0,03 (`cv-chat/limits.ts:24`) | **Supuesto.** Medir con `pnpm llm:spend` tras charlas de prueba |
+| 8 | Tarifa del dominio `.com.ar` | No está en el código | **A confirmar por Mauro** (NIC.ar). El dato del doc es de enero de 2024 |
+| 9 | Tipo de cambio con que paga los servicios en dólares | No está en el código. Referencia usada: oficial venta ARS 1.570 (6/11) y «tarjeta» 2.041 | **A confirmar por Mauro** (y actualizar la cotización del 12/11) |
+| 10 | Facturación activa de la clave de Gemini | No está en el código. Desde el 12/11 Gemini es el respaldo de `evaluate_job` y el primario de CV, `extract_skills` y de las demás tareas de Gemini | **A confirmar por Mauro** (consola de Google) |
+| 11 | Impuestos propios, cuentas de admin y prueba, horas de trabajo | No está en el código | **A confirmar por Mauro** con su contador/a |
+
+### 7.1 Lista original del 6/11 (referencia)
 
 1. **Tokens reales por evaluación con v1.3.4 y avisos reales.** Se obtienen con `pnpm llm:spend --days 7` o `/settings/metricas` (por tarea y modelo) en cuanto haya tráfico. La longitud media de aviso (4 KB) viene de un doc.
 2. **IVA en la comisión de Mercado Pago** y fecha de la tarifa: la página oficial muestra 6,29 % sin decir si lleva IVA ni cuándo se actualizó (probar con un cobro real en *Actividad*). Retenciones provinciales e impuestos propios del cobro, fuera de esta cuenta.
@@ -267,7 +367,8 @@ Con TC 2.041, el combo B da 44.615 / 34.690 / 34.794 / −23.822 por los 3 meses
 
 ## 8. Palancas, por si el margen no alcanza (no implementadas; carril rojo)
 
-- **Tope por plan también para las evaluaciones por pegar aviso y email reenviado**, o bajar `LLM_USER_DAILY_CAP_USD` a 0,30 a 0,50 (`0,30 / 0,0116 ≈ 26` evaluaciones por día).
+- **Tope por plan también para las evaluaciones por pegar aviso y email reenviado**, o bajar `LLM_USER_DAILY_CAP_USD` a 0,30 a 0,50 (con Sonnet 5.5, `0,30 / 0,0245 ≈ 12` evaluaciones por día en el caso B).
+- **Ver cuánto razona `low`** antes de abrir la beta: una corrida de prueba de las 9 evaluaciones del onboarding con `pnpm llm:spend` (columna thinking). Si el caso C se confirma, bajar el thinking a `minimal` o `none` en `model_routing` vuelve al costo del caso A sin tocar código.
 - **Dejar de asignar y evaluar a los planes vencidos** o bajarles el tope de pool a 1.
 - **Modo Batch/Flex de Gemini** para la cola del cron (USD 0,75 / 4,50 contra 1,50 / 9,00 [W]): el worker es asíncrono, así que el costo de evaluación podría bajar a la mitad. A medir contra el golden.
 - **Prompt más corto:** la plantilla pesa 2.930 de los ~5.000 tokens de entrada; cada 1.000 caracteres menos ahorran ≈ USD 0,0004 por evaluación.
@@ -277,4 +378,5 @@ Con TC 2.041, el combo B da 44.615 / 34.690 / 34.794 / −23.822 por los 3 meses
 1. Constantes: `packages/db/seeds/model_routing.json`, `packages/pipeline/src/plans.ts`, `packages/pipeline/src/pool/limits.ts`, `packages/adapters/src/llm/spend.ts`, `packages/pipeline/src/cv-chat/limits.ts`.
 2. Tamaños de prompt: `wc -c packages/prompts/*.md`.
 3. Fórmulas: las de las tablas; las cuentas se hicieron con un script de Python de una pasada sin dependencias, no incluido en el repo.
-4. Con datos reales: `pnpm llm:spend --days 7`, `/settings/metricas`, `docs/neon/neon-stats.sql` (solo lectura) y los paneles de Neon, Vercel y Resend. Nada de eso se corrió para este documento.
+4. Las cuentas de §3.5, §4 y §5.5 se rehicieron el 12/11 con las fórmulas de las tablas (aritmética a mano, sin script).
+5. Con datos reales: `pnpm llm:spend --days 7`, `/settings/metricas`, `docs/neon/neon-stats.sql` (solo lectura) y los paneles de Neon, Vercel y Resend. Nada de eso se corrió para este documento.
