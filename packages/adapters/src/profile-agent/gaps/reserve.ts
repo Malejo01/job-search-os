@@ -88,7 +88,7 @@ export async function measureGaps(
     .from(c)
     .where(and(inArray(c.task, [...AGENT_TASKS]), gte(c.createdAt, input.daySince)));
   const live = await q
-    .select({ userId: c.userId, label: c.label, micro: c.tokensOut })
+    .select({ userId: c.userId, label: c.label, micro: c.tokensOut, step: c.model })
     .from(c)
     .where(
       and(
@@ -99,7 +99,10 @@ export async function measureGaps(
   const usd = (rows: typeof live) => rows.reduce((t, r) => t + (r.micro ?? 0), 0) / MICRO_USD;
   const mineLive = live.filter((r) => r.userId === input.userId);
   return {
-    gapTurns: flow?.turns ?? 0,
+    // O-A: las reservas vivas de turnos de esta charla cuentan, así `answer` en paralelo no pasa de 20
+    gapTurns:
+      (flow?.turns ?? 0) +
+      mineLive.filter((r) => r.label === input.label && r.step === "interview").length,
     flowCostUsd: (flow?.usd ?? 0) + usd(mineLive.filter((r) => r.label === input.label)),
     userSpendTodayUsd: (mine?.usd ?? 0) + usd(mineLive),
     dailySpendUsd: (day?.usd ?? 0) + usd(live),
