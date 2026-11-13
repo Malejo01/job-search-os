@@ -1,0 +1,124 @@
+{
+  "meta": {
+    "carrera": "fullstack",
+    "version": "2026-11-12",
+    "descripcion": "Golden sintético de programación (C12, R5): 6 avisos inventados con empresas ficticias. Sobre main la carrera se guarda como fullstack. Etiquetas propuestas (anchor_source assisted). No lo usa el job pago de evals.",
+    "persona": {
+      "pais": "AR",
+      "ciudad": "Salta",
+      "anos_experiencia": 2,
+      "modalidades": ["remoto", "hibrido", "presencial"],
+      "idiomas_aviso": ["es", "en"]
+    }
+  },
+  "casos": [
+    {
+      "id": "fullstack-01",
+      "categoria": "nueve_mas",
+      "empresa": "Empresa A",
+      "titulo": "Desarrollador/a Full Stack Junior",
+      "ubicacion_raw": "Remoto (Argentina)",
+      "modalidad": "remoto",
+      "jd_text": "Empresa A busca incorporar: Desarrollador/a Full Stack Junior.\n\nSoftware factory ficticia.\n\nQué vas a hacer:\n- Desarrollar pantallas en React\n- Armar APIs con Node.js\n- Escribir pruebas\n\nQué buscamos:\n- Estudiante avanzado/a o graduado/a en Programación o Sistemas\n- 1 a 3 años de experiencia\n- TypeScript y Git\n\nRemoto para Argentina.\n\nModalidad: remoto. Ubicación: Remoto (Argentina). Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": [],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "postular",
+        "score_esperado": { "min": 9, "max": 10 },
+        "nota": "Encaje casi perfecto: junior, remoto para Argentina y stack que la persona usa."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "fullstack-02",
+      "categoria": "remoto_ar",
+      "empresa": "Empresa B",
+      "titulo": "Full Stack Developer (React + Node)",
+      "ubicacion_raw": "Remoto · Argentina",
+      "modalidad": "remoto",
+      "jd_text": "Empresa B busca incorporar: Full Stack Developer (React + Node).\n\nProducto ficticio de gestión.\n\nQué vas a hacer:\n- Sumar funcionalidades al producto\n- Revisar código del equipo\n- Mantener la integración continua\n\nQué buscamos:\n- 2 años de experiencia\n- React, Node.js y SQL\n\nRemoto en Argentina.\n\nModalidad: remoto. Ubicación: Remoto · Argentina. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": [],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "postular",
+        "score_esperado": { "min": 7, "max": 9 },
+        "nota": "Buen encaje: remoto para Argentina y nivel acorde."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "fullstack-03",
+      "categoria": "presencial_caba",
+      "empresa": "Empresa C",
+      "titulo": "Desarrollador/a Full Stack",
+      "ubicacion_raw": "CABA, Buenos Aires",
+      "modalidad": "presencial",
+      "jd_text": "Empresa C busca incorporar: Desarrollador/a Full Stack.\n\nEmpresa ficticia de logística.\n\nQué vas a hacer:\n- Mantener el sistema de despachos\n- Integrar servicios de terceros\n\nQué buscamos:\n- 2 años de experiencia\n- Node.js y bases SQL\n\nOficina en Palermo.\n\nModalidad: presencial. Ubicación: CABA, Buenos Aires. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["modalidad_no_remota", "ciudad_distinta"],
+        "bloqueadores_esperados": ["ubicacion"],
+        "accion_esperada": "guardar",
+        "score_esperado": { "min": 4, "max": 7 },
+        "nota": "Presencial lejos de Salta: pasa el prefiltro con la marca de ciudad distinta."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "fullstack-04",
+      "categoria": "remoto_otro_pais",
+      "empresa": "Empresa D",
+      "titulo": "Full Stack Engineer (Remote — US residents only)",
+      "ubicacion_raw": "Remoto · solo residentes en Estados Unidos",
+      "modalidad": "remoto",
+      "jd_text": "Empresa D busca incorporar: Full Stack Engineer (Remote — US residents only).\n\nStartup ficticia de pagos.\n\nQué vas a hacer:\n- Build features end to end\n- Own services in production\n\nQué buscamos:\n- US residency required\n- 2 years of experience\n\nModalidad: remoto. Ubicación: Remoto · solo residentes en Estados Unidos. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["residencia_exigida"],
+        "bloqueadores_esperados": ["ubicacion"],
+        "accion_esperada": "descartar",
+        "score_esperado": { "min": 1, "max": 4 },
+        "nota": "Remoto solo para otro país: la ubicación nunca descarta en el prefiltro; queda la marca."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "fullstack-05",
+      "categoria": "senior_inalcanzable",
+      "empresa": "Empresa E",
+      "titulo": "Head of Engineering",
+      "ubicacion_raw": "Remoto (Argentina)",
+      "modalidad": "remoto",
+      "jd_text": "Empresa E busca incorporar: Head of Engineering.\n\nScale-up ficticia.\n\nQué vas a hacer:\n- Liderar a 40 personas de ingeniería\n- Definir la arquitectura\n- Reportar al CEO\n\nQué buscamos:\n- Más de 12 años de experiencia\n\nModalidad: remoto. Ubicación: Remoto (Argentina). Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_discard",
+        "flags_esperados": [],
+        "bloqueadores_esperados": ["experiencia"],
+        "accion_esperada": "descartar",
+        "score_esperado": { "min": 1, "max": 3 },
+        "nota": "Cargo de dirección para alguien con 2 años."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "fullstack-06",
+      "categoria": "titulo_enganoso",
+      "empresa": "Empresa F",
+      "titulo": "Soporte técnico de hardware (se valora conocimiento de programación)",
+      "ubicacion_raw": "Rosario, Santa Fe",
+      "modalidad": "presencial",
+      "jd_text": "Empresa F busca incorporar: Soporte técnico de hardware (se valora conocimiento de programación).\n\nServicio técnico ficticio.\n\nQué vas a hacer:\n- Reparar impresoras y equipos\n- Instalar cableado\n- Atender clientes en mostrador\n\nQué buscamos:\n- Secundario técnico\n- Se valoran estudiantes de programación\n\nModalidad: presencial. Ubicación: Rosario, Santa Fe. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_discard",
+        "flags_esperados": [],
+        "bloqueadores_esperados": ["disciplina"],
+        "accion_esperada": "descartar",
+        "score_esperado": { "min": 1, "max": 3 },
+        "nota": "Nombra programación pero el puesto es de reparación de hardware: no debería mostrarse."
+      },
+      "anchor_source": "assisted"
+    }
+  ]
+}

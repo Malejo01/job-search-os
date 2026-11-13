@@ -5,6 +5,12 @@
 - **No los usa el job pago de evals.** Viven fuera de `evals/` a propósito: el CI corre `evals` (con modelo, pago) cuando el diff toca `evals/` o `packages/prompts/`. Los usa solo el test determinista de C8-9.
 - Complementan a `evals/fixtures/golden-carreras-beta.json` (R2-1), que mide títulos. Este set mide la mezcla que aparece en la beta: ubicación, nivel y títulos engañosos.
 
+## Relaciones públicas y programación (C12, R5)
+
+`relaciones_publicas.json` y `fullstack.json` suman 6 avisos inventados cada uno (empresas «Empresa A» a «Empresa F»), con las categorías `nueve_mas`, `remoto_ar`, `presencial_caba`, `remoto_otro_pais`, `senior_inalcanzable` y `titulo_enganoso` y la misma persona de referencia. Los corre `packages/pipeline/src/golden-carreras-r5.test.ts`, que cubre las 8 carreras de la beta.
+
+Sobre `main`, «Relaciones públicas» se guarda como `marketing_digital` (chip de /acceso) y «Programación» como `fullstack`: el test usa esas claves (mapa `ROL_EN_MAIN`). Cuando C3 sume `relaciones_publicas` como carrera propia, hay que cambiar ese mapa y volver a correr el test. Estos dos archivos todavía no tienen `anchor_source: "human"`.
+
 ## La persona de referencia
 
 Igual para las 6 carreras (`meta.persona`): vive en **Salta**, Argentina, tiene **2 años** de experiencia y acepta remoto, híbrido y presencial; lee avisos en español e inglés.
