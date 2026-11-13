@@ -1474,3 +1474,38 @@ Fuente del estado: `ops/tanda-r4/estado.md`. Los PR de carril rojo se acumulan e
 `deps:` todo en PR · `estado:` en PR, para que lo revise Mauro (12/11)
 - Este bloque y `docs/beta/informe-r6.md` (orden de merge, pruebas, migraciones sin aplicar y pasos manuales).
 - **Bloqueadas, sin arrancar:** C5 (legales) y el parser de Bumeran (espera un `.eml` real).
+
+## Bloque 21 · Tanda R7 «Pre-beta: costos, seguridad y pulido» (13/11, madrugada)
+
+### R7-1 · Alertas de presupuesto de LLM (carril rojo)
+`deps:` — · `est:` 2 h · `estado:` en PR, para que lo revise Mauro ([#472](https://github.com/Malejo01/job-search-os/pull/472), 13/11)
+- Al pasar el 70, 85 y 95 % de `LLM_DAILY_CAP_USD`, un email por Resend a `ADMIN_EMAILS`, una vez por umbral y día UTC, y un bloque en `/settings/salud`. Lógica pura en `pipeline/src/budget/`; la marca «ya avisado» es una fila `budget_alert` en `llm_calls` (sin migración) con lock de asesoría y clave de idempotencia. Lo dispara el cron de evaluación.
+
+### R7-2 · No reevaluar duplicados (carril rojo)
+`deps:` — · `est:` 2 h · `estado:` en PR, para que lo revise Mauro ([#477](https://github.com/Malejo01/job-search-os/pull/477), 13/11)
+- Otro aviso de la misma persona reutiliza la respuesta del modelo (sin llamada, costo 0) solo si coinciden exactamente los datos leídos antes de la llamada: hash de la JD, perfil, criterios, prompt y datos del aviso, guardados en `decision.inputs`. `decide()` y el checklist se recalculan. Las evaluaciones anteriores, sin `inputs`, no se reutilizan. Ante la duda, se evalúa. Sin migración.
+
+### R7-3 · Asistente: un solo aviso de tope y mensajes que quedan (carril rojo)
+`deps:` — · `est:` 1 h · `estado:` en PR, para que lo revise Mauro ([#471](https://github.com/Malejo01/job-search-os/pull/471), 13/11)
+- El aviso de tope sale una vez y bloquea el envío hasta «Nueva charla»; con 2 o menos mensajes restantes se muestra cuántos quedan. Rojo por una línea en `app/api/assistant/route.ts`. e2e 132.
+
+### R7-4 · Auditoría de seguridad pre-beta (carril rojo por el test)
+`deps:` — · `est:` 2 h · `estado:` en PR, para que lo revise Mauro ([#474](https://github.com/Malejo01/job-search-os/pull/474), 13/11)
+- Test de integración que recorre el catálogo y falla si una tabla con `user_id` no tiene RLS, FORCE y policy. Informe `docs/beta/seguridad-r7.md`: 0 P0, 0 P1, 4 P2 (CSP completa, HSTS a verificar y dos endurecimientos menores a ticket). `pnpm secrets:scan` queda para Mauro (el guard lo bloquea).
+
+### R7-5 · Accesibilidad con axe
+`deps:` — · `est:` 1,5 h · `estado:` en PR, para que lo revise Mauro ([#475](https://github.com/Malejo01/job-search-os/pull/475), 13/11)
+- e2e 131 con axe en 11 pantallas, en claro y oscuro: falla con «serious» o «critical»; lo leve queda anotado. `docs/beta/accesibilidad-r7.md`. La primera medición la da el CI.
+
+### R7-6 · Pantallas lentas
+`deps:` — · `est:` 2 h · `estado:` en PR, para que lo revise Mauro ([#473](https://github.com/Malejo01/job-search-os/pull/473), 13/11)
+- Consultas en paralelo en el layout de la app, /plan, /jobs, /cv y /settings, sin cambiar lo que se muestra. `docs/beta/rendimiento-r7.md` con consultas antes y después y la tabla de tiempos que mide Mauro (no se puede medir el build de producción en local sin apuntar a Neon).
+
+### R7-7 · Kit del ensayo de testers del 23 y 24/11
+`deps:` — · `est:` 1,5 h · `estado:` en PR, para que lo revise Mauro ([#476](https://github.com/Malejo01/job-search-os/pull/476), 13/11)
+- `docs/beta/ensayo/`: guion de 30 minutos por carrera, checklist del día, feedback y triage, y criterios para decidir el 25/11.
+
+### R7 · Cierre de la tanda
+`deps:` todo en PR · `estado:` en PR, para que lo revise Mauro (13/11)
+- Este bloque, `docs/beta/informe-r7.md` y `docs/beta/manana-13-11.md` (todos los PR de la R5, la R6 y la R7 en orden y las decisiones pendientes).
+- El PR de integración no se armó: el guard bloquea `git merge` para los agentes. Queda el plan con los comandos en `manana-13-11.md`.
