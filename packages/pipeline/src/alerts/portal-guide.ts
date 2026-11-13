@@ -267,17 +267,12 @@ export const ALERT_KEYWORDS: Partial<Record<AlertRoleKey, Keywords>> = {
   },
 };
 
-/** Para quien todavía no eligió carrera. */
-export const GENERIC_ALERT_KEYWORDS: Keywords = {
-  es: ["desarrollador", "programador", "analista de sistemas", "soporte it", "remoto"],
-  en: ["software developer", "software engineer", "it support", "remote developer"],
-};
-
 export type AlertLanguage = "es" | "en" | "both";
 
 /**
  * Palabras sugeridas para las carreras y el idioma de la persona, sin repetir y en orden. Una
- * carrera sin entrada usa su rótulo; sin carreras, las genéricas.
+ * carrera sin entrada usa su rótulo. Sin carreras no hay palabras (R6-4): no se le ofrece
+ * tecnología a quien no la eligió; la pantalla le pide elegir carrera.
  */
 export function alertKeywordsFor(roles: readonly string[], language: AlertLanguage): string[] {
   const langs: ("es" | "en")[] = language === "both" ? ["es", "en"] : [language];
@@ -286,10 +281,6 @@ export function alertKeywordsFor(roles: readonly string[], language: AlertLangua
   const add = (word: string) => {
     if (!out.includes(word)) out.push(word);
   };
-  if (roles.length === 0) {
-    for (const lang of langs) GENERIC_ALERT_KEYWORDS[lang].forEach(add);
-    return out;
-  }
   for (const role of roles) {
     const entry = Object.hasOwn(table, role) ? table[role] : undefined;
     if (!entry) {

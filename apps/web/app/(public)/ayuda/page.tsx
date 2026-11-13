@@ -178,9 +178,10 @@ const FAQS: FaqItem[] = [
     q: "¿Necesito conocimientos técnicos o saber de programación?",
     a: (
       <p>
-        No, para nada. La app fue diseñada especialmente para profesionales y estudiantes de
-        ciencias sociales, económicas y jurídicas. Todo el lenguaje es claro, directo y sin jerga
-        técnica.
+        No. La app es para las 8 carreras de la beta: Abogacía, Contaduría, Administración,
+        Comunicación, Marketing, Relaciones públicas, Relaciones internacionales y Programación.
+        Para todas el lenguaje es claro y directo, sin términos que haya que saber de antemano: si
+        aparece una palabra técnica, te la explicamos en el momento.
       </p>
     ),
   },

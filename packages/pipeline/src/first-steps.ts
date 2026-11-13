@@ -101,7 +101,7 @@ function verdictItem(facts: FirstStepsFacts): FirstStepItem {
     id: 4,
     done: false,
     optional: false,
-    text: "Abrí una oferta evaluada y dejá tu 👍/👎",
+    text: "Abrí una oferta evaluada y decinos si te sirve",
     help: id
       ? "Nos ayuda a ajustar los puntajes."
       : "Cuando haya una oferta evaluada, el link aparece acá",
