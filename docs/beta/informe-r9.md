@@ -37,15 +37,19 @@ Trabajaron tres teammates, cada uno en su carpeta: imagen, asistente y textos. E
 | R9-4 | Test que recorre `apps/web/app`: toda ruta es pública o privada, y toda Server Action privada exige sesión. e2e 133: 404 con y sin sesión, `/hoy` va al login y un POST `next-action` a una ruta inventada también. | Seguridad: sin bypass (codificación, prefijos por segmento, `_next`, API). Se agregó la regla de `next-action`. Privacidad: PASA |
 | R9-6 | 8 tests del harness con el modelo mockeado. Dry-run por defecto, tope duro de 1 USD (máximo 2). | Privacidad: PASA |
 
-El estado final del CI de cada PR se ve en GitHub. `carril` falla a propósito: ningún PR lleva `carril-verde`, porque el pedido fue sin merge.
+**CI: todo en verde en los 5 PR** (lint, unit, integración, build, evals y e2e). En el camino se corrigieron dos fallos de e2e:
+- **129 (R9-1):** el localizador encontraba también el route-announcer de Next; se acotó a `main`.
+- **109 (R9-2):** axe marcaba `scrollable-region-focusable` en la tabla nueva; quedó como región enfocable con etiqueta.
+
+`carril` falla a propósito: ningún PR lleva `carril-verde`, porque el pedido fue sin merge.
 
 ## 3. Gasto (tope USD 5)
 
 | Qué | USD |
 |---|---|
-| Job `evals` del CI al abrir #493 (único PR que toca `packages/prompts/`; un solo push) | ~0,16 (estimado; el CI no informa el monto exacto) |
+| Job `evals` del CI en #493, el único PR que toca `packages/prompts/`. Corrió dos veces: al abrirlo y con el arreglo del e2e 129 | ~0,32 (estimado: ~0,16 por corrida; el CI no informa el monto exacto) |
 | Corrida real de R9-6 | 0 (no se pudo correr; §5) |
-| **Total** | **~0,16** |
+| **Total** | **~0,32** |
 
 ## 4. Pasos manuales para Mauro
 
