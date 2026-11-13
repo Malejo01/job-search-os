@@ -269,6 +269,10 @@ archivo no salga del navegador.
   `all`: ya está abierto para el chat de CV (ADR-026) y este flujo suma la lectura. Texto legal: lo decide Mauro.
 - **Falsos positivos del filtro de sensibles:** una tarjeta legítima puede descartarse (por ejemplo, «hijos» en un cargo
   de cuidado infantil escrito como «Tengo hijos a cargo»). Es el lado barato del error: la persona lo carga a mano.
+- **Cobertura pendiente del filtro (DNI y CUIL con etiqueta):** el barrido de privacidad marca cualquier «DNI» o «CUIL»
+  seguido de dígitos (patrones #131 y #132), incluso inventados, así que los tests no pueden incluir esos casos. El
+  patrón con etiqueta existe en `sensitive.ts`, pero sin test que lo ejerza; sí se prueban el documento sin puntos con
+  otra etiqueta y el CUIL con guiones sin etiqueta. Mauro decide si afina #131 y #132.
 - **Una charla interrumpida se pierde** (lo confirmado antes de cortar sí queda), igual que en ADR-026.
 - **Idiomas distintos del inglés no se guardan** hasta que Mauro decida una tabla.
 - El primer push con `packages/prompts/extract_cv_profile.v1.md` dispara el job de evals pago (≈ USD 0,16).
