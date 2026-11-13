@@ -1388,8 +1388,55 @@ Fuente del estado: `ops/tanda-r4/estado.md`. Los PR de carril rojo se acumulan e
 ## Bloque 19 · Tanda R5 (10/11)
 
 ### C1 · Textos públicos y /acceso a 8 carreras
-`deps:` — · `est:` 1 h · `estado:` en PR, para que lo revise Mauro (10/11)
+`deps:` — · `est:` 1 h · `estado:` done, mergeado ([#454](https://github.com/Malejo01/job-search-os/pull/454), 12/11)
 - Portada, /acceso (titular, bajada, chips y texto de «Pasáselo a alguien»), /ayuda y /como-esta-hecho pasan de 6 a 8 carreras: abogacía, contaduría, administración, comunicación, marketing, relaciones públicas, relaciones internacionales y programación. «Marketing y RR.PP.» pasa a ser «Marketing».
 - Los chips de Relaciones públicas y Programación guardan una carrera que ya existe hasta C3 (carril rojo): `marketing_digital` y `fullstack`. `BETA_LAUNCH_ROLE_KEYS` y el grupo «Carreras de la beta» del selector no cambian (eso es pipeline, C3).
 - e2e 44 (los 8 chips y la carrera que guarda cada uno) y 96 (la lista de /ayuda); guion del reel en `docs/beta/voces-jovenes/guion-demo.md`.
 - **Acepta:** /acceso muestra 8 chips; elegir Relaciones públicas envía `marketing_digital` y Programación envía `fullstack`.
+
+### C3 · Las 8 carreras en el pipeline (carril rojo)
+`deps:` C1 · `est:` 3 h · `estado:` en PR, para que lo revise Mauro ([#457](https://github.com/Malejo01/job-search-os/pull/457), 12/11; ⚠️ migración 0061 sin aplicar)
+- `relaciones_publicas` carrera propia (ADR-033): títulos, chips, skills, prefiltro (con los cargos de redes, marca y eventos que también son de RR.PP.), veto del pool y casilla `pool-relaciones_publicas`; marketing deja de cubrir RR.PP.; `BETA_LAUNCH_ROLE_KEYS` con las 8 (suma `fullstack`); el chip de /acceso guarda `relaciones_publicas`; `waitlist_role_check` (0061) y `rls/0012` suman la clave.
+- **Acepta:** elegir RR.PP. en /acceso envía `relaciones_publicas` (e2e 44); el selector lista las 8; una persona de RR.PP. tiene catálogo y prefiltro propios (tests de pipeline).
+
+### C5 · Legales sin el precio contradictorio (carril rojo)
+`deps:` respuestas legales 1, 2, 3 y 6 de Mauro · `estado:` bloqueada (12/11)
+- Quitar el precio contradictorio de los legales, completar los marcadores que esas respuestas permitan y que `pnpm legal:check` pase.
+
+### C6 · Estados de carga
+`deps:` — · `est:` 1,5 h · `estado:` en PR, para que lo revise Mauro ([#456](https://github.com/Malejo01/job-search-os/pull/456), 12/11)
+- `loading.tsx` en 13 rutas de la app con esqueletos nuevos (`components/ui/skeleton.tsx`), Server Components, pulso solo con `motion-safe`; e2e 125 (red lenta, sin saltos de layout, reducir movimiento).
+- Después de mergear C6 y C9: ajustar 4 `loading.tsx` (Hoy, Ofertas, Perfil, Skills) a los anchos nuevos de C9.
+
+### C7 · /demo alineado y textos de pre-puntaje
+`deps:` — · `est:` 1 h · `estado:` en PR, para que lo revise Mauro ([#455](https://github.com/Malejo01/job-search-os/pull/455), 12/11)
+- /demo muestra un solo perfil (contaduría), coherente con /demo/contaduria y el guion; el ajuste «se asume 5 0» pasa a una frase en llano (hallazgo 28). e2e 48 y 103.
+
+### C8 · Las 8 carreras primero en catálogos y selectores (carril rojo por C3)
+`deps:` C3 · `est:` 2 h · `estado:` en PR, para que lo revise Mauro ([#461](https://github.com/Malejo01/job-search-os/pull/461), apilado sobre #457, 12/11)
+- Grupo «Carreras de la beta» primero y el resto bajo «Otras carreras» en selectores de puestos, Skills y /market; las 8 primero en los chips de /mercado y /ofertas; nombres de beta (`lib/career-names.ts`); «Skills sugeridas» (hallazgos 6, 21 y 35). e2e 128.
+
+### C9 · Perfil, anchos, «Primeros pasos» y glosario
+`deps:` — · `est:` 2 h · `estado:` en PR, para que lo revise Mauro ([#458](https://github.com/Malejo01/job-search-os/pull/458), 12/11)
+- «Sin descripción» marca Ofertas y se enlaza desde /jobs; /encaje marca Perfil; dos anchos (lista 1280 px, lectura `max-w-3xl`); Primeros pasos plegado; glosario en /ayuda y en «Más» (hallazgos 18, 19, 20, 30 y 33). e2e 38, 113 y 127.
+
+### C10 · Docs de la beta a 8 carreras
+`deps:` C3, C8 (para la descripción del selector) · `est:` 1 h · `estado:` en PR, para que lo revise Mauro ([#459](https://github.com/Malejo01/job-search-os/pull/459), 12/11)
+- Guía del ensayo con testers, preguntas frecuentes, runbook, checklist del evento, textos para Ani, personas e2e y fuentes: 8 carreras con su nombre de beta. Las menciones históricas quedan como están.
+
+### C11 · Costos por usuario contra el código
+`deps:` — · `est:` 2 h · `estado:` en PR, para que lo revise Mauro ([#460](https://github.com/Malejo01/job-search-os/pull/460), 12/11)
+- `docs/beta/costos-por-usuario.md` recalculado con `evaluate_job` en Sonnet 5.5 (thinking `low`, `max_tokens` 8192): tres escenarios de thinking, 10 / 25 / 50 usuarios en USD y ARS, y los 11 puntos de `pasos-manuales-r4` §9 respondidos con el código o marcados «a confirmar por Mauro».
+- Aparte, `model_routing.json` alineado con producción (carril rojo): commit local en `ronda/r5-c11-routing`, **sin push**, porque toca `evals/` y cada push corre el job de evals pago. Espera la decisión de Mauro.
+
+### C12 · QA por carrera con agentes de prueba
+`deps:` C3 (parte 2) · `est:` 3 h · `estado:` en PR, para que lo revise Mauro ([#462](https://github.com/Malejo01/job-search-os/pull/462), 12/11)
+- 8 personas ficticias, spec 126 (recorrido con capturas a 390 y 1280 px), 12 avisos inventados de RR.PP. y programación, test de prefiltro de las 8 carreras e informes en `docs/beta/qa-carreras/` con hallazgos P0/P1/P2. Parte 2 sobre C3+C8 en una rama local sin push.
+
+### e2e 124 · Persona sin acceso al MCP que no sea tester
+`deps:` — · `est:` 30 min · `estado:` en PR, para que lo revise Mauro ([#463](https://github.com/Malejo01/job-search-os/pull/463), 12/11)
+- El spec 124 esperaba 401 para la persona B, que el servidor de e2e declara tester (`playwright.config.ts:54-56`): usa una tercera persona ficticia. No era un problema de acceso (revisión de seguridad). Destraba el e2e de todos los PR.
+
+### C13 · Cierre de la tanda
+`deps:` todo en PR · `estado:` en PR, para que lo revise Mauro (12/11)
+- Este bloque al día y `docs/beta/informe-r5.md` (orden de merge, pruebas, migraciones sin aplicar, pasos manuales y hallazgos de QA).
