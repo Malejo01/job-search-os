@@ -126,7 +126,7 @@
     ]
   },
   "marketing_digital": {
-    "label": "Marketing y relaciones públicas",
+    "label": "Marketing digital",
     "skills": [
       "seo",
       "google_ads",
@@ -414,6 +414,22 @@
       "project_planning",
       "client_facing",
       "english_fluent"
+    ]
+  },
+  "relaciones_publicas": {
+    "label": "Relaciones públicas",
+    "skills": [
+      "press_relations",
+      "corporate_communications",
+      "public_affairs",
+      "public_opinion",
+      "diplomacy",
+      "content_strategy",
+      "social_media",
+      "copywriting",
+      "canva",
+      "client_facing",
+      "english_intermediate"
     ]
   }
 }

@@ -44,6 +44,8 @@ export const ROLE_KEYS = [
   "administracion_empresas",
   "comunicacion",
   "relaciones_internacionales",
+  // C3 (ADR-033): relaciones públicas deja de ir dentro de marketing, siempre al final.
+  "relaciones_publicas",
 ] as const;
 export type RoleKey = (typeof ROLE_KEYS)[number];
 
@@ -96,6 +98,7 @@ export const LEGAL_MANAGEMENT_ROLE_KEYS: readonly RoleKey[] = [
 /** Las carreras de comunicación y de relaciones internacionales de la beta (ADR-027). */
 export const COMMUNICATION_ROLE_KEYS: readonly RoleKey[] = [
   "marketing_digital",
+  "relaciones_publicas",
   "comunicacion",
   "relaciones_internacionales",
 ];
@@ -129,19 +132,23 @@ export const ROLE_GROUPS: readonly { label: string; roles: readonly RoleKey[] }[
  * Quien ya la tiene la conserva: `isRoleKey`, la ingesta y `/mercado/<clave>` no cambian. Las cuatro
  * de la beta (ADR-027) salen así hasta medir su volumen después de `pool:rehint`.
  */
-/** Las cuatro carreras nuevas de la beta (ADR-027). La lista de espera las ofrece aunque estén ocultas. */
+/**
+ * Las carreras nuevas de la beta (ADR-027; relaciones públicas se suma con ADR-033). La lista de espera
+ * las ofrece aunque estén ocultas.
+ */
 export const BETA_ROLE_KEYS: readonly RoleKey[] = [
   "abogacia",
   "administracion_empresas",
   "comunicacion",
   "relaciones_internacionales",
+  "relaciones_publicas",
 ];
 
 /**
-/**
- * Las seis carreras de la beta cerrada, en el orden del anuncio (abogacía, contaduría, administración,
- * comunicación, marketing y RR.PP., relaciones internacionales): las cuatro nuevas de `BETA_ROLE_KEYS` más
- * `finanzas_contabilidad` y `marketing_digital`, que ya existían y se ampliaron (ADR-027).
+ * Las ocho carreras de la beta cerrada, en el orden del anuncio (abogacía, contaduría, administración,
+ * comunicación, marketing, relaciones públicas, relaciones internacionales, programación): las nuevas de
+ * `BETA_ROLE_KEYS` más `finanzas_contabilidad`, `marketing_digital` y `fullstack`, que ya existían
+ * (ADR-027 y ADR-033).
  */
 export const BETA_LAUNCH_ROLE_KEYS: readonly RoleKey[] = [
   "abogacia",
@@ -149,7 +156,9 @@ export const BETA_LAUNCH_ROLE_KEYS: readonly RoleKey[] = [
   "administracion_empresas",
   "comunicacion",
   "marketing_digital",
+  "relaciones_publicas",
   "relaciones_internacionales",
+  "fullstack",
 ];
 
 /**
@@ -189,7 +198,7 @@ export function profileRoleGroups(
 }
 
 /**
- * Selector de `/acceso` (C6-1): las 6 carreras de la beta primero, en un grupo propio, y después el resto
+ * Selector de `/acceso` (C6-1): las 8 carreras de la beta primero, en un grupo propio, y después el resto
  * con los grupos de siempre (sin repetir ninguna). Ofrece lo mismo que `selectableRoleGroups(BETA_ROLE_KEYS)`,
  * solo reordenado: no cambia qué carreras se pueden elegir.
  */
@@ -272,7 +281,7 @@ const HEADLINE_KEYWORDS: Record<RoleKey, RegExp> = {
   ai_engineer: /ai engineer|\bia\b/,
   ux_ui: /\bux\b|\bui\b/,
   marketing_digital:
-    /marketing digital|digital marketing|\bseo\b|performance marketing|community manager|relaciones publicas|public relations|\brrpp\b|brand manager/,
+    /marketing digital|digital marketing|\bseo\b|performance marketing|community manager|brand manager/,
   product_manager: /product manager|(?:gerente|jefe|jefa) de producto/,
   product_owner: /product owner|due[nñ][oa] de producto/,
   project_manager:
@@ -300,6 +309,8 @@ const HEADLINE_KEYWORDS: Record<RoleKey, RegExp> = {
     /\bperiodista\b|\bjournalist\b|\bcomunicador(?:a)? social|comunicacion (?:institucional|interna|social)|licenciad[oa] en comunicacion|(?:jefe|jefa|responsable) de prensa|communications? (?:specialist|manager|officer)/,
   relaciones_internacionales:
     /relaciones internacionales|international relations|comercio exterior|foreign trade|cooperacion internacional|\bcomex\b/,
+  relaciones_publicas:
+    /relaciones publicas|relacionista publico|relacionista publica|public relations|\brrpp\b|\brr\.? ?pp\b/,
 };
 
 /** disciplina de los criterios → rol (en orden de prioridad). */

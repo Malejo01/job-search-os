@@ -90,22 +90,25 @@ export const ALERT_KEYWORDS: Partial<Record<AlertRoleKey, Keywords>> = {
     en: ["ux designer", "ui designer", "product designer", "ux researcher", "figma"],
   },
   marketing_digital: {
-    es: [
-      "marketing digital",
-      "community manager",
-      "seo",
-      "brand manager",
-      "relaciones públicas",
-      "trade marketing",
-    ],
+    es: ["marketing digital", "community manager", "seo", "brand manager", "trade marketing"],
     en: [
       "digital marketing",
       "seo",
       "content marketing",
       "brand manager",
-      "public relations",
       "market research analyst",
     ],
+  },
+  // ADR-033: relaciones públicas es carrera propia.
+  relaciones_publicas: {
+    es: [
+      "relaciones públicas",
+      "ejecutivo de rrpp",
+      "relacionista público",
+      "relaciones institucionales",
+      "organizador de eventos",
+    ],
+    en: ["public relations", "pr specialist", "pr manager", "public affairs", "events coordinator"],
   },
   rrhh_it: {
     es: ["reclutador it", "recursos humanos", "talent acquisition", "selección de personal"],

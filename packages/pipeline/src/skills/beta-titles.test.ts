@@ -251,19 +251,22 @@ describe("Marketing y relaciones públicas", () => {
     "Analista de CRM",
     "Media Planner",
     "Planificador de Medios",
+  ])("%s es de la carrera", (title) => {
+    expect(is(title, "marketing_digital")).toBe(true);
+  });
+
+  // ADR-033: RR.PP., eventos y RSE son de `relaciones_publicas` (ver relaciones-publicas.test.ts)
+  it.each([
     "Ejecutiva de RRPP",
     "Ejecutivo de RR.PP.",
     "Relacionista Público",
     "PR Specialist",
-    "PR Executive",
-    "Public Affairs Manager",
     "Responsable de Relaciones Públicas",
     "Organizador de Eventos",
-    "Events Coordinator",
     "Analista de RSE",
-    "CSR Analyst",
-  ])("%s es de la carrera", (title) => {
-    expect(is(title, "marketing_digital")).toBe(true);
+  ])("%s ya no es de marketing", (title) => {
+    expect(is(title, "marketing_digital")).toBe(false);
+    expect(is(title, "relaciones_publicas")).toBe(true);
   });
 
   it.each([
@@ -342,15 +345,15 @@ describe("Relaciones internacionales y comex", () => {
 
   it("las áreas compartidas suman hint en más de una carrera, sin vetarse", () => {
     expect(hints("Relaciones Institucionales")).toEqual(
-      expect.arrayContaining(["marketing_digital", "relaciones_internacionales"]),
+      expect.arrayContaining(["relaciones_publicas", "relaciones_internacionales"]),
     );
     expect(hints("Public Affairs Manager")).toEqual(
-      expect.arrayContaining(["marketing_digital", "relaciones_internacionales"]),
+      expect.arrayContaining(["relaciones_publicas", "relaciones_internacionales"]),
     );
     expect(hints("Compliance Officer")).toContain("abogacia");
     expect(hints("AML Analyst")).toContain("finanzas_contabilidad");
     expect(hints("Jefe de Prensa")).toContain("comunicacion");
-    expect(hints("PR Specialist")).toContain("marketing_digital");
+    expect(hints("PR Specialist")).toContain("relaciones_publicas");
     expect(hints("Analista de Control de Gestión")).toEqual(
       expect.arrayContaining(["administracion_empresas", "finanzas_contabilidad"]),
     );
@@ -362,9 +365,9 @@ describe("revisión C1-3: formas con barra, exclusiones por término y falsos ne
     ["Liquidador/a de Sueldos", "finanzas_contabilidad"],
     ["Jefe/a de Prensa", "comunicacion"],
     ["Jefe/a de Administración", "administracion_empresas"],
-    ["Ejecutivo/a de RRPP", "marketing_digital"],
+    ["Ejecutivo/a de RRPP", "relaciones_publicas"],
     ["Planificador/a de Medios", "marketing_digital"],
-    ["Organizador/a de Eventos", "marketing_digital"],
+    ["Organizador/a de Eventos", "relaciones_publicas"],
     ["Productor/a Periodístico", "comunicacion"],
     ["Asesor/a Legal", "abogacia"],
     ["Abogado(a) Laboralista", "abogacia"],

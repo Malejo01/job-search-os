@@ -17,12 +17,23 @@ type GoldenBetaJob = {
   accion: "postular" | "guardar" | "descartar";
 };
 
-const jobs = fixture.jobs as GoldenBetaJob[];
+/**
+ * ADR-033: relaciones públicas es carrera propia. El golden (`evals/fixtures`, que este ticket no toca) todavía
+ * las etiqueta como marketing: para la clasificación por título se lee la carrera que corresponde hoy.
+ */
+const MOVED_TO_RRPP = new Set([13]);
+const rawJobs = fixture.jobs as GoldenBetaJob[];
+const jobs = rawJobs.map((j) => ({
+  ...j,
+  carrera_esperada: MOVED_TO_RRPP.has(j.id)
+    ? ("relaciones_publicas" as RoleKey)
+    : j.carrera_esperada,
+}));
 const rules = criteria as CriteriaRules;
 
 describe("golden-carreras-beta · catálogo y estructura", () => {
   it("contiene exactamente 48 casos (8 por cada una de las 6 carreras)", () => {
-    expect(jobs).toHaveLength(48);
+    expect(rawJobs).toHaveLength(48);
   });
 
   const careers: RoleKey[] = [
@@ -35,7 +46,7 @@ describe("golden-carreras-beta · catálogo y estructura", () => {
   ];
 
   it.each(careers)("%s tiene 3 buen encaje, 2 encaje parcial y 3 descarte", (career) => {
-    const careerJobs = jobs.filter((j) => j.carrera_esperada === career);
+    const careerJobs = rawJobs.filter((j) => j.carrera_esperada === career);
     expect(careerJobs).toHaveLength(8);
 
     const buenEncaje = careerJobs.filter((j) => j.tipo_caso === "buen_encaje");
