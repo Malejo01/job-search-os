@@ -22,8 +22,8 @@ const CATEGORIES = [
 ];
 
 describe("golden sintético por carrera (C8-8)", () => {
-  it("48 casos: 8 por cada una de las 6 carreras con golden completo, una por categoría", () => {
-    expect(FILES.flatMap((f) => f.casos)).toHaveLength(48);
+  it("54 casos: 8 por cada una de las 6 carreras con golden completo, una por categoría, más los 6 de RR.PP. de C12", () => {
+    expect(FILES.flatMap((f) => f.casos)).toHaveLength(54);
     for (const f of FILES) {
       expect(isRoleKey(f.meta.carrera)).toBe(true);
       // Marketing (7) y RR.PP. (1) se reparten los 8 avisos que antes eran de marketing (R6-5)
@@ -32,8 +32,11 @@ describe("golden sintético por carrera (C8-8)", () => {
       }
     }
     expect(marketing.casos).toHaveLength(7);
-    expect(rrpp.casos).toHaveLength(1);
-    expect([...marketing.casos, ...rrpp.casos].map((c) => c.categoria).sort()).toEqual(
+    // RR.PP. junta los 6 avisos de C12 (R5) con el que vino de marketing (R6-5, relaciones_publicas-07)
+    expect(rrpp.casos).toHaveLength(7);
+    const movido = rrpp.casos.filter((c) => c.id === "relaciones_publicas-07");
+    expect(movido).toHaveLength(1);
+    expect([...marketing.casos, ...movido].map((c) => c.categoria).sort()).toEqual(
       [...CATEGORIES].sort(),
     );
   });
