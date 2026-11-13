@@ -1,0 +1,39 @@
+From: Bolsa Demo <alertas@mail.bolsa-demo.example>
+To: ficticia@example.com
+Subject: 2 avisos nuevos para Ficticia
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="frontera-a"
+
+--frontera-a
+Content-Type: text/plain; charset=utf-8
+
+Hola Ficticia, tenes avisos nuevos.
+
+--frontera-a
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Alertas de empleo</title>
+<style>.aviso{width:600px;background:url('https://cdn.bolsa-demo.example/bg/889977.png')}</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"ItemList"}</script>
+<script>var secreto = "Ficticia Perez";</script>
+</head>
+<body>
+<!-- comentario con Ficticia Perez -->
+<table role="presentation" width="600" align="center" class="contenedor">
+<tr><td class="saludo">Hola Ficticia,</td></tr>
+<tr><td>
+<table class="aviso"><tr><td class="titulo"><a href="https://www.bolsa-demo.example/empleos/desarrollador-backend-ficticio-123456?utm_source=mail&amp;token=abc123DEF">Desarrollador Backend Ficticio</a></td><td class="empresa">Empresa A</td></tr><tr><td><a class="boton" href="https://www.bolsa-demo.example/ver/123456?token=abc123DEF">Ver aviso</a></td></tr></table>
+<table class="aviso"><tr><td class="titulo"><a href="https://www.bolsa-demo.example/empleos/analista-ficticio-654321?utm_source=mail&amp;token=zzz999YYY">Analista Ficticio</a></td><td class="empresa">Empresa B</td></tr><tr><td><a class="boton" href="https://www.bolsa-demo.example/ver/654321?token=zzz999YYY">Ver aviso</a></td></tr></table>
+</td></tr>
+<tr><td class="pie">Escribinos a ayuda@bolsa-demo.example &nbsp; Cancelar suscripcion</td></tr>
+<tr><td><img src="https://track.bolsa-demo.example/open/987654321.gif" width="1" height="1" alt="Pixel de Ficticia"></td></tr>
+</table>
+</body>
+</html>
+
+--frontera-a--
