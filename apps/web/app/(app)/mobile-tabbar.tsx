@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Icon } from "@/components/ui/icons";
 import { NavCount, NavCountText } from "./main-nav";
 import { DETAIL } from "./app-bar";
+import { NavPending } from "./nav-pending";
 import { activeSection, SECTIONS } from "./sections";
 
 /**
@@ -54,6 +55,7 @@ export function MobileTabBar({ followUps = 0 }: { followUps?: number }) {
                       <NavCount count={count} active={isActive} />
                     </span>
                   ) : null}
+                  <NavPending className="inset-x-2 bottom-0" />
                 </span>
                 <span className="max-w-full truncate">{t.label}</span>
               </Link>
