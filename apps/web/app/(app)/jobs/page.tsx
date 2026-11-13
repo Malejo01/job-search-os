@@ -17,6 +17,8 @@ import { GUIDE_LABELS, GUIDE_STEPS } from "@/lib/guide";
 import { PRE_SCORE_EXPLAIN, SOURCE_LABELS, STATUS_LABELS } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import Link from "next/link";
+import { Suspense } from "react";
+import { JobsSkeleton } from "./jobs-skeleton";
 import { Illustration } from "@/components/brand/illustration";
 import {
   Alert,
@@ -42,13 +44,31 @@ import { RoleNudge } from "./role-nudge";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Ofertas" };
 
-/** Lista de ofertas (JS-015): Server Component; filtros en la URL; la lista anima en cliente. */
-export default async function JobsPage({
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+/**
+ * Lista de ofertas (JS-015): Server Component; filtros en la URL; la lista anima en cliente.
+ *
+ * R8-0: el esqueleto va con `<Suspense>` y no con un `loading.tsx` de ruta, porque `jobs/` tiene
+ * hijos que hacen `notFound()` (`/jobs/[id]`) y un `loading.tsx` los dejaría con status 200. La
+ * comprobación de acceso corre antes del Suspense.
+ */
+export default async function JobsPage({ searchParams }: { searchParams: SearchParams }) {
+  const userId = await requireUserId();
+  return (
+    <Suspense fallback={<JobsSkeleton />}>
+      <JobsContent userId={userId} searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function JobsContent({
+  userId,
   searchParams,
 }: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  userId: string;
+  searchParams: SearchParams;
 }) {
-  const userId = await requireUserId();
   const params = await searchParams;
   // O3 (C9-9): la oferta elegida para el panel de la derecha, en la URL. Solo un id válido; si no
   // existe para esta persona (RLS), el panel muestra la indicación como si no hubiera ninguna.

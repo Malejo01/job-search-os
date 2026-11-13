@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { LoadingStatus, SkeletonCard, SkeletonTitle } from "@/components/ui/skeleton";
 import { isWebmailDomain } from "@job-search-os/pipeline";
 import {
   cleanDomain,
@@ -56,12 +58,45 @@ const EMPTY: Record<InboxView, string> = {
  * avisa si llega un dominio nunca visto que no es fuente de empleo: posible fuga del filtro de
  * reenvío (JS-048).
  */
-export default async function InboxPage({
+type InboxSearchParams = Promise<{
+  vista?: string;
+  dominio?: string;
+  error?: string;
+  sender?: string;
+}>;
+
+/**
+ * R8-0: el esqueleto va con `<Suspense>` y no con un `loading.tsx` de ruta, porque `inbox/[id]`
+ * hace `notFound()` y un `loading.tsx` en `inbox/` lo dejaría con status 200. La comprobación de
+ * acceso corre antes del Suspense.
+ */
+export default async function InboxPage({ searchParams }: { searchParams: InboxSearchParams }) {
+  const userId = await requireUserId();
+  return (
+    <Suspense fallback={<InboxSkeleton />}>
+      <InboxContent userId={userId} searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+function InboxSkeleton() {
+  return (
+    <LoadingStatus className="flex flex-col gap-5">
+      <SkeletonTitle className="w-56" />
+      <SkeletonCard />
+      <SkeletonCard />
+      <SkeletonCard />
+    </LoadingStatus>
+  );
+}
+
+async function InboxContent({
+  userId,
   searchParams,
 }: {
-  searchParams: Promise<{ vista?: string; dominio?: string; error?: string; sender?: string }>;
+  userId: string;
+  searchParams: InboxSearchParams;
 }) {
-  const userId = await requireUserId();
   const params = await searchParams;
   const webmailError = webmailErrorFromParams(params);
   const view = parseInboxView(params.vista);
