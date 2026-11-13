@@ -80,10 +80,10 @@
       "id": "relaciones_publicas-04",
       "categoria": "remoto_otro_pais",
       "empresa": "Empresa D",
-      "titulo": "Community manager (Remote — Mexico residents only)",
+      "titulo": "Ejecutivo/a de relaciones públicas (Remote — Mexico residents only)",
       "ubicacion_raw": "Remoto · solo residentes en México",
       "modalidad": "remoto",
-      "jd_text": "Empresa D busca incorporar: Community manager (Remote — Mexico residents only).\n\nMarca ficticia de consumo.\n\nQué vas a hacer:\n- Gestionar redes y comunidad\n- Coordinar eventos con influencers\n- Reportar resultados\n\nQué buscamos:\n- Residencia en México (excluyente)\n\nContrato mexicano.\n\nModalidad: remoto. Ubicación: Remoto · solo residentes en México. Jornada completa, de lunes a viernes.",
+      "jd_text": "Empresa D busca incorporar: Ejecutivo/a de relaciones públicas (Remote — Mexico residents only).\n\nMarca ficticia de consumo.\n\nQué vas a hacer:\n- Gestionar prensa y vocería de la marca\n- Coordinar eventos con influencers\n- Reportar resultados\n\nQué buscamos:\n- Residencia en México (excluyente)\n\nContrato mexicano.\n\nModalidad: remoto. Ubicación: Remoto · solo residentes en México. Jornada completa, de lunes a viernes.",
       "etiquetas": {
         "prefiltro": "must_pass",
         "flags_esperados": ["residencia_exigida"],
@@ -93,7 +93,7 @@
           "min": 1,
           "max": 4
         },
-        "nota": "Remoto solo para otro país: la ubicación nunca descarta en el prefiltro; queda la marca."
+        "nota": "Remoto solo para otro país: la ubicación nunca descarta en el prefiltro; queda la marca. Integración R5–R7: el título pasó de «Community manager» a uno de RR.PP., porque por ADR-033 community manager es de marketing y el caso mide ubicación, no título."
       },
       "anchor_source": "assisted"
     },

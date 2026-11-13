@@ -48,7 +48,7 @@ const ROL_EN_MAIN: Record<string, RoleKey> = {
   fullstack: "fullstack",
   marketing_digital: "marketing_digital",
   relaciones_internacionales: "relaciones_internacionales",
-  relaciones_publicas: "marketing_digital",
+  relaciones_publicas: "relaciones_publicas",
 };
 
 const DOCS = [
