@@ -2,11 +2,13 @@ import {
   buildProfileCloseWriteInput,
   checkProfileWrittenEntries,
   profileAgentWriteNotice,
+  profileSummaryPrefill,
   type ProfileAgentWriteReject,
   type ProfileWrittenEntry,
 } from "@job-search-os/pipeline";
 import {
   createLogger,
+  recordProfileAgentWriteFailure,
   releaseCvChatReservation,
   reserveProfileAgentWrite,
   runProfileAgentWrite,
@@ -173,6 +175,11 @@ export async function POST(request: Request): Promise<Response> {
             knownTerms: await skillCatalogNames(db),
           },
         );
+      } catch (e) {
+        // Si lanzó antes de que el cliente LLM registrara su fila, el intento igual cuenta (una redacción
+        // por charla y gasto estimado): se anota una fila fallida antes de soltar la reserva
+        await recordProfileAgentWriteFailure(db, { userId, flowId: ticket.flowId }).catch(() => {});
+        throw e;
       } finally {
         if (!(await releaseCvChatReservation(db, slot.reservationId))) {
           logger.warn({ run_id: ticket.flowId }, "agente de perfil: no se pudo borrar la reserva");
@@ -203,10 +210,12 @@ export async function POST(request: Request): Promise<Response> {
     // Defensa: lo que sale del modelo pasa la misma revisión que lo que vuelve del navegador
     const screened = checkProfileWrittenEntries(entries);
     const safeEntries = screened.ok ? screened.entries : [];
+    // El resumen que sale pasa el mismo filtro de sensibles e inyección que el que precarga el formulario
+    const safeSummary = profileSummaryPrefill(written.summary);
     const doc = await buildCloseDocument(userId, {
       lang: req.lang,
       written: safeEntries,
-      summary: written.summary,
+      summary: safeSummary,
     });
     if (!doc) return fail("server");
     return Response.json(
@@ -214,7 +223,7 @@ export async function POST(request: Request): Promise<Response> {
         ok: true,
         doc,
         entries: safeEntries,
-        summary: written.summary,
+        summary: safeSummary,
         usedModel: written.usedModel,
       },
       { headers: NO_STORE },

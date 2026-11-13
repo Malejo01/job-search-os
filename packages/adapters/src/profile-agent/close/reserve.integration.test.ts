@@ -4,7 +4,11 @@ import { createDb, isRemoteDatabase, schema as s } from "@job-search-os/db";
 import { like } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { releaseCvChatReservation } from "../../cv-chat/reserve";
-import { measureProfileAgentUserSpendUsd, reserveProfileAgentWrite } from "./reserve";
+import {
+  measureProfileAgentUserSpendUsd,
+  recordProfileAgentWriteFailure,
+  reserveProfileAgentWrite,
+} from "./reserve";
 
 /**
  * ADR-034 §6 (O1, R10-5): los topes del paso de redacción cuentan las llamadas fallidas (`cost_usd` null)
@@ -166,6 +170,19 @@ describe("una redacción por charla y cupo de CV por mes", () => {
     const r = await slot();
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.reject).toBe("cv_mes");
+  });
+
+  it("si la redacción lanzó antes de registrar su fila, el intento igual cuenta y no se reintenta gratis", async () => {
+    const first = await slot();
+    expect(first.ok).toBe(true);
+    // la llamada lanza: se anota la fila fallida y recién después se suelta la reserva
+    await recordProfileAgentWriteFailure(conn.db, { userId: USER, flowId: FLOW });
+    if (first.ok) await releaseCvChatReservation(conn.db, first.reservationId);
+    const retry = await slot();
+    expect(retry.ok).toBe(false);
+    if (!retry.ok) expect(retry.reject).toBe("already_written");
+    // y suma el estimado del paso al gasto de la charla
+    expect(retry.measures.conversationCostUsd).toBeCloseTo(0.07);
   });
 
   it("sin llamada al modelo solo mide: no deja reserva", async () => {

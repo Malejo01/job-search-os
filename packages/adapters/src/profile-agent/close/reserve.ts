@@ -54,6 +54,26 @@ export async function measureProfileAgentUserSpendUsd(
   return row?.usd ?? 0;
 }
 
+/**
+ * Anota un intento de redacción fallido (`ok = false`, costo null) cuando la llamada lanzó antes de que el
+ * cliente LLM registrara su fila. Así el intento cuenta para «una redacción por charla» y para el gasto
+ * (estimado del paso) aunque se libere la reserva. Nunca guarda texto.
+ */
+export async function recordProfileAgentWriteFailure(
+  db: Db,
+  p: { userId: string; flowId: string },
+): Promise<void> {
+  await db.insert(s.llmCalls).values({
+    userId: p.userId,
+    task: "cv_write",
+    model: "none",
+    ok: false,
+    costUsd: null,
+    error: "exception",
+    label: cvChatLabel(p.flowId),
+  });
+}
+
 export type ProfileAgentWriteSlotParams = {
   userId: string;
   flowId: string;
