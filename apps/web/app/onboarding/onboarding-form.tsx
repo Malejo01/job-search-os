@@ -7,7 +7,6 @@ import {
   profileAgentFormPrefill,
 } from "@job-search-os/pipeline";
 import { useMemo, useSyncExternalStore } from "react";
-import { PROFILE_AGENT_SUMMARY_KEY } from "@/components/profile-agent/onboarding-choice";
 import { FieldError, ProfileForm, useProfileError } from "@/components/profile-form";
 import type { ProfileFormValues } from "@/lib/onboarding";
 import {
@@ -18,19 +17,18 @@ import {
 import { saveOnboardingAction } from "./actions";
 
 /**
- * Lo que el agente de perfil dejó en `sessionStorage` (estado de la guía y resumen verificado), como un
+ * Lo que el agente de perfil dejó en `sessionStorage` (el estado de la guía: país y modalidades), como un
  * solo texto: `useSyncExternalStore` lo compara por valor y en el servidor devuelve el vacío. Nada de esto
- * viaja ni se guarda: solo precarga el formulario, que valida y guarda con su propia acción.
+ * viaja ni se guarda: solo precarga el formulario, que valida y guarda con su propia acción. El resumen del
+ * cierre ya no pasa por el navegador (R11-1): el resumen precargado es el que ya está guardado en el perfil
+ * (`agentInitial`, leído en el servidor); el nuevo se ve en la vista previa y se copia a mano.
  */
-const EMPTY_STORAGE = JSON.stringify([null, null]);
+const EMPTY_STORAGE = JSON.stringify([null]);
 const subscribeNothing = (): (() => void) => () => {};
 const serverAgentStorage = (): string => EMPTY_STORAGE;
 function readAgentStorage(): string {
   try {
-    return JSON.stringify([
-      window.sessionStorage.getItem(PROFILE_AGENT_STORAGE_KEYS.state),
-      window.sessionStorage.getItem(PROFILE_AGENT_SUMMARY_KEY),
-    ]);
+    return JSON.stringify([window.sessionStorage.getItem(PROFILE_AGENT_STORAGE_KEYS.state)]);
   } catch {
     return EMPTY_STORAGE;
   }
@@ -136,15 +134,15 @@ export function OnboardingForm({
   minSummary: number;
   maxSummary: number;
 }) {
-  // El agente deja el país y las modalidades de la guía y el resumen verificado en el navegador (todavía
-  // no se escriben); se leen una vez, al montar, y precargan el formulario. Sin `agentInitial` no hace nada.
+  // El agente deja el país y las modalidades de la guía en el navegador (todavía no se escriben); se leen
+  // una vez, al montar, y precargan el formulario. Sin `agentInitial` no hace nada.
   const stored = useSyncExternalStore(subscribeNothing, readAgentStorage, serverAgentStorage);
   const initial = useMemo((): ProfileFormValues | undefined => {
     if (!agentInitial) return undefined;
     try {
-      const [stateRaw, summaryRaw] = JSON.parse(stored) as [string | null, string | null];
+      const [stateRaw] = JSON.parse(stored) as [string | null];
       const state = parseProfileAgentState(JSON.parse(stateRaw ?? "null"));
-      const prefill = profileAgentFormPrefill(state?.guide ?? null, summaryRaw, {
+      const prefill = profileAgentFormPrefill(state?.guide ?? null, null, {
         country: agentInitial.country,
         summary: agentInitial.summary,
       });

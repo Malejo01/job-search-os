@@ -1,19 +1,23 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import {
   CV_CHAT_TURN_RESERVE_USD,
-  CV_CHAT_WRITE_RESERVE_USD,
-  PROFILE_AGENT_READ_RESERVE_USD,
   cvChatStartCapReason,
   profileAgentCapReason,
   type ProfileAgentCap,
 } from "@job-search-os/pipeline";
-import { and, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, eq, gte, sql } from "drizzle-orm";
 import {
   CV_RESERVE_LOCK_NAMESPACE,
   CV_RESERVE_TASK,
   CV_RESERVE_TTL_MS,
   CV_START_TASK,
 } from "../../cv-chat/reserve";
+import {
+  measureProfileAgentSpend,
+  profileAgentAttempted,
+  profileAgentBilledUsd,
+  reservedUsd,
+} from "../measure";
 
 /**
  * Medidas y reservas de la etapa de huecos (ADR-034 §5 y §6). Mismo esquema que el chat de CV
@@ -31,15 +35,7 @@ import {
  *   hay ningún parámetro de exención.
  */
 export const GAP_INTERVIEW_TASK = "cv_interview";
-const AGENT_TASKS = ["extract_cv_profile", "cv_interview", "cv_write"] as const;
 const MICRO_USD = 1_000_000;
-
-/** Estimado por tarea de las llamadas sin costo conocido: el máximo del paso, el mismo de las reservas. */
-const STEP_ESTIMATE_USD: Record<(typeof AGENT_TASKS)[number], number> = {
-  extract_cv_profile: PROFILE_AGENT_READ_RESERVE_USD,
-  cv_interview: CV_CHAT_TURN_RESERVE_USD,
-  cv_write: CV_CHAT_WRITE_RESERVE_USD,
-};
 
 export type GapMeasures = {
   /** Llamadas a `cv_interview` de esta charla, también las que fallaron. */
@@ -54,15 +50,10 @@ export type GapMeasures = {
   startsToday: number;
 };
 
-/** Un intento que llegó al proveedor cuenta aunque haya fallado; solo `provider_unavailable` no. */
-const attempted = (c: typeof s.llmCalls) => sql`${c.error} is distinct from 'provider_unavailable'`;
-
-/**
- * Espejo en SQL de `profileAgentRowCostUsd`: el costo real si es válido (0 o más, finito); si no, el
- * estimado de la tarea. Las filas de otras tareas (marcadores, reservas) valen 0 acá.
- */
-export const gapBilledUsd = (c: typeof s.llmCalls) =>
-  sql`case when ${c.task} in ('extract_cv_profile', 'cv_interview', 'cv_write') and ${attempted(c)} then (case when ${c.costUsd}::float8 between 0 and 'Infinity'::float8 then ${c.costUsd}::float8 when ${c.task} = 'extract_cv_profile' then ${STEP_ESTIMATE_USD.extract_cv_profile}::float8 when ${c.task} = 'cv_write' then ${STEP_ESTIMATE_USD.cv_write}::float8 else ${STEP_ESTIMATE_USD.cv_interview}::float8 end) else 0 end`;
+/** El gasto se mide con la función compartida del agente (`../measure`): una sola cuenta para las tres etapas. */
+const attempted = profileAgentAttempted;
+/** Compatibilidad: el costo de una fila es el mismo de las otras etapas. */
+export const gapBilledUsd = profileAgentBilledUsd;
 
 export async function measureGaps(
   q: Pick<Db, "select">,
@@ -77,16 +68,10 @@ export async function measureGaps(
     .from(c)
     .where(and(eq(c.userId, input.userId), eq(c.label, input.label)));
   const [mine] = await q
-    .select({
-      usd: sql<number>`coalesce(sum(${gapBilledUsd(c)}), 0)::float8`,
-      starts: sql<number>`count(*) filter (where ${c.task} = ${CV_START_TASK})::int`,
-    })
+    .select({ starts: sql<number>`count(*) filter (where ${c.task} = ${CV_START_TASK})::int` })
     .from(c)
     .where(and(eq(c.userId, input.userId), gte(c.createdAt, input.daySince)));
-  const [day] = await q
-    .select({ usd: sql<number>`coalesce(sum(${gapBilledUsd(c)}), 0)::float8` })
-    .from(c)
-    .where(and(inArray(c.task, [...AGENT_TASKS]), gte(c.createdAt, input.daySince)));
+  const day = await measureProfileAgentSpend(q, input);
   const live = await q
     .select({ userId: c.userId, label: c.label, micro: c.tokensOut, step: c.model })
     .from(c)
@@ -96,7 +81,7 @@ export async function measureGaps(
         gte(c.createdAt, new Date(input.now.getTime() - CV_RESERVE_TTL_MS)),
       ),
     );
-  const usd = (rows: typeof live) => rows.reduce((t, r) => t + (r.micro ?? 0), 0) / MICRO_USD;
+  const usd = reservedUsd;
   const mineLive = live.filter((r) => r.userId === input.userId);
   return {
     // O-A: las reservas vivas de turnos de esta charla cuentan, así `answer` en paralelo no pasa de 20
@@ -104,8 +89,8 @@ export async function measureGaps(
       (flow?.turns ?? 0) +
       mineLive.filter((r) => r.label === input.label && r.step === "interview").length,
     flowCostUsd: (flow?.usd ?? 0) + usd(mineLive.filter((r) => r.label === input.label)),
-    userSpendTodayUsd: (mine?.usd ?? 0) + usd(mineLive),
-    dailySpendUsd: (day?.usd ?? 0) + usd(live),
+    userSpendTodayUsd: day.userUsd + usd(mineLive),
+    dailySpendUsd: day.dailyUsd + usd(live),
     startsToday: mine?.starts ?? 0,
   };
 }

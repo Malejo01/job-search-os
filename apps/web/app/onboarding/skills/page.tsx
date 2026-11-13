@@ -6,7 +6,8 @@ import {
 import { redirect } from "next/navigation";
 import { GuidedTour } from "@/components/guided-tour";
 import { buttonClasses } from "@/components/ui";
-import { loadAgentOnboardingFacts, profileAgentEnabledFor } from "@/lib/profile-agent/close-server";
+import { profileAgentAllowedFor } from "@/lib/profile-agent/access";
+import { loadAgentOnboardingFacts } from "@/lib/profile-agent/close-server";
 import { dismissGuideAction } from "@/lib/guide-actions";
 import { GUIDE_LABELS, GUIDE_STEPS } from "@/lib/guide";
 import { getTargetRoles, isOnboardingComplete } from "@/lib/onboarding";
@@ -60,7 +61,7 @@ export default async function OnboardingSkillsPage({
   // apagado no hay consulta y el paso queda como siempre. Un solo clic sigue: la salida de este paso arma
   // la primera evaluación (`saveOnboardingSkillsAction` con «saltear»), y no se muta nada al abrir la página.
   if (
-    (await profileAgentEnabledFor(userId)) &&
+    (await profileAgentAllowedFor(userId)) &&
     profileAgentSkipSkillsStep(true, await loadAgentOnboardingFacts(userId))
   ) {
     return <SkillsFromCv />;

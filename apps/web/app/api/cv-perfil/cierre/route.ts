@@ -22,10 +22,10 @@ import { sessionUserId } from "@/lib/session";
 import { siteUrl } from "@/lib/site-url";
 import { needsTermsAcceptance } from "@/lib/terms-status";
 import { getUserPlan } from "@/lib/user-plan";
+import { requireProfileAgent } from "@/lib/profile-agent/access";
 import {
   buildCloseDocument,
   loadProfileCloseFacts,
-  profileAgentEnabledFor,
   saveWrittenBullets,
   skillCatalogNames,
 } from "@/lib/profile-agent/close-server";
@@ -97,10 +97,10 @@ const requestSchema = z.discriminatedUnion("action", [
 
 export async function POST(request: Request): Promise<Response> {
   // 1) sesión
-  const userId = await sessionUserId();
-  if (!userId) return fail("unauthorized");
   // 2) flag: apagado, 404 como cualquier ruta que no existe
-  if (!(await profileAgentEnabledFor(userId))) return fail("not_found");
+  const access = await requireProfileAgent(sessionUserId);
+  if (!access.ok) return fail(access.stage === "session" ? "unauthorized" : "not_found");
+  const userId = access.userId;
 
   const allowed = [new URL(request.url).origin, siteUrl()];
   if (process.env.AUTH_URL) allowed.push(process.env.AUTH_URL);

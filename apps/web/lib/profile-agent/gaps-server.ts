@@ -3,8 +3,6 @@ import {
   applyGapCardToHistory,
   detectGaps,
   gapCareerKey,
-  profileAgentAllowed,
-  profileAgentMode,
   type GapHistoryRow,
   type GapSkillRow,
   type GapTopicRef,
@@ -21,22 +19,6 @@ import { saveSkillLevels } from "../skill-levels";
  * los huecos se calculan acá, a partir de lo que ya está en la base, no del estado que manda el navegador. La
  * charla no se guarda: solo se escribe lo que la persona confirma con el clic sobre una tarjeta.
  */
-
-/** ¿Esta persona ve el agente? Falla cerrado: sin email o ante un error de la consulta, no. */
-export async function profileAgentAllowedFor(userId: string): Promise<boolean> {
-  // Sin el flag (o sin `CV_IMPORT_ENABLED=1`) ni se consulta la base
-  if (process.env.CV_IMPORT_ENABLED !== "1" || profileAgentMode(process.env) === "off") {
-    return false;
-  }
-  try {
-    const [me] = await withUser(userId, (tx) =>
-      tx.select({ email: s.users.email }).from(s.users).where(eq(s.users.id, userId)).limit(1),
-    );
-    return profileAgentAllowed(process.env, me?.email);
-  } catch {
-    return false;
-  }
-}
 
 export type GapContext = {
   career: string;

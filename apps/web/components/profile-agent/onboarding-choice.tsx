@@ -5,9 +5,6 @@ import Link from "next/link";
 import { useState } from "react";
 import { buttonClasses, cardClasses } from "@/components/ui";
 
-/** Resumen verificado que el onboarding precarga (editable) en el formulario. Por pestaña, nunca `localStorage`. */
-export const PROFILE_AGENT_SUMMARY_KEY = "jso:pa:summary";
-
 /**
  * Primer paso opcional del onboarding (ADR-034, decisión 1): «Subí tu CV y armamos tu perfil» o «Prefiero
  * completarlo a mano». Solo se monta con `CV_PROFILE_AGENT` encendido y antes de pasar por el agente (lo

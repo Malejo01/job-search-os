@@ -17,7 +17,8 @@ import { getCareerSalaries, getCareerSpanishCounts } from "@/lib/career-market";
 import { dismissGuideAction } from "@/lib/guide-actions";
 import { GUIDE_INVITE, GUIDE_LABELS, GUIDE_STEPS, guideDismissed } from "@/lib/guide";
 import { OnboardingChoice } from "@/components/profile-agent/onboarding-choice";
-import { loadAgentOnboardingFacts, profileAgentEnabledFor } from "@/lib/profile-agent/close-server";
+import { profileAgentAllowedFor } from "@/lib/profile-agent/access";
+import { loadAgentOnboardingFacts } from "@/lib/profile-agent/close-server";
 import {
   getProfileForEdit,
   getTargetRoles,
@@ -69,7 +70,7 @@ export default async function OnboardingPage({
   ]);
   // Agente de perfil desde el CV (ADR-034, R10-5): con el flag apagado no hay consulta y la pantalla queda
   // exactamente como siempre. Lo completado por el agente se deriva de la base, sin banderas en la URL.
-  const agentOn = await profileAgentEnabledFor(userId);
+  const agentOn = await profileAgentAllowedFor(userId);
   const agentFacts = agentOn ? await loadAgentOnboardingFacts(userId) : null;
   const showChoice = agentFacts !== null && profileAgentOnboardingChoiceVisible(true, agentFacts);
   const saved =

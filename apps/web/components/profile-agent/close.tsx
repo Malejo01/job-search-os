@@ -12,7 +12,6 @@ import {
 import Link from "next/link";
 import { useState } from "react";
 import { CvPreview } from "@/components/cv-preview";
-import { PROFILE_AGENT_SUMMARY_KEY } from "@/components/profile-agent/onboarding-choice";
 import { PrintButton } from "@/components/print-button";
 import { Alert, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
 
@@ -107,14 +106,7 @@ export function ProfileAgentClose({
     setPhase({ name: "saving", written });
     const data = await call({ action: "confirm", entries: written.entries });
     if (!data) return setPhase({ name: "preview", written });
-    // El resumen no lo guarda el agente: el onboarding lo precarga editable en el formulario
-    try {
-      if (base === "onboarding" && written.summary) {
-        window.sessionStorage.setItem(PROFILE_AGENT_SUMMARY_KEY, written.summary);
-      }
-    } catch {
-      // sin sessionStorage el formulario queda como hoy
-    }
+    // El resumen no lo guarda el agente ni viaja por el navegador: se muestra y la persona lo copia
     setPhase({ name: "saved", written, updated: Number(data.updated ?? 0) });
   }
 
@@ -248,9 +240,7 @@ export function ProfileAgentClose({
               <h2 className="text-base font-bold text-fg">Resumen para tu perfil</h2>
               <p className="text-sm text-fg">{written.summary}</p>
               <p className="text-xs text-fg-subtle">
-                {base === "onboarding"
-                  ? "Lo vas a ver ya cargado en el formulario de tu perfil, para que lo edites."
-                  : "No lo guardamos solo. Si te gusta, copialo en Tu perfil."}
+                No lo guardamos solo. Si te gusta, copialo en el resumen de tu perfil.
               </p>
               {base === "app" ? (
                 <Link href="/settings/perfil" className="text-sm font-semibold underline">

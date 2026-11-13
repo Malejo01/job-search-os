@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { ProfileGuide } from "@/components/profile-agent/guide";
-import { profileAgentAllowedFor } from "@/lib/profile-agent/gaps-server";
+import { profileAgentAllowedFor } from "@/lib/profile-agent/access";
 import { requireUserId } from "@/lib/session";
 
 export const metadata = { title: "Guía de búsqueda" };

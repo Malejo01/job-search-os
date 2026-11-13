@@ -1,13 +1,12 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import {
-  CV_CHAT_TURN_RESERVE_USD,
-  CV_CHAT_WRITE_RESERVE_USD,
   PROFILE_AGENT_READ_RESERVE_USD,
   profileAgentCapReason,
   type ProfileAgentCap,
 } from "@job-search-os/pipeline";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { CV_RESERVE_TASK, CV_RESERVE_TTL_MS } from "../../cv-chat/reserve";
+import { measureProfileAgentSpend, profileAgentAttempted, reservedUsd } from "../measure";
 
 /**
  * Cupo y reserva de la lectura del CV del agente de perfil (ADR-034 §6). Mismo patrón que el chat de CV
@@ -32,8 +31,6 @@ export const PROFILE_READ_TASK = "profile_read";
 export const PROFILE_AGENT_LOCK_NAMESPACE = 34;
 /** Tarea de la lectura (`model_routing`). Se repite acá para no importar `cv/extract` en la consulta. */
 const EXTRACT_TASK = "extract_cv_profile";
-/** Tareas del agente que gastan: la lectura y las dos del chat que reusa (`cv_interview`, `cv_write`). */
-const AGENT_TASKS = [EXTRACT_TASK, "cv_interview", "cv_write"] as const;
 const MICRO_USD = 1_000_000;
 
 export type ProfileReadMeasures = {
@@ -49,19 +46,8 @@ export type ProfileReadMeasures = {
   readInFlight: boolean;
 };
 
-const attempted = (c: typeof s.llmCalls) => sql`${c.error} is distinct from 'provider_unavailable'`;
-
-/**
- * Espejo en SQL de `profileAgentRowCostUsd`: el costo real si se conoce; si no, el máximo del paso. Una
- * llamada que nunca salió (`provider_unavailable`) vale 0.
- */
-const billedUsd = (c: typeof s.llmCalls) =>
-  sql`coalesce(${c.costUsd}, case when ${attempted(c)} then (case ${c.task} when 'cv_write' then ${CV_CHAT_WRITE_RESERVE_USD}::float8 when 'cv_interview' then ${CV_CHAT_TURN_RESERVE_USD}::float8 else ${PROFILE_AGENT_READ_RESERVE_USD}::float8 end) else 0 end)`;
-
-const AGENT_TASKS_SQL = sql.join(
-  AGENT_TASKS.map((t) => sql`${t}`),
-  sql`, `,
-);
+/** El gasto se mide con la función compartida del agente (`../measure`): una sola cuenta para las tres etapas. */
+const attempted = profileAgentAttempted;
 
 export async function measureProfileRead(
   q: Pick<Db, "select">,
@@ -89,13 +75,7 @@ export async function measureProfileRead(
         gte(c.createdAt, input.daySince),
       ),
     );
-  const [day] = await q
-    .select({
-      all: sql<number>`coalesce(sum(${billedUsd(c)}), 0)::float8`,
-      mine: sql<number>`coalesce(sum(${billedUsd(c)}) filter (where ${c.userId} = ${input.userId}), 0)::float8`,
-    })
-    .from(c)
-    .where(and(sql`${c.task} in (${AGENT_TASKS_SQL})`, gte(c.createdAt, input.daySince)));
+  const day = await measureProfileAgentSpend(q, input);
   const live = await q
     .select({ userId: c.userId, step: c.model, micro: c.tokensOut })
     .from(c)
@@ -105,13 +85,12 @@ export async function measureProfileRead(
         gte(c.createdAt, new Date(input.now.getTime() - CV_RESERVE_TTL_MS)),
       ),
     );
-  const usd = (rows: typeof live) => rows.reduce((t, r) => t + (r.micro ?? 0), 0) / MICRO_USD;
   const mine = live.filter((r) => r.userId === input.userId);
   return {
     readsThisMonth: month?.n ?? 0,
     readsToday: (reads?.n ?? 0) + mine.filter((r) => r.step === "read").length,
-    userSpendTodayUsd: (day?.mine ?? 0) + usd(mine),
-    dailySpendUsd: (day?.all ?? 0) + usd(live),
+    userSpendTodayUsd: day.userUsd + reservedUsd(mine),
+    dailySpendUsd: day.dailyUsd + reservedUsd(live),
     readInFlight: mine.some((r) => r.step === "read"),
   };
 }

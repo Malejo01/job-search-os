@@ -15,7 +15,7 @@ import {
   screenProfileCard,
 } from "@job-search-os/pipeline";
 import { z } from "zod";
-import { profileAgentAllowedFor } from "@/lib/profile-agent/gaps-server";
+import { requireProfileAgent } from "@/lib/profile-agent/access";
 import {
   loadGuideContext,
   loadGuideDemand,
@@ -115,9 +115,9 @@ const requestSchema = z.discriminatedUnion("action", [
 
 export async function POST(request: Request): Promise<Response> {
   // 1) sesión  2) flag (apagado = 404)
-  const userId = await sessionUserId();
-  if (!userId) return fail("unauthorized");
-  if (!(await profileAgentAllowedFor(userId))) return fail("not_found");
+  const access = await requireProfileAgent(sessionUserId);
+  if (!access.ok) return fail(access.stage === "session" ? "unauthorized" : "not_found");
+  const userId = access.userId;
   const allowed = [new URL(request.url).origin, siteUrl()];
   if (process.env.AUTH_URL) allowed.push(process.env.AUTH_URL);
   if (!originAllowed(request.headers.get("origin"), allowed)) return fail("bad_origin");

@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { ReadClient } from "@/components/profile-agent/read-client";
 import { isOnboardingComplete } from "@/lib/onboarding";
-import { profileAgentAllowedFor } from "@/lib/profile-agent/read-server";
+import { profileAgentAllowedFor } from "@/lib/profile-agent/access";
 import { requireUserId } from "@/lib/session";
 
 export const metadata = { title: "Subí tu CV y armamos tu perfil" };

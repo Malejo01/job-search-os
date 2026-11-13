@@ -4,19 +4,20 @@ import { eq, sql } from "drizzle-orm";
 import { createHash, randomBytes } from "node:crypto";
 // Import relativo directo (no el índice de @job-search-os/db, que arrastra import.meta)
 import { deleteUserData } from "../../../packages/db/src/user-tables";
-import { E2E_USER_ID, login, ownerDb } from "./helpers";
+import { E2E_USER_ID, ownerDb } from "./helpers";
 
 /**
- * Flujo 134 (R10-6, ADR-034): con `CV_PROFILE_AGENT` apagado (el valor por defecto de los e2e) el agente de
- * perfil no existe. Las pantallas del cierre dan 404, el endpoint no toca el modelo y el onboarding queda
- * como siempre: sin la elección «Subí tu CV…». Sin sesión, el endpoint no responde con datos (el middleware
- * redirige a /login o la ruta da 401: orden de ADR-034 §9, sesión primero).
- * El recorrido completo con el flag encendido queda para la rama de integración (docs/beta/agente-perfil-pruebas.md).
- * Todo inventado; la persona nueva se borra al final con deleteUserData.
+ * Flujo 134 (R10-6, ADR-034; R11-1): el agente de perfil no existe para quien no está en la lista de la
+ * etapa `testers` (el servidor de los e2e corre con `CV_PROFILE_AGENT=testers`, ver playwright.config.ts: el
+ * recorrido completo es el flujo 135). Una persona nueva que no es tester ve el onboarding como siempre, sin la
+ * elección «Subí tu CV…»; las pantallas del agente dan 404 y el endpoint responde 404 sin tocar el modelo ni
+ * mirar el ticket. Sin sesión, el endpoint no responde con datos (el middleware redirige a /login o la ruta
+ * da 401: orden de ADR-034 §9, sesión primero). Todo inventado; la persona nueva se borra al final con
+ * deleteUserData.
  */
 test.describe.configure({ mode: "serial" });
 
-test.describe("Flujo 134: agente de perfil apagado", () => {
+test.describe("Flujo 134: agente de perfil apagado para quien no es tester", () => {
   const tag = Date.now();
   const email = `agente-apagado-${tag}@onboarding.test`;
   const password = "agente-clave-local-134";
@@ -45,27 +46,6 @@ test.describe("Flujo 134: agente de perfil apagado", () => {
     }
   });
 
-  test("con sesión, las pantallas del cierre dan 404 y el endpoint no hace nada", async ({
-    page,
-  }) => {
-    await login(page);
-    for (const path of ["/cv/perfil/listo", "/onboarding/cv/listo"]) {
-      const res = await page.goto(path);
-      expect(res?.status(), path).toBe(404);
-    }
-    // El endpoint responde «no encontrado» sin tocar el modelo ni mirar el ticket
-    const res = await page.request.post("/api/cv-perfil/cierre", {
-      data: { action: "write", ticket: "pa1.aaaaaaaaaaaa.9999999999999.sin-firma", lang: "es" },
-    });
-    expect(res.status()).toBe(404);
-    const body = (await res.json()) as { ok: boolean; error: string };
-    expect(body).toMatchObject({ ok: false, error: "not_found" });
-    // «Tu CV» sigue como hoy: sin la tarjeta de entrada del agente
-    await page.goto("/cv");
-    await expect(page.getByTestId("cv-preview")).toBeVisible();
-    await expect(page.getByText("Subí tu CV y armamos tu perfil")).toHaveCount(0);
-  });
-
   test("sin sesión, el endpoint no devuelve datos", async ({ playwright, baseURL }) => {
     const ctx = await playwright.request.newContext({ baseURL });
     const res = await ctx.post("/api/cv-perfil/cierre", {
@@ -77,7 +57,7 @@ test.describe("Flujo 134: agente de perfil apagado", () => {
     await ctx.dispose();
   });
 
-  test("el onboarding de una persona nueva queda como hoy: sin la elección del CV", async ({
+  test("una persona que no es tester ve el onboarding como hoy y las pantallas del agente dan 404", async ({
     browser,
   }) => {
     const code = randomBytes(32).toString("base64url");
@@ -109,9 +89,26 @@ test.describe("Flujo 134: agente de perfil apagado", () => {
       await expect(page.getByTestId("pa-onboarding-choice")).toHaveCount(0);
       await expect(page.getByText("Subí tu CV y armamos tu perfil")).toHaveCount(0);
       await expect(page.getByText("Prefiero completarlo a mano")).toHaveCount(0);
+
       // Las pantallas del agente no existen para esta persona
-      const res = await page.goto("/onboarding/cv/listo");
-      expect(res?.status()).toBe(404);
+      for (const path of ["/onboarding/cv", "/onboarding/cv/huecos", "/onboarding/cv/listo"]) {
+        const res = await page.goto(path);
+        expect(res?.status(), path).toBe(404);
+      }
+
+      // Con sesión, cada endpoint responde «no encontrado» sin tocar el modelo ni mirar el ticket
+      for (const [path, data] of [
+        ["/api/cv-perfil/cierre", { action: "write", ticket: "x", lang: "es" }],
+        ["/api/cv-perfil/leer", { text: "x" }],
+        ["/api/cv-perfil/huecos", { action: "start" }],
+        ["/api/cv-perfil/guia", { action: "next", guide: {} }],
+        ["/api/cv-perfil/tarjetas", { ticket: "x", decisions: [] }],
+      ] as const) {
+        const res = await page.request.post(path, { data });
+        expect(res.status(), path).toBe(404);
+        const body = (await res.json()) as { ok: boolean; error: string };
+        expect(body, path).toMatchObject({ ok: false, error: "not_found" });
+      }
     } finally {
       await context.close();
     }

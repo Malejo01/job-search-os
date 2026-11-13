@@ -16,6 +16,7 @@ import {
   profileAgentPath,
   reinforceEvidenceText,
   searchUrlFor,
+  storedSuggestedRoles,
   type ProfileAgentBase,
   type ProfileGuideAnswers,
   type ProfileGuideCard,
@@ -63,6 +64,15 @@ async function post(
     return (await res.json()) as never;
   } catch {
     return { ok: false, error: "network", message: "No hay conexión. Probá de nuevo." };
+  }
+}
+
+/** Puestos que sugirió la lectura del CV: la guía los ofrece primero (el servidor los filtra otra vez). */
+function readSuggestedRoles(): string[] {
+  try {
+    return storedSuggestedRoles(window.sessionStorage.getItem(PROFILE_AGENT_STORAGE_KEYS.read));
+  } catch {
+    return [];
   }
 }
 
@@ -131,7 +141,11 @@ export function ProfileGuide({ base }: { base: ProfileAgentBase }) {
     if (started.current) return;
     started.current = true;
     void (async () => {
-      const r = await post({ action: "next", guide: readGuide() });
+      const r = await post({
+        action: "next",
+        guide: readGuide(),
+        suggestedRoles: readSuggestedRoles(),
+      });
       if (r.ok) apply(r);
       else setError(r.message);
     })();
@@ -146,7 +160,12 @@ export function ProfileGuide({ base }: { base: ProfileAgentBase }) {
     if (busy) return;
     setBusy(true);
     setError(null);
-    const r = await post({ action: "answer", guide, input });
+    const r = await post({
+      action: "answer",
+      guide,
+      input,
+      suggestedRoles: readSuggestedRoles(),
+    });
     setBusy(false);
     if (r.ok) apply(r);
     else setError(r.message);

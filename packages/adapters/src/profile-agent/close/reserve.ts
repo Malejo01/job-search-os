@@ -10,48 +10,29 @@
  */
 import { schema as s, type Db } from "@job-search-os/db";
 import {
-  CV_CHAT_TURN_RESERVE_USD,
   CV_CHAT_WRITE_RESERVE_USD,
-  PROFILE_AGENT_READ_RESERVE_USD,
   cvChatBetaCvPerMonth,
   cvChatWindows,
   profileAgentDailyCapUsd,
   profileAgentWriteReject,
   type ProfileAgentWriteReject,
 } from "@job-search-os/pipeline";
-import { and, eq, gte, inArray, sql } from "drizzle-orm";
 import { cvChatLabel } from "../../cv-chat/ids";
 import { reserveCvChatStep, type CvReservation } from "../../cv-chat/reserve";
+import { PROFILE_AGENT_SPEND_TASKS, measureProfileAgentSpend } from "../measure";
 
-export const PROFILE_AGENT_CLOSE_SPEND_TASKS = [
-  "extract_cv_profile",
-  "cv_interview",
-  "cv_write",
-] as const;
+export const PROFILE_AGENT_CLOSE_SPEND_TASKS = PROFILE_AGENT_SPEND_TASKS;
 
 /**
- * Gasto de la persona en las últimas 24 h con las tres tareas del agente. Una fila fallida llega con
- * `cost_usd` null y cuenta como el estimado de su paso; `provider_unavailable` (nunca se llamó) no cuenta.
+ * Gasto de la persona en las últimas 24 h con las tres tareas del agente. Es la medición compartida
+ * (`../measure`): una fila fallida llega con `cost_usd` null y cuenta como el estimado de su paso;
+ * `provider_unavailable` (nunca se llamó) no cuenta.
  */
 export async function measureProfileAgentUserSpendUsd(
   q: Pick<Db, "select">,
   input: { userId: string; daySince: Date },
 ): Promise<number> {
-  const c = s.llmCalls;
-  const estimate = sql`(case ${c.task} when 'extract_cv_profile' then ${PROFILE_AGENT_READ_RESERVE_USD}::float8 when 'cv_write' then ${CV_CHAT_WRITE_RESERVE_USD}::float8 else ${CV_CHAT_TURN_RESERVE_USD}::float8 end)`;
-  const [row] = await q
-    .select({
-      usd: sql<number>`coalesce(sum(case when ${c.costUsd} is not null and ${c.costUsd} >= 0 then ${c.costUsd} when ${c.ok} = false and ${c.error} is distinct from 'provider_unavailable' then ${estimate} else 0 end), 0)::float8`,
-    })
-    .from(c)
-    .where(
-      and(
-        eq(c.userId, input.userId),
-        inArray(c.task, [...PROFILE_AGENT_CLOSE_SPEND_TASKS]),
-        gte(c.createdAt, input.daySince),
-      ),
-    );
-  return row?.usd ?? 0;
+  return (await measureProfileAgentSpend(q, input)).userUsd;
 }
 
 /**

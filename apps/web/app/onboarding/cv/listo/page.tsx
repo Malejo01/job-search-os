@@ -2,7 +2,7 @@ import { profileAgentNextSteps, profileAgentPath } from "@job-search-os/pipeline
 import { notFound, redirect } from "next/navigation";
 import { ProfileAgentClose } from "@/components/profile-agent/close";
 import { isOnboardingComplete } from "@/lib/onboarding";
-import { profileAgentEnabledFor } from "@/lib/profile-agent/close-server";
+import { profileAgentAllowedFor } from "@/lib/profile-agent/access";
 import { requireTermsAcceptedUserId } from "@/lib/session";
 import { OnboardingSteps } from "../../steps";
 
@@ -17,7 +17,7 @@ export const maxDuration = 60;
  */
 export default async function OnboardingProfileAgentDonePage() {
   const userId = await requireTermsAcceptedUserId();
-  if (!(await profileAgentEnabledFor(userId))) notFound();
+  if (!(await profileAgentAllowedFor(userId))) notFound();
   if (await isOnboardingComplete(userId)) redirect(profileAgentPath("app", "done"));
   return (
     <section className="flex flex-col gap-5">

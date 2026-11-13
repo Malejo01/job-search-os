@@ -3,7 +3,7 @@ import { PROFILE_AGENT_TICKET_TTL_MS } from "@job-search-os/pipeline";
 import { signCvTicket } from "../cv-chat/ticket";
 import { signProfileAgentTicket, verifyProfileAgentTicket } from "./ticket";
 
-const SECRET = "secreto-de-prueba-0123456789";
+const SECRET = "secreto-de-prueba";
 const USER = "00000000-0000-4000-8000-000000000001";
 const OTHER = "00000000-0000-4000-8000-000000000002";
 const FLOW = "0123456789ab";

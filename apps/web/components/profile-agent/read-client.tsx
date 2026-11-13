@@ -6,15 +6,17 @@ import {
   PROFILE_AGENT_STORAGE_KEYS,
   checkProfileReadText,
   initialProfileAgentState,
+  parseStoredRead,
   profileReadFallbacks,
   profileReadInputNotice,
+  pruneStoredRead,
   type ProfileAgentBase,
   type ProfileReadFallback,
   type ProfileReadInputProblem,
   type ProfileReadProposal,
 } from "@job-search-os/pipeline";
 import Link from "next/link";
-import { useId, useRef, useState, type DragEvent } from "react";
+import { useId, useMemo, useRef, useState, useSyncExternalStore, type DragEvent } from "react";
 import { Alert, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
 import { ProfileCards } from "./cards";
 import { extractCvText } from "./extract-text";
@@ -40,6 +42,29 @@ type ApiResponse =
   | { ok: true; ticket: string; summary: Summary; proposal: ProfileReadProposal }
   | { ok: false; error: string; message: string; links?: ProfileReadFallback[] };
 
+type Done = {
+  ticket: string;
+  summary: Summary;
+  proposal: ProfileReadProposal;
+  settled: boolean;
+};
+
+/** Lo que la pestaña guardó de la lectura (ticket y propuesta), como un solo texto que se compara por valor. */
+const EMPTY_STORED = JSON.stringify([null, null]);
+const subscribeNothing = (): (() => void) => () => {};
+const serverStored = (): string => EMPTY_STORED;
+function readStored(): string {
+  try {
+    return JSON.stringify([
+      window.sessionStorage.getItem(PROFILE_AGENT_STORAGE_KEYS.ticket),
+      window.sessionStorage.getItem(PROFILE_AGENT_STORAGE_KEYS.read),
+    ]);
+  } catch {
+    // sessionStorage bloqueado: la persona vuelve a leer
+    return EMPTY_STORED;
+  }
+}
+
 const MAX_MB = Math.round(CV_MAX_FILE_BYTES / (1024 * 1024));
 const PRIMARY = buttonClasses();
 const SECONDARY = buttonClasses({ variant: "secondary" });
@@ -63,12 +88,45 @@ export function ReadClient({ base }: { base: ProfileAgentBase }) {
   const [dragging, setDragging] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [info, setInfo] = useState<string | null>(null);
-  const [done, setDone] = useState<{
-    ticket: string;
-    summary: Summary;
-    proposal: ProfileReadProposal;
-  } | null>(null);
+  const [done, setDone] = useState<Done | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Recargar antes de guardar las tarjetas no debe gastar otra lectura del cupo: si la pestaña guardó la
+  // propuesta de esta charla (atada al ticket), se vuelve a mostrar sin llamar al servidor (R11-1). En el
+  // servidor y en la hidratación no hay nada guardado; después de montar, el navegador la entrega.
+  const stored = useSyncExternalStore(subscribeNothing, readStored, serverStored);
+  const restored = useMemo((): Done | null => {
+    const [ticket, raw] = JSON.parse(stored) as [string | null, string | null];
+    const saved = parseStoredRead(raw, ticket);
+    if (!saved) return null;
+    return {
+      // el ticket vigente (las etapas siguientes lo reemiten con otro vencimiento)
+      ticket: ticket ?? saved.ticket,
+      summary: saved.summary,
+      proposal: saved.proposal,
+      settled: saved.settled === true,
+    };
+  }, [stored]);
+  const view = done ?? restored;
+
+  /** Las tarjetas ya resueltas no vuelven al recargar. */
+  function onResolved(ids: string[]) {
+    try {
+      const ticket = sessionStorage.getItem(PROFILE_AGENT_STORAGE_KEYS.ticket);
+      const saved = parseStoredRead(
+        sessionStorage.getItem(PROFILE_AGENT_STORAGE_KEYS.read),
+        ticket,
+      );
+      if (saved) {
+        sessionStorage.setItem(
+          PROFILE_AGENT_STORAGE_KEYS.read,
+          JSON.stringify(pruneStoredRead(saved, ids)),
+        );
+      }
+    } catch {
+      // sin almacenamiento: al recargar se lee de nuevo
+    }
+  }
   const textRef = useRef<HTMLTextAreaElement>(null);
   const fileId = useId();
   const textId = useId();
@@ -138,21 +196,28 @@ export function ReadClient({ base }: { base: ProfileAgentBase }) {
         PROFILE_AGENT_STORAGE_KEYS.state,
         JSON.stringify(initialProfileAgentState()),
       );
+      // La propuesta (no el texto del CV) queda en la pestaña para sobrevivir a una recarga
+      sessionStorage.setItem(
+        PROFILE_AGENT_STORAGE_KEYS.read,
+        JSON.stringify({ ticket: res.ticket, summary: res.summary, proposal: res.proposal }),
+      );
     } catch {
       // sessionStorage bloqueado: la lectura se muestra igual y las etapas que siguen vuelven a empezar
     }
     setText("");
-    setDone({ ticket: res.ticket, summary: res.summary, proposal: res.proposal });
+    setDone({ ticket: res.ticket, summary: res.summary, proposal: res.proposal, settled: false });
   }
 
   // R10-2: las tarjetas editables sobre la misma pantalla. Nada se guardó todavía
-  if (done) {
+  if (view) {
     return (
       <ProfileCards
         base={base}
-        ticket={done.ticket}
-        summaryLine={summaryLine(done.summary)}
-        proposal={done.proposal}
+        ticket={view.ticket}
+        summaryLine={summaryLine(view.summary)}
+        proposal={view.proposal}
+        settled={view.settled}
+        onResolved={onResolved}
       />
     );
   }

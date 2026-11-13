@@ -84,11 +84,17 @@ export function ProfileCards({
   ticket,
   summaryLine,
   proposal,
+  settled = false,
+  onResolved,
 }: {
   base: ProfileAgentBase;
   ticket: string;
   summaryLine: string;
   proposal: ProfileReadProposal;
+  /** Volvió de una recarga y ya había resuelto tarjetas: sin tarjetas, no es que no se encontró nada. */
+  settled?: boolean;
+  /** Avisa qué tarjetas quedaron resueltas (guardadas o descartadas) para que no vuelvan al recargar. */
+  onResolved?: (ids: string[]) => void;
 }) {
   const [cards, setCards] = useState<ProfileReadCard[]>(proposal.cards);
   const [marks, setMarks] = useState<Record<string, Mark | undefined>>({});
@@ -135,6 +141,11 @@ export function ProfileCards({
     for (const r of res.rejected) nextNotes[r.id] = { text: r.message, done: false };
     for (const id of res.discarded) nextNotes[id] = { text: "Descartada.", done: true };
     setNotes((n) => ({ ...n, ...nextNotes }));
+    onResolved?.(
+      Object.entries(nextNotes)
+        .filter(([, note]) => note?.done === true)
+        .map(([id]) => id),
+    );
     // Lo que no se pudo guardar vuelve a quedar sin decidir, para que la persona lo corrija
     setMarks((m) => {
       const out = { ...m };
@@ -172,7 +183,13 @@ export function ProfileCards({
         </p>
       </section>
 
-      {cards.length === 0 ? (
+      {cards.length === 0 && settled ? (
+        <Alert tone="info" role="status" data-testid="profile-cards-settled">
+          Ya resolviste todas las tarjetas de esta lectura. Podés seguir con lo que falta.
+        </Alert>
+      ) : null}
+
+      {cards.length === 0 && !settled ? (
         <Alert tone="warning" role="status">
           <p>No pudimos armar tarjetas con ese CV.</p>
           <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1">

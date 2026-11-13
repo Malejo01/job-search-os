@@ -12,12 +12,8 @@ import {
 } from "@job-search-os/pipeline";
 import { originAllowed } from "@/lib/cv-chat-ticket";
 import { serviceLlm } from "@/lib/llm-service";
-import {
-  buildReadSummary,
-  getSessionEmail,
-  loadReadContext,
-  profileAgentAllowedFor,
-} from "@/lib/profile-agent/read-server";
+import { getSessionEmail, requireProfileAgent } from "@/lib/profile-agent/access";
+import { buildReadSummary, loadReadContext } from "@/lib/profile-agent/read-server";
 import { sessionUserId } from "@/lib/session";
 import { siteUrl } from "@/lib/site-url";
 import { needsTermsAcceptance } from "@/lib/terms-status";
@@ -49,9 +45,10 @@ function capped(cap: ProfileAgentCap): Response {
  * topes dentro del adaptador. Sin sesión no se toca la base ni el modelo.
  */
 export async function POST(request: Request): Promise<Response> {
-  const userId = await sessionUserId();
-  if (!userId) return fail("unauthorized");
-  if (!(await profileAgentAllowedFor(userId))) return fail("not_found");
+  // Sesión (401) → flag (404): la única puerta del agente
+  const access = await requireProfileAgent(sessionUserId);
+  if (!access.ok) return fail(access.stage === "session" ? "unauthorized" : "not_found");
+  const userId = access.userId;
 
   // Mismo origen, siempre: es un POST con cookie de sesión
   const allowed = [new URL(request.url).origin, siteUrl()];

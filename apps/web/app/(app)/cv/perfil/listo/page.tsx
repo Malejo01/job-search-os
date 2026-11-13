@@ -1,7 +1,7 @@
 import { profileAgentNextSteps } from "@job-search-os/pipeline";
 import { notFound } from "next/navigation";
 import { ProfileAgentClose } from "@/components/profile-agent/close";
-import { profileAgentEnabledFor } from "@/lib/profile-agent/close-server";
+import { profileAgentAllowedFor } from "@/lib/profile-agent/access";
 import { requireActiveUserId } from "@/lib/session";
 
 export const metadata = { title: "Tu CV está listo" };
@@ -16,7 +16,7 @@ export const maxDuration = 60;
  */
 export default async function ProfileAgentDonePage() {
   const userId = await requireActiveUserId();
-  if (!(await profileAgentEnabledFor(userId))) notFound();
+  if (!(await profileAgentAllowedFor(userId))) notFound();
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-5">
       <h1 className="no-print text-title font-bold">Tu CV y qué sigue</h1>

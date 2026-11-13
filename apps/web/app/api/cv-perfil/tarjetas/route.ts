@@ -3,7 +3,7 @@ import { PROFILE_AGENT_MAX_CARDS, profileCardDecisionSchema } from "@job-search-
 import { z } from "zod";
 import { originAllowed } from "@/lib/cv-chat-ticket";
 import { saveProfileCards } from "@/lib/profile-agent/cards-server";
-import { profileAgentAllowedFor } from "@/lib/profile-agent/read-server";
+import { requireProfileAgent } from "@/lib/profile-agent/access";
 import { sessionUserId } from "@/lib/session";
 import { siteUrl } from "@/lib/site-url";
 import { needsTermsAcceptance } from "@/lib/terms-status";
@@ -46,9 +46,9 @@ const requestSchema = z.strictObject({
  * validar y filtrar y se guarda con RLS; lo descartado no se guarda. No hay nada del CV en la base.
  */
 export async function POST(request: Request): Promise<Response> {
-  const userId = await sessionUserId();
-  if (!userId) return fail("unauthorized");
-  if (!(await profileAgentAllowedFor(userId))) return fail("not_found");
+  const access = await requireProfileAgent(sessionUserId);
+  if (!access.ok) return fail(access.stage === "session" ? "unauthorized" : "not_found");
+  const userId = access.userId;
 
   const allowed = [new URL(request.url).origin, siteUrl()];
   if (process.env.AUTH_URL) allowed.push(process.env.AUTH_URL);

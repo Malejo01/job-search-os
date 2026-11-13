@@ -3,7 +3,7 @@ import { HelpTip } from "@/components/help-tip";
 import Link from "next/link";
 import { CvPreview } from "@/components/cv-preview";
 import { UploadCard } from "@/components/profile-agent/upload-card";
-import { profileAgentAllowedFor } from "@/lib/profile-agent/read-server";
+import { profileAgentAllowedFor } from "@/lib/profile-agent/access";
 import { PrintButton } from "@/components/print-button";
 import { canCreateInvitations } from "@/lib/invitations";
 import { buildUserCv, cvChatMode, parseCvOptions } from "@/lib/cv-source";

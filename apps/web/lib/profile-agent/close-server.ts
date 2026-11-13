@@ -1,8 +1,6 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import {
   buildCvDocument,
-  profileAgentAllowed,
-  profileAgentMode,
   validateHistory,
   type CvDocument,
   type CvHistoryInput,
@@ -23,23 +21,6 @@ import { getTargetRoles } from "@/lib/onboarding";
  * filtrando por `user_id`. No se guarda ni el CV ni la charla: acá solo se lee lo que la persona ya
  * confirmó y, con su clic, se actualizan las viñetas de sus trabajos.
  */
-
-/**
- * ¿Esta persona ve el agente (`CV_PROFILE_AGENT`, ADR-034 §7)? Sin flag o sin `CV_IMPORT_ENABLED=1` no hay
- * consulta; si la consulta falla, falla cerrado (no lo ve). Es la única puerta de esta etapa.
- */
-export async function profileAgentEnabledFor(userId: string): Promise<boolean> {
-  if (process.env.CV_IMPORT_ENABLED !== "1" || profileAgentMode(process.env) === "off")
-    return false;
-  try {
-    const [me] = await withUser(userId, (tx) =>
-      tx.select({ email: s.users.email }).from(s.users).where(eq(s.users.id, userId)).limit(1),
-    );
-    return profileAgentAllowed(process.env, me?.email);
-  } catch {
-    return false;
-  }
-}
 
 /** Nombres del catálogo de skills: una tecnología que el modelo nombra y la persona no dijo se descarta. */
 export async function skillCatalogNames(db: Db): Promise<string[]> {

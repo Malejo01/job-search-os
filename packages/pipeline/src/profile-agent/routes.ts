@@ -41,4 +41,9 @@ export const PROFILE_AGENT_API = {
 export const PROFILE_AGENT_STORAGE_KEYS = {
   ticket: "jso:pa:ticket",
   state: "jso:pa:state",
+  /**
+   * La propuesta de la lectura (tarjetas ya revisadas, atadas al ticket), para que recargar antes de guardar
+   * no gaste otra lectura del cupo. No es el texto del CV: ver `read/stored.ts`.
+   */
+  read: "jso:pa:read",
 } as const;

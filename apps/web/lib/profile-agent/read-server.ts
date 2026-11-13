@@ -1,7 +1,5 @@
 import { schema as s } from "@job-search-os/db";
 import {
-  profileAgentAllowed,
-  profileAgentMode,
   suggestedSkills,
   type CvProposal,
   type ProfileAgentPlan,
@@ -20,30 +18,6 @@ import { getUserPlan } from "@/lib/user-plan";
  * la persona va con `withUser` (RLS); las medidas de gasto globales las hace el adaptador con la conexión
  * de servicio que abre la ruta. Nada de esto guarda el CV, su texto ni la propuesta.
  */
-
-/**
- * ¿Esta persona ve el agente? `CV_PROFILE_AGENT` (`testers` | `all`) más `CV_IMPORT_ENABLED=1`. Es la
- * única puerta: la usan `/cv`, las páginas del agente y cada endpoint. Si la consulta del email falla, falla
- * cerrado (no lo ve). Sin el flag ni siquiera se consulta la base.
- */
-export async function profileAgentAllowedFor(userId: string): Promise<boolean> {
-  // Con el flag apagado o sin `CV_IMPORT_ENABLED=1` no hace falta preguntarle el email a la base
-  if (process.env.CV_IMPORT_ENABLED !== "1" || profileAgentMode(process.env) === "off")
-    return false;
-  return profileAgentAllowed(process.env, await getSessionEmail(userId));
-}
-
-/** Email de la sesión, con RLS (para decidir exenciones de cupo). `null` si no se puede leer. */
-export async function getSessionEmail(userId: string): Promise<string | null> {
-  try {
-    const [me] = await withUser(userId, (tx) =>
-      tx.select({ email: s.users.email }).from(s.users).where(eq(s.users.id, userId)).limit(1),
-    );
-    return me?.email ?? null;
-  } catch {
-    return null;
-  }
-}
 
 export type ReadContext = {
   displayName: string | null;

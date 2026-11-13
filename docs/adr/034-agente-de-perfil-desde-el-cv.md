@@ -81,8 +81,12 @@ Hallazgos del código que condicionan el diseño (verificados en `origin/main`, 
   las dice la persona en la etapa de huecos. **Lo que el CV no dice queda vacío** (`null` o `[]`): una fecha de fin sin
   inicio no se propone (se dejan las dos en `null`, la persona completa el inicio en la tarjeta).
 - **El resumen del perfil (`profile_summary`) no se guarda desde el agente**: alimenta al evaluador y ya costó un
-  perfil inflado (ADR-026 §4 lo dejó abierto). En el onboarding, R10-5 puede **precargar** el campo de resumen del
-  formulario con el resumen verificado de `cv_write`, editable: lo guarda el formulario, con su validación.
+  perfil inflado (ADR-026 §4 lo dejó abierto). R10-5 precargaba el campo de resumen del formulario con el resumen
+  verificado de `cv_write` pasándolo por `sessionStorage` (`jso:pa:summary`); **R11-1 lo saca**: nadie escribía esa
+  clave de forma confiable y el resumen no tiene que viajar por el navegador. El resumen verificado se muestra en
+  la vista previa del cierre y la persona lo copia al formulario si le gusta (el formulario valida y guarda). El
+  formulario del onboarding precarga el resumen que **ya está guardado en el perfil**, leído en el servidor
+  (`getProfileForEdit`, cuando la persona pasó por el agente); si no hay nada guardado, queda vacío como siempre.
 
 ### 3. Datos sensibles: nunca llegan al perfil
 Edad, estado civil, hijos, salud, religión, política, DNI y domicilio (más email y teléfono). El filtro es **código
@@ -120,6 +124,13 @@ La charla no se guarda: el estado viaja en el request, como en ADR-026 §4, pero
   guide }`. No tiene dónde llevar el texto del CV ni la charla (un test lo fija). `stage` es solo para pintar: el
   servidor no le cree. Vive en `sessionStorage` (claves `jso:pa:ticket` y `jso:pa:state`, ver `routes.ts`), nunca en
   `localStorage`; si faltan o no validan, la página vuelve a `/cv/perfil`.
+- **Recargar antes de guardar las tarjetas no gasta otra lectura (R11-1).** Cada lectura exitosa descuenta una del
+  cupo; si la propuesta se perdía al recargar, volver a leer costaba otra. La pestaña guarda la propuesta (las
+  tarjetas ya revisadas, sin viñetas ni sensibles; **no** el texto del CV) en `jso:pa:read`, atada al `flowId` del
+  ticket (`pipeline/profile-agent/read/stored.ts`), y quita las tarjetas que la persona ya resolvió. No se firma: lo
+  que vuelve del navegador al guardar se valida y filtra de nuevo (§3), así que alterarla no abre nada. Se descartó
+  descontar el cupo recién con la primera tarjeta aceptada: quien lee CVs sin aceptar nunca nada leería gratis hasta
+  el tope diario, todos los meses.
 - Una charla nueva (otro `flowId`) nace en la lectura. Si la persona vuelve a los huecos con el ticket vencido, el
   endpoint de huecos abre una charla nueva con el paso `start` de la reserva del chat (cuenta en sus 5 por día).
   **Nota para R10-3 (O3):** ese `start` cuenta en los 5 por día **aunque el pedido no traiga ticket** (o traiga uno

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { ProfileGaps } from "@/components/profile-agent/gaps";
-import { profileAgentAllowedFor } from "@/lib/profile-agent/gaps-server";
+import { profileAgentAllowedFor } from "@/lib/profile-agent/access";
 import { requireUserId } from "@/lib/session";
 
 export const metadata = { title: "Completemos lo que falta" };
