@@ -23,7 +23,8 @@ test.describe("Flujo 75: carreras de finanzas y operaciones (públicas)", () => 
   test("/mercado/finanzas_contabilidad carga con su rótulo", async ({ page }) => {
     const res = await page.goto(`/mercado/${FINANZAS}`);
     expect(res?.status()).toBe(200);
-    await expect(page.getByRole("heading", { level: 1 })).toContainText(FINANZAS_LABEL);
+    // Desde R6-4 los títulos públicos usan el nombre de la carrera en la beta («Contaduría»)
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Contaduría");
   });
 
   test("el sitemap lista finanzas y no la carrera sin publicar", async ({ request }) => {
@@ -114,11 +115,12 @@ test.describe("Flujo 75: onboarding con finanzas", () => {
     await register(page, run);
 
     const group = page.getByRole("group", {
-      name: "Derecho, contabilidad y gestión",
+      name: "Carreras de la beta",
       exact: true,
     });
     await expect(group.locator(`input[name="targetRoles"][value="${FINANZAS}"]`)).toHaveCount(1);
-    await expect(group).toContainText(FINANZAS_LABEL);
+    // R5-C8: el selector la muestra con su nombre de la beta
+    await expect(group).toContainText("Contaduría");
     await expect(page.locator(`input[name="targetRoles"][value="${OPERACIONES}"]`)).toHaveCount(0);
 
     await group.locator(`input[name="targetRoles"][value="${FINANZAS}"]`).check();

@@ -2,7 +2,7 @@
   "meta": {
     "carrera": "marketing_digital",
     "version": "2026-11-03",
-    "descripcion": "Golden sintético de marketing_digital (C8-8): 8 avisos inventados con empresas ficticias. Etiquetas propuestas (anchor_source assisted), a validar por un profesional después de la beta. No lo usa el job pago de evals.",
+    "descripcion": "Golden sintético de marketing_digital (C8-8): 7 avisos inventados con empresas ficticias (el de RR.PP. pasó a relaciones_publicas.json, R6-5). Etiquetas propuestas (anchor_source assisted), a validar por un profesional después de la beta. No lo usa el job pago de evals.",
     "persona": {
       "pais": "AR",
       "ciudad": "Salta",
@@ -72,27 +72,6 @@
           "max": 9
         },
         "nota": "Presencial en la ciudad de la persona: no es riesgo, pasa con la marca de modalidad."
-      },
-      "anchor_source": "assisted"
-    },
-    {
-      "id": "marketing_digital-04",
-      "categoria": "presencial_caba",
-      "empresa": "Empresa D",
-      "titulo": "Ejecutivo/a de relaciones públicas",
-      "ubicacion_raw": "CABA, Buenos Aires",
-      "modalidad": "presencial",
-      "jd_text": "Empresa D busca incorporar: Ejecutivo/a de relaciones públicas.\n\nAgencia de RR.PP.\n\nQué vas a hacer:\n- Organizar lanzamientos\n- Gestionar prensa para clientes\n- Armar informes de repercusión\n\nQué buscamos:\n- Relaciones Públicas o Comunicación\n- Experiencia en agencia\n\nOficina en Palermo.\n\nModalidad: presencial. Ubicación: CABA, Buenos Aires. Jornada completa, de lunes a viernes.",
-      "etiquetas": {
-        "prefiltro": "must_pass",
-        "flags_esperados": ["modalidad_no_remota", "ciudad_distinta"],
-        "bloqueadores_esperados": ["ubicacion"],
-        "accion_esperada": "guardar",
-        "score_esperado": {
-          "min": 4,
-          "max": 7
-        },
-        "nota": "Presencial lejos de Salta: pasa el prefiltro con la marca de ciudad distinta; el evaluador lo baja."
       },
       "anchor_source": "assisted"
     },

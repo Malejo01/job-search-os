@@ -8,7 +8,7 @@ import {
 import { HelpTip } from "@/components/help-tip";
 import { FieldError, GuardedForm, PendingSubmit } from "@/app/components/guarded-form";
 import { RolePickerWithProposal } from "@/components/role-picker-with-proposal";
-import { ROLE_SKILLS } from "@/lib/skill-levels";
+import { catalogLabel } from "@/lib/career-names";
 import { Alert, buttonClasses, cardClasses } from "@/components/ui";
 import { saveTargetRolesAction } from "./actions";
 
@@ -32,7 +32,7 @@ export function TargetRolesForm({
 }) {
   const groups = profileRoleGroups(current).map((group) => ({
     label: group.label,
-    roles: group.roles.map((key) => ({ key, label: ROLE_SKILLS[key].label })),
+    roles: group.roles.map((key) => ({ key, label: catalogLabel(key) })),
   }));
   return (
     <section
@@ -42,7 +42,7 @@ export function TargetRolesForm({
       <h2 className="text-heading font-bold">Tus puestos</h2>
       <p data-testid="current-roles" className="text-sm text-fg-muted">
         {current.length > 0
-          ? `Tus puestos actuales: ${current.map((key) => ROLE_SKILLS[key].label).join(", ")}`
+          ? `Tus puestos actuales: ${current.map((key) => catalogLabel(key)).join(", ")}`
           : "Todavía no elegiste puesto"}
       </p>
       {status === "guardado" ? (

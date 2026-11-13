@@ -1,6 +1,5 @@
 import { pricingEnabled } from "@job-search-os/pipeline";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { ActionTracker } from "@/components/action-tracker";
 import { AssistantMascot } from "@/components/assistant-mascot";
@@ -10,9 +9,7 @@ import { countFollowUps } from "@/lib/applications";
 import { canUseAssistant } from "@/lib/assistant";
 import { assertAppRole } from "@/lib/db";
 import { canCreateInvitations } from "@/lib/invitations";
-import { isOnboardingComplete } from "@/lib/onboarding";
-import { requireUserId } from "@/lib/session";
-import { needsTermsAcceptance } from "@/lib/terms-status";
+import { requireActiveUserId, requireUserId } from "@/lib/session";
 import { getUserPlan } from "@/lib/user-plan";
 import { getDisplayName } from "@/lib/display-name";
 import { Avatar } from "./avatar";
@@ -42,30 +39,35 @@ const SKIP_CLASS =
 export default async function AppLayout({ children }: { children: ReactNode }) {
   await assertAppRole();
   const userId = await requireUserId();
-  // Gate de términos (ronda 83): sin la versión vigente aceptada no se ve nada. La pantalla está fuera
-  // de este grupo; si estuviera adentro, este redirect entraría en loop.
-  if (await needsTermsAcceptance(userId)) redirect("/terminos-actualizados");
-  // Gate de onboarding (B2): sin perfil completo no se ve nada de la app. /onboarding está fuera
-  // de este grupo; si estuviera adentro, este redirect entraría en loop.
-  if (!(await isOnboardingComplete(userId))) redirect("/onboarding");
-  // Solo los admins ven "Invitar". Sin ADMIN_EMAILS no hay consulta; si el chequeo falla, el
-  // layout no se rompe: el link no se muestra.
-  const canInvite = process.env.ADMIN_EMAILS
-    ? await canCreateInvitations(userId).catch(() => false)
-    : false;
-  // Asistente (AG-3): admins con ASSISTANT_ENABLED=admin, y también los emails de
-  // ASSISTANT_TESTER_EMAILS con =testers; sin el flag no hay consulta y si falla, no se muestra
-  const canAssist = await canUseAssistant(userId);
-  // Contador de «Postulaciones»: si la consulta falla, el menú se muestra igual, sin número
-  const followUps = await countFollowUps(userId, new Date()).catch(() => 0);
-  // Aviso de vigencia del plan (C3-1): solo con los precios encendidos; si la consulta falla, no se muestra
-  const planAccess = pricingEnabled(process.env)
-    ? await getUserPlan(userId)
-        .then((p) => p.access)
-        .catch(() => null)
-    : null;
-  // Avatar del header (C7-5): si la consulta falla, el ícono de perfil
-  const displayName = await getDisplayName(userId).catch(() => null);
+  // R7-6: las consultas del layout no dependen unas de otras, así que salen juntas (antes iban en
+  // serie, una transacción tras otra, en cada navegación). Los gates se siguen aplicando en el mismo
+  // orden: primero términos, después onboarding.
+  const [, canInvite, canAssist, followUps, planAccess, displayName] = await Promise.all([
+    // Gates de términos (ronda 83) y de onboarding (B2): sin la versión vigente aceptada y sin
+    // perfil completo no se ve nada. Las pantallas están fuera de este grupo; si estuvieran
+    // adentro, estos redirects entrarían en loop. `requireActiveUserId` tiene `cache`: la página
+    // que llama lo mismo (p. ej. Hoy) no repite estas dos consultas.
+    requireActiveUserId(),
+    // Solo los admins ven "Invitar". Sin ADMIN_EMAILS no hay consulta; si el chequeo falla, el
+    // layout no se rompe: el link no se muestra.
+    process.env.ADMIN_EMAILS
+      ? canCreateInvitations(userId).catch(() => false)
+      : Promise.resolve(false),
+    // Asistente (AG-3): admins con ASSISTANT_ENABLED=admin, y también los emails de
+    // ASSISTANT_TESTER_EMAILS con =testers; sin el flag no hay consulta y si falla, no se muestra
+    canUseAssistant(userId),
+    // Contador de «Postulaciones»: si la consulta falla, el menú se muestra igual, sin número
+    countFollowUps(userId, new Date()).catch(() => 0),
+    // Aviso de vigencia del plan (C3-1): solo con los precios encendidos; si la consulta falla, no
+    // se muestra
+    pricingEnabled(process.env)
+      ? getUserPlan(userId)
+          .then((p) => p.access)
+          .catch(() => null)
+      : Promise.resolve(null),
+    // Avatar del header (C7-5): si la consulta falla, el ícono de perfil
+    getDisplayName(userId).catch(() => null),
+  ]);
   return (
     // Pestañas abajo en el celular (C9-7): el pie y el último contenido quedan por encima de ellas,
     // y `--tabbar-h` sube lo que va fijo abajo (chip de soporte, acciones en lote, guardar skills)

@@ -29,15 +29,15 @@ export default async function PerfilPage() {
   // Sin puestos guardados no se puede guardar el perfil, y acá no hay campo de puestos
   const rolesNotice = (
     <>
-      Primero elegí tus puestos en{" "}
-      <Link href="/settings" className="font-semibold underline underline-offset-2">
-        Ajustes
-      </Link>
-      , en «Tus puestos», y volvé a guardar.
+      Primero{" "}
+      <Link href="/settings#puesto" className="font-semibold underline underline-offset-2">
+        elegí tus puestos
+      </Link>{" "}
+      y volvé a guardar.
     </>
   );
   return (
-    <div className="mx-auto flex max-w-xl flex-col gap-5">
+    <div className="mx-auto flex max-w-3xl flex-col gap-5">
       <Link href="/settings" className={textLinkClasses({ block: true, className: "text-sm" })}>
         Ajustes
       </Link>

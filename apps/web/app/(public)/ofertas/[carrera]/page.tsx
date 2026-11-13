@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { careerLabel } from "@/lib/career-market";
+import { catalogLabel } from "@/lib/career-names";
 import { contactLink } from "@/lib/contact";
 import { careerFromSlug, getShowcaseCards } from "@/lib/showcase";
 import { CareerChips } from "../../mercado/career-chips";
@@ -20,8 +20,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const role = careerFromSlug((await params).carrera);
   if (!role) return {};
   return {
-    title: `Ofertas de ${careerLabel(role)}`,
-    description: `Ofertas públicas recientes de ${careerLabel(role)}, con link al aviso original.`,
+    title: `Ofertas de ${catalogLabel(role)}`,
+    description: `Ofertas públicas recientes de ${catalogLabel(role)}, con link al aviso original.`,
     robots: { index: false, follow: true },
   };
 }
@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function OfertasCarreraPage({ params }: Props) {
   const role = careerFromSlug((await params).carrera);
   if (!role) notFound();
-  const label = careerLabel(role);
+  const label = catalogLabel(role);
   const cards = await getShowcaseCards(role);
   return (
     <div className="flex flex-col gap-6">

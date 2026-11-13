@@ -149,7 +149,7 @@ export const ROLE_OWN_TITLE_PHRASES: Partial<Record<RoleKey, readonly string[]>>
   // `other_discipline_keywords`; esta libera la palabra "architect" de la blocklist. Son dos filtros.
   solutions_engineer: ["solutions architect", "solution architect"],
   customer_success: ["customer success manager", "technical account manager", "account manager"],
-  // C1-4 (ADR-027): marca y relaciones públicas también dicen «manager».
+  // C1-4 (ADR-027): marca y comunicaciones también dicen «manager».
   marketing_digital: [
     "marketing manager",
     "community manager",
@@ -157,8 +157,21 @@ export const ROLE_OWN_TITLE_PHRASES: Partial<Record<RoleKey, readonly string[]>>
     "growth manager",
     "brand manager",
     "assistant brand manager",
-    "pr manager",
     "communications manager",
+  ],
+  // ADR-033: relaciones públicas es carrera propia. Además de sus cargos, comparte con marketing los de
+  // redes y marca (una persona de RR.PP. también hace community y contenidos).
+  relaciones_publicas: [
+    "pr manager",
+    "public relations manager",
+    "public affairs manager",
+    "communications manager",
+    "community manager",
+    "social media manager",
+    "brand manager",
+    "assistant brand manager",
+    "event manager",
+    "events manager",
   ],
   comunicacion: ["communications manager", "pr manager"],
   abogacia: ["legal manager"],

@@ -16,7 +16,8 @@ export type PersonaKey =
   | "agustina"
   | "bruno"
   | "rocio"
-  | "ines";
+  | "ines"
+  | "julian";
 
 export type PersonaOffer = SeedPublicJob & {
   /** Es del puesto de la persona (false = control negativo, de otro puesto). */
@@ -33,6 +34,7 @@ export type Persona = {
   /** Grupo del selector del paso 1 (`legend` de su `fieldset`). */
   roleGroup:
     | "Tecnología"
+    | "Carreras de la beta"
     | "Carreras digitales"
     | "Comunicación y relaciones"
     | "Derecho, contabilidad y gestión";
@@ -87,6 +89,10 @@ export const SKILL_NAMES: Record<string, string> = {
   public_affairs: "Asuntos públicos e institucionales",
   diplomacy: "Diplomacia y negociación internacional",
   trade_agreements: "Integración y acuerdos comerciales",
+  typescript: "TypeScript",
+  react: "React",
+  nextjs: "Next.js",
+  git: "Git / GitHub",
 };
 
 type RawOffer = {
@@ -186,7 +192,7 @@ export function buildPersona(key: PersonaKey, tag: number = Date.now()): Persona
         ...base,
         name: "Valentina Ficticia",
         role: "marketing_digital",
-        roleGroup: "Comunicación y relaciones",
+        roleGroup: "Carreras de la beta",
         country: "MX",
         cefr: "B2",
         years: "5",
@@ -355,7 +361,7 @@ export function buildPersona(key: PersonaKey, tag: number = Date.now()): Persona
         ...base,
         name: "Mariana Ficticia",
         role: "abogacia",
-        roleGroup: "Derecho, contabilidad y gestión",
+        roleGroup: "Carreras de la beta",
         country: "AR",
         cefr: "C1",
         years: "5",
@@ -413,7 +419,7 @@ export function buildPersona(key: PersonaKey, tag: number = Date.now()): Persona
         ...base,
         name: "Camila Ficticia",
         role: "comunicacion",
-        roleGroup: "Comunicación y relaciones",
+        roleGroup: "Carreras de la beta",
         country: "UY",
         cefr: "B2",
         years: "4",
@@ -471,7 +477,7 @@ export function buildPersona(key: PersonaKey, tag: number = Date.now()): Persona
         ...base,
         name: "Agustina Ficticia",
         role: "finanzas_contabilidad",
-        roleGroup: "Derecho, contabilidad y gestión",
+        roleGroup: "Carreras de la beta",
         country: "AR",
         cefr: "B1",
         years: "6",
@@ -529,7 +535,7 @@ export function buildPersona(key: PersonaKey, tag: number = Date.now()): Persona
         ...base,
         name: "Bruno Ficticio",
         role: "administracion_empresas",
-        roleGroup: "Derecho, contabilidad y gestión",
+        roleGroup: "Carreras de la beta",
         country: "UY",
         cefr: "B2",
         years: "7",
@@ -587,7 +593,7 @@ export function buildPersona(key: PersonaKey, tag: number = Date.now()): Persona
         ...base,
         name: "Rocío Ficticia",
         role: "marketing_digital",
-        roleGroup: "Comunicación y relaciones",
+        roleGroup: "Carreras de la beta",
         country: "CO",
         cefr: "B2",
         years: "4",
@@ -645,7 +651,7 @@ export function buildPersona(key: PersonaKey, tag: number = Date.now()): Persona
         ...base,
         name: "Inés Ficticia",
         role: "relaciones_internacionales",
-        roleGroup: "Comunicación y relaciones",
+        roleGroup: "Carreras de la beta",
         country: "PE",
         cefr: "C1",
         years: "5",
@@ -698,6 +704,65 @@ export function buildPersona(key: PersonaKey, tag: number = Date.now()): Persona
           },
         ),
       };
+    case "julian":
+      // C12 (R5): programación, guardada como `fullstack`. Desde C3 y C8 está en «Carreras de la beta».
+      return {
+        ...base,
+        name: "Julián Ficticio",
+        role: "fullstack",
+        roleGroup: "Carreras de la beta",
+        country: "AR",
+        cefr: "B2",
+        years: "2",
+        remoteOnly: true,
+        summary:
+          "Perfil ficticio de la persona Julián: estudiante avanzado de programación con dos años de práctica en proyectos propios con TypeScript, React y Node.js, busca su primer puesto full-stack.",
+        skills: [
+          { slug: "typescript", level: 2 },
+          { slug: "react", level: 2 },
+          { slug: "nodejs", level: 2 },
+          { slug: "git", level: 3 },
+        ],
+        offers: offers(
+          tag,
+          "Programación",
+          "fullstack",
+          [
+            {
+              sourceKind: "getonboard_api",
+              skills: [
+                ["typescript", true],
+                ["react", true],
+                ["git", false],
+              ],
+            },
+            {
+              sourceKind: "remoteok",
+              skills: [
+                ["nodejs", true],
+                ["sql", true],
+                ["rest_apis", false],
+              ],
+            },
+            {
+              sourceKind: "jobicy",
+              skills: [
+                ["react", true],
+                ["nextjs", true],
+                ["typescript", false],
+              ],
+            },
+          ],
+          "marketing_digital",
+          {
+            sourceKind: "getonboard_api",
+            skills: [
+              ["seo", true],
+              ["google_ads", true],
+            ],
+          },
+        ),
+      };
   }
 }
 
@@ -712,4 +777,5 @@ export const PERSONA_KEYS: PersonaKey[] = [
   "bruno",
   "rocio",
   "ines",
+  "julian",
 ];

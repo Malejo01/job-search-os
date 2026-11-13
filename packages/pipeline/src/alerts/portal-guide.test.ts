@@ -32,6 +32,7 @@ describe("ALERT_KEYWORDS", () => {
       "administracion_empresas",
       "comunicacion",
       "marketing_digital",
+      "relaciones_publicas",
       "relaciones_internacionales",
     ];
 
@@ -105,8 +106,9 @@ describe("alertKeywordsFor", () => {
     expect(alertKeywordsFor(["carrera_nueva"], "es")).toEqual(["carrera nueva"]);
   });
 
-  it("sin carreras devuelve palabras genéricas", () => {
-    expect(alertKeywordsFor([], "es").length).toBeGreaterThan(0);
+  it("sin carreras no devuelve palabras (no se ofrece tecnología sin que la elija)", () => {
+    expect(alertKeywordsFor([], "es")).toEqual([]);
+    expect(alertKeywordsFor([], "both")).toEqual([]);
   });
 });
 

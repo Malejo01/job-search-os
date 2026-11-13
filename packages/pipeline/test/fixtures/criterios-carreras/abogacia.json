@@ -1,0 +1,24 @@
+{
+  "carrera": "abogacia",
+  "propios": [
+    {
+      "empresa": "Estudio Jurídico A",
+      "titulo": "Abogada junior para estudio jurídico",
+      "disciplina": "otra"
+    },
+    {
+      "empresa": "Empresa B",
+      "titulo": "Asesor legal de contratos comerciales",
+      "disciplina": "negocio"
+    },
+    {
+      "empresa": "Empresa C",
+      "titulo": "Paralegal de cumplimiento normativo",
+      "disciplina": "abogacia"
+    }
+  ],
+  "ajenos": [
+    { "empresa": "Empresa D", "titulo": "Desarrollador backend Node.js", "disciplina": "backend" },
+    { "empresa": "Empresa E", "titulo": "Ingeniero de IA", "disciplina": "ai_engineer" }
+  ]
+}

@@ -1388,8 +1388,124 @@ Fuente del estado: `ops/tanda-r4/estado.md`. Los PR de carril rojo se acumulan e
 ## Bloque 19 · Tanda R5 (10/11)
 
 ### C1 · Textos públicos y /acceso a 8 carreras
-`deps:` — · `est:` 1 h · `estado:` en PR, para que lo revise Mauro (10/11)
+`deps:` — · `est:` 1 h · `estado:` done, mergeado ([#454](https://github.com/Malejo01/job-search-os/pull/454), 12/11)
 - Portada, /acceso (titular, bajada, chips y texto de «Pasáselo a alguien»), /ayuda y /como-esta-hecho pasan de 6 a 8 carreras: abogacía, contaduría, administración, comunicación, marketing, relaciones públicas, relaciones internacionales y programación. «Marketing y RR.PP.» pasa a ser «Marketing».
 - Los chips de Relaciones públicas y Programación guardan una carrera que ya existe hasta C3 (carril rojo): `marketing_digital` y `fullstack`. `BETA_LAUNCH_ROLE_KEYS` y el grupo «Carreras de la beta» del selector no cambian (eso es pipeline, C3).
 - e2e 44 (los 8 chips y la carrera que guarda cada uno) y 96 (la lista de /ayuda); guion del reel en `docs/beta/voces-jovenes/guion-demo.md`.
 - **Acepta:** /acceso muestra 8 chips; elegir Relaciones públicas envía `marketing_digital` y Programación envía `fullstack`.
+
+### C3 · Las 8 carreras en el pipeline (carril rojo)
+`deps:` C1 · `est:` 3 h · `estado:` en PR, para que lo revise Mauro ([#457](https://github.com/Malejo01/job-search-os/pull/457), 12/11; ⚠️ migración 0061 sin aplicar)
+- `relaciones_publicas` carrera propia (ADR-033): títulos, chips, skills, prefiltro (con los cargos de redes, marca y eventos que también son de RR.PP.), veto del pool y casilla `pool-relaciones_publicas`; marketing deja de cubrir RR.PP.; `BETA_LAUNCH_ROLE_KEYS` con las 8 (suma `fullstack`); el chip de /acceso guarda `relaciones_publicas`; `waitlist_role_check` (0061) y `rls/0012` suman la clave.
+- **Acepta:** elegir RR.PP. en /acceso envía `relaciones_publicas` (e2e 44); el selector lista las 8; una persona de RR.PP. tiene catálogo y prefiltro propios (tests de pipeline).
+
+### C5 · Legales sin el precio contradictorio (carril rojo)
+`deps:` respuestas legales 1, 2, 3 y 6 de Mauro · `estado:` bloqueada (12/11)
+- Quitar el precio contradictorio de los legales, completar los marcadores que esas respuestas permitan y que `pnpm legal:check` pase.
+
+### C6 · Estados de carga
+`deps:` — · `est:` 1,5 h · `estado:` en PR, para que lo revise Mauro ([#456](https://github.com/Malejo01/job-search-os/pull/456), 12/11)
+- `loading.tsx` en 13 rutas de la app con esqueletos nuevos (`components/ui/skeleton.tsx`), Server Components, pulso solo con `motion-safe`; e2e 125 (red lenta, sin saltos de layout, reducir movimiento).
+- Después de mergear C6 y C9: ajustar 4 `loading.tsx` (Hoy, Ofertas, Perfil, Skills) a los anchos nuevos de C9.
+
+### C7 · /demo alineado y textos de pre-puntaje
+`deps:` — · `est:` 1 h · `estado:` en PR, para que lo revise Mauro ([#455](https://github.com/Malejo01/job-search-os/pull/455), 12/11)
+- /demo muestra un solo perfil (contaduría), coherente con /demo/contaduria y el guion; el ajuste «se asume 5 0» pasa a una frase en llano (hallazgo 28). e2e 48 y 103.
+
+### C8 · Las 8 carreras primero en catálogos y selectores (carril rojo por C3)
+`deps:` C3 · `est:` 2 h · `estado:` en PR, para que lo revise Mauro ([#461](https://github.com/Malejo01/job-search-os/pull/461), apilado sobre #457, 12/11)
+- Grupo «Carreras de la beta» primero y el resto bajo «Otras carreras» en selectores de puestos, Skills y /market; las 8 primero en los chips de /mercado y /ofertas; nombres de beta (`lib/career-names.ts`); «Skills sugeridas» (hallazgos 6, 21 y 35). e2e 128.
+
+### C9 · Perfil, anchos, «Primeros pasos» y glosario
+`deps:` — · `est:` 2 h · `estado:` en PR, para que lo revise Mauro ([#458](https://github.com/Malejo01/job-search-os/pull/458), 12/11)
+- «Sin descripción» marca Ofertas y se enlaza desde /jobs; /encaje marca Perfil; dos anchos (lista 1280 px, lectura `max-w-3xl`); Primeros pasos plegado; glosario en /ayuda y en «Más» (hallazgos 18, 19, 20, 30 y 33). e2e 38, 113 y 127.
+
+### C10 · Docs de la beta a 8 carreras
+`deps:` C3, C8 (para la descripción del selector) · `est:` 1 h · `estado:` en PR, para que lo revise Mauro ([#459](https://github.com/Malejo01/job-search-os/pull/459), 12/11)
+- Guía del ensayo con testers, preguntas frecuentes, runbook, checklist del evento, textos para Ani, personas e2e y fuentes: 8 carreras con su nombre de beta. Las menciones históricas quedan como están.
+
+### C11 · Costos por usuario contra el código
+`deps:` — · `est:` 2 h · `estado:` en PR, para que lo revise Mauro ([#460](https://github.com/Malejo01/job-search-os/pull/460), 12/11)
+- `docs/beta/costos-por-usuario.md` recalculado con `evaluate_job` en Sonnet 5.5 (thinking `low`, `max_tokens` 8192): tres escenarios de thinking, 10 / 25 / 50 usuarios en USD y ARS, y los 11 puntos de `pasos-manuales-r4` §9 respondidos con el código o marcados «a confirmar por Mauro».
+- Aparte, `model_routing.json` alineado con producción (carril rojo): commit local en `ronda/r5-c11-routing`, **sin push**, porque toca `evals/` y cada push corre el job de evals pago. Espera la decisión de Mauro.
+
+### C12 · QA por carrera con agentes de prueba
+`deps:` C3 (parte 2) · `est:` 3 h · `estado:` en PR, para que lo revise Mauro ([#462](https://github.com/Malejo01/job-search-os/pull/462), 12/11)
+- 8 personas ficticias, spec 126 (recorrido con capturas a 390 y 1280 px), 12 avisos inventados de RR.PP. y programación, test de prefiltro de las 8 carreras e informes en `docs/beta/qa-carreras/` con hallazgos P0/P1/P2. Parte 2 sobre C3+C8 en una rama local sin push.
+
+### e2e 124 · Persona sin acceso al MCP que no sea tester
+`deps:` — · `est:` 30 min · `estado:` en PR, para que lo revise Mauro ([#463](https://github.com/Malejo01/job-search-os/pull/463), 12/11)
+- El spec 124 esperaba 401 para la persona B, que el servidor de e2e declara tester (`playwright.config.ts:54-56`): usa una tercera persona ficticia. No era un problema de acceso (revisión de seguridad). Destraba el e2e de todos los PR.
+
+### C13 · Cierre de la tanda
+`deps:` todo en PR · `estado:` en PR, para que lo revise Mauro (12/11)
+- Este bloque al día y `docs/beta/informe-r5.md` (orden de merge, pruebas, migraciones sin aplicar, pasos manuales y hallazgos de QA).
+
+## Bloque 20 · Tanda R6 (12/11, noche)
+
+### R6-1 · «+ Cargar oferta» siempre visible en /jobs
+`deps:` C9 (#458) · `est:` 1 h · `estado:` en PR, para que lo revise Mauro ([#465](https://github.com/Malejo01/job-search-os/pull/465), 12/11)
+- El botón pasa a la cabecera de /jobs, junto a filtros y búsqueda, y se ve con y sin oferta elegida, a 390 y 1280 px, con 44 px de alto como mínimo. Se sacan el duplicado de debajo de la lista y la tarjeta «Cargala a mano» de `JobsAside`. e2e 130.
+
+### R6-2 · Criterios y disciplinas por carrera (carril rojo)
+`deps:` C3 (#457) · `est:` 2 h · `estado:` en PR, para que lo revise Mauro ([#468](https://github.com/Malejo01/job-search-os/pull/468), 12/11; ⚠️ migración 0062 sin aplicar)
+- Los criterios de una persona nueva salen de su carrera (`criteriaFromOnboarding` con `targetRoles`, `CAREER_DISCIPLINES`, siempre con `negocio` y `otra`). Programación y quien no eligió carrera no cambian. `DISCIPLINES` suma abogacía, contaduría, comunicación, RR.II. y RR.PP. (enum `discipline`, migración 0062, etiquetas). Contaduría y administración aceptan además `data`; administración, también RR.HH. y atención al cliente.
+- **Acepta:** una persona de abogacía no ve disciplinas técnicas; «Desarrollador backend» se marca y un aviso de estudio contable o de ONG no se descarta por disciplina. Tests con fixtures de las 8 carreras.
+
+### R6-3 · Cargar una oferta desde una imagen (carril rojo)
+`deps:` — · `est:` 4 h · `estado:` rama `ronda/r6-3-imagen` pusheada, **PR sin abrir**: toca `packages/prompts/` y el CI correría los evals pagos (12/11)
+- `/jobs/new?modo=pegar`: pegar, arrastrar o elegir PNG/JPG/WebP de hasta 5 MB. El navegador la reduce a 1600 px en JPEG, y la tarea `extract_job_from_image` devuelve 1 a 5 ofertas con esquema zod que falla cerrado. La persona revisa, tilda y confirma; se crean por el camino de la carga a mano. La imagen no se guarda ni se loguea.
+- Topes: 10 por persona cada 24 h y `LLM_USER_DAILY_CAP_USD`, con un candado por persona para que no pasen en paralelo (revisión de seguridad). e2e 129 con el modelo en demo.
+- **Mauro:** fila de `model_routing` (`docs/beta/pasos-manuales-r6.md` §1) y OK al gasto de evals para abrir el PR (§2).
+
+### R6-4 · Restos de textos de la R5
+`deps:` C8 (#461) · `est:` 1 h · `estado:` en PR, para que lo revise Mauro ([#466](https://github.com/Malejo01/job-search-os/pull/466), 12/11)
+- /mercado/<carrera>, /ofertas/<carrera> y «Carreras parecidas» con el nombre de beta. La guía de alertas sin carrera ya no ofrece palabras de tecnología. La FAQ de /ayuda nombra las 8 carreras. Cambian «Ser honesto…» y el paso 4 de Primeros pasos, que deja el 👍/👎.
+
+### R6-5 · Skills propias de RR.PP. (carril rojo)
+`deps:` C3 (#457), R6-2 (#468) · `est:` 1 h · `estado:` en PR, para que lo revise Mauro ([#469](https://github.com/Malejo01/job-search-os/pull/469), 12/11; ⚠️ migración de datos 0063 sin aplicar)
+- 4 skills nuevas (crisis, eventos, protocolo y ceremonial, influencers) enganchadas a `relaciones_publicas`, migración de datos 0063 idempotente. El aviso de RR.PP. del golden sintético de carreras pasa a `relaciones_publicas.json`.
+
+### R6-6 · Anchos de los `loading.tsx`
+`deps:` C6 (#456), C9 (#458) · `est:` 30 min · `estado:` en PR, para que lo revise Mauro ([#467](https://github.com/Malejo01/job-search-os/pull/467), 12/11)
+- Hoy y Ofertas con `sm:px-12`; Perfil y Skills con `max-w-3xl`, como las páginas de C9.
+
+### R6 · Cierre de la tanda
+`deps:` todo en PR · `estado:` en PR, para que lo revise Mauro (12/11)
+- Este bloque y `docs/beta/informe-r6.md` (orden de merge, pruebas, migraciones sin aplicar y pasos manuales).
+- **Bloqueadas, sin arrancar:** C5 (legales) y el parser de Bumeran (espera un `.eml` real).
+
+## Bloque 21 · Tanda R7 «Pre-beta: costos, seguridad y pulido» (13/11, madrugada)
+
+### R7-1 · Alertas de presupuesto de LLM (carril rojo)
+`deps:` — · `est:` 2 h · `estado:` en PR, para que lo revise Mauro ([#472](https://github.com/Malejo01/job-search-os/pull/472), 13/11)
+- Al pasar el 70, 85 y 95 % de `LLM_DAILY_CAP_USD`, un email por Resend a `ADMIN_EMAILS`, una vez por umbral y día UTC, y un bloque en `/settings/salud`. Lógica pura en `pipeline/src/budget/`; la marca «ya avisado» es una fila `budget_alert` en `llm_calls` (sin migración) con lock de asesoría y clave de idempotencia. Lo dispara el cron de evaluación.
+
+### R7-2 · No reevaluar duplicados (carril rojo)
+`deps:` — · `est:` 2 h · `estado:` en PR, para que lo revise Mauro ([#477](https://github.com/Malejo01/job-search-os/pull/477), 13/11)
+- Otro aviso de la misma persona reutiliza la respuesta del modelo (sin llamada, costo 0) solo si coinciden exactamente los datos leídos antes de la llamada: hash de la JD, perfil, criterios, prompt y datos del aviso, guardados en `decision.inputs`. `decide()` y el checklist se recalculan. Las evaluaciones anteriores, sin `inputs`, no se reutilizan. Ante la duda, se evalúa. Sin migración.
+
+### R7-3 · Asistente: un solo aviso de tope y mensajes que quedan (carril rojo)
+`deps:` — · `est:` 1 h · `estado:` en PR, para que lo revise Mauro ([#471](https://github.com/Malejo01/job-search-os/pull/471), 13/11)
+- El aviso de tope sale una vez y bloquea el envío hasta «Nueva charla»; con 2 o menos mensajes restantes se muestra cuántos quedan. Rojo por una línea en `app/api/assistant/route.ts`. e2e 132.
+
+### R7-4 · Auditoría de seguridad pre-beta (carril rojo por el test)
+`deps:` — · `est:` 2 h · `estado:` en PR, para que lo revise Mauro ([#474](https://github.com/Malejo01/job-search-os/pull/474), 13/11)
+- Test de integración que recorre el catálogo y falla si una tabla con `user_id` no tiene RLS, FORCE y policy. Informe `docs/beta/seguridad-r7.md`: 0 P0, 0 P1, 4 P2 (CSP completa, HSTS a verificar y dos endurecimientos menores a ticket). `pnpm secrets:scan` queda para Mauro (el guard lo bloquea).
+
+### R7-5 · Accesibilidad con axe
+`deps:` — · `est:` 1,5 h · `estado:` en PR, para que lo revise Mauro ([#475](https://github.com/Malejo01/job-search-os/pull/475), 13/11)
+- e2e 131 con axe en 11 pantallas, en claro y oscuro: falla con «serious» o «critical»; lo leve queda anotado. `docs/beta/accesibilidad-r7.md`. La primera medición la da el CI.
+
+### R7-6 · Pantallas lentas
+`deps:` — · `est:` 2 h · `estado:` en PR, para que lo revise Mauro ([#473](https://github.com/Malejo01/job-search-os/pull/473), 13/11)
+- Consultas en paralelo en el layout de la app, /plan, /jobs, /cv y /settings, sin cambiar lo que se muestra. `docs/beta/rendimiento-r7.md` con consultas antes y después y la tabla de tiempos que mide Mauro (no se puede medir el build de producción en local sin apuntar a Neon).
+
+### R7-7 · Kit del ensayo de testers del 23 y 24/11
+`deps:` — · `est:` 1,5 h · `estado:` en PR, para que lo revise Mauro ([#476](https://github.com/Malejo01/job-search-os/pull/476), 13/11)
+- `docs/beta/ensayo/`: guion de 30 minutos por carrera, checklist del día, feedback y triage, y criterios para decidir el 25/11.
+
+### R7 · Cierre de la tanda
+`deps:` todo en PR · `estado:` en PR, para que lo revise Mauro (13/11)
+- Este bloque, `docs/beta/informe-r7.md` y `docs/beta/manana-13-11.md` (todos los PR de la R5, la R6 y la R7 en orden y las decisiones pendientes).
+- El PR de integración no se armó: el guard bloquea `git merge` para los agentes. Queda el plan con los comandos en `manana-13-11.md`.

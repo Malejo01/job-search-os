@@ -30,8 +30,9 @@ const NEW_KEYS: RoleKey[] = [
 ];
 
 describe("claves y grupos", () => {
-  it("las 4 claves van al final de ROLE_KEYS, en ese orden", () => {
-    expect(ROLE_KEYS.slice(-4)).toEqual(NEW_KEYS);
+  it("las 4 claves van al final de ROLE_KEYS, en ese orden (relaciones_publicas llega después, ADR-033)", () => {
+    expect(ROLE_KEYS.slice(-5, -1)).toEqual(NEW_KEYS);
+    expect(ROLE_KEYS.at(-1)).toBe("relaciones_publicas");
     expect(ROLE_KEYS.slice(20, 22)).toEqual(["finanzas_contabilidad", "asistencia_operaciones"]);
   });
 
@@ -43,7 +44,12 @@ describe("claves y grupos", () => {
       },
       {
         label: "Comunicación y relaciones",
-        roles: ["marketing_digital", "comunicacion", "relaciones_internacionales"],
+        roles: [
+          "marketing_digital",
+          "relaciones_publicas",
+          "comunicacion",
+          "relaciones_internacionales",
+        ],
       },
     ]);
     expect(LEGAL_MANAGEMENT_ROLE_KEYS).toEqual([
@@ -53,6 +59,7 @@ describe("claves y grupos", () => {
     ]);
     expect(COMMUNICATION_ROLE_KEYS).toEqual([
       "marketing_digital",
+      "relaciones_publicas",
       "comunicacion",
       "relaciones_internacionales",
     ]);
@@ -88,7 +95,8 @@ describe("rótulos", () => {
     ["comunicacion", "Comunicación y prensa"],
     ["relaciones_internacionales", "Relaciones internacionales y comex"],
     ["finanzas_contabilidad", "Contaduría, impuestos y finanzas"],
-    ["marketing_digital", "Marketing y relaciones públicas"],
+    ["marketing_digital", "Marketing digital"],
+    ["relaciones_publicas", "Relaciones públicas"],
   ] as [RoleKey, string][])("%s → %s", (role, label) => {
     expect(roleSkills[role].label).toBe(label);
   });
@@ -104,8 +112,11 @@ describe("skills por carrera", () => {
   });
 
   it.each(NEW_KEYS)("%s: al menos 6 skills propias (no reusadas de otras carreras)", (role) => {
+    // Relaciones públicas comparte a propósito skills con comunicación (ADR-033): no cuenta como «otra»
     const others = new Set(
-      ROLE_KEYS.filter((r) => r !== role).flatMap((r) => roleSkills[r].skills),
+      ROLE_KEYS.filter((r) => r !== role && r !== "relaciones_publicas").flatMap(
+        (r) => roleSkills[r].skills,
+      ),
     );
     const own = roleSkills[role].skills.filter((s) => !others.has(s));
     expect(own.length, role).toBeGreaterThanOrEqual(6);
@@ -192,7 +203,7 @@ describe("defaultRole: titulares de las carreras de la beta", () => {
     ["Responsable de comunicación interna", "comunicacion"],
     ["Analista de comercio exterior", "relaciones_internacionales"],
     ["Licenciado en Relaciones Internacionales", "relaciones_internacionales"],
-    ["Relacionista público | RRPP", "marketing_digital"],
+    ["Relacionista público | RRPP", "relaciones_publicas"],
     ["Contadora pública", "finanzas_contabilidad"],
   ] as [string, RoleKey][])("%s → %s", (headline, expected) => {
     expect(role(headline)).toBe(expected);

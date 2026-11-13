@@ -2,7 +2,7 @@
 
 Para Mauro, en orden. Cada paso trae el enlace o el comando exacto. Lo que dice «(solo Mauro)» toca producción y no lo hace ningún agente. Convenciones: la app vive en el proyecto de Vercel `job-search-os` (equipo `lizarraga-mauros-projects`), la base en Neon y el repo en `Malejo01/job-search-os`. `<dominio>` es `afiniajobs.com.ar` (principal desde el 6/11; el dominio viejo redirige).
 
-> **Decidido y no se reabre acá.** La beta abre el jueves 26/11 para 6 carreras (abogacía, contaduría, administración, comunicación, marketing y RR.PP., relaciones internacionales). Cupo de 15 a 20 personas; los pagos, las becas y los combos están en «Decisiones del 5/11» (abajo). Plan Beta: ARS 20.000 por mes (USD 15 de referencia), 30 días por pago, **sin garantía**, activación manual (cómo se relaciona con los dos combos de Ani: [A DEFINIR: combos de Ani]). La gente se anota en `/acceso` y vos invitás desde el panel; **el cupo es limitado**.
+> **Decidido y no se reabre acá.** La beta abre el jueves 26/11 para 8 carreras (abogacía, contaduría, administración, comunicación, marketing, relaciones públicas, relaciones internacionales y programación). Cupo de 15 a 20 personas; los pagos, las becas y los combos están en «Decisiones del 5/11» (abajo). Plan Beta: ARS 20.000 por mes (USD 15 de referencia), 30 días por pago, **sin garantía**, activación manual (cómo se relaciona con los dos combos de Ani: [A DEFINIR: combos de Ani]). La gente se anota en `/acceso` y vos invitás desde el panel; **el cupo es limitado**.
 
 ## Decisiones del 5/11
 
@@ -32,7 +32,7 @@ Salen de la tarea de Notion «Actualizar los documentos de la beta del repositor
 - **Ani:** abogacía, relaciones públicas, comunicación y marketing.
 - **Mauro:** contaduría, administración y programación.
 - **Relaciones internacionales:** sin asignar. [A CONFIRMAR]
-- Programación no está entre las 6 carreras de la beta (ADR-027, `ROLE_KEYS`). Este documento no la suma a esa lista: [A CONFIRMAR con Mauro] si es una carrera más de la beta o solo el perfil del becado.
+- Programación es una de las 8 carreras de la beta (ADR-033; en el selector es «Full-stack»). Las 8 son: abogacía, contaduría, administración, comunicación, marketing, relaciones públicas, relaciones internacionales y programación.
 
 **Dominio**
 - **`afiniajobs.com.ar` ya está comprado.** Falta la migración y la redirección desde el dominio viejo, a cargo de Mauro (1.3).

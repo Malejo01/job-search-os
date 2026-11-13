@@ -13,6 +13,8 @@ export type SendEmailParams = {
   /** Cuerpo en texto simple (los avisos de vencimiento del plan, C4-1). */
   text?: string;
   from?: string;
+  /** Clave de idempotencia de Resend (cabecera `Idempotency-Key`): el mismo envío repetido no sale dos veces. */
+  idempotencyKey?: string;
 };
 
 const DEFAULT_FROM = `${PRODUCT_NAME} <onboarding@resend.dev>`;
@@ -27,7 +29,11 @@ export async function sendEmail(
   }
   const res = await fetchImpl("https://api.resend.com/emails", {
     method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      ...(params.idempotencyKey ? { "Idempotency-Key": params.idempotencyKey } : {}),
+    },
     body: JSON.stringify({
       from: params.from ?? DEFAULT_FROM,
       to: [params.to],

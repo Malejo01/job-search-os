@@ -13,6 +13,10 @@ test.describe("Flujo 103: demo de contaduría", () => {
     page,
   }) => {
     await page.goto("/demo");
+    // /demo y /demo/contaduria cuentan lo mismo (R5-C7)
+    await expect(
+      page.getByRole("heading", { level: 1, name: /así se ve para alguien de contaduría/i }),
+    ).toBeVisible();
     await page.getByTestId("demo-contaduria-link").click();
     await expect(page).toHaveURL(/\/demo\/contaduria$/);
     await expect(

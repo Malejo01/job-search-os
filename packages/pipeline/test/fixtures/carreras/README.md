@@ -5,6 +5,14 @@
 - **No los usa el job pago de evals.** Viven fuera de `evals/` a propósito: el CI corre `evals` (con modelo, pago) cuando el diff toca `evals/` o `packages/prompts/`. Los usa solo el test determinista de C8-9.
 - Complementan a `evals/fixtures/golden-carreras-beta.json` (R2-1), que mide títulos. Este set mide la mezcla que aparece en la beta: ubicación, nivel y títulos engañosos.
 
+## Relaciones públicas y programación (C12, R5)
+
+`relaciones_publicas.json` y `fullstack.json` suman 6 avisos inventados cada uno (empresas «Empresa A» a «Empresa F»), con las categorías `nueve_mas`, `remoto_ar`, `presencial_caba`, `remoto_otro_pais`, `senior_inalcanzable` y `titulo_enganoso` y la misma persona de referencia. Los corre `packages/pipeline/src/golden-carreras-r5.test.ts`, que cubre las 8 carreras de la beta.
+
+Desde la integración de las tandas R5 a R7, con C3 adentro, `ROL_EN_MAIN` corre los avisos de RR.PP. con la clave `relaciones_publicas`, y programación con `fullstack`. `relaciones_publicas-04` cambió su título de «Community manager» a uno de RR.PP., porque por ADR-033 community manager es de marketing y el caso mide la ubicación. Estos dos archivos todavía no tienen `anchor_source: "human"`.
+
+**R6-5:** el aviso de relaciones públicas que venía como `marketing_digital-04` pasó a `relaciones_publicas.json`. En la integración de las tandas R5 a R7 se juntó con los 6 de C12 y quedó como `relaciones_publicas-07`: marketing queda con 7 casos y RR.PP. con 7.
+
 ## La persona de referencia
 
 Igual para las 6 carreras (`meta.persona`): vive en **Salta**, Argentina, tiene **2 años** de experiencia y acepta remoto, híbrido y presencial; lee avisos en español e inglés.

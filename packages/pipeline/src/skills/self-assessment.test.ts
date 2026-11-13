@@ -117,6 +117,7 @@ describe("selectableRoleGroups", () => {
       "administracion_empresas",
       "comunicacion",
       "relaciones_internacionales",
+      "relaciones_publicas",
     ]);
     const flat = (g: ReturnType<typeof selectableRoleGroups>) => g.flatMap((x) => [...x.roles]);
     expect(flat(selectableRoleGroups())).toContain("abogacia");
@@ -179,10 +180,21 @@ describe("profileRoleGroups: lo que ve quien elige carrera en la beta (C5-1)", (
     for (const g of profileRoleGroups()) expect(g.roles.length).toBeGreaterThan(0);
   });
 
-  it("conserva el orden de los grupos de ROLE_GROUPS", () => {
-    const labels = profileRoleGroups().map((g) => g.label);
+  it("abre con las 8 carreras de la beta, en el orden del anuncio, y conserva el orden del resto (R5-C8)", () => {
+    const groups = profileRoleGroups();
+    expect(groups[0]).toEqual({ label: "Carreras de la beta", roles: BETA_LAUNCH_ROLE_KEYS });
+    const labels = groups.slice(1).map((g) => g.label);
     const base = ROLE_GROUPS.map((g) => g.label).filter((l) => labels.includes(l));
     expect(labels).toEqual(base);
+    for (const g of groups.slice(1)) {
+      for (const key of BETA_LAUNCH_ROLE_KEYS) expect(g.roles).not.toContain(key);
+    }
+  });
+
+  it("la persona que ya tiene una carrera no listada la sigue viendo, debajo de la beta", () => {
+    const groups = profileRoleGroups(["asistencia_operaciones"]);
+    expect(groups[0]?.label).toBe("Carreras de la beta");
+    expect(groups.slice(1).flatMap((g) => [...g.roles])).toContain("asistencia_operaciones");
   });
 });
 
@@ -201,8 +213,8 @@ describe("toRoleKey", () => {
 describe("role_skills.json", () => {
   const parsed = roleSkillsSchema.safeParse(seed);
   it("valida contra el esquema", () => expect(parsed.success).toBe(true));
-  it("tiene los 26 roles", () => {
-    expect(ROLE_KEYS).toHaveLength(26);
+  it("tiene los 27 roles", () => {
+    expect(ROLE_KEYS).toHaveLength(27);
     expect(Object.keys(seed).sort()).toEqual([...ROLE_KEYS].sort());
   });
   it("todos los slugs existen en la taxonomía", () => {
@@ -409,19 +421,21 @@ describe("parseRemoveSlugs", () => {
 describe("waitlistRoleGroups: el selector de /acceso (C6-1)", () => {
   const flat = (g: ReturnType<typeof waitlistRoleGroups>) => g.flatMap((x) => [...x.roles]);
 
-  it("las 6 carreras de la beta, en el orden del anuncio: 4 nuevas + contaduría y marketing", () => {
+  it("las 8 carreras de la beta, en el orden del anuncio (ADR-033)", () => {
     expect(BETA_LAUNCH_ROLE_KEYS).toEqual([
       "abogacia",
       "finanzas_contabilidad",
       "administracion_empresas",
       "comunicacion",
       "marketing_digital",
+      "relaciones_publicas",
       "relaciones_internacionales",
+      "fullstack",
     ]);
     for (const key of BETA_ROLE_KEYS) expect(BETA_LAUNCH_ROLE_KEYS).toContain(key);
   });
 
-  it("el primer grupo es «Carreras de la beta» y trae las 6", () => {
+  it("el primer grupo es «Carreras de la beta» y trae las 8", () => {
     const first = waitlistRoleGroups()[0];
     expect(first?.label).toBe("Carreras de la beta");
     expect(first?.roles).toEqual(BETA_LAUNCH_ROLE_KEYS);

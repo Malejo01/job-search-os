@@ -188,7 +188,7 @@ export type AssistantStreamEvent =
   | { type: "text"; text: string }
   | { type: "proposal"; proposal: Proposal }
   | { type: "action"; action: ActionProposal }
-  | { type: "notice"; text: string; links: AgentLink[] }
+  | { type: "notice"; text: string; links: AgentLink[]; final?: boolean }
   | { type: "error"; message: string }
   | { type: "done" };
 

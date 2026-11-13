@@ -13,6 +13,13 @@ const MORE: ReadonlyArray<{ href: string; label: string; icon: IconName; hint: s
   { href: "/market", label: "Mercado", icon: "fortalezas", hint: "Qué piden los avisos" },
   { href: "/plan", label: "Plan", icon: "afinar", hint: "Qué sumar para acercarte" },
   { href: "/settings", label: "Ajustes", icon: "filtro", hint: "Puestos, apariencia y cuenta" },
+  // R5-C9: el glosario con las palabras de la app (puntaje, afín, prefiltro, pool…)
+  {
+    href: "/ayuda#glosario",
+    label: "Glosario",
+    icon: "pregunta",
+    hint: "Qué quiere decir cada palabra",
+  },
 ];
 
 const ITEM =

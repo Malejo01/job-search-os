@@ -5,6 +5,7 @@ import administracion from "../test/fixtures/carreras/administracion_empresas.js
 import comunicacion from "../test/fixtures/carreras/comunicacion.json";
 import contaduria from "../test/fixtures/carreras/finanzas_contabilidad.json";
 import marketing from "../test/fixtures/carreras/marketing_digital.json";
+import rrpp from "../test/fixtures/carreras/relaciones_publicas.json";
 import rrii from "../test/fixtures/carreras/relaciones_internacionales.json";
 import type { CriteriaRules } from "./criteria";
 import { assessPoolTitle } from "./pool/title-fit";
@@ -35,7 +36,7 @@ type Doc = {
   casos: Caso[];
 };
 
-const DOCS = [abogacia, administracion, comunicacion, contaduria, marketing, rrii] as Doc[];
+const DOCS = [abogacia, administracion, comunicacion, contaduria, marketing, rrpp, rrii] as Doc[];
 const rules = criteria as CriteriaRules;
 
 export function reachesPerson(doc: Doc, c: Caso) {

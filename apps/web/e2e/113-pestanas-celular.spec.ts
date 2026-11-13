@@ -59,25 +59,39 @@ test.describe("Flujo 113: pestañas del celular", () => {
       );
       await expect(bar.locator('a[aria-current="page"]')).toHaveCount(1);
     }
-    const more: Array<[string, string]> = [
-      ["Sin descripción", "/jobs/pending-jd"],
-      ["Emails", "/inbox"],
-      ["Mercado", "/market"],
-      ["Plan", "/plan"],
-      ["Ajustes", "/settings"],
+    // R5-C9: «Sin descripción» es trabajo con las ofertas: desde «Más» marca Ofertas; el resto, Perfil
+    const more: Array<[string, string, string]> = [
+      ["Sin descripción", "/jobs/pending-jd", "Ofertas"],
+      ["Emails", "/inbox", "Perfil"],
+      ["Mercado", "/market", "Perfil"],
+      ["Plan", "/plan", "Perfil"],
+      ["Ajustes", "/settings", "Perfil"],
     ];
-    for (const [label, path] of more) {
+    for (const [label, path, activeTab] of more) {
       await page.goto("/settings/perfil");
       await page
         .getByTestId("mas")
         .getByRole("link", { name: new RegExp(`^${label}`) })
         .click();
       await page.waitForURL(`**${path}`);
-      // Desde «Más», la pestaña marcada es Perfil
-      await expect(bar.getByRole("link", { name: "Perfil" })).toHaveAttribute(
+      await expect(bar.getByRole("link", { name: activeTab, exact: true })).toHaveAttribute(
         "aria-current",
         "page",
       );
     }
+    // /encaje es del grupo de Mercado y Plan: marca Perfil
+    await page.goto("/encaje");
+    await expect(bar.getByRole("link", { name: "Perfil", exact: true })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    // El glosario está en «Más» y lleva a /ayuda
+    await page.goto("/settings/perfil");
+    await page
+      .getByTestId("mas")
+      .getByRole("link", { name: /^Glosario/ })
+      .click();
+    await page.waitForURL("**/ayuda#glosario");
+    await expect(page.getByRole("heading", { name: /Glosario/ })).toBeVisible();
   });
 });

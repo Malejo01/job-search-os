@@ -1,35 +1,39 @@
-import { DEMO_PROFILES } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
-import { publicOpenGraph } from "@/lib/public-og";
 import Link from "next/link";
-import { getDemoCounts } from "@/lib/demo";
+import { publicOpenGraph } from "@/lib/public-og";
+import { DEMO_OFFERS, DEMO_PERSON } from "@/lib/demo-contaduria";
 
-// ISR (ronda 74): las evaluaciones se calculan una vez por semana; la página se arma una vez por hora.
-export const revalidate = 3600;
+// Un solo ejemplo fijo (el de contaduría), sin base ni IA: la página se arma una vez en el build.
+export const dynamic = "force-static";
+
 export const metadata: Metadata = {
-  title: "Demo: así evalúa ofertas reales",
+  title: "Demo: así se ve para alguien de contaduría",
   description:
-    "Mirá cómo evalúa ofertas reales para tres perfiles inventados: puntaje, por qué sí, por qué no y acción sugerida.",
+    "Un ejemplo con datos inventados: el perfil de una contadora, sus ofertas con puntaje, lo que tiene a favor y lo que le falta, y cómo completar una oferta sin descripción.",
   alternates: { canonical: "/demo" },
   openGraph: publicOpenGraph({ path: "/demo" }),
 };
 
-export default async function DemoPage() {
-  const counts = await getDemoCounts();
-  const empty = !counts || DEMO_PROFILES.every((p) => (counts[p.key] ?? 0) === 0);
+/**
+ * Entrada de la demo (R5-C7): muestra el mismo ejemplo que `/demo/contaduria` y que el video
+ * (`docs/beta/voces-jovenes/guion-demo.md`): una contadora inventada, sus ofertas con puntaje, por qué
+ * sí y por qué no. Los perfiles de tecnología (`/demo/[perfil]`) siguen existiendo por URL pero ya no
+ * se ofrecen acá: la beta es para ocho carreras y el ejemplo tiene que contar lo mismo en todos lados.
+ */
+export default function DemoPage() {
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-2">
-        <h1 className="text-3xl font-semibold">Demo: así evalúa ofertas reales</h1>
+        <h1 className="text-3xl font-semibold">Demo: así se ve para alguien de contaduría</h1>
         <p className="max-w-2xl text-base text-fg-muted">
-          Así evalúa ofertas reales para tres perfiles inventados. Elegí uno y mirá el puntaje, por
-          qué sí, por qué no y qué haríamos.
+          Un ejemplo con {DEMO_PERSON.name}, una persona inventada: su perfil, sus{" "}
+          {DEMO_OFFERS.length} ofertas con puntaje de 1 a 10, qué tiene a favor, qué le falta y cómo
+          completar una oferta que llegó sin descripción.
         </p>
       </header>
-      {/* C7-13: un ejemplo fijo de una carrera no tech, sin base ni IA (para mostrar y grabar) */}
       <Link
         href="/demo/contaduria"
-        // Sin prefetch, como los perfiles (ronda 85, e2e 55): se pide solo al tocarla
+        // Sin prefetch (e2e 55): se pide solo al tocarla
         prefetch={false}
         data-testid="demo-contaduria-link"
         className="flex flex-col gap-1 rounded-container bg-ink p-4 text-on-ink hover:bg-ink/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:p-5"
@@ -44,53 +48,6 @@ export default async function DemoPage() {
           Perfil, ofertas con puntaje, por qué sí y por qué no, y una oferta sin descripción.
         </span>
       </Link>
-      {empty ? (
-        <p
-          role="status"
-          data-testid="demo-preparando"
-          className="rounded-card bg-surface p-4 text-sm text-fg"
-        >
-          Estamos preparando la demo. Volvé en un rato.
-        </p>
-      ) : null}
-      <section aria-labelledby="perfiles" className="flex flex-col gap-3">
-        <h2 id="perfiles" className="text-xl font-semibold">
-          Elegí un perfil
-        </h2>
-        <ul className="grid gap-3 sm:grid-cols-3">
-          {DEMO_PROFILES.map((p) => {
-            const count = counts?.[p.key] ?? 0;
-            return (
-              <li
-                key={p.key}
-                data-testid="demo-profile-card"
-                className="flex min-w-0 flex-col gap-2 rounded-card bg-surface p-4"
-              >
-                <h3 className="text-base font-semibold">{p.label}</h3>
-                <p className="text-sm text-fg-muted">{p.tagline}</p>
-                {count > 0 ? (
-                  <p className="text-xs text-fg-muted">
-                    {`${count} ${count === 1 ? "oferta evaluada" : "ofertas evaluadas"}`}
-                  </p>
-                ) : null}
-                {empty ? (
-                  <p className="inline-flex min-h-11 items-center text-sm text-fg-muted">Pronto</p>
-                ) : (
-                  <Link
-                    href={`/demo/${p.key}`}
-                    // Sin prefetch (ronda 85): cada perfil es una página ISR que lee la base
-                    prefetch={false}
-                    aria-label={`Ver la demo de ${p.label}`}
-                    className="inline-flex min-h-11 items-center text-sm font-medium text-fg-muted underline underline-offset-2 hover:text-fg"
-                  >
-                    Ver la demo
-                  </Link>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </section>
       <p className="text-sm text-fg-muted">
         <Link
           href="/acceso"

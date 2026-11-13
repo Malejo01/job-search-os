@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DISCIPLINES } from "../evaluation";
 
 /**
  * Skills autodeclaradas (ronda 28): roles objetivo, skills sugeridas por rol, niveles en palabras y
@@ -44,6 +45,8 @@ export const ROLE_KEYS = [
   "administracion_empresas",
   "comunicacion",
   "relaciones_internacionales",
+  // C3 (ADR-033): relaciones públicas deja de ir dentro de marketing, siempre al final.
+  "relaciones_publicas",
 ] as const;
 export type RoleKey = (typeof ROLE_KEYS)[number];
 
@@ -96,6 +99,7 @@ export const LEGAL_MANAGEMENT_ROLE_KEYS: readonly RoleKey[] = [
 /** Las carreras de comunicación y de relaciones internacionales de la beta (ADR-027). */
 export const COMMUNICATION_ROLE_KEYS: readonly RoleKey[] = [
   "marketing_digital",
+  "relaciones_publicas",
   "comunicacion",
   "relaciones_internacionales",
 ];
@@ -129,19 +133,23 @@ export const ROLE_GROUPS: readonly { label: string; roles: readonly RoleKey[] }[
  * Quien ya la tiene la conserva: `isRoleKey`, la ingesta y `/mercado/<clave>` no cambian. Las cuatro
  * de la beta (ADR-027) salen así hasta medir su volumen después de `pool:rehint`.
  */
-/** Las cuatro carreras nuevas de la beta (ADR-027). La lista de espera las ofrece aunque estén ocultas. */
+/**
+ * Las carreras nuevas de la beta (ADR-027; relaciones públicas se suma con ADR-033). La lista de espera
+ * las ofrece aunque estén ocultas.
+ */
 export const BETA_ROLE_KEYS: readonly RoleKey[] = [
   "abogacia",
   "administracion_empresas",
   "comunicacion",
   "relaciones_internacionales",
+  "relaciones_publicas",
 ];
 
 /**
-/**
- * Las seis carreras de la beta cerrada, en el orden del anuncio (abogacía, contaduría, administración,
- * comunicación, marketing y RR.PP., relaciones internacionales): las cuatro nuevas de `BETA_ROLE_KEYS` más
- * `finanzas_contabilidad` y `marketing_digital`, que ya existían y se ampliaron (ADR-027).
+ * Las ocho carreras de la beta cerrada, en el orden del anuncio (abogacía, contaduría, administración,
+ * comunicación, marketing, relaciones públicas, relaciones internacionales, programación): las nuevas de
+ * `BETA_ROLE_KEYS` más `finanzas_contabilidad`, `marketing_digital` y `fullstack`, que ya existían
+ * (ADR-027 y ADR-033).
  */
 export const BETA_LAUNCH_ROLE_KEYS: readonly RoleKey[] = [
   "abogacia",
@@ -149,8 +157,13 @@ export const BETA_LAUNCH_ROLE_KEYS: readonly RoleKey[] = [
   "administracion_empresas",
   "comunicacion",
   "marketing_digital",
+  "relaciones_publicas",
   "relaciones_internacionales",
+  "fullstack",
 ];
+
+/** Nombre del grupo que abre los selectores de carrera (R5-C8). */
+export const BETA_GROUP_LABEL = "Carreras de la beta";
 
 /**
  * Carreras que siguen ocultas en los selectores generales. Abogacía se publicó el 1/11/2026: 17 ofertas
@@ -185,11 +198,20 @@ export function selectableRoleGroups(
 export function profileRoleGroups(
   keep: readonly RoleKey[] = [],
 ): readonly { label: string; roles: readonly RoleKey[] }[] {
-  return selectableRoleGroups([...keep, ...BETA_ROLE_KEYS]);
+  const offered = selectableRoleGroups([...keep, ...BETA_ROLE_KEYS]);
+  // R5-C8: las 8 carreras de la beta van primero, con su nombre, en un grupo propio; el resto sigue
+  // en sus grupos de siempre, debajo, sin repetir ninguna
+  const rest = offered
+    .map((g) => ({
+      label: g.label,
+      roles: g.roles.filter((r) => !BETA_LAUNCH_ROLE_KEYS.includes(r)),
+    }))
+    .filter((g) => g.roles.length > 0);
+  return [{ label: BETA_GROUP_LABEL, roles: BETA_LAUNCH_ROLE_KEYS }, ...rest];
 }
 
 /**
- * Selector de `/acceso` (C6-1): las 6 carreras de la beta primero, en un grupo propio, y después el resto
+ * Selector de `/acceso` (C6-1): las 8 carreras de la beta primero, en un grupo propio, y después el resto
  * con los grupos de siempre (sin repetir ninguna). Ofrece lo mismo que `selectableRoleGroups(BETA_ROLE_KEYS)`,
  * solo reordenado: no cambia qué carreras se pueden elegir.
  */
@@ -200,7 +222,7 @@ export function waitlistRoleGroups(): readonly { label: string; roles: readonly 
       roles: g.roles.filter((r) => !BETA_LAUNCH_ROLE_KEYS.includes(r)),
     }))
     .filter((g) => g.roles.length > 0);
-  return [{ label: "Carreras de la beta", roles: BETA_LAUNCH_ROLE_KEYS }, ...rest];
+  return [{ label: BETA_GROUP_LABEL, roles: BETA_LAUNCH_ROLE_KEYS }, ...rest];
 }
 
 export function isRoleKey(v: unknown): v is RoleKey {
@@ -272,7 +294,7 @@ const HEADLINE_KEYWORDS: Record<RoleKey, RegExp> = {
   ai_engineer: /ai engineer|\bia\b/,
   ux_ui: /\bux\b|\bui\b/,
   marketing_digital:
-    /marketing digital|digital marketing|\bseo\b|performance marketing|community manager|relaciones publicas|public relations|\brrpp\b|brand manager/,
+    /marketing digital|digital marketing|\bseo\b|performance marketing|community manager|brand manager/,
   product_manager: /product manager|(?:gerente|jefe|jefa) de producto/,
   product_owner: /product owner|due[nñ][oa] de producto/,
   project_manager:
@@ -300,6 +322,8 @@ const HEADLINE_KEYWORDS: Record<RoleKey, RegExp> = {
     /\bperiodista\b|\bjournalist\b|\bcomunicador(?:a)? social|comunicacion (?:institucional|interna|social)|licenciad[oa] en comunicacion|(?:jefe|jefa|responsable) de prensa|communications? (?:specialist|manager|officer)/,
   relaciones_internacionales:
     /relaciones internacionales|international relations|comercio exterior|foreign trade|cooperacion internacional|\bcomex\b/,
+  relaciones_publicas:
+    /relaciones publicas|relacionista publico|relacionista publica|public relations|\brrpp\b|\brr\.? ?pp\b/,
 };
 
 /** disciplina de los criterios → rol (en orden de prioridad). */
@@ -308,15 +332,26 @@ const DISCIPLINE_ROLES: [string, RoleKey][] = [
   ["fullstack", "fullstack"],
   ["frontend", "frontend"],
   ["backend", "backend"],
+  // R6-2: la lista de contaduría incluye `data` (analistas con Excel y SQL): su disciplina propia va antes
+  ["finanzas_contabilidad", "finanzas_contabilidad"],
   ["data", "data_analyst"],
   // Al final: los de arriba no cambian de prioridad
   ["ciberseguridad", "ciberseguridad"],
+  // R6-2: las carreras no técnicas van antes que las que comparten con ellas (comunicación y RR.PP.
+  // incluyen marketing_digital; RR.II. incluye project_management)
+  ["abogacia", "abogacia"],
+  ["relaciones_publicas", "relaciones_publicas"],
+  ["comunicacion", "comunicacion"],
+  ["relaciones_internacionales", "relaciones_internacionales"],
   ["project_management", "project_manager"],
   ["marketing_digital", "marketing_digital"],
   ["producto", "product_manager"],
   ["recursos_humanos", "rrhh_it"],
   ["customer_success", "customer_success"],
 ];
+
+/** Las 19 disciplinas de fábrica de antes de R6-2. */
+const LEGACY_FACTORY_DISCIPLINES: readonly string[] = DISCIPLINES.slice(0, 19);
 
 function sameSet(a: readonly string[], b: readonly string[]): boolean {
   const sa = new Set(a);
@@ -343,6 +378,8 @@ export function defaultRole(input: {
 
   const allowed = input.allowedDisciplines ?? [];
   if (allowed.length === 0 || sameSet(allowed, input.defaultDisciplines)) return null;
+  // Criterios de fábrica anteriores a R6-2 (19 disciplinas, sin las 5 de carreras no técnicas): tampoco dicen nada
+  if (LEGACY_FACTORY_DISCIPLINES.every((d) => allowed.includes(d))) return null;
   for (const [discipline, role] of DISCIPLINE_ROLES) {
     if (allowed.includes(discipline)) return role;
   }

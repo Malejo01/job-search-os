@@ -8,7 +8,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CareerMarket } from "@/app/(app)/market/career-market";
-import { careerLabel, getCareerMarket } from "@/lib/career-market";
+import { getCareerMarket } from "@/lib/career-market";
+import { catalogLabel } from "@/lib/career-names";
 import { getPublicCareerKeys } from "@/lib/career-visibility";
 import { careerFromSlug } from "@/lib/showcase";
 import { publicOpenGraph } from "@/lib/public-og";
@@ -31,7 +32,7 @@ const SIBLING_LINK =
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const role = careerFromSlug((await params).carrera);
   if (!role) return {};
-  const label = careerLabel(role);
+  const label = catalogLabel(role);
   const title = `Mercado de ${label}: qué piden las ofertas`;
   // C-18: la descripción sale de los datos del pool (si el pool no responde, la genérica)
   const market = await getCareerMarket(role).catch(() => null);
@@ -53,7 +54,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function CareerMarketPage({ params }: Props) {
   const role = careerFromSlug((await params).carrera);
   if (!role) notFound();
-  const label = careerLabel(role);
+  const label = catalogLabel(role);
   const market = await getCareerMarket(role);
   const jsonLd = careerDatasetJsonLd({ market, label, url: `${siteUrl()}/mercado/${role}` });
   // Carreras del mismo grupo (enlaces internos), sin la actual ni las no publicadas
@@ -90,7 +91,7 @@ export default async function CareerMarketPage({ params }: Props) {
             {siblings.map((r) => (
               <li key={r}>
                 <Link href={`/mercado/${r}`} className={SIBLING_LINK}>
-                  {careerLabel(r)}
+                  {catalogLabel(r)}
                 </Link>
               </li>
             ))}

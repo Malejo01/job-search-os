@@ -53,24 +53,33 @@ export default async function SettingsPage({
   const userId = await requireUserId();
   const { error, direccion, puesto } = await searchParams;
   const pricing = pricingEnabled(process.env);
-  const [address, targetRoles, targetSpecialties, rolesLimit, canInvite, userPlan, canConnectChat] =
-    await Promise.all([
-      getInboundAddress(userId),
-      getTargetRoles(userId),
-      getTargetSpecialties(userId),
-      getTargetRolesLimit(userId),
-      canCreateInvitations(userId),
-      // «Tu plan» (C-11b) solo con los precios encendidos
-      pricing ? getUserPlan(userId) : null,
-      // MCP-1: conexiones con chats, solo testers y con MCP_USER_TOKENS=testers
-      canUseMcpTokens(userId),
-    ]);
-  const [user] = await withUser(userId, (tx) =>
-    tx.select({ email: s.users.email }).from(s.users).where(eq(s.users.id, userId)).limit(1),
-  );
+  const [
+    address,
+    targetRoles,
+    targetSpecialties,
+    rolesLimit,
+    canInvite,
+    userPlan,
+    canConnectChat,
+    [user],
+  ] = await Promise.all([
+    getInboundAddress(userId),
+    getTargetRoles(userId),
+    getTargetSpecialties(userId),
+    getTargetRolesLimit(userId),
+    canCreateInvitations(userId),
+    // «Tu plan» (C-11b) solo con los precios encendidos
+    pricing ? getUserPlan(userId) : null,
+    // MCP-1: conexiones con chats, solo testers y con MCP_USER_TOKENS=testers
+    canUseMcpTokens(userId),
+    // R7-6: el email se pide con el resto, no después
+    withUser(userId, (tx) =>
+      tx.select({ email: s.users.email }).from(s.users).where(eq(s.users.id, userId)).limit(1),
+    ),
+  ]);
 
   return (
-    <div className="mx-auto flex max-w-xl flex-col gap-5">
+    <div className="mx-auto flex max-w-3xl flex-col gap-5">
       <h1 className="text-title font-bold">Ajustes</h1>
 
       <Link href="/settings/perfil" className={NAV_CARD}>
@@ -205,8 +214,8 @@ export default async function SettingsPage({
         <h2 className={H2}>Criterios</h2>
         <p className="text-xs font-semibold tracking-wide text-fg-muted uppercase">Avanzado</p>
         <p className="text-sm text-fg-muted">
-          Cambiar estos criterios puede hacer que se descarten ofertas que te sirven. Si no estás
-          segura o seguro, dejalos como están.
+          Cambiar estos criterios puede hacer que se descarten ofertas que te sirven. Si tenés
+          dudas, dejalos como están.
         </p>
         <Link href="/settings/criteria" className={LINK}>
           Editar mis criterios de evaluación

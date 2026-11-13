@@ -30,7 +30,7 @@ export default async function SendersPage({
   const webmailError = webmailErrorFromParams(await searchParams);
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-5">
+    <div className="mx-auto flex max-w-3xl flex-col gap-5">
       <Link href="/settings" className={textLinkClasses({ block: true, className: "text-sm" })}>
         ← Ajustes
       </Link>

@@ -50,24 +50,31 @@ export default async function JobsPage({
 }) {
   const userId = await requireUserId();
   const params = await searchParams;
-  // «En {ciudad}» (C10): la ciudad sale del perfil, no de la URL
-  const city = await getProfileCity(userId).catch(() => null);
-  const filters = { ...parseJobFilters(params), ciudad: city };
-  const [rows, duplicates, progress] = await Promise.all([
-    listJobs(userId, filters),
-    countPossibleDuplicates(userId),
-    reviewProgressFor(userId, filters),
-  ]);
-  const query = listQuery(filters);
-  // Solo hace falta cuando la lista queda vacía: distingue "los filtros no coinciden" de "no hay nada"
-  // Una consulta agregada: el vacío la necesita y la columna de la derecha (P1) muestra las pendientes
-  const counts = await countJobs(userId).catch(() => null);
-  const stepsHidden = await firstStepsHidden(userId);
   // O3 (C9-9): la oferta elegida para el panel de la derecha, en la URL. Solo un id válido; si no
   // existe para esta persona (RLS), el panel muestra la indicación como si no hubiera ninguna.
   const ofertaParam = typeof params.oferta === "string" ? params.oferta : null;
   const selected = ofertaParam && isUuid(ofertaParam) ? ofertaParam : null;
-  const panelJob = selected ? await getJobDetail(userId, selected).catch(() => null) : null;
+  // R7-6: la única dependencia es ciudad → filtros → lista; todo lo demás sale a la vez (antes iban
+  // seis esperas en serie).
+  const [{ city, filters, rows, duplicates, progress }, counts, stepsHidden, panelJob] =
+    await Promise.all([
+      (async () => {
+        // «En {ciudad}» (C10): la ciudad sale del perfil, no de la URL
+        const city = await getProfileCity(userId).catch(() => null);
+        const filters = { ...parseJobFilters(params), ciudad: city };
+        const [rows, duplicates, progress] = await Promise.all([
+          listJobs(userId, filters),
+          countPossibleDuplicates(userId),
+          reviewProgressFor(userId, filters),
+        ]);
+        return { city, filters, rows, duplicates, progress };
+      })(),
+      // Una consulta agregada: el vacío la necesita y la columna de la derecha (P1) muestra las pendientes
+      countJobs(userId).catch(() => null),
+      firstStepsHidden(userId),
+      selected ? getJobDetail(userId, selected).catch(() => null) : Promise.resolve(null),
+    ]);
+  const query = listQuery(filters);
 
   // Chips de filtro (C10-7, ofertas-pc.png): cada uno es un link con los filtros de la URL
   const chip = (patch: Partial<ListFilters>) => `/jobs${listQuery({ ...filters, ...patch })}`;
@@ -79,7 +86,7 @@ export default async function JobsPage({
       {/* La primera pantalla es la de la referencia: la guía, «+ Cargar oferta» y los filtros finos
           empiezan debajo (en el celular, descontando la barra y las pestañas) */}
       <div className="flex min-h-[calc(100svh-9rem)] flex-col sm:min-h-[calc(100svh-4.5rem)]">
-        <div className="mx-auto flex w-full max-w-[1280px] flex-col sm:flex-row sm:items-center sm:gap-2 sm:px-10 sm:pt-[22px]">
+        <div className="mx-auto flex w-full max-w-[1280px] flex-col sm:flex-row sm:items-center sm:gap-2 sm:px-12 sm:pt-[22px]">
           {/* En el celular el título va en el índigo, debajo de la barra (ofertas-cel.png) */}
           <div className="bg-ink px-5 pb-[18px] sm:mr-3.5 sm:bg-transparent sm:p-0">
             <h1 className="text-[26px] leading-tight font-extrabold text-on-ink sm:text-[28px] sm:text-fg">
@@ -141,9 +148,15 @@ export default async function JobsPage({
           <p className="ml-auto hidden text-[13px] font-bold text-fg-subtle sm:block">
             Ordenadas por afinidad
           </p>
+          {/* R6-1: siempre visible, con o sin oferta elegida (el panel reemplaza al aside) */}
+          <div className="px-3.5 pt-2 sm:p-0">
+            <Link href="/jobs/new" className={buttonClasses({ size: "sm", className: "shrink-0" })}>
+              + Cargar oferta
+            </Link>
+          </div>
         </div>
 
-        <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-3 px-3.5 pt-3 sm:px-10 sm:pt-[18px]">
+        <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-3 px-3.5 pt-3 sm:px-12 sm:pt-[18px]">
           <FirstSteps userId={userId} />
           <RoleNudge userId={userId} />
           {/* D2: mientras la checklist está visible, su ítem 6 reemplaza al aviso de email */}
@@ -178,6 +191,16 @@ export default async function JobsPage({
                   : `${rows.length} ${rows.length === 1 ? "oferta" : "ofertas"}`}
                 , ordenadas por afinidad
               </h2>
+              {/* R5-C9 (hallazgo 19): en pantalla ancha lo dice la columna de la derecha */}
+              {(counts?.sinDescripcion ?? 0) > 0 ? (
+                <Link
+                  href="/jobs/pending-jd"
+                  data-testid="sin-descripcion-link"
+                  className={`${textLinkClasses({ block: true, className: "text-sm" })} lg:hidden`}
+                >
+                  Sin descripción ({counts?.sinDescripcion})
+                </Link>
+              ) : null}
               {rows.length === 0 ? (
                 <EmptyList
                   counts={counts}
@@ -207,10 +230,10 @@ export default async function JobsPage({
           </div>
         </div>
       </div>
-      <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-3 px-3.5 sm:px-10">
-        {/* Lo que no está en la referencia va debajo de la lista (C10-7): la guía y «+ Cargar
-            oferta» a la vista (el panel de la guía no se vería dentro de un desplegable cerrado), y
-            los filtros finos y el avance en «Más filtros y herramientas» */}
+      <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-3 px-3.5 sm:px-12">
+        {/* Lo que no está en la referencia va debajo de la lista (C10-7): la guía a la vista (el
+            panel de la guía no se vería dentro de un desplegable cerrado), y los filtros finos y el
+            avance en «Más filtros y herramientas». «+ Cargar oferta» está en la cabecera (R6-1) */}
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <GuidedTour
             steps={GUIDE_STEPS.jobs}
@@ -219,9 +242,6 @@ export default async function JobsPage({
             openerLabel={GUIDE_LABELS.opener}
             resume
           />
-          <Link href="/jobs/new" className={buttonClasses({ size: "sm", className: "shrink-0" })}>
-            + Cargar oferta
-          </Link>
         </div>
         {/* Abierto si la URL ya trae un filtro fino: se ve qué está filtrando */}
         <details
@@ -286,8 +306,8 @@ export default async function JobsPage({
 
 /**
  * Columna de la derecha (C7-6, manual P1), solo en pantalla ancha: cuántas ofertas esperan la
- * descripción, cargar una a mano y el recordatorio de que la postulación la hace la persona. En el
- * celular, lo mismo está en el menú y en «+ Cargar oferta».
+ * descripción, y el recordatorio de que la postulación la hace la persona. Cargar una a mano ya no está
+ * acá: «+ Cargar oferta» vive en la cabecera (R6-1).
  */
 function JobsAside({ pending }: { pending: number }) {
   return (
@@ -311,12 +331,6 @@ function JobsAside({ pending }: { pending: number }) {
           </Link>
         </div>
       ) : null}
-      <div className="flex flex-col gap-2 rounded-card bg-surface p-4">
-        <p className="text-sm font-bold">¿La oferta no está en la lista?</p>
-        <Link href="/jobs/new" className={buttonClasses({ variant: "secondary", size: "sm" })}>
-          Cargala a mano
-        </Link>
-      </div>
       <p className="text-xs text-fg-subtle">
         Vos decidís: la postulación la hacés vos en el sitio del aviso. Nunca postulamos por vos.
       </p>

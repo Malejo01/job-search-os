@@ -3,6 +3,7 @@ import { publicOpenGraph } from "@/lib/public-og";
 import { pricingEnabled } from "@job-search-os/pipeline";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Glosario } from "./glosario";
 
 export const revalidate = 3600;
 
@@ -177,9 +178,10 @@ const FAQS: FaqItem[] = [
     q: "¿Necesito conocimientos técnicos o saber de programación?",
     a: (
       <p>
-        No, para nada. La app fue diseñada especialmente para profesionales y estudiantes de
-        ciencias sociales, económicas y jurídicas. Todo el lenguaje es claro, directo y sin jerga
-        técnica.
+        No. La app es para las 8 carreras de la beta: Abogacía, Contaduría, Administración,
+        Comunicación, Marketing, Relaciones públicas, Relaciones internacionales y Programación.
+        Para todas el lenguaje es claro y directo, sin términos que haya que saber de antemano: si
+        aparece una palabra técnica, te la explicamos en el momento.
       </p>
     ),
   },
@@ -206,6 +208,8 @@ export default function AyudaPage() {
           </article>
         ))}
       </section>
+
+      <Glosario />
 
       <section className="mt-4 flex flex-col items-center justify-between gap-4 rounded-card bg-surface-subtle p-6 text-center sm:flex-row sm:text-left">
         <div>

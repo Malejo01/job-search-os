@@ -18,6 +18,15 @@ export {
   type SpendRow,
   type SpendSummary,
 } from "./spend";
+export {
+  BUDGET_ALERT_TASK,
+  budgetAlertsSentToday,
+  createDbBudgetAlertStore,
+  runBudgetAlerts,
+  spentLast24hUsd,
+  type BudgetAlertRun,
+  type BudgetAlertStore,
+} from "./budget-alerts";
 export { createFakeLlm, generateFromEnv, hangingGenerate, type FakeCall } from "./fake";
 export {
   AGENT_DEADLINE_MS,

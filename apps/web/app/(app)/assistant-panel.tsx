@@ -2,8 +2,11 @@
 
 import {
   actionOutcomesFrom,
+  capMessage,
   historyFrom,
   proposalOutcomesFrom,
+  remainingMessages,
+  remainingMessagesNotice,
   screenFromPath,
   screenLabel,
   type ActionProposal,
@@ -37,7 +40,15 @@ const LOAD_CHECK_MS = 8_000;
 type Item =
   | { id: number; turn: number; kind: "user"; text: string }
   | { id: number; turn: number; kind: "assistant"; text: string }
-  | { id: number; turn: number; kind: "notice"; text: string; links: AgentLink[] }
+  | {
+      id: number;
+      turn: number;
+      kind: "notice";
+      text: string;
+      links: AgentLink[];
+      /** Tope que cierra la charla: no se acepta otro mensaje ni se repite el aviso. */
+      final: boolean;
+    }
   | { id: number; turn: number; kind: "error"; text: string }
   | {
       id: number;
@@ -243,6 +254,7 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
     let reply = "";
     let gotDone = false;
     const said: string[] = [];
+    let noticeFinal = false;
     const push = (item: Item) => {
       if (current()) setItems((prev) => [...prev, item]);
     };
@@ -294,7 +306,19 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
           );
           break;
         case "notice":
-          push({ id: nextId(), turn, kind: "notice", text: event.text, links: event.links });
+          // Un tope de la charla se muestra una sola vez, aunque lleguen dos
+          if (event.final && (noticeFinal || items.some((i) => i.kind === "notice" && i.final))) {
+            break;
+          }
+          if (event.final) noticeFinal = true;
+          push({
+            id: nextId(),
+            turn,
+            kind: "notice",
+            text: event.text,
+            links: event.links,
+            final: event.final === true,
+          });
           said.push(event.text);
           break;
         case "error":
@@ -372,10 +396,18 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
     }
   }
 
+  // Tope de la charla: por el aviso del servidor o por los mensajes ya enviados (mismo límite)
+  const userCount = items.filter((i) => i.kind === "user").length;
+  const hasFinalNotice = items.some((i) => i.kind === "notice" && i.final);
+  const outOfMessages = !pending && userCount > 0 && remainingMessages(userCount) === 0;
+  const capped = hasFinalNotice || outOfMessages;
+  const remainingNotice = pending || capped ? null : remainingMessagesNotice(userCount);
+  const turnsCap = capMessage("turns");
+
   function onSubmit(e: FormEvent) {
     e.preventDefault();
     const text = draft.trim();
-    if (!text || pending) return;
+    if (!text || pending || capped) return;
     void send(text);
   }
 
@@ -384,6 +416,31 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
       e.preventDefault();
       onSubmit(e);
     }
+  }
+
+  function renderNotice(key: number | string, text: string, links: AgentLink[]) {
+    return (
+      <div
+        key={key}
+        data-testid="assistant-notice"
+        className="flex flex-col gap-1 rounded-control bg-warning-soft px-3 py-2 text-sm text-warning"
+      >
+        <p className="break-words">{text}</p>
+        <ul className="flex flex-wrap gap-x-3">
+          {links.map((l) => (
+            <li key={l.href}>
+              <Link
+                href={l.href}
+                onClick={onClose}
+                className={`inline-flex min-h-11 items-center underline ${FOCUS_RING}`}
+              >
+                {l.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
   }
 
   return (
@@ -473,28 +530,7 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
                     </p>
                   );
                 case "notice":
-                  return (
-                    <div
-                      key={item.id}
-                      data-testid="assistant-notice"
-                      className="flex flex-col gap-1 rounded-control bg-warning-soft px-3 py-2 text-sm text-warning"
-                    >
-                      <p className="break-words">{item.text}</p>
-                      <ul className="flex flex-wrap gap-x-3">
-                        {item.links.map((l) => (
-                          <li key={l.href}>
-                            <Link
-                              href={l.href}
-                              onClick={onClose}
-                              className={`inline-flex min-h-11 items-center underline ${FOCUS_RING}`}
-                            >
-                              {l.label}
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  );
+                  return renderNotice(item.id, item.text, item.links);
                 case "error":
                   return (
                     <p
@@ -529,6 +565,9 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
                   );
               }
             })}
+            {outOfMessages && !hasFinalNotice
+              ? renderNotice("tope-turnos", turnsCap.text, turnsCap.links)
+              : null}
             {pending ? (
               <p className="text-sm text-fg-subtle" aria-hidden="true">
                 Pensando…
@@ -557,7 +596,7 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
             <div className="flex items-center gap-2">
               <button
                 type="submit"
-                disabled={pending || draft.trim() === ""}
+                disabled={pending || capped || draft.trim() === ""}
                 className={buttonClasses({ size: "sm" })}
               >
                 Enviar
@@ -572,6 +611,11 @@ export function AssistantPanel({ open, onClose }: { open: boolean; onClose: () =
                 </button>
               ) : null}
             </div>
+            {remainingNotice ? (
+              <p data-testid="assistant-remaining" className="text-xs font-medium text-warning">
+                {remainingNotice}
+              </p>
+            ) : null}
             <p className="text-xs text-fg-subtle">
               No pegues tu CV acá: se carga en «Tu perfil» y «Tus skills».
             </p>

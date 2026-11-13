@@ -1,0 +1,164 @@
+{
+  "meta": {
+    "carrera": "relaciones_publicas",
+    "carrera_en_main": "marketing_digital",
+    "version": "2026-11-12",
+    "descripcion": "Golden sintético de relaciones públicas: 6 avisos inventados con empresas ficticias (C12, R5) y el que venía en el de marketing_digital como marketing_digital-04 (R6-5, ADR-033), acá relaciones_publicas-07. Etiquetas propuestas (anchor_source assisted), a validar por un profesional después de la beta. No lo usa el job pago de evals.",
+    "persona": {
+      "pais": "AR",
+      "ciudad": "Salta",
+      "anos_experiencia": 2,
+      "modalidades": ["remoto", "hibrido", "presencial"],
+      "idiomas_aviso": ["es", "en"]
+    }
+  },
+  "casos": [
+    {
+      "id": "relaciones_publicas-01",
+      "categoria": "nueve_mas",
+      "empresa": "Empresa A",
+      "titulo": "Asistente de relaciones públicas junior",
+      "ubicacion_raw": "Remoto (Argentina)",
+      "modalidad": "remoto",
+      "jd_text": "Empresa A busca incorporar: Asistente de relaciones públicas junior.\n\nAgencia de comunicación ficticia.\n\nQué vas a hacer:\n- Armar gacetillas y listas de medios\n- Dar seguimiento a pedidos de periodistas\n- Preparar informes de repercusión\n\nQué buscamos:\n- Estudiante avanzado/a o graduado/a en Relaciones Públicas o Comunicación\n- 1 a 3 años de experiencia\n\nRemoto para Argentina.\n\nModalidad: remoto. Ubicación: Remoto (Argentina). Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": [],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "postular",
+        "score_esperado": {
+          "min": 9,
+          "max": 10
+        },
+        "nota": "Encaje casi perfecto: junior, remoto para Argentina y tareas de la carrera."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "relaciones_publicas-02",
+      "categoria": "remoto_ar",
+      "empresa": "Empresa B",
+      "titulo": "Analista de comunicación y relaciones públicas",
+      "ubicacion_raw": "Remoto · Argentina",
+      "modalidad": "remoto",
+      "jd_text": "Empresa B busca incorporar: Analista de comunicación y relaciones públicas.\n\nConsultora ficticia de comunicación corporativa.\n\nQué vas a hacer:\n- Redactar comunicados\n- Coordinar eventos de prensa\n- Monitorear menciones de clientes\n\nQué buscamos:\n- Relaciones Públicas, Comunicación o afines\n- Redacción impecable\n\nRemoto en Argentina.\n\nModalidad: remoto. Ubicación: Remoto · Argentina. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": [],
+        "bloqueadores_esperados": [],
+        "accion_esperada": "postular",
+        "score_esperado": {
+          "min": 7,
+          "max": 9
+        },
+        "nota": "Buen encaje: remoto para Argentina y nivel acorde."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "relaciones_publicas-03",
+      "categoria": "presencial_caba",
+      "empresa": "Empresa C",
+      "titulo": "Ejecutivo/a de cuentas de relaciones públicas",
+      "ubicacion_raw": "CABA, Buenos Aires",
+      "modalidad": "presencial",
+      "jd_text": "Empresa C busca incorporar: Ejecutivo/a de cuentas de relaciones públicas.\n\nAgencia ficticia de RR.PP.\n\nQué vas a hacer:\n- Atender cuentas de clientes\n- Organizar lanzamientos\n- Gestionar prensa\n\nQué buscamos:\n- Relaciones Públicas o Comunicación\n- Experiencia en agencia\n\nOficina en Palermo.\n\nModalidad: presencial. Ubicación: CABA, Buenos Aires. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["modalidad_no_remota", "ciudad_distinta"],
+        "bloqueadores_esperados": ["ubicacion"],
+        "accion_esperada": "guardar",
+        "score_esperado": {
+          "min": 4,
+          "max": 7
+        },
+        "nota": "Presencial lejos de Salta: pasa el prefiltro con la marca de ciudad distinta."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "relaciones_publicas-04",
+      "categoria": "remoto_otro_pais",
+      "empresa": "Empresa D",
+      "titulo": "Ejecutivo/a de relaciones públicas (Remote — Mexico residents only)",
+      "ubicacion_raw": "Remoto · solo residentes en México",
+      "modalidad": "remoto",
+      "jd_text": "Empresa D busca incorporar: Ejecutivo/a de relaciones públicas (Remote — Mexico residents only).\n\nMarca ficticia de consumo.\n\nQué vas a hacer:\n- Gestionar prensa y vocería de la marca\n- Coordinar eventos con influencers\n- Reportar resultados\n\nQué buscamos:\n- Residencia en México (excluyente)\n\nContrato mexicano.\n\nModalidad: remoto. Ubicación: Remoto · solo residentes en México. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["residencia_exigida"],
+        "bloqueadores_esperados": ["ubicacion"],
+        "accion_esperada": "descartar",
+        "score_esperado": {
+          "min": 1,
+          "max": 4
+        },
+        "nota": "Remoto solo para otro país: la ubicación nunca descarta en el prefiltro; queda la marca. Integración R5–R7: el título pasó de «Community manager» a uno de RR.PP., porque por ADR-033 community manager es de marketing y el caso mide ubicación, no título."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "relaciones_publicas-05",
+      "categoria": "senior_inalcanzable",
+      "empresa": "Empresa E",
+      "titulo": "Director/a de Asuntos Corporativos y Relaciones Públicas",
+      "ubicacion_raw": "Remoto (Argentina)",
+      "modalidad": "remoto",
+      "jd_text": "Empresa E busca incorporar: Director/a de Asuntos Corporativos y Relaciones Públicas.\n\nGrupo industrial ficticio.\n\nQué vas a hacer:\n- Definir la estrategia de reputación\n- Liderar al equipo regional\n- Reportar al directorio\n\nQué buscamos:\n- Más de 12 años de experiencia\n\nModalidad: remoto. Ubicación: Remoto (Argentina). Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_discard",
+        "flags_esperados": [],
+        "bloqueadores_esperados": ["experiencia"],
+        "accion_esperada": "descartar",
+        "score_esperado": {
+          "min": 1,
+          "max": 3
+        },
+        "nota": "Cargo de dirección para alguien con 2 años."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "relaciones_publicas-06",
+      "categoria": "titulo_enganoso",
+      "empresa": "Empresa F",
+      "titulo": "Relaciones públicas para call center de cobranzas",
+      "ubicacion_raw": "Córdoba, Córdoba",
+      "modalidad": "presencial",
+      "jd_text": "Empresa F busca incorporar: Relaciones públicas para call center de cobranzas.\n\nCentro de contacto ficticio.\n\nQué vas a hacer:\n- Llamar a deudores\n- Cumplir metas diarias de gestión\n- Registrar acuerdos de pago\n\nQué buscamos:\n- Secundario completo\n- Se valoran estudiantes de Relaciones Públicas\n\nModalidad: presencial. Ubicación: Córdoba, Córdoba. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_discard",
+        "flags_esperados": [],
+        "bloqueadores_esperados": ["disciplina"],
+        "accion_esperada": "descartar",
+        "score_esperado": {
+          "min": 1,
+          "max": 3
+        },
+        "nota": "El título nombra la carrera pero el puesto es de cobranzas: no debería mostrarse."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "relaciones_publicas-07",
+      "categoria": "presencial_caba",
+      "empresa": "Empresa D",
+      "titulo": "Ejecutivo/a de relaciones públicas",
+      "ubicacion_raw": "CABA, Buenos Aires",
+      "modalidad": "presencial",
+      "jd_text": "Empresa D busca incorporar: Ejecutivo/a de relaciones públicas.\n\nAgencia de RR.PP.\n\nQué vas a hacer:\n- Organizar lanzamientos\n- Gestionar prensa para clientes\n- Armar informes de repercusión\n\nQué buscamos:\n- Relaciones Públicas o Comunicación\n- Experiencia en agencia\n\nOficina en Palermo.\n\nModalidad: presencial. Ubicación: CABA, Buenos Aires. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["modalidad_no_remota", "ciudad_distinta"],
+        "bloqueadores_esperados": ["ubicacion"],
+        "accion_esperada": "guardar",
+        "score_esperado": {
+          "min": 4,
+          "max": 7
+        },
+        "nota": "Presencial lejos de Salta: pasa el prefiltro con la marca de ciudad distinta; el evaluador lo baja."
+      },
+      "anchor_source": "assisted"
+    }
+  ]
+}
