@@ -63,6 +63,32 @@ export const cvExtractionSchema = z
           .strict(),
       )
       .max(20),
+    // ADR-034 §8: estudios e idiomas para las tarjetas del agente de perfil. `default([])`: una salida
+    // sin estas claves (el prompt de antes) sigue siendo válida y no inventa nada.
+    education: z
+      .array(
+        z
+          .object({
+            institution: z.string().max(120),
+            title: z.string().max(120),
+            start: z.string().regex(YEAR_MONTH).nullable(), // AAAA-MM
+            end: z.string().regex(YEAR_MONTH).nullable(),
+          })
+          .strict(),
+      )
+      .max(10)
+      .default([]),
+    languages: z
+      .array(
+        z
+          .object({
+            name: z.string().max(40),
+            level: z.string().max(30).nullable(), // tal como lo dice el CV ("C1", "Nativo"); null si no dice
+          })
+          .strict(),
+      )
+      .max(8)
+      .default([]),
     suggested_roles: z.array(z.string().max(40)).max(3),
     other_terms: z.array(z.string().max(60)).max(20),
   })
@@ -73,6 +99,8 @@ export type CvDropReason =
   | "skill_not_candidate"
   | "fact_sensitive"
   | "work_dates_invalid"
+  | "education_dates_invalid"
+  | "language_invalid"
   | "role_unknown"
   | "term_url"
   | "term_sensitive"
@@ -84,6 +112,8 @@ export type CvProposal = {
   skills: { slug: string; level: 1 | 2 | 3 | null; years: number | null; verified: boolean }[];
   facts: { text: string; kind: "proyecto" | "logro" | "metrica"; source: "autodeclarado" }[];
   workHistory: { company: string; title: string; start: string | null; end: string | null }[];
+  education: { institution: string; title: string; start: string | null; end: string | null }[];
+  languages: { name: string; level: string | null }[];
   suggestedRoles: RoleKey[];
   otherTerms: string[];
   flags: { summaryInjection: boolean; dropped: Partial<Record<CvDropReason, number>> };
@@ -156,6 +186,8 @@ export function normalizeCvExtraction(
     data.profile.summary,
     ...data.facts.map((f) => f.text),
     ...data.work_history.flatMap((w) => [w.company, w.title]),
+    ...data.education.flatMap((e) => [e.institution, e.title]),
+    ...data.languages.flatMap((l) => [l.name, l.level]),
   ];
   if (texts.some(hasForbidden)) return err("sensitive_output");
 
@@ -262,6 +294,46 @@ export function normalizeCvExtraction(
     });
   }
 
+  const education: CvProposal["education"] = [];
+  for (const e of data.education) {
+    // Un estudio en curso puede tener un fin a futuro; un inicio a futuro o un fin anterior al inicio, no
+    const invalid =
+      (e.start !== null && e.end !== null && e.start > e.end) ||
+      (e.start !== null && e.start > ctx.today);
+    if (invalid) {
+      drop("education_dates_invalid");
+      continue;
+    }
+    if (injected(e.institution) || injected(e.title)) {
+      drop("injection");
+      continue;
+    }
+    const institution = clean(e.institution);
+    const title = clean(e.title);
+    if (institution === "" || title === "") continue;
+    education.push({ institution, title, start: e.start, end: e.end });
+  }
+
+  const languages: CvProposal["languages"] = [];
+  const seenLanguages = new Set<string>();
+  for (const l of data.languages) {
+    const name = clean(l.name);
+    const level = l.level === null ? null : clean(l.level) || null;
+    if (injected(l.name) || (l.level !== null && injected(l.level))) {
+      drop("injection");
+      continue;
+    }
+    const kinds = [...findCvSensitive(l.name), ...(level === null ? [] : findCvSensitive(level))];
+    if (name === "" || kinds.includes("url")) {
+      drop("language_invalid");
+      continue;
+    }
+    const key = name.toLowerCase();
+    if (seenLanguages.has(key)) continue;
+    seenLanguages.add(key);
+    languages.push({ name, level });
+  }
+
   const roles: RoleKey[] = [];
   for (const r of data.suggested_roles) {
     if (!isRoleKey(r)) drop("role_unknown");
@@ -306,6 +378,8 @@ export function normalizeCvExtraction(
     skills,
     facts,
     workHistory,
+    education,
+    languages,
     suggestedRoles: roles,
     otherTerms,
     flags: { summaryInjection, dropped },

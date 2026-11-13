@@ -9,6 +9,7 @@ import {
   normalizeCvExtraction,
   normalizeCvText,
   ok,
+  ROLE_KEYS,
   redactCvText,
   sniffCvFile,
   type CvProposal,
@@ -35,8 +36,11 @@ export const EXTRACT_CV_TASK = "extract_cv_profile";
 
 export type CvPlan = "free" | "paid";
 
-/** Lecturas por persona y por mes (decisión de Mauro, 20/10): gratis 1, pago 5. */
-export const CV_MONTHLY_LIMIT: Readonly<Record<CvPlan, number>> = { free: 1, paid: 5 };
+/**
+ * Lecturas por persona y por mes (decisión 5 de Mauro, 13/11, ADR-034 §6): gratis 3, pago 10. Es el mismo
+ * número que `plans.ts` (`cvReadsPerMonth`) y que `PROFILE_AGENT_READS_PER_MONTH`.
+ */
+export const CV_MONTHLY_LIMIT: Readonly<Record<CvPlan, number>> = { free: 3, paid: 10 };
 
 /** Ventana móvil del tope mensual, como la de 24 h de `spend.ts`: no se resetea a mitad de mes. */
 export const CV_LIMIT_WINDOW_DAYS = 30;
@@ -114,6 +118,8 @@ export type ExtractCvInput = {
   taxonomy: readonly SkillTaxonomyEntry[];
   /** Slugs de `role_skills` de los puestos tildados, para completar las candidatas. */
   roleSkillSlugs?: readonly string[];
+  /** `llm_calls.label` de la llamada (el agente de perfil usa `cv:<flowId>`); sin él, null. */
+  label?: string;
 };
 
 export type ExtractCvDeps = {
@@ -137,22 +143,40 @@ export type ExtractCvDeps = {
   timeoutMs?: number;
 };
 
-/** Una lectura en curso por persona (una sola instancia; ver informe sobre la carrera entre instancias). */
-const inFlight = new Set<string>();
-
-/** Para los tests: vacía el registro de lecturas en curso. */
-export function resetCvInFlight(): void {
-  inFlight.clear();
-}
-
 /** `CV_IMPORT_ENABLED` se comprueba en el servidor: ausente o distinto de "1" = apagado. */
 export function cvImportEnabled(env: Record<string, string | undefined> = process.env): boolean {
   return env.CV_IMPORT_ENABLED === "1";
 }
 
+/**
+ * Lectura con cupo mensual y topes de USD medidos acá (`deps.usage` y `deps.capGuard`). Ya no hay registro
+ * de lecturas en curso en memoria: no cubría dos instancias (ADR-034 §6). La exclusión por persona la da
+ * la reserva con lock de `readCvForAgent`.
+ */
 export async function extractCvProfile(
   input: ExtractCvInput,
   deps: ExtractCvDeps,
+): Promise<Result<CvProposal, CvExtractError>> {
+  return extractWith(input, deps, true);
+}
+
+/**
+ * Misma lectura sin medir cupo ni USD: **el llamador ya los midió y reservó** bajo lock
+ * (`readCvForAgent`). No se exporta por el índice público de otra forma: quien la use sin reservar se
+ * saltea los topes.
+ */
+export async function extractCvProfileReserved(
+  input: ExtractCvInput,
+  deps: Omit<ExtractCvDeps, "usage" | "capGuard" | "plan">,
+): Promise<Result<CvProposal, CvExtractError>> {
+  return extractWith(input, deps, false);
+}
+
+async function extractWith(
+  input: ExtractCvInput,
+  deps: Omit<ExtractCvDeps, "usage" | "capGuard"> &
+    Partial<Pick<ExtractCvDeps, "usage" | "capGuard">>,
+  metered: boolean,
 ): Promise<Result<CvProposal, CvExtractError>> {
   const log = deps.logger.child({ user_id: input.userId, task: EXTRACT_CV_TASK });
   const fail = (code: CvExtractErrorCode, extra: Record<string, unknown> = {}) => {
@@ -162,25 +186,19 @@ export async function extractCvProfile(
 
   // 1. Flag (apagado por defecto): no hace nada más
   if (!cvImportEnabled(deps.env ?? process.env)) return fail("disabled");
-
-  // 2. Una sola lectura en curso por persona
-  if (inFlight.has(input.userId)) return fail("in_progress");
-  inFlight.add(input.userId);
-  try {
-    return await run(input, deps, log, fail);
-  } finally {
-    inFlight.delete(input.userId);
-  }
+  return run(input, deps, log, fail, metered);
 }
 
 async function run(
   input: ExtractCvInput,
-  deps: ExtractCvDeps,
+  deps: Omit<ExtractCvDeps, "usage" | "capGuard"> &
+    Partial<Pick<ExtractCvDeps, "usage" | "capGuard">>,
   log: Logger,
   fail: (
     code: CvExtractErrorCode,
     extra?: Record<string, unknown>,
   ) => Result<never, CvExtractError>,
+  metered: boolean,
 ): Promise<Result<CvProposal, CvExtractError>> {
   const startedAt = deps.now();
 
@@ -200,24 +218,28 @@ async function run(
 
   // 5. Topes: mensual por persona y de USD. Si no se puede contar, falla cerrado
   const plan: CvPlan = deps.plan ?? "free";
-  const limit = CV_MONTHLY_LIMIT[plan];
-  const since = new Date(startedAt.getTime() - CV_LIMIT_WINDOW_DAYS * 24 * 60 * 60 * 1000);
-  let used: number;
-  try {
-    used = await deps.usage.countSince(input.userId, since);
-  } catch {
-    return fail("usage_unavailable");
+  let used = 0;
+  if (metered) {
+    const limit = CV_MONTHLY_LIMIT[plan];
+    const since = new Date(startedAt.getTime() - CV_LIMIT_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+    try {
+      // Sin `usage` no se sigue: falla cerrado
+      if (!deps.usage) return fail("usage_unavailable");
+      used = await deps.usage.countSince(input.userId, since);
+    } catch {
+      return fail("usage_unavailable");
+    }
+    if (used >= limit) return fail("limit_reached", { plan, used, limit });
+    // Sin chequeo de USD no se sigue (si una llamada lo omite por error, no queda sin freno)
+    if (typeof deps.capGuard !== "function") return fail("usage_unavailable");
+    let reason: "global" | "user" | null;
+    try {
+      reason = await deps.capGuard();
+    } catch {
+      return fail("usage_unavailable");
+    }
+    if (reason !== null) return fail(reason === "global" ? "cap_global" : "cap_user");
   }
-  if (used >= limit) return fail("limit_reached", { plan, used, limit });
-  // Sin chequeo de USD no se sigue (si una llamada lo omite por error, no queda sin freno)
-  if (typeof deps.capGuard !== "function") return fail("usage_unavailable");
-  let reason: "global" | "user" | null;
-  try {
-    reason = await deps.capGuard();
-  } catch {
-    return fail("usage_unavailable");
-  }
-  if (reason !== null) return fail(reason === "global" ? "cap_global" : "cap_user");
 
   // 6. Redacción de datos personales (con reglas, antes de cualquier LLM). Falla cerrado
   const redacted = redactCvText(normalized.value, { displayName: input.displayName });
@@ -241,6 +263,8 @@ async function run(
     candidates,
     today: today.slice(0, 7),
   });
+  // El prompt de la lectura pide también las claves de puestos válidas (una sola fuente: `ROLE_KEYS`)
+  const promptVars = { ...vars, role_keys: ROLE_KEYS.join(", ") };
 
   // 9. LLM con `signal`: el timeout corta la llamada (el cliente no reintenta con fallback si se cortó)
   const timeoutMs = deps.timeoutMs ?? CV_LLM_TIMEOUT_MS;
@@ -252,9 +276,10 @@ async function run(
   }, timeoutMs);
   let result: Awaited<ReturnType<LlmClient["generateStructured"]>>;
   try {
-    result = await deps.llm.generateStructured(EXTRACT_CV_TASK, cvExtractionSchema, vars, {
+    result = await deps.llm.generateStructured(EXTRACT_CV_TASK, cvExtractionSchema, promptVars, {
       userId: input.userId,
       signal: controller.signal,
+      ...(input.label ? { label: input.label } : {}),
     });
   } catch {
     // Borde: el cliente real no lanza, pero un LLM inyectado sí podría. Nunca se loguea el error crudo.
@@ -279,7 +304,7 @@ async function run(
     {
       code: "ok",
       plan,
-      used_in_window: used + 1,
+      used_in_window: metered ? used + 1 : null,
       chars: text.length,
       redactions: redacted.value.counts,
       candidates: candidates.length,

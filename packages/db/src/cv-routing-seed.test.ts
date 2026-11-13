@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 // Las dos tareas del chat de CV (C-25) tienen que estar ruteadas, con las tarifas de cada modelo.
 type Row = {
   task: string;
+  temperature: number;
   provider: string;
   model: string;
   fallback_model: string | null;
@@ -42,6 +43,23 @@ describe("model_routing: cv_interview y cv_write", () => {
       fallback_model: "claude-sonnet-5-5",
       fallback_input_usd_per_mtok: 2,
       fallback_output_usd_per_mtok: 10,
+    });
+  });
+
+  // ADR-034 §8: la lectura del CV del agente de perfil (R10-1). El nombre del modelo solo vive en el seed.
+  it("extract_cv_profile: Gemini Flash con respaldo Haiku 4.5, temperatura 0 y 4096 tokens", () => {
+    expect(seed.filter((r) => r.task === "extract_cv_profile")).toHaveLength(1);
+    expect(row("extract_cv_profile")).toMatchObject({
+      provider: "google",
+      model: "gemini-3.5-flash",
+      fallback_model: "claude-haiku-4-5",
+      temperature: 0,
+      max_tokens: 4096,
+      thinking_level: "minimal",
+      input_usd_per_mtok: 1.5,
+      output_usd_per_mtok: 9,
+      fallback_input_usd_per_mtok: 1,
+      fallback_output_usd_per_mtok: 5,
     });
   });
 

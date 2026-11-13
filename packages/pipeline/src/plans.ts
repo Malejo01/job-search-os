@@ -15,8 +15,14 @@ export type PlanKey = (typeof PLAN_KEYS)[number];
 export type PlanLimits = {
   /** Evaluaciones del pool por día. */
   evaluationsPerDay: number;
-  /** Lecturas de CV por mes (la 81: 1 gratis, 5 pago). */
+  /** Lecturas de CV por mes (ADR-034, decisión 5 de Mauro del 13/11: 3 gratis, 10 pago). */
   cvReadsPerMonth: number;
+  /**
+   * CV redactados por mes en el chat «Armá tu CV con IA» (piso de la beta en `CV_CHAT_BETA_LIMITS`). Es un
+   * cupo aparte del de lecturas: la decisión 5 de ADR-034 (3/10) es solo sobre lecturas. Sigue como estaba
+   * en la 81 (1 gratis, 5 pago).
+   */
+  cvChatPerMonth: number;
   /** Conversaciones con el asistente por mes (diseño de la 100: 3 gratis, 30 pago). */
   conversationsPerMonth: number;
   /** Carreras que se pueden seguir a la vez (ADR-016). */
@@ -46,13 +52,15 @@ export type PlanDef = {
 // garantía, 30 días por cada pago. Los topes salen de lo que ya rige (la 81, la 100 y ADR-016).
 const FREE_LIMITS: PlanLimits = {
   evaluationsPerDay: 3,
-  cvReadsPerMonth: 1,
+  cvReadsPerMonth: 3,
+  cvChatPerMonth: 1,
   conversationsPerMonth: 3,
   targetRoles: 2,
 };
 const PAID_LIMITS: PlanLimits = {
   evaluationsPerDay: 15,
-  cvReadsPerMonth: 5,
+  cvReadsPerMonth: 10,
+  cvChatPerMonth: 5,
   conversationsPerMonth: 30,
   targetRoles: 4,
 };
