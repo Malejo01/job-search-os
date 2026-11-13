@@ -326,7 +326,7 @@ describe("normalizeCvExtraction", () => {
         ...raw,
         education: [
           {
-            institution: "Universidad, tel +54 " + "9 351 555-0000",
+            institution: "Universidad, contacto persona@example.com",
             title: "x",
             start: null,
             end: null,
