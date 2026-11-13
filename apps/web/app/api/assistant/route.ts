@@ -28,6 +28,7 @@ import {
   groundingSourcesFrom,
   isActionOutput,
   isActionTool,
+  isFinalCap,
   isProposeOutput,
   isProposeTool,
   MAX_ASSISTANT_BODY_BYTES,
@@ -101,6 +102,7 @@ const jsonError = (status: number, error: string) =>
 const CAP_EVENT = (reason: AgentCapReason): AssistantStreamEvent => ({
   type: "notice",
   ...capMessage(reason),
+  ...(isFinalCap(reason) ? { final: true } : {}),
 });
 
 /** Para el log, solo identificadores cortos del error: nunca su mensaje. */
