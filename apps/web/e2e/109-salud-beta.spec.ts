@@ -14,13 +14,25 @@ test.describe("Flujo 109: salud diaria de la beta (C8-11)", () => {
     await removeSecondUser().catch(() => {});
   });
 
-  test("admin: los seis semáforos con su valor y el general", async ({ page }) => {
+  test("admin: los diez semáforos con su valor y el general", async ({ page }) => {
     await login(page);
     await page.goto("/settings");
     await page.getByRole("link", { name: "Salud de la beta" }).click();
     await expect(page).toHaveURL(/\/settings\/salud$/);
     await expect(page.getByRole("heading", { level: 1, name: "Salud de la beta" })).toBeVisible();
-    for (const key of ["cola", "ia", "emails", "ingesta", "activas", "feedback"]) {
+    // R8-7: cuatro señales más (evaluaciones fallidas, pool, emails sin parser, invitaciones)
+    for (const key of [
+      "cola",
+      "ia",
+      "emails",
+      "ingesta",
+      "activas",
+      "feedback",
+      "evaluaciones",
+      "pool",
+      "portales",
+      "invitaciones",
+    ]) {
       const row = page.getByTestId(`salud-${key}`);
       await expect(row).toBeVisible();
       await expect(row).toHaveAttribute("data-level", /^(verde|amarillo|rojo|gris)$/);
@@ -30,6 +42,9 @@ test.describe("Flujo 109: salud diaria de la beta (C8-11)", () => {
     await expect(page.getByTestId("salud-ia")).toContainText("sin tope");
     await expect(page.getByTestId("salud-emails")).toContainText("de 100");
     await expect(page.getByTestId("salud-general")).toContainText("En general:");
+    // Conteos sin datos de nadie: la fila de portales nunca trae un asunto ni un email
+    await expect(page.getByTestId("salud-portales")).not.toContainText("@");
+    await expect(page.getByTestId("salud-evaluaciones")).toContainText(/Ninguna|fallidas/);
   });
 
   for (const tema of ["claro", "oscuro"] as const) {

@@ -12,6 +12,10 @@ const calm: BetaHealthInput = {
   ingestErrors24h: { inbound: 0, pool: 1 },
   activeToday: 9,
   feedback24h: 0,
+  evalQueue24h: { failed: 0, finished: 40 },
+  pool: { lastOkAt: hoursAgo(2) },
+  inboundNoParser7d: { total: 0, byHost: [] },
+  invitations: { pending: 0, expiringIn48h: 0 },
 };
 
 const level = (input: BetaHealthInput, key: string) =>
@@ -28,7 +32,78 @@ describe("betaHealth (C8-11): semáforo de la mañana", () => {
       "ingesta",
       "activas",
       "feedback",
+      "evaluaciones",
+      "pool",
+      "portales",
+      "invitaciones",
     ]);
+  });
+
+  it("evaluaciones fallidas (24 h): 3 piden mirar, más de 10 o más de la mitad de los intentos, actuar", () => {
+    const key = "evaluaciones";
+    expect(level({ ...calm, evalQueue24h: { failed: 2, finished: 40 } }, key)).toBe("verde");
+    expect(level({ ...calm, evalQueue24h: { failed: 3, finished: 40 } }, key)).toBe("amarillo");
+    expect(level({ ...calm, evalQueue24h: { failed: 11, finished: 80 } }, key)).toBe("rojo");
+    // Con pocos intentos el porcentaje no dice nada; con 4 o más, más de la mitad es rojo
+    expect(level({ ...calm, evalQueue24h: { failed: 3, finished: 3 } }, key)).toBe("amarillo");
+    expect(level({ ...calm, evalQueue24h: { failed: 3, finished: 5 } }, key)).toBe("rojo");
+    expect(level({ ...calm, evalQueue24h: { failed: 0, finished: 0 } }, key)).toBe("verde");
+    const row = betaHealth({ ...calm, evalQueue24h: { failed: 3, finished: 40 } }).rows.find(
+      (r) => r.key === key,
+    )!;
+    expect(row.value).toBe("3 fallidas de 40 terminadas");
+  });
+
+  it("pool: la última descarga buena, contra el cron de 6 h (amarillo pasadas 7 h, rojo pasadas 13 h)", () => {
+    expect(level({ ...calm, pool: { lastOkAt: hoursAgo(5) } }, "pool")).toBe("verde");
+    expect(level({ ...calm, pool: { lastOkAt: hoursAgo(8) } }, "pool")).toBe("amarillo");
+    expect(level({ ...calm, pool: { lastOkAt: hoursAgo(14) } }, "pool")).toBe("rojo");
+    expect(level({ ...calm, pool: { lastOkAt: null } }, "pool")).toBe("gris");
+    const row = betaHealth({ ...calm, pool: { lastOkAt: hoursAgo(8) } }).rows.find(
+      (r) => r.key === "pool",
+    )!;
+    expect(row.value).toBe("hace 8 h");
+  });
+
+  it("portales: emails de 7 días sin parser, con el dominio de los portales conocidos y el resto como «otros»", () => {
+    const four = { total: 4, byHost: [{ host: "mail.computrabajo.com.ar", count: 4 }] };
+    expect(level({ ...calm, inboundNoParser7d: four }, "portales")).toBe("verde");
+    const nine = {
+      total: 10,
+      byHost: [
+        { host: "avisos.computrabajo.com.ar", count: 5 },
+        { host: "alertas.computrabajo.com.ar", count: 2 },
+        { host: "bumeran.com.ar", count: 2 },
+        { host: "empresa-a.example", count: 1 },
+      ],
+    };
+    expect(level({ ...calm, inboundNoParser7d: nine }, "portales")).toBe("amarillo");
+    expect(level({ ...calm, inboundNoParser7d: { total: 30, byHost: [] } }, "portales")).toBe(
+      "rojo",
+    );
+    const row = betaHealth({ ...calm, inboundNoParser7d: nine }).rows.find(
+      (r) => r.key === "portales",
+    )!;
+    expect(row.value).toBe("10 · computrabajo.com.ar 7 · bumeran.com.ar 2 · otros 1");
+    // Un dominio que no es un portal conocido nunca se nombra
+    expect(row.value).not.toContain("empresa-a");
+    expect(betaHealth({ ...calm }).rows.find((r) => r.key === "portales")!.value).toBe("Ninguno");
+  });
+
+  it("invitaciones: pendientes y las que vencen en 48 h", () => {
+    expect(level({ ...calm, invitations: { pending: 0, expiringIn48h: 0 } }, "invitaciones")).toBe(
+      "gris",
+    );
+    expect(level({ ...calm, invitations: { pending: 5, expiringIn48h: 0 } }, "invitaciones")).toBe(
+      "verde",
+    );
+    expect(level({ ...calm, invitations: { pending: 5, expiringIn48h: 2 } }, "invitaciones")).toBe(
+      "amarillo",
+    );
+    const row = betaHealth({ ...calm, invitations: { pending: 5, expiringIn48h: 2 } }).rows.find(
+      (r) => r.key === "invitaciones",
+    )!;
+    expect(row.value).toBe("5 sin usar · 2 vencen en 48 h");
   });
 
   it("cola: amarilla con una oferta esperando más de un ciclo del cron (6 h), roja con más de 24 h", () => {

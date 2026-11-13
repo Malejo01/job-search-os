@@ -2,8 +2,10 @@ import {
   budgetAlertsSentToday,
   createLogger,
   dailyCapFromEnv,
+  MANUAL_QUEUE_REASON,
   safeDbError,
   spendLast24h,
+  UNEXPECTED_SENDER_REASON,
 } from "@job-search-os/adapters";
 import { createDb, requireDatabaseUrl } from "@job-search-os/db";
 import type { BetaHealthInput } from "@job-search-os/pipeline";
@@ -28,7 +30,15 @@ type Raw = {
   pool_errors: number | string;
   active_today: number | string;
   feedback_24h: number | string;
+  eval_failed_24h: number | string;
+  eval_finished_24h: number | string;
+  pool_last_ok: Date | string | null;
+  no_parser_7d: number | string;
+  invites_pending: number | string;
+  invites_expiring: number | string;
 };
+
+type HostRow = { host: string | null; n: number | string };
 
 /** Inicio del día de hoy en Argentina (UTC−3, sin horario de verano), para «activas hoy». */
 function startOfArgentinaDay(now: Date): Date {
@@ -45,14 +55,14 @@ function adminCount(): number {
 
 async function readCounts(
   nowIso: string,
-): Promise<(Raw & { llm_spent: number; budget_alerts: number[] }) | null> {
+): Promise<(Raw & { hosts: HostRow[]; llm_spent: number; budget_alerts: number[] }) | null> {
   const now = new Date(nowIso);
   const arDay = startOfArgentinaDay(now).toISOString();
   const { db, close } = createDb(requireDatabaseUrl({ purpose: "service" }), { max: 1 });
   try {
-    const rows = (await db.transaction(async (tx) => {
+    const { rows, hosts } = await db.transaction(async (tx) => {
       await tx.execute(sql`set local statement_timeout = '3s'`);
-      return tx.execute(sql`
+      const counts = (await tx.execute(sql`
         select
           (select count(*) from job_queue
             where queue = 'evaluate_job' and status in ('pending', 'processing')) as queue_pending,
@@ -79,15 +89,42 @@ async function readCounts(
               where j.created_at >= ${arDay}::timestamptz and j.public_job_id is null
           ) x) as active_today,
           (select count(*) from beta_feedback
-            where created_at > now() - interval '24 hours') as feedback_24h
-      `);
-    })) as unknown as Raw[];
+            where created_at > now() - interval '24 hours') as feedback_24h,
+          (select count(*) from job_queue
+            where queue = 'evaluate_job' and status = 'failed'
+              and updated_at > now() - interval '24 hours') as eval_failed_24h,
+          (select count(*) from job_queue
+            where queue = 'evaluate_job' and status in ('done', 'failed')
+              and updated_at > now() - interval '24 hours') as eval_finished_24h,
+          (select max(started_at) from public_job_fetches
+            where status in ('ok', 'partial') and started_at > now() - interval '7 days') as pool_last_ok,
+          (select count(*) from inbound_emails
+            where received_at > now() - interval '7 days'
+              and error in (${MANUAL_QUEUE_REASON}, ${UNEXPECTED_SENDER_REASON})) as no_parser_7d,
+          (select count(*) from invitations
+            where used_at is null and expires_at > now()) as invites_pending,
+          (select count(*) from invitations
+            where used_at is null and expires_at > now()
+              and expires_at <= now() + interval '48 hours') as invites_expiring
+      `)) as unknown as Raw[];
+      // Solo el host del remitente y cuántos: nunca el asunto, el cuerpo ni el usuario
+      const byHost = (await tx.execute(sql`
+        select lower(substring(from_address from '@([^>\\s]+)')) as host, count(*) as n
+        from inbound_emails
+        where received_at > now() - interval '7 days'
+          and error in (${MANUAL_QUEUE_REASON}, ${UNEXPECTED_SENDER_REASON})
+        group by 1
+        order by n desc
+        limit 40
+      `)) as unknown as HostRow[];
+      return { rows: counts, hosts: byHost };
+    });
     if (!rows[0]) return null;
     // El mismo gasto que mira el tope global (spend.ts): todas las llamadas al modelo de 24 h
     const spend = await spendLast24h(db, () => now);
     // Umbrales de presupuesto ya avisados hoy (R7-1)
     const alerts = await budgetAlertsSentToday(db, now);
-    return { ...rows[0], llm_spent: spend.usd, budget_alerts: alerts };
+    return { ...rows[0], hosts, llm_spent: spend.usd, budget_alerts: alerts };
   } finally {
     await close();
   }
@@ -138,6 +175,15 @@ export async function getBetaHealth(userId: string): Promise<BetaHealthResult> {
       ingestErrors24h: { inbound: n(raw.inbound_errors), pool: n(raw.pool_errors) },
       activeToday: n(raw.active_today),
       feedback24h: n(raw.feedback_24h),
+      evalQueue24h: { failed: n(raw.eval_failed_24h), finished: n(raw.eval_finished_24h) },
+      pool: { lastOkAt: raw.pool_last_ok ? new Date(raw.pool_last_ok) : null },
+      inboundNoParser7d: {
+        total: n(raw.no_parser_7d),
+        byHost: (raw.hosts ?? [])
+          .filter((h): h is { host: string; n: number | string } => !!h.host)
+          .map((h) => ({ host: h.host, count: n(h.n) })),
+      },
+      invitations: { pending: n(raw.invites_pending), expiringIn48h: n(raw.invites_expiring) },
     };
     return { ok: true, input, at: now, budgetAlertsToday: raw.budget_alerts ?? [] };
   } catch (e) {
