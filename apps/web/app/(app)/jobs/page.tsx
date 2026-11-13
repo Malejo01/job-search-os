@@ -50,24 +50,31 @@ export default async function JobsPage({
 }) {
   const userId = await requireUserId();
   const params = await searchParams;
-  // «En {ciudad}» (C10): la ciudad sale del perfil, no de la URL
-  const city = await getProfileCity(userId).catch(() => null);
-  const filters = { ...parseJobFilters(params), ciudad: city };
-  const [rows, duplicates, progress] = await Promise.all([
-    listJobs(userId, filters),
-    countPossibleDuplicates(userId),
-    reviewProgressFor(userId, filters),
-  ]);
-  const query = listQuery(filters);
-  // Solo hace falta cuando la lista queda vacía: distingue "los filtros no coinciden" de "no hay nada"
-  // Una consulta agregada: el vacío la necesita y la columna de la derecha (P1) muestra las pendientes
-  const counts = await countJobs(userId).catch(() => null);
-  const stepsHidden = await firstStepsHidden(userId);
   // O3 (C9-9): la oferta elegida para el panel de la derecha, en la URL. Solo un id válido; si no
   // existe para esta persona (RLS), el panel muestra la indicación como si no hubiera ninguna.
   const ofertaParam = typeof params.oferta === "string" ? params.oferta : null;
   const selected = ofertaParam && isUuid(ofertaParam) ? ofertaParam : null;
-  const panelJob = selected ? await getJobDetail(userId, selected).catch(() => null) : null;
+  // R7-6: la única dependencia es ciudad → filtros → lista; todo lo demás sale a la vez (antes iban
+  // seis esperas en serie).
+  const [{ city, filters, rows, duplicates, progress }, counts, stepsHidden, panelJob] =
+    await Promise.all([
+      (async () => {
+        // «En {ciudad}» (C10): la ciudad sale del perfil, no de la URL
+        const city = await getProfileCity(userId).catch(() => null);
+        const filters = { ...parseJobFilters(params), ciudad: city };
+        const [rows, duplicates, progress] = await Promise.all([
+          listJobs(userId, filters),
+          countPossibleDuplicates(userId),
+          reviewProgressFor(userId, filters),
+        ]);
+        return { city, filters, rows, duplicates, progress };
+      })(),
+      // Una consulta agregada: el vacío la necesita y la columna de la derecha (P1) muestra las pendientes
+      countJobs(userId).catch(() => null),
+      firstStepsHidden(userId),
+      selected ? getJobDetail(userId, selected).catch(() => null) : Promise.resolve(null),
+    ]);
+  const query = listQuery(filters);
 
   // Chips de filtro (C10-7, ofertas-pc.png): cada uno es un link con los filtros de la URL
   const chip = (patch: Partial<ListFilters>) => `/jobs${listQuery({ ...filters, ...patch })}`;

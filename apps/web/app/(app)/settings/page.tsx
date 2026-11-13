@@ -53,21 +53,30 @@ export default async function SettingsPage({
   const userId = await requireUserId();
   const { error, direccion, puesto } = await searchParams;
   const pricing = pricingEnabled(process.env);
-  const [address, targetRoles, targetSpecialties, rolesLimit, canInvite, userPlan, canConnectChat] =
-    await Promise.all([
-      getInboundAddress(userId),
-      getTargetRoles(userId),
-      getTargetSpecialties(userId),
-      getTargetRolesLimit(userId),
-      canCreateInvitations(userId),
-      // «Tu plan» (C-11b) solo con los precios encendidos
-      pricing ? getUserPlan(userId) : null,
-      // MCP-1: conexiones con chats, solo testers y con MCP_USER_TOKENS=testers
-      canUseMcpTokens(userId),
-    ]);
-  const [user] = await withUser(userId, (tx) =>
-    tx.select({ email: s.users.email }).from(s.users).where(eq(s.users.id, userId)).limit(1),
-  );
+  const [
+    address,
+    targetRoles,
+    targetSpecialties,
+    rolesLimit,
+    canInvite,
+    userPlan,
+    canConnectChat,
+    [user],
+  ] = await Promise.all([
+    getInboundAddress(userId),
+    getTargetRoles(userId),
+    getTargetSpecialties(userId),
+    getTargetRolesLimit(userId),
+    canCreateInvitations(userId),
+    // «Tu plan» (C-11b) solo con los precios encendidos
+    pricing ? getUserPlan(userId) : null,
+    // MCP-1: conexiones con chats, solo testers y con MCP_USER_TOKENS=testers
+    canUseMcpTokens(userId),
+    // R7-6: el email se pide con el resto, no después
+    withUser(userId, (tx) =>
+      tx.select({ email: s.users.email }).from(s.users).where(eq(s.users.id, userId)).limit(1),
+    ),
+  ]);
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-5">
