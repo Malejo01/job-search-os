@@ -188,6 +188,9 @@ export function normalizeCvExtraction(
     ...data.work_history.flatMap((w) => [w.company, w.title]),
     ...data.education.flatMap((e) => [e.institution, e.title]),
     ...data.languages.flatMap((l) => [l.name, l.level]),
+    // Las claves de puesto son un conjunto cerrado: un dato personal acá es una salida hostil, no un descarte
+    ...data.suggested_roles,
+    // `other_terms` no entra: cada término se revisa más abajo y se descarta solo (`term_sensitive`)
   ];
   if (texts.some(hasForbidden)) return err("sensitive_output");
 

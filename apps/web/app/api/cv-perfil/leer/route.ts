@@ -1,6 +1,7 @@
 import { createLogger, readCvForAgent } from "@job-search-os/adapters";
 import { createDb, requireDatabaseUrl } from "@job-search-os/db";
 import {
+  buildReadCards,
   PROFILE_READ_ERRORS,
   PROFILE_READ_MAX_BODY_CHARS,
   profileAgentCapNotice,
@@ -99,6 +100,8 @@ export async function POST(request: Request): Promise<Response> {
         ok: true,
         ticket: result.value.ticket,
         summary: buildReadSummary(result.value.proposal),
+        // Tarjetas editables, ya revisadas (esquema estricto y filtro de datos sensibles). Nada se guardó todavía
+        proposal: buildReadCards(result.value.proposal, ctx.taxonomy),
       },
       { headers: NO_STORE },
     );

@@ -11,17 +11,19 @@ import {
   type ProfileAgentBase,
   type ProfileReadFallback,
   type ProfileReadInputProblem,
+  type ProfileReadProposal,
 } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { useId, useRef, useState, type DragEvent } from "react";
 import { Alert, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
+import { ProfileCards } from "./cards";
 import { extractCvText } from "./extract-text";
 
 /**
  * Subir el CV y leerlo (ADR-034 §9, R10-1). Cliente: el archivo se lee en el navegador y no se sube; al
  * servidor va solo el texto que la persona ve y confirma en el cuadro. Nada se guarda: el texto no se
  * conserva después de leer, y el ticket de la charla vive en `sessionStorage` (nunca `localStorage`).
- * R10-2 suma las tarjetas editables sobre esta misma pantalla.
+ * R10-2: con la lectura hecha, esta misma pantalla muestra las tarjetas editables (`cards.tsx`).
  */
 type Summary = {
   experience: number;
@@ -35,7 +37,7 @@ type Summary = {
 type Notice = { message: string; fallbacks: ProfileReadFallback[] };
 
 type ApiResponse =
-  | { ok: true; ticket: string; summary: Summary }
+  | { ok: true; ticket: string; summary: Summary; proposal: ProfileReadProposal }
   | { ok: false; error: string; message: string; links?: ProfileReadFallback[] };
 
 const MAX_MB = Math.round(CV_MAX_FILE_BYTES / (1024 * 1024));
@@ -61,7 +63,11 @@ export function ReadClient({ base }: { base: ProfileAgentBase }) {
   const [dragging, setDragging] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [info, setInfo] = useState<string | null>(null);
-  const [summary, setSummary] = useState<Summary | null>(null);
+  const [done, setDone] = useState<{
+    ticket: string;
+    summary: Summary;
+    proposal: ProfileReadProposal;
+  } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
   const fileId = useId();
@@ -136,31 +142,18 @@ export function ReadClient({ base }: { base: ProfileAgentBase }) {
       // sessionStorage bloqueado: la lectura se muestra igual y las etapas que siguen vuelven a empezar
     }
     setText("");
-    setSummary(res.summary);
+    setDone({ ticket: res.ticket, summary: res.summary, proposal: res.proposal });
   }
 
-  if (summary) {
+  // R10-2: las tarjetas editables sobre la misma pantalla. Nada se guardó todavía
+  if (done) {
     return (
-      <section
-        aria-labelledby="pa-leido"
-        data-testid="profile-read-summary"
-        className={cardClasses({ padding: "md", className: "flex flex-col gap-3" })}
-      >
-        <h2 id="pa-leido" className="text-base font-bold text-fg">
-          Leímos tu CV
-        </h2>
-        <p className="text-sm text-fg">Encontramos {summaryLine(summary)}.</p>
-        {summary.dropped > 0 ? (
-          <p className="text-sm text-fg-muted">
-            {plural(summary.dropped, "dato se descartó", "datos se descartaron")} por seguridad o
-            por no ser confiables.
-          </p>
-        ) : null}
-        <p className="text-sm text-fg-muted">
-          Todavía no se guardó nada: lo vas a confirmar sección por sección. Tu archivo y su texto
-          no se guardan.
-        </p>
-      </section>
+      <ProfileCards
+        base={base}
+        ticket={done.ticket}
+        summaryLine={summaryLine(done.summary)}
+        proposal={done.proposal}
+      />
     );
   }
 
