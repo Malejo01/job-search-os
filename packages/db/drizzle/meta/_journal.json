@@ -428,6 +428,13 @@
       "when": 1794262338773,
       "tag": "0060_mcp_tokens",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1794515245693,
+      "tag": "0061_carrera_relaciones_publicas",
+      "breakpoints": true
     }
   ]
 }

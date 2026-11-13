@@ -14,13 +14,15 @@ it("cubre al menos las dos carreras que se amplían", () => {
   expect(roles).toEqual(expect.arrayContaining(["finanzas_contabilidad", "marketing_digital"]));
 });
 
-describe("ROLE_SPECIALTIES · las seis carreras de la beta", () => {
+describe("ROLE_SPECIALTIES · las carreras de la beta con chips", () => {
   it.each([
     ["finanzas_contabilidad", 10],
     ["abogacia", 11],
     ["administracion_empresas", 10],
     ["comunicacion", 9],
-    ["marketing_digital", 11],
+    // ADR-033: prensa, eventos, relaciones institucionales y RSE pasaron a relaciones_publicas
+    ["marketing_digital", 7],
+    ["relaciones_publicas", 4],
     ["relaciones_internacionales", 8],
   ] as [RoleKey, number][])("%s tiene %i chips", (role, n) => {
     expect(specialtiesFor(role)).toHaveLength(n);
@@ -60,7 +62,7 @@ describe("ROLE_SPECIALTIES · forma", () => {
 
   it.each(roles)("%s: ids únicos, en snake_case, y rótulos únicos y no vacíos", (role) => {
     const chips = specialtiesFor(role);
-    expect(chips.length).toBeGreaterThanOrEqual(8);
+    expect(chips.length).toBeGreaterThanOrEqual(4);
     const ids = chips.map((c) => c.id);
     expect(new Set(ids).size).toBe(ids.length);
     for (const id of ids) expect(id).toMatch(/^[a-z][a-z0-9_]*$/);

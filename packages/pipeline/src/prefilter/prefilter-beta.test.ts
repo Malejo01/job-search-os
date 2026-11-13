@@ -50,8 +50,9 @@ describe("cargos propios que dicen «manager»", () => {
   it.each([
     ["Brand Manager", "marketing_digital"],
     ["Assistant Brand Manager", "marketing_digital"],
-    ["PR Manager", "marketing_digital"],
+    ["PR Manager", "relaciones_publicas"],
     ["Communications Manager", "marketing_digital"],
+    ["Communications Manager", "relaciones_publicas"],
     ["Communications Manager", "comunicacion"],
     ["PR Manager", "comunicacion"],
     ["Legal Manager", "abogacia"],

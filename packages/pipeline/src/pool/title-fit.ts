@@ -177,6 +177,8 @@ const VETO_TERMS: Partial<Record<RoleKey, readonly string[]>> = {
   // títulos de la otra, y administración también los de ventas («business» trae Business Development).
   // Marketing veta ventas: «Sales and Marketing» trae ejecutivos de cuentas.
   marketing_digital: TITLE_TERMS.ventas_b2b,
+  // ADR-033: relaciones públicas comparte categorías con marketing y comunicación (ventas veta igual).
+  relaciones_publicas: TITLE_TERMS.ventas_b2b,
   comunicacion: [
     "telecom",
     "telecomunicaciones",

@@ -79,11 +79,13 @@ test.describe("Flujo 44: vitrina pública", () => {
     ]) {
       await expect(page.getByRole("radio", { name, exact: true })).toBeVisible();
     }
-    // Relaciones públicas y Programación guardan una carrera existente hasta C3
+    // Desde C3 (ADR-033) cada chip guarda su propia carrera
     const role = page.locator('input[type="hidden"][name="role"]');
     await page.getByRole("radio", { name: "Relaciones públicas", exact: true }).check();
-    await expect(role).toHaveValue("marketing_digital");
+    await expect(role).toHaveValue("relaciones_publicas");
     await expect(page.getByRole("radio", { name: "Marketing", exact: true })).not.toBeChecked();
+    await page.getByRole("radio", { name: "Marketing", exact: true }).check();
+    await expect(role).toHaveValue("marketing_digital");
     await page.getByRole("radio", { name: "Programación", exact: true }).check();
     await expect(role).toHaveValue("fullstack");
   });
@@ -106,7 +108,9 @@ test.describe("Flujo 44: vitrina pública", () => {
         "administracion_empresas",
         "comunicacion",
         "marketing_digital",
+        "relaciones_publicas",
         "relaciones_internacionales",
+        "fullstack",
       ],
     });
     // El resto sigue ofreciéndose, sin repetir ninguna de la beta

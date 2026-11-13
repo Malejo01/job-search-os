@@ -23,10 +23,8 @@ export const metadata: Metadata = {
  * Las ocho carreras de la beta como chips (C1, 10/11), en el orden del anuncio y con el nombre corto
  * con que se dicen. `key` identifica el chip y `role` es la carrera que se guarda.
  *
- * Relaciones públicas y Programación todavía no son carreras de la beta en el pipeline
- * (`BETA_LAUNCH_ROLE_KEYS` sigue con seis; la clave `relaciones_publicas` llega con C3, carril rojo):
- * por ahora Relaciones públicas se guarda como `marketing_digital` (antes era «Marketing y RR.PP.»)
- * y Programación como `fullstack` (la casilla del pool de programación es `pool-fullstack`).
+ * Desde C3 (ADR-033) son las mismas 8 de `BETA_LAUNCH_ROLE_KEYS`: Relaciones públicas guarda
+ * `relaciones_publicas` y Programación guarda `fullstack` (la casilla del pool es `pool-fullstack`).
  */
 const BETA_CAREER_CHIPS: readonly { key: string; label: string; role: RoleKey }[] = [
   { key: "abogacia", label: "Abogacía", role: "abogacia" },
@@ -34,7 +32,7 @@ const BETA_CAREER_CHIPS: readonly { key: string; label: string; role: RoleKey }[
   { key: "administracion_empresas", label: "Administración", role: "administracion_empresas" },
   { key: "comunicacion", label: "Comunicación", role: "comunicacion" },
   { key: "marketing_digital", label: "Marketing", role: "marketing_digital" },
-  { key: "relaciones_publicas", label: "Relaciones públicas", role: "marketing_digital" },
+  { key: "relaciones_publicas", label: "Relaciones públicas", role: "relaciones_publicas" },
   {
     key: "relaciones_internacionales",
     label: "Relaciones internacionales",

@@ -37,7 +37,7 @@ DECLARE
     'product_manager', 'product_owner', 'project_manager', 'product_marketing',
     'data_engineer', 'solutions_engineer', 'ventas_b2b', 'atencion_cliente',
     'finanzas_contabilidad', 'asistencia_operaciones', 'abogacia', 'administracion_empresas',
-    'comunicacion', 'relaciones_internacionales'
+    'comunicacion', 'relaciones_internacionales', 'relaciones_publicas'
   ];
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.app_admins a WHERE a.user_id = auth.uid()) THEN

@@ -32,6 +32,7 @@ describe("ALERT_KEYWORDS", () => {
       "administracion_empresas",
       "comunicacion",
       "marketing_digital",
+      "relaciones_publicas",
       "relaciones_internacionales",
     ];
 

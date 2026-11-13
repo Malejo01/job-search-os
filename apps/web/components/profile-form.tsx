@@ -87,7 +87,12 @@ const SUMMARY_EXAMPLES = [
   {
     id: "comunicacion_relaciones",
     label: "Comunicación y relaciones",
-    roles: ["marketing_digital", "comunicacion", "relaciones_internacionales"],
+    roles: [
+      "marketing_digital",
+      "relaciones_publicas",
+      "comunicacion",
+      "relaciones_internacionales",
+    ],
     text: "Especialista en comunicación institucional con 4 años en organizaciones: redacción de gacetillas, relación con medios, comunicación interna para 200 personas y vocería de prensa. Manejo herramientas de diseño básico y métricas de prensa; no gestiono pauta publicitaria paga ni desarrollo web. Inglés B2.",
   },
 ] as const;
