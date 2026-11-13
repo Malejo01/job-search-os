@@ -1,4 +1,4 @@
-import { canCreateInvitations } from "@/lib/invitations";
+import { adminRouteDenied } from "@/lib/admin-guard";
 import { requireUserId } from "@/lib/session";
 import { welcomeEmailSample } from "@/lib/welcome-email-sample";
 
@@ -11,9 +11,8 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(): Promise<Response> {
   const userId = await requireUserId();
-  if (!(await canCreateInvitations(userId).catch(() => false))) {
-    return new Response("No encontrado", { status: 404 });
-  }
+  const denied = await adminRouteDenied(userId);
+  if (denied) return denied;
   return new Response(welcomeEmailSample().html, {
     headers: {
       "Content-Type": "text/html; charset=utf-8",

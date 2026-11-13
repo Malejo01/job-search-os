@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { Logo } from "@/components/brand/logo";
-import { canCreateInvitations } from "@/lib/invitations";
+import { requireAdminOr404 } from "@/lib/admin-guard";
 import { requireUserId } from "@/lib/session";
 import { OfferCard } from "@/components/offer-card";
 import {
@@ -36,7 +35,7 @@ const BADGE_TONES: BadgeTone[] = ["neutral", "success", "warning", "danger", "in
 export default async function UiPage() {
   // Catálogo interno: solo admin, como /settings/marca (404 para el resto)
   const userId = await requireUserId();
-  if (!(await canCreateInvitations(userId).catch(() => false))) notFound();
+  await requireAdminOr404(userId);
   return (
     <div className="flex flex-col gap-6">
       <div>

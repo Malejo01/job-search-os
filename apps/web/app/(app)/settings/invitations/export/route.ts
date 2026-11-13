@@ -1,6 +1,6 @@
 import { filterWaitlist, parseWaitlistFilters, waitlistCsv } from "@job-search-os/pipeline";
 import { NextResponse } from "next/server";
-import { canCreateInvitations } from "@/lib/invitations";
+import { adminRouteDenied } from "@/lib/admin-guard";
 import { activeSessionUserId } from "@/lib/session";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
 import { listWaitlist, WaitlistNotEnabledInDbError } from "@/lib/waitlist-admin";
@@ -17,12 +17,12 @@ const HEADERS = {
  * GET /settings/invitations/export: la lista de espera (con los mismos filtros de la pantalla) en CSV,
  * solo nombre, email, carrera, origen y fecha. Solo admin. Datos personales: sin caché y nada va al log.
  */
-export async function GET(request: Request): Promise<NextResponse> {
+export async function GET(request: Request): Promise<Response> {
   const userId = await activeSessionUserId();
   if (!userId) return NextResponse.json({ error: "no autorizado" }, { status: 401 });
-  if (!(await canCreateInvitations(userId))) {
-    return NextResponse.json({ error: "no autorizado" }, { status: 403 });
-  }
+  // Una cuenta común recibe 404, como en las pantallas de admin
+  const denied = await adminRouteDenied(userId);
+  if (denied) return denied;
   let entries;
   try {
     entries = await listWaitlist(userId);
