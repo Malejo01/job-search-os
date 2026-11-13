@@ -9,7 +9,9 @@
 
 `relaciones_publicas.json` y `fullstack.json` suman 6 avisos inventados cada uno (empresas «Empresa A» a «Empresa F»), con las categorías `nueve_mas`, `remoto_ar`, `presencial_caba`, `remoto_otro_pais`, `senior_inalcanzable` y `titulo_enganoso` y la misma persona de referencia. Los corre `packages/pipeline/src/golden-carreras-r5.test.ts`, que cubre las 8 carreras de la beta.
 
-Sobre `main`, «Relaciones públicas» se guarda como `marketing_digital` (chip de /acceso) y «Programación» como `fullstack`: el test usa esas claves (mapa `ROL_EN_MAIN`). Cuando C3 sume `relaciones_publicas` como carrera propia, hay que cambiar ese mapa y volver a correr el test. Estos dos archivos todavía no tienen `anchor_source: "human"`.
+Desde la integración de las tandas R5 a R7, con C3 adentro, `ROL_EN_MAIN` corre los avisos de RR.PP. con la clave `relaciones_publicas`, y programación con `fullstack`. `relaciones_publicas-04` cambió su título de «Community manager» a uno de RR.PP., porque por ADR-033 community manager es de marketing y el caso mide la ubicación. Estos dos archivos todavía no tienen `anchor_source: "human"`.
+
+**R6-5:** el aviso de relaciones públicas que venía como `marketing_digital-04` pasó a `relaciones_publicas.json`. En la integración de las tandas R5 a R7 se juntó con los 6 de C12 y quedó como `relaciones_publicas-07`: marketing queda con 7 casos y RR.PP. con 7.
 
 ## La persona de referencia
 

@@ -5,6 +5,7 @@ import administracion from "../test/fixtures/carreras/administracion_empresas.js
 import comunicacion from "../test/fixtures/carreras/comunicacion.json";
 import contaduria from "../test/fixtures/carreras/finanzas_contabilidad.json";
 import marketing from "../test/fixtures/carreras/marketing_digital.json";
+import rrpp from "../test/fixtures/carreras/relaciones_publicas.json";
 import rrii from "../test/fixtures/carreras/relaciones_internacionales.json";
 import type { CriteriaRules } from "./criteria";
 import { assessPoolTitle } from "./pool/title-fit";
@@ -35,17 +36,11 @@ type Doc = {
   casos: Caso[];
 };
 
-const DOCS = [abogacia, administracion, comunicacion, contaduria, marketing, rrii] as Doc[];
+const DOCS = [abogacia, administracion, comunicacion, contaduria, marketing, rrpp, rrii] as Doc[];
 const rules = criteria as CriteriaRules;
 
-/**
- * ADR-033: relaciones públicas es carrera propia. El golden de marketing (que este ticket no toca) todavía trae
- * un caso de RR.PP. como `must_pass` de marketing: se evalúa contra la carrera nueva hasta que `qa` lo mueva.
- */
-const MOVED_TO_RRPP = new Set(["marketing_digital-04"]);
-
 export function reachesPerson(doc: Doc, c: Caso) {
-  const role = (MOVED_TO_RRPP.has(c.id) ? "relaciones_publicas" : doc.meta.carrera) as RoleKey;
+  const role = doc.meta.carrera as RoleKey;
   const p = doc.meta.persona;
   const hints = inferRoleHints({ sourceKind: "other", title: c.titulo });
   const title = assessPoolTitle({

@@ -1190,5 +1190,37 @@
     "aliases": ["global mobility", "movilidad global", "movilidad internacional", "inmigración", "inmigracion", "trámites migratorios", "tramites migratorios", "derecho migratorio", "immigration law"],
     "closure_hours": 24,
     "description": "Movilidad global: trámites migratorios, residencias y traslados internacionales de personas y equipos"
+  },
+  {
+    "slug": "crisis_management",
+    "name": "Manejo de crisis y reputación",
+    "category": "dominio",
+    "aliases": ["manejo de crisis", "gestión de crisis", "gestion de crisis", "crisis management", "comité de crisis", "comite de crisis", "plan de crisis", "reputation management", "gestión de reputación", "gestion de reputacion"],
+    "closure_hours": 32,
+    "description": "Manejo de crisis: anticipar riesgos, armar el plan y el comité y proteger la reputación de una marca u organización"
+  },
+  {
+    "slug": "event_management",
+    "name": "Organización de eventos",
+    "category": "dominio",
+    "aliases": ["organización de eventos", "organizacion de eventos", "event management", "event planning", "event production", "producción de eventos", "produccion de eventos", "eventos corporativos", "corporate events", "logística de eventos", "logistica de eventos"],
+    "closure_hours": 24,
+    "description": "Eventos: planificar presupuesto, proveedores y logística de lanzamientos, congresos y actos corporativos"
+  },
+  {
+    "slug": "protocol_etiquette",
+    "name": "Protocolo y ceremonial de eventos",
+    "category": "dominio",
+    "aliases": ["protocolo empresarial", "protocolo institucional", "protocolo de eventos", "etiqueta protocolar", "ceremonial de eventos", "organización de ceremonias", "organizacion de ceremonias", "precedencias", "protocolo corporativo"],
+    "closure_hours": 16,
+    "description": "Protocolo: ubicar invitados, ordenar precedencias y conducir ceremonias y actos institucionales con la etiqueta correcta"
+  },
+  {
+    "slug": "influencer_relations",
+    "name": "Relación con influencers y embajadores",
+    "category": "dominio",
+    "aliases": ["influencer marketing", "influencers", "relación con influencers", "relacion con influencers", "brand ambassadors", "embajadores de marca", "gestión de influencers", "gestion de influencers", "influencer relations"],
+    "closure_hours": 16,
+    "description": "Influencers: elegir creadores, acordar condiciones y seguir campañas con embajadores de marca"
   }
 ]

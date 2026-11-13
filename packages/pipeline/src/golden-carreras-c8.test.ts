@@ -4,11 +4,12 @@ import administracion from "../test/fixtures/carreras/administracion_empresas.js
 import comunicacion from "../test/fixtures/carreras/comunicacion.json";
 import contaduria from "../test/fixtures/carreras/finanzas_contabilidad.json";
 import marketing from "../test/fixtures/carreras/marketing_digital.json";
+import rrpp from "../test/fixtures/carreras/relaciones_publicas.json";
 import rrii from "../test/fixtures/carreras/relaciones_internacionales.json";
 import { isRoleKey } from "./skills/self-assessment";
 
 /** Golden sintético por carrera (C8-8): forma y reglas del set. El prefiltro lo prueba C8-9. */
-const FILES = [abogacia, administracion, comunicacion, contaduria, marketing, rrii];
+const FILES = [abogacia, administracion, comunicacion, contaduria, marketing, rrpp, rrii];
 const CATEGORIES = [
   "nueve_mas",
   "remoto_ar",
@@ -21,12 +22,20 @@ const CATEGORIES = [
 ];
 
 describe("golden sintético por carrera (C8-8)", () => {
-  it("48 casos: 8 por cada una de las 6 carreras, una por categoría", () => {
+  it("48 casos: 8 por cada una de las 6 carreras con golden completo, una por categoría", () => {
     expect(FILES.flatMap((f) => f.casos)).toHaveLength(48);
     for (const f of FILES) {
       expect(isRoleKey(f.meta.carrera)).toBe(true);
-      expect(f.casos.map((c) => c.categoria).sort()).toEqual([...CATEGORIES].sort());
+      // Marketing (7) y RR.PP. (1) se reparten los 8 avisos que antes eran de marketing (R6-5)
+      if (f !== marketing && f !== rrpp) {
+        expect(f.casos.map((c) => c.categoria).sort()).toEqual([...CATEGORIES].sort());
+      }
     }
+    expect(marketing.casos).toHaveLength(7);
+    expect(rrpp.casos).toHaveLength(1);
+    expect([...marketing.casos, ...rrpp.casos].map((c) => c.categoria).sort()).toEqual(
+      [...CATEGORIES].sort(),
+    );
   });
 
   it("empresas ficticias, etiquetas válidas y anchor_source assisted", () => {
