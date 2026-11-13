@@ -1,2 +1,5 @@
-// Etapa 2 · huecos (R10-3). Vacío a propósito: lo llena el ticket dueño, sin tocar ../index.ts.
-export {};
+// Etapa 2 · huecos (R10-3): detección, plantillas, respuestas y estado. Solo lo toca el ticket dueño.
+export * from "./templates";
+export * from "./detect";
+export * from "./answer";
+export * from "./flow";
