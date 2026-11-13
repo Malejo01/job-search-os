@@ -158,14 +158,16 @@ describe("alertas de presupuesto con el store real (R7-1)", () => {
     const env = { ...ENV, ADMIN_EMAILS: "admin-a@ejemplo.test, admin-b@ejemplo.test" };
     const idB = budgetAlertRecipientId("admin-b@ejemplo.test");
     // Falla de verdad en Postgres (aborta la transacción si no hubiera savepoint): trigger solo para B
-    await conn.db.execute(sql.raw(`
+    await conn.db.execute(
+      sql.raw(`
       create or replace function test_fail_mark_b() returns trigger language plpgsql as $$
       begin
         if new.task = 'budget_alert' and new.label like '%:${idB}' then
           raise exception 'falla simulada de la marca';
         end if;
         return new;
-      end $$`));
+      end $$`),
+    );
     await conn.db.execute(
       sql.raw(
         `create trigger test_fail_mark_b before insert on llm_calls for each row execute function test_fail_mark_b()`,
@@ -184,19 +186,25 @@ describe("alertas de presupuesto con el store real (R7-1)", () => {
     expect(r1).toMatchObject({ sent: 2, failed: 1, complete: false });
     // La marca buena (admin A) se conservó pese al INSERT fallido
     const marks = await store.sentMarks("2026-12-10");
-    expect(marks).toEqual([{ recipientId: budgetAlertRecipientId("admin-a@ejemplo.test"), threshold: 70 }]);
+    expect(marks).toEqual([
+      { recipientId: budgetAlertRecipientId("admin-a@ejemplo.test"), threshold: 70 },
+    ]);
     // Reintento: solo B, con la misma clave de Resend que el envío anterior
     const send2 = vi.fn().mockResolvedValue(undefined);
     await runBudgetAlerts({ ...deps, send: send2 });
     expect(send2).toHaveBeenCalledTimes(1);
     expect(send2.mock.calls[0]![0].to).toBe("admin-b@ejemplo.test");
-    const keyB = send1.mock.calls.find((c) => c[0].to === "admin-b@ejemplo.test")![0].idempotencyKey;
+    const keyB = send1.mock.calls.find((c) => c[0].to === "admin-b@ejemplo.test")![0]
+      .idempotencyKey;
     expect(send2.mock.calls[0]![0].idempotencyKey).toBe(keyB);
   });
 
   it("con el lock del día tomado por otra transacción, la corrida saltea sin esperar", async () => {
     await setSpend(1.5);
-    const holder = createDb(process.env.DATABASE_URL ?? (container as StartedPostgreSqlContainer).getConnectionUri(), { max: 1 });
+    const holder = createDb(
+      process.env.DATABASE_URL ?? (container as StartedPostgreSqlContainer).getConnectionUri(),
+      { max: 1 },
+    );
     const send = vi.fn().mockResolvedValue(undefined);
     try {
       let release!: () => void;
@@ -204,7 +212,9 @@ describe("alertas de presupuesto con el store real (R7-1)", () => {
       let locked!: () => void;
       const gotLock = new Promise<void>((r) => (locked = r));
       const tx = holder.db.transaction(async (t) => {
-        await t.execute(sql`select pg_advisory_xact_lock(hashtextextended(${"2026-12-10"}, ${7101}))`);
+        await t.execute(
+          sql`select pg_advisory_xact_lock(hashtextextended(${"2026-12-10"}, ${7101}))`,
+        );
         locked();
         await held;
       });

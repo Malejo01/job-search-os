@@ -65,12 +65,7 @@ export type BudgetAlertLogger = {
 export type BudgetAlertRun = {
   ok: true;
   skipped?:
-    | "sin_tope"
-    | "tope_invalido"
-    | "sin_resend"
-    | "sin_destinatarios"
-    | "sin_url"
-    | "en_curso";
+    "sin_tope" | "tope_invalido" | "sin_resend" | "sin_destinatarios" | "sin_url" | "en_curso";
   spentUsd: number;
   capUsd: number;
   /** Umbrales que esta corrida avisó (a al menos un destinatario). */
@@ -188,7 +183,10 @@ export async function runBudgetAlerts(deps: {
         );
       } catch (error) {
         failed++;
-        logger.error({ ...safeSendError(error), threshold: plan.top }, "budget-alerts: no se pudo mandar");
+        logger.error(
+          { ...safeSendError(error), threshold: plan.top },
+          "budget-alerts: no se pudo mandar",
+        );
         continue; // sin marca: la próxima corrida reintenta solo a este destinatario
       }
       sent++;
