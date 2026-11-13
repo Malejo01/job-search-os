@@ -56,7 +56,7 @@ export function ShareButton({
       >
         Pasáselo a alguien
       </button>
-      {/* Al lado de «Pedir acceso»,sin `role="status"`: el estado de la página es el del formulario */}
+      {/* Al lado de «Pedir acceso», sin `role="status"`: el estado de la página es el del formulario */}
       <p
         role={compact ? undefined : "status"}
         aria-live={compact ? "polite" : undefined}
