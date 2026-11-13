@@ -3,13 +3,15 @@ import { fileURLToPath } from "node:url";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { createDb, schema as s } from "@job-search-os/db";
 import { hashInvitationCode } from "@job-search-os/db/invitation-code";
+import { verifyPassword } from "@job-search-os/db/password";
 import { applyMigrations } from "@job-search-os/db/src/migrate";
 import { eq, sql } from "drizzle-orm";
 import pino from "pino";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createInvitationAsAdmin } from "./invite";
 import { loadReplayFixture, replayInbound } from "./replay";
-import { listTestUsers, resetTestUser } from "./test-users";
+import { listTestUsers, resetAllTestUsers, resetTestUser } from "./test-users";
+import { createTestUsers } from "./test-users-create";
 
 /** Comandos admin:* e inbound:replay contra Postgres real (datos 100 % ficticios). */
 const ADMIN = { id: "b0000000-0000-4000-8000-000000000001", email: "admin@example.com" };
@@ -121,7 +123,18 @@ describe("admin:test-users", () => {
     const [stillThere] = await conn.db.select().from(s.users).where(eq(s.users.id, OTRO.id));
     expect(stillThere).toBeDefined();
 
-    const done = await resetTestUser(conn.db, "PRUEBA@example.com", allowlist);
+    // Sin la marca is_test, ni estando en la allowlist se borra: hace falta --force (T-1)
+    const unmarked = await resetTestUser(conn.db, "PRUEBA@example.com", allowlist);
+    expect(unmarked).toMatchObject({ ok: false, error: expect.stringContaining("is_test") });
+    expect(await conn.db.select().from(s.users).where(eq(s.users.id, PRUEBA.id))).toHaveLength(1);
+    // --reset-all la saltea con aviso
+    const all = await resetAllTestUsers(conn.db, allowlist, ENV.ADMIN_EMAILS);
+    expect(all[0]).toMatchObject({ status: "omitida", reason: expect.stringContaining("is_test") });
+    expect(await conn.db.select().from(s.users).where(eq(s.users.id, PRUEBA.id))).toHaveLength(1);
+
+    const done = await resetTestUser(conn.db, "PRUEBA@example.com", allowlist, ENV.ADMIN_EMAILS, {
+      force: true,
+    });
     expect(done.ok).toBe(true);
     const gone = await conn.db.select().from(s.users).where(eq(s.users.id, PRUEBA.id));
     expect(gone).toHaveLength(0);
@@ -135,6 +148,139 @@ describe("admin:test-users", () => {
     expect(others).toHaveLength(1);
     const again = await resetTestUser(conn.db, PRUEBA.email, allowlist);
     expect(again.ok).toBe(false);
+  });
+});
+
+describe("admin:test-users --create y --reset-all (T-1)", () => {
+  const TERMS = "2026-11-02";
+  const allowlist = ["cuenta-uno@example.com", "cuenta-dos@example.com", "cuenta-tres@example.com"];
+
+  function memoryStore() {
+    const saved = new Map<string, string>();
+    return {
+      saved,
+      has: (e: string) => saved.has(e),
+      save: (e: string, p: string) => void saved.set(e, p),
+      drop: (e: string) => void saved.delete(e),
+    };
+  }
+
+  it("crea por el registro real: invitación usada, términos, casilla de ingesta y contraseña que entra", async () => {
+    const store = memoryStore();
+    const logged: string[] = [];
+    const spies = (["log", "error", "warn", "info"] as const).map((k) => {
+      const original = console[k];
+      console[k] = (...a: unknown[]) => void logged.push(a.join(" "));
+      return () => void (console[k] = original);
+    });
+    let res;
+    try {
+      res = await createTestUsers(conn.db, allowlist, {
+        by: "Admin@Example.com",
+        termsVersion: TERMS,
+        store,
+        env: { ...ENV, INGEST_DOMAIN: "ingest.test" },
+      });
+    } finally {
+      spies.forEach((restore) => restore());
+    }
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.rows.map((r) => r.status)).toEqual(["creada", "creada", "creada"]);
+
+    for (const email of allowlist) {
+      const [user] = await conn.db.select().from(s.users).where(eq(s.users.email, email));
+      // Marcada como de prueba DESPUÉS del registro real (T-1)
+      expect(user).toMatchObject({ email, termsVersion: TERMS, isTest: true });
+      expect(user!.termsAcceptedAt).toBeInstanceOf(Date);
+      expect(verifyPassword(store.saved.get(email)!, user!.passwordHash)).toBe(true);
+      const [profile] = await conn.db
+        .select()
+        .from(s.profiles)
+        .where(eq(s.profiles.userId, user!.id));
+      expect(profile!.inboundAddress).toMatch(/^u_[a-z2-7]{20}@ingest\.test$/);
+      // La invitación quedó canjeada por esta cuenta, a nombre del admin
+      const [inv] = await conn.db
+        .select()
+        .from(s.invitations)
+        .where(eq(s.invitations.usedByUserId, user!.id));
+      expect(inv).toMatchObject({ createdByUserId: ADMIN.id });
+      expect(inv!.usedAt).toBeInstanceOf(Date);
+    }
+    // Contraseñas distintas y fuertes
+    expect(new Set(store.saved.values()).size).toBe(3);
+    // Ninguna contraseña llegó a la terminal ni a los logs
+    for (const password of store.saved.values()) {
+      expect(logged.join("\n")).not.toContain(password);
+      expect(JSON.stringify(res.rows)).not.toContain(password);
+    }
+  });
+
+  it("es idempotente: la segunda corrida saltea las que existen y no cambia contraseñas", async () => {
+    const store = memoryStore();
+    const before = await conn.db
+      .select({ email: s.users.email, hash: s.users.passwordHash })
+      .from(s.users)
+      .where(sql`${s.users.email} like 'cuenta-%@example.com'`);
+    const res = await createTestUsers(conn.db, allowlist, {
+      by: ADMIN.email,
+      termsVersion: TERMS,
+      store,
+      env: ENV,
+    });
+    expect(res.ok && res.rows.map((r) => r.status)).toEqual([
+      "ya existe",
+      "ya existe",
+      "ya existe",
+    ]);
+    expect(store.saved.size).toBe(0);
+    const after = await conn.db
+      .select({ email: s.users.email, hash: s.users.passwordHash })
+      .from(s.users)
+      .where(sql`${s.users.email} like 'cuenta-%@example.com'`);
+    expect(after.sort((a, b) => a.email.localeCompare(b.email))).toEqual(
+      before.sort((a, b) => a.email.localeCompare(b.email)),
+    );
+  });
+
+  it("rechaza un --by que no es admin y omite emails de admin", async () => {
+    const store = memoryStore();
+    const noAdmin = await createTestUsers(conn.db, ["x@example.com"], {
+      by: OTRO.email,
+      termsVersion: TERMS,
+      store,
+      env: ENV,
+    });
+    expect(noAdmin.ok).toBe(false);
+    const adminInList = await createTestUsers(conn.db, [ADMIN.email], {
+      by: ADMIN.email,
+      termsVersion: TERMS,
+      store,
+      env: ENV,
+    });
+    expect(adminInList.ok && adminInList.rows[0]).toMatchObject({ status: "omitida" });
+    expect(store.saved.size).toBe(0);
+  });
+
+  it("--reset-all borra solo las de la allowlist y deja el resto", async () => {
+    const rows = await resetAllTestUsers(
+      conn.db,
+      [...allowlist, "fantasma@example.com"],
+      ENV.ADMIN_EMAILS,
+    );
+    expect(rows.map((r) => r.status)).toEqual(["borrada", "borrada", "borrada", "no existe"]);
+    for (const email of allowlist) {
+      expect(await conn.db.select().from(s.users).where(eq(s.users.email, email))).toHaveLength(0);
+    }
+    // Las demás cuentas de la base siguen ahí
+    expect(await conn.db.select().from(s.users).where(eq(s.users.id, ADMIN.id))).toHaveLength(1);
+    expect(await conn.db.select().from(s.users).where(eq(s.users.id, OTRO.id))).toHaveLength(1);
+  });
+
+  it("--reset-all nunca borra a un admin aunque esté en la allowlist", async () => {
+    const rows = await resetAllTestUsers(conn.db, [ADMIN.email], ENV.ADMIN_EMAILS);
+    expect(rows[0]).toMatchObject({ status: "omitida" });
+    expect(await conn.db.select().from(s.users).where(eq(s.users.id, ADMIN.id))).toHaveLength(1);
   });
 });
 

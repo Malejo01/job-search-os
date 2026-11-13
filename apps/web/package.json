@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "e2e": "playwright test",
     "smoke": "playwright test -c playwright.smoke.config.ts",
+    "recorrido": "node recorrido/run.mjs",
     "clean": "rimraf .next"
   },
   "dependencies": {

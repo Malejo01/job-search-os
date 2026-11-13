@@ -45,7 +45,8 @@
     "pool:rehint": "pnpm --filter @job-search-os/adapters pool:rehint",
     "admin:invite": "pnpm --filter @job-search-os/adapters admin:invite",
     "admin:test-users": "pnpm --filter @job-search-os/adapters admin:test-users",
-    "inbound:replay": "pnpm --filter @job-search-os/adapters inbound:replay"
+    "inbound:replay": "pnpm --filter @job-search-os/adapters inbound:replay",
+    "recorrido": "pnpm --filter @job-search-os/web recorrido"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

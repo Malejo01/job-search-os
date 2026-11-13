@@ -114,6 +114,26 @@ describe("aviso de vencimiento con el store real (C4-1)", () => {
     expect(send).toHaveBeenCalledTimes(2);
   });
 
+  it("una cuenta de prueba (users.is_test) no recibe aviso aunque venza en 2 días (T-1)", async () => {
+    await conn.db
+      .update(s.users)
+      .set({ isTest: true })
+      .where(eq(s.users.id, ID(1)));
+    try {
+      const store = createDbNoticeStore(conn.db);
+      const candidates = await store.loadCandidates(NOW);
+      expect(candidates.map((c) => c.userId)).not.toContain(ID(1));
+      const send = vi.fn().mockResolvedValue(undefined);
+      await runPlanExpiryNotices({ store, env: ENV, now: NOW, logger, send });
+      expect(send.mock.calls.map((c) => c[0].to)).toEqual(["c4-5@ejemplo.test"]);
+    } finally {
+      await conn.db
+        .update(s.users)
+        .set({ isTest: false })
+        .where(eq(s.users.id, ID(1)));
+    }
+  });
+
   it("dos reclamos sobre el mismo estado leído: gana uno solo", async () => {
     const store = createDbNoticeStore(conn.db);
     const candidates = await store.loadCandidates(NOW);

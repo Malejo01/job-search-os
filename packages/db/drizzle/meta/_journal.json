@@ -456,6 +456,13 @@
       "when": 1794580725685,
       "tag": "0064_unusual_wolfsbane",
       "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1794582019078,
+      "tag": "0065_plain_pestilence",
+      "breakpoints": true
     }
   ]
 }

@@ -700,6 +700,12 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
       );
     },
     // C-13: por carrera, solo sí/no por regla; nada que identifique a B
+    // T-1: auxiliar de las métricas, sin EXECUTE para el rol de la app: A no puede preguntar por B
+    is_test_user: async () => {
+      await expect(asUser(A, (tx) => tx`select is_test_user(${B}::uuid)`)).rejects.toThrow(
+        /permission denied/,
+      );
+    },
     career_maturity_stats: async () => {
       const rows = await asUser(
         A,
