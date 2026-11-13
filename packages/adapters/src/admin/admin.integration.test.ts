@@ -123,7 +123,18 @@ describe("admin:test-users", () => {
     const [stillThere] = await conn.db.select().from(s.users).where(eq(s.users.id, OTRO.id));
     expect(stillThere).toBeDefined();
 
-    const done = await resetTestUser(conn.db, "PRUEBA@example.com", allowlist);
+    // Sin la marca is_test, ni estando en la allowlist se borra: hace falta --force (T-1)
+    const unmarked = await resetTestUser(conn.db, "PRUEBA@example.com", allowlist);
+    expect(unmarked).toMatchObject({ ok: false, error: expect.stringContaining("is_test") });
+    expect(await conn.db.select().from(s.users).where(eq(s.users.id, PRUEBA.id))).toHaveLength(1);
+    // --reset-all la saltea con aviso
+    const all = await resetAllTestUsers(conn.db, allowlist, ENV.ADMIN_EMAILS);
+    expect(all[0]).toMatchObject({ status: "omitida", reason: expect.stringContaining("is_test") });
+    expect(await conn.db.select().from(s.users).where(eq(s.users.id, PRUEBA.id))).toHaveLength(1);
+
+    const done = await resetTestUser(conn.db, "PRUEBA@example.com", allowlist, ENV.ADMIN_EMAILS, {
+      force: true,
+    });
     expect(done.ok).toBe(true);
     const gone = await conn.db.select().from(s.users).where(eq(s.users.id, PRUEBA.id));
     expect(gone).toHaveLength(0);

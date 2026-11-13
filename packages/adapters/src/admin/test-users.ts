@@ -16,7 +16,7 @@ export const DEFAULT_CREDENTIALS = "ops/test-users-credenciales.json";
 export type TestUsersArgs = {
   mode:
     | { kind: "list" }
-    | { kind: "reset"; email: string }
+    | { kind: "reset"; email: string; force?: true }
     | { kind: "reset-all" }
     | { kind: "create"; by: string; credentials: string };
   allowlist: string;
@@ -24,6 +24,14 @@ export type TestUsersArgs = {
   yes: boolean;
   remote: boolean;
 };
+
+/** Las credenciales solo se escriben bajo `ops/` (no versionado): relativa, sin «..» ni unidades. */
+export function isCredentialsPathAllowed(path: string): boolean {
+  const norm = path.replace(/\\/g, "/");
+  if (norm.startsWith("/") || /^[a-zA-Z]:/.test(norm)) return false;
+  const parts = norm.split("/").filter((p) => p !== "" && p !== ".");
+  return parts.length >= 2 && parts[0] === "ops" && !parts.includes("..");
+}
 
 export function parseTestUsersArgs(argv: string[]): Parsed<TestUsersArgs> {
   const usage =
@@ -35,6 +43,7 @@ export function parseTestUsersArgs(argv: string[]): Parsed<TestUsersArgs> {
     create?: boolean;
     by?: string;
     credentials?: string;
+    force?: boolean;
     allowlist?: string;
     "show-emails"?: boolean;
     yes?: boolean;
@@ -50,6 +59,7 @@ export function parseTestUsersArgs(argv: string[]): Parsed<TestUsersArgs> {
         create: { type: "boolean" },
         by: { type: "string" },
         credentials: { type: "string" },
+        force: { type: "boolean" },
         allowlist: { type: "string" },
         "show-emails": { type: "boolean" },
         yes: { type: "boolean" },
@@ -73,6 +83,9 @@ export function parseTestUsersArgs(argv: string[]): Parsed<TestUsersArgs> {
   if ((values.by !== undefined || values.credentials !== undefined) && !values.create) {
     return { ok: false, error: `--by y --credentials son solo de --create. ${usage}` };
   }
+  if (values.force && values.reset === undefined) {
+    return { ok: false, error: `--force es solo de --reset. ${usage}` };
+  }
   let mode: TestUsersArgs["mode"];
   if (values.list) {
     mode = { kind: "list" };
@@ -81,11 +94,18 @@ export function parseTestUsersArgs(argv: string[]): Parsed<TestUsersArgs> {
   } else if (values.create) {
     const by = parseEmail(values.by);
     if (!by) return { ok: false, error: "falta --by <email-admin> (con un email válido)" };
-    mode = { kind: "create", by, credentials: values.credentials?.trim() || DEFAULT_CREDENTIALS };
+    const credentials = values.credentials?.trim() || DEFAULT_CREDENTIALS;
+    if (!isCredentialsPathAllowed(credentials)) {
+      return {
+        ok: false,
+        error: "--credentials solo acepta una ruta relativa bajo ops/ (sin «..»)",
+      };
+    }
+    mode = { kind: "create", by, credentials };
   } else if (values.reset !== undefined) {
     const email = parseEmail(values.reset);
     if (!email) return { ok: false, error: "el email de --reset no es válido" };
-    mode = { kind: "reset", email };
+    mode = { kind: "reset", email, ...(values.force ? { force: true as const } : {}) };
   } else {
     return { ok: false, error: usage };
   }
@@ -215,6 +235,7 @@ export async function resetTestUser(
   email: string,
   allowlist: string[],
   adminEmails: string | undefined = process.env.ADMIN_EMAILS,
+  options: { force?: boolean } = {},
 ): Promise<ResetResult> {
   const wanted = normalizeEmail(email);
   // Este es el chequeo de seguridad real (el del CLI solo adelanta el error): no borrarlo
@@ -226,11 +247,19 @@ export async function resetTestUser(
     return { ok: false, error: "ese email es de un admin (ADMIN_EMAILS): no se borra nada" };
   }
   const [user] = await db
-    .select({ id: s.users.id })
+    .select({ id: s.users.id, isTest: s.users.isTest })
     .from(s.users)
     .where(eq(sql`lower(${s.users.email})`, wanted))
     .limit(1);
   if (!user) return { ok: false, error: "no existe una cuenta con ese email" };
+  // Una allowlist equivocada no borra a una persona real: solo cuentas marcadas is_test, o --force explícito
+  if (!user.isTest && !options.force) {
+    return {
+      ok: false,
+      error:
+        "la cuenta no está marcada como de prueba (is_test): no se borra; con --reset <email> --force sí",
+    };
+  }
   const counts = await db.transaction(async (tx) => {
     await tx.execute(sql`select set_config('app.user_id', ${user.id}, true)`);
     return deleteUserData(tx, user.id);

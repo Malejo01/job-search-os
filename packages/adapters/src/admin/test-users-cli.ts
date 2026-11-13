@@ -161,7 +161,13 @@ async function main(): Promise<void> {
       }
       return;
     }
-    const result = await resetTestUser(db, args.mode.email, allowlist.emails);
+    const result = await resetTestUser(
+      db,
+      args.mode.email,
+      allowlist.emails,
+      process.env.ADMIN_EMAILS,
+      { force: args.mode.force === true },
+    );
     if (!result.ok) {
       console.error(result.error);
       process.exitCode = 1;

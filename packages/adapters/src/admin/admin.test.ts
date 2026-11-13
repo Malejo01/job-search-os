@@ -152,6 +152,32 @@ describe("parseTestUsersArgs: --create y --reset-all (T-1)", () => {
     expect(parseTestUsersArgs(["--reset-all", "--create", "--by", "a@example.com"]).ok).toBe(false);
     expect(parseTestUsersArgs(["--reset-all", "--reset", "a@example.com"]).ok).toBe(false);
   });
+  it("--credentials solo acepta rutas relativas bajo ops/, sin «..»", () => {
+    const create = (p: string) =>
+      parseTestUsersArgs(["--create", "--by", "a@example.com", "--credentials", p]);
+    expect(create("ops/otra.json").ok).toBe(true);
+    expect(create("ops/sub/otra.json").ok).toBe(true);
+    for (const bad of [
+      "otra.json",
+      "ops/../x.json",
+      "../ops/x.json",
+      "/etc/x.json",
+      "C:/x.json",
+      "ops",
+      "docs/x.json",
+      "ops\\..\\x.json",
+    ]) {
+      expect(create(bad).ok, bad).toBe(false);
+    }
+  });
+  it("--force es solo de --reset y queda en el modo", () => {
+    expect(parseTestUsersArgs(["--reset", "a@example.com", "--force"])).toMatchObject({
+      ok: true,
+      mode: { kind: "reset", email: "a@example.com", force: true },
+    });
+    expect(parseTestUsersArgs(["--reset-all", "--force"]).ok).toBe(false);
+    expect(parseTestUsersArgs(["--list", "--force"]).ok).toBe(false);
+  });
   it("--by y --credentials solo valen con --create", () => {
     expect(parseTestUsersArgs(["--list", "--by", "a@example.com"]).ok).toBe(false);
     expect(parseTestUsersArgs(["--reset-all", "--credentials", "x.json"]).ok).toBe(false);

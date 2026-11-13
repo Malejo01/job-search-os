@@ -12,8 +12,10 @@ SET search_path = pg_catalog, public
 AS $fn$
   SELECT coalesce((SELECT u.is_test FROM public.users u WHERE u.id = p_user), false)
 $fn$;
+-- Sin EXECUTE para PUBLIC ni para authenticated: solo la llaman, como dueño, las dos funciones de abajo
+-- (SECURITY DEFINER). Así el rol de la app no puede preguntar si una cuenta ajena es de prueba.
 REVOKE ALL ON FUNCTION public.is_test_user(uuid) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.is_test_user(uuid) TO authenticated;
+REVOKE ALL ON FUNCTION public.is_test_user(uuid) FROM authenticated;
 
 -- C-13 (0009) sin las cuentas de prueba: sus 👍/👎, postulaciones y ofertas no hacen madurar una carrera.
 DROP FUNCTION IF EXISTS public.career_maturity_stats();
