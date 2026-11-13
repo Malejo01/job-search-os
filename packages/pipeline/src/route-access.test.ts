@@ -1,4 +1,4 @@
-import { readdirSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
@@ -97,6 +97,89 @@ describe("acceso a rutas sin sesión (R9-4)", () => {
     for (const p of ["/hoy", "/jobs/id-inventado", "/inbox/zzz", "/settings/inventada", "/api/x"]) {
       expect(requiresLogin(p), p).toBe(true);
     }
+  });
+
+  it("un request de Server Action (next-action) a una ruta inventada pide sesión", () => {
+    for (const p of ["/no-existe", "/foo/bar", "/en", "/%E0%A4%A"]) {
+      expect(requiresLogin(p, true), p).toBe(true);
+    }
+  });
+
+  it("un request de Server Action entra sin sesión solo en las páginas públicas con acciones propias", () => {
+    for (const p of [
+      "/acceso",
+      "/login",
+      "/register",
+      "/setup",
+      "/forgot-password",
+      "/reset-password",
+    ]) {
+      expect(requiresLogin(p, true), p).toBe(false);
+    }
+    // Públicas sin acciones propias: un POST de acción ahí pide sesión
+    for (const p of ["/", "/ayuda", "/mercado/abogacia", "/demo", "/legal/terminos"]) {
+      expect(requiresLogin(p, true), p).toBe(true);
+    }
+  });
+
+  it("las páginas públicas que declaran un Server Action inline son las de la lista de acciones", () => {
+    // Si una página nueva de (public)/(auth) suma una acción, hay que sumarla a PUBLIC_ACTION_PREFIXES
+    const conAccion = rutas()
+      .filter((r) => r.grupo === "(public)" || r.grupo === "(public-en)" || r.grupo === "(auth)")
+      .filter((r) => /use server/.test(readFileSync(join(APP_DIR, r.archivo), "utf8")))
+      .map((r) => r.url)
+      .sort();
+    for (const url of conAccion) expect(requiresLogin(url, true), url).toBe(false);
+    expect(conAccion).toEqual([
+      "/forgot-password",
+      "/login",
+      "/register",
+      "/reset-password",
+      "/setup",
+    ]);
+    // Y los archivos de acciones de las carpetas públicas (acceso/actions.ts)
+    const archivos = readdirSync(APP_DIR, { recursive: true, encoding: "utf8" }).filter((f) =>
+      /(^|[\\/])\((public|public-en|auth)\)[\\/].*actions\.ts$/.test(f),
+    );
+    expect(archivos.map((f) => f.replace(/\\/g, "/"))).toEqual(["(public)/acceso/actions.ts"]);
+  });
+
+  it("toda Server Action exportada de (app), onboarding y terminos-actualizados exige sesión", () => {
+    const GUARD =
+      /\b(requireUserId|requireActiveUserId|requireTermsAcceptedUserId|activeSessionUserId|sessionUserId)\(/;
+    // `run(...)` (inbox/actions.ts) es un helper local que llama a requireActiveUserId
+    const VIA_HELPER = /\brun\(/;
+    // `logout` solo cierra la sesión propia (signOut): sin sesión no hace nada, no necesita guarda
+    const SIN_GUARDA_A_PROPOSITO = new Set(["(app)/logout-action.ts: logout"]);
+    const sinGuarda: string[] = [];
+    let acciones = 0;
+    const archivos = readdirSync(APP_DIR, { recursive: true, encoding: "utf8" })
+      .map((f) => f.replace(/\\/g, "/"))
+      .filter(
+        (f) =>
+          /\.(ts|tsx)$/.test(f) &&
+          (f.startsWith("(app)/") ||
+            f.startsWith("onboarding/") ||
+            f.startsWith("terminos-actualizados/")),
+      );
+    for (const f of archivos) {
+      const src = readFileSync(join(APP_DIR, f), "utf8");
+      if (!/^\s*["']use server["']/.test(src)) continue;
+      // Cada export va hasta el siguiente `export` (o el fin del archivo)
+      const trozos = src
+        .split(/\n(?=export )/)
+        .filter((t) => /^export (async function|const \w+ = async)/.test(t));
+      for (const t of trozos) {
+        acciones += 1;
+        const nombre = /^export (?:async function|const) (\w+)/.exec(t)?.[1] ?? "?";
+        const id = `${f}: ${nombre}`;
+        if (!GUARD.test(t) && !VIA_HELPER.test(t) && !SIN_GUARDA_A_PROPOSITO.has(id)) {
+          sinGuarda.push(id);
+        }
+      }
+    }
+    expect(acciones, "el recorrido no encontró acciones").toBeGreaterThan(40);
+    expect(sinGuarda).toEqual([]);
   });
 
   it("no se salta con mayúsculas, porcentajes, barras repetidas o barra final", () => {

@@ -107,9 +107,27 @@ export function isPrivatePath(pathname: string): boolean {
 }
 
 /**
- * Decisión del middleware sin sesión: ¿hay que pedir login? Solo si la ruta es privada.
- * Las públicas pasan y las que no existen también (Next da el 404).
+ * Páginas públicas que alojan Server Actions propias (formulario de /acceso y pantallas de cuenta).
+ * Son las únicas donde un POST con la cabecera `next-action` puede entrar sin sesión.
  */
-export function requiresLogin(pathname: string): boolean {
-  return isPrivatePath(pathname);
+const PUBLIC_ACTION_PREFIXES: readonly string[] = [
+  "/acceso",
+  "/login",
+  "/register",
+  "/setup",
+  "/forgot-password",
+  "/reset-password",
+];
+
+/**
+ * Decisión del middleware sin sesión: ¿hay que pedir login? Si la ruta es privada, sí. Las públicas
+ * pasan y las que no existen también (Next da el 404), salvo un request de Server Action
+ * (`next-action`): ese pide sesión fuera de las páginas públicas que tienen acciones propias, así que
+ * no se puede probar acciones contra rutas inventadas.
+ */
+export function requiresLogin(pathname: string, isServerAction = false): boolean {
+  if (isPrivatePath(pathname)) return true;
+  if (!isServerAction) return false;
+  const path = normalize(pathname);
+  return path === null || !PUBLIC_ACTION_PREFIXES.some((p) => hasPrefix(path, p));
 }

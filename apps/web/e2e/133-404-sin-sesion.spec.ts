@@ -17,6 +17,21 @@ test.describe("Flujo 133: 404 sin sesión", () => {
       expect(response?.status()).toBe(404);
       expect(new URL(page.url()).pathname).toBe("/esta-pagina-no-existe");
       await expect(page.getByText("No encontramos esta página")).toBeVisible();
+      // La salida no lleva al login: sin sesión es la portada
+      await page.getByRole("link", { name: "Ir al inicio" }).click();
+      await expect(page).toHaveURL(/\/$/);
+    });
+
+    test("un POST de Server Action a una ruta inventada no pasa sin sesión", async ({
+      request,
+    }) => {
+      const res = await request.post("/esta-pagina-no-existe", {
+        headers: { "next-action": "00", "content-type": "text/plain;charset=UTF-8" },
+        data: "[]",
+        maxRedirects: 0,
+      });
+      expect([302, 303, 307, 308]).toContain(res.status());
+      expect(res.headers()["location"] ?? "").toMatch(/\/login/);
     });
 
     test("una ruta privada que existe sigue yendo al login", async ({ page }) => {
@@ -52,5 +67,8 @@ test.describe("Flujo 133: 404 sin sesión", () => {
     const response = await page.goto("/esta-pagina-no-existe");
     expect(response?.status()).toBe(404);
     await expect(page.getByText("No encontramos esta página")).toBeVisible();
+    // Con sesión, «Ir al inicio» termina en Hoy
+    await page.getByRole("link", { name: "Ir al inicio" }).click();
+    await expect(page).toHaveURL(/\/hoy/);
   });
 });

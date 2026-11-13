@@ -27,7 +27,8 @@ export const authConfig = {
       // R9-4: solo las rutas privadas conocidas piden sesión (lib/route-access.ts). Lo público pasa,
       // y lo que no existe también: Next responde su 404 con o sin sesión. Una ruta privada nueva
       // se suma a PRIVATE_PREFIXES; un test recorre `app/` y falla si se olvida.
-      if (!requiresLogin(pathname)) return true;
+      // Un request de Server Action (`next-action`) pide sesión salvo en las páginas públicas con acciones propias
+      if (!requiresLogin(pathname, request.headers.has("next-action"))) return true;
       return loggedIn;
     },
     jwt({ token, user }) {
