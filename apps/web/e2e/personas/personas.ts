@@ -705,12 +705,12 @@ export function buildPersona(key: PersonaKey, tag: number = Date.now()): Persona
         ),
       };
     case "julian":
-      // C12 (R5): programación. En main la carrera se guarda como `fullstack`.
+      // C12 (R5): programación, guardada como `fullstack`. Desde C3 y C8 está en «Carreras de la beta».
       return {
         ...base,
         name: "Julián Ficticio",
         role: "fullstack",
-        roleGroup: "Tecnología",
+        roleGroup: "Carreras de la beta",
         country: "AR",
         cefr: "B2",
         years: "2",

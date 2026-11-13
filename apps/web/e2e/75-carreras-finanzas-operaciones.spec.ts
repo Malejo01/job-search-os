@@ -23,7 +23,8 @@ test.describe("Flujo 75: carreras de finanzas y operaciones (públicas)", () => 
   test("/mercado/finanzas_contabilidad carga con su rótulo", async ({ page }) => {
     const res = await page.goto(`/mercado/${FINANZAS}`);
     expect(res?.status()).toBe(200);
-    await expect(page.getByRole("heading", { level: 1 })).toContainText(FINANZAS_LABEL);
+    // Desde R6-4 los títulos públicos usan el nombre de la carrera en la beta («Contaduría»)
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Contaduría");
   });
 
   test("el sitemap lista finanzas y no la carrera sin publicar", async ({ request }) => {
