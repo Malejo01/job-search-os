@@ -15,6 +15,8 @@ Cosas que solo puede hacer Mauro: aplicar SQL en Neon, cargar variables, abrir P
 - Topes: la llamada cuenta para `LLM_USER_DAILY_CAP_USD` y para el tope global, y hay un máximo de 10 imágenes por persona cada 24 h (se cuentan las filas de `llm_calls` de esta tarea). **No hace falta migración.**
 - Costo esperado: una captura reducida a 1600 px son unos 1 500 tokens de entrada más el prompt, y la salida lleva el texto del aviso: del orden de USD 0,01 por imagen. Con el tope de 10 por día, menos de USD 0,10 por persona y por día.
 
+**Privacidad: revisá los textos legales.** La imagen viaja al proveedor del modelo (Google y, de respaldo, Anthropic) y puede traer datos de terceros (por ejemplo, el nombre de quien publica el aviso o un contacto). No se guarda en nuestra base, pero sí sale hacia esos proveedores. Mauro: mirá si la política de privacidad y los términos cubren este uso antes de abrirlo a más gente (`apps/web/content/legal/**` es carril rojo y no lo toca este ticket).
+
 **SQL** (archivo `alta-extract-job-from-image.sql`). Si hoy ya hay una fila de esta tarea, la guarda frena el ensayo.
 
 ```sql

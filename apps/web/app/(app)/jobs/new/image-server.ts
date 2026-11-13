@@ -8,6 +8,7 @@ import {
   type ExtractImageOutcome,
 } from "@job-search-os/adapters";
 import { createDb, requireDatabaseUrl } from "@job-search-os/db";
+import { sql } from "drizzle-orm";
 import { serviceLlm } from "@/lib/llm-service";
 
 /**
@@ -25,14 +26,29 @@ export async function extractJobImageForUser(
   const logger = createLogger({ user_id: userId, trigger: "oferta_desde_imagen" });
   const conn = createDb(requireDatabaseUrl({ purpose: "service" }), { max: 1 });
   try {
-    const outcome = await extractJobFromImage(
-      {
-        llm: serviceLlm(conn.db, logger),
-        countSince: (since) =>
-          countTaskCallsSince(conn.db, { userId, task: EXTRACT_IMAGE_TASK, since }),
-        capReason: () => spendCapReason(conn.db, { userId }),
-      },
-      { userId, image },
+    // Una lectura a la vez por persona. Candado de transacción (`pg_try_advisory_xact_lock`) y no de
+    // sesión: se libera solo al terminar la transacción, aun si algo falla o el proceso muere, y no
+    // depende de que la conexión sea la misma (un pooler en modo transacción rompería el de sesión).
+    // Todo corre dentro de esa transacción: el conteo, el tope de gasto y el registro de la llamada.
+    const outcome = await conn.db.transaction((tx) =>
+      extractJobFromImage(
+        {
+          llm: serviceLlm(tx, logger),
+          countSince: (since) =>
+            countTaskCallsSince(tx, { userId, task: EXTRACT_IMAGE_TASK, since }),
+          capReason: () => spendCapReason(tx, { userId }),
+          lock: {
+            acquire: async () => {
+              const rows = (await tx.execute(
+                sql`select pg_try_advisory_xact_lock(hashtext(${`${EXTRACT_IMAGE_TASK}:${userId}`})) as ok`,
+              )) as unknown as { ok: boolean }[];
+              return rows[0]?.ok === true;
+            },
+            release: async () => {},
+          },
+        },
+        { userId, image },
+      ),
     );
     logger.info(
       {

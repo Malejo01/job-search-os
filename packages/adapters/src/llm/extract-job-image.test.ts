@@ -30,6 +30,10 @@ const offer = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
+function okLock() {
+  return { acquire: async () => true, release: vi.fn(async () => {}) };
+}
+
 function deps(over: Partial<ExtractImageDeps> & { response?: unknown } = {}) {
   const { response, ...rest } = over;
   const llm = createFakeLlm({
@@ -39,6 +43,7 @@ function deps(over: Partial<ExtractImageDeps> & { response?: unknown } = {}) {
     llm,
     countSince: async () => 0,
     capReason: async () => null,
+    lock: okLock(),
     ...rest,
   };
   return { d, llm };
@@ -90,7 +95,7 @@ describe("extractJobFromImage", () => {
       { failWith: { kind: "generation_failed", task: EXTRACT_IMAGE_TASK, detail: "x" } },
     );
     const r = await extractJobFromImage(
-      { llm, countSince: async () => 0, capReason: async () => null },
+      { llm, countSince: async () => 0, capReason: async () => null, lock: okLock() },
       { userId: "u1", image: jpeg() },
     );
     expect(r).toEqual({ ok: false, code: "modelo" });
@@ -163,6 +168,55 @@ describe("extractJobFromImage: imagen y topes (cortan antes del modelo)", () => 
   });
 });
 
+describe("una lectura a la vez por persona", () => {
+  it("con el candado tomado no cuenta, no mira el gasto ni llama al modelo", async () => {
+    const countSince = vi.fn(async () => 0);
+    const capReason = vi.fn(async () => null);
+    const release = vi.fn(async () => {});
+    const { d, llm } = deps({
+      countSince,
+      capReason,
+      lock: { acquire: async () => false, release },
+    });
+    expect(await extractJobFromImage(d, { userId: "u1", image: jpeg() })).toEqual({
+      ok: false,
+      code: "imagen_en_curso",
+    });
+    expect(llm.calls).toHaveLength(0);
+    expect(countSince).not.toHaveBeenCalled();
+    expect(capReason).not.toHaveBeenCalled();
+    // No lo tomó: no lo suelta
+    expect(release).not.toHaveBeenCalled();
+  });
+
+  it("con el candado libre lo suelta siempre: al terminar bien, al cortar por tope y si algo lanza", async () => {
+    const ok = okLock();
+    await extractJobFromImage(deps({ lock: ok }).d, { userId: "u1", image: jpeg() });
+    expect(ok.release).toHaveBeenCalledTimes(1);
+
+    const capped = okLock();
+    await extractJobFromImage(deps({ lock: capped, capReason: async () => "user" }).d, {
+      userId: "u1",
+      image: jpeg(),
+    });
+    expect(capped.release).toHaveBeenCalledTimes(1);
+
+    const boom = okLock();
+    await expect(
+      extractJobFromImage(
+        deps({
+          lock: boom,
+          countSince: async () => {
+            throw new Error("db caída");
+          },
+        }).d,
+        { userId: "u1", image: jpeg() },
+      ),
+    ).rejects.toThrow("db caída");
+    expect(boom.release).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("modo demo", () => {
   it("el LLM demo responde la tarea con un aviso inventado y registra la llamada (cuenta para el tope)", async () => {
     const calls = memoryCallSink();
@@ -171,6 +225,7 @@ describe("modo demo", () => {
         llm: createDemoLlm({ calls }),
         countSince: async () => 0,
         capReason: async () => null,
+        lock: okLock(),
       },
       { userId: "u1", image: jpeg() },
     );

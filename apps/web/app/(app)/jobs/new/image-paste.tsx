@@ -33,6 +33,7 @@ const ERROR_TEXT: Record<ReadError, string> = {
   tope_user: "Llegaste al tope de uso del modelo por hoy. Probá mañana o pegá el texto del aviso.",
   tope_global:
     "El modelo llegó a su tope de uso por hoy. Probá más tarde o pegá el texto del aviso.",
+  imagen_en_curso: "Ya estamos leyendo otra imagen; esperá unos segundos y probá de nuevo.",
   modelo: "No pudimos leer la imagen. Probá con otra captura o pegá el texto del aviso.",
   no_es_aviso: "La imagen no parece un aviso de empleo. Probá con otra o pegá el texto.",
   salida_invalida:

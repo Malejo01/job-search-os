@@ -65,7 +65,11 @@ export async function createJobsFromImageAction(formData: FormData): Promise<voi
         one.set(key.slice(prefix.length), value);
       }
     }
-    const result = await createManualJobFromForm(userId, one, { evaluateNow: true });
+    // Solo la primera se evalúa ya; las demás quedan en la cola para el worker (no se disparan hasta
+    // 5 evaluaciones juntas desde una sola imagen)
+    const result = await createManualJobFromForm(userId, one, {
+      evaluateNow: created + failed === 0,
+    });
     if (result.ok) {
       created++;
       lastJobId = result.jobId;

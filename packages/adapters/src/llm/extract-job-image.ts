@@ -17,6 +17,7 @@ export type ExtractImageFailure =
   | "imagen_grande"
   | "imagen_formato"
   | "limite_imagenes"
+  | "imagen_en_curso"
   | "tope_user"
   | "tope_global"
   | "modelo"
@@ -32,6 +33,12 @@ export type ExtractImageDeps = {
   countSince: (since: Date) => Promise<number>;
   /** Tope de gasto en USD: el global y LLM_USER_DAILY_CAP_USD (`spendCapReason`). */
   capReason: () => Promise<"global" | "user" | null>;
+  /**
+   * Una lectura a la vez por persona: sin esto, N imágenes en paralelo leen el mismo conteo y el
+   * mismo gasto y pasan todas, porque `llm_calls` se escribe después de la respuesta. `acquire`
+   * devuelve false si ya hay una en curso; `release` se llama siempre al terminar.
+   */
+  lock: { acquire: () => Promise<boolean>; release: () => Promise<void> };
   now?: () => Date;
 };
 
@@ -58,6 +65,18 @@ export async function extractJobFromImage(
     };
   }
 
+  if (!(await deps.lock.acquire())) return { ok: false, code: "imagen_en_curso" };
+  try {
+    return await readLocked(deps, input);
+  } finally {
+    await deps.lock.release();
+  }
+}
+
+async function readLocked(
+  deps: ExtractImageDeps,
+  input: { userId: string; image: Uint8Array },
+): Promise<ExtractImageOutcome> {
   const now = (deps.now ?? (() => new Date()))();
   const used = await deps.countSince(new Date(now.getTime() - DAY_MS));
   if (used >= IMAGE_DAILY_LIMIT) return { ok: false, code: "limite_imagenes" };
