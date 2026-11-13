@@ -20,7 +20,9 @@ export {
 } from "./spend";
 export {
   BUDGET_ALERT_TASK,
+  budgetAlertRecipientId,
   budgetAlertsSentToday,
+  checkBudgetAlertsAfterEvaluation,
   createDbBudgetAlertStore,
   runBudgetAlerts,
   spentLast24hUsd,

@@ -174,3 +174,12 @@ Fuente de la beta cerrada, **apagada por defecto**. Las casillas `pool-<carrera>
 - **Verla:** la cola del pool no tiene pantalla. Se mira solo con SQL (`inbound_emails` con `user_id IS NULL` y `parser = 'pool_computrabajo_alerts'`), que corre Mauro.
 - **Apagar:** quitar la variable o ponerla en `0`. Vale desde el siguiente email.
 - **Migración:** el valor `computrabajo_alerts` de `source_kind` (0046) lo aplica Mauro con `pnpm db:migrate` antes del merge.
+
+## Alertas de gasto de IA (R7-1, R8-5)
+
+Al pasar el 70, 85 y 95 % de `LLM_DAILY_CAP_USD` (gasto de 24 h) sale un email a **cada** admin de `ADMIN_EMAILS`, una vez por umbral, por destinatario y por día UTC. Sin migración: la marca es una fila `budget_alert` en `llm_calls` (label `<día>:<umbral>:<hash del email>`; las de R7-1, sin hash, valen para todos).
+
+- **Cuándo se revisa:** en cada corrida del cron de evaluación (cada 6 h) **y** al terminar una evaluación fuera del cron (pegar aviso, reasignación por cambio de puesto). Esas revisiones usan un memo en memoria del proceso: con el umbral más alto ya entregado a todos no consultan nada, y si no, miran como mucho cada 5 minutos. **En serverless el memo es por instancia**: una instancia en frío consulta una vez más. Lo que garantiza «una vez por umbral, destinatario y día» es la marca en base (con lock de asesoría por día), no el memo.
+- **Envío parcial:** se manda y recién después se anota, por destinatario. Si falla Resend para uno, no se anota y la próxima revisión reintenta solo a ese.
+- **Si el proceso muere entre mandar y anotar:** la próxima revisión reenvía con la misma clave de idempotencia de Resend (`budget-alert:<día>:<umbral>:<hash del email>`), que Resend deduplica durante 24 h; no llega dos veces. La clave es por destinatario, no por posición en `ADMIN_EMAILS`.
+- **Límite conocido:** el email que reenvía una alerta ya entregada pero sin anotar depende de esa ventana de 24 h de Resend. Para un reintento de otro día, la marca del día nuevo es otra y se manda de nuevo (es lo esperado: es otro día).

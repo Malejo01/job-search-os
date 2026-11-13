@@ -1,5 +1,6 @@
 import {
   assignPoolToUser,
+  checkBudgetAlertsAfterEvaluation,
   createLogger,
   createPgQueue,
   evaluateJobNow,
@@ -148,6 +149,8 @@ export function scheduleImmediateEvaluation(userId: string, jobIds: string[]): v
           break;
         }
       }
+      // R8-5: avisar el umbral de gasto fuera del cron, una vez al terminar la tanda (memo por proceso)
+      await checkBudgetAlertsAfterEvaluation({ db, logger });
     } catch (e) {
       logger.error({ err: safeDbError(e) }, "la evaluación inmediata falló");
     } finally {
