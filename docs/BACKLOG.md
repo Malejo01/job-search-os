@@ -1440,3 +1440,37 @@ Fuente del estado: `ops/tanda-r4/estado.md`. Los PR de carril rojo se acumulan e
 ### C13 · Cierre de la tanda
 `deps:` todo en PR · `estado:` en PR, para que lo revise Mauro (12/11)
 - Este bloque al día y `docs/beta/informe-r5.md` (orden de merge, pruebas, migraciones sin aplicar, pasos manuales y hallazgos de QA).
+
+## Bloque 20 · Tanda R6 (12/11, noche)
+
+### R6-1 · «+ Cargar oferta» siempre visible en /jobs
+`deps:` C9 (#458) · `est:` 1 h · `estado:` en PR, para que lo revise Mauro ([#465](https://github.com/Malejo01/job-search-os/pull/465), 12/11)
+- El botón pasa a la cabecera de /jobs, junto a filtros y búsqueda, y se ve con y sin oferta elegida, a 390 y 1280 px, con 44 px de alto como mínimo. Se sacan el duplicado de debajo de la lista y la tarjeta «Cargala a mano» de `JobsAside`. e2e 130.
+
+### R6-2 · Criterios y disciplinas por carrera (carril rojo)
+`deps:` C3 (#457) · `est:` 2 h · `estado:` en PR, para que lo revise Mauro ([#468](https://github.com/Malejo01/job-search-os/pull/468), 12/11; ⚠️ migración 0062 sin aplicar)
+- Los criterios de una persona nueva salen de su carrera (`criteriaFromOnboarding` con `targetRoles`, `CAREER_DISCIPLINES`, siempre con `negocio` y `otra`). Programación y quien no eligió carrera no cambian. `DISCIPLINES` suma abogacía, contaduría, comunicación, RR.II. y RR.PP. (enum `discipline`, migración 0062, etiquetas). Contaduría y administración aceptan además `data`; administración, también RR.HH. y atención al cliente.
+- **Acepta:** una persona de abogacía no ve disciplinas técnicas; «Desarrollador backend» se marca y un aviso de estudio contable o de ONG no se descarta por disciplina. Tests con fixtures de las 8 carreras.
+
+### R6-3 · Cargar una oferta desde una imagen (carril rojo)
+`deps:` — · `est:` 4 h · `estado:` rama `ronda/r6-3-imagen` pusheada, **PR sin abrir**: toca `packages/prompts/` y el CI correría los evals pagos (12/11)
+- `/jobs/new?modo=pegar`: pegar, arrastrar o elegir PNG/JPG/WebP de hasta 5 MB. El navegador la reduce a 1600 px en JPEG, y la tarea `extract_job_from_image` devuelve 1 a 5 ofertas con esquema zod que falla cerrado. La persona revisa, tilda y confirma; se crean por el camino de la carga a mano. La imagen no se guarda ni se loguea.
+- Topes: 10 por persona cada 24 h y `LLM_USER_DAILY_CAP_USD`, con un candado por persona para que no pasen en paralelo (revisión de seguridad). e2e 129 con el modelo en demo.
+- **Mauro:** fila de `model_routing` (`docs/beta/pasos-manuales-r6.md` §1) y OK al gasto de evals para abrir el PR (§2).
+
+### R6-4 · Restos de textos de la R5
+`deps:` C8 (#461) · `est:` 1 h · `estado:` en PR, para que lo revise Mauro ([#466](https://github.com/Malejo01/job-search-os/pull/466), 12/11)
+- /mercado/<carrera>, /ofertas/<carrera> y «Carreras parecidas» con el nombre de beta. La guía de alertas sin carrera ya no ofrece palabras de tecnología. La FAQ de /ayuda nombra las 8 carreras. Cambian «Ser honesto…» y el paso 4 de Primeros pasos, que deja el 👍/👎.
+
+### R6-5 · Skills propias de RR.PP. (carril rojo)
+`deps:` C3 (#457), R6-2 (#468) · `est:` 1 h · `estado:` en PR, para que lo revise Mauro ([#469](https://github.com/Malejo01/job-search-os/pull/469), 12/11; ⚠️ migración de datos 0063 sin aplicar)
+- 4 skills nuevas (crisis, eventos, protocolo y ceremonial, influencers) enganchadas a `relaciones_publicas`, migración de datos 0063 idempotente. El aviso de RR.PP. del golden sintético de carreras pasa a `relaciones_publicas.json`.
+
+### R6-6 · Anchos de los `loading.tsx`
+`deps:` C6 (#456), C9 (#458) · `est:` 30 min · `estado:` en PR, para que lo revise Mauro ([#467](https://github.com/Malejo01/job-search-os/pull/467), 12/11)
+- Hoy y Ofertas con `sm:px-12`; Perfil y Skills con `max-w-3xl`, como las páginas de C9.
+
+### R6 · Cierre de la tanda
+`deps:` todo en PR · `estado:` en PR, para que lo revise Mauro (12/11)
+- Este bloque y `docs/beta/informe-r6.md` (orden de merge, pruebas, migraciones sin aplicar y pasos manuales).
+- **Bloqueadas, sin arrancar:** C5 (legales) y el parser de Bumeran (espera un `.eml` real).
