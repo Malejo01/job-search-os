@@ -1,8 +1,8 @@
 # Kit del QR para Voces Jóvenes (miércoles 11/11/2026)
 
-Voces Jóvenes es un **evento con 10 proyectos** (no una charla); AfinIAJobs aparece en la premiación y **no usa diapositivas**: se muestra el producto y un video de menos de 3 minutos. La gente se anota escaneando un código QR que lleva a la página «Pedir acceso». **[A CONFIRMAR: dónde se muestra el QR en el evento, ya que no hay diapositivas.]** Esta carpeta tiene los dos códigos, cuál usar y qué hacer si algo falla. La lista del día (antes, durante y después) está en [`checklist-evento.md`](./checklist-evento.md).
+Voces Jóvenes es un **evento con 10 proyectos** (no una charla); AfinIAJobs aparece en la premiación y **no usa diapositivas**: se muestra el producto y un video de menos de 3 minutos. La gente pide acceso escaneando un código QR que lleva a la página «Pedir acceso». **[A CONFIRMAR: dónde se muestra el QR en el evento, ya que no hay diapositivas.]** Esta carpeta tiene los dos códigos, cuál usar y qué hacer si algo falla. La lista del día (antes, durante y después) está en [`checklist-evento.md`](./checklist-evento.md).
 
-> **Recordatorio para el evento:** el cupo es limitado (15 a 20 personas; las becas y los combos están en `docs/beta/runbook-apertura.md`, «Decisiones del 5/11») y Mauro, con los criterios de Ani, elige a quién invitar desde el 12/11. Lo dice la propia página al anotarse.
+> **Recordatorio para el evento:** el cupo es limitado (15 a 20 personas; las becas y los combos están en `docs/beta/runbook-apertura.md`, «Decisiones del 5/11») y Mauro, con los criterios de Ani, elige a quién invitar desde el 12/11. Lo dice la propia página al pedir acceso.
 
 ## Los archivos
 
@@ -46,7 +46,7 @@ Hacelo la semana del 2 al 9/11 con el QR que pensás usar, y otra vez el 10/11 c
 3. **Cambiá al otro QR.** Tené los dos listos en el evento (el principal a la vista y el otro a mano, sin mostrarlo). Si falló el dominio nuevo, mostrá el de respaldo, y al revés.
 4. **Mirá el estado de la app:** `https://<dominio>/api/health` tiene que responder `{"ok":true,"db":"ok"}`. Si no responde, Mauro sigue `docs/beta/runbook-apertura.md`, sección 3.2 («Un deploy roto»).
 5. **Si dice «Recibimos muchos pedidos desde tu conexión. Probá de nuevo en un rato.»:** es el freno de seguridad de la lista (40 anotaciones por hora desde el mismo wifi, 60 cada 10 minutos entre todos, 600 por día). Pedí que usen datos móviles; para más adelante, ver «Topes» en el checklist.
-6. **Plan B en papel:** una hoja con columnas Nombre · Email · Carrera para quien no pueda anotarse. **El panel no permite cargar personas a mano**, así que después Mauro les manda el enlace por email o WhatsApp para que se anoten ellas mismas. Avisales que esa persona está «anotada» recién cuando se anota en la página.
+6. **Plan B en papel:** una hoja con columnas Nombre · Email · Carrera para quien no pueda pedir acceso. **El panel no permite cargar personas a mano**, así que después Mauro les manda el enlace por email o WhatsApp para que lo pidan ellas mismas. Avisales que esa persona tiene el pedido hecho recién cuando toca «Pedir acceso» en la página.
 7. **No inventes disculpas largas ni prometas lugar.** Lo único que se promete es que, si hay lugar, se les escribe.
 
 ## Cómo se generaron (por si hay que rehacerlos)

@@ -78,7 +78,7 @@ export function JobCard({ card }: { card: ShowcaseCard }) {
             href="/acceso"
             className="inline-flex min-h-11 items-center text-fg-muted underline underline-offset-2 hover:text-fg"
           >
-            ¿Qué tan bien te calza? Pedí acceso
+            ¿Qué tan bien te calza? Pedir acceso
           </Link>
         </p>
       </article>

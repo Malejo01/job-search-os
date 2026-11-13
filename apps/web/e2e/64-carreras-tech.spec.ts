@@ -62,10 +62,10 @@ test.describe("Flujo 64: lista de espera con una carrera nueva", () => {
     await page.getByLabel("Nombre").fill("Persona Tecnologia Ficticia");
     await page.getByLabel("Email").fill(email);
     await select.selectOption({ label: "Data Engineering" });
-    await page.getByRole("button", { name: "Anotarme", exact: true }).click();
+    await page.getByRole("button", { name: "Pedir acceso", exact: true }).click();
     // La confirmación reemplaza al formulario cuando el pedido ya está guardado
     await expect(page.getByTestId("acceso-confirmacion")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Anotarme", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Pedir acceso", exact: true })).toHaveCount(0);
 
     const { db, close } = ownerDb();
     try {

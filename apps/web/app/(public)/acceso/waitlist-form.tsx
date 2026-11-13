@@ -340,7 +340,7 @@ export function WaitlistFormFields({
           disabled={pending}
           className={buttonClasses({ size: "lg", className: "w-full sm:w-auto sm:px-8" })}
         >
-          {pending ? "Enviando…" : "Anotarme"}
+          {pending ? "Enviando…" : "Pedir acceso"}
         </button>
         <div className="hidden sm:block">
           <ShareButton brandName={brandName} compact />

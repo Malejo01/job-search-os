@@ -84,7 +84,7 @@ export default function AccesoPage() {
               id="acceso-titulo"
               className="text-[31px] leading-[1.06] font-extrabold tracking-[-1px] text-on-ink sm:text-[54px] sm:leading-[1.04] sm:tracking-[-1.6px]"
             >
-              Anotate para la beta<span className="hidden sm:inline"> de {BRAND.name}</span>
+              Pedir acceso a la beta<span className="hidden sm:inline"> de {BRAND.name}</span>
             </h1>
             <p className="max-w-[540px] text-[15px] leading-[1.5] font-medium text-on-ink-muted sm:text-lg">
               <span className="sm:hidden">

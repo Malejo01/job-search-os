@@ -97,7 +97,7 @@ Después: `pnpm lint && pnpm typecheck && pnpm test`, el último commit con `[pr
    - verificar HSTS en producción;
    - confirmar que la regla de firewall del login siga activa.
 8. **Producto:**
-   - «Pedir acceso» o «Anotarme a la beta» en /demo;
+   - «Pedir acceso» en /demo (decidido el 13/11: es el texto único);
    - «Marketing digital» o «Marketing»;
    - las listas de disciplinas por carrera de R6-2 (`CAREER_DISCIPLINES`).
 9. **Pool de conexiones (R7-6):** medir en la preview y, si hay espera, subir `max` en `apps/web/lib/db.ts`.

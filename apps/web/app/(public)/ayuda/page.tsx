@@ -10,7 +10,7 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "Preguntas frecuentes",
   description:
-    "Todo lo que necesitás saber sobre la beta cerrada: para quién es, qué hace, cuándo abre y cómo anotarte.",
+    "Todo lo que necesitás saber sobre la beta cerrada: para quién es, qué hace, cuándo abre y cómo pedir acceso.",
   alternates: { canonical: "/ayuda" },
   openGraph: publicOpenGraph({ path: "/ayuda" }),
 };
@@ -147,8 +147,8 @@ const FAQS: FaqItem[] = [
     a: (
       <p>
         Si ya tenés cuenta, podés borrarla vos en Ajustes, en «Cuenta»: se borran tus datos de la
-        app. Si solo te anotaste en la lista de espera, escribinos desde el mismo email con el que
-        te anotaste y borramos tu pedido.
+        app. Si solo pediste acceso a la beta, escribinos desde el mismo email con el que lo pediste
+        y borramos tu pedido.
       </p>
     ),
   },
@@ -215,7 +215,7 @@ export default function AyudaPage() {
         <div>
           <h2 className="text-lg font-semibold text-fg">¿Querés sumarte a la beta?</h2>
           <p className="text-sm text-fg-muted">
-            Dejá tus datos en la lista de espera. El cupo es limitado. Si hay lugar, te escribimos.
+            Dejá tus datos para pedir acceso. El cupo es limitado. Si hay lugar, te escribimos.
           </p>
         </div>
         <Link

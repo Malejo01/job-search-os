@@ -29,7 +29,7 @@ test.describe("Flujo 95: Pedir acceso desde celular (360x740) para el 11/11", ()
   }) => {
     await page.goto("/acceso?origen=voces-jovenes");
     await expect(
-      page.getByRole("heading", { level: 1, name: /Anotate para la beta/ }),
+      page.getByRole("heading", { level: 1, name: /Pedir acceso a la beta/ }),
     ).toBeVisible();
 
     // Campo email con type y autocomplete correctos para teclado de celular
@@ -42,7 +42,7 @@ test.describe("Flujo 95: Pedir acceso desde celular (360x740) para el 11/11", ()
     await expect(heardInput).toHaveValue("Voces Jóvenes");
 
     // Botón de al menos 44 px de alto
-    const submitBtn = page.getByRole("button", { name: "Anotarme", exact: true });
+    const submitBtn = page.getByRole("button", { name: "Pedir acceso", exact: true });
     const btnBox = await submitBtn.boundingBox();
     expect(btnBox).not.toBeNull();
     expect(btnBox!.height).toBeGreaterThanOrEqual(44);
@@ -66,7 +66,7 @@ test.describe("Flujo 95: Pedir acceso desde celular (360x740) para el 11/11", ()
   test("axe en claro (360x740) sin violaciones", async ({ page }) => {
     await page.goto("/acceso?origen=voces-jovenes");
     await expect(
-      page.getByRole("heading", { level: 1, name: /Anotate para la beta/ }),
+      page.getByRole("heading", { level: 1, name: /Pedir acceso a la beta/ }),
     ).toBeVisible();
     await page.waitForLoadState("networkidle");
 
@@ -80,7 +80,7 @@ test.describe("Flujo 95: Pedir acceso desde celular (360x740) para el 11/11", ()
     await page.goto("/acceso?origen=voces-jovenes");
     await expect(page.locator("html")).toHaveClass(/\bdark\b/);
     await expect(
-      page.getByRole("heading", { level: 1, name: /Anotate para la beta/ }),
+      page.getByRole("heading", { level: 1, name: /Pedir acceso a la beta/ }),
     ).toBeVisible();
     await page.waitForLoadState("networkidle");
 

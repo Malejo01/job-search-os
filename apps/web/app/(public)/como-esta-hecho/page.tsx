@@ -173,7 +173,7 @@ export default async function ComoEstaHechoPage() {
           ¿Querés probarlo con tu búsqueda? La beta es para ocho carreras.
         </p>
         <Link href="/acceso" className={CTA_CLASS}>
-          Pedí acceso
+          Pedir acceso
         </Link>
       </section>
     </div>
