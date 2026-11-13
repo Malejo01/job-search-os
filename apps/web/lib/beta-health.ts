@@ -87,7 +87,9 @@ async function readCounts(
             union all
             select j.user_id from jobs j
               where j.created_at >= ${arDay}::timestamptz and j.public_job_id is null
-          ) x) as active_today,
+          ) x
+            -- T-1: las cuentas de prueba (users.is_test, migración 0065) no cuentan como personas activas
+            where not exists (select 1 from users u where u.id = x.user_id and u.is_test)) as active_today,
           (select count(*) from beta_feedback
             where created_at > now() - interval '24 hours') as feedback_24h,
           (select count(*) from job_queue
