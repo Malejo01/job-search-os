@@ -33,6 +33,12 @@ export const DISCIPLINES = [
   "producto",
   "recursos_humanos",
   "customer_success",
+  // R6-2: carreras no técnicas de la beta (el JSON schema vigente del modelo no las emite todavía)
+  "abogacia",
+  "finanzas_contabilidad",
+  "comunicacion",
+  "relaciones_internacionales",
+  "relaciones_publicas",
 ] as const;
 
 /** Gap tipado (prompt v1.1+): solo los "must" del stack central afectan el score. */

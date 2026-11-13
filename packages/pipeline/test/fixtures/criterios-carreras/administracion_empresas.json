@@ -1,0 +1,39 @@
+{
+  "carrera": "administracion_empresas",
+  "propios": [
+    {
+      "empresa": "Empresa A",
+      "titulo": "Analista de administración y compras",
+      "disciplina": "negocio"
+    },
+    {
+      "empresa": "Empresa B",
+      "titulo": "Coordinador de proyectos de mejora de procesos",
+      "disciplina": "project_management"
+    },
+    { "empresa": "Empresa C", "titulo": "Asistente de gerencia", "disciplina": "otra" },
+    {
+      "empresa": "Empresa D",
+      "titulo": "Analista de RR.HH. jr",
+      "disciplina": "recursos_humanos"
+    },
+    {
+      "empresa": "Empresa E",
+      "titulo": "Asistente de éxito de cliente",
+      "disciplina": "customer_success"
+    },
+    {
+      "empresa": "Empresa F",
+      "titulo": "Analista administrativo con Excel y SQL",
+      "disciplina": "data"
+    }
+  ],
+  "ajenos": [
+    { "empresa": "Empresa D", "titulo": "Desarrollador backend Java", "disciplina": "backend" },
+    {
+      "empresa": "Empresa E",
+      "titulo": "Ingeniero de seguridad informática",
+      "disciplina": "ciberseguridad"
+    }
+  ]
+}
