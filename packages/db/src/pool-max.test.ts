@@ -13,7 +13,10 @@ describe("parseDbPoolMax (R8-4)", () => {
     expect(parseDbPoolMax("20")).toEqual({ max: 20, invalid: false });
   });
 
-  it.each(["0", "21", "-3", "2.5", "abc", "5e1", "0x10"])("%s: default y marcado inválido", (raw) => {
-    expect(parseDbPoolMax(raw)).toEqual({ max: 5, invalid: true });
-  });
+  it.each(["0", "21", "-3", "2.5", "abc", "5e1", "0x10"])(
+    "%s: default y marcado inválido",
+    (raw) => {
+      expect(parseDbPoolMax(raw)).toEqual({ max: 5, invalid: true });
+    },
+  );
 });
