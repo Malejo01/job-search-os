@@ -7,7 +7,9 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import {
   BUDGET_ALERT_TASK,
   budgetAlertsSentToday,
+  checkBudgetAlertsAfterEvaluation,
   createDbBudgetAlertStore,
+  resetBudgetAlertMemoForTests,
   runBudgetAlerts,
   spentLast24hUsd,
 } from "./budget-alerts";
@@ -128,6 +130,67 @@ describe("alertas de presupuesto con el store real (R7-1)", () => {
     expect(await budgetAlertsSentToday(conn.db, NOW)).toEqual([]);
     const ok = await runBudgetAlerts({ ...deps, send: vi.fn().mockResolvedValue(undefined) });
     expect(ok.alerted).toEqual([70]);
+  });
+
+  it("con dos admins, si uno falla se reintenta solo a ese y nunca se manda dos veces al que ya lo tiene (R8-5)", async () => {
+    await setSpend(1.5);
+    const env = { ...ENV, ADMIN_EMAILS: "admin-a@ejemplo.test, admin-b@ejemplo.test" };
+    const store = createDbBudgetAlertStore(conn.db);
+    const deps = { store, spentUsd: async () => 1.5, env, now: NOW, logger };
+    const first = vi
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error("HTTP 500"));
+    const r1 = await runBudgetAlerts({ ...deps, send: first });
+    expect(r1).toMatchObject({ sent: 1, failed: 1, complete: false });
+    const second = vi.fn().mockResolvedValue(undefined);
+    await runBudgetAlerts({ ...deps, send: second });
+    expect(second).toHaveBeenCalledTimes(1);
+    expect(second.mock.calls[0]![0].to).toBe("admin-b@ejemplo.test");
+    const third = vi.fn().mockResolvedValue(undefined);
+    await runBudgetAlerts({ ...deps, send: third });
+    expect(third).not.toHaveBeenCalled();
+  });
+
+  it("una marca de R7-1 (sin destinatario) sigue valiendo para todos", async () => {
+    await setSpend(1.5);
+    await conn.db.insert(s.llmCalls).values({
+      task: BUDGET_ALERT_TASK,
+      model: "none",
+      ok: true,
+      costUsd: 0,
+      label: "2026-12-10:70",
+      createdAt: NOW,
+    });
+    const send = vi.fn();
+    await runBudgetAlerts({
+      store: createDbBudgetAlertStore(conn.db),
+      spentUsd: async () => 1.5,
+      env: ENV,
+      now: NOW,
+      logger,
+      send,
+    });
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("la revisión tras evaluar usa el memo: la segunda llamada no manda ni consulta (R8-5)", async () => {
+    await setSpend(1.95);
+    resetBudgetAlertMemoForTests();
+    const send = vi.fn().mockResolvedValue(undefined);
+    await checkBudgetAlertsAfterEvaluation({ db: conn.db, logger, env: ENV, now: NOW, send });
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(await budgetAlertsSentToday(conn.db, NOW)).toEqual([70, 85, 95]);
+    // 95 % ya entregado a todos: ni siquiera consulta (se prueba con una base cerrada)
+    await checkBudgetAlertsAfterEvaluation({
+      db: {} as never,
+      logger,
+      env: ENV,
+      now: new Date(NOW.getTime() + 3_600_000),
+      send,
+    });
+    expect(send).toHaveBeenCalledTimes(1);
+    resetBudgetAlertMemoForTests();
   });
 
   it("la fila marca no suma llamadas ni USD en los reportes de gasto", async () => {
