@@ -473,6 +473,13 @@ export const evaluations = pgTable("evaluations", {
   // C-7: «la última evaluación por oferta» (DISTINCT ON job_id … created_at desc) y la ventana de «Tu encaje»
   index("evaluations_job_created").on(t.jobId, t.createdAt.desc()),
   index("evaluations_user_created").on(t.userId, t.createdAt.desc()),
+  // R8-4: reutilización de evaluaciones (R7-2): user_id + decision->'inputs'->>'jd_hash', la última primero.
+  // La expresión tiene que ser idéntica a la de findReusableEvaluation (packages/adapters/src/worker/evaluate-job.ts)
+  index("evaluations_user_inputs_jd_hash").on(
+    t.userId,
+    sql`((${t.decision} -> 'inputs' ->> 'jd_hash'))`,
+    t.createdAt.desc(),
+  ),
 ]);
 
 export const applications = pgTable("applications", {

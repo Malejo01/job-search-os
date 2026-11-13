@@ -1,4 +1,11 @@
-import { createDb, describeDatabaseUrl, requireDatabaseUrl, type Db } from "@job-search-os/db";
+import {
+  createDb,
+  describeDatabaseUrl,
+  parseDbPoolMax,
+  requireDatabaseUrl,
+  type Db,
+} from "@job-search-os/db";
+import { createLogger } from "@job-search-os/adapters";
 import { sql } from "drizzle-orm";
 
 /**
@@ -13,7 +20,15 @@ const g = globalThis as unknown as { __appDb?: Conn; __appRoleCheck?: Promise<vo
 export function getAppDb(): Db {
   if (!g.__appDb) {
     const url = requireDatabaseUrl({ purpose: "app" });
-    g.__appDb = createDb(url, { max: 5 });
+    // DB_POOL_MAX: conexiones por instancia (1–20, default 5). Ver docs/OPERACION.md
+    const pool = parseDbPoolMax(process.env.DB_POOL_MAX);
+    if (pool.invalid) {
+      createLogger({}).warn(
+        { default: pool.max },
+        "DB_POOL_MAX inválido (entero de 1 a 20): se usa el valor por defecto",
+      );
+    }
+    g.__appDb = createDb(url, { max: pool.max });
   }
   return g.__appDb.db;
 }
