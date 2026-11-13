@@ -1,0 +1,37 @@
+# Cuentas de prueba por base (T-1). Copiá este archivo a ops/test-users.txt (no se versiona) y ajustá.
+#
+# Un email por línea; las líneas con # y las vacías se ignoran. Solo estas cuentas se crean (--create) y
+# se borran (--reset, --reset-all): nunca se toca un email que no esté en la lista.
+#
+# Dominio: example.com está reservado (RFC 2606) y no existe como casilla de nadie. Estas cuentas no
+# reciben emails (ver docs/OPERACION.md), así que no hace falta que el dominio entregue correo.
+# Si algún día hace falta un dominio que reciba mails, usá un subdominio de pruebas del dominio propio.
+#
+# Una cuenta de auditoría y, por cada una de las 8 carreras de la beta, una persona recién recibida
+# (sin experiencia) y una con 2 o 3 años. El prefijo del email es la carrera y debe coincidir con
+# apps/web/recorrido/perfiles.ts.
+auditoria@example.com
+
+abogacia-junior@example.com
+abogacia-con-experiencia@example.com
+
+finanzas-junior@example.com
+finanzas-con-experiencia@example.com
+
+administracion-junior@example.com
+administracion-con-experiencia@example.com
+
+comunicacion-junior@example.com
+comunicacion-con-experiencia@example.com
+
+marketing-junior@example.com
+marketing-con-experiencia@example.com
+
+relaciones-publicas-junior@example.com
+relaciones-publicas-con-experiencia@example.com
+
+relaciones-internacionales-junior@example.com
+relaciones-internacionales-con-experiencia@example.com
+
+programacion-junior@example.com
+programacion-con-experiencia@example.com

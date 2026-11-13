@@ -194,6 +194,8 @@ export function createDbNoticeStore(db: Db): NoticeStore {
         .innerJoin(s.users, eq(s.users.id, s.profiles.userId))
         .where(
           and(
+            // T-1: las cuentas de prueba no reciben avisos
+            eq(s.users.isTest, false),
             ne(s.profiles.plan, "gratis"),
             gt(s.profiles.planUntil, now),
             lte(s.profiles.planUntil, new Date(now.getTime() + LOAD_WINDOW_DAYS * DAY_MS)),

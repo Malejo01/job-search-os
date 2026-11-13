@@ -10,8 +10,15 @@ import { maskEmail, normalizeEmail, parseEmail, type Parsed } from "./common";
 
 export const DEFAULT_ALLOWLIST = "ops/test-users.txt";
 
+/** Credenciales de las cuentas creadas con --create: no se versiona (`ops/` está en .gitignore). */
+export const DEFAULT_CREDENTIALS = "ops/test-users-credenciales.json";
+
 export type TestUsersArgs = {
-  mode: { kind: "list" } | { kind: "reset"; email: string };
+  mode:
+    | { kind: "list" }
+    | { kind: "reset"; email: string }
+    | { kind: "reset-all" }
+    | { kind: "create"; by: string; credentials: string };
   allowlist: string;
   showEmails: boolean;
   yes: boolean;
@@ -20,10 +27,14 @@ export type TestUsersArgs = {
 
 export function parseTestUsersArgs(argv: string[]): Parsed<TestUsersArgs> {
   const usage =
-    "uso: admin:test-users --list | --reset <email> [--allowlist <ruta>] [--show-emails] [--yes] [--remote]";
+    "uso: admin:test-users --list | --reset <email> | --reset-all | --create --by <email-admin> [--credentials <ruta>] [--allowlist <ruta>] [--show-emails] [--yes] [--remote]";
   let values: {
     list?: boolean;
     reset?: string;
+    "reset-all"?: boolean;
+    create?: boolean;
+    by?: string;
+    credentials?: string;
     allowlist?: string;
     "show-emails"?: boolean;
     yes?: boolean;
@@ -35,6 +46,10 @@ export function parseTestUsersArgs(argv: string[]): Parsed<TestUsersArgs> {
       options: {
         list: { type: "boolean" },
         reset: { type: "string" },
+        "reset-all": { type: "boolean" },
+        create: { type: "boolean" },
+        by: { type: "string" },
+        credentials: { type: "string" },
         allowlist: { type: "string" },
         "show-emails": { type: "boolean" },
         yes: { type: "boolean" },
@@ -46,12 +61,27 @@ export function parseTestUsersArgs(argv: string[]): Parsed<TestUsersArgs> {
   } catch {
     return { ok: false, error: usage };
   }
-  if (values.list && values.reset !== undefined) {
-    return { ok: false, error: `--list y --reset no se combinan. ${usage}` };
+  const modes = [
+    values.list === true,
+    values.reset !== undefined,
+    values["reset-all"] === true,
+    values.create === true,
+  ].filter(Boolean).length;
+  if (modes > 1) {
+    return { ok: false, error: `--list, --reset, --reset-all y --create no se combinan. ${usage}` };
+  }
+  if ((values.by !== undefined || values.credentials !== undefined) && !values.create) {
+    return { ok: false, error: `--by y --credentials son solo de --create. ${usage}` };
   }
   let mode: TestUsersArgs["mode"];
   if (values.list) {
     mode = { kind: "list" };
+  } else if (values["reset-all"]) {
+    mode = { kind: "reset-all" };
+  } else if (values.create) {
+    const by = parseEmail(values.by);
+    if (!by) return { ok: false, error: "falta --by <email-admin> (con un email válido)" };
+    mode = { kind: "create", by, credentials: values.credentials?.trim() || DEFAULT_CREDENTIALS };
   } else if (values.reset !== undefined) {
     const email = parseEmail(values.reset);
     if (!email) return { ok: false, error: "el email de --reset no es válido" };
@@ -206,4 +236,42 @@ export async function resetTestUser(
     return deleteUserData(tx, user.id);
   });
   return { ok: true, counts };
+}
+
+/** Frase que hay que escribir para `--reset-all`: una sola confirmación para todas las cuentas. */
+export const RESET_ALL_PHRASE = "borrar cuentas de prueba";
+
+export type ResetAllRow = {
+  email: string;
+  status: "borrada" | "no existe" | "omitida";
+  rows: number;
+  /** Solo si se omitió: por qué. */
+  reason?: string;
+};
+
+/**
+ * Borra todas las cuentas de la allowlist que existan (mismo borrado que `resetTestUser`, una por una).
+ * Las que no existen se informan y se siguen; un admin de ADMIN_EMAILS se omite, nunca se borra.
+ */
+export async function resetAllTestUsers(
+  db: Db,
+  allowlist: string[],
+  adminEmails: string | undefined = process.env.ADMIN_EMAILS,
+): Promise<ResetAllRow[]> {
+  const out: ResetAllRow[] = [];
+  for (const email of allowlist) {
+    const res = await resetTestUser(db, email, allowlist, adminEmails);
+    if (res.ok) {
+      out.push({
+        email,
+        status: "borrada",
+        rows: Object.values(res.counts).reduce((a, b) => a + b, 0),
+      });
+    } else if (res.error.startsWith("no existe")) {
+      out.push({ email, status: "no existe", rows: 0 });
+    } else {
+      out.push({ email, status: "omitida", rows: 0, reason: res.error });
+    }
+  }
+  return out;
 }

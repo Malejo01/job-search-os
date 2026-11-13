@@ -24,10 +24,14 @@ pnpm admin:invite --by admin@example.com --email nueva@example.com
 ## `pnpm admin:test-users`
 
 ```
-pnpm admin:test-users --list | --reset <email> [--allowlist <ruta>] [--show-emails] [--yes] [--remote]
+pnpm admin:test-users --list | --reset <email> | --reset-all | --create --by <email-admin> [--credentials <ruta>] [--allowlist <ruta>] [--show-emails] [--yes] [--remote]
 ```
 
-Lista y resetea **cuentas de prueba**, y solo las que figuran en la allowlist: un archivo de texto con un email por línea (`#` para comentarios). Por defecto `ops/test-users.txt` (no versionado), relativo a donde se lanzó `pnpm`. Sin allowlist, o vacía, el comando aborta.
+Lista, crea y resetea **cuentas de prueba**, y solo las que figuran en la allowlist: un archivo de texto con un email por línea (`#` para comentarios). Por defecto `ops/test-users.txt` (no versionado), relativo a donde se lanzó `pnpm`. Sin allowlist, o vacía, el comando aborta. El modelo de la lista está en `docs/beta/test-users.example.txt` (17 cuentas: una de auditoría y 2 por cada carrera de la beta, en el dominio reservado `example.com`): copiarlo a `ops/test-users.txt`.
+
+- `--create --by <email-admin>`: crea las cuentas de la allowlist **por el mismo camino que el registro real** (una invitación del admin de `--by`, que tiene que estar en `ADMIN_EMAILS`, y `register_with_invitation_v3`, con la casilla de ingesta y los términos vigentes de `apps/web/lib/terms.ts`). La contraseña de cada una es aleatoria (192 bits) y va **solo** a `ops/test-users-credenciales.json` (no versionado; `--credentials <ruta>` para otro archivo). Nunca se imprime: ni en la terminal ni en los logs. Es idempotente: las que ya existen se saltean y lo dice; una cuenta de `ADMIN_EMAILS` se omite. Si una cuenta existe pero no tiene contraseña guardada, `--reset <email>` y `--create` de nuevo.
+- `--reset-all`: borra **todas** las cuentas de la allowlist con una sola confirmación (hay que escribir la frase `borrar cuentas de prueba`, también en local; `--yes` solo vale en local). Informa cada cuenta (borrada, no existe u omitida por ser admin) y saca sus contraseñas del archivo de credenciales.
+- Las cuentas creadas se marcan `users.is_test = true` **después** del registro real (migración 0065). Esa marca las saca de `/settings/metricas` y de la madurez de las carreras (`rls/0020_cuentas_de_prueba.sql`, que redefine `admin_beta_metrics` y `career_maturity_stats`) y del aviso de vencimiento de plan. Además no reciben emails porque la bienvenida sale solo de acciones de un admin en `/settings/planes`, y los cupos de fundador solo cuentan planes que asigna un admin (una cuenta nueva queda en plan gratis). **Pendiente:** `/settings/salud` («personas activas hoy») todavía las cuenta. Requiere aplicar en Neon la 0065 y el rls nuevo, después de la 0064.
 
 - `--list`: por cada email de la allowlist, si existe, fecha de alta, si completó el onboarding y cuántos jobs, evaluaciones y postulaciones tiene. Los emails salen enmascarados salvo con `--show-emails`.
 - `--reset <email>`: borra todos los datos de esa cuenta con el mismo borrado que «Eliminar mi cuenta». Pide escribir el email completo para confirmar (también en local) salvo con `--yes`, que solo vale en local. Nunca borra un email de `ADMIN_EMAILS`, y con `--remote` solo acepta la allowlist por defecto. **No recrea la cuenta**: el siguiente paso es `admin:invite` y registrarse de nuevo.
@@ -37,7 +41,20 @@ Ejemplo en local:
 ```
 pnpm admin:test-users --list
 pnpm admin:test-users --reset prueba@example.com
+pnpm admin:test-users --create --by admin@example.com
+pnpm admin:test-users --reset-all
 ```
+
+### Recorrido por carreras (`pnpm recorrido <url>`)
+
+Para cada cuenta de `ops/test-users-credenciales.json` con un perfil de carrera (`apps/web/recorrido/perfiles.ts`: `<carrera>-junior` o `<carrera>-con-experiencia`; `auditoria` se saltea): inicia sesión, hace el onboarding con los datos del perfil, carga skills, espera las primeras ofertas y abre hasta 40 ofertas evaluadas. **Solo lee**: no postula ni marca estados, y aborta todo pedido a otro dominio que el de la URL. Guarda en `ops/recorrido-carreras/<fecha>/` capturas a 390 y 1280 px y un JSON por cuenta (ofertas vistas con fuente, título, puntaje, veredicto, motivos y requisitos faltantes; skills del catálogo pedidas y ausentes; tiempos). No corre en el CI: tiene su propia config (`apps/web/playwright.recorrido.config.ts`).
+
+```
+pnpm recorrido http://localhost:3000
+pnpm recorrido http://localhost:3000 -g abogacia-junior
+```
+
+Primero en local (`node .claude/bin/local.mjs dev` y, con el worker demo, sin gasto). **Contra producción** crea evaluaciones reales (gasto de LLM, ≈ USD 0,007 por oferta evaluada) y cuentas en Neon: es decisión de Mauro y conviene mirar `pnpm llm:spend --days 1` antes y después. Los selectores del onboarding y de la oferta se copiaron de los e2e de personas y no se probaron contra una app corriendo: la primera corrida puede pedir un ajuste.
 
 ## `pnpm inbound:replay`
 
