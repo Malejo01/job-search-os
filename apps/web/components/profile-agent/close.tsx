@@ -16,7 +16,13 @@ import { PrintButton } from "@/components/print-button";
 import { Alert, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
 
 type Notice = { message: string; links: { label: string; href: string }[] };
-type Written = { doc: CvDocument; entries: ProfileWrittenEntry[]; summary: string | null };
+type Written = {
+  doc: CvDocument;
+  entries: ProfileWrittenEntry[];
+  summary: string | null;
+  /** La redacción falló de verdad y queda un reintento (R11-2); el CV de abajo es el texto de la persona. */
+  retry: boolean;
+};
 type Phase =
   | { name: "idle" }
   | { name: "working" }
@@ -98,8 +104,25 @@ export function ProfileAgentClose({
       doc: data.doc as CvDocument,
       entries: (data.entries as ProfileWrittenEntry[]) ?? [],
       summary: typeof data.summary === "string" ? data.summary : null,
+      retry: data.retry === true,
     };
     setPhase({ name: "preview", written });
+  }
+
+  /** Un solo reintento de la redacción (R11-2): si no sale, queda el CV que ya se estaba viendo. */
+  async function retryWrite(prev: Written) {
+    setPhase({ name: "working" });
+    const data = await call({ action: "write", lang });
+    if (!data) return setPhase({ name: "preview", written: { ...prev, retry: false } });
+    setPhase({
+      name: "preview",
+      written: {
+        doc: data.doc as CvDocument,
+        entries: (data.entries as ProfileWrittenEntry[]) ?? [],
+        summary: typeof data.summary === "string" ? data.summary : null,
+        retry: data.retry === true,
+      },
+    });
   }
 
   async function save(written: Written) {
@@ -215,9 +238,26 @@ export function ProfileAgentClose({
                 >
                   Descartar y volver
                 </button>
+                {written.retry ? (
+                  <button
+                    type="button"
+                    onClick={() => void retryWrite(written)}
+                    disabled={phase.name === "saving"}
+                    className={buttonClasses({ variant: "secondary" })}
+                    data-testid="pa-close-retry"
+                  >
+                    Reintentar la redacción
+                  </button>
+                ) : null}
               </>
             )}
           </div>
+          {written.retry && !saved ? (
+            <p className="no-print text-sm text-fg-muted" role="status">
+              No pudimos redactar las viñetas y armamos el CV con tus propias palabras. Podés
+              guardarlo así o reintentar una vez; tu charla sigue abierta.
+            </p>
+          ) : null}
           {saved ? (
             <p
               className="no-print text-sm text-fg-muted"

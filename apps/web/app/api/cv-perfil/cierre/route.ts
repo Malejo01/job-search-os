@@ -1,4 +1,5 @@
 import {
+  PROFILE_AGENT_MAX_WRITE_ATTEMPTS,
   buildProfileCloseWriteInput,
   checkProfileWrittenEntries,
   profileAgentWriteNotice,
@@ -161,6 +162,8 @@ export async function POST(request: Request): Promise<Response> {
       history: built.input.history,
       summary: null as string | null,
       usedModel: false,
+      // R11-2: la redacción falló de verdad: la persona puede reintentar una vez sin perder la charla
+      retry: false,
     };
     if (built.hasWork) {
       const llm = serviceLlm(db, logger);
@@ -186,13 +189,20 @@ export async function POST(request: Request): Promise<Response> {
         }
       }
       if (r.ok) {
-        written = { history: r.value.history, summary: r.value.summary, usedModel: true };
+        written = {
+          history: r.value.history,
+          summary: r.value.summary,
+          usedModel: true,
+          retry: false,
+        };
         logger.info(
           { run_id: ticket.flowId, ...r.value.stats },
           "agente de perfil: redacción verificada",
         );
       } else {
-        // Sin redacción, el CV sale con el texto de la persona (igual que el chat de CV)
+        // Sin redacción, el CV sale con el texto de la persona (igual que el chat de CV); y un solo reintento
+        // Con este intento ya contado, queda lugar solo si era el primero (`PROFILE_AGENT_MAX_WRITE_ATTEMPTS`)
+        written.retry = slot.measures.writesInConversation + 1 < PROFILE_AGENT_MAX_WRITE_ATTEMPTS;
         logger.warn(
           { run_id: ticket.flowId, llm_error: r.error.kind },
           "agente de perfil: sin redacción, va el texto de la persona",
@@ -225,6 +235,7 @@ export async function POST(request: Request): Promise<Response> {
         entries: safeEntries,
         summary: safeSummary,
         usedModel: written.usedModel,
+        retry: written.retry,
       },
       { headers: NO_STORE },
     );

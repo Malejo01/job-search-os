@@ -172,17 +172,56 @@ describe("una redacción por charla y cupo de CV por mes", () => {
     if (!r.ok) expect(r.reject).toBe("cv_mes");
   });
 
-  it("si la redacción lanzó antes de registrar su fila, el intento igual cuenta y no se reintenta gratis", async () => {
+  it("si la redacción lanzó antes de registrar su fila, el intento cuenta: se reintenta una vez y el segundo fallo cierra", async () => {
     const first = await slot();
     expect(first.ok).toBe(true);
     // la llamada lanza: se anota la fila fallida y recién después se suelta la reserva
     await recordProfileAgentWriteFailure(conn.db, { userId: USER, flowId: FLOW });
     if (first.ok) await releaseCvChatReservation(conn.db, first.reservationId);
+    // R11-2: un error real se puede reintentar una vez, y suma el estimado del paso al gasto de la charla
     const retry = await slot();
-    expect(retry.ok).toBe(false);
-    if (!retry.ok) expect(retry.reject).toBe("already_written");
-    // y suma el estimado del paso al gasto de la charla
+    expect(retry.ok).toBe(true);
     expect(retry.measures.conversationCostUsd).toBeCloseTo(0.07);
+    await recordProfileAgentWriteFailure(conn.db, { userId: USER, flowId: FLOW });
+    if (retry.ok) await releaseCvChatReservation(conn.db, retry.reservationId);
+    const third = await slot();
+    expect(third.ok).toBe(false);
+    if (!third.ok) expect(third.reject).toBe("already_written");
+  });
+
+  it("R11-2: un error real del modelo se reintenta una vez sin perder la charla; una redacción lograda no se repite", async () => {
+    await row({ task: "cv_write", ok: false, costUsd: null, error: "timeout" });
+    const retry = await slot();
+    expect(retry.ok).toBe(true);
+    if (retry.ok) await releaseCvChatReservation(conn.db, retry.reservationId);
+    // el reintento sale bien: ahora sí está redactada
+    await row({ task: "cv_write", costUsd: 0.02 });
+    const again = await slot();
+    expect(again.ok).toBe(false);
+    if (!again.ok) expect(again.reject).toBe("already_written");
+  });
+
+  it("R11-2: el reintento cuenta una sola vez para «CV por mes»", async () => {
+    await row({ task: "cv_write", ok: false, costUsd: null, error: "timeout" });
+    const r = await slot({ planCvPerMonth: 1 });
+    // el mínimo de la beta es 3 charlas con CV: una charla con dos intentos sigue siendo una
+    expect(r.ok).toBe(true);
+    expect(r.measures.cvThisMonth).toBe(1);
+    if (r.ok) await releaseCvChatReservation(conn.db, r.reservationId);
+  });
+
+  it("R11-2: el tope por persona y día se mide dentro del lock y suma lo reservado en otra charla", async () => {
+    // una reserva vigente de otra charla de la misma persona: 0,50 de estimado ya reservado
+    await row({
+      task: "cv_reserve",
+      model: "interview",
+      label: "cv:bbbbbbbbbbbb",
+      costUsd: null,
+      tokensOut: 500_000,
+    });
+    const r = await slot();
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reject).toBe("usuario");
   });
 
   it("sin llamada al modelo solo mide: no deja reserva", async () => {

@@ -19,7 +19,7 @@ import {
 } from "@job-search-os/pipeline";
 import { and, eq } from "drizzle-orm";
 import { careerLabel, getCareerMarket } from "../career-market";
-import { getActiveCriteria, saveCriteria } from "../criteria";
+import { getActiveCriteria, saveCriteriaAndProfile } from "../criteria";
 import { withUser } from "../db";
 import { invalidateUserInsights } from "../insights-cache";
 import { getTargetRolesLimit, isOnboardingComplete, setTargetRoles } from "../onboarding";
@@ -147,20 +147,14 @@ export async function saveGuideCard(
       if (!active) return { ok: false, reason: "not_found" };
       const rules = applyGuideCriteria(active.rules, card);
       if (!rules.ok) return { ok: false, reason: "invalid", field: rules.error };
-      // Si las reglas no cambian no se crea una versión nueva (no-op)
-      if (!sameCriteriaRules(active.rules, rules.value)) {
-        const saved = await saveCriteria(userId, rules.value, active.version);
-        if (!saved.ok) return { ok: false, reason: "invalid", field: "conflict" };
-      }
-      const patch = guideProfilePatch(card);
-      if (Object.keys(patch).length > 0) {
-        await withUser(userId, (tx) =>
-          tx
-            .update(s.profiles)
-            .set({ ...patch, updatedAt: new Date() })
-            .where(eq(s.profiles.userId, userId)),
-        );
-      }
+      // Criterios y perfil en una sola transacción (R11-2). Si las reglas no cambian no se crea una versión
+      // nueva (no-op) y solo se escribe el perfil
+      const saved = await saveCriteriaAndProfile(userId, {
+        rules: sameCriteriaRules(active.rules, rules.value) ? null : rules.value,
+        baseVersion: active.version,
+        profilePatch: guideProfilePatch(card),
+      });
+      if (!saved.ok) return { ok: false, reason: "invalid", field: "conflict" };
       invalidateUserInsights(userId);
       return { ok: true, saved: true };
     }

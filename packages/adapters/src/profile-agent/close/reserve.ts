@@ -4,9 +4,9 @@
  *
  * El gasto cuenta las llamadas fallidas (O1): `cost_usd` null de una fila fallida vale el estimado del paso
  * (`measureCvChat` ya lo hace para `cv_interview` y `cv_write`; `measureProfileAgentUserSpendUsd` lo hace
- * para las tres tareas del agente). Los topes por charla y global se miden dentro del lock; el de persona
- * y día se mide justo antes (otra consulta, fuera del lock: una redacción por charla ya está acotada por
- * `already_written` bajo el lock).
+ * para las tres tareas del agente). Los topes por charla, global y por persona y día se miden dentro del
+ * lock (R11-2; antes el de persona y día se medía justo antes, fuera del lock).
+ * Una redacción que falló se puede reintentar una vez (`PROFILE_AGENT_MAX_WRITE_ATTEMPTS`); una lograda no.
  */
 import { schema as s, type Db } from "@job-search-os/db";
 import {
@@ -75,10 +75,8 @@ export async function reserveProfileAgentWrite(
   p: ProfileAgentWriteSlotParams,
 ): Promise<CvReservation<ProfileAgentWriteReject>> {
   const { monthSince, daySince } = cvChatWindows(p.now);
-  const userSpendTodayUsd = await measureProfileAgentUserSpendUsd(db, {
-    userId: p.userId,
-    daySince,
-  });
+  // El tope por persona y día se mide DENTRO del lock (R11-2, `m.agentUserSpendUsd`): antes se medía
+  // justo antes y dos pedidos de charlas distintas podían pasar los dos
   return reserveCvChatStep<ProfileAgentWriteReject>(db, {
     userId: p.userId,
     label: cvChatLabel(p.flowId),
@@ -90,10 +88,12 @@ export async function reserveProfileAgentWrite(
     decide: (m) =>
       profileAgentWriteReject({
         flowCostUsd: m.conversationCostUsd,
-        userSpendTodayUsd,
+        userSpendTodayUsd: m.agentUserSpendUsd,
         dailySpendUsd: m.dailySpendUsd,
         dailyCapUsd: profileAgentDailyCapUsd(p.env),
         writesInFlow: m.writesInConversation,
+        okWritesInFlow: m.okWritesInConversation,
+        writeInFlight: m.writeInFlight,
         cvThisMonth: m.cvThisMonth,
         cvPerMonth: cvChatBetaCvPerMonth(p.planCvPerMonth),
       }),

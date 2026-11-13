@@ -1,5 +1,53 @@
 import { describe, expect, it } from "vitest";
-import { buildPlan, easeFromClosureHours, pickLearningResource, planPriority } from "./plan";
+import {
+  buildPlan,
+  easeFromClosureHours,
+  pickLearningResource,
+  planPriority,
+  planItemsToRemove,
+} from "./plan";
+
+describe("planItemsToRemove (R11-2: no borrar la skill sumada desde la guía)", () => {
+  const item = (id: string, skillId: string, status: string) => ({ id, skillId, status });
+
+  it("una skill pendiente que dejó de estar en la demanda se conserva (puede venir de la guía)", () => {
+    const out = planItemsToRemove({
+      existing: [item("i1", "s1", "pendiente")],
+      wantedSkillIds: new Set(["s2"]),
+      levelBySkillId: new Map([["s1", 0]]),
+    });
+    expect(out).toEqual([]);
+  });
+
+  it("solo se borra la pendiente que la persona ya domina (nivel 3) y no entra en el plan", () => {
+    const out = planItemsToRemove({
+      existing: [item("i1", "s1", "pendiente"), item("i2", "s2", "pendiente")],
+      wantedSkillIds: new Set([]),
+      levelBySkillId: new Map([
+        ["s1", 3],
+        ["s2", 1],
+      ]),
+    });
+    expect(out).toEqual(["i1"]);
+  });
+
+  it("nunca borra en_curso ni cerrada, ni lo que sigue en el plan", () => {
+    const out = planItemsToRemove({
+      existing: [
+        item("i1", "s1", "en_curso"),
+        item("i2", "s2", "cerrada"),
+        item("i3", "s3", "pendiente"),
+      ],
+      wantedSkillIds: new Set(["s3"]),
+      levelBySkillId: new Map([
+        ["s1", 3],
+        ["s2", 3],
+        ["s3", 3],
+      ]),
+    });
+    expect(out).toEqual([]);
+  });
+});
 
 describe("pickLearningResource (121 §7)", () => {
   const r = (id: string, targetLevel: number, hours: number | null) => ({ id, targetLevel, hours });

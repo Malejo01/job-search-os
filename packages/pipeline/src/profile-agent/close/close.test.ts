@@ -104,6 +104,8 @@ describe("topes del paso de redacción", () => {
     dailySpendUsd: 0.2,
     dailyCapUsd: 1,
     writesInFlow: 0,
+    okWritesInFlow: 0,
+    writeInFlight: false,
     cvThisMonth: 0,
     cvPerMonth: 3,
   };
@@ -115,10 +117,28 @@ describe("topes del paso de redacción", () => {
     [{ userSpendTodayUsd: PROFILE_AGENT_USER_DAILY_CAP_USD }, "usuario"],
     [{ dailySpendUsd: 1 }, "global"],
     [{ dailyCapUsd: 0 }, "global"],
-    [{ writesInFlow: 1 }, "already_written"],
+    [{ writesInFlow: 1, okWritesInFlow: 1 }, "already_written"],
+    [{ writesInFlow: 2 }, "already_written"],
+    [{ writeInFlight: true }, "already_written"],
     [{ cvThisMonth: 3 }, "cv_mes"],
   ] as const)("%j → %s", (over, expected) => {
     expect(profileAgentWriteReject({ ...ok, ...over })).toBe(expected);
+  });
+  it("R11-2: un intento que falló se reintenta una vez; el segundo fallo ya no", () => {
+    // 1 intento y ninguno logrado: el reintento pasa
+    expect(profileAgentWriteReject({ ...ok, writesInFlow: 1, okWritesInFlow: 0 })).toBeNull();
+    // 2 intentos fallidos: no hay un tercero
+    expect(profileAgentWriteReject({ ...ok, writesInFlow: 2, okWritesInFlow: 0 })).toBe(
+      "already_written",
+    );
+    // el reintento tampoco evita los demás topes
+    expect(
+      profileAgentWriteReject({
+        ...ok,
+        writesInFlow: 1,
+        flowCostUsd: PROFILE_AGENT_MAX_FLOW_COST_USD,
+      }),
+    ).toBe("charla");
   });
   it("falla cerrado con números inválidos", () => {
     for (const k of [
@@ -126,6 +146,8 @@ describe("topes del paso de redacción", () => {
       "userSpendTodayUsd",
       "dailySpendUsd",
       "writesInFlow",
+      "okWritesInFlow",
+      "writeInFlight",
       "cvThisMonth",
     ] as const) {
       expect(profileAgentWriteReject({ ...ok, [k]: Number.NaN })).not.toBeNull();

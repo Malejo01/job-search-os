@@ -87,5 +87,26 @@ export function pickLearningResource<T extends { targetLevel: number; hours: num
   return deeper ?? cheapest;
 }
 
+/**
+ * Filas pendientes del plan que `plan:build` borra. Solo las que ya no aplican porque la persona llegó al
+ * nivel 3 (`buildPlan` las deja afuera). Una pendiente que simplemente no está en la demanda de esta corrida
+ * se conserva: puede ser una skill que la persona sumó a mano desde la guía del agente (R11-2) y la tabla no
+ * tiene dónde marcar el origen. `en_curso` y `cerrada` nunca se borran.
+ */
+export function planItemsToRemove(input: {
+  existing: readonly { id: string; skillId: string; status: string }[];
+  wantedSkillIds: ReadonlySet<string>;
+  levelBySkillId: ReadonlyMap<string, number>;
+}): string[] {
+  return input.existing
+    .filter(
+      (e) =>
+        e.status === "pendiente" &&
+        !input.wantedSkillIds.has(e.skillId) &&
+        (input.levelBySkillId.get(e.skillId) ?? 0) >= 3,
+    )
+    .map((e) => e.id);
+}
+
 export const PLAN_STATUSES = ["pendiente", "en_curso", "cerrada"] as const;
 export type PlanStatus = (typeof PLAN_STATUSES)[number];

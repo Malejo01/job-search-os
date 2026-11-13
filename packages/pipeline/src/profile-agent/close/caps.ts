@@ -11,6 +11,9 @@ import {
   type ProfileAgentCapNotice,
 } from "../limits";
 
+/** Intentos de redacción por charla: el primero y un reintento si el primero falló (R11-2). */
+export const PROFILE_AGENT_MAX_WRITE_ATTEMPTS = 2;
+
 export type ProfileAgentWriteReject = ProfileAgentCap | "cv_mes" | "already_written";
 
 export interface ProfileAgentWriteCapInput {
@@ -21,8 +24,12 @@ export interface ProfileAgentWriteCapInput {
   /** Gasto global del agente en las últimas 24 h. */
   dailySpendUsd: number;
   dailyCapUsd: number;
-  /** Redacciones ya hechas (o en curso) en esta charla. */
+  /** Intentos de redacción de esta charla (los que llegaron al modelo, bien o mal, y la reserva vigente). */
   writesInFlow: number;
+  /** Redacciones de esta charla que terminaron bien: una lograda no se repite. */
+  okWritesInFlow: number;
+  /** Hay una redacción de esta charla en curso: no se pisa con otra en paralelo. */
+  writeInFlight: boolean;
   /** Charlas con redacción de esta persona en la ventana mensual. */
   cvThisMonth: number;
   cvPerMonth: number;
@@ -45,7 +52,10 @@ export function profileAgentWriteReject(
     dailyCapUsd: i.dailyCapUsd,
   });
   if (cap) return cap;
-  if (!(i.writesInFlow < 1)) return "already_written";
+  // Una redacción lograda no se repite; una que falló se puede reintentar UNA vez (R11-2), sin pisar otra en curso
+  if (i.writeInFlight !== false) return "already_written";
+  if (!(i.okWritesInFlow < 1)) return "already_written";
+  if (!(i.writesInFlow < PROFILE_AGENT_MAX_WRITE_ATTEMPTS)) return "already_written";
   if (!(i.cvThisMonth < i.cvPerMonth)) return "cv_mes";
   return null;
 }
