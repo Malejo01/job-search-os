@@ -10,7 +10,7 @@ Objetivo doble: confiabilidad del sistema y evidencia verificable de "testing au
 | Contract | Vitest + fixtures | Parsers de email (LinkedIn, GoB, genérico) contra HTML real guardado en `fixtures/emails/` (anonimizado); adapter GoB contra respuestas JSON grabadas | cada PR |
 | Integration | Vitest + Testcontainers (Postgres 16 + pgvector) | Migraciones, RLS (user A no ve datos de user B), pipeline completo con LLM mockeado | cada PR, ~1 min |
 | Evals | harness propio | Prompt × modelo vs golden set | PR que toca prompts/evals; manual antes de cambiar `model_routing` |
-| E2E | Playwright | 4 flujos: login → lista con filtros; pegar JD → evaluación aparece; cambiar estado → persiste; postular → resultado (feedback loop). `apps/web/e2e/`, viewport 390 px, worker en modo demo (`--demo`, sin LLM). Local: `pnpm e2e` con Docker y `next dev` corriendo; CI: job `e2e` con Postgres + `next start` | cada PR hacia `main` (job `e2e`; no corre en push a `main` ni en PRs entre ramas) |
+| E2E | Playwright | 4 flujos: login → lista con filtros; pegar JD → evaluación aparece; cambiar estado → persiste; postular → resultado (feedback loop). `apps/web/e2e/`, viewport 390 px, worker en modo demo (`--demo`, sin LLM). Local: `pnpm e2e:local:prepare` y `pnpm e2e:local [specs]` (ver «e2e local reproducible»); CI: job `e2e` con Postgres + `next start` | cada PR hacia `main` (job `e2e`; no corre en push a `main` ni en PRs entre ramas) |
 | Smoke prod | script | `GET /api/health` (DB, LLM provider, inbound) tras deploy | post-deploy |
 
 ## Reglas
@@ -55,6 +55,24 @@ ci.yml
 ```
 
 Deploy a Vercel: preview solo a pedido (`[preview]` en el mensaje del último commit), producción en merge a `main` si cambió algo que afecta a la web (`scripts/vercel-ignore.sh`, enganchado desde `apps/web/vercel.json`). La verificación de cada PR la hace GitHub Actions, no Vercel. Migraciones: `drizzle-kit migrate` como paso previo al deploy, con `DATABASE_URL` de producción en secret.
+
+## e2e local reproducible (R8-3)
+
+Con Docker abierto (`pnpm db:up`, contenedor `jso-postgres`), desde una base vacía:
+
+```
+pnpm e2e:local:prepare     # migra y siembra la base local con datos de EJEMPLO y el usuario de e2e
+pnpm e2e:local 20 126      # corre solo los specs 20 y 126 (sin números, corre todos)
+```
+
+Ambos pasan por `scripts/e2e-local.mjs`, que fija las variables **adentro** (no hace falta ninguna delante del comando):
+
+- `DB_TARGET=local`, `LLM_DEMO=1` y las URLs locales explícitas, así que un `.env.local` no puede redirigir la base.
+- `SEED_FIXTURES=example`: el seed ignora `fixtures-private/` y usa los archivos de ejemplo. Usuario de e2e `mauro@job-search-os.local` (ficticio, el mismo del CI), admin para los casos que lo piden.
+- **Falla cerrado:** si en el entorno hay una variable de base (`DATABASE*`, `PGHOST`, `*_URL` o un valor `postgres://`) que no sea localhost, el script corta antes de lanzar nada. Neon no es alcanzable por este camino.
+- Los filtros solo aceptan números o nombres (`[\w-]`): `20` equivale al prefijo `20-` del archivo, sin confundirlo con `120-`.
+
+Cubierto por `packages/adapters/src/e2e-local/e2e-local.test.ts` (guarda, entorno y filtros) y `packages/db/src/e2e-seed.integration.test.ts` (seed de ejemplo contra Testcontainers). Los agentes no lo corren: el guard bloquea `pnpm e2e*`; lo corre Mauro o el CI.
 
 ## Docker
 

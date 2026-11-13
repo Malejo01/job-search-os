@@ -33,6 +33,8 @@
     "market:snapshot": "pnpm --filter @job-search-os/adapters market:snapshot",
     "plan:build": "pnpm --filter @job-search-os/adapters plan:build",
     "e2e": "pnpm --filter @job-search-os/web e2e",
+    "e2e:local:prepare": "node scripts/e2e-local.mjs prepare",
+    "e2e:local": "node scripts/e2e-local.mjs run",
     "skills:extract": "pnpm --filter @job-search-os/adapters skills:extract",
     "worker:requeue": "pnpm --filter @job-search-os/adapters worker:requeue",
     "secrets:scan": "docker run --rm -v \"$(pwd -W 2>/dev/null || pwd):/repo\" zricethezav/gitleaks:latest detect --source /repo --redact --exit-code 2",
