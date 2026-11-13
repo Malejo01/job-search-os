@@ -1,13 +1,38 @@
 "use client";
 
-import { BETA_GROUP_LABEL } from "@job-search-os/pipeline";
+import {
+  BETA_GROUP_LABEL,
+  PROFILE_AGENT_STORAGE_KEYS,
+  parseProfileAgentState,
+  profileAgentFormPrefill,
+} from "@job-search-os/pipeline";
+import { useMemo, useSyncExternalStore } from "react";
 import { FieldError, ProfileForm, useProfileError } from "@/components/profile-form";
+import type { ProfileFormValues } from "@/lib/onboarding";
 import {
   RolePicker,
   type RolePickerGroup,
   type RolePickerSalaries,
 } from "@/components/role-picker";
 import { saveOnboardingAction } from "./actions";
+
+/**
+ * Lo que el agente de perfil dejó en `sessionStorage` (el estado de la guía: país y modalidades), como un
+ * solo texto: `useSyncExternalStore` lo compara por valor y en el servidor devuelve el vacío. Nada de esto
+ * viaja ni se guarda: solo precarga el formulario, que valida y guarda con su propia acción. El resumen del
+ * cierre ya no pasa por el navegador (R11-1): el resumen precargado es el que ya está guardado en el perfil
+ * (`agentInitial`, leído en el servidor); el nuevo se ve en la vista previa y se copia a mano.
+ */
+const EMPTY_STORAGE = JSON.stringify([null]);
+const subscribeNothing = (): (() => void) => () => {};
+const serverAgentStorage = (): string => EMPTY_STORAGE;
+function readAgentStorage(): string {
+  try {
+    return JSON.stringify([window.sessionStorage.getItem(PROFILE_AGENT_STORAGE_KEYS.state)]);
+  } catch {
+    return EMPTY_STORAGE;
+  }
+}
 
 /** «A, B y C» con los nombres de los grupos del selector (salen de `ROLE_GROUPS`, no se escriben acá). */
 function groupsText(labels: string[]): string {
@@ -82,7 +107,13 @@ export function OnboardingForm({
   countryCodes,
   minSummary,
   maxSummary,
+  agentInitial,
 }: {
+  /**
+   * Perfil guardado, solo cuando la persona pasó por el agente de perfil (`CV_PROFILE_AGENT`, ADR-034):
+   * precarga los campos, editables. Sin él (flag apagado o sin agente) el formulario queda como siempre.
+   */
+  agentInitial?: ProfileFormValues | undefined;
   roleGroups: RolePickerGroup[];
   /** Sueldos por puesto del pool público; sin ellos el selector no muestra la línea. */
   salaries?: RolePickerSalaries | undefined;
@@ -103,8 +134,29 @@ export function OnboardingForm({
   minSummary: number;
   maxSummary: number;
 }) {
+  // El agente deja el país y las modalidades de la guía en el navegador (todavía no se escriben); se leen
+  // una vez, al montar, y precargan el formulario. Sin `agentInitial` no hace nada.
+  const stored = useSyncExternalStore(subscribeNothing, readAgentStorage, serverAgentStorage);
+  const initial = useMemo((): ProfileFormValues | undefined => {
+    if (!agentInitial) return undefined;
+    try {
+      const [stateRaw] = JSON.parse(stored) as [string | null];
+      const state = parseProfileAgentState(JSON.parse(stateRaw ?? "null"));
+      const prefill = profileAgentFormPrefill(state?.guide ?? null, null, {
+        country: agentInitial.country,
+        summary: agentInitial.summary,
+      });
+      return { ...agentInitial, ...prefill };
+    } catch {
+      // un estado roto en el navegador: queda lo guardado
+      return agentInitial;
+    }
+  }, [agentInitial, stored]);
   return (
     <ProfileForm
+      // al llegar el precargado el formulario se vuelve a montar: la persona todavía no escribió nada
+      key={stored === EMPTY_STORAGE ? "base" : "prefilled"}
+      {...(initial ? { initial } : {})}
       action={saveOnboardingAction}
       rolesLimit={rolesLimit}
       countries={countries}

@@ -157,6 +157,43 @@ describe("buildLearningPlan · respaldo del rol", () => {
     expect(r.rows.map((x) => x.slug)).toEqual(["plan_s2"]);
   });
 
+  it("R11-2: una skill pendiente fuera de la demanda (sumada desde la guía) no se borra", async () => {
+    await seedRoleMarket();
+    // plan_s3 no está en la demanda del rol: la persona la sumó a mano desde la guía del agente
+    await conn.db.insert(s.learningPlanItems).values({
+      userId: USER,
+      skillId: skillIds.plan_s3!,
+      priority: 1,
+      status: "pendiente",
+    });
+    const r = await buildLearningPlan(conn.db, { userId: USER });
+    expect(r.removed).toBe(0);
+    const items = await conn.db
+      .select({ skillId: s.learningPlanItems.skillId })
+      .from(s.learningPlanItems)
+      .where(eq(s.learningPlanItems.userId, USER));
+    expect(items.map((i) => i.skillId)).toContain(skillIds.plan_s3);
+  });
+
+  it("R11-2: la pendiente que la persona ya domina (nivel 3) sí se borra", async () => {
+    await seedRoleMarket();
+    await conn.db.insert(s.learningPlanItems).values({
+      userId: USER,
+      skillId: skillIds.plan_s1!,
+      priority: 1,
+      status: "pendiente",
+    });
+    await conn.db.insert(s.skillLevels).values({
+      userId: USER,
+      skillId: skillIds.plan_s1!,
+      level: 3,
+      confidence: 1,
+      state: "respaldada",
+    });
+    const r = await buildLearningPlan(conn.db, { userId: USER });
+    expect(r.removed).toBe(1);
+  });
+
   it("con 10 o más ofertas con skills usa la demanda del usuario", async () => {
     await seedRoleMarket();
     await seedOwn(MIN_OWN_JOBS_FOR_PLAN);

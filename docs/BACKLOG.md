@@ -1586,3 +1586,51 @@ Base: `main` (92467dd). Decisiones de Mauro del 13/11: «Pedir acceso», tope de
 ### R9 · Cierre de la tanda
 `deps:` todo en PR · `estado:` en PR (13/11)
 - Este bloque y `docs/beta/informe-r9.md`. Sale de `ronda/r8-cierre`.
+
+## Bloque 24 · Tanda R10 «Agente de perfil desde el CV» (13/11)
+
+Decisiones del dueño del proyecto del 13/11:
+- vive en /cv y es el primer paso opcional del onboarding;
+- no se guarda ni el archivo ni la charla;
+- se confirma por sección;
+- termina con la guía y el CV para ATS;
+- cupo de 3 lecturas por mes gratis y 10 pago;
+- va detrás del flag `CV_PROFILE_AGENT`.
+
+Contrato: ADR-034. Detalle en `docs/beta/informe-r10.md`. Ningún PR mergeado. Todo está apilado sobre R10-0.
+
+### R10-0 · ADR-034 y contrato del agente de perfil
+`deps:` — · `est:` 3 h · `estado:` en PR ([#497](https://github.com/Malejo01/job-search-os/pull/497), 13/11)
+- Un agente con tres etapas (lectura, huecos, guía). Incluye:
+  - esquemas Zod en `packages/pipeline/src/profile-agent/` y filtro de datos sensibles;
+  - ticket HMAC atado al usuario;
+  - flag `apagado | testers | all`;
+  - topes que cuentan las llamadas fallidas y cupo con el marcador `profile_read`, sin migración.
+
+### R10-1 · Subir el CV (carril rojo)
+`deps:` #497 · `est:` 3 h · `estado:` en PR ([#500](https://github.com/Malejo01/job-search-os/pull/500), 13/11)
+- DOCX leído en el navegador sin dependencias, o texto pegado. El PDF espera la decisión sobre `pdfjs-dist`. La tarea nueva `extract_cv_profile` (prompt y seed) suma estudios e idiomas. El cupo es de 3 y 10 lecturas por mes, y el del chat de CV no cambia. Tiene modo demo.
+
+### R10-2 · Tarjetas por sección (carril rojo)
+`deps:` #500 · `est:` 3 h · `estado:` en PR ([#503](https://github.com/Malejo01/job-search-os/pull/503), 13/11)
+- Tarjetas editables de experiencia, estudios, skills con nivel e idiomas, que se aceptan o se descartan. Se guardan con la validación de la carga manual y RLS. Los slug se validan contra la taxonomía y lo sensible nunca pasa.
+
+### R10-3 · Charla de huecos (carril rojo)
+`deps:` #497 · `est:` 3 h · `estado:` en PR ([#499](https://github.com/Malejo01/job-search-os/pull/499), 13/11)
+- Plantillas fijas por carrera en `packages/prompts/profile_gaps.v1.md`; el modelo no redacta las preguntas. Una pregunta por vez, hasta 2 repreguntas, y acepta «no tengo». `cv_interview` solo extrae. Cada cambio sale como tarjeta a confirmar.
+
+### R10-4 · Guía de búsqueda (carril rojo)
+`deps:` #499 · `est:` 3 h · `estado:` en PR ([#502](https://github.com/Malejo01/job-search-os/pull/502), 13/11)
+- Sin modelo. Seis preguntas fijas y tarjetas de puestos, criterios, palabras por portal y skills a reforzar; las skills salen del pool y el servidor las recalcula. No promete nada. Antes de completar el onboarding no escribe criterios ni país. Arregla O-A y O-B de #499.
+
+### R10-5 · Cierre con CV para ATS y onboarding (carril rojo)
+`deps:` #497 · `est:` 3 h · `estado:` en PR ([#498](https://github.com/Malejo01/job-search-os/pull/498), 13/11)
+- `cv_write` con el verificador de ADR-026, vista previa en Word y PDF, y pantalla «qué sigue». El onboarding suma un primer paso opcional. Con el flag apagado queda igual que hoy.
+
+### R10-6 · Pruebas, seguridad y lista para Ani
+`deps:` #498 · `est:` 2 h · `estado:` en PR ([#501](https://github.com/Malejo01/job-search-os/pull/501), 13/11)
+- 3 CV de prueba inventados y 34 tests de seguridad (inyección, sensibles, cupo y topes). El e2e 134 cubre el agente apagado. `docs/beta/agente-perfil-pruebas.md` tiene la lista para Ani, el costo estimado y el guion del e2e del recorrido completo para la integración.
+
+### R10 · Cierre de la tanda
+`deps:` todo en PR · `estado:` en PR (13/11)
+- Este bloque y `docs/beta/informe-r10.md`. Sale de `ronda/r9-cierre`.
