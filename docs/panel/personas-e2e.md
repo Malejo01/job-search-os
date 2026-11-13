@@ -12,7 +12,7 @@ Diez personas inventadas recorren el producto de punta a punta, sin red ni LLM (
 | `94-persona-comunicacion` | Camila, comunicación institucional | Comunicación y prensa (Comunicación y relaciones) |
 | `97-persona-contaduria` | Agustina, contadora de estudio contable | Contaduría, impuestos y finanzas (Derecho, contabilidad y gestión) |
 | `98-persona-administracion` | Bruno, compras y control de gestión | Administración de empresas (Derecho, contabilidad y gestión) |
-| `99-persona-marketing-rrpp` | Rocío, relaciones públicas y contenidos | Marketing y relaciones públicas (Comunicación y relaciones) |
+| `99-persona-marketing-rrpp` | Rocío, relaciones públicas y contenidos | Marketing digital (Comunicación y relaciones); desde R5 «Relaciones públicas» es carrera propia y su persona la suma `qa` (C12) |
 | `100-persona-relaciones-internacionales` | Inés, comercio exterior y cooperación | Relaciones internacionales y comex (Comunicación y relaciones) |
 
 ## Qué recorre cada una
