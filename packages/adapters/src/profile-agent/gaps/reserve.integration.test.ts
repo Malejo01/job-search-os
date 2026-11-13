@@ -196,6 +196,24 @@ describe("turnos por charla, medidos en llm_calls", () => {
   });
 });
 
+describe("O-A: las reservas vivas cuentan como turnos", () => {
+  it("con 19 turnos hechos, solo una de dos `answer` en paralelo pasa", async () => {
+    for (let i = 0; i < PROFILE_AGENT_MAX_GAP_TURNS - 1; i++) await call({ costUsd: 0 });
+    const rs = await Promise.all([reserve("turn"), reserve("turn")]);
+    expect(rs.filter((r) => r.ok)).toHaveLength(1);
+    expect(rs.find((r) => !r.ok)).toMatchObject({ reject: "turnos" });
+  });
+
+  it("la reserva de otra charla o ya soltada no suma", async () => {
+    const other = await reserve("turn", { label: `${PREFIX}-otra` });
+    if (!other.ok) throw new Error("debía pasar");
+    expect((await measureGaps(conn.db, { userId: USER, label: LABEL, ...clock() })).gapTurns).toBe(
+      0,
+    );
+    await releaseCvChatReservation(conn.db, other.reservationId);
+  });
+});
+
 describe("reservas", () => {
   it("la reserva de un turno cuenta mientras está viva y se borra al soltarla", async () => {
     const r = await reserve("turn");

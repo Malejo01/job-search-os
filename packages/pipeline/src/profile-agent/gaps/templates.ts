@@ -190,8 +190,11 @@ export function renderGapQuestion(
     (v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
   const org = oneLine(ctx.organization, ORGANIZATION_MAX_CHARS) || "ese trabajo";
   const skill = oneLine(ctx.skill, SKILL_MAX_CHARS) || "esa habilidad";
-  return text
-    .replaceAll("{organizacion}", org)
-    .replaceAll("{habilidad}", skill)
-    .slice(0, GAP_QUESTION_MAX_CHARS);
+  return (
+    text
+      // función de reemplazo: con una cadena, `$&` y `$'` del nombre se interpretarían
+      .replaceAll("{organizacion}", () => org)
+      .replaceAll("{habilidad}", () => skill)
+      .slice(0, GAP_QUESTION_MAX_CHARS)
+  );
 }

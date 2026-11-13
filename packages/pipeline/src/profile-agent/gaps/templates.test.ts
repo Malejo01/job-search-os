@@ -165,6 +165,17 @@ describe("gapCareerKey y renderGapQuestion", () => {
     expect(gapCareerKey([])).toBe(GAP_DEFAULT_CAREER);
   });
 
+  it("O-B: `$&` y `$'` del nombre se escriben tal cual, no se interpretan", () => {
+    expect(
+      renderGapQuestion(templates, "abogacia", "duties", false, {
+        organization: "Estudio $& $' $`",
+      }),
+    ).toBe("¿Qué tareas hacías en Estudio $& $' $`?");
+    expect(renderGapQuestion(templates, "fullstack", "skill_level", false, { skill: "C$&" })).toBe(
+      "¿Cuánto usaste C$&? Elegí un nivel.",
+    );
+  });
+
   it("reemplaza los marcadores con los datos de la persona, en una línea", () => {
     expect(
       renderGapQuestion(templates, "abogacia", "duties", false, {
