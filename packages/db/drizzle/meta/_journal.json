@@ -435,6 +435,13 @@
       "when": 1794515245693,
       "tag": "0061_carrera_relaciones_publicas",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1794537474834,
+      "tag": "0062_disciplinas_carreras_no_tecnicas",
+      "breakpoints": true
     }
   ]
 }
