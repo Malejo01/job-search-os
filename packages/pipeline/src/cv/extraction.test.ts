@@ -245,6 +245,22 @@ describe("normalizeCvExtraction", () => {
     expect(r).toEqual({ ok: false, error: "schema_invalid" });
   });
 
+  it("un dato sensible en suggested_roles es sensitive_output (no solo un rol desconocido)", () => {
+    const r = run((raw) => ({ ...raw, suggested_roles: ["persona@example.com"] }));
+    expect(r).toEqual({ ok: false, error: "sensitive_output" });
+    // un rol desconocido sin dato sensible sigue siendo un descarte
+    expect(proposal((raw) => ({ ...raw, suggested_roles: ["chef"] })).suggestedRoles).toEqual([]);
+  });
+
+  it("other_terms con datos sensibles no llegan a la propuesta: se descartan uno por uno", () => {
+    const p = proposal((raw) => ({
+      ...raw,
+      other_terms: ["persona@example.com", "edad: 32", "Kafka"],
+    }));
+    expect(p.otherTerms).toEqual(["Kafka"]);
+    expect(p.flags.dropped.term_sensitive).toBe(2);
+  });
+
   it("other_terms: sin URLs, sin repetidos y sin lo que ya es candidata", () => {
     const p = proposal((r) => ({
       ...r,
@@ -326,7 +342,7 @@ describe("normalizeCvExtraction", () => {
         ...raw,
         education: [
           {
-            institution: "Universidad, tel +54 " + "9 351 555-0000",
+            institution: "Universidad, contacto persona@example.com",
             title: "x",
             start: null,
             end: null,
