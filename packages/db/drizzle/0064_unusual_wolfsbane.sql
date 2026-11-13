@@ -1,0 +1,1 @@
+CREATE INDEX "evaluations_user_inputs_jd_hash" ON "evaluations" USING btree ("user_id",(("decision" -> 'inputs' ->> 'jd_hash')),"created_at" DESC NULLS LAST);

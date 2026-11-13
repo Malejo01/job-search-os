@@ -1,5 +1,6 @@
 export * as schema from "../schema";
 export { createDb, type Db } from "./client";
+export { parseDbPoolMax, DEFAULT_DB_POOL_MAX } from "./pool-max";
 export {
   dbTarget,
   describeDatabaseUrl,

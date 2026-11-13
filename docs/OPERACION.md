@@ -104,6 +104,16 @@ commit;
 - **Primeras ofertas:** las 9 primeras evaluaciones del onboarding no dependen del plan.
 - **La web nunca se conecta como dueño:** `DATABASE_URL_APP` tiene que ser `jobsearch_app`. Con el rol dueño, el trigger dejaría pasar cualquier cambio de plan sin avisar (y RLS tampoco aplicaría; `assertAppRole` lo frena al arrancar).
 
+## Conexiones a la base: `DB_POOL_MAX` (R8-4)
+
+La web abre un pool de conexiones **por instancia** de Vercel (`apps/web/lib/db.ts`). `DB_POOL_MAX` fija el tamaño: entero de 1 a 20; ausente, vacía o inválida (con un aviso en el log) vale **5**, como antes. Se cambia en Vercel (solo Mauro) y rige en el próximo deploy.
+
+**La cuenta.** Conexiones simultáneas máximas = instancias activas × `DB_POOL_MAX`, y eso más lo que abren el worker y los crons (cada uno con su propia conexión) tiene que quedar por debajo del límite de la base. Ejemplo: 10 instancias × 5 = 50 conexiones.
+
+- **Límite de Neon Free: a confirmar.** No está anotado en `docs/` (`docs/beta/capacidad.md` solo cubre la transferencia). Se verifica en la consola de Neon y en <https://neon.com/docs/connect/connection-pooling>; el máximo de conexiones directas depende del tamaño de cómputo del plan.
+- **Pooler de Neon (`-pooler` en el host de la URL).** Acepta muchas más conexiones de cliente que el límite directo, a cambio de modo transacción (por eso `createDb` usa `prepare: false`; `withUser` fija `app.user_id` con `set_config(..., true)` dentro de la transacción, compatible). Si la cuenta se acerca al límite directo, la salida es usar la URL con `-pooler` en `DATABASE_URL_APP`, no subir `DB_POOL_MAX`.
+- **Subirlo no acelera nada** si las consultas de una página ya van en paralelo con 5: solo sirve cuando hay más de 5 consultas simultáneas por instancia. Ante la duda, dejarlo en 5.
+
 ## Smoke post-deploy
 
 Después de cada deploy exitoso a Production, `.github/workflows/smoke.yml` corre `apps/web/e2e-smoke/smoke.spec.ts` contra la URL de producción, que está fija en el workflow (nunca la del evento). Es **de solo lectura**: `/api/health`, login, `/jobs`, abrir la primera oferta si hay y `/applications`. No toca botones que escriban.

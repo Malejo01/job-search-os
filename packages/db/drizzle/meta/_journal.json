@@ -449,6 +449,13 @@
       "when": 1794538038343,
       "tag": "0063_skills_relaciones_publicas",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1794580725685,
+      "tag": "0064_unusual_wolfsbane",
+      "breakpoints": true
     }
   ]
 }
