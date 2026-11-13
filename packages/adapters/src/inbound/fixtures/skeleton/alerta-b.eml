@@ -1,0 +1,22 @@
+From: =?UTF-8?Q?Bolsa_Demo?= <alertas@mail.bolsa-demo.example>
+To: ficticia@example.com
+Subject: =?UTF-8?B?VW4gYXZpc28gbnVldm8gcGFyYSBGaWN0aWNpYQ==?=
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<html lang=3D"es">
+<head><title>Alertas de empleo</title></head>
+<body>
+<table role=3D"presentation" width=3D"600" align=3D"center" class=3D"contenedor">
+<tr><td class=3D"saludo">Hola Ficticia,</td></tr>
+<tr><td>
+<table class=3D"aviso"><tr><td class=3D"titulo"><a href=3D"https://www.bolsa-demo.example/empleos/dise=
+nadora-ficticia-111222?utm_source=3Dmail&amp;token=3Dqqq111WWW">Dise=C3=B1adora Ficticia</a></td><td class=3D"empresa">Empresa C</td></tr><tr><td><a class=3D"boton" href=3D"https://www.bolsa-demo.example/ver/111222?token=3Dqqq111WWW">Ver aviso</a></td></tr></table>
+<table class=3D"aviso"><tr><td class=3D"titulo"><a href=3D"https://www.bolsa-demo.example/empleos/tester-ficticio-333444?utm_source=3Dmail&amp;token=3Drrr222VVV">Tester Ficticio</a></td><td class=3D"empresa">Empresa D</td></tr><tr><td><a class=3D"boton" href=3D"https://www.bolsa-demo.example/ver/333444?token=3Drrr222VVV">Ver aviso</a></td></tr></table>
+</td></tr>
+<tr><td class=3D"pie">Escribinos a ayuda@bolsa-demo.example &nbsp; Cancelar suscripcion</td></tr>
+<tr><td>Empresa Reservada</td></tr>
+</table>
+</body>
+</html>

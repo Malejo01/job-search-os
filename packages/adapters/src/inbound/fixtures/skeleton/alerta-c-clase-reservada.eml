@@ -1,0 +1,12 @@
+From: Bolsa Demo <alertas@mail.bolsa-demo.example>
+To: ficticia@example.com
+Subject: Un aviso
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<html>
+<body>
+<table class="aviso empresa-reservada"><tr><td class="titulo"><a href="https://www.empresa-reservada.example/ver">Cargo Ficticio</a></td></tr></table>
+<tr><td>Empresa Reservada</td></tr>
+</body>
+</html>
