@@ -5,7 +5,8 @@ import { eq } from "drizzle-orm";
 import { ownerDb } from "./helpers";
 
 /**
- * Flujo 48 (ronda 74): demo guiada pública. Sin sesión, `/demo` lista los 3 perfiles; cada perfil
+ * Flujo 48 (ronda 74): demo guiada pública. Sin sesión, `/demo` muestra solo el ejemplo de contaduría
+ * (R5-C7); los 3 perfiles de tecnología siguen por URL; cada perfil
  * muestra tarjetas o "Estamos preparando la demo". Las páginas son ISR y la tabla puede estar vacía
  * en el CI: el perfil `fullstack_ssr` se siembra con una evaluación ficticia ANTES de la primera
  * visita (generateStaticParams es vacío, así que no se prerenderiza en el build) y se borra al final.
@@ -91,18 +92,20 @@ test.describe("Flujo 48: demo guiada", () => {
     }
   });
 
-  test("sin sesión, /demo muestra los 3 perfiles y se entra a uno", async ({ page }) => {
+  test("sin sesión, /demo muestra solo el ejemplo de contaduría (R5-C7)", async ({ page }) => {
     await page.goto("/demo");
     await expect(
-      page.getByRole("heading", { level: 1, name: /así evalúa ofertas reales/i }),
+      page.getByRole("heading", { level: 1, name: /así se ve para alguien de contaduría/i }),
     ).toBeVisible();
-    await expect(page.getByTestId("demo-profile-card")).toHaveCount(3);
+    // Un solo perfil: ni tarjetas de tecnología ni «Pronto»
+    await expect(page.getByTestId("demo-profile-card")).toHaveCount(0);
+    await expect(page.getByTestId("demo-contaduria-link")).toBeVisible();
+    await expect(page.locator("body")).not.toContainText("Pronto");
     expect(await page.title()).toContain(BRAND.name);
+  });
 
-    // /demo es ISR: si se cacheó vacía no hay links ("Pronto"), pero el perfil se abre igual
-    const link = page.getByRole("link", { name: "Ver la demo de Full stack semi senior" });
-    if (await link.count()) await link.click();
-    else await page.goto("/demo/fullstack_ssr");
+  test("los perfiles de tecnología siguen abriéndose por URL", async ({ page }) => {
+    await page.goto("/demo/fullstack_ssr");
     await expect(page).toHaveURL(/\/demo\/fullstack_ssr$/);
     await expect(
       page.getByRole("heading", { level: 1, name: "Full stack semi senior" }),

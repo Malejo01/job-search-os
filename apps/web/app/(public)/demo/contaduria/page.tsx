@@ -14,7 +14,7 @@ export const dynamic = "force-static";
 export const metadata: Metadata = {
   title: "Demo: así se ve para alguien de contaduría",
   description:
-    "Un ejemplo con datos inventados: el perfil de una contadora, cinco ofertas con su puntaje, lo que tiene a favor y lo que le falta, y cómo completar una oferta sin descripción.",
+    "Un ejemplo con datos inventados: el perfil de una contadora, cuatro ofertas con su puntaje, lo que tiene a favor y lo que le falta, y cómo completar una oferta sin descripción.",
   alternates: { canonical: "/demo/contaduria" },
   openGraph: publicOpenGraph({ path: "/demo/contaduria" }),
 };
