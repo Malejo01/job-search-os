@@ -82,6 +82,20 @@ const workKey = (kind: CvTopicKind, i: number): string => `w${i}:${kind}`;
 const WORK_FIELDS = ["organization", "title", "dates", "duties", "achievement"] as const;
 const LIST_TOPICS = ["education", "certifications", "skills", "languages", "links"] as const;
 
+/**
+ * Puesto con el que arranca el chat (R11-12): el titular del perfil si lo hay; si no, el nombre de la
+ * carrera que la persona ya eligió. Con alguno de los dos no se le vuelve a preguntar el puesto.
+ */
+export function chatTarget(
+  headline: string | null | undefined,
+  roleLabel: string | null | undefined,
+): string | null {
+  const h = (headline ?? "").replace(/\s+/g, " ").trim();
+  if (h) return h.slice(0, 120);
+  const r = (roleLabel ?? "").trim();
+  return r ? r.slice(0, 120) : null;
+}
+
 export function initialCvChatState(seed: CvChatSeed = {}): CvChatState {
   const history = [...(seed.history ?? [])];
   const answered: string[] = [];
@@ -151,6 +165,12 @@ export function cvChecklistProgress(s: CvChatState): { done: number; total: numb
   ];
   return { done: sections.filter(Boolean).length, total: sections.length };
 }
+
+/**
+ * Número que se muestra en «Avance: N de M temas» (R11-12): nunca 0. El chat arranca con el puesto
+ * que ya está en el perfil, así que el primer tema ya está resuelto y el contador empieza en 1.
+ */
+export const cvProgressShown = (done: number): number => Math.max(1, done);
 
 function withAnswered(s: CvChatState, key: string): CvChatState {
   return s.answered.includes(key) ? s : { ...s, answered: [...s.answered, key] };

@@ -2,7 +2,9 @@ import { schema as s, type Db } from "@job-search-os/db";
 import {
   applyChatMerge,
   buildCvDocument,
+  chatTarget,
   mergeChatHistory,
+  toRoleKey,
   type CvChatSeed,
   type CvDocument,
   type CvHistoryInput,
@@ -16,6 +18,7 @@ import { withUser } from "./db";
 import { listCareerHistory } from "./career-history";
 import { loadCvSource, cvChatMode, type CvOptions } from "./cv-source";
 import { canCreateInvitations } from "./invitations";
+import { ROLE_SKILLS } from "./skill-levels";
 
 /**
  * Parte de servidor del chat «Armá tu CV con IA» (C-25, CVC-5). Lecturas y escrituras de la persona con
@@ -37,14 +40,33 @@ export async function skillCatalogNames(db: Db): Promise<string[]> {
   return rows.map((r) => r.name);
 }
 
+/** Nombre de la primera carrera elegida en el perfil (la que se muestra en pantalla), si hay. */
+function firstRoleLabel(targetRoles: readonly unknown[] | null | undefined): string | null {
+  for (const v of targetRoles ?? []) {
+    const key = toRoleKey(v);
+    if (key) return ROLE_SKILLS[key].label;
+  }
+  return null;
+}
+
 /** Lo ya confirmado, para no repreguntarlo. Los trabajos no se siembran: el chat los pregunta de nuevo. */
 export async function loadChatSeed(userId: string): Promise<CvChatSeed> {
   const opts: CvOptions = { lang: "es", includeEmail: true, includeBasics: false };
-  const [data, history] = await Promise.all([
+  const [data, history, roles] = await Promise.all([
     loadCvSource(userId, opts),
     listCareerHistory(userId),
+    withUser(userId, async (tx) => {
+      const [p] = await tx
+        .select({ targetRoles: s.profiles.targetRoles })
+        .from(s.profiles)
+        .where(eq(s.profiles.userId, userId))
+        .limit(1);
+      return p?.targetRoles ?? [];
+    }),
   ]);
   return {
+    // R11-12: el puesto ya está en el perfil (titular o carrera elegida): no se vuelve a preguntar
+    target: chatTarget(data?.headline, firstRoleLabel(roles)),
     history: history
       .filter((h) => h.kind !== "trabajo")
       .map(({ kind, organization, title, startMonth, endMonth, bullets }) => ({

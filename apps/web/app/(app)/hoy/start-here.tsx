@@ -27,7 +27,9 @@ const STEP_TASK: Record<StartHereStepId, { title: string; button: string }> = {
   perfil: { title: "Completar tu perfil", button: "Completar mi perfil" },
   areas: { title: "Elegir tus áreas", button: "Elegir mis áreas" },
   ofertas: { title: "Pegar una oferta", button: "Pegar una oferta" },
-  cv: { title: "Subir tu CV", button: "Armar mi CV" },
+  // R11-12: no se sube ningún archivo todavía; el paso lleva a «Armá tu CV con IA» (el agente de perfil
+  // no está en main: cuando exista y el flag `CV_PROFILE_AGENT` esté prendido, este paso va allá)
+  cv: { title: "Armar tu CV con IA", button: "Armar mi CV con IA" },
 };
 
 /**
