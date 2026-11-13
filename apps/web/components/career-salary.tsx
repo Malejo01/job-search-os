@@ -120,7 +120,8 @@ export function CareerSalary({
   return (
     <div data-testid={testId} className="flex min-w-0 flex-col gap-1 text-sm text-fg-muted">
       <p className="break-words" data-testid={`${testId}-line`}>
-        LatAm: {line ?? fewText(salary.latam)}
+        {/* R11-13: aclara que son ofertas en dólares abiertas a la región, no el sueldo local */}
+        Ofertas en dólares (LatAm): {line ?? fewText(salary.latam)}
       </p>
       <details className="group min-w-0">
         <summary className="inline-flex min-h-11 cursor-pointer items-center gap-1 text-fg underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">

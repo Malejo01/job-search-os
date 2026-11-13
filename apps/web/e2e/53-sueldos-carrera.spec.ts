@@ -82,7 +82,7 @@ test.describe("Flujo 53: sueldos por carrera", () => {
     await expect(lines.first()).toBeVisible();
     expect(await lines.count()).toBeGreaterThanOrEqual(1);
     await expect(lines.first()).toHaveText(
-      /^LatAm: (típico USD [\d.]+\/mes · .+ ofertas con sueldo|Pocos datos todavía: .+ de 10 ofertas con sueldo publicado|Ninguna oferta publica sueldo todavía)$/,
+      /^Ofertas en dólares \(LatAm\): (típico USD [\d.]+\/mes · .+ ofertas con sueldo|Pocos datos todavía: .+ de 10 ofertas con sueldo publicado|Ninguna oferta publica sueldo todavía)$/,
     );
 
     // «Ver sueldos» se abre y muestra los dos segmentos

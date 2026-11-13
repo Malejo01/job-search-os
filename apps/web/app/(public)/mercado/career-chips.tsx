@@ -26,26 +26,43 @@ export async function CareerChips({
   const visible = await getPublicCareerKeys();
   // R5-C8: las 8 carreras de la beta primero y con su nombre; el resto, después
   const { beta, others } = betaFirst(ROLE_KEYS.filter((k) => visible.includes(k) || k === current));
+  // R11-13: las de la beta se distinguen (borde y peso) y, en el celular, el resto va plegado en
+  // «Otras carreras»: antes eran más de veinte botones antes del primer aviso. Desde `sm` se ven todas.
+  const chip = (key: (typeof ROLE_KEYS)[number], isBeta: boolean) => (
+    <li key={key}>
+      <Link
+        href={`${base}/${key}`}
+        prefetch={false}
+        aria-current={key === current ? "page" : undefined}
+        className={`inline-flex min-h-11 items-center rounded-full border px-3 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
+          key === current
+            ? "border-brand-contrast bg-brand text-brand-contrast"
+            : isBeta
+              ? "border-2 border-brand-text bg-surface font-semibold text-fg hover:bg-surface-muted"
+              : "border-line-strong bg-surface text-fg hover:bg-surface-muted"
+        }`}
+      >
+        {catalogLabel(key)}
+      </Link>
+    </li>
+  );
+  const currentIsOther = others.some((k) => k === current);
   return (
     <nav aria-label={label}>
       <ul className="flex flex-wrap gap-2">
-        {[...beta, ...others].map((key) => (
-          <li key={key}>
-            <Link
-              href={`${base}/${key}`}
-              prefetch={false}
-              aria-current={key === current ? "page" : undefined}
-              className={`inline-flex min-h-11 items-center rounded-full border px-3 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
-                key === current
-                  ? "border-brand-contrast bg-brand text-brand-contrast"
-                  : "border-line-strong bg-surface text-fg hover:bg-surface-muted"
-              }`}
-            >
-              {catalogLabel(key)}
-            </Link>
-          </li>
-        ))}
+        {beta.map((key) => chip(key, true))}
+        <li className="hidden sm:contents">
+          <ul className="contents">{others.map((key) => chip(key, false))}</ul>
+        </li>
       </ul>
+      {others.length > 0 ? (
+        <details className="mt-2 sm:hidden" open={currentIsOther}>
+          <summary className="inline-flex min-h-11 cursor-pointer items-center text-sm font-medium text-fg underline">
+            Otras carreras ({others.length})
+          </summary>
+          <ul className="mt-2 flex flex-wrap gap-2">{others.map((key) => chip(key, false))}</ul>
+        </details>
+      ) : null}
     </nav>
   );
 }

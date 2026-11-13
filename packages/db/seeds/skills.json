@@ -433,11 +433,11 @@
   },
   {
     "slug": "client_facing",
-    "name": "Client-facing / explicar a no técnicos",
+    "name": "Trato con clientes y explicar a personas no técnicas",
     "category": "soft",
-    "aliases": ["discovery", "stakeholders", "communication", "documentación para no técnicos"],
+    "aliases": ["client-facing", "client facing", "discovery", "stakeholders", "communication", "documentación para no técnicos", "trato con clientes"],
     "closure_hours": 0,
-    "description": "Client-facing: hablar con clientes y explicar temas técnicos a personas que no son técnicas"
+    "description": "Trato con clientes: hablar con clientes y explicar temas complejos a personas que no son del tema"
   },
   {
     "slug": "leadership",
@@ -905,19 +905,19 @@
   },
   {
     "slug": "erp_accounting",
-    "name": "Software contable (NetSuite, QuickBooks, Xero)",
+    "name": "Software contable (Tango, Bejerman, SAP FI/CO, QuickBooks)",
     "category": "dominio",
-    "aliases": ["netsuite", "quickbooks", "xero", "sage intacct", "sap fi", "sap fico", "odoo", "tango gestion"],
+    "aliases": ["netsuite", "quickbooks", "xero", "sage intacct", "sap fi", "sap fico", "odoo", "tango gestion", "tango", "tango software", "tango tesoreria", "tango contabilidad", "bejerman", "bejerman software", "bejerman contabilidad", "sap fi/co", "sap fi co", "sap fi-co", "sap financiero", "sap finanzas", "sap s/4hana finance", "holistor", "xubio", "contabilium", "colppy"],
     "closure_hours": 16,
-    "description": "Software contable: sistemas como NetSuite, QuickBooks o Xero donde se cargan facturas, pagos y asientos"
+    "description": "Software contable: sistemas como Tango, Bejerman, SAP FI/CO o QuickBooks donde se cargan facturas, pagos y asientos"
   },
   {
     "slug": "tax_compliance",
-    "name": "Impuestos, auditoría y controles",
+    "name": "Impuestos (ARCA/AFIP), auditoría y controles",
     "category": "dominio",
-    "aliases": ["impuestos", "tax compliance", "tax returns", "declaraciones juradas", "sales tax", "internal audit", "sox compliance", "controles internos"],
+    "aliases": ["impuestos", "tax compliance", "tax returns", "declaraciones juradas", "sales tax", "internal audit", "sox compliance", "controles internos", "arca", "afip", "arca afip", "arca/afip", "ex afip", "liquidacion de impuestos", "liquidación de impuestos", "libro iva digital", "iva digital", "monotributo", "impuesto a las ganancias", "ingresos brutos", "retenciones y percepciones", "f931"],
     "closure_hours": 24,
-    "description": "Impuestos, auditoría y controles: presentar declaraciones, cumplir normas fiscales y revisar que los controles internos funcionen"
+    "description": "Impuestos, ARCA/AFIP, auditoría y controles: liquidar y presentar impuestos, cumplir normas fiscales y revisar controles internos"
   },
   {
     "slug": "payroll",

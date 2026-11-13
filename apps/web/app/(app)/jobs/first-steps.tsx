@@ -122,25 +122,27 @@ export async function FirstSteps({ userId }: { userId: string }) {
       aria-labelledby="primeros-pasos-titulo"
       data-testid="first-steps"
       data-tour="jobs:primeros-pasos"
-      className="flex flex-col gap-1 rounded-card border-2 border-line bg-surface p-3 text-sm"
+      className="flex items-start gap-2 rounded-card border-2 border-line bg-surface px-3 py-1 text-sm"
     >
-      <div className="flex items-baseline justify-between gap-2">
-        <h2 id="primeros-pasos-titulo" className="font-semibold">
-          Primeros pasos
-        </h2>
-        <p className="text-xs text-fg-subtle" data-testid="first-steps-count">
-          {done} de {total}
-        </p>
-      </div>
-      <details className="group">
+      {/* R11-13: en el celular, una sola línea (título, avance y el paso que falta, con puntos
+          suspensivos) para que la primera oferta entre en la primera pantalla; «Ocultar» al costado */}
+      <details className="group min-w-0 flex-1">
         <summary className="flex min-h-11 cursor-pointer items-center gap-2 font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus">
           <Icon name="mas" size={16} className="shrink-0 text-fg-subtle group-open:hidden" />
           <Icon name="cruz" size={16} className="hidden shrink-0 text-fg-subtle group-open:block" />
-          {onlyOneMissing ? `Te falta un paso: ${missing?.text}` : "Ver los pasos"}
+          <h2 id="primeros-pasos-titulo" className="shrink-0 font-semibold">
+            Primeros pasos
+          </h2>
+          <span className="shrink-0 text-xs text-fg-subtle" data-testid="first-steps-count">
+            {done} de {total}
+          </span>
+          <span className="min-w-0 truncate text-fg-muted">
+            {onlyOneMissing ? `Te falta un paso: ${missing?.text}` : "Ver los pasos"}
+          </span>
         </summary>
-        {list}
+        <div className="pb-2">{list}</div>
       </details>
-      <div className="flex justify-end">{hide}</div>
+      <div className="shrink-0 pt-0.5">{hide}</div>
     </section>
   );
 }

@@ -25,7 +25,8 @@ type Task = {
  */
 const STEP_TASK: Record<StartHereStepId, { title: string; button: string }> = {
   perfil: { title: "Completar tu perfil", button: "Completar mi perfil" },
-  areas: { title: "Elegir tus áreas", button: "Elegir mis áreas" },
+  // R11-13: es opcional; se dice y va después de lo que sí hace falta (ver `tasks` más abajo)
+  areas: { title: "Elegir tus áreas (opcional)", button: "Elegir mis áreas" },
   ofertas: { title: "Pegar una oferta", button: "Pegar una oferta" },
   cv: { title: "Subir tu CV", button: "Armar mi CV" },
 };
@@ -90,7 +91,10 @@ export async function StartHere({
       link: { href: "/applications#seguimiento", button: "Ver mis postulaciones" },
     });
   }
-  const pending = tasks.filter((t) => !t.done);
+  // Lo opcional (áreas) no es lo primero que se pide: lo pendiente obligatorio pasa adelante
+  const pending = tasks
+    .filter((t) => !t.done)
+    .sort((a, b) => Number(a.id === "areas") - Number(b.id === "areas"));
   if (pending.length === 0) return null;
   const next = pending[0]!;
   const lastDone = tasks.filter((t) => t.done).at(-1);
