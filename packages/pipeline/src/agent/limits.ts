@@ -180,6 +180,29 @@ const CAP_TEXT: Record<AgentCapReason, string> = {
     "El asistente no está disponible ahora. Podés hacer los cambios directamente en estas pantallas:",
 };
 
+/** Desde cuántos mensajes restantes se le avisa a la persona. */
+export const REMAINING_WARN_AT = 2;
+
+/** Mensajes que le quedan a la charla, dados los que la persona ya envió (incluido el último). */
+export function remainingMessages(userMessagesSent: number): number {
+  if (!isCount(userMessagesSent)) return 0;
+  return Math.max(0, AGENT_LIMITS.maxTurnsPerConversation - userMessagesSent);
+}
+
+/** «Te quedan N mensajes…» solo cuando quedan entre 1 y `REMAINING_WARN_AT`; si no, null. */
+export function remainingMessagesNotice(userMessagesSent: number): string | null {
+  const left = remainingMessages(userMessagesSent);
+  if (left < 1 || left > REMAINING_WARN_AT) return null;
+  return left === 1
+    ? "Te queda 1 mensaje en esta charla"
+    : `Te quedan ${left} mensajes en esta charla`;
+}
+
+/** Topes que cierran la charla (seguir escribiendo no sirve); los otros se resuelven con otro mensaje. */
+export function isFinalCap(reason: AgentCapReason): boolean {
+  return reason !== "message_too_long" && reason !== "steps";
+}
+
 /** Mensaje fijo al llegar a un tope: siempre el mismo texto y los mismos links, sin el modelo. */
 export function capMessage(reason: AgentCapReason): { text: string; links: AgentLink[] } {
   return { text: CAP_TEXT[reason] ?? CAP_TEXT.cost_unknown, links: [...AGENT_SCREEN_LINKS] };
