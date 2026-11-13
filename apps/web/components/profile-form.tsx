@@ -570,9 +570,9 @@ export function ProfileForm({
           <p className="font-bold">Qué poner</p>
           <p>
             Tu puesto y años de experiencia; qué dominás y ya hiciste en trabajos reales, qué usaste
-            pero no es lo tuyo, y qué casi no conocés. Ser honesto con lo que no sabés evita que te
-            recomienden avisos que no podés cubrir. Incluí experiencia concreta, herramientas y
-            logros con números reales. No los infles: es un resumen, no un currículum.
+            pero no es lo tuyo, y qué casi no conocés. Decir con sinceridad lo que no sabés evita
+            que te recomienden avisos que no podés cubrir. Incluí experiencia concreta, herramientas
+            y logros con números reales. No los infles: es un resumen, no un currículum.
           </p>
           {hasChosenGroup ? (
             <>
