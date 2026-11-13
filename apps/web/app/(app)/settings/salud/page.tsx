@@ -51,7 +51,13 @@ async function AssistantBlock({ userId }: { userId: string }) {
           No se pudieron leer los datos del asistente.
         </p>
       ) : (
-        <div className="overflow-x-auto">
+        // Con teclado se puede desplazar a 360 px (axe: scrollable-region-focusable)
+        <div
+          role="region"
+          aria-label="Asistente, últimos 7 días"
+          tabIndex={0}
+          className="overflow-x-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
+        >
           <table className="w-full min-w-[30rem] text-left text-xs tabular-nums">
             <caption className="sr-only">Charlas del asistente por día</caption>
             <thead className="text-fg-muted">
