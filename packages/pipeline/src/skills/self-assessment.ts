@@ -161,6 +161,9 @@ export const BETA_LAUNCH_ROLE_KEYS: readonly RoleKey[] = [
   "fullstack",
 ];
 
+/** Nombre del grupo que abre los selectores de carrera (R5-C8). */
+export const BETA_GROUP_LABEL = "Carreras de la beta";
+
 /**
  * Carreras que siguen ocultas en los selectores generales. Abogacía se publicó el 1/11/2026: 17 ofertas
  * vigentes después de `pool:rehint` (umbral de 10, ADR-022). Las páginas públicas ya no dependen de esta
@@ -194,7 +197,16 @@ export function selectableRoleGroups(
 export function profileRoleGroups(
   keep: readonly RoleKey[] = [],
 ): readonly { label: string; roles: readonly RoleKey[] }[] {
-  return selectableRoleGroups([...keep, ...BETA_ROLE_KEYS]);
+  const offered = selectableRoleGroups([...keep, ...BETA_ROLE_KEYS]);
+  // R5-C8: las 8 carreras de la beta van primero, con su nombre, en un grupo propio; el resto sigue
+  // en sus grupos de siempre, debajo, sin repetir ninguna
+  const rest = offered
+    .map((g) => ({
+      label: g.label,
+      roles: g.roles.filter((r) => !BETA_LAUNCH_ROLE_KEYS.includes(r)),
+    }))
+    .filter((g) => g.roles.length > 0);
+  return [{ label: BETA_GROUP_LABEL, roles: BETA_LAUNCH_ROLE_KEYS }, ...rest];
 }
 
 /**
@@ -209,7 +221,7 @@ export function waitlistRoleGroups(): readonly { label: string; roles: readonly 
       roles: g.roles.filter((r) => !BETA_LAUNCH_ROLE_KEYS.includes(r)),
     }))
     .filter((g) => g.roles.length > 0);
-  return [{ label: "Carreras de la beta", roles: BETA_LAUNCH_ROLE_KEYS }, ...rest];
+  return [{ label: BETA_GROUP_LABEL, roles: BETA_LAUNCH_ROLE_KEYS }, ...rest];
 }
 
 export function isRoleKey(v: unknown): v is RoleKey {

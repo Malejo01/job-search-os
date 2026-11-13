@@ -1,7 +1,12 @@
 "use client";
 
-import { selectedSpecialtyIds, specialtiesFor, type RoleKey } from "@job-search-os/pipeline";
-import { useId, useState } from "react";
+import {
+  BETA_GROUP_LABEL,
+  selectedSpecialtyIds,
+  specialtiesFor,
+  type RoleKey,
+} from "@job-search-os/pipeline";
+import { Fragment, useId, useState } from "react";
 import { CareerSalary, type CareerSalaryView } from "./career-salary";
 import { RoleSpecialties } from "./specialty-chips";
 
@@ -79,86 +84,93 @@ export function RolePicker({
 
   return (
     <div className="flex flex-col gap-3">
-      {groups.map((group) => (
-        <fieldset key={group.label} className="flex flex-col gap-1 text-sm">
-          <legend className="mb-1 text-xs font-bold text-fg-subtle">{group.label}</legend>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {group.roles.map((role) => {
-              const checked = chosen.has(role.key);
-              const disabled = atLimit && !checked;
-              const salary = salaries?.[role.key as RoleKey];
-              const spanish = spanishCounts?.[role.key as RoleKey];
-              const help = ROLE_HELP[role.key];
-              const helpId = `${noteId}-help-${role.key}`;
-              const specialties = specialtiesFor(role.key as RoleKey);
-              const hasSpecialties = specialties.length > 0;
-              const describedBy = [help ? helpId : null, disabled ? noteId : null]
-                .filter(Boolean)
-                .join(" ");
-              return (
-                <div
-                  key={role.key}
-                  // C9-11: radio 18 y borde de 2 px; el puesto elegido, con borde índigo
-                  className={`flex min-w-0 flex-col rounded-control border-2 bg-surface ${
-                    checked ? "border-brand-text" : "border-line"
-                  } ${disabled ? "text-fg-subtle" : "text-fg"} ${
-                    checked && hasSpecialties ? "sm:col-span-2" : ""
-                  }`}
-                >
-                  <label className="flex min-h-11 items-center gap-2 px-3 py-2">
-                    <input
-                      type="checkbox"
-                      name={name}
-                      value={role.key}
-                      checked={checked}
-                      disabled={disabled}
-                      aria-describedby={describedBy || undefined}
-                      onChange={(e) => toggle(role.key, e.target.checked)}
-                      className="h-4 w-4 shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-                    />
-                    {role.label}
-                  </label>
-                  {help ? (
-                    <p id={helpId} className="pb-2 pl-9 pr-3 text-xs text-fg-subtle">
-                      {help}
-                    </p>
-                  ) : null}
-                  {spanish !== undefined ? (
-                    <p
-                      className="pb-1 pl-9 pr-3 text-xs text-fg-subtle"
-                      data-testid={`career-spanish-${role.key}`}
-                      data-count={spanish}
-                    >
-                      en español: {spanish}
-                    </p>
-                  ) : null}
-                  {/* Fuera del label: abrir "Ver sueldos" no tiene que marcar el puesto */}
-                  {salary ? (
-                    <div className="px-3 pb-1">
-                      <CareerSalary
-                        salary={salary}
-                        label={role.label}
-                        testId={`career-salary-${role.key}`}
+      {groups.map((group, index) => (
+        <Fragment key={group.label}>
+          {/* R5-C8: debajo de las 8 carreras de la beta, el resto va bajo «Otras carreras» */}
+          {index === 1 && groups[0]?.label === BETA_GROUP_LABEL ? (
+            <p className="mt-2 text-sm font-bold text-fg">Otras carreras</p>
+          ) : null}
+          <fieldset className="flex flex-col gap-1 text-sm">
+            <legend className="mb-1 text-xs font-bold text-fg-subtle">{group.label}</legend>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {group.roles.map((role) => {
+                const checked = chosen.has(role.key);
+                const disabled = atLimit && !checked;
+                const salary = salaries?.[role.key as RoleKey];
+                const spanish = spanishCounts?.[role.key as RoleKey];
+                const help = ROLE_HELP[role.key];
+                const helpId = `${noteId}-help-${role.key}`;
+                const specialties = specialtiesFor(role.key as RoleKey);
+                const hasSpecialties = specialties.length > 0;
+                const describedBy = [help ? helpId : null, disabled ? noteId : null]
+                  .filter(Boolean)
+                  .join(" ");
+                return (
+                  <div
+                    key={role.key}
+                    // C9-11: radio 18 y borde de 2 px; el puesto elegido, con borde índigo
+                    className={`flex min-w-0 flex-col rounded-control border-2 bg-surface ${
+                      checked ? "border-brand-text" : "border-line"
+                    } ${disabled ? "text-fg-subtle" : "text-fg"} ${
+                      checked && hasSpecialties ? "sm:col-span-2" : ""
+                    }`}
+                  >
+                    <label className="flex min-h-11 items-center gap-2 px-3 py-2">
+                      <input
+                        type="checkbox"
+                        name={name}
+                        value={role.key}
+                        checked={checked}
+                        disabled={disabled}
+                        aria-describedby={describedBy || undefined}
+                        onChange={(e) => toggle(role.key, e.target.checked)}
+                        className="h-4 w-4 shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
                       />
-                    </div>
-                  ) : null}
-                  {checked && hasSpecialties ? (
-                    <div className="border-t-2 border-line p-3">
-                      <RoleSpecialties
-                        roleKey={role.key as RoleKey}
-                        roleLabel={role.label}
-                        areasFilter={areasFilter}
-                        initialSpecialties={
-                          selectedSpecialtyIds(specialtySelection, role.key as RoleKey) ?? undefined
-                        }
-                      />
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-        </fieldset>
+                      {role.label}
+                    </label>
+                    {help ? (
+                      <p id={helpId} className="pb-2 pl-9 pr-3 text-xs text-fg-subtle">
+                        {help}
+                      </p>
+                    ) : null}
+                    {spanish !== undefined ? (
+                      <p
+                        className="pb-1 pl-9 pr-3 text-xs text-fg-subtle"
+                        data-testid={`career-spanish-${role.key}`}
+                        data-count={spanish}
+                      >
+                        en español: {spanish}
+                      </p>
+                    ) : null}
+                    {/* Fuera del label: abrir "Ver sueldos" no tiene que marcar el puesto */}
+                    {salary ? (
+                      <div className="px-3 pb-1">
+                        <CareerSalary
+                          salary={salary}
+                          label={role.label}
+                          testId={`career-salary-${role.key}`}
+                        />
+                      </div>
+                    ) : null}
+                    {checked && hasSpecialties ? (
+                      <div className="border-t-2 border-line p-3">
+                        <RoleSpecialties
+                          roleKey={role.key as RoleKey}
+                          roleLabel={role.label}
+                          areasFilter={areasFilter}
+                          initialSpecialties={
+                            selectedSpecialtyIds(specialtySelection, role.key as RoleKey) ??
+                            undefined
+                          }
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          </fieldset>
+        </Fragment>
       ))}
       <p aria-live="polite" className="text-xs text-fg-muted" data-testid="role-picker-count">
         {chosen.size} de {limit}

@@ -114,11 +114,12 @@ test.describe("Flujo 75: onboarding con finanzas", () => {
     await register(page, run);
 
     const group = page.getByRole("group", {
-      name: "Derecho, contabilidad y gestión",
+      name: "Carreras de la beta",
       exact: true,
     });
     await expect(group.locator(`input[name="targetRoles"][value="${FINANZAS}"]`)).toHaveCount(1);
-    await expect(group).toContainText(FINANZAS_LABEL);
+    // R5-C8: el selector la muestra con su nombre de la beta
+    await expect(group).toContainText("Contaduría");
     await expect(page.locator(`input[name="targetRoles"][value="${OPERACIONES}"]`)).toHaveCount(0);
 
     await group.locator(`input[name="targetRoles"][value="${FINANZAS}"]`).check();
