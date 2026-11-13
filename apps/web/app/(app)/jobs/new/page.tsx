@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Alert, cardClasses, filterChipClasses, textLinkClasses } from "@/components/ui";
 import { createManualJobAction } from "./actions";
+import { ImagePaste } from "./image-paste";
 import { JobFields } from "./job-fields";
 import { PasteForm } from "./paste-form";
 
@@ -24,9 +25,11 @@ function tabClass(active: boolean): string {
 export default async function NewJobPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; modo?: string }>;
+  searchParams: Promise<{ error?: string; modo?: string; n?: string }>;
 }) {
-  const { error, modo } = await searchParams;
+  const { error, modo, n } = await searchParams;
+  // Solo para el aviso de «carga parcial» de la imagen: un número chico, nunca texto de la URL
+  const cargadas = /^[0-5]$/.test(n ?? "") ? n : "algunas";
   const pegar = modo === "pegar";
   return (
     <section className="flex flex-col gap-5">
@@ -60,11 +63,18 @@ export default async function NewJobPage({
               ? "La URL tiene que empezar con http:// o https:// y ser una dirección pública."
               : error === "larga"
                 ? "Algún campo es demasiado largo: pegá solo el aviso, sin el resto de la página."
-                : "No se pudo cargar la oferta. Probá de nuevo."}
+                : error === "imagen_sin_seleccion"
+                  ? "No tildaste ninguna oferta. Subí la imagen de nuevo y elegí cuáles cargar."
+                  : error === "imagen_parcial"
+                    ? `Se cargaron ${cargadas} ofertas; las otras que elegiste no se pudieron cargar (revisá que tengan título y empresa). Las cargadas están en Ofertas.`
+                    : "No se pudo cargar la oferta. Probá de nuevo."}
         </Alert>
       ) : null}
       {pegar ? (
-        <PasteForm error={error} />
+        <>
+          <PasteForm error={error} />
+          <ImagePaste />
+        </>
       ) : (
         <form
           action={createManualJobAction}

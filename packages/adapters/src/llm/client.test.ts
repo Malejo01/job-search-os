@@ -474,6 +474,70 @@ describe("wire (esquema de viaje + normalización)", () => {
   });
 });
 
+describe("imágenes (R6-3)", () => {
+  const imageRoute: RouteConfig = { ...route, task: "extract_job_from_image" };
+  const img = { mediaType: "image/jpeg", data: new Uint8Array([0xff, 0xd8, 0xff, 0xe0]) };
+
+  it("las imágenes llegan al generador y el registro y el log no las llevan", async () => {
+    const calls = memoryCallSink();
+    const lines: string[] = [];
+    const logger = pino({ level: "debug" }, {
+      write: (line: string) => void lines.push(line),
+    } as unknown as NodeJS.WritableStream);
+    let seenImages: unknown;
+    const client = createLlmClient({
+      routes: staticRouteSource([imageRoute]),
+      calls,
+      providers: providers(["google"]),
+      generate: async (args) => {
+        seenImages = args.images;
+        return {
+          object: { score: 1, veredicto: "TEXTO-DE-LA-IMAGEN" },
+          usage: { inputTokens: 10, outputTokens: 5 },
+        };
+      },
+      logger,
+    });
+    const r = await client.generateStructured(
+      "extract_job_from_image",
+      Schema,
+      {},
+      {
+        userId: "u1",
+        images: [img],
+      },
+    );
+    expect(r.ok).toBe(true);
+    expect(seenImages).toEqual([img]);
+    expect(calls.calls[0]).toMatchObject({
+      task: "extract_job_from_image",
+      userId: "u1",
+      ok: true,
+    });
+    const everything = JSON.stringify(calls.calls) + lines.join("\n");
+    expect(everything).not.toContain("TEXTO-DE-LA-IMAGEN");
+    expect(everything).not.toContain("255,216"); // bytes de la imagen
+    expect(everything).not.toContain("/9j/"); // base64 de un JPEG
+  });
+
+  it("sin imágenes en el contexto, el generador no recibe el campo", async () => {
+    let args: Parameters<GenerateFn>[0] | undefined;
+    const client = createLlmClient({
+      routes: staticRouteSource([imageRoute]),
+      calls: memoryCallSink(),
+      providers: providers(["google"]),
+      generate: async (a) => {
+        args = a;
+        return { object: { score: 1, veredicto: "ok" }, usage: {} };
+      },
+      logger: silent,
+    });
+    await client.generateStructured("extract_job_from_image", Schema, {});
+    expect(args).toBeDefined();
+    expect("images" in args!).toBe(false);
+  });
+});
+
 describe("cachedRouteSource", () => {
   it("cachea 5 minutos y refresca después", async () => {
     let reads = 0;

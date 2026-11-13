@@ -112,6 +112,29 @@ export async function spendCapReason(
   return null;
 }
 
+/**
+ * Llamadas de una tarea que hizo un usuario desde `since` (ok o no: un intento fallido también
+ * costó). Sirve para el tope de uso por persona, por ejemplo 10 imágenes por día (R6-3). `db` tiene
+ * que ver `llm_calls` de todos (conexión de servicio). No exige migración: ya hay `task`, `user_id`
+ * y `created_at` en cada fila.
+ */
+export async function countTaskCallsSince(
+  db: Db,
+  input: { userId: string; task: string; since: Date },
+): Promise<number> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(s.llmCalls)
+    .where(
+      and(
+        eq(s.llmCalls.userId, input.userId),
+        eq(s.llmCalls.task, input.task),
+        gte(s.llmCalls.createdAt, input.since),
+      ),
+    );
+  return row?.n ?? 0;
+}
+
 /** Desglose por día, tarea y modelo (comando `pnpm llm:spend`). */
 export type SpendRow = {
   day: string;
