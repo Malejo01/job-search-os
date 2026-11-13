@@ -49,7 +49,24 @@ const defaultGenerate: GenerateFn = async (args) => {
   const result = await generateObject({
     model: args.model,
     schema: args.schema,
-    prompt: args.prompt,
+    // Con imágenes el prompt va como mensaje de usuario con partes (texto + archivos de imagen)
+    ...(args.images?.length
+      ? {
+          messages: [
+            {
+              role: "user" as const,
+              content: [
+                { type: "text" as const, text: args.prompt },
+                ...args.images.map((img) => ({
+                  type: "file" as const,
+                  mediaType: img.mediaType,
+                  data: img.data,
+                })),
+              ],
+            },
+          ],
+        }
+      : { prompt: args.prompt }),
     temperature: args.temperature,
     maxOutputTokens: args.maxOutputTokens,
     maxRetries: 2,
@@ -152,6 +169,7 @@ export function createLlmClient(deps: LlmClientDeps): LlmClient {
         model: languageModel,
         schema: ctx.wire?.schema ?? schema,
         prompt,
+        ...(ctx.images?.length ? { images: ctx.images } : {}),
         temperature: route.temperature,
         maxOutputTokens: route.maxTokens,
         abortSignal: signal,
