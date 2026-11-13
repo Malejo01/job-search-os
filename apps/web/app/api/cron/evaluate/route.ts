@@ -3,14 +3,17 @@ import {
   buildEvaluateCronResponse,
   checkBearerSecret,
   failedOutcomes,
+  createDbBudgetAlertStore,
   createLogger,
   createPgQueue,
   EVALUATE_BUDGET_MS,
   parseLogDays,
   purgeExpired,
   purgePool,
+  runBudgetAlerts,
   runEvaluateWorker,
   safeDbError,
+  spentLast24hUsd,
 } from "@job-search-os/adapters";
 import { NextResponse } from "next/server";
 import { serviceLlm } from "@/lib/llm-service";
@@ -74,8 +77,25 @@ export async function GET(request: Request): Promise<NextResponse> {
     } catch (error) {
       logger.error({ err: safeDbError(error) }, "purga del pool falló");
     }
+    // Alertas de presupuesto (R7-1): email a ADMIN_EMAILS al pasar el 70, 85 o 95 % del tope, una vez por
+    // umbral y por día. En su propio try: no rompe el cron. La respuesta pública lleva solo los umbrales.
+    let budgetAlerted: number[] | null = null;
+    try {
+      const now = new Date();
+      const alerts = await runBudgetAlerts({
+        store: createDbBudgetAlertStore(db),
+        spentUsd: spentLast24hUsd(db, now),
+        env: process.env,
+        now,
+        logger,
+      });
+      budgetAlerted = alerts.alerted;
+    } catch (error) {
+      logger.error({ err: safeDbError(error) }, "alertas de presupuesto fallaron");
+    }
     return NextResponse.json({
       ...buildEvaluateCronResponse(summary),
+      budgetAlerted,
       stopped_by_budget: summary.stopped === "budget",
       purged,
       purgedPool,

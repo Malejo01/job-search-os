@@ -48,6 +48,27 @@ describe("sendEmail", () => {
     ).rejects.toThrow(/HTTP 422.*dominio no verificado/);
   });
 
+  it("manda la cabecera Idempotency-Key solo si se pasa la clave", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true } as Response);
+    await sendEmail(
+      {
+        to: "a@example.com",
+        subject: "s",
+        text: "t",
+        idempotencyKey: "budget-alert:2026-11-12:70:0",
+      },
+      "key",
+      fetchImpl,
+    );
+    expect(fetchImpl.mock.calls[0]![1].headers["Idempotency-Key"]).toBe(
+      "budget-alert:2026-11-12:70:0",
+    );
+    await sendEmail({ to: "a@example.com", subject: "s", text: "t" }, "key", fetchImpl);
+    expect(fetchImpl.mock.calls[1]![1].headers).not.toHaveProperty("Idempotency-Key");
+    const body = JSON.parse(fetchImpl.mock.calls[0]![1].body as string);
+    expect(body).not.toHaveProperty("idempotencyKey");
+  });
+
   it("manda solo text si no hay html, y exige uno de los dos", async () => {
     const fetchImpl = vi.fn().mockResolvedValue({ ok: true } as Response);
     await sendEmail({ to: "a@example.com", subject: "s", text: "hola" }, "key", fetchImpl);

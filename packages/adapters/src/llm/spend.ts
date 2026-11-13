@@ -3,9 +3,10 @@ import { and, desc, eq, gte, isNotNull, notInArray, sql } from "drizzle-orm";
 
 /**
  * Filas de `llm_calls` que no son llamadas al modelo: la reserva de gasto del chat de CV (en vuelo, se borra
- * al terminar) y el registro de inicio de charla (costo 0). No suman llamadas, tokens ni USD en los reportes.
+ * al terminar), el registro de inicio de charla (costo 0) y la marca de alerta de presupuesto enviada
+ * (`budget_alert`, costo 0, R7-1). No suman llamadas, tokens ni USD en los reportes.
  */
-const NOT_MODEL_CALLS = ["cv_reserve", "cv_start"];
+const NOT_MODEL_CALLS = ["cv_reserve", "cv_start", "budget_alert"];
 
 /**
  * Gasto acumulado en `llm_calls` (guardarraíl de costo). La ventana es móvil de 24 h, no

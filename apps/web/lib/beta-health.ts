@@ -1,4 +1,10 @@
-import { createLogger, dailyCapFromEnv, safeDbError, spendLast24h } from "@job-search-os/adapters";
+import {
+  budgetAlertsSentToday,
+  createLogger,
+  dailyCapFromEnv,
+  safeDbError,
+  spendLast24h,
+} from "@job-search-os/adapters";
 import { createDb, requireDatabaseUrl } from "@job-search-os/db";
 import type { BetaHealthInput } from "@job-search-os/pipeline";
 import { sql } from "drizzle-orm";
@@ -37,7 +43,9 @@ function adminCount(): number {
     .filter(Boolean).length;
 }
 
-async function readCounts(nowIso: string): Promise<(Raw & { llm_spent: number }) | null> {
+async function readCounts(
+  nowIso: string,
+): Promise<(Raw & { llm_spent: number; budget_alerts: number[] }) | null> {
   const now = new Date(nowIso);
   const arDay = startOfArgentinaDay(now).toISOString();
   const { db, close } = createDb(requireDatabaseUrl({ purpose: "service" }), { max: 1 });
@@ -77,7 +85,9 @@ async function readCounts(nowIso: string): Promise<(Raw & { llm_spent: number })
     if (!rows[0]) return null;
     // El mismo gasto que mira el tope global (spend.ts): todas las llamadas al modelo de 24 h
     const spend = await spendLast24h(db, () => now);
-    return { ...rows[0], llm_spent: spend.usd };
+    // Umbrales de presupuesto ya avisados hoy (R7-1)
+    const alerts = await budgetAlertsSentToday(db, now);
+    return { ...rows[0], llm_spent: spend.usd, budget_alerts: alerts };
   } finally {
     await close();
   }
@@ -87,7 +97,8 @@ async function readCounts(nowIso: string): Promise<(Raw & { llm_spent: number })
 const cachedCounts = unstable_cache(readCounts, ["beta-health"], { revalidate: 300 });
 
 export type BetaHealthResult =
-  { ok: true; input: BetaHealthInput; at: Date } | { ok: false; reason: "no_admin" | "sin_datos" };
+  | { ok: true; input: BetaHealthInput; at: Date; budgetAlertsToday: number[] }
+  | { ok: false; reason: "no_admin" | "sin_datos" };
 
 export async function getBetaHealth(userId: string): Promise<BetaHealthResult> {
   if (!(await canCreateInvitations(userId).catch(() => false))) {
@@ -128,7 +139,7 @@ export async function getBetaHealth(userId: string): Promise<BetaHealthResult> {
       activeToday: n(raw.active_today),
       feedback24h: n(raw.feedback_24h),
     };
-    return { ok: true, input, at: now };
+    return { ok: true, input, at: now, budgetAlertsToday: raw.budget_alerts ?? [] };
   } catch (e) {
     createLogger({ user_id: userId, task: "beta_health" }).error(
       { err: safeDbError(e) },
