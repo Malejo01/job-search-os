@@ -3,13 +3,20 @@
     "carrera": "relaciones_publicas",
     "carrera_en_main": "marketing_digital",
     "version": "2026-11-12",
-    "descripcion": "Golden sintético de relaciones públicas (C12, R5): 6 avisos inventados con empresas ficticias. Sobre main la carrera se guarda como marketing_digital: el test corre con esa clave. Etiquetas propuestas (anchor_source assisted). No lo usa el job pago de evals.",
+    "descripcion": "Golden sintético de relaciones públicas: 6 avisos inventados con empresas ficticias (C12, R5) y el que venía en el de marketing_digital como marketing_digital-04 (R6-5, ADR-033), acá relaciones_publicas-07. Etiquetas propuestas (anchor_source assisted), a validar por un profesional después de la beta. No lo usa el job pago de evals.",
     "persona": {
       "pais": "AR",
       "ciudad": "Salta",
       "anos_experiencia": 2,
-      "modalidades": ["remoto", "hibrido", "presencial"],
-      "idiomas_aviso": ["es", "en"]
+      "modalidades": [
+        "remoto",
+        "hibrido",
+        "presencial"
+      ],
+      "idiomas_aviso": [
+        "es",
+        "en"
+      ]
     }
   },
   "casos": [
@@ -26,7 +33,10 @@
         "flags_esperados": [],
         "bloqueadores_esperados": [],
         "accion_esperada": "postular",
-        "score_esperado": { "min": 9, "max": 10 },
+        "score_esperado": {
+          "min": 9,
+          "max": 10
+        },
         "nota": "Encaje casi perfecto: junior, remoto para Argentina y tareas de la carrera."
       },
       "anchor_source": "assisted"
@@ -44,7 +54,10 @@
         "flags_esperados": [],
         "bloqueadores_esperados": [],
         "accion_esperada": "postular",
-        "score_esperado": { "min": 7, "max": 9 },
+        "score_esperado": {
+          "min": 7,
+          "max": 9
+        },
         "nota": "Buen encaje: remoto para Argentina y nivel acorde."
       },
       "anchor_source": "assisted"
@@ -59,10 +72,18 @@
       "jd_text": "Empresa C busca incorporar: Ejecutivo/a de cuentas de relaciones públicas.\n\nAgencia ficticia de RR.PP.\n\nQué vas a hacer:\n- Atender cuentas de clientes\n- Organizar lanzamientos\n- Gestionar prensa\n\nQué buscamos:\n- Relaciones Públicas o Comunicación\n- Experiencia en agencia\n\nOficina en Palermo.\n\nModalidad: presencial. Ubicación: CABA, Buenos Aires. Jornada completa, de lunes a viernes.",
       "etiquetas": {
         "prefiltro": "must_pass",
-        "flags_esperados": ["modalidad_no_remota", "ciudad_distinta"],
-        "bloqueadores_esperados": ["ubicacion"],
+        "flags_esperados": [
+          "modalidad_no_remota",
+          "ciudad_distinta"
+        ],
+        "bloqueadores_esperados": [
+          "ubicacion"
+        ],
         "accion_esperada": "guardar",
-        "score_esperado": { "min": 4, "max": 7 },
+        "score_esperado": {
+          "min": 4,
+          "max": 7
+        },
         "nota": "Presencial lejos de Salta: pasa el prefiltro con la marca de ciudad distinta."
       },
       "anchor_source": "assisted"
@@ -77,10 +98,17 @@
       "jd_text": "Empresa D busca incorporar: Community manager (Remote — Mexico residents only).\n\nMarca ficticia de consumo.\n\nQué vas a hacer:\n- Gestionar redes y comunidad\n- Coordinar eventos con influencers\n- Reportar resultados\n\nQué buscamos:\n- Residencia en México (excluyente)\n\nContrato mexicano.\n\nModalidad: remoto. Ubicación: Remoto · solo residentes en México. Jornada completa, de lunes a viernes.",
       "etiquetas": {
         "prefiltro": "must_pass",
-        "flags_esperados": ["residencia_exigida"],
-        "bloqueadores_esperados": ["ubicacion"],
+        "flags_esperados": [
+          "residencia_exigida"
+        ],
+        "bloqueadores_esperados": [
+          "ubicacion"
+        ],
         "accion_esperada": "descartar",
-        "score_esperado": { "min": 1, "max": 4 },
+        "score_esperado": {
+          "min": 1,
+          "max": 4
+        },
         "nota": "Remoto solo para otro país: la ubicación nunca descarta en el prefiltro; queda la marca."
       },
       "anchor_source": "assisted"
@@ -96,9 +124,14 @@
       "etiquetas": {
         "prefiltro": "must_discard",
         "flags_esperados": [],
-        "bloqueadores_esperados": ["experiencia"],
+        "bloqueadores_esperados": [
+          "experiencia"
+        ],
         "accion_esperada": "descartar",
-        "score_esperado": { "min": 1, "max": 3 },
+        "score_esperado": {
+          "min": 1,
+          "max": 3
+        },
         "nota": "Cargo de dirección para alguien con 2 años."
       },
       "anchor_source": "assisted"
@@ -114,10 +147,41 @@
       "etiquetas": {
         "prefiltro": "must_discard",
         "flags_esperados": [],
-        "bloqueadores_esperados": ["disciplina"],
+        "bloqueadores_esperados": [
+          "disciplina"
+        ],
         "accion_esperada": "descartar",
-        "score_esperado": { "min": 1, "max": 3 },
+        "score_esperado": {
+          "min": 1,
+          "max": 3
+        },
         "nota": "El título nombra la carrera pero el puesto es de cobranzas: no debería mostrarse."
+      },
+      "anchor_source": "assisted"
+    },
+    {
+      "id": "relaciones_publicas-07",
+      "categoria": "presencial_caba",
+      "empresa": "Empresa D",
+      "titulo": "Ejecutivo/a de relaciones públicas",
+      "ubicacion_raw": "CABA, Buenos Aires",
+      "modalidad": "presencial",
+      "jd_text": "Empresa D busca incorporar: Ejecutivo/a de relaciones públicas.\n\nAgencia de RR.PP.\n\nQué vas a hacer:\n- Organizar lanzamientos\n- Gestionar prensa para clientes\n- Armar informes de repercusión\n\nQué buscamos:\n- Relaciones Públicas o Comunicación\n- Experiencia en agencia\n\nOficina en Palermo.\n\nModalidad: presencial. Ubicación: CABA, Buenos Aires. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": [
+          "modalidad_no_remota",
+          "ciudad_distinta"
+        ],
+        "bloqueadores_esperados": [
+          "ubicacion"
+        ],
+        "accion_esperada": "guardar",
+        "score_esperado": {
+          "min": 4,
+          "max": 7
+        },
+        "nota": "Presencial lejos de Salta: pasa el prefiltro con la marca de ciudad distinta; el evaluador lo baja."
       },
       "anchor_source": "assisted"
     }

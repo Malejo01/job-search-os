@@ -11,6 +11,8 @@
 
 Sobre `main`, «Relaciones públicas» se guarda como `marketing_digital` (chip de /acceso) y «Programación» como `fullstack`: el test usa esas claves (mapa `ROL_EN_MAIN`). Cuando C3 sume `relaciones_publicas` como carrera propia, hay que cambiar ese mapa y volver a correr el test. Estos dos archivos todavía no tienen `anchor_source: "human"`.
 
+**R6-5:** el aviso de relaciones públicas que venía como `marketing_digital-04` pasó a `relaciones_publicas.json`. En la integración de las tandas R5 a R7 se juntó con los 6 de C12 y quedó como `relaciones_publicas-07`: marketing queda con 7 casos y RR.PP. con 7.
+
 ## La persona de referencia
 
 Igual para las 6 carreras (`meta.persona`): vive en **Salta**, Argentina, tiene **2 años** de experiencia y acepta remoto, híbrido y presencial; lee avisos en español e inglés.
