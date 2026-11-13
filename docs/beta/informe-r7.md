@@ -12,7 +12,7 @@ Tres agentes trabajaron en paralelo, cada uno en su worktree: costos, seguridad 
 | 4 | [#473](https://github.com/Malejo01/job-search-os/pull/473) | R7-6 · pantallas lentas | verde | Después de #458 y #465: los tres tocan `jobs/page.tsx`, y #458 también `settings/page.tsx` (§3) |
 | 5 | [#474](https://github.com/Malejo01/job-search-os/pull/474) | R7-4 · auditoría de seguridad | rojo (test en `packages/db/src`) | — |
 | 6 | [#472](https://github.com/Malejo01/job-search-os/pull/472) | R7-1 · alertas de presupuesto | rojo | `RESEND_API_KEY`, `EMAIL_FROM` y `ADMIN_EMAILS` en Vercel (§5) |
-| 7 | [#R72](https://github.com/Malejo01/job-search-os/pull/R72) | R7-2 · no reevaluar duplicados | rojo | — |
+| 7 | [#477](https://github.com/Malejo01/job-search-os/pull/477) | R7-2 · no reevaluar duplicados | rojo | — |
 | 8 | este PR | Cierre de la R7 | verde | Al final, después de #464 y #470 (sale de `ronda/r6-cierre`) |
 
 Ninguna de la R7 trae migración.
@@ -22,7 +22,7 @@ Ninguna de la R7 trae migración.
 | Ticket | Pruebas |
 |---|---|
 | R7-1 | Tests primero en pipeline (13 casos de umbrales y «una vez por día»). Adapters: 19 tests con Resend falso. Integración con Docker (5): dos corridas seguidas y dos en paralelo mandan un solo email; al otro día vuelve a avisar; si falla el envío, devuelve la marca; la marca no suma en los reportes de gasto. Revisión de seguridad: OK, con 4 observaciones bajas (§3). |
-| R7-2 | Tests primero en pipeline (11). Integración con Docker y modelo falso (5): reutiliza con 0 llamadas; vuelve a llamar si cambian el perfil, los criterios o el título; no reutiliza de otra persona. Integración completa de adapters: 409 tests. |
+| R7-2 | Tests primero en pipeline (dedup: 105). Integración con Docker y modelo falso (9): reutiliza con 0 llamadas; vuelve a llamar si cambian el perfil, los criterios, el título o la JD después de evaluar, o si la evaluación previa no tiene `inputs`; no reutiliza de otra persona. Integración completa de adapters: 413 tests. Seguridad, dos vueltas: la primera marcó dos observaciones medias (se comparaba el hash actual del job previo, y había una carrera con ediciones del perfil); el arreglo exige igualdad exacta con lo leído antes de la llamada, y la segunda vuelta dio OK. |
 | R7-3 | Tests primero en pipeline (`limits.ts`); e2e 132 con `LLM_DEMO` (lo corre el CI). |
 | R7-4 | Test de cobertura de RLS: 4 de 4 en Docker local. Integración de db completa: 437 de 438; el único fallo fue la primera versión del test, ya corregida. |
 | R7-5 | Typecheck y lint verdes; e2e 131 lo corre el CI (es la primera medición). |
@@ -40,7 +40,11 @@ Todos: revisión de privacidad PASA antes de cada push y el pre-push sin hallazg
   - la marca «ya avisado» va en `llm_calls`, sin migración;
   - el aviso sale desde el cron de evaluación, que corre cada 6 h, así que puede llegar hasta 6 h tarde;
   - observaciones bajas de seguridad: si el cron se corta entre marcar y enviar, ese día no se avisa; un envío parcial no se reintenta; la clave de idempotencia usa el índice del destinatario; `/settings/salud` puede estar 5 minutos atrasada.
-- **R7-2, límites:** que el perfil no cambió se mide con `profiles.updated_at`, así que una edición a mano en SQL no se detecta. Si la consulta resultara lenta, haría falta un índice `(user_id, jd_hash)`, que es una migración aparte.
+- **R7-2, límites:**
+  - el ahorro empieza con las evaluaciones nuevas, porque las anteriores no tienen `inputs`;
+  - que el perfil no cambió se mide con `profiles.updated_at`, así que una edición a mano en SQL no se detecta;
+  - la búsqueda por `decision->'inputs'->>'jd_hash'` no tiene índice; está acotada por `user_id` y, si resultara lenta, haría falta un índice funcional, que es una migración aparte;
+  - observación informativa de seguridad: si un job sin texto de JD tuviera `jd_hash`, podría reutilizarse una evaluación hecha sin JD. Es un riesgo de calidad, no de datos.
 - **R7-4:** `pnpm secrets:scan` no corrió porque el guard lo bloquea. HSTS y la regla de firewall del login se verifican en producción. Los umbrales exactos y el detalle de los dos P2 abiertos quedaron fuera del repo público (regla de informes de seguridad); Mauro los tiene en `ops/rondas/r7-tanda/R7-4/`.
 - **R7-5:** no cambió componentes. Si el CI marca violaciones graves, se arreglan en un seguimiento.
 - **R7-7:** en el código no existe `/admin`. El kit usa `/settings/salud`, `/settings/metricas`, `/settings/invitations` y `/settings/planes`. Los umbrales de `decision-25-11.md` son una propuesta para que Mauro ajuste.

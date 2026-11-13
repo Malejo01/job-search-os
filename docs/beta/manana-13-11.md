@@ -26,10 +26,10 @@ Una página con todo lo que quedó abierto de las tandas R5, R6 y R7 (12 y 13/11
 | 18 | #473 | R7-6 · pantallas lentas | verde | #458, #465 (mismo `jobs/page.tsx`) | — |
 | 19 | #474 | R7-4 · auditoría de seguridad | rojo | — | — |
 | 20 | #472 | R7-1 · alertas de presupuesto | rojo | — | — |
-| 21 | #R72 | R7-2 · no reevaluar duplicados | rojo | — | — |
+| 21 | #477 | R7-2 · no reevaluar duplicados | rojo | — | — |
 | 22 | #464 | R5 · cierre | verde | todo lo de la R5 | — |
 | 23 | #470 | R6 · cierre | verde | #464 | — |
-| 24 | #R7C | R7 · cierre (este) | verde | #470 | — |
+| 24 | #478 | R7 · cierre (este) | verde | #470 | — |
 
 Fuera de la lista, sin PR:
 - `ronda/r6-3-imagen` (R6-3, oferta desde una imagen): está pusheada, pero el PR no se abrió porque toca `packages/prompts/` y el CI correría evals pagos. Decisión 2.

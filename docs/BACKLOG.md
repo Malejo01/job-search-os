@@ -1482,8 +1482,8 @@ Fuente del estado: `ops/tanda-r4/estado.md`. Los PR de carril rojo se acumulan e
 - Al pasar el 70, 85 y 95 % de `LLM_DAILY_CAP_USD`, un email por Resend a `ADMIN_EMAILS`, una vez por umbral y día UTC, y un bloque en `/settings/salud`. Lógica pura en `pipeline/src/budget/`; la marca «ya avisado» es una fila `budget_alert` en `llm_calls` (sin migración) con lock de asesoría y clave de idempotencia. Lo dispara el cron de evaluación.
 
 ### R7-2 · No reevaluar duplicados (carril rojo)
-`deps:` — · `est:` 2 h · `estado:` en PR, para que lo revise Mauro ([#R72](https://github.com/Malejo01/job-search-os/pull/R72), 13/11)
-- Otro aviso de la misma persona con el mismo `jd_hash`, el mismo prompt, los mismos criterios, el perfil sin cambios y los mismos datos del aviso reutiliza la respuesta del modelo (sin llamada, costo 0); `decide()` y el checklist se recalculan. `decision.reused_from`. Ante la duda se evalúa. Sin migración.
+`deps:` — · `est:` 2 h · `estado:` en PR, para que lo revise Mauro ([#477](https://github.com/Malejo01/job-search-os/pull/477), 13/11)
+- Otro aviso de la misma persona reutiliza la respuesta del modelo (sin llamada, costo 0) solo si coinciden exactamente los datos leídos antes de la llamada: hash de la JD, perfil, criterios, prompt y datos del aviso, guardados en `decision.inputs`. `decide()` y el checklist se recalculan. Las evaluaciones anteriores, sin `inputs`, no se reutilizan. Ante la duda, se evalúa. Sin migración.
 
 ### R7-3 · Asistente: un solo aviso de tope y mensajes que quedan (carril rojo)
 `deps:` — · `est:` 1 h · `estado:` en PR, para que lo revise Mauro ([#471](https://github.com/Malejo01/job-search-os/pull/471), 13/11)
