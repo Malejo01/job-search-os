@@ -1,0 +1,21 @@
+{
+  "carrera": "comunicacion",
+  "propios": [
+    { "empresa": "Medio Digital A", "titulo": "Redactora de contenidos", "disciplina": "otra" },
+    {
+      "empresa": "Empresa B",
+      "titulo": "Responsable de comunicación interna",
+      "disciplina": "comunicacion"
+    },
+    {
+      "empresa": "Empresa C",
+      "titulo": "Productor audiovisual junior",
+      "disciplina": "creative_production"
+    },
+    { "empresa": "Empresa D", "titulo": "Community manager", "disciplina": "marketing_digital" }
+  ],
+  "ajenos": [
+    { "empresa": "Empresa E", "titulo": "Desarrollador fullstack", "disciplina": "fullstack" },
+    { "empresa": "Empresa F", "titulo": "Ingeniero de datos", "disciplina": "data" }
+  ]
+}

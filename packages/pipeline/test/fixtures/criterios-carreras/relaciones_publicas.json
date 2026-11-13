@@ -1,0 +1,29 @@
+{
+  "carrera": "relaciones_publicas",
+  "propios": [
+    {
+      "empresa": "Agencia A",
+      "titulo": "Asistente de relaciones públicas y prensa",
+      "disciplina": "otra"
+    },
+    {
+      "empresa": "Empresa B",
+      "titulo": "Organizadora de eventos corporativos",
+      "disciplina": "relaciones_publicas"
+    },
+    {
+      "empresa": "Empresa C",
+      "titulo": "Analista de comunicación institucional",
+      "disciplina": "comunicacion"
+    },
+    { "empresa": "Empresa D", "titulo": "Community manager", "disciplina": "marketing_digital" }
+  ],
+  "ajenos": [
+    { "empresa": "Empresa E", "titulo": "Desarrollador frontend", "disciplina": "frontend" },
+    {
+      "empresa": "Empresa F",
+      "titulo": "Ingeniero de aprendizaje automático",
+      "disciplina": "ml_engineer"
+    }
+  ]
+}

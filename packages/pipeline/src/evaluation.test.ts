@@ -35,22 +35,32 @@ const output = (disciplina: string) => ({
 });
 
 const NEW_ONES = ["marketing_digital", "producto", "recursos_humanos", "customer_success"];
+const CAREER_ONES = [
+  "abogacia",
+  "finanzas_contabilidad",
+  "comunicacion",
+  "relaciones_internacionales",
+  "relaciones_publicas",
+];
 
 describe("disciplinas", () => {
-  it("DISCIPLINES_V13 son las 15 de siempre y DISCIPLINES suma 4 al final", () => {
+  it("DISCIPLINES_V13 son las 15 de siempre y DISCIPLINES suma 4 y luego 5 (R6-2) al final", () => {
     expect(DISCIPLINES_V13).toHaveLength(15);
-    expect(DISCIPLINES).toHaveLength(19);
+    expect(DISCIPLINES).toHaveLength(24);
     expect(DISCIPLINES.slice(0, 15)).toEqual([...DISCIPLINES_V13]);
-    expect(DISCIPLINES.slice(15)).toEqual(NEW_ONES);
+    expect(DISCIPLINES.slice(15, 19)).toEqual(NEW_ONES);
+    expect(DISCIPLINES.slice(19)).toEqual(CAREER_ONES);
   });
 
   it("v1.3.4 rechaza las nuevas (su JSON schema no cambia)", () => {
     const schema = outputSchemaFor("evaluate_job@v1.3.4");
     expect(schema.safeParse(output("fullstack")).success).toBe(true);
-    for (const d of NEW_ONES) expect(schema.safeParse(output(d)).success).toBe(false);
+    for (const d of [...NEW_ONES, ...CAREER_ONES]) {
+      expect(schema.safeParse(output(d)).success).toBe(false);
+    }
   });
 
-  it("v1.4.0 acepta las 19, también en years_discipline", () => {
+  it("v1.4.0 acepta las 24, también en years_discipline", () => {
     const schema = outputSchemaFor("evaluate_job@v1.4.0");
     for (const d of DISCIPLINES) {
       expect(schema.safeParse(output(d)).success).toBe(true);
@@ -59,7 +69,7 @@ describe("disciplinas", () => {
     expect(schema.safeParse(output("inventada")).success).toBe(false);
   });
 
-  it("el esquema tolerante acepta las 19", () => {
+  it("el esquema tolerante acepta las 24", () => {
     for (const d of DISCIPLINES) expect(EvaluationSchema.safeParse(output(d)).success).toBe(true);
   });
 });

@@ -1,0 +1,20 @@
+{
+  "carrera": "finanzas_contabilidad",
+  "propios": [
+    {
+      "empresa": "Estudio Contable A",
+      "titulo": "Asistente contable de estudio",
+      "disciplina": "otra"
+    },
+    { "empresa": "Empresa B", "titulo": "Analista de cuentas a pagar", "disciplina": "negocio" },
+    {
+      "empresa": "Empresa C",
+      "titulo": "Analista de impuestos y liquidaciones",
+      "disciplina": "finanzas_contabilidad"
+    }
+  ],
+  "ajenos": [
+    { "empresa": "Empresa D", "titulo": "Desarrollador frontend React", "disciplina": "frontend" },
+    { "empresa": "Empresa E", "titulo": "Ingeniero DevOps", "disciplina": "devops" }
+  ]
+}
