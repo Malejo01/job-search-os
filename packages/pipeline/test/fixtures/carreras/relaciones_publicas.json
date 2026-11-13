@@ -1,0 +1,37 @@
+{
+  "meta": {
+    "carrera": "relaciones_publicas",
+    "version": "2026-11-12",
+    "descripcion": "Golden sintético de relaciones_publicas (R6-5): por ahora un solo aviso inventado con empresa ficticia, que venía en el de marketing_digital (ADR-033). Etiquetas propuestas (anchor_source assisted), a validar por un profesional después de la beta. No lo usa el job pago de evals.",
+    "persona": {
+      "pais": "AR",
+      "ciudad": "Salta",
+      "anos_experiencia": 2,
+      "modalidades": ["remoto", "hibrido", "presencial"],
+      "idiomas_aviso": ["es", "en"]
+    }
+  },
+  "casos": [
+    {
+      "id": "relaciones_publicas-04",
+      "categoria": "presencial_caba",
+      "empresa": "Empresa D",
+      "titulo": "Ejecutivo/a de relaciones públicas",
+      "ubicacion_raw": "CABA, Buenos Aires",
+      "modalidad": "presencial",
+      "jd_text": "Empresa D busca incorporar: Ejecutivo/a de relaciones públicas.\n\nAgencia de RR.PP.\n\nQué vas a hacer:\n- Organizar lanzamientos\n- Gestionar prensa para clientes\n- Armar informes de repercusión\n\nQué buscamos:\n- Relaciones Públicas o Comunicación\n- Experiencia en agencia\n\nOficina en Palermo.\n\nModalidad: presencial. Ubicación: CABA, Buenos Aires. Jornada completa, de lunes a viernes.",
+      "etiquetas": {
+        "prefiltro": "must_pass",
+        "flags_esperados": ["modalidad_no_remota", "ciudad_distinta"],
+        "bloqueadores_esperados": ["ubicacion"],
+        "accion_esperada": "guardar",
+        "score_esperado": {
+          "min": 4,
+          "max": 7
+        },
+        "nota": "Presencial lejos de Salta: pasa el prefiltro con la marca de ciudad distinta; el evaluador lo baja."
+      },
+      "anchor_source": "assisted"
+    }
+  ]
+}

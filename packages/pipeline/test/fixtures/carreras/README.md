@@ -5,6 +5,8 @@
 - **No los usa el job pago de evals.** Viven fuera de `evals/` a propósito: el CI corre `evals` (con modelo, pago) cuando el diff toca `evals/` o `packages/prompts/`. Los usa solo el test determinista de C8-9.
 - Complementan a `evals/fixtures/golden-carreras-beta.json` (R2-1), que mide títulos. Este set mide la mezcla que aparece en la beta: ubicación, nivel y títulos engañosos.
 
+**R6-5:** el aviso de relaciones públicas que venía como `marketing_digital-04` pasó a `relaciones_publicas.json` (`relaciones_publicas-04`). Marketing queda con 7 casos y RR.PP. con 1; el total sigue en 48 y entre las dos cubren las 8 categorías.
+
 ## La persona de referencia
 
 Igual para las 6 carreras (`meta.persona`): vive en **Salta**, Argentina, tiene **2 años** de experiencia y acepta remoto, híbrido y presencial; lee avisos en español e inglés.
