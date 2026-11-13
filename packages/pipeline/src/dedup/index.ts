@@ -26,6 +26,13 @@ export {
   words,
 } from "./similarity";
 export {
+  reuseJobFingerprint,
+  shouldReuseEvaluation,
+  type ReuseCurrent,
+  type ReuseDecision,
+  type ReusePrev,
+} from "./reuse-evaluation";
+export {
   planDuplicateMerge,
   POSSIBLE_DUPLICATE_FLAG,
   type DuplicateCandidate,
