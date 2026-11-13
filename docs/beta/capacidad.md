@@ -109,6 +109,27 @@ Plan gratis: **100 envíos por día y 3.000 por mes**, compartidos por todo lo q
 
 **Defaults en código:** no cambié ninguno. Todos los topes de arriba ya existen; ninguno falta del todo.
 
+## 6b. Umbrales de `/settings/salud` (R8-7)
+
+La pantalla muestra diez señales con nivel verde, amarillo, rojo o gris (sin dato). Todas salen de datos que ya existen; conteos agregados, sin datos de nadie. Los umbrales viven en `packages/pipeline/src/beta-health.ts`; esta tabla es la referencia.
+
+| Señal | Verde | Amarillo | Rojo | Gris |
+|---|---|---|---|---|
+| Cola de evaluación | menos de 50 y la más vieja de menos de 6 h | más de 50, o más de 6 h | más de 200, o más de 24 h | |
+| Gasto de IA (24 h) | menos del 50 % del tope | 50 % o más | 90 % o más | sin tope |
+| Emails enviados hoy | menos de 50 | 50 o más | 80 o más | |
+| Errores de ingesta (24 h) | menos de 3 | 3 o más | 10 o más | |
+| Personas activas hoy | 1 o más | | | ninguna |
+| «Contanos qué pasó» (24 h) | ninguno | 1 o más | | |
+| **Evaluaciones fallidas (24 h)** (`job_queue`, `evaluate_job`, `failed`) | menos de 3 | 3 a 10 | más de 10, o más de la mitad de las terminadas (con 4 o más) | |
+| **Última descarga del pool** (`public_job_fetches` con estado `ok` o `partial`, ventana de 7 días) | hasta 7 h | más de 7 h | más de 13 h | ninguna en 7 días |
+| **Emails sin parser (7 días)** (`inbound_emails` con motivo «sin parser» o «remitente no esperado») | menos de 5 | 5 o más | 30 o más | |
+| **Invitaciones sin usar** (`invitations`, sin canjear y sin vencer) | hay y ninguna vence pronto | alguna vence en 48 h | | ninguna |
+
+Notas:
+- La fila de emails sin parser nombra solo portales de empleo conocidos (Computrabajo, Bumeran, ZonaJobs, Jooble, InfoJobs, Workana, Glassdoor, Indeed, LinkedIn, Get on Board); cualquier otro remitente cuenta como «otros».
+- Los cortes de evaluaciones fallidas y de pool son los mismos que usa `/api/cron/status` para el monitor externo.
+
 ## 7. Qué mirar la primera semana (26/11 en adelante)
 
 1. `pnpm llm:spend --days 7` (o `/settings/metricas`): USD por día y por tarea.
