@@ -95,7 +95,7 @@ test.describe("Flujo 47: textos y navegación", () => {
     expect(box?.width ?? 0).toBeLessThanOrEqual(48);
   });
 
-  test("en pantalla ancha la nav son las cinco secciones y «Sin descripción» marca Perfil (C10-3)", async ({
+  test("en pantalla ancha la nav son las cinco secciones y «Sin descripción» marca Ofertas (C10-3, R5-C9)", async ({
     page,
   }) => {
     await login(page);
@@ -105,11 +105,12 @@ test.describe("Flujo 47: textos y navegación", () => {
     await expect(nav).toBeVisible();
     await expect(page.getByTestId("tabbar")).toBeHidden();
     await expect(nav.getByRole("link")).toHaveCount(5);
-    await expect(nav.getByRole("link", { name: "Perfil", exact: true })).toHaveAttribute(
+    // R5-C9 (hallazgo 19): «Sin descripción» es trabajo con las ofertas, marca Ofertas y no Perfil
+    await expect(nav.getByRole("link", { name: "Ofertas", exact: true })).toHaveAttribute(
       "aria-current",
       "page",
     );
-    await expect(nav.getByRole("link", { name: "Ofertas", exact: true })).not.toHaveAttribute(
+    await expect(nav.getByRole("link", { name: "Perfil", exact: true })).not.toHaveAttribute(
       "aria-current",
       "page",
     );

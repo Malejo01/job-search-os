@@ -70,7 +70,7 @@ export default async function CriteriaPage({
 
   if (!active) {
     return (
-      <div className="mx-auto flex max-w-2xl flex-col gap-3">
+      <div className="mx-auto flex max-w-3xl flex-col gap-3">
         <h1 className="text-title font-bold">Criterios de evaluación</h1>
         <p className="text-sm text-fg-muted">
           Todavía no tenés criterios activos. Completá tu perfil primero.
@@ -82,7 +82,7 @@ export default async function CriteriaPage({
   const d = criteriaFormDefaults(active.rules);
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-5">
+    <div className="mx-auto flex max-w-3xl flex-col gap-5">
       <div className="flex flex-col gap-1">
         <p className="text-xs font-bold tracking-wide text-fg-muted uppercase">Avanzado</p>
         <h1 className="text-title font-bold">Criterios de evaluación</h1>
@@ -92,8 +92,8 @@ export default async function CriteriaPage({
       </div>
 
       <Alert tone="warning" role="note">
-        Cambiar estos criterios puede hacer que se descarten ofertas que te sirven. Si no estás
-        segura o seguro, dejalos como están.
+        Cambiar estos criterios puede hacer que se descarten ofertas que te sirven. Si tenés dudas,
+        dejalos como están.
       </Alert>
 
       <Alert tone="warning" role={null}>

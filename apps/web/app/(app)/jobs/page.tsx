@@ -79,7 +79,7 @@ export default async function JobsPage({
       {/* La primera pantalla es la de la referencia: la guía, «+ Cargar oferta» y los filtros finos
           empiezan debajo (en el celular, descontando la barra y las pestañas) */}
       <div className="flex min-h-[calc(100svh-9rem)] flex-col sm:min-h-[calc(100svh-4.5rem)]">
-        <div className="mx-auto flex w-full max-w-[1280px] flex-col sm:flex-row sm:items-center sm:gap-2 sm:px-10 sm:pt-[22px]">
+        <div className="mx-auto flex w-full max-w-[1280px] flex-col sm:flex-row sm:items-center sm:gap-2 sm:px-12 sm:pt-[22px]">
           {/* En el celular el título va en el índigo, debajo de la barra (ofertas-cel.png) */}
           <div className="bg-ink px-5 pb-[18px] sm:mr-3.5 sm:bg-transparent sm:p-0">
             <h1 className="text-[26px] leading-tight font-extrabold text-on-ink sm:text-[28px] sm:text-fg">
@@ -143,7 +143,7 @@ export default async function JobsPage({
           </p>
         </div>
 
-        <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-3 px-3.5 pt-3 sm:px-10 sm:pt-[18px]">
+        <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-3 px-3.5 pt-3 sm:px-12 sm:pt-[18px]">
           <FirstSteps userId={userId} />
           <RoleNudge userId={userId} />
           {/* D2: mientras la checklist está visible, su ítem 6 reemplaza al aviso de email */}
@@ -178,6 +178,16 @@ export default async function JobsPage({
                   : `${rows.length} ${rows.length === 1 ? "oferta" : "ofertas"}`}
                 , ordenadas por afinidad
               </h2>
+              {/* R5-C9 (hallazgo 19): en pantalla ancha lo dice la columna de la derecha */}
+              {(counts?.sinDescripcion ?? 0) > 0 ? (
+                <Link
+                  href="/jobs/pending-jd"
+                  data-testid="sin-descripcion-link"
+                  className={`${textLinkClasses({ block: true, className: "text-sm" })} lg:hidden`}
+                >
+                  Sin descripción ({counts?.sinDescripcion})
+                </Link>
+              ) : null}
               {rows.length === 0 ? (
                 <EmptyList
                   counts={counts}
@@ -207,7 +217,7 @@ export default async function JobsPage({
           </div>
         </div>
       </div>
-      <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-3 px-3.5 sm:px-10">
+      <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-3 px-3.5 sm:px-12">
         {/* Lo que no está en la referencia va debajo de la lista (C10-7): la guía y «+ Cargar
             oferta» a la vista (el panel de la guía no se vería dentro de un desplegable cerrado), y
             los filtros finos y el avance en «Más filtros y herramientas» */}
