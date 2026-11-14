@@ -2,6 +2,8 @@ import type { CvMissing } from "@job-search-os/pipeline";
 import { HelpTip } from "@/components/help-tip";
 import Link from "next/link";
 import { CvPreview } from "@/components/cv-preview";
+import { UploadCard } from "@/components/profile-agent/upload-card";
+import { profileAgentAllowedFor } from "@/lib/profile-agent/access";
 import { PrintButton } from "@/components/print-button";
 import { canCreateInvitations } from "@/lib/invitations";
 import { buildUserCv, cvChatMode, parseCvOptions } from "@/lib/cv-source";
@@ -46,13 +48,15 @@ export default async function CvPage({ searchParams }: { searchParams: Promise<P
   });
   const mode = cvChatMode(process.env);
   // R7-6: el CV y el permiso del chat no dependen uno del otro
-  const [doc, chatVisible] = await Promise.all([
+  const [doc, chatVisible, agentVisible] = await Promise.all([
     buildUserCv(userId, opts),
     mode === "all"
       ? Promise.resolve(true)
       : mode === "admin"
         ? canCreateInvitations(userId).catch(() => false)
         : Promise.resolve(false),
+    // ADR-034: «Subí tu CV y armamos tu perfil», detrás de CV_PROFILE_AGENT (apagado: no aparece)
+    profileAgentAllowedFor(userId),
   ]);
   const download = new URLSearchParams({
     lang: opts.lang,
@@ -73,6 +77,8 @@ export default async function CvPage({ searchParams }: { searchParams: Promise<P
         dirección.
       </p>
       <HelpTip topic="cv" className="no-print" />
+
+      {agentVisible ? <UploadCard base="app" /> : null}
 
       {chatVisible ? (
         <Link
