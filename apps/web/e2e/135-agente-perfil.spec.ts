@@ -21,7 +21,7 @@ import { E2E_USER_ID, ownerDb } from "./helpers";
 test.describe.configure({ mode: "serial" });
 
 const EMAIL = "agente-perfil-135@onboarding.test";
-const PASSWORD = "agente-clave-local-135";
+const PASSWORD = "clave-de-prueba";
 const CV_TEXT = readFileSync(
   join(__dirname, "../../../packages/pipeline/test/fixtures/cv-perfil/con-experiencia.txt"),
   "utf8",

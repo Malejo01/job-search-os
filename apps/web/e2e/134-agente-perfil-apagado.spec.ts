@@ -20,7 +20,7 @@ test.describe.configure({ mode: "serial" });
 test.describe("Flujo 134: agente de perfil apagado para quien no es tester", () => {
   const tag = Date.now();
   const email = `agente-apagado-${tag}@onboarding.test`;
-  const password = "agente-clave-local-134";
+  const password = "clave-de-prueba";
   let invitationId: string | null = null;
 
   test.afterAll(async () => {
