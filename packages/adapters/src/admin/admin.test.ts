@@ -184,6 +184,69 @@ describe("parseTestUsersArgs: --create y --reset-all (T-1)", () => {
   });
 });
 
+describe("parseTestUsersArgs: --create --remote no toma el entorno sin avisar (R11-7)", () => {
+  const base = ["--create", "--by", "a@example.com"];
+  it("con --remote exige --admin-emails y --ingest-domain explícitos", () => {
+    const sinNada = parseTestUsersArgs([...base, "--remote"]);
+    expect(sinNada.ok).toBe(false);
+    expect(!sinNada.ok && sinNada.error).toMatch(/--admin-emails/);
+    expect(!sinNada.ok && sinNada.error).toMatch(/--ingest-domain/);
+    expect(parseTestUsersArgs([...base, "--remote", "--admin-emails", "a@example.com"]).ok).toBe(
+      false,
+    );
+    expect(
+      parseTestUsersArgs([...base, "--remote", "--ingest-domain", "ingest.example.com"]).ok,
+    ).toBe(false);
+  });
+  it("con los dos argumentos los lleva en el resultado, normalizados", () => {
+    expect(
+      parseTestUsersArgs([
+        ...base,
+        "--remote",
+        "--admin-emails",
+        " A@Example.com , b@example.com ",
+        "--ingest-domain",
+        "Ingest.Example.com",
+      ]),
+    ).toMatchObject({
+      ok: true,
+      remote: true,
+      adminEmails: "a@example.com,b@example.com",
+      ingestDomain: "ingest.example.com",
+    });
+  });
+  it("sin --remote no se piden (local sigue usando el entorno) pero se aceptan", () => {
+    expect(parseTestUsersArgs(base)).toMatchObject({ ok: true, remote: false });
+    expect(parseTestUsersArgs([...base, "--ingest-domain", "ingest.example.com"])).toMatchObject({
+      ok: true,
+      ingestDomain: "ingest.example.com",
+    });
+  });
+  it("rechaza valores inválidos y su uso fuera de --create", () => {
+    const remote = [...base, "--remote"];
+    expect(
+      parseTestUsersArgs([
+        ...remote,
+        "--admin-emails",
+        "no-es-email",
+        "--ingest-domain",
+        "x.example.com",
+      ]).ok,
+    ).toBe(false);
+    expect(
+      parseTestUsersArgs([
+        ...remote,
+        "--admin-emails",
+        "a@example.com",
+        "--ingest-domain",
+        "no es dominio",
+      ]).ok,
+    ).toBe(false);
+    expect(parseTestUsersArgs(["--list", "--admin-emails", "a@example.com"]).ok).toBe(false);
+    expect(parseTestUsersArgs(["--list", "--ingest-domain", "x.example.com"]).ok).toBe(false);
+  });
+});
+
 describe("test-users --create: piezas sin base", () => {
   it("la contraseña es aleatoria y fuerte (32 caracteres base64url, distinta cada vez)", () => {
     const a = generatePassword();

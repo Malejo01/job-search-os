@@ -1,0 +1,19 @@
+From: Bolsa Demo <alertas@mail.bolsa-demo.example>
+Subject: Un aviso nuevo
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<html lang="es">
+<head><title>Alertas de empleo</title></head>
+<body>
+<table role="presentation" width="600" align="center" class="contenedor">
+<tr><td class="saludo">Hola <b>Xavier</b>,</td></tr>
+<tr><td>¡Hola Xavier!</td></tr>
+<tr><td>Estimado/a</td><td>Zoe</td></tr>
+<tr><td>Buen día <i>Xavier</i></td></tr>
+<tr><td>Hola,</td><td>Ximena</td></tr>
+<tr><td><a class="boton" href="https://www.bolsa-demo.example/ver/aviso">Ver aviso</a></td></tr>
+<tr><td>Cancelar suscripcion</td></tr>
+</table>
+</body>
+</html>

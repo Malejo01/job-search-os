@@ -12,6 +12,10 @@ import type { Hit, Pattern } from "../../../../scripts/privacy-scan.mjs";
  * Qué enmascara por forma: todo lo demás (letras → x/X, dígitos → 9; puntuación y espacios iguales).
  * Qué saca: comentarios, <script>, cabeceras del mail.
  *
+ * Nombres: el texto que sigue a un saludo nunca se conserva (lista en GREETING_WORDS), pero esa lista es
+ * una ayuda, no la garantía: la defensa principal contra un nombre filtrado es el barrido de patrones de
+ * privacidad sobre toda la salida. Revisar el resultado antes de compartirlo.
+ *
  * Falla cerrado: sin patrones no se emite nada; HTML mal formado, MIME ilegible o cualquier
  * patrón que coincida en la salida dejan al email afuera (solo se informa el número de patrón).
  */
@@ -438,7 +442,77 @@ function renderAttr(a: Attr, ctx: HostContext): string {
 // Render
 // ---------------------------------------------------------------------------------------------
 
-const GREETING_RE = /^(hola|hello|hi|hey|buen[oa]s|estimad|querid|dear)/i;
+/**
+ * Saludos y fórmulas de bienvenida en español, inglés, francés, portugués e italiano (S-9). La defensa
+ * principal contra un nombre filtrado NO es esta lista (siempre habrá un saludo que no figure): es el
+ * barrido de patrones de privacidad que corre sobre toda la salida y bloquea el email si coincide.
+ * Esto solo evita que un nombre repetido en 2 emails pase por «texto de plantilla».
+ */
+const GREETING_WORDS =
+  "hola|hello|hi(?:\\s+there)?|hey|buen[oa]s(?:\\s+(?:d[ií]as|tardes|noches))?|buen\\s+d[ií]a|estimad[oa](?:\\/a)?s?|querid[oa](?:\\/a)?s?|dear|good\\s+(?:morning|afternoon|evening)|welcome(?:\\s+back)?|bienvenid[oa](?:\\/a)?s?|saludos|bonjour|bonsoir|ol[áa]|ciao";
+
+/** Un texto que ARRANCA con un saludo (con o sin signos de apertura): nunca es plantilla. */
+const GREETING_RE = new RegExp(`^[¡¿"'(\\s]*(?:${GREETING_WORDS}|buen\\s+d[ií]a)`, "i");
+
+/**
+ * Un texto que TERMINA en un saludo («Hola», «Hola,», «Estimado/a», «Querido/a», «Buen día»): lo que
+ * viene después es el nombre de la persona, aunque esté en otro nodo de texto (`Hola <b>Nombre</b>`).
+ */
+const GREETING_END_RE = new RegExp(`(?:^|[\\s¡¿"'(])(?:${GREETING_WORDS})[\\s,:;.!-]*$`, "i");
+
+const NAMED_ENTITIES: Record<string, string> = {
+  nbsp: " ",
+  amp: "&",
+  iacute: "í",
+  aacute: "á",
+  eacute: "é",
+  oacute: "ó",
+  uacute: "ú",
+  ntilde: "ñ",
+  agrave: "à",
+  egrave: "è",
+  ocirc: "ô",
+  atilde: "ã",
+  quot: '"',
+  apos: "'",
+};
+
+/** Texto con las entidades de espacio y de letra más comunes decodificadas, solo para reconocer saludos. */
+function decodeForGreeting(raw: string): string {
+  return raw.replace(ENTITY_RE, (m: string, body: string) => {
+    if (body.startsWith("#")) {
+      const code =
+        body[1]?.toLowerCase() === "x" ? parseInt(body.slice(2), 16) : Number(body.slice(1));
+      try {
+        const ch = String.fromCodePoint(code);
+        return /\s/u.test(ch) ? " " : ch;
+      } catch {
+        return m;
+      }
+    }
+    return NAMED_ENTITIES[body.toLowerCase()] ?? m;
+  });
+}
+
+/**
+ * Textos que vienen justo después de un saludo (el siguiente nodo de texto con contenido). Nunca se
+ * conservan: un nombre repetido en dos emails no es plantilla. El saludo se busca con las entidades
+ * decodificadas (`Hola&nbsp;<b>Nombre</b>`, `&#32;`, `&#160;`); la clave que se guarda es la del texto crudo.
+ */
+function greetingFollowers(tokens: Token[]): Set<string> {
+  const out = new Set<string>();
+  let afterGreeting = false;
+  for (const t of tokens) {
+    if (t.kind !== "text") continue;
+    const key = textKey(t.raw);
+    const plain = textKey(decodeForGreeting(t.raw));
+    // Solo signos o espacios (también como entidad) entre el saludo y el nombre: sigue esperando el nombre
+    if (!plain || /^[\s,:;.!¡¿-]+$/.test(plain)) continue;
+    if (afterGreeting) out.add(key);
+    afterGreeting = GREETING_END_RE.test(plain);
+  }
+  return out;
+}
 
 /** Texto sin espacios de más: la clave para comparar plantillas entre emails. */
 function textKey(raw: string): string {
@@ -768,6 +842,8 @@ type Prepared = {
   flags: TokenizeFlags;
   parsed: ParsedEml;
   texts: Set<string>;
+  /** Textos que siguen a un saludo en este email: nunca plantilla. */
+  followers: Set<string>;
 };
 
 /** ¿Hay algo con forma de dirección de email que no esté enmascarado (solo x, X, 9 y signos)? */
@@ -796,8 +872,11 @@ function templateKeys(prepared: Prepared[], patterns: Pattern[]): Set<string> {
   for (const p of prepared) for (const k of p.texts) count.set(k, (count.get(k) ?? 0) + 1);
   const minEmails = Math.max(2, Math.ceil(prepared.length / 2));
   const keep = new Set<string>();
+  // Si en algún email el texto sigue a un saludo, en ninguno se conserva: es un nombre
+  const names = new Set<string>();
+  for (const p of prepared) for (const k of p.followers) names.add(k);
   for (const [k, n] of count) {
-    if (n < minEmails) continue;
+    if (n < minEmails || names.has(k)) continue;
     if (k.length > 120 || /[@\p{N}]/u.test(k) || /[<>]/.test(k)) continue;
     if (GREETING_RE.test(k) || /&/.test(k)) continue;
     if (scanLine(patterns, k).length > 0 || scanLine(patterns, norm(k)).length > 0) continue;
@@ -840,7 +919,14 @@ export function buildSkeletons(
     }
     const texts = new Set<string>();
     for (const t of tk.tokens) if (t.kind === "text" && textKey(t.raw)) texts.add(textKey(t.raw));
-    prepared.push({ id: input.id, tokens: tk.tokens, flags: tk.flags, parsed, texts });
+    prepared.push({
+      id: input.id,
+      tokens: tk.tokens,
+      flags: tk.flags,
+      parsed,
+      texts,
+      followers: greetingFollowers(tk.tokens),
+    });
   }
 
   const keep =

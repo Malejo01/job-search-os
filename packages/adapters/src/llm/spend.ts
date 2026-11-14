@@ -27,6 +27,19 @@ export type SpendSummary = {
   usd: number;
 };
 
+/**
+ * Estimación en USD de un intento fallido del que no se sabe el costo (`cost_usd` null y `ok = false`:
+ * red, timeout, 5xx; el proveedor pudo facturarlo). Cuando el proveedor informó el uso, el cliente
+ * guarda el costo real y esto no se usa. Los topes en USD cuentan el intento con este valor: una
+ * cuenta que provoca fallos a propósito ya no repite llamadas sin freno (R11-7). Es mayor que el costo
+ * típico de una evaluación (unos USD 0,002 a 0,01) a propósito: lo conservador es frenar de más.
+ * Un intento que nunca llegó al proveedor (`provider_unavailable`) no cuenta.
+ */
+export const FAILED_CALL_ESTIMATE_USD = 0.01;
+
+/** USD de una fila para los topes: el real si se conoce; si no, el estimado de un intento fallido. */
+const billedUsd = sql`coalesce(${s.llmCalls.costUsd}, case when not ${s.llmCalls.ok} and ${s.llmCalls.error} is distinct from 'provider_unavailable' then ${FAILED_CALL_ESTIMATE_USD}::float8 end, 0)`;
+
 export const DEFAULT_DAILY_CAP_USD = 2;
 
 /** Tope diario desde LLM_DAILY_CAP_USD; 0 desactiva el guardarraíl (a propósito y a la vista). */
@@ -70,7 +83,7 @@ export async function spendSince(
       tokensIn: sql<number>`coalesce(sum(${s.llmCalls.tokensIn}), 0)::int`,
       tokensOut: sql<number>`coalesce(sum(${s.llmCalls.tokensOut}), 0)::int`,
       tokensReasoning: sql<number>`coalesce(sum(${s.llmCalls.tokensReasoning}), 0)::int`,
-      usd: sql<number>`coalesce(sum(${s.llmCalls.costUsd}), 0)::float8`,
+      usd: sql<number>`coalesce(sum(${billedUsd}), 0)::float8`,
     })
     .from(s.llmCalls)
     .where(
@@ -165,7 +178,8 @@ export async function spendBreakdown(db: Db, since: Date): Promise<SpendRow[]> {
       tokensOut: sql<number>`coalesce(sum(${s.llmCalls.tokensOut}), 0)::int`,
       tokensReasoning: sql<number>`coalesce(sum(${s.llmCalls.tokensReasoning}), 0)::int`,
       avgOut: sql<number>`coalesce(round(avg(${s.llmCalls.tokensOut})), 0)::int`,
-      usd: sql<number>`coalesce(sum(${s.llmCalls.costUsd}), 0)::float8`,
+      // Mismo criterio que los topes: el reporte no puede mostrar menos de lo que el tope contó
+      usd: sql<number>`coalesce(sum(${billedUsd}), 0)::float8`,
     })
     .from(s.llmCalls)
     .where(and(gte(s.llmCalls.createdAt, since), notInArray(s.llmCalls.task, NOT_MODEL_CALLS)))
