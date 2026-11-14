@@ -112,7 +112,7 @@ El pool real no se midió (está en Neon). El dry-run `pnpm skills:extract --poo
 
 ## 4. Gasto de evals
 
-Tope de la tanda: USD 3. Solo #514 toca `packages/prompts/`, porque trae los prompts de la R10: una corrida al abrirlo, ~USD 0,16. Ningún otro PR toca prompts, y sus jobs de evals terminaron en segundos sin costo. **Total: ~USD 0,16.**
+Tope de la tanda: USD 3. Solo #514 toca `packages/prompts/`, porque trae los prompts de la R10. Corrió dos veces los evals: al abrirlo y en el push del arreglo de CI, ~USD 0,16 cada una. Ningún otro PR toca prompts, y sus jobs de evals terminaron en segundos sin costo. **Total: ~USD 0,32.**
 
 ## 5. Pasos manuales para el dueño del proyecto
 
@@ -158,8 +158,13 @@ Tope de la tanda: USD 3. Solo #514 toca `packages/prompts/`, porque trae los pro
 
 Al cierre de este informe:
 - **`carril`:** falla en todos los PR rojos, como corresponde. Los mergea el dueño del proyecto.
-- **Unit, integración, build y secrets:** en verde.
-- **e2e:** seguían en cola.
-- **#506:** necesitó una vuelta de prettier (02006d3).
+- **Vueltas de arreglo por el CI:** hubo una en cuatro PR.
+  - **#506:** prettier en `acceso/actions.ts` (02006d3).
+  - **#512:** `integration`. Un test genérico de RLS actualizaba `users.id`, que `rls/0021` ya no permite (5312f97).
+  - **#513:** `integration`. Un test comparaba la 0044 con el catálogo de Contaduría ampliado (33f5df7).
+  - **#514:** `secrets`. Las contraseñas de prueba de los e2e 134 y 135 tenían dígitos (f9c4e64).
+
+    El log de gitleaks no estaba disponible mientras corrían los e2e, así que el arreglo se hizo por inspección. Si `secrets` sigue fallando, el hallazgo es otro y hay que leer el log.
+- **e2e:** seguían en cola en todos los PR.
 
 El estado final de cada PR se ve en GitHub.
