@@ -81,12 +81,25 @@ export function FeedbackButton() {
         // tapar botones; las pantallas dejan 6rem libres abajo. Desde sm, la píldora con el texto.
         // `--tabbar-h` (R-3) lo sube por encima de la barra de pestañas del celular cuando está prendida.
         // R4-15: abajo a la IZQUIERDA en todos los anchos; la derecha es de la mascota del asistente.
-        className="fixed bottom-[calc(1rem+var(--tabbar-h,0px)+env(safe-area-inset-bottom,0px))] left-[calc(1rem+env(safe-area-inset-left,0px))] z-40 inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-pill border-2 border-line-strong bg-surface text-xs font-semibold text-fg-muted hover:bg-surface-muted hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:px-3.5 sm:py-1.5"
+        // R11-13: en el celular ya no flota (tapaba contenido): va en el flujo de la página, al final,
+        // justo antes del pie (ver más abajo). El flotante queda desde `sm`.
+        className="fixed bottom-[calc(1rem+var(--tabbar-h,0px)+env(safe-area-inset-bottom,0px))] left-[calc(1rem+env(safe-area-inset-left,0px))] z-40 hidden min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-pill border-2 border-line-strong bg-surface text-xs font-semibold text-fg-muted hover:bg-surface-muted hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:inline-flex sm:px-3.5 sm:py-1.5"
       >
         {/* C9-17: ícono de la marca en vez del emoji */}
         <Icon name="charla" size={18} />
-        <span className="sr-only sm:not-sr-only">¿Algo no anduvo?</span>
+        <span>¿Algo no anduvo?</span>
       </button>
+      <div className="flex justify-center px-4 pb-4 sm:hidden" data-testid="feedback-inline">
+        <button
+          type="button"
+          onClick={open}
+          aria-haspopup="dialog"
+          className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-pill border-2 border-line-strong bg-surface px-3.5 text-xs font-semibold text-fg-muted hover:bg-surface-muted hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        >
+          <Icon name="charla" size={18} />
+          <span>¿Algo no anduvo?</span>
+        </button>
+      </div>
       {thanks ? (
         <p
           role="status"

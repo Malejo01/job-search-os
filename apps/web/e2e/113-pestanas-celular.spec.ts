@@ -28,9 +28,8 @@ test.describe("Flujo 113: pestañas del celular", () => {
       "background-color",
       "rgb(198, 242, 91)",
     );
-    const chip = await page.getByRole("button", { name: "¿Algo no anduvo?" }).boundingBox();
-    const barBox = await bar.boundingBox();
-    expect(chip!.y + chip!.height).toBeLessThanOrEqual(barBox!.y);
+    // R11-13: en el celular el chip ya no flota; va al final de la página, en el flujo (ver spec 134)
+    await expect(page.getByTestId("feedback-inline")).toBeAttached();
     for (const tema of ["claro", "oscuro"]) {
       await page.evaluate((t) => localStorage.setItem("jso-tema", t), tema);
       await page.goto("/hoy");

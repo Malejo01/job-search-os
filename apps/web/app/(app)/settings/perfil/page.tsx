@@ -46,7 +46,10 @@ export default async function PerfilPage() {
         Modalidad, país, idioma de las ofertas, inglés, años y resumen. Con estos datos se filtran y
         evalúan los avisos. Los puestos se cambian en Ajustes, en «Tus puestos».
       </p>
-      <MoreNav />
+      {/* R11-13: en el celular «Más» va después del formulario, que ya no queda debajo del pliegue */}
+      <div className="order-last sm:order-none">
+        <MoreNav />
+      </div>
       {initial && targetRoles.length === 0 ? (
         <Alert tone="warning" role="note">
           <p>{rolesNotice}</p>

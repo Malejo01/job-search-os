@@ -90,9 +90,10 @@ test.describe("Flujo 47: textos y navegación", () => {
     await expect(avatar).toHaveText(/^\p{Lu}{1,2}$/u);
     // El header es índigo en claro y en oscuro
     await expect(header).toHaveCSS("background-color", "rgb(30, 27, 75)");
-    // El chip de soporte no tapa el último botón: la página deja lugar abajo
-    const box = await page.getByRole("button", { name: "¿Algo no anduvo?" }).boundingBox();
-    expect(box?.width ?? 0).toBeLessThanOrEqual(48);
+    // R11-13: el chip de soporte no flota en el celular, va en el flujo y no tapa nada (spec 134)
+    await expect(
+      page.getByTestId("feedback-inline").getByRole("button", { name: "¿Algo no anduvo?" }),
+    ).toBeAttached();
   });
 
   test("en pantalla ancha la nav son las cinco secciones y «Sin descripción» marca Ofertas (C10-3, R5-C9)", async ({
