@@ -1589,7 +1589,7 @@ Base: `main` (92467dd). Decisiones de Mauro del 13/11: «Pedir acceso», tope de
 
 ## Bloque 25 · Tanda R11 (13/11, noche)
 
-Base: `main` con la integración de la R8, la R9 y T-1 (#505). La R10 entra por #514 (su Bloque 24 viene en ese PR). R11-9 a R11-13 salen de la auditoría de primer uso (`docs/beta/auditoria-primer-uso-13-11.md`). Tope de evals: USD 3; gasto ~USD 0,32. Detalle, orden de merge y pasos manuales en `docs/beta/informe-r11.md`. Ningún PR mergeado.
+Base: `main` con la integración de la R8, la R9 y T-1 (#505). La R10 entra por #514 (su Bloque 24 viene en ese PR). R11-9 a R11-13 salen de la auditoría de primer uso (`docs/beta/auditoria-primer-uso-13-11.md`). Tope de evals: USD 3; gasto ~USD 0,48. Detalle, orden de merge y pasos manuales en `docs/beta/informe-r11.md`. Ningún PR mergeado.
 
 ### R11-1 + R11-2 · Agente de perfil integrado (carril rojo)
 `deps:` R10 · `estado:` en PR ([#514](https://github.com/Malejo01/job-search-os/pull/514), 13/11; reemplaza a #497–#504)

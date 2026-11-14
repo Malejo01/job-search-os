@@ -112,10 +112,11 @@ El pool real no se midió (está en Neon). El dry-run `pnpm skills:extract --poo
 
 ## 4. Gasto de evals
 
-Tope de la tanda: USD 3. Solo #514 toca `packages/prompts/`, porque trae los prompts de la R10. Corrió dos veces los evals: al abrirlo y en el push del arreglo de CI, ~USD 0,16 cada una. Ningún otro PR toca prompts, y sus jobs de evals terminaron en segundos sin costo. **Total: ~USD 0,32.**
+Tope de la tanda: USD 3. Solo #514 toca `packages/prompts/`, porque trae los prompts de la R10. Corrió tres veces los evals: al abrirlo y en los dos pushes de arreglos de CI, ~USD 0,16 cada una. Ningún otro PR toca prompts, y sus jobs de evals terminaron en segundos sin costo. **Total: ~USD 0,48.**
 
 ## 5. Pasos manuales para el dueño del proyecto
 
+0. **#514, check `secrets`:** sigue en rojo. Leer el resumen del job en GitHub y decidir (ver §7).
 1. **Archivo suelto en la carpeta principal:** borrar `docs/beta/carga-sin-streaming.md`, que no está trackeado. Es una copia que escribió un teammate por error. Mientras exista, git no deja cambiar a `ronda/r11-8-carga-cliente` y el PR de R11-8 no se puede abrir. Después: `git switch ronda/r11-8-carga-cliente` y `node .claude/bin/pr.mjs --title-file ops/rondas/r11-tanda/R11-8/pr-title.txt --body-file ops/rondas/r11-tanda/R11-8/pr-body.md`.
 2. **Neon (después de revisar cada SQL):**
    - `rls/0021_users_self_update_columnas.sql` (#512). La verificación con `has_column_privilege` está en el PR.
@@ -162,9 +163,13 @@ Al cierre de este informe:
   - **#506:** prettier en `acceso/actions.ts` (02006d3).
   - **#512:** `integration`. Un test genérico de RLS actualizaba `users.id`, que `rls/0021` ya no permite (5312f97).
   - **#513:** `integration`. Un test comparaba la 0044 con el catálogo de Contaduría ampliado (33f5df7).
-  - **#514:** `secrets`. Las contraseñas de prueba de los e2e 134 y 135 tenían dígitos (f9c4e64).
+  - **#514:** `secrets`, dos vueltas.
+    - Las contraseñas de prueba de los e2e 134 y 135 tenían dígitos, y se cambiaron (f9c4e64).
+    - Como gitleaks revisa cada commit del PR y el valor viejo quedó en 31ee48e, se sumaron sus dos huellas a `.gitleaksignore` (9e45527), con el mismo criterio que la de `ticket.test.ts`.
 
-    El log de gitleaks no estaba disponible mientras corrían los e2e, así que el arreglo se hizo por inspección. Si `secrets` sigue fallando, el hallazgo es otro y hay que leer el log.
+    **`secrets` sigue fallando después de las dos vueltas: queda abierto.** El log de gitleaks no se podía leer mientras corrían los e2e (el guard bloquea bajar el artefacto), así que los arreglos se hicieron por inspección y el hallazgo real es otro, o hay más de uno.
+
+    Paso manual: abrir el resumen del job `secrets` del #514 en GitHub. Si es un valor de prueba, sumar su huella a `.gitleaksignore` o cambiarlo; si es un secreto real, rotarlo.
 - **e2e:** seguían en cola en todos los PR.
 
 El estado final de cada PR se ve en GitHub.
