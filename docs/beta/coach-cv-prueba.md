@@ -42,7 +42,7 @@ Hacelo una vez con cada CV, cada uno con su cuenta. En cada pantalla anotá en l
 
 **Qué esperar:**
 - El archivo no se guarda en ningún lado: solo viaja el texto que ves en el cuadro.
-- **Plan B:** si aparece «Pegá el texto de tu CV. Por ahora los PDF no se leen en el navegador», abrí el PDF, seleccioná todo el texto (Ctrl+A), copialo (Ctrl+C) y pegalo en el cuadro (Ctrl+V). Anotalo en la planilla.
+- **Plan B:** si aparece «No pudimos abrir este PDF en tu navegador. Abrilo, copiá el texto y pegalo acá» (o, si R12-12 todavía no está publicado, «Pegá el texto de tu CV. Por ahora los PDF no se leen en el navegador»), abrí el PDF, seleccioná todo el texto (Ctrl+A), copialo (Ctrl+C) y pegalo en el cuadro (Ctrl+V). Anotalo en la planilla.
 
 ### Paso 3 · Las tarjetas
 Arriba vas a ver un resumen de lo que encontró, por ejemplo «Encontramos 3 trabajos, 2 estudios, 8 skills, 2 idiomas». Debajo hay una tarjeta por cada trabajo, estudio, habilidad e idioma.
