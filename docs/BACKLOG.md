@@ -1687,41 +1687,63 @@ Base: `main` con la integración de la R8, la R9 y T-1 (#505). La R10 entra por 
 `deps:` todo en PR · `estado:` en PR (13/11)
 - Este bloque, `docs/beta/informe-r11.md` y `docs/beta/auditoria-primer-uso-13-11.md`.
 
-## Bloque 26 · Tanda R12 «Coach de CV» (17/11, plan)
+## Bloque 26 · Tanda R12 «Coach de CV» (17/11)
 
-Base: `main` (6cace3c). Sale de la prueba de Mauro del 17/11 ([informe](beta/informe-cv-agente-17-11.md)). Plan, costos, archivos por ticket y evals: [`docs/beta/plan-coach-cv.md`](beta/plan-coach-cv.md). ADR: [038](adr/038-coach-de-cv.md) (Proposed; D1 a D7 a confirmar por Mauro). La Fase 2 no arranca sin D1.
+Base: `ronda/integracion-r11` (PR #517). Sale de la prueba de Mauro del 17/11 ([informe](beta/informe-cv-agente-17-11.md)). Plan: [`docs/beta/plan-coach-cv.md`](beta/plan-coach-cv.md). ADR: [038](adr/038-coach-de-cv.md), **Accepted** con las decisiones de Mauro del 17/11 (D1 a D7, flag `CV_COACH`). Informe de la tanda: [`docs/beta/informe-r12.md`](beta/informe-r12.md). Ningún PR mergeado.
 
 ### R12-0 · Plan del coach de CV
 `deps:` — · `estado:` done (17/11)
-- Verificación del diagnóstico contra el código, borrador de ADR-038, costo por charla, tickets y plan de evals. Solo docs.
+- Verificación del diagnóstico contra el código, ADR-038, costo por charla, tickets y plan de evals.
 
 ### R12-1 · Integrar #514 y #511 (carril rojo)
-`deps:` — · `estado:` pendiente (Mauro)
-- Merge limpio entre las dos ramas (verificado). Fila `extract_cv_profile` en Neon, `CV_IMPORT_ENABLED=1` y `CV_PROFILE_AGENT=testers` en Vercel. Mauro repite la prueba con su CV.
+`deps:` — · `estado:` done (17/11, en `ronda/integracion-r11`, #517)
 
 ### R12-2 · Extracción multi-campo en el chat (carril rojo)
-`deps:` R12-1, R12-4 · `estado:` propuesto
+`deps:` R12-4 · `estado:` en PR ([#520](https://github.com/Malejo01/job-search-os/pull/520), 17/11)
+- `extras` en `cv_interview@v3`, proyectos en el chat, repreguntas del modelo de vuelta en huecos. Línea de base: datos perdidos 27,8 % → 0 %, preguntas repetidas 25 % → 0 % (respuestas grabadas).
+
 ### R12-3 · Acuse con lo entendido y contradicciones
-`deps:` R12-2 · `estado:` propuesto
-### R12-4 · Proyectos en `career_history` y en el CV ATS (carril rojo, D2)
-`deps:` R12-1 · `estado:` propuesto
-### R12-5 · Lectura con viñetas originales y tarjeta de proyectos (carril rojo, D2 y D4)
-`deps:` R12-1, R12-4 · `estado:` propuesto
-### R12-6 · Puerta única en /cv (carril rojo, D6)
-`deps:` R12-1 · `estado:` propuesto
+`deps:` R12-2 · `estado:` en PR ([#526](https://github.com/Malejo01/job-search-os/pull/526), 17/11)
+
+### R12-4 · Proyectos en `career_history` y en el CV ATS (carril rojo)
+`deps:` — · `estado:` en PR ([#522](https://github.com/Malejo01/job-search-os/pull/522), 17/11) · migración 0066
+
+### R12-5 · Lectura con viñetas «de tu CV» y tarjeta de proyectos (carril rojo)
+`deps:` R12-4, R12-7 · `estado:` en PR ([#527](https://github.com/Malejo01/job-search-os/pull/527), 17/11) · prompt `extract_cv_profile@v2`
+
+### R12-6 · Puerta única en /cv (carril rojo)
+`deps:` — · `estado:` en PR ([#528](https://github.com/Malejo01/job-search-os/pull/528), 17/11)
+
 ### R12-7 · Contrato del coach
-`deps:` ADR-038 aceptado · `estado:` propuesto
+`deps:` — · `estado:` en PR ([#518](https://github.com/Malejo01/job-search-os/pull/518), 17/11) · ADR-038 Accepted
+
 ### R12-8 · Diagnóstico `cv_review` (carril rojo)
-`deps:` R12-7, R12-4 · `estado:` propuesto
+`deps:` R12-7 · `estado:` en PR ([#523](https://github.com/Malejo01/job-search-os/pull/523), 17/11) · filas `cv_review` y `cv_coach_turn` en `model_routing`
+
 ### R12-9 · Turno `cv_coach_turn` (carril rojo)
-`deps:` R12-7, R12-2 · `estado:` propuesto
+`deps:` R12-8 · `estado:` en PR ([#525](https://github.com/Malejo01/job-search-os/pull/525), 17/11)
+
 ### R12-10 · Pantallas y rutas del coach (carril rojo)
-`deps:` R12-8, R12-9 · `estado:` propuesto
+`deps:` R12-9 · `estado:` en PR ([#530](https://github.com/Malejo01/job-search-os/pull/530), 17/11) · detrás de `CV_COACH`
+
 ### R12-11 · Cierre y «qué mejoró»
-`deps:` R12-7, R12-10 · `estado:` propuesto
-### R12-12 · PDF con `pdfjs-dist` (carril rojo, D3)
-`deps:` R12-1 · `estado:` propuesto
+`deps:` R12-10 · `estado:` en PR ([#531](https://github.com/Malejo01/job-search-os/pull/531), 17/11)
+
+### R12-12 · PDF con `pdfjs-dist` (carril rojo)
+`deps:` — · `estado:` en PR ([#521](https://github.com/Malejo01/job-search-os/pull/521), 17/11) · `pdfjs-dist@6.5.438`
+
 ### R12-13 · Golden de CVs y harness del coach (carril rojo)
-`deps:` R12-8, R12-9 · `estado:` propuesto
+`deps:` R12-8, R12-9 · `estado:` en curso (lectura, 17/11)
+
 ### R12-14 · Prueba con Ani y comparación de Mauro
-`deps:` R12-10, R12-11 · `estado:` propuesto
+`deps:` — · `estado:` en PR ([#524](https://github.com/Malejo01/job-search-os/pull/524), 17/11)
+
+### R12-15 · Indicador de carga sin streaming (vuelve R11-8)
+`deps:` — · `estado:` en PR ([#529](https://github.com/Malejo01/job-search-os/pull/529), 17/11)
+
+### R12-16 · Test intermitente de concurrencia del agente de perfil (carril rojo)
+`deps:` — · `estado:` en PR ([#519](https://github.com/Malejo01/job-search-os/pull/519), 17/11)
+- Era una carrera real: la segunda lectura podía pasar con un solo cupo. El cierre de la lectura toma el mismo lock por persona.
+
+### R12 · Cierre de la tanda
+`deps:` todo en PR · `estado:` en PR (17/11) · rama `ronda/r12-cierre`
