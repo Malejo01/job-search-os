@@ -1586,3 +1586,142 @@ Base: `main` (92467dd). Decisiones de Mauro del 13/11: «Pedir acceso», tope de
 ### R9 · Cierre de la tanda
 `deps:` todo en PR · `estado:` en PR (13/11)
 - Este bloque y `docs/beta/informe-r9.md`. Sale de `ronda/r8-cierre`.
+
+## Bloque 24 · Tanda R10 «Agente de perfil desde el CV» (13/11)
+
+Decisiones del dueño del proyecto del 13/11:
+- vive en /cv y es el primer paso opcional del onboarding;
+- no se guarda ni el archivo ni la charla;
+- se confirma por sección;
+- termina con la guía y el CV para ATS;
+- cupo de 3 lecturas por mes gratis y 10 pago;
+- va detrás del flag `CV_PROFILE_AGENT`.
+
+Contrato: ADR-034. Detalle en `docs/beta/informe-r10.md`. Ningún PR mergeado. Todo está apilado sobre R10-0.
+
+### R10-0 · ADR-034 y contrato del agente de perfil
+`deps:` — · `est:` 3 h · `estado:` en PR ([#497](https://github.com/Malejo01/job-search-os/pull/497), 13/11)
+- Un agente con tres etapas (lectura, huecos, guía). Incluye:
+  - esquemas Zod en `packages/pipeline/src/profile-agent/` y filtro de datos sensibles;
+  - ticket HMAC atado al usuario;
+  - flag `apagado | testers | all`;
+  - topes que cuentan las llamadas fallidas y cupo con el marcador `profile_read`, sin migración.
+
+### R10-1 · Subir el CV (carril rojo)
+`deps:` #497 · `est:` 3 h · `estado:` en PR ([#500](https://github.com/Malejo01/job-search-os/pull/500), 13/11)
+- DOCX leído en el navegador sin dependencias, o texto pegado. El PDF espera la decisión sobre `pdfjs-dist`. La tarea nueva `extract_cv_profile` (prompt y seed) suma estudios e idiomas. El cupo es de 3 y 10 lecturas por mes, y el del chat de CV no cambia. Tiene modo demo.
+
+### R10-2 · Tarjetas por sección (carril rojo)
+`deps:` #500 · `est:` 3 h · `estado:` en PR ([#503](https://github.com/Malejo01/job-search-os/pull/503), 13/11)
+- Tarjetas editables de experiencia, estudios, skills con nivel e idiomas, que se aceptan o se descartan. Se guardan con la validación de la carga manual y RLS. Los slug se validan contra la taxonomía y lo sensible nunca pasa.
+
+### R10-3 · Charla de huecos (carril rojo)
+`deps:` #497 · `est:` 3 h · `estado:` en PR ([#499](https://github.com/Malejo01/job-search-os/pull/499), 13/11)
+- Plantillas fijas por carrera en `packages/prompts/profile_gaps.v1.md`; el modelo no redacta las preguntas. Una pregunta por vez, hasta 2 repreguntas, y acepta «no tengo». `cv_interview` solo extrae. Cada cambio sale como tarjeta a confirmar.
+
+### R10-4 · Guía de búsqueda (carril rojo)
+`deps:` #499 · `est:` 3 h · `estado:` en PR ([#502](https://github.com/Malejo01/job-search-os/pull/502), 13/11)
+- Sin modelo. Seis preguntas fijas y tarjetas de puestos, criterios, palabras por portal y skills a reforzar; las skills salen del pool y el servidor las recalcula. No promete nada. Antes de completar el onboarding no escribe criterios ni país. Arregla O-A y O-B de #499.
+
+### R10-5 · Cierre con CV para ATS y onboarding (carril rojo)
+`deps:` #497 · `est:` 3 h · `estado:` en PR ([#498](https://github.com/Malejo01/job-search-os/pull/498), 13/11)
+- `cv_write` con el verificador de ADR-026, vista previa en Word y PDF, y pantalla «qué sigue». El onboarding suma un primer paso opcional. Con el flag apagado queda igual que hoy.
+
+### R10-6 · Pruebas, seguridad y lista para Ani
+`deps:` #498 · `est:` 2 h · `estado:` en PR ([#501](https://github.com/Malejo01/job-search-os/pull/501), 13/11)
+- 3 CV de prueba inventados y 34 tests de seguridad (inyección, sensibles, cupo y topes). El e2e 134 cubre el agente apagado. `docs/beta/agente-perfil-pruebas.md` tiene la lista para Ani, el costo estimado y el guion del e2e del recorrido completo para la integración.
+
+### R10 · Cierre de la tanda
+`deps:` todo en PR · `estado:` en PR (13/11)
+- Este bloque y `docs/beta/informe-r10.md`. Sale de `ronda/r9-cierre`.
+
+## Bloque 25 · Tanda R11 (13/11, noche)
+
+Base: `main` con la integración de la R8, la R9 y T-1 (#505). La R10 entra por #514 (su Bloque 24 viene en ese PR). R11-9 a R11-13 salen de la auditoría de primer uso (`docs/beta/auditoria-primer-uso-13-11.md`). Tope de evals: USD 3; gasto ~USD 0,48. Detalle, orden de merge y pasos manuales en `docs/beta/informe-r11.md`. Ningún PR mergeado.
+
+### R11-1 + R11-2 · Agente de perfil integrado (carril rojo)
+`deps:` R10 · `estado:` en PR ([#514](https://github.com/Malejo01/job-search-os/pull/514), 13/11; reemplaza a #497–#504)
+- Una puerta del flag, una medición de gasto, recarga sin gastar cupo, resumen del cierre desde la base, e2e 135 y `.gitleaksignore`. R11-2: `plan:build` no borra la skill sumada desde la guía, criterios y perfil en una transacción, reintento de la redacción y tope por persona y día dentro del lock. `pdfjs-dist` queda como paso manual.
+
+### R11-3 · Parser de Bumeran (carril rojo)
+`deps:` — · `estado:` en PR ([#508](https://github.com/Malejo01/job-search-os/pull/508), 13/11)
+- «Bumeran te sugiere», ruteo por dominio (ADR-035), sin URL ni ID del aviso (el link es un tracker personal). ZonaJobs no se rutea: no hay esqueleto.
+
+### R11-4 · Parser de Computrabajo (carril rojo)
+`deps:` R11-3 · `estado:` en PR ([#510](https://github.com/Malejo01/job-search-os/pull/510), 13/11)
+- Recomendaciones con ID y URL del aviso; recordatorios y seguimientos de empresas dan `{ ok: false }`. ADR-037. Los dominios de país no se rutean.
+
+### R11-5 + R11-10 · Guía de alertas, portada y onboarding honestos
+`deps:` — · `estado:` en PR ([#515](https://github.com/Malejo01/job-search-os/pull/515), 13/11)
+- «Automático» solo donde hay lector; Computrabajo sin recomendar hasta tener un aviso real; ADR-036 (pool de Bumeran, propuesto). Un solo mensaje de alertas por carrera, aviso de pocas ofertas en tu idioma y portada con el conteo real de las 8 carreras de la beta.
+
+### R11-6 · Rol de admin en settings (carril rojo)
+`deps:` — · `estado:` en PR ([#506](https://github.com/Malejo01/job-search-os/pull/506), 13/11)
+- Helper y lista única de rutas de admin con test que recorre `app/`; `revokeInvitationAction` comprueba el rol; `invitations/export` da 404. e2e 140.
+
+### R11-7 · Deuda de seguridad y costos (carril rojo)
+`deps:` — · `estado:` en PR ([#512](https://github.com/Malejo01/job-search-os/pull/512), 13/11)
+- Las llamadas fallidas cuentan para los topes en USD; `rls/0021` (sin aplicar) restringe el UPDATE de `users` a 5 columnas; `admin:test-users` con el onboarding real y `--remote` explícito; `inbound:skeleton` enmascara lo que sigue a un saludo.
+
+### R11-8 · Carga sin streaming
+`deps:` — · `estado:` rama `ronda/r11-8-carga-cliente` pusheada, sin PR (paso manual)
+- Indicador con `useLinkStatus` en la navegación, sin `loading.tsx` ni `<Suspense>`. Diseño en `docs/beta/carga-sin-streaming.md`.
+
+### R11-9 · Skills y carrera en los avisos del pool (carril rojo)
+`deps:` — · `estado:` en PR ([#507](https://github.com/Malejo01/job-search-os/pull/507), 13/11)
+- Términos ambiguos con contexto (`extractJdSkills`), categorías amplias de WWR con señal en el título, plan sin skills de otra familia (5 menciones y 25 %) y `skills:extract --pool`.
+
+### R11-11 · Detalle de oferta coherente (carril rojo)
+`deps:` R11-9 · `estado:` en PR ([#509](https://github.com/Malejo01/job-search-os/pull/509), 13/11)
+- Requisitos con los excluyentes de la evaluación, un mapeo de etiquetas internas, riesgos sin contradicciones y veredicto arriba en celular.
+
+### R11-12 · CV sin autocrítica (carril rojo)
+`deps:` — · `estado:` en PR ([#511](https://github.com/Malejo01/job-search-os/pull/511), 13/11)
+- El CV no copia el resumen del perfil; «Armar tu CV con IA» en Hoy; el chat de CV toma el puesto del perfil y arranca en 1.
+
+### R11-13 · Celular, Contaduría para Argentina y P2 (carril rojo)
+`deps:` — · `estado:` en PR ([#513](https://github.com/Malejo01/job-search-os/pull/513), 13/11)
+- «¿Algo no anduvo?» sin tapar contenido (e2e 138), «Primeros pasos» en una línea, catálogo de Contaduría para Argentina (SQL para producción en `ops/`), «Client-facing» renombrada y P2 12, 20, 23 y 25. Quedan el 16, el 17, el 18 y el 22.
+
+### R11 · Cierre de la tanda
+`deps:` todo en PR · `estado:` en PR (13/11)
+- Este bloque, `docs/beta/informe-r11.md` y `docs/beta/auditoria-primer-uso-13-11.md`.
+
+## Bloque 26 · Tanda R12 «Coach de CV» (17/11, plan)
+
+Base: `main` (6cace3c). Sale de la prueba de Mauro del 17/11 ([informe](beta/informe-cv-agente-17-11.md)). Plan, costos, archivos por ticket y evals: [`docs/beta/plan-coach-cv.md`](beta/plan-coach-cv.md). ADR: [038](adr/038-coach-de-cv.md) (Proposed; D1 a D7 a confirmar por Mauro). La Fase 2 no arranca sin D1.
+
+### R12-0 · Plan del coach de CV
+`deps:` — · `estado:` done (17/11)
+- Verificación del diagnóstico contra el código, borrador de ADR-038, costo por charla, tickets y plan de evals. Solo docs.
+
+### R12-1 · Integrar #514 y #511 (carril rojo)
+`deps:` — · `estado:` pendiente (Mauro)
+- Merge limpio entre las dos ramas (verificado). Fila `extract_cv_profile` en Neon, `CV_IMPORT_ENABLED=1` y `CV_PROFILE_AGENT=testers` en Vercel. Mauro repite la prueba con su CV.
+
+### R12-2 · Extracción multi-campo en el chat (carril rojo)
+`deps:` R12-1, R12-4 · `estado:` propuesto
+### R12-3 · Acuse con lo entendido y contradicciones
+`deps:` R12-2 · `estado:` propuesto
+### R12-4 · Proyectos en `career_history` y en el CV ATS (carril rojo, D2)
+`deps:` R12-1 · `estado:` propuesto
+### R12-5 · Lectura con viñetas originales y tarjeta de proyectos (carril rojo, D2 y D4)
+`deps:` R12-1, R12-4 · `estado:` propuesto
+### R12-6 · Puerta única en /cv (carril rojo, D6)
+`deps:` R12-1 · `estado:` propuesto
+### R12-7 · Contrato del coach
+`deps:` ADR-038 aceptado · `estado:` propuesto
+### R12-8 · Diagnóstico `cv_review` (carril rojo)
+`deps:` R12-7, R12-4 · `estado:` propuesto
+### R12-9 · Turno `cv_coach_turn` (carril rojo)
+`deps:` R12-7, R12-2 · `estado:` propuesto
+### R12-10 · Pantallas y rutas del coach (carril rojo)
+`deps:` R12-8, R12-9 · `estado:` propuesto
+### R12-11 · Cierre y «qué mejoró»
+`deps:` R12-7, R12-10 · `estado:` propuesto
+### R12-12 · PDF con `pdfjs-dist` (carril rojo, D3)
+`deps:` R12-1 · `estado:` propuesto
+### R12-13 · Golden de CVs y harness del coach (carril rojo)
+`deps:` R12-8, R12-9 · `estado:` propuesto
+### R12-14 · Prueba con Ani y comparación de Mauro
+`deps:` R12-10, R12-11 · `estado:` propuesto

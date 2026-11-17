@@ -29,7 +29,11 @@ test.describe("Flujo 101: carreras visibles por umbral", () => {
       await page.goto(path);
       const chips = page.getByRole("navigation", { name: "Carreras" });
       await expect(chips.getByRole("link").first()).toBeVisible();
-      await expect(chips.locator(`a[href$="/data_analyst"]`)).toHaveCount(1);
+      // R11-13: en el DOM están la lista de escritorio y la plegada del celular; se ve una sola.
+      // En el celular data_analyst va dentro de «Otras carreras», plegado: se abre antes de contar.
+      const others = chips.locator("details > summary");
+      if (await others.isVisible()) await others.click();
+      await expect(chips.locator(`a[href$="/data_analyst"]:visible`)).toHaveCount(1);
       await expect(chips.getByRole("link", { name: HIDDEN_LABEL })).toHaveCount(0);
     }
   });

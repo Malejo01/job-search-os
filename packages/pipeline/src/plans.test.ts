@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { cvChatBetaCvPerMonth } from "./cv-chat/limits";
 import {
   effectivePlan,
   limitsText,
@@ -107,11 +108,30 @@ describe("planes (C-11)", () => {
     expect(priceLabel({ ...planDef("pase_3_meses"), priceArs: 1 })).toBe("$ 1, un solo pago");
   });
 
+  it("lecturas de CV por mes: 3 en el plan gratis y 10 en el pago (ADR-034, decisión 5)", () => {
+    expect(planDef("gratis").limits.cvReadsPerMonth).toBe(3);
+    for (const key of ["fundador", "lista", "pase_3_meses"] as const) {
+      expect(planDef(key).limits.cvReadsPerMonth, key).toBe(10);
+    }
+    const paid = limitsText(planDef("lista").limits, { cv: true, assistant: false });
+    expect(paid).toContain("10 lecturas de CV por mes");
+  });
+
+  it("el chat de CV no cambió: cupo propio de 1 gratis y 5 pago, independiente de las lecturas", () => {
+    expect(planDef("gratis").limits.cvChatPerMonth).toBe(1);
+    for (const key of ["fundador", "lista", "pase_3_meses"] as const) {
+      expect(planDef(key).limits.cvChatPerMonth, key).toBe(5);
+    }
+    // lo que el chat aplica por mes (con el piso de la beta) es lo mismo que antes de ADR-034
+    expect(cvChatBetaCvPerMonth(planDef("gratis").limits.cvChatPerMonth)).toBe(3);
+    expect(cvChatBetaCvPerMonth(planDef("lista").limits.cvChatPerMonth)).toBe(5);
+  });
+
   it("los topes en palabras no prometen CV ni asistente apagados", () => {
     const off = limitsText(planDef("fundador").limits, { cv: false, assistant: false });
     expect(off.join(" ")).not.toMatch(/CV|asistente/);
     const on = limitsText(planDef("gratis").limits, { cv: true, assistant: true });
-    expect(on).toContain("1 lectura de CV por mes");
+    expect(on).toContain("3 lecturas de CV por mes");
     expect(on).toContain("3 charlas con el asistente por mes");
   });
 });

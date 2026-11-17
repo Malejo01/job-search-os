@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAccesoFunnel } from "@/lib/acceso-funnel";
+import { requireAdminOr404 } from "@/lib/admin-guard";
 import { feedbackTriageEnabled } from "@/lib/feedback-triage";
 import { careerLabel } from "@/lib/career-market";
 import { getBetaFeedback, type FeedbackListResult } from "@/lib/beta-feedback";
@@ -45,6 +46,7 @@ const DATE = new Intl.DateTimeFormat("es-AR", {
  */
 export default async function MetricasPage() {
   const userId = await requireUserId();
+  await requireAdminOr404(userId);
   const result = await getBetaMetrics(userId);
   // Para quien no es admin, la página no existe (igual que una ruta desconocida)
   if (!result.ok && result.reason === "no_admin") notFound();

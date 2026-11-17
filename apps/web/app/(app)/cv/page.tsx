@@ -2,6 +2,8 @@ import type { CvMissing } from "@job-search-os/pipeline";
 import { HelpTip } from "@/components/help-tip";
 import Link from "next/link";
 import { CvPreview } from "@/components/cv-preview";
+import { UploadCard } from "@/components/profile-agent/upload-card";
+import { profileAgentAllowedFor } from "@/lib/profile-agent/access";
 import { PrintButton } from "@/components/print-button";
 import { canCreateInvitations } from "@/lib/invitations";
 import { buildUserCv, cvChatMode, parseCvOptions } from "@/lib/cv-source";
@@ -16,7 +18,6 @@ const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v
 
 /** Qué le falta al CV y dónde se carga. «links» no se lista: todavía no hay pantalla para cargarlos. */
 const MISSING: Partial<Record<CvMissing, { text: string; href: string; cta: string }>> = {
-  summary: { text: "un resumen", href: "/settings/perfil", cta: "Escribilo en Tu perfil" },
   experience: {
     text: "tu experiencia laboral",
     href: "/settings/historial",
@@ -46,13 +47,15 @@ export default async function CvPage({ searchParams }: { searchParams: Promise<P
   });
   const mode = cvChatMode(process.env);
   // R7-6: el CV y el permiso del chat no dependen uno del otro
-  const [doc, chatVisible] = await Promise.all([
+  const [doc, chatVisible, agentVisible] = await Promise.all([
     buildUserCv(userId, opts),
     mode === "all"
       ? Promise.resolve(true)
       : mode === "admin"
         ? canCreateInvitations(userId).catch(() => false)
         : Promise.resolve(false),
+    // ADR-034: «Subí tu CV y armamos tu perfil», detrás de CV_PROFILE_AGENT (apagado: no aparece)
+    profileAgentAllowedFor(userId),
   ]);
   const download = new URLSearchParams({
     lang: opts.lang,
@@ -60,7 +63,14 @@ export default async function CvPage({ searchParams }: { searchParams: Promise<P
     basicas: opts.includeBasics ? "1" : "0",
   }).toString();
   const missing = (doc?.missing ?? []).flatMap((m) => {
-    const item = MISSING[m];
+    // R11-12: el resumen del CV no sale del perfil (está escrito para la IA). Hoy no hay dónde
+    // escribirlo a mano: se invita a armarlo con el chat, y sin chat se dice la verdad.
+    const item: { text: string; href: string | null; cta: string } | undefined =
+      m === "summary"
+        ? chatVisible
+          ? { text: "un resumen", href: "/cv/armar", cta: "Armalo con «Armá tu CV con IA»" }
+          : { text: "un resumen (todavía no hay dónde escribirlo)", href: null, cta: "" }
+        : MISSING[m];
     return item ? [{ key: m, ...item }] : [];
   });
 
@@ -73,6 +83,8 @@ export default async function CvPage({ searchParams }: { searchParams: Promise<P
         dirección.
       </p>
       <HelpTip topic="cv" className="no-print" />
+
+      {agentVisible ? <UploadCard base="app" /> : null}
 
       {chatVisible ? (
         <Link
@@ -107,9 +119,11 @@ export default async function CvPage({ searchParams }: { searchParams: Promise<P
                 {missing.map((m) => (
                   <li key={m.key}>
                     {m.text}.{" "}
-                    <Link href={m.href} className="font-semibold underline underline-offset-2">
-                      {m.cta}
-                    </Link>
+                    {m.href ? (
+                      <Link href={m.href} className="font-semibold underline underline-offset-2">
+                        {m.cta}
+                      </Link>
+                    ) : null}
                   </li>
                 ))}
               </ul>

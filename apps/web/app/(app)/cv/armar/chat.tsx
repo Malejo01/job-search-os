@@ -1,6 +1,11 @@
 "use client";
 
-import type { CvChatState, CvDocument, CvHistoryInput } from "@job-search-os/pipeline";
+import {
+  cvProgressShown,
+  type CvChatState,
+  type CvDocument,
+  type CvHistoryInput,
+} from "@job-search-os/pipeline";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { CvPreview } from "@/components/cv-preview";
@@ -208,7 +213,7 @@ export function CvChat() {
       <section className="flex flex-col gap-3" aria-label="Charla">
         {progress ? (
           <p className="text-sm text-fg-muted" data-testid="cv-progress">
-            Avance: {progress.done} de {progress.total} temas
+            Avance: {cvProgressShown(progress.done)} de {progress.total} temas
           </p>
         ) : null}
         <div

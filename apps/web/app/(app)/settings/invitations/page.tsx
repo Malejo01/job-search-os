@@ -9,8 +9,8 @@ import {
   type WaitlistFilters,
 } from "@job-search-os/pipeline";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { canCreateInvitations, listInvitations } from "@/lib/invitations";
+import { requireAdminOr404 } from "@/lib/admin-guard";
+import { listInvitations } from "@/lib/invitations";
 import { requireUserId } from "@/lib/session";
 import { ROLE_SKILLS } from "@/lib/skill-levels";
 import { listWaitlist, WaitlistNotEnabledInDbError } from "@/lib/waitlist-admin";
@@ -62,7 +62,7 @@ export default async function InvitationsPage({
   const filters = parseWaitlistFilters(await searchParams);
   const userId = await requireUserId();
   // Como las demás pantallas de admin: 404 para una cuenta común
-  if (!(await canCreateInvitations(userId))) notFound();
+  await requireAdminOr404(userId);
   const invitations = await listInvitations(userId);
   // Admin en la app pero sin fila en app_admins: la base rechaza la lista; se avisa en vez de romper
   const loaded = await listWaitlist(userId).catch((error: unknown) => {

@@ -13,6 +13,8 @@ import {
   planDuplicateMerge,
   POSSIBLE_DUPLICATE_FLAG,
   prefilterReasonText,
+  gapText,
+  translateChecklist,
   type Adjustment,
   type Checklist,
   type CriteriaRules,
@@ -76,7 +78,8 @@ export const checklistContract = (c: Checklist): ChecklistView => c;
 export function parseChecklist(decision: unknown): ChecklistView | null {
   if (!decision || typeof decision !== "object") return null;
   const parsed = checklistSchema.safeParse((decision as { checklist?: unknown }).checklist);
-  return parsed.success ? parsed.data : null;
+  // R11-11: lo guardado puede traer valores internos escritos («Disponible en *», «Puesto de otra»)
+  return parsed.success ? translateChecklist(parsed.data) : null;
 }
 
 export type EvaluationView = {
@@ -471,7 +474,7 @@ export async function getJobDetail(
             companyType: ev.companyType,
             yearsRequired: ev.yearsRequired,
             matchFuerte: ev.matchFuerte,
-            gaps: ev.gaps,
+            gaps: ev.gaps.map(gapText),
             bloqueadores: ev.bloqueadoresDuros,
             riesgos: ev.riesgos,
             senales: ev.senalesPositivas,

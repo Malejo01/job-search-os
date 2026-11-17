@@ -1,7 +1,11 @@
 import { schema as s, type Db } from "@job-search-os/db";
+import roleSkillsSeed from "@job-search-os/db/seeds/role_skills.json";
 import {
   buildPlan,
+  filterPlanByCareer,
   pickLearningResource,
+  planItemsToRemove,
+  roleSkillsSchema,
   type PlanRow,
   type RoleKey,
 } from "@job-search-os/pipeline";
@@ -15,7 +19,8 @@ import { validRoleKeys } from "../ingest/ingest-job";
  * - skill nueva en el plan → fila `pendiente` con el mejor recurso aprobado (target_level >
  *   nivel, menos horas);
  * - skill que ya estaba → se actualiza la prioridad, se conservan estado y recurso;
- * - skill que ya no aplica (nivel 3) y estaba `pendiente` → se borra; `en_curso`/`cerrada` quedan.
+ * - skill que ya no aplica (nivel 3) y estaba `pendiente` → se borra; `en_curso`/`cerrada` quedan. Una
+ *   pendiente que solo salió de la demanda se conserva (R11-2: puede venir de la guía del agente de perfil).
  *
  * Respaldo del rol (ronda 38): con menos de 10 ofertas con skills y un puesto válido, la
  * demanda sale de `role_market_snapshots` de ese puesto (pool global) en vez del snapshot del
@@ -32,12 +37,15 @@ export type PlanBuildResult = {
   demandSource: "usuario" | "rol";
 };
 
+const ROLE_SKILLS = roleSkillsSchema.parse(roleSkillsSeed);
+
 /** Con menos ofertas con skills que esto, la demanda sale del rol objetivo. */
 export const MIN_OWN_JOBS_FOR_PLAN = 10;
 
 type DemandRow = {
   skillId: string;
   slug: string;
+  category: string;
   closureHours: number | null;
   mentions: number;
   mustMentions: number;
@@ -60,6 +68,7 @@ async function loadRoleDemand(
     .select({
       skillId: s.skills.id,
       slug: s.skills.slug,
+      category: s.skills.category,
       closureHours: s.skills.closureHours,
       mentions: s.roleMarketSnapshots.mentions,
       mustMentions: s.roleMarketSnapshots.mustMentions,
@@ -134,6 +143,7 @@ export async function buildLearningPlan(
       .select({
         skillId: s.skills.id,
         slug: s.skills.slug,
+        category: s.skills.category,
         closureHours: s.skills.closureHours,
         mentions: s.marketSnapshots.mentions,
         mustMentions: s.marketSnapshots.mustMentions,
@@ -150,8 +160,10 @@ export async function buildLearningPlan(
     .where(eq(s.skillLevels.userId, userId));
   const levelBySkill = new Map(levels.map((l) => [l.skillId, l.level]));
 
+  // R11-9: sin skills de otra familia salvo que la demanda de la carrera las justifique
+  const demand = targetRole ? filterPlanByCareer(snapshot, targetRole, ROLE_SKILLS) : snapshot;
   const rows = buildPlan(
-    snapshot.map((r) => ({
+    demand.map((r) => ({
       slug: r.slug,
       mentions: r.mentions,
       mustMentions: r.mustMentions,
@@ -226,12 +238,14 @@ export async function buildLearningPlan(
         inserted++;
       }
     }
-    const stillWanted = new Set(wantedSkillIds);
-    for (const e of existing) {
-      if (!stillWanted.has(e.skillId) && e.status === "pendiente") {
-        await tx.delete(s.learningPlanItems).where(eq(s.learningPlanItems.id, e.id));
-        removed++;
-      }
+    // Solo se borra lo que la persona ya domina; una pendiente fuera de la demanda puede venir de la guía (R11-2)
+    for (const id of planItemsToRemove({
+      existing,
+      wantedSkillIds: new Set(wantedSkillIds),
+      levelBySkillId: levelBySkill,
+    })) {
+      await tx.delete(s.learningPlanItems).where(eq(s.learningPlanItems.id, id));
+      removed++;
     }
   });
 

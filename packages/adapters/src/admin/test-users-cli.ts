@@ -20,7 +20,9 @@ import {
 
 /**
  * pnpm admin:test-users --list | --reset <email> | --reset-all | --create --by <email-admin>
- *   [--credentials <ruta>] [--allowlist <ruta>] [--show-emails] [--yes] [--remote]
+ *   [--credentials <ruta>] [--allowlist <ruta>] [--admin-emails <lista> --ingest-domain <dominio>]
+ *   [--show-emails] [--yes] [--remote]
+ * --create --remote exige --admin-emails e --ingest-domain: no toma esos valores del .env.local.
  * --create: registra las cuentas de la allowlist por el camino real; las contraseñas van solo a
  * ops/test-users-credenciales.json y nunca se imprimen. --reset-all: borra todas con una frase.
  * Solo toca cuentas de la allowlist (por defecto ops/test-users.txt, desde donde se lanzó pnpm).
@@ -132,10 +134,27 @@ async function main(): Promise<void> {
     }
     if (args.mode.kind === "create") {
       const store = fileCredentialStore(args.mode.credentials);
+      // Contra la nube, ADMIN_EMAILS e INGEST_DOMAIN salen SOLO de los argumentos (el parser los exige):
+      // el .env.local de esta máquina no decide a quién se omite ni en qué dominio quedan las direcciones.
+      // En local, un argumento pisa al entorno y lo que falte viene del entorno, como siempre.
+      const env: Record<string, string | undefined> = args.remote
+        ? { ADMIN_EMAILS: args.adminEmails, INGEST_DOMAIN: args.ingestDomain }
+        : {
+            ...process.env,
+            ...(args.adminEmails !== undefined ? { ADMIN_EMAILS: args.adminEmails } : {}),
+            ...(args.ingestDomain !== undefined ? { INGEST_DOMAIN: args.ingestDomain } : {}),
+          };
+      const adminCount = (env.ADMIN_EMAILS ?? "").split(",").filter((e) => e.trim()).length;
+      console.log(
+        `→ ${args.remote ? "valores explícitos por argumento" : "valores del entorno (o del argumento)"}: ` +
+          `INGEST_DOMAIN=${env.INGEST_DOMAIN ?? "ingest.local (por defecto)"}, ` +
+          `ADMIN_EMAILS=${adminCount} email(s)`,
+      );
       const created = await createTestUsers(db, allowlist.emails, {
         by: args.mode.by,
         termsVersion,
         store,
+        env,
       });
       if (!created.ok) {
         console.error(created.error);

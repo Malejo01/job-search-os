@@ -165,6 +165,15 @@ jobs:
       - run: pnpm --filter @job-search-os/web e2e
         env:
           CAPTURAS: "1"
+      # El guard local no deja bajar artefactos: el contexto de cada falla (árbol de la página y error) va al log
+      - if: failure()
+        name: Contexto de los e2e que fallaron
+        run: |
+          find apps/web/test-results -name error-context.md -not -path "*retry*" | sort | while read -r f; do
+            echo "::group::$f"
+            head -c 12000 "$f"
+            echo "::endgroup::"
+          done
       - if: failure()
         uses: actions/upload-artifact@v4
         with:

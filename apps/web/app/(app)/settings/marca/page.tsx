@@ -1,7 +1,6 @@
 import { BRAND, BRAND_COLORS } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { Logo, type LogoTone } from "@/components/brand/logo";
 import { OfferCard } from "@/components/offer-card";
 import {
@@ -16,7 +15,7 @@ import {
   type BadgeTone,
   type IconName,
 } from "@/components/ui";
-import { canCreateInvitations } from "@/lib/invitations";
+import { requireAdminOr404 } from "@/lib/admin-guard";
 import { welcomeEmailSample } from "@/lib/welcome-email-sample";
 import { requireUserId } from "@/lib/session";
 import { TokenValue } from "./token-value";
@@ -66,7 +65,7 @@ const LOGO_BACKGROUNDS: Array<[LogoTone, string, string]> = [
  */
 export default async function MarcaPage() {
   const userId = await requireUserId();
-  if (!(await canCreateInvitations(userId).catch(() => false))) notFound();
+  await requireAdminOr404(userId);
   return (
     <div className="flex flex-col gap-6">
       <div>

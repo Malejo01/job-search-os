@@ -94,6 +94,40 @@ export async function saveCriteria(
   return runSave(userId, async () => rules, baseVersion);
 }
 
+/**
+ * Criterios y perfil en UNA transacción (R11-2): la guía del agente guarda las reglas nuevas (si cambiaron) y
+ * los campos del perfil juntos; si algo falla o hay conflicto de versión no queda una mitad escrita. `rules`
+ * `null` = las reglas no cambian (solo se escribe el perfil).
+ */
+export async function saveCriteriaAndProfile(
+  userId: string,
+  input: {
+    rules: CriteriaRules | null;
+    baseVersion: number | undefined;
+    profilePatch: Partial<typeof s.profiles.$inferInsert>;
+  },
+): Promise<SaveCriteriaResult> {
+  try {
+    const version = await withUser(userId, async (tx) => {
+      const v =
+        input.rules === null
+          ? (input.baseVersion ?? 0)
+          : await writeNextVersion(tx, userId, input.rules, input.baseVersion);
+      if (Object.keys(input.profilePatch).length > 0) {
+        await tx
+          .update(s.profiles)
+          .set({ ...input.profilePatch, updatedAt: new Date() })
+          .where(eq(s.profiles.userId, userId));
+      }
+      return v;
+    });
+    return { ok: true, version };
+  } catch (error) {
+    if (error instanceof SaveConflict) return { ok: false, reason: "conflict" };
+    throw error;
+  }
+}
+
 /** Vuelve a las reglas por defecto, conservando el piso salarial y las horas del perfil. */
 export async function resetCriteriaToDefaults(
   userId: string,

@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AutoRefresh } from "@/app/(app)/jobs/auto-refresh";
 import { RoleGaps } from "@/app/(app)/jobs/role-gaps";
-import { EmailNudge } from "@/app/components/email-nudge";
 import { GuidedTour } from "@/components/guided-tour";
 import { Alert, buttonClasses, textLinkClasses } from "@/components/ui";
 import { dismissGuideAction } from "@/lib/guide-actions";
@@ -16,6 +15,7 @@ import {
 import { isOnboardingComplete } from "@/lib/onboarding";
 import { requireUserId } from "@/lib/session";
 import { OnboardingSteps } from "../steps";
+import { AlertsMessage } from "./alerts-message";
 import { FirstOffersList } from "./first-offers-list";
 
 export const metadata = { title: "Tus primeras ofertas" };
@@ -99,13 +99,7 @@ export default async function FirstOffersPage() {
       {/* El aviso va después de la lista: lo primero que se ve son las ofertas (C-17, R6). Sin aviso
           (ya recibió un email o dijo «No, gracias») el contenedor queda vacío y no ocupa lugar */}
       <div data-tour="ofertas:email" className="empty:hidden">
-        <EmailNudge
-          userId={userId}
-          title="Sumá tus alertas de LinkedIn, Get on Board e Indeed"
-          body="Reenviá las alertas que ya te llegan y las evaluamos junto con estas. Toma unos 5 minutos."
-          cta="Conectar mis alertas"
-          href="/onboarding/asistente"
-        />
+        <AlertsMessage userId={userId} />
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-3">

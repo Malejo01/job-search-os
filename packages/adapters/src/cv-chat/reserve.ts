@@ -1,6 +1,7 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import { CV_CHAT_TURN_RESERVE_USD, CV_CHAT_WRITE_RESERVE_USD } from "@job-search-os/pipeline";
 import { and, eq, gte, inArray, sql } from "drizzle-orm";
+import { measureProfileAgentSpend } from "../profile-agent/measure";
 
 /**
  * Reservas de gasto del chat de CV (C-25, S-1). Los topes leen `llm_calls` antes de llamar al modelo y el
@@ -32,6 +33,15 @@ export type CvChatMeasures = {
   /** Gasto global de las tareas del chat en 24 h: real más lo reservado. */
   dailySpendUsd: number;
   writesInConversation: number;
+  /** Redacciones de la charla que terminaron bien (`ok = true`): una redacción lograda no se repite. */
+  okWritesInConversation: number;
+  /** Hay una redacción de esta charla reservada y vigente (otra en curso). */
+  writeInFlight: boolean;
+  /**
+   * Gasto de la persona en 24 h con las tres tareas del agente de perfil (medición compartida, llamadas
+   * fallidas incluidas) más lo reservado. Se mide dentro del lock (R11-2).
+   */
+  agentUserSpendUsd: number;
   /** Gasto de entrevistas de la persona en 24 h (todas sus charlas): real más lo reservado. */
   userInterviewUsd: number;
   /** Charlas que la persona empezó en 24 h. */
@@ -75,6 +85,7 @@ export async function measureCvChat(
     .select({
       usd: sql<number>`coalesce(sum(${billedUsd(c)}), 0)::float8`,
       writes: sql<number>`count(*) filter (where ${c.task} = 'cv_write' and ${attempted(c)})::int`,
+      okWrites: sql<number>`count(*) filter (where ${c.task} = 'cv_write' and ${c.ok} = true)::int`,
     })
     .from(c)
     .where(and(eq(c.userId, input.userId), eq(c.label, input.label)));
@@ -125,6 +136,11 @@ export async function measureCvChat(
     conversationCostUsd: (conv?.usd ?? 0) + usd(convLive),
     dailySpendUsd: (day?.usd ?? 0) + usd(live),
     writesInConversation: (conv?.writes ?? 0) + (convLive.some((r) => r.step === "write") ? 1 : 0),
+    okWritesInConversation: conv?.okWrites ?? 0,
+    writeInFlight: convLive.some((r) => r.step === "write"),
+    agentUserSpendUsd:
+      (await measureProfileAgentSpend(q, { userId: input.userId, daySince: input.daySince }))
+        .userUsd + usd(mineLive),
     userInterviewUsd: (mine?.usd ?? 0) + usd(mineLive.filter((r) => r.step === "interview")),
     startsToday: mine?.starts ?? 0,
     interviewTurnsThisMonth:

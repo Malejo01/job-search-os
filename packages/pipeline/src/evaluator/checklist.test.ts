@@ -220,6 +220,37 @@ describe("buildChecklist: skills que nombra el aviso", () => {
   });
 });
 
+describe("buildChecklist: sin valores internos a la vista (R11-11)", () => {
+  it("países «*» se dicen «cualquier país»", () => {
+    const { c } = run({ ...base, paises_permitidos: ["*"] }, ctxBase());
+    expect(byId(c, "pais")?.pide).toBe("Disponible en cualquier país");
+  });
+  it("disciplina «otra» no sale como «Puesto de otra»", () => {
+    const { c } = run({ ...base, disciplina: "otra" }, ctxBase());
+    expect(byId(c, "disciplina")?.pide).toBe("Puesto de un área sin clasificar");
+  });
+  it("la disciplina va con su nombre, no con el slug", () => {
+    const { c } = run({ ...base, disciplina: "project_management" }, ctxBase());
+    expect(byId(c, "disciplina")?.pide).toBe("Puesto de gestión de proyectos");
+  });
+  it("una skill sin evidencia en el texto no se marca (ciberseguridad en un aviso de nómina)", () => {
+    const t = compileTaxonomy([
+      { slug: "payroll", name: "Nómina", aliases: ["nomina", "payroll"] },
+      { slug: "security", name: "Ciberseguridad", aliases: ["security", "seguridad"] },
+    ]);
+    const ctx = {
+      ...ctxBase({
+        jdText:
+          "Liquidación de nómina y aportes de seguridad social. Seguridad laboral garantizada.",
+      }),
+      terms: t,
+    };
+    const ids = run(base, ctx).c.items.map((i) => i.id);
+    expect(ids).toContain("skill:payroll");
+    expect(ids).not.toContain("skill:security");
+  });
+});
+
 describe("buildChecklist: parcial e inglés en avisos en español", () => {
   it("parcial cuando no hay JD completa", () => {
     expect(run(base, ctxBase({ hadFullJd: false })).c.parcial).toBe(true);

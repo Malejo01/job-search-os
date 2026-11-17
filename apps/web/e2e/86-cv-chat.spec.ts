@@ -110,10 +110,13 @@ async function lastMessage(page: Page): Promise<string> {
 }
 
 /** Contesta los temas que pregunte la página hasta que aparezca «Esto es lo que entendí». */
-async function answerAll(page: Page, answer: Locator) {
+async function answerAll(page: Page, answer: Locator): Promise<string[]> {
   const review = page.getByRole("heading", { name: "Esto es lo que entendí", level: 2 });
+  const asked: string[] = [];
   for (let i = 0; i < 25 && !(await review.isVisible()); i++) {
-    await answer.fill(answerFor(await lastMessage(page)));
+    const question = await lastMessage(page);
+    asked.push(question.toLowerCase());
+    await answer.fill(answerFor(question));
     await page.getByRole("button", { name: "Enviar", exact: true }).click();
     await expect
       .poll(
@@ -126,6 +129,7 @@ async function answerAll(page: Page, answer: Locator) {
       .toBe(true);
   }
   await expect(review).toBeVisible();
+  return asked;
 }
 
 test.describe("Flujo 86: Armá tu CV con IA", () => {
@@ -149,7 +153,7 @@ test.describe("Flujo 86: Armá tu CV con IA", () => {
     await expect(pageB.getByText(/legible por ATS/)).toBeVisible();
     await expect(pageB.locator("body")).not.toContainText(/pasa los filtros|pasar los filtros/i);
     await pageB.goto("/cv");
-    await expect(pageB.getByRole("link", { name: "Armá tu CV con IA" })).toBeVisible();
+    await expect(pageB.getByRole("link", { name: "Armá tu CV con IA", exact: true })).toBeVisible();
     const api = await pageB.request.post("/api/cv-chat", {
       data: { action: "start" },
       headers: { Origin: BASE_URL },
@@ -214,7 +218,7 @@ test.describe("Flujo 86: Armá tu CV con IA", () => {
     requireAdmin();
     await login(page);
     await page.goto("/cv");
-    await page.getByRole("link", { name: "Armá tu CV con IA" }).click();
+    await page.getByRole("link", { name: "Armá tu CV con IA", exact: true }).click();
     await page.waitForURL("**/cv/armar");
     await expectNoOverflowNorAxe(page);
     await page.getByRole("button", { name: "Empezar" }).click();
@@ -281,13 +285,18 @@ test.describe("Flujo 86: Armá tu CV con IA", () => {
     await expect(page.getByTestId("cv-progress")).toContainText("Avance:");
     await expectNoOverflowNorAxe(page);
 
-    await answerAll(page, answer);
+    const asked = await answerAll(page, answer);
     const review = page.getByRole("heading", { name: "Esto es lo que entendí", level: 2 });
     await expect(review).toBeFocused();
     const card = page.getByTestId("cv-card");
     await expect(card.getByLabel("Empresa 1")).toHaveValue(EMPRESA);
     await expect(card.getByLabel("Cargo 1")).toHaveValue("Analista Junior");
-    await expect(card.getByLabel("Puesto")).toHaveValue("Analista de datos");
+    // R11-12: con titular en el perfil (o carrera elegida) el chat no pregunta el puesto y lo precarga
+    if (asked.some((q) => q.includes("qué puesto"))) {
+      await expect(card.getByLabel("Puesto")).toHaveValue("Analista de datos");
+    } else {
+      await expect(card.getByLabel("Puesto")).not.toHaveValue("");
+    }
 
     // Corregir algo antes de armar
     await card.getByLabel("Cargo 1").fill(CARGO_CORREGIDO);

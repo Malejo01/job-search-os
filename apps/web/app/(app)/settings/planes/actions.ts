@@ -5,6 +5,7 @@ import { isPlanSource } from "@job-search-os/pipeline";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
+import { requireAdminOrThrow } from "@/lib/admin-guard";
 import { NotInvitationAdminError } from "@/lib/invitations";
 import { grantBetaPlan, PlanAdminNotEnabledInDbError, revokePlan } from "@/lib/plan-admin";
 import { requireActiveUserId } from "@/lib/session";
@@ -26,6 +27,7 @@ export async function grantPlanAction(formData: FormData): Promise<void> {
   if (!isPlanSource(source)) redirect(`${BACK}?error=origen`);
   let target: string;
   try {
+    await requireAdminOrThrow(userId);
     const result = await grantBetaPlan(userId, { email, source });
     target = result.ok ? `${BACK}?ok=${source}` : `${BACK}?error=${result.reason}`;
     if (result.ok) {
@@ -62,6 +64,7 @@ export async function revokePlanAction(formData: FormData): Promise<void> {
   const email = String(formData.get("email") ?? "");
   let target: string;
   try {
+    await requireAdminOrThrow(userId);
     target = (await revokePlan(userId, email)) ? `${BACK}?ok=quitado` : `${BACK}?error=no_existe`;
     if (target.includes("ok=")) {
       createLogger({ user_id: userId, task: "admin_plan_revoke" }).info(

@@ -238,7 +238,7 @@ export async function POST(request: Request): Promise<Response> {
           turns,
           conversationCostUsd: m.conversationCostUsd,
           cvThisMonth: m.cvThisMonth,
-          cvPerMonth: cvChatBetaCvPerMonth(plan.plan.limits.cvReadsPerMonth),
+          cvPerMonth: cvChatBetaCvPerMonth(plan.plan.limits.cvChatPerMonth),
           userInterviewSpendUsd: m.userInterviewUsd,
           dailySpendUsd: m.dailySpendUsd,
           dailyCapUsd: cvChatDailyCapUsd(process.env),

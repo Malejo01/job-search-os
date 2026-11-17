@@ -72,7 +72,10 @@ export async function submitWaitlist(
       { err: safeDbError(e) },
       "lista de espera: falló",
     );
-    return { status: "error", message: "No pudimos anotarte. Probá de nuevo en un rato." };
+    return {
+      status: "error",
+      message: "No pudimos registrar tu pedido de acceso. Probá de nuevo en un rato.",
+    };
   }
 }
 
