@@ -146,6 +146,9 @@ test.describe("Flujo 123: asistente con acceso de prueba", () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await loginAsSecondUser(page);
       await page.goto("/hoy");
+      // R11-13: en el celular el chip va en el flujo, al final de la página (el 138 prueba que no tape
+      // las pestañas). Se mide con la página abajo de todo, que es donde puede cruzarse con la mascota.
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
       const m = await mascot(page).boundingBox();
       const c = await chip(page).boundingBox();
       const bar = await page.getByTestId("tabbar").boundingBox();

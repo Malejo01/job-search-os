@@ -41,7 +41,11 @@ test.describe("Flujo 138: «¿Algo no anduvo?» en el celular", () => {
   test("el detalle de una oferta: tampoco lo tapa el botón fijo", async ({ page }) => {
     await login(page);
     await page.goto("/jobs");
-    const first = page.locator('a[href^="/jobs/"]').filter({ hasNotText: /^$/ }).first();
+    // El primer link a /jobs/ es «+ Cargar oferta» (/jobs/new): se busca el de una oferta (UUID)
+    const first = page
+      .locator('a[href^="/jobs/"]:not([href^="/jobs/new"]):not([href^="/jobs/pending"])')
+      .filter({ hasNotText: /^$/ })
+      .first();
     test.skip((await first.count()) === 0, "el usuario de e2e no tiene ofertas en esta base");
     await first.click();
     await page.waitForURL(/\/jobs\/[0-9a-f-]{36}/);

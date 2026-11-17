@@ -149,7 +149,7 @@ test.describe("Flujo 86: Armá tu CV con IA", () => {
     await expect(pageB.getByText(/legible por ATS/)).toBeVisible();
     await expect(pageB.locator("body")).not.toContainText(/pasa los filtros|pasar los filtros/i);
     await pageB.goto("/cv");
-    await expect(pageB.getByRole("link", { name: "Armá tu CV con IA" })).toBeVisible();
+    await expect(pageB.getByRole("link", { name: "Armá tu CV con IA", exact: true })).toBeVisible();
     const api = await pageB.request.post("/api/cv-chat", {
       data: { action: "start" },
       headers: { Origin: BASE_URL },
