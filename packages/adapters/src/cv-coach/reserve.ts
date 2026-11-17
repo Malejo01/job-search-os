@@ -7,7 +7,7 @@ import {
   type CvCoachCap,
   type ProfileAgentCap,
 } from "@job-search-os/pipeline";
-import { and, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, eq, gte, sql } from "drizzle-orm";
 import { CV_RESERVE_LOCK_NAMESPACE, CV_RESERVE_TASK, CV_RESERVE_TTL_MS } from "../cv-chat/reserve";
 import {
   measureProfileAgentSpend,
@@ -86,15 +86,8 @@ export async function measureCvCoach(
     })
     .from(c)
     .where(and(eq(c.userId, input.userId), eq(c.label, input.label)));
-  // Persona-día y global: la medición compartida del agente más las dos tareas del coach
+  // Persona-día y global: la medición compartida del agente, que ya incluye `cv_review` y `cv_coach_turn`
   const agent = await measureProfileAgentSpend(q, input);
-  const [coach] = await q
-    .select({
-      all: sql<number>`coalesce(sum(${coachBilledUsd(c)}), 0)::float8`,
-      mine: sql<number>`coalesce(sum(${coachBilledUsd(c)}) filter (where ${c.userId} = ${input.userId}), 0)::float8`,
-    })
-    .from(c)
-    .where(and(inArray(c.task, [...CV_COACH_TASKS]), gte(c.createdAt, input.daySince)));
   const live = await q
     .select({ userId: c.userId, label: c.label, micro: c.tokensOut, step: c.model })
     .from(c)
@@ -111,8 +104,8 @@ export async function measureCvCoach(
     reviews: (flow?.reviews ?? 0) + flowLive.filter((r) => r.step === RESERVE_MODEL.review).length,
     flowCostUsd: (flow?.usd ?? 0) + reservedUsd(flowLive),
     written: (flow?.writes ?? 0) > 0,
-    userSpendTodayUsd: agent.userUsd + (coach?.mine ?? 0) + reservedUsd(mineLive),
-    dailySpendUsd: agent.dailyUsd + (coach?.all ?? 0) + reservedUsd(live),
+    userSpendTodayUsd: agent.userUsd + reservedUsd(mineLive),
+    dailySpendUsd: agent.dailyUsd + reservedUsd(live),
   };
 }
 
