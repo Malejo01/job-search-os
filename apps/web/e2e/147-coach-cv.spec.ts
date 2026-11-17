@@ -251,5 +251,13 @@ test.describe("Flujo 147: coach de CV", () => {
 
     await page.getByTestId("coach-chat-finish").click();
     await page.waitForURL(/\/cv\/coach\/listo/);
+    // «Qué mejoró» (R12-11): el problema salteado en la charla, con la plantilla del código, y sin viñetas
+    // cambiadas (no se confirmó ninguna tarjeta)
+    await expect(page.getByTestId("coach-improved")).toBeVisible();
+    await expect(page.getByTestId("coach-improved-skipped")).toContainText("Empresa A (147)");
+    await expect(page.getByTestId("coach-improved-resolved")).toHaveCount(0);
+    await expect(page.getByTestId("coach-improved-items")).toHaveCount(0);
+    // El CV sale del cierre del agente de perfil (cv_write con el verificador)
+    await expect(page.getByTestId("pa-close-write")).toBeVisible();
   });
 });
