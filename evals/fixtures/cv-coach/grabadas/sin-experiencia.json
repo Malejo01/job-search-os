@@ -1,0 +1,205 @@
+{
+  "fixtureId": "sin-experiencia",
+  "origen": "simulada",
+  "nota": "grabada con --modo simulada el 2026-11-17",
+  "calls": [
+    {
+      "task": "cv_review",
+      "object": {
+        "issues": [
+          {
+            "type": "logro_sin_resultado",
+            "ref": {
+              "section": "experience",
+              "itemId": "00000000-0000-4000-8000-000000000066",
+              "field": null
+            },
+            "quote": "Armado de notas cortas y edición de audio durante un semestre.",
+            "skillSlug": null,
+            "severity": "media"
+          },
+          {
+            "type": "fecha_faltante",
+            "ref": {
+              "section": "experience",
+              "itemId": "00000000-0000-4000-8000-000000000066",
+              "field": null
+            },
+            "quote": "Armado de notas cortas y edición de audio durante un semestre.",
+            "skillSlug": null,
+            "severity": "media"
+          },
+          {
+            "type": "proyecto_sin_stack_o_link",
+            "ref": {
+              "section": "projects",
+              "itemId": "00000000-0000-4000-8000-000000000065",
+              "field": null
+            },
+            "quote": "Calendario de publicaciones y piezas gráficas para la biblioteca (Empresa A).",
+            "skillSlug": null,
+            "severity": "media"
+          },
+          {
+            "type": "resumen_generico",
+            "ref": {
+              "section": "summary",
+              "itemId": null,
+              "field": null
+            },
+            "quote": null,
+            "skillSlug": null,
+            "severity": "media"
+          },
+          {
+            "type": "tarea_vaga",
+            "ref": {
+              "section": "experience",
+              "itemId": "00000000-0000-4000-8000-0000000dead0",
+              "field": "bullets"
+            },
+            "quote": null,
+            "skillSlug": null,
+            "severity": "alta"
+          }
+        ]
+      },
+      "costUsd": 0,
+      "model": "simulado"
+    },
+    {
+      "task": "cv_coach_turn",
+      "object": {
+        "patch": {
+          "title": null,
+          "organization": null,
+          "startMonth": null,
+          "endMonth": null,
+          "isCurrent": null,
+          "bullets": [],
+          "link": null,
+          "stack": []
+        },
+        "extras": [
+          {
+            "kind": "logro",
+            "text": "En el proyecto de la biblioteca manejé las redes sociales durante dos meses.",
+            "ref": null
+          }
+        ],
+        "declined": false,
+        "nextQuestion": null
+      },
+      "costUsd": 0,
+      "model": "simulado"
+    },
+    {
+      "task": "cv_coach_turn",
+      "object": {
+        "patch": {
+          "title": null,
+          "organization": null,
+          "startMonth": null,
+          "endMonth": null,
+          "isCurrent": null,
+          "bullets": [],
+          "link": null,
+          "stack": []
+        },
+        "extras": [
+          {
+            "kind": "logro",
+            "text": "Las piezas gráficas de la biblioteca las hice en Canva.",
+            "ref": null
+          }
+        ],
+        "declined": false,
+        "nextQuestion": null
+      },
+      "costUsd": 0,
+      "model": "simulado"
+    },
+    {
+      "task": "cv_coach_turn",
+      "object": {
+        "patch": {
+          "title": null,
+          "organization": null,
+          "startMonth": null,
+          "endMonth": null,
+          "isCurrent": null,
+          "bullets": [
+            "Hice 20 notas cortas que salieron al aire en el programa de la mañana."
+          ],
+          "link": null,
+          "stack": []
+        },
+        "extras": [],
+        "declined": false,
+        "nextQuestion": null
+      },
+      "costUsd": 0,
+      "model": "simulado"
+    },
+    {
+      "task": "cv_coach_turn",
+      "object": {
+        "patch": {
+          "title": null,
+          "organization": null,
+          "startMonth": null,
+          "endMonth": null,
+          "isCurrent": null,
+          "bullets": [],
+          "link": null,
+          "stack": [
+            "Canva",
+            "Google Drive"
+          ]
+        },
+        "extras": [],
+        "declined": false,
+        "nextQuestion": null
+      },
+      "costUsd": 0,
+      "model": "simulado"
+    },
+    {
+      "task": "cv_coach_turn",
+      "object": {
+        "patch": {
+          "title": null,
+          "organization": null,
+          "startMonth": "2022-03",
+          "endMonth": "2022-08",
+          "isCurrent": false,
+          "bullets": [],
+          "link": null,
+          "stack": []
+        },
+        "extras": [],
+        "declined": false,
+        "nextQuestion": null
+      },
+      "costUsd": 0,
+      "model": "simulado"
+    },
+    {
+      "task": "cv_write",
+      "object": {
+        "summary": "Asistente de comunicación institucional.",
+        "entries": [
+          {
+            "id": "h0",
+            "bullets": [
+              "Armado de notas cortas y edición de audio durante un semestre.",
+              "Hice 20 notas cortas que salieron al aire en el programa de la mañana."
+            ]
+          }
+        ]
+      },
+      "costUsd": 0,
+      "model": "fake"
+    }
+  ]
+}

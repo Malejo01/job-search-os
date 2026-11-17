@@ -1,0 +1,180 @@
+{
+  "id": "comunicacion",
+  "carrera": "comunicacion",
+  "puesto_objetivo": "Responsable de comunicación institucional",
+  "nota": "",
+  "cv_texto": "PERSONA EJEMPLO G\nPeriodista y comunicadora\n\nPERFIL\nComunicadora con experiencia en medios y en comunicación interna.\n\nEXPERIENCIA\nRedactora, Diario Ficticio del Valle, 2020-02 a actualidad\n- Redacción de notas de sociedad y cultura.\n- Cobertura de eventos.\n- Manejo de redes.\n\nAsistente de comunicación interna, Empresa J, 2018-05 a 2020-01\n- Newsletter interno mensual.\n\nESTUDIOS\nLicenciatura en Comunicación, Universidad Ficticia del Norte, 2013-03 a 2018-03\n\nHABILIDADES\nRedacción periodística, comunicación interna, redes sociales, WordPress\n\nIDIOMAS\nEspañol nativo.\n",
+  "lectura": {
+    "items": [
+      {
+        "clave": "exp-1",
+        "id": "00000000-0000-4000-8000-0000000002bd",
+        "kind": "trabajo",
+        "organization": "Diario Ficticio del Valle",
+        "title": "Redactora",
+        "startMonth": "2020-02",
+        "endMonth": null,
+        "isCurrent": true,
+        "bullets": [
+          "Redacción de notas de sociedad y cultura.",
+          "Cobertura de eventos.",
+          "Manejo de redes."
+        ],
+        "link": null
+      },
+      {
+        "clave": "exp-2",
+        "id": "00000000-0000-4000-8000-0000000002be",
+        "kind": "trabajo",
+        "organization": "Empresa J",
+        "title": "Asistente de comunicación interna",
+        "startMonth": "2018-05",
+        "endMonth": "2020-01",
+        "isCurrent": false,
+        "bullets": [
+          "Newsletter interno mensual."
+        ],
+        "link": null
+      },
+      {
+        "clave": "edu-1",
+        "id": "00000000-0000-4000-8000-0000000002bf",
+        "kind": "educacion",
+        "organization": "Universidad Ficticia del Norte",
+        "title": "Licenciatura en Comunicación",
+        "startMonth": "2013-03",
+        "endMonth": "2018-03",
+        "isCurrent": false,
+        "bullets": [],
+        "link": null
+      }
+    ],
+    "skills": [
+      "journalism",
+      "corporate_communications",
+      "social_media"
+    ],
+    "resumen": "Comunicadora con experiencia en medios y en comunicación interna."
+  },
+  "demanda": [
+    {
+      "slug": "corporate_communications",
+      "mentions": 10
+    },
+    {
+      "slug": "press_relations",
+      "mentions": 8
+    },
+    {
+      "slug": "content_strategy",
+      "mentions": 6
+    },
+    {
+      "slug": "social_media",
+      "mentions": 6
+    },
+    {
+      "slug": "journalism",
+      "mentions": 3
+    }
+  ],
+  "hechos": [
+    {
+      "clave": "empresa",
+      "valor": "Diario Ficticio del Valle",
+      "fuente": "cv"
+    },
+    {
+      "clave": "cargo",
+      "valor": "Redactora",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2020",
+      "fuente": "cv"
+    },
+    {
+      "clave": "empresa",
+      "valor": "Empresa J",
+      "fuente": "cv"
+    },
+    {
+      "clave": "cargo",
+      "valor": "Asistente de comunicación interna",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2018",
+      "fuente": "cv"
+    },
+    {
+      "clave": "institucion",
+      "valor": "Universidad Ficticia del Norte",
+      "fuente": "cv"
+    },
+    {
+      "clave": "titulo",
+      "valor": "Licenciatura en Comunicación",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2013",
+      "fuente": "cv"
+    },
+    {
+      "clave": "numero",
+      "valor": "30",
+      "fuente": "respuesta"
+    },
+    {
+      "clave": "numero",
+      "valor": "300",
+      "fuente": "respuesta"
+    }
+  ],
+  "problemas_esperados": [
+    {
+      "tipo": "logro_sin_resultado",
+      "item": "exp-1"
+    },
+    {
+      "tipo": "tarea_vaga",
+      "item": "exp-1"
+    },
+    {
+      "tipo": "brecha_con_puesto",
+      "skill": "press_relations"
+    },
+    {
+      "tipo": "brecha_con_puesto",
+      "skill": "content_strategy"
+    },
+    {
+      "tipo": "skill_pedida_sin_evidencia",
+      "skill": "social_media"
+    },
+    {
+      "tipo": "skill_pedida_sin_evidencia",
+      "skill": "journalism"
+    }
+  ],
+  "respuestas": {
+    "logro_sin_resultado": {
+      "exp-1": "Mi serie sobre clubes de barrio fue la más leída del sitio en 2023."
+    },
+    "tarea_vaga": {
+      "exp-1": "Publico unas 30 piezas por semana en Instagram y X para el diario."
+    },
+    "brecha_con_puesto": {
+      "press_relations": "Armaba gacetillas para los eventos de Empresa J.",
+      "*": "no tengo"
+    },
+    "skill_pedida_sin_evidencia": {
+      "corporate_communications": "En Empresa J llevaba la comunicación interna para 300 empleados.",
+      "social_media": "Manejo el Instagram del diario."
+    }
+  }
+}

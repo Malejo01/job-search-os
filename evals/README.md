@@ -81,3 +81,22 @@ evals/
 ├── compare.ts        # diff entre dos reportes
 └── reports/          # NO versionados: la salida cruda del modelo sobre el golden real es privada (fixtures-private/reports/)
 ```
+
+## Coach de CV (R12-13)
+
+Harness aparte, en `src/cv-coach/` (plan `docs/beta/plan-coach-cv.md` §5). Mide el coach de punta a punta con los **mismos adaptadores que producción** (`runCvReview`, `runCoachTurn`, `runCvWrite`) sobre un golden de CVs inventados:
+
+- `fixtures/cv-coach/*.json`: 11 públicas (los 3 de #514 y una por carrera de la beta; `fullstack-17-11` replica el caso del 17/11 con nombres ficticios). Cada una trae el texto del CV, el puesto objetivo, la lectura ya normalizada (es el caché: la corrida arranca del diagnóstico), la demanda del pool, `hechos`, `problemas_esperados` y `respuestas` guionadas.
+- `fixtures-private/cv-coach/*.json`: el CV de Mauro, fuera del repo (`--privadas`). Formato de ejemplo en `fixtures-private.example/cv-coach/`. De una privada el reporte guarda solo métricas.
+- La persona es código (`persona.ts`), no un modelo: no suma costo y es repetible. Lo no guionado es «no tengo».
+- Métricas sin juez LLM (`metrics.ts`): invenciones (verificador de ADR-026 contra el CV y las respuestas; tiene que ser 0), datos perdidos (≤ 5 %), preguntas repetidas (≤ 10 %), resueltos sobre detectados, recall (≥ 0,7) y precisión (≥ 0,6) del diagnóstico, preguntas de respaldo, turnos y costo típico (≤ USD 0,20).
+- Guardarraíles (`guard.ts`): `--max-usd` (0,60 por defecto) y el tope de la tanda: si `llm_calls` con `label = r12` suma USD 2,50, no se corre. Cada turno se paga solo si queda la reserva de la redacción.
+
+```bash
+cd evals
+pnpm exec tsx src/cv-coach/cli.ts --modo demo                       # modelo de demo, sin gasto
+pnpm exec tsx src/cv-coach/cli.ts --modo grabada                    # transcripciones de fixtures/cv-coach/grabadas/, sin modelo
+pnpm exec tsx src/cv-coach/cli.ts --modo modelo --db cloud --etapa diagnostico --privadas --dry-run
+```
+
+`--modo modelo` gasta y lo corre Mauro (exige `--db local|cloud` para leer lo que ya gastó la tanda). Los reportes van a `reports/cv-coach/`.
