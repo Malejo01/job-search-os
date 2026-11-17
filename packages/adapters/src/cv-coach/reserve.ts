@@ -19,7 +19,7 @@ import {
  * Medidas y reservas del coach de CV (ADR-038 §9, D5). Mismo patrón que el chat de CV y el agente de perfil
  * (`cv-chat/reserve.ts`, `profile-agent/gaps/reserve.ts`): una transacción corta con
  * `pg_advisory_xact_lock` por persona mide, decide y anota la reserva; la llamada al modelo va afuera; otra
- * transacción corta la borra (`releaseCvChatReservation`). El lock es el del chat de CV (26), el mismo que
+ * transacción corta la borra bajo el mismo lock (`releaseCvCoachReservation`). El lock es el del chat de CV (26), el mismo que
  * toma la redacción del cierre (`reserveCvChatStep`): un turno del coach y la redacción de la misma persona
  * no se cruzan.
  *
@@ -154,7 +154,7 @@ export type CvCoachReservation =
 
 /**
  * Transacción corta con lock de la persona: mide, decide y, si pasa, anota la reserva del paso (el máximo
- * del paso, `CV_COACH_RESERVE_USD`). El id se suelta con `releaseCvChatReservation` en un `finally`,
+ * del paso, `CV_COACH_RESERVE_USD`). El id se suelta con `releaseCvCoachReservation` en un `finally`,
  * después de la llamada. Los topes de USD valen para todos: no hay parámetro de exención.
  */
 export async function reserveCvCoachStep(
@@ -197,4 +197,41 @@ export async function reserveCvCoachStep(
     if (!row) throw new Error("reserva sin id");
     return { ok: true as const, reservationId: row.id, measures };
   });
+}
+
+/**
+ * Suelta la reserva **bajo el mismo lock** con el que se reservó (R12-16). La medición son varias consultas
+ * y, en READ COMMITTED, cada una ve su propia foto: si la reserva se borrara sin lock mientras otro pedido de
+ * la misma persona mide, ese pedido podría no ver ni la reserva (ya borrada) ni la fila real del cliente LLM
+ * (en una consulta anterior todavía no estaba) y dejar pasar un paso de más. Con el lock, el borrado espera
+ * a que termine quien está midiendo.
+ *
+ * Idempotente. Nunca lanza: se llama en un `finally` y un error acá no puede tapar el resultado del paso.
+ * Devuelve `false` si falló, para que el llamador lo loguee; la reserva que quede vence a los 2 minutos.
+ */
+export async function releaseCvCoachReservation(
+  db: Db,
+  input: { userId: string; reservationId: string | null },
+): Promise<boolean> {
+  if (!input.reservationId) return true;
+  const id = input.reservationId;
+  try {
+    await db.transaction(async (tx) => {
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtextextended(${input.userId}, ${CV_RESERVE_LOCK_NAMESPACE}))`,
+      );
+      await tx
+        .delete(s.llmCalls)
+        .where(
+          and(
+            eq(s.llmCalls.id, id),
+            eq(s.llmCalls.userId, input.userId),
+            eq(s.llmCalls.task, CV_RESERVE_TASK),
+          ),
+        );
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }

@@ -9,10 +9,15 @@ import {
   PROFILE_AGENT_USER_DAILY_CAP_USD,
   profileAgentWindows,
 } from "@job-search-os/pipeline";
-import { like } from "drizzle-orm";
+import { like, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { releaseCvChatReservation } from "../cv-chat/reserve";
-import { measureCvCoach, reserveCvCoachStep, type CvCoachReserveStep } from "./reserve";
+import { CV_RESERVE_LOCK_NAMESPACE } from "../cv-chat/reserve";
+import {
+  measureCvCoach,
+  releaseCvCoachReservation,
+  reserveCvCoachStep,
+  type CvCoachReserveStep,
+} from "./reserve";
 
 /**
  * ADR-038 §9 contra Postgres real, con datos inventados:
@@ -151,7 +156,8 @@ describe("O1: filas de costo null valen la reserva de su paso", () => {
     await call({ task: "extract_cv_profile", costUsd: room - 0.001 });
     const r = await reserve("turn");
     expect(r.ok).toBe(true);
-    if (r.ok) await releaseCvChatReservation(conn.db, r.reservationId);
+    if (r.ok)
+      await releaseCvCoachReservation(conn.db, { userId: USER, reservationId: r.reservationId });
     // una fila fallida de turno (null → 0,04) se come ese lugar
     await call({ ok: false, costUsd: null, error: "timeout" });
     const capped = await reserve("turn");
@@ -203,7 +209,10 @@ describe("reservas y paralelo", () => {
     const m = await measure();
     expect(m.flowCostUsd).toBeCloseTo(CV_COACH_RESERVE_USD.review, 6);
     expect(m.reviews).toBe(1);
-    if (r.ok) expect(await releaseCvChatReservation(conn.db, r.reservationId)).toBe(true);
+    if (r.ok)
+      expect(
+        await releaseCvCoachReservation(conn.db, { userId: USER, reservationId: r.reservationId }),
+      ).toBe(true);
     const after = await measure();
     expect(after.flowCostUsd).toBe(0);
     expect(after.reviews).toBe(0);
@@ -217,5 +226,47 @@ describe("reservas y paralelo", () => {
     const results = await Promise.all(Array.from({ length: 6 }, () => reserve("turn")));
     expect(results.filter((r) => r.ok)).toHaveLength(2);
     expect(results.filter((r) => !r.ok).every((r) => !r.ok && r.reject === "charla")).toBe(true);
+  });
+
+  it("la reserva se suelta bajo el lock: quien está midiendo la sigue viendo (R12-16)", async () => {
+    // Determinista: otro pedido de la misma persona tiene el lock y mide en varias consultas; el release
+    // tiene que esperar a que termine, así no queda una foto sin la reserva ni la fila real
+    const r = await reserve("turn");
+    if (!r.ok) throw new Error("la reserva tenía que pasar");
+    let release: Promise<boolean> | null = null;
+    const seen = await conn.db.transaction(async (tx) => {
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtextextended(${USER}, ${CV_RESERVE_LOCK_NAMESPACE}))`,
+      );
+      const before = await measureCvCoach(tx, { userId: USER, label: LABEL, ...clock() });
+      release = releaseCvCoachReservation(conn.db, {
+        userId: USER,
+        reservationId: r.reservationId,
+      });
+      await new Promise((done) => setTimeout(done, 300));
+      const after = await measureCvCoach(tx, { userId: USER, label: LABEL, ...clock() });
+      return { before, after };
+    });
+    expect(await release).toBe(true);
+    expect(seen.before.turns).toBe(1);
+    expect(seen.after.turns).toBe(1);
+    expect(seen.after.flowCostUsd).toBeCloseTo(CV_COACH_RESERVE_USD.turn, 6);
+    // después del release, suelta
+    expect((await measure()).turns).toBe(0);
+  });
+
+  it("el release no borra la reserva de otra persona ni lanza", async () => {
+    const r = await reserve("review");
+    if (!r.ok) throw new Error("la reserva tenía que pasar");
+    expect(
+      await releaseCvCoachReservation(conn.db, { userId: OTHER, reservationId: r.reservationId }),
+    ).toBe(true);
+    expect((await measure()).reviews).toBe(1);
+    expect(
+      await releaseCvCoachReservation(conn.db, { userId: USER, reservationId: "no-es-uuid" }),
+    ).toBe(false);
+    expect(await releaseCvCoachReservation(conn.db, { userId: USER, reservationId: null })).toBe(
+      true,
+    );
   });
 });

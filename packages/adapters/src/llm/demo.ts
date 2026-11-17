@@ -9,6 +9,8 @@ const DEMO_TASKS = [
   "cv_write",
   "extract_job_from_image",
   "extract_cv_profile",
+  "cv_review",
+  "cv_coach_turn",
 ];
 
 /**
@@ -209,6 +211,51 @@ export function demoCvExtraction(vars: Vars): Record<string, unknown> {
   };
 }
 
+/**
+ * Diagnóstico falso del coach (cv_review, ADR-038): un `logro_sin_resultado` sobre el primer trabajo del CV
+ * confirmado (el id sale del bloque que arma el código), sin cita. El código suma las brechas de datos.
+ */
+export function demoCvReview(vars: Vars): Record<string, unknown> {
+  const cv = String(vars.cv ?? "");
+  const experience = cv.split("## ")[1]?.startsWith("experience") ? cv.split("## ")[1]! : "";
+  const id = /\[id: ([A-Za-z0-9:_-]{1,80})\]/.exec(experience)?.[1] ?? null;
+  return {
+    issues: id
+      ? [
+          {
+            type: "logro_sin_resultado",
+            ref: { section: "experience", itemId: id, field: "bullets" },
+            quote: null,
+            skillSlug: null,
+            severity: "media",
+          },
+        ]
+      : [],
+  };
+}
+
+/**
+ * Turno falso del coach (cv_coach_turn, ADR-038): no extrae nada y no propone pregunta (el código cae a la
+ * plantilla). Alcanza para recorrer la charla en los e2e; el dueño del turno (R12-9) puede afinarlo.
+ */
+export function demoCvCoachTurn(): Record<string, unknown> {
+  return {
+    patch: {
+      title: null,
+      organization: null,
+      startMonth: null,
+      endMonth: null,
+      isCurrent: null,
+      bullets: [],
+      link: null,
+      stack: [],
+    },
+    extras: [],
+    declined: false,
+    nextQuestion: null,
+  };
+}
+
 /** LlmClient de demo: valida contra el schema pedido (v1: gaps como strings; v1.1+: tipados). */
 export function createDemoLlm(options: { calls?: CallSink } = {}): LlmClient {
   return {
@@ -229,16 +276,20 @@ export function createDemoLlm(options: { calls?: CallSink } = {}): LlmClient {
               ? [demoImageExtraction()]
               : task === "extract_cv_profile"
                 ? [demoCvExtraction(vars)]
-                : task === "draft_application_answers"
-                  ? [demoDrafts(vars)]
-                  : (() => {
-                      const typed = demoEvaluation(vars);
-                      const legacy = {
-                        ...typed,
-                        gaps: (typed.gaps as { skill: string }[]).map((g) => g.skill),
-                      };
-                      return [typed, legacy];
-                    })();
+                : task === "cv_review"
+                  ? [demoCvReview(vars)]
+                  : task === "cv_coach_turn"
+                    ? [demoCvCoachTurn()]
+                    : task === "draft_application_answers"
+                      ? [demoDrafts(vars)]
+                      : (() => {
+                          const typed = demoEvaluation(vars);
+                          const legacy = {
+                            ...typed,
+                            gaps: (typed.gaps as { skill: string }[]).map((g) => g.skill),
+                          };
+                          return [typed, legacy];
+                        })();
       const parsed = candidates.map((o) => schema.safeParse(o)).find((p) => p.success);
       if (!parsed?.success) {
         return err({
