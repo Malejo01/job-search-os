@@ -15,7 +15,8 @@ import { useEffect } from "react";
  * - Sin saltos de diseño: la línea es `absolute` y no ocupa lugar.
  * - Con el link recién clickeado hay 150 ms de espera antes de mostrarla, para no parpadear en
  *   navegaciones rápidas (o ya precargadas).
- * - `prefers-reduced-motion`: sin transición ni pulso; la línea aparece fija.
+ * - `prefers-reduced-motion`: sin transición ni pulso; la línea aparece fija. El pulso va con
+ *   `motion-safe:` (no `motion-reduce:animate-none`, que pierde contra la variante `data-[…]`).
  * - No toca el foco ni el nombre accesible del link (`aria-hidden`).
  */
 export function NavPending({ className = "" }: { className?: string }) {
@@ -33,7 +34,7 @@ export function NavPending({ className = "" }: { className?: string }) {
       aria-hidden="true"
       data-testid="nav-pending"
       data-pending={pending ? "true" : "false"}
-      className={`pointer-events-none absolute h-0.5 rounded-pill bg-current opacity-0 transition-opacity delay-150 data-[pending=true]:animate-pulse data-[pending=true]:opacity-100 motion-reduce:animate-none motion-reduce:transition-none motion-reduce:delay-0 ${className}`}
+      className={`pointer-events-none absolute h-0.5 rounded-pill bg-current opacity-0 transition-opacity delay-150 data-[pending=true]:opacity-100 motion-safe:data-[pending=true]:animate-pulse motion-reduce:transition-none motion-reduce:delay-0 ${className}`}
     />
   );
 }
