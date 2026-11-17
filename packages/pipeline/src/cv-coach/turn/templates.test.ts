@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CV_ISSUE_TYPES } from "../issues";
 import {
+  coachMarkerValue,
   coachFallbackTextProblem,
   COACH_QUESTION_MAX_CHARS,
   parseCoachFallbacks,
@@ -142,5 +143,23 @@ describe("plantillas de respaldo del coach (cv_coach_fallbacks.v1.md)", () => {
       .filter((l) => /^- (pregunta|repregunta):/.test(l));
     expect(lines.length).toBeGreaterThanOrEqual(CV_ISSUE_TYPES.length * 2);
     for (const l of lines) expect(l).not.toMatch(/\d/);
+  });
+});
+
+describe("coachMarkerValue", () => {
+  it("si el nombre no entra, corta antes del paréntesis y no a mitad (R12-13)", () => {
+    const v = coachMarkerValue(
+      "habilidad",
+      "Software contable (Tango, Bejerman, SAP Business One)",
+    );
+    expect(v).toBe("Software contable");
+  });
+
+  it("si entra entero, lo deja con el paréntesis", () => {
+    expect(coachMarkerValue("habilidad", "SQL (PostgreSQL)")).toBe("SQL (PostgreSQL)");
+  });
+
+  it("sin dato, usa el valor por defecto", () => {
+    expect(coachMarkerValue("habilidad", "  ")).toBe("esa habilidad");
   });
 });

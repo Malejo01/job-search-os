@@ -116,7 +116,12 @@ export function coachIssueResolved(
 ): boolean {
   if (issue.type === "skill_pedida_sin_evidencia" || issue.type === "brecha_con_puesto") {
     const name = issue.skillSlug ? setup.skillNames[issue.skillSlug] : undefined;
-    if (name) return mentions(evidenceTexts(cards), name);
+    if (name) {
+      const aliases = (issue.skillSlug && setup.skillAliases?.[issue.skillSlug]) || [];
+      const texts = evidenceTexts(cards);
+      // Alias de una o dos letras («R», «Go») darían falsos positivos: se usan desde tres caracteres
+      return [name, ...aliases.filter((a) => a.trim().length >= 3)].some((t) => mentions(texts, t));
+    }
     return isFocus && cards.length > 0;
   }
   const item = coachItemFor(issue, setup);

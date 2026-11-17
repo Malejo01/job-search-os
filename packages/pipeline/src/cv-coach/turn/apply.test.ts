@@ -223,6 +223,61 @@ describe("applyCoachTurn: el código decide qué quedó resuelto", () => {
     expect(r.state.current).toBe("iss:4");
   });
 
+  it("una skill mostrada con un alias de la taxonomía también resuelve la brecha (R12-13)", () => {
+    const withAliases = setup({ skillAliases: { sql: ["PostgreSQL", "R"] } });
+    const state = startState({ current: "iss:3", resolved: ["iss:0", "iss:1", "iss:2"] });
+    const msg = "En Empresa A armaba consultas en PostgreSQL para ventas";
+    const out = emptyOutput({
+      extras: [
+        {
+          kind: "herramienta",
+          text: "Armaba consultas en PostgreSQL para ventas",
+          ref: { section: "experience", itemId: ID_A, field: "bullets" },
+        },
+      ],
+    });
+    const r = applyCoachTurn(withAliases, state, {
+      kind: "model",
+      issueId: "iss:3",
+      message: msg,
+      output: out,
+    });
+    if (!r.ok) throw new Error(r.error);
+    expect(r.value.resolvedNow).toEqual(["iss:3"]);
+    // Sin alias, el mismo mensaje no la daba por resuelta
+    const sin = applyCoachTurn(s, state, {
+      kind: "model",
+      issueId: "iss:3",
+      message: msg,
+      output: out,
+    });
+    if (!sin.ok) throw new Error(sin.error);
+    expect(sin.value.resolvedNow).not.toContain("iss:3");
+  });
+
+  it("un alias de menos de tres letras no cuenta como evidencia", () => {
+    const withAliases = setup({ skillAliases: { sql: ["R"] } });
+    const state = startState({ current: "iss:3", resolved: ["iss:0", "iss:1", "iss:2"] });
+    const msg = "En Empresa A usaba R para gráficos";
+    const out = emptyOutput({
+      extras: [
+        {
+          kind: "herramienta",
+          text: "Usaba R para gráficos",
+          ref: { section: "experience", itemId: ID_A, field: "bullets" },
+        },
+      ],
+    });
+    const r = applyCoachTurn(withAliases, state, {
+      kind: "model",
+      issueId: "iss:3",
+      message: msg,
+      output: out,
+    });
+    if (!r.ok) throw new Error(r.error);
+    expect(r.value.resolvedNow).not.toContain("iss:3");
+  });
+
   it("con la lista agotada, la charla termina", () => {
     const state = startState({ current: "iss:4", resolved: ["iss:0", "iss:1", "iss:2", "iss:3"] });
     const r = run(
