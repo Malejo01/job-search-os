@@ -376,6 +376,97 @@ describe("createLlmClient.generateStructured", () => {
   });
 });
 
+describe("costo de las llamadas fallidas (R11-7)", () => {
+  it("una salida que no cumple el schema cobra los tokens que el proveedor informó", async () => {
+    const calls = memoryCallSink();
+    const client = createLlmClient({
+      routes: staticRouteSource([{ ...route, fallbackModel: null }]),
+      calls,
+      providers: providers(["google"]),
+      generate: okGenerate({ score: "siete" }, { inputTokens: 1000, outputTokens: 100 }),
+      logger: silent,
+    });
+    const r = await client.generateStructured("evaluate_job", Schema, vars);
+    expect(r.ok).toBe(false);
+    expect(calls.calls[0]).toMatchObject({ ok: false, tokensIn: 1000, tokensOut: 100 });
+    // 1000 × 1 + 100 × 10 = 2000 → /1e6
+    expect(calls.calls[0]!.costUsd).toBeCloseTo(0.002, 9);
+  });
+
+  it("un NoObjectGeneratedError cobra el uso que trae el error", async () => {
+    const calls = memoryCallSink();
+    const client = createLlmClient({
+      routes: staticRouteSource([{ ...route, fallbackModel: null }]),
+      calls,
+      providers: providers(["google"]),
+      generate: async () => {
+        throw new NoObjectGeneratedError({
+          message: "x",
+          text: "x",
+          response: { id: "r", timestamp: new Date(), modelId: "m" },
+          usage: { inputTokens: 500, outputTokens: 50, totalTokens: 550 } as never,
+          finishReason: "length",
+        });
+      },
+      logger: silent,
+    });
+    await client.generateStructured("evaluate_job", Schema, vars);
+    expect(calls.calls[0]).toMatchObject({
+      ok: false,
+      error: "no_object:finish:length",
+      tokensIn: 500,
+      tokensOut: 50,
+    });
+    expect(calls.calls[0]!.costUsd).toBeCloseTo(0.001, 9);
+  });
+
+  it("si el proveedor no informa el uso (error de red, timeout), el costo queda null", async () => {
+    const calls = memoryCallSink();
+    const client = createLlmClient({
+      routes: staticRouteSource([{ ...route, fallbackModel: null }]),
+      calls,
+      providers: providers(["google"]),
+      generate: async () => {
+        throw new APICallError({
+          message: "x",
+          url: "https://x.test",
+          requestBodyValues: {},
+          statusCode: 500,
+        });
+      },
+      logger: silent,
+    });
+    await client.generateStructured("evaluate_job", Schema, vars);
+    expect(calls.calls[0]).toMatchObject({
+      ok: false,
+      tokensIn: null,
+      tokensOut: null,
+      costUsd: null,
+    });
+  });
+
+  it("un NoObjectGeneratedError sin tokens utilizables deja el costo en null", async () => {
+    const calls = memoryCallSink();
+    const client = createLlmClient({
+      routes: staticRouteSource([{ ...route, fallbackModel: null }]),
+      calls,
+      providers: providers(["google"]),
+      generate: async () => {
+        throw new NoObjectGeneratedError({
+          message: "x",
+          text: "x",
+          response: { id: "r", timestamp: new Date(), modelId: "m" },
+          usage: { inputTokens: undefined, outputTokens: undefined } as never,
+          finishReason: "stop",
+        });
+      },
+      logger: silent,
+    });
+    await client.generateStructured("evaluate_job", Schema, vars);
+    expect(calls.calls[0]).toMatchObject({ tokensIn: null, tokensOut: null, costUsd: null });
+  });
+});
+
 describe("NoObjectGeneratedError", () => {
   it("guarda solo el código no_object, sin texto del modelo", async () => {
     const calls = memoryCallSink();

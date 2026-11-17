@@ -1,5 +1,6 @@
 import { deleteUserData, schema as s, type Db } from "@job-search-os/db";
 import { isInvitationAdmin } from "@job-search-os/db/invitation-code";
+import { isProfileComplete } from "@job-search-os/pipeline";
 import { eq, sql } from "drizzle-orm";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -23,7 +24,13 @@ export type TestUsersArgs = {
   showEmails: boolean;
   yes: boolean;
   remote: boolean;
+  /** Solo de --create: ADMIN_EMAILS explícito (lista normalizada). Con --remote es obligatorio. */
+  adminEmails?: string;
+  /** Solo de --create: INGEST_DOMAIN explícito (minúsculas). Con --remote es obligatorio. */
+  ingestDomain?: string;
 };
+
+const DOMAIN_RE = /^(?=.{3,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/;
 
 /** Las credenciales solo se escriben bajo `ops/` (no versionado): relativa, sin «..» ni unidades. */
 export function isCredentialsPathAllowed(path: string): boolean {
@@ -35,8 +42,10 @@ export function isCredentialsPathAllowed(path: string): boolean {
 
 export function parseTestUsersArgs(argv: string[]): Parsed<TestUsersArgs> {
   const usage =
-    "uso: admin:test-users --list | --reset <email> | --reset-all | --create --by <email-admin> [--credentials <ruta>] [--allowlist <ruta>] [--show-emails] [--yes] [--remote]";
+    "uso: admin:test-users --list | --reset <email> | --reset-all | --create --by <email-admin> [--credentials <ruta>] [--allowlist <ruta>] [--admin-emails <lista> --ingest-domain <dominio>] [--show-emails] [--yes] [--remote] (con --create --remote, --admin-emails y --ingest-domain son obligatorios)";
   let values: {
+    "admin-emails"?: string;
+    "ingest-domain"?: string;
     list?: boolean;
     reset?: string;
     "reset-all"?: boolean;
@@ -64,6 +73,8 @@ export function parseTestUsersArgs(argv: string[]): Parsed<TestUsersArgs> {
         "show-emails": { type: "boolean" },
         yes: { type: "boolean" },
         remote: { type: "boolean" },
+        "admin-emails": { type: "string" },
+        "ingest-domain": { type: "string" },
       },
       strict: true,
       allowPositionals: false,
@@ -85,6 +96,44 @@ export function parseTestUsersArgs(argv: string[]): Parsed<TestUsersArgs> {
   }
   if (values.force && values.reset === undefined) {
     return { ok: false, error: `--force es solo de --reset. ${usage}` };
+  }
+  if (
+    (values["admin-emails"] !== undefined || values["ingest-domain"] !== undefined) &&
+    !values.create
+  ) {
+    return { ok: false, error: `--admin-emails y --ingest-domain son solo de --create. ${usage}` };
+  }
+  // ADMIN_EMAILS e INGEST_DOMAIN explícitos: contra la nube no se toman del entorno ni del .env.local
+  let adminEmails: string | undefined;
+  let ingestDomain: string | undefined;
+  if (values["admin-emails"] !== undefined) {
+    const list = values["admin-emails"].split(",").map((e) => e.trim());
+    const parsed = list.map((e) => parseEmail(e));
+    if (parsed.length === 0 || parsed.some((e) => e === null)) {
+      return {
+        ok: false,
+        error: "--admin-emails: una lista de emails válidos separados por comas",
+      };
+    }
+    adminEmails = [...new Set(parsed as string[])].join(",");
+  }
+  if (values["ingest-domain"] !== undefined) {
+    const domain = values["ingest-domain"].trim().toLowerCase();
+    if (!DOMAIN_RE.test(domain)) {
+      return {
+        ok: false,
+        error: "--ingest-domain: un dominio válido (por ejemplo ingest.<tu-dominio>)",
+      };
+    }
+    ingestDomain = domain;
+  }
+  if (values.create && values.remote && (adminEmails === undefined || ingestDomain === undefined)) {
+    return {
+      ok: false,
+      error:
+        "--create --remote no toma ADMIN_EMAILS ni INGEST_DOMAIN del entorno ni del .env.local: " +
+        "pasá --admin-emails <lista> y --ingest-domain <dominio> explícitos",
+    };
   }
   let mode: TestUsersArgs["mode"];
   if (values.list) {
@@ -116,6 +165,8 @@ export function parseTestUsersArgs(argv: string[]): Parsed<TestUsersArgs> {
     showEmails: values["show-emails"] === true,
     yes: values.yes === true,
     remote: values.remote === true,
+    ...(adminEmails !== undefined ? { adminEmails } : {}),
+    ...(ingestDomain !== undefined ? { ingestDomain } : {}),
   };
 }
 
@@ -167,7 +218,7 @@ export type TestUserRow = {
   applications: number;
 };
 
-/** Estado de cada cuenta de la allowlist. «Onboarding completo» = tiene fila en profiles (el gate de la app). */
+/** Estado de cada cuenta de la allowlist. «Onboarding completo» = lo mismo que el gate de la app (`isProfileComplete`). */
 export async function listTestUsers(db: Db, emails: string[]): Promise<TestUserRow[]> {
   const rows: TestUserRow[] = [];
   for (const email of emails) {
@@ -188,14 +239,24 @@ export async function listTestUsers(db: Db, emails: string[]): Promise<TestUserR
       });
       continue;
     }
+    // El mismo criterio que el gate de la app (`isOnboardingComplete`): país elegido, resumen y un criterio
+    // activo. Una fila de perfil sola (la que crea el alta por invitación) no alcanza: cae en /onboarding.
+    const [profile] = await db
+      .select({
+        locationCountry: s.profiles.locationCountry,
+        profileSummary: s.profiles.profileSummary,
+      })
+      .from(s.profiles)
+      .where(eq(s.profiles.userId, user.id))
+      .limit(1);
     const [counts] = (await db.execute(sql`
       select
-        (select count(*)::int from profiles where user_id = ${user.id}) as profiles,
+        (select count(*)::int from evaluation_criteria where user_id = ${user.id} and active) as criteria,
         (select count(*)::int from jobs where user_id = ${user.id}) as jobs,
         (select count(*)::int from evaluations where user_id = ${user.id}) as evaluations,
         (select count(*)::int from applications where user_id = ${user.id}) as applications
     `)) as unknown as {
-      profiles: number;
+      criteria: number;
       jobs: number;
       evaluations: number;
       applications: number;
@@ -204,7 +265,9 @@ export async function listTestUsers(db: Db, emails: string[]): Promise<TestUserR
       email,
       exists: true,
       createdAt: user.createdAt,
-      onboarded: (counts?.profiles ?? 0) > 0,
+      onboarded: profile
+        ? isProfileComplete({ ...profile, activeCriteriaCount: counts?.criteria ?? 0 })
+        : false,
       jobs: counts?.jobs ?? 0,
       evaluations: counts?.evaluations ?? 0,
       applications: counts?.applications ?? 0,

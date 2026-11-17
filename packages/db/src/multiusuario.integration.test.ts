@@ -331,9 +331,12 @@ describe("con contexto de A, las filas de B no se leen, no se cambian, no se bor
 
       it("UPDATE de las filas de B afecta 0", async () => {
         const before = await fingerprint(t, owned());
+        // users: el rol de la app solo puede actualizar ciertas columnas (rls/0021); `id` no es una de
+        // ellas, así que se prueba con una que sí. Lo que se verifica es que la RLS no deje tocar a B.
+        const setColumn = t.table === "users" ? "password_hash" : t.column;
         const res = await asUser(A, (tx) =>
           tx.unsafe(
-            `update "${t.table}" set "${t.column}" = "${t.column}" where "${t.column}" = $1`,
+            `update "${t.table}" set "${setColumn}" = "${setColumn}" where "${t.column}" = $1`,
             [owned()],
           ),
         );

@@ -186,6 +186,9 @@ describe("normalizeCvExtraction", () => {
     expect(r).toEqual({ ok: false, error: "sensitive_output" });
   });
 
+  // Los ejemplos de DNI, CUIL y teléfono van partidos a propósito: el detector que se prueba reconoce
+  // esos formatos y el barrido de privacidad también (patrones #130, #131 y #132): cualquier valor
+  // inventado entero, con el formato real, lo frena. Decisión de R11-7: se dejan como estaban.
   it.each([
     ["un DNI", "D" + "NI 22.333.444"],
     ["un CUIL", "CU" + "IL 27-" + "22333444-1"],

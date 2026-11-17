@@ -3,7 +3,13 @@ import { loadPrompt, renderPrompt, type PromptRef } from "@job-search-os/prompts
 import { generateObject } from "ai";
 import type { z } from "zod";
 import { createLogger, type Logger } from "../logger";
-import { LlmValidationError, llmErrorDetail, normalizeLlmError } from "./error-code";
+import {
+  LlmValidationError,
+  llmErrorDetail,
+  normalizeLlmError,
+  usageFromError,
+  type ReportedUsage,
+} from "./error-code";
 import { providerForModel } from "./providers";
 import type {
   CallSink,
@@ -164,6 +170,8 @@ export function createLlmClient(deps: LlmClientDeps): LlmClient {
       : AbortSignal.timeout(timeoutMs);
 
     const startedAt = now();
+    // Uso informado por el proveedor: si la salida llega pero no valida, el modelo igual se facturó
+    let reported: ReportedUsage | null = null;
     try {
       const raw = await generate({
         model: languageModel,
@@ -176,6 +184,11 @@ export function createLlmClient(deps: LlmClientDeps): LlmClient {
         reasoning: route.thinkingLevel ?? undefined,
       });
       const latencyMs = now() - startedAt;
+      reported = {
+        inputTokens: raw.usage.inputTokens ?? null,
+        outputTokens: raw.usage.outputTokens ?? null,
+        reasoningTokens: raw.usage.reasoningTokens ?? null,
+      };
       // Si el proveedor ya validó, el objeto es la SALIDA del schema (con transforms aplicados)
       // y volver a parsearlo con el mismo schema fallaría; solo se valida lo no validado (tests).
       // Con `wire`, el proveedor validó la forma sin límites: se normaliza y corre el schema estricto.
@@ -235,17 +248,20 @@ export function createLlmClient(deps: LlmClientDeps): LlmClient {
       const code = aborted ? (ctx.signal?.aborted ? "aborted" : "timeout") : normalizeLlmError(e);
       // `detail` lleva además un sufijo fijo para el clasificador de evals; la base, solo el código
       const detail = llmErrorDetail(code);
+      // Costo real si el proveedor informó el uso; si no (red, timeout, 5xx) queda null y los topes
+      // en USD cuentan el intento con una estimación (`FAILED_CALL_ESTIMATE_USD` en spend.ts)
+      const usage = reported ?? usageFromError(e);
       await deps.calls.record({
         userId: ctx.userId ?? null,
         task: ctx.recordTask ?? route.task,
         model,
         promptVersion,
         jobId: ctx.jobId ?? null,
-        tokensIn: null,
-        tokensOut: null,
-        tokensReasoning: null,
+        tokensIn: usage?.inputTokens ?? null,
+        tokensOut: usage?.outputTokens ?? null,
+        tokensReasoning: usage?.reasoningTokens ?? null,
         latencyMs,
-        costUsd: null,
+        costUsd: usage ? estimateCost(route, model, usage.inputTokens, usage.outputTokens) : null,
         label: ctx.label ?? null,
         ok: false,
         error: code.slice(0, 120),
