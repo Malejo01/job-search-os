@@ -1,0 +1,333 @@
+{
+  "descripcion": "Prueba del 17/11 en /cv/armar (informe-cv-agente-17-11 §2) con datos ficticios: Empresa A, cargo inventado y Proyecto 1 a Proyecto 4. Las respuestas del modelo están grabadas por versión del esquema (v2: un tema por turno) y por tema preguntado.",
+  "semilla": { "target": null },
+  "mensajes": [
+    {
+      "id": "m1",
+      "tema": "target",
+      "repite": false,
+      "texto": "Apunto a AI Engineer y, como segunda opción, a Full Stack. Busco remoto, para empresas de afuera o de Argentina.",
+      "respuestas": {
+        "v2": {
+          "target": {
+            "extraction": { "target": "AI Engineer" },
+            "ack": "Buenísimo, tomo nota del perfil al que apuntás.",
+            "followUp": null
+          }
+        }
+      }
+    },
+    {
+      "id": "m2",
+      "tema": "organization",
+      "repite": false,
+      "texto": "Trabajé en Empresa A como Desarrollador de aplicaciones web, de abril 2025 a febrero 2026. Hacía el front con React y el back con Node, y armaba integraciones con APIs de modelos de lenguaje.",
+      "respuestas": {
+        "v2": {
+          "organization": {
+            "extraction": { "organization": "Empresa A", "noExperience": false },
+            "ack": "Bárbaro, ya anoté la empresa.",
+            "followUp": null
+          }
+        }
+      }
+    },
+    {
+      "id": "m3",
+      "tema": "title",
+      "repite": false,
+      "texto": "Desarrollador full stack. Además hice cuatro proyectos propios con IA: Proyecto 1, un asistente para buscar trabajo con Next.js y Postgres; Proyecto 2, un bot de atención con RAG; Proyecto 3, un clasificador de documentos en Python; y Proyecto 4, un agente que resume reuniones.",
+      "respuestas": {
+        "v2": {
+          "title": {
+            "extraction": { "title": "Desarrollador full stack" },
+            "ack": "Buenísimo, tomo nota del cargo.",
+            "followUp": null
+          }
+        }
+      }
+    },
+    {
+      "id": "m4",
+      "tema": "dates",
+      "repite": true,
+      "texto": "Ya te lo dije: de abril 2025 a marzo 2026.",
+      "respuestas": {
+        "v2": {
+          "dates": {
+            "extraction": { "startMonth": "2025-04", "endMonth": "2026-03", "isCurrent": false },
+            "ack": "Perfecto, lo anoto.",
+            "followUp": null
+          }
+        }
+      }
+    },
+    {
+      "id": "m5",
+      "tema": "duties",
+      "repite": true,
+      "texto": "Lo que te conté: el front con React, el back con Node y las integraciones con modelos de lenguaje.",
+      "respuestas": {
+        "v2": {
+          "duties": {
+            "extraction": {
+              "duties": [
+                "El front con React",
+                "El back con Node",
+                "Las integraciones con modelos de lenguaje"
+              ]
+            },
+            "ack": "Perfecto, lo anoto.",
+            "followUp": null
+          }
+        }
+      }
+    },
+    {
+      "id": "m6",
+      "tema": "achievement",
+      "repite": false,
+      "texto": "Con un asistente con IA bajamos a la mitad el tiempo de respuesta del soporte.",
+      "respuestas": {
+        "v2": {
+          "achievement": {
+            "extraction": {
+              "achievement": "Con un asistente con IA bajamos a la mitad el tiempo de respuesta del soporte"
+            },
+            "ack": "¡Qué bueno! Lo anoto.",
+            "followUp": null
+          }
+        }
+      }
+    },
+    {
+      "id": "m7",
+      "tema": "more_work",
+      "repite": false,
+      "texto": "No, ese es el único trabajo.",
+      "respuestas": {
+        "v2": {
+          "more_work": {
+            "extraction": { "more": false },
+            "ack": "Perfecto.",
+            "followUp": null
+          }
+        }
+      }
+    },
+    {
+      "id": "m8",
+      "tema": "education",
+      "repite": false,
+      "texto": "Tecnicatura en Programación en la Universidad A, de 2022 a 2024.",
+      "respuestas": {
+        "v2": {
+          "education": {
+            "extraction": {
+              "entries": [
+                {
+                  "institution": "Universidad A",
+                  "title": "Tecnicatura en Programación",
+                  "startMonth": "2022-01",
+                  "endMonth": null
+                }
+              ]
+            },
+            "ack": "Perfecto, lo anoto.",
+            "followUp": null
+          }
+        }
+      }
+    },
+    {
+      "id": "m9",
+      "tema": "certifications",
+      "repite": false,
+      "texto": "No tengo.",
+      "respuestas": {
+        "v2": {
+          "certifications": {
+            "extraction": { "entries": [] },
+            "ack": "Perfecto.",
+            "followUp": null
+          }
+        }
+      }
+    },
+    {
+      "id": "m10",
+      "tema": "skills",
+      "repite": false,
+      "texto": "TypeScript, React, Next.js, Node, Python y Postgres.",
+      "respuestas": {
+        "v2": {
+          "skills": {
+            "extraction": {
+              "skills": ["TypeScript", "React", "Next.js", "Node", "Python", "Postgres"]
+            },
+            "ack": "Perfecto, lo anoto.",
+            "followUp": null
+          }
+        }
+      }
+    },
+    {
+      "id": "m11",
+      "tema": "languages",
+      "repite": false,
+      "texto": "Inglés avanzado.",
+      "respuestas": {
+        "v2": {
+          "languages": {
+            "extraction": { "languages": [{ "name": "Inglés", "level": "avanzado" }] },
+            "ack": "Perfecto.",
+            "followUp": null
+          }
+        }
+      }
+    },
+    {
+      "id": "m12",
+      "tema": "links",
+      "repite": false,
+      "texto": "No, por ahora no.",
+      "respuestas": {
+        "v2": {
+          "links": {
+            "extraction": { "linkedin": null, "github": null, "portfolio": null },
+            "ack": "Perfecto.",
+            "followUp": null
+          }
+        }
+      }
+    }
+  ],
+  "hechos": [
+    {
+      "id": "puesto",
+      "mensaje": "m1",
+      "tema": "target",
+      "campo": "target",
+      "valores": ["AI Engineer"]
+    },
+    {
+      "id": "puesto-2",
+      "mensaje": "m1",
+      "tema": "target",
+      "campo": "target",
+      "valores": ["Full Stack"]
+    },
+    {
+      "id": "empresa",
+      "mensaje": "m2",
+      "tema": "organization",
+      "campo": "organization",
+      "valores": ["Empresa A"]
+    },
+    {
+      "id": "cargo",
+      "mensaje": "m2",
+      "tema": "title",
+      "campo": "title",
+      "valores": ["Desarrollador de aplicaciones web", "Desarrollador full stack"]
+    },
+    {
+      "id": "inicio",
+      "mensaje": "m2",
+      "tema": "dates",
+      "campo": "startMonth",
+      "valores": ["2025-04"]
+    },
+    {
+      "id": "fin",
+      "mensaje": "m2",
+      "tema": "dates",
+      "campo": "endMonth",
+      "valores": ["2026-02", "2026-03"]
+    },
+    {
+      "id": "tarea-front-back",
+      "mensaje": "m2",
+      "tema": "duties",
+      "campo": "bullet",
+      "valores": ["React"]
+    },
+    {
+      "id": "tarea-integraciones",
+      "mensaje": "m2",
+      "tema": "duties",
+      "campo": "bullet",
+      "valores": ["modelos de lenguaje"]
+    },
+    {
+      "id": "proyecto-1",
+      "mensaje": "m3",
+      "tema": "project",
+      "campo": "project",
+      "valores": ["Proyecto 1"]
+    },
+    {
+      "id": "proyecto-2",
+      "mensaje": "m3",
+      "tema": "project",
+      "campo": "project",
+      "valores": ["Proyecto 2"]
+    },
+    {
+      "id": "proyecto-3",
+      "mensaje": "m3",
+      "tema": "project",
+      "campo": "project",
+      "valores": ["Proyecto 3"]
+    },
+    {
+      "id": "proyecto-4",
+      "mensaje": "m3",
+      "tema": "project",
+      "campo": "project",
+      "valores": ["Proyecto 4"]
+    },
+    {
+      "id": "logro",
+      "mensaje": "m6",
+      "tema": "achievement",
+      "campo": "bullet",
+      "valores": ["a la mitad"]
+    },
+    {
+      "id": "estudios",
+      "mensaje": "m8",
+      "tema": "education",
+      "campo": "education",
+      "valores": ["Universidad A"]
+    },
+    {
+      "id": "titulo",
+      "mensaje": "m8",
+      "tema": "education",
+      "campo": "education",
+      "valores": ["Tecnicatura en Programación"]
+    },
+    {
+      "id": "skill-typescript",
+      "mensaje": "m10",
+      "tema": "skills",
+      "campo": "skill",
+      "valores": ["TypeScript"]
+    },
+    {
+      "id": "skill-python",
+      "mensaje": "m10",
+      "tema": "skills",
+      "campo": "skill",
+      "valores": ["Python"]
+    },
+    {
+      "id": "idioma",
+      "mensaje": "m11",
+      "tema": "languages",
+      "campo": "language",
+      "valores": ["Inglés"]
+    }
+  ]
+}
