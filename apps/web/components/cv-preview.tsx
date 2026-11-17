@@ -34,7 +34,9 @@ export function CvPreview({ doc }: { doc: CvDocument }) {
               {block.heading ? (
                 <h3 className="text-base font-semibold text-zinc-900">{block.heading}</h3>
               ) : null}
-              {block.detail ? <p className="text-sm text-zinc-800">{block.detail}</p> : null}
+              {block.detail ? (
+                <p className="text-sm break-words text-zinc-800">{block.detail}</p>
+              ) : null}
               {block.bullets.length > 0 ? (
                 <ul className="mt-1 list-disc pl-5 text-sm text-zinc-900">
                   {block.bullets.map((b, j) => (

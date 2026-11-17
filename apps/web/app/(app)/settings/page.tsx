@@ -105,7 +105,9 @@ export default async function SettingsPage({
       <Link href="/settings/historial" className={NAV_CARD}>
         <span className="flex flex-col">
           <span className="font-bold text-fg underline underline-offset-2">Tu historial</span>
-          <span className="text-fg-muted">Trabajos, estudios y certificaciones para tu CV</span>
+          <span className="text-fg-muted">
+            Trabajos, proyectos, estudios y certificaciones para tu CV
+          </span>
         </span>
         <span aria-hidden="true" className="text-lg text-fg-subtle">
           ›

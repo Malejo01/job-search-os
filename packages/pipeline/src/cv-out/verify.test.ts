@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   cleanCvText,
+  cvHistorySources,
   cvRejectReasons,
   verifyCvBullets,
   verifyCvSummary,
@@ -120,5 +121,48 @@ describe("cleanCvText", () => {
     const out = cleanCvText("palabra ".repeat(60), 50);
     expect(out.length).toBeLessThanOrEqual(50);
     expect(out.endsWith("palabra")).toBe(true);
+  });
+});
+
+describe("cvHistorySources (R12-4)", () => {
+  const proyecto = {
+    kind: "proyecto" as const,
+    organization: "Proyecto Turnero",
+    title: "Desarrolladora frontend",
+    startMonth: null,
+    endMonth: null,
+    bullets: ["Armé el tablero de turnos", "Stack: React, Node.js, PostgreSQL"],
+    link: "https://github.com/persona-ficticia/turnero-barrial",
+  };
+  const sources = cvHistorySources(proyecto);
+
+  it("el nombre y el stack del proyecto cuentan como fuente", () => {
+    const g = "Desarrollé el tablero de Proyecto Turnero con React, Node.js y PostgreSQL.";
+    expect(cvRejectReasons(g, [])).not.toEqual([]);
+    expect(cvRejectReasons(g, sources)).toEqual([]);
+    expect(verifyCvText(g, sources, "x").origin).toBe("generated");
+  });
+
+  it("el rol y el nombre que solo está en el link también cuentan", () => {
+    expect(
+      cvRejectReasons("Publiqué Turnero-Barrial como Desarrolladora frontend.", sources),
+    ).toEqual([]);
+  });
+
+  it("sigue rechazando tecnologías que no están, y el link no se copia al texto", () => {
+    expect(cvRejectReasons("Armé Proyecto Turnero con MongoDB.", sources)).toContain(
+      "technology_not_in_answers",
+    );
+    expect(cvRejectReasons(`Demo en ${proyecto.link}`, sources)).toContain("link_or_email");
+  });
+
+  it("una entrada sin link da empresa, cargo y viñetas", () => {
+    expect(
+      cvHistorySources({
+        organization: "Empresa A",
+        title: "Analista",
+        bullets: ["Armé reportes"],
+      }),
+    ).toEqual(["Empresa A", "Analista", "Armé reportes"]);
   });
 });

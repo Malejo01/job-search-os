@@ -129,6 +129,46 @@ describe("buildCvDocx", () => {
     expect(xml).not.toContain("\u0001");
   });
 
+  it("proyectos (R12-4): sección «Proyectos» / «Projects» con rol, link y stack, en orden", () => {
+    const withProject = {
+      ...data,
+      history: [
+        ...data.history,
+        {
+          kind: "proyecto" as const,
+          organization: "Proyecto 2",
+          title: "Desarrollador backend",
+          startMonth: "2023-08",
+          endMonth: null,
+          bullets: ["Diseñé la API de reservas", "Stack: Go, PostgreSQL"],
+          link: "https://ejemplo.test/proyecto-2?ref=cv&x=1",
+        },
+      ],
+    };
+    for (const [lang, heading, exp, edu] of [
+      ["es", "Proyectos", "Experiencia", "Educación"],
+      ["en", "Projects", "Experience", "Education"],
+    ] as const) {
+      const xml = readZip(buildCvDocx(buildCvDocument(withProject, { lang }))).get(
+        "word/document.xml",
+      )!;
+      const r = docxXmlToText(xml);
+      expect(r.ok).toBe(true);
+      if (!r.ok) return;
+      const lines = r.value.split("\n");
+      const at = lines.indexOf(heading);
+      expect(at).toBeGreaterThan(lines.indexOf(exp));
+      expect(at).toBeLessThan(lines.indexOf(edu));
+      expect(lines[at + 1]).toBe("Proyecto 2");
+      expect(lines[at + 2]).toBe(
+        "Desarrollador backend | 08/2023 | https://ejemplo.test/proyecto-2?ref=cv&x=1",
+      );
+      expect(lines).toContain("• Stack: Go, PostgreSQL");
+      // el `&` del link va escapado en el XML
+      expect(xml).toContain("proyecto-2?ref=cv&amp;x=1");
+    }
+  });
+
   it("un CV vacío sigue siendo un DOCX legible por el sniff", () => {
     const empty = buildCvDocx(
       buildCvDocument(

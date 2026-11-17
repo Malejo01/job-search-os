@@ -2,11 +2,18 @@
  * Tarjeta «Esto es lo que entendí» (C-25): modelo de datos de lo extraído, para que la UI lo muestre y la
  * persona corrija antes de confirmar. Nada se guarda sin su clic. Puro.
  */
-import { cvDateRange } from "../cv-out/model";
+import { cvDateRange, cvProjectLink } from "../cv-out/model";
 import { cvChatHistory, type CvChatState } from "./state";
 
 export type CvCardSectionId =
-  "target" | "experience" | "education" | "certifications" | "skills" | "languages" | "links";
+  | "target"
+  | "experience"
+  | "projects"
+  | "education"
+  | "certifications"
+  | "skills"
+  | "languages"
+  | "links";
 
 export interface CvCardItem {
   /** Estable dentro de la tarjeta, para que la UI corrija o quite un ítem. */
@@ -34,6 +41,7 @@ export interface CvUnderstoodCard {
 const TITLES: Record<CvCardSectionId, string> = {
   target: "Puesto objetivo",
   experience: "Experiencia",
+  projects: "Proyectos",
   education: "Estudios",
   certifications: "Certificaciones",
   skills: "Skills",
@@ -43,6 +51,7 @@ const TITLES: Record<CvCardSectionId, string> = {
 
 const KIND_TO_SECTION = {
   trabajo: "experience",
+  proyecto: "projects",
   educacion: "education",
   certificacion: "certifications",
 } as const;
@@ -56,20 +65,31 @@ export function buildCvUnderstoodCard(s: CvChatState): CvUnderstoodCard {
   put("target", s.target ? [{ id: "target", heading: s.target, detail: null, bullets: [] }] : []);
 
   const history = cvChatHistory(s);
-  for (const kind of ["trabajo", "educacion", "certificacion"] as const) {
+  for (const kind of ["trabajo", "proyecto", "educacion", "certificacion"] as const) {
     put(
       KIND_TO_SECTION[kind],
       history.flatMap((h, i) =>
         h.kind === kind
           ? [
-              {
-                id: `history:${i}`,
-                heading: h.title,
-                detail:
-                  [h.organization, cvDateRange(h, "es")].filter((x) => x !== "").join(" | ") ||
-                  null,
-                bullets: [...h.bullets],
-              },
+              kind === "proyecto"
+                ? {
+                    // Proyecto (R12-4): el nombre arriba; el rol, las fechas y el link abajo
+                    id: `history:${i}`,
+                    heading: h.organization,
+                    detail:
+                      [h.title, cvDateRange(h, "es"), cvProjectLink(h.link) ?? ""]
+                        .filter((x) => x !== "")
+                        .join(" | ") || null,
+                    bullets: [...h.bullets],
+                  }
+                : {
+                    id: `history:${i}`,
+                    heading: h.title,
+                    detail:
+                      [h.organization, cvDateRange(h, "es")].filter((x) => x !== "").join(" | ") ||
+                      null,
+                    bullets: [...h.bullets],
+                  },
             ]
           : [],
       ),
