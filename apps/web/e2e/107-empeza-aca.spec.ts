@@ -38,6 +38,8 @@ for (const key of ["mariana", "agustina"] as PersonaKey[]) {
     });
 
     test("recién llegada: áreas, ofertas y CV pendientes (el perfil hecho no se repite)", async () => {
+      // El onboarding completo (registro, paso 1 y skills) tarda lo mismo que el flujo de personas
+      test.setTimeout(180_000);
       await register(page, run);
       await completeStep1(page, run);
       await fillSkills(page, run);

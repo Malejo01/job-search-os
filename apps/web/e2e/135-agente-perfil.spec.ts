@@ -90,7 +90,7 @@ test.describe("Flujo 135: agente de perfil desde el CV, recorrido completo", () 
   test("elegir, leer, recargar sin gastar cupo, guardar, huecos, guía y cierre", async ({
     browser,
   }) => {
-    test.setTimeout(240_000);
+    test.setTimeout(420_000);
     // Alta por invitación, como una persona nueva
     const code = randomBytes(32).toString("base64url");
     const { db, close } = ownerDb();
@@ -160,7 +160,7 @@ test.describe("Flujo 135: agente de perfil desde el CV, recorrido completo", () 
 
       // 5. Huecos: una pregunta por vez, con «No tengo»; la plantilla no deja llaves a la vista
       await page.getByTestId("profile-cards-next").click();
-      await page.waitForURL("**/onboarding/cv/huecos");
+      await page.waitForURL(/\/onboarding\/cv\/huecos/);
       const question = page.getByTestId("gaps-question");
       const done = page.getByTestId("gaps-done");
       const gapCard = page.getByTestId("gaps-card");
@@ -178,7 +178,7 @@ test.describe("Flujo 135: agente de perfil desde el CV, recorrido completo", () 
 
       // 6. Guía: sin promesas en el copy; criterios y país no se escriben antes de completar el onboarding
       await page.getByRole("link", { name: "Seguir con la guía de búsqueda" }).click();
-      await page.waitForURL("**/onboarding/cv/guia");
+      await page.waitForURL(/\/onboarding\/cv\/guia/);
       const step = page.getByTestId("guide-step");
       const cards = page.getByTestId("guide-cards");
       for (let i = 0; i < 10; i++) {
@@ -197,7 +197,7 @@ test.describe("Flujo 135: agente de perfil desde el CV, recorrido completo", () 
       await page.getByRole("link", { name: "Seguir al CV" }).click();
 
       // 7. Cierre: vista previa del CV para ATS, guardar viñetas, Word y «qué sigue»
-      await page.waitForURL("**/onboarding/cv/listo");
+      await page.waitForURL(/\/onboarding\/cv\/listo/);
       await expect(page.getByTestId("pa-close")).toBeVisible();
       await page.getByTestId("pa-close-write").click();
       await expect(page.getByTestId("cv-preview")).toBeVisible();

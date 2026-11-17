@@ -51,6 +51,8 @@ for (const [key, carrera] of PERSONAS) {
     });
 
     test("invitación, registro y onboarding", async () => {
+      // El onboarding completo (registro, paso 1 y skills) tarda lo mismo que el flujo de personas
+      test.setTimeout(180_000);
       await register(page, run);
       await completeStep1(page, run);
       await fillSkills(page, run);

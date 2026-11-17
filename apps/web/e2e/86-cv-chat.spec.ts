@@ -214,7 +214,7 @@ test.describe("Flujo 86: Armá tu CV con IA", () => {
     requireAdmin();
     await login(page);
     await page.goto("/cv");
-    await page.getByRole("link", { name: "Armá tu CV con IA" }).click();
+    await page.getByRole("link", { name: "Armá tu CV con IA", exact: true }).click();
     await page.waitForURL("**/cv/armar");
     await expectNoOverflowNorAxe(page);
     await page.getByRole("button", { name: "Empezar" }).click();
