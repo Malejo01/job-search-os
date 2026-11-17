@@ -1,6 +1,7 @@
 import { schema as s } from "@job-search-os/db";
 import {
   DEFAULT_TIMEZONE,
+  gapText,
   isEnglishGap,
   JOB_STATUSES,
   neighbors,
@@ -343,7 +344,7 @@ export async function listJobs(
         matchFuerte: r.matchFuerte ?? [],
         senales: r.senales ?? [],
         // Sin el texto del aviso no se sabe si el inglés es brecha: en la tarjeta no se muestra
-        gaps: (r.gaps ?? []).filter((g) => !isEnglishGap(g)),
+        gaps: (r.gaps ?? []).filter((g) => !isEnglishGap(g)).map(gapText),
         riesgos: (r.riesgos ?? []).map(riskLabel),
         bloqueadores: r.bloqueadores ?? [],
       }),
@@ -361,7 +362,7 @@ export async function listJobs(
                 : null,
               strengths: r.matchFuerte ?? [],
               // Sin el texto del aviso no se sabe si el inglés es brecha: en la tarjeta no se muestra
-              gaps: (r.gaps ?? []).filter((g) => !isEnglishGap(g)),
+              gaps: (r.gaps ?? []).filter((g) => !isEnglishGap(g)).map(gapText),
             }),
       model: r.model,
       evaluationId: r.evaluationId,

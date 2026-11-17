@@ -1,3 +1,5 @@
+import { DISCIPLINE_NAMES } from "@job-search-os/pipeline";
+
 /** Etiquetas de UI (español) para los enums del schema. Sin lógica: solo texto y color. */
 export const STATUS_LABELS: Record<string, string> = {
   nueva: "Nueva",
@@ -198,32 +200,8 @@ export const PRE_SCORE_EXPLAIN =
   "Estimación previa: la calculamos con reglas, sin IA, mirando tus conocimientos, los riesgos y el salario. Todavía no es la evaluación.";
 export const BLOCKER_LABEL = "Impide postular";
 
-export const DISCIPLINE_LABEL: Record<string, string> = {
-  ai_engineer: "Ingeniería de IA",
-  ml_engineer: "Ingeniería de ML",
-  ai_evaluation: "Evaluación de IA",
-  creative_production: "Producción creativa con IA",
-  fullstack: "Fullstack",
-  frontend: "Frontend",
-  backend: "Backend",
-  devops: "DevOps",
-  data: "Datos",
-  ciberseguridad: "Ciberseguridad",
-  negocio: "Negocio",
-  project_management: "Gestión de proyectos",
-  administracion_plataformas: "Administración de plataformas",
-  arquitectura: "Arquitectura",
-  otra: "Otra",
-  marketing_digital: "Marketing digital",
-  producto: "Producto",
-  recursos_humanos: "Recursos humanos / recruiting",
-  customer_success: "Customer success",
-  abogacia: "Abogacía",
-  finanzas_contabilidad: "Finanzas y contabilidad",
-  comunicacion: "Comunicación",
-  relaciones_internacionales: "Relaciones internacionales",
-  relaciones_publicas: "Relaciones públicas",
-};
+/** R11-11: un solo mapeo, el del pipeline (`fit/display-labels.ts`); acá se re-exporta con el nombre de siempre. */
+export const DISCIPLINE_LABEL: Record<string, string> = DISCIPLINE_NAMES;
 
 export const ENGLISH_LABEL: Record<string, string> = {
   no_menciona: "no lo menciona",
