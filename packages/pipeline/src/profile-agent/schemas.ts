@@ -144,6 +144,7 @@ export type LanguageCard = z.infer<typeof languageCardSchema>;
 
 export const profileReadCardSchema = z.discriminatedUnion("kind", [
   experienceCardSchema,
+  projectCardSchema,
   educationCardSchema,
   skillCardSchema,
   languageCardSchema,
