@@ -93,6 +93,8 @@ export type CoachTurnParams = {
   items: readonly CvCoachItem[];
   /** `slug` → nombre de las skills de la taxonomía que nombran los problemas. */
   skillNames: Readonly<Record<string, string>>;
+  /** `slug` → alias de esas skills en la taxonomía (opcional): evita repreguntar una skill ya mostrada. */
+  skillAliases?: Readonly<Record<string, readonly string[]>>;
   state: CvCoachState;
   answer: CvCoachAnswer;
   now: Date;
@@ -153,6 +155,7 @@ export async function runCoachTurn(
   const setup: CoachTurnSetup = {
     items: p.items,
     skillNames: p.skillNames,
+    ...(p.skillAliases ? { skillAliases: p.skillAliases } : {}),
     target: p.target,
     issues: p.issues,
     fallbacks: fallbacks.value,

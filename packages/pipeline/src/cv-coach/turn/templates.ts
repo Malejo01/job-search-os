@@ -203,11 +203,12 @@ export function parseCoachFallbacks(body: string): Result<CoachFallbacks, CoachF
 
 /** Dato de una sola línea, recortado al largo de su marcador. */
 export function coachMarkerValue(variant: CoachFallbackVariant, value: string | null | undefined) {
-  const one = (value ?? "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, COACH_MARKER_MAX_CHARS[variant])
-    .trim();
+  const flat = (value ?? "").replace(/\s+/g, " ").trim();
+  // Lo que va entre paréntesis («Software contable (Tango, Bejerman, SAP)») es detalle: si el nombre no
+  // entra entero, se corta antes del paréntesis y no a mitad de él
+  const max = COACH_MARKER_MAX_CHARS[variant];
+  const base = flat.length > max ? flat.replace(/\s*\(.*$/, "").trim() || flat : flat;
+  const one = base.slice(0, max).trim();
   return one || MARKER_DEFAULTS[variant];
 }
 

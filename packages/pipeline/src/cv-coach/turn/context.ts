@@ -31,6 +31,11 @@ export type CvCoachTurnContext = {
   items: readonly CvCoachItem[];
   /** `slug` → nombre de la skill en la taxonomía. */
   skillNames: Readonly<Record<string, string>>;
+  /**
+   * `slug` → alias de la skill en la taxonomía. Opcional: con alias, una skill mostrada con otro nombre
+   * («Tango Gestión» para «Software contable») cuenta como resuelta y no se vuelve a preguntar.
+   */
+  skillAliases?: Readonly<Record<string, readonly string[]>>;
   /** Puesto objetivo (el de la lista firmada). */
   target: string;
 };
