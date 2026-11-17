@@ -6,7 +6,7 @@ import { TERMS_VERSION } from "../lib/terms";
 import { E2E_USER_ID, login, ownerDb } from "./helpers";
 
 /**
- * Flujo 141 (R12-6, D6 de ADR-038): la puerta única de `/cv`. El servidor de los e2e corre con
+ * Flujo 142 (R12-6, D6 de ADR-038): la puerta única de `/cv`. El servidor de los e2e corre con
  * `CV_PROFILE_AGENT=testers` y `CV_CHAT_ENABLED=all` (playwright.config.ts).
  * - Con el agente (la persona seed es admin, así que es tester): «¿Ya tenés un CV hecho?» con «Tengo CV»
  *   (lectura, `/cv/perfil`) y «No tengo CV» (chat, `/cv/armar`); el link suelto del chat ya no está.
@@ -82,7 +82,7 @@ async function cleanSeedChats(): Promise<void> {
   }
 }
 
-test.describe("Flujo 141: puerta «Tengo CV» / «No tengo CV» en Tu CV", () => {
+test.describe("Flujo 142: puerta «Tengo CV» / «No tengo CV» en Tu CV", () => {
   test.beforeAll(cleanSeedChats);
   test.afterAll(async () => {
     await cleanSeedChats();
