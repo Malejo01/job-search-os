@@ -17,7 +17,7 @@ import { releaseCvChatReservation } from "../../cv-chat/reserve";
 import type { LlmClient } from "../../llm/types";
 import type { Logger } from "../../logger";
 import { signProfileAgentTicket } from "../ticket";
-import { recordProfileRead, reserveProfileRead } from "./reserve";
+import { finishProfileRead, reserveProfileRead } from "./reserve";
 
 /**
  * Lectura del CV del agente de perfil (ADR-034 §1 y §6). Orquesta, en este orden y fallando cerrado en cada
@@ -121,12 +121,14 @@ export async function readCvForAgent(
     return fail("usage_unavailable");
   }
 
-  // 5. Lectura. Solo una propuesta que pasó la normalización consume cupo (#162): el marcador se anota
-  //    ANTES de soltar la reserva, así no hay una ventana en la que otra lectura de la misma persona vea
-  //    la reserva suelta y el marcador todavía sin escribir. Si no se puede anotar, no se entrega:
-  //    fallar cerrado es no regalar lecturas. La reserva se suelta siempre y nunca tapa el resultado.
+  // 5. Lectura. Solo una propuesta que pasó la normalización consume cupo (#162). El marcador y la
+  //    liberación de la reserva van juntos y bajo el lock por persona (`finishProfileRead`, R12-16): así
+  //    otra lectura de la misma persona que esté midiendo ve la reserva o el marcador, nunca ninguno. Si el
+  //    marcador no se puede anotar, no se entrega: fallar cerrado es no regalar lecturas. La reserva se
+  //    suelta siempre y nunca tapa el resultado.
   let read: Awaited<ReturnType<typeof extractCvProfileReserved>>;
   let marked = true;
+  let finished = false;
   try {
     read = await extractCvProfileReserved(
       {
@@ -140,15 +142,19 @@ export async function readCvForAgent(
       },
       { llm: deps.llm, logger: deps.logger, now: deps.now, env, timeoutMs: deps.timeoutMs },
     );
-    if (read.ok) {
-      try {
-        await recordProfileRead(deps.db, { userId: input.userId, label });
-      } catch {
-        marked = false;
-      }
+    try {
+      await finishProfileRead(deps.db, {
+        userId: input.userId,
+        label,
+        reservationId,
+        record: read.ok,
+      });
+      finished = true;
+    } catch {
+      marked = !read.ok;
     }
   } finally {
-    if (!(await releaseCvChatReservation(deps.db, reservationId))) {
+    if (!finished && !(await releaseCvChatReservation(deps.db, reservationId))) {
       log.warn({}, "profile_read_reserva_sin_borrar");
     }
   }
