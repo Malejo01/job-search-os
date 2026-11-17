@@ -1,5 +1,6 @@
 import type { RawJob } from "@job-search-os/pipeline";
 import { bumeranParser } from "./bumeran";
+import { computrabajoParser } from "./computrabajo";
 import { getonboardParser } from "./getonboard";
 import { indeedParser } from "./indeed";
 import { linkedinParser } from "./linkedin";
@@ -21,7 +22,7 @@ export type InboundEmailContent = {
 export type ParseResult = { ok: true; jobs: RawJob[] } | { ok: false; reason: string };
 
 export type EmailParser = {
-  name: "linkedin" | "getonboard" | "indeed" | "bumeran" | "generic";
+  name: "linkedin" | "getonboard" | "indeed" | "bumeran" | "computrabajo" | "generic";
   parse(email: InboundEmailContent): ParseResult;
 };
 
@@ -68,6 +69,9 @@ export function parserForSenderDomain(domain: string): EmailParser["name"] {
   for (const d of ["bumeran.com", "bumeran.com.ar"]) {
     if (domain === d || domain.endsWith("." + d)) return "bumeran";
   }
+  // R11-4 (ADR-037): Computrabajo, dominio exacto o subdominio. Los países (`.com.ar`…) no se
+  // rutean: los esqueletos son todos de computrabajo.com.
+  if (domain === "computrabajo.com" || domain.endsWith(".computrabajo.com")) return "computrabajo";
   return "generic";
 }
 
@@ -84,4 +88,5 @@ export const EMAIL_PARSERS: Partial<Record<EmailParser["name"], EmailParser>> = 
   getonboard: getonboardParser,
   indeed: indeedParser,
   bumeran: bumeranParser,
+  computrabajo: computrabajoParser,
 };
