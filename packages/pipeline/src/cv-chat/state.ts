@@ -5,6 +5,7 @@
  */
 import { cleanCvText, CV_BULLET_MAX_CHARS } from "../cv-out/verify";
 import { CV_MAX_BULLETS, type CvHistoryInput, type CvLinksInput } from "../cv-out/model";
+import type { CvConflict } from "./conflicts";
 import { parseCvExtraction, type CvExtractionMap, type CvTopicKind } from "./schemas";
 
 export const CV_CHAT_MAX_TURNS = 25;
@@ -78,6 +79,11 @@ export interface CvChatState {
   followUps: Record<string, number>;
   /** Repregunta vigente (redactada por el modelo y validada por el código), si el tema se repite. */
   followUp: { key: string; question: string } | null;
+  /**
+   * Contradicción pendiente (R12-3): lo dicho choca con lo anterior o con lo confirmado. Mientras está, la
+   * pregunta es «¿Cuál dejo?» y la respuesta la resuelve el código (`resolveCvConflict`), sin modelo.
+   */
+  conflict: CvConflict | null;
   /** Mensajes de la persona que ya se procesaron. */
   turns: number;
 }
@@ -142,6 +148,7 @@ export function initialCvChatState(seed: CvChatSeed = {}): CvChatState {
     failures: {},
     followUps: {},
     followUp: null,
+    conflict: null,
     turns: 0,
   };
 }
@@ -329,6 +336,8 @@ export function applyCvAnswer(s: CvChatState, topic: CvTopic, raw: unknown): CvC
 
 /** «No tengo» / «Saltear»: el tema queda respondido sin datos. Cuenta un turno. */
 export function skipCvTopic(s: CvChatState, topic: CvTopic): CvChatState {
+  // Con una contradicción pendiente (R12-3), «Saltear» la descarta: queda lo que ya estaba
+  if (s.conflict) return { ...s, conflict: null, turns: s.turns + 1 };
   // Saltear un tema también descarta la repregunta pendiente (R4-16)
   const base = withAnswered({ ...s, turns: s.turns + 1, followUp: null }, topic.key);
   if (topic.kind === "organization" && s.works.length === 0) return { ...base, workDone: true };

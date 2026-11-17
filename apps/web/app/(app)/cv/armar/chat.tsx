@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  cvConflictOptions,
   cvProgressShown,
   type CvChatState,
   type CvDocument,
@@ -107,9 +108,10 @@ export function CvChat() {
     setPhase("chat");
   }
 
-  async function send(action: "turn" | "skip") {
+  /** `chosen`: la opción de un chip de «¿Cuál dejo?» (R12-3), que va como respuesta del turno. */
+  async function send(action: "turn" | "skip", chosen?: string) {
     if (!state || busy) return;
-    const message = draft.trim();
+    const message = (chosen ?? draft).trim();
     if (action === "turn" && message === "") {
       setNotice({ message: "Escribí una respuesta o tocá «Saltear»." });
       answerRef.current?.focus();
@@ -192,9 +194,6 @@ export function CvChat() {
           cifra, nombre o tecnología que vos no hayas dicho. No te asegura pasar ningún filtro: es
           un CV claro y fiel a lo que contás. Nada se guarda hasta que lo confirmes.
         </p>
-        <p className="text-sm text-fg-muted">
-          Si tenés un CV hecho, no lo pegues acá: cargá tu historial a mano.
-        </p>
         {alert}
         <div className="flex flex-wrap gap-3">
           <button type="button" onClick={start} disabled={busy} className={PRIMARY}>
@@ -237,6 +236,26 @@ export function CvChat() {
             </p>
           ))}
         </div>
+        {state.conflict ? (
+          <div
+            role="group"
+            aria-label="Elegí cuál dejo"
+            data-testid="cv-conflict"
+            className="flex flex-wrap gap-2"
+          >
+            {cvConflictOptions(state.conflict).map((o) => (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => void send("turn", o.label)}
+                disabled={busy}
+                className={SECONDARY_SM}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
         {alert}
         <form
           onSubmit={(e) => {
@@ -345,8 +364,9 @@ export function CvChat() {
           {usedModel
             ? "Redactado por IA y verificado contra tus respuestas: lo que traía cifras, nombres o tecnologías que no dijiste se reemplazó por tus palabras."
             : "Va con tus palabras, sin redacción de IA."}{" "}
-          Al confirmar se guarda tu historial (trabajos, estudios y certificaciones). El resumen,
-          las skills, los idiomas y los links de esta charla se ven acá pero todavía no se guardan.
+          Al confirmar se guarda tu historial (trabajos, proyectos, estudios y certificaciones). El
+          resumen, las skills, los idiomas y los links de esta charla se ven acá pero todavía no se
+          guardan.
         </p>
         <CvPreview doc={doc} />
         {alert}
@@ -517,6 +537,59 @@ function ReviewEditor({
           </div>
         ))}
       </fieldset>
+
+      {state.projects.length > 0 ? (
+        <fieldset className={FIELDSET}>
+          <legend className={LEGEND}>Proyectos</legend>
+          {state.projects.map((p, i) => (
+            <div
+              key={`p${i}`}
+              className="flex flex-col gap-2 border-b border-line pb-3 last:border-0"
+            >
+              <label className="flex flex-col gap-1 text-sm text-fg">
+                Proyecto {i + 1}
+                <input
+                  value={p.name}
+                  maxLength={120}
+                  onChange={(e) =>
+                    set({
+                      projects: state.projects.map((x, j) =>
+                        j === i ? { ...x, name: e.target.value } : x,
+                      ),
+                    })
+                  }
+                  className={FIELD}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm text-fg">
+                Qué es {i + 1}
+                <input
+                  value={p.description ?? ""}
+                  maxLength={220}
+                  onChange={(e) =>
+                    set({
+                      projects: state.projects.map((x, j) =>
+                        j === i ? { ...x, description: e.target.value || null } : x,
+                      ),
+                    })
+                  }
+                  className={FIELD}
+                />
+              </label>
+              {p.stack.length > 0 ? (
+                <p className="text-sm text-fg-muted">Stack: {p.stack.join(", ")}</p>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => set({ projects: state.projects.filter((_, j) => j !== i) })}
+                className={`${SECONDARY_SM} self-start`}
+              >
+                Quitar proyecto {i + 1}
+              </button>
+            </div>
+          ))}
+        </fieldset>
+      ) : null}
 
       <fieldset className={FIELDSET}>
         <legend className={LEGEND}>Estudios y certificaciones</legend>

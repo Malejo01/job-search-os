@@ -49,7 +49,8 @@ const confirmed = z
 
 // Proyectos dichos en la charla (R12-2): mismos topes que una entrada del historial
 const project = z.strictObject({
-  name: name(120),
+  // Puede quedar vacío mientras la persona lo corrige: `cvChatHistory` saltea los proyectos sin nombre
+  name: str(120),
   role: str(120).nullable(),
   description: str(220).nullable(),
   stack: z.array(name(40)).max(8),
@@ -59,6 +60,21 @@ const project = z.strictObject({
     .refine((v) => cvProjectLink(v) === v)
     .nullable(),
 });
+
+// Contradicción pendiente (R12-3)
+const conflict = z
+  .strictObject({
+    workIndex: z.number().int().min(0).max(5),
+    field: z.enum(["title", "startMonth", "endMonth"]),
+    previous: name(120),
+    proposed: name(120),
+    source: z.enum(["said", "confirmed"]),
+  })
+  .refine(
+    (c) =>
+      c.field === "title" ||
+      (MONTH.safeParse(c.previous).success && MONTH.safeParse(c.proposed).success),
+  );
 
 export const CV_CHAT_STATE_SCHEMA = z.strictObject({
   target: str(120).nullable(),
@@ -91,6 +107,8 @@ export const CV_CHAT_STATE_SCHEMA = z.strictObject({
     .strictObject({ key: name(40), question: name(300) })
     .nullable()
     .default(null),
+  // R12-3: opcional para aceptar el estado de un navegador con la versión anterior de la página
+  conflict: conflict.nullable().default(null),
   turns: z.number().int().min(0).max(25),
 });
 

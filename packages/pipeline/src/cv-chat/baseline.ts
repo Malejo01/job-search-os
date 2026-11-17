@@ -11,10 +11,15 @@
  * que todavía no dijo. Los mensajes marcados `repite` solo repiten algo ya dicho porque se lo preguntaron
  * (el 17/11, las fechas y las tareas): esos solo se mandan si el chat pregunta justo ese tema. Si no queda
  * ningún mensaje para mandar, la persona toca «Saltear».
+ *
+ * Contradicciones (R12-3): cuando el chat pregunta «¿Cuál dejo?», la persona toca el chip de lo último que
+ * dijo. Esas preguntas cuentan en el total pero no como repetidas (no piden un dato de nuevo: piden elegir
+ * entre dos) y se informan aparte.
  */
 import { z } from "zod";
 import { foldCvText } from "../cv-out/verify";
 import { err, ok, type Result } from "../result";
+import { cvConflictOptions, resolveCvConflict } from "./conflicts";
 import { classifyCvChatInput } from "./input";
 import { CV_CHAT_TOPIC_KINDS, type CvTopicKind } from "./schemas";
 import {
@@ -81,7 +86,8 @@ export const cvBaselineFixtureSchema = z.strictObject({
 export type CvBaselineFixture = z.infer<typeof cvBaselineFixtureSchema>;
 
 export interface CvBaselineTurn {
-  topic: CvTopicKind;
+  /** Tema preguntado, o `conflict` para un «¿Cuál dejo?» (R12-3). */
+  topic: CvTopicKind | "conflict";
   /** Mensaje que mandó la persona, o `null` si salteó. */
   messageId: string | null;
   /** La pregunta era sobre algo que ya había dicho. */
@@ -91,6 +97,8 @@ export interface CvBaselineTurn {
 export interface CvBaselineResult {
   questions: number;
   repeated: number;
+  /** Preguntas «¿Cuál dejo?» (R12-3), incluidas en `questions`. */
+  conflicts: number;
   /** Hechos de los mensajes que se llegaron a mandar. */
   factsSaid: number;
   lost: string[];
@@ -159,6 +167,12 @@ export function runCvChatBaseline(
     const topic = nextCvTopic(state);
     if (!topic || state.turns >= CV_CHAT_MAX_TURNS) break;
     const k = turns.length;
+    if (state.conflict) {
+      const chosen = cvConflictOptions(state.conflict)[1];
+      state = resolveCvConflict(state, chosen.label).state;
+      turns.push({ topic: "conflict", messageId: null, repeated: false });
+      continue;
+    }
     const repeated = fixture.hechos.some(
       (h) => h.tema === topic.kind && (sentAt.get(h.mensaje) ?? Infinity) < k,
     );
@@ -193,6 +207,7 @@ export function runCvChatBaseline(
   return ok({
     questions: turns.length,
     repeated: repeatedCount,
+    conflicts: turns.filter((t) => t.topic === "conflict").length,
     factsSaid: said.length,
     lost,
     lostRatio: said.length === 0 ? 0 : lost.length / said.length,

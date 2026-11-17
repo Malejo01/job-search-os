@@ -57,15 +57,17 @@ describe("línea de base del chat de CV con la transcripción del 17/11 (R12-2)"
     );
   });
 
-  it("después de R12-2 (extras, v3): no se pierde ningún dato y no repregunta nada ya dicho", () => {
+  it("después de R12-2 y R12-3 (extras v3, acuse y contradicciones): no se pierde nada y no repregunta lo dicho", () => {
     const before = run("v2");
     const r = run("v3");
     // Empresa, cargo, fechas y tareas en un mensaje: no vuelve a preguntar cargo, fechas ni tareas.
-    // El mensaje de los proyectos llega cuando pregunta el logro; como no trae logro, repregunta (modelo).
+    // El mensaje de los proyectos llega cuando pregunta el logro y trae otro cargo para el mismo trabajo:
+    // R12-3 pregunta «¿Cuál dejo?» (la persona elige el último). Como no trae logro, repregunta (modelo).
     expect(r.turns.map((t) => t.topic)).toEqual([
       "target",
       "organization",
       "achievement",
+      "conflict",
       "achievement",
       "more_work",
       "education",
@@ -76,6 +78,8 @@ describe("línea de base del chat de CV con la transcripción del 17/11 (R12-2)"
     ]);
     expect(r.lost).toEqual([]);
     expect(r.repeated).toBe(0);
+    expect(r.conflicts).toBe(1);
+    expect(r.state.works[0]?.title).toBe("Desarrollador full stack");
     expect(r.factsSaid).toBe(before.factsSaid);
     expect(r.state.projects.map((p) => p.name)).toEqual([
       "Proyecto 1",
@@ -88,8 +92,9 @@ describe("línea de base del chat de CV con la transcripción del 17/11 (R12-2)"
     expect(r.lostRatio).toBeLessThan(before.lostRatio);
     expect(r.repeatedRatio).toBeLessThan(before.repeatedRatio);
     console.info(
-      `[después de R12-2 v3] datos perdidos ${r.lost.length}/${r.factsSaid} (${pct(r.lostRatio)}) · ` +
-        `preguntas repetidas ${r.repeated}/${r.questions} (${pct(r.repeatedRatio)})`,
+      `[después de R12-3 v3] datos perdidos ${r.lost.length}/${r.factsSaid} (${pct(r.lostRatio)}) · ` +
+        `preguntas repetidas ${r.repeated}/${r.questions} (${pct(r.repeatedRatio)}) · ` +
+        `contradicciones preguntadas ${r.conflicts}`,
     );
   });
 

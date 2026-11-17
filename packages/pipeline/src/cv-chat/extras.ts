@@ -85,7 +85,7 @@ export function usableCvExtras(extras: readonly (CvExtra | null)[], message: str
 }
 
 /** A qué trabajo van los extras de experiencia del turno, o `null` si a ninguno. */
-function workTarget(s: CvChatState, topic: CvTopic): number | null {
+export function cvExtrasWorkIndex(s: CvChatState, topic: CvTopic): number | null {
   if (s.workDone) return null;
   // Puesto y primer trabajo en el mismo mensaje: el trabajo arranca con lo que ya dijo
   if (topic.kind === "target") return s.works.length === 0 ? 0 : null;
@@ -174,7 +174,7 @@ export function applyCvExtras(
       continue;
     }
     if (e.kind === topic.kind) continue;
-    const i = workTarget(out, topic);
+    const i = cvExtrasWorkIndex(out, topic);
     if (i !== null) out = applyWorkExtra(out, i, e);
   }
   return out;
