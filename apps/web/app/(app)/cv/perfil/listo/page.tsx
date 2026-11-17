@@ -1,5 +1,6 @@
 import { profileAgentNextSteps } from "@job-search-os/pipeline";
 import { notFound } from "next/navigation";
+import { CvCoachEntry } from "@/components/cv-coach/entry";
 import { ProfileAgentClose } from "@/components/profile-agent/close";
 import { profileAgentAllowedFor } from "@/lib/profile-agent/access";
 import { requireActiveUserId } from "@/lib/session";
@@ -20,6 +21,8 @@ export default async function ProfileAgentDonePage() {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-5">
       <h1 className="no-print text-title font-bold">Tu CV y qué sigue</h1>
+      {/* Coach de CV (ADR-038): solo con `CV_COACH`; si no, no pinta nada */}
+      <CvCoachEntry userId={userId} />
       <ProfileAgentClose base="app" nextSteps={profileAgentNextSteps("app")} />
     </div>
   );
