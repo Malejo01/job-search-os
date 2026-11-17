@@ -254,6 +254,10 @@ dependencias (`DecompressionStream` + `docx-text.ts`); el PDF muestra «Pegá el
 librería, y queda anotado como paso manual. No se lee el PDF en el servidor: ADR-008 y la decisión 2 piden que el
 archivo no salga del navegador.
 
+**Resuelto en R12-12** (D3 del 17/11): `pdfjs-dist` con versión exacta, build legacy sin `eval`, import dinámico solo en la
+lectura y el worker como asset del propio sitio; la CSP no cambió. «Pegá el texto» queda para un PDF escaneado o cuando la
+librería no carga (`apps/web/components/profile-agent/extract-text.ts`).
+
 ## Alternatives
 - **Subir el archivo al servidor y leerlo ahí** (la «decisión vigente» de `ARCHITECTURE.md` §10): contradice la decisión
   2 (el archivo no se guarda ni viaja) y obliga a un lector de PDF en el servidor. Se descartó.
