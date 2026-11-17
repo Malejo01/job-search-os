@@ -141,3 +141,14 @@ export function cvCoachSkillNames(
   for (const t of ctx.taxonomy) if (wanted.has(t.slug)) out[t.slug] = t.name;
   return out;
 }
+
+/** `slug` → alias de la taxonomía, para no repreguntar una skill que la persona nombró de otra forma. */
+export function cvCoachSkillAliases(
+  ctx: CvReviewContext,
+  slugs: readonly (string | null)[],
+): Record<string, readonly string[]> {
+  const wanted = new Set(slugs.filter((x): x is string => x !== null));
+  const out: Record<string, readonly string[]> = {};
+  for (const t of ctx.taxonomy) if (wanted.has(t.slug)) out[t.slug] = [...(t.aliases ?? [])];
+  return out;
+}

@@ -24,7 +24,12 @@ import {
 import { z } from "zod";
 import { requireCvCoach } from "@/lib/cv-coach/access";
 import { saveCoachCard } from "@/lib/cv-coach/cards-server";
-import { cvCoachItems, cvCoachSkillNames, loadCvCoachContext } from "@/lib/cv-coach/context";
+import {
+  cvCoachItems,
+  cvCoachSkillAliases,
+  cvCoachSkillNames,
+  loadCvCoachContext,
+} from "@/lib/cv-coach/context";
 import { serviceLlm } from "@/lib/llm-service";
 import { sessionUserId } from "@/lib/session";
 import { siteUrl } from "@/lib/site-url";
@@ -221,9 +226,14 @@ export async function POST(request: Request): Promise<Response> {
       ctx,
       issues.map((i) => i.skillSlug),
     );
+    const skillAliases = cvCoachSkillAliases(
+      ctx,
+      issues.map((i) => i.skillSlug),
+    );
     const setup: CoachTurnSetup = {
       items,
       skillNames,
+      skillAliases,
       target: list.target,
       issues,
       fallbacks: fallbacks.value,
@@ -277,6 +287,7 @@ export async function POST(request: Request): Promise<Response> {
         target: list.target,
         items,
         skillNames,
+        skillAliases,
         state: state.data,
         answer: answer.data,
         now: new Date(now),
