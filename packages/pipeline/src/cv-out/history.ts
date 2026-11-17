@@ -1,4 +1,9 @@
-import { CV_MAX_BULLETS, CV_MAX_HISTORY_ENTRIES } from "./model";
+import {
+  CV_MAX_BULLETS,
+  CV_MAX_HISTORY_ENTRIES,
+  CV_PROJECT_LINK_MAX_CHARS,
+  cvProjectLink,
+} from "./model";
 import { CV_BULLET_MAX_CHARS, hasLinkOrEmail } from "./verify";
 
 /**
@@ -6,23 +11,35 @@ import { CV_BULLET_MAX_CHARS, hasLinkOrEmail } from "./verify";
  * que falló, nunca el valor que escribió la persona. Los topes de forma (largos, meses, viñetas) son los
  * mismos CHECK de la tabla (rls/0014 y schema); el de 20 entradas, el de 220 caracteres por viñeta y el
  * filtro de links y emails (en empresa, cargo y viñetas) viven acá porque la base no los puede expresar.
+ * Proyectos (R12-4, ADR-038 §6): `organization` es el nombre, `title` el rol y el stack va como viñeta
+ * «Stack: …». El único link admitido va en su campo propio (`link`), solo en proyectos y validado aparte.
  */
-export const HISTORY_KINDS = ["trabajo", "educacion", "certificacion"] as const;
+export const HISTORY_KINDS = ["trabajo", "educacion", "certificacion", "proyecto"] as const;
 export type HistoryKind = (typeof HISTORY_KINDS)[number];
 
 export const HISTORY_KIND_LABELS: Record<HistoryKind, string> = {
   trabajo: "Trabajo",
   educacion: "Estudio",
   certificacion: "Certificación",
+  proyecto: "Proyecto",
 };
 
 export const HISTORY_MAX_ENTRIES = CV_MAX_HISTORY_ENTRIES;
 export const HISTORY_MAX_BULLETS = CV_MAX_BULLETS;
 export const HISTORY_BULLET_MAX_CHARS = CV_BULLET_MAX_CHARS;
 export const HISTORY_FIELD_MAX_CHARS = 120;
+export const HISTORY_LINK_MAX_CHARS = CV_PROJECT_LINK_MAX_CHARS;
 
 export type HistoryField =
-  "kind" | "organization" | "title" | "startMonth" | "endMonth" | "dates" | "bullets" | "limit";
+  | "kind"
+  | "organization"
+  | "title"
+  | "startMonth"
+  | "endMonth"
+  | "dates"
+  | "bullets"
+  | "link"
+  | "limit";
 
 export type HistoryInput = {
   kind: HistoryKind;
@@ -31,6 +48,11 @@ export type HistoryInput = {
   startMonth: string | null;
   endMonth: string | null;
   bullets: string[];
+  /**
+   * Solo proyectos: https, hasta 200 caracteres, sin emails. `validateHistory` siempre lo devuelve (null
+   * si no hay); es opcional para quien arma una entrada que no es proyecto (lectura del CV, huecos).
+   */
+  link?: string | null;
 };
 
 export type HistoryCheck = { ok: true; value: HistoryInput } | { ok: false; field: HistoryField };
@@ -90,20 +112,27 @@ export function validateHistory(form: { get(name: string): unknown }): HistoryCh
   ) {
     return { ok: false, field: "bullets" };
   }
+  const rawLink = typeof form.get("link") === "string" ? (form.get("link") as string).trim() : "";
+  let link: string | null = null;
+  if (rawLink !== "") {
+    link = kind === "proyecto" ? cvProjectLink(rawLink) : null;
+    if (link === null) return { ok: false, field: "link" };
+  }
   return {
     ok: true,
-    value: { kind: kind as HistoryKind, organization, title, startMonth, endMonth, bullets },
+    value: { kind: kind as HistoryKind, organization, title, startMonth, endMonth, bullets, link },
   };
 }
 
 export const HISTORY_ERROR_MESSAGES: Record<HistoryField, string> = {
-  kind: "Elegí si es un trabajo, un estudio o una certificación.",
+  kind: "Elegí si es un trabajo, un estudio, una certificación o un proyecto.",
   organization: `Escribí la empresa o institución (hasta ${HISTORY_FIELD_MAX_CHARS} caracteres, sin links ni emails).`,
   title: `Escribí el cargo o título (hasta ${HISTORY_FIELD_MAX_CHARS} caracteres, sin links ni emails).`,
   startMonth: "El mes de inicio no es válido.",
   endMonth: "El mes de fin no es válido.",
   dates: "El fin no puede ser anterior al inicio, y para poner un fin hace falta un inicio.",
   bullets: `Hasta ${HISTORY_MAX_BULLETS} viñetas, una por línea, de hasta ${HISTORY_BULLET_MAX_CHARS} caracteres y sin links ni emails.`,
+  link: `El link va solo en proyectos: tiene que empezar con https://, tener hasta ${HISTORY_LINK_MAX_CHARS} caracteres y no llevar emails.`,
   limit: `Llegaste al máximo de ${HISTORY_MAX_ENTRIES} entradas. Borrá alguna para sumar otra.`,
 };
 

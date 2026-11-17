@@ -45,6 +45,16 @@ const base: CvSourceData = {
   ],
 };
 
+const proyecto: CvSourceData["history"][number] = {
+  kind: "proyecto",
+  organization: "Proyecto 1",
+  title: "Desarrolladora frontend",
+  startMonth: "2024-03",
+  endMonth: "2024-06",
+  bullets: ["Armé el tablero de turnos", "Stack: React, Node.js"],
+  link: "https://github.com/persona-ficticia/proyecto-1",
+};
+
 describe("buildCvDocument", () => {
   it("arma las secciones estándar en orden y en español", () => {
     const d = buildCvDocument(base, { lang: "es" });
@@ -103,6 +113,56 @@ describe("buildCvDocument", () => {
     expect(buildCvDocument(base, { lang: "es", includeEmail: false }).contact).not.toContain(
       "persona@example.com",
     );
+  });
+
+  it("proyectos (R12-4): sección entre experiencia y educación, con rol, fechas, link y stack", () => {
+    const d = buildCvDocument({ ...base, history: [...base.history, proyecto] }, { lang: "es" });
+    expect(d.sections.map((s) => s.id)).toEqual([
+      "summary",
+      "experience",
+      "projects",
+      "education",
+      "certifications",
+      "skills",
+      "languages",
+      "achievements",
+    ]);
+    const p = d.sections.find((s) => s.id === "projects")!;
+    expect(p.title).toBe("Proyectos");
+    expect(p.blocks).toEqual([
+      {
+        heading: "Proyecto 1",
+        detail:
+          "Desarrolladora frontend | 03/2024 – 06/2024 | https://github.com/persona-ficticia/proyecto-1",
+        bullets: ["Armé el tablero de turnos", "Stack: React, Node.js"],
+      },
+    ]);
+    const en = buildCvDocument({ ...base, history: [proyecto] }, { lang: "en" });
+    expect(en.sections.find((s) => s.id === "projects")!.title).toBe("Projects");
+    // sin proyectos no hay sección ni faltante
+    expect(buildCvDocument(base, { lang: "es" }).sections.map((s) => s.id)).not.toContain(
+      "projects",
+    );
+  });
+
+  it("proyecto: un link que no es https limpio no llega al CV", () => {
+    for (const link of [
+      "http://ejemplo.test/x",
+      "javascript:alert(1)",
+      "https://persona@ejemplo.test",
+      `https://ejemplo.test/${"x".repeat(200)}`,
+    ]) {
+      const d = buildCvDocument({ ...base, history: [{ ...proyecto, link }] }, { lang: "es" });
+      expect(d.sections.find((s) => s.id === "projects")!.blocks[0]!.detail).toBe(
+        "Desarrolladora frontend | 03/2024 – 06/2024",
+      );
+    }
+    // un trabajo con link (no debería pasar: la base solo lo admite validado) tampoco lo muestra
+    const d = buildCvDocument(
+      { ...base, history: [{ ...base.history[0]!, link: "https://ejemplo.test" }] },
+      { lang: "es" },
+    );
+    expect(JSON.stringify(d.sections)).not.toContain("https://ejemplo.test");
   });
 
   it("lo que falta queda vacío y va a faltantes, sin inventar", () => {

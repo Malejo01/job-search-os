@@ -30,14 +30,15 @@ type Row = {
   start?: string;
   end?: string;
   bullets?: string[];
+  link?: string | null;
 };
 
 const insertAs = (userId: string, ownerOfRow: string, extra: Row = {}) =>
   asUser(userId, (tx) => {
     const row = { kind: "trabajo", organization: "Empresa A", title: "Cargo Ficticio", ...extra };
-    return tx`insert into career_history (user_id, kind, organization, title, start_month, end_month, bullets)
+    return tx`insert into career_history (user_id, kind, organization, title, start_month, end_month, bullets, link)
               values (${ownerOfRow}, ${row.kind}, ${row.organization}, ${row.title},
-                      ${row.start ?? null}, ${row.end ?? null}, ${row.bullets ?? []})`;
+                      ${row.start ?? null}, ${row.end ?? null}, ${row.bullets ?? []}, ${row.link ?? null})`;
   });
 
 beforeAll(async () => {
@@ -116,6 +117,70 @@ describe("career_history (C-25)", () => {
     await expect(insertAs(A, A, { bullets: Array(7).fill("v") })).rejects.toThrow(
       /career_history_bullets/,
     );
+  });
+
+  it("proyectos (R12-4): la policy de rls/0014 cubre la columna `link` con dos personas", async () => {
+    await owner`delete from career_history where user_id in ${owner(ALL)}`;
+    const proyecto = {
+      kind: "proyecto",
+      organization: "Proyecto 1",
+      title: "Rol ficticio",
+      bullets: ["Armé el tablero", "Stack: React, Node.js"],
+    };
+    await insertAs(A, A, { ...proyecto, link: "https://ejemplo.test/proyecto-a" });
+    await insertAs(B, B, { ...proyecto, link: "https://ejemplo.test/proyecto-b" });
+    // cada una lee solo su link
+    const mine = await asUser(A, (tx) => tx`select kind, link from career_history`);
+    expect(mine).toEqual([{ kind: "proyecto", link: "https://ejemplo.test/proyecto-a" }]);
+    const hits = await asUser(
+      A,
+      (tx) => tx`select 1 from career_history where link = 'https://ejemplo.test/proyecto-b'`,
+    );
+    expect(hits).toHaveLength(0);
+    // A no puede cambiar ni borrar el link de B
+    const upd = await asUser(
+      A,
+      (tx) =>
+        tx`update career_history set link = 'https://ejemplo.test/robado' where user_id = ${B}`,
+    );
+    expect(upd.count).toBe(0);
+    expect(
+      (await asUser(A, (tx) => tx`update career_history set link = null where user_id = ${B}`))
+        .count,
+    ).toBe(0);
+    // ni insertar un proyecto con link a nombre de B
+    await expect(
+      insertAs(A, B, { ...proyecto, link: "https://ejemplo.test/ajeno" }),
+    ).rejects.toThrow(/row-level security/);
+    const [b] = await owner`select link from career_history where user_id = ${B}`;
+    expect(b!.link).toBe("https://ejemplo.test/proyecto-b");
+    // la persona sí edita su propio link
+    const own = await asUser(
+      A,
+      (tx) => tx`update career_history set link = 'https://ejemplo.test/nuevo' returning link`,
+    );
+    expect(own).toEqual([{ link: "https://ejemplo.test/nuevo" }]);
+    // sin contexto de usuario no se ve ningún link
+    expect(await app`select link from career_history`).toHaveLength(0);
+    await owner`delete from career_history where user_id in ${owner(ALL)}`;
+  });
+
+  it("CHECK del link: https y hasta 200 caracteres; el tipo `proyecto` existe", async () => {
+    await expect(
+      insertAs(A, A, { kind: "proyecto", link: "http://ejemplo.test/x" }),
+    ).rejects.toThrow(/career_history_link/);
+    await expect(
+      insertAs(A, A, { kind: "proyecto", link: "persona@ejemplo.test" }),
+    ).rejects.toThrow(/career_history_link/);
+    await expect(
+      insertAs(A, A, { kind: "proyecto", link: `https://ejemplo.test/${"x".repeat(180)}` }),
+    ).rejects.toThrow(/career_history_link/);
+    await insertAs(A, A, { kind: "proyecto", link: `https://ejemplo.test/${"x".repeat(179)}` });
+    await insertAs(A, A, { kind: "proyecto" });
+    const rows = await asUser(A, (tx) => tx`select kind, link from career_history`);
+    expect(rows.map((r) => r.kind)).toEqual(["proyecto", "proyecto"]);
+    expect(rows.filter((r) => r.link === null)).toHaveLength(1);
+    await owner`delete from career_history where user_id in ${owner(ALL)}`;
   });
 
   it("la tabla no tiene columnas de datos personales sensibles", async () => {

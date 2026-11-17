@@ -59,6 +59,33 @@ export function hasLinkOrEmail(text: string): boolean {
 const LEADING_MARK_RE = /^(?:[\s\-*•·▪●○◦–—]+|\d{1,2}[.)]\s+)/u;
 const TOKEN_RE = /[\p{L}\p{N}][\p{L}\p{N}.+#_/-]*/gu;
 
+/** Lo mínimo de una entrada del historial que el verificador usa como fuente (sin importar `model`). */
+export interface CvSourceEntry {
+  organization: string;
+  title: string;
+  bullets: readonly string[];
+  link?: string | null;
+}
+
+/**
+ * Fuentes del verificador para una entrada del historial: empresa o nombre del proyecto, cargo o rol,
+ * viñetas (en un proyecto, también la de «Stack: …») y, si hay, el link del proyecto, entero y partido en
+ * palabras para que el nombre del repositorio cuente (R12-4). El link en sí nunca pasa al texto: los
+ * links siguen siendo motivo de rechazo.
+ */
+export function cvHistorySources(entry: CvSourceEntry): string[] {
+  const out = [entry.organization, entry.title, ...entry.bullets];
+  const link = (entry.link ?? "").trim();
+  if (link !== "")
+    out.push(
+      link
+        .replace(/^https?:\/\//i, "")
+        .replace(/[/:?#=&.]+/g, " ")
+        .trim(),
+    );
+  return out;
+}
+
 /** Minúsculas y sin acentos, para comparar. */
 export function foldCvText(s: string): string {
   return s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
