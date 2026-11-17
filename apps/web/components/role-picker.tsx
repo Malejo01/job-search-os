@@ -33,6 +33,14 @@ const ROLE_HELP: Readonly<Record<string, string>> = {
   rrhh_it: "Recruiting y RRHH, IT o no",
   finanzas_contabilidad: "Contabilidad, pagos, impuestos y reportes",
   asistencia_operaciones: "Agenda, correo, carga de datos y coordinación; no es DevOps",
+  // R11-13: las demás carreras de la beta también llevan su línea (antes solo Contaduría)
+  abogacia: "Contratos, litigios, propiedad intelectual y asesoría legal",
+  administracion_empresas: "Compras, procesos, control de gestión y estrategia",
+  comunicacion: "Prensa, periodismo, contenidos y comunicación institucional",
+  marketing_digital: "Redes, publicidad online, SEO, contenidos y campañas",
+  relaciones_publicas: "Prensa, eventos, reputación y vínculo con la comunidad",
+  relaciones_internacionales: "Comercio exterior, cooperación y asuntos internacionales",
+  fullstack: "Programación de la parte visible y del servidor de una aplicación",
 };
 
 /**

@@ -24,6 +24,9 @@ const NEW_SLUGS = [
   "data_entry",
 ];
 
+/** Skills de la 0044 cuyo texto el seed amplió después (R11-13, catálogo de Argentina). */
+const EVOLVED_SINCE_MIGRATION = new Set(["erp_accounting", "tax_compliance"]);
+
 let container: StartedPostgreSqlContainer | null = null;
 let ownerUrl: string;
 let owner: Sql;
@@ -101,12 +104,19 @@ describe("ronda C-2b: las ocho skills nuevas y hr_generalist", () => {
     expect(rows.map((r) => r.slug)).toEqual([...slugs].sort());
     for (const row of rows) {
       const seed = skills.find((s) => s.slug === row.slug)!;
-      expect(row.name).toBe(seed.name);
       expect(row.category).toBe("dominio");
-      expect(row.aliases).toEqual(seed.aliases);
       expect(row.closure_hours).toBe(seed.closure_hours);
-      expect(row.description).toBe(seed.description);
       expect(row.is_global).toBe(true);
+      if (EVOLVED_SINCE_MIGRATION.has(row.slug)) {
+        // R11-13: el seed sumó nombre, sinónimos y descripción del catálogo de Argentina; en
+        // producción lo aplica un UPDATE puntual, no esta migración. Lo que la 0044 dio de alta tiene
+        // que seguir estando en el seed.
+        for (const alias of row.aliases) expect(seed.aliases, row.slug).toContain(alias);
+        continue;
+      }
+      expect(row.name).toBe(seed.name);
+      expect(row.aliases).toEqual(seed.aliases);
+      expect(row.description).toBe(seed.description);
     }
   });
 
