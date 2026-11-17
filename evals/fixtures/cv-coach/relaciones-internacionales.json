@@ -1,0 +1,191 @@
+{
+  "id": "relaciones-internacionales",
+  "carrera": "relaciones_internacionales",
+  "puesto_objetivo": "Analista de cooperación internacional",
+  "nota": "",
+  "cv_texto": "PERSONA EJEMPLO J\nInternacionalista\n\nPERFIL\nLicenciada en Relaciones Internacionales.\n\nEXPERIENCIA\nAsistente de proyectos internacionales, Fundación Ficticia Horizonte, 2022-07 a actualidad\n- Seguimiento de proyectos con organismos internacionales.\n- Informes.\n\nAsistente de comercio exterior, Cámara Inventada de Comercio, 2020-01 a 2022-06\n- Atención a empresas exportadoras.\n\nESTUDIOS\nLicenciatura en Relaciones Internacionales, Universidad Ficticia Central, 2014-03 a 2019-12\n\nHABILIDADES\nCooperación internacional, comercio exterior, inglés y francés\n\nIDIOMAS\nEspañol nativo. Inglés avanzado (C1). Francés intermedio (B1).\n",
+  "lectura": {
+    "items": [
+      {
+        "clave": "exp-1",
+        "id": "00000000-0000-4000-8000-0000000003e9",
+        "kind": "trabajo",
+        "organization": "Fundación Ficticia Horizonte",
+        "title": "Asistente de proyectos internacionales",
+        "startMonth": "2022-07",
+        "endMonth": null,
+        "isCurrent": true,
+        "bullets": [
+          "Seguimiento de proyectos con organismos internacionales.",
+          "Informes."
+        ],
+        "link": null
+      },
+      {
+        "clave": "exp-2",
+        "id": "00000000-0000-4000-8000-0000000003ea",
+        "kind": "trabajo",
+        "organization": "Cámara Inventada de Comercio",
+        "title": "Asistente de comercio exterior",
+        "startMonth": "2020-01",
+        "endMonth": "2022-06",
+        "isCurrent": false,
+        "bullets": [
+          "Atención a empresas exportadoras."
+        ],
+        "link": null
+      },
+      {
+        "clave": "edu-1",
+        "id": "00000000-0000-4000-8000-0000000003eb",
+        "kind": "educacion",
+        "organization": "Universidad Ficticia Central",
+        "title": "Licenciatura en Relaciones Internacionales",
+        "startMonth": "2014-03",
+        "endMonth": "2019-12",
+        "isCurrent": false,
+        "bullets": [],
+        "link": null
+      }
+    ],
+    "skills": [
+      "international_cooperation",
+      "foreign_trade",
+      "english_fluent"
+    ],
+    "resumen": "Licenciada en Relaciones Internacionales."
+  },
+  "demanda": [
+    {
+      "slug": "international_cooperation",
+      "mentions": 9
+    },
+    {
+      "slug": "grant_writing",
+      "mentions": 7
+    },
+    {
+      "slug": "foreign_trade",
+      "mentions": 5
+    },
+    {
+      "slug": "political_analysis",
+      "mentions": 4
+    },
+    {
+      "slug": "english_fluent",
+      "mentions": 4
+    }
+  ],
+  "hechos": [
+    {
+      "clave": "empresa",
+      "valor": "Fundación Ficticia Horizonte",
+      "fuente": "cv"
+    },
+    {
+      "clave": "cargo",
+      "valor": "Asistente de proyectos internacionales",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2022",
+      "fuente": "cv"
+    },
+    {
+      "clave": "empresa",
+      "valor": "Cámara Inventada de Comercio",
+      "fuente": "cv"
+    },
+    {
+      "clave": "cargo",
+      "valor": "Asistente de comercio exterior",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2020",
+      "fuente": "cv"
+    },
+    {
+      "clave": "institucion",
+      "valor": "Universidad Ficticia Central",
+      "fuente": "cv"
+    },
+    {
+      "clave": "titulo",
+      "valor": "Licenciatura en Relaciones Internacionales",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2014",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2019",
+      "fuente": "cv"
+    },
+    {
+      "clave": "numero",
+      "valor": "5",
+      "fuente": "respuesta"
+    },
+    {
+      "clave": "numero",
+      "valor": "25",
+      "fuente": "respuesta"
+    }
+  ],
+  "problemas_esperados": [
+    {
+      "tipo": "tarea_vaga",
+      "item": "exp-1"
+    },
+    {
+      "tipo": "logro_sin_resultado",
+      "item": "exp-2"
+    },
+    {
+      "tipo": "resumen_generico",
+      "item": null
+    },
+    {
+      "tipo": "skill_pedida_sin_evidencia",
+      "skill": "international_cooperation"
+    },
+    {
+      "tipo": "brecha_con_puesto",
+      "skill": "grant_writing"
+    },
+    {
+      "tipo": "brecha_con_puesto",
+      "skill": "political_analysis"
+    },
+    {
+      "tipo": "skill_pedida_sin_evidencia",
+      "skill": "english_fluent"
+    }
+  ],
+  "respuestas": {
+    "tarea_vaga": {
+      "exp-1": "Hago el seguimiento de 5 proyectos financiados por organismos de cooperación y redacto los informes trimestrales."
+    },
+    "logro_sin_resultado": {
+      "exp-2": "Acompañé a 25 empresas en su primera exportación."
+    },
+    "brecha_con_puesto": {
+      "grant_writing": "Formulé dos proyectos que se presentaron a convocatorias de cooperación.",
+      "*": "no tengo"
+    },
+    "skill_pedida_sin_evidencia": {
+      "foreign_trade": "En la Cámara asesoraba sobre Incoterms y documentación de exportación.",
+      "international_cooperation": "Sigo proyectos de cooperación internacional con dos agencias."
+    },
+    "resumen_generico": {
+      "*": "no tengo"
+    }
+  }
+}

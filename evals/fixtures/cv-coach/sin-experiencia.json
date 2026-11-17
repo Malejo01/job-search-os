@@ -1,0 +1,211 @@
+{
+  "id": "sin-experiencia",
+  "carrera": "comunicacion",
+  "puesto_objetivo": "Asistente de comunicación institucional",
+  "nota": "De #514: comunicación, recién recibida.",
+  "cv_texto": "PERSONA EJEMPLO A\nComunicación social, recién recibida\n\nPERFIL\nRecién recibida de la Licenciatura en Comunicación Social. Busco mi primer trabajo en comunicación institucional o redes sociales. Aprendo rápido y trabajo bien en equipo.\n\nESTUDIOS\nLicenciatura en Comunicación Social, Universidad Ficticia del Sur, 2020 - 2024\nCurso de Redes Sociales para Organizaciones, Instituto de Ejemplo, 2023\n\nPRÁCTICAS Y PROYECTOS\nProyecto final de carrera: plan de comunicación para una biblioteca de barrio (Empresa A), con calendario de publicaciones y piezas gráficas.\nVoluntariado en una radio comunitaria (Empresa B): armado de notas cortas y edición de audio durante un semestre.\n\nHABILIDADES\nRedacción, Canva, Excel, Redes sociales, edición de audio\n\nIDIOMAS\nEspañol nativo. Inglés intermedio (B1).\n",
+  "lectura": {
+    "items": [
+      {
+        "clave": "proy-1",
+        "id": "00000000-0000-4000-8000-000000000065",
+        "kind": "proyecto",
+        "organization": "Plan de comunicación para una biblioteca de barrio",
+        "title": "Proyecto final de carrera",
+        "startMonth": null,
+        "endMonth": null,
+        "isCurrent": false,
+        "bullets": [
+          "Calendario de publicaciones y piezas gráficas para la biblioteca (Empresa A)."
+        ],
+        "link": null
+      },
+      {
+        "clave": "vol-1",
+        "id": "00000000-0000-4000-8000-000000000066",
+        "kind": "trabajo",
+        "organization": "Empresa B",
+        "title": "Voluntaria en radio comunitaria",
+        "startMonth": null,
+        "endMonth": null,
+        "isCurrent": false,
+        "bullets": [
+          "Armado de notas cortas y edición de audio durante un semestre."
+        ],
+        "link": null
+      },
+      {
+        "clave": "edu-1",
+        "id": "00000000-0000-4000-8000-000000000067",
+        "kind": "educacion",
+        "organization": "Universidad Ficticia del Sur",
+        "title": "Licenciatura en Comunicación Social",
+        "startMonth": "2020-03",
+        "endMonth": "2024-12",
+        "isCurrent": false,
+        "bullets": [],
+        "link": null
+      },
+      {
+        "clave": "cur-1",
+        "id": "00000000-0000-4000-8000-000000000068",
+        "kind": "certificacion",
+        "organization": "Instituto de Ejemplo",
+        "title": "Curso de Redes Sociales para Organizaciones",
+        "startMonth": "2023-01",
+        "endMonth": "2023-12",
+        "isCurrent": false,
+        "bullets": [],
+        "link": null
+      }
+    ],
+    "skills": [
+      "copywriting",
+      "canva",
+      "excel",
+      "social_media"
+    ],
+    "resumen": "Recién recibida de la Licenciatura en Comunicación Social. Busco mi primer trabajo en comunicación institucional o redes sociales. Aprendo rápido y trabajo bien en equipo."
+  },
+  "demanda": [
+    {
+      "slug": "corporate_communications",
+      "mentions": 9
+    },
+    {
+      "slug": "social_media",
+      "mentions": 8
+    },
+    {
+      "slug": "press_relations",
+      "mentions": 6
+    },
+    {
+      "slug": "canva",
+      "mentions": 4
+    },
+    {
+      "slug": "content_strategy",
+      "mentions": 3
+    }
+  ],
+  "hechos": [
+    {
+      "clave": "proyecto",
+      "valor": "Plan de comunicación para una biblioteca de barrio",
+      "fuente": "cv"
+    },
+    {
+      "clave": "titulo",
+      "valor": "Proyecto final de carrera",
+      "fuente": "cv"
+    },
+    {
+      "clave": "empresa",
+      "valor": "Empresa B",
+      "fuente": "cv"
+    },
+    {
+      "clave": "cargo",
+      "valor": "Voluntaria en radio comunitaria",
+      "fuente": "cv"
+    },
+    {
+      "clave": "institucion",
+      "valor": "Universidad Ficticia del Sur",
+      "fuente": "cv"
+    },
+    {
+      "clave": "titulo",
+      "valor": "Licenciatura en Comunicación Social",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2020",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2024",
+      "fuente": "cv"
+    },
+    {
+      "clave": "institucion",
+      "valor": "Instituto de Ejemplo",
+      "fuente": "cv"
+    },
+    {
+      "clave": "titulo",
+      "valor": "Curso de Redes Sociales para Organizaciones",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2023",
+      "fuente": "cv"
+    },
+    {
+      "clave": "numero",
+      "valor": "20",
+      "fuente": "respuesta"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2022",
+      "fuente": "respuesta"
+    }
+  ],
+  "problemas_esperados": [
+    {
+      "tipo": "logro_sin_resultado",
+      "item": "vol-1"
+    },
+    {
+      "tipo": "fecha_faltante",
+      "item": "vol-1"
+    },
+    {
+      "tipo": "proyecto_sin_stack_o_link",
+      "item": "proy-1"
+    },
+    {
+      "tipo": "resumen_generico",
+      "item": null
+    },
+    {
+      "tipo": "brecha_con_puesto",
+      "skill": "corporate_communications"
+    },
+    {
+      "tipo": "skill_pedida_sin_evidencia",
+      "skill": "social_media"
+    },
+    {
+      "tipo": "brecha_con_puesto",
+      "skill": "press_relations"
+    },
+    {
+      "tipo": "skill_pedida_sin_evidencia",
+      "skill": "canva"
+    }
+  ],
+  "respuestas": {
+    "logro_sin_resultado": {
+      "vol-1": "Hice 20 notas cortas que salieron al aire en el programa de la mañana."
+    },
+    "fecha_faltante": {
+      "vol-1": "De marzo de 2022 a agosto de 2022."
+    },
+    "proyecto_sin_stack_o_link": {
+      "proy-1": "Lo armé con Canva y Google Drive."
+    },
+    "brecha_con_puesto": {
+      "*": "no tengo"
+    },
+    "skill_pedida_sin_evidencia": {
+      "social_media": "En el proyecto de la biblioteca manejé las redes sociales durante dos meses.",
+      "canva": "Las piezas gráficas de la biblioteca las hice en Canva."
+    }
+  }
+}

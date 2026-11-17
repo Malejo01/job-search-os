@@ -1,0 +1,136 @@
+{
+  "fixtureId": "con-experiencia",
+  "origen": "simulada",
+  "nota": "grabada con --modo simulada el 2026-11-17",
+  "calls": [
+    {
+      "task": "cv_review",
+      "object": {
+        "issues": [
+          {
+            "type": "logro_sin_resultado",
+            "ref": {
+              "section": "experience",
+              "itemId": "00000000-0000-4000-8000-0000000000c9",
+              "field": null
+            },
+            "quote": "Cierre mensual de cuentas por pagar y por cobrar.",
+            "skillSlug": null,
+            "severity": "media"
+          },
+          {
+            "type": "tarea_vaga",
+            "ref": {
+              "section": "experience",
+              "itemId": "00000000-0000-4000-8000-0000000000ca",
+              "field": null
+            },
+            "quote": "Carga de comprobantes y liquidación de impuestos mensuales.",
+            "skillSlug": null,
+            "severity": "media"
+          },
+          {
+            "type": "tarea_vaga",
+            "ref": {
+              "section": "experience",
+              "itemId": "00000000-0000-4000-8000-0000000dead0",
+              "field": "bullets"
+            },
+            "quote": null,
+            "skillSlug": null,
+            "severity": "alta"
+          }
+        ]
+      },
+      "costUsd": 0,
+      "model": "simulado"
+    },
+    {
+      "task": "cv_coach_turn",
+      "object": {
+        "patch": {
+          "title": null,
+          "organization": null,
+          "startMonth": null,
+          "endMonth": null,
+          "isCurrent": null,
+          "bullets": [],
+          "link": null,
+          "stack": []
+        },
+        "extras": [
+          {
+            "kind": "logro",
+            "text": "Usé Tango Gestión todos los días en Empresa D.",
+            "ref": {
+              "section": "experience",
+              "itemId": "00000000-0000-4000-8000-0000000000ca",
+              "field": "bullets"
+            }
+          }
+        ],
+        "declined": false,
+        "nextQuestion": null
+      },
+      "costUsd": 0,
+      "model": "simulado"
+    },
+    {
+      "task": "cv_coach_turn",
+      "object": {
+        "patch": {
+          "title": null,
+          "organization": null,
+          "startMonth": null,
+          "endMonth": null,
+          "isCurrent": null,
+          "bullets": [],
+          "link": null,
+          "stack": []
+        },
+        "extras": [
+          {
+            "kind": "logro",
+            "text": "En Empresa C pasé los tableros de gastos de Excel a Power BI.",
+            "ref": {
+              "section": "experience",
+              "itemId": "00000000-0000-4000-8000-0000000000c9",
+              "field": "bullets"
+            }
+          }
+        ],
+        "declined": false,
+        "nextQuestion": null
+      },
+      "costUsd": 0,
+      "model": "simulado"
+    },
+    {
+      "task": "cv_write",
+      "object": {
+        "summary": "Analista contable senior.",
+        "entries": [
+          {
+            "id": "h0",
+            "bullets": [
+              "Cierre mensual de cuentas por pagar y por cobrar.",
+              "Conciliaciones bancarias de tres sociedades.",
+              "Armado de tableros de gastos en Excel para la gerencia.",
+              "En Empresa C pasé los tableros de gastos de Excel a Power BI."
+            ]
+          },
+          {
+            "id": "h1",
+            "bullets": [
+              "Carga de comprobantes y liquidación de impuestos mensuales.",
+              "Atención de consultas de proveedores.",
+              "Usé Tango Gestión todos los días en Empresa D."
+            ]
+          }
+        ]
+      },
+      "costUsd": 0,
+      "model": "fake"
+    }
+  ]
+}

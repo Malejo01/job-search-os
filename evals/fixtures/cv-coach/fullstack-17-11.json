@@ -1,0 +1,329 @@
+{
+  "id": "fullstack-17-11",
+  "carrera": "fullstack",
+  "puesto_objetivo": "Desarrollador fullstack con IA",
+  "nota": "Replica el caso del 17/11 con nombres ficticios: dos años de experiencia, cuatro proyectos con IA y la docencia arriba.",
+  "cv_texto": "PERSONA EJEMPLO K\nDesarrollador fullstack\n\nPERFIL\nDesarrollador fullstack apasionado por la tecnología y la inteligencia artificial.\n\nEXPERIENCIA\nDocente de programación, Instituto Ficticio de Programación, 2023-03 a actualidad\n- Clases de JavaScript para adultos.\n- Corrección de trabajos prácticos.\n\nDesarrollador fullstack, Empresa A, 2023-01 a actualidad\n- Desarrollo de funcionalidades.\n- Mantenimiento de la plataforma.\n\nPROYECTOS\nProyecto 1 (Autor), 2024-03 a 2024-08\n- Asistente que responde preguntas sobre documentos internos con IA.\nLink: https://ejemplo.com/proyecto-1\n\nProyecto 2 (Autor), 2024-09 a 2025-01\n- Clasificador de tickets de soporte con un modelo de lenguaje.\n\nProyecto 3 (Colaborador)\n- Agente que arma resúmenes de reuniones.\n\nProyecto 4 (Autor), 2025-03 a 2025-06\n- Evaluación automática de respuestas de un chatbot.\nLink: https://ejemplo.com/proyecto-4\n\nESTUDIOS\nTecnicatura en Programación, Universidad Ficticia Central, 2019-03 a 2022-12\n\nHABILIDADES\nTypeScript, React, Node.js, PostgreSQL, Python, prompts\n\nIDIOMAS\nEspañol nativo. Inglés avanzado (C1).\n",
+  "lectura": {
+    "items": [
+      {
+        "clave": "doc-1",
+        "id": "00000000-0000-4000-8000-00000000044d",
+        "kind": "trabajo",
+        "organization": "Instituto Ficticio de Programación",
+        "title": "Docente de programación",
+        "startMonth": "2023-03",
+        "endMonth": null,
+        "isCurrent": true,
+        "bullets": [
+          "Clases de JavaScript para adultos.",
+          "Corrección de trabajos prácticos."
+        ],
+        "link": null
+      },
+      {
+        "clave": "exp-1",
+        "id": "00000000-0000-4000-8000-00000000044e",
+        "kind": "trabajo",
+        "organization": "Empresa A",
+        "title": "Desarrollador fullstack",
+        "startMonth": "2023-01",
+        "endMonth": null,
+        "isCurrent": true,
+        "bullets": [
+          "Desarrollo de funcionalidades.",
+          "Mantenimiento de la plataforma."
+        ],
+        "link": null
+      },
+      {
+        "clave": "proy-1",
+        "id": "00000000-0000-4000-8000-00000000044f",
+        "kind": "proyecto",
+        "organization": "Proyecto 1",
+        "title": "Autor",
+        "startMonth": "2024-03",
+        "endMonth": "2024-08",
+        "isCurrent": false,
+        "bullets": [
+          "Asistente que responde preguntas sobre documentos internos con IA."
+        ],
+        "link": "https://ejemplo.com/proyecto-1"
+      },
+      {
+        "clave": "proy-2",
+        "id": "00000000-0000-4000-8000-000000000450",
+        "kind": "proyecto",
+        "organization": "Proyecto 2",
+        "title": "Autor",
+        "startMonth": "2024-09",
+        "endMonth": "2025-01",
+        "isCurrent": false,
+        "bullets": [
+          "Clasificador de tickets de soporte con un modelo de lenguaje."
+        ],
+        "link": null
+      },
+      {
+        "clave": "proy-3",
+        "id": "00000000-0000-4000-8000-000000000451",
+        "kind": "proyecto",
+        "organization": "Proyecto 3",
+        "title": "Colaborador",
+        "startMonth": null,
+        "endMonth": null,
+        "isCurrent": false,
+        "bullets": [
+          "Agente que arma resúmenes de reuniones."
+        ],
+        "link": null
+      },
+      {
+        "clave": "proy-4",
+        "id": "00000000-0000-4000-8000-000000000452",
+        "kind": "proyecto",
+        "organization": "Proyecto 4",
+        "title": "Autor",
+        "startMonth": "2025-03",
+        "endMonth": "2025-06",
+        "isCurrent": false,
+        "bullets": [
+          "Evaluación automática de respuestas de un chatbot."
+        ],
+        "link": "https://ejemplo.com/proyecto-4"
+      },
+      {
+        "clave": "edu-1",
+        "id": "00000000-0000-4000-8000-000000000453",
+        "kind": "educacion",
+        "organization": "Universidad Ficticia Central",
+        "title": "Tecnicatura en Programación",
+        "startMonth": "2019-03",
+        "endMonth": "2022-12",
+        "isCurrent": false,
+        "bullets": [],
+        "link": null
+      }
+    ],
+    "skills": [
+      "typescript",
+      "react",
+      "nodejs",
+      "sql",
+      "prompt_engineering"
+    ],
+    "resumen": "Desarrollador fullstack apasionado por la tecnología y la inteligencia artificial."
+  },
+  "demanda": [
+    {
+      "slug": "typescript",
+      "mentions": 14
+    },
+    {
+      "slug": "react",
+      "mentions": 12
+    },
+    {
+      "slug": "nodejs",
+      "mentions": 11
+    },
+    {
+      "slug": "sql",
+      "mentions": 9
+    },
+    {
+      "slug": "rag",
+      "mentions": 6
+    },
+    {
+      "slug": "testing",
+      "mentions": 6
+    },
+    {
+      "slug": "docker",
+      "mentions": 5
+    },
+    {
+      "slug": "llm_evals",
+      "mentions": 3
+    }
+  ],
+  "hechos": [
+    {
+      "clave": "empresa",
+      "valor": "Instituto Ficticio de Programación",
+      "fuente": "cv"
+    },
+    {
+      "clave": "cargo",
+      "valor": "Docente de programación",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2023",
+      "fuente": "cv"
+    },
+    {
+      "clave": "empresa",
+      "valor": "Empresa A",
+      "fuente": "cv"
+    },
+    {
+      "clave": "cargo",
+      "valor": "Desarrollador fullstack",
+      "fuente": "cv"
+    },
+    {
+      "clave": "proyecto",
+      "valor": "Proyecto 1",
+      "fuente": "cv"
+    },
+    {
+      "clave": "titulo",
+      "valor": "Autor",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2024",
+      "fuente": "cv"
+    },
+    {
+      "clave": "link",
+      "valor": "https://ejemplo.com/proyecto-1",
+      "fuente": "cv"
+    },
+    {
+      "clave": "proyecto",
+      "valor": "Proyecto 2",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2025",
+      "fuente": "cv"
+    },
+    {
+      "clave": "proyecto",
+      "valor": "Proyecto 3",
+      "fuente": "cv"
+    },
+    {
+      "clave": "titulo",
+      "valor": "Colaborador",
+      "fuente": "cv"
+    },
+    {
+      "clave": "proyecto",
+      "valor": "Proyecto 4",
+      "fuente": "cv"
+    },
+    {
+      "clave": "link",
+      "valor": "https://ejemplo.com/proyecto-4",
+      "fuente": "cv"
+    },
+    {
+      "clave": "institucion",
+      "valor": "Universidad Ficticia Central",
+      "fuente": "cv"
+    },
+    {
+      "clave": "titulo",
+      "valor": "Tecnicatura en Programación",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2019",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2022",
+      "fuente": "cv"
+    },
+    {
+      "clave": "numero",
+      "valor": "6",
+      "fuente": "respuesta"
+    },
+    {
+      "clave": "numero",
+      "valor": "2",
+      "fuente": "respuesta"
+    }
+  ],
+  "problemas_esperados": [
+    {
+      "tipo": "orden_poco_relevante",
+      "item": null
+    },
+    {
+      "tipo": "logro_sin_resultado",
+      "item": "exp-1"
+    },
+    {
+      "tipo": "tarea_vaga",
+      "item": "exp-1"
+    },
+    {
+      "tipo": "proyecto_sin_stack_o_link",
+      "item": "proy-2"
+    },
+    {
+      "tipo": "proyecto_sin_stack_o_link",
+      "item": "proy-3"
+    },
+    {
+      "tipo": "fecha_faltante",
+      "item": "proy-3"
+    },
+    {
+      "tipo": "skill_pedida_sin_evidencia",
+      "skill": "typescript"
+    },
+    {
+      "tipo": "skill_pedida_sin_evidencia",
+      "skill": "react"
+    },
+    {
+      "tipo": "skill_pedida_sin_evidencia",
+      "skill": "nodejs"
+    },
+    {
+      "tipo": "skill_pedida_sin_evidencia",
+      "skill": "sql"
+    }
+  ],
+  "respuestas": {
+    "logro_sin_resultado": {
+      "exp-1": "Reduje el tiempo de carga del panel de 6 a 2 segundos."
+    },
+    "tarea_vaga": {
+      "exp-1": "Desarrollo pantallas en React y servicios en Node.js para el panel de clientes."
+    },
+    "proyecto_sin_stack_o_link": {
+      "proy-2": "Python, FastAPI y un modelo de lenguaje por API.",
+      "proy-3": "TypeScript y Node.js, sin link público."
+    },
+    "fecha_faltante": {
+      "proy-3": "De julio de 2025 a septiembre de 2025."
+    },
+    "skill_pedida_sin_evidencia": {
+      "typescript": "Todo el panel de Empresa A está hecho en TypeScript.",
+      "react": "Las pantallas del panel de Empresa A están hechas en React.",
+      "nodejs": "Los servicios del panel corren en Node.js.",
+      "sql": "Diseñé las tablas en PostgreSQL para el Proyecto 4."
+    },
+    "brecha_con_puesto": {
+      "rag": "El Proyecto 1 busca en los documentos con retrieval antes de responder.",
+      "testing": "Escribí tests con Vitest para el Proyecto 4.",
+      "*": "no tengo"
+    },
+    "orden_poco_relevante": {
+      "*": "Prefiero que el trabajo en Empresa A vaya primero y la docencia después."
+    }
+  }
+}
