@@ -47,11 +47,26 @@ const confirmed = z
   })
   .refine((e) => e.kind === "proyecto" || e.link == null);
 
+// Proyectos dichos en la charla (R12-2): mismos topes que una entrada del historial
+const project = z.strictObject({
+  name: name(120),
+  role: str(120).nullable(),
+  description: str(220).nullable(),
+  stack: z.array(name(40)).max(8),
+  link: z
+    .string()
+    .max(CV_PROJECT_LINK_MAX_CHARS)
+    .refine((v) => cvProjectLink(v) === v)
+    .nullable(),
+});
+
 export const CV_CHAT_STATE_SCHEMA = z.strictObject({
   target: str(120).nullable(),
   confirmed: z.array(confirmed).max(20),
   works: z.array(work).max(6),
   workDone: z.boolean(),
+  // R12-2: opcional para aceptar el estado de un navegador con la versión anterior de la página
+  projects: z.array(project).max(6).default([]),
   education: z
     .array(
       z.strictObject({
