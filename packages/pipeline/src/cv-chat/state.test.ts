@@ -2,16 +2,49 @@ import { describe, expect, it } from "vitest";
 import { buildCvUnderstoodCard } from "./card";
 import {
   applyCvAnswer,
+  chatTarget,
   cvChatCloseReason,
   cvChatHistory,
   cvChecklistProgress,
   CV_CHAT_MAX_TURNS,
+  cvProgressShown,
   cvWorkSources,
   initialCvChatState,
   nextCvTopic,
   skipCvTopic,
   type CvChatState,
 } from "./state";
+
+describe("puesto y avance del chat (R11-12)", () => {
+  it("el puesto del perfil se siembra y no se vuelve a preguntar", () => {
+    const s = initialCvChatState({ target: chatTarget("Analista contable", "Contaduría") });
+    expect(s.target).toBe("Analista contable");
+    expect(nextCvTopic(s)?.kind).toBe("organization");
+  });
+
+  it("sin titular, el nombre de la carrera elegida; sin ninguno, se pregunta", () => {
+    expect(chatTarget("  ", "Contaduría, impuestos y finanzas")).toBe(
+      "Contaduría, impuestos y finanzas",
+    );
+    expect(chatTarget(null, null)).toBeNull();
+    expect(nextCvTopic(initialCvChatState({ target: chatTarget(null, null) }))?.kind).toBe(
+      "target",
+    );
+  });
+
+  it("el titular largo se corta a 120 caracteres", () => {
+    expect(chatTarget("a".repeat(300), null)).toHaveLength(120);
+  });
+
+  it("el contador arranca en 1: con el puesto del perfil el primer tema ya está hecho", () => {
+    const p = cvChecklistProgress(initialCvChatState({ target: "Analista" }));
+    expect(p).toEqual({ done: 1, total: 7 });
+    expect(cvProgressShown(p.done)).toBe(1);
+    // Aunque no haya nada sembrado, nunca se muestra 0
+    expect(cvProgressShown(cvChecklistProgress(initialCvChatState()).done)).toBe(1);
+    expect(cvProgressShown(5)).toBe(5);
+  });
+});
 
 /** Responde el tema pendiente con la respuesta guionada de su tipo. */
 function answer(s: CvChatState, raw: unknown): CvChatState {

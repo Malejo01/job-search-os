@@ -53,7 +53,7 @@ for (const key of ["mariana", "agustina"] as PersonaKey[]) {
         "/settings#puesto",
       );
       await expect(page.getByTestId("empeza-aca-ofertas")).toHaveAttribute("data-done", "false");
-      await expect(card.getByRole("link", { name: /^Subir tu CV/ })).toHaveAttribute(
+      await expect(card.getByRole("link", { name: /^Armar tu CV con IA/ })).toHaveAttribute(
         "href",
         "/cv/armar",
       );
