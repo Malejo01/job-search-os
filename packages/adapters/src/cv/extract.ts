@@ -33,6 +33,12 @@ import type { LlmClient } from "../llm/types";
 
 /** Tarea LLM registrada en `model_routing` (fila del CV-02). El nombre del modelo NO vive acá. */
 export const EXTRACT_CV_TASK = "extract_cv_profile";
+/**
+ * Versión del prompt de la lectura. v2 (R12-5, ADR-038 §7): pide las viñetas de cada trabajo copiadas
+ * tal cual y los proyectos con rol, link y stack; el código descarta la viñeta que no es substring del
+ * texto leído (`normalizeCvExtraction`).
+ */
+export const EXTRACT_CV_PROMPT = "extract_cv_profile@v2";
 
 export type CvPlan = "free" | "paid";
 
@@ -279,6 +285,7 @@ async function run(
     result = await deps.llm.generateStructured(EXTRACT_CV_TASK, cvExtractionSchema, promptVars, {
       userId: input.userId,
       signal: controller.signal,
+      promptVersion: EXTRACT_CV_PROMPT,
       ...(input.label ? { label: input.label } : {}),
     });
   } catch {

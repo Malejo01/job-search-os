@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { cvProjectLink } from "../cv-out/model";
+import { CV_BULLET_MAX_CHARS, foldCvText, hasLinkOrEmail } from "../cv-out/verify";
 import { CEFR_LEVELS } from "../onboarding";
 import { err, ok, type Result } from "../result";
 import { compileTaxonomy, extractSkillsFromText } from "../skills/match";
@@ -7,8 +9,19 @@ import type { CvCandidate } from "./candidates";
 import { detectCvInjection } from "./injection";
 import { CV_MAX_SUMMARY_CHARS, CV_MIN_SUMMARY_CHARS } from "./limits";
 import { findCvSensitive, stripCvUrls, type CvRedactionKind } from "./redact";
+import { cvVerbatim } from "./verbatim";
 
 const YEAR_MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+/** Topes de la lectura v2 (R12-5): viñetas por trabajo o proyecto y términos del stack. */
+export const CV_READ_MAX_BULLETS = 6;
+export const CV_READ_MAX_PROJECTS = 10;
+export const CV_READ_MAX_STACK = 12;
+
+// Viñetas que propone el modelo: el esquema es generoso (una de más no rompe la lectura entera) y el
+// código las recorta y verifica contra el texto (ADR-038 §7, D4). `default([])`: la salida del prompt v1
+// no las trae y sigue siendo válida.
+const modelBullets = z.array(z.string().max(500)).max(10).default([]);
 
 /**
  * Esquema de la salida del modelo. `.strict()` en todos los objetos: una clave de más
@@ -59,10 +72,28 @@ export const cvExtractionSchema = z
             title: z.string().max(120),
             start: z.string().regex(YEAR_MONTH).nullable(), // AAAA-MM
             end: z.string().regex(YEAR_MONTH).nullable(), // null = actual o no dice
+            bullets: modelBullets, // v2: viñetas tal cual las escribe el CV
           })
           .strict(),
       )
       .max(20),
+    // v2 (R12-5, ADR-038 §6 y §7): proyectos con rol, link y stack. `default([])` como estudios e idiomas.
+    projects: z
+      .array(
+        z
+          .object({
+            name: z.string().max(120),
+            role: z.string().max(120).nullable(),
+            link: z.string().max(300).nullable(),
+            stack: z.array(z.string().max(80)).max(20),
+            start: z.string().regex(YEAR_MONTH).nullable(),
+            end: z.string().regex(YEAR_MONTH).nullable(),
+            bullets: modelBullets,
+          })
+          .strict(),
+      )
+      .max(CV_READ_MAX_PROJECTS)
+      .default([]),
     // ADR-034 §8: estudios e idiomas para las tarjetas del agente de perfil. `default([])`: una salida
     // sin estas claves (el prompt de antes) sigue siendo válida y no inventa nada.
     education: z
@@ -99,6 +130,11 @@ export type CvDropReason =
   | "skill_not_candidate"
   | "fact_sensitive"
   | "work_dates_invalid"
+  | "project_dates_invalid"
+  | "bullet_not_in_cv"
+  | "bullet_sensitive"
+  | "bullet_too_long"
+  | "stack_not_in_cv"
   | "education_dates_invalid"
   | "language_invalid"
   | "role_unknown"
@@ -111,7 +147,24 @@ export type CvProposal = {
   profile: CvExtraction["profile"];
   skills: { slug: string; level: 1 | 2 | 3 | null; years: number | null; verified: boolean }[];
   facts: { text: string; kind: "proyecto" | "logro" | "metrica"; source: "autodeclarado" }[];
-  workHistory: { company: string; title: string; start: string | null; end: string | null }[];
+  workHistory: {
+    company: string;
+    title: string;
+    start: string | null;
+    end: string | null;
+    /** Viñetas literales del CV (substring normalizado del texto leído), nunca del modelo. */
+    bullets: string[];
+  }[];
+  /** Proyectos (D2): `link` solo si es https y está literal en el texto leído; `stack` solo lo que el CV nombra. */
+  projects: {
+    name: string;
+    role: string | null;
+    link: string | null;
+    stack: string[];
+    start: string | null;
+    end: string | null;
+    bullets: string[];
+  }[];
   education: { institution: string; title: string; start: string | null; end: string | null }[];
   languages: { name: string; level: string | null }[];
   suggestedRoles: RoleKey[];
@@ -134,6 +187,17 @@ const SUGGESTED_ROLES_MAX = 2;
 
 const hasForbidden = (text: string | null): boolean =>
   text !== null && findCvSensitive(text).some((k) => OUTPUT_FORBIDDEN.has(k));
+
+// Marcadores que deja `redactCvText` («[link]», «[email]», «[teléfono]»): una viñeta con uno no se propone
+const REDACTION_MARKER_RE = /\[[\p{L} ]{3,20}\]/u;
+
+/** ¿El término aparece en el texto como palabra suelta, sin mayúsculas ni acentos? */
+function termInText(foldedText: string, term: string): boolean {
+  const f = foldCvText(term).trim();
+  if (f.length < 1) return false;
+  const esc = f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(?<![\\p{L}\\p{N}])${esc}(?![\\p{L}\\p{N}])`, "u").test(foldedText);
+}
 
 /** El código de nivel solo vale si aparece a menos de 60 caracteres de "inglés"/"english". */
 function cefrHasEvidence(code: string, text: string): boolean {
@@ -186,6 +250,7 @@ export function normalizeCvExtraction(
     data.profile.summary,
     ...data.facts.map((f) => f.text),
     ...data.work_history.flatMap((w) => [w.company, w.title]),
+    ...data.projects.flatMap((p) => [p.name, p.role]),
     ...data.education.flatMap((e) => [e.institution, e.title]),
     ...data.languages.flatMap((l) => [l.name, l.level]),
     // Las claves de puesto son un conjunto cerrado: un dato personal acá es una salida hostil, no un descarte
@@ -275,6 +340,42 @@ export function normalizeCvExtraction(
     facts.push({ text: clean(f.text), kind: f.kind, source: "autodeclarado" });
   }
 
+  /**
+   * Viñetas originales (ADR-038 §7, D4): cada una tiene que ser substring normalizado del texto leído en
+   * este mismo request; se devuelve el pedazo del CV, no la versión del modelo. Sin inyección, sin
+   * marcadores de redacción, sin links ni datos sensibles, hasta 220 caracteres, sin repetir, hasta 6.
+   */
+  const verbatimBullets = (candidates: readonly string[]): string[] => {
+    const out: string[] = [];
+    const seen = new Set<string>();
+    for (const b of candidates) {
+      if (out.length >= CV_READ_MAX_BULLETS) break;
+      if (b.trim() === "") continue;
+      if (injected(b)) {
+        drop("injection");
+        continue;
+      }
+      if (REDACTION_MARKER_RE.test(b) || hasLinkOrEmail(b) || findCvSensitive(b).length > 0) {
+        drop("bullet_sensitive");
+        continue;
+      }
+      const original = cvVerbatim(ctx.text, b);
+      if (original === null) {
+        drop("bullet_not_in_cv");
+        continue;
+      }
+      if (original.length > CV_BULLET_MAX_CHARS) {
+        drop("bullet_too_long");
+        continue;
+      }
+      const key = foldCvText(original).replace(/[\s.;,]+$/u, "");
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(original);
+    }
+    return out;
+  };
+
   const workHistory: CvProposal["workHistory"] = [];
   for (const w of data.work_history) {
     const invalid =
@@ -294,6 +395,60 @@ export function normalizeCvExtraction(
       title: clean(w.title),
       start: w.start,
       end: w.end,
+      bullets: verbatimBullets(w.bullets),
+    });
+  }
+
+  const foldedText = foldCvText(ctx.text);
+  const projects: CvProposal["projects"] = [];
+  for (const p of data.projects) {
+    const invalid =
+      (p.start !== null && p.end !== null && p.start > p.end) ||
+      (p.start !== null && p.start > ctx.today) ||
+      (p.end !== null && p.end > ctx.today);
+    if (invalid) {
+      drop("project_dates_invalid");
+      continue;
+    }
+    if (injected(p.name)) {
+      drop("injection");
+      continue;
+    }
+    const name = clean(p.name);
+    if (name === "") continue;
+    const role = p.role === null || injected(p.role) ? null : clean(p.role) || null;
+    // El link: https válido (`cvProjectLink`) y literal en el texto leído. Hoy la redacción cambia los
+    // links por «[link]» antes del modelo, así que en la práctica la persona lo completa en la tarjeta.
+    const link =
+      p.link !== null && cvProjectLink(p.link) === p.link.trim() && ctx.text.includes(p.link.trim())
+        ? p.link.trim()
+        : null;
+    const stack: string[] = [];
+    const seenStack = new Set<string>();
+    for (const rawTerm of p.stack) {
+      const term = rawTerm.trim();
+      if (term === "") continue;
+      if (!termInText(foldedText, term)) {
+        drop("stack_not_in_cv");
+        continue;
+      }
+      if (injected(term) || hasLinkOrEmail(term) || findCvSensitive(term).length > 0) {
+        drop("term_sensitive");
+        continue;
+      }
+      const key = foldCvText(term);
+      if (seenStack.has(key) || stack.length >= CV_READ_MAX_STACK) continue;
+      seenStack.add(key);
+      stack.push(term);
+    }
+    projects.push({
+      name,
+      role,
+      link,
+      stack,
+      start: p.start,
+      end: p.end,
+      bullets: verbatimBullets(p.bullets),
     });
   }
 
@@ -381,6 +536,7 @@ export function normalizeCvExtraction(
     skills,
     facts,
     workHistory,
+    projects,
     education,
     languages,
     suggestedRoles: roles,

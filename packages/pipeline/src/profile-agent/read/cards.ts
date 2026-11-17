@@ -10,7 +10,10 @@
  */
 import { CEFR_LEVELS } from "../../onboarding";
 import { validateHistory, type HistoryInput } from "../../cv-out/history";
+import { cvProjectLink } from "../../cv-out/model";
+import { CV_BULLET_MAX_CHARS, hasLinkOrEmail } from "../../cv-out/verify";
 import type { CvProposal } from "../../cv/extraction";
+import { detectCvInjection } from "../../cv/injection";
 import { validateCustomSkillName } from "../../skills/custom-skills";
 import type { CefrLevel } from "../../skills/english";
 import type { SkillTaxonomyEntry } from "../../skills/match";
@@ -19,11 +22,18 @@ import {
   profileReadCardSchema,
   type ExperienceCard,
   type EducationCard,
+  type ProjectCard,
   type ProfileCardDecision,
   type ProfileReadCard,
   type ProfileReadProposal,
 } from "../schemas";
-import { cardToHistoryInput, screenProfileCard, screenProfileCards } from "../screen";
+import {
+  cardToHistoryInput,
+  projectStackBullet,
+  screenProfileCard,
+  screenProfileCards,
+} from "../screen";
+import { findProfileSensitive } from "../sensitive";
 
 type Taxonomy = readonly SkillTaxonomyEntry[];
 
@@ -41,11 +51,59 @@ function dates(
     : { startMonth: start, endMonth: end };
 }
 
+// Mismo filtro de caracteres que `line()` de los esquemas: una viñeta con uno no pasa la tarjeta
+const CONTROL_RE = new RegExp(
+  // eslint-disable-next-line no-control-regex
+  "[\\u0000-\\u001F\\u007F\\u200B-\\u200F\\u202A-\\u202E\\u2060\\uFEFF]",
+);
+const PROJECT_STACK_MAX_CHARS = 60;
+const MAX_CARD_BULLETS = 6;
+
+/**
+ * Viñetas originales para una tarjeta (ADR-038 §7, D4). La extracción ya dejó solo las que son substring
+ * del texto leído; acá se sacan, de a una, las que la tarjeta no puede llevar (dato sensible, instrucción
+ * escondida, link, largo), así una viñeta mala no tira la tarjeta entera. Devuelve también cuántas sacó.
+ */
+function cardBullets(bullets: readonly string[], max: number): { kept: string[]; dropped: number } {
+  const kept: string[] = [];
+  let dropped = 0;
+  for (const raw of bullets) {
+    const b = raw.trim();
+    const bad =
+      b === "" ||
+      b.length > CV_BULLET_MAX_CHARS ||
+      CONTROL_RE.test(b) ||
+      hasLinkOrEmail(b) ||
+      findProfileSensitive(b).length > 0 ||
+      detectCvInjection(b).hit;
+    if (bad || kept.length >= max) dropped++;
+    else kept.push(b);
+  }
+  return { kept, dropped };
+}
+
+/** Stack de un proyecto que entra en la tarjeta y en la viñeta «Stack: …» (hasta 220 caracteres). */
+function cardStack(stack: readonly string[]): string[] {
+  const out: string[] = [];
+  for (const t of stack) {
+    const term = t.trim();
+    if (term === "" || term.length > PROJECT_STACK_MAX_CHARS || hasLinkOrEmail(term)) continue;
+    if (out.length >= 12) break;
+    const line = projectStackBullet([...out, term]);
+    if (line !== null && line.length > CV_BULLET_MAX_CHARS) break;
+    out.push(term);
+  }
+  return out;
+}
+
 export function buildReadCards(proposal: CvProposal, taxonomy: Taxonomy): ProfileReadProposal {
   const names = new Map(taxonomy.map((t) => [t.slug, t.name]));
   const candidates: unknown[] = [];
+  let bulletsDropped = 0;
 
   proposal.workHistory.forEach((w, i) => {
+    const bullets = cardBullets(w.bullets, MAX_CARD_BULLETS);
+    bulletsDropped += bullets.dropped;
     candidates.push({
       kind: "experience",
       id: `exp:${i}`,
@@ -54,8 +112,30 @@ export function buildReadCards(proposal: CvProposal, taxonomy: Taxonomy): Profil
       ...dates(w.start, w.end),
       // El CV no dice si el trabajo sigue vigente con certeza: lo marca la persona en la tarjeta
       isCurrent: false,
-      bullets: [],
+      // D4: solo viñetas literales del CV leído en este request, marcadas «de tu CV»
+      bullets: bullets.kept,
+      bulletsFromCv: bullets.kept.length > 0,
     } satisfies ExperienceCard);
+  });
+  proposal.projects.forEach((p, i) => {
+    const stack = cardStack(p.stack);
+    // Con stack, una viñeta menos: la de «Stack: …» ocupa el sexto lugar en `career_history`
+    const bullets = cardBullets(
+      p.bullets,
+      stack.length > 0 ? MAX_CARD_BULLETS - 1 : MAX_CARD_BULLETS,
+    );
+    bulletsDropped += bullets.dropped;
+    candidates.push({
+      kind: "project",
+      id: `proj:${i}`,
+      name: p.name,
+      role: p.role,
+      link: p.link !== null && cvProjectLink(p.link) === p.link ? p.link : null,
+      stack,
+      ...dates(p.start, p.end),
+      bullets: bullets.kept,
+      bulletsFromCv: bullets.kept.length > 0,
+    } satisfies ProjectCard);
   });
   proposal.education.forEach((e, i) => {
     candidates.push({
@@ -95,7 +175,8 @@ export function buildReadCards(proposal: CvProposal, taxonomy: Taxonomy): Profil
     candidates.push({ kind: "language", id: `lang:${i}`, name: l.name, level: l.level });
   });
 
-  let dropped = Object.values(proposal.flags.dropped).reduce((t, n) => t + (n ?? 0), 0);
+  let dropped =
+    Object.values(proposal.flags.dropped).reduce((t, n) => t + (n ?? 0), 0) + bulletsDropped;
   const valid: ProfileReadCard[] = [];
   for (const c of candidates) {
     const parsed = profileReadCardSchema.safeParse(c);
@@ -148,6 +229,7 @@ export type CardReview = {
 
 const PREFIX_KIND: Record<string, ProfileReadCard["kind"]> = {
   exp: "experience",
+  proj: "project",
   edu: "education",
   skill: "skill",
   lang: "language",
@@ -184,10 +266,10 @@ function reviewOne(
 
   switch (card.kind) {
     case "experience":
+    case "project":
     case "education": {
-      // Las tarjetas de lectura no llevan viñetas: las dice la persona en la etapa de huecos
-      if (card.kind === "experience" && card.bullets.length > 0)
-        return { ok: false, reason: "bad_card" };
+      // Las viñetas de la lectura son las del CV (D4); al guardar valen las mismas reglas que la carga
+      // manual (6, 220 caracteres, sin links ni emails). El proyecto suma la de «Stack: …» y su link.
       const input = cardToHistoryInput(card);
       const checked = validateHistory({
         get: (name) =>

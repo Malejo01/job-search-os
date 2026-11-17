@@ -1,0 +1,35 @@
+PERSONA EJEMPLO D
+Desarrolladora frontend
+
+PERFIL
+Desarrolladora frontend con dos años de experiencia en aplicaciones web y proyectos propios publicados.
+
+EXPERIENCIA
+Desarrolladora frontend, Empresa E, 2023-04 a la actualidad
+- Migré el panel de clientes de jQuery a React con TypeScript.
+- Bajé el tiempo de carga de la página de inicio de 6 a 2 segundos.
+- Armé la guía de componentes del equipo.
+
+Pasante de desarrollo, Empresa F, 2022-01 a 2023-03
+- Corregí errores reportados por soporte y escribí pruebas unitarias.
+
+PROYECTOS
+Proyecto Turnero Barrial (2024)
+Rol: desarrolladora principal
+- Aplicación para reservar turnos en clubes de barrio, usada por 3 clubes.
+- Notificaciones por correo y panel de administración.
+Stack: React, Node.js, PostgreSQL
+https://ejemplo.test/persona-ejemplo-d/turnero-barrial
+
+Proyecto Recetario Abierto (2023)
+- Buscador de recetas con filtros por ingredientes.
+Stack: Vue, Firebase
+
+ESTUDIOS
+Tecnicatura en Programación, Instituto de Ejemplo, 2020 - 2022
+
+HABILIDADES
+React, TypeScript, Node.js, PostgreSQL, Git
+
+IDIOMAS
+Español nativo. Inglés intermedio (B1).
