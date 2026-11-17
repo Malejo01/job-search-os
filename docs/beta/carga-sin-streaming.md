@@ -28,7 +28,8 @@ Indicador solo en el cliente, en los links de la navegación (`useLinkStatus`, d
 
 ## Pruebas
 
-- e2e nuevo `apps/web/e2e/125-carga-navegacion.spec.ts` (retrasa la respuesta RSC): indicador y `aria-busy`, sin cambio de tamaño del link, sin animación con «reducir movimiento», 404 y 200 intactos. No corrió en local (el guard bloquea Playwright); lo corre el CI.
+- e2e nuevo `apps/web/e2e/125-carga-navegacion.spec.ts` (retrasa la respuesta RSC): indicador y `aria-busy` en la pestaña del celular (390 px) y en la píldora de la computadora, sin cambio de tamaño del link, sin animación con «reducir movimiento», 404 y 200 intactos.
+- R12-15: la primera versión (R11-8) falló en el CI de #517 porque el spec no iniciaba sesión. Sin sesión, `/hoy` redirige al login (no hay barra ni link de Postulaciones) y `/jobs/no-es-un-id` responde 200 con el login. Ahora cada test hace `login` y usa `exact: true` y `waitForURL` con regex.
 - Sin test unitario: `apps/web` no tiene entorno de componentes (sin jsdom ni testing-library) y no se suma una dependencia.
 
 ## Límite
