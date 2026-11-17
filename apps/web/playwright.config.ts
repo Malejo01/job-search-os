@@ -52,10 +52,15 @@ export default defineConfig({
       LLM_DEMO: "1",
       AUTH_URL: BASE_URL,
       ASSISTANT_ENABLED: ASSISTANT_MODE,
-      // La persona B de los e2e de dos usuarios (helpers.ts: E2E_B_EMAIL) es la de prueba
-      ASSISTANT_TESTER_EMAILS: "usuario-b@dos.test",
+      // La persona B de los e2e de dos usuarios (helpers.ts: E2E_B_EMAIL) es la de prueba; la segunda es la
+      // persona nueva del recorrido del agente de perfil (e2e 135, ADR-034), que es tester solo ahí
+      ASSISTANT_TESTER_EMAILS: "usuario-b@dos.test,agente-perfil-135@onboarding.test",
       ASSISTANT_MONTHLY_CONVERSATIONS: "500",
       CV_CHAT_ENABLED: "all",
+      // ADR-034 (R11-1): el agente de perfil desde el CV, en la etapa `testers` (admins y ASSISTANT_TESTER_EMAILS).
+      // Quien no está en la lista no lo ve (e2e 134); el recorrido completo, con el modelo en demo, es el 135
+      CV_IMPORT_ENABLED: "1",
+      CV_PROFILE_AGENT: "testers",
       START_HERE_ENABLED: "1",
       // C8-6: «¿Qué es esto?» en las 5 pantallas (e2e 108), apagado por defecto en Vercel
       HELP_TIPS_ENABLED: "1",

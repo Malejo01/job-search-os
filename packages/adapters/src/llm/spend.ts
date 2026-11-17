@@ -7,7 +7,13 @@ import { and, desc, eq, gte, isNotNull, notInArray, sql } from "drizzle-orm";
  * (`budget_alert`, costo 0, R7-1) y los marcadores de charla del asistente (`assistant_event`, costo 0,
  * R9-2). No suman llamadas, tokens ni USD en los reportes.
  */
-export const NOT_MODEL_CALLS = ["cv_reserve", "cv_start", "budget_alert", "assistant_event"];
+export const NOT_MODEL_CALLS = [
+  "cv_reserve",
+  "cv_start",
+  "budget_alert",
+  "assistant_event",
+  "profile_read",
+];
 
 /**
  * Gasto acumulado en `llm_calls` (guardarraíl de costo). La ventana es móvil de 24 h, no

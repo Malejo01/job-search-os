@@ -1,0 +1,25 @@
+PERSONA EJEMPLO B
+Analista contable
+
+PERFIL
+Contadora con experiencia en cierres mensuales, conciliaciones bancarias y reportes para la gerencia. Busco un puesto de analista senior en finanzas o contabilidad.
+
+EXPERIENCIA
+Analista contable, Empresa C, 2019-03 a 2024-08
+- Cierre mensual de cuentas por pagar y por cobrar.
+- Conciliaciones bancarias de tres sociedades.
+- Armado de tableros de gastos en Excel para la gerencia.
+
+Asistente contable, Empresa D, 2017-02 a 2019-02
+- Carga de comprobantes y liquidación de impuestos mensuales.
+- Atención de consultas de proveedores.
+
+ESTUDIOS
+Contador Público, Universidad Ficticia del Norte, 2012 - 2016
+Posgrado en Finanzas Corporativas, Instituto de Ejemplo, 2021
+
+HABILIDADES
+Excel, Power BI, SQL básico, conciliaciones, liquidación de impuestos
+
+IDIOMAS
+Español nativo. Inglés avanzado (C1).
