@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { NavPending } from "./nav-pending";
 import { activeSection, SECTIONS } from "./sections";
 
 /**
@@ -66,7 +65,6 @@ export function DesktopNav({ followUps = 0 }: { followUps?: number }) {
               >
                 {item.label}
                 <NavCount count={count} active={isActive} />
-                <NavPending className="inset-x-4 bottom-0.5" />
               </Link>
               <NavCountText count={count} />
             </li>
