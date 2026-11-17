@@ -1,8 +1,7 @@
 import { AYUDA_EN_CONTEXTO, TEXTOS_ANI, type TextoAni } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { canCreateInvitations } from "@/lib/invitations";
+import { requireAdminOr404 } from "@/lib/admin-guard";
 import { requireUserId } from "@/lib/session";
 import { alertClasses } from "@/components/ui";
 import { welcomeEmailSample } from "@/lib/welcome-email-sample";
@@ -18,7 +17,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function TextosPage() {
   const userId = await requireUserId();
-  if (!(await canCreateInvitations(userId).catch(() => false))) notFound();
+  await requireAdminOr404(userId);
   const areas = [...new Set(TEXTOS_ANI.map((t) => t.area))];
   const email = welcomeEmailSample();
   return (

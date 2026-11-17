@@ -1,4 +1,5 @@
 import { feedbackCsv, filterFeedback, parseFeedbackFilters } from "@job-search-os/pipeline";
+import { adminRouteDenied } from "@/lib/admin-guard";
 import { getFeedbackTriage } from "@/lib/feedback-triage";
 import { requireUserId } from "@/lib/session";
 
@@ -10,6 +11,8 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: Request): Promise<Response> {
   const userId = await requireUserId();
+  const denied = await adminRouteDenied(userId);
+  if (denied) return denied;
   const result = await getFeedbackTriage(userId);
   if (!result.ok) return new Response("No encontrado", { status: 404 });
   const params = Object.fromEntries(new URL(request.url).searchParams.entries());
