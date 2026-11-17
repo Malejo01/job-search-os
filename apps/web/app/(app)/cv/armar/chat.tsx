@@ -368,7 +368,10 @@ export function CvChat() {
           resumen, las skills, los idiomas y los links de esta charla se ven acá pero todavía no se
           guardan.
         </p>
-        <CvPreview doc={doc} />
+        {/* El detalle de un proyecto lleva su link: se corta en cualquier punto para no desbordar a 360 px */}
+        <div className="[overflow-wrap:anywhere]">
+          <CvPreview doc={doc} />
+        </div>
         {alert}
         <div className="flex flex-wrap gap-3">
           <button type="button" onClick={confirm} disabled={busy} className={PRIMARY}>
@@ -576,8 +579,13 @@ function ReviewEditor({
                   className={FIELD}
                 />
               </label>
-              {p.stack.length > 0 ? (
-                <p className="text-sm text-fg-muted">Stack: {p.stack.join(", ")}</p>
+              {/* Detalle del proyecto: un link largo se corta en cualquier punto para no desbordar a 360 px */}
+              {p.role || p.link || p.stack.length > 0 ? (
+                <p className="text-sm text-fg-muted [overflow-wrap:anywhere]">
+                  {[p.role, p.link, p.stack.length > 0 ? `Stack: ${p.stack.join(", ")}` : null]
+                    .filter(Boolean)
+                    .join(" | ")}
+                </p>
               ) : null}
               <button
                 type="button"
@@ -662,7 +670,7 @@ function ReviewEditor({
             ? "ninguno"
             : state.languages.map((l) => (l.level ? `${l.name} ${l.level}` : l.name)).join(", ")}
         </p>
-        <p className="text-sm text-fg-muted">
+        <p className="text-sm text-fg-muted [overflow-wrap:anywhere]">
           Links:{" "}
           {[state.links.linkedin, state.links.github, state.links.portfolio]
             .filter(Boolean)
