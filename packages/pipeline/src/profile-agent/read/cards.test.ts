@@ -185,6 +185,7 @@ describe("reviewCardDecisions", () => {
           startMonth: "2020-03",
           endMonth: null,
           bullets: [],
+          link: null,
         },
       },
     ]);

@@ -161,4 +161,46 @@ test.describe("Flujo 85: Tu CV", () => {
     await expect(page.getByRole("status")).toContainText("Entrada borrada.");
     await expect(page.getByTestId("history-entry")).toHaveCount(0);
   });
+
+  test("R12-4: carga un proyecto con link y sale en «Proyectos» del CV", async ({ page }) => {
+    const PROYECTO = `Proyecto Ficticio ${Date.now()}`;
+    const LINK = "https://ejemplo.test/persona-ficticia/proyecto-ficticio-con-nombre-largo";
+    await login(page);
+    await page.goto("/settings/historial");
+    const nueva = page.getByRole("region", { name: "Sumar una entrada" });
+    await nueva.getByLabel("Tipo").selectOption("proyecto");
+    await nueva.getByLabel("Empresa o institución").fill(PROYECTO);
+    await nueva.getByLabel("Cargo o título").fill("Desarrolladora frontend");
+    await nueva
+      .getByLabel("Qué hiciste y qué lograste")
+      .fill("Armé el tablero de turnos\nStack: React, Node.js");
+    // http no se acepta, sin eco del valor
+    await nueva.getByLabel("Link del proyecto").fill("http://ejemplo.test/proyecto");
+    await nueva.getByRole("button", { name: "Agregar" }).click();
+    await expect(page.locator("main").getByRole("alert")).toContainText("https://");
+    await expect(page.locator("main").getByRole("alert")).not.toContainText(PROYECTO);
+
+    await nueva.getByLabel("Tipo").selectOption("proyecto");
+    await nueva.getByLabel("Empresa o institución").fill(PROYECTO);
+    await nueva.getByLabel("Cargo o título").fill("Desarrolladora frontend");
+    await nueva
+      .getByLabel("Qué hiciste y qué lograste")
+      .fill("Armé el tablero de turnos\nStack: React, Node.js");
+    await nueva.getByLabel("Link del proyecto").fill(LINK);
+    await nueva.getByRole("button", { name: "Agregar" }).click();
+    await expect(page.getByRole("status")).toContainText("Guardado.");
+    await expect(page.getByTestId("history-entry")).toContainText(LINK);
+
+    await page.goto("/cv");
+    const preview = page.getByTestId("cv-preview");
+    await expect(preview.getByRole("heading", { name: "Proyectos", level: 2 })).toBeVisible();
+    await expect(preview.getByRole("heading", { name: PROYECTO, level: 3 })).toBeVisible();
+    await expect(preview).toContainText(LINK);
+    await expect(preview.getByRole("listitem").filter({ hasText: "Stack: React" })).toBeVisible();
+    await expectNoOverflowNorAxe(page);
+    const res = await page.request.get("/api/cv/docx?lang=en");
+    const text = (await res.body()).toString("utf8");
+    expect(text).toContain("Projects");
+    expect(text).toContain(LINK);
+  });
 });

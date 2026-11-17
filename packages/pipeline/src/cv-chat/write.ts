@@ -7,6 +7,7 @@ import { z } from "zod";
 import {
   cleanCvText,
   CV_SUMMARY_MAX_CHARS,
+  cvHistorySources,
   verifyCvBullets,
   verifyCvSummary,
   type CvRejectReason,
@@ -90,7 +91,7 @@ export function applyCvWrite(
     const person = h.bullets;
     const generated = byId.get(entryId(i));
     if (!generated || generated.length === 0) return h;
-    const sources = [h.organization, h.title, ...person];
+    const sources = cvHistorySources(h);
     const pairs = generated.map((g, j) => ({ generated: g, person: person[j] ?? "" }));
     const verified = verifyCvBullets(pairs, sources, verifyOpts);
     for (const v of verified) {
@@ -103,7 +104,8 @@ export function applyCvWrite(
     return { ...h, bullets };
   });
 
-  const personAll = input.history.flatMap((h) => [h.organization, h.title, ...h.bullets]);
+  // R12-4: en un proyecto cuentan el nombre, el rol, el stack (viñeta «Stack: …») y el link
+  const personAll = input.history.flatMap((h) => cvHistorySources(h));
   const summarySources = [
     ...(input.target ? [input.target] : []),
     ...personAll,

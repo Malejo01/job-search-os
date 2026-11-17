@@ -102,6 +102,7 @@ export async function loadCvSource(userId: string, opts: CvOptions): Promise<CvS
         startMonth: h.startMonth,
         endMonth: h.endMonth,
         bullets: h.bullets,
+        link: h.link,
       })),
     };
   });

@@ -5,6 +5,7 @@ import {
   HISTORY_FIELD_MAX_CHARS,
   HISTORY_KINDS,
   HISTORY_KIND_LABELS,
+  HISTORY_LINK_MAX_CHARS,
   HISTORY_MAX_BULLETS,
   HISTORY_MAX_ENTRIES,
   isHistoryField,
@@ -48,7 +49,7 @@ function EntryFields({ row, prefix }: { row?: HistoryRow; prefix: string }) {
         htmlFor={id("organization")}
         className="flex flex-col gap-1.5 text-sm font-medium text-fg"
       >
-        Empresa o institución
+        Empresa o institución (o nombre del proyecto)
         <input
           id={id("organization")}
           name="organization"
@@ -59,7 +60,7 @@ function EntryFields({ row, prefix }: { row?: HistoryRow; prefix: string }) {
         />
       </label>
       <label htmlFor={id("title")} className="flex flex-col gap-1.5 text-sm font-medium text-fg">
-        Cargo o título
+        Cargo o título (o tu rol en el proyecto)
         <input
           id={id("title")}
           name="title"
@@ -103,7 +104,24 @@ function EntryFields({ row, prefix }: { row?: HistoryRow; prefix: string }) {
         />
         <span id={id("bullets-help")} className="text-xs font-normal text-fg-muted">
           Una viñeta por línea, hasta {HISTORY_MAX_BULLETS} de {HISTORY_BULLET_MAX_CHARS}{" "}
-          caracteres, sin links.
+          caracteres, sin links. En un proyecto, sumá una línea «Stack: …» con las tecnologías.
+        </span>
+      </label>
+      <label htmlFor={id("link")} className="flex flex-col gap-1.5 text-sm font-medium text-fg">
+        Link del proyecto (opcional)
+        <input
+          id={id("link")}
+          name="link"
+          type="url"
+          inputMode="url"
+          maxLength={HISTORY_LINK_MAX_CHARS}
+          placeholder="https://"
+          defaultValue={row?.link ?? ""}
+          aria-describedby={id("link-help")}
+          className={INPUT}
+        />
+        <span id={id("link-help")} className="text-xs font-normal text-fg-muted">
+          Solo para proyectos: repositorio, demo o portfolio. Tiene que empezar con https://.
         </span>
       </label>
     </>
@@ -111,8 +129,8 @@ function EntryFields({ row, prefix }: { row?: HistoryRow; prefix: string }) {
 }
 
 /**
- * Tu historial (C-25, CVC-2): carga y edición manual de trabajos, estudios y certificaciones, que son
- * la fuente del CV. Server Component con server actions; los errores vuelven por la URL como el nombre
+ * Tu historial (C-25, CVC-2; proyectos en R12-4): carga y edición manual de trabajos, proyectos, estudios
+ * y certificaciones, que son la fuente del CV. Server Component con server actions; los errores vuelven por la URL como el nombre
  * del campo, nunca como el valor que escribió la persona.
  */
 export default async function HistorialPage({
@@ -137,8 +155,8 @@ export default async function HistorialPage({
       </Link>
       <h1 className="text-title font-bold text-fg">Tu historial</h1>
       <p className="text-sm text-fg-muted">
-        Trabajos, estudios y certificaciones que aparecen en tu CV. Solo se usa lo que cargás acá;
-        nada se inventa. Hasta {HISTORY_MAX_ENTRIES} entradas.
+        Trabajos, proyectos, estudios y certificaciones que aparecen en tu CV. Solo se usa lo que
+        cargás acá; nada se inventa. Hasta {HISTORY_MAX_ENTRIES} entradas.
       </p>
 
       {errorText ? (
@@ -178,6 +196,7 @@ export default async function HistorialPage({
                   {HISTORY_KIND_LABELS[row.kind]}
                   {months(row) ? ` · ${months(row)}` : ""}
                 </p>
+                {row.link ? <p className="break-all text-xs text-fg-muted">{row.link}</p> : null}
                 <details className="mt-2">
                   <summary className="min-h-11 cursor-pointer py-2 text-sm font-semibold text-link underline underline-offset-2">
                     Editar
