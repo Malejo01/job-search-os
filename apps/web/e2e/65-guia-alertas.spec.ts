@@ -88,8 +88,10 @@ test.describe("Flujo 65: guía de alertas por portal", () => {
     // Sin URL estable, no hay link
     await expect(guide.getByTestId("alert-portal-getonboard-link")).toHaveCount(0);
 
-    // R11-5: «automático» solo con lector; Bumeran y ZonaJobs dicen «pegá el aviso» y llevan a /jobs/new
-    for (const id of ["bumeran", "zonajobs"]) {
+    // R11-5: «automático» solo con lector; ZonaJobs dice «pegá el aviso» y lleva a /jobs/new.
+    // Bumeran tiene lector desde la integración de la R11 (R11-3)
+    await expect(guide.getByTestId("alert-portal-bumeran")).toContainText("Automático");
+    for (const id of ["zonajobs"]) {
       const portal = guide.getByTestId(`alert-portal-${id}`);
       await expect(portal).toHaveAttribute("data-status", "manual");
       await expect(portal.getByTestId(`alert-portal-${id}-manual`)).toContainText("Pegá el aviso");

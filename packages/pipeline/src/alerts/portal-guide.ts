@@ -84,10 +84,16 @@ export const GUIDE_PORTALS: readonly AlertPortal[] = [
 
 /**
  * Portales cuyos mails lee un parser activo en `main`: solo esos figuran como «automático»; del
- * resto la guía dice «pegá el aviso». Al mergear R11-3 (Bumeran) se suma `"bumeran"`; al mergear
- * R11-4 (Computrabajo), `"computrabajo"`. ZonaJobs no tiene lector.
+ * resto la guía dice «pegá el aviso». Bumeran entra con R11-3 (integración de la R11). Computrabajo
+ * tiene lector (R11-4) pero no se marca automático hasta que llegue un aviso real
+ * (`COMPUTRABAJO_RECOMMENDED`). ZonaJobs no tiene lector.
  */
-export const AUTOMATIC_PORTAL_IDS: readonly AlertPortalId[] = ["linkedin", "indeed", "getonboard"];
+export const AUTOMATIC_PORTAL_IDS: readonly AlertPortalId[] = [
+  "linkedin",
+  "indeed",
+  "getonboard",
+  "bumeran",
+];
 
 /**
  * Computrabajo no se recomienda hasta que haya lector (`AUTOMATIC_PORTAL_IDS` lo incluye) y llegue

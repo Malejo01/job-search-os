@@ -174,8 +174,13 @@ describe("portalOfSender", () => {
 });
 
 describe("ALERT_PORTALS", () => {
-  it("son los que tienen lector activo: LinkedIn, Indeed y Get on Board", () => {
-    expect(ALERT_PORTALS.map((p) => p.id).sort()).toEqual(["getonboard", "indeed", "linkedin"]);
+  it("son los que tienen lector activo: LinkedIn, Indeed, Get on Board y Bumeran", () => {
+    expect(ALERT_PORTALS.map((p) => p.id).sort()).toEqual([
+      "bumeran",
+      "getonboard",
+      "indeed",
+      "linkedin",
+    ]);
     for (const p of ALERT_PORTALS) expect(p.howTo.length).toBeGreaterThan(10);
   });
 });
@@ -200,8 +205,9 @@ describe("GUIDE_PORTALS (R11-5)", () => {
     expect(isAutomaticPortal("linkedin")).toBe(true);
     expect(isAutomaticPortal("indeed")).toBe(true);
     expect(isAutomaticPortal("getonboard")).toBe(true);
-    // Sin lector en main (R11-3 y R11-4 todavía no están): se pega el aviso
-    expect(isAutomaticPortal("bumeran")).toBe(false);
+    // Bumeran tiene lector desde la integración de la R11 (R11-3)
+    expect(isAutomaticPortal("bumeran")).toBe(true);
+    // Sin lector (ZonaJobs) o sin un aviso real todavía (Computrabajo): se pega el aviso
     expect(isAutomaticPortal("zonajobs")).toBe(false);
     expect(isAutomaticPortal("computrabajo")).toBe(false);
     expect(ALERT_PORTALS.map((p) => p.id)).toEqual(
@@ -244,8 +250,8 @@ describe("portalGroupsForRoles", () => {
 
   it("separa lo que leemos solo de lo que se pega, sin perder ni repetir ninguno", () => {
     const g = portalGroupsForRoles(["abogacia"]);
-    expect(names(g.automatic)).toEqual(["LinkedIn", "Indeed"]);
-    expect(names(g.manual)).toEqual(["Bumeran", "ZonaJobs"]);
+    expect(names(g.automatic)).toEqual(["LinkedIn", "Indeed", "Bumeran"]);
+    expect(names(g.manual)).toEqual(["ZonaJobs"]);
     expect([...g.automatic, ...g.manual].map((p) => p.id).sort()).toEqual(
       portalsForRoles(["abogacia"])
         .map((p) => p.id)
@@ -258,6 +264,7 @@ describe("portalGroupsForRoles", () => {
       "LinkedIn",
       "Indeed",
       "Get on Board",
+      "Bumeran",
     ]);
   });
 

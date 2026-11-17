@@ -14,9 +14,9 @@ describe("joinLabels", () => {
 describe("nudgeCopy", () => {
   it("sin pocas ofertas: el aviso de siempre, con los portales de la carrera", () => {
     const copy = nudgeCopy({ roles: ["abogacia"], language: "es", few: [] });
-    expect(copy.title).toBe("Sumá tus alertas de LinkedIn e Indeed");
+    expect(copy.title).toBe("Sumá tus alertas de LinkedIn, Indeed y Bumeran");
     expect(copy.body).toContain("Reenviá las alertas que ya te llegan");
-    expect(copy.body).toContain("Bumeran y ZonaJobs");
+    expect(copy.body).toContain("De ZonaJobs, por ahora, pegá el aviso");
     expect(copy.body).toContain("pegá el aviso");
     expect(copy.cta).toBe("Conectar mis alertas");
     expect(copy.secondary).toBeNull();
@@ -24,7 +24,7 @@ describe("nudgeCopy", () => {
 
   it("para tecnología nombra también Get on Board", () => {
     expect(nudgeCopy({ roles: ["fullstack"], language: "es", few: [] }).title).toBe(
-      "Sumá tus alertas de LinkedIn, Indeed y Get on Board",
+      "Sumá tus alertas de LinkedIn, Indeed, Get on Board y Bumeran",
     );
   });
 
