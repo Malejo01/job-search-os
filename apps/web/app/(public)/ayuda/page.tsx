@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import { publicOpenGraph } from "@/lib/public-og";
-import { pricingEnabled } from "@job-search-os/pipeline";
+import {
+  isAutomaticPortal,
+  isRecommendedPortal,
+  portalsForRoles,
+  pricingEnabled,
+} from "@job-search-os/pipeline";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Glosario } from "./glosario";
@@ -19,6 +24,48 @@ type FaqItem = {
   q: string;
   a: ReactNode;
 };
+
+/**
+ * Cómo crear y reenviar alertas por portal (R11-5). La lista sale de la misma fuente que la guía de
+ * Ajustes (`portal-guide`): «automático» solo para los portales que leemos hoy; del resto, «pegá el
+ * aviso». Computrabajo no se recomienda todavía y la guía lo dice.
+ */
+function AlertsHelp() {
+  const portals = portalsForRoles([]);
+  return (
+    <div className="flex flex-col gap-2" data-testid="ayuda-alertas">
+      <p>
+        Creá una alerta en el portal con una palabra de tu carrera y reenviá cada mail a tu
+        dirección de la app: la ves en Ajustes, en «Reenvío de emails», donde también te sugerimos
+        las palabras para cada carrera.
+      </p>
+      <ul className="list-disc pl-5">
+        {portals.map((portal) => (
+          <li key={portal.id} data-testid={`ayuda-alertas-${portal.id}`}>
+            <strong>{portal.name}</strong>
+            {portal.techOnly ? " (solo para carreras de tecnología)" : ""}: {portal.howTo}{" "}
+            {isAutomaticPortal(portal.id) ? (
+              <>
+                <strong>Automático:</strong> lo leemos solo.
+              </>
+            ) : (
+              <>
+                <strong>Pegá el aviso:</strong> todavía no leemos sus mails; cuando veas una oferta
+                que te interese, la pegás en «+ Cargar oferta».
+              </>
+            )}
+          </li>
+        ))}
+      </ul>
+      {isRecommendedPortal("computrabajo") ? null : (
+        <p>
+          Computrabajo: todavía no lo recomendamos, porque aún no leemos sus mails. Si encontrás una
+          oferta ahí, pegala.
+        </p>
+      )}
+    </div>
+  );
+}
 
 const FAQS: FaqItem[] = [
   {
@@ -163,6 +210,10 @@ const FAQS: FaqItem[] = [
         ciudad, te lo marcamos.
       </p>
     ),
+  },
+  {
+    q: "¿Cómo creo y reenvío las alertas de los portales de empleo?",
+    a: <AlertsHelp />,
   },
   {
     q: "¿Puedo dejar el Plan Beta cuando quiera?",

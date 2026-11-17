@@ -105,11 +105,11 @@ export const TEXTOS_ANI: readonly TextoAni[] = [
   {
     area: "Onboarding",
     nombre: "Alertas por email (paso 3)",
-    extracto: "Sumá tus alertas de LinkedIn, Get on Board e Indeed",
-    archivo: "apps/web/app/onboarding/ofertas/page.tsx",
+    extracto: "Sumá tus alertas de",
+    archivo: "packages/pipeline/src/alerts/nudge-copy.ts",
     verEn: "/onboarding/ofertas",
     decidir:
-      "Get on Board es de tecnología; para estas carreras pesan Computrabajo, ZonaJobs o Bumeran, pero hoy el lector reconoce LinkedIn, Indeed y Get on Board. ¿Lo sacamos del título? (R-2 de C7)",
+      "Resuelto en R11-10: el título sale de la misma lista que la guía de alertas y nombra los portales según la carrera (Get on Board solo para tecnología; Computrabajo no se recomienda). Con pocas ofertas en tu idioma, el mismo mensaje lo dice.",
   },
   {
     area: "Estados vacíos",

@@ -54,6 +54,8 @@ export * from "./cv";
 export * from "./cv-chat";
 export * from "./cv-out";
 export * from "./alerts/portal-guide";
+export * from "./alerts/few-offers";
+export * from "./alerts/nudge-copy";
 export * from "./applications/followup";
 export * from "./applications/inactivity";
 export * from "./alerts/portal-stats";

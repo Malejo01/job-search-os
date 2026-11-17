@@ -1,11 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { matchesRoleTitle, normalizeTitleText } from "../skills/role-hints";
-import { ROLE_KEYS, type RoleKey } from "../skills/self-assessment";
+import { BETA_LAUNCH_ROLE_KEYS, ROLE_KEYS, type RoleKey } from "../skills/self-assessment";
 import {
   ALERT_KEYWORDS,
   ALERT_PORTALS,
   alertKeywordsFor,
+  AUTOMATIC_PORTAL_IDS,
+  COMPUTRABAJO_RECOMMENDED,
+  GUIDE_PORTALS,
+  isAutomaticPortal,
+  isRecommendedPortal,
+  portalListText,
+  portalOfDomain,
+  portalGroupsForRoles,
   portalOfSender,
+  portalsForRoles,
   portalStatus,
   searchUrlFor,
 } from "./portal-guide";
@@ -165,8 +174,132 @@ describe("portalOfSender", () => {
 });
 
 describe("ALERT_PORTALS", () => {
-  it("son LinkedIn, Indeed y Get on Board", () => {
+  it("son los que tienen lector activo: LinkedIn, Indeed y Get on Board", () => {
     expect(ALERT_PORTALS.map((p) => p.id).sort()).toEqual(["getonboard", "indeed", "linkedin"]);
     for (const p of ALERT_PORTALS) expect(p.howTo.length).toBeGreaterThan(10);
+  });
+});
+
+describe("GUIDE_PORTALS (R11-5)", () => {
+  it("la guía cubre los seis portales, cada uno con su cómo-se-crea", () => {
+    expect(GUIDE_PORTALS.map((p) => p.id).sort()).toEqual([
+      "bumeran",
+      "computrabajo",
+      "getonboard",
+      "indeed",
+      "linkedin",
+      "zonajobs",
+    ]);
+    for (const p of GUIDE_PORTALS) {
+      expect(p.howTo.length, p.id).toBeGreaterThan(10);
+      expect(p.domains.length, p.id).toBeGreaterThan(0);
+    }
+  });
+
+  it("«automático» sale de la lista de lectores activos, no de otra cosa", () => {
+    expect(isAutomaticPortal("linkedin")).toBe(true);
+    expect(isAutomaticPortal("indeed")).toBe(true);
+    expect(isAutomaticPortal("getonboard")).toBe(true);
+    // Sin lector en main (R11-3 y R11-4 todavía no están): se pega el aviso
+    expect(isAutomaticPortal("bumeran")).toBe(false);
+    expect(isAutomaticPortal("zonajobs")).toBe(false);
+    expect(isAutomaticPortal("computrabajo")).toBe(false);
+    expect(ALERT_PORTALS.map((p) => p.id)).toEqual(
+      GUIDE_PORTALS.filter((p) => AUTOMATIC_PORTAL_IDS.includes(p.id)).map((p) => p.id),
+    );
+  });
+
+  it("Computrabajo no se recomienda hasta que haya lector y un aviso real (R11-10)", () => {
+    expect(COMPUTRABAJO_RECOMMENDED).toBe(false);
+    expect(isRecommendedPortal("computrabajo")).toBe(false);
+    expect(isRecommendedPortal("bumeran")).toBe(true);
+    expect(isRecommendedPortal("zonajobs")).toBe(true);
+    for (const roles of [[], ["fullstack"], ["abogacia"], [...BETA_LAUNCH_ROLE_KEYS]]) {
+      expect(portalsForRoles(roles).map((p) => p.id)).not.toContain("computrabajo");
+    }
+  });
+});
+
+describe("portalsForRoles", () => {
+  const ids = (roles: string[]) => portalsForRoles(roles).map((p) => p.id);
+
+  it("Get on Board es de tecnología: solo para quien eligió una carrera técnica", () => {
+    expect(ids(["fullstack"])).toContain("getonboard");
+    expect(ids(["abogacia"])).not.toContain("getonboard");
+    expect(ids(["finanzas_contabilidad", "comunicacion"])).not.toContain("getonboard");
+    expect(ids(["abogacia", "fullstack"])).toContain("getonboard");
+  });
+
+  it("las carreras no técnicas siguen con LinkedIn, Indeed, Bumeran y ZonaJobs", () => {
+    expect(ids(["abogacia"])).toEqual(["linkedin", "indeed", "bumeran", "zonajobs"]);
+  });
+
+  it("sin carrera elegida se listan todos los recomendados", () => {
+    expect(ids([])).toEqual(["linkedin", "indeed", "getonboard", "bumeran", "zonajobs"]);
+  });
+});
+
+describe("portalGroupsForRoles", () => {
+  const names = (list: { name: string }[]) => list.map((p) => p.name);
+
+  it("separa lo que leemos solo de lo que se pega, sin perder ni repetir ninguno", () => {
+    const g = portalGroupsForRoles(["abogacia"]);
+    expect(names(g.automatic)).toEqual(["LinkedIn", "Indeed"]);
+    expect(names(g.manual)).toEqual(["Bumeran", "ZonaJobs"]);
+    expect([...g.automatic, ...g.manual].map((p) => p.id).sort()).toEqual(
+      portalsForRoles(["abogacia"])
+        .map((p) => p.id)
+        .sort(),
+    );
+  });
+
+  it("para tecnología suma Get on Board a lo automático", () => {
+    expect(names(portalGroupsForRoles(["fullstack"]).automatic)).toEqual([
+      "LinkedIn",
+      "Indeed",
+      "Get on Board",
+    ]);
+  });
+
+  it("nunca incluye Computrabajo mientras no se recomiende", () => {
+    for (const roles of [[], ["fullstack"], ["abogacia"]]) {
+      const g = portalGroupsForRoles(roles);
+      expect([...g.automatic, ...g.manual].map((p) => p.id)).not.toContain("computrabajo");
+    }
+  });
+});
+
+describe("portalListText", () => {
+  it("une los nombres con coma y «e» o «y» según la palabra", () => {
+    const by = (...ids: string[]) => GUIDE_PORTALS.filter((p) => ids.includes(p.id));
+    expect(portalListText(by("linkedin"))).toBe("LinkedIn");
+    expect(portalListText(by("linkedin", "bumeran"))).toBe("LinkedIn y Bumeran");
+    expect(portalListText(by("linkedin", "getonboard", "indeed"))).toBe(
+      "LinkedIn, Indeed y Get on Board",
+    );
+    expect(portalListText(by("linkedin", "indeed", "bumeran"))).toBe("LinkedIn, Indeed y Bumeran");
+    expect(portalListText([])).toBe("");
+  });
+});
+
+describe("portalOfDomain", () => {
+  it("reconoce Bumeran, ZonaJobs y Computrabajo por dominio, aunque todavía no tengan lector", () => {
+    expect(portalOfDomain("mail.bumeran.com")).toBe("bumeran");
+    expect(portalOfDomain("bumeran.com.ar")).toBe("bumeran");
+    expect(portalOfDomain("zonajobs.com.ar")).toBe("zonajobs");
+    expect(portalOfDomain("computrabajo.com")).toBe("computrabajo");
+    expect(portalOfDomain("mail.computrabajo.com.ar")).toBe("computrabajo");
+  });
+
+  it("un dominio que solo termina parecido, o ajeno, no es un portal", () => {
+    expect(portalOfDomain("notbumeran.com")).toBeNull();
+    expect(portalOfDomain("banco.example")).toBeNull();
+    expect(portalOfDomain("")).toBeNull();
+  });
+});
+
+describe("las 8 carreras de la beta", () => {
+  it.each([...BETA_LAUNCH_ROLE_KEYS])("%s tiene palabras sugeridas en español", (role) => {
+    expect(alertKeywordsFor([role], "es").length).toBeGreaterThanOrEqual(3);
   });
 });

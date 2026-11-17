@@ -38,12 +38,15 @@ export async function EmailNudge({
   body,
   cta,
   href = "/settings/asistente",
+  secondary,
 }: {
   userId: string;
   title: string;
   body?: string;
   cta: string;
   href?: string;
+  /** Segundo camino del mismo mensaje (solo con `body`), por ejemplo «cargar una oferta». */
+  secondary?: { label: string; href: string };
 }) {
   const jar = await cookies();
   if (jar.get(EMAIL_NUDGE_COOKIE)?.value === userId) return null;
@@ -58,13 +61,22 @@ export async function EmailNudge({
         <div className="flex flex-col gap-1">
           <p className="font-medium">{title}</p>
           <p>{body}</p>
-          <p>
+          <p className="flex flex-wrap items-center gap-x-4">
             <Link
               href={href}
               className="inline-flex min-h-11 items-center font-medium underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
             >
               {cta}
             </Link>
+            {secondary ? (
+              <Link
+                href={secondary.href}
+                data-testid="email-nudge-secondary"
+                className="inline-flex min-h-11 items-center font-medium underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
+              >
+                {secondary.label}
+              </Link>
+            ) : null}
           </p>
         </div>
       ) : (

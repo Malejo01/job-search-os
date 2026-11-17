@@ -81,6 +81,7 @@ export {
   readCareerSalaryJobs,
 } from "./market/career-market";
 export { readCareerRevealCounts } from "./market/career-reveal";
+export { readBetaPoolCounts, type BetaPoolCounts } from "./market/beta-counts";
 export {
   buildRoleMarketSnapshots,
   getRoleMarket,
