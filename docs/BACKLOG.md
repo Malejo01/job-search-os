@@ -1586,3 +1586,42 @@ Base: `main` (92467dd). Decisiones de Mauro del 13/11: «Pedir acceso», tope de
 ### R9 · Cierre de la tanda
 `deps:` todo en PR · `estado:` en PR (13/11)
 - Este bloque y `docs/beta/informe-r9.md`. Sale de `ronda/r8-cierre`.
+
+## Bloque 24 · Tanda R12 «Coach de CV» (17/11, plan)
+
+Base: `main` (6cace3c). Sale de la prueba de Mauro del 17/11 ([informe](beta/informe-cv-agente-17-11.md)). Plan, costos, archivos por ticket y evals: [`docs/beta/plan-coach-cv.md`](beta/plan-coach-cv.md). ADR: [038](adr/038-coach-de-cv.md) (Proposed; D1 a D7 a confirmar por Mauro). La Fase 2 no arranca sin D1.
+
+### R12-0 · Plan del coach de CV
+`deps:` — · `estado:` done (17/11)
+- Verificación del diagnóstico contra el código, borrador de ADR-038, costo por charla, tickets y plan de evals. Solo docs.
+
+### R12-1 · Integrar #514 y #511 (carril rojo)
+`deps:` — · `estado:` pendiente (Mauro)
+- Merge limpio entre las dos ramas (verificado). Fila `extract_cv_profile` en Neon, `CV_IMPORT_ENABLED=1` y `CV_PROFILE_AGENT=testers` en Vercel. Mauro repite la prueba con su CV.
+
+### R12-2 · Extracción multi-campo en el chat (carril rojo)
+`deps:` R12-1, R12-4 · `estado:` propuesto
+### R12-3 · Acuse con lo entendido y contradicciones
+`deps:` R12-2 · `estado:` propuesto
+### R12-4 · Proyectos en `career_history` y en el CV ATS (carril rojo, D2)
+`deps:` R12-1 · `estado:` propuesto
+### R12-5 · Lectura con viñetas originales y tarjeta de proyectos (carril rojo, D2 y D4)
+`deps:` R12-1, R12-4 · `estado:` propuesto
+### R12-6 · Puerta única en /cv (carril rojo, D6)
+`deps:` R12-1 · `estado:` propuesto
+### R12-7 · Contrato del coach
+`deps:` ADR-038 aceptado · `estado:` propuesto
+### R12-8 · Diagnóstico `cv_review` (carril rojo)
+`deps:` R12-7, R12-4 · `estado:` propuesto
+### R12-9 · Turno `cv_coach_turn` (carril rojo)
+`deps:` R12-7, R12-2 · `estado:` propuesto
+### R12-10 · Pantallas y rutas del coach (carril rojo)
+`deps:` R12-8, R12-9 · `estado:` propuesto
+### R12-11 · Cierre y «qué mejoró»
+`deps:` R12-7, R12-10 · `estado:` propuesto
+### R12-12 · PDF con `pdfjs-dist` (carril rojo, D3)
+`deps:` R12-1 · `estado:` propuesto
+### R12-13 · Golden de CVs y harness del coach (carril rojo)
+`deps:` R12-8, R12-9 · `estado:` propuesto
+### R12-14 · Prueba con Ani y comparación de Mauro
+`deps:` R12-10, R12-11 · `estado:` propuesto
