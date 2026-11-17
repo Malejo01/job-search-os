@@ -84,9 +84,9 @@ export const PROFILE_READ_INPUT_MESSAGES: Record<ProfileReadInputProblem, string
   legacy_doc:
     "Los archivos .doc viejos no se pueden leer. Guardalo como DOCX o PDF, o pegá el texto de tu CV.",
   unsupported: "Solo se pueden leer PDF y DOCX. Elegí otro archivo o pegá el texto de tu CV.",
-  // El PDF se lee con una librería que todavía no está en la app (ADR-034 §11)
+  // El PDF se lee en el navegador con pdfjs-dist (R12-12); este aviso queda para cuando la librería no carga
   pdf_paste:
-    "Pegá el texto de tu CV. Por ahora los PDF no se leen en el navegador: abrilo, copiá el texto y pegalo acá. Tu archivo no se sube.",
+    "No pudimos abrir este PDF en tu navegador. Abrilo, copiá el texto y pegalo acá. Tu archivo no se sube.",
   macro_enabled:
     "Ese archivo trae macros y no lo leemos. Guardalo como DOCX común o pegá el texto de tu CV.",
   not_docx: "No pudimos abrir ese archivo como un DOCX. Probá con otro o pegá el texto de tu CV.",
