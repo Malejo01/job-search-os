@@ -153,7 +153,10 @@ test.describe("Flujo 86: Armá tu CV con IA", () => {
     await expect(pageB.getByText(/legible por ATS/)).toBeVisible();
     await expect(pageB.locator("body")).not.toContainText(/pasa los filtros|pasar los filtros/i);
     await pageB.goto("/cv");
-    await expect(pageB.getByRole("link", { name: "Armá tu CV con IA", exact: true })).toBeVisible();
+    // R12-6: B es tester del agente de perfil, así que entra por la puerta «No tengo CV» (e2e 141)
+    await expect(
+      pageB.getByTestId("cv-door").getByRole("link", { name: "No tengo CV", exact: true }),
+    ).toHaveAttribute("href", "/cv/armar");
     const api = await pageB.request.post("/api/cv-chat", {
       data: { action: "start" },
       headers: { Origin: BASE_URL },
@@ -218,8 +221,12 @@ test.describe("Flujo 86: Armá tu CV con IA", () => {
     requireAdmin();
     await login(page);
     await page.goto("/cv");
-    await page.getByRole("link", { name: "Armá tu CV con IA", exact: true }).click();
-    await page.waitForURL("**/cv/armar");
+    // R12-6: la persona seed es admin (tester del agente de perfil): entra por «No tengo CV»
+    await page
+      .getByTestId("cv-door")
+      .getByRole("link", { name: "No tengo CV", exact: true })
+      .click();
+    await page.waitForURL(/\/cv\/armar$/);
     await expectNoOverflowNorAxe(page);
     await page.getByRole("button", { name: "Empezar" }).click();
     const answer = page.getByLabel("Tu respuesta");

@@ -46,6 +46,7 @@ import {
 } from "@/lib/cv-chat-server";
 import { originAllowed, signCvTicket, verifyCvTicket } from "@/lib/cv-chat-ticket";
 import { serviceLlm } from "@/lib/llm-service";
+import { profileAgentAllowedFor } from "@/lib/profile-agent/access";
 import { isOnboardingComplete } from "@/lib/onboarding";
 import { sessionUserId } from "@/lib/session";
 import { siteUrl } from "@/lib/site-url";
@@ -92,6 +93,17 @@ const MESSAGES: Record<Exclude<ErrorCode, "capped">, string> = {
   llm_unavailable:
     "Ahora no puedo responder. Podés cargar tu historial a mano desde las pantallas.",
   server: "No pudimos completar el pedido. Probá de nuevo en un rato.",
+};
+
+/**
+ * R12-6: con el agente de perfil activo para la persona, un CV pegado va a la lectura de CV (`/cv/perfil`)
+ * en vez de a la carga a mano. Sin el agente, el mensaje y el destino son los de siempre.
+ */
+const PASTED_CV_READER = {
+  message:
+    "Parece que pegaste un CV entero. Para eso está la lectura de CV: lo leemos, vos confirmás lo que entendimos y completamos lo que falte. Acá te pregunto de a una cosa.",
+  href: "/cv/perfil",
+  links: [{ label: "Leer mi CV", href: "/cv/perfil" }],
 };
 
 const STATUS: Record<ErrorCode, number> = {
@@ -342,7 +354,8 @@ export async function POST(request: Request): Promise<Response> {
             await release(r.reservationId);
           }
           if (out.kind === "redirect_cv_reader") {
-            return fail("pasted_cv", { href: "/settings/historial" });
+            const reader = await profileAgentAllowedFor(userId);
+            return fail("pasted_cv", reader ? PASTED_CV_READER : { href: "/settings/historial" });
           }
           if (out.kind === "rejected") return fail(out.reason);
           if (out.kind === "error") {
