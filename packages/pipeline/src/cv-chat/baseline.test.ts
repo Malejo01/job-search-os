@@ -57,6 +57,42 @@ describe("línea de base del chat de CV con la transcripción del 17/11 (R12-2)"
     );
   });
 
+  it("después de R12-2 (extras, v3): no se pierde ningún dato y no repregunta nada ya dicho", () => {
+    const before = run("v2");
+    const r = run("v3");
+    // Empresa, cargo, fechas y tareas en un mensaje: no vuelve a preguntar cargo, fechas ni tareas.
+    // El mensaje de los proyectos llega cuando pregunta el logro; como no trae logro, repregunta (modelo).
+    expect(r.turns.map((t) => t.topic)).toEqual([
+      "target",
+      "organization",
+      "achievement",
+      "achievement",
+      "more_work",
+      "education",
+      "certifications",
+      "skills",
+      "languages",
+      "links",
+    ]);
+    expect(r.lost).toEqual([]);
+    expect(r.repeated).toBe(0);
+    expect(r.factsSaid).toBe(before.factsSaid);
+    expect(r.state.projects.map((p) => p.name)).toEqual([
+      "Proyecto 1",
+      "Proyecto 2",
+      "Proyecto 3",
+      "Proyecto 4",
+    ]);
+    // una sola repregunta del logro (la decide el código; el texto es del modelo)
+    expect(r.state.followUps["w0:achievement"]).toBe(1);
+    expect(r.lostRatio).toBeLessThan(before.lostRatio);
+    expect(r.repeatedRatio).toBeLessThan(before.repeatedRatio);
+    console.info(
+      `[después de R12-2 v3] datos perdidos ${r.lost.length}/${r.factsSaid} (${pct(r.lostRatio)}) · ` +
+        `preguntas repetidas ${r.repeated}/${r.questions} (${pct(r.repeatedRatio)})`,
+    );
+  });
+
   it("una respuesta grabada que falta se informa, no se inventa", () => {
     const broken: CvBaselineFixture = {
       ...fixture,

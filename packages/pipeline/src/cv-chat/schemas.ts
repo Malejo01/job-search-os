@@ -23,19 +23,19 @@ export const CV_CHAT_TOPIC_KINDS = [
 ] as const;
 export type CvTopicKind = (typeof CV_CHAT_TOPIC_KINDS)[number];
 
-const MONTH = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/);
+export const MONTH = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/);
 
 /** Texto libre de la persona: tope de largo antes de limpiar, no vacío después. */
-const text = (max: number, capitalize = false) =>
+export const text = (max: number, capitalize = false) =>
   z
     .string()
     .max(max * 2)
     .transform((s) => cleanCvText(s, max, capitalize))
     .refine((s) => s.length > 0);
 
-const sentence = text(CV_BULLET_MAX_CHARS, true);
-const name = text(120);
-const url = z
+export const sentence = text(CV_BULLET_MAX_CHARS, true);
+export const name = text(120);
+export const url = z
   .string()
   .max(200)
   .regex(/^https?:\/\/\S+$/i);

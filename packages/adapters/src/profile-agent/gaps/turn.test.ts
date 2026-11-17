@@ -1,5 +1,6 @@
 import {
   err,
+  ok,
   gapKeyForHistory,
   gapKeyForSkill,
   type GapHistoryRow,
@@ -10,6 +11,7 @@ import { describe, expect, it } from "vitest";
 import { createDemoLlm, memoryCallSink } from "../../llm";
 import type { LlmClient } from "../../llm";
 import { cvChatLabel } from "../../cv-chat/ids";
+import { DEMO_FOLLOW_UP } from "../../llm/demo-cv";
 import { runGapTurn, type GapTurnParams } from "./turn";
 
 const ID = "00000000-0000-4000-8000-00000000000a";
@@ -108,7 +110,7 @@ describe("runGapTurn · con modelo (fake de demo, sin red)", () => {
       { llm: createDemoLlm() },
       params({ ref: r, answer: text(r.key, "Ayudaba"), followUpsAsked: 2 }),
     );
-    expect(last).toMatchObject({ kind: "result", followUp: false });
+    expect(last).toMatchObject({ kind: "result", followUp: false, followUpQuestion: null });
   });
 
   it("las fechas se suman a lo que ya había en la fila: el inicio no se pierde", async () => {
@@ -279,5 +281,75 @@ describe("runGapTurn · sin modelo", () => {
       reason: "too_long",
     });
     expect(calls.calls).toHaveLength(0);
+  });
+});
+
+/** Modelo que devuelve siempre el mismo objeto (validado por el esquema del turno, como el cliente real). */
+function modelReturning(object: unknown): LlmClient {
+  return {
+    async generateStructured(task, schema) {
+      const parsed = schema.safeParse(object);
+      if (!parsed.success) return err({ kind: "generation_failed", task, detail: "esquema" });
+      return ok({
+        object: parsed.data,
+        model: "m",
+        provider: "p",
+        promptVersion: "cv_interview@v3",
+        usage: { inputTokens: 1, outputTokens: 1, reasoningTokens: null },
+        costUsd: 0,
+        latencyMs: 1,
+        usedFallback: false,
+      }) as never;
+    },
+  };
+}
+
+describe("runGapTurn · repregunta redactada por el modelo (R12-2, vuelve después de #514)", () => {
+  it("una respuesta corta en «tareas» repregunta con el texto del modelo validado, no con la plantilla", async () => {
+    const r = ref("duties");
+    const out = await runGapTurn(
+      { llm: createDemoLlm() },
+      params({ ref: r, answer: text(r.key, "Ayudaba"), followUpsAsked: 0 }),
+    );
+    expect(out).toMatchObject({ kind: "result", followUp: true, followUpQuestion: DEMO_FOLLOW_UP });
+  });
+
+  it("si el validador la rechaza (cifras, dato sensible o sin «?»), cae a la plantilla de la carrera", async () => {
+    const r = ref("duties");
+    for (const draft of [
+      "¿Atendías a más de 20 clientes por día?",
+      "¿Tenés hijos que cuidar mientras trabajabas?",
+      "Contame más de tus tareas.",
+    ]) {
+      const out = await runGapTurn(
+        {
+          llm: modelReturning({
+            extraction: { duties: ["Ayudaba"] },
+            ack: null,
+            followUp: draft,
+          }),
+        },
+        params({ ref: r, answer: text(r.key, "Ayudaba"), followUpsAsked: 1 }),
+      );
+      expect(out, draft).toMatchObject({ kind: "result", followUp: true, followUpQuestion: null });
+    }
+  });
+
+  it("sin repregunta del código, el texto del modelo no se usa", async () => {
+    const r = ref("duties");
+    const out = await runGapTurn(
+      {
+        llm: modelReturning({
+          extraction: { duties: ["Atendía a los clientes del local y armaba los pedidos"] },
+          ack: null,
+          followUp: "¿Qué más hacías en el día a día?",
+        }),
+      },
+      params({
+        ref: r,
+        answer: text(r.key, "Atendía a los clientes del local y armaba los pedidos"),
+      }),
+    );
+    expect(out).toMatchObject({ kind: "result", followUp: false, followUpQuestion: null });
   });
 });

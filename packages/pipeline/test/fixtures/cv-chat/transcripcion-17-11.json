@@ -1,6 +1,8 @@
 {
-  "descripcion": "Prueba del 17/11 en /cv/armar (informe-cv-agente-17-11 §2) con datos ficticios: Empresa A, cargo inventado y Proyecto 1 a Proyecto 4. Las respuestas del modelo están grabadas por versión del esquema (v2: un tema por turno) y por tema preguntado.",
-  "semilla": { "target": null },
+  "descripcion": "Prueba del 17/11 en /cv/armar (informe-cv-agente-17-11 §2) con datos ficticios: Empresa A, cargo inventado y Proyecto 1 a Proyecto 4. Las respuestas del modelo están grabadas por versión del esquema (v2: un tema por turno; v3: el tema más `extras`, R12-2) y por tema preguntado.",
+  "semilla": {
+    "target": null
+  },
   "mensajes": [
     {
       "id": "m1",
@@ -10,8 +12,20 @@
       "respuestas": {
         "v2": {
           "target": {
-            "extraction": { "target": "AI Engineer" },
+            "extraction": {
+              "target": "AI Engineer"
+            },
             "ack": "Buenísimo, tomo nota del perfil al que apuntás.",
+            "followUp": null
+          }
+        },
+        "v3": {
+          "target": {
+            "extraction": {
+              "target": "AI Engineer / Full Stack"
+            },
+            "extras": [],
+            "ack": "Buenísimo, lo anoto.",
             "followUp": null
           }
         }
@@ -25,8 +39,40 @@
       "respuestas": {
         "v2": {
           "organization": {
-            "extraction": { "organization": "Empresa A", "noExperience": false },
+            "extraction": {
+              "organization": "Empresa A",
+              "noExperience": false
+            },
             "ack": "Bárbaro, ya anoté la empresa.",
+            "followUp": null
+          }
+        },
+        "v3": {
+          "organization": {
+            "extraction": {
+              "organization": "Empresa A",
+              "noExperience": false
+            },
+            "extras": [
+              {
+                "kind": "title",
+                "title": "Desarrollador de aplicaciones web"
+              },
+              {
+                "kind": "dates",
+                "startMonth": "2025-04",
+                "endMonth": "2026-02",
+                "isCurrent": false
+              },
+              {
+                "kind": "duties",
+                "duties": [
+                  "Hacía el front con React y el back con Node",
+                  "Armaba integraciones con APIs de modelos de lenguaje"
+                ]
+              }
+            ],
+            "ack": "Bárbaro, lo anoto.",
             "followUp": null
           }
         }
@@ -40,9 +86,58 @@
       "respuestas": {
         "v2": {
           "title": {
-            "extraction": { "title": "Desarrollador full stack" },
+            "extraction": {
+              "title": "Desarrollador full stack"
+            },
             "ack": "Buenísimo, tomo nota del cargo.",
             "followUp": null
+          }
+        },
+        "v3": {
+          "achievement": {
+            "extraction": {
+              "achievement": null
+            },
+            "extras": [
+              {
+                "kind": "title",
+                "title": "Desarrollador full stack"
+              },
+              {
+                "kind": "project",
+                "name": "Proyecto 1",
+                "role": null,
+                "description": "Un asistente para buscar trabajo con Next.js y Postgres",
+                "stack": ["Next.js", "Postgres"],
+                "link": null
+              },
+              {
+                "kind": "project",
+                "name": "Proyecto 2",
+                "role": null,
+                "description": "Un bot de atención con RAG",
+                "stack": ["RAG"],
+                "link": null
+              },
+              {
+                "kind": "project",
+                "name": "Proyecto 3",
+                "role": null,
+                "description": "Un clasificador de documentos en Python",
+                "stack": ["Python"],
+                "link": null
+              },
+              {
+                "kind": "project",
+                "name": "Proyecto 4",
+                "role": null,
+                "description": "Un agente que resume reuniones",
+                "stack": [],
+                "link": null
+              }
+            ],
+            "ack": "Buenísimo, lo anoto.",
+            "followUp": "¿Hubo algún resultado concreto de tu trabajo en Empresa A que quieras contar, aunque sea chico?"
           }
         }
       }
@@ -55,7 +150,11 @@
       "respuestas": {
         "v2": {
           "dates": {
-            "extraction": { "startMonth": "2025-04", "endMonth": "2026-03", "isCurrent": false },
+            "extraction": {
+              "startMonth": "2025-04",
+              "endMonth": "2026-03",
+              "isCurrent": false
+            },
             "ack": "Perfecto, lo anoto.",
             "followUp": null
           }
@@ -97,6 +196,16 @@
             "ack": "¡Qué bueno! Lo anoto.",
             "followUp": null
           }
+        },
+        "v3": {
+          "achievement": {
+            "extraction": {
+              "achievement": "Con un asistente con IA bajamos a la mitad el tiempo de respuesta del soporte"
+            },
+            "extras": [],
+            "ack": "¡Qué bueno! Lo anoto.",
+            "followUp": null
+          }
         }
       }
     },
@@ -108,7 +217,19 @@
       "respuestas": {
         "v2": {
           "more_work": {
-            "extraction": { "more": false },
+            "extraction": {
+              "more": false
+            },
+            "ack": "Perfecto.",
+            "followUp": null
+          }
+        },
+        "v3": {
+          "more_work": {
+            "extraction": {
+              "more": false
+            },
+            "extras": [],
             "ack": "Perfecto.",
             "followUp": null
           }
@@ -136,6 +257,23 @@
             "ack": "Perfecto, lo anoto.",
             "followUp": null
           }
+        },
+        "v3": {
+          "education": {
+            "extraction": {
+              "entries": [
+                {
+                  "institution": "Universidad A",
+                  "title": "Tecnicatura en Programación",
+                  "startMonth": "2022-01",
+                  "endMonth": null
+                }
+              ]
+            },
+            "extras": [],
+            "ack": "Perfecto, lo anoto.",
+            "followUp": null
+          }
         }
       }
     },
@@ -147,7 +285,19 @@
       "respuestas": {
         "v2": {
           "certifications": {
-            "extraction": { "entries": [] },
+            "extraction": {
+              "entries": []
+            },
+            "ack": "Perfecto.",
+            "followUp": null
+          }
+        },
+        "v3": {
+          "certifications": {
+            "extraction": {
+              "entries": []
+            },
+            "extras": [],
             "ack": "Perfecto.",
             "followUp": null
           }
@@ -168,6 +318,16 @@
             "ack": "Perfecto, lo anoto.",
             "followUp": null
           }
+        },
+        "v3": {
+          "skills": {
+            "extraction": {
+              "skills": ["TypeScript", "React", "Next.js", "Node", "Python", "Postgres"]
+            },
+            "extras": [],
+            "ack": "Perfecto, lo anoto.",
+            "followUp": null
+          }
         }
       }
     },
@@ -179,7 +339,29 @@
       "respuestas": {
         "v2": {
           "languages": {
-            "extraction": { "languages": [{ "name": "Inglés", "level": "avanzado" }] },
+            "extraction": {
+              "languages": [
+                {
+                  "name": "Inglés",
+                  "level": "avanzado"
+                }
+              ]
+            },
+            "ack": "Perfecto.",
+            "followUp": null
+          }
+        },
+        "v3": {
+          "languages": {
+            "extraction": {
+              "languages": [
+                {
+                  "name": "Inglés",
+                  "level": "avanzado"
+                }
+              ]
+            },
+            "extras": [],
             "ack": "Perfecto.",
             "followUp": null
           }
@@ -194,7 +376,23 @@
       "respuestas": {
         "v2": {
           "links": {
-            "extraction": { "linkedin": null, "github": null, "portfolio": null },
+            "extraction": {
+              "linkedin": null,
+              "github": null,
+              "portfolio": null
+            },
+            "ack": "Perfecto.",
+            "followUp": null
+          }
+        },
+        "v3": {
+          "links": {
+            "extraction": {
+              "linkedin": null,
+              "github": null,
+              "portfolio": null
+            },
+            "extras": [],
             "ack": "Perfecto.",
             "followUp": null
           }

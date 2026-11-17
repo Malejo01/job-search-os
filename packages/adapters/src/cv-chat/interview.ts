@@ -20,8 +20,8 @@ import type { LlmClient, LlmError } from "../llm";
 import { cvChatLabel, cvChatSignal } from "./ids";
 
 export const CV_INTERVIEW_TASK = "cv_interview";
-/** Versión vigente del prompt de la entrevista (R4-16: repreguntas). El modelo sale de `model_routing`. */
-export const CV_INTERVIEW_PROMPT = "cv_interview@v2";
+/** Versión vigente del prompt de la entrevista (R12-2: `extras`). El modelo sale de `model_routing`. */
+export const CV_INTERVIEW_PROMPT = "cv_interview@v3";
 const SKIP_RE = /^\s*(saltear|saltearlo|paso|skip|no s[eé]|no se)\s*[.!]*\s*$/i;
 
 export type CvInterviewParams = {
@@ -48,6 +48,11 @@ export type CvInterviewOutcome =
       next: CvTopic | null;
       question: string | null;
       closeReason: CvCloseReason | null;
+      /**
+       * Borrador de repregunta del modelo, sin validar (R12-2). El chat ya lo resuelve en el estado; la
+       * charla de huecos lo pasa por `safeFollowUpQuestion` cuando su código decide repreguntar.
+       */
+      followUpDraft: string | null;
       model: string | null;
       usedFallback: boolean;
       costUsd: number | null;
@@ -63,7 +68,12 @@ function contextOf(state: CvChatState, topic: CvTopic): string {
 function advance(
   state: CvChatState,
   ack: string | null,
-  meta: { model: string | null; usedFallback: boolean; costUsd: number | null },
+  meta: {
+    followUpDraft: string | null;
+    model: string | null;
+    usedFallback: boolean;
+    costUsd: number | null;
+  },
 ): CvInterviewOutcome {
   const next = nextCvTopic(state);
   const closeReason = cvChatCloseReason(state);
@@ -90,6 +100,7 @@ export async function runCvInterviewTurn(
   // «Saltear»: lo resuelve el código, sin modelo ni gasto
   if (SKIP_RE.test(p.message)) {
     return advance(skipCvTopic(p.state, p.topic), null, {
+      followUpDraft: null,
       model: null,
       usedFallback: false,
       costUsd: 0,
@@ -117,6 +128,7 @@ export async function runCvInterviewTurn(
   // Grounding, datos sensibles, esquema estricto y repregunta: todo en el pipeline (`applyCvModelTurn`)
   const { state, ack } = applyCvModelTurn(p.state, p.topic, p.message, r.value.object);
   return advance(state, ack, {
+    followUpDraft: r.value.object.followUp ?? null,
     model: r.value.model,
     usedFallback: r.value.usedFallback,
     costUsd: r.value.costUsd,

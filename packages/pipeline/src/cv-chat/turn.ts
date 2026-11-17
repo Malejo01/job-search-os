@@ -7,6 +7,7 @@
 import { z } from "zod";
 import { hasSensitiveCvData, resolveCvFollowUp } from "./follow-up";
 import { extractionGrounded, safeCvAck } from "./grounding";
+import { applyCvExtras, CV_EXTRAS_FIELD, usableCvExtras, type CvExtra } from "./extras";
 import { CV_EXTRACTION_SCHEMAS } from "./schemas";
 import { applyCvAnswer, type CvChatState, type CvTopic } from "./state";
 
@@ -14,6 +15,8 @@ import { applyCvAnswer, type CvChatState, type CvTopic } from "./state";
 export function cvInterviewTurnSchema(topic: CvTopic) {
   return z.strictObject({
     extraction: CV_EXTRACTION_SCHEMAS[topic.kind],
+    /** Otros datos del mismo trabajo y proyectos dichos en el mensaje (R12-2); opcional. */
+    extras: CV_EXTRAS_FIELD,
     ack: z.string().max(300).nullable(),
     /** Borrador de repregunta: el código decide si se usa (`resolveCvFollowUp`). */
     followUp: z.string().max(400).nullable().optional(),
@@ -23,6 +26,8 @@ export function cvInterviewTurnSchema(topic: CvTopic) {
 /** Lo mínimo que se lee de la respuesta del modelo (ya validada por `cvInterviewTurnSchema`). */
 export interface CvModelTurn {
   extraction: unknown;
+  /** Sin el campo (respuesta del esquema de un tema) es como `[]`. */
+  extras?: readonly (CvExtra | null)[];
   ack: string | null;
   followUp?: string | null;
 }
@@ -49,6 +54,8 @@ export function applyCvModelTurn(
     extractionGrounded(turn.extraction, message) &&
     !hasSensitiveCvData(JSON.stringify(turn.extraction));
   const answered = applyCvAnswer(state, topic, usable ? turn.extraction : null);
-  const next = resolveCvFollowUp(answered, topic, message, turn.followUp);
+  // Extras (R12-2): cada uno con su propio control; uno descartado no tira la extracción del tema
+  const withExtras = applyCvExtras(answered, topic, usableCvExtras(turn.extras ?? [], message));
+  const next = resolveCvFollowUp(withExtras, topic, message, turn.followUp);
   return { state: next, ack: turn.ack ? safeCvAck(turn.ack) : null };
 }

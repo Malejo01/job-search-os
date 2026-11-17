@@ -1,4 +1,5 @@
 export * from "./card";
+export * from "./extras";
 export * from "./follow-up";
 export * from "./grounding";
 export * from "./input";

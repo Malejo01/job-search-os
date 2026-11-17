@@ -4,8 +4,10 @@ import {
   buildGapCard,
   buildSkillLevelCard,
   classifyCvChatInput,
+  cvFollowUpFallback,
   initialCvChatState,
   isGapDeclined,
+  safeFollowUpQuestion,
   screenProfileAnswer,
   shouldFollowUp,
   type CvChatState,
@@ -23,8 +25,10 @@ import { runCvInterviewTurn } from "../../cv-chat/interview";
 
 /**
  * Un turno de la etapa de huecos (ADR-034 §1 y §2). Una respuesta de la persona → como mucho una llamada a
- * `cv_interview` (la misma tarea y el mismo prompt v2 del chat de CV, sin cambios) que solo EXTRAE lo que la
- * persona dijo, y el código decide el resto: tarjeta, repregunta o cierre. El modelo no redacta preguntas.
+ * `cv_interview` (la misma tarea y el mismo prompt del chat de CV) que EXTRAE lo que la persona dijo y
+ * propone el texto de una repregunta; el código decide el resto: tarjeta, si se repregunta (tope de 2) o
+ * cierre. La repregunta del modelo vuelve en R12-2 (#514 la había apagado): pasa por el mismo validador del
+ * chat (`safeFollowUpQuestion`) y, si no lo pasa, la ruta usa la plantilla de la carrera.
  *
  * No guarda nada: devuelve una tarjeta para confirmar. «No tengo», el nivel de una skill (botones) y las
  * respuestas que se rechazan antes (vacía, muy larga, un CV pegado, una instrucción escondida o un dato
@@ -59,6 +63,11 @@ export type GapTurnOutcome =
       cardReason: Extract<GapCardResult, { ok: false }>["reason"] | null;
       /** Hay que repreguntar sobre el mismo tema (el código lo decide; tope de 2). */
       followUp: boolean;
+      /**
+       * Texto de la repregunta redactado por el modelo y validado (R12-2), o `null`: sin repregunta, o el
+       * validador lo rechazó y va la plantilla de la carrera.
+       */
+      followUpQuestion: string | null;
       declined: boolean;
       usedModel: boolean;
       model: string | null;
@@ -70,6 +79,7 @@ const result = (over: Partial<Extract<GapTurnOutcome, { kind: "result" }>>): Gap
   card: null,
   cardReason: null,
   followUp: false,
+  followUpQuestion: null,
   declined: false,
   usedModel: false,
   model: null,
@@ -79,8 +89,8 @@ const result = (over: Partial<Extract<GapTurnOutcome, { kind: "result" }>>): Gap
 
 /**
  * Estado de una charla de una sola fila: lo que ya sabemos de ese trabajo para que la respuesta se sume a
- * lo existente en vez de pisarlo. `followUps` se fija en el tope para que `cv_interview` nunca decida por su
- * cuenta repreguntar: la repregunta la decide `shouldFollowUp` y el texto sale de la plantilla.
+ * lo existente en vez de pisarlo. `followUps` se fija en el tope para que `cv_interview` no decida por su
+ * cuenta repreguntar: la repregunta la decide `shouldFollowUp`; del modelo solo se toma el texto.
  */
 function scratchState(row: GapHistoryRow, topic: CvTopic): CvChatState {
   return {
@@ -120,6 +130,16 @@ function extractionOf(state: CvChatState, topic: CvTopic): GapExtraction | null 
     default:
       return null;
   }
+}
+
+/** La repregunta del modelo si pasa el validador del chat; `null` si cae a la plantilla. */
+function modelFollowUp(
+  draft: string | null,
+  topic: "dates" | "duties" | "achievement",
+): string | null {
+  if (!draft) return null;
+  const q = safeFollowUpQuestion(draft, topic);
+  return q === cvFollowUpFallback(topic) ? null : q;
 }
 
 export async function runGapTurn(
@@ -173,10 +193,12 @@ export async function runGapTurn(
 
   const extraction = extractionOf(out.state, topic);
   const card = buildGapCard(p.ref, extraction, p.row);
+  const followUp = shouldFollowUp({ topic: p.ref.topic, extraction, card, asked });
   return result({
     card: card.ok ? card.card : null,
     cardReason: card.ok ? null : card.reason,
-    followUp: shouldFollowUp({ topic: p.ref.topic, extraction, card, asked }),
+    followUp,
+    followUpQuestion: followUp ? modelFollowUp(out.followUpDraft, p.ref.topic) : null,
     usedModel: true,
     model: out.model,
     costUsd: out.costUsd,

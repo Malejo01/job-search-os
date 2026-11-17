@@ -123,11 +123,12 @@ it("resumen del estimado: turnos, tokens por turno y costo por CV dentro de lo d
   expect(rows.map((r) => r.turns).sort((a, b) => a - b)).toEqual([12, 12, 12, 18, 18, 18]);
   for (const r of rows) {
     expect(r.inAvg).toBeGreaterThan(700);
-    // v1 rondaba 800; el prompt v2 (R4-16: repregunta, tono, regla 7) suma unos 350 tokens por turno
-    expect(r.inAvg).toBeLessThan(1300);
+    // v1 rondaba 800; v2 (R4-16) sumó unos 350 tokens por turno y v3 (R12-2: `extras`) unos 425 más
+    expect(r.inAvg).toBeLessThan(1700);
     expect(r.outAvg).toBeLessThan(60);
     expect(Number(r.gemini)).toBeGreaterThan(0.015);
-    expect(Number(r.gemini)).toBeLessThan(0.045); // v1: 0.035; el prompt v2 sube ~USD 0,007 por CV
+    // v1: 0.035; v2 sube ~USD 0,007 por CV y v3 (R12-2) ~USD 0,008 más con 18 turnos (medido: 0,034 a 0,050)
+    expect(Number(r.gemini)).toBeLessThan(0.055);
     expect(Number(r.respaldo)).toBeLessThan(Number(r.gemini));
   }
 });

@@ -192,6 +192,8 @@ export async function saveChatHistory(
         startMonth: e.startMonth,
         endMonth: e.endMonth,
         bullets: [...e.bullets],
+        // R12-2: el link de un proyecto que la persona pegó en la charla (ya validado por `checkEntry`)
+        link: e.kind === "proyecto" ? (e.link ?? null) : null,
         source: "chat",
         sort,
       });
