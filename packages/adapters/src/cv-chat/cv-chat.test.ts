@@ -79,7 +79,12 @@ describe("runCvInterviewTurn con el fake de demo", () => {
       { llm },
       { ...base, state: s0, topic: nextCvTopic(s0)!, message: "Analista de datos" },
     );
-    expect(first).toMatchObject({ kind: "turn", ack: "Anotado.", closeReason: null });
+    // R12-3: el acuse lo arma el código con lo entendido, no es el texto del modelo («Anotado.»)
+    expect(first).toMatchObject({
+      kind: "turn",
+      ack: "Anoté que apuntás a Analista de datos.",
+      closeReason: null,
+    });
     if (first.kind === "turn") expect(first.question).toContain("empresa");
     const done = await runScript(llm);
     const last = await runCvInterviewTurn(

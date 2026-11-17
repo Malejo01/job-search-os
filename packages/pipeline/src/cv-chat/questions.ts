@@ -3,6 +3,7 @@
  * tema también es una plantilla fija: el modelo no elige qué se pregunta ni lo reformula, solo extrae la
  * respuesta y suma un acuse corto. Así una pregunta nunca depende de una salida de LLM.
  */
+import { cvConflictLabel, type CvConflict } from "./conflicts";
 import type { CvChatState, CvTopic } from "./state";
 
 const orgOf = (s: CvChatState, i: number | null): string => {
@@ -10,8 +11,22 @@ const orgOf = (s: CvChatState, i: number | null): string => {
   return o ? ` en ${o}` : "";
 };
 
+/**
+ * «¿Cuál dejo?» (R12-3): plantilla fija con las dos opciones, sin texto del modelo. Contra el historial
+ * confirmado: «En tu CV figura…»; contra lo dicho antes en la charla: «Antes me dijiste…».
+ */
+export function cvConflictQuestion(c: CvConflict): string {
+  const show = (v: string): string =>
+    c.field === "title" ? `«${cvConflictLabel(c.field, v)}»` : cvConflictLabel(c.field, v);
+  return c.source === "confirmed"
+    ? `En tu CV figura ${show(c.previous)}, acá me decís ${show(c.proposed)}. ¿Cuál dejo?`
+    : `Antes me dijiste ${show(c.previous)}, ahora me decís ${show(c.proposed)}. ¿Cuál dejo?`;
+}
+
 /** Texto de la pregunta para un tema, con el contexto del trabajo si lo hay. */
 export function cvTopicQuestion(topic: CvTopic, s: CvChatState): string {
+  // Contradicción pendiente (R12-3): va antes que cualquier tema
+  if (s.conflict) return cvConflictQuestion(s.conflict);
   // Repregunta vigente (R4-16): texto ya validado por el código (`resolveCvFollowUp`)
   if (s.followUp && s.followUp.key === topic.key) return s.followUp.question;
   const at = orgOf(s, topic.workIndex);

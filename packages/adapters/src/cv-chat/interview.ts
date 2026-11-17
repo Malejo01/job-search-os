@@ -7,6 +7,7 @@
 import {
   applyCvModelTurn,
   classifyCvChatInput,
+  resolveCvConflict,
   cvChatCloseReason,
   cvInterviewTurnSchema,
   cvTopicQuestion,
@@ -100,6 +101,17 @@ export async function runCvInterviewTurn(
   // «Saltear»: lo resuelve el código, sin modelo ni gasto
   if (SKIP_RE.test(p.message)) {
     return advance(skipCvTopic(p.state, p.topic), null, {
+      followUpDraft: null,
+      model: null,
+      usedFallback: false,
+      costUsd: 0,
+    });
+  }
+
+  // «¿Cuál dejo?» (R12-3): la respuesta (un chip o texto) la resuelve el código, sin modelo ni gasto
+  if (p.state.conflict) {
+    const resolved = resolveCvConflict(p.state, p.message);
+    return advance(resolved.state, resolved.ack, {
       followUpDraft: null,
       model: null,
       usedFallback: false,

@@ -6,6 +6,8 @@
  */
 import { z } from "zod";
 import { hasSensitiveCvData, resolveCvFollowUp } from "./follow-up";
+import { cvUnderstoodAck } from "./ack";
+import { findCvConflict } from "./conflicts";
 import { extractionGrounded, safeCvAck } from "./grounding";
 import { applyCvExtras, CV_EXTRAS_FIELD, usableCvExtras, type CvExtra } from "./extras";
 import { CV_EXTRACTION_SCHEMAS } from "./schemas";
@@ -55,7 +57,14 @@ export function applyCvModelTurn(
     !hasSensitiveCvData(JSON.stringify(turn.extraction));
   const answered = applyCvAnswer(state, topic, usable ? turn.extraction : null);
   // Extras (R12-2): cada uno con su propio control; uno descartado no tira la extracción del tema
-  const withExtras = applyCvExtras(answered, topic, usableCvExtras(turn.extras ?? [], message));
-  const next = resolveCvFollowUp(withExtras, topic, message, turn.followUp);
-  return { state: next, ack: turn.ack ? safeCvAck(turn.ack) : null };
+  const extras = usableCvExtras(turn.extras ?? [], message);
+  // Contradicción (R12-3): lo que choca con lo anterior no se aplica hasta que la persona elige
+  const conflict = state.conflict ?? findCvConflict(answered, topic, extras);
+  const withExtras = applyCvExtras(answered, topic, extras);
+  const followed = resolveCvFollowUp(withExtras, topic, message, turn.followUp);
+  const next = { ...followed, conflict };
+  // Acuse (R12-3): lo arma el código con lo entendido y ya verificado; si no hay nada nuevo, el del
+  // modelo filtrado (con dígitos cae al fijo)
+  const ack = cvUnderstoodAck(state, next) ?? (turn.ack ? safeCvAck(turn.ack) : null);
+  return { state: next, ack };
 }
