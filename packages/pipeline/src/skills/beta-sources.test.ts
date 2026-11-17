@@ -39,18 +39,54 @@ describe("Jobicy", () => {
 });
 
 describe("We Work Remotely", () => {
-  it.each([
-    ["remote-sales-and-marketing-jobs", ["marketing_digital"]],
-    ["remote-management-and-finance-jobs", ["finanzas_contabilidad", "administracion_empresas"]],
-  ])("%s → %j", (category, roles) => {
-    expect(fromCategory("wwr", category)).toEqual(roles);
+  it("Sales and Marketing sigue dando marketing por la categoría", () => {
+    expect(fromCategory("wwr", "remote-sales-and-marketing-jobs")).toEqual(["marketing_digital"]);
+    expect(fromCategory("wwr", "Sales and Marketing")).toEqual(["marketing_digital"]);
   });
 
-  it("también con el nombre corto de la categoría", () => {
-    expect(fromCategory("wwr", "Sales and Marketing")).toEqual(["marketing_digital"]);
-    expect(fromCategory("wwr", "Management and Finance")).toEqual([
+  // R11-9: Management and Finance trae de todo; sin señal en el título no asigna carrera.
+  it.each([
+    "remote-management-and-finance-jobs",
+    "Management and Finance",
+    "remote-business-exec-management-jobs",
+    "remote-finance-and-legal-jobs",
+  ])("%s: una categoría amplia sola no alcanza", (category) => {
+    expect(fromCategory("wwr", category)).toEqual([]);
+  });
+
+  it.each([
+    ["Technical Recruiter"],
+    ["Senior Recruiter, Engineering"],
+    ["Loan Officer"],
+    ["Mortgage Loan Officer"],
+    ["AI Consultant"],
+    ["Generative AI Strategy Consultant"],
+    ["Customer Onboarding Lead"],
+  ])("«%s» en Management and Finance no va a Contaduría", (title) => {
+    expect(fromCategory("wwr", "remote-management-and-finance-jobs", title)).not.toContain(
       "finanzas_contabilidad",
-      "administracion_empresas",
+    );
+  });
+
+  it("un recruiter queda en RR.HH. por el título, no en Contaduría ni en Administración", () => {
+    expect(
+      fromCategory("wwr", "remote-management-and-finance-jobs", "Technical Recruiter"),
+    ).toEqual(["rrhh_it"]);
+  });
+
+  it.each([
+    ["Staff Accountant", "finanzas_contabilidad"],
+    ["Payroll Specialist", "finanzas_contabilidad"],
+    ["Accounts Payable Clerk", "finanzas_contabilidad"],
+    ["Analista Administrativo", "administracion_empresas"],
+    ["Procurement Analyst", "administracion_empresas"],
+  ])("«%s» con la categoría y el título del puesto sí va a su carrera", (title, role) => {
+    expect(fromCategory("wwr", "remote-management-and-finance-jobs", title)).toContain(role);
+  });
+
+  it("las demás fuentes no cambian: Jobicy accounting-finance sigue siendo contaduría por categoría", () => {
+    expect(fromCategory("jobicy", "accounting-finance", "Specialist")).toEqual([
+      "finanzas_contabilidad",
     ]);
   });
 

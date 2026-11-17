@@ -1,5 +1,96 @@
 import { describe, expect, it } from "vitest";
-import { buildPlan, easeFromClosureHours, pickLearningResource, planPriority } from "./plan";
+import roleSkillsSeed from "../../../db/seeds/role_skills.json";
+import {
+  OFF_FAMILY_MIN_MENTIONS,
+  buildPlan,
+  easeFromClosureHours,
+  filterPlanByCareer,
+  pickLearningResource,
+  planPriority,
+} from "./plan";
+import { roleSkillsSchema } from "./self-assessment";
+
+const roleSkills = roleSkillsSchema.parse(roleSkillsSeed);
+const demand = (slug: string, mentions: number) => ({
+  slug,
+  mentions,
+  mustMentions: mentions,
+  weightedDemand: mentions * 5,
+});
+
+describe("el plan no propone skills de otra familia (R11-9)", () => {
+  const accountingDemand = [
+    demand("general_accounting", 30),
+    demand("payroll", 12),
+    demand("excel", 20),
+    demand("growth_marketing", 2),
+    demand("iam", 3),
+    // Sin dueño en role_skills: lo delata la categoría (IA = tecnología)
+    { ...demand("multimodal", 1), category: "ai_core" },
+    demand("n8n", 2),
+    demand("ip_law", 4),
+    demand("some_unlisted_skill", 1),
+  ];
+
+  it("Contaduría: sale Growth, IAM, multimodal, n8n e IP con poca demanda", () => {
+    const slugs = filterPlanByCareer(accountingDemand, "finanzas_contabilidad", roleSkills).map(
+      (r) => r.slug,
+    );
+    expect(slugs).toEqual(["general_accounting", "payroll", "excel", "some_unlisted_skill"]);
+  });
+
+  it("transversales (Excel) y propias se quedan aunque se pidan poco", () => {
+    const slugs = filterPlanByCareer(
+      [demand("excel", 1), demand("payroll", 1)],
+      "finanzas_contabilidad",
+      roleSkills,
+    ).map((r) => r.slug);
+    expect(slugs).toEqual(["excel", "payroll"]);
+  });
+
+  it("una skill de otra familia entra si la demanda de la carrera la justifica", () => {
+    const rows = [demand("general_accounting", 20), demand("iam", OFF_FAMILY_MIN_MENTIONS)];
+    // 5 menciones = piso y 25% de 20: justifica
+    expect(
+      filterPlanByCareer(rows, "finanzas_contabilidad", roleSkills).map((r) => r.slug),
+    ).toContain("iam");
+    // 4 menciones: no
+    const few = [demand("general_accounting", 20), demand("iam", OFF_FAMILY_MIN_MENTIONS - 1)];
+    expect(
+      filterPlanByCareer(few, "finanzas_contabilidad", roleSkills).map((r) => r.slug),
+    ).not.toContain("iam");
+  });
+
+  it("el piso es relativo: con una skill propia muy pedida, 5 menciones no alcanzan", () => {
+    const rows = [demand("general_accounting", 100), demand("iam", 6)];
+    expect(
+      filterPlanByCareer(rows, "finanzas_contabilidad", roleSkills).map((r) => r.slug),
+    ).toEqual(["general_accounting"]);
+  });
+
+  it("en tecnología las carreras del grupo comparten familia", () => {
+    const rows = [demand("rag", 1), demand("docker", 1)];
+    expect(filterPlanByCareer(rows, "backend", roleSkills).map((r) => r.slug)).toEqual([
+      "rag",
+      "docker",
+    ]);
+  });
+
+  it("Contaduría no hereda Propiedad intelectual de Abogacía; Abogacía sí la tiene", () => {
+    const rows = [demand("ip_law", 1), demand("contract_drafting", 1)];
+    expect(filterPlanByCareer(rows, "finanzas_contabilidad", roleSkills)).toEqual([]);
+    expect(filterPlanByCareer(rows, "abogacia", roleSkills).map((r) => r.slug)).toEqual([
+      "ip_law",
+      "contract_drafting",
+    ]);
+  });
+
+  it("la salida de buildPlan después del filtro no trae las skills cortadas", () => {
+    const filtered = filterPlanByCareer(accountingDemand, "finanzas_contabilidad", roleSkills);
+    const plan = buildPlan(filtered.map((r) => ({ ...r, level: null, closureHours: 16 })));
+    expect(plan.map((p) => p.slug)).not.toContain("growth_marketing");
+  });
+});
 
 describe("pickLearningResource (121 §7)", () => {
   const r = (id: string, targetLevel: number, hours: number | null) => ({ id, targetLevel, hours });
