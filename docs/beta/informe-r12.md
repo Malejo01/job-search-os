@@ -25,7 +25,7 @@ escritas en [ADR-038](../adr/038-coach-de-cv.md), que pasó a **Accepted** en R1
 | 12 | [#525](https://github.com/Malejo01/job-search-os/pull/525) | R12-9 · turno `cv_coach_turn` | R12-8 | rojo | — |
 | 13 | [#530](https://github.com/Malejo01/job-search-os/pull/530) | R12-10 · pantallas y rutas del coach | R12-9 | rojo | `CV_COACH=testers` cuando Mauro decida |
 | 14 | [#531](https://github.com/Malejo01/job-search-os/pull/531) | R12-11 · cierre y «qué mejoró» | R12-10 | verde | — |
-| 15 | pendiente | R12-13 · golden de CVs y harness del coach | pila del coach | rojo | — |
+| 15 | [#532](https://github.com/Malejo01/job-search-os/pull/532) | R12-13 · golden de CVs y harness del coach | R12-11 | rojo | Corridas pagas: las hace Mauro (§5.7) |
 
 Los PRs 1 a 8 son lo que necesita la prueba de Ani del 20/11 (aviso temprano, §3). Del 9 al 15 es la Fase 2,
 detrás de `CV_COACH`, apagado por defecto.
@@ -49,15 +49,15 @@ ronda/r12-8-cv-review
 ronda/r12-9-coach-turn
 ronda/r12-10-pantallas-coach
 ronda/r12-11-que-mejoro
-ronda/r12-13-golden-coach (pendiente: lectura en curso)
+ronda/r12-13-golden-coach
 ronda/r12-cierre
 ```
 
 - **Único conflicto:** `apps/web/lib/cv-chat-server.ts` al mezclar `ronda/r12-2-multicampo`. Se resuelve
   quedándose con la línea de R12-4: `link: e.link ?? null,`.
-- **Probado por el lead (17/11, en local, sin empujar):** las 14 ramas de la tabla, salvo R12-13 y el cierre,
-  mezcladas en ese orden. `pnpm lint`, `pnpm typecheck` y `pnpm test` en verde: pipeline 5331, adapters
-  1187, web 15, db 151, evals 119, prompts 31. En una base limpia con la migración 0066, la integración de
+- **Probado por el lead (17/11, en local, sin empujar):** las 16 ramas de la lista, mezcladas en ese orden.
+  `pnpm lint`, `pnpm typecheck` y `pnpm test` en verde: pipeline 5336, adapters 1187, web 15, db 151,
+  evals 162, prompts 31. En una base limpia con la migración 0066, la integración de
   `career_history` dio 7/7 y la de `profile-agent`, `cv-chat`, `cv` y `cv-coach` 92/92. La suite completa
   de integración no se pudo validar en la nube: inbound, métricas y cuentas de prueba dependen del entorno
   del CI. Los e2e (85, 86, 125, 135, 141, 142, 147) quedan para el CI; el 125 solo corre en el PR hacia `main`.
@@ -121,7 +121,15 @@ confirman la prueba de Ani y una corrida con el modelo real del harness de R12-1
 5. **`pdfjs-dist`:** no quedó pendiente; la versión 6.5.438 se verificó en el registro (publicada el 01/11).
 6. **Privacidad:** correr `pnpm secrets:scan` y `node scripts/privacy-scan.mjs`. No corrieron en la nube
    (sin Docker ni `fixtures-private/`). R12-10 sumó a `.gitleaksignore` la huella de la clave inventada del e2e 147.
-7. **Evals con el modelo real (R12-13):** pendiente: lo agrega R12-13 en su PR (lectura en curso al empujar este informe).
+7. **Evals con el modelo real (R12-13, #532)**, desde `evals/`, con su CV en
+   `fixtures-private/cv-coach/mauro.json` (formato en `fixtures-private.example/cv-coach/`):
+   ```
+   pnpm exec tsx src/cv-coach/cli.ts --modo modelo --db cloud --etapa diagnostico --privadas --dry-run
+   pnpm exec tsx src/cv-coach/cli.ts --modo modelo --db cloud --etapa diagnostico --privadas --runs 3 --max-usd 0.60
+   pnpm exec tsx src/cv-coach/cli.ts --modo modelo --db cloud --etapa charla --privadas --ids sin-experiencia,con-experiencia,cambio-de-carrera,mauro --max-usd 0.60
+   ```
+   La charla se corre **dos veces**: con `--runs 2` el estimado pasa el tope y no arranca. Diagnóstico
+   ≈ USD 0,17 por corrida y charla ≈ USD 0,45 por corrida: en total ≈ USD 1,41, dentro del tope de la tanda.
 
 ## 6. Gasto de evals
 
@@ -146,8 +154,12 @@ confirman la prueba de Ani y una corrida con el modelo real del harness de R12-1
 - **Misma carrera que R12-16 en otras reservas.** La del coach ya suelta la reserva bajo lock. Las del chat de
   CV y de huecos y cierre del agente de perfil siguen midiendo en varias consultas y soltando sin lock: como
   mucho dejan pasar un turno o una llamada de más con dos pedidos simultáneos, no un cupo de lectura.
-- **Gasto del coach en los topes compartidos:** arreglado por el lead en R12-8 (`c734a976`). La lectura, los
-  huecos y el cierre ahora ven `cv_review` y `cv_coach_turn` en los topes por persona y día y global.
+- **Arreglos del lead sobre ramas ya terminadas** (después de que el agente dueño cerró):
+  - R12-8 (`c734a976`): el gasto del coach entra en la medición compartida del agente, así la lectura, los
+    huecos y el cierre ven `cv_review` y `cv_coach_turn` en los topes por persona y día y global.
+  - R12-9 (`a076a8ce`) y R12-10 (`a415dd09`): dos bugs que encontró el harness de R12-13. Una skill nombrada
+    con un alias de la taxonomía se volvía a preguntar, y la plantilla cortaba el nombre a mitad de paréntesis.
+  - R12-6 (`35e9d8aa`): el e2e de la puerta pasó de 141 a 142, porque el 141 es el de PDF de R12-12.
 - **Reservas al límite:** la del turno queda en 1,246 veces el máximo (el prompt lleva solo el ítem en foco y
   el siguiente). La del diagnóstico entra porque el CV se recorta a 14 000 caracteres. Turno y coach
   propusieron bajar el turno a USD 0,035 o subir el diagnóstico a 0,06; se decide con las corridas reales.

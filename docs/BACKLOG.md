@@ -1733,7 +1733,7 @@ Base: `ronda/integracion-r11` (PR #517). Sale de la prueba de Mauro del 17/11 ([
 `deps:` — · `estado:` en PR ([#521](https://github.com/Malejo01/job-search-os/pull/521), 17/11) · `pdfjs-dist@6.5.438`
 
 ### R12-13 · Golden de CVs y harness del coach (carril rojo)
-`deps:` R12-8, R12-9 · `estado:` en curso (lectura, 17/11)
+`deps:` R12-8, R12-9 · `estado:` en PR ([#532](https://github.com/Malejo01/job-search-os/pull/532), 17/11) · sin corridas pagas: las hace Mauro
 
 ### R12-14 · Prueba con Ani y comparación de Mauro
 `deps:` — · `estado:` en PR ([#524](https://github.com/Malejo01/job-search-os/pull/524), 17/11)
