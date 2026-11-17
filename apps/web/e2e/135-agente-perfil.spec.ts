@@ -177,8 +177,12 @@ test.describe("Flujo 135: agente de perfil desde el CV, recorrido completo", () 
       await expect(done).toBeVisible();
 
       // 6. Guía: sin promesas en el copy; criterios y país no se escriben antes de completar el onboarding
-      await page.getByRole("link", { name: "Seguir con la guía de búsqueda" }).click();
-      await page.waitForURL(/\/onboarding\/cv\/guia/);
+      // Tiempos propios en el clic y la espera: si algo tapa el link o la guía no carga, el CI muestra
+      // el call log de este paso en vez de un timeout del test entero (falló así en las tres vueltas de #517)
+      const toGuide = page.getByRole("link", { name: "Seguir con la guía de búsqueda" });
+      await expect(toGuide).toHaveAttribute("href", /\/onboarding\/cv\/guia$/);
+      await toGuide.click({ timeout: 30_000 });
+      await page.waitForURL(/\/onboarding\/cv\/guia/, { timeout: 60_000 });
       const step = page.getByTestId("guide-step");
       const cards = page.getByTestId("guide-cards");
       for (let i = 0; i < 10; i++) {
