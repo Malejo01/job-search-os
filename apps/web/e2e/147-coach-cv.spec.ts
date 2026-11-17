@@ -217,7 +217,39 @@ test.describe("Flujo 147: coach de CV", () => {
     await expect(page.getByTestId("coach-issues")).toBeVisible();
     expect(reviews).toBe(0);
 
-    await page.getByTestId("coach-finish").click();
+    // La charla: primera pregunta de plantilla (sin modelo), dos turnos con el modelo de demo
+    await page.getByTestId("coach-start-chat").click();
+    await page.waitForURL(/\/cv\/coach\/charla/);
+    await expect(page.getByTestId("coach-line-coach").first()).toBeVisible();
+    const answers = [
+      "Con esos tableros el equipo cerraba las ventas del mes dos días antes",
+      "Armé los tableros junto con el equipo de ventas",
+    ];
+    for (const [n, text] of answers.entries()) {
+      await page.getByTestId("coach-answer").fill(text);
+      await page.getByTestId("coach-send").click();
+      await expect(page.getByTestId("coach-line-me").last()).toHaveText(text);
+      // El acuse lo arma el código (el turno de demo no extrae nada: «no llegué a entender»)
+      await expect(page.getByTestId("coach-line-ack")).toHaveCount(n + 1);
+    }
+    // Dos respuestas ilegibles sobre el mismo problema: se saltea y la lista se agota
+    await expect(page.getByTestId("coach-done")).toBeVisible();
+    // Dos llamadas a `cv_coach_turn` con el `label` de la charla, ninguna para la primera pregunta
+    {
+      const { db, close } = ownerDb();
+      try {
+        const turns = await db
+          .select()
+          .from(s.llmCalls)
+          .where(and(eq(s.llmCalls.userId, E2E_B_USER_ID), eq(s.llmCalls.task, "cv_coach_turn")));
+        expect(turns).toHaveLength(2);
+        expect(turns.every((t) => t.label?.startsWith("cv:"))).toBe(true);
+      } finally {
+        await close();
+      }
+    }
+
+    await page.getByTestId("coach-chat-finish").click();
     await page.waitForURL(/\/cv\/coach\/listo/);
   });
 });

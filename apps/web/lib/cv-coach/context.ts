@@ -5,8 +5,10 @@ import {
   cvCoachBeforeSchema,
   type CvCoachBefore,
   type CvReviewContext,
+  type CvCoachItem,
   type CvReviewItem,
   type SkillDemand,
+  cvSectionOfKind,
 } from "@job-search-os/pipeline";
 import { asc, eq, gte, and } from "drizzle-orm";
 import { catalogLabel } from "@/lib/career-names";
@@ -112,4 +114,30 @@ export function cvCoachBefore(
     })),
   });
   return parsed.success ? parsed.data : null;
+}
+
+/** Los ítems con la forma que usa el turno (R12-9): sección por tipo y «sigue ahí» si no tiene fin. */
+export function cvCoachItems(items: readonly CvReviewItem[]): CvCoachItem[] {
+  return items.map((i) => ({
+    id: i.id,
+    section: cvSectionOfKind(i.kind) as CvCoachItem["section"],
+    organization: i.organization,
+    title: i.title,
+    startMonth: i.startMonth,
+    endMonth: i.endMonth,
+    isCurrent: i.startMonth !== null && i.endMonth === null,
+    bullets: i.bullets,
+    link: i.link,
+  }));
+}
+
+/** `slug` → nombre de la taxonomía, solo para las skills que nombran los problemas. */
+export function cvCoachSkillNames(
+  ctx: CvReviewContext,
+  slugs: readonly (string | null)[],
+): Record<string, string> {
+  const wanted = new Set(slugs.filter((x): x is string => x !== null));
+  const out: Record<string, string> = {};
+  for (const t of ctx.taxonomy) if (wanted.has(t.slug)) out[t.slug] = t.name;
+  return out;
 }
