@@ -1,8 +1,7 @@
-import type { CvMissing } from "@job-search-os/pipeline";
+import { profileAgentPath, type CvMissing } from "@job-search-os/pipeline";
 import { HelpTip } from "@/components/help-tip";
 import Link from "next/link";
 import { CvPreview } from "@/components/cv-preview";
-import { UploadCard } from "@/components/profile-agent/upload-card";
 import { profileAgentAllowedFor } from "@/lib/profile-agent/access";
 import { PrintButton } from "@/components/print-button";
 import { canCreateInvitations } from "@/lib/invitations";
@@ -31,6 +30,53 @@ const MISSING: Partial<Record<CvMissing, { text: string; href: string; cta: stri
     cta: "Completalo en Tu perfil",
   },
 };
+
+/**
+ * Puerta única de `/cv` (R12-6, D6 de ADR-038): con el agente de perfil activo para la persona, dos caminos
+ * en vez de dos botones sueltos. «Tengo CV» lleva a la lectura (`/cv/perfil`); «No tengo CV», al chat
+ * (`/cv/armar`) o, si el chat no está abierto para la persona, a cargar el historial a mano.
+ */
+function CvDoor({ chatVisible }: { chatVisible: boolean }) {
+  const option = cardClasses({ level: "list", padding: "md", className: "flex flex-col gap-2" });
+  return (
+    <section
+      aria-labelledby="cv-puerta"
+      data-testid="cv-door"
+      className="no-print flex flex-col gap-3"
+    >
+      <h2 id="cv-puerta" className="text-base font-bold text-fg">
+        ¿Ya tenés un CV hecho?
+      </h2>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className={option}>
+          <p className="text-sm text-fg-muted">
+            Lo leemos en tu navegador (el archivo no se sube), vos confirmás lo que entendimos y
+            completamos solo lo que falte.
+          </p>
+          <Link
+            href={profileAgentPath("app", "read")}
+            className={buttonClasses({ className: "self-start" })}
+          >
+            Tengo CV
+          </Link>
+        </div>
+        <div className={option}>
+          <p className="text-sm text-fg-muted">
+            {chatVisible
+              ? "Te hago preguntas de a una y armamos tu CV charlando."
+              : "Cargá tus trabajos y estudios a mano y armamos el CV con eso."}
+          </p>
+          <Link
+            href={chatVisible ? "/cv/armar" : "/settings/historial"}
+            className={buttonClasses({ variant: "secondary", className: "self-start" })}
+          >
+            No tengo CV
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 /**
  * Tu CV (C-25, CVC-2): vista previa en HTML semántico del CV armado solo con lo que la persona
@@ -68,7 +114,12 @@ export default async function CvPage({ searchParams }: { searchParams: Promise<P
     const item: { text: string; href: string | null; cta: string } | undefined =
       m === "summary"
         ? chatVisible
-          ? { text: "un resumen", href: "/cv/armar", cta: "Armalo con «Armá tu CV con IA»" }
+          ? {
+              text: "un resumen",
+              href: "/cv/armar",
+              // R12-6: con la puerta, el botón del chat se llama «No tengo CV»
+              cta: agentVisible ? "Armalo charlando con la IA" : "Armalo con «Armá tu CV con IA»",
+            }
           : { text: "un resumen (todavía no hay dónde escribirlo)", href: null, cta: "" }
         : MISSING[m];
     return item ? [{ key: m, ...item }] : [];
@@ -84,9 +135,10 @@ export default async function CvPage({ searchParams }: { searchParams: Promise<P
       </p>
       <HelpTip topic="cv" className="no-print" />
 
-      {agentVisible ? <UploadCard base="app" /> : null}
+      {/* R12-6: con el agente de perfil, la puerta reemplaza a la tarjeta de subida y al link del chat */}
+      {agentVisible ? <CvDoor chatVisible={chatVisible} /> : null}
 
-      {chatVisible ? (
+      {!agentVisible && chatVisible ? (
         <Link
           href="/cv/armar"
           // C9-11: secundario; la lima queda para «Descargar DOCX», la acción principal de la pantalla
