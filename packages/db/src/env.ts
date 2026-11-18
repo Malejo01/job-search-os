@@ -12,8 +12,16 @@ export function loadLocalEnv(): void {
   if (existsSync(envPath)) process.loadEnvFile(envPath);
 }
 
-/** Postgres de infra/docker-compose.yml, como dueño (migraciones, seeds). */
+/** Postgres de infra/docker-compose.yml, como dueño (migraciones, seeds), con la contraseña por defecto. */
 export const LOCAL_DATABASE_URL = "postgres://postgres:postgres@localhost:54322/jobsearch";
+
+/** URL del dueño en Docker. La contraseña sale de `JSO_LOCAL_DB_PASSWORD`, la misma que usa el compose. */
+export function localDatabaseUrl(env: Record<string, string | undefined> = process.env): string {
+  const password = env.JSO_LOCAL_DB_PASSWORD?.trim();
+  if (!password) return LOCAL_DATABASE_URL;
+  return `postgres://postgres:${encodeURIComponent(password)}@localhost:54322/jobsearch`;
+}
+
 /** Ídem, como la app: rol jobsearch_app sin ownership ni BYPASSRLS (contraseña la fija db:migrate --local). */
 export const LOCAL_APP_DATABASE_URL =
   "postgres://jobsearch_app:jobsearch_app@localhost:54322/jobsearch";
@@ -54,7 +62,7 @@ export function resolveDatabaseUrl(
   if (target === "local") {
     return purpose === "app"
       ? (process.env.DATABASE_URL_APP_LOCAL ?? LOCAL_APP_DATABASE_URL)
-      : (process.env.DATABASE_URL_LOCAL ?? LOCAL_DATABASE_URL);
+      : process.env.DATABASE_URL_LOCAL || localDatabaseUrl();
   }
   if (purpose === "migration") return process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
   if (purpose === "service") return process.env.DATABASE_URL;
