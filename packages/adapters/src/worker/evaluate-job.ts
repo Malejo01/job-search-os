@@ -4,6 +4,7 @@ import {
   buildChecklist,
   buildEvaluateJobVars,
   canTransition,
+  checkJdSize,
   compileTaxonomy,
   decide,
   detectEvaluatorInjection,
@@ -303,6 +304,19 @@ export async function evaluateForProfile(
     job,
   });
 
+  // Estimado antes de llamar al modelo: queda en el log para ver el tamaño real de cada aviso
+  const jdSize = checkJdSize(job.jdText);
+  input.logger?.debug?.(
+    {
+      user_id: input.ctx?.userId,
+      job_id: input.ctx?.jobId,
+      jd_chars: jdSize.chars,
+      jd_estimated_tokens: jdSize.estimatedTokens,
+      jd_truncated: jdSize.ok && jdSize.truncated,
+    },
+    "evaluación: tamaño del aviso",
+  );
+
   const result = input.reuse
     ? ({
         ok: true,
@@ -464,6 +478,22 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
   if (!job) return { ok: false, jobId, error: "job inexistente", retry: "failed" };
   if (!job.jdText?.trim()) {
     return { ok: false, jobId, error: "job sin jd_text: no se evalúa", retry: "skipped" };
+  }
+  // JD fuera de tamaño razonable: no se llama al modelo; la oferta espera una JD más corta
+  const size = checkJdSize(job.jdText);
+  if (!size.ok) {
+    log.warn({ chars: size.chars, estimated_tokens: size.estimatedTokens }, "JD demasiado larga");
+    if (job.status === "prefiltrada") {
+      await db
+        .update(s.jobs)
+        .set({
+          status: transition(job.status, "needs_jd"),
+          prefilterReason: size.reason,
+          updatedAt: deps.now?.() ?? new Date(),
+        })
+        .where(eq(s.jobs.id, job.id));
+    }
+    return { ok: false, jobId, error: size.reason, retry: "skipped" };
   }
   // Cerrada/descartada después de encolar (JS-017): no gastar una llamada en algo que no puede transicionar
   if (!canTransition(job.status, "evaluated")) {

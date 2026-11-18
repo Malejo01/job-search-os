@@ -85,6 +85,18 @@ describe("Careerjet: mapCareerjetJob", () => {
   });
 });
 
+describe("Careerjet: largo de los campos", () => {
+  it("recorta título a 300 y la nota de sueldo a 200", () => {
+    const raw = mapCareerjetJob({
+      ...fullItem,
+      title: "t".repeat(1_000_000),
+      salary: "s".repeat(10_000),
+    })!;
+    expect(raw.title).toHaveLength(300);
+    expect(raw.salaryNote).toHaveLength(200);
+  });
+});
+
 describe("Careerjet: parseCareerjetPage (falla cerrado)", () => {
   it("acepta la forma esperada", () => {
     expect(parseCareerjetPage(fixtureData)).toHaveLength(3);
