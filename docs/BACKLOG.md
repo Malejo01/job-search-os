@@ -1803,3 +1803,22 @@ Base: `origin/main` en `0ef91b9`. Informe de la tanda: [`docs/beta/informe-r14.m
 
 ### R14 · Cierre de la tanda
 `deps:` todo en rama · `estado:` en rama (18/11) · `ronda/r14-cierre`
+
+## Bloque 29 · Tanda R15 «Planes, cobro y legales» (18/11, noche)
+
+Base: `origin/main` en `0ef91b9`. Informe de la tanda: [`docs/beta/informe-r15.md`](beta/informe-r15.md). Ningún PR mergeado.
+
+### R15-1 · Página de planes detrás de `PRICING_V2`
+`deps:` — · `estado:` en rama, e2e sin ejecutar (18/11) · `ronda/r15-1-planes-v2`
+
+### R15-2 · Precio especial para becados y testers (carril rojo)
+`deps:` — · `estado:` en rama, **falta generar la migración 0067** (18/11) · `ronda/r15-2-plan-override` · [ADR-040](adr/040-precio-especial.md)
+
+### R15-3 · Dominio viejo en servicios externos
+`deps:` — · `estado:` en rama (18/11) · `ronda/r15-3-dominio-viejo` · paneles externos: paso manual
+
+### R15-4 · IA y proveedores en la política de privacidad (carril rojo)
+`deps:` — · `estado:` en rama, con revisión legal pendiente (18/11) · `ronda/r15-4-privacidad-ia`
+
+### R15 · Cierre de la tanda
+`deps:` todo en rama · `estado:` en rama (18/11) · `ronda/r15-cierre`
