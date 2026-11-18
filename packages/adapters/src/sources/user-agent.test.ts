@@ -8,7 +8,20 @@ describe("sourceUserAgent", () => {
     );
   });
 
-  it("prioriza APP_URL, luego NEXT_PUBLIC_APP_URL, luego AUTH_URL", () => {
+  it("SITE_URL (el dominio público vigente) gana sobre las variables de respaldo", () => {
+    expect(
+      sourceUserAgent({
+        SITE_URL: "https://nuevo.example.com/",
+        APP_URL: "https://viejo.example.com",
+        AUTH_URL: "https://viejo.example.com",
+      }),
+    ).toBe("AfinIAJobs/1.0 (+https://nuevo.example.com)");
+    expect(sourceUserAgent({ SITE_URL: "no es una url", APP_URL: "https://ok.example.com" })).toBe(
+      "AfinIAJobs/1.0 (+https://ok.example.com)",
+    );
+  });
+
+  it("sin SITE_URL, prioriza APP_URL, luego NEXT_PUBLIC_APP_URL, luego AUTH_URL", () => {
     expect(
       sourceUserAgent({
         APP_URL: "https://uno.example.com",
