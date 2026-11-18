@@ -41,7 +41,7 @@
     "ai": "^7.0.97",
     "drizzle-orm": "^0.45.2",
     "pino": "^10.3.1",
-    "zod": "^4.6.1"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@testcontainers/postgresql": "^12.1.0",
