@@ -7,6 +7,7 @@ import {
   ResendAnyEventSchema,
   ResendReceivedEventSchema,
   safeDbError,
+  SVIX_INVALID_SECRET_REASON,
   verifySvix,
 } from "@job-search-os/adapters";
 import { NextResponse } from "next/server";
@@ -14,6 +15,9 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+
+/** El aviso de configuración sale una sola vez por instancia, y nunca con el valor del secreto. */
+let invalidSecretLogged = false;
 
 /**
  * Webhook de email entrante (JS-020, ADR-003). Resend (vía Svix) hace POST por cada email que
@@ -31,6 +35,15 @@ export async function POST(request: Request): Promise<NextResponse> {
     rawBody,
     process.env.RESEND_WEBHOOK_SECRET,
   );
+  if (!verdict.ok && verdict.reason === SVIX_INVALID_SECRET_REASON) {
+    if (!invalidSecretLogged) {
+      invalidSecretLogged = true;
+      createLogger({ webhook: "inbound" }).error(
+        "inbound: RESEND_WEBHOOK_SECRET con formato inválido",
+      );
+    }
+    return NextResponse.json({ error: "firma inválida" }, { status: 401 });
+  }
   if (!verdict.ok) {
     return NextResponse.json({ error: `firma inválida: ${verdict.reason}` }, { status: 401 });
   }
