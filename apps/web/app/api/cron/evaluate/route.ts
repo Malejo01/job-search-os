@@ -61,6 +61,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       const detail = await purgeExpired(db, {
         now: new Date(),
         logDays: parseLogDays(process.env.LEGAL_LOG_DAYS),
+        inboundRawDays: parseLogDays(process.env.INBOUND_RAW_RETENTION_DAYS),
       });
       purged = detail.tokens + detail.llmCalls + detail.queue + detail.rejections;
       logger.info({ purged: detail }, "purga de retención");
