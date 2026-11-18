@@ -19,7 +19,7 @@ import {
  * pretensión salarial se completan acá, deterministamente, y no pasan por el modelo. Lo que sí
  * pasa por el modelo se valida después: una fuente que no es una clave de candidate_facts se
  * trata como "sin fuente" y el borrador se vacía. Nada se envía: la persona copia y revisa.
- * Pensado para correr dentro de una transacción con app.user_id fijado (RLS).
+ * Las lecturas corren en una transacción con app.user_id fijado (RLS); el modelo se llama afuera.
  */
 
 export const SIN_FUENTE = "sin fuente";
@@ -261,12 +261,24 @@ function validateModelDraft(
   };
 }
 
-export async function draftApplicationAnswers(
+export type DraftsInput = { userId: string; jobId: string; questions: FormQuestion[] };
+
+/** Lo que se leyó de la base para redactar: alcanza para llamar al modelo sin ninguna conexión abierta. */
+export type PreparedDrafts = {
+  userId: string;
+  jobId: string;
+  questions: FormQuestion[];
+  results: Map<string, DraftedAnswer>;
+  forModel: FormQuestion[];
+  /** null si ninguna pregunta necesita al modelo. */
+  model: { vars: Record<string, string>; validKeys: Set<string> } | null;
+};
+
+/** Valida el formulario y lee perfil, hechos, oferta y respuestas previas. No llama al modelo. */
+export async function prepareApplicationDrafts(
   db: Db,
-  input: { userId: string; jobId: string; questions: FormQuestion[] },
-  llm: LlmClient,
-  capGuard: () => Promise<DraftsCapDecision>,
-): Promise<DraftApplicationAnswersResult> {
+  input: DraftsInput,
+): Promise<PreparedDrafts> {
   const { userId, jobId } = input;
   const questions = input.questions.map((q) => ({ id: q.id.trim(), text: q.text.trim() }));
   if (questions.length === 0) throw new ApplicantFailure("empty_form");
@@ -285,13 +297,72 @@ export async function draftApplicationAnswers(
     if (kind) results.set(q.id, fixedDraft(q, kind, profile));
     else forModel.push(q);
   }
+  if (forModel.length === 0) {
+    return { userId, jobId, questions, results, forModel, model: null };
+  }
+
+  // getCandidateProfile no expone la clave de cada hecho; hace falta para citar y para validar.
+  const facts = await db
+    .select({
+      key: s.candidateFacts.key,
+      project: s.candidateFacts.project,
+      claim: s.candidateFacts.claim,
+      metric: s.candidateFacts.metric,
+      verification: s.candidateFacts.verification,
+    })
+    .from(s.candidateFacts)
+    .where(and(eq(s.candidateFacts.userId, userId), eq(s.candidateFacts.active, true)))
+    .orderBy(asc(s.candidateFacts.sort), asc(s.candidateFacts.key));
+  const validKeys = new Set(facts.map((f) => f.key));
+
+  const [job] = await db
+    .select({ title: s.jobs.title, jdText: s.jobs.jdText })
+    .from(s.jobs)
+    .where(and(eq(s.jobs.id, jobId), eq(s.jobs.userId, userId)));
+
+  const previous = new Map<string, BankAnswer>();
+  for (const q of forModel) {
+    for (const a of await listAnswers(db, { userId, query: q.text, limit: 2 })) {
+      previous.set(a.id, a);
+    }
+  }
+
+  // Sin resumen, años ni inglés: son afirmaciones sin clave y el modelo las repetiría como hechos.
+  const profileForModel = {
+    location: profile.profile.location,
+    remote_only: profile.profile.remote_only,
+    timezone: profile.profile.timezone,
+  };
+  const vars = {
+    facts: JSON.stringify(facts.length > 0 ? facts : NO_FACTS),
+    profile: JSON.stringify(profileForModel),
+    previous_answers: JSON.stringify(
+      [...previous.values()]
+        .slice(0, MAX_PREVIOUS_ANSWERS)
+        .map((a) => ({ question: a.question, answer: a.answer, lang: a.lang })),
+    ),
+    job_title: job?.title ?? "",
+    job: sanitizeJd(job?.jdText ?? "(sin texto del aviso)"),
+    questions: JSON.stringify(forModel),
+  };
+  return { userId, jobId, questions, results, forModel, model: { vars, validKeys } };
+}
+
+/** Reserva el gasto, llama al modelo y valida lo que devolvió. No usa la conexión de la persona. */
+export async function completeApplicationDrafts(
+  prepared: PreparedDrafts,
+  llm: LlmClient,
+  capGuard: () => Promise<DraftsCapDecision>,
+): Promise<DraftApplicationAnswersResult> {
+  const { userId, jobId, questions, forModel, model } = prepared;
+  const results = new Map(prepared.results);
 
   let llmInfo: DraftApplicationAnswersResult["llm"] = null;
   let llmError: LlmError | null = null;
 
   let capMessage: string | null = null;
   let releaseSpend: (() => Promise<void>) | undefined;
-  if (forModel.length > 0) {
+  if (model) {
     const decision = await capGuard();
     capMessage = decision.message;
     releaseSpend = decision.release;
@@ -308,53 +379,9 @@ export async function draftApplicationAnswers(
         note: `${capMessage} Redactala vos.`,
       });
     }
-  } else if (forModel.length > 0) {
+  } else if (model) {
+    const { vars, validKeys } = model;
     try {
-      // getCandidateProfile no expone la clave de cada hecho; hace falta para citar y para validar.
-      const facts = await db
-        .select({
-          key: s.candidateFacts.key,
-          project: s.candidateFacts.project,
-          claim: s.candidateFacts.claim,
-          metric: s.candidateFacts.metric,
-          verification: s.candidateFacts.verification,
-        })
-        .from(s.candidateFacts)
-        .where(and(eq(s.candidateFacts.userId, userId), eq(s.candidateFacts.active, true)))
-        .orderBy(asc(s.candidateFacts.sort), asc(s.candidateFacts.key));
-      const validKeys = new Set(facts.map((f) => f.key));
-
-      const [job] = await db
-        .select({ title: s.jobs.title, jdText: s.jobs.jdText })
-        .from(s.jobs)
-        .where(and(eq(s.jobs.id, jobId), eq(s.jobs.userId, userId)));
-
-      const previous = new Map<string, BankAnswer>();
-      for (const q of forModel) {
-        for (const a of await listAnswers(db, { userId, query: q.text, limit: 2 })) {
-          previous.set(a.id, a);
-        }
-      }
-
-      // Sin resumen, años ni inglés: son afirmaciones sin clave y el modelo las repetiría como hechos.
-      const profileForModel = {
-        location: profile.profile.location,
-        remote_only: profile.profile.remote_only,
-        timezone: profile.profile.timezone,
-      };
-      const vars = {
-        facts: JSON.stringify(facts.length > 0 ? facts : NO_FACTS),
-        profile: JSON.stringify(profileForModel),
-        previous_answers: JSON.stringify(
-          [...previous.values()]
-            .slice(0, MAX_PREVIOUS_ANSWERS)
-            .map((a) => ({ question: a.question, answer: a.answer, lang: a.lang })),
-        ),
-        job_title: job?.title ?? "",
-        job: sanitizeJd(job?.jdText ?? "(sin texto del aviso)"),
-        questions: JSON.stringify(forModel),
-      };
-
       const r = await llm.generateStructured(
         "draft_application_answers",
         DraftApplicationAnswersSchema,
@@ -398,4 +425,28 @@ export async function draftApplicationAnswers(
     llm_error: llmError,
     ...(capMessage ? { cap_message: capMessage } : {}),
   };
+}
+
+/**
+ * Borradores completos sin retener una conexión mientras responde el modelo: `read` abre una
+ * transacción corta para las lecturas y se cierra antes de llamarlo.
+ */
+export async function generateApplicationDrafts(
+  read: <T>(run: (tx: Db) => Promise<T>) => Promise<T>,
+  input: DraftsInput,
+  llm: LlmClient,
+  capGuard: () => Promise<DraftsCapDecision>,
+): Promise<DraftApplicationAnswersResult> {
+  const prepared = await read((tx) => prepareApplicationDrafts(tx, input));
+  return completeApplicationDrafts(prepared, llm, capGuard);
+}
+
+/** Las dos etapas sobre la misma conexión, para quien ya tiene una abierta. */
+export async function draftApplicationAnswers(
+  db: Db,
+  input: DraftsInput,
+  llm: LlmClient,
+  capGuard: () => Promise<DraftsCapDecision>,
+): Promise<DraftApplicationAnswersResult> {
+  return completeApplicationDrafts(await prepareApplicationDrafts(db, input), llm, capGuard);
 }
