@@ -1,6 +1,6 @@
 # Estrategia de testing
 
-Objetivo doble: confiabilidad del sistema y evidencia verificable de "testing automatizado", "evals de LLM", "CI/CD" y "Docker" para el perfil de Mauro.
+Objetivo doble: confiabilidad del sistema y evidencia verificable de "testing automatizado", "evals de LLM", "CI/CD" y "Docker" para el perfil del dueño del proyecto.
 
 ## Pirámide
 
@@ -68,11 +68,28 @@ pnpm e2e:local 20 126      # corre solo los specs 20 y 126 (sin números, corre 
 Ambos pasan por `scripts/e2e-local.mjs`, que fija las variables **adentro** (no hace falta ninguna delante del comando):
 
 - `DB_TARGET=local`, `LLM_DEMO=1` y las URLs locales explícitas, así que un `.env.local` no puede redirigir la base.
-- `SEED_FIXTURES=example`: el seed ignora `fixtures-private/` y usa los archivos de ejemplo. Usuario de e2e `mauro@job-search-os.local` (ficticio, el mismo del CI), admin para los casos que lo piden.
+- `SEED_FIXTURES=example`: el seed ignora `fixtures-private/` y usa los archivos de ejemplo. Usuario de e2e ficticio (`E2E_EMAIL` en `scripts/e2e-local.mjs`, el mismo del CI), admin para los casos que lo piden.
 - **Falla cerrado:** si en el entorno hay una variable de base (`DATABASE*`, `PGHOST`, `*_URL` o un valor `postgres://`) que no sea localhost, el script corta antes de lanzar nada. Neon no es alcanzable por este camino.
 - Los filtros solo aceptan números o nombres (`[\w-]`): `20` equivale al prefijo `20-` del archivo, sin confundirlo con `120-`.
 
-Cubierto por `packages/adapters/src/e2e-local/e2e-local.test.ts` (guarda, entorno y filtros) y `packages/db/src/e2e-seed.integration.test.ts` (seed de ejemplo contra Testcontainers). Los agentes no lo corren: el guard bloquea `pnpm e2e*`; lo corre Mauro o el CI.
+Cubierto por `packages/adapters/src/e2e-local/e2e-local.test.ts` (guarda, entorno y filtros) y `packages/db/src/e2e-seed.integration.test.ts` (seed de ejemplo contra Testcontainers). Los agentes no lo corren: el guard bloquea `pnpm e2e*`; lo corre el dueño del proyecto o el CI.
+
+## El rol `jobsearch_app` es del cluster, no de la base (R13-9)
+
+En Postgres un rol (usuario) vale para todo el servidor, no para una base. `jobsearch_app` se crea en la migración `packages/db/drizzle/0003_app_role.sql:8` (sin contraseña) y es el rol con el que la app consulta con RLS. La contraseña se fija aparte:
+
+- **Local y e2e:** `pnpm db:migrate:local` la deja en `jobsearch_app` (`packages/db/src/env.ts:21`, aplicada en `packages/db/src/migrate.ts:46-49`). Los e2e se conectan con esa clave (`DATABASE_URL_APP_LOCAL`, ver `env.ts:19` y el `ci.yml`).
+- **Tests de integración:** 23 archivos `*.integration.test.ts` (22 en `packages/db/src`, uno en `packages/adapters/src/profile-agent/read/cards-save.integration.test.ts`) hacen `ALTER ROLE jobsearch_app WITH PASSWORD 'jobsearch_app_test'` en su `beforeAll`. Ejemplo: `packages/db/src/pool-rls.integration.test.ts:47`.
+
+**Qué se rompe.** Esos tests levantan un Postgres propio con Testcontainers, salvo que exista `DATABASE_URL`: con esa variable reusan ese Postgres (`pool-rls.integration.test.ts:35-36`, y el mismo patrón en 20 archivos). Si `DATABASE_URL` apunta al `jso-postgres` donde corren los e2e, el `ALTER ROLE` cambia la clave de `jobsearch_app` para todas las bases de ese Postgres. Los e2e siguientes conectan con la clave vieja (`jobsearch_app`) y fallan con error de autenticación del rol, aunque el código no haya cambiado.
+
+**Cómo evitarlo.**
+
+- No definas `DATABASE_URL` al correr `pnpm --filter <db|adapters> test:integration`: sin la variable, cada archivo usa su propio contenedor de Testcontainers, aislado del `jso-postgres` (la clave del cluster de los e2e no se toca).
+- En el CI no hay choque: el job `integration` y el job `e2e` tienen cada uno su servicio Postgres (ver `ci.yml`), así que no comparten rol.
+- Si necesitás apuntar la integración a una base existente, que sea un Postgres aparte de los e2e, nunca el `jso-postgres` de desarrollo.
+
+**Cómo recuperar la clave si ya chocaron.** Correr `pnpm db:migrate:local` sobre la base local: es idempotente y vuelve a fijar la clave de `jobsearch_app` (`migrate.ts:46-49`). `pnpm e2e:local:prepare` también migra, así que lo hace como parte de su preparación. No hace falta tocar el rol a mano.
 
 ## Docker
 
