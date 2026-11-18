@@ -4,6 +4,7 @@ import skills from "../../../db/seeds/skills.json";
 import { compileTaxonomy, extractSkillsFromText } from "./match";
 import {
   COMMUNICATION_ROLE_KEYS,
+  CONTENT_ROLE_KEYS,
   LEGAL_MANAGEMENT_ROLE_KEYS,
   MAX_ROLE_SKILLS,
   MIN_ROLE_SKILLS,
@@ -30,13 +31,14 @@ const NEW_KEYS: RoleKey[] = [
 ];
 
 describe("claves y grupos", () => {
-  it("las 4 claves van al final de ROLE_KEYS, en ese orden (relaciones_publicas llega después, ADR-033)", () => {
-    expect(ROLE_KEYS.slice(-5, -1)).toEqual(NEW_KEYS);
-    expect(ROLE_KEYS.at(-1)).toBe("relaciones_publicas");
+  it("las 4 claves van en ese orden, seguidas de relaciones_publicas (ADR-033) y de los 3 puestos de contenido (R14-1)", () => {
+    expect(ROLE_KEYS.slice(-8, -4)).toEqual(NEW_KEYS);
+    expect(ROLE_KEYS.at(-4)).toBe("relaciones_publicas");
+    expect(ROLE_KEYS.slice(-3)).toEqual(["marketing_ia", "edicion_video", "creacion_contenido"]);
     expect(ROLE_KEYS.slice(20, 22)).toEqual(["finanzas_contabilidad", "asistencia_operaciones"]);
   });
 
-  it("dos grupos nuevos al final del selector, con las carreras de la beta y las migradas (G2-1)", () => {
+  it("dos grupos nuevos al final del selector, con las carreras de la beta, las migradas (G2-1) y los puestos de contenido (R14-1)", () => {
     expect(ROLE_GROUPS.slice(-2)).toEqual([
       {
         label: "Derecho, contabilidad y gestión",
@@ -49,6 +51,9 @@ describe("claves y grupos", () => {
           "relaciones_publicas",
           "comunicacion",
           "relaciones_internacionales",
+          "marketing_ia",
+          "edicion_video",
+          "creacion_contenido",
         ],
       },
     ]);
@@ -62,6 +67,9 @@ describe("claves y grupos", () => {
       "relaciones_publicas",
       "comunicacion",
       "relaciones_internacionales",
+      "marketing_ia",
+      "edicion_video",
+      "creacion_contenido",
     ]);
     const flat = (label: string) => ROLE_GROUPS.find((g) => g.label === label)!.roles;
     expect(flat("Finanzas y operaciones")).toEqual(["asistencia_operaciones"]);
@@ -112,9 +120,11 @@ describe("skills por carrera", () => {
   });
 
   it.each(NEW_KEYS)("%s: al menos 6 skills propias (no reusadas de otras carreras)", (role) => {
-    // Relaciones públicas comparte a propósito skills con comunicación (ADR-033): no cuenta como «otra»
+    // Relaciones públicas comparte a propósito skills con comunicación (ADR-033), igual que los puestos
+    // de marketing y contenido (R14-1: redes, contenidos, audiovisual, Canva): no cuentan como «otra»
+    const sharing: readonly RoleKey[] = ["relaciones_publicas", ...CONTENT_ROLE_KEYS];
     const others = new Set(
-      ROLE_KEYS.filter((r) => r !== role && r !== "relaciones_publicas").flatMap(
+      ROLE_KEYS.filter((r) => r !== role && !sharing.includes(r)).flatMap(
         (r) => roleSkills[r].skills,
       ),
     );

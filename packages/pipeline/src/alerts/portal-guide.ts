@@ -223,6 +223,37 @@ export const ALERT_KEYWORDS: Partial<Record<AlertRoleKey, Keywords>> = {
     ],
     en: ["public relations", "pr specialist", "pr manager", "public affairs", "events coordinator"],
   },
+  // R14-1: puestos de marketing y contenido.
+  marketing_ia: {
+    es: [
+      "marketing con ia",
+      "marketing con inteligencia artificial",
+      "especialista en marketing con ia",
+      "ia generativa",
+      "contenido con ia",
+    ],
+    en: [
+      "ai marketing",
+      "ai marketing specialist",
+      "generative ai",
+      "marketing automation",
+      "chatgpt",
+    ],
+  },
+  edicion_video: {
+    es: ["editor de video", "editora de video", "editor de reels", "montajista", "postproducción"],
+    en: ["video editor", "video editing", "premiere pro", "after effects", "motion graphics"],
+  },
+  creacion_contenido: {
+    es: [
+      "creador de contenido",
+      "creadora de contenido",
+      "ugc",
+      "contenido para redes",
+      "creador de contenido para redes",
+    ],
+    en: ["content creator", "ugc creator", "social media content", "ugc", "short form video"],
+  },
   rrhh_it: {
     es: ["reclutador it", "recursos humanos", "talent acquisition", "selección de personal"],
     en: ["technical recruiter", "it recruiter", "talent acquisition", "hr business partner"],

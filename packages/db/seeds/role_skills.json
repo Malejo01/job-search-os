@@ -432,5 +432,51 @@
       "client_facing",
       "english_intermediate"
     ]
+  },
+  "marketing_ia": {
+    "label": "Marketing con IA",
+    "skills": [
+      "generative_ai_content",
+      "content_strategy",
+      "copywriting",
+      "social_media",
+      "social_analytics",
+      "canva",
+      "email_marketing",
+      "growth_marketing",
+      "seo",
+      "meta_ads",
+      "english_intermediate"
+    ]
+  },
+  "edicion_video": {
+    "label": "Edición de video",
+    "skills": [
+      "video_editing_tools",
+      "capcut",
+      "audiovisual",
+      "short_video_scripting",
+      "canva",
+      "social_media",
+      "social_analytics",
+      "content_strategy",
+      "generative_ai_content",
+      "client_facing"
+    ]
+  },
+  "creacion_contenido": {
+    "label": "Creación de contenido (UGC y redes)",
+    "skills": [
+      "ugc_content",
+      "short_video_scripting",
+      "capcut",
+      "canva",
+      "social_media",
+      "copywriting",
+      "generative_ai_content",
+      "social_analytics",
+      "content_strategy",
+      "english_intermediate"
+    ]
   }
 }

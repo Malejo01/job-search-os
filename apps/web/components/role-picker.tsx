@@ -41,6 +41,10 @@ const ROLE_HELP: Readonly<Record<string, string>> = {
   relaciones_publicas: "Prensa, eventos, reputación y vínculo con la comunidad",
   relaciones_internacionales: "Comercio exterior, cooperación y asuntos internacionales",
   fullstack: "Programación de la parte visible y del servidor de una aplicación",
+  // R14-1: puestos de marketing y contenido
+  marketing_ia: "Marketing que usa IA generativa para textos, imágenes y campañas",
+  edicion_video: "Edición de reels y videos cortos para redes y marcas",
+  creacion_contenido: "Contenido propio y UGC para redes y marcas",
 };
 
 /**

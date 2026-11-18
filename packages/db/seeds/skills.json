@@ -1222,5 +1222,45 @@
     "aliases": ["influencer marketing", "influencers", "relación con influencers", "relacion con influencers", "brand ambassadors", "embajadores de marca", "gestión de influencers", "gestion de influencers", "influencer relations"],
     "closure_hours": 16,
     "description": "Influencers: elegir creadores, acordar condiciones y seguir campañas con embajadores de marca"
+  },
+  {
+    "slug": "video_editing_tools",
+    "name": "Edición de video (Premiere y DaVinci)",
+    "category": "dominio",
+    "aliases": ["adobe premiere", "premiere", "adobe premiere pro", "davinci", "after effects", "adobe after effects", "montaje de video", "editor de video", "video editor", "edición de reels", "edicion de reels"],
+    "closure_hours": 16,
+    "description": "Edición de video con Premiere o DaVinci: cortar, montar, corregir el color y exportar piezas para redes y publicidad"
+  },
+  {
+    "slug": "ugc_content",
+    "name": "Contenido UGC y creación de contenido",
+    "category": "dominio",
+    "aliases": ["ugc", "user generated content", "user-generated content", "contenido generado por usuarios", "contenido ugc", "ugc creator", "creador ugc", "creadora ugc", "content creator", "creador de contenido", "creadora de contenido"],
+    "closure_hours": 12,
+    "description": "Contenido UGC: grabar videos y fotos con estilo de usuario real para que las marcas los usen en redes y anuncios"
+  },
+  {
+    "slug": "short_video_scripting",
+    "name": "Guion para reels y video corto",
+    "category": "dominio",
+    "aliases": ["guion para reels", "guión para reels", "guiones para reels", "guion de video", "guión de video", "video scripting", "tiktok reels", "short form video", "short-form video", "youtube shorts"],
+    "closure_hours": 8,
+    "description": "Guion para video corto: pensar el gancho, el ritmo y el cierre de un reel o TikTok antes de grabarlo"
+  },
+  {
+    "slug": "generative_ai_content",
+    "name": "IA generativa para contenido",
+    "category": "dominio",
+    "aliases": ["contenido con ia", "ia para contenido", "ai content", "ai content creation", "chatgpt para contenido", "chatgpt para marketing", "midjourney", "dall-e", "canva magic", "generación de imágenes con ia", "generacion de imagenes con ia", "elevenlabs", "heygen"],
+    "closure_hours": 8,
+    "description": "IA generativa para contenido: usar ChatGPT, Midjourney y similares para armar textos, imágenes y videos de marketing"
+  },
+  {
+    "slug": "social_analytics",
+    "name": "Métricas de redes sociales",
+    "category": "dominio",
+    "aliases": ["métricas de redes", "metricas de redes", "métricas de redes sociales", "metricas de redes sociales", "social media analytics", "social analytics", "creator studio", "tiktok analytics", "insights de instagram", "instagram insights", "engagement rate", "tasa de engagement", "metricool", "hootsuite", "reportes de redes", "kpis de redes"],
+    "closure_hours": 12,
+    "description": "Métricas de redes: leer alcance, interacciones y retención de cada publicación y armar reportes para ajustar el contenido"
   }
 ]
