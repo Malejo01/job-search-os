@@ -4,7 +4,11 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { authConfig } from "./auth.config";
 import { getAppDb } from "./lib/db";
-import { authorizeCredentials, type LoginDeps } from "./lib/login-credentials";
+import {
+  authorizeCredentials,
+  createVerificationPacer,
+  type LoginDeps,
+} from "./lib/login-credentials";
 
 /**
  * Lo que el login necesita de la base. Llega sin sesión: todo pasa por funciones SECURITY DEFINER (rls/0003
@@ -26,7 +30,7 @@ const loginDeps: LoginDeps = {
     )) as unknown as { id: string; password_hash: string | null }[];
     return user;
   },
-  verifyPassword: verifyPasswordAsync,
+  ...createVerificationPacer(verifyPasswordAsync),
   // S-6: la versión de sesión vigente va al JWT (auth.config.ts, callback jwt)
   async sessionVersion(userId) {
     const [row] = (await getAppDb().execute(

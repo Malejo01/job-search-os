@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { authorizeCredentials, loginEmailHash, type LoginDeps } from "../lib/login-credentials";
+import {
+  authorizeCredentials,
+  createVerificationPacer,
+  loginEmailHash,
+  type LoginDeps,
+} from "../lib/login-credentials";
 
 /** Dependencias en memoria: por defecto el intento se permite y la contraseña es correcta. */
 function deps(overrides: Partial<LoginDeps> = {}) {
@@ -10,6 +15,7 @@ function deps(overrides: Partial<LoginDeps> = {}) {
       .fn<LoginDeps["findUser"]>()
       .mockResolvedValue({ id: "persona-1", password_hash: "hash-guardado" }),
     verifyPassword: vi.fn<LoginDeps["verifyPassword"]>().mockResolvedValue(true),
+    waitLikeVerification: vi.fn<LoginDeps["waitLikeVerification"]>().mockResolvedValue(undefined),
     sessionVersion: vi.fn<LoginDeps["sessionVersion"]>().mockResolvedValue(3),
     ...overrides,
   };
@@ -28,6 +34,15 @@ describe("authorizeCredentials", () => {
     expect(d.findUser).not.toHaveBeenCalled();
     expect(d.verifyPassword).not.toHaveBeenCalled();
     expect(d.clearAttempts).not.toHaveBeenCalled();
+    expect(d.waitLikeVerification).toHaveBeenCalledTimes(1);
+  });
+
+  it("un intento permitido no agrega la espera", async () => {
+    const d = deps();
+
+    await authorizeCredentials(d, CREDENTIALS);
+
+    expect(d.waitLikeVerification).not.toHaveBeenCalled();
   });
 
   it("con la clave correcta limpia los intentos y devuelve la sesión", async () => {
@@ -77,6 +92,47 @@ describe("authorizeCredentials", () => {
     await expect(authorizeCredentials(d, undefined)).resolves.toBeNull();
 
     expect(d.beginAttempt).not.toHaveBeenCalled();
+  });
+});
+
+describe("createVerificationPacer", () => {
+  function pacer(verifyMs: number) {
+    let clock = 0;
+    const sleep = vi.fn<(ms: number) => Promise<void>>().mockResolvedValue(undefined);
+    const paced = createVerificationPacer(
+      async () => {
+        clock += verifyMs;
+        return false;
+      },
+      { now: () => clock, sleep },
+    );
+    return { paced, sleep };
+  }
+
+  it("espera lo que tardó la última verificación", async () => {
+    const { paced, sleep } = pacer(140);
+
+    await paced.verifyPassword("clave", "hash");
+    await paced.waitLikeVerification();
+
+    expect(sleep).toHaveBeenCalledWith(140);
+  });
+
+  it("antes de la primera verificación usa un valor por defecto", async () => {
+    const { paced, sleep } = pacer(140);
+
+    await paced.waitLikeVerification();
+
+    expect(sleep).toHaveBeenCalledWith(100);
+  });
+
+  it("no espera más de 2 segundos aunque una verificación haya tardado más", async () => {
+    const { paced, sleep } = pacer(30_000);
+
+    await paced.verifyPassword("clave", "hash");
+    await paced.waitLikeVerification();
+
+    expect(sleep).toHaveBeenCalledWith(2_000);
   });
 });
 

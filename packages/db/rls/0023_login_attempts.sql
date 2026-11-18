@@ -20,7 +20,7 @@ CREATE POLICY "login_attempts_definer_delete" ON "login_attempts" FOR DELETE TO 
 
 -- Reserva un intento ANTES de verificar la contraseña, así una ráfaga en paralelo no pasa el tope: el lock de
 -- la fila ordena los pedidos del mismo email. Devuelve false si el email está en espera.
---   * Desde el quinto intento sin login correcto hay espera: 30 s, y se duplica hasta un máximo de 15 minutos.
+--   * Desde el quinto intento sin login correcto hay espera: 1 minuto, y se duplica hasta un máximo de 15.
 --   * Un intento rechazado no alarga la espera ni cuenta.
 --   * Tras una hora sin intentos, la cuenta vuelve a empezar.
 -- El contador se detiene en 20: la espera ya llegó al máximo mucho antes.
@@ -59,7 +59,7 @@ BEGIN
          last_attempt_at = now(),
          locked_until = CASE
            WHEN v_count >= 5
-             THEN now() + least(interval '30 seconds' * power(2, v_count - 5), interval '15 minutes')
+             THEN now() + least(interval '1 minute' * power(2, v_count - 5), interval '15 minutes')
            END
    WHERE a.email_hash = p_hash;
   RETURN true;

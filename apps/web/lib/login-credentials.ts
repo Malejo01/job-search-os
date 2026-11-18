@@ -9,6 +9,8 @@ export type LoginDeps = {
   clearAttempts(emailHash: string): Promise<void>;
   findUser(email: string): Promise<{ id: string; password_hash: string | null } | undefined>;
   verifyPassword(password: string, stored: string): Promise<boolean>;
+  /** Espera lo que tarda una verificación: un intento en espera responde en un tiempo parecido. */
+  waitLikeVerification(): Promise<void>;
   sessionVersion(userId: string): Promise<number>;
 };
 
@@ -17,6 +19,35 @@ export type LoginUser = { id: string; email: string; sessionVersion: number };
 /** sha256 del email ya normalizado: la tabla de intentos nunca guarda el email en claro. */
 export function loginEmailHash(email: string): string {
   return createHash("sha256").update(email).digest("hex");
+}
+
+const DEFAULT_VERIFY_MS = 100;
+const MAX_VERIFY_WAIT_MS = 2_000;
+
+type PacerClock = { now(): number; sleep(ms: number): Promise<void> };
+
+const realClock: PacerClock = {
+  now: () => performance.now(),
+  sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+};
+
+/** Mide cada verificación para que la espera sin verificar dure lo mismo que la última medida. */
+export function createVerificationPacer(
+  verify: LoginDeps["verifyPassword"],
+  clock: PacerClock = realClock,
+): Pick<LoginDeps, "verifyPassword" | "waitLikeVerification"> {
+  let lastMs = DEFAULT_VERIFY_MS;
+  return {
+    async verifyPassword(password, stored) {
+      const start = clock.now();
+      try {
+        return await verify(password, stored);
+      } finally {
+        lastMs = Math.min(clock.now() - start, MAX_VERIFY_WAIT_MS);
+      }
+    },
+    waitLikeVerification: () => clock.sleep(lastMs),
+  };
 }
 
 /**
@@ -34,7 +65,10 @@ export async function authorizeCredentials(
   if (!email || !password) return null;
 
   const emailHash = loginEmailHash(email);
-  if (!(await deps.beginAttempt(emailHash))) return null;
+  if (!(await deps.beginAttempt(emailHash))) {
+    await deps.waitLikeVerification();
+    return null;
+  }
 
   const user = await deps.findUser(email);
   // Con email inexistente se verifica igual contra un hash de relleno (enumeración de cuentas).

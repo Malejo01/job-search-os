@@ -93,13 +93,15 @@ describe("login_attempt_begin", () => {
 
   it("la espera crece con cada fallo y no pasa de 15 minutos", async () => {
     for (let i = 1; i <= 5; i += 1) await begin(HASH_A);
-    expect(await lockSeconds(HASH_A)).toBeLessThanOrEqual(30);
+    const first = await lockSeconds(HASH_A);
+    expect(first).toBeGreaterThan(50);
+    expect(first).toBeLessThanOrEqual(60);
 
     await expireLock(HASH_A);
     expect(await begin(HASH_A)).toBe(true);
     const second = await lockSeconds(HASH_A);
-    expect(second).toBeGreaterThan(30);
-    expect(second).toBeLessThanOrEqual(60);
+    expect(second).toBeGreaterThan(110);
+    expect(second).toBeLessThanOrEqual(120);
 
     for (let i = 0; i < 12; i += 1) {
       await expireLock(HASH_A);
