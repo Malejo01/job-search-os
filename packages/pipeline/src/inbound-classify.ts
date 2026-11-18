@@ -78,11 +78,12 @@ export const GMAIL_FORWARDING_SENDER = "forwarding-noreply@google.com";
 
 /**
  * Asunto oficial de la confirmación de reenvío de Gmail.
- * En Gmail siempre comienza con el ticket numérico opcional (#123...) y la frase oficial;
- * no se aceptan prefijos de reenvío o respuesta (Re:, Fwd:, Rv:) ni menciones incidentales (JS-127).
+ * Comienza con el ticket numérico opcional «(#123) » o, en el formato nuevo, con un paréntesis suelto
+ * («(Gmail Confirmación de reenvío - Recibir correos de …», R13-1), y sigue la frase oficial.
+ * No se aceptan prefijos de reenvío o respuesta (Re:, Fwd:, Rv:) ni menciones incidentales (JS-127).
  */
 const GMAIL_FORWARDING_SUBJECT =
-  /^(?:\(#\d+\)\s+)?(?:gmail forwarding confirmation|confirmaci[oó]n de reenv[ií]o de gmail)(?:\s+-\s+.*)?$/i;
+  /^(?:\(#\d+\)\s*|\()?(?:gmail forwarding confirmation|gmail confirmaci[oó]n de reenv[ií]o|confirmaci[oó]n de reenv[ií]o de gmail)(?:\s+-\s+.*)?$/i;
 
 /** Señales legítimas de confirmación de Gmail en el cuerpo del mensaje (JS-127). */
 const GMAIL_CONFIRM_BODY_SIGNALS: readonly RegExp[] = [
@@ -246,7 +247,7 @@ export function maskDigits(s: string): string {
 /**
  * Cuenta de Gmail que pidió el reenvío, si el cuerpo la nombra ("x@… has requested to
  * automatically forward…" / "x@… ha solicitado…") o si figura en el asunto oficial de Gmail
- * ("Receive Mail from x@…" / "Recibir correo de x@…"). Null si no aparece: no se infiere de
+ * ("Receive Mail from x@…" / "Recibir correo de x@…" / "Recibir correos de x@…"). Null si no aparece: no se infiere de
  * otro lado. Solo lee texto.
  */
 export function gmailForwardRequester(
@@ -262,7 +263,7 @@ export function gmailForwardRequester(
   }
   if (subject) {
     const subjectRe =
-      /(?:receive mail from|recibir correo de)\s+([A-Z0-9._%+-]+@[A-Z0-9-]+(?:\.[A-Z0-9-]+)*\.[A-Z]{2,})/i;
+      /(?:receive mail from|recibir correos? de)\s+([A-Z0-9._%+-]+@[A-Z0-9-]+(?:\.[A-Z0-9-]+)*\.[A-Z]{2,})/i;
     const m = subjectRe.exec(subject);
     if (m) return m[1]!.toLowerCase();
   }

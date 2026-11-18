@@ -235,6 +235,32 @@ describe("confirmación de reenvío de Gmail", () => {
     expect(raw).toContain("vf-FALSO-LINK");
   });
 
+  it.each([
+    "(Gmail Confirmación de reenvío - Recibir correos de persona@example.com",
+    "(#123456789019) Gmail Confirmación de reenvío - Recibir correos de persona@example.com",
+  ])("asunto nuevo de Gmail (R13-1): %s se guarda completo y queda pendiente", async (subject) => {
+    const { row, raw } = await send({ from: GMAIL, subject, to: [ADDR_A] }, BODY);
+    expect(row.parser).toBe("gmail_reenvio");
+    expect(row.error).toBeNull();
+    expect(row.subject).toBe(subject);
+    expect(row.dismissedAt).toBeNull();
+    expect(raw).toContain("vf-FALSO-LINK");
+  });
+
+  it("asunto nuevo con «Re:» (R13-1): no es la confirmación y se guarda sin cuerpo", async () => {
+    const { row, raw } = await send(
+      {
+        from: GMAIL,
+        subject: "Re: (Gmail Confirmación de reenvío - Recibir correos de persona@example.com",
+        to: [ADDR_A],
+      },
+      BODY,
+    );
+    expect(row.parser).toBe("none");
+    expect(row.error).toContain("remitente no esperado");
+    expect(raw).not.toContain("vf-FALSO-LINK");
+  });
+
   it("dirigida a otra dirección (el usuario solo en cc): sin cuerpo", async () => {
     const { row, raw } = await send(
       { from: GMAIL, subject: SUBJECT, to: ["otra@example.com"], cc: [ADDR_A] },
