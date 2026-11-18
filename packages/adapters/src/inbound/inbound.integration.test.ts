@@ -11,6 +11,7 @@ import {
   EMAIL_MAX_CARDS,
   handleInboundEmail,
   MANUAL_QUEUE_REASON,
+  MAX_STORED_HEADER_CHARS,
   OVERSIZE_EMAIL_REASON,
   TOO_MANY_CARDS_REASON,
   UNEXPECTED_SENDER_REASON,
@@ -142,6 +143,67 @@ describe("topes del email de una persona", () => {
       .where(eq(s.inboundEmails.id, out.inboundId));
     const blob = await deps().storage.get(row!.rawRef);
     expect(JSON.parse(blob!.body).content.text).toBe(text);
+  });
+
+  const overSoftLimit = () => "z".repeat(USER_RAW_MAX_BYTES + 1024);
+
+  it("en modo log, un email sobre el tope medido se guarda completo", async () => {
+    const ev = event("em_tope_log", TOPES_ADDRESS);
+    const text = overSoftLimit();
+
+    const out = await handleInboundEmail(
+      ev,
+      { html: null, text, headers: null },
+      JSON.stringify(ev),
+      deps(),
+    );
+
+    expect(out.kind).toBe("stored");
+    if (out.kind !== "stored") return;
+    expect(out.error).not.toBe(OVERSIZE_EMAIL_REASON);
+    const [row] = await conn.db
+      .select()
+      .from(s.inboundEmails)
+      .where(eq(s.inboundEmails.id, out.inboundId));
+    const blob = await deps().storage.get(row!.rawRef);
+    expect(JSON.parse(blob!.body).content.text).toBe(text);
+  });
+
+  it("en modo enforce, un email sobre el tope medido guarda solo metadatos", async () => {
+    const parse = vi.spyOn(linkedinParser, "parse");
+    const ev = event("em_tope_enforce", TOPES_ADDRESS);
+
+    const out = await handleInboundEmail(
+      ev,
+      { html: null, text: overSoftLimit(), headers: null },
+      JSON.stringify(ev),
+      { ...deps(), sizeMode: "enforce" },
+    );
+
+    expect(out).toMatchObject({ kind: "stored", jobsExtracted: 0, error: OVERSIZE_EMAIL_REASON });
+    expect(parse).not.toHaveBeenCalled();
+  });
+
+  it("recorta el asunto y el remitente que se guardan", async () => {
+    const from = `${"n".repeat(MAX_STORED_HEADER_CHARS * 2)} <alertas@example.com>`;
+    const ev = {
+      ...event("em_tope_largos", TOPES_ADDRESS, from),
+      data: {
+        ...event("em_tope_largos", TOPES_ADDRESS, from).data,
+        subject: "s".repeat(MAX_STORED_HEADER_CHARS * 2),
+      },
+    };
+
+    const out = await handleInboundEmail(ev, null, JSON.stringify(ev), deps());
+
+    expect(out.kind).toBe("stored");
+    if (out.kind !== "stored") return;
+    const [row] = await conn.db
+      .select()
+      .from(s.inboundEmails)
+      .where(eq(s.inboundEmails.id, out.inboundId));
+    expect(row!.subject).toHaveLength(MAX_STORED_HEADER_CHARS);
+    expect(row!.fromAddress).toHaveLength(MAX_STORED_HEADER_CHARS);
   });
 
   it("un email con más tarjetas que el tope va a la cola manual sin cargar avisos", async () => {

@@ -243,6 +243,77 @@ describe("purgeExpired", () => {
       invitationEmails: 0,
       betaFeedback: 0,
       poolEmails: 0,
+      inboundRaw: 0,
+    });
+  });
+
+  describe("crudos de emails de personas", () => {
+    beforeEach(async () => {
+      await conn.db.delete(s.inboundEmails).where(eq(s.inboundEmails.userId, A));
+      await conn.db.delete(s.rawBlobs).where(eq(s.rawBlobs.userId, A));
+    });
+
+    const mkEmail = async (age: number, kind = "inbound_email") => {
+      const [blob] = await conn.db
+        .insert(s.rawBlobs)
+        .values({ userId: A, kind, contentType: "application/json", body: "{}", bytes: 2 })
+        .returning({ id: s.rawBlobs.id });
+      const rawRef = `pg:${blob!.id}`;
+      const [email] = await conn.db
+        .insert(s.inboundEmails)
+        .values({
+          userId: A,
+          fromAddress: "a@example.com",
+          rawRef,
+          parser: "none",
+          receivedAt: daysAgo(age),
+        })
+        .returning({ id: s.inboundEmails.id });
+      return { blob: blob!.id, email: email!.id, rawRef };
+    };
+    const blobExists = async (id: string) =>
+      (await conn.db.select({ id: s.rawBlobs.id }).from(s.rawBlobs).where(eq(s.rawBlobs.id, id)))
+        .length === 1;
+
+    it("sin la variable no borra ningún crudo", async () => {
+      const old = await mkEmail(400);
+
+      const r = await purgeExpired(conn.db, { now: NOW });
+
+      expect(r.inboundRaw).toBe(0);
+      expect(await blobExists(old.blob)).toBe(true);
+    });
+
+    it("borra el crudo viejo sin oferta, conserva la fila y respeta el resto", async () => {
+      const old = await mkEmail(100);
+      const fresh = await mkEmail(10);
+      const otherKind = await mkEmail(100, "jd_pegada");
+      const withJob = await mkEmail(100);
+      const [job] = await conn.db
+        .insert(s.jobs)
+        .values({
+          userId: A,
+          companyRaw: "Empresa A",
+          title: "Backend Engineer",
+          titleNormalized: "backend engineer",
+        })
+        .returning({ id: s.jobs.id });
+      await conn.db
+        .insert(s.jobSources)
+        .values({ jobId: job!.id, kind: "email_linkedin", rawRef: withJob.rawRef });
+
+      const r = await purgeExpired(conn.db, { now: NOW, inboundRawDays: 90 });
+
+      expect(r.inboundRaw).toBe(1);
+      expect(await blobExists(old.blob)).toBe(false);
+      expect(await blobExists(fresh.blob)).toBe(true);
+      expect(await blobExists(otherKind.blob)).toBe(true);
+      expect(await blobExists(withJob.blob)).toBe(true);
+      const emails = await conn.db
+        .select({ id: s.inboundEmails.id })
+        .from(s.inboundEmails)
+        .where(eq(s.inboundEmails.id, old.email));
+      expect(emails).toHaveLength(1);
     });
   });
 

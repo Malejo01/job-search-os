@@ -6,8 +6,9 @@ import { POOL_PARSER } from "../inbound/pool-mailbox";
 
 /**
  * Purga programada (JS-107). Borra solo filas técnicas; nunca `raw_blobs`, `inbound_emails` ni
- * datos del usuario (esos se van con la cuenta); única excepción: la cola del pool, sin dueño. `db` es la conexión de servicio: ve las filas de
- * todos los usuarios y el borrado es global por antigüedad, sin cruzar datos entre usuarios.
+ * datos del usuario (esos se van con la cuenta). Excepciones: la cola del pool, sin dueño, y los crudos de
+ * emails sin oferta asociada cuando `INBOUND_RAW_RETENTION_DAYS` está definida. `db` es la conexión de servicio:
+ * ve las filas de todos los usuarios y el borrado es global por antigüedad, sin cruzar datos entre usuarios.
  */
 export type PurgeResult = {
   tokens: number;
@@ -24,6 +25,8 @@ export type PurgeResult = {
   betaFeedback: number;
   /** Emails de la cola manual del pool (sin dueño) con más de 30 días, con su crudo. */
   poolEmails: number;
+  /** Crudos de emails de personas sin oferta asociada, más viejos que INBOUND_RAW_RETENTION_DAYS. */
+  inboundRaw: number;
 };
 
 export const POOL_EMAIL_RETENTION_DAYS = 30;
@@ -97,9 +100,40 @@ async function purgePoolEmails(db: Db, cutoff: Date, batchSize: number): Promise
   return total;
 }
 
+/**
+ * Borra los crudos viejos de emails de personas que ninguna oferta usa como fuente. La fila del email queda:
+ * la bandeja sigue mostrando remitente, asunto y fecha.
+ */
+async function purgeInboundRaw(db: Db, cutoff: Date, batchSize: number): Promise<number> {
+  let total = 0;
+  for (let i = 0; i < PURGE_MAX_BATCHES; i++) {
+    const rows = (await db.execute(sql`
+      WITH old AS (
+        SELECT b.id FROM inbound_emails e
+        JOIN raw_blobs b ON e.raw_ref = 'pg:' || b.id::text AND b.user_id = e.user_id
+        WHERE e.user_id IS NOT NULL
+          AND b.kind = 'inbound_email'
+          AND e.received_at < ${cutoff.toISOString()}::timestamptz
+          AND NOT EXISTS (SELECT 1 FROM job_sources js WHERE js.raw_ref = e.raw_ref)
+        LIMIT ${batchSize}
+      )
+      DELETE FROM raw_blobs WHERE id IN (SELECT id FROM old) RETURNING id
+    `)) as unknown as unknown[];
+    total += rows.length;
+    if (rows.length < batchSize) break;
+  }
+  return total;
+}
+
 export async function purgeExpired(
   db: Db,
-  input: { now: Date; logDays?: number | null; batchSize?: number },
+  input: {
+    now: Date;
+    logDays?: number | null;
+    /** Sin valor no se borra ningún crudo de personas: lo decide `INBOUND_RAW_RETENTION_DAYS`. */
+    inboundRawDays?: number | null;
+    batchSize?: number;
+  },
 ): Promise<PurgeResult> {
   const { now } = input;
   const batchSize = input.batchSize ?? PURGE_BATCH;
@@ -114,6 +148,7 @@ export async function purgeExpired(
     invitationEmails: 0,
     betaFeedback: 0,
     poolEmails: 0,
+    inboundRaw: 0,
   };
 
   // IP hasheada de la lista de espera: no se guarda más de un día (mismo UPDATE que waitlist_join)
@@ -163,6 +198,14 @@ export async function purgeExpired(
     new Date(now.getTime() - POOL_EMAIL_RETENTION_DAYS * DAY_MS),
     batchSize,
   );
+
+  if (input.inboundRawDays) {
+    result.inboundRaw = await purgeInboundRaw(
+      db,
+      new Date(now.getTime() - input.inboundRawDays * DAY_MS),
+      batchSize,
+    );
+  }
 
   const logDays = input.logDays;
   if (

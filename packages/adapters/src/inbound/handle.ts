@@ -52,6 +52,8 @@ export type InboundDeps = {
   hourlyLimit?: number;
   /** Máximo de emails por usuario en 24 h. */
   dailyLimit?: number;
+  /** Sin esto se lee de INBOUND_SIZE_MODE; por defecto `log`. */
+  sizeMode?: InboundSizeMode;
   now?: () => Date;
   /** Casillas del pool (ADR-024). Sin esto se lee del entorno: apagado salvo POOL_SOURCE_COMPUTRABAJO_ALERTS=1. */
   pool?: PoolInboundConfig;
@@ -84,8 +86,17 @@ export const SECURITY_EMAIL_REASON =
 /** Valor de `inbound_emails.parser` para el ruido social de LinkedIn (JS-050). */
 export const LINKEDIN_SOCIAL_PARSER = "linkedin_social";
 
-/** Tamaño máximo de un email guardado completo. Una alerta real de empleo queda muy por debajo. */
-export const USER_RAW_MAX_BYTES = 1024 * 1024;
+/** `log`: un email sobre el tope medido se registra y se procesa. `enforce`: queda solo con metadatos. */
+export type InboundSizeMode = "log" | "enforce";
+
+/**
+ * Tope medido. Por defecto solo se registra (`INBOUND_SIZE_MODE=log`) hasta conocer el tamaño de emails reales.
+ */
+export const USER_RAW_MAX_BYTES = 512 * 1024;
+/** Por encima de esto el email nunca se lee ni se guarda completo, sea cual sea el modo. */
+export const USER_RAW_HARD_MAX_BYTES = 2 * 1024 * 1024;
+/** Largo máximo del asunto y del remitente que se guardan. */
+export const MAX_STORED_HEADER_CHARS = 500;
 export const OVERSIZE_EMAIL_REASON =
   "email demasiado grande: se guardó solo remitente, asunto y fecha, sin el cuerpo";
 
@@ -298,11 +309,18 @@ export async function handleInboundEmail(
   }
 
   // Un email que pasa el tope no se lee: queda solo con metadatos, como uno de remitente no esperado.
-  const oversize =
+  const emailBytes =
     Buffer.byteLength(rawBody, "utf8") +
-      Buffer.byteLength(content?.html ?? "", "utf8") +
-      Buffer.byteLength(content?.text ?? "", "utf8") >
-    USER_RAW_MAX_BYTES;
+    Buffer.byteLength(content?.html ?? "", "utf8") +
+    Buffer.byteLength(content?.text ?? "", "utf8");
+  const sizeMode =
+    deps.sizeMode ?? (process.env.INBOUND_SIZE_MODE?.trim() === "enforce" ? "enforce" : "log");
+  const overMeasuredLimit = emailBytes > USER_RAW_MAX_BYTES;
+  const oversize =
+    emailBytes > USER_RAW_HARD_MAX_BYTES || (overMeasuredLimit && sizeMode === "enforce");
+  if (overMeasuredLimit) {
+    log.warn({ user_id: userId, bytes: emailBytes, size_mode: sizeMode }, "inbound: email grande");
+  }
 
   // JS-119: se clasifica antes del chequeo de remitente. Los códigos y reseteos (de cualquier
   // remitente) se guardan como los de un remitente no esperado y con el asunto enmascarado;
@@ -343,11 +361,9 @@ export async function handleInboundEmail(
   // nombres de adjuntos.
   const expected = !isSecurity && !oversize && (isGmailConfirm || senderExpected);
   // Todo lo que no se guarda completo lleva el asunto con los números enmascarados
-  const storedSubject = expected
-    ? (event.data.subject ?? null)
-    : event.data.subject
-      ? maskDigits(event.data.subject)
-      : null;
+  const headerSubject = event.data.subject?.slice(0, MAX_STORED_HEADER_CHARS) ?? null;
+  const storedFrom = event.data.from.slice(0, MAX_STORED_HEADER_CHARS);
+  const storedSubject = expected ? headerSubject : headerSubject ? maskDigits(headerSubject) : null;
   const rawRef = await deps.storage.put({
     userId,
     kind: "inbound_email",
@@ -361,7 +377,7 @@ export async function handleInboundEmail(
               created_at: event.created_at,
               data: {
                 email_id: event.data.email_id,
-                from: event.data.from,
+                from: storedFrom,
                 to: event.data.to,
                 received_for: event.data.received_for,
                 subject: storedSubject,
@@ -484,7 +500,7 @@ export async function handleInboundEmail(
     .values({
       userId,
       emailId: event.data.email_id,
-      fromAddress: event.data.from,
+      fromAddress: storedFrom,
       subject: storedSubject,
       rawRef,
       parser: parserUsed ?? (parser ? parserName : "none"),
