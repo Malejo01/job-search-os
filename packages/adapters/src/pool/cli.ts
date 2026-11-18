@@ -13,6 +13,7 @@ import { fetchJobicyJobs } from "../sources/jobicy";
 import { fetchLeverBoard } from "../sources/lever";
 import { fetchRemoteOkJobs } from "../sources/remoteok";
 import { fetchTeamtailorBoard, parseTeamtailorFeed } from "../sources/teamtailor";
+import { fetchWorkableBoard } from "../sources/workable";
 import { describeFailure } from "../sources/error-code";
 import { sourceUserAgent } from "../sources/user-agent";
 import { fetchWwrJobs, parseWwrFeed, WWR_POOL_CATEGORIES } from "../sources/wwr";
@@ -29,7 +30,7 @@ import {
 /**
  * Prueba en seco de una fuente del pool (JS-137):
  *   pnpm pool:fetch <getonboard|remoteok|jobicy|himalayas|wwr> --dry-run
- *   pnpm pool:fetch <greenhouse|lever|ashby|teamtailor> <token> [--region eu|na] [--company "Nombre"] --dry-run
+ *   pnpm pool:fetch <greenhouse|lever|ashby|teamtailor|workable> <token> [--region eu|na] [--company "Nombre"] --dry-run
  * Descarga UNA vez con el User-Agent identificable y ventana de 48 h (los ATS no tienen ventana:
  * traen todo lo abierto, hasta ATS_MAX_JOBS_PER_BOARD por board), y reporta conteos y qué campos
  * trae la respuesta real contra los que lee el mapper. Los ATS consultan ese board SIN leer `ats_boards`. No escribe en ninguna base
@@ -168,6 +169,24 @@ const MAPPER_FIELDS: Record<SourceName, readonly string[]> = {
     "role",
     "division",
   ],
+  // Campos del aviso del widget de Workable (forma a verificar con este --dry-run)
+  workable: [
+    "shortcode",
+    "title",
+    "url",
+    "shortlink",
+    "application_url",
+    "telecommuting",
+    "employment_type",
+    "department",
+    "published_on",
+    "created_at",
+    "city",
+    "state",
+    "country",
+    "locations",
+    "description",
+  ],
 };
 
 /** Items crudos de una respuesta JSON, según la forma de cada fuente. */
@@ -209,6 +228,7 @@ const ATS_FETCHERS = {
   lever: fetchLeverBoard,
   ashby: fetchAshbyBoard,
   teamtailor: fetchTeamtailorBoard,
+  workable: fetchWorkableBoard,
 } satisfies Record<AtsProvider, unknown>;
 
 /** Los N slugs más frecuentes de la taxonomía de la fuente, normalizados, con su conteo. */

@@ -62,6 +62,7 @@ function downloaders(partial: Partial<PoolDownloaders>): PoolDownloaders {
     lever: none,
     ashby: none,
     teamtailor: none,
+    workable: none,
     ...partial,
   };
 }
@@ -140,6 +141,7 @@ describe("POOL_SOURCE_KIND", () => {
       lever: "lever",
       ashby: "ashby",
       teamtailor: "teamtailor",
+      workable: "workable",
     });
   });
 });
@@ -630,6 +632,12 @@ describe("runPoolFetch · fuentes ATS (boards de ats_boards)", () => {
     expect(POOL_MIN_INTERVAL_MS.teamtailor).toBe(5 * 3_600_000);
     expect(POOL_RECOMMENDED_SOURCES).not.toContain("teamtailor");
     expect(parsePoolSources("Teamtailor").enabled).toEqual(["teamtailor"]);
+  });
+
+  it("workable: intervalo de 5 h, se acepta en POOL_SOURCES y NO está recomendada (la prende el dueño del proyecto)", () => {
+    expect(POOL_MIN_INTERVAL_MS.workable).toBe(5 * 3_600_000);
+    expect(POOL_RECOMMENDED_SOURCES).not.toContain("workable");
+    expect(parsePoolSources("Workable").enabled).toEqual(["workable"]);
   });
 
   it("teamtailor: una request al feed por board, con región na, y avisa si trae 100 items", async () => {

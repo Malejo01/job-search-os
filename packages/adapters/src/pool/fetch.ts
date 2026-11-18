@@ -24,6 +24,7 @@ import { fetchJobicyJobs } from "../sources/jobicy";
 import { fetchLeverBoard } from "../sources/lever";
 import { fetchRemoteOkJobs, REMOTEOK_API_DELAY_LOOKBACK_MS } from "../sources/remoteok";
 import { fetchTeamtailorBoard } from "../sources/teamtailor";
+import { fetchWorkableBoard } from "../sources/workable";
 import { fetchWwrJobs, WWR_POOL_CATEGORIES } from "../sources/wwr";
 import { upsertPoolJobs, type PoolUpsertSummary } from "./upsert";
 
@@ -43,6 +44,7 @@ export const POOL_SOURCE_NAMES = [
   "lever",
   "ashby",
   "teamtailor",
+  "workable",
 ] as const;
 export type PoolSourceName = (typeof POOL_SOURCE_NAMES)[number];
 
@@ -83,6 +85,7 @@ export const POOL_SOURCE_KIND: Record<PoolSourceName, SourceKindValue> = {
   lever: "lever",
   ashby: "ashby",
   teamtailor: "teamtailor",
+  workable: "workable",
 };
 
 const HOUR_MS = 3_600_000;
@@ -97,6 +100,7 @@ export const POOL_MIN_INTERVAL_MS: Record<PoolSourceName, number> = {
   lever: 5 * HOUR_MS,
   ashby: 5 * HOUR_MS,
   teamtailor: 5 * HOUR_MS,
+  workable: 5 * HOUR_MS,
 };
 
 /** Los ATS pueden usar hasta 20 s de descarga: el tope real es lo que quede del presupuesto. */
@@ -110,6 +114,7 @@ const DEFAULT_TIMEOUT_MS: Record<PoolSourceName, number> = {
   lever: 20_000,
   ashby: 20_000,
   teamtailor: 20_000,
+  workable: 20_000,
 };
 /**
  * Tope total de una fuente ATS (descarga más upsert): así una fuente lenta no se come el
@@ -307,6 +312,7 @@ const ATS_FETCHERS: Record<AtsProvider, (o: AtsBoardOptions) => Promise<AtsBoard
   lever: fetchLeverBoard,
   ashby: fetchAshbyBoard,
   teamtailor: fetchTeamtailorBoard,
+  workable: fetchWorkableBoard,
 };
 
 /**
@@ -408,6 +414,7 @@ export const POOL_DOWNLOADERS: PoolDownloaders = {
   lever: atsDownloader("lever"),
   ashby: atsDownloader("ashby"),
   teamtailor: atsDownloader("teamtailor"),
+  workable: atsDownloader("workable"),
 };
 
 export type PoolSourceResult = {
