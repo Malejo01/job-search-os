@@ -5,28 +5,24 @@
  * temario ni dispara una acción. El respaldo de proveedor lo hace el cliente antes de devolver nada.
  */
 import {
-  applyCvAnswer,
+  applyCvModelTurn,
   classifyCvChatInput,
-  CV_EXTRACTION_SCHEMAS,
+  resolveCvConflict,
   cvChatCloseReason,
+  cvInterviewTurnSchema,
   cvTopicQuestion,
-  extractionGrounded,
-  hasSensitiveCvData,
   nextCvTopic,
-  resolveCvFollowUp,
-  safeCvAck,
   skipCvTopic,
   type CvChatState,
   type CvCloseReason,
   type CvTopic,
 } from "@job-search-os/pipeline";
-import { z } from "zod";
 import type { LlmClient, LlmError } from "../llm";
 import { cvChatLabel, cvChatSignal } from "./ids";
 
 export const CV_INTERVIEW_TASK = "cv_interview";
-/** Versión vigente del prompt de la entrevista (R4-16: repreguntas). El modelo sale de `model_routing`. */
-export const CV_INTERVIEW_PROMPT = "cv_interview@v2";
+/** Versión vigente del prompt de la entrevista (R12-2: `extras`). El modelo sale de `model_routing`. */
+export const CV_INTERVIEW_PROMPT = "cv_interview@v3";
 const SKIP_RE = /^\s*(saltear|saltearlo|paso|skip|no s[eé]|no se)\s*[.!]*\s*$/i;
 
 export type CvInterviewParams = {
@@ -53,19 +49,15 @@ export type CvInterviewOutcome =
       next: CvTopic | null;
       question: string | null;
       closeReason: CvCloseReason | null;
+      /**
+       * Borrador de repregunta del modelo, sin validar (R12-2). El chat ya lo resuelve en el estado; la
+       * charla de huecos lo pasa por `safeFollowUpQuestion` cuando su código decide repreguntar.
+       */
+      followUpDraft: string | null;
       model: string | null;
       usedFallback: boolean;
       costUsd: number | null;
     };
-
-function interviewSchema(topic: CvTopic) {
-  return z.strictObject({
-    extraction: CV_EXTRACTION_SCHEMAS[topic.kind],
-    ack: z.string().max(300).nullable(),
-    /** Borrador de repregunta: el código decide si se usa (`resolveCvFollowUp`). */
-    followUp: z.string().max(400).nullable().optional(),
-  });
-}
 
 /** Contexto mínimo del trabajo en curso; nunca el historial completo de la charla. */
 function contextOf(state: CvChatState, topic: CvTopic): string {
@@ -77,7 +69,12 @@ function contextOf(state: CvChatState, topic: CvTopic): string {
 function advance(
   state: CvChatState,
   ack: string | null,
-  meta: { model: string | null; usedFallback: boolean; costUsd: number | null },
+  meta: {
+    followUpDraft: string | null;
+    model: string | null;
+    usedFallback: boolean;
+    costUsd: number | null;
+  },
 ): CvInterviewOutcome {
   const next = nextCvTopic(state);
   const closeReason = cvChatCloseReason(state);
@@ -104,6 +101,18 @@ export async function runCvInterviewTurn(
   // «Saltear»: lo resuelve el código, sin modelo ni gasto
   if (SKIP_RE.test(p.message)) {
     return advance(skipCvTopic(p.state, p.topic), null, {
+      followUpDraft: null,
+      model: null,
+      usedFallback: false,
+      costUsd: 0,
+    });
+  }
+
+  // «¿Cuál dejo?» (R12-3): la respuesta (un chip o texto) la resuelve el código, sin modelo ni gasto
+  if (p.state.conflict) {
+    const resolved = resolveCvConflict(p.state, p.message);
+    return advance(resolved.state, resolved.ack, {
+      followUpDraft: null,
       model: null,
       usedFallback: false,
       costUsd: 0,
@@ -112,7 +121,7 @@ export async function runCvInterviewTurn(
 
   const r = await deps.llm.generateStructured(
     CV_INTERVIEW_TASK,
-    interviewSchema(p.topic),
+    cvInterviewTurnSchema(p.topic),
     {
       lang: "es",
       topic: p.topic.kind,
@@ -128,16 +137,10 @@ export async function runCvInterviewTurn(
   );
   if (!r.ok) return { kind: "error", error: r.error };
 
-  const { extraction, ack, followUp } = r.value.object;
-  // Lo extraído tiene que estar en lo que escribió la persona (números, nombres, tecnologías, links);
-  // si no, se descarta y el tema cuenta como falla. Después vuelve a pasar por el esquema estricto.
-  // Nunca se copian datos sensibles (estado civil, hijos, religión...) aunque el modelo los extraiga.
-  const usable =
-    extractionGrounded(extraction, p.message) && !hasSensitiveCvData(JSON.stringify(extraction));
-  const answered = applyCvAnswer(p.state, p.topic, usable ? extraction : null);
-  // La repregunta la decide el código (tope, «no tengo», qué falta); el modelo solo aporta el texto
-  const state = resolveCvFollowUp(answered, p.topic, p.message, followUp);
-  return advance(state, ack ? safeCvAck(ack) : null, {
+  // Grounding, datos sensibles, esquema estricto y repregunta: todo en el pipeline (`applyCvModelTurn`)
+  const { state, ack } = applyCvModelTurn(p.state, p.topic, p.message, r.value.object);
+  return advance(state, ack, {
+    followUpDraft: r.value.object.followUp ?? null,
     model: r.value.model,
     usedFallback: r.value.usedFallback,
     costUsd: r.value.costUsd,

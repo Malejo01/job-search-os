@@ -1,0 +1,333 @@
+{
+  "fixtureId": "fullstack-17-11",
+  "origen": "simulada",
+  "nota": "grabada con --modo simulada el 2026-11-17",
+  "calls": [
+    {
+      "task": "cv_review",
+      "object": {
+        "issues": [
+          {
+            "type": "orden_poco_relevante",
+            "ref": {
+              "section": "experience",
+              "itemId": null,
+              "field": "order"
+            },
+            "quote": null,
+            "skillSlug": null,
+            "severity": "media"
+          },
+          {
+            "type": "logro_sin_resultado",
+            "ref": {
+              "section": "experience",
+              "itemId": "00000000-0000-4000-8000-00000000044e",
+              "field": null
+            },
+            "quote": "Desarrollo de funcionalidades.",
+            "skillSlug": null,
+            "severity": "media"
+          },
+          {
+            "type": "tarea_vaga",
+            "ref": {
+              "section": "experience",
+              "itemId": "00000000-0000-4000-8000-00000000044e",
+              "field": null
+            },
+            "quote": "Desarrollo de funcionalidades.",
+            "skillSlug": null,
+            "severity": "media"
+          },
+          {
+            "type": "proyecto_sin_stack_o_link",
+            "ref": {
+              "section": "projects",
+              "itemId": "00000000-0000-4000-8000-000000000450",
+              "field": null
+            },
+            "quote": "Clasificador de tickets de soporte con un modelo de lenguaje.",
+            "skillSlug": null,
+            "severity": "media"
+          },
+          {
+            "type": "proyecto_sin_stack_o_link",
+            "ref": {
+              "section": "projects",
+              "itemId": "00000000-0000-4000-8000-000000000451",
+              "field": null
+            },
+            "quote": "Agente que arma resúmenes de reuniones.",
+            "skillSlug": null,
+            "severity": "media"
+          },
+          {
+            "type": "fecha_faltante",
+            "ref": {
+              "section": "projects",
+              "itemId": "00000000-0000-4000-8000-000000000451",
+              "field": null
+            },
+            "quote": "Agente que arma resúmenes de reuniones.",
+            "skillSlug": null,
+            "severity": "media"
+          },
+          {
+            "type": "tarea_vaga",
+            "ref": {
+              "section": "experience",
+              "itemId": "00000000-0000-4000-8000-0000000dead0",
+              "field": "bullets"
+            },
+            "quote": null,
+            "skillSlug": null,
+            "severity": "alta"
+          }
+        ]
+      },
+      "costUsd": 0,
+      "model": "simulado"
+    },
+    {
+      "task": "cv_coach_turn",
+      "object": {
+        "patch": {
+          "title": null,
+          "organization": null,
+          "startMonth": null,
+          "endMonth": null,
+          "isCurrent": null,
+          "bullets": [],
+          "link": null,
+          "stack": []
+        },
+        "extras": [
+          {
+            "kind": "logro",
+            "text": "Los servicios del panel corren en Node.js.",
+            "ref": null
+          }
+        ],
+        "declined": false,
+        "nextQuestion": null
+      },
+      "costUsd": 0,
+      "model": "simulado"
+    },
+    {
+      "task": "cv_coach_turn",
+      "object": {
+        "patch": {
+          "title": null,
+          "organization": null,
+          "startMonth": null,
+          "endMonth": null,
+          "isCurrent": null,
+          "bullets": [],
+          "link": null,
+          "stack": []
+        },
+        "extras": [
+          {
+            "kind": "logro",
+            "text": "Las pantallas del panel de Empresa A están hechas en React.",
+            "ref": {
+              "section": "experience",
+              "itemId": "00000000-0000-4000-8000-00000000044e",
+              "field": "bullets"
+            }
+          }
+        ],
+        "declined": false,
+        "nextQuestion": null
+      },
+      "costUsd": 0,
+      "model": "simulado"
+    },
+    {
+      "task": "cv_coach_turn",
+      "object": {
+        "patch": {
+          "title": null,
+          "organization": null,
+          "startMonth": null,
+          "endMonth": null,
+          "isCurrent": null,
+          "bullets": [],
+          "link": null,
+          "stack": []
+        },
+        "extras": [
+          {
+            "kind": "logro",
+            "text": "Todo el panel de Empresa A está hecho en TypeScript.",
+            "ref": {
+              "section": "experience",
+              "itemId": "00000000-0000-4000-8000-00000000044e",
+              "field": "bullets"
+            }
+          }
+        ],
+        "declined": false,
+        "nextQuestion": null
+      },
+      "costUsd": 0,
+      "model": "simulado"
+    },
+    {
+      "task": "cv_coach_turn",
+      "object": {
+        "patch": {
+          "title": null,
+          "organization": null,
+          "startMonth": null,
+          "endMonth": null,
+          "isCurrent": null,
+          "bullets": [],
+          "link": null,
+          "stack": []
+        },
+        "extras": [
+          {
+            "kind": "logro",
+            "text": "Diseñé las tablas en PostgreSQL para el Proyecto 4.",
+            "ref": {
+              "section": "projects",
+              "itemId": "00000000-0000-4000-8000-000000000452",
+              "field": "bullets"
+            }
+          }
+        ],
+        "declined": false,
+        "nextQuestion": null
+      },
+      "costUsd": 0,
+      "model": "simulado"
+    },
+    {
+      "task": "cv_coach_turn",
+      "object": {
+        "patch": {
+          "title": null,
+          "organization": null,
+          "startMonth": null,
+          "endMonth": null,
+          "isCurrent": null,
+          "bullets": [],
+          "link": null,
+          "stack": [
+            "Python",
+            "FastAPI",
+            "un modelo de lenguaje por API"
+          ]
+        },
+        "extras": [],
+        "declined": false,
+        "nextQuestion": null
+      },
+      "costUsd": 0,
+      "model": "simulado"
+    },
+    {
+      "task": "cv_coach_turn",
+      "object": {
+        "patch": {
+          "title": null,
+          "organization": null,
+          "startMonth": null,
+          "endMonth": null,
+          "isCurrent": null,
+          "bullets": [],
+          "link": null,
+          "stack": [
+            "TypeScript",
+            "Node.js"
+          ]
+        },
+        "extras": [],
+        "declined": false,
+        "nextQuestion": null
+      },
+      "costUsd": 0,
+      "model": "simulado"
+    },
+    {
+      "task": "cv_coach_turn",
+      "object": {
+        "patch": {
+          "title": null,
+          "organization": null,
+          "startMonth": "2025-07",
+          "endMonth": "2025-09",
+          "isCurrent": false,
+          "bullets": [],
+          "link": null,
+          "stack": []
+        },
+        "extras": [],
+        "declined": false,
+        "nextQuestion": null
+      },
+      "costUsd": 0,
+      "model": "simulado"
+    },
+    {
+      "task": "cv_coach_turn",
+      "object": {
+        "patch": {
+          "title": null,
+          "organization": null,
+          "startMonth": null,
+          "endMonth": null,
+          "isCurrent": null,
+          "bullets": [],
+          "link": null,
+          "stack": []
+        },
+        "extras": [
+          {
+            "kind": "logro",
+            "text": "Prefiero que el trabajo en Empresa A vaya primero y la docencia después.",
+            "ref": {
+              "section": "experience",
+              "itemId": "00000000-0000-4000-8000-00000000044e",
+              "field": "bullets"
+            }
+          }
+        ],
+        "declined": false,
+        "nextQuestion": null
+      },
+      "costUsd": 0,
+      "model": "simulado"
+    },
+    {
+      "task": "cv_write",
+      "object": {
+        "summary": "Desarrollador fullstack con IA.",
+        "entries": [
+          {
+            "id": "h0",
+            "bullets": [
+              "Clases de JavaScript para adultos.",
+              "Corrección de trabajos prácticos."
+            ]
+          },
+          {
+            "id": "h1",
+            "bullets": [
+              "Desarrollo de funcionalidades.",
+              "Mantenimiento de la plataforma.",
+              "Las pantallas del panel de Empresa A están hechas en React.",
+              "Todo el panel de Empresa A está hecho en TypeScript.",
+              "Prefiero que el trabajo en Empresa A vaya primero y la docencia después."
+            ]
+          }
+        ]
+      },
+      "costUsd": 0,
+      "model": "fake"
+    }
+  ]
+}

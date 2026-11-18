@@ -6,12 +6,18 @@
 import { cleanCvText, CV_BULLET_MAX_CHARS, foldCvText } from "./verify";
 
 export type CvLang = "es" | "en";
-export type CvHistoryKind = "trabajo" | "educacion" | "certificacion";
+export type CvHistoryKind = "trabajo" | "educacion" | "certificacion" | "proyecto";
 
 export const CV_MAX_HISTORY_ENTRIES = 20;
 export const CV_MAX_BULLETS = 6;
+/** Tope del link de un proyecto: el mismo CHECK de `career_history.link`. */
+export const CV_PROJECT_LINK_MAX_CHARS = 200;
 
-/** Una fila de `career_history` (sin importar `db`). Los meses son `AAAA-MM`. */
+/**
+ * Una fila de `career_history` (sin importar `db`). Los meses son `AAAA-MM`. En un proyecto (R12-4,
+ * ADR-038 §6), `organization` es el nombre del proyecto, `title` el rol, las viñetas la descripción y los
+ * logros, y el stack va como viñeta «Stack: …». `link` solo vale en proyectos.
+ */
 export interface CvHistoryInput {
   kind: CvHistoryKind;
   organization: string;
@@ -19,6 +25,23 @@ export interface CvHistoryInput {
   startMonth: string | null;
   endMonth: string | null;
   bullets: readonly string[];
+  link?: string | null;
+}
+
+// https, host con punto y sin credenciales ni `@` (nada de emails), solo ASCII visible.
+const PROJECT_LINK_RE =
+  /^https:\/\/[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+(?::\d{1,5})?(?:[/?#][\x21-\x7e]*)?$/;
+// Un email metido en el camino o en la query (`?mail=yo@ejemplo.test`); `/@usuario` sí vale.
+const LINK_EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/;
+
+/**
+ * Link de un proyecto, o `null` si no cumple: https, hasta 200 caracteres, sin espacios, sin
+ * credenciales ni emails. Lo usan la carga manual del historial y el CV (que no confía en la base).
+ */
+export function cvProjectLink(raw: string | null | undefined): string | null {
+  const v = (raw ?? "").trim();
+  if (v === "" || v.length > CV_PROJECT_LINK_MAX_CHARS) return null;
+  return PROJECT_LINK_RE.test(v) && !LINK_EMAIL_RE.test(v) ? v : null;
 }
 
 export interface CvLinksInput {
@@ -61,6 +84,7 @@ export interface CvBuildOptions {
 export type CvSectionId =
   | "summary"
   | "experience"
+  | "projects"
   | "education"
   | "certifications"
   | "skills"
@@ -95,6 +119,7 @@ export const CV_SECTION_TITLES: Record<CvLang, Record<CvSectionId, string>> = {
   es: {
     summary: "Resumen",
     experience: "Experiencia",
+    projects: "Proyectos",
     education: "Educación",
     certifications: "Certificaciones",
     skills: "Skills",
@@ -104,6 +129,7 @@ export const CV_SECTION_TITLES: Record<CvLang, Record<CvSectionId, string>> = {
   en: {
     summary: "Summary",
     experience: "Experience",
+    projects: "Projects",
     education: "Education",
     certifications: "Certifications",
     skills: "Skills",
@@ -162,10 +188,18 @@ function historyBlocks(
     const title = plain(e.title, 120);
     const org = plain(e.organization, 120);
     if (title === "" && org === "") continue;
-    const detail = [org, cvDateRange(e, lang)].filter((x) => x !== "").join(" | ");
     const bullets = uniqueFolded(
       e.bullets.map((b) => cleanCvText(b, CV_BULLET_MAX_CHARS)).filter((b) => b !== ""),
     ).slice(0, CV_MAX_BULLETS);
+    if (kind === "proyecto") {
+      // Proyecto: el nombre arriba; abajo el rol, las fechas y el link (texto plano, legible por ATS)
+      const projectDetail = [org ? title : "", cvDateRange(e, lang), cvProjectLink(e.link) ?? ""]
+        .filter((x) => x !== "")
+        .join(" | ");
+      blocks.push({ heading: org || title, detail: projectDetail || null, bullets });
+      continue;
+    }
+    const detail = [org, cvDateRange(e, lang)].filter((x) => x !== "").join(" | ");
     blocks.push({
       heading: title || org,
       detail: title ? detail || null : cvDateRange(e, lang) || null,
@@ -243,6 +277,7 @@ export function buildCvDocument(data: CvSourceData, opts: CvBuildOptions): CvDoc
     missing.push("summary");
   }
   if (!add("experience", historyBlocks(data.history, "trabajo", lang))) missing.push("experience");
+  add("projects", historyBlocks(data.history, "proyecto", lang));
   if (!add("education", historyBlocks(data.history, "educacion", lang))) missing.push("education");
   add("certifications", historyBlocks(data.history, "certificacion", lang));
   if (!add("skills", skillBlocks(data.skills, lang))) missing.push("skills");

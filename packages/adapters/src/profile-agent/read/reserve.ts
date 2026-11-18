@@ -164,7 +164,7 @@ export async function reserveProfileRead(
 
 /** Anota la lectura completa: es lo que consume cupo. Se llama SOLO con la propuesta ya normalizada. */
 export async function recordProfileRead(
-  db: Db,
+  db: Pick<Db, "insert">,
   input: { userId: string; label: string },
 ): Promise<void> {
   await db.insert(s.llmCalls).values({
@@ -181,5 +181,33 @@ export async function recordProfileRead(
     label: input.label,
     ok: true,
     error: null,
+  });
+}
+
+/**
+ * Cierra una lectura bajo el mismo lock por persona que la reserva (R12-16): anota el marcador si la
+ * propuesta sirvió y suelta la reserva, en una sola transacción.
+ *
+ * Por qué con lock: `measureProfileRead` son varias consultas y, en READ COMMITTED, cada una ve su propia
+ * foto. Sin lock, una lectura que termina en el medio de la medición de otra (marcador anotado después de
+ * contar el cupo, reserva soltada antes de buscar reservas vigentes) se volvía invisible para las dos
+ * consultas y las dos lecturas pasaban con un solo cupo (CI de #517, run 44143901242). Con el lock, el
+ * cierre espera a que la otra persona termine de medir y reservar, y la otra ve la reserva o el marcador.
+ *
+ * Si el marcador no se puede anotar, la transacción entera se deshace: la reserva queda y vence sola a los
+ * 2 minutos (falla cerrado: no se regala la lectura). El llamador suelta la reserva aparte en ese caso.
+ */
+export async function finishProfileRead(
+  db: Db,
+  input: { userId: string; label: string; reservationId: string; record: boolean },
+): Promise<void> {
+  await db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtextextended(${input.userId}, ${PROFILE_AGENT_LOCK_NAMESPACE}))`,
+    );
+    if (input.record) await recordProfileRead(tx, { userId: input.userId, label: input.label });
+    await tx
+      .delete(s.llmCalls)
+      .where(and(eq(s.llmCalls.id, input.reservationId), eq(s.llmCalls.task, CV_RESERVE_TASK)));
   });
 }

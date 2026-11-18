@@ -1,0 +1,213 @@
+{
+  "id": "cambio-de-carrera",
+  "carrera": "marketing_digital",
+  "puesto_objetivo": "Analista de marketing digital junior",
+  "nota": "De #514: docente que pasa a marketing digital.",
+  "cv_texto": "PERSONA EJEMPLO C\nDe la docencia al marketing digital\n\nPERFIL\nDocente de nivel medio que quiere cambiar de carrera hacia el marketing digital. Tengo experiencia en planificar, comunicar con públicos distintos y medir resultados. Hice un curso intensivo de marketing digital y administré las redes de un proyecto propio.\n\nEXPERIENCIA\nProfesora de Historia, Empresa E (colegio), 2014-03 a 2024-12\n- Planificación anual de contenidos para cuatro cursos.\n- Producción de material audiovisual para clases a distancia.\n- Coordinación de una feria de proyectos con familias y estudiantes.\n\nPROYECTOS DE TRANSICIÓN\nAdministración de las redes de un emprendimiento familiar (Empresa F), 2024: calendario de publicaciones y reportes mensuales de alcance.\nCurso intensivo de Marketing Digital, Instituto de Ejemplo, 2024\n\nESTUDIOS\nProfesorado en Historia, Universidad Ficticia Central, 2009 - 2013\n\nHABILIDADES\nPlanificación, Redes sociales, Canva, Google Analytics, redacción\n\nIDIOMAS\nEspañol nativo. Inglés intermedio (B1).\n",
+  "lectura": {
+    "items": [
+      {
+        "clave": "exp-1",
+        "id": "00000000-0000-4000-8000-00000000012d",
+        "kind": "trabajo",
+        "organization": "Empresa E",
+        "title": "Profesora de Historia",
+        "startMonth": "2014-03",
+        "endMonth": "2024-12",
+        "isCurrent": false,
+        "bullets": [
+          "Planificación anual de contenidos para cuatro cursos.",
+          "Producción de material audiovisual para clases a distancia.",
+          "Coordinación de una feria de proyectos con familias y estudiantes."
+        ],
+        "link": null
+      },
+      {
+        "clave": "proy-1",
+        "id": "00000000-0000-4000-8000-00000000012e",
+        "kind": "proyecto",
+        "organization": "Redes de un emprendimiento familiar (Empresa F)",
+        "title": "Administración de redes",
+        "startMonth": "2024-01",
+        "endMonth": "2024-12",
+        "isCurrent": false,
+        "bullets": [
+          "Calendario de publicaciones y reportes mensuales de alcance."
+        ],
+        "link": null
+      },
+      {
+        "clave": "cur-1",
+        "id": "00000000-0000-4000-8000-00000000012f",
+        "kind": "certificacion",
+        "organization": "Instituto de Ejemplo",
+        "title": "Curso intensivo de Marketing Digital",
+        "startMonth": "2024-01",
+        "endMonth": "2024-12",
+        "isCurrent": false,
+        "bullets": [],
+        "link": null
+      },
+      {
+        "clave": "edu-1",
+        "id": "00000000-0000-4000-8000-000000000130",
+        "kind": "educacion",
+        "organization": "Universidad Ficticia Central",
+        "title": "Profesorado en Historia",
+        "startMonth": "2009-03",
+        "endMonth": "2013-12",
+        "isCurrent": false,
+        "bullets": [],
+        "link": null
+      }
+    ],
+    "skills": [
+      "project_planning",
+      "social_media",
+      "canva",
+      "ga4",
+      "copywriting"
+    ],
+    "resumen": "Docente de nivel medio que quiere cambiar de carrera hacia el marketing digital. Tengo experiencia en planificar, comunicar con públicos distintos y medir resultados. Hice un curso intensivo de marketing digital y administré las redes de un proyecto propio."
+  },
+  "demanda": [
+    {
+      "slug": "meta_ads",
+      "mentions": 10
+    },
+    {
+      "slug": "ga4",
+      "mentions": 9
+    },
+    {
+      "slug": "social_media",
+      "mentions": 8
+    },
+    {
+      "slug": "google_ads",
+      "mentions": 6
+    },
+    {
+      "slug": "email_marketing",
+      "mentions": 4
+    }
+  ],
+  "hechos": [
+    {
+      "clave": "empresa",
+      "valor": "Empresa E",
+      "fuente": "cv"
+    },
+    {
+      "clave": "cargo",
+      "valor": "Profesora de Historia",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2014",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2024",
+      "fuente": "cv"
+    },
+    {
+      "clave": "proyecto",
+      "valor": "Redes de un emprendimiento familiar (Empresa F)",
+      "fuente": "cv"
+    },
+    {
+      "clave": "titulo",
+      "valor": "Administración de redes",
+      "fuente": "cv"
+    },
+    {
+      "clave": "institucion",
+      "valor": "Instituto de Ejemplo",
+      "fuente": "cv"
+    },
+    {
+      "clave": "titulo",
+      "valor": "Curso intensivo de Marketing Digital",
+      "fuente": "cv"
+    },
+    {
+      "clave": "institucion",
+      "valor": "Universidad Ficticia Central",
+      "fuente": "cv"
+    },
+    {
+      "clave": "titulo",
+      "valor": "Profesorado en Historia",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2009",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2013",
+      "fuente": "cv"
+    },
+    {
+      "clave": "numero",
+      "valor": "1.200",
+      "fuente": "respuesta"
+    },
+    {
+      "clave": "numero",
+      "valor": "4.500",
+      "fuente": "respuesta"
+    }
+  ],
+  "problemas_esperados": [
+    {
+      "tipo": "logro_sin_resultado",
+      "item": "proy-1"
+    },
+    {
+      "tipo": "orden_poco_relevante",
+      "item": null
+    },
+    {
+      "tipo": "proyecto_sin_stack_o_link",
+      "item": "proy-1"
+    },
+    {
+      "tipo": "brecha_con_puesto",
+      "skill": "meta_ads"
+    },
+    {
+      "tipo": "skill_pedida_sin_evidencia",
+      "skill": "ga4"
+    },
+    {
+      "tipo": "skill_pedida_sin_evidencia",
+      "skill": "social_media"
+    },
+    {
+      "tipo": "brecha_con_puesto",
+      "skill": "google_ads"
+    }
+  ],
+  "respuestas": {
+    "logro_sin_resultado": {
+      "proy-1": "El alcance mensual pasó de 1.200 a 4.500 personas en seis meses."
+    },
+    "brecha_con_puesto": {
+      "meta_ads": "Hice dos campañas chicas con Meta Ads para el emprendimiento.",
+      "*": "no tengo"
+    },
+    "skill_pedida_sin_evidencia": {
+      "ga4": "Medí las visitas de la tienda del emprendimiento con Google Analytics.",
+      "social_media": "Manejé Instagram y Facebook del emprendimiento."
+    },
+    "proyecto_sin_stack_o_link": {
+      "proy-1": "Usé Canva, Meta Business Suite y Google Analytics."
+    }
+  }
+}

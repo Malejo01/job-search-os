@@ -13,7 +13,11 @@ import type {
   ProfileGapCard,
   ProfileGuideCard,
   ProfileReadCard,
+  ProjectCard,
 } from "./schemas";
+
+/** Rol de un proyecto cuando el CV no lo dice (contrato R12-7, ADR-038 §6). */
+export const PROJECT_DEFAULT_ROLE = "Proyecto personal";
 
 export type ProfileCardLike = ProfileReadCard | ProfileGapCard | ProfileGuideCard;
 
@@ -23,6 +27,14 @@ export function profileCardTexts(card: ProfileCardLike): string[] {
     switch (card.kind) {
       case "experience":
         return [card.organization, card.title, ...card.bullets];
+      case "project":
+        return [
+          card.name,
+          ...(card.role ? [card.role] : []),
+          ...(card.link ? [card.link] : []),
+          ...card.stack,
+          ...card.bullets,
+        ];
       case "education":
         return [card.institution, card.title];
       case "skill":
@@ -92,11 +104,32 @@ export function screenProfileAnswer(text: string): ProfileSensitiveKind[] {
   return findProfileSensitive(text);
 }
 
+/** La viñeta «Stack: …» de un proyecto (ADR-038 §6: el stack no tiene columna propia). */
+export function projectStackBullet(stack: readonly string[]): string | null {
+  return stack.length > 0 ? `Stack: ${stack.join(", ")}` : null;
+}
+
 /**
- * Experiencia o estudio → la entrada de `career_history` que guardan la carga manual y el chat. El llamador
- * le agrega `source = 'cv'`. Después pasa por la misma validación que la carga manual (`validateHistory`).
+ * Experiencia, proyecto o estudio → la entrada de `career_history` que guardan la carga manual y el chat.
+ * El llamador le agrega `source = 'cv'`. Después pasa por la misma validación que la carga manual
+ * (`validateHistory`). Un proyecto va con `organization` = nombre, `title` = rol (o «Proyecto personal»),
+ * las viñetas más la de «Stack: …» y el link en su columna.
  */
-export function cardToHistoryInput(card: ExperienceCard | EducationCard): HistoryInput {
+export function cardToHistoryInput(
+  card: ExperienceCard | ProjectCard | EducationCard,
+): HistoryInput {
+  if (card.kind === "project") {
+    const stack = projectStackBullet(card.stack);
+    return {
+      kind: "proyecto",
+      organization: card.name,
+      title: card.role ?? PROJECT_DEFAULT_ROLE,
+      startMonth: card.startMonth,
+      endMonth: card.endMonth,
+      bullets: [...card.bullets, ...(stack ? [stack] : [])],
+      link: card.link,
+    };
+  }
   if (card.kind === "experience") {
     return {
       kind: "trabajo",

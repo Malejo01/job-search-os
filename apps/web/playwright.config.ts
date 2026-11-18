@@ -61,6 +61,8 @@ export default defineConfig({
       // Quien no está en la lista no lo ve (e2e 134); el recorrido completo, con el modelo en demo, es el 135
       CV_IMPORT_ENABLED: "1",
       CV_PROFILE_AGENT: "testers",
+      // ADR-038 (R12-10): el coach de CV, también en `testers` (exige el agente de perfil). Flujo 147
+      CV_COACH: "testers",
       START_HERE_ENABLED: "1",
       // C8-6: «¿Qué es esto?» en las 5 pantallas (e2e 108), apagado por defecto en Vercel
       HELP_TIPS_ENABLED: "1",

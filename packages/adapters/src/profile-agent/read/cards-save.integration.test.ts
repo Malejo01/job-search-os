@@ -134,6 +134,42 @@ describe("saveAcceptedCards", () => {
     expect(rows.map((x) => x.sort)).toEqual([0, 1]);
   });
 
+  it("R12-5: un proyecto de la lectura entra como `proyecto` con su link y la viñeta de stack", async () => {
+    const review = reviewCardDecisions(
+      [
+        {
+          id: "proj:0",
+          decision: "accept",
+          card: {
+            kind: "project",
+            id: "proj:0",
+            name: "Proyecto Turnero",
+            role: null,
+            link: "https://ejemplo.test/turnero",
+            stack: ["React", "Node.js"],
+            startMonth: "2024-01",
+            endMonth: null,
+            bullets: ["Aplicación para reservar turnos en clubes de barrio."],
+            bulletsFromCv: true,
+          },
+        },
+      ],
+      [],
+    );
+    expect(review.rejected).toEqual([]);
+    expect(await asUser(A, review.accepted)).toEqual([{ id: "proj:0", status: "saved" }]);
+    const rows = await owner.db.select().from(s.careerHistory).where(eq(s.careerHistory.userId, A));
+    expect(rows.map((x) => [x.kind, x.organization, x.title, x.link, x.bullets])).toEqual([
+      [
+        "proyecto",
+        "Proyecto Turnero",
+        "Proyecto personal",
+        "https://ejemplo.test/turnero",
+        ["Aplicación para reservar turnos en clubes de barrio.", "Stack: React, Node.js"],
+      ],
+    ]);
+  });
+
   it("un duplicado (mismo tipo, empresa, cargo e inicio) no se vuelve a guardar ni pisa lo manual", async () => {
     await owner.db.insert(s.careerHistory).values({
       userId: A,

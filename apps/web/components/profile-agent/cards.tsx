@@ -14,8 +14,9 @@ import { useState } from "react";
 import { Alert, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
 
 /**
- * Tarjetas por sección (ADR-034 §2, R10-2): experiencia (de a un trabajo), estudios, skills con nivel e
- * idiomas. Cada una se edita y se acepta o se descarta. Cliente: el estado vive en memoria de esta
+ * Tarjetas por sección (ADR-034 §2, R10-2): experiencia (de a un trabajo), proyectos (R12-5), estudios,
+ * skills con nivel e idiomas. Las viñetas son las del CV tal cual (ADR-038 §7, D4) y se marcan «de tu CV»:
+ * se pueden quitar, no reescribir. Cada una se edita y se acepta o se descarta. Cliente: el estado vive en memoria de esta
  * pantalla (la lectura no se guarda); al guardar, el servidor vuelve a validar y filtrar todo y guarda solo
  * lo aceptado, con la misma validación que la carga manual. Lo que el CV no dice queda vacío.
  */
@@ -74,6 +75,7 @@ const SM_ON = buttonClasses({ size: "sm" });
 
 const SECTIONS: { kind: ProfileReadCard["kind"]; title: string; empty: string }[] = [
   { kind: "experience", title: "Experiencia", empty: "No encontramos trabajos en tu CV." },
+  { kind: "project", title: "Proyectos", empty: "No encontramos proyectos en tu CV." },
   { kind: "education", title: "Estudios", empty: "No encontramos estudios en tu CV." },
   { kind: "skill", title: "Skills", empty: "No encontramos skills en tu CV." },
   { kind: "language", title: "Idiomas", empty: "No encontramos idiomas en tu CV." },
@@ -312,6 +314,97 @@ function Labeled({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
+/**
+ * Viñetas leídas del CV (D4): se muestran tal cual, marcadas «de tu CV», y solo se pueden quitar. Si la
+ * persona quiere reescribirlas, lo hace después en su historial o en la etapa de huecos.
+ */
+function CvBullets({
+  id,
+  bullets,
+  fromCv,
+  disabled,
+  onChange,
+}: {
+  id: string;
+  bullets: readonly string[];
+  fromCv: boolean;
+  disabled: boolean;
+  onChange: (bullets: string[]) => void;
+}) {
+  if (bullets.length === 0) return null;
+  const headingId = `${id}-vinetas`;
+  return (
+    <div className="flex flex-col gap-1 sm:col-span-2">
+      <p id={headingId} className="flex flex-wrap items-center gap-2 text-sm font-medium text-fg">
+        Viñetas
+        {fromCv ? (
+          <span
+            data-testid="from-cv"
+            className="rounded-full border border-line px-2 py-0.5 text-xs font-semibold text-fg-muted"
+          >
+            de tu CV
+          </span>
+        ) : null}
+      </p>
+      <ul aria-labelledby={headingId} className="flex flex-col gap-2">
+        {bullets.map((b, i) => (
+          <li key={`${i}-${b}`} className="flex items-start justify-between gap-2 text-sm text-fg">
+            <span className="min-w-0 break-words">{b}</span>
+            <button
+              type="button"
+              className={SM}
+              disabled={disabled}
+              aria-label={`Quitar la viñeta ${i + 1}`}
+              onClick={() => onChange(bullets.filter((_, j) => j !== i))}
+            >
+              Quitar
+            </button>
+          </li>
+        ))}
+      </ul>
+      {fromCv ? (
+        <p className="text-xs text-fg-muted">
+          Copiadas tal cual de tu CV. Quitá las que no quieras; para reescribirlas, hacelo después
+          en tu historial.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/** Stack separado por comas: el texto vive acá mientras se escribe, la tarjeta recibe la lista. */
+function StackField({
+  stack,
+  disabled,
+  onChange,
+}: {
+  stack: readonly string[];
+  disabled: boolean;
+  onChange: (stack: string[]) => void;
+}) {
+  const [draft, setDraft] = useState(stack.join(", "));
+  return (
+    <Labeled label="Tecnologías (separadas por comas)">
+      <input
+        className={FIELD}
+        disabled={disabled}
+        maxLength={300}
+        value={draft}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          onChange(
+            e.target.value
+              .split(",")
+              .map((t) => t.trim())
+              .filter((t) => t !== "")
+              .slice(0, 12),
+          );
+        }}
+      />
+    </Labeled>
+  );
+}
+
 /** Los campos editables de una tarjeta, según su tipo. */
 function CardFields({
   card,
@@ -382,9 +475,87 @@ function CardFields({
               Sigo en este trabajo
             </label>
           ) : null}
+          {card.kind === "experience" ? (
+            <CvBullets
+              id={card.id}
+              bullets={card.bullets}
+              fromCv={card.bulletsFromCv === true}
+              disabled={disabled}
+              onChange={(bullets) => onChange({ bullets })}
+            />
+          ) : null}
         </div>
       );
     }
+    case "project":
+      return (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Labeled label="Proyecto">
+            <input
+              className={FIELD}
+              disabled={disabled}
+              maxLength={120}
+              value={card.name}
+              onChange={(e) => onChange({ name: e.target.value })}
+            />
+          </Labeled>
+          <Labeled label="Tu rol (opcional)">
+            <input
+              className={FIELD}
+              disabled={disabled}
+              maxLength={120}
+              value={card.role ?? ""}
+              onChange={(e) => onChange({ role: text(e.target.value) })}
+            />
+          </Labeled>
+          <div className="sm:col-span-2">
+            <Labeled label="Link (opcional, empieza con https://)">
+              <input
+                type="url"
+                inputMode="url"
+                className={FIELD}
+                disabled={disabled}
+                maxLength={200}
+                placeholder="https://"
+                value={card.link ?? ""}
+                onChange={(e) => onChange({ link: text(e.target.value.trim()) })}
+              />
+            </Labeled>
+          </div>
+          <div className="sm:col-span-2">
+            <StackField
+              stack={card.stack}
+              disabled={disabled}
+              onChange={(stack) => onChange({ stack })}
+            />
+          </div>
+          <Labeled label="Desde">
+            <input
+              type="month"
+              className={FIELD}
+              disabled={disabled}
+              value={card.startMonth ?? ""}
+              onChange={(e) => onChange({ startMonth: text(e.target.value) })}
+            />
+          </Labeled>
+          <Labeled label="Hasta">
+            <input
+              type="month"
+              className={FIELD}
+              disabled={disabled}
+              value={card.endMonth ?? ""}
+              onChange={(e) => onChange({ endMonth: text(e.target.value) })}
+            />
+          </Labeled>
+          <CvBullets
+            id={card.id}
+            bullets={card.bullets}
+            fromCv={card.bulletsFromCv}
+            disabled={disabled}
+            onChange={(bullets) => onChange({ bullets })}
+          />
+        </div>
+      );
     case "skill":
       return (
         <div className="grid gap-3 sm:grid-cols-2">

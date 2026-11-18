@@ -93,6 +93,7 @@ export async function saveAcceptedCards(
         startMonth: c.input.startMonth,
         endMonth: c.input.endMonth,
         bullets: [...c.input.bullets],
+        link: c.input.link ?? null, // R12-5: solo proyectos, ya validado por `validateHistory`
         source: "cv",
         sort,
       });

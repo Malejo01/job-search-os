@@ -1,0 +1,191 @@
+{
+  "id": "finanzas",
+  "carrera": "finanzas_contabilidad",
+  "puesto_objetivo": "Analista financiero",
+  "nota": "",
+  "cv_texto": "PERSONA EJEMPLO E\nAnalista de tesorería\n\nPERFIL\nLicenciado en Economía con experiencia en tesorería y cobranzas.\n\nEXPERIENCIA\nAnalista de tesorería, Empresa H, 2021-06 a actualidad\n- Flujo de fondos semanal.\n- Pagos a proveedores.\n- Gestión con bancos.\n\nAuxiliar administrativo contable, Empresa I, 2019-01\n- Facturación y cobranzas.\n\nESTUDIOS\nLicenciatura en Economía, Universidad Ficticia Central, 2014-03 a 2019-12\n\nHABILIDADES\nExcel avanzado, flujo de fondos, SAP\n\nIDIOMAS\nEspañol nativo. Inglés avanzado (C1).\n",
+  "lectura": {
+    "items": [
+      {
+        "clave": "exp-1",
+        "id": "00000000-0000-4000-8000-0000000001f5",
+        "kind": "trabajo",
+        "organization": "Empresa H",
+        "title": "Analista de tesorería",
+        "startMonth": "2021-06",
+        "endMonth": null,
+        "isCurrent": true,
+        "bullets": [
+          "Flujo de fondos semanal.",
+          "Pagos a proveedores.",
+          "Gestión con bancos."
+        ],
+        "link": null
+      },
+      {
+        "clave": "exp-2",
+        "id": "00000000-0000-4000-8000-0000000001f6",
+        "kind": "trabajo",
+        "organization": "Empresa I",
+        "title": "Auxiliar administrativo contable",
+        "startMonth": "2019-01",
+        "endMonth": null,
+        "isCurrent": false,
+        "bullets": [
+          "Facturación y cobranzas."
+        ],
+        "link": null
+      },
+      {
+        "clave": "edu-1",
+        "id": "00000000-0000-4000-8000-0000000001f7",
+        "kind": "educacion",
+        "organization": "Universidad Ficticia Central",
+        "title": "Licenciatura en Economía",
+        "startMonth": "2014-03",
+        "endMonth": "2019-12",
+        "isCurrent": false,
+        "bullets": [],
+        "link": null
+      }
+    ],
+    "skills": [
+      "excel",
+      "financial_reporting"
+    ],
+    "resumen": "Licenciado en Economía con experiencia en tesorería y cobranzas."
+  },
+  "demanda": [
+    {
+      "slug": "financial_reporting",
+      "mentions": 10
+    },
+    {
+      "slug": "excel",
+      "mentions": 9
+    },
+    {
+      "slug": "erp_accounting",
+      "mentions": 8
+    },
+    {
+      "slug": "power_bi",
+      "mentions": 6
+    },
+    {
+      "slug": "statistics",
+      "mentions": 2
+    }
+  ],
+  "hechos": [
+    {
+      "clave": "empresa",
+      "valor": "Empresa H",
+      "fuente": "cv"
+    },
+    {
+      "clave": "cargo",
+      "valor": "Analista de tesorería",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2021",
+      "fuente": "cv"
+    },
+    {
+      "clave": "empresa",
+      "valor": "Empresa I",
+      "fuente": "cv"
+    },
+    {
+      "clave": "cargo",
+      "valor": "Auxiliar administrativo contable",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2019",
+      "fuente": "cv"
+    },
+    {
+      "clave": "institucion",
+      "valor": "Universidad Ficticia Central",
+      "fuente": "cv"
+    },
+    {
+      "clave": "titulo",
+      "valor": "Licenciatura en Economía",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2014",
+      "fuente": "cv"
+    },
+    {
+      "clave": "numero",
+      "valor": "3",
+      "fuente": "respuesta"
+    },
+    {
+      "clave": "numero",
+      "valor": "18",
+      "fuente": "respuesta"
+    },
+    {
+      "clave": "numero",
+      "valor": "9",
+      "fuente": "respuesta"
+    }
+  ],
+  "problemas_esperados": [
+    {
+      "tipo": "tarea_vaga",
+      "item": "exp-1"
+    },
+    {
+      "tipo": "fecha_faltante",
+      "item": "exp-2"
+    },
+    {
+      "tipo": "logro_sin_resultado",
+      "item": "exp-2"
+    },
+    {
+      "tipo": "skill_pedida_sin_evidencia",
+      "skill": "financial_reporting"
+    },
+    {
+      "tipo": "skill_pedida_sin_evidencia",
+      "skill": "excel"
+    },
+    {
+      "tipo": "brecha_con_puesto",
+      "skill": "erp_accounting"
+    },
+    {
+      "tipo": "brecha_con_puesto",
+      "skill": "power_bi"
+    }
+  ],
+  "respuestas": {
+    "tarea_vaga": {
+      "exp-1": "Armo el flujo de fondos semanal de 3 empresas del grupo y lo presento al gerente financiero."
+    },
+    "fecha_faltante": {
+      "exp-2": "Hasta mayo de 2021."
+    },
+    "logro_sin_resultado": {
+      "exp-2": "Bajamos la morosidad del 18 % al 9 % en un año."
+    },
+    "brecha_con_puesto": {
+      "erp_accounting": "Uso SAP FI todos los días para cargar pagos.",
+      "*": "no tengo"
+    },
+    "skill_pedida_sin_evidencia": {
+      "financial_reporting": "Preparo el reporte mensual de tesorería para la dirección.",
+      "excel": "Armo el flujo de fondos en Excel con tablas dinámicas."
+    }
+  }
+}

@@ -1,8 +1,8 @@
 # ADR-038: Coach de CV (diagnóstico y preguntas redactadas por el modelo, con temario del código)
 
-**Status:** Proposed · **Date:** 2026-11-17 · Amplía [ADR-026](./026-cv-redactado-por-ia-con-verificador.md) y ADR-034 (agente de perfil, rama `ronda/r11-1-agente-perfil-v2`, #514). Reabre ADR-026 §3 («la pregunta es una plantilla fija») y ADR-034 §1 («las preguntas no las redacta el modelo») **solo para el flujo del coach**. `/cv/armar` y la charla de huecos de ADR-034 no cambian de regla.
+**Status:** Accepted (17/11, decisiones de Mauro D1 a D7) · **Date:** 2026-11-17 · Amplía [ADR-026](./026-cv-redactado-por-ia-con-verificador.md) y ADR-034 (agente de perfil, rama `ronda/r11-1-agente-perfil-v2`, #514). Reabre ADR-026 §3 («la pregunta es una plantilla fija») y ADR-034 §1 («las preguntas no las redacta el modelo») **solo para el flujo del coach**. `/cv/armar` y la charla de huecos de ADR-034 no cambian de regla.
 
-> Las decisiones marcadas **[a confirmar por Mauro · Dn]** no están tomadas. El lead recomienda una opción en cada una; el ADR pasa a Accepted cuando Mauro las cierre. Plan, costos y tickets: [`docs/beta/plan-coach-cv.md`](../beta/plan-coach-cv.md).
+> **Decisiones de Mauro (17/11), cerradas:** D1 sí (el modelo redacta las preguntas; temario y orden del código; una llamada por turno; validador o plantilla). D2 sí (Proyectos con check y columna `link`). D3 sí (`pdfjs-dist` con versión exacta e import dinámico solo en la lectura). D4 sí (viñetas «de tu CV» solo si son substring normalizado del texto leído). D5: USD 0,30 y 15 turnos por charla, reservando siempre `cv_write`; se revisa con la Fase 3. D6: convive con `/cv/armar`, una puerta en `/cv`. D7: #514 y #511 entraron en la integración de la R11. Flag `CV_COACH` propio (`apagado | testers | all`), exige `CV_PROFILE_AGENT`, arranca en `testers`. Aceptadas también las dos reglas de R12-0: diagnóstico con plantillas del código y reserva del CV final. El contrato en código es `packages/pipeline/src/cv-coach/` (R12-7). Plan, costos y tickets: [`docs/beta/plan-coach-cv.md`](../beta/plan-coach-cv.md).
 
 ## Context
 - Mauro probó «Armá tu CV con IA» el 17/11 ([informe](../beta/informe-cv-agente-17-11.md)): el chat descarta todo lo que se dice fuera del tema actual, repregunta lo ya dicho, no avisa contradicciones y no tiene dónde poner proyectos. Es lo que ADR-026 §3 decidió: un esquema estricto por tema (`cv-chat/schemas.ts:51`) y preguntas de plantilla (`cv-chat/questions.ts:14`).
@@ -21,9 +21,9 @@
 | Charla de mejora | Una llamada por turno: extrae todo lo útil y propone la siguiente pregunta | el temario es la lista ordenada del código; la pregunta del modelo pasa un validador o cae a plantilla | `cv_coach_turn` (nueva) |
 | Cierre | CV ATS con sección Proyectos y vista «qué mejoró» | verificador de ADR-026, sin cambios de regla | `cv_write` (sin cambios de fila) |
 
-El coach **convive** con `/cv/armar` **[a confirmar por Mauro · D6]**: una sola puerta en `/cv` («Tengo CV» lleva al coach, «No tengo CV» a `/cv/armar`). El coach se construye **sobre** el código de #514 (lectura, tarjetas, ticket, topes, flag) **[a confirmar por Mauro · D7]**.
+El coach **convive** con `/cv/armar` **[D6: decidido]**: una sola puerta en `/cv` («Tengo CV» lleva al coach, «No tengo CV» a `/cv/armar`). El coach se construye **sobre** el código de #514 (lectura, tarjetas, ticket, topes, flag) **[D7: decidido]**.
 
-### 2. El modelo redacta preguntas, el código decide el temario **[a confirmar por Mauro · D1]**
+### 2. El modelo redacta preguntas, el código decide el temario **[D1: decidido]**
 - **Qué se pregunta, en qué orden y cuándo termina** sale de la lista de problemas que ordenó el código (§4). El modelo nunca agrega temas.
 - **Una sola llamada por turno** (`cv_coach_turn`): extrae y propone la próxima pregunta para el problema que el código ya eligió y le pasó en el prompt.
 - **Validador de la pregunta** (puro, `pipeline/src/cv-coach/question.ts`), con el patrón de `safeFollowUpQuestion` (`cv-chat/follow-up.ts:66`):
@@ -99,14 +99,14 @@ export const cvCoachTurnOutput = z.strictObject({
 - **Todo lo extraído sale como tarjeta para confirmar** (patrón de `ProfileGapCard`). Nada entra al CV sin el clic.
 - **Cierre:** lista agotada, «Ya está, armalo», tope de turnos o tope de USD. Un problema con dos respuestas ilegibles se saltea (`CV_CHAT_MAX_FAILURES`).
 
-### 6. Proyectos en `career_history` **[a confirmar por Mauro · D2]**
+### 6. Proyectos en `career_history` **[D2: decidido]**
 - `career_history.kind` es un **check** (`packages/db/schema.ts:621`), no un enum: la migración (`drizzle-kit generate`) cambia el check a `('trabajo','educacion','certificacion','proyecto')`.
 - Columna nueva **`link text null`** con check `link is null or link ~ '^https://'` (hasta 200 caracteres). Hace falta porque `validateHistory` rechaza links en todos los campos (`cv-out/history.ts`, `hasLinkOrEmail`).
 - Para un proyecto: `organization` = nombre del proyecto, `title` = rol, `bullets` = descripción y logros, `start_month`/`end_month` opcionales. El stack va como viñeta («Stack: …»), sin columna nueva.
 - **RLS:** la tabla ya tiene policy (`packages/db/rls/0014_career_history.sql`); la columna nueva la hereda. No hace falta policy nueva.
 - Código que suma el tipo: `HISTORY_KINDS` (`cv-out/history.ts:10`), `CvHistoryKind` (`cv-out/model.ts:9`) con sección «Proyectos» / «Projects» en el CV, `cv-chat/state-schema.ts:30`, `cv-chat/card.ts:59`, el DOCX y el formulario de `/settings/historial`.
 
-### 7. Lectura: viñetas originales **[a confirmar por Mauro · D4]** y PDF **[a confirmar por Mauro · D3]**
+### 7. Lectura: viñetas originales **[D4: decidido]** y PDF **[D3: decidido]**
 - `extract_cv_profile` v2 pide las viñetas de cada trabajo y proyecto. **Cada viñeta tiene que ser substring normalizado** (`foldCvText`, espacios colapsados) del texto leído, en el mismo request. Si no lo es, se descarta. La tarjeta las marca «de tu CV».
 - Los proyectos salen de `facts` con `kind: "proyecto"`, que ya existen en `main` (`pipeline/src/cv/extraction.ts:49`), más los campos nuevos (rol, link, stack).
 - PDF: `pdfjs-dist` con import dinámico, solo en las pantallas de lectura, con el worker como asset propio y sin `eval`. Es una dependencia nueva: carril rojo y decisión de Mauro.
@@ -117,7 +117,7 @@ export const cvCoachTurnOutput = z.strictObject({
 - La foto «antes» para «qué mejoró» se toma al empezar el coach (filas leídas con RLS) y vive en `sessionStorage` (`jso:coach:before`). La comparación es una función pura. Si se pierde, la vista muestra solo los problemas resueltos.
 - En la base queda lo de siempre: `llm_calls` sin textos (`label = cv:<flowId>`) y lo que la persona confirma, en `career_history` con `source = 'cv'`.
 
-### 9. Topes **[a confirmar por Mauro · D5]** (todos fallan cerrado, mensaje fijo)
+### 9. Topes **[D5: decidido]** (todos fallan cerrado, mensaje fijo)
 | Tope | Valor propuesto | Cómo se mide |
 |---|---|---|
 | Gasto por charla del coach (lectura + diagnóstico + turnos + redacción) | **USD 0,30** (el mismo de ADR-034) | suma de `llm_calls` por `label` (con `COALESCE` a la reserva, ADR-034 §6 O1) |

@@ -323,6 +323,11 @@ export async function POST(request: Request): Promise<Response> {
       gaps: withOpenGap(ctx.gaps, out.followUp ? ref : null),
       state: after,
     });
+    // R12-2: si el código repregunta el mismo tema, va el texto del modelo ya validado; si no, la plantilla
+    const question =
+      next && out.followUpQuestion !== null && next.ref.key === ref.key
+        ? { ...next.question, question: out.followUpQuestion }
+        : (next?.question ?? null);
     const t = issue();
     if (!t) return fail("server");
     const dropped = out.cardReason === "sensitive" || out.cardReason === "injection";
@@ -334,7 +339,7 @@ export async function POST(request: Request): Promise<Response> {
       target: ref.skillName ?? ref.organization,
       notice: dropped ? SENSITIVE_NOTICE : null,
       declined: out.declined,
-      question: next?.question ?? null,
+      question,
     });
   } catch (e) {
     // Nunca el mensaje de la excepción: puede citar datos de la persona

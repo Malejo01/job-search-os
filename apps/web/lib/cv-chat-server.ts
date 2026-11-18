@@ -192,6 +192,7 @@ export async function saveChatHistory(
         startMonth: e.startMonth,
         endMonth: e.endMonth,
         bullets: [...e.bullets],
+        link: e.link ?? null,
         source: "chat",
         sort,
       });

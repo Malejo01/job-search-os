@@ -7,8 +7,8 @@
  *    entrada no confiable, el servidor lo valida y lo vuelve a filtrar con `screenProfileCard`),
  * 3. lo que el código arma para la guía.
  *
- * Lo que el CV no dice queda `null` o `[]`, nunca inventado. Las tarjetas de lectura no llevan viñetas:
- * el CV no se resume con palabras del modelo, las viñetas las dice la persona en la etapa de huecos.
+ * Lo que el CV no dice queda `null` o `[]`, nunca inventado. Las tarjetas de lectura solo llevan viñetas
+ * literales del CV (ADR-038 §7, D4): el CV no se resume con palabras del modelo.
  */
 import { z } from "zod";
 import { hasLinkOrEmail, CV_BULLET_MAX_CHARS } from "../cv-out/verify";
@@ -62,12 +62,45 @@ export const experienceCardSchema = z
     startMonth: MONTH.nullable(),
     endMonth: MONTH.nullable(),
     isCurrent: z.boolean(),
-    // Siempre vacío al leer; solo la etapa de huecos suma viñetas, con lo que dice la persona.
+    // ADR-038 §7 (D4): al leer, solo viñetas que son substring normalizado del texto del CV leído en el
+    // mismo request (`bulletsFromCv: true`, la tarjeta las marca «de tu CV»). La etapa de huecos suma las
+    // que dice la persona. Ausente = `false` (las tarjetas guardadas en la pestaña antes de R12-5).
     bullets: z.array(line(CV_BULLET_MAX_CHARS)).max(6),
+    bulletsFromCv: z.boolean().optional(),
   })
   .refine(datesOk, { message: "fechas" })
   .refine((c) => !c.isCurrent || c.endMonth === null, { message: "actual_con_fin" });
 export type ExperienceCard = z.infer<typeof experienceCardSchema>;
+
+/** Link de un proyecto: solo `https://`, hasta 200 caracteres, sin espacios (ADR-038 §6). */
+export const projectLinkSchema = z
+  .string()
+  .trim()
+  .max(200)
+  .regex(/^https:\/\/[^\s@]+$/);
+
+/**
+ * Proyecto (ADR-038 §6, D2). Destino: `career_history` con `kind = 'proyecto'` y `source = 'cv'`:
+ * `organization` = nombre, `title` = rol (o «Proyecto personal» si el CV no lo dice), `bullets` =
+ * descripción y logros, el stack como viñeta «Stack: …» y `link` en su columna. R12-5 lo suma a
+ * `profileReadCardSchema` junto con su manejo en `screen.ts`, `read/cards.ts` y `cards.tsx` (contrato
+ * R12-7: el esquema ya está acá para que nadie lo redefina).
+ */
+export const projectCardSchema = z
+  .strictObject({
+    kind: z.literal("project"),
+    id: profileCardIdSchema,
+    name: line(PROFILE_AGENT_FIELD_MAX_CHARS),
+    role: line(PROFILE_AGENT_FIELD_MAX_CHARS).nullable(),
+    link: projectLinkSchema.nullable(),
+    stack: z.array(line(60)).max(12),
+    startMonth: MONTH.nullable(),
+    endMonth: MONTH.nullable(),
+    bullets: z.array(line(CV_BULLET_MAX_CHARS)).max(6),
+    bulletsFromCv: z.boolean(),
+  })
+  .refine(datesOk, { message: "fechas" });
+export type ProjectCard = z.infer<typeof projectCardSchema>;
 
 /** Estudio. Destino: `career_history` con `kind = 'educacion'` y `source = 'cv'`. */
 export const educationCardSchema = z
@@ -111,6 +144,7 @@ export type LanguageCard = z.infer<typeof languageCardSchema>;
 
 export const profileReadCardSchema = z.discriminatedUnion("kind", [
   experienceCardSchema,
+  projectCardSchema,
   educationCardSchema,
   skillCardSchema,
   languageCardSchema,

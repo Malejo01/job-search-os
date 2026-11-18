@@ -2,6 +2,7 @@ import { schema as s, type Db } from "@job-search-os/db";
 import {
   CV_CHAT_TURN_RESERVE_USD,
   CV_CHAT_WRITE_RESERVE_USD,
+  CV_COACH_RESERVE_USD,
   PROFILE_AGENT_READ_RESERVE_USD,
 } from "@job-search-os/pipeline";
 import { and, gte, inArray, sql } from "drizzle-orm";
@@ -20,6 +21,9 @@ export const PROFILE_AGENT_SPEND_TASKS = [
   "extract_cv_profile",
   "cv_interview",
   "cv_write",
+  // Coach de CV (ADR-038, R12-8): comparte los topes por persona y día y el global del agente
+  "cv_review",
+  "cv_coach_turn",
 ] as const;
 
 const MICRO_USD = 1_000_000;
@@ -30,7 +34,7 @@ export const profileAgentAttempted = (c: typeof s.llmCalls) =>
 
 /** Costo de una fila en USD: real si es válido, estimado del paso si no; 0 para otras tareas. */
 export const profileAgentBilledUsd = (c: typeof s.llmCalls) =>
-  sql`case when ${c.task} in ('extract_cv_profile', 'cv_interview', 'cv_write') and ${profileAgentAttempted(c)} then (case when ${c.costUsd}::float8 between 0 and 'Infinity'::float8 then ${c.costUsd}::float8 when ${c.task} = 'extract_cv_profile' then ${PROFILE_AGENT_READ_RESERVE_USD}::float8 when ${c.task} = 'cv_write' then ${CV_CHAT_WRITE_RESERVE_USD}::float8 else ${CV_CHAT_TURN_RESERVE_USD}::float8 end) else 0 end`;
+  sql`case when ${c.task} in ('extract_cv_profile', 'cv_interview', 'cv_write', 'cv_review', 'cv_coach_turn') and ${profileAgentAttempted(c)} then (case when ${c.costUsd}::float8 between 0 and 'Infinity'::float8 then ${c.costUsd}::float8 when ${c.task} = 'extract_cv_profile' then ${PROFILE_AGENT_READ_RESERVE_USD}::float8 when ${c.task} = 'cv_write' then ${CV_CHAT_WRITE_RESERVE_USD}::float8 when ${c.task} = 'cv_review' then ${CV_COACH_RESERVE_USD.review}::float8 when ${c.task} = 'cv_coach_turn' then ${CV_COACH_RESERVE_USD.turn}::float8 else ${CV_CHAT_TURN_RESERVE_USD}::float8 end) else 0 end`;
 
 export type ProfileAgentSpend = {
   /** Gasto de la persona desde `daySince`, de todas sus charlas. */

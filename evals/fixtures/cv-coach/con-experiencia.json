@@ -1,0 +1,227 @@
+{
+  "id": "con-experiencia",
+  "carrera": "finanzas_contabilidad",
+  "puesto_objetivo": "Analista contable senior",
+  "nota": "De #514: analista contable con dos trabajos.",
+  "cv_texto": "PERSONA EJEMPLO B\nAnalista contable\n\nPERFIL\nContadora con experiencia en cierres mensuales, conciliaciones bancarias y reportes para la gerencia. Busco un puesto de analista senior en finanzas o contabilidad.\n\nEXPERIENCIA\nAnalista contable, Empresa C, 2019-03 a 2024-08\n- Cierre mensual de cuentas por pagar y por cobrar.\n- Conciliaciones bancarias de tres sociedades.\n- Armado de tableros de gastos en Excel para la gerencia.\n\nAsistente contable, Empresa D, 2017-02 a 2019-02\n- Carga de comprobantes y liquidación de impuestos mensuales.\n- Atención de consultas de proveedores.\n\nESTUDIOS\nContador Público, Universidad Ficticia del Norte, 2012 - 2016\nPosgrado en Finanzas Corporativas, Instituto de Ejemplo, 2021\n\nHABILIDADES\nExcel, Power BI, SQL básico, conciliaciones, liquidación de impuestos\n\nIDIOMAS\nEspañol nativo. Inglés avanzado (C1).\n",
+  "lectura": {
+    "items": [
+      {
+        "clave": "exp-1",
+        "id": "00000000-0000-4000-8000-0000000000c9",
+        "kind": "trabajo",
+        "organization": "Empresa C",
+        "title": "Analista contable",
+        "startMonth": "2019-03",
+        "endMonth": "2024-08",
+        "isCurrent": false,
+        "bullets": [
+          "Cierre mensual de cuentas por pagar y por cobrar.",
+          "Conciliaciones bancarias de tres sociedades.",
+          "Armado de tableros de gastos en Excel para la gerencia."
+        ],
+        "link": null
+      },
+      {
+        "clave": "exp-2",
+        "id": "00000000-0000-4000-8000-0000000000ca",
+        "kind": "trabajo",
+        "organization": "Empresa D",
+        "title": "Asistente contable",
+        "startMonth": "2017-02",
+        "endMonth": "2019-02",
+        "isCurrent": false,
+        "bullets": [
+          "Carga de comprobantes y liquidación de impuestos mensuales.",
+          "Atención de consultas de proveedores."
+        ],
+        "link": null
+      },
+      {
+        "clave": "edu-1",
+        "id": "00000000-0000-4000-8000-0000000000cb",
+        "kind": "educacion",
+        "organization": "Universidad Ficticia del Norte",
+        "title": "Contador Público",
+        "startMonth": "2012-03",
+        "endMonth": "2016-12",
+        "isCurrent": false,
+        "bullets": [],
+        "link": null
+      },
+      {
+        "clave": "edu-2",
+        "id": "00000000-0000-4000-8000-0000000000cc",
+        "kind": "certificacion",
+        "organization": "Instituto de Ejemplo",
+        "title": "Posgrado en Finanzas Corporativas",
+        "startMonth": "2021-03",
+        "endMonth": "2021-12",
+        "isCurrent": false,
+        "bullets": [],
+        "link": null
+      }
+    ],
+    "skills": [
+      "excel",
+      "power_bi",
+      "sql",
+      "general_accounting",
+      "tax_compliance"
+    ],
+    "resumen": "Contadora con experiencia en cierres mensuales, conciliaciones bancarias y reportes para la gerencia. Busco un puesto de analista senior en finanzas o contabilidad."
+  },
+  "demanda": [
+    {
+      "slug": "general_accounting",
+      "mentions": 12
+    },
+    {
+      "slug": "excel",
+      "mentions": 10
+    },
+    {
+      "slug": "erp_accounting",
+      "mentions": 7
+    },
+    {
+      "slug": "financial_reporting",
+      "mentions": 6
+    },
+    {
+      "slug": "power_bi",
+      "mentions": 4
+    },
+    {
+      "slug": "tax_compliance",
+      "mentions": 3
+    }
+  ],
+  "hechos": [
+    {
+      "clave": "empresa",
+      "valor": "Empresa C",
+      "fuente": "cv"
+    },
+    {
+      "clave": "cargo",
+      "valor": "Analista contable",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2019",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2024",
+      "fuente": "cv"
+    },
+    {
+      "clave": "empresa",
+      "valor": "Empresa D",
+      "fuente": "cv"
+    },
+    {
+      "clave": "cargo",
+      "valor": "Asistente contable",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2017",
+      "fuente": "cv"
+    },
+    {
+      "clave": "institucion",
+      "valor": "Universidad Ficticia del Norte",
+      "fuente": "cv"
+    },
+    {
+      "clave": "titulo",
+      "valor": "Contador Público",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2012",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2016",
+      "fuente": "cv"
+    },
+    {
+      "clave": "institucion",
+      "valor": "Instituto de Ejemplo",
+      "fuente": "cv"
+    },
+    {
+      "clave": "titulo",
+      "valor": "Posgrado en Finanzas Corporativas",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2021",
+      "fuente": "cv"
+    },
+    {
+      "clave": "numero",
+      "valor": "8",
+      "fuente": "respuesta"
+    },
+    {
+      "clave": "numero",
+      "valor": "5",
+      "fuente": "respuesta"
+    },
+    {
+      "clave": "numero",
+      "valor": "40",
+      "fuente": "respuesta"
+    }
+  ],
+  "problemas_esperados": [
+    {
+      "tipo": "logro_sin_resultado",
+      "item": "exp-1"
+    },
+    {
+      "tipo": "tarea_vaga",
+      "item": "exp-2"
+    },
+    {
+      "tipo": "brecha_con_puesto",
+      "skill": "erp_accounting"
+    },
+    {
+      "tipo": "brecha_con_puesto",
+      "skill": "financial_reporting"
+    },
+    {
+      "tipo": "skill_pedida_sin_evidencia",
+      "skill": "power_bi"
+    }
+  ],
+  "respuestas": {
+    "logro_sin_resultado": {
+      "exp-1": [
+        "Bajé el cierre mensual de 8 a 5 días hábiles.",
+        "no tengo"
+      ]
+    },
+    "tarea_vaga": {
+      "exp-2": "Respondía consultas de 40 proveedores por semana sobre pagos y retenciones."
+    },
+    "brecha_con_puesto": {
+      "erp_accounting": "Usé Tango Gestión todos los días en Empresa D.",
+      "*": "no tengo"
+    },
+    "skill_pedida_sin_evidencia": {
+      "power_bi": "En Empresa C pasé los tableros de gastos de Excel a Power BI."
+    }
+  }
+}

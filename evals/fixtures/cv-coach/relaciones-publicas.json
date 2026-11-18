@@ -1,0 +1,190 @@
+{
+  "id": "relaciones-publicas",
+  "carrera": "relaciones_publicas",
+  "puesto_objetivo": "Ejecutiva de relaciones públicas",
+  "nota": "",
+  "cv_texto": "PERSONA EJEMPLO I\nRelacionista pública\n\nPERFIL\nRelacionista pública con experiencia en prensa y eventos.\n\nEXPERIENCIA\nEjecutiva de cuentas junior, Consultora Ficticia de Prensa, 2023-02 a actualidad\n- Prensa para clientes.\n- Organización de eventos.\n\nPasante de ceremonial, Municipalidad Inventada de San Ejemplo\n- Asistencia en actos oficiales.\n\nESTUDIOS\nLicenciatura en Relaciones Públicas, Universidad Ficticia del Norte, 2018-03 a 2022-12\n\nHABILIDADES\nPrensa, eventos, ceremonial y protocolo, Canva\n\nIDIOMAS\nEspañol nativo. Portugués intermedio.\n",
+  "lectura": {
+    "items": [
+      {
+        "clave": "exp-1",
+        "id": "00000000-0000-4000-8000-000000000385",
+        "kind": "trabajo",
+        "organization": "Consultora Ficticia de Prensa",
+        "title": "Ejecutiva de cuentas junior",
+        "startMonth": "2023-02",
+        "endMonth": null,
+        "isCurrent": true,
+        "bullets": [
+          "Prensa para clientes.",
+          "Organización de eventos."
+        ],
+        "link": null
+      },
+      {
+        "clave": "exp-2",
+        "id": "00000000-0000-4000-8000-000000000386",
+        "kind": "trabajo",
+        "organization": "Municipalidad Inventada de San Ejemplo",
+        "title": "Pasante de ceremonial",
+        "startMonth": null,
+        "endMonth": null,
+        "isCurrent": false,
+        "bullets": [
+          "Asistencia en actos oficiales."
+        ],
+        "link": null
+      },
+      {
+        "clave": "edu-1",
+        "id": "00000000-0000-4000-8000-000000000387",
+        "kind": "educacion",
+        "organization": "Universidad Ficticia del Norte",
+        "title": "Licenciatura en Relaciones Públicas",
+        "startMonth": "2018-03",
+        "endMonth": "2022-12",
+        "isCurrent": false,
+        "bullets": [],
+        "link": null
+      }
+    ],
+    "skills": [
+      "press_relations",
+      "corporate_communications"
+    ],
+    "resumen": "Relacionista pública con experiencia en prensa y eventos."
+  },
+  "demanda": [
+    {
+      "slug": "press_relations",
+      "mentions": 10
+    },
+    {
+      "slug": "public_affairs",
+      "mentions": 7
+    },
+    {
+      "slug": "corporate_communications",
+      "mentions": 7
+    },
+    {
+      "slug": "social_media",
+      "mentions": 5
+    },
+    {
+      "slug": "content_strategy",
+      "mentions": 2
+    }
+  ],
+  "hechos": [
+    {
+      "clave": "empresa",
+      "valor": "Consultora Ficticia de Prensa",
+      "fuente": "cv"
+    },
+    {
+      "clave": "cargo",
+      "valor": "Ejecutiva de cuentas junior",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2023",
+      "fuente": "cv"
+    },
+    {
+      "clave": "empresa",
+      "valor": "Municipalidad Inventada de San Ejemplo",
+      "fuente": "cv"
+    },
+    {
+      "clave": "cargo",
+      "valor": "Pasante de ceremonial",
+      "fuente": "cv"
+    },
+    {
+      "clave": "institucion",
+      "valor": "Universidad Ficticia del Norte",
+      "fuente": "cv"
+    },
+    {
+      "clave": "titulo",
+      "valor": "Licenciatura en Relaciones Públicas",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2018",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2022",
+      "fuente": "cv"
+    },
+    {
+      "clave": "numero",
+      "valor": "4",
+      "fuente": "respuesta"
+    },
+    {
+      "clave": "numero",
+      "valor": "60",
+      "fuente": "respuesta"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2021",
+      "fuente": "respuesta"
+    }
+  ],
+  "problemas_esperados": [
+    {
+      "tipo": "tarea_vaga",
+      "item": "exp-1"
+    },
+    {
+      "tipo": "fecha_faltante",
+      "item": "exp-2"
+    },
+    {
+      "tipo": "logro_sin_resultado",
+      "item": "exp-1"
+    },
+    {
+      "tipo": "skill_pedida_sin_evidencia",
+      "skill": "press_relations"
+    },
+    {
+      "tipo": "brecha_con_puesto",
+      "skill": "public_affairs"
+    },
+    {
+      "tipo": "skill_pedida_sin_evidencia",
+      "skill": "corporate_communications"
+    },
+    {
+      "tipo": "brecha_con_puesto",
+      "skill": "social_media"
+    }
+  ],
+  "respuestas": {
+    "tarea_vaga": {
+      "exp-1": "Escribo gacetillas y gestiono entrevistas con medios para 4 clientes de salud."
+    },
+    "fecha_faltante": {
+      "exp-2": "De marzo de 2021 a diciembre de 2021."
+    },
+    "logro_sin_resultado": {
+      "exp-1": "Conseguimos 60 notas en medios para el lanzamiento de un cliente."
+    },
+    "brecha_con_puesto": {
+      "public_affairs": "En la pasantía coordinaba con otras áreas del municipio para los actos oficiales.",
+      "*": "no tengo"
+    },
+    "skill_pedida_sin_evidencia": {
+      "*": "no tengo",
+      "press_relations": "Escribo gacetillas para los clientes de la consultora."
+    }
+  }
+}

@@ -5,9 +5,15 @@
  */
 import { cleanCvText, CV_BULLET_MAX_CHARS } from "../cv-out/verify";
 import { CV_MAX_BULLETS, type CvHistoryInput, type CvLinksInput } from "../cv-out/model";
+import type { CvConflict } from "./conflicts";
 import { parseCvExtraction, type CvExtractionMap, type CvTopicKind } from "./schemas";
 
 export const CV_CHAT_MAX_TURNS = 25;
+/**
+ * Rol de un proyecto cuando la persona no lo dijo (R12-2): `career_history` exige un rol y no se inventa
+ * uno; «Proyecto» no afirma nada que la persona no haya contado.
+ */
+export const CV_PROJECT_DEFAULT_ROLE = "Proyecto";
 export const CV_CHAT_MAX_WORKS = 6;
 /** Con dos respuestas que no pasan el esquema, el tema se da por saltado y el temario sigue. */
 export const CV_CHAT_MAX_FAILURES = 2;
@@ -35,6 +41,19 @@ export interface CvCertificationDraft {
   startMonth: string | null;
 }
 
+/**
+ * Proyecto dicho en la charla (R12-2), en cualquier tema. Sale como entrada `proyecto` de `career_history`
+ * (R12-4): `name` es el nombre, `role` el rol si lo dijo, la descripción y el stack van como viñetas.
+ */
+export interface CvProjectDraft {
+  name: string;
+  role: string | null;
+  description: string | null;
+  stack: string[];
+  /** Solo https y copiado del mensaje de la persona (`usableCvExtras`). */
+  link: string | null;
+}
+
 export interface CvLanguageDraft {
   name: string;
   level: string | null;
@@ -46,6 +65,8 @@ export interface CvChatState {
   confirmed: CvHistoryInput[];
   works: CvWorkDraft[];
   workDone: boolean;
+  /** Proyectos que contó en cualquier tema (R12-2). No tienen tema propio en el checklist. */
+  projects: CvProjectDraft[];
   education: CvEducationDraft[];
   certifications: CvCertificationDraft[];
   skills: string[];
@@ -58,6 +79,11 @@ export interface CvChatState {
   followUps: Record<string, number>;
   /** Repregunta vigente (redactada por el modelo y validada por el código), si el tema se repite. */
   followUp: { key: string; question: string } | null;
+  /**
+   * Contradicción pendiente (R12-3): lo dicho choca con lo anterior o con lo confirmado. Mientras está, la
+   * pregunta es «¿Cuál dejo?» y la respuesta la resuelve el código (`resolveCvConflict`), sin modelo.
+   */
+  conflict: CvConflict | null;
   /** Mensajes de la persona que ya se procesaron. */
   turns: number;
 }
@@ -112,6 +138,7 @@ export function initialCvChatState(seed: CvChatSeed = {}): CvChatState {
     confirmed: history,
     works: [],
     workDone: has("trabajo"),
+    projects: [],
     education: [],
     certifications: [],
     skills: [...(seed.skills ?? [])],
@@ -121,6 +148,7 @@ export function initialCvChatState(seed: CvChatSeed = {}): CvChatState {
     failures: {},
     followUps: {},
     followUp: null,
+    conflict: null,
     turns: 0,
   };
 }
@@ -172,11 +200,14 @@ export function cvChecklistProgress(s: CvChatState): { done: number; total: numb
  */
 export const cvProgressShown = (done: number): number => Math.max(1, done);
 
-function withAnswered(s: CvChatState, key: string): CvChatState {
+/** Clave de un tema de experiencia (`w0:title`), la misma que usa el checklist. */
+export const cvWorkKey = workKey;
+
+export function withAnswered(s: CvChatState, key: string): CvChatState {
   return s.answered.includes(key) ? s : { ...s, answered: [...s.answered, key] };
 }
 
-function setWork(s: CvChatState, i: number, patch: Partial<CvWorkDraft>): CvChatState {
+export function setWork(s: CvChatState, i: number, patch: Partial<CvWorkDraft>): CvChatState {
   const works = [...s.works];
   while (works.length <= i) {
     works.push({
@@ -193,7 +224,7 @@ function setWork(s: CvChatState, i: number, patch: Partial<CvWorkDraft>): CvChat
   return { ...s, works };
 }
 
-const dedupe = (items: readonly string[]): string[] => {
+export const dedupe = (items: readonly string[]): string[] => {
   const seen = new Set<string>();
   return items.filter((x) => {
     const k = x.toLowerCase();
@@ -305,6 +336,8 @@ export function applyCvAnswer(s: CvChatState, topic: CvTopic, raw: unknown): CvC
 
 /** «No tengo» / «Saltear»: el tema queda respondido sin datos. Cuenta un turno. */
 export function skipCvTopic(s: CvChatState, topic: CvTopic): CvChatState {
+  // Con una contradicción pendiente (R12-3), «Saltear» la descarta: queda lo que ya estaba
+  if (s.conflict) return { ...s, conflict: null, turns: s.turns + 1 };
   // Saltear un tema también descarta la repregunta pendiente (R4-16)
   const base = withAnswered({ ...s, turns: s.turns + 1, followUp: null }, topic.key);
   if (topic.kind === "organization" && s.works.length === 0) return { ...base, workDone: true };
@@ -354,6 +387,22 @@ export function cvChatHistory(s: CvChatState): CvHistoryInput[] {
       bullets: [...w.duties, ...(w.achievement ? [w.achievement] : [])]
         .map((b) => cleanCvText(b, CV_BULLET_MAX_CHARS))
         .slice(0, CV_MAX_BULLETS),
+    });
+  }
+  for (const p of s.projects) {
+    const name = trimmed(p.name);
+    if (name === "") continue;
+    out.push({
+      kind: "proyecto",
+      organization: name,
+      title: trimmed(p.role) || CV_PROJECT_DEFAULT_ROLE,
+      startMonth: null,
+      endMonth: null,
+      bullets: [p.description, p.stack.length > 0 ? `Stack: ${p.stack.join(", ")}` : null]
+        .filter((b): b is string => !!b)
+        .map((b) => cleanCvText(b, CV_BULLET_MAX_CHARS))
+        .filter((b) => b !== ""),
+      link: p.link,
     });
   }
   for (const e of s.education) {

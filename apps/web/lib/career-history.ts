@@ -24,6 +24,7 @@ export async function listCareerHistory(userId: string): Promise<HistoryRow[]> {
       startMonth: r.startMonth,
       endMonth: r.endMonth,
       bullets: r.bullets,
+      link: r.link,
       source: r.source,
     }));
   });

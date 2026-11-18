@@ -95,3 +95,4 @@ export * from "./feedback/triage";
 export * from "./textos-ani";
 export * from "./extract-image";
 export * from "./profile-agent";
+export * from "./cv-coach";

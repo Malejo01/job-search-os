@@ -4,6 +4,7 @@
  * acotado (largos y cantidades); `turns` no se confía, lo fija el ticket firmado del servidor.
  */
 import { z } from "zod";
+import { CV_PROJECT_LINK_MAX_CHARS, cvProjectLink } from "../cv-out/model";
 import type { CvChatState } from "./state";
 
 const MONTH = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/);
@@ -26,20 +27,62 @@ const work = z.strictObject({
   achievement: str(220).nullable(),
 });
 
-const confirmed = z.strictObject({
-  kind: z.enum(["trabajo", "educacion", "certificacion"]),
-  organization: name(120),
-  title: name(120),
-  startMonth: MONTH.nullable(),
-  endMonth: MONTH.nullable(),
-  bullets: z.array(name(220)).max(6),
+// Link de un proyecto (R12-4): la misma regla que la carga manual y el CHECK de la base.
+const projectLink = z
+  .string()
+  .max(CV_PROJECT_LINK_MAX_CHARS)
+  .refine((v) => cvProjectLink(v) === v)
+  .nullable()
+  .optional();
+
+const confirmed = z
+  .strictObject({
+    kind: z.enum(["trabajo", "educacion", "certificacion", "proyecto"]),
+    organization: name(120),
+    title: name(120),
+    startMonth: MONTH.nullable(),
+    endMonth: MONTH.nullable(),
+    bullets: z.array(name(220)).max(6),
+    link: projectLink,
+  })
+  .refine((e) => e.kind === "proyecto" || e.link == null);
+
+// Proyectos dichos en la charla (R12-2): mismos topes que una entrada del historial
+const project = z.strictObject({
+  // Puede quedar vacío mientras la persona lo corrige: `cvChatHistory` saltea los proyectos sin nombre
+  name: str(120),
+  role: str(120).nullable(),
+  description: str(220).nullable(),
+  stack: z.array(name(40)).max(8),
+  link: z
+    .string()
+    .max(CV_PROJECT_LINK_MAX_CHARS)
+    .refine((v) => cvProjectLink(v) === v)
+    .nullable(),
 });
+
+// Contradicción pendiente (R12-3)
+const conflict = z
+  .strictObject({
+    workIndex: z.number().int().min(0).max(5),
+    field: z.enum(["title", "startMonth", "endMonth"]),
+    previous: name(120),
+    proposed: name(120),
+    source: z.enum(["said", "confirmed"]),
+  })
+  .refine(
+    (c) =>
+      c.field === "title" ||
+      (MONTH.safeParse(c.previous).success && MONTH.safeParse(c.proposed).success),
+  );
 
 export const CV_CHAT_STATE_SCHEMA = z.strictObject({
   target: str(120).nullable(),
   confirmed: z.array(confirmed).max(20),
   works: z.array(work).max(6),
   workDone: z.boolean(),
+  // R12-2: opcional para aceptar el estado de un navegador con la versión anterior de la página
+  projects: z.array(project).max(6).default([]),
   education: z
     .array(
       z.strictObject({
@@ -64,6 +107,8 @@ export const CV_CHAT_STATE_SCHEMA = z.strictObject({
     .strictObject({ key: name(40), question: name(300) })
     .nullable()
     .default(null),
+  // R12-3: opcional para aceptar el estado de un navegador con la versión anterior de la página
+  conflict: conflict.nullable().default(null),
   turns: z.number().int().min(0).max(25),
 });
 

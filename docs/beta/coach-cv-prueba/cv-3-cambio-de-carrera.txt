@@ -1,0 +1,34 @@
+PERSONA EJEMPLO TRES
+Desarrolladora fullstack en formación
+Salta, Argentina · persona.tres@ejemplo.com · +54 9 387 000-0003
+
+PERFIL
+Trabajé ocho años en hotelería, en recepción y reservas. Hace dos años empecé a estudiar programación y ahora busco mi primer puesto como desarrolladora fullstack junior. Me gusta resolver problemas de usuarios reales, que es lo que hice todos los días en la recepción.
+
+PROYECTOS
+Proyecto Reservas Simples, 2025
+Aplicación web para que un hostel ficticio tome reservas sin planillas. React, Node.js y PostgreSQL. Link: https://ejemplo.com/reservas-simples
+
+Proyecto Turnos del Barrio, 2024
+Página para pedir turnos en una peluquería inventada, con recordatorio por email. JavaScript, Express y MongoDB.
+
+EXPERIENCIA
+Recepcionista y encargada de reservas, Hotel Ficticio Plaza, 2016 - 2024
+- Check-in y check-out de huéspedes.
+- Manejo del sistema de reservas y de los canales de venta online.
+- Capacitación de recepcionistas nuevos.
+- Resolución de reclamos.
+
+Ayudante de cátedra ad honorem, Curso de Programación Inventado, 2025
+- Corrección de trabajos prácticos de estudiantes.
+
+ESTUDIOS
+Curso intensivo de Desarrollo Web Fullstack, Instituto de Ejemplo, 2023 - 2024
+Técnico en Turismo y Hotelería, Instituto Terciario Ficticio, 2013 - 2015
+
+HABILIDADES
+JavaScript, React, Node.js, Express, PostgreSQL, MongoDB, Git, atención al cliente, trabajo en equipo
+
+IDIOMAS
+Español nativo
+Inglés avanzado (C1)

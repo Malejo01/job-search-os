@@ -39,7 +39,7 @@ const SENSITIVE_RE =
  * pregunta por estado civil, hijos, religión, afiliación, orientación, nacimiento, embarazo, edad, salud,
  * política ni nacionalidad.
  */
-const SENSITIVE_QUESTION_RE =
+export const SENSITIVE_QUESTION_RE =
   /estado civil|casad[oa]|solter[oa]|divorciad[oa]|viud[oa]|\bhij[oa]s?\b|religi|afiliad[oa]|afiliaci|sindic|orientacion sexual|embaraz|fecha de nacimiento|\bnaci[oó]\b|edad|salud|enferm|discapacid|politic|sexual|nacionalidad/;
 
 export function hasSensitiveCvData(text: string): boolean {

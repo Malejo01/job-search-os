@@ -10,7 +10,7 @@ import {
   type Result,
   type SkillTaxonomyEntry,
 } from "@job-search-os/pipeline";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import pino from "pino";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createFakeLlm } from "../../llm/fake";
@@ -20,7 +20,13 @@ import type { Logger } from "../../logger";
 import { CV_RESERVE_TASK } from "../../cv-chat/reserve";
 import { verifyProfileAgentTicket } from "../ticket";
 import { readCvForAgent, type ProfileReadDeps, type ProfileReadInput } from "./read-cv";
-import { PROFILE_READ_TASK, measureProfileRead } from "./reserve";
+import {
+  PROFILE_AGENT_LOCK_NAMESPACE,
+  PROFILE_READ_TASK,
+  finishProfileRead,
+  measureProfileRead,
+  reserveProfileRead,
+} from "./reserve";
 
 /**
  * Cupo y topes de la lectura del CV del agente de perfil (ADR-034 §6), contra Postgres real. Datos
@@ -446,5 +452,72 @@ describe("una lectura a la vez por persona (reserva con lock)", () => {
     ]);
     expect(results.filter((r) => r.ok)).toHaveLength(1);
     expect((await measureProfileRead(conn.db, { userId: USER, ...month })).readsThisMonth).toBe(3);
+  });
+
+  it("una lectura que termina mientras otra mide no se vuelve invisible (R12-16)", async () => {
+    // Reproduce de forma determinista la carrera del CI de #517: la medición son varias consultas y, en
+    // READ COMMITTED, cada una ve su propia foto. Antes, el marcador y la liberación de la reserva iban
+    // sin lock: entre la consulta del cupo y la de reservas vigentes, la otra lectura terminaba y la
+    // segunda no veía ni el marcador ni la reserva. Ahora el cierre espera el lock de quien está midiendo.
+    await seed(USER, PROFILE_READ_TASK, 2, { ok: true, error: null, costUsd: 0, model: "none" });
+    const a = await reserveProfileRead(conn.db, {
+      userId: USER,
+      label: "cv:aaaaaaaaaaaa",
+      ...month,
+      exempt: false,
+      readsPerMonth: 3,
+      dailyCapUsd: 1,
+    });
+    if (!a.ok) throw new Error(`la primera reserva tenía que pasar: ${a.reject}`);
+
+    let finish: Promise<void> | null = null;
+    const seen = await conn.db.transaction(async (tx) => {
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtextextended(${USER}, ${PROFILE_AGENT_LOCK_NAMESPACE}))`,
+      );
+      const before = await measureProfileRead(tx, { userId: USER, ...month });
+      // La primera lectura termina mientras la segunda mide
+      finish = finishProfileRead(conn.db, {
+        userId: USER,
+        label: "cv:aaaaaaaaaaaa",
+        reservationId: a.reservationId,
+        record: true,
+      });
+      await new Promise((r) => setTimeout(r, 300));
+      const after = await measureProfileRead(tx, { userId: USER, ...month });
+      return { before, after };
+    });
+    await finish;
+
+    // Mientras la segunda tenía el lock, el cierre esperó: vio la reserva en las dos consultas
+    expect(seen.before.readInFlight).toBe(true);
+    expect(seen.after.readInFlight).toBe(true);
+    expect(seen.after.readsThisMonth).toBe(2);
+    // Después del cierre: marcador anotado y reserva suelta
+    const end = await measureProfileRead(conn.db, { userId: USER, ...month });
+    expect(end.readsThisMonth).toBe(3);
+    expect(end.readInFlight).toBe(false);
+  });
+
+  it("si el marcador no se puede anotar, la reserva no se suelta en el cierre (falla cerrado)", async () => {
+    const a = await reserveProfileRead(conn.db, {
+      userId: USER,
+      label: "cv:aaaaaaaaaaaa",
+      ...month,
+      exempt: false,
+      readsPerMonth: 3,
+      dailyCapUsd: 1,
+    });
+    if (!a.ok) throw new Error("la reserva tenía que pasar");
+    // Un user_id que no es uuid hace fallar el insert del marcador y deshace la transacción entera
+    await expect(
+      finishProfileRead(conn.db, {
+        userId: "no-es-un-uuid",
+        label: "cv:aaaaaaaaaaaa",
+        reservationId: a.reservationId,
+        record: true,
+      }),
+    ).rejects.toThrow();
+    expect((await measureProfileRead(conn.db, { userId: USER, ...month })).readInFlight).toBe(true);
   });
 });

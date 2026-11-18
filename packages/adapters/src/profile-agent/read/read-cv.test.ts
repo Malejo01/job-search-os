@@ -162,7 +162,7 @@ describe("cupo y reserva: constantes coherentes", () => {
     if (!row) return;
 
     // Prompt renderizado con el texto más largo que acepta la ruta y el máximo de candidatas
-    const prompt = loadPrompt("extract_cv_profile@v1");
+    const prompt = loadPrompt("extract_cv_profile@v2"); // R12-5: el prompt que usa la lectura
     expect(prompt.ok).toBe(true);
     if (!prompt.ok) return;
     const rendered = renderPrompt(prompt.value, {

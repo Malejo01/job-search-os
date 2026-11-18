@@ -1,0 +1,186 @@
+{
+  "id": "administracion",
+  "carrera": "administracion_empresas",
+  "puesto_objetivo": "Coordinador de compras",
+  "nota": "",
+  "cv_texto": "PERSONA EJEMPLO F\nAnalista administrativo\n\nPERFIL\nLicenciado en Administración de Empresas con seis años de experiencia en compras, proveedores y control de presupuesto.\n\nEXPERIENCIA\nAnalista de compras, Empresa A Distribuidora, 2021-03 a actualidad\n- Responsable de compras de insumos para tres sucursales.\n- Negociación con proveedores.\n- Bajé un 12 % el costo de insumos de limpieza en 2023 cambiando dos proveedores.\n\nAsistente administrativo, Empresa B Servicios, 2018-01 a 2021-02\n- Carga de facturas y control de pagos a proveedores.\n- Tareas administrativas varias.\n\nESTUDIOS\nLicenciatura en Administración de Empresas, Universidad Ficticia Central, 2013-03 a 2018-12\n\nHABILIDADES\nExcel avanzado, Tango Gestión, negociación con proveedores, presupuestos\n\nIDIOMAS\nEspañol nativo. Inglés avanzado (B2).\n",
+  "lectura": {
+    "items": [
+      {
+        "clave": "exp-1",
+        "id": "00000000-0000-4000-8000-000000000259",
+        "kind": "trabajo",
+        "organization": "Empresa A Distribuidora",
+        "title": "Analista de compras",
+        "startMonth": "2021-03",
+        "endMonth": null,
+        "isCurrent": true,
+        "bullets": [
+          "Responsable de compras de insumos para tres sucursales.",
+          "Negociación con proveedores.",
+          "Bajé un 12 % el costo de insumos de limpieza en 2023 cambiando dos proveedores."
+        ],
+        "link": null
+      },
+      {
+        "clave": "exp-2",
+        "id": "00000000-0000-4000-8000-00000000025a",
+        "kind": "trabajo",
+        "organization": "Empresa B Servicios",
+        "title": "Asistente administrativo",
+        "startMonth": "2018-01",
+        "endMonth": "2021-02",
+        "isCurrent": false,
+        "bullets": [
+          "Carga de facturas y control de pagos a proveedores.",
+          "Tareas administrativas varias."
+        ],
+        "link": null
+      },
+      {
+        "clave": "edu-1",
+        "id": "00000000-0000-4000-8000-00000000025b",
+        "kind": "educacion",
+        "organization": "Universidad Ficticia Central",
+        "title": "Licenciatura en Administración de Empresas",
+        "startMonth": "2013-03",
+        "endMonth": "2018-12",
+        "isCurrent": false,
+        "bullets": [],
+        "link": null
+      }
+    ],
+    "skills": [
+      "excel",
+      "procurement",
+      "negotiation"
+    ],
+    "resumen": "Licenciado en Administración de Empresas con seis años de experiencia en compras, proveedores y control de presupuesto."
+  },
+  "demanda": [
+    {
+      "slug": "procurement",
+      "mentions": 12
+    },
+    {
+      "slug": "negotiation",
+      "mentions": 8
+    },
+    {
+      "slug": "supply_chain",
+      "mentions": 7
+    },
+    {
+      "slug": "erp_accounting",
+      "mentions": 5
+    },
+    {
+      "slug": "excel",
+      "mentions": 5
+    },
+    {
+      "slug": "process_improvement",
+      "mentions": 3
+    }
+  ],
+  "hechos": [
+    {
+      "clave": "empresa",
+      "valor": "Empresa A Distribuidora",
+      "fuente": "cv"
+    },
+    {
+      "clave": "cargo",
+      "valor": "Analista de compras",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2021",
+      "fuente": "cv"
+    },
+    {
+      "clave": "numero",
+      "valor": "12",
+      "fuente": "cv"
+    },
+    {
+      "clave": "empresa",
+      "valor": "Empresa B Servicios",
+      "fuente": "cv"
+    },
+    {
+      "clave": "cargo",
+      "valor": "Asistente administrativo",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2018",
+      "fuente": "cv"
+    },
+    {
+      "clave": "institucion",
+      "valor": "Universidad Ficticia Central",
+      "fuente": "cv"
+    },
+    {
+      "clave": "titulo",
+      "valor": "Licenciatura en Administración de Empresas",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2013",
+      "fuente": "cv"
+    },
+    {
+      "clave": "numero",
+      "valor": "200",
+      "fuente": "respuesta"
+    }
+  ],
+  "problemas_esperados": [
+    {
+      "tipo": "tarea_vaga",
+      "item": "exp-2"
+    },
+    {
+      "tipo": "logro_sin_resultado",
+      "item": "exp-2"
+    },
+    {
+      "tipo": "skill_pedida_sin_evidencia",
+      "skill": "procurement"
+    },
+    {
+      "tipo": "brecha_con_puesto",
+      "skill": "supply_chain"
+    },
+    {
+      "tipo": "brecha_con_puesto",
+      "skill": "erp_accounting"
+    },
+    {
+      "tipo": "skill_pedida_sin_evidencia",
+      "skill": "excel"
+    }
+  ],
+  "respuestas": {
+    "tarea_vaga": {
+      "exp-2": "Armaba el control semanal de pagos de unas 200 facturas."
+    },
+    "logro_sin_resultado": {
+      "exp-2": "no tengo"
+    },
+    "brecha_con_puesto": {
+      "supply_chain": "Hacía el control de stock de las tres sucursales.",
+      "erp_accounting": "Usé Tango Gestión para las órdenes de compra.",
+      "*": "no tengo"
+    },
+    "skill_pedida_sin_evidencia": {
+      "procurement": "Gestiono las órdenes de compra de las tres sucursales.",
+      "excel": "Armo el presupuesto de compras en Excel con tablas dinámicas."
+    }
+  }
+}

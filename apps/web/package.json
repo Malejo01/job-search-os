@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "e2e": "playwright test",
     "smoke": "playwright test -c playwright.smoke.config.ts",
     "recorrido": "node recorrido/run.mjs",
@@ -23,6 +24,7 @@
     "mcp-handler": "2.1.1",
     "next": "15.5.25",
     "next-auth": "5.0.0-beta.32",
+    "pdfjs-dist": "6.5.438",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "zod": "^4.6.1"
@@ -38,6 +40,7 @@
     "postgres": "^3.4.9",
     "rimraf": "^6.0.1",
     "tailwindcss": "^4.3.3",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
   }
 }

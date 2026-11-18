@@ -144,3 +144,27 @@ describe("cvTopicQuestion", () => {
     expect(cvTopicQuestion(nextCvTopic(s)!, s)).toBe("¿Qué cargo tenías en Empresa A?");
   });
 });
+
+describe("applyCvWrite con proyectos (R12-4)", () => {
+  const proyecto: CvHistoryInput = {
+    kind: "proyecto",
+    organization: "Proyecto Turnero",
+    title: "Desarrolladora frontend",
+    startMonth: null,
+    endMonth: null,
+    bullets: ["Armé el tablero de turnos", "Stack: React, PostgreSQL"],
+    link: "https://ejemplo.test/turnero-barrial",
+  };
+  const withProject: CvWriteInput = { ...input, history: [...history, proyecto] };
+
+  it("el resumen puede nombrar el proyecto y su stack: son fuente del verificador", () => {
+    const summary = "Analista de datos con Proyecto Turnero en React y PostgreSQL.";
+    expect(applyCvWrite(withProject, { summary, entries: [] }).summary).toBe(summary);
+    // sin el proyecto en el historial, el mismo resumen se descarta
+    expect(applyCvWrite(input, { summary, entries: [] }).summary).toBeNull();
+  });
+
+  it("el proyecto conserva su link y sus viñetas (cv_write no lo reescribe)", () => {
+    expect(applyCvWrite(withProject, { summary: "", entries: [] }).history[2]).toEqual(proyecto);
+  });
+});

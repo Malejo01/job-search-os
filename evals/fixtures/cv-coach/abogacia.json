@@ -1,0 +1,193 @@
+{
+  "id": "abogacia",
+  "carrera": "abogacia",
+  "puesto_objetivo": "Abogada laboralista",
+  "nota": "",
+  "cv_texto": "PERSONA EJEMPLO D\nAbogada\n\nPERFIL\nAbogada con experiencia en derecho laboral y contratos. Responsable, proactiva y con ganas de crecer.\n\nEXPERIENCIA\nAbogada junior, Estudio Ficticio Norte, 2022-04 a actualidad\n- Redacción de escritos judiciales en causas laborales.\n- Atención de clientes.\n- Seguimiento de expedientes en tribunales.\n\nPasante legal, Empresa G, 2020-08 a 2022-03\n- Revisión de contratos de proveedores.\n- Tareas varias del área legal.\n\nESTUDIOS\nAbogacía, Universidad Ficticia del Sur, 2015-03 a 2021-12\n\nHABILIDADES\nDerecho laboral, litigio, redacción de contratos, Lex Doctor\n\nIDIOMAS\nEspañol nativo. Inglés intermedio (B2).\n",
+  "lectura": {
+    "items": [
+      {
+        "clave": "exp-1",
+        "id": "00000000-0000-4000-8000-000000000191",
+        "kind": "trabajo",
+        "organization": "Estudio Ficticio Norte",
+        "title": "Abogada junior",
+        "startMonth": "2022-04",
+        "endMonth": null,
+        "isCurrent": true,
+        "bullets": [
+          "Redacción de escritos judiciales en causas laborales.",
+          "Atención de clientes.",
+          "Seguimiento de expedientes en tribunales."
+        ],
+        "link": null
+      },
+      {
+        "clave": "exp-2",
+        "id": "00000000-0000-4000-8000-000000000192",
+        "kind": "trabajo",
+        "organization": "Empresa G",
+        "title": "Pasante legal",
+        "startMonth": "2020-08",
+        "endMonth": "2022-03",
+        "isCurrent": false,
+        "bullets": [
+          "Revisión de contratos de proveedores.",
+          "Tareas varias del área legal."
+        ],
+        "link": null
+      },
+      {
+        "clave": "edu-1",
+        "id": "00000000-0000-4000-8000-000000000193",
+        "kind": "educacion",
+        "organization": "Universidad Ficticia del Sur",
+        "title": "Abogacía",
+        "startMonth": "2015-03",
+        "endMonth": "2021-12",
+        "isCurrent": false,
+        "bullets": [],
+        "link": null
+      }
+    ],
+    "skills": [
+      "labor_law",
+      "litigation",
+      "contract_drafting"
+    ],
+    "resumen": "Abogada con experiencia en derecho laboral y contratos. Responsable, proactiva y con ganas de crecer."
+  },
+  "demanda": [
+    {
+      "slug": "labor_law",
+      "mentions": 11
+    },
+    {
+      "slug": "litigation",
+      "mentions": 9
+    },
+    {
+      "slug": "legal_tools",
+      "mentions": 5
+    },
+    {
+      "slug": "legal_research",
+      "mentions": 4
+    },
+    {
+      "slug": "contract_drafting",
+      "mentions": 3
+    }
+  ],
+  "hechos": [
+    {
+      "clave": "empresa",
+      "valor": "Estudio Ficticio Norte",
+      "fuente": "cv"
+    },
+    {
+      "clave": "cargo",
+      "valor": "Abogada junior",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2022",
+      "fuente": "cv"
+    },
+    {
+      "clave": "empresa",
+      "valor": "Empresa G",
+      "fuente": "cv"
+    },
+    {
+      "clave": "cargo",
+      "valor": "Pasante legal",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2020",
+      "fuente": "cv"
+    },
+    {
+      "clave": "institucion",
+      "valor": "Universidad Ficticia del Sur",
+      "fuente": "cv"
+    },
+    {
+      "clave": "titulo",
+      "valor": "Abogacía",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2015",
+      "fuente": "cv"
+    },
+    {
+      "clave": "fecha",
+      "valor": "2021",
+      "fuente": "cv"
+    },
+    {
+      "clave": "numero",
+      "valor": "35",
+      "fuente": "respuesta"
+    },
+    {
+      "clave": "numero",
+      "valor": "12",
+      "fuente": "respuesta"
+    },
+    {
+      "clave": "numero",
+      "valor": "15",
+      "fuente": "respuesta"
+    }
+  ],
+  "problemas_esperados": [
+    {
+      "tipo": "logro_sin_resultado",
+      "item": "exp-1"
+    },
+    {
+      "tipo": "tarea_vaga",
+      "item": "exp-2"
+    },
+    {
+      "tipo": "resumen_generico",
+      "item": null
+    },
+    {
+      "tipo": "skill_pedida_sin_evidencia",
+      "skill": "labor_law"
+    },
+    {
+      "tipo": "brecha_con_puesto",
+      "skill": "legal_tools"
+    },
+    {
+      "tipo": "brecha_con_puesto",
+      "skill": "legal_research"
+    }
+  ],
+  "respuestas": {
+    "logro_sin_resultado": {
+      "exp-1": "Llevé 35 causas laborales y cerramos 12 con acuerdo antes de la audiencia."
+    },
+    "tarea_vaga": {
+      "exp-2": "Revisaba unos 15 contratos de locación por mes y armaba un resumen de riesgos."
+    },
+    "brecha_con_puesto": {
+      "legal_tools": "Uso Lex Doctor para el seguimiento de expedientes en el estudio.",
+      "*": "no tengo"
+    },
+    "resumen_generico": {
+      "*": "no tengo"
+    },
+    "skill_pedida_sin_evidencia": {
+      "labor_law": "En el estudio llevo causas de derecho laboral: despidos y accidentes de trabajo."
+    }
+  }
+}

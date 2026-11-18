@@ -73,9 +73,12 @@ describe("checkProfileReadText", () => {
 });
 
 describe("avisos", () => {
-  it("el PDF dice «Pegá el texto de tu CV» y no ofrece la charla (hay camino: pegar)", () => {
+  it("un PDF que el navegador no pudo abrir pide pegar el texto y no ofrece la charla (hay camino: pegar)", () => {
     const n = profileReadInputNotice("pdf_paste", "app");
-    expect(n.message).toMatch(/^Pegá el texto de tu CV/);
+    // R12-12: los PDF ya se leen en el navegador; este aviso es solo para cuando pdfjs no carga
+    expect(n.message).toMatch(/^No pudimos abrir este PDF en tu navegador/);
+    expect(n.message).toContain("copiá el texto y pegalo acá");
+    expect(n.message).not.toMatch(/por ahora/i);
     expect(n.fallbacks).toEqual([]);
   });
 
