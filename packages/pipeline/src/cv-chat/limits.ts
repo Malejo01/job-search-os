@@ -55,6 +55,15 @@ export function cvChatCapReason(i: CvChatCapInput): CvChatCap | null {
 }
 
 /**
+ * Turnos que valen para el tope: el mayor entre los del ticket y los que midió la base. Un ticket viejo
+ * vuelve a ser válido hasta que vence, así que por sí solo no alcanza. Un dato inválido cuenta como tope.
+ */
+export function cvChatEffectiveTurns(ticketTurns: number, measuredTurns: number): number {
+  if (!Number.isFinite(ticketTurns) || !Number.isFinite(measuredTurns)) return CV_CHAT_MAX_TURNS;
+  return Math.max(ticketTurns, measuredTurns);
+}
+
+/**
  * CV por mes en la beta: el piso es `CV_CHAT_BETA_LIMITS.cvPerMonth`; un plan que da más (el pago, 5)
  * conserva el suyo. Un número inválido cae al piso.
  */

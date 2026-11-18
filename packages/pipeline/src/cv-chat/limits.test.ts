@@ -5,6 +5,7 @@ import {
   cvChatCapReason,
   cvChatDailyCapUsd,
   cvChatBetaCvPerMonth,
+  cvChatEffectiveTurns,
   cvChatEnabled,
   cvChatMonthTurnsReason,
   cvChatStartCapReason,
@@ -91,6 +92,22 @@ describe("cvChatCapReason", () => {
     expect(cvChatCapReason({ ...ok, conversationCostUsd: Number.NaN })).toBe("conversacion");
     expect(cvChatCapReason({ ...ok, dailySpendUsd: Number.NaN })).toBe("global");
     expect(cvChatCapReason({ ...ok, dailyCapUsd: Number.NaN })).toBe("global");
+  });
+});
+
+describe("cvChatEffectiveTurns", () => {
+  it("un ticket con menos turnos que los medidos no reinicia el contador", () => {
+    expect(cvChatEffectiveTurns(0, 25)).toBe(25);
+    expect(cvChatCapReason({ ...ok, turns: cvChatEffectiveTurns(0, 25) })).toBe("turnos");
+  });
+
+  it("los turnos salteados del ticket también cuentan", () => {
+    expect(cvChatEffectiveTurns(7, 4)).toBe(7);
+  });
+
+  it("un dato inválido cuenta como tope alcanzado", () => {
+    expect(cvChatCapReason({ ...ok, turns: cvChatEffectiveTurns(0, Number.NaN) })).toBe("turnos");
+    expect(cvChatCapReason({ ...ok, turns: cvChatEffectiveTurns(Number.NaN, 0) })).toBe("turnos");
   });
 });
 
