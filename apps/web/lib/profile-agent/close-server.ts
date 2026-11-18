@@ -71,6 +71,7 @@ export async function loadProfileCloseFacts(
       startMonth: h.startMonth,
       endMonth: h.endMonth,
       bullets: h.bullets,
+      link: h.link ?? null,
     })),
     skills,
     languages: english ? [{ name: lang === "en" ? "English" : "Inglés", level: english }] : [],
@@ -105,6 +106,8 @@ export async function buildCloseDocument(
     startMonth: h.startMonth,
     endMonth: h.endMonth,
     bullets: byId.get(h.id) ?? h.bullets,
+    // R13-5: la vista previa del cierre lleva el link de los proyectos, como el CV que se descarga
+    link: h.link ?? null,
   }));
   return buildCvDocument(
     { ...base, history, summary: input.summary ?? base.summary },

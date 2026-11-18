@@ -57,6 +57,8 @@ export async function loadReadContext(userId: string, now: Date): Promise<ReadCo
 export type ReadSummary = {
   experience: number;
   education: number;
+  /** R13-5: proyectos leídos del CV (R12-5). */
+  projects: number;
   skills: number;
   languages: number;
   /** Cuántas propuestas descartó el código (datos sensibles, inyección, fechas inválidas). */
@@ -73,6 +75,7 @@ export function buildReadSummary(proposal: CvProposal): ReadSummary {
   return {
     experience: proposal.workHistory.length,
     education: proposal.education.length,
+    projects: proposal.projects.length,
     skills: proposal.skills.length,
     languages: proposal.languages.length,
     dropped: Object.values(proposal.flags.dropped).reduce((t, n) => t + (n ?? 0), 0),

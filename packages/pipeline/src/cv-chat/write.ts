@@ -40,14 +40,23 @@ export function cvWriteVars(input: CvWriteInput): Record<string, string> {
       ? [{ id: entryId(i), organization: h.organization, title: h.title, answers: h.bullets }]
       : [],
   );
-  const studies = input.history
-    .filter((h) => h.kind !== "trabajo")
-    .map((h) => ({ organization: h.organization, title: h.title }));
+  const named = (kinds: readonly string[]) =>
+    input.history
+      .filter((h) => kinds.includes(h.kind))
+      .map((h) => ({ organization: h.organization, title: h.title }));
+  // R13-5: los proyectos van como proyectos (nombre y rol), no mezclados con los estudios; sin el link
+  const studies = named(["educacion", "certificacion"]);
+  const projects = named(["proyecto"]);
   return {
     lang: input.lang,
     target: input.target ?? "",
     works: JSON.stringify(works),
-    context: JSON.stringify({ studies, skills: input.skills, languages: input.languages }),
+    context: JSON.stringify({
+      studies,
+      projects,
+      skills: input.skills,
+      languages: input.languages,
+    }),
   };
 }
 

@@ -76,6 +76,17 @@ describe("armado de la entrada de cv_write", () => {
     expect(r.input.history.map((h) => h.organization)).toEqual(["Empresa 3"]);
     expect(r.dropped).toBe(2);
   });
+  it("R13-5: el link de un proyecto llega a la entrada; en otros tipos no", () => {
+    const project = {
+      ...work(1, ["Armé el recetario"]),
+      kind: "proyecto" as const,
+      link: "https://ejemplo.invalid/recetario",
+    };
+    const job = { ...work(2), link: "https://ejemplo.invalid/empleo" };
+    const r = buildProfileCloseWriteInput(facts({ history: [project, job] }));
+    expect(r.input.history[0]?.link).toBe("https://ejemplo.invalid/recetario");
+    expect(r.input.history[1]?.link ?? null).toBeNull();
+  });
   it("respeta el tope de entradas y no repite skills", () => {
     const many = Array.from({ length: 25 }, (_, i) => work(i + 1));
     const r = buildProfileCloseWriteInput(

@@ -18,6 +18,8 @@ import { parseProfileTicket } from "../ticket";
 export const storedReadSummarySchema = z.strictObject({
   experience: z.number().int().min(0).max(999),
   education: z.number().int().min(0).max(999),
+  /** R13-5. Una lectura guardada en la pestaña antes de este campo no lo trae: vale 0. */
+  projects: z.number().int().min(0).max(999).default(0),
   skills: z.number().int().min(0).max(999),
   languages: z.number().int().min(0).max(999),
   dropped: z.number().int().min(0).max(999),

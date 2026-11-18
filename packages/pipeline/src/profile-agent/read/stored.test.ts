@@ -11,6 +11,7 @@ const stored = (): StoredProfileRead => ({
   summary: {
     experience: 1,
     education: 0,
+    projects: 2,
     skills: 1,
     languages: 0,
     dropped: 0,
@@ -41,6 +42,12 @@ describe("lectura guardada en la pestaña (R11-1: recargar no gasta otra lectura
     expect(parseStoredRead(raw, "pa1.abc.123.mac")).toEqual(stored());
     expect(parseStoredRead(raw, "pa1.otro.123.mac")).toBeNull();
     expect(parseStoredRead(raw, null)).toBeNull();
+  });
+
+  it("R13-5: una lectura guardada antes de contar proyectos sigue válida y cuenta 0", () => {
+    const { projects: _omit, ...oldSummary } = stored().summary;
+    const raw = JSON.stringify({ ...stored(), summary: oldSummary });
+    expect(parseStoredRead(raw, "pa1.abc.123.mac")?.summary.projects).toBe(0);
   });
 
   it("una etapa que reemite el ticket (mismo id de charla, otra firma) no rompe la lectura guardada", () => {
