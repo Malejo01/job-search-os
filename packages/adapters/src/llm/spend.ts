@@ -1,14 +1,18 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import { and, desc, eq, gte, isNotNull, notInArray, sql } from "drizzle-orm";
 
+/** Reserva de gasto de la evaluación inmediata y de los borradores (`spend-reserve.ts`). */
+export const LLM_RESERVE_TASK = "llm_reserve";
+
 /**
- * Filas de `llm_calls` que no son llamadas al modelo: la reserva de gasto del chat de CV (en vuelo, se borra
- * al terminar), el registro de inicio de charla (costo 0) y la marca de alerta de presupuesto enviada
+ * Filas de `llm_calls` que no son llamadas al modelo: las reservas de gasto (en vuelo, se borran al
+ * terminar), el registro de inicio de charla (costo 0) y la marca de alerta de presupuesto enviada
  * (`budget_alert`, costo 0, R7-1) y los marcadores de charla del asistente (`assistant_event`, costo 0,
  * R9-2). No suman llamadas, tokens ni USD en los reportes.
  */
 export const NOT_MODEL_CALLS = [
   "cv_reserve",
+  LLM_RESERVE_TASK,
   "cv_start",
   "budget_alert",
   "assistant_event",
@@ -77,7 +81,7 @@ export function userDailyCapUsd(env: NodeJS.ProcessEnv = process.env): number {
 
 /** Con `userId` suma solo las llamadas de ese usuario; sin él, todas (tope global). */
 export async function spendSince(
-  db: Db,
+  db: Pick<Db, "select">,
   since: Date,
   options: { userId?: string } = {},
 ): Promise<SpendSummary> {
@@ -103,7 +107,7 @@ export async function spendSince(
 }
 
 export const spendLast24h = (
-  db: Db,
+  db: Pick<Db, "select">,
   now: () => Date = () => new Date(),
   options: { userId?: string } = {},
 ): Promise<SpendSummary> =>
