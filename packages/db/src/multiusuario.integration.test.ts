@@ -577,6 +577,17 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
       const rows = await asUser(A, (tx) => tx`select * from mcp_token_user(null)`);
       expect(rows).toHaveLength(0);
     },
+    // Borrado de cuenta: solo actúa sobre la cuenta de la sesión
+    anonymize_llm_calls: async () => {
+      const before = await fingerprint({ table: "llm_calls", column: "user_id" }, B);
+      await expect(asUser(A, (tx) => tx`select anonymize_llm_calls(${B}::uuid)`)).rejects.toThrow(
+        /solo la cuenta propia/,
+      );
+      await expect(asUser(A, (tx) => tx`select anonymize_llm_calls(null)`)).rejects.toThrow(
+        /solo la cuenta propia/,
+      );
+      expect(await fingerprint({ table: "llm_calls", column: "user_id" }, B)).toBe(before);
+    },
     // S2: trabajan sobre un hash de email, no sobre filas de personas. Un hash mal formado no escribe nada.
     login_attempt_begin: async () => {
       for (const hash of ["no-es-hex", "", "F".repeat(64)]) {
