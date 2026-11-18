@@ -27,7 +27,7 @@ test.describe("páginas legales públicas (JS-106)", () => {
   test("el layout público enlaza a /login y a la otra página", async ({ page }) => {
     await page.goto("/legal/privacidad");
     await expect(page.getByRole("link", { name: "Entrar" })).toHaveAttribute("href", "/login");
-    await expect(page.getByRole("link", { name: "Términos" })).toHaveAttribute(
+    await expect(page.getByRole("link", { name: "Términos", exact: true })).toHaveAttribute(
       "href",
       "/legal/terminos",
     );

@@ -177,7 +177,7 @@ export default async function PlanesPage({
                     className="flex flex-col gap-1 text-sm font-medium"
                     htmlFor="override-email"
                   >
-                    Email de la persona
+                    Email de la persona con precio especial
                     <input
                       id="override-email"
                       name="email"
