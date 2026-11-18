@@ -155,8 +155,15 @@ const MAPPER_FIELDS: Record<SourceName, readonly string[]> = {
     "publishedAt",
     "compensation",
   ],
-  // Nombres del item ya parseado del feed RSS (`parseTeamtailorFeed`)
+  // Nombres del item ya parseado del feed RSS (`parseTeamtailorFeed`) y, al final, los estándar del JSON Feed
+  // (R16-3: `mapTeamtailorJsonItem`); el resto de lo que traiga un board real sale en «campos extra»
   teamtailor: [
+    "id",
+    "url",
+    "content_html",
+    "content_text",
+    "date_published",
+    "tags",
     "guid",
     "title",
     "link",
@@ -195,8 +202,15 @@ function capturingFetch(source: SourceName, sink: unknown[]): typeof fetch {
     const res = await fetch(input, init);
     try {
       if (source === "wwr") sink.push(...parseWwrFeed(await res.clone().text()).items);
-      else if (source === "teamtailor") sink.push(...parseTeamtailorFeed(await res.clone().text()));
-      else sink.push(...rawItemsOf(source, await res.clone().json()));
+      else if (source === "teamtailor") {
+        // R16-3: el JSON Feed (`jobs.json`) trae `items`; si no es JSON, es el RSS de respaldo
+        const body = await res.clone().text();
+        const json = body.trimStart().startsWith("{")
+          ? (JSON.parse(body) as { items?: unknown })
+          : null;
+        if (json) sink.push(...(Array.isArray(json.items) ? json.items : []));
+        else sink.push(...parseTeamtailorFeed(body));
+      } else sink.push(...rawItemsOf(source, await res.clone().json()));
     } catch {
       // Cuerpo que no es JSON: el adaptador informa el error a su manera
     }

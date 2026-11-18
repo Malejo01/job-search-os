@@ -1,0 +1,53 @@
+{
+  "version": "https://jsonfeed.org/version/1.1",
+  "title": "Empresa Ficticia 1 · Empleos",
+  "home_page_url": "https://empresa-ficticia.teamtailor.com",
+  "feed_url": "https://empresa-ficticia.teamtailor.com/jobs.json",
+  "items": [
+    {
+      "id": "jf-0001",
+      "url": "https://empresa-ficticia.teamtailor.com/jobs/2001-analista-administrativo-ficticio",
+      "title": "Analista Administrativo/a Ficticio",
+      "content_html": "<p>Buscamos a alguien para el equipo &amp; la gestión.</p><ul><li>Excel</li><li>Facturación</li></ul>",
+      "date_published": "2026-10-20T09:30:00Z",
+      "tags": ["Administración", "Finanzas"]
+    },
+    {
+      "id": "jf-0002",
+      "url": "https://empresa-ficticia.teamtailor.com/jobs/2002-asistente-contable-ficticio",
+      "title": "Asistente Contable Ficticio",
+      "content_text": "Puesto de prueba solo con texto plano.",
+      "date_published": "2026-10-21T10:00:00Z"
+    },
+    {
+      "url": "https://empresa-ficticia.teamtailor.com/jobs/3003-puesto-sin-id-ficticio",
+      "title": "Puesto Sin Id Ficticio",
+      "content_html": "<p>El id sale del path del link.</p>"
+    },
+    {
+      "title": "Puesto Sin Id Ni Número Ficticio",
+      "url": "https://empresa-ficticia.teamtailor.com/otra-cosa/abc"
+    },
+    {
+      "id": "jf-0005",
+      "url": "https://empresa-otra.example.com/jobs/4004-puesto-de-otro-host",
+      "title": "Puesto De Otro Host Ficticio"
+    },
+    {
+      "id": "jf-0006",
+      "url": "https://empresa-ficticia.teamtailor.com/jobs/5005-puesto-sin-titulo-ficticio",
+      "title": "   "
+    },
+    {
+      "id": "jf-0007",
+      "url": "javascript:alert(1)",
+      "title": "Puesto Con Link Peligroso Ficticio"
+    },
+    {
+      "id": "jf-0008",
+      "url": "https://empresa-ficticia.teamtailor.com/jobs/6006-puesto-con-tags-raros-ficticio",
+      "title": "Puesto Con Tags Raros Ficticio",
+      "tags": [1, null, "Ventas", "  "]
+    }
+  ]
+}

@@ -476,9 +476,14 @@ export async function fetchAtsBoard(
     map: (item: Record<string, unknown>) => AtsMapped;
     /** `"text"`: el cuerpo llega como texto (RSS) y `items` lo recibe tal cual. Default: JSON. */
     format?: "json" | "text";
+    /**
+     * URL ya armada y validada por el proveedor (Teamtailor: el JSON Feed, hermano del RSS). Sin esto se
+     * usa la de `atsBoardUrl`. El llamador es responsable de haber pasado el token por `atsBoardUrl`.
+     */
+    url?: string;
   },
 ): Promise<AtsBoardResult> {
-  const url = atsBoardUrl(provider, options.token, options.region);
+  const url = spec.url ?? atsBoardUrl(provider, options.token, options.region);
   let body: unknown;
   try {
     body = spec.format === "text" ? await atsGetText(url, options) : await atsGetJson(url, options);
