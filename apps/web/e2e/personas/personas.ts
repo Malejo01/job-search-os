@@ -17,7 +17,8 @@ export type PersonaKey =
   | "bruno"
   | "rocio"
   | "ines"
-  | "julian";
+  | "julian"
+  | "rrpp";
 
 export type PersonaOffer = SeedPublicJob & {
   /** Es del puesto de la persona (false = control negativo, de otro puesto). */
@@ -93,6 +94,11 @@ export const SKILL_NAMES: Record<string, string> = {
   react: "React",
   nextjs: "Next.js",
   git: "Git / GitHub",
+  crisis_management: "Manejo de crisis y reputación",
+  event_management: "Organización de eventos",
+  protocol_etiquette: "Protocolo y ceremonial de eventos",
+  influencer_relations: "Relación con influencers y embajadores",
+  public_opinion: "Opinión pública y monitoreo de medios",
 };
 
 type RawOffer = {
@@ -763,6 +769,65 @@ export function buildPersona(key: PersonaKey, tag: number = Date.now()): Persona
           },
         ),
       };
+    case "rrpp":
+      // R14-3: relaciones públicas con su propia clave `relaciones_publicas` (la «rocio» de C12 usa la anterior)
+      return {
+        ...base,
+        name: "Paula Ficticia",
+        role: "relaciones_publicas",
+        roleGroup: "Carreras de la beta",
+        country: "AR",
+        cefr: "B2",
+        years: "4",
+        remoteOnly: true,
+        summary:
+          "Perfil ficticio de la persona Paula: licenciada en relaciones públicas con cuatro años en prensa, organización de eventos corporativos y manejo de crisis para empresas medianas.",
+        skills: [
+          { slug: "press_relations", level: 3 },
+          { slug: "crisis_management", level: 2 },
+          { slug: "event_management", level: 3 },
+          { slug: "social_media", level: 1 },
+        ],
+        offers: offers(
+          tag,
+          "RR.PP.",
+          "relaciones_publicas",
+          [
+            {
+              sourceKind: "jobicy",
+              skills: [
+                ["press_relations", true],
+                ["crisis_management", true],
+                ["event_management", false],
+              ],
+            },
+            {
+              sourceKind: "remoteok",
+              skills: [
+                ["event_management", true],
+                ["protocol_etiquette", true],
+                ["influencer_relations", false],
+              ],
+            },
+            {
+              sourceKind: "getonboard_api",
+              skills: [
+                ["corporate_communications", true],
+                ["public_opinion", true],
+                ["social_media", false],
+              ],
+            },
+          ],
+          "backend",
+          {
+            sourceKind: "getonboard_api",
+            skills: [
+              ["nodejs", true],
+              ["docker", true],
+            ],
+          },
+        ),
+      };
   }
 }
 
@@ -778,4 +843,5 @@ export const PERSONA_KEYS: PersonaKey[] = [
   "rocio",
   "ines",
   "julian",
+  "rrpp",
 ];
