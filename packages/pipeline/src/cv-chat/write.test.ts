@@ -47,6 +47,43 @@ describe("cvWriteVars", () => {
     ]);
     expect(v.lang).toBe("es");
   });
+
+  it("R13-5: los proyectos van aparte de los estudios, sin el link", () => {
+    const v = cvWriteVars({
+      ...input,
+      history: [
+        ...history,
+        {
+          kind: "certificacion",
+          organization: "Instituto A",
+          title: "Curso de datos",
+          startMonth: null,
+          endMonth: null,
+          bullets: [],
+        },
+        {
+          kind: "proyecto",
+          organization: "Proyecto Recetario",
+          title: "Autora",
+          startMonth: null,
+          endMonth: null,
+          bullets: ["Stack: React"],
+          link: "https://ejemplo.invalid/recetario",
+        },
+      ],
+    });
+    const ctx = JSON.parse(v.context!);
+    expect(ctx.studies).toEqual([
+      { organization: "Universidad A", title: "Lic. en Estadística" },
+      { organization: "Instituto A", title: "Curso de datos" },
+    ]);
+    expect(ctx.projects).toEqual([{ organization: "Proyecto Recetario", title: "Autora" }]);
+    expect(v.context).not.toContain("ejemplo.invalid");
+  });
+
+  it("R13-5: sin proyectos, `projects` va vacío", () => {
+    expect(JSON.parse(cvWriteVars(input).context!).projects).toEqual([]);
+  });
 });
 
 describe("applyCvWrite", () => {

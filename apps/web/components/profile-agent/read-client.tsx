@@ -20,6 +20,7 @@ import { useId, useMemo, useRef, useState, useSyncExternalStore, type DragEvent 
 import { Alert, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
 import { ProfileCards } from "./cards";
 import { extractCvText } from "./extract-text";
+import { summaryLine, type Summary } from "./summary-line";
 
 /**
  * Subir el CV y leerlo (ADR-034 §9, R10-1). Cliente: el archivo se lee en el navegador y no se sube; al
@@ -27,15 +28,6 @@ import { extractCvText } from "./extract-text";
  * conserva después de leer, y el ticket de la charla vive en `sessionStorage` (nunca `localStorage`).
  * R10-2: con la lectura hecha, esta misma pantalla muestra las tarjetas editables (`cards.tsx`).
  */
-type Summary = {
-  experience: number;
-  education: number;
-  skills: number;
-  languages: number;
-  dropped: number;
-  suggestedRoles: string[];
-};
-
 type Notice = { message: string; fallbacks: ProfileReadFallback[] };
 
 type ApiResponse =
@@ -69,18 +61,6 @@ const MAX_MB = Math.round(CV_MAX_FILE_BYTES / (1024 * 1024));
 const PRIMARY = buttonClasses();
 const SECONDARY = buttonClasses({ variant: "secondary" });
 const TEXTAREA = inputClasses({ multiline: true });
-
-const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
-
-/** Qué se encontró, en una frase. Solo conteos: nada del texto del CV. */
-export function summaryLine(s: Summary): string {
-  return [
-    plural(s.experience, "trabajo", "trabajos"),
-    plural(s.education, "estudio", "estudios"),
-    plural(s.skills, "skill", "skills"),
-    plural(s.languages, "idioma", "idiomas"),
-  ].join(", ");
-}
 
 export function ReadClient({ base }: { base: ProfileAgentBase }) {
   const [text, setText] = useState("");

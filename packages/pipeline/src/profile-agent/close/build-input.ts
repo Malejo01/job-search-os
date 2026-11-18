@@ -65,6 +65,8 @@ export function buildProfileCloseWriteInput(facts: ProfileCloseFacts): ProfileCl
       startMonth: h.startMonth,
       endMonth: h.endMonth,
       bullets: [...h.bullets],
+      // R13-5: el link vale solo en proyectos (como en `career_history`); los demás tipos no lo llevan
+      ...(h.kind === "proyecto" && h.link ? { link: h.link } : {}),
     });
     historyIds.push(h.id ?? null);
   }
