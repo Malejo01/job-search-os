@@ -470,6 +470,13 @@
       "when": 1794940951672,
       "tag": "0066_motionless_paper_doll",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1795009945774,
+      "tag": "0067_messy_zaladane",
+      "breakpoints": true
     }
   ]
 }
