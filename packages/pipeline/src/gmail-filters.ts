@@ -12,6 +12,9 @@ export const DEFAULT_ALERT_SENDERS: readonly string[] = [
   "getonbrd.com",
   "getonboard.com",
   "indeed.com",
+  "bumeran.com",
+  // ZonaJobs todavía no tiene lector: sus mails llegan a la cola manual con el cuerpo guardado.
+  "zonajobs.com.ar",
 ];
 
 const ADDRESS_RE = /^u_([a-z2-7]{20})@[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/;
