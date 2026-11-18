@@ -1,0 +1,41 @@
+{
+  "totalCount": 3,
+  "jobs": [
+    {
+      "title": "Analista contable <b>semi senior</b>",
+      "location": "Córdoba",
+      "snippet": "Se busca analista para liquidación de impuestos y conciliaciones...",
+      "salary": "",
+      "source": "portal-a.example.com",
+      "type": "Full-time",
+      "link": "https://empleos.example.com/ver/1001",
+      "company": "Empresa A",
+      "updated": "2026-11-16T09:30:00.0000000",
+      "id": 1001
+    },
+    {
+      "title": "Asistente administrativo",
+      "location": "Rosario",
+      "snippet": "Atención de proveedores y carga de facturas...",
+      "salary": "a convenir",
+      "source": "portal-b.example.com",
+      "type": "",
+      "link": "https://empleos.example.com/ver/1002",
+      "company": "",
+      "updated": "no es una fecha",
+      "id": "1002"
+    },
+    {
+      "title": "Aviso sin link",
+      "location": "Mendoza",
+      "snippet": "Sin enlace al original",
+      "salary": "",
+      "source": "portal-c.example.com",
+      "type": "",
+      "link": "javascript:alert(1)",
+      "company": "Empresa B",
+      "updated": "2026-11-15T10:00:00",
+      "id": 1003
+    }
+  ]
+}

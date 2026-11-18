@@ -4,6 +4,7 @@ import type { Logger } from "../logger";
 import {
   atsDownloader,
   boardsStarted,
+  joobleDownloader,
   parsePoolBackfillDays,
   parsePoolSources,
   poolErrorCode,
@@ -17,6 +18,7 @@ import {
   runPoolFetch,
   type PoolBoard,
   type PoolBoardOutcome,
+  type PoolDownload,
   type PoolDownloaders,
   type PoolFetchFinish,
   type PoolFetchHistory,
@@ -62,6 +64,7 @@ function downloaders(partial: Partial<PoolDownloaders>): PoolDownloaders {
     lever: none,
     ashby: none,
     teamtailor: none,
+    jooble: none,
     ...partial,
   };
 }
@@ -140,7 +143,77 @@ describe("POOL_SOURCE_KIND", () => {
       lever: "lever",
       ashby: "ashby",
       teamtailor: "teamtailor",
+      jooble: "other",
     });
+  });
+});
+
+describe("jooble (ADR-039)", () => {
+  const items = (n: number, prefix: string) =>
+    Array.from({ length: n }, (_, i) => ({
+      id: `${prefix}${i}`,
+      title: `Puesto ${i}`,
+      link: `https://empleos.example.com/ver/${prefix}${i}`,
+      company: "Empresa A",
+    }));
+  const run = (fetchImpl: unknown, apiKey = "clave-de-prueba") =>
+    joobleDownloader({ apiKey, now: () => NOW })({
+      since: NOW,
+      userAgent: "UA",
+      fetchImpl: fetchImpl as typeof fetch,
+    });
+
+  it("solo se activa si está en POOL_SOURCES; no está recomendada; intervalo de 5 h", () => {
+    expect(parsePoolSources("remoteok").enabled).toEqual(["remoteok"]);
+    expect(parsePoolSources("remoteok, Jooble").enabled).toEqual(["remoteok", "jooble"]);
+    expect(POOL_RECOMMENDED_SOURCES).not.toContain("jooble");
+    expect(POOL_MIN_INTERVAL_MS.jooble).toBe(5 * 3_600_000);
+  });
+
+  it("sin clave: cero llamadas a fetchImpl y ninguna oferta", async () => {
+    const fetchImpl = vi.fn();
+    expect(await run(fetchImpl, "  ")).toEqual([]);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("con clave: devuelve avisos y no pasa de 15 consultas", async () => {
+    let n = 0;
+    const fetchImpl = vi.fn(async () => {
+      n++;
+      return new Response(JSON.stringify({ jobs: items(2, `q${n}-`) }));
+    });
+    const out = (await run(fetchImpl)) as Exclude<PoolDownload, RawJob[]>;
+    expect(fetchImpl.mock.calls.length).toBeGreaterThan(0);
+    expect(fetchImpl.mock.calls.length).toBeLessThanOrEqual(15);
+    expect(out.jobs).toHaveLength(fetchImpl.mock.calls.length * 2);
+    expect(out.partialError).toBeNull();
+  });
+
+  it("un 429 termina en partialError cerrado, sin la clave", async () => {
+    const fetchImpl = vi.fn(async () => new Response("{}", { status: 429 }));
+    const out = (await run(fetchImpl)) as Exclude<PoolDownload, RawJob[]>;
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(out.partialError).toBe("http_429");
+    expect(JSON.stringify(out)).not.toContain("clave-de-prueba");
+  });
+
+  it("un 500, un 401 y una página inesperada también quedan con código cerrado", async () => {
+    const code = async (res: () => Response) =>
+      ((await run(vi.fn(async () => res()))) as Exclude<PoolDownload, RawJob[]>).partialError;
+    expect(await code(() => new Response("{}", { status: 503 }))).toBe("http_5xx");
+    expect(await code(() => new Response("{}", { status: 401 }))).toBe("http_4xx");
+    expect(await code(() => new Response(JSON.stringify({ resultados: [] })))).toBe("parse");
+  });
+
+  it("runPoolFetch: jooble usa su kind other y su intervalo", async () => {
+    const jooble = vi.fn(async () => [] as RawJob[]);
+    const { deps, rows } = makeDeps();
+    await runPoolFetch(
+      { ...base, enabled: ["jooble"], downloaders: downloaders({ jooble }) },
+      deps,
+    );
+    expect(jooble).toHaveBeenCalledTimes(1);
+    expect(rows[0]!.source).toBe("jooble");
   });
 });
 
@@ -626,7 +699,7 @@ describe("runPoolFetch · fuentes ATS (boards de ats_boards)", () => {
     ]);
   });
 
-  it("teamtailor: intervalo de 5 h, se acepta en POOL_SOURCES y NO está recomendada (la prende Mauro)", () => {
+  it("teamtailor: intervalo de 5 h, se acepta en POOL_SOURCES y NO está recomendada (la prende el dueño del proyecto)", () => {
     expect(POOL_MIN_INTERVAL_MS.teamtailor).toBe(5 * 3_600_000);
     expect(POOL_RECOMMENDED_SOURCES).not.toContain("teamtailor");
     expect(parsePoolSources("Teamtailor").enabled).toEqual(["teamtailor"]);
