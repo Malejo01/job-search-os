@@ -29,9 +29,9 @@ const roleSkills = roleSkillsSchema.parse(roleSkillsSeed);
 const taxonomy = new Set((skills as { slug: string }[]).map((s) => s.slug));
 
 describe("clave relaciones_publicas", () => {
-  it("existe, va al final de ROLE_KEYS y se valida", () => {
+  it("existe, va después de las 4 de la beta (los 3 puestos de contenido de R14-1 llegan después) y se valida", () => {
     expect(isRoleKey("relaciones_publicas")).toBe(true);
-    expect(ROLE_KEYS.at(-1)).toBe("relaciones_publicas");
+    expect(ROLE_KEYS.at(-4)).toBe("relaciones_publicas");
   });
 
   it("tiene rótulo, entre 8 y 12 skills y todas están en la taxonomía", () => {

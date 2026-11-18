@@ -3,7 +3,12 @@ import {
   buildCareerRevealRows,
   type CareerRevealCount,
 } from "./career-reveal";
-import { BETA_ROLE_KEYS, ROLE_KEYS, type RoleKey } from "./skills/self-assessment";
+import {
+  BETA_ROLE_KEYS,
+  CONTENT_ROLE_KEYS,
+  ROLE_KEYS,
+  type RoleKey,
+} from "./skills/self-assessment";
 
 /**
  * Qué carreras se muestran en las páginas públicas (ADR-029, complemento de ADR-022). Puro: recibe cuántas
@@ -23,7 +28,11 @@ import { BETA_ROLE_KEYS, ROLE_KEYS, type RoleKey } from "./skills/self-assessmen
  */
 
 /** Carreras cuya aparición en público depende del umbral: las de la beta (ADR-027). */
-export const PUBLIC_THRESHOLD_ROLE_KEYS: readonly RoleKey[] = BETA_ROLE_KEYS;
+export const PUBLIC_THRESHOLD_ROLE_KEYS: readonly RoleKey[] = [
+  ...BETA_ROLE_KEYS,
+  // R14-1: los puestos de marketing y contenido también esperan al umbral
+  ...CONTENT_ROLE_KEYS,
+];
 
 export type CareerVisibilityOverrides = {
   /** Nunca se muestran en público, llegue o no al umbral. */

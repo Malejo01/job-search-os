@@ -97,6 +97,8 @@ describe("skills.json: integridad", () => {
     // Siglas conocidas e inequívocas; un alias corto nuevo se suma acá a conciencia.
     const shortOk = new Set([
       // nuevas de esta ronda
+      // R14-1: sigla de «user generated content»
+      "ugc",
       "dns",
       "lan",
       "wan",

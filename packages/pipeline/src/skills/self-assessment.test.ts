@@ -118,6 +118,9 @@ describe("selectableRoleGroups", () => {
       "comunicacion",
       "relaciones_internacionales",
       "relaciones_publicas",
+      "marketing_ia",
+      "edicion_video",
+      "creacion_contenido",
     ]);
     const flat = (g: ReturnType<typeof selectableRoleGroups>) => g.flatMap((x) => [...x.roles]);
     expect(flat(selectableRoleGroups())).toContain("abogacia");
@@ -213,8 +216,8 @@ describe("toRoleKey", () => {
 describe("role_skills.json", () => {
   const parsed = roleSkillsSchema.safeParse(seed);
   it("valida contra el esquema", () => expect(parsed.success).toBe(true));
-  it("tiene los 27 roles", () => {
-    expect(ROLE_KEYS).toHaveLength(27);
+  it("tiene los 30 roles (27 más los 3 puestos de marketing y contenido, R14-1)", () => {
+    expect(ROLE_KEYS).toHaveLength(30);
     expect(Object.keys(seed).sort()).toEqual([...ROLE_KEYS].sort());
   });
   it("todos los slugs existen en la taxonomía", () => {

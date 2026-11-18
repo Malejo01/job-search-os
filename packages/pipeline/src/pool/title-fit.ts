@@ -179,6 +179,10 @@ const VETO_TERMS: Partial<Record<RoleKey, readonly string[]>> = {
   marketing_digital: TITLE_TERMS.ventas_b2b,
   // ADR-033: relaciones públicas comparte categorías con marketing y comunicación (ventas veta igual).
   relaciones_publicas: TITLE_TERMS.ventas_b2b,
+  // R14-1: los puestos de contenido comparten categorías con marketing: ventas veta igual.
+  marketing_ia: TITLE_TERMS.ventas_b2b,
+  edicion_video: TITLE_TERMS.ventas_b2b,
+  creacion_contenido: TITLE_TERMS.ventas_b2b,
   comunicacion: [
     "telecom",
     "telecomunicaciones",

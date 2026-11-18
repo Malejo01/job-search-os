@@ -7,7 +7,12 @@ import {
   publicCareerKeys,
   watchedCareerKeys,
 } from "./career-visibility";
-import { BETA_ROLE_KEYS, ROLE_KEYS, type RoleKey } from "./skills/self-assessment";
+import {
+  BETA_ROLE_KEYS,
+  CONTENT_ROLE_KEYS,
+  ROLE_KEYS,
+  type RoleKey,
+} from "./skills/self-assessment";
 
 const none = { alwaysHidden: [], alwaysVisible: [] } as const;
 const count = (role: RoleKey, received: number): CareerRevealCount => ({
@@ -17,8 +22,8 @@ const count = (role: RoleKey, received: number): CareerRevealCount => ({
 });
 
 describe("qué carreras se muestran en público (ADR-029)", () => {
-  it("las que están sujetas al umbral son las de la beta", () => {
-    expect([...PUBLIC_THRESHOLD_ROLE_KEYS]).toEqual([...BETA_ROLE_KEYS]);
+  it("las que están sujetas al umbral son las de la beta y los puestos de contenido (R14-1)", () => {
+    expect([...PUBLIC_THRESHOLD_ROLE_KEYS]).toEqual([...BETA_ROLE_KEYS, ...CONTENT_ROLE_KEYS]);
   });
 
   it("una carrera sujeta al umbral se muestra con 10 ofertas o más y no con 9", () => {
@@ -77,7 +82,7 @@ describe("qué carreras se muestran en público (ADR-029)", () => {
 
   it("conserva el orden de ROLE_KEYS y no repite", () => {
     const keys = publicCareerKeys(
-      BETA_ROLE_KEYS.map((k) => count(k, 20)),
+      PUBLIC_THRESHOLD_ROLE_KEYS.map((k) => count(k, 20)),
       none,
     );
     expect(keys).toEqual(ROLE_KEYS);
