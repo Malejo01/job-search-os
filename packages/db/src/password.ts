@@ -1,4 +1,4 @@
-import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { randomBytes, scrypt, scryptSync, timingSafeEqual } from "node:crypto";
 
 /**
  * Hash de contraseña con scrypt de Node (sin dependencias nativas). Formato:
@@ -21,5 +21,23 @@ export function verifyPassword(password: string, stored: string | null | undefin
   if (algo !== "scrypt" || !salt || !hash) return false;
   const expected = Buffer.from(hash, "hex");
   const actual = scryptSync(password, salt, expected.length, SCRYPT_OPTIONS);
+  return actual.length === expected.length && timingSafeEqual(actual, expected);
+}
+
+/** Igual que `verifyPassword`, sin bloquear el event loop: es la que usa el login. */
+export async function verifyPasswordAsync(
+  password: string,
+  stored: string | null | undefined,
+): Promise<boolean> {
+  if (!stored) return false;
+  const [algo, salt, hash] = stored.split("$");
+  if (algo !== "scrypt" || !salt || !hash) return false;
+  const expected = Buffer.from(hash, "hex");
+  const actual = await new Promise<Buffer>((resolve, reject) => {
+    scrypt(password, salt, expected.length, SCRYPT_OPTIONS, (error, derived) => {
+      if (error) reject(error);
+      else resolve(derived);
+    });
+  });
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
