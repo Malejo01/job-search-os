@@ -151,7 +151,7 @@ afterAll(async () => {
 });
 
 // capGuard es obligatorio (JS-105): estos tests no prueban el tope, así que pasan uno que nunca frena
-const noCap = async (): Promise<string | null> => null;
+const noCap = async () => ({ message: null });
 
 const byId = (r: Awaited<ReturnType<typeof draftApplicationAnswers>>, id: string) =>
   r.drafts.find((d) => d.question_id === id)!;
@@ -391,13 +391,48 @@ describe("draftApplicationAnswers", () => {
       conn.db,
       { userId: USER, jobId, questions: FORM },
       counting,
-      async () => "Alcanzaste tu tope diario.",
+      async () => ({ message: "Alcanzaste tu tope diario." }),
     );
     expect(calls).toBe(0);
     expect(r.cap_message).toBe("Alcanzaste tu tope diario.");
     expect(byId(r, "q1")).toMatchObject({ draft: "", origin: "modelo" });
     expect(byId(r, "q1").note).toMatch(/tope diario/);
     expect(byId(r, "q3").draft).toBe("Inmediata (texto de ejemplo)");
+  });
+
+  it("suelta el gasto reservado también cuando el modelo falla", async () => {
+    let released = 0;
+    const down: LlmClient = {
+      async generateStructured(task) {
+        return err({ kind: "provider_unavailable", task, detail: "sin key" });
+      },
+    };
+    await draftApplicationAnswers(
+      conn.db,
+      { userId: USER, jobId, questions: FORM },
+      down,
+      async () => ({
+        message: null,
+        release: async () => {
+          released += 1;
+        },
+      }),
+    );
+    expect(released).toBe(1);
+  });
+
+  it("si solo hay respuestas fijas no reserva gasto", async () => {
+    let guards = 0;
+    await draftApplicationAnswers(
+      conn.db,
+      { userId: USER, jobId, questions: [{ id: "q3", text: "When can you start?" }] },
+      createDemoLlm(),
+      async () => {
+        guards += 1;
+        return { message: null };
+      },
+    );
+    expect(guards).toBe(0);
   });
 
   it("no deja basura: los hechos y ajustes del usuario siguen intactos", async () => {

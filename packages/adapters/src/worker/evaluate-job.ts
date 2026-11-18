@@ -37,6 +37,7 @@ import { and, count, desc, eq, getTableColumns, lte, ne, sql } from "drizzle-orm
 import { DEFAULT_PROMPT_VERSIONS } from "../llm/client";
 import type { GenerateContext, LlmClient, LlmError } from "../llm/types";
 import { dailyCapFromEnv, spendLast24h, userDailyCapUsd } from "../llm/spend";
+import { EVALUATION_RESERVE_USD, releaseLlmSpend, reserveLlmSpend } from "../llm/spend-reserve";
 import type { Logger } from "../logger";
 import { safeDbError } from "../logging/safe-error";
 import { EVALUATE_QUEUE, type EvaluatePayload, type Queue } from "../queue/pg-queue";
@@ -947,55 +948,65 @@ export async function evaluateJobNow(
 ): Promise<EvaluateNowResult> {
   const log = deps.logger.child({ job_id: jobId });
   const dailyCapUsd = options.dailyCapUsd ?? dailyCapFromEnv();
-  if (dailyCapUsd > 0) {
-    const spend = await spendLast24h(deps.db, deps.now);
-    if (spend.usd >= dailyCapUsd) {
+  const userCapUsd = options.userDailyCapUsd ?? userDailyCapUsd();
+  // Un job sin dueño no llega al modelo: evaluateJobById lo descarta
+  const ownerId = await jobOwner(deps.db, jobId);
+  let reservationId: string | null = null;
+  if (ownerId) {
+    const reservation = await reserveLlmSpend(deps.db, {
+      userId: ownerId,
+      estimateUsd: EVALUATION_RESERVE_USD,
+      now: deps.now,
+      dailyCapUsd,
+      userDailyCapUsd: userCapUsd,
+    });
+    if (!reservation.ok && reservation.reason === "global") {
       log.warn(
-        { spend_usd_24h: spend.usd, cap_usd: dailyCapUsd },
+        { cap_usd: dailyCapUsd },
         "evaluación inmediata frenada por el tope de gasto: queda para el cron",
       );
       return { ran: false, reason: "cap" };
     }
-  }
-  // Tope por usuario: el mensaje queda pending (nadie lo reclamó) para cuando se libere la ventana
-  const userCapUsd = options.userDailyCapUsd ?? userDailyCapUsd();
-  if (userCapUsd > 0) {
-    const [owner] = await deps.db
-      .select({ userId: s.jobs.userId })
-      .from(s.jobs)
-      .where(eq(s.jobs.id, jobId))
-      .limit(1);
-    if (owner && (await userSpendTracker(deps, userCapUsd).isOver(owner.userId))) {
+    // Tope por usuario: el mensaje queda pending (nadie lo reclamó) para cuando se libere la ventana
+    if (!reservation.ok) {
       log.warn(
-        { user_id: owner.userId, cap_usd: userCapUsd },
+        { user_id: ownerId, cap_usd: userCapUsd },
         "evaluación inmediata frenada por el tope diario del usuario: queda para el cron",
       );
       return { ran: false, reason: "user_cap", message: USER_CAP_MESSAGE };
     }
+    reservationId = reservation.reservationId;
   }
-  const msg = await deps.queue.claimForJob<EvaluatePayload>(EVALUATE_QUEUE, jobId);
-  if (!msg) return { ran: false, reason: "not_pending" };
 
-  let outcome: EvaluateOutcome;
   try {
-    outcome = await evaluateJobById(jobId, deps);
-  } catch (e) {
-    outcome = {
-      ok: false,
-      jobId,
-      error: unexpectedError(e),
-      retry: "retry",
-    };
+    const msg = await deps.queue.claimForJob<EvaluatePayload>(EVALUATE_QUEUE, jobId);
+    if (!msg) return { ran: false, reason: "not_pending" };
+
+    let outcome: EvaluateOutcome;
+    try {
+      outcome = await evaluateJobById(jobId, deps);
+    } catch (e) {
+      outcome = {
+        ok: false,
+        jobId,
+        error: unexpectedError(e),
+        retry: "retry",
+      };
+    }
+    if (outcome.ok || outcome.retry === "skipped") await deps.queue.ack(msg.id);
+    else if (!outcome.ok && outcome.error.startsWith("aborted:"))
+      await deps.queue.release(msg.id, outcome.error);
+    else if (outcome.retry === "failed")
+      await deps.queue.fail(msg.id, outcome.error, { final: true });
+    else await deps.queue.fail(msg.id, outcome.error);
+    log.info(
+      { ok: outcome.ok, ...(outcome.ok ? { score: outcome.score } : { error: outcome.error }) },
+      "evaluación inmediata",
+    );
+    return { ran: true, outcome };
+  } finally {
+    if (reservationId && !(await releaseLlmSpend(deps.db, reservationId))) {
+      log.warn("no se pudo soltar la reserva de gasto: deja de contar cuando vence");
+    }
   }
-  if (outcome.ok || outcome.retry === "skipped") await deps.queue.ack(msg.id);
-  else if (!outcome.ok && outcome.error.startsWith("aborted:"))
-    await deps.queue.release(msg.id, outcome.error);
-  else if (outcome.retry === "failed")
-    await deps.queue.fail(msg.id, outcome.error, { final: true });
-  else await deps.queue.fail(msg.id, outcome.error);
-  log.info(
-    { ok: outcome.ok, ...(outcome.ok ? { score: outcome.score } : { error: outcome.error }) },
-    "evaluación inmediata",
-  );
-  return { ran: true, outcome };
 }
