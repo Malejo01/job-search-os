@@ -4,7 +4,13 @@ import {
   isLegacyInboundAddress,
   limitsText,
   paymentLink,
+  planDef,
+  planExclusions,
+  pricePerDayLabel,
+  pricePerDayNote,
+  priceLabel,
   pricingEnabled,
+  pricingV2Enabled,
 } from "@job-search-os/pipeline";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
@@ -237,6 +243,13 @@ function TuPlan({ userPlan }: { userPlan: UserPlan }) {
   const link = paymentLink(process.env, BETA_PLAN);
   const contact = contactLink("Renovar mi plan de la beta");
   const renovar = access.status === "por_vencer" || access.status === "vencido";
+  // R15-1 (PRICING_V2): lo que no incluye el plan actual, en gris, y el precio por día del plan completo
+  const v2 = pricingV2Enabled(process.env);
+  const enabled = { cv: process.env.CV_IMPORT_ENABLED === "1", assistant: false };
+  const beta = planDef(BETA_PLAN);
+  const missing =
+    v2 && userPlan.plan.key !== beta.key ? planExclusions(userPlan.plan, beta, enabled) : [];
+  const perDay = pricePerDayLabel(beta);
   return (
     <section
       id="tu-plan"
@@ -275,6 +288,25 @@ function TuPlan({ userPlan }: { userPlan: UserPlan }) {
           <li key={line}>{line}</li>
         ))}
       </ul>
+      {missing.length > 0 ? (
+        <div>
+          <h3 className="text-sm font-bold text-fg-subtle">No incluye</h3>
+          <ul
+            data-testid="tu-plan-no-incluye"
+            className="mt-1 flex list-disc flex-col gap-1 pl-5 text-sm text-fg-subtle"
+          >
+            {missing.map((m) => (
+              <li key={m}>{m}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {v2 && perDay && (renovar || userPlan.plan.key === "gratis") ? (
+        <p data-testid="tu-plan-precio-dia" className="text-sm text-fg">
+          Plan {beta.name}: {priceLabel(beta)}, {perDay}.{" "}
+          <span className="text-fg-subtle">{pricePerDayNote(beta)}.</span>
+        </p>
+      ) : null}
       {renovar || userPlan.plan.key === "gratis" ? (
         <div className="flex flex-col gap-2 text-sm text-fg-muted">
           <p>
