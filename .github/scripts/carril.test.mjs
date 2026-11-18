@@ -1,7 +1,7 @@
 // node --test .github/scripts/carril.test.mjs (lo corre el job lint-typecheck de ci.yml). También corre con
 // `vitest run --globals`: en ese caso `test` es el global de vitest.
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -17,6 +17,7 @@ import {
 const { test } = globalThis.describe ? globalThis : await import("node:test");
 
 const here = dirname(fileURLToPath(import.meta.url));
+const repoRoot = join(here, "..", "..");
 const patterns = parsePatterns(readFileSync(join(here, "..", "carril-rojo.txt"), "utf8"));
 const base = { patterns, labels: ["carril-verde"], paused: false, sameRepo: true };
 const run = (files, extra = {}) =>
@@ -141,6 +142,74 @@ test("CODEOWNERS repite exactamente la lista roja", () => {
     });
   assert.deepEqual([...owners].sort(), [...patterns].sort());
 });
+
+/** Archivos del repo bajo `dir`, sin carpetas generadas. Rutas relativas a la raíz, con `/`. */
+function walk(dir) {
+  const skip = new Set(["node_modules", ".next", ".turbo", "dist", "coverage"]);
+  return readdirSync(join(repoRoot, dir), { withFileTypes: true }).flatMap((entry) => {
+    if (entry.isDirectory()) {
+      return skip.has(entry.name) ? [] : walk(`${dir}/${entry.name}`);
+    }
+    return [`${dir}/${entry.name}`];
+  });
+}
+
+test("todo archivo con una server action está en el carril rojo", () => {
+  const actions = walk("apps/web").filter(
+    (f) =>
+      /\.tsx?$/.test(f) &&
+      /^\s*["']use server["'];?\s*$/m.test(readFileSync(join(repoRoot, f), "utf8")),
+  );
+  assert.ok(actions.length > 0, "el recorrido no encontró ninguna server action");
+  const red = new Set(redFiles(actions, patterns).map((h) => h.file));
+  assert.deepEqual(
+    actions.filter((f) => !red.has(f)),
+    [],
+  );
+});
+
+test("toda ruta de la API y todo archivo de RLS están en el carril rojo", () => {
+  const routes = walk("apps/web/app/api").filter((f) => f.endsWith("/route.ts"));
+  const rls = walk("packages/db/rls");
+  assert.ok(routes.length > 0, "el recorrido no encontró ninguna ruta");
+  assert.ok(rls.length > 0, "el recorrido no encontró ningún archivo de RLS");
+  const files = [...routes, ...rls];
+  const red = new Set(redFiles(files, patterns).map((h) => h.file));
+  assert.deepEqual(
+    files.filter((f) => !red.has(f)),
+    [],
+  );
+});
+
+test("todo vercel.json está en el carril rojo, también uno nuevo", () => {
+  const configs = [...walk("apps"), ...walk("packages")].filter((f) => f.endsWith("/vercel.json"));
+  assert.ok(configs.length > 0, "el recorrido no encontró ningún vercel.json");
+  for (const f of [...configs, "vercel.json", "apps/otra/vercel.json"]) {
+    assert.equal(redFiles([f], patterns).length, 1, f);
+  }
+});
+
+for (const f of [
+  ".gitleaksignore",
+  ".gitleaks.toml",
+  "apps/web/lib/admin-guard.ts",
+  "apps/web/lib/admin-routes.ts",
+  "apps/web/lib/route-access.ts",
+  "apps/web/lib/assistant.ts",
+  "apps/web/lib/cv-coach/access.ts",
+  "apps/web/lib/profile-agent/access.ts",
+  "apps/web/lib/user-plan.ts",
+  "apps/web/lib/llm-service.ts",
+  "apps/web/lib/setup.ts",
+  "apps/web/lib/pool-reassign.ts",
+  "apps/web/lib/evaluate-now.ts",
+  "packages/adapters/src/cv-coach/review/sign.ts",
+  "apps/web/app/descarga/route.ts",
+]) {
+  test(`rojo: ${f}`, () => {
+    assert.equal(redFiles([f], patterns).length, 1, f);
+  });
+}
 
 test("rutas de la app que no son rojas siguen verdes", () => {
   for (const f of [
