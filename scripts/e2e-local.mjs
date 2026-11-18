@@ -18,8 +18,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-/** Mismos valores que `packages/db/src/env.ts` y que el job `e2e` del CI (todos ficticios). */
-export const LOCAL_DATABASE_URL = "postgres://postgres:postgres@localhost:54322/jobsearch";
+const localPassword = process.env.JSO_LOCAL_DB_PASSWORD?.trim() || "postgres";
+
+/** Mismos valores que `packages/db/src/env.ts` y que el job `e2e` del CI. */
+export const LOCAL_DATABASE_URL = `postgres://postgres:${encodeURIComponent(localPassword)}@localhost:54322/jobsearch`;
 export const LOCAL_APP_DATABASE_URL =
   "postgres://jobsearch_app:jobsearch_app@localhost:54322/jobsearch";
 export const E2E_EMAIL = "mauro@job-search-os.local";

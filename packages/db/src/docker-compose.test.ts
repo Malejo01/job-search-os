@@ -36,6 +36,25 @@ describe("infra/docker-compose.yml", () => {
     expect(ports.length).toBeGreaterThan(0);
     expect(ports.filter((p) => !p.startsWith("127.0.0.1:"))).toEqual([]);
   });
+
+  it("no deja contraseñas escritas en el archivo", () => {
+    const passwords = readFileSync(COMPOSE, "utf8")
+      .split(/\r?\n/)
+      .filter((line) => /^\s*POSTGRES_PASSWORD:/.test(line));
+
+    expect(passwords).toHaveLength(2);
+    for (const line of passwords) expect(line).toMatch(/POSTGRES_PASSWORD: \$\{[A-Z_]+:-/);
+  });
+
+  it("separa el snapshot en otro servicio, con otra contraseña y otro puerto", () => {
+    const yaml = readFileSync(COMPOSE, "utf8");
+
+    expect(yaml).toContain("container_name: jso-snapshot");
+    expect(yaml).toContain("profiles: [snapshot]");
+    expect(yaml).toContain("127.0.0.1:54323:5432");
+    expect(yaml).toContain("${JSO_LOCAL_DB_PASSWORD:-postgres}");
+    expect(yaml).toContain("${JSO_SNAPSHOT_DB_PASSWORD:-}");
+  });
 });
 
 describe("publishedPorts", () => {
