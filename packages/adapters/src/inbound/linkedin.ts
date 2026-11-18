@@ -1,4 +1,10 @@
-import type { Modality, RawJob } from "@job-search-os/pipeline";
+import {
+  MAX_EMAIL_HTML_CHARS,
+  stripScripts,
+  stripTags,
+  type Modality,
+  type RawJob,
+} from "@job-search-os/pipeline";
 import type { EmailParser, InboundEmailContent, ParseResult } from "./parsers";
 
 /**
@@ -54,17 +60,30 @@ function decodificar(texto: string): string {
 
 /** Texto visible de un fragmento de HTML, como lista de líneas no vacías. */
 function lineasVisibles(html: string): string[] {
-  return html
-    .replace(/<(script|style)[\s\S]*?<\/\1>/gi, " ")
-    .replace(/<img[^>]*>/gi, " ")
-    .replace(/<[^>]+>/g, "\n")
+  return stripTags(stripScripts(html), (tag) => (/^<img/i.test(tag) ? " " : "\n"))
     .split("\n")
     .map(decodificar)
     .filter(Boolean);
 }
 
+const MAX_LINEA_UBICACION = 500;
+
+/** Primer texto entre comillas angulares que no cruza una etiqueta. */
+function entreComillasAngulares(html: string): string | null {
+  let apertura = html.indexOf("«");
+  while (apertura >= 0) {
+    const cierre = html.indexOf("»", apertura + 1);
+    if (cierre < 0) return null;
+    const etiqueta = html.lastIndexOf("<", cierre);
+    if (etiqueta < apertura) return cierre > apertura + 1 ? html.slice(apertura + 1, cierre) : null;
+    apertura = html.indexOf("«", etiqueta);
+  }
+  return null;
+}
+
 /** "Argentina (En remoto)" → { locationRaw: "Argentina", modality: "remoto" } */
 function partirUbicacion(texto: string): { locationRaw: string; modality: Modality } {
+  if (texto.length > MAX_LINEA_UBICACION) return { locationRaw: texto, modality: "desconocida" };
   const m = /^(.*?)\s*\(([^)]+)\)\s*$/.exec(texto);
   if (!m) return { locationRaw: texto, modality: "desconocida" };
   return {
@@ -83,7 +102,7 @@ function nombreFuente(
   subject: string | null,
   html: string,
 ): string {
-  const busqueda = /«([^»]+)»/.exec(subject ?? "")?.[1] ?? /«([^»<]+)»/.exec(html)?.[1];
+  const busqueda = /«([^»]+)»/.exec(subject ?? "")?.[1] ?? entreComillasAngulares(html);
   return busqueda ? `${formato} «${busqueda}»` : `${formato} de LinkedIn`;
 }
 
@@ -136,6 +155,9 @@ export const linkedinParser: EmailParser = {
   name: "linkedin",
   parse(email: InboundEmailContent): ParseResult {
     if (!email.html) return { ok: false, reason: "email de LinkedIn sin HTML: cola manual" };
+    if (email.html.length > MAX_EMAIL_HTML_CHARS) {
+      return { ok: false, reason: "email de LinkedIn demasiado grande: cola manual" };
+    }
 
     const formato = email.html.includes('data-test-id="job-card"') ? "alerta" : "recomendaciones";
     const tarjetas = email.html

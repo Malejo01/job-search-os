@@ -1,6 +1,12 @@
 import { pgBlobStorage } from "@job-search-os/adapters";
 import { schema as s } from "@job-search-os/db";
-import { baseDomain, isWebmailDomain, senderHost } from "@job-search-os/pipeline";
+import {
+  baseDomain,
+  isWebmailDomain,
+  senderHost,
+  stripScripts,
+  stripTags,
+} from "@job-search-os/pipeline";
 import { and, eq } from "drizzle-orm";
 import { withUser } from "./db";
 
@@ -34,11 +40,8 @@ export type InboundEmailDetail = {
 
 /** Texto visible de un HTML, para cuando el email no trae parte de texto plano. */
 export function htmlAPlano(html: string): string {
-  return html
-    .replace(/<(script|style)[\s\S]*?<\/\1>/gi, " ")
-    .replace(/<\/(p|div|tr|li|h[1-6])>/gi, "\n")
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<[^>]+>/g, " ")
+  const saltoDeLinea = /^<(?:\/(?:p|div|tr|li|h[1-6])|br\s*\/?)>$/i;
+  return stripTags(stripScripts(html), (tag) => (saltoDeLinea.test(tag) ? "\n" : " "))
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
