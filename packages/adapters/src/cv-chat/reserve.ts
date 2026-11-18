@@ -212,9 +212,19 @@ export async function reserveCvChatStep<R>(
 }
 
 /**
- * Borra la reserva (otra transacción corta). Idempotente. Nunca lanza: se llama en un `finally` y un error
- * acá no puede tapar el resultado del paso. Devuelve `false` si falló, para que el llamador lo loguee; la
- * reserva que quede deja de contar a los 2 minutos.
+ * Borra la reserva **bajo el mismo lock por persona** con el que se reservó (R12-16, R13-6). La medición son
+ * varias consultas y, en READ COMMITTED, cada una ve su propia foto: si la reserva se borrara sin lock mientras
+ * otro pedido de la misma persona mide, ese pedido podría no ver ni la reserva (ya borrada) ni la fila real que
+ * el cliente LLM anotó (en una consulta anterior todavía no estaba) y dejaría pasar un paso de más. Con el lock,
+ * el borrado espera a que termine quien está midiendo. Sirve al chat de CV, a los huecos y al cierre del agente
+ * de perfil (todos reservan con el lock 26).
+ *
+ * La persona se lee de la propia fila antes de tomar el lock (un `user_id` no cambia), así la firma no
+ * cambia. Un solo lock por transacción y la llamada al modelo queda afuera: no hay orden de locks que cruzar.
+ *
+ * Idempotente: soltar dos veces, o soltar una reserva que ya venció y se purgó, no hace nada. Nunca lanza: se
+ * llama en un `finally` y un error acá no puede tapar el resultado del paso. Devuelve `false` si falló, para
+ * que el llamador lo loguee; la reserva que quede deja de contar a los 2 minutos.
  */
 export async function releaseCvChatReservation(
   db: Db,
@@ -222,9 +232,20 @@ export async function releaseCvChatReservation(
 ): Promise<boolean> {
   if (!reservationId) return true;
   try {
-    await db
-      .delete(s.llmCalls)
-      .where(and(eq(s.llmCalls.id, reservationId), eq(s.llmCalls.task, CV_RESERVE_TASK)));
+    await db.transaction(async (tx) => {
+      const [row] = await tx
+        .select({ userId: s.llmCalls.userId })
+        .from(s.llmCalls)
+        .where(and(eq(s.llmCalls.id, reservationId), eq(s.llmCalls.task, CV_RESERVE_TASK)))
+        .limit(1);
+      if (!row?.userId) return; // ya soltada: nada que devolver
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtextextended(${row.userId}, ${CV_RESERVE_LOCK_NAMESPACE}))`,
+      );
+      await tx
+        .delete(s.llmCalls)
+        .where(and(eq(s.llmCalls.id, reservationId), eq(s.llmCalls.task, CV_RESERVE_TASK)));
+    });
     return true;
   } catch {
     return false;

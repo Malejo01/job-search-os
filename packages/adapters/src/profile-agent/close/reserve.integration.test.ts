@@ -3,7 +3,8 @@ import { applyMigrations } from "@job-search-os/db/src/migrate";
 import { createDb, isRemoteDatabase, schema as s } from "@job-search-os/db";
 import { like } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { releaseCvChatReservation } from "../../cv-chat/reserve";
+import { releaseWhileAnotherMeasures } from "../../cv-chat/lock-gate.testing";
+import { measureCvChat, releaseCvChatReservation } from "../../cv-chat/reserve";
 import {
   measureProfileAgentUserSpendUsd,
   recordProfileAgentWriteFailure,
@@ -228,5 +229,31 @@ describe("una redacción por charla y cupo de CV por mes", () => {
     const r = await slot({ callsModel: false });
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.reservationId).toBeNull();
+  });
+
+  it("R13-6: soltar la reserva de la redacción espera a quien está midiendo y es idempotente", async () => {
+    const first = await slot();
+    if (!first.ok) throw new Error("la reserva tenía que pasar");
+    // la llamada falló: se anota la fila fallida y recién después se suelta la reserva
+    await recordProfileAgentWriteFailure(conn.db, { userId: USER, flowId: FLOW });
+    const now = new Date();
+    const windows = {
+      now,
+      monthSince: new Date(now.getTime() - 30 * 86_400_000),
+      daySince: new Date(now.getTime() - 86_400_000),
+    };
+    const out = await releaseWhileAnotherMeasures(conn.db, {
+      userId: USER,
+      release: () => releaseCvChatReservation(conn.db, first.reservationId),
+      measure: (tx) => measureCvChat(tx, { userId: USER, label: LABEL, ...windows }),
+    });
+    // sin lock, el borrado termina enseguida y la segunda medición pierde la reserva (1 intento en vez de 2)
+    expect(out.waited).toBe(true);
+    expect(out.before).toMatchObject({ writeInFlight: true, writesInConversation: 2 });
+    expect(out.after).toMatchObject({ writeInFlight: true, writesInConversation: 2 });
+    expect(out.released).toBe(true);
+    expect(await releaseCvChatReservation(conn.db, first.reservationId)).toBe(true);
+    const end = await measureCvChat(conn.db, { userId: USER, label: LABEL, ...windows });
+    expect(end).toMatchObject({ writeInFlight: false, writesInConversation: 1 });
   });
 });
