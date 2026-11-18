@@ -1,9 +1,9 @@
 import { createDb, requireDatabaseUrl } from "@job-search-os/db";
 import {
   createLogger,
-  fetchReceivedEmail,
-  handleInboundEmail,
+  loadInboundContent,
   pgBlobStorage,
+  processInboundEvent,
   ResendAnyEventSchema,
   ResendReceivedEventSchema,
   safeDbError,
@@ -68,15 +68,9 @@ export async function POST(request: Request): Promise<NextResponse> {
   const { db, close } = createDb(requireDatabaseUrl({ purpose: "service" }), { max: 2 });
   try {
     const apiKey = process.env.RESEND_API_KEY;
-    let content = null;
-    if (apiKey) {
-      try {
-        content = await fetchReceivedEmail(event.data.data.email_id, apiKey);
-      } catch (e) {
-        logger.warn({ err: safeDbError(e) }, "inbound: sin cuerpo");
-      }
-    }
-    const outcome = await handleInboundEmail(event.data, content, rawBody, {
+    const fetchContent = async () =>
+      apiKey ? loadInboundContent(event.data.data.email_id, apiKey, logger) : null;
+    const outcome = await processInboundEvent(event.data, rawBody, fetchContent, {
       db,
       storage: pgBlobStorage(db),
       logger,
