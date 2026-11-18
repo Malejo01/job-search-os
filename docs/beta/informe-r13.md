@@ -34,7 +34,9 @@ Trabajaron cuatro teammates y el lead. Todas las ramas salen de `origin/main` en
 
 ## 4. Pasos manuales para el dueño del proyecto
 
-1. **Destrabar los PR.** Borrar la copia suelta de la carpeta principal: `rm docs/beta/carga-sin-streaming.md`. `main` ya trackea ese archivo, así que `git switch` falla y los PR no se pueden abrir desde ahí.
+1. **Destrabar los PR.** Hacen falta las dos cosas, en la carpeta principal:
+   - Borrar la copia suelta: `rm docs/beta/carga-sin-streaming.md`. `main` ya trackea ese archivo, así que `git switch` falla.
+   - Sacar del repo la carpeta sin trackear `Claude outputs/`. El script que abre los PR barre también lo que no está trackeado, y esa carpeta tiene hallazgos de privacidad.
 2. **Instalar dependencias** en la carpeta principal: `pnpm install`.
 3. **R13-1, después del deploy.** Ver a quién avisar, con esta consulta de solo lectura:
    ```sql
