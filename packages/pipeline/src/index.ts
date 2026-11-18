@@ -53,6 +53,7 @@ export * from "./demo";
 export * from "./cv";
 export * from "./cv-chat";
 export * from "./cv-out";
+export * from "./cv-ats";
 export * from "./alerts/portal-guide";
 export * from "./alerts/few-offers";
 export * from "./alerts/nudge-copy";

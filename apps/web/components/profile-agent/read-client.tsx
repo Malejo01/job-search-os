@@ -15,6 +15,7 @@ import {
   type ProfileReadInputProblem,
   type ProfileReadProposal,
 } from "@job-search-os/pipeline";
+import { AtsCheck } from "./ats-check";
 import Link from "next/link";
 import { useId, useMemo, useRef, useState, useSyncExternalStore, type DragEvent } from "react";
 import { Alert, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
@@ -275,6 +276,8 @@ export function ReadClient({ base }: { base: ProfileAgentBase }) {
           className={TEXTAREA}
         />
       </div>
+
+      <AtsCheck text={text} />
 
       {info ? (
         <Alert tone="info" role="status">
