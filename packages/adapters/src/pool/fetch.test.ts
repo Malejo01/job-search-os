@@ -806,7 +806,7 @@ describe("runPoolFetch · fuentes ATS (boards de ats_boards)", () => {
     expect(parsePoolSources("Teamtailor").enabled).toEqual(["teamtailor"]);
   });
 
-  it("teamtailor: una request al feed por board, con región na, y avisa si trae 100 items", async () => {
+  it("teamtailor: JSON Feed y RSS de respaldo por board (máx. dos requests), con región na, y avisa si trae 100 items", async () => {
     const items = Array.from(
       { length: 100 },
       (_, i) =>
@@ -823,8 +823,12 @@ describe("runPoolFetch · fuentes ATS (boards de ats_boards)", () => {
       ],
       fetchImpl: fetchImpl as never,
     })) as Exclude<Awaited<ReturnType<ReturnType<typeof atsDownloader>>>, RawJob[]>;
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
-    expect(fetchImpl.mock.calls[0]![0]).toBe("https://empresa-ficticia.na.teamtailor.com/jobs.rss");
+    // R16-3: primero jobs.json (acá responde un RSS, que no es JSON) y cae a jobs.rss; nunca más de dos
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(fetchImpl.mock.calls[0]![0]).toBe(
+      "https://empresa-ficticia.na.teamtailor.com/jobs.json",
+    );
+    expect(fetchImpl.mock.calls[1]![0]).toBe("https://empresa-ficticia.na.teamtailor.com/jobs.rss");
     expect(out.jobs).toHaveLength(100);
     expect(out.boards).toEqual([
       {
