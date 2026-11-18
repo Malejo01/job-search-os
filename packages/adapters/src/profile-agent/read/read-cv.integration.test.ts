@@ -433,13 +433,13 @@ describe("una lectura a la vez por persona (reserva con lock)", () => {
     expect((await readCvForAgent(input(), deps())).ok).toBe(true);
   });
 
-  it("una reserva vieja (más de 2 minutos, proceso muerto) deja de bloquear", async () => {
+  it("una reserva vencida (proceso muerto) deja de bloquear", async () => {
     await seed(USER, CV_RESERVE_TASK, 1, {
       ok: true,
       error: null,
       model: "read",
       tokensOut: 80_000,
-      createdAt: new Date(NOW.getTime() - 3 * MIN),
+      createdAt: new Date(NOW.getTime() - 4 * MIN),
     });
     expect((await readCvForAgent(input(), deps())).ok).toBe(true);
   });

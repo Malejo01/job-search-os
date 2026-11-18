@@ -11,7 +11,7 @@ import { measureProfileAgentSpend } from "../profile-agent/measure";
  *     si pasa, insertar una fila de reserva; commit;
  *  2. la llamada al modelo va afuera de la transacción;
  *  3. otra transacción corta borra la reserva. La fila real la registra el cliente LLM.
- * Si el proceso muere, la reserva queda, pero los topes solo cuentan las de los últimos 2 minutos.
+ * Si el proceso muere, la reserva queda, pero los topes solo cuentan las vigentes (`CV_RESERVE_TTL_MS`).
  *
  * Las filas `cv_reserve` y `cv_start` no suman USD: la reserva lleva `cost_usd` null y su estimado en
  * `tokens_out`, en millonésimas de USD; `cv_start` cuesta 0. `spend.ts` además las deja afuera de las
@@ -20,7 +20,8 @@ import { measureProfileAgentSpend } from "../profile-agent/measure";
 export const CV_RESERVE_TASK = "cv_reserve";
 /** Cada `start` queda anotado (costo 0) para sostener el tope de charlas nuevas por día. */
 export const CV_START_TASK = "cv_start";
-export const CV_RESERVE_TTL_MS = 2 * 60 * 1000;
+/** Más que el modelo primario y el de respaldo juntos (90 s cada uno), con margen. */
+export const CV_RESERVE_TTL_MS = 210 * 1000;
 export const CV_RESERVE_LOCK_NAMESPACE = 26;
 const MICRO_USD = 1_000_000;
 

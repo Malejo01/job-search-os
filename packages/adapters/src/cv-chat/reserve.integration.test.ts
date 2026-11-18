@@ -198,7 +198,7 @@ describe("reservas del chat de CV", () => {
     expect(rows.map((r) => r.task)).toEqual(["cv_interview"]);
   });
 
-  it("una reserva vencida (más de 2 minutos, proceso muerto) ya no cuenta", async () => {
+  it("una reserva vencida (proceso muerto) ya no cuenta", async () => {
     const now = new Date();
     await conn.db.insert(s.llmCalls).values({
       userId: USER,
@@ -208,7 +208,7 @@ describe("reservas del chat de CV", () => {
       tokensOut: 140_000,
       costUsd: null,
       label: LABEL,
-      createdAt: new Date(now.getTime() - 3 * 60_000),
+      createdAt: new Date(now.getTime() - 4 * 60_000),
     });
     const m = await measureCvChat(conn.db, { userId: USER, label: LABEL, ...windows(now) });
     expect(m.conversationCostUsd).toBe(0);
