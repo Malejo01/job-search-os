@@ -1,4 +1,4 @@
-import type { RawJob } from "@job-search-os/pipeline";
+import { parseFromAddress, type RawJob } from "@job-search-os/pipeline";
 import { bumeranParser } from "./bumeran";
 import { computrabajoParser } from "./computrabajo";
 import { getonboardParser } from "./getonboard";
@@ -26,10 +26,9 @@ export type EmailParser = {
   parse(email: InboundEmailContent): ParseResult;
 };
 
-/** Dirección del remitente, sin el nombre visible: "LinkedIn <x@linkedin.com>" → "x@linkedin.com". */
+/** Dirección del remitente, sin el nombre visible; vacía si no se puede leer. */
 function senderAddress(fromAddress: string): string {
-  const addr = fromAddress.toLowerCase();
-  return (/<([^>]+)>/.exec(addr)?.[1] ?? addr).trim();
+  return parseFromAddress(fromAddress) ?? "";
 }
 
 /**
@@ -55,8 +54,8 @@ export function linkedinSenderKind(
 
 /** Remitente → parser. `generic` es el último recurso y también falla cerrado. */
 export function chooseParserName(fromAddress: string): EmailParser["name"] {
-  const addr = fromAddress.toLowerCase();
-  return parserForSenderDomain((/@([^>\s]+)/.exec(addr)?.[1] ?? addr).trim());
+  const addr = senderAddress(fromAddress);
+  return parserForSenderDomain(addr.slice(addr.lastIndexOf("@") + 1));
 }
 
 /** Dominio del remitente (ya en minúsculas, sin la parte local) → parser. Pura. */

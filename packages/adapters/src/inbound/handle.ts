@@ -1,5 +1,6 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import {
+  authResultsVerdict,
   classifyInbound,
   GMAIL_FORWARDING_PARSER,
   htmlToText,
@@ -7,9 +8,12 @@ import {
   isPoolMailboxAddress,
   LINKEDIN_APPLICATION_PARSER,
   maskDigits,
+  parseFromAddress,
+  parseInboundDmarcMode,
   parsePoolMailbox,
   SECURITY_PARSER,
   type CriteriaRules,
+  type InboundDmarcMode,
 } from "@job-search-os/pipeline";
 import { and, desc, eq, gte, isNull, sql } from "drizzle-orm";
 import { applyLinkedinApplication } from "../applications/linkedin-application";
@@ -53,6 +57,8 @@ export type InboundDeps = {
   now?: () => Date;
   /** Casillas del pool (ADR-024). Sin esto se lee del entorno: apagado salvo POOL_SOURCE_COMPUTRABAJO_ALERTS=1. */
   pool?: PoolInboundConfig;
+  /** Sin esto se lee de INBOUND_DMARC_MODE; por defecto `log`. */
+  dmarcMode?: InboundDmarcMode;
 };
 
 export type InboundOutcome =
@@ -79,14 +85,16 @@ export const UNEXPECTED_SENDER_REASON =
 export const SECURITY_EMAIL_REASON =
   "email de seguridad (código, acceso o contraseña): por privacidad se guardó solo remitente, asunto con los números enmascarados y fecha, sin el cuerpo";
 
+/** Con INBOUND_DMARC_MODE=enforce: el cuerpo se guarda, pero el email no crea ofertas ni cambia estados. */
+export const AUTH_UNVERIFIED_REASON = "remitente sin autenticación verificada: cola manual";
+
 /** Valor de `inbound_emails.parser` para el ruido social de LinkedIn (JS-050). */
 export const LINKEDIN_SOCIAL_PARSER = "linkedin_social";
 
 /** Dominio del remitente, con o sin nombre visible; null si no se puede leer. */
 function senderDomain(from: string): string | null {
-  const addr = (/<([^>]+)>/.exec(from)?.[1] ?? from).trim().toLowerCase();
-  const at = addr.lastIndexOf("@");
-  return at >= 0 && at < addr.length - 1 ? addr.slice(at + 1) : null;
+  const addr = parseFromAddress(from);
+  return addr ? addr.slice(addr.lastIndexOf("@") + 1) : null;
 }
 
 /** Id de la fila ya guardada para ese email_id de Resend, o null. */
@@ -128,6 +136,9 @@ export async function handleInboundEmail(
     email_id: event.data.email_id,
     from_domain: senderDomain(event.data.from),
   });
+  const dmarcMode = deps.dmarcMode ?? parseInboundDmarcMode(process.env.INBOUND_DMARC_MODE);
+  const authVerdict = dmarcMode === "off" ? null : authResultsVerdict(content?.headers);
+  const authRequired = dmarcMode === "enforce" && authVerdict !== "aligned";
 
   // Idempotencia (JS-115): Svix reintenta; el mismo email_id no se guarda dos veces. Se busca por la
   // columna `email_id` (índice único) y no dentro de los crudos. Si dos entregas del mismo email corren
@@ -162,7 +173,12 @@ export async function handleInboundEmail(
       .filter(isPoolMailboxAddress)
       .map((r) => parsePoolMailbox(r, pool))
       .find((m) => m.ok);
-    if (!pool.enabled || !mailbox?.ok || !isPoolAlertSender(event.data.from, pool.senderDomains)) {
+    if (
+      !pool.enabled ||
+      !mailbox?.ok ||
+      !isPoolAlertSender(event.data.from, pool.senderDomains) ||
+      authRequired
+    ) {
       log.warn(
         { recipients_count: recipients.length, pool_enabled: pool.enabled },
         "inbound: casilla del pool rechazada",
@@ -307,14 +323,18 @@ export async function handleInboundEmail(
       (r) => (/<([^>]+)>/.exec(r)?.[1] ?? r).trim().toLowerCase() === ownAddress,
     );
   const isSecurity = category === "seguridad";
-  const isGmailConfirm = category === "confirmacion_reenvio_gmail" && addressedToUser;
+  const gmailConfirmClaimed = category === "confirmacion_reenvio_gmail" && addressedToUser;
+  // En `enforce`, un remitente esperado sin autenticación verificada se guarda pero no se procesa
+  const authHold = authRequired && (senderExpected || gmailConfirmClaimed);
+  const isGmailConfirm = gmailConfirmClaimed && !authHold;
 
   // JS-051: red de seguridad de privacidad. Si el reenvío de Gmail manda correo personal (banco,
   // códigos, resets de contraseña), no se guarda su contenido: completo solo lo de remitentes
   // esperados (fuentes de empleo conocidas o dominios marcados como fuente de empleo). Del resto,
   // solo remitente, destinatarios, asunto, fecha y el email_id (idempotencia); ni cuerpo ni
   // nombres de adjuntos.
-  const expected = !isSecurity && (isGmailConfirm || senderExpected);
+  const expected = !isSecurity && (gmailConfirmClaimed || senderExpected);
+  const authRecord = authVerdict ? { auth_verdict: authVerdict } : {};
   // Todo lo que no se guarda completo lleva el asunto con los números enmascarados
   const storedSubject = expected
     ? (event.data.subject ?? null)
@@ -327,7 +347,7 @@ export async function handleInboundEmail(
     contentType: "application/json",
     body: JSON.stringify(
       expected
-        ? { event: JSON.parse(rawBody), content }
+        ? { event: JSON.parse(rawBody), content, ...authRecord }
         : {
             event: {
               type: event.type,
@@ -342,6 +362,7 @@ export async function handleInboundEmail(
             },
             content: null,
             redacted: isSecurity ? SECURITY_EMAIL_REASON : UNEXPECTED_SENDER_REASON,
+            ...authRecord,
           },
     ),
   });
@@ -358,6 +379,8 @@ export async function handleInboundEmail(
     parserUsed = SECURITY_PARSER;
     error = SECURITY_EMAIL_REASON;
     dismissedAt = now;
+  } else if (authHold) {
+    error = AUTH_UNVERIFIED_REASON;
   } else if (isGmailConfirm) {
     // Queda completo y pendiente: la persona tiene que abrir el link de confirmación
     parserUsed = GMAIL_FORWARDING_PARSER;
@@ -469,6 +492,7 @@ export async function handleInboundEmail(
     {
       user_id: userId,
       category,
+      auth_verdict: authVerdict,
       parser: parserUsed,
       jobs_extracted: jobsExtracted,
       error,

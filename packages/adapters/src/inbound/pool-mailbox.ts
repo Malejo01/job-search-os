@@ -1,4 +1,4 @@
-import { ROLE_KEYS } from "@job-search-os/pipeline";
+import { parseFromAddress, ROLE_KEYS } from "@job-search-os/pipeline";
 
 /**
  * Casillas `pool-<carrera>@` del inbound (ADR-024). El interruptor y el dominio de ingesta se leen
@@ -44,9 +44,9 @@ export function readPoolInboundConfig(
 
 /** ¿El remitente es uno de los dominios o un subdominio? Las variantes por país se listan aparte. */
 export function isPoolAlertSender(from: string, domains: readonly string[]): boolean {
-  const addr = (/<([^>]+)>/.exec(from)?.[1] ?? from).trim().toLowerCase();
-  if (addr.split("@").length !== 2) return false;
-  const domain = addr.split("@")[1]!;
+  const addr = parseFromAddress(from);
+  if (!addr) return false;
+  const domain = addr.slice(addr.lastIndexOf("@") + 1);
   return domains.some((d) => {
     const base = d.toLowerCase();
     return domain === base || domain.endsWith(`.${base}`);
