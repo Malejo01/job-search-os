@@ -23,7 +23,7 @@ export const locationOk = pgEnum("location_ok", ["ok", "riesgo", "no"]);
 export const suggestedAction = pgEnum("suggested_action", ["aplicar_personalizado", "aplicar", "guardar", "descartar"]);
 export const englishLevel = pgEnum("english_level", ["no_menciona", "no", "basico", "intermedio", "avanzado", "nativo"]);
 export const companyType = pgEnum("company_type", ["producto", "startup", "consultora", "staffing", "agencia", "desconocido"]);
-export const sourceKind = pgEnum("source_kind", ["getonboard_api", "email_linkedin", "email_getonboard", "email_generic", "manual", "hn_whoishiring", "remotive", "other", "remoteok", "jobicy", "himalayas", "wwr", "greenhouse", "lever", "ashby", "teamtailor", "computrabajo_alerts"]);
+export const sourceKind = pgEnum("source_kind", ["getonboard_api", "email_linkedin", "email_getonboard", "email_generic", "manual", "hn_whoishiring", "remotive", "other", "remoteok", "jobicy", "himalayas", "wwr", "greenhouse", "lever", "ashby", "teamtailor", "computrabajo_alerts", "workable"]);
 export const applicationOutcome = pgEnum("application_outcome", [
   "sin_respuesta", "rechazo_automatico_ubicacion", "rechazo_automatico_otro", "rechazo_humano", "entrevista", "oferta", "cerrada_antes", "retirada",
 ]);
@@ -90,6 +90,18 @@ export const mcpTokens = pgTable("mcp_tokens", {
   index("mcp_tokens_user").on(t.userId),
   check("mcp_tokens_label_length", sql`char_length(${t.label}) between 1 and 60`),
   check("mcp_tokens_hash_shape", sql`${t.tokenHash} ~ '^[0-9a-f]{64}$'`),
+]);
+
+// Precio especial por persona (ADR-040): `becado` (plan bonificado) o `tester_50` (link de pago con 50 %).
+// Tabla propia y no una columna de `profiles`: la persona puede actualizar su propia fila de `profiles` y no
+// puede poder darse un descuento. Lee solo la suya; no tiene INSERT, UPDATE ni DELETE para la app: la marca
+// la pone y la saca el admin por `admin_plan_override_set` (rls/0022). Cae con la cuenta (cascade).
+export const planOverrides = pgTable("plan_overrides", {
+  userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  override: text("override").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  check("plan_overrides_override", sql`${t.override} in ('becado', 'tester_50')`),
 ]);
 
 export const profiles = pgTable("profiles", {
@@ -354,7 +366,7 @@ export const atsBoards = pgTable("ats_boards", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   uniqueIndex("ats_boards_provider_token").on(t.provider, t.token),
-  check("ats_boards_provider_check", sql`${t.provider} in ('greenhouse', 'lever', 'ashby', 'teamtailor')`),
+  check("ats_boards_provider_check", sql`${t.provider} in ('greenhouse', 'lever', 'ashby', 'teamtailor', 'workable')`),
   // Defensa en profundidad (SSRF): el token va a una URL; la región solo existe en Lever
   check("ats_boards_token_check", sql`${t.token} ~* '^[a-z0-9][a-z0-9._-]{0,99}$'`),
   check("ats_boards_region_check", sql`${t.region} is null or (${t.provider} = 'lever' and ${t.region} = 'eu') or (${t.provider} = 'teamtailor' and ${t.region} = 'na')`),

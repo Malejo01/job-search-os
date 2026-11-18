@@ -11,6 +11,7 @@ import {
 import { eq, like } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { spendBreakdown, spendSince } from "../llm";
+import { releaseWhileAnotherMeasures } from "./lock-gate.testing";
 import {
   CV_RESERVE_TASK,
   CV_START_TASK,
@@ -333,5 +334,69 @@ describe("reservas del chat de CV", () => {
     const breakdown = await spendBreakdown(conn.db, since);
     const mine = breakdown.filter((b) => b.task.startsWith("cv_"));
     expect(mine.map((b) => b.task)).toEqual(["cv_interview"]);
+  });
+});
+
+describe("soltar la reserva del chat bajo el lock de la persona (R13-6)", () => {
+  it("el borrado espera a quien está midiendo: la reserva se ve en las dos mediciones", async () => {
+    const r = await reserveCvChatStep(conn.db, {
+      userId: USER,
+      label: LABEL,
+      step: "interview",
+      estimateUsd: 0.05,
+      ...windows(new Date()),
+      decide: () => null,
+    });
+    if (!r.ok) throw new Error("la reserva tenía que pasar");
+    // el cliente LLM ya anotó el gasto real; falta soltar la reserva
+    await conn.db.insert(s.llmCalls).values({
+      userId: USER,
+      task: "cv_interview",
+      model: "fake",
+      ok: true,
+      costUsd: 0.02,
+      label: LABEL,
+    });
+    const out = await releaseWhileAnotherMeasures(conn.db, {
+      userId: USER,
+      release: () => releaseCvChatReservation(conn.db, r.reservationId),
+      measure: (tx) => measureCvChat(tx, { userId: USER, label: LABEL, ...windows(new Date()) }),
+    });
+    // sin lock, `release` termina enseguida y la segunda medición pierde la reserva (0,02 en vez de 0,07)
+    expect(out.waited).toBe(true);
+    expect(out.before.conversationCostUsd).toBeCloseTo(0.07);
+    expect(out.after.conversationCostUsd).toBeCloseTo(0.07);
+    expect(out.released).toBe(true);
+    // ya soltada: queda solo el gasto real
+    const end = await measureCvChat(conn.db, {
+      userId: USER,
+      label: LABEL,
+      ...windows(new Date()),
+    });
+    expect(end.conversationCostUsd).toBeCloseTo(0.02);
+  });
+
+  it("soltar dos veces es idempotente y no toca otras reservas", async () => {
+    const reserve = (label: string) =>
+      reserveCvChatStep(conn.db, {
+        userId: USER,
+        label,
+        step: "interview",
+        estimateUsd: 0.05,
+        ...windows(new Date()),
+        decide: () => null,
+      });
+    const a = await reserve("cv:reserve-test-a");
+    const b = await reserve("cv:reserve-test-b");
+    if (!a.ok || !b.ok) throw new Error("las reservas tenían que pasar");
+    expect(await releaseCvChatReservation(conn.db, a.reservationId)).toBe(true);
+    expect(await releaseCvChatReservation(conn.db, a.reservationId)).toBe(true);
+    const m = await measureCvChat(conn.db, {
+      userId: USER,
+      label: "cv:reserve-test-b",
+      ...windows(new Date()),
+    });
+    expect(m.conversationCostUsd).toBeCloseTo(0.05); // la de `b` sigue
+    expect(await releaseCvChatReservation(conn.db, b.reservationId)).toBe(true);
   });
 });

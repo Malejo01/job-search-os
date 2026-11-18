@@ -33,6 +33,7 @@ export const SOURCE_ATTRIBUTION: Record<SourceKind, SourceAttribution | null> = 
   lever: { name: "Sitio de empleos", text: ATS_TEXT },
   ashby: { name: "Sitio de empleos", text: ATS_TEXT },
   teamtailor: { name: "Sitio de empleos", text: ATS_TEXT },
+  workable: { name: "Sitio de empleos", text: ATS_TEXT },
 };
 
 /** We Work Remotely pide una suscripción paga para postular; el aviso suele estar gratis en el ATS. */
@@ -91,7 +92,13 @@ export function findAtsLinks(text: string | null): AtsLink[] {
   return out;
 }
 
-const ATS_KINDS: ReadonlySet<string> = new Set(["greenhouse", "lever", "ashby", "teamtailor"]);
+const ATS_KINDS: ReadonlySet<string> = new Set([
+  "greenhouse",
+  "lever",
+  "ashby",
+  "teamtailor",
+  "workable",
+]);
 const COMPANY_MAX = 80;
 
 /**

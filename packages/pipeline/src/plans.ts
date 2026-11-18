@@ -165,7 +165,12 @@ const PAYMENT_HOSTS = [
  */
 export function paymentLink(env: Record<string, string | undefined>, key: PlanKey): string | null {
   const name = planDef(key).paymentLinkEnv;
-  const raw = name ? env[name]?.trim() : undefined;
+  return safePaymentUrl(name ? env[name] : undefined);
+}
+
+/** Valida un link de pago crudo (misma regla que `paymentLink`): https, sin credenciales ni puerto, de Mercado Pago. */
+export function safePaymentUrl(value: string | undefined): string | null {
+  const raw = value?.trim();
   if (!raw) return null;
   try {
     const url = new URL(raw);

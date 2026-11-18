@@ -293,6 +293,81 @@ describe("classifyInbound · reenvío de Gmail", () => {
   });
 });
 
+describe("classifyInbound · asunto nuevo de la confirmación de reenvío (R13-1)", () => {
+  const CUENTA = "persona.b@example.com";
+  const CUERPO = `${CUENTA} ha solicitado reenviar automáticamente su correo. Código de confirmación: 884821`;
+
+  it.each([
+    // Los dos primeros son los que llegaron de verdad, con la cuenta cambiada por una inventada
+    `(Gmail Confirmación de reenvío - Recibir correos de ${CUENTA}`,
+    `(#123456789019) Gmail Confirmación de reenvío - Recibir correos de ${CUENTA}`,
+    `Gmail Confirmación de reenvío - Recibir correos de ${CUENTA}`,
+    `Gmail Confirmacion de reenvio - Recibir correos de ${CUENTA}`,
+    "Gmail Confirmación de reenvío",
+    `Gmail Forwarding Confirmation - Receive Mail from ${CUENTA}`,
+    `(Gmail Forwarding Confirmation - Receive Mail from ${CUENTA}`,
+    `(#123456789019) Gmail Forwarding Confirmation - Receive Mail from ${CUENTA}`,
+    // Los formatos de antes siguen valiendo
+    "(#123456789019) Confirmación de reenvío de Gmail",
+    "Confirmación de reenvío de Gmail",
+    "Gmail Forwarding Confirmation",
+  ])("reconoce %s", (subject) => {
+    expect(classifyInbound(mail({ from: GMAIL, subject, text: CUERPO })).category).toBe(
+      "confirmacion_reenvio_gmail",
+    );
+  });
+
+  it.each([
+    `Re: (Gmail Confirmación de reenvío - Recibir correos de ${CUENTA}`,
+    `Re: Gmail Confirmación de reenvío - Recibir correos de ${CUENTA}`,
+    `Fwd: (#123456789019) Gmail Confirmación de reenvío - Recibir correos de ${CUENTA}`,
+    `RV: Gmail Confirmación de reenvío - Recibir correos de ${CUENTA}`,
+    `(Re: Gmail Confirmación de reenvío - Recibir correos de ${CUENTA}`,
+    `((Gmail Confirmación de reenvío - Recibir correos de ${CUENTA}`,
+    `(#abc) Gmail Confirmación de reenvío - Recibir correos de ${CUENTA}`,
+    `Consulta sobre Gmail Confirmación de reenvío - Recibir correos de ${CUENTA}`,
+    "Gmail Confirmación de reenvío pendiente",
+  ])("no reconoce %s", (subject) => {
+    expect(classifyInbound(mail({ from: GMAIL, subject, text: CUERPO })).category).not.toBe(
+      "confirmacion_reenvio_gmail",
+    );
+  });
+
+  it("otro remitente con el asunto nuevo no es la confirmación", () => {
+    const subject = `(Gmail Confirmación de reenvío - Recibir correos de ${CUENTA}`;
+    for (const from of [
+      `Gmail <${GMAIL_FORWARDING_SENDER}.evil.example>`,
+      `Gmail <${GMAIL_FORWARDING_SENDER.replace("forwarding-", "")}>`,
+      "Gmail <aviso@example.com>",
+    ]) {
+      expect(classifyInbound(mail({ from, subject, text: CUERPO })).category).not.toBe(
+        "confirmacion_reenvio_gmail",
+      );
+    }
+  });
+
+  it("el asunto nuevo no alcanza: un cuerpo con el código de un tercero sigue siendo seguridad", () => {
+    const out = classifyInbound(
+      mail({
+        from: GMAIL,
+        subject: `(Gmail Confirmación de reenvío - Recibir correos de ${CUENTA}`,
+        text: "Tu código de verificación de Banco Ejemplo es 884821",
+      }),
+    );
+    expect(out.category).toBe("seguridad");
+  });
+
+  it("lee la cuenta que pidió el reenvío en el asunto nuevo, en plural", () => {
+    expect(
+      gmailForwardRequester(
+        null,
+        null,
+        "(Gmail Confirmación de reenvío - Recibir correos de Persona.C@Example.com",
+      ),
+    ).toBe("persona.c@example.com");
+  });
+});
+
 describe("classifyInbound · postulaciones de LinkedIn", () => {
   it("enviada, en español", () => {
     const out = classifyInbound(

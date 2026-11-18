@@ -1747,3 +1747,99 @@ Base: `ronda/integracion-r11` (PR #517). Sale de la prueba de Mauro del 17/11 ([
 
 ### R12 · Cierre de la tanda
 `deps:` todo en PR · `estado:` en PR (17/11) · rama `ronda/r12-cierre`
+
+## Bloque 27 · Tanda R13 «Antes de la beta» (18/11, noche)
+
+Base: `origin/main` en `0ef91b9` (con #534). Informe de la tanda: [`docs/beta/informe-r13.md`](beta/informe-r13.md). Ningún PR mergeado.
+
+### R13-1 · Confirmación de reenvío de Gmail con el asunto nuevo (carril rojo)
+`deps:` — · `estado:` en rama (18/11) · `ronda/r13-1-confirmacion-gmail`
+
+### R13-2 · Bumeran y ZonaJobs en el filtro de Gmail
+`deps:` R13-3 · `estado:` en rama (18/11) · `ronda/r13-2-filtro-bumeran`
+
+### R13-3 · ZonaJobs a la cola manual con el cuerpo guardado (carril rojo)
+`deps:` — · `estado:` en rama (18/11) · `ronda/r13-3-ruteo-cola-manual`
+
+### R13-4 · e2e 135 sin `fixme`
+`deps:` — · `estado:` en rama, **sin verificar en el CI** (18/11) · `ronda/r13-4-e2e-135`
+- La causa del cuelgue no está demostrada. El spec va en etapas con tiempo propio para ubicarla en la primera corrida.
+
+### R13-5 · Detalles abiertos de la R12
+`deps:` — · `estado:` en rama (18/11) · `ronda/r13-5-detalles-r12`
+
+### R13-6 · Soltar las reservas bajo el lock de la persona
+`deps:` — · `estado:` en rama (18/11) · `ronda/r13-6-reservas-bajo-lock`
+
+### R13-7 · e2e en 3 jobs paralelos (carril rojo)
+`deps:` — · `estado:` propuesta sin aplicar (18/11)
+- Editar `.github/**` necesita aprobación: se aplica a mano.
+
+### R13-8 · Jooble como fuente del pool, apagada
+`deps:` — · `estado:` en rama (18/11) · `ronda/r13-8-jooble` · [ADR-039](adr/039-pool-jooble.md), propuesta
+
+### R13-9 · El rol `jobsearch_app` en los tests
+`deps:` — · `estado:` en rama (18/11) · `ronda/r13-9-doc-rol-app`
+
+### R13 · Cierre de la tanda
+`deps:` todo en rama · `estado:` en rama (18/11) · `ronda/r13-cierre`
+
+## Bloque 28 · Tanda R14 «Carreras y CV» (18/11, noche)
+
+Base: `origin/main` en `0ef91b9`. Informe de la tanda: [`docs/beta/informe-r14.md`](beta/informe-r14.md). Ningún PR mergeado.
+
+### R14-1 · Tres puestos de marketing y contenido (carril rojo)
+`deps:` — · `estado:` en rama (18/11) · `ronda/r14-1-puestos-marketing` · SQL de skills en Neon
+
+### R14-2 · «¿Tu CV es legible por los filtros (ATS)?»
+`deps:` — · `estado:` en rama, e2e sin ejecutar (18/11) · `ronda/r14-2-cv-legible-ats`
+
+### R14-3 · Una persona por carrera de la beta
+`deps:` — · `estado:` en rama, **e2e sin ejecutar** (18/11) · `ronda/r14-3-personas-carreras`
+- Cubre las 8 carreras. Los tres puestos de R14-1 quedan para cuando las dos ramas estén en `main`.
+
+### R14-4 · Filtro por persona en el feedback del admin
+`deps:` — · `estado:` en rama (18/11) · `ronda/r14-4-feedback-admin`
+
+### R14 · Cierre de la tanda
+`deps:` todo en rama · `estado:` en rama (18/11) · `ronda/r14-cierre`
+
+## Bloque 29 · Tanda R15 «Planes, cobro y legales» (18/11, noche)
+
+Base: `origin/main` en `0ef91b9`. Informe de la tanda: [`docs/beta/informe-r15.md`](beta/informe-r15.md). Ningún PR mergeado.
+
+### R15-1 · Página de planes detrás de `PRICING_V2`
+`deps:` — · `estado:` en rama, e2e sin ejecutar (18/11) · `ronda/r15-1-planes-v2`
+
+### R15-2 · Precio especial para becados y testers (carril rojo)
+`deps:` — · `estado:` en rama, **falta generar la migración 0067** (18/11) · `ronda/r15-2-plan-override` · [ADR-040](adr/040-precio-especial.md)
+
+### R15-3 · Dominio viejo en servicios externos
+`deps:` — · `estado:` en rama (18/11) · `ronda/r15-3-dominio-viejo` · paneles externos: paso manual
+
+### R15-4 · IA y proveedores en la política de privacidad (carril rojo)
+`deps:` — · `estado:` en rama, con revisión legal pendiente (18/11) · `ronda/r15-4-privacidad-ia`
+
+### R15 · Cierre de la tanda
+`deps:` todo en rama · `estado:` en rama (18/11) · `ronda/r15-cierre`
+
+## Bloque 30 · Tanda R16 «Más ofertas para todas las carreras» (18/11, noche)
+
+Informe de la tanda: [`docs/beta/informe-r16.md`](beta/informe-r16.md). Ningún PR mergeado. Ninguna fuente nueva queda prendida.
+
+### R16-1 · Careerjet, adaptador apagado
+`deps:` R13-8 · `estado:` en rama, con bloqueo para prenderla (18/11) · `ronda/r16-1-careerjet`
+- Hay que confirmar con Careerjet el uso desde un servidor, sin visitante.
+
+### R16-2 · Workable, adaptador de ATS apagado (carril rojo)
+`deps:` R15-2 · `estado:` en rama, **falta generar la migración 0068** (18/11) · `ronda/r16-2-workable`
+
+### R16-3 · Teamtailor por `jobs.json`
+`deps:` — · `estado:` **parcial** (18/11) · `ronda/r16-3-teamtailor-json`
+- El lector del JSON Feed está, pero los avisos siguen saliendo del RSS hasta verificar la modalidad con un board real.
+
+### R16-4 · Cobertura del pool por carrera en el admin
+`deps:` — · `estado:` en rama, e2e sin ejecutar (18/11) · `ronda/r16-4-cobertura-pool`
+
+### R16 · Cierre de la tanda
+`deps:` todo en rama · `estado:` en rama (18/11) · `ronda/r16-cierre`

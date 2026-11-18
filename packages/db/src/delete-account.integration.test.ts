@@ -114,6 +114,7 @@ async function seed(id: string, tag: string): Promise<void> {
   // Hash ficticio de 64 hex, distinto por persona (no es el hash de ningún token real)
   await owner`insert into mcp_tokens (user_id, token_hash, label, expires_at)
                values (${id}, ${(tag.charCodeAt(0).toString(16) + "0".repeat(64)).slice(0, 64)}, 'Chat de prueba', now() + interval '30 days')`;
+  await owner`insert into plan_overrides (user_id, override) values (${id}, 'tester_50')`;
 }
 
 /** Filas del usuario por entrada de USER_TABLES (como dueño, sin RLS) */

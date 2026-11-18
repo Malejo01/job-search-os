@@ -63,8 +63,8 @@ test.describe("Flujo 91: planes de la beta", () => {
 
   test("el admin activa 30 días como becado, lo ve en la lista y lo quita", async ({ page }) => {
     test.skip(!(await abrirPanel(page)), "La cuenta del e2e no es admin en este entorno");
-    await page.getByLabel("Email de la persona").fill(E2E_EMAIL);
-    await page.getByLabel(/Becado/).check();
+    await page.getByLabel("Email de la persona", { exact: true }).fill(E2E_EMAIL);
+    await page.getByRole("radio", { name: /Becado/ }).check();
     await page.getByRole("button", { name: /^Activar \d+ días$/ }).click();
     await expect(page.getByTestId("planes-ok")).toContainText("becado");
 
@@ -93,7 +93,7 @@ test.describe("Flujo 91: planes de la beta", () => {
     await setPlan("lista", "pago", inicio);
     test.skip(!(await abrirPanel(page)), "La cuenta del e2e no es admin en este entorno");
 
-    await page.getByLabel("Email de la persona").fill(E2E_EMAIL);
+    await page.getByLabel("Email de la persona", { exact: true }).fill(E2E_EMAIL);
     await page.getByRole("button", { name: /^Activar \d+ días$/ }).click();
     await expect(page.getByTestId("planes-ok")).toContainText("pago");
     const renovado = await readPlan();
@@ -102,7 +102,7 @@ test.describe("Flujo 91: planes de la beta", () => {
       inicio.getTime() + 30 * DAY - 1000,
     );
 
-    await page.getByLabel("Email de la persona").fill("nadie-existe@ejemplo.test");
+    await page.getByLabel("Email de la persona", { exact: true }).fill("nadie-existe@ejemplo.test");
     await page.getByRole("button", { name: /^Activar \d+ días$/ }).click();
     await expect(page.getByTestId("planes-error")).toContainText("No encontramos a esa persona");
   });

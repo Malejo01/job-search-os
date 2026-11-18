@@ -94,8 +94,8 @@ export function Assistant({
             Yahoo), reenviá a mano las alertas a tu dirección de la app.
           </Alert>
           <p className="text-sm text-fg-muted">
-            Si además recibís alertas de LinkedIn, Get on Board, Indeed u otro portal en tu Gmail,
-            podés reenviarlas a tu dirección personal y se cargan solas. No la compartas.
+            Si además recibís alertas de LinkedIn, Get on Board, Indeed, Bumeran u otro portal en tu
+            Gmail, podés reenviarlas a tu dirección personal y se cargan solas. No la compartas.
           </p>
           {address ? (
             <div className="flex items-center gap-2 rounded-control bg-surface-muted px-4 py-2">
@@ -292,8 +292,9 @@ function StepBody({
     case "esperando_alerta":
       return (
         <p>
-          Cuando LinkedIn, Get on Board o Indeed te manden una alerta, aparece acá. Para probar ya:
-          reenviá a mano una alerta que tengas a tu dirección. Esta pantalla se actualiza sola.
+          Cuando LinkedIn, Get on Board, Indeed o Bumeran te manden una alerta, aparece acá. Para
+          probar ya: reenviá a mano una alerta que tengas a tu dirección. Esta pantalla se actualiza
+          sola.
         </p>
       );
     case "listo":

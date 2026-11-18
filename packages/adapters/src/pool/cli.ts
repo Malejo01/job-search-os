@@ -13,6 +13,7 @@ import { fetchJobicyJobs } from "../sources/jobicy";
 import { fetchLeverBoard } from "../sources/lever";
 import { fetchRemoteOkJobs } from "../sources/remoteok";
 import { fetchTeamtailorBoard, parseTeamtailorFeed } from "../sources/teamtailor";
+import { fetchWorkableBoard } from "../sources/workable";
 import { describeFailure } from "../sources/error-code";
 import { sourceUserAgent } from "../sources/user-agent";
 import { fetchWwrJobs, parseWwrFeed, WWR_POOL_CATEGORIES } from "../sources/wwr";
@@ -29,7 +30,7 @@ import {
 /**
  * Prueba en seco de una fuente del pool (JS-137):
  *   pnpm pool:fetch <getonboard|remoteok|jobicy|himalayas|wwr> --dry-run
- *   pnpm pool:fetch <greenhouse|lever|ashby|teamtailor> <token> [--region eu|na] [--company "Nombre"] --dry-run
+ *   pnpm pool:fetch <greenhouse|lever|ashby|teamtailor|workable> <token> [--region eu|na] [--company "Nombre"] --dry-run
  * Descarga UNA vez con el User-Agent identificable y ventana de 48 h (los ATS no tienen ventana:
  * traen todo lo abierto, hasta ATS_MAX_JOBS_PER_BOARD por board), y reporta conteos y qué campos
  * trae la respuesta real contra los que lee el mapper. Los ATS consultan ese board SIN leer `ats_boards`. No escribe en ninguna base
@@ -40,7 +41,7 @@ type AtsArgs = Extract<PoolCliArgs, { ok: true; token: string }>;
 
 const SINCE_HOURS = 48;
 /** Variables que mira `sourceUserAgent()` para armar el host del User-Agent. */
-const USER_AGENT_VARS = ["APP_URL", "NEXT_PUBLIC_APP_URL", "AUTH_URL"];
+const USER_AGENT_VARS = ["SITE_URL", "APP_URL", "NEXT_PUBLIC_APP_URL", "AUTH_URL"];
 /** Páginas de Himalayas en una prueba manual: su documentación pide una consulta por día. */
 const HIMALAYAS_DRY_RUN_PAGES = 3;
 
@@ -155,8 +156,15 @@ const MAPPER_FIELDS: Record<SourceName, readonly string[]> = {
     "publishedAt",
     "compensation",
   ],
-  // Nombres del item ya parseado del feed RSS (`parseTeamtailorFeed`)
+  // Nombres del item ya parseado del feed RSS (`parseTeamtailorFeed`) y, al final, los estándar del JSON Feed
+  // (R16-3: `mapTeamtailorJsonItem`); el resto de lo que traiga un board real sale en «campos extra»
   teamtailor: [
+    "id",
+    "url",
+    "content_html",
+    "content_text",
+    "date_published",
+    "tags",
     "guid",
     "title",
     "link",
@@ -167,6 +175,24 @@ const MAPPER_FIELDS: Record<SourceName, readonly string[]> = {
     "department",
     "role",
     "division",
+  ],
+  // Campos del aviso del widget de Workable (forma a verificar con este --dry-run)
+  workable: [
+    "shortcode",
+    "title",
+    "url",
+    "shortlink",
+    "application_url",
+    "telecommuting",
+    "employment_type",
+    "department",
+    "published_on",
+    "created_at",
+    "city",
+    "state",
+    "country",
+    "locations",
+    "description",
   ],
 };
 
@@ -195,8 +221,15 @@ function capturingFetch(source: SourceName, sink: unknown[]): typeof fetch {
     const res = await fetch(input, init);
     try {
       if (source === "wwr") sink.push(...parseWwrFeed(await res.clone().text()).items);
-      else if (source === "teamtailor") sink.push(...parseTeamtailorFeed(await res.clone().text()));
-      else sink.push(...rawItemsOf(source, await res.clone().json()));
+      else if (source === "teamtailor") {
+        // R16-3: el JSON Feed (`jobs.json`) trae `items`; si no es JSON, es el RSS de respaldo
+        const body = await res.clone().text();
+        const json = body.trimStart().startsWith("{")
+          ? (JSON.parse(body) as { items?: unknown })
+          : null;
+        if (json) sink.push(...(Array.isArray(json.items) ? json.items : []));
+        else sink.push(...parseTeamtailorFeed(body));
+      } else sink.push(...rawItemsOf(source, await res.clone().json()));
     } catch {
       // Cuerpo que no es JSON: el adaptador informa el error a su manera
     }
@@ -209,6 +242,7 @@ const ATS_FETCHERS = {
   lever: fetchLeverBoard,
   ashby: fetchAshbyBoard,
   teamtailor: fetchTeamtailorBoard,
+  workable: fetchWorkableBoard,
 } satisfies Record<AtsProvider, unknown>;
 
 /** Los N slugs más frecuentes de la taxonomía de la fuente, normalizados, con su conteo. */

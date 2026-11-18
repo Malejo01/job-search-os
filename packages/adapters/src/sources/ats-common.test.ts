@@ -81,6 +81,19 @@ describe("atsBoardUrl", () => {
     expect(atsBoardUrl("teamtailor", "a".repeat(63))).toContain(`https://${"a".repeat(63)}.`);
   });
 
+  it("Workable: va directo a la URL final del widget, sin región y con el token como etiqueta DNS", () => {
+    expect(atsBoardUrl("workable", "empresa-ficticia")).toBe(
+      "https://apply.workable.com/api/v1/widget/accounts/empresa-ficticia?details=true",
+    );
+    for (const r of ["na", "eu", "x"]) {
+      expect(() => atsBoardUrl("workable", "x", r), r).toThrow("región inválida");
+    }
+    for (const t of ["a.b", "a_b", "-x", "x-", "a/b", "a:b", "a@b", "a..b", "", "a".repeat(64)]) {
+      expect(() => atsBoardUrl("workable", t), t).toThrow("token inválido");
+    }
+    expect(atsBoardUrl("workable", "a".repeat(63))).toContain("/accounts/" + "a".repeat(63));
+  });
+
   it("Teamtailor: regiones inválidas; na solo en Teamtailor y eu solo en Lever", () => {
     for (const r of ["eu", "us", "NA", "na.evil.example", "x/y"]) {
       expect(() => atsBoardUrl("teamtailor", "x", r), r).toThrow("región inválida");

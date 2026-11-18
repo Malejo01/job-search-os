@@ -49,6 +49,9 @@ export const DISCIPLINE_NAMES: Readonly<Record<string, string>> = {
   solutions_engineer: "Ingeniería de soluciones",
   ventas_b2b: "Ventas B2B",
   atencion_cliente: "Atención al cliente",
+  marketing_ia: "Marketing con IA",
+  edicion_video: "Edición de video",
+  creacion_contenido: "Creación de contenido",
 };
 
 /** Nombre de una disciplina o carrera; un valor desconocido se muestra sin guiones bajos. */

@@ -3,8 +3,14 @@ import {
   BETA_PLAN,
   isLegacyInboundAddress,
   limitsText,
-  paymentLink,
+  paymentOffer,
+  planDef,
+  planExclusions,
+  pricePerDayLabel,
+  pricePerDayNote,
+  priceLabel,
   pricingEnabled,
+  pricingV2Enabled,
 } from "@job-search-os/pipeline";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
@@ -14,7 +20,7 @@ import { getInboundAddress } from "@/lib/inbound-address";
 import { canCreateInvitations } from "@/lib/invitations";
 import { canUseMcpTokens } from "@/lib/mcp-tokens";
 import { getTargetRoles, getTargetRolesLimit, getTargetSpecialties } from "@/lib/onboarding";
-import { getUserPlan, type UserPlan } from "@/lib/user-plan";
+import { getPlanOverride, getUserPlan, type UserPlan } from "@/lib/user-plan";
 import { requireUserId } from "@/lib/session";
 import { buttonClasses, cardClasses, textLinkClasses } from "@/components/ui";
 import { DeleteAccountForm } from "./delete-account-form";
@@ -60,6 +66,7 @@ export default async function SettingsPage({
     rolesLimit,
     canInvite,
     userPlan,
+    planOverride,
     canConnectChat,
     [user],
   ] = await Promise.all([
@@ -70,6 +77,8 @@ export default async function SettingsPage({
     canCreateInvitations(userId),
     // «Tu plan» (C-11b) solo con los precios encendidos
     pricing ? getUserPlan(userId) : null,
+    // ADR-040: marca de precio especial. Si no se puede leer, se pide escribir al equipo: nunca el precio completo
+    pricing ? getPlanOverride(userId).catch(() => "no_se_pudo_leer" as const) : null,
     // MCP-1: conexiones con chats, solo testers y con MCP_USER_TOKENS=testers
     canUseMcpTokens(userId),
     // R7-6: el email se pide con el resto, no después
@@ -130,7 +139,7 @@ export default async function SettingsPage({
         <ThemeSelect />
       </section>
 
-      {userPlan ? <TuPlan userPlan={userPlan} /> : null}
+      {userPlan ? <TuPlan userPlan={userPlan} override={planOverride} /> : null}
 
       {canInvite ? (
         <section className={SECTION}>
@@ -232,11 +241,20 @@ export default async function SettingsPage({
  * lo dice y aclara que los datos siguen. El link de pago sale de `MP_LINK_LISTA`; sin link, se pide por
  * email. El cobro y la activación son manuales: la app no sabe si la persona pagó.
  */
-function TuPlan({ userPlan }: { userPlan: UserPlan }) {
+function TuPlan({ userPlan, override }: { userPlan: UserPlan; override: unknown }) {
   const { access } = userPlan;
-  const link = paymentLink(process.env, BETA_PLAN);
+  // ADR-040: la marca de precio especial decide qué se ofrece; una marca sin link propio nunca cae al precio completo
+  const offer = paymentOffer(process.env, BETA_PLAN, override);
+  const link = offer.kind === "link" ? offer.url : null;
   const contact = contactLink("Renovar mi plan de la beta");
   const renovar = access.status === "por_vencer" || access.status === "vencido";
+  // R15-1 (PRICING_V2): lo que no incluye el plan actual, en gris, y el precio por día del plan completo
+  const v2 = pricingV2Enabled(process.env);
+  const enabled = { cv: process.env.CV_IMPORT_ENABLED === "1", assistant: false };
+  const beta = planDef(BETA_PLAN);
+  const missing =
+    v2 && userPlan.plan.key !== beta.key ? planExclusions(userPlan.plan, beta, enabled) : [];
+  const perDay = pricePerDayLabel(beta);
   return (
     <section
       id="tu-plan"
@@ -275,13 +293,43 @@ function TuPlan({ userPlan }: { userPlan: UserPlan }) {
           <li key={line}>{line}</li>
         ))}
       </ul>
-      {renovar || userPlan.plan.key === "gratis" ? (
+      {missing.length > 0 ? (
+        <div>
+          <h3 className="text-sm font-bold text-fg-subtle">No incluye</h3>
+          <ul
+            data-testid="tu-plan-no-incluye"
+            className="mt-1 flex list-disc flex-col gap-1 pl-5 text-sm text-fg-subtle"
+          >
+            {missing.map((m) => (
+              <li key={m}>{m}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {v2 &&
+      perDay &&
+      offer.kind !== "bonificado" &&
+      (renovar || userPlan.plan.key === "gratis") ? (
+        <p data-testid="tu-plan-precio-dia" className="text-sm text-fg">
+          Plan {beta.name}: {priceLabel(beta)}, {perDay}.{" "}
+          <span className="text-fg-subtle">{pricePerDayNote(beta)}.</span>
+        </p>
+      ) : null}
+      {offer.kind === "bonificado" ? (
+        <p data-testid="plan-bonificado" className="text-sm font-medium text-fg">
+          {offer.message}
+        </p>
+      ) : renovar || userPlan.plan.key === "gratis" ? (
         <div className="flex flex-col gap-2 text-sm text-fg-muted">
-          <p>
-            {renovar ? "Para renovar" : "Para pasar al plan completo"}: pagá el mes con Mercado Pago
-            y, cuando se acredite, lo activamos a mano. También podés pagar por transferencia:
-            escribinos y te pasamos los datos.
-          </p>
+          {offer.kind === "escribir" ? (
+            <p data-testid="plan-precio-especial">{offer.message}</p>
+          ) : (
+            <p>
+              {renovar ? "Para renovar" : "Para pasar al plan completo"}: pagá el mes con Mercado
+              Pago y, cuando se acredite, lo activamos a mano. También podés pagar por
+              transferencia: escribinos y te pasamos los datos.
+            </p>
+          )}
           <div className="flex flex-wrap items-center gap-3">
             {link ? (
               <a href={link} target="_blank" rel="noopener noreferrer" className={buttonClasses()}>

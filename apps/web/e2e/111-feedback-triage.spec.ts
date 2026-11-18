@@ -65,6 +65,21 @@ test.describe("Flujo 111: triage del feedback (C8-17)", () => {
     ).toBeVisible();
   });
 
+  test("filtra por persona: el link del mensaje deja solo lo de esa persona", async ({ page }) => {
+    await login(page);
+    await page.goto("/settings/feedback");
+    const item = page.getByTestId("feedback-item").filter({ hasText: `${tag} no carga` });
+    await item.getByRole("link", { name: /Ver solo lo de la persona/ }).click();
+    await expect(page).toHaveURL(/persona=[0-9a-f]{6}$/);
+    await expect(item).toBeVisible();
+    await expect(
+      page.getByTestId("feedback-item").filter({ hasText: `${tag} una idea` }),
+    ).toBeVisible();
+    // Otra persona: no aparece nada de lo anterior
+    await page.goto("/settings/feedback?persona=ffffff");
+    await expect(page.getByTestId("feedback-item").filter({ hasText: tag })).toHaveCount(0);
+  });
+
   test("el CSV sale sin fórmulas de planilla", async ({ page }) => {
     await login(page);
     const res = await page.request.get("/settings/feedback/export?categoria=idea");

@@ -24,7 +24,8 @@ const NEW_KEYS = [
 // ninguna de las carreras anteriores.
 // Las carreras que llegaron después de C1-2 tampoco cuentan como anteriores: relaciones_publicas
 // (R5-C3, ADR-033) comparte skills con comunicación y las sacaría de la cuenta.
-const LATER_KEYS = ["relaciones_publicas"];
+// Los tres puestos de contenido (R14-1) tampoco: reusan skills de comunicación (redes, contenidos, Canva).
+const LATER_KEYS = ["relaciones_publicas", "marketing_ia", "edicion_video", "creacion_contenido"];
 const OLD_KEYS = Object.keys(roleSkills).filter(
   (k) => !(NEW_KEYS as readonly string[]).includes(k) && !LATER_KEYS.includes(k),
 );

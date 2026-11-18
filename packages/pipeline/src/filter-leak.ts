@@ -25,6 +25,10 @@ export const EXPECTED_SOURCE_DOMAINS = [
   "bumeran.com.ar",
   // R11-4: los mails de recomendaciones de Computrabajo llegan de computrabajo.com (ADR-037)
   "computrabajo.com",
+  // R13-3: ZonaJobs está en el filtro de Gmail pero no tiene lector: es esperado para que el
+  // cuerpo se guarde y el mail caiga en la cola manual (la persona pega el aviso), no en
+  // «remitente no esperado» sin cuerpo.
+  "zonajobs.com.ar",
 ] as const;
 
 /** Segundos niveles de país: `mails.banco.com.ar` → `banco.com.ar`, no `com.ar`. */

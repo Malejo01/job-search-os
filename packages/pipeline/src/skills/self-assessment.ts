@@ -47,6 +47,10 @@ export const ROLE_KEYS = [
   "relaciones_internacionales",
   // C3 (ADR-033): relaciones públicas deja de ir dentro de marketing, siempre al final.
   "relaciones_publicas",
+  // R14-1: puestos de marketing y contenido, siempre al final.
+  "marketing_ia",
+  "edicion_video",
+  "creacion_contenido",
 ] as const;
 export type RoleKey = (typeof ROLE_KEYS)[number];
 
@@ -96,12 +100,29 @@ export const LEGAL_MANAGEMENT_ROLE_KEYS: readonly RoleKey[] = [
   "administracion_empresas",
 ];
 
-/** Las carreras de comunicación y de relaciones internacionales de la beta (ADR-027). */
+/**
+ * Los tres puestos de marketing y contenido de R14-1. Sin valor propio en la lista de espera (su
+ * CHECK no los conoce): no se ofrecen en `/acceso`. Quedan sin listar en los selectores generales
+ * y públicos solo al llegar al umbral de ofertas, como las carreras de la beta; el onboarding y
+ * «Tus puestos» los ofrecen siempre.
+ */
+export const CONTENT_ROLE_KEYS: readonly RoleKey[] = [
+  "marketing_ia",
+  "edicion_video",
+  "creacion_contenido",
+];
+
+/**
+ * Las carreras de comunicación y de relaciones internacionales de la beta (ADR-027), más los puestos de
+ * contenido (R14-1). Van en el mismo grupo a propósito: el plan de formación cuenta cuántos grupos piden
+ * una skill para llamarla transversal (`planFamilies`), y un grupo más haría transversales a Growth o SEO.
+ */
 export const COMMUNICATION_ROLE_KEYS: readonly RoleKey[] = [
   "marketing_digital",
   "relaciones_publicas",
   "comunicacion",
   "relaciones_internacionales",
+  ...CONTENT_ROLE_KEYS,
 ];
 
 /**
@@ -173,6 +194,7 @@ export const BETA_GROUP_LABEL = "Carreras de la beta";
 export const UNLISTED_ROLE_KEYS: readonly RoleKey[] = [
   "asistencia_operaciones",
   ...BETA_ROLE_KEYS.filter((k) => k !== "abogacia"),
+  ...CONTENT_ROLE_KEYS,
 ];
 
 /**
@@ -198,7 +220,7 @@ export function selectableRoleGroups(
 export function profileRoleGroups(
   keep: readonly RoleKey[] = [],
 ): readonly { label: string; roles: readonly RoleKey[] }[] {
-  const offered = selectableRoleGroups([...keep, ...BETA_ROLE_KEYS]);
+  const offered = selectableRoleGroups([...keep, ...BETA_ROLE_KEYS, ...CONTENT_ROLE_KEYS]);
   // R5-C8: las 8 carreras de la beta van primero, con su nombre, en un grupo propio; el resto sigue
   // en sus grupos de siempre, debajo, sin repetir ninguna
   const rest = offered
@@ -324,6 +346,12 @@ const HEADLINE_KEYWORDS: Record<RoleKey, RegExp> = {
     /relaciones internacionales|international relations|comercio exterior|foreign trade|cooperacion internacional|\bcomex\b/,
   relaciones_publicas:
     /relaciones publicas|relacionista publico|relacionista publica|public relations|\brrpp\b|\brr\.? ?pp\b/,
+  marketing_ia:
+    /marketing (?:con|e|and) (?:ia|ai|inteligencia artificial)|(?:ai|ia) marketing|marketing (?:con )?ia generativa|generative ai marketing/,
+  edicion_video:
+    /editor(?:a)? de video|video editor|videograph|videograf[oa]|montajista|postproduccion|post production/,
+  creacion_contenido:
+    /\bugc\b|creador(?:a)?(?:es)? de contenido|content creator|contenidista|creador(?:a)? digital/,
 };
 
 /** disciplina de los criterios → rol (en orden de prioridad). */

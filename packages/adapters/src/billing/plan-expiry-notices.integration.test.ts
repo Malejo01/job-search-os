@@ -134,6 +134,17 @@ describe("aviso de vencimiento con el store real (C4-1)", () => {
     }
   });
 
+  it("trae la marca de precio especial de la persona (ADR-040) y null si no tiene", async () => {
+    await conn.db.insert(s.planOverrides).values({ userId: ID(1), override: "tester_50" });
+    try {
+      const candidates = await createDbNoticeStore(conn.db).loadCandidates(NOW);
+      expect(candidates.find((c) => c.userId === ID(1))?.planOverride).toBe("tester_50");
+      expect(candidates.find((c) => c.userId === ID(5))?.planOverride).toBeNull();
+    } finally {
+      await conn.db.delete(s.planOverrides).where(eq(s.planOverrides.userId, ID(1)));
+    }
+  });
+
   it("dos reclamos sobre el mismo estado leído: gana uno solo", async () => {
     const store = createDbNoticeStore(conn.db);
     const candidates = await store.loadCandidates(NOW);
