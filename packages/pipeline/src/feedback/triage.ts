@@ -40,8 +40,11 @@ export type FeedbackFilters = {
   from: string | null;
   to: string | null;
   status: FeedbackStatus | null;
+  /** Identificador seudónimo de la persona (6 hex); nunca email ni nombre. */
+  person: string | null;
 };
 
+const PERSON = /^[0-9a-f]{6}$/;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 
@@ -54,7 +57,9 @@ export function parseFeedbackFilters(
   const from = one(params.desde);
   const to = one(params.hasta);
   const status = one(params.estado);
+  const person = one(params.persona).trim().toLowerCase();
   return {
+    person: PERSON.test(person) ? person : null,
     career: isRoleKey(career) ? career : null,
     category: isFeedbackCategory(category) ? category : null,
     path: path.startsWith("/") ? path : null,
@@ -75,6 +80,7 @@ export function filterFeedback(rows: readonly TriageRow[], f: FeedbackFilters): 
     if (f.category && r.category !== f.category) return false;
     if (f.path && !r.path.startsWith(f.path)) return false;
     if (f.status && r.status !== f.status) return false;
+    if (f.person && r.person.toLowerCase() !== f.person) return false;
     const day = argentinaDay(r.createdAt);
     if (f.from && day < f.from) return false;
     if (f.to && day > f.to) return false;
