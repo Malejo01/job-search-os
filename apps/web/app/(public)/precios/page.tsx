@@ -4,6 +4,7 @@ import {
   limitsText,
   listedPlans,
   planDef,
+  plansView,
   priceLabel,
   priceReference,
   pricingEnabled,
@@ -13,6 +14,7 @@ import type { Metadata } from "next";
 import { publicOpenGraph } from "@/lib/public-og";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PlanCardV2 } from "./plan-card-v2";
 
 // El flag y los links salen de variables: con ISR se releen al revalidar, sin pasar por la base
 export const revalidate = 3600;
@@ -73,6 +75,12 @@ const FAQ: readonly { q: string; a: string }[] = [
 export default function PreciosPage() {
   if (!pricingEnabled(process.env)) notFound();
   const enabled = { cv: process.env.CV_IMPORT_ENABLED === "1", assistant: false };
+  // R15-1: con PRICING_V2=1 la lista se arma distinta; sin la variable, nada de esto cambia
+  const {
+    v2,
+    plans,
+    recommendedKey: recommended,
+  } = plansView(process.env, listedPlans(), BETA_PLAN);
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10">
       <header className="flex flex-col gap-2">
@@ -83,11 +91,31 @@ export default function PreciosPage() {
         </p>
       </header>
 
-      <ul className="grid gap-4 sm:grid-cols-2" data-testid="precios-planes">
-        {listedPlans().map((plan) => (
-          <PlanCard key={plan.key} plan={plan} lines={limitsText(plan.limits, enabled)} />
-        ))}
+      <ul
+        className="grid gap-4 sm:grid-cols-2"
+        data-testid="precios-planes"
+        {...(v2 ? { "data-precios-v2": "1" } : {})}
+      >
+        {plans.map((plan) =>
+          v2 ? (
+            <PlanCardV2
+              key={plan.key}
+              plan={plan}
+              reference={plans[0]!}
+              recommended={plan.key === recommended}
+              enabled={enabled}
+            />
+          ) : (
+            <PlanCard key={plan.key} plan={plan} lines={limitsText(plan.limits, enabled)} />
+          ),
+        )}
       </ul>
+      {v2 ? (
+        <p data-testid="precios-sin-promesas" className="text-sm text-fg-muted">
+          Ningún plan promete entrevistas ni trabajo: la app lee cada aviso contra tu perfil y te
+          dice por qué sí y por qué no. La decisión y la postulación son tuyas.
+        </p>
+      ) : null}
 
       <section aria-labelledby="preguntas" className="flex flex-col gap-3">
         <h2 id="preguntas" className="text-xl font-semibold">
