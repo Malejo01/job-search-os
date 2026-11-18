@@ -16,6 +16,21 @@ export type SvixHeaders = {
 
 export type SvixResult = { ok: true } | { ok: false; reason: string };
 
+export const SVIX_INVALID_SECRET_REASON = "secreto inválido";
+
+const SECRET_PREFIX = "whsec_";
+const MIN_SECRET_BYTES = 16;
+
+/** Secreto con el prefijo y una clave en base64 de al menos 16 bytes. Los espacios en los bordes no cuentan. */
+function isValidSecret(secret: string): boolean {
+  const value = secret.trim();
+  if (!value.startsWith(SECRET_PREFIX)) return false;
+  const key = value.slice(SECRET_PREFIX.length);
+  return (
+    /^[A-Za-z0-9+/]+={0,2}$/.test(key) && Buffer.from(key, "base64").length >= MIN_SECRET_BYTES
+  );
+}
+
 export function signSvix(secret: string, id: string, timestamp: string, body: string): string {
   const key = Buffer.from(secret.startsWith("whsec_") ? secret.slice(6) : secret, "base64");
   return createHmac("sha256", key).update(`${id}.${timestamp}.${body}`).digest("base64");
@@ -28,6 +43,7 @@ export function verifySvix(
   now: () => number = Date.now,
 ): SvixResult {
   if (!secret) return { ok: false, reason: "RESEND_WEBHOOK_SECRET no configurado" };
+  if (!isValidSecret(secret)) return { ok: false, reason: SVIX_INVALID_SECRET_REASON };
   const id = headers["svix-id"];
   const ts = headers["svix-timestamp"];
   const sig = headers["svix-signature"];
