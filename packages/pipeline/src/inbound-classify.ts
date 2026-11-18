@@ -1,5 +1,6 @@
 import { baseDomain, senderHost } from "./filter-leak";
 import { stripScripts, stripTags } from "./html-scan";
+import { parseFromAddress } from "./from-address";
 
 /**
  * Clasificación de un email entrante al llegar (JS-119). Pura: recibe remitente, asunto y texto,
@@ -66,9 +67,9 @@ export function htmlToText(html: string | null | undefined): string {
     .trim();
 }
 
-/** Dirección del remitente en minúsculas, con o sin nombre visible. */
+/** Dirección del remitente en minúsculas, con o sin nombre visible; vacía si no se puede leer. */
 function senderAddr(from: string): string {
-  return (/<([^>]+)>/.exec(from)?.[1] ?? from).trim().toLowerCase();
+  return parseFromAddress(from) ?? "";
 }
 
 /** Valores de `inbound_emails.parser` de la clasificación al llegar (nombre único, JS-119). */
