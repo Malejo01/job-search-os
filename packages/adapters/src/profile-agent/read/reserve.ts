@@ -5,7 +5,11 @@ import {
   type ProfileAgentCap,
 } from "@job-search-os/pipeline";
 import { and, eq, gte, sql } from "drizzle-orm";
-import { CV_RESERVE_TASK, CV_RESERVE_TTL_MS } from "../../cv-chat/reserve";
+import {
+  CV_RESERVE_LOCK_NAMESPACE,
+  CV_RESERVE_TASK,
+  CV_RESERVE_TTL_MS,
+} from "../../cv-chat/reserve";
 import { measureProfileAgentSpend, profileAgentAttempted, reservedUsd } from "../measure";
 
 /**
@@ -27,8 +31,12 @@ import { measureProfileAgentSpend, profileAgentAttempted, reservedUsd } from "..
  * `cv_reserve`; `profile_read` cuesta 0).
  */
 export const PROFILE_READ_TASK = "profile_read";
-/** Namespace propio del lock por persona de este flujo (el chat de CV usa 26). */
-export const PROFILE_AGENT_LOCK_NAMESPACE = 34;
+/**
+ * Lock por persona de la lectura. R13-6: es el mismo que usan el chat de CV, los huecos, el cierre y el coach
+ * (26), porque todas miden las mismas filas `cv_reserve` y el gasto de la persona: con namespaces distintos, la
+ * lectura que se suelta no esperaba a quien mide en otra etapa. Cada transacción toma un solo lock.
+ */
+export const PROFILE_AGENT_LOCK_NAMESPACE = CV_RESERVE_LOCK_NAMESPACE;
 /** Tarea de la lectura (`model_routing`). Se repite acá para no importar `cv/extract` en la consulta. */
 const EXTRACT_TASK = "extract_cv_profile";
 const MICRO_USD = 1_000_000;

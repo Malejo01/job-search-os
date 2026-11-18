@@ -8,6 +8,7 @@ import {
 } from "@job-search-os/pipeline";
 import { like } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { releaseWhileAnotherMeasures } from "../../cv-chat/lock-gate.testing";
 import { releaseCvChatReservation } from "../../cv-chat/reserve";
 import { measureGaps, reserveGapStep, type GapReject } from "./reserve";
 
@@ -224,5 +225,25 @@ describe("reservas", () => {
     expect(await releaseCvChatReservation(conn.db, r.reservationId)).toBe(true);
     const after = await measureGaps(conn.db, { userId: USER, label: LABEL, ...clock() });
     expect(after.flowCostUsd).toBe(0);
+  });
+
+  it("R13-6: soltar el turno espera a quien está midiendo y es idempotente", async () => {
+    const r = await reserve("turn");
+    if (!r.ok) throw new Error("debía pasar");
+    // el cliente LLM ya anotó el turno real; falta soltar la reserva
+    await call({ costUsd: 0.02 });
+    const out = await releaseWhileAnotherMeasures(conn.db, {
+      userId: USER,
+      release: () => releaseCvChatReservation(conn.db, r.reservationId),
+      measure: (tx) => measureGaps(tx, { userId: USER, label: LABEL, ...clock() }),
+    });
+    // sin lock, el borrado termina enseguida y la segunda medición pierde la reserva (0,02 en vez de 0,05)
+    expect(out.waited).toBe(true);
+    expect(out.before.flowCostUsd).toBeCloseTo(0.05);
+    expect(out.after.flowCostUsd).toBeCloseTo(0.05);
+    expect(out.released).toBe(true);
+    expect(await releaseCvChatReservation(conn.db, r.reservationId)).toBe(true);
+    const end = await measureGaps(conn.db, { userId: USER, label: LABEL, ...clock() });
+    expect(end.flowCostUsd).toBeCloseTo(0.02);
   });
 });

@@ -5,9 +5,7 @@ import { releaseCvChatReservation } from "./reserve";
 /** Soltar la reserva corre en un `finally`: no puede lanzar ni tapar el resultado del paso. */
 describe("releaseCvChatReservation", () => {
   const failing = {
-    delete: () => ({
-      where: () => Promise.reject(new Error("conexión caída")),
-    }),
+    transaction: () => Promise.reject(new Error("conexión caída")),
   } as unknown as Db;
 
   it("si el borrado falla devuelve false en vez de lanzar", async () => {
