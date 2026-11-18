@@ -26,7 +26,12 @@ AfinIAJobs es una herramienta en beta cerrada. El responsable del tratamiento de
 
 **Datos sensibles.** No los buscamos ni los necesitamos. Te pedimos que no cargues datos sensibles, por ejemplo de salud, origen racial o étnico, opiniones políticas, convicciones religiosas, afiliación sindical o vida sexual.
 
-**Tu CV.** Hoy no te pedimos tu CV en archivo ni hay forma de subirlo: el sistema trabaja con el resumen que escribís vos. Cuando se encienda la función de leer el CV, el archivo se procesa y se descarta: no lo guardamos.
+**Tu CV.** Si usás las funciones de CV (leer tu CV, armarlo en un chat con preguntas, o la revisión y el coach), pasa esto:
+
+- **Leer tu CV:** tu navegador extrae el texto del archivo y manda solo ese texto. El archivo no se sube ni se guarda, y el texto leído tampoco: se usa para proponerte tus trabajos, estudios, proyectos y skills, y lo que se guarda es solo lo que vos confirmás.
+- **Lo que confirmás** (trabajos con sus viñetas, estudios, certificaciones y proyectos con su link si lo cargaste) queda guardado en tu cuenta y se borra cuando eliminás la cuenta (sección 8).
+- **Chat de CV y coach:** lo que escribís en esas charlas se usa para armar y revisar tu CV con IA. No guardamos el texto de la conversación: guardamos el registro técnico de cada llamada (ver "Datos técnicos"), sin los textos.
+- **IA:** en la sección 5 está qué le mandamos a los modelos en cada función.
 
 **Tu cuenta de email.** No accedemos a tu cuenta de Gmail ni a ninguna otra cuenta tuya. Solo recibimos lo que tu propio filtro de reenvío nos manda; para cortarlo, borrás ese filtro.
 
@@ -52,13 +57,31 @@ Para funcionar usamos proveedores que tratan datos por nuestra cuenta:
 
 | Proveedor | Para qué | Qué datos recibe |
 |---|---|---|
-| Google (Gemini API) | Principal para evaluar avisos; respaldo para redactar borradores | Para evaluar: el resumen de tu perfil, las carreras que buscás, ciudad y país, si buscás solo remoto, autorización de trabajo, piso salarial, horas máximas, nivel de inglés, años de experiencia, tus criterios de evaluación y los datos y el texto del aviso. Como respaldo de los borradores, lo mismo que Anthropic |
-| Anthropic (Claude API) | Principal para redactar borradores; respaldo para evaluar | Para los borradores: las preguntas del formulario, el título y el texto del aviso, tu ubicación, si buscás solo remoto, tu zona horaria y algunas respuestas tuyas ya aprobadas para preguntas parecidas. Como respaldo de la evaluación, lo mismo que Google |
-| Resend | Recibir los emails que reenviás y enviar el email de recuperación de contraseña | Los emails reenviados completos (los recibe antes de nuestro filtro) y, si pedís recuperar la contraseña, tu email y el link para hacerlo |
+| Google (Gemini API) | Modelo principal para evaluar avisos, para las funciones de CV (leer, entrevistar, redactar, revisar y el coach) y para leer un aviso desde una imagen; respaldo del asistente y de los borradores | Lo que se detalla abajo, según la función |
+| Anthropic (Claude API) | Modelo principal del asistente de la app y de los borradores de respuestas; respaldo de las demás funciones | Lo mismo que Google en la función que le toca |
+| Resend | Recibir los emails que reenviás y enviar los emails de la app: recuperación de contraseña y, cuando están activados, bienvenida y avisos de vencimiento del plan. También manda al equipo que administra el servicio los comentarios que escribís desde la app | Los emails reenviados completos (los recibe antes de nuestro filtro); tu email y el texto del mensaje cuando la app te escribe; y el texto del comentario, la pantalla y datos técnicos del navegador cuando mandás uno |
 | Vercel | Alojar la aplicación | Lo que viaja entre tu navegador y la app, y los registros de funcionamiento |
 | Neon | Base de datos | Todo lo que se guarda (sección 2) |
+| Mercado Pago | Cobrar el plan pago, en su propio sitio | Lo que ingresás vos en Mercado Pago, que lo trata esa empresa con sus condiciones. La app solo muestra un link de pago: no se conecta a Mercado Pago, no le manda datos tuyos, no recibe avisos de pago y no guarda datos de tarjeta. El plan se carga a mano en tu cuenta |
 
-Los modelos de IA no reciben tu nombre, tu email ni tu contraseña, ni el contenido completo de tus emails: solo los datos del aviso que extraemos de ellos. Para los borradores tampoco reciben tu sueldo pretendido, tu disponibilidad ni tu autorización de trabajo: esas respuestas las completa la app con lo que cargaste. Usamos Gemini de Google en su plan pago: tus datos no se usan para entrenar modelos. Cada proveedor tiene sus propias políticas y plazos de conservación, que no controlamos.
+**Qué le mandamos a los modelos de IA, función por función:**
+
+- **Evaluar un aviso:** el resumen de tu perfil, las carreras que buscás, ciudad y país, si buscás solo remoto, autorización de trabajo, piso salarial, horas máximas, nivel de inglés, años de experiencia, tus criterios de evaluación, y los datos y el texto del aviso.
+- **Borradores de respuestas:** las preguntas del formulario que pegás, el título y el texto del aviso, tu ubicación, si buscás solo remoto, tu zona horaria, los proyectos y logros de tu trayectoria que cargaste y algunas respuestas tuyas ya aprobadas para preguntas parecidas. No van tu sueldo pretendido, tu disponibilidad ni tu autorización de trabajo: esas respuestas las completa la app con lo que cargaste.
+- **Leer tu CV:** el texto que extrajo tu navegador, después de que el servidor le saca con reglas los emails, teléfonos, links, números de documento, domicilios, fechas de nacimiento, edades, estados civiles y el nombre de tu cuenta, más los puestos que tildaste y una lista de skills del catálogo. Esas reglas no detectan todo: por ejemplo, el nombre de otra persona (una referencia laboral) o un número de documento sin la palabra que lo identifica pueden pasar.
+- **Chat de CV (entrevista y redacción):** cada mensaje que escribís, tal como lo escribís, más la empresa y el puesto del trabajo del que se habla. Para redactar el CV, los trabajos con tus respuestas, tus estudios, skills e idiomas y el puesto que buscás. Si lo que pegás en el chat parece un CV entero, no se manda a la IA y te derivamos a la lectura de CV.
+- **Revisión y coach de CV:** tu CV confirmado (títulos, empresas, fechas, viñetas, resumen, puesto que buscás, tus skills y datos de demanda del mercado) y, en el coach, lo que escribís en la charla y el link de tus proyectos.
+- **Asistente de la app:** lo que escribís, un resumen de la charla, la pantalla donde estás y, cuando hace falta para responderte, lo que lee de tu cuenta: tu perfil (país, ciudad, modalidades, idiomas, autorización de trabajo, nivel de inglés, años de experiencia y el resumen), tus skills y niveles, tus criterios, tus puestos, tus ofertas (título, empresa, evaluación y el texto del aviso sin emails ni teléfonos) y datos del mercado.
+- **Leer un aviso desde una imagen:** la imagen que subís. No se guarda.
+
+**Lo que no mandamos y lo que sí depende de vos.** Nosotros no les enviamos a los modelos tu email, tu contraseña ni un teléfono: tu perfil no los incluye, y los emails reenviados no van a la IA completos, solo los datos del aviso que extraemos de ellos. Tu nombre tampoco se manda por nuestra parte, y en la lectura del CV lo sacamos del texto. Pero **lo que vos escribís o pegás** (el resumen de tu perfil, los mensajes de los chats, el coach y el asistente, el texto de un aviso o una imagen) llega a los modelos tal como lo escribiste: si ahí ponés tu nombre, tu email, tu teléfono u otro dato personal, el modelo lo recibe. Por eso te pedimos no incluir datos personales ni sensibles en esos textos (ver sección 2).
+
+**Entrenamiento y conservación.** Nosotros no usamos tus datos para entrenar modelos. Según las condiciones públicas de cada proveedor al actualizar este texto:
+
+- **Anthropic** no entrena sus modelos con el contenido de los servicios comerciales, como su API, salvo que la cuenta lo autorice o se envíe una calificación explícita ([términos comerciales](https://www.anthropic.com/legal/commercial-terms), [uso de datos para entrenamiento](https://privacy.claude.com/en/articles/7996868-is-my-data-used-for-model-training)). Sobre cuánto tiempo conserva los datos, ver [su explicación](https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data).
+- **Google**, en los servicios de pago de la API de Gemini, no usa los textos que se envían ni las respuestas para mejorar sus productos; en los servicios gratuitos sí puede hacerlo, y puede haber revisión humana. Registra los textos y respuestas por un tiempo limitado para detectar y prevenir violaciones de su política de uso ([condiciones de la API de Gemini](https://aistudio.google.com/docs/terms)). Usamos Gemini en su plan pago. [REVISAR CON ASESORÍA LEGAL: confirmar que la cuenta de Gemini sigue siendo del plan pago antes de publicar esta frase]
+
+Cada proveedor conserva el contenido por un plazo limitado, según sus propias condiciones y la ley: no controlamos esos plazos y pueden cambiar. Revisá los links de arriba para ver los vigentes.
 
 Estos proveedores tratan los datos fuera de la Argentina, principalmente en Estados Unidos y otros países donde operan, así que hay **transferencia internacional** de datos. Al aceptar esta política consentís expresamente esas transferencias.
 
@@ -75,7 +98,7 @@ Algunas cosas se borran solas:
 - Los registros técnicos de la base (la cola de trabajo terminada y los contadores de emails rechazados por el límite horario) se conservan por [A DEFINIR: plazo de retención de los logs] y después se borran solos. Los contadores de rechazos se conservan como mínimo dos días.
 - El registro de llamadas a modelos de IA sigue ese mismo plazo, pero se conserva como mínimo 90 días porque es el registro de gastos.
 
-Los registros del hosting, los backups y el historial de la base de datos y lo que conserva el proveedor de email siguen los plazos de cada proveedor.
+Los registros del hosting, los backups y el historial de la base de datos, lo que conserva el proveedor de email y lo que conservan los proveedores de IA (sección 5) siguen los plazos de cada proveedor.
 
 **Qué no cubre el filtro de remitentes.** El filtro que evita guardar emails personales actúa al guardar en nuestra base. El proveedor de email recibe el mensaje completo antes y puede conservarlo según sus propias reglas. Por eso te recomendamos configurar el reenvío solo para las fuentes de empleo, como lo hace el archivo de filtros que te ofrece la app.
 
@@ -106,6 +129,7 @@ Tenés derecho a:
 - Los **backups y el historial del proveedor de base de datos**, hasta que vence su plazo.
 - Los **registros de funcionamiento del hosting**, por el plazo de ese proveedor. Incluyen un registro de que la cuenta se eliminó, con tu identificador interno y sin otros datos.
 - Lo que el **proveedor de email** haya recibido o conserve de los emails reenviados.
+- Lo que los **proveedores de IA** conserven, por el plazo limitado de sus condiciones, de los textos que se les enviaron (sección 5).
 - Los **catálogos compartidos** (empresas, skills y recursos de aprendizaje), que no pertenecen a una persona. Si propusiste un recurso de aprendizaje que ya fue aprobado, queda en el catálogo sin tu nombre.
 - La **invitación con la que te registraste**, que es de quien te invitó: queda sin tu email y sin vínculo con tu cuenta.
 - Tu **pedido de acceso**, si lo hiciste antes de tener cuenta: no está vinculado a ella; para borrarlo, pedilo por email.
