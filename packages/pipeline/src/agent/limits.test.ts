@@ -251,6 +251,10 @@ describe("isFinalCap", () => {
     expect(isFinalCap("message_too_long")).toBe(false);
     expect(isFinalCap("steps")).toBe(false);
   });
+
+  it("el tope diario no cierra la charla: se puede volver a intentar más tarde", () => {
+    expect(isFinalCap("daily_budget")).toBe(false);
+  });
 });
 
 describe("valores inválidos fallan cerrado", () => {

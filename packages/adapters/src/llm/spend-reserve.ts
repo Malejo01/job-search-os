@@ -27,17 +27,36 @@ const MICRO_USD = 1_000_000;
 export type SpendReservation =
   { ok: true; reservationId: string } | { ok: false; reason: "global" | "user" };
 
+export type SpendReserveInput = {
+  userId: string;
+  estimateUsd: number;
+  /** Etiqueta de la fila de reserva: la usa el asistente para saber qué charla está en curso. */
+  label?: string;
+  now?: () => Date;
+  dailyCapUsd?: number;
+  userDailyCapUsd?: number;
+};
+
+/** Control extra que corre bajo el mismo lock, antes de medir los topes. Devuelve el motivo para frenar. */
+export type SpendGate<R extends string> = (
+  tx: Pick<Db, "select" | "selectDistinct">,
+  now: Date,
+) => Promise<R | null>;
+
 /** Reserva `estimateUsd` para la persona, o dice qué tope lo impide. `db` tiene que ver `llm_calls` de todos. */
 export async function reserveLlmSpend(
   db: Db,
-  input: {
-    userId: string;
-    estimateUsd: number;
-    now?: () => Date;
-    dailyCapUsd?: number;
-    userDailyCapUsd?: number;
-  },
+  input: SpendReserveInput,
 ): Promise<SpendReservation> {
+  return reserveSpendWithGate<never>(db, input, async () => null);
+}
+
+/** Igual que `reserveLlmSpend`, con una condición propia decidida en la misma transacción. */
+export async function reserveSpendWithGate<R extends string>(
+  db: Db,
+  input: SpendReserveInput,
+  gate: SpendGate<R>,
+): Promise<{ ok: true; reservationId: string } | { ok: false; reason: "global" | "user" | R }> {
   const clock = input.now ?? (() => new Date());
   const now = clock();
   const globalCap = input.dailyCapUsd ?? dailyCapFromEnv();
@@ -47,6 +66,9 @@ export async function reserveLlmSpend(
     await tx.execute(
       sql`select pg_advisory_xact_lock(hashtextextended(${LOCK_KEY}, ${LOCK_NAMESPACE}))`,
     );
+
+    const blocked = await gate(tx, now);
+    if (blocked !== null) return { ok: false as const, reason: blocked };
 
     const c = s.llmCalls;
     const [live] = await tx
@@ -81,6 +103,7 @@ export async function reserveLlmSpend(
         task: LLM_RESERVE_TASK,
         model: "none",
         promptVersion: `${LLM_RESERVE_TASK}@v1`,
+        label: input.label ?? null,
         tokensOut: Math.max(0, Math.round(input.estimateUsd * MICRO_USD)),
         costUsd: null,
         latencyMs: 0,

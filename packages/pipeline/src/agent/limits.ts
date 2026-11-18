@@ -74,6 +74,7 @@ export const AGENT_CAP_REASONS = [
   "monthly_conversations",
   "message_too_long",
   "cost_unknown",
+  "daily_budget",
 ] as const;
 export type AgentCapReason = (typeof AGENT_CAP_REASONS)[number];
 
@@ -231,6 +232,8 @@ const CAP_TEXT: Record<AgentCapReason, string> = {
     "Ese mensaje es muy largo para el asistente. Escribilo más corto o hacé el cambio en estas pantallas:",
   cost_unknown:
     "El asistente no está disponible ahora. Podés hacer los cambios directamente en estas pantallas:",
+  daily_budget:
+    "Se alcanzó el tope diario de uso del asistente. Probá más tarde o hacé los cambios en estas pantallas:",
 };
 
 /** Desde cuántos mensajes restantes se le avisa a la persona. */
@@ -259,7 +262,7 @@ export function remainingMessagesNotice(
 
 /** Topes que cierran la charla (seguir escribiendo no sirve); los otros se resuelven con otro mensaje. */
 export function isFinalCap(reason: AgentCapReason): boolean {
-  return reason !== "message_too_long" && reason !== "steps";
+  return reason !== "message_too_long" && reason !== "steps" && reason !== "daily_budget";
 }
 
 /** Mensaje fijo al llegar a un tope: siempre el mismo texto y los mismos links, sin el modelo. */
