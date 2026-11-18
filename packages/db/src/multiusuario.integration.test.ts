@@ -45,6 +45,8 @@ const CATALOG_TABLES = [
   "demo_evaluations",
   // Embudo de /acceso (C8-2): contadores agregados sin personas; sin policy, solo por funciones (rls/0016).
   "acceso_funnel",
+  // Intentos de login (S2): por hash del email, sin user_id ni policy para la app; solo por funciones (rls/0023).
+  "login_attempts",
 ];
 
 /**
@@ -574,6 +576,32 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
       }
       const rows = await asUser(A, (tx) => tx`select * from mcp_token_user(null)`);
       expect(rows).toHaveLength(0);
+    },
+    // S2: trabajan sobre un hash de email, no sobre filas de personas. Un hash mal formado no escribe nada.
+    login_attempt_begin: async () => {
+      for (const hash of ["no-es-hex", "", "F".repeat(64)]) {
+        const [r] = await asUser(
+          A,
+          (tx) => tx<{ ok: boolean }[]>`select login_attempt_begin(${hash}) as ok`,
+        );
+        expect(r!.ok).toBe(false);
+      }
+      const hash = "e".repeat(64);
+      const [r] = await asUser(
+        A,
+        (tx) => tx<{ ok: boolean }[]>`select login_attempt_begin(${hash}) as ok`,
+      );
+      expect(r!.ok).toBe(true);
+      expect(await owner`select 1 from login_attempts where email_hash = ${hash}`).toHaveLength(1);
+      expect(await owner`select 1 from login_attempts where email_hash = 'no-es-hex'`).toHaveLength(
+        0,
+      );
+    },
+    login_attempt_clear: async () => {
+      const hash = "d".repeat(64);
+      await owner`insert into login_attempts (email_hash) values (${hash}) on conflict do nothing`;
+      await asUser(A, (tx) => tx`select login_attempt_clear(${hash})`);
+      expect(await owner`select 1 from login_attempts where email_hash = ${hash}`).toHaveLength(0);
     },
     // Solo devuelve la fila de un token cuyo hash se conoce; uno inventado no devuelve nada
     check_reset_token: async () => {
