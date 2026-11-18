@@ -25,9 +25,11 @@ import {
   type CareerVisibilityRow,
   type FounderCountsResult,
 } from "@/lib/beta-metrics";
+import { getPoolCoverage } from "@/lib/pool-coverage";
 import { requireUserId } from "@/lib/session";
 import { buttonClasses } from "@/components/ui";
 import { AccesoFunnelPanel } from "./acceso-funnel-panel";
+import { PoolCoveragePanel } from "./pool-coverage-panel";
 
 export const metadata = { title: "Métricas de la beta" };
 export const dynamic = "force-dynamic";
@@ -71,6 +73,7 @@ export default async function MetricasPage() {
   const feedback = await getBetaFeedback(userId);
   const reveal = await getCareerReveal(userId);
   const accesoFunnel = await getAccesoFunnel(userId);
+  const poolCoverage = await getPoolCoverage(userId);
   const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(betaMetricsCsv(metrics))}`;
 
   return (
@@ -88,6 +91,7 @@ export default async function MetricasPage() {
       <AccesoFunnelPanel result={accesoFunnel} />
       <FounderSeats founders={founders} k={metrics.k} />
       <HiddenCareers reveal={reveal} />
+      <PoolCoveragePanel result={poolCoverage} />
       <BetaFeedbackList feedback={feedback} />
       <a
         href={csvHref}

@@ -84,6 +84,7 @@ export {
 } from "./market/career-market";
 export { readCareerRevealCounts } from "./market/career-reveal";
 export { readBetaPoolCounts, type BetaPoolCounts } from "./market/beta-counts";
+export { readPoolCoverage } from "./market/pool-coverage";
 export {
   buildRoleMarketSnapshots,
   getRoleMarket,
