@@ -1822,3 +1822,24 @@ Base: `origin/main` en `0ef91b9`. Informe de la tanda: [`docs/beta/informe-r15.m
 
 ### R15 · Cierre de la tanda
 `deps:` todo en rama · `estado:` en rama (18/11) · `ronda/r15-cierre`
+
+## Bloque 30 · Tanda R16 «Más ofertas para todas las carreras» (18/11, noche)
+
+Informe de la tanda: [`docs/beta/informe-r16.md`](beta/informe-r16.md). Ningún PR mergeado. Ninguna fuente nueva queda prendida.
+
+### R16-1 · Careerjet, adaptador apagado
+`deps:` R13-8 · `estado:` en rama, con bloqueo para prenderla (18/11) · `ronda/r16-1-careerjet`
+- Hay que confirmar con Careerjet el uso desde un servidor, sin visitante.
+
+### R16-2 · Workable, adaptador de ATS apagado (carril rojo)
+`deps:` R15-2 · `estado:` en rama, **falta generar la migración 0068** (18/11) · `ronda/r16-2-workable`
+
+### R16-3 · Teamtailor por `jobs.json`
+`deps:` — · `estado:` **parcial** (18/11) · `ronda/r16-3-teamtailor-json`
+- El lector del JSON Feed está, pero los avisos siguen saliendo del RSS hasta verificar la modalidad con un board real.
+
+### R16-4 · Cobertura del pool por carrera en el admin
+`deps:` — · `estado:` en rama, e2e sin ejecutar (18/11) · `ronda/r16-4-cobertura-pool`
+
+### R16 · Cierre de la tanda
+`deps:` todo en rama · `estado:` en rama (18/11) · `ronda/r16-cierre`
