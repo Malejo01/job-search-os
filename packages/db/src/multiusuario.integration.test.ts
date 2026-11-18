@@ -76,6 +76,7 @@ const FN_TABLES: Target[] = [
   { table: "profiles", column: "user_id" },
   { table: "password_reset_tokens", column: "user_id" },
   { table: "mcp_tokens", column: "user_id" },
+  { table: "plan_overrides", column: "user_id" },
 ];
 const key = (t: Target) => `${t.table}.${t.column}`;
 const snapshotB: Record<string, string> = {};
@@ -167,6 +168,7 @@ async function seed(id: string, tag: string): Promise<{ jobId: string }> {
   // Hash ficticio de 64 hex, distinto por persona (no es el hash de ningún token real)
   await owner`insert into mcp_tokens (user_id, token_hash, label, expires_at)
                values (${id}, ${(tag.charCodeAt(0).toString(16) + "0".repeat(64)).slice(0, 64)}, 'Chat de prueba', now() + interval '30 days')`;
+  await owner`insert into plan_overrides (user_id, override) values (${id}, 'tester_50')`;
   return { jobId: job!.id };
 }
 
@@ -772,6 +774,19 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
         ),
       ).rejects.toThrow(/admin_plan: no autorizado/);
       expect(await fingerprint({ table: "profiles", column: "user_id" }, B)).toBe(before);
+    },
+    // ADR-040: precio especial, solo app_admins. Una sesión común no pone ni lista marcas de nadie.
+    admin_plan_override_set: async () => {
+      const before = await fingerprint({ table: "plan_overrides", column: "user_id" }, B);
+      await expect(
+        asUser(A, (tx) => tx`select admin_plan_override_set(${EMAIL_B}, 'becado')`),
+      ).rejects.toThrow(/admin_plan_override: no autorizado/);
+      expect(await fingerprint({ table: "plan_overrides", column: "user_id" }, B)).toBe(before);
+    },
+    admin_plan_override_list: async () => {
+      await expect(
+        asUser(A, (tx) => tx`select * from admin_plan_override_list(10)`),
+      ).rejects.toThrow(/admin_plan_override: no autorizado/);
     },
     // Lookup por email: acá solo un email inexistente.
     auth_user_by_email: async () => {

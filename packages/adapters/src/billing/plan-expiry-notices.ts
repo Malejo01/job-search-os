@@ -4,7 +4,7 @@ import {
   EXPIRY_WARNING_DAYS,
   isPlanKey,
   parseContactEmail,
-  paymentLink,
+  paymentOffer,
   planNoticeDailyCap,
   selectPlanNotices,
   type PlanNoticeCandidate,
@@ -30,6 +30,11 @@ import { sendEmail, type SendEmailParams } from "../email/resend";
 export type NoticeCandidate = PlanNoticeCandidate & {
   email: string;
   displayName: string;
+  /**
+   * Marca de precio especial (`plan_overrides`, ADR-040) o null/ausente si no tiene. Decide el link del
+   * aviso: un tester no recibe el link de precio completo y un becado no recibe ninguno.
+   */
+  planOverride?: string | null;
 };
 
 /** Lo que el runner necesita de la base. Separado para probar el orden de las cosas sin Postgres. */
@@ -134,10 +139,13 @@ export async function runPlanExpiryNotices(deps: {
     }
     try {
       const plan = isPlanKey(candidate.plan) ? candidate.plan : null;
+      // ADR-040: con marca de precio especial el link sale de `paymentOffer`; sin link propio (o becado) el
+      // aviso queda sin link y pide escribir al equipo, nunca el precio completo
+      const offer = plan ? paymentOffer(env, plan, candidate.planOverride ?? null) : null;
       const email = buildPlanNoticeEmail({
         displayName: candidate.displayName,
         until: candidate.planUntil as Date,
-        paymentUrl: plan ? paymentLink(env, plan) : null,
+        paymentUrl: offer?.kind === "link" ? offer.url : null,
         settingsUrl,
         contactEmail: contact,
         becado: candidate.planSource === "beca",
@@ -189,9 +197,11 @@ export function createDbNoticeStore(db: Db): NoticeStore {
           planUntil: s.profiles.planUntil,
           planSource: s.profiles.planSource,
           planNotifiedAt: s.profiles.planNotifiedAt,
+          planOverride: s.planOverrides.override,
         })
         .from(s.profiles)
         .innerJoin(s.users, eq(s.users.id, s.profiles.userId))
+        .leftJoin(s.planOverrides, eq(s.planOverrides.userId, s.profiles.userId))
         .where(
           and(
             // T-1: las cuentas de prueba no reciben avisos

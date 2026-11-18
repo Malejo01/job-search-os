@@ -3,7 +3,9 @@ import {
   betaPeriodDays,
   grantPeriod,
   isPlanActivation,
+  isPlanOverride,
   isPlanSource,
+  type PlanOverride,
   type PlanSource,
 } from "@job-search-os/pipeline";
 import { sql } from "drizzle-orm";
@@ -32,7 +34,11 @@ async function guarded<T>(run: () => Promise<T>): Promise<T> {
   } catch (error) {
     for (let e: unknown = error; e && typeof e === "object"; e = (e as { cause?: unknown }).cause) {
       const message = (e as { message?: unknown }).message;
-      if (typeof message === "string" && message.includes("admin_plan: no autorizado")) {
+      if (
+        typeof message === "string" &&
+        (message.includes("admin_plan: no autorizado") ||
+          message.includes("admin_plan_override: no autorizado"))
+      ) {
         throw new PlanAdminNotEnabledInDbError();
       }
     }
@@ -132,6 +138,44 @@ export async function grantBetaPlan(
     activated,
     email,
   };
+}
+
+export type AdminOverrideRow = { email: string; override: PlanOverride; createdAt: Date };
+
+/** Personas con precio especial (ADR-040), las más nuevas primero. Tope de 200 (lo impone la base). */
+export async function listPlanOverrides(userId: string): Promise<AdminOverrideRow[]> {
+  await assertAdmin(userId);
+  const rows = (await guarded(() =>
+    withUser(userId, (tx) => tx.execute(sql`select * from public.admin_plan_override_list(200)`)),
+  )) as unknown as { email: string; override: string; created_at: Date | string }[];
+  return rows.flatMap((r) =>
+    isPlanOverride(r.override)
+      ? [{ email: r.email, override: r.override, createdAt: new Date(r.created_at) }]
+      : [],
+  );
+}
+
+/**
+ * Pone la marca de precio especial de una persona (`null` la saca). Devuelve false si no existe esa
+ * persona. Solo admin: la app (ADMIN_EMAILS) y la base (`app_admins`) lo verifican; la persona misma no
+ * puede escribir su marca (ADR-040). El email no va a los logs ni a la URL.
+ */
+export async function setPlanOverride(
+  userId: string,
+  input: { email: string; override: PlanOverride | null },
+): Promise<boolean> {
+  await assertAdmin(userId);
+  const email = normalizeEmail(input.email);
+  if (!isValidEmail(email)) return false;
+  if (input.override !== null && !isPlanOverride(input.override)) return false;
+  const [row] = (await guarded(() =>
+    withUser(userId, (tx) =>
+      tx.execute(
+        sql`select public.admin_plan_override_set(${email}, ${input.override}::text) as ok`,
+      ),
+    ),
+  )) as unknown as { ok: boolean }[];
+  return row?.ok === true;
 }
 
 /** Pasa a la persona al plan gratis (sin borrar nada). Devuelve false si no existe o no terminó el onboarding. */

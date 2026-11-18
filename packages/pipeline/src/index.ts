@@ -64,6 +64,7 @@ export * from "./plan-access";
 export * from "./plan-expiry-notice";
 export * from "./welcome-email";
 export * from "./plans";
+export * from "./plan-override";
 export * from "./beta-health";
 export * from "./budget/alerts";
 export * from "./learning";
