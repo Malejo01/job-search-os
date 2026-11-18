@@ -1,0 +1,39 @@
+{
+  "type": "JOBS",
+  "hits": 3,
+  "pages": 1,
+  "response_time": 0.05,
+  "jobs": [
+    {
+      "title": "Analista contable <b>semi senior</b>",
+      "company": "Empresa A",
+      "locations": "Córdoba, Córdoba",
+      "description": "Se busca analista para liquidación de impuestos y conciliaciones...",
+      "salary": "",
+      "site": "portal-a.example.com",
+      "date": "Mon, 16 Nov 2026 09:30:00 GMT",
+      "url": "https://aviso.example.com/jobad/ficticio-0001"
+    },
+    {
+      "id": 2002,
+      "title": "Asistente administrativo",
+      "company": "",
+      "locations": "Rosario, Santa Fe",
+      "description": "Atención de proveedores y carga de facturas...",
+      "salary": "a convenir",
+      "site": "portal-b.example.com",
+      "date": "no es una fecha",
+      "url": "https://aviso.example.com/jobad/ficticio-0002"
+    },
+    {
+      "title": "Aviso sin link",
+      "company": "Empresa B",
+      "locations": "Mendoza",
+      "description": "Sin enlace al original",
+      "salary": "",
+      "site": "portal-c.example.com",
+      "date": "2026-11-15T10:00:00",
+      "url": "javascript:alert(1)"
+    }
+  ]
+}

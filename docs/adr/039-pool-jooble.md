@@ -95,6 +95,61 @@ fecha, y si el `snippet` viene con marcas HTML (el adaptador las quita).
 - Un `--dry-run` con la clave real antes de prenderla, para verificar lo marcado «a verificar».
 - Nada de esto se probó contra la API real: los tests usan un `fetch` falso y datos inventados.
 
+## Ampliación R16-1: Careerjet (adaptador apagado)
+Misma idea que Jooble, con la API pública de Careerjet para Argentina (`locale_code=es_AR`). Adaptador en
+`packages/adapters/src/pool/careerjet.ts`, apagado, sin migración y sin ninguna llamada hasta que el dueño
+del proyecto lo prenda. Se escribió con fixtures inventadas; **nada se probó contra la API real**.
+
+### BLOQUEO para prender la fuente: la API espera una persona y el pool no la tiene
+La API de Careerjet pide, en cada consulta, la IP y el navegador de la persona que busca y la URL de la
+página donde se muestra el aviso. El pool corre en un cron: **no hay ninguna persona del otro lado.** El
+adaptador no inventa una IP ni un navegador y no manda los de una persona real:
+- `user_ip` sale de la variable `CAREERJET_CALLER_IP`, la IP de **este servidor** (tiene que ser una IP
+  válida; sin ella, la fuente no hace nada). No hay valor por defecto.
+- `user_agent` es el identificable de la app (el mismo que usan las demás fuentes del pool), no el de un navegador.
+- `url` sale de `SITE_URL` (solo el origen). Sin `SITE_URL`, la fuente no hace nada.
+
+**Antes de prenderla hay que confirmar con Careerjet, por escrito, que el uso desde un servidor, sin visitante,
+está permitido.** Si exigen el visitante real (su IP y su navegador), esta fuente **no se puede usar para el pool**
+y el adaptador se descarta o se reencauza a una búsqueda iniciada por la persona (decisión aparte, con su propio ADR).
+
+### Qué hace el adaptador
+1. **Apagada y falla cerrado.** Participa solo si `careerjet` está en `POOL_SOURCES` **y** hay `CAREERJET_AFFID`
+   **y** `CAREERJET_CALLER_IP` **y** `SITE_URL`. Si falta cualquiera, cero llamadas y cero ofertas.
+2. **Forma.** Una respuesta que no es un objeto con `jobs` en lista, o con un campo de tipo equivocado, se
+   descarta entera (también las de error o de ubicación ambigua, que no traen `jobs`). Un aviso sin título o sin
+   link http(s) se salta solo. Lo que la API no dice queda `null`: `countriesAllowed`, tipo de contrato,
+   `modality` `desconocida`.
+3. **Pendiente de descripción.** El campo `description` es un fragmento: no va a `jdText`, queda en el crudo.
+4. **Id del aviso.** El `id` de la API si lo trae; si no, un hash estable del link. A verificar si Careerjet da un id propio.
+5. **Consultas por carrera** con las palabras de `portal-guide.ts` (el mismo plan de Jooble), una página por
+   consulta, 15 por corrida, intervalo de 5 h y tope duro de 100 por día. **El tope de Careerjet es un supuesto**:
+   copiado de Jooble hasta saber el real.
+6. **Secretos.** El afiliado viaja en la query: la URL nunca se escribe en un log ni en un mensaje de error, solo el
+   estado HTTP o un código cerrado.
+7. **Atribución.** Igual que Jooble: la oferta lleva el link que devuelve la API (el de seguimiento de Careerjet) y
+   «vía Careerjet» en pantalla es condición para prenderla (mismo cambio chico de `attributionFor`).
+
+### `source_kind = other` compartido con Jooble (sin migración)
+Careerjet también usa `other`. El intervalo mínimo y el historial de corridas se calculan por `source_kind`, así
+que **Jooble y Careerjet comparten historial**: nunca consultan de más, pero una puede dejar sin correr a la otra
+durante las 5 horas siguientes. **No se prenden las dos a la vez** hasta que una tenga su propio valor del enum
+(con su migración). `source.name` (`Jooble` o `Careerjet`) y el prefijo del `external_id` (`jooble:` o
+`careerjet:`) las distinguen en los avisos.
+
+### A verificar al registrarse en Careerjet
+Endpoint y versión de la API (el adaptador usa la `search` pública con el afiliado en la query; si la cuenta recibe
+otra versión, cambian la autenticación y los nombres de los campos), nombres y tipos de los campos
+(`title`, `company`, `locations`, `description`, `salary`, `site`, `date`, `url`), formato de `date` (hoy RFC 822,
+con zona), tamaño de página, si hay tope diario o por hora, si el `url` es siempre un link de seguimiento, si se
+permite guardar los avisos (retención de 30 días del pool), si exigen atribución con logo y si la ubicación
+«Argentina» como texto alcanza o hay que pasar una más precisa.
+
+### Qué falta para prenderla
+Todo lo del BLOQUEO; `CAREERJET_AFFID`, `CAREERJET_CALLER_IP` y `SITE_URL` cargadas; «vía Careerjet» en pantalla;
+no tener Jooble prendida; un `--dry-run` con datos reales. Está cableada en `fetch.ts` (nombre, kind, intervalo,
+tope de tiempo y downloader) y fuera de `POOL_RECOMMENDED_SOURCES`.
+
 ## Consequences
 - Si la API cumple lo documentado, el pool gana avisos locales en español con link al original, sin
   cuentas en portales ni lectura de emails.
