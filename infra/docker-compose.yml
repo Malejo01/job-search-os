@@ -7,7 +7,8 @@ services:
     image: pgvector/pgvector:pg16
     container_name: jso-postgres
     restart: unless-stopped
-    ports: ["54322:5432"]
+    # Solo en loopback: la base no queda accesible desde otras máquinas de la red
+    ports: ["127.0.0.1:54322:5432"]
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -23,7 +24,7 @@ services:
   # localstack:
   #   image: localstack/localstack:3
   #   container_name: jso-localstack
-  #   ports: ["4566:4566"]
+  #   ports: ["127.0.0.1:4566:4566"]
   #   environment:
   #     SERVICES: s3,sqs
   #   healthcheck:
