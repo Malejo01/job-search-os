@@ -65,6 +65,15 @@ describe("gmailFiltersXml", () => {
 });
 
 describe("DEFAULT_ALERT_SENDERS", () => {
+  it("incluye Bumeran y ZonaJobs (este último cae a la cola manual) y el XML los lleva", () => {
+    expect(DEFAULT_ALERT_SENDERS).toEqual(
+      expect.arrayContaining(["bumeran.com", "zonajobs.com.ar"]),
+    );
+    const xml = gmailFiltersXml({ forwardTo: ADDRESS, senders: DEFAULT_ALERT_SENDERS, now: NOW });
+    expect(xml).toContain("bumeran.com");
+    expect(xml).toContain("zonajobs.com.ar");
+  });
+
   it("cubre LinkedIn empleo, Get on Board e Indeed", () => {
     expect(DEFAULT_ALERT_SENDERS).toEqual(
       expect.arrayContaining([

@@ -51,9 +51,9 @@ export function InboundAddressSection({
             , con el botón «Confirmar reenvío».
           </li>
           <li>
-            Creá un filtro solo para las alertas de LinkedIn y de Get on Board (por remitente) con
-            las acciones «Reenviar a» y «Omitir Recibidos (archivarlo)», así las alertas no ensucian
-            tu bandeja. No reenvíes el resto de tu correo.
+            Creá un filtro solo para las alertas de LinkedIn, Get on Board, Indeed y Bumeran (por
+            remitente) con las acciones «Reenviar a» y «Omitir Recibidos (archivarlo)», así las
+            alertas no ensucian tu bandeja. No reenvíes el resto de tu correo.
           </li>
         </ol>
       </details>
