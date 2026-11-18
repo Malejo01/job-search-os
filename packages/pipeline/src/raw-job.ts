@@ -21,7 +21,9 @@ export type SourceKind =
   | "lever"
   | "ashby"
   // Ronda 120: Teamtailor (feed RSS de los sitios de empleos)
-  | "teamtailor";
+  | "teamtailor"
+  // R16-2: Workable (widget público de cada cuenta)
+  | "workable";
 
 export type Modality = "remoto" | "hibrido" | "presencial" | "desconocida";
 

@@ -85,6 +85,9 @@ const downloaders: PoolDownloaders = {
   careerjet: async () => {
     throw new Error("no debería llamarse");
   },
+  workable: async () => {
+    throw new Error("no debería llamarse");
+  },
 };
 
 async function cleanup() {

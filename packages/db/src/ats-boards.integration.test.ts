@@ -145,12 +145,22 @@ describe("ats_boards", () => {
     expect(n!.n).toBe(2);
   });
 
-  it("el enum source_kind tiene wwr, greenhouse, lever, ashby y teamtailor", async () => {
+  it("el check acepta workable (R16-2) sin región y la rechaza con región", async () => {
+    await owner`insert into ats_boards (provider, token, company_name)
+                values ('workable', ${TOKEN + "-w"}, 'Empresa Ficticia 5')`;
+    await owner`delete from ats_boards where token = ${TOKEN + "-w"}`;
+    await expect(
+      owner`insert into ats_boards (provider, token, company_name, region)
+            values ('workable', ${TOKEN + "-w2"}, 'Empresa Ficticia 5', 'na')`,
+    ).rejects.toThrow(/ats_boards_region_check/);
+  });
+
+  it("el enum source_kind tiene wwr, greenhouse, lever, ashby, teamtailor y workable", async () => {
     const rows = await owner<{ v: string }[]>`
       select e.enumlabel as v from pg_enum e join pg_type t on t.oid = e.enumtypid
       where t.typname = 'source_kind'`;
     const values = rows.map((r) => r.v);
-    for (const kind of ["wwr", "greenhouse", "lever", "ashby", "teamtailor"]) {
+    for (const kind of ["wwr", "greenhouse", "lever", "ashby", "teamtailor", "workable"]) {
       expect(values).toContain(kind);
     }
   });

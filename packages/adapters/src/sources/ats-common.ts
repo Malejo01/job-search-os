@@ -14,7 +14,7 @@ import { withSignal } from "./with-signal";
  * boards la mantiene Mauro en `ats_boards`; acá solo se valida el token, se arma la URL y se
  * hace el GET con tope de tamaño, timeout y un reintento. Ver docs/adr/018-fuentes-pool-ats.md.
  */
-export const ATS_PROVIDERS = ["greenhouse", "lever", "ashby", "teamtailor"] as const;
+export const ATS_PROVIDERS = ["greenhouse", "lever", "ashby", "teamtailor", "workable"] as const;
 export type AtsProvider = (typeof ATS_PROVIDERS)[number];
 
 /** Estado cerrado de un board: lo que se guarda en `ats_boards.last_status`. */
@@ -37,7 +37,7 @@ export class AtsBoardError extends Error {
   }
 }
 
-/** Etiqueta DNS (Teamtailor la usa de subdominio): `[a-z0-9-]`, sin guion al borde, máx. 63. */
+/** Etiqueta DNS (Teamtailor la usa de subdominio y Workable de cuenta):`[a-z0-9-]`, sin guion al borde, máx. 63. */
 const DNS_LABEL_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 
 /**
@@ -55,7 +55,8 @@ export function atsBoardUrl(provider: AtsProvider, token: string, region?: strin
   ) {
     throw new AtsBoardError("invalid_token", "región inválida");
   }
-  if (provider === "teamtailor" && !DNS_LABEL_RE.test(token)) {
+  // Workable usa la cuenta como subdominio/ruta: misma etiqueta DNS estricta que Teamtailor
+  if ((provider === "teamtailor" || provider === "workable") && !DNS_LABEL_RE.test(token)) {
     throw new AtsBoardError("invalid_token", "token inválido");
   }
   const t = encodeURIComponent(token);
@@ -69,6 +70,10 @@ export function atsBoardUrl(provider: AtsProvider, token: string, region?: strin
     case "teamtailor":
       // Un único GET al feed, sin paginación (`offset`/`per_page`): es lo menos invasivo.
       return `https://${t}${hasRegion ? ".na" : ""}.teamtailor.com/jobs.rss`;
+    case "workable":
+      // La URL pública `workable.com/api/accounts/<slug>` redirige a esta; se usa directo la final y
+      // `atsGetBody` no sigue redirecciones (`redirect: "error"`), así que nunca sale a otro host.
+      return `https://apply.workable.com/api/v1/widget/accounts/${t}?details=true`;
     default:
       throw new AtsBoardError("invalid_token", "proveedor inválido");
   }
@@ -246,8 +251,7 @@ export type AtsBoardResult = {
   filteredNonRemote: number;
   /** Descartados por estructura incompleta, no listados o sin fecha válida. */
   skipped: number;
-  /** Solo Ashby: avisos con `isListed === false`. */
-  unlisted?: number;
+  /** Solo Ashby: avisos con `isListed === false`. */ unlisted?: number;
   /** Items crudos vistos, para el informe de campos del `--dry-run`. */
   seen: number;
   /** `ok`, o `not_found` si el board no existe (sin excepción). */

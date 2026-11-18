@@ -13,6 +13,7 @@ const POOL_LABELS: Record<string, string> = {
   lever: "Lever",
   ashby: "Ashby",
   teamtailor: "Teamtailor",
+  workable: "Workable",
 };
 
 /** Grupo («portal») de una oferta según su primera fuente. Pura. */

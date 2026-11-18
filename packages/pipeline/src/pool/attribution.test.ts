@@ -134,6 +134,7 @@ const SOURCE_KINDS = [
   "lever",
   "ashby",
   "teamtailor",
+  "workable",
 ] as const;
 
 describe("SOURCE_ATTRIBUTION", () => {
