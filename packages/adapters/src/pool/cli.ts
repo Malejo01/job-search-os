@@ -40,7 +40,7 @@ type AtsArgs = Extract<PoolCliArgs, { ok: true; token: string }>;
 
 const SINCE_HOURS = 48;
 /** Variables que mira `sourceUserAgent()` para armar el host del User-Agent. */
-const USER_AGENT_VARS = ["APP_URL", "NEXT_PUBLIC_APP_URL", "AUTH_URL"];
+const USER_AGENT_VARS = ["SITE_URL", "APP_URL", "NEXT_PUBLIC_APP_URL", "AUTH_URL"];
 /** Páginas de Himalayas en una prueba manual: su documentación pide una consulta por día. */
 const HIMALAYAS_DRY_RUN_PAGES = 3;
 
