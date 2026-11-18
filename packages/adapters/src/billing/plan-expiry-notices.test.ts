@@ -116,6 +116,24 @@ describe("runPlanExpiryNotices (C4-1)", () => {
     expect(params.text).toContain("https://app.example.test/settings#tu-plan");
   });
 
+  it("precio especial (ADR-040): tester_50 recibe su link, tester_50 sin variable y becado no reciben el de precio completo", async () => {
+    const run = async (override: string | null, env: Record<string, string | undefined>) => {
+      const { store } = fakeStore([cand("a", { planOverride: override })]);
+      const send = vi.fn().mockResolvedValue(undefined);
+      await runPlanExpiryNotices({ store, env, now: NOW, logger: logger().log, send });
+      return send.mock.calls[0]![0].text as string;
+    };
+    const withTester = { ...ENV, MP_LINK_TESTER_50: "https://mpago.la/mitad" };
+    expect(await run(null, withTester)).toContain("https://mpago.la/abc");
+    const tester = await run("tester_50", withTester);
+    expect(tester).toContain("https://mpago.la/mitad");
+    expect(tester).not.toContain("https://mpago.la/abc");
+    for (const text of [await run("tester_50", ENV), await run("becado", withTester)]) {
+      expect(text).not.toContain("mpago.la");
+      expect(text).toContain(ENV.CONTACT_EMAIL);
+    }
+  });
+
   it("no manda a quien no corresponde (gratis, vencido, sin fecha, más de 3 días, ya avisado)", async () => {
     const { store, calls } = fakeStore([
       cand("gratis", { plan: "gratis" }),

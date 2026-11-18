@@ -92,6 +92,18 @@ export const mcpTokens = pgTable("mcp_tokens", {
   check("mcp_tokens_hash_shape", sql`${t.tokenHash} ~ '^[0-9a-f]{64}$'`),
 ]);
 
+// Precio especial por persona (ADR-040): `becado` (plan bonificado) o `tester_50` (link de pago con 50 %).
+// Tabla propia y no una columna de `profiles`: la persona puede actualizar su propia fila de `profiles` y no
+// puede poder darse un descuento. Lee solo la suya; no tiene INSERT, UPDATE ni DELETE para la app: la marca
+// la pone y la saca el admin por `admin_plan_override_set` (rls/0022). Cae con la cuenta (cascade).
+export const planOverrides = pgTable("plan_overrides", {
+  userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  override: text("override").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  check("plan_overrides_override", sql`${t.override} in ('becado', 'tester_50')`),
+]);
+
 export const profiles = pgTable("profiles", {
   userId: uuid("user_id").primaryKey(), // = auth.users.id
   displayName: text("display_name").notNull(),
