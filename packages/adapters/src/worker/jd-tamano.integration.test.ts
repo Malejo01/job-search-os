@@ -78,9 +78,11 @@ const raw = (externalId: string, over: Partial<RawJob> = {}): RawJob => ({
   ...over,
 });
 
-/** Texto de largo exacto, con palabras para que no sea una sola cadena. */
-const padded = (head: string, length: number) =>
-  (head + " " + "contenido de relleno ".repeat(Math.ceil(length / 21))).slice(0, length - 1) + ".";
+/** Texto de largo exacto con palabras propias de cada caso, para que dos avisos no se fusionen. */
+const padded = (head: string, length: number, seed: string) => {
+  const words = Array.from({ length: Math.ceil(length / 3) }, (_, i) => `${seed}${i.toString(36)}`);
+  return `${head} ${words.join(" ")}`.slice(0, length - 1) + ".";
+};
 
 const ingest = (job: RawJob) =>
   ingestRawJob(job, { db: conn.db, userId: USER, rules: criteria as never, logger });
@@ -132,7 +134,7 @@ afterAll(async () => {
 describe("JD fuera del máximo duro", () => {
   it("no llama al modelo: la oferta queda pendiente de JD con el motivo", async () => {
     const out = await ingest(
-      raw("tam-dura-1", { jdText: padded("Buscamos AI Engineer.", JD_HARD_MAX_CHARS + 1) }),
+      raw("tam-dura-1", { jdText: padded("Buscamos AI Engineer.", JD_HARD_MAX_CHARS + 1, "a") }),
     );
     expect(out.action).toBe("inserted");
     expect((await jobRow(out.jobId)).status).toBe("prefiltrada");
@@ -155,7 +157,7 @@ describe("JD larga pero dentro del máximo duro", () => {
         // Otra empresa y otro título: si no, se fusiona con la oferta del caso anterior
         title: "Applied AI Platform Developer",
         companyRaw: "Consultora Beta",
-        jdText: padded("Buscamos AI Engineer.", JD_PROMPT_MAX_CHARS + 1_000),
+        jdText: padded("Buscamos AI Engineer.", JD_PROMPT_MAX_CHARS + 1_000, "b"),
       }),
     );
     expect(out.action).toBe("inserted");
