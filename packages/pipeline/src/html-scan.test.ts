@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { removeBlocks, stripScripts, stripTags, tagBlocks } from "./html-scan";
-import { gmailConfirmLink, gmailForwardRequester, htmlToText } from "./inbound-classify";
+import {
+  classifyInbound,
+  gmailConfirmLink,
+  gmailForwardRequester,
+  htmlToText,
+} from "./inbound-classify";
 
 const MB2 = 2 * 1024 * 1024;
 /** Las máquinas del CI son más lentas y compartidas: el margen evita falsos rojos. */
@@ -104,6 +109,28 @@ describe("tiempo con 2 MB hostiles", () => {
 
   it.each(HOSTILE)("tagBlocks con %s", (_, input) => {
     expect(elapsed(() => tagBlocks(input, "a", { boundary: "space" }))).toBeLessThan(LIMIT_MS);
+  });
+});
+
+describe("classifyInbound con un asunto de 2 MB", () => {
+  it.each([
+    ["una palabra repetida", "verify".repeat(MB2 / 6)],
+    ["espacios", " ".repeat(MB2)],
+    ["dígitos", "1".repeat(MB2)],
+  ])("%s", (_, subject) => {
+    const run = () => classifyInbound({ from: "alertas@example.com", subject, text: null });
+
+    expect(elapsed(run)).toBeLessThan(LIMIT_MS);
+  });
+
+  it("un asunto normal se sigue clasificando", () => {
+    const { category } = classifyInbound({
+      from: "alertas@example.com",
+      subject: "Tu código de verificación",
+      text: null,
+    });
+
+    expect(category).toBe("seguridad");
   });
 });
 

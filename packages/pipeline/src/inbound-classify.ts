@@ -186,7 +186,7 @@ function hasGmailConfirmSignal(text: string | null | undefined, html?: string | 
 }
 
 export function classifyInbound(input: ClassifyInput): InboundClassification {
-  const subject = (input.subject ?? "").trim();
+  const subject = (input.subject ?? "").slice(0, MAX_SUBJECT_CHARS).trim();
   const text = input.text ?? null;
   const addr = senderAddr(input.from);
   const normal: InboundClassification = { category: "normal", application: null };
