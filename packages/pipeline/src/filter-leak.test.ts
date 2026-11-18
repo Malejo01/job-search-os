@@ -206,6 +206,16 @@ describe("isExpectedSender", () => {
     }
   });
 
+  it("ZonaJobs y Computrabajo son esperados (el cuerpo se guarda), sin confundirse con parecidos", () => {
+    // Sin direcciones completas de portales: se prueba el dominio base
+    expect(EXPECTED_SOURCE_DOMAINS).toEqual(
+      expect.arrayContaining(["zonajobs.com.ar", "computrabajo.com"]),
+    );
+    expect(baseDomain("mail.zonajobs.com.ar")).toBe("zonajobs.com.ar");
+    expect(baseDomain("zonajobs.com.ar.example.org")).toBe("example.org");
+    expect(baseDomain("notzonajobs.com.ar")).not.toBe("zonajobs.com.ar");
+  });
+
   it("lo que la persona marcó como fuente de empleo también es esperado, con sus subdominios", () => {
     expect(isExpectedSender("x@empresa-norte.ats-ejemplo.test", ["ats-ejemplo.test"])).toBe(true);
   });
