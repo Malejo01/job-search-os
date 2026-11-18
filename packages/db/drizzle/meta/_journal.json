@@ -477,6 +477,13 @@
       "when": 1795009945774,
       "tag": "0067_messy_zaladane",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1795009970946,
+      "tag": "0068_panoramic_master_chief",
+      "breakpoints": true
     }
   ]
 }
