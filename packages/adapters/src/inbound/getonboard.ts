@@ -1,4 +1,4 @@
-import type { RawJob } from "@job-search-os/pipeline";
+import { MAX_EMAIL_HTML_CHARS, stripTags, tagBlocks, type RawJob } from "@job-search-os/pipeline";
 import type { EmailParser, InboundEmailContent, ParseResult } from "./parsers";
 
 /**
@@ -40,8 +40,7 @@ const ENTIDADES: Record<string, string> = {
 
 /** Texto visible de un fragmento: sin tags, entidades decodificadas, espacios colapsados. */
 function texto(html: string): string {
-  return html
-    .replace(/<[^>]+>/g, " ")
+  return stripTags(html)
     .replace(/&[a-z]+;|&#\d+;/gi, (e) => ENTIDADES[e.toLowerCase()] ?? e)
     .replace(/\s+/g, " ")
     .trim();
@@ -129,34 +128,65 @@ function rawJob(a: Aviso): RawJob {
   };
 }
 
+/** Cuántos `<strong>` de una tarjeta se prueban como título: en los emails reales es el primero. */
+const MAX_STRONGS_POR_TARJETA = 5;
+
+/**
+ * Título, línea de seniority y detalle de una tarjeta: `<strong>título</strong> <span>línea</span> <br>
+ * <span>detalle…</a>`. Se avanza por tramos para no reintentar desde cada `<strong>`.
+ */
+function partesDeTarjeta(card: string): { title: string; linea: string; detalle: string } | null {
+  const strongs = tagBlocks(card, "strong", {
+    caseSensitive: true,
+    limit: MAX_STRONGS_POR_TARJETA,
+  });
+  for (const strong of strongs) {
+    const apertura = /\s*<span[^>]*>/y;
+    apertura.lastIndex = strong.end;
+    if (!apertura.test(card)) continue;
+    const finLinea = card.indexOf("</span>", apertura.lastIndex);
+    if (finLinea < 0) return null;
+    const salto = /<\/span>\s*<br>\s*<span[^>]*>/y;
+    salto.lastIndex = finLinea;
+    if (!salto.test(card)) continue;
+    const finDetalle = card.indexOf("</a>", salto.lastIndex);
+    if (finDetalle < 0) return null;
+    return {
+      title: strong.inner,
+      linea: card.slice(apertura.lastIndex, finLinea),
+      detalle: card.slice(salto.lastIndex, finDetalle),
+    };
+  }
+  return null;
+}
+
 /** Tarjeta del formato «selección». */
 function tarjeta(card: string): Aviso | { error: string } {
   const slug = primerSlug(card);
   if (!slug) return { error: "tarjeta sin link a un aviso" };
 
-  const m =
-    /<strong[^>]*>([\s\S]*?)<\/strong>\s*<span[^>]*>([\s\S]*?)<\/span>\s*<br>\s*<span[^>]*>([\s\S]*?)<\/a>/.exec(
-      card,
-    );
+  const m = partesDeTarjeta(card);
   if (!m) return { error: `aviso ${slug}: estructura de tarjeta desconocida` };
-  const title = texto(m[1]!);
+  const title = texto(m.title);
   if (!title) return { error: `aviso ${slug} sin título` };
 
-  const partes = texto(m[2]!)
+  const partes = texto(m.linea)
     .split("|")
     .map((p) => p.trim())
     .filter(Boolean);
   const contract = partes.at(-1);
   const seniority = partes.length === 2 ? partes[0]! : null;
   if (!contract || partes.length > 2 || !CONTRATOS.includes(contract)) {
-    return { error: `aviso ${slug}: contrato desconocido («${texto(m[2]!)}»)` };
+    return { error: `aviso ${slug}: contrato desconocido («${texto(m.linea)}»)` };
   }
   if (seniority !== null && !SENIORITIES.includes(seniority)) {
     return { error: `aviso ${slug}: seniority desconocido («${seniority}»)` };
   }
 
-  const detalle = m[3]!;
-  const company = texto(/<strong[^>]*>([\s\S]*?)<\/strong>/.exec(detalle)?.[1] ?? "");
+  const detalle = m.detalle;
+  const company = texto(
+    tagBlocks(detalle, "strong", { caseSensitive: true, limit: 1 })[0]?.inner ?? "",
+  );
   if (!company) return { error: `aviso ${slug} sin empresa` };
 
   const resto = texto(detalle);
@@ -165,6 +195,9 @@ function tarjeta(card: string): Aviso | { error: string } {
 
   return { slug, title, company, seniority, contract, salario: sal };
 }
+
+const MAX_APERTURA_CONTRATO = 2_000;
+const MAX_DESTACADOS = 100;
 
 /** Bloque del formato «destacados»: desde el `<div>` que abre hasta el cierre del `<h1>` y lo que sigue. */
 function destacado(antes: string, h1: string, despues: string): Aviso | { error: string } {
@@ -182,12 +215,18 @@ function destacado(antes: string, h1: string, despues: string): Aviso | { error:
 
   // la empresa es el último <strong> del bloque, justo antes del <h1>
   const inicio = antes.lastIndexOf("<div");
-  const strongs = [...antes.slice(inicio).matchAll(/<strong[^>]*>([\s\S]*?)<\/strong>/g)];
-  const company = texto(strongs.at(-1)?.[1] ?? "");
+  const strongs = tagBlocks(antes.slice(inicio), "strong", { caseSensitive: true });
+  const company = texto(strongs.at(-1)?.inner ?? "");
   if (!company) return { error: `destacado ${slug} sin empresa` };
 
+  const apertura = /^\s*<p[^>]*>\s*(?=<strong)/.exec(despues.slice(0, MAX_APERTURA_CONTRATO));
   const contract = texto(
-    /^\s*<p[^>]*>\s*<strong[^>]*>([\s\S]*?)<\/strong>/.exec(despues)?.[1] ?? "",
+    apertura
+      ? (tagBlocks(despues.slice(apertura[0].length), "strong", {
+          caseSensitive: true,
+          limit: 1,
+        })[0]?.inner ?? "")
+      : "",
   );
   if (!CONTRATOS.includes(contract)) {
     return { error: `destacado ${slug}: contrato desconocido («${contract}»)` };
@@ -199,10 +238,11 @@ function destacado(antes: string, h1: string, despues: string): Aviso | { error:
 function avisos(html: string): Aviso[] | { error: string } {
   const out: Aviso[] = [];
 
-  for (const m of html.matchAll(/(<h1[^>]*>[\s\S]*?<\/h1>)/g)) {
-    if (!primerSlug(m[1]!)) continue; // un <h1> que no es un aviso (título del email)
-    const i = m.index!;
-    const res = destacado(html.slice(0, i), m[1]!, html.slice(i + m[1]!.length));
+  for (const h1 of tagBlocks(html, "h1", { caseSensitive: true })) {
+    const bloque = html.slice(h1.start, h1.end);
+    if (!primerSlug(bloque)) continue; // un <h1> que no es un aviso (título del email)
+    if (out.length >= MAX_DESTACADOS) return { error: "demasiados avisos destacados" };
+    const res = destacado(html.slice(0, h1.start), bloque, html.slice(h1.end));
     if ("error" in res) return res;
     out.push(res);
   }
@@ -223,6 +263,9 @@ export const getonboardParser: EmailParser = {
   name: "getonboard",
   parse(email: InboundEmailContent): ParseResult {
     if (!email.html) return { ok: false, reason: "email de Get on Board sin HTML: cola manual" };
+    if (email.html.length > MAX_EMAIL_HTML_CHARS) {
+      return { ok: false, reason: "email de Get on Board demasiado grande: cola manual" };
+    }
     const res = avisos(email.html);
     if ("error" in res) return { ok: false, reason: `${res.error}: cola manual` };
     if (res.length === 0) {

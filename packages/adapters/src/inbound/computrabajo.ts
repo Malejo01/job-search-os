@@ -1,4 +1,10 @@
-import type { RawJob } from "@job-search-os/pipeline";
+import {
+  MAX_EMAIL_HTML_CHARS,
+  removeBlocks,
+  stripTags,
+  tagBlocks,
+  type RawJob,
+} from "@job-search-os/pipeline";
 import type { EmailParser, InboundEmailContent, ParseResult } from "./parsers";
 
 /**
@@ -33,8 +39,7 @@ const ENTIDADES: Record<string, string> = {
 
 function texto(html: string): string {
   return (
-    html
-      .replace(/<[^>]+>/g, " ")
+    stripTags(html)
       .replace(/&#(\d+);/g, (_, n: string) => String.fromCodePoint(Number(n)))
       .replace(/&[a-z]+;/gi, (e) => ENTIDADES[e.toLowerCase()] ?? e)
       // \s ya incluye el espacio de no separación (&#160;)
@@ -68,14 +73,14 @@ function leerTarjeta(href: string, interior: string): RawJob | string {
   const aviso = avisoDelTracker(href);
   if (!aviso) return "link de la tarjeta que no apunta a un aviso de Computrabajo";
 
-  const titulos = [...interior.matchAll(/<td[^>]*class="title_oferta"[^>]*>([\s\S]*?)<\/td>/gi)];
+  const titulos = tagBlocks(interior, "td", { attrs: (a) => /class="title_oferta"/i.test(a) });
   if (titulos.length !== 1) return `tarjeta con ${titulos.length} títulos (se espera 1)`;
-  const title = texto(/<strong[^>]*>([\s\S]*?)<\/strong>/i.exec(titulos[0]![1]!)?.[1] ?? "");
+  const title = texto(tagBlocks(titulos[0]!.inner, "strong", { limit: 1 })[0]?.inner ?? "");
   if (!title) return "tarjeta sin título";
 
-  const lineas = [...interior.matchAll(/<td[^>]*class="texto_oferta"[^>]*>([\s\S]*?)<\/td>/gi)].map(
+  const lineas = tagBlocks(interior, "td", { attrs: (a) => /class="texto_oferta"/i.test(a) }).map(
     // La calificación de la empresa viene en un <span> dentro de la misma celda
-    (m) => texto(m[1]!.replace(/<span[\s\S]*?<\/span>/gi, " ")),
+    (td) => texto(removeBlocks(td.inner, "span", " ")),
   );
   if (lineas.length !== 2) {
     return `tarjeta con ${lineas.length} líneas de texto (se esperan 2: empresa y ubicación)`;
@@ -118,6 +123,9 @@ export const computrabajoParser: EmailParser = {
   parse(email: InboundEmailContent): ParseResult {
     const html = email.html;
     if (!html) return { ok: false, reason: "email de Computrabajo sin HTML: cola manual" };
+    if (html.length > MAX_EMAIL_HTML_CHARS) {
+      return { ok: false, reason: "email de Computrabajo demasiado grande: cola manual" };
+    }
     if (RECORDATORIO.test(html)) {
       return {
         ok: false,
@@ -125,8 +133,8 @@ export const computrabajoParser: EmailParser = {
       };
     }
 
-    const tarjetas = [...html.matchAll(/<a\s([^>]*)>([\s\S]*?)<\/a>/gi)].filter((m) =>
-      /class="title_oferta"/i.test(m[2]!),
+    const tarjetas = tagBlocks(html, "a", { boundary: "space" }).filter((a) =>
+      /class="title_oferta"/i.test(a.inner),
     );
     const totalTitulos = [...html.matchAll(/class="title_oferta"/gi)].length;
     if (!tarjetas.length) {
@@ -140,9 +148,9 @@ export const computrabajoParser: EmailParser = {
     }
 
     const jobs: RawJob[] = [];
-    for (const m of tarjetas) {
-      const href = /href="([^"]+)"/i.exec(m[1]!)?.[1] ?? "";
-      const job = leerTarjeta(href, m[2]!);
+    for (const a of tarjetas) {
+      const href = /href="([^"]+)"/i.exec(a.attrs)?.[1] ?? "";
+      const job = leerTarjeta(href, a.inner);
       if (typeof job === "string") return { ok: false, reason: `${job}: cola manual` };
       jobs.push(job);
     }
