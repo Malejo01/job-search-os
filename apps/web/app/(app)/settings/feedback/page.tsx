@@ -114,6 +114,17 @@ export default async function FeedbackTriagePage({
           />
         </label>
         <label className={label}>
+          Persona (identificador)
+          <input
+            name="persona"
+            defaultValue={filters.person ?? ""}
+            placeholder="a1b2c3"
+            maxLength={6}
+            autoComplete="off"
+            className={inputClasses()}
+          />
+        </label>
+        <label className={label}>
           Desde
           <input
             type="date"
@@ -192,7 +203,14 @@ function FeedbackList({ rows, total }: { rows: ReturnType<typeof filterFeedback>
               <code>{r.path}</code>
               <span>·</span>
               <span>{r.career && isRoleKey(r.career) ? careerLabel(r.career) : "sin carrera"}</span>
-              <span>· persona {r.person}</span>
+              <span>·</span>
+              <Link
+                href={`/settings/feedback?persona=${encodeURIComponent(r.person)}`}
+                className="inline-flex min-h-11 items-center underline"
+                aria-label={`Ver solo lo de la persona ${r.person}`}
+              >
+                persona {r.person}
+              </Link>
             </div>
             <p className="whitespace-pre-wrap break-words text-fg">{r.message}</p>
             {actions.length > 0 ? (

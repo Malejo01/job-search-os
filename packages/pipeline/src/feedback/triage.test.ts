@@ -30,6 +30,7 @@ describe("parseFeedbackFilters (C8-17)", () => {
         desde: "2026-11-26",
         hasta: "2026-11-30",
         estado: "visto",
+        persona: " A1B2C3 ",
       }),
     ).toEqual({
       career: "abogacia",
@@ -38,6 +39,7 @@ describe("parseFeedbackFilters (C8-17)", () => {
       from: "2026-11-26",
       to: "2026-11-30",
       status: "visto",
+      person: "a1b2c3",
     });
     expect(
       parseFeedbackFilters({
@@ -46,8 +48,17 @@ describe("parseFeedbackFilters (C8-17)", () => {
         pagina: "jobs",
         desde: "ayer",
         estado: "?",
+        persona: "no es un id",
       }),
-    ).toEqual({ career: null, category: null, path: null, from: null, to: null, status: null });
+    ).toEqual({
+      career: null,
+      category: null,
+      path: null,
+      from: null,
+      to: null,
+      status: null,
+      person: null,
+    });
   });
 });
 
@@ -55,7 +66,12 @@ describe("filterFeedback", () => {
   const rows = [
     row({ id: "a" }),
     row({ id: "b", category: "idea", career: "finanzas_contabilidad", path: "/hoy" }),
-    row({ id: "c", createdAt: new Date("2026-11-20T12:00:00Z"), status: "resuelto" }),
+    row({
+      id: "c",
+      createdAt: new Date("2026-11-20T12:00:00Z"),
+      status: "resuelto",
+      person: "d4e5f6",
+    }),
   ];
   it("por carrera, categoría, página (prefijo), fecha (día de Argentina) y estado", () => {
     const f = (q: Record<string, string>) =>
@@ -66,6 +82,9 @@ describe("filterFeedback", () => {
     expect(f({ desde: "2026-11-26" })).toEqual(["a", "b"]);
     expect(f({ hasta: "2026-11-20" })).toEqual(["c"]);
     expect(f({ estado: "resuelto" })).toEqual(["c"]);
+    expect(f({ persona: "d4e5f6" })).toEqual(["c"]);
+    expect(f({ persona: "A1B2C3" })).toEqual(["a", "b"]);
+    expect(f({ persona: "ffffff" })).toEqual([]);
   });
 });
 
