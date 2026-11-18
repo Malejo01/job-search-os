@@ -14,6 +14,7 @@ import { useState } from "react";
 import { CvPreview } from "@/components/cv-preview";
 import { PrintButton } from "@/components/print-button";
 import { Alert, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
+import { isInternalPath } from "@/lib/internal-path";
 
 type Notice = { message: string; links: { label: string; href: string }[] };
 type Written = {
@@ -82,8 +83,8 @@ export function ProfileAgentClose({
       if (Array.isArray(data.links)) {
         setNotice({
           message: typeof data.message === "string" ? data.message : FALLBACK,
-          links: (data.links as { label: string; href: string }[]).filter(
-            (l) => typeof l.href === "string" && l.href.startsWith("/"),
+          links: (data.links as { label: string; href: string }[]).filter((l) =>
+            isInternalPath(l.href),
           ),
         });
       } else {
