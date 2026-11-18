@@ -42,6 +42,10 @@ function texto(html: string): string {
   );
 }
 
+/** Topes del token del tracker: un link real ocupa una fracción de esto. Pasados, falla cerrado. */
+const MAX_TRACKER_TOKEN_CHARS = 4 * 1024;
+const MAX_TRACKER_DECODED_BYTES = 64 * 1024;
+
 /** Host y jk de un link de Indeed: directo (`?jk=`) o envuelto en el tracker cts.indeed.com/v3. */
 export function jobKeyFromTracker(href: string): { host: string; jk: string } | null {
   const url = href.replace(/&amp;/g, "&");
@@ -52,9 +56,12 @@ export function jobKeyFromTracker(href: string): { host: string; jk: string } | 
   const direct = found(url);
   if (direct) return direct;
   const token = /^https:\/\/cts\.indeed\.com\/v3\/([A-Za-z0-9_-]+)/.exec(url)?.[1];
-  if (!token) return null;
+  if (!token || token.length > MAX_TRACKER_TOKEN_CHARS) return null;
   try {
-    return found(gunzipSync(Buffer.from(token, "base64url")).toString("utf8"));
+    const decoded = gunzipSync(Buffer.from(token, "base64url"), {
+      maxOutputLength: MAX_TRACKER_DECODED_BYTES,
+    });
+    return found(decoded.toString("utf8"));
   } catch {
     return null;
   }
