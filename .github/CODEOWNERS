@@ -20,6 +20,7 @@
 /.gitattributes @Malejo01
 /.gitmodules @Malejo01
 /.gitguardian.yaml @Malejo01
+/.gitleaks* @Malejo01
 /.nvmrc @Malejo01
 /.prettierignore @Malejo01
 /.env.example @Malejo01
@@ -52,6 +53,34 @@
 /apps/web/lib/ingest-manual.ts @Malejo01
 /packages/adapters/src/auth/** @Malejo01
 /packages/adapters/src/admin/** @Malejo01
+/apps/web/lib/admin-guard.ts @Malejo01
+/apps/web/lib/admin-routes.ts @Malejo01
+/apps/web/lib/route-access.ts @Malejo01
+/apps/web/lib/assistant.ts @Malejo01
+/apps/web/lib/cv-coach/access.ts @Malejo01
+/apps/web/lib/profile-agent/access.ts @Malejo01
+/apps/web/lib/user-plan.ts @Malejo01
+/apps/web/lib/llm-service.ts @Malejo01
+/apps/web/lib/setup.ts @Malejo01
+/apps/web/lib/pool-reassign.ts @Malejo01
+/apps/web/lib/evaluate-now.ts @Malejo01
+/packages/adapters/src/cv-coach/review/sign.ts @Malejo01
+
+# Server actions fuera de actions.ts
+/apps/web/app/**/*-action.ts @Malejo01
+/apps/web/lib/guide-actions.ts @Malejo01
+/apps/web/app/(app)/hoy/page.tsx @Malejo01
+/apps/web/app/(app)/jobs/first-steps.tsx @Malejo01
+/apps/web/app/(app)/jobs/role-nudge.tsx @Malejo01
+/apps/web/app/(auth)/forgot-password/page.tsx @Malejo01
+/apps/web/app/(auth)/login/page.tsx @Malejo01
+/apps/web/app/(auth)/register/page.tsx @Malejo01
+/apps/web/app/(auth)/reset-password/page.tsx @Malejo01
+/apps/web/app/(auth)/setup/page.tsx @Malejo01
+/apps/web/app/components/email-nudge.tsx @Malejo01
+/apps/web/app/onboarding/layout.tsx @Malejo01
+/apps/web/app/onboarding/skills/page.tsx @Malejo01
+/apps/web/app/terminos-actualizados/page.tsx @Malejo01
 
 # Prompts, evaluador y evals (los evals del CI son pagos)
 /packages/prompts/** @Malejo01
@@ -80,6 +109,7 @@
 
 # Rutas de API, webhooks, ingesta de email, crons y MCP (bordes con secreto propio)
 /apps/web/app/api/** @Malejo01
+/apps/web/app/**/route.ts @Malejo01
 /packages/adapters/src/inbound/** @Malejo01
 /packages/adapters/src/email/** @Malejo01
 /packages/adapters/src/mcp/** @Malejo01
@@ -90,4 +120,4 @@
 /pnpm-workspace.yaml @Malejo01
 /.npmrc @Malejo01
 /apps/web/next.config.ts @Malejo01
-/vercel.json @Malejo01
+**/vercel.json @Malejo01
