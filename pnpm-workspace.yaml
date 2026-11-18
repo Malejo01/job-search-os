@@ -23,3 +23,11 @@ minimumReleaseAgeExclude:
   - "@ai-sdk/provider@4.0.13"
   - ai@7.0.97
   - zod@4.6.1
+
+# Versiones mínimas de dependencias transitivas (endurecimiento S2, 18/11)
+overrides:
+  "undici@>=7.0.0 <7.30.1": ">=7.30.1 <8"
+  "postcss@<8.5.23": "^8.5.23"
+  "source-map-js@<1.2.2": "^1.2.2"
+  "sharp@<0.35.5": "^0.35.5"
+  "zod@<4.6.6": "^4.6.6"
