@@ -1747,3 +1747,23 @@ Base: `ronda/integracion-r11` (PR #517). Sale de la prueba de Mauro del 17/11 ([
 
 ### R12 · Cierre de la tanda
 `deps:` todo en PR · `estado:` en PR (17/11) · rama `ronda/r12-cierre`
+
+## Bloque 28 · Tanda R14 «Carreras y CV» (18/11, noche)
+
+Base: `origin/main` en `0ef91b9`. Informe de la tanda: [`docs/beta/informe-r14.md`](beta/informe-r14.md). Ningún PR mergeado.
+
+### R14-1 · Tres puestos de marketing y contenido (carril rojo)
+`deps:` — · `estado:` en rama (18/11) · `ronda/r14-1-puestos-marketing` · SQL de skills en Neon
+
+### R14-2 · «¿Tu CV es legible por los filtros (ATS)?»
+`deps:` — · `estado:` en rama, e2e sin ejecutar (18/11) · `ronda/r14-2-cv-legible-ats`
+
+### R14-3 · Una persona por carrera de la beta
+`deps:` — · `estado:` en rama, **e2e sin ejecutar** (18/11) · `ronda/r14-3-personas-carreras`
+- Cubre las 8 carreras. Los tres puestos de R14-1 quedan para cuando las dos ramas estén en `main`.
+
+### R14-4 · Filtro por persona en el feedback del admin
+`deps:` — · `estado:` en rama (18/11) · `ronda/r14-4-feedback-admin`
+
+### R14 · Cierre de la tanda
+`deps:` todo en rama · `estado:` en rama (18/11) · `ronda/r14-cierre`
