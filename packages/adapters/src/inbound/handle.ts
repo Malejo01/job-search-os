@@ -50,6 +50,8 @@ export type InboundDeps = {
   logger: Logger;
   /** Máximo de emails por usuario en una hora (ARCHITECTURE §8). */
   hourlyLimit?: number;
+  /** Máximo de emails por usuario en 24 h. */
+  dailyLimit?: number;
   now?: () => Date;
   /** Casillas del pool (ADR-024). Sin esto se lee del entorno: apagado salvo POOL_SOURCE_COMPUTRABAJO_ALERTS=1. */
   pool?: PoolInboundConfig;
@@ -81,6 +83,17 @@ export const SECURITY_EMAIL_REASON =
 
 /** Valor de `inbound_emails.parser` para el ruido social de LinkedIn (JS-050). */
 export const LINKEDIN_SOCIAL_PARSER = "linkedin_social";
+
+/** Tamaño máximo de un email guardado completo. Una alerta real de empleo queda muy por debajo. */
+export const USER_RAW_MAX_BYTES = 1024 * 1024;
+export const OVERSIZE_EMAIL_REASON =
+  "email demasiado grande: se guardó solo remitente, asunto y fecha, sin el cuerpo";
+
+/** Tarjetas máximas por email. Las alertas reales traen unas pocas decenas. */
+export const EMAIL_MAX_CARDS = 100;
+export const TOO_MANY_CARDS_REASON = "el email trae demasiados avisos: cola manual";
+
+const USER_DAILY_EMAIL_LIMIT = 300;
 
 /** Dominio del remitente, con o sin nombre visible; null si no se puede leer. */
 function senderDomain(from: string): string | null {
@@ -255,17 +268,24 @@ export async function handleInboundEmail(
   const userId = profile.userId;
 
   const countRows = (await db
-    .select({ count: sql<number>`count(*)::int` })
+    .select({
+      hour: sql<number>`count(*) filter (where ${s.inboundEmails.receivedAt} >= ${new Date(now.getTime() - 60 * 60 * 1000).toISOString()}::timestamptz)::int`,
+      day: sql<number>`count(*)::int`,
+    })
     .from(s.inboundEmails)
     .where(
       and(
         eq(s.inboundEmails.userId, userId),
-        gte(s.inboundEmails.receivedAt, new Date(now.getTime() - 60 * 60 * 1000)),
+        gte(s.inboundEmails.receivedAt, new Date(now.getTime() - 24 * 60 * 60 * 1000)),
       ),
-    )) as { count: number }[];
-  const count = countRows[0]?.count ?? 0;
-  if (count >= (deps.hourlyLimit ?? 100)) {
-    log.warn({ user_id: userId, count }, "inbound: rate limit por usuario");
+    )) as { hour: number; day: number }[];
+  const count = countRows[0]?.hour ?? 0;
+  const dayCount = countRows[0]?.day ?? 0;
+  if (
+    count >= (deps.hourlyLimit ?? 100) ||
+    dayCount >= (deps.dailyLimit ?? USER_DAILY_EMAIL_LIMIT)
+  ) {
+    log.warn({ user_id: userId, count, day_count: dayCount }, "inbound: rate limit por usuario");
     // El email no se guarda (es el punto del límite), pero queda contado para que /inbox
     // avise en vez de perderlo en silencio (JS-038). Una fila por usuario y hora.
     await db.execute(sql`
@@ -276,6 +296,13 @@ export async function handleInboundEmail(
     `);
     return { kind: "rate_limited", userId };
   }
+
+  // Un email que pasa el tope no se lee: queda solo con metadatos, como uno de remitente no esperado.
+  const oversize =
+    Buffer.byteLength(rawBody, "utf8") +
+      Buffer.byteLength(content?.html ?? "", "utf8") +
+      Buffer.byteLength(content?.text ?? "", "utf8") >
+    USER_RAW_MAX_BYTES;
 
   // JS-119: se clasifica antes del chequeo de remitente. Los códigos y reseteos (de cualquier
   // remitente) se guardan como los de un remitente no esperado y con el asunto enmascarado;
@@ -296,7 +323,7 @@ export async function handleInboundEmail(
     from: event.data.from,
     to: recipients,
     subject: event.data.subject,
-    text: content?.text || (content?.html ? htmlToText(content.html) : null),
+    text: oversize ? null : content?.text || (content?.html ? htmlToText(content.html) : null),
     securityBySubjectOnly: senderExpected,
   });
   const category = classification.category;
@@ -314,7 +341,7 @@ export async function handleInboundEmail(
   // esperados (fuentes de empleo conocidas o dominios marcados como fuente de empleo). Del resto,
   // solo remitente, destinatarios, asunto, fecha y el email_id (idempotencia); ni cuerpo ni
   // nombres de adjuntos.
-  const expected = !isSecurity && (isGmailConfirm || senderExpected);
+  const expected = !isSecurity && !oversize && (isGmailConfirm || senderExpected);
   // Todo lo que no se guarda completo lleva el asunto con los números enmascarados
   const storedSubject = expected
     ? (event.data.subject ?? null)
@@ -341,7 +368,11 @@ export async function handleInboundEmail(
               },
             },
             content: null,
-            redacted: isSecurity ? SECURITY_EMAIL_REASON : UNEXPECTED_SENDER_REASON,
+            redacted: isSecurity
+              ? SECURITY_EMAIL_REASON
+              : oversize
+                ? OVERSIZE_EMAIL_REASON
+                : UNEXPECTED_SENDER_REASON,
           },
     ),
   });
@@ -358,6 +389,8 @@ export async function handleInboundEmail(
     parserUsed = SECURITY_PARSER;
     error = SECURITY_EMAIL_REASON;
     dismissedAt = now;
+  } else if (oversize) {
+    error = OVERSIZE_EMAIL_REASON;
   } else if (isGmailConfirm) {
     // Queda completo y pendiente: la persona tiene que abrir el link de confirmación
     parserUsed = GMAIL_FORWARDING_PARSER;
@@ -417,6 +450,8 @@ export async function handleInboundEmail(
     const parsed = parser.parse(email);
     if (!parsed.ok) {
       error = `estructura no reconocida (${parser.name}): ${parsed.reason}. Cola manual`;
+    } else if (parsed.jobs.length > EMAIL_MAX_CARDS) {
+      error = TOO_MANY_CARDS_REASON;
     } else if (parsed.jobs.length) {
       const [criteria] = await db
         .select({ rules: s.evaluationCriteria.rules })
