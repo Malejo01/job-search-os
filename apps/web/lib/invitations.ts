@@ -12,6 +12,7 @@ import {
   INVALID_INVITATION_MESSAGE,
   isInvitationAdmin,
   isValidEmail,
+  mayRegisterWithInvitation,
   normalizeEmail,
   validateRegistration,
   type InvitationStatus,
@@ -37,6 +38,20 @@ export async function canCreateInvitations(userId: string): Promise<boolean> {
 }
 
 /**
+ * Lecturas de administración entre personas: además de `ADMIN_EMAILS`, exige fila en `app_admins`.
+ * Falla cerrado: si la consulta rompe, la cuenta no pasa.
+ */
+export async function canReadAdminData(userId: string): Promise<boolean> {
+  try {
+    if (!(await canCreateInvitations(userId))) return false;
+    const rows = await withUser(userId, (tx) => tx.execute(sql`select is_app_admin() as ok`));
+    return (rows as unknown as { ok: boolean }[])[0]?.ok === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Crea una invitación del usuario. Devuelve el código en claro UNA vez: en la base queda solo el
  * sha256. `email` opcional: si viene, solo ese email puede canjearla.
  */
@@ -56,6 +71,11 @@ export async function createInvitation(
       .limit(1);
     if (!isInvitationAdmin(me?.email, process.env.ADMIN_EMAILS))
       throw new NotInvitationAdminError();
+    // La policy de la base también lo exige: esto solo evita mostrar un error crudo
+    const admin = (await tx.execute(sql`select is_app_admin() as ok`)) as unknown as {
+      ok: boolean;
+    }[];
+    if (admin[0]?.ok !== true) throw new NotInvitationAdminError();
     return tx
       .insert(s.invitations)
       .values({ codeHash, email, createdByUserId: userId })
@@ -174,6 +194,13 @@ export async function registerWithInvitation(
     sql`select invitation_is_redeemable(${codeHash}, ${email}) as ok`,
   )) as unknown as { ok: boolean }[];
   if (!pre?.ok) throw new InvalidInvitationError();
+  const allowed = await mayRegisterWithInvitation(email, process.env, async () => {
+    const [bound] = (await getAppDb().execute(
+      sql`select invitation_is_bound_to_email(${codeHash}, ${email}) as ok`,
+    )) as unknown as { ok: boolean }[];
+    return bound?.ok === true;
+  });
+  if (!allowed) throw new InvalidInvitationError();
   const passwordHash = hashPassword(input.password);
   const ingestDomain = process.env.INGEST_DOMAIN ?? "ingest.local";
   // La dirección de ingesta es un token aleatorio. Si choca con el unique de inbound_address

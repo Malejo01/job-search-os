@@ -11,7 +11,7 @@ import { createDb, requireDatabaseUrl } from "@job-search-os/db";
 import type { BetaHealthInput } from "@job-search-os/pipeline";
 import { sql } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
-import { canCreateInvitations } from "./invitations";
+import { canReadAdminData } from "./invitations";
 
 /**
  * Salud diaria de la beta (C8-11), solo servidor y solo admins (ADMIN_EMAILS). Lee conteos agregados
@@ -140,7 +140,7 @@ export type BetaHealthResult =
   | { ok: false; reason: "no_admin" | "sin_datos" };
 
 export async function getBetaHealth(userId: string): Promise<BetaHealthResult> {
-  if (!(await canCreateInvitations(userId).catch(() => false))) {
+  if (!(await canReadAdminData(userId))) {
     return { ok: false, reason: "no_admin" };
   }
   // La clave del caché es el minuto: dentro de 5 min devuelve lo mismo

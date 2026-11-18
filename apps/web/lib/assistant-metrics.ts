@@ -9,7 +9,7 @@ import {
 } from "@job-search-os/pipeline";
 import { sql } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
-import { canCreateInvitations } from "./invitations";
+import { canReadAdminData } from "./invitations";
 
 /**
  * Medición del asistente por día (R9-2), solo servidor y solo admins: lo mismo que `/settings/salud`.
@@ -90,7 +90,7 @@ export type AssistantMetricsResult =
   { ok: true; days: AssistantDayMetrics[] } | { ok: false; reason: "no_admin" | "sin_datos" };
 
 export async function getAssistantMetrics(userId: string): Promise<AssistantMetricsResult> {
-  if (!(await canCreateInvitations(userId).catch(() => false))) {
+  if (!(await canReadAdminData(userId))) {
     return { ok: false, reason: "no_admin" };
   }
   const now = new Date();
