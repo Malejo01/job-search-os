@@ -82,6 +82,9 @@ const downloaders: PoolDownloaders = {
   jooble: async () => {
     throw new Error("no debería llamarse");
   },
+  careerjet: async () => {
+    throw new Error("no debería llamarse");
+  },
 };
 
 async function cleanup() {
