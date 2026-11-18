@@ -37,10 +37,21 @@ const ENTIDADES: Record<string, string> = {
   "&nbsp;": " ",
 };
 
+/** Carácter de una entidad numérica. Lo que no es un carácter de texto válido se descarta. */
+function numericEntity(digits: string): string {
+  const code = Number(digits);
+  const valid =
+    Number.isInteger(code) &&
+    code > 0 &&
+    code <= 0x10ffff &&
+    !(code >= 0xd800 && code <= 0xdfff);
+  return valid ? String.fromCodePoint(code) : "";
+}
+
 function texto(html: string): string {
   return (
     stripTags(html)
-      .replace(/&#(\d+);/g, (_, n: string) => String.fromCodePoint(Number(n)))
+      .replace(/&#(\d+);/g, (_, n: string) => numericEntity(n))
       .replace(/&[a-z]+;/gi, (e) => ENTIDADES[e.toLowerCase()] ?? e)
       // \s ya incluye el espacio de no separación (&#160;)
       .replace(/\s+/g, " ")
