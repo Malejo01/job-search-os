@@ -6,7 +6,7 @@ import pino from "pino";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { pgBlobStorage } from "../storage/blob";
 import { processInboundEvent } from "./handle";
-import { ResendFetchError, type ResendReceivedEvent } from "./resend";
+import { loadInboundContent, ResendFetchError, type ResendReceivedEvent } from "./resend";
 
 /** El cuerpo del email se pide solo si hay un destino válido. Direcciones inventadas. */
 const USER = "a0000000-0000-4000-8000-000000000516";
@@ -132,6 +132,28 @@ describe("processInboundEvent", () => {
       processInboundEvent(ev, JSON.stringify(ev), failing, deps()),
     ).rejects.toBeInstanceOf(ResendFetchError);
     expect(await stored("em_reintento")).toBe(0);
+
+    const out = await processInboundEvent(ev, JSON.stringify(ev), fetchSpy(), deps());
+    expect(out.kind).toBe("stored");
+  });
+
+  it.each([
+    ["HTTP 401", async () => new Response("{}", { status: 401 })],
+    ["HTTP 403", async () => new Response("{}", { status: 403 })],
+    ["una lectura del cuerpo cortada", async () => new Response('{"html": "<p>', { status: 200 })],
+  ])("si la API responde %s no guarda la fila y el reintento lo procesa", async (_, respond) => {
+    const ev = event(`em_lectura_${_.replaceAll(" ", "_")}`, [ADDRESS]);
+    const failing = () =>
+      loadInboundContent(
+        ev.data.email_id,
+        "clave-de-prueba",
+        { warn: () => {}, error: () => {} },
+        vi.fn(respond) as unknown as typeof fetch,
+      );
+    await expect(
+      processInboundEvent(ev, JSON.stringify(ev), failing, deps()),
+    ).rejects.toBeInstanceOf(ResendFetchError);
+    expect(await stored(ev.data.email_id)).toBe(0);
 
     const out = await processInboundEvent(ev, JSON.stringify(ev), fetchSpy(), deps());
     expect(out.kind).toBe("stored");

@@ -621,7 +621,8 @@ export async function handleInboundEmail(
     } else if (!parser) {
       error = MANUAL_QUEUE_REASON;
     } else if (!content) {
-      error = "sin cuerpo del email (falta RESEND_API_KEY para pedirlo): cola manual";
+      error =
+        "sin cuerpo del email (no se configuró RESEND_API_KEY o el correo ya no está disponible en Resend): cola manual";
     } else {
       parserUsed = parser.name;
       const email: InboundEmailContent = {

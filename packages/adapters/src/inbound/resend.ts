@@ -44,6 +44,11 @@ export class ResendFetchError extends Error {
   }
 }
 
+/** 401 y 403 (clave revocada o mal rotada) se reintentan: perder el cuerpo con un 200 sería silencioso. */
+const CONFIG_ERROR_STATUSES: readonly number[] = [401, 403];
+const isRetryableStatus = (status: number): boolean =>
+  status === 429 || status >= 500 || CONFIG_ERROR_STATUSES.includes(status);
+
 /**
  * GET /emails/receiving/{id}: el webhook solo trae metadatos; el cuerpo se pide por API.
  * Sin RESEND_API_KEY se guarda solo el evento (los parsers no pueden correr).
@@ -66,13 +71,19 @@ export async function fetchReceivedEmail(
     throw new ResendFetchError(null, true);
   }
   if (!res.ok) {
-    throw new ResendFetchError(res.status, res.status === 429 || res.status >= 500);
+    throw new ResendFetchError(res.status, isRetryableStatus(res.status));
   }
-  const json = (await res.json()) as {
+  let json: {
     html?: string | null;
     text?: string | null;
     headers?: Record<string, string> | null;
   };
+  try {
+    json = (await res.json()) as typeof json;
+  } catch {
+    // Tiempo agotado a mitad de la descarga, conexión cortada o JSON truncado: pasajero
+    throw new ResendFetchError(null, true);
+  }
   return { html: json.html ?? null, text: json.text ?? null, headers: json.headers ?? null };
 }
 
@@ -83,12 +94,22 @@ export async function fetchReceivedEmail(
 export async function loadInboundContent(
   emailId: string,
   apiKey: string,
-  logger: { warn: (context: object, message: string) => void },
+  logger: {
+    warn: (context: object, message: string) => void;
+    error?: (context: object, message: string) => void;
+  },
   fetchImpl: typeof fetch = fetch,
 ): Promise<ReceivedEmailContent | null> {
   try {
     return await fetchReceivedEmail(emailId, apiKey, fetchImpl);
   } catch (e) {
+    if (e instanceof ResendFetchError && CONFIG_ERROR_STATUSES.includes(e.status ?? 0)) {
+      // Error de configuración: solo el código de estado, nunca la clave ni el id del email
+      logger.error?.(
+        { status: e.status },
+        "inbound: Resend rechazó la clave de API (revisar RESEND_API_KEY)",
+      );
+    }
     if (e instanceof ResendFetchError && e.retryable) throw e;
     logger.warn({ status: e instanceof ResendFetchError ? e.status : null }, "inbound: sin cuerpo");
     return null;
