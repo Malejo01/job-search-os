@@ -1,3 +1,4 @@
+import { renderJob, type JobForPrompt } from "../evaluation";
 import { foldText } from "../normalize/text";
 
 /** Flag que el worker agrega a los de `decide()` y persiste en `jobs.flags`. */
@@ -52,7 +53,119 @@ const PATTERNS: readonly { name: string; re: RegExp }[] = [
   { name: "token_im_start", re: /<\|im_start\|>/ },
   { name: "bloque_json", re: /```\s*json/ },
   { name: "encabezado_rol", re: /###\s*(?:system|instruction|assistant)\b/ },
+  // Señales por intención: un verbo de mandato cerca de nota/puntaje, o pedir que se ignore lo anterior.
+  // Las repeticiones están acotadas ({0,n}) y cada una consume palabras enteras: costo lineal.
+  {
+    name: "ignorar_indicaciones",
+    re: /\b(?:ignor(?:a|e|ar)|descart(?:a|e|ar)|desestim(?:a|e|ar)|omit(?:e|ir)|saltea(?:te)?|desatend(?:e|er))\s+(?:(?:todas?|todo|el|la|las|los|lo|as|os)\s+){0,2}(?:(?:instruc\w*|reglas?|regras|indicaciones)\s+(?:anteriores|previas|previos)|(?:lo\s+)?(?:indicado|anterior|escrito)\b)/,
+  },
+  {
+    name: "pasar_por_alto",
+    re: /\bpasa(?:r)?\s+por\s+alto\s+(?:todo\s+)?(?:lo\s+)?(?:indicado|anterior|escrito|dicho)/,
+  },
+  {
+    name: "mandato_nota",
+    re: /\b(?:pone|poner|ponele|asigna|asignale|asignar|dale|califica|calificalo|calificar|puntua|otorga|otorgale|give|assign|rate|grade|set)\b(?:\W+\w+){0,4}?\W+(?:nota|score|puntaje|puntuacion|calificacion|rating|grade)\b(?:\W+(?:de|of|a|to|as|como))?\W+(?:maxim[ao]|alt[ao]|perfect[ao]?|max|maximum|highest|top|diez|ten|10|9|excelente)\b/,
+  },
+  {
+    name: "mandato_nota_maxima",
+    re: /\b(?:pone|poner|ponele|asigna|asignale|asignar|dale|califica|calificalo|calificar|puntua|otorga|otorgale|give|assign|rate|grade|set)\b(?:\W+\w+){0,3}?\W+(?:maxim[ao]|maximum|highest|top|perfect[ao]?|alt[ao]|high|diez|ten)\s+(?:nota|score|puntaje|puntuacion|calificacion|rating|grade)\b/,
+  },
+  {
+    name: "calificar_diez_de_diez",
+    re: /\b(?:rate|grade|califica|calificalo|puntua)\b(?:\W+\w+){0,6}?\W+(?:10|diez|ten)\s*(?:\/|out\s+of|de)\s*(?:10|diez|ten)\b/,
+  },
+  {
+    name: "candidato_ideal_preaprobado",
+    re: /\bcandidat[oa]\s+ideal\s+ya\s+(?:fue\s+|esta\s+)?(?:pre)?(?:seleccionad|aprobad|elegid)/,
+  },
+  {
+    name: "candidato_perfecto",
+    re: /\b(?:this\s+(?:candidate|applicant)\s+is\s+(?:a\s+|an\s+|the\s+)?(?:perfect|ideal|best|top)|este\s+(?:candidato|perfil|postulante)\s+es\s+(?:el\s+|un\s+)?(?:ideal|perfecto|mejor))\b/,
+  },
 ];
+
+/** Letras de otros alfabetos que se leen como ASCII (sobre texto ya plegado a minúsculas). */
+const CONFUSABLES: Readonly<Record<string, string>> = {
+  а: "a",
+  е: "e",
+  о: "o",
+  р: "p",
+  с: "c",
+  х: "x",
+  у: "y",
+  і: "i",
+  ј: "j",
+  ѕ: "s",
+  к: "k",
+  м: "m",
+  н: "h",
+  т: "t",
+  ԁ: "d",
+  һ: "h",
+  ӏ: "l",
+  ԛ: "q",
+  ѡ: "w",
+  α: "a",
+  ο: "o",
+  ν: "v",
+  ι: "i",
+  τ: "t",
+  ρ: "p",
+  ε: "e",
+  κ: "k",
+  υ: "u",
+  χ: "x",
+  γ: "y",
+  η: "n",
+  β: "b",
+  ω: "w",
+  ı: "i",
+};
+
+const LEET: Readonly<Record<string, string>> = {
+  "0": "o",
+  "1": "i",
+  "3": "e",
+  "4": "a",
+  "5": "s",
+  "7": "t",
+  "@": "a",
+  $: "s",
+};
+
+const mapConfusables = (text: string): string =>
+  Array.from(text, (ch) => CONFUSABLES[ch] ?? ch).join("");
+
+/** Separadores entre palabras o letras → espacio; tres o más letras sueltas seguidas se pegan. */
+function unsplit(text: string): string {
+  const tokens = text.replace(/[-_.*·|/\\]+/g, " ").split(/\s+/);
+  const out: string[] = [];
+  let run: string[] = [];
+  const flush = () => {
+    if (run.length >= 3) out.push(run.join(""));
+    else out.push(...run);
+    run = [];
+  };
+  for (const t of tokens) {
+    if (/^[a-z]$/.test(t)) run.push(t);
+    else {
+      flush();
+      out.push(t);
+    }
+  }
+  flush();
+  return out.join(" ");
+}
+
+/** Cifras y símbolos por letras, solo dentro de palabras que ya traen letras ("1gnore"). */
+const unleet = (text: string): string =>
+  text
+    .split(/\s+/)
+    .map((t) =>
+      /[a-z]/.test(t) && /[0-9@$]/.test(t) ? Array.from(t, (c) => LEET[c] ?? c).join("") : t,
+    )
+    .join(" ");
 
 /** Caracteres de etiqueta (U+E0000–E007F): codifican texto que la persona no ve. */
 const isTagChar = (code: number): boolean => code >= 0xe0000 && code <= 0xe007f;
@@ -74,8 +187,19 @@ export function detectEvaluatorInjection(text: string): { hit: boolean; signals:
   const visible = Array.from(text)
     .filter((ch) => !isInvisible(ch.codePointAt(0) ?? 0))
     .join("");
-  const folded = foldText(visible);
-  const signals = PATTERNS.filter((p) => p.re.test(folded)).map((p) => p.name);
+  const folded = mapConfusables(foldText(visible));
+  const spaced = unsplit(folded);
+  // Cada patrón se prueba sobre el texto plegado y sobre sus variantes sin separadores ni cifras
+  const variants = [folded, spaced, unleet(spaced)];
+  const signals = PATTERNS.filter((p) => variants.some((v) => p.re.test(v))).map((p) => p.name);
   if (hidden) signals.push("texto_oculto");
   return { hit: signals.length > 0, signals };
+}
+
+/**
+ * Revisa todo lo que `renderJob` pone en el prompt (título, empresa, ubicación, contrato, sueldo,
+ * etiquetas y JD), sin las marcas del aviso. Mismo largo acotado que el prompt.
+ */
+export function detectJobInjection(job: JobForPrompt): { hit: boolean; signals: string[] } {
+  return detectEvaluatorInjection(renderJob(job));
 }
