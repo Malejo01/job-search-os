@@ -5,9 +5,8 @@ ALTER TABLE "invitations" FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "invitations_owner_select" ON "invitations";
 CREATE POLICY "invitations_owner_select" ON "invitations" FOR SELECT
   USING (created_by_user_id = auth.uid());
+-- La policy de INSERT se crea en 0024, junto con la función que exige.
 DROP POLICY IF EXISTS "invitations_owner_insert" ON "invitations";
-CREATE POLICY "invitations_owner_insert" ON "invitations" FOR INSERT
-  WITH CHECK (created_by_user_id = auth.uid());
 DROP POLICY IF EXISTS "invitations_owner_delete" ON "invitations";
 CREATE POLICY "invitations_owner_delete" ON "invitations" FOR DELETE
   USING (created_by_user_id = auth.uid());

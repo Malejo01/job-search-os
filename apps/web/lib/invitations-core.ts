@@ -50,6 +50,30 @@ export function validateRegistration(
   return { ok: true };
 }
 
+/** ¿El email figura en alguna lista que da permisos dentro de la app? */
+export function isPrivilegedEmail(
+  email: string,
+  env: Record<string, string | undefined>,
+): boolean {
+  return (
+    isInvitationAdmin(email, env.ADMIN_EMAILS) ||
+    isInvitationAdmin(email, env.ASSISTANT_TESTER_EMAILS)
+  );
+}
+
+/**
+ * Un email de las listas de permisos solo se registra con una invitación atada a ese email: así el
+ * permiso no se hereda con una invitación genérica. Los demás emails no consultan nada.
+ */
+export async function mayRegisterWithInvitation(
+  email: string,
+  env: Record<string, string | undefined>,
+  isBoundToEmail: () => Promise<boolean>,
+): Promise<boolean> {
+  if (!isPrivilegedEmail(email, env)) return true;
+  return isBoundToEmail();
+}
+
 export type InvitationStatus = "pendiente" | "usada" | "vencida";
 
 export function invitationStatus(

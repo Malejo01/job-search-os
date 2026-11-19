@@ -577,6 +577,22 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
       const rows = await asUser(A, (tx) => tx`select * from mcp_token_user(null)`);
       expect(rows).toHaveLength(0);
     },
+    // Sin parámetros: responde solo por la sesión. A no tiene fila en app_admins
+    is_app_admin: async () => {
+      const [r] = await asUser(A, (tx) => tx<{ ok: boolean }[]>`select is_app_admin() as ok`);
+      expect(r!.ok).toBe(false);
+    },
+    // Solo responde sí o no por un hash conocido; la invitación libre de B no está atada a ningún email
+    invitation_is_bound_to_email: async () => {
+      const [r] = await asUser(
+        A,
+        (tx) =>
+          tx<
+            { ok: boolean }[]
+          >`select invitation_is_bound_to_email('hash-libre-de-b', ${EMAIL_B}) as ok`,
+      );
+      expect(r!.ok).toBe(false);
+    },
     // S2: trabajan sobre un hash de email, no sobre filas de personas. Un hash mal formado no escribe nada.
     login_attempt_begin: async () => {
       for (const hash of ["no-es-hex", "", "F".repeat(64)]) {
