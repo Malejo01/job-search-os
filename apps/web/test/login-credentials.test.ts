@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 import {
   authorizeCredentials,
   createVerificationPacer,
+  loginClientIp,
   loginEmailHash,
+  loginIpHash,
   type LoginDeps,
 } from "../lib/login-credentials";
 
@@ -30,7 +32,7 @@ describe("authorizeCredentials", () => {
 
     await expect(authorizeCredentials(d, CREDENTIALS)).resolves.toBeNull();
 
-    expect(d.beginAttempt).toHaveBeenCalledWith(HASH);
+    expect(d.beginAttempt).toHaveBeenCalledWith(HASH, null);
     expect(d.findUser).not.toHaveBeenCalled();
     expect(d.verifyPassword).not.toHaveBeenCalled();
     expect(d.clearAttempts).not.toHaveBeenCalled();
@@ -76,7 +78,7 @@ describe("authorizeCredentials", () => {
 
     await expect(authorizeCredentials(d, CREDENTIALS)).resolves.toBeNull();
 
-    expect(d.beginAttempt).toHaveBeenCalledWith(HASH);
+    expect(d.beginAttempt).toHaveBeenCalledWith(HASH, null);
     expect(verifyPassword).toHaveBeenCalledTimes(1);
     expect(verifyPassword.mock.calls[0]?.[1]).toMatch(/^scrypt\$0+\$0+$/);
     expect(d.clearAttempts).not.toHaveBeenCalled();
@@ -133,6 +135,46 @@ describe("createVerificationPacer", () => {
     await paced.waitLikeVerification();
 
     expect(sleep).toHaveBeenCalledWith(2_000);
+  });
+});
+
+describe("intentos por IP", () => {
+  it("pasa el hash de la IP al contador, nunca la IP en claro", async () => {
+    const beginAttempt = vi.fn<LoginDeps["beginAttempt"]>().mockResolvedValue(true);
+    const d = deps({ beginAttempt });
+
+    await authorizeCredentials(d, CREDENTIALS, "203.0.113.7");
+
+    const ipHash = loginIpHash("203.0.113.7");
+    expect(ipHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(beginAttempt).toHaveBeenCalledWith(HASH, ipHash);
+    expect(JSON.stringify(beginAttempt.mock.calls)).not.toContain("203.0.113.7");
+  });
+
+  it("IP distintas dan claves distintas y sin IP no hay clave", () => {
+    expect(loginIpHash("203.0.113.7")).not.toBe(loginIpHash("203.0.113.8"));
+    expect(loginIpHash(null)).toBeNull();
+  });
+});
+
+describe("loginClientIp", () => {
+  const req = (headers: Record<string, string>) => ({
+    headers: { get: (name: string) => headers[name] ?? null },
+  });
+
+  it("toma la primera dirección de x-forwarded-for", () => {
+    expect(loginClientIp(req({ "x-forwarded-for": "203.0.113.7, 10.0.0.1" }))).toBe("203.0.113.7");
+  });
+
+  it("usa x-real-ip si falta x-forwarded-for", () => {
+    expect(loginClientIp(req({ "x-real-ip": "2001:db8::1" }))).toBe("2001:db8::1");
+  });
+
+  it("sin cabeceras, con basura o demasiado largo devuelve null", () => {
+    expect(loginClientIp(undefined)).toBeNull();
+    expect(loginClientIp(req({}))).toBeNull();
+    expect(loginClientIp(req({ "x-forwarded-for": "no es una ip" }))).toBeNull();
+    expect(loginClientIp(req({ "x-forwarded-for": "1".repeat(200) }))).toBeNull();
   });
 });
 

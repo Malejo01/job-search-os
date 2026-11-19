@@ -7,6 +7,7 @@ import { getAppDb } from "./lib/db";
 import {
   authorizeCredentials,
   createVerificationPacer,
+  loginClientIp,
   type LoginDeps,
 } from "./lib/login-credentials";
 
@@ -15,9 +16,9 @@ import {
  * y rls/0023), porque el rol de la app no puede leer filas ajenas de users.
  */
 const loginDeps: LoginDeps = {
-  async beginAttempt(emailHash) {
+  async beginAttempt(emailHash, ipHash) {
     const [row] = (await getAppDb().execute(
-      sql`select login_attempt_begin(${emailHash}) as allowed`,
+      sql`select login_attempt_begin(${emailHash}, ${ipHash}::text) as allowed`,
     )) as unknown as { allowed: boolean }[];
     return row?.allowed === true;
   },
@@ -49,7 +50,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email" },
         password: { label: "Contraseña", type: "password" },
       },
-      authorize: (credentials) => authorizeCredentials(loginDeps, credentials),
+      authorize: (credentials, request) =>
+        authorizeCredentials(loginDeps, credentials, loginClientIp(request)),
     }),
   ],
 });

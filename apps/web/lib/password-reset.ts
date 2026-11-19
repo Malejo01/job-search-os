@@ -19,6 +19,7 @@ import { and, eq, gt, isNull, sql } from "drizzle-orm";
 import { after } from "next/server";
 import { getAppDb, withUser } from "./db";
 import { MAX_PASSWORD_LENGTH } from "./invitations-core";
+import { loginEmailHash } from "./login-credentials";
 
 /**
  * Pide el reset (JS-045). Nunca revela si el email existe: siempre termina en silencio para
@@ -158,6 +159,18 @@ export async function resetPassword(token: string, newPassword: string): Promise
       .update(s.mcpTokens)
       .set({ revokedAt: now })
       .where(and(eq(s.mcpTokens.userId, check.userId), isNull(s.mcpTokens.revokedAt)));
+    // La espera del login no sobrevive al reset: quien restablece la contraseña puede entrar enseguida.
+    // Misma transacción: si algo falla, el contador tampoco se toca.
+    const [owner] = await tx
+      .select({ email: s.users.email })
+      .from(s.users)
+      .where(eq(s.users.id, check.userId))
+      .limit(1);
+    if (owner) {
+      await tx.execute(
+        sql`select login_attempt_clear(${loginEmailHash(owner.email.trim().toLowerCase())})`,
+      );
+    }
     return true;
   });
   return changed ? check : { ok: false, reason: "used" };

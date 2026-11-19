@@ -4,8 +4,11 @@ import { createHash } from "node:crypto";
 const DUMMY_PASSWORD_HASH = `scrypt$${"0".repeat(32)}$${"0".repeat(128)}`;
 
 export type LoginDeps = {
-  /** Reserva un intento para ese email. `false`: está en espera y no se verifica nada. */
-  beginAttempt(emailHash: string): Promise<boolean>;
+  /**
+   * Reserva un intento para ese email desde esa IP (`ipHash` nulo: no se conoce la IP). `false`: está en espera
+   * y no se verifica nada.
+   */
+  beginAttempt(emailHash: string, ipHash: string | null): Promise<boolean>;
   clearAttempts(emailHash: string): Promise<void>;
   findUser(email: string): Promise<{ id: string; password_hash: string | null } | undefined>;
   verifyPassword(password: string, stored: string): Promise<boolean>;
@@ -19,6 +22,25 @@ export type LoginUser = { id: string; email: string; sessionVersion: number };
 /** sha256 del email ya normalizado: la tabla de intentos nunca guarda el email en claro. */
 export function loginEmailHash(email: string): string {
   return createHash("sha256").update(email).digest("hex");
+}
+
+/** Largo máximo de una IP en texto (IPv6 con prefijo IPv4 incluido): lo que pase de ahí no es una IP. */
+const MAX_IP_LENGTH = 45;
+
+/**
+ * IP del pedido de login, o `null` si no hay una que sirva. Toma la primera dirección de `x-forwarded-for`
+ * (la plataforma la fija) o `x-real-ip`. Con `null` los intentos caen en el tope por email.
+ */
+export function loginClientIp(request: { headers: { get(name: string): string | null } } | undefined): string | null {
+  const raw =
+    request?.headers.get("x-forwarded-for")?.split(",")[0] ?? request?.headers.get("x-real-ip") ?? "";
+  const ip = raw.trim().toLowerCase();
+  return ip && ip.length <= MAX_IP_LENGTH && /^[0-9a-f:.]+$/.test(ip) ? ip : null;
+}
+
+/** sha256 de la IP: la tabla de intentos nunca guarda la IP en claro. `null` si no hay IP. */
+export function loginIpHash(ip: string | null): string | null {
+  return ip ? createHash("sha256").update(`ip:${ip}`).digest("hex") : null;
 }
 
 const DEFAULT_VERIFY_MS = 100;
@@ -57,6 +79,7 @@ export function createVerificationPacer(
 export async function authorizeCredentials(
   deps: LoginDeps,
   credentials: Partial<Record<"email" | "password", unknown>> | undefined,
+  clientIp: string | null = null,
 ): Promise<LoginUser | null> {
   const email = String(credentials?.email ?? "")
     .trim()
@@ -65,7 +88,7 @@ export async function authorizeCredentials(
   if (!email || !password) return null;
 
   const emailHash = loginEmailHash(email);
-  if (!(await deps.beginAttempt(emailHash))) {
+  if (!(await deps.beginAttempt(emailHash, loginIpHash(clientIp)))) {
     await deps.waitLikeVerification();
     return null;
   }
