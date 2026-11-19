@@ -66,6 +66,48 @@
 /apps/web/lib/evaluate-now.ts @Malejo01
 /packages/adapters/src/cv-coach/review/sign.ts @Malejo01
 
+# Controles de seguridad de la S2
+/apps/web/lib/login-credentials.ts @Malejo01
+/apps/web/lib/security-headers.ts @Malejo01
+/apps/web/lib/csp.ts @Malejo01
+/apps/web/lib/close-sessions.ts @Malejo01
+/packages/adapters/src/quota/person-quota.ts @Malejo01
+/packages/pipeline/src/agent/gate.ts @Malejo01
+/packages/pipeline/src/profile-agent/flag.ts @Malejo01
+/packages/pipeline/src/cv-coach/flag.ts @Malejo01
+/packages/pipeline/src/session-version.ts @Malejo01
+/packages/pipeline/src/budget/alerts.ts @Malejo01
+/packages/adapters/src/cv-chat/** @Malejo01
+/packages/adapters/src/profile-agent/** @Malejo01
+/packages/adapters/src/cv-coach/** @Malejo01
+
+# Archivos que usan el rol de servicio, un lock global o la lista de admins
+/apps/web/app/(app)/layout.tsx @Malejo01
+/apps/web/app/(app)/jobs/new/image-server.ts @Malejo01
+/apps/web/lib/assistant-metrics.ts @Malejo01
+/apps/web/lib/assistant-usage.ts @Malejo01
+/apps/web/lib/beta-feedback.ts @Malejo01
+/apps/web/lib/beta-health.ts @Malejo01
+/apps/web/lib/beta-metrics.ts @Malejo01
+/apps/web/lib/career-history.ts @Malejo01
+/apps/web/lib/cv-chat-server.ts @Malejo01
+/apps/web/lib/cv-coach/cards-server.ts @Malejo01
+/apps/web/lib/feedback-triage.ts @Malejo01
+/apps/web/lib/market-recompute.ts @Malejo01
+/apps/web/lib/plan-admin.ts @Malejo01
+/apps/web/lib/pool-coverage.ts @Malejo01
+/apps/web/lib/profile-agent/gaps-server.ts @Malejo01
+/apps/web/lib/skill-levels.ts @Malejo01
+/apps/web/lib/waitlist-admin.ts @Malejo01
+/packages/adapters/src/ingest/cli.ts @Malejo01
+/packages/adapters/src/market/cli.ts @Malejo01
+/packages/adapters/src/market/plan-cli.ts @Malejo01
+/packages/adapters/src/market/recompute.ts @Malejo01
+/packages/adapters/src/pool/assign.ts @Malejo01
+/packages/adapters/src/pool/backlog.ts @Malejo01
+/packages/adapters/src/skills/candidates-cli.ts @Malejo01
+/packages/adapters/src/skills/cli.ts @Malejo01
+
 # Server actions fuera de actions.ts
 /apps/web/app/**/*-action.ts @Malejo01
 /apps/web/lib/guide-actions.ts @Malejo01
