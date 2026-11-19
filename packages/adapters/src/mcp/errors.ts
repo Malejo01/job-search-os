@@ -72,10 +72,45 @@ export function mcpFailure(e: unknown): McpFailure {
  * La que usa la ruta: el log (con `user_id`) se arma acá para que la ruta no cree loggers ni
  * pueda escribir el error o el request en ningún lado.
  */
-export const mcpFailed = (e: unknown, userId: string) =>
+export const mcpFailed = (e: unknown, userId: string, tool?: string) =>
   mcpFailureResult(e, (detail) =>
-    createLogger({ user_id: userId, source: "mcp" }).error({ err: detail }, "mcp: la tool falló"),
+    createLogger({ user_id: userId, source: "mcp", ...(tool ? { tool } : {}) }).error(
+      { err: detail },
+      "mcp: la tool falló",
+    ),
   );
+
+type McpLog = (userId: string, tool: string, detail: SafeDbError) => void;
+
+const defaultMcpLog: McpLog = (userId, tool, detail) =>
+  createLogger({ user_id: userId, source: "mcp", tool }).error({ err: detail }, "mcp: la tool falló");
+
+/**
+ * Envuelve el callback de una tool: cualquier excepción (también la de resolver a la persona)
+ * sale como respuesta fija. Un solo punto para todas las tools, así una tool nueva no puede
+ * olvidarse del `try/catch`. El log lleva `user_id` y el nombre de la tool, nunca los parámetros.
+ * Lo que la tool ya devuelve (incluidas sus fallas con código) pasa sin cambios.
+ */
+export function guardMcpTool<A, C, R>(
+  tool: string,
+  resolveUser: (ctx: C) => Promise<string>,
+  run: (args: A, ctx: C) => Promise<R>,
+  log: McpLog = defaultMcpLog,
+): (args: A, ctx: C) => Promise<R | ReturnType<typeof mcpFailureResult>> {
+  return async (args, ctx) => {
+    try {
+      return await run(args, ctx);
+    } catch (e) {
+      let userId = "desconocido";
+      try {
+        userId = await resolveUser(ctx);
+      } catch {
+        // sin persona resuelta: el log queda con "desconocido"
+      }
+      return mcpFailureResult(e, (detail) => log(userId, tool, detail));
+    }
+  };
+}
 
 export function mcpFailureResult(e: unknown, log: (detail: SafeDbError) => void) {
   const failure = mcpFailure(e);
