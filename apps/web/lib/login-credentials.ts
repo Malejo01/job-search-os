@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 
 /** Hash scrypt válido que ninguna contraseña verifica (sal y hash en cero): solo iguala el costo del login. */
 const DUMMY_PASSWORD_HASH = `scrypt$${"0".repeat(32)}$${"0".repeat(128)}`;
@@ -19,9 +19,33 @@ export type LoginDeps = {
 
 export type LoginUser = { id: string; email: string; sessionVersion: number };
 
-/** sha256 del email ya normalizado: la tabla de intentos nunca guarda el email en claro. */
-export function loginEmailHash(email: string): string {
-  return createHash("sha256").update(email).digest("hex");
+/**
+ * Hash del email ya normalizado: la tabla de intentos nunca guarda el email en claro. Con secreto
+ * (`LOGIN_ATTEMPTS_HMAC_SECRET`) es un HMAC-SHA256, que no se puede asociar a una persona probando direcciones
+ * conocidas; sin secreto, el sha256 de siempre.
+ */
+export function loginEmailHash(
+  email: string,
+  secret: string | undefined = process.env.LOGIN_ATTEMPTS_HMAC_SECRET,
+): string {
+  return secret
+    ? createHmac("sha256", secret).update(email).digest("hex")
+    : createHash("sha256").update(email).digest("hex");
+}
+
+/** Los hashes con los que pudo quedar guardado ese email: el vigente y, con secreto, el sha256 anterior. */
+export function loginEmailHashes(email: string): string[] {
+  const current = loginEmailHash(email);
+  const plain = loginEmailHash(email, "");
+  return current === plain ? [current] : [current, plain];
+}
+
+const MAX_EMAIL_LENGTH = 254;
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Forma básica de un email, con el largo máximo de una dirección: lo demás no reserva intentos. */
+function isPlausibleEmail(email: string): boolean {
+  return email.length <= MAX_EMAIL_LENGTH && EMAIL_SHAPE.test(email);
 }
 
 /** Largo máximo de una IP en texto (IPv6 con prefijo IPv4 incluido): lo que pase de ahí no es una IP. */
@@ -86,6 +110,11 @@ export async function authorizeCredentials(
     .toLowerCase();
   const password = String(credentials?.password ?? "");
   if (!email || !password) return null;
+  // Un email que no puede existir no reserva intento ni crea fila: responde igual y tarda parecido.
+  if (!isPlausibleEmail(email)) {
+    await deps.waitLikeVerification();
+    return null;
+  }
 
   const emailHash = loginEmailHash(email);
   if (!(await deps.beginAttempt(emailHash, loginIpHash(clientIp)))) {

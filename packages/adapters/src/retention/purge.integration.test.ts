@@ -1,7 +1,7 @@
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { applyMigrations } from "@job-search-os/db/src/migrate";
 import { createDb, schema as s } from "@job-search-os/db";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { POOL_PARSER } from "../inbound/pool-mailbox";
 import { PURGE_MAX_BATCHES, parseLogDays, purgeExpired } from "./purge";
@@ -244,6 +244,42 @@ describe("purgeExpired", () => {
       betaFeedback: 0,
       poolEmails: 0,
       inboundRaw: 0,
+      loginAttempts: 0,
+    });
+  });
+
+  describe("intentos de login", () => {
+    const OLD = "e".repeat(64);
+    const FRESH = "f".repeat(64);
+    const rows = async () =>
+      (
+        (await conn.db.execute(
+          sql`select email_hash from login_attempts where email_hash in (${OLD}, ${FRESH})`,
+        )) as unknown as { email_hash: string }[]
+      ).map((r) => r.email_hash);
+
+    beforeEach(async () => {
+      await conn.db.execute(sql`delete from login_attempts where email_hash in (${OLD}, ${FRESH})`);
+      await conn.db.execute(sql`insert into login_attempts (email_hash, last_attempt_at)
+        values (${OLD}, ${daysAgo(2).toISOString()}::timestamptz),
+               (${FRESH}, ${hoursAgo(12).toISOString()}::timestamptz)`);
+    });
+
+    afterAll(async () => {
+      await conn.db.execute(sql`delete from login_attempts where email_hash in (${OLD}, ${FRESH})`);
+    });
+
+    it("la corrida borra las filas con más de un día sin actividad y deja las vigentes", async () => {
+      const result = await purgeExpired(conn.db, { now: NOW });
+
+      expect(result.loginAttempts).toBeGreaterThanOrEqual(1);
+      expect(await rows()).toEqual([FRESH]);
+    });
+
+    it("corre aunque la purga técnica (LEGAL_LOG_DAYS) esté desactivada", async () => {
+      await purgeExpired(conn.db, { now: NOW, logDays: 0 });
+
+      expect(await rows()).toEqual([FRESH]);
     });
   });
 

@@ -16,7 +16,9 @@
 4. **El intento se reserva antes de verificar la contraseña**, así los pedidos en paralelo no pasan el límite.
 5. **Durante la espera no se verifica la contraseña**, y la respuesta es la misma y tarda parecido a la de una contraseña incorrecta.
 
+   - **Actualización (S3, retención):** un email con formato imposible (largo máximo o forma básica) responde igual que una credencial incorrecta y no reserva intento ni crea fila. La purga ya no corre dentro del login: la hace la corrida de retención. Con `LOGIN_ATTEMPTS_HMAC_SECRET` definida, el hash del email es un HMAC-SHA256 con ese secreto; sin ella, el sha256 de antes (las filas viejas vencen solas). Al eliminar la cuenta se borran sus filas, con ambos hashes, en la misma transacción. Funciones en `rls/0029`.
+
 ## Consequences
-- La tabla no entra en el borrado de cuenta porque no se puede asociar a una persona. Las filas sin actividad durante un día se purgan solas.
+- Las filas no se pueden asociar a una persona sin el secreto, y se borran con la cuenta. Las filas sin actividad durante un día las purga la corrida de retención (cada 6 h), así que pueden vivir algo más de un día.
 - Alguien que conozca un email ya no puede frenar a esa persona con un solo origen. Con muchas IP puede llegar al tope por email y hacerla esperar, como máximo 15 minutos por vez; restablecer la contraseña lo levanta. Es el costo de limitar por cuenta, y por eso no hay bloqueo definitivo.
 - La migración tiene que estar aplicada antes del deploy: sin la tabla, el login falla.

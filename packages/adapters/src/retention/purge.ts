@@ -27,6 +27,8 @@ export type PurgeResult = {
   poolEmails: number;
   /** Crudos de emails de personas sin oferta asociada, más viejos que INBOUND_RAW_RETENTION_DAYS. */
   inboundRaw: number;
+  /** Intentos de login con más de un día sin actividad. */
+  loginAttempts: number;
 };
 
 export const POOL_EMAIL_RETENTION_DAYS = 30;
@@ -125,6 +127,26 @@ async function purgeInboundRaw(db: Db, cutoff: Date, batchSize: number): Promise
   return total;
 }
 
+/**
+ * Borra los intentos de login con más de un día sin actividad (la ventana de ADR-041), en lotes. La tabla no
+ * tiene `user_id` ni columna `id`: la clave es el hash. Usa el índice por `last_attempt_at`.
+ */
+async function purgeLoginAttempts(db: Db, cutoff: Date, batchSize: number): Promise<number> {
+  let total = 0;
+  for (let i = 0; i < PURGE_MAX_BATCHES; i++) {
+    const rows = (await db.execute(sql`
+      DELETE FROM login_attempts WHERE email_hash IN (
+        SELECT email_hash FROM login_attempts
+        WHERE last_attempt_at < ${cutoff.toISOString()}::timestamptz
+        LIMIT ${batchSize}
+      ) RETURNING email_hash
+    `)) as unknown as unknown[];
+    total += rows.length;
+    if (rows.length < batchSize) break;
+  }
+  return total;
+}
+
 export async function purgeExpired(
   db: Db,
   input: {
@@ -149,7 +171,11 @@ export async function purgeExpired(
     betaFeedback: 0,
     poolEmails: 0,
     inboundRaw: 0,
+    loginAttempts: 0,
   };
+
+  // Intentos de login: corre aunque la purga técnica esté desactivada (no hay dato personal sin plazo)
+  result.loginAttempts = await purgeLoginAttempts(db, dayAgo, batchSize);
 
   // IP hasheada de la lista de espera: no se guarda más de un día (mismo UPDATE que waitlist_join)
   const wiped = await db

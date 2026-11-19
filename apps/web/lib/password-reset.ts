@@ -19,7 +19,7 @@ import { and, eq, gt, isNull, sql } from "drizzle-orm";
 import { after } from "next/server";
 import { getAppDb, withUser } from "./db";
 import { MAX_PASSWORD_LENGTH } from "./invitations-core";
-import { loginEmailHash } from "./login-credentials";
+import { loginEmailHashes } from "./login-credentials";
 
 /**
  * Pide el reset (JS-045). Nunca revela si el email existe: siempre termina en silencio para
@@ -167,9 +167,9 @@ export async function resetPassword(token: string, newPassword: string): Promise
       .where(eq(s.users.id, check.userId))
       .limit(1);
     if (owner) {
-      await tx.execute(
-        sql`select login_attempt_clear(${loginEmailHash(owner.email.trim().toLowerCase())})`,
-      );
+      for (const hash of loginEmailHashes(owner.email.trim().toLowerCase())) {
+        await tx.execute(sql`select login_attempt_clear(${hash})`);
+      }
     }
     return true;
   });

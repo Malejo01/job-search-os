@@ -1,8 +1,31 @@
-import { createHash } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import postgres, { type Sql } from "postgres";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { createDb } from "./client";
 import { applyMigrations } from "./migrate";
+
+const holder = vi.hoisted(() => ({ db: undefined as unknown }));
+
+// Los cachés de Next no existen fuera de un pedido.
+vi.mock("../../../apps/web/lib/market", () => ({ invalidateMarketCandidates: () => undefined }));
+vi.mock("../../../apps/web/lib/insights-cache", () => ({ invalidateUserInsights: () => undefined }));
+
+// deleteAccount importa ./db de la app: acá se reemplaza por la misma lógica de withUser sobre esta base.
+vi.mock("../../../apps/web/lib/db", () => ({
+  withUser: async (userId: string, fn: (tx: unknown) => Promise<unknown>) => {
+    const db = holder.db as {
+      transaction: (
+        f: (tx: { execute: (q: unknown) => Promise<unknown> }) => Promise<unknown>,
+      ) => Promise<unknown>;
+    };
+    const { sql: dsql } = await import("drizzle-orm");
+    return db.transaction(async (tx) => {
+      await tx.execute(dsql`select set_config('app.user_id', ${userId}, true)`);
+      return fn(tx);
+    });
+  },
+}));
 
 /**
  * Intentos de login por email, por el camino real: la app se conecta como jobsearch_app (NOBYPASSRLS)
@@ -72,6 +95,7 @@ beforeAll(async () => {
   u.username = "jobsearch_app";
   u.password = APP_PASSWORD;
   app = postgres(u.toString(), { max: 10, prepare: false });
+  holder.db = createDb(u.toString(), { max: 2 }).db;
 }, 180_000);
 
 beforeEach(async () => {
@@ -212,6 +236,58 @@ describe("login_attempt_clear", () => {
   });
 });
 
+describe("purga fuera del login", () => {
+  it("pedir un intento ya no purga filas ajenas: la purga es del cron de retención", async () => {
+    const STALE = sha("intentos-vencido@example.com");
+    await owner`insert into login_attempts (email_hash, last_attempt_at)
+                values (${STALE}, now() - interval '3 days')`;
+    try {
+      // La purga anterior corría en el 1 % de los pedidos: con mil, casi seguro habría borrado la fila.
+      for (let i = 0; i < 1000; i += 1) await begin(HASH_A, IP_1);
+
+      const rows = await owner`select 1 from login_attempts where email_hash = ${STALE}`;
+      expect(rows).toHaveLength(1);
+    } finally {
+      await owner`delete from login_attempts where email_hash = ${STALE}`;
+    }
+  }, 60_000);
+});
+
+describe("borrado de cuenta", () => {
+  const USER = "a9400000-0000-4000-8000-000000000001";
+  const EMAIL = "borrar-cuenta@example.com";
+  const PASSWORD = "clave-de-prueba-1234";
+
+  it("al borrar la cuenta no quedan filas de su email, de ninguna IP ni con ningún hash", async () => {
+    const { hashPassword } = await import("./password");
+    await owner`insert into users (id, email, password_hash)
+                values (${USER}, ${EMAIL}, ${hashPassword(PASSWORD)})`;
+    const hashes = [sha(EMAIL), createHmac("sha256", "secreto-de-prueba").update(EMAIL).digest("hex")];
+    for (const h of hashes) {
+      await begin(h, IP_1);
+      await begin(h, IP_2);
+    }
+    await begin(HASH_B, IP_1);
+    vi.stubEnv("LOGIN_ATTEMPTS_HMAC_SECRET", "secreto-de-prueba");
+    try {
+      const { deleteAccount } = await import("../../../apps/web/lib/delete-account");
+
+      const result = await deleteAccount(USER, { email: EMAIL, password: PASSWORD });
+
+      expect(result.ok).toBe(true);
+      for (const h of hashes) {
+        const rows = await owner`select 1 from login_attempts where left(email_hash, 32) = ${h.slice(0, 32)}`;
+        expect(rows, h).toHaveLength(0);
+      }
+      const others = await owner`select 1 from login_attempts where left(email_hash, 32) = ${HASH_B.slice(0, 32)}`;
+      expect(others).toHaveLength(2);
+    } finally {
+      vi.unstubAllEnvs();
+      await owner`delete from users where id = ${USER}`;
+    }
+  }, 60_000);
+});
+
 describe("rendimiento de login_attempts", () => {
   it("con miles de filas, borrar por email y purgar por fecha usan índice", async () => {
     await owner`insert into login_attempts (email_hash, last_attempt_at)
@@ -224,6 +300,10 @@ describe("rendimiento de login_attempts", () => {
         await owner`explain delete from login_attempts where left(email_hash, 32) = ${prefix}`,
         await owner`explain delete from login_attempts where email_hash = ${HASH_A}`,
         await owner`explain delete from login_attempts where last_attempt_at < now() - interval '3 days'`,
+        // La forma por lotes que usa la purga del cron.
+        await owner`explain delete from login_attempts where email_hash in (
+                      select email_hash from login_attempts
+                       where last_attempt_at < now() - interval '3 days' limit 5000)`,
       ].map((rows) => rows.map((r) => String(r["QUERY PLAN"])).join("\n"));
 
       for (const plan of plans) expect(plan).not.toContain("Seq Scan");

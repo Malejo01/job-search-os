@@ -4,6 +4,7 @@ import {
   createVerificationPacer,
   loginClientIp,
   loginEmailHash,
+  loginEmailHashes,
   loginIpHash,
   type LoginDeps,
 } from "../lib/login-credentials";
@@ -175,6 +176,79 @@ describe("loginClientIp", () => {
     expect(loginClientIp(req({}))).toBeNull();
     expect(loginClientIp(req({ "x-forwarded-for": "no es una ip" }))).toBeNull();
     expect(loginClientIp(req({ "x-forwarded-for": "1".repeat(200) }))).toBeNull();
+  });
+});
+
+describe("formato del email", () => {
+  it.each([
+    "no-es-un-email",
+    "dos@@example.com",
+    "con espacio@example.com",
+    "@example.com",
+    "persona@",
+    `${"a".repeat(250)}@example.com`,
+  ])("un email inválido (%#) responde igual que una clave incorrecta y no reserva intento", async (email) => {
+    const d = deps();
+
+    await expect(authorizeCredentials(d, { email, password: "clave" })).resolves.toBeNull();
+
+    expect(d.beginAttempt).not.toHaveBeenCalled();
+    expect(d.findUser).not.toHaveBeenCalled();
+    expect(d.waitLikeVerification).toHaveBeenCalledTimes(1);
+  });
+
+  it("un email válido sigue su camino", async () => {
+    const d = deps();
+
+    await authorizeCredentials(d, { email: "persona+etiqueta@sub.example.com", password: "clave" });
+
+    expect(d.beginAttempt).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("hash con secreto", () => {
+  it("con secreto el hash es un HMAC distinto del sha256 simple", () => {
+    const plain = loginEmailHash("persona@example.com");
+    const keyed = loginEmailHash("persona@example.com", "secreto-de-prueba");
+
+    expect(keyed).toMatch(/^[0-9a-f]{64}$/);
+    expect(keyed).not.toBe(plain);
+    expect(loginEmailHash("persona@example.com", "otro-secreto")).not.toBe(keyed);
+    expect(loginEmailHash("otra@example.com", "secreto-de-prueba")).not.toBe(keyed);
+  });
+
+  it("sin secreto (o vacío) sigue siendo el sha256 de siempre", () => {
+    expect(loginEmailHash("persona@example.com", "")).toBe(HASH);
+    expect(loginEmailHash("persona@example.com", undefined)).toBe(HASH);
+  });
+
+  it("toma el secreto de LOGIN_ATTEMPTS_HMAC_SECRET", async () => {
+    vi.stubEnv("LOGIN_ATTEMPTS_HMAC_SECRET", "secreto-de-prueba");
+    try {
+      const beginAttempt = vi.fn<LoginDeps["beginAttempt"]>().mockResolvedValue(true);
+
+      await authorizeCredentials(deps({ beginAttempt }), CREDENTIALS);
+
+      expect(beginAttempt.mock.calls[0]?.[0]).toBe(
+        loginEmailHash("persona@example.com", "secreto-de-prueba"),
+      );
+      expect(beginAttempt.mock.calls[0]?.[0]).not.toBe(HASH);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("loginEmailHashes lista el hash vigente y el anterior, para limpiar los dos", () => {
+    vi.stubEnv("LOGIN_ATTEMPTS_HMAC_SECRET", "secreto-de-prueba");
+    try {
+      expect(loginEmailHashes("persona@example.com")).toEqual([
+        loginEmailHash("persona@example.com", "secreto-de-prueba"),
+        HASH,
+      ]);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+    expect(loginEmailHashes("persona@example.com")).toEqual([HASH]);
   });
 });
 
