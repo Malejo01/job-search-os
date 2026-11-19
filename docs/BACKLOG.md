@@ -1847,3 +1847,49 @@ Informe de la tanda: [`docs/beta/informe-r16.md`](beta/informe-r16.md). Ningún 
 ## Bloque 31 · Tanda S2 «Endurecimiento» (18 y 19/11)
 
 Endurecimiento S2, 33 tickets (S2-01 a S2-34, sin S2-26). Informe de la tanda: [`docs/beta/informe-s2.md`](beta/informe-s2.md). Ningún PR mergeado por agentes. S2-14 queda preparado y sin promover.
+
+## Bloque 32 · Tanda S3 «Seguridad sin perder velocidad» (19/11)
+
+Informe de la tanda: [`docs/beta/informe-s3.md`](beta/informe-s3.md). Todas las ramas forman una cadena desde `origin/main` (abe5604); ningún PR mergeado por agentes. Migraciones 0070 a 0072 y RLS 0028, 0029, 0030 y 0034 sin aplicar.
+
+### Fase A · antes del 26/11
+- **S3-01** · Entrada del correo acotada y email contado antes de procesarlo · `estado:` en rama (19/11) · `ronda/s3-01-entrada-correo-acotada`
+- **S3-02** · Las fallas que el proveedor no factura no cuentan como gasto · `estado:` en rama (19/11) · `ronda/s3-02-fallas-sin-gasto`
+- **S3-03** · Intentos de login por email e IP · `estado:` en rama, RLS 0028 (19/11) · `ronda/s3-03-intentos-por-ip`
+- **S3-04** · Reintento del email si falla la lectura del cuerpo · `estado:` en rama (19/11) · `ronda/s3-04-reintento-cuerpo`
+- **S3-05** · Reservas de gasto sin cola e índices por fecha · `estado:` en rama, migración 0070 (19/11) · `ronda/s3-05-reservas-sin-cola`
+- **S3-06** · Carril rojo con los controles nuevos · `estado:` en rama, carril rojo (19/11) · `ronda/s3-06-carril-rojo-controles` y `ronda/s3-carril-rojo-entrada`
+- **S3-07** · Endurecimiento de las herramientas del equipo · `estado:` propuesta fuera del repo, pendiente de revisión (19/11)
+
+### Fase B
+- **S3-08** · Veredicto de autenticación estricto y «procesar igual» · `estado:` en rama (19/11) · `ronda/s3-08-veredicto-estricto`
+- **S3-09** · Cupos de correo separados por tipo de remitente · `estado:` en rama (19/11) · `ronda/s3-09-cupos-separados`
+- **S3-10** · Parte reservada del tope global en el cron y en CV · `estado:` en rama (19/11) · `ronda/s3-10-parte-reservada`
+- **S3-11** · Cuotas que no bloquean lo legítimo · `estado:` en rama, migración 0071 (19/11) · `ronda/s3-11-cuotas-legitimas`
+- **S3-12** · Cerrar todas las sesiones corta todo · `estado:` en rama (19/11) · `ronda/s3-12-cerrar-todo`
+- **S3-13** · Cookie segura en producción · `estado:` en rama (19/11) · `ronda/s3-13-cookie-produccion`
+- **S3-14** · Políticas con espera acotada · `estado:` en rama (19/11) · `ronda/s3-14-rls-espera-acotada`
+
+### Fase C
+- **S3-15** · Topes en todos los campos, el pool y el prompt · `estado:` en rama (19/11) · `ronda/s3-15-topes-campos`
+- **S3-16** · Título del aviso saneado en borradores · `estado:` en rama (19/11) · `ronda/s3-16-titulo-borradores`
+- **S3-17** · Detector de instrucciones afinado · `estado:` en rama (19/11) · `ronda/s3-17-detector-afinado`
+- **S3-18** · La descripción de una oferta aplicada no cambia · `estado:` en rama (19/11) · `ronda/s3-18-jd-fija`
+- **S3-19** · Errores fijos en todas las tools del MCP · `estado:` en rama (19/11) · `ronda/s3-19-errores-mcp`
+- **S3-20** · Purga correcta del correo · `estado:` en rama (19/11) · `ronda/s3-20-purga-correcta`
+- **S3-21** · Un solo lector de modos · `estado:` en rama (19/11) · `ronda/s3-21-lector-de-modos`
+- **S3-22** · Secreto del webhook y motivos de error · `estado:` en rama (19/11) · `ronda/s3-22-secreto-y-motivos`
+- **S3-23** · Tabla de intentos acotada · `estado:` en rama, RLS 0029 (19/11) · `ronda/s3-23-intentos-acotados`
+- **S3-24** · Permisos solo para tablas con RLS y registro parejo · `estado:` en rama, RLS 0030 (19/11) · `ronda/s3-24-permisos-detalles`
+- **S3-25** · Evals pagos solo desde `main` · `estado:` en rama, carril rojo (19/11) · `ronda/s3-25-evals-desde-main`
+- **S3-26** · Rotación de direcciones con gracia · `estado:` en rama, migración 0072 y RLS 0034 (19/11) · `ronda/s3-26-rotacion-con-gracia`
+- **S3-27** · Tope del score con el riesgo informado por el modelo; la rama de v1.4.0 deja vigente v1.3.4 · `estado:` en rama (19/11) · `ronda/s3-27-tope-riesgo-modelo` y `ronda/s2-14-prompt-evaluacion`
+- **S3-28** · Tope de cuerpo por ruta, estado público con caché y PDF sin evaluación de código · `estado:` en rama (19/11) · `ronda/s3-28-pendientes-s1`
+
+### Rendimiento
+- **S3-P1** · Línea de base de rutas: ninguna página pública pasó a dinámica · `estado:` hecho (19/11)
+- **S3-P2** · Test de CSP en páginas públicas y privadas · `estado:` en rama (19/11) · `ronda/s3-p2-csp-publicas`
+- **S3-P3** · Consultas calientes con índice · `estado:` en rama (19/11) · `ronda/s3-p3-consultas-calientes`
+
+### S3 · Cierre de la tanda
+`estado:` en rama (19/11) · `ronda/s3-cierre`
