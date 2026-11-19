@@ -4,6 +4,7 @@ import {
   enqueueEvaluationWith,
   ingestRawJob,
   loadTaxonomy,
+  reservePersonQuota,
   type IngestOutcome,
 } from "@job-search-os/adapters";
 import { schema as s } from "@job-search-os/db";
@@ -36,7 +37,13 @@ export async function ingestManualJob(
       .orderBy(desc(s.evaluationCriteria.version))
       .limit(1);
     if (!criteria) throw new Error("usuario sin criterios activos");
-    return ingestRawJob(rawJobFromManual(input), {
+    const raw = rawJobFromManual(input);
+    // Cuota por persona, decidida con un lock dentro de esta misma transacción
+    await reservePersonQuota(tx, userId, {
+      newManualJobs: 1,
+      incomingBytes: Buffer.byteLength(raw.source.original?.body ?? "", "utf8"),
+    });
+    return ingestRawJob(raw, {
       db: tx,
       userId,
       rules: criteria.rules as CriteriaRules,

@@ -23,6 +23,7 @@ export async function pasteJdAction(formData: FormData): Promise<void> {
   } catch (e) {
     if (e instanceof Error && e.name === "JdTooShortError") redirect(`${PAGE}?error=corta`);
     if (e instanceof Error && e.name === "JdTooLongError") redirect(`${PAGE}?error=larga`);
+    if (e instanceof Error && e.name === "PersonQuotaError") redirect(`${PAGE}?error=cuota`);
     throw e;
   }
   // La JD nueva cambia los candidatos de /market (JS-102); el cron/email espera al vencimiento (1 h)

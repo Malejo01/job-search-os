@@ -49,6 +49,7 @@ const CREATE_ERROR: Record<CreateError["code"], string> = {
   url: "El link no es válido. Corregilo o borralo.",
   larga: "Algún campo es demasiado largo. Acortalo y probá de nuevo.",
   ingesta: "No se pudo cargar la oferta. Probá de nuevo en un rato.",
+  cuota: "Llegaste al máximo de ofertas cargadas a mano. Borrá las que ya no uses.",
   sesion: "Tu sesión venció. Volvé a entrar y probá de nuevo.",
 };
 

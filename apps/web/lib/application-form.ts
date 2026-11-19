@@ -14,6 +14,8 @@ import {
 import { createDb, requireDatabaseUrl } from "@job-search-os/db";
 import {
   looksLikeHtml,
+  MAX_ANSWER_CHARS,
+  MAX_ANSWER_QUESTION_CHARS,
   parseApplicationForm,
   type FormQuestion as ParsedQuestion,
 } from "@job-search-os/pipeline";
@@ -153,14 +155,14 @@ export async function generateDraftsAction(input: {
 const approveSchema = z.object({
   jobId: z.uuid(),
   lang: z.enum(ANSWER_LANGS),
-  question: z.string().trim().min(1).max(2_000),
-  answer: z.string().trim().min(1).max(10_000),
+  question: z.string().trim().min(1).max(MAX_ANSWER_QUESTION_CHARS),
+  answer: z.string().trim().min(1).max(MAX_ANSWER_CHARS),
   /** Todo lo aprobado hasta ahora, incluida esta: application_answers se reemplaza entero. */
   approved: z
     .array(
       z.object({
-        question: z.string().trim().min(1).max(2_000),
-        answer: z.string().trim().min(1).max(10_000),
+        question: z.string().trim().min(1).max(MAX_ANSWER_QUESTION_CHARS),
+        answer: z.string().trim().min(1).max(MAX_ANSWER_CHARS),
       }),
     )
     .min(1)

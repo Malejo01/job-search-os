@@ -1,4 +1,4 @@
-import { createLogger, safeDbError } from "@job-search-os/adapters";
+import { createLogger, PersonQuotaError, safeDbError } from "@job-search-os/adapters";
 import { MAX_JD_INPUT_CHARS, MAX_JOB_FIELD_CHARS, parseManualUrl } from "@job-search-os/pipeline";
 import { revalidatePath } from "next/cache";
 import { evaluateInBackgroundOrExplain } from "./evaluate-now";
@@ -8,7 +8,7 @@ import { invalidateMarketCandidates } from "./market";
 
 export type ManualJobResult =
   | { ok: true; jobId: string; action: string; notEvaluated: string | null }
-  | { ok: false; code: "campos" | "larga" | "url" | "ingesta" };
+  | { ok: false; code: "campos" | "larga" | "url" | "ingesta" | "cuota" };
 
 /**
  * Núcleo del alta manual (JS-023), común a /jobs/new y a la tarjeta del asistente (AG-5): valida
@@ -52,6 +52,7 @@ export async function createManualJobFromForm(
       candidatesCount: num("candidates"),
     });
   } catch (e) {
+    if (e instanceof PersonQuotaError) return { ok: false, code: "cuota" };
     createLogger({ user_id: userId }).error({ err: safeDbError(e) }, "alta manual falló");
     return { ok: false, code: "ingesta" };
   }
