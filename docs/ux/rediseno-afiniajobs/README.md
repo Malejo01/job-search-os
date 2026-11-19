@@ -14,7 +14,7 @@ Mauro reemplazó la «tinta y naranja» del manual por **índigo y lima**: se pa
   - mismo tracking negativo que el manual.
 - **Alcance:** toda la app, pública y con sesión, más la pantalla **Hoy** nueva (P2).
 - **Tema por defecto:** el del dispositivo (`prefers-color-scheme`), con el interruptor que ya existe.
-- **Ani todavía no revisó la marca.** Los cambios que pida van a ser detalles: todo tiene que salir de tokens y de un solo componente de logo, para que ajustarlo sea un PR chico.
+- **tester A todavía no revisó la marca.** Los cambios que pida van a ser detalles: todo tiene que salir de tokens y de un solo componente de logo, para que ajustarlo sea un PR chico.
 
 ## Artboards
 

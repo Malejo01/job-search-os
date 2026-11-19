@@ -2,7 +2,7 @@
 
 El nombre es **AfinIAJobs** («IA» y la «J» en mayúscula) en todas partes: UI, títulos, metadata, logo, favicon, ícono de app, imágenes OG, emails, manifest y textos legales. La fuente del diseño es `docs/ux/rediseno-afiniajobs/` (README y artboards M2 a M8).
 
-Ani todavía no revisó la marca: lo que pida tiene que ser un PR chico. Por eso todo sale de pocos lugares.
+tester A todavía no revisó la marca: lo que pida tiene que ser un PR chico. Por eso todo sale de pocos lugares.
 
 ## Lo que sale de un solo lugar
 | Qué | Dónde | Cómo se cambia |
@@ -60,11 +60,11 @@ Los botones dicen exactamente qué hacen («Ver mis ofertas», «Guardar descrip
 | Botón | «Ver mis ofertas» |
 | El sello | «Muy afín», «Bastante afín», «Afín a medias», «Poco afín», «Lejos de tu perfil»: la palabra siempre está, nunca solo el color |
 
-Dónde viven los textos: los de las pantallas, en cada pantalla; los de la ayuda en contexto, en `packages/pipeline/src/help/ayuda-en-contexto.ts`; los que revisa Ani, juntos en `/settings/textos`. Los del sello y la tarjeta, en `packages/pipeline/src/score-display.ts` y `fit/offer-card.ts`.
+Dónde viven los textos: los de las pantallas, en cada pantalla; los de la ayuda en contexto, en `packages/pipeline/src/help/ayuda-en-contexto.ts`; los que revisa tester A, juntos en `/settings/textos`. Los del sello y la tarjeta, en `packages/pipeline/src/score-display.ts` y `fit/offer-card.ts`.
 
 ## Dónde revisarla
 
-**`/settings/marca`** (solo para quien administra la beta, R-1): el logo en sus variantes y fondos, y dos paneles lado a lado, claro y oscuro, con los tokens y su valor real, las tipografías y todos los componentes con sus estados. Es la página para que Ani revise la marca sin recorrer la app.
+**`/settings/marca`** (solo para quien administra la beta, R-1): el logo en sus variantes y fondos, y dos paneles lado a lado, claro y oscuro, con los tokens y su valor real, las tipografías y todos los componentes con sus estados. Es la página para que tester A revise la marca sin recorrer la app.
 
 ## Guardas (tests)
 

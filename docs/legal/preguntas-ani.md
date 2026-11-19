@@ -1,6 +1,6 @@
-# Legales: preguntas para Ani y dónde va cada respuesta (C8-12)
+# Legales: preguntas para tester A y dónde va cada respuesta (C8-12)
 
-Las respuestas de Ani llegan **hasta el 13/11**. Este archivo junta lo que hay que preguntarle, dónde va cada respuesta y un ejemplo de redacción. **No es asesoramiento legal** y no cambia ningún texto: los textos vigentes son `apps/web/content/legal/terminos.md` y `privacidad.md` (carril rojo).
+Las respuestas de tester A llegan **hasta el 13/11**. Este archivo junta lo que hay que preguntarle, dónde va cada respuesta y un ejemplo de redacción. **No es asesoramiento legal** y no cambia ningún texto: los textos vigentes son `apps/web/content/legal/terminos.md` y `privacidad.md` (carril rojo).
 
 ## Cómo se completan los datos
 
@@ -12,7 +12,7 @@ Los marcadores `[RESPONSABLE]`, `[DOMICILIO]` y `[EMAIL DE CONTACTO]` **no se es
 | `[DOMICILIO]` | `LEGAL_DOMICILIO` | `privacidad.md:9`, `terminos.md:11` |
 | `[EMAIL DE CONTACTO]` | `LEGAL_EMAIL` | `privacidad.md:9`, `privacidad.md:22`, `privacidad.md:100`, `terminos.md:11`, `terminos.md:66` |
 | `[A DEFINIR: plazo de retención de los logs]` | `LEGAL_LOG_DAYS` (número de días, 1 a 3650) | `privacidad.md:75` |
-| `[A DEFINIR con Ani]` | — (hay que **reescribir el texto**, no es una variable) | `terminos.md:42` |
+| `[A DEFINIR con tester A]` | — (hay que **reescribir el texto**, no es una variable) | `terminos.md:42` |
 | `[REVISAR CON ASESORÍA LEGAL: protección de marca / derecho de autor]` | — (lo resuelve la asesoría legal y se **reescribe el texto**) | `terminos.md:72`, `privacidad.md:141` (sección «Derechos reservados», aviso «© 2026 AfinIAJobs. Todos los derechos reservados.») |
 
 **Para revisar qué falta:** `pnpm legal:check` lista cada marcador sin valor (con archivo y línea) usando las variables del entorno. Con `LEGAL_FINAL=1` falla si queda alguno: así se corre antes de dar los textos por finales.
@@ -45,7 +45,7 @@ Los marcadores `[RESPONSABLE]`, `[DOMICILIO]` y `[EMAIL DE CONTACTO]` **no se es
 
 ### 5. Precio, reembolsos y forma de cobro (`terminos.md:42`) — **importante**
 
-- **Hallazgo:** `terminos.md:42` (sección 6) dice «**La beta es gratuita.** Si en algún momento el servicio pasa a ser pago, te avisamos antes…» y termina en «Precio, reembolsos y forma de cobro: [A DEFINIR con Ani]». Pero la beta del 26/11 **es paga** (Plan Beta, ARS 20.000 por mes, activación manual, link de Mercado Pago en la invitación). El texto vigente no coincide con lo que se cobra.
+- **Hallazgo:** `terminos.md:42` (sección 6) dice «**La beta es gratuita.** Si en algún momento el servicio pasa a ser pago, te avisamos antes…» y termina en «Precio, reembolsos y forma de cobro: [A DEFINIR con tester A]». Pero la beta del 26/11 **es paga** (Plan Beta, ARS 20.000 por mes, activación manual, link de Mercado Pago en la invitación). El texto vigente no coincide con lo que se cobra.
 - **Preguntas:**
   - ¿Cómo se describe el Plan Beta (precio en pesos, 30 días, activación manual, sin renovación automática)?
   - ¿Qué pasa si alguien paga y no le sirve: hay reembolso? ¿En qué plazo?

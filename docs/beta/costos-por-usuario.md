@@ -276,7 +276,7 @@ Sensibilidad a los fijos (mezcla, TC 1.570): mínimos **N = 15: 178.805 (69 %) �
 
 ### 5.4 Combos hipotéticos
 
-No conozco la composición de los combos de Ani; estos dos son **ilustrativos** (precios inventados para mostrar la cuenta), con el mismo costo variable por mes.
+No conozco la composición de los combos de tester A; estos dos son **ilustrativos** (precios inventados para mostrar la cuenta), con el mismo costo variable por mes.
 
 | Combo hipotético | Precio | Cómo es en el código | Margen de contribución (TC 1.570) bajo / medio / mezcla / alto |
 |---|---|---|---|

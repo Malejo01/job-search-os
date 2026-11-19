@@ -1,10 +1,10 @@
 # Ensayo del 23 y 24/11: un recorrido por carrera (C8-13)
 
-Ensayo interno (Mauro, Ani y quien ayude) **antes de abrir la beta el jueves 26/11**, con la marca AfinIAJobs y las pantallas nuevas de C7 y C8. Complementa la guía para testers (`docs/beta/ensayo-testers.md`, del 20 al 24/11): esa la siguen las personas que prueban; esta la sigue quien organiza, carrera por carrera, y termina en un «sí» o «no» para el 26/11.
+Ensayo interno (Admin, tester A y quien ayude) **antes de abrir la beta el jueves 26/11**, con la marca AfinIAJobs y las pantallas nuevas de C7 y C8. Complementa la guía para testers (`docs/beta/ensayo-testers.md`, del 20 al 24/11): esa la siguen las personas que prueban; esta la sigue quien organiza, carrera por carrera, y termina en un «sí» o «no» para el 26/11.
 
 El e2e `110-ensayo-beta.spec.ts` hace lo mismo con una persona ficticia por carrera (invitación, registro, onboarding, ofertas evaluadas, detalle, CV y «Contanos qué pasó», a 390 px, en claro y oscuro): si está verde en el CI, lo que queda es mirar con ojos de persona.
 
-## Antes de empezar (Mauro, el 22/11)
+## Antes de empezar (Admin, el 22/11)
 
 - [ ] La integración de C8 mergeada, con `pnpm db:migrate` aplicado (0057 y las policies de `rls/`).
 - [ ] Variables en Vercel (producción) y redeploy:

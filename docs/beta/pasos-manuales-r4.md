@@ -1,10 +1,10 @@
-# Pasos manuales de la tanda R4 (para Mauro)
+# Pasos manuales de la tanda R4 (para Admin)
 
 Fecha: 2026-11-06. Todo lo de acá lo hacés vos: ningún agente toca Vercel, Neon, DNS ni cuentas externas. Cada sección trae: qué es, los pasos con el link del panel, los valores exactos, cómo verificar que quedó bien y cuánto tarda. Los valores salen del código y de los docs del repo; lo que no está en ninguno dice «A confirmar».
 
 **Para el 11/11: §1 y §2.** El resto puede esperar a después del evento.
 
-Convenciones: `<dominio>` es `afiniajobs.com.ar` (hasta que migre, `busquedalaboral.malejo.com.ar`). El proyecto de Vercel es `job-search-os`, equipo `lizarraga-mauros-projects` (como en `docs/beta/runbook-apertura.md`). Comandos de `pnpm`: desde la raíz del repo, en tu máquina.
+Convenciones: `<dominio>` es `afiniajobs.com.ar` (hasta que migre, `busquedalaboral.malejo.com.ar`). El proyecto de Vercel es `job-search-os`, equipo `<tu-equipo>` (como en `docs/beta/runbook-apertura.md`). Comandos de `pnpm`: desde la raíz del repo, en tu máquina.
 
 ## Índice
 
@@ -19,7 +19,7 @@ Convenciones: `<dominio>` es `afiniajobs.com.ar` (hasta que migre, `busquedalabo
 9. Costos: lo que falta confirmar
 10. PRs viejos abiertos (#347, #308, #69)
 11. Links de pago con descuento en Mercado Pago
-12. Prender el agente conversacional para Mauro y Ani (R4-15)
+12. Prender el agente conversacional para Admin y tester A (R4-15)
 13. Fila `assistant_chat` en `model_routing` (R4-17)
 
 ---
@@ -32,7 +32,7 @@ Convenciones: `<dominio>` es `afiniajobs.com.ar` (hasta que migre, `busquedalabo
 
 **Pasos.**
 
-1. Abrí https://vercel.com/lizarraga-mauros-projects/job-search-os/settings/environment-variables (Dashboard › proyecto `job-search-os` › Settings › Environment Variables).
+1. Abrí https://vercel.com/<tu-equipo>/job-search-os/settings/environment-variables (Dashboard › proyecto `job-search-os` › Settings › Environment Variables).
 2. Por cada fila de la tabla de abajo: **Add Environment Variable**, nombre, valor, entorno **Production**, **Save**. El valor lo pegás vos.
 3. **Solo `WAITLIST_EVENT_WINDOW`**: cargala el 10/11 o el mismo 11/11 antes del evento, con el horario real (ver el formato abajo).
 4. Si existe `MOBILE_TABBAR_ENABLED`, borrala (los tres puntos de la fila › **Delete**). Ya no se usa desde C9-7 (las pestañas de abajo van siempre en el celular).
@@ -107,7 +107,7 @@ Esto frena a un script (más de 300 por minuto, o sea 5 por segundo, sostenido) 
 
 **Pasos.**
 
-1. Abrí https://vercel.com/lizarraga-mauros-projects/job-search-os/firewall (proyecto › **Firewall** en la barra lateral).
+1. Abrí https://vercel.com/<tu-equipo>/job-search-os/firewall (proyecto › **Firewall** en la barra lateral).
 2. **Configure** (arriba a la derecha) › **+ New Rule**.
 3. Nombre: `acceso-post-por-ip`.
 4. En **Configure › If**: agregá la condición **Request Path** *Equals* `/acceso`, y otra **Method** *Equals* `POST`.
@@ -376,7 +376,7 @@ Para prender el chat de CV a todas las cuentas: además de las filas, `CV_CHAT_E
 - Gasto de LLM más concentrado en menos horas del día; el tope diario global (`LLM_DAILY_CAP_USD`, que el runbook sugiere en 4) lo corta.
 - Más invocaciones y consultas a Neon (arriba).
 - GitHub puede demorar los `schedule`; y los `schedule` corren solo desde `main`, por eso no se puede probar en el PR (lo dice el PR).
-- Es carril rojo (`.github/**`): lo mergea Mauro. El check `carril` figura en rojo en el PR por eso, no por un error.
+- Es carril rojo (`.github/**`): lo mergea Admin. El check `carril` figura en rojo en el PR por eso, no por un error.
 
 **Conflictos.** No debería tener: agrega un archivo nuevo que no existe en `main`. `gh pr view 392` mostró `mergeable: UNKNOWN` (GitHub todavía no lo calculó); los demás checks (`lint-typecheck`, `unit`, `integration`, `build`, `evals`, `e2e`, `secrets`) estaban en verde a la fecha del último commit (2026-11-03).
 
@@ -422,7 +422,7 @@ Para prender el chat de CV a todas las cuentas: además de las filas, `CV_CHAT_E
 
 **Qué es.** Comprobar que las alertas de Computrabajo suscriptas a las casillas del pool están llegando a la cola manual del pool (`docs/OPERACION.md`, «Casillas del pool por alertas de email»).
 
-**Requisitos (se verifican antes en Vercel).** https://vercel.com/lizarraga-mauros-projects/job-search-os/settings/environment-variables: `POOL_SOURCE_COMPUTRABAJO_ALERTS` = `1` (cualquier otro valor es apagado) e `INGEST_DOMAIN` definido. Las alertas se suscriben en Computrabajo con la dirección `pool-<carrera>@<INGEST_DOMAIN>`, donde `<carrera>` es una clave de `ROLE_KEYS`; no hay que crear nada en Resend.
+**Requisitos (se verifican antes en Vercel).** https://vercel.com/<tu-equipo>/job-search-os/settings/environment-variables: `POOL_SOURCE_COMPUTRABAJO_ALERTS` = `1` (cualquier otro valor es apagado) e `INGEST_DOMAIN` definido. Las alertas se suscriben en Computrabajo con la dirección `pool-<carrera>@<INGEST_DOMAIN>`, donde `<carrera>` es una clave de `ROLE_KEYS`; no hay que crear nada en Resend.
 
 **Consulta (solo lectura, contra Neon):**
 
@@ -447,7 +447,7 @@ pnpm db:sql "select date_trunc('day', received_at) as dia, count(*) as emails, c
 
 ## §7. Casilla de contacto del producto reenviada al Gmail
 
-**Qué es.** Hace falta una casilla de contacto atendida por Ani (la de `CONTACT_EMAIL`, runbook §1.2). No hace falta un buzón: alcanza con **reenviar** lo que llegue a esa casilla al Gmail de quien la atienda.
+**Qué es.** Hace falta una casilla de contacto atendida por tester A (la de `CONTACT_EMAIL`, runbook §1.2). No hace falta un buzón: alcanza con **reenviar** lo que llegue a esa casilla al Gmail de quien la atienda.
 
 **Punto clave: no se toca la ingesta.** El correo de `ingest` entra por **otro dominio** (`ingest.malejo.com.ar`, `docs/DEPLOY.md`), con su propio MX y el webhook de Resend. `afiniajobs.com.ar` es otro dominio: en Resend solo está verificado para **envío** (registros en `send.afiniajobs.com.ar`, que son subdominio y **no** chocan con un MX en la raíz). Ponerle MX a la raíz de `afiniajobs.com.ar` no afecta la recepción de `u_<token>@ingest.malejo.com.ar`. Lo único que no hay que hacer es borrar ni modificar los registros de Resend (los `send.` y el `resend._domainkey`).
 
@@ -468,7 +468,7 @@ pnpm db:sql "select date_trunc('day', received_at) as dia, count(*) as emails, c
 **Pasos (opción A).**
 
 1. Creá la cuenta en https://improvmx.com y agregá el dominio `afiniajobs.com.ar`.
-2. Creá el alias de la casilla de contacto (lo que va antes de la @ en `CONTACT_EMAIL`) que reenvía a `<tu email>` (o al del Gmail que use Ani).
+2. Creá el alias de la casilla de contacto (lo que va antes de la @ en `CONTACT_EMAIL`) que reenvía a `<tu email>` (o al del Gmail que use tester A).
 3. En Vercel abrí https://vercel.com/dashboard/domains › `afiniajobs.com.ar` › **DNS Records**. Primero mirá si ya hay un MX o un TXT de SPF en la raíz (`@`). ImprovMX pide **borrar los MX existentes** de la raíz; no borres nada de `send.` ni `resend._domainkey`.
 4. Agregá estos registros (valores de https://improvmx.com/guides/generic-dns-configuration/, consultada el 2026-11-06):
 
@@ -569,28 +569,28 @@ pnpm db:sql "select date_trunc('day', received_at) as dia, count(*) as emails, c
 
 ---
 
-## §12. Prender el agente conversacional para Mauro y Ani (R4-15)
+## §12. Prender el agente conversacional para Admin y tester A (R4-15)
 
-**Qué es.** El asistente ya existe en el código, apagado y solo para admins. R4-15 agrega una lista aparte de «personas de prueba» para que Ani lo use sin ser admin, la mascota abajo a la derecha y el chip «¿Algo no anduvo?» en otro lugar. R4-15 está dividido: la parte verde en el PR #444 y la parte roja (la ruta y la config de Playwright) en el PR rojo #439. Fuentes: Notion (R4-15 y «Agente conversacional: plan y lista de pruebas») y el código de `ronda/r4-15-asistente-pruebas` y `ronda/r4-carril-rojo`.
+**Qué es.** El asistente ya existe en el código, apagado y solo para admins. R4-15 agrega una lista aparte de «personas de prueba» para que tester A lo use sin ser admin, la mascota abajo a la derecha y el chip «¿Algo no anduvo?» en otro lugar. R4-15 está dividido: la parte verde en el PR #444 y la parte roja (la ruta y la config de Playwright) en el PR rojo #439. Fuentes: Notion (R4-15 y «Agente conversacional: plan y lista de pruebas») y el código de `ronda/r4-15-asistente-pruebas` y `ronda/r4-carril-rojo`.
 
 **Cómo funciona** (`packages/pipeline/src/agent/gate.ts`, `apps/web/lib/assistant.ts`, `apps/web/app/api/assistant/route.ts`):
 
 - `ASSISTANT_ENABLED=admin`: lo usan solo los emails de `ADMIN_EMAILS` (como hasta ahora).
 - `ASSISTANT_ENABLED=testers`: lo usan `ADMIN_EMAILS` **más** `ASSISTANT_TESTER_EMAILS`. **Cualquier otro valor (vacío, `1`, `all`, `Testers`) cuenta como apagado.**
-- Ser tester **no da permisos de admin**: la lista solo vale para el asistente. **No agregues a Ani a `ADMIN_EMAILS`** (el runbook y la auditoría del 1/11 piden un solo email ahí).
+- Ser tester **no da permisos de admin**: la lista solo vale para el asistente. **No agregues testers a `ADMIN_EMAILS`.**
 - Con el asistente apagado, la ruta `/api/assistant` da **404**. Con el asistente prendido, quien tiene sesión y no está habilitado recibe **403** `sin_permiso` (esto último está en el PR rojo #439).
 
 | Variable | Valor | Fuente |
 | --- | --- | --- |
 | `ASSISTANT_ENABLED` | `testers` | `gate.ts` de R4-15 |
-| `ASSISTANT_TESTER_EMAILS` | `<tu email>,<email de Ani>` (lista separada por comas; la completás vos) | `gate.ts` de R4-15 |
+| `ASSISTANT_TESTER_EMAILS` | lista separada por comas; la completás vos | `gate.ts` de R4-15 |
 
 **Orden recomendado (la ruta es carril rojo y la mergeás vos).**
 
 1. Mergeá el PR **#444** (parte verde de R4-15: mascota, chip y el gate en `packages/pipeline`).
 2. Mergeá el PR rojo **#439** (la ruta con el 403 `sin_permiso`) y esperá el deploy en verde.
 3. Aplicá la fila `assistant_chat` (§13). Sin ella el asistente responde `no_route` aunque la cuenta esté habilitada.
-4. Cargá en Vercel (https://vercel.com/lizarraga-mauros-projects/job-search-os/settings/environment-variables), en Production, `ASSISTANT_ENABLED=testers` y `ASSISTANT_TESTER_EMAILS`.
+4. Cargá en Vercel (https://vercel.com/<tu-equipo>/job-search-os/settings/environment-variables), en Production, `ASSISTANT_ENABLED=testers` y `ASSISTANT_TESTER_EMAILS`.
 5. Redeploy (Deployments › ⋯ › **Redeploy**).
 6. Probá (abajo).
 
@@ -599,7 +599,7 @@ pnpm db:sql "select date_trunc('day', received_at) as dia, count(*) as emails, c
 **Cómo verificar.**
 
 1. Con tu cuenta: ves la mascota y podés chatear (lista de pruebas de Notion, punto A).
-2. Con la cuenta de Ani: la ve y chatea, y **no ve nada de admin** (`/settings/planes`, `/settings/metricas` dan 404).
+2. Con la cuenta de tester A: la ve y chatea, y **no ve nada de admin** (`/settings/planes`, `/settings/metricas` dan 404).
 3. Con una **cuenta común de prueba** (no admin y fuera de la lista): **no aparece la mascota** y, llamando directo, la ruta responde 403 `sin_permiso`. Con la sesión de esa cuenta: `curl -i -X POST https://<dominio>/api/assistant -H "content-type: application/json" -H "cookie: <la cookie de sesión de esa cuenta>" -d '{}'` (una cuenta común recibe `403`; con el asistente apagado, la ruta da `404`).
 4. Sin sesión: la mascota no aparece en ninguna página.
 
@@ -609,7 +609,7 @@ pnpm db:sql "select date_trunc('day', received_at) as dia, count(*) as emails, c
 
 ## §13. Fila `assistant_chat` en `model_routing` (R4-17)
 
-**Qué es.** El asistente (`streamAgent`) lee su modelo de `model_routing`, tarea `assistant_chat` (`packages/adapters/src/llm/agent.ts`, `ASSISTANT_TASK`). **Sin fila falla cerrado (`no_route`).** `packages/db/seeds/model_routing.json` de main todavía no tiene esa fila, pero **el seed del PR rojo #439 (R4-17) ya la trae**, con los mismos valores del SQL de abajo. R4-17 agrega además los prompts con la ficha de Ani.
+**Qué es.** El asistente (`streamAgent`) lee su modelo de `model_routing`, tarea `assistant_chat` (`packages/adapters/src/llm/agent.ts`, `ASSISTANT_TASK`). **Sin fila falla cerrado (`no_route`).** `packages/db/seeds/model_routing.json` de main todavía no tiene esa fila, pero **el seed del PR rojo #439 (R4-17) ya la trae**, con los mismos valores del SQL de abajo. R4-17 agrega además los prompts con la ficha de tester A.
 
 **Coincide con el seed de #439:** modelo, respaldo, temperatura, `max_tokens`, `thinking_level` y tarifas del SQL son los de la fila del seed. Si el seed de main cambia antes de que lo apliques, copiá los valores de ahí.
 
