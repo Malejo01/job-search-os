@@ -5,6 +5,7 @@ import {
   buildEvaluateJobVars,
   canTransition,
   checkJdSize,
+  checkPromptSize,
   compileTaxonomy,
   decide,
   detectJobInjection,
@@ -250,7 +251,13 @@ export type EvaluateForProfileResult =
       sanitized: ReturnType<typeof sanitizeEvaluation>["sanitized"];
       injection: InjectionInfo;
     }
-  | { ok: false; error: LlmError; injection: InjectionInfo };
+  | {
+      ok: false;
+      error: LlmError;
+      injection: InjectionInfo;
+      /** El prompt completo se pasa del máximo: reintentar no sirve, hay que cambiar el perfil o el aviso. */
+      promptTooLarge?: true;
+    };
 
 /**
  * Núcleo de la evaluación, sin base: detectores de inyección y residencia, variables del prompt,
@@ -303,6 +310,18 @@ export async function evaluateForProfile(
     rules,
     job,
   });
+
+  // El prompt completo (perfil, criterios y aviso) no puede pasarse del máximo: no se llama al
+  // modelo y el llamador decide. Con una respuesta reutilizada no hay llamada, así que no aplica.
+  const promptSize = checkPromptSize(vars);
+  if (!input.reuse && !promptSize.ok) {
+    return {
+      ok: false,
+      error: { kind: "prompt", task: "evaluate_job", detail: promptSize.error.reason },
+      injection,
+      promptTooLarge: true,
+    };
+  }
 
   // Estimado antes de llamar al modelo: queda en el log para ver el tamaño real de cada aviso
   const jdSize = checkJdSize(job.jdText);
@@ -489,6 +508,11 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
         .set({
           status: transition(job.status, "needs_jd"),
           prefilterReason: size.reason,
+          // Se vacía la JD para que la oferta salga en la cola de pendientes y acepte una nueva
+          // (la cola y `paste_jd` piden jd_text vacío). El crudo sigue guardado en sus fuentes.
+          jdText: null,
+          jdHash: null,
+          jdShingles: null,
           updatedAt: deps.now?.() ?? new Date(),
         })
         .where(eq(s.jobs.id, job.id));
@@ -568,6 +592,11 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
   });
   if (evaluated.injection.hit)
     log.warn({ signals: evaluated.injection.signals }, "aviso con instrucciones al evaluador");
+  if (!evaluated.ok && evaluated.promptTooLarge) {
+    // Reintentar no cambia nada: se salta sin gastar intentos
+    log.warn({ detail: evaluated.error.detail }, "prompt demasiado largo: no se evalúa");
+    return { ok: false, jobId, error: evaluated.error.detail, retry: "skipped" };
+  }
   if (!evaluated.ok) {
     log.error(
       { kind: evaluated.error.kind, detail: evaluated.error.detail.slice(0, 300) },
