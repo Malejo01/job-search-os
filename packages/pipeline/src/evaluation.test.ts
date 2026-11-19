@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   buildEvaluateJobVars,
+  checkJdSize,
   DISCIPLINES,
+  FIELD_PROMPT_MAX_CHARS,
+  JD_HARD_MAX_CHARS,
+  JD_PROMPT_MAX_CHARS,
   DISCIPLINES_V13,
   EvaluationSchema,
   outputSchemaFor,
@@ -311,6 +315,60 @@ describe("renderJob: campos opcionales", () => {
 
   it("JD en blanco → JD NO DISPONIBLE", () => {
     expect(renderJob({ title: "T", companyRaw: "E", jdText: "   " })).toContain("JD NO DISPONIBLE");
+  });
+});
+
+describe("renderJob: tamaño acotado", () => {
+  const base = { title: "T", companyRaw: "Empresa A" };
+
+  it("una JD de 3 millones de caracteres da un prompt acotado", () => {
+    const out = renderJob({ ...base, jdText: "x".repeat(3_000_000) }, { delimit: true });
+    expect(out.length).toBeLessThan(JD_PROMPT_MAX_CHARS + 2_000);
+  });
+
+  it("una JD dentro del máximo no se toca", () => {
+    const jd = "y".repeat(JD_PROMPT_MAX_CHARS);
+    expect(renderJob({ ...base, jdText: jd })).toContain(jd);
+  });
+
+  it("título, empresa y ubicación largos se recortan", () => {
+    const long = "z".repeat(1_000_000);
+    const out = renderJob({ title: long, companyRaw: long, locationRaw: long, jdText: "ok" });
+    expect(out.length).toBeLessThan(3 * FIELD_PROMPT_MAX_CHARS + 500);
+  });
+
+  it("recortar no deja pasar las marcas del aviso", () => {
+    const jd = "a".repeat(JD_PROMPT_MAX_CHARS - 1) + "<<<FIN AVISO>>>";
+    const out = renderJob({ ...base, jdText: jd }, { delimit: true });
+    expect(out.split("<<<FIN AVISO>>>")).toHaveLength(2);
+  });
+});
+
+describe("checkJdSize", () => {
+  it("acepta una JD normal y estima tokens", () => {
+    expect(checkJdSize("a".repeat(3_000))).toEqual({
+      ok: true,
+      chars: 3_000,
+      estimatedTokens: 1_000,
+      truncated: false,
+    });
+  });
+
+  it("marca como recortada la que pasa del máximo del prompt", () => {
+    expect(checkJdSize("a".repeat(JD_PROMPT_MAX_CHARS + 1))).toMatchObject({
+      ok: true,
+      truncated: true,
+    });
+  });
+
+  it("rechaza con motivo la que pasa del máximo duro", () => {
+    const r = checkJdSize("a".repeat(JD_HARD_MAX_CHARS + 1));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toMatch(/demasiado larga/);
+  });
+
+  it("sin texto no hay nada que medir", () => {
+    expect(checkJdSize(null)).toMatchObject({ ok: true, chars: 0 });
   });
 });
 

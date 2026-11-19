@@ -25,6 +25,7 @@ import {
   type Term,
 } from "@job-search-os/pipeline";
 import { syncJobSkillsFromText } from "../skills/sync";
+import { clampRawJobFields } from "./clamp-fields";
 import { pgBlobStorage, type BlobStorage } from "../storage/blob";
 import { and, eq, gte, inArray, isNotNull, or, sql, type SQL } from "drizzle-orm";
 import type { Logger } from "../logger";
@@ -330,7 +331,9 @@ export async function loadProfileCountry(db: Db, userId: string): Promise<string
   return (await loadProfilePrefilterPrefs(db, userId)).country;
 }
 
-export async function ingestRawJob(raw: RawJob, deps: IngestDeps): Promise<IngestOutcome> {
+export async function ingestRawJob(input: RawJob, deps: IngestDeps): Promise<IngestOutcome> {
+  // Los textos cortos se recortan antes de usarlos; el crudo se guarda tal como llegó (`original`)
+  const raw = clampRawJobFields(input);
   const { db, userId, rules } = deps;
   const now = deps.now?.() ?? new Date();
   const since = new Date(now.getTime() - (deps.windowDays ?? 14) * DAY_MS);
@@ -347,7 +350,7 @@ export async function ingestRawJob(raw: RawJob, deps: IngestDeps): Promise<Inges
   const seenAt = raw.postedAt ?? now;
 
   // JS-024: el crudo primero; si algo de lo que sigue falla, igual queda guardado
-  const rawRef = await persistRaw(db, deps.storage ?? pgBlobStorage(db), userId, raw);
+  const rawRef = await persistRaw(db, deps.storage ?? pgBlobStorage(db), userId, input);
 
   const recent = await loadRecentJobs(db, userId, since, {
     canonicalUrl: canonical,
