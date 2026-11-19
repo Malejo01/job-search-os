@@ -30,6 +30,20 @@ export type ReceivedEmailContent = {
   headers: Record<string, string> | null;
 };
 
+/** Tiempo máximo para pedir el cuerpo: el webhook tiene 60 s en total. */
+export const RESEND_FETCH_TIMEOUT_MS = 10_000;
+
+/** `retryable`: falla pasajera (429, 5xx, red o tiempo agotado); conviene que el webhook se reintente. */
+export class ResendFetchError extends Error {
+  constructor(
+    readonly status: number | null,
+    readonly retryable: boolean,
+  ) {
+    super(`Resend GET /emails/receiving: ${status === null ? "sin respuesta" : `HTTP ${status}`}`);
+    this.name = "ResendFetchError";
+  }
+}
+
 /**
  * GET /emails/receiving/{id}: el webhook solo trae metadatos; el cuerpo se pide por API.
  * Sin RESEND_API_KEY se guarda solo el evento (los parsers no pueden correr).
@@ -39,17 +53,44 @@ export async function fetchReceivedEmail(
   apiKey: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<ReceivedEmailContent> {
-  const res = await fetchImpl(
-    `https://api.resend.com/emails/receiving/${encodeURIComponent(emailId)}`,
-    {
-      headers: { Authorization: `Bearer ${apiKey}` },
-    },
-  );
-  if (!res.ok) throw new Error(`Resend GET /emails/receiving/${emailId}: HTTP ${res.status}`);
+  let res: Response;
+  try {
+    res = await fetchImpl(
+      `https://api.resend.com/emails/receiving/${encodeURIComponent(emailId)}`,
+      {
+        headers: { Authorization: `Bearer ${apiKey}` },
+        signal: AbortSignal.timeout(RESEND_FETCH_TIMEOUT_MS),
+      },
+    );
+  } catch {
+    throw new ResendFetchError(null, true);
+  }
+  if (!res.ok) {
+    throw new ResendFetchError(res.status, res.status === 429 || res.status >= 500);
+  }
   const json = (await res.json()) as {
     html?: string | null;
     text?: string | null;
     headers?: Record<string, string> | null;
   };
   return { html: json.html ?? null, text: json.text ?? null, headers: json.headers ?? null };
+}
+
+/**
+ * Cuerpo del email para el webhook. Una falla pasajera se relanza para responder 500 y que se reintente;
+ * si el email no se puede recuperar, sigue sin cuerpo y queda en la cola manual.
+ */
+export async function loadInboundContent(
+  emailId: string,
+  apiKey: string,
+  logger: { warn: (context: object, message: string) => void },
+  fetchImpl: typeof fetch = fetch,
+): Promise<ReceivedEmailContent | null> {
+  try {
+    return await fetchReceivedEmail(emailId, apiKey, fetchImpl);
+  } catch (e) {
+    if (e instanceof ResendFetchError && e.retryable) throw e;
+    logger.warn({ status: e instanceof ResendFetchError ? e.status : null }, "inbound: sin cuerpo");
+    return null;
+  }
 }

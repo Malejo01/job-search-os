@@ -148,6 +148,54 @@ async function duplicateAfterRace(
   return { kind: "duplicate", inboundId: winner };
 }
 
+/** Direcciones del evento en minúsculas, en orden de prioridad: received_for, to, cc. */
+function eventRecipients(event: ResendReceivedEvent): string[] {
+  return [...event.data.received_for, ...event.data.to, ...event.data.cc].map((r) =>
+    (/<([^>]+)>/.exec(r)?.[1] ?? r).trim().toLowerCase(),
+  );
+}
+
+/** ¿El email va a una persona o a una casilla del pool que lo aceptaría? Solo una consulta barata. */
+async function hasInboundDestination(
+  event: ResendReceivedEvent,
+  deps: InboundDeps,
+): Promise<boolean> {
+  const recipients = eventRecipients(event);
+  if (recipients.length === 0) return false;
+  const [profile] = await deps.db
+    .select({ userId: s.profiles.userId })
+    .from(s.profiles)
+    .where(sql`lower(${s.profiles.inboundAddress}) in ${recipients}`)
+    .limit(1);
+  if (profile) return true;
+  const pool = deps.pool ?? readPoolInboundConfig();
+  return (
+    pool.enabled &&
+    isPoolAlertSender(event.data.from, pool.senderDomains) &&
+    recipients.filter(isPoolMailboxAddress).some((r) => parsePoolMailbox(r, pool).ok)
+  );
+}
+
+/**
+ * Entrada del webhook: el cuerpo se pide a la API solo si el email es nuevo y tiene un destino válido.
+ * Si pedirlo falla, la excepción sube sin guardar nada, para que el reintento lo procese completo.
+ */
+export async function processInboundEvent(
+  event: ResendReceivedEvent,
+  rawBody: string,
+  fetchContent: () => Promise<ReceivedEmailContent | null>,
+  deps: InboundDeps,
+): Promise<InboundOutcome> {
+  const dup = await findByEmailId(deps.db, event.data.email_id);
+  if (dup) return { kind: "duplicate", inboundId: dup };
+  if (!(await hasInboundDestination(event, deps))) {
+    const recipientsCount = eventRecipients(event).length;
+    deps.logger.warn({ recipients_count: recipientsCount }, "inbound: destinatario sin usuario");
+    return { kind: "unknown_recipient", recipientsCount };
+  }
+  return handleInboundEmail(event, await fetchContent(), rawBody, deps);
+}
+
 export async function handleInboundEmail(
   event: ResendReceivedEvent,
   content: ReceivedEmailContent | null,
@@ -171,9 +219,7 @@ export async function handleInboundEmail(
   if (dup) return { kind: "duplicate", inboundId: dup };
 
   // Usuario por dirección de destino (u_<id>@ingest.<dominio>)
-  const recipients = [...event.data.received_for, ...event.data.to, ...event.data.cc].map((r) =>
-    (/<([^>]+)>/.exec(r)?.[1] ?? r).trim().toLowerCase(),
-  );
+  const recipients = eventRecipients(event);
   const profiles = recipients.length
     ? await db
         .select({ userId: s.profiles.userId, inboundAddress: s.profiles.inboundAddress })
