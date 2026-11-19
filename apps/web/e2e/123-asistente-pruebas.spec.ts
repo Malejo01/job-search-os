@@ -166,5 +166,24 @@ test.describe("Flujo 123: asistente con acceso de prueba", () => {
       expect(m!.x + m!.width).toBeLessThanOrEqual(390);
       expect(c!.x).toBeGreaterThanOrEqual(0);
     });
+
+    test("a 390 px el botón dice «Asistente» y el aviso inicial se cierra y no vuelve", async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await loginAsSecondUser(page);
+      await page.goto("/hoy");
+      await expect(mascot(page)).toContainText("Asistente");
+      const aviso = page.getByTestId("asistente-aviso-inicial");
+      await expect(aviso).toBeVisible();
+      await expect(aviso).toContainText("Preguntame lo que quieras");
+      await page.getByRole("button", { name: "Cerrar aviso del asistente" }).click();
+      await expect(aviso).toBeHidden();
+      await page.reload();
+      await expect(mascot(page)).toBeVisible();
+      // Le damos tiempo de sobra al aviso para que aparezca si no se hubiera guardado como visto
+      await page.waitForTimeout(1500);
+      await expect(aviso).toHaveCount(0);
+    });
   });
 });
