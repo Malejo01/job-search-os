@@ -16,15 +16,14 @@ const workflows = readdirSync(DIR)
 /** Acciones de terceros que todavía esperan su commit fijo. La lista solo puede achicarse. */
 const PENDING_PIN = new Set(["gitleaks/gitleaks-action@v2", "pnpm/action-setup@v4"]);
 
-const usesLines = (text) =>
-  [...text.matchAll(/^\s*(?:-\s+)?uses:\s*(\S+)/gm)].map((m) => m[1]);
+const usesLines = (text) => [...text.matchAll(/^\s*(?:-\s+)?uses:\s*(\S+)/gm)].map((m) => m[1]);
 
 /** Bloques de cada job: desde `  nombre:` hasta el siguiente job. */
 function jobBlocks(text) {
   const body = text.slice(text.indexOf("\njobs:\n") + 7);
   return body
-    .split(/^(?=  [a-z][a-z0-9-]*:\s*$)/m)
-    .filter((block) => /^  [a-z]/.test(block))
+    .split(/^(?= {2}[a-z][a-z0-9-]*:\s*$)/m)
+    .filter((block) => /^ {2}[a-z]/.test(block))
     .map((block) => ({ job: block.trim().split(":")[0], block }));
 }
 

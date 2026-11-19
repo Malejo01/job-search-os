@@ -47,12 +47,16 @@ beforeAll(async () => {
   await owner`insert into profiles (user_id, display_name, location_country, inbound_address) values
     (${A}, 'Persona A', 'AR', ${ADDRESS_A}),
     (${B}, 'Persona B', 'AR', 'u_bcdefghijklmnopqrstu@ingest.test')`;
-  [{ id: jobA }] = await owner<{ id: string }[]>`
+  [{ id: jobA }] = (await owner<{ id: string }[]>`
     insert into jobs (user_id, company_raw, title, title_normalized)
-    values (${A}, 'Empresa A', 'Puesto A', 'puesto a') returning id` as unknown as [{ id: string }];
-  [{ id: jobB }] = await owner<{ id: string }[]>`
+    values (${A}, 'Empresa A', 'Puesto A', 'puesto a') returning id`) as unknown as [
+    { id: string },
+  ];
+  [{ id: jobB }] = (await owner<{ id: string }[]>`
     insert into jobs (user_id, company_raw, title, title_normalized)
-    values (${B}, 'Empresa B', 'Puesto B', 'puesto b') returning id` as unknown as [{ id: string }];
+    values (${B}, 'Empresa B', 'Puesto B', 'puesto b') returning id`) as unknown as [
+    { id: string },
+  ];
 }, 180_000);
 
 afterAll(async () => {
@@ -83,7 +87,10 @@ describe("topes del perfil", () => {
   });
 
   it("la app sigue pudiendo editar el resto del perfil", async () => {
-    await asUser(A, (tx) => tx`update profiles set display_name = 'Nombre nuevo' where user_id = ${A}`);
+    await asUser(
+      A,
+      (tx) => tx`update profiles set display_name = 'Nombre nuevo' where user_id = ${A}`,
+    );
     const [row] = await owner`select display_name from profiles where user_id = ${A}`;
     expect(row!.display_name).toBe("Nombre nuevo");
   });
