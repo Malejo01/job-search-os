@@ -1,6 +1,7 @@
 import { loadLocalEnv } from "@job-search-os/db";
 import { legacyHostRedirects } from "@job-search-os/pipeline";
 import type { NextConfig } from "next";
+import { SECURITY_HEADERS } from "./lib/security-headers";
 
 // Variables del repo (.env.local en la raíz) también para next dev / next build local.
 // En Vercel no existe el archivo y no hace nada.
@@ -43,23 +44,12 @@ const nextConfig: NextConfig = {
       ...legacyHostRedirects(process.env),
     ];
   },
-  // Headers de seguridad globales. La CSP lleva solo frame-ancestors (la completa es otro ticket);
-  // limitan que nos enmarquen, no los iframes propios con srcDoc.
+  // Headers de seguridad globales. La CSP de scripts corre en Report-Only desde el middleware.
   async headers() {
     return [
       {
         source: "/:path*",
-        headers: [
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          {
-            key: "Permissions-Policy",
-            // Sin interest-cohort: Chrome ya no lo reconoce y lo informa como error en la consola
-            value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
-          },
-          { key: "X-Frame-Options", value: "DENY" },
-          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
-        ],
+        headers: [...SECURITY_HEADERS],
       },
       // Va después de la global a propósito: con la misma clave gana la última entrada que matchea.
       // El token del reset viaja en la query: que no salga en el Referer hacia otros sitios (SEC-05).
