@@ -272,7 +272,7 @@ export async function POST(request: Request): Promise<Response> {
         daySince: windows.daySince,
         decide,
       });
-    // Soltar la reserva nunca tapa el resultado del paso: si falla, solo se loguea y vence a los 2 minutos
+    // Soltar la reserva nunca tapa el resultado del paso: si falla, solo se loguea y la reserva vence sola
     const release = async (id: string | null): Promise<void> => {
       if (!(await releaseCvChatReservation(db, id))) {
         logger.warn({ run_id: ticket.conversationId }, "cv chat: no se pudo borrar la reserva");
