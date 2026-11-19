@@ -37,7 +37,7 @@ import { randomUUID } from "node:crypto";
 import { and, count, desc, eq, getTableColumns, lte, ne, sql } from "drizzle-orm";
 import { DEFAULT_PROMPT_VERSIONS } from "../llm/client";
 import type { GenerateContext, LlmClient, LlmError } from "../llm/types";
-import { dailyCapFromEnv, spendLast24h, userDailyCapUsd } from "../llm/spend";
+import { dailyCapFromEnv, globalCapReached, spendLast24h, userDailyCapUsd } from "../llm/spend";
 import { EVALUATION_RESERVE_USD, releaseLlmSpend, reserveLlmSpend } from "../llm/spend-reserve";
 import type { Logger } from "../logger";
 import { safeDbError } from "../logging/safe-error";
@@ -692,6 +692,9 @@ export const EVALUATE_BUDGET_DEFAULT_MARGIN_MS = 30_000;
 /** Mensaje para la UI cuando el tope por usuario frena una evaluación. */
 export const USER_CAP_MESSAGE = "tope diario de evaluaciones alcanzado";
 
+/** Mensaje de la cola cuando la parte reservada del tope global frena al dueño. */
+export const GLOBAL_RESERVED_MESSAGE = "parte reservada del tope global";
+
 /** Cuánto se pospone un mensaje de un usuario topeado (la ventana de 24 h es móvil: 1 h alcanza). */
 const USER_CAP_DEFER_MS = 60 * 60 * 1000;
 
@@ -719,15 +722,20 @@ async function jobOwner(db: Db, jobId: string): Promise<string | null> {
  */
 function userSpendTracker(deps: EvaluateDeps, capUsd: number) {
   const spent = new Map<string, number>();
+  const mineUsd = async (userId: string): Promise<number> => {
+    let usd = spent.get(userId);
+    if (usd === undefined) {
+      usd = (await spendLast24h(deps.db, deps.now, { userId })).usd;
+      spent.set(userId, usd);
+    }
+    return usd;
+  };
   return {
+    /** Gasto de 24 h de la persona (con caché de la corrida). */
+    mineUsd,
     async isOver(userId: string | null): Promise<boolean> {
       if (capUsd <= 0 || !userId) return false;
-      let usd = spent.get(userId);
-      if (usd === undefined) {
-        usd = (await spendLast24h(deps.db, deps.now, { userId })).usd;
-        spent.set(userId, usd);
-      }
-      return usd >= capUsd;
+      return (await mineUsd(userId)) >= capUsd;
     },
     add(userId: string | null, usd: number): void {
       if (userId && spent.has(userId)) spent.set(userId, spent.get(userId)! + usd);
@@ -799,7 +807,8 @@ export async function runEvaluateWorker(
   );
 
   // Guardarraíl de costo: se mira ANTES de tomar mensajes (nada queda en processing si ya se pasó)
-  const spend = await spendLast24h(deps.db, deps.now);
+  // Sin el gasto de CV (tiene su presupuesto propio): es lo que se compara con el tope global
+  const spend = await spendLast24h(deps.db, deps.now, { excludeCvAgent: true });
   const overCap = () => dailyCapUsd > 0 && spend.usd >= dailyCapUsd;
   const base = {
     spendUsd24h: spend.usd,
@@ -914,14 +923,30 @@ export async function runEvaluateWorker(
         summary.failed++;
         continue;
       }
-      if (await userCap.isOver(ownerId)) {
+      // Parte reservada del tope global: dentro de ella solo sigue quien casi no gastó (misma regla que
+      // la evaluación inmediata). Se mira antes que el tope por persona, igual que bajo el lock de reservas.
+      const reservedPartHit =
+        dailyCapUsd > 0 &&
+        ownerId !== null &&
+        globalCapReached({
+          capUsd: dailyCapUsd,
+          totalUsd: spend.usd,
+          mineUsd: await userCap.mineUsd(ownerId),
+        });
+      if (reservedPartHit || (await userCap.isOver(ownerId))) {
         const until = new Date(nowMs() + USER_CAP_DEFER_MS);
-        await deps.queue.release(msg.id, USER_CAP_MESSAGE, { runAfter: until });
+        await deps.queue.release(
+          msg.id,
+          reservedPartHit ? GLOBAL_RESERVED_MESSAGE : USER_CAP_MESSAGE,
+          { runAfter: until },
+        );
         if (ownerId && !deferredUsers.has(ownerId)) {
           deferredUsers.add(ownerId);
           deps.logger.warn(
             { user_id: ownerId, job_id: msg.payload.jobId },
-            "evaluaciones diferidas: el usuario pasó su tope diario (LLM_USER_DAILY_CAP_USD)",
+            reservedPartHit
+              ? "evaluaciones diferidas: la parte reservada del tope global es para quienes casi no gastaron (LLM_DAILY_CAP_USD)"
+              : "evaluaciones diferidas: el usuario pasó su tope diario (LLM_USER_DAILY_CAP_USD)",
           );
           // El resto de sus pendientes también, para que no llenen el próximo lote
           await deps.db

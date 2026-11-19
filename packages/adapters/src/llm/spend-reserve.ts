@@ -146,7 +146,9 @@ export async function reserveLlmSpend(db: Db, input: SpendReserveInput): Promise
       // Misma precedencia que bajo lock: si el tope global también frena, ese es el motivo
       const globalCap = input.dailyCapUsd ?? dailyCapFromEnv();
       if (globalCap > 0) {
-        const totalUsd = (await spendLast24h(db, clock)).usd + (mineLive?.all ?? 0) / MICRO_USD;
+        const totalUsd =
+          (await spendLast24h(db, clock, { excludeCvAgent: true })).usd +
+          (mineLive?.all ?? 0) / MICRO_USD;
         if (globalCapReached({ capUsd: globalCap, totalUsd, mineUsd })) {
           return { ok: false, reason: "global" };
         }
@@ -203,7 +205,9 @@ async function reserveCore<R extends string>(
 
       const mineUsd = (await spendLast24h(tx, clock, { userId: input.userId })).usd + reservedMine;
       if (globalCap > 0) {
-        const totalUsd = (await spendLast24h(tx, clock)).usd + reservedAll;
+        // El gasto de CV tiene presupuesto propio: no le descuenta a este tope (ver `spendSince`)
+        const totalUsd =
+          (await spendLast24h(tx, clock, { excludeCvAgent: true })).usd + reservedAll;
         if (globalCapReached({ capUsd: globalCap, totalUsd, mineUsd })) {
           return { ok: false as const, reason: "global" as const };
         }

@@ -1,5 +1,6 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import { and, desc, eq, gte, isNotNull, notInArray, sql } from "drizzle-orm";
+import { PROFILE_AGENT_SPEND_TASKS } from "../profile-agent/measure";
 
 /** Reserva de gasto de la evaluación inmediata y de los borradores (`spend-reserve.ts`). */
 export const LLM_RESERVE_TASK = "llm_reserve";
@@ -89,7 +90,7 @@ export function userDailyCapUsd(env: NodeJS.ProcessEnv = process.env): number {
 export function spendSinceQuery(
   db: Pick<Db, "select">,
   since: Date,
-  options: { userId?: string } = {},
+  options: { userId?: string; excludeCvAgent?: boolean } = {},
 ) {
   return db
     .select({
@@ -105,17 +106,28 @@ export function spendSinceQuery(
     .where(
       and(
         gte(s.llmCalls.createdAt, since),
-        notInArray(s.llmCalls.task, NOT_MODEL_CALLS),
+        notInArray(
+          s.llmCalls.task,
+          options.excludeCvAgent
+            ? [...NOT_MODEL_CALLS, ...PROFILE_AGENT_SPEND_TASKS]
+            : NOT_MODEL_CALLS,
+        ),
         options.userId ? eq(s.llmCalls.userId, options.userId) : undefined,
       ),
     );
 }
 
-/** Con `userId` suma solo las llamadas de ese usuario; sin él, todas (tope global). */
+/**
+ * Con `userId` suma solo las llamadas de ese usuario; sin él, todas (tope global).
+ * `excludeCvAgent` deja afuera las tareas del chat de CV y del agente de perfil: tienen su propio
+ * presupuesto diario (global y por persona, `cv-chat/limits` y `profile-agent/limits`), así que no le
+ * descuentan al tope global de evaluaciones, borradores y asistente (`LLM_DAILY_CAP_USD`). Úsese para
+ * decidir ese tope; los reportes siguen sumando todo.
+ */
 export async function spendSince(
   db: Pick<Db, "select">,
   since: Date,
-  options: { userId?: string } = {},
+  options: { userId?: string; excludeCvAgent?: boolean } = {},
 ): Promise<SpendSummary> {
   const [row] = await spendSinceQuery(db, since, options);
   return { since, ...row! };
@@ -124,7 +136,7 @@ export async function spendSince(
 export const spendLast24h = (
   db: Pick<Db, "select">,
   now: () => Date = () => new Date(),
-  options: { userId?: string } = {},
+  options: { userId?: string; excludeCvAgent?: boolean } = {},
 ): Promise<SpendSummary> =>
   spendSince(db, new Date(now().getTime() - 24 * 60 * 60 * 1000), options);
 
@@ -170,7 +182,7 @@ export async function spendCapReason(
   if (!(globalCap > 0) && !(userCap > 0)) return null;
   const mineUsd = (await spendLast24h(db, input.now, { userId: input.userId })).usd;
   if (globalCap > 0) {
-    const totalUsd = (await spendLast24h(db, input.now)).usd;
+    const totalUsd = (await spendLast24h(db, input.now, { excludeCvAgent: true })).usd;
     if (globalCapReached({ capUsd: globalCap, totalUsd, mineUsd })) return "global";
   }
   return userCap > 0 && mineUsd >= userCap ? "user" : null;
