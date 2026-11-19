@@ -104,7 +104,9 @@ test.describe("Flujo 11: acciones y volumen en /inbox", () => {
 
     await addInboundRejections(3);
     await page.reload();
-    await expect(aviso(page)).toContainText("3 emails rechazados por el límite");
+    // S3-09: el aviso nombra el límite real (hora y día, por tipo de remitente), sin contar emails
+    await expect(aviso(page)).toContainText("emails rechazados por el límite");
+    await expect(aviso(page)).toContainText("por separado para fuentes de empleo");
   });
 
   test("el ruido social de LinkedIn llega a Descartados como «no relevante», sin «cargar a mano» (JS-050)", async ({
