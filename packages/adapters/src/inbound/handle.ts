@@ -26,7 +26,9 @@ import {
   chooseParserName,
   EMAIL_PARSERS,
   linkedinSenderKind,
+  type EmailParser,
   type InboundEmailContent,
+  type ParseResult,
 } from "./parsers";
 import { linkedinParser } from "./linkedin";
 import {
@@ -148,6 +150,53 @@ async function duplicateAfterRace(
   return { kind: "duplicate", inboundId: winner };
 }
 
+/** Las columnas de texto de Postgres no aceptan el carácter nulo: se saca antes de usar cada campo. */
+const withoutNul = (text: string): string => text.replaceAll("\u0000", "");
+
+function cleanEvent(event: ResendReceivedEvent): ResendReceivedEvent {
+  const { data } = event;
+  return {
+    ...event,
+    data: {
+      ...data,
+      email_id: withoutNul(data.email_id),
+      from: withoutNul(data.from),
+      to: data.to.map(withoutNul),
+      cc: data.cc.map(withoutNul),
+      bcc: data.bcc.map(withoutNul),
+      received_for: data.received_for.map(withoutNul),
+      ...(typeof data.subject === "string" ? { subject: withoutNul(data.subject) } : {}),
+      ...(data.message_id !== undefined ? { message_id: withoutNul(data.message_id) } : {}),
+    },
+  };
+}
+
+function cleanContent(content: ReceivedEmailContent | null): ReceivedEmailContent | null {
+  if (!content) return null;
+  return {
+    ...content,
+    html: content.html === null ? null : withoutNul(content.html),
+    text: content.text === null ? null : withoutNul(content.text),
+  };
+}
+
+/** Un parser que lanza cuenta como estructura no reconocida: el email va a la cola manual. */
+function parseOrManualQueue(
+  parser: EmailParser,
+  email: InboundEmailContent,
+  log: Pick<Logger, "warn">,
+): ParseResult {
+  try {
+    return parser.parse(email);
+  } catch (e) {
+    log.warn(
+      { parser: parser.name, err_name: e instanceof Error ? e.name : "Error" },
+      "inbound: el parser lanzó una excepción",
+    );
+    return { ok: false, reason: "no se pudo leer el contenido" };
+  }
+}
+
 /** Direcciones del evento en minúsculas, en orden de prioridad: received_for, to, cc. */
 function eventRecipients(event: ResendReceivedEvent): string[] {
   return [...event.data.received_for, ...event.data.to, ...event.data.cc].map((r) =>
@@ -181,11 +230,12 @@ async function hasInboundDestination(
  * Si pedirlo falla, la excepción sube sin guardar nada, para que el reintento lo procese completo.
  */
 export async function processInboundEvent(
-  event: ResendReceivedEvent,
+  receivedEvent: ResendReceivedEvent,
   rawBody: string,
   fetchContent: () => Promise<ReceivedEmailContent | null>,
   deps: InboundDeps,
 ): Promise<InboundOutcome> {
+  const event = cleanEvent(receivedEvent);
   const dup = await findByEmailId(deps.db, event.data.email_id);
   if (dup) return { kind: "duplicate", inboundId: dup };
   if (!(await hasInboundDestination(event, deps))) {
@@ -197,11 +247,13 @@ export async function processInboundEvent(
 }
 
 export async function handleInboundEmail(
-  event: ResendReceivedEvent,
-  content: ReceivedEmailContent | null,
+  receivedEvent: ResendReceivedEvent,
+  receivedContent: ReceivedEmailContent | null,
   rawBody: string,
   deps: InboundDeps,
 ): Promise<InboundOutcome> {
+  const event = cleanEvent(receivedEvent);
+  const content = cleanContent(receivedContent);
   const { db } = deps;
   const now = deps.now?.() ?? new Date();
   const log = deps.logger.child({
@@ -504,14 +556,18 @@ export async function handleInboundEmail(
     // el formato: no se ingesta ni se descarta, queda en Pendientes para revisar la regla.
     parserUsed = LINKEDIN_SOCIAL_PARSER;
     const cards = content?.html
-      ? linkedinParser.parse({
-          from: event.data.from,
-          to: recipients,
-          subject: event.data.subject ?? null,
-          html: content.html,
-          text: content.text,
-          receivedAt: now,
-        })
+      ? parseOrManualQueue(
+          linkedinParser,
+          {
+            from: event.data.from,
+            to: recipients,
+            subject: event.data.subject ?? null,
+            html: content.html,
+            text: content.text,
+            receivedAt: now,
+          },
+          log,
+        )
       : null;
     if (cards?.ok && cards.jobs.length) {
       error = `notificación social de LinkedIn con ${cards.jobs.length} tarjetas de aviso: revisar la regla de remitentes (no se cargaron)`;
@@ -532,7 +588,7 @@ export async function handleInboundEmail(
       text: content.text,
       receivedAt: now,
     };
-    const parsed = parser.parse(email);
+    const parsed = parseOrManualQueue(parser, email, log);
     if (!parsed.ok) {
       error = `estructura no reconocida (${parser.name}): ${parsed.reason}. Cola manual`;
     } else if (parsed.jobs.length > EMAIL_MAX_CARDS) {
