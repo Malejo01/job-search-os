@@ -49,7 +49,12 @@ export type CvChatMeasures = {
   startsToday: number;
   /** Turnos de entrevista (llamadas al modelo) de la persona en la ventana mensual: reales más reservados. */
   interviewTurnsThisMonth: number;
-  /** Turnos de entrevista de esta charla: reales más reservados. No depende del ticket. */
+  /**
+   * Turnos de entrevista de esta charla: reales más reservados. No depende del ticket.
+   * Ojo: cuenta intentos al proveedor, no turnos de la persona. `llm_calls` guarda una fila por intento, así
+   * que un turno que cae al modelo de respaldo cuenta dos veces y una charla puede cerrarse antes del tope si
+   * el proveedor falla. Es una decisión conocida: no se pierden datos y el tope sigue protegiendo el gasto.
+   */
   interviewTurnsInConversation: number;
 };
 

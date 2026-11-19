@@ -194,6 +194,9 @@ export async function registerWithInvitation(
     sql`select invitation_is_redeemable(${codeHash}, ${email}) as ok`,
   )) as unknown as { ok: boolean }[];
   if (!pre?.ok) throw new InvalidInvitationError();
+  // El hash se calcula antes de decidir: así una dirección con permisos (rechazada acá) tarda lo mismo que una
+  // ya registrada (rechazada más abajo) y el tiempo de respuesta no distingue cuál es.
+  const passwordHash = hashPassword(input.password);
   const allowed = await mayRegisterWithInvitation(email, process.env, async () => {
     const [bound] = (await getAppDb().execute(
       sql`select invitation_is_bound_to_email(${codeHash}, ${email}) as ok`,
@@ -201,7 +204,6 @@ export async function registerWithInvitation(
     return bound?.ok === true;
   });
   if (!allowed) throw new InvalidInvitationError();
-  const passwordHash = hashPassword(input.password);
   const ingestDomain = process.env.INGEST_DOMAIN ?? "ingest.local";
   // La dirección de ingesta es un token aleatorio. Si choca con el unique de inbound_address
   // (probabilidad despreciable) se reintenta una vez con otro token; un choque de email o de

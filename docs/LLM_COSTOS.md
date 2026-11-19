@@ -200,7 +200,7 @@ Dos tareas nuevas en `model_routing`, ambas con `label = cv:<id de la charla>` e
 
 **Qué acota el gasto mientras tanto** (todo falla cerrado, mensaje fijo):
 
-- por conversación: 25 turnos y USD 0,15;
+- por conversación: 25 turnos y USD 0,15. El tope de turnos cuenta **intentos al proveedor**, no turnos de la persona (`llm_calls` guarda una fila por intento): un turno que cae al modelo de respaldo cuenta dos, y una charla puede cerrarse antes de los 25 si el proveedor falla. No se pierden datos;
 - por persona y día: USD 0,30 de entrevistas y 5 charlas nuevas;
 - global: `CV_CHAT_DAILY_CAP_USD` (USD 1,00 por día por defecto);
 - por mes: el cupo «CV por mes» del plan (gratis 1, pago 5);
