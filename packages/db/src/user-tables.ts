@@ -24,8 +24,16 @@ export type UserTableEntry = {
    * null en las invitaciones ajenas que canjeó el usuario (la RLS no deja a quien canjeó verlas).
    * `cascade`: la app no puede borrar esas filas (sin policy de DELETE); caen por ON DELETE CASCADE
    * al borrar `users`. Acá solo se cuentan, antes del borrado, para que el conteo sea explícito.
+   * `anonymize_llm_calls`: función SECURITY DEFINER de rls/0025. El costo queda para los topes y las
+   * métricas; se borra todo lo que identifica a la persona.
    */
-  action: "delete" | "nullify" | "delete_unapproved" | "release_invitations" | "cascade";
+  action:
+    | "delete"
+    | "nullify"
+    | "delete_unapproved"
+    | "release_invitations"
+    | "cascade"
+    | "anonymize_llm_calls";
 };
 
 export const USER_TABLES: readonly UserTableEntry[] = [
@@ -38,7 +46,7 @@ export const USER_TABLES: readonly UserTableEntry[] = [
   { table: "inbound_rejections", column: "user_id", action: "delete" },
   { table: "inbound_sender_domains", column: "user_id", action: "delete" },
   { table: "job_queue", column: "user_id", action: "delete" },
-  { table: "llm_calls", column: "user_id", action: "delete" },
+  { table: "llm_calls", column: "user_id", action: "anonymize_llm_calls" },
   // learning_plan_items referencia learning_resources: va antes de tocar los recursos
   { table: "learning_plan_items", column: "user_id", action: "delete" },
   // Catálogo compartido. Decisión de JS-092: los recursos NO aprobados que propuso el usuario se
@@ -108,6 +116,9 @@ export async function deleteUserData(db: Db, userId: string): Promise<Record<str
     let count: number;
     if (e.action === "release_invitations") {
       const rows = await db.execute(sql`select public.release_invitations(${userId}::uuid) as n`);
+      count = Number((rows as unknown as { n: number }[])[0]?.n ?? 0);
+    } else if (e.action === "anonymize_llm_calls") {
+      const rows = await db.execute(sql`select public.anonymize_llm_calls(${userId}::uuid) as n`);
       count = Number((rows as unknown as { n: number }[])[0]?.n ?? 0);
     } else if (e.action === "cascade") {
       const rows = await db.execute(

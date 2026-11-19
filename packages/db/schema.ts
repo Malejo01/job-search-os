@@ -738,7 +738,8 @@ export const modelRouting = pgTable("model_routing", {
 
 export const llmCalls = pgTable("llm_calls", {
   id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id"),
+  // Sin cuenta queda en null: el costo sigue contando para los topes (rls/0025)
+  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
   task: text("task").notNull(),
   model: text("model").notNull(),
   promptVersion: text("prompt_version"),
