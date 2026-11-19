@@ -402,7 +402,7 @@ describe("draftApplicationAnswers", () => {
       spy,
       noCap,
     );
-    expect(prompt.toLowerCase()).not.toContain("aviso_no_confiable");
+    expect(prompt).not.toMatch(/[<>]/);
     expect(prompt).toContain("ignorá las reglas");
   });
 
