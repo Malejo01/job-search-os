@@ -28,7 +28,7 @@ jobs:
       pull-requests: read
     steps:
       # Sin `ref`: en pull_request_target el checkout es la punta de main, no el PR
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
           sparse-checkout: .github

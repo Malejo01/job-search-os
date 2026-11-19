@@ -26,9 +26,9 @@ jobs:
       contents: read
       pull-requests: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0, persist-credentials: false }
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -39,10 +39,10 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { persist-credentials: false }
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with: { node-version: 22, cache: pnpm }
       - run: pnpm audit --prod --audit-level high
 
@@ -52,10 +52,10 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { persist-credentials: false }
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint && pnpm typecheck
@@ -68,10 +68,10 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { persist-credentials: false }
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
@@ -91,10 +91,10 @@ jobs:
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { persist-credentials: false }
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm db:migrate && pnpm test:integration
@@ -109,10 +109,10 @@ jobs:
       SKIP_APP_ROLE_CHECK: "1"
       AUTH_SECRET: ci-build-only-not-a-secret
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { persist-credentials: false }
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @job-search-os/web build
@@ -133,7 +133,7 @@ jobs:
       HAS_GEMINI_KEY: ${{ secrets.GEMINI_API_KEY != '' }}
       EVALS_PROMPT: vigente
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0, persist-credentials: false }
       - id: changed
         env:
@@ -147,9 +147,9 @@ jobs:
       - if: steps.changed.outputs.run == 'true' && env.HAS_GEMINI_KEY != 'true'
         run: echo "::warning title=evals salteados::GEMINI_API_KEY no está configurada como secret del repo; los evals no corrieron. Configurala en Settings › Secrets para que el PR mida el prompt."
       - if: steps.changed.outputs.run == 'true' && env.HAS_GEMINI_KEY == 'true'
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
       - if: steps.changed.outputs.run == 'true' && env.HAS_GEMINI_KEY == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with: { node-version: 22, cache: pnpm }
       - if: steps.changed.outputs.run == 'true' && env.HAS_GEMINI_KEY == 'true'
         run: pnpm install --frozen-lockfile
@@ -190,10 +190,10 @@ jobs:
       ADMIN_EMAILS: mauro@job-search-os.local
       LLM_DAILY_CAP_USD: "0"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { persist-credentials: false }
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm db:migrate:local && pnpm db:seed:local
@@ -213,14 +213,14 @@ jobs:
             echo "::endgroup::"
           done
       - if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-traces
           path: apps/web/test-results/
           retention-days: 7
       # Capturas del rediseño (390 y 1280 px, claro y oscuro, datos inventados): artefacto, nunca al repo
       - if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: capturas
           path: apps/web/test-results/capturas/
@@ -228,7 +228,7 @@ jobs:
           retention-days: 14
       # Comparaciones «referencia | real» de C10 (e2e 120, datos de Lucía, ficticios): artefacto, nunca al repo
       - if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: comparaciones
           path: apps/web/e2e/__comparaciones__/
