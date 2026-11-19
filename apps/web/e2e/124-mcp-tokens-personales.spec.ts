@@ -229,7 +229,9 @@ test.describe("Flujo 124: tokens personales del MCP", () => {
     const missing = await getJob(request, tokenA, "00000000-0000-4000-8000-00000000dead");
     expect(missing.status).toBe(200);
     expect(missing.body).toContain("oferta_inexistente");
-    expect(missing.body).toBe(other.body);
+    // El id de JSON-RPC cambia en cada pedido; el resto de la respuesta tiene que ser idéntico
+    const sinId = (body: string) => body.replace(/"id":\d+/g, '"id":0');
+    expect(sinId(missing.body)).toBe(sinId(other.body));
   });
 
   test("las tools de lectura van con readOnlyHint y las que escriben no", async ({ request }) => {

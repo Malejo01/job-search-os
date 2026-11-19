@@ -73,7 +73,6 @@ export function AssistantMascot({ maxTurns }: { maxTurns?: number }) {
         >
           {hint ? (
             <div
-              role="status"
               data-testid="asistente-aviso-inicial"
               className="pointer-events-none absolute right-0 bottom-full mb-2 w-56 rounded-card border-2 border-line-strong bg-surface p-3 pr-9 text-sm text-fg shadow-sm sm:hidden"
             >
@@ -102,7 +101,7 @@ export function AssistantMascot({ maxTurns }: { maxTurns?: number }) {
               setOpen(true);
             }}
             style={{ "--mascota": `${MASCOT_SIZE}px` } as CSSProperties}
-            className="inline-flex min-h-11 items-center justify-center gap-1.5 overflow-hidden rounded-pill border-2 border-line-strong bg-illustration px-3.5 text-sm font-semibold text-fg shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:h-[var(--mascota)] sm:w-[var(--mascota)] sm:rounded-full sm:px-0 sm:text-fg-muted"
+            className="inline-flex min-h-11 items-center justify-center gap-1.5 overflow-hidden rounded-pill border-2 border-line-strong bg-surface px-3.5 text-sm font-semibold text-fg shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:h-[var(--mascota)] sm:w-[var(--mascota)] sm:rounded-full sm:bg-illustration sm:px-0 sm:text-fg-muted"
           >
             {MASCOT_IMAGES_AVAILABLE ? (
               // Imagen estática del mismo dominio: sin el optimizador de Next
