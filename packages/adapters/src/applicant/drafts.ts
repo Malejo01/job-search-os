@@ -229,6 +229,26 @@ export function sanitizeJd(jd: string): string {
   return jd.slice(0, MAX_JD_CHARS).replaceAll("<", "‹").replaceAll(">", "›");
 }
 
+export const MAX_TITLE_CHARS = 300;
+
+/**
+ * El título del aviso va fuera del bloque del aviso: se deja en una sola línea (saltos de línea,
+ * tabulaciones y separadores Unicode pasan a un espacio), sin caracteres de formato ni de control,
+ * sin `<` ni `>` y con un tope de largo. Se recorta un prefijo acotado antes de procesar, así el
+ * costo no depende del tamaño de la entrada.
+ */
+export function sanitizeTitle(title: string): string {
+  return title
+    .slice(0, MAX_TITLE_CHARS * 4)
+    .replace(/[\p{Cf}]/gu, "")
+    .replace(/[\p{Cc}\p{Z}]+/gu, " ")
+    .trim()
+    .replaceAll("<", "‹")
+    .replaceAll(">", "›")
+    .slice(0, MAX_TITLE_CHARS)
+    .trim();
+}
+
 /**
  * Valida lo que devolvió el modelo contra la tabla real de hechos. Sin fuente válida no hay
  * afirmación: el borrador se vacía y se marca "sin fuente".
@@ -345,7 +365,7 @@ export async function prepareApplicationDrafts(
         .slice(0, MAX_PREVIOUS_ANSWERS)
         .map((a) => ({ question: a.question, answer: a.answer, lang: a.lang })),
     ),
-    job_title: job?.title ?? "",
+    job_title: sanitizeTitle(job?.title ?? ""),
     job: sanitizeJd(job?.jdText ?? "(sin texto del aviso)"),
     questions: JSON.stringify(forModel),
   };
