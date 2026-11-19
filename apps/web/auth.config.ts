@@ -1,5 +1,6 @@
 import type { NextAuthConfig } from "next-auth";
 import { requiresLogin } from "./lib/route-access";
+import { sessionCookieConfig } from "./lib/session-cookie";
 
 /**
  * Configuración de Auth.js compartida entre el middleware (edge, sin base de datos) y el
@@ -11,6 +12,7 @@ export const authConfig = {
   pages: { signIn: "/login" },
   // 14 días (S-6, antes 30): con la versión de sesión, un reset corta las sesiones viejas igual
   session: { strategy: "jwt", maxAge: 14 * 24 * 60 * 60 },
+  cookies: sessionCookieConfig(process.env),
   trustHost: true,
   callbacks: {
     authorized({ auth, request }) {

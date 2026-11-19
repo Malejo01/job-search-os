@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { signOut } from "@/auth";
 import type { FormActionError } from "@/app/components/guarded-form";
+import { closeAllSessions } from "@/lib/close-sessions";
 import { deleteAccount } from "@/lib/delete-account";
 import { assignRandomInboundAddress } from "@/lib/inbound-address";
 import { getTargetRolesLimit, setTargetRoles, specialtiesFromForm } from "@/lib/onboarding";
@@ -28,6 +29,13 @@ export async function deleteAccountAction(formData: FormData): Promise<void> {
   // Vuelve a la página desde la que se pidió (lista cerrada: nunca una URL del formulario)
   const back = DELETE_RETURN_TO.find((p) => p === formData.get("returnTo")) ?? "/settings";
   if (!result.ok) redirect(`${back}?error=confirmacion`);
+  await signOut({ redirectTo: "/login" });
+}
+
+/** «Cerrar todas las sesiones»: corta las de todos los dispositivos, incluida esta. */
+export async function closeAllSessionsAction(): Promise<void> {
+  const userId = await requireUserId();
+  await closeAllSessions(userId);
   await signOut({ redirectTo: "/login" });
 }
 

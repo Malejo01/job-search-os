@@ -23,6 +23,7 @@ import { getTargetRoles, getTargetRolesLimit, getTargetSpecialties } from "@/lib
 import { getPlanOverride, getUserPlan, type UserPlan } from "@/lib/user-plan";
 import { requireUserId } from "@/lib/session";
 import { buttonClasses, cardClasses, textLinkClasses } from "@/components/ui";
+import { closeAllSessionsAction } from "./actions";
 import { DeleteAccountForm } from "./delete-account-form";
 import { InboundAddressSection } from "./inbound-address";
 import { TargetRolesForm } from "./target-roles-form";
@@ -128,6 +129,14 @@ export default async function SettingsPage({
         <p className="text-sm text-fg-muted">
           Email: <span className="font-medium">{user?.email ?? "—"}</span>
         </p>
+        <form action={closeAllSessionsAction} className="flex flex-col items-start gap-1">
+          <button type="submit" className={buttonClasses({ variant: "secondary", size: "sm" })}>
+            Cerrar todas las sesiones
+          </button>
+          <p className="text-xs text-fg-subtle">
+            Sale de tu cuenta en todos los dispositivos, también en este.
+          </p>
+        </form>
         <DeleteAccountForm error={Boolean(error)} />
       </section>
 

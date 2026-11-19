@@ -19,6 +19,7 @@ import {
   cvChatCloseReason,
   cvChatBetaCvPerMonth,
   cvChatCapReason,
+  cvChatEffectiveTurns,
   cvChatMonthTurnsReason,
   cvChatDailyCapUsd,
   cvChatStartCapReason,
@@ -247,7 +248,7 @@ export async function POST(request: Request): Promise<Response> {
       (turns: number, extra?: (m: CvChatMeasures) => ReserveReject | null) =>
       (m: CvChatMeasures): ReserveReject | null =>
         cvChatCapReason({
-          turns,
+          turns: cvChatEffectiveTurns(turns, m.interviewTurnsInConversation),
           conversationCostUsd: m.conversationCostUsd,
           cvThisMonth: m.cvThisMonth,
           cvPerMonth: cvChatBetaCvPerMonth(plan.plan.limits.cvChatPerMonth),

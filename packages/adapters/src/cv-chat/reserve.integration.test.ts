@@ -232,6 +232,28 @@ describe("reservas del chat de CV", () => {
     expect(live.dailySpendUsd).toBeCloseTo(0.14);
   });
 
+  it("los turnos de la charla se miden en la base, con los reservados incluidos", async () => {
+    const label = "cv:charla-turnos";
+    await conn.db.insert(s.llmCalls).values([
+      { userId: USER, task: "cv_interview", model: "m", ok: true, costUsd: 0.01, label },
+      { userId: USER, task: "cv_interview", model: "m", ok: false, error: "timeout", label },
+      {
+        userId: USER,
+        task: "cv_interview",
+        model: "m",
+        ok: false,
+        error: "provider_unavailable",
+        label,
+      },
+      { userId: USER, task: "cv_interview", model: "m", ok: true, label: "cv:otra-charla" },
+      { userId: USER, task: CV_RESERVE_TASK, model: "interview", ok: true, tokensOut: 1, label },
+    ]);
+    const m = await measureCvChat(conn.db, { userId: USER, label, ...windows(new Date()) });
+    await conn.db.delete(s.llmCalls).where(eq(s.llmCalls.label, label));
+    await conn.db.delete(s.llmCalls).where(eq(s.llmCalls.label, "cv:otra-charla"));
+    expect(m.interviewTurnsInConversation).toBe(3);
+  });
+
   it("las reservas de otra persona suman al tope global y no al de la persona", async () => {
     await conn.db.insert(s.llmCalls).values({
       userId: OTHER,
