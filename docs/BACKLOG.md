@@ -1843,3 +1843,7 @@ Informe de la tanda: [`docs/beta/informe-r16.md`](beta/informe-r16.md). Ningún 
 
 ### R16 · Cierre de la tanda
 `deps:` todo en rama · `estado:` en rama (18/11) · `ronda/r16-cierre`
+
+## Bloque 31 · Tanda S2 «Endurecimiento» (18 y 19/11)
+
+Endurecimiento S2, 33 tickets (S2-01 a S2-34, sin S2-26). Informe de la tanda: [`docs/beta/informe-s2.md`](beta/informe-s2.md). Ningún PR mergeado por agentes. S2-14 queda preparado y sin promover.
