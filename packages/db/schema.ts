@@ -132,6 +132,10 @@ export const profiles = pgTable("profiles", {
   salaryFloorUsd: integer("salary_floor_usd"), // mensual, remoto senior
   maxWeeklyHours: integer("max_weekly_hours").default(40),
   inboundAddress: text("inbound_address").notNull().unique(), // u_<id>@ingest.<dominio>
+  // S3-26: la dirección anterior de una rotación del admin sigue resolviendo hasta `previous_inbound_until`.
+  // En minúsculas y con índice único (la resolución por esta columna no recorre la tabla). La app no la escribe.
+  previousInboundAddress: text("previous_inbound_address").unique(),
+  previousInboundUntil: timestamp("previous_inbound_until", { withTimezone: true }),
   timezone: text("timezone").default("America/Argentina/Salta"),
   profileSummary: text("profile_summary"),    // texto que entra al prompt (generado desde skill_levels + proyectos)
   targetRole: text("target_role"),            // puesto principal (el primero de target_roles); se escribe siempre junto con la lista

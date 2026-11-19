@@ -13,7 +13,7 @@ import {
   pendingGmailConfirmation,
   type InboxView,
 } from "@/lib/inbox-list";
-import { getInboundAddress } from "@/lib/inbound-address";
+import { getInboundAddressState } from "@/lib/inbound-address";
 import { formatDate, inboundErrorLabel, parserLabel } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import {
@@ -68,19 +68,32 @@ export default async function InboxPage({
   // "Ver" desde el aviso de fuga: solo los emails de ese dominio (JS-048)
   const domain = params.dominio ? cleanDomain(params.dominio) : null;
   const only = domain ? await emailIdsOfDomain(userId, domain) : undefined;
-  const [{ rows, counts }, volume, leaks, address, gmail] = await Promise.all([
+  const [{ rows, counts }, volume, leaks, addressState, gmail] = await Promise.all([
     listInbox(userId, view, only),
     inboxVolume(userId),
     filterLeaks(userId),
-    getInboundAddress(userId),
+    getInboundAddressState(userId),
     pendingGmailConfirmation(userId),
   ]);
+  const address = addressState?.address ?? null;
+  const graceUntil = addressState?.graceUntil ?? null;
 
   return (
     <section className="flex flex-col gap-5">
       {webmailError ? (
         <Alert tone="danger" role="alert" bordered data-testid="error-webmail">
           {webmailError}
+        </Alert>
+      ) : null}
+      {/* Rotación de la dirección: la vieja sigue valiendo unos días */}
+      {address && graceUntil ? (
+        <Alert tone="warning" role="status" bordered data-testid="direccion-cambio">
+          <p className="font-bold">Tu dirección de ingesta cambió</p>
+          <p className="text-xs">
+            Actualizá el filtro de reenvío de Gmail con la dirección nueva:{" "}
+            <span className="font-mono text-fg select-all">{address}</span>. La anterior sigue
+            funcionando hasta el {formatDate(graceUntil.toISOString())}.
+          </p>
         </Alert>
       ) : null}
       {/* Arriba de todo, hasta que se marque como visto */}

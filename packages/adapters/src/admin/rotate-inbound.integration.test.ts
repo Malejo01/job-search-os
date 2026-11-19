@@ -118,6 +118,12 @@ describe("rotateLegacyInboundAddresses", () => {
   it("el resultado solo trae conteos, nunca direcciones", async () => {
     const result = await rotateLegacyInboundAddresses(conn.db, { apply: true });
     expect(JSON.stringify(result)).not.toContain("@");
-    expect(Object.keys(result).sort()).toEqual(["failed", "legacy", "rotated", "scanned"]);
+    expect(Object.keys(result).sort()).toEqual([
+      "affected",
+      "failed",
+      "legacy",
+      "rotated",
+      "scanned",
+    ]);
   });
 });

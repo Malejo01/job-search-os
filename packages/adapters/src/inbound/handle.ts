@@ -17,7 +17,7 @@ import {
   type CriteriaRules,
   type InboundDmarcMode,
 } from "@job-search-os/pipeline";
-import { and, desc, eq, gte, inArray, isNull, notInArray, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, gte, inArray, isNull, notInArray, or, sql } from "drizzle-orm";
 import { applyLinkedinApplication } from "../applications/linkedin-application";
 import { ingestBatch } from "../ingest/ingest-job";
 import type { Logger } from "../logger";
@@ -365,6 +365,34 @@ function eventRecipients(event: ResendReceivedEvent): string[] {
 }
 
 /**
+ * Perfiles cuya dirección actual está entre los destinatarios (en minúsculas). Solo si ninguna coincide se
+ * busca la dirección anterior de una rotación, mientras dura la gracia: se guarda en minúsculas y tiene
+ * índice único, así que ese segundo paso no recorre la tabla.
+ */
+async function matchProfiles(db: Db, recipients: string[], now: Date) {
+  const columns = {
+    userId: s.profiles.userId,
+    inboundAddress: s.profiles.inboundAddress,
+    previousInboundAddress: s.profiles.previousInboundAddress,
+    previousInboundUntil: s.profiles.previousInboundUntil,
+  };
+  const current = await db
+    .select(columns)
+    .from(s.profiles)
+    .where(sql`lower(${s.profiles.inboundAddress}) in ${recipients}`);
+  if (current.length > 0) return current;
+  return db
+    .select(columns)
+    .from(s.profiles)
+    .where(
+      and(
+        inArray(s.profiles.previousInboundAddress, recipients),
+        gt(s.profiles.previousInboundUntil, now),
+      ),
+    );
+}
+
+/**
  * ¿El email va a una persona (devuelve su id) o a una casilla del pool que lo aceptaría (`"pool"`)?
  * `null` si no va a ningún destino. Solo una consulta barata.
  */
@@ -374,11 +402,8 @@ async function inboundDestination(
 ): Promise<string | "pool" | null> {
   const recipients = eventRecipients(event);
   if (recipients.length === 0) return null;
-  const [profile] = await deps.db
-    .select({ userId: s.profiles.userId })
-    .from(s.profiles)
-    .where(sql`lower(${s.profiles.inboundAddress}) in ${recipients}`)
-    .limit(1);
+  const now = deps.now?.() ?? new Date();
+  const [profile] = await matchProfiles(deps.db, recipients, now);
   if (profile) return profile.userId;
   const pool = deps.pool ?? readPoolInboundConfig();
   const poolAccepts =
@@ -454,14 +479,22 @@ export async function handleInboundEmail(
 
   // Usuario por dirección de destino (u_<id>@ingest.<dominio>)
   const recipients = eventRecipients(event);
-  const profiles = recipients.length
-    ? await db
-        .select({ userId: s.profiles.userId, inboundAddress: s.profiles.inboundAddress })
-        .from(s.profiles)
-        .where(sql`lower(${s.profiles.inboundAddress}) in ${recipients}`)
-    : [];
-  // Con varias direcciones del sistema, gana la primera por posición: received_for, to, cc
-  const byAddress = new Map(profiles.map((p) => [p.inboundAddress?.toLowerCase(), p]));
+  const profiles = recipients.length ? await matchProfiles(db, recipients, now) : [];
+  // Con varias direcciones del sistema, gana la primera por posición: received_for, to, cc. La dirección
+  // anterior de una rotación cuenta mientras dure la gracia.
+  const activePrevious = (p: (typeof profiles)[number]): string | null =>
+    p.previousInboundAddress && p.previousInboundUntil && p.previousInboundUntil > now
+      ? p.previousInboundAddress.toLowerCase()
+      : null;
+  const byAddress = new Map(
+    profiles.flatMap((p) => {
+      const previous = activePrevious(p);
+      return [
+        [p.inboundAddress?.toLowerCase(), p] as const,
+        ...(previous ? [[previous, p] as const] : []),
+      ];
+    }),
+  );
 
   // ADR-024: las casillas pool-* son entrada del pool, no de una persona. Se decide por el sobre
   // (received_for) cuando existe; si entre esos destinatarios hay una dirección u_… válida, gana
@@ -628,12 +661,12 @@ export async function handleInboundEmail(
       securityBySubjectOnly: senderExpected,
     });
     const category = classification.category;
-    const ownAddress = profile.inboundAddress?.toLowerCase() ?? null;
-    const addressedToUser =
-      ownAddress !== null &&
-      [...event.data.to, ...event.data.received_for].some(
-        (r) => (/<([^>]+)>/.exec(r)?.[1] ?? r).trim().toLowerCase() === ownAddress,
-      );
+    const ownAddresses = [profile.inboundAddress?.toLowerCase(), activePrevious(profile)].filter(
+      (a): a is string => typeof a === "string",
+    );
+    const addressedToUser = [...event.data.to, ...event.data.received_for].some((r) =>
+      ownAddresses.includes((/<([^>]+)>/.exec(r)?.[1] ?? r).trim().toLowerCase()),
+    );
     const isSecurity = category === "seguridad";
     const gmailConfirmClaimed = category === "confirmacion_reenvio_gmail" && addressedToUser;
     // En `enforce`, un remitente esperado sin autenticación verificada se guarda pero no se procesa
