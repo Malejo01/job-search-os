@@ -1,6 +1,12 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import { and, eq, gte, sql } from "drizzle-orm";
-import { dailyCapFromEnv, LLM_RESERVE_TASK, spendLast24h, userDailyCapUsd } from "./spend";
+import {
+  dailyCapFromEnv,
+  globalCapReached,
+  LLM_RESERVE_TASK,
+  spendLast24h,
+  userDailyCapUsd,
+} from "./spend";
 
 /**
  * Reserva de gasto antes de llamar al modelo, para la evaluación inmediata y los borradores. Mismo esquema
@@ -86,13 +92,14 @@ export async function reserveSpendWithGate<R extends string>(
     const reservedAll = (live?.all ?? 0) / MICRO_USD;
     const reservedMine = (live?.mine ?? 0) / MICRO_USD;
 
-    if (globalCap > 0 && (await spendLast24h(tx, clock)).usd + reservedAll >= globalCap) {
-      return { ok: false as const, reason: "global" as const };
+    const mineUsd = (await spendLast24h(tx, clock, { userId: input.userId })).usd + reservedMine;
+    if (globalCap > 0) {
+      const totalUsd = (await spendLast24h(tx, clock)).usd + reservedAll;
+      if (globalCapReached({ capUsd: globalCap, totalUsd, mineUsd })) {
+        return { ok: false as const, reason: "global" as const };
+      }
     }
-    if (
-      userCap > 0 &&
-      (await spendLast24h(tx, clock, { userId: input.userId })).usd + reservedMine >= userCap
-    ) {
+    if (userCap > 0 && mineUsd >= userCap) {
       return { ok: false as const, reason: "user" as const };
     }
 

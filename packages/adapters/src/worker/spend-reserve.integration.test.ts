@@ -8,7 +8,7 @@ import pino from "pino";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { ingestRawJob } from "../ingest/ingest-job";
 import { createFakeLlm } from "../llm/fake";
-import { spendLast24h, LLM_RESERVE_TASK } from "../llm/spend";
+import { spendCapReason, spendLast24h, LLM_RESERVE_TASK } from "../llm/spend";
 import { LLM_RESERVE_TTL_MS, releaseLlmSpend, reserveLlmSpend } from "../llm/spend-reserve";
 import type { LlmClient } from "../llm/types";
 import { createPgQueue, enqueueEvaluationWith, EVALUATE_QUEUE } from "../queue/pg-queue";
@@ -205,6 +205,48 @@ describe("evaluateJobNow con reserva de gasto", () => {
     );
 
     expect(await liveReservations()).toHaveLength(0);
+  });
+});
+
+describe("parte del tope global reservada por persona", () => {
+  const caps = { dailyCapUsd: 1, userDailyCapUsd: 0 };
+
+  async function spent(userId: string, costUsd: number) {
+    await conn.db.insert(s.llmCalls).values({
+      userId,
+      task: "evaluate_job",
+      model: "modelo-falso",
+      costUsd,
+      ok: true,
+    });
+  }
+
+  it("una persona que gastó casi todo se frena y la otra sigue", async () => {
+    await spent(A, 0.85);
+
+    expect(await reserveLlmSpend(conn.db, { userId: A, estimateUsd: 0.01, ...caps })).toEqual({
+      ok: false,
+      reason: "global",
+    });
+    expect((await reserveLlmSpend(conn.db, { userId: B, estimateUsd: 0.01, ...caps })).ok).toBe(
+      true,
+    );
+  });
+
+  it("con el tope global completo no sigue nadie", async () => {
+    await spent(A, 1);
+
+    expect(await reserveLlmSpend(conn.db, { userId: B, estimateUsd: 0.01, ...caps })).toEqual({
+      ok: false,
+      reason: "global",
+    });
+  });
+
+  it("spendCapReason aplica la misma regla", async () => {
+    await spent(A, 0.85);
+
+    expect(await spendCapReason(conn.db, { userId: A, ...caps })).toBe("global");
+    expect(await spendCapReason(conn.db, { userId: B, ...caps })).toBeNull();
   });
 });
 

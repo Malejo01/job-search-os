@@ -113,6 +113,28 @@ export const spendLast24h = (
 ): Promise<SpendSummary> =>
   spendSince(db, new Date(now().getTime() - 24 * 60 * 60 * 1000), options);
 
+/** Parte final del tope global que queda para quienes casi no gastaron. */
+export const GLOBAL_CAP_RESERVED_SHARE = 0.2;
+/** Hasta esta parte del tope global gastada por una persona, puede usar la parte reservada. */
+export const GLOBAL_CAP_PERSON_FLOOR_SHARE = 0.05;
+
+/**
+ * ¿El tope global frena a esta persona? Al entrar en la parte reservada solo sigue quien casi no gastó,
+ * así una persona no deja sin servicio a las demás. Un valor inválido frena; un tope en 0 no aplica.
+ */
+export function globalCapReached(input: {
+  capUsd: number;
+  totalUsd: number;
+  mineUsd: number;
+}): boolean {
+  const { capUsd, totalUsd, mineUsd } = input;
+  if (!(capUsd > 0)) return false;
+  if (!Number.isFinite(totalUsd) || !Number.isFinite(mineUsd)) return true;
+  if (totalUsd >= capUsd) return true;
+  const inReservedPart = totalUsd >= capUsd * (1 - GLOBAL_CAP_RESERVED_SHARE);
+  return inReservedPart && mineUsd >= capUsd * GLOBAL_CAP_PERSON_FLOOR_SHARE;
+}
+
 /**
  * Chequeo de topes antes de una llamada al modelo fuera del worker (borradores de formularios,
  * JS-093): `"global"` si el gasto de 24 h de todos supera LLM_DAILY_CAP_USD, `"user"` si el del
@@ -129,12 +151,14 @@ export async function spendCapReason(
   },
 ): Promise<"global" | "user" | null> {
   const globalCap = input.dailyCapUsd ?? dailyCapFromEnv();
-  if (globalCap > 0 && (await spendLast24h(db, input.now)).usd >= globalCap) return "global";
   const userCap = input.userDailyCapUsd ?? userDailyCapUsd();
-  if (userCap > 0 && (await spendLast24h(db, input.now, { userId: input.userId })).usd >= userCap) {
-    return "user";
+  if (!(globalCap > 0) && !(userCap > 0)) return null;
+  const mineUsd = (await spendLast24h(db, input.now, { userId: input.userId })).usd;
+  if (globalCap > 0) {
+    const totalUsd = (await spendLast24h(db, input.now)).usd;
+    if (globalCapReached({ capUsd: globalCap, totalUsd, mineUsd })) return "global";
   }
-  return null;
+  return userCap > 0 && mineUsd >= userCap ? "user" : null;
 }
 
 /**
