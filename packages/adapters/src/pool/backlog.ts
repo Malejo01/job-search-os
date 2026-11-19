@@ -48,7 +48,9 @@ export async function enqueueUnevaluated(
   const maxPages = opts.maxPages ?? MAX_PAGES;
 
   const result = await db.transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`pool-assign:${userId}`}))`);
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtextextended(${`pool-assign:${userId}`}, 7104))`,
+    );
     const rules = await loadActiveRules(tx, userId);
     if (!rules) return none;
     const prefs = await loadProfilePrefilterPrefs(tx, userId);

@@ -167,7 +167,8 @@ export async function saveAcceptedCards(
     (c): c is Extract<AcceptedCard, { kind: "custom_skill" }> => c.kind === "custom_skill",
   );
   if (custom.length > 0) {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${userId}::text))`);
+    // Misma clave que `apps/web/lib/skill-levels.ts`: las dos escrituras de skills propias se esperan
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${userId}::text, 7103))`);
     const rows = await tx
       .select({ name: s.userSkills.name })
       .from(s.userSkills)

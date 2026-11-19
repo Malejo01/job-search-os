@@ -110,7 +110,7 @@ export async function reprefilterJobs(
   const result = await db.transaction(async (tx) => {
     // Si ya hay otra corrida del mismo usuario no se espera ni se apila: se sale (S-91-1)
     const [lock] = await tx.execute<{ ok: boolean }>(
-      sql`select pg_try_advisory_xact_lock(hashtext(${`reprefilter:${userId}`})) as ok`,
+      sql`select pg_try_advisory_xact_lock(hashtextextended(${`reprefilter:${userId}`}, 7106)) as ok`,
     );
     if (!lock?.ok) return { ...EMPTY, skipped: true };
     // Sin criterios no hay prefiltro posible: no se toca nada (como la asignación del pool)
