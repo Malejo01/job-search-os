@@ -6,9 +6,8 @@ on:
 
 # docs/TESTING_STRATEGY.md §CI. Todo corre sin claves salvo `evals`, que se saltea con aviso
 # si el secret GEMINI_API_KEY no está (nunca rompe el build por falta de key).
-# Token de solo lectura (informe pre-beta, Importante 12): cada job pide lo que necesita.
-permissions:
-  contents: read
+# Sin permisos por defecto: cada job pide solo lo que necesita.
+permissions: {}
 
 # Un push nuevo a un PR cancela la corrida anterior del mismo PR (ahorra minutos de Actions).
 # En main no se cancela: cada merge termina su corrida.
@@ -21,33 +20,56 @@ jobs:
   # 2026-09-11 (docs/AUDITORIA_2026-09-11.md): nunca publicar sin pasar esto antes.
   secrets:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     # gitleaks lista los commits del PR por la API
     permissions:
       contents: read
       pull-requests: read
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with: { fetch-depth: 0, persist-credentials: false }
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  lint-typecheck:
+  # Dependencias de producción: falla con una vulnerabilidad alta o crítica
+  audit:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm audit --prod --audit-level high
+
+  lint-typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint && pnpm typecheck
-      # Script del check `carril` (.github/scripts/carril.mjs), sin dependencias
-      - run: node --test .github/scripts/carril.test.mjs
+      # Scripts de .github (check `carril` y reglas de los workflows), sin dependencias
+      - run: node --test .github/scripts/carril.test.mjs .github/scripts/workflows.test.mjs
 
   unit:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
+        with: { persist-credentials: false }
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
@@ -56,6 +78,9 @@ jobs:
 
   integration:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
     services:
       postgres:
         image: pgvector/pgvector:pg16
@@ -67,6 +92,7 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
     steps:
       - uses: actions/checkout@v4
+        with: { persist-credentials: false }
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
@@ -76,11 +102,15 @@ jobs:
   build:
     # next build sin base ni claves: las páginas son dinámicas; el chequeo del rol corre en runtime
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
     env:
       SKIP_APP_ROLE_CHECK: "1"
       AUTH_SECRET: ci-build-only-not-a-secret
     steps:
       - uses: actions/checkout@v4
+        with: { persist-credentials: false }
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
@@ -93,6 +123,10 @@ jobs:
     # sin GEMINI_API_KEY se saltea con aviso, no falla.
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: evals
+    permissions:
+      contents: read
     # La key solo entra en el paso que corre los evals: el resto del job (checkout, install, que corre
     # scripts de dependencias) no la ve. HAS_GEMINI_KEY dice si existe sin exponer el valor.
     env:
@@ -130,6 +164,9 @@ jobs:
     # y los PRs entre ramas de trabajo no lo disparan. Un job salteado por `if` cuenta como verde.
     if: github.event_name == 'pull_request' && github.base_ref == 'main'
     runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
     services:
       postgres:
         image: pgvector/pgvector:pg16
@@ -154,6 +191,7 @@ jobs:
       LLM_DAILY_CAP_USD: "0"
     steps:
       - uses: actions/checkout@v4
+        with: { persist-credentials: false }
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
