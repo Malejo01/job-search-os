@@ -14,6 +14,14 @@ import { and, eq } from "drizzle-orm";
  */
 export type ApplicationsExecutor = Pick<Db, "select" | "insert" | "update">;
 
+/** La oferta no existe o no es de la persona: ambos casos se ven igual, a propósito. */
+export class JobNotFoundError extends Error {
+  constructor() {
+    super("oferta inexistente");
+    this.name = "JobNotFoundError";
+  }
+}
+
 /** Evento → resultado de la postulación (si existe). `close` desde aplicada = cerrada antes de responder. */
 const EVENT_OUTCOME: Partial<Record<JobEvent, ApplicationOutcome>> = {
   reject: "rechazo_humano",
@@ -49,7 +57,7 @@ export async function applyJobEventIn(
     .from(s.jobs)
     .where(and(eq(s.jobs.id, jobId), eq(s.jobs.userId, userId)))
     .limit(1);
-  if (!job) throw new Error("oferta inexistente");
+  if (!job) throw new JobNotFoundError();
   const next = transition(job.status, event);
   await tx
     .update(s.jobs)

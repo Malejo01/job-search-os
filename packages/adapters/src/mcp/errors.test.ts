@@ -1,6 +1,8 @@
 import { InvalidTransitionError } from "@job-search-os/pipeline";
 import { describe, expect, it, vi } from "vitest";
 import { ApplicantFailure } from "../applicant/context";
+import { JobNotFoundError } from "../applications/apply-event";
+import { JdNotPendingError } from "../ingest/attach-jd";
 import { PersonQuotaError } from "../quota/person-quota";
 import { mcpFailure, mcpFailureResult } from "./errors";
 
@@ -73,6 +75,20 @@ describe("mcpFailure: errores esperados con mensaje fijo por código", () => {
     ["raw_bytes", "cuota_espacio"],
   ] as const)("PersonQuotaError %s → %s", (kind, expected) => {
     expect(mcpFailure(new PersonQuotaError(kind)).code).toBe(expected);
+  });
+
+  it("una oferta inexistente y una ajena dan exactamente la misma respuesta", () => {
+    const missing = mcpFailureResult(new JobNotFoundError(), () => {});
+    const foreign = mcpFailureResult(new ApplicantFailure("job_not_found", "id-ajeno"), () => {});
+    expect(missing).toEqual(foreign);
+    expect(missing.content[0]!.text).toContain("oferta_inexistente");
+    expect(missing.content[0]!.text).not.toContain("id-ajeno");
+  });
+
+  it("pegar la JD en una oferta que no está pendiente tiene su código", () => {
+    const f = mcpFailure(new JdNotPendingError());
+    expect(f.code).toBe("oferta_no_pendiente");
+    expect(f.expected).toBe(true);
   });
 
   it("una transición inválida tiene su código", () => {
