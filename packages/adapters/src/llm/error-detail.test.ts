@@ -35,6 +35,7 @@ const vars = {
   constraints: "restricciones",
   criteria: "criterios",
   job: "oferta",
+  target_role: "no especificado",
   had_full_jd: false,
 };
 const providers: ProviderRegistry = { modelFor: (_p, model) => ({ modelId: model }) as never };

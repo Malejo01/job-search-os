@@ -29,7 +29,7 @@ import type {
  * contra 3 de la vigente y las tolerancias de promoción (v1.3.4: 2026-10-07, JS-074).
  */
 export const DEFAULT_PROMPT_VERSIONS: Record<string, PromptRef> = {
-  evaluate_job: "evaluate_job@v1.3.4",
+  evaluate_job: "evaluate_job@v1.4.0",
   draft_application_answers: "draft_application_answers@v1",
 };
 
