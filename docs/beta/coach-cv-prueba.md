@@ -1,15 +1,15 @@
-# Prueba del CV con Ani (20/11) y comparación de Mauro
+# Prueba del CV con tester A (20/11) y comparación de Admin
 
-Guía para probar a mano, el **jueves 20/11**, cómo AfinIAJobs lee un CV y arma uno nuevo. Las secciones 1 a 6 son para Ani y no hace falta saber nada técnico. La sección 7 es para Mauro, y la 9 para el equipo técnico.
+Guía para probar a mano, el **jueves 20/11**, cómo AfinIAJobs lee un CV y arma uno nuevo. Las secciones 1 a 6 son para tester A y no hace falta saber nada técnico. La sección 7 es para Admin, y la 9 para el equipo técnico.
 
 ---
 
-## 0. Antes del 20/11 (lo prepara Mauro, no Ani)
+## 0. Antes del 20/11 (lo prepara Admin, no tester A)
 
 - [ ] En Vercel, `CV_IMPORT_ENABLED=1` y `CV_PROFILE_AGENT=testers`. **`CV_COACH` queda apagado**: el coach no se prueba este día (sección 8).
-- [ ] La lectura de PDF (R12-12, PR #521) mergeada y publicada. Si no llega, el PDF muestra «Pegá el texto de tu CV» y Ani sigue con el plan B del paso 2.
-- [ ] **Tres cuentas de prueba para Ani**, una por CV, con tres invitaciones. Por ejemplo, su email con `+cv1`, `+cv2` y `+cv3` delante de la `@`. Las tres van en `ASSISTANT_TESTER_EMAILS`, porque si no, no ven la opción de subir el CV. Una cuenta por CV para que los datos de un CV no se mezclen con los del otro.
-- [ ] Pasarle a Ani el link del sitio y los tres CV de prueba en PDF (sección 5), o esta guía para que los arme ella.
+- [ ] La lectura de PDF (R12-12, PR #521) mergeada y publicada. Si no llega, el PDF muestra «Pegá el texto de tu CV» y tester A sigue con el plan B del paso 2.
+- [ ] **Tres cuentas de prueba para tester A**, una por CV, con una invitación **atada al email de cada cuenta**. Las tres van en `ASSISTANT_TESTER_EMAILS`, porque si no, no ven la opción de subir el CV. Una cuenta por CV para que los datos de un CV no se mezclen con los del otro.
+- [ ] Pasarle a tester A el link del sitio y los tres CV de prueba en PDF (sección 5), o esta guía para que los arme ella.
 
 ---
 
@@ -97,7 +97,7 @@ Una fila por cada cosa que notes. Cuantas más filas, mejor: también lo que est
 - **Captura:** en Windows, `Windows + Shift + S`; en Mac, `Cmd + Shift + 4`. Poné el nombre de la imagen en la columna.
 - **¿Cuánto molesta?:** *Bloquea* (no puedo seguir), *Molesta* (sigo, pero está mal), *Detalle* (un texto o un tono) o *Está bien*.
 
-Al terminar, mandale a Mauro la planilla y la carpeta de capturas.
+Al terminar, mandale a Admin la planilla y la carpeta de capturas.
 
 ---
 
@@ -177,9 +177,9 @@ Están en la carpeta [`docs/beta/coach-cv-prueba/`](./coach-cv-prueba/). Todo es
 
 ---
 
-## 7. Comparación de Mauro: su CV actual contra el que arma AfinIAJobs
+## 7. Comparación de Admin: su CV actual contra el que arma AfinIAJobs
 
-Mauro hace el mismo recorrido con **su CV real**, en su propia cuenta, y compara. **Ningún dato real va a este repositorio** (ni nombres, ni empresas, ni proyectos, ni capturas). La planilla y las capturas quedan en su máquina, en `fixtures-private/` o en su Drive. Para contarlo en un informe se usan nombres genéricos: «Empresa A», «Proyecto 1» a «Proyecto 4», «el cargo actual».
+Admin hace el mismo recorrido con **su CV real**, en su propia cuenta, y compara. **Ningún dato real va a este repositorio** (ni nombres, ni empresas, ni proyectos, ni capturas). La planilla y las capturas quedan en su máquina, en `fixtures-private/` o en su Drive. Para contarlo en un informe se usan nombres genéricos: «Empresa A», «Proyecto 1» a «Proyecto 4», «el cargo actual».
 
 ### Cómo hacerlo
 1. Tené a mano tu CV actual en PDF.
@@ -210,7 +210,7 @@ Mauro hace el mismo recorrido con **su CV real**, en su propia cuenta, y compara
 
 ## 8. Lo que todavía no está (no se prueba el 20/11)
 
-- **El coach de CV** (ADR-038, Fase 2 del plan): el diagnóstico de qué le falta a tu CV y la charla que lo mejora. Está detrás del interruptor `CV_COACH`, que sigue **apagado**. Si ves algo que diga «coach», avisale a Mauro.
+- **El coach de CV** (ADR-038, Fase 2 del plan): el diagnóstico de qué le falta a tu CV y la charla que lo mejora. Está detrás del interruptor `CV_COACH`, que sigue **apagado**. Si ves algo que diga «coach», avisale a Admin.
 - **La puerta «Tengo CV / No tengo CV» en `/cv`** (R12-6) puede no estar publicada todavía. Mientras tanto, la entrada es la tarjeta «Subí tu CV y armamos tu perfil».
 - **Proyectos en el perfil y en el CV** (R12-4) y **la lectura de varios datos en una sola respuesta** (R12-2) son arreglos en curso. Si el 20/11 los proyectos se pierden o te repregunta algo que ya dijiste, anotalo igual: es justo lo que esos arreglos tienen que resolver, y la nota sirve para comprobarlo después.
 - Un PDF de dos columnas puede salir con el texto en otro orden. Se corrige a mano en el cuadro antes de «Leer mi CV»; anotalo si pasa.

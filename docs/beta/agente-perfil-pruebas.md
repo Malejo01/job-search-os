@@ -1,4 +1,4 @@
-# Agente de perfil desde el CV: pruebas para Ani
+# Agente de perfil desde el CV: pruebas para tester A
 
 Contrato: [ADR-034](../adr/034-agente-de-perfil-desde-el-cv.md). Las pruebas de código (R10-6) están en `packages/pipeline/src/profile-agent/profile-agent.security.test.ts` y `apps/web/e2e/134-agente-perfil-apagado.spec.ts`. Este documento es la lista para probar a mano con la persona real y el plan del e2e del recorrido completo.
 
@@ -23,7 +23,7 @@ Contrato: [ADR-034](../adr/034-agente-de-perfil-desde-el-cv.md). Las pruebas de 
 5. Guía de búsqueda: puestos, modalidad, país, seniority, pretensión y qué evitar; puestos y criterios sugeridos, palabras para las alertas, skills a reforzar.
 6. Cierre: «Armar mi CV», vista previa, «Guardar este CV», Word, PDF y «Qué sigue».
 
-## 3. Qué mirar (checklist para Ani)
+## 3. Qué mirar (checklist para tester A)
 
 ### Tono
 - [ ] Voseo, cálido y breve; nada de jerga técnica ni de «el sistema detectó».

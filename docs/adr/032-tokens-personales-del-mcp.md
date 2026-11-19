@@ -5,7 +5,7 @@
 ## Context
 
 - El servidor MCP propio (JS-035) se pensó para una sola persona: un token compartido (`MCP_TOKEN`) que opera sobre `MCP_USER_ID`. `lib/mcp-user.ts` guardaba el usuario resuelto en una variable de módulo.
-- Ahora hay dos personas de prueba (Mauro y Ani) que quieren conectar su ChatGPT. Con el diseño anterior, la segunda persona operaría sobre la cuenta de la primera.
+- Ahora hay dos personas de prueba (Admin y tester A) que quieren conectar su ChatGPT. Con el diseño anterior, la segunda persona operaría sobre la cuenta de la primera.
 - ChatGPT solo acepta conectores con OAuth o «sin autenticación»: sin OAuth, la credencial tiene que viajar en la URL.
 
 ## Decision

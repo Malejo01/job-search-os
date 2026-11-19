@@ -8,7 +8,7 @@
    - no viaja lo escrito en los formularios.
 2. **Tabla `beta_feedback`.** Cada envío queda como una fila de la persona (con RLS). No se lee a mano: se ve por el panel.
 3. **Triage en `/settings/metricas`** (solo admins; hace falta `FEEDBACK_TRIAGE_ENABLED=1` y la migración 0059 aplicada). Lista hasta 500 comentarios con fecha, tipo, ruta, mensaje, persona, carrera, acciones previas y un **estado: Nuevo, Visto o Resuelto**. Tiene filtros y exportación a CSV (`/settings/feedback/export`).
-4. **Planillas de testers** (`docs/beta/ensayo-testers.md` §5) y lo que Ani anota en vivo. Es la fuente de lo que no se mandó por el chip.
+4. **Planillas de testers** (`docs/beta/ensayo-testers.md` §5) y lo que tester A anota en vivo. Es la fuente de lo que no se mandó por el chip.
 5. **WhatsApp a Mauro:** captura y dos líneas. Se pasa al triage a mano: si no está en la lista, no existe para la decisión del 25/11.
 
 ## Reglas para quien lee
@@ -38,5 +38,5 @@ Cómo desempatar: ante la duda entre dos niveles, el más grave hasta que Mauro 
 
 ## Qué no hacer
 
-- No contestar por el chip: no hay respuesta in-app. Si hace falta, Ani escribe por WhatsApp, desde su cuenta.
+- No contestar por el chip: no hay respuesta in-app. Si hace falta, tester A escribe por WhatsApp, desde su cuenta.
 - No arreglar en caliente en producción durante el horario de pruebas, salvo un P0 con rollback listo (`runbook-apertura.md` §3.2).

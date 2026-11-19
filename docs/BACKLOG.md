@@ -26,7 +26,7 @@ Tickets de 1–3 hs. `deps` = tickets que deben estar done. Estado: `todo` · `d
 
 ### JS-004 · Seeds
 `deps:` JS-003 · `est:` 1 h · `estado:` done (2026-09-10)
-- `pnpm db:seed`: `skills.json`, `model_routing.json`, `criteria.mauro.json` (user de Mauro), perfil de Mauro, `talent_platforms` iniciales.
+- `pnpm db:seed`: `skills.json`, `model_routing.json`, criterios y perfil de Admin, `talent_platforms` iniciales.
 - Cargar `evals/fixtures/golden.json` como `jobs` + `evaluations(model='human')` + `applications` con outcomes.
 - **Acepta:** 34 jobs, 31 evaluaciones humanas, 60 skills en DB.
 
@@ -93,7 +93,7 @@ Tickets de 1–3 hs. `deps` = tickets que deben estar done. Estado: `todo` · `d
 
 ### JS-045 · Recuperar contraseña por email y setup inicial ✅ done 2026-09-16
 `deps:` JS-014 · `est:` 1.5 h
-- Pedido directo de Mauro, fuera de la secuencia del backlog. `password_reset_tokens` (token de 32 bytes, se guarda hasheado sha256, vence en 1 h, un solo uso; RLS: lectura abierta como `users`, escritura por dueño vía `withUser`). Envío por Resend REST (`packages/adapters/src/email/resend.ts`, sandbox `onboarding@resend.dev` sin dominio propio verificado). `/forgot-password` y `/reset-password` públicas (`auth.config.ts`); nunca revela si el email existe. Detalle en ADR-012.
+- Pedido directo de Admin, fuera de la secuencia del backlog. `password_reset_tokens` (token de 32 bytes, se guarda hasheado sha256, vence en 1 h, un solo uso; RLS: lectura abierta como `users`, escritura por dueño vía `withUser`). Envío por Resend REST (`packages/adapters/src/email/resend.ts`, sandbox `onboarding@resend.dev` sin dominio propio verificado). `/forgot-password` y `/reset-password` públicas (`auth.config.ts`); nunca revela si el email existe. Detalle en ADR-012.
 - **Setup inicial** (toca ADR-010, ver aclaración en ADR-012): `/setup` reemplaza el `pnpm db:seed` manual por una pantalla, pero SOLO mientras `users` está vacía — no es registro público. Doble candado: `hasAnyUser()` en la app + policy RLS `users_bootstrap_insert` (`WITH CHECK (NOT EXISTS (SELECT 1 FROM users))`). `/login` rebota a `/setup` sin usuario y viceversa; crear la cuenta deja logueado.
 - **Acepta:** login con link "Olvidé mi contraseña"; pedir el link no dice si el email existe; el link vence en 1 h y no sirve dos veces; contraseña nueva exige 8+ caracteres y confirmación; con la tabla `users` vacía, `/login` lleva a `/setup` y crear la cuenta loguea directo; con un usuario ya creado, `/setup` no deja crear otro. Tests: unit (`password-reset-token.test.ts`, `email/resend.test.ts`), e2e (`05-recuperar-contrasena.spec.ts`, `06-setup-inicial.spec.ts`).
 - Queda fuera: `RESEND_API_KEY` todavía no está cargada (ni local ni en Vercel) — sin ella el token se crea pero no se manda el mail; rate limit de pedidos por email/IP (hoy no hay, un solo usuario).
@@ -125,18 +125,18 @@ Tickets de 1–3 hs. `deps` = tickets que deben estar done. Estado: `todo` · `d
 
 - **2026-09-11 · Agujero cerrado: riesgo de ubicación en la carga manual y por MCP.** `toRawJob` ponía `countriesAllowed: ["*"]` para todo remoto, así que el prefiltro nunca marcaba `location_risk` en lo cargado a mano o por MCP (justo lo que viene de LinkedIn). Ahora `rawJobFromManual` (pipeline) deja países en null y un remoto sin ubicación escrita queda como "remoto (sin país indicado)" → riesgo. Test de integración de los tres caminos (GoB, manual/MCP, JD pegada después) en `worker.integration.test.ts`; unitario en `raw-job.test.ts`.
 
-- **2026-09-11 · Calibración cerrada (paso E):** primario `gemini-3.5-flash` con `thinking_level: minimal` y `max_tokens` 2048, prompt de producción `evaluate_job@v1.2`, USD 0,0068 por evaluación medido. flash-lite no pasó el criterio (blockers_recall 75 %); números, hipótesis v1.3 y diagnóstico de `location_risk_recall` 50 % y `action_acc` 64 % en `docs/LLM_COSTOS.md`. Pendiente de Mauro: decidir qué se corrige en el golden (Empresa O 16, Empresa A 1), qué en `decide()` (`location_ok = no` → tope guardar) y qué en el prompt (modalidad fuera de `location_ok`).
+- **2026-09-11 · Calibración cerrada (paso E):** primario `gemini-3.5-flash` con `thinking_level: minimal` y `max_tokens` 2048, prompt de producción `evaluate_job@v1.2`, USD 0,0068 por evaluación medido. flash-lite no pasó el criterio (blockers_recall 75 %); números, hipótesis v1.3 y diagnóstico de `location_risk_recall` 50 % y `action_acc` 64 % en `docs/LLM_COSTOS.md`. Pendiente de Admin: decidir qué se corrige en el golden (Empresa O 16, Empresa A 1), qué en `decide()` (`location_ok = no` → tope guardar) y qué en el prompt (modalidad fuera de `location_ok`).
 - **2026-09-11 · Calibración CERRADA (tercera tanda):** prompt `evaluate_job@v1.3.1` en producción, `gemini-3.1-flash-lite` primario con `gemini-3.5-flash` de fallback (USD 0,0013/eval), ADR-011 (disciplina hunde el score, modalidad no). Harness: `promptVersionNumber` lee mayor.menor, `applyLocationCap` compartido con `decide()`, recall de ubicación cuenta "no". Residual: flash-lite no marca "LATAM sin países" (lo cubre el flag `location_risk` del prefiltro). Lo que sigue se calibra con ofertas reales (JS-036).
-- **2026-09-11 · Segunda tanda de calibración:** golden corregido (16, 1), `decide()` con tope guardar para `location_ok = no`, prompt v1.3 escrito y medido (tabla en LLM_COSTOS.md); producción sigue en v1.2 × 3.5-flash hasta que Mauro decida. `pnpm worker:requeue [--local] (--model fake | --job <id>) [--force]` re-encola ofertas evaluadas (CLI a propósito, no UI).
+- **2026-09-11 · Segunda tanda de calibración:** golden corregido (16, 1), `decide()` con tope guardar para `location_ok = no`, prompt v1.3 escrito y medido (tabla en LLM_COSTOS.md); producción sigue en v1.2 × 3.5-flash hasta que Admin decida. `pnpm worker:requeue [--local] (--model fake | --job <id>) [--force]` re-encola ofertas evaluadas (CLI a propósito, no UI).
 - **2026-09-11 · Mensaje huérfano en `job_queue` (RESUELTO):** un job borrado por los E2E dejó su mensaje encolado; el worker lo marca "job inexistente" y lo devuelve a pending hasta agotar `max_attempts`. Ahora `queue.fail(id, error, { final: true })` lo cierra en el primer intento.
 
-- **2026-09-11 · FK `profiles.user_id → users.id` diferida** (ADR-010, JS-014). El aislamiento lo dan las policies RLS por `user_id`; la FK solo suma integridad referencial. Cerrarla: migración con `.references(() => users.id)` en `profiles.userId` (Docker y Neon ya tienen la fila de `users`) e insertar el usuario en los tests de integración (`worker.integration.test.ts`, `rls.integration.test.ts`). Decisión de Mauro: esperar; no bloquea el deploy.
+- **2026-09-11 · FK `profiles.user_id → users.id` diferida** (ADR-010, JS-014). El aislamiento lo dan las policies RLS por `user_id`; la FK solo suma integridad referencial. Cerrarla: migración con `.references(() => users.id)` en `profiles.userId` (Docker y Neon ya tienen la fila de `users`) e insertar el usuario en los tests de integración (`worker.integration.test.ts`, `rls.integration.test.ts`). Decisión de Admin: esperar; no bloquea el deploy.
 
 ### JS-019 · Deploy a Vercel + Neon prod ✅ done 2026-09-15
 `deps:` JS-018 · `est:` 1 h
 - Proyecto Vercel, envs, cron activo, migraciones aplicadas en Neon (ADR-009), `GET /api/health`.
 - **Acepta:** producción evaluando ofertas de GoB sola.
-- Hecho: `GET /api/health` (base + rol sin BYPASSRLS, 503 con motivo), `docs/DEPLOY.md` con variables, pasos y los límites del plan Hobby. **Desplegado el 2026-09-15**: proyecto `job-search-os` (root `apps/web`, Node 22), repo de GitHub conectado (push a `main` despliega), variables cargadas por CLI, migraciones y seed en Neon, producción en `https://job-search-os-kohl.vercel.app` y cron de GitHub Actions con `APP_URL`. Falta el DNS del subdominio propio (registro en DEPLOY.md).
+- Hecho: `GET /api/health` (base + rol sin BYPASSRLS, 503 con motivo), `docs/DEPLOY.md` con variables, pasos y los límites del plan Hobby. **Desplegado el 2026-09-15**: proyecto `job-search-os` (root `apps/web`, Node 22), repo de GitHub conectado (push a `main` despliega), variables cargadas por CLI, migraciones y seed en Neon, producción en `https://<tu-proyecto>.vercel.app` y cron de GitHub Actions con `APP_URL`. Falta el DNS del subdominio propio (registro en DEPLOY.md).
 
 ## Bloque 4 — Ingesta por email (semana 2)
 
@@ -147,7 +147,7 @@ Tickets de 1–3 hs. `deps` = tickets que deben estar done. Estado: `todo` · `d
 - **`/inbox/<id>`: ver el contenido del email** (links, texto y HTML en un `iframe` con `sandbox` vacío, porque es contenido no confiable). Nació de una carencia real: sin esto, un email de una fuente nueva caía en cola manual y no había forma de leerlo para decidir si cargarlo a mano o escribirle un parser. El primer caso fue el link de confirmación de Gmail, que estaba enterrado en el HTML.
 - **✅ Confirmado en producción con datos reales el 2026-09-18:** llegaron dos alertas reales de LinkedIn por el filtro de reenvío de Gmail, el parser extrajo 5 y 1 avisos, y el dedup no duplicó: un mismo puesto de Empresa X (golden id 30) re-anunciado dos veces quedó como un solo job, y Empresa S (golden id 24) se cruzó con el job del golden cargado antes. (La sospecha de que el filtro de Gmail no andaba era falsa: faltaba que llegara una alerta real después de crearlo.)
 - **Hecho 2026-09-11 (infra, sin parsers):** `POST /api/inbound` con verificación Svix obligatoria (`verifySvix`, sin dependencia; 401 sin firma), evento `email.received`, cuerpo vía `GET /emails/receiving/{id}` con `RESEND_API_KEY`, crudo en `raw_blobs` (adapter `storage` sobre Postgres, RLS), fila en `inbound_emails`, despacho por remitente (`chooseParserName`: linkedin | getonboard | generic), idempotencia por `email_id`, rate limit 100/hora por usuario. Sin parser o estructura no reconocida → cola manual (`/inbox`, link a `/jobs/new`). Tests: unit (firma) + integración (storage, fila, duplicado, destinatario desconocido, rate limit). Pasos de configuración en `docs/DEPLOY.md`.
-- **Investigación 2026-09-11 (antes de escribir código):** el plan Free de Resend incluye recepción ("All plans include: … inbound emails"; 3.000 emails/mes, 100/día, 3 dominios, retención 30 días); funciona con registros MX en un subdominio (`ingest.<tu-dominio>`) y un webhook firmado (Svix) que avisa `email.received`; el cuerpo se pide por API. Alternativa: Cloudflare Email Routing + Email Worker (gratis, 25 MiB por mensaje, 200 reglas; el Worker recibe el MIME crudo y puede hacer `fetch` al webhook propio, con límites de CPU del plan Free; requiere el DNS del dominio en Cloudflare). Decisión pendiente de Mauro.
+- **Investigación 2026-09-11 (antes de escribir código):** el plan Free de Resend incluye recepción ("All plans include: … inbound emails"; 3.000 emails/mes, 100/día, 3 dominios, retención 30 días); funciona con registros MX en un subdominio (`ingest.<tu-dominio>`) y un webhook firmado (Svix) que avisa `email.received`; el cuerpo se pide por API. Alternativa: Cloudflare Email Routing + Email Worker (gratis, 25 MiB por mensaje, 200 reglas; el Worker recibe el MIME crudo y puede hacer `fetch` al webhook propio, con límites de CPU del plan Free; requiere el DNS del dominio en Cloudflare). Decisión pendiente de Admin.
 - Dominio `ingest.<dominio>`, webhook `POST /api/inbound` con verificación de firma, guarda crudo en storage, fila en `inbound_emails`, despacha por remitente.
 ### JS-021 · Parser LinkedIn ✅ done 2026-09-17
 `deps:` JS-020 · `est:` 2 h
@@ -187,14 +187,14 @@ Tickets de 1–3 hs. `deps` = tickets que deben estar done. Estado: `todo` · `d
 - Mostrar el flag en la lista y en el detalle, con link a la oferta parecida y un botón "fusionar" que haga lo mismo que el merge automático (fuentes a `job_sources`, fecha más antigua), más "no son la misma", que limpia la marca.
 - **Acepta:** fusionar a mano no pierde ningún JD (depende de JS-024); descartar la marca la saca de la lista de posibles duplicados.
 - **Implementado (2026-09-22):**
-  - **Regla (pipeline, `planDuplicateMerge`):** queda la oferta con historia propia (evaluación o postulación). Si ninguna tiene, queda el original (al que apunta la marca). **Si las dos tienen, no se fusiona** (decisión de Mauro): se perdería una evaluación completa; quedan "No son la misma" o descartar una a mano. Además exige el flag: el puntero solo no alcanza, porque el golden usa `duplicate_of_id` para `volume_recruiting`.
+  - **Regla (pipeline, `planDuplicateMerge`):** queda la oferta con historia propia (evaluación o postulación). Si ninguna tiene, queda el original (al que apunta la marca). **Si las dos tienen, no se fusiona** (decisión de Admin): se perdería una evaluación completa; quedan "No son la misma" o descartar una a mano. Además exige el flag: el puntero solo no alcanza, porque el golden usa `duplicate_of_id` para `volume_recruiting`.
   - **Fusión (adapters, `mergePossibleDuplicate`, en una transacción con RLS):** las fuentes del absorbido pasan al que queda **con su crudo** (JS-024), así que ningún JD se pierde. Aplica las mismas reglas que la fusión automática: fecha más antigua, JD más largo (con hash, shingles y skills) y flags acumulados sin `posible_duplicado`. Hereda la URL si no tenía, repunta otras marcas y borra la evaluación pendiente del absorbido. Si el absorbido se está evaluando, se rechaza la fusión. Si el que queda esperaba JD y la recibe, se evalúa enseguida (como en JS-027).
   - **"No son la misma":** saca el flag y el puntero.
   - **UI:** en `/jobs`, aviso "N posibles duplicados para revisar" con filtro `?duplicados=1` (cualquier estado) y etiqueta "posible duplicado" en la card. En el detalle del marcado, la sección "Posible duplicado" con link a la parecida, "Fusionar" (con confirmación) y "No son la misma"; si no se puede fusionar, explica por qué y no ofrece el botón. En la original, la lista de sus posibles duplicados.
   - **Tests:** 10 unitarios de la regla, 6 de integración (caso real, ningún JD perdido, evaluación al recibir JD, las dos con historia, sin marca, "no son la misma") y e2e `14-posible-duplicado.spec.ts` (3 flujos).
   - **Producción al 2026-09-22:** hay 1 caso marcado y las dos ofertas ya están evaluadas, así que la pantalla ofrece solo "No son la misma".
 
-## Bloque 4b — Mejoras del uso real (reporte de Mauro, 2026-09-21)
+## Bloque 4b — Mejoras del uso real (reporte de Admin, 2026-09-21)
 
 Ordenado por impacto. Un ticket por rama, tests antes del código.
 
@@ -204,7 +204,7 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - Al volver a la pestaña de la app después de abrir la oferta, un diálogo pregunta "¿Te postulaste a esta oferta?". "Sí" dispara el evento `apply` existente (transition() + fila en `applications`); "No" no hace nada.
 - **Alcance:** es una **confirmación manual en el momento justo**, no detección de postulación. La app no ve el sitio externo; lo único automático es *cuándo* se pregunta.
 - **Acepta:** e2e `07-ver-oferta-postular.spec.ts` (link en lista y detalle, "Sí" deja `aplicada` en la base, "No" no cambia nada, aviso sin link no muestra botones).
-- **Comportamiento esperado, no es bug (verificado 2026-09-21):** las ofertas del golden no tienen URL (el dataset no la trae), así que no muestran "Ver oferta" ni "Postular". En la base local de Mauro las 17 ofertas de LinkedIn sin botón eran todas del golden; las de ingesta real tenían botón y abrían bien. Tampoco es bug que una oferta vencida del lado de LinkedIn abra su página con "No longer accepting applications": el link es correcto y la oferta ya cerró.
+- **Comportamiento esperado, no es bug (verificado 2026-09-21):** las ofertas del golden no tienen URL (el dataset no la trae), así que no muestran "Ver oferta" ni "Postular". En la base local de Admin las 17 ofertas de LinkedIn sin botón eran todas del golden; las de ingesta real tenían botón y abrían bien. Tampoco es bug que una oferta vencida del lado de LinkedIn abra su página con "No longer accepting applications": el link es correcto y la oferta ya cerró.
 - **LinkedIn puede fallar de forma transitoria (verificado 2026-09-21):** "No se ha podido cargar la página. Es probable que el ID indicado no sea válido o se haya eliminado" apareció al abrir ofertas con IDs válidos, que después abrieron bien con sesión real. Ese mensaje **no siempre significa que la oferta caducó** ni que el link esté mal armado. Antes de tocar código: reprobar más tarde y comparar el ID con el `href` del email original (en `raw_blobs`).
 
 ### JS-027 · Pegar JD evalúa al instante (P0.2) ✅ done 2026-09-21
@@ -249,11 +249,11 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
   - **Un solo cuerpo:** el HTML si existe, si no el texto. El texto plano y los links quedan plegados ("Ver como texto plano", "Links del email"), como el "ver original" de un cliente de correo.
   - **Legibilidad en el celular:** al HTML se le antepone CSS dentro del mismo iframe (viewport, imágenes y tablas al ancho).
   - **Seguridad:** el iframe sigue con `sandbox` vacío, así que los links del HTML no se abren desde adentro; por eso están listados aparte.
-  - **Abrirlo lo marca visto** (pedido de Mauro en la revisión), salvo que esté descartado. "No me sirve" sigue disponible en un email visto, y "Volver a pendientes" desde el detalle vuelve a `/inbox` (quedarse lo remarcaría visto).
+  - **Abrirlo lo marca visto** (pedido de Admin en la revisión), salvo que esté descartado. "No me sirve" sigue disponible en un email visto, y "Volver a pendientes" desde el detalle vuelve a `/inbox` (quedarse lo remarcaría visto).
   - **Tests:** e2e `12-email-detalle.spec.ts`.
 
 ### JS-049 · Selección múltiple en `/inbox` ✅ done 2026-09-22
-`deps:` JS-038 · `est:` 1.5 h · `estado:` done (pedido de Mauro, 2026-09-22; va antes de JS-048)
+`deps:` JS-038 · `est:` 1.5 h · `estado:` done (pedido de Admin, 2026-09-22; va antes de JS-048)
 - **Por qué:** el filtro de Gmail mal escrito dejó pasar 27 emails que no son de empleo (banco, GitHub, streaming). Borrarlos de a uno, con un diálogo por email, era demasiada fricción, y va a volver a pasar cada vez que el filtro se escape, hasta que esté JS-048.
 - **Implementado:**
   - Casilla por fila y "Seleccionar todos", que marca **solo las filas de la pestaña actual** (Pendientes, Vistos, Descartados o Todos). Si la pestaña tiene más de las 50 que se muestran, lo dice.
@@ -264,20 +264,20 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Tests:** e2e `13-inbox-seleccion.spec.ts`: visto y "no me sirve" en lote, eliminar en lote con una sola confirmación (cancelar no borra; el crudo con aviso se conserva) y "seleccionar todos" por pestaña.
 
 ### JS-050 · Ruido social de LinkedIn: "no relevante" por remitente ✅ done 2026-09-22
-`deps:` JS-021, JS-038 · `est:` 1 h · `estado:` done (regla acordada con Mauro, 2026-09-22; va antes de JS-025)
+`deps:` JS-021, JS-038 · `est:` 1 h · `estado:` done (regla acordada con Admin, 2026-09-22; va antes de JS-025)
 - **Por qué:** de los 22 emails de LinkedIn en producción, 12 eran ruido social (artículos, cursos, "es popular en tu red", invitaciones, "apareciste en 20 búsquedas"). Llegan del mismo dominio que las alertas, así que JS-048 no los cubre, y caían en la cola manual como "estructura no reconocida".
 - **Regla (determinista, por la dirección exacta del remitente):**
   - `jobalerts-noreply@` y `jobs-noreply@` → parser de LinkedIn, como hasta ahora.
   - `messages-noreply@`, `invitations@` y `notifications-noreply@` → se **guardan** con su crudo, con `parser = 'linkedin_social'` y ya descartados. En `/inbox` se ven en Descartados como "no relevante: notificación social de LinkedIn" y se recuperan con "Volver a pendientes".
   - Cualquier otro remitente de `linkedin.com` → el camino de siempre: parser y, si falla, cola manual.
 - **Por qué por remitente y no por asunto:** las alertas siempre tienen el asunto `«Búsqueda»: Empresa - Puesto publicado el M/D/AA` (7 de 7), pero `jobs-noreply@` también trae avisos con asuntos variados ("Nuevos empleos similares a…", "X busca personal para…"). Filtrar por asunto habría perdido 3 emails con 7 avisos reales. El remitente separa los 22 casos sin excepción.
-- **Red de seguridad (pedido de Mauro):** si LinkedIn cambia una notificación social y empieza a traer tarjetas de aviso, el email **no** se descarta ni se ingesta: queda en Pendientes con el error "notificación social de LinkedIn con N tarjetas de aviso: revisar la regla de remitentes". Así el cambio se ve.
+- **Red de seguridad (pedido de Admin):** si LinkedIn cambia una notificación social y empieza a traer tarjetas de aviso, el email **no** se descarta ni se ingesta: queda en Pendientes con el error "notificación social de LinkedIn con N tarjetas de aviso: revisar la regla de remitentes". Así el cambio se ve.
 - `linkedin_social` no cuenta como "sin parser" en el aviso de volumen (JS-038) y no cuenta como fuga del filtro en JS-048: el remitente es conocido.
 - **Tests:** unitarios de `linkedinSenderKind` (los 5 remitentes, mayúsculas, remitente desconocido y dominios que imitan a LinkedIn); 2 de integración del webhook (se guarda descartado con su crudo; con tarjetas queda pendiente y no se ingesta); e2e de la etiqueta en `/inbox`.
 - **Fuera de alcance:** los 12 emails sociales que ya estaban en la base no se reprocesan (ya estaban descartados a mano).
 
 ### JS-051 · Privacidad: de remitentes no esperados se guarda solo remitente, asunto y fecha ✅ done 2026-09-22
-`deps:` JS-020, JS-048 · `est:` 1.5 h · `estado:` done (pedido de Mauro, 2026-09-22; prioridad sobre seguir buscando la causa del reenvío de GitHub)
+`deps:` JS-020, JS-048 · `est:` 1.5 h · `estado:` done (pedido de Admin, 2026-09-22; prioridad sobre seguir buscando la causa del reenvío de GitHub)
 - **Por qué:** si el reenvío de Gmail vuelve a mandar correo personal (pasó el 2026-09-18..21 con banco y streaming, y el 22/9 con notificaciones de GitHub), su contenido quedaba guardado entero en `raw_blobs`: códigos, resets de contraseña, resúmenes bancarios. La protección tiene que valer aunque el filtro falle.
 - **Regla (`isExpectedSender`, pipeline):** se guarda completo solo lo que viene de una fuente esperada (`EXPECTED_SOURCE_DOMAINS`: LinkedIn, incluidos sus remitentes sociales; Get on Board; Indeed) o de un dominio que la persona marcó como fuente de empleo (JS-048), con cualquier subdominio. "No es de empleo" no habilita nada.
 - **El webhook, para cualquier otro remitente,** guarda en `raw_blobs` solo `email_id` (para la idempotencia), remitente, destinatarios, asunto y fecha, con `content: null` y el motivo en `redacted`. Ni cuerpo ni nombres de adjuntos. La fila de `inbound_emails` queda con el error "remitente no esperado…" y no pasa por ningún parser.
@@ -302,7 +302,7 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
   - **Tests:** 18 unitarios sobre 4 fixtures anonimizadas (textos ficticios, tokens de tracking sintéticos), con 98 % de líneas; 1 de integración (webhook → aviso enlazado al crudo). Validado contra el email real de `fixtures-private/`.
 
 ### JS-048 · Alerta de "posible fuga del filtro" por dominio nuevo en `/inbox` ✅ done 2026-09-22
-`deps:` JS-038, JS-022 · `est:` 2 h · `estado:` done (pedido de Mauro, 2026-09-22; migración 0013 ya aplicada en Neon el 2026-09-22 ~05:03 UTC)
+`deps:` JS-038, JS-022 · `est:` 2 h · `estado:` done (pedido de Admin, 2026-09-22; migración 0013 ya aplicada en Neon el 2026-09-22 ~05:03 UTC)
 - **Por qué:** ver el hueco anotado en JS-038. Un filtro de reenvío mal configurado se nota primero por **quién** manda, no por cuánto llega: con el primer email del banco ya había motivo para avisar.
 - **Qué:** si en las últimas 48 h llegó un email de un dominio **que nunca se vio antes** y que **no es una fuente de empleo esperada**, `/inbox` muestra un aviso propio, "Posible fuga del filtro de reenvío", separado del de volumen alto. Salta con un solo email.
   - El aviso lista cada dominio nuevo con su cantidad y la fecha del primero, más un link a esos emails.
@@ -437,13 +437,13 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
   - **Orden real:** se reescribio antes de mergear el PR #32 (la nota "no antes del #32" quedo vieja). El #32 se rebaseo despues sobre el `main` nuevo, con los mismos parches (verificado con `git range-diff`, 2026-10-05).
 - **JD de los golden 35 y 36 (decision 2026-10-05):** la reescritura solo les cambio el nombre de la empresa y algunas frases. El texto se parafraseo despues con un commit normal en el golden publico. No se reescribe la historia otra vez por esto.
 - **Prompt en produccion (decision 2026-09-28):** `packages/prompts/evaluate_job.v1.3.2.md` cita como ejemplo frases del aviso del golden 35. **`v1.3.2` no se toca**: la reescritura las excluyo a proposito, porque cambiarlas modificaba el prompt en produccion sin evals. Se reescriben en la proxima version del prompt (la que salga de JS-055), con **una sola corrida de evals que cubra los dos cambios**: el ejemplo reescrito y las mejoras de riesgos.
-- **Pendiente (lo hace Mauro):** mandar el pedido a soporte de GitHub para purgar las refs de los PRs anteriores a la reescritura (texto y lista en `fixtures-private/`) y borrar desde la web las revisiones viejas de las descripciones de PR que se editaron.
+- **Pendiente (lo hace Admin):** mandar el pedido a soporte de GitHub para purgar las refs de los PRs anteriores a la reescritura (texto y lista en `fixtures-private/`) y borrar desde la web las revisiones viejas de las descripciones de PR que se editaron.
 - **Impacto:** base de datos y produccion, ninguno; el deploy cambio solo comentarios, docs y el golden.
 - **Acepta:** barrido en cero sobre la historia nueva ✅; CI y deploy de `main` en verde ✅; soporte confirma la purga de las refs (pendiente).
 
 ### JS-061 · Flujo de revision: ocultar lo ya decidido, ir de a una y ver el avance ✅ done 2026-09-26
 `deps:` JS-015, JS-029 · `est:` 5 h · `estado:` done
-- **Uso real (Mauro, 2026-09-26):** entra, ve las ofertas del dia o de la semana y quiere recorrerlas de mayor a menor score, salteando las que ya tienen una accion tomada, hasta terminar todas las verdes de ese periodo. Hoy tiene que rastrear a mano cuales ya recorrio.
+- **Uso real (Admin, 2026-09-26):** entra, ve las ofertas del dia o de la semana y quiere recorrerlas de mayor a menor score, salteando las que ya tienen una accion tomada, hasta terminar todas las verdes de ese periodo. Hoy tiene que rastrear a mano cuales ya recorrio.
 - **Lo que ya existe (no reimplementar):** `/jobs` ordena por score desc y despues `first_seen` desc; el filtro Estado ofrece `activas` / `todas` / un estado puntual, y `estado=evaluada` ya da exactamente "sin accion tomada"; hay un filtro `Desde` (date picker sobre `first_seen`) y un score minimo (JS-029). **El problema es el default:** `activas` (`ACTIVE_STATUSES` en `apps/web/lib/labels.ts`) incluye `aplicada`, `entrevista` y `oferta`, que son justo las ya recorridas. `descartada`, `cerrada` y `rechazada` ya quedan ocultas.
 - **Alcance:**
   - **Default nuevo de `/jobs`: `estado=evaluada`**, orden score desc. "Todas" sigue en el mismo select (es el toggle "mostrar todas"; no hace falta otro control). `nueva`, `prefiltrada` y `pendiente_jd` salen del default: no tienen score, y `pendiente_jd` ya tiene su flujo en `/jobs/pending-jd`.
@@ -582,8 +582,8 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Acepta:** tests con casos inventados; los pares del golden no cambian.
 
 ### JS-086 · `normalizeCompany`: sufijos `labs` y `group` ✅ done 2026-10-27
-`deps:` — · `est:` S · `estado:` done (nube N2, PR #246, mergeado 2026-10-27): `labs` y `group` salen de los sufijos. Solo código y tests; la migración de datos de `companies.name_normalized` y `public_jobs.company_normalized` queda como propuesta en el PR (decisión de Mauro)
-- "Empresa X Labs" y "Empresa X Group" colapsan y marcan. Quitar el sufijo solo si queda un nombre de 2 o mas tokens, o sacarlos de la lista. Toca `companies.name_normalized`: puede pedir migracion de datos (decision de Mauro).
+`deps:` — · `est:` S · `estado:` done (nube N2, PR #246, mergeado 2026-10-27): `labs` y `group` salen de los sufijos. Solo código y tests; la migración de datos de `companies.name_normalized` y `public_jobs.company_normalized` queda como propuesta en el PR (decisión de Admin)
+- "Empresa X Labs" y "Empresa X Group" colapsan y marcan. Quitar el sufijo solo si queda un nombre de 2 o mas tokens, o sacarlos de la lista. Toca `companies.name_normalized`: puede pedir migracion de datos (decision de Admin).
 - **Acepta:** test de normalizacion; el golden publico no cambia de identidad de empresa.
 - **Migración de datos aplicada (2026-10-30, PR #270):** `renorm-companies.ts` (solo lectura) armó el SQL y `run-sql-file.ts` lo ensayó con ROLLBACK y lo aplicó en Neon (operado con Antigravity). 227 filas del pool y 13 ofertas de usuarios re-apuntadas a 19 empresas con «labs»/«group» en el nombre normalizado; verificado: las 273 filas del pool con esos nombres conservan «labs»/«group» y ninguna apunta a una empresa con otro `name_normalized`. Quedan 19 empresas viejas sin «labs»/«group» (18 sin referencias); borrarlas es decisión aparte. No se tocaron flags de duplicado, `dedup_of_id` ni `contacts`.
 
@@ -763,7 +763,7 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 - **Acepta:** con una URL remota, los helpers fallan antes de conectarse (test).
 
 ### JS-129 · `/api/health` con el commit del deploy en curso ✅ done 2026-10-12
-`deps:` — · `est:` XS · `estado:` done (ronda 29, PR #66, mergeado 2026-10-12): `turbo.json` declara `VERCEL_GIT_COMMIT_SHA` en `build`, `/api/health` responde con `Cache-Control: no-store` y un test cubre que la ruta es dinámica. Falta que Mauro confirme después de un deploy que el commit coincide con el de Vercel.
+`deps:` — · `est:` XS · `estado:` done (ronda 29, PR #66, mergeado 2026-10-12): `turbo.json` declara `VERCEL_GIT_COMMIT_SHA` en `build`, `/api/health` responde con `Cache-Control: no-store` y un test cubre que la ruta es dinámica. Falta que Admin confirme después de un deploy que el commit coincide con el de Vercel.
 - En produccion `/api/health` muestra un commit anterior al deploy activo: la respuesta queda estatica o en cache. Tiene que ser dinamica (sin prerender ni cache) y mostrar el commit del deploy en curso.
 - La ruta ya tiene `force-dynamic` y lee `VERCEL_GIT_COMMIT_SHA` al responder. A verificar: (1) que el build de Vercel no reutilice una salida vieja del cache de Turborepo (la tarea `build` de `turbo.json` no declara variables de entorno); (2) que la variable de sistema llegue en tiempo de ejecucion y no solo al build; (3) los encabezados de cache de la respuesta.
 - **Acepta:** test de que la ruta es dinamica y lee el commit en tiempo de ejecucion; despues del deploy, el commit coincide con el de Vercel.
@@ -790,10 +790,10 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 ### JS-133 · Taxonomía: skills de diseño, soporte y análisis de datos ✅ done 2026-10-12
 `deps:` JS-130 · `est:` S · `estado:` done (ronda 28, PR #67)
 - Las sugerencias de UX/UI, Soporte IT y Data Analyst usan lo que hay en la taxonomía de 60 skills. Faltan, por ejemplo, herramientas de diseño, sistemas operativos y redes, y planillas o BI.
-- Sumar skills cambia un dato global en Neon (tabla `skills`, hoy cargada desde `skills.json`). Va con plan y lo aplica Mauro. Después se ajusta `role_skills.json`.
+- Sumar skills cambia un dato global en Neon (tabla `skills`, hoy cargada desde `skills.json`). Va con plan y lo aplica Admin. Después se ajusta `role_skills.json`.
 
 ### JS-118 · Prefiltro: modalidad no remota en el titulo ✅ done 2026-10-08
-`deps:` — · `est:` S · `estado:` done (ronda 21, PR #57). Golden privado: 0 cambios de prefiltro en 3 corridas, metricas sin cambios (Mauro).
+`deps:` — · `est:` S · `estado:` done (ronda 21, PR #57). Golden privado: 0 cambios de prefiltro en 3 corridas, metricas sin cambios (Admin).
 - **Por que:** un aviso con la modalidad en el titulo ("Hibrido, CABA") paso el prefiltro: `NON_REMOTE_IN_TEXT` solo mira la ubicacion, y ademas no se aplica si la fuente dijo `modality: "remoto"`.
 - **Casos (inventados):**
   - "Desarrollador Backend - Hibrido, CABA", ubicacion "Argentina", modalidad desconocida → descarte `modalidad_no_remota`.
@@ -860,7 +860,7 @@ Ordenado por impacto. Un ticket por rama, tests antes del código.
 
 ## Bloque 7 — Beta y pre-piloto (rondas 40 a 122, del 12/10 al 24/10)
 
-Resumen por tema de lo mergeado en ese período. Un ítem por tema, no uno por PR. «Mergeado» no implica «migración aplicada en producción»: las migraciones las aplica Mauro aparte.
+Resumen por tema de lo mergeado en ese período. Un ítem por tema, no uno por PR. «Mergeado» no implica «migración aplicada en producción»: las migraciones las aplica Admin aparte.
 
 ### Onboarding, guía y primer valor
 - **Onboarding** con varias modalidades, idioma de ofertas, país por nombre y skills más claras · done 2026-10-20 · #121. Un error de validación ya no borra lo cargado · #119.
@@ -989,7 +989,7 @@ Resumen por tema de lo mergeado en ese período. Un ítem por tema, no uno por P
 
 ## Bloque 8 — Carreras de la beta (tanda C1, 2026-10-30)
 
-Seis carreras de la beta cerrada (ADR-027). Los PR están en draft y apilados: se mergean en orden C1-1 a C1-6. «Done» acá es «hecho y con CI en verde en el PR»; ningún PR está mergeado y las migraciones **no** se aplicaron (las aplica Mauro con `pnpm db:migrate` antes del merge).
+Seis carreras de la beta cerrada (ADR-027). Los PR están en draft y apilados: se mergean en orden C1-1 a C1-6. «Done» acá es «hecho y con CI en verde en el PR»; ningún PR está mergeado y las migraciones **no** se aplicaron (las aplica Admin con `pnpm db:migrate` antes del merge).
 
 ### C1-1 · ADR-027 y chips de especialidad
 `deps:` — · `estado:` done (2026-10-30; PR #288)
@@ -1022,19 +1022,19 @@ Seis carreras de la beta cerrada (ADR-027). Los PR están en draft y apilados: s
 Última corrida completa del e2e en #403 antes del cierre: **664 ok, 0 fallas** (6 salteados).
 
 ### MCP-1 · Tokens personales del MCP
-`deps:` R4-15 (lista de testers) · `est:` 1 día · `estado:` done 2026-11-09, en PR rojo (Mauro mergea)
+`deps:` R4-15 (lista de testers) · `est:` 1 día · `estado:` done 2026-11-09, en PR rojo (Admin mergea)
 - Tabla `mcp_tokens` (hash sha256, vence a los 30 días, revocable, máximo 3 activos) con RLS y `mcp_token_user()` (SECURITY DEFINER, tope de 60 llamadas por minuto). El MCP resuelve el usuario por request; se eliminó el `cachedUserId` global. `MCP_TOKEN` sin cambios.
 - Pantalla `/settings/conexiones` solo para testers con `MCP_USER_TOKENS=testers`. `readOnlyHint` en las 6 tools de lectura. ADR-032.
-- **Mauro:** aplicar 0060 y `rls/0019` en Neon antes del merge; en Vercel, `MCP_USER_TOKENS=testers`, `MCP_ALLOW_QUERY_TOKEN=1` y el email de Ani en `ASSISTANT_TESTER_EMAILS`.
+- **Admin:** aplicar 0060 y `rls/0019` en Neon antes del merge; en Vercel, `MCP_USER_TOKENS=testers`, `MCP_ALLOW_QUERY_TOKEN=1` y el email de tester A en `ASSISTANT_TESTER_EMAILS`.
 - **Fuera:** OAuth, antes de abrir el MCP a la beta.
 
 ### Pendiente después de la tanda
-- Mauro: `pnpm db:migrate` (0048 y 0049), merge en orden y deploy; después `pnpm pool:rehint --remote` (sin y con `--apply`) y medir volumen para sacar cada carrera de `UNLISTED_ROLE_KEYS`.
+- Admin: `pnpm db:migrate` (0048 y 0049), merge en orden y deploy; después `pnpm pool:rehint --remote` (sin y con `--apply`) y medir volumen para sacar cada carrera de `UNLISTED_ROLE_KEYS`.
 - Golden por carrera con avisos reales (evals pagos) y selección de personas por chip: tanda siguiente.
 
 ## Bloque 9 — Beta cerrada: cobro, seguridad, áreas y dominio (tanda C3, 2026-10-31)
 
-Cuatro PR de la nube, todos en draft y con base `ronda/integracion-t1-g2` (#309). «Done» acá es «hecho y con CI en verde en el PR»; ningún PR está mergeado y las migraciones **no** se aplicaron (las aplica Mauro con `pnpm db:migrate` antes del merge). **Orden de merge: #312 → #314 → #315** (cada una sale de la anterior); #316 es independiente. La beta abre el jueves 26/11; precio ARS 20.000 o USD 15 por mes, sin garantía, cobro con link de Mercado Pago y activación manual.
+Cuatro PR de la nube, todos en draft y con base `ronda/integracion-t1-g2` (#309). «Done» acá es «hecho y con CI en verde en el PR»; ningún PR está mergeado y las migraciones **no** se aplicaron (las aplica Admin con `pnpm db:migrate` antes del merge). **Orden de merge: #312 → #314 → #315** (cada una sale de la anterior); #316 es independiente. La beta abre el jueves 26/11; precio ARS 20.000 o USD 15 por mes, sin garantía, cobro con link de Mercado Pago y activación manual.
 
 ### C3-1 · Cobro de la beta
 `deps:` — · `estado:` done (2026-10-31; PR #312; ⚠️ migración 0051 + `rls/0010` y `rls/0015`)
@@ -1053,10 +1053,10 @@ Cuatro PR de la nube, todos en draft y con base `ronda/integracion-t1-g2` (#309)
 
 ### C3-4 · Dominio listo para afiniajobs.com.ar
 `deps:` — · `estado:` done (2026-10-31; PR #316; sin migración)
-- `SITE_URL` única para canonical, sitemap, robots, Open Graph y links de emails; `LEGACY_HOSTS` redirige el dominio viejo al nuevo sin tocar `/api/*`. Pasos para Mauro en `docs/DEPLOY.md` («Pasar a afiniajobs.com.ar»). No se cambió ninguna variable en Vercel.
+- `SITE_URL` única para canonical, sitemap, robots, Open Graph y links de emails; `LEGACY_HOSTS` redirige el dominio viejo al nuevo sin tocar `/api/*`. Pasos para Admin en `docs/DEPLOY.md` («Pasar a afiniajobs.com.ar»). No se cambió ninguna variable en Vercel.
 
 ### Pendiente después de la tanda
-- Mauro: `pnpm db:migrate` (0051 a 0054 y las policies de `rls/`), merge en orden, `MP_LINK_LISTA` y `PRICING_ENABLED=1` en Vercel cuando corresponda, y los pasos de `docs/DEPLOY.md` para el dominio.
+- Admin: `pnpm db:migrate` (0051 a 0054 y las policies de `rls/`), merge en orden, `MP_LINK_LISTA` y `PRICING_ENABLED=1` en Vercel cuando corresponda, y los pasos de `docs/DEPLOY.md` para el dominio.
 - Decidir los textos de las áreas (hoy no filtran), el aviso por email del vencimiento y los términos sobre pagos.
 
 ## Reglas del backlog
@@ -1091,7 +1091,7 @@ Cinco tareas de la nube, todas en draft. «Done» acá es «hecho y con CI en ve
 - **Bloqueantes de texto o de producto:** #318 (la guía manda a elegir en el selector carreras que están ocultas; pide cargar un CV por archivo que no existe; `/cv/armar` depende de `CV_CHAT_ENABLED=all`), #319 y #322 (prometen un link o una invitación antes del 26/11 a todo el que se anote; #322 además omite que el texto va a proveedores de IA y manda a `/precios`, que da 404 con `PRICING_ENABLED` apagado). #313 y #317 sin bloqueantes (GitGuardian marca un falso positivo en `register/page.tsx:61`).
 
 ### Pendiente después de la tanda
-- Mauro: `pnpm db:migrate` (0055 y `rls/0010`) antes de mergear #320; `RESEND_API_KEY` **y** `EMAIL_FROM` con dominio verificado en Vercel para que salgan los avisos.
+- Admin: `pnpm db:migrate` (0055 y `rls/0010`) antes de mergear #320; `RESEND_API_KEY` **y** `EMAIL_FROM` con dominio verificado en Vercel para que salgan los avisos.
 - Decidir antes del ensayo del 20/11 si las carreras ocultas de la beta salen de `UNLISTED_ROLE_KEYS` (hoy un invitado de abogacía, administración, comunicación o relaciones internacionales no la ve en el onboarding).
 
 ## Bloque 11 — Beta cerrada: carreras elegibles, guías, seguridad e integración de la noche (tanda C5, 2026-11-01)
@@ -1114,13 +1114,13 @@ Trece PRs nuevos de la nube (todos en draft, sin mergear; las migraciones **no**
 - **C5-9 · PR de integración** · rama `ronda/integracion-noche-1-11`.
 
 ### Pendiente después de la tanda
-- Mauro: `pnpm db:migrate` (0051 a 0055 y las policies `rls/0001`, `0003`, `0006`, `0010`, `0015`) antes del merge; variables de Vercel (ver el PR de integración); runbook y checklist.
-- Antes del 26/11: sacar de la lista de espera a quienes Ani no elija; antes del 13/11, actualizar `docs/legal/datos-por-proveedor.md` (hallazgo L-1 de la auditoría).
+- Admin: `pnpm db:migrate` (0051 a 0055 y las policies `rls/0001`, `0003`, `0006`, `0010`, `0015`) antes del merge; variables de Vercel (ver el PR de integración); runbook y checklist.
+- Antes del 26/11: sacar de la lista de espera a quienes tester A no elija; antes del 13/11, actualizar `docs/legal/datos-por-proveedor.md` (hallazgo L-1 de la auditoría).
 - Ronda del 3/11: medición con `pg_stat_statements` y lo que pide migración (persistir el idioma del aviso, `market_candidates`, índice de `inbound_emails` por persona).
 
 ## Bloque 12 — Textos de la beta, marca, ahorro de Neon, carreras por umbral y kit del QR (tanda C6, 2026-11-02)
 
-Seis tickets de la nube en una noche: cinco PRs en draft hacia `ronda/integracion-c6` (más uno apilado que **no** entra), la limpieza de los PRs viejos y **un PR de integración** `ronda/integracion-c6` → `main`. Nada se mergeó a `main`; la migración **no** se aplicó. El detalle, las migraciones, los paths rojos y las «Decisiones para Mauro» están en el PR de integración.
+Seis tickets de la nube en una noche: cinco PRs en draft hacia `ronda/integracion-c6` (más uno apilado que **no** entra), la limpieza de los PRs viejos y **un PR de integración** `ronda/integracion-c6` → `main`. Nada se mergeó a `main`; la migración **no** se aplicó. El detalle, las migraciones, los paths rojos y las «Decisiones para Admin» están en el PR de integración.
 
 - **C6-1 · Textos públicos alineados con la beta** · `estado:` done, 2026-11-02 (PR [#345](https://github.com/Malejo01/job-search-os/pull/345)). `/ayuda` habla del Plan Beta (por invitación, pago) y del gratis como lo que queda al vencer, y cierra con cupo limitado; `/acceso` pone las 6 carreras de la beta primero en el grupo «Carreras de la beta» (`waitlistRoleGroups`); «Datos curiosos» de `/mercado` respeta las carreras ocultas; `/demo` sin «probarlo» ni «cargá el tuyo».
 - **C6-2 · Nombre del producto en un solo lugar** · done, 2026-11-02 ([#346](https://github.com/Malejo01/job-search-os/pull/346)). La UI ya leía `PRODUCT_NAME`; faltaba el `User-Agent` de las fuentes y tres e2e que repetían el nombre. Guarda `brand.test.ts`. El valor no cambia. **Aparte, sin integrar:** [#347](https://github.com/Malejo01/job-search-os/pull/347) cambia el valor a «AfinIAJobs» (NO MERGEAR hasta aprobar la marca el 6/11).
@@ -1131,14 +1131,14 @@ Seis tickets de la nube en una noche: cinco PRs en draft hacia `ronda/integracio
 - **C6-7 · PR de integración** · rama `ronda/integracion-c6`.
 
 ### Pendiente después de la tanda
-- Mauro: `pnpm db:migrate` (0056) antes del merge; después de mergear, correr `docs/neon/neon-stats.sql` y comparar con la foto del 1/11.
+- Admin: `pnpm db:migrate` (0056) antes del merge; después de mergear, correr `docs/neon/neon-stats.sql` y comparar con la foto del 1/11.
 - 9/11: decidir qué QR se usa el 11/11 (README del kit). 6/11: aprobación de marca; recién ahí se mergea #347 y se cambian los textos legales (13/11).
 - Ronda del 3/11 (lo que quedó de la auditoría de Neon y pide migración): persistir el idioma y el nivel de inglés del aviso en `public_jobs` (hoy `readCareerMarketInput` lee el texto), `market_candidates`, índice de `inbound_emails` por persona, y los shingles del dedup.
 - Si algún día se quiere que una carrera ya publicada se oculte sola al bajar de 10 ofertas: sumarla a `PUBLIC_THRESHOLD_ROLE_KEYS` (ADR-029).
 
 ## Bloque 13 — Rebranding AfinIAJobs y rediseño (tanda C7, 2026-11-02 al 03)
 
-Una noche de la nube: la marca AfinIAJobs (nombre, logo, paleta, tipografías, íconos, imágenes y emails) y el rediseño de toda la app según `docs/ux/rediseno-afiniajobs/`. Cada ticket fue un PR `[nube C7]` en draft hacia `ronda/integracion-c7`, mergeado con `--no-ff` con su CI en verde, y **un solo PR de integración** hacia `main` (#353). Nada se mergeó a `main`; **ninguna migración nueva** (la 0056 viene de C6). El detalle, los paths rojos y las «Decisiones para Mauro» están en #353.
+Una noche de la nube: la marca AfinIAJobs (nombre, logo, paleta, tipografías, íconos, imágenes y emails) y el rediseño de toda la app según `docs/ux/rediseno-afiniajobs/`. Cada ticket fue un PR `[nube C7]` en draft hacia `ronda/integracion-c7`, mergeado con `--no-ff` con su CI en verde, y **un solo PR de integración** hacia `main` (#353). Nada se mergeó a `main`; **ninguna migración nueva** (la 0056 viene de C6). El detalle, los paths rojos y las «Decisiones para Admin» están en #353.
 
 ### Fase 1 · Marca
 - **C7-1 · Tokens y tipografías** · `estado:` done, 2026-11-02 ([#352](https://github.com/Malejo01/job-search-os/pull/352)). Paleta del manual en claro y oscuro con los mismos nombres semánticos, foco naranja, radios 12/16, Sora y Manrope (`next/font/local`, archivos en el repo), tema por defecto del dispositivo y selector en Ajustes → Apariencia.
@@ -1159,17 +1159,17 @@ Una noche de la nube: la marca AfinIAJobs (nombre, logo, paleta, tipografías, �
 - **C7-15 · Accesibilidad y rendimiento** · done ([#367](https://github.com/Malejo01/job-search-os/pull/367), carril rojo). Legales legibles en oscuro, `/acceso` sin salto de layout, 44 px; e2e 104.
 
 ### Reserva
-- **R-1 · `/settings/marca`** · done ([#369](https://github.com/Malejo01/job-search-os/pull/369)). **R-2 · Onboarding sin jerga** · done ([#370](https://github.com/Malejo01/job-search-os/pull/370), textos para Ani en el PR). **R-3 · Error y 404** · done ([#371](https://github.com/Malejo01/job-search-os/pull/371)). **R-4 · Lógica del score con tests** · done ([#372](https://github.com/Malejo01/job-search-os/pull/372)). **R-5 · Revisión del diff** · ver #353.
+- **R-1 · `/settings/marca`** · done ([#369](https://github.com/Malejo01/job-search-os/pull/369)). **R-2 · Onboarding sin jerga** · done ([#370](https://github.com/Malejo01/job-search-os/pull/370), textos para tester A en el PR). **R-3 · Error y 404** · done ([#371](https://github.com/Malejo01/job-search-os/pull/371)). **R-4 · Lógica del score con tests** · done ([#372](https://github.com/Malejo01/job-search-os/pull/372)). **R-5 · Revisión del diff** · ver #353.
 
 ### Pendiente después de la tanda
-- Mauro: revisar y aplicar `pnpm db:migrate` (0056 de C6) antes del merge de #353; cargar `MP_LINK_LISTA`, `PRICING_ENABLED=1` y `LLM_DAILY_CAP_USD=4` (ver `docs/beta/capacidad.md` §6).
-- Ani: revisar la marca en `/settings/marca` y los textos de R-2; los cambios salen de tokens, `components/brand/logo.tsx` y `brand.ts`.
+- Admin: revisar y aplicar `pnpm db:migrate` (0056 de C6) antes del merge de #353; cargar `MP_LINK_LISTA`, `PRICING_ENABLED=1` y `LLM_DAILY_CAP_USD=4` (ver `docs/beta/capacidad.md` §6).
+- tester A: revisar la marca en `/settings/marca` y los textos de R-2; los cambios salen de tokens, `components/brand/logo.tsx` y `brand.ts`.
 - Si la cola de evaluación crece la primera semana: cron de `evaluate` cada hora (PR rojo, `docs/beta/capacidad.md` §2).
 - Confirmar si los emails entrantes cuentan en el cupo gratis de Resend.
 
 ## Bloque 14 — 11/11, apertura de la beta y carreras (tanda C8, 2026-11-03 al 04)
 
-Una noche de la nube, sin supervisión: lo que hace falta para el evento del 11/11 (Voces Jóvenes), la apertura de la beta del 26/11 y las 6 carreras no tech. Cada ticket fue un PR `[nube C8]` en draft hacia `ronda/integracion-c8`, mergeado con `--no-ff` con su CI en verde, y **un solo PR de integración** hacia `main` ([#376](https://github.com/Malejo01/job-search-os/pull/376)). Base: `ronda/integracion-c7` (#353 seguía abierto). Nada se mergeó a `main`; **tres migraciones nuevas (0057, 0058, 0059), ninguna aplicada**. Reglas, decisiones y variables en `docs/beta/tanda-c8.md`; paths rojos y «Decisiones para Mauro» en #376.
+Una noche de la nube, sin supervisión: lo que hace falta para el evento del 11/11 (Voces Jóvenes), la apertura de la beta del 26/11 y las 6 carreras no tech. Cada ticket fue un PR `[nube C8]` en draft hacia `ronda/integracion-c8`, mergeado con `--no-ff` con su CI en verde, y **un solo PR de integración** hacia `main` ([#376](https://github.com/Malejo01/job-search-os/pull/376)). Base: `ronda/integracion-c7` (#353 seguía abierto). Nada se mergeó a `main`; **tres migraciones nuevas (0057, 0058, 0059), ninguna aplicada**. Reglas, decisiones y variables en `docs/beta/tanda-c8.md`; paths rojos y «Decisiones para Admin» en #376.
 
 ### Evento del 11/11
 - **C8-1 · Reglas de la tanda** · `estado:` done, 2026-11-03 ([#375](https://github.com/Malejo01/job-search-os/pull/375)). `docs/beta/tanda-c8.md`.
@@ -1192,10 +1192,10 @@ Una noche de la nube, sin supervisión: lo que hace falta para el evento del 11/
 - **C8-10 · Fuentes no tech** · done ([#384](https://github.com/Malejo01/job-search-os/pull/384)). Ningún adapter nuevo; ADR-030 (The Muse) propuesto.
 
 ### Textos, legales y Neon
-- **C8-12 · Legales** · done ([#388](https://github.com/Malejo01/job-search-os/pull/388)). `pnpm legal:check`, `docs/legal/preguntas-ani.md` y datos por proveedor. Los marcadores siguen sin completar (respuestas de Ani hasta el 13/11).
+- **C8-12 · Legales** · done ([#388](https://github.com/Malejo01/job-search-os/pull/388)). `pnpm legal:check`, `docs/legal/preguntas-ani.md` y datos por proveedor. Los marcadores siguen sin completar (respuestas de tester A hasta el 13/11).
 - **C8-15 · Neon, ronda 3** · done ([#390](https://github.com/Malejo01/job-search-os/pull/390), **migración 0058** + `rls/0017`). Idioma del aviso persistido en `public_jobs` y candidatos de `/market` en `market_candidates`, con backfill. `PUBLIC_JOBS_LANGUAGE_ENABLED`, `MARKET_CANDIDATES_ENABLED`.
 - **C8-16 · `evaluate` cada hora** · PR aparte hacia `main`, **sin integrar** ([#392](https://github.com/Malejo01/job-search-os/pull/392)). Workflow detrás de `vars.EVALUATE_HOURLY`.
-- **C8-18 · Textos para Ani** · done ([#394](https://github.com/Malejo01/job-search-os/pull/394)). `/settings/textos` y `docs/beta/textos-para-ani.md`.
+- **C8-18 · Textos para tester A** · done ([#394](https://github.com/Malejo01/job-search-os/pull/394)). `/settings/textos` y `docs/beta/textos-para-ani.md`.
 - **C8-19 · Voz y tono** · done ([#395](https://github.com/Malejo01/job-search-os/pull/395)).
 - **C8-20 · Cierre** · done. Este bloque, la vista previa y el cuerpo de #376.
 
@@ -1208,18 +1208,18 @@ Una noche de la nube, sin supervisión: lo que hace falta para el evento del 11/
 - **R-6 · Arquitectura para entrevistas** · done ([#398](https://github.com/Malejo01/job-search-os/pull/398)). `docs/arquitectura-para-entrevistas.md`.
 
 ### Pendiente después de la tanda
-- **Mauro, antes del merge de #376:** revisar el SQL y aplicar `pnpm db:migrate` (0056 de C6 si falta, 0057, 0058, 0059 y los `rls/` 0006, 0016, 0017, 0018). Las variables apagadas no protegen un despliegue antes de migrar.
-- **Mauro, después:** prender las variables en el orden de `docs/beta/tanda-c8.md`; `WAITLIST_EVENT_WINDOW` con el horario real del evento; correr `pnpm pool:backfill-language --remote` (cuenta) y después `--remote --apply`, con `PUBLIC_JOBS_LANGUAGE_ENABLED=1` ya prendida.
+- **Admin, antes del merge de #376:** revisar el SQL y aplicar `pnpm db:migrate` (0056 de C6 si falta, 0057, 0058, 0059 y los `rls/` 0006, 0016, 0017, 0018). Las variables apagadas no protegen un despliegue antes de migrar.
+- **Admin, después:** prender las variables en el orden de `docs/beta/tanda-c8.md`; `WAITLIST_EVENT_WINDOW` con el horario real del evento; correr `pnpm pool:backfill-language --remote` (cuenta) y después `--remote --apply`, con `PUBLIC_JOBS_LANGUAGE_ENABLED=1` ya prendida.
 - **Firewall de Vercel para `POST /acceso`** (S-2 de la auditoría): regla de rate limit por IP antes del 11/11.
 - **Presupuesto de Resend** (S-3 / M-3) antes de prender `WELCOME_EMAIL_ENABLED`.
-- **Ani:** `docs/legal/preguntas-ani.md` (incluye `terminos.md:42`, «La beta es gratuita»), `/settings/textos` y `/settings/marca`.
+- **tester A:** `docs/legal/preguntas-ani.md` (incluye `terminos.md:42`, «La beta es gratuita»), `/settings/textos` y `/settings/marca`.
 - **Fuentes no tech:** decidir ADR-030 (The Muse); Workable queda sin grabar (necesita red).
 - **C8-16:** decidir #392 y `vars.EVALUATE_HOURLY` si la cola de evaluación crece.
 - **Pestañas del celular:** antes de prenderlas por defecto, anclar los e2e de 390 px al `nav` correspondiente.
 
 ## Bloque 15 — Tanda C9 (rediseño), 2026-11-03 al 04
 
-Una noche de la nube, sin supervisión: el rediseño visual completo de AfinIAJobs (app y páginas públicas) según las 15 decisiones de Mauro del 3/11 (`docs/ux/rediseno-afiniajobs/decisiones-c9.md`). Cada ticket fue un PR `[nube C9]` en draft hacia `ronda/integracion-c9`, mergeado con `--no-ff` con su CI en verde, y **un solo PR de integración** hacia `main` ([#403](https://github.com/Malejo01/job-search-os/pull/403)). Nada se mergeó a `main`; **ninguna migración**; USD 0 de modelos. El rediseño no va detrás de ninguna variable. Mapa de pantallas: `docs/ux/rediseno-afiniajobs/inventario-c9.md`; guía para pantallas nuevas: `guia-rapida.md`.
+Una noche de la nube, sin supervisión: el rediseño visual completo de AfinIAJobs (app y páginas públicas) según las 15 decisiones de Admin del 3/11 (`docs/ux/rediseno-afiniajobs/decisiones-c9.md`). Cada ticket fue un PR `[nube C9]` en draft hacia `ronda/integracion-c9`, mergeado con `--no-ff` con su CI en verde, y **un solo PR de integración** hacia `main` ([#403](https://github.com/Malejo01/job-search-os/pull/403)). Nada se mergeó a `main`; **ninguna migración**; USD 0 de modelos. El rediseño no va detrás de ninguna variable. Mapa de pantallas: `docs/ux/rediseno-afiniajobs/inventario-c9.md`; guía para pantallas nuevas: `guia-rapida.md`.
 
 ### Base y cimientos
 - **C9-1 · Base** · `estado:` done, 2026-11-03 ([#402](https://github.com/Malejo01/job-search-os/pull/402)). Inventario y decisiones en el repo.
@@ -1248,16 +1248,16 @@ Una noche de la nube, sin supervisión: el rediseño visual completo de AfinIAJo
 ### Reserva
 - **R-1 · Rendimiento** · done ([#422](https://github.com/Malejo01/job-search-os/pull/422)). `/hoy` 146 → 138 kB y `/jobs` 156 → 166 kB de First Load JS.
 - **R-2 · Esqueletos** · descartado ([#424](https://github.com/Malejo01/job-search-os/pull/424), cerrado): sin JS el esqueleto quedaba para siempre y rompía los atajos del detalle.
-- **R-3 · Revisión del diff** · done ([#425](https://github.com/Malejo01/job-search-os/pull/425)). Revisor aparte: cuatro bloqueantes (tres arreglados; el de la ilustración de Hoy sin recuadro lo resuelve la guía de Mauro) y sugerencias aplicadas. **R-4 · Guía rápida** · done ([#423](https://github.com/Malejo01/job-search-os/pull/423)).
+- **R-3 · Revisión del diff** · done ([#425](https://github.com/Malejo01/job-search-os/pull/425)). Revisor aparte: cuatro bloqueantes (tres arreglados; el de la ilustración de Hoy sin recuadro lo resuelve la guía de Admin) y sugerencias aplicadas. **R-4 · Guía rápida** · done ([#423](https://github.com/Malejo01/job-search-os/pull/423)).
 
 ### Pendiente después de la tanda
-- **Mauro:** mirar la vista previa (los enlaces están en #403), revisar las «Decisiones para Mauro» del cuerpo y mergear #403; el PR toca `.github/workflows/ci.yml` (capturas del e2e), así que va con bypass. Borrar `MOBILE_TABBAR_ENABLED` de Vercel y de `.env.example` (ya no se usa).
+- **Admin:** mirar la vista previa (los enlaces están en #403), revisar las «Decisiones para Admin» del cuerpo y mergear #403; el PR toca `.github/workflows/ci.yml` (capturas del e2e), así que va con bypass. Borrar `MOBILE_TABBAR_ENABLED` de Vercel y de `.env.example` (ya no se usa).
 - **Ilustraciones:** 7 de 8 escenas siguen con el marcador (todas menos `hoy`). Para sumarlas, `docs/ux/rediseno-afiniajobs/ilustraciones.md`.
-- **Ani:** los textos nuevos (tabla en #417) y el catálogo `/settings/marca/componentes`.
+- **tester A:** los textos nuevos (tabla en #417) y el catálogo `/settings/marca/componentes`.
 
 ## Bloque 16 — Tanda C10 (fidelidad visual), 2026-11-04
 
-La nube rehízo las pantallas mirando las imágenes aprobadas por Mauro el 4/11 (`docs/ux/rediseno-afiniajobs/referencias/`), y no las decisiones en texto. Cada pantalla se compara contra su referencia con el e2e 120, que arma «referencia | real» a 390 y 1280 px con los datos de Lucía (ficticia) y la sube como artefacto «comparaciones» del job e2e. Se hizo en cuatro secciones, cada una en un PR `[nube C10]` hacia `ronda/integracion-c9` mergeado con `--no-ff`; el PR de integración sigue siendo [#403](https://github.com/Malejo01/job-search-os/pull/403). **Ninguna migración**; USD 0 de modelos. Diferencias de C9 contra cada referencia: `docs/ux/rediseno-afiniajobs/c10-brechas.md`.
+La nube rehízo las pantallas mirando las imágenes aprobadas por Admin el 4/11 (`docs/ux/rediseno-afiniajobs/referencias/`), y no las decisiones en texto. Cada pantalla se compara contra su referencia con el e2e 120, que arma «referencia | real» a 390 y 1280 px con los datos de Lucía (ficticia) y la sube como artefacto «comparaciones» del job e2e. Se hizo en cuatro secciones, cada una en un PR `[nube C10]` hacia `ronda/integracion-c9` mergeado con `--no-ff`; el PR de integración sigue siendo [#403](https://github.com/Malejo01/job-search-os/pull/403). **Ninguna migración**; USD 0 de modelos. Diferencias de C9 contra cada referencia: `docs/ux/rediseno-afiniajobs/c10-brechas.md`.
 
 ### Sección 1 · Herramienta
 - **C10-1 · Captura contra referencia y datos de prueba** · `estado:` done, 2026-11-04 ([#428](https://github.com/Malejo01/job-search-os/pull/428)). `e2e/c10/lucia.ts` (las 4 ofertas de las referencias con su checklist), e2e 120 y el artefacto «comparaciones» en `ci.yml`.
@@ -1277,7 +1277,7 @@ La nube rehízo las pantallas mirando las imágenes aprobadas por Mauro el 4/11 
 - **C10-9 · Integración y vista previa** · done (ídem). Este bloque, la vista previa y la sección C10 del cuerpo de #403.
 
 ### Pendiente después de la tanda
-- **Mauro:** mirar las comparaciones (artefacto «comparaciones» del job e2e de #403) y la vista previa, revisar las «Decisiones para Mauro» de cada PR de C10 y mergear #403.
+- **Admin:** mirar las comparaciones (artefacto «comparaciones» del job e2e de #403) y la vista previa, revisar las «Decisiones para Admin» de cada PR de C10 y mergear #403.
 - **Ilustración «acceso»:** sigue el marcador; la referencia la espera (`docs/ux/rediseno-afiniajobs/ilustraciones.md`).
 
 ## Bloque 17 — Decisiones del 5/11 en los documentos de la beta
@@ -1289,19 +1289,19 @@ La nube rehízo las pantallas mirando las imágenes aprobadas por Mauro el 4/11 
 - **Acepta:** `grep` de «3 becad», «charla» y «becadas» sin restos que hablen del evento o de las 3 becas. Solo documentación: no se cambió ninguna variable ni código.
 
 ### Pendiente después de D5-1
-- **[A DEFINIR: combos de Ani]:** los dos combos que paga el resto del cupo, y cómo encajan con el Plan Beta de ARS 20.000.
+- **[A DEFINIR: combos de tester A]:** los dos combos que paga el resto del cupo, y cómo encajan con el Plan Beta de ARS 20.000.
 - **[A CONFIRMAR]:** quién es el becado gratis (se lleva en Notion), si es solo el primer mes o toda la beta, y quién lleva relaciones internacionales.
-- **[A CONFIRMAR con Mauro]:** si las dos personas que no pagan son parte de los lugares de becas o van aparte; si programación es una carrera más de la beta (hoy son 6, ADR-027); dónde se muestra el QR en el evento, ya que no hay diapositivas.
-- **Mauro:** actualizar los `MP_LINK_*` con la cuenta nueva; crear `contacto@afiniajobs.com.ar`; migrar y redirigir `afiniajobs.com.ar`; comprar `afiniajobs.com`. **Ani:** crear el WhatsApp Business y definir los combos.
+- **[A CONFIRMAR con Admin]:** si las dos personas que no pagan son parte de los lugares de becas o van aparte; si programación es una carrera más de la beta (hoy son 6, ADR-027); dónde se muestra el QR en el evento, ya que no hay diapositivas.
+- **Admin:** actualizar los `MP_LINK_*` con la cuenta nueva; crear `contacto@afiniajobs.com.ar`; migrar y redirigir `afiniajobs.com.ar`; comprar `afiniajobs.com`. **tester A:** crear el WhatsApp Business y definir los combos.
 
 ## Bloque 18 — Tanda R4 (Antigravity), 2026-11-06
 
-Fuente del estado: `ops/tanda-r4/estado.md`. Los PR de carril rojo se acumulan en #439 y los mergea Mauro.
+Fuente del estado: `ops/tanda-r4/estado.md`. Los PR de carril rojo se acumulan en #439 y los mergea Admin.
 
 ### R4-01 · Ilustraciones serie E2 sobre la arquitectura de main
 `deps:` — · `est:` a confirmar · `estado:` en rama local (sin push)
-- Rama `ronda/r4-01-ilustraciones` con 2 commits locales. Reemplaza al #437, que cierra Mauro.
-- Sin push: el barrido (pre-push y `pr.mjs`) marca con el patrón #64 los nombres de archivo `@2x` (falso positivo). Es PR rojo propio y lo mergea Mauro. El cuerpo del PR está en `ops/tanda-r4/pr-r4-01-cuerpo.md`.
+- Rama `ronda/r4-01-ilustraciones` con 2 commits locales. Reemplaza al #437, que cierra Admin.
+- Sin push: el barrido (pre-push y `pr.mjs`) marca con el patrón #64 los nombres de archivo `@2x` (falso positivo). Es PR rojo propio y lo mergea Admin. El cuerpo del PR está en `ops/tanda-r4/pr-r4-01-cuerpo.md`.
 - **Acepta:** a confirmar.
 
 ### R4-02 · Tema claro por defecto + ThemeSync
@@ -1317,12 +1317,12 @@ Fuente del estado: `ops/tanda-r4/estado.md`. Los PR de carril rojo se acumulan e
 ### R4-04 · Dominio nuevo en los docs
 `deps:` — · `est:` a confirmar · `estado:` parcial: docs done (2026-11-06), rojo en PR #439
 - #443 mergeado (`afiniajobs.com.ar` como dominio actual en los docs). La parte roja (config) está en #439.
-- Falta: `.github/workflows/smoke.yml` (`SMOKE_BASE_URL`) lo edita Mauro (`ops/tanda-r4/pendiente-mauro-smoke-yml.md`); verificar `canonical`, `og:url` y `og:image` de `/` en producción. `robots.txt` y `sitemap.xml` ya verificados.
+- Falta: `.github/workflows/smoke.yml` (`SMOKE_BASE_URL`) lo edita Admin; verificar `canonical`, `og:url` y `og:image` de `/` en producción. `robots.txt` y `sitemap.xml` ya verificados.
 - **Acepta:** a confirmar.
 
 ### R4-05 · Pasos manuales de la tanda
 `deps:` — · `est:` a confirmar · `estado:` done (2026-11-06)
-- #440 mergeado: `docs/beta/pasos-manuales-r4.md` con los pasos que hace solo Mauro. §12 y §13 se completaron con R4-15 y R4-17 (esta tarea).
+- #440 mergeado: `docs/beta/pasos-manuales-r4.md` con los pasos que hace solo Admin. §12 y §13 se completaron con R4-15 y R4-17 (esta tarea).
 - **Acepta:** a confirmar.
 
 ### R4-06 · Propuesta de `/applications`
@@ -1345,21 +1345,21 @@ Fuente del estado: `ops/tanda-r4/estado.md`. Los PR de carril rojo se acumulan e
 - Textos: /demo y modalidad revertidos tras la revisión, con la excepción declarada. Excluidos por tener PR abierto: hallazgos 17, 25 y 32; a Notion: 10, 13 y 33; el 4 es rojo (legal).
 - **Acepta:** a confirmar.
 
-### R4-10 · Tarea que depende de Ani
-`deps:` Ani · `est:` a confirmar · `estado:` bloqueado (depende de Ani)
+### R4-10 · Tarea que depende de tester A
+`deps:` tester A · `est:` a confirmar · `estado:` bloqueado (depende de tester A)
 
-### R4-11 · Combos de Ani y cuenta de Mercado Pago
-`deps:` Ani, cuenta de Mercado Pago · `est:` a confirmar · `estado:` bloqueado (combos de Ani y cuenta de Mercado Pago)
+### R4-11 · Combos de tester A y cuenta de Mercado Pago
+`deps:` tester A, cuenta de Mercado Pago · `est:` a confirmar · `estado:` bloqueado (combos de tester A y cuenta de Mercado Pago)
 
 ### R4-12 · ADR-031
 `deps:` — · `est:` a confirmar · `estado:` en PR #439
-- La línea de la regla 5 de `CLAUDE.md` la aplica Mauro (`ops/tanda-r4/pendiente-mauro-claude-md.md`).
+- La línea de la regla 5 de `CLAUDE.md` la aplica Admin.
 - **Acepta:** a confirmar.
 
 ### R4-13 · PR rojo acumulador
-`deps:` a confirmar (junta lo rojo de R4-04, R4-12, R4-15, R4-16 y R4-17) · `est:` a confirmar · `estado:` en PR #439, listo para Mauro
-- Traer `origin/main` con `git merge` no es posible para los agentes; si aparecen conflictos, los resuelve Mauro.
-- Un solo push al final por el costo del job `evals` (~USD 0,15 por corrida, tope USD 0,5), con OK de Mauro.
+`deps:` a confirmar (junta lo rojo de R4-04, R4-12, R4-15, R4-16 y R4-17) · `est:` a confirmar · `estado:` en PR #439, listo para Admin
+- Traer `origin/main` con `git merge` no es posible para los agentes; si aparecen conflictos, los resuelve Admin.
+- Un solo push al final por el costo del job `evals` (~USD 0,15 por corrida, tope USD 0,5), con OK de Admin.
 
 ### R4-14 · Este backlog
 `deps:` — · `est:` a confirmar · `estado:` en esta rama (`ronda/r4-14-backlog`)
@@ -1378,12 +1378,12 @@ Fuente del estado: `ops/tanda-r4/estado.md`. Los PR de carril rojo se acumulan e
 
 ### R4-17 · Prompts del asistente + fila `assistant_chat`
 `deps:` a confirmar · `est:` a confirmar · `estado:` en PR #439
-- Prompts del asistente y fila `assistant_chat` en `packages/db/seeds/model_routing.json`. Tono provisorio. La fila en Neon la aplica Mauro (`docs/beta/pasos-manuales-r4.md` §13).
+- Prompts del asistente y fila `assistant_chat` en `packages/db/seeds/model_routing.json`. Tono provisorio. La fila en Neon la aplica Admin (`docs/beta/pasos-manuales-r4.md` §13).
 - **Acepta:** a confirmar.
 
 ### Pendiente después de la tanda
-- **Mauro:** pushear o resolver R4-01 (patrón #64 del barrido) y cerrar el #437; mergear #444, #445 con #446, #447, #448, #449 y, al final, el PR rojo #439; editar `smoke.yml` y la regla 5 de `CLAUDE.md`; aplicar la fila `assistant_chat` y cargar las variables del asistente; revisar la pausa de auto-merge (smoke de #442 cancelado por timeout).
-- **Sin resolver:** R4-10 y R4-11 (Ani y cuenta de Mercado Pago); tono definitivo de R4-16 y R4-17; las 10 tareas «[Auditoría R4]» de Notion; medir el costo real del chat de CV con `pnpm llm:spend`.
+- **Admin:** pushear o resolver R4-01 (patrón #64 del barrido) y cerrar el #437; mergear #444, #445 con #446, #447, #448, #449 y, al final, el PR rojo #439; editar `smoke.yml` y la regla 5 de `CLAUDE.md`; aplicar la fila `assistant_chat` y cargar las variables del asistente; revisar la pausa de auto-merge (smoke de #442 cancelado por timeout).
+- **Sin resolver:** R4-10 y R4-11 (tester A y cuenta de Mercado Pago); tono definitivo de R4-16 y R4-17; las 10 tareas «[Auditoría R4]» de Notion; medir el costo real del chat de CV con `pnpm llm:spend`.
 
 ## Bloque 19 · Tanda R5 (10/11)
 
@@ -1395,60 +1395,60 @@ Fuente del estado: `ops/tanda-r4/estado.md`. Los PR de carril rojo se acumulan e
 - **Acepta:** /acceso muestra 8 chips; elegir Relaciones públicas envía `marketing_digital` y Programación envía `fullstack`.
 
 ### C3 · Las 8 carreras en el pipeline (carril rojo)
-`deps:` C1 · `est:` 3 h · `estado:` en PR, para que lo revise Mauro ([#457](https://github.com/Malejo01/job-search-os/pull/457), 12/11; ⚠️ migración 0061 sin aplicar)
+`deps:` C1 · `est:` 3 h · `estado:` en PR, para que lo revise Admin ([#457](https://github.com/Malejo01/job-search-os/pull/457), 12/11; ⚠️ migración 0061 sin aplicar)
 - `relaciones_publicas` carrera propia (ADR-033): títulos, chips, skills, prefiltro (con los cargos de redes, marca y eventos que también son de RR.PP.), veto del pool y casilla `pool-relaciones_publicas`; marketing deja de cubrir RR.PP.; `BETA_LAUNCH_ROLE_KEYS` con las 8 (suma `fullstack`); el chip de /acceso guarda `relaciones_publicas`; `waitlist_role_check` (0061) y `rls/0012` suman la clave.
 - **Acepta:** elegir RR.PP. en /acceso envía `relaciones_publicas` (e2e 44); el selector lista las 8; una persona de RR.PP. tiene catálogo y prefiltro propios (tests de pipeline).
 
 ### C5 · Legales sin el precio contradictorio (carril rojo)
-`deps:` respuestas legales 1, 2, 3 y 6 de Mauro · `estado:` bloqueada (12/11)
+`deps:` respuestas legales 1, 2, 3 y 6 de Admin · `estado:` bloqueada (12/11)
 - Quitar el precio contradictorio de los legales, completar los marcadores que esas respuestas permitan y que `pnpm legal:check` pase.
 
 ### C6 · Estados de carga
-`deps:` — · `est:` 1,5 h · `estado:` en PR, para que lo revise Mauro ([#456](https://github.com/Malejo01/job-search-os/pull/456), 12/11)
+`deps:` — · `est:` 1,5 h · `estado:` en PR, para que lo revise Admin ([#456](https://github.com/Malejo01/job-search-os/pull/456), 12/11)
 - `loading.tsx` en 13 rutas de la app con esqueletos nuevos (`components/ui/skeleton.tsx`), Server Components, pulso solo con `motion-safe`; e2e 125 (red lenta, sin saltos de layout, reducir movimiento).
 - Después de mergear C6 y C9: ajustar 4 `loading.tsx` (Hoy, Ofertas, Perfil, Skills) a los anchos nuevos de C9.
 
 ### C7 · /demo alineado y textos de pre-puntaje
-`deps:` — · `est:` 1 h · `estado:` en PR, para que lo revise Mauro ([#455](https://github.com/Malejo01/job-search-os/pull/455), 12/11)
+`deps:` — · `est:` 1 h · `estado:` en PR, para que lo revise Admin ([#455](https://github.com/Malejo01/job-search-os/pull/455), 12/11)
 - /demo muestra un solo perfil (contaduría), coherente con /demo/contaduria y el guion; el ajuste «se asume 5 0» pasa a una frase en llano (hallazgo 28). e2e 48 y 103.
 
 ### C8 · Las 8 carreras primero en catálogos y selectores (carril rojo por C3)
-`deps:` C3 · `est:` 2 h · `estado:` en PR, para que lo revise Mauro ([#461](https://github.com/Malejo01/job-search-os/pull/461), apilado sobre #457, 12/11)
+`deps:` C3 · `est:` 2 h · `estado:` en PR, para que lo revise Admin ([#461](https://github.com/Malejo01/job-search-os/pull/461), apilado sobre #457, 12/11)
 - Grupo «Carreras de la beta» primero y el resto bajo «Otras carreras» en selectores de puestos, Skills y /market; las 8 primero en los chips de /mercado y /ofertas; nombres de beta (`lib/career-names.ts`); «Skills sugeridas» (hallazgos 6, 21 y 35). e2e 128.
 
 ### C9 · Perfil, anchos, «Primeros pasos» y glosario
-`deps:` — · `est:` 2 h · `estado:` en PR, para que lo revise Mauro ([#458](https://github.com/Malejo01/job-search-os/pull/458), 12/11)
+`deps:` — · `est:` 2 h · `estado:` en PR, para que lo revise Admin ([#458](https://github.com/Malejo01/job-search-os/pull/458), 12/11)
 - «Sin descripción» marca Ofertas y se enlaza desde /jobs; /encaje marca Perfil; dos anchos (lista 1280 px, lectura `max-w-3xl`); Primeros pasos plegado; glosario en /ayuda y en «Más» (hallazgos 18, 19, 20, 30 y 33). e2e 38, 113 y 127.
 
 ### C10 · Docs de la beta a 8 carreras
-`deps:` C3, C8 (para la descripción del selector) · `est:` 1 h · `estado:` en PR, para que lo revise Mauro ([#459](https://github.com/Malejo01/job-search-os/pull/459), 12/11)
-- Guía del ensayo con testers, preguntas frecuentes, runbook, checklist del evento, textos para Ani, personas e2e y fuentes: 8 carreras con su nombre de beta. Las menciones históricas quedan como están.
+`deps:` C3, C8 (para la descripción del selector) · `est:` 1 h · `estado:` en PR, para que lo revise Admin ([#459](https://github.com/Malejo01/job-search-os/pull/459), 12/11)
+- Guía del ensayo con testers, preguntas frecuentes, runbook, checklist del evento, textos para tester A, personas e2e y fuentes: 8 carreras con su nombre de beta. Las menciones históricas quedan como están.
 
 ### C11 · Costos por usuario contra el código
-`deps:` — · `est:` 2 h · `estado:` en PR, para que lo revise Mauro ([#460](https://github.com/Malejo01/job-search-os/pull/460), 12/11)
-- `docs/beta/costos-por-usuario.md` recalculado con `evaluate_job` en Sonnet 5.5 (thinking `low`, `max_tokens` 8192): tres escenarios de thinking, 10 / 25 / 50 usuarios en USD y ARS, y los 11 puntos de `pasos-manuales-r4` §9 respondidos con el código o marcados «a confirmar por Mauro».
-- Aparte, `model_routing.json` alineado con producción (carril rojo): commit local en `ronda/r5-c11-routing`, **sin push**, porque toca `evals/` y cada push corre el job de evals pago. Espera la decisión de Mauro.
+`deps:` — · `est:` 2 h · `estado:` en PR, para que lo revise Admin ([#460](https://github.com/Malejo01/job-search-os/pull/460), 12/11)
+- `docs/beta/costos-por-usuario.md` recalculado con `evaluate_job` en Sonnet 5.5 (thinking `low`, `max_tokens` 8192): tres escenarios de thinking, 10 / 25 / 50 usuarios en USD y ARS, y los 11 puntos de `pasos-manuales-r4` §9 respondidos con el código o marcados «a confirmar por Admin».
+- Aparte, `model_routing.json` alineado con producción (carril rojo): commit local en `ronda/r5-c11-routing`, **sin push**, porque toca `evals/` y cada push corre el job de evals pago. Espera la decisión de Admin.
 
 ### C12 · QA por carrera con agentes de prueba
-`deps:` C3 (parte 2) · `est:` 3 h · `estado:` en PR, para que lo revise Mauro ([#462](https://github.com/Malejo01/job-search-os/pull/462), 12/11)
+`deps:` C3 (parte 2) · `est:` 3 h · `estado:` en PR, para que lo revise Admin ([#462](https://github.com/Malejo01/job-search-os/pull/462), 12/11)
 - 8 personas ficticias, spec 126 (recorrido con capturas a 390 y 1280 px), 12 avisos inventados de RR.PP. y programación, test de prefiltro de las 8 carreras e informes en `docs/beta/qa-carreras/` con hallazgos P0/P1/P2. Parte 2 sobre C3+C8 en una rama local sin push.
 
 ### e2e 124 · Persona sin acceso al MCP que no sea tester
-`deps:` — · `est:` 30 min · `estado:` en PR, para que lo revise Mauro ([#463](https://github.com/Malejo01/job-search-os/pull/463), 12/11)
+`deps:` — · `est:` 30 min · `estado:` en PR, para que lo revise Admin ([#463](https://github.com/Malejo01/job-search-os/pull/463), 12/11)
 - El spec 124 esperaba 401 para la persona B, que el servidor de e2e declara tester (`playwright.config.ts:54-56`): usa una tercera persona ficticia. No era un problema de acceso (revisión de seguridad). Destraba el e2e de todos los PR.
 
 ### C13 · Cierre de la tanda
-`deps:` todo en PR · `estado:` en PR, para que lo revise Mauro (12/11)
+`deps:` todo en PR · `estado:` en PR, para que lo revise Admin (12/11)
 - Este bloque al día y `docs/beta/informe-r5.md` (orden de merge, pruebas, migraciones sin aplicar, pasos manuales y hallazgos de QA).
 
 ## Bloque 20 · Tanda R6 (12/11, noche)
 
 ### R6-1 · «+ Cargar oferta» siempre visible en /jobs
-`deps:` C9 (#458) · `est:` 1 h · `estado:` en PR, para que lo revise Mauro ([#465](https://github.com/Malejo01/job-search-os/pull/465), 12/11)
+`deps:` C9 (#458) · `est:` 1 h · `estado:` en PR, para que lo revise Admin ([#465](https://github.com/Malejo01/job-search-os/pull/465), 12/11)
 - El botón pasa a la cabecera de /jobs, junto a filtros y búsqueda, y se ve con y sin oferta elegida, a 390 y 1280 px, con 44 px de alto como mínimo. Se sacan el duplicado de debajo de la lista y la tarjeta «Cargala a mano» de `JobsAside`. e2e 130.
 
 ### R6-2 · Criterios y disciplinas por carrera (carril rojo)
-`deps:` C3 (#457) · `est:` 2 h · `estado:` en PR, para que lo revise Mauro ([#468](https://github.com/Malejo01/job-search-os/pull/468), 12/11; ⚠️ migración 0062 sin aplicar)
+`deps:` C3 (#457) · `est:` 2 h · `estado:` en PR, para que lo revise Admin ([#468](https://github.com/Malejo01/job-search-os/pull/468), 12/11; ⚠️ migración 0062 sin aplicar)
 - Los criterios de una persona nueva salen de su carrera (`criteriaFromOnboarding` con `targetRoles`, `CAREER_DISCIPLINES`, siempre con `negocio` y `otra`). Programación y quien no eligió carrera no cambian. `DISCIPLINES` suma abogacía, contaduría, comunicación, RR.II. y RR.PP. (enum `discipline`, migración 0062, etiquetas). Contaduría y administración aceptan además `data`; administración, también RR.HH. y atención al cliente.
 - **Acepta:** una persona de abogacía no ve disciplinas técnicas; «Desarrollador backend» se marca y un aviso de estudio contable o de ONG no se descarta por disciplina. Tests con fixtures de las 8 carreras.
 
@@ -1456,57 +1456,57 @@ Fuente del estado: `ops/tanda-r4/estado.md`. Los PR de carril rojo se acumulan e
 `deps:` — · `est:` 4 h · `estado:` rama `ronda/r6-3-imagen` pusheada, **PR sin abrir**: toca `packages/prompts/` y el CI correría los evals pagos (12/11)
 - `/jobs/new?modo=pegar`: pegar, arrastrar o elegir PNG/JPG/WebP de hasta 5 MB. El navegador la reduce a 1600 px en JPEG, y la tarea `extract_job_from_image` devuelve 1 a 5 ofertas con esquema zod que falla cerrado. La persona revisa, tilda y confirma; se crean por el camino de la carga a mano. La imagen no se guarda ni se loguea.
 - Topes: 10 por persona cada 24 h y `LLM_USER_DAILY_CAP_USD`, con un candado por persona para que no pasen en paralelo (revisión de seguridad). e2e 129 con el modelo en demo.
-- **Mauro:** fila de `model_routing` (`docs/beta/pasos-manuales-r6.md` §1) y OK al gasto de evals para abrir el PR (§2).
+- **Admin:** fila de `model_routing` (`docs/beta/pasos-manuales-r6.md` §1) y OK al gasto de evals para abrir el PR (§2).
 
 ### R6-4 · Restos de textos de la R5
-`deps:` C8 (#461) · `est:` 1 h · `estado:` en PR, para que lo revise Mauro ([#466](https://github.com/Malejo01/job-search-os/pull/466), 12/11)
+`deps:` C8 (#461) · `est:` 1 h · `estado:` en PR, para que lo revise Admin ([#466](https://github.com/Malejo01/job-search-os/pull/466), 12/11)
 - /mercado/<carrera>, /ofertas/<carrera> y «Carreras parecidas» con el nombre de beta. La guía de alertas sin carrera ya no ofrece palabras de tecnología. La FAQ de /ayuda nombra las 8 carreras. Cambian «Ser honesto…» y el paso 4 de Primeros pasos, que deja el 👍/👎.
 
 ### R6-5 · Skills propias de RR.PP. (carril rojo)
-`deps:` C3 (#457), R6-2 (#468) · `est:` 1 h · `estado:` en PR, para que lo revise Mauro ([#469](https://github.com/Malejo01/job-search-os/pull/469), 12/11; ⚠️ migración de datos 0063 sin aplicar)
+`deps:` C3 (#457), R6-2 (#468) · `est:` 1 h · `estado:` en PR, para que lo revise Admin ([#469](https://github.com/Malejo01/job-search-os/pull/469), 12/11; ⚠️ migración de datos 0063 sin aplicar)
 - 4 skills nuevas (crisis, eventos, protocolo y ceremonial, influencers) enganchadas a `relaciones_publicas`, migración de datos 0063 idempotente. El aviso de RR.PP. del golden sintético de carreras pasa a `relaciones_publicas.json`.
 
 ### R6-6 · Anchos de los `loading.tsx`
-`deps:` C6 (#456), C9 (#458) · `est:` 30 min · `estado:` en PR, para que lo revise Mauro ([#467](https://github.com/Malejo01/job-search-os/pull/467), 12/11)
+`deps:` C6 (#456), C9 (#458) · `est:` 30 min · `estado:` en PR, para que lo revise Admin ([#467](https://github.com/Malejo01/job-search-os/pull/467), 12/11)
 - Hoy y Ofertas con `sm:px-12`; Perfil y Skills con `max-w-3xl`, como las páginas de C9.
 
 ### R6 · Cierre de la tanda
-`deps:` todo en PR · `estado:` en PR, para que lo revise Mauro (12/11)
+`deps:` todo en PR · `estado:` en PR, para que lo revise Admin (12/11)
 - Este bloque y `docs/beta/informe-r6.md` (orden de merge, pruebas, migraciones sin aplicar y pasos manuales).
 - **Bloqueadas, sin arrancar:** C5 (legales) y el parser de Bumeran (espera un `.eml` real).
 
 ## Bloque 21 · Tanda R7 «Pre-beta: costos, seguridad y pulido» (13/11, madrugada)
 
 ### R7-1 · Alertas de presupuesto de LLM (carril rojo)
-`deps:` — · `est:` 2 h · `estado:` en PR, para que lo revise Mauro ([#472](https://github.com/Malejo01/job-search-os/pull/472), 13/11)
+`deps:` — · `est:` 2 h · `estado:` en PR, para que lo revise Admin ([#472](https://github.com/Malejo01/job-search-os/pull/472), 13/11)
 - Al pasar el 70, 85 y 95 % de `LLM_DAILY_CAP_USD`, un email por Resend a `ADMIN_EMAILS`, una vez por umbral y día UTC, y un bloque en `/settings/salud`. Lógica pura en `pipeline/src/budget/`; la marca «ya avisado» es una fila `budget_alert` en `llm_calls` (sin migración) con lock de asesoría y clave de idempotencia. Lo dispara el cron de evaluación.
 
 ### R7-2 · No reevaluar duplicados (carril rojo)
-`deps:` — · `est:` 2 h · `estado:` en PR, para que lo revise Mauro ([#477](https://github.com/Malejo01/job-search-os/pull/477), 13/11)
+`deps:` — · `est:` 2 h · `estado:` en PR, para que lo revise Admin ([#477](https://github.com/Malejo01/job-search-os/pull/477), 13/11)
 - Otro aviso de la misma persona reutiliza la respuesta del modelo (sin llamada, costo 0) solo si coinciden exactamente los datos leídos antes de la llamada: hash de la JD, perfil, criterios, prompt y datos del aviso, guardados en `decision.inputs`. `decide()` y el checklist se recalculan. Las evaluaciones anteriores, sin `inputs`, no se reutilizan. Ante la duda, se evalúa. Sin migración.
 
 ### R7-3 · Asistente: un solo aviso de tope y mensajes que quedan (carril rojo)
-`deps:` — · `est:` 1 h · `estado:` en PR, para que lo revise Mauro ([#471](https://github.com/Malejo01/job-search-os/pull/471), 13/11)
+`deps:` — · `est:` 1 h · `estado:` en PR, para que lo revise Admin ([#471](https://github.com/Malejo01/job-search-os/pull/471), 13/11)
 - El aviso de tope sale una vez y bloquea el envío hasta «Nueva charla»; con 2 o menos mensajes restantes se muestra cuántos quedan. Rojo por una línea en `app/api/assistant/route.ts`. e2e 132.
 
 ### R7-4 · Auditoría de seguridad pre-beta (carril rojo por el test)
-`deps:` — · `est:` 2 h · `estado:` en PR, para que lo revise Mauro ([#474](https://github.com/Malejo01/job-search-os/pull/474), 13/11)
-- Test de integración que recorre el catálogo y falla si una tabla con `user_id` no tiene RLS, FORCE y policy. Informe `docs/beta/seguridad-r7.md`: 0 P0, 0 P1, 4 P2 (CSP completa, HSTS a verificar y dos endurecimientos menores a ticket). `pnpm secrets:scan` queda para Mauro (el guard lo bloquea).
+`deps:` — · `est:` 2 h · `estado:` en PR, para que lo revise Admin ([#474](https://github.com/Malejo01/job-search-os/pull/474), 13/11)
+- Test de integración que recorre el catálogo y falla si una tabla con `user_id` no tiene RLS, FORCE y policy. Informe `docs/beta/seguridad-r7.md`: 0 P0, 0 P1, 4 P2 (CSP completa, HSTS a verificar y dos endurecimientos menores a ticket). `pnpm secrets:scan` queda para Admin (el guard lo bloquea).
 
 ### R7-5 · Accesibilidad con axe
-`deps:` — · `est:` 1,5 h · `estado:` en PR, para que lo revise Mauro ([#475](https://github.com/Malejo01/job-search-os/pull/475), 13/11)
+`deps:` — · `est:` 1,5 h · `estado:` en PR, para que lo revise Admin ([#475](https://github.com/Malejo01/job-search-os/pull/475), 13/11)
 - e2e 131 con axe en 11 pantallas, en claro y oscuro: falla con «serious» o «critical»; lo leve queda anotado. `docs/beta/accesibilidad-r7.md`. La primera medición la da el CI.
 
 ### R7-6 · Pantallas lentas
-`deps:` — · `est:` 2 h · `estado:` en PR, para que lo revise Mauro ([#473](https://github.com/Malejo01/job-search-os/pull/473), 13/11)
-- Consultas en paralelo en el layout de la app, /plan, /jobs, /cv y /settings, sin cambiar lo que se muestra. `docs/beta/rendimiento-r7.md` con consultas antes y después y la tabla de tiempos que mide Mauro (no se puede medir el build de producción en local sin apuntar a Neon).
+`deps:` — · `est:` 2 h · `estado:` en PR, para que lo revise Admin ([#473](https://github.com/Malejo01/job-search-os/pull/473), 13/11)
+- Consultas en paralelo en el layout de la app, /plan, /jobs, /cv y /settings, sin cambiar lo que se muestra. `docs/beta/rendimiento-r7.md` con consultas antes y después y la tabla de tiempos que mide Admin (no se puede medir el build de producción en local sin apuntar a Neon).
 
 ### R7-7 · Kit del ensayo de testers del 23 y 24/11
-`deps:` — · `est:` 1,5 h · `estado:` en PR, para que lo revise Mauro ([#476](https://github.com/Malejo01/job-search-os/pull/476), 13/11)
+`deps:` — · `est:` 1,5 h · `estado:` en PR, para que lo revise Admin ([#476](https://github.com/Malejo01/job-search-os/pull/476), 13/11)
 - `docs/beta/ensayo/`: guion de 30 minutos por carrera, checklist del día, feedback y triage, y criterios para decidir el 25/11.
 
 ### R7 · Cierre de la tanda
-`deps:` todo en PR · `estado:` en PR, para que lo revise Mauro (13/11)
+`deps:` todo en PR · `estado:` en PR, para que lo revise Admin (13/11)
 - Este bloque, `docs/beta/informe-r7.md` y `docs/beta/manana-13-11.md` (todos los PR de la R5, la R6 y la R7 en orden y las decisiones pendientes).
 - El PR de integración no se armó: el guard bloquea `git merge` para los agentes. Queda el plan con los comandos en `manana-13-11.md`.
 
@@ -1515,19 +1515,19 @@ Fuente del estado: `ops/tanda-r4/estado.md`. Los PR de carril rojo se acumulan e
 Base: `main` con la integración de la R5 a la R7 (#480). Detalle, orden de merge y pasos manuales en `docs/beta/informe-r8.md`. Ningún PR mergeado.
 
 ### R8-0 · Estados de carga sin romper los 404
-`deps:` — · `est:` 2 h · `estado:` **abierta**: el [#489](https://github.com/Malejo01/job-search-os/pull/489) (reemplaza al #483) falla en el e2e 79 por el foco en `/hoy`; después de dos vueltas, decide Mauro (informe-r8 §3)
+`deps:` — · `est:` 2 h · `estado:` **abierta**: el [#489](https://github.com/Malejo01/job-search-os/pull/489) (reemplaza al #483) falla en el e2e 79 por el foco en `/hoy`; después de dos vueltas, decide Admin (informe-r8 §3)
 - `loading.tsx` con esqueleto solo en `/hoy` y `/applications`. En `/jobs`, `/inbox`, `/market` y `/plan` el streaming con fallback rompía la navegación por searchParams (e2e 13, 21, 32 y 79) y el modo sin JavaScript (e2e 89). En los detalles `[id]`, además, dejaba el 404 con status 200. e2e 125: esqueleto en Postulaciones y 404 real en los detalles.
 
 ### R8-1 · Parser de Bumeran y ZonaJobs (carril rojo)
-`deps:` esqueletos de Mauro · `estado:` **bloqueado**. Hecho: R8-1a, herramienta `inbound:skeleton` ([#487](https://github.com/Malejo01/job-search-os/pull/487), 13/11)
-- Los agentes no pueden leer `fixtures-private/`. `inbound:skeleton` convierte los .eml en un esqueleto HTML sin datos (texto enmascarado por forma; hosts, clases e ids en lista blanca) y falla cerrado contra los patrones de privacidad. Mauro la corre con `!`, y el parser se escribe sobre los esqueletos (plan en el informe).
+`deps:` esqueletos de Admin · `estado:` **bloqueado**. Hecho: R8-1a, herramienta `inbound:skeleton` ([#487](https://github.com/Malejo01/job-search-os/pull/487), 13/11)
+- Los agentes no pueden leer `fixtures-private/`. `inbound:skeleton` convierte los .eml en un esqueleto HTML sin datos (texto enmascarado por forma; hosts, clases e ids en lista blanca) y falla cerrado contra los patrones de privacidad. Admin la corre con `!`, y el parser se escribe sobre los esqueletos (plan en el informe).
 
 ### R8-2 · Parser de Computrabajo (carril rojo)
 `deps:` R8-1a y esqueletos · `estado:` **bloqueado**, igual que R8-1.
 
 ### R8-3 · e2e locales reproducibles (carril rojo)
 `deps:` — · `est:` 2 h · `estado:` en PR ([#486](https://github.com/Malejo01/job-search-os/pull/486), 13/11)
-- `pnpm e2e:local:prepare` y `pnpm e2e:local [specs]` (`scripts/e2e-local.mjs`): base local con seed de ejemplo y usuario de e2e. Falla cerrado si algo no apunta a localhost. Falta que Mauro lo verifique con `!` y decida la propuesta para `.claude/bin/local.mjs`.
+- `pnpm e2e:local:prepare` y `pnpm e2e:local [specs]` (`scripts/e2e-local.mjs`): base local con seed de ejemplo y usuario de e2e. Falla cerrado si algo no apunta a localhost. Falta que Admin lo verifique con `!` y decida la propuesta para `.claude/bin/local.mjs`.
 
 ### R8-4 · Rendimiento de base (carril rojo)
 `deps:` — · `est:` 1,5 h · `estado:` en PR ([#481](https://github.com/Malejo01/job-search-os/pull/481), 13/11)
@@ -1558,7 +1558,7 @@ Base: `main` con la integración de la R5 a la R7 (#480). Detalle, orden de merg
 
 ## Bloque 23 · Tanda R9 (13/11)
 
-Base: `main` (92467dd). Decisiones de Mauro del 13/11: «Pedir acceso», tope de la charla de USD 0,50, 404 sin sesión e imagen habilitada. Excepción de la tanda: se pueden tocar `packages/prompts/`, con un tope de USD 5 entre evals y modelo. Detalle en `docs/beta/informe-r9.md`. Ningún PR mergeado.
+Base: `main` (92467dd). Decisiones de Admin del 13/11: «Pedir acceso», tope de la charla de USD 0,50, 404 sin sesión e imagen habilitada. Excepción de la tanda: se pueden tocar `packages/prompts/`, con un tope de USD 5 entre evals y modelo. Detalle en `docs/beta/informe-r9.md`. Ningún PR mergeado.
 
 ### R9-1 · Oferta desde una imagen (carril rojo)
 `deps:` — · `est:` 3 h · `estado:` en PR ([#493](https://github.com/Malejo01/job-search-os/pull/493), 13/11)
@@ -1581,7 +1581,7 @@ Base: `main` (92467dd). Decisiones de Mauro del 13/11: «Pedir acceso», tope de
 
 ### R9-6 · Calidad de la evaluación por carrera
 `deps:` — · `est:` 2 h · `estado:` en PR ([#494](https://github.com/Malejo01/job-search-os/pull/494), 13/11), **sin correr**
-- Harness para las 24 combinaciones de aviso y persona (dry-run y tope duro) y `docs/beta/calidad-evaluacion-r9.md` con la estructura y la estimación (~USD 0,55). El guard no deja correr el modelo real: la corrida la hace Mauro.
+- Harness para las 24 combinaciones de aviso y persona (dry-run y tope duro) y `docs/beta/calidad-evaluacion-r9.md` con la estructura y la estimación (~USD 0,55). El guard no deja correr el modelo real: la corrida la hace Admin.
 
 ### R9 · Cierre de la tanda
 `deps:` todo en PR · `estado:` en PR (13/11)
@@ -1627,9 +1627,9 @@ Contrato: ADR-034. Detalle en `docs/beta/informe-r10.md`. Ningún PR mergeado. T
 `deps:` #497 · `est:` 3 h · `estado:` en PR ([#498](https://github.com/Malejo01/job-search-os/pull/498), 13/11)
 - `cv_write` con el verificador de ADR-026, vista previa en Word y PDF, y pantalla «qué sigue». El onboarding suma un primer paso opcional. Con el flag apagado queda igual que hoy.
 
-### R10-6 · Pruebas, seguridad y lista para Ani
+### R10-6 · Pruebas, seguridad y lista para tester A
 `deps:` #498 · `est:` 2 h · `estado:` en PR ([#501](https://github.com/Malejo01/job-search-os/pull/501), 13/11)
-- 3 CV de prueba inventados y 34 tests de seguridad (inyección, sensibles, cupo y topes). El e2e 134 cubre el agente apagado. `docs/beta/agente-perfil-pruebas.md` tiene la lista para Ani, el costo estimado y el guion del e2e del recorrido completo para la integración.
+- 3 CV de prueba inventados y 34 tests de seguridad (inyección, sensibles, cupo y topes). El e2e 134 cubre el agente apagado. `docs/beta/agente-perfil-pruebas.md` tiene la lista para tester A, el costo estimado y el guion del e2e del recorrido completo para la integración.
 
 ### R10 · Cierre de la tanda
 `deps:` todo en PR · `estado:` en PR (13/11)
@@ -1689,7 +1689,7 @@ Base: `main` con la integración de la R8, la R9 y T-1 (#505). La R10 entra por 
 
 ## Bloque 26 · Tanda R12 «Coach de CV» (17/11)
 
-Base: `ronda/integracion-r11` (PR #517). Sale de la prueba de Mauro del 17/11 ([informe](beta/informe-cv-agente-17-11.md)). Plan: [`docs/beta/plan-coach-cv.md`](beta/plan-coach-cv.md). ADR: [038](adr/038-coach-de-cv.md), **Accepted** con las decisiones de Mauro del 17/11 (D1 a D7, flag `CV_COACH`). Informe de la tanda: [`docs/beta/informe-r12.md`](beta/informe-r12.md). Ningún PR mergeado.
+Base: `ronda/integracion-r11` (PR #517). Sale de la prueba de Admin del 17/11 ([informe](beta/informe-cv-agente-17-11.md)). Plan: [`docs/beta/plan-coach-cv.md`](beta/plan-coach-cv.md). ADR: [038](adr/038-coach-de-cv.md), **Accepted** con las decisiones de Admin del 17/11 (D1 a D7, flag `CV_COACH`). Informe de la tanda: [`docs/beta/informe-r12.md`](beta/informe-r12.md). Ningún PR mergeado.
 
 ### R12-0 · Plan del coach de CV
 `deps:` — · `estado:` done (17/11)
@@ -1733,9 +1733,9 @@ Base: `ronda/integracion-r11` (PR #517). Sale de la prueba de Mauro del 17/11 ([
 `deps:` — · `estado:` en PR ([#521](https://github.com/Malejo01/job-search-os/pull/521), 17/11) · `pdfjs-dist@6.5.438`
 
 ### R12-13 · Golden de CVs y harness del coach (carril rojo)
-`deps:` R12-8, R12-9 · `estado:` en PR ([#532](https://github.com/Malejo01/job-search-os/pull/532), 17/11) · sin corridas pagas: las hace Mauro
+`deps:` R12-8, R12-9 · `estado:` en PR ([#532](https://github.com/Malejo01/job-search-os/pull/532), 17/11) · sin corridas pagas: las hace Admin
 
-### R12-14 · Prueba con Ani y comparación de Mauro
+### R12-14 · Prueba con tester A y comparación de Admin
 `deps:` — · `estado:` en PR ([#524](https://github.com/Malejo01/job-search-os/pull/524), 17/11)
 
 ### R12-15 · Indicador de carga sin streaming (vuelve R11-8)

@@ -14,7 +14,7 @@ Todos se apilan sobre R10-0. Como cada PR se abre contra `main`, su diff incluye
 | 4 | [#499](https://github.com/Malejo01/job-search-os/pull/499) | R10-3 · charla de huecos | `ronda/r10-3-huecos` | R10-0 |
 | 5 | [#502](https://github.com/Malejo01/job-search-os/pull/502) | R10-4 · guía de búsqueda | `ronda/r10-4-guia` | R10-3 |
 | 6 | [#498](https://github.com/Malejo01/job-search-os/pull/498) | R10-5 · cierre con CV para ATS y onboarding | `ronda/r10-5-cierre-onboarding` | R10-0 |
-| 7 | [#501](https://github.com/Malejo01/job-search-os/pull/501) | R10-6 · pruebas y lista para Ani | `ronda/r10-6-pruebas` | R10-5 |
+| 7 | [#501](https://github.com/Malejo01/job-search-os/pull/501) | R10-6 · pruebas y lista para tester A | `ronda/r10-6-pruebas` | R10-5 |
 | 8 | este PR | cierre de la R10 | `ronda/r10-cierre` | `ronda/r9-cierre` |
 
 - **El cuerpo del #498 no dice «depende de #497»:** el guard bloquea `gh pr edit` y `gh pr comment`. Los demás PR sí lo dicen en la primera línea.
@@ -73,7 +73,7 @@ Todos se apilan sobre R10-0. Como cada PR se abre contra `main`, su diff incluye
 3. **Vercel:** `CV_IMPORT_ENABLED=1` y `CV_PROFILE_AGENT=testers` cuando quieras habilitarlo para testers. Es opcional: `CV_PROFILE_AGENT_DAILY_CAP_USD`, que por defecto vale USD 1.
 4. **`pdfjs-dist`: sí o no.** Es una dependencia nueva (ADR-034 §11). Sin ella, el PDF muestra «Pegá el texto de tu CV»; el DOCX y el texto pegado funcionan.
 5. **Política de privacidad:** el texto del CV, ya filtrado, y las respuestas viajan a Google o a Anthropic. Tiene que figurar antes de pasar el flag a `all`.
-6. **Lista para Ani:** `docs/beta/agente-perfil-pruebas.md` (#501), con el tono, las preguntas por carrera, lo que no debe preguntar y el CV resultante. El costo estimado es de unos USD 0,08 por charla típica, con un tope duro de USD 0,30.
+6. **Lista para tester A:** `docs/beta/agente-perfil-pruebas.md` (#501), con el tono, las preguntas por carrera, lo que no debe preguntar y el CV resultante. El costo estimado es de unos USD 0,08 por charla típica, con un tope duro de USD 0,30.
 
 ## 5. Qué quedó afuera y observaciones
 

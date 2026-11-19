@@ -1,41 +1,41 @@
 # Runbook de la apertura de la beta (jueves 26/11/2026)
 
-Para Mauro, en orden. Cada paso trae el enlace o el comando exacto. Lo que dice «(solo Mauro)» toca producción y no lo hace ningún agente. Convenciones: la app vive en el proyecto de Vercel `job-search-os` (equipo `lizarraga-mauros-projects`), la base en Neon y el repo en `Malejo01/job-search-os`. `<dominio>` es `afiniajobs.com.ar` (principal desde el 6/11; el dominio viejo redirige).
+Para Admin, en orden. Cada paso trae el enlace o el comando exacto. Lo que dice «(solo Admin)» toca producción y no lo hace ningún agente. Convenciones: la app vive en el proyecto de Vercel `job-search-os` (equipo `<tu-equipo>`), la base en Neon y el repo en `Malejo01/job-search-os`. `<dominio>` es `afiniajobs.com.ar` (principal desde el 6/11; el dominio viejo redirige).
 
-> **Decidido y no se reabre acá.** La beta abre el jueves 26/11 para 8 carreras (abogacía, contaduría, administración, comunicación, marketing, relaciones públicas, relaciones internacionales y programación). Cupo de 15 a 20 personas; los pagos, las becas y los combos están en «Decisiones del 5/11» (abajo). Plan Beta: ARS 20.000 por mes (USD 15 de referencia), 30 días por pago, **sin garantía**, activación manual (cómo se relaciona con los dos combos de Ani: [A DEFINIR: combos de Ani]). La gente se anota en `/acceso` y vos invitás desde el panel; **el cupo es limitado**.
+> **Decidido y no se reabre acá.** La beta abre el jueves 26/11 para 8 carreras (abogacía, contaduría, administración, comunicación, marketing, relaciones públicas, relaciones internacionales y programación). Cupo de 15 a 20 personas; los pagos, las becas y los combos están en «Decisiones del 5/11» (abajo). Plan Beta: ARS 20.000 por mes (USD 15 de referencia), 30 días por pago, **sin garantía**, activación manual (cómo se relaciona con los dos combos de tester A: [A DEFINIR: combos de tester A]). La gente se anota en `/acceso` y vos invitás desde el panel; **el cupo es limitado**.
 
 ## Decisiones del 5/11
 
-Salen de la tarea de Notion «Actualizar los documentos de la beta del repositorio con las decisiones del 5/11» y **reemplazan** lo que decían estos documentos antes («3 becadas», «charla»). Lo que lleva un marcador `[A DEFINIR]` o `[A CONFIRMAR]` es información que todavía falta: **no se resolvió acá**, preguntale a Mauro antes de completarlo.
+Salen de la tarea de Notion «Actualizar los documentos de la beta del repositorio con las decisiones del 5/11» y **reemplazan** lo que decían estos documentos antes («3 becadas», «charla»). Lo que lleva un marcador `[A DEFINIR]` o `[A CONFIRMAR]` es información que todavía falta: **no se resolvió acá**, preguntale a Admin antes de completarlo.
 
 **Cupo y combos**
 - El cupo es de **15 a 20 personas**.
-- **Solo dos personas no pagan** (quiénes son se lleva en Notion). El resto paga uno de **dos combos que arma Ani**: [A DEFINIR: combos de Ani].
+- **Solo dos personas no pagan** (quiénes son se lleva en Notion). El resto paga uno de **dos combos que arma tester A**: [A DEFINIR: combos de tester A].
 
 **Becas**
 - Ya no son «3 becadas». Es **un becado gratis** (quién es se lleva en Notion; [A CONFIRMAR]) y **dos con 50 % de descuento** sobre el precio fundador.
-- [A CONFIRMAR con Mauro]: no está claro si las dos personas que no pagan son parte de esos lugares o van aparte.
-- [A CONFIRMAR con Mauro]: si el becado gratis lo es solo el primer mes (así funciona hoy «Becado» en el panel, ver 2.1) o toda la beta.
+- [A CONFIRMAR con Admin]: no está claro si las dos personas que no pagan son parte de esos lugares o van aparte.
+- [A CONFIRMAR con Admin]: si el becado gratis lo es solo el primer mes (así funciona hoy «Becado» en el panel, ver 2.1) o toda la beta.
 
 **El evento del 11/11 es «Voces Jóvenes», no una charla**
 - Participan **10 proyectos** y AfinIAJobs aparece en la **premiación**.
 - **Sin diapositivas:** se muestra el producto y un video de menos de 3 minutos (`docs/beta/voces-jovenes/guion-demo.md`).
 
 **Soporte durante la beta**
-- **WhatsApp Business:** lo crea Ani y etiqueta las conversaciones.
-- **`contacto@afiniajobs.com.ar`:** la crea Mauro y la atiende Ani.
+- **WhatsApp Business:** lo crea tester A y etiqueta las conversaciones.
+- **`contacto@afiniajobs.com.ar`:** la crea Admin y la atiende tester A.
 
 **Cobros**
 - Se cobra por una **cuenta nueva de Mercado Pago, compartida**. Hay que **actualizar los links `MP_LINK_*`** (hoy `MP_LINK_LISTA`, y `MP_LINK_FUNDADOR` y `MP_LINK_PASE_3_MESES` si se llegan a usar; ver `packages/pipeline/src/plans.ts`). Esto solo se documenta acá: ninguna variable se cambió desde el repo.
 
 **Carreras: quién lleva cada una**
-- **Ani:** abogacía, relaciones públicas, comunicación y marketing.
-- **Mauro:** contaduría, administración y programación.
+- **tester A:** abogacía, relaciones públicas, comunicación y marketing.
+- **Admin:** contaduría, administración y programación.
 - **Relaciones internacionales:** sin asignar. [A CONFIRMAR]
 - Programación es una de las 8 carreras de la beta (ADR-033; en el selector es «Full-stack»). Las 8 son: abogacía, contaduría, administración, comunicación, marketing, relaciones públicas, relaciones internacionales y programación.
 
 **Dominio**
-- **`afiniajobs.com.ar` ya está comprado.** Falta la migración y la redirección desde el dominio viejo, a cargo de Mauro (1.3).
+- **`afiniajobs.com.ar` ya está comprado.** Falta la migración y la redirección desde el dominio viejo, a cargo de Admin (1.3).
 - **`afiniajobs.com` se compra como protección.**
 
 ## 0. Cronograma
@@ -51,9 +51,9 @@ Salen de la tarea de Notion «Actualizar los documentos de la beta del repositor
 
 ## 1. Dos semanas antes (hasta el 12/11)
 
-### 1.1 Mergear y migrar (solo Mauro)
+### 1.1 Mergear y migrar (solo Admin)
 
-1. **Mirá el PR de integración de la noche del 1/11** (rama `ronda/integracion-noche-1-11`): trae la tabla de PRs incluidos, la lista de migraciones y las «Decisiones para Mauro». Los PRs individuales no se cierran.
+1. **Mirá el PR de integración de la noche del 1/11** (rama `ronda/integracion-noche-1-11`): trae la tabla de PRs incluidos, la lista de migraciones y las «Decisiones para Admin». Los PRs individuales no se cierran.
 2. **Hacé un respaldo antes de migrar.** Neon › proyecto › *Branches* › *Create branch* (de la rama principal, ahora). Ponele de nombre `pre-beta-AAAA-MM-DD`. Es gratis y se borra después. Con la CLI de Neon, si la tenés: `neonctl branches create --name pre-beta-AAAA-MM-DD`.
 3. **Revisá el SQL de cada migración** (están en `packages/db/drizzle/`, 0051 a 0055 más las policies de `packages/db/rls/`) y aplicá desde tu máquina, **antes del merge** (el código viejo ignora las columnas nuevas; el nuevo las necesita):
 
@@ -65,9 +65,9 @@ Salen de la tarea de Notion «Actualizar los documentos de la beta del repositor
 4. **Merge en el orden del PR de integración** (con merge commit). Después del merge, Vercel despliega solo (entra a `main`).
 5. **Comprobá el deploy:** `https://<dominio>/api/health` tiene que responder `{"ok":true,"db":"ok"}`.
 
-### 1.2 Variables de Vercel (solo Mauro)
+### 1.2 Variables de Vercel (solo Admin)
 
-Vercel › `job-search-os` › Settings › Environment Variables, o por CLI (`npx vercel env add NOMBRE production --scope lizarraga-mauros-projects`; el valor lo pegás vos cuando lo pide, nunca en un chat). Listalas con `npx vercel env ls production --scope lizarraga-mauros-projects`. **Cambiar una variable de build pide un deploy nuevo** (Deployments › ⋯ › *Redeploy*).
+Vercel › `job-search-os` › Settings › Environment Variables, o por CLI (`npx vercel env add NOMBRE production --scope <tu-equipo>`; el valor lo pegás vos cuando lo pide, nunca en un chat). Listalas con `npx vercel env ls production --scope <tu-equipo>`. **Cambiar una variable de build pide un deploy nuevo** (Deployments › ⋯ › *Redeploy*).
 
 | Variable | Valor | Para qué | Sin ella |
 |---|---|---|---|
@@ -78,8 +78,8 @@ Vercel › `job-search-os` › Settings › Environment Variables, o por CLI (`n
 | `AUTH_URL` | igual que `SITE_URL` | los links de invitación y de recuperar contraseña salen de acá | **las invitaciones salen con el dominio viejo** |
 | `RESEND_API_KEY` | la key de Resend | reseteo de contraseña y avisos de vencimiento | no sale ningún email |
 | `EMAIL_FROM` | `Nombre <no-reply@afiniajobs.com.ar>` (dominio **verificado** en Resend) | remitente | sin dominio verificado, Resend solo entrega a su dueño: **los reseteos fallan en silencio para el resto** y los avisos de vencimiento no se mandan |
-| `CONTACT_EMAIL` | `contacto@afiniajobs.com.ar` (la casilla la crea Mauro y la atiende Ani, 5/11) | contacto en el pie y en los emails | no hay contacto |
-| `ADMIN_EMAILS` | tu email (uno solo, ver `docs/seguridad/auditoria-beta-1-11.md` M-3) | quién ve los paneles y recibe los reportes de soporte | nadie administra |
+| `CONTACT_EMAIL` | `contacto@afiniajobs.com.ar` (la casilla la crea Admin y la atiende tester A, 5/11) | contacto en el pie y en los emails | no hay contacto |
+| `ADMIN_EMAILS` | los emails de quienes administran | quién ve los paneles y recibe los reportes de soporte | nadie administra |
 | `MCP_USER_ID` | tu `users.id` (lo ves en Neon: `select id from users where email = '…'`) | con 2 o más cuentas el MCP falla cerrado sin esto | **el MCP de Claude deja de andar al registrarse la segunda persona** |
 | `PLAN_NOTICE_DAILY_CAP` | `30` (opcional) | tope diario de avisos de «tu plan vence» | rige 30 |
 | `WAITLIST_INVITE_CAP` | `20` (opcional) | tope por tanda del panel de invitaciones | rige 20 |
@@ -88,11 +88,11 @@ Vercel › `job-search-os` › Settings › Environment Variables, o por CLI (`n
 
 También en **GitHub** › Settings › Secrets and variables › Actions › *Variables*: `APP_URL` = `https://<dominio>` (sin barra final). Los crons y el aviso de vencimiento le pegan a esa URL. Cuando cambies de dominio, es lo primero que hay que actualizar.
 
-### 1.3 Cambio de dominio (solo Mauro, después del 6/11)
+### 1.3 Cambio de dominio (solo Admin, después del 6/11)
 
-**Estado al 6/11:** `SITE_URL=https://afiniajobs.com.ar` cargada en Vercel y la redirección del dominio viejo hecha en Vercel; falta lo del paso 8 de `docs/DEPLOY.md` (webhook de Resend, `APP_URL`, smoke, MCP). **Estado al 5/11:** `afiniajobs.com.ar` ya está comprado; la migración y la redirección desde `busquedalaboral.malejo.com.ar` siguen pendientes (a cargo de Mauro). Además se compra `afiniajobs.com` como protección. Seguí `docs/DEPLOY.md` › «Pasar a afiniajobs.com.ar» paso por paso (DNS en NIC.ar, dominio en Vercel, Resend verificado, webhook de Resend, `APP_URL`, `SMOKE_BASE_URL`). Probalo todo **antes** de invitar a nadie.
+**Estado al 6/11:** `SITE_URL=https://afiniajobs.com.ar` cargada en Vercel y la redirección del dominio viejo hecha en Vercel; falta lo del paso 8 de `docs/DEPLOY.md` (webhook de Resend, `APP_URL`, smoke, MCP). **Estado al 5/11:** `afiniajobs.com.ar` ya está comprado; la migración y la redirección desde `busquedalaboral.malejo.com.ar` siguen pendientes (a cargo de Admin). Además se compra `afiniajobs.com` como protección. Seguí `docs/DEPLOY.md` › «Pasar a afiniajobs.com.ar» paso por paso (DNS en NIC.ar, dominio en Vercel, Resend verificado, webhook de Resend, `APP_URL`, `SMOKE_BASE_URL`). Probalo todo **antes** de invitar a nadie.
 
-### 1.4 Probar los correos y los pagos (solo Mauro, una vez por cambio de dominio)
+### 1.4 Probar los correos y los pagos (solo Admin, una vez por cambio de dominio)
 
 1. **Recuperar contraseña con una cuenta que NO sea la dueña de Resend** (una cuenta de prueba): `https://<dominio>/forgot-password`. Tiene que llegar el email con link al dominio nuevo. Si no llega: mirá Resend › *Emails* y la cuota diaria (plan gratis: 100 por día, compartida con los avisos y los reportes de soporte).
 2. **Aviso de vencimiento, sin esperar tres días:**
@@ -112,20 +112,20 @@ También en **GitHub** › Settings › Secrets and variables › Actions › *V
 - **Monitores:** UptimeRobot o Better Stack sobre `https://<dominio>/api/health` (cada 5 min) y `https://<dominio>/api/cron/status` con `STATUS_TOKEN` (cada 30 a 60 min); detalle en `docs/MONITOREO.md`. Ojo: el monitor de status despierta la base cada vez (ver «Neon cerca del límite»).
 - **Regla de firewall para `/acceso`** (Vercel › Firewall › Rules), si el 11/11 ves tráfico raro: 60 `POST` por minuto por IP. Las de `/login`, `/register` y `/forgot-password` ya existen (`docs/DEPLOY.md`, JS-108).
 
-### 1.6 Elegir a quién invitar (solo Mauro, con Ani)
+### 1.6 Elegir a quién invitar (solo Admin, con tester A)
 
 1. Abrí `https://<dominio>/settings/invitations`. Arriba de la lista de espera están los **contadores por carrera** («Abogacía 4 de 7», sin invitar de un total) y los filtros (carrera, cómo se enteró, fechas y estado).
-2. **Ani pasa los criterios.** Hasta que estén, no invites: pedir acceso no es un lugar.
-3. **Exportá la lista** (botón *Exportar a CSV*; solo nombre, email, carrera, origen y fecha) si Ani la quiere revisar en una planilla.
+2. **tester A pasa los criterios.** Hasta que estén, no invites: pedir acceso no es un lugar.
+3. **Exportá la lista** (botón *Exportar a CSV*; solo nombre, email, carrera, origen y fecha) si tester A la quiere revisar en una planilla.
 4. Marcá a quienes elegiste (casilla en cada fila, hasta 20 por tanda; el tope se puede cambiar en la pantalla), tocá **«Invitar a los seleccionados»** y confirmá.
 5. **Copiá los mensajes ahora:** los links se muestran una sola vez. Cada mensaje dice que la beta abre el jueves 26/11 y que el link es personal. Mandalos por WhatsApp o email desde tu cuenta; el panel no manda nada.
 6. Cada invitación **vence a los 14 días** y sirve una sola vez. Una que no se usó se revoca y se crea de nuevo desde la misma pantalla.
 7. Cuando la persona se registra, **su carrera ya viene marcada** en el primer paso (la que eligió al pedir acceso); puede cambiarla.
-8. Becas: el becado gratis y los dos con 50 % se invitan igual; la beca se registra al activar el plan (ver 2.1). Quiénes son y si las dos personas que no pagan entran en esos lugares: [A CONFIRMAR con Mauro] (ver «Decisiones del 5/11»).
+8. Becas: el becado gratis y los dos con 50 % se invitan igual; la beca se registra al activar el plan (ver 2.1). Quiénes son y si las dos personas que no pagan entran en esos lugares: [A CONFIRMAR con Admin] (ver «Decisiones del 5/11»).
 
 ## 2. El 26/11
 
-### 2.1 Activar los planes (solo Mauro)
+### 2.1 Activar los planes (solo Admin)
 
 1. **Verificá el pago** en Mercado Pago › *Actividad* (cuenta nueva compartida) o la transferencia. **No actives nada que no esté acreditado.**
 2. Abrí `https://<dominio>/settings/planes`.
@@ -133,7 +133,7 @@ También en **GitHub** › Settings › Secrets and variables › Actions › *V
 4. La lista de abajo muestra quién tiene plan, de qué origen y hasta cuándo, con los que vencen primero arriba.
 5. Mensajes de error: «No encontramos a esa persona» = el email es otro o todavía no terminó el onboarding; «plan viejo» = tiene fundador o pase de 3 meses (se cambia a mano, `docs/OPERACION.md`).
 6. Para **quitar** un plan (pasa a gratis sin borrar nada): botón **«Quitar el plan»** en la fila.
-7. **Becas y combos:** el panel solo tiene «Pagó» y «Becado» (primer mes gratis); **no hay una opción de 50 %** ni de combos. Cómo se registra cada caso queda para cuando Ani defina los combos: [A DEFINIR: combos de Ani].
+7. **Becas y combos:** el panel solo tiene «Pagó» y «Becado» (primer mes gratis); **no hay una opción de 50 %** ni de combos. Cómo se registra cada caso queda para cuando tester A defina los combos: [A DEFINIR: combos de tester A].
 
 ### 2.2 Avisos de vencimiento
 
@@ -181,9 +181,9 @@ Síntoma: Vercel muestra *Error*, la app da 500, `/api/health` responde 503.
 1. **Volver atrás (lo primero, antes de investigar):** Vercel › `job-search-os` › *Deployments* › elegí el último deploy de **Production** que estaba *Ready* y andaba › ⋯ › **Promote to Production** (o *Instant Rollback*). Por CLI:
 
    ```bash
-   npx vercel ls --scope lizarraga-mauros-projects
-   npx vercel rollback --scope lizarraga-mauros-projects        # vuelve al anterior
-   npx vercel promote <url-del-deploy-bueno> --scope lizarraga-mauros-projects
+   npx vercel ls --scope <tu-equipo>
+   npx vercel rollback --scope <tu-equipo>        # vuelve al anterior
+   npx vercel promote <url-del-deploy-bueno> --scope <tu-equipo>
    ```
 
    En el plan Hobby puede que el panel solo ofrezca el deploy inmediatamente anterior; si necesitás uno más viejo, hacé `git revert -m 1 <commit-del-merge>` en una rama y mergeá ese PR.
@@ -221,7 +221,7 @@ Síntoma: Vercel muestra *Error*, la app da 500, `/api/health` responde 503.
 
 ### 3.6 «Pedir acceso» no deja enviar el pedido
 
-Síntoma: «hay muchos pedidos» a varias personas desde el mismo lugar. La base corta a 40 pedidos por hora por IP, 60 cada 10 minutos y 600 por día. Si Ani espera más gente en el mismo salón, subí las constantes de `waitlist_join` en `packages/db/rls/0006_waitlist.sql` (PR chico) y aplicá `pnpm db:migrate`.
+Síntoma: «hay muchos pedidos» a varias personas desde el mismo lugar. La base corta a 40 pedidos por hora por IP, 60 cada 10 minutos y 600 por día. Si tester A espera más gente en el mismo salón, subí las constantes de `waitlist_join` en `packages/db/rls/0006_waitlist.sql` (PR chico) y aplicá `pnpm db:migrate`.
 
 ### 3.7 El MCP o Claude no ven tus datos
 
@@ -235,9 +235,9 @@ Con dos o más cuentas, el MCP necesita `MCP_USER_ID` (1.2). Probá con `curl -H
 - [ ] Dominio nuevo andando y probado (1.3); webhook de Resend apuntando al dominio nuevo
 - [ ] Reseteo de contraseña probado con una cuenta ajena; reporte de soporte probado
 - [ ] `MP_LINK_LISTA` (y los demás `MP_LINK_*` que se usen) con los links de la cuenta nueva de Mercado Pago; `PRICING_ENABLED=1`; `/precios` carga; pago de prueba hecho
-- [ ] Combos de Ani definidos [A DEFINIR: combos de Ani]; becas confirmadas [A CONFIRMAR]
-- [ ] Soporte listo: WhatsApp Business (Ani) y `contacto@afiniajobs.com.ar` creada (Mauro) y atendida (Ani)
+- [ ] Combos de tester A definidos [A DEFINIR: combos de tester A]; becas confirmadas [A CONFIRMAR]
+- [ ] Soporte listo: WhatsApp Business (tester A) y `contacto@afiniajobs.com.ar` creada (Admin) y atendida (tester A)
 - [ ] `afiniajobs.com.ar` migrado y con redirección; `afiniajobs.com` comprado
-- [ ] Criterios de Ani recibidos; invitaciones enviadas desde el 12/11
+- [ ] Criterios de tester A recibidos; invitaciones enviadas desde el 12/11
 - [ ] Ensayo del 20 al 24/11 hecho y hallazgos resueltos
 - [ ] Monitores creados; Neon y Vercel abiertos el 26/11

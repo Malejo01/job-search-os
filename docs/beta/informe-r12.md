@@ -4,7 +4,7 @@ Trabajaron cinco teammates, cada uno en su worktree: historial, chat, lectura, c
 R12-7 (contrato) y R12-16 (test intermitente), revisó y probó las mezclas. **Ningún PR se mergeó.** Todas
 las ramas salen de `origin/ronda/integracion-r11` (PR #517) o de otra rama de la R12 (columna «Sale de»).
 
-Decisiones de Mauro del 17/11 (D1 a D7, flag `CV_COACH`, diagnóstico con plantillas, reserva del CV final):
+Decisiones de Admin del 17/11 (D1 a D7, flag `CV_COACH`, diagnóstico con plantillas, reserva del CV final):
 escritas en [ADR-038](../adr/038-coach-de-cv.md), que pasó a **Accepted** en R12-7.
 
 ## 1. PRs, en el orden de merge sugerido
@@ -17,17 +17,17 @@ escritas en [ADR-038](../adr/038-coach-de-cv.md), que pasó a **Accepted** en R1
 | 4 | [#526](https://github.com/Malejo01/job-search-os/pull/526) | R12-3 · acuse armado por el código y «¿Cuál dejo?» | R12-2 | verde | — |
 | 5 | [#528](https://github.com/Malejo01/job-search-os/pull/528) | R12-6 · puerta «Tengo CV / No tengo CV» | integración R11 | rojo | — |
 | 6 | [#521](https://github.com/Malejo01/job-search-os/pull/521) | R12-12 · PDF con `pdfjs-dist@6.5.438` | integración R11 | rojo | Dependencia nueva |
-| 7 | [#524](https://github.com/Malejo01/job-search-os/pull/524) | R12-14 · guía de la prueba de Ani | integración R11 | verde | — |
+| 7 | [#524](https://github.com/Malejo01/job-search-os/pull/524) | R12-14 · guía de la prueba de tester A | integración R11 | verde | — |
 | 8 | [#529](https://github.com/Malejo01/job-search-os/pull/529) | R12-15 · indicador de carga (vuelve R11-8) | integración R11 | verde | — |
 | 9 | [#518](https://github.com/Malejo01/job-search-os/pull/518) | R12-7 · contrato del coach, ADR-038 Accepted | integración R11 | verde | — |
 | 10 | [#527](https://github.com/Malejo01/job-search-os/pull/527) | R12-5 · viñetas «de tu CV» y tarjeta de proyectos | R12-4 + R12-7 | rojo | Prompt `extract_cv_profile@v2` |
 | 11 | [#523](https://github.com/Malejo01/job-search-os/pull/523) | R12-8 · diagnóstico `cv_review` y reserva del coach | R12-7 | rojo | **Filas de `model_routing`** (§5) |
 | 12 | [#525](https://github.com/Malejo01/job-search-os/pull/525) | R12-9 · turno `cv_coach_turn` | R12-8 | rojo | — |
-| 13 | [#530](https://github.com/Malejo01/job-search-os/pull/530) | R12-10 · pantallas y rutas del coach | R12-9 | rojo | `CV_COACH=testers` cuando Mauro decida |
+| 13 | [#530](https://github.com/Malejo01/job-search-os/pull/530) | R12-10 · pantallas y rutas del coach | R12-9 | rojo | `CV_COACH=testers` cuando Admin decida |
 | 14 | [#531](https://github.com/Malejo01/job-search-os/pull/531) | R12-11 · cierre y «qué mejoró» | R12-10 | verde | — |
-| 15 | [#532](https://github.com/Malejo01/job-search-os/pull/532) | R12-13 · golden de CVs y harness del coach | R12-11 | rojo | Corridas pagas: las hace Mauro (§5.7) |
+| 15 | [#532](https://github.com/Malejo01/job-search-os/pull/532) | R12-13 · golden de CVs y harness del coach | R12-11 | rojo | Corridas pagas: las hace Admin (§5.7) |
 
-Los PRs 1 a 8 son lo que necesita la prueba de Ani del 20/11 (aviso temprano, §3). Del 9 al 15 es la Fase 2,
+Los PRs 1 a 8 son lo que necesita la prueba de tester A del 20/11 (aviso temprano, §3). Del 9 al 15 es la Fase 2,
 detrás de `CV_COACH`, apagado por defecto.
 
 ## 2. Ramas para la integración (las arma Claude desde la nube)
@@ -64,10 +64,10 @@ ronda/r12-cierre
 - **En el CI de los PRs**, el job `integration` falla en `read-cv.integration.test.ts` («dos lecturas
   simultáneas») hasta que entre #519. Es la carrera que arregla R12-16, no una falla de cada PR.
 
-## 3. Aviso temprano: integración parcial para la prueba de Ani (20/11)
+## 3. Aviso temprano: integración parcial para la prueba de tester A (20/11)
 
 Ramas 1 a 8 de la tabla (`r12-16`, `r12-4`, `r12-2`, `r12-3`, `r12-6`, `r12-12`, `r12-14` y,
-opcional, `r12-15`), con el mismo conflicto de §2. Es la Fase 1 completa, más el PDF, el test intermitente y la guía de Ani
+opcional, `r12-15`), con el mismo conflicto de §2. Es la Fase 1 completa, más el PDF, el test intermitente y la guía de tester A
 (`docs/beta/coach-cv-prueba.md`, con tres CV inventados y el recorrido «subo mi CV en PDF → tarjetas →
 huecos → guía → CV»).
 
@@ -88,9 +88,9 @@ respuestas grabadas y el mismo código de producción (`applyCvModelTurn`).
 
 **Cautela:** las respuestas del modelo con el esquema nuevo las grabó el mismo agente que hizo el cambio.
 Los números prueban que el código aprovecha lo que el modelo devuelve, no que el modelo lo devuelva. Lo
-confirman la prueba de Ani y una corrida con el modelo real del harness de R12-13 (la hace Mauro).
+confirman la prueba de tester A y una corrida con el modelo real del harness de R12-13 (la hace Admin).
 
-## 5. Pasos manuales para Mauro
+## 5. Pasos manuales para Admin
 
 1. **Migración de Proyectos (R12-4)**, con `pnpm db:migrate` después de revisar el SQL. La RLS de
    `career_history` (rls/0014, `FOR ALL` por fila) cubre la columna nueva:
@@ -115,9 +115,9 @@ confirman la prueba de Ani y una corrida con el modelo real del harness de R12-1
    COMMIT;
    ```
 3. **Vercel:** `CV_IMPORT_ENABLED=1` y `CV_PROFILE_AGENT=testers` ya están. `CV_COACH=testers` cuando decidas
-   mostrar el coach (Mauro y Ani; misma lista que `ASSISTANT_TESTER_EMAILS` más `ADMIN_EMAILS`). Sin
+   mostrar el coach (Admin y tester A; misma lista que `ASSISTANT_TESTER_EMAILS` más `ADMIN_EMAILS`). Sin
    definirlo, queda apagado.
-4. **Cuentas de Ani:** tres cuentas de prueba, una por CV inventado, en `ASSISTANT_TESTER_EMAILS`.
+4. **Cuentas de tester A:** tres cuentas de prueba, una por CV inventado, en `ASSISTANT_TESTER_EMAILS`.
 5. **`pdfjs-dist`:** no quedó pendiente; la versión 6.5.438 se verificó en el registro (publicada el 01/11).
 6. **Privacidad:** correr `pnpm secrets:scan` y `node scripts/privacy-scan.mjs`. No corrieron en la nube
    (sin Docker ni `fixtures-private/`). R12-10 sumó a `.gitleaksignore` la huella de la clave inventada del e2e 147.
@@ -133,7 +133,7 @@ confirman la prueba de Ani y una corrida con el modelo real del harness de R12-1
 
 ## 6. Gasto de evals
 
-- **Corridas pagas del harness del coach:** ninguna. Las hace Mauro (§5.7), con el guard de USD 0,60 por
+- **Corridas pagas del harness del coach:** ninguna. Las hace Admin (§5.7), con el guard de USD 0,60 por
   corrida y el freno del acumulado en USD 2,50.
 - **Job `evals` del CI:** corre una vez por PR que toca `packages/prompts/**` o `evals/**`, mide
   `evaluate_job` con la versión vigente y cuesta ≈ USD 0,16. En la tanda: R12-2, R12-5, R12-8, R12-9 y

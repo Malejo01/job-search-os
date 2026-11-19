@@ -1,6 +1,6 @@
-# Textos para Ani (C8-18)
+# Textos para tester A (C8-18)
 
-Todo lo que Ani tiene que leer antes del 26/11, en un lugar. **En la app:** [`/settings/textos`](/settings/textos) (pedile a Mauro que la abra con su cuenta de admin, o capturas): cada texto con su extracto, el archivo donde vive y un link a la pantalla. La lista sale de `packages/pipeline/src/textos-ani.ts`; un test avisa si un extracto deja de existir.
+Todo lo que tester A tiene que leer antes del 26/11, en un lugar. **En la app:** [`/settings/textos`](/settings/textos) (pedile a Admin que la abra con su cuenta de admin, o capturas): cada texto con su extracto, el archivo donde vive y un link a la pantalla. La lista sale de `packages/pipeline/src/textos-ani.ts`; un test avisa si un extracto deja de existir.
 
 **Cómo pedir un cambio:** anotá el nombre del texto (como aparece en `/settings/textos`) y la frase nueva. Cada cambio es un PR chico en el archivo que dice la página. Los legales van aparte (`docs/legal/preguntas-ani.md`).
 
@@ -21,7 +21,7 @@ Todo lo que Ani tiene que leer antes del 26/11, en un lugar. **En la app:** [`/s
 | `/hoy` | «Empezá acá» (C8-5): «Pegá una oferta o esperá las nuestras» y los otros pasos | ¿Los cuatro pasos y su orden son los correctos para alguien nuevo? |
 | «¿Qué es esto?» (C8-6) | Las 5 explicaciones (puntaje, A tu favor / Te falta, Sin descripción, CV, áreas) | La del puntaje da umbrales («un 8 o más suele valer la pena»): ¿los dejamos? Los textos se editan en un solo archivo |
 | Emails | Bienvenida al activar el plan (C8-7) y aviso de vencimiento | Tono, y si la bienvenida tiene que nombrar el precio (hoy no lo hace) |
-| Invitación | Mensaje con precio, 30 días y link de pago (C7-12) | El texto del pago y el de becados: los armó la nube, falta el OK de Ani |
+| Invitación | Mensaje con precio, 30 días y link de pago (C7-12) | El texto del pago y el de becados: los armó la nube, falta el OK de tester A |
 
 ## Lo que ya está decidido (no hace falta volver a mirarlo)
 
@@ -33,8 +33,8 @@ Todo lo que Ani tiene que leer antes del 26/11, en un lugar. **En la app:** [`/s
 
 Detalle y puntos abiertos en `docs/beta/runbook-apertura.md`, «Decisiones del 5/11».
 
-- El cupo es de 15 a 20 personas. Solo dos personas no pagan; el resto paga uno de dos combos que arma Ani: [A DEFINIR: combos de Ani]. Hasta que estén, el precio de la invitación y de `/ayuda` puede cambiar.
-- Becas: un becado gratis y dos con 50 % de descuento (ya no «3 becados»). El texto de becados de la invitación tiene que decir eso cuando Mauro confirme quiénes son: [A CONFIRMAR con Mauro].
+- El cupo es de 15 a 20 personas. Solo dos personas no pagan; el resto paga uno de dos combos que arma tester A: [A DEFINIR: combos de tester A]. Hasta que estén, el precio de la invitación y de `/ayuda` puede cambiar.
+- Becas: un becado gratis y dos con 50 % de descuento (ya no «3 becados»). El texto de becados de la invitación tiene que decir eso cuando Admin confirme quiénes son: [A CONFIRMAR con Admin].
 - El 11/11 es el evento «Voces Jóvenes», no una charla.
-- Soporte de la beta: WhatsApp Business (lo crea y etiqueta Ani) y `contacto@afiniajobs.com.ar` (la crea Mauro, la atiende Ani).
+- Soporte de la beta: WhatsApp Business (lo crea y etiqueta tester A) y `contacto@afiniajobs.com.ar` (la crea Admin, la atiende tester A).
 - Los cobros van por una cuenta nueva de Mercado Pago compartida (hay que actualizar los links `MP_LINK_*`).

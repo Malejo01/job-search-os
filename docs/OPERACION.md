@@ -3,7 +3,7 @@
 Tres comandos para operar la app sin depender de un cartero humano. Los tres comparten reglas:
 
 - **Base local por defecto** (Docker). La nube solo con `--remote`, y entonces piden escribir `si` en una terminal; sin terminal abortan. Ni `--yes` ni `CONFIRM_PRODUCTION` saltean esa confirmación. La salida muestra solo `local (…)` o `remoto`, nunca el host de la nube.
-- En producción **solo los corre Mauro**. Un agente no usa `--remote`.
+- En producción **solo los corre Admin**. Un agente no usa `--remote`.
 - Nunca imprimen la URL de la base ni secretos. Los emails salen enmascarados (`l***@dominio`), salvo el link de `admin:invite`.
 - Todos los datos de los ejemplos son ficticios (`@example.com`).
 
@@ -55,7 +55,7 @@ pnpm recorrido http://localhost:3000
 pnpm recorrido http://localhost:3000 -g abogacia-junior
 ```
 
-Primero en local (`node .claude/bin/local.mjs dev` y, con el worker demo, sin gasto). **Contra producción** crea evaluaciones reales (gasto de LLM, ≈ USD 0,007 por oferta evaluada) y cuentas en Neon: es decisión de Mauro y conviene mirar `pnpm llm:spend --days 1` antes y después. Los selectores del onboarding y de la oferta se copiaron de los e2e de personas y no se probaron contra una app corriendo: la primera corrida puede pedir un ajuste.
+Primero en local (`node .claude/bin/local.mjs dev` y, con el worker demo, sin gasto). **Contra producción** crea evaluaciones reales (gasto de LLM, ≈ USD 0,007 por oferta evaluada) y cuentas en Neon: es decisión de Admin y conviene mirar `pnpm llm:spend --days 1` antes y después. Los selectores del onboarding y de la oferta se copiaron de los e2e de personas y no se probaron contra una app corriendo: la primera corrida puede pedir un ajuste.
 
 ## `pnpm inbound:replay`
 
@@ -77,14 +77,14 @@ Si el usuario no tiene criterios activos, el email queda en la cola manual con e
 
 ## Activar un plan (beta paga, C-11b y C3-1)
 
-El cobro es externo: la persona paga el mes con el link de Mercado Pago (ARS 20.000; los USD 15 son solo una referencia) o por transferencia. Desde el 5/11 se cobra por una **cuenta nueva de Mercado Pago, compartida**: hay que actualizar los links `MP_LINK_*` (ver `docs/beta/runbook-apertura.md`, «Decisiones del 5/11»). Después de pagar, y **Mauro lo activa a mano**. La app no sabe si alguien pagó ni guarda datos de tarjetas.
+El cobro es externo: la persona paga el mes con el link de Mercado Pago (ARS 20.000; los USD 15 son solo una referencia) o por transferencia. Desde el 5/11 se cobra por una **cuenta nueva de Mercado Pago, compartida**: hay que actualizar los links `MP_LINK_*` (ver `docs/beta/runbook-apertura.md`, «Decisiones del 5/11»). Después de pagar, y **Admin lo activa a mano**. La app no sabe si alguien pagó ni guarda datos de tarjetas.
 
 ### Desde el panel (lo normal)
 
 `Ajustes → Planes de la beta` (`/settings/planes`, solo cuentas de `ADMIN_EMAILS` que además estén en `app_admins`; el link de Ajustes aparece con `PRICING_ENABLED=1`).
 
 - **Activar 30 días:** email de la persona (tiene que haber terminado el onboarding) y cómo llegó: **Pagó** o **Becado** (primer mes gratis). Los 30 días cuentan desde hoy; si la beta todavía no abrió, desde el 26/11/2026; si la persona ya tenía días, se suman a la fecha en la que vencía, así renovar antes de tiempo no hace perder días.
-- **Becados:** se los marca como «Becado» y cuando después pagan se los vuelve a activar como «Pagó» con el mismo link. Desde el 5/11 las becas de la beta son **un becado gratis y dos con 50 % de descuento** (y dos personas más no pagan, definidas en Notion). El panel no tiene una opción de 50 % ni de combos: [A DEFINIR: combos de Ani]. Quiénes son y si las dos personas que no pagan entran en esos lugares: [A CONFIRMAR con Mauro]; los nombres se llevan en Notion, no acá.
+- **Becados:** se los marca como «Becado» y cuando después pagan se los vuelve a activar como «Pagó» con el mismo link. Desde el 5/11 las becas de la beta son **un becado gratis y dos con 50 % de descuento** (y dos personas más no pagan, definidas en Notion). El panel no tiene una opción de 50 % ni de combos: [A DEFINIR: combos de tester A]. Quiénes son y si las dos personas que no pagan entran en esos lugares: [A CONFIRMAR con Admin]; los nombres se llevan en Notion, no acá.
 - **Quitar el plan:** pasa a la persona a «gratis» y pierde los días que le quedaban. No borra nada de lo suyo.
 - **Quién tiene acceso:** la lista muestra origen y hasta cuándo llega cada persona, los que vencen antes arriba.
 - Si la persona tiene un plan viejo (fundador o pase de 3 meses), el panel no lo toca: se cambia a mano (abajo).
@@ -124,7 +124,7 @@ commit;
 
 ## Conexiones a la base: `DB_POOL_MAX` (R8-4)
 
-La web abre un pool de conexiones **por instancia** de Vercel (`apps/web/lib/db.ts`). `DB_POOL_MAX` fija el tamaño: entero de 1 a 20; ausente, vacía o inválida (con un aviso en el log) vale **5**, como antes. Se cambia en Vercel (solo Mauro) y rige en el próximo deploy.
+La web abre un pool de conexiones **por instancia** de Vercel (`apps/web/lib/db.ts`). `DB_POOL_MAX` fija el tamaño: entero de 1 a 20; ausente, vacía o inválida (con un aviso en el log) vale **5**, como antes. Se cambia en Vercel (solo Admin) y rige en el próximo deploy.
 
 **La cuenta.** Conexiones simultáneas máximas = instancias activas × `DB_POOL_MAX`, y eso más lo que abren el worker y los crons (cada uno con su propia conexión) tiene que quedar por debajo del límite de la base. Ejemplo: 10 instancias × 5 = 50 conexiones.
 
@@ -134,7 +134,7 @@ La web abre un pool de conexiones **por instancia** de Vercel (`apps/web/lib/db.
 
 ## Topes del asistente por charla (R9-2)
 
-El asistente corta cada charla por mensajes y por gasto. Los defaults están en `packages/pipeline/src/agent/limits.ts` y se pueden cambiar sin deploy de código con dos variables de Vercel (paso manual de Mauro; hace falta un redeploy para que las tome):
+El asistente corta cada charla por mensajes y por gasto. Los defaults están en `packages/pipeline/src/agent/limits.ts` y se pueden cambiar sin deploy de código con dos variables de Vercel (paso manual de Admin; hace falta un redeploy para que las tome):
 
 | Variable | Default | Valores válidos |
 |---|---|---|
@@ -151,7 +151,7 @@ El asistente corta cada charla por mensajes y por gasto. Los defaults están en 
 
 Después de cada deploy exitoso a Production, `.github/workflows/smoke.yml` corre `apps/web/e2e-smoke/smoke.spec.ts` contra la URL de producción, que está fija en el workflow (nunca la del evento). Es **de solo lectura**: `/api/health`, login, `/jobs`, abrir la primera oferta si hay y `/applications`. No toca botones que escriban.
 
-Sin secrets corre solo `/api/health` y el resto queda `skipped`. Para el recorrido con sesión, Mauro crea:
+Sin secrets corre solo `/api/health` y el resto queda `skipped`. Para el recorrido con sesión, Admin crea:
 
 1. Una cuenta de prueba en producción, solo para esto: invitación con `admin:invite`, registro y onboarding.
 2. Los secrets `E2E_PROD_EMAIL` y `E2E_PROD_PASSWORD` en GitHub (Settings → Secrets and variables → Actions). Nunca en el repo.
@@ -179,16 +179,16 @@ Unos 15 minutos por día, en este orden:
 
 Fuente de la beta cerrada, **apagada por defecto**. Las casillas `pool-<carrera>@<INGEST_DOMAIN>` reciben las alertas que suscribe Job Search; `<carrera>` es una clave de `ROLE_KEYS` (por ejemplo `pool-rrhh_it@`).
 
-- **Prender:** variable `POOL_SOURCE_COMPUTRABAJO_ALERTS=1` en Vercel (solo Mauro). Cualquier otro valor es apagado. Hace falta `INGEST_DOMAIN`.
+- **Prender:** variable `POOL_SOURCE_COMPUTRABAJO_ALERTS=1` en Vercel (solo Admin). Cualquier otro valor es apagado. Hace falta `INGEST_DOMAIN`.
 - **Crear las casillas:** no hay que crear nada en Resend; la dirección se usa como email de la alerta en el portal. El dominio de remitente aceptado está en `POOL_ALERT_SENDER_DOMAINS` (`packages/adapters/src/inbound/pool-mailbox.ts`); si el portal manda desde otro dominio o variante por país, se agrega ahí tras ver un email real.
 - **Qué pasa hoy:** sin lector validado con emails reales, un email del portal a una casilla va a la cola manual del pool (fila de `inbound_emails` sin usuario, parser `pool_computrabajo_alerts`, `jobs_extracted` 0). No se extrae nada y no aparece en la bandeja de ninguna persona.
 - **Rechazos:** interruptor apagado, otro remitente, carrera inexistente u otro dominio: no se guarda nada y el webhook responde como con un destinatario desconocido.
 - **Si hay una `u_…` entre los destinatarios:** gana el flujo normal y el email no va al pool. Se decide primero por el sobre (`received_for`) cuando existe.
 - **Topes de la cola:** 30 emails por hora y 200 por día (filas sin usuario con el parser del pool); pasados los topes se rechaza como destinatario desconocido, sin guardar, solo con un contador en el log. Un crudo de más de 256 KB guarda solo remitente, asunto y fecha.
 - **Purga:** las filas del pool y su crudo se borran a los 30 días (la purga programada, solo `user_id IS NULL` y parser del pool).
-- **Verla:** la cola del pool no tiene pantalla. Se mira solo con SQL (`inbound_emails` con `user_id IS NULL` y `parser = 'pool_computrabajo_alerts'`), que corre Mauro.
+- **Verla:** la cola del pool no tiene pantalla. Se mira solo con SQL (`inbound_emails` con `user_id IS NULL` y `parser = 'pool_computrabajo_alerts'`), que corre Admin.
 - **Apagar:** quitar la variable o ponerla en `0`. Vale desde el siguiente email.
-- **Migración:** el valor `computrabajo_alerts` de `source_kind` (0046) lo aplica Mauro con `pnpm db:migrate` antes del merge.
+- **Migración:** el valor `computrabajo_alerts` de `source_kind` (0046) lo aplica Admin con `pnpm db:migrate` antes del merge.
 
 ## Alertas de gasto de IA (R7-1, R8-5)
 
