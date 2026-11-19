@@ -17,8 +17,7 @@ const TARGET_SRC =
 const TARGET_RE = new RegExp(TARGET_SRC);
 
 /** Palabras de nota máxima y adjetivos de "la nota correcta", compartidos por los patrones sin verbo. */
-const MAX_SRC =
-  "(?:10|9|diez|nueve|ten|nine|maxim[ao]|maximum|highest|perfect[ao]?|alt[ao]|high)";
+const MAX_SRC = "(?:10|9|diez|nueve|ten|nine|maxim[ao]|maximum|highest|perfect[ao]?|alt[ao]|high)";
 const GRADE_SRC = "(?:score|puntaje|nota|puntuacion|calificacion|rating|grade)";
 const ADJ_SRC = "(?:correct[oa]?|final|right|expected|esperad[ao])";
 const FOR_SRC = "(?:(?:for|para|of|de)\\s+(?:this|the|este|esta)\\s+\\w+\\s+)";
@@ -264,12 +263,14 @@ function patternHits(p: Pattern, text: string): boolean {
  */
 export function detectEvaluatorInjection(text: string): { hit: boolean; signals: string[] } {
   const hidden = TAG_CHARS_RE.test(text);
-  const stripped = text.replace(FORMAT_CHARS_RE, "").slice(0, INJECTION_SCAN_MAX_CHARS);
+  // Los invisibles pueden rellenar: se mira un tramo del doble del tope antes de quitarlos
+  const head = text.slice(0, INJECTION_SCAN_MAX_CHARS * 2);
+  const noFormat = head.replace(FORMAT_CHARS_RE, "");
+  const stripped = noFormat.slice(0, INJECTION_SCAN_MAX_CHARS);
   const bases = [stripped];
   // Un invisible entre palabras también puede ser el separador: se prueba además como espacio
-  if (stripped.length < text.length) {
-    const asSpace = text.slice(0, INJECTION_SCAN_MAX_CHARS).replace(FORMAT_CHARS_RE, " ");
-    if (asSpace !== stripped) bases.push(asSpace);
+  if (noFormat.length !== head.length) {
+    bases.push(head.slice(0, INJECTION_SCAN_MAX_CHARS).replace(FORMAT_CHARS_RE, " "));
   }
   const variants = new Set<string>();
   for (const base of bases) {
