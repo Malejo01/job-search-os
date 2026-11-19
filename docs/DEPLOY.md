@@ -168,7 +168,7 @@ Vercel:
    NO van: `DATABASE_URL_UNPOOLED` (solo migraciones locales), `DATABASE_URL_LOCAL`, `DATABASE_URL_APP_LOCAL`, `SEED_USER_*`, `DB_TARGET`, `LLM_FAKE_GENERATE`, `SKIP_APP_ROLE_CHECK`.
 
    **El build también lee la base (ronda 94).** Turborepo corre en modo estricto y solo le pasa a `next build` las variables de `turbo.json`. Por eso `DATABASE_URL_APP`, `CONTACT_EMAIL` y `SITE_URL` están en `passThroughEnv`: así la vitrina (`/`, `/mercado`, `/ofertas`, `/demo`, `/como-esta-hecho`) sale del build con datos y no con "Datos en preparación". El build (también el de Preview) lee el pool público con el rol de la app: `assertAppRole` corta si la URL es de un rol que puede saltear RLS, y la lectura va en una transacción `read only`. Si Neon no responde o falta una migración, **el build falla** y Vercel sigue sirviendo el deploy anterior: es fallar cerrado. Una variable nueva que necesite el build va en esa lista. Los flags que cambian una página estática (`PRICING_ENABLED`, `CV_IMPORT_ENABLED`, `MP_LINK_*` en `/precios`) van en `env` y no en `passThroughEnv`: así su valor entra en el hash de la caché de Turborepo y cambiarlos invalida el build. Sin eso, `/precios` salió del build con el flag vacío y daba 404 aunque la variable estuviera cargada (1/11/2026).
-6. Deploy. Abrí `https://<app>/api/health`: tiene que responder `{"ok":true,"db":"ok"}`. Si responde 503 con `AppRoleError`, `DATABASE_URL_APP` apunta al rol equivocado.
+6. Deploy. Abrí `https://<app>/api/health`: sin header responde `{"ok":true,"commit":"…"}` (la app responde; no mira la base). Para comprobar la base: `curl -H "Authorization: Bearer $CRON_SECRET" https://<app>/api/health` tiene que responder `{"ok":true,"db":"ok",…}`. Si responde 503, el log de Vercel dice el motivo (por ejemplo `AppRoleError`: `DATABASE_URL_APP` apunta al rol equivocado).
 7. Entrá con el email y la contraseña del paso 3; tiene que aparecer la lista de ofertas.
 
 Cron:
@@ -244,6 +244,6 @@ Endpoint: `https://<app>/api/mcp` (Streamable HTTP, sin OAuth). Token compartido
 3. Migraciones: `pnpm db:migrate` contra `DATABASE_URL_UNPOOLED` antes del primer deploy y en cada PR que agregue migraciones (paso manual o job de Actions con el secret; `docs/TESTING_STRATEGY.md`). Aplica también `rls/0000_policies.sql`.
    - **Salvaguarda (2026-09-22):** contra una base remota, `db:migrate` y `db:seed` piden escribir `si` antes de tocar nada. Sin terminal (un agente o un script) no corren, salvo con `CONFIRM_PRODUCTION=si` explícito. Para la base local: `pnpm db:migrate:local` o `DB_TARGET=local`. Nació de una migración pensada para Docker que se aplicó en producción sin revisión (JS-048, migración 0013).
 4. Seed del usuario: `SEED_USER_EMAIL=... SEED_USER_PASSWORD=... pnpm db:seed` (una vez; idempotente).
-5. Deploy. `GET /api/health` responde `{ ok: true, db: "ok" }`; si el rol de `DATABASE_URL_APP` puede saltear RLS responde 503 con el motivo.
+5. Deploy. `GET /api/health` con `Authorization: Bearer <CRON_SECRET>` responde `{ ok: true, db: "ok" }`; si el rol de `DATABASE_URL_APP` puede saltear RLS responde 503 (el motivo queda en el log, no en la respuesta). Sin el header solo responde `{ ok: true, commit }`, sin consultar la base.
 6. Cron según la opción elegida arriba.
 7. Después del primer cron: `pnpm llm:spend` y la lista en `/jobs`.

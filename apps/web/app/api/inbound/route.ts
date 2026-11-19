@@ -11,10 +11,18 @@ import {
   verifySvix,
 } from "@job-search-os/adapters";
 import { NextResponse } from "next/server";
+import { readBodyLimited } from "../../../lib/read-body-limited";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+
+/**
+ * Tope del cuerpo del webhook, en bytes. El evento de Resend trae metadatos (el contenido del email se pide
+ * aparte por la API), así que un evento real pesa unos pocos KB: 1 MB deja mucho margen y corta lo hostil.
+ * Se mira antes de la firma: leer 2 MB para recién entonces descubrir que no estaban firmados es el costo.
+ */
+const MAX_BODY_BYTES = 1_000_000;
 
 /** El aviso de configuración sale una sola vez por instancia, y nunca con el valor del secreto. */
 let invalidSecretLogged = false;
@@ -25,7 +33,9 @@ let invalidSecretLogged = false;
  * Corre como servicio (dueño de la base) y filtra por el usuario dueño de la dirección.
  */
 export async function POST(request: Request): Promise<NextResponse> {
-  const rawBody = await request.text();
+  const limited = await readBodyLimited(request, MAX_BODY_BYTES);
+  if (!limited.ok) return NextResponse.json({ error: "cuerpo demasiado grande" }, { status: 413 });
+  const rawBody = limited.text;
   const verdict = verifySvix(
     {
       "svix-id": request.headers.get("svix-id"),

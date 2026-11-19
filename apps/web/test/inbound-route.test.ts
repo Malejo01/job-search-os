@@ -62,6 +62,48 @@ describe("POST /api/inbound", () => {
     expect(mocks.loadInboundContent).toHaveBeenCalledTimes(1);
   });
 
+  it("con Content-Length mayor al tope responde 413 sin leer el cuerpo ni tocar la base", async () => {
+    const pull = vi.fn();
+    const body = new ReadableStream<Uint8Array>({ pull }, { highWaterMark: 0 });
+    const res = await POST(
+      new Request("https://app.example.com/api/inbound", {
+        method: "POST",
+        headers: { "content-length": String(2 * 1024 * 1024) },
+        body,
+        duplex: "half",
+      } as RequestInit),
+    );
+    expect(res.status).toBe(413);
+    expect(pull).not.toHaveBeenCalled();
+    expect(mocks.processInboundEvent).not.toHaveBeenCalled();
+  });
+
+  it("un cuerpo de 2 MB sin Content-Length se corta con 413 en menos de 100 ms", async () => {
+    const chunk = new Uint8Array(64 * 1024).fill(97);
+    let sent = 0;
+    const body = new ReadableStream<Uint8Array>(
+      {
+        pull(controller) {
+          if (sent++ < 32) controller.enqueue(chunk);
+          else controller.close();
+        },
+      },
+      { highWaterMark: 0 },
+    );
+    const started = performance.now();
+    const res = await POST(
+      new Request("https://app.example.com/api/inbound", {
+        method: "POST",
+        body,
+        duplex: "half",
+      } as RequestInit),
+    );
+    expect(res.status).toBe(413);
+    expect(performance.now() - started).toBeLessThan(100);
+    expect(sent).toBeLessThan(32);
+    expect(mocks.processInboundEvent).not.toHaveBeenCalled();
+  });
+
   it("sin clave de API no pide el cuerpo", async () => {
     vi.stubEnv("RESEND_API_KEY", "");
     const res = await POST(request());

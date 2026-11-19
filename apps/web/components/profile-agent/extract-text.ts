@@ -120,6 +120,8 @@ export async function readPdfText(
   const task = pdfjs.getDocument({
     data: bytes.slice(),
     // Solo texto: sin fuentes del sistema ni @font-face, sin XFA, sin pedidos de red de rango
+    // Sin eval: pdfjs 6.x ya no compila funciones del PDF con `new Function` y quitó la opción `isEvalSupported`
+    // (ni los tipos la aceptan). extract-text-pdfjs-options.test.ts falla si el build instalado vuelve a usar eval.
     disableFontFace: true,
     useSystemFonts: false,
     enableXfa: false,
