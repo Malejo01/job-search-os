@@ -194,7 +194,8 @@ export async function saveCustomSkills(
   return withUser(userId, async (tx) => {
     let changed = 0;
     if (input.additions.length > 0) {
-      await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${userId}::text))`);
+      // Misma clave que `cards-save.ts`: las dos escrituras de skills propias se esperan
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${userId}::text, 7103))`);
       const rows = await tx
         .select({ id: s.userSkills.id })
         .from(s.userSkills)
