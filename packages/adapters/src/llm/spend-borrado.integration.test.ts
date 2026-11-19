@@ -81,10 +81,7 @@ describe("gasto de una cuenta borrada", () => {
 
   it("la fila queda sin datos que identifiquen a la persona", async () => {
     await deleteAccountOf(A);
-    const rows = await conn.db
-      .select()
-      .from(s.llmCalls)
-      .where(eq(s.llmCalls.task, "evaluate_job"));
+    const rows = await conn.db.select().from(s.llmCalls).where(eq(s.llmCalls.task, "evaluate_job"));
     const anonymous = rows.filter((r) => r.userId === null);
     expect(anonymous).toHaveLength(1);
     expect(anonymous[0]).toMatchObject({ jobId: null, label: null, error: null });

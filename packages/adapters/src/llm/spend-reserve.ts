@@ -50,10 +50,7 @@ export type SpendGate<R extends string> = (
 ) => Promise<R | null>;
 
 /** Reserva `estimateUsd` para la persona, o dice qué tope lo impide. `db` tiene que ver `llm_calls` de todos. */
-export async function reserveLlmSpend(
-  db: Db,
-  input: SpendReserveInput,
-): Promise<SpendReservation> {
+export async function reserveLlmSpend(db: Db, input: SpendReserveInput): Promise<SpendReservation> {
   return reserveSpendWithGate<never>(db, input, async () => null);
 }
 

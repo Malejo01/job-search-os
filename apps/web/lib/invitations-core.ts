@@ -51,10 +51,7 @@ export function validateRegistration(
 }
 
 /** ¿El email figura en alguna lista que da permisos dentro de la app? */
-export function isPrivilegedEmail(
-  email: string,
-  env: Record<string, string | undefined>,
-): boolean {
+export function isPrivilegedEmail(email: string, env: Record<string, string | undefined>): boolean {
   return (
     isInvitationAdmin(email, env.ADMIN_EMAILS) ||
     isInvitationAdmin(email, env.ASSISTANT_TESTER_EMAILS)

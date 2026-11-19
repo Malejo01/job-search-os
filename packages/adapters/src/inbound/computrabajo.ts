@@ -41,10 +41,7 @@ const ENTIDADES: Record<string, string> = {
 function numericEntity(digits: string): string {
   const code = Number(digits);
   const valid =
-    Number.isInteger(code) &&
-    code > 0 &&
-    code <= 0x10ffff &&
-    !(code >= 0xd800 && code <= 0xdfff);
+    Number.isInteger(code) && code > 0 && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff);
   return valid ? String.fromCodePoint(code) : "";
 }
 

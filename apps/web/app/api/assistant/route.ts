@@ -303,9 +303,7 @@ async function runTurn(
     log.info({ reason: reservation.reason }, "asistente: turno no aceptado");
     if (reservation.reason === "busy") emit({ type: "error", message: BUSY_MESSAGE });
     else {
-      emit(
-        CAP_EVENT(reservation.reason === "monthly" ? "monthly_conversations" : "daily_budget"),
-      );
+      emit(CAP_EVENT(reservation.reason === "monthly" ? "monthly_conversations" : "daily_budget"));
     }
     return;
   }

@@ -100,9 +100,7 @@ describe("crear invitaciones", () => {
   });
 
   it("una cuenta sin fila en app_admins no puede crear, aunque figure en la lista de la app", async () => {
-    await expect(insertInvitation(COMMON, "hash-sin-fila")).rejects.toThrow(
-      /row-level security/i,
-    );
+    await expect(insertInvitation(COMMON, "hash-sin-fila")).rejects.toThrow(/row-level security/i);
     const rows = await owner`select 1 from invitations where code_hash = 'hash-sin-fila'`;
     expect(rows).toHaveLength(0);
   });

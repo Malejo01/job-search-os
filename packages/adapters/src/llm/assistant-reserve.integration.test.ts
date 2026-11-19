@@ -12,10 +12,7 @@ import {
 } from "./assistant-reserve";
 
 /** Reserva del turno del asistente contra la base, con pedidos en paralelo. Sin modelo. Datos inventados. */
-const USERS = Array.from(
-  { length: 6 },
-  (_, i) => `a3170000-0000-4000-8000-00000000000${i + 1}`,
-);
+const USERS = Array.from({ length: 6 }, (_, i) => `a3170000-0000-4000-8000-00000000000${i + 1}`);
 const A = USERS[0]!;
 const NOW = new Date("2026-11-18T12:00:00Z");
 const clock = () => NOW;

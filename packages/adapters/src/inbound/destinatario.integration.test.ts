@@ -49,7 +49,8 @@ const event = (
   },
 });
 
-const fetchSpy = () => vi.fn(async () => ({ html: "<p>cuerpo</p>", text: "cuerpo", headers: null }));
+const fetchSpy = () =>
+  vi.fn(async () => ({ html: "<p>cuerpo</p>", text: "cuerpo", headers: null }));
 
 async function stored(emailId: string): Promise<number> {
   const rows = await conn.db
