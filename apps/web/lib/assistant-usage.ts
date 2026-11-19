@@ -1,5 +1,12 @@
-import { schema as s, type Db } from "@job-search-os/db";
-import { ASSISTANT_TASK, drizzleCallSink, type CallSink } from "@job-search-os/adapters";
+import { createDb, requireDatabaseUrl, schema as s, type Db } from "@job-search-os/db";
+import {
+  ASSISTANT_TASK,
+  drizzleCallSink,
+  releaseAssistantTurn,
+  reserveAssistantTurn,
+  type AssistantTurnReservation,
+  type CallSink,
+} from "@job-search-os/adapters";
 import {
   ASSISTANT_EVENT_MODEL,
   ASSISTANT_EVENT_TASK,
@@ -101,6 +108,37 @@ export async function recordAssistantMarker(
     return true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Reserva el turno con la conexión de servicio: los topes globales miran `llm_calls` de todas las
+ * personas. La conexión se cierra enseguida, así no queda abierta mientras responde el modelo.
+ */
+export async function reserveAssistantTurnNow(input: {
+  userId: string;
+  label: string;
+  monthlyLimit: number;
+}): Promise<AssistantTurnReservation> {
+  const { db, close } = createDb(requireDatabaseUrl({ purpose: "service" }), { max: 1 });
+  try {
+    return await reserveAssistantTurn(db, input);
+  } finally {
+    await close();
+  }
+}
+
+/** Nunca lanza: si no se puede soltar, la reserva vence sola. */
+export async function releaseAssistantTurnNow(reservationId: string): Promise<void> {
+  try {
+    const { db, close } = createDb(requireDatabaseUrl({ purpose: "service" }), { max: 1 });
+    try {
+      await releaseAssistantTurn(db, reservationId);
+    } finally {
+      await close();
+    }
+  } catch {
+    // La reserva deja de contar cuando vence
   }
 }
 

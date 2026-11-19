@@ -60,6 +60,8 @@ import {
   assistantCallSink,
   loadAssistantUsage,
   recordAssistantMarker,
+  releaseAssistantTurnNow,
+  reserveAssistantTurnNow,
 } from "@/lib/assistant-usage";
 import { getAppDb } from "@/lib/db";
 import { getProfileForEdit, isOnboardingComplete } from "@/lib/onboarding";
@@ -86,21 +88,6 @@ export const maxDuration = 60;
 const PROMPT_REF = "assistant_chat@v1" as const;
 /** Reglas de las propuestas: van después del prompt de charla, en el mismo sistema. */
 const PROPOSE_PROMPT_REF = "assistant_propose@v1" as const;
-
-/**
- * Una charla en curso por persona y por instancia (dos pestañas no duplican el gasto). Con vencimiento:
- * si algo quedara colgado, a los 70 s (más que el deadline del turno) se libera solo. Entre instancias
- * de Vercel no protege: queda como propuesta (lease o advisory lock en la base).
- */
-const busy = new Map<string, number>();
-const LOCK_TTL_MS = 70_000;
-
-function tryLock(userId: string, now: number): boolean {
-  const until = busy.get(userId);
-  if (until !== undefined && until > now) return false;
-  busy.set(userId, now + LOCK_TTL_MS);
-  return true;
-}
 
 let routes: RouteSource | null = null;
 const routeSource = (): RouteSource =>
@@ -200,11 +187,6 @@ export async function POST(req: Request): Promise<Response> {
   // Corte propio: la persona cerró el panel (cancel del stream o enqueue que falla) o la request
   const turnAbort = new AbortController();
   const signal = AbortSignal.any([req.signal, turnAbort.signal]);
-  let locked = false;
-  const release = () => {
-    if (locked) busy.delete(userId);
-    locked = false;
-  };
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -220,17 +202,11 @@ export async function POST(req: Request): Promise<Response> {
       };
       try {
         emit({ type: "conv", id: conversationId });
-        if (!tryLock(userId, Date.now())) {
-          emit({ type: "error", message: BUSY_MESSAGE });
-          return;
-        }
-        locked = true;
         await runTurn(userId, conversationId, parsed.value, signal, emit, log, limits);
       } catch (e) {
         log.error(safeErr(e), "asistente: el turno falló");
         emit({ type: "error", message: ASSISTANT_ERROR_MESSAGE });
       } finally {
-        release();
         emit({ type: "done" });
         open = false;
         try {
@@ -241,9 +217,8 @@ export async function POST(req: Request): Promise<Response> {
       }
     },
     cancel() {
-      // La persona cerró el panel: se corta el turno y se libera el lock
+      // La persona cerró el panel: se corta el turno y su `finally` suelta la reserva
       turnAbort.abort();
-      release();
     },
   });
 
@@ -321,6 +296,65 @@ async function runTurn(
     emit(CAP_EVENT(start.error));
     return;
   }
+
+  // 3b. La decisión que vale entre instancias: turno en curso, cupo del mes y topes de gasto, bajo lock
+  const reservation = await reserveAssistantTurnNow({ userId, label, monthlyLimit: limit });
+  if (!reservation.ok) {
+    log.info({ reason: reservation.reason }, "asistente: turno no aceptado");
+    if (reservation.reason === "busy") emit({ type: "error", message: BUSY_MESSAGE });
+    else {
+      emit(
+        CAP_EVENT(reservation.reason === "monthly" ? "monthly_conversations" : "daily_budget"),
+      );
+    }
+    return;
+  }
+  try {
+    await streamAcceptedTurn({
+      userId,
+      label,
+      request,
+      signal,
+      emit,
+      log,
+      limits,
+      now,
+      messages,
+      turns,
+      spentUsd: usage.conversationCostUsd,
+    });
+  } finally {
+    await releaseAssistantTurnNow(reservation.reservationId);
+  }
+}
+
+type AcceptedTurn = {
+  userId: string;
+  label: string;
+  request: AssistantRequest;
+  signal: AbortSignal;
+  emit: (event: AssistantStreamEvent) => void;
+  log: Logger;
+  limits: ConversationLimits;
+  now: Date;
+  messages: Parameters<typeof summarizeHistory>[0];
+  turns: number;
+  spentUsd: number | null;
+};
+
+async function streamAcceptedTurn({
+  userId,
+  label,
+  request,
+  signal,
+  emit,
+  log,
+  limits,
+  now,
+  messages,
+  turns,
+  spentUsd,
+}: AcceptedTurn): Promise<void> {
   // Un turno aceptado = un marcador (los pasos del modelo no dicen cuántos mensajes hubo)
   await recordAssistantMarker(userId, label, ASSISTANT_TURN_MARKER);
 
@@ -386,7 +420,7 @@ async function runTurn(
           screen: request.screen,
           maxTurns: limits.maxTurnsPerConversation,
         }),
-      spentUsd: usage.conversationCostUsd,
+      spentUsd,
       limits,
       promptVersion: PROMPT_REF,
     },
