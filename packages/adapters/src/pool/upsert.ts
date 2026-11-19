@@ -15,6 +15,7 @@ import {
   type Term,
 } from "@job-search-os/pipeline";
 import { and, eq, gte, inArray, isNotNull, isNull, or, sql, type SQL } from "drizzle-orm";
+import { clampRawJobFields } from "../ingest/clamp-fields";
 import { jdHash, upsertCompany } from "../ingest/ingest-job";
 import type { Logger } from "../logger";
 import { safeDbError } from "../logging/safe-error";
@@ -153,7 +154,9 @@ function normalize(raw: RawJob, externalId: string, sourceUrl: string): Normaliz
 }
 
 /** Contactos fuera de lo que se guarda: título, empresa y ubicación además del JD y el crudo. */
-function sanitize(original: RawJob): RawJob {
+function sanitize(input: RawJob): RawJob {
+  // Primero los topes de largo (igual que la ingesta manual): así lo demás trabaja sobre textos cortos
+  const original = clampRawJobFields(input);
   return {
     ...original,
     title: stripContacts(original.title),

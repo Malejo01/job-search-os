@@ -39,6 +39,36 @@ describe("clampRawJobFields", () => {
     );
   });
 
+  it("recorta el contrato a 100, y países y etiquetas por cantidad y por largo", () => {
+    const out = clampRawJobFields({
+      ...base,
+      contractType: "c".repeat(5_000),
+      countriesAllowed: Array.from({ length: 5_000 }, () => "p".repeat(500)),
+      badges: Array.from({ length: 5_000 }, () => "b".repeat(500)),
+    });
+    expect(out.contractType).toHaveLength(100);
+    expect(out.countriesAllowed).toHaveLength(250);
+    expect(out.countriesAllowed![0]).toHaveLength(40);
+    expect(out.badges).toHaveLength(20);
+    expect(out.badges[0]).toHaveLength(100);
+  });
+
+  it("2 MB en cada campo se recortan en menos de 100 ms", () => {
+    const huge = "z".repeat(2_000_000);
+    const start = performance.now();
+    clampRawJobFields({
+      ...base,
+      title: huge,
+      companyRaw: huge,
+      locationRaw: huge,
+      contractType: huge,
+      salaryNote: huge,
+      countriesAllowed: [huge],
+      badges: [huge],
+    });
+    expect(performance.now() - start).toBeLessThan(100);
+  });
+
   it("deja igual lo que ya entra y conserva los null", () => {
     expect(clampRawJobFields(base)).toEqual(base);
     expect(clampRawJobFields({ ...base, locationRaw: null }).locationRaw).toBeNull();
