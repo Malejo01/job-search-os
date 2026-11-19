@@ -24,8 +24,8 @@
     "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
-    "drizzle-orm": "^0.45.2",
-    "postgres": "^3.4.9",
+    "drizzle-orm": "^0.45.4",
+    "postgres": "^4.1.1",
     "@job-search-os/pipeline": "workspace:*"
   },
   "devDependencies": {
