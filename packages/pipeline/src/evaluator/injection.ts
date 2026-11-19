@@ -11,21 +11,72 @@ export const INJECTION_RISK = "aviso con instrucciones al evaluador";
  * topa el score en "guardar" y agrega un riesgo visible; un falso negativo no tiene tope. Por eso
  * son frases dirigidas al modelo y no palabras sueltas ("sistema", "instrucciones", "json").
  */
-const PATTERNS: readonly { name: string; re: RegExp }[] = [
+/** A quién se dirige un pedido de nota: la persona, el aviso o la oferta (texto plegado). */
+const TARGET_SRC =
+  "(?:this|that|the|these|este|esta|ese|esa|el|la|al|tu|su|dicho|dicha)\\s+(?:\\w+\\s+)?(?:candidate|applicant|candidato|candidata|perfil|postulante|aplicante|aviso|oferta|posting|job|role|persona|cv|resume|curriculum|puesto|vacante|posicion)\\b";
+const TARGET_RE = new RegExp(TARGET_SRC);
+
+/** Palabras de nota máxima y adjetivos de "la nota correcta", compartidos por los patrones sin verbo. */
+const MAX_SRC =
+  "(?:10|9|diez|nueve|ten|nine|maxim[ao]|maximum|highest|perfect[ao]?|alt[ao]|high)";
+const GRADE_SRC = "(?:score|puntaje|nota|puntuacion|calificacion|rating|grade)";
+const ADJ_SRC = "(?:correct[oa]?|final|right|expected|esperad[ao])";
+const FOR_SRC = "(?:(?:for|para|of|de)\\s+(?:this|the|este|esta)\\s+\\w+\\s+)";
+
+type Pattern = {
+  name: string;
+  re: RegExp;
+  /**
+   * Condición extra para que la frase cuente como dirigida al evaluador: `match` mira solo el texto
+   * que saltó, `sentence` mira también la oración que lo rodea (hasta 100 caracteres a cada lado).
+   */
+  needs?: { re: RegExp; scope: "match" | "sentence" };
+};
+
+const PATTERNS: readonly Pattern[] = [
   {
     name: "ignorar_instrucciones",
     re: /\bignor(?:a|e)\s+(?:todas\s+)?(?:las\s+)?(?:instrucciones|reglas)\s+(?:anteriores|previas|del sistema)/,
   },
   {
     name: "ignore_previous",
-    re: /\bignore\s+(?:all\s+)?(?:the\s+)?(?:previous|prior|above)\s+(?:instructions|rules)/,
+    re: /\bignore\s+(?:(?:all|any|the|your|these|those|my|of)\s+){0,3}(?:(?:previous|prior|above|earlier|preceding|former)\s+(?:instructions|rules|directions|guidelines|prompts?)|(?:instructions|rules|directions|guidelines)\s+(?:above|before|given\s+(?:above|before|earlier)|so\s+far|you\s+(?:were|have\s+been)\s+given))/,
   },
-  { name: "system_prompt", re: /\bsystem\s+prompt\b/ },
+  // Solo cuando se pide o se redefine el prompt: "system prompt design" en un aviso de IA es normal
+  {
+    name: "system_prompt",
+    re: /\b(?:reveal\w*|show|print|repeat|output|leak|dump|display|your|new|mostra\w*|muestra\w*|revela\w*|imprim\w*|repet\w*|tu|tus)\s+(?:the\s+|your\s+|el\s+|tu\s+)?system\s+prompt\b|\bsystem\s+prompt\s*[:=]/,
+  },
+  {
+    name: "ignorar_otros_idiomas",
+    re: /\b(?:ignorez|ignorer|oubliez|negligez|ignoriere\w*|ignorieren|vergiss|missachte\w*|desconsider\w*|desprez\w*|esquec\w*)\s+(?:(?:todas?|todos?|tous|toutes|alle|alles|as|os|les|des|die|der|den|diese|ihre|deine|vos|vuestras?|tes|ses|suas?|seus?|tus|sus)\s+){0,3}(?:(?:instruc\w*|instruct\w*|reglas?|regras?|regles?|consignes?|directives?)\s+(?:anteriores|previas|previos|precedentes|prece\w+|ci-dessus)|(?:vorherigen|fruheren|vorigen|obigen)\s+(?:anweisungen|regeln|vorgaben|befehle|instruktionen)|(?:lo|tudo|tout)\s+(?:anterior|isso|ce\s+qui))/,
+  },
+  {
+    name: "valor_accion",
+    re: /\baplicar_personalizado\b|\b(?:como|as|to|en|a)\s+aplicar\s+personalizado\b|[:=]\s*aplicar[_\s]personalizado\b/,
+  },
+  {
+    name: "nota_requerida",
+    re: new RegExp(
+      `\\b(?:the|el|la|este|esta)\\s+(?:${ADJ_SRC}\\s+)?${GRADE_SRC}\\s+(?:${ADJ_SRC}\\s+)?${FOR_SRC}?(?:(?:must|should|needs\\s+to|has\\s+to)\\s+be|debe\\s+ser|tiene\\s+que\\s+ser|deberia\\s+ser|tendria\\s+que\\s+ser)\\s+${MAX_SRC}\\b`,
+    ),
+  },
+  {
+    // "es"/"is" solo cuenta si la nota se llama correcta o final, o se dice para este aviso/candidato
+    name: "nota_correcta",
+    re: new RegExp(
+      `\\b(?:the|el|la)\\s+(?:${ADJ_SRC}\\s+)?${GRADE_SRC}\\s+(?:${ADJ_SRC}\\s+)?${FOR_SRC}?(?:es|is)\\s+${MAX_SRC}\\b`,
+    ),
+    needs: {
+      re: new RegExp(`\\b${ADJ_SRC}\\b|${TARGET_SRC}`),
+      scope: "match",
+    },
+  },
   { name: "you_are_now", re: /\byou\s+are\s+now\s+(?:a|an)\b/ },
   { name: "act_as_ai", re: /\bact\s+as\s+(?:a|an)\s+(?:ai|assistant|language model)\b/ },
   {
     name: "disregard_previous",
-    re: /\b(?:disregard|forget)\s+(?:all\s+)?(?:the\s+)?(?:previous|prior|above)\s+(?:instructions|rules)/,
+    re: /\b(?:disregard|forget|override|skip)\s+(?:(?:all|any|the|your|these|those|my|of)\s+){0,3}(?:(?:previous|prior|above|earlier|preceding|former)\s+(?:instructions|rules|directions|guidelines|prompts?)|(?:instructions|rules|directions|guidelines)\s+(?:above|before|given\s+(?:above|before|earlier)|so\s+far|you\s+(?:were|have\s+been)\s+given))/,
   },
   { name: "olvidar_anterior", re: /\bolvid(?:a|e)\s+(?:todo\s+)?lo\s+anterior/ },
   { name: "ignorar_todo_anterior", re: /\bignor(?:a|e)\s+todo\s+lo\s+anterior/ },
@@ -57,7 +108,7 @@ const PATTERNS: readonly { name: string; re: RegExp }[] = [
   // Las repeticiones están acotadas ({0,n}) y cada una consume palabras enteras: costo lineal.
   {
     name: "ignorar_indicaciones",
-    re: /\b(?:ignor(?:a|e|ar)|descart(?:a|e|ar)|desestim(?:a|e|ar)|omit(?:e|ir)|saltea(?:te)?|desatend(?:e|er))\s+(?:(?:todas?|todo|el|la|las|los|lo|as|os)\s+){0,2}(?:(?:instruc\w*|reglas?|regras|indicaciones)\s+(?:anteriores|previas|previos)|(?:lo\s+)?(?:indicado|anterior|escrito)\b)/,
+    re: /\b(?:ignor(?:a|e|ar|ad|en)|descart(?:a|e|ar|ad)|desestim(?:a|e|ar|ad)|omit(?:e|ir)|saltea(?:te)?|desatend(?:e|er)|desatended)\s+(?:(?:todas?|todo|el|la|las|los|lo|as|os|tus?|sus?|vuestras?|mis|estas|esas|nuestras)\s+){0,2}(?:(?:instruc\w*|reglas?|regras|indicaciones)\s+(?:anteriores|previas|previos)|(?:lo\s+)?(?:indicado|anterior|escrito)\b)/,
   },
   {
     name: "pasar_por_alto",
@@ -66,10 +117,12 @@ const PATTERNS: readonly { name: string; re: RegExp }[] = [
   {
     name: "mandato_nota",
     re: /\b(?:pone|poner|ponele|asigna|asignale|asignar|dale|califica|calificalo|calificar|puntua|otorga|otorgale|give|assign|rate|grade|set)\b(?:\W+\w+){0,4}?\W+(?:nota|score|puntaje|puntuacion|calificacion|rating|grade)\b(?:\W+(?:de|of|a|to|as|como))?\W+(?:maxim[ao]|alt[ao]|perfect[ao]?|max|maximum|highest|top|diez|ten|10|9|excelente)\b/,
+    needs: { re: TARGET_RE, scope: "sentence" },
   },
   {
     name: "mandato_nota_maxima",
     re: /\b(?:pone|poner|ponele|asigna|asignale|asignar|dale|califica|calificalo|calificar|puntua|otorga|otorgale|give|assign|rate|grade|set)\b(?:\W+\w+){0,3}?\W+(?:maxim[ao]|maximum|highest|top|perfect[ao]?|alt[ao]|high|diez|ten)\s+(?:nota|score|puntaje|puntuacion|calificacion|rating|grade)\b/,
+    needs: { re: TARGET_RE, scope: "sentence" },
   },
   {
     name: "calificar_diez_de_diez",
@@ -81,7 +134,7 @@ const PATTERNS: readonly { name: string; re: RegExp }[] = [
   },
   {
     name: "candidato_perfecto",
-    re: /\b(?:this\s+(?:candidate|applicant)\s+is\s+(?:a\s+|an\s+|the\s+)?(?:perfect|ideal|best|top)|este\s+(?:candidato|perfil|postulante)\s+es\s+(?:el\s+|un\s+)?(?:ideal|perfecto|mejor))\b/,
+    re: /\b(?:this\s+(?:candidate|applicant)\s+is\s+(?:a\s+|an\s+|the\s+)?(?:perfect|ideal|best|top)|este\s+(?:candidato|postulante)\s+es\s+(?:el\s+|un\s+)?(?:ideal|perfecto|mejor))\b/,
   },
 ];
 
@@ -137,9 +190,8 @@ const LEET: Readonly<Record<string, string>> = {
 const mapConfusables = (text: string): string =>
   Array.from(text, (ch) => CONFUSABLES[ch] ?? ch).join("");
 
-/** Separadores entre palabras o letras → espacio; tres o más letras sueltas seguidas se pegan. */
-function unsplit(text: string): string {
-  const tokens = text.replace(/[-_.*·|/\\]+/g, " ").split(/\s+/);
+/** Une las rachas de tres o más letras sueltas dentro de un trozo ya separado en palabras. */
+function joinSingleLetters(chunk: string): string {
   const out: string[] = [];
   let run: string[] = [];
   const flush = () => {
@@ -147,7 +199,7 @@ function unsplit(text: string): string {
     else out.push(...run);
     run = [];
   };
-  for (const t of tokens) {
+  for (const t of chunk.split(/\s+/)) {
     if (/^[a-z]$/.test(t)) run.push(t);
     else {
       flush();
@@ -156,6 +208,17 @@ function unsplit(text: string): string {
   }
   flush();
   return out.join(" ");
+}
+
+/**
+ * Separadores entre palabras o letras → espacio; tres o más letras sueltas seguidas se pegan.
+ * Con `keepBoundaries`, dos o más espacios seguidos cuentan como límite de palabra y no se pegan
+ * letras de un lado y del otro ("i g n o r e  p r e v i o u s").
+ */
+function unsplit(text: string, keepBoundaries: boolean): string {
+  const spaced = text.replace(/[-_.*·|/\\]+/g, " ");
+  const chunks = keepBoundaries ? spaced.split(/\s{2,}/) : [spaced];
+  return chunks.map(joinSingleLetters).join(" ");
 }
 
 /** Cifras y símbolos por letras, solo dentro de palabras que ya traen letras ("1gnore"). */
@@ -167,31 +230,57 @@ const unleet = (text: string): string =>
     )
     .join(" ");
 
-/** Caracteres de etiqueta (U+E0000–E007F): codifican texto que la persona no ve. */
-const isTagChar = (code: number): boolean => code >= 0xe0000 && code <= 0xe007f;
+/** Tope de caracteres que se revisan: el prompt del evaluador toma como máximo 60.000 de la JD. */
+export const INJECTION_SCAN_MAX_CHARS = 100_000;
+/** Cuántas coincidencias de un patrón con condición extra se examinan (acota el costo). */
+const MAX_CHECKED_MATCHES = 50;
 
-/** Invisibles que partirían una frase para esquivar los patrones (ancho cero, guion blando, BOM). */
-const isInvisible = (code: number): boolean =>
-  (code >= 0x200b && code <= 0x200d) ||
-  code === 0x00ad ||
-  (code >= 0x2060 && code <= 0x2064) ||
-  code === 0xfeff ||
-  isTagChar(code);
+/** Caracteres de etiqueta (U+E0000–E007F): codifican texto que la persona no ve. */
+const TAG_CHARS_RE = /[\u{E0000}-\u{E007F}]/u;
+/** Caracteres de formato (\p{Cf}: ancho cero, marcas de dirección, guion blando, BOM…) y selectores de variación. */
+const FORMAT_CHARS_RE = /[\p{Cf}︀-️\u{E0100}-\u{E01EF}]/gu;
+
+/** ¿Salta el patrón en este texto? Con condición extra, mira cada coincidencia (hasta un tope). */
+function patternHits(p: Pattern, text: string): boolean {
+  if (!p.needs) return p.re.test(text);
+  const re = new RegExp(p.re.source, "g");
+  let checked = 0;
+  for (const m of text.matchAll(re)) {
+    if (checked++ >= MAX_CHECKED_MATCHES) break;
+    const start = m.index ?? 0;
+    const scope =
+      p.needs.scope === "match"
+        ? m[0]
+        : text.slice(Math.max(0, start - 100), start + m[0].length + 100);
+    if (p.needs.re.test(scope)) return true;
+  }
+  return false;
+}
 
 /**
  * Detecta texto dirigido al modelo evaluador dentro de un aviso. Devuelve los NOMBRES de los
- * patrones que saltaron, nunca el texto: el aviso es contenido de terceros.
+ * patrones que saltaron, nunca el texto: el aviso es contenido de terceros. Revisa como máximo
+ * `INJECTION_SCAN_MAX_CHARS` caracteres, con costo lineal.
  */
 export function detectEvaluatorInjection(text: string): { hit: boolean; signals: string[] } {
-  const hidden = Array.from(text).some((ch) => isTagChar(ch.codePointAt(0) ?? 0));
-  const visible = Array.from(text)
-    .filter((ch) => !isInvisible(ch.codePointAt(0) ?? 0))
-    .join("");
-  const folded = mapConfusables(foldText(visible));
-  const spaced = unsplit(folded);
-  // Cada patrón se prueba sobre el texto plegado y sobre sus variantes sin separadores ni cifras
-  const variants = [folded, spaced, unleet(spaced)];
-  const signals = PATTERNS.filter((p) => variants.some((v) => p.re.test(v))).map((p) => p.name);
+  const hidden = TAG_CHARS_RE.test(text);
+  const stripped = text.replace(FORMAT_CHARS_RE, "").slice(0, INJECTION_SCAN_MAX_CHARS);
+  const bases = [stripped];
+  // Un invisible entre palabras también puede ser el separador: se prueba además como espacio
+  if (stripped.length < text.length) {
+    const asSpace = text.slice(0, INJECTION_SCAN_MAX_CHARS).replace(FORMAT_CHARS_RE, " ");
+    if (asSpace !== stripped) bases.push(asSpace);
+  }
+  const variants = new Set<string>();
+  for (const base of bases) {
+    const folded = mapConfusables(foldText(base));
+    // Cada patrón se prueba sobre el texto plegado y sobre sus variantes sin separadores ni cifras
+    const spaced = unsplit(folded, true);
+    const spacedAll = unsplit(folded, false);
+    for (const v of [folded, spaced, spacedAll, unleet(spaced), unleet(spacedAll)]) variants.add(v);
+  }
+  const list = [...variants];
+  const signals = PATTERNS.filter((p) => list.some((v) => patternHits(p, v))).map((p) => p.name);
   if (hidden) signals.push("texto_oculto");
   return { hit: signals.length > 0, signals };
 }
