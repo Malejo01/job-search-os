@@ -138,6 +138,14 @@ export default async function InboundEmailPage({
             )
           ) : null}
         </section>
+      ) : email.expired ? (
+        <p
+          className="rounded-container bg-surface px-6 py-8 text-center text-sm text-fg-muted"
+          data-testid="contenido-vencido"
+        >
+          El contenido venció: pasó el plazo de conservación y el cuerpo de este email se borró.
+          Quedan el remitente, el asunto y la fecha.
+        </p>
       ) : email.html ? (
         <iframe
           title="Contenido del email"

@@ -4,7 +4,7 @@ import { createDb, schema as s } from "@job-search-os/db";
 import { eq, inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { POOL_PARSER } from "../inbound/pool-mailbox";
-import { PURGE_MAX_BATCHES, parseLogDays, purgeExpired } from "./purge";
+import { orphanSelectSql, PURGE_MAX_BATCHES, parseLogDays, purgeExpired } from "./purge";
 
 /** JS-107 · la purga borra solo lo vencido, respeta la ventana del tope y la cola viva. */
 const A = "a0000000-0000-4000-8000-000000000107";
@@ -244,6 +244,7 @@ describe("purgeExpired", () => {
       betaFeedback: 0,
       poolEmails: 0,
       inboundRaw: 0,
+      inboundOrphans: 0,
       loginAttempts: 0,
     });
   });
@@ -289,7 +290,12 @@ describe("purgeExpired", () => {
       await conn.db.delete(s.rawBlobs).where(eq(s.rawBlobs.userId, A));
     });
 
-    const mkEmail = async (age: number, kind = "inbound_email") => {
+    // Por defecto el email ya está resuelto (visto): lo pendiente en /inbox no se purga
+    const mkEmail = async (
+      age: number,
+      kind = "inbound_email",
+      row: Partial<typeof s.inboundEmails.$inferInsert> = {},
+    ) => {
       const [blob] = await conn.db
         .insert(s.rawBlobs)
         .values({ userId: A, kind, contentType: "application/json", body: "{}", bytes: 2 })
@@ -303,9 +309,25 @@ describe("purgeExpired", () => {
           rawRef,
           parser: "none",
           receivedAt: daysAgo(age),
+          seenAt: daysAgo(age),
+          ...row,
         })
         .returning({ id: s.inboundEmails.id });
       return { blob: blob!.id, email: email!.id, rawRef };
+    };
+    const mkOrphan = async (age: number, kind = "inbound_email") => {
+      const [blob] = await conn.db
+        .insert(s.rawBlobs)
+        .values({
+          userId: A,
+          kind,
+          contentType: "application/json",
+          body: "{}",
+          bytes: 2,
+          createdAt: daysAgo(age),
+        })
+        .returning({ id: s.rawBlobs.id });
+      return { blob: blob!.id, rawRef: `pg:${blob!.id}` };
     };
     const blobExists = async (id: string) =>
       (await conn.db.select({ id: s.rawBlobs.id }).from(s.rawBlobs).where(eq(s.rawBlobs.id, id)))
@@ -350,6 +372,103 @@ describe("purgeExpired", () => {
         .from(s.inboundEmails)
         .where(eq(s.inboundEmails.id, old.email));
       expect(emails).toHaveLength(1);
+    });
+
+    it("un email pendiente vencido conserva su crudo, también el retenido y la confirmación de Gmail", async () => {
+      const sinParser = await mkEmail(100, "inbound_email", { seenAt: null, parser: "none" });
+      const conError = await mkEmail(100, "inbound_email", {
+        seenAt: null,
+        parser: "linkedin",
+        error: "estructura no reconocida",
+      });
+      const retenido = await mkEmail(100, "inbound_email", {
+        seenAt: null,
+        parser: "linkedin",
+        error: "remitente sin autenticación verificada: cola manual",
+      });
+      const gmail = await mkEmail(100, "inbound_email", {
+        seenAt: null,
+        parser: "gmail_reenvio",
+        error: null,
+      });
+      const visto = await mkEmail(100, "inbound_email", { parser: "linkedin" });
+      const descartado = await mkEmail(100, "inbound_email", {
+        seenAt: null,
+        dismissedAt: daysAgo(50),
+      });
+
+      const r = await purgeExpired(conn.db, { now: NOW, inboundRawDays: 90 });
+
+      expect(r.inboundRaw).toBe(2);
+      for (const kept of [sinParser, conError, retenido, gmail]) {
+        expect(await blobExists(kept.blob)).toBe(true);
+      }
+      expect(await blobExists(visto.blob)).toBe(false);
+      expect(await blobExists(descartado.blob)).toBe(false);
+    });
+
+    it("una fila provisional en proceso no pierde nada", async () => {
+      const provisional = await mkEmail(100, "inbound_email", {
+        seenAt: null,
+        rawRef: "pending:",
+        error: "procesando: el email no terminó de procesarse",
+      });
+      const r = await purgeExpired(conn.db, { now: NOW, inboundRawDays: 90 });
+      expect(r.inboundRaw).toBe(0);
+      expect(await blobExists(provisional.blob)).toBe(true);
+    });
+
+    it("un crudo huérfano vencido se borra; uno usado por una oferta, uno reciente y otro tipo no", async () => {
+      const huerfano = await mkOrphan(100);
+      const reciente = await mkOrphan(10);
+      const otroTipo = await mkOrphan(100, "jd_pegada");
+      const conOferta = await mkOrphan(100);
+      const referenciado = await mkEmail(10);
+      const [job] = await conn.db
+        .insert(s.jobs)
+        .values({
+          userId: A,
+          companyRaw: "Empresa A",
+          title: "Backend Engineer",
+          titleNormalized: "backend engineer",
+        })
+        .returning({ id: s.jobs.id });
+      await conn.db
+        .insert(s.jobSources)
+        .values({ jobId: job!.id, kind: "email_linkedin", rawRef: conOferta.rawRef });
+
+      const r = await purgeExpired(conn.db, { now: NOW, inboundRawDays: 90 });
+
+      expect(r.inboundOrphans).toBe(1);
+      expect(await blobExists(huerfano.blob)).toBe(false);
+      expect(await blobExists(reciente.blob)).toBe(true);
+      expect(await blobExists(otroTipo.blob)).toBe(true);
+      expect(await blobExists(conOferta.blob)).toBe(true);
+      expect(await blobExists(referenciado.blob)).toBe(true);
+    });
+
+    it("sin la variable no borra huérfanos", async () => {
+      const huerfano = await mkOrphan(400);
+      const r = await purgeExpired(conn.db, { now: NOW });
+      expect(r.inboundOrphans).toBe(0);
+      expect(await blobExists(huerfano.blob)).toBe(true);
+    });
+
+    it("la purga de huérfanos usa índice sobre raw_blobs con miles de filas", async () => {
+      await conn.db.execute(sql`
+        INSERT INTO raw_blobs (user_id, kind, content_type, body, bytes, created_at)
+        SELECT ${A}::uuid, 'inbound_email', 'application/json', '{}', 2, ${daysAgo(1).toISOString()}::timestamptz
+        FROM generate_series(1, 6000)
+      `);
+      await mkOrphan(100);
+      await conn.db.execute(sql`ANALYZE raw_blobs`);
+
+      const plan = (await conn.db.execute(
+        sql`EXPLAIN ${orphanSelectSql(daysAgo(90), 5_000)}`,
+      )) as unknown as Record<string, string>[];
+      const text = plan.map((r) => Object.values(r)[0]).join("\n");
+
+      expect(text).not.toMatch(/Seq Scan on raw_blobs/);
     });
   });
 

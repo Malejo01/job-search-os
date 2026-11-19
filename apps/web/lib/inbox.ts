@@ -32,6 +32,8 @@ export type InboundEmailDetail = {
   links: string[];
   /** JS-051: remitente no esperado, se guardó sin cuerpo. El motivo, o null si está completo. */
   redacted: string | null;
+  /** El crudo ya no existe (lo purgó la retención): el cuerpo venció. Una fila en proceso no cuenta. */
+  expired: boolean;
   /** Dominio base del remitente, para marcarlo como fuente de empleo. */
   senderDomain: string | null;
   /** El dominio ya está marcado como fuente de empleo: los próximos se guardan completos. */
@@ -116,6 +118,8 @@ export async function getInboundEmail(
       text: plano || null,
       links: extraerLinks(plano, html),
       redacted,
+      // Ya se leyó el crudo arriba: no suma consultas
+      expired: blob === null && row.rawRef !== "pending:",
       senderDomain,
       senderIsJobSource:
         verdict?.verdict === "empleo" && !(senderDomain !== null && isWebmailDomain(senderDomain)),
