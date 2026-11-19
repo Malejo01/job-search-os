@@ -10,6 +10,7 @@ import {
   type JobFacts,
 } from "./evaluator/job-facts";
 import { inferSeniorityFromTitle } from "./normalize/seniority";
+import { foldText, squash } from "./normalize/text";
 import { ISO_COUNTRY_CODES } from "./countries";
 import { allowsCountry, locationScope, placesIn } from "./pool/location-scope";
 import { RESIDENCY_FLAG } from "./prefilter/residency";
@@ -242,6 +243,12 @@ export function englishRankFromCefr(cefr: string | null | undefined): number | n
   const m = /([abc][12])/i.exec(cefr ?? "");
   return m ? (CEFR_RANK[m[1]!.toLowerCase()] ?? null) : null;
 }
+
+const comparable = (text: string): string =>
+  squash(foldText(text)).replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
+const INJECTION_RISK_KEY = comparable(INJECTION_RISK);
+/** ¿Es este riesgo el de «aviso con instrucciones al evaluador»? Igualdad exacta tras normalizar. */
+const isInjectionRisk = (risk: string): boolean => comparable(risk) === INJECTION_RISK_KEY;
 
 /**
  * decide(): aplica en código lo que se puede verificar con campos estructurados y recalcula
@@ -594,7 +601,16 @@ export function decide(
    * Aviso con instrucciones dirigidas al evaluador (ronda 43). El texto es de terceros: si intentó
    * mover el score, no lo logra más allá de "guardar" y la persona ve el riesgo. Nunca descarta.
    */
-  const injected = (context.prefilterFlags ?? []).includes(INJECTION_FLAG);
+  // También cuenta si el modelo informa ese mismo riesgo: la comparación ignora mayúsculas, tildes,
+  // espacios de más y puntuación de los bordes, pero no acepta frases distintas. Si hay variantes,
+  // se reemplazan por el texto exacto para no duplicar el riesgo.
+  const reportedByModel = riesgos.some(isInjectionRisk);
+  if (reportedByModel) {
+    for (let i = riesgos.length - 1; i >= 0; i--) {
+      if (isInjectionRisk(riesgos[i]!)) riesgos.splice(i, 1);
+    }
+  }
+  const injected = reportedByModel || (context.prefilterFlags ?? []).includes(INJECTION_FLAG);
   if (injected) {
     if (!riesgos.includes(INJECTION_RISK)) riesgos.push(INJECTION_RISK);
     if (score > rules.thresholds.guardar) {

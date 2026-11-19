@@ -62,6 +62,51 @@ test("los jobs con secretos de producción declaran su entorno", () => {
   }
 });
 
+/** Secretos que pagan llamadas a un modelo: GEMINI_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY y similares. */
+const MODEL_SECRET = /secrets\.[A-Z0-9_]*(GEMINI|ANTHROPIC|OPENAI|GOOGLE_API|LLM)[A-Z0-9_]*/;
+
+test("ningún job con secretos de modelo corre en un pull_request: solo en push a main o a mano desde main", () => {
+  let checked = 0;
+  for (const { name, text } of workflows) {
+    for (const { job, block } of jobBlocks(text)) {
+      if (!MODEL_SECRET.test(block)) continue;
+      checked++;
+      // El `if` del job va antes de `steps:`; cualquier otro `if` de un paso no cuenta
+      const header = block.split(/^\s+steps:/m)[0];
+      const condition = header.match(/^\s+if:\s*(.+)$/m)?.[1] ?? "";
+      assert.notEqual(
+        condition,
+        "",
+        `${name}: ${job} usa un secreto de modelo y no tiene \`if\` a nivel de job`,
+      );
+      assert.doesNotMatch(condition, /pull_request/, `${name}: ${job} corre en pull_request`);
+      assert.match(
+        condition,
+        /github\.ref == 'refs\/heads\/main'/,
+        `${name}: ${job} no se limita a main`,
+      );
+      assert.match(
+        condition,
+        /github\.event_name == '(push|workflow_dispatch)'/,
+        `${name}: ${job}`,
+      );
+      // Un pull_request_target le daría el secreto a código de un PR: tampoco
+      assert.doesNotMatch(condition, /pull_request_target/, `${name}: ${job}`);
+    }
+  }
+  assert.ok(
+    checked > 0,
+    "no se encontró ningún job con secretos de modelo: el test no está probando nada",
+  );
+});
+
+test("ningún workflow se dispara con pull_request_target", () => {
+  for (const { name, text } of workflows) {
+    // `carril.yml` lo usa a propósito (corre desde main y no ve código del PR); no tiene secretos de modelo
+    if (MODEL_SECRET.test(text)) assert.doesNotMatch(text, /pull_request_target/, name);
+  }
+});
+
 test("el cron no imprime la respuesta completa en el log público", () => {
   const { text } = workflows.find((w) => w.name === "cron.yml");
   assert.doesNotMatch(text, /jq \.\s*$/m);

@@ -134,7 +134,8 @@ export default async function SettingsPage({
             Cerrar todas las sesiones
           </button>
           <p className="text-xs text-fg-subtle">
-            Sale de tu cuenta en todos los dispositivos, también en este.
+            Salís de todos los dispositivos, también de este, y se revocan los accesos del asistente
+            externo.
           </p>
         </form>
         <DeleteAccountForm error={Boolean(error)} />

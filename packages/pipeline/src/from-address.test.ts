@@ -94,21 +94,78 @@ describe("remitentes falsificados", () => {
 });
 
 describe("authResultsVerdict", () => {
+  const ID = "mx.example";
+  const FROM = "Portal <aviso@portal.example>";
+  const verdict = (headers: Record<string, unknown> | null | undefined) =>
+    authResultsVerdict(headers, ID, FROM);
+
   it.each([
     [{ "Authentication-Results": "mx.example; dmarc=fail header.from=portal.example" }],
     [{ "authentication-results": "mx.example; spf=pass; DMARC=FAIL (p=reject)" }],
-    [{ "Authentication-Results": ["mx.example; dmarc=pass", "mx.otro; dmarc=fail"] }],
-    [{ "Received-SPF": "fail (dominio no autorizado)" }],
+    // pasa DMARC pero para otro dominio: no alinea con el From
+    [{ "Authentication-Results": "mx.example; dmarc=pass header.from=otro.example" }],
   ])("fail con %j", (headers) => {
-    expect(authResultsVerdict(headers)).toBe("fail");
+    expect(verdict(headers)).toBe("fail");
   });
 
   it.each([
-    [{ "Authentication-Results": "mx.example; dmarc=pass" }],
-    [{ "Authentication-Results": "mx.example; dkim=pass header.d=portal.example" }],
-    [{ "Received-SPF": "pass (dominio autorizado)" }],
+    [{ "Authentication-Results": "mx.example; dmarc=pass header.from=portal.example" }],
+    [{ "authentication-results": "MX.EXAMPLE; spf=pass; dmarc=pass header.from=Portal.Example" }],
+    [
+      {
+        "Authentication-Results": "mx.example 1; dkim=pass; dmarc=pass header.from=portal.example",
+      },
+    ],
+    [
+      {
+        "Authentication-Results": [
+          "mx.example; dmarc=pass header.from=portal.example",
+          "mx.otro; dmarc=fail",
+        ],
+      },
+    ],
   ])("aligned con %j", (headers) => {
-    expect(authResultsVerdict(headers)).toBe("aligned");
+    expect(verdict(headers)).toBe("aligned");
+  });
+
+  // Los casos que antes daban `aligned` con un encabezado que escribe quien envía
+  it.each([
+    ["encabezado sin resultado del receptor propio", { "Authentication-Results": "x; dmarc=pass" }],
+    [
+      "authserv-id ajeno",
+      { "Authentication-Results": "otro.example; dmarc=pass header.from=portal.example" },
+    ],
+    ["dmarc=pass sin header.from", { "Authentication-Results": "mx.example; dmarc=pass" }],
+    [
+      "DKIM de otro dominio",
+      { "Authentication-Results": "mx.example; dkim=pass header.d=otro.example" },
+    ],
+    [
+      "DKIM del mismo dominio sin DMARC",
+      { "Authentication-Results": "mx.example; dkim=pass header.d=portal.example" },
+    ],
+    ["SPF de otro dominio", { "Received-SPF": "pass (otro.example)" }],
+    ["SPF fallido suelto", { "Received-SPF": "fail (portal.example)" }],
+    [
+      "segunda instancia con pass",
+      {
+        "Authentication-Results": [
+          "mx.example; dmarc=none",
+          "mx.example; dmarc=pass header.from=portal.example",
+        ],
+      },
+    ],
+    [
+      "primera instancia ajena y segunda propia",
+      {
+        "Authentication-Results": [
+          "otro.example; dmarc=pass header.from=portal.example",
+          "mx.example; dmarc=pass header.from=portal.example",
+        ],
+      },
+    ],
+  ])("no es aligned: %s", (_, headers) => {
+    expect(verdict(headers)).not.toBe("aligned");
   });
 
   it.each([
@@ -119,7 +176,51 @@ describe("authResultsVerdict", () => {
     [{ "Authentication-Results": "mx.example; dmarc=none" }],
     [{ "DKIM-Signature": "v=1; d=portal.example" }],
   ])("none con %j", (headers) => {
-    expect(authResultsVerdict(headers)).toBe("none");
+    expect(verdict(headers)).toBe("none");
+  });
+
+  it("sin authserv-id configurado el veredicto es none, aunque el email pase", () => {
+    const headers = {
+      "Authentication-Results": "mx.example; dmarc=pass header.from=portal.example",
+    };
+    expect(authResultsVerdict(headers, undefined, FROM)).toBe("none");
+    expect(authResultsVerdict(headers, "  ", FROM)).toBe("none");
+  });
+
+  it("con un From ilegible el veredicto es none", () => {
+    const headers = {
+      "Authentication-Results": "mx.example; dmarc=pass header.from=portal.example",
+    };
+    expect(authResultsVerdict(headers, ID, "sin direccion")).toBe("none");
+  });
+
+  describe("encabezados hostiles", () => {
+    const CI_FACTOR = process.env.CI ? 4 : 1;
+    const elapsed = (fn: () => unknown) => {
+      const start = performance.now();
+      fn();
+      return performance.now() - start;
+    };
+    const MB2 = 2 * 1024 * 1024;
+
+    it.each([
+      ["espacios", `mx.example;${" ".repeat(MB2)}dmarc=pass`],
+      ["punto y coma", `mx.example${";".repeat(MB2)}`],
+      ["header.from repetido", `mx.example; dmarc=pass ${"header.from=".repeat(MB2 / 12)}`],
+    ])("2 MB de %s vuelven en menos de 100 ms", (_, value) => {
+      let out: unknown;
+      expect(elapsed(() => (out = verdict({ "Authentication-Results": value })))).toBeLessThan(
+        100 * CI_FACTOR,
+      );
+      expect(out).not.toBe("aligned");
+    });
+
+    it("una lista enorme de encabezados vuelve en menos de 100 ms", () => {
+      const many = Array.from({ length: 100_000 }, () => "mx.example; dmarc=none");
+      expect(elapsed(() => verdict({ "Authentication-Results": many }))).toBeLessThan(
+        100 * CI_FACTOR,
+      );
+    });
   });
 });
 

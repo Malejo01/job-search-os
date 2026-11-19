@@ -5,6 +5,7 @@ import {
   buildEvaluateJobVars,
   canTransition,
   checkJdSize,
+  checkPromptSize,
   compileTaxonomy,
   decide,
   detectJobInjection,
@@ -37,7 +38,7 @@ import { randomUUID } from "node:crypto";
 import { and, count, desc, eq, getTableColumns, lte, ne, sql } from "drizzle-orm";
 import { DEFAULT_PROMPT_VERSIONS } from "../llm/client";
 import type { GenerateContext, LlmClient, LlmError } from "../llm/types";
-import { dailyCapFromEnv, spendLast24h, userDailyCapUsd } from "../llm/spend";
+import { dailyCapFromEnv, globalCapReached, spendLast24h, userDailyCapUsd } from "../llm/spend";
 import { EVALUATION_RESERVE_USD, releaseLlmSpend, reserveLlmSpend } from "../llm/spend-reserve";
 import type { Logger } from "../logger";
 import { safeDbError } from "../logging/safe-error";
@@ -250,7 +251,13 @@ export type EvaluateForProfileResult =
       sanitized: ReturnType<typeof sanitizeEvaluation>["sanitized"];
       injection: InjectionInfo;
     }
-  | { ok: false; error: LlmError; injection: InjectionInfo };
+  | {
+      ok: false;
+      error: LlmError;
+      injection: InjectionInfo;
+      /** El prompt completo se pasa del máximo: reintentar no sirve, hay que cambiar el perfil o el aviso. */
+      promptTooLarge?: true;
+    };
 
 /**
  * Núcleo de la evaluación, sin base: detectores de inyección y residencia, variables del prompt,
@@ -303,6 +310,18 @@ export async function evaluateForProfile(
     rules,
     job,
   });
+
+  // El prompt completo (perfil, criterios y aviso) no puede pasarse del máximo: no se llama al
+  // modelo y el llamador decide. Con una respuesta reutilizada no hay llamada, así que no aplica.
+  const promptSize = checkPromptSize(vars);
+  if (!input.reuse && !promptSize.ok) {
+    return {
+      ok: false,
+      error: { kind: "prompt", task: "evaluate_job", detail: promptSize.error.reason },
+      injection,
+      promptTooLarge: true,
+    };
+  }
 
   // Estimado antes de llamar al modelo: queda en el log para ver el tamaño real de cada aviso
   const jdSize = checkJdSize(job.jdText);
@@ -489,6 +508,11 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
         .set({
           status: transition(job.status, "needs_jd"),
           prefilterReason: size.reason,
+          // Se vacía la JD para que la oferta salga en la cola de pendientes y acepte una nueva
+          // (la cola y `paste_jd` piden jd_text vacío). El crudo sigue guardado en sus fuentes.
+          jdText: null,
+          jdHash: null,
+          jdShingles: null,
           updatedAt: deps.now?.() ?? new Date(),
         })
         .where(eq(s.jobs.id, job.id));
@@ -568,6 +592,11 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
   });
   if (evaluated.injection.hit)
     log.warn({ signals: evaluated.injection.signals }, "aviso con instrucciones al evaluador");
+  if (!evaluated.ok && evaluated.promptTooLarge) {
+    // Reintentar no cambia nada: se salta sin gastar intentos
+    log.warn({ detail: evaluated.error.detail }, "prompt demasiado largo: no se evalúa");
+    return { ok: false, jobId, error: evaluated.error.detail, retry: "skipped" };
+  }
   if (!evaluated.ok) {
     log.error(
       { kind: evaluated.error.kind, detail: evaluated.error.detail.slice(0, 300) },
@@ -664,7 +693,7 @@ export type WorkerSummary = {
   spendUsd24h: number;
   dailyCapUsd: number;
   /** true si el worker se frenó por tope de gasto o por señal; lo no procesado sigue en la cola. */
-  stopped: "cap" | "signal" | "budget" | null;
+  stopped: "cap" | "signal" | "budget" | "breaker" | null;
   /** Pendientes en la cola al cortar por presupuesto de tiempo; 0 si no se cortó por eso. */
   remaining: number;
   taken: number;
@@ -691,6 +720,9 @@ export const EVALUATE_BUDGET_DEFAULT_MARGIN_MS = 30_000;
 
 /** Mensaje para la UI cuando el tope por usuario frena una evaluación. */
 export const USER_CAP_MESSAGE = "tope diario de evaluaciones alcanzado";
+
+/** Mensaje de la cola cuando la parte reservada del tope global frena al dueño. */
+export const GLOBAL_RESERVED_MESSAGE = "parte reservada del tope global";
 
 /** Cuánto se pospone un mensaje de un usuario topeado (la ventana de 24 h es móvil: 1 h alcanza). */
 const USER_CAP_DEFER_MS = 60 * 60 * 1000;
@@ -719,21 +751,41 @@ async function jobOwner(db: Db, jobId: string): Promise<string | null> {
  */
 function userSpendTracker(deps: EvaluateDeps, capUsd: number) {
   const spent = new Map<string, number>();
+  const mineUsd = async (userId: string): Promise<number> => {
+    let usd = spent.get(userId);
+    if (usd === undefined) {
+      usd = (await spendLast24h(deps.db, deps.now, { userId })).usd;
+      spent.set(userId, usd);
+    }
+    return usd;
+  };
   return {
+    /** Gasto de 24 h de la persona (con caché de la corrida). */
+    mineUsd,
     async isOver(userId: string | null): Promise<boolean> {
       if (capUsd <= 0 || !userId) return false;
-      let usd = spent.get(userId);
-      if (usd === undefined) {
-        usd = (await spendLast24h(deps.db, deps.now, { userId })).usd;
-        spent.set(userId, usd);
-      }
-      return usd >= capUsd;
+      return (await mineUsd(userId)) >= capUsd;
     },
     add(userId: string | null, usd: number): void {
       if (userId && spent.has(userId)) spent.set(userId, spent.get(userId)! + usd);
     },
   };
 }
+
+/** Fallas seguidas del proveedor tras las cuales la corrida se corta (corte de circuito). */
+export const DEFAULT_MAX_CONSECUTIVE_FAILURES = 5;
+
+/** Desde EVALUATE_MAX_CONSECUTIVE_FAILURES; vacío o inválido (no entero ≥ 1) usa el valor por defecto. */
+export function maxConsecutiveFailuresFromEnv(env: NodeJS.ProcessEnv = process.env): number {
+  const raw = env.EVALUATE_MAX_CONSECUTIVE_FAILURES?.trim();
+  if (!raw || !/^\d+$/.test(raw)) return DEFAULT_MAX_CONSECUTIVE_FAILURES;
+  const n = Number(raw);
+  return Number.isSafeInteger(n) && n >= 1 ? n : DEFAULT_MAX_CONSECUTIVE_FAILURES;
+}
+
+/** Falla del proveedor (la evaluación no llegó a resultado): el código de `evaluateJobById` empieza así. */
+const isProviderFailure = (outcome: EvaluateOutcome): boolean =>
+  !outcome.ok && outcome.retry === "retry" && outcome.error.startsWith("generation_failed:");
 
 /** Procesa hasta `limit` mensajes de la cola evaluate_job (route /api/cron/evaluate y CLI). */
 export async function runEvaluateWorker(
@@ -754,9 +806,21 @@ export async function runEvaluateWorker(
     budgetMs?: number;
     /** Id de la corrida para el log; por defecto uno nuevo. */
     runId?: string;
+    /**
+     * Fallas seguidas del proveedor tras las cuales la corrida termina y deja el resto en la cola.
+     * Default: EVALUATE_MAX_CONSECUTIVE_FAILURES o 5; un valor inválido usa el 5.
+     */
+    maxConsecutiveFailures?: number;
   } = {},
 ): Promise<WorkerSummary> {
   const limit = options.limit ?? 20;
+  const maxConsecutiveFailures =
+    options.maxConsecutiveFailures !== undefined &&
+    Number.isSafeInteger(options.maxConsecutiveFailures) &&
+    options.maxConsecutiveFailures >= 1
+      ? options.maxConsecutiveFailures
+      : maxConsecutiveFailuresFromEnv();
+  let consecutiveFailures = 0;
   const runId = options.runId ?? randomUUID();
   const dailyCapUsd = options.dailyCapUsd ?? dailyCapFromEnv();
   const userCapUsd = options.userDailyCapUsd ?? userDailyCapUsd();
@@ -772,7 +836,8 @@ export async function runEvaluateWorker(
   );
 
   // Guardarraíl de costo: se mira ANTES de tomar mensajes (nada queda en processing si ya se pasó)
-  const spend = await spendLast24h(deps.db, deps.now);
+  // Sin el gasto de CV (tiene su presupuesto propio): es lo que se compara con el tope global
+  const spend = await spendLast24h(deps.db, deps.now, { excludeCvAgent: true });
   const overCap = () => dailyCapUsd > 0 && spend.usd >= dailyCapUsd;
   const base = {
     spendUsd24h: spend.usd,
@@ -887,14 +952,30 @@ export async function runEvaluateWorker(
         summary.failed++;
         continue;
       }
-      if (await userCap.isOver(ownerId)) {
+      // Parte reservada del tope global: dentro de ella solo sigue quien casi no gastó (misma regla que
+      // la evaluación inmediata). Se mira antes que el tope por persona, igual que bajo el lock de reservas.
+      const reservedPartHit =
+        dailyCapUsd > 0 &&
+        ownerId !== null &&
+        globalCapReached({
+          capUsd: dailyCapUsd,
+          totalUsd: spend.usd,
+          mineUsd: await userCap.mineUsd(ownerId),
+        });
+      if (reservedPartHit || (await userCap.isOver(ownerId))) {
         const until = new Date(nowMs() + USER_CAP_DEFER_MS);
-        await deps.queue.release(msg.id, USER_CAP_MESSAGE, { runAfter: until });
+        await deps.queue.release(
+          msg.id,
+          reservedPartHit ? GLOBAL_RESERVED_MESSAGE : USER_CAP_MESSAGE,
+          { runAfter: until },
+        );
         if (ownerId && !deferredUsers.has(ownerId)) {
           deferredUsers.add(ownerId);
           deps.logger.warn(
             { user_id: ownerId, job_id: msg.payload.jobId },
-            "evaluaciones diferidas: el usuario pasó su tope diario (LLM_USER_DAILY_CAP_USD)",
+            reservedPartHit
+              ? "evaluaciones diferidas: la parte reservada del tope global es para quienes casi no gastaron (LLM_DAILY_CAP_USD)"
+              : "evaluaciones diferidas: el usuario pasó su tope diario (LLM_USER_DAILY_CAP_USD)",
           );
           // El resto de sus pendientes también, para que no llenen el próximo lote
           await deps.db
@@ -951,6 +1032,18 @@ export async function runEvaluateWorker(
         const r = await deps.queue.fail(msg.id, outcome.error);
         if (r === "retry") summary.retried++;
         else summary.failed++;
+      }
+      // Corte de circuito: N fallas seguidas del proveedor (clave vencida, crédito, caída) y se corta
+      consecutiveFailures = isProviderFailure(outcome) ? consecutiveFailures + 1 : 0;
+      if (consecutiveFailures >= maxConsecutiveFailures) {
+        summary.stopped = "breaker";
+        for (const rest of messages.slice(i + 1)) await requeue(rest.id, "worker frenado: breaker");
+        summary.taken = takenBefore + i + 1;
+        deps.logger.error(
+          { run_id: runId, consecutive_failures: consecutiveFailures },
+          "evaluate: corrida cortada por fallas seguidas del proveedor",
+        );
+        break batches;
       }
     }
     // Lote entero diferido por tope: hay que traer otro, o los de otros usuarios no se evalúan nunca

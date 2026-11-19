@@ -13,10 +13,16 @@ describe("volumen de /inbox (JS-038)", () => {
     expect(assessInboxVolume(normal)).toMatchObject({ level: "ok", reasons: [] });
   });
 
-  it("emails rechazados por el límite de 100/hora: siempre avisa, porque se perdieron", () => {
+  it("emails rechazados por el límite: siempre avisa y nombra el límite real, hora y día", () => {
     const r = assessInboxVolume({ ...normal, rejectedLast24h: 7 });
     expect(r.level).toBe("alto");
-    expect(r.reasons.join(" ")).toMatch(/7 emails rechazados/);
+    const text = r.reasons.join(" ");
+    expect(text).toMatch(/rechazados por el límite/);
+    expect(text).toMatch(/100 por hora/);
+    expect(text).toMatch(/300 por día/);
+    // El conteo incluye reintentos del mismo email: no se muestra ninguna cantidad
+    expect(text).not.toMatch(/\d+ (emails|rechazos)/);
+    expect(text).not.toMatch(/\b7\b/);
   });
 
   it("pico: muchos más que el promedio de los 7 días anteriores", () => {

@@ -49,6 +49,7 @@ import { originAllowed, signCvTicket, verifyCvTicket } from "@/lib/cv-chat-ticke
 import { serviceLlm } from "@/lib/llm-service";
 import { profileAgentAllowedFor } from "@/lib/profile-agent/access";
 import { isOnboardingComplete } from "@/lib/onboarding";
+import { bodyBytesForChars, readBodyLimited } from "@/lib/read-body-limited";
 import { sessionUserId } from "@/lib/session";
 import { siteUrl } from "@/lib/site-url";
 import { getUserPlan } from "@/lib/user-plan";
@@ -198,7 +199,9 @@ export async function POST(request: Request): Promise<Response> {
   }
   if (!(await cvChatAllowed(userId))) return fail("not_found");
 
-  const text = await request.text();
+  const limited = await readBodyLimited(request, bodyBytesForChars(MAX_BODY_CHARS));
+  if (!limited.ok) return fail("too_long");
+  const text = limited.text;
   if (text.length > MAX_BODY_CHARS) return fail("too_long");
   let json: unknown;
   try {

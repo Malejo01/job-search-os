@@ -211,6 +211,56 @@ for (const f of [
   });
 }
 
+test("todo archivo que usa el rol de servicio, un lock global o la lista de admins está en el carril rojo", () => {
+  // Marcas de los controles que deciden quién puede qué o cuánto se gasta. Los tests no cuentan: no deciden nada.
+  const marks = [
+    /purpose:\s*["']service["']/,
+    /pg_advisory_xact_lock/,
+    /ADMIN_EMAILS/,
+    /is_app_admin/,
+  ];
+  const isTest = (f) =>
+    /\.(test|spec)\.[cm]?[jt]sx?$/.test(f) || /\/(__tests__|e2e|fixtures)\//.test(f);
+  const files = [...walk("apps"), ...walk("packages")].filter(
+    (f) => /\.(m?[jt]sx?|sql)$/.test(f) && !isTest(f),
+  );
+  assert.ok(files.length > 100, "el recorrido no encontró el árbol esperado");
+  const users = files.filter((f) => {
+    const text = readFileSync(join(repoRoot, f), "utf8");
+    return marks.some((re) => re.test(text));
+  });
+  assert.ok(users.length > 0, "el recorrido no encontró ningún archivo con esas marcas");
+  const red = new Set(redFiles(users, patterns).map((h) => h.file));
+  assert.deepEqual(
+    users.filter((f) => !red.has(f)),
+    [],
+  );
+});
+
+test("los controles de seguridad de la S2 están en el carril rojo", () => {
+  for (const f of [
+    "apps/web/lib/login-credentials.ts",
+    "apps/web/lib/security-headers.ts",
+    "apps/web/lib/csp.ts",
+    "apps/web/lib/close-sessions.ts",
+    "apps/web/lib/session-cookie.ts",
+    "packages/adapters/src/quota/person-quota.ts",
+    "packages/pipeline/src/agent/gate.ts",
+    "packages/pipeline/src/profile-agent/flag.ts",
+    "packages/pipeline/src/cv-coach/flag.ts",
+    "packages/pipeline/src/session-version.ts",
+    "packages/adapters/src/cv-chat/reserve.ts",
+    "packages/adapters/src/profile-agent/read/reserve.ts",
+    "packages/adapters/src/profile-agent/gaps/reserve.ts",
+    "packages/adapters/src/cv-coach/reserve.ts",
+    "packages/adapters/src/cv-coach/nuevo-control.ts",
+    "packages/adapters/src/cv-chat/nuevo-control.ts",
+    "packages/adapters/src/profile-agent/nuevo-control.ts",
+  ]) {
+    assert.equal(redFiles([f], patterns).length, 1, f);
+  }
+});
+
 test("rutas de la app que no son rojas siguen verdes", () => {
   for (const f of [
     "apps/web/app/(public)/page.tsx",

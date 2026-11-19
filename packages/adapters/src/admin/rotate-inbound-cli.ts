@@ -7,8 +7,9 @@ import {
 } from "./rotate-inbound";
 
 /**
- * pnpm --filter @job-search-os/adapters exec tsx src/admin/rotate-inbound-cli.ts [--apply] [--remote]
- * Sin --apply solo cuenta. Local por defecto; la nube solo con --remote, que pide confirmar el destino.
+ * pnpm --filter @job-search-os/adapters exec tsx src/admin/rotate-inbound-cli.ts [--apply] [--remote] [--grace-days=N]
+ * Sin --apply solo cuenta (y dice cuántas cuentas recibieron correo en los últimos 30 días). La dirección
+ * vieja sigue resolviendo N días (7 por defecto) después de rotar. Local por defecto; la nube solo con --remote, que pide confirmar el destino.
  * Aplicar siempre pide escribir una frase en la terminal.
  */
 async function main(): Promise<void> {
@@ -21,7 +22,7 @@ async function main(): Promise<void> {
   }
   if (args.apply) {
     const answer = await askInteractive(
-      `Quien reenvía correo a una dirección vieja va a dejar de recibirlo hasta actualizar su filtro. Escribí «${ROTATE_INBOUND_PHRASE}» para confirmar: `,
+      `Quien reenvía correo a una dirección vieja va a dejar de recibirlo cuando termine la gracia de ${args.graceDays} días, salvo que actualice su filtro. Escribí «${ROTATE_INBOUND_PHRASE}» para confirmar: `,
     );
     if (answer?.trim().toLowerCase() !== ROTATE_INBOUND_PHRASE) {
       console.error("sin confirmación: no se cambia nada");
@@ -38,10 +39,18 @@ async function main(): Promise<void> {
   const { db, close } = createDb(target.url, { max: 1 });
   try {
     console.log(`→ ${target.label}`);
-    const result = await rotateLegacyInboundAddresses(db, { apply: args.apply });
+    const result = await rotateLegacyInboundAddresses(db, {
+      apply: args.apply,
+      graceDays: args.graceDays,
+    });
     console.log(
-      `perfiles: ${result.scanned} · direcciones viejas: ${result.legacy} · rotadas: ${result.rotated} · fallidas: ${result.failed}`,
+      `perfiles: ${result.scanned} · direcciones viejas: ${result.legacy} · cuentas con correo en los últimos 30 días: ${result.affected} · rotadas: ${result.rotated} · fallidas: ${result.failed}`,
     );
+    if (args.apply) {
+      console.log(
+        `La dirección vieja sigue funcionando ${args.graceDays} días; /inbox avisa a cada persona que actualice su filtro de reenvío.`,
+      );
+    }
     if (result.failed > 0) process.exitCode = 1;
   } catch (error) {
     console.error(safeError(error));

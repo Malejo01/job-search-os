@@ -1,5 +1,6 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import { and, desc, eq, gte, isNotNull, notInArray, sql } from "drizzle-orm";
+import { PROFILE_AGENT_SPEND_TASKS } from "../profile-agent/measure";
 
 /** Reserva de gasto de la evaluación inmediata y de los borradores (`spend-reserve.ts`). */
 export const LLM_RESERVE_TASK = "llm_reserve";
@@ -43,12 +44,15 @@ export type SpendSummary = {
  * guarda el costo real y esto no se usa. Los topes en USD cuentan el intento con este valor: una
  * cuenta que provoca fallos a propósito ya no repite llamadas sin freno (R11-7). Cubre una llamada con
  * el tope de entrada (unos 25.000 tokens), más que una evaluación típica: lo conservador es frenar de más.
- * Un intento que nunca llegó al proveedor (`provider_unavailable`) no cuenta.
+ * Solo se estima donde el proveedor pudo haber facturado sin informarlo: `timeout`, errores 5xx y
+ * errores sin código. Un rechazo 4xx (clave inválida, crédito agotado, 429) no se factura y cuenta 0,
+ * igual que un intento que nunca llegó al proveedor (`provider_unavailable`): si no, una caída o una
+ * clave vencida agotaría el tope de 24 h sin gasto real.
  */
 export const FAILED_CALL_ESTIMATE_USD = 0.04;
 
 /** USD de una fila para los topes: el real si se conoce; si no, el estimado de un intento fallido. */
-const billedUsd = sql`coalesce(${s.llmCalls.costUsd}, case when not ${s.llmCalls.ok} and ${s.llmCalls.error} is distinct from 'provider_unavailable' then ${FAILED_CALL_ESTIMATE_USD}::float8 end, 0)`;
+const billedUsd = sql`coalesce(${s.llmCalls.costUsd}, case when not ${s.llmCalls.ok} and (${s.llmCalls.error} is null or ${s.llmCalls.error} in ('timeout', 'api_call', 'unknown') or ${s.llmCalls.error} ~ '^api_call:5[0-9][0-9]$') then ${FAILED_CALL_ESTIMATE_USD}::float8 end, 0)`;
 
 export const DEFAULT_DAILY_CAP_USD = 2;
 
@@ -79,13 +83,16 @@ export function userDailyCapUsd(env: NodeJS.ProcessEnv = process.env): number {
   return n;
 }
 
-/** Con `userId` suma solo las llamadas de ese usuario; sin él, todas (tope global). */
-export async function spendSince(
+/**
+ * Consulta de la suma de gasto desde `since` (sin ejecutarla, para poder pedirle el plan). Con `userId`
+ * entra por `llm_calls_user_task`; sin él, por `llm_calls_created`.
+ */
+export function spendSinceQuery(
   db: Pick<Db, "select">,
   since: Date,
-  options: { userId?: string } = {},
-): Promise<SpendSummary> {
-  const [row] = await db
+  options: { userId?: string; excludeCvAgent?: boolean } = {},
+) {
+  return db
     .select({
       calls: sql<number>`count(*)::int`,
       failedCalls: sql<number>`count(*) filter (where not ${s.llmCalls.ok})::int`,
@@ -99,17 +106,37 @@ export async function spendSince(
     .where(
       and(
         gte(s.llmCalls.createdAt, since),
-        notInArray(s.llmCalls.task, NOT_MODEL_CALLS),
+        notInArray(
+          s.llmCalls.task,
+          options.excludeCvAgent
+            ? [...NOT_MODEL_CALLS, ...PROFILE_AGENT_SPEND_TASKS]
+            : NOT_MODEL_CALLS,
+        ),
         options.userId ? eq(s.llmCalls.userId, options.userId) : undefined,
       ),
     );
+}
+
+/**
+ * Con `userId` suma solo las llamadas de ese usuario; sin él, todas (tope global).
+ * `excludeCvAgent` deja afuera las tareas del chat de CV y del agente de perfil: tienen su propio
+ * presupuesto diario (global y por persona, `cv-chat/limits` y `profile-agent/limits`), así que no le
+ * descuentan al tope global de evaluaciones, borradores y asistente (`LLM_DAILY_CAP_USD`). Úsese para
+ * decidir ese tope; los reportes siguen sumando todo.
+ */
+export async function spendSince(
+  db: Pick<Db, "select">,
+  since: Date,
+  options: { userId?: string; excludeCvAgent?: boolean } = {},
+): Promise<SpendSummary> {
+  const [row] = await spendSinceQuery(db, since, options);
   return { since, ...row! };
 }
 
 export const spendLast24h = (
   db: Pick<Db, "select">,
   now: () => Date = () => new Date(),
-  options: { userId?: string } = {},
+  options: { userId?: string; excludeCvAgent?: boolean } = {},
 ): Promise<SpendSummary> =>
   spendSince(db, new Date(now().getTime() - 24 * 60 * 60 * 1000), options);
 
@@ -155,7 +182,7 @@ export async function spendCapReason(
   if (!(globalCap > 0) && !(userCap > 0)) return null;
   const mineUsd = (await spendLast24h(db, input.now, { userId: input.userId })).usd;
   if (globalCap > 0) {
-    const totalUsd = (await spendLast24h(db, input.now)).usd;
+    const totalUsd = (await spendLast24h(db, input.now, { excludeCvAgent: true })).usd;
     if (globalCapReached({ capUsd: globalCap, totalUsd, mineUsd })) return "global";
   }
   return userCap > 0 && mineUsd >= userCap ? "user" : null;

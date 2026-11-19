@@ -48,11 +48,14 @@ function texto(html: string): string {
 }
 
 /** Topes del token del tracker: un link real ocupa una fracción de esto. Pasados, falla cerrado. */
+const MAX_TRACKER_HREF_CHARS = 8 * 1024;
 const MAX_TRACKER_TOKEN_CHARS = 4 * 1024;
 const MAX_TRACKER_DECODED_BYTES = 64 * 1024;
 
 /** Host y jk de un link de Indeed: directo (`?jk=`) o envuelto en el tracker cts.indeed.com/v3. */
 export function jobKeyFromTracker(href: string): { host: string; jk: string } | null {
+  // Un link real mide una fracción de esto: antes de cualquier expresión, falla cerrado
+  if (href.length > MAX_TRACKER_HREF_CHARS) return null;
   const url = href.replace(/&amp;/g, "&");
   const found = (s: string) => {
     const m = /https?:\/\/((?:[a-z]{2}\.)?indeed\.com)\/[^\s"'\\]*?[?&]jk=([0-9a-f]{16})/i.exec(s);

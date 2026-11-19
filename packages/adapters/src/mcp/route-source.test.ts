@@ -31,8 +31,8 @@ describe("MCP sin caché de usuario entre requests (MCP-1)", () => {
     const src = code(FILES.route);
     expect(src).not.toMatch(/^(let|var) /m);
     expect(src).not.toContain("resolveMcpUserId");
-    // Cada tool toma el usuario del request
-    expect(src.match(/mcpUserIdFor\(ctx\.http\?\.authInfo\)/g)).toHaveLength(11);
+    // Cada tool toma el usuario del request (11 tools y el guardia que lo usa para el log)
+    expect(src.match(/mcpUserIdFor\(ctx\.http\?\.authInfo\)/g)).toHaveLength(12);
   });
 });
 

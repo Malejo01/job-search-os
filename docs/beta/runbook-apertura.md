@@ -75,7 +75,7 @@ Vercel › `job-search-os` › Settings › Environment Variables, o por CLI (`n
 | `PRICING_ENABLED` | `1` (solo ese valor lo enciende) | muestra `/precios`, «Tu plan» y aplica los topes de cada plan | `/precios` da 404 y rigen los topes de siempre |
 | `SITE_URL` | `https://afiniajobs.com.ar` (sin barra final) | links de emails, canonical, sitemap. De build | usa `AUTH_URL` o el dominio de Vercel |
 | `LEGACY_HOSTS` | no hace falta desde el 6/11: la redirección del dominio viejo la hace Vercel (Domains). Si se usara: `busquedalaboral.malejo.com.ar` | redirige el dominio viejo (308), sin tocar `/api/*`. De build | no hay redirección desde la app (sí la de Vercel) |
-| `AUTH_URL` | igual que `SITE_URL` | los links de invitación y de recuperar contraseña salen de acá | **las invitaciones salen con el dominio viejo** |
+| `AUTH_URL` | igual que `SITE_URL` (o ninguna: borrada, Auth.js usa el host de cada pedido) | los links de invitación y de recuperar contraseña salen de acá. La cookie de sesión segura `__Host-` no depende de ella: se activa sola en producción de Vercel, y el primer deploy con esa regla pide volver a entrar una vez | **las invitaciones salen con el dominio viejo** |
 | `RESEND_API_KEY` | la key de Resend | reseteo de contraseña y avisos de vencimiento | no sale ningún email |
 | `EMAIL_FROM` | `Nombre <no-reply@afiniajobs.com.ar>` (dominio **verificado** en Resend) | remitente | sin dominio verificado, Resend solo entrega a su dueño: **los reseteos fallan en silencio para el resto** y los avisos de vencimiento no se mandan |
 | `CONTACT_EMAIL` | `contacto@afiniajobs.com.ar` (la casilla la crea Admin y la atiende tester A, 5/11) | contacto en el pie y en los emails | no hay contacto |

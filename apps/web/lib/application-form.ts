@@ -6,6 +6,7 @@ import {
   createLogger,
   draftsCapGuard,
   generateApplicationDrafts,
+  PersonQuotaError,
   safeDbError,
   saveAnswer,
   saveApplicationAnswers,
@@ -66,6 +67,9 @@ function failureMessage(e: unknown): string {
       empty_form: "No hay preguntas para responder.",
     };
     return messages[e.code];
+  }
+  if (e instanceof PersonQuotaError) {
+    return "Llegaste al máximo de respuestas guardadas. Borrá alguna que ya no uses o acortá las más largas.";
   }
   return "No se pudo completar la operación.";
 }

@@ -1,3 +1,4 @@
+import { AUTH_UNVERIFIED_REASON } from "@job-search-os/adapters";
 import { buildEmailFrameDoc, isWebmailDomain } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -9,6 +10,7 @@ import { formatDate, inboundErrorLabel, parserLabel } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import { Alert, buttonClasses, cardClasses, textLinkClasses } from "@/components/ui";
 import { EmailActions } from "../email-actions";
+import { processHeldAction } from "../held-actions";
 import { senderVerdictAction } from "../leak-actions";
 
 export const metadata = { title: "Email" };
@@ -75,6 +77,21 @@ export default async function InboundEmailPage({
             </Link>
           </p>
         ) : null}
+        {email.error === AUTH_UNVERIFIED_REASON ? (
+          <form action={processHeldAction} className="flex flex-col gap-1">
+            <input type="hidden" name="id" value={email.id} />
+            <button
+              type="submit"
+              className={buttonClasses({ variant: "secondary", size: "sm" })}
+              data-testid="procesar-igual"
+            >
+              Procesar igual
+            </button>
+            <p className="text-xs text-fg-muted">
+              No pudimos verificar quién lo envió. Procesalo solo si lo esperabas.
+            </p>
+          </form>
+        ) : null}
         <EmailActions
           id={email.id}
           subject={email.subject}
@@ -121,6 +138,14 @@ export default async function InboundEmailPage({
             )
           ) : null}
         </section>
+      ) : email.expired ? (
+        <p
+          className="rounded-container bg-surface px-6 py-8 text-center text-sm text-fg-muted"
+          data-testid="contenido-vencido"
+        >
+          El contenido venció: pasó el plazo de conservación y el cuerpo de este email se borró.
+          Quedan el remitente, el asunto y la fecha.
+        </p>
       ) : email.html ? (
         <iframe
           title="Contenido del email"

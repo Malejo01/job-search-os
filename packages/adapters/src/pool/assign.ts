@@ -1,6 +1,12 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import { areasFilterEnabled, type JobStatus } from "@job-search-os/pipeline";
 import { and, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import {
+  clip,
+  RAW_CONTRACT_MAX_CHARS,
+  RAW_FIELD_MAX_CHARS,
+  RAW_SALARY_NOTE_MAX_CHARS,
+} from "../ingest/clamp-fields";
 import { loadActiveRules } from "../ingest/run-getonboard";
 import { loadProfilePrefilterPrefs, upsertCompany } from "../ingest/ingest-job";
 import type { Logger } from "../logger";
@@ -173,24 +179,26 @@ export async function assignPoolToUser(
     for (const { row: pj, flags, matchedRole } of ranked) {
       const hasJd = Boolean(pj.jdText?.trim());
       const status: JobStatus = hasJd ? "prefiltrada" : "pendiente_jd";
-      const companyId = pj.companyId ?? (await upsertCompany(tx, pj.companyRaw));
+      const companyId =
+        pj.companyId ?? (await upsertCompany(tx, clip(pj.companyRaw, RAW_FIELD_MAX_CHARS)));
       const [job] = await tx
         .insert(s.jobs)
         .values({
           userId,
           companyId,
-          companyRaw: pj.companyRaw,
-          title: pj.title,
-          titleNormalized: pj.titleNormalized,
+          // Filas del pool anteriores a los topes pueden traer textos enormes: se recortan acá también
+          companyRaw: clip(pj.companyRaw, RAW_FIELD_MAX_CHARS),
+          title: clip(pj.title, RAW_FIELD_MAX_CHARS),
+          titleNormalized: clip(pj.titleNormalized, RAW_FIELD_MAX_CHARS),
           canonicalUrl: pj.canonicalUrl,
-          locationRaw: pj.locationRaw,
+          locationRaw: clip(pj.locationRaw, RAW_FIELD_MAX_CHARS),
           countriesAllowed: pj.countriesAllowed,
           modality: pj.modality,
-          contractType: pj.contractType,
+          contractType: clip(pj.contractType, RAW_CONTRACT_MAX_CHARS),
           salaryMinUsd: pj.salaryMinUsd,
           salaryMaxUsd: pj.salaryMaxUsd,
           salaryPeriod: pj.salaryPeriod,
-          salaryNote: pj.salaryNote,
+          salaryNote: clip(pj.salaryNote, RAW_SALARY_NOTE_MAX_CHARS),
           weeklyHours: pj.weeklyHours,
           candidatesCount: pj.candidatesCount,
           publicJobId: pj.id,

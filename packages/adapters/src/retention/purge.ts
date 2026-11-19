@@ -2,6 +2,8 @@ import { schema as s, type Db } from "@job-search-os/db";
 import { inArray, isNotNull, isNull, lt, or, and } from "drizzle-orm";
 import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 import { sql, type SQL } from "drizzle-orm";
+import { GMAIL_FORWARDING_PARSER, readIntegerSetting } from "@job-search-os/pipeline";
+import { createLogger } from "../logger";
 import { POOL_PARSER } from "../inbound/pool-mailbox";
 
 /**
@@ -27,6 +29,10 @@ export type PurgeResult = {
   poolEmails: number;
   /** Crudos de emails de personas sin oferta asociada, más viejos que INBOUND_RAW_RETENTION_DAYS. */
   inboundRaw: number;
+  /** Crudos de email sin fila ni oferta que los referencie, más viejos que INBOUND_RAW_RETENTION_DAYS. */
+  inboundOrphans: number;
+  /** Intentos de login con más de un día sin actividad. */
+  loginAttempts: number;
 };
 
 export const POOL_EMAIL_RETENTION_DAYS = 30;
@@ -49,11 +55,18 @@ export const MIN_LLM_CALLS_DAYS = 90;
 export const MIN_REJECTIONS_DAYS = 2;
 const MAX_LOG_DAYS = 3650;
 
-/** `LEGAL_LOG_DAYS` válido: entero de 1 a 3650; cualquier otra cosa desactiva la purga técnica. */
-export function parseLogDays(raw: string | undefined): number | null {
-  if (raw === undefined || !/^\d+$/.test(raw.trim())) return null;
-  const n = Number(raw.trim());
-  return n >= 1 && n <= MAX_LOG_DAYS ? n : null;
+/**
+ * Plazo de retención válido (`LEGAL_LOG_DAYS`, `INBOUND_RAW_RETENTION_DAYS`): entero de 1 a 3650. Ausente
+ * o vacío desactiva la purga correspondiente; un valor que no se entiende (`30d`) también la desactiva,
+ * pero registra un `error` para que no pase en silencio. `name` es el de la variable, para el aviso.
+ */
+export function parseLogDays(
+  raw: string | undefined,
+  name = "una variable de retención (LEGAL_LOG_DAYS o INBOUND_RAW_RETENTION_DAYS)",
+): number | null {
+  const { value, error } = readIntegerSetting(name, raw, 1, MAX_LOG_DAYS);
+  if (error) createLogger({ task: "purge" }).error(error);
+  return value;
 }
 
 /** Borra en lotes (máximo PURGE_MAX_BATCHES) para no tomar locks largos; devuelve el total borrado. */
@@ -115,10 +128,80 @@ async function purgeInboundRaw(db: Db, cutoff: Date, batchSize: number): Promise
           AND b.kind = 'inbound_email'
           AND e.received_at < ${cutoff.toISOString()}::timestamptz
           AND NOT EXISTS (SELECT 1 FROM job_sources js WHERE js.raw_ref = e.raw_ref)
+          -- Lo que /inbox muestra como pendiente (misma regla que \`inboxWhere.pendientes\`) todavía
+          -- espera a la persona: retenido, confirmación de Gmail sin resolver, cola manual
+          AND NOT (
+            e.seen_at IS NULL AND e.dismissed_at IS NULL
+            AND (e.error IS NOT NULL OR e.parser IS NULL OR e.parser IN ('none', ${GMAIL_FORWARDING_PARSER}))
+          )
         LIMIT ${batchSize}
       )
       DELETE FROM raw_blobs WHERE id IN (SELECT id FROM old) RETURNING id
     `)) as unknown as unknown[];
+    total += rows.length;
+    if (rows.length < batchSize) break;
+  }
+  return total;
+}
+
+/**
+ * Ids de los crudos de email huérfanos y vencidos: sin fila en `inbound_emails` que los referencie (el
+ * insert que falló después de guardar el crudo) y sin oferta que los use. Un lote por consulta.
+ */
+export function orphanSelectSql(cutoff: Date, batchSize: number): SQL {
+  return sql`
+    SELECT b.id FROM raw_blobs b
+    WHERE b.kind = 'inbound_email'
+      AND b.created_at < ${cutoff.toISOString()}::timestamptz
+      AND NOT EXISTS (SELECT 1 FROM inbound_emails e WHERE e.raw_ref = 'pg:' || b.id::text)
+      AND NOT EXISTS (SELECT 1 FROM job_sources js WHERE js.raw_ref = 'pg:' || b.id::text)
+    LIMIT ${batchSize}
+  `;
+}
+
+/** Borra los crudos de email huérfanos más viejos que el plazo, en lotes. */
+async function purgeOrphanInboundRaw(db: Db, cutoff: Date, batchSize: number): Promise<number> {
+  let total = 0;
+  for (let i = 0; i < PURGE_MAX_BATCHES; i++) {
+    const rows = (await db.execute(sql`
+      DELETE FROM raw_blobs
+      WHERE id IN (${orphanSelectSql(cutoff, batchSize)})
+      RETURNING id
+    `)) as unknown as unknown[];
+    total += rows.length;
+    if (rows.length < batchSize) break;
+  }
+  return total;
+}
+
+/**
+ * Un lote de la purga de intentos de login. Con `WHERE email_hash IN (subconsulta)` el planificador armaba un
+ * hash semi join y recorría toda la tabla en cada lote. La subconsulta se materializa como arreglo
+ * (`= ANY(ARRAY(...))`, se evalúa una vez): elige el lote por el índice de `last_attempt_at` y lo borra por la
+ * clave, sin depender de lo grande que sea la tabla. Exportada para que el test de EXPLAIN mida este mismo SQL.
+ */
+export function loginAttemptsPurgeBatchSql(cutoff: Date, batchSize: number) {
+  return sql`
+    DELETE FROM login_attempts
+    WHERE email_hash = ANY(ARRAY(
+      SELECT email_hash FROM login_attempts
+      WHERE last_attempt_at < ${cutoff.toISOString()}::timestamptz
+      LIMIT ${batchSize}
+    ))
+    RETURNING email_hash
+  `;
+}
+
+/**
+ * Borra los intentos de login con más de un día sin actividad (la ventana de ADR-041), en lotes. La tabla no
+ * tiene `user_id` ni columna `id`: la clave es el hash. Usa el índice por `last_attempt_at`.
+ */
+async function purgeLoginAttempts(db: Db, cutoff: Date, batchSize: number): Promise<number> {
+  let total = 0;
+  for (let i = 0; i < PURGE_MAX_BATCHES; i++) {
+    const rows = (await db.execute(
+      loginAttemptsPurgeBatchSql(cutoff, batchSize),
+    )) as unknown as unknown[];
     total += rows.length;
     if (rows.length < batchSize) break;
   }
@@ -149,7 +232,12 @@ export async function purgeExpired(
     betaFeedback: 0,
     poolEmails: 0,
     inboundRaw: 0,
+    inboundOrphans: 0,
+    loginAttempts: 0,
   };
+
+  // Intentos de login: corre aunque la purga técnica esté desactivada (no hay dato personal sin plazo)
+  result.loginAttempts = await purgeLoginAttempts(db, dayAgo, batchSize);
 
   // IP hasheada de la lista de espera: no se guarda más de un día (mismo UPDATE que waitlist_join)
   const wiped = await db
@@ -200,11 +288,9 @@ export async function purgeExpired(
   );
 
   if (input.inboundRawDays) {
-    result.inboundRaw = await purgeInboundRaw(
-      db,
-      new Date(now.getTime() - input.inboundRawDays * DAY_MS),
-      batchSize,
-    );
+    const rawCutoff = new Date(now.getTime() - input.inboundRawDays * DAY_MS);
+    result.inboundRaw = await purgeInboundRaw(db, rawCutoff, batchSize);
+    result.inboundOrphans = await purgeOrphanInboundRaw(db, rawCutoff, batchSize);
   }
 
   const logDays = input.logDays;

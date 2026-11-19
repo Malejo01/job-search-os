@@ -9,7 +9,10 @@ Dos monitores gratuitos (UptimeRobot o Better Stack, plan free) alcanzan para en
 - URL: `https://<dominio>/api/health`
 - Tipo: HTTP(s), método GET, cada **5 min**.
 - Alerta: email a Mauro cuando el código no sea 200.
-- `/api/health` es público y no devuelve datos: responde `200` si la base contesta con el rol de la app y `503` si no.
+- `/api/health` tiene dos formas:
+  - **Pública (sin header):** responde `200` con `{"ok":true,"commit":"…"}` y caché de 15 s en el CDN. **No consulta la base**: solo dice que la app responde. Un monitor sin header no se entera de que la base se cayó.
+  - **Con `Authorization: Bearer <token>`:** además verifica que la base contesta con el rol de la app. Responde `200` con `{"ok":true,"db":"ok",…}` o `503` si no, siempre sin caché.
+- Para que el monitor vea la base, configurá el header `Authorization: Bearer <CRON_SECRET>`. Ojo: eso le da a un servicio de terceros el secret que dispara los crons. Si no querés darlo, dejá este monitor sin header (solo mide que la app responde) y usá el monitor 2 (`/api/cron/status`, con su `STATUS_TOKEN` aparte), que sí consulta la base.
 
 ## 2. Monitor de operación: `/api/cron/status`
 
@@ -60,7 +63,7 @@ Solo agregados. Nunca emails, ids de usuario, títulos ni empresas.
 
 Los umbrales viven como constantes exportadas en `packages/adapters/src/worker/status.ts` (`QUEUE_FAILED_24H_MAX`, `QUEUE_FAILED_RATIO_MAX`, `QUEUE_FAILED_RATIO_MIN_ATTEMPTS`, `EVALUATION_IDLE_MAX_HOURS`, `LLM_PRIMARY_FAILED_MAX_PCT`, `LLM_PRIMARY_MIN_CALLS`): si cambia uno, cambia acá.
 
-Si el monitor recibe `503` con `{"ok": false, "error": "status falló"}` y no hay checks, falló la consulta a la base: mirar `/api/health` y los logs de Vercel (`cron status falló`).
+Si el monitor recibe `503` con `{"ok": false, "error": "status falló"}` y no hay checks, falló la consulta a la base: mirar `/api/health` con el bearer (la forma pública no consulta la base) y los logs de Vercel (`cron status falló`).
 
 ## Presupuesto de tiempo del worker de evaluación
 

@@ -35,7 +35,7 @@ const ERRORS: Record<string, string> = {
   corta: "La descripción es muy corta (mínimo 200 caracteres): pegá el aviso completo.",
   larga: "La descripción es demasiado larga: pegá solo el aviso, sin el resto de la página.",
   cuota:
-    "Llegaste al máximo de espacio para avisos guardados. Borrá ofertas viejas y probá de nuevo.",
+    "Llegaste al máximo de espacio para las descripciones que pegaste y las ofertas que cargaste a mano. Los avisos que llegan por correo no cuentan. Escribinos desde el botón de soporte y lo revisamos.",
   oferta: "Oferta inexistente.",
 };
 

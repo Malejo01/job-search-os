@@ -31,6 +31,7 @@ import {
   loadCvCoachContext,
 } from "@/lib/cv-coach/context";
 import { serviceLlm } from "@/lib/llm-service";
+import { bodyBytesForChars, readBodyLimited } from "@/lib/read-body-limited";
 import { sessionUserId } from "@/lib/session";
 import { siteUrl } from "@/lib/site-url";
 import { needsTermsAcceptance } from "@/lib/terms-status";
@@ -174,7 +175,9 @@ export async function POST(request: Request): Promise<Response> {
   if (!originAllowed(request.headers.get("origin"), allowed)) return fail("bad_origin");
   if (await needsTermsAcceptance(userId)) return fail("not_ready");
 
-  const text = await request.text();
+  const limited = await readBodyLimited(request, bodyBytesForChars(MAX_BODY_CHARS));
+  if (!limited.ok) return fail("too_long");
+  const text = limited.text;
   if (text.length > MAX_BODY_CHARS) return fail("too_long");
   let json: unknown;
   try {

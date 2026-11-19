@@ -67,6 +67,50 @@ apps/web/lib/pool-reassign.ts
 apps/web/lib/evaluate-now.ts
 packages/adapters/src/cv-coach/review/sign.ts
 
+# Controles de seguridad de la S2: límite de login, headers y CSP, cierre de sesiones, cuotas, quién es tester,
+# validez de la sesión y reservas de gasto de los agentes
+apps/web/lib/login-credentials.ts
+apps/web/lib/security-headers.ts
+apps/web/lib/csp.ts
+apps/web/lib/close-sessions.ts
+packages/adapters/src/quota/person-quota.ts
+packages/pipeline/src/agent/gate.ts
+packages/pipeline/src/profile-agent/flag.ts
+packages/pipeline/src/cv-coach/flag.ts
+packages/pipeline/src/session-version.ts
+packages/pipeline/src/budget/alerts.ts
+packages/adapters/src/cv-chat/**
+packages/adapters/src/profile-agent/**
+packages/adapters/src/cv-coach/**
+
+# Archivos que usan el rol de servicio, un lock global o la lista de admins (un test recorre el árbol y exige
+# que todo archivo así esté cubierto: si falla, sumá acá el archivo nuevo)
+apps/web/app/(app)/layout.tsx
+apps/web/app/(app)/jobs/new/image-server.ts
+apps/web/lib/assistant-metrics.ts
+apps/web/lib/assistant-usage.ts
+apps/web/lib/beta-feedback.ts
+apps/web/lib/beta-health.ts
+apps/web/lib/beta-metrics.ts
+apps/web/lib/career-history.ts
+apps/web/lib/cv-chat-server.ts
+apps/web/lib/cv-coach/cards-server.ts
+apps/web/lib/feedback-triage.ts
+apps/web/lib/market-recompute.ts
+apps/web/lib/plan-admin.ts
+apps/web/lib/pool-coverage.ts
+apps/web/lib/profile-agent/gaps-server.ts
+apps/web/lib/skill-levels.ts
+apps/web/lib/waitlist-admin.ts
+packages/adapters/src/ingest/cli.ts
+packages/adapters/src/market/cli.ts
+packages/adapters/src/market/plan-cli.ts
+packages/adapters/src/market/recompute.ts
+packages/adapters/src/pool/assign.ts
+packages/adapters/src/pool/backlog.ts
+packages/adapters/src/skills/candidates-cli.ts
+packages/adapters/src/skills/cli.ts
+
 # Server actions fuera de actions.ts (un test exige que todo archivo con "use server" esté en esta lista)
 apps/web/app/**/*-action.ts
 apps/web/lib/guide-actions.ts
@@ -114,6 +158,15 @@ apps/web/app/**/route.ts
 packages/adapters/src/inbound/**
 packages/adapters/src/email/**
 packages/adapters/src/mcp/**
+
+# Controles de correo y de entrada que no pasan por la base: autenticación del remitente,
+# clasificación, modos, tope de cuerpo, rutas internas y huella de IP de la lista de espera
+packages/pipeline/src/from-address.ts
+packages/pipeline/src/inbound-classify.ts
+packages/pipeline/src/env-modes.ts
+apps/web/lib/read-body-limited.ts
+apps/web/lib/internal-path.ts
+apps/web/lib/waitlist.ts
 
 # Dependencias y configuración de build (cualquier package.json: también scripts)
 **/package.json

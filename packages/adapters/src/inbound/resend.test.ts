@@ -40,7 +40,43 @@ describe("fetchReceivedEmail", () => {
     expect((error as ResendFetchError).status).toBe(status);
   });
 
-  it.each([400, 401, 403, 404])("con HTTP %i el error no se reintenta", async (status) => {
+  it.each([401, 403])(
+    "con HTTP %i (clave mal configurada) el error se puede reintentar",
+    async (status) => {
+      const error = await fetchReceivedEmail("em_1", "clave-de-prueba", respond(status)).catch(
+        (e: unknown) => e,
+      );
+      expect(error).toBeInstanceOf(ResendFetchError);
+      expect((error as ResendFetchError).retryable).toBe(true);
+      expect((error as ResendFetchError).status).toBe(status);
+    },
+  );
+
+  it("si falla la lectura del cuerpo (tiempo agotado) el error se puede reintentar", async () => {
+    const impl = vi.fn(async () => {
+      const res = new Response("{}", { status: 200 });
+      vi.spyOn(res, "json").mockRejectedValue(new DOMException("tiempo agotado", "TimeoutError"));
+      return res;
+    }) as unknown as typeof fetch;
+    const error = await fetchReceivedEmail("em_1", "clave-de-prueba", impl).catch(
+      (e: unknown) => e,
+    );
+    expect(error).toBeInstanceOf(ResendFetchError);
+    expect((error as ResendFetchError).retryable).toBe(true);
+  });
+
+  it("un JSON truncado se puede reintentar", async () => {
+    const impl = vi.fn(
+      async () => new Response('{"html": "<p>hol', { status: 200 }),
+    ) as unknown as typeof fetch;
+    const error = await fetchReceivedEmail("em_1", "clave-de-prueba", impl).catch(
+      (e: unknown) => e,
+    );
+    expect(error).toBeInstanceOf(ResendFetchError);
+    expect((error as ResendFetchError).retryable).toBe(true);
+  });
+
+  it.each([400, 404])("con HTTP %i el error no se reintenta", async (status) => {
     const error = await fetchReceivedEmail("em_1", "clave-de-prueba", respond(status)).catch(
       (e: unknown) => e,
     );
@@ -73,6 +109,20 @@ describe("loadInboundContent", () => {
       loadInboundContent("em_1", "clave-de-prueba", logger, respond(429)),
     ).rejects.toBeInstanceOf(ResendFetchError);
   });
+
+  it.each([401, 403])(
+    "con HTTP %i relanza y registra un error de configuración sin la clave ni el id",
+    async (status) => {
+      const log = { warn: vi.fn(), error: vi.fn() };
+      await expect(
+        loadInboundContent("em_secreto", "clave-de-prueba", log, respond(status)),
+      ).rejects.toBeInstanceOf(ResendFetchError);
+      expect(log.error).toHaveBeenCalledTimes(1);
+      const logged = JSON.stringify(log.error.mock.calls);
+      expect(logged).not.toContain("clave-de-prueba");
+      expect(logged).not.toContain("em_secreto");
+    },
+  );
 
   it("sigue sin cuerpo si el email no se puede recuperar", async () => {
     await expect(

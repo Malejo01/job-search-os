@@ -1,14 +1,14 @@
 /**
  * Volumen de emails entrantes (JS-038). Decide si /inbox tiene que avisar que algo raro pasa:
  * un filtro de reenvío de Gmail que manda todo el correo (banco, GitHub…), un pico que llena la
- * base, o emails perdidos por el límite de 100/hora del webhook. Puro: recibe conteos.
+ * base, o emails perdidos por el límite del webhook (100 por hora y 300 por día). Puro: recibe conteos.
  */
 export type InboxVolumeInput = {
   /** Emails recibidos en las últimas 24 h. */
   last24h: number;
   /** De esos, cuántos no tenían parser (cola manual). */
   last24hNoParser: number;
-  /** Emails rechazados por el límite horario en las últimas 24 h (no se guardaron). */
+  /** Rechazos por el límite de emails entrantes en las últimas 24 h (no se guardaron). */
   rejectedLast24h: number;
   /** Recibidos por día en los 7 días anteriores (sin contar las últimas 24 h). */
   previousDays: readonly number[];
@@ -41,7 +41,7 @@ export function assessInboxVolume(
 
   if (input.rejectedLast24h > 0) {
     reasons.push(
-      `${input.rejectedLast24h} emails rechazados por el límite de 100 por hora: no se guardaron.`,
+      "Hubo emails rechazados por el límite de emails entrantes (100 por hora o 300 por día, por separado para fuentes de empleo y otros remitentes): no se guardaron.",
     );
   }
   if (input.last24h >= minSpike && input.last24h > spikeFactor * Math.max(averagePerDay, 1)) {

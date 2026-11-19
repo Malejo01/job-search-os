@@ -5,6 +5,7 @@ import {
   type Modality,
   type RawJob,
 } from "@job-search-os/pipeline";
+import { clampReason } from "./motivo";
 import type { EmailParser, InboundEmailContent, ParseResult } from "./parsers";
 
 /**
@@ -118,7 +119,8 @@ export const bumeranParser: EmailParser = {
     for (const a of tarjetas) {
       const href = /href="([^"]+)"/i.exec(a.attrs)?.[1] ?? "";
       const card = leerTarjeta(href, a.inner);
-      if (typeof card === "string") return { ok: false, reason: `${card}: cola manual` };
+      if (typeof card === "string")
+        return { ok: false, reason: clampReason(`${card}: cola manual`) };
       jobs.push({
         source: {
           kind: "email_generic",

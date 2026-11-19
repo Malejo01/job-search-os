@@ -15,6 +15,7 @@ import {
   mcpFailed,
   emptyInput,
   getJobInput,
+  guardMcpTool,
   listAnswersInput,
   listJobsInput,
   marketSummaryInput,
@@ -24,6 +25,9 @@ import {
   setStatusInput,
   untrustedContent,
 } from "@job-search-os/adapters";
+
+type ToolCtx = { http?: { authInfo?: { extra?: Record<string, unknown> } } };
+type ToolCallback = (args: unknown, ctx: ToolCtx) => Promise<unknown>;
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -53,7 +57,22 @@ const CONFIRM =
 const failed = mcpFailed;
 
 const handler = createMcpHandler(
-  (server) => {
+  (mcpServer) => {
+    // Todas las tools pasan por `guardMcpTool`: una excepción que ninguna tool atrapó sale como
+    // código fijo y nunca con el `message` (que en la base trae la consulta con sus parámetros).
+    // Los tipos de cada tool los sigue dando `mcpServer.registerTool`: acá solo se envuelve el callback.
+    const rawServer = mcpServer as unknown as {
+      registerTool: (name: string, config: unknown, cb: unknown) => unknown;
+    };
+    const server = {
+      registerTool: ((name: string, config: unknown, cb: ToolCallback) =>
+        rawServer.registerTool(
+          name,
+          config,
+          guardMcpTool(name, (ctx: ToolCtx) => mcpUserIdFor(ctx.http?.authInfo), cb),
+        )) as unknown as typeof mcpServer.registerTool,
+    };
+
     server.registerTool(
       "list_pending_jd",
       {

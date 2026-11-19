@@ -12,6 +12,7 @@ import { z } from "zod";
 import { requireCvCoach } from "@/lib/cv-coach/access";
 import { cvCoachBefore, loadCvCoachContext } from "@/lib/cv-coach/context";
 import { serviceLlm } from "@/lib/llm-service";
+import { bodyBytesForChars, readBodyLimited } from "@/lib/read-body-limited";
 import { sessionUserId } from "@/lib/session";
 import { siteUrl } from "@/lib/site-url";
 import { needsTermsAcceptance } from "@/lib/terms-status";
@@ -35,6 +36,7 @@ type ErrorCode =
   | "bad_origin"
   | "not_ready"
   | "bad_request"
+  | "too_long"
   | "bad_ticket"
   | "llm_unavailable"
   | "server";
@@ -45,6 +47,7 @@ const MESSAGES: Record<ErrorCode, string> = {
   bad_origin: "Pedido no permitido.",
   not_ready: "Antes completá los términos.",
   bad_request: "No entendimos el pedido. Recargá la página e intentá de nuevo.",
+  too_long: "El pedido es demasiado grande. Recargá la página e intentá de nuevo.",
   bad_ticket:
     "La charla venció. Volvé a empezar la lectura de tu CV; lo que ya confirmaste sigue en tu perfil.",
   llm_unavailable:
@@ -58,6 +61,7 @@ const STATUS: Record<ErrorCode, number> = {
   bad_origin: 403,
   not_ready: 403,
   bad_request: 400,
+  too_long: 413,
   bad_ticket: 409,
   llm_unavailable: 503,
   server: 500,
@@ -96,7 +100,9 @@ export async function POST(request: Request): Promise<Response> {
   if (!originAllowed(request.headers.get("origin"), allowed)) return fail("bad_origin");
   if (await needsTermsAcceptance(userId)) return fail("not_ready");
 
-  const text = await request.text();
+  const limited = await readBodyLimited(request, bodyBytesForChars(MAX_BODY_CHARS));
+  if (!limited.ok) return fail("too_long");
+  const text = limited.text;
   if (text.length > MAX_BODY_CHARS) return fail("bad_request");
   let json: unknown;
   try {

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { err, ok, type Result } from "./result";
 
 /**
  * Contrato de salida del evaluador (docs/EVALUATOR_PROMPT_v1.md §4).
@@ -259,28 +260,82 @@ export function checkJdSize(jdText: string | null | undefined): JdSizeCheck {
 const clip = (value: string | null | undefined, max: number): string | null | undefined =>
   typeof value === "string" && value.length > max ? value.slice(0, max) : value;
 
+/** Topes de los demás campos de texto libre que entran al prompt. */
+export const CONTRACT_PROMPT_MAX_CHARS = 100;
+export const MODALITY_PROMPT_MAX_CHARS = 50;
+export const SALARY_PERIOD_PROMPT_MAX_CHARS = 30;
+export const POSTED_AT_PROMPT_MAX_CHARS = 40;
+/** Países: un código ISO cada uno y a lo sumo los 250 que existen (el aviso puede traer "*"). */
+export const COUNTRY_PROMPT_MAX_CHARS = 40;
+export const COUNTRIES_PROMPT_MAX_ITEMS = 250;
+/** Etiquetas del aviso (badges). */
+export const BADGE_PROMPT_MAX_CHARS = 100;
+export const BADGES_PROMPT_MAX_ITEMS = 20;
+/** Máximo del prompt completo (suma de las variables de texto): la JD tope más lo que rodea. */
+export const PROMPT_MAX_CHARS = 120_000;
+
+/** Lista acotada en cantidad y en largo de cada elemento; los que no son texto se descartan. */
+function clipList(
+  list: readonly string[] | null | undefined,
+  maxItems: number,
+  maxChars: number,
+): string[] | null | undefined {
+  if (!Array.isArray(list)) return list as null | undefined;
+  return list
+    .slice(0, maxItems)
+    .filter((x): x is string => typeof x === "string")
+    .map((x) => (x.length > maxChars ? x.slice(0, maxChars) : x));
+}
+
+export type PromptSizeError = { chars: number; max: number; reason: string };
+
+/**
+ * Mide el prompt completo (suma de las variables de texto) antes de llamar al modelo. No lanza: el
+ * llamador decide qué hacer si se pasa. Las variables que no son texto no cuentan.
+ */
+export function checkPromptSize(
+  vars: Record<string, string | boolean>,
+  max: number = PROMPT_MAX_CHARS,
+): Result<{ chars: number; estimatedTokens: number }, PromptSizeError> {
+  let chars = 0;
+  for (const v of Object.values(vars)) if (typeof v === "string") chars += v.length;
+  if (chars > max) {
+    return err({
+      chars,
+      max,
+      reason: `prompt demasiado largo (${chars} caracteres, máximo ${max})`,
+    });
+  }
+  return ok({ chars, estimatedTokens: Math.ceil(chars / 3) });
+}
+
 /** `{{job}}` del prompt: campos estructurados + JD (o "JD NO DISPONIBLE"). */
 export function renderJob(job: JobForPrompt, opts: { delimit?: boolean } = {}): string {
   const salaryNote = clip(job.salaryNote, SALARY_NOTE_PROMPT_MAX_CHARS);
   const salary =
     job.salaryMinUsd || job.salaryMaxUsd
-      ? `${job.salaryMinUsd ?? "?"}–${job.salaryMaxUsd ?? "?"} USD ${job.salaryPeriod ?? ""}${
+      ? `${job.salaryMinUsd ?? "?"}–${job.salaryMaxUsd ?? "?"} USD ${clip(job.salaryPeriod, SALARY_PERIOD_PROMPT_MAX_CHARS) ?? ""}${
           salaryNote ? ` (${salaryNote})` : ""
         }`.trim()
       : null;
   const posted =
-    job.postedAt instanceof Date ? job.postedAt.toISOString().slice(0, 10) : (job.postedAt ?? null);
+    job.postedAt instanceof Date
+      ? job.postedAt.toISOString().slice(0, 10)
+      : (clip(job.postedAt, POSTED_AT_PROMPT_MAX_CHARS) ?? null);
   const header = lines([
     line("Título", clip(job.title, FIELD_PROMPT_MAX_CHARS)),
     line("Empresa", clip(job.companyRaw, FIELD_PROMPT_MAX_CHARS)),
     line("Ubicación", clip(job.locationRaw, FIELD_PROMPT_MAX_CHARS)),
-    line("Países permitidos", job.countriesAllowed),
-    line("Modalidad", job.modality),
-    line("Contrato", job.contractType),
+    line(
+      "Países permitidos",
+      clipList(job.countriesAllowed, COUNTRIES_PROMPT_MAX_ITEMS, COUNTRY_PROMPT_MAX_CHARS),
+    ),
+    line("Modalidad", clip(job.modality, MODALITY_PROMPT_MAX_CHARS)),
+    line("Contrato", clip(job.contractType, CONTRACT_PROMPT_MAX_CHARS)),
     line("Salario", salary),
     line("Horas semanales", job.weeklyHours),
     line("Candidatos", job.candidatesCount),
-    line("Badges", job.badges),
+    line("Badges", clipList(job.badges, BADGES_PROMPT_MAX_ITEMS, BADGE_PROMPT_MAX_CHARS)),
     line("Publicada", posted),
   ]);
   const jd = job.jdText?.trim()

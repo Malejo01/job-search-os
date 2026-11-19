@@ -5,6 +5,7 @@ import {
   tagBlocks,
   type RawJob,
 } from "@job-search-os/pipeline";
+import { clampReason } from "./motivo";
 import type { EmailParser, InboundEmailContent, ParseResult } from "./parsers";
 
 /**
@@ -159,7 +160,7 @@ export const computrabajoParser: EmailParser = {
     for (const a of tarjetas) {
       const href = /href="([^"]+)"/i.exec(a.attrs)?.[1] ?? "";
       const job = leerTarjeta(href, a.inner);
-      if (typeof job === "string") return { ok: false, reason: `${job}: cola manual` };
+      if (typeof job === "string") return { ok: false, reason: clampReason(`${job}: cola manual`) };
       jobs.push(job);
     }
     return { ok: true, jobs };

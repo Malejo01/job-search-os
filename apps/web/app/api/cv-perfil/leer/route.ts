@@ -14,6 +14,7 @@ import { originAllowed } from "@/lib/cv-chat-ticket";
 import { serviceLlm } from "@/lib/llm-service";
 import { getSessionEmail, requireProfileAgent } from "@/lib/profile-agent/access";
 import { buildReadSummary, loadReadContext } from "@/lib/profile-agent/read-server";
+import { bodyBytesForChars, readBodyLimited } from "@/lib/read-body-limited";
 import { sessionUserId } from "@/lib/session";
 import { siteUrl } from "@/lib/site-url";
 import { needsTermsAcceptance } from "@/lib/terms-status";
@@ -58,7 +59,9 @@ export async function POST(request: Request): Promise<Response> {
   // Los términos sí; el onboarding completo no: esta pantalla también es el primer paso del onboarding
   if (await needsTermsAcceptance(userId)) return fail("not_ready");
 
-  const raw = await request.text();
+  const limited = await readBodyLimited(request, bodyBytesForChars(PROFILE_READ_MAX_BODY_CHARS));
+  if (!limited.ok) return fail("too_long");
+  const raw = limited.text;
   if (raw.length > PROFILE_READ_MAX_BODY_CHARS) return fail("too_long");
   let json: unknown;
   try {

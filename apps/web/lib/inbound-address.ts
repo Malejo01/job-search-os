@@ -36,6 +36,31 @@ export async function getInboundAddress(userId: string): Promise<string | null> 
 }
 
 /**
+ * La dirección y, si una rotación dejó la anterior como alias que todavía vale, hasta cuándo. Es la
+ * misma consulta del perfil que ya hacía /inbox: el aviso «tu dirección cambió» no suma otra.
+ */
+export async function getInboundAddressState(
+  userId: string,
+  now: Date = new Date(),
+): Promise<{ address: string; graceUntil: Date | null } | null> {
+  const [row] = await withUser(userId, (tx) =>
+    tx
+      .select({
+        address: s.profiles.inboundAddress,
+        previousUntil: s.profiles.previousInboundUntil,
+      })
+      .from(s.profiles)
+      .where(eq(s.profiles.userId, userId))
+      .limit(1),
+  );
+  if (!row) return null;
+  return {
+    address: row.address,
+    graceUntil: row.previousUntil && row.previousUntil > now ? row.previousUntil : null,
+  };
+}
+
+/**
  * Reemplaza la dirección por una aleatoria de 100 bits. Si choca con el unique reintenta una vez.
  * Sin INGEST_DOMAIN no inventa un dominio: devuelve `sin_dominio`.
  */

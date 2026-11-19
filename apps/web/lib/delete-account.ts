@@ -1,8 +1,9 @@
 import { createLogger } from "@job-search-os/adapters";
 import { confirmsAccountDeletion, deleteUserData, schema as s } from "@job-search-os/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { withUser } from "./db";
 import { invalidateUserInsights } from "./insights-cache";
+import { loginEmailHashes } from "./login-credentials";
 import { invalidateMarketCandidates } from "./market";
 
 export type DeleteAccountResult =
@@ -25,6 +26,10 @@ export async function deleteAccount(
       .where(eq(s.users.id, userId))
       .limit(1);
     if (!confirmsAccountDeletion(user, input)) return null;
+    // login_attempts no tiene user_id: no entra en deleteUserData. Se borran por email, en la misma transacción.
+    for (const hash of loginEmailHashes(user!.email.trim().toLowerCase())) {
+      await tx.execute(sql`select login_attempt_clear(${hash})`);
+    }
     return deleteUserData(tx, userId);
   });
   if (!counts) return { ok: false, reason: "mismatch" };

@@ -132,6 +132,10 @@ export const profiles = pgTable("profiles", {
   salaryFloorUsd: integer("salary_floor_usd"), // mensual, remoto senior
   maxWeeklyHours: integer("max_weekly_hours").default(40),
   inboundAddress: text("inbound_address").notNull().unique(), // u_<id>@ingest.<dominio>
+  // S3-26: la dirección anterior de una rotación del admin sigue resolviendo hasta `previous_inbound_until`.
+  // En minúsculas y con índice único (la resolución por esta columna no recorre la tabla). La app no la escribe.
+  previousInboundAddress: text("previous_inbound_address").unique(),
+  previousInboundUntil: timestamp("previous_inbound_until", { withTimezone: true }),
   timezone: text("timezone").default("America/Argentina/Salta"),
   profileSummary: text("profile_summary"),    // texto que entra al prompt (generado desde skill_levels + proyectos)
   targetRole: text("target_role"),            // puesto principal (el primero de target_roles); se escribe siempre junto con la lista
@@ -755,7 +759,12 @@ export const llmCalls = pgTable("llm_calls", {
   ok: boolean("ok").notNull(),
   error: text("error"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-}, (t) => [index("llm_calls_user_task").on(t.userId, t.task, t.createdAt)]);
+}, (t) => [
+  index("llm_calls_user_task").on(t.userId, t.task, t.createdAt),
+  // Sumas de gasto de 24 h de todos (tope global) y de reservas vivas (task + ventana corta)
+  index("llm_calls_task_created").on(t.task, t.createdAt),
+  index("llm_calls_created").on(t.createdAt),
+]);
 
 // Cola de trabajo propia con SKIP LOCKED (pgmq no existe en Neon, ADR-009). Interfaz en adapters/queue.
 export const jobQueue = pgTable("job_queue", {
@@ -788,7 +797,12 @@ export const rawBlobs = pgTable("raw_blobs", {
   body: text("body").notNull(),
   bytes: integer("bytes").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  // la purga de crudos huérfanos busca por tipo y antigüedad
+  index("raw_blobs_kind_created").on(t.kind, t.createdAt),
+  // el conteo de espacio por persona (cuota) suma los bytes de sus crudos, sin los de correo
+  index("raw_blobs_user_kind").on(t.userId, t.kind),
+]);
 
 export const inboundEmails = pgTable("inbound_emails", {
   id: uuid("id").primaryKey().defaultRandom(),

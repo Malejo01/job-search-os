@@ -5,6 +5,7 @@ import {
   type Modality,
   type RawJob,
 } from "@job-search-os/pipeline";
+import { clampReason } from "./motivo";
 import type { EmailParser, InboundEmailContent, ParseResult } from "./parsers";
 
 /**
@@ -67,6 +68,8 @@ function lineasVisibles(html: string): string[] {
 }
 
 const MAX_LINEA_UBICACION = 500;
+/** Largo máximo del asunto que se lee para el nombre de la fuente. */
+const MAX_SUBJECT_CHARS = 1_000;
 
 /** Primer texto entre comillas angulares que no cruza una etiqueta. */
 function entreComillasAngulares(html: string): string | null {
@@ -102,7 +105,9 @@ function nombreFuente(
   subject: string | null,
   html: string,
 ): string {
-  const busqueda = /«([^»]+)»/.exec(subject ?? "")?.[1] ?? entreComillasAngulares(html);
+  const busqueda =
+    /«([^»]+)»/.exec((subject ?? "").slice(0, MAX_SUBJECT_CHARS))?.[1] ??
+    entreComillasAngulares(html);
   return busqueda ? `${formato} «${busqueda}»` : `${formato} de LinkedIn`;
 }
 
@@ -173,7 +178,7 @@ export const linkedinParser: EmailParser = {
     const sourceName = nombreFuente(formato, email.subject, email.html);
     for (const card of tarjetas) {
       const res = tarjetaARawJob(card, sourceName);
-      if ("error" in res) return { ok: false, reason: `${res.error}: cola manual` };
+      if ("error" in res) return { ok: false, reason: clampReason(`${res.error}: cola manual`) };
       jobs.push(res);
     }
     return { ok: true, jobs };
