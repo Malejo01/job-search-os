@@ -19,8 +19,10 @@ export async function pasteJdAction(formData: FormData): Promise<void> {
   const text = String(formData.get("jdText") ?? "");
   if (!jobId) redirect(`${PAGE}?error=oferta`);
   try {
-    await attachJd(userId, jobId, text);
+    // Solo sobre ofertas que esperan su JD: nunca pisa una descripción ni una evaluación
+    await attachJd(userId, jobId, text, { onlyPending: true });
   } catch (e) {
+    if (e instanceof Error && e.name === "JdNotPendingError") redirect(`${PAGE}?error=oferta`);
     if (e instanceof Error && e.name === "JdTooShortError") redirect(`${PAGE}?error=corta`);
     if (e instanceof Error && e.name === "JdTooLongError") redirect(`${PAGE}?error=larga`);
     if (e instanceof Error && e.name === "PersonQuotaError") redirect(`${PAGE}?error=cuota`);

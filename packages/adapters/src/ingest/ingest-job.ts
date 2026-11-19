@@ -423,8 +423,6 @@ export async function ingestRawJob(input: RawJob, deps: IngestDeps): Promise<Ing
     }
 
     // Fusión (ADR-006): fecha más antigua, texto más largo, flags acumulados
-    const longerJd =
-      raw.jdText && raw.jdText.length > (existing.jdText?.length ?? 0) ? raw.jdText : null;
     const flags = [...new Set([...(existing.flags ?? []), ...decision.flags])];
     await db
       .update(s.jobs)
@@ -432,14 +430,30 @@ export async function ingestRawJob(input: RawJob, deps: IngestDeps): Promise<Ing
         firstSeenAt: seenAt < existing.firstSeenAt ? seenAt : existing.firstSeenAt,
         flags,
         updatedAt: now,
-        ...(longerJd
-          ? { jdText: longerJd, jdHash: jdHash(longerJd), jdShingles: textShingles(longerJd) }
-          : {}),
         ...(canonical && !recent.find((r) => r.id === existing.id)?.canonicalUrl
           ? { canonicalUrl: canonical }
           : {}),
       })
       .where(eq(s.jobs.id, existing.id));
+
+    // El texto más largo solo se escribe mientras la oferta sigue esperando su JD (pendiente_jd o
+    // prefiltrada): una oferta ya evaluada o aplicada conserva la descripción con la que se evaluó.
+    // La condición va en la misma sentencia que escribe, así que otra transición en paralelo no la pisa.
+    let longerJd: string | null = null;
+    if (raw.jdText && raw.jdText.length > (existing.jdText?.length ?? 0)) {
+      const written = await db
+        .update(s.jobs)
+        .set({
+          jdText: raw.jdText,
+          jdHash: jdHash(raw.jdText),
+          jdShingles: textShingles(raw.jdText),
+        })
+        .where(
+          and(eq(s.jobs.id, existing.id), inArray(s.jobs.status, ["pendiente_jd", "prefiltrada"])),
+        )
+        .returning({ id: s.jobs.id });
+      if (written.length) longerJd = raw.jdText;
+    }
 
     if (longerJd && deps.taxonomy)
       await syncJobSkillsFromText(db, existing.id, longerJd, deps.taxonomy);
