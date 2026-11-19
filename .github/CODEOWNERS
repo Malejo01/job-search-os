@@ -156,6 +156,15 @@
 /packages/adapters/src/email/** @Malejo01
 /packages/adapters/src/mcp/** @Malejo01
 
+# Controles de correo y de entrada que no pasan por la base: autenticación del remitente,
+# clasificación, modos, tope de cuerpo, rutas internas y huella de IP de la lista de espera
+/packages/pipeline/src/from-address.ts @Malejo01
+/packages/pipeline/src/inbound-classify.ts @Malejo01
+/packages/pipeline/src/env-modes.ts @Malejo01
+/apps/web/lib/read-body-limited.ts @Malejo01
+/apps/web/lib/internal-path.ts @Malejo01
+/apps/web/lib/waitlist.ts @Malejo01
+
 # Dependencias y configuración de build (cualquier package.json: también scripts)
 **/package.json @Malejo01
 /pnpm-lock.yaml @Malejo01

@@ -159,6 +159,15 @@ packages/adapters/src/inbound/**
 packages/adapters/src/email/**
 packages/adapters/src/mcp/**
 
+# Controles de correo y de entrada que no pasan por la base: autenticación del remitente,
+# clasificación, modos, tope de cuerpo, rutas internas y huella de IP de la lista de espera
+packages/pipeline/src/from-address.ts
+packages/pipeline/src/inbound-classify.ts
+packages/pipeline/src/env-modes.ts
+apps/web/lib/read-body-limited.ts
+apps/web/lib/internal-path.ts
+apps/web/lib/waitlist.ts
+
 # Dependencias y configuración de build (cualquier package.json: también scripts)
 **/package.json
 pnpm-lock.yaml
