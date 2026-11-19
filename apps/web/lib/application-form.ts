@@ -4,8 +4,8 @@ import {
   ANSWER_LANGS,
   ApplicantFailure,
   createLogger,
-  draftApplicationAnswers,
   draftsCapGuard,
+  generateApplicationDrafts,
   safeDbError,
   saveAnswer,
   saveApplicationAnswers,
@@ -103,20 +103,18 @@ export async function generateDraftsAction(input: {
   try {
     const conn = createDb(requireDatabaseUrl({ purpose: "service" }), { max: 1 });
     service = conn;
-    const result = await withUser(userId, (tx) =>
-      draftApplicationAnswers(
-        tx,
-        {
-          userId,
-          jobId: jobId.data,
-          questions: questions.map((q) => ({
-            id: q.id,
-            text: q.options?.length ? `${q.label} (opciones: ${q.options.join(" / ")})` : q.label,
-          })),
-        },
-        serviceLlm(conn.db, logger),
-        draftsCapGuard(conn.db, userId),
-      ),
+    const result = await generateApplicationDrafts(
+      (read) => withUser(userId, read),
+      {
+        userId,
+        jobId: jobId.data,
+        questions: questions.map((q) => ({
+          id: q.id,
+          text: q.options?.length ? `${q.label} (opciones: ${q.options.join(" / ")})` : q.label,
+        })),
+      },
+      serviceLlm(conn.db, logger),
+      draftsCapGuard(conn.db, userId),
     );
     const byId = new Map(result.drafts.map((d) => [d.question_id, d]));
     const drafts = questions.map((q): DraftView => {

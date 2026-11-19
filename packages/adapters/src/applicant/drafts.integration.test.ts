@@ -3,12 +3,17 @@ import { applyMigrations } from "@job-search-os/db/src/migrate";
 import { createDb, schema as s } from "@job-search-os/db";
 import criteria from "@job-search-os/db/seeds/criteria.example.json";
 import { err, ok } from "@job-search-os/pipeline";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createDemoLlm } from "../llm/demo";
 import type { LlmClient } from "../llm/types";
 import { ApplicantFailure } from "./context";
-import { draftApplicationAnswers, SIN_FUENTE, type FormQuestion } from "./drafts";
+import {
+  draftApplicationAnswers,
+  generateApplicationDrafts,
+  SIN_FUENTE,
+  type FormQuestion,
+} from "./drafts";
 
 /**
  * JS-053 fase 2 · borradores de formulario con el LLM falso (cero gasto). Formulario, perfil,
@@ -155,6 +160,99 @@ const noCap = async () => ({ message: null });
 
 const byId = (r: Awaited<ReturnType<typeof draftApplicationAnswers>>, id: string) =>
   r.drafts.find((d) => d.question_id === id)!;
+
+describe("generateApplicationDrafts", () => {
+  /** Transacciones abiertas en esta base, sin contar la consulta que pregunta. */
+  async function openTransactions(): Promise<number> {
+    const rows = (await conn.db.execute(sql`
+      select count(*)::int as n from pg_stat_activity
+       where datname = current_database() and pid <> pg_backend_pid()
+         and state in ('idle in transaction', 'idle in transaction (aborted)')`)) as unknown as {
+      n: number;
+    }[];
+    return rows[0]!.n;
+  }
+
+  it("no deja transacciones abiertas mientras responde el modelo", async () => {
+    let txOpen = false;
+    let readsDone = 0;
+    let openDuringCall = -1;
+    let txOpenDuringCall = true;
+    const slow: LlmClient = {
+      async generateStructured(task, schema, vars) {
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        openDuringCall = await openTransactions();
+        txOpenDuringCall = txOpen;
+        return scripted({ drafts: [] }).generateStructured(task, schema, vars);
+      },
+    };
+    await generateApplicationDrafts(
+      (read) =>
+        conn.db.transaction(async (tx) => {
+          txOpen = true;
+          try {
+            readsDone++;
+            return await read(tx as never);
+          } finally {
+            txOpen = false;
+          }
+        }),
+      { userId: USER, jobId, questions: FORM },
+      slow,
+      noCap,
+    );
+    expect(readsDone).toBe(1);
+    expect(txOpenDuringCall).toBe(false);
+    expect(openDuringCall).toBe(0);
+  });
+
+  it("si la lectura falla no reserva gasto ni llama al modelo", async () => {
+    let reserved = 0;
+    let called = 0;
+    const counting: LlmClient = {
+      async generateStructured(task, schema, vars) {
+        called++;
+        return scripted({ drafts: [] }).generateStructured(task, schema, vars);
+      },
+    };
+    await expect(
+      generateApplicationDrafts(
+        (read) => read(conn.db),
+        { userId: USER, jobId: "00000000-0000-4000-8000-000000000000", questions: FORM },
+        counting,
+        async () => {
+          reserved++;
+          return { message: null };
+        },
+      ),
+    ).rejects.toBeInstanceOf(ApplicantFailure);
+    expect(reserved).toBe(0);
+    expect(called).toBe(0);
+  });
+
+  it("suelta la reserva aunque el modelo tire una excepción", async () => {
+    let released = 0;
+    const broken: LlmClient = {
+      async generateStructured() {
+        throw new Error("falla del proveedor");
+      },
+    };
+    await expect(
+      generateApplicationDrafts(
+        (read) => read(conn.db),
+        { userId: USER, jobId, questions: FORM },
+        broken,
+        async () => ({
+          message: null,
+          release: async () => {
+            released++;
+          },
+        }),
+      ),
+    ).rejects.toThrow("falla del proveedor");
+    expect(released).toBe(1);
+  });
+});
 
 describe("draftApplicationAnswers", () => {
   it("las respuestas fijas salen idénticas a application_settings y el sueldo lo calcula el código", async () => {
