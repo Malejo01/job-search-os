@@ -20,6 +20,13 @@ function escapeDelimiters(text: string): string {
     .replaceAll(UNTRUSTED_CLOSE, "CONTENIDO_EXTERNO_NO_CONFIABLE_>>>");
 }
 
+/** Respuesta de una tool MCP con el JSON dentro del bloque no confiable. */
+export function untrustedContent(data: unknown) {
+  return {
+    content: [{ type: "text" as const, text: wrapUntrusted(JSON.stringify(data, null, 2)) }],
+  };
+}
+
 export function wrapUntrusted(text: string): string {
   return [
     `${UNTRUSTED_OPEN} (${UNTRUSTED_NOTICE})`,

@@ -220,9 +220,13 @@ function fixedDraft(q: FormQuestion, kind: FixedKind, profile: CandidateProfile)
 const MAX_JD_CHARS = 8000;
 const MAX_PREVIOUS_ANSWERS = 6;
 
-/** El aviso entra en el prompt entre marcas: se le quitan las propias para que no pueda cerrarlas. */
-function sanitizeJd(jd: string): string {
-  return jd.replace(/<\/?\s*aviso_no_confiable\s*>/gi, "").slice(0, MAX_JD_CHARS);
+/**
+ * El aviso entra en el prompt entre marcas: todo `<` y `>` se reemplaza por un signo parecido
+ * (‹ ›), así ninguna etiqueta del texto puede abrir ni cerrar el bloque, ni anidada ni con
+ * espacios o mayúsculas. Se acota el largo antes de reemplazar (mismo largo).
+ */
+export function sanitizeJd(jd: string): string {
+  return jd.slice(0, MAX_JD_CHARS).replaceAll("<", "‹").replaceAll(">", "›");
 }
 
 /**
