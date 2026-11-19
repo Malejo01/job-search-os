@@ -132,6 +132,19 @@ La web abre un pool de conexiones **por instancia** de Vercel (`apps/web/lib/db.
 - **Pooler de Neon (`-pooler` en el host de la URL).** Acepta muchas más conexiones de cliente que el límite directo, a cambio de modo transacción (por eso `createDb` usa `prepare: false`; `withUser` fija `app.user_id` con `set_config(..., true)` dentro de la transacción, compatible). Si la cuenta se acerca al límite directo, la salida es usar la URL con `-pooler` en `DATABASE_URL_APP`, no subir `DB_POOL_MAX`.
 - **Subirlo no acelera nada** si las consultas de una página ya van en paralelo con 5: solo sirve cuando hay más de 5 consultas simultáneas por instancia. Ante la duda, dejarlo en 5.
 
+## Autenticación del remitente del correo entrante: `INBOUND_DMARC_MODE` e `INBOUND_AUTHSERV_ID`
+
+El veredicto sale solo del primer `Authentication-Results` del email, el que antepone el receptor propio. Es `aligned` si ese encabezado empieza con el identificador de servidor configurado y trae `dmarc=pass` con `header.from` igual al dominio del remitente. DKIM y SPF sueltos no cuentan, y lo que escriba quien envía tampoco.
+
+| Variable | Default | Qué hace |
+|---|---|---|
+| `INBOUND_DMARC_MODE` | `log` | `off` no mira nada. `log` registra el veredicto (`auth_verdict` en el crudo) sin cambiar nada. `enforce` retiene el email de un remitente esperado que no quedó `aligned`. |
+| `INBOUND_AUTHSERV_ID` | sin valor | Identificador de servidor (la primera palabra del encabezado) del receptor propio. Sin valor, el veredicto es siempre `none`: en `enforce` todo queda retenido. |
+
+- **Antes de pasar a `enforce`:** dejar `log` unos días con correo real y mirar `auth_verdict` por remitente. Confirmar qué identificador de servidor llega en el encabezado y cargarlo en `INBOUND_AUTHSERV_ID`. Si no llega ningún `Authentication-Results`, `enforce` retendría todo, incluida la confirmación de reenvío de Gmail.
+- **Email retenido:** en el detalle de `/inbox` aparece el botón «Procesar igual», que lo procesa como verificado. Lo puede usar solo la persona dueña.
+- Ambas variables son un paso manual de Admin en Vercel y necesitan redeploy.
+
 ## Topes del asistente por charla (R9-2)
 
 El asistente corta cada charla por mensajes y por gasto. Los defaults están en `packages/pipeline/src/agent/limits.ts` y se pueden cambiar sin deploy de código con dos variables de Vercel (paso manual de Admin; hace falta un redeploy para que las tome):

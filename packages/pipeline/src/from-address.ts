@@ -59,27 +59,50 @@ export function parseInboundDmarcMode(raw: string | undefined): InboundDmarcMode
   return mode === "off" || mode === "enforce" ? mode : "log";
 }
 
-function headerValues(headers: Record<string, unknown>, wanted: string): string[] {
-  return Object.entries(headers)
-    .filter(([name]) => name.toLowerCase() === wanted)
-    .flatMap(([, value]) => (Array.isArray(value) ? value : [value]))
-    .map(String);
+/** Un `Authentication-Results` real mide una fracción de esto; más largo no se lee. */
+const MAX_AUTH_RESULTS_CHARS = 8 * 1024;
+
+/** Primera instancia del encabezado, o `null`. Solo mira el primer valor: lo demás no se recorre. */
+function firstHeaderValue(headers: Record<string, unknown>, wanted: string): string | null {
+  for (const name of Object.keys(headers)) {
+    if (name.toLowerCase() !== wanted) continue;
+    const value = headers[name];
+    const first = Array.isArray(value) ? value[0] : value;
+    return typeof first === "string" ? first : null;
+  }
+  return null;
 }
 
 /**
- * Veredicto de autenticación según los encabezados del email. Un `fail` gana sobre cualquier `pass`. Sin
- * resultado de DMARC se usa DKIM y después SPF. Una firma `DKIM-Signature` sola no prueba nada: nadie la verificó.
+ * Veredicto de autenticación según el `Authentication-Results` que agregó el receptor propio. Cuenta solo la
+ * **primera** instancia (la que se antepone al llegar) y solo si empieza con el authserv-id configurado
+ * (`INBOUND_AUTHSERV_ID`): lo que escribe quien envía no es una prueba. `aligned` exige `dmarc=pass` con
+ * `header.from` igual al dominio del From. DKIM y SPF sueltos no cuentan. Sin authserv-id configurado, sin
+ * encabezado o con un From ilegible, el veredicto es `none` (en `enforce`, el email se retiene).
  */
 export function authResultsVerdict(
   headers: Record<string, unknown> | null | undefined,
+  authservId: string | null | undefined,
+  from: string,
 ): AuthVerdict {
-  if (!headers) return "none";
-  const results = headerValues(headers, "authentication-results");
-  if (results.some((v) => /\bdmarc\s*=\s*fail\b/i.test(v))) return "fail";
-  if (results.some((v) => /\bdmarc\s*=\s*pass\b/i.test(v))) return "aligned";
-  if (results.some((v) => /\bdkim\s*=\s*pass\b/i.test(v))) return "aligned";
-  const spf = headerValues(headers, "received-spf");
-  if (spf.some((v) => /^\s*fail\b/i.test(v))) return "fail";
-  if (spf.some((v) => /^\s*pass\b/i.test(v))) return "aligned";
+  const expectedId = authservId?.trim().toLowerCase();
+  if (!headers || !expectedId) return "none";
+  const value = firstHeaderValue(headers, "authentication-results");
+  if (value === null || value.length > MAX_AUTH_RESULTS_CHARS) return "none";
+
+  const [head = "", ...results] = value.split(";");
+  if (head.trim().split(/\s+/, 1)[0]?.toLowerCase() !== expectedId) return "none";
+  const address = parseFromAddress(from);
+  if (!address) return "none";
+  const fromDomain = address.slice(address.lastIndexOf("@") + 1);
+
+  for (const result of results) {
+    const dmarc = /^\s*dmarc\s*=\s*([a-z]+)/i.exec(result)?.[1]?.toLowerCase();
+    if (!dmarc) continue;
+    if (dmarc === "fail") return "fail";
+    if (dmarc !== "pass") return "none";
+    const headerFrom = /\bheader\.from\s*=\s*"?([^\s;"()]+)/i.exec(result)?.[1]?.toLowerCase();
+    return headerFrom === fromDomain ? "aligned" : headerFrom ? "fail" : "none";
+  }
   return "none";
 }

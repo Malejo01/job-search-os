@@ -5,7 +5,12 @@ import { eq } from "drizzle-orm";
 import pino from "pino";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { pgBlobStorage } from "../storage/blob";
-import { AUTH_UNVERIFIED_REASON, handleInboundEmail, UNEXPECTED_SENDER_REASON } from "./handle";
+import {
+  AUTH_UNVERIFIED_REASON,
+  handleInboundEmail,
+  processHeldInbound,
+  UNEXPECTED_SENDER_REASON,
+} from "./handle";
 import { linkedinParser } from "./linkedin";
 import { chooseParserName, linkedinSenderKind } from "./parsers";
 import { isPoolAlertSender } from "./pool-mailbox";
@@ -20,7 +25,12 @@ const REAL = "LinkedIn <jobs-noreply@linkedin.com>";
 let container: StartedPostgreSqlContainer | null = null;
 let conn: ReturnType<typeof createDb>;
 const logger = pino({ level: "silent" });
-const deps = () => ({ db: conn.db, storage: pgBlobStorage(conn.db), logger });
+const deps = () => ({
+  db: conn.db,
+  storage: pgBlobStorage(conn.db),
+  logger,
+  authservId: "mx.example",
+});
 
 const event = (emailId: string, from: string): ResendReceivedEvent => ({
   type: "email.received",
@@ -142,13 +152,106 @@ describe("remitente del webhook", () => {
     const parse = vi.spyOn(linkedinParser, "parse");
     const ev = event("em_auth_ok", REAL);
 
-    await handleInboundEmail(ev, content("mx.example; dmarc=pass"), JSON.stringify(ev), {
-      ...deps(),
-      dmarcMode: "enforce",
-    });
+    await handleInboundEmail(
+      ev,
+      content("mx.example; dmarc=pass header.from=linkedin.com"),
+      JSON.stringify(ev),
+      { ...deps(), dmarcMode: "enforce" },
+    );
 
     expect(parse).toHaveBeenCalledTimes(1);
     parse.mockRestore();
+  });
+
+  it("en modo enforce, sin authserv-id configurado un dmarc=pass escrito por quien envía no alcanza", async () => {
+    const parse = vi.spyOn(linkedinParser, "parse");
+    const ev = event("em_auth_sin_id", REAL);
+
+    const out = await handleInboundEmail(
+      ev,
+      content("mx.example; dmarc=pass header.from=linkedin.com"),
+      JSON.stringify(ev),
+      { ...deps(), authservId: undefined, dmarcMode: "enforce" },
+    );
+
+    expect(out).toMatchObject({ kind: "stored", error: AUTH_UNVERIFIED_REASON });
+    expect(parse).not.toHaveBeenCalled();
+    parse.mockRestore();
+  });
+
+  describe("procesar igual un email retenido", () => {
+    const heldEmail = async (id: string) => {
+      const ev = event(id, REAL);
+      const out = await handleInboundEmail(ev, content(null), JSON.stringify(ev), {
+        ...deps(),
+        dmarcMode: "enforce",
+      });
+      if (out.kind !== "stored") throw new Error("se esperaba un email guardado");
+      return out.inboundId;
+    };
+    const rowsByEmail = (id: string) =>
+      conn.db.select().from(s.inboundEmails).where(eq(s.inboundEmails.emailId, id));
+
+    it("lo procesa como verificado y reemplaza la fila retenida", async () => {
+      const heldId = await heldEmail("em_retenido_ok");
+      const parse = vi.spyOn(linkedinParser, "parse");
+
+      const out = await processHeldInbound(heldId, USER, { ...deps(), dmarcMode: "enforce" });
+
+      expect(out).toMatchObject({ ok: true });
+      expect(parse).toHaveBeenCalledTimes(1);
+      const rows = await rowsByEmail("em_retenido_ok");
+      expect(rows).toHaveLength(1);
+      expect(rows[0]!.id).not.toBe(heldId);
+      expect(rows[0]!.error).not.toBe(AUTH_UNVERIFIED_REASON);
+      const old = await conn.db
+        .select()
+        .from(s.inboundEmails)
+        .where(eq(s.inboundEmails.id, heldId));
+      expect(old).toHaveLength(0);
+      parse.mockRestore();
+    });
+
+    it("no procesa el email de otra persona", async () => {
+      const heldId = await heldEmail("em_retenido_ajeno");
+      const parse = vi.spyOn(linkedinParser, "parse");
+
+      const out = await processHeldInbound(heldId, "a0000000-0000-4000-8000-0000000005ff", {
+        ...deps(),
+        dmarcMode: "enforce",
+      });
+
+      expect(out).toMatchObject({ ok: false });
+      expect(parse).not.toHaveBeenCalled();
+      const [row] = await rowsByEmail("em_retenido_ajeno");
+      expect(row?.id).toBe(heldId);
+      expect(row?.error).toBe(AUTH_UNVERIFIED_REASON);
+      parse.mockRestore();
+    });
+
+    it("no procesa un email que no estaba retenido", async () => {
+      const ev = event("em_no_retenido", REAL);
+      const stored = await handleInboundEmail(ev, content(null), JSON.stringify(ev), deps());
+      if (stored.kind !== "stored") throw new Error("se esperaba un email guardado");
+
+      const out = await processHeldInbound(stored.inboundId, USER, deps());
+
+      expect(out).toMatchObject({ ok: false });
+    });
+
+    it("si el procesamiento queda limitado por el cupo, el email sigue retenido", async () => {
+      const heldId = await heldEmail("em_retenido_cupo");
+
+      const out = await processHeldInbound(heldId, USER, {
+        ...deps(),
+        dmarcMode: "enforce",
+        hourlyLimit: 1,
+      });
+
+      expect(out).toMatchObject({ ok: false });
+      const [row] = await rowsByEmail("em_retenido_cupo");
+      expect(row?.id).toBe(heldId);
+    });
   });
 
   it("en modo off no registra veredicto", async () => {

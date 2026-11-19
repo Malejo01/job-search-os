@@ -42,7 +42,11 @@ import {
   readPoolInboundConfig,
   type PoolInboundConfig,
 } from "./pool-mailbox";
-import type { ReceivedEmailContent, ResendReceivedEvent } from "./resend";
+import {
+  ResendReceivedEventSchema,
+  type ReceivedEmailContent,
+  type ResendReceivedEvent,
+} from "./resend";
 
 /**
  * Un email entrante (JS-020): resolver el usuario por la dirección de destino
@@ -65,6 +69,13 @@ export type InboundDeps = {
   pool?: PoolInboundConfig;
   /** Sin esto se lee de INBOUND_DMARC_MODE; por defecto `log`. */
   dmarcMode?: InboundDmarcMode;
+  /**
+   * Id del servidor que antepone `Authentication-Results` (INBOUND_AUTHSERV_ID). Sin esto, el veredicto es
+   * `none`: en `enforce` el email se retiene. Una clave presente con `undefined` apaga la lectura del entorno.
+   */
+  authservId?: string | null;
+  /** Solo `processHeldInbound`: la persona dueña pidió procesar este email aunque no esté verificado. */
+  treatAsVerified?: boolean;
 };
 
 export type InboundOutcome =
@@ -275,8 +286,12 @@ export async function handleInboundEmail(
     from_domain: senderDomain(event.data.from),
   });
   const dmarcMode = deps.dmarcMode ?? parseInboundDmarcMode(process.env.INBOUND_DMARC_MODE);
-  const authVerdict = dmarcMode === "off" ? null : authResultsVerdict(content?.headers);
-  const authRequired = dmarcMode === "enforce" && authVerdict !== "aligned";
+  const authservId = "authservId" in deps ? deps.authservId : process.env.INBOUND_AUTHSERV_ID;
+  const authVerdict =
+    dmarcMode === "off" ? null : authResultsVerdict(content?.headers, authservId, event.data.from);
+  // «Procesar igual» (la persona dueña lo pidió): se trata como verificado
+  const authRequired =
+    dmarcMode === "enforce" && authVerdict !== "aligned" && !deps.treatAsVerified;
 
   // Idempotencia (JS-115): Svix reintenta; el mismo email_id no se guarda dos veces. Se busca por la
   // columna `email_id` (índice único) y no dentro de los crudos. Si dos entregas del mismo email corren
@@ -711,6 +726,74 @@ export async function handleInboundEmail(
       .delete(s.inboundEmails)
       .where(eq(s.inboundEmails.id, claim.id))
       .catch(() => undefined);
+    throw e;
+  }
+}
+
+export type HeldInboundResult = { ok: true; inboundId: string } | { ok: false; reason: string };
+
+/**
+ * «Procesar igual» (INBOUND_DMARC_MODE=enforce): vuelve a procesar un email retenido por falta de
+ * autenticación, como si estuviera verificado. Solo el de la persona dueña (`userId`) y solo si el motivo
+ * es el de «no verificado». La fila retenida cede su `email_id` mientras se procesa y se borra solo si el
+ * resultado queda guardado: ante cualquier otra salida (cupo, duplicado, excepción) vuelve a quedar como estaba.
+ */
+export async function processHeldInbound(
+  inboundId: string,
+  userId: string,
+  deps: InboundDeps,
+): Promise<HeldInboundResult> {
+  const { db } = deps;
+  const [held] = await db
+    .select({
+      id: s.inboundEmails.id,
+      rawRef: s.inboundEmails.rawRef,
+      emailId: s.inboundEmails.emailId,
+    })
+    .from(s.inboundEmails)
+    .where(
+      and(
+        eq(s.inboundEmails.id, inboundId),
+        eq(s.inboundEmails.userId, userId),
+        eq(s.inboundEmails.error, AUTH_UNVERIFIED_REASON),
+      ),
+    )
+    .limit(1);
+  if (!held?.emailId) return { ok: false, reason: "el email no está retenido" };
+
+  const blob = await deps.storage.get(held.rawRef);
+  let stored: { event?: unknown; content?: ReceivedEmailContent | null };
+  try {
+    stored = JSON.parse(blob?.body ?? "");
+  } catch {
+    return { ok: false, reason: "no se pudo leer el contenido guardado" };
+  }
+  const event = ResendReceivedEventSchema.safeParse(stored.event);
+  if (!event.success || !stored.content) {
+    return { ok: false, reason: "no se pudo leer el contenido guardado" };
+  }
+
+  const holdKey = `held:${held.id}`;
+  await db.update(s.inboundEmails).set({ emailId: holdKey }).where(eq(s.inboundEmails.id, held.id));
+  const restore = () =>
+    db
+      .update(s.inboundEmails)
+      .set({ emailId: held.emailId })
+      .where(eq(s.inboundEmails.id, held.id))
+      .catch(() => undefined);
+  try {
+    const out = await handleInboundEmail(event.data, stored.content, JSON.stringify(stored.event), {
+      ...deps,
+      treatAsVerified: true,
+    });
+    if (out.kind !== "stored" || out.userId !== userId) {
+      await restore();
+      return { ok: false, reason: "no se pudo procesar ahora" };
+    }
+    await db.delete(s.inboundEmails).where(eq(s.inboundEmails.id, held.id));
+    return { ok: true, inboundId: out.inboundId };
+  } catch (e) {
+    await restore();
     throw e;
   }
 }
