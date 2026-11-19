@@ -175,19 +175,33 @@ async function purgeOrphanInboundRaw(db: Db, cutoff: Date, batchSize: number): P
 }
 
 /**
+ * Un lote de la purga de intentos de login. Con `WHERE email_hash IN (subconsulta)` el planificador armaba un
+ * hash semi join y recorría toda la tabla en cada lote. La subconsulta se materializa como arreglo
+ * (`= ANY(ARRAY(...))`, se evalúa una vez): elige el lote por el índice de `last_attempt_at` y lo borra por la
+ * clave, sin depender de lo grande que sea la tabla. Exportada para que el test de EXPLAIN mida este mismo SQL.
+ */
+export function loginAttemptsPurgeBatchSql(cutoff: Date, batchSize: number) {
+  return sql`
+    DELETE FROM login_attempts
+    WHERE email_hash = ANY(ARRAY(
+      SELECT email_hash FROM login_attempts
+      WHERE last_attempt_at < ${cutoff.toISOString()}::timestamptz
+      LIMIT ${batchSize}
+    ))
+    RETURNING email_hash
+  `;
+}
+
+/**
  * Borra los intentos de login con más de un día sin actividad (la ventana de ADR-041), en lotes. La tabla no
  * tiene `user_id` ni columna `id`: la clave es el hash. Usa el índice por `last_attempt_at`.
  */
 async function purgeLoginAttempts(db: Db, cutoff: Date, batchSize: number): Promise<number> {
   let total = 0;
   for (let i = 0; i < PURGE_MAX_BATCHES; i++) {
-    const rows = (await db.execute(sql`
-      DELETE FROM login_attempts WHERE email_hash IN (
-        SELECT email_hash FROM login_attempts
-        WHERE last_attempt_at < ${cutoff.toISOString()}::timestamptz
-        LIMIT ${batchSize}
-      ) RETURNING email_hash
-    `)) as unknown as unknown[];
+    const rows = (await db.execute(
+      loginAttemptsPurgeBatchSql(cutoff, batchSize),
+    )) as unknown as unknown[];
     total += rows.length;
     if (rows.length < batchSize) break;
   }
