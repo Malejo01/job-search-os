@@ -50,9 +50,20 @@ ci.yml
   build           → next build sin base ni claves (SKIP_APP_ROLE_CHECK=1)
   secrets         → gitleaks sobre toda la historia (falla si encuentra algo; sin allowlists)
   e2e             → Postgres + migrate + seed (usuario con contraseña de CI) + next start + Playwright (4 flujos, worker demo); traces como artifact si falla
-  evals           → if: paths prompts/** evals/** → subset de 14 llamadas con tope de costo; sin secret GEMINI_API_KEY se saltea con aviso (nunca falla el build)
+  evals           → solo en push a main o workflow_dispatch desde main, nunca en pull_request (ver abajo)
   build           → pnpm build
 ```
+
+### Evals en el CI: solo después del merge
+
+El job `evals` usa el secret `GEMINI_API_KEY` y paga llamadas al modelo, así que **no corre en los PR**: un PR podría cambiar el workflow o un script y leer el secreto. Corre así:
+
+- **Push a `main`:** si el push toca `packages/prompts/**` o `evals/**`, mide el subset de 16 llamadas con la versión vigente del evaluador (tope `--max-usd 0.5`). Si no los toca, termina con un aviso sin gasto.
+- **A mano:** Actions › ci › Run workflow, eligiendo la rama `main`. Corre siempre.
+- **Sin secret:** se saltea con aviso, no rompe el build.
+- **Entorno `evals`:** el job lo declara para que el entorno tenga reglas propias. Se configura en GitHub (Settings › Environments › evals): limitar las ramas de despliegue a `main` y mover ahí el secret `GEMINI_API_KEY`, en vez de dejarlo como secret del repo.
+- **Qué pasa con un PR que cambia prompts o evals:** el job no aparece en el PR. Lo que se puede validar sin modelo (typecheck, lint y los tests unitarios, incluidos los de `evals/`) sigue corriendo en `lint-typecheck` y `unit`. La medición con el modelo se hace después del merge, o antes con una corrida local aprobada (`node .claude/bin/local.mjs evals run <versión>`).
+- **Regla que lo protege:** `.github/scripts/workflows.test.mjs` falla si un job con un secreto de modelo corre en `pull_request` o no se limita a `main`.
 
 Deploy a Vercel: preview solo a pedido (`[preview]` en el mensaje del último commit), producción en merge a `main` si cambió algo que afecta a la web (`scripts/vercel-ignore.sh`, enganchado desde `apps/web/vercel.json`). La verificación de cada PR la hace GitHub Actions, no Vercel. Migraciones: `drizzle-kit migrate` como paso previo al deploy, con `DATABASE_URL` de producción en secret.
 

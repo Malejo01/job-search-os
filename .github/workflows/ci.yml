@@ -3,9 +3,12 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Para correr los evals pagos a mano: el job `evals` solo arranca si se lanza desde main
+  workflow_dispatch:
 
-# docs/TESTING_STRATEGY.md §CI. Todo corre sin claves salvo `evals`, que se saltea con aviso
-# si el secret GEMINI_API_KEY no está (nunca rompe el build por falta de key).
+# docs/TESTING_STRATEGY.md §CI. Todo corre sin claves salvo `evals`, que corre solo en push a main o a mano
+# desde main (nunca en un pull_request: un PR no ve el secreto) y se saltea con aviso si el secret
+# GEMINI_API_KEY no está (nunca rompe el build por falta de key).
 # Sin permisos por defecto: cada job pide solo lo que necesita.
 permissions: {}
 
@@ -118,10 +121,12 @@ jobs:
       - run: pnpm --filter @job-search-os/web build
 
   evals:
-    # Solo en PRs que tocan prompts o el harness. Subset (16 llamadas) con la versión vigente
-    # de evaluate_job (DEFAULT_PROMPT_VERSIONS), ~USD 0,16 por corrida, con tope de costo;
-    # sin GEMINI_API_KEY se saltea con aviso, no falla.
-    if: github.event_name == 'pull_request'
+    # Solo después del merge (push a main) o a mano desde main, nunca en un pull_request: así el secreto no
+    # llega a código de un PR. Corre si el push toca prompts o el harness; a mano corre siempre. Subset (16
+    # llamadas) con la versión vigente de evaluate_job (DEFAULT_PROMPT_VERSIONS), ~USD 0,16 por corrida,
+    # con tope de costo; sin GEMINI_API_KEY se saltea con aviso, no falla.
+    # `environment: evals` queda para que las reglas del entorno (solo rama main) lo respalden.
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: evals
@@ -137,9 +142,13 @@ jobs:
         with: { fetch-depth: 0, persist-credentials: false }
       - id: changed
         env:
-          BASE_REF: ${{ github.base_ref }}
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
         run: |
-          if git diff --name-only "origin/$BASE_REF...HEAD" | grep -Eq '^(packages/prompts|evals)/'; then
+          # A mano o sin commit anterior conocido: se corre. En un push, solo si cambió prompts o evals.
+          if [ "$EVENT" = "workflow_dispatch" ] || [ -z "$BEFORE" ] || [ -z "${BEFORE//0/}" ]; then
+            echo run=true >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "$BEFORE" HEAD | grep -Eq '^(packages/prompts|evals)/'; then
             echo run=true >> "$GITHUB_OUTPUT"
           else
             echo "::notice::evals: sin cambios en packages/prompts ni evals, no se corre"
