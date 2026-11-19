@@ -1,6 +1,12 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import { normalizeQuestion, rankAnswers, salaryAsk, type SalaryAsk } from "@job-search-os/pipeline";
-import { and, asc, count, desc, eq } from "drizzle-orm";
+import { and, asc, count, desc, eq, sql } from "drizzle-orm";
+import {
+  answerBytes,
+  reserveAnswerBankQuota,
+  reserveApplicationAnswersQuota,
+  type AnswerQuotaLimits,
+} from "../quota/person-quota";
 
 /**
  * Contexto para responder formularios de postulación (JS-053). Lo consume el servidor MCP: Claude
@@ -210,6 +216,8 @@ export async function saveAnswer(
     lang: AnswerLang;
     jobId?: string | null;
     now?: () => Date;
+    /** Solo para pruebas: topes más chicos que los reales. */
+    limits?: AnswerQuotaLimits;
   },
 ): Promise<{ id: string; replaced: boolean }> {
   const question = input.question.trim();
@@ -223,7 +231,10 @@ export async function saveAnswer(
   const now = input.now?.() ?? new Date();
 
   const [existing] = await db
-    .select({ id: s.answerBank.id })
+    .select({
+      id: s.answerBank.id,
+      bytes: sql<number>`(octet_length(${s.answerBank.question}) + octet_length(${s.answerBank.answer}))::float8`,
+    })
     .from(s.answerBank)
     .where(
       and(
@@ -232,6 +243,16 @@ export async function saveAnswer(
         eq(s.answerBank.lang, input.lang),
       ),
     );
+  // Tope de filas y bytes por persona, bajo el lock de la cuota. Reemplazar suma solo lo que crece.
+  const newBytes = answerBytes(question, answer);
+  await reserveAnswerBankQuota(
+    db,
+    input.userId,
+    existing
+      ? { rows: 0, bytes: Math.max(0, newBytes - Number(existing.bytes)) }
+      : { rows: 1, bytes: newBytes },
+    input.limits,
+  );
   if (existing) {
     await db
       .update(s.answerBank)
@@ -258,7 +279,13 @@ export async function saveAnswer(
 /** Guarda el formulario respondido de una oferta. Reemplaza entero el anterior (idempotente). */
 export async function saveApplicationAnswers(
   db: Db,
-  input: { userId: string; jobId: string; qa: { question: string; answer: string }[] },
+  input: {
+    userId: string;
+    jobId: string;
+    qa: { question: string; answer: string }[];
+    /** Solo para pruebas: topes más chicos que los reales. */
+    limits?: AnswerQuotaLimits;
+  },
 ): Promise<{ job_id: string; saved: number; replaced: number }> {
   const qa = input.qa.map((x) => ({ question: x.question.trim(), answer: x.answer.trim() }));
   if (qa.length === 0) throw new ApplicantFailure("empty_form");
@@ -266,6 +293,14 @@ export async function saveApplicationAnswers(
   if (!(await jobExists(db, input.userId, input.jobId))) {
     throw new ApplicantFailure("job_not_found", input.jobId);
   }
+  // Tope de filas y bytes por persona (la oferta se reemplaza entera: lo suyo anterior no cuenta)
+  await reserveApplicationAnswersQuota(
+    db,
+    input.userId,
+    input.jobId,
+    { rows: qa.length, bytes: qa.reduce((t, x) => t + answerBytes(x.question, x.answer), 0) },
+    input.limits,
+  );
   const where = and(
     eq(s.applicationAnswers.userId, input.userId),
     eq(s.applicationAnswers.jobId, input.jobId),

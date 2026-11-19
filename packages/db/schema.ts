@@ -793,7 +793,12 @@ export const rawBlobs = pgTable("raw_blobs", {
   body: text("body").notNull(),
   bytes: integer("bytes").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  // la purga de crudos huérfanos busca por tipo y antigüedad
+  index("raw_blobs_kind_created").on(t.kind, t.createdAt),
+  // el conteo de espacio por persona (cuota) suma los bytes de sus crudos, sin los de correo
+  index("raw_blobs_user_kind").on(t.userId, t.kind),
+]);
 
 export const inboundEmails = pgTable("inbound_emails", {
   id: uuid("id").primaryKey().defaultRandom(),

@@ -14,11 +14,16 @@ export const PERSON_QUOTA_LOCK_NAMESPACE = 7107;
 
 export class PersonQuotaError extends Error {
   readonly kind: "manual_jobs" | "raw_bytes";
-  constructor(kind: "manual_jobs" | "raw_bytes") {
+  /**
+   * `message` propio para las cuotas de respuestas guardadas: usan el tipo `raw_bytes` (que el MCP ya
+   * informa como `cuota_espacio`) pero el texto habla de respuestas, no de avisos.
+   */
+  constructor(kind: "manual_jobs" | "raw_bytes", message?: string) {
     super(
-      kind === "manual_jobs"
-        ? `llegaste al máximo de ${MAX_MANUAL_JOBS_PER_PERSON} ofertas cargadas a mano`
-        : `llegaste al máximo de espacio para avisos guardados (${Math.round(MAX_RAW_BYTES_PER_PERSON / 1024 / 1024)} MB)`,
+      message ??
+        (kind === "manual_jobs"
+          ? `llegaste al máximo de ${MAX_MANUAL_JOBS_PER_PERSON} ofertas cargadas a mano`
+          : `llegaste al máximo de espacio para avisos guardados (${Math.round(MAX_RAW_BYTES_PER_PERSON / 1024 / 1024)} MB)`),
     );
     this.name = "PersonQuotaError";
     this.kind = kind;
@@ -26,9 +31,142 @@ export class PersonQuotaError extends Error {
 }
 
 /**
+ * Crudos de correo: llegan solos, no los carga la persona. No cuentan en su cuota de espacio, que existe para
+ * lo que ella pega o sube (JD pegadas, ofertas a mano, imágenes). `inbound_email` es el email entero;
+ * `ingest_email_*` el crudo de cada aviso que sale de un correo.
+ */
+const isEmailBlob = sql`(${s.rawBlobs.kind} = 'inbound_email' or ${s.rawBlobs.kind} like 'ingest\\_email\\_%')`;
+
+/** Bytes de `raw_blobs` que cargó la persona (sin los crudos de correo). Sin ejecutar. */
+export function personRawBytesQuery(db: Pick<Db, "select">, userId: string) {
+  return db
+    .select({ n: sql<number>`coalesce(sum(${s.rawBlobs.bytes}), 0)::float8` })
+    .from(s.rawBlobs)
+    .where(and(eq(s.rawBlobs.userId, userId), sql`not ${isEmailBlob}`));
+}
+
+/** Topes de las respuestas guardadas por persona (filas y bytes de pregunta + respuesta). */
+export type AnswerQuotaLimits = {
+  /** `answer_bank`: respuestas reutilizables. */
+  bankRows: number;
+  bankBytes: number;
+  /** `application_answers`: formularios respondidos, de todas las ofertas. */
+  formRows: number;
+  formBytes: number;
+};
+
+export const DEFAULT_ANSWER_QUOTA_LIMITS: AnswerQuotaLimits = {
+  bankRows: 500,
+  bankBytes: 2 * 1024 * 1024,
+  formRows: 3_000,
+  formBytes: 5 * 1024 * 1024,
+};
+
+/**
+ * Topes desde ANSWER_BANK_MAX_ROWS, ANSWER_BANK_MAX_BYTES, APPLICATION_ANSWERS_MAX_ROWS y
+ * APPLICATION_ANSWERS_MAX_BYTES. Vacío o inválido (no entero ≥ 1) usa el valor por defecto.
+ */
+export function answerQuotaLimitsFromEnv(env: NodeJS.ProcessEnv = process.env): AnswerQuotaLimits {
+  const pick = (name: string, fallback: number): number => {
+    const raw = env[name]?.trim();
+    if (!raw || !/^\d+$/.test(raw)) return fallback;
+    const n = Number(raw);
+    return Number.isSafeInteger(n) && n >= 1 ? n : fallback;
+  };
+  const d = DEFAULT_ANSWER_QUOTA_LIMITS;
+  return {
+    bankRows: pick("ANSWER_BANK_MAX_ROWS", d.bankRows),
+    bankBytes: pick("ANSWER_BANK_MAX_BYTES", d.bankBytes),
+    formRows: pick("APPLICATION_ANSWERS_MAX_ROWS", d.formRows),
+    formBytes: pick("APPLICATION_ANSWERS_MAX_BYTES", d.formBytes),
+  };
+}
+
+const ANSWER_QUOTA_MESSAGE =
+  "llegaste al máximo de respuestas guardadas: borrá alguna que ya no uses o acortá las más largas";
+
+/** Bytes (UTF-8) de una pregunta con su respuesta. */
+export const answerBytes = (question: string, answer: string): number =>
+  Buffer.byteLength(question, "utf8") + Buffer.byteLength(answer, "utf8");
+
+/** Filas y bytes de `answer_bank` de la persona. Entra por el índice único que empieza por `user_id`. */
+export function answerBankUsageQuery(db: Pick<Db, "select">, userId: string) {
+  return db
+    .select({
+      rows: sql<number>`count(*)::int`,
+      bytes: sql<number>`coalesce(sum(octet_length(${s.answerBank.question}) + octet_length(${s.answerBank.answer})), 0)::float8`,
+    })
+    .from(s.answerBank)
+    .where(eq(s.answerBank.userId, userId));
+}
+
+/**
+ * Filas y bytes de `application_answers` de la persona, sin contar la oferta `exceptJobId` (que se
+ * reemplaza entera). Entra por `jobs` (índice por `user_id`) y por el índice único que empieza por `job_id`.
+ */
+export function applicationAnswersUsageQuery(
+  db: Pick<Db, "select">,
+  userId: string,
+  exceptJobId: string,
+) {
+  return db
+    .select({
+      rows: sql<number>`count(*)::int`,
+      bytes: sql<number>`coalesce(sum(octet_length(${s.applicationAnswers.question}) + octet_length(${s.applicationAnswers.answer})), 0)::float8`,
+    })
+    .from(s.applicationAnswers)
+    .innerJoin(s.jobs, eq(s.jobs.id, s.applicationAnswers.jobId))
+    .where(and(eq(s.jobs.userId, userId), sql`${s.jobs.id} <> ${exceptJobId}`));
+}
+
+const takeQuotaLock = (db: Pick<Db, "execute">, userId: string) =>
+  db.execute(
+    sql`select pg_advisory_xact_lock(hashtextextended(${userId}, ${PERSON_QUOTA_LOCK_NAMESPACE}))`,
+  );
+
+/**
+ * Cuota de `answer_bank` bajo el mismo lock por persona que la de espacio. `add` es lo que suma esta
+ * escritura: una respuesta nueva suma una fila y sus bytes; reemplazar una existente suma 0 filas y la
+ * diferencia de bytes (si crece). Falla con `PersonQuotaError` (`cuota_espacio` en el MCP).
+ */
+export async function reserveAnswerBankQuota(
+  db: Db,
+  userId: string,
+  add: { rows: number; bytes: number },
+  limits: AnswerQuotaLimits = answerQuotaLimitsFromEnv(),
+): Promise<void> {
+  await takeQuotaLock(db, userId);
+  const [usage] = await answerBankUsageQuery(db, userId);
+  if (
+    (add.rows > 0 && Number(usage?.rows ?? 0) + add.rows > limits.bankRows) ||
+    (add.bytes > 0 && Number(usage?.bytes ?? 0) + add.bytes > limits.bankBytes)
+  ) {
+    throw new PersonQuotaError("raw_bytes", ANSWER_QUOTA_MESSAGE);
+  }
+}
+
+/** Igual para `application_answers`: `add` es el formulario nuevo completo; el anterior de esa oferta se descarta. */
+export async function reserveApplicationAnswersQuota(
+  db: Db,
+  userId: string,
+  jobId: string,
+  add: { rows: number; bytes: number },
+  limits: AnswerQuotaLimits = answerQuotaLimitsFromEnv(),
+): Promise<void> {
+  await takeQuotaLock(db, userId);
+  const [usage] = await applicationAnswersUsageQuery(db, userId, jobId);
+  if (
+    Number(usage?.rows ?? 0) + add.rows > limits.formRows ||
+    Number(usage?.bytes ?? 0) + add.bytes > limits.formBytes
+  ) {
+    throw new PersonQuotaError("raw_bytes", ANSWER_QUOTA_MESSAGE);
+  }
+}
+
+/**
  * Decide la cuota de la persona dentro de la transacción del llamador: toma un lock por persona
  * que dura hasta el commit, mide lo que ya hay (ofertas manuales y bytes de `raw_blobs`) y falla
- * con `PersonQuotaError` si lo nuevo no entra. Con el lock, dos pedidos en paralelo no pasan los
+ * con `PersonQuotaError` si lo nuevo no entra (los crudos de correo no cuentan). Con el lock, dos pedidos en paralelo no pasan los
  * dos por el mismo hueco. `db` tiene que ser la transacción (con `app.user_id` puesto: la RLS
  * limita el conteo a la persona); fuera de una transacción el lock se suelta al terminar la sentencia.
  */
@@ -39,9 +177,7 @@ export async function reservePersonQuota(
   /** Solo para pruebas: topes más chicos que los reales. */
   limits: PersonQuotaLimits = DEFAULT_PERSON_QUOTA_LIMITS,
 ): Promise<void> {
-  await db.execute(
-    sql`select pg_advisory_xact_lock(hashtextextended(${userId}, ${PERSON_QUOTA_LOCK_NAMESPACE}))`,
-  );
+  await takeQuotaLock(db, userId);
   const [jobs] = await db
     .select({ n: sql<number>`count(distinct ${s.jobSources.jobId})::int` })
     .from(s.jobSources)
@@ -53,10 +189,7 @@ export async function reservePersonQuota(
         eq(s.jobSources.sourceName, "manual"),
       ),
     );
-  const [blobs] = await db
-    .select({ n: sql<number>`coalesce(sum(${s.rawBlobs.bytes}), 0)::float8` })
-    .from(s.rawBlobs)
-    .where(eq(s.rawBlobs.userId, userId));
+  const [blobs] = await personRawBytesQuery(db, userId);
   const verdict = checkPersonQuota(
     { manualJobs: Number(jobs?.n ?? 0), rawBytes: Number(blobs?.n ?? 0) },
     add,
