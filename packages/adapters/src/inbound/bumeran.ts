@@ -1,4 +1,10 @@
-import type { Modality, RawJob } from "@job-search-os/pipeline";
+import {
+  MAX_EMAIL_HTML_CHARS,
+  stripTags,
+  tagBlocks,
+  type Modality,
+  type RawJob,
+} from "@job-search-os/pipeline";
 import type { EmailParser, InboundEmailContent, ParseResult } from "./parsers";
 
 /**
@@ -30,8 +36,7 @@ const ENTIDADES: Record<string, string> = {
 };
 
 function texto(html: string): string {
-  return html
-    .replace(/<[^>]+>/g, " ")
+  return stripTags(html)
     .replace(/&[a-z]+;|&#\d+;/gi, (e) => ENTIDADES[e.toLowerCase()] ?? e)
     .replace(/\s+/g, " ")
     .trim();
@@ -48,8 +53,8 @@ const MODALIDAD: Record<string, Modality> = {
 
 /** Texto del primer `<span>` de un `<p>`: el segundo (el distintivo de empresa verificada) se ignora. */
 function primerSpan(parrafo: string): string | null {
-  const m = /<span[^>]*>([\s\S]*?)<\/span>/i.exec(parrafo);
-  return m ? texto(m[1]!) : null;
+  const [span] = tagBlocks(parrafo, "span", { limit: 1 });
+  return span ? texto(span.inner) : null;
 }
 
 type Tarjeta = {
@@ -63,15 +68,15 @@ type Tarjeta = {
 function leerTarjeta(href: string, interior: string): Tarjeta | string {
   if (!TRACKER.test(href.replace(/&amp;/g, "&")))
     return "link de la tarjeta fuera del tracker de Bumeran";
-  const h3s = [...interior.matchAll(/<h3[^>]*>([\s\S]*?)<\/h3>/gi)];
+  const h3s = tagBlocks(interior, "h3");
   if (h3s.length !== 1) return `tarjeta con ${h3s.length} títulos (se espera 1)`;
-  const title = texto(h3s[0]![1]!);
+  const title = texto(h3s[0]!.inner);
   if (!title) return "tarjeta sin título";
 
-  const despues = interior.slice(h3s[0]!.index! + h3s[0]![0].length);
-  const lineas = [...despues.matchAll(/<p(\s[^>]*)?>([\s\S]*?)<\/p>/gi)]
-    .filter((m) => !/display\s*:\s*none/i.test(m[1] ?? ""))
-    .map((m) => primerSpan(m[2]!));
+  const despues = interior.slice(h3s[0]!.end);
+  const lineas = tagBlocks(despues, "p", { boundary: "spaceOrClose" })
+    .filter((p) => !/display\s*:\s*none/i.test(p.attrs))
+    .map((p) => primerSpan(p.inner));
   if (lineas.length !== 4 || lineas.some((l) => l === null)) {
     return `tarjeta con ${lineas.length} líneas visibles (se esperan 4: empresa, ubicación, contrato, modalidad)`;
   }
@@ -88,14 +93,17 @@ export const bumeranParser: EmailParser = {
   parse(email: InboundEmailContent): ParseResult {
     const html = email.html;
     if (!html) return { ok: false, reason: "email de Bumeran sin HTML: cola manual" };
+    if (html.length > MAX_EMAIL_HTML_CHARS) {
+      return { ok: false, reason: "email de Bumeran demasiado grande: cola manual" };
+    }
 
-    const titulo = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(html)?.[1];
+    const titulo = tagBlocks(html, "title", { limit: 1 })[0]?.inner;
     if (!titulo || texto(titulo).toLowerCase() !== "bumeran te sugiere") {
       return { ok: false, reason: "email de Bumeran que no es «Bumeran te sugiere»: cola manual" };
     }
 
-    const tarjetas = [...html.matchAll(/<a\s([^>]*)>([\s\S]*?)<\/a>/gi)].filter((m) =>
-      /<h3[\s>]/i.test(m[2]!),
+    const tarjetas = tagBlocks(html, "a", { boundary: "space" }).filter((a) =>
+      /<h3[\s>]/i.test(a.inner),
     );
     const totalH3 = [...html.matchAll(/<h3[\s>]/gi)].length;
     if (!tarjetas.length) return { ok: false, reason: "email de Bumeran sin avisos: cola manual" };
@@ -107,9 +115,9 @@ export const bumeranParser: EmailParser = {
     }
 
     const jobs: RawJob[] = [];
-    for (const m of tarjetas) {
-      const href = /href="([^"]+)"/i.exec(m[1]!)?.[1] ?? "";
-      const card = leerTarjeta(href, m[2]!);
+    for (const a of tarjetas) {
+      const href = /href="([^"]+)"/i.exec(a.attrs)?.[1] ?? "";
+      const card = leerTarjeta(href, a.inner);
       if (typeof card === "string") return { ok: false, reason: `${card}: cola manual` };
       jobs.push({
         source: {

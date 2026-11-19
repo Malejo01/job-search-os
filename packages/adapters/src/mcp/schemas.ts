@@ -1,5 +1,8 @@
 import {
   JOB_STATUSES,
+  MAX_ANSWER_CHARS,
+  MAX_ANSWER_QUERY_CHARS,
+  MAX_ANSWER_QUESTION_CHARS,
   MAX_JD_INPUT_CHARS,
   MAX_JOB_FIELD_CHARS,
   type JobEvent,
@@ -32,7 +35,7 @@ export const pasteJdInput = z.object({
 export const addJobInput = z.object({
   title: z.string().min(3).max(MAX_JOB_FIELD_CHARS),
   company: z.string().min(1).max(MAX_JOB_FIELD_CHARS),
-  url: z.string().url().optional(),
+  url: z.string().url().max(2_048).optional(),
   location: z.string().max(MAX_JOB_FIELD_CHARS).optional(),
   modality: z.enum(["remoto", "hibrido", "presencial", "desconocida"]).default("desconocida"),
   jd_text: z.string().min(200).max(MAX_JD_INPUT_CHARS).optional(),
@@ -46,14 +49,14 @@ export const marketSummaryInput = z.object({ top: z.number().int().min(1).max(30
 export const candidateProfileInput = z.object({ job_id: z.string().uuid().optional() });
 
 export const listAnswersInput = z.object({
-  query: z.string().optional(),
+  query: z.string().max(MAX_ANSWER_QUERY_CHARS).optional(),
   lang: z.enum(ANSWER_LANGS).optional(),
   limit: z.number().int().min(1).max(50).default(20),
 });
 
 export const saveAnswerInput = z.object({
-  question: z.string().min(3),
-  answer: z.string().min(1),
+  question: z.string().min(3).max(MAX_ANSWER_QUESTION_CHARS),
+  answer: z.string().min(1).max(MAX_ANSWER_CHARS),
   lang: z.enum(ANSWER_LANGS),
   job_id: z.string().uuid().optional(),
 });
@@ -61,7 +64,12 @@ export const saveAnswerInput = z.object({
 export const saveApplicationAnswersInput = z.object({
   job_id: z.string().uuid(),
   qa: z
-    .array(z.object({ question: z.string().min(1), answer: z.string().min(1) }))
+    .array(
+      z.object({
+        question: z.string().min(1).max(MAX_ANSWER_QUESTION_CHARS),
+        answer: z.string().min(1).max(MAX_ANSWER_CHARS),
+      }),
+    )
     .min(1)
     .max(60),
 });

@@ -79,4 +79,4 @@ D1 preguntas redactadas por el modelo · D2 sección Proyectos · D3 `pdfjs-dist
 
 ## 8. Plan por fases
 
-Fase 0 destrabar #514 y #511 · Fase 1 arreglos al chat actual (multi-campo, acuse, Proyectos, puerta «Tengo CV») · Fase 2 coach (ADR, `cv_review`, `cv_coach_turn`, pantallas, PDF) · Fase 3 medición (golden de CVs, métricas, prueba con Ani). Tickets en [`plan-coach-cv.md`](./plan-coach-cv.md) §4.
+Fase 0 destrabar #514 y #511 · Fase 1 arreglos al chat actual (multi-campo, acuse, Proyectos, puerta «Tengo CV») · Fase 2 coach (ADR, `cv_review`, `cv_coach_turn`, pantallas, PDF) · Fase 3 medición (golden de CVs, métricas, prueba con tester A). Tickets en [`plan-coach-cv.md`](./plan-coach-cv.md) §4.

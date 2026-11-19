@@ -36,9 +36,21 @@ export function isPartTimeTitle(title: string): boolean {
 // Monedas que no son USD, como aparecen en notas de sueldo ("pagado en ARS", "€45k", "R$ 8.000")
 const OTHER_CURRENCY = /\b(ars|pesos?|eur|euros?|brl|reales|mxn|clp|cop|uyu|gbp)\b|€|£|r\$/;
 
+const QUOTED_MAX_CHARS = 80;
+
+/**
+ * Texto de terceros citado dentro de un motivo: una sola línea, corto y con las comillas y barras
+ * escapadas, para que no pueda cerrar la cita ni seguir como si fuera del sistema.
+ */
+function quoteExternal(text: string): string {
+  const oneLine = text.replace(/\s+/g, " ").trim().slice(0, QUOTED_MAX_CHARS);
+  return `"${oneLine.replace(/[\\"]/g, "\\$&")}"`;
+}
+
 function notNormalizable(job: SalaryJob): string | null {
   const note = job.salaryNote ? foldText(job.salaryNote) : null;
-  if (note && OTHER_CURRENCY.test(note)) return `moneda distinta de USD: "${job.salaryNote}"`;
+  if (note && OTHER_CURRENCY.test(note))
+    return `moneda distinta de USD: ${quoteExternal(job.salaryNote ?? "")}`;
   const hasAmounts = job.salaryMinUsd !== null || job.salaryMaxUsd !== null;
   if (hasAmounts && job.salaryPeriod !== "mensual") {
     return job.salaryPeriod
@@ -46,7 +58,7 @@ function notNormalizable(job: SalaryJob): string | null {
       : "montos sin período publicado";
   }
   if (!hasAmounts && note && /\d/.test(note)) {
-    return `sueldo sin moneda normalizada: "${job.salaryNote}"`;
+    return `sueldo sin moneda normalizada: ${quoteExternal(job.salaryNote ?? "")}`;
   }
   return null;
 }
@@ -58,7 +70,8 @@ export function salaryAsk(job: SalaryJob, floors: SalaryFloors): SalaryAsk {
       reason: `${job.weeklyHours} h semanales (< ${PART_TIME_MAX_HOURS})`,
     };
   }
-  if (isPartTimeTitle(job.title)) return { kind: "part_time", reason: `título: "${job.title}"` };
+  if (isPartTimeTitle(job.title))
+    return { kind: "part_time", reason: `título: ${quoteExternal(job.title)}` };
 
   const reason = notNormalizable(job);
   if (reason) return { kind: "no_normalizable", reason };

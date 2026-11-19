@@ -70,6 +70,18 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   index("password_reset_tokens_user").on(t.userId),
 ]);
 
+// Intentos de login por email, exista o no la cuenta: por eso no lleva user_id y se guarda el sha256 del
+// email normalizado. La app no accede a la tabla: solo usa login_attempt_begin y login_attempt_clear (rls/0023).
+export const loginAttempts = pgTable("login_attempts", {
+  emailHash: text("email_hash").primaryKey(),
+  failedCount: integer("failed_count").notNull().default(0),
+  lockedUntil: timestamp("locked_until", { withTimezone: true }),
+  lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index("login_attempts_last_attempt").on(t.lastAttemptAt),
+  check("login_attempts_hash_shape", sql`${t.emailHash} ~ '^[0-9a-f]{64}$'`),
+]);
+
 // Tokens personales del MCP (MCP-1): cada persona de prueba conecta su chat con un token propio que
 // opera solo sobre su cuenta. Se guarda el sha256, nunca el valor en claro. Vence a los 30 días y se
 // revoca al instante. window_start/window_count: tope de llamadas por minuto, que actualiza
@@ -726,6 +738,7 @@ export const modelRouting = pgTable("model_routing", {
 
 export const llmCalls = pgTable("llm_calls", {
   id: uuid("id").primaryKey().defaultRandom(),
+  // Sin FK a users a propósito: al borrar la cuenta, rls/0025 (anonymize_llm_calls) la deja en null y el costo sigue contando para los topes
   userId: uuid("user_id"),
   task: text("task").notNull(),
   model: text("model").notNull(),

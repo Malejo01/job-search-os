@@ -1,7 +1,7 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { spendCapReason } from "../llm/spend";
+import { DRAFTS_RESERVE_USD, releaseLlmSpend, reserveLlmSpend } from "../llm/spend-reserve";
 import type { LlmClient, LlmError } from "../llm/types";
 import {
   ApplicantFailure,
@@ -19,7 +19,7 @@ import {
  * pretensión salarial se completan acá, deterministamente, y no pasan por el modelo. Lo que sí
  * pasa por el modelo se valida después: una fuente que no es una clave de candidate_facts se
  * trata como "sin fuente" y el borrador se vacía. Nada se envía: la persona copia y revisa.
- * Pensado para correr dentro de una transacción con app.user_id fijado (RLS).
+ * Las lecturas corren en una transacción con app.user_id fijado (RLS); el modelo se llama afuera.
  */
 
 export const SIN_FUENTE = "sin fuente";
@@ -73,18 +73,31 @@ export type DraftApplicationAnswersResult = {
   cap_message?: string;
 };
 
+/** `message`: el tope impide llamar al modelo. `release`: suelta el gasto reservado al terminar. */
+export type DraftsCapDecision = { message: string | null; release?: () => Promise<void> };
+
 /**
- * Guardia de tope de gasto para `draftApplicationAnswers` (JS-093): mismo chequeo que el worker
- * (`spendCapReason`). `db` es la conexión de servicio, que ve `llm_calls` de todos: la transacción
- * con RLS del usuario solo vería las suyas.
+ * Guardia de tope de gasto para `draftApplicationAnswers` (JS-093): reserva el gasto antes de llamar al
+ * modelo. `db` es la conexión de servicio, que ve `llm_calls` de todos: la transacción con RLS del
+ * usuario solo vería las suyas.
  */
-export function draftsCapGuard(db: Db, userId: string): () => Promise<string | null> {
+export function draftsCapGuard(db: Db, userId: string): () => Promise<DraftsCapDecision> {
   return async () => {
-    const reason = await spendCapReason(db, { userId });
-    if (reason === "global")
-      return "Se alcanzó el tope diario de gasto del modelo. Probá más tarde.";
-    if (reason === "user") return "Alcanzaste tu tope diario de uso del modelo. Probá más tarde.";
-    return null;
+    const reservation = await reserveLlmSpend(db, { userId, estimateUsd: DRAFTS_RESERVE_USD });
+    if (reservation.ok) {
+      return {
+        message: null,
+        release: async () => {
+          await releaseLlmSpend(db, reservation.reservationId);
+        },
+      };
+    }
+    return {
+      message:
+        reservation.reason === "global"
+          ? "Se alcanzó el tope diario de gasto del modelo. Probá más tarde."
+          : "Alcanzaste tu tope diario de uso del modelo. Probá más tarde.",
+    };
   };
 }
 
@@ -207,9 +220,13 @@ function fixedDraft(q: FormQuestion, kind: FixedKind, profile: CandidateProfile)
 const MAX_JD_CHARS = 8000;
 const MAX_PREVIOUS_ANSWERS = 6;
 
-/** El aviso entra en el prompt entre marcas: se le quitan las propias para que no pueda cerrarlas. */
-function sanitizeJd(jd: string): string {
-  return jd.replace(/<\/?\s*aviso_no_confiable\s*>/gi, "").slice(0, MAX_JD_CHARS);
+/**
+ * El aviso entra en el prompt entre marcas: todo `<` y `>` se reemplaza por un signo parecido
+ * (‹ ›), así ninguna etiqueta del texto puede abrir ni cerrar el bloque, ni anidada ni con
+ * espacios o mayúsculas. Se acota el largo antes de reemplazar (mismo largo).
+ */
+export function sanitizeJd(jd: string): string {
+  return jd.slice(0, MAX_JD_CHARS).replaceAll("<", "‹").replaceAll(">", "›");
 }
 
 /**
@@ -248,12 +265,24 @@ function validateModelDraft(
   };
 }
 
-export async function draftApplicationAnswers(
+export type DraftsInput = { userId: string; jobId: string; questions: FormQuestion[] };
+
+/** Lo que se leyó de la base para redactar: alcanza para llamar al modelo sin ninguna conexión abierta. */
+export type PreparedDrafts = {
+  userId: string;
+  jobId: string;
+  questions: FormQuestion[];
+  results: Map<string, DraftedAnswer>;
+  forModel: FormQuestion[];
+  /** null si ninguna pregunta necesita al modelo. */
+  model: { vars: Record<string, string>; validKeys: Set<string> } | null;
+};
+
+/** Valida el formulario y lee perfil, hechos, oferta y respuestas previas. No llama al modelo. */
+export async function prepareApplicationDrafts(
   db: Db,
-  input: { userId: string; jobId: string; questions: FormQuestion[] },
-  llm: LlmClient,
-  capGuard: () => Promise<string | null>,
-): Promise<DraftApplicationAnswersResult> {
+  input: DraftsInput,
+): Promise<PreparedDrafts> {
   const { userId, jobId } = input;
   const questions = input.questions.map((q) => ({ id: q.id.trim(), text: q.text.trim() }));
   if (questions.length === 0) throw new ApplicantFailure("empty_form");
@@ -272,12 +301,76 @@ export async function draftApplicationAnswers(
     if (kind) results.set(q.id, fixedDraft(q, kind, profile));
     else forModel.push(q);
   }
+  if (forModel.length === 0) {
+    return { userId, jobId, questions, results, forModel, model: null };
+  }
+
+  // getCandidateProfile no expone la clave de cada hecho; hace falta para citar y para validar.
+  const facts = await db
+    .select({
+      key: s.candidateFacts.key,
+      project: s.candidateFacts.project,
+      claim: s.candidateFacts.claim,
+      metric: s.candidateFacts.metric,
+      verification: s.candidateFacts.verification,
+    })
+    .from(s.candidateFacts)
+    .where(and(eq(s.candidateFacts.userId, userId), eq(s.candidateFacts.active, true)))
+    .orderBy(asc(s.candidateFacts.sort), asc(s.candidateFacts.key));
+  const validKeys = new Set(facts.map((f) => f.key));
+
+  const [job] = await db
+    .select({ title: s.jobs.title, jdText: s.jobs.jdText })
+    .from(s.jobs)
+    .where(and(eq(s.jobs.id, jobId), eq(s.jobs.userId, userId)));
+
+  const previous = new Map<string, BankAnswer>();
+  for (const q of forModel) {
+    for (const a of await listAnswers(db, { userId, query: q.text, limit: 2 })) {
+      previous.set(a.id, a);
+    }
+  }
+
+  // Sin resumen, años ni inglés: son afirmaciones sin clave y el modelo las repetiría como hechos.
+  const profileForModel = {
+    location: profile.profile.location,
+    remote_only: profile.profile.remote_only,
+    timezone: profile.profile.timezone,
+  };
+  const vars = {
+    facts: JSON.stringify(facts.length > 0 ? facts : NO_FACTS),
+    profile: JSON.stringify(profileForModel),
+    previous_answers: JSON.stringify(
+      [...previous.values()]
+        .slice(0, MAX_PREVIOUS_ANSWERS)
+        .map((a) => ({ question: a.question, answer: a.answer, lang: a.lang })),
+    ),
+    job_title: job?.title ?? "",
+    job: sanitizeJd(job?.jdText ?? "(sin texto del aviso)"),
+    questions: JSON.stringify(forModel),
+  };
+  return { userId, jobId, questions, results, forModel, model: { vars, validKeys } };
+}
+
+/** Reserva el gasto, llama al modelo y valida lo que devolvió. No usa la conexión de la persona. */
+export async function completeApplicationDrafts(
+  prepared: PreparedDrafts,
+  llm: LlmClient,
+  capGuard: () => Promise<DraftsCapDecision>,
+): Promise<DraftApplicationAnswersResult> {
+  const { userId, jobId, questions, forModel, model } = prepared;
+  const results = new Map(prepared.results);
 
   let llmInfo: DraftApplicationAnswersResult["llm"] = null;
   let llmError: LlmError | null = null;
 
   let capMessage: string | null = null;
-  if (forModel.length > 0) capMessage = (await capGuard()) ?? null;
+  let releaseSpend: (() => Promise<void>) | undefined;
+  if (model) {
+    const decision = await capGuard();
+    capMessage = decision.message;
+    releaseSpend = decision.release;
+  }
   if (capMessage) {
     for (const q of forModel) {
       results.set(q.id, {
@@ -290,82 +383,43 @@ export async function draftApplicationAnswers(
         note: `${capMessage} Redactala vos.`,
       });
     }
-  } else if (forModel.length > 0) {
-    // getCandidateProfile no expone la clave de cada hecho; hace falta para citar y para validar.
-    const facts = await db
-      .select({
-        key: s.candidateFacts.key,
-        project: s.candidateFacts.project,
-        claim: s.candidateFacts.claim,
-        metric: s.candidateFacts.metric,
-        verification: s.candidateFacts.verification,
-      })
-      .from(s.candidateFacts)
-      .where(and(eq(s.candidateFacts.userId, userId), eq(s.candidateFacts.active, true)))
-      .orderBy(asc(s.candidateFacts.sort), asc(s.candidateFacts.key));
-    const validKeys = new Set(facts.map((f) => f.key));
-
-    const [job] = await db
-      .select({ title: s.jobs.title, jdText: s.jobs.jdText })
-      .from(s.jobs)
-      .where(and(eq(s.jobs.id, jobId), eq(s.jobs.userId, userId)));
-
-    const previous = new Map<string, BankAnswer>();
-    for (const q of forModel) {
-      for (const a of await listAnswers(db, { userId, query: q.text, limit: 2 })) {
-        previous.set(a.id, a);
+  } else if (model) {
+    const { vars, validKeys } = model;
+    try {
+      const r = await llm.generateStructured(
+        "draft_application_answers",
+        DraftApplicationAnswersSchema,
+        vars,
+        { userId, jobId },
+      );
+      if (r.ok) {
+        llmInfo = {
+          model: r.value.model,
+          promptVersion: r.value.promptVersion,
+          costUsd: r.value.costUsd,
+          usedFallback: r.value.usedFallback,
+        };
+        const byId = new Map<string, DraftApplicationAnswersOutput["drafts"][number]>();
+        for (const d of r.value.object.drafts)
+          if (!byId.has(d.question_id)) byId.set(d.question_id, d);
+        for (const q of forModel)
+          results.set(q.id, validateModelDraft(q, byId.get(q.id), validKeys));
+      } else {
+        llmError = r.error;
+        for (const q of forModel) {
+          results.set(q.id, {
+            question_id: q.id,
+            question: q.text,
+            origin: "modelo",
+            draft: "",
+            sources: [],
+            confidence: "baja",
+            note: NO_AUTO_ANSWER,
+          });
+        }
       }
-    }
-
-    // Sin resumen, años ni inglés: son afirmaciones sin clave y el modelo las repetiría como hechos.
-    const profileForModel = {
-      location: profile.profile.location,
-      remote_only: profile.profile.remote_only,
-      timezone: profile.profile.timezone,
-    };
-    const vars = {
-      facts: JSON.stringify(facts.length > 0 ? facts : NO_FACTS),
-      profile: JSON.stringify(profileForModel),
-      previous_answers: JSON.stringify(
-        [...previous.values()]
-          .slice(0, MAX_PREVIOUS_ANSWERS)
-          .map((a) => ({ question: a.question, answer: a.answer, lang: a.lang })),
-      ),
-      job_title: job?.title ?? "",
-      job: sanitizeJd(job?.jdText ?? "(sin texto del aviso)"),
-      questions: JSON.stringify(forModel),
-    };
-
-    const r = await llm.generateStructured(
-      "draft_application_answers",
-      DraftApplicationAnswersSchema,
-      vars,
-      { userId, jobId },
-    );
-    if (r.ok) {
-      llmInfo = {
-        model: r.value.model,
-        promptVersion: r.value.promptVersion,
-        costUsd: r.value.costUsd,
-        usedFallback: r.value.usedFallback,
-      };
-      const byId = new Map<string, DraftApplicationAnswersOutput["drafts"][number]>();
-      for (const d of r.value.object.drafts)
-        if (!byId.has(d.question_id)) byId.set(d.question_id, d);
-      for (const q of forModel) results.set(q.id, validateModelDraft(q, byId.get(q.id), validKeys));
-    } else {
-      llmError = r.error;
-      for (const q of forModel) {
-        results.set(q.id, {
-          question_id: q.id,
-          question: q.text,
-          origin: "modelo",
-          draft: "",
-          sources: [],
-          confidence: "baja",
-          note: NO_AUTO_ANSWER,
-        });
-      }
+    } finally {
+      await releaseSpend?.();
     }
   }
 
@@ -375,4 +429,28 @@ export async function draftApplicationAnswers(
     llm_error: llmError,
     ...(capMessage ? { cap_message: capMessage } : {}),
   };
+}
+
+/**
+ * Borradores completos sin retener una conexión mientras responde el modelo: `read` abre una
+ * transacción corta para las lecturas y se cierra antes de llamarlo.
+ */
+export async function generateApplicationDrafts(
+  read: <T>(run: (tx: Db) => Promise<T>) => Promise<T>,
+  input: DraftsInput,
+  llm: LlmClient,
+  capGuard: () => Promise<DraftsCapDecision>,
+): Promise<DraftApplicationAnswersResult> {
+  const prepared = await read((tx) => prepareApplicationDrafts(tx, input));
+  return completeApplicationDrafts(prepared, llm, capGuard);
+}
+
+/** Las dos etapas sobre la misma conexión, para quien ya tiene una abierta. */
+export async function draftApplicationAnswers(
+  db: Db,
+  input: DraftsInput,
+  llm: LlmClient,
+  capGuard: () => Promise<DraftsCapDecision>,
+): Promise<DraftApplicationAnswersResult> {
+  return completeApplicationDrafts(await prepareApplicationDrafts(db, input), llm, capGuard);
 }

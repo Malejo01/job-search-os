@@ -19,6 +19,7 @@ import {
   cvChatCloseReason,
   cvChatBetaCvPerMonth,
   cvChatCapReason,
+  cvChatEffectiveTurns,
   cvChatMonthTurnsReason,
   cvChatDailyCapUsd,
   cvChatStartCapReason,
@@ -247,7 +248,7 @@ export async function POST(request: Request): Promise<Response> {
       (turns: number, extra?: (m: CvChatMeasures) => ReserveReject | null) =>
       (m: CvChatMeasures): ReserveReject | null =>
         cvChatCapReason({
-          turns,
+          turns: cvChatEffectiveTurns(turns, m.interviewTurnsInConversation),
           conversationCostUsd: m.conversationCostUsd,
           cvThisMonth: m.cvThisMonth,
           cvPerMonth: cvChatBetaCvPerMonth(plan.plan.limits.cvChatPerMonth),
@@ -272,7 +273,7 @@ export async function POST(request: Request): Promise<Response> {
         daySince: windows.daySince,
         decide,
       });
-    // Soltar la reserva nunca tapa el resultado del paso: si falla, solo se loguea y vence a los 2 minutos
+    // Soltar la reserva nunca tapa el resultado del paso: si falla, solo se loguea y la reserva vence sola
     const release = async (id: string | null): Promise<void> => {
       if (!(await releaseCvChatReservation(db, id))) {
         logger.warn({ run_id: ticket.conversationId }, "cv chat: no se pudo borrar la reserva");

@@ -5,6 +5,7 @@
  */
 import { DEFAULT_ALERT_SENDERS } from "../gmail-filters";
 import { baseDomain, EXPECTED_SOURCE_DOMAINS, senderHost } from "../filter-leak";
+import { parseFromAddress } from "../from-address";
 import { IT_ROLE_KEYS, PRODUCT_ROLE_KEYS, type RoleKey } from "../skills/self-assessment";
 
 export type AlertPortalId =
@@ -466,7 +467,7 @@ export function portalStatus(lastReceivedAt: Date | null, now: Date): PortalStat
 }
 
 function addressOf(fromAddress: string): string {
-  return (/<([^>]+)>/.exec(fromAddress)?.[1] ?? fromAddress).trim().toLowerCase();
+  return parseFromAddress(fromAddress) ?? "";
 }
 
 /** Portal de un dominio (con o sin subdominios), o `null`. Pura. */

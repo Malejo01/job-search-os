@@ -4,8 +4,8 @@ import {
   ANSWER_LANGS,
   ApplicantFailure,
   createLogger,
-  draftApplicationAnswers,
   draftsCapGuard,
+  generateApplicationDrafts,
   safeDbError,
   saveAnswer,
   saveApplicationAnswers,
@@ -14,6 +14,8 @@ import {
 import { createDb, requireDatabaseUrl } from "@job-search-os/db";
 import {
   looksLikeHtml,
+  MAX_ANSWER_CHARS,
+  MAX_ANSWER_QUESTION_CHARS,
   parseApplicationForm,
   type FormQuestion as ParsedQuestion,
 } from "@job-search-os/pipeline";
@@ -103,20 +105,18 @@ export async function generateDraftsAction(input: {
   try {
     const conn = createDb(requireDatabaseUrl({ purpose: "service" }), { max: 1 });
     service = conn;
-    const result = await withUser(userId, (tx) =>
-      draftApplicationAnswers(
-        tx,
-        {
-          userId,
-          jobId: jobId.data,
-          questions: questions.map((q) => ({
-            id: q.id,
-            text: q.options?.length ? `${q.label} (opciones: ${q.options.join(" / ")})` : q.label,
-          })),
-        },
-        serviceLlm(conn.db, logger),
-        draftsCapGuard(conn.db, userId),
-      ),
+    const result = await generateApplicationDrafts(
+      (read) => withUser(userId, read),
+      {
+        userId,
+        jobId: jobId.data,
+        questions: questions.map((q) => ({
+          id: q.id,
+          text: q.options?.length ? `${q.label} (opciones: ${q.options.join(" / ")})` : q.label,
+        })),
+      },
+      serviceLlm(conn.db, logger),
+      draftsCapGuard(conn.db, userId),
     );
     const byId = new Map(result.drafts.map((d) => [d.question_id, d]));
     const drafts = questions.map((q): DraftView => {
@@ -155,14 +155,14 @@ export async function generateDraftsAction(input: {
 const approveSchema = z.object({
   jobId: z.uuid(),
   lang: z.enum(ANSWER_LANGS),
-  question: z.string().trim().min(1).max(2_000),
-  answer: z.string().trim().min(1).max(10_000),
+  question: z.string().trim().min(1).max(MAX_ANSWER_QUESTION_CHARS),
+  answer: z.string().trim().min(1).max(MAX_ANSWER_CHARS),
   /** Todo lo aprobado hasta ahora, incluida esta: application_answers se reemplaza entero. */
   approved: z
     .array(
       z.object({
-        question: z.string().trim().min(1).max(2_000),
-        answer: z.string().trim().min(1).max(10_000),
+        question: z.string().trim().min(1).max(MAX_ANSWER_QUESTION_CHARS),
+        answer: z.string().trim().min(1).max(MAX_ANSWER_CHARS),
       }),
     )
     .min(1)

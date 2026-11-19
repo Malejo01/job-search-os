@@ -8,6 +8,7 @@
  * Puro: recibe los remitentes agrupados por host y devuelve los dominios sospechosos.
  */
 
+import { parseFromAddress } from "./from-address";
 import { isWebmailDomain } from "./webmail-domains";
 
 /**
@@ -43,11 +44,10 @@ export function baseDomain(host: string): string {
   return labels.slice(-keep).join(".");
 }
 
-/** Host del remitente: "Banco <a@mails.banco.example>" → "mails.banco.example"; "" si no hay arroba. */
+/** Host del remitente: "Banco <a@mails.banco.example>" → "mails.banco.example"; "" si no se puede leer. */
 export function senderHost(fromAddress: string): string {
-  const addr = (/<([^>]+)>/.exec(fromAddress)?.[1] ?? fromAddress).trim().toLowerCase();
-  const at = addr.lastIndexOf("@");
-  return at < 0 ? "" : addr.slice(at + 1).replace(/[>\s]+$/, "");
+  const addr = parseFromAddress(fromAddress);
+  return addr ? addr.slice(addr.lastIndexOf("@") + 1) : "";
 }
 
 /**

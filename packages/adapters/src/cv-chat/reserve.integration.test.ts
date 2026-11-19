@@ -198,7 +198,7 @@ describe("reservas del chat de CV", () => {
     expect(rows.map((r) => r.task)).toEqual(["cv_interview"]);
   });
 
-  it("una reserva vencida (más de 2 minutos, proceso muerto) ya no cuenta", async () => {
+  it("una reserva vencida (proceso muerto) ya no cuenta", async () => {
     const now = new Date();
     await conn.db.insert(s.llmCalls).values({
       userId: USER,
@@ -208,7 +208,7 @@ describe("reservas del chat de CV", () => {
       tokensOut: 140_000,
       costUsd: null,
       label: LABEL,
-      createdAt: new Date(now.getTime() - 3 * 60_000),
+      createdAt: new Date(now.getTime() - 4 * 60_000),
     });
     const m = await measureCvChat(conn.db, { userId: USER, label: LABEL, ...windows(now) });
     expect(m.conversationCostUsd).toBe(0);
@@ -230,6 +230,28 @@ describe("reservas del chat de CV", () => {
     expect(live.conversationCostUsd).toBeCloseTo(0.14);
     expect(live.userInterviewUsd).toBeCloseTo(0.14);
     expect(live.dailySpendUsd).toBeCloseTo(0.14);
+  });
+
+  it("los turnos de la charla se miden en la base, con los reservados incluidos", async () => {
+    const label = "cv:charla-turnos";
+    await conn.db.insert(s.llmCalls).values([
+      { userId: USER, task: "cv_interview", model: "m", ok: true, costUsd: 0.01, label },
+      { userId: USER, task: "cv_interview", model: "m", ok: false, error: "timeout", label },
+      {
+        userId: USER,
+        task: "cv_interview",
+        model: "m",
+        ok: false,
+        error: "provider_unavailable",
+        label,
+      },
+      { userId: USER, task: "cv_interview", model: "m", ok: true, label: "cv:otra-charla" },
+      { userId: USER, task: CV_RESERVE_TASK, model: "interview", ok: true, tokensOut: 1, label },
+    ]);
+    const m = await measureCvChat(conn.db, { userId: USER, label, ...windows(new Date()) });
+    await conn.db.delete(s.llmCalls).where(eq(s.llmCalls.label, label));
+    await conn.db.delete(s.llmCalls).where(eq(s.llmCalls.label, "cv:otra-charla"));
+    expect(m.interviewTurnsInConversation).toBe(3);
   });
 
   it("las reservas de otra persona suman al tope global y no al de la persona", async () => {

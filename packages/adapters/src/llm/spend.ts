@@ -1,14 +1,18 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import { and, desc, eq, gte, isNotNull, notInArray, sql } from "drizzle-orm";
 
+/** Reserva de gasto de la evaluación inmediata y de los borradores (`spend-reserve.ts`). */
+export const LLM_RESERVE_TASK = "llm_reserve";
+
 /**
- * Filas de `llm_calls` que no son llamadas al modelo: la reserva de gasto del chat de CV (en vuelo, se borra
- * al terminar), el registro de inicio de charla (costo 0) y la marca de alerta de presupuesto enviada
+ * Filas de `llm_calls` que no son llamadas al modelo: las reservas de gasto (en vuelo, se borran al
+ * terminar), el registro de inicio de charla (costo 0) y la marca de alerta de presupuesto enviada
  * (`budget_alert`, costo 0, R7-1) y los marcadores de charla del asistente (`assistant_event`, costo 0,
  * R9-2). No suman llamadas, tokens ni USD en los reportes.
  */
 export const NOT_MODEL_CALLS = [
   "cv_reserve",
+  LLM_RESERVE_TASK,
   "cv_start",
   "budget_alert",
   "assistant_event",
@@ -37,11 +41,11 @@ export type SpendSummary = {
  * Estimación en USD de un intento fallido del que no se sabe el costo (`cost_usd` null y `ok = false`:
  * red, timeout, 5xx; el proveedor pudo facturarlo). Cuando el proveedor informó el uso, el cliente
  * guarda el costo real y esto no se usa. Los topes en USD cuentan el intento con este valor: una
- * cuenta que provoca fallos a propósito ya no repite llamadas sin freno (R11-7). Es mayor que el costo
- * típico de una evaluación (unos USD 0,002 a 0,01) a propósito: lo conservador es frenar de más.
+ * cuenta que provoca fallos a propósito ya no repite llamadas sin freno (R11-7). Cubre una llamada con
+ * el tope de entrada (unos 25.000 tokens), más que una evaluación típica: lo conservador es frenar de más.
  * Un intento que nunca llegó al proveedor (`provider_unavailable`) no cuenta.
  */
-export const FAILED_CALL_ESTIMATE_USD = 0.01;
+export const FAILED_CALL_ESTIMATE_USD = 0.04;
 
 /** USD de una fila para los topes: el real si se conoce; si no, el estimado de un intento fallido. */
 const billedUsd = sql`coalesce(${s.llmCalls.costUsd}, case when not ${s.llmCalls.ok} and ${s.llmCalls.error} is distinct from 'provider_unavailable' then ${FAILED_CALL_ESTIMATE_USD}::float8 end, 0)`;
@@ -77,7 +81,7 @@ export function userDailyCapUsd(env: NodeJS.ProcessEnv = process.env): number {
 
 /** Con `userId` suma solo las llamadas de ese usuario; sin él, todas (tope global). */
 export async function spendSince(
-  db: Db,
+  db: Pick<Db, "select">,
   since: Date,
   options: { userId?: string } = {},
 ): Promise<SpendSummary> {
@@ -103,11 +107,33 @@ export async function spendSince(
 }
 
 export const spendLast24h = (
-  db: Db,
+  db: Pick<Db, "select">,
   now: () => Date = () => new Date(),
   options: { userId?: string } = {},
 ): Promise<SpendSummary> =>
   spendSince(db, new Date(now().getTime() - 24 * 60 * 60 * 1000), options);
+
+/** Parte final del tope global que queda para quienes casi no gastaron. */
+export const GLOBAL_CAP_RESERVED_SHARE = 0.2;
+/** Hasta esta parte del tope global gastada por una persona, puede usar la parte reservada. */
+export const GLOBAL_CAP_PERSON_FLOOR_SHARE = 0.05;
+
+/**
+ * ¿El tope global frena a esta persona? Al entrar en la parte reservada solo sigue quien casi no gastó,
+ * así una persona no deja sin servicio a las demás. Un valor inválido frena; un tope en 0 no aplica.
+ */
+export function globalCapReached(input: {
+  capUsd: number;
+  totalUsd: number;
+  mineUsd: number;
+}): boolean {
+  const { capUsd, totalUsd, mineUsd } = input;
+  if (!(capUsd > 0)) return false;
+  if (!Number.isFinite(totalUsd) || !Number.isFinite(mineUsd)) return true;
+  if (totalUsd >= capUsd) return true;
+  const inReservedPart = totalUsd >= capUsd * (1 - GLOBAL_CAP_RESERVED_SHARE);
+  return inReservedPart && mineUsd >= capUsd * GLOBAL_CAP_PERSON_FLOOR_SHARE;
+}
 
 /**
  * Chequeo de topes antes de una llamada al modelo fuera del worker (borradores de formularios,
@@ -125,12 +151,14 @@ export async function spendCapReason(
   },
 ): Promise<"global" | "user" | null> {
   const globalCap = input.dailyCapUsd ?? dailyCapFromEnv();
-  if (globalCap > 0 && (await spendLast24h(db, input.now)).usd >= globalCap) return "global";
   const userCap = input.userDailyCapUsd ?? userDailyCapUsd();
-  if (userCap > 0 && (await spendLast24h(db, input.now, { userId: input.userId })).usd >= userCap) {
-    return "user";
+  if (!(globalCap > 0) && !(userCap > 0)) return null;
+  const mineUsd = (await spendLast24h(db, input.now, { userId: input.userId })).usd;
+  if (globalCap > 0) {
+    const totalUsd = (await spendLast24h(db, input.now)).usd;
+    if (globalCapReached({ capUsd: globalCap, totalUsd, mineUsd })) return "global";
   }
-  return null;
+  return userCap > 0 && mineUsd >= userCap ? "user" : null;
 }
 
 /**

@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { gzipSync } from "node:zlib";
@@ -48,6 +49,34 @@ describe("jobKeyFromTracker", () => {
     expect(jobKeyFromTracker("https://ar.indeed.com/viewjob?jk=0000c3d4e5f60718")).toEqual({
       host: "ar.indeed.com",
       jk: "0000c3d4e5f60718",
+    });
+  });
+});
+
+describe("jobKeyFromTracker: topes del token", () => {
+  const trackerOf = (content: Buffer) =>
+    `https://cts.indeed.com/v3/${gzipSync(content).toString("base64url")}`;
+
+  const target = "https://ar.indeed.com/viewjob?jk=0000abcdef012345&from=alerta";
+
+  it("un token que descomprime a 10 MB devuelve null aunque traiga un aviso válido", () => {
+    const content = Buffer.concat([Buffer.from(target), Buffer.alloc(10 * 1024 * 1024, 0x20)]);
+
+    expect(jobKeyFromTracker(trackerOf(content))).toBeNull();
+  });
+
+  it("un token de más de 4 KB devuelve null aunque traiga un aviso válido", () => {
+    const content = Buffer.from(`${target} ${randomBytes(4 * 1024).toString("hex")}`);
+    const href = trackerOf(content);
+
+    expect(href.length).toBeGreaterThan(4 * 1024 + "https://cts.indeed.com/v3/".length);
+    expect(jobKeyFromTracker(href)).toBeNull();
+  });
+
+  it("un token normal se sigue leyendo", () => {
+    expect(jobKeyFromTracker(trackerOf(Buffer.from(target)))).toEqual({
+      host: "ar.indeed.com",
+      jk: "0000abcdef012345",
     });
   });
 });

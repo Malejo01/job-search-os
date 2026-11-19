@@ -5,6 +5,7 @@ export {
   dbTarget,
   describeDatabaseUrl,
   LOCAL_DATABASE_URL,
+  localDatabaseUrl,
   loadLocalEnv,
   requireDatabaseUrl,
   resolveDatabaseUrl,

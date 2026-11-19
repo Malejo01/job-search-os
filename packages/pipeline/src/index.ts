@@ -1,5 +1,6 @@
 // packages/pipeline: funciones puras. No importa db ni adapters, no hace I/O.
 export * from "./result";
+export * from "./quota";
 export * from "./normalize";
 export * from "./evaluation";
 export * from "./decide";
@@ -23,6 +24,8 @@ export type { CriteriaRules } from "./criteria";
 export { parseModality, rawJobFromManual } from "./raw-job";
 export type { ManualJobInput, Modality, RawJob, SourceKind } from "./raw-job";
 export * from "./filter-leak";
+export * from "./html-scan";
+export * from "./from-address";
 export * from "./webmail-domains";
 export * from "./inbound-classify";
 export * from "./inbox-attention";

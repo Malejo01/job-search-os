@@ -1,6 +1,14 @@
 import { expect, test } from "@playwright/test";
 import { axeSummary } from "./axe-helpers";
-import { ensureSecondUser, login, loginAsSecondUser, removeSecondUser } from "./helpers";
+import * as s from "@job-search-os/db/schema";
+import {
+  E2E_USER_ID,
+  ensureSecondUser,
+  login,
+  loginAsSecondUser,
+  ownerDb,
+  removeSecondUser,
+} from "./helpers";
 
 /**
  * Flujo 109 (C8-11): /settings/salud, el semáforo de la mañana. Solo para quien administra la beta;
@@ -9,6 +17,16 @@ import { ensureSecondUser, login, loginAsSecondUser, removeSecondUser } from "./
  */
 test.describe("Flujo 109: salud diaria de la beta (C8-11)", () => {
   test.skip(!process.env.ADMIN_EMAILS, "sin ADMIN_EMAILS la cuenta del e2e no es admin");
+
+  test.beforeAll(async () => {
+    // /settings/salud exige app_admins en la base, además de ADMIN_EMAILS (como 46, 91 y 111)
+    const { db, close } = ownerDb();
+    try {
+      await db.insert(s.appAdmins).values({ userId: E2E_USER_ID }).onConflictDoNothing();
+    } finally {
+      await close();
+    }
+  });
 
   test.afterAll(async () => {
     await removeSecondUser().catch(() => {});

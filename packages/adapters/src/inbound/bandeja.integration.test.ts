@@ -9,7 +9,7 @@ import {
   GMAIL_FORWARDING_SENDER,
   normalizeTitle,
 } from "@job-search-os/pipeline";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import pino from "pino";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { pgBlobStorage } from "../storage/blob";
@@ -418,23 +418,32 @@ describe("avisos extraídos y alertas con títulos de seguridad", () => {
     });
     if (!parsed.ok) throw new Error("la fixture de dos avisos no se parseó");
     expect(parsed.jobs.length).toBe(2);
-    // Un NUL en el título de uno hace fallar su INSERT (Postgres no admite 0x00 en text)
+    // Una restricción solo para este test hace fallar el INSERT del aviso marcado
     const title = parsed.jobs[0]!.title;
     expect(dos).toContain(title);
     // Id nuevo: si no, el aviso ya cargado por otro test se fusiona y nunca llega a insertarse
     const roto = dos
       .replaceAll(parsed.jobs[0]!.source.externalId!, "7770001")
-      .replace(title, `${title}\u0000`);
-    const { row, out } = await send(
-      {
-        from: "LinkedIn Job Alerts <jobalerts-noreply@linkedin.com>",
-        subject: "AI Engineer: 2 nuevas ofertas",
-      },
-      { html: roto, text: null },
+      .replace(title, `${title} FALLA-INGESTA`);
+    await conn.db.execute(
+      sql.raw(
+        "alter table jobs add constraint jobs_test_falla_ingesta check (title not like '%FALLA-INGESTA%') not valid",
+      ),
     );
-    expect(out.jobsExtracted).toBeGreaterThan(0);
-    expect(row.error).toContain("con error al ingestar");
-    expect(row.seenAt).toBeNull();
+    try {
+      const { row, out } = await send(
+        {
+          from: "LinkedIn Job Alerts <jobalerts-noreply@linkedin.com>",
+          subject: "AI Engineer: 2 nuevas ofertas",
+        },
+        { html: roto, text: null },
+      );
+      expect(out.jobsExtracted).toBeGreaterThan(0);
+      expect(row.error).toContain("con error al ingestar");
+      expect(row.seenAt).toBeNull();
+    } finally {
+      await conn.db.execute(sql.raw("alter table jobs drop constraint jobs_test_falla_ingesta"));
+    }
   });
 
   it("una alerta de LinkedIn con «Security Engineer» en el asunto no se descarta", async () => {

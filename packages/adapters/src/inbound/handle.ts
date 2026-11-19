@@ -1,5 +1,6 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import {
+  authResultsVerdict,
   classifyInbound,
   GMAIL_FORWARDING_PARSER,
   htmlToText,
@@ -7,9 +8,12 @@ import {
   isPoolMailboxAddress,
   LINKEDIN_APPLICATION_PARSER,
   maskDigits,
+  parseFromAddress,
+  parseInboundDmarcMode,
   parsePoolMailbox,
   SECURITY_PARSER,
   type CriteriaRules,
+  type InboundDmarcMode,
 } from "@job-search-os/pipeline";
 import { and, desc, eq, gte, isNull, sql } from "drizzle-orm";
 import { applyLinkedinApplication } from "../applications/linkedin-application";
@@ -22,7 +26,9 @@ import {
   chooseParserName,
   EMAIL_PARSERS,
   linkedinSenderKind,
+  type EmailParser,
   type InboundEmailContent,
+  type ParseResult,
 } from "./parsers";
 import { linkedinParser } from "./linkedin";
 import {
@@ -50,9 +56,15 @@ export type InboundDeps = {
   logger: Logger;
   /** Máximo de emails por usuario en una hora (ARCHITECTURE §8). */
   hourlyLimit?: number;
+  /** Máximo de emails por usuario en 24 h. */
+  dailyLimit?: number;
+  /** Sin esto se lee de INBOUND_SIZE_MODE; por defecto `log`. */
+  sizeMode?: InboundSizeMode;
   now?: () => Date;
   /** Casillas del pool (ADR-024). Sin esto se lee del entorno: apagado salvo POOL_SOURCE_COMPUTRABAJO_ALERTS=1. */
   pool?: PoolInboundConfig;
+  /** Sin esto se lee de INBOUND_DMARC_MODE; por defecto `log`. */
+  dmarcMode?: InboundDmarcMode;
 };
 
 export type InboundOutcome =
@@ -79,14 +91,36 @@ export const UNEXPECTED_SENDER_REASON =
 export const SECURITY_EMAIL_REASON =
   "email de seguridad (código, acceso o contraseña): por privacidad se guardó solo remitente, asunto con los números enmascarados y fecha, sin el cuerpo";
 
+/** Con INBOUND_DMARC_MODE=enforce: el cuerpo se guarda, pero el email no crea ofertas ni cambia estados. */
+export const AUTH_UNVERIFIED_REASON = "remitente sin autenticación verificada: cola manual";
+
 /** Valor de `inbound_emails.parser` para el ruido social de LinkedIn (JS-050). */
 export const LINKEDIN_SOCIAL_PARSER = "linkedin_social";
 
+/** `log`: un email sobre el tope medido se registra y se procesa. `enforce`: queda solo con metadatos. */
+export type InboundSizeMode = "log" | "enforce";
+
+/**
+ * Tope medido. Por defecto solo se registra (`INBOUND_SIZE_MODE=log`) hasta conocer el tamaño de emails reales.
+ */
+export const USER_RAW_MAX_BYTES = 512 * 1024;
+/** Por encima de esto el email nunca se lee ni se guarda completo, sea cual sea el modo. */
+export const USER_RAW_HARD_MAX_BYTES = 2 * 1024 * 1024;
+/** Largo máximo del asunto y del remitente que se guardan. */
+export const MAX_STORED_HEADER_CHARS = 500;
+export const OVERSIZE_EMAIL_REASON =
+  "email demasiado grande: se guardó solo remitente, asunto y fecha, sin el cuerpo";
+
+/** Tarjetas máximas por email. Las alertas reales traen unas pocas decenas. */
+export const EMAIL_MAX_CARDS = 100;
+export const TOO_MANY_CARDS_REASON = "el email trae demasiados avisos: cola manual";
+
+const USER_DAILY_EMAIL_LIMIT = 300;
+
 /** Dominio del remitente, con o sin nombre visible; null si no se puede leer. */
 function senderDomain(from: string): string | null {
-  const addr = (/<([^>]+)>/.exec(from)?.[1] ?? from).trim().toLowerCase();
-  const at = addr.lastIndexOf("@");
-  return at >= 0 && at < addr.length - 1 ? addr.slice(at + 1) : null;
+  const addr = parseFromAddress(from);
+  return addr ? addr.slice(addr.lastIndexOf("@") + 1) : null;
 }
 
 /** Id de la fila ya guardada para ese email_id de Resend, o null. */
@@ -116,18 +150,119 @@ async function duplicateAfterRace(
   return { kind: "duplicate", inboundId: winner };
 }
 
-export async function handleInboundEmail(
+/** Las columnas de texto de Postgres no aceptan el carácter nulo: se saca antes de usar cada campo. */
+const withoutNul = (text: string): string => text.replaceAll("\u0000", "");
+
+function cleanEvent(event: ResendReceivedEvent): ResendReceivedEvent {
+  const { data } = event;
+  return {
+    ...event,
+    data: {
+      ...data,
+      email_id: withoutNul(data.email_id),
+      from: withoutNul(data.from),
+      to: data.to.map(withoutNul),
+      cc: data.cc.map(withoutNul),
+      bcc: data.bcc.map(withoutNul),
+      received_for: data.received_for.map(withoutNul),
+      ...(typeof data.subject === "string" ? { subject: withoutNul(data.subject) } : {}),
+      ...(data.message_id !== undefined ? { message_id: withoutNul(data.message_id) } : {}),
+    },
+  };
+}
+
+function cleanContent(content: ReceivedEmailContent | null): ReceivedEmailContent | null {
+  if (!content) return null;
+  return {
+    ...content,
+    html: content.html === null ? null : withoutNul(content.html),
+    text: content.text === null ? null : withoutNul(content.text),
+  };
+}
+
+/** Un parser que lanza cuenta como estructura no reconocida: el email va a la cola manual. */
+function parseOrManualQueue(
+  parser: EmailParser,
+  email: InboundEmailContent,
+  log: Pick<Logger, "warn">,
+): ParseResult {
+  try {
+    return parser.parse(email);
+  } catch (e) {
+    log.warn(
+      { parser: parser.name, err_name: e instanceof Error ? e.name : "Error" },
+      "inbound: el parser lanzó una excepción",
+    );
+    return { ok: false, reason: "no se pudo leer el contenido" };
+  }
+}
+
+/** Direcciones del evento en minúsculas, en orden de prioridad: received_for, to, cc. */
+function eventRecipients(event: ResendReceivedEvent): string[] {
+  return [...event.data.received_for, ...event.data.to, ...event.data.cc].map((r) =>
+    (/<([^>]+)>/.exec(r)?.[1] ?? r).trim().toLowerCase(),
+  );
+}
+
+/** ¿El email va a una persona o a una casilla del pool que lo aceptaría? Solo una consulta barata. */
+async function hasInboundDestination(
   event: ResendReceivedEvent,
-  content: ReceivedEmailContent | null,
+  deps: InboundDeps,
+): Promise<boolean> {
+  const recipients = eventRecipients(event);
+  if (recipients.length === 0) return false;
+  const [profile] = await deps.db
+    .select({ userId: s.profiles.userId })
+    .from(s.profiles)
+    .where(sql`lower(${s.profiles.inboundAddress}) in ${recipients}`)
+    .limit(1);
+  if (profile) return true;
+  const pool = deps.pool ?? readPoolInboundConfig();
+  return (
+    pool.enabled &&
+    isPoolAlertSender(event.data.from, pool.senderDomains) &&
+    recipients.filter(isPoolMailboxAddress).some((r) => parsePoolMailbox(r, pool).ok)
+  );
+}
+
+/**
+ * Entrada del webhook: el cuerpo se pide a la API solo si el email es nuevo y tiene un destino válido.
+ * Si pedirlo falla, la excepción sube sin guardar nada, para que el reintento lo procese completo.
+ */
+export async function processInboundEvent(
+  receivedEvent: ResendReceivedEvent,
+  rawBody: string,
+  fetchContent: () => Promise<ReceivedEmailContent | null>,
+  deps: InboundDeps,
+): Promise<InboundOutcome> {
+  const event = cleanEvent(receivedEvent);
+  const dup = await findByEmailId(deps.db, event.data.email_id);
+  if (dup) return { kind: "duplicate", inboundId: dup };
+  if (!(await hasInboundDestination(event, deps))) {
+    const recipientsCount = eventRecipients(event).length;
+    deps.logger.warn({ recipients_count: recipientsCount }, "inbound: destinatario sin usuario");
+    return { kind: "unknown_recipient", recipientsCount };
+  }
+  return handleInboundEmail(event, await fetchContent(), rawBody, deps);
+}
+
+export async function handleInboundEmail(
+  receivedEvent: ResendReceivedEvent,
+  receivedContent: ReceivedEmailContent | null,
   rawBody: string,
   deps: InboundDeps,
 ): Promise<InboundOutcome> {
+  const event = cleanEvent(receivedEvent);
+  const content = cleanContent(receivedContent);
   const { db } = deps;
   const now = deps.now?.() ?? new Date();
   const log = deps.logger.child({
     email_id: event.data.email_id,
     from_domain: senderDomain(event.data.from),
   });
+  const dmarcMode = deps.dmarcMode ?? parseInboundDmarcMode(process.env.INBOUND_DMARC_MODE);
+  const authVerdict = dmarcMode === "off" ? null : authResultsVerdict(content?.headers);
+  const authRequired = dmarcMode === "enforce" && authVerdict !== "aligned";
 
   // Idempotencia (JS-115): Svix reintenta; el mismo email_id no se guarda dos veces. Se busca por la
   // columna `email_id` (índice único) y no dentro de los crudos. Si dos entregas del mismo email corren
@@ -136,9 +271,7 @@ export async function handleInboundEmail(
   if (dup) return { kind: "duplicate", inboundId: dup };
 
   // Usuario por dirección de destino (u_<id>@ingest.<dominio>)
-  const recipients = [...event.data.received_for, ...event.data.to, ...event.data.cc].map((r) =>
-    (/<([^>]+)>/.exec(r)?.[1] ?? r).trim().toLowerCase(),
-  );
+  const recipients = eventRecipients(event);
   const profiles = recipients.length
     ? await db
         .select({ userId: s.profiles.userId, inboundAddress: s.profiles.inboundAddress })
@@ -162,7 +295,12 @@ export async function handleInboundEmail(
       .filter(isPoolMailboxAddress)
       .map((r) => parsePoolMailbox(r, pool))
       .find((m) => m.ok);
-    if (!pool.enabled || !mailbox?.ok || !isPoolAlertSender(event.data.from, pool.senderDomains)) {
+    if (
+      !pool.enabled ||
+      !mailbox?.ok ||
+      !isPoolAlertSender(event.data.from, pool.senderDomains) ||
+      authRequired
+    ) {
       log.warn(
         { recipients_count: recipients.length, pool_enabled: pool.enabled },
         "inbound: casilla del pool rechazada",
@@ -255,17 +393,24 @@ export async function handleInboundEmail(
   const userId = profile.userId;
 
   const countRows = (await db
-    .select({ count: sql<number>`count(*)::int` })
+    .select({
+      hour: sql<number>`count(*) filter (where ${s.inboundEmails.receivedAt} >= ${new Date(now.getTime() - 60 * 60 * 1000).toISOString()}::timestamptz)::int`,
+      day: sql<number>`count(*)::int`,
+    })
     .from(s.inboundEmails)
     .where(
       and(
         eq(s.inboundEmails.userId, userId),
-        gte(s.inboundEmails.receivedAt, new Date(now.getTime() - 60 * 60 * 1000)),
+        gte(s.inboundEmails.receivedAt, new Date(now.getTime() - 24 * 60 * 60 * 1000)),
       ),
-    )) as { count: number }[];
-  const count = countRows[0]?.count ?? 0;
-  if (count >= (deps.hourlyLimit ?? 100)) {
-    log.warn({ user_id: userId, count }, "inbound: rate limit por usuario");
+    )) as { hour: number; day: number }[];
+  const count = countRows[0]?.hour ?? 0;
+  const dayCount = countRows[0]?.day ?? 0;
+  if (
+    count >= (deps.hourlyLimit ?? 100) ||
+    dayCount >= (deps.dailyLimit ?? USER_DAILY_EMAIL_LIMIT)
+  ) {
+    log.warn({ user_id: userId, count, day_count: dayCount }, "inbound: rate limit por usuario");
     // El email no se guarda (es el punto del límite), pero queda contado para que /inbox
     // avise en vez de perderlo en silencio (JS-038). Una fila por usuario y hora.
     await db.execute(sql`
@@ -275,6 +420,20 @@ export async function handleInboundEmail(
       DO UPDATE SET rejected = inbound_rejections.rejected + 1, last_at = excluded.last_at
     `);
     return { kind: "rate_limited", userId };
+  }
+
+  // Un email que pasa el tope no se lee: queda solo con metadatos, como uno de remitente no esperado.
+  const emailBytes =
+    Buffer.byteLength(rawBody, "utf8") +
+    Buffer.byteLength(content?.html ?? "", "utf8") +
+    Buffer.byteLength(content?.text ?? "", "utf8");
+  const sizeMode =
+    deps.sizeMode ?? (process.env.INBOUND_SIZE_MODE?.trim() === "enforce" ? "enforce" : "log");
+  const overMeasuredLimit = emailBytes > USER_RAW_MAX_BYTES;
+  const oversize =
+    emailBytes > USER_RAW_HARD_MAX_BYTES || (overMeasuredLimit && sizeMode === "enforce");
+  if (overMeasuredLimit) {
+    log.warn({ user_id: userId, bytes: emailBytes, size_mode: sizeMode }, "inbound: email grande");
   }
 
   // JS-119: se clasifica antes del chequeo de remitente. Los códigos y reseteos (de cualquier
@@ -296,7 +455,7 @@ export async function handleInboundEmail(
     from: event.data.from,
     to: recipients,
     subject: event.data.subject,
-    text: content?.text || (content?.html ? htmlToText(content.html) : null),
+    text: oversize ? null : content?.text || (content?.html ? htmlToText(content.html) : null),
     securityBySubjectOnly: senderExpected,
   });
   const category = classification.category;
@@ -307,41 +466,48 @@ export async function handleInboundEmail(
       (r) => (/<([^>]+)>/.exec(r)?.[1] ?? r).trim().toLowerCase() === ownAddress,
     );
   const isSecurity = category === "seguridad";
-  const isGmailConfirm = category === "confirmacion_reenvio_gmail" && addressedToUser;
+  const gmailConfirmClaimed = category === "confirmacion_reenvio_gmail" && addressedToUser;
+  // En `enforce`, un remitente esperado sin autenticación verificada se guarda pero no se procesa
+  const authHold = authRequired && (senderExpected || gmailConfirmClaimed);
+  const isGmailConfirm = gmailConfirmClaimed && !authHold;
 
   // JS-051: red de seguridad de privacidad. Si el reenvío de Gmail manda correo personal (banco,
   // códigos, resets de contraseña), no se guarda su contenido: completo solo lo de remitentes
   // esperados (fuentes de empleo conocidas o dominios marcados como fuente de empleo). Del resto,
   // solo remitente, destinatarios, asunto, fecha y el email_id (idempotencia); ni cuerpo ni
   // nombres de adjuntos.
-  const expected = !isSecurity && (isGmailConfirm || senderExpected);
+  const expected = !isSecurity && !oversize && (gmailConfirmClaimed || senderExpected);
+  const authRecord = authVerdict ? { auth_verdict: authVerdict } : {};
   // Todo lo que no se guarda completo lleva el asunto con los números enmascarados
-  const storedSubject = expected
-    ? (event.data.subject ?? null)
-    : event.data.subject
-      ? maskDigits(event.data.subject)
-      : null;
+  const headerSubject = event.data.subject?.slice(0, MAX_STORED_HEADER_CHARS) ?? null;
+  const storedFrom = event.data.from.slice(0, MAX_STORED_HEADER_CHARS);
+  const storedSubject = expected ? headerSubject : headerSubject ? maskDigits(headerSubject) : null;
   const rawRef = await deps.storage.put({
     userId,
     kind: "inbound_email",
     contentType: "application/json",
     body: JSON.stringify(
       expected
-        ? { event: JSON.parse(rawBody), content }
+        ? { event: JSON.parse(rawBody), content, ...authRecord }
         : {
             event: {
               type: event.type,
               created_at: event.created_at,
               data: {
                 email_id: event.data.email_id,
-                from: event.data.from,
+                from: storedFrom,
                 to: event.data.to,
                 received_for: event.data.received_for,
                 subject: storedSubject,
               },
             },
             content: null,
-            redacted: isSecurity ? SECURITY_EMAIL_REASON : UNEXPECTED_SENDER_REASON,
+            redacted: isSecurity
+              ? SECURITY_EMAIL_REASON
+              : oversize
+                ? OVERSIZE_EMAIL_REASON
+                : UNEXPECTED_SENDER_REASON,
+            ...authRecord,
           },
     ),
   });
@@ -358,6 +524,10 @@ export async function handleInboundEmail(
     parserUsed = SECURITY_PARSER;
     error = SECURITY_EMAIL_REASON;
     dismissedAt = now;
+  } else if (oversize) {
+    error = OVERSIZE_EMAIL_REASON;
+  } else if (authHold) {
+    error = AUTH_UNVERIFIED_REASON;
   } else if (isGmailConfirm) {
     // Queda completo y pendiente: la persona tiene que abrir el link de confirmación
     parserUsed = GMAIL_FORWARDING_PARSER;
@@ -386,14 +556,18 @@ export async function handleInboundEmail(
     // el formato: no se ingesta ni se descarta, queda en Pendientes para revisar la regla.
     parserUsed = LINKEDIN_SOCIAL_PARSER;
     const cards = content?.html
-      ? linkedinParser.parse({
-          from: event.data.from,
-          to: recipients,
-          subject: event.data.subject ?? null,
-          html: content.html,
-          text: content.text,
-          receivedAt: now,
-        })
+      ? parseOrManualQueue(
+          linkedinParser,
+          {
+            from: event.data.from,
+            to: recipients,
+            subject: event.data.subject ?? null,
+            html: content.html,
+            text: content.text,
+            receivedAt: now,
+          },
+          log,
+        )
       : null;
     if (cards?.ok && cards.jobs.length) {
       error = `notificación social de LinkedIn con ${cards.jobs.length} tarjetas de aviso: revisar la regla de remitentes (no se cargaron)`;
@@ -414,9 +588,11 @@ export async function handleInboundEmail(
       text: content.text,
       receivedAt: now,
     };
-    const parsed = parser.parse(email);
+    const parsed = parseOrManualQueue(parser, email, log);
     if (!parsed.ok) {
       error = `estructura no reconocida (${parser.name}): ${parsed.reason}. Cola manual`;
+    } else if (parsed.jobs.length > EMAIL_MAX_CARDS) {
+      error = TOO_MANY_CARDS_REASON;
     } else if (parsed.jobs.length) {
       const [criteria] = await db
         .select({ rules: s.evaluationCriteria.rules })
@@ -449,7 +625,7 @@ export async function handleInboundEmail(
     .values({
       userId,
       emailId: event.data.email_id,
-      fromAddress: event.data.from,
+      fromAddress: storedFrom,
       subject: storedSubject,
       rawRef,
       parser: parserUsed ?? (parser ? parserName : "none"),
@@ -469,6 +645,7 @@ export async function handleInboundEmail(
     {
       user_id: userId,
       category,
+      auth_verdict: authVerdict,
       parser: parserUsed,
       jobs_extracted: jobsExtracted,
       error,

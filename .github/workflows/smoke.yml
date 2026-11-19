@@ -5,14 +5,14 @@ on: deployment_status
 # La URL es fija: no se usa la del evento, para no correr contra previews ni URLs inyectadas.
 # Si falla, abre (o comenta) un issue `smoke-roto` y GitHub le avisa a Mauro. Rollback en
 # docs/CARRIL_VERDE.md § "Si el smoke falla: rollback".
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   smoke:
     if: github.event.deployment_status.state == 'success' && github.event.deployment_status.environment == 'Production'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    environment: smoke
     permissions:
       contents: read
       issues: write

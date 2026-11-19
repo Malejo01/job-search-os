@@ -1,6 +1,6 @@
 import { schema as s, type Db } from "@job-search-os/db";
 import { textShingles, type Term } from "@job-search-os/pipeline";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { loadTaxonomy, syncJobSkillsFromText } from "../skills/sync";
 import { pgBlobStorage, type BlobStorage } from "../storage/blob";
 import { jdHash } from "./ingest-job";
@@ -15,7 +15,24 @@ export type AttachJdInput = {
   /** Encola la evaluación (JS-013). Si no está, el job queda con JD pero sin encolar. */
   enqueueEvaluation?: (jobId: string, userId: string) => Promise<void>;
   now?: () => Date;
+  /**
+   * Solo escribe si la oferta sigue sin JD y en `pendiente_jd` o `prefiltrada`. La condición va en
+   * la misma sentencia que escribe: dos pegados en paralelo no se pisan. Si no se cumple, lanza
+   * `JdNotPendingError` sin escribir nada.
+   */
+  onlyPending?: boolean;
 };
+
+/** La oferta ya tiene JD, ya se evaluó o no es de la persona: no se escribe. */
+export class JdNotPendingError extends Error {
+  constructor() {
+    super("la oferta no está pendiente de descripción");
+    this.name = "JdNotPendingError";
+  }
+}
+
+/** Estados en los que una oferta todavía espera su JD. */
+export const JD_PENDING_STATUSES = ["pendiente_jd", "prefiltrada"] as const;
 
 /** Normalización del JD pegado: saltos de línea de Windows y bordes. */
 export function normalizePastedJd(text: string): string {
@@ -31,18 +48,32 @@ export async function attachJdText(db: Db, input: AttachJdInput): Promise<void> 
   const { userId, jobId, text } = input;
   const now = input.now?.() ?? new Date();
   const jd = normalizePastedJd(text);
+  // Primero la escritura condicionada: si no se cumple, no queda ni el crudo guardado
+  const updated = await db
+    .update(s.jobs)
+    .set({ jdText: jd, jdHash: jdHash(jd), jdShingles: textShingles(jd), updatedAt: now })
+    .where(
+      and(
+        eq(s.jobs.id, jobId),
+        eq(s.jobs.userId, userId),
+        ...(input.onlyPending
+          ? [
+              inArray(s.jobs.status, [...JD_PENDING_STATUSES]),
+              sql`coalesce(btrim(${s.jobs.jdText}), '') = ''`,
+            ]
+          : []),
+      ),
+    )
+    .returning({ id: s.jobs.id });
+  if (!updated.length) {
+    throw input.onlyPending ? new JdNotPendingError() : new Error("oferta inexistente");
+  }
   const rawRef = await (input.storage ?? pgBlobStorage(db)).put({
     userId,
     kind: "jd_pegada",
     contentType: "text/plain",
     body: text,
   });
-  const updated = await db
-    .update(s.jobs)
-    .set({ jdText: jd, jdHash: jdHash(jd), jdShingles: textShingles(jd), updatedAt: now })
-    .where(and(eq(s.jobs.id, jobId), eq(s.jobs.userId, userId)))
-    .returning({ id: s.jobs.id });
-  if (!updated.length) throw new Error("oferta inexistente");
   await db.insert(s.jobSources).values({
     jobId,
     kind: "manual",

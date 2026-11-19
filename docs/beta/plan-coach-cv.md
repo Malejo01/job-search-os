@@ -2,7 +2,7 @@
 
 Solo docs. Sale del [informe del 17/11](./informe-cv-agente-17-11.md) y del código de `main` (`6cace3c`) y de `ronda/r11-1-agente-perfil-v2` (#514, `9e45527`). El ADR está en [`docs/adr/038-coach-de-cv.md`](../adr/038-coach-de-cv.md) (Proposed). No se tocó código, prompts, Neon ni Vercel.
 
-Contenido: §1 verificación del diagnóstico · §2 ADR · §3 costo por charla · §4 tickets de la Tanda R12 · §5 plan de evals · §6 decisiones D1 a D7 · §7 resumen para Mauro.
+Contenido: §1 verificación del diagnóstico · §2 ADR · §3 costo por charla · §4 tickets de la Tanda R12 · §5 plan de evals · §6 decisiones D1 a D7 · §7 resumen para Admin.
 
 ## 1. Verificación del diagnóstico (§3 y §4 del informe)
 
@@ -20,7 +20,7 @@ Rutas relativas a la raíz. «#514» quiere decir que el archivo se lee en `orig
 | 6 | `chat.tsx:191`: «Si tenés un CV hecho, no lo pegues acá» | **Confirmado y ampliado** | `apps/web/app/(app)/cv/armar/chat.tsx:191`. Además, el servidor rechaza un CV pegado: `classifyCvChatInput` (`cv-chat/input.ts:77`) → `redirect_cv_reader` (`adapters/src/cv-chat/interview.ts:100`) → error `pasted_cv` con link a `/settings/historial` (`apps/web/app/api/cv-chat/route.ts:89` y `:345`) |
 | 7 | El acuse es genérico | **Confirmado, con la causa** | El acuse lo escribe el modelo y `safeCvAck` lo reemplaza por el acuse fijo si trae **cualquier dígito** (`cv-chat/grounding.ts:55-57`). Un acuse con fechas («abril 2025») nunca puede pasar: tiene que armarlo el código |
 | 8 | El puesto ya estaba en el perfil y se vuelve a preguntar (lo arregla #511) | **Confirmado** | `loadChatSeed` no siembra `target` (`apps/web/lib/cv-chat-server.ts:41-61`); #511 suma `chatTarget(headline, roleLabel)` en `state.ts` (rama `ronda/r11-12-cv-resumen`) |
-| 9 | ADR-026 dejó «pregunta redactada por el modelo en una segunda llamada» como opción si Mauro la prefiere | **Confirmado** | `docs/adr/026-cv-redactado-por-ia-con-verificador.md`, Alternatives |
+| 9 | ADR-026 dejó «pregunta redactada por el modelo en una segunda llamada» como opción si Admin la prefiere | **Confirmado** | `docs/adr/026-cv-redactado-por-ia-con-verificador.md`, Alternatives |
 | 10 | «El cargo quedó cargado de dos formas» y fechas con febrero contra marzo | **No verificable en código** (la charla no se guarda, ADR-026 §4). Es coherente con #3: cada tema extrae por separado y nada contrasta con lo ya dicho |
 
 ### 1.2 Agente de perfil (#514, §4)
@@ -41,7 +41,7 @@ Rutas relativas a la raíz. «#514» quiere decir que el archivo se lee en `orig
 
 ## 2. ADR
 
-[`docs/adr/038-coach-de-cv.md`](../adr/038-coach-de-cv.md), Proposed. Cubre las etapas, los esquemas Zod de `cv_review` y `cv_coach_turn`, el validador de preguntas, el tipo `proyecto` en `career_history`, los topes, el flag y lo que no se guarda. Las decisiones D1 a D7 están marcadas «a confirmar por Mauro». Numeral 038: 034 a 037 ya están tomados en ramas abiertas.
+[`docs/adr/038-coach-de-cv.md`](../adr/038-coach-de-cv.md), Proposed. Cubre las etapas, los esquemas Zod de `cv_review` y `cv_coach_turn`, el validador de preguntas, el tipo `proyecto` en `career_history`, los topes, el flag y lo que no se guarda. Las decisiones D1 a D7 están marcadas «a confirmar por Admin». Numeral 038: 034 a 037 ya están tomados en ramas abiertas.
 
 ## 3. Costo por charla
 
@@ -79,7 +79,7 @@ Convenciones: un ticket por rama `ronda/r12-<n>-<nombre>`; carril según `.githu
 
 | Ticket | Carril | Deps | Qué hace / archivos | Tests |
 |---|---|---|---|---|
-| **R12-1** Integrar #514 y #511 | rojo (ya lo son) | — | Sin código nuevo: el merge de las dos ramas está limpio. **Pasos de Mauro:** mergear #514 y #511; aplicar la fila `extract_cv_profile` en Neon (SQL de ADR-034, «Pasos»); en Vercel, `CV_IMPORT_ENABLED=1` y `CV_PROFILE_AGENT=testers`. Mauro repite la prueba con su CV pegado; el lead pasa sus notas a `docs/beta/coach-cv-prueba-0.md` (verde) | CI de los dos PR |
+| **R12-1** Integrar #514 y #511 | rojo (ya lo son) | — | Sin código nuevo: el merge de las dos ramas está limpio. **Pasos de Admin:** mergear #514 y #511; aplicar la fila `extract_cv_profile` en Neon (SQL de ADR-034, «Pasos»); en Vercel, `CV_IMPORT_ENABLED=1` y `CV_PROFILE_AGENT=testers`. Admin repite la prueba con su CV pegado; el lead pasa sus notas a `docs/beta/coach-cv-prueba-0.md` (verde) | CI de los dos PR |
 
 ### Fase 1 · Arreglos al chat actual (sirven aunque D1 sea «no»)
 
@@ -106,17 +106,17 @@ Convenciones: un ticket por rama `ronda/r12-<n>-<nombre>`; carril según `.githu
 
 | Ticket | Carril | Deps | Archivos propios | Tests que exige |
 |---|---|---|---|---|
-| **R12-13** Golden de CVs y harness del coach | rojo (`evals/**`) | R12-8, R12-9 | `evals/fixtures/cv-coach/*.json` (públicas, inventadas); `evals/src/cv-coach/{run,metrics,persona}.ts`; el CV de Mauro en `fixtures-private/cv-coach/` (fuera del repo) | métricas sobre transcripciones grabadas (sin modelo); el guard de costo aborta antes de pasar el tope; ninguna fixture pública pasa el barrido de privacidad con datos reales |
-| **R12-14** Prueba con Ani y comparación de Mauro | verde | R12-10, R12-11 | `docs/beta/coach-cv-prueba.md` | — |
+| **R12-13** Golden de CVs y harness del coach | rojo (`evals/**`) | R12-8, R12-9 | `evals/fixtures/cv-coach/*.json` (públicas, inventadas); `evals/src/cv-coach/{run,metrics,persona}.ts`; el CV de Admin en `fixtures-private/cv-coach/` (fuera del repo) | métricas sobre transcripciones grabadas (sin modelo); el guard de costo aborta antes de pasar el tope; ninguna fixture pública pasa el barrido de privacidad con datos reales |
+| **R12-14** Prueba con tester A y comparación de Admin | verde | R12-10, R12-11 | `docs/beta/coach-cv-prueba.md` | — |
 | **R12 · Cierre** | verde | todo en PR | `docs/BACKLOG.md`, `docs/beta/informe-r12.md` | — |
 
-**Paralelismo:** después de R12-1 arrancan en paralelo R12-4, R12-6, R12-12 y, cuando Mauro acepte el ADR, R12-7. R12-2 espera a R12-4; R12-3 a R12-2; R12-8 y R12-9 corren en paralelo sobre R12-7; R12-5 va en paralelo con R12-8 y R12-9 (no comparten archivos). Los cuatro tickets que tocan prompts (R12-2, R12-5, R12-8, R12-9) juntan su cambio de prompt en **un push cada uno**.
+**Paralelismo:** después de R12-1 arrancan en paralelo R12-4, R12-6, R12-12 y, cuando Admin acepte el ADR, R12-7. R12-2 espera a R12-4; R12-3 a R12-2; R12-8 y R12-9 corren en paralelo sobre R12-7; R12-5 va en paralelo con R12-8 y R12-9 (no comparten archivos). Los cuatro tickets que tocan prompts (R12-2, R12-5, R12-8, R12-9) juntan su cambio de prompt en **un push cada uno**.
 
 ## 5. Plan de evals
 
 ### 5.1 Golden de CVs
 - **Públicas (inventadas, sin datos reales, empresas «Empresa A» y similares):** los 3 de #514 (`packages/pipeline/test/fixtures/cv-perfil/{sin-experiencia,con-experiencia,cambio-de-carrera}.txt`) más **uno por carrera de la beta** (abogacía, finanzas y contabilidad, administración, comunicación, marketing digital, relaciones públicas, relaciones internacionales y fullstack): 11 en total. Uno de los de fullstack replica el caso del 17/11 (dos años de experiencia, cuatro proyectos con IA y docencia arriba), con nombres ficticios.
-- **Privada:** el CV de Mauro en `fixtures-private/cv-coach/mauro.json`. No entra al repo ni a los reportes (que guardan solo métricas).
+- **Privada:** el CV de Admin en `fixtures-private/cv-coach/`. No entra al repo ni a los reportes (que guardan solo métricas).
 - **Cada fixture trae:** el texto del CV; el puesto objetivo; `hechos[]` (datos atómicos con sus claves: empresa, cargo, fechas, proyecto, número de un logro); `problemas_esperados[]` (tipo y ítem); y `respuestas` guionadas por tipo de problema e ítem, con «no tengo» por defecto. **La persona es código, no un modelo:** no suma costo y es repetible.
 - **La lectura se cachea:** la primera corrida guarda la propuesta normalizada de cada fixture pública (`evals/fixtures/cv-coach/lecturas/*.json`); las siguientes arrancan del diagnóstico.
 
@@ -138,16 +138,16 @@ Convenciones: un ticket por rama `ronda/r12-<n>-<nombre>`; carril según `.githu
 |---|---|---|
 | Lectura de las 12 fixtures (una vez, se cachea) | 12 × 0,023 | 0,28 |
 | `cv_review` en el golden, 3 corridas (varianza) | 3 × 12 × 0,014 | 0,50 |
-| Charla completa guionada: sin experiencia, con experiencia, cambio de carrera y Mauro, 2 corridas | 2 × 4 × 0,12 | 0,96 |
+| Charla completa guionada: sin experiencia, con experiencia, cambio de carrera y Admin, 2 corridas | 2 × 4 × 0,12 | 0,96 |
 | Línea de base del chat actual, antes y después de R12-2 | 2 × 0,04 | 0,08 |
 | Job de evals del CI por push con prompts (mide `evaluate_job`, no el coach), 4 pushes | 4 × 0,16 | 0,64 |
 | **Total** | | **≈ USD 2,46** (margen de 0,54) |
 
 - **Cómo no pasarse:** el harness copia el guard de `evals/src/cost-guard.ts`. Usa `--max-usd 0,60` por corrida (se aborta antes de la primera llamada si la estimación lo supera, y en vuelo si lo gastado más lo reservado lo supera). Antes de arrancar suma `llm_calls` con `label = r12` y no corre si el acumulado de la tanda pasa USD 2,50. Todo lo demás (validadores, orden, métricas sobre transcripciones grabadas) corre en CI **sin modelo**.
-- **Quién corre qué:** las corridas pagas las hace Mauro o el lead con su OK, en local y con `--db cloud` para que el gasto quede registrado. Ninguna corre sola en el CI.
+- **Quién corre qué:** las corridas pagas las hace Admin o el lead con su OK, en local y con `--db cloud` para que el gasto quede registrado. Ninguna corre sola en el CI.
 - Si las primeras corridas salen más caras que lo estimado, se recorta la segunda corrida de la charla completa, no las de diagnóstico.
 
-## 6. Decisiones para Mauro
+## 6. Decisiones para Admin
 
 | # | Decisión | Recomendación | Qué bloquea |
 |---|---|---|---|
@@ -161,7 +161,7 @@ Convenciones: un ticket por rama `ronda/r12-<n>-<nombre>`; carril según `.githu
 
 Además, dos decisiones que salieron de la verificación: un flag propio **`CV_COACH`** (recomendado, para prenderlo sin tocar el agente) y que **el diagnóstico no muestre texto libre del modelo**, solo tipos con plantillas del código (recomendado: más auditable y sin verificador nuevo).
 
-## 7. Resumen para Mauro
+## 7. Resumen para Admin
 
 1. Lo que probaste es `/cv/armar` (ADR-026): descarta todo lo que no es el tema actual porque el esquema es uno por tema. Es una decisión de diseño, no un bug. Verificado en el código.
 2. Correcciones al informe: los proyectos (`facts`) ya se detectan en `main`; `kind` es un check de la base y un proyecto con link necesita columna nueva; el acuse es genérico porque cualquier dígito lo reemplaza por el fijo; #514 apaga las repreguntas del modelo.

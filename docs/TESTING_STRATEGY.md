@@ -94,3 +94,16 @@ En Postgres un rol (usuario) vale para todo el servidor, no para una base. `jobs
 ## Docker
 
 `infra/docker-compose.yml`: `postgres` (pgvector) + `localstack` (S3, SQS) para desarrollar y correr tests de adapters. `Dockerfile` para `apps/web` (multi-stage, standalone output) aunque prod sea Vercel: sirve para el CV y para la migración a AWS.
+
+Todos los puertos se publican solo en `127.0.0.1`.
+
+**Contraseñas locales.** Van en dos archivos ignorados por git, con el mismo valor:
+
+| Variable | Dónde | Para qué |
+|---|---|---|
+| `JSO_LOCAL_DB_PASSWORD` | `infra/.env` (la lee `docker compose`) y `.env.local` en la raíz (la leen la app y los scripts) | Base de desarrollo. Sin la variable se usa el valor por defecto del CI |
+| `JSO_SNAPSHOT_DB_PASSWORD` | `infra/.env` | Servicio `snapshot`. Sin la variable el contenedor no arranca |
+
+- `POSTGRES_PASSWORD` solo se aplica al crear el volumen. En una base que ya existe, cambiá la clave del rol `postgres` a mano o recreá el volumen con `pnpm db:reset`, que borra los datos.
+- El snapshot arranca aparte: `docker compose -f infra/docker-compose.yml --profile snapshot up -d`. Usa el puerto `54323` y su propio volumen.
+- `pnpm e2e:local` y `pnpm db:migrate:local` toman la contraseña de `JSO_LOCAL_DB_PASSWORD` del entorno.

@@ -4,9 +4,10 @@ import {
   buildChecklist,
   buildEvaluateJobVars,
   canTransition,
+  checkJdSize,
   compileTaxonomy,
   decide,
-  detectEvaluatorInjection,
+  detectJobInjection,
   detectResidencyRestriction,
   effectiveAcceptedModalities,
   evaluationWireFor,
@@ -37,6 +38,7 @@ import { and, count, desc, eq, getTableColumns, lte, ne, sql } from "drizzle-orm
 import { DEFAULT_PROMPT_VERSIONS } from "../llm/client";
 import type { GenerateContext, LlmClient, LlmError } from "../llm/types";
 import { dailyCapFromEnv, spendLast24h, userDailyCapUsd } from "../llm/spend";
+import { EVALUATION_RESERVE_USD, releaseLlmSpend, reserveLlmSpend } from "../llm/spend-reserve";
 import type { Logger } from "../logger";
 import { safeDbError } from "../logging/safe-error";
 import { EVALUATE_QUEUE, type EvaluatePayload, type Queue } from "../queue/pg-queue";
@@ -261,7 +263,7 @@ export async function evaluateForProfile(
   const { promptVersion, profile, rules, job } = input;
   // El aviso es texto de terceros: si trae instrucciones al evaluador se marca antes de llamar al
   // modelo. El flag topa el score en decide() y queda en jobs.flags; en el log solo van los nombres.
-  const injection = detectEvaluatorInjection([job.title, job.companyRaw, job.jdText].join("\n"));
+  const injection = detectJobInjection(job);
   // Se recalcula siempre: un flag viejo no sobrevive si la JD ya no dispara el detector
   // Lo mismo con la residencia exigida: la JD pudo llegar después del ingreso (pendiente_jd), así
   // que se recalcula con el texto completo y el país actual de la persona.
@@ -301,6 +303,19 @@ export async function evaluateForProfile(
     rules,
     job,
   });
+
+  // Estimado antes de llamar al modelo: queda en el log para ver el tamaño real de cada aviso
+  const jdSize = checkJdSize(job.jdText);
+  input.logger?.debug?.(
+    {
+      user_id: input.ctx?.userId,
+      job_id: input.ctx?.jobId,
+      jd_chars: jdSize.chars,
+      jd_estimated_tokens: jdSize.estimatedTokens,
+      jd_truncated: jdSize.ok && jdSize.truncated,
+    },
+    "evaluación: tamaño del aviso",
+  );
 
   const result = input.reuse
     ? ({
@@ -463,6 +478,22 @@ export async function evaluateJobById(jobId: string, deps: EvaluateDeps): Promis
   if (!job) return { ok: false, jobId, error: "job inexistente", retry: "failed" };
   if (!job.jdText?.trim()) {
     return { ok: false, jobId, error: "job sin jd_text: no se evalúa", retry: "skipped" };
+  }
+  // JD fuera de tamaño razonable: no se llama al modelo; la oferta espera una JD más corta
+  const size = checkJdSize(job.jdText);
+  if (!size.ok) {
+    log.warn({ chars: size.chars, estimated_tokens: size.estimatedTokens }, "JD demasiado larga");
+    if (job.status === "prefiltrada") {
+      await db
+        .update(s.jobs)
+        .set({
+          status: transition(job.status, "needs_jd"),
+          prefilterReason: size.reason,
+          updatedAt: deps.now?.() ?? new Date(),
+        })
+        .where(eq(s.jobs.id, job.id));
+    }
+    return { ok: false, jobId, error: size.reason, retry: "skipped" };
   }
   // Cerrada/descartada después de encolar (JS-017): no gastar una llamada en algo que no puede transicionar
   if (!canTransition(job.status, "evaluated")) {
@@ -947,55 +978,65 @@ export async function evaluateJobNow(
 ): Promise<EvaluateNowResult> {
   const log = deps.logger.child({ job_id: jobId });
   const dailyCapUsd = options.dailyCapUsd ?? dailyCapFromEnv();
-  if (dailyCapUsd > 0) {
-    const spend = await spendLast24h(deps.db, deps.now);
-    if (spend.usd >= dailyCapUsd) {
+  const userCapUsd = options.userDailyCapUsd ?? userDailyCapUsd();
+  // Un job sin dueño no llega al modelo: evaluateJobById lo descarta
+  const ownerId = await jobOwner(deps.db, jobId);
+  let reservationId: string | null = null;
+  if (ownerId) {
+    const reservation = await reserveLlmSpend(deps.db, {
+      userId: ownerId,
+      estimateUsd: EVALUATION_RESERVE_USD,
+      now: deps.now,
+      dailyCapUsd,
+      userDailyCapUsd: userCapUsd,
+    });
+    if (!reservation.ok && reservation.reason === "global") {
       log.warn(
-        { spend_usd_24h: spend.usd, cap_usd: dailyCapUsd },
+        { cap_usd: dailyCapUsd },
         "evaluación inmediata frenada por el tope de gasto: queda para el cron",
       );
       return { ran: false, reason: "cap" };
     }
-  }
-  // Tope por usuario: el mensaje queda pending (nadie lo reclamó) para cuando se libere la ventana
-  const userCapUsd = options.userDailyCapUsd ?? userDailyCapUsd();
-  if (userCapUsd > 0) {
-    const [owner] = await deps.db
-      .select({ userId: s.jobs.userId })
-      .from(s.jobs)
-      .where(eq(s.jobs.id, jobId))
-      .limit(1);
-    if (owner && (await userSpendTracker(deps, userCapUsd).isOver(owner.userId))) {
+    // Tope por usuario: el mensaje queda pending (nadie lo reclamó) para cuando se libere la ventana
+    if (!reservation.ok) {
       log.warn(
-        { user_id: owner.userId, cap_usd: userCapUsd },
+        { user_id: ownerId, cap_usd: userCapUsd },
         "evaluación inmediata frenada por el tope diario del usuario: queda para el cron",
       );
       return { ran: false, reason: "user_cap", message: USER_CAP_MESSAGE };
     }
+    reservationId = reservation.reservationId;
   }
-  const msg = await deps.queue.claimForJob<EvaluatePayload>(EVALUATE_QUEUE, jobId);
-  if (!msg) return { ran: false, reason: "not_pending" };
 
-  let outcome: EvaluateOutcome;
   try {
-    outcome = await evaluateJobById(jobId, deps);
-  } catch (e) {
-    outcome = {
-      ok: false,
-      jobId,
-      error: unexpectedError(e),
-      retry: "retry",
-    };
+    const msg = await deps.queue.claimForJob<EvaluatePayload>(EVALUATE_QUEUE, jobId);
+    if (!msg) return { ran: false, reason: "not_pending" };
+
+    let outcome: EvaluateOutcome;
+    try {
+      outcome = await evaluateJobById(jobId, deps);
+    } catch (e) {
+      outcome = {
+        ok: false,
+        jobId,
+        error: unexpectedError(e),
+        retry: "retry",
+      };
+    }
+    if (outcome.ok || outcome.retry === "skipped") await deps.queue.ack(msg.id);
+    else if (!outcome.ok && outcome.error.startsWith("aborted:"))
+      await deps.queue.release(msg.id, outcome.error);
+    else if (outcome.retry === "failed")
+      await deps.queue.fail(msg.id, outcome.error, { final: true });
+    else await deps.queue.fail(msg.id, outcome.error);
+    log.info(
+      { ok: outcome.ok, ...(outcome.ok ? { score: outcome.score } : { error: outcome.error }) },
+      "evaluación inmediata",
+    );
+    return { ran: true, outcome };
+  } finally {
+    if (reservationId && !(await releaseLlmSpend(deps.db, reservationId))) {
+      log.warn("no se pudo soltar la reserva de gasto: deja de contar cuando vence");
+    }
   }
-  if (outcome.ok || outcome.retry === "skipped") await deps.queue.ack(msg.id);
-  else if (!outcome.ok && outcome.error.startsWith("aborted:"))
-    await deps.queue.release(msg.id, outcome.error);
-  else if (outcome.retry === "failed")
-    await deps.queue.fail(msg.id, outcome.error, { final: true });
-  else await deps.queue.fail(msg.id, outcome.error);
-  log.info(
-    { ok: outcome.ok, ...(outcome.ok ? { score: outcome.score } : { error: outcome.error }) },
-    "evaluación inmediata",
-  );
-  return { ran: true, outcome };
 }

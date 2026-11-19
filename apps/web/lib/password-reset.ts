@@ -3,6 +3,7 @@ import {
   createLogger,
   markAllResetTokensUsed,
   resetUrlBase,
+  safeDbError,
   sendEmail,
 } from "@job-search-os/adapters";
 import { schema as s } from "@job-search-os/db";
@@ -41,7 +42,7 @@ export async function requestPasswordReset(email: string): Promise<void> {
     } catch (error) {
       // Sin el email en el log: solo el user_id
       createLogger({ user_id: user.id, task: "password_reset_email" }).error(
-        { error },
+        { err: safeDbError(error) },
         "no se pudo crear el token de recuperación",
       );
     }
@@ -105,7 +106,7 @@ async function issueResetToken(user: { id: string; email: string }): Promise<voi
     // Nunca revienta el flujo (mismo criterio de no revelar nada al que pide el reset):
     // el token ya quedó creado y sirve igual si el link llega por otro medio.
     createLogger({ user_id: user.id, task: "password_reset_email" }).error(
-      { error },
+      { err: safeDbError(error) },
       "no se pudo mandar el email de recuperación",
     );
   }

@@ -26,6 +26,25 @@ const email = (html: string | null): InboundEmailContent => ({
 const parse = (html: string | null) => computrabajoParser.parse(email(html));
 const recomendaciones = fixture("recomendaciones-tres-avisos.html");
 
+describe("computrabajoParser: entidades numéricas", () => {
+  it.each(["&#99999999;", "&#1114112;", "&#55357;", "&#0;"])(
+    "con %s no lanza y no deja el carácter en los títulos",
+    (entity) => {
+      const res = parse(recomendaciones.replace("Analista Contable Ficticio", `Analista${entity}`));
+      expect(res.ok).toBe(true);
+      if (!res.ok) return;
+      expect(res.jobs[0]!.title).toBe("Analista");
+    },
+  );
+
+  it("sigue decodificando las entidades válidas", () => {
+    const res = parse(recomendaciones.replace("Analista Contable Ficticio", "Analista&#243;n"));
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.jobs[0]!.title).toBe("Analistaón");
+  });
+});
+
 describe("computrabajoParser: extrae los avisos", () => {
   it("devuelve un RawJob por tarjeta, en el orden del mail", () => {
     const res = parse(recomendaciones);

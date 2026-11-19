@@ -5,9 +5,19 @@ import { applyMigrations } from "@job-search-os/db/src/migrate";
 import { createDb, schema as s } from "@job-search-os/db";
 import { eq } from "drizzle-orm";
 import pino from "pino";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { pgBlobStorage } from "../storage/blob";
-import { handleInboundEmail, MANUAL_QUEUE_REASON, UNEXPECTED_SENDER_REASON } from "./handle";
+import {
+  EMAIL_MAX_CARDS,
+  handleInboundEmail,
+  MANUAL_QUEUE_REASON,
+  MAX_STORED_HEADER_CHARS,
+  OVERSIZE_EMAIL_REASON,
+  TOO_MANY_CARDS_REASON,
+  UNEXPECTED_SENDER_REASON,
+  USER_RAW_MAX_BYTES,
+} from "./handle";
+import { linkedinParser } from "./linkedin";
 import type { ResendReceivedEvent } from "./resend";
 
 /** JS-020: email entrante → crudo en storage + fila en inbound_emails + despacho (cola manual sin parser). */
@@ -65,6 +75,195 @@ beforeAll(async () => {
 afterAll(async () => {
   await conn?.close();
   await container?.stop();
+});
+
+describe("topes del email de una persona", () => {
+  const TOPES = "a0000000-0000-4000-8000-000000000002";
+  const TOPES_ADDRESS = "u_a0000002@ingest.test";
+  const deps = () => ({ db: conn.db, storage: pgBlobStorage(conn.db), logger });
+
+  beforeAll(async () => {
+    await conn.db
+      .insert(s.profiles)
+      .values({
+        userId: TOPES,
+        displayName: "Topes",
+        locationCountry: "AR",
+        remoteOnly: true,
+        inboundAddress: TOPES_ADDRESS,
+        profileSummary: "AI Engineer.",
+      })
+      .onConflictDoNothing();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("un email de 5 MB de un remitente esperado guarda solo metadatos y no se procesa", async () => {
+    const parse = vi.spyOn(linkedinParser, "parse");
+    const ev = event("em_tope_bytes", TOPES_ADDRESS);
+    const html = `<p>${"x".repeat(5 * 1024 * 1024)}</p>`;
+
+    const out = await handleInboundEmail(
+      ev,
+      { html, text: null, headers: null },
+      JSON.stringify(ev),
+      deps(),
+    );
+
+    expect(out).toMatchObject({ kind: "stored", jobsExtracted: 0, error: OVERSIZE_EMAIL_REASON });
+    expect(parse).not.toHaveBeenCalled();
+    if (out.kind !== "stored") return;
+    const [row] = await conn.db
+      .select()
+      .from(s.inboundEmails)
+      .where(eq(s.inboundEmails.id, out.inboundId));
+    const blob = await deps().storage.get(row!.rawRef);
+    expect(Buffer.byteLength(blob!.body, "utf8")).toBeLessThan(2_000);
+    expect(JSON.parse(blob!.body)).toMatchObject({
+      content: null,
+      redacted: OVERSIZE_EMAIL_REASON,
+    });
+  });
+
+  it("un email justo debajo del tope se guarda completo", async () => {
+    const ev = event("em_tope_justo", TOPES_ADDRESS);
+    const raw = JSON.stringify(ev);
+    const text = "y".repeat(USER_RAW_MAX_BYTES - Buffer.byteLength(raw, "utf8") - 10);
+
+    const out = await handleInboundEmail(ev, { html: null, text, headers: null }, raw, deps());
+
+    expect(out.kind).toBe("stored");
+    if (out.kind !== "stored") return;
+    expect(out.error).not.toBe(OVERSIZE_EMAIL_REASON);
+    const [row] = await conn.db
+      .select()
+      .from(s.inboundEmails)
+      .where(eq(s.inboundEmails.id, out.inboundId));
+    const blob = await deps().storage.get(row!.rawRef);
+    expect(JSON.parse(blob!.body).content.text).toBe(text);
+  });
+
+  const overSoftLimit = () => "z".repeat(USER_RAW_MAX_BYTES + 1024);
+
+  it("en modo log, un email sobre el tope medido se guarda completo", async () => {
+    const ev = event("em_tope_log", TOPES_ADDRESS);
+    const text = overSoftLimit();
+
+    const out = await handleInboundEmail(
+      ev,
+      { html: null, text, headers: null },
+      JSON.stringify(ev),
+      deps(),
+    );
+
+    expect(out.kind).toBe("stored");
+    if (out.kind !== "stored") return;
+    expect(out.error).not.toBe(OVERSIZE_EMAIL_REASON);
+    const [row] = await conn.db
+      .select()
+      .from(s.inboundEmails)
+      .where(eq(s.inboundEmails.id, out.inboundId));
+    const blob = await deps().storage.get(row!.rawRef);
+    expect(JSON.parse(blob!.body).content.text).toBe(text);
+  });
+
+  it("en modo enforce, un email sobre el tope medido guarda solo metadatos", async () => {
+    const parse = vi.spyOn(linkedinParser, "parse");
+    const ev = event("em_tope_enforce", TOPES_ADDRESS);
+
+    const out = await handleInboundEmail(
+      ev,
+      { html: null, text: overSoftLimit(), headers: null },
+      JSON.stringify(ev),
+      { ...deps(), sizeMode: "enforce" },
+    );
+
+    expect(out).toMatchObject({ kind: "stored", jobsExtracted: 0, error: OVERSIZE_EMAIL_REASON });
+    expect(parse).not.toHaveBeenCalled();
+  });
+
+  it("recorta el asunto y el remitente que se guardan", async () => {
+    const from = `${"n".repeat(MAX_STORED_HEADER_CHARS * 2)} <alertas@example.com>`;
+    const ev = {
+      ...event("em_tope_largos", TOPES_ADDRESS, from),
+      data: {
+        ...event("em_tope_largos", TOPES_ADDRESS, from).data,
+        subject: "s".repeat(MAX_STORED_HEADER_CHARS * 2),
+      },
+    };
+
+    const out = await handleInboundEmail(ev, null, JSON.stringify(ev), deps());
+
+    expect(out.kind).toBe("stored");
+    if (out.kind !== "stored") return;
+    const [row] = await conn.db
+      .select()
+      .from(s.inboundEmails)
+      .where(eq(s.inboundEmails.id, out.inboundId));
+    expect(row!.subject).toHaveLength(MAX_STORED_HEADER_CHARS);
+    expect(row!.fromAddress).toHaveLength(MAX_STORED_HEADER_CHARS);
+  });
+
+  it("un email con más tarjetas que el tope va a la cola manual sin cargar avisos", async () => {
+    vi.spyOn(linkedinParser, "parse").mockReturnValue({
+      ok: true,
+      jobs: Array.from({ length: EMAIL_MAX_CARDS + 1 }, () => ({})),
+    } as never);
+    const ev = event("em_tope_tarjetas", TOPES_ADDRESS);
+
+    const out = await handleInboundEmail(
+      ev,
+      { html: "<p>alerta</p>", text: "alerta", headers: null },
+      JSON.stringify(ev),
+      deps(),
+    );
+
+    expect(out).toMatchObject({ kind: "stored", jobsExtracted: 0, error: TOO_MANY_CARDS_REASON });
+    const jobs = await conn.db.select().from(s.jobs).where(eq(s.jobs.userId, TOPES));
+    expect(jobs).toHaveLength(0);
+  });
+
+  it("pasado el tope diario se rechaza y queda contado, aunque la última hora esté libre", async () => {
+    const DIARIO = "a0000000-0000-4000-8000-000000000003";
+    const DIARIO_ADDRESS = "u_a0000003@ingest.test";
+    await conn.db.insert(s.profiles).values({
+      userId: DIARIO,
+      displayName: "Diario",
+      locationCountry: "AR",
+      remoteOnly: true,
+      inboundAddress: DIARIO_ADDRESS,
+      profileSummary: "AI Engineer.",
+    });
+    const hoursAgo = (h: number) => new Date(Date.now() - h * 60 * 60 * 1000);
+    const row = (receivedAt: Date) => ({
+      userId: DIARIO,
+      fromAddress: "x@example.com",
+      rawRef: "pg:00000000-0000-4000-8000-000000000000",
+      receivedAt,
+    });
+    await conn.db
+      .insert(s.inboundEmails)
+      .values([row(hoursAgo(25)), row(hoursAgo(3)), row(hoursAgo(2))]);
+    const limited = { ...deps(), dailyLimit: 3 };
+
+    const first = event("em_diario_1", DIARIO_ADDRESS, SIN_PARSER);
+    expect((await handleInboundEmail(first, null, JSON.stringify(first), limited)).kind).toBe(
+      "stored",
+    );
+
+    const second = event("em_diario_2", DIARIO_ADDRESS, SIN_PARSER);
+    expect(await handleInboundEmail(second, null, JSON.stringify(second), limited)).toEqual({
+      kind: "rate_limited",
+      userId: DIARIO,
+    });
+    const rejections = await conn.db
+      .select()
+      .from(s.inboundRejections)
+      .where(eq(s.inboundRejections.userId, DIARIO));
+    expect(rejections).toHaveLength(1);
+  });
 });
 
 describe("handleInboundEmail", () => {

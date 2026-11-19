@@ -222,20 +222,58 @@ export function promptNeedsDelimitedJob(promptRef: string): boolean {
 const escapeMarks = (text: string): string =>
   text.replaceAll("<<<", "‹‹‹").replaceAll(">>>", "›››");
 
+/** Largo máximo de la JD que entra al prompt; lo que sigue se descarta. */
+export const JD_PROMPT_MAX_CHARS = 60_000;
+/** Largo máximo de título, empresa y ubicación en el prompt (igual que la alta manual). */
+export const FIELD_PROMPT_MAX_CHARS = 300;
+/** Largo máximo de la nota de sueldo en el prompt. */
+export const SALARY_NOTE_PROMPT_MAX_CHARS = 200;
+/**
+ * Máximo duro: una JD más larga que esto no es un aviso razonable. No se evalúa ni se recorta,
+ * la oferta queda pendiente de JD con el motivo. 300.000 caracteres son unos 100.000 tokens.
+ */
+export const JD_HARD_MAX_CHARS = 300_000;
+
+export type JdSizeCheck =
+  | { ok: true; chars: number; estimatedTokens: number; truncated: boolean }
+  | { ok: false; chars: number; estimatedTokens: number; reason: string };
+
+/**
+ * Mide la JD antes de llamar al modelo. Estimación conservadora: un token cada 3 caracteres.
+ * Sin I/O: el caller decide qué hacer con el resultado.
+ */
+export function checkJdSize(jdText: string | null | undefined): JdSizeCheck {
+  const chars = jdText?.length ?? 0;
+  const estimatedTokens = Math.ceil(chars / 3);
+  if (chars > JD_HARD_MAX_CHARS) {
+    return {
+      ok: false,
+      chars,
+      estimatedTokens,
+      reason: `JD demasiado larga (${chars} caracteres, máximo ${JD_HARD_MAX_CHARS}): pegá solo la descripción del puesto`,
+    };
+  }
+  return { ok: true, chars, estimatedTokens, truncated: chars > JD_PROMPT_MAX_CHARS };
+}
+
+const clip = (value: string | null | undefined, max: number): string | null | undefined =>
+  typeof value === "string" && value.length > max ? value.slice(0, max) : value;
+
 /** `{{job}}` del prompt: campos estructurados + JD (o "JD NO DISPONIBLE"). */
 export function renderJob(job: JobForPrompt, opts: { delimit?: boolean } = {}): string {
+  const salaryNote = clip(job.salaryNote, SALARY_NOTE_PROMPT_MAX_CHARS);
   const salary =
     job.salaryMinUsd || job.salaryMaxUsd
       ? `${job.salaryMinUsd ?? "?"}–${job.salaryMaxUsd ?? "?"} USD ${job.salaryPeriod ?? ""}${
-          job.salaryNote ? ` (${job.salaryNote})` : ""
+          salaryNote ? ` (${salaryNote})` : ""
         }`.trim()
       : null;
   const posted =
     job.postedAt instanceof Date ? job.postedAt.toISOString().slice(0, 10) : (job.postedAt ?? null);
   const header = lines([
-    line("Título", job.title),
-    line("Empresa", job.companyRaw),
-    line("Ubicación", job.locationRaw),
+    line("Título", clip(job.title, FIELD_PROMPT_MAX_CHARS)),
+    line("Empresa", clip(job.companyRaw, FIELD_PROMPT_MAX_CHARS)),
+    line("Ubicación", clip(job.locationRaw, FIELD_PROMPT_MAX_CHARS)),
     line("Países permitidos", job.countriesAllowed),
     line("Modalidad", job.modality),
     line("Contrato", job.contractType),
@@ -245,7 +283,9 @@ export function renderJob(job: JobForPrompt, opts: { delimit?: boolean } = {}): 
     line("Badges", job.badges),
     line("Publicada", posted),
   ]);
-  const jd = job.jdText?.trim() ? job.jdText.trim() : "JD NO DISPONIBLE";
+  const jd = job.jdText?.trim()
+    ? job.jdText.trim().slice(0, JD_PROMPT_MAX_CHARS)
+    : "JD NO DISPONIBLE";
   const text = `${header}\n\nDescripción del puesto:\n${jd}`;
   return opts.delimit ? `${JOB_OPEN}\n${escapeMarks(text)}\n${JOB_CLOSE}` : text;
 }

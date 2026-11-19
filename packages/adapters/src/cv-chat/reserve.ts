@@ -11,7 +11,7 @@ import { measureProfileAgentSpend } from "../profile-agent/measure";
  *     si pasa, insertar una fila de reserva; commit;
  *  2. la llamada al modelo va afuera de la transacción;
  *  3. otra transacción corta borra la reserva. La fila real la registra el cliente LLM.
- * Si el proceso muere, la reserva queda, pero los topes solo cuentan las de los últimos 2 minutos.
+ * Si el proceso muere, la reserva queda, pero los topes solo cuentan las vigentes (`CV_RESERVE_TTL_MS`).
  *
  * Las filas `cv_reserve` y `cv_start` no suman USD: la reserva lleva `cost_usd` null y su estimado en
  * `tokens_out`, en millonésimas de USD; `cv_start` cuesta 0. `spend.ts` además las deja afuera de las
@@ -20,7 +20,8 @@ import { measureProfileAgentSpend } from "../profile-agent/measure";
 export const CV_RESERVE_TASK = "cv_reserve";
 /** Cada `start` queda anotado (costo 0) para sostener el tope de charlas nuevas por día. */
 export const CV_START_TASK = "cv_start";
-export const CV_RESERVE_TTL_MS = 2 * 60 * 1000;
+/** Más que el modelo primario y el de respaldo juntos (90 s cada uno), con margen. */
+export const CV_RESERVE_TTL_MS = 210 * 1000;
 export const CV_RESERVE_LOCK_NAMESPACE = 26;
 const MICRO_USD = 1_000_000;
 
@@ -48,6 +49,8 @@ export type CvChatMeasures = {
   startsToday: number;
   /** Turnos de entrevista (llamadas al modelo) de la persona en la ventana mensual: reales más reservados. */
   interviewTurnsThisMonth: number;
+  /** Turnos de entrevista de esta charla: reales más reservados. No depende del ticket. */
+  interviewTurnsInConversation: number;
 };
 
 const CV_TASKS = ["cv_interview", "cv_write"];
@@ -86,6 +89,7 @@ export async function measureCvChat(
       usd: sql<number>`coalesce(sum(${billedUsd(c)}), 0)::float8`,
       writes: sql<number>`count(*) filter (where ${c.task} = 'cv_write' and ${attempted(c)})::int`,
       okWrites: sql<number>`count(*) filter (where ${c.task} = 'cv_write' and ${c.ok} = true)::int`,
+      interviews: sql<number>`count(*) filter (where ${c.task} = 'cv_interview' and ${attempted(c)})::int`,
     })
     .from(c)
     .where(and(eq(c.userId, input.userId), eq(c.label, input.label)));
@@ -145,6 +149,8 @@ export async function measureCvChat(
     startsToday: mine?.starts ?? 0,
     interviewTurnsThisMonth:
       (turnsMonth?.n ?? 0) + mineLive.filter((r) => r.step === "interview").length,
+    interviewTurnsInConversation:
+      (conv?.interviews ?? 0) + convLive.filter((r) => r.step === "interview").length,
   };
 }
 

@@ -1,5 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { UNTRUSTED_CLOSE, UNTRUSTED_NOTICE, UNTRUSTED_OPEN, wrapUntrusted } from "./untrusted";
+import {
+  UNTRUSTED_CLOSE,
+  UNTRUSTED_NOTICE,
+  UNTRUSTED_OPEN,
+  untrustedContent,
+  wrapUntrusted,
+} from "./untrusted";
+
+describe("untrustedContent", () => {
+  it("devuelve el JSON dentro del bloque no confiable", () => {
+    const out = untrustedContent({ salary: { kind: "no_normalizable", reason: "x" } });
+    expect(out.content).toHaveLength(1);
+    const text = out.content[0]!.text;
+    expect(text.startsWith(UNTRUSTED_OPEN)).toBe(true);
+    expect(text).toContain('"no_normalizable"');
+    expect(text.trimEnd().endsWith("(fin del contenido externo)")).toBe(true);
+  });
+});
 
 describe("wrapUntrusted", () => {
   it("envuelve con inicio, leyenda y fin", () => {

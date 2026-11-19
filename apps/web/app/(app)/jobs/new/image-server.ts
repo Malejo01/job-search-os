@@ -44,7 +44,7 @@ export async function extractJobImageForUser(
           lock: {
             acquire: async () => {
               const rows = (await tx.execute(
-                sql`select pg_try_advisory_xact_lock(hashtext(${`${EXTRACT_IMAGE_TASK}:${userId}`})) as ok`,
+                sql`select pg_try_advisory_xact_lock(hashtextextended(${`${EXTRACT_IMAGE_TASK}:${userId}`}, 7105)) as ok`,
               )) as unknown as { ok: boolean }[];
               return rows[0]?.ok === true;
             },

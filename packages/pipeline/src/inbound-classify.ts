@@ -1,4 +1,6 @@
 import { baseDomain, senderHost } from "./filter-leak";
+import { stripScripts, stripTags } from "./html-scan";
+import { parseFromAddress } from "./from-address";
 
 /**
  * Clasificación de un email entrante al llegar (JS-119). Pura: recibe remitente, asunto y texto,
@@ -45,12 +47,14 @@ export type ClassifyInput = {
   securityBySubjectOnly?: boolean;
 };
 
+const LINE_BREAK_TAG = /^<(?:br|\/p|\/div|\/tr|\/li|\/h\d)\s*\/?>$/i;
+/** Para clasificar alcanza con el comienzo del email. */
+const MAX_CLASSIFIED_HTML_CHARS = 512 * 1024;
+
 /** Texto visible de un HTML, para clasificar cuando el email no trae parte de texto. */
 export function htmlToText(html: string | null | undefined): string {
-  return (html ?? "")
-    .replace(/<(script|style)[\s\S]*?<\/\1>/gi, " ")
-    .replace(/<(?:br|\/p|\/div|\/tr|\/li|\/h\d)\s*\/?>/gi, "\n")
-    .replace(/<[^>]+>/g, " ")
+  const visible = stripScripts((html ?? "").slice(0, MAX_CLASSIFIED_HTML_CHARS));
+  return stripTags(visible, (tag) => (LINE_BREAK_TAG.test(tag) ? "\n" : " "))
     .replace(/&nbsp;/gi, " ")
     .replace(/&lt;/gi, "<")
     .replace(/&gt;/gi, ">")
@@ -63,9 +67,9 @@ export function htmlToText(html: string | null | undefined): string {
     .trim();
 }
 
-/** Dirección del remitente en minúsculas, con o sin nombre visible. */
+/** Dirección del remitente en minúsculas, con o sin nombre visible; vacía si no se puede leer. */
 function senderAddr(from: string): string {
-  return (/<([^>]+)>/.exec(from)?.[1] ?? from).trim().toLowerCase();
+  return parseFromAddress(from) ?? "";
 }
 
 /** Valores de `inbound_emails.parser` de la clasificación al llegar (nombre único, JS-119). */
@@ -183,7 +187,7 @@ function hasGmailConfirmSignal(text: string | null | undefined, html?: string | 
 }
 
 export function classifyInbound(input: ClassifyInput): InboundClassification {
-  const subject = (input.subject ?? "").trim();
+  const subject = (input.subject ?? "").slice(0, MAX_SUBJECT_CHARS).trim();
   const text = input.text ?? null;
   const addr = senderAddr(input.from);
   const normal: InboundClassification = { category: "normal", application: null };
@@ -255,19 +259,45 @@ export function gmailForwardRequester(
   html: string | null | undefined,
   subject?: string | null | undefined,
 ): string | null {
-  const re =
-    /([A-Z0-9._%+-]+@[A-Z0-9-]+(?:\.[A-Z0-9-]+)*\.[A-Z]{2,})\s*\)?\s+(?:has requested|ha solicitado|solicit[oó])/i;
   for (const source of [text ?? "", htmlToText(html)]) {
-    const m = re.exec(source);
-    if (m) return m[1]!.toLowerCase();
+    const account = requesterBefore(source.slice(0, MAX_REQUESTER_TEXT));
+    if (account) return account;
   }
   if (subject) {
     const subjectRe =
-      /(?:receive mail from|recibir correos? de)\s+([A-Z0-9._%+-]+@[A-Z0-9-]+(?:\.[A-Z0-9-]+)*\.[A-Z]{2,})/i;
-    const m = subjectRe.exec(subject);
+      /(?:receive mail from|recibir correos? de)\s{1,10}([A-Z0-9._%+-]{1,64}@[A-Z0-9-]{1,63}(?:\.[A-Z0-9-]{1,63}){0,8}\.[A-Z]{2,24})/i;
+    const m = subjectRe.exec(subject.slice(0, MAX_SUBJECT_CHARS));
     if (m) return m[1]!.toLowerCase();
   }
   return null;
+}
+
+const MAX_REQUESTER_TEXT = 64 * 1024;
+const MAX_SUBJECT_CHARS = 1_000;
+const MAX_LOCAL_PART = 64;
+const LOCAL_PART_CHAR = /[A-Z0-9._%+-]/i;
+const REQUESTER_DOMAIN =
+  /([A-Z0-9-]{1,63}(?:\.[A-Z0-9-]{1,63}){0,8}\.[A-Z]{2,24})\s{0,10}\)?\s{1,10}(?:has requested|ha solicitado|solicit[oó])/iy;
+
+/** Primera cuenta seguida del pedido de reenvío. Parte de cada `@` y mira un tramo acotado a cada lado. */
+function requesterBefore(source: string): string | null {
+  for (let at = source.indexOf("@"); at >= 0; at = source.indexOf("@", at + 1)) {
+    let start = at;
+    while (start > 0 && at - start < MAX_LOCAL_PART && LOCAL_PART_CHAR.test(source[start - 1]!)) {
+      start -= 1;
+    }
+    if (start === at) continue;
+    REQUESTER_DOMAIN.lastIndex = at + 1;
+    const domain = REQUESTER_DOMAIN.exec(source);
+    if (domain) return `${source.slice(start, at)}@${domain[1]}`.toLowerCase();
+  }
+  return null;
+}
+
+function withoutTrailingPunctuation(link: string): string {
+  let end = link.length;
+  while (end > 0 && ".,;".includes(link[end - 1]!)) end -= 1;
+  return link.slice(0, end);
 }
 
 /** Únicos hosts a los que puede apuntar el link de confirmación. */
@@ -288,7 +318,7 @@ export function gmailConfirmLink(
   const candidates = [text ?? "", (html ?? "").replace(/&amp;/gi, "&")];
   for (const source of candidates) {
     for (const m of source.matchAll(/https:\/\/[^\s"'<>)\]]+/gi)) {
-      const link = m[0].replace(/[.,;]+$/, "");
+      const link = withoutTrailingPunctuation(m[0]);
       const authority = link.slice("https://".length).split(/[/?#]/, 1)[0] ?? "";
       if (authority.includes("@") || authority.includes(":")) continue;
       if (!GMAIL_LINK_HOSTS.has(authority.toLowerCase())) continue;

@@ -2,7 +2,7 @@
 
 Voces Jóvenes es un **evento con 10 proyectos** (no una charla); AfinIAJobs aparece en la premiación y **no usa diapositivas**: se muestra el producto y un video de menos de 3 minutos. La gente pide acceso escaneando un código QR que lleva a la página «Pedir acceso». **[A CONFIRMAR: dónde se muestra el QR en el evento, ya que no hay diapositivas.]** Esta carpeta tiene los dos códigos, cuál usar y qué hacer si algo falla. La lista del día (antes, durante y después) está en [`checklist-evento.md`](./checklist-evento.md).
 
-> **Recordatorio para el evento:** el cupo es limitado (15 a 20 personas; las becas y los combos están en `docs/beta/runbook-apertura.md`, «Decisiones del 5/11») y Mauro, con los criterios de Ani, elige a quién invitar desde el 12/11. Lo dice la propia página al pedir acceso.
+> **Recordatorio para el evento:** el cupo es limitado (15 a 20 personas; las becas y los combos están en `docs/beta/runbook-apertura.md`, «Decisiones del 5/11») y Admin, con los criterios de tester A, elige a quién invitar desde el 12/11. Lo dice la propia página al pedir acceso.
 
 ## Los archivos
 
@@ -19,10 +19,10 @@ Voces Jóvenes es un **evento con 10 proyectos** (no una charla); AfinIAJobs apa
 
 La decisión depende de una sola cosa: **¿el dominio nuevo (`afiniajobs.com.ar`) está conectado y probado antes de imprimir el QR o de mostrarlo en pantalla?** Desde el 6/11 `SITE_URL` apunta a `afiniajobs.com.ar` y Vercel redirige el dominio viejo al nuevo (`docs/DEPLOY.md`, «Pasar a afiniajobs.com.ar»); falta la prueba con dos celulares.
 
-1. **Fecha límite: lunes 9/11.** Ese día Mauro prueba el dominio nuevo con **dos celulares** (ver más abajo).
+1. **Fecha límite: lunes 9/11.** Ese día Admin prueba el dominio nuevo con **dos celulares** (ver más abajo).
 2. **Si el dominio nuevo carga bien en los dos celulares → usá `qr-afiniajobs`.** Tené también el QR de respaldo a mano (ver «Si el día del evento la página no carga»).
 3. **Si no está listo o falla cualquier prueba → usá `qr-respaldo`.** No esperes: un QR que no abre es peor que uno con el nombre viejo.
-4. **El QR de respaldo sigue sirviendo si el dominio cambia después.** Cuando Mauro conecta el dominio nuevo, el viejo redirige solo (la redirección está en Vercel › Domains; comprobá en la prueba con dos celulares que conserva la ruta y el `?origen=voces-jovenes`). Por eso, si hay duda, el respaldo es la opción segura. Lo que **no** conviene es imprimir el QR nuevo antes de comprobar que el dominio nuevo funciona.
+4. **El QR de respaldo sigue sirviendo si el dominio cambia después.** Cuando Admin conecta el dominio nuevo, el viejo redirige solo (la redirección está en Vercel › Domains; comprobá en la prueba con dos celulares que conserva la ruta y el `?origen=voces-jovenes`). Por eso, si hay duda, el respaldo es la opción segura. Lo que **no** conviene es imprimir el QR nuevo antes de comprobar que el dominio nuevo funciona.
 5. **Escribí la dirección corta debajo del QR**, para quien no pueda escanear: `afiniajobs.com.ar/acceso` (o `busquedalaboral.malejo.com.ar/acceso`). Quien la escribe a mano no trae el `?origen`: pedile que en «Cómo te enteraste» ponga «Voces Jóvenes».
 
 ## Cómo probarlo con dos celulares
@@ -34,19 +34,19 @@ Hacelo la semana del 2 al 9/11 con el QR que pensás usar, y otra vez el 10/11 c
 3. Completá el formulario con datos de prueba (nombre «PRUEBA Voces», un email tuyo, una carrera) y tocá **«Pedir acceso»**. Tiene que aparecer: «Listo, te anotamos. La beta abre el jueves 26/11 y el cupo es limitado: si hay lugar, te escribimos con el link para crear tu cuenta.»
 4. **Celular B (con datos móviles, sin wifi):** repetí los pasos 1 a 3, con otro email. Así comprobás que la página abre desde afuera de tu red.
 5. **Probá con los dos a la vez** desde la misma pantalla, como pasará en la sala.
-6. En la compu, entrá al panel de la lista de espera (`/settings/invitations`, con la cuenta de Mauro) y fijate que aparecen las dos pruebas, con «Voces Jóvenes» como origen.
+6. En la compu, entrá al panel de la lista de espera (`/settings/invitations`, con la cuenta de Admin) y fijate que aparecen las dos pruebas, con «Voces Jóvenes» como origen.
 7. **Probá también al revés:** escribí a mano la dirección corta en un celular. Tiene que abrir igual (sin el origen).
 8. **Anotá qué celulares usaste** (marca y si era Android o iPhone). Si alguno no escanea, probá subiendo el brillo de la pantalla y agrandando el QR.
-9. Las anotaciones de prueba quedan en la lista. Poné «PRUEBA» en el nombre para no invitarlas por error. Si querés borrarlas, lo hace Mauro desde la base con un borrado puntual, revisado antes.
+9. Las anotaciones de prueba quedan en la lista. Poné «PRUEBA» en el nombre para no invitarlas por error. Si querés borrarlas, lo hace Admin desde la base con un borrado puntual, revisado antes.
 
 ## Si el día del evento la página no carga
 
 1. **Primero, calmar a la sala:** «Anótense en un rato desde su casa, les dejamos el enlace.» No pasa nada por perder 5 minutos.
 2. **Mirá si es un problema de la sala o de la página:** probá la dirección desde tu celular con datos móviles. Si carga ahí, el problema es el wifi del lugar: pedí que usen los datos de sus celulares.
 3. **Cambiá al otro QR.** Tené los dos listos en el evento (el principal a la vista y el otro a mano, sin mostrarlo). Si falló el dominio nuevo, mostrá el de respaldo, y al revés.
-4. **Mirá el estado de la app:** `https://<dominio>/api/health` tiene que responder `{"ok":true,"db":"ok"}`. Si no responde, Mauro sigue `docs/beta/runbook-apertura.md`, sección 3.2 («Un deploy roto»).
+4. **Mirá el estado de la app:** `https://<dominio>/api/health` tiene que responder `{"ok":true,"db":"ok"}`. Si no responde, Admin sigue `docs/beta/runbook-apertura.md`, sección 3.2 («Un deploy roto»).
 5. **Si dice «Recibimos muchos pedidos desde tu conexión. Probá de nuevo en un rato.»:** es el freno de seguridad de la lista (40 anotaciones por hora desde el mismo wifi, 60 cada 10 minutos entre todos, 600 por día). Pedí que usen datos móviles; para más adelante, ver «Topes» en el checklist.
-6. **Plan B en papel:** una hoja con columnas Nombre · Email · Carrera para quien no pueda pedir acceso. **El panel no permite cargar personas a mano**, así que después Mauro les manda el enlace por email o WhatsApp para que lo pidan ellas mismas. Avisales que esa persona tiene el pedido hecho recién cuando toca «Pedir acceso» en la página.
+6. **Plan B en papel:** una hoja con columnas Nombre · Email · Carrera para quien no pueda pedir acceso. **El panel no permite cargar personas a mano**, así que después Admin les manda el enlace por email o WhatsApp para que lo pidan ellas mismas. Avisales que esa persona tiene el pedido hecho recién cuando toca «Pedir acceso» en la página.
 7. **No inventes disculpas largas ni prometas lugar.** Lo único que se promete es que, si hay lugar, se les escribe.
 
 ## Cómo se generaron (por si hay que rehacerlos)

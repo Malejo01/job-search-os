@@ -21,6 +21,7 @@ infra/**
 .gitattributes
 .gitmodules
 .gitguardian.yaml
+.gitleaks*
 .nvmrc
 .prettierignore
 .env.example
@@ -53,6 +54,34 @@ apps/web/lib/applicant.ts
 apps/web/lib/ingest-manual.ts
 packages/adapters/src/auth/**
 packages/adapters/src/admin/**
+apps/web/lib/admin-guard.ts
+apps/web/lib/admin-routes.ts
+apps/web/lib/route-access.ts
+apps/web/lib/assistant.ts
+apps/web/lib/cv-coach/access.ts
+apps/web/lib/profile-agent/access.ts
+apps/web/lib/user-plan.ts
+apps/web/lib/llm-service.ts
+apps/web/lib/setup.ts
+apps/web/lib/pool-reassign.ts
+apps/web/lib/evaluate-now.ts
+packages/adapters/src/cv-coach/review/sign.ts
+
+# Server actions fuera de actions.ts (un test exige que todo archivo con "use server" esté en esta lista)
+apps/web/app/**/*-action.ts
+apps/web/lib/guide-actions.ts
+apps/web/app/(app)/hoy/page.tsx
+apps/web/app/(app)/jobs/first-steps.tsx
+apps/web/app/(app)/jobs/role-nudge.tsx
+apps/web/app/(auth)/forgot-password/page.tsx
+apps/web/app/(auth)/login/page.tsx
+apps/web/app/(auth)/register/page.tsx
+apps/web/app/(auth)/reset-password/page.tsx
+apps/web/app/(auth)/setup/page.tsx
+apps/web/app/components/email-nudge.tsx
+apps/web/app/onboarding/layout.tsx
+apps/web/app/onboarding/skills/page.tsx
+apps/web/app/terminos-actualizados/page.tsx
 
 # Prompts, evaluador y evals (los evals del CI son pagos)
 packages/prompts/**
@@ -81,6 +110,7 @@ apps/web/lib/cv-file.ts
 
 # Rutas de API, webhooks, ingesta de email, crons y MCP (bordes con secreto propio)
 apps/web/app/api/**
+apps/web/app/**/route.ts
 packages/adapters/src/inbound/**
 packages/adapters/src/email/**
 packages/adapters/src/mcp/**
@@ -91,4 +121,4 @@ pnpm-lock.yaml
 pnpm-workspace.yaml
 .npmrc
 apps/web/next.config.ts
-vercel.json
+**/vercel.json

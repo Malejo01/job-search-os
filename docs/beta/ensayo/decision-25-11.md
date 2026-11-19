@@ -1,6 +1,6 @@
 # Decisión del 25/11: ¿se abre la beta el jueves 26?
 
-Quién decide: Mauro, con Ani. Esto reemplaza la decisión suelta del final de `docs/beta/ensayo.md` con criterios medibles; ese doc sigue siendo la fuente del recorrido.
+Quién decide: Admin, con tester A. Esto reemplaza la decisión suelta del final de `docs/beta/ensayo.md` con criterios medibles; ese doc sigue siendo la fuente del recorrido.
 
 Los números se llenan el 24/11 a la noche y se revisan el 25/11 a la mañana. Cada uno lleva fecha y de dónde sale.
 
@@ -34,7 +34,7 @@ Hay dos tipos. Los **imprescindibles** tienen que cumplirse todos; si falla uno,
 | Los 4 imprescindibles cumplidos y al menos 4 de los 5 de calidad | **Se abre el 26/11** |
 | Imprescindibles cumplidos, pero una carrera con P0 propio o sin pool de ofertas | **Se abre sin esa carrera**: se avisa a quienes la eligieron |
 | Falla el 1, el 2, el 3 o el 4 | **Se posterga**: se fija una fecha nueva y se avisa por los canales de la lista de espera |
-| Hay duda | Se decide Mauro, y se anota el motivo en este archivo |
+| Hay duda | Se decide Admin, y se anota el motivo en este archivo |
 
 ## Después de decidir
 

@@ -1,12 +1,13 @@
 import { createDb, requireDatabaseUrl } from "@job-search-os/db";
 import {
   createLogger,
-  fetchReceivedEmail,
-  handleInboundEmail,
+  loadInboundContent,
   pgBlobStorage,
+  processInboundEvent,
   ResendAnyEventSchema,
   ResendReceivedEventSchema,
   safeDbError,
+  SVIX_INVALID_SECRET_REASON,
   verifySvix,
 } from "@job-search-os/adapters";
 import { NextResponse } from "next/server";
@@ -14,6 +15,9 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+
+/** El aviso de configuración sale una sola vez por instancia, y nunca con el valor del secreto. */
+let invalidSecretLogged = false;
 
 /**
  * Webhook de email entrante (JS-020, ADR-003). Resend (vía Svix) hace POST por cada email que
@@ -31,6 +35,15 @@ export async function POST(request: Request): Promise<NextResponse> {
     rawBody,
     process.env.RESEND_WEBHOOK_SECRET,
   );
+  if (!verdict.ok && verdict.reason === SVIX_INVALID_SECRET_REASON) {
+    if (!invalidSecretLogged) {
+      invalidSecretLogged = true;
+      createLogger({ webhook: "inbound" }).error(
+        "inbound: RESEND_WEBHOOK_SECRET con formato inválido",
+      );
+    }
+    return NextResponse.json({ error: "firma inválida" }, { status: 401 });
+  }
   if (!verdict.ok) {
     return NextResponse.json({ error: `firma inválida: ${verdict.reason}` }, { status: 401 });
   }
@@ -55,15 +68,9 @@ export async function POST(request: Request): Promise<NextResponse> {
   const { db, close } = createDb(requireDatabaseUrl({ purpose: "service" }), { max: 2 });
   try {
     const apiKey = process.env.RESEND_API_KEY;
-    let content = null;
-    if (apiKey) {
-      try {
-        content = await fetchReceivedEmail(event.data.data.email_id, apiKey);
-      } catch (e) {
-        logger.warn({ err: safeDbError(e) }, "inbound: sin cuerpo");
-      }
-    }
-    const outcome = await handleInboundEmail(event.data, content, rawBody, {
+    const fetchContent = async () =>
+      apiKey ? loadInboundContent(event.data.data.email_id, apiKey, logger) : null;
+    const outcome = await processInboundEvent(event.data, rawBody, fetchContent, {
       db,
       storage: pgBlobStorage(db),
       logger,

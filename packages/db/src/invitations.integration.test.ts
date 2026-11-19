@@ -74,12 +74,15 @@ beforeAll(async () => {
   u.password = APP_PASSWORD;
   app = postgres(u.toString(), { max: 8, prepare: false });
   await owner`insert into users (id, email) values (${CREATOR}, 'creador@ejemplo.test'), (${OTHER}, 'otro@ejemplo.test')`;
+  // Crear invitaciones exige fila en app_admins (rls/0024)
+  await owner`insert into app_admins (user_id) values (${CREATOR}), (${OTHER})`;
 }, 180_000);
 
 afterAll(async () => {
   if (owner) {
     await owner`delete from profiles where user_id in (select id from users where email like '%@invitado.test')`;
     await owner`delete from invitations where created_by_user_id in (${CREATOR}, ${OTHER})`;
+    await owner`delete from app_admins where user_id in (${CREATOR}, ${OTHER})`;
     await owner`delete from users where email like '%@invitado.test' or id in (${CREATOR}, ${OTHER})`;
   }
   await app?.end();
@@ -270,6 +273,13 @@ describe("registro por invitación (JS-091)", () => {
       } finally {
         await owner.unsafe("RESET ROLE");
       }
+      // 0001 borra la policy de alta: la vuelve a crear 0024, como en cada db:migrate
+      await owner.unsafe(
+        readFileSync(
+          join(dirname(fileURLToPath(import.meta.url)), "..", "rls", "0024_is_app_admin.sql"),
+          "utf8",
+        ),
+      );
       await createInvitation(CREATOR, "hash-sin-bypass");
       // El rol de la app lo llama sin sesión; acá se llama como dueño de la sesión y la función corre
       // con los privilegios de jso_nobypass (SECURITY DEFINER), que es lo que se prueba

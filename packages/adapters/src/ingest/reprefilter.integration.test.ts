@@ -272,7 +272,9 @@ describe("Ronda 91: re-prefiltro al cambiar el perfil", () => {
     await setProfile(A, ["remoto", "hibrido"], false);
     let res: Awaited<ReturnType<typeof reprefilterJobs>> | undefined;
     await conn.db.transaction(async (tx) => {
-      await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`reprefilter:${A}`}))`);
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtextextended(${`reprefilter:${A}`}, 7106))`,
+      );
       // otra sesión (el pool tiene 2 conexiones): no puede tomar el lock
       res = await reprefilterJobs(conn.db, A, { logger });
     });

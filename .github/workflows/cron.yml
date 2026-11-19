@@ -3,6 +3,7 @@ name: cron
 # ingesta y la evaluación se disparan desde acá cada 6 h contra los endpoints protegidos por
 # CRON_SECRET. Mismo patrón que EventBridge → HTTP del ADR-007. Falla ruidosamente: cualquier
 # respuesta que no sea 2xx con { "ok": true } marca el workflow en rojo (y GitHub avisa por mail).
+# El log de Actions es público: se imprimen solo `ok` y estados, nunca conteos ni el cuerpo.
 on:
   schedule:
     - cron: "0 */6 * * *" # UTC: 00, 06, 12, 18 → 21, 03, 09, 15 hora Argentina
@@ -17,6 +18,8 @@ on:
         type: choice
         options: [ingest, evaluate, both, market, demo, plan-notices]
 
+permissions: {}
+
 concurrency:
   group: cron
   cancel-in-progress: false
@@ -25,6 +28,7 @@ jobs:
   run:
     runs-on: ubuntu-latest
     timeout-minutes: 12
+    environment: cron
     env:
       APP_URL: ${{ vars.APP_URL }}
       CRON_SECRET: ${{ secrets.CRON_SECRET }}
@@ -41,8 +45,8 @@ jobs:
         run: |
           set -o pipefail
           body=$(curl --silent --show-error --fail-with-body --max-time 120 \
-            -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/ingest-getonboard") || { echo "::error::ingest: el endpoint no respondió 2xx"; echo "$body"; exit 1; }
-          echo "$body" | jq .
+            -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/ingest-getonboard") || { echo "::error::ingest: el endpoint no respondió 2xx"; exit 1; }
+          echo "$body" | jq -c '{ok}'
           echo "$body" | jq -e '.ok == true' > /dev/null || { echo "::error::ingest: la respuesta no trae ok:true"; exit 1; }
 
       - name: Evaluar cola
@@ -50,8 +54,8 @@ jobs:
         run: |
           set -o pipefail
           body=$(curl --silent --show-error --fail-with-body --max-time 300 \
-            -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/evaluate") || { echo "::error::evaluate: el endpoint no respondió 2xx"; echo "$body"; exit 1; }
-          echo "$body" | jq .
+            -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/evaluate") || { echo "::error::evaluate: el endpoint no respondió 2xx"; exit 1; }
+          echo "$body" | jq -c '{ok, stopped}'
           echo "$body" | jq -e '.ok == true' > /dev/null || { echo "::error::evaluate: la respuesta no trae ok:true"; exit 1; }
           if [ "$(echo "$body" | jq -r '.stopped // empty')" = "cap" ]; then
             echo "::warning::evaluate: el worker se frenó por LLM_DAILY_CAP_USD; quedan mensajes pending"
@@ -59,10 +63,10 @@ jobs:
           failed=$(echo "$body" | jq -r '.failed // 0')
           retried=$(echo "$body" | jq -r '.retried // 0')
           evaluated=$(echo "$body" | jq -r '.evaluated // 0')
-          if [ "$failed" != "0" ]; then echo "::warning::evaluate: $failed evaluaciones fallaron (ver errors en la salida)"; fi
+          if [ "$failed" != "0" ]; then echo "::warning::evaluate: hubo evaluaciones fallidas (ver /settings/salud)"; fi
           # Ruidoso: si tomó mensajes y no evaluó ninguno, algo está roto (prompt, modelo, key), no es mala suerte
           if [ "$evaluated" = "0" ] && [ $((failed + retried)) -gt 0 ]; then
-            echo "::error::evaluate: 0 evaluadas y $((failed + retried)) con error; primer error: $(echo "$body" | jq -r '.errors[0].error // "?"')"
+            echo "::error::evaluate: ninguna evaluación terminó bien (ver los logs de Vercel)"
             exit 1
           fi
 
@@ -70,8 +74,8 @@ jobs:
         if: env.STEP == 'market'
         run: |
           set -o pipefail
-          body=$(curl --silent --show-error --fail-with-body --max-time 120             -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/market") || { echo "::error::market: el endpoint no respondió 2xx"; echo "$body"; exit 1; }
-          echo "$body" | jq .
+          body=$(curl --silent --show-error --fail-with-body --max-time 120             -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/market") || { echo "::error::market: el endpoint no respondió 2xx"; exit 1; }
+          echo "$body" | jq -c '{ok}'
           echo "$body" | jq -e '.ok == true' > /dev/null || { echo "::error::market: la respuesta no trae ok:true"; exit 1; }
 
       # Demo guiada (ronda 74, #115): 3 perfiles inventados evaluados con el evaluador de producción.
@@ -81,8 +85,8 @@ jobs:
         run: |
           set -o pipefail
           body=$(curl --silent --show-error --fail-with-body --max-time 300 \
-            -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/demo") || { echo "::error::demo: el endpoint no respondió 2xx"; echo "$body"; exit 1; }
-          echo "$body" | jq .
+            -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/demo") || { echo "::error::demo: el endpoint no respondió 2xx"; exit 1; }
+          echo "$body" | jq -c '{ok, stopped}'
           echo "$body" | jq -e '.ok == true' > /dev/null || { echo "::error::demo: la respuesta no trae ok:true"; exit 1; }
           case "$(echo "$body" | jq -r '.stopped // empty')" in
             cap) echo "::warning::demo: frenada por el tope semanal de USD 1; faltan evaluaciones hasta que pase la ventana" ;;
@@ -92,22 +96,21 @@ jobs:
           esac
           skipped=$(echo "$body" | jq -r '.skipped // 0')
           evaluated=$(echo "$body" | jq -r '.evaluated // 0')
-          if [ "$skipped" != "0" ]; then echo "::warning::demo: $skipped evaluaciones fallaron"; fi
+          if [ "$skipped" != "0" ]; then echo "::warning::demo: hubo evaluaciones fallidas"; fi
           if [ "$evaluated" = "0" ] && [ "$skipped" != "0" ]; then
-            echo "::error::demo: 0 evaluadas y $skipped con error (prompt, modelo o key)"
+            echo "::error::demo: ninguna evaluación terminó bien (prompt, modelo o key)"
             exit 1
           fi
 
       # Aviso por email a quien le quedan 3 días de plan (C4-1). Un solo email por persona y por
       # vencimiento, con tope diario; si faltan RESEND_API_KEY o EMAIL_FROM en Vercel no manda nada.
-      # La respuesta trae solo conteos: ni emails ni nombres llegan a este log.
       - name: Aviso de planes por vencer
         if: env.STEP == 'plan-notices'
         run: |
           set -o pipefail
           body=$(curl --silent --show-error --fail-with-body --max-time 120 \
-            -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/plan-notices") || { echo "::error::plan-notices: el endpoint no respondió 2xx"; echo "$body"; exit 1; }
-          echo "$body" | jq .
+            -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/plan-notices") || { echo "::error::plan-notices: el endpoint no respondió 2xx"; exit 1; }
+          echo "$body" | jq -c '{ok, skipped}'
           echo "$body" | jq -e '.ok == true' > /dev/null || { echo "::error::plan-notices: la respuesta no trae ok:true"; exit 1; }
           case "$(echo "$body" | jq -r '.skipped // empty')" in
             sin_resend) echo "::warning::plan-notices: faltan RESEND_API_KEY o EMAIL_FROM en Vercel; no se mandó ningún aviso" ;;
@@ -115,4 +118,4 @@ jobs:
             tope_diario) echo "::warning::plan-notices: tope diario alcanzado; los que falten se avisan mañana" ;;
           esac
           failed=$(echo "$body" | jq -r '.failed // 0')
-          if [ "$failed" != "0" ]; then echo "::warning::plan-notices: $failed avisos no se pudieron mandar; se reintentan mañana"; fi
+          if [ "$failed" != "0" ]; then echo "::warning::plan-notices: hubo avisos que no se pudieron mandar; se reintentan mañana"; fi

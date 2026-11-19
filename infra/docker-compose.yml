@@ -1,5 +1,6 @@
 # Entorno local: Postgres 16 + pgvector. LocalStack (S3, SQS) queda comentado hasta fase 3.
 # Uso: pnpm db:up · pnpm db:down · pnpm db:reset (borra datos) · pnpm db:psql
+# Contraseñas: en infra/.env (ignorado por git). Ver «Docker» en docs/TESTING_STRATEGY.md.
 name: job-search-os
 
 services:
@@ -7,10 +8,12 @@ services:
     image: pgvector/pgvector:pg16
     container_name: jso-postgres
     restart: unless-stopped
-    ports: ["54322:5432"]
+    # Solo en loopback: la base no queda accesible desde otras máquinas de la red
+    ports: ["127.0.0.1:54322:5432"]
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      # El valor por defecto es solo para el CI y las bases descartables
+      POSTGRES_PASSWORD: ${JSO_LOCAL_DB_PASSWORD:-postgres}
       POSTGRES_DB: jobsearch
     volumes: [pgdata:/var/lib/postgresql/data]
     healthcheck:
@@ -19,11 +22,30 @@ services:
       timeout: 5s
       retries: 10
 
+  # Copia de datos para análisis, separada de la base de desarrollo. Solo arranca con
+  # `docker compose --profile snapshot`, y sin contraseña definida el contenedor no inicia.
+  snapshot:
+    image: pgvector/pgvector:pg16
+    container_name: jso-snapshot
+    profiles: [snapshot]
+    restart: unless-stopped
+    ports: ["127.0.0.1:54323:5432"]
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${JSO_SNAPSHOT_DB_PASSWORD:-}
+      POSTGRES_DB: jobsearch_snapshot
+    volumes: [snapshotdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d jobsearch_snapshot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   # se habilita en fase 3, ver docs/AWS_MIGRATION_PLAN.md (tests de adapters S3/SQS)
   # localstack:
   #   image: localstack/localstack:3
   #   container_name: jso-localstack
-  #   ports: ["4566:4566"]
+  #   ports: ["127.0.0.1:4566:4566"]
   #   environment:
   #     SERVICES: s3,sqs
   #   healthcheck:
@@ -34,3 +56,4 @@ services:
 
 volumes:
   pgdata:
+  snapshotdata:

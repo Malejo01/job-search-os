@@ -91,7 +91,9 @@ export async function assignPoolToUser(
   const now = opts.now?.() ?? new Date();
 
   const result = await db.transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`pool-assign:${userId}`}))`);
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtextextended(${`pool-assign:${userId}`}, 7104))`,
+    );
 
     // 1. Criterios: sin criterios no hay prefiltro posible, no se borra ni se asigna nada
     const rules = await loadActiveRules(tx, userId);

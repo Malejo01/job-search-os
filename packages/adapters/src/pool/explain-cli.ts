@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { basename, resolve } from "node:path";
-import { createDb, LOCAL_DATABASE_URL } from "@job-search-os/db";
+import { createDb, localDatabaseUrl } from "@job-search-os/db";
 import { safeDbError } from "../logging/safe-error";
 import {
   explainDatabaseUrl,
@@ -22,7 +22,7 @@ import {
  * (guardado contra recalculado, y a qué se traduce la clave anterior): sin títulos.
  * Muestra qué ofertas elegiría hoy la asignación inicial y por qué. Se conecta SOLO a la base local
  * de Docker (`jobsearch_snapshot` por defecto, `jobsearch` con `--db dev`), armada desde
- * LOCAL_DATABASE_URL; ignora DATABASE_URL y cualquier otra variable, y aborta ante un host que no
+ * localDatabaseUrl(); ignora DATABASE_URL y las demás variables de base, y aborta ante un host que no
  * sea localhost. La sesión corre en una transacción READ ONLY. No usa la cola, el worker ni el LLM.
  */
 async function main(): Promise<void> {
@@ -34,7 +34,7 @@ async function main(): Promise<void> {
   }
   const { args } = parsed;
 
-  const target = explainDatabaseUrl(LOCAL_DATABASE_URL, args.db);
+  const target = explainDatabaseUrl(localDatabaseUrl(), args.db);
   if (!target.ok) {
     console.error(target.error);
     process.exitCode = 1;
