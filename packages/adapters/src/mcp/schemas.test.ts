@@ -1,4 +1,10 @@
-import { MAX_JD_INPUT_CHARS, type JobEvent } from "@job-search-os/pipeline";
+import {
+  MAX_ANSWER_CHARS,
+  MAX_ANSWER_QUERY_CHARS,
+  MAX_ANSWER_QUESTION_CHARS,
+  MAX_JD_INPUT_CHARS,
+  type JobEvent,
+} from "@job-search-os/pipeline";
 import { describe, expect, it } from "vitest";
 import * as schemas from "./schemas";
 
@@ -45,6 +51,64 @@ describe("esquemas MCP", () => {
       schemas.addJobInput.safeParse({ title: "Dev", company: "Empresa A", modality: "luna" })
         .success,
     ).toBe(false);
+  });
+
+  it("las respuestas tienen el mismo tope por campo que las acciones web", () => {
+    const q = "q".repeat(MAX_ANSWER_QUESTION_CHARS);
+    const a = "a".repeat(MAX_ANSWER_CHARS);
+    const okSave = { question: q, answer: a, lang: "es" };
+    expect(schemas.saveAnswerInput.safeParse(okSave).success).toBe(true);
+    expect(schemas.saveAnswerInput.safeParse({ ...okSave, question: q + "x" }).success).toBe(false);
+    expect(schemas.saveAnswerInput.safeParse({ ...okSave, answer: a + "x" }).success).toBe(false);
+    const okForm = { job_id: UUID, qa: [{ question: q, answer: a }] };
+    expect(schemas.saveApplicationAnswersInput.safeParse(okForm).success).toBe(true);
+    expect(
+      schemas.saveApplicationAnswersInput.safeParse({
+        job_id: UUID,
+        qa: [{ question: q + "x", answer: "a" }],
+      }).success,
+    ).toBe(false);
+    expect(
+      schemas.saveApplicationAnswersInput.safeParse({
+        job_id: UUID,
+        qa: [{ question: "q", answer: a + "x" }],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("la búsqueda en el banco tiene tope de largo", () => {
+    expect(
+      schemas.listAnswersInput.safeParse({ query: "x".repeat(MAX_ANSWER_QUERY_CHARS) }).success,
+    ).toBe(true);
+    expect(
+      schemas.listAnswersInput.safeParse({ query: "x".repeat(MAX_ANSWER_QUERY_CHARS + 1) }).success,
+    ).toBe(false);
+  });
+
+  it("ningún campo de texto del MCP queda sin tope", () => {
+    type Field = {
+      constructor: { name: string };
+      unwrap?: () => Field;
+      safeParse: (v: unknown) => { success: boolean };
+    };
+    const unbounded: string[] = [];
+    const inspect = (label: string, field: Field) => {
+      const inner = field.unwrap ? field.unwrap() : field;
+      if (inner.constructor.name === "ZodArray") return;
+      if (inner.constructor.name === "ZodString" && inner.safeParse("x".repeat(70_000)).success) {
+        unbounded.push(label);
+      }
+    };
+    for (const [name, value] of Object.entries(schemas)) {
+      if (!("shape" in value)) continue;
+      for (const [key, field] of Object.entries(
+        (value as { shape: Record<string, Field> }).shape,
+      )) {
+        inspect(`${name}.${key}`, field);
+      }
+    }
+    // Los textos dentro de qa se prueban arriba, uno por uno
+    expect(unbounded).toEqual([]);
   });
 
   it("ningún esquema acepta userId ni user_id", () => {

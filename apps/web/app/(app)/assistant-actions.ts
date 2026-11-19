@@ -59,7 +59,7 @@ export async function assistantChangeStatusAction(
 
 export type AssistantCreateJobResult =
   | { ok: true; jobId: string; action: string }
-  | { ok: false; code: "campos" | "url" | "larga" | "ingesta" | "sesion" };
+  | { ok: false; code: "campos" | "url" | "larga" | "ingesta" | "cuota" | "sesion" };
 
 export async function assistantCreateJobAction(
   formData: FormData,

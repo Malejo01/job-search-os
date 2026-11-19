@@ -3,6 +3,7 @@ import {
   createPgQueue,
   enqueueEvaluationWith,
   normalizePastedJd,
+  reservePersonQuota,
 } from "@job-search-os/adapters";
 import { schema as s } from "@job-search-os/db";
 import { MAX_JD_INPUT_CHARS } from "@job-search-os/pipeline";
@@ -91,15 +92,20 @@ export async function attachJd(userId: string, jobId: string, text: string): Pro
   if (normalizePastedJd(text).length < MIN_JD_CHARS) throw new JdTooShortError();
   // S-2: el crudo también se guarda en raw_blobs; sin tope, un pegado enorme llena la base
   if (text.length > MAX_JD_INPUT_CHARS) throw new JdTooLongError();
-  await withUser(userId, (tx) =>
-    attachJdText(tx, {
+  await withUser(userId, async (tx) => {
+    // Cuota de espacio por persona, decidida con un lock dentro de esta misma transacción
+    await reservePersonQuota(tx, userId, {
+      newManualJobs: 0,
+      incomingBytes: Buffer.byteLength(text, "utf8"),
+    });
+    await attachJdText(tx, {
       userId,
       jobId,
       text,
       // Cola con RLS: job_queue.user_id = auth.uid(); el worker (rol dueño) la toma después
       enqueueEvaluation: enqueueEvaluationWith(tx, createPgQueue(tx)),
-    }),
-  );
+    });
+  });
 }
 
 /** Texto para Claude in Chrome: extraer la JD completa del aviso abierto. */

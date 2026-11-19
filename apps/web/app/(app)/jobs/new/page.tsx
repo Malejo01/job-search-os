@@ -63,11 +63,13 @@ export default async function NewJobPage({
               ? "La URL tiene que empezar con http:// o https:// y ser una dirección pública."
               : error === "larga"
                 ? "Algún campo es demasiado largo: pegá solo el aviso, sin el resto de la página."
-                : error === "imagen_sin_seleccion"
-                  ? "No tildaste ninguna oferta. Subí la imagen de nuevo y elegí cuáles cargar."
-                  : error === "imagen_parcial"
-                    ? `Se cargaron ${cargadas} ofertas; las otras que elegiste no se pudieron cargar (revisá que tengan título y empresa). Las cargadas están en Ofertas.`
-                    : "No se pudo cargar la oferta. Probá de nuevo."}
+                : error === "cuota"
+                  ? "Llegaste al máximo de ofertas cargadas a mano. Borrá las que ya no uses."
+                  : error === "imagen_sin_seleccion"
+                    ? "No tildaste ninguna oferta. Subí la imagen de nuevo y elegí cuáles cargar."
+                    : error === "imagen_parcial"
+                      ? `Se cargaron ${cargadas} ofertas; las otras que elegiste no se pudieron cargar (revisá que tengan título y empresa). Las cargadas están en Ofertas.`
+                      : "No se pudo cargar la oferta. Probá de nuevo."}
         </Alert>
       ) : null}
       {pegar ? (

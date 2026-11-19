@@ -8,6 +8,7 @@ export * from "./llm/assistant-reserve";
 export * from "./sources/getonboard";
 export * from "./ingest/ingest-job";
 export * from "./ingest/attach-jd";
+export * from "./quota/person-quota";
 export * from "./ingest/merge-duplicate";
 export * from "./ingest/reprefilter";
 export * from "./ingest/run-getonboard";

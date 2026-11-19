@@ -34,6 +34,8 @@ const STEPS: Array<[string, string]> = [
 const ERRORS: Record<string, string> = {
   corta: "La descripción es muy corta (mínimo 200 caracteres): pegá el aviso completo.",
   larga: "La descripción es demasiado larga: pegá solo el aviso, sin el resto de la página.",
+  cuota:
+    "Llegaste al máximo de espacio para avisos guardados. Borrá ofertas viejas y probá de nuevo.",
   oferta: "Oferta inexistente.",
 };
 

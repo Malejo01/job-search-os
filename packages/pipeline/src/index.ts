@@ -1,5 +1,6 @@
 // packages/pipeline: funciones puras. No importa db ni adapters, no hace I/O.
 export * from "./result";
+export * from "./quota";
 export * from "./normalize";
 export * from "./evaluation";
 export * from "./decide";
