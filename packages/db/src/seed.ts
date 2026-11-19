@@ -11,6 +11,7 @@ import routingSeed from "../seeds/model_routing.json";
 // mover la constante a @job-search-os/pipeline y re-exportarla.
 import { TERMS_VERSION } from "../../../apps/web/lib/terms";
 import { hashPassword } from "./password";
+import { seedInboundAddress } from "./seed-inbound";
 import skillsSeed from "../seeds/skills.json";
 import learningResourcesSeed from "../seeds/learning_resources.json";
 import { createDb, type Db } from "./client";
@@ -312,17 +313,19 @@ async function seedUser(db: Db, userId: string): Promise<void> {
       "SEED_USER_PASSWORD no definida: el usuario queda sin contraseña nueva (no puede entrar hasta cargarla)",
     );
   }
+  const [currentProfile] = await db
+    .select({ address: s.profiles.inboundAddress })
+    .from(s.profiles)
+    .where(eq(s.profiles.userId, userId))
+    .limit(1);
+  const inboundAddress = seedInboundAddress(currentProfile?.address, ingestDomain);
   await db
     .insert(s.profiles)
-    .values({
-      userId,
-      inboundAddress: `u_${userId.slice(0, 8)}@${ingestDomain}`,
-      ...profileRow,
-    })
+    .values({ userId, inboundAddress, ...profileRow })
     // inbound_address también se actualiza: cambiar INGEST_DOMAIN y volver a sembrar alcanza (JS-020)
     .onConflictDoUpdate({
       target: s.profiles.userId,
-      set: { ...profileRow, inboundAddress: `u_${userId.slice(0, 8)}@${ingestDomain}` },
+      set: { ...profileRow, inboundAddress },
     });
 
   const rules = criteriaSeed as s.CriteriaRules;
