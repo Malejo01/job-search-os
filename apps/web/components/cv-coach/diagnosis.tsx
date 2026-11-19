@@ -13,6 +13,7 @@ import {
   writeProfileTicket,
   type CvCoachViewsData,
 } from "@/lib/cv-coach/storage";
+import { isInternalPath } from "@/lib/internal-path";
 
 type Notice = { message: string; links: { label: string; href: string }[] };
 type Phase =
@@ -73,8 +74,8 @@ export function CvCoachDiagnosis() {
       if (Array.isArray(data.links)) {
         setNotice({
           message: typeof data.message === "string" ? data.message : FALLBACK,
-          links: (data.links as { label: string; href: string }[]).filter(
-            (l) => typeof l.href === "string" && l.href.startsWith("/"),
+          links: (data.links as { label: string; href: string }[]).filter((l) =>
+            isInternalPath(l.href),
           ),
         });
       } else {
