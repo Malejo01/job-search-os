@@ -37,6 +37,7 @@ export * from "./billing/welcome-email";
 export * from "./applicant/context";
 export * from "./mcp/auth";
 export * from "./mcp/untrusted";
+export * from "./mcp/errors";
 export * from "./mcp/schemas";
 export * from "./auth/secret";
 export * from "./auth/reset-url";
