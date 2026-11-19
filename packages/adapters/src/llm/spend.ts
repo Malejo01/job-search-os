@@ -82,13 +82,16 @@ export function userDailyCapUsd(env: NodeJS.ProcessEnv = process.env): number {
   return n;
 }
 
-/** Con `userId` suma solo las llamadas de ese usuario; sin él, todas (tope global). */
-export async function spendSince(
+/**
+ * Consulta de la suma de gasto desde `since` (sin ejecutarla, para poder pedirle el plan). Con `userId`
+ * entra por `llm_calls_user_task`; sin él, por `llm_calls_created`.
+ */
+export function spendSinceQuery(
   db: Pick<Db, "select">,
   since: Date,
   options: { userId?: string } = {},
-): Promise<SpendSummary> {
-  const [row] = await db
+) {
+  return db
     .select({
       calls: sql<number>`count(*)::int`,
       failedCalls: sql<number>`count(*) filter (where not ${s.llmCalls.ok})::int`,
@@ -106,6 +109,15 @@ export async function spendSince(
         options.userId ? eq(s.llmCalls.userId, options.userId) : undefined,
       ),
     );
+}
+
+/** Con `userId` suma solo las llamadas de ese usuario; sin él, todas (tope global). */
+export async function spendSince(
+  db: Pick<Db, "select">,
+  since: Date,
+  options: { userId?: string } = {},
+): Promise<SpendSummary> {
+  const [row] = await spendSinceQuery(db, since, options);
   return { since, ...row! };
 }
 

@@ -755,7 +755,12 @@ export const llmCalls = pgTable("llm_calls", {
   ok: boolean("ok").notNull(),
   error: text("error"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-}, (t) => [index("llm_calls_user_task").on(t.userId, t.task, t.createdAt)]);
+}, (t) => [
+  index("llm_calls_user_task").on(t.userId, t.task, t.createdAt),
+  // Sumas de gasto de 24 h de todos (tope global) y de reservas vivas (task + ventana corta)
+  index("llm_calls_task_created").on(t.task, t.createdAt),
+  index("llm_calls_created").on(t.createdAt),
+]);
 
 // Cola de trabajo propia con SKIP LOCKED (pgmq no existe en Neon, ADR-009). Interfaz en adapters/queue.
 export const jobQueue = pgTable("job_queue", {
