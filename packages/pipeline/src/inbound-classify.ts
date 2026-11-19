@@ -50,6 +50,10 @@ export type ClassifyInput = {
 const LINE_BREAK_TAG = /^<(?:br|\/p|\/div|\/tr|\/li|\/h\d)\s*\/?>$/i;
 /** Para clasificar alcanza con el comienzo del email. */
 const MAX_CLASSIFIED_HTML_CHARS = 512 * 1024;
+const MAX_CLASSIFIED_TEXT_CHARS = 64 * 1024;
+/** Largo máximo de la línea que se prueba como encabezado de postulación. */
+const MAX_HEADING_LINE_CHARS = 500;
+const MAX_FROM_CHARS = 2_000;
 
 /** Texto visible de un HTML, para clasificar cuando el email no trae parte de texto. */
 export function htmlToText(html: string | null | undefined): string {
@@ -166,8 +170,11 @@ function titleAfterHeading(
   company: string | null,
 ): string | null {
   if (!text) return null;
+  // Una línea más larga que un encabezado real no se mira con patrones: evita el costo cuadrático
   const lines = text.split(/\r?\n/).map((l) => l.trim());
-  const i = lines.findIndex((l) => l && firstMatch(patterns, l));
+  const i = lines.findIndex(
+    (l) => l && l.length <= MAX_HEADING_LINE_CHARS && firstMatch(patterns, l),
+  );
   if (i < 0) return null;
   const next = lines.slice(i + 1).find((l) => l.length > 0);
   if (!next || next.length > 120 || /https?:\/\/|·|\|/.test(next)) return null;
@@ -188,8 +195,10 @@ function hasGmailConfirmSignal(text: string | null | undefined, html?: string | 
 
 export function classifyInbound(input: ClassifyInput): InboundClassification {
   const subject = (input.subject ?? "").slice(0, MAX_SUBJECT_CHARS).trim();
-  const text = input.text ?? null;
-  const addr = senderAddr(input.from);
+  // Para clasificar alcanza con el comienzo del cuerpo
+  const text =
+    typeof input.text === "string" ? input.text.slice(0, MAX_CLASSIFIED_TEXT_CHARS) : null;
+  const addr = senderAddr(input.from.slice(0, MAX_FROM_CHARS));
   const normal: InboundClassification = { category: "normal", application: null };
 
   // 1. Confirmación de reenvío de Gmail: antes de seguridad, porque su cuerpo trae un código.
@@ -214,7 +223,7 @@ export function classifyInbound(input: ClassifyInput): InboundClassification {
   }
 
   // 3. Postulaciones de LinkedIn: el remitente tiene que ser del dominio de LinkedIn
-  const host = senderHost(input.from);
+  const host = senderHost(input.from.slice(0, MAX_FROM_CHARS));
   if (!host || baseDomain(host) !== "linkedin.com") return normal;
 
   const viewed = firstMatch(LINKEDIN_VIEWED, subject);

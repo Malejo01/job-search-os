@@ -67,6 +67,8 @@ function lineasVisibles(html: string): string[] {
 }
 
 const MAX_LINEA_UBICACION = 500;
+/** Largo máximo del asunto que se lee para el nombre de la fuente. */
+const MAX_SUBJECT_CHARS = 1_000;
 
 /** Primer texto entre comillas angulares que no cruza una etiqueta. */
 function entreComillasAngulares(html: string): string | null {
@@ -102,7 +104,9 @@ function nombreFuente(
   subject: string | null,
   html: string,
 ): string {
-  const busqueda = /«([^»]+)»/.exec(subject ?? "")?.[1] ?? entreComillasAngulares(html);
+  const busqueda =
+    /«([^»]+)»/.exec((subject ?? "").slice(0, MAX_SUBJECT_CHARS))?.[1] ??
+    entreComillasAngulares(html);
   return busqueda ? `${formato} «${busqueda}»` : `${formato} de LinkedIn`;
 }
 

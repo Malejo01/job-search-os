@@ -117,6 +117,10 @@ export const TOO_MANY_CARDS_REASON = "el email trae demasiados avisos: cola manu
 
 const USER_DAILY_EMAIL_LIMIT = 300;
 
+/** Fila provisional que cuenta el intento mientras el email se procesa. */
+const PENDING_RAW_REF = "pending:";
+export const PROCESSING_REASON = "procesando: el email no terminó de procesarse";
+
 /** Dominio del remitente, con o sin nombre visible; null si no se puede leer. */
 function senderDomain(from: string): string | null {
   const addr = parseFromAddress(from);
@@ -153,20 +157,30 @@ async function duplicateAfterRace(
 /** Las columnas de texto de Postgres no aceptan el carácter nulo: se saca antes de usar cada campo. */
 const withoutNul = (text: string): string => text.replaceAll("\u0000", "");
 
-function cleanEvent(event: ResendReceivedEvent): ResendReceivedEvent {
+/** Topes de entrada: un encabezado real mide una fracción de esto; lo de más se recorta antes de leerlo. */
+const MAX_EVENT_FIELD_CHARS = 1_000;
+const MAX_EVENT_RECIPIENTS = 100;
+const MAX_EVENT_FROM_CHARS = 2_000;
+
+const cleanField = (text: string, max = MAX_EVENT_FIELD_CHARS): string =>
+  withoutNul(text.slice(0, max));
+const cleanRecipients = (list: readonly string[]): string[] =>
+  list.slice(0, MAX_EVENT_RECIPIENTS).map((r) => cleanField(r));
+
+export function cleanEvent(event: ResendReceivedEvent): ResendReceivedEvent {
   const { data } = event;
   return {
     ...event,
     data: {
       ...data,
-      email_id: withoutNul(data.email_id),
-      from: withoutNul(data.from),
-      to: data.to.map(withoutNul),
-      cc: data.cc.map(withoutNul),
-      bcc: data.bcc.map(withoutNul),
-      received_for: data.received_for.map(withoutNul),
-      ...(typeof data.subject === "string" ? { subject: withoutNul(data.subject) } : {}),
-      ...(data.message_id !== undefined ? { message_id: withoutNul(data.message_id) } : {}),
+      email_id: cleanField(data.email_id),
+      from: cleanField(data.from, MAX_EVENT_FROM_CHARS),
+      to: cleanRecipients(data.to),
+      cc: cleanRecipients(data.cc),
+      bcc: cleanRecipients(data.bcc),
+      received_for: cleanRecipients(data.received_for),
+      ...(typeof data.subject === "string" ? { subject: cleanField(data.subject) } : {}),
+      ...(data.message_id !== undefined ? { message_id: cleanField(data.message_id) } : {}),
     },
   };
 }
@@ -422,242 +436,280 @@ export async function handleInboundEmail(
     return { kind: "rate_limited", userId };
   }
 
-  // Un email que pasa el tope no se lee: queda solo con metadatos, como uno de remitente no esperado.
-  const emailBytes =
-    Buffer.byteLength(rawBody, "utf8") +
-    Buffer.byteLength(content?.html ?? "", "utf8") +
-    Buffer.byteLength(content?.text ?? "", "utf8");
-  const sizeMode =
-    deps.sizeMode ?? (process.env.INBOUND_SIZE_MODE?.trim() === "enforce" ? "enforce" : "log");
-  const overMeasuredLimit = emailBytes > USER_RAW_MAX_BYTES;
-  const oversize =
-    emailBytes > USER_RAW_HARD_MAX_BYTES || (overMeasuredLimit && sizeMode === "enforce");
-  if (overMeasuredLimit) {
-    log.warn({ user_id: userId, bytes: emailBytes, size_mode: sizeMode }, "inbound: email grande");
-  }
-
-  // JS-119: se clasifica antes del chequeo de remitente. Los códigos y reseteos (de cualquier
-  // remitente) se guardan como los de un remitente no esperado y con el asunto enmascarado;
-  // la confirmación de reenvío de Gmail dirigida a esta dirección se guarda completa.
-  // Remitente esperado (fuente de empleo, JS-051): ahí `seguridad` se decide solo por el asunto.
-  // Sin parte de texto se clasifica con el HTML pasado a texto.
-  const jobDomains = await db
-    .select({ domain: s.inboundSenderDomains.domain })
-    .from(s.inboundSenderDomains)
-    .where(
-      and(eq(s.inboundSenderDomains.userId, userId), eq(s.inboundSenderDomains.verdict, "empleo")),
-    );
-  const senderExpected = isExpectedSender(
-    event.data.from,
-    jobDomains.map((d) => d.domain),
-  );
-  const classification = classifyInbound({
-    from: event.data.from,
-    to: recipients,
-    subject: event.data.subject,
-    text: oversize ? null : content?.text || (content?.html ? htmlToText(content.html) : null),
-    securityBySubjectOnly: senderExpected,
-  });
-  const category = classification.category;
-  const ownAddress = profile.inboundAddress?.toLowerCase() ?? null;
-  const addressedToUser =
-    ownAddress !== null &&
-    [...event.data.to, ...event.data.received_for].some(
-      (r) => (/<([^>]+)>/.exec(r)?.[1] ?? r).trim().toLowerCase() === ownAddress,
-    );
-  const isSecurity = category === "seguridad";
-  const gmailConfirmClaimed = category === "confirmacion_reenvio_gmail" && addressedToUser;
-  // En `enforce`, un remitente esperado sin autenticación verificada se guarda pero no se procesa
-  const authHold = authRequired && (senderExpected || gmailConfirmClaimed);
-  const isGmailConfirm = gmailConfirmClaimed && !authHold;
-
-  // JS-051: red de seguridad de privacidad. Si el reenvío de Gmail manda correo personal (banco,
-  // códigos, resets de contraseña), no se guarda su contenido: completo solo lo de remitentes
-  // esperados (fuentes de empleo conocidas o dominios marcados como fuente de empleo). Del resto,
-  // solo remitente, destinatarios, asunto, fecha y el email_id (idempotencia); ni cuerpo ni
-  // nombres de adjuntos.
-  const expected = !isSecurity && !oversize && (gmailConfirmClaimed || senderExpected);
-  const authRecord = authVerdict ? { auth_verdict: authVerdict } : {};
-  // Todo lo que no se guarda completo lleva el asunto con los números enmascarados
-  const headerSubject = event.data.subject?.slice(0, MAX_STORED_HEADER_CHARS) ?? null;
-  const storedFrom = event.data.from.slice(0, MAX_STORED_HEADER_CHARS);
-  const storedSubject = expected ? headerSubject : headerSubject ? maskDigits(headerSubject) : null;
-  const rawRef = await deps.storage.put({
-    userId,
-    kind: "inbound_email",
-    contentType: "application/json",
-    body: JSON.stringify(
-      expected
-        ? { event: JSON.parse(rawBody), content, ...authRecord }
-        : {
-            event: {
-              type: event.type,
-              created_at: event.created_at,
-              data: {
-                email_id: event.data.email_id,
-                from: storedFrom,
-                to: event.data.to,
-                received_for: event.data.received_for,
-                subject: storedSubject,
-              },
-            },
-            content: null,
-            redacted: isSecurity
-              ? SECURITY_EMAIL_REASON
-              : oversize
-                ? OVERSIZE_EMAIL_REASON
-                : UNEXPECTED_SENDER_REASON,
-            ...authRecord,
-          },
-    ),
-  });
-
-  const parserName = chooseParserName(event.data.from);
-  const parser = EMAIL_PARSERS[parserName];
-  let jobsExtracted = 0;
-  let error: string | null = null;
-  let parserUsed: string | null = null;
-  let dismissedAt: Date | null = null;
-  let seen = false;
-
-  if (isSecurity) {
-    parserUsed = SECURITY_PARSER;
-    error = SECURITY_EMAIL_REASON;
-    dismissedAt = now;
-  } else if (oversize) {
-    error = OVERSIZE_EMAIL_REASON;
-  } else if (authHold) {
-    error = AUTH_UNVERIFIED_REASON;
-  } else if (isGmailConfirm) {
-    // Queda completo y pendiente: la persona tiene que abrir el link de confirmación
-    parserUsed = GMAIL_FORWARDING_PARSER;
-  } else if (!expected) {
-    error = UNEXPECTED_SENDER_REASON;
-  } else if (
-    (category === "postulacion_enviada" || category === "postulacion_vista") &&
-    classification.application
-  ) {
-    parserUsed = LINKEDIN_APPLICATION_PARSER;
-    seen = true;
-    const result = await applyLinkedinApplication(
-      db,
-      userId,
-      category === "postulacion_enviada" ? "enviada" : "vista",
-      classification.application,
-      now,
-    );
-    log.info(
-      { user_id: userId, match: result.match, action: result.action },
-      "inbound: postulacion de LinkedIn",
-    );
-  } else if (linkedinSenderKind(event.data.from) === "social") {
-    // JS-050: ruido social de LinkedIn. Se guarda (con su crudo) ya descartado, así no ensucia
-    // Pendientes ni la cola manual y se puede revisar. Si trae tarjetas de aviso, LinkedIn cambió
-    // el formato: no se ingesta ni se descarta, queda en Pendientes para revisar la regla.
-    parserUsed = LINKEDIN_SOCIAL_PARSER;
-    const cards = content?.html
-      ? parseOrManualQueue(
-          linkedinParser,
-          {
-            from: event.data.from,
-            to: recipients,
-            subject: event.data.subject ?? null,
-            html: content.html,
-            text: content.text,
-            receivedAt: now,
-          },
-          log,
-        )
-      : null;
-    if (cards?.ok && cards.jobs.length) {
-      error = `notificación social de LinkedIn con ${cards.jobs.length} tarjetas de aviso: revisar la regla de remitentes (no se cargaron)`;
-    } else {
-      dismissedAt = now;
-    }
-  } else if (!parser) {
-    error = MANUAL_QUEUE_REASON;
-  } else if (!content) {
-    error = "sin cuerpo del email (falta RESEND_API_KEY para pedirlo): cola manual";
-  } else {
-    parserUsed = parser.name;
-    const email: InboundEmailContent = {
-      from: event.data.from,
-      to: recipients,
-      subject: event.data.subject ?? null,
-      html: content.html,
-      text: content.text,
-      receivedAt: now,
-    };
-    const parsed = parseOrManualQueue(parser, email, log);
-    if (!parsed.ok) {
-      error = `estructura no reconocida (${parser.name}): ${parsed.reason}. Cola manual`;
-    } else if (parsed.jobs.length > EMAIL_MAX_CARDS) {
-      error = TOO_MANY_CARDS_REASON;
-    } else if (parsed.jobs.length) {
-      const [criteria] = await db
-        .select({ rules: s.evaluationCriteria.rules })
-        .from(s.evaluationCriteria)
-        .where(and(eq(s.evaluationCriteria.userId, userId), eq(s.evaluationCriteria.active, true)))
-        .orderBy(desc(s.evaluationCriteria.version))
-        .limit(1);
-      if (!criteria) {
-        error = "usuario sin criterios activos";
-      } else {
-        // Cada aviso extraído apunta al crudo del email (JS-024)
-        const jobs = parsed.jobs.map((j) => ({ ...j, source: { ...j.source, rawRef } }));
-        const summary = await ingestBatch(jobs, {
-          db,
-          userId,
-          rules: criteria.rules as CriteriaRules,
-          logger: log,
-          enqueueEvaluation: enqueueEvaluationWith(db),
-          now: () => now,
-          taxonomy: await loadTaxonomy(db),
-        });
-        jobsExtracted = summary.inserted + summary.merged;
-        if (summary.errors.length) error = `${summary.errors.length} avisos con error al ingestar`;
-      }
-    }
-  }
-
-  const [row] = await db
+  // El intento se cuenta antes de leer el contenido: una fila provisional ocupa cupo y marca el
+  // email_id como visto. Si el procesamiento queda colgado y la función muere, la fila queda y el
+  // reintento es un duplicado; si falla con una excepción, se borra para que el reintento lo procese.
+  const [claim] = await db
     .insert(s.inboundEmails)
     .values({
       userId,
       emailId: event.data.email_id,
-      fromAddress: storedFrom,
-      subject: storedSubject,
-      rawRef,
-      parser: parserUsed ?? (parser ? parserName : "none"),
-      jobsExtracted,
-      error,
+      fromAddress: event.data.from.slice(0, MAX_STORED_HEADER_CHARS),
+      rawRef: PENDING_RAW_REF,
+      parser: "none",
+      jobsExtracted: 0,
+      error: PROCESSING_REASON,
       receivedAt: now,
-      // Resuelto solo (postulación de LinkedIn) o con avisos extraídos y sin error: no necesita a
-      // la persona. Un fallo parcial ("N avisos con error") queda en Pendientes.
-      seenAt: seen || (jobsExtracted > 0 && error === null) ? now : null,
-      dismissedAt,
     })
     .onConflictDoNothing({ target: s.inboundEmails.emailId })
     .returning({ id: s.inboundEmails.id });
-  if (!row) return duplicateAfterRace(db, event.data.email_id, log);
-  // Nunca el asunto ni el cuerpo: pueden traer códigos
-  log.info(
-    {
-      user_id: userId,
-      category,
-      auth_verdict: authVerdict,
+  if (!claim) return duplicateAfterRace(db, event.data.email_id, log);
+
+  try {
+    // Un email que pasa el tope no se lee: queda solo con metadatos, como uno de remitente no esperado.
+    const emailBytes =
+      Buffer.byteLength(rawBody, "utf8") +
+      Buffer.byteLength(content?.html ?? "", "utf8") +
+      Buffer.byteLength(content?.text ?? "", "utf8");
+    const sizeMode =
+      deps.sizeMode ?? (process.env.INBOUND_SIZE_MODE?.trim() === "enforce" ? "enforce" : "log");
+    const overMeasuredLimit = emailBytes > USER_RAW_MAX_BYTES;
+    const oversize =
+      emailBytes > USER_RAW_HARD_MAX_BYTES || (overMeasuredLimit && sizeMode === "enforce");
+    if (overMeasuredLimit) {
+      log.warn(
+        { user_id: userId, bytes: emailBytes, size_mode: sizeMode },
+        "inbound: email grande",
+      );
+    }
+
+    // JS-119: se clasifica antes del chequeo de remitente. Los códigos y reseteos (de cualquier
+    // remitente) se guardan como los de un remitente no esperado y con el asunto enmascarado;
+    // la confirmación de reenvío de Gmail dirigida a esta dirección se guarda completa.
+    // Remitente esperado (fuente de empleo, JS-051): ahí `seguridad` se decide solo por el asunto.
+    // Sin parte de texto se clasifica con el HTML pasado a texto.
+    const jobDomains = await db
+      .select({ domain: s.inboundSenderDomains.domain })
+      .from(s.inboundSenderDomains)
+      .where(
+        and(
+          eq(s.inboundSenderDomains.userId, userId),
+          eq(s.inboundSenderDomains.verdict, "empleo"),
+        ),
+      );
+    const senderExpected = isExpectedSender(
+      event.data.from,
+      jobDomains.map((d) => d.domain),
+    );
+    const classification = classifyInbound({
+      from: event.data.from,
+      to: recipients,
+      subject: event.data.subject,
+      text: oversize ? null : content?.text || (content?.html ? htmlToText(content.html) : null),
+      securityBySubjectOnly: senderExpected,
+    });
+    const category = classification.category;
+    const ownAddress = profile.inboundAddress?.toLowerCase() ?? null;
+    const addressedToUser =
+      ownAddress !== null &&
+      [...event.data.to, ...event.data.received_for].some(
+        (r) => (/<([^>]+)>/.exec(r)?.[1] ?? r).trim().toLowerCase() === ownAddress,
+      );
+    const isSecurity = category === "seguridad";
+    const gmailConfirmClaimed = category === "confirmacion_reenvio_gmail" && addressedToUser;
+    // En `enforce`, un remitente esperado sin autenticación verificada se guarda pero no se procesa
+    const authHold = authRequired && (senderExpected || gmailConfirmClaimed);
+    const isGmailConfirm = gmailConfirmClaimed && !authHold;
+
+    // JS-051: red de seguridad de privacidad. Si el reenvío de Gmail manda correo personal (banco,
+    // códigos, resets de contraseña), no se guarda su contenido: completo solo lo de remitentes
+    // esperados (fuentes de empleo conocidas o dominios marcados como fuente de empleo). Del resto,
+    // solo remitente, destinatarios, asunto, fecha y el email_id (idempotencia); ni cuerpo ni
+    // nombres de adjuntos.
+    const expected = !isSecurity && !oversize && (gmailConfirmClaimed || senderExpected);
+    const authRecord = authVerdict ? { auth_verdict: authVerdict } : {};
+    // Todo lo que no se guarda completo lleva el asunto con los números enmascarados
+    const headerSubject = event.data.subject?.slice(0, MAX_STORED_HEADER_CHARS) ?? null;
+    const storedFrom = event.data.from.slice(0, MAX_STORED_HEADER_CHARS);
+    const storedSubject = expected
+      ? headerSubject
+      : headerSubject
+        ? maskDigits(headerSubject)
+        : null;
+    const rawRef = await deps.storage.put({
+      userId,
+      kind: "inbound_email",
+      contentType: "application/json",
+      body: JSON.stringify(
+        expected
+          ? { event: JSON.parse(rawBody), content, ...authRecord }
+          : {
+              event: {
+                type: event.type,
+                created_at: event.created_at,
+                data: {
+                  email_id: event.data.email_id,
+                  from: storedFrom,
+                  to: event.data.to,
+                  received_for: event.data.received_for,
+                  subject: storedSubject,
+                },
+              },
+              content: null,
+              redacted: isSecurity
+                ? SECURITY_EMAIL_REASON
+                : oversize
+                  ? OVERSIZE_EMAIL_REASON
+                  : UNEXPECTED_SENDER_REASON,
+              ...authRecord,
+            },
+      ),
+    });
+
+    const parserName = chooseParserName(event.data.from);
+    const parser = EMAIL_PARSERS[parserName];
+    let jobsExtracted = 0;
+    let error: string | null = null;
+    let parserUsed: string | null = null;
+    let dismissedAt: Date | null = null;
+    let seen = false;
+
+    if (isSecurity) {
+      parserUsed = SECURITY_PARSER;
+      error = SECURITY_EMAIL_REASON;
+      dismissedAt = now;
+    } else if (oversize) {
+      error = OVERSIZE_EMAIL_REASON;
+    } else if (authHold) {
+      error = AUTH_UNVERIFIED_REASON;
+    } else if (isGmailConfirm) {
+      // Queda completo y pendiente: la persona tiene que abrir el link de confirmación
+      parserUsed = GMAIL_FORWARDING_PARSER;
+    } else if (!expected) {
+      error = UNEXPECTED_SENDER_REASON;
+    } else if (
+      (category === "postulacion_enviada" || category === "postulacion_vista") &&
+      classification.application
+    ) {
+      parserUsed = LINKEDIN_APPLICATION_PARSER;
+      seen = true;
+      const result = await applyLinkedinApplication(
+        db,
+        userId,
+        category === "postulacion_enviada" ? "enviada" : "vista",
+        classification.application,
+        now,
+      );
+      log.info(
+        { user_id: userId, match: result.match, action: result.action },
+        "inbound: postulacion de LinkedIn",
+      );
+    } else if (linkedinSenderKind(event.data.from) === "social") {
+      // JS-050: ruido social de LinkedIn. Se guarda (con su crudo) ya descartado, así no ensucia
+      // Pendientes ni la cola manual y se puede revisar. Si trae tarjetas de aviso, LinkedIn cambió
+      // el formato: no se ingesta ni se descarta, queda en Pendientes para revisar la regla.
+      parserUsed = LINKEDIN_SOCIAL_PARSER;
+      const cards = content?.html
+        ? parseOrManualQueue(
+            linkedinParser,
+            {
+              from: event.data.from,
+              to: recipients,
+              subject: event.data.subject ?? null,
+              html: content.html,
+              text: content.text,
+              receivedAt: now,
+            },
+            log,
+          )
+        : null;
+      if (cards?.ok && cards.jobs.length) {
+        error = `notificación social de LinkedIn con ${cards.jobs.length} tarjetas de aviso: revisar la regla de remitentes (no se cargaron)`;
+      } else {
+        dismissedAt = now;
+      }
+    } else if (!parser) {
+      error = MANUAL_QUEUE_REASON;
+    } else if (!content) {
+      error = "sin cuerpo del email (falta RESEND_API_KEY para pedirlo): cola manual";
+    } else {
+      parserUsed = parser.name;
+      const email: InboundEmailContent = {
+        from: event.data.from,
+        to: recipients,
+        subject: event.data.subject ?? null,
+        html: content.html,
+        text: content.text,
+        receivedAt: now,
+      };
+      const parsed = parseOrManualQueue(parser, email, log);
+      if (!parsed.ok) {
+        error = `estructura no reconocida (${parser.name}): ${parsed.reason}. Cola manual`;
+      } else if (parsed.jobs.length > EMAIL_MAX_CARDS) {
+        error = TOO_MANY_CARDS_REASON;
+      } else if (parsed.jobs.length) {
+        const [criteria] = await db
+          .select({ rules: s.evaluationCriteria.rules })
+          .from(s.evaluationCriteria)
+          .where(
+            and(eq(s.evaluationCriteria.userId, userId), eq(s.evaluationCriteria.active, true)),
+          )
+          .orderBy(desc(s.evaluationCriteria.version))
+          .limit(1);
+        if (!criteria) {
+          error = "usuario sin criterios activos";
+        } else {
+          // Cada aviso extraído apunta al crudo del email (JS-024)
+          const jobs = parsed.jobs.map((j) => ({ ...j, source: { ...j.source, rawRef } }));
+          const summary = await ingestBatch(jobs, {
+            db,
+            userId,
+            rules: criteria.rules as CriteriaRules,
+            logger: log,
+            enqueueEvaluation: enqueueEvaluationWith(db),
+            now: () => now,
+            taxonomy: await loadTaxonomy(db),
+          });
+          jobsExtracted = summary.inserted + summary.merged;
+          if (summary.errors.length)
+            error = `${summary.errors.length} avisos con error al ingestar`;
+        }
+      }
+    }
+
+    const [row] = await db
+      .update(s.inboundEmails)
+      .set({
+        fromAddress: storedFrom,
+        subject: storedSubject,
+        rawRef,
+        parser: parserUsed ?? (parser ? parserName : "none"),
+        jobsExtracted,
+        error,
+        // Resuelto solo (postulación de LinkedIn) o con avisos extraídos y sin error: no necesita a
+        // la persona. Un fallo parcial ("N avisos con error") queda en Pendientes.
+        seenAt: seen || (jobsExtracted > 0 && error === null) ? now : null,
+        dismissedAt,
+      })
+      .where(eq(s.inboundEmails.id, claim.id))
+      .returning({ id: s.inboundEmails.id });
+    if (!row) throw new Error("inbound: la fila provisional desapareció antes de terminar");
+    // Nunca el asunto ni el cuerpo: pueden traer códigos
+    log.info(
+      {
+        user_id: userId,
+        category,
+        auth_verdict: authVerdict,
+        parser: parserUsed,
+        jobs_extracted: jobsExtracted,
+        error,
+      },
+      "inbound: guardado",
+    );
+    return {
+      kind: "stored",
+      inboundId: row.id,
+      userId,
       parser: parserUsed,
-      jobs_extracted: jobsExtracted,
+      jobsExtracted,
       error,
-    },
-    "inbound: guardado",
-  );
-  return {
-    kind: "stored",
-    inboundId: row.id,
-    userId,
-    parser: parserUsed,
-    jobsExtracted,
-    error,
-  };
+    };
+  } catch (e) {
+    // Falló con una excepción (no colgó): se libera el cupo y el email_id para que el reintento lo procese
+    await db
+      .delete(s.inboundEmails)
+      .where(eq(s.inboundEmails.id, claim.id))
+      .catch(() => undefined);
+    throw e;
+  }
 }
