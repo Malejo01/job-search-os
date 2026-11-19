@@ -33,6 +33,7 @@ import {
   type ParseResult,
 } from "./parsers";
 import { linkedinParser } from "./linkedin";
+import { clampReason } from "./motivo";
 import {
   isPoolAlertSender,
   POOL_MANUAL_QUEUE_REASON,
@@ -763,7 +764,7 @@ export async function handleInboundEmail(
       };
       const parsed = parseOrManualQueue(parser, email, log);
       if (!parsed.ok) {
-        error = `estructura no reconocida (${parser.name}): ${parsed.reason}. Cola manual`;
+        error = `estructura no reconocida (${parser.name}): ${clampReason(parsed.reason)}. Cola manual`;
       } else if (parsed.jobs.length > EMAIL_MAX_CARDS) {
         error = TOO_MANY_CARDS_REASON;
       } else if (parsed.jobs.length) {

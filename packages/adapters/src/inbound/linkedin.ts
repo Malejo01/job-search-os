@@ -5,6 +5,7 @@ import {
   type Modality,
   type RawJob,
 } from "@job-search-os/pipeline";
+import { clampReason } from "./motivo";
 import type { EmailParser, InboundEmailContent, ParseResult } from "./parsers";
 
 /**
@@ -177,7 +178,7 @@ export const linkedinParser: EmailParser = {
     const sourceName = nombreFuente(formato, email.subject, email.html);
     for (const card of tarjetas) {
       const res = tarjetaARawJob(card, sourceName);
-      if ("error" in res) return { ok: false, reason: `${res.error}: cola manual` };
+      if ("error" in res) return { ok: false, reason: clampReason(`${res.error}: cola manual`) };
       jobs.push(res);
     }
     return { ok: true, jobs };

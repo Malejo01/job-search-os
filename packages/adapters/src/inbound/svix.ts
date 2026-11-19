@@ -32,7 +32,12 @@ function isValidSecret(secret: string): boolean {
 }
 
 export function signSvix(secret: string, id: string, timestamp: string, body: string): string {
-  const key = Buffer.from(secret.startsWith("whsec_") ? secret.slice(6) : secret, "base64");
+  // El mismo valor recortado que valida `isValidSecret`: si no, un espacio adelante rompe todas las firmas
+  const value = secret.trim();
+  const key = Buffer.from(
+    value.startsWith(SECRET_PREFIX) ? value.slice(SECRET_PREFIX.length) : value,
+    "base64",
+  );
   return createHmac("sha256", key).update(`${id}.${timestamp}.${body}`).digest("base64");
 }
 

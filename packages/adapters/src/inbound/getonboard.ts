@@ -1,4 +1,5 @@
 import { MAX_EMAIL_HTML_CHARS, stripTags, tagBlocks, type RawJob } from "@job-search-os/pipeline";
+import { clampReason } from "./motivo";
 import type { EmailParser, InboundEmailContent, ParseResult } from "./parsers";
 
 /**
@@ -267,7 +268,7 @@ export const getonboardParser: EmailParser = {
       return { ok: false, reason: "email de Get on Board demasiado grande: cola manual" };
     }
     const res = avisos(email.html);
-    if ("error" in res) return { ok: false, reason: `${res.error}: cola manual` };
+    if ("error" in res) return { ok: false, reason: clampReason(`${res.error}: cola manual`) };
     if (res.length === 0) {
       return { ok: false, reason: "email de Get on Board sin avisos: cola manual" };
     }
