@@ -132,6 +132,20 @@ La web abre un pool de conexiones **por instancia** de Vercel (`apps/web/lib/db.
 - **Pooler de Neon (`-pooler` en el host de la URL).** Acepta muchas más conexiones de cliente que el límite directo, a cambio de modo transacción (por eso `createDb` usa `prepare: false`; `withUser` fija `app.user_id` con `set_config(..., true)` dentro de la transacción, compatible). Si la cuenta se acerca al límite directo, la salida es usar la URL con `-pooler` en `DATABASE_URL_APP`, no subir `DB_POOL_MAX`.
 - **Subirlo no acelera nada** si las consultas de una página ya van en paralelo con 5: solo sirve cuando hay más de 5 consultas simultáneas por instancia. Ante la duda, dejarlo en 5.
 
+## Variables de modo y de plazo del correo entrante
+
+Se leen con un solo lector: se ignoran mayúsculas y espacios (`ENFORCE`, ` enforce `). Un valor desconocido **no apaga ni enciende nada por error**: rige el valor por defecto y la app registra un `error` en el log con el nombre de la variable (sin copiar el valor), una sola vez por proceso. Todas son un paso manual de Admin en Vercel y necesitan redeploy.
+
+| Variable | Valores | Por defecto | Con un valor inválido |
+|---|---|---|---|
+| `INBOUND_SIZE_MODE` | `log`, `enforce` | `log` | rige `log` (el email grande se registra y se procesa) y queda el `error`. |
+| `INBOUND_DMARC_MODE` | `off`, `log`, `enforce` | `log` | rige `log` (se mide sin retener) y queda el `error`. Ver la sección siguiente. |
+| `INBOUND_RAW_RETENTION_DAYS` | entero de 1 a 3650 | sin valor | la purga de crudos queda apagada, como sin valor, y queda un `error` en cada corrida del cron (por ejemplo con `30d`). |
+
+- **Ausente o vacía** no es un error: rige el valor por defecto.
+- **Antes de pasar a `enforce`:** en tamaño, mirar en el log cuántos emails superan el tope medido; en DMARC, ver la sección siguiente.
+- Si ves un `error` de configuración en el log, la protección que querías encender sigue apagada.
+
 ## Autenticación del remitente del correo entrante: `INBOUND_DMARC_MODE` e `INBOUND_AUTHSERV_ID`
 
 El veredicto sale solo del primer `Authentication-Results` del email, el que antepone el receptor propio. Es `aligned` si ese encabezado empieza con el identificador de servidor configurado y trae `dmarc=pass` con `header.from` igual al dominio del remitente. DKIM y SPF sueltos no cuentan, y lo que escriba quien envía tampoco.

@@ -1,3 +1,8 @@
+import { readMode } from "./env-modes";
+
+// Los lectores de variables salen también por este archivo, que el índice del paquete ya exporta
+export * from "./env-modes";
+
 /**
  * Lectura del encabezado From. La dirección es la que queda fuera de las comillas y de los comentarios: lo
  * que diga el nombre visible no cuenta. Falla cerrado: lo ambiguo o mal formado devuelve `null`.
@@ -53,10 +58,14 @@ export type AuthVerdict = "aligned" | "fail" | "none";
 /** `off`: no se mira. `log`: se registra sin cambiar nada. `enforce`: sin `aligned` no se procesa. */
 export type InboundDmarcMode = "off" | "log" | "enforce";
 
-/** Modo de `INBOUND_DMARC_MODE`. Vacío o desconocido es `log`: mide sin frenar emails reales. */
+export const INBOUND_DMARC_MODES = ["off", "log", "enforce"] as const;
+
+/**
+ * Modo de `INBOUND_DMARC_MODE`. Vacío o desconocido es `log`: mide sin frenar emails reales. Quien necesite
+ * el aviso de un valor desconocido usa `readMode` directamente (el log lo hace el adapter).
+ */
 export function parseInboundDmarcMode(raw: string | undefined): InboundDmarcMode {
-  const mode = raw?.trim().toLowerCase();
-  return mode === "off" || mode === "enforce" ? mode : "log";
+  return readMode("INBOUND_DMARC_MODE", raw, INBOUND_DMARC_MODES, "log").value;
 }
 
 /** Un `Authentication-Results` real mide una fracción de esto; más largo no se lee. */

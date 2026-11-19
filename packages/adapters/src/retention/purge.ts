@@ -2,7 +2,8 @@ import { schema as s, type Db } from "@job-search-os/db";
 import { inArray, isNotNull, isNull, lt, or, and } from "drizzle-orm";
 import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 import { sql, type SQL } from "drizzle-orm";
-import { GMAIL_FORWARDING_PARSER } from "@job-search-os/pipeline";
+import { GMAIL_FORWARDING_PARSER, readIntegerSetting } from "@job-search-os/pipeline";
+import { createLogger } from "../logger";
 import { POOL_PARSER } from "../inbound/pool-mailbox";
 
 /**
@@ -54,11 +55,18 @@ export const MIN_LLM_CALLS_DAYS = 90;
 export const MIN_REJECTIONS_DAYS = 2;
 const MAX_LOG_DAYS = 3650;
 
-/** `LEGAL_LOG_DAYS` válido: entero de 1 a 3650; cualquier otra cosa desactiva la purga técnica. */
-export function parseLogDays(raw: string | undefined): number | null {
-  if (raw === undefined || !/^\d+$/.test(raw.trim())) return null;
-  const n = Number(raw.trim());
-  return n >= 1 && n <= MAX_LOG_DAYS ? n : null;
+/**
+ * Plazo de retención válido (`LEGAL_LOG_DAYS`, `INBOUND_RAW_RETENTION_DAYS`): entero de 1 a 3650. Ausente
+ * o vacío desactiva la purga correspondiente; un valor que no se entiende (`30d`) también la desactiva,
+ * pero registra un `error` para que no pase en silencio. `name` es el de la variable, para el aviso.
+ */
+export function parseLogDays(
+  raw: string | undefined,
+  name = "una variable de retención (LEGAL_LOG_DAYS o INBOUND_RAW_RETENTION_DAYS)",
+): number | null {
+  const { value, error } = readIntegerSetting(name, raw, 1, MAX_LOG_DAYS);
+  if (error) createLogger({ task: "purge" }).error(error);
+  return value;
 }
 
 /** Borra en lotes (máximo PURGE_MAX_BATCHES) para no tomar locks largos; devuelve el total borrado. */

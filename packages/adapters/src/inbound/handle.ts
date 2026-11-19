@@ -10,7 +10,8 @@ import {
   LINKEDIN_APPLICATION_PARSER,
   maskDigits,
   parseFromAddress,
-  parseInboundDmarcMode,
+  INBOUND_DMARC_MODES,
+  readMode,
   parsePoolMailbox,
   SECURITY_PARSER,
   type CriteriaRules,
@@ -236,6 +237,35 @@ async function rejectOverQuota(
   return { kind: "rate_limited", userId };
 }
 
+/** Los avisos de configuración salen una sola vez por proceso y por variable. */
+const modeErrorsLogged = new Set<string>();
+
+function logModeError(error: string | null, name: string, log: Pick<Logger, "error">): void {
+  if (!error || modeErrorsLogged.has(name)) return;
+  modeErrorsLogged.add(name);
+  log.error({ variable: name }, error);
+}
+
+/** `INBOUND_SIZE_MODE`: `log` (por defecto) o `enforce`; mayúsculas y espacios no cuentan. */
+export function readInboundSizeMode(
+  raw: string | undefined,
+  log: Pick<Logger, "error">,
+): InboundSizeMode {
+  const { value, error } = readMode("INBOUND_SIZE_MODE", raw, ["log", "enforce"] as const, "log");
+  logModeError(error, "INBOUND_SIZE_MODE", log);
+  return value;
+}
+
+/** `INBOUND_DMARC_MODE`: `off`, `log` (por defecto) o `enforce`. */
+export function readInboundDmarcMode(
+  raw: string | undefined,
+  log: Pick<Logger, "error">,
+): InboundDmarcMode {
+  const { value, error } = readMode("INBOUND_DMARC_MODE", raw, INBOUND_DMARC_MODES, "log");
+  logModeError(error, "INBOUND_DMARC_MODE", log);
+  return value;
+}
+
 /** Dominio del remitente, con o sin nombre visible; null si no se puede leer. */
 function senderDomain(from: string): string | null {
   const addr = parseFromAddress(from);
@@ -407,7 +437,7 @@ export async function handleInboundEmail(
     email_id: event.data.email_id,
     from_domain: senderDomain(event.data.from),
   });
-  const dmarcMode = deps.dmarcMode ?? parseInboundDmarcMode(process.env.INBOUND_DMARC_MODE);
+  const dmarcMode = deps.dmarcMode ?? readInboundDmarcMode(process.env.INBOUND_DMARC_MODE, log);
   const authservId = "authservId" in deps ? deps.authservId : process.env.INBOUND_AUTHSERV_ID;
   const authVerdict =
     dmarcMode === "off" ? null : authResultsVerdict(content?.headers, authservId, event.data.from);
@@ -572,8 +602,7 @@ export async function handleInboundEmail(
       Buffer.byteLength(rawBody, "utf8") +
       Buffer.byteLength(content?.html ?? "", "utf8") +
       Buffer.byteLength(content?.text ?? "", "utf8");
-    const sizeMode =
-      deps.sizeMode ?? (process.env.INBOUND_SIZE_MODE?.trim() === "enforce" ? "enforce" : "log");
+    const sizeMode = deps.sizeMode ?? readInboundSizeMode(process.env.INBOUND_SIZE_MODE, log);
     const overMeasuredLimit = emailBytes > USER_RAW_MAX_BYTES;
     const oversize =
       emailBytes > USER_RAW_HARD_MAX_BYTES || (overMeasuredLimit && sizeMode === "enforce");
