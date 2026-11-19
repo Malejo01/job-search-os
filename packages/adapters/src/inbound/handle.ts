@@ -5,6 +5,7 @@ import {
   GMAIL_FORWARDING_PARSER,
   htmlToText,
   isExpectedSender,
+  GMAIL_FORWARDING_SENDER,
   isPoolMailboxAddress,
   LINKEDIN_APPLICATION_PARSER,
   maskDigits,
@@ -15,7 +16,7 @@ import {
   type CriteriaRules,
   type InboundDmarcMode,
 } from "@job-search-os/pipeline";
-import { and, desc, eq, gte, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, notInArray, or, sql } from "drizzle-orm";
 import { applyLinkedinApplication } from "../applications/linkedin-application";
 import { ingestBatch } from "../ingest/ingest-job";
 import type { Logger } from "../logger";
@@ -131,6 +132,109 @@ const USER_DAILY_EMAIL_LIMIT = 300;
 /** Fila provisional que cuenta el intento mientras el email se procesa. */
 const PENDING_RAW_REF = "pending:";
 export const PROCESSING_REASON = "procesando: el email no terminó de procesarse";
+export const PROCESSING_UNEXPECTED_REASON =
+  "procesando (remitente no esperado): el email no terminó de procesarse";
+export const OVERSIZE_UNEXPECTED_REASON =
+  "email demasiado grande de un remitente no esperado: se guardó solo remitente, asunto y fecha, sin el cuerpo";
+
+/**
+ * Dos cupos separados por persona: remitentes esperados (portales de empleo, confirmación de Gmail) y
+ * no esperados. Así un envío masivo desde una dirección cualquiera no deja sin cupo al correo real. El
+ * cupo de cada uno es el de siempre (100 por hora, 300 por día). El motivo guardado en la fila decide a
+ * cuál pertenece: no hace falta una columna nueva.
+ */
+const UNEXPECTED_BUCKET_REASONS: readonly string[] = [
+  UNEXPECTED_SENDER_REASON,
+  SECURITY_EMAIL_REASON,
+  OVERSIZE_UNEXPECTED_REASON,
+  PROCESSING_UNEXPECTED_REASON,
+];
+type QuotaBucket = "expected" | "unexpected";
+
+type QuotaCheck = {
+  limited: boolean;
+  bucket: QuotaBucket;
+  hour: number;
+  day: number;
+  /** Dominios que la persona marcó como fuente de empleo (se reusan al clasificar). */
+  jobDomains: string[];
+};
+
+/**
+ * Cupo de la persona para el remitente de este email, con lo que se sabe del evento (sin el cuerpo). Una
+ * consulta de dominios y un conteo por el índice (user_id, received_at).
+ */
+async function checkUserQuota(
+  db: Db,
+  userId: string,
+  from: string,
+  now: Date,
+  deps: Pick<InboundDeps, "hourlyLimit" | "dailyLimit">,
+): Promise<QuotaCheck> {
+  const domains = await db
+    .select({ domain: s.inboundSenderDomains.domain })
+    .from(s.inboundSenderDomains)
+    .where(
+      and(eq(s.inboundSenderDomains.userId, userId), eq(s.inboundSenderDomains.verdict, "empleo")),
+    );
+  const jobDomains = domains.map((d) => d.domain);
+  const bucket: QuotaBucket =
+    isExpectedSender(from, jobDomains) || parseFromAddress(from) === GMAIL_FORWARDING_SENDER
+      ? "expected"
+      : "unexpected";
+  const inBucket =
+    bucket === "unexpected"
+      ? inArray(s.inboundEmails.error, [...UNEXPECTED_BUCKET_REASONS])
+      : or(
+          isNull(s.inboundEmails.error),
+          notInArray(s.inboundEmails.error, [...UNEXPECTED_BUCKET_REASONS]),
+        );
+  const [counts] = (await db
+    .select({
+      hour: sql<number>`count(*) filter (where ${s.inboundEmails.receivedAt} >= ${new Date(now.getTime() - 60 * 60 * 1000).toISOString()}::timestamptz)::int`,
+      day: sql<number>`count(*)::int`,
+    })
+    .from(s.inboundEmails)
+    .where(
+      and(
+        eq(s.inboundEmails.userId, userId),
+        gte(s.inboundEmails.receivedAt, new Date(now.getTime() - 24 * 60 * 60 * 1000)),
+        inBucket,
+      ),
+    )) as { hour: number; day: number }[];
+  const hour = counts?.hour ?? 0;
+  const day = counts?.day ?? 0;
+  return {
+    limited:
+      hour >= (deps.hourlyLimit ?? 100) || day >= (deps.dailyLimit ?? USER_DAILY_EMAIL_LIMIT),
+    bucket,
+    hour,
+    day,
+    jobDomains,
+  };
+}
+
+/** El email no se guarda (es el punto del límite), pero queda contado para que /inbox avise (JS-038). */
+async function rejectOverQuota(
+  db: Db,
+  userId: string,
+  quota: QuotaCheck,
+  now: Date,
+  log: Pick<Logger, "warn">,
+): Promise<InboundOutcome> {
+  log.warn(
+    { user_id: userId, bucket: quota.bucket, count: quota.hour, day_count: quota.day },
+    "inbound: rate limit por usuario",
+  );
+  // Una fila por usuario y hora
+  await db.execute(sql`
+    INSERT INTO inbound_rejections (user_id, window_start, rejected, last_at)
+    VALUES (${userId}, date_trunc('hour', ${now.toISOString()}::timestamptz), 1, ${now.toISOString()}::timestamptz)
+    ON CONFLICT (user_id, window_start)
+    DO UPDATE SET rejected = inbound_rejections.rejected + 1, last_at = excluded.last_at
+  `);
+  return { kind: "rate_limited", userId };
+}
 
 /** Dominio del remitente, con o sin nombre visible; null si no se puede leer. */
 function senderDomain(from: string): string | null {
@@ -229,25 +333,28 @@ function eventRecipients(event: ResendReceivedEvent): string[] {
   );
 }
 
-/** ¿El email va a una persona o a una casilla del pool que lo aceptaría? Solo una consulta barata. */
-async function hasInboundDestination(
+/**
+ * ¿El email va a una persona (devuelve su id) o a una casilla del pool que lo aceptaría (`"pool"`)?
+ * `null` si no va a ningún destino. Solo una consulta barata.
+ */
+async function inboundDestination(
   event: ResendReceivedEvent,
   deps: InboundDeps,
-): Promise<boolean> {
+): Promise<string | "pool" | null> {
   const recipients = eventRecipients(event);
-  if (recipients.length === 0) return false;
+  if (recipients.length === 0) return null;
   const [profile] = await deps.db
     .select({ userId: s.profiles.userId })
     .from(s.profiles)
     .where(sql`lower(${s.profiles.inboundAddress}) in ${recipients}`)
     .limit(1);
-  if (profile) return true;
+  if (profile) return profile.userId;
   const pool = deps.pool ?? readPoolInboundConfig();
-  return (
+  const poolAccepts =
     pool.enabled &&
     isPoolAlertSender(event.data.from, pool.senderDomains) &&
-    recipients.filter(isPoolMailboxAddress).some((r) => parsePoolMailbox(r, pool).ok)
-  );
+    recipients.filter(isPoolMailboxAddress).some((r) => parsePoolMailbox(r, pool).ok);
+  return poolAccepts ? "pool" : null;
 }
 
 /**
@@ -263,10 +370,25 @@ export async function processInboundEvent(
   const event = cleanEvent(receivedEvent);
   const dup = await findByEmailId(deps.db, event.data.email_id);
   if (dup) return { kind: "duplicate", inboundId: dup };
-  if (!(await hasInboundDestination(event, deps))) {
+  const destination = await inboundDestination(event, deps);
+  if (!destination) {
     const recipientsCount = eventRecipients(event).length;
     deps.logger.warn({ recipients_count: recipientsCount }, "inbound: destinatario sin usuario");
     return { kind: "unknown_recipient", recipientsCount };
+  }
+  if (destination !== "pool") {
+    // Con el cupo agotado no se pide el cuerpo a Resend: alcanza con el remitente y el destinatario
+    const now = deps.now?.() ?? new Date();
+    const quota = await checkUserQuota(deps.db, destination, event.data.from, now, deps);
+    if (quota.limited) {
+      return rejectOverQuota(
+        deps.db,
+        destination,
+        quota,
+        now,
+        deps.logger.child({ email_id: event.data.email_id }),
+      );
+    }
   }
   return handleInboundEmail(event, await fetchContent(), rawBody, deps);
 }
@@ -421,35 +543,9 @@ export async function handleInboundEmail(
   }
   const userId = profile.userId;
 
-  const countRows = (await db
-    .select({
-      hour: sql<number>`count(*) filter (where ${s.inboundEmails.receivedAt} >= ${new Date(now.getTime() - 60 * 60 * 1000).toISOString()}::timestamptz)::int`,
-      day: sql<number>`count(*)::int`,
-    })
-    .from(s.inboundEmails)
-    .where(
-      and(
-        eq(s.inboundEmails.userId, userId),
-        gte(s.inboundEmails.receivedAt, new Date(now.getTime() - 24 * 60 * 60 * 1000)),
-      ),
-    )) as { hour: number; day: number }[];
-  const count = countRows[0]?.hour ?? 0;
-  const dayCount = countRows[0]?.day ?? 0;
-  if (
-    count >= (deps.hourlyLimit ?? 100) ||
-    dayCount >= (deps.dailyLimit ?? USER_DAILY_EMAIL_LIMIT)
-  ) {
-    log.warn({ user_id: userId, count, day_count: dayCount }, "inbound: rate limit por usuario");
-    // El email no se guarda (es el punto del límite), pero queda contado para que /inbox
-    // avise en vez de perderlo en silencio (JS-038). Una fila por usuario y hora.
-    await db.execute(sql`
-      INSERT INTO inbound_rejections (user_id, window_start, rejected, last_at)
-      VALUES (${userId}, date_trunc('hour', ${now.toISOString()}::timestamptz), 1, ${now.toISOString()}::timestamptz)
-      ON CONFLICT (user_id, window_start)
-      DO UPDATE SET rejected = inbound_rejections.rejected + 1, last_at = excluded.last_at
-    `);
-    return { kind: "rate_limited", userId };
-  }
+  const quota = await checkUserQuota(db, userId, event.data.from, now, deps);
+  if (quota.limited) return rejectOverQuota(db, userId, quota, now, log);
+  const { jobDomains, bucket } = quota;
 
   // El intento se cuenta antes de leer el contenido: una fila provisional ocupa cupo y marca el
   // email_id como visto. Si el procesamiento queda colgado y la función muere, la fila queda y el
@@ -463,7 +559,7 @@ export async function handleInboundEmail(
       rawRef: PENDING_RAW_REF,
       parser: "none",
       jobsExtracted: 0,
-      error: PROCESSING_REASON,
+      error: bucket === "expected" ? PROCESSING_REASON : PROCESSING_UNEXPECTED_REASON,
       receivedAt: now,
     })
     .onConflictDoNothing({ target: s.inboundEmails.emailId })
@@ -493,19 +589,7 @@ export async function handleInboundEmail(
     // la confirmación de reenvío de Gmail dirigida a esta dirección se guarda completa.
     // Remitente esperado (fuente de empleo, JS-051): ahí `seguridad` se decide solo por el asunto.
     // Sin parte de texto se clasifica con el HTML pasado a texto.
-    const jobDomains = await db
-      .select({ domain: s.inboundSenderDomains.domain })
-      .from(s.inboundSenderDomains)
-      .where(
-        and(
-          eq(s.inboundSenderDomains.userId, userId),
-          eq(s.inboundSenderDomains.verdict, "empleo"),
-        ),
-      );
-    const senderExpected = isExpectedSender(
-      event.data.from,
-      jobDomains.map((d) => d.domain),
-    );
+    const senderExpected = isExpectedSender(event.data.from, jobDomains);
     const classification = classifyInbound({
       from: event.data.from,
       to: recipients,
@@ -584,7 +668,7 @@ export async function handleInboundEmail(
       error = SECURITY_EMAIL_REASON;
       dismissedAt = now;
     } else if (oversize) {
-      error = OVERSIZE_EMAIL_REASON;
+      error = bucket === "expected" ? OVERSIZE_EMAIL_REASON : OVERSIZE_UNEXPECTED_REASON;
     } else if (authHold) {
       error = AUTH_UNVERIFIED_REASON;
     } else if (isGmailConfirm) {

@@ -248,12 +248,13 @@ describe("topes del email de una persona", () => {
       .values([row(hoursAgo(25)), row(hoursAgo(3)), row(hoursAgo(2))]);
     const limited = { ...deps(), dailyLimit: 3 };
 
-    const first = event("em_diario_1", DIARIO_ADDRESS, SIN_PARSER);
+    const first = event("em_diario_1", DIARIO_ADDRESS);
     expect((await handleInboundEmail(first, null, JSON.stringify(first), limited)).kind).toBe(
       "stored",
     );
 
-    const second = event("em_diario_2", DIARIO_ADDRESS, SIN_PARSER);
+    // Las filas de relleno son de remitentes esperados: el cupo que se agota es el de los portales
+    const second = event("em_diario_2", DIARIO_ADDRESS);
     expect(await handleInboundEmail(second, null, JSON.stringify(second), limited)).toEqual({
       kind: "rate_limited",
       userId: DIARIO,
