@@ -1,4 +1,6 @@
 import { ApplicantFailure } from "../applicant/context";
+import { JobNotFoundError } from "../applications/apply-event";
+import { JdNotPendingError } from "../ingest/attach-jd";
 import { createLogger } from "../logger";
 import { safeDbError, type SafeDbError } from "../logging/safe-error";
 import { PersonQuotaError } from "../quota/person-quota";
@@ -43,7 +45,16 @@ const BY_NAME: Record<string, { code: string; message: string }> = {
 
 export function mcpFailure(e: unknown): McpFailure {
   if (e instanceof ApplicantFailure) return { ...APPLICANT[e.code], expected: true };
+  // Una oferta inexistente y una de otra persona dan el mismo código: no se revela cuál es
+  if (e instanceof JobNotFoundError) return { ...APPLICANT.job_not_found, expected: true };
   if (e instanceof PersonQuotaError) return { ...QUOTA[e.kind], expected: true };
+  if (e instanceof JdNotPendingError) {
+    return {
+      code: "oferta_no_pendiente",
+      message: "La oferta ya tiene descripción o ya se evaluó: no se cambia desde acá.",
+      expected: true,
+    };
+  }
   const known = e instanceof Error ? BY_NAME[e.name] : undefined;
   if (known) return { ...known, expected: true };
   return {

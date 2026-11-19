@@ -221,9 +221,15 @@ test.describe("Flujo 124: tokens personales del MCP", () => {
 
     const other = await getJob(request, tokenA, dataB.jobId);
     expect(other.status).toBe(200);
-    expect(other.body).toContain("oferta inexistente");
+    expect(other.body).toContain("oferta_inexistente");
     expect(other.body).not.toContain(dataB.title);
     expect(other.body).not.toContain(dataB.jdToken);
+
+    // Una oferta ajena y una que no existe responden igual: no se revela si existe para otra persona
+    const missing = await getJob(request, tokenA, "00000000-0000-4000-8000-00000000dead");
+    expect(missing.status).toBe(200);
+    expect(missing.body).toContain("oferta_inexistente");
+    expect(missing.body).toBe(other.body);
   });
 
   test("las tools de lectura van con readOnlyHint y las que escriben no", async ({ request }) => {

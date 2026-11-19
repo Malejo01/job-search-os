@@ -11,6 +11,7 @@ import { answersFromBank, approveAnswer, candidateProfile, saveFormAnswers } fro
 import {
   addJobInput,
   candidateProfileInput,
+  JobNotFoundError,
   mcpFailed,
   emptyInput,
   getJobInput,
@@ -120,7 +121,8 @@ const handler = createMcpHandler(
       async ({ id }, ctx) => {
         const userId = await mcpUserIdFor(ctx.http?.authInfo);
         const job = await getJobDetail(userId, id);
-        if (!job) return { content: [{ type: "text", text: "oferta inexistente" }], isError: true };
+        // Inexistente y ajena se ven igual: mismo código fijo
+        if (!job) return failed(new JobNotFoundError(), userId);
         return untrustedText({ ...job, jdText: job.jdText ? job.jdText.slice(0, 6000) : null });
       },
     );
@@ -133,6 +135,8 @@ const handler = createMcpHandler(
           "Dispara un evento de la máquina de estados (transition): apply (marcar aplicada; el sistema NUNCA postula por vos), interview, offer, reject, auto_reject, discard, close. Usá get_job para ver cuáles valen desde el estado actual." +
           CONFIRM,
         inputSchema: setStatusInput(MANUAL_EVENTS as readonly [JobEvent, ...JobEvent[]]),
+        // Cambia el estado de la oferta (y la postulación asociada)
+        annotations: { readOnlyHint: false, destructiveHint: true },
       },
       async ({ id, event }, ctx) => {
         const userId = await mcpUserIdFor(ctx.http?.authInfo);
@@ -153,11 +157,14 @@ const handler = createMcpHandler(
           "Guarda la JD completa de una oferta pendiente (mínimo 200 caracteres) y la evalúa al instante (en segundos aparece con score en la app; si el tope diario de LLM está superado, queda para el cron)." +
           CONFIRM,
         inputSchema: pasteJdInput,
+        // Solo completa ofertas sin JD: no reemplaza nada existente
+        annotations: { readOnlyHint: false, destructiveHint: false },
       },
       async ({ id, text: jd }, ctx) => {
         const userId = await mcpUserIdFor(ctx.http?.authInfo);
         try {
-          await attachJd(userId, id, jd);
+          // Solo sobre ofertas que esperan su JD: nunca pisa una descripción ni una evaluación
+          await attachJd(userId, id, jd, { onlyPending: true });
           const notEvaluated = await evaluateInBackgroundOrExplain(userId, id);
           return text({
             id,
@@ -181,6 +188,8 @@ const handler = createMcpHandler(
           "Ingesta manual (JS-023): una oferta vista en LinkedIn, un mail o un chat. Pasa por dedup (14 días), prefiltro y, si trae la descripción completa, se encola para evaluar; sin descripción queda en pendientes de JD. Devuelve el id y si se insertó o se fusionó con una existente." +
           CONFIRM,
         inputSchema: addJobInput,
+        // Si la oferta ya existe se fusiona con ella (puede quedarse con el texto más largo)
+        annotations: { readOnlyHint: false, destructiveHint: true },
       },
       async (a, ctx) => {
         const userId = await mcpUserIdFor(ctx.http?.authInfo);
@@ -283,6 +292,8 @@ const handler = createMcpHandler(
           "Guarda en el banco una respuesta que la persona aprobó EXPLÍCITAMENTE en el chat. No la llames con borradores ni con respuestas que no te confirmó. Si ya había una para la misma pregunta (normalizada) en el mismo idioma, la reemplaza. job_id: la oferta donde se aprobó, si hay una." +
           CONFIRM,
         inputSchema: saveAnswerInput,
+        // Reemplaza la respuesta que ya había para la misma pregunta
+        annotations: { readOnlyHint: false, destructiveHint: true },
       },
       async ({ question, answer, lang, job_id }, ctx) => {
         const userId = await mcpUserIdFor(ctx.http?.authInfo);
@@ -304,6 +315,8 @@ const handler = createMcpHandler(
           "Guarda las preguntas y respuestas finales del formulario de una oferta, en orden, tal como la persona las va a enviar. Reemplaza entero lo guardado antes para esa oferta. NO postula ni marca la oferta como aplicada: para eso está set_status con apply, después de que la persona envíe el formulario por su cuenta (ADR-004)." +
           CONFIRM,
         inputSchema: saveApplicationAnswersInput,
+        // Reemplaza entero el formulario guardado de la oferta
+        annotations: { readOnlyHint: false, destructiveHint: true },
       },
       async ({ job_id, qa }, ctx) => {
         const userId = await mcpUserIdFor(ctx.http?.authInfo);
