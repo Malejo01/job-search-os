@@ -83,7 +83,10 @@ export const mcpFailed = (e: unknown, userId: string, tool?: string) =>
 type McpLog = (userId: string, tool: string, detail: SafeDbError) => void;
 
 const defaultMcpLog: McpLog = (userId, tool, detail) =>
-  createLogger({ user_id: userId, source: "mcp", tool }).error({ err: detail }, "mcp: la tool falló");
+  createLogger({ user_id: userId, source: "mcp", tool }).error(
+    { err: detail },
+    "mcp: la tool falló",
+  );
 
 /**
  * Envuelve el callback de una tool: cualquier excepción (también la de resolver a la persona)

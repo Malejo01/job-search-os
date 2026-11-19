@@ -77,7 +77,12 @@ describe("guardMcpTool: cualquier excepción de una tool llega como error fijo",
   });
 
   it("lo que sale bien pasa tal cual y los errores esperados siguen con su código", async () => {
-    const ok = guardMcpTool("get_job", async () => USER, async () => ({ content: [] }), vi.fn());
+    const ok = guardMcpTool(
+      "get_job",
+      async () => USER,
+      async () => ({ content: [] }),
+      vi.fn(),
+    );
     expect(await ok({}, {})).toEqual({ content: [] });
   });
 });

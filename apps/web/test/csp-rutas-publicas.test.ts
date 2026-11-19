@@ -44,7 +44,15 @@ const PUBLIC_PATHS = [
   "/sitemap.xml",
   "/robots.txt",
 ];
-const PRIVATE_PATHS = ["/hoy", "/jobs", "/jobs/123", "/inbox", "/settings", "/settings/perfil", "/cv/perfil"];
+const PRIVATE_PATHS = [
+  "/hoy",
+  "/jobs",
+  "/jobs/123",
+  "/inbox",
+  "/settings",
+  "/settings/perfil",
+  "/cv/perfil",
+];
 
 const run = (path: string) =>
   middleware(new NextRequest(`https://app.example${path}`), {} as NextFetchEvent);
@@ -55,7 +63,9 @@ describe("la CSP con nonce solo llega a las rutas privadas", () => {
     const response = await run(path);
     expect(response?.headers.get("content-security-policy-report-only")).toBeNull();
     // Tampoco se reenvía al render: Next tomaría el nonce de ahí y la página dejaría de ser estática
-    expect(response?.headers.get("x-middleware-request-content-security-policy-report-only")).toBeNull();
+    expect(
+      response?.headers.get("x-middleware-request-content-security-policy-report-only"),
+    ).toBeNull();
   });
 
   it.each(PRIVATE_PATHS)("%s recibe la CSP con nonce", async (path) => {
@@ -63,7 +73,9 @@ describe("la CSP con nonce solo llega a las rutas privadas", () => {
     const response = await run(path);
     const policy = response?.headers.get("content-security-policy-report-only") ?? "";
     expect(policy).toMatch(/script-src [^;]*'nonce-[A-Za-z0-9+/=]{20,}'/);
-    expect(response?.headers.get("x-middleware-request-content-security-policy-report-only")).toBe(policy);
+    expect(response?.headers.get("x-middleware-request-content-security-policy-report-only")).toBe(
+      policy,
+    );
   });
 
   it("cada pedido privado recibe un nonce distinto", async () => {

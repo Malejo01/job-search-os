@@ -20,7 +20,10 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /** Dos archivos: el primero crea una tabla marca; el segundo necesita un lock exclusivo sobre la tabla retenida. */
 function writeRlsDir(): string {
   const dir = mkdtempSync(join(tmpdir(), "rls-lock-"));
-  writeFileSync(join(dir, "0001_marca.sql"), "CREATE TABLE IF NOT EXISTS rls_lock_marca (id int primary key);");
+  writeFileSync(
+    join(dir, "0001_marca.sql"),
+    "CREATE TABLE IF NOT EXISTS rls_lock_marca (id int primary key);",
+  );
   writeFileSync(
     join(dir, "0002_policy.sql"),
     [

@@ -42,7 +42,9 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (owner) {
-    await owner.unsafe(`drop table if exists public.${SIN_RLS}, public.${CON_RLS}`).catch(() => undefined);
+    await owner
+      .unsafe(`drop table if exists public.${SIN_RLS}, public.${CON_RLS}`)
+      .catch(() => undefined);
   }
   await owner?.end();
   await container?.stop();

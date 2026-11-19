@@ -23,7 +23,9 @@ describe("sessionCookieConfig", () => {
   it("en local sin https y fuera de producción deja el nombre de siempre", () => {
     expect(sessionCookieConfig({ VERCEL_ENV: "development" })).toBeUndefined();
     expect(sessionCookieConfig({ VERCEL_ENV: "preview" })).toBeUndefined();
-    expect(sessionCookieConfig({ NODE_ENV: "development", AUTH_URL: "http://localhost:3000" })).toBeUndefined();
+    expect(
+      sessionCookieConfig({ NODE_ENV: "development", AUTH_URL: "http://localhost:3000" }),
+    ).toBeUndefined();
   });
 
   it("no fija dominio: el prefijo lo prohíbe", () => {

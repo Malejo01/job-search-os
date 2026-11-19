@@ -187,15 +187,18 @@ describe("formato del email", () => {
     "@example.com",
     "persona@",
     `${"a".repeat(250)}@example.com`,
-  ])("un email inválido (%#) responde igual que una clave incorrecta y no reserva intento", async (email) => {
-    const d = deps();
+  ])(
+    "un email inválido (%#) responde igual que una clave incorrecta y no reserva intento",
+    async (email) => {
+      const d = deps();
 
-    await expect(authorizeCredentials(d, { email, password: "clave" })).resolves.toBeNull();
+      await expect(authorizeCredentials(d, { email, password: "clave" })).resolves.toBeNull();
 
-    expect(d.beginAttempt).not.toHaveBeenCalled();
-    expect(d.findUser).not.toHaveBeenCalled();
-    expect(d.waitLikeVerification).toHaveBeenCalledTimes(1);
-  });
+      expect(d.beginAttempt).not.toHaveBeenCalled();
+      expect(d.findUser).not.toHaveBeenCalled();
+      expect(d.waitLikeVerification).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it("un email válido sigue su camino", async () => {
     const d = deps();

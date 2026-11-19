@@ -24,7 +24,9 @@ const holder = vi.hoisted(() => ({ db: undefined as unknown }));
 vi.mock("../../../apps/web/lib/db", () => ({
   withUser: async (userId: string, fn: (tx: unknown) => Promise<unknown>) => {
     const db = holder.db as {
-      transaction: (f: (tx: { execute: (q: unknown) => Promise<unknown> }) => Promise<unknown>) => Promise<unknown>;
+      transaction: (
+        f: (tx: { execute: (q: unknown) => Promise<unknown> }) => Promise<unknown>,
+      ) => Promise<unknown>;
     };
     const { sql: dsql } = await import("drizzle-orm");
     return db.transaction(async (tx) => {
@@ -44,12 +46,16 @@ async function mcpOwner(hash: string): Promise<{ user_id: string }[]> {
 }
 
 async function resetUsedAt(hash: string): Promise<Date | null> {
-  const [row] = await app<{ used_at: Date | null }[]>`select used_at from check_reset_token(${hash})`;
+  const [row] = await app<
+    { used_at: Date | null }[]
+  >`select used_at from check_reset_token(${hash})`;
   return row!.used_at;
 }
 
 async function sessionVersion(id: string): Promise<number> {
-  const [row] = await owner<{ v: number }[]>`select session_version as v from users where id = ${id}`;
+  const [row] = await owner<
+    { v: number }[]
+  >`select session_version as v from users where id = ${id}`;
   return row!.v;
 }
 
@@ -88,7 +94,9 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await owner`delete from mcp_tokens where user_id in ${owner([A, B])}`.catch(() => undefined);
-  await owner`delete from password_reset_tokens where user_id in ${owner([A, B])}`.catch(() => undefined);
+  await owner`delete from password_reset_tokens where user_id in ${owner([A, B])}`.catch(
+    () => undefined,
+  );
   await owner`delete from users where id in ${owner([A, B])}`.catch(() => undefined);
   await app?.end();
   await owner?.end();

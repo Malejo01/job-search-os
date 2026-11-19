@@ -55,9 +55,13 @@ const MAX_IP_LENGTH = 45;
  * IP del pedido de login, o `null` si no hay una que sirva. Toma la primera dirección de `x-forwarded-for`
  * (la plataforma la fija) o `x-real-ip`. Con `null` los intentos caen en el tope por email.
  */
-export function loginClientIp(request: { headers: { get(name: string): string | null } } | undefined): string | null {
+export function loginClientIp(
+  request: { headers: { get(name: string): string | null } } | undefined,
+): string | null {
   const raw =
-    request?.headers.get("x-forwarded-for")?.split(",")[0] ?? request?.headers.get("x-real-ip") ?? "";
+    request?.headers.get("x-forwarded-for")?.split(",")[0] ??
+    request?.headers.get("x-real-ip") ??
+    "";
   const ip = raw.trim().toLowerCase();
   return ip && ip.length <= MAX_IP_LENGTH && /^[0-9a-f:.]+$/.test(ip) ? ip : null;
 }

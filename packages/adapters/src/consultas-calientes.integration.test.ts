@@ -199,7 +199,9 @@ async function explain(
   const walk = (node: PlanNode) => {
     const kind = node["Node Type"];
     if (node["Relation Name"]) {
-      scans.push(`${kind} ${node["Relation Name"]}${node["Index Name"] ? ` (${node["Index Name"]})` : ""}`);
+      scans.push(
+        `${kind} ${node["Relation Name"]}${node["Index Name"] ? ` (${node["Index Name"]})` : ""}`,
+      );
       if (kind === "Seq Scan" && BIG_TABLES.has(node["Relation Name"])) {
         seqScansOnBig.push(node["Relation Name"]);
       }
@@ -223,7 +225,9 @@ type HotQuery = {
 };
 
 const fromBuilder = (q: { toSQL: () => { sql: string; params: unknown[] } }) => () => q.toSQL();
-const raw = (text: string, params: unknown[] = []) => () => ({ sql: text, params });
+const raw =
+  (text: string, params: unknown[] = []) =>
+  () => ({ sql: text, params });
 
 const QUERIES: HotQuery[] = [
   // --- Gasto (spend.ts) ---
@@ -241,9 +245,7 @@ const QUERIES: HotQuery[] = [
   },
   {
     name: "gasto 24 h de una persona sin agente de CV (userId + excludeCvAgent)",
-    build: fromBuilder(
-      spendSinceQuery(conn$(), SINCE_24H, { userId: USER, excludeCvAgent: true }),
-    ),
+    build: fromBuilder(spendSinceQuery(conn$(), SINCE_24H, { userId: USER, excludeCvAgent: true })),
   },
   {
     // countTaskCallsSince (spend.ts) ejecuta directo y no expone la consulta: se reproduce igual
@@ -274,17 +276,18 @@ const QUERIES: HotQuery[] = [
   {
     // releaseLlmSpend (spend-reserve.ts): DELETE por id y tarea
     name: "borrar una reserva (releaseLlmSpend, reproducida)",
-    build: raw(
-      `delete from llm_calls where id = $1 and task = $2`,
-      ["00000000-0000-4000-8000-0000000000ff", LLM_RESERVE_TASK],
-    ),
+    build: raw(`delete from llm_calls where id = $1 and task = $2`, [
+      "00000000-0000-4000-8000-0000000000ff",
+      LLM_RESERVE_TASK,
+    ]),
   },
   // --- login_attempts (rls/0029 y rls/0028, retention/purge.ts) ---
   {
     name: "login begin: fila por email (SELECT ... FOR UPDATE por email_hash, rls/0029)",
-    build: raw(`select failed_count, locked_until, last_attempt_at from login_attempts where email_hash = $1 for update`, [
-      "a".repeat(64),
-    ]),
+    build: raw(
+      `select failed_count, locked_until, last_attempt_at from login_attempts where email_hash = $1 for update`,
+      ["a".repeat(64)],
+    ),
   },
   {
     name: "login begin: actualizar el contador (UPDATE por email_hash, rls/0029)",
@@ -295,9 +298,10 @@ const QUERIES: HotQuery[] = [
   },
   {
     name: "login begin: alta de la fila (INSERT ON CONFLICT, rls/0029)",
-    build: raw(`insert into login_attempts (email_hash) values ($1) on conflict (email_hash) do nothing`, [
-      "b".repeat(64),
-    ]),
+    build: raw(
+      `insert into login_attempts (email_hash) values ($1) on conflict (email_hash) do nothing`,
+      ["b".repeat(64)],
+    ),
   },
   {
     // rls/0028: login_attempt_clear borra por el prefijo de 32 caracteres con left(), que no usa el índice de la clave
@@ -373,7 +377,10 @@ const QUERIES: HotQuery[] = [
         .select({ domain: s.inboundSenderDomains.domain })
         .from(s.inboundSenderDomains)
         .where(
-          and(eq(s.inboundSenderDomains.userId, USER), eq(s.inboundSenderDomains.verdict, "empleo")),
+          and(
+            eq(s.inboundSenderDomains.userId, USER),
+            eq(s.inboundSenderDomains.verdict, "empleo"),
+          ),
         ),
     ),
   },
@@ -447,7 +454,9 @@ describe("consultas calientes: sin Seq Scan sobre la tabla grande", () => {
       const plan = await explain(text, params, q.asUser);
       report.push(
         `PLAN | ${q.name} | ${plan.summary || "(sin tabla)"} | ${
-          plan.seqScansOnBig.length > 0 ? `SEQ SCAN: ${plan.seqScansOnBig.join(", ")}` : "sin Seq Scan"
+          plan.seqScansOnBig.length > 0
+            ? `SEQ SCAN: ${plan.seqScansOnBig.join(", ")}`
+            : "sin Seq Scan"
         }${q.pending ? " | PENDIENTE" : ""}`,
       );
       if (q.pending) return;

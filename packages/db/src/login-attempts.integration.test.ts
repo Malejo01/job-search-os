@@ -9,7 +9,9 @@ const holder = vi.hoisted(() => ({ db: undefined as unknown }));
 
 // Los cachés de Next no existen fuera de un pedido.
 vi.mock("../../../apps/web/lib/market", () => ({ invalidateMarketCandidates: () => undefined }));
-vi.mock("../../../apps/web/lib/insights-cache", () => ({ invalidateUserInsights: () => undefined }));
+vi.mock("../../../apps/web/lib/insights-cache", () => ({
+  invalidateUserInsights: () => undefined,
+}));
 
 // deleteAccount importa ./db de la app: acá se reemplaza por la misma lógica de withUser sobre esta base.
 vi.mock("../../../apps/web/lib/db", () => ({
@@ -222,7 +224,8 @@ describe("login_attempt_clear", () => {
 
     await clear(HASH_A);
 
-    const rows = await owner`select 1 from login_attempts where left(email_hash, 32) = ${HASH_B.slice(0, 32)}`;
+    const rows =
+      await owner`select 1 from login_attempts where left(email_hash, 32) = ${HASH_B.slice(0, 32)}`;
     expect(rows).toHaveLength(2);
   });
 
@@ -231,7 +234,8 @@ describe("login_attempt_clear", () => {
 
     await clear("%");
 
-    const rows = await owner`select 1 from login_attempts where left(email_hash, 32) = ${HASH_A.slice(0, 32)}`;
+    const rows =
+      await owner`select 1 from login_attempts where left(email_hash, 32) = ${HASH_A.slice(0, 32)}`;
     expect(rows).toHaveLength(2);
   });
 });
@@ -262,7 +266,10 @@ describe("borrado de cuenta", () => {
     const { hashPassword } = await import("./password");
     await owner`insert into users (id, email, password_hash)
                 values (${USER}, ${EMAIL}, ${hashPassword(PASSWORD)})`;
-    const hashes = [sha(EMAIL), createHmac("sha256", "secreto-de-prueba").update(EMAIL).digest("hex")];
+    const hashes = [
+      sha(EMAIL),
+      createHmac("sha256", "secreto-de-prueba").update(EMAIL).digest("hex"),
+    ];
     for (const h of hashes) {
       await begin(h, IP_1);
       await begin(h, IP_2);
@@ -276,10 +283,12 @@ describe("borrado de cuenta", () => {
 
       expect(result.ok).toBe(true);
       for (const h of hashes) {
-        const rows = await owner`select 1 from login_attempts where left(email_hash, 32) = ${h.slice(0, 32)}`;
+        const rows =
+          await owner`select 1 from login_attempts where left(email_hash, 32) = ${h.slice(0, 32)}`;
         expect(rows, h).toHaveLength(0);
       }
-      const others = await owner`select 1 from login_attempts where left(email_hash, 32) = ${HASH_B.slice(0, 32)}`;
+      const others =
+        await owner`select 1 from login_attempts where left(email_hash, 32) = ${HASH_B.slice(0, 32)}`;
       expect(others).toHaveLength(2);
     } finally {
       vi.unstubAllEnvs();

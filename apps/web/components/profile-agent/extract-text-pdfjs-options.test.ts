@@ -19,7 +19,9 @@ describe("pdfjs sin eval", () => {
     const files = readdirSync(buildDir).filter((f) => f.endsWith(".mjs"));
     expect(files).toContain("pdf.worker.min.mjs");
     const offenders = files.filter((f) =>
-      /new Function\(|(^|[^.\w])eval\(|isEvalSupported/.test(readFileSync(join(buildDir, f), "utf8")),
+      /new Function\(|(^|[^.\w])eval\(|isEvalSupported/.test(
+        readFileSync(join(buildDir, f), "utf8"),
+      ),
     );
     expect(offenders).toEqual([]);
   });

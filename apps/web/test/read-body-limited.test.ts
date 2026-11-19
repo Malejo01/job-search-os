@@ -57,18 +57,27 @@ describe("readBodyLimited", () => {
 
   it("corta aunque el Content-Length mienta (declara poco y manda mucho)", async () => {
     const { request } = countingRequest([bytes(400), bytes(400)], { "content-length": "10" });
-    await expect(readBodyLimited(request, 500)).resolves.toEqual({ ok: false, reason: "too_large" });
+    await expect(readBodyLimited(request, 500)).resolves.toEqual({
+      ok: false,
+      reason: "too_large",
+    });
   });
 
   it("un Content-Length ilegible no se confía: manda el cuerpo real", async () => {
     const small = countingRequest([bytes(10)], { "content-length": "mucho" });
     await expect(readBodyLimited(small.request, 100)).resolves.toMatchObject({ ok: true });
     const big = countingRequest([bytes(300)], { "content-length": "1e2" });
-    await expect(readBodyLimited(big.request, 100)).resolves.toEqual({ ok: false, reason: "too_large" });
+    await expect(readBodyLimited(big.request, 100)).resolves.toEqual({
+      ok: false,
+      reason: "too_large",
+    });
   });
 
   it("el tope es inclusivo: justo en el tope pasa", async () => {
-    const request = new Request("https://app.example/api/x", { method: "POST", body: "a".repeat(100) });
+    const request = new Request("https://app.example/api/x", {
+      method: "POST",
+      body: "a".repeat(100),
+    });
     await expect(readBodyLimited(request, 100)).resolves.toMatchObject({ ok: true });
   });
 
@@ -87,14 +96,20 @@ describe("readBodyLimited", () => {
       body: twoMb,
     });
     let started = performance.now();
-    await expect(readBodyLimited(declared, 8_000)).resolves.toEqual({ ok: false, reason: "too_large" });
+    await expect(readBodyLimited(declared, 8_000)).resolves.toEqual({
+      ok: false,
+      reason: "too_large",
+    });
     expect(performance.now() - started).toBeLessThan(100);
 
     // Sin Content-Length, en trozos de 64 KB
     const chunks = Array.from({ length: 32 }, () => bytes(64 * 1024));
     const { request } = countingRequest(chunks);
     started = performance.now();
-    await expect(readBodyLimited(request, 8_000)).resolves.toEqual({ ok: false, reason: "too_large" });
+    await expect(readBodyLimited(request, 8_000)).resolves.toEqual({
+      ok: false,
+      reason: "too_large",
+    });
     expect(performance.now() - started).toBeLessThan(100);
   });
 });

@@ -74,15 +74,30 @@ test("ningún job con secretos de modelo corre en un pull_request: solo en push 
       // El `if` del job va antes de `steps:`; cualquier otro `if` de un paso no cuenta
       const header = block.split(/^\s+steps:/m)[0];
       const condition = header.match(/^\s+if:\s*(.+)$/m)?.[1] ?? "";
-      assert.notEqual(condition, "", `${name}: ${job} usa un secreto de modelo y no tiene \`if\` a nivel de job`);
+      assert.notEqual(
+        condition,
+        "",
+        `${name}: ${job} usa un secreto de modelo y no tiene \`if\` a nivel de job`,
+      );
       assert.doesNotMatch(condition, /pull_request/, `${name}: ${job} corre en pull_request`);
-      assert.match(condition, /github\.ref == 'refs\/heads\/main'/, `${name}: ${job} no se limita a main`);
-      assert.match(condition, /github\.event_name == '(push|workflow_dispatch)'/, `${name}: ${job}`);
+      assert.match(
+        condition,
+        /github\.ref == 'refs\/heads\/main'/,
+        `${name}: ${job} no se limita a main`,
+      );
+      assert.match(
+        condition,
+        /github\.event_name == '(push|workflow_dispatch)'/,
+        `${name}: ${job}`,
+      );
       // Un pull_request_target le daría el secreto a código de un PR: tampoco
       assert.doesNotMatch(condition, /pull_request_target/, `${name}: ${job}`);
     }
   }
-  assert.ok(checked > 0, "no se encontró ningún job con secretos de modelo: el test no está probando nada");
+  assert.ok(
+    checked > 0,
+    "no se encontró ningún job con secretos de modelo: el test no está probando nada",
+  );
 });
 
 test("ningún workflow se dispara con pull_request_target", () => {

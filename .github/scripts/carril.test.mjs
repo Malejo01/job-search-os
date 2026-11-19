@@ -213,7 +213,12 @@ for (const f of [
 
 test("todo archivo que usa el rol de servicio, un lock global o la lista de admins está en el carril rojo", () => {
   // Marcas de los controles que deciden quién puede qué o cuánto se gasta. Los tests no cuentan: no deciden nada.
-  const marks = [/purpose:\s*["']service["']/, /pg_advisory_xact_lock/, /ADMIN_EMAILS/, /is_app_admin/];
+  const marks = [
+    /purpose:\s*["']service["']/,
+    /pg_advisory_xact_lock/,
+    /ADMIN_EMAILS/,
+    /is_app_admin/,
+  ];
   const isTest = (f) =>
     /\.(test|spec)\.[cm]?[jt]sx?$/.test(f) || /\/(__tests__|e2e|fixtures)\//.test(f);
   const files = [...walk("apps"), ...walk("packages")].filter(
