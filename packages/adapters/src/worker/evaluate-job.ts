@@ -664,7 +664,7 @@ export type WorkerSummary = {
   spendUsd24h: number;
   dailyCapUsd: number;
   /** true si el worker se frenó por tope de gasto o por señal; lo no procesado sigue en la cola. */
-  stopped: "cap" | "signal" | "budget" | null;
+  stopped: "cap" | "signal" | "budget" | "breaker" | null;
   /** Pendientes en la cola al cortar por presupuesto de tiempo; 0 si no se cortó por eso. */
   remaining: number;
   taken: number;
@@ -735,6 +735,21 @@ function userSpendTracker(deps: EvaluateDeps, capUsd: number) {
   };
 }
 
+/** Fallas seguidas del proveedor tras las cuales la corrida se corta (corte de circuito). */
+export const DEFAULT_MAX_CONSECUTIVE_FAILURES = 5;
+
+/** Desde EVALUATE_MAX_CONSECUTIVE_FAILURES; vacío o inválido (no entero ≥ 1) usa el valor por defecto. */
+export function maxConsecutiveFailuresFromEnv(env: NodeJS.ProcessEnv = process.env): number {
+  const raw = env.EVALUATE_MAX_CONSECUTIVE_FAILURES?.trim();
+  if (!raw || !/^\d+$/.test(raw)) return DEFAULT_MAX_CONSECUTIVE_FAILURES;
+  const n = Number(raw);
+  return Number.isSafeInteger(n) && n >= 1 ? n : DEFAULT_MAX_CONSECUTIVE_FAILURES;
+}
+
+/** Falla del proveedor (la evaluación no llegó a resultado): el código de `evaluateJobById` empieza así. */
+const isProviderFailure = (outcome: EvaluateOutcome): boolean =>
+  !outcome.ok && outcome.retry === "retry" && outcome.error.startsWith("generation_failed:");
+
 /** Procesa hasta `limit` mensajes de la cola evaluate_job (route /api/cron/evaluate y CLI). */
 export async function runEvaluateWorker(
   deps: EvaluateDeps,
@@ -754,9 +769,21 @@ export async function runEvaluateWorker(
     budgetMs?: number;
     /** Id de la corrida para el log; por defecto uno nuevo. */
     runId?: string;
+    /**
+     * Fallas seguidas del proveedor tras las cuales la corrida termina y deja el resto en la cola.
+     * Default: EVALUATE_MAX_CONSECUTIVE_FAILURES o 5; un valor inválido usa el 5.
+     */
+    maxConsecutiveFailures?: number;
   } = {},
 ): Promise<WorkerSummary> {
   const limit = options.limit ?? 20;
+  const maxConsecutiveFailures =
+    options.maxConsecutiveFailures !== undefined &&
+    Number.isSafeInteger(options.maxConsecutiveFailures) &&
+    options.maxConsecutiveFailures >= 1
+      ? options.maxConsecutiveFailures
+      : maxConsecutiveFailuresFromEnv();
+  let consecutiveFailures = 0;
   const runId = options.runId ?? randomUUID();
   const dailyCapUsd = options.dailyCapUsd ?? dailyCapFromEnv();
   const userCapUsd = options.userDailyCapUsd ?? userDailyCapUsd();
@@ -951,6 +978,18 @@ export async function runEvaluateWorker(
         const r = await deps.queue.fail(msg.id, outcome.error);
         if (r === "retry") summary.retried++;
         else summary.failed++;
+      }
+      // Corte de circuito: N fallas seguidas del proveedor (clave vencida, crédito, caída) y se corta
+      consecutiveFailures = isProviderFailure(outcome) ? consecutiveFailures + 1 : 0;
+      if (consecutiveFailures >= maxConsecutiveFailures) {
+        summary.stopped = "breaker";
+        for (const rest of messages.slice(i + 1)) await requeue(rest.id, "worker frenado: breaker");
+        summary.taken = takenBefore + i + 1;
+        deps.logger.error(
+          { run_id: runId, consecutive_failures: consecutiveFailures },
+          "evaluate: corrida cortada por fallas seguidas del proveedor",
+        );
+        break batches;
       }
     }
     // Lote entero diferido por tope: hay que traer otro, o los de otros usuarios no se evalúan nunca

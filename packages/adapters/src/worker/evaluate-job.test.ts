@@ -6,6 +6,7 @@ import type { LlmClient } from "../llm/types";
 import type { Logger } from "../logger";
 import {
   evaluateForProfile,
+  maxConsecutiveFailuresFromEnv,
   salaryFromApiKinds,
   targetRoleLabelFor,
   unexpectedError,
@@ -15,6 +16,22 @@ import {
 vi.mock("@job-search-os/pipeline", async (orig) => {
   const m = await orig<typeof Pipeline>();
   return { ...m, buildChecklist: vi.fn(m.buildChecklist) };
+});
+
+describe("maxConsecutiveFailuresFromEnv", () => {
+  const withValue = (v: string | undefined) =>
+    maxConsecutiveFailuresFromEnv({ EVALUATE_MAX_CONSECUTIVE_FAILURES: v } as NodeJS.ProcessEnv);
+
+  it("sin valor o con valor inválido usa 5", () => {
+    for (const v of [undefined, "", "  ", "0", "-3", "abc", "2.5", "1e3", "99999999999999999999"]) {
+      expect(withValue(v)).toBe(5);
+    }
+  });
+
+  it("un entero positivo se respeta", () => {
+    expect(withValue("1")).toBe(1);
+    expect(withValue(" 12 ")).toBe(12);
+  });
 });
 
 describe("targetRoleLabelFor", () => {

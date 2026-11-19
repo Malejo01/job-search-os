@@ -43,12 +43,15 @@ export type SpendSummary = {
  * guarda el costo real y esto no se usa. Los topes en USD cuentan el intento con este valor: una
  * cuenta que provoca fallos a propósito ya no repite llamadas sin freno (R11-7). Cubre una llamada con
  * el tope de entrada (unos 25.000 tokens), más que una evaluación típica: lo conservador es frenar de más.
- * Un intento que nunca llegó al proveedor (`provider_unavailable`) no cuenta.
+ * Solo se estima donde el proveedor pudo haber facturado sin informarlo: `timeout`, errores 5xx y
+ * errores sin código. Un rechazo 4xx (clave inválida, crédito agotado, 429) no se factura y cuenta 0,
+ * igual que un intento que nunca llegó al proveedor (`provider_unavailable`): si no, una caída o una
+ * clave vencida agotaría el tope de 24 h sin gasto real.
  */
 export const FAILED_CALL_ESTIMATE_USD = 0.04;
 
 /** USD de una fila para los topes: el real si se conoce; si no, el estimado de un intento fallido. */
-const billedUsd = sql`coalesce(${s.llmCalls.costUsd}, case when not ${s.llmCalls.ok} and ${s.llmCalls.error} is distinct from 'provider_unavailable' then ${FAILED_CALL_ESTIMATE_USD}::float8 end, 0)`;
+const billedUsd = sql`coalesce(${s.llmCalls.costUsd}, case when not ${s.llmCalls.ok} and (${s.llmCalls.error} is null or ${s.llmCalls.error} in ('timeout', 'api_call', 'unknown') or ${s.llmCalls.error} ~ '^api_call:5[0-9][0-9]$') then ${FAILED_CALL_ESTIMATE_USD}::float8 end, 0)`;
 
 export const DEFAULT_DAILY_CAP_USD = 2;
 
