@@ -7,7 +7,7 @@ import {
   checkJdSize,
   compileTaxonomy,
   decide,
-  detectEvaluatorInjection,
+  detectJobInjection,
   detectResidencyRestriction,
   effectiveAcceptedModalities,
   evaluationWireFor,
@@ -263,7 +263,7 @@ export async function evaluateForProfile(
   const { promptVersion, profile, rules, job } = input;
   // El aviso es texto de terceros: si trae instrucciones al evaluador se marca antes de llamar al
   // modelo. El flag topa el score en decide() y queda en jobs.flags; en el log solo van los nombres.
-  const injection = detectEvaluatorInjection([job.title, job.companyRaw, job.jdText].join("\n"));
+  const injection = detectJobInjection(job);
   // Se recalcula siempre: un flag viejo no sobrevive si la JD ya no dispara el detector
   // Lo mismo con la residencia exigida: la JD pudo llegar después del ingreso (pendiente_jd), así
   // que se recalcula con el texto completo y el país actual de la persona.
