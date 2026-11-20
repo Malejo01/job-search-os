@@ -33,14 +33,14 @@
     "inbound:skeleton": "tsx src/inbound/skeleton-cli.ts"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^4.0.52",
-    "@ai-sdk/google": "^4.0.67",
+    "@ai-sdk/anthropic": "^4.0.105",
+    "@ai-sdk/google": "^4.0.121",
     "@job-search-os/db": "workspace:*",
     "@job-search-os/pipeline": "workspace:*",
     "@job-search-os/prompts": "workspace:*",
-    "ai": "^7.0.97",
-    "drizzle-orm": "^0.45.2",
-    "pino": "^10.3.1",
+    "ai": "^7.0.173",
+    "drizzle-orm": "^0.45.4",
+    "pino": "^10.4.0",
     "zod": "^4.6.6"
   },
   "devDependencies": {
