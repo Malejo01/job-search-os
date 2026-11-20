@@ -4,12 +4,53 @@ import {
   loadInboundContent,
   RESEND_FETCH_TIMEOUT_MS,
   ResendFetchError,
+  ResendReceivedEventSchema,
 } from "./resend";
 
 const respond = (status: number, body: unknown = {}) =>
   vi.fn(async () => new Response(JSON.stringify(body), { status })) as unknown as typeof fetch;
 
 const logger = { warn: vi.fn() };
+
+describe("ResendReceivedEventSchema", () => {
+  const event = (attachments: unknown[]) => ({
+    type: "email.received",
+    created_at: "2026-11-20T12:07:04.000Z",
+    data: {
+      email_id: "11111111-2222-4333-8444-555555555555",
+      from: "no_reply@portal.example",
+      to: ["u_ejemplo@ingest.example"],
+      subject: "Avisos nuevos",
+      attachments,
+    },
+  });
+
+  it("acepta un adjunto sin nombre (filename null), como la parte AMP de algunos portales", () => {
+    const parsed = ResendReceivedEventSchema.safeParse(
+      event([
+        {
+          id: "946f686b-7e83-4850-81f1-32fe1e9f2798",
+          filename: null,
+          content_type: "text/x-amp-html",
+          content_disposition: "inline",
+          content_id: null,
+        },
+      ]),
+    );
+    expect(parsed.success).toBe(true);
+  });
+
+  it("acepta adjuntos con nombre o sin el campo", () => {
+    expect(
+      ResendReceivedEventSchema.safeParse(event([{ id: "a", filename: "cv.pdf" }, { id: "b" }]))
+        .success,
+    ).toBe(true);
+  });
+
+  it("sigue rechazando un adjunto sin id", () => {
+    expect(ResendReceivedEventSchema.safeParse(event([{ filename: null }])).success).toBe(false);
+  });
+});
 
 describe("fetchReceivedEmail", () => {
   it("devuelve el cuerpo cuando la API responde bien", async () => {

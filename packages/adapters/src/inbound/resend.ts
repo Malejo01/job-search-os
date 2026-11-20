@@ -15,7 +15,10 @@ export const ResendReceivedEventSchema = z.object({
     message_id: z.string().optional(),
     subject: z.string().nullable().optional(),
     attachments: z
-      .array(z.object({ id: z.string(), filename: z.string().optional() }).passthrough())
+      .array(
+        // `filename` llega en null en partes sin nombre (por ejemplo la versión AMP de un email).
+        z.object({ id: z.string(), filename: z.string().nullish() }).passthrough(),
+      )
       .default([]),
   }),
 });
