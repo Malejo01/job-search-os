@@ -1,0 +1,51 @@
+name: cron-evaluate
+# Propuesta C8-16 (docs/beta/capacidad.md §2): una corrida extra de SOLO el paso `evaluate` cada hora,
+# para que la cola no crezca cuando la beta llega al tope de 15 evaluaciones por día por persona. Sin
+# ingesta. Queda APAGADO hasta que Mauro cargue la variable de repositorio EVALUATE_HOURLY=1
+# (Settings › Secrets and variables › Actions › Variables); sin ella el job se saltea y no llama a nada.
+# El gasto lo sigue frenando LLM_DAILY_CAP_USD en el worker: más corridas no suben el tope diario.
+on:
+  schedule:
+    - cron: "30 * * * *" # cada hora a los :30 UTC, para no pisarse con la corrida de 6 h de cron.yml (:00)
+  workflow_dispatch:
+
+# Mismo grupo que cron.yml: si coincide con otra corrida, espera en vez de evaluar dos veces a la vez
+concurrency:
+  group: cron
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    if: vars.EVALUATE_HOURLY == '1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      APP_URL: ${{ vars.APP_URL }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: Verificar configuración
+        run: |
+          if [ -z "$APP_URL" ]; then echo "::error::Falta la variable APP_URL"; exit 1; fi
+          if [ -z "$CRON_SECRET" ]; then echo "::error::Falta el secret CRON_SECRET"; exit 1; fi
+
+      - name: Evaluar cola
+        run: |
+          set -o pipefail
+          body=$(curl --silent --show-error --fail-with-body --max-time 300 \
+            -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/evaluate") || { echo "::error::evaluate: el endpoint no respondió 2xx"; echo "$body"; exit 1; }
+          echo "$body" | jq .
+          echo "$body" | jq -e '.ok == true' > /dev/null || { echo "::error::evaluate: la respuesta no trae ok:true"; exit 1; }
+          if [ "$(echo "$body" | jq -r '.stopped // empty')" = "cap" ]; then
+            echo "::warning::evaluate: el worker se frenó por LLM_DAILY_CAP_USD; quedan mensajes pending"
+          fi
+          failed=$(echo "$body" | jq -r '.failed // 0')
+          retried=$(echo "$body" | jq -r '.retried // 0')
+          evaluated=$(echo "$body" | jq -r '.evaluated // 0')
+          if [ "$failed" != "0" ]; then echo "::warning::evaluate: $failed evaluaciones fallaron"; fi
+          if [ "$evaluated" = "0" ] && [ $((failed + retried)) -gt 0 ]; then
+            echo "::error::evaluate: 0 evaluadas y $((failed + retried)) con error; primer error: $(echo "$body" | jq -r '.errors[0].error // "?"')"
+            exit 1
+          fi
