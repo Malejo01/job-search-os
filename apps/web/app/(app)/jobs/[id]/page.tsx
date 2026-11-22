@@ -1,4 +1,5 @@
 import {
+  affinityBreakdown,
   buildFitPoints,
   englishIsNotAGap,
   fitCrossSentence,
@@ -44,6 +45,7 @@ import {
 import { requireUserId } from "@/lib/session";
 import { changeStatusAction, dismissDuplicateAction, humanScoreAction } from "./actions";
 import { AutoRefresh } from "../auto-refresh";
+import { AffinityDetail } from "./affinity-detail";
 import { ApplyButton } from "./apply-button";
 import { getSavedFormAnswers } from "./form-data";
 import { FormReview } from "./form-review";
@@ -144,6 +146,7 @@ export default async function JobDetailPage({
   const checklistNow = ev?.checklist ? withCurrentSkillLevels(ev.checklist, currentLevels) : null;
   const requisitos = checklistNow && ev ? withMustGaps(checklistNow, ev.gaps) : null;
   const risks = ev ? visibleRisks(ev.riesgos.map(riskLabel), requisitos?.items) : [];
+  const noEnglishGap = englishIsNotAGap(job.jdText, null);
   const salary =
     job.salaryMinUsd || job.salaryMaxUsd
       ? `USD ${[job.salaryMinUsd, job.salaryMaxUsd].filter(Boolean).join("–")}${job.salaryPeriod ? ` ${job.salaryPeriod}` : ""}`
@@ -354,15 +357,29 @@ export default async function JobDetailPage({
 
       {ev ? (
         <>
+          {/* R17-03: detalle del sello, una barra por criterio; solo con datos que la página ya trae */}
+          <AffinityDetail
+            items={affinityBreakdown({
+              matchFuerte: ev.matchFuerte,
+              gaps: noEnglishGap ? ev.gaps.filter((g) => !isEnglishGap(g)) : ev.gaps,
+              riesgos: risks,
+              bloqueadores: ev.bloqueadores,
+              adjustments: ev.adjustments,
+              yearsRequired: ev.yearsRequired,
+              locationOk: ev.locationOk,
+              modality: ev.modality,
+              englishRequired: ev.englishRequired,
+              englishGap: !noEnglishGap && ev.gaps.some(isEnglishGap),
+              salaryMinUsd: job.salaryMinUsd,
+              salaryMaxUsd: job.salaryMaxUsd,
+            })}
+          />
           {/* Lo simple primero: lo técnico (bloqueadores, riesgos, requisitos) viene debajo */}
           <FitPointsPanel
             points={buildFitPoints({
               matchFuerte: ev.matchFuerte,
               senales: ev.senales,
-              gaps: (englishIsNotAGap(job.jdText, null)
-                ? ev.gaps.filter((g) => !isEnglishGap(g))
-                : ev.gaps
-              ).map(gapText),
+              gaps: (noEnglishGap ? ev.gaps.filter((g) => !isEnglishGap(g)) : ev.gaps).map(gapText),
               riesgos: risks,
               bloqueadores: ev.bloqueadores,
               checklist: checklistNow,
