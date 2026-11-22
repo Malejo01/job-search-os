@@ -119,7 +119,7 @@ const FAQS: FaqItem[] = [
     q: "¿Cuándo abre el acceso?",
     a: (
       <p>
-        La beta cerrada abre el <strong>jueves 26 de noviembre</strong>. El cupo es limitado. Si hay
+        La beta cerrada abre <strong>a principios de diciembre</strong>. El cupo es limitado. Si hay
         lugar para vos, te escribimos con tu invitación y el enlace para crear tu cuenta.
       </p>
     ),

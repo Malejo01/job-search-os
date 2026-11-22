@@ -1,5 +1,5 @@
 import {
-  BETA_OPENS_AT,
+  BETA_OPENING_LABEL,
   BETA_PLAN,
   limitsText,
   listedPlans,
@@ -20,11 +20,6 @@ import { PlanCardV2 } from "./plan-card-v2";
 export const revalidate = 3600;
 
 const BETA = planDef(BETA_PLAN);
-const OPENS = new Intl.DateTimeFormat("es-AR", {
-  day: "numeric",
-  month: "long",
-  timeZone: "America/Argentina/Buenos_Aires",
-}).format(BETA_OPENS_AT);
 
 export const metadata: Metadata = {
   title: "Precios",
@@ -47,7 +42,7 @@ const FAQ: readonly { q: string; a: string }[] = [
   },
   {
     q: "¿Cuándo empieza mi acceso?",
-    a: `Cuando se acredita tu pago, lo activamos a mano y tenés ${BETA.durationDays} días desde ese momento. Si pagás antes del ${OPENS}, los ${BETA.durationDays} días cuentan desde ese día.`,
+    a: `Cuando se acredita tu pago, lo activamos a mano y tenés ${BETA.durationDays} días desde ese momento. Si pagás antes de que abra la beta, los ${BETA.durationDays} días cuentan desde la apertura.`,
   },
   {
     q: "¿Se renueva solo?",
@@ -86,8 +81,9 @@ export default function PreciosPage() {
       <header className="flex flex-col gap-2">
         <h1 className="text-3xl font-semibold">Precios</h1>
         <p className="max-w-2xl text-base text-fg-muted">
-          La beta es cerrada y abre el {OPENS}. Un solo plan pago, mes a mes: evalúa más ofertas por
-          día y te deja seguir más carreras a la vez. Si no renovás, no perdés nada de lo tuyo.
+          La beta es cerrada y abre {BETA_OPENING_LABEL}. Un solo plan pago, mes a mes: evalúa más
+          ofertas por día y te deja seguir más carreras a la vez. Si no renovás, no perdés nada de
+          lo tuyo.
         </p>
       </header>
 

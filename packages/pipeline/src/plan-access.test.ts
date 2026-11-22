@@ -86,8 +86,8 @@ describe("planAccess: en qué estado está el acceso (C3-1)", () => {
 describe("grantPeriod: hasta cuándo queda activo un plan (C3-1)", () => {
   const OPEN = BETA_OPENS_AT;
 
-  it("la beta abre el 26/11 a las 00:00 de Argentina", () => {
-    expect(OPEN.toISOString()).toBe("2026-11-26T03:00:00.000Z");
+  it("la beta abre el 1/12 a las 00:00 de Argentina (fecha provisoria)", () => {
+    expect(OPEN.toISOString()).toBe("2026-12-01T03:00:00.000Z");
   });
 
   it("después de abrir, son 30 días desde ahora", () => {

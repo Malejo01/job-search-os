@@ -21,7 +21,8 @@ export type WaitlistAdminEntry = {
 };
 
 /** Cuándo abre la beta, tal como va en el texto de la invitación. */
-export const BETA_OPENING_LABEL = "jueves 26/11";
+/** Cuándo abre la beta, para los textos. Sin fecha fija hasta que Mauro y Ani la definan. */
+export const BETA_OPENING_LABEL = "a principios de diciembre";
 
 /** Valor del filtro de origen para quienes no completaron «cómo te enteraste». */
 export const ORIGIN_NONE = "__sin_dato__";
@@ -252,7 +253,7 @@ export function buildWaitlistInvitationText(input: {
   return [
     first ? `Hola ${first}:` : "Hola,",
     "",
-    `Te invitamos a la beta cerrada de ${PRODUCT_NAME}. La beta abre el ${BETA_OPENING_LABEL}; podés crear tu cuenta desde ahora con este link:`,
+    `Te invitamos a la beta cerrada de ${PRODUCT_NAME}. La beta abre ${BETA_OPENING_LABEL}; podés crear tu cuenta desde ahora con este link:`,
     "",
     input.link,
     "",

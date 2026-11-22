@@ -14,11 +14,12 @@ const DAY_MS = 86_400_000;
 export const EXPIRY_WARNING_DAYS = 3;
 
 /**
- * Apertura de la beta cerrada: jueves 26/11/2026, 00:00 de Argentina (UTC−3, sin horario de verano).
+ * Apertura de la beta cerrada, provisoria: lunes 1/12/2026, 00:00 de Argentina (UTC−3, sin horario de
+ * verano). Se movió desde el 26/11; los textos dicen «a principios de diciembre» hasta fijar el día.
  * Un plan que se activa antes de esta fecha cuenta sus días desde acá, para que ni el pago ni la beca
  * se gasten antes de que la beta abra.
  */
-export const BETA_OPENS_AT = new Date("2026-11-26T03:00:00Z");
+export const BETA_OPENS_AT = new Date("2026-12-01T03:00:00Z");
 
 /** Cómo llegó el acceso: la persona pagó, o Mauro le dio la beca (primer mes gratis). */
 export const PLAN_SOURCES = ["pago", "beca"] as const;
