@@ -129,9 +129,15 @@ describe("runEvals: subset y presupuesto", () => {
 
 describe("runEvals: guardarraíles de costo", () => {
   it("estima el costo antes de correr con la tarifa de model_routing y tokens medidos por modelo/thinking", () => {
-    // seeds/model_routing.json: gemini-3.5-flash 1.5 in / 9 out por millón, thinking minimal
+    // seeds/model_routing.json: gemini-3.5-flash 1.5 in / 9 out por millón. El principal del seed
+    // ya no lleva razonamiento, así que la medición con minimal se pide explícita.
     const measured = MEASURED_TOKENS_PER_CALL["gemini-3.5-flash:minimal"]!;
-    const e = estimateRunCost({ subset: true, runs: 1, model: "gemini-3.5-flash" });
+    const e = estimateRunCost({
+      subset: true,
+      runs: 1,
+      model: "gemini-3.5-flash",
+      thinking: "minimal",
+    });
     expect(e.calls).toBe(20);
     expect(e.tokensOutPerCall).toBe(measured.out);
     expect(e.source).toContain("medido");
@@ -149,7 +155,7 @@ describe("runEvals: guardarraíles de costo", () => {
     expect(tokenSampleFor("otro-modelo", "minimal").out).toBe(ESTIMATED_TOKENS_PER_CALL.out);
     // Historia de llm_calls: manda sobre la tabla medida
     const hist = estimateRunCost(
-      { subset: true, runs: 1, model: "gemini-3.5-flash" },
+      { subset: true, runs: 1, model: "gemini-3.5-flash", thinking: "minimal" },
       { in: 2000, out: 300, source: "historia" },
     );
     expect(hist.usd).toBeCloseTo((20 * (2000 * 1.5 + 300 * 9)) / 1e6, 9);
@@ -307,12 +313,17 @@ describe("runEvals: tope de gasto durante la corrida (JS-080)", () => {
 
 describe("runEvals: modelo, thinking y registro", () => {
   it("routeFor toma la tarifa de cualquier fila del seed y el thinking del seed o del override", () => {
-    // Primario: 3.5-flash con minimal (flash-lite falló ubicación exacta el 2026-09-11); sin fallback en evals
+    // Primario: Claude Sonnet sin razonamiento (S4-12); sin fallback en evals
     const base = routeFor();
     expect(base).toMatchObject({
+      model: "claude-sonnet-5-5",
+      thinkingLevel: null,
+      fallbackModel: null,
+    });
+    expect(routeFor("gemini-3.5-flash", "minimal")).toMatchObject({
+      provider: "google",
       model: "gemini-3.5-flash",
       thinkingLevel: "minimal",
-      fallbackModel: null,
     });
     const lite = routeFor("gemini-3.1-flash-lite", "none");
     expect(lite).toMatchObject({
@@ -337,7 +348,7 @@ describe("runEvals: modelo, thinking y registro", () => {
       label: "paso4",
       client,
     });
-    expect(report.meta).toMatchObject({ thinking: "minimal", db: "none", label: "paso4" });
+    expect(report.meta).toMatchObject({ thinking: null, db: "none", label: "paso4" });
     expect(client.calls[0]?.ctx).toMatchObject({ recordTask: "eval:v1.2", label: "paso4" });
   });
 });
