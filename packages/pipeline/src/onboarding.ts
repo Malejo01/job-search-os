@@ -208,4 +208,3 @@ export function effectiveAcceptedModalities(p: {
   if (p.remoteOnly === false && !list.some((m) => m !== "remoto")) return [...MODALITIES];
   return list.length ? list : ["remoto"];
 }
-

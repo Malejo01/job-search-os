@@ -50,7 +50,8 @@ async function wipe(...hashes: string[]): Promise<void> {
 /** 10 IP con 5 intentos cada una: 50 fallos repartidos que activan el tope por email solo. */
 async function lockWithTenIps(hash: string): Promise<void> {
   for (let ip = 1; ip <= 10; ip += 1) {
-    for (let i = 1; i <= 5; i += 1) expect(await begin(hash, ipN(ip)), `ip ${ip} intento ${i}`).toBe(true);
+    for (let i = 1; i <= 5; i += 1)
+      expect(await begin(hash, ipN(ip)), `ip ${ip} intento ${i}`).toBe(true);
   }
 }
 
@@ -105,7 +106,9 @@ describe("espera por email solo (bloqueo sostenido)", () => {
       expect(s, `vuelta ${vuelta}`).toBeGreaterThan(mins[vuelta]!);
       expect(s, `vuelta ${vuelta}`).toBeLessThanOrEqual(maxes[vuelta]!);
       await expireEmailLock(HASH_A);
-      expect(await begin(HASH_A, ipN(100 + vuelta)), `vuelta ${vuelta}: pasa un intento`).toBe(true);
+      expect(await begin(HASH_A, ipN(100 + vuelta)), `vuelta ${vuelta}: pasa un intento`).toBe(
+        true,
+      );
     }
   });
 
@@ -160,10 +163,11 @@ describe("orden de los locks: begin y clear toman primero la fila por email", ()
         const pending = app`select login_attempt_clear(${HASH_A})`.then(() => "listo");
         await new Promise((r) => setTimeout(r, 600));
         // Si clear ya hubiera tomado la fila de la IP, esta consulta falla por nowait (55P03)
-        const ipState = await owner`select 1 from login_attempts where email_hash = ${ipRow} for update nowait`.then(
-          () => "libre",
-          (e: { code?: string }) => (e.code === "55P03" ? "tomada" : `error ${e.code}`),
-        );
+        const ipState =
+          await owner`select 1 from login_attempts where email_hash = ${ipRow} for update nowait`.then(
+            () => "libre",
+            (e: { code?: string }) => (e.code === "55P03" ? "tomada" : `error ${e.code}`),
+          );
         return { pending, ipState };
       });
       expect(outcome.ipState).toBe("libre");
@@ -171,7 +175,8 @@ describe("orden de los locks: begin y clear toman primero la fila por email", ()
     } finally {
       await holder.end();
     }
-    const rows = await owner`select 1 from login_attempts where left(email_hash, 32) = ${HASH_A.slice(0, 32)}`;
+    const rows =
+      await owner`select 1 from login_attempts where left(email_hash, 32) = ${HASH_A.slice(0, 32)}`;
     expect(rows).toHaveLength(0);
   }, 30_000);
 

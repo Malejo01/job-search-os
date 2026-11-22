@@ -142,7 +142,9 @@ export function OnboardingForm({
     try {
       const [stateRaw] = JSON.parse(stored) as [string | null];
       const state = parseProfileAgentState(JSON.parse(stateRaw ?? "null"));
-      const prefill = onboardingGuidePrefill(state?.guide ?? null, { country: agentInitial.country });
+      const prefill = onboardingGuidePrefill(state?.guide ?? null, {
+        country: agentInitial.country,
+      });
       return { ...agentInitial, ...prefill };
     } catch {
       // un estado roto en el navegador: queda lo guardado

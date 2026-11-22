@@ -33,7 +33,9 @@ describe("onboarding.ts, el módulo que usa el cliente", () => {
   const files = [...reachable(resolve(here, "onboarding.ts"))].map((f) => f.replaceAll("\\", "/"));
 
   it("no alcanza el detector de instrucciones", () => {
-    expect(files.filter((f) => /\/evaluator\/injection\.ts$|\/cv\/injection\.ts$/.test(f))).toEqual([]);
+    expect(files.filter((f) => /\/evaluator\/injection\.ts$|\/cv\/injection\.ts$/.test(f))).toEqual(
+      [],
+    );
   });
 
   it("no alcanza el módulo de validación del servidor", () => {
@@ -45,10 +47,14 @@ describe("onboarding.ts, el módulo que usa el cliente", () => {
   });
 
   it("la precarga del cliente no tiene imports", () => {
-    expect(readFileSync(resolve(here, "onboarding-prefill.ts"), "utf8")).not.toMatch(/^\s*import\s/m);
+    expect(readFileSync(resolve(here, "onboarding-prefill.ts"), "utf8")).not.toMatch(
+      /^\s*import\s/m,
+    );
   });
 
   it("el módulo del servidor sí usa el detector (el control no se perdió)", () => {
-    expect(readFileSync(resolve(here, "onboarding-parse.ts"), "utf8")).toContain("detectEvaluatorInjection(");
+    expect(readFileSync(resolve(here, "onboarding-parse.ts"), "utf8")).toContain(
+      "detectEvaluatorInjection(",
+    );
   });
 });

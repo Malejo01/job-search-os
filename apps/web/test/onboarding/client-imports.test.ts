@@ -17,7 +17,8 @@ const CLIENT_FILES = [
   "components/role-picker.tsx",
 ];
 // profileAgentFormPrefill: su módulo trae el detector (por el resumen); el cliente usa onboardingGuidePrefill
-const SERVER_ONLY = /profileAgentFormPrefill|parseOnboarding|onboardingSchema|SUMMARY_IGNORED_SIGNALS|onboarding-parse|detectEvaluatorInjection|evaluator\/injection/;
+const SERVER_ONLY =
+  /profileAgentFormPrefill|parseOnboarding|onboardingSchema|SUMMARY_IGNORED_SIGNALS|onboarding-parse|detectEvaluatorInjection|evaluator\/injection/;
 
 describe("código de cliente del onboarding", () => {
   for (const file of CLIENT_FILES) {

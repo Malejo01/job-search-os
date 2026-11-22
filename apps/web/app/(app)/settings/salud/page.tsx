@@ -186,8 +186,8 @@ export default async function SaludPage() {
           className="rounded-card bg-warning-soft px-4 py-3 text-sm text-warning"
         >
           Falta <code>LOGIN_ATTEMPTS_HMAC_SECRET</code> en producción: los intentos de login se
-          guardan con hashes sin sal. Cargala en Vercel (<code>docs/OPERACION.md</code>, «Intentos de
-          login»).
+          guardan con hashes sin sal. Cargala en Vercel (<code>docs/OPERACION.md</code>, «Intentos
+          de login»).
         </p>
       ) : null}
       <ul className="m-0 flex list-none flex-col gap-3 p-0">

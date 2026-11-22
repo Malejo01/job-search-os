@@ -120,7 +120,11 @@ describe("el cliente respeta las capacidades del modelo", () => {
     );
     const r = await client.generateStructured("evaluate_job", Schema, vars);
     expect(r.ok).toBe(true);
-    expect(seen[0]).toEqual({ model: "modelo-nuevo", temperature: undefined, reasoning: undefined });
+    expect(seen[0]).toEqual({
+      model: "modelo-nuevo",
+      temperature: undefined,
+      reasoning: undefined,
+    });
   });
 
   it("el principal Google usa el thinking_level de la fila", async () => {

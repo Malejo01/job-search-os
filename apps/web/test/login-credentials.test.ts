@@ -172,7 +172,9 @@ describe("intentos por IP", () => {
 describe("loginSecretMissingInProduction (aviso de /settings/salud)", () => {
   it("avisa solo en producción y solo si falta el secreto (vacío cuenta como falta)", () => {
     expect(loginSecretMissingInProduction({ VERCEL_ENV: "production" })).toBe(true);
-    expect(loginSecretMissingInProduction({ VERCEL_ENV: "production", LOGIN_ATTEMPTS_HMAC_SECRET: " " })).toBe(true);
+    expect(
+      loginSecretMissingInProduction({ VERCEL_ENV: "production", LOGIN_ATTEMPTS_HMAC_SECRET: " " }),
+    ).toBe(true);
     expect(
       loginSecretMissingInProduction({ VERCEL_ENV: "production", LOGIN_ATTEMPTS_HMAC_SECRET: "x" }),
     ).toBe(false);

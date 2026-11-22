@@ -224,8 +224,9 @@ describe("principal Claude con imagen y respaldo Gemini (sin red)", () => {
     expect(r.ok).toBe(true);
     const body = h.seen[0]!.body;
     expect(body).not.toHaveProperty("temperature");
-    const content = (body.messages as Array<{ content: Array<{ type: string; source?: unknown }> }>)[0]!
-      .content;
+    const content = (
+      body.messages as Array<{ content: Array<{ type: string; source?: unknown }> }>
+    )[0]!.content;
     const block = content.find((c) => c.type === "image");
     expect(block).toBeDefined();
     expect(block!.source).toMatchObject({ type: "base64", media_type: "image/jpeg" });

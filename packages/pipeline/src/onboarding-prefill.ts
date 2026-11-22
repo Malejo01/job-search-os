@@ -15,6 +15,7 @@ export function onboardingGuidePrefill(
 ): OnboardingGuidePrefill {
   const out: OnboardingGuidePrefill = {};
   if (guide?.country && current.country === "") out.country = guide.country;
-  if (guide?.modalities && guide.modalities.length > 0) out.acceptedModalities = [...guide.modalities];
+  if (guide?.modalities && guide.modalities.length > 0)
+    out.acceptedModalities = [...guide.modalities];
   return out;
 }
