@@ -7,7 +7,8 @@
 -- hueco en el que un login_attempt_clear podía borrar la fila y otro pedido volver a crearla, y dos pedidos
 -- quedaban cruzados (deadlock). Ahora cada fila se crea o se bloquea en la misma sentencia.
 -- Restablecer la contraseña siempre destraba (login_attempt_clear, 0044: borra todas las filas del email).
--- Orden de locks: primero la fila por email, después la de la IP; clear lo respeta desde 0044.
+-- Orden de locks: primero el candado de la persona (advisory, por prefijo del email), después la fila por email
+-- y la de la IP; clear toma el mismo candado desde 0044.
 DROP FUNCTION IF EXISTS public.login_attempt_begin(text, text);
 CREATE FUNCTION public.login_attempt_begin(p_hash text, p_ip_hash text DEFAULT NULL)
 RETURNS boolean
@@ -31,6 +32,10 @@ BEGIN
   IF p_ip_hash IS NOT NULL AND p_ip_hash !~ '^[0-9a-f]{64}$' THEN
     RETURN false;
   END IF;
+  -- Candado de la persona (prefijo del email) hasta el fin de la transacción: begin y clear del mismo email se
+  -- ordenan en una sola cola. Los locks de fila solos no alcanzan: si la fila por email todavía no está
+  -- confirmada, clear no la ve, la saltea y queda cruzado con un begin sobre la fila de una IP (deadlock).
+  PERFORM pg_advisory_xact_lock(hashtextextended('login_attempts:' || left(p_hash, 32), 0));
   v_ip_key := left(p_hash, 32)
     || left(encode(sha256(convert_to(p_hash || ':' || coalesce(p_ip_hash, '-'), 'UTF8')), 'hex'), 32);
   -- Cada fila se crea o se bloquea en la misma sentencia (upsert que devuelve la fila bloqueada): sin hueco entre
