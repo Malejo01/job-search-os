@@ -787,6 +787,43 @@ export function maxConsecutiveFailuresFromEnv(env: NodeJS.ProcessEnv = process.e
 const isProviderFailure = (outcome: EvaluateOutcome): boolean =>
   !outcome.ok && outcome.retry === "retry" && outcome.error.startsWith("generation_failed:");
 
+/** Ventana del corte de circuito de la evaluación inmediata: fallas más viejas no cuentan. */
+export const BREAKER_WINDOW_MS = 10 * 60 * 1000;
+
+/** Códigos de `llm_calls.error` que son falla del proveedor (no del contenido de la oferta). */
+const isProviderErrorCode = (code: string | null): boolean =>
+  code === null ||
+  code === "timeout" ||
+  code === "unknown" ||
+  code === "provider_unavailable" ||
+  code.startsWith("api_call");
+
+/**
+ * Corte de circuito global de la evaluación inmediata: true si las últimas `maxFailures` llamadas de
+ * `evaluate_job` fallaron todas por el proveedor y la más vieja de ellas es de los últimos 10 minutos
+ * (un éxito más nuevo, o una falla de contenido entre ellas, reabre el paso). Es global a propósito: el
+ * proveedor caído afecta a todos. Una consulta con `llm_calls_task_created`, sin lock; va en la acción
+ * o el worker, nunca en el render de una página.
+ */
+export async function evaluationCircuitOpen(
+  db: Pick<Db, "select">,
+  options: { maxFailures?: number; windowMs?: number; now?: () => Date } = {},
+): Promise<boolean> {
+  const max = options.maxFailures ?? maxConsecutiveFailuresFromEnv();
+  const since =
+    (options.now ?? (() => new Date()))().getTime() - (options.windowMs ?? BREAKER_WINDOW_MS);
+  const rows = await db
+    .select({ ok: s.llmCalls.ok, error: s.llmCalls.error, createdAt: s.llmCalls.createdAt })
+    .from(s.llmCalls)
+    .where(eq(s.llmCalls.task, "evaluate_job"))
+    .orderBy(desc(s.llmCalls.createdAt))
+    .limit(max);
+  return (
+    rows.length >= max &&
+    rows.every((r) => !r.ok && isProviderErrorCode(r.error) && r.createdAt.getTime() >= since)
+  );
+}
+
 /** Procesa hasta `limit` mensajes de la cola evaluate_job (route /api/cron/evaluate y CLI). */
 export async function runEvaluateWorker(
   deps: EvaluateDeps,
@@ -1055,6 +1092,8 @@ export async function runEvaluateWorker(
 export type EvaluateNowResult =
   | { ran: true; outcome: EvaluateOutcome }
   | { ran: false; reason: "cap" | "not_pending" }
+  /** Corte de circuito: el proveedor viene fallando; la oferta queda en la cola para el cron. */
+  | { ran: false; reason: "breaker" }
   /** El dueño pasó su tope diario por usuario (JS-093): `message` es apto para mostrar en la UI. */
   | { ran: false; reason: "user_cap"; message: string };
 
@@ -1067,9 +1106,21 @@ export type EvaluateNowResult =
 export async function evaluateJobNow(
   jobId: string,
   deps: EvaluateDeps,
-  options: { dailyCapUsd?: number; userDailyCapUsd?: number } = {},
+  options: { dailyCapUsd?: number; userDailyCapUsd?: number; maxConsecutiveFailures?: number } = {},
 ): Promise<EvaluateNowResult> {
   const log = deps.logger.child({ job_id: jobId });
+  // Proveedor caído: no se llama al modelo ni se reserva gasto; el mensaje sigue pending para el cron
+  if (
+    await evaluationCircuitOpen(deps.db, {
+      now: deps.now,
+      ...(options.maxConsecutiveFailures !== undefined
+        ? { maxFailures: options.maxConsecutiveFailures }
+        : {}),
+    })
+  ) {
+    log.warn("evaluación inmediata cortada por fallas seguidas del proveedor: queda para el cron");
+    return { ran: false, reason: "breaker" };
+  }
   const dailyCapUsd = options.dailyCapUsd ?? dailyCapFromEnv();
   const userCapUsd = options.userDailyCapUsd ?? userDailyCapUsd();
   // Un job sin dueño no llega al modelo: evaluateJobById lo descarta
