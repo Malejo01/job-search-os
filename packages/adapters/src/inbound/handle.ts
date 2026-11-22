@@ -226,9 +226,16 @@ async function checkUserQuota(
 const inUnexpectedBucket = () =>
   sql`(${inArray(s.inboundEmails.error, [...UNEXPECTED_BUCKET_REASONS])} or ${like(s.inboundEmails.error, `${UNRECOGNIZED_PREFIX}%`)})`;
 
-/** Cupo definitivo de un email ya procesado: lo ilegible, retenido o sin parser es de no esperados. */
-function bucketOfOutcome(error: string | null): QuotaBucket {
-  if (!error) return "expected";
+/**
+ * Cupo definitivo de un email ya procesado: lo ilegible, retenido o sin parser es de no esperados, salvo que
+ * la autenticación del remitente haya salido verificada (`aligned`): un portal que cambió de formato no se
+ * castiga.
+ */
+export function bucketOfOutcome(
+  error: string | null,
+  authVerdict: string | null = null,
+): QuotaBucket {
+  if (!error || authVerdict === "aligned") return "expected";
   return UNEXPECTED_BUCKET_REASONS.includes(error) || error.startsWith(UNRECOGNIZED_PREFIX)
     ? "unexpected"
     : "expected";
@@ -859,8 +866,7 @@ export async function handleInboundEmail(
     // esperados (fuentes de empleo conocidas o dominios marcados como fuente de empleo). Del resto,
     // solo remitente, destinatarios, asunto, fecha y el email_id (idempotencia); ni cuerpo ni
     // nombres de adjuntos.
-    const expected =
-      !isSecurity && !oversize && !storageFull && (gmailConfirmClaimed || senderExpected);
+    const expected = !isSecurity && !oversize && (gmailConfirmClaimed || senderExpected);
     const authRecord = authVerdict ? { auth_verdict: authVerdict } : {};
     // Todo lo que no se guarda completo lleva el asunto con los números enmascarados
     const headerSubject = event.data.subject?.slice(0, MAX_STORED_HEADER_CHARS) ?? null;
@@ -912,9 +918,9 @@ export async function handleInboundEmail(
     let dismissedAt: Date | null = null;
     let seen = false;
 
-    if (storageFull) {
-      error = STORAGE_FULL_REASON;
-    } else if (isSecurity) {
+    // Con el tope pasado el email se procesa igual (sus ofertas entran): el cuerpo vive en memoria y solo
+    // se omite guardar el crudo
+    if (isSecurity) {
       parserUsed = SECURITY_PARSER;
       error = SECURITY_EMAIL_REASON;
       dismissedAt = now;
@@ -1001,7 +1007,11 @@ export async function handleInboundEmail(
           error = "usuario sin criterios activos";
         } else {
           // Cada aviso extraído apunta al crudo del email (JS-024)
-          const jobs = parsed.jobs.map((j) => ({ ...j, source: { ...j.source, rawRef } }));
+          // (sin crudo guardado no hay a qué apuntar)
+          const jobs = parsed.jobs.map((j) => ({
+            ...j,
+            source: storageFull ? j.source : { ...j.source, rawRef },
+          }));
           const summary = await ingestBatch(jobs, {
             db,
             userId,
@@ -1021,7 +1031,7 @@ export async function handleInboundEmail(
     // Cupo definitivo: un email que dijo venir de un portal pero resultó ilegible, retenido o sin parser
     // es de no esperados. Si ese cupo está lleno, no se guarda (como cualquier rechazo por cupo) y el
     // cupo esperado queda para lo que el parser reconoció.
-    if (bucket === "expected" && bucketOfOutcome(error) === "unexpected") {
+    if (bucket === "expected" && bucketOfOutcome(error, authVerdict) === "unexpected") {
       const counts = await countBucket(db, userId, "unexpected", now);
       if (
         counts.hour >= (deps.hourlyLimit ?? 100) ||
@@ -1039,6 +1049,12 @@ export async function handleInboundEmail(
       }
     }
 
+    // Resuelto solo (postulación de LinkedIn) o con avisos extraídos y sin error: no necesita a
+    // la persona. Un fallo parcial ("N avisos con error") queda en Pendientes.
+    const resolved = seen || (jobsExtracted > 0 && error === null);
+    // Sin crudo guardado por el tope, la fila lo dice (si no hay otro motivo más útil)
+    if (storageFull && error === null) error = STORAGE_FULL_REASON;
+
     const [row] = await db
       .update(s.inboundEmails)
       .set({
@@ -1048,9 +1064,7 @@ export async function handleInboundEmail(
         parser: parserUsed ?? (parser ? parserName : "none"),
         jobsExtracted,
         error,
-        // Resuelto solo (postulación de LinkedIn) o con avisos extraídos y sin error: no necesita a
-        // la persona. Un fallo parcial ("N avisos con error") queda en Pendientes.
-        seenAt: seen || (jobsExtracted > 0 && error === null) ? now : null,
+        seenAt: resolved ? now : null,
         dismissedAt,
       })
       .where(eq(s.inboundEmails.id, claimId))
@@ -1077,11 +1091,23 @@ export async function handleInboundEmail(
       error,
     };
   } catch (e) {
-    // Falló con una excepción (no colgó): se libera el cupo y el email_id para que el reintento lo procese
-    await db
-      .delete(s.inboundEmails)
-      .where(eq(s.inboundEmails.id, claimId))
-      .catch(() => undefined);
+    // Falló con una excepción: la provisional no se borra (si el reintento de Svix ya la vio como duplicado,
+    // borrarla perdería el email). Queda en `pending:` con la fecha vencida para que el próximo reintento
+    // la retome o el barrido la mande a la cola manual. Sigue siendo una sola fila: el cupo no cuenta doble.
+    // Si ya se terminó de guardar (la falla fue después), no se toca. «Procesar igual» sí la borra: la fila
+    // retenida necesita recuperar su email_id.
+    if (deps.treatAsVerified) {
+      await db
+        .delete(s.inboundEmails)
+        .where(eq(s.inboundEmails.id, claimId))
+        .catch(() => undefined);
+    } else {
+      await db
+        .update(s.inboundEmails)
+        .set({ receivedAt: new Date(now.getTime() - PENDING_RECLAIM_MS - 1_000) })
+        .where(and(eq(s.inboundEmails.id, claimId), eq(s.inboundEmails.rawRef, PENDING_RAW_REF)))
+        .catch(() => undefined);
+    }
     // El crudo de esta entrega fallida no queda colgado si ninguna fila ni oferta lo usa
     await deleteRawIfUnreferenced(db, userId, ownRawRef);
     throw e;

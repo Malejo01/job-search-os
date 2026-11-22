@@ -1,12 +1,21 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { applyMigrations } from "@job-search-os/db/src/migrate";
 import { createDb, schema as s } from "@job-search-os/db";
+import criteria from "@job-search-os/db/seeds/criteria.example.json";
 import { eq, sql } from "drizzle-orm";
 import pino from "pino";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { orphanSelectSql } from "../retention/purge";
 import { pgBlobStorage } from "../storage/blob";
-import { handleInboundEmail, STORAGE_FULL_REASON, userRawBytesSql } from "./handle";
+import {
+  handleInboundEmail,
+  PENDING_RECLAIM_MS,
+  STORAGE_FULL_REASON,
+  userRawBytesSql,
+} from "./handle";
+import { linkedinParser } from "./linkedin";
 import type { ResendReceivedEvent } from "./resend";
 
 /** Tope de correo crudo por persona, limpieza del crudo propio y planes de consulta sin recorrer la tabla. */
@@ -28,7 +37,7 @@ const event = (emailId: string): ResendReceivedEvent => ({
     cc: [],
     bcc: [],
     received_for: [],
-    subject: "Empresa A viewed your application",
+    subject: "AI Engineer: 3 nuevas ofertas",
     attachments: [],
   },
 });
@@ -55,6 +64,10 @@ beforeAll(async () => {
       inboundAddress: ADDRESS,
       profileSummary: "AI Engineer.",
     })
+    .onConflictDoNothing();
+  await conn.db
+    .insert(s.evaluationCriteria)
+    .values({ userId: USER, version: 1, active: true, rules: criteria as never })
     .onConflictDoNothing();
 }, 180_000);
 
@@ -88,8 +101,16 @@ const planOf = async (query: ReturnType<typeof sql>) => {
   return plan.map((r) => Object.values(r)[0]).join("\n");
 };
 
+const realAlert = () => ({
+  html: readFileSync(resolve(__dirname, "fixtures/linkedin/alerta-un-aviso.html"), "utf8"),
+  text: null,
+  headers: null,
+});
+const jobsOfUser = async () =>
+  (await conn.db.select({ id: s.jobs.id }).from(s.jobs).where(eq(s.jobs.userId, USER))).length;
+
 describe("tope de correo crudo por persona", () => {
-  it("pasado el tope no guarda el crudo, deja la fila visible con su motivo y cuenta el rechazo", async () => {
+  it("pasado el tope un email real de portal crea sus ofertas y solo deja de guardarse el crudo", async () => {
     await conn.db.insert(s.rawBlobs).values({
       userId: USER,
       kind: "inbound_email",
@@ -98,15 +119,19 @@ describe("tope de correo crudo por persona", () => {
       bytes: 5_000,
     });
     const before = await blobCount();
+    const jobsBefore = await jobsOfUser();
     const rejectedBefore = await rejectedCount();
     const ev = event("em_alm_tope");
 
-    const out = await handleInboundEmail(ev, null, JSON.stringify(ev), {
+    const out = await handleInboundEmail(ev, realAlert(), JSON.stringify(ev), {
       ...deps(),
       maxBytesPerUser: 1_000,
     });
 
     expect(out.kind).toBe("stored");
+    if (out.kind !== "stored") return;
+    expect(out.jobsExtracted).toBeGreaterThan(0);
+    expect(await jobsOfUser()).toBeGreaterThan(jobsBefore);
     const [row] = await conn.db
       .select()
       .from(s.inboundEmails)
@@ -115,6 +140,13 @@ describe("tope de correo crudo por persona", () => {
     expect(row?.rawRef).toBe("none:");
     expect(await blobCount()).toBe(before);
     expect(await rejectedCount()).toBe(rejectedBefore + 1);
+    // Las ofertas no apuntan a un crudo que no existe
+    const sources = await conn.db
+      .select({ rawRef: s.jobSources.rawRef })
+      .from(s.jobSources)
+      .innerJoin(s.jobs, eq(s.jobs.id, s.jobSources.jobId))
+      .where(eq(s.jobs.userId, USER));
+    expect(sources.every((r) => r.rawRef === null || r.rawRef.startsWith("pg:"))).toBe(true);
   });
 
   it("con espacio disponible guarda el crudo como siempre", async () => {
@@ -138,34 +170,64 @@ describe("tope de correo crudo por persona", () => {
 });
 
 describe("entrega fallida", () => {
-  it("no deja colgado el crudo propio si nadie lo referencia", async () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("no deja colgado el crudo propio y deja la fila retomable; el reintento la procesa sin contar doble", async () => {
     const before = await blobCount();
-    // El aviso final de «guardado» falla: la excepción llega al catch, después de guardar el crudo
+    const totalBefore = (
+      await conn.db
+        .select({ id: s.inboundEmails.id })
+        .from(s.inboundEmails)
+        .where(eq(s.inboundEmails.userId, USER))
+    ).length;
+    // El parser lanza y el aviso de esa falla también: la excepción llega al catch después de guardar el crudo
+    vi.spyOn(linkedinParser, "parse").mockImplementationOnce(() => {
+      throw new Error("falla simulada");
+    });
     const failing = {
       child: () => failing,
-      info: (_o: unknown, msg?: string) => {
-        if (msg === "inbound: guardado") throw new Error("falla simulada");
+      info: () => undefined,
+      warn: (_o: unknown, msg?: string) => {
+        if (msg?.includes("el parser lanzó")) throw new Error("falla de la entrega");
       },
-      warn: () => undefined,
       error: () => undefined,
       debug: () => undefined,
     };
     const ev = event("em_alm_falla");
 
     await expect(
-      handleInboundEmail(ev, null, JSON.stringify(ev), {
+      handleInboundEmail(ev, realAlert(), JSON.stringify(ev), {
         ...deps(),
         logger: failing as unknown as typeof logger,
         maxBytesPerUser: 100 * 1024 * 1024,
       }),
-    ).rejects.toThrow("falla simulada");
+    ).rejects.toThrow("falla de la entrega");
 
+    // El crudo propio se borró; la fila sigue provisional y ya vencida para que el reintento la tome
     expect(await blobCount()).toBe(before);
-    const rows = await conn.db
-      .select({ id: s.inboundEmails.id })
+    const [row] = await conn.db
+      .select()
       .from(s.inboundEmails)
       .where(eq(s.inboundEmails.emailId, "em_alm_falla"));
-    expect(rows).toHaveLength(0);
+    expect(row?.rawRef).toBe("pending:");
+    expect(Date.now() - row!.receivedAt.getTime()).toBeGreaterThan(PENDING_RECLAIM_MS);
+
+    const retry = await handleInboundEmail(ev, realAlert(), JSON.stringify(ev), {
+      ...deps(),
+      maxBytesPerUser: 100 * 1024 * 1024,
+    });
+
+    expect(retry.kind).toBe("stored");
+    const rows = await conn.db
+      .select()
+      .from(s.inboundEmails)
+      .where(eq(s.inboundEmails.userId, USER));
+    // Una sola fila por email_id: el reintento retomó la provisional, no sumó otro intento al cupo
+    expect(rows.filter((r) => r.emailId === "em_alm_falla")).toHaveLength(1);
+    expect(rows).toHaveLength(totalBefore + 1);
+    expect(rows.find((r) => r.emailId === "em_alm_falla")?.rawRef).toMatch(/^pg:/);
   });
 });
 

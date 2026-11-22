@@ -65,7 +65,7 @@ describe("cupo por intento", () => {
   const rowsOf = (emailId: string) =>
     conn.db.select().from(s.inboundEmails).where(eq(s.inboundEmails.emailId, emailId));
 
-  it("un email que falla al guardar el crudo no queda a medias: se libera y el reintento lo procesa", async () => {
+  it("un email que falla al guardar el crudo queda retomable (una sola fila) y el reintento lo procesa", async () => {
     const ev = event("em_cupo_falla");
     const storage = pgBlobStorage(conn.db);
     const put = vi.spyOn(storage, "put").mockRejectedValueOnce(new Error("storage caído"));
@@ -73,11 +73,14 @@ describe("cupo por intento", () => {
     await expect(
       handleInboundEmail(ev, null, JSON.stringify(ev), { ...deps(), storage }),
     ).rejects.toThrow("storage caído");
-    expect(await rowsOf("em_cupo_falla")).toHaveLength(0);
+    // La provisional no se borra: queda en `pending:` y ya vencida, así el reintento la toma sin perder el email
+    const [left] = await rowsOf("em_cupo_falla");
+    expect(left?.rawRef).toBe("pending:");
     put.mockRestore();
 
     const retry = await handleInboundEmail(ev, null, JSON.stringify(ev), deps());
     expect(retry.kind).toBe("stored");
+    expect(await rowsOf("em_cupo_falla")).toHaveLength(1);
   });
 
   it("una fila provisional (función colgada) cuenta para el límite y el reintento es un duplicado", async () => {
