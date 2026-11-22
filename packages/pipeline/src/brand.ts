@@ -18,8 +18,10 @@ export const BRAND = {
   name: `${WORDMARK.strong}${WORDMARK.light}`,
   /** Las dos partes del logotipo, con su peso: `strong` (Sora 800) y `light` (Sora 300). */
   wordmark: WORDMARK,
-  /** Bajada principal (manual M7). */
-  tagline: "Ofertas afines. CV afinado.",
+  /** Bajada principal, sin punto final: quien la usa en una oración lo pone. */
+  tagline: "Tu asistente de empleabilidad inteligente",
+  /** Frase secundaria (manual M7). */
+  taglineSecondary: "Ofertas afines. CV afinado.",
   /** Repositorio público, enlazado desde «Cómo está hecho». */
   repoUrl: "https://github.com/Malejo01/job-search-os",
 } as const;

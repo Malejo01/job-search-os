@@ -42,10 +42,9 @@ const PILL_INACTIVE = "text-on-ink-muted hover:bg-ink-line hover:text-on-ink";
 
 /**
  * Navegación de la computadora (desde `sm`): las cinco secciones en píldoras dentro de la barra
- * índigo, las mismas que las pestañas del celular (`SECTIONS`). Lo demás está en Perfil, en «Más».
- * En el celular no se ve: ahí van las pestañas de abajo (`MobileTabBar`). Client component solo
- * para marcar la sección activa (`aria-current`). Perfil es el ancla de la guía de /jobs («Sin
- * descripción» está en «Más»).
+ * índigo, las mismas que las pestañas del celular (`SECTIONS`). Lo demás está en «Más», dentro de
+ * Perfil (avatar). En el celular no se ve: ahí van las pestañas de abajo (`MobileTabBar`). Client
+ * component solo para marcar la sección activa (`aria-current`).
  */
 export function DesktopNav({ followUps = 0 }: { followUps?: number }) {
   const pathname = usePathname();
@@ -60,7 +59,6 @@ export function DesktopNav({ followUps = 0 }: { followUps?: number }) {
             <li key={item.href}>
               <Link
                 href={item.href}
-                data-tour={item.href === "/settings/perfil" ? "jobs:menu" : undefined}
                 aria-current={isActive ? "page" : undefined}
                 className={`${PILL_BASE} ${isActive ? PILL_ACTIVE : PILL_INACTIVE}`}
               >

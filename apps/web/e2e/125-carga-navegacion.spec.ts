@@ -26,7 +26,7 @@ function applicationsLink(page: Page, where: "tabbar" | "desktop"): Locator {
     where === "tabbar"
       ? page.getByTestId("tabbar")
       : page.getByRole("navigation", { name: "Secciones" });
-  return scope.getByRole("link", { name: "Postulaciones", exact: true });
+  return scope.getByRole("link", { name: "Tracker", exact: true });
 }
 
 async function expectPendingWhileLoading(page: Page, link: Locator) {

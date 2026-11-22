@@ -10,7 +10,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: BRAND.name,
     short_name: BRAND.name,
-    description: `${BRAND.tagline} Leemos cada oferta contra tu perfil y vos decidís.`,
+    description: `${BRAND.tagline}. ${BRAND.taglineSecondary} Leemos cada oferta contra tu perfil y vos decidís.`,
     lang: "es-AR",
     start_url: "/",
     display: "standalone",

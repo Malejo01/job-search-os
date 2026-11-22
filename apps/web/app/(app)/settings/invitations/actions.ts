@@ -138,7 +138,7 @@ const BulkInviteSchema = z.object({
 /**
  * Invita a las personas elegidas en el panel (C4-2). Tope por tanda: el que configura el panel, entre 1 y
  * 100 (default 20, o `WAITLIST_INVITE_CAP`). Cada invitación queda atada al email de la persona y el link
- * sale una sola vez, ya dentro del mensaje listo para copiar (con «la beta abre el jueves 26/11»).
+ * sale una sola vez, ya dentro del mensaje listo para copiar (con «la beta abre a principios de diciembre»).
  * No manda ningún email.
  */
 export async function inviteSelectedFromWaitlistAction(input: {

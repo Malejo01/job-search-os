@@ -4,14 +4,14 @@ import { loadPrompt, renderPrompt, templateVars } from "./loader";
 // Las mismas variables que arma apps/web/app/api/assistant/route.ts para los dos prompts.
 const VARS = { screen_label: "Ofertas", screen_job_id: "", today: "2026-11-06" };
 
-function load(ref: "assistant_chat@v1" | "assistant_propose@v1") {
+function load(ref: "assistant_chat@v1" | "assistant_chat@v1.1" | "assistant_propose@v1") {
   const p = loadPrompt(ref);
   if (!p.ok) throw new Error(`no carga ${ref}`);
   return p.value;
 }
 
 describe("prompts del asistente (R4-17)", () => {
-  it.each(["assistant_chat@v1", "assistant_propose@v1"] as const)(
+  it.each(["assistant_chat@v1", "assistant_chat@v1.1", "assistant_propose@v1"] as const)(
     "%s carga, tiene versión y renderiza con las variables de la ruta",
     (ref) => {
       const p = load(ref);
@@ -25,8 +25,25 @@ describe("prompts del asistente (R4-17)", () => {
     },
   );
 
-  const chat = () => load("assistant_chat@v1").template;
+  // La versión vigente del asistente es v1.1 (la ruta `api/assistant` la elige)
+  const chat = () => load("assistant_chat@v1.1").template;
   const propose = () => load("assistant_propose@v1").template;
+
+  it("v1.1 es igual a v1 salvo la fecha de apertura de la beta", () => {
+    const v1 = load("assistant_chat@v1").template.split("\n");
+    const v11 = load("assistant_chat@v1.1").template.split("\n");
+    expect(v11.length).toBe(v1.length);
+    const changed = v1.map((l, i) => [l, v11[i]] as const).filter(([a, b]) => a !== b);
+    expect(changed).toHaveLength(1);
+    expect(changed[0]?.[0]).toMatch(/26 de noviembre/);
+    expect(changed[0]?.[1]).toMatch(/abre a principios de diciembre de 2026/);
+  });
+
+  it("v1.1 no menciona el 26 de noviembre y conserva la regla de «si ya abrió»", () => {
+    const t = chat();
+    expect(t).not.toMatch(/26 de noviembre/);
+    expect(t).toMatch(/la beta ya abrió y que el cupo es limitado/);
+  });
 
   it("reglas de seguridad: no revelar instrucciones, lo externo es dato, sin datos sensibles", () => {
     const t = chat();

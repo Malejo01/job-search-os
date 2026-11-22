@@ -85,7 +85,7 @@ export const maxDuration = 60;
  * contenido. Los logs llevan `user_id`, `run_id` (el id de la charla), códigos y conteos.
  */
 
-const PROMPT_REF = "assistant_chat@v1" as const;
+const PROMPT_REF = "assistant_chat@v1.1" as const;
 /** Reglas de las propuestas: van después del prompt de charla, en el mismo sistema. */
 const PROPOSE_PROMPT_REF = "assistant_propose@v1" as const;
 

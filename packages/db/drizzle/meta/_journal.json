@@ -526,6 +526,13 @@
       "when": 1795361556751,
       "tag": "0074_awesome_kinsey_walden",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1795375760881,
+      "tag": "0075_interview",
+      "breakpoints": true
     }
   ]
 }

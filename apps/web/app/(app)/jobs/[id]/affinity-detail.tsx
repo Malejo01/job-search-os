@@ -1,0 +1,53 @@
+import type { AffinityItem } from "@job-search-os/pipeline";
+import { affinityRows } from "./affinity-view";
+
+/**
+ * Detalle del sello (R17-03): una barra por criterio, con puntaje y palabra. Es una explicación del
+ * puntaje con datos que la evaluación ya tiene; no cambia el número del sello. Va en un `<details>`:
+ * se abre con teclado (Enter o espacio sobre el resumen) y no necesita JavaScript.
+ */
+export function AffinityDetail({ items }: { items: readonly AffinityItem[] }) {
+  const rows = affinityRows(items);
+  return (
+    <details
+      id="composicion"
+      data-testid="afinidad-detalle"
+      className="rounded-card border border-line p-3 text-sm"
+    >
+      <summary className="flex min-h-11 cursor-pointer items-center font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus">
+        Ver cómo se compone el puntaje
+      </summary>
+      <ul className="mt-2 flex flex-col gap-3">
+        {rows.map((r) => (
+          <li key={r.key} data-testid={`afinidad-${r.key}`}>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="font-medium text-fg" id={`afinidad-${r.key}-label`}>
+                {r.label}
+              </span>
+              <span className="text-xs text-fg-muted">
+                {r.scoreText !== null ? `${r.scoreText}/10 · ${r.word}` : r.word}
+              </span>
+            </div>
+            {r.scoreText !== null ? (
+              <div
+                role="meter"
+                aria-labelledby={`afinidad-${r.key}-label`}
+                aria-valuemin={0}
+                aria-valuemax={10}
+                aria-valuenow={r.percent / 10}
+                aria-valuetext={`${r.scoreText} de 10, ${r.word}`}
+                className="mt-1 h-2 w-full overflow-hidden rounded-full bg-surface-muted"
+              >
+                <div className="h-full rounded-full bg-fg" style={{ width: `${r.percent}%` }} />
+              </div>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 text-xs text-fg-subtle">
+        Es una guía armada con lo que dice el aviso y tu perfil. El puntaje final lo decide el
+        sistema con reglas fijas.
+      </p>
+    </details>
+  );
+}

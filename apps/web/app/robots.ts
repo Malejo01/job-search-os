@@ -23,6 +23,8 @@ export default function robots(): MetadataRoute.Robots {
         "/plan",
         "/settings",
         "/onboarding",
+        "/interview",
+        "/academy",
       ],
     },
     sitemap: `${site}/sitemap.xml`,

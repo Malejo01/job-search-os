@@ -96,7 +96,7 @@ test.describe("Flujo 47: textos y navegación", () => {
     ).toBeAttached();
   });
 
-  test("en pantalla ancha la nav son las cinco secciones y «Sin descripción» marca Ofertas (C10-3, R5-C9)", async ({
+  test("en pantalla ancha la nav son las cinco secciones y «Sin descripción» marca Match (C10-3, R5-C9)", async ({
     page,
   }) => {
     await login(page);
@@ -106,15 +106,12 @@ test.describe("Flujo 47: textos y navegación", () => {
     await expect(nav).toBeVisible();
     await expect(page.getByTestId("tabbar")).toBeHidden();
     await expect(nav.getByRole("link")).toHaveCount(5);
-    // R5-C9 (hallazgo 19): «Sin descripción» es trabajo con las ofertas, marca Ofertas y no Perfil
-    await expect(nav.getByRole("link", { name: "Ofertas", exact: true })).toHaveAttribute(
+    // R5-C9 (hallazgo 19): «Sin descripción» es trabajo con las ofertas: marca Match y nada más
+    await expect(nav.getByRole("link", { name: "Match", exact: true })).toHaveAttribute(
       "aria-current",
       "page",
     );
-    await expect(nav.getByRole("link", { name: "Perfil", exact: true })).not.toHaveAttribute(
-      "aria-current",
-      "page",
-    );
+    await expect(nav.locator('a[aria-current="page"]')).toHaveCount(1);
   });
 
   test("«+ Cargar oferta» está junto al título, mide 44 px y lleva a /jobs/new", async ({
@@ -156,7 +153,7 @@ test.describe("Flujo 47: textos y navegación", () => {
     await expect(page.getByText("Puntaje de la IA")).toBeHidden();
     await page.getByText("Cómo se calculó", { exact: true }).click();
     await expect(page.getByText("Puntaje de la IA")).toBeVisible();
-    await expect(page.getByText("Puntaje final")).toBeVisible();
+    await expect(page.getByText("Puntaje final", { exact: true })).toBeVisible();
 
     await page.goto("/market");
     await expect(page.locator("body")).not.toContainText(/Match fuerte|Pendientes de JD/);

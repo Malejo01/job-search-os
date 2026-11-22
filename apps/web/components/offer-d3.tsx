@@ -6,6 +6,7 @@ import {
 } from "@job-search-os/pipeline";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { AffinitySealLink } from "@/components/affinity-seal-link";
 import { SealStamp } from "@/components/motion/seal-stamp";
 import { missingCta, missingStep } from "@/components/requisitos-del-aviso";
 import { SkillLevelButton } from "@/components/skill-level-modal";
@@ -133,11 +134,15 @@ export function OfferD3({
   const titleId = page ? "detalle-titulo" : "panel-oferta-titulo";
 
   // En la página hay dos sellos (cabecera de la computadora y fila del celular) y se ve uno solo
-  const seal = () => (
-    <SealStamp jobId={job.id} evaluated={Boolean(ev)}>
-      <Seal score={ev ? ev.score : null} pending={pending} size="detail" />
-    </SealStamp>
-  );
+  const seal = () => {
+    const stamp = (
+      <SealStamp jobId={job.id} evaluated={Boolean(ev)}>
+        <Seal score={ev ? ev.score : null} pending={pending} size="detail" />
+      </SealStamp>
+    );
+    // R17-03: solo en el detalle de una oferta evaluada el sello abre el panel de afinidad
+    return page && ev ? <AffinitySealLink>{stamp}</AffinitySealLink> : stamp;
+  };
 
   return (
     <div

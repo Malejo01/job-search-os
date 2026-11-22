@@ -60,6 +60,8 @@ export const PRIVATE_PREFIXES: readonly string[] = [
   "/plan",
   "/cv",
   "/encaje",
+  "/interview",
+  "/academy",
   "/settings",
   "/ui",
   "/onboarding",

@@ -1,15 +1,22 @@
-import { profileAgentPath, type CvMissing } from "@job-search-os/pipeline";
+import {
+  cvCoachAllowed,
+  cvCoachMode,
+  profileAgentFlagFor,
+  profileAgentPath,
+  type CvMissing,
+} from "@job-search-os/pipeline";
 import { HelpTip } from "@/components/help-tip";
 import Link from "next/link";
+import { CvItemsDiagnosis } from "@/components/cv-coach/items-diagnosis";
 import { CvPreview } from "@/components/cv-preview";
-import { profileAgentAllowedFor } from "@/lib/profile-agent/access";
+import { getSessionEmail } from "@/lib/profile-agent/access";
 import { PrintButton } from "@/components/print-button";
 import { canCreateInvitations } from "@/lib/invitations";
 import { buildUserCv, cvChatMode, parseCvOptions } from "@/lib/cv-source";
 import { requireUserId } from "@/lib/session";
 import { Alert, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
 
-export const metadata = { title: "Tu CV" };
+export const metadata = { title: "CV" };
 export const dynamic = "force-dynamic";
 
 type Params = { lang?: string | string[]; email?: string | string[]; basicas?: string | string[] };
@@ -92,8 +99,19 @@ export default async function CvPage({ searchParams }: { searchParams: Promise<P
     basicas: first(raw.basicas),
   });
   const mode = cvChatMode(process.env);
+  // El email de la sesión se lee una sola vez y solo si algún flag está encendido
+  let emailRead: Promise<string | null> | null = null;
+  const sessionEmail = () => (emailRead ??= getSessionEmail(userId));
+  const coachFlagFor = async (getEmail: () => Promise<string | null>) => {
+    if (cvCoachMode(process.env) === "off") return false;
+    try {
+      return cvCoachAllowed(process.env, await getEmail());
+    } catch {
+      return false;
+    }
+  };
   // R7-6: el CV y el permiso del chat no dependen uno del otro
-  const [doc, chatVisible, agentVisible] = await Promise.all([
+  const [doc, chatVisible, agentVisible, coachVisible] = await Promise.all([
     buildUserCv(userId, opts),
     mode === "all"
       ? Promise.resolve(true)
@@ -101,7 +119,9 @@ export default async function CvPage({ searchParams }: { searchParams: Promise<P
         ? canCreateInvitations(userId).catch(() => false)
         : Promise.resolve(false),
     // ADR-034: «Subí tu CV y armamos tu perfil», detrás de CV_PROFILE_AGENT (apagado: no aparece)
-    profileAgentAllowedFor(userId),
+    profileAgentFlagFor(process.env, sessionEmail),
+    // el coach exige además el agente de perfil: mismo email, una sola consulta
+    coachFlagFor(sessionEmail),
   ]);
   const download = new URLSearchParams({
     lang: opts.lang,
@@ -181,6 +201,8 @@ export default async function CvPage({ searchParams }: { searchParams: Promise<P
               </ul>
             </section>
           ) : null}
+
+          <CvItemsDiagnosis doc={doc} coach={coachVisible} />
 
           <form
             method="get"

@@ -10,13 +10,13 @@ import { activeSection, SECTIONS } from "./sections";
 
 /**
  * Pestañas fijas abajo en el celular (C9-7; C10-3, `.tabs` y `.tab` del tablero aprobado el 4/11):
- * Hoy, Ofertas, Postulaciones, Mi CV y Perfil. Barra blanca con borde de arriba de 2 px; cada
+ * Hoy, Match, CV, Tracker e Interview. Barra blanca con borde de arriba de 2 px; cada
  * pestaña es el ícono y el nombre (11 px 700), y la activa lleva el ícono dentro de una píldora lima
  * de 44×28. Solo por debajo de `sm`; en la computadora son las píldoras de arriba. Respeta la zona
- * segura de abajo del iPhone. Lo que no entra está en Perfil, en «Más».
+ * segura de abajo del iPhone. Lo que no entra (Academy, Perfil, Ajustes) está en «Más», al que se
+ * llega por el avatar de arriba.
  *
  * Se llama «Secciones», como la nav de la computadora: en cada ancho hay una sola a la vista.
- * Perfil es el ancla de la guía de /jobs en el celular («Sin descripción» está en Más).
  */
 export function MobileTabBar({ followUps = 0 }: { followUps?: number }) {
   const pathname = usePathname();
@@ -38,7 +38,6 @@ export function MobileTabBar({ followUps = 0 }: { followUps?: number }) {
               <Link
                 href={t.href}
                 aria-current={isActive ? "page" : undefined}
-                data-tour={t.href === "/settings/perfil" ? "jobs:menu" : undefined}
                 className={`flex min-h-11 flex-col items-center gap-[3px] rounded-control text-[11px] leading-tight font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
                   isActive ? "text-fg" : "text-fg-subtle hover:text-fg"
                 }`}

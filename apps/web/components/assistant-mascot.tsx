@@ -3,16 +3,19 @@
 import { domAnimation, LazyMotion, m, useReducedMotion } from "framer-motion";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { AssistantPanel } from "@/app/(app)/assistant-panel";
+import { Mascota } from "@/components/mascota";
 import { Icon } from "@/components/ui/icons";
+import { MASCOT_NAME } from "@/lib/textos-rediseno";
+import { MASCOTA_DISPONIBLE } from "@/lib/mascota";
+
+const FACE_READY = MASCOTA_DISPONIBLE["cara-48"];
 
 /**
- * Imágenes de la mascota en `public/mascota/{quieta,hablando,pensando}.png` y `@2x` (las hace
- * Mauro). Mientras no existan queda el marcador neutro del mismo tamaño; al llegar las imágenes
- * se cambia esta bandera a `true`. No se dibuja ni se descarga ningún personaje.
+ * La cara del botón es `<Mascota pose="cara-48">` (imágenes en `public/mascota/`, ver
+ * `lib/mascota.ts`). Mientras no existan queda el marcador de siempre (el «?») del mismo tamaño.
  */
-const MASCOT_IMAGES_AVAILABLE = false;
 const MASCOT_SIZE = 64;
-const MASCOT_BASE = "/mascota/quieta";
+const MASCOT_FACE_SIZE = 48;
 /** Clave del aviso de bienvenida: se muestra una sola vez por navegador. */
 const HINT_KEY = "afinia:asistente-aviso-visto";
 /** El aviso se esconde solo a los 10 s, para no quedar encima del contenido. */
@@ -94,8 +97,8 @@ export function AssistantMascot({ maxTurns }: { maxTurns?: number }) {
             aria-haspopup="dialog"
             aria-expanded={open}
             data-testid="asistente-mascota"
-            data-mascota-estado={MASCOT_IMAGES_AVAILABLE ? "lista" : "marcador"}
-            title="Asistente"
+            data-mascota-estado={FACE_READY ? "lista" : "marcador"}
+            title={MASCOT_NAME}
             onClick={() => {
               closeHint();
               setOpen(true);
@@ -103,28 +106,16 @@ export function AssistantMascot({ maxTurns }: { maxTurns?: number }) {
             style={{ "--mascota": `${MASCOT_SIZE}px` } as CSSProperties}
             className="inline-flex min-h-11 items-center justify-center gap-1.5 overflow-hidden rounded-pill border-2 border-line-strong bg-surface px-3.5 text-sm font-semibold text-fg shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:h-[var(--mascota)] sm:w-[var(--mascota)] sm:rounded-full sm:bg-illustration sm:px-0 sm:text-fg-muted"
           >
-            {MASCOT_IMAGES_AVAILABLE ? (
-              // Imagen estática del mismo dominio: sin el optimizador de Next
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={`${MASCOT_BASE}.png`}
-                srcSet={`${MASCOT_BASE}.png 1x, ${MASCOT_BASE}@2x.png 2x`}
-                width={MASCOT_SIZE}
-                height={MASCOT_SIZE}
-                alt=""
-                decoding="async"
-                className="h-full w-full object-contain"
-              />
+            <span className="sm:hidden" aria-hidden="true">
+              <Icon name="charla" size={20} />
+            </span>
+            <span className="sm:hidden">Asistente</span>
+            {FACE_READY ? (
+              <Mascota pose="cara-48" size={MASCOT_FACE_SIZE} className="hidden sm:inline-flex" />
             ) : (
-              <>
-                <span className="sm:hidden" aria-hidden="true">
-                  <Icon name="charla" size={20} />
-                </span>
-                <span className="sm:hidden">Asistente</span>
-                <span className="hidden sm:inline-flex" aria-hidden="true">
-                  <Icon name="pregunta" size={28} />
-                </span>
-              </>
+              <span className="hidden sm:inline-flex" aria-hidden="true">
+                <Icon name="pregunta" size={28} />
+              </span>
             )}
           </button>
         </m.div>

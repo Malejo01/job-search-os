@@ -40,6 +40,8 @@ export * from "./onboarding-prefill";
 export * from "./inbound-address";
 export * from "./criteria-form";
 export * from "./assistant-step";
+export * from "./affinity-breakdown";
+export * from "./job-transparency";
 // Fase 7 etapa 3 (asistente, nube N1): en el medio y no al final, para no chocar con otras ramas
 export * from "./agent";
 export * from "./product";
@@ -57,7 +59,9 @@ export * from "./first-ingest";
 export * from "./demo";
 export * from "./cv";
 export * from "./cv-chat";
+export * from "./interview";
 export * from "./cv-out";
+export * from "./cv-diagnosis";
 export * from "./cv-ats";
 export * from "./alerts/portal-guide";
 export * from "./alerts/few-offers";

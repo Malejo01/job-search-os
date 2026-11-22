@@ -69,7 +69,7 @@ test.describe("Flujo 91: lista de espera en tanda (admin)", () => {
 
     const result = page.getByTestId("waitlist-bulk-result");
     await expect(result).toContainText("2 invitaciones creadas");
-    await expect(result).toContainText("jueves 26/11");
+    await expect(result).toContainText("a principios de diciembre");
     await expect(result).toContainText("/register?code=");
     await expect(result).toContainText("Hola Ana:");
     // C7-12: el mensaje dice el precio y los 30 días; el link de pago sale de MP_LINK_LISTA y, sin la
