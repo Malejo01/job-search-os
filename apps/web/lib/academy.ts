@@ -105,7 +105,12 @@ export function loadApprovedFichas(): AcademyFicha[] {
   return onlyApproved(loadAcademyFichas());
 }
 
+/** Entre `fichas`, la aprobada con ese slug; `null` si no existe o sigue en borrador. */
+export function pickApproved(fichas: readonly AcademyFicha[], slug: string): AcademyFicha | null {
+  return onlyApproved(fichas).find((f) => f.slug === slug) ?? null;
+}
+
 /** Una ficha aprobada por su slug; `null` si no existe o sigue en borrador. */
 export function loadApprovedFicha(slug: string): AcademyFicha | null {
-  return loadApprovedFichas().find((f) => f.slug === slug) ?? null;
+  return pickApproved(loadAcademyFichas(), slug);
 }

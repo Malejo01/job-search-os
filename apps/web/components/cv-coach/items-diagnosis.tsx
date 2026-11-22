@@ -5,6 +5,7 @@ import {
   type CvDocument,
 } from "@job-search-os/pipeline";
 import Link from "next/link";
+import { ContextHelp } from "@/components/context-help";
 import { Badge, buttonClasses, cardClasses } from "@/components/ui";
 import { CV_DIAGNOSIS_TITLE, CV_LEVEL_WORDS } from "@/lib/textos-rediseno";
 
@@ -44,14 +45,22 @@ export function CvItemsDiagnosis({ doc, coach }: { doc: CvDocument; coach: boole
       data-testid="cv-diagnosis"
       className={cardClasses({ padding: "md", className: "no-print flex flex-col gap-4" })}
     >
-      <h2 id="cv-diagnostico" className="text-base font-bold text-fg">
-        {CV_DIAGNOSIS_TITLE}
-      </h2>
+      <div className="flex flex-wrap items-center gap-1">
+        <h2 id="cv-diagnostico" className="text-base font-bold text-fg">
+          {CV_DIAGNOSIS_TITLE}
+        </h2>
+        <ContextHelp slug="filtro-ats" term="filtro ATS" />
+      </div>
       <ul className="flex flex-col gap-4">
         {items.map((item) => (
           <li key={item.id} className="flex flex-col gap-1.5" data-testid={`cv-diag-${item.id}`}>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-sm font-semibold text-fg">{LABELS[item.id]}</span>
+              <span className="flex items-center gap-1 text-sm font-semibold text-fg">
+                {LABELS[item.id]}
+                {item.id === "keywords" ? (
+                  <ContextHelp slug="palabras-clave" term="palabras clave" />
+                ) : null}
+              </span>
               {item.status === "scored" ? (
                 <span className="text-sm font-bold text-fg">
                   {scoreText(item.score)}

@@ -1,4 +1,5 @@
 import { jobTransparency, type TransparencyInput } from "@job-search-os/pipeline";
+import { ContextHelp } from "@/components/context-help";
 import { transparencyView } from "./transparency-view";
 
 /**
@@ -14,9 +15,12 @@ export function TransparencyBlock({ input }: { input: TransparencyInput }) {
       className="rounded-card border border-line p-3 text-sm"
     >
       <div className="flex items-baseline justify-between gap-2">
-        <h2 id="transparencia-titulo" className="font-semibold">
-          Transparencia del aviso
-        </h2>
+        <div className="flex items-center gap-1">
+          <h2 id="transparencia-titulo" className="font-semibold">
+            Transparencia del aviso
+          </h2>
+          <ContextHelp slug="transparencia-del-aviso" term="transparencia del aviso" />
+        </div>
         <p className="text-fg" data-testid="transparencia-puntaje">
           <span className="font-semibold">{view.scoreText}/10</span> · {view.word}
         </p>
