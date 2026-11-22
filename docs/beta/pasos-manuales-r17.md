@@ -109,3 +109,34 @@ Para volver atrás: `DELETE FROM model_routing WHERE task IN ('interview_questio
 
   Corta **antes** de la llamada que pasaría el tope y avisa «CORTADO». El reporte (solo puntajes y veredictos, sin texto del modelo) queda en `evals/reports/interview/`.
 - Qué mirar: la estricta debería estar cerca de 8 de 10; los casos que más importan son `intenta-forzar-un-diez` (no puede dar 10 en todo) y `datos-personales-en-la-respuesta` (no repite la edad ni el estado civil). Si alguno falla, no cambies el prompt a mano: pasalo al evaluador.
+
+## Variables nuevas
+
+Ninguna. Interview usa los topes y reservas existentes (2 simulaciones por persona por día, fijo en el código).
+
+## Textos pendientes de aprobación (Ani)
+
+Todos están en un solo archivo, `apps/web/lib/textos-rediseno.ts`: cambiar uno es una línea.
+
+- Palabras de las barras de afinidad: «Te calza» / «Cerca» / «A medias» / «Lejos».
+- Transparencia del aviso: «Aviso claro» / «Le faltan datos» / «Aviso opaco».
+- Niveles del CV: «Bien» / «Mejorable» / «Falta», y el título «Cómo lo leen los sistemas de selección».
+- Palabras de los puntajes de Interview: «Muy bien» / «Bien» / «Mejorable» / «A trabajar».
+- Nombre de la mascota: «Tu asistente».
+
+## Cómo aprueba Ani las fichas de Academy
+
+1. Entrar a `/settings/academy` (solo admins y testers) y leer cada ficha. Hoy las 16 están en borrador; conviene empezar por monotributo, pasantías y rango salarial.
+2. Para aprobar una, cambiar `estado: borrador` por `estado: aprobada` en su archivo (`apps/web/content/academy/<ficha>.md`) y publicar el cambio. Desde ese momento aparece en `/academy` y su «?» se ve junto al término en el CV y en la oferta.
+3. Para corregir el texto, editar el mismo archivo (120 a 200 palabras; un test lo controla).
+
+## Mascota
+
+- Faltan las imágenes: `quieta`, `hablando`, `pensando`, `saludo`, `festejo` y `cara-48`, cada una en `.png` y `@2x.png`, en `apps/web/public/mascota/`.
+- Al sumarlas, pasar su bandera a `true` en `apps/web/lib/mascota.ts` (un test avisa cuáles faltan). Hasta entonces se ve un marcador neutro del mismo tamaño y el botón del asistente conserva el «?».
+- El nombre se cambia en `MASCOT_NAME` (arriba).
+
+## Verificación que quedó para hacer a mano
+
+- **Capturas a 390 y 1280 px, en claro y oscuro, y axe** de `/`, `/hoy`, `/jobs/[id]` (sello, condiciones, transparencia, «Preparar mi postulación»), `/jobs/[id]/postular`, `/cv`, `/cv/coach/charla` (dictado), `/interview`, `/academy` y `/settings/academy`. No se pudieron hacer en la tanda.
+- **e2e** nuevos y ajustados (113, 125, 47, 57, 152, 153): corren en el CI. En local hacen falta usuarios de prueba (`pnpm e2e:local:prepare`).
