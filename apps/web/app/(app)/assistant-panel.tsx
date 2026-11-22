@@ -28,6 +28,7 @@ import {
 } from "@/components/assistant-proposal";
 import { AssistantActionCard, type ActionStatus } from "./assistant-action-card";
 import { AssistantProposalCard, type ProposalStatus } from "./assistant-proposal-card";
+import { Mascota } from "@/components/mascota";
 import { buttonClasses } from "@/components/ui";
 
 const FOCUS_RING =
@@ -465,9 +466,13 @@ export function AssistantPanel({
         <div className="flex h-full min-w-0 flex-col">
           <div className="flex flex-col gap-1 border-b border-line px-4 py-3">
             <div className="flex items-center justify-between gap-2">
-              <h2 id={titleId} className="text-base font-bold">
-                Asistente
-              </h2>
+              <div className="flex items-center gap-2">
+                {/* «Pensando» mientras responde; «hablando» el resto del tiempo */}
+                <Mascota pose={pending ? "pensando" : "hablando"} size={32} />
+                <h2 id={titleId} className="text-base font-bold">
+                  Asistente
+                </h2>
+              </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
