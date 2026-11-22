@@ -18,7 +18,7 @@ import {
   type CriteriaRules,
   type InboundDmarcMode,
 } from "@job-search-os/pipeline";
-import { and, desc, eq, gt, gte, inArray, isNull, lt, notInArray, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, gte, inArray, isNull, like, lt, not, or, sql } from "drizzle-orm";
 import { applyLinkedinApplication } from "../applications/linkedin-application";
 import { ingestBatch } from "../ingest/ingest-job";
 import type { Logger } from "../logger";
@@ -167,7 +167,15 @@ const UNEXPECTED_BUCKET_REASONS: readonly string[] = [
   OVERSIZE_UNEXPECTED_REASON,
   PROCESSING_UNEXPECTED_REASON,
   STALE_PROCESSING_UNEXPECTED_REASON,
+  // Lo que un From de portal no alcanza a demostrar: sin verificar, demasiado grande, sin parser o con
+  // demasiadas tarjetas. Solo cuenta como esperado lo que el parser reconoció (ver `UNRECOGNIZED_PREFIX`).
+  AUTH_UNVERIFIED_REASON,
+  OVERSIZE_EMAIL_REASON,
+  MANUAL_QUEUE_REASON,
+  TOO_MANY_CARDS_REASON,
 ];
+/** Los motivos «estructura no reconocida (parser): …» llevan texto variable: se agrupan por prefijo. */
+const UNRECOGNIZED_PREFIX = "estructura no reconocida";
 type QuotaBucket = "expected" | "unexpected";
 
 type QuotaCheck = {
@@ -197,17 +205,46 @@ async function checkUserQuota(
       and(eq(s.inboundSenderDomains.userId, userId), eq(s.inboundSenderDomains.verdict, "empleo")),
     );
   const jobDomains = domains.map((d) => d.domain);
+  // Por el remitente es lo único que se sabe antes de pedir el cuerpo; el cupo definitivo se decide
+  // después de parsear (ver `bucketOfOutcome`)
   const bucket: QuotaBucket =
     isExpectedSender(from, jobDomains) || parseFromAddress(from) === GMAIL_FORWARDING_SENDER
       ? "expected"
       : "unexpected";
+  const { hour, day } = await countBucket(db, userId, bucket, now);
+  return {
+    limited:
+      hour >= (deps.hourlyLimit ?? 100) || day >= (deps.dailyLimit ?? USER_DAILY_EMAIL_LIMIT),
+    bucket,
+    hour,
+    day,
+    jobDomains,
+  };
+}
+
+/** El motivo guardado de una fila lo manda al cupo de no esperados (NULL cuenta como esperado). */
+const inUnexpectedBucket = () =>
+  sql`(${inArray(s.inboundEmails.error, [...UNEXPECTED_BUCKET_REASONS])} or ${like(s.inboundEmails.error, `${UNRECOGNIZED_PREFIX}%`)})`;
+
+/** Cupo definitivo de un email ya procesado: lo ilegible, retenido o sin parser es de no esperados. */
+function bucketOfOutcome(error: string | null): QuotaBucket {
+  if (!error) return "expected";
+  return UNEXPECTED_BUCKET_REASONS.includes(error) || error.startsWith(UNRECOGNIZED_PREFIX)
+    ? "unexpected"
+    : "expected";
+}
+
+/** Intentos de la última hora y del último día en un cupo, por el índice (user_id, received_at). */
+async function countBucket(
+  db: Db,
+  userId: string,
+  bucket: QuotaBucket,
+  now: Date,
+): Promise<{ hour: number; day: number }> {
   const inBucket =
     bucket === "unexpected"
-      ? inArray(s.inboundEmails.error, [...UNEXPECTED_BUCKET_REASONS])
-      : or(
-          isNull(s.inboundEmails.error),
-          notInArray(s.inboundEmails.error, [...UNEXPECTED_BUCKET_REASONS]),
-        );
+      ? inUnexpectedBucket()
+      : or(isNull(s.inboundEmails.error), not(inUnexpectedBucket()));
   const [counts] = (await db
     .select({
       hour: sql<number>`count(*) filter (where ${s.inboundEmails.receivedAt} >= ${new Date(now.getTime() - 60 * 60 * 1000).toISOString()}::timestamptz)::int`,
@@ -221,16 +258,7 @@ async function checkUserQuota(
         inBucket,
       ),
     )) as { hour: number; day: number }[];
-  const hour = counts?.hour ?? 0;
-  const day = counts?.day ?? 0;
-  return {
-    limited:
-      hour >= (deps.hourlyLimit ?? 100) || day >= (deps.dailyLimit ?? USER_DAILY_EMAIL_LIMIT),
-    bucket,
-    hour,
-    day,
-    jobDomains,
-  };
+  return { hour: counts?.hour ?? 0, day: counts?.day ?? 0 };
 }
 
 /** El email no se guarda (es el punto del límite), pero queda contado para que /inbox avise (JS-038). */
@@ -968,6 +996,27 @@ export async function handleInboundEmail(
           if (summary.errors.length)
             error = `${summary.errors.length} avisos con error al ingestar`;
         }
+      }
+    }
+
+    // Cupo definitivo: un email que dijo venir de un portal pero resultó ilegible, retenido o sin parser
+    // es de no esperados. Si ese cupo está lleno, no se guarda (como cualquier rechazo por cupo) y el
+    // cupo esperado queda para lo que el parser reconoció.
+    if (bucket === "expected" && bucketOfOutcome(error) === "unexpected") {
+      const counts = await countBucket(db, userId, "unexpected", now);
+      if (
+        counts.hour >= (deps.hourlyLimit ?? 100) ||
+        counts.day >= (deps.dailyLimit ?? USER_DAILY_EMAIL_LIMIT)
+      ) {
+        await db.delete(s.inboundEmails).where(eq(s.inboundEmails.id, claimId));
+        await deleteRawIfUnreferenced(db, userId, ownRawRef);
+        return rejectOverQuota(
+          db,
+          userId,
+          { limited: true, bucket: "unexpected", ...counts, jobDomains },
+          now,
+          log,
+        );
       }
     }
 
