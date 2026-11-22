@@ -21,7 +21,10 @@ const CV_TEXT = [
   "Persona Ficticia",
   "Analista de datos en Empresa A, desde marzo de 2021 hasta hoy.",
   "Armé tableros de ventas en Excel y SQL para el equipo comercial.",
-].join("\n");
+  "Asistente administrativa en Empresa B, de 2019 a 2021.",
+  "Ordené la facturación y el archivo de proveedores.",
+  "Estudios: Tecnicatura en Administración, Instituto Ficticio, 2018.",
+].join("\n"); // La lectura pide al menos 300 caracteres (S4)
 
 async function cleanup(): Promise<void> {
   const { db, close } = ownerDb();
@@ -135,7 +138,7 @@ test.describe("Flujo 152: dictar", () => {
     const button = page.getByTestId("dictar-boton");
     await expect(button).toBeVisible();
     await expect(button).toHaveAttribute("aria-pressed", "false");
-    await expect(page.getByTestId("dictar")).toContainText("el navegador puede mandar el audio");
+    await expect(page.getByTestId("dictar")).toContainText(/el navegador puede mandar el audio/i);
     await page.getByTestId("coach-answer").fill("Con los tableros");
     await button.click();
     await expect(button).toHaveAttribute("aria-pressed", "true");

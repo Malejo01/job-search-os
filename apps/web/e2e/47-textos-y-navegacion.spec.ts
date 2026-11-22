@@ -153,7 +153,7 @@ test.describe("Flujo 47: textos y navegación", () => {
     await expect(page.getByText("Puntaje de la IA")).toBeHidden();
     await page.getByText("Cómo se calculó", { exact: true }).click();
     await expect(page.getByText("Puntaje de la IA")).toBeVisible();
-    await expect(page.getByText("Puntaje final")).toBeVisible();
+    await expect(page.getByText("Puntaje final", { exact: true })).toBeVisible();
 
     await page.goto("/market");
     await expect(page.locator("body")).not.toContainText(/Match fuerte|Pendientes de JD/);
