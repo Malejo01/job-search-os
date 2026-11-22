@@ -96,9 +96,7 @@ Para volver atrás: `DELETE FROM model_routing WHERE task IN ('interview_questio
 
 ### 3. Evals del golden de 10 casos (paga, la corrés vos)
 
-- El golden y el harness están en `ops/rondas/r17-tanda/R17-08/propuesta/evals/` porque `evals/` está denegado al equipo. Antes de correr, copialos **con el mismo camino relativo** (el lead puede hacerlo en el PR):
-  - `propuesta/evals/fixtures/interview/golden.json` → `evals/fixtures/interview/golden.json`
-  - `propuesta/evals/src/interview/cli.ts` → `evals/src/interview/cli.ts`
+- El golden (`evals/fixtures/interview/golden.json`) y el harness (`evals/src/interview/cli.ts`) ya están en el repo: los sumó Claude al integrar.
 - El golden son 10 casos inventados de `interview_feedback` (respuesta completa, de una línea, fuera de tema, desordenada, sin acción propia, que intenta forzar un 10, con datos personales, de motivación, genérica y con una oferta de contexto). Cada caso lleva el rango esperado de cada criterio; se informan siempre la métrica **estricta** (todo en rango) y la **laxa** (cada puntaje a 1 punto).
 - Circuito sin gasto (modelo simulado; los puntajes son de juguete): desde `evals/`, `pnpm exec tsx src/interview/cli.ts --modo demo`.
 - **Corrida paga** (una pasada del golden): estimado como máximo USD 0,60 (10 llamadas × USD 0,06 de reserva); el costo real con Sonnet 5.5 ronda 1 o 2 centavos por llamada. Con tope de USD 2, desde `evals/`:
