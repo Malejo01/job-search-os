@@ -233,3 +233,20 @@ Al pasar el 70, 85 y 95 % de `LLM_DAILY_CAP_USD` (gasto de 24 h) sale un email a
 - **Envío parcial:** se manda y recién después se anota, por destinatario. Si falla Resend para uno, no se anota y la próxima revisión reintenta solo a ese.
 - **Si el proceso muere entre mandar y anotar:** la próxima revisión reenvía con la misma clave de idempotencia de Resend (`budget-alert:<día>:<umbral>:<hash del email>`), que Resend deduplica durante 24 h; no llega dos veces. La clave es por destinatario, no por posición en `ADMIN_EMAILS`.
 - **Límite conocido:** el email que reenvía una alerta ya entregada pero sin anotar depende de esa ventana de 24 h de Resend. Para un reintento de otro día, la marca del día nuevo es otra y se manda de nuevo (es lo esperado: es otro día).
+
+## Intentos de login (ADR-041)
+
+La tabla `login_attempts` cuenta los intentos fallidos sin guardar el email ni la IP en claro: guarda un hash de cada uno.
+
+- **`LOGIN_ATTEMPTS_HMAC_SECRET`** (opcional, recomendado en producción): con ella, los hashes del email y de la IP son un HMAC-SHA256; sin ella son sha256 sin sal, y quien lea la tabla puede comprobar si un email o una IP concretos intentaron entrar, o recorrer las 4000 millones de IPv4. Generarla con `openssl rand -base64 32` y cargarla en Vercel (prod). **Rotarla** deja huérfanas las filas con el hash anterior: se purgan solas al día siguiente y, mientras tanto, la espera de una cuenta empieza de cero. El restablecimiento de contraseña y el borrado de cuenta limpian con los dos hashes (el vigente y el sha256), así que cargarla por primera vez no deja filas colgadas.
+- **Si falta en producción**, `/settings/salud` lo avisa (se decide con la variable, sin consultar la base).
+- **Espera:** por email + IP, 5 intentos y espera creciente de 1, 2, 4… hasta 15 minutos. Por email solo (intentos repartidos en muchas IP), 50 intentos y después una espera que crece con cada intento de más: 1, 2, 4, 8 y 15 minutos como máximo. Ese contador **no vuelve a cero al vencer la espera**: se limpia con un login correcto, con el restablecimiento de contraseña o tras una hora sin intentos. Un ataque repartido en 10 IP durante 24 horas consigue unos 150 intentos evaluados contra la cuenta (lo fija un test), y la espera nunca pasa de 15 minutos seguidos. Restablecer la contraseña siempre destraba.
+- **Purga:** la corrida de retención borra las filas con más de un día sin actividad. Corre en el cron de evaluación aunque el worker falle.
+
+## Índices nuevos en tablas que crecen
+
+Una migración que crea un índice sobre una tabla grande (`llm_calls`, `inbound_emails`, `raw_blobs`, `login_attempts`, `job_sources`, `jobs`) con `CREATE INDEX` común bloquea las escrituras de esa tabla mientras se construye. Hoy, con pocos datos, son milisegundos. Cuando la tabla tenga cientos de miles de filas:
+
+- Usar `CREATE INDEX CONCURRENTLY IF NOT EXISTS`. No puede ir dentro de una transacción, y `db:migrate` corre cada archivo en una: se aplica a mano fuera de `db:migrate`, con el SQL revisado antes, y se verifica después con `pg_indexes`. `drizzle-kit` no lo genera y el SQL generado no se edita (`CLAUDE.md`); cómo llevar esos índices al repo se decide en un ADR nuevo antes del primero.
+- Si el archivo corre en cada `db:migrate` (como los de `rls/`), preguntar antes por `pg_indexes` para no pedir el lock en cada corrida.
+- Un índice `CONCURRENTLY` que falla deja un índice inválido (`indisvalid = false`): borrarlo con `DROP INDEX CONCURRENTLY` y repetir.
