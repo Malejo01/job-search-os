@@ -195,6 +195,36 @@ describe("corte de circuito de la evaluación inmediata", () => {
     expect(await evaluationCircuitOpen(o.db, { maxFailures: 6 })).toBe(false);
   });
 
+  it("solo cuentan como caída 401/402/403/429, 5xx, timeout, sin código y proveedor no disponible", async () => {
+    const open = (errors: string[]) =>
+      conn.db
+        .delete(s.llmCalls)
+        .then(() =>
+          seedCalls(errors.map((error, i) => ({ ageMin: 0.1 + i * 0.1, ok: false, error }))),
+        )
+        .then(() => evaluationCircuitOpen(conn.db, { maxFailures: errors.length }));
+    expect(
+      await open([
+        "api_call:401",
+        "api_call:402",
+        "api_call:403",
+        "api_call:429",
+        "api_call:502",
+        "api_call:503",
+        "timeout",
+        "unknown",
+        "provider_unavailable",
+        "api_call",
+      ]),
+    ).toBe(true);
+    // Un rechazo por el contenido de la oferta (400, 413, 422...) no es una caída: reabre el paso
+    for (const code of ["api_call:400", "api_call:413", "api_call:422", "api_call:404"]) {
+      expect(
+        await open(["api_call:503", "api_call:503", code, "api_call:503", "api_call:503"]),
+      ).toBe(false);
+    }
+  });
+
   it("9 ofertas con el proveedor en 503: el lazo hace como mucho 5 llamadas", async () => {
     const jobs: string[] = [];
     for (let i = 0; i < 9; i++) jobs.push(await enqueueJob(`cb-loop-${i}`));

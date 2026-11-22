@@ -1,6 +1,7 @@
 -- Ruteo de modelos: Claude como principal y Gemini de respaldo. Mismos valores que
--- packages/db/seeds/model_routing.json. Toca solo provider, model, fallback_model, thinking_level y las
--- tarifas; temperature y max_tokens de cada tarea no se modifican (la guarda final lo verifica).
+-- packages/db/seeds/model_routing.json. Toca provider, model, fallback_model, thinking_level y las
+-- tarifas, y además el max_tokens de evaluate_job (se alinea al seed); temperature y el max_tokens de las
+-- demás tareas no se modifican (la guarda final lo verifica).
 -- Corre con packages/db/src/run-sql-file.ts: primero --ensayo (termina en ROLLBACK), después sin él.
 BEGIN;
 
@@ -34,10 +35,12 @@ BEGIN
   END LOOP;
 END $$;
 
--- evaluate_job ya es Sonnet 5.5 en producción: solo se le cambia el respaldo. Su thinking_level y su
--- max_tokens de producción se dejan como están (pueden diferir del seed: ver docs/beta/pasos-manuales-s4.md).
+-- evaluate_job ya es Sonnet 5.5 en producción: se le cambia el respaldo y se lo alinea al seed en
+-- max_tokens y thinking_level (producción puede tenerlos distintos). Así producción, evals y la reserva de
+-- gasto de la evaluación (EVALUATION_RESERVE_USD, calibrada con el seed) miden lo mismo.
 UPDATE model_routing SET fallback_model = 'gemini-3.5-flash',
-  fallback_input_usd_per_mtok = 1.5::real, fallback_output_usd_per_mtok = 9::real, updated_at = now()
+  fallback_input_usd_per_mtok = 1.5::real, fallback_output_usd_per_mtok = 9::real,
+  max_tokens = 2048, thinking_level = NULL, updated_at = now()
   WHERE task = 'evaluate_job';
 
 -- Sonnet 5.5 de principal, respaldo Gemini 3.5 Flash
@@ -99,7 +102,7 @@ BEGIN
       SELECT 1 FROM model_routing
       WHERE task = esperado.task AND provider = 'anthropic'
         AND model = esperado.model AND fallback_model = esperado.fallback_model
-        AND (thinking_level IS NULL OR esperado.task = 'evaluate_job')
+        AND thinking_level IS NULL
         AND input_usd_per_mtok = esperado.in_usd AND output_usd_per_mtok = esperado.out_usd
         AND fallback_input_usd_per_mtok = esperado.fb_in_usd
         AND fallback_output_usd_per_mtok = esperado.fb_out_usd
@@ -110,13 +113,14 @@ BEGIN
   IF fallos <> '' THEN
     RAISE EXCEPTION 'filas que no quedaron como se esperaba:%', fallos;
   END IF;
-  -- temperature y max_tokens no se tocan: siguen los valores del seed
+  -- temperature y max_tokens: los de las demás tareas no se tocan y siguen los del seed; evaluate_job
+  -- se alineó arriba (2048)
   IF (SELECT count(*) FROM model_routing WHERE (task, temperature, max_tokens) IN (
-        ('extract_skills', 0::real, 4096),
+        ('evaluate_job', 0::real, 2048), ('extract_skills', 0::real, 4096),
         ('parse_email_fallback', 0::real, 1024), ('cv_interview', 0::real, 1024),
         ('extract_cv_profile', 0::real, 4096), ('cv_write', 0.3::real, 3000),
         ('cv_review', 0::real, 2048), ('cv_coach_turn', 0::real, 1536),
-        ('extract_job_from_image', 0::real, 4096))) <> 8 THEN
+        ('extract_job_from_image', 0::real, 4096))) <> 9 THEN
     RAISE EXCEPTION 'temperature o max_tokens distintos del seed: se frena para revisarlos';
   END IF;
 END $$;

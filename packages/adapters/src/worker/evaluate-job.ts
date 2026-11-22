@@ -812,7 +812,8 @@ const isProviderErrorCode = (code: string | null): boolean =>
   code === "timeout" ||
   code === "unknown" ||
   code === "provider_unavailable" ||
-  code.startsWith("api_call");
+  code === "api_call" ||
+  /^api_call:(401|402|403|429|5\d\d)$/.test(code);
 
 /**
  * Corte de circuito global de la evaluación inmediata: true si las últimas `maxFailures` llamadas de

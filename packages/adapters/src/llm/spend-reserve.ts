@@ -22,8 +22,11 @@ import {
  */
 export const LLM_RESERVE_TTL_MS = 5 * 60 * 1000;
 
-/** Máximo de una evaluación con el modelo de respaldo incluido. */
-export const EVALUATION_RESERVE_USD = 0.1;
+/**
+ * Máximo de una evaluación con el modelo de respaldo incluido: primario y respaldo agotando `max_tokens`
+ * con el prompt completo en su tope. Atado al seed de `model_routing` por `evaluation-reserve.test.ts`.
+ */
+export const EVALUATION_RESERVE_USD = 0.17;
 /** Máximo de una tanda de borradores con el modelo de respaldo incluido. */
 export const DRAFTS_RESERVE_USD = 0.12;
 

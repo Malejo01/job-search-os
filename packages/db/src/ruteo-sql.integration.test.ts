@@ -46,7 +46,7 @@ let owner: Sql;
 
 /**
  * Estado de hoy: Gemini principal salvo `evaluate_job`, que ya es Sonnet (en producción con thinking y
- * max_tokens propios, que el SQL no toca: acá `low` y 8192).
+ * max_tokens propios, que el SQL alinea al seed: acá `low` y 8192).
  */
 async function loadCurrentState(): Promise<void> {
   await owner`delete from model_routing`;
@@ -103,16 +103,44 @@ describe("ruteo-s4.sql", () => {
     expect(rows).toHaveLength(9);
     for (const r of rows) {
       const expected = seed.find((s) => s.task === r.task)!;
-      // evaluate_job: en producción conserva su thinking_level y su max_tokens
-      if (r.task === "evaluate_job") {
-        expect(r).toMatchObject({
-          ...expected,
-          thinking_level: "low",
-          max_tokens: 8192,
-        });
-      } else expect(r, r.task).toMatchObject(expected);
+      // evaluate_job también queda con el max_tokens (2048) y el thinking_level (null) del seed: producción,
+      // evals y la reserva de gasto miden lo mismo
+      expect(r, r.task).toMatchObject(expected);
     }
   });
+
+  it("evaluate_job parte con thinking y max_tokens propios y termina alineado al seed", async () => {
+    const [before] =
+      await owner`select max_tokens, thinking_level from model_routing where task = 'evaluate_job'`;
+    expect(before).toMatchObject({ max_tokens: 8192, thinking_level: "low" });
+    await owner.unsafe(sqlText);
+    const [after] =
+      await owner`select max_tokens, thinking_level from model_routing where task = 'evaluate_job'`;
+    expect(after).toMatchObject({ max_tokens: 2048, thinking_level: null });
+  });
+
+  it.each([
+    ["max_tokens", "new.max_tokens := 8192;", /temperature o max_tokens/],
+    ["thinking_level", "new.thinking_level := 'low';", /evaluate_job/],
+  ])(
+    "la guarda final cubre evaluate_job: frena si su %s no queda como el seed",
+    async (_campo, deshacer, mensaje) => {
+      // Un disparador que deshace el UPDATE simula una fila que no queda alineada
+      await owner.unsafe(`
+        create or replace function undo_eval_test() returns trigger language plpgsql as $$
+        begin ${deshacer} return new; end $$;
+      `);
+      await owner.unsafe(
+        `create trigger undo_eval before update on model_routing for each row when (new.task = 'evaluate_job') execute function undo_eval_test()`,
+      );
+      try {
+        await expectBlocked(sqlText, mensaje);
+      } finally {
+        await owner.unsafe("drop trigger if exists undo_eval on model_routing");
+        await owner.unsafe("drop function if exists undo_eval_test()");
+      }
+    },
+  );
 
   it("la guarda previa frena sin tocar nada si una fila no está como se esperaba", async () => {
     await owner`update model_routing set model = 'otro-modelo' where task = 'cv_write'`;

@@ -1,5 +1,6 @@
 import { schema, type Db } from "@job-search-os/db";
 import { eq } from "drizzle-orm";
+import { createLogger, type Logger } from "../logger";
 import { THINKING_LEVELS, type RouteConfig, type RouteSource, type ThinkingLevel } from "./types";
 
 /** Valida `model_routing.thinking_level`; un valor desconocido se ignora con null (default del proveedor). */
@@ -10,7 +11,10 @@ export function parseThinkingLevel(raw: string | null | undefined): ThinkingLeve
 const DEFAULT_TTL_MS = 5 * 60 * 1000;
 
 /** Lee `model_routing` (ARCHITECTURE §6). Nunca hardcodea un modelo. */
-export function drizzleRouteSource(db: Db): RouteSource {
+export function drizzleRouteSource(
+  db: Db,
+  logger: Pick<Logger, "error"> = createLogger({ source: "model_routing" }),
+): RouteSource {
   return {
     async getRoute(task) {
       const [row] = await db
@@ -19,6 +23,22 @@ export function drizzleRouteSource(db: Db): RouteSource {
         .where(eq(schema.modelRouting.task, task))
         .limit(1);
       if (!row) return null;
+      // Falla cerrado: sin tarifas la llamada se pagaría sin contarse en ningún tope
+      const missing = [
+        row.inputUsdPerMtok === null && "input_usd_per_mtok",
+        row.outputUsdPerMtok === null && "output_usd_per_mtok",
+        row.fallbackModel && row.fallbackInputUsdPerMtok === null && "fallback_input_usd_per_mtok",
+        row.fallbackModel &&
+          row.fallbackOutputUsdPerMtok === null &&
+          "fallback_output_usd_per_mtok",
+      ].filter(Boolean);
+      if (missing.length > 0) {
+        logger.error(
+          { task, missing },
+          "model_routing sin tarifas: la tarea no corre hasta completarlas",
+        );
+        return null;
+      }
       return {
         task: row.task,
         provider: row.provider,
