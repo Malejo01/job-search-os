@@ -721,6 +721,9 @@ export const EVALUATE_BUDGET_DEFAULT_MARGIN_MS = 30_000;
 /** Mensaje para la UI cuando el tope por usuario frena una evaluación. */
 export const USER_CAP_MESSAGE = "tope diario de evaluaciones alcanzado";
 
+/** Mensaje para la UI cuando la reserva de gasto está ocupada o su lock venció: no es un tope. */
+export const BUSY_MESSAGE = "Hay mucha demanda, probá de nuevo en un minuto";
+
 /** Mensaje de la cola cuando la parte reservada del tope global frena al dueño. */
 export const GLOBAL_RESERVED_MESSAGE = "parte reservada del tope global";
 
@@ -1094,6 +1097,8 @@ export type EvaluateNowResult =
   | { ran: false; reason: "cap" | "not_pending" }
   /** Corte de circuito: el proveedor viene fallando; la oferta queda en la cola para el cron. */
   | { ran: false; reason: "breaker" }
+  /** Reserva de gasto ocupada o lock vencido: `message` es apto para la UI (no es un tope). */
+  | { ran: false; reason: "busy"; message: string }
   /** El dueño pasó su tope diario por usuario (JS-093): `message` es apto para mostrar en la UI. */
   | { ran: false; reason: "user_cap"; message: string };
 
@@ -1140,6 +1145,17 @@ export async function evaluateJobNow(
         "evaluación inmediata frenada por el tope de gasto: queda para el cron",
       );
       return { ran: false, reason: "cap" };
+    }
+    // Reserva ocupada o lock vencido: demanda alta, no un tope. El mensaje sigue pending para el cron
+    if (
+      !reservation.ok &&
+      (reservation.reason === "concurrent" || reservation.reason === "lock_timeout")
+    ) {
+      log.warn(
+        { user_id: ownerId, reason: reservation.reason },
+        "evaluación inmediata frenada por demanda alta: queda para el cron",
+      );
+      return { ran: false, reason: "busy", message: BUSY_MESSAGE };
     }
     // Tope por usuario: el mensaje queda pending (nadie lo reclamó) para cuando se libere la ventana
     if (!reservation.ok) {

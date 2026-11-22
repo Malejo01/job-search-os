@@ -57,6 +57,13 @@ describe("scheduleImmediateEvaluation con corte de circuito", () => {
     expect(evaluateJobNow).toHaveBeenCalledTimes(6);
   });
 
+  it("con demanda alta (reserva ocupada) corta y deja el resto para el cron", async () => {
+    evaluateJobNow.mockResolvedValue({ ran: false, reason: "busy", message: "Hay mucha demanda" });
+    scheduleImmediateEvaluation("00000000-0000-4000-8000-0000000000a1", nine);
+    await afterCallbacks[0]!();
+    expect(evaluateJobNow).toHaveBeenCalledTimes(1);
+  });
+
   it("sin corte evalúa todas", async () => {
     evaluateJobNow.mockResolvedValue({ ran: true, outcome: { ok: true } });
     scheduleImmediateEvaluation("00000000-0000-4000-8000-0000000000a1", nine);
