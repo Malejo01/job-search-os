@@ -3,6 +3,7 @@ import { Icon, type IconName } from "@/components/ui";
 import { logout } from "./logout-action";
 
 const MORE: ReadonlyArray<{ href: string; label: string; icon: IconName; hint: string }> = [
+  { href: "/academy", label: "Academy", icon: "academia", hint: "Fichas para entender el proceso" },
   {
     href: "/jobs/pending-jd",
     label: "Sin descripción",

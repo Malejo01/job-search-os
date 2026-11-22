@@ -40,7 +40,7 @@ import { RoleGaps } from "./role-gaps";
 import { RoleNudge } from "./role-nudge";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Ofertas" };
+export const metadata = { title: "Match" };
 
 /** Lista de ofertas (JS-015): Server Component; filtros en la URL; la lista anima en cliente. */
 export default async function JobsPage({
