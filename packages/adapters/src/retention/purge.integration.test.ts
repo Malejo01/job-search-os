@@ -375,30 +375,30 @@ describe("purgeExpired", () => {
       expect(emails).toHaveLength(1);
     });
 
-    it("un email pendiente vencido conserva su crudo, también el retenido y la confirmación de Gmail", async () => {
-      const sinParser = await mkEmail(100, "inbound_email", { seenAt: null, parser: "none" });
-      const conError = await mkEmail(100, "inbound_email", {
+    it("un email pendiente conserva su crudo hasta 90 días, también el retenido y la confirmación de Gmail", async () => {
+      const sinParser = await mkEmail(60, "inbound_email", { seenAt: null, parser: "none" });
+      const conError = await mkEmail(60, "inbound_email", {
         seenAt: null,
         parser: "linkedin",
         error: "estructura no reconocida",
       });
-      const retenido = await mkEmail(100, "inbound_email", {
+      const retenido = await mkEmail(60, "inbound_email", {
         seenAt: null,
         parser: "linkedin",
         error: "remitente sin autenticación verificada: cola manual",
       });
-      const gmail = await mkEmail(100, "inbound_email", {
+      const gmail = await mkEmail(60, "inbound_email", {
         seenAt: null,
         parser: "gmail_reenvio",
         error: null,
       });
-      const visto = await mkEmail(100, "inbound_email", { parser: "linkedin" });
-      const descartado = await mkEmail(100, "inbound_email", {
+      const visto = await mkEmail(60, "inbound_email", { parser: "linkedin" });
+      const descartado = await mkEmail(60, "inbound_email", {
         seenAt: null,
         dismissedAt: daysAgo(50),
       });
 
-      const r = await purgeExpired(conn.db, { now: NOW, inboundRawDays: 90 });
+      const r = await purgeExpired(conn.db, { now: NOW, inboundRawDays: 30 });
 
       expect(r.inboundRaw).toBe(2);
       for (const kept of [sinParser, conError, retenido, gmail]) {
@@ -406,6 +406,25 @@ describe("purgeExpired", () => {
       }
       expect(await blobExists(visto.blob)).toBe(false);
       expect(await blobExists(descartado.blob)).toBe(false);
+    });
+
+    it("un pendiente de más de 90 días se purga, la fila queda y la bandeja lo muestra como vencido", async () => {
+      const viejo = await mkEmail(100, "inbound_email", {
+        seenAt: null,
+        parser: "linkedin",
+        error: "estructura no reconocida",
+      });
+
+      const r = await purgeExpired(conn.db, { now: NOW, inboundRawDays: 30 });
+
+      expect(r.inboundRaw).toBe(1);
+      expect(await blobExists(viejo.blob)).toBe(false);
+      // La fila sigue con su `pg:` apuntando a un crudo que ya no existe: es lo que /inbox llama «venció»
+      const [fila] = await conn.db
+        .select({ rawRef: s.inboundEmails.rawRef })
+        .from(s.inboundEmails)
+        .where(eq(s.inboundEmails.id, viejo.email));
+      expect(fila?.rawRef).toBe(viejo.rawRef);
     });
 
     it("una fila provisional en proceso no pierde nada", async () => {
@@ -448,11 +467,29 @@ describe("purgeExpired", () => {
       expect(await blobExists(referenciado.blob)).toBe(true);
     });
 
-    it("sin la variable no borra huérfanos", async () => {
-      const huerfano = await mkOrphan(400);
+    it("sin la variable borra los huérfanos de más de un día y respeta ofertas y recientes", async () => {
+      const huerfano = await mkOrphan(2);
+      const reciente = await mkOrphan(0.5);
+      const conOferta = await mkOrphan(400);
+      const [job] = await conn.db
+        .insert(s.jobs)
+        .values({
+          userId: A,
+          companyRaw: "Empresa A",
+          title: "Backend Engineer",
+          titleNormalized: "backend engineer",
+        })
+        .returning({ id: s.jobs.id });
+      await conn.db
+        .insert(s.jobSources)
+        .values({ jobId: job!.id, kind: "email_linkedin", rawRef: conOferta.rawRef });
+
       const r = await purgeExpired(conn.db, { now: NOW });
-      expect(r.inboundOrphans).toBe(0);
-      expect(await blobExists(huerfano.blob)).toBe(true);
+
+      expect(r.inboundOrphans).toBe(1);
+      expect(await blobExists(huerfano.blob)).toBe(false);
+      expect(await blobExists(reciente.blob)).toBe(true);
+      expect(await blobExists(conOferta.blob)).toBe(true);
     });
 
     it("la purga de huérfanos usa índice sobre raw_blobs con miles de filas", async () => {

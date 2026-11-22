@@ -140,7 +140,8 @@ Se leen con un solo lector: se ignoran mayúsculas y espacios (`ENFORCE`, ` enfo
 |---|---|---|---|
 | `INBOUND_SIZE_MODE` | `log`, `enforce` | `log` | rige `log` (el email grande se registra y se procesa) y queda el `error`. |
 | `INBOUND_DMARC_MODE` | `off`, `log`, `enforce` | `log` | rige `log` (se mide sin retener) y queda el `error`. Ver la sección siguiente. |
-| `INBOUND_RAW_RETENTION_DAYS` | entero de 1 a 3650 | sin valor | la purga de crudos queda apagada, como sin valor, y queda un `error` en cada corrida del cron (por ejemplo con `30d`). |
+| `INBOUND_RAW_RETENTION_DAYS` | entero de 1 a 3650 | sin valor | la purga de crudos queda apagada, como sin valor, y queda un `error` en cada corrida del cron (por ejemplo con `30d`). Los crudos huérfanos (sin fila ni oferta) se purgan siempre, con un día de antigüedad; un email pendiente conserva su crudo hasta 90 días y después se purga igual (la bandeja lo muestra como «venció»). |
+| `INBOUND_MAX_BYTES_PER_USER` | entero de bytes, de 1 000 000 a 107 374 182 400 | `209715200` (200 MB) | rige el valor por defecto y queda el `error`. Pasado el tope de crudo retenido por persona, el email nuevo no guarda su contenido: queda su fila (remitente, asunto y fecha) con el motivo «almacenamiento de correo lleno» y suma al contador de rechazados de `/inbox`. |
 
 - **Ausente o vacía** no es un error: rige el valor por defecto.
 - **Antes de pasar a `enforce`:** en tamaño, mirar en el log cuántos emails superan el tope medido; en DMARC, ver la sección siguiente.

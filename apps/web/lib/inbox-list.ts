@@ -50,13 +50,18 @@ export type InboxRow = {
 };
 
 export const INBOX_LIMIT = 50;
+/** Ventana de los conteos de /inbox y del aviso de fuga del filtro. */
+export const INBOX_COUNT_DAYS = 30;
 
 export async function listInbox(
   userId: string,
   view: InboxView,
   /** Solo estos emails (los de un dominio, JS-048); undefined = todos. */
   only?: string[],
+  now = new Date(),
 ): Promise<{ rows: InboxRow[]; counts: Record<InboxView, number> }> {
+  // Los conteos de las pestañas miran solo los últimos 30 días: no recorren todo el historial
+  const since = new Date(now.getTime() - INBOX_COUNT_DAYS * 24 * 3_600_000);
   return withUser(userId, async (tx) => {
     const rows = await tx
       .select({
@@ -86,7 +91,8 @@ export async function listInbox(
         descartados: sql<number>`count(*) filter (where ${inboxWhere.descartados})::int`,
         todos: sql<number>`count(*)::int`,
       })
-      .from(s.inboundEmails);
+      .from(s.inboundEmails)
+      .where(gte(s.inboundEmails.receivedAt, since));
     return {
       rows: rows.map(({ seenAt, dismissedAt, ...r }) => ({
         ...r,

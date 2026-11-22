@@ -12,6 +12,7 @@ import {
   parseFromAddress,
   INBOUND_DMARC_MODES,
   readMode,
+  readIntegerSetting,
   parsePoolMailbox,
   SECURITY_PARSER,
   type CriteriaRules,
@@ -77,6 +78,8 @@ export type InboundDeps = {
    * `none`: en `enforce` el email se retiene. Una clave presente con `undefined` apaga la lectura del entorno.
    */
   authservId?: string | null;
+  /** Tope de bytes de correo crudo por persona. Sin esto se lee de INBOUND_MAX_BYTES_PER_USER (200 MB). */
+  maxBytesPerUser?: number;
   /** Solo `processHeldInbound`: la persona dueña pidió procesar este email aunque no esté verificado. */
   treatAsVerified?: boolean;
 };
@@ -135,6 +138,12 @@ const USER_DAILY_EMAIL_LIMIT = 300;
 export const PENDING_RAW_REF = "pending:";
 /** Una provisional con más de esto se considera abandonada: el reintento del mismo email la retoma. */
 export const PENDING_RECLAIM_MS = 10 * 60_000;
+/** Tope por defecto de correo crudo retenido por persona (beta). */
+export const DEFAULT_MAX_BYTES_PER_USER = 200 * 1024 * 1024;
+export const STORAGE_FULL_REASON =
+  "almacenamiento de correo lleno: se guardó solo remitente, asunto y fecha, sin el cuerpo";
+/** `raw_ref` de una fila sin crudo guardado (no es un `pg:`: la bandeja la muestra como vencida). */
+const NO_RAW_REF = "none:";
 export const PROCESSING_REASON = "procesando: el email no terminó de procesarse";
 export const PROCESSING_UNEXPECTED_REASON =
   "procesando (remitente no esperado): el email no terminó de procesarse";
@@ -236,14 +245,50 @@ async function rejectOverQuota(
     { user_id: userId, bucket: quota.bucket, count: quota.hour, day_count: quota.day },
     "inbound: rate limit por usuario",
   );
-  // Una fila por usuario y hora
+  await countRejection(db, userId, now);
+  return { kind: "rate_limited", userId };
+}
+
+/** Una fila por usuario y hora: el contador que /inbox muestra como «rechazados». */
+async function countRejection(db: Db, userId: string, now: Date): Promise<void> {
   await db.execute(sql`
     INSERT INTO inbound_rejections (user_id, window_start, rejected, last_at)
     VALUES (${userId}, date_trunc('hour', ${now.toISOString()}::timestamptz), 1, ${now.toISOString()}::timestamptz)
     ON CONFLICT (user_id, window_start)
     DO UPDATE SET rejected = inbound_rejections.rejected + 1, last_at = excluded.last_at
   `);
-  return { kind: "rate_limited", userId };
+}
+
+/** Bytes de correo crudo que ya retiene la persona: una suma por el índice (user_id, kind). */
+export function userRawBytesSql(userId: string) {
+  return sql`SELECT coalesce(sum(bytes), 0)::bigint AS bytes FROM raw_blobs WHERE user_id = ${userId}::uuid AND kind = 'inbound_email'`;
+}
+
+async function userRawBytes(db: Db, userId: string): Promise<number> {
+  const rows = (await db.execute(userRawBytesSql(userId))) as unknown as {
+    bytes: string | number;
+  }[];
+  return Number(rows[0]?.bytes ?? 0);
+}
+
+/**
+ * Borra el crudo `ref` de la persona si ninguna fila de email ni oferta lo referencia. Un crudo que usa una
+ * oferta (`job_sources.raw_ref`) no se toca. Un ref que no es `pg:<uuid>` se ignora.
+ */
+async function deleteRawIfUnreferenced(db: Db, userId: string, ref: string | null): Promise<void> {
+  const id = ref?.startsWith("pg:") ? ref.slice(3) : null;
+  if (!ref || !id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))
+    return;
+  await db
+    .execute(
+      sql`
+        DELETE FROM raw_blobs
+        WHERE id = ${id}::uuid AND user_id = ${userId}::uuid AND kind = 'inbound_email'
+          AND NOT EXISTS (SELECT 1 FROM inbound_emails e WHERE e.raw_ref = ${ref})
+          AND NOT EXISTS (SELECT 1 FROM job_sources js WHERE js.raw_ref = ${ref})
+      `,
+    )
+    .catch(() => undefined);
 }
 
 /** Los avisos de configuración salen una sola vez por proceso y por variable. */
@@ -697,6 +742,7 @@ export async function handleInboundEmail(
     if (!claim) return duplicateAfterRace(db, event.data.email_id, log);
   }
   const claimId = claim.id;
+  let ownRawRef: string | null = null;
 
   try {
     // Un email que pasa el tope no se lee: queda solo con metadatos, como uno de remitente no esperado.
@@ -713,6 +759,26 @@ export async function handleInboundEmail(
         { user_id: userId, bytes: emailBytes, size_mode: sizeMode },
         "inbound: email grande",
       );
+    }
+
+    // Tope de correo crudo por persona: pasado el tope no se guarda el crudo, pero la fila queda visible
+    // con su motivo y se cuenta como rechazado. Un valor mal escrito cae al tope por defecto.
+    const maxBytesSetting = readIntegerSetting(
+      "INBOUND_MAX_BYTES_PER_USER",
+      process.env.INBOUND_MAX_BYTES_PER_USER,
+      1_000_000,
+      100 * 1024 * 1024 * 1024,
+    );
+    logModeError(maxBytesSetting.error, "INBOUND_MAX_BYTES_PER_USER", log);
+    const maxBytes = deps.maxBytesPerUser ?? maxBytesSetting.value ?? DEFAULT_MAX_BYTES_PER_USER;
+    const usedBytes = await userRawBytes(db, userId);
+    const storageFull = usedBytes + (oversize ? 0 : emailBytes) > maxBytes;
+    if (storageFull) {
+      log.warn(
+        { user_id: userId, used_bytes: usedBytes, bytes: emailBytes, max_bytes: maxBytes },
+        "inbound: tope de almacenamiento de correo, no se guarda el crudo",
+      );
+      await countRejection(db, userId, now);
     }
 
     // JS-119: se clasifica antes del chequeo de remitente. Los códigos y reseteos (de cualquier
@@ -746,7 +812,8 @@ export async function handleInboundEmail(
     // esperados (fuentes de empleo conocidas o dominios marcados como fuente de empleo). Del resto,
     // solo remitente, destinatarios, asunto, fecha y el email_id (idempotencia); ni cuerpo ni
     // nombres de adjuntos.
-    const expected = !isSecurity && !oversize && (gmailConfirmClaimed || senderExpected);
+    const expected =
+      !isSecurity && !oversize && !storageFull && (gmailConfirmClaimed || senderExpected);
     const authRecord = authVerdict ? { auth_verdict: authVerdict } : {};
     // Todo lo que no se guarda completo lleva el asunto con los números enmascarados
     const headerSubject = event.data.subject?.slice(0, MAX_STORED_HEADER_CHARS) ?? null;
@@ -756,35 +823,39 @@ export async function handleInboundEmail(
       : headerSubject
         ? maskDigits(headerSubject)
         : null;
-    const rawRef = await deps.storage.put({
-      userId,
-      kind: "inbound_email",
-      contentType: "application/json",
-      body: JSON.stringify(
-        expected
-          ? { event: JSON.parse(rawBody), content, ...authRecord }
-          : {
-              event: {
-                type: event.type,
-                created_at: event.created_at,
-                data: {
-                  email_id: event.data.email_id,
-                  from: storedFrom,
-                  to: event.data.to,
-                  received_for: event.data.received_for,
-                  subject: storedSubject,
+    const rawRef = storageFull
+      ? NO_RAW_REF
+      : await deps.storage.put({
+          userId,
+          kind: "inbound_email",
+          contentType: "application/json",
+          body: JSON.stringify(
+            expected
+              ? { event: JSON.parse(rawBody), content, ...authRecord }
+              : {
+                  event: {
+                    type: event.type,
+                    created_at: event.created_at,
+                    data: {
+                      email_id: event.data.email_id,
+                      from: storedFrom,
+                      to: event.data.to,
+                      received_for: event.data.received_for,
+                      subject: storedSubject,
+                    },
+                  },
+                  content: null,
+                  redacted: isSecurity
+                    ? SECURITY_EMAIL_REASON
+                    : oversize
+                      ? OVERSIZE_EMAIL_REASON
+                      : UNEXPECTED_SENDER_REASON,
+                  ...authRecord,
                 },
-              },
-              content: null,
-              redacted: isSecurity
-                ? SECURITY_EMAIL_REASON
-                : oversize
-                  ? OVERSIZE_EMAIL_REASON
-                  : UNEXPECTED_SENDER_REASON,
-              ...authRecord,
-            },
-      ),
-    });
+          ),
+        });
+
+    if (!storageFull) ownRawRef = rawRef;
 
     const parserName = chooseParserName(event.data.from);
     const parser = EMAIL_PARSERS[parserName];
@@ -794,7 +865,9 @@ export async function handleInboundEmail(
     let dismissedAt: Date | null = null;
     let seen = false;
 
-    if (isSecurity) {
+    if (storageFull) {
+      error = STORAGE_FULL_REASON;
+    } else if (isSecurity) {
       parserUsed = SECURITY_PARSER;
       error = SECURITY_EMAIL_REASON;
       dismissedAt = now;
@@ -941,6 +1014,8 @@ export async function handleInboundEmail(
       .delete(s.inboundEmails)
       .where(eq(s.inboundEmails.id, claimId))
       .catch(() => undefined);
+    // El crudo de esta entrega fallida no queda colgado si ninguna fila ni oferta lo usa
+    await deleteRawIfUnreferenced(db, userId, ownRawRef);
     throw e;
   }
 }
@@ -1006,6 +1081,8 @@ export async function processHeldInbound(
       return { ok: false, reason: "no se pudo procesar ahora" };
     }
     await db.delete(s.inboundEmails).where(eq(s.inboundEmails.id, held.id));
+    // El crudo retenido ya no lo usa nadie: el procesamiento guardó el suyo
+    await deleteRawIfUnreferenced(db, userId, held.rawRef);
     return { ok: true, inboundId: out.inboundId };
   } catch (e) {
     await restore();

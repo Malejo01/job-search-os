@@ -79,10 +79,6 @@ describe("barrido de provisionales abandonadas", () => {
   });
 
   it("el barrido usa índice sobre inbound_emails con miles de filas", async () => {
-    // Mismo índice parcial que declara schema.ts; se asegura acá por si la migración todavía no corrió
-    await conn.db.execute(
-      sql`CREATE INDEX IF NOT EXISTS inbound_emails_pending ON inbound_emails (received_at) WHERE raw_ref = 'pending:'`,
-    );
     await conn.db.execute(sql`
       INSERT INTO inbound_emails (user_id, from_address, raw_ref, parser, error, received_at)
       SELECT ${USER}::uuid, 'x@example.com', 'pg:' || g::text, 'linkedin', NULL,
