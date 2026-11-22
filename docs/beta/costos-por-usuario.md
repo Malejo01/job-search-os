@@ -373,6 +373,28 @@ Qué responde el código, qué queda como supuesto y qué tiene que confirmar Ma
 - **Modo Batch/Flex de Gemini** para la cola del cron (USD 0,75 / 4,50 contra 1,50 / 9,00 [W]): el worker es asíncrono, así que el costo de evaluación podría bajar a la mitad. A medir contra el golden.
 - **Prompt más corto:** la plantilla pesa 2.930 de los ~5.000 tokens de entrada; cada 1.000 caracteres menos ahorran ≈ USD 0,0004 por evaluación.
 
+## 8b. Ruteo de la tanda S4: Claude como principal y Gemini de respaldo (antes y después)
+
+Decisión del 20/11. Tarifas **solo las del seed** (§2): Sonnet 5,5 USD 2 / 10, Haiku 4,5 USD 1 / 5, Gemini 3.5 Flash USD 1,5 / 9, Gemini 3.1 Flash-Lite USD 0,25 / 1,5 por Mtok. Tokens: los de §3.1 y §3.2 (marcados [S] allí; no hay mediciones nuevas, **a confirmar con `pnpm llm:spend`** después de aplicar el SQL de `docs/beta/pasos-manuales-s4.md`).
+
+| Tarea | Tokens típicos (entrada / salida) y de dónde salen | Antes (Gemini 3.5 Flash) | Después | Cambio |
+|---|---|---|---|---|
+| `evaluate_job` (aviso de 4 KB, caso A de §3.5) | 5.004 / 450 (§3.1 y §3.5) | ya era Sonnet en producción: USD 0,0145 | USD 0,0145 (solo cambia el respaldo, Gemini) | 0 |
+| `cv_interview`, un turno | 1.200 / 60 (§3.2) | `(1.200 × 1,5 + 60 × 9) / 1e6` = USD 0,00234 | Haiku 4,5: `(1.200 × 1 + 60 × 5) / 1e6` = **USD 0,0015** | −36 % |
+| `cv_write`, una redacción | 1.500 / 1.000 (§3.2) | `(1.500 × 1,5 + 1.000 × 9) / 1e6` = USD 0,01125 | Sonnet 5,5: `(1.500 × 2 + 1.000 × 10) / 1e6` = **USD 0,013** | +16 % |
+| `cv_review`, `cv_coach_turn` | sin medición propia (el harness del coach usa USD 0,014 y 0,007 como típico, `evals/src/cv-coach/guard.ts`) | tarifa de Gemini | Sonnet: entrada +33 % (2 contra 1,5) y salida +11 % (10 contra 9) | entre +11 % y +33 % por llamada |
+| `extract_cv_profile`, `extract_skills`, `parse_email_fallback` | sin medición ni llamada productiva de volumen (`extract_skills` solo por CLI; `parse_email_fallback` sin llamadas, §1.1) | tarifa de Gemini | Haiku: entrada −33 % y salida −44 % por token | a la baja |
+| `extract_job_from_image` | sin medición | tarifa de Gemini | Sonnet: entrada +33 %, salida +11 % por token; tope de 10 imágenes por persona y día | al alza, acotado por el tope |
+
+**Por persona y mes** (CV con IA, que es lo único que cambia con tokens conocidos; evaluaciones y borradores no cambian):
+
+| Uso | Antes | Después |
+|---|---|---|
+| Medio: 20 turnos + 1 redacción | `20 × 0,00234 + 0,01125` = USD 0,058 | `20 × 0,0015 + 0,013` = **USD 0,043** |
+| Alto: 40 turnos + 5 redacciones | `40 × 0,00234 + 5 × 0,01125` = USD 0,150 | `40 × 0,0015 + 5 × 0,013` = **USD 0,125** |
+
+La diferencia es de centavos por persona y mes: el costo total por persona de §3.5 y §5.5 no se mueve de forma apreciable. Lo que sí cambia es el **peor caso de una llamada con respaldo**: ahora se paga Claude y, si falla, Gemini (antes Gemini y, si fallaba, Claude). El máximo de un paso del coach (principal + respaldo agotando `max_tokens`) quedó por encima de las reservas actuales: `write` ≈ USD 0,079, `turn` ≈ USD 0,044 y `review` ≈ USD 0,068 contra reservas de 0,07, 0,04 y 0,05 (ver `pasos-manuales-s4.md` §1.7). Esos máximos salen de los tests de calibración (`estimate.test.ts`), no de tráfico real.
+
 ## 9. Cómo se reproduce
 
 1. Constantes: `packages/db/seeds/model_routing.json`, `packages/pipeline/src/plans.ts`, `packages/pipeline/src/pool/limits.ts`, `packages/adapters/src/llm/spend.ts`, `packages/pipeline/src/cv-chat/limits.ts`.

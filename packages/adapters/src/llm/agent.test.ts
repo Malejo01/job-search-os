@@ -312,6 +312,19 @@ describe("streamAgent", () => {
     expect(events.at(-1)).toEqual({ type: "cap", reason: "steps" });
   });
 
+  it("la temperature solo se manda si el modelo la acepta", async () => {
+    const run = async (model: string) => {
+      const streamFn = vi.fn(createScriptedStreamFn([[finish()]]));
+      const { deps: d } = deps(streamFn, {}, { ...ROUTE, model });
+      await collect(streamAgent(ASSISTANT_TASK, input(), ctx, d));
+      return streamFn.mock.calls[0]![0] as { temperature?: number };
+    };
+    expect((await run("claude-haiku-4-5")).temperature).toBe(0.2);
+    expect(await run("claude-sonnet-5-5")).not.toHaveProperty("temperature");
+    // modelo fuera de la tabla: falla cerrado, sin parámetros opcionales
+    expect(await run("fake-agent")).not.toHaveProperty("temperature");
+  });
+
   it("tope en USD: con lo gastado cerca del tope corta antes de llamar", async () => {
     const streamFn = vi.fn(createScriptedStreamFn([[finish()]]));
     const pricey = { ...ROUTE, inputUsdPerMtok: 3, outputUsdPerMtok: 15 };
@@ -376,7 +389,8 @@ describe("streamAgent", () => {
 
   it("maxOutputTokens es el menor entre la ruta y 600; pasa system y tools activas", async () => {
     const streamFn = vi.fn(createScriptedStreamFn([[finish()], [finish()]]));
-    const { deps: d } = deps(streamFn);
+    // Modelo de la tabla que acepta temperature (el ficticio no la recibiría)
+    const { deps: d } = deps(streamFn, {}, { ...ROUTE, model: "claude-haiku-4-5" });
     await collect(streamAgent(ASSISTANT_TASK, input(), ctx, d));
     expect(streamFn.mock.calls[0]![0]).toMatchObject({
       maxOutputTokens: 600,

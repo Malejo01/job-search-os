@@ -20,6 +20,7 @@ import { z } from "zod";
 import { createLogger, type Logger } from "../logger";
 import { estimateCost } from "./client";
 import { normalizeLlmError } from "./error-code";
+import { capabilitiesFor } from "./model-capabilities";
 import type {
   CallSink,
   LlmCallRecord,
@@ -107,7 +108,8 @@ export type AgentStreamFn = (args: {
   tools: Record<string, { description: string; inputSchema: z.ZodType<unknown> }>;
   activeTools: string[];
   maxOutputTokens: number;
-  temperature: number;
+  /** Ausente si el modelo no la acepta (`model-capabilities.ts`). */
+  temperature?: number;
   /** Razonamiento extendido de la fila de `model_routing` (como client.ts). */
   reasoning?: ThinkingLevel;
   abortSignal: AbortSignal;
@@ -235,7 +237,7 @@ export const defaultAgentStreamFn: AgentStreamFn = async function* (args) {
     stopWhen: isStepCount(1),
     maxRetries: 0,
     maxOutputTokens: args.maxOutputTokens,
-    temperature: args.temperature,
+    ...(args.temperature !== undefined ? { temperature: args.temperature } : {}),
     abortSignal: args.abortSignal,
     ...(args.reasoning ? { reasoning: args.reasoning } : {}),
     // El error llega igual como parte `error` y el bucle lo normaliza a un código cerrado. El
@@ -465,7 +467,8 @@ async function* runTurn(
           tools: toolDefs,
           activeTools: active,
           maxOutputTokens,
-          temperature: route.temperature,
+          // Igual que client.ts: solo si el modelo la acepta (uno desconocido no la recibe)
+          ...(capabilitiesFor(route.model).temperature ? { temperature: route.temperature } : {}),
           ...(route.thinkingLevel ? { reasoning: route.thinkingLevel } : {}),
           abortSignal: signal,
         })[Symbol.asyncIterator]();

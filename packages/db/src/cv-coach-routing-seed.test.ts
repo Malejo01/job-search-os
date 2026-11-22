@@ -12,22 +12,21 @@ describe("model_routing: cv_review y cv_coach_turn", () => {
     ["cv_review", 2048],
     ["cv_coach_turn", 1536],
   ])(
-    "%s: primario con thinking minimal, respaldo, temperatura 0, max_tokens %i y tarifas de cv_interview",
+    "%s: principal Claude Sonnet sin thinking, respaldo Gemini, temperatura 0 y max_tokens %i",
     (task, maxTokens) => {
       const rows = seed.filter((r) => r.task === task);
       expect(rows).toHaveLength(1);
-      const interview = seed.find((r) => r.task === "cv_interview")!;
       expect(rows[0]).toMatchObject({
-        provider: interview.provider,
-        model: interview.model,
-        fallback_model: interview.fallback_model,
-        thinking_level: "minimal",
+        provider: "anthropic",
+        model: "claude-sonnet-5-5",
+        fallback_model: "gemini-3.5-flash",
+        thinking_level: null,
         temperature: 0,
         max_tokens: maxTokens,
-        input_usd_per_mtok: interview.input_usd_per_mtok,
-        output_usd_per_mtok: interview.output_usd_per_mtok,
-        fallback_input_usd_per_mtok: interview.fallback_input_usd_per_mtok,
-        fallback_output_usd_per_mtok: interview.fallback_output_usd_per_mtok,
+        input_usd_per_mtok: 2,
+        output_usd_per_mtok: 10,
+        fallback_input_usd_per_mtok: 1.5,
+        fallback_output_usd_per_mtok: 9,
       });
     },
   );

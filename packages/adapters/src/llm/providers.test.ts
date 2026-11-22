@@ -97,7 +97,7 @@ function harness(anthropicScript: Array<() => Response>) {
     logger: silent,
   });
   const toAnthropic = () => seen.filter((s) => s.url.includes("anthropic"));
-  return { client, calls, seen, toAnthropic };
+  return { client, calls, seen, toAnthropic, fetch: fakeFetch };
 }
 
 const errBody = (type: string, message: string) => ({ type: "error", error: { type, message } });
@@ -201,6 +201,63 @@ describe("petición a Anthropic (Haiku 5.5, sin red)", () => {
     expect(withNull.max_tokens).toBe(800);
     const withNone = await run("none");
     expect(withNone.thinking).toEqual({ type: "disabled" });
+  });
+});
+
+describe("principal Claude con imagen y respaldo Gemini (sin red)", () => {
+  const img = { mediaType: "image/jpeg", data: new Uint8Array([0xff, 0xd8, 0xff, 0xd9]) };
+
+  it("la imagen viaja a Claude como bloque image/jpeg y no se manda temperature", async () => {
+    const h = harness([anthropicOk]);
+    const client = createLlmClient({
+      routes: staticRouteSource([
+        route({ model: "claude-sonnet-5-5", thinkingLevel: null, temperature: 0 }),
+      ]),
+      calls: memoryCallSink(),
+      providers: createProviderRegistry(
+        { ANTHROPIC_API_KEY: "k-test", GEMINI_API_KEY: "k-test" },
+        { fetch: h.fetch },
+      ),
+      logger: silent,
+    });
+    const r = await client.generateStructured("evaluate_job", Schema, vars, { images: [img] });
+    expect(r.ok).toBe(true);
+    const body = h.seen[0]!.body;
+    expect(body).not.toHaveProperty("temperature");
+    const content = (body.messages as Array<{ content: Array<{ type: string; source?: unknown }> }>)[0]!
+      .content;
+    const block = content.find((c) => c.type === "image");
+    expect(block).toBeDefined();
+    expect(block!.source).toMatchObject({ type: "base64", media_type: "image/jpeg" });
+  });
+
+  it("si Claude falla, el respaldo Gemini recibe temperature y razonamiento minimal", async () => {
+    const h = harness([() => json(401, errBody("authentication_error", "x"))]);
+    const client = createLlmClient({
+      routes: staticRouteSource([
+        route({
+          model: "claude-sonnet-5-5",
+          fallbackModel: GEMINI,
+          thinkingLevel: null,
+          temperature: 0.3,
+        }),
+      ]),
+      calls: memoryCallSink(),
+      providers: createProviderRegistry(
+        { ANTHROPIC_API_KEY: "k-test", GEMINI_API_KEY: "k-test" },
+        { fetch: h.fetch },
+      ),
+      logger: silent,
+    });
+    const r = await client.generateStructured("evaluate_job", Schema, vars);
+    expect(r).toMatchObject({ ok: true, value: { model: GEMINI, usedFallback: true } });
+    const gem = h.seen.find((s) => s.url.includes("generativelanguage"));
+    const cfg = gem!.body.generationConfig as {
+      temperature?: number;
+      thinkingConfig?: { thinkingLevel?: string };
+    };
+    expect(cfg.temperature).toBe(0.3);
+    expect(cfg.thinkingConfig?.thinkingLevel).toBe("minimal");
   });
 });
 

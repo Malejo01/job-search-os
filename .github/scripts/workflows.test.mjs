@@ -100,6 +100,24 @@ test("ningún job con secretos de modelo corre en un pull_request: solo en push 
   );
 });
 
+test("el job evals corre con la clave del proveedor principal y Gemini solo de respaldo", () => {
+  const { text } = workflows.find((w) => w.name === "ci.yml");
+  const { block } = jobBlocks(text).find((j) => j.job === "evals");
+  // Se saltea con aviso si falta la clave del principal; la de Gemini es opcional
+  assert.match(block, /HAS_ANTHROPIC_KEY: \$\{\{ secrets\.ANTHROPIC_API_KEY != '' \}\}/);
+  assert.match(block, /HAS_GEMINI_KEY: \$\{\{ secrets\.GEMINI_API_KEY != '' \}\}/);
+  assert.match(block, /env\.HAS_ANTHROPIC_KEY != 'true'[\s\S]*?ANTHROPIC_API_KEY no está configurada/);
+  assert.doesNotMatch(block, /env\.HAS_GEMINI_KEY != 'true'/, "Gemini no condiciona la corrida");
+  // Las claves solo entran en el paso que corre los evals, no en el entorno del job
+  const jobEnv = block.split(/^\s+steps:/m)[0];
+  assert.doesNotMatch(jobEnv, /ANTHROPIC_API_KEY: \$\{\{ secrets/);
+  assert.match(block, /ANTHROPIC_API_KEY: \$\{\{ secrets\.ANTHROPIC_API_KEY \}\}/);
+  assert.match(
+    block,
+    /GEMINI_API_KEY: \$\{\{ env\.HAS_GEMINI_KEY == 'true' && secrets\.GEMINI_API_KEY \|\| '' \}\}/,
+  );
+});
+
 test("ningún workflow se dispara con pull_request_target", () => {
   for (const { name, text } of workflows) {
     // `carril.yml` lo usa a propósito (corre desde main y no ve código del PR); no tiene secretos de modelo
