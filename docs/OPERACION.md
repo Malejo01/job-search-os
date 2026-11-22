@@ -217,6 +217,13 @@ Fuente de la beta cerrada, **apagada por defecto**. Las casillas `pool-<carrera>
 - **Apagar:** quitar la variable o ponerla en `0`. Vale desde el siguiente email.
 - **Migración:** el valor `computrabajo_alerts` de `source_kind` (0046) lo aplica Admin con `pnpm db:migrate` antes del merge.
 
+## Qué cuenta (y qué no) en el gasto de IA
+
+- **La demo semanal** (`/api/cron/demo`) tiene su tope propio (USD 1 cada 7 días) y suma al gasto de 24 h, pero no pasa por el tope global: no se frena si el global está lleno. Conviene correrla en la franja de menor uso.
+- **Errores sin uso informado** (`validation`, `refusal`, `no_object*`, `aborted`) cuentan 0 si el proveedor no informó uso; con uso informado cuenta el costo real. Es una decisión registrada: una cuenta que provoca esos errores no gasta cupo, y el costo real queda en la factura del proveedor, no en el tope.
+- **Sobrecarga del proveedor** (503, 529) tampoco estima gasto; timeout y otros 5xx estiman USD 0,04 por intento.
+- **Corte de circuito:** con 5 fallas seguidas del proveedor en los últimos 10 minutos (`EVALUATE_MAX_CONSECUTIVE_FAILURES`), la evaluación inmediata no llama al modelo y la oferta queda para el cron.
+
 ## Alertas de gasto de IA (R7-1, R8-5)
 
 Al pasar el 70, 85 y 95 % de `LLM_DAILY_CAP_USD` (gasto de 24 h) sale un email a **cada** admin de `ADMIN_EMAILS`, una vez por umbral, por destinatario y por día UTC. Sin migración: la marca es una fila `budget_alert` en `llm_calls` (label `<día>:<umbral>:<hash del email>`; las de R7-1, sin hash, valen para todos).

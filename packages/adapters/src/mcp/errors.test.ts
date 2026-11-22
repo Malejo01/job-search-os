@@ -78,15 +78,14 @@ describe("mcpFailure: errores esperados con mensaje fijo por código", () => {
   });
 
   it("la cuota de respuestas guardadas tiene su código y habla de respuestas, no de avisos", () => {
-    const f = mcpFailure(
-      new PersonQuotaError(
-        "raw_bytes",
-        "llegaste al máximo de respuestas guardadas: borrá alguna que ya no uses",
-      ),
-    );
+    const f = mcpFailure(new PersonQuotaError("answers"));
     expect(f.code).toBe("cuota_respuestas");
     expect(f.message).toContain("respuestas");
     expect(f.message).not.toContain("avisos");
+    // El código sale del tipo, no del texto del error
+    expect(mcpFailure(new PersonQuotaError("raw_bytes", "respuestas guardadas")).code).toBe(
+      "cuota_espacio",
+    );
     expect(mcpFailure(new PersonQuotaError("raw_bytes")).code).toBe("cuota_espacio");
   });
 

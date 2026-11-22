@@ -2,6 +2,7 @@ import { schema as s, type Db } from "@job-search-os/db";
 import { and, eq, gte, sql } from "drizzle-orm";
 import {
   dailyCapFromEnv,
+  GLOBAL_CAP_RESERVED_SHARE,
   globalCapReached,
   LLM_RESERVE_TASK,
   spendLast24h,
@@ -208,7 +209,14 @@ async function reserveCore<R extends string>(
         // El gasto de CV tiene presupuesto propio: no le descuenta a este tope (ver `spendSince`)
         const totalUsd =
           (await spendLast24h(tx, clock, { excludeCvAgent: true })).usd + reservedAll;
-        if (globalCapReached({ capUsd: globalCap, totalUsd, mineUsd })) {
+        // El piso de la parte reservada mide lo mismo que el total: sin el gasto de CV de la persona.
+        // Solo se consulta cuando el total ya está en esa parte (la única donde el piso decide).
+        const inReservedPart = totalUsd >= globalCap * (1 - GLOBAL_CAP_RESERVED_SHARE);
+        const mineForFloor = inReservedPart
+          ? (await spendLast24h(tx, clock, { userId: input.userId, excludeCvAgent: true })).usd +
+            reservedMine
+          : mineUsd;
+        if (globalCapReached({ capUsd: globalCap, totalUsd, mineUsd: mineForFloor })) {
           return { ok: false as const, reason: "global" as const };
         }
       }

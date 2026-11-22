@@ -762,15 +762,28 @@ function userSpendTracker(deps: EvaluateDeps, capUsd: number) {
     }
     return usd;
   };
+  // Para el piso de la parte reservada: sin el gasto de CV, igual que el total global
+  const floorSpent = new Map<string, number>();
+  const mineFloorUsd = async (userId: string): Promise<number> => {
+    let usd = floorSpent.get(userId);
+    if (usd === undefined) {
+      usd = (await spendLast24h(deps.db, deps.now, { userId, excludeCvAgent: true })).usd;
+      floorSpent.set(userId, usd);
+    }
+    return usd;
+  };
   return {
     /** Gasto de 24 h de la persona (con caché de la corrida). */
     mineUsd,
+    /** Gasto de 24 h de la persona sin el de CV (piso de la parte reservada). */
+    mineFloorUsd,
     async isOver(userId: string | null): Promise<boolean> {
       if (capUsd <= 0 || !userId) return false;
       return (await mineUsd(userId)) >= capUsd;
     },
     add(userId: string | null, usd: number): void {
       if (userId && spent.has(userId)) spent.set(userId, spent.get(userId)! + usd);
+      if (userId && floorSpent.has(userId)) floorSpent.set(userId, floorSpent.get(userId)! + usd);
     },
   };
 }
@@ -1000,7 +1013,7 @@ export async function runEvaluateWorker(
         globalCapReached({
           capUsd: dailyCapUsd,
           totalUsd: spend.usd,
-          mineUsd: await userCap.mineUsd(ownerId),
+          mineUsd: await userCap.mineFloorUsd(ownerId),
         });
       if (reservedPartHit || (await userCap.isOver(ownerId))) {
         const until = new Date(nowMs() + USER_CAP_DEFER_MS);

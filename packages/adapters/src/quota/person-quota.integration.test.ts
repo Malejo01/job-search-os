@@ -133,12 +133,13 @@ describe("cuota de espacio: solo lo que carga la persona", () => {
 });
 
 describe("tope de respuestas guardadas (answer_bank)", () => {
-  it("la respuesta N+1 devuelve cuota_espacio", async () => {
+  it("la respuesta N+1 devuelve cuota_respuestas", async () => {
     const l = limits({ bankRows: 3 });
     for (let i = 0; i < 3; i++) await saveWith(A, i, "Respuesta corta", l);
     const err = await saveWith(A, 99, "Respuesta corta", l).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(PersonQuotaError);
-    expect(mcpFailure(err)).toMatchObject({ code: "cuota_espacio", expected: true });
+    expect(err).toMatchObject({ kind: "answers" });
+    expect(mcpFailure(err)).toMatchObject({ code: "cuota_respuestas", expected: true });
   });
 
   it("reemplazar una respuesta existente no cuenta como una fila más", async () => {
@@ -149,12 +150,12 @@ describe("tope de respuestas guardadas (answer_bank)", () => {
     });
   });
 
-  it("los bytes por encima del tope también devuelven cuota_espacio", async () => {
+  it("los bytes por encima del tope también devuelven cuota_respuestas", async () => {
     const l = limits({ bankBytes: 1_000 });
     await saveWith(A, 1, "a".repeat(500), l);
     const err = await saveWith(A, 2, "b".repeat(600), l).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(PersonQuotaError);
-    expect(mcpFailure(err)).toMatchObject({ code: "cuota_espacio" });
+    expect(mcpFailure(err)).toMatchObject({ code: "cuota_respuestas" });
     // lo que entra justo sigue entrando
     await expect(saveWith(A, 3, "c".repeat(300), l)).resolves.toMatchObject({ replaced: false });
   });
@@ -190,19 +191,19 @@ describe("tope de formularios respondidos (application_answers)", () => {
   const saveForm = (jobId: string, qa: ReturnType<typeof form>, l: AnswerQuotaLimits) =>
     conn.db.transaction((tx) => saveApplicationAnswers(tx, { userId: A, jobId, qa, limits: l }));
 
-  it("por encima del tope de filas devuelve cuota_espacio; reemplazar la misma oferta entra", async () => {
+  it("por encima del tope de filas devuelve cuota_respuestas; reemplazar la misma oferta entra", async () => {
     const j1 = await seedJob(A, "f1");
     const j2 = await seedJob(A, "f2");
     const l = limits({ formRows: 5 });
     await saveForm(j1, form(3), l);
     const err = await saveForm(j2, form(3), l).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(PersonQuotaError);
-    expect(mcpFailure(err)).toMatchObject({ code: "cuota_espacio" });
+    expect(mcpFailure(err)).toMatchObject({ code: "cuota_respuestas" });
     // la misma oferta se reemplaza entera: 5 filas entran aunque ya había 3 de esa oferta
     await expect(saveForm(j1, form(5), l)).resolves.toMatchObject({ saved: 5, replaced: 3 });
   });
 
-  it("por encima del tope de bytes devuelve cuota_espacio", async () => {
+  it("por encima del tope de bytes devuelve cuota_respuestas", async () => {
     const j1 = await seedJob(A, "b1");
     const j2 = await seedJob(A, "b2");
     const l = limits({ formBytes: 1_000 });

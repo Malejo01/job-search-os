@@ -12,18 +12,20 @@ import { and, eq, sql } from "drizzle-orm";
 /** Namespace del lock por persona de las cuotas (los otros locks por persona usan el suyo). */
 export const PERSON_QUOTA_LOCK_NAMESPACE = 7107;
 
+const ANSWER_QUOTA_MESSAGE =
+  "llegaste al máximo de respuestas guardadas: borrá alguna que ya no uses o acortá las más largas";
+
 export class PersonQuotaError extends Error {
-  readonly kind: "manual_jobs" | "raw_bytes";
-  /**
-   * `message` propio para las cuotas de respuestas guardadas: usan el tipo `raw_bytes` (que el MCP ya
-   * informa como `cuota_espacio`) pero el texto habla de respuestas, no de avisos.
-   */
-  constructor(kind: "manual_jobs" | "raw_bytes", message?: string) {
+  /** `answers`: banco de respuestas y formularios respondidos (el MCP lo informa como `cuota_respuestas`). */
+  readonly kind: "manual_jobs" | "raw_bytes" | "answers";
+  constructor(kind: "manual_jobs" | "raw_bytes" | "answers", message?: string) {
     super(
       message ??
         (kind === "manual_jobs"
           ? `llegaste al máximo de ${MAX_MANUAL_JOBS_PER_PERSON} ofertas cargadas a mano`
-          : `llegaste al máximo de espacio para avisos guardados (${Math.round(MAX_RAW_BYTES_PER_PERSON / 1024 / 1024)} MB)`),
+          : kind === "answers"
+            ? ANSWER_QUOTA_MESSAGE
+            : `llegaste al máximo de espacio para avisos guardados (${Math.round(MAX_RAW_BYTES_PER_PERSON / 1024 / 1024)} MB)`),
     );
     this.name = "PersonQuotaError";
     this.kind = kind;
@@ -82,9 +84,6 @@ export function answerQuotaLimitsFromEnv(env: NodeJS.ProcessEnv = process.env): 
   };
 }
 
-const ANSWER_QUOTA_MESSAGE =
-  "llegaste al máximo de respuestas guardadas: borrá alguna que ya no uses o acortá las más largas";
-
 /** Bytes (UTF-8) de una pregunta con su respuesta. */
 export const answerBytes = (question: string, answer: string): number =>
   Buffer.byteLength(question, "utf8") + Buffer.byteLength(answer, "utf8");
@@ -127,7 +126,7 @@ const takeQuotaLock = (db: Pick<Db, "execute">, userId: string) =>
 /**
  * Cuota de `answer_bank` bajo el mismo lock por persona que la de espacio. `add` es lo que suma esta
  * escritura: una respuesta nueva suma una fila y sus bytes; reemplazar una existente suma 0 filas y la
- * diferencia de bytes (si crece). Falla con `PersonQuotaError` (`cuota_espacio` en el MCP).
+ * diferencia de bytes (si crece). Falla con `PersonQuotaError` de tipo `answers` (`cuota_respuestas` en el MCP).
  */
 export async function reserveAnswerBankQuota(
   db: Db,
@@ -141,7 +140,7 @@ export async function reserveAnswerBankQuota(
     (add.rows > 0 && Number(usage?.rows ?? 0) + add.rows > limits.bankRows) ||
     (add.bytes > 0 && Number(usage?.bytes ?? 0) + add.bytes > limits.bankBytes)
   ) {
-    throw new PersonQuotaError("raw_bytes", ANSWER_QUOTA_MESSAGE);
+    throw new PersonQuotaError("answers");
   }
 }
 
@@ -159,7 +158,7 @@ export async function reserveApplicationAnswersQuota(
     Number(usage?.rows ?? 0) + add.rows > limits.formRows ||
     Number(usage?.bytes ?? 0) + add.bytes > limits.formBytes
   ) {
-    throw new PersonQuotaError("raw_bytes", ANSWER_QUOTA_MESSAGE);
+    throw new PersonQuotaError("answers");
   }
 }
 

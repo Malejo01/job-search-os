@@ -28,6 +28,10 @@ const QUOTA: Record<PersonQuotaError["kind"], { code: string; message: string }>
     code: "cuota_espacio",
     message: "Llegaste al máximo de espacio para avisos guardados.",
   },
+  answers: {
+    code: "cuota_respuestas",
+    message: "Llegaste al máximo de respuestas guardadas: borrá alguna o acortá las largas.",
+  },
 };
 
 /** Errores de otros módulos que se reconocen por nombre (no se importan acá). */
@@ -47,17 +51,7 @@ export function mcpFailure(e: unknown): McpFailure {
   if (e instanceof ApplicantFailure) return { ...APPLICANT[e.code], expected: true };
   // Una oferta inexistente y una de otra persona dan el mismo código: no se revela cuál es
   if (e instanceof JobNotFoundError) return { ...APPLICANT.job_not_found, expected: true };
-  if (e instanceof PersonQuotaError) {
-    // La cuota de respuestas guardadas usa el tipo `raw_bytes` con su propio texto
-    if (e.kind === "raw_bytes" && e.message.includes("respuestas guardadas")) {
-      return {
-        code: "cuota_respuestas",
-        message: "Llegaste al máximo de respuestas guardadas: borrá alguna o acortá las largas.",
-        expected: true,
-      };
-    }
-    return { ...QUOTA[e.kind], expected: true };
-  }
+  if (e instanceof PersonQuotaError) return { ...QUOTA[e.kind], expected: true };
   if (e instanceof JdNotPendingError) {
     return {
       code: "oferta_no_pendiente",
