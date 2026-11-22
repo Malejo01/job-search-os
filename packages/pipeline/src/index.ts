@@ -56,6 +56,7 @@ export * from "./first-ingest";
 export * from "./demo";
 export * from "./cv";
 export * from "./cv-chat";
+export * from "./interview";
 export * from "./cv-out";
 export * from "./cv-diagnosis";
 export * from "./cv-ats";

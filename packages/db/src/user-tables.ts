@@ -68,6 +68,10 @@ export const USER_TABLES: readonly UserTableEntry[] = [
   { table: "profiles", column: "user_id", action: "delete" },
   // Historial del CV (C-25, rls/0014): la policy es FOR ALL, así que se borra de forma explícita
   { table: "career_history", column: "user_id", action: "delete" },
+  // Simulador de entrevistas (rls/0045 y 0046): policy FOR ALL del dueño. Las respuestas van antes que las
+  // simulaciones; además caen por ON DELETE CASCADE al borrar `users`.
+  { table: "interview_answers", column: "user_id", action: "delete" },
+  { table: "interview_sessions", column: "user_id", action: "delete" },
   // Invitaciones (JS-091): las que creó se borran; si el usuario canjeó una ajena, se
   // desvincula (la invitación es de quien la creó).
   { table: "invitations", column: "created_by_user_id", action: "delete" },

@@ -658,6 +658,55 @@ export const careerHistory = pgTable("career_history", {
   check("career_history_link", sql`${t.link} is null or (${t.link} ~ '^https://' and char_length(${t.link}) <= 200)`),
 ]);
 
+// Simulador de entrevistas (/interview). Una simulación son 5 preguntas que propone el modelo, sobre una oferta
+// guardada o sobre una carrera y un nivel. Es dato de la persona: policy del dueño en rls/0045 y se borra con
+// la cuenta (ON DELETE CASCADE). El tope de 2 por día lo hace cumplir el código (adapters/interview). Si se
+// borra la oferta, la simulación queda: `job_id` pasa a null y `title` conserva cómo se llamaba.
+export const interviewSessions = pgTable("interview_sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  sourceKind: text("source_kind").notNull(),     // job | career
+  jobId: uuid("job_id").references(() => jobs.id, { onDelete: "set null" }),
+  career: text("career"),                        // solo source_kind = career
+  seniority: text("seniority"),                  // solo source_kind = career
+  title: text("title").notNull(),                // lo que se muestra: puesto y empresa, o carrera y nivel
+  questions: jsonb("questions").$type<string[]>().notNull(), // las 5 preguntas, en orden
+  status: text("status").notNull().default("en_curso"),      // en_curso | terminada
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  finishedAt: timestamp("finished_at", { withTimezone: true }),
+}, (t) => [
+  index("interview_sessions_user_created").on(t.userId, t.createdAt.desc()),
+  check("interview_sessions_source_kind", sql`${t.sourceKind} in ('job', 'career')`),
+  check("interview_sessions_status", sql`${t.status} in ('en_curso', 'terminada')`),
+  check("interview_sessions_seniority", sql`${t.seniority} is null or ${t.seniority} in ('trainee', 'junior', 'semi_senior', 'senior', 'lead')`),
+  check("interview_sessions_career_length", sql`${t.career} is null or char_length(${t.career}) between 1 and 120`),
+  check("interview_sessions_title_length", sql`char_length(${t.title}) between 1 and 200`),
+  check("interview_sessions_questions", sql`jsonb_typeof(${t.questions}) = 'array' and jsonb_array_length(${t.questions}) = 5`),
+]);
+
+// Una fila por respuesta evaluada: lo que escribió o dictó la persona (hasta 1500 caracteres, ya limpio) y la
+// devolución. Los puntajes los valida el código (0 a 10) antes de llegar acá; el check es la última barrera.
+export const interviewAnswers = pgTable("interview_answers", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  sessionId: uuid("session_id").notNull().references(() => interviewSessions.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  position: smallint("position").notNull(),      // 0..4: índice de la pregunta
+  answer: text("answer").notNull(),
+  clarity: smallint("clarity").notNull(),
+  relevance: smallint("relevance").notNull(),
+  star: smallint("star").notNull(),
+  tip: text("tip").notNull(),
+  example: text("example").notNull(),
+  model: text("model"),                          // quién evaluó ('fake' en el modo demo)
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("interview_answers_session_position").on(t.sessionId, t.position),
+  index("interview_answers_user").on(t.userId),
+  check("interview_answers_position", sql`${t.position} between 0 and 4`),
+  check("interview_answers_scores", sql`${t.clarity} between 0 and 10 and ${t.relevance} between 0 and 10 and ${t.star} between 0 and 10`),
+  check("interview_answers_answer_length", sql`char_length(${t.answer}) between 1 and 1500`),
+]);
+
 export const skillEvidence = pgTable("skill_evidence", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull(),
