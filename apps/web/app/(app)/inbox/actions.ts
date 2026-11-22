@@ -14,6 +14,7 @@ import {
   type InboxPrevious,
   type ReversibleBulk,
 } from "@/lib/inbox-list";
+import { revokePreviousInboundAddress } from "@/lib/inbound-address";
 import { requireActiveUserId } from "@/lib/session";
 
 /** Acciones por email de /inbox (JS-038). La confirmación de "Eliminar" la pide el cliente. */
@@ -44,6 +45,16 @@ export async function deleteAction(formData: FormData): Promise<void> {
   await run(formData, deleteInbound);
   // Desde el detalle (JS-039) ya no queda nada que mostrar: vuelve a la lista
   if (formData.get("volver") === "1") redirect("/inbox");
+}
+
+/**
+ * «Dejar de recibir en la dirección anterior»: revoca el alias de una rotación. Solo mira la sesión; el
+ * formulario no manda ningún id.
+ */
+export async function revokeAliasAction(_formData: FormData): Promise<void> {
+  const userId = await requireActiveUserId();
+  await revokePreviousInboundAddress(userId);
+  revalidatePath("/inbox");
 }
 
 export type BulkKind = ReversibleBulk | "delete";

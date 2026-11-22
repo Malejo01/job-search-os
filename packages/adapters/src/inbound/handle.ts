@@ -488,10 +488,20 @@ function parseOrManualQueue(
 }
 
 /** Direcciones del evento en minúsculas, en orden de prioridad: received_for, to, cc. */
-function eventRecipients(event: ResendReceivedEvent): string[] {
-  return [...event.data.received_for, ...event.data.to, ...event.data.cc].map((r) =>
-    (/<([^>]+)>/.exec(r)?.[1] ?? r).trim().toLowerCase(),
-  );
+export function eventRecipients(event: ResendReceivedEvent): string[] {
+  return [...event.data.received_for, ...event.data.to, ...event.data.cc].map(recipientAddress);
+}
+
+/**
+ * Dirección de un destinatario en minúsculas: lo que está entre el primer «<» y el primer «>» que lo sigue,
+ * o el texto entero si no hay un par. Recorrido lineal (sin expresión regular): un destinatario hostil con
+ * miles de «<» sin cerrar no encarece la lectura.
+ */
+export function recipientAddress(recipient: string): string {
+  const open = recipient.indexOf("<");
+  const close = open === -1 ? -1 : recipient.indexOf(">", open + 1);
+  const inner = close > open + 1 ? recipient.slice(open + 1, close) : recipient;
+  return inner.trim().toLowerCase();
 }
 
 /**
@@ -631,9 +641,9 @@ export async function handleInboundEmail(
   // (received_for) cuando existe; si entre esos destinatarios hay una dirección u_… válida, gana
   // el flujo normal y el email no se desvía al pool. Apagado, ajena o inválida: se rechaza como un
   // destinatario desconocido.
-  const envelope = event.data.received_for.map((r) =>
-    (/<([^>]+)>/.exec(r)?.[1] ?? r).trim().toLowerCase(),
-  );
+  // `recipients` ya viene calculada una sola vez: received_for, to, cc, en ese orden
+  const receivedForCount = event.data.received_for.length;
+  const envelope = recipients.slice(0, receivedForCount);
   const basis = envelope.length ? envelope : recipients;
   if (!basis.some((r) => byAddress.has(r)) && basis.some(isPoolMailboxAddress)) {
     const pool = deps.pool ?? readPoolInboundConfig();
@@ -737,6 +747,14 @@ export async function handleInboundEmail(
     return { kind: "unknown_recipient", recipientsCount: recipients.length };
   }
   const userId = profile.userId;
+  // `enforce` sin servidor de autenticación: ningún email queda verificado y los de portales se retienen
+  if (dmarcMode === "enforce" && !authservId?.trim()) {
+    logModeError(
+      "INBOUND_DMARC_MODE está en «enforce» pero falta INBOUND_AUTHSERV_ID: los emails de portales quedan retenidos",
+      "INBOUND_AUTHSERV_ID",
+      log.child({ user_id: userId }),
+    );
+  }
 
   const quota = await checkUserQuota(db, userId, event.data.from, now, deps);
   // Una provisional abandonada ya está contada: retomarla no vuelve a pasar por el cupo
@@ -826,9 +844,10 @@ export async function handleInboundEmail(
     const ownAddresses = [profile.inboundAddress?.toLowerCase(), activePrevious(profile)].filter(
       (a): a is string => typeof a === "string",
     );
-    const addressedToUser = [...event.data.to, ...event.data.received_for].some((r) =>
-      ownAddresses.includes((/<([^>]+)>/.exec(r)?.[1] ?? r).trim().toLowerCase()),
-    );
+    // received_for y to son los primeros destinatarios de `recipients` (cc va al final)
+    const addressedToUser = recipients
+      .slice(0, receivedForCount + event.data.to.length)
+      .some((r) => ownAddresses.includes(r));
     const isSecurity = category === "seguridad";
     const gmailConfirmClaimed = category === "confirmacion_reenvio_gmail" && addressedToUser;
     // En `enforce`, un remitente esperado sin autenticación verificada se guarda pero no se procesa

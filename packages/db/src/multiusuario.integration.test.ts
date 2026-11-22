@@ -624,6 +624,17 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
         0,
       );
     },
+    // Sin parámetros: solo limpia el alias de quien llama. El alias de B queda como estaba.
+    revoke_previous_inbound_address: async () => {
+      await owner`update profiles set previous_inbound_address = 'u_alias_b@ingest.test',
+                    previous_inbound_until = now() + interval '3 days' where user_id = ${B}`;
+      await asUser(A, (tx) => tx`select revoke_previous_inbound_address()`);
+      const [b] = await owner<{ previous_inbound_address: string | null }[]>`
+        select previous_inbound_address from profiles where user_id = ${B}`;
+      expect(b!.previous_inbound_address).toBe("u_alias_b@ingest.test");
+      await owner`update profiles set previous_inbound_address = null, previous_inbound_until = null
+                  where user_id = ${B}`;
+    },
     login_attempt_clear: async () => {
       const hash = "d".repeat(64);
       await owner`insert into login_attempts (email_hash) values (${hash}) on conflict do nothing`;

@@ -1,4 +1,4 @@
-import { betaHealth, type HealthLevel } from "@job-search-os/pipeline";
+import { betaHealth, inboundConfigWarnings, type HealthLevel } from "@job-search-os/pipeline";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -111,6 +111,34 @@ async function AssistantBlock({ userId }: { userId: string }) {
 }
 
 /**
+ * Configuración del correo entrante: modos mal escritos o `enforce` sin servidor de autenticación. Se
+ * calcula con las variables de entorno, sin consultar la base. Nunca muestra el valor de la variable.
+ */
+function InboundConfigBlock({ warnings }: { warnings: string[] }) {
+  return (
+    <section
+      data-testid="salud-correo-config"
+      data-warnings={warnings.length}
+      aria-labelledby="correo-config"
+      className="flex flex-col gap-1 rounded-card bg-surface p-4"
+    >
+      <h2 id="correo-config" className="text-sm font-semibold text-fg">
+        Configuración del correo entrante
+      </h2>
+      {warnings.length === 0 ? (
+        <p className="text-base font-bold text-fg">Sin avisos</p>
+      ) : (
+        <ul role="status" className="m-0 flex list-disc flex-col gap-1 pl-5 text-xs text-warning">
+          {warnings.map((w) => (
+            <li key={w}>{w}</li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+/**
  * Salud diaria de la beta (C8-11): la pantalla que Mauro mira cada mañana. Solo para quien administra
  * la beta (para el resto, 404). Conteos agregados, sin datos de nadie; se actualizan cada 5 minutos.
  * Los umbrales salen de docs/beta/capacidad.md.
@@ -196,6 +224,7 @@ export default async function SaludPage() {
           por umbral y por día (UTC). El gasto de 24 horas contra el tope está en «IA» más arriba.
         </p>
       </section>
+      <InboundConfigBlock warnings={inboundConfigWarnings(process.env)} />
       <AssistantBlock userId={userId} />
       <p className="text-sm">
         <Link href="/settings/metricas" className="font-semibold text-link underline">

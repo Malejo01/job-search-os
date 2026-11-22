@@ -23,7 +23,7 @@ import {
   filterChipClasses,
   textLinkClasses,
 } from "@/components/ui";
-import { markSeenAction } from "./actions";
+import { markSeenAction, revokeAliasAction } from "./actions";
 import { BulkBar } from "./bulk-bar";
 import { DeleteDomainButton } from "./delete-domain-button";
 import { EmailActions } from "./email-actions";
@@ -94,6 +94,11 @@ export default async function InboxPage({
             <span className="font-mono text-fg select-all">{address}</span>. La anterior sigue
             funcionando hasta el {formatDate(graceUntil.toISOString())}.
           </p>
+          <form action={revokeAliasAction} className="mt-2">
+            <button type="submit" className={SECONDARY_SM} data-testid="revocar-direccion-anterior">
+              Dejar de recibir en la dirección anterior
+            </button>
+          </form>
         </Alert>
       ) : null}
       {/* Arriba de todo, hasta que se marque como visto */}

@@ -7,7 +7,7 @@ import {
   isLegacyInboundAddress,
   tokenFromBytes,
 } from "@job-search-os/pipeline";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { withUser } from "./db";
 
 /**
@@ -58,6 +58,22 @@ export async function getInboundAddressState(
     address: row.address,
     graceUntil: row.previousUntil && row.previousUntil > now ? row.previousUntil : null,
   };
+}
+
+/**
+ * Deja de recibir en la dirección anterior de una rotación. La app no escribe esas columnas: lo hace una
+ * función de la base que solo mira la sesión (`app.user_id`), así que la persona solo toca la suya.
+ * Devuelve true si había un alias que revocar.
+ */
+export async function revokePreviousInboundAddress(userId: string): Promise<boolean> {
+  const rows = (await withUser(userId, (tx) =>
+    tx.execute(sql`select public.revoke_previous_inbound_address() as ok`),
+  )) as unknown as { ok: boolean }[];
+  const revoked = rows[0]?.ok === true;
+  if (revoked) {
+    createLogger({ user_id: userId, task: "inbound_address" }).info("dirección anterior revocada");
+  }
+  return revoked;
 }
 
 /**
