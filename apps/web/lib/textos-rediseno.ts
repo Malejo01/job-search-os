@@ -25,6 +25,14 @@ export const CV_LEVEL_WORDS = {
   missing: "Falta",
 } as const;
 
+/** Palabra de cada puntaje (0 a 10) de la devolución del simulador de entrevistas. */
+export const INTERVIEW_SCORE_WORDS = {
+  high: "Muy bien",
+  mid: "Bien",
+  low: "Mejorable",
+  far: "A trabajar",
+} as const;
+
 /** Título del diagnóstico del CV. */
 export const CV_DIAGNOSIS_TITLE = "Cómo lo leen los sistemas de selección";
 
