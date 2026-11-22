@@ -1,5 +1,5 @@
 ---
-actualizado: 2026-11-02
+actualizado: 2026-11-22
 ---
 
 # Política de privacidad
@@ -15,6 +15,7 @@ AfinIAJobs es una herramienta en beta cerrada. El responsable del tratamiento de
 - **Avisos de empleo:** los que cargás o pegás vos, los que llegan en los emails que reenviás y los que el sistema te asigna desde fuentes públicas de avisos según las carreras que buscás. De cada aviso guardamos empresa, título, ubicación, sueldo si figura, texto del aviso y link, la evaluación que genera el sistema y tu opinión sobre esa evaluación si la das.
 - **Postulaciones y respuestas:** las postulaciones que registrás (o que se registran solas cuando reenviás el email de LinkedIn que confirma una postulación), su resultado y tus notas, y las respuestas de formularios que aprobás, que quedan guardadas para reutilizarlas. El formulario que pegás para pedir borradores no se guarda: solo las respuestas que aprobás.
 - **Emails que reenviás:** el sistema te asigna una dirección propia para reenviar, con el formato `u_<20 caracteres>@dominio`, que podés cambiar desde Ajustes. De los remitentes que reconoce como fuentes de empleo guarda el email completo, para extraer los avisos. Podés ampliar esa lista marcando otros dominios como "empleo": desde ese momento, los emails de esos dominios se guardan completos. De los demás remitentes guarda solo remitente, destinatarios, asunto (con los números ocultos) y fecha, sin el cuerpo. Los emails de inicio de sesión, verificación o códigos se descartan al llegar, de cualquier remitente: guardamos solo remitente, destinatarios, fecha y el asunto con los números ocultos. El pedido de confirmación de reenvío de Gmail dirigido a tu dirección se guarda completo para que puedas confirmarlo desde la bandeja. Si llegan demasiados emails en una hora, los que pasan el límite no se guardan: solo contamos cuántos fueron para avisarte. Ver la sección 6 sobre lo que escapa a este filtro.
+- **Simulador de entrevistas:** cada simulación que hacés (la oferta que elegiste o la carrera y el nivel, y las cinco preguntas), tus respuestas y la devolución de cada una (los puntajes, el consejo y el ejemplo). Se borran cuando eliminás tu cuenta (sección 8).
 - **Contactos:** las personas de contacto que se registran en tu cuenta: nombre, rol, canal (por ejemplo, LinkedIn o email), fecha del último contacto, estado, notas y la empresa a la que se asocian.
 - **Datos de tu trayectoria (`candidate_facts`):** los proyectos y logros que figuran en tu cuenta: el proyecto, lo que afirmás de él, una métrica si la hay, de dónde sale el dato y si es verificable o autodeclarado.
 - **Comentarios que nos mandás desde la app:** el texto, la categoría, la pantalla (sin datos de la URL) y la fecha, asociados a tu cuenta. En la lista interna se muestran con un identificador seudónimo, sin tu email ni tu nombre.
@@ -41,7 +42,7 @@ AfinIAJobs es una herramienta en beta cerrada. El responsable del tratamiento de
 
 1. Crear y mantener tu cuenta e iniciar sesión.
 2. Recibir, ordenar y mostrarte avisos de empleo.
-3. Evaluar con IA qué tan bien calza cada aviso con tu perfil y redactar borradores de respuestas que revisás vos.
+3. Evaluar con IA qué tan bien calza cada aviso con tu perfil, redactar borradores de respuestas que revisás vos y darte devoluciones para practicar entrevistas.
 4. Controlar el costo de uso, la seguridad y la estabilidad del servicio. Para eso, y para corregir errores, quien administra el servicio puede acceder a la base de datos y medir su uso de forma agregada.
 5. Responder tus consultas y pedidos.
 
@@ -57,8 +58,8 @@ Para funcionar usamos proveedores que tratan datos por nuestra cuenta:
 
 | Proveedor | Para qué | Qué datos recibe |
 |---|---|---|
-| Google (Gemini API) | Modelo principal para evaluar avisos, para las funciones de CV (leer, entrevistar, redactar, revisar y el coach) y para leer un aviso desde una imagen; respaldo del asistente y de los borradores | Lo que se detalla abajo, según la función |
-| Anthropic (Claude API) | Modelo principal del asistente de la app y de los borradores de respuestas; respaldo de las demás funciones | Lo mismo que Google en la función que le toca |
+| Anthropic (Claude API) | Modelo principal de todas las funciones con IA: evaluar avisos, las funciones de CV (leer, entrevistar, redactar, revisar y el coach), leer un aviso desde una imagen, el asistente, los borradores de respuestas y el simulador de entrevistas | Lo que se detalla abajo, según la función |
+| Google (Gemini API) | Respaldo: solo recibe datos cuando Anthropic no responde, en la misma función | Lo mismo que Anthropic en la función que le toca |
 | Resend | Recibir los emails que reenviás y enviar los emails de la app: recuperación de contraseña y, cuando están activados, bienvenida y avisos de vencimiento del plan. También manda al equipo que administra el servicio los comentarios que escribís desde la app | Los emails reenviados completos (los recibe antes de nuestro filtro); tu email y el texto del mensaje cuando la app te escribe; y el texto del comentario, la pantalla y datos técnicos del navegador cuando mandás uno |
 | Vercel | Alojar la aplicación | Lo que viaja entre tu navegador y la app, y los registros de funcionamiento |
 | Neon | Base de datos | Todo lo que se guarda (sección 2) |
@@ -73,8 +74,11 @@ Para funcionar usamos proveedores que tratan datos por nuestra cuenta:
 - **Revisión y coach de CV:** tu CV confirmado (títulos, empresas, fechas, viñetas, resumen, puesto que buscás, tus skills y datos de demanda del mercado) y, en el coach, lo que escribís en la charla y el link de tus proyectos.
 - **Asistente de la app:** lo que escribís, un resumen de la charla, la pantalla donde estás y, cuando hace falta para responderte, lo que lee de tu cuenta: tu perfil (país, ciudad, modalidades, idiomas, autorización de trabajo, nivel de inglés, años de experiencia y el resumen), tus skills y niveles, tus criterios, tus puestos, tus ofertas (título, empresa, evaluación y el texto del aviso sin emails ni teléfonos) y datos del mercado.
 - **Leer un aviso desde una imagen:** la imagen que subís. No se guarda.
+- **Simulador de entrevistas:** para armar las preguntas, el título, la empresa y el texto de la oferta que elegiste, o la carrera y el nivel. Para cada devolución, la pregunta, tu respuesta tal como la escribiste o la dictaste, y ese mismo contexto.
 
-**Lo que no mandamos y lo que sí depende de vos.** Nosotros no les enviamos a los modelos tu email, tu contraseña ni un teléfono: tu perfil no los incluye, y los emails reenviados no van a la IA completos, solo los datos del aviso que extraemos de ellos. Tu nombre tampoco se manda por nuestra parte, y en la lectura del CV lo sacamos del texto. Pero **lo que vos escribís o pegás** (el resumen de tu perfil, los mensajes de los chats, el coach y el asistente, el texto de un aviso o una imagen) llega a los modelos tal como lo escribiste: si ahí ponés tu nombre, tu email, tu teléfono u otro dato personal, el modelo lo recibe. Por eso te pedimos no incluir datos personales ni sensibles en esos textos (ver sección 2).
+**Dictar con la voz.** El botón «Dictar» usa el reconocimiento de voz de tu navegador. Según el navegador, el audio puede ir a su proveedor (por ejemplo Google o Apple) para pasarlo a texto, con las condiciones de ese proveedor. A nosotros no nos llega audio y no lo guardamos: solo recibimos el texto que mandás, después de que lo revisás.
+
+**Lo que no mandamos y lo que sí depende de vos.** Nosotros no les enviamos a los modelos tu email, tu contraseña ni un teléfono: tu perfil no los incluye, y los emails reenviados no van a la IA completos, solo los datos del aviso que extraemos de ellos. Tu nombre tampoco se manda por nuestra parte, y en la lectura del CV lo sacamos del texto. Pero **lo que vos escribís o pegás** (el resumen de tu perfil, los mensajes de los chats, el coach y el asistente, tus respuestas en el simulador de entrevistas, el texto de un aviso o una imagen) llega a los modelos tal como lo escribiste: si ahí ponés tu nombre, tu email, tu teléfono u otro dato personal, el modelo lo recibe. Por eso te pedimos no incluir datos personales ni sensibles en esos textos (ver sección 2).
 
 **Entrenamiento y conservación.** Nosotros no usamos tus datos para entrenar modelos. Según las condiciones públicas de cada proveedor al actualizar este texto:
 
