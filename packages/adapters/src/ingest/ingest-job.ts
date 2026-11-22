@@ -8,6 +8,7 @@ import {
   effectiveAcceptedModalities,
   externalKey,
   isValidCountry,
+  JD_HARD_MAX_CHARS,
   normalizeCompany,
   normalizeLocation,
   normalizeTitle,
@@ -333,7 +334,13 @@ export async function loadProfileCountry(db: Db, userId: string): Promise<string
 
 export async function ingestRawJob(input: RawJob, deps: IngestDeps): Promise<IngestOutcome> {
   // Los textos cortos se recortan antes de usarlos; el crudo se guarda tal como llegó (`original`)
-  const raw = clampRawJobFields(input);
+  const clamped = clampRawJobFields(input);
+  // La JD entra con el máximo duro de la evaluación: una más larga no se guarda entera (la oferta
+  // quedaría trabada porque la evaluación la rechaza por tamaño). El crudo guarda el original.
+  const raw =
+    clamped.jdText && clamped.jdText.length > JD_HARD_MAX_CHARS
+      ? { ...clamped, jdText: clamped.jdText.slice(0, JD_HARD_MAX_CHARS) }
+      : clamped;
   const { db, userId, rules } = deps;
   const now = deps.now?.() ?? new Date();
   const since = new Date(now.getTime() - (deps.windowDays ?? 14) * DAY_MS);
