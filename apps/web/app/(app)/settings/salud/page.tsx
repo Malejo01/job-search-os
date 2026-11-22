@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { requireAdminOr404 } from "@/lib/admin-guard";
 import { getAssistantMetrics } from "@/lib/assistant-metrics";
 import { getBetaHealth } from "@/lib/beta-health";
+import { loginSecretMissingInProduction } from "@/lib/login-credentials";
 import { requireUserId } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Salud de la beta", robots: { index: false } };
@@ -178,6 +179,17 @@ export default async function SaludPage() {
       >
         En general: {top.label}
       </p>
+      {loginSecretMissingInProduction() ? (
+        <p
+          role="status"
+          data-testid="salud-login-secreto"
+          className="rounded-card bg-warning-soft px-4 py-3 text-sm text-warning"
+        >
+          Falta <code>LOGIN_ATTEMPTS_HMAC_SECRET</code> en producción: los intentos de login se
+          guardan con hashes sin sal. Cargala en Vercel (<code>docs/OPERACION.md</code>, «Intentos de
+          login»).
+        </p>
+      ) : null}
       <ul className="m-0 flex list-none flex-col gap-3 p-0">
         {rows.map((r) => {
           const l = LEVEL[r.level];
