@@ -15,7 +15,7 @@ Lo que tiene que hacer una persona (no un agente) para que lo de esta tanda lleg
 | `extract_cv_profile`, `extract_skills`, `cv_interview` | gemini-3.5-flash | claude-haiku-4-5 (1 / 5) | gemini-3.5-flash |
 | `parse_email_fallback` | gemini-3.1-flash-lite | claude-haiku-4-5 | gemini-3.1-flash-lite (0,25 / 1,5) |
 
-`temperature` y `max_tokens` de cada tarea no cambian. `thinking_level` va `null` en las filas con principal Claude (solo aplica a Google); cuando Gemini entra de respaldo el cliente le manda razonamiento `minimal` (`packages/adapters/src/llm/model-capabilities.ts`). Los precios son solo los que ya estaban en el seed.
+`temperature` y `max_tokens` de cada tarea no cambian, salvo `evaluate_job`, que se alinea con el seed (ver §1.2, punto 4). `thinking_level` va `null` en las filas con principal Claude (solo aplica a Google); cuando Gemini entra de respaldo el cliente le manda razonamiento `minimal` (`packages/adapters/src/llm/model-capabilities.ts`). Los precios son solo los que ya estaban en el seed.
 
 El cliente ya no manda `temperature` a los modelos que no la aceptan (Claude Sonnet 5.5) ni a modelos que no conoce: la tabla de capacidades falla cerrado. Una imagen solo viaja a un modelo que la lee.
 
@@ -30,7 +30,7 @@ El cliente ya no manda `temperature` a los modelos que no la aceptan (Claude Son
    ```
 
    Esperado: las 8 tareas de arriba (salvo `evaluate_job`) con `provider = google`. Si alguna difiere, el ensayo del SQL frena y lo dice.
-4. `evaluate_job` en producción puede tener `thinking_level` y `max_tokens` distintos de los del seed (el seed dice `null` y 2048). El SQL **no los toca**; si querés alinearlos es un `UPDATE` aparte y consciente.
+4. `evaluate_job` en producción puede tener `thinking_level` y `max_tokens` distintos de los del seed (el seed dice `null` y 2048). **El SQL los alinea al seed** (`max_tokens = 2048`, `thinking_level = NULL`): la reserva de gasto de cada evaluación (`EVALUATION_RESERVE_USD`) está calibrada con esos valores, y los evals ya miden con ellos; con 8192 de salida el peor caso de una evaluación (Sonnet más el respaldo Gemini) pasaría de la reserva. Anotá en el `select` de §1.2 lo que hoy tiene, por si hay que revertir.
 
 ### 1.3 Mediciones antes de aplicar (las corre quien administra el proyecto; tope total USD 5)
 
@@ -51,7 +51,7 @@ El coach acepta `--dry-run` (muestra el plan y el estimado y sale sin llamar a n
 
 ### 1.4 SQL de producción
 
-Archivo versionado: `packages/db/sql/ruteo-s4.sql`. Hace un `UPDATE model_routing … WHERE task = …` por tarea dentro de `BEGIN; … COMMIT;`, con una guarda que frena todo si una fila no está como se espera **antes** del cambio (proveedor y modelo de hoy, y que existan las 9 filas) y otra **después** (que cada fila haya quedado exactamente como el seed, y que `temperature` y `max_tokens` no hayan cambiado). Está probado contra un Postgres de prueba (`packages/db/src/ruteo-sql.integration.test.ts`): el ensayo no deja nada, la corrida real deja el seed y las guardas frenan sin tocar nada.
+Archivo versionado: `packages/db/sql/ruteo-s4.sql`. Hace un `UPDATE model_routing … WHERE task = …` por tarea dentro de `BEGIN; … COMMIT;`, con una guarda que frena todo si una fila no está como se espera **antes** del cambio (proveedor y modelo de hoy, y que existan las 9 filas) y otra **después** (que cada fila haya quedado exactamente como el seed, incluidos `thinking_level` y, en `evaluate_job`, `max_tokens`, y que `temperature` y el `max_tokens` de las demás tareas no hayan cambiado). `evaluate_job` es la única fila donde el SQL toca `max_tokens` y `thinking_level`: los alinea al seed por la razón de §1.2 punto 4. Está probado contra un Postgres de prueba (`packages/db/src/ruteo-sql.integration.test.ts`): el ensayo no deja nada, la corrida real deja el seed y las guardas frenan sin tocar nada.
 
 Pasos (hacelo **después** de que las mediciones de §1.3 aprobaron):
 
@@ -82,3 +82,51 @@ La política de privacidad y `docs/legal/datos-por-proveedor.md` describen a Goo
 ### 1.7 Reservas de gasto del coach de CV
 
 Con Sonnet de principal el máximo de un paso (principal más respaldo) subió, así que las reservas pasaron a `write` 0,08, `turn` 0,045 y `review` 0,07 (`packages/pipeline/src/cv-coach/limits.ts` y `cv-chat/limits.ts`). El tope de una charla (USD 0,30) sigue alcanzando para un turno más la redacción reservados. Efecto: con filas de costo desconocido, una charla corta por tope tras 4 turnos en vez de 5.
+
+### 1.8 Tests del harness de evals que leen el seed
+
+Tres tests de `evals/src/run.test.ts` fijan a Gemini como principal de `evaluate_job` y fallan con el seed nuevo (`estima el costo antes de correr…`, `routeFor toma la tarifa…` y `el reporte lleva thinking…`). Los agentes no tienen permiso sobre `evals/`, así que el ajuste lo hace quien integre la rama del ruteo, en el mismo PR:
+
+1. `estimateRunCost({ subset: true, runs: 1, model: "gemini-3.5-flash", thinking: "minimal" })` (el principal del seed ya no lleva razonamiento).
+2. `routeFor()` sin argumentos espera `{ model: "claude-sonnet-5-5", thinkingLevel: null, fallbackModel: null }`, y se suma `routeFor("gemini-3.5-flash", "minimal")` con `{ provider: "google", model: "gemini-3.5-flash", thinkingLevel: "minimal" }`.
+3. El reporte espera `thinking: null`.
+
+Efecto: `pnpm evals run` sin `--model` pasa a medir Claude Sonnet sin razonamiento (lee el seed).
+
+## §2. Migraciones (aplicar en producción antes del deploy de las ramas que las traen)
+
+Con `pnpm db:migrate`, después de revisar el SQL. Todas son índices o funciones; ninguna borra datos.
+
+| Archivo | Qué hace | Rama |
+| --- | --- | --- |
+| `drizzle/0073_*.sql` | Índice parcial de las filas provisionales del correo (`inbound_emails_pending`) | `ronda/s4-02-correo-reintento-pendiente` |
+| `drizzle/0074_*.sql` | Índices por `raw_ref` en `inbound_emails` y `job_sources` | `ronda/s4-04-correo-almacenamiento` |
+| `rls/0040_revocar_direccion_anterior.sql` | Función para que la persona revoque su dirección anterior | `ronda/s4-09-correo-bajos` |
+| `rls/0043_login_attempts_espera_corta.sql` | Intentos de login: la fila se crea o se bloquea en una sola sentencia | `ronda/s4-11-acceso-bajos` |
+| `rls/0044_login_attempts_clear_orden.sql` | Intentos de login: la limpieza toma los locks en el mismo orden | `ronda/s4-11-acceso-bajos` |
+
+Los `CREATE INDEX` toman un lock de escritura breve sobre tablas chicas en la beta. Ver la nota de `docs/OPERACION.md` sobre índices concurrentes para cuando crezcan.
+
+## §3. Variables nuevas (opcionales)
+
+| Variable | Por defecto | Para qué |
+| --- | --- | --- |
+| `INBOUND_MAX_BYTES_PER_USER` | 209715200 (200 MB) | Tope de correo crudo guardado por persona; al pasarlo el email queda visible sin cuerpo |
+| `LOGIN_ATTEMPTS_HMAC_SECRET` | sin definir | Ya existía; ahora también se mezcla en el hash de IP y `/settings/salud` avisa si falta en producción. Cargarla reinicia la espera de las cuentas en curso |
+
+`EVALUATE_MAX_CONSECUTIVE_FAILURES` (5) ya existía: ahora también corta la evaluación inmediata.
+
+## §4. Escaneo de secretos
+
+Los agentes no pueden correr Docker con imágenes externas. Antes de abrir los PR, desde la raíz del repo:
+
+```powershell
+docker run --rm -v "${PWD}:/repo" zricethezav/gitleaks:latest detect --source /repo --no-banner --redact
+```
+
+Los falsos positivos van a `.gitleaksignore`. El job de gitleaks del CI corre igual en cada PR.
+
+## §5. Después del deploy
+
+- `/settings/salud`: no tiene que aparecer el aviso del secreto de login ni avisos de modos de correo.
+- No pasar `INBOUND_DMARC_MODE` a `enforce` sin medir antes en `log` cómo llegan los encabezados de autenticación.

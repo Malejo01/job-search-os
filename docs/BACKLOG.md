@@ -1893,3 +1893,34 @@ Informe de la tanda: [`docs/beta/informe-s3.md`](beta/informe-s3.md). Todas las 
 
 ### S3 · Cierre de la tanda
 `estado:` en rama (19/11) · `ronda/s3-cierre`
+
+## Bloque 33 · Tanda S4 «Cierre de la auditoría» (22/11)
+
+Informe de la tanda: [`docs/beta/informe-s4.md`](beta/informe-s4.md). Pasos manuales: [`docs/beta/pasos-manuales-s4.md`](beta/pasos-manuales-s4.md). Todas las ramas forman una cadena desde `origin/main` (360cc92); ningún PR mergeado por agentes. Migraciones 0073 y 0074 y RLS 0040, 0043 y 0044 sin aplicar.
+
+### Fase A · antes del 26/11
+- **S4-01** · Endurecimiento de las herramientas del equipo · `estado:` propuesta fuera del repo, pendiente de revisión (22/11)
+- **S4-02** · Un email que quedó a medio guardar se retoma en el reintento · `estado:` en rama, migración 0073 (22/11) · `ronda/s4-02-correo-reintento-pendiente`
+- **S4-03** · Corte de circuito en la evaluación inmediata · `estado:` en rama (22/11) · `ronda/s4-03-evaluacion-corte`
+
+### Fase B
+- **S4-04** · Correo guardado con tope por persona y purga sin restos · `estado:` en rama, migración 0074 (22/11) · `ronda/s4-04-correo-almacenamiento`
+- **S4-05** · El cupo de esperados lo decide el resultado · `estado:` en rama (22/11) · `ronda/s4-05-correo-cupo-esperado`
+- **S4-06** · El detector de instrucciones fuera del bundle de `/onboarding` · `estado:` en rama (22/11) · `ronda/s4-06-onboarding-liviano`
+- **S4-07** · La descripción entra recortada al tope de la evaluación · `estado:` en rama (22/11) · `ronda/s4-07-jd-fusion-recortada`
+- **S4-08** · Mensajes de demanda en lugar de tope diario · `estado:` en rama (22/11) · `ronda/s4-08-mensajes-de-tope`
+
+### Fase C
+- **S4-09** · Avisos de configuración del correo, revocar la dirección anterior y destinatarios lineales · `estado:` en rama, RLS 0040 (22/11) · `ronda/s4-09-correo-bajos`
+- **S4-10** · Piso reservado sin el gasto de CV, tope de cuerpo en el MCP y documentación del detector · `estado:` en rama (22/11) · `ronda/s4-10-ia-bajos`
+- **S4-11** · Intentos de login sin deadlocks, purga aunque falle el worker y aviso del secreto · `estado:` en rama, RLS 0043 y 0044 (22/11) · `ronda/s4-11-acceso-bajos`
+
+### Ruteo de modelos
+- **S4-12** · Claude como principal y Gemini de respaldo · `estado:` en rama; requiere el ajuste de tres tests de `evals/` y las mediciones de `pasos-manuales-s4.md` §1.3 antes del SQL (22/11) · `ronda/s4-12-ruteo-principal`
+
+### Arreglos de la revisión final
+- **S4-13** · El tope por persona no corta alertas y un error no borra el email · `estado:` en rama (22/11) · `ronda/s4-13-correo-tope-sin-perdida`
+- **S4-14** · Reserva de evaluación calibrada con el ruteo nuevo y rutas sin tarifa que fallan cerrado · `estado:` en rama (22/11) · `ronda/s4-14-reserva-evaluacion`
+
+### S4 · Cierre de la tanda
+`estado:` en rama (22/11) · `ronda/s4-cierre`
