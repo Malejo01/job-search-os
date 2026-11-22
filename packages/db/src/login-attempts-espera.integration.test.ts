@@ -112,7 +112,7 @@ describe("espera por email solo (bloqueo sostenido)", () => {
     }
   });
 
-  it("24 horas de ataque sostenido repartido en 10 IP: a lo sumo ~200 intentos evaluados y nunca más de 15 minutos seguidos", async () => {
+  it("24 horas de intentos sostenidos repartidos en 10 IP: a lo sumo ~200 intentos evaluados y nunca más de 15 minutos seguidos", async () => {
     // Reloj simulado: cada minuto se corren hacia atrás los vencimientos y las marcas de la cuenta, y cada una
     // de las 10 IP intenta una vez.
     let evaluados = 0;
