@@ -3,6 +3,8 @@ import { cardClasses } from "@/components/ui";
 import { loadApprovedFichas } from "@/lib/academy";
 
 export const metadata = { title: "Academy" };
+// Dentro de (app): el layout pide sesión, así que no se prerenderiza en el build
+export const dynamic = "force-dynamic";
 
 /**
  * Academy: las fichas aprobadas, en una lista. Las que siguen en borrador no se ven acá (las revisa

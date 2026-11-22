@@ -6,6 +6,7 @@ import { renderLegalBlocks } from "@/lib/legal";
 import { requireUserId } from "@/lib/session";
 
 export const metadata = { title: "Revisar Academy" };
+export const dynamic = "force-dynamic";
 
 /**
  * Revisión de las fichas de Academy, con los borradores a la vista. Solo admins y testers

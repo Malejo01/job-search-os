@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { loadApprovedFicha } from "@/lib/academy";
 import { renderLegalBlocks } from "@/lib/legal";
 
+// Dentro de (app): el layout pide sesión, así que no se prerenderiza en el build
+export const dynamic = "force-dynamic";
+
 /** Una ficha aprobada. Una en borrador o que no existe da 404. Server Component. */
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
