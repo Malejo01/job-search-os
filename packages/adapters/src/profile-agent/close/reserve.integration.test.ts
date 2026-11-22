@@ -182,7 +182,7 @@ describe("una redacción por charla y cupo de CV por mes", () => {
     // R11-2: un error real se puede reintentar una vez, y suma el estimado del paso al gasto de la charla
     const retry = await slot();
     expect(retry.ok).toBe(true);
-    expect(retry.measures.conversationCostUsd).toBeCloseTo(0.07);
+    expect(retry.measures.conversationCostUsd).toBeCloseTo(0.08); // reserva de la redacción
     await recordProfileAgentWriteFailure(conn.db, { userId: USER, flowId: FLOW });
     if (retry.ok) await releaseCvChatReservation(conn.db, retry.reservationId);
     const third = await slot();
