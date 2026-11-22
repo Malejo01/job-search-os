@@ -48,6 +48,7 @@ import { AutoRefresh } from "../auto-refresh";
 import { AffinityDetail } from "./affinity-detail";
 import { ApplyButton } from "./apply-button";
 import { ConditionsBlock } from "./conditions-block";
+import { TransparencyBlock } from "./transparency-block";
 import { getSavedFormAnswers } from "./form-data";
 import { FormReview } from "./form-review";
 import { MergeButton } from "./merge-button";
@@ -260,6 +261,21 @@ export default async function JobDetailPage({
       </div>
       {/* C8-6: qué es el número del puntaje */}
       {ev ? <HelpTip topic="puntaje" /> : null}
+
+      {/* R17-05: transparencia del aviso, calculada al mostrar */}
+      <TransparencyBlock
+        input={{
+          title: job.title,
+          company: job.company,
+          jdText: job.jdText,
+          locationRaw: job.locationRaw,
+          countriesAllowed: job.countriesAllowed,
+          modality: job.modality,
+          salaryMinUsd: job.salaryMinUsd,
+          salaryMaxUsd: job.salaryMaxUsd,
+          yearsRequired: ev?.yearsRequired ?? null,
+        }}
+      />
 
       {/* R17-04: condiciones laborales, solo con campos ya extraídos */}
       <ConditionsBlock
