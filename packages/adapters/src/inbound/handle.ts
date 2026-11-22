@@ -17,7 +17,7 @@ import {
   type CriteriaRules,
   type InboundDmarcMode,
 } from "@job-search-os/pipeline";
-import { and, desc, eq, gt, gte, inArray, isNull, notInArray, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, gte, inArray, isNull, lt, notInArray, or, sql } from "drizzle-orm";
 import { applyLinkedinApplication } from "../applications/linkedin-application";
 import { ingestBatch } from "../ingest/ingest-job";
 import type { Logger } from "../logger";
@@ -132,10 +132,17 @@ export const TOO_MANY_CARDS_REASON = "el email trae demasiados avisos: cola manu
 const USER_DAILY_EMAIL_LIMIT = 300;
 
 /** Fila provisional que cuenta el intento mientras el email se procesa. */
-const PENDING_RAW_REF = "pending:";
+export const PENDING_RAW_REF = "pending:";
+/** Una provisional con más de esto se considera abandonada: el reintento del mismo email la retoma. */
+export const PENDING_RECLAIM_MS = 10 * 60_000;
 export const PROCESSING_REASON = "procesando: el email no terminó de procesarse";
 export const PROCESSING_UNEXPECTED_REASON =
   "procesando (remitente no esperado): el email no terminó de procesarse";
+/** Lo que queda en una provisional que nadie retomó en una hora: pasa a la cola manual (la purga la barre). */
+export const STALE_PROCESSING_REASON =
+  "no terminó de procesarse y no llegó un reintento: cola manual";
+export const STALE_PROCESSING_UNEXPECTED_REASON =
+  "no terminó de procesarse y no llegó un reintento (remitente no esperado): cola manual";
 export const OVERSIZE_UNEXPECTED_REASON =
   "email demasiado grande de un remitente no esperado: se guardó solo remitente, asunto y fecha, sin el cuerpo";
 
@@ -150,6 +157,7 @@ const UNEXPECTED_BUCKET_REASONS: readonly string[] = [
   SECURITY_EMAIL_REASON,
   OVERSIZE_UNEXPECTED_REASON,
   PROCESSING_UNEXPECTED_REASON,
+  STALE_PROCESSING_UNEXPECTED_REASON,
 ];
 type QuotaBucket = "expected" | "unexpected";
 
@@ -281,6 +289,55 @@ async function findByEmailId(db: Db, emailId: string): Promise<string | null> {
     .where(eq(s.inboundEmails.emailId, emailId))
     .limit(1);
   return row?.id ?? null;
+}
+
+/**
+ * Fila ya guardada para ese email_id y si es una provisional abandonada: sigue en `pending:` y pasó más de
+ * `PENDING_RECLAIM_MS` desde que se creó. Una abandonada no es un duplicado: el reintento la retoma.
+ */
+async function findExisting(
+  db: Db,
+  emailId: string,
+  now: Date,
+): Promise<{ id: string; stale: boolean } | null> {
+  const [row] = await db
+    .select({
+      id: s.inboundEmails.id,
+      rawRef: s.inboundEmails.rawRef,
+      receivedAt: s.inboundEmails.receivedAt,
+    })
+    .from(s.inboundEmails)
+    .where(eq(s.inboundEmails.emailId, emailId))
+    .limit(1);
+  if (!row) return null;
+  const stale =
+    row.rawRef === PENDING_RAW_REF && row.receivedAt.getTime() < now.getTime() - PENDING_RECLAIM_MS;
+  return { id: row.id, stale };
+}
+
+/**
+ * Toma la fila provisional abandonada con un UPDATE atómico: solo gana el reintento que la ve todavía en
+ * `pending:` y vieja; el que llega después la encuentra ya renovada y no devuelve fila.
+ */
+async function reclaimPending(
+  db: Db,
+  id: string,
+  userId: string,
+  now: Date,
+): Promise<{ id: string } | null> {
+  const [row] = await db
+    .update(s.inboundEmails)
+    .set({ receivedAt: now })
+    .where(
+      and(
+        eq(s.inboundEmails.id, id),
+        eq(s.inboundEmails.userId, userId),
+        eq(s.inboundEmails.rawRef, PENDING_RAW_REF),
+        lt(s.inboundEmails.receivedAt, new Date(now.getTime() - PENDING_RECLAIM_MS)),
+      ),
+    )
+    .returning({ id: s.inboundEmails.id });
+  return row ?? null;
 }
 
 /**
@@ -424,8 +481,9 @@ export async function processInboundEvent(
   deps: InboundDeps,
 ): Promise<InboundOutcome> {
   const event = cleanEvent(receivedEvent);
-  const dup = await findByEmailId(deps.db, event.data.email_id);
-  if (dup) return { kind: "duplicate", inboundId: dup };
+  const now = deps.now?.() ?? new Date();
+  const dup = await findExisting(deps.db, event.data.email_id, now);
+  if (dup && !dup.stale) return { kind: "duplicate", inboundId: dup.id };
   const destination = await inboundDestination(event, deps);
   if (!destination) {
     const recipientsCount = eventRecipients(event).length;
@@ -433,10 +491,10 @@ export async function processInboundEvent(
     return { kind: "unknown_recipient", recipientsCount };
   }
   if (destination !== "pool") {
-    // Con el cupo agotado no se pide el cuerpo a Resend: alcanza con el remitente y el destinatario
-    const now = deps.now?.() ?? new Date();
+    // Con el cupo agotado no se pide el cuerpo a Resend: alcanza con el remitente y el destinatario.
+    // Una provisional abandonada ya está contada: retomarla no vuelve a pasar por el cupo.
     const quota = await checkUserQuota(deps.db, destination, event.data.from, now, deps);
-    if (quota.limited) {
+    if (quota.limited && !dup) {
       return rejectOverQuota(
         deps.db,
         destination,
@@ -474,8 +532,8 @@ export async function handleInboundEmail(
   // Idempotencia (JS-115): Svix reintenta; el mismo email_id no se guarda dos veces. Se busca por la
   // columna `email_id` (índice único) y no dentro de los crudos. Si dos entregas del mismo email corren
   // a la vez y las dos pasan este chequeo, el índice deja entrar solo una: ver `claimedOrDuplicate`.
-  const dup = await findByEmailId(db, event.data.email_id);
-  if (dup) return { kind: "duplicate", inboundId: dup };
+  const existing = await findExisting(db, event.data.email_id, now);
+  if (existing && !existing.stale) return { kind: "duplicate", inboundId: existing.id };
 
   // Usuario por dirección de destino (u_<id>@ingest.<dominio>)
   const recipients = eventRecipients(event);
@@ -608,27 +666,37 @@ export async function handleInboundEmail(
   const userId = profile.userId;
 
   const quota = await checkUserQuota(db, userId, event.data.from, now, deps);
-  if (quota.limited) return rejectOverQuota(db, userId, quota, now, log);
+  // Una provisional abandonada ya está contada: retomarla no vuelve a pasar por el cupo
+  if (quota.limited && !existing) return rejectOverQuota(db, userId, quota, now, log);
   const { jobDomains, bucket } = quota;
 
   // El intento se cuenta antes de leer el contenido: una fila provisional ocupa cupo y marca el
-  // email_id como visto. Si el procesamiento queda colgado y la función muere, la fila queda y el
-  // reintento es un duplicado; si falla con una excepción, se borra para que el reintento lo procese.
-  const [claim] = await db
-    .insert(s.inboundEmails)
-    .values({
-      userId,
-      emailId: event.data.email_id,
-      fromAddress: event.data.from.slice(0, MAX_STORED_HEADER_CHARS),
-      rawRef: PENDING_RAW_REF,
-      parser: "none",
-      jobsExtracted: 0,
-      error: bucket === "expected" ? PROCESSING_REASON : PROCESSING_UNEXPECTED_REASON,
-      receivedAt: now,
-    })
-    .onConflictDoNothing({ target: s.inboundEmails.emailId })
-    .returning({ id: s.inboundEmails.id });
-  if (!claim) return duplicateAfterRace(db, event.data.email_id, log);
+  // email_id como visto. Si el procesamiento queda colgado y la función muere, el reintento posterior a
+  // PENDING_RECLAIM_MS la retoma (UPDATE atómico, gana uno solo) y antes de eso es un duplicado; si falla
+  // con una excepción, se borra para que el reintento lo procese.
+  let claim: { id: string } | null | undefined;
+  if (existing) {
+    claim = await reclaimPending(db, existing.id, userId, now);
+    if (!claim) return { kind: "duplicate", inboundId: existing.id };
+    log.warn({ user_id: userId }, "inbound: se retoma una fila provisional abandonada");
+  } else {
+    [claim] = await db
+      .insert(s.inboundEmails)
+      .values({
+        userId,
+        emailId: event.data.email_id,
+        fromAddress: event.data.from.slice(0, MAX_STORED_HEADER_CHARS),
+        rawRef: PENDING_RAW_REF,
+        parser: "none",
+        jobsExtracted: 0,
+        error: bucket === "expected" ? PROCESSING_REASON : PROCESSING_UNEXPECTED_REASON,
+        receivedAt: now,
+      })
+      .onConflictDoNothing({ target: s.inboundEmails.emailId })
+      .returning({ id: s.inboundEmails.id });
+    if (!claim) return duplicateAfterRace(db, event.data.email_id, log);
+  }
+  const claimId = claim.id;
 
   try {
     // Un email que pasa el tope no se lee: queda solo con metadatos, como uno de remitente no esperado.
@@ -844,7 +912,7 @@ export async function handleInboundEmail(
         seenAt: seen || (jobsExtracted > 0 && error === null) ? now : null,
         dismissedAt,
       })
-      .where(eq(s.inboundEmails.id, claim.id))
+      .where(eq(s.inboundEmails.id, claimId))
       .returning({ id: s.inboundEmails.id });
     if (!row) throw new Error("inbound: la fila provisional desapareció antes de terminar");
     // Nunca el asunto ni el cuerpo: pueden traer códigos
@@ -871,7 +939,7 @@ export async function handleInboundEmail(
     // Falló con una excepción (no colgó): se libera el cupo y el email_id para que el reintento lo procese
     await db
       .delete(s.inboundEmails)
-      .where(eq(s.inboundEmails.id, claim.id))
+      .where(eq(s.inboundEmails.id, claimId))
       .catch(() => undefined);
     throw e;
   }

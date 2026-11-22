@@ -1,0 +1,1 @@
+CREATE INDEX "inbound_emails_pending" ON "inbound_emails" USING btree ("received_at") WHERE "inbound_emails"."raw_ref" = 'pending:';

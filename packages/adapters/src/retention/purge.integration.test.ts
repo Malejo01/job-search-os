@@ -246,6 +246,7 @@ describe("purgeExpired", () => {
       inboundRaw: 0,
       inboundOrphans: 0,
       loginAttempts: 0,
+      stalePending: 0,
     });
   });
 

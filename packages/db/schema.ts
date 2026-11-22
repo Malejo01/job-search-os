@@ -824,6 +824,8 @@ export const inboundEmails = pgTable("inbound_emails", {
   // C-7: no tenía ningún índice; la bandeja, la cobertura de alertas de «Hoy» y «Primeros pasos» filtran así
   index("inbound_emails_user_received").on(t.userId, t.receivedAt.desc()),
   uniqueIndex("inbound_emails_email_id").on(t.emailId),
+  // Barrido de filas provisionales abandonadas: solo indexa las que siguen sin terminar
+  index("inbound_emails_pending").on(t.receivedAt).where(sql`${t.rawRef} = 'pending:'`),
 ]);
 
 // JS-038: emails que el webhook rechazó por el límite horario (no se guardan; esto los cuenta)

@@ -5,6 +5,13 @@ import { sql, type SQL } from "drizzle-orm";
 import { GMAIL_FORWARDING_PARSER, readIntegerSetting } from "@job-search-os/pipeline";
 import { createLogger } from "../logger";
 import { POOL_PARSER } from "../inbound/pool-mailbox";
+import {
+  PENDING_RAW_REF,
+  PROCESSING_REASON,
+  PROCESSING_UNEXPECTED_REASON,
+  STALE_PROCESSING_REASON,
+  STALE_PROCESSING_UNEXPECTED_REASON,
+} from "../inbound/handle";
 
 /**
  * Purga programada (JS-107). Borra solo filas técnicas; nunca `raw_blobs`, `inbound_emails` ni
@@ -33,6 +40,8 @@ export type PurgeResult = {
   inboundOrphans: number;
   /** Intentos de login con más de un día sin actividad. */
   loginAttempts: number;
+  /** Provisionales de más de una hora movidas a la cola manual (no se borran). */
+  stalePending: number;
 };
 
 export const POOL_EMAIL_RETENTION_DAYS = 30;
@@ -174,6 +183,40 @@ async function purgeOrphanInboundRaw(db: Db, cutoff: Date, batchSize: number): P
   return total;
 }
 
+/** Una provisional que nadie retomó en este plazo pasa a la cola manual. */
+export const STALE_PENDING_MS = 60 * 60 * 1000;
+
+/** Ids de las provisionales abandonadas, por el índice parcial de `pending:`. Un lote por consulta. */
+export function stalePendingSelectSql(cutoff: Date, batchSize: number): SQL {
+  return sql`
+    SELECT id FROM inbound_emails
+    WHERE raw_ref = ${PENDING_RAW_REF}
+      AND received_at < ${cutoff.toISOString()}::timestamptz
+      AND error IN (${PROCESSING_REASON}, ${PROCESSING_UNEXPECTED_REASON})
+    LIMIT ${batchSize}
+  `;
+}
+
+/**
+ * Mueve a la cola manual las filas provisionales de más de una hora: les cambia el motivo y la persona las
+ * ve en Pendientes. Nunca borra: el motivo nuevo las saca del barrido y el contenido nunca se guardó.
+ */
+async function sweepStalePending(db: Db, cutoff: Date, batchSize: number): Promise<number> {
+  let total = 0;
+  for (let i = 0; i < PURGE_MAX_BATCHES; i++) {
+    const rows = (await db.execute(sql`
+      UPDATE inbound_emails
+      SET error = CASE WHEN error = ${PROCESSING_UNEXPECTED_REASON}
+        THEN ${STALE_PROCESSING_UNEXPECTED_REASON} ELSE ${STALE_PROCESSING_REASON} END
+      WHERE id IN (${stalePendingSelectSql(cutoff, batchSize)})
+      RETURNING id
+    `)) as unknown as unknown[];
+    total += rows.length;
+    if (rows.length < batchSize) break;
+  }
+  return total;
+}
+
 /**
  * Un lote de la purga de intentos de login. Con `WHERE email_hash IN (subconsulta)` el planificador armaba un
  * hash semi join y recorría toda la tabla en cada lote. La subconsulta se materializa como arreglo
@@ -234,7 +277,15 @@ export async function purgeExpired(
     inboundRaw: 0,
     inboundOrphans: 0,
     loginAttempts: 0,
+    stalePending: 0,
   };
+
+  // Emails que se cortaron a mitad de procesarse y no tuvieron reintento: a la cola manual, nunca borrados
+  result.stalePending = await sweepStalePending(
+    db,
+    new Date(now.getTime() - STALE_PENDING_MS),
+    batchSize,
+  );
 
   // Intentos de login: corre aunque la purga técnica esté desactivada (no hay dato personal sin plazo)
   result.loginAttempts = await purgeLoginAttempts(db, dayAgo, batchSize);
