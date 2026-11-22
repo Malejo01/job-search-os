@@ -293,6 +293,10 @@ export default async function JobDetailPage({
       {/* Acciones de estado: Server Actions + transition(); solo los eventos válidos desde el estado actual */}
       <section aria-label="Estado" className="flex flex-wrap gap-2">
         {/* «Postularme en el sitio del aviso» está arriba, en el resumen (C10-8) */}
+        {/* R17-06: junta respuestas, carta, CV y checklist; no postula ni guarda nada en el portal */}
+        <Link href={`/jobs/${job.id}/postular`} className={buttonClasses({ size: "sm" })}>
+          Preparar mi postulación
+        </Link>
         {job.events.map((event) => (
           <form key={event} action={changeStatusAction}>
             <input type="hidden" name="jobId" value={job.id} />
