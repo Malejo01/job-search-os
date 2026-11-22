@@ -88,11 +88,11 @@ export default function AccesoPage() {
             </h1>
             <p className="max-w-[540px] text-[15px] leading-[1.5] font-medium text-on-ink-muted sm:text-lg">
               <span className="sm:hidden">
-                Abrimos el 26 de noviembre para 8 carreras. El cupo es limitado.
+                Abrimos a principios de diciembre para 8 carreras. El cupo es limitado.
               </span>
               <span className="hidden sm:inline">
-                Para estudiantes y recién recibidos de 8 carreras. Abrimos el 26 de noviembre. El
-                cupo es limitado.
+                Para estudiantes y recién recibidos de 8 carreras. Abrimos a principios de
+                diciembre. El cupo es limitado.
               </span>
             </p>
           </div>

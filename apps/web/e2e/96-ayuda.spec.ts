@@ -47,7 +47,7 @@ test.describe("Flujo 96: Página pública de ayuda y preguntas frecuentes (/ayud
     await expect(body).toContainText("Relaciones internacionales");
     await expect(body).toContainText("Programación");
     await expect(body).toContainText("8 carreras");
-    await expect(body).toContainText("jueves 26 de noviembre");
+    await expect(body).toContainText("a principios de diciembre");
 
     // 5. Enlaces internos correctos
     await expect(body.getByRole("link", { name: "Pedir acceso" }).first()).toHaveAttribute(

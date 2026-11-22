@@ -54,9 +54,9 @@ test.describe("Flujo 95: Pedir acceso desde celular (360x740) para el 11/11", ()
 
     await submitBtn.click();
 
-    // Confirmación en simple sobre el 26/11 y sin prometer lugar (el cupo es limitado)
+    // Confirmación en simple sobre la apertura y sin prometer lugar (el cupo es limitado)
     const statusMsg = page.getByRole("status").filter({
-      hasText: "La beta abre el jueves 26/11 y el cupo es limitado",
+      hasText: "La beta abre a principios de diciembre y el cupo es limitado",
     });
     await expect(statusMsg).toBeVisible();
     await expect(statusMsg).toContainText("si hay lugar");

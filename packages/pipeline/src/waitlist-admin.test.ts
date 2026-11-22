@@ -268,10 +268,10 @@ describe("buildWaitlistInvitationText", () => {
     payment: { price: "$ 20.000 por mes", days: 30, link: "https://mpago.la/beta" },
   };
 
-  it("dice que la beta abre el jueves 26/11 y lleva el link y el vencimiento", () => {
-    expect(BETA_OPENING_LABEL).toBe("jueves 26/11");
+  it("dice cuándo abre la beta y lleva el link y el vencimiento", () => {
+    expect(BETA_OPENING_LABEL).toBe("a principios de diciembre");
     const text = buildWaitlistInvitationText(base);
-    expect(text).toContain("jueves 26/11");
+    expect(text).toContain("La beta abre a principios de diciembre;");
     expect(text).toContain("https://app.example/register?code=abc");
     expect(text).toContain("14 de noviembre");
     expect(text.startsWith("Hola Ana:")).toBe(true);

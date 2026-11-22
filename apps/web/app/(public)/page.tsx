@@ -52,8 +52,8 @@ export default async function HomePage() {
       <div className="flex flex-col gap-[22px] lg:flex-row lg:items-center lg:gap-14">
         <div className="flex min-w-0 flex-col lg:basis-[52%]">
           <p className="self-start rounded-pill bg-surface px-3 py-1.5 text-xs font-extrabold text-brand-text sm:px-3.5 sm:py-[7px] sm:text-[13px]">
-            <span className="sm:hidden">Beta cerrada · abre el 26/11</span>
-            <span className="hidden sm:inline">Beta cerrada · abre el 26 de noviembre</span>
+            <span className="sm:hidden">Beta cerrada · abre en diciembre</span>
+            <span className="hidden sm:inline">Beta cerrada · abre a principios de diciembre</span>
           </p>
           <h1 className="mt-3.5 max-w-[540px] text-[36px] leading-[1.04] font-extrabold tracking-[-1.2px] text-fg sm:mt-5 sm:text-[62px] sm:leading-[1.02] sm:tracking-[-2px]">
             Las ofertas que te quedan bien, con el porqué.
