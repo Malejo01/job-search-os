@@ -72,5 +72,29 @@ describe("getInboundEmail · contenido vencido", () => {
     mocks.row = row("pending:");
     const email = await getInboundEmail("u1", "e1");
     expect(email?.expired).toBe(false);
+    expect(email?.notStored).toBe(false);
+  });
+
+  it("una fila sin crudo por el tope de almacenamiento dice que el contenido no se guardó, no que venció", async () => {
+    mocks.row = row("none:");
+    const email = await getInboundEmail("u1", "e1");
+    expect(email?.expired).toBe(false);
+    expect(email?.notStored).toBe(true);
+  });
+
+  it("una provisional que nadie retomó (barrida a la cola manual) tampoco venció: nunca se guardó", async () => {
+    mocks.row = {
+      ...row("pending:"),
+      error: "no terminó de procesarse y no llegó un reintento: cola manual",
+    };
+    const email = await getInboundEmail("u1", "e1");
+    expect(email?.expired).toBe(false);
+    expect(email?.notStored).toBe(true);
+  });
+
+  it("un crudo purgado por el plazo no es «no se guardó»", async () => {
+    mocks.row = row("pg:00000000-0000-4000-8000-000000000001");
+    const email = await getInboundEmail("u1", "e1");
+    expect(email?.notStored).toBe(false);
   });
 });

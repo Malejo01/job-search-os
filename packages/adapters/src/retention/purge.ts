@@ -5,6 +5,13 @@ import { sql, type SQL } from "drizzle-orm";
 import { GMAIL_FORWARDING_PARSER, readIntegerSetting } from "@job-search-os/pipeline";
 import { createLogger } from "../logger";
 import { POOL_PARSER } from "../inbound/pool-mailbox";
+import {
+  PENDING_RAW_REF,
+  PROCESSING_REASON,
+  PROCESSING_UNEXPECTED_REASON,
+  STALE_PROCESSING_REASON,
+  STALE_PROCESSING_UNEXPECTED_REASON,
+} from "../inbound/handle";
 
 /**
  * Purga programada (JS-107). Borra solo filas técnicas; nunca `raw_blobs`, `inbound_emails` ni
@@ -33,9 +40,17 @@ export type PurgeResult = {
   inboundOrphans: number;
   /** Intentos de login con más de un día sin actividad. */
   loginAttempts: number;
+  /** Provisionales de más de una hora movidas a la cola manual (no se borran). */
+  stalePending: number;
 };
 
 export const POOL_EMAIL_RETENTION_DAYS = 30;
+
+/** La purga de huérfanos revisa los crudos de los 30 días anteriores a su plazo; corre todos los días. */
+export const ORPHAN_WINDOW_DAYS = 30;
+
+/** Un email pendiente conserva su crudo como mucho este tiempo, aunque nadie lo haya revisado. */
+export const PENDING_RAW_MAX_DAYS = 90;
 
 /** Retención de beta_feedback (C-23): 180 días, fija; no depende de `LEGAL_LOG_DAYS`. */
 export const BETA_FEEDBACK_DAYS = 180;
@@ -117,7 +132,12 @@ async function purgePoolEmails(db: Db, cutoff: Date, batchSize: number): Promise
  * Borra los crudos viejos de emails de personas que ninguna oferta usa como fuente. La fila del email queda:
  * la bandeja sigue mostrando remitente, asunto y fecha.
  */
-async function purgeInboundRaw(db: Db, cutoff: Date, batchSize: number): Promise<number> {
+async function purgeInboundRaw(
+  db: Db,
+  cutoff: Date,
+  pendingCutoff: Date,
+  batchSize: number,
+): Promise<number> {
   let total = 0;
   for (let i = 0; i < PURGE_MAX_BATCHES; i++) {
     const rows = (await db.execute(sql`
@@ -129,10 +149,12 @@ async function purgeInboundRaw(db: Db, cutoff: Date, batchSize: number): Promise
           AND e.received_at < ${cutoff.toISOString()}::timestamptz
           AND NOT EXISTS (SELECT 1 FROM job_sources js WHERE js.raw_ref = e.raw_ref)
           -- Lo que /inbox muestra como pendiente (misma regla que \`inboxWhere.pendientes\`) todavía
-          -- espera a la persona: retenido, confirmación de Gmail sin resolver, cola manual
+          -- espera a la persona: retenido, confirmación de Gmail sin resolver, cola manual. Solo hasta
+          -- \`pendingCutoff\`: lo más viejo se purga igual y la bandeja lo muestra como vencido.
           AND NOT (
             e.seen_at IS NULL AND e.dismissed_at IS NULL
             AND (e.error IS NOT NULL OR e.parser IS NULL OR e.parser IN ('none', ${GMAIL_FORWARDING_PARSER}))
+            AND e.received_at >= ${pendingCutoff.toISOString()}::timestamptz
           )
         LIMIT ${batchSize}
       )
@@ -148,11 +170,15 @@ async function purgeInboundRaw(db: Db, cutoff: Date, batchSize: number): Promise
  * Ids de los crudos de email huérfanos y vencidos: sin fila en `inbound_emails` que los referencie (el
  * insert que falló después de guardar el crudo) y sin oferta que los use. Un lote por consulta.
  */
-export function orphanSelectSql(cutoff: Date, batchSize: number): SQL {
+export function orphanSelectSql(cutoff: Date, batchSize: number, floor: Date | null = null): SQL {
+  // `floor` acota los candidatos a una ventana: sin ella, cada corrida revisaría todos los crudos viejos
+  // (casi todos con fila) y el cruce con `inbound_emails` y `job_sources` leería esas tablas enteras.
+  const floorClause = floor ? sql`AND b.created_at >= ${floor.toISOString()}::timestamptz` : sql``;
   return sql`
     SELECT b.id FROM raw_blobs b
     WHERE b.kind = 'inbound_email'
       AND b.created_at < ${cutoff.toISOString()}::timestamptz
+      ${floorClause}
       AND NOT EXISTS (SELECT 1 FROM inbound_emails e WHERE e.raw_ref = 'pg:' || b.id::text)
       AND NOT EXISTS (SELECT 1 FROM job_sources js WHERE js.raw_ref = 'pg:' || b.id::text)
     LIMIT ${batchSize}
@@ -162,10 +188,45 @@ export function orphanSelectSql(cutoff: Date, batchSize: number): SQL {
 /** Borra los crudos de email huérfanos más viejos que el plazo, en lotes. */
 async function purgeOrphanInboundRaw(db: Db, cutoff: Date, batchSize: number): Promise<number> {
   let total = 0;
+  const floor = new Date(cutoff.getTime() - ORPHAN_WINDOW_DAYS * DAY_MS);
   for (let i = 0; i < PURGE_MAX_BATCHES; i++) {
     const rows = (await db.execute(sql`
       DELETE FROM raw_blobs
-      WHERE id IN (${orphanSelectSql(cutoff, batchSize)})
+      WHERE id IN (${orphanSelectSql(cutoff, batchSize, floor)})
+      RETURNING id
+    `)) as unknown as unknown[];
+    total += rows.length;
+    if (rows.length < batchSize) break;
+  }
+  return total;
+}
+
+/** Una provisional que nadie retomó en este plazo pasa a la cola manual. */
+export const STALE_PENDING_MS = 60 * 60 * 1000;
+
+/** Ids de las provisionales abandonadas, por el índice parcial de `pending:`. Un lote por consulta. */
+export function stalePendingSelectSql(cutoff: Date, batchSize: number): SQL {
+  return sql`
+    SELECT id FROM inbound_emails
+    WHERE raw_ref = ${PENDING_RAW_REF}
+      AND received_at < ${cutoff.toISOString()}::timestamptz
+      AND error IN (${PROCESSING_REASON}, ${PROCESSING_UNEXPECTED_REASON})
+    LIMIT ${batchSize}
+  `;
+}
+
+/**
+ * Mueve a la cola manual las filas provisionales de más de una hora: les cambia el motivo y la persona las
+ * ve en Pendientes. Nunca borra: el motivo nuevo las saca del barrido y el contenido nunca se guardó.
+ */
+async function sweepStalePending(db: Db, cutoff: Date, batchSize: number): Promise<number> {
+  let total = 0;
+  for (let i = 0; i < PURGE_MAX_BATCHES; i++) {
+    const rows = (await db.execute(sql`
+      UPDATE inbound_emails
+      SET error = CASE WHEN error = ${PROCESSING_UNEXPECTED_REASON}
+        THEN ${STALE_PROCESSING_UNEXPECTED_REASON} ELSE ${STALE_PROCESSING_REASON} END
+      WHERE id IN (${stalePendingSelectSql(cutoff, batchSize)})
       RETURNING id
     `)) as unknown as unknown[];
     total += rows.length;
@@ -234,7 +295,15 @@ export async function purgeExpired(
     inboundRaw: 0,
     inboundOrphans: 0,
     loginAttempts: 0,
+    stalePending: 0,
   };
+
+  // Emails que se cortaron a mitad de procesarse y no tuvieron reintento: a la cola manual, nunca borrados
+  result.stalePending = await sweepStalePending(
+    db,
+    new Date(now.getTime() - STALE_PENDING_MS),
+    batchSize,
+  );
 
   // Intentos de login: corre aunque la purga técnica esté desactivada (no hay dato personal sin plazo)
   result.loginAttempts = await purgeLoginAttempts(db, dayAgo, batchSize);
@@ -287,10 +356,18 @@ export async function purgeExpired(
     batchSize,
   );
 
+  // Crudos huérfanos o duplicados (sin fila ni oferta que los use): se purgan siempre, con un día de antigüedad
+  // como mínimo; `INBOUND_RAW_RETENTION_DAYS`, si está, alarga el plazo.
+  const orphanCutoff = new Date(now.getTime() - (input.inboundRawDays ?? 1) * DAY_MS);
+  result.inboundOrphans = await purgeOrphanInboundRaw(db, orphanCutoff, batchSize);
+
   if (input.inboundRawDays) {
     const rawCutoff = new Date(now.getTime() - input.inboundRawDays * DAY_MS);
-    result.inboundRaw = await purgeInboundRaw(db, rawCutoff, batchSize);
-    result.inboundOrphans = await purgeOrphanInboundRaw(db, rawCutoff, batchSize);
+    // Un pendiente espera a la persona, pero no para siempre: pasado este plazo también se purga
+    const pendingCutoff = new Date(
+      now.getTime() - Math.max(input.inboundRawDays, PENDING_RAW_MAX_DAYS) * DAY_MS,
+    );
+    result.inboundRaw = await purgeInboundRaw(db, rawCutoff, pendingCutoff, batchSize);
   }
 
   const logDays = input.logDays;

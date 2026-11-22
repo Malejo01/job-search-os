@@ -148,6 +148,15 @@ export function scheduleImmediateEvaluation(userId: string, jobIds: string[]): v
           logger.info({ reason: result.reason }, "primera evaluación cortada por tope");
           break;
         }
+        if (!result.ran && result.reason === "busy") {
+          logger.info("primera evaluación cortada por demanda alta");
+          break;
+        }
+        // Proveedor caído: el resto queda en la cola para el cron, sin seguir llamando
+        if (!result.ran && result.reason === "breaker") {
+          logger.warn("primera evaluación cortada: el proveedor viene fallando");
+          break;
+        }
       }
       // R8-5: avisar el umbral de gasto fuera del cron, una vez al terminar la tanda (memo por proceso)
       await checkBudgetAlertsAfterEvaluation({ db, logger });

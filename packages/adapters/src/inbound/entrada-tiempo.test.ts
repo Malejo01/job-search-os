@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cleanEvent } from "./handle";
+import { cleanEvent, eventRecipients } from "./handle";
 import { jobKeyFromTracker } from "./indeed";
 import { linkedinParser } from "./linkedin";
 import type { ResendReceivedEvent } from "./resend";
@@ -49,6 +49,54 @@ describe("linkedinParser · asunto hostil", () => {
       receivedAt: new Date(0),
     };
     expect(elapsed(() => linkedinParser.parse(email))).toBeLessThan(100 * CI_FACTOR);
+  });
+});
+
+describe("eventRecipients · destinatarios hostiles", () => {
+  it("2 MB de destinatarios con comillas angulares sin cerrar vuelven en menos de 100 ms", () => {
+    // 100 destinatarios por lista y 1000 caracteres cada uno: el tope de entrada ya recorta el resto
+    const hostile = Array.from({ length: 100 }, () => repeated("<", 1_000));
+    const raw: ResendReceivedEvent = {
+      type: "email.received",
+      created_at: "2026-09-11T20:00:00.000Z",
+      data: {
+        email_id: "em_tiempo_destinatarios",
+        from: "a@example.com",
+        to: hostile,
+        cc: hostile,
+        bcc: hostile,
+        received_for: hostile,
+        attachments: [],
+      },
+    };
+    let out: string[] = [];
+    expect(
+      elapsed(() => {
+        out = eventRecipients(cleanEvent(raw));
+      }),
+    ).toBeLessThan(100 * CI_FACTOR);
+    expect(out).toHaveLength(300);
+  });
+
+  it("un destinatario normal sigue dando su dirección en minúsculas", () => {
+    const raw: ResendReceivedEvent = {
+      type: "email.received",
+      created_at: "2026-09-11T20:00:00.000Z",
+      data: {
+        email_id: "em_dest_normal",
+        from: "a@example.com",
+        to: ["Persona A <U_abc@Ingest.example>", " plano@ingest.example "],
+        cc: [],
+        bcc: [],
+        received_for: ["<u_xyz@ingest.example>"],
+        attachments: [],
+      },
+    };
+    expect(eventRecipients(raw)).toEqual([
+      "u_xyz@ingest.example",
+      "u_abc@ingest.example",
+      "plano@ingest.example",
+    ]);
   });
 });
 

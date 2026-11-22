@@ -64,15 +64,14 @@ describe("fallas sin costo y gasto estimado", () => {
     expect(await usdFor("api_call:429", 10)).toBe(0);
   });
 
-  it("timeout, 5xx y errores sin código cuentan el estimado", async () => {
-    for (const code of [
-      "timeout",
-      "api_call:500",
-      "api_call:503",
-      "api_call:529",
-      "api_call",
-      "unknown",
-    ]) {
+  it("sobrecarga del proveedor (503, 529, overloaded) cuenta 0", async () => {
+    for (const code of ["api_call:503", "api_call:529", "overloaded"]) {
+      expect(await usdFor(code, 10)).toBe(0);
+    }
+  });
+
+  it("timeout, otros 5xx y errores sin código cuentan el estimado", async () => {
+    for (const code of ["timeout", "api_call:500", "api_call:502", "api_call", "unknown"]) {
       expect(await usdFor(code)).toBeCloseTo(FAILED_CALL_ESTIMATE_USD, 9);
     }
     expect(await usdFor(null)).toBeCloseTo(FAILED_CALL_ESTIMATE_USD, 9);

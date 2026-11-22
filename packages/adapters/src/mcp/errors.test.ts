@@ -77,6 +77,18 @@ describe("mcpFailure: errores esperados con mensaje fijo por código", () => {
     expect(mcpFailure(new PersonQuotaError(kind)).code).toBe(expected);
   });
 
+  it("la cuota de respuestas guardadas tiene su código y habla de respuestas, no de avisos", () => {
+    const f = mcpFailure(new PersonQuotaError("answers"));
+    expect(f.code).toBe("cuota_respuestas");
+    expect(f.message).toContain("respuestas");
+    expect(f.message).not.toContain("avisos");
+    // El código sale del tipo, no del texto del error
+    expect(mcpFailure(new PersonQuotaError("raw_bytes", "respuestas guardadas")).code).toBe(
+      "cuota_espacio",
+    );
+    expect(mcpFailure(new PersonQuotaError("raw_bytes")).code).toBe("cuota_espacio");
+  });
+
   it("una oferta inexistente y una ajena dan exactamente la misma respuesta", () => {
     const missing = mcpFailureResult(new JobNotFoundError(), () => {});
     const foreign = mcpFailureResult(new ApplicantFailure("job_not_found", "id-ajeno"), () => {});

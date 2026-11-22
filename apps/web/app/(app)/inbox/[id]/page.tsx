@@ -138,6 +138,14 @@ export default async function InboundEmailPage({
             )
           ) : null}
         </section>
+      ) : email.notStored ? (
+        <p
+          className="rounded-container bg-surface px-6 py-8 text-center text-sm text-fg-muted"
+          data-testid="contenido-no-guardado"
+        >
+          El contenido no se guardó: llegó cuando ya no había lugar para guardar más correo, o la
+          entrega no se terminó de procesar. Quedan el remitente, el asunto y la fecha.
+        </p>
       ) : email.expired ? (
         <p
           className="rounded-container bg-surface px-6 py-8 text-center text-sm text-fg-muted"

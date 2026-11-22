@@ -52,6 +52,7 @@ Consecuencia: el `vercel.json` actual (`0 */6 * * *` y `15 */6 * * *`) **no desp
 | `DATABASE_URL_APP` | prod + preview | Neon, pooled, rol `jobsearch_app` (la app; `assertAppRole` falla si no) |
 | `AUTH_SECRET` | prod + preview (distinto por entorno) | `openssl rand -base64 32` |
 | `CRON_SECRET` | prod | aleatorio; Vercel lo manda en `Authorization` a los crons |
+| `LOGIN_ATTEMPTS_HMAC_SECRET` | prod | `openssl rand -base64 32`. Sal de los hashes del email y la IP en la tabla de intentos de login; sin ella son sha256 sin sal. Detalle y qué pasa al cargarla o rotarla: docs/OPERACION.md › «Intentos de login» |
 | `GEMINI_API_KEY` | prod | proyecto de Google Cloud propio (docs/LLM_COSTOS.md) |
 | `LLM_DAILY_CAP_USD` | prod | tope global del worker en 24 h (default 2) |
 | `LLM_USER_DAILY_CAP_USD` | prod | tope por usuario en 24 h, además del global (default 1; `0` = sin tope por usuario). Si un usuario lo pasa, sus evaluaciones quedan en la cola y las de otros siguen (JS-093). Un valor inválido (no numérico o negativo) hace fallar al worker. Exceso máximo posible: el chequeo es previo a cada llamada, así que con workers concurrentes (cron, pegar JD, CLI) un usuario puede pasarse por el costo de una evaluación por worker |

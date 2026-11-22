@@ -86,6 +86,12 @@ const evalDeps = (llm: ReturnType<typeof createFakeLlm>) => ({
   queue: createPgQueue(conn.db),
   logger,
 });
+/** Deja en la base una JD de un carácter más que el máximo duro, sin pasar por la ingesta (que la recorta). */
+const hugeJd = (jobId: string, seed: string) =>
+  conn.db
+    .update(s.jobs)
+    .set({ jdText: padded("Buscamos AI Engineer.", JD_HARD_MAX_CHARS + 1, seed) })
+    .where(eq(s.jobs.id, jobId));
 const jobRow = async (id: string) =>
   (await conn.db.select().from(s.jobs).where(eq(s.jobs.id, id)).limit(1))[0]!;
 
@@ -130,9 +136,10 @@ afterAll(async () => {
 
 describe("JD fuera del máximo duro: la oferta vuelve a la cola y acepta una JD nueva", () => {
   it("una oferta prefiltrada con 300.001 caracteres queda sin jd_text y en pendiente_jd", async () => {
-    const out = await ingest(
-      raw("larga-1", { jdText: padded("Buscamos AI Engineer.", JD_HARD_MAX_CHARS + 1, "a") }),
-    );
+    // La ingesta ya recorta la JD al máximo duro: el dato viejo (una JD enorme ya guardada) se arma directo
+    // en la base, que es el caso que la defensa del worker sigue cubriendo
+    const out = await ingest(raw("larga-1"));
+    await hugeJd(out.jobId, "a");
     expect((await jobRow(out.jobId)).status).toBe("prefiltrada");
 
     const llm = createFakeLlm({ evaluate_job: fakeEvaluation });
@@ -158,12 +165,9 @@ describe("JD fuera del máximo duro: la oferta vuelve a la cola y acepta una JD 
 
   it("acepta una JD nueva con onlyPending (lo que usa paste_jd)", async () => {
     const out = await ingest(
-      raw("larga-2", {
-        title: "Applied AI Platform Developer",
-        companyRaw: "Consultora Beta",
-        jdText: padded("Buscamos AI Engineer.", JD_HARD_MAX_CHARS + 1, "b"),
-      }),
+      raw("larga-2", { title: "Applied AI Platform Developer", companyRaw: "Consultora Beta" }),
     );
+    await hugeJd(out.jobId, "b");
     await evaluateJobById(out.jobId, evalDeps(createFakeLlm({ evaluate_job: fakeEvaluation })));
     expect((await jobRow(out.jobId)).status).toBe("pendiente_jd");
 

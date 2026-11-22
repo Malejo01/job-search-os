@@ -122,7 +122,8 @@ export type GenerateFn = (args: {
   prompt: string;
   /** Imágenes del mensaje del usuario (solo tareas que las piden). */
   images?: LlmImage[];
-  temperature: number;
+  /** Ausente si el modelo no la acepta (ver `model-capabilities.ts`). */
+  temperature?: number;
   maxOutputTokens: number;
   abortSignal?: AbortSignal;
   /** Razonamiento extendido unificado del AI SDK (Gemini 3.x → thinkingLevel; 2.5 → thinkingBudget). */

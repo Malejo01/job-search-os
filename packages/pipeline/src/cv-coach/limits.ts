@@ -26,10 +26,10 @@ export const CV_COACH_MAX_FOLLOW_UPS = 2;
  */
 export const CV_COACH_RESERVE_USD = {
   read: PROFILE_AGENT_READ_RESERVE_USD,
-  review: 0.05,
-  turn: 0.04,
+  review: 0.07,
+  turn: 0.045,
   /** La de la redacción del chat de CV (`cv_write`, ADR-026 §6). */
-  write: 0.07,
+  write: 0.08,
 } as const;
 export type CvCoachStep = keyof typeof CV_COACH_RESERVE_USD;
 

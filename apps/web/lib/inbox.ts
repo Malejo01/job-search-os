@@ -34,6 +34,8 @@ export type InboundEmailDetail = {
   redacted: string | null;
   /** El crudo ya no existe (lo purgó la retención): el cuerpo venció. Una fila en proceso no cuenta. */
   expired: boolean;
+  /** Nunca hubo crudo: el tope de almacenamiento o una entrega que no se terminó de procesar. No es «venció». */
+  notStored: boolean;
   /** Dominio base del remitente, para marcarlo como fuente de empleo. */
   senderDomain: string | null;
   /** El dominio ya está marcado como fuente de empleo: los próximos se guardan completos. */
@@ -90,6 +92,13 @@ export async function getInboundEmail(
         text = blob.body; // crudo no-JSON: se muestra tal cual
       }
     }
+    // Sin crudo desde el principio: pasó el tope de almacenamiento (`none:`) o la entrega no terminó y el
+    // barrido la mandó a la cola manual (sigue en `pending:`, con el motivo de «no llegó un reintento»).
+    // Una provisional en proceso no es ninguna de las dos cosas.
+    const neverStored =
+      row.rawRef === "none:" ||
+      (row.rawRef === "pending:" &&
+        (row.error ?? "").startsWith("no terminó de procesarse y no llegó un reintento"));
     const plano = text ?? (html ? htmlAPlano(html) : "");
     const host = senderHost(row.fromAddress);
     const senderDomain = host ? baseDomain(host) : null;
@@ -119,7 +128,8 @@ export async function getInboundEmail(
       links: extraerLinks(plano, html),
       redacted,
       // Ya se leyó el crudo arriba: no suma consultas
-      expired: blob === null && row.rawRef !== "pending:",
+      expired: blob === null && row.rawRef !== "pending:" && !neverStored,
+      notStored: neverStored,
       senderDomain,
       senderIsJobSource:
         verdict?.verdict === "empleo" && !(senderDomain !== null && isWebmailDomain(senderDomain)),

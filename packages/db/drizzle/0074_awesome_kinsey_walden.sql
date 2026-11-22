@@ -1,0 +1,2 @@
+CREATE INDEX "inbound_emails_raw_ref" ON "inbound_emails" USING btree ("raw_ref");--> statement-breakpoint
+CREATE INDEX "job_sources_raw_ref" ON "job_sources" USING btree ("raw_ref") WHERE "job_sources"."raw_ref" is not null;

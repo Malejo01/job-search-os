@@ -13,16 +13,16 @@ describe("model_routing: extract_job_from_image", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]).toEqual({
       task: "extract_job_from_image",
-      provider: "google",
-      model: "gemini-3.5-flash",
-      fallback_model: "claude-sonnet-5-5",
+      provider: "anthropic",
+      model: "claude-sonnet-5-5",
+      fallback_model: "gemini-3.5-flash",
       temperature: 0,
       max_tokens: 4096,
-      thinking_level: "minimal",
-      input_usd_per_mtok: 1.5,
-      output_usd_per_mtok: 9,
-      fallback_input_usd_per_mtok: 2,
-      fallback_output_usd_per_mtok: 10,
+      thinking_level: null,
+      input_usd_per_mtok: 2,
+      output_usd_per_mtok: 10,
+      fallback_input_usd_per_mtok: 1.5,
+      fallback_output_usd_per_mtok: 9,
     });
   });
 });

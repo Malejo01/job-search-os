@@ -157,16 +157,17 @@ describe("runCoachTurn con la reserva real", () => {
   it("filas fallidas con costo null valen la reserva del turno y cortan por USD, con la redacción reservada", async () => {
     await call({ task: "extract_cv_profile", costUsd: 0.02 });
     await call({ task: "cv_review", costUsd: 0.01 });
-    for (let i = 0; i < 4; i++) await call({ ok: false, costUsd: null, error: "output_invalid" });
-    // 0,02 + 0,01 + 4 × 0,04 + 0,04 (turno) + 0,07 (redacción) = 0,30 → todavía entra
+    for (let i = 0; i < 3; i++) await call({ ok: false, costUsd: null, error: "output_invalid" });
+    // 0,02 + 0,01 + 3 × 0,045 + 0,045 (turno) + 0,08 (redacción) = 0,29 → todavía entra
     const llm = createFakeLlm({ cv_coach_turn: OUTPUT });
     const reserve = dbCoachTurnReserve(conn.db, { dailyCapUsd: 100 });
-    const fifth = await runCoachTurn({ llm, reserve }, params);
-    expect(fifth.kind).toBe("turn");
+    const fourth = await runCoachTurn({ llm, reserve }, params);
+    expect(fourth.kind).toBe("turn");
     // el fake no escribe en llm_calls: la fila de ese turno, fallida y sin costo
     await call({ ok: false, costUsd: null, error: "output_invalid" });
-    const sixth = await runCoachTurn({ llm, reserve }, params);
-    expect(sixth).toMatchObject({ kind: "cap", reject: "charla" });
+    // 0,03 + 4 × 0,045 + 0,045 + 0,08 = 0,335 > 0,30 → corta
+    const fifth = await runCoachTurn({ llm, reserve }, params);
+    expect(fifth).toMatchObject({ kind: "cap", reject: "charla" });
     expect(llm.calls).toHaveLength(1);
   });
 });

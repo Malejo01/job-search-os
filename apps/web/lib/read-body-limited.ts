@@ -14,6 +14,30 @@ export type LimitedBody = { ok: true; text: string } | { ok: false; reason: "too
 /** Un carácter ocupa hasta 4 bytes en UTF-8: con esto el tope en caracteres de cada ruta sigue mandando. */
 export const bodyBytesForChars = (chars: number): number => chars * 4;
 
+/**
+ * Para handlers de terceros que leen el `Request` ellos mismos (el servidor MCP): lee el cuerpo con tope
+ * y devuelve un `Request` nuevo con el cuerpo ya leído, o `too_large` si pasa el tope. Sin cuerpo
+ * (GET, DELETE) devuelve el mismo pedido.
+ */
+export async function limitedRequest(
+  request: Request,
+  maxBytes: number,
+): Promise<{ ok: true; request: Request } | { ok: false; reason: "too_large" }> {
+  if (request.method === "GET" || request.method === "HEAD" || request.method === "DELETE") {
+    return { ok: true, request };
+  }
+  const body = await readBodyLimited(request, maxBytes);
+  if (!body.ok) return body;
+  const headers = new Headers(request.headers);
+  // El largo declarado ya no es el del cuerpo reconstruido
+  headers.delete("content-length");
+  headers.delete("transfer-encoding");
+  return {
+    ok: true,
+    request: new Request(request.url, { method: request.method, headers, body: body.text }),
+  };
+}
+
 export async function readBodyLimited(request: Request, maxBytes: number): Promise<LimitedBody> {
   const declared = request.headers.get("content-length");
   // Solo dígitos: "1e3", "-1" o texto no se interpretan; en ese caso manda el cuerpo real

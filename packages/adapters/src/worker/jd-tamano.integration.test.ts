@@ -133,10 +133,14 @@ afterAll(async () => {
 
 describe("JD fuera del máximo duro", () => {
   it("no llama al modelo: la oferta queda pendiente de JD con el motivo", async () => {
-    const out = await ingest(
-      raw("tam-dura-1", { jdText: padded("Buscamos AI Engineer.", JD_HARD_MAX_CHARS + 1, "a") }),
-    );
+    // La ingesta ya recorta la JD al máximo duro: el dato viejo (una JD enorme ya guardada) se arma directo
+    // en la base, que es el caso que la defensa del worker sigue cubriendo
+    const out = await ingest(raw("tam-dura-1"));
     expect(out.action).toBe("inserted");
+    await conn.db
+      .update(s.jobs)
+      .set({ jdText: padded("Buscamos AI Engineer.", JD_HARD_MAX_CHARS + 1, "a") })
+      .where(eq(s.jobs.id, out.jobId));
     expect((await jobRow(out.jobId)).status).toBe("prefiltrada");
 
     const llm = createFakeLlm({ evaluate_job: fakeEvaluation });

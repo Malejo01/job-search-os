@@ -49,7 +49,8 @@ describe("createLlmClient.generateStructured", () => {
     let seenPrompt = "";
     const generate: GenerateFn = async (args) => {
       seenPrompt = args.prompt;
-      expect(args.temperature).toBe(0);
+      // Modelo fuera de la tabla de capacidades: no se manda temperature
+      expect(args.temperature).toBeUndefined();
       expect(args.maxOutputTokens).toBe(512);
       return {
         object: { score: 7, veredicto: "bien" },
@@ -566,7 +567,11 @@ describe("wire (esquema de viaje + normalización)", () => {
 });
 
 describe("imágenes (R6-3)", () => {
-  const imageRoute: RouteConfig = { ...route, task: "extract_job_from_image" };
+  const imageRoute: RouteConfig = {
+    ...route,
+    task: "extract_job_from_image",
+    model: "gemini-3.5-flash",
+  };
   const img = { mediaType: "image/jpeg", data: new Uint8Array([0xff, 0xd8, 0xff, 0xe0]) };
 
   it("las imágenes llegan al generador y el registro y el log no las llevan", async () => {
@@ -664,7 +669,9 @@ describe("thinking_level y registro de evals", () => {
     const calls = memoryCallSink();
     let seen: unknown;
     const client = createLlmClient({
-      routes: staticRouteSource([{ ...route, fallbackModel: null, thinkingLevel: "minimal" }]),
+      routes: staticRouteSource([
+        { ...route, model: "gemini-3.5-flash", fallbackModel: null, thinkingLevel: "minimal" },
+      ]),
       calls,
       providers: providers(["google"]),
       generate: async (args) => {

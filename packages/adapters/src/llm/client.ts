@@ -10,6 +10,7 @@ import {
   usageFromError,
   type ReportedUsage,
 } from "./error-code";
+import { capabilitiesFor, reasoningFor } from "./model-capabilities";
 import { providerForModel } from "./providers";
 import type {
   CallSink,
@@ -73,7 +74,7 @@ const defaultGenerate: GenerateFn = async (args) => {
           ],
         }
       : { prompt: args.prompt }),
-    temperature: args.temperature,
+    ...(args.temperature !== undefined ? { temperature: args.temperature } : {}),
     maxOutputTokens: args.maxOutputTokens,
     maxRetries: 2,
     abortSignal: args.abortSignal,
@@ -163,6 +164,13 @@ export function createLlmClient(deps: LlmClientDeps): LlmClient {
     if (ctx.signal?.aborted) {
       return err({ kind: "aborted", task: route.task, detail: "aborted" });
     }
+    const caps = capabilitiesFor(model);
+    // Falla cerrado: una imagen no viaja a un modelo que no se sabe que la lea
+    if (ctx.images?.length && !caps.images) {
+      log.warn({ model }, "modelo sin capacidad de imagen: no se llama");
+      return err({ kind: "generation_failed", task: route.task, detail: "image_unsupported" });
+    }
+    const reasoning = reasoningFor(model, route.thinkingLevel, model !== route.model);
 
     // Timeout duro por llamada + cancelación externa (SIGINT/SIGTERM, tope de corrida)
     const signal = ctx.signal
@@ -178,10 +186,11 @@ export function createLlmClient(deps: LlmClientDeps): LlmClient {
         schema: ctx.wire?.schema ?? schema,
         prompt,
         ...(ctx.images?.length ? { images: ctx.images } : {}),
-        temperature: route.temperature,
+        // Solo los parámetros que el modelo acepta (un modelo desconocido no recibe ninguno)
+        ...(caps.temperature ? { temperature: route.temperature } : {}),
         maxOutputTokens: route.maxTokens,
         abortSignal: signal,
-        reasoning: route.thinkingLevel ?? undefined,
+        reasoning,
       });
       const latencyMs = now() - startedAt;
       reported = {
@@ -227,7 +236,7 @@ export function createLlmClient(deps: LlmClientDeps): LlmClient {
           tokens_out: tokensOut,
           tokens_reasoning: tokensReasoning,
           cost_usd: costUsd,
-          thinking: route.thinkingLevel,
+          thinking: reasoning ?? null,
         },
         "llm ok",
       );

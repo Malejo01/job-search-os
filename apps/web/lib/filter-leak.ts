@@ -5,7 +5,7 @@ import {
   isWebmailDomain,
   type FilterLeak,
 } from "@job-search-os/pipeline";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, gte, sql } from "drizzle-orm";
 import { withUser } from "./db";
 import type { SetSenderVerdictResult } from "./filter-leak-core";
 import { deleteInbound } from "./inbox-list";
@@ -29,11 +29,15 @@ export {
 /** Host del remitente en SQL: "Banco <a@mails.banco.example>" → "mails.banco.example". */
 export const HOST_SQL = sql<string>`lower(split_part(regexp_replace(${s.inboundEmails.fromAddress}, '^.*<([^>]+)>.*$', '\\1'), '@', 2))`;
 
+export const FILTER_LEAK_WINDOW_DAYS = 30;
+
 export const SENDER_VERDICTS = ["empleo", "no_empleo"] as const;
 export type SenderVerdict = (typeof SENDER_VERDICTS)[number];
 
 export async function filterLeaks(userId: string, now = new Date()): Promise<FilterLeak[]> {
   const since = new Date(now.getTime() - 48 * 3_600_000);
+  // Solo los últimos 30 días: el aviso no agrega sobre todo el historial
+  const window = new Date(now.getTime() - FILTER_LEAK_WINDOW_DAYS * 24 * 3_600_000);
   return withUser(userId, async (tx) => {
     const hosts = await tx
       .select({
@@ -43,6 +47,7 @@ export async function filterLeaks(userId: string, now = new Date()): Promise<Fil
         recent: sql<number>`(count(*) filter (where ${s.inboundEmails.receivedAt} >= ${since.toISOString()}::timestamptz))::int`,
       })
       .from(s.inboundEmails)
+      .where(gte(s.inboundEmails.receivedAt, window))
       .groupBy(HOST_SQL);
     const verdicts = await tx
       .select({ domain: s.inboundSenderDomains.domain, verdict: s.inboundSenderDomains.verdict })

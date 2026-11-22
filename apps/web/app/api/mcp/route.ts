@@ -2,6 +2,7 @@ import type { JobEvent, JobStatus } from "@job-search-os/pipeline";
 import { createMcpHandler } from "mcp-handler";
 import { applyJobEvent, getJobDetail, MANUAL_EVENTS } from "@/lib/job-detail";
 import { listJobs } from "@/lib/jobs";
+import { limitedRequest } from "../../../lib/read-body-limited";
 import { getMarket } from "@/lib/market";
 import { authenticateMcpRequest, mcpUserIdFor, type McpPrincipal } from "@/lib/mcp-user";
 import { ingestManualJob, parseModality } from "@/lib/ingest-manual";
@@ -357,6 +358,9 @@ const handler = createMcpHandler(
   },
 );
 
+/** Máximo del cuerpo de un pedido MCP: la tool más grande (una JD de 60.000 caracteres) cabe de sobra. */
+const MAX_MCP_BODY_BYTES = 256 * 1024;
+
 const json = (status: number, body: unknown, headers: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), {
     status,
@@ -369,7 +373,11 @@ const json = (status: number, body: unknown, headers: Record<string, string> = {
  * `ctx.http.authInfo`. Nada se guarda entre requests. Las respuestas de falla son genéricas: no dicen si
  * el token existe, está revocado o vencido, y nunca incluyen el token ni la URL.
  */
-async function guarded(req: Request): Promise<Response> {
+async function guarded(original: Request): Promise<Response> {
+  // Tope de cuerpo antes de autenticar y de que el handler lo lea: 413 sin leer de más
+  const limited = await limitedRequest(original, MAX_MCP_BODY_BYTES);
+  if (!limited.ok) return json(413, { error: "pedido demasiado grande" });
+  const req = limited.request;
   const auth = await authenticateMcpRequest(req);
   if (!auth.ok) {
     return auth.status === 429

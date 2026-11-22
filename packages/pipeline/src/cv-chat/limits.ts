@@ -22,7 +22,7 @@ export const CV_CHAT_MAX_STARTS_PER_DAY = 5;
  * (`estimate.test.ts`) recalcula ese máximo con el seed y falla si estas constantes quedan cortas.
  */
 export const CV_CHAT_TURN_RESERVE_USD = 0.03; // R4-16: el prompt v2 es más largo (antes 0.025)
-export const CV_CHAT_WRITE_RESERVE_USD = 0.07;
+export const CV_CHAT_WRITE_RESERVE_USD = 0.08;
 
 export type CvChatCap =
   "mes" | "turnos_mes" | "turnos" | "conversacion" | "usuario" | "inicios" | "global";

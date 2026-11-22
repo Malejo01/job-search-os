@@ -6,6 +6,7 @@ import {
   loginEmailHash,
   loginEmailHashes,
   loginIpHash,
+  loginSecretMissingInProduction,
   type LoginDeps,
 } from "../lib/login-credentials";
 
@@ -152,9 +153,33 @@ describe("intentos por IP", () => {
     expect(JSON.stringify(beginAttempt.mock.calls)).not.toContain("203.0.113.7");
   });
 
+  it("con secreto el hash de la IP es un HMAC: no se recorre el espacio IPv4 sin el secreto", () => {
+    const plain = loginIpHash("203.0.113.7", "");
+    const keyed = loginIpHash("203.0.113.7", "secreto-de-prueba");
+    expect(keyed).toMatch(/^[0-9a-f]{64}$/);
+    expect(keyed).not.toBe(plain);
+    expect(keyed).toBe(loginIpHash("203.0.113.7", "secreto-de-prueba"));
+    expect(keyed).not.toBe(loginIpHash("203.0.113.7", "otro-secreto"));
+    expect(loginIpHash(null, "secreto-de-prueba")).toBeNull();
+  });
+
   it("IP distintas dan claves distintas y sin IP no hay clave", () => {
     expect(loginIpHash("203.0.113.7")).not.toBe(loginIpHash("203.0.113.8"));
     expect(loginIpHash(null)).toBeNull();
+  });
+});
+
+describe("loginSecretMissingInProduction (aviso de /settings/salud)", () => {
+  it("avisa solo en producción y solo si falta el secreto (vacío cuenta como falta)", () => {
+    expect(loginSecretMissingInProduction({ VERCEL_ENV: "production" })).toBe(true);
+    expect(
+      loginSecretMissingInProduction({ VERCEL_ENV: "production", LOGIN_ATTEMPTS_HMAC_SECRET: " " }),
+    ).toBe(true);
+    expect(
+      loginSecretMissingInProduction({ VERCEL_ENV: "production", LOGIN_ATTEMPTS_HMAC_SECRET: "x" }),
+    ).toBe(false);
+    expect(loginSecretMissingInProduction({ VERCEL_ENV: "preview" })).toBe(false);
+    expect(loginSecretMissingInProduction({})).toBe(false);
   });
 });
 

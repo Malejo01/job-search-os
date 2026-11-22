@@ -43,13 +43,20 @@ export async function GET(request: Request): Promise<NextResponse> {
   const { db, close } = createDb(requireDatabaseUrl({ purpose: "service" }), { max: 2 });
   const logger = createLogger({ cron: "evaluate" });
   try {
-    const llm = serviceLlm(db, logger);
-    const summary = await runEvaluateWorker(
-      { db, llm, queue: createPgQueue(db), logger },
-      { limit: EVALUATE_LIMIT, budgetMs: EVALUATE_BUDGET_MS },
-    );
+    // Si el worker lanza, las purgas de abajo corren igual (incluye los intentos de login vencidos, que se
+    // purgan en la corrida de retención) y recién después responde 500.
+    let summary: Awaited<ReturnType<typeof runEvaluateWorker>> | null = null;
+    try {
+      const llm = serviceLlm(db, logger);
+      summary = await runEvaluateWorker(
+        { db, llm, queue: createPgQueue(db), logger },
+        { limit: EVALUATE_LIMIT, budgetMs: EVALUATE_BUDGET_MS },
+      );
+    } catch (error) {
+      logger.error({ err: safeDbError(error) }, "cron evaluate falló");
+    }
     // El detalle (ids y mensaje) va al log del servidor; la respuesta es pública (cron.yml): JS-110
-    for (const f of failedOutcomes(summary.outcomes)) {
+    for (const f of summary ? failedOutcomes(summary.outcomes) : []) {
       logger.warn(
         { job_id: f.jobId, category: f.category, err: f.message },
         "evaluación fallida en el cron",
@@ -97,6 +104,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     } catch (error) {
       logger.error({ err: safeDbError(error) }, "alertas de presupuesto fallaron");
     }
+    if (!summary) return NextResponse.json({ ok: false, error: "worker falló" }, { status: 500 });
     return NextResponse.json({
       ...buildEvaluateCronResponse(summary),
       budgetAlerted,

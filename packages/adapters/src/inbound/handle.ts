@@ -12,12 +12,13 @@ import {
   parseFromAddress,
   INBOUND_DMARC_MODES,
   readMode,
+  readIntegerSetting,
   parsePoolMailbox,
   SECURITY_PARSER,
   type CriteriaRules,
   type InboundDmarcMode,
 } from "@job-search-os/pipeline";
-import { and, desc, eq, gt, gte, inArray, isNull, notInArray, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, gte, inArray, isNull, like, lt, not, or, sql } from "drizzle-orm";
 import { applyLinkedinApplication } from "../applications/linkedin-application";
 import { ingestBatch } from "../ingest/ingest-job";
 import type { Logger } from "../logger";
@@ -77,6 +78,8 @@ export type InboundDeps = {
    * `none`: en `enforce` el email se retiene. Una clave presente con `undefined` apaga la lectura del entorno.
    */
   authservId?: string | null;
+  /** Tope de bytes de correo crudo por persona. Sin esto se lee de INBOUND_MAX_BYTES_PER_USER (200 MB). */
+  maxBytesPerUser?: number;
   /** Solo `processHeldInbound`: la persona dueña pidió procesar este email aunque no esté verificado. */
   treatAsVerified?: boolean;
 };
@@ -132,10 +135,23 @@ export const TOO_MANY_CARDS_REASON = "el email trae demasiados avisos: cola manu
 const USER_DAILY_EMAIL_LIMIT = 300;
 
 /** Fila provisional que cuenta el intento mientras el email se procesa. */
-const PENDING_RAW_REF = "pending:";
+export const PENDING_RAW_REF = "pending:";
+/** Una provisional con más de esto se considera abandonada: el reintento del mismo email la retoma. */
+export const PENDING_RECLAIM_MS = 10 * 60_000;
+/** Tope por defecto de correo crudo retenido por persona (beta). */
+export const DEFAULT_MAX_BYTES_PER_USER = 200 * 1024 * 1024;
+export const STORAGE_FULL_REASON =
+  "almacenamiento de correo lleno: se guardó solo remitente, asunto y fecha, sin el cuerpo";
+/** `raw_ref` de una fila sin crudo guardado (no es un `pg:`: la bandeja la muestra como vencida). */
+const NO_RAW_REF = "none:";
 export const PROCESSING_REASON = "procesando: el email no terminó de procesarse";
 export const PROCESSING_UNEXPECTED_REASON =
   "procesando (remitente no esperado): el email no terminó de procesarse";
+/** Lo que queda en una provisional que nadie retomó en una hora: pasa a la cola manual (la purga la barre). */
+export const STALE_PROCESSING_REASON =
+  "no terminó de procesarse y no llegó un reintento: cola manual";
+export const STALE_PROCESSING_UNEXPECTED_REASON =
+  "no terminó de procesarse y no llegó un reintento (remitente no esperado): cola manual";
 export const OVERSIZE_UNEXPECTED_REASON =
   "email demasiado grande de un remitente no esperado: se guardó solo remitente, asunto y fecha, sin el cuerpo";
 
@@ -150,7 +166,16 @@ const UNEXPECTED_BUCKET_REASONS: readonly string[] = [
   SECURITY_EMAIL_REASON,
   OVERSIZE_UNEXPECTED_REASON,
   PROCESSING_UNEXPECTED_REASON,
+  STALE_PROCESSING_UNEXPECTED_REASON,
+  // Lo que un From de portal no alcanza a demostrar: sin verificar, demasiado grande, sin parser o con
+  // demasiadas tarjetas. Solo cuenta como esperado lo que el parser reconoció (ver `UNRECOGNIZED_PREFIX`).
+  AUTH_UNVERIFIED_REASON,
+  OVERSIZE_EMAIL_REASON,
+  MANUAL_QUEUE_REASON,
+  TOO_MANY_CARDS_REASON,
 ];
+/** Los motivos «estructura no reconocida (parser): …» llevan texto variable: se agrupan por prefijo. */
+const UNRECOGNIZED_PREFIX = "estructura no reconocida";
 type QuotaBucket = "expected" | "unexpected";
 
 type QuotaCheck = {
@@ -180,17 +205,53 @@ async function checkUserQuota(
       and(eq(s.inboundSenderDomains.userId, userId), eq(s.inboundSenderDomains.verdict, "empleo")),
     );
   const jobDomains = domains.map((d) => d.domain);
+  // Por el remitente es lo único que se sabe antes de pedir el cuerpo; el cupo definitivo se decide
+  // después de parsear (ver `bucketOfOutcome`)
   const bucket: QuotaBucket =
     isExpectedSender(from, jobDomains) || parseFromAddress(from) === GMAIL_FORWARDING_SENDER
       ? "expected"
       : "unexpected";
+  const { hour, day } = await countBucket(db, userId, bucket, now);
+  return {
+    limited:
+      hour >= (deps.hourlyLimit ?? 100) || day >= (deps.dailyLimit ?? USER_DAILY_EMAIL_LIMIT),
+    bucket,
+    hour,
+    day,
+    jobDomains,
+  };
+}
+
+/** El motivo guardado de una fila lo manda al cupo de no esperados (NULL cuenta como esperado). */
+const inUnexpectedBucket = () =>
+  sql`(${inArray(s.inboundEmails.error, [...UNEXPECTED_BUCKET_REASONS])} or ${like(s.inboundEmails.error, `${UNRECOGNIZED_PREFIX}%`)})`;
+
+/**
+ * Cupo definitivo de un email ya procesado: lo ilegible, retenido o sin parser es de no esperados, salvo que
+ * la autenticación del remitente haya salido verificada (`aligned`): un portal que cambió de formato no se
+ * castiga.
+ */
+export function bucketOfOutcome(
+  error: string | null,
+  authVerdict: string | null = null,
+): QuotaBucket {
+  if (!error || authVerdict === "aligned") return "expected";
+  return UNEXPECTED_BUCKET_REASONS.includes(error) || error.startsWith(UNRECOGNIZED_PREFIX)
+    ? "unexpected"
+    : "expected";
+}
+
+/** Intentos de la última hora y del último día en un cupo, por el índice (user_id, received_at). */
+async function countBucket(
+  db: Db,
+  userId: string,
+  bucket: QuotaBucket,
+  now: Date,
+): Promise<{ hour: number; day: number }> {
   const inBucket =
     bucket === "unexpected"
-      ? inArray(s.inboundEmails.error, [...UNEXPECTED_BUCKET_REASONS])
-      : or(
-          isNull(s.inboundEmails.error),
-          notInArray(s.inboundEmails.error, [...UNEXPECTED_BUCKET_REASONS]),
-        );
+      ? inUnexpectedBucket()
+      : or(isNull(s.inboundEmails.error), not(inUnexpectedBucket()));
   const [counts] = (await db
     .select({
       hour: sql<number>`count(*) filter (where ${s.inboundEmails.receivedAt} >= ${new Date(now.getTime() - 60 * 60 * 1000).toISOString()}::timestamptz)::int`,
@@ -204,16 +265,7 @@ async function checkUserQuota(
         inBucket,
       ),
     )) as { hour: number; day: number }[];
-  const hour = counts?.hour ?? 0;
-  const day = counts?.day ?? 0;
-  return {
-    limited:
-      hour >= (deps.hourlyLimit ?? 100) || day >= (deps.dailyLimit ?? USER_DAILY_EMAIL_LIMIT),
-    bucket,
-    hour,
-    day,
-    jobDomains,
-  };
+  return { hour: counts?.hour ?? 0, day: counts?.day ?? 0 };
 }
 
 /** El email no se guarda (es el punto del límite), pero queda contado para que /inbox avise (JS-038). */
@@ -228,14 +280,50 @@ async function rejectOverQuota(
     { user_id: userId, bucket: quota.bucket, count: quota.hour, day_count: quota.day },
     "inbound: rate limit por usuario",
   );
-  // Una fila por usuario y hora
+  await countRejection(db, userId, now);
+  return { kind: "rate_limited", userId };
+}
+
+/** Una fila por usuario y hora: el contador que /inbox muestra como «rechazados». */
+async function countRejection(db: Db, userId: string, now: Date): Promise<void> {
   await db.execute(sql`
     INSERT INTO inbound_rejections (user_id, window_start, rejected, last_at)
     VALUES (${userId}, date_trunc('hour', ${now.toISOString()}::timestamptz), 1, ${now.toISOString()}::timestamptz)
     ON CONFLICT (user_id, window_start)
     DO UPDATE SET rejected = inbound_rejections.rejected + 1, last_at = excluded.last_at
   `);
-  return { kind: "rate_limited", userId };
+}
+
+/** Bytes de correo crudo que ya retiene la persona: una suma por el índice (user_id, kind). */
+export function userRawBytesSql(userId: string) {
+  return sql`SELECT coalesce(sum(bytes), 0)::bigint AS bytes FROM raw_blobs WHERE user_id = ${userId}::uuid AND kind = 'inbound_email'`;
+}
+
+async function userRawBytes(db: Db, userId: string): Promise<number> {
+  const rows = (await db.execute(userRawBytesSql(userId))) as unknown as {
+    bytes: string | number;
+  }[];
+  return Number(rows[0]?.bytes ?? 0);
+}
+
+/**
+ * Borra el crudo `ref` de la persona si ninguna fila de email ni oferta lo referencia. Un crudo que usa una
+ * oferta (`job_sources.raw_ref`) no se toca. Un ref que no es `pg:<uuid>` se ignora.
+ */
+async function deleteRawIfUnreferenced(db: Db, userId: string, ref: string | null): Promise<void> {
+  const id = ref?.startsWith("pg:") ? ref.slice(3) : null;
+  if (!ref || !id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))
+    return;
+  await db
+    .execute(
+      sql`
+        DELETE FROM raw_blobs
+        WHERE id = ${id}::uuid AND user_id = ${userId}::uuid AND kind = 'inbound_email'
+          AND NOT EXISTS (SELECT 1 FROM inbound_emails e WHERE e.raw_ref = ${ref})
+          AND NOT EXISTS (SELECT 1 FROM job_sources js WHERE js.raw_ref = ${ref})
+      `,
+    )
+    .catch(() => undefined);
 }
 
 /** Los avisos de configuración salen una sola vez por proceso y por variable. */
@@ -281,6 +369,55 @@ async function findByEmailId(db: Db, emailId: string): Promise<string | null> {
     .where(eq(s.inboundEmails.emailId, emailId))
     .limit(1);
   return row?.id ?? null;
+}
+
+/**
+ * Fila ya guardada para ese email_id y si es una provisional abandonada: sigue en `pending:` y pasó más de
+ * `PENDING_RECLAIM_MS` desde que se creó. Una abandonada no es un duplicado: el reintento la retoma.
+ */
+async function findExisting(
+  db: Db,
+  emailId: string,
+  now: Date,
+): Promise<{ id: string; stale: boolean } | null> {
+  const [row] = await db
+    .select({
+      id: s.inboundEmails.id,
+      rawRef: s.inboundEmails.rawRef,
+      receivedAt: s.inboundEmails.receivedAt,
+    })
+    .from(s.inboundEmails)
+    .where(eq(s.inboundEmails.emailId, emailId))
+    .limit(1);
+  if (!row) return null;
+  const stale =
+    row.rawRef === PENDING_RAW_REF && row.receivedAt.getTime() < now.getTime() - PENDING_RECLAIM_MS;
+  return { id: row.id, stale };
+}
+
+/**
+ * Toma la fila provisional abandonada con un UPDATE atómico: solo gana el reintento que la ve todavía en
+ * `pending:` y vieja; el que llega después la encuentra ya renovada y no devuelve fila.
+ */
+async function reclaimPending(
+  db: Db,
+  id: string,
+  userId: string,
+  now: Date,
+): Promise<{ id: string } | null> {
+  const [row] = await db
+    .update(s.inboundEmails)
+    .set({ receivedAt: now })
+    .where(
+      and(
+        eq(s.inboundEmails.id, id),
+        eq(s.inboundEmails.userId, userId),
+        eq(s.inboundEmails.rawRef, PENDING_RAW_REF),
+        lt(s.inboundEmails.receivedAt, new Date(now.getTime() - PENDING_RECLAIM_MS)),
+      ),
+    )
+    .returning({ id: s.inboundEmails.id });
+  return row ?? null;
 }
 
 /**
@@ -358,10 +495,20 @@ function parseOrManualQueue(
 }
 
 /** Direcciones del evento en minúsculas, en orden de prioridad: received_for, to, cc. */
-function eventRecipients(event: ResendReceivedEvent): string[] {
-  return [...event.data.received_for, ...event.data.to, ...event.data.cc].map((r) =>
-    (/<([^>]+)>/.exec(r)?.[1] ?? r).trim().toLowerCase(),
-  );
+export function eventRecipients(event: ResendReceivedEvent): string[] {
+  return [...event.data.received_for, ...event.data.to, ...event.data.cc].map(recipientAddress);
+}
+
+/**
+ * Dirección de un destinatario en minúsculas: lo que está entre el primer «<» y el primer «>» que lo sigue,
+ * o el texto entero si no hay un par. Recorrido lineal (sin expresión regular): un destinatario hostil con
+ * miles de «<» sin cerrar no encarece la lectura.
+ */
+export function recipientAddress(recipient: string): string {
+  const open = recipient.indexOf("<");
+  const close = open === -1 ? -1 : recipient.indexOf(">", open + 1);
+  const inner = close > open + 1 ? recipient.slice(open + 1, close) : recipient;
+  return inner.trim().toLowerCase();
 }
 
 /**
@@ -424,8 +571,9 @@ export async function processInboundEvent(
   deps: InboundDeps,
 ): Promise<InboundOutcome> {
   const event = cleanEvent(receivedEvent);
-  const dup = await findByEmailId(deps.db, event.data.email_id);
-  if (dup) return { kind: "duplicate", inboundId: dup };
+  const now = deps.now?.() ?? new Date();
+  const dup = await findExisting(deps.db, event.data.email_id, now);
+  if (dup && !dup.stale) return { kind: "duplicate", inboundId: dup.id };
   const destination = await inboundDestination(event, deps);
   if (!destination) {
     const recipientsCount = eventRecipients(event).length;
@@ -433,10 +581,10 @@ export async function processInboundEvent(
     return { kind: "unknown_recipient", recipientsCount };
   }
   if (destination !== "pool") {
-    // Con el cupo agotado no se pide el cuerpo a Resend: alcanza con el remitente y el destinatario
-    const now = deps.now?.() ?? new Date();
+    // Con el cupo agotado no se pide el cuerpo a Resend: alcanza con el remitente y el destinatario.
+    // Una provisional abandonada ya está contada: retomarla no vuelve a pasar por el cupo.
     const quota = await checkUserQuota(deps.db, destination, event.data.from, now, deps);
-    if (quota.limited) {
+    if (quota.limited && !dup) {
       return rejectOverQuota(
         deps.db,
         destination,
@@ -474,8 +622,8 @@ export async function handleInboundEmail(
   // Idempotencia (JS-115): Svix reintenta; el mismo email_id no se guarda dos veces. Se busca por la
   // columna `email_id` (índice único) y no dentro de los crudos. Si dos entregas del mismo email corren
   // a la vez y las dos pasan este chequeo, el índice deja entrar solo una: ver `claimedOrDuplicate`.
-  const dup = await findByEmailId(db, event.data.email_id);
-  if (dup) return { kind: "duplicate", inboundId: dup };
+  const existing = await findExisting(db, event.data.email_id, now);
+  if (existing && !existing.stale) return { kind: "duplicate", inboundId: existing.id };
 
   // Usuario por dirección de destino (u_<id>@ingest.<dominio>)
   const recipients = eventRecipients(event);
@@ -500,9 +648,9 @@ export async function handleInboundEmail(
   // (received_for) cuando existe; si entre esos destinatarios hay una dirección u_… válida, gana
   // el flujo normal y el email no se desvía al pool. Apagado, ajena o inválida: se rechaza como un
   // destinatario desconocido.
-  const envelope = event.data.received_for.map((r) =>
-    (/<([^>]+)>/.exec(r)?.[1] ?? r).trim().toLowerCase(),
-  );
+  // `recipients` ya viene calculada una sola vez: received_for, to, cc, en ese orden
+  const receivedForCount = event.data.received_for.length;
+  const envelope = recipients.slice(0, receivedForCount);
   const basis = envelope.length ? envelope : recipients;
   if (!basis.some((r) => byAddress.has(r)) && basis.some(isPoolMailboxAddress)) {
     const pool = deps.pool ?? readPoolInboundConfig();
@@ -606,29 +754,48 @@ export async function handleInboundEmail(
     return { kind: "unknown_recipient", recipientsCount: recipients.length };
   }
   const userId = profile.userId;
+  // `enforce` sin servidor de autenticación: ningún email queda verificado y los de portales se retienen
+  if (dmarcMode === "enforce" && !authservId?.trim()) {
+    logModeError(
+      "INBOUND_DMARC_MODE está en «enforce» pero falta INBOUND_AUTHSERV_ID: los emails de portales quedan retenidos",
+      "INBOUND_AUTHSERV_ID",
+      log.child({ user_id: userId }),
+    );
+  }
 
   const quota = await checkUserQuota(db, userId, event.data.from, now, deps);
-  if (quota.limited) return rejectOverQuota(db, userId, quota, now, log);
+  // Una provisional abandonada ya está contada: retomarla no vuelve a pasar por el cupo
+  if (quota.limited && !existing) return rejectOverQuota(db, userId, quota, now, log);
   const { jobDomains, bucket } = quota;
 
   // El intento se cuenta antes de leer el contenido: una fila provisional ocupa cupo y marca el
-  // email_id como visto. Si el procesamiento queda colgado y la función muere, la fila queda y el
-  // reintento es un duplicado; si falla con una excepción, se borra para que el reintento lo procese.
-  const [claim] = await db
-    .insert(s.inboundEmails)
-    .values({
-      userId,
-      emailId: event.data.email_id,
-      fromAddress: event.data.from.slice(0, MAX_STORED_HEADER_CHARS),
-      rawRef: PENDING_RAW_REF,
-      parser: "none",
-      jobsExtracted: 0,
-      error: bucket === "expected" ? PROCESSING_REASON : PROCESSING_UNEXPECTED_REASON,
-      receivedAt: now,
-    })
-    .onConflictDoNothing({ target: s.inboundEmails.emailId })
-    .returning({ id: s.inboundEmails.id });
-  if (!claim) return duplicateAfterRace(db, event.data.email_id, log);
+  // email_id como visto. Si el procesamiento queda colgado y la función muere, el reintento posterior a
+  // PENDING_RECLAIM_MS la retoma (UPDATE atómico, gana uno solo) y antes de eso es un duplicado; si falla
+  // con una excepción, se borra para que el reintento lo procese.
+  let claim: { id: string } | null | undefined;
+  if (existing) {
+    claim = await reclaimPending(db, existing.id, userId, now);
+    if (!claim) return { kind: "duplicate", inboundId: existing.id };
+    log.warn({ user_id: userId }, "inbound: se retoma una fila provisional abandonada");
+  } else {
+    [claim] = await db
+      .insert(s.inboundEmails)
+      .values({
+        userId,
+        emailId: event.data.email_id,
+        fromAddress: event.data.from.slice(0, MAX_STORED_HEADER_CHARS),
+        rawRef: PENDING_RAW_REF,
+        parser: "none",
+        jobsExtracted: 0,
+        error: bucket === "expected" ? PROCESSING_REASON : PROCESSING_UNEXPECTED_REASON,
+        receivedAt: now,
+      })
+      .onConflictDoNothing({ target: s.inboundEmails.emailId })
+      .returning({ id: s.inboundEmails.id });
+    if (!claim) return duplicateAfterRace(db, event.data.email_id, log);
+  }
+  const claimId = claim.id;
+  let ownRawRef: string | null = null;
 
   try {
     // Un email que pasa el tope no se lee: queda solo con metadatos, como uno de remitente no esperado.
@@ -645,6 +812,26 @@ export async function handleInboundEmail(
         { user_id: userId, bytes: emailBytes, size_mode: sizeMode },
         "inbound: email grande",
       );
+    }
+
+    // Tope de correo crudo por persona: pasado el tope no se guarda el crudo, pero la fila queda visible
+    // con su motivo y se cuenta como rechazado. Un valor mal escrito cae al tope por defecto.
+    const maxBytesSetting = readIntegerSetting(
+      "INBOUND_MAX_BYTES_PER_USER",
+      process.env.INBOUND_MAX_BYTES_PER_USER,
+      1_000_000,
+      100 * 1024 * 1024 * 1024,
+    );
+    logModeError(maxBytesSetting.error, "INBOUND_MAX_BYTES_PER_USER", log);
+    const maxBytes = deps.maxBytesPerUser ?? maxBytesSetting.value ?? DEFAULT_MAX_BYTES_PER_USER;
+    const usedBytes = await userRawBytes(db, userId);
+    const storageFull = usedBytes + (oversize ? 0 : emailBytes) > maxBytes;
+    if (storageFull) {
+      log.warn(
+        { user_id: userId, used_bytes: usedBytes, bytes: emailBytes, max_bytes: maxBytes },
+        "inbound: tope de almacenamiento de correo, no se guarda el crudo",
+      );
+      await countRejection(db, userId, now);
     }
 
     // JS-119: se clasifica antes del chequeo de remitente. Los códigos y reseteos (de cualquier
@@ -664,9 +851,10 @@ export async function handleInboundEmail(
     const ownAddresses = [profile.inboundAddress?.toLowerCase(), activePrevious(profile)].filter(
       (a): a is string => typeof a === "string",
     );
-    const addressedToUser = [...event.data.to, ...event.data.received_for].some((r) =>
-      ownAddresses.includes((/<([^>]+)>/.exec(r)?.[1] ?? r).trim().toLowerCase()),
-    );
+    // received_for y to son los primeros destinatarios de `recipients` (cc va al final)
+    const addressedToUser = recipients
+      .slice(0, receivedForCount + event.data.to.length)
+      .some((r) => ownAddresses.includes(r));
     const isSecurity = category === "seguridad";
     const gmailConfirmClaimed = category === "confirmacion_reenvio_gmail" && addressedToUser;
     // En `enforce`, un remitente esperado sin autenticación verificada se guarda pero no se procesa
@@ -688,35 +876,39 @@ export async function handleInboundEmail(
       : headerSubject
         ? maskDigits(headerSubject)
         : null;
-    const rawRef = await deps.storage.put({
-      userId,
-      kind: "inbound_email",
-      contentType: "application/json",
-      body: JSON.stringify(
-        expected
-          ? { event: JSON.parse(rawBody), content, ...authRecord }
-          : {
-              event: {
-                type: event.type,
-                created_at: event.created_at,
-                data: {
-                  email_id: event.data.email_id,
-                  from: storedFrom,
-                  to: event.data.to,
-                  received_for: event.data.received_for,
-                  subject: storedSubject,
+    const rawRef = storageFull
+      ? NO_RAW_REF
+      : await deps.storage.put({
+          userId,
+          kind: "inbound_email",
+          contentType: "application/json",
+          body: JSON.stringify(
+            expected
+              ? { event: JSON.parse(rawBody), content, ...authRecord }
+              : {
+                  event: {
+                    type: event.type,
+                    created_at: event.created_at,
+                    data: {
+                      email_id: event.data.email_id,
+                      from: storedFrom,
+                      to: event.data.to,
+                      received_for: event.data.received_for,
+                      subject: storedSubject,
+                    },
+                  },
+                  content: null,
+                  redacted: isSecurity
+                    ? SECURITY_EMAIL_REASON
+                    : oversize
+                      ? OVERSIZE_EMAIL_REASON
+                      : UNEXPECTED_SENDER_REASON,
+                  ...authRecord,
                 },
-              },
-              content: null,
-              redacted: isSecurity
-                ? SECURITY_EMAIL_REASON
-                : oversize
-                  ? OVERSIZE_EMAIL_REASON
-                  : UNEXPECTED_SENDER_REASON,
-              ...authRecord,
-            },
-      ),
-    });
+          ),
+        });
+
+    if (!storageFull) ownRawRef = rawRef;
 
     const parserName = chooseParserName(event.data.from);
     const parser = EMAIL_PARSERS[parserName];
@@ -726,6 +918,8 @@ export async function handleInboundEmail(
     let dismissedAt: Date | null = null;
     let seen = false;
 
+    // Con el tope pasado el email se procesa igual (sus ofertas entran): el cuerpo vive en memoria y solo
+    // se omite guardar el crudo
     if (isSecurity) {
       parserUsed = SECURITY_PARSER;
       error = SECURITY_EMAIL_REASON;
@@ -813,7 +1007,11 @@ export async function handleInboundEmail(
           error = "usuario sin criterios activos";
         } else {
           // Cada aviso extraído apunta al crudo del email (JS-024)
-          const jobs = parsed.jobs.map((j) => ({ ...j, source: { ...j.source, rawRef } }));
+          // (sin crudo guardado no hay a qué apuntar)
+          const jobs = parsed.jobs.map((j) => ({
+            ...j,
+            source: storageFull ? j.source : { ...j.source, rawRef },
+          }));
           const summary = await ingestBatch(jobs, {
             db,
             userId,
@@ -830,6 +1028,33 @@ export async function handleInboundEmail(
       }
     }
 
+    // Cupo definitivo: un email que dijo venir de un portal pero resultó ilegible, retenido o sin parser
+    // es de no esperados. Si ese cupo está lleno, no se guarda (como cualquier rechazo por cupo) y el
+    // cupo esperado queda para lo que el parser reconoció.
+    if (bucket === "expected" && bucketOfOutcome(error, authVerdict) === "unexpected") {
+      const counts = await countBucket(db, userId, "unexpected", now);
+      if (
+        counts.hour >= (deps.hourlyLimit ?? 100) ||
+        counts.day >= (deps.dailyLimit ?? USER_DAILY_EMAIL_LIMIT)
+      ) {
+        await db.delete(s.inboundEmails).where(eq(s.inboundEmails.id, claimId));
+        await deleteRawIfUnreferenced(db, userId, ownRawRef);
+        return rejectOverQuota(
+          db,
+          userId,
+          { limited: true, bucket: "unexpected", ...counts, jobDomains },
+          now,
+          log,
+        );
+      }
+    }
+
+    // Resuelto solo (postulación de LinkedIn) o con avisos extraídos y sin error: no necesita a
+    // la persona. Un fallo parcial ("N avisos con error") queda en Pendientes.
+    const resolved = seen || (jobsExtracted > 0 && error === null);
+    // Sin crudo guardado por el tope, la fila lo dice (si no hay otro motivo más útil)
+    if (storageFull && error === null) error = STORAGE_FULL_REASON;
+
     const [row] = await db
       .update(s.inboundEmails)
       .set({
@@ -839,12 +1064,10 @@ export async function handleInboundEmail(
         parser: parserUsed ?? (parser ? parserName : "none"),
         jobsExtracted,
         error,
-        // Resuelto solo (postulación de LinkedIn) o con avisos extraídos y sin error: no necesita a
-        // la persona. Un fallo parcial ("N avisos con error") queda en Pendientes.
-        seenAt: seen || (jobsExtracted > 0 && error === null) ? now : null,
+        seenAt: resolved ? now : null,
         dismissedAt,
       })
-      .where(eq(s.inboundEmails.id, claim.id))
+      .where(eq(s.inboundEmails.id, claimId))
       .returning({ id: s.inboundEmails.id });
     if (!row) throw new Error("inbound: la fila provisional desapareció antes de terminar");
     // Nunca el asunto ni el cuerpo: pueden traer códigos
@@ -868,11 +1091,25 @@ export async function handleInboundEmail(
       error,
     };
   } catch (e) {
-    // Falló con una excepción (no colgó): se libera el cupo y el email_id para que el reintento lo procese
-    await db
-      .delete(s.inboundEmails)
-      .where(eq(s.inboundEmails.id, claim.id))
-      .catch(() => undefined);
+    // Falló con una excepción: la provisional no se borra (si el reintento de Svix ya la vio como duplicado,
+    // borrarla perdería el email). Queda en `pending:` con la fecha vencida para que el próximo reintento
+    // la retome o el barrido la mande a la cola manual. Sigue siendo una sola fila: el cupo no cuenta doble.
+    // Si ya se terminó de guardar (la falla fue después), no se toca. «Procesar igual» sí la borra: la fila
+    // retenida necesita recuperar su email_id.
+    if (deps.treatAsVerified) {
+      await db
+        .delete(s.inboundEmails)
+        .where(eq(s.inboundEmails.id, claimId))
+        .catch(() => undefined);
+    } else {
+      await db
+        .update(s.inboundEmails)
+        .set({ receivedAt: new Date(now.getTime() - PENDING_RECLAIM_MS - 1_000) })
+        .where(and(eq(s.inboundEmails.id, claimId), eq(s.inboundEmails.rawRef, PENDING_RAW_REF)))
+        .catch(() => undefined);
+    }
+    // El crudo de esta entrega fallida no queda colgado si ninguna fila ni oferta lo usa
+    await deleteRawIfUnreferenced(db, userId, ownRawRef);
     throw e;
   }
 }
@@ -938,6 +1175,8 @@ export async function processHeldInbound(
       return { ok: false, reason: "no se pudo procesar ahora" };
     }
     await db.delete(s.inboundEmails).where(eq(s.inboundEmails.id, held.id));
+    // El crudo retenido ya no lo usa nadie: el procesamiento guardó el suyo
+    await deleteRawIfUnreferenced(db, userId, held.rawRef);
     return { ok: true, inboundId: out.inboundId };
   } catch (e) {
     await restore();

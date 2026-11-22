@@ -35,6 +35,8 @@ export * from "./session-version";
 export * from "./applicant";
 export * from "./legal/markdown";
 export * from "./onboarding";
+export * from "./onboarding-parse";
+export * from "./onboarding-prefill";
 export * from "./inbound-address";
 export * from "./criteria-form";
 export * from "./assistant-step";

@@ -120,9 +120,10 @@ describe("O1: el gasto cuenta las llamadas fallidas con costo null", () => {
     await call({ task: "extract_cv_profile", ok: false, costUsd: null, error: "output_invalid" });
     await call({ task: "cv_write", ok: false, costUsd: null, error: "llm_failed" });
     const m = await measure();
-    expect(m.flowCostUsd).toBeCloseTo(0.03 + 0.08 + 0.07);
-    expect(m.userSpendTodayUsd).toBeCloseTo(0.03 + 0.08 + 0.07);
-    expect(m.dailySpendUsd).toBeCloseTo(0.03 + 0.08 + 0.07);
+    // turno 0,03 + lectura 0,08 + redacción 0,08 (la reserva de la redacción subió de 0,07 con el ruteo a Claude)
+    expect(m.flowCostUsd).toBeCloseTo(0.03 + 0.08 + 0.08);
+    expect(m.userSpendTodayUsd).toBeCloseTo(0.03 + 0.08 + 0.08);
+    expect(m.dailySpendUsd).toBeCloseTo(0.03 + 0.08 + 0.08);
   });
 
   it("un costo negativo cae al estimado (nunca resta); uno real se respeta", async () => {

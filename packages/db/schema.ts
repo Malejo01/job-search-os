@@ -464,7 +464,11 @@ export const jobSources = pgTable("job_sources", {
   url: text("url"),
   rawRef: text("raw_ref"),                  // path en storage del email/JSON crudo
   seenAt: timestamp("seen_at", { withTimezone: true }).defaultNow().notNull(),
-}, (t) => [index("job_sources_job").on(t.jobId)]);
+}, (t) => [
+  index("job_sources_job").on(t.jobId),
+  // La purga de crudos pregunta si una oferta usa cada crudo
+  index("job_sources_raw_ref").on(t.rawRef).where(sql`${t.rawRef} is not null`),
+]);
 
 export const evaluations = pgTable("evaluations", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -824,6 +828,10 @@ export const inboundEmails = pgTable("inbound_emails", {
   // C-7: no tenía ningún índice; la bandeja, la cobertura de alertas de «Hoy» y «Primeros pasos» filtran así
   index("inbound_emails_user_received").on(t.userId, t.receivedAt.desc()),
   uniqueIndex("inbound_emails_email_id").on(t.emailId),
+  // Barrido de filas provisionales abandonadas: solo indexa las que siguen sin terminar
+  index("inbound_emails_pending").on(t.receivedAt).where(sql`${t.rawRef} = 'pending:'`),
+  // La purga de crudos cruza raw_blobs con inbound_emails por raw_ref
+  index("inbound_emails_raw_ref").on(t.rawRef),
 ]);
 
 // JS-038: emails que el webhook rechazó por el límite horario (no se guardan; esto los cuenta)

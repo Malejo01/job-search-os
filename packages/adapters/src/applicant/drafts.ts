@@ -3,6 +3,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { DRAFTS_RESERVE_USD, releaseLlmSpend, reserveLlmSpend } from "../llm/spend-reserve";
 import type { LlmClient, LlmError } from "../llm/types";
+import { BUSY_MESSAGE } from "../worker/evaluate-job";
 import {
   ApplicantFailure,
   getCandidateProfile,
@@ -91,6 +92,9 @@ export function draftsCapGuard(db: Db, userId: string): () => Promise<DraftsCapD
           await releaseLlmSpend(db, reservation.reservationId);
         },
       };
+    }
+    if (reservation.reason === "concurrent" || reservation.reason === "lock_timeout") {
+      return { message: BUSY_MESSAGE };
     }
     return {
       message:

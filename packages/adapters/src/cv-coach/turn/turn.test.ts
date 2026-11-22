@@ -369,9 +369,9 @@ describe("topes de la charla: 15 turnos y USD 0,30 con la redacción reservada (
 
   it("con filas de costo null, cada turno vale su reserva y corta por USD dejando lugar a la redacción", async () => {
     const { calls, out } = await turnsUntilCap(null);
-    // con n turnos hechos: 0,02 de lectura + n × 0,04 + 0,04 del turno + 0,07 de la redacción ≤ 0,30
-    // pasa hasta n = 4 (USD 0,29): el quinto turno sale y el sexto se corta, antes del tope de 15
-    expect(calls).toBe(5);
+    // con n turnos hechos: 0,02 de lectura + n × 0,045 + 0,045 del turno + 0,08 de la redacción ≤ 0,30
+    // pasa hasta n = 3 (USD 0,28): el cuarto turno sale y el quinto se corta, antes del tope de 15
+    expect(calls).toBe(4);
     expect(out).toMatchObject({ kind: "cap", reject: "charla" });
     expect(out.notice.message).toMatch(/tope de uso/);
   });

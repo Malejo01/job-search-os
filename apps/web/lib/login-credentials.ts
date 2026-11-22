@@ -33,6 +33,16 @@ export function loginEmailHash(
     : createHash("sha256").update(email).digest("hex");
 }
 
+/**
+ * ¿Falta `LOGIN_ATTEMPTS_HMAC_SECRET` en producción? Solo mira variables de entorno (sin consultar la base): lo usa
+ * `/settings/salud` para avisar. Fuera de producción no es un problema.
+ */
+export function loginSecretMissingInProduction(
+  env: Record<string, string | undefined> = process.env,
+): boolean {
+  return env.VERCEL_ENV === "production" && !env.LOGIN_ATTEMPTS_HMAC_SECRET?.trim();
+}
+
 /** Los hashes con los que pudo quedar guardado ese email: el vigente y, con secreto, el sha256 anterior. */
 export function loginEmailHashes(email: string): string[] {
   const current = loginEmailHash(email);
@@ -66,9 +76,19 @@ export function loginClientIp(
   return ip && ip.length <= MAX_IP_LENGTH && /^[0-9a-f:.]+$/.test(ip) ? ip : null;
 }
 
-/** sha256 de la IP: la tabla de intentos nunca guarda la IP en claro. `null` si no hay IP. */
-export function loginIpHash(ip: string | null): string | null {
-  return ip ? createHash("sha256").update(`ip:${ip}`).digest("hex") : null;
+/**
+ * Hash de la IP: la tabla de intentos nunca guarda la IP en claro. Con secreto (`LOGIN_ATTEMPTS_HMAC_SECRET`) es un
+ * HMAC-SHA256, así quien lea la tabla no recupera la IP probando las 4000 millones de direcciones IPv4; sin
+ * secreto, el sha256 de siempre. `null` si no hay IP.
+ */
+export function loginIpHash(
+  ip: string | null,
+  secret: string | undefined = process.env.LOGIN_ATTEMPTS_HMAC_SECRET,
+): string | null {
+  if (!ip) return null;
+  return secret
+    ? createHmac("sha256", secret).update(`ip:${ip}`).digest("hex")
+    : createHash("sha256").update(`ip:${ip}`).digest("hex");
 }
 
 const DEFAULT_VERIFY_MS = 100;

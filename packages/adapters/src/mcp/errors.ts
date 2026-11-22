@@ -28,6 +28,10 @@ const QUOTA: Record<PersonQuotaError["kind"], { code: string; message: string }>
     code: "cuota_espacio",
     message: "Llegaste al máximo de espacio para avisos guardados.",
   },
+  answers: {
+    code: "cuota_respuestas",
+    message: "Llegaste al máximo de respuestas guardadas: borrá alguna o acortá las largas.",
+  },
 };
 
 /** Errores de otros módulos que se reconocen por nombre (no se importan acá). */

@@ -140,7 +140,8 @@ Se leen con un solo lector: se ignoran mayúsculas y espacios (`ENFORCE`, ` enfo
 |---|---|---|---|
 | `INBOUND_SIZE_MODE` | `log`, `enforce` | `log` | rige `log` (el email grande se registra y se procesa) y queda el `error`. |
 | `INBOUND_DMARC_MODE` | `off`, `log`, `enforce` | `log` | rige `log` (se mide sin retener) y queda el `error`. Ver la sección siguiente. |
-| `INBOUND_RAW_RETENTION_DAYS` | entero de 1 a 3650 | sin valor | la purga de crudos queda apagada, como sin valor, y queda un `error` en cada corrida del cron (por ejemplo con `30d`). |
+| `INBOUND_RAW_RETENTION_DAYS` | entero de 1 a 3650 | sin valor | la purga de crudos queda apagada, como sin valor, y queda un `error` en cada corrida del cron (por ejemplo con `30d`). Los crudos huérfanos (sin fila ni oferta) se purgan siempre, con un día de antigüedad; un email pendiente conserva su crudo hasta 90 días y después se purga igual (la bandeja lo muestra como «venció»). |
+| `INBOUND_MAX_BYTES_PER_USER` | entero de bytes, de 1 000 000 a 107 374 182 400 | `209715200` (200 MB) | rige el valor por defecto y queda el `error`. Pasado el tope de crudo retenido por persona, el email nuevo no guarda su contenido: queda su fila (remitente, asunto y fecha) con el motivo «almacenamiento de correo lleno» y suma al contador de rechazados de `/inbox`. |
 
 - **Ausente o vacía** no es un error: rige el valor por defecto.
 - **Antes de pasar a `enforce`:** en tamaño, mirar en el log cuántos emails superan el tope medido; en DMARC, ver la sección siguiente.
@@ -217,6 +218,13 @@ Fuente de la beta cerrada, **apagada por defecto**. Las casillas `pool-<carrera>
 - **Apagar:** quitar la variable o ponerla en `0`. Vale desde el siguiente email.
 - **Migración:** el valor `computrabajo_alerts` de `source_kind` (0046) lo aplica Admin con `pnpm db:migrate` antes del merge.
 
+## Qué cuenta (y qué no) en el gasto de IA
+
+- **La demo semanal** (`/api/cron/demo`) tiene su tope propio (USD 1 cada 7 días) y suma al gasto de 24 h, pero no pasa por el tope global: no se frena si el global está lleno. Conviene correrla en la franja de menor uso.
+- **Errores sin uso informado** (`validation`, `refusal`, `no_object*`, `aborted`) cuentan 0 si el proveedor no informó uso; con uso informado cuenta el costo real. Es una decisión registrada: una cuenta que provoca esos errores no gasta cupo, y el costo real queda en la factura del proveedor, no en el tope.
+- **Sobrecarga del proveedor** (503, 529) tampoco estima gasto; timeout y otros 5xx estiman USD 0,04 por intento.
+- **Corte de circuito:** con 5 fallas seguidas del proveedor en los últimos 10 minutos (`EVALUATE_MAX_CONSECUTIVE_FAILURES`), la evaluación inmediata no llama al modelo y la oferta queda para el cron.
+
 ## Alertas de gasto de IA (R7-1, R8-5)
 
 Al pasar el 70, 85 y 95 % de `LLM_DAILY_CAP_USD` (gasto de 24 h) sale un email a **cada** admin de `ADMIN_EMAILS`, una vez por umbral, por destinatario y por día UTC. Sin migración: la marca es una fila `budget_alert` en `llm_calls` (label `<día>:<umbral>:<hash del email>`; las de R7-1, sin hash, valen para todos).
@@ -225,3 +233,20 @@ Al pasar el 70, 85 y 95 % de `LLM_DAILY_CAP_USD` (gasto de 24 h) sale un email a
 - **Envío parcial:** se manda y recién después se anota, por destinatario. Si falla Resend para uno, no se anota y la próxima revisión reintenta solo a ese.
 - **Si el proceso muere entre mandar y anotar:** la próxima revisión reenvía con la misma clave de idempotencia de Resend (`budget-alert:<día>:<umbral>:<hash del email>`), que Resend deduplica durante 24 h; no llega dos veces. La clave es por destinatario, no por posición en `ADMIN_EMAILS`.
 - **Límite conocido:** el email que reenvía una alerta ya entregada pero sin anotar depende de esa ventana de 24 h de Resend. Para un reintento de otro día, la marca del día nuevo es otra y se manda de nuevo (es lo esperado: es otro día).
+
+## Intentos de login (ADR-041)
+
+La tabla `login_attempts` cuenta los intentos fallidos sin guardar el email ni la IP en claro: guarda un hash de cada uno.
+
+- **`LOGIN_ATTEMPTS_HMAC_SECRET`** (opcional, recomendado en producción): con ella, los hashes del email y de la IP son un HMAC-SHA256; sin ella son sha256 sin sal, y quien lea la tabla puede comprobar si un email o una IP concretos intentaron entrar, o recorrer las 4000 millones de IPv4. Generarla con `openssl rand -base64 32` y cargarla en Vercel (prod). **Rotarla** deja huérfanas las filas con el hash anterior: se purgan solas al día siguiente y, mientras tanto, la espera de una cuenta empieza de cero. El restablecimiento de contraseña y el borrado de cuenta limpian con los dos hashes (el vigente y el sha256), así que cargarla por primera vez no deja filas colgadas.
+- **Si falta en producción**, `/settings/salud` lo avisa (se decide con la variable, sin consultar la base).
+- **Espera:** por email + IP, 5 intentos y espera creciente de 1, 2, 4… hasta 15 minutos. Por email solo (intentos repartidos en muchas IP), 50 intentos y después una espera que crece con cada intento de más: 1, 2, 4, 8 y 15 minutos como máximo. Ese contador **no vuelve a cero al vencer la espera**: se limpia con un login correcto, con el restablecimiento de contraseña o tras una hora sin intentos. Una serie de intentos repartida en 10 IP durante 24 horas consigue unos 150 intentos evaluados contra la cuenta (lo fija un test), y la espera nunca pasa de 15 minutos seguidos. Restablecer la contraseña siempre destraba.
+- **Purga:** la corrida de retención borra las filas con más de un día sin actividad. Corre en el cron de evaluación aunque el worker falle.
+
+## Índices nuevos en tablas que crecen
+
+Una migración que crea un índice sobre una tabla grande (`llm_calls`, `inbound_emails`, `raw_blobs`, `login_attempts`, `job_sources`, `jobs`) con `CREATE INDEX` común bloquea las escrituras de esa tabla mientras se construye. Hoy, con pocos datos, son milisegundos. Cuando la tabla tenga cientos de miles de filas:
+
+- Usar `CREATE INDEX CONCURRENTLY IF NOT EXISTS`. No puede ir dentro de una transacción, y `db:migrate` corre cada archivo en una: se aplica a mano fuera de `db:migrate`, con el SQL revisado antes, y se verifica después con `pg_indexes`. `drizzle-kit` no lo genera y el SQL generado no se edita (`CLAUDE.md`); cómo llevar esos índices al repo se decide en un ADR nuevo antes del primero.
+- Si el archivo corre en cada `db:migrate` (como los de `rls/`), preguntar antes por `pg_indexes` para no pedir el lock en cada corrida.
+- Un índice `CONCURRENTLY` que falla deja un índice inválido (`indisvalid = false`): borrarlo con `DROP INDEX CONCURRENTLY` y repetir.
