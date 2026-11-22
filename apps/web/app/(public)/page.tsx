@@ -106,7 +106,11 @@ export default async function HomePage() {
 
       {/* Lo aprobado antes de C10, debajo de la primera pantalla */}
       <section aria-labelledby="promesas" className="mt-10 flex flex-col gap-3 sm:mt-14">
-        <p className="font-display text-sm font-extrabold text-brand-text">{BRAND.tagline}</p>
+        <p className="font-display text-sm font-extrabold text-brand-text">
+          <span>{BRAND.tagline}</span>
+          <span aria-hidden="true"> · </span>
+          <span>{BRAND.taglineSecondary}</span>
+        </p>
         <h2 id="promesas" className="font-display text-xl font-bold text-fg">
           Lo que prometemos
         </h2>

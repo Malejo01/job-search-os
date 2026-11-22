@@ -9,7 +9,7 @@ import { ThemeScript } from "./theme-script";
 export const metadata: Metadata = {
   title: { default: BRAND.name, template: `%s · ${BRAND.name}` },
   applicationName: BRAND.name,
-  description: `${BRAND.tagline} Leemos cada oferta contra tu perfil y vos decidís.`,
+  description: `${BRAND.tagline}. ${BRAND.taglineSecondary} Leemos cada oferta contra tu perfil y vos decidís.`,
 };
 
 // Color de la barra del navegador en el celular: tinta, como el header (C7-2)

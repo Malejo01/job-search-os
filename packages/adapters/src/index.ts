@@ -75,6 +75,7 @@ export { assignPoolToUser, type AssignOptions, type AssignResult } from "./pool/
 export { hasPoolEvaluationActivity, loadPoolEvalCap, loadPoolEvalLimit } from "./pool/usage";
 export { explainEmptyRoles } from "./pool/role-coverage";
 export * from "./cv-chat";
+export * from "./interview";
 export * from "./profile-agent";
 export * from "./cv-coach";
 // Demo guiada (ronda 74): línea en el medio a propósito, el #102 toca las puntas de este archivo.

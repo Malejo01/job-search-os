@@ -1,4 +1,5 @@
 import {
+  affinityBreakdown,
   buildFitPoints,
   englishIsNotAGap,
   fitCrossSentence,
@@ -44,7 +45,10 @@ import {
 import { requireUserId } from "@/lib/session";
 import { changeStatusAction, dismissDuplicateAction, humanScoreAction } from "./actions";
 import { AutoRefresh } from "../auto-refresh";
+import { AffinityDetail } from "./affinity-detail";
 import { ApplyButton } from "./apply-button";
+import { ConditionsBlock } from "./conditions-block";
+import { TransparencyBlock } from "./transparency-block";
 import { getSavedFormAnswers } from "./form-data";
 import { FormReview } from "./form-review";
 import { MergeButton } from "./merge-button";
@@ -144,6 +148,7 @@ export default async function JobDetailPage({
   const checklistNow = ev?.checklist ? withCurrentSkillLevels(ev.checklist, currentLevels) : null;
   const requisitos = checklistNow && ev ? withMustGaps(checklistNow, ev.gaps) : null;
   const risks = ev ? visibleRisks(ev.riesgos.map(riskLabel), requisitos?.items) : [];
+  const noEnglishGap = englishIsNotAGap(job.jdText, null);
   const salary =
     job.salaryMinUsd || job.salaryMaxUsd
       ? `USD ${[job.salaryMinUsd, job.salaryMaxUsd].filter(Boolean).join("–")}${job.salaryPeriod ? ` ${job.salaryPeriod}` : ""}`
@@ -257,9 +262,41 @@ export default async function JobDetailPage({
       {/* C8-6: qué es el número del puntaje */}
       {ev ? <HelpTip topic="puntaje" /> : null}
 
+      {/* R17-05: transparencia del aviso, calculada al mostrar */}
+      <TransparencyBlock
+        input={{
+          title: job.title,
+          company: job.company,
+          jdText: job.jdText,
+          locationRaw: job.locationRaw,
+          countriesAllowed: job.countriesAllowed,
+          modality: job.modality,
+          salaryMinUsd: job.salaryMinUsd,
+          salaryMaxUsd: job.salaryMaxUsd,
+          yearsRequired: ev?.yearsRequired ?? null,
+        }}
+      />
+
+      {/* R17-04: condiciones laborales, solo con campos ya extraídos */}
+      <ConditionsBlock
+        input={{
+          salaryMinUsd: job.salaryMinUsd,
+          salaryMaxUsd: job.salaryMaxUsd,
+          salaryPeriod: job.salaryPeriod,
+          modality: job.modality,
+          englishRequired: ev?.englishRequired ?? null,
+          yearsRequired: ev?.yearsRequired ?? null,
+          contractType: job.contractType,
+        }}
+      />
+
       {/* Acciones de estado: Server Actions + transition(); solo los eventos válidos desde el estado actual */}
       <section aria-label="Estado" className="flex flex-wrap gap-2">
         {/* «Postularme en el sitio del aviso» está arriba, en el resumen (C10-8) */}
+        {/* R17-06: junta respuestas, carta, CV y checklist; no postula ni guarda nada en el portal */}
+        <Link href={`/jobs/${job.id}/postular`} className={buttonClasses({ size: "sm" })}>
+          Preparar mi postulación
+        </Link>
         {job.events.map((event) => (
           <form key={event} action={changeStatusAction}>
             <input type="hidden" name="jobId" value={job.id} />
@@ -354,15 +391,29 @@ export default async function JobDetailPage({
 
       {ev ? (
         <>
+          {/* R17-03: detalle del sello, una barra por criterio; solo con datos que la página ya trae */}
+          <AffinityDetail
+            items={affinityBreakdown({
+              matchFuerte: ev.matchFuerte,
+              gaps: noEnglishGap ? ev.gaps.filter((g) => !isEnglishGap(g)) : ev.gaps,
+              riesgos: risks,
+              bloqueadores: ev.bloqueadores,
+              adjustments: ev.adjustments,
+              yearsRequired: ev.yearsRequired,
+              locationOk: ev.locationOk,
+              modality: ev.modality,
+              englishRequired: ev.englishRequired,
+              englishGap: !noEnglishGap && ev.gaps.some(isEnglishGap),
+              salaryMinUsd: job.salaryMinUsd,
+              salaryMaxUsd: job.salaryMaxUsd,
+            })}
+          />
           {/* Lo simple primero: lo técnico (bloqueadores, riesgos, requisitos) viene debajo */}
           <FitPointsPanel
             points={buildFitPoints({
               matchFuerte: ev.matchFuerte,
               senales: ev.senales,
-              gaps: (englishIsNotAGap(job.jdText, null)
-                ? ev.gaps.filter((g) => !isEnglishGap(g))
-                : ev.gaps
-              ).map(gapText),
+              gaps: (noEnglishGap ? ev.gaps.filter((g) => !isEnglishGap(g)) : ev.gaps).map(gapText),
               riesgos: risks,
               bloqueadores: ev.bloqueadores,
               checklist: checklistNow,

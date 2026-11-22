@@ -8,7 +8,8 @@ tester A todavía no revisó la marca: lo que pida tiene que ser un PR chico. Po
 | Qué | Dónde | Cómo se cambia |
 |---|---|---|
 | Nombre visible: títulos, header, emails, filtros de Gmail, manifest, `aria-label` del logo | `packages/pipeline/src/brand.ts`: `BRAND.wordmark` (las dos partes del logotipo) y `BRAND.name`, que es su unión. `PRODUCT_NAME` sale de ahí | Una línea |
-| Bajada («Ofertas afines. CV afinado.») | `BRAND.tagline` | Una línea |
+| Bajada («Tu asistente de empleabilidad inteligente», sin punto final) | `BRAND.tagline` | Una línea |
+| Frase secundaria («Ofertas afines. CV afinado.») | `BRAND.taglineSecondary` | Una línea |
 | Logo en pantalla (monograma, logotipo y variantes) | `apps/web/components/brand/logo.tsx` (`<Logo>`) y la geometría del monograma en `components/brand/monogram.ts` | Un componente |
 | Colores del logo según el modo | Tokens `--jso-logo-*` en `apps/web/app/globals.css` (claro y oscuro) | Ocho líneas |
 | Colores de la app | `apps/web/app/globals.css` (ver `docs/ux/tokens.md`) | Tokens |

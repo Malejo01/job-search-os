@@ -1924,3 +1924,36 @@ Informe de la tanda: [`docs/beta/informe-s4.md`](beta/informe-s4.md). Pasos manu
 
 ### S4 · Cierre de la tanda
 `estado:` en rama (22/11) · `ronda/s4-cierre`
+
+## Bloque 34 · Tanda R17 «Rediseño, Interview y Academy» (22/11)
+
+Informe de la tanda: [`docs/beta/informe-r17.md`](beta/informe-r17.md). Pasos manuales: [`docs/beta/pasos-manuales-r17.md`](beta/pasos-manuales-r17.md). Todas las ramas forman una cadena desde `origin/main` (360cc92), separada de la S4; ningún PR mergeado por agentes. Migración 0075 (interview, renumerada al integrar con la S4) y RLS 0045 y 0046 sin aplicar.
+
+### Navegación y marca
+- **R17-01** · Menú Hoy, Match, CV, Tracker e Interview · `estado:` en rama (22/11) · `ronda/r17-01-menu`
+- **R17-02** · Bajada nueva y prompt del asistente sin fecha fija · `estado:` en rama (22/11) · `ronda/r17-02-bajada-asistente`
+
+### Oferta
+- **R17-03** · El sello abre el detalle del puntaje por criterio · `estado:` en rama (22/11) · `ronda/r17-03-sello-detalle`
+- **R17-04** · Condiciones laborales · `estado:` en rama (22/11) · `ronda/r17-04-condiciones`
+- **R17-05** · Transparencia del aviso · `estado:` en rama (22/11) · `ronda/r17-05-transparencia`
+- **R17-06** · Preparar mi postulación · `estado:` en rama (22/11) · `ronda/r17-06-preparar-postulacion`
+
+### CV y voz
+- **R17-07** · Diagnóstico del CV por ítems · `estado:` en rama; palabras clave y logros medibles quedan en «Pronto» (22/11) · `ronda/r17-07-diagnostico-cv`
+- **R17-09** · Dictar con el navegador · `estado:` en rama (22/11) · `ronda/r17-09-dictar`
+
+### Interview
+- **R17-08** · Simulador de entrevistas · `estado:` en rama, migración y RLS 0045/0046; golden propuesto fuera de `evals/` (22/11) · `ronda/r17-08-interview`
+
+### Academy y mascota
+- **R17-10** · Academy con fichas en borrador · `estado:` en rama, fichas a la espera de aprobación (22/11) · `ronda/r17-10-academy`
+- **R17-11** · Ayudas «?» contextuales · `estado:` en rama (22/11) · `ronda/r17-11-ayudas-contextuales`
+- **R17-12** · Base de la mascota, sin imágenes · `estado:` en rama (22/11) · `ronda/r17-12-mascota-base`
+
+### Pendientes que salen de la tanda
+- Palabras clave y logros medibles en el diagnóstico del CV (con el modelo del coach y evals, o con una heurística).
+- CV recomendado por oferta en «Preparar mi postulación».
+
+### R17 · Cierre de la tanda
+`estado:` en rama (22/11) · `ronda/r17-cierre`

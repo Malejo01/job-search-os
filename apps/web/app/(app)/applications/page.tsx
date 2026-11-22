@@ -27,7 +27,7 @@ const SMALL_BUTTON = buttonClasses({ variant: "secondary", size: "sm" });
 const PANEL = cardClasses({ padding: "none", className: "p-4 sm:p-5" });
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Postulaciones" };
+export const metadata = { title: "Tracker" };
 
 /** Con menos postulaciones que esto, la calibración no dice nada. Va siempre plegada; con pocas, se marca con un testid. */
 const CALIBRATION_MIN_APPS = 5;

@@ -21,6 +21,10 @@ const nextConfig: NextConfig = {
     "/register": ["./content/legal/*.md"],
     "/legal/privacidad": ["./content/legal/*.md"],
     "/legal/terminos": ["./content/legal/*.md"],
+    // Fichas de Academy, leídas del disco
+    "/academy": ["./content/academy/*.md"],
+    "/academy/[slug]": ["./content/academy/*.md"],
+    "/settings/academy": ["./content/academy/*.md"],
   },
   // Las URLs viejas siguen andando, también sin sesión (JS-106); las páginas de (app) quedan de cinturón
   async redirects() {

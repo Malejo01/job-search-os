@@ -111,6 +111,13 @@ async function seed(id: string, tag: string): Promise<void> {
   await owner`insert into career_history (user_id, kind, organization, title)
                values (${id}, 'trabajo', 'Empresa A', 'Cargo Ficticio')`;
   await owner`insert into market_candidates (user_id, term, count) values (${id}, 'termino ficticio', 2)`;
+  const [interview] = await owner<{ id: string }[]>`
+    insert into interview_sessions (user_id, source_kind, job_id, title, questions)
+    values (${id}, 'job', ${job!.id}, 'AI Engineer · Empresa A',
+            ${JSON.stringify(["P1 ficticia", "P2 ficticia", "P3 ficticia", "P4 ficticia", "P5 ficticia"])}::text::jsonb)
+    returning id`;
+  await owner`insert into interview_answers (session_id, user_id, position, answer, clarity, relevance, star, tip, example)
+               values (${interview!.id}, ${id}, 0, 'Respuesta ficticia de práctica', 7, 8, 4, 'Consejo ficticio', 'Ejemplo ficticio')`;
   // Hash ficticio de 64 hex, distinto por persona (no es el hash de ningún token real)
   await owner`insert into mcp_tokens (user_id, token_hash, label, expires_at)
                values (${id}, ${(tag.charCodeAt(0).toString(16) + "0".repeat(64)).slice(0, 64)}, 'Chat de prueba', now() + interval '30 days')`;
@@ -169,6 +176,8 @@ describe("borrado de cuenta (JS-092)", () => {
     expect(counts["beta_feedback.user_id"]).toBe(1);
     expect(counts["career_history.user_id"]).toBe(1);
     expect(counts["market_candidates.user_id"]).toBe(1);
+    expect(counts["interview_sessions.user_id"]).toBe(1);
+    expect(counts["interview_answers.user_id"]).toBe(1);
 
     expect(counts.users).toBe(1);
     expect(counts["jobs.user_id"]).toBe(1);

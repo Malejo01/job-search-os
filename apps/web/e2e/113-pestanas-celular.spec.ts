@@ -4,8 +4,9 @@ import { login } from "./helpers";
 
 /**
  * Flujo 113 (R-3 de C8; C9-7): pestañas fijas abajo en el celular. Desde el rediseño van siempre
- * (sin variable) y reemplazan al «Menú» de arriba: Hoy, Ofertas, Postulaciones, Mi CV y Perfil, la
- * activa en lima. Lo que no entra en las cinco está en Perfil, dentro de «Más».
+ * (sin variable) y reemplazan al «Menú» de arriba: Hoy, Match, CV, Tracker e Interview, la
+ * activa en lima. Lo que no entra en las cinco (Academy, Perfil, Ajustes) está en «Más», dentro de
+ * Perfil, al que se llega por el avatar.
  */
 test.describe("Flujo 113: pestañas del celular", () => {
   test.use({ viewport: { width: 390, height: 844 } });
@@ -19,12 +20,9 @@ test.describe("Flujo 113: pestañas del celular", () => {
     await expect(bar).toBeVisible();
     await expect(page.getByTestId("menu-movil")).toHaveCount(0);
     await expect(bar.getByRole("link")).toHaveCount(5);
-    await expect(bar.getByRole("link", { name: "Ofertas" })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
+    await expect(bar.getByRole("link", { name: "Match" })).toHaveAttribute("aria-current", "page");
     // La pestaña activa lleva el ícono en una píldora lima (C10-3)
-    await expect(bar.getByRole("link", { name: "Ofertas" }).getByTestId("tab-icono")).toHaveCSS(
+    await expect(bar.getByRole("link", { name: "Match" }).getByTestId("tab-icono")).toHaveCSS(
       "background-color",
       "rgb(198, 242, 91)",
     );
@@ -44,10 +42,10 @@ test.describe("Flujo 113: pestañas del celular", () => {
     const bar = page.getByTestId("tabbar");
     const tabs: Array<[string, string]> = [
       ["Hoy", "/hoy"],
-      ["Ofertas", "/jobs"],
-      ["Postulaciones", "/applications"],
-      ["Mi CV", "/cv"],
-      ["Perfil", "/settings/perfil"],
+      ["Match", "/jobs"],
+      ["CV", "/cv"],
+      ["Tracker", "/applications"],
+      ["Interview", "/interview"],
     ];
     for (const [label, path] of tabs) {
       await bar.getByRole("link", { name: label, exact: true }).click();
@@ -58,13 +56,21 @@ test.describe("Flujo 113: pestañas del celular", () => {
       );
       await expect(bar.locator('a[aria-current="page"]')).toHaveCount(1);
     }
-    // R5-C9: «Sin descripción» es trabajo con las ofertas: desde «Más» marca Ofertas; el resto, Perfil
-    const more: Array<[string, string, string]> = [
-      ["Sin descripción", "/jobs/pending-jd", "Ofertas"],
-      ["Emails", "/inbox", "Perfil"],
-      ["Mercado", "/market", "Perfil"],
-      ["Plan", "/plan", "Perfil"],
-      ["Ajustes", "/settings", "Perfil"],
+    // El avatar lleva a Perfil, que tiene «Más». «Sin descripción» es trabajo con las ofertas:
+    // marca Match; el resto de «Más» no marca ninguna pestaña
+    await page.goto("/hoy");
+    await page
+      .locator("header")
+      .getByRole("link", { name: /^Perfil/ })
+      .click();
+    await page.waitForURL("**/settings/perfil");
+    const more: Array<[string, string, string | null]> = [
+      ["Academy", "/academy", null],
+      ["Sin descripción", "/jobs/pending-jd", "Match"],
+      ["Emails", "/inbox", null],
+      ["Mercado", "/market", null],
+      ["Plan", "/plan", null],
+      ["Ajustes", "/settings", null],
     ];
     for (const [label, path, activeTab] of more) {
       await page.goto("/settings/perfil");
@@ -73,17 +79,18 @@ test.describe("Flujo 113: pestañas del celular", () => {
         .getByRole("link", { name: new RegExp(`^${label}`) })
         .click();
       await page.waitForURL(`**${path}`);
-      await expect(bar.getByRole("link", { name: activeTab, exact: true })).toHaveAttribute(
-        "aria-current",
-        "page",
-      );
+      if (activeTab) {
+        await expect(bar.getByRole("link", { name: activeTab, exact: true })).toHaveAttribute(
+          "aria-current",
+          "page",
+        );
+      } else {
+        await expect(bar.locator('a[aria-current="page"]')).toHaveCount(0);
+      }
     }
-    // /encaje es del grupo de Mercado y Plan: marca Perfil
+    // /encaje es del grupo de Mercado y Plan: no marca ninguna pestaña
     await page.goto("/encaje");
-    await expect(bar.getByRole("link", { name: "Perfil", exact: true })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
+    await expect(bar.locator('a[aria-current="page"]')).toHaveCount(0);
     // El glosario está en «Más» y lleva a /ayuda
     await page.goto("/settings/perfil");
     await page

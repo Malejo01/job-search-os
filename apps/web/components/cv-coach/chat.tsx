@@ -12,6 +12,7 @@ import { domAnimation, LazyMotion, m, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { Dictar } from "@/components/dictar";
 import { Alert, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
 import {
   parseCoachSnapshot,
@@ -384,6 +385,7 @@ export function CvCoachChat() {
             disabled={busy}
             data-testid="coach-answer"
           />
+          <Dictar value={draft} onChange={setDraft} disabled={busy} maxLength={2000} />
           <div className="flex flex-wrap gap-2">
             <button
               type="submit"

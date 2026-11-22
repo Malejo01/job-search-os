@@ -5,7 +5,7 @@ import { ImageResponse } from "next/og";
 
 /**
  * Imagen para compartir de la vitrina (C7-2, logo B2 en C9-4): fondo índigo, logotipo AfinIA/Jobs con el punto, la
- * bajada «Ofertas afines. CV afinado.» y una línea de propuesta. Las fuentes salen del repo
+ * bajada «Tu asistente de empleabilidad inteligente», la frase «Ofertas afines. CV afinado.» y una línea de propuesta. Las fuentes salen del repo
  * (`apps/web/assets/fonts`), nunca por red: `next/og` no puede usar `next/font`.
  *
  * Las páginas que la usan son estáticas: la imagen se arma una vez en el build.
@@ -65,12 +65,22 @@ export async function brandOgImage({ line }: { line: string }): Promise<ImageRes
           style={{
             fontFamily: "Bricolage",
             fontWeight: 800,
-            fontSize: 64,
+            fontSize: 56,
             letterSpacing: -2,
             color: BRAND_COLORS.white,
           }}
         >
           {BRAND.tagline}
+        </div>
+        <div
+          style={{
+            fontFamily: "Bricolage",
+            fontWeight: 800,
+            fontSize: 36,
+            color: BRAND_COLORS.accent,
+          }}
+        >
+          {BRAND.taglineSecondary}
         </div>
         <div style={{ fontSize: 34, fontWeight: 600, color: BRAND_COLORS.onInkMuted }}>{line}</div>
       </div>

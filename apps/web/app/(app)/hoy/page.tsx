@@ -18,6 +18,7 @@ import { listPendingJd } from "@/lib/pending-jd";
 import { Card as UiCard, cardClasses, EmptyState, textLinkClasses } from "@/components/ui";
 import { requireActiveUserId } from "@/lib/session";
 import { Illustration } from "@/components/brand/illustration";
+import { MascotaSaludo } from "./mascota-saludo";
 import { MarkVisit } from "./mark-visit";
 import { NewJobRow } from "./new-job-row";
 import { StartHere } from "./start-here";
@@ -91,8 +92,9 @@ export default async function HoyPage() {
         <section
           data-testid="hoy-cabecera"
           aria-labelledby="hoy-saludo"
-          className="rounded-b-[40px] bg-ink text-on-ink sm:rounded-b-[56px]"
+          className="relative rounded-b-[40px] bg-ink text-on-ink sm:rounded-b-[56px]"
         >
+          <MascotaSaludo />
           <div className="mx-auto mt-2.5 flex max-w-[1280px] items-end gap-1.5 px-5 sm:mt-0 sm:gap-6 sm:px-12">
             <div className="min-w-0 flex-[1_1_55%] pb-[26px] sm:flex-auto sm:pb-14">
               <h1
