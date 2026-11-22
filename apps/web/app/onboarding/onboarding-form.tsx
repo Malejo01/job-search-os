@@ -3,8 +3,8 @@
 import {
   BETA_GROUP_LABEL,
   PROFILE_AGENT_STORAGE_KEYS,
+  onboardingGuidePrefill,
   parseProfileAgentState,
-  profileAgentFormPrefill,
 } from "@job-search-os/pipeline";
 import { useMemo, useSyncExternalStore } from "react";
 import { FieldError, ProfileForm, useProfileError } from "@/components/profile-form";
@@ -142,10 +142,7 @@ export function OnboardingForm({
     try {
       const [stateRaw] = JSON.parse(stored) as [string | null];
       const state = parseProfileAgentState(JSON.parse(stateRaw ?? "null"));
-      const prefill = profileAgentFormPrefill(state?.guide ?? null, null, {
-        country: agentInitial.country,
-        summary: agentInitial.summary,
-      });
+      const prefill = onboardingGuidePrefill(state?.guide ?? null, { country: agentInitial.country });
       return { ...agentInitial, ...prefill };
     } catch {
       // un estado roto en el navegador: queda lo guardado

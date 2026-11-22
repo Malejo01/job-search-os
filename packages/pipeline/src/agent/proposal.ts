@@ -9,9 +9,8 @@ import {
   MAX_SUMMARY_CHARS,
   MIN_SUMMARY_CHARS,
   MODALITIES,
-  parseOnboarding,
-  SUMMARY_IGNORED_SIGNALS,
 } from "../onboarding";
+import { parseOnboarding, SUMMARY_IGNORED_SIGNALS } from "../onboarding-parse";
 import { err, ok, type Result } from "../result";
 import { isEnglishSkillSlug } from "../skills/english";
 import { SELF_LEVELS, profileRoleGroups, type RoleKey } from "../skills/self-assessment";

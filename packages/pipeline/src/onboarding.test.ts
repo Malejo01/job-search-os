@@ -9,8 +9,8 @@ import {
   effectiveAcceptedModalities,
   isProfileComplete,
   isValidCountry,
-  parseOnboarding,
 } from "./onboarding";
+import { parseOnboarding } from "./onboarding-parse";
 
 const SUMMARY = "Desarrollo web con cinco años de experiencia en producto. ".repeat(2);
 
