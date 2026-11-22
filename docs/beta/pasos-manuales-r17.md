@@ -114,7 +114,7 @@ Para volver atrás: `DELETE FROM model_routing WHERE task IN ('interview_questio
 
 Ninguna. Interview usa los topes y reservas existentes (2 simulaciones por persona por día, fijo en el código).
 
-## Textos pendientes de aprobación (Ani)
+## Textos pendientes de aprobación (diseño de marca)
 
 Todos están en un solo archivo, `apps/web/lib/textos-rediseno.ts`: cambiar uno es una línea.
 
@@ -124,7 +124,7 @@ Todos están en un solo archivo, `apps/web/lib/textos-rediseno.ts`: cambiar uno 
 - Palabras de los puntajes de Interview: «Muy bien» / «Bien» / «Mejorable» / «A trabajar».
 - Nombre de la mascota: «Tu asistente».
 
-## Cómo aprueba Ani las fichas de Academy
+## Cómo se aprueban las fichas de Academy
 
 1. Entrar a `/settings/academy` (solo admins y testers) y leer cada ficha. Hoy las 16 están en borrador; conviene empezar por monotributo, pasantías y rango salarial.
 2. Para aprobar una, cambiar `estado: borrador` por `estado: aprobada` en su archivo (`apps/web/content/academy/<ficha>.md`) y publicar el cambio. Desde ese momento aparece en `/academy` y su «?» se ve junto al término en el CV y en la oferta.
