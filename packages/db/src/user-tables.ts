@@ -103,6 +103,12 @@ export const USER_TABLES_EXEMPT: readonly { table: string; column: string; reaso
     reason:
       "tabla de admins sin acceso de la app (solo la leen las funciones SECURITY DEFINER de rls/0006); la fila cae por ON DELETE CASCADE desde users",
   },
+  {
+    table: "plan_events",
+    column: "user_id",
+    reason:
+      "historial del plan (R22-02, rls/0054) sin acceso de la app: solo lo leen y escriben las funciones admin_plan_event_* (SECURITY DEFINER); las filas caen por ON DELETE CASCADE desde users",
+  },
 ];
 
 /** `users` se borra siempre al final: el resto de las tablas la referencian lógicamente. */

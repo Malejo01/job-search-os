@@ -1,15 +1,18 @@
 "use server";
 
 import { createLogger, sendWelcomeEmail } from "@job-search-os/adapters";
-import { isPlanOverride, isPlanSource } from "@job-search-os/pipeline";
+import { isPlanOverride, isPlanSource, parseRejectReason } from "@job-search-os/pipeline";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { requireAdminOrThrow } from "@/lib/admin-guard";
 import { NotInvitationAdminError } from "@/lib/invitations";
 import {
+  activatePaymentNotice,
   grantBetaPlan,
   PlanAdminNotEnabledInDbError,
+  recordPlanEvent,
+  rejectPaymentNotice,
   revokePlan,
   setPlanOverride,
 } from "@/lib/plan-admin";
@@ -41,6 +44,12 @@ export async function grantPlanAction(formData: FormData): Promise<void> {
         { source, until: result.until.toISOString() },
         "plan de la beta activado",
       );
+      await recordPlanEvent(
+        userId,
+        result.email,
+        result.activated ? "activar" : "renovar",
+        result.source,
+      );
       // Bienvenida (C8-7): solo en una activación, después de responder (no frena el panel).
       // Apagada salvo WELCOME_EMAIL_ENABLED=1
       if (result.activated) {
@@ -55,6 +64,78 @@ export async function grantPlanAction(formData: FormData): Promise<void> {
           });
         });
       }
+    }
+  } catch (error) {
+    target = `${BACK}?error=${errorCode(error)}`;
+  }
+  revalidatePath(BACK);
+  redirect(target);
+}
+
+/** Un id de aviso válido (uuid) o null: nunca llega a la base otra cosa. */
+function noticeId(formData: FormData): string | null {
+  const raw = formData.get("noticeId");
+  return typeof raw === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)
+    ? raw
+    : null;
+}
+
+/**
+ * «Activar 30 días» sobre un aviso «Ya pagué» (R22-02): da el plan como pago y marca el aviso activado, todo
+ * en una transacción de la base. Si el aviso ya estaba resuelto no cambia nada.
+ */
+export async function activateNoticeAction(formData: FormData): Promise<void> {
+  const userId = await requireActiveUserId();
+  const id = noticeId(formData);
+  if (!id) redirect(`${BACK}?error=aviso`);
+  let target: string;
+  try {
+    await requireAdminOrThrow(userId);
+    const result = await activatePaymentNotice(userId, id);
+    target = result.ok ? `${BACK}?ok=aviso_activado` : `${BACK}?error=aviso_${result.reason}`;
+    if (result.ok) {
+      createLogger({ user_id: userId, task: "admin_notice_activate" }).info(
+        { notice_id: id, until: result.until.toISOString() },
+        "aviso de pago activado",
+      );
+      if (result.activated) {
+        const { email: to, until } = result;
+        after(async () => {
+          await sendWelcomeEmail({
+            to,
+            until,
+            source: "pago",
+            env: process.env,
+            logger: createLogger({ user_id: userId, task: "welcome_email" }),
+          });
+        });
+      }
+    }
+  } catch (error) {
+    target = `${BACK}?error=${errorCode(error)}`;
+  }
+  revalidatePath(BACK);
+  redirect(target);
+}
+
+/** «Rechazar» un aviso «Ya pagué» con un motivo corto (1 a 200 caracteres). */
+export async function rejectNoticeAction(formData: FormData): Promise<void> {
+  const userId = await requireActiveUserId();
+  const id = noticeId(formData);
+  if (!id) redirect(`${BACK}?error=aviso`);
+  const reason = parseRejectReason(formData.get("reason"));
+  if (!reason.ok) redirect(`${BACK}?error=aviso_motivo_invalido`);
+  let target: string;
+  try {
+    await requireAdminOrThrow(userId);
+    const result = await rejectPaymentNotice(userId, id, reason.value);
+    target = result.ok ? `${BACK}?ok=aviso_rechazado` : `${BACK}?error=aviso_${result.reason}`;
+    if (result.ok) {
+      createLogger({ user_id: userId, task: "admin_notice_reject" }).info(
+        { notice_id: id },
+        "aviso de pago rechazado",
+      );
     }
   } catch (error) {
     target = `${BACK}?error=${errorCode(error)}`;
@@ -81,6 +162,7 @@ export async function setPlanOverrideAction(formData: FormData): Promise<void> {
       ? `${BACK}?ok=${override === null ? "marca_quitada" : "marca_puesta"}`
       : `${BACK}?error=marca_no_existe`;
     if (done) {
+      await recordPlanEvent(userId, email, "marca");
       // Solo el id del admin y la marca: el email de la persona no se loguea
       createLogger({ user_id: userId, task: "admin_plan_override" }).info(
         { override },
@@ -103,6 +185,7 @@ export async function revokePlanAction(formData: FormData): Promise<void> {
     await requireAdminOrThrow(userId);
     target = (await revokePlan(userId, email)) ? `${BACK}?ok=quitado` : `${BACK}?error=no_existe`;
     if (target.includes("ok=")) {
+      await recordPlanEvent(userId, email, "quitar");
       createLogger({ user_id: userId, task: "admin_plan_revoke" }).info(
         {},
         "plan de la beta quitado",

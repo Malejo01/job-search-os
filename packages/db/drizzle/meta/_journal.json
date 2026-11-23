@@ -540,6 +540,13 @@
       "when": 1795407582630,
       "tag": "0076_slimy_monster_badoon",
       "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1795408126601,
+      "tag": "0077_vengeful_living_lightning",
+      "breakpoints": true
     }
   ]
 }

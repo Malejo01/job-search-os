@@ -139,6 +139,24 @@ export const paymentNotices = pgTable("payment_notices", {
   check("payment_notices_reject_reason", sql`${t.rejectReason} is null or (${t.status} = 'rechazado' and char_length(${t.rejectReason}) between 1 and 200)`),
 ]);
 
+// Historial de cambios del plan (R22-02, rls/0054): quién (admin) cambió el plan de qué persona, cuándo y cómo.
+// Sin emails, montos ni textos libres. La persona no lo lee: la tabla no tiene policy para el rol de la app y
+// solo las funciones admin_plan_event_* (SECURITY DEFINER, con la barrera app_admins) la leen y escriben.
+// Cae con la cuenta de la persona (cascade); si se borra la del admin, queda el cambio sin admin (set null).
+export const planEvents = pgTable("plan_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  adminId: uuid("admin_id").references(() => users.id, { onDelete: "set null" }),
+  action: text("action").notNull(),   // activar | renovar | quitar | rechazar_aviso | marca
+  source: text("source"),             // pago | beca, solo al activar o renovar
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index("plan_events_created").on(t.createdAt.desc()),
+  index("plan_events_user").on(t.userId),
+  check("plan_events_action", sql`${t.action} in ('activar', 'renovar', 'quitar', 'rechazar_aviso', 'marca')`),
+  check("plan_events_source", sql`${t.source} is null or ${t.source} in ('pago', 'beca')`),
+]);
+
 export const profiles = pgTable("profiles", {
   userId: uuid("user_id").primaryKey(), // = auth.users.id
   displayName: text("display_name").notNull(),

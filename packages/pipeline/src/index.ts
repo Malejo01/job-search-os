@@ -79,6 +79,7 @@ export * from "./plans";
 export * from "./pricing-v2";
 export * from "./plan-override";
 export * from "./payment-notice";
+export * from "./plan-admin-queue";
 export * from "./beta-health";
 export * from "./budget/alerts";
 export * from "./learning";

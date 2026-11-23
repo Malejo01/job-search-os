@@ -106,15 +106,17 @@ describe("payment_notices: RLS", () => {
   });
 
   it("no puede actualizar ni borrar, ni los suyos ni los de otra persona", async () => {
-    await expect(
-      asUser(
-        A_ID,
-        (tx) => tx`update payment_notices set status = 'activado' where user_id = ${A_ID}`,
-      ),
-    ).rejects.toThrow(/permission denied/);
-    await expect(asUser(A_ID, (tx) => tx`delete from payment_notices`)).rejects.toThrow(
-      /permission denied/,
+    const upd = await asUser(
+      A_ID,
+      (tx) => tx`update payment_notices set status = 'activado' where user_id = ${A_ID}`,
     );
+    expect(upd.count).toBe(0);
+    const updOther = await asUser(
+      A_ID,
+      (tx) => tx`update payment_notices set status = 'activado' where user_id = ${B_ID}`,
+    );
+    expect(updOther.count).toBe(0);
+    expect((await asUser(A_ID, (tx) => tx`delete from payment_notices`)).count).toBe(0);
     expect(
       (await owner`select status from payment_notices where user_id = ${A_ID}`)[0]!.status,
     ).toBe("pendiente");

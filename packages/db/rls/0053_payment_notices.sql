@@ -42,10 +42,10 @@ DROP POLICY IF EXISTS "payment_notices_definer_delete" ON "payment_notices";
 CREATE POLICY "payment_notices_definer_delete" ON "payment_notices" FOR DELETE TO CURRENT_USER
   USING (true);
 
--- 0030 retira los permisos de toda tabla sin RLS y corre antes: como esta ya tiene RLS, se devuelven solo los
--- que la persona necesita (leer e insertar). Sin UPDATE ni DELETE para la app.
-GRANT SELECT, INSERT ON "payment_notices" TO authenticated;
-REVOKE UPDATE, DELETE ON "payment_notices" FROM authenticated;
+-- 0030 retira los permisos de toda tabla sin RLS y corre antes: como esta ya tiene RLS, se le devuelven los
+-- de la persona. Sin policy de UPDATE ni DELETE para la app, un UPDATE o DELETE no alcanza ninguna fila (el
+-- mismo patrón que `plan_overrides`, 0022).
+GRANT SELECT, INSERT, UPDATE, DELETE ON "payment_notices" TO authenticated;
 
 -- Tope de avisos pendientes: 3 por persona. El lock serializa los inserts de una misma persona; con
 -- READ COMMITTED, el conteo posterior al lock ya ve lo que confirmó el envío anterior.
