@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useId, useState, type ReactNode } from "react";
-import { buttonClasses, cardClasses, inputClasses, labelClasses } from "@/components/ui";
+import { buttonClasses } from "@/components/ui/button";
+import { cardClasses } from "@/components/ui/card";
+import { inputClasses, labelClasses } from "@/components/ui/field";
 import { searchFichas } from "@/lib/academy-lectura";
 
 export type AcademyItem = { slug: string; titulo: string; bajada: string; minutos: number };

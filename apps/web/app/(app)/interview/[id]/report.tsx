@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { InterviewReport } from "@job-search-os/pipeline";
 import { Card } from "@/components/ui";
-import { CRITERIA, REPORT_PATTERNS, formatAverage, scoreWord } from "../copy";
+import { CRITERIA, REPORT_PATTERNS, formatAverage, scoreWord } from "../copy-cliente";
 
 const PRINT_CSS = `
 @media print {

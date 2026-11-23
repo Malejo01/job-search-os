@@ -1,3 +1,5 @@
+import { INTERVIEW_CLIENTE } from "./textos-interview";
+
 /**
  * Textos del rediseño que todavía puede cambiar quien define la marca. Todo en un solo lugar: cambiar
  * uno es una línea. Son los valores por defecto hasta la aprobación final.
@@ -25,13 +27,8 @@ export const CV_LEVEL_WORDS = {
   missing: "Falta",
 } as const;
 
-/** Palabra de cada puntaje (0 a 10) de la devolución del simulador de entrevistas. */
-export const INTERVIEW_SCORE_WORDS = {
-  high: "Muy bien",
-  mid: "Bien",
-  low: "Mejorable",
-  far: "A trabajar",
-} as const;
+/** Palabra de cada puntaje de la devolución de Interview: en `textos-interview.ts` (R23-09). */
+export { INTERVIEW_SCORE_WORDS } from "./textos-interview";
 
 /** Título del diagnóstico del CV. */
 export const CV_DIAGNOSIS_TITLE = "Cómo lo leen los sistemas de selección";
@@ -117,9 +114,9 @@ export const AYUDAS_ACADEMY = {
   seguimiento: { slug: "despues-de-postularte", term: "qué hacer después de postularte" },
 } as const;
 
-/** Interview pulido (R23-08): espera, vacío, 404 propio. */
+/** Interview pulido (R23-08): espera, vacío, 404 propio. «analizando» y «retry» viajan al cliente: están en `textos-interview.ts` (R23-09). */
 export const INTERVIEW_TEXTOS = {
-  analizando: "Analizando tu respuesta…",
+  ...INTERVIEW_CLIENTE,
   vacio: {
     title: "Todavía no hiciste ninguna simulación",
     text: "Cuando termines una, la vas a poder repasar desde acá y ver cómo evolucionás.",
@@ -130,5 +127,4 @@ export const INTERVIEW_TEXTOS = {
     text: "Puede que la hayas borrado o que el enlace esté mal escrito.",
     action: "Ir a Interview",
   },
-  retry: "Reintentar",
 } as const;

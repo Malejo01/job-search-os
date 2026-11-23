@@ -4,8 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, Button } from "@/components/ui";
 import { startInterviewAction } from "../actions";
-import { INTERVIEW_TEXTOS } from "@/lib/textos-rediseno";
-import { START_ERRORS } from "../copy";
+import { INTERVIEW_CLIENTE as INTERVIEW_TEXTOS } from "@/lib/textos-interview";
+import { START_ERRORS } from "../copy-cliente";
 
 export type RetrySource =
   { kind: "job"; jobId: string } | { kind: "career"; career: string; seniority: string };

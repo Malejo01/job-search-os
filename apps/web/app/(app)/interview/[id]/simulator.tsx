@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState, useTransition, type ReactNode } from "react";
+import { lazy, Suspense, useId, useRef, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import {
   INTERVIEW_ANSWER_MAX_CHARS,
@@ -12,11 +12,17 @@ import { Dictar } from "@/components/dictar";
 import { PrintButton } from "@/components/print-button";
 import { Alert, Button, buttonClasses, Card, inputClasses, labelClasses } from "@/components/ui";
 import { answerInterviewAction } from "../actions";
-import { ANSWER_ERRORS, CRITERIA, formatAverage, scoreWord } from "../copy";
-import { INTERVIEW_TEXTOS } from "@/lib/textos-rediseno";
+import { ANSWER_ERRORS, CRITERIA, formatAverage, scoreWord } from "../copy-cliente";
+import { INTERVIEW_CLIENTE as INTERVIEW_TEXTOS } from "@/lib/textos-interview";
 import { AnswerSkeleton } from "./answer-skeleton";
-import { InterviewReportView } from "./report";
-import { RetryButton, type RetrySource } from "./retry-button";
+import type { RetrySource } from "./retry-button";
+
+// R23-09: el informe y «Practicar de nuevo» solo se ven al terminar; se cargan recién ahí y no suman
+// al First Load. `lazy` y no `next/dynamic`: este último agrega su propio cargador al bundle.
+const InterviewReportView = lazy(() =>
+  import("./report").then((m) => ({ default: m.InterviewReportView })),
+);
+const RetryButton = lazy(() => import("./retry-button").then((m) => ({ default: m.RetryButton })));
 
 export type AnswerView = {
   position: number;
@@ -182,10 +188,14 @@ export function Simulator({
           ) : null}
         </section>
         {report ? (
-          <InterviewReportView report={report} questions={questions} starHelp={starHelp} />
+          <Suspense fallback={null}>
+            <InterviewReportView report={report} questions={questions} starHelp={starHelp} />
+          </Suspense>
         ) : null}
         <div className="no-print flex flex-wrap items-start gap-3">
-          <RetryButton source={source} />
+          <Suspense fallback={null}>
+            <RetryButton source={source} />
+          </Suspense>
           <PrintButton label="Imprimir o guardar como PDF" />
           <Link href="/interview" className={buttonClasses({ variant: "secondary", size: "md" })}>
             Volver a Interview

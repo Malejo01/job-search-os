@@ -1,6 +1,5 @@
 "use client";
 
-import { domAnimation, LazyMotion, m, useReducedMotion } from "framer-motion";
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { buttonClasses } from "@/components/ui";
 import {
@@ -42,7 +41,6 @@ export type DictarProps = {
  */
 export function Dictar({ value, onChange, disabled, maxLength, lang, className }: DictarProps) {
   const noteId = useId();
-  const reduce = useReducedMotion();
   const available = useSyncExternalStore(subscribe, supported, notOnServer);
   const [listening, setListening] = useState(false);
   const [error, setError] = useState<DictationErrorCode | null>(null);
@@ -93,28 +91,24 @@ export function Dictar({ value, onChange, disabled, maxLength, lang, className }
       >
         {listening ? "Dejar de dictar" : "Dictar"}
       </button>
-      <LazyMotion features={domAnimation} strict>
-        {/* R23-06: «escuchando» con un punto que pulsa; con movimiento reducido, punto quieto. El texto
-            va siempre (lectores de pantalla y sin animación) */}
-        <p
-          role="status"
-          data-testid="dictar-escuchando"
-          className="flex min-h-5 items-center gap-2 text-xs text-fg"
-        >
-          {listening ? (
-            <>
-              <m.span
-                aria-hidden="true"
-                data-testid="dictar-punto"
-                className="inline-block size-2.5 rounded-full bg-danger"
-                animate={reduce ? undefined : { opacity: [1, 0.35, 1], scale: [1, 1.25, 1] }}
-                transition={reduce ? undefined : { duration: 1.2, repeat: Infinity }}
-              />
-              Escuchando…
-            </>
-          ) : null}
-        </p>
-      </LazyMotion>
+      {/* R23-06: «escuchando» con un punto que pulsa. R23-09: el pulso es CSS (sin Framer, que sumaba
+          bundle a Interview); con movimiento reducido el punto queda quieto. El texto va siempre */}
+      <p
+        role="status"
+        data-testid="dictar-escuchando"
+        className="flex min-h-5 items-center gap-2 text-xs text-fg"
+      >
+        {listening ? (
+          <>
+            <span
+              aria-hidden="true"
+              data-testid="dictar-punto"
+              className="inline-block size-2.5 animate-pulse rounded-full bg-danger motion-reduce:animate-none"
+            />
+            Escuchando…
+          </>
+        ) : null}
+      </p>
       <p id={noteId} className="text-xs text-fg-subtle">
         {DICTAR_PRIVACY_NOTE}
       </p>
