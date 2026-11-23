@@ -62,6 +62,7 @@ export * from "./cv-chat";
 export * from "./interview";
 export * from "./cv-out";
 export * from "./cv-diagnosis";
+export * from "./cv-keywords";
 export * from "./cv-ats";
 export * from "./cv-for-offer";
 export * from "./alerts/portal-guide";

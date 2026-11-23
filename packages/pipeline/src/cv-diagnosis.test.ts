@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CvDocument, CvSection } from "./cv-out/model";
 import { CV_DIAGNOSIS_ITEM_IDS, diagnoseCv } from "./cv-diagnosis";
+import type { KeywordMarket } from "./cv-keywords";
 
 const bullets = [
   "Armé reportes semanales para el equipo de ventas con datos de tres sistemas",
@@ -78,11 +79,81 @@ describe("diagnoseCv", () => {
     }
   });
 
-  it("palabras clave y logros medibles quedan en «soon» sin puntaje inventado", () => {
+  it("logros medibles quedan en «soon» sin puntaje inventado; palabras clave también sin mercado", () => {
     for (const id of ["keywords", "achievements"]) {
       const item = byId(fullDoc(), id);
       expect(item).toEqual({ id, status: "soon", score: null, level: null, advice: null });
     }
+  });
+
+  describe("palabras clave con el mercado del puesto", () => {
+    const names = ["Reportes", "Automatización", "SQL", "Excel", "Python", "Power BI"];
+    const mk = (jobs: number): KeywordMarket => ({
+      jobs,
+      skills: names.map((name, i) => ({ slug: name.toLowerCase(), name, mentions: 50 - i })),
+    });
+    const kw = (jobs: number, doc = fullDoc()) =>
+      diagnoseCv(doc, { keywords: mk(jobs) }).find((i) => i.id === "keywords")!;
+
+    it("puntúa con la proporción cubierta y nombra las que faltan", () => {
+      const doc = fullDoc();
+      doc.sections = doc.sections.map((s) =>
+        s.id === "skills" ? section("skills", "Skills", ["SQL", "Excel"]) : s,
+      );
+      const item = kw(80, doc);
+      // «Reportes» y «Automatización» salen del resumen y las viñetas del CV de ejemplo, más SQL y Excel
+      expect(item.status).toBe("scored");
+      // cuatro cubiertas sobre el piso del denominador (el mercado de ejemplo trae pocas skills)
+      expect(item.score).toBe(5);
+      expect(item.level).toBe("improvable");
+      expect(item.advice).toMatch(/Python/);
+      expect(item.advice).toMatch(/Power BI/);
+      expect(item.advice).not.toMatch(/SQL/);
+    });
+
+    it("con menos de 20 avisos queda «no_data» sin puntaje ni nivel", () => {
+      expect(kw(19)).toEqual({
+        id: "keywords",
+        status: "no_data",
+        score: null,
+        level: null,
+        advice: null,
+      });
+    });
+
+    it("con mercado nulo sigue en «soon»", () => {
+      const item = diagnoseCv(fullDoc(), { keywords: null }).find((i) => i.id === "keywords")!;
+      expect(item.status).toBe("soon");
+    });
+
+    it("un CV que las trae todas puntúa «good» y no pide nada", () => {
+      const eight = [...names, "Git", "Docker"];
+      const doc = fullDoc();
+      doc.sections = doc.sections.map((s) =>
+        s.id === "skills" ? section("skills", "Skills", eight) : s,
+      );
+      const item = diagnoseCv(doc, {
+        keywords: {
+          jobs: 80,
+          skills: eight.map((name, i) => ({ slug: name.toLowerCase(), name, mentions: 50 - i })),
+        },
+      }).find((i) => i.id === "keywords")!;
+      expect(item.score).toBe(10);
+      expect(item.level).toBe("good");
+      expect(item.advice).toMatch(/pedidas/);
+    });
+
+    it("lee también el titular y los encabezados", () => {
+      const doc = fullDoc();
+      doc.headline = "Analista de Python";
+      doc.sections = doc.sections.map((s) =>
+        s.id === "skills"
+          ? { ...s, blocks: [{ heading: "Power BI", detail: null, bullets: [] }] }
+          : s,
+      );
+      const item = kw(80, doc);
+      expect(item.advice ?? "").not.toMatch(/Python|Power BI/);
+    });
   });
 
   it("sin contacto ni titular baja la estructura y el consejo lo dice", () => {

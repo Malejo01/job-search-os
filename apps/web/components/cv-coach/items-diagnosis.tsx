@@ -3,11 +3,16 @@ import {
   diagnoseCv,
   type CvDiagnosisLevel,
   type CvDocument,
+  type KeywordMarket,
 } from "@job-search-os/pipeline";
 import Link from "next/link";
 import { ContextHelp } from "@/components/context-help";
 import { Badge, buttonClasses, cardClasses } from "@/components/ui";
-import { CV_DIAGNOSIS_TITLE, CV_LEVEL_WORDS } from "@/lib/textos-rediseno";
+import {
+  CV_DIAGNOSIS_TITLE,
+  CV_LEVEL_WORDS,
+  CV_NOT_ENOUGH_DATA_LABEL,
+} from "@/lib/textos-rediseno";
 
 const LABELS = {
   structure: "Estructura",
@@ -33,12 +38,21 @@ const scoreText = (n: number) => n.toFixed(1).replace(".", ",");
 
 /**
  * Diagnóstico del CV por ítems (Server Component, sin consultas nuevas: usa el CV que la página ya armó).
- * Estructura, secciones y legibilidad salen del código; palabras clave y logros medibles dependen del
- * diagnóstico del coach, que corre bajo demanda, así que acá dicen «Pronto». Con el coach activo, «Optimizar
+ * Estructura, secciones, legibilidad y palabras clave (con el mercado que pasa la página) salen del código;
+ * los logros medibles dependen del diagnóstico del coach, que corre bajo demanda, así que dicen «Pronto». Con el coach activo, «Optimizar
  * mi CV» lleva a él.
  */
-export function CvItemsDiagnosis({ doc, coach }: { doc: CvDocument; coach: boolean }) {
-  const items = diagnoseCv(doc);
+export function CvItemsDiagnosis({
+  doc,
+  coach,
+  keywordMarket = null,
+}: {
+  doc: CvDocument;
+  coach: boolean;
+  /** Mercado del puesto principal (R20-01): sin él, las palabras clave dicen «Pronto». */
+  keywordMarket?: KeywordMarket | null;
+}) {
+  const items = diagnoseCv(doc, { keywords: keywordMarket });
   return (
     <section
       aria-labelledby="cv-diagnostico"
@@ -66,6 +80,8 @@ export function CvItemsDiagnosis({ doc, coach }: { doc: CvDocument; coach: boole
                   {scoreText(item.score)}
                   <span className="text-fg-subtle"> / 10</span>
                 </span>
+              ) : item.status === "no_data" ? (
+                <Badge tone="neutral">{CV_NOT_ENOUGH_DATA_LABEL}</Badge>
               ) : (
                 <Badge tone="neutral">Pronto</Badge>
               )}
@@ -87,6 +103,11 @@ export function CvItemsDiagnosis({ doc, coach }: { doc: CvDocument; coach: boole
                   <p className="min-w-0 flex-1 text-sm text-fg-muted">{item.advice}</p>
                 </div>
               </>
+            ) : item.status === "no_data" ? (
+              <p className="text-sm text-fg-muted">
+                Todavía hay pocos avisos de tu puesto para comparar: no te ponemos un puntaje que no
+                podamos sostener.
+              </p>
             ) : (
               <p className="text-sm text-fg-muted">
                 Todavía no lo medimos acá: lo vas a ver en cuanto esté listo.
