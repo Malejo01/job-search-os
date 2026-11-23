@@ -64,6 +64,7 @@ apps/web/lib/academy-access.ts
 apps/web/app/(app)/interview/server.ts
 apps/web/lib/apertura.ts
 apps/web/lib/usage-by-career.ts
+packages/pipeline/src/apertura-checklist.ts
 apps/web/lib/user-plan.ts
 apps/web/lib/llm-service.ts
 apps/web/lib/setup.ts
