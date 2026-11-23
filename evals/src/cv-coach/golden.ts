@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { fixturesPrivateDir } from "@job-search-os/db";
 import {
   CV_ISSUE_TYPES,
   type CvCoachItem,
@@ -25,7 +26,12 @@ import skillsSeed from "../../../packages/db/seeds/skills.json";
  */
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 export const PUBLIC_DIR = join(ROOT, "evals/fixtures/cv-coach");
-export const PRIVATE_DIR = join(ROOT, "fixtures-private/cv-coach");
+/**
+ * Carpeta de las fixtures privadas: <JSO_PRIVATE_DIR>/fixtures-private/cv-coach si la variable está
+ * definida, o <raíz>/fixtures-private/cv-coach. Es una función (no una constante) para que una
+ * variable inválida falle solo al pedir las privadas y no al importar el módulo.
+ */
+export const privateDir = (): string => join(fixturesPrivateDir(process.env, ROOT), "cv-coach");
 export const PRIVATE_EXAMPLE_DIR = join(ROOT, "fixtures-private.example/cv-coach");
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -298,7 +304,7 @@ export function loadCvCoachGolden(
     path,
   }));
   const priv = opts.privadas
-    ? jsonFiles(opts.privateDir ?? PRIVATE_DIR).map((path) => ({
+    ? jsonFiles(opts.privateDir ?? privateDir()).map((path) => ({
         fixture: parseFile(path),
         source: "private" as const,
         path,
