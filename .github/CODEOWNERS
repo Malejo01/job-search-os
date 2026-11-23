@@ -65,6 +65,8 @@
 /apps/web/lib/cv-tailor/actions.ts @Malejo01
 /apps/web/lib/cv-tailor/server.ts @Malejo01
 /packages/pipeline/src/cv-tailor/flag.ts @Malejo01
+/apps/web/lib/voice/server.ts @Malejo01
+/packages/pipeline/src/voice/flag.ts @Malejo01
 /apps/web/lib/apertura.ts @Malejo01
 /apps/web/lib/usage-by-career.ts @Malejo01
 /packages/pipeline/src/apertura-checklist.ts @Malejo01
