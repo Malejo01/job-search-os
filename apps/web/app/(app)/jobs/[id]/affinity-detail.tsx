@@ -1,4 +1,6 @@
 import type { AffinityItem } from "@job-search-os/pipeline";
+import { ContextHelp } from "@/components/context-help";
+import { AYUDAS_ACADEMY } from "@/lib/textos-rediseno";
 import { affinityRows } from "./affinity-view";
 
 /**
@@ -17,6 +19,14 @@ export function AffinityDetail({ items }: { items: readonly AffinityItem[] }) {
       <summary className="flex min-h-11 cursor-pointer items-center font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus">
         Ver cómo se compone el puntaje
       </summary>
+      <p className="mt-1 flex items-center gap-1 text-xs text-fg-muted">
+        Qué significa la afinidad
+        <ContextHelp
+          slug={AYUDAS_ACADEMY.afinidad.slug}
+          term={AYUDAS_ACADEMY.afinidad.term}
+          desde="avisos"
+        />
+      </p>
       <ul className="mt-2 flex flex-col gap-3">
         {rows.map((r) => (
           <li key={r.key} data-testid={`afinidad-${r.key}`}>

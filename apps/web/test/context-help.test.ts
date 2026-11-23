@@ -54,12 +54,27 @@ describe("«?» contextual: el componente", () => {
     for (const slug of ["seniority", "presencial-hibrido-remoto", "rango-salarial"])
       expect(c).toContain(`slug: "${slug}"`);
     const t = readFileSync(join(WEB, "app/(app)/jobs/[id]/transparency-block.tsx"), "utf8");
-    expect(t).toContain('slug="transparencia-del-aviso"');
+    expect(t).toContain("AYUDAS_ACADEMY.transparencia.slug");
+    expect(c).toContain('desde="avisos"');
+    expect(t).toContain('desde="avisos"');
   });
 
-  it("la pantalla de CV lo usa para el filtro ATS y las palabras clave", () => {
+  it("la pantalla de CV lo usa para ATS, palabras clave y logros medibles, con origen", () => {
     const d = readFileSync(join(WEB, "components/cv-coach/items-diagnosis.tsx"), "utf8");
-    expect(d).toContain('slug="filtro-ats"');
-    expect(d).toContain('slug="palabras-clave"');
+    for (const k of ["ats", "palabrasClave", "logros"])
+      expect(d).toContain(`AYUDAS_ACADEMY.${k}.slug`);
+    expect(d).toContain('desde="cv"');
+  });
+
+  it("la afinidad tiene su «?» en el detalle del sello y en Hoy (R23-04)", () => {
+    const a = readFileSync(join(WEB, "app/(app)/jobs/[id]/affinity-detail.tsx"), "utf8");
+    expect(a).toContain("AYUDAS_ACADEMY.afinidad.slug");
+    const h = readFileSync(join(WEB, "app/(app)/hoy/page.tsx"), "utf8");
+    expect(h).toContain("AYUDAS_ACADEMY.afinidad.slug");
+    expect(h).toContain("AYUDAS_ACADEMY.seguimiento.slug");
+  });
+
+  it("el enlace «Ver en Academy» suma ?desde= cuando la pantalla lo pasa", () => {
+    expect(src).toContain("?desde=${desde}");
   });
 });

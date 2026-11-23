@@ -78,3 +78,16 @@ export const PRIMER_USO = {
 
 /** Texto para una condición laboral que el aviso no dice. */
 export const NOT_INFORMED_LABEL = "No lo informa";
+
+/** Ayudas «?» (R23-04): cada término técnico y la ficha de Academy que lo explica. */
+export const AYUDAS_ACADEMY = {
+  afinidad: { slug: "afinidad", term: "afinidad" },
+  seniority: { slug: "seniority", term: "seniority" },
+  modalidad: { slug: "presencial-hibrido-remoto", term: "presencial, híbrido, remoto" },
+  transparencia: { slug: "transparencia-del-aviso", term: "transparencia del aviso" },
+  ats: { slug: "filtro-ats", term: "filtro ATS" },
+  palabrasClave: { slug: "palabras-clave", term: "palabras clave" },
+  logros: { slug: "logros-medibles", term: "logros medibles" },
+  star: { slug: "metodo-star", term: "método STAR" },
+  seguimiento: { slug: "despues-de-postularte", term: "qué hacer después de postularte" },
+} as const;

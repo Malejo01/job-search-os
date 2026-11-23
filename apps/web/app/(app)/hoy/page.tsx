@@ -20,6 +20,8 @@ import { Card as UiCard, cardClasses, EmptyState, textLinkClasses } from "@/comp
 import { requireActiveUserId } from "@/lib/session";
 import { getUserPlan } from "@/lib/user-plan";
 import { Illustration } from "@/components/brand/illustration";
+import { ContextHelp } from "@/components/context-help";
+import { AYUDAS_ACADEMY } from "@/lib/textos-rediseno";
 import { PlanVencido } from "./plan-vencido";
 import { MascotaSaludo } from "./mascota-saludo";
 import { MarkVisit } from "./mark-visit";
@@ -296,12 +298,19 @@ function NewCard({ data }: { data: HoyData }) {
         aria-labelledby="hoy-nuevo-titulo"
         className="flex min-w-0 flex-col gap-3 sm:gap-3.5"
       >
-        <h2
-          id="hoy-nuevo-titulo"
-          className="pl-1 font-sans text-xs font-extrabold text-brand-text sm:pl-0 sm:text-[13px]"
-        >
-          La mejor de hoy
-        </h2>
+        <div className="flex items-center gap-1 pl-1 sm:pl-0">
+          <h2
+            id="hoy-nuevo-titulo"
+            className="font-sans text-xs font-extrabold text-brand-text sm:text-[13px]"
+          >
+            La mejor de hoy
+          </h2>
+          <ContextHelp
+            slug={AYUDAS_ACADEMY.afinidad.slug}
+            term={AYUDAS_ACADEMY.afinidad.term}
+            desde="avisos"
+          />
+        </div>
         <ul className="m-0 list-none p-0">
           <NewJobRow job={best} featured now={new Date()} />
         </ul>
@@ -391,6 +400,14 @@ function FollowUpCard({ data, index = 0 }: { data: HoyData; index?: number }) {
       title="Para hacer seguimiento"
       index={index}
     >
+      <p className="flex items-center gap-1 text-xs text-fg-muted">
+        Qué hacer después de postularte
+        <ContextHelp
+          slug={AYUDAS_ACADEMY.seguimiento.slug}
+          term={AYUDAS_ACADEMY.seguimiento.term}
+          desde="postulacion"
+        />
+      </p>
       {followUps.length === 0 ? (
         <EmptyState
           variant="inline"
