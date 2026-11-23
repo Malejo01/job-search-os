@@ -16,6 +16,7 @@ const calm: BetaHealthInput = {
   pool: { lastOkAt: hoursAgo(2) },
   inboundNoParser7d: { total: 0, byHost: [] },
   invitations: { pending: 0, expiringIn48h: 0 },
+  poolMailboxExpiring7d: 0,
 };
 
 const level = (input: BetaHealthInput, key: string) =>
@@ -36,7 +37,22 @@ describe("betaHealth (C8-11): semáforo de la mañana", () => {
       "pool",
       "portales",
       "invitaciones",
+      "pool_vencimiento",
     ]);
+  });
+
+  it("pool_vencimiento: emails del pool sin leer que vencen en 7 días (1 mira, 20 actúa)", () => {
+    const key = "pool_vencimiento";
+    expect(level({ ...calm, poolMailboxExpiring7d: 0 }, key)).toBe("verde");
+    expect(level({ ...calm, poolMailboxExpiring7d: 1 }, key)).toBe("amarillo");
+    expect(level({ ...calm, poolMailboxExpiring7d: 19 }, key)).toBe("amarillo");
+    expect(level({ ...calm, poolMailboxExpiring7d: 20 }, key)).toBe("rojo");
+    const row = (n: number) =>
+      betaHealth({ ...calm, poolMailboxExpiring7d: n }).rows.find((r) => r.key === key)!;
+    expect(row(0).value).toBe("Ninguno");
+    expect(row(1).value).toBe("1 vence en 7 días");
+    expect(row(5).value).toBe("5 vencen en 7 días");
+    expect(row(5).detail).toContain("30 días");
   });
 
   it("evaluaciones fallidas (24 h): 3 piden mirar, más de 10 o más de la mitad de los intentos, actuar", () => {

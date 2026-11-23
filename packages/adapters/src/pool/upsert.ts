@@ -60,6 +60,11 @@ export type PoolUpsertDeps = {
   timeLeftMs?: () => number;
   /** Reloj para medir ms por aviso (tests). Por defecto `Date.now`. */
   clock?: () => number;
+  /**
+   * Pistas de carrera fijas para todos los avisos del lote (casillas `pool-<carrera>@`, R19-01): la carrera
+   * la da la casilla, no el título. Sin esto se infieren como siempre.
+   */
+  roleHints?: readonly string[];
 };
 
 /** Máximo de avisos por lote. */
@@ -131,7 +136,12 @@ type Normalized = {
   lang: string | null;
 };
 
-function normalize(raw: RawJob, externalId: string, sourceUrl: string): Normalized {
+function normalize(
+  raw: RawJob,
+  externalId: string,
+  sourceUrl: string,
+  fixedRoleHints?: readonly string[],
+): Normalized {
   const url = canonicalUrl(sourceUrl);
   const jdText = raw.jdText ? stripContacts(raw.jdText) : null;
   return {
@@ -143,12 +153,14 @@ function normalize(raw: RawJob, externalId: string, sourceUrl: string): Normaliz
     shingles: jdText ? textShingles(jdText) : null,
     titleNormalized: normalizeTitle(raw.title),
     companyNormalized: normalizeCompany(raw.companyRaw),
-    roleHints: inferRoleHints({
-      sourceKind: raw.source.kind,
-      title: raw.title,
-      tags: raw.tags,
-      categories: raw.categories,
-    }),
+    roleHints: fixedRoleHints
+      ? [...fixedRoleHints]
+      : inferRoleHints({
+          sourceKind: raw.source.kind,
+          title: raw.title,
+          tags: raw.tags,
+          categories: raw.categories,
+        }),
     lang: detectJobLanguage(raw.jdText, raw.lang),
   };
 }
@@ -360,6 +372,8 @@ type Ctx = {
   /** true si el crudo va por la conexión de la base (se puede meter en la transacción del lote). */
   defaultStorage: boolean;
   taxonomy: readonly Term[] | undefined;
+  /** Pistas de carrera fijas del lote (`PoolUpsertDeps.roleHints`). */
+  roleHints: readonly string[] | undefined;
   /** true si hay que cortar (`shouldStop` o sin tiempo); se consulta antes de cada aviso del reintento. */
   halt: () => boolean;
   /** Se cortó adentro de un lote: no se empiezan más lotes. */
@@ -384,7 +398,7 @@ async function upsertOne(ctx: Ctx, original: RawJob): Promise<Outcome> {
   // Crudo guardado que todavía no cuelga de ninguna fila: si algo falla, se borra para no dejarlo huérfano
   let pendingBlob: string | null = null;
   try {
-    const n = normalize(raw, externalId, sourceUrl);
+    const n = normalize(raw, externalId, sourceUrl, ctx.roleHints);
     if (n.jdText) await ensureTaxonomy(ctx);
     const taxonomy = ctx.taxonomy;
     const recent = await loadCandidates(db, raw, n, now);
@@ -563,7 +577,12 @@ async function processBatch(
     }
     try {
       const raw = sanitize(original);
-      items.push({ original, raw, n: normalize(raw, externalId, sourceUrl), externalId });
+      items.push({
+        original,
+        raw,
+        n: normalize(raw, externalId, sourceUrl, ctx.roleHints),
+        externalId,
+      });
     } catch (e) {
       logger
         .child({ source: original.source.kind, external_id: externalId })
@@ -943,6 +962,7 @@ export async function upsertPoolJobs(
     storage: deps.storage ?? pgBlobStorage(db),
     defaultStorage: !deps.storage,
     taxonomy: deps.taxonomy,
+    roleHints: deps.roleHints,
     halt: () => Boolean(deps.shouldStop?.()) || (deps.timeLeftMs ? deps.timeLeftMs() <= 0 : false),
     stopped: false,
   };

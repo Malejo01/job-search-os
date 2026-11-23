@@ -54,6 +54,12 @@ export {
 } from "./pool/fetch";
 export { languageColumnsEnabled, upsertPoolJobs, type PoolUpsertSummary } from "./pool/upsert";
 export { POOL_RETENTION_DAYS, purgePool } from "./pool/retention";
+export { reprocessPoolQueue, type ReprocessReport } from "./pool/reprocess";
+export {
+  countPoolMailboxExpiring,
+  POOL_MAILBOX_WARNING_DAYS,
+  poolMailboxExpiringCountSql,
+} from "./pool/mailbox-expiry";
 // E3b: lectura de candidatas para el simulador de /plan (lejos de las líneas que tocan #179 y #182)
 export { CANDIDATE_CAP, selectPoolCandidates } from "./pool/select";
 export { sourceUserAgent } from "./sources/user-agent";
@@ -88,7 +94,11 @@ export {
 } from "./market/career-market";
 export { readCareerRevealCounts } from "./market/career-reveal";
 export { readBetaPoolCounts, type BetaPoolCounts } from "./market/beta-counts";
-export { readPoolCoverage } from "./market/pool-coverage";
+export {
+  readPoolCoverage,
+  readPoolMailboxActivity,
+  type PoolMailboxActivity,
+} from "./market/pool-coverage";
 export {
   buildRoleMarketSnapshots,
   getRoleMarket,

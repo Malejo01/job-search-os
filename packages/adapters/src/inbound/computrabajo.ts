@@ -78,7 +78,14 @@ function avisoDelTracker(href: string): { url: string; id: string } | null {
   }
 }
 
-function leerTarjeta(href: string, interior: string): RawJob | string {
+/** Cómo se arma el `source` de cada aviso a partir del ID y la URL pública leídos del tracker. */
+export type ComputrabajoSourceFactory = (aviso: { id: string; url: string }) => RawJob["source"];
+
+function leerTarjeta(
+  href: string,
+  interior: string,
+  armarSource: ComputrabajoSourceFactory,
+): RawJob | string {
   const aviso = avisoDelTracker(href);
   if (!aviso) return "link de la tarjeta que no apunta a un aviso de Computrabajo";
 
@@ -98,13 +105,7 @@ function leerTarjeta(href: string, interior: string): RawJob | string {
   if (!company) return "tarjeta sin empresa";
 
   return {
-    source: {
-      kind: "email_generic",
-      name: "Computrabajo (email)",
-      externalId: aviso.id,
-      url: aviso.url,
-      rawRef: null,
-    },
+    source: armarSource(aviso),
     title,
     companyRaw: company,
     locationRaw: location || null,
@@ -127,42 +128,59 @@ function leerTarjeta(href: string, interior: string): RawJob | string {
   };
 }
 
+/**
+ * Lectura de las tarjetas del mail de recomendaciones, reutilizable (R19-01): la misma estructura la leen
+ * el parser de la casilla de una persona y el lector del pool. Solo cambia el `source` de cada aviso.
+ * Falla cerrado con los mismos motivos de siempre.
+ */
+export function readComputrabajoCards(
+  html: string | null,
+  armarSource: ComputrabajoSourceFactory,
+): ParseResult {
+  if (!html) return { ok: false, reason: "email de Computrabajo sin HTML: cola manual" };
+  if (html.length > MAX_EMAIL_HTML_CHARS) {
+    return { ok: false, reason: "email de Computrabajo demasiado grande: cola manual" };
+  }
+  if (RECORDATORIO.test(html)) {
+    return {
+      ok: false,
+      reason: "recordatorio de Computrabajo, no es una lista de avisos: cola manual",
+    };
+  }
+
+  const tarjetas = tagBlocks(html, "a", { boundary: "space" }).filter((a) =>
+    /class="title_oferta"/i.test(a.inner),
+  );
+  const totalTitulos = [...html.matchAll(/class="title_oferta"/gi)].length;
+  if (!tarjetas.length) {
+    return { ok: false, reason: "email de Computrabajo sin avisos: cola manual" };
+  }
+  if (totalTitulos !== tarjetas.length) {
+    return {
+      ok: false,
+      reason: "email de Computrabajo con títulos fuera de las tarjetas: cola manual",
+    };
+  }
+
+  const jobs: RawJob[] = [];
+  for (const a of tarjetas) {
+    const href = /href="([^"]+)"/i.exec(a.attrs)?.[1] ?? "";
+    const job = leerTarjeta(href, a.inner, armarSource);
+    if (typeof job === "string") return { ok: false, reason: clampReason(`${job}: cola manual`) };
+    jobs.push(job);
+  }
+  return { ok: true, jobs };
+}
+
 export const computrabajoParser: EmailParser = {
   name: "computrabajo",
   parse(email: InboundEmailContent): ParseResult {
-    const html = email.html;
-    if (!html) return { ok: false, reason: "email de Computrabajo sin HTML: cola manual" };
-    if (html.length > MAX_EMAIL_HTML_CHARS) {
-      return { ok: false, reason: "email de Computrabajo demasiado grande: cola manual" };
-    }
-    if (RECORDATORIO.test(html)) {
-      return {
-        ok: false,
-        reason: "recordatorio de Computrabajo, no es una lista de avisos: cola manual",
-      };
-    }
-
-    const tarjetas = tagBlocks(html, "a", { boundary: "space" }).filter((a) =>
-      /class="title_oferta"/i.test(a.inner),
-    );
-    const totalTitulos = [...html.matchAll(/class="title_oferta"/gi)].length;
-    if (!tarjetas.length) {
-      return { ok: false, reason: "email de Computrabajo sin avisos: cola manual" };
-    }
-    if (totalTitulos !== tarjetas.length) {
-      return {
-        ok: false,
-        reason: "email de Computrabajo con títulos fuera de las tarjetas: cola manual",
-      };
-    }
-
-    const jobs: RawJob[] = [];
-    for (const a of tarjetas) {
-      const href = /href="([^"]+)"/i.exec(a.attrs)?.[1] ?? "";
-      const job = leerTarjeta(href, a.inner);
-      if (typeof job === "string") return { ok: false, reason: clampReason(`${job}: cola manual`) };
-      jobs.push(job);
-    }
-    return { ok: true, jobs };
+    return readComputrabajoCards(email.html, (aviso) => ({
+      kind: "email_generic",
+      name: "Computrabajo (email)",
+      externalId: aviso.id,
+      url: aviso.url,
+      rawRef: null,
+    }));
   },
 };
