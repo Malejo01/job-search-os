@@ -1,11 +1,14 @@
 /**
  * Diagnóstico del CV por ítems. Puro: recibe el CV ya armado (`CvDocument`) y devuelve, por código, un
  * puntaje de 0 a 10, un nivel y un consejo concreto para estructura, secciones y legibilidad (con el largo).
- * Palabras clave de la carrera y logros medibles dependen del modelo (diagnóstico del coach, bajo demanda y
- * con costo): acá quedan en `soon`, sin puntaje inventado. El nivel es un código; las palabras que ve la
- * persona las pone la web. Entrada acotada: ningún campo ni cantidad crece sin tope.
+ * Palabras clave de la carrera salen del mercado del puesto (`cv-keywords.ts`, por código): sin mercado
+ * quedan en `soon`; con menos de 20 avisos, en `no_data`. Logros medibles también salen por código
+ * (`cv-measurable.ts`): cuántas viñetas de experiencia, proyectos y logros traen un resultado. El nivel es
+ * un código; las palabras que ve la persona las pone la web. Entrada acotada: ningún campo ni cantidad crece sin tope.
  */
 import type { CvDocument, CvSection, CvSectionId } from "./cv-out/model";
+import { analyzeCvKeywords, type KeywordMarket } from "./cv-keywords";
+import { analyzeCvMeasurable } from "./cv-measurable";
 
 export const CV_DIAGNOSIS_ITEM_IDS = [
   "structure",
@@ -27,7 +30,17 @@ export type CvDiagnosisItem =
       level: CvDiagnosisLevel;
       advice: string;
     }
-  | { id: CvDiagnosisItemId; status: "soon"; score: null; level: null; advice: null };
+  | { id: CvDiagnosisItemId; status: "soon"; score: null; level: null; advice: null }
+  /** Hay mercado pero con muy pocos avisos del puesto: no se inventa puntaje («Sin datos suficientes»). */
+  | { id: CvDiagnosisItemId; status: "no_data"; score: null; level: null; advice: null };
+
+export type CvDiagnosisOptions = {
+  /**
+   * Mercado del puesto principal (`getRoleMarket`, 15 skills o más). Sin él (`undefined` o `null`) las
+   * palabras clave quedan en «Pronto»; con menos de 20 avisos, en «Sin datos suficientes».
+   */
+  keywords?: KeywordMarket | null;
+};
 
 /** Topes de lo que se mira: un CV de 2 MB se recorta, no se procesa entero. */
 const MAX_SECTIONS = 20;
@@ -59,6 +72,9 @@ const SECTION_ORDER: readonly CvSectionId[] = [
   "achievements",
 ];
 
+/** Secciones donde se mide si las viñetas traen un resultado. */
+const RESULT_SECTIONS: readonly CvSectionId[] = ["experience", "projects", "achievements"];
+
 const round1 = (n: number) => Math.round(Math.min(10, Math.max(0, n)) * 10) / 10;
 
 function levelOf(score: number): CvDiagnosisLevel {
@@ -84,6 +100,10 @@ type Bounded = {
   bulletWords: number[];
   bulletChars: number[];
   totalWords: number;
+  /** Textos del CV (titular, títulos, encabezados, detalles y viñetas) para las palabras clave. */
+  texts: string[];
+  /** Viñetas de experiencia, proyectos y logros: donde se espera un resultado medible. */
+  resultBullets: string[];
 };
 
 function bound(doc: CvDocument): Bounded {
@@ -101,6 +121,8 @@ function bound(doc: CvDocument): Bounded {
     bulletWords: [],
     bulletChars: [],
     totalWords: 0,
+    texts: [take(clip(doc.headline))],
+    resultBullets: [],
   };
   for (const sec of doc.sections.slice(0, MAX_SECTIONS) as CvSection[]) {
     let filled = false;
@@ -109,9 +131,12 @@ function bound(doc: CvDocument): Bounded {
       const detail = take(clip(block.detail));
       if (heading.trim() !== "" || detail.trim() !== "") filled = true;
       out.totalWords += countWords(heading) + countWords(detail);
+      out.texts.push(heading, detail);
       for (const raw of block.bullets.slice(0, MAX_BULLETS)) {
         const b = take(clip(raw));
         if (b.trim() === "") continue;
+        out.texts.push(b);
+        if (RESULT_SECTIONS.includes(sec.id)) out.resultBullets.push(b);
         filled = true;
         const w = countWords(b);
         out.bulletWords.push(w);
@@ -213,14 +238,43 @@ const SOON = (id: CvDiagnosisItemId): CvDiagnosisItem => ({
   advice: null,
 });
 
+/** Palabras clave: cuántas de las 15 skills más pedidas del puesto nombra el CV (ver `cv-keywords.ts`). */
+function keywordsItem(b: Bounded, market: KeywordMarket | null | undefined): CvDiagnosisItem {
+  if (!market) return SOON("keywords");
+  const r = analyzeCvKeywords(b.texts, market);
+  if (r.status === "no_data") {
+    return { id: "keywords", status: "no_data", score: null, level: null, advice: null };
+  }
+  const advice =
+    r.missing.length === 0
+      ? "Tu CV nombra las skills más pedidas para tu puesto."
+      : `Estas skills se piden mucho para tu puesto y tu CV no las nombra: ${r.missing.join(", ")}. Sumalas solo si de verdad las tenés.`;
+  return scored("keywords", r.score, advice);
+}
+
+/** Logros medibles: cuántas viñetas traen un número, un porcentaje, un plazo o una cantidad (`cv-measurable.ts`). */
+function achievementsItem(b: Bounded): CvDiagnosisItem {
+  const r = analyzeCvMeasurable(b.resultBullets);
+  let advice: string;
+  if (r.total === 0) {
+    advice =
+      "Escribí tus logros en viñetas de experiencia o proyectos y sumales un resultado: un número, un porcentaje, un plazo o una cantidad de personas.";
+  } else if (r.example === null) {
+    advice = "Tus viñetas muestran resultados que se pueden medir.";
+  } else {
+    advice = `A «${r.example}» le falta un resultado. Plantilla: lo que hiciste + cuánto cambió (un porcentaje, una cantidad, un plazo o «de X a Y»). Agregalo solo si lo sabés con certeza.`;
+  }
+  return scored("achievements", r.score, advice);
+}
+
 /** Diagnóstico del CV: los cinco ítems, siempre en el mismo orden. */
-export function diagnoseCv(doc: CvDocument): CvDiagnosisItem[] {
+export function diagnoseCv(doc: CvDocument, opts: CvDiagnosisOptions = {}): CvDiagnosisItem[] {
   const b = bound(doc);
   return [
     structureItem(b),
-    SOON("keywords"),
+    keywordsItem(b, opts.keywords),
     readabilityItem(b),
-    SOON("achievements"),
+    achievementsItem(b),
     sectionsItem(b),
   ];
 }

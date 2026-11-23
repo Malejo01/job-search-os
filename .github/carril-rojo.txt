@@ -63,6 +63,9 @@ apps/web/lib/profile-agent/access.ts
 apps/web/lib/academy-access.ts
 apps/web/app/(app)/interview/server.ts
 apps/web/app/(app)/settings/metricas/pool-coverage-panel.tsx
+apps/web/lib/cv-tailor/actions.ts
+apps/web/lib/cv-tailor/server.ts
+packages/pipeline/src/cv-tailor/flag.ts
 apps/web/lib/user-plan.ts
 apps/web/lib/llm-service.ts
 apps/web/lib/setup.ts

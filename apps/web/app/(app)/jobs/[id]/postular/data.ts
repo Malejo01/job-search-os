@@ -12,6 +12,8 @@ export type PostularData = {
   answers: { question: string; answer: string }[];
   /** Carta o nota de la postulación, si la persona ya la guardó. */
   coverNote: string | null;
+  /** Skills que pide el aviso, con sus alias de la taxonomía. */
+  offerSkills: { name: string; aliases: string[]; isMust: boolean }[];
 };
 
 /**
@@ -51,7 +53,16 @@ export async function getPostularData(userId: string, jobId: string): Promise<Po
       .where(and(eq(s.applications.userId, userId), eq(s.applications.jobId, jobId)))
       .limit(1);
 
+    // Skills que pide el aviso (ya extraídas en la ingesta): una consulta chica, tope 60
+    const offerSkills = await tx
+      .select({ name: s.skills.name, aliases: s.skills.aliases, isMust: s.jobSkills.isMust })
+      .from(s.jobSkills)
+      .innerJoin(s.skills, eq(s.skills.id, s.jobSkills.skillId))
+      .where(eq(s.jobSkills.jobId, jobId))
+      .limit(60);
+
     return {
+      offerSkills,
       id: job.id,
       title: job.title,
       company: job.company,

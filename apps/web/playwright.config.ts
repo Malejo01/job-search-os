@@ -16,6 +16,8 @@ const BASE_URL = process.env.E2E_BASE_URL ?? `http://localhost:${PORT}`;
 // lo sabe por esta variable (los workers heredan el entorno), así el spec 123 se saltea sin ella.
 const ASSISTANT_MODE = "testers";
 process.env.E2E_ASSISTANT_MODE = ASSISTANT_MODE;
+// R20-04: el runner sabe que el server corre con CV_TAILOR=testers (e2e 156)
+process.env.E2E_CV_TAILOR_MODE = "testers";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -63,6 +65,8 @@ export default defineConfig({
       CV_PROFILE_AGENT: "testers",
       // ADR-038 (R12-10): el coach de CV, también en `testers` (exige el agente de perfil). Flujo 147
       CV_COACH: "testers",
+      // R20-04: versión del CV adaptada con IA (modelo simulado por LLM_DEMO=1). Flujo 156
+      CV_TAILOR: "testers",
       START_HERE_ENABLED: "1",
       // C8-6: «¿Qué es esto?» en las 5 pantallas (e2e 108), apagado por defecto en Vercel
       HELP_TIPS_ENABLED: "1",
