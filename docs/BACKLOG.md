@@ -2110,3 +2110,27 @@ Informe de la tanda: [`docs/beta/informe-r24.md`](beta/informe-r24.md). Pasos ma
 
 ### R24 · Cierre de la tanda
 `estado:` en rama (23/11) · `ronda/r24-cierre`
+
+## Bloque 42 · Tanda R25 «Voz en todos los navegadores» (23/11)
+
+Informe de la tanda: [`docs/beta/informe-r25.md`](beta/informe-r25.md). Pasos manuales: [`docs/beta/pasos-manuales-r25.md`](beta/pasos-manuales-r25.md). Decisión: [ADR-044](adr/044-voz-hibrida.md). Cadena sobre `ronda/r24-cierre`; ningún PR mergeado por agentes. Sin migraciones ni RLS. Fila `transcribe_audio` en `model_routing` sin aplicar. USD 0. El prompt la ubicaba como bloque 40, pero la R23 y la R24 ya usan el 40 y el 41: va como 42 para no chocar con sus PR.
+
+### Causa raíz
+- **R25-00** · `Permissions-Policy` bloqueaba el micrófono en todos los navegadores: ahora `microphone=(self)` · `estado:` en rama (23/11) · `ronda/r25-00-microfono-propio`
+
+### Voz
+- **R25-01** · Motor que elige entre el dictado del navegador y la grabación · `estado:` en rama (23/11) · `ronda/r25-01-motor-voz`
+- **R25-02** · `VoiceInput`: barra de nivel, texto en vivo, «Listo» y «Cancelar» · `estado:` en rama (23/11) · `ronda/r25-02-voice-input`, `ronda/r25-07-voz-lazy-y-senal`
+- **R25-03** · Ruta de transcripción con Gemini, apagada por defecto (`VOICE_SERVER_TRANSCRIBE`) · `estado:` en rama, fila de ruteo pendiente (23/11) · `ronda/r25-03-ruta-transcribe`
+- **R25-04** · Tests de la ruta, del cupo contra la base y SQL con ensayo · `estado:` en rama (23/11) · `ronda/r25-04-tests-transcribe`
+- **R25-05** · Voz en Interview, el coach, «Armá tu CV con IA» y los huecos del perfil · `estado:` en rama (23/11) · `ronda/r25-05-voz-en-chats`
+- **R25-06** · e2e de voz y tabla de navegadores (`docs/beta/voz.md`) · `estado:` en rama (23/11) · `ronda/r25-06-e2e-voz`
+
+### Pendientes que salen de la tanda
+- Fila `transcribe_audio` en Neon y `VOICE_SERVER_TRANSCRIBE=testers`; `all` recién con la política publicada.
+- Texto de voz en la política de privacidad (rama del PR legal #552).
+- Probar a mano en Opera GX, Brave y Firefox reales (los e2e usan Chromium con micrófono falso).
+- Renombrar el canal `images` del cliente LLM, que hoy también lleva audio.
+
+### R25 · Cierre de la tanda
+`estado:` en rama (23/11) · `ronda/r25-cierre`
