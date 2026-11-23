@@ -16,7 +16,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { joinDictated } from "@/components/dictar-engine";
 import { Alert, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
-import { VoiceInput } from "@/components/voice-input";
+import { VoiceInput } from "@/components/voice-input-lazy";
 
 /**
  * Charla de huecos del agente de perfil (ADR-034, R10-3). Una pregunta por vez, tomada de las plantillas

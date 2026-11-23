@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  CV_CHAT_MAX_INPUT_CHARS,
   cvConflictOptions,
   cvProgressShown,
   type CvChatState,
@@ -11,7 +12,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { CvPreview } from "@/components/cv-preview";
 import { joinDictated } from "@/components/dictar-engine";
-import { VoiceInput } from "@/components/voice-input";
+import { VoiceInput } from "@/components/voice-input-lazy";
 import { Alert, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
 
 /**
@@ -280,7 +281,9 @@ export function CvChat({ serverTranscribe }: { serverTranscribe: boolean }) {
           />
           <VoiceInput
             serverTranscribe={serverTranscribe}
-            onText={(spoken) => setDraft((prev) => joinDictated(prev, spoken))}
+            onText={(spoken) =>
+              setDraft((prev) => joinDictated(prev, spoken).slice(0, CV_CHAT_MAX_INPUT_CHARS))
+            }
             disabled={busy}
           />
           <div className="flex flex-wrap gap-3">

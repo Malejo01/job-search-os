@@ -13,7 +13,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { joinDictated } from "@/components/dictar-engine";
-import { VoiceInput } from "@/components/voice-input";
+import { VoiceInput } from "@/components/voice-input-lazy";
 import { Alert, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
 import {
   parseCoachSnapshot,

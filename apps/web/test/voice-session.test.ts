@@ -83,7 +83,7 @@ class FakeRecognition implements SpeechRecognitionLike {
 type Harness = {
   deps: VoiceDeps;
   stream: FakeStream;
-  level: { value: number };
+  level: { value: number; peak: number };
   upload: ReturnType<typeof vi.fn>;
   getUserMedia: ReturnType<typeof vi.fn>;
 };
@@ -93,11 +93,17 @@ function harness(
   uploadResult: TranscribeResult = { ok: true, text: "  hola desde el servidor " },
 ): Harness {
   const stream = new FakeStream();
-  const level = { value: 0 };
+  // `value`: nivel instantáneo. `peak`: lo más alto que pasó entre dos ticks (pico retenido), se consume al leerlo
+  const level = { value: 0, peak: 0 };
   const upload = vi.fn(async () => uploadResult);
   const getUserMedia = vi.fn(async () => stream as unknown as MediaStream);
   const meter: LevelMeter = {
     getLevel: () => level.value,
+    takePeak: () => {
+      const p = Math.max(level.value, level.peak);
+      level.peak = 0;
+      return p;
+    },
     getLevels: (n) => Array.from({ length: n }, () => level.value),
     close: () => {},
   };
@@ -207,6 +213,39 @@ describe("pasar a grabación sin perder lo hablado", () => {
     expect(allStopped(h.stream)).toBe(true);
   });
 
+  it("un resultado tardío del navegador después de pasar a grabación no gana: el texto final es el del servidor", async () => {
+    const h = harness();
+    const onText = vi.fn();
+    const s = createVoiceSession(h.deps, { serverTranscribe: true, onText });
+    await s.start();
+    const rec = FakeRecognition.last!;
+    const staleResult = rec.onresult!;
+    const staleEnd = rec.onend!;
+    h.level.value = 0.4;
+    vi.advanceTimersByTime(4_500);
+    expect(s.getState().mode).toBe("record");
+
+    // Llega tarde, por una referencia vieja: ni el estado ni el texto cambian
+    staleResult({
+      results: Object.assign(
+        [Object.assign([{ transcript: "texto del navegador" }], { isFinal: true })],
+        {
+          length: 1,
+        },
+      ),
+    } as unknown as SpeechEventLike);
+    staleEnd();
+    expect(s.getState().final).toBe("");
+    expect(s.getState().interim).toBe("");
+    expect(s.getState().status).toBe("escuchando");
+
+    s.stop();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(s.getState().text).toBe("hola desde el servidor");
+    expect(onText).toHaveBeenCalledTimes(1);
+    expect(onText).toHaveBeenCalledWith("hola desde el servidor");
+  });
+
   it.each(["service-not-allowed", "not-allowed"])(
     "el error %s también cambia a grabación",
     async (code) => {
@@ -236,6 +275,49 @@ describe("pasar a grabación sin perder lo hablado", () => {
     vi.advanceTimersByTime(3_000);
     expect(s.getState().mode).toBe("browser");
     vi.advanceTimersByTime(1_500);
+    expect(s.getState().mode).toBe("record");
+    s.cancel();
+  });
+
+  it("señal intermitente (bips entre ticks, justo en cada tick hay silencio) también cuenta: pasa a grabación", async () => {
+    const h = harness();
+    const s = createVoiceSession(h.deps, { serverTranscribe: true });
+    await s.start();
+    h.level.value = 0; // en el instante de cada tick no se oye nada
+    for (let i = 0; i < 18; i++) {
+      if (i === 2) h.level.peak = 0.5; // un bip corto entre dos ticks
+      vi.advanceTimersByTime(250);
+    }
+    expect(s.getState().mode).toBe("record");
+    s.cancel();
+  });
+
+  it("silencio real (ni instantáneo ni pico) no pasa a grabación", async () => {
+    const h = harness();
+    const s = createVoiceSession(h.deps, { serverTranscribe: true });
+    await s.start();
+    h.level.value = 0.01;
+    for (let i = 0; i < 40; i++) {
+      h.level.peak = 0.03;
+      vi.advanceTimersByTime(250);
+    }
+    expect(s.getState().mode).toBe("browser");
+    s.cancel();
+  });
+
+  it("sin takePeak se usa el nivel instantáneo", async () => {
+    const level = { value: 0 };
+    const h = harness({
+      createLevelMeter: () => ({
+        getLevel: () => level.value,
+        getLevels: (n) => Array.from({ length: n }, () => level.value),
+        close: () => {},
+      }),
+    });
+    const s = createVoiceSession(h.deps, { serverTranscribe: true });
+    await s.start();
+    level.value = 0.4;
+    vi.advanceTimersByTime(4_500);
     expect(s.getState().mode).toBe("record");
     s.cancel();
   });

@@ -107,7 +107,14 @@ export function VoiceInput({
 
   let statusText: string | null = null;
   if (state.status === "pidiendo-permiso") statusText = "Esperando el permiso del micrófono…";
-  else if (state.status === "listo") {
+  else if (state.status === "escuchando") {
+    // Se anuncia una vez; el aviso de 1:45 reemplaza al texto (el contador no se anuncia)
+    statusText = state.warning
+      ? "Queda poco: la grabación se corta a los 2:00. Tocá Listo para terminar."
+      : "Escuchando. Hablá y tocá Listo cuando termines.";
+  } else if (state.status === "transcribiendo") {
+    statusText = "Transcribiendo…";
+  } else if (state.status === "listo") {
     statusText = state.text
       ? "Listo: el texto está en el campo para que lo corrijas."
       : "No escuchamos nada. Probá de nuevo.";
@@ -212,8 +219,10 @@ export function VoiceInput({
       ) : null}
 
       {transcribing ? (
-        <div data-testid="voice-transcribiendo" className="flex flex-col gap-2" role="status">
-          <span className="text-sm text-fg">Transcribiendo…</span>
+        <div data-testid="voice-transcribiendo" className="flex flex-col gap-2">
+          <span aria-hidden="true" className="text-sm text-fg">
+            Transcribiendo…
+          </span>
           <span
             aria-hidden="true"
             className="h-3 w-full max-w-sm animate-pulse rounded-pill bg-surface-strong motion-reduce:animate-none"
@@ -228,7 +237,6 @@ export function VoiceInput({
       {/* Anuncios para lectores de pantalla: estado y aviso de corte. El contador no se anuncia cada cuadro */}
       <p role="status" aria-live="polite" className="min-h-5 text-xs text-fg-muted">
         {statusText}
-        {listening && state.warning ? "Se corta a los 2:00; tocá Listo para terminar." : null}
       </p>
 
       <p id={noteId} className="text-xs text-fg-subtle">

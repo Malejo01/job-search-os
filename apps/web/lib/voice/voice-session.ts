@@ -70,6 +70,11 @@ export type RecorderLike = {
 export type LevelMeter = {
   /** Nivel general 0..1. */
   getLevel(): number;
+  /**
+   * Nivel máximo (0..1) desde la última vez que se llamó, con pico retenido: así un bip o una sílaba entre dos
+   * ticks no se pierde. Si el medidor no lo tiene, se usa `getLevel()` (nivel instantáneo).
+   */
+  takePeak?(): number;
   /** `count` niveles 0..1 por banda de frecuencia, para las barras. */
   getLevels(count: number): number[];
   close(): void;
@@ -234,6 +239,8 @@ export function createVoiceSession(deps: VoiceDeps, options: VoiceSessionOptions
     r.continuous = true;
     r.interimResults = true;
     r.onresult = (event: SpeechEventLike) => {
+      // Un resultado tardío de un reconocimiento ya descartado (se pasó a grabación) no cuenta
+      if (recognition !== r || state.mode !== "browser") return;
       gotResult = true;
       let final = "";
       let interim = "";
@@ -265,7 +272,10 @@ export function createVoiceSession(deps: VoiceDeps, options: VoiceSessionOptions
   const tick = () => {
     if (state.status !== "escuchando") return;
     const elapsedMs = deps.now() - startedAt;
-    if (meter && meter.getLevel() > VOICE_SIGNAL_LEVEL) signalSeen = true;
+    // «Hubo señal» = el nivel pasó el umbral en algún momento desde el tick anterior, no justo en este instante
+    if (meter && (meter.takePeak ? meter.takePeak() : meter.getLevel()) > VOICE_SIGNAL_LEVEL) {
+      signalSeen = true;
+    }
     const time = recordingTimeState(elapsedMs);
     set({ elapsedMs, warning: time !== "ok" });
     if (time === "cut") return finish();

@@ -9,7 +9,7 @@ import {
   type InterviewScoreLevel,
 } from "@job-search-os/pipeline";
 import { joinDictated } from "@/components/dictar-engine";
-import { VoiceInput } from "@/components/voice-input";
+import { VoiceInput } from "@/components/voice-input-lazy";
 import { PrintButton } from "@/components/print-button";
 import { Alert, Button, buttonClasses, Card, inputClasses, labelClasses } from "@/components/ui";
 import { answerInterviewAction } from "../actions";

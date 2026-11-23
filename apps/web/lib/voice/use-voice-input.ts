@@ -33,23 +33,34 @@ function createBrowserLevelMeter(stream: MediaStream): LevelMeter | null {
     const ctx = new Ctx();
     const source = ctx.createMediaStreamSource(stream);
     const analyser = ctx.createAnalyser();
-    analyser.fftSize = 256;
+    analyser.fftSize = 1024; // ~23 ms de audio por lectura: con un muestreo cada 25 ms no queda hueco
     analyser.smoothingTimeConstant = 0.6;
     source.connect(analyser); // sin conectar a destination: no suena
     void ctx.resume?.();
     const time = new Uint8Array(analyser.fftSize);
     const freq = new Uint8Array(analyser.frequencyBinCount);
+    const read = () => {
+      analyser.getByteTimeDomainData(time);
+      let peak = 0;
+      for (const v of time) peak = Math.max(peak, Math.abs(v - 128));
+      return Math.min(1, peak / 128);
+    };
+    // Pico retenido: se muestrea seguido y se guarda el máximo hasta que la sesión lo pide (cada tick)
+    let held = 0;
+    const sampler = setInterval(() => {
+      held = Math.max(held, read());
+    }, 25);
     return {
-      getLevel() {
-        analyser.getByteTimeDomainData(time);
-        let peak = 0;
-        for (const v of time) peak = Math.max(peak, Math.abs(v - 128));
-        return Math.min(1, peak / 128);
+      getLevel: read,
+      takePeak() {
+        const p = Math.max(held, read());
+        held = 0;
+        return p;
       },
       getLevels(count) {
         analyser.getByteFrequencyData(freq);
-        // Solo la zona de la voz (primeros ~2/3 de los bins), repartida en `count` bandas
-        const usable = Math.max(count, Math.floor(freq.length * 0.66));
+        // Solo la zona de la voz (hasta ~5,5 kHz: el primer cuarto de los bins), repartida en `count` bandas
+        const usable = Math.max(count, Math.floor(freq.length * 0.25));
         const per = Math.floor(usable / count);
         return Array.from({ length: count }, (_, i) => {
           let sum = 0;
@@ -58,6 +69,7 @@ function createBrowserLevelMeter(stream: MediaStream): LevelMeter | null {
         });
       },
       close() {
+        clearInterval(sampler);
         try {
           source.disconnect();
           void ctx.close();
