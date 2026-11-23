@@ -88,6 +88,8 @@ export const USER_TABLES: readonly UserTableEntry[] = [
   { table: "mcp_tokens", column: "user_id", action: "delete" },
   // La app no puede borrarla (la marca la pone el admin): cae por ON DELETE CASCADE (ADR-040)
   { table: "plan_overrides", column: "user_id", action: "cascade" },
+  // Avisos «Ya pagué» (R22-01, rls/0053): la app no puede borrarlos; caen por ON DELETE CASCADE
+  { table: "payment_notices", column: "user_id", action: "cascade" },
 ];
 
 /**

@@ -1,6 +1,6 @@
 "use server";
 
-import { parseTargetRoles } from "@job-search-os/pipeline";
+import { parseOperationNumber, parseTargetRoles } from "@job-search-os/pipeline";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { signOut } from "@/auth";
@@ -8,6 +8,7 @@ import type { FormActionError } from "@/app/components/guarded-form";
 import { closeAllSessions } from "@/lib/close-sessions";
 import { deleteAccount } from "@/lib/delete-account";
 import { assignRandomInboundAddress } from "@/lib/inbound-address";
+import { createPaymentNotice } from "@/lib/payment-notices";
 import { getTargetRolesLimit, setTargetRoles, specialtiesFromForm } from "@/lib/onboarding";
 import { reassignForRoleChange, scheduleImmediateEvaluation } from "@/lib/pool-reassign";
 import { requireActiveUserId, requireUserId } from "@/lib/session";
@@ -65,6 +66,20 @@ export async function saveTargetRolesAction(formData: FormData): Promise<FormAct
   revalidatePath("/settings");
   revalidatePath("/jobs");
   redirect("/settings?puesto=guardado#puesto");
+}
+
+/**
+ * «Ya pagué» (R22-01): crea un aviso de pago pendiente para que el equipo lo confirme a mano. El usuario sale
+ * de la sesión. El número de operación es opcional (solo dígitos) y es el único dato que se guarda además del
+ * plan, el estado y las fechas. Con 3 avisos pendientes no crea el cuarto. Vuelve a «Tu plan» con un aviso.
+ */
+export async function paymentNoticeAction(formData: FormData): Promise<void> {
+  const userId = await requireActiveUserId();
+  const number = parseOperationNumber(formData.get("operationNumber"));
+  if (!number.ok) redirect("/settings?pago=invalido#tu-plan");
+  const result = await createPaymentNotice(userId, number.value);
+  revalidatePath("/settings");
+  redirect(`/settings?pago=${result.ok ? "recibido" : result.reason}#tu-plan`);
 }
 
 /**

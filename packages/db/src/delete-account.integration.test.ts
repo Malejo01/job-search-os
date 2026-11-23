@@ -122,6 +122,7 @@ async function seed(id: string, tag: string): Promise<void> {
   await owner`insert into mcp_tokens (user_id, token_hash, label, expires_at)
                values (${id}, ${(tag.charCodeAt(0).toString(16) + "0".repeat(64)).slice(0, 64)}, 'Chat de prueba', now() + interval '30 days')`;
   await owner`insert into plan_overrides (user_id, override) values (${id}, 'tester_50')`;
+  await owner`insert into payment_notices (user_id, plan, operation_number) values (${id}, 'lista', '123456789')`;
 }
 
 /** Filas del usuario por entrada de USER_TABLES (como dueño, sin RLS) */

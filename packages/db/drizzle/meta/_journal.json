@@ -533,6 +533,13 @@
       "when": 1795375760881,
       "tag": "0075_interview",
       "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1795407582630,
+      "tag": "0076_slimy_monster_badoon",
+      "breakpoints": true
     }
   ]
 }

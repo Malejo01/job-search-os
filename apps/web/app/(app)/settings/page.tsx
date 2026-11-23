@@ -2,6 +2,8 @@ import { schema as s } from "@job-search-os/db";
 import {
   BETA_PLAN,
   isLegacyInboundAddress,
+  MAX_OPEN_PAYMENT_NOTICES,
+  PAYMENT_NOTICE_MESSAGES,
   limitsText,
   paymentOffer,
   planDef,
@@ -22,8 +24,9 @@ import { canUseMcpTokens } from "@/lib/mcp-tokens";
 import { getTargetRoles, getTargetRolesLimit, getTargetSpecialties } from "@/lib/onboarding";
 import { getPlanOverride, getUserPlan, type UserPlan } from "@/lib/user-plan";
 import { requireUserId } from "@/lib/session";
-import { buttonClasses, cardClasses, textLinkClasses } from "@/components/ui";
-import { closeAllSessionsAction } from "./actions";
+import { buttonClasses, cardClasses, Field, textLinkClasses } from "@/components/ui";
+import { listOwnPaymentNotices } from "@/lib/payment-notices";
+import { closeAllSessionsAction, paymentNoticeAction } from "./actions";
 import { DeleteAccountForm } from "./delete-account-form";
 import { InboundAddressSection } from "./inbound-address";
 import { TargetRolesForm } from "./target-roles-form";
@@ -55,10 +58,10 @@ export const maxDuration = 120;
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; direccion?: string; puesto?: string }>;
+  searchParams: Promise<{ error?: string; direccion?: string; puesto?: string; pago?: string }>;
 }) {
   const userId = await requireUserId();
-  const { error, direccion, puesto } = await searchParams;
+  const { error, direccion, puesto, pago } = await searchParams;
   const pricing = pricingEnabled(process.env);
   const [
     address,
@@ -69,6 +72,7 @@ export default async function SettingsPage({
     userPlan,
     planOverride,
     canConnectChat,
+    ownNotices,
     [user],
   ] = await Promise.all([
     getInboundAddress(userId),
@@ -82,11 +86,16 @@ export default async function SettingsPage({
     pricing ? getPlanOverride(userId).catch(() => "no_se_pudo_leer" as const) : null,
     // MCP-1: conexiones con chats, solo testers y con MCP_USER_TOKENS=testers
     canUseMcpTokens(userId),
+    // R22-01: avisos «Ya pagué» de la persona (una consulta, solo con los precios encendidos). Si no se
+    // pueden leer, el botón igual funciona: el tope lo impone la base
+    pricing ? listOwnPaymentNotices(userId).catch(() => []) : [],
     // R7-6: el email se pide con el resto, no después
     withUser(userId, (tx) =>
       tx.select({ email: s.users.email }).from(s.users).where(eq(s.users.id, userId)).limit(1),
     ),
   ]);
+
+  const pendingNotices = ownNotices.filter((n) => n.status === "pendiente").length;
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-5">
@@ -149,7 +158,14 @@ export default async function SettingsPage({
         <ThemeSelect />
       </section>
 
-      {userPlan ? <TuPlan userPlan={userPlan} override={planOverride} /> : null}
+      {userPlan ? (
+        <TuPlan
+          userPlan={userPlan}
+          override={planOverride}
+          pendingNotices={pendingNotices}
+          pago={pago}
+        />
+      ) : null}
 
       {canInvite ? (
         <section className={SECTION}>
@@ -247,11 +263,77 @@ export default async function SettingsPage({
 }
 
 /**
+ * «Ya pagué» (R22-01), debajo del link de Mercado Pago: avisa al equipo para que confirme el pago a mano. El
+ * número de operación es opcional y es lo único que se guarda. Si ya hay avisos pendientes se muestra que
+ * están pendientes; con 3 no se ofrece otro. Formulario nativo con Server Action.
+ */
+function PaymentNoticeBox({
+  pendingNotices,
+  pago,
+}: {
+  pendingNotices: number;
+  pago: string | undefined;
+}) {
+  const full = pendingNotices >= MAX_OPEN_PAYMENT_NOTICES;
+  const failure =
+    pago === "invalido" || pago === "tope" || pago === "error"
+      ? PAYMENT_NOTICE_MESSAGES[pago]
+      : null;
+  return (
+    <div data-testid="ya-pague" className="flex flex-col gap-2 border-t border-line pt-3">
+      {pago === "recibido" ? (
+        <p role="status" data-testid="ya-pague-recibido" className="font-medium text-fg">
+          {PAYMENT_NOTICE_MESSAGES.recibido}
+        </p>
+      ) : failure ? (
+        <p role="alert" data-testid="ya-pague-error" className="font-medium text-danger">
+          {failure}
+        </p>
+      ) : pendingNotices > 0 ? (
+        <p data-testid="ya-pague-pendiente" className="font-medium text-fg">
+          {full ? PAYMENT_NOTICE_MESSAGES.tope : PAYMENT_NOTICE_MESSAGES.pendiente}
+        </p>
+      ) : null}
+      {full ? null : (
+        <form action={paymentNoticeAction} className="flex flex-col items-start gap-2">
+          <Field
+            label="Número de operación (opcional)"
+            hint="Lo ves en el comprobante de Mercado Pago. Solo dígitos."
+            name="operationNumber"
+            inputMode="numeric"
+            autoComplete="off"
+            maxLength={20}
+            pattern="[0-9]*"
+            className="w-full max-w-xs"
+          />
+          <button type="submit" className={buttonClasses({ variant: "secondary" })}>
+            Ya pagué
+          </button>
+          <p className="text-xs text-fg-subtle">
+            Solo guardamos ese número. No guardamos datos de tu tarjeta ni montos.
+          </p>
+        </form>
+      )}
+    </div>
+  );
+}
+
+/**
  * «Tu plan» (C-11b y C3-1): hasta cuándo llega el acceso, si es una beca y cómo renovar. Cuando venció,
  * lo dice y aclara que los datos siguen. El link de pago sale de `MP_LINK_LISTA`; sin link, se pide por
  * email. El cobro y la activación son manuales: la app no sabe si la persona pagó.
  */
-function TuPlan({ userPlan, override }: { userPlan: UserPlan; override: unknown }) {
+function TuPlan({
+  userPlan,
+  override,
+  pendingNotices,
+  pago,
+}: {
+  userPlan: UserPlan;
+  override: unknown;
+  pendingNotices: number;
+  pago: string | undefined;
+}) {
   const { access } = userPlan;
   // ADR-040: la marca de precio especial decide qué se ofrece; una marca sin link propio nunca cae al precio completo
   const offer = paymentOffer(process.env, BETA_PLAN, override);
@@ -353,6 +435,7 @@ function TuPlan({ userPlan, override }: { userPlan: UserPlan; override: unknown 
               </a>
             ) : null}
           </div>
+          {link ? <PaymentNoticeBox pendingNotices={pendingNotices} pago={pago} /> : null}
         </div>
       ) : null}
       <Link href="/precios" className={LINK}>
