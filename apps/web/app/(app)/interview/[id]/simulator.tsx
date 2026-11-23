@@ -13,6 +13,8 @@ import { PrintButton } from "@/components/print-button";
 import { Alert, Button, buttonClasses, Card, inputClasses, labelClasses } from "@/components/ui";
 import { answerInterviewAction } from "../actions";
 import { ANSWER_ERRORS, CRITERIA, formatAverage, scoreWord } from "../copy";
+import { INTERVIEW_TEXTOS } from "@/lib/textos-rediseno";
+import { AnswerSkeleton } from "./answer-skeleton";
 import { InterviewReportView } from "./report";
 import { RetryButton, type RetrySource } from "./retry-button";
 
@@ -27,6 +29,8 @@ export type AnswerView = {
 };
 
 const TOTAL = 5;
+/** Errores de envío que se arreglan probando de nuevo con el mismo texto (los demás piden cambiar algo). */
+const RETRYABLE = new Set(["busy", "llm_failed", "server", "capped"]);
 
 /** Los tres puntajes de una respuesta con su palabra. El número y la palabra siempre van juntos. */
 function Scores({
@@ -107,6 +111,7 @@ export function Simulator({
   const [reviewing, setReviewing] = useState(false);
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [truncated, setTruncated] = useState(false);
   const [pending, startTransition] = useTransition();
   const fieldRef = useRef<HTMLTextAreaElement>(null);
@@ -119,12 +124,18 @@ export function Simulator({
 
   function send(event: React.FormEvent) {
     event.preventDefault();
+    submit();
+  }
+
+  function submit() {
     if (pending) return;
     setError(null);
+    setErrorCode(null);
     startTransition(async () => {
       const result = await answerInterviewAction({ sessionId, answer: text });
       if (!result.ok) {
         setError(ANSWER_ERRORS[result.error] ?? ANSWER_ERRORS.server!);
+        setErrorCode(result.error);
         return;
       }
       setAnswers((prev) => [
@@ -299,10 +310,22 @@ export function Simulator({
               <Button type="submit" size="md" aria-disabled={pending} data-testid="interview-send">
                 {pending ? "Evaluando tu respuesta…" : "Enviar respuesta"}
               </Button>
+              {error && errorCode && RETRYABLE.has(errorCode) && !pending ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="md"
+                  onClick={submit}
+                  data-testid="interview-answer-retry"
+                >
+                  {INTERVIEW_TEXTOS.retry}
+                </Button>
+              ) : null}
               <span role="status" className="text-sm text-fg-muted">
                 {pending ? "Esto puede tardar unos segundos." : ""}
               </span>
             </div>
+            {pending ? <AnswerSkeleton /> : null}
           </form>
         </Card>
       )}

@@ -1,8 +1,8 @@
 import { createDb, requireDatabaseUrl, schema as s, type Db } from "@job-search-os/db";
 import {
-  countInterviewStarts,
   createLogger,
   deleteInterviewSession,
+  interviewStartTimes,
   listInterviewScores,
   listInterviewSessions,
   loadInterviewSession,
@@ -11,6 +11,7 @@ import {
 import {
   buildInterviewProgress,
   interviewMaxSimulationsPerDay,
+  interviewNextSlotAt,
   type InterviewProgress,
 } from "@job-search-os/pipeline";
 import { and, desc, notInArray, eq } from "drizzle-orm";
@@ -38,6 +39,8 @@ export type InterviewStartData = {
   suggestedCareer: string;
   /** Simulaciones que todavía puede empezar en las próximas 24 horas. */
   left: number;
+  /** Cuándo vuelve a habilitarse una simulación si hoy no quedan; null si hay cupo. */
+  nextSlotAt: Date | null;
   /** Tope de simulaciones por día (`INTERVIEW_MAX_SIMULATIONS_PER_DAY`). */
   max: number;
 };
@@ -61,13 +64,15 @@ export async function loadStartData(userId: string, now = new Date()): Promise<I
     const firstRole = profile?.targetRoles?.[0];
     const max = interviewMaxSimulationsPerDay(process.env);
     // Cuenta también las simulaciones borradas (llamadas de `llm_calls`): borrar no libera cupo
-    const inDay = await countInterviewStarts(db, userId, now);
+    const startTimes = await interviewStartTimes(db, userId, now);
+    const inDay = startTimes.length;
     return {
       sessions,
       progress,
       offers,
       suggestedCareer: firstRole ? (ROLE_LABELS[firstRole]?.label ?? "") : "",
       left: Math.max(0, max - inDay),
+      nextSlotAt: interviewNextSlotAt(startTimes, max),
       max,
     };
   });

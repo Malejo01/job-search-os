@@ -1,5 +1,5 @@
 export * from "./generate";
 export * from "./reserve";
 export * from "./service";
-export { countInterviewStarts } from "./starts";
+export { countInterviewStarts, interviewStartTimes } from "./starts";
 export * from "./store";

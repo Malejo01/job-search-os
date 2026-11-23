@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { ContextHelp } from "@/components/context-help";
-import { Card, EmptyState, textLinkClasses } from "@/components/ui";
-import { AYUDAS_ACADEMY } from "@/lib/textos-rediseno";
+import { EstadoMarca } from "@/components/estado-marca";
+import { Card, textLinkClasses } from "@/components/ui";
+import { AYUDAS_ACADEMY, INTERVIEW_TEXTOS } from "@/lib/textos-rediseno";
 import { requireActiveUserId } from "@/lib/session";
 import { DeleteSessionButton } from "./delete-session-button";
 import { ProgressTable } from "./progress-table";
@@ -43,6 +44,7 @@ export default async function InterviewPage() {
         offers={data.offers}
         suggestedCareer={data.suggestedCareer}
         left={data.left}
+        nextSlotAt={data.nextSlotAt ? data.nextSlotAt.toISOString() : null}
         seniorityHelp={
           <ContextHelp
             slug={AYUDAS_ACADEMY.seniority.slug}
@@ -62,10 +64,18 @@ export default async function InterviewPage() {
         </h2>
         <ProgressTable progress={data.progress} />
         {data.sessions.length === 0 ? (
-          <EmptyState variant="boxed" title="Todavía no hiciste ninguna" action={null}>
-            Cuando termines una, la vas a poder repasar desde acá. Para empezar, elegí sobre qué
-            practicar en la tarjeta de arriba.
-          </EmptyState>
+          <EstadoMarca
+            tipo="lista-vacia"
+            title={INTERVIEW_TEXTOS.vacio.title}
+            data-testid="interview-vacio"
+            action={
+              <a href="#interview-empezar" className={textLinkClasses({ block: true })}>
+                {INTERVIEW_TEXTOS.vacio.action}
+              </a>
+            }
+          >
+            {INTERVIEW_TEXTOS.vacio.text}
+          </EstadoMarca>
         ) : (
           <ul className="flex flex-col gap-3" data-testid="interview-history">
             {data.sessions.map((s) => (

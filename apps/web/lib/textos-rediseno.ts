@@ -116,3 +116,19 @@ export const AYUDAS_ACADEMY = {
   star: { slug: "metodo-star", term: "método STAR" },
   seguimiento: { slug: "despues-de-postularte", term: "qué hacer después de postularte" },
 } as const;
+
+/** Interview pulido (R23-08): espera, vacío, 404 propio. */
+export const INTERVIEW_TEXTOS = {
+  analizando: "Analizando tu respuesta…",
+  vacio: {
+    title: "Todavía no hiciste ninguna simulación",
+    text: "Cuando termines una, la vas a poder repasar desde acá y ver cómo evolucionás.",
+    action: "Empezar mi primera simulación",
+  },
+  noEncontrada: {
+    title: "No encontramos esta simulación",
+    text: "Puede que la hayas borrado o que el enlace esté mal escrito.",
+    action: "Ir a Interview",
+  },
+  retry: "Reintentar",
+} as const;

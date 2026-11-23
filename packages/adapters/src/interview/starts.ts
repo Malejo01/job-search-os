@@ -20,14 +20,18 @@ export const INTERVIEW_QUESTIONS_TASK = "interview_questions";
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** `db` puede ser una transacción de la app (RLS de dueño sobre `llm_calls`) o la conexión de servicio. */
-export async function startedInterviewIds(db: Db, userId: string, now: Date): Promise<Set<string>> {
+export async function startedInterviewTimes(
+  db: Db,
+  userId: string,
+  now: Date,
+): Promise<Map<string, Date>> {
   const since = new Date(now.getTime() - DAY_MS);
   const created = await db
-    .select({ id: s.interviewSessions.id })
+    .select({ id: s.interviewSessions.id, at: s.interviewSessions.createdAt })
     .from(s.interviewSessions)
     .where(and(eq(s.interviewSessions.userId, userId), gte(s.interviewSessions.createdAt, since)));
   const live = await db
-    .selectDistinct({ label: s.llmCalls.label })
+    .select({ label: s.llmCalls.label, at: s.llmCalls.createdAt })
     .from(s.llmCalls)
     .where(
       and(
@@ -38,7 +42,7 @@ export async function startedInterviewIds(db: Db, userId: string, now: Date): Pr
       ),
     );
   const generated = await db
-    .selectDistinct({ label: s.llmCalls.label })
+    .select({ label: s.llmCalls.label, at: s.llmCalls.createdAt })
     .from(s.llmCalls)
     .where(
       and(
@@ -49,16 +53,29 @@ export async function startedInterviewIds(db: Db, userId: string, now: Date): Pr
         gte(s.llmCalls.createdAt, since),
       ),
     );
-  const started = new Set<string>([
-    ...created.map((row) => row.id),
-    ...live.map((row) => (row.label ?? "").slice(INTERVIEW_START_LABEL_PREFIX.length)),
-    ...generated.map((row) => (row.label ?? "").slice(INTERVIEW_LABEL_PREFIX.length)),
-  ]);
-  started.delete("");
+  // Por id de simulación, con el instante más temprano en que se la vio empezar
+  const started = new Map<string, Date>();
+  const add = (id: string, at: Date) => {
+    if (id === "") return;
+    const prev = started.get(id);
+    if (!prev || at.getTime() < prev.getTime()) started.set(id, at);
+  };
+  for (const row of created) add(row.id, row.at);
+  for (const row of live) add((row.label ?? "").slice(INTERVIEW_START_LABEL_PREFIX.length), row.at);
+  for (const row of generated) add((row.label ?? "").slice(INTERVIEW_LABEL_PREFIX.length), row.at);
   return started;
+}
+
+export async function startedInterviewIds(db: Db, userId: string, now: Date): Promise<Set<string>> {
+  return new Set((await startedInterviewTimes(db, userId, now)).keys());
 }
 
 /** Simulaciones empezadas en las últimas 24 horas, borradas incluidas. */
 export async function countInterviewStarts(db: Db, userId: string, now: Date): Promise<number> {
   return (await startedInterviewIds(db, userId, now)).size;
+}
+
+/** Instantes de inicio de las simulaciones de las últimas 24 horas (borradas incluidas), para saber cuándo vuelve un cupo. */
+export async function interviewStartTimes(db: Db, userId: string, now: Date): Promise<Date[]> {
+  return [...(await startedInterviewTimes(db, userId, now)).values()];
 }
