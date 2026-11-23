@@ -5,6 +5,7 @@ import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { AssistantPanel } from "@/app/(app)/assistant-panel";
 import { Mascota } from "@/components/mascota";
 import { Icon } from "@/components/ui/icons";
+import { claimAsistenteAviso } from "@/lib/asistente-aviso";
 import { MASCOT_NAME } from "@/lib/textos-rediseno";
 import { MASCOTA_DISPONIBLE } from "@/lib/mascota";
 
@@ -16,31 +17,22 @@ const FACE_READY = MASCOTA_DISPONIBLE["cara-48"];
  */
 const MASCOT_SIZE = 64;
 const MASCOT_FACE_SIZE = 48;
-/** Clave del aviso de bienvenida: se muestra una sola vez por navegador. */
-const HINT_KEY = "afinia:asistente-aviso-visto";
-/** El aviso se esconde solo a los 10 s, para no quedar encima del contenido. */
-const HINT_MS = 10_000;
+/** El aviso se esconde solo a los 6 s, para no quedar encima del contenido. */
+const HINT_MS = 6_000;
 
-function hintSeen(): boolean {
+function sessionStore(): Storage | null {
   try {
-    return window.localStorage.getItem(HINT_KEY) === "1";
+    return window.sessionStorage;
   } catch {
-    return true;
-  }
-}
-
-function markHintSeen() {
-  try {
-    window.localStorage.setItem(HINT_KEY, "1");
-  } catch {
-    // Sin almacenamiento (modo privado): el aviso vuelve a aparecer, no pasa nada
+    return null;
   }
 }
 
 /**
  * Mascota del asistente: botón fijo abajo a la derecha, por encima de las pestañas del celular
- * (`--tabbar-h`). En el celular es una píldora con «Asistente» (con el «?» solo no se reconocía);
- * desde `sm`, el círculo de siempre. La primera vez, un aviso corto en el celular dice para qué sirve. Abre el panel del asistente. El panel vive acá, así la charla sigue al cambiar de
+ * (`--tabbar-h`). En el celular es un círculo compacto de 44 px solo con el ícono de charla
+ * (`aria-label`); desde `sm`, el círculo grande de siempre. Una vez por sesión, un aviso corto en
+ * el celular dice para qué sirve y se cierra solo. Abre el panel del asistente. El panel vive acá, así la charla sigue al cambiar de
  * pantalla; al recargar se pierde, a propósito. El layout la monta solo si `canUseAssistant`.
  * Esc cierra el panel (`<dialog>` nativo) y el foco vuelve al botón. Con «reducir movimiento» no
  * hay animación. Framer Motion solo se usa acá, para la entrada y el hover.
@@ -51,9 +43,12 @@ export function AssistantMascot({ maxTurns }: { maxTurns?: number }) {
   const reduce = useReducedMotion();
   const [hint, setHint] = useState(false);
   useEffect(() => {
-    if (hintSeen()) return;
-    // Aparece un momento después de cargar la página y se va solo
-    const show = window.setTimeout(() => setHint(true), 800);
+    // Aparece un momento después de cargar la página y se va solo. Una sola vez por sesión; si no
+    // hay sessionStorage, no se muestra. Se marca como visto recién al mostrarlo: si el efecto se
+    // monta dos veces (modo estricto de React), la primera pasada no lo gasta.
+    const show = window.setTimeout(() => {
+      if (claimAsistenteAviso(sessionStore())) setHint(true);
+    }, 800);
     const hide = window.setTimeout(() => setHint(false), 800 + HINT_MS);
     return () => {
       window.clearTimeout(show);
@@ -62,7 +57,6 @@ export function AssistantMascot({ maxTurns }: { maxTurns?: number }) {
   }, []);
   function closeHint() {
     setHint(false);
-    markHintSeen();
   }
   return (
     <>
@@ -104,12 +98,11 @@ export function AssistantMascot({ maxTurns }: { maxTurns?: number }) {
               setOpen(true);
             }}
             style={{ "--mascota": `${MASCOT_SIZE}px` } as CSSProperties}
-            className="inline-flex min-h-11 items-center justify-center gap-1.5 overflow-hidden rounded-pill border-2 border-line-strong bg-surface px-3.5 text-sm font-semibold text-fg shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:h-[var(--mascota)] sm:w-[var(--mascota)] sm:rounded-full sm:bg-illustration sm:px-0 sm:text-fg-muted"
+            className="inline-flex size-11 items-center justify-center overflow-hidden rounded-full border-2 border-line-strong bg-surface text-sm font-semibold text-fg shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:h-[var(--mascota)] sm:w-[var(--mascota)] sm:bg-illustration sm:text-fg-muted"
           >
             <span className="sm:hidden" aria-hidden="true">
-              <Icon name="charla" size={20} />
+              <Icon name="charla" size={22} />
             </span>
-            <span className="sm:hidden">Asistente</span>
             {FACE_READY ? (
               <Mascota pose="cara-48" size={MASCOT_FACE_SIZE} className="hidden sm:inline-flex" />
             ) : (
