@@ -15,14 +15,16 @@ import {
  * muestra «Escuchando…» con la voz simulada, en la pregunta de una simulación de Interview. Con la persona B
  * (ficticia, con una oferta evaluada de 8): corre en local y en el CI. Datos inventados; se borran al final.
  */
+// R25-05: `VoiceInput` pide el micrófono antes de dictar; Chromium lo da falso y sin cartel
+// (a nivel de archivo: `launchOptions` dentro de un `describe` fuerza otro worker y Playwright lo rechaza)
+test.use({
+  launchOptions: {
+    args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"],
+  },
+  permissions: ["microphone"],
+});
+
 test.describe("Flujo 187: microinteracciones", () => {
-  // R25-05: `VoiceInput` pide el micrófono antes de dictar; Chromium lo da falso y sin cartel
-  test.use({
-    launchOptions: {
-      args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"],
-    },
-    permissions: ["microphone"],
-  });
   const tag = `187-${Date.now()}`;
   let jobId = "";
   let sessionId = "";
