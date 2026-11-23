@@ -52,6 +52,7 @@ export * from "./career-maturity";
 export * from "./beta-metrics";
 export * from "./cap-env";
 export * from "./llm-spend-board";
+export * from "./llm-spend-anomaly";
 export * from "./unit-cost";
 export * from "./margin-calculator";
 export * from "./founder-seats";
