@@ -3,6 +3,7 @@ import {
   createLogger,
   dailyCapFromEnv,
   MANUAL_QUEUE_REASON,
+  poolMailboxExpiringCountSql,
   safeDbError,
   spendLast24h,
   UNEXPECTED_SENDER_REASON,
@@ -36,6 +37,7 @@ type Raw = {
   no_parser_7d: number | string;
   invites_pending: number | string;
   invites_expiring: number | string;
+  pool_mailbox_expiring: number | string;
 };
 
 type HostRow = { host: string | null; n: number | string };
@@ -107,7 +109,8 @@ async function readCounts(
             where used_at is null and expires_at > now()) as invites_pending,
           (select count(*) from invitations
             where used_at is null and expires_at > now()
-              and expires_at <= now() + interval '48 hours') as invites_expiring
+              and expires_at <= now() + interval '48 hours') as invites_expiring,
+          ${poolMailboxExpiringCountSql(now)} as pool_mailbox_expiring
       `)) as unknown as Raw[];
       // Solo el host del remitente y cuántos: nunca el asunto, el cuerpo ni el usuario
       const byHost = (await tx.execute(sql`
@@ -186,6 +189,7 @@ export async function getBetaHealth(userId: string): Promise<BetaHealthResult> {
           .map((h) => ({ host: h.host, count: n(h.n) })),
       },
       invitations: { pending: n(raw.invites_pending), expiringIn48h: n(raw.invites_expiring) },
+      poolMailboxExpiring7d: n(raw.pool_mailbox_expiring),
     };
     return { ok: true, input, at: now, budgetAlertsToday: raw.budget_alerts ?? [] };
   } catch (e) {
