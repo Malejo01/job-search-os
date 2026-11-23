@@ -1,14 +1,16 @@
 import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { envLocalPath } from "./private-dir";
 
 /**
- * Carga `.env.local` de la raíz del repo si existe (desarrollo local).
- * En CI y producción las variables ya vienen del entorno.
+ * Carga `.env.local` si existe (desarrollo local): el de la carpeta `JSO_PRIVATE_DIR` si está
+ * definida, y si no el de la raíz del repo. En CI y producción las variables ya vienen del entorno.
+ * `JSO_PRIVATE_DIR` tiene que venir del entorno del proceso (no se lee del propio `.env.local`).
  */
 export function loadLocalEnv(): void {
   const here = dirname(fileURLToPath(import.meta.url));
-  const envPath = resolve(here, "../../../.env.local");
+  const envPath = envLocalPath(process.env, resolve(here, "../../.."));
   if (existsSync(envPath)) process.loadEnvFile(envPath);
 }
 

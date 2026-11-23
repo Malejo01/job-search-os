@@ -12,6 +12,7 @@ export {
   type DbPurpose,
   type DbTarget,
 } from "./env";
+export { envLocalPath, fixturesPrivateDir, privateBaseDir } from "./private-dir";
 export { loadFixture, type FixtureName, type LoadedFixture } from "./fixtures";
 export { inboxAttention, inboxWhere } from "./inbox-views";
 export { confirmRemoteTarget, isRemoteDatabase } from "./confirm-remote";
