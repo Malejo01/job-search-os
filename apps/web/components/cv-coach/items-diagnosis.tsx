@@ -38,8 +38,8 @@ const scoreText = (n: number) => n.toFixed(1).replace(".", ",");
 
 /**
  * Diagnóstico del CV por ítems (Server Component, sin consultas nuevas: usa el CV que la página ya armó).
- * Estructura, secciones, legibilidad y palabras clave (con el mercado que pasa la página) salen del código;
- * los logros medibles dependen del diagnóstico del coach, que corre bajo demanda, así que dicen «Pronto». Con el coach activo, «Optimizar
+ * Estructura, secciones, legibilidad, logros medibles y palabras clave (con el mercado que pasa la página)
+ * salen del código. Sin mercado, las palabras clave dicen «Pronto». Con el coach activo, «Optimizar
  * mi CV» lleva a él.
  */
 export function CvItemsDiagnosis({

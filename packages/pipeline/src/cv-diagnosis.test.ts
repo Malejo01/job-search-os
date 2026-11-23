@@ -79,11 +79,72 @@ describe("diagnoseCv", () => {
     }
   });
 
-  it("logros medibles quedan en «soon» sin puntaje inventado; palabras clave también sin mercado", () => {
-    for (const id of ["keywords", "achievements"]) {
-      const item = byId(fullDoc(), id);
-      expect(item).toEqual({ id, status: "soon", score: null, level: null, advice: null });
-    }
+  it("palabras clave quedan en «soon» sin puntaje inventado cuando no hay mercado", () => {
+    const item = byId(fullDoc(), "keywords");
+    expect(item).toEqual({
+      id: "keywords",
+      status: "soon",
+      score: null,
+      level: null,
+      advice: null,
+    });
+  });
+
+  describe("logros medibles", () => {
+    const docWith = (bullets: string[]): CvDocument => {
+      const doc = fullDoc();
+      doc.sections = doc.sections.map((s) =>
+        s.id === "experience" ? section("experience", "Experiencia", bullets) : s,
+      );
+      return doc;
+    };
+
+    it("puntúa por código con las viñetas de experiencia", () => {
+      const item = byId(
+        docWith([
+          "Reduje los errores de carga un 18% en tres meses",
+          "Lideré un equipo de 6 personas en el área comercial",
+          "Atendí 120 clientes por mes con respuesta en el día",
+          "Armé reportes semanales para el equipo de ventas",
+        ]),
+        "achievements",
+      );
+      expect(item.status).toBe("scored");
+      expect(item.score).toBe(10);
+      expect(item.level).toBe("good");
+    });
+
+    it("sin resultados baja, cita una viñeta real y no la reescribe", () => {
+      const bullet = "Armé reportes semanales para el equipo de ventas";
+      const item = byId(
+        docWith([bullet, "Coordiné tareas del área administrativa"]),
+        "achievements",
+      );
+      expect(item.score).toBe(0);
+      expect(item.level).toBe("missing");
+      expect(item.advice).toContain(`«${bullet}»`);
+      expect(item.advice).toMatch(/número|porcentaje|cantidad/i);
+    });
+
+    it("un año suelto no cuenta como logro", () => {
+      const item = byId(docWith(["Migré la base de datos en 2021 con el equipo"]), "achievements");
+      expect(item.score).toBe(0);
+    });
+
+    it("sin viñetas puntúa 0 y pide escribirlas con resultado", () => {
+      const item = byId({ ...fullDoc(), sections: [] }, "achievements");
+      expect(item.score).toBe(0);
+      expect(item.level).toBe("missing");
+      expect(item.advice).toMatch(/viñetas/);
+    });
+
+    it("las viñetas de educación y skills no se miran", () => {
+      const doc = docWith([]);
+      doc.sections = doc.sections.map((s) =>
+        s.id === "skills" ? section("skills", "Skills", ["Mejoré un 50% todo"]) : s,
+      );
+      expect(byId(doc, "achievements").score).toBe(0);
+    });
   });
 
   describe("palabras clave con el mercado del puesto", () => {

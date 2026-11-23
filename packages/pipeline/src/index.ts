@@ -63,6 +63,7 @@ export * from "./interview";
 export * from "./cv-out";
 export * from "./cv-diagnosis";
 export * from "./cv-keywords";
+export * from "./cv-measurable";
 export * from "./cv-ats";
 export * from "./cv-for-offer";
 export * from "./cv-offer-download";
