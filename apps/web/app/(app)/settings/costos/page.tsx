@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { requireAdminOr404 } from "@/lib/admin-guard";
 import { getSpendBoard, SPEND_BOARD_DAYS } from "@/lib/llm-spend-board";
 import { requireUserId } from "@/lib/session";
+import { CalculadoraMargen } from "./calculadora-margen";
+import { CostoPorUnidad } from "./costo-por-unidad";
 
 export const metadata: Metadata = { title: "Costos de IA", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -275,7 +277,11 @@ function ModelsSection({ board }: { board: SpendBoard }) {
  * 4) por modelo. Las secciones de costo por unidad y de la calculadora de margen (R21-02 y R21-03)
  * se montan después del bloque por modelo, antes del pie. Sin JS de cliente.
  */
-export default async function CostosPage() {
+export default async function CostosPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const userId = await requireUserId();
   await requireAdminOr404(userId);
   const result = await getSpendBoard(userId);
@@ -308,7 +314,8 @@ export default async function CostosPage() {
       <DailySection board={board} />
       <TasksSection board={board} />
       <ModelsSection board={board} />
-      {/* R21-02 y R21-03: acá se montan «costo por unidad» y «calculadora de margen» */}
+      <CostoPorUnidad userId={userId} />
+      <CalculadoraMargen userId={userId} searchParams={await searchParams} />
       <p className="text-sm">
         <Link href="/settings/salud" className="font-semibold text-link underline">
           Salud de la beta
