@@ -29,7 +29,7 @@ import { getPoolCoverage } from "@/lib/pool-coverage";
 import { requireUserId } from "@/lib/session";
 import { buttonClasses } from "@/components/ui";
 import { AccesoFunnelPanel } from "./acceso-funnel-panel";
-import { PoolCoveragePanel } from "./pool-coverage-panel";
+import { PoolCoveragePanel, PoolMailboxPanel } from "./pool-coverage-panel";
 
 export const metadata = { title: "Métricas de la beta" };
 export const dynamic = "force-dynamic";
@@ -92,6 +92,7 @@ export default async function MetricasPage() {
       <FounderSeats founders={founders} k={metrics.k} />
       <HiddenCareers reveal={reveal} />
       <PoolCoveragePanel result={poolCoverage} />
+      {poolCoverage.ok ? <PoolMailboxPanel userId={userId} /> : null}
       <BetaFeedbackList feedback={feedback} />
       <a
         href={csvHref}
