@@ -1,4 +1,5 @@
 import {
+  coachLimitsFromEnv,
   createLogger,
   dbCoachTurnReserve,
   loadCoachFallbacks,
@@ -281,7 +282,10 @@ export async function POST(request: Request): Promise<Response> {
     const out = await runCoachTurn(
       {
         llm: serviceLlm(db, logger),
-        reserve: dbCoachTurnReserve(db, { dailyCapUsd: profileAgentDailyCapUsd(process.env) }),
+        reserve: dbCoachTurnReserve(db, {
+          dailyCapUsd: profileAgentDailyCapUsd(process.env),
+          limits: coachLimitsFromEnv(process.env),
+        }),
       },
       {
         userId,

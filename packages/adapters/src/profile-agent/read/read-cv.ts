@@ -3,6 +3,7 @@ import {
   normalizeCvText,
   profileAgentAllowed,
   profileAgentDailyCapUsd,
+  profileAgentLimitsFromEnv,
   profileAgentQuotaExempt,
   profileAgentReadsPerMonth,
   profileAgentWindows,
@@ -109,6 +110,7 @@ export async function readCvForAgent(
       exempt: profileAgentQuotaExempt(env, input.email),
       readsPerMonth: profileAgentReadsPerMonth(input.plan),
       dailyCapUsd: profileAgentDailyCapUsd(env),
+      limits: profileAgentLimitsFromEnv(env),
     });
     if (!reservation.ok) {
       return reservation.reject === "in_progress"

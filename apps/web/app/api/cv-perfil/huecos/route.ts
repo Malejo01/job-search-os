@@ -15,12 +15,14 @@ import { createDb, requireDatabaseUrl, type Db } from "@job-search-os/db";
 import {
   closeGap,
   cvChatCapNotice,
+  cvChatLimitsFromEnv,
   gapCardKeyMatches,
   gapRefFromKey,
   nextGapQuestion,
   openGapFollowUp,
   profileAgentCapNotice,
   profileAgentDailyCapUsd,
+  profileAgentLimitsFromEnv,
   profileGapAnswerSchema,
   profileGapCardSchema,
   profileGapStateSchema,
@@ -231,12 +233,16 @@ export async function POST(request: Request): Promise<Response> {
     conn = createDb(requireDatabaseUrl({ purpose: "service" }), { max: 1 });
     const db: Db = conn.db;
     const dailyCapUsd = profileAgentDailyCapUsd(process.env);
+    const gapLimits = {
+      ...profileAgentLimitsFromEnv(process.env),
+      maxStartsPerDay: cvChatLimitsFromEnv(process.env).maxStartsPerDay,
+    };
     const clock = (): { now: Date; daySince: Date } => ({
       now: new Date(now),
       daySince: new Date(now - 24 * 3600 * 1000),
     });
     const reserve = (step: "turn" | "check" | "start") =>
-      reserveGapStep(db, { userId, label, step, dailyCapUsd, ...clock() });
+      reserveGapStep(db, { userId, label, step, dailyCapUsd, limits: gapLimits, ...clock() });
     const release = async (id: string | null): Promise<void> => {
       if (!(await releaseCvChatReservation(db, id))) {
         logger.warn({ run_id: flowId }, "perfil: no se pudo borrar la reserva");

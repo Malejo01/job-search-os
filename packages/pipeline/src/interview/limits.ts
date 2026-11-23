@@ -1,17 +1,30 @@
+import { readCap, type CapEnv } from "../cap-env";
 import { INTERVIEW_QUESTION_COUNT } from "./schemas";
 
-/** Tope de simulaciones que una persona puede empezar en 24 horas. Lo hace cumplir el código, no el modelo. */
+/**
+ * Tope de simulaciones que una persona puede empezar en 24 horas (default). Lo hace cumplir el código, no el
+ * modelo. Se puede operar con `INTERVIEW_MAX_SIMULATIONS_PER_DAY` (entero positivo; inválido = este valor).
+ */
 export const INTERVIEW_MAX_SIMULATIONS_PER_DAY = 2;
+
+export function interviewMaxSimulationsPerDay(env: CapEnv): number {
+  return readCap(env, "INTERVIEW_MAX_SIMULATIONS_PER_DAY", INTERVIEW_MAX_SIMULATIONS_PER_DAY, {
+    kind: "int",
+  });
+}
 
 export type InterviewStartDecision =
   { ok: true; left: number } | { ok: false; reason: "daily_limit" };
 
 /** `startedLast24h`: simulaciones que la persona ya empezó (o tiene en curso) en las últimas 24 horas. */
-export function decideInterviewStart(startedLast24h: number): InterviewStartDecision {
-  if (startedLast24h >= INTERVIEW_MAX_SIMULATIONS_PER_DAY) {
+export function decideInterviewStart(
+  startedLast24h: number,
+  maxPerDay: number = INTERVIEW_MAX_SIMULATIONS_PER_DAY,
+): InterviewStartDecision {
+  if (startedLast24h >= maxPerDay) {
     return { ok: false, reason: "daily_limit" };
   }
-  return { ok: true, left: INTERVIEW_MAX_SIMULATIONS_PER_DAY - startedLast24h };
+  return { ok: true, left: maxPerDay - startedLast24h };
 }
 
 /** «Pregunta N de 5»: `answered` es la cantidad de respuestas ya evaluadas. */

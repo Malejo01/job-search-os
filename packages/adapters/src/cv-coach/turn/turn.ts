@@ -40,6 +40,7 @@ import {
   CV_COACH_TURN_TASK,
   releaseCvCoachReservation,
   reserveCvCoachStep,
+  type CvCoachLimits,
   type CvCoachReject,
 } from "../reserve";
 import { loadCoachFallbacks, type CoachFallbacksError } from "./templates";
@@ -61,7 +62,13 @@ export type CoachTurnReserve = {
 };
 
 /** Reserva contra `llm_calls` (ADR-038 §9): topes de la charla con la redacción reservada, persona y día. */
-export function dbCoachTurnReserve(db: Db, opts: { dailyCapUsd: number }): CoachTurnReserve {
+export function dbCoachTurnReserve(
+  db: Db,
+  opts: {
+    dailyCapUsd: number;
+    limits?: CvCoachLimits;
+  },
+): CoachTurnReserve {
   return {
     async reserve(input) {
       const r = await reserveCvCoachStep(db, {
@@ -71,6 +78,7 @@ export function dbCoachTurnReserve(db: Db, opts: { dailyCapUsd: number }): Coach
         now: input.now,
         daySince: profileAgentWindows(input.now).daySince,
         dailyCapUsd: opts.dailyCapUsd,
+        limits: opts.limits,
       });
       return r.ok ? { ok: true, reservationId: r.reservationId } : { ok: false, reject: r.reject };
     },

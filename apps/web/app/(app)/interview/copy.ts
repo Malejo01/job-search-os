@@ -20,7 +20,7 @@ export const scoreWord = (level: InterviewScoreLevel): string => INTERVIEW_SCORE
 
 export const START_ERRORS: Record<string, string> = {
   daily_limit:
-    "Ya hiciste dos simulaciones en las últimas 24 horas. Volvé más tarde para hacer otra; mientras tanto podés repasar las que ya terminaste.",
+    "Ya llegaste al máximo de simulaciones de las últimas 24 horas. Volvé más tarde para hacer otra; mientras tanto podés repasar las que ya terminaste.",
   capped:
     "Por hoy se llegó al límite de uso de la práctica. Probá de nuevo más tarde: tus simulaciones anteriores siguen acá.",
   not_found: "No encontramos esa oferta. Elegí otra o practicá con una carrera y un nivel.",

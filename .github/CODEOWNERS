@@ -102,11 +102,14 @@
 /apps/web/lib/cv-chat-server.ts @Malejo01
 /apps/web/lib/cv-coach/cards-server.ts @Malejo01
 /apps/web/lib/feedback-triage.ts @Malejo01
+/apps/web/lib/llm-spend-board.ts @Malejo01
 /apps/web/lib/market-recompute.ts @Malejo01
 /apps/web/lib/plan-admin.ts @Malejo01
 /apps/web/lib/pool-coverage.ts @Malejo01
 /apps/web/lib/profile-agent/gaps-server.ts @Malejo01
 /apps/web/lib/skill-levels.ts @Malejo01
+/apps/web/lib/spend-anomalies.ts @Malejo01
+/apps/web/lib/unit-cost.ts @Malejo01
 /apps/web/lib/waitlist-admin.ts @Malejo01
 /packages/adapters/src/ingest/cli.ts @Malejo01
 /packages/adapters/src/market/cli.ts @Malejo01

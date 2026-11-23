@@ -24,7 +24,7 @@ export default async function InterviewPage() {
         <p className="text-fg-muted">
           Practicá una entrevista: son 5 preguntas y, por cada respuesta, te mostramos qué tan
           clara, relevante y estructurada (método STAR) estuvo, con un consejo y un ejemplo para
-          mejorarla. Podés hacer hasta 2 simulaciones por día.
+          mejorarla. Podés hacer hasta {data.max} simulaciones por día.
         </p>
       </div>
 

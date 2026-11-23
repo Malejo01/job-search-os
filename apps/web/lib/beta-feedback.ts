@@ -2,7 +2,7 @@ import { schema as s } from "@job-search-os/db";
 import { and, eq, gt, sql } from "drizzle-orm";
 import { withUser } from "./db";
 import { canCreateInvitations } from "./invitations";
-import { isOverDailyLimit, type FeedbackInput } from "@job-search-os/pipeline";
+import { feedbackDailyLimit, isOverDailyLimit, type FeedbackInput } from "@job-search-os/pipeline";
 
 /**
  * «Contanos qué pasó» (C-23), solo servidor. El envío corre en una transacción de la persona
@@ -24,7 +24,8 @@ export async function saveFeedback(
           gt(s.betaFeedback.createdAt, sql`now() - interval '24 hours'`),
         ),
       );
-    if (isOverDailyLimit(row?.n ?? 0)) return { ok: false as const, field: "limit" as const };
+    if (isOverDailyLimit(row?.n ?? 0, feedbackDailyLimit(process.env)))
+      return { ok: false as const, field: "limit" as const };
     await tx.insert(s.betaFeedback).values({ userId, ...input });
     return { ok: true as const };
   });

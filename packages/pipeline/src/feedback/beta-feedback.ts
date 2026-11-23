@@ -3,6 +3,8 @@
  * usan la server action, el modal (solo constantes) y los tests. La base repite los límites con
  * CHECK (`beta_feedback_*`, migración 0045); `packages/db` tiene un test que los compara.
  */
+import { readCap, type CapEnv } from "../cap-env";
+
 export const FEEDBACK_CATEGORIES = ["algo_no_anduvo", "idea", "confuso"] as const;
 export type FeedbackCategory = (typeof FEEDBACK_CATEGORIES)[number];
 
@@ -17,7 +19,7 @@ export const FEEDBACK_PATH_MAX = 200;
 export const FEEDBACK_CONTEXT_MAX_BYTES = 4096;
 export const FEEDBACK_ACTIONS_MAX = 10;
 export const FEEDBACK_ACTION_TEXT_MAX = 60;
-/** Envíos por persona en una ventana de 24 h. */
+/** Envíos por persona en una ventana de 24 h (default; operable con `FEEDBACK_DAILY_LIMIT`). */
 export const FEEDBACK_DAILY_LIMIT = 10;
 
 export type FeedbackAction = {
@@ -282,6 +284,14 @@ export function validateFeedback(raw: {
 }
 
 /** Tope diario: `sentLast24h` son los envíos de la persona en las últimas 24 h (contados en la base). */
-export function isOverDailyLimit(sentLast24h: number): boolean {
-  return sentLast24h >= FEEDBACK_DAILY_LIMIT;
+export function isOverDailyLimit(
+  sentLast24h: number,
+  limit: number = FEEDBACK_DAILY_LIMIT,
+): boolean {
+  return sentLast24h >= limit;
+}
+
+/** Envíos por persona y día desde `FEEDBACK_DAILY_LIMIT` (entero positivo; inválido = 10). */
+export function feedbackDailyLimit(env: CapEnv): number {
+  return readCap(env, "FEEDBACK_DAILY_LIMIT", FEEDBACK_DAILY_LIMIT, { kind: "int" });
 }

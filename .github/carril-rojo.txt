@@ -105,11 +105,14 @@ apps/web/lib/career-history.ts
 apps/web/lib/cv-chat-server.ts
 apps/web/lib/cv-coach/cards-server.ts
 apps/web/lib/feedback-triage.ts
+apps/web/lib/llm-spend-board.ts
 apps/web/lib/market-recompute.ts
 apps/web/lib/plan-admin.ts
 apps/web/lib/pool-coverage.ts
 apps/web/lib/profile-agent/gaps-server.ts
 apps/web/lib/skill-levels.ts
+apps/web/lib/spend-anomalies.ts
+apps/web/lib/unit-cost.ts
 apps/web/lib/waitlist-admin.ts
 packages/adapters/src/ingest/cli.ts
 packages/adapters/src/market/cli.ts

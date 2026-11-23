@@ -11,6 +11,7 @@ import {
   maskDigits,
   parseFromAddress,
   INBOUND_DMARC_MODES,
+  readCap,
   readMode,
   readIntegerSetting,
   parsePoolMailbox,
@@ -730,8 +731,12 @@ export async function handleInboundEmail(
         ),
       )) as { hour: number; day: number }[];
     if (
-      (counts?.hour ?? 0) >= POOL_QUEUE_MAX_PER_HOUR ||
-      (counts?.day ?? 0) >= POOL_QUEUE_MAX_PER_DAY
+      (counts?.hour ?? 0) >=
+        readCap(process.env, "POOL_QUEUE_MAX_PER_HOUR", POOL_QUEUE_MAX_PER_HOUR, {
+          kind: "int",
+        }) ||
+      (counts?.day ?? 0) >=
+        readCap(process.env, "POOL_QUEUE_MAX_PER_DAY", POOL_QUEUE_MAX_PER_DAY, { kind: "int" })
     ) {
       log.warn(
         { pool_last_hour: counts?.hour ?? 0, pool_last_day: counts?.day ?? 0 },

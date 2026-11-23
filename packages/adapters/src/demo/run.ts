@@ -4,6 +4,7 @@ import {
   SHOWCASE_SOURCES,
   SHOWCASE_OFFERS_FRESH_MS,
   demoCriteriaRules,
+  readCap,
   type DemoProfile,
   type DemoProfileKey,
 } from "@job-search-os/pipeline";
@@ -134,7 +135,9 @@ export async function selectDemoJobs(
 export async function runDemoEvaluations(input: RunDemoInput): Promise<DemoRunSummary> {
   const { db, llm } = input;
   const now = input.now ?? (() => new Date());
-  const capUsd = input.capUsd ?? DEMO_WEEKLY_CAP_USD;
+  const capUsd =
+    input.capUsd ??
+    readCap(process.env, "DEMO_WEEKLY_CAP_USD", DEMO_WEEKLY_CAP_USD, { kind: "decimal" });
   const budgetMs = input.budgetMs ?? DEMO_BUDGET_MS;
   const promptVersion = DEFAULT_PROMPT_VERSIONS.evaluate_job ?? "evaluate_job@v1";
   const log = input.logger.child({ cron: "demo" });
