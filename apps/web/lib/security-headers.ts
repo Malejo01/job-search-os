@@ -4,8 +4,10 @@ export const SECURITY_HEADERS: readonly { key: string; value: string }[] = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   {
     key: "Permissions-Policy",
-    // Sin interest-cohort: Chrome ya no lo reconoce y lo informa como error en la consola
-    value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+    // Sin interest-cohort: Chrome ya no lo reconoce y lo informa como error en la consola.
+    // Micrófono solo para el propio sitio (R25): con `microphone=()` el navegador niega getUserMedia y el
+    // dictado sin mostrar el cartel de permiso. Iframes y terceros siguen sin acceso.
+    value: "camera=(), microphone=(self), geolocation=(), payment=(), usb=()",
   },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },

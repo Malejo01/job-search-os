@@ -120,6 +120,17 @@ describe("los headers de seguridad de siempre llegan a las dos clases de ruta", 
     }
   });
 
+  it("micrófono solo para el propio sitio (Dictar y la voz lo necesitan); lo demás sigue cerrado", () => {
+    // R25: con `microphone=()` el navegador niega getUserMedia sin mostrar el cartel de permiso
+    const policy = SECURITY_HEADERS.find((h) => h.key === "Permissions-Policy")?.value ?? "";
+    const parts = policy.split(",").map((p) => p.trim());
+    expect(parts).toContain("microphone=(self)");
+    for (const closed of ["camera=()", "geolocation=()", "payment=()", "usb=()"]) {
+      expect(parts).toContain(closed);
+    }
+    expect(policy).not.toMatch(/\*/);
+  });
+
   it("la CSP global no lleva nonce: no vuelve dinámica ninguna página", () => {
     const csp = SECURITY_HEADERS.find((h) => h.key === "Content-Security-Policy")?.value ?? "";
     expect(csp).not.toMatch(/nonce/i);
