@@ -35,6 +35,7 @@ import {
 } from "./parsers";
 import { linkedinParser } from "./linkedin";
 import { clampReason } from "./motivo";
+import { readPoolAlertEmail } from "./pool-computrabajo";
 import {
   isPoolAlertSender,
   POOL_MANUAL_QUEUE_REASON,
@@ -43,6 +44,7 @@ import {
   POOL_QUEUE_MAX_PER_DAY,
   POOL_QUEUE_MAX_PER_HOUR,
   POOL_RAW_MAX_BYTES,
+  POOL_READER_FAILED_PREFIX,
   readPoolInboundConfig,
   type PoolInboundConfig,
 } from "./pool-mailbox";
@@ -87,6 +89,7 @@ export type InboundDeps = {
 export type InboundOutcome =
   | { kind: "duplicate"; inboundId: string }
   | { kind: "pool_queued"; inboundId: string; career: string }
+  | { kind: "pool_read"; inboundId: string; career: string; jobsExtracted: number }
   | { kind: "unknown_recipient"; recipientsCount: number }
   | { kind: "rate_limited"; userId: string }
   | {
@@ -241,6 +244,42 @@ export function bucketOfOutcome(
     : "expected";
 }
 
+/**
+ * Antes de pedir el cuerpo: un From de portal cuyo contenido ya salió ilegible cuenta contra el cupo de no
+ * esperados mientras ese cupo esté lleno. Es lo único que se sabe sin leer el cuerpo: así el trabajo de
+ * pedirlo y guardarlo no se repite. Se responde como cualquier rechazo por cupo (429): el remitente lo
+ * reintenta cuando la ventana se libera. Una consulta de conteo y, solo con el cupo lleno, otra por el
+ * índice (user_id, received_at).
+ */
+async function unreadableSenderOverQuota(
+  db: Db,
+  userId: string,
+  from: string,
+  now: Date,
+  deps: Pick<InboundDeps, "hourlyLimit" | "dailyLimit">,
+): Promise<QuotaCheck | null> {
+  const counts = await countBucket(db, userId, "unexpected", now);
+  if (
+    counts.hour < (deps.hourlyLimit ?? 100) &&
+    counts.day < (deps.dailyLimit ?? USER_DAILY_EMAIL_LIMIT)
+  ) {
+    return null;
+  }
+  const [row] = await db
+    .select({ id: s.inboundEmails.id })
+    .from(s.inboundEmails)
+    .where(
+      and(
+        eq(s.inboundEmails.userId, userId),
+        eq(s.inboundEmails.fromAddress, from.slice(0, MAX_STORED_HEADER_CHARS)),
+        gte(s.inboundEmails.receivedAt, new Date(now.getTime() - 24 * 60 * 60 * 1000)),
+        inUnexpectedBucket(),
+      ),
+    )
+    .limit(1);
+  return row ? { limited: true, bucket: "unexpected", ...counts, jobDomains: [] } : null;
+}
+
 /** Intentos de la última hora y del último día en un cupo, por el índice (user_id, received_at). */
 async function countBucket(
   db: Db,
@@ -275,12 +314,14 @@ async function rejectOverQuota(
   quota: QuotaCheck,
   now: Date,
   log: Pick<Logger, "warn">,
+  /** Un reintento que retoma una provisional abandonada ya fue contado (o se perdió con la falla): no suma. */
+  count = true,
 ): Promise<InboundOutcome> {
   log.warn(
     { user_id: userId, bucket: quota.bucket, count: quota.hour, day_count: quota.day },
     "inbound: rate limit por usuario",
   );
-  await countRejection(db, userId, now);
+  if (count) await countRejection(db, userId, now);
   return { kind: "rate_limited", userId };
 }
 
@@ -584,14 +625,18 @@ export async function processInboundEvent(
     // Con el cupo agotado no se pide el cuerpo a Resend: alcanza con el remitente y el destinatario.
     // Una provisional abandonada ya está contada: retomarla no vuelve a pasar por el cupo.
     const quota = await checkUserQuota(deps.db, destination, event.data.from, now, deps);
-    if (quota.limited && !dup) {
-      return rejectOverQuota(
+    const log = deps.logger.child({ email_id: event.data.email_id });
+    if (quota.limited && !dup) return rejectOverQuota(deps.db, destination, quota, now, log);
+    // Un From de portal que ya dejó ilegibles con el cupo de no esperados lleno tampoco pide el cuerpo
+    if (!dup && quota.bucket === "expected") {
+      const unreadable = await unreadableSenderOverQuota(
         deps.db,
         destination,
-        quota,
+        event.data.from,
         now,
-        deps.logger.child({ email_id: event.data.email_id }),
+        deps,
       );
+      if (unreadable) return rejectOverQuota(deps.db, destination, unreadable, now, log);
     }
   }
   return handleInboundEmail(event, await fetchContent(), rawBody, deps);
@@ -726,6 +771,42 @@ export async function handleInboundEmail(
           })
         : full,
     });
+    // R19-01 (ADR-043): con el lector prendido, un email de estructura conocida carga sus avisos al pool.
+    // Apagado, o ante cualquier falla de lectura, el email queda en la cola manual como siempre.
+    let queueError = oversize ? POOL_OVERSIZE_REASON : POOL_MANUAL_QUEUE_REASON;
+    let jobsRead = 0;
+    let readOk = false;
+    let resolved = false;
+    if (pool.computrabajoReader && !oversize && content?.html) {
+      const read = await readPoolAlertEmail({
+        db,
+        logger: log,
+        career: mailbox.career,
+        now,
+        email: {
+          from: event.data.from,
+          to: recipients,
+          subject: event.data.subject ?? null,
+          html: content.html,
+          text: content.text,
+          receivedAt: now,
+        },
+      });
+      // El esqueleto (conteos y huella, sin texto ni links) va al log para comparar el primer email real
+      log.info(
+        { career: mailbox.career, reader_ok: read.ok, skeleton: read.skeleton },
+        "inbound: esqueleto del email del pool",
+      );
+      if (read.ok) {
+        jobsRead = read.jobsExtracted;
+        readOk = true;
+        // Sin avisos con error el email queda resuelto; con alguno, queda en la cola con el motivo
+        if (read.errors) queueError = `${read.errors} avisos con error al cargar al pool`;
+        else resolved = true;
+      } else {
+        queueError = `${POOL_READER_FAILED_PREFIX} (${POOL_PARSER}): ${clampReason(read.reason)}. Cola manual`;
+      }
+    }
     const [row] = await db
       .insert(s.inboundEmails)
       .values({
@@ -735,13 +816,26 @@ export async function handleInboundEmail(
         subject: event.data.subject ? maskDigits(event.data.subject) : null,
         rawRef,
         parser: POOL_PARSER,
-        jobsExtracted: 0,
-        error: oversize ? POOL_OVERSIZE_REASON : POOL_MANUAL_QUEUE_REASON,
+        jobsExtracted: jobsRead,
+        error: resolved ? null : queueError,
+        seenAt: resolved ? now : null,
         receivedAt: now,
       })
       .onConflictDoNothing({ target: s.inboundEmails.emailId })
       .returning({ id: s.inboundEmails.id });
     if (!row) return duplicateAfterRace(db, event.data.email_id, log);
+    if (readOk) {
+      log.info(
+        { career: mailbox.career, jobs_extracted: jobsRead, resolved },
+        "inbound: casilla del pool leída",
+      );
+      return {
+        kind: "pool_read",
+        inboundId: row.id,
+        career: mailbox.career,
+        jobsExtracted: jobsRead,
+      };
+    }
     log.info({ career: mailbox.career, oversize }, "inbound: casilla del pool a la cola manual");
     return { kind: "pool_queued", inboundId: row.id, career: mailbox.career };
   }
@@ -831,7 +925,7 @@ export async function handleInboundEmail(
         { user_id: userId, used_bytes: usedBytes, bytes: emailBytes, max_bytes: maxBytes },
         "inbound: tope de almacenamiento de correo, no se guarda el crudo",
       );
-      await countRejection(db, userId, now);
+      // La fila se guarda con su motivo y las ofertas entran: no es un rechazo, no suma al contador
     }
 
     // JS-119: se clasifica antes del chequeo de remitente. Los códigos y reseteos (de cualquier
@@ -1045,6 +1139,7 @@ export async function handleInboundEmail(
           { limited: true, bucket: "unexpected", ...counts, jobDomains },
           now,
           log,
+          !existing,
         );
       }
     }

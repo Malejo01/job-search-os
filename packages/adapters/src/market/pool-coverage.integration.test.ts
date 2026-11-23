@@ -4,7 +4,8 @@ import { createDb, isRemoteDatabase, schema as s } from "@job-search-os/db";
 import { buildPoolCoverage } from "@job-search-os/pipeline";
 import { like } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { readPoolCoverage } from "./pool-coverage";
+import { POOL_PARSER } from "../inbound/pool-mailbox";
+import { readPoolCoverage, readPoolMailboxActivity } from "./pool-coverage";
 
 /**
  * R16-4 · Cobertura del pool por carrera y fuente. Datos inventados, con prefijo propio y con carreras
@@ -138,5 +139,47 @@ describe("readPoolCoverage", () => {
     await pool({});
     const table = buildPoolCoverage([ROLE_A, ROLE_B], await read());
     expect(table.find((r) => r.role === ROLE_B)).toMatchObject({ active30: 0, low: true });
+  });
+});
+
+describe("readPoolMailboxActivity (R19-04)", () => {
+  const ref = `${PREFIX}mail`;
+  const cleanMail = () =>
+    conn.db.delete(s.inboundEmails).where(like(s.inboundEmails.rawRef, `${ref}%`));
+  afterAll(cleanMail);
+
+  it("fecha por carrera de los avisos por email, interruptores y último email de la cola", async () => {
+    await pool({ sourceKind: "computrabajo_alerts", lastSeenAt: day(5) });
+    await pool({ sourceKind: "computrabajo_alerts", lastSeenAt: day(2) });
+    await pool({ sourceKind: "computrabajo_alerts", lastSeenAt: day(9), roleHints: [ROLE_B] });
+    await pool({ sourceKind: "remoteok", lastSeenAt: day(0) }); // otra fuente: no cuenta
+    const future = new Date("2099-01-01T00:00:00Z");
+    await conn.db.insert(s.inboundEmails).values({
+      userId: null,
+      fromAddress: "alertas@example.com",
+      rawRef: `${ref}1`,
+      parser: POOL_PARSER,
+      receivedAt: future,
+    });
+    try {
+      const off = await readPoolMailboxActivity(conn.db, [ROLE_A, ROLE_B, "r16-4-c"], {});
+      expect(off).toMatchObject({ mailboxesOn: false, readerOn: false });
+      expect(off.lastQueueEmailAt?.toISOString()).toBe(future.toISOString());
+      expect(off.lastAlertByRole).toEqual([
+        { role: ROLE_A, lastAt: day(2), offers: 2 },
+        { role: ROLE_B, lastAt: day(9), offers: 1 },
+        { role: "r16-4-c", lastAt: null, offers: 0 },
+      ]);
+      const on = await readPoolMailboxActivity(conn.db, [], {
+        POOL_SOURCE_COMPUTRABAJO_ALERTS: "1",
+        POOL_COMPUTRABAJO_READER: "1",
+      });
+      expect(on).toMatchObject({ mailboxesOn: true, readerOn: true, lastAlertByRole: [] });
+      // Solo "1" prende el lector
+      const odd = await readPoolMailboxActivity(conn.db, [], { POOL_COMPUTRABAJO_READER: "on" });
+      expect(odd.readerOn).toBe(false);
+    } finally {
+      await cleanMail();
+    }
   });
 });

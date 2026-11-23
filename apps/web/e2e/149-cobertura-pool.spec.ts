@@ -92,6 +92,12 @@ test.describe("Flujo 149: cobertura del pool por carrera", () => {
     expect(await num("cobertura-total-30")).toBe(before.t30 + 3);
     expect(await num("cobertura-es-7")).toBe(before.e7 + 1);
     expect(await num("cobertura-es-30")).toBe(before.e30 + 2);
+    // R19-04: casillas del pool con el estado del lector y una fila por carrera, sin remitentes
+    const casillas = page.getByTestId("casillas-pool");
+    await expect(casillas).toBeVisible();
+    await expect(casillas.getByTestId("casillas-carrera")).toHaveCount(8);
+    await expect(casillas.getByTestId("casillas-lector")).toHaveText(/Prendido|Apagado/);
+    await expect(casillas).not.toContainText("@");
     // sin datos de ningún aviso en la pantalla
     await expect(panel).not.toContainText("Empresa Ficticia");
     await expect(panel).not.toContainText("example.com");

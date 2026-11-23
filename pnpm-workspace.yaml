@@ -31,3 +31,11 @@ overrides:
   "source-map-js@<1.2.2": "^1.2.2"
   "sharp@<0.35.5": "^0.35.5"
   "zod@<4.6.6": "^4.6.6"
+  # Solo desarrollo (testcontainers, vitest, drizzle-kit). Endurecimiento S5.
+  "undici@>=8.0.0 <8.12.2": ">=8.12.2 <9"
+  "@grpc/grpc-js@>=1.14.0 <1.14.5": "^1.14.5"
+  "brace-expansion@>=2.0.0 <2.1.7": "^2.1.7"
+  "brace-expansion@>=4.0.0 <5.0.12": "^5.0.12"
+  "vite@>=8.2.0 <8.2.4": "^8.2.4"
+  "@vitest/mocker@<4.1.12": "^4.1.12"
+  "esbuild@<0.25.0": "^0.25.0"

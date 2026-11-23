@@ -12,9 +12,11 @@ import {
 } from "node:fs";
 import { resolve } from "node:path";
 import process from "node:process";
+import { defaultPatternsDir } from "./privacy-scan.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
-const PRIV = resolve(ROOT, "fixtures-private");
+// <JSO_PRIVATE_DIR>/fixtures-private si la variable está; si no, <raíz>/fixtures-private
+const PRIV = defaultPatternsDir(ROOT);
 const MAP_PATH = resolve(PRIV, "empresas.map.json");
 const log = (s) => process.stdout.write(`${s}\n`);
 

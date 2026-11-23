@@ -165,8 +165,12 @@ describe("--tree", () => {
     return dir;
   }
 
-  function run(args: string[]) {
-    const r = spawnSync(process.execPath, [SCRIPT, ...args], { encoding: "utf8" });
+  /** `privateDir`: valor de JSO_PRIVATE_DIR para el proceso (por defecto vacío: no depende del entorno de quien corre). */
+  function run(args: string[], privateDir = "") {
+    const r = spawnSync(process.execPath, [SCRIPT, ...args], {
+      encoding: "utf8",
+      env: { ...process.env, JSO_PRIVATE_DIR: privateDir },
+    });
     return { code: r.status, out: r.stdout, err: r.stderr };
   }
 
@@ -261,6 +265,56 @@ describe("--tree", () => {
     const root = repo();
     const r = run(["--tree", "--root", root]);
     expect(r.code).toBe(2);
+  });
+
+  it("con JSO_PRIVATE_DIR toma los patrones de <carpeta>/fixtures-private", () => {
+    const root = repo();
+    const externa = tmpDir("privado");
+    mkdirSync(join(externa, "fixtures-private"));
+    writeFileSync(join(externa, "fixtures-private", "privacy-patterns.txt"), "Fabrikam\n");
+    const r = run(["--tree", "--root", root], externa);
+    expect(r.code).toBe(1);
+    expect(r.err).toContain("src/sucio.ts:2");
+    expect(`${r.out}${r.err}`.toLowerCase()).not.toContain("fabrikam");
+  });
+
+  it("con JSO_PRIVATE_DIR sin patrones adentro falla cerrado (no cae a los del repo)", () => {
+    const root = repo();
+    mkdirSync(join(root, "fixtures-private"));
+    writeFileSync(join(root, "fixtures-private", "privacy-patterns.txt"), "Fabrikam\n");
+    const externa = tmpDir("privado");
+    const r = run(["--tree", "--root", root], externa);
+    expect(r.code).toBe(2);
+  });
+
+  it("con JSO_PRIVATE_DIR relativa o inexistente falla cerrado con código 2", () => {
+    const root = repo();
+    const rel = run(["--tree", "--root", root], "../otra");
+    expect(rel.code).toBe(2);
+    expect(rel.err).toContain("JSO_PRIVATE_DIR");
+    const falta = run(["--tree", "--root", root], join(tmpDir("privado"), "no-existe"));
+    expect(falta.code).toBe(2);
+    expect(falta.err).toContain("JSO_PRIVATE_DIR");
+  });
+
+  it("una carpeta de patrones que no existe o está vacía nunca termina sin hallazgos", () => {
+    const root = repo();
+    const inexistente = join(tmpDir("pats"), "no-existe");
+    const vacia = tmpDir("pats-vacia");
+    for (const modo of ["--tree", "--hook", "--pre-push"]) {
+      for (const dir of [inexistente, vacia]) {
+        const r = run([modo, "--root", root, "--patterns-dir", dir]);
+        expect(r.code, `${modo} ${dir === vacia ? "vacía" : "inexistente"}`).not.toBe(0);
+        expect(r.err).toContain("No hay patrones");
+      }
+    }
+  });
+
+  it("--patterns-dir explícito gana sobre JSO_PRIVATE_DIR", () => {
+    const root = repo();
+    const dir = patternsDir({ patterns: "Fabrikam\n" });
+    const r = run(["--tree", "--root", root, "--patterns-dir", dir], "../otra");
+    expect(r.code).toBe(1);
   });
 });
 

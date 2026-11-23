@@ -167,13 +167,14 @@ test.describe("Flujo 123: asistente con acceso de prueba", () => {
       expect(c!.x).toBeGreaterThanOrEqual(0);
     });
 
-    test("a 390 px el botón dice «Asistente» y el aviso inicial se cierra y no vuelve", async ({
+    test("a 390 px el botón es solo ícono (con aria-label) y el aviso se muestra una vez por sesión", async ({
       page,
     }) => {
       await page.setViewportSize({ width: 390, height: 844 });
       await loginAsSecondUser(page);
       await page.goto("/hoy");
-      await expect(mascot(page)).toContainText("Asistente");
+      await expect(page.getByRole("button", { name: "Abrir asistente" })).toBeVisible();
+      await expect(mascot(page)).not.toContainText("Asistente");
       const aviso = page.getByTestId("asistente-aviso-inicial");
       await expect(aviso).toBeVisible();
       await expect(aviso).toContainText("Preguntame lo que quieras");

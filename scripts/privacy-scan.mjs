@@ -47,15 +47,16 @@
 //   --explain <N>         muestra el patrón N (solo en una terminal propia)
 //
 // Opciones (en cualquier posición):
-//   --patterns-dir <dir>  directorio de patrones (por defecto <root>/fixtures-private)
+//   --patterns-dir <dir>  directorio de patrones (por defecto <root>/fixtures-private,
+//                         o <JSO_PRIVATE_DIR>/fixtures-private si esa variable está definida)
 //   --root <dir>          repo a barrer (por defecto, el que contiene este script)
 
 /* global console, process */
 
 import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { existsSync, lstatSync, readFileSync, readlinkSync, realpathSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { existsSync, lstatSync, readFileSync, readlinkSync, realpathSync, statSync } from "node:fs";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 export const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -537,7 +538,7 @@ function failClosed(err, pats) {
   }
   console.error(
     `[privacy-scan] No pude completar el barrido: ${detail}\n` +
-      "No se puede verificar nada, así que fallo cerrado. Avisale a Mauro.",
+      "No se puede verificar nada, así que fallo cerrado. Avisale a quien administra el repo.",
   );
   process.exit(2);
 }
@@ -546,9 +547,32 @@ function needPatterns(pats, dir) {
   if (pats.length > 0) return;
   console.error(
     `[privacy-scan] No hay patrones en ${dir}: falta empresas.map.json o privacy-patterns.txt.\n` +
-      "Sin patrones no puedo verificar nada, así que fallo cerrado. Avisale a Mauro.",
+      "Sin patrones no puedo verificar nada, así que fallo cerrado. Avisale a quien administra el repo.",
   );
   process.exit(2);
+}
+
+/**
+ * Carpeta de los patrones por defecto: `<JSO_PRIVATE_DIR>/fixtures-private` si la variable está
+ * definida, y si no `<root>/fixtures-private` (como siempre). Misma regla que
+ * `packages/db/src/private-dir.ts`: con la variable definida tiene que ser una ruta absoluta y una
+ * carpeta existente, o tira un error (falla cerrado). El mensaje no incluye la ruta.
+ */
+export function defaultPatternsDir(root, env = process.env) {
+  const raw = env.JSO_PRIVATE_DIR?.trim();
+  if (!raw) return join(root, "fixtures-private");
+  if (!isAbsolute(raw)) throw new Error("JSO_PRIVATE_DIR tiene que ser una ruta absoluta.");
+  const dir = resolve(raw);
+  if (!isDirectory(dir)) throw new Error("JSO_PRIVATE_DIR no es una carpeta existente.");
+  return join(dir, "fixtures-private");
+}
+
+function isDirectory(path) {
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
 }
 
 /** Saca --root y --patterns-dir de los argumentos; el resto queda en `rest`. */
@@ -563,7 +587,14 @@ function parseArgs(argv) {
       else patternsDir = resolve(argv[++i]);
     } else rest.push(argv[i]);
   }
-  return { root, patternsDir: patternsDir ?? join(root, "fixtures-private"), rest };
+  if (patternsDir === null) {
+    try {
+      patternsDir = defaultPatternsDir(root);
+    } catch (err) {
+      return { configError: err instanceof Error ? err.message : "JSO_PRIVATE_DIR inválida." };
+    }
+  }
+  return { root, patternsDir, rest };
 }
 
 const USAGE =
@@ -576,6 +607,10 @@ export async function main(argv = process.argv.slice(2)) {
     console.error(`[privacy-scan] ${parsed.usageError}\n${USAGE}`);
     process.exit(1);
   }
+  if (parsed.configError) {
+    console.error(`[privacy-scan] ${parsed.configError} Fallo cerrado: no puedo verificar nada.`);
+    process.exit(2);
+  }
   const { root, patternsDir, rest: args } = parsed;
   const mode = args[0] ?? "";
   let pats;
@@ -586,7 +621,7 @@ export async function main(argv = process.argv.slice(2)) {
     const what = err instanceof PatternError ? err.message : "archivo ilegible o JSON inválido";
     console.error(
       `[privacy-scan] No pude leer los patrones de ${patternsDir} (${what}).\n` +
-        "Sin patrones no puedo verificar nada, así que fallo cerrado. Avisale a Mauro.",
+        "Sin patrones no puedo verificar nada, así que fallo cerrado. Avisale a quien administra el repo.",
     );
     process.exit(2);
   }
