@@ -68,6 +68,17 @@ export function fichaWordCount(ficha: Pick<AcademyFicha, "blocks">): number {
   return texts.join(" ").split(/\s+/).filter(Boolean).length;
 }
 
+const BAJADA_MAX = 140;
+
+/** Bajada de la ficha: su primer párrafo, cortado en una palabra entera si pasa de 140 caracteres. */
+export function fichaBajada(ficha: Pick<AcademyFicha, "blocks">): string {
+  const p = ficha.blocks.find((b) => b.type === "paragraph");
+  if (!p || p.type !== "paragraph") return "";
+  const text = inlineText(p.children).replace(/\s+/g, " ").trim();
+  if (text.length <= BAJADA_MAX) return text;
+  return `${text.slice(0, BAJADA_MAX).replace(/\s+\S*$/, "")}…`;
+}
+
 /** ¿Esta cuenta puede ver los borradores? Admins y testers (las mismas listas de siempre). */
 export function mayReviewAcademy(
   email: string | null | undefined,
