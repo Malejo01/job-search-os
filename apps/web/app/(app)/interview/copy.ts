@@ -16,6 +16,17 @@ export const CRITERIA = [
   { key: "star", label: "Estructura STAR" },
 ] as const;
 
+/**
+ * Informe final. Los consejos se agrupan por el criterio donde la respuesta sacó menos (regla fija, sin IA):
+ * el texto de cada grupo explica en qué consiste el patrón; el consejo concreto es el del propio modelo.
+ */
+export const REPORT_PATTERNS = {
+  clarity: "Varias respuestas se entendieron con esfuerzo: ordená las ideas y andá al punto.",
+  relevance:
+    "Varias respuestas se alejaron de lo que preguntaban: volvé a la pregunta antes de cerrar.",
+  star: "Varias respuestas no contaron la historia completa: situación, tarea, acción y resultado.",
+} as const;
+
 export const scoreWord = (level: InterviewScoreLevel): string => INTERVIEW_SCORE_WORDS[level];
 
 export const START_ERRORS: Record<string, string> = {

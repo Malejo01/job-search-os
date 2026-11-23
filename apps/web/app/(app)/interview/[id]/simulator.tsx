@@ -4,14 +4,17 @@ import { useId, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   INTERVIEW_ANSWER_MAX_CHARS,
-  interviewAverage,
+  buildInterviewReport,
   interviewScoreLevel,
   type InterviewScoreLevel,
 } from "@job-search-os/pipeline";
 import { Dictar } from "@/components/dictar";
+import { PrintButton } from "@/components/print-button";
 import { Alert, Button, buttonClasses, Card, inputClasses, labelClasses } from "@/components/ui";
 import { answerInterviewAction } from "../actions";
 import { ANSWER_ERRORS, CRITERIA, formatAverage, scoreWord } from "../copy";
+import { InterviewReportView } from "./report";
+import { RetryButton, type RetrySource } from "./retry-button";
 
 export type AnswerView = {
   position: number;
@@ -78,11 +81,13 @@ export function Simulator({
   title,
   questions,
   initialAnswers,
+  source,
 }: {
   sessionId: string;
   title: string;
   questions: string[];
   initialAnswers: AnswerView[];
+  source: RetrySource;
 }) {
   const uid = useId();
   const [answers, setAnswers] = useState<AnswerView[]>(initialAnswers);
@@ -132,9 +137,11 @@ export function Simulator({
   }
 
   if (done) {
-    const average = interviewAverage(answers);
+    const built = buildInterviewReport(answers);
+    const report = built.ok ? built.value : null;
+    const average = report ? report.overall : null;
     return (
-      <div className="flex flex-col gap-5" data-testid="interview-summary">
+      <div className="interview-report flex flex-col gap-5" data-testid="interview-summary">
         <section
           aria-labelledby={`${uid}-resumen`}
           className="rounded-card bg-ink p-5 text-on-ink sm:p-6"
@@ -151,6 +158,15 @@ export function Simulator({
             </p>
           ) : null}
         </section>
+        {report ? <InterviewReportView report={report} questions={questions} /> : null}
+        <div className="no-print flex flex-wrap items-start gap-3">
+          <RetryButton source={source} />
+          <PrintButton label="Imprimir o guardar como PDF" />
+          <Link href="/interview" className={buttonClasses({ variant: "secondary", size: "md" })}>
+            Volver a Interview
+          </Link>
+        </div>
+        <h2 className="text-lg font-extrabold text-fg">Respuesta por respuesta</h2>
         <ol className="flex flex-col gap-4">
           {answers.map((a) => (
             <Card
@@ -158,7 +174,7 @@ export function Simulator({
               key={a.position}
               level="list"
               padding="md"
-              className="flex flex-col gap-3"
+              className="print-card flex flex-col gap-3"
             >
               <p className="text-[13px] font-extrabold text-fg-muted">
                 Pregunta {a.position + 1} de {TOTAL}
@@ -172,12 +188,6 @@ export function Simulator({
             </Card>
           ))}
         </ol>
-        <Link
-          href="/interview"
-          className={buttonClasses({ variant: "secondary", size: "md", className: "self-start" })}
-        >
-          Volver a Interview
-        </Link>
       </div>
     );
   }

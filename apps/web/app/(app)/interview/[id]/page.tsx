@@ -4,6 +4,7 @@ import { z } from "zod";
 import { textLinkClasses } from "@/components/ui";
 import { requireActiveUserId } from "@/lib/session";
 import { loadSession } from "../server";
+import type { RetrySource } from "./retry-button";
 import { Simulator, type AnswerView } from "./simulator";
 
 export const metadata = { title: "Simulación de entrevista" };
@@ -34,6 +35,16 @@ export default async function InterviewSessionPage({
     example: a.example,
   }));
 
+  const { session } = loaded;
+  const source: RetrySource =
+    session.sourceKind === "job" && session.jobId
+      ? { kind: "job", jobId: session.jobId }
+      : {
+          kind: "career",
+          career: session.career ?? session.title,
+          seniority: session.seniority ?? "junior",
+        };
+
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-5">
       <div className="flex flex-col gap-1">
@@ -47,6 +58,7 @@ export default async function InterviewSessionPage({
         title={loaded.session.title}
         questions={loaded.session.questions}
         initialAnswers={answers}
+        source={source}
       />
     </div>
   );
