@@ -1,3 +1,4 @@
+import { BRAND } from "@job-search-os/pipeline";
 import { INTERVIEW_CLIENTE } from "./textos-interview";
 
 /**
@@ -44,7 +45,7 @@ export const CV_NOT_ENOUGH_DATA_LABEL = "Sin datos suficientes";
 
 /** Recorrido de primer uso tras el rediseño (R23-05): cuatro pasos cortos, sin promesas. */
 export const PRIMER_USO = {
-  label: "Lo nuevo de AfinIAJobs",
+  label: `Lo nuevo de ${BRAND.name}`,
   next: "Siguiente",
   back: "Anterior",
   skip: "Saltar",
