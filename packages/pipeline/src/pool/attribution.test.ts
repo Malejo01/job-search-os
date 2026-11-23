@@ -135,9 +135,18 @@ const SOURCE_KINDS = [
   "ashby",
   "teamtailor",
   "workable",
+  "computrabajo_alerts",
 ] as const;
 
 describe("SOURCE_ATTRIBUTION", () => {
+  it("computrabajo_alerts dice «vía Computrabajo» (ADR-024 §4)", () => {
+    expect(SOURCE_ATTRIBUTION.computrabajo_alerts).toEqual({
+      name: "Computrabajo",
+      text: "vía Computrabajo",
+    });
+    expect(attributionFor("computrabajo_alerts")?.text).toBe("vía Computrabajo");
+  });
+
   it("tiene una entrada por cada fuente", () => {
     expect(Object.keys(SOURCE_ATTRIBUTION).sort()).toEqual([...SOURCE_KINDS].sort());
   });
