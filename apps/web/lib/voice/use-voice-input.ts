@@ -1,7 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
-import { VOICE_CLIENT_MAX_MS, chooseVoicePath, type VoiceErrorKind } from "@job-search-os/pipeline";
+import {
+  VOICE_CLIENT_MAX_MS,
+  chooseVoicePath,
+  voiceErrorMessage,
+  type VoiceErrorKind,
+  type VoicePath,
+} from "@job-search-os/pipeline";
 import { getSpeechRecognition } from "@/components/dictar-engine";
 import {
   INITIAL_VOICE_STATE,
@@ -130,6 +136,10 @@ export type UseVoiceInput = {
    * muestra el mensaje en vez del botón. `null` hasta que se sabe (en el servidor y en el primer render).
    */
   unsupportedForRecording: boolean | null;
+  /** Camino previsto para este navegador (`null` hasta saberlo). En el camino `browser` puede haber respaldo. */
+  plannedPath: VoicePath | null;
+  /** Texto para mostrar cuando `unsupportedForRecording` es `true`. */
+  unavailableMessage: string | null;
 };
 
 const subscribeNoop = () => () => {};
@@ -175,22 +185,34 @@ export function useVoiceInput(options: UseVoiceInputOptions): UseVoiceInput {
   const subscribe = useCallback((cb: () => void) => getSession().subscribe(cb), [getSession]);
   const state = useSyncExternalStore(subscribe, () => getSession().getState(), noopSnapshot);
 
-  const unsupportedForRecording = useSyncExternalStore(
+  // El camino que se va a usar y, si no se puede dictar acá, el texto que lo explica (strings: snapshot estable)
+  const plannedPath = useSyncExternalStore(
     subscribeNoop,
-    () => {
+    (): VoicePath => {
       const d = browserVoiceDeps();
-      const path = chooseVoicePath({
+      return chooseVoicePath({
         userAgent: d.userAgent,
         hasSpeechRecognition: d.SpeechCtor !== null,
         isBrave: d.isBrave,
       });
-      return path === "record" && !options.serverTranscribe;
+    },
+    (): VoicePath | null => null,
+  );
+  const unsupportedForRecording =
+    plannedPath === null ? null : plannedPath === "record" && !options.serverTranscribe;
+  const unavailableMessage = useSyncExternalStore(
+    subscribeNoop,
+    () => {
+      const d = browserVoiceDeps();
+      return voiceErrorMessage("server-off", d.userAgent, { isBrave: d.isBrave });
     },
     () => null,
   );
 
   return useMemo(
     () => ({
+      plannedPath,
+      unavailableMessage,
       state,
       start: () => void getSession().start(),
       stop: () => getSession().stop(),
@@ -200,6 +222,6 @@ export function useVoiceInput(options: UseVoiceInputOptions): UseVoiceInput {
         sessionRef.current?.getLevels(count) ?? Array.from({ length: count }, () => 0),
       unsupportedForRecording,
     }),
-    [state, getSession, unsupportedForRecording],
+    [state, getSession, unsupportedForRecording, plannedPath, unavailableMessage],
   );
 }
