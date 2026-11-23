@@ -799,6 +799,12 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
         /admin_beta_metrics: no autorizado/,
       );
     },
+    // R21-01: gasto de IA agregado, solo app_admins
+    admin_llm_spend_board: async () => {
+      await expect(asUser(A, (tx) => tx`select admin_llm_spend_board(30)`)).rejects.toThrow(
+        /admin_llm_spend_board: no autorizado/,
+      );
+    },
     // C-13b: cupos de fundador, solo app_admins
     admin_founder_counts: async () => {
       await expect(asUser(A, (tx) => tx`select * from admin_founder_counts()`)).rejects.toThrow(

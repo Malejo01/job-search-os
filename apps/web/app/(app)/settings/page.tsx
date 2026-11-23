@@ -170,6 +170,10 @@ export default async function SettingsPage({
           <Link href="/settings/salud" className={LINK}>
             Salud de la beta
           </Link>
+          {/* R21-01: gasto de IA por día, tarea y modelo */}
+          <Link href="/settings/costos" className={LINK}>
+            Costos de IA
+          </Link>
           {/* C-14: el tablero de la beta es para las mismas cuentas que invitan */}
           <Link href="/settings/metricas" className={LINK}>
             Métricas de la beta

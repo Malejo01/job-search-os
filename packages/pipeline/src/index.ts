@@ -50,6 +50,7 @@ export * from "./pool";
 // C-13 y C-14: en el medio y no al final, para no chocar con los export que agregan otras ramas
 export * from "./career-maturity";
 export * from "./beta-metrics";
+export * from "./llm-spend-board";
 export * from "./founder-seats";
 export * from "./trust";
 export * from "./first-steps";
