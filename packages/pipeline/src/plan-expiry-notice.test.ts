@@ -4,6 +4,7 @@ import {
   buildPlanNoticeEmail,
   formatNoticeDate,
   isPlanNoticeDue,
+  noticeStage,
   PLAN_NOTICE_DAILY_CAP_DEFAULT,
   PLAN_NOTICE_DAILY_CAP_MAX,
   planNoticeDailyCap,
@@ -27,16 +28,77 @@ function cand(over: Partial<PlanNoticeCandidate> = {}): PlanNoticeCandidate {
   };
 }
 
+describe("noticeStage: los tres avisos por vencimiento", () => {
+  // Vence el 20/12 a las 15:00 UTC = 12:00 de Argentina. Medianoche AR del 20/12 = 03:00 UTC.
+  const until = new Date("2026-12-20T15:00:00Z");
+  const at = (iso: string) => noticeStage(until, new Date(iso));
+
+  it("antes de la medianoche de 7 días antes no hay aviso", () => {
+    expect(at("2026-12-13T02:59:00Z")).toBeNull();
+    expect(at("2026-12-01T12:00:00Z")).toBeNull();
+  });
+
+  it("desde 7 días antes y hasta la víspera toca el aviso de 7", () => {
+    expect(at("2026-12-13T03:00:00Z")?.stage).toBe(7);
+    expect(at("2026-12-18T20:00:00Z")?.stage).toBe(7);
+  });
+
+  it("la víspera toca el de 1 día y el día del vencimiento el de «hoy»", () => {
+    expect(at("2026-12-19T03:00:00Z")?.stage).toBe(1);
+    expect(at("2026-12-20T02:59:00Z")?.stage).toBe(1);
+    expect(at("2026-12-20T03:00:00Z")?.stage).toBe(0);
+    expect(at("2026-12-20T14:59:00Z")?.stage).toBe(0);
+  });
+
+  it("al vencer o después ya no hay aviso", () => {
+    expect(noticeStage(until, until)).toBeNull();
+    expect(at("2026-12-21T12:00:00Z")).toBeNull();
+  });
+
+  it("la marca de cada etapa es la medianoche de Argentina en que empieza", () => {
+    expect(at("2026-12-15T12:00:00Z")?.since.toISOString()).toBe("2026-12-13T03:00:00.000Z");
+    expect(at("2026-12-19T12:00:00Z")?.since.toISOString()).toBe("2026-12-19T03:00:00.000Z");
+    expect(at("2026-12-20T12:00:00Z")?.since.toISOString()).toBe("2026-12-20T03:00:00.000Z");
+  });
+});
+
 describe("isPlanNoticeDue: a quién avisar (C4-1)", () => {
-  it("avisa cuando quedan 3 días o menos y todavía no venció", () => {
+  it("avisa cuando quedan 7 días o menos y todavía no venció", () => {
     expect(isPlanNoticeDue(cand({ planUntil: days(3) }), NOW)).toBe(true);
     expect(isPlanNoticeDue(cand({ planUntil: days(2) }), NOW)).toBe(true);
+    expect(isPlanNoticeDue(cand({ planUntil: days(6) }), NOW)).toBe(true);
     expect(isPlanNoticeDue(cand({ planUntil: new Date(NOW.getTime() + 60_000) }), NOW)).toBe(true);
   });
 
-  it("no avisa con más de 3 días por delante", () => {
-    expect(isPlanNoticeDue(cand({ planUntil: days(4) }), NOW)).toBe(false);
+  it("no avisa con más de 7 días por delante", () => {
+    expect(isPlanNoticeDue(cand({ planUntil: days(9) }), NOW)).toBe(false);
     expect(isPlanNoticeDue(cand({ planUntil: days(20) }), NOW)).toBe(false);
+  });
+
+  it("manda un aviso por etapa: el de 7, el de 1 y el del día, cada uno una vez", () => {
+    const until = new Date("2026-12-20T15:00:00Z");
+    let notified: Date | null = null;
+    const sent: number[] = [];
+    // El cron corre dos veces por día (reintento): solo la primera de cada día manda
+    for (const iso of [
+      "2026-12-12T12:00:00Z",
+      "2026-12-13T12:00:00Z",
+      "2026-12-13T12:05:00Z",
+      "2026-12-14T12:00:00Z",
+      "2026-12-19T12:00:00Z",
+      "2026-12-19T12:05:00Z",
+      "2026-12-20T12:00:00Z",
+      "2026-12-20T12:05:00Z",
+      "2026-12-21T12:00:00Z",
+    ]) {
+      const now = new Date(iso);
+      const c = cand({ planUntil: until, planNotifiedAt: notified });
+      if (isPlanNoticeDue(c, now)) {
+        sent.push(noticeStage(until, now)!.stage);
+        notified = now;
+      }
+    }
+    expect(sent).toEqual([7, 1, 0]);
   });
 
   it("no avisa si ya venció (pasó al gratis) ni justo en el instante de vencer", () => {
@@ -55,17 +117,26 @@ describe("isPlanNoticeDue: a quién avisar (C4-1)", () => {
     expect(isPlanNoticeDue(cand({ planSource: "beca" }), NOW)).toBe(true);
   });
 
-  it("no repite el aviso de un mismo vencimiento", () => {
-    // Vence en 2,5 días: la ventana de aviso se abrió hace medio día
+  it("no repite el aviso de una misma etapa", () => {
+    // Vence en 2,5 días: etapa de 7, abierta hace días
     const until = days(2.5);
-    // Avisada hace un rato, dentro de la ventana de ese vencimiento
     expect(isPlanNoticeDue(cand({ planUntil: until, planNotifiedAt: days(-1 / 24) }), NOW)).toBe(
       false,
     );
-    // Avisada justo cuando se abrió la ventana (3 días antes del fin)
     expect(isPlanNoticeDue(cand({ planUntil: until, planNotifiedAt: days(-0.5) }), NOW)).toBe(
       false,
     );
+  });
+
+  it("avisa de nuevo cuando empieza una etapa posterior a la última marca", () => {
+    const until = new Date("2026-12-20T15:00:00Z");
+    // Avisada el 14 (etapa de 7); el 19 toca la de 1 día
+    expect(
+      isPlanNoticeDue(
+        cand({ planUntil: until, planNotifiedAt: new Date("2026-12-14T12:00:00Z") }),
+        new Date("2026-12-19T12:00:00Z"),
+      ),
+    ).toBe(true);
   });
 
   it("avisa de nuevo cuando renovó: el aviso viejo era de otro vencimiento", () => {
@@ -208,6 +279,21 @@ describe("buildPlanNoticeEmail: el texto del aviso", () => {
     );
     const long = buildPlanNoticeEmail({ ...base, displayName: "x".repeat(300) }).text;
     expect(long.split("\n")[0]!.length).toBeLessThan(80);
+  });
+
+  it("según la etapa dice cuándo vence: en 7 días (default), mañana u hoy", () => {
+    const s7 = buildPlanNoticeEmail({ ...base, stage: 7 });
+    const s1 = buildPlanNoticeEmail({ ...base, stage: 1 });
+    const s0 = buildPlanNoticeEmail({ ...base, stage: 0 });
+    expect(buildPlanNoticeEmail(base).subject).toBe(s7.subject);
+    expect(s1.subject).toMatch(/ma[ñn]ana/i);
+    expect(s0.subject).toMatch(/hoy/i);
+    expect(s7.subject).not.toMatch(/ma[ñn]ana|hoy/i);
+    for (const e of [s7, s1, s0]) {
+      expect(e.text).toMatch(/7 días antes, 1 día antes y el día del vencimiento/);
+      expect(e.text).toMatch(/plan gratis/);
+      expect(e.text).not.toMatch(/garant|reintegr|devoluci/i);
+    }
   });
 
   it("no promete garantía ni reintegros", () => {

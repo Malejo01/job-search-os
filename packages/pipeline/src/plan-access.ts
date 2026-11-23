@@ -11,7 +11,7 @@ import { effectivePlan, isPlanKey, planDef, type PlanKey } from "./plans";
 const DAY_MS = 86_400_000;
 
 /** Cuántos días antes de vencer la app avisa. */
-export const EXPIRY_WARNING_DAYS = 3;
+export const EXPIRY_WARNING_DAYS = 7;
 
 /**
  * Apertura de la beta cerrada, provisoria: lunes 1/12/2026, 00:00 de Argentina (UTC−3, sin horario de
@@ -21,7 +21,7 @@ export const EXPIRY_WARNING_DAYS = 3;
  */
 export const BETA_OPENS_AT = new Date("2026-12-01T03:00:00Z");
 
-/** Cómo llegó el acceso: la persona pagó, o Mauro le dio la beca (primer mes gratis). */
+/** Cómo llegó el acceso: la persona pagó, o el equipo le dio la beca (primer mes gratis). */
 export const PLAN_SOURCES = ["pago", "beca"] as const;
 export type PlanSource = (typeof PLAN_SOURCES)[number];
 
@@ -38,7 +38,7 @@ export type AccessStatus =
   | "por_vencer"
   /** Tenía un plan pago y su fecha ya pasó: rige el gratis. */
   | "vencido"
-  /** Plan pago sin fecha de fin (lo asignó Mauro a mano y a propósito). */
+  /** Plan pago sin fecha de fin (lo asignó el equipo a mano y a propósito). */
   | "sin_vencimiento";
 
 export type PlanAccess = {

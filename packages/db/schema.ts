@@ -116,6 +116,47 @@ export const planOverrides = pgTable("plan_overrides", {
   check("plan_overrides_override", sql`${t.override} in ('becado', 'tester_50')`),
 ]);
 
+// «Ya pagué» (R22-01, rls/0053): el aviso que carga la persona después de pagar con Mercado Pago, para que el
+// equipo lo confirme a mano. La app no se conecta a Mercado Pago ni guarda datos de pago: lo único que se
+// guarda es el número de operación (opcional, solo dígitos) además del plan pedido, el estado y las fechas.
+// La persona inserta (siempre `pendiente`) y lee solo los suyos; el tope de 3 pendientes lo impone un trigger
+// de la base. Pasar a `activado` o `rechazado` lo hace el admin (R22-02). Cae con la cuenta (cascade).
+export const paymentNotices = pgTable("payment_notices", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  plan: text("plan").notNull(),                       // plan pedido: clave de plans.ts
+  operationNumber: text("operation_number"),           // opcional; solo dígitos
+  status: text("status").notNull().default("pendiente"), // pendiente | activado | rechazado
+  rejectReason: text("reject_reason"),                 // motivo corto, solo con status = rechazado
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+}, (t) => [
+  index("payment_notices_user_status").on(t.userId, t.status),
+  index("payment_notices_status_created").on(t.status, t.createdAt),
+  check("payment_notices_status", sql`${t.status} in ('pendiente', 'activado', 'rechazado')`),
+  check("payment_notices_plan_length", sql`char_length(${t.plan}) between 1 and 40`),
+  check("payment_notices_operation_number", sql`${t.operationNumber} is null or ${t.operationNumber} ~ '^[0-9]{1,20}$'`),
+  check("payment_notices_reject_reason", sql`${t.rejectReason} is null or (${t.status} = 'rechazado' and char_length(${t.rejectReason}) between 1 and 200)`),
+]);
+
+// Historial de cambios del plan (R22-02, rls/0054): quién (admin) cambió el plan de qué persona, cuándo y cómo.
+// Sin emails, montos ni textos libres. La persona no lo lee: la tabla no tiene policy para el rol de la app y
+// solo las funciones admin_plan_event_* (SECURITY DEFINER, con la barrera app_admins) la leen y escriben.
+// Cae con la cuenta de la persona (cascade); si se borra la del admin, queda el cambio sin admin (set null).
+export const planEvents = pgTable("plan_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  adminId: uuid("admin_id").references(() => users.id, { onDelete: "set null" }),
+  action: text("action").notNull(),   // activar | renovar | quitar | rechazar_aviso | marca
+  source: text("source"),             // pago | beca, solo al activar o renovar
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index("plan_events_created").on(t.createdAt.desc()),
+  index("plan_events_user").on(t.userId),
+  check("plan_events_action", sql`${t.action} in ('activar', 'renovar', 'quitar', 'rechazar_aviso', 'marca')`),
+  check("plan_events_source", sql`${t.source} is null or ${t.source} in ('pago', 'beca')`),
+]);
+
 export const profiles = pgTable("profiles", {
   userId: uuid("user_id").primaryKey(), // = auth.users.id
   displayName: text("display_name").notNull(),
@@ -254,6 +295,8 @@ export const jobs = pgTable("jobs", {
   index("jobs_user_first_seen").on(t.userId, t.firstSeenAt.desc()),
   // C8-15: candidatos de /market (los últimos 300 JD por created_at) sin ordenar en memoria
   index("jobs_user_created").on(t.userId, t.createdAt.desc()),
+  // R22-04: uso por carrera (rls/0057), rango por fecha de las ofertas cargadas a mano, de todas las personas
+  index("jobs_manual_created").on(t.createdAt).where(sql`${t.publicJobId} is null`),
   uniqueIndex("jobs_user_url").on(t.userId, t.canonicalUrl),
   uniqueIndex("jobs_user_public_job").on(t.userId, t.publicJobId).where(sql`${t.publicJobId} is not null`),
 ]);
@@ -515,6 +558,9 @@ export const evaluations = pgTable("evaluations", {
     sql`((${t.decision} -> 'inputs' ->> 'jd_hash'))`,
     t.createdAt.desc(),
   ),
+  // R22-04: uso por carrera (rls/0057), rangos por fecha de todas las personas: evaluaciones y 👍/👎
+  index("evaluations_created_at").on(t.createdAt),
+  index("evaluations_verdict_at").on(t.humanVerdictAt).where(sql`${t.humanVerdictAt} is not null`),
 ]);
 
 export const applications = pgTable("applications", {
@@ -535,6 +581,8 @@ export const applications = pgTable("applications", {
   index("applications_user_outcome").on(t.userId, t.outcome),
   // C-7: FK sin índice; los joins de /applications y del informe de calibración van por acá
   index("applications_job").on(t.jobId),
+  // R22-04: uso por carrera (rls/0057), rango por fecha de todas las personas
+  index("applications_created_at").on(t.createdAt),
 ]);
 
 export const contacts = pgTable("contacts", {
@@ -680,6 +728,8 @@ export const interviewSessions = pgTable("interview_sessions", {
   finishedAt: timestamp("finished_at", { withTimezone: true }),
 }, (t) => [
   index("interview_sessions_user_created").on(t.userId, t.createdAt.desc()),
+  // R22-04: uso por carrera (rls/0057), rango por fecha de todas las personas
+  index("interview_sessions_created_at").on(t.createdAt),
   check("interview_sessions_source_kind", sql`${t.sourceKind} in ('job', 'career')`),
   check("interview_sessions_status", sql`${t.status} in ('en_curso', 'terminada')`),
   check("interview_sessions_seniority", sql`${t.seniority} is null or ${t.seniority} in ('trainee', 'junior', 'semi_senior', 'senior', 'lead')`),

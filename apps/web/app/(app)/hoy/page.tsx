@@ -2,6 +2,7 @@ import {
   ALERT_PORTALS,
   firstName,
   greeting,
+  pricingEnabled,
   VISIT_COOKIE,
   visitWindow,
   type ReviewProgress,
@@ -17,7 +18,9 @@ import { parseJobFilters, reviewProgressFor } from "@/lib/jobs";
 import { listPendingJd } from "@/lib/pending-jd";
 import { Card as UiCard, cardClasses, EmptyState, textLinkClasses } from "@/components/ui";
 import { requireActiveUserId } from "@/lib/session";
+import { getUserPlan } from "@/lib/user-plan";
 import { Illustration } from "@/components/brand/illustration";
+import { PlanVencido } from "./plan-vencido";
 import { MascotaSaludo } from "./mascota-saludo";
 import { MarkVisit } from "./mark-visit";
 import { NewJobRow } from "./new-job-row";
@@ -73,12 +76,18 @@ export default async function HoyPage() {
   const userId = await requireActiveUserId();
   const jar = await cookies();
   const now = new Date();
-  const [data, displayName, pending, week] = await Promise.all([
+  const [data, displayName, pending, week, expired] = await Promise.all([
     getHoyData(userId, now, jar.get(VISIT_COOKIE)?.value),
     // Lo que no es central no rompe la pantalla: sin nombre, sin pendientes o sin semana, se omite
     getDisplayName(userId).catch(() => null),
     listPendingJd(userId).catch(() => []),
     reviewProgressFor(userId, parseJobFilters({ periodo: "semana" })).catch(() => null),
+    // R22-03: la única consulta que suma Hoy, y solo con los precios encendidos; si falla, no se muestra
+    pricingEnabled(process.env)
+      ? getUserPlan(userId, now)
+          .then((p) => (p.access.status === "vencido" ? p.access : null))
+          .catch(() => null)
+      : Promise.resolve(null),
   ]);
   const name = firstName(displayName);
   const highScore = data.jobs.filter((j) => j.score !== null && j.score >= 7).length;
@@ -121,6 +130,12 @@ export default async function HoyPage() {
         </section>
 
         <div className="mx-auto grid w-full max-w-[1280px] items-start gap-3 px-3.5 pt-4 sm:gap-7 sm:px-12 sm:pt-7 lg:grid-cols-[400px_1fr]">
+          {expired ? (
+            <PlanVencido
+              until={expired.until}
+              enabled={{ cv: process.env.CV_IMPORT_ENABLED === "1", assistant: false }}
+            />
+          ) : null}
           {/* «Para hacer hoy» (C8-5 y C10-6): los pasos de quien empieza y lo pendiente de sus datos */}
           <StartHere userId={userId} pendingJd={pending.length} followUps={data.followUps.length} />
           <NewCard data={data} />

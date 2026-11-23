@@ -47,6 +47,8 @@ const CATALOG_TABLES = [
   "acceso_funnel",
   // Intentos de login (S2): por hash del email, sin user_id ni policy para la app; solo por funciones (rls/0023).
   "login_attempts",
+  // Historial del plan (R22-02): con user_id pero sin policy para la app; solo por funciones admin (rls/0054).
+  "plan_events",
 ];
 
 /**
@@ -79,6 +81,8 @@ const FN_TABLES: Target[] = [
   { table: "password_reset_tokens", column: "user_id" },
   { table: "mcp_tokens", column: "user_id" },
   { table: "plan_overrides", column: "user_id" },
+  { table: "payment_notices", column: "user_id" },
+  { table: "plan_events", column: "user_id" },
 ];
 const key = (t: Target) => `${t.table}.${t.column}`;
 const snapshotB: Record<string, string> = {};
@@ -178,6 +182,8 @@ async function seed(id: string, tag: string): Promise<{ jobId: string }> {
   await owner`insert into mcp_tokens (user_id, token_hash, label, expires_at)
                values (${id}, ${(tag.charCodeAt(0).toString(16) + "0".repeat(64)).slice(0, 64)}, 'Chat de prueba', now() + interval '30 days')`;
   await owner`insert into plan_overrides (user_id, override) values (${id}, 'tester_50')`;
+  await owner`insert into payment_notices (user_id, plan, operation_number) values (${id}, 'lista', '123456789')`;
+  await owner`insert into plan_events (user_id, action, source) values (${id}, 'activar', 'pago')`;
   return { jobId: job!.id };
 }
 
@@ -805,6 +811,12 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
         /admin_founder_counts: no autorizado/,
       );
     },
+    // R22-04: uso por carrera y semana, solo app_admins
+    admin_usage_by_career: async () => {
+      await expect(asUser(A, (tx) => tx`select * from admin_usage_by_career()`)).rejects.toThrow(
+        /admin_usage_by_career: no autorizado/,
+      );
+    },
     // C-23: comentarios de la beta, solo app_admins
     admin_beta_feedback: async () => {
       await expect(asUser(A, (tx) => tx`select * from admin_beta_feedback()`)).rejects.toThrow(
@@ -860,6 +872,57 @@ describe("funciones SECURITY DEFINER con contexto de A y argumentos de B", () =>
       await expect(
         asUser(A, (tx) => tx`select * from admin_plan_override_list(10)`),
       ).rejects.toThrow(/admin_plan_override: no autorizado/);
+    },
+    // R22-02: cola de altas e historial del plan, solo app_admins. Una sesión común no lee ni resuelve nada.
+    admin_payment_notice_list: async () => {
+      await expect(
+        asUser(A, (tx) => tx`select * from admin_payment_notice_list(10)`),
+      ).rejects.toThrow(/admin_payment_notice: no autorizado/);
+    },
+    admin_payment_notice_activate: async () => {
+      const before = await fingerprint({ table: "payment_notices", column: "user_id" }, B);
+      const [{ id }] =
+        (await owner`select id from payment_notices where user_id = ${B} limit 1`) as [
+          { id: string },
+        ];
+      await expect(
+        asUser(
+          A,
+          (tx) => tx`select admin_payment_notice_activate(${id}::uuid, now() + interval '30 days')`,
+        ),
+      ).rejects.toThrow(/admin_payment_notice: no autorizado/);
+      expect(await fingerprint({ table: "payment_notices", column: "user_id" }, B)).toBe(before);
+    },
+    admin_payment_notice_reject: async () => {
+      const before = await fingerprint({ table: "payment_notices", column: "user_id" }, B);
+      const [{ id }] =
+        (await owner`select id from payment_notices where user_id = ${B} limit 1`) as [
+          { id: string },
+        ];
+      await expect(
+        asUser(A, (tx) => tx`select admin_payment_notice_reject(${id}::uuid, 'no')`),
+      ).rejects.toThrow(/admin_payment_notice: no autorizado/);
+      expect(await fingerprint({ table: "payment_notices", column: "user_id" }, B)).toBe(before);
+    },
+    admin_plan_event_add: async () => {
+      const before = await fingerprint({ table: "plan_events", column: "user_id" }, B);
+      await expect(
+        asUser(A, (tx) => tx`select admin_plan_event_add(${EMAIL_B}, 'activar', 'pago')`),
+      ).rejects.toThrow(/admin_plan_events: no autorizado/);
+      expect(await fingerprint({ table: "plan_events", column: "user_id" }, B)).toBe(before);
+    },
+    admin_plan_event_list: async () => {
+      await expect(asUser(A, (tx) => tx`select * from admin_plan_event_list(10)`)).rejects.toThrow(
+        /admin_plan_events: no autorizado/,
+      );
+    },
+    // Trigger de tope de avisos (rls/0053): con A, insertar un aviso a nombre de B no entra (RLS) y no toca a B.
+    payment_notices_cap: async () => {
+      const before = await fingerprint({ table: "payment_notices", column: "user_id" }, B);
+      await expect(
+        asUser(A, (tx) => tx`insert into payment_notices (user_id, plan) values (${B}, 'lista')`),
+      ).rejects.toThrow(/row-level security/);
+      expect(await fingerprint({ table: "payment_notices", column: "user_id" }, B)).toBe(before);
     },
     // Lookup por email: acá solo un email inexistente.
     auth_user_by_email: async () => {

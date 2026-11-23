@@ -88,6 +88,8 @@ export const USER_TABLES: readonly UserTableEntry[] = [
   { table: "mcp_tokens", column: "user_id", action: "delete" },
   // La app no puede borrarla (la marca la pone el admin): cae por ON DELETE CASCADE (ADR-040)
   { table: "plan_overrides", column: "user_id", action: "cascade" },
+  // Avisos «Ya pagué» (R22-01, rls/0053): la app no puede borrarlos; caen por ON DELETE CASCADE
+  { table: "payment_notices", column: "user_id", action: "cascade" },
 ];
 
 /**
@@ -100,6 +102,12 @@ export const USER_TABLES_EXEMPT: readonly { table: string; column: string; reaso
     column: "user_id",
     reason:
       "tabla de admins sin acceso de la app (solo la leen las funciones SECURITY DEFINER de rls/0006); la fila cae por ON DELETE CASCADE desde users",
+  },
+  {
+    table: "plan_events",
+    column: "user_id",
+    reason:
+      "historial del plan (R22-02, rls/0054) sin acceso de la app: solo lo leen y escriben las funciones admin_plan_event_* (SECURITY DEFINER); las filas caen por ON DELETE CASCADE desde users",
   },
 ];
 
