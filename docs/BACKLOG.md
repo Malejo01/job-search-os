@@ -1957,3 +1957,24 @@ Informe de la tanda: [`docs/beta/informe-r17.md`](beta/informe-r17.md). Pasos ma
 
 ### R17 · Cierre de la tanda
 `estado:` en rama (22/11) · `ronda/r17-cierre`
+
+## Bloque 37 · Tanda R20 «CV que suma puntos» (22/11)
+
+Informe de la tanda: [`docs/beta/informe-r20.md`](beta/informe-r20.md). Pasos manuales: [`docs/beta/pasos-manuales-r20.md`](beta/pasos-manuales-r20.md). Cadena desde `origin/main` (8e3ebab), independiente de la R19 y la S5; ningún PR mergeado por agentes. Sin migraciones. USD 0 (modelo simulado).
+
+### Diagnóstico del CV
+- **R20-01** · Palabras clave de la carrera, por código · `estado:` en rama (22/11) · `ronda/r20-01-palabras-clave`
+- **R20-02** · Logros medibles, por código · `estado:` en rama (22/11) · `ronda/r20-02-logros-medibles`
+- **R20-06** · El armado del CV no se demora con texto largo · `estado:` en rama (22/11) · `ronda/r20-06-cv-texto-largo`
+
+### CV para una oferta
+- **R20-03** · Tu CV frente a esta oferta · `estado:` en rama (22/11) · `ronda/r20-03-cv-para-oferta`
+- **R20-05** · Descargar el CV para esta oferta · `estado:` en rama (22/11) · `ronda/r20-05-descargar-cv-oferta`
+- **R20-04** · Versión adaptada con IA, apagada (`CV_TAILOR`) · `estado:` en rama; fila de ruteo y evals pendientes (22/11) · `ronda/r20-04-version-adaptada`, `ronda/r20-04b-montaje-version-adaptada`
+
+### Pendientes que salen de la tanda
+- El coach usa la oferta como contexto (`?oferta=<id>`): toca su prompt, con evals.
+- Ficha de Academy «Logros medibles».
+
+### R20 · Cierre de la tanda
+`estado:` en rama (22/11) · `ronda/r20-cierre-v2`
