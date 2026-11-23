@@ -30,7 +30,7 @@ describe("charla completa con el modelo de demo (sin red, sin gasto)", () => {
       expect(o.record.finalCv.length, g.fixture.id).toBeGreaterThan(0);
       expect(o.metrics.inventions, g.fixture.id).toBe(0);
     }
-  });
+  }, 30_000); // 11 conversaciones seguidas con el modelo de demo: en el CI pasa de los 5 s por defecto
 
   it("solo diagnóstico: una llamada por CV y sin charla", async () => {
     const o = await runConversation(byId("abogacia"), {
