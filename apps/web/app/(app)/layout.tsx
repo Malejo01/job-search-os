@@ -110,6 +110,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         {planAccess ? <PlanNotice access={planAccess} /> : null}
         {children}
       </main>
+      {/* R19-06: con el asistente, el botón flotante (2,75 rem + 1 rem de margen) no tapa el final
+          del contenido en el celular. Va fuera de <main> porque las pantallas de ancho completo
+          anulan su padding (`p-0!`). Las pestañas ya están sumadas en el padding de este contenedor. */}
+      {canAssist ? <div aria-hidden="true" className="h-[3.75rem] shrink-0 sm:hidden" /> : null}
       <ActionTracker />
       {/* Dos botones separados: el chip de soporte abajo a la izquierda y la mascota del asistente
           abajo a la derecha (R4-15); los dos por encima de las pestañas del celular */}

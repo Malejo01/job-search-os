@@ -1,5 +1,5 @@
 /**
- * Salud diaria de la beta (C8-11): la pantalla que Mauro mira cada mañana. Puro: la web lee los conteos
+ * Salud diaria de la beta (C8-11): la pantalla que el admin mira cada mañana. Puro: la web lee los conteos
  * agregados de la base y acá se decide el semáforo, con los umbrales de `docs/beta/capacidad.md`.
  */
 import { baseDomain } from "./filter-leak";
@@ -26,6 +26,10 @@ export const POOL_RED_HOURS = 13;
 /** Emails de 7 días que ningún parser leyó: 5 empiezan a notarse, 30 es un portal entero sin leer. */
 export const NO_PARSER_AMBER = 5;
 export const NO_PARSER_RED = 30;
+/** Emails del pool sin leer que vencen en la ventana de aviso: 1 pide mirar, 20 es una casilla abandonada. */
+export const POOL_EXPIRY_WARNING_DAYS = 7;
+export const POOL_EXPIRY_AMBER = 1;
+export const POOL_EXPIRY_RED = 20;
 
 /**
  * Portales de empleo que se nombran en la pantalla (primera etiqueta del dominio base). Cualquier otro
@@ -63,6 +67,8 @@ export type BetaHealthInput = {
   inboundNoParser7d: { total: number; byHost: { host: string; count: number }[] };
   /** Invitaciones sin usar ni vencer, y las que vencen en las próximas 48 h. */
   invitations: { pending: number; expiringIn48h: number };
+  /** Emails de la cola del pool sin leer que la purga (30 días) borra en los próximos 7. Solo el conteo. */
+  poolMailboxExpiring7d: number;
 };
 
 export type BetaHealthRow = {
@@ -76,7 +82,8 @@ export type BetaHealthRow = {
     | "evaluaciones"
     | "pool"
     | "portales"
-    | "invitaciones";
+    | "invitaciones"
+    | "pool_vencimiento";
   label: string;
   value: string;
   detail: string;
@@ -248,6 +255,23 @@ function invitationsRow(input: BetaHealthInput): BetaHealthRow {
   };
 }
 
+function poolExpiryRow(input: BetaHealthInput): BetaHealthRow {
+  const n = input.poolMailboxExpiring7d;
+  return {
+    key: "pool_vencimiento",
+    label: "Emails del pool por vencer",
+    value:
+      n === 0
+        ? "Ninguno"
+        : n === 1
+          ? "1 vence en 7 días"
+          : `${n} vencen en ${POOL_EXPIRY_WARNING_DAYS} días`,
+    detail:
+      "Emails de las casillas del pool que siguen en la cola manual sin leer y se borran a los 30 días. Si hay, activá el lector o revisalos antes de que se pierdan.",
+    level: n >= POOL_EXPIRY_RED ? "rojo" : n >= POOL_EXPIRY_AMBER ? "amarillo" : "verde",
+  };
+}
+
 export function betaHealth(input: BetaHealthInput): BetaHealth {
   const rows: BetaHealthRow[] = [
     queueRow(input),
@@ -273,6 +297,7 @@ export function betaHealth(input: BetaHealthInput): BetaHealth {
     poolRow(input),
     portalsRow(input),
     invitationsRow(input),
+    poolExpiryRow(input),
   ];
   const overall = rows.reduce<HealthLevel>(
     (worst, r) => (RANK[r.level] > RANK[worst] ? r.level : worst),

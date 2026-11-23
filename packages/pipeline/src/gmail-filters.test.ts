@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_ALERT_SENDERS, gmailFiltersXml } from "./gmail-filters";
+import {
+  DEFAULT_ALERT_SENDERS,
+  gmailFiltersXml,
+  POOL_FILTER_SENDER,
+  poolGmailFilterXml,
+} from "./gmail-filters";
 
 const ADDRESS = "u_abcdefghij234567abcd@ingesta.example.test";
 const NOW = new Date("2026-10-08T12:00:00Z");
@@ -61,6 +66,50 @@ describe("gmailFiltersXml", () => {
     expect(xml.match(/<\/entry>/g)).toHaveLength(1);
     // Todo `&` es parte de una entidad válida
     expect(xml.replace(/&(amp|lt|gt|quot|apos);/g, "")).not.toContain("&");
+  });
+});
+
+describe("poolGmailFilterXml (R19-05)", () => {
+  const base = {
+    ingestDomain: "ingesta.example.test",
+    careers: ["abogacia", "contabilidad"],
+    now: NOW,
+  };
+
+  it("un filtro de un solo remitente hacia la casilla de la carrera", () => {
+    const xml = poolGmailFilterXml({ ...base, career: "abogacia" });
+    expect(POOL_FILTER_SENDER).toBe("computrabajo.com");
+    expect(xml).toContain("name='from' value='computrabajo.com'");
+    expect(xml).toContain("name='forwardTo' value='pool-abogacia@ingesta.example.test'");
+    expect(xml.match(/<entry>/g)).toHaveLength(1);
+    expect(xml).toContain("<updated>2026-10-08T12:00:00.000Z</updated>");
+  });
+
+  it("nunca reenvía todo: siempre lleva un criterio from, y no hay otras casillas", () => {
+    const xml = poolGmailFilterXml({ ...base, career: "contabilidad" });
+    expect(xml).toMatch(/name='from' value='[^']+'/);
+    expect(xml).not.toContain("pool-abogacia");
+    expect(xml).not.toContain("value=''");
+  });
+
+  it("falla cerrado: dominio vacío o inválido, carrera desconocida o con caracteres raros", () => {
+    for (const ingestDomain of ["", "  ", "a b.test", "x.test'/><evil", "sin-punto"]) {
+      expect(() => poolGmailFilterXml({ ...base, ingestDomain, career: "abogacia" })).toThrow(
+        /dominio/,
+      );
+    }
+    for (const career of ["", "medicina", "abogacia'/><x", "ABOGACIA", "../x"]) {
+      expect(() => poolGmailFilterXml({ ...base, career })).toThrow(/carrera/);
+    }
+  });
+
+  it("normaliza el dominio a minúsculas", () => {
+    const xml = poolGmailFilterXml({
+      ...base,
+      ingestDomain: " Ingesta.Example.Test ",
+      career: "abogacia",
+    });
+    expect(xml).toContain("pool-abogacia@ingesta.example.test");
   });
 });
 
