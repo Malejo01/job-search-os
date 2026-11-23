@@ -1957,3 +1957,18 @@ Informe de la tanda: [`docs/beta/informe-r17.md`](beta/informe-r17.md). Pasos ma
 
 ### R17 · Cierre de la tanda
 `estado:` en rama (22/11) · `ronda/r17-cierre`
+
+## Bloque 36 · Tanda S5 «Seguridad corta» (22/11)
+
+Informe de la tanda: [`docs/beta/informe-s5.md`](beta/informe-s5.md). Pasos manuales: [`docs/beta/pasos-manuales-s5.md`](beta/pasos-manuales-s5.md). Cadena desde `origin/main` (8e3ebab), independiente de la R19; ningún PR mergeado por agentes. Sin migraciones. USD 0.
+
+- **S5-01** · Dependencias de desarrollo con parches pendientes · `estado:` propuesta, la aplica Claude al integrar (22/11)
+- **S5-02** · El cupo de no esperados se decide antes de pedir el cuerpo · `estado:` en rama (22/11) · `ronda/s5-02-cupo-antes-del-cuerpo`
+- **S5-03** · El contador de rechazados no suma reintentos · `estado:` en rama, parcial: el rechazo por cupo sin fila sigue sumando por entrega (22/11) · `ronda/s5-03-rechazos-una-vez`
+- **S5-04** · Las evaluaciones fallidas cuentan para el tope de gasto · `estado:` en rama (22/11) · `ronda/s5-04-costo-fallidas`
+- **S5-05** · El esquema de respuestas del MCP entra en el tope del cuerpo · `estado:` en rama (22/11) · `ronda/s5-05-tope-mcp`
+- **S5-06** · Carpeta privada fuera del repo (`JSO_PRIVATE_DIR`) · `estado:` en rama; mover la carpeta es paso manual (22/11) · `ronda/s5-06-carpeta-privada`
+- **S5-07** · Consultas locales solo con agregados · `estado:` propuesta en `.claude/`, la aplica el dueño del repo (22/11)
+
+### S5 · Cierre de la tanda
+`estado:` en rama (22/11) · `ronda/s5-cierre`
