@@ -39,7 +39,13 @@ export async function extractJobImageForUser(
             countTaskCallsSince(tx, { userId, task: EXTRACT_IMAGE_TASK, since, onlyOk: true }),
           // Segundo tope sobre todos los intentos, también los fallidos (cost_usd null: el tope en USD no los ve)
           countAttemptsSince: (since) =>
-            countTaskCallsSince(tx, { userId, task: EXTRACT_IMAGE_TASK, since }),
+            countTaskCallsSince(tx, {
+              userId,
+              task: EXTRACT_IMAGE_TASK,
+              since,
+              // Sin la clave del principal cada lectura deja una fila que nunca salió: no gasta el tope
+              onlyReached: true,
+            }),
           capReason: () => spendCapReason(tx, { userId }),
           lock: {
             acquire: async () => {

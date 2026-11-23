@@ -781,6 +781,12 @@ function userSpendTracker(deps: EvaluateDeps, capUsd: number) {
       if (capUsd <= 0 || !userId) return false;
       return (await mineUsd(userId)) >= capUsd;
     },
+    /** Olvida lo cacheado de la persona: la próxima consulta vuelve a sumar sus filas (también las fallidas). */
+    forget(userId: string | null): void {
+      if (!userId) return;
+      spent.delete(userId);
+      floorSpent.delete(userId);
+    },
     add(userId: string | null, usd: number): void {
       if (userId && spent.has(userId)) spent.set(userId, spent.get(userId)! + usd);
       if (userId && floorSpent.has(userId)) floorSpent.set(userId, floorSpent.get(userId)! + usd);
@@ -966,6 +972,22 @@ export async function runEvaluateWorker(
       "evaluate: presupuesto agotado",
     );
   };
+  // Una evaluación fallida no devuelve costo, pero dejó filas en llm_calls (real o estimado): se vuelve
+  // a sumar desde la base (consulta con índice por fecha) para que el tope global y el de la persona
+  // las vean en esta misma corrida. Solo corre ante fallas, y el corte por fallas seguidas las acota.
+  const refreshSpendAfterFailure = async (ownerId: string | null) => {
+    try {
+      const fresh = await spendLast24h(deps.db, deps.now, { excludeCvAgent: true });
+      spend.usd = Math.max(spend.usd, fresh.usd);
+      userCap.forget(ownerId);
+    } catch (e) {
+      // Si la suma falla, se sigue con lo acumulado: la próxima corrida vuelve a leer la base
+      deps.logger.warn(
+        { run_id: runId, err: unexpectedError(e) },
+        "evaluate: no se pudo releer el gasto",
+      );
+    }
+  };
   batches: for (;;) {
     if (overBudget()) {
       await stopByBudget();
@@ -1079,10 +1101,12 @@ export async function runEvaluateWorker(
         await deps.queue.ack(msg.id);
         summary.skipped++;
       } else if (outcome.retry === "failed") {
+        await refreshSpendAfterFailure(ownerId);
         // Job inexistente o sin perfil: no hay reintento que lo arregle, se descarta ya
         await deps.queue.fail(msg.id, outcome.error, { final: true });
         summary.failed++;
       } else {
+        await refreshSpendAfterFailure(ownerId);
         const r = await deps.queue.fail(msg.id, outcome.error);
         if (r === "retry") summary.retried++;
         else summary.failed++;

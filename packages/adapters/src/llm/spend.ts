@@ -198,7 +198,7 @@ export async function spendCapReason(
  */
 export async function countTaskCallsSince(
   db: Db,
-  input: { userId: string; task: string; since: Date; onlyOk?: boolean },
+  input: { userId: string; task: string; since: Date; onlyOk?: boolean; onlyReached?: boolean },
 ): Promise<number> {
   const [row] = await db
     .select({ n: sql<number>`count(*)::int` })
@@ -209,6 +209,10 @@ export async function countTaskCallsSince(
         eq(s.llmCalls.task, input.task),
         gte(s.llmCalls.createdAt, input.since),
         ...(input.onlyOk ? [eq(s.llmCalls.ok, true)] : []),
+        // `onlyReached` deja afuera el intento que nunca salió (primario sin clave): no se facturó
+        ...(input.onlyReached
+          ? [sql`${s.llmCalls.error} is distinct from 'provider_unavailable'`]
+          : []),
       ),
     );
   return row?.n ?? 0;
