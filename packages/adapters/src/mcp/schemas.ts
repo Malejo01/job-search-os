@@ -61,6 +61,14 @@ export const saveAnswerInput = z.object({
   job_id: z.string().uuid().optional(),
 });
 
+/**
+ * Total de caracteres (preguntas más respuestas) de un formulario por llamada. El cuerpo del pedido
+ * tiene tope de 256 KB (`api/mcp/route.ts`): a 3 bytes por carácter, 60.000 caracteres entran con
+ * margen. Un formulario más largo se guarda en dos llamadas. El máximo por campo sigue igual que en
+ * la web: una sola respuesta del tope pasa.
+ */
+const MAX_APPLICATION_ANSWERS_TOTAL_CHARS = 60_000;
+
 export const saveApplicationAnswersInput = z.object({
   job_id: z.string().uuid(),
   qa: z
@@ -71,7 +79,15 @@ export const saveApplicationAnswersInput = z.object({
       }),
     )
     .min(1)
-    .max(60),
+    .max(60)
+    .refine(
+      (qa) =>
+        qa.reduce((n, p) => n + p.question.length + p.answer.length, 0) <=
+        MAX_APPLICATION_ANSWERS_TOTAL_CHARS,
+      {
+        message: `el total de preguntas y respuestas pasa ${MAX_APPLICATION_ANSWERS_TOTAL_CHARS} caracteres: guardá el formulario en varias llamadas`,
+      },
+    ),
 });
 
 export const emptyInput = z.object({});

@@ -23,7 +23,9 @@ export type SourceKind =
   // Ronda 120: Teamtailor (feed RSS de los sitios de empleos)
   | "teamtailor"
   // R16-2: Workable (widget público de cada cuenta)
-  | "workable";
+  | "workable"
+  // R19-01: alertas por email de Computrabajo a las casillas del pool (migración 0046)
+  | "computrabajo_alerts";
 
 export type Modality = "remoto" | "hibrido" | "presencial" | "desconocida";
 

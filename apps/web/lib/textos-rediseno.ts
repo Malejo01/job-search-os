@@ -42,5 +42,8 @@ export const MASCOT_NAME = "Tu asistente";
 /** Texto para un criterio sin datos: nunca se inventa un puntaje. */
 export const NO_DATA_LABEL = "Sin datos";
 
+/** Nivel de un ítem del diagnóstico del CV cuando el mercado del puesto tiene pocos avisos: sin puntaje. */
+export const CV_NOT_ENOUGH_DATA_LABEL = "Sin datos suficientes";
+
 /** Texto para una condición laboral que el aviso no dice. */
 export const NOT_INFORMED_LABEL = "No lo informa";

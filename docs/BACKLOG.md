@@ -1958,6 +1958,66 @@ Informe de la tanda: [`docs/beta/informe-r17.md`](beta/informe-r17.md). Pasos ma
 ### R17 · Cierre de la tanda
 `estado:` en rama (22/11) · `ronda/r17-cierre`
 
+## Bloque 35 · Tanda R19 «Ofertas del pool para todas las carreras» (22/11)
+
+Informe de la tanda: [`docs/beta/informe-r19.md`](beta/informe-r19.md). Pasos manuales: [`docs/beta/pasos-manuales-r19.md`](beta/pasos-manuales-r19.md). Todas las ramas forman una cadena desde `origin/main` (8e3ebab, con la S4 y la R17); ningún PR mergeado por agentes. Sin migraciones. USD 0.
+
+### Pool desde alertas de Computrabajo
+- **R19-01** · Lector de alertas de Computrabajo, apagado (`POOL_COMPUTRABAJO_READER`), con «vía Computrabajo» (ADR-043) · `estado:` en rama (22/11) · `ronda/r19-01-lector-computrabajo`
+- **R19-02** · `pnpm pool:reprocess` · `estado:` en rama (22/11) · `ronda/r19-02-reprocesar-cola`
+- **R19-05** · Filtro de Gmail por carrera y guía para amigos · `estado:` en rama (22/11) · `ronda/r19-05-filtros-gmail`
+
+### Admin
+- **R19-03** · Aviso de vencimiento en `/settings/salud` · `estado:` en rama (22/11) · `ronda/r19-03-vencimiento-salud`
+- **R19-04** · Casillas del pool por carrera y estado del lector · `estado:` en rama; fecha por carrera, no por casilla (sin destinatario guardado) (22/11) · `ronda/r19-04-cobertura-pool`
+
+### Celular
+- **R19-06** · El asistente no tapa contenido · `estado:` en rama (22/11) · `ronda/r19-06-asistente-celular`
+
+### Pendientes que salen de la tanda
+- Validar el lector con el primer email real y recién ahí prenderlo.
+- «vía <fuente>» para las fuentes `other` (Jooble y Careerjet).
+- Borrar `apps/web/app/(app)/assistant-button.tsx`, que no se usa.
+
+### R19 · Cierre de la tanda
+`estado:` en rama (22/11) · `ronda/r19-cierre`
+
+## Bloque 36 · Tanda S5 «Seguridad corta» (22/11)
+
+Informe de la tanda: [`docs/beta/informe-s5.md`](beta/informe-s5.md). Pasos manuales: [`docs/beta/pasos-manuales-s5.md`](beta/pasos-manuales-s5.md). Cadena desde `origin/main` (8e3ebab), independiente de la R19; ningún PR mergeado por agentes. Sin migraciones. USD 0.
+
+- **S5-01** · Dependencias de desarrollo con parches pendientes · `estado:` propuesta, la aplica Claude al integrar (22/11)
+- **S5-02** · El cupo de no esperados se decide antes de pedir el cuerpo · `estado:` en rama (22/11) · `ronda/s5-02-cupo-antes-del-cuerpo`
+- **S5-03** · El contador de rechazados no suma reintentos · `estado:` en rama, parcial: el rechazo por cupo sin fila sigue sumando por entrega (22/11) · `ronda/s5-03-rechazos-una-vez`
+- **S5-04** · Las evaluaciones fallidas cuentan para el tope de gasto · `estado:` en rama (22/11) · `ronda/s5-04-costo-fallidas`
+- **S5-05** · El esquema de respuestas del MCP entra en el tope del cuerpo · `estado:` en rama (22/11) · `ronda/s5-05-tope-mcp`
+- **S5-06** · Carpeta privada fuera del repo (`JSO_PRIVATE_DIR`) · `estado:` en rama; mover la carpeta es paso manual (22/11) · `ronda/s5-06-carpeta-privada`
+- **S5-07** · Consultas locales solo con agregados · `estado:` propuesta en `.claude/`, la aplica el dueño del repo (22/11)
+
+### S5 · Cierre de la tanda
+`estado:` en rama (22/11) · `ronda/s5-cierre`
+
+## Bloque 37 · Tanda R20 «CV que suma puntos» (22/11)
+
+Informe de la tanda: [`docs/beta/informe-r20.md`](beta/informe-r20.md). Pasos manuales: [`docs/beta/pasos-manuales-r20.md`](beta/pasos-manuales-r20.md). Cadena desde `origin/main` (8e3ebab), independiente de la R19 y la S5; ningún PR mergeado por agentes. Sin migraciones. USD 0 (modelo simulado).
+
+### Diagnóstico del CV
+- **R20-01** · Palabras clave de la carrera, por código · `estado:` en rama (22/11) · `ronda/r20-01-palabras-clave`
+- **R20-02** · Logros medibles, por código · `estado:` en rama (22/11) · `ronda/r20-02-logros-medibles`
+- **R20-06** · El armado del CV no se demora con texto largo · `estado:` en rama (22/11) · `ronda/r20-06-cv-texto-largo`
+
+### CV para una oferta
+- **R20-03** · Tu CV frente a esta oferta · `estado:` en rama (22/11) · `ronda/r20-03-cv-para-oferta`
+- **R20-05** · Descargar el CV para esta oferta · `estado:` en rama (22/11) · `ronda/r20-05-descargar-cv-oferta`
+- **R20-04** · Versión adaptada con IA, apagada (`CV_TAILOR`) · `estado:` en rama; fila de ruteo y evals pendientes (22/11) · `ronda/r20-04-version-adaptada`, `ronda/r20-04b-montaje-version-adaptada`
+
+### Pendientes que salen de la tanda
+- El coach usa la oferta como contexto (`?oferta=<id>`): toca su prompt, con evals.
+- Ficha de Academy «Logros medibles».
+
+### R20 · Cierre de la tanda
+`estado:` en rama (22/11) · `ronda/r20-cierre-v2`
+
 ## Bloque 38 · Tanda R22 «Operación de la beta» (23/11)
 
 Informe de la tanda: [`docs/beta/informe-r22.md`](beta/informe-r22.md). Pasos manuales: [`docs/beta/pasos-manuales-r22.md`](beta/pasos-manuales-r22.md). Todas las ramas forman una cadena desde `origin/main` (8e3ebab), separada de la R19, la S5 y la R20; ningún PR mergeado por agentes. Migraciones 0076 y 0077 y RLS 0053, 0054 y 0057 sin aplicar.

@@ -30,7 +30,7 @@ import { requireUserId } from "@/lib/session";
 import { getUsageByCareer } from "@/lib/usage-by-career";
 import { buttonClasses } from "@/components/ui";
 import { AccesoFunnelPanel } from "./acceso-funnel-panel";
-import { PoolCoveragePanel } from "./pool-coverage-panel";
+import { PoolCoveragePanel, PoolMailboxPanel } from "./pool-coverage-panel";
 import { UsageByCareerPanel } from "./usage-by-career-panel";
 
 export const metadata = { title: "Métricas de la beta" };
@@ -95,6 +95,7 @@ export default async function MetricasPage() {
       <FounderSeats founders={founders} k={metrics.k} />
       <HiddenCareers reveal={reveal} />
       <PoolCoveragePanel result={poolCoverage} />
+      {poolCoverage.ok ? <PoolMailboxPanel userId={userId} /> : null}
       <UsageByCareerPanel result={usageByCareer} />
       <BetaFeedbackList feedback={feedback} />
       <a

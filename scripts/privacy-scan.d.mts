@@ -15,6 +15,7 @@ export interface Hit {
 }
 
 export const REPO_ROOT: string;
+export function defaultPatternsDir(root: string, env?: Record<string, string | undefined>): string;
 export function norm(s: string): string;
 export function loadPatterns(dir: string): Pattern[];
 export function scanLine(pats: Pattern[], line: string): number[];

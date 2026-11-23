@@ -76,6 +76,50 @@ describe("esquemas MCP", () => {
     ).toBe(false);
   });
 
+  it("el formulario completo cabe en el tope de cuerpo del pedido (256 KB)", () => {
+    const BODY_BYTES = 256 * 1024;
+    // Peor caso por el esquema: 60 pares con los máximos por campo
+    const worst = {
+      job_id: UUID,
+      qa: Array.from({ length: 60 }, () => ({
+        question: "q".repeat(MAX_ANSWER_QUESTION_CHARS),
+        answer: "a".repeat(MAX_ANSWER_CHARS),
+      })),
+    };
+    expect(schemas.saveApplicationAnswersInput.safeParse(worst).success).toBe(false);
+    // El total permitido, a 3 bytes por carácter, entra en el cuerpo
+    const TOTAL = 60_000;
+    expect(TOTAL * 3).toBeLessThan(BODY_BYTES);
+    const withTotal = (chars: number) => ({
+      job_id: UUID,
+      qa: [{ question: "q", answer: "a".repeat(chars - 1) }],
+    });
+    expect(schemas.saveApplicationAnswersInput.safeParse(withTotal(9_000)).success).toBe(true);
+    const spread = (chars: number) => ({
+      job_id: UUID,
+      qa: Array.from({ length: 6 }, () => ({ question: "q", answer: "a".repeat(chars / 6 - 1) })),
+    });
+    expect(schemas.saveApplicationAnswersInput.safeParse(spread(TOTAL)).success).toBe(true);
+    expect(schemas.saveApplicationAnswersInput.safeParse(spread(TOTAL + 6)).success).toBe(false);
+    // Un formulario grande y legítimo (60 respuestas de 900 caracteres) sigue pasando
+    const big = {
+      job_id: UUID,
+      qa: Array.from({ length: 60 }, () => ({ question: "¿Pregunta?", answer: "a".repeat(900) })),
+    };
+    expect(schemas.saveApplicationAnswersInput.safeParse(big).success).toBe(true);
+    // Una sola respuesta del máximo por campo también pasa
+    const one = {
+      job_id: UUID,
+      qa: [
+        {
+          question: "q".repeat(MAX_ANSWER_QUESTION_CHARS),
+          answer: "a".repeat(MAX_ANSWER_CHARS),
+        },
+      ],
+    };
+    expect(schemas.saveApplicationAnswersInput.safeParse(one).success).toBe(true);
+  });
+
   it("la búsqueda en el banco tiene tope de largo", () => {
     expect(
       schemas.listAnswersInput.safeParse({ query: "x".repeat(MAX_ANSWER_QUERY_CHARS) }).success,

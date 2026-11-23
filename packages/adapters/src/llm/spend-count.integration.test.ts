@@ -176,4 +176,20 @@ describe("countTaskCallsSince", () => {
   it("sin onlyOk cuenta todos los intentos, también los fallidos (segundo tope)", async () => {
     expect(await countTaskCallsSince(conn.db, { userId: USER, task: TASK, since })).toBe(5);
   });
+
+  it("con onlyReached no cuenta el intento que nunca salió (sin clave del proveedor)", async () => {
+    const U = "00000000-0000-4000-8000-0000000000c1";
+    await conn.db.delete(s.llmCalls);
+    await conn.db
+      .insert(s.llmCalls)
+      .values([
+        call({ userId: U, ok: false, costUsd: null, error: "provider_unavailable" }),
+        call({ userId: U, ok: false, costUsd: null, error: "provider_unavailable" }),
+        call({ userId: U, ok: false, costUsd: null, error: "timeout" }),
+        call({ userId: U }),
+      ]);
+    const q = { userId: U, task: TASK, since };
+    expect(await countTaskCallsSince(conn.db, q)).toBe(4);
+    expect(await countTaskCallsSince(conn.db, { ...q, onlyReached: true })).toBe(2);
+  });
 });

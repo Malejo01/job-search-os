@@ -26,6 +26,7 @@ export const ADMIN_ONLY_FILES: readonly string[] = [
   // Rutas de descarga y de vista previa
   "(app)/settings/invitations/export/route.ts",
   "(app)/settings/feedback/export/route.ts",
+  "(app)/settings/metricas/filtros-pool/route.ts",
   "(app)/settings/marca/email-bienvenida/route.ts",
   // Server Actions
   "(app)/settings/invitations/actions.ts",
