@@ -311,12 +311,14 @@ async function rejectOverQuota(
   quota: QuotaCheck,
   now: Date,
   log: Pick<Logger, "warn">,
+  /** Un reintento que retoma una provisional abandonada ya fue contado (o se perdió con la falla): no suma. */
+  count = true,
 ): Promise<InboundOutcome> {
   log.warn(
     { user_id: userId, bucket: quota.bucket, count: quota.hour, day_count: quota.day },
     "inbound: rate limit por usuario",
   );
-  await countRejection(db, userId, now);
+  if (count) await countRejection(db, userId, now);
   return { kind: "rate_limited", userId };
 }
 
@@ -871,7 +873,7 @@ export async function handleInboundEmail(
         { user_id: userId, used_bytes: usedBytes, bytes: emailBytes, max_bytes: maxBytes },
         "inbound: tope de almacenamiento de correo, no se guarda el crudo",
       );
-      await countRejection(db, userId, now);
+      // La fila se guarda con su motivo y las ofertas entran: no es un rechazo, no suma al contador
     }
 
     // JS-119: se clasifica antes del chequeo de remitente. Los códigos y reseteos (de cualquier
@@ -1085,6 +1087,7 @@ export async function handleInboundEmail(
           { limited: true, bucket: "unexpected", ...counts, jobDomains },
           now,
           log,
+          !existing,
         );
       }
     }
