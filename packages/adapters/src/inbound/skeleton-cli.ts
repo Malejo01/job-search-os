@@ -9,7 +9,11 @@ import {
 } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadPatterns, type Pattern } from "../../../../scripts/privacy-scan.mjs";
+import {
+  defaultPatternsDir,
+  loadPatterns,
+  type Pattern,
+} from "../../../../scripts/privacy-scan.mjs";
 import { buildSkeletons, type SkeletonInput } from "./skeleton";
 
 /**
@@ -17,7 +21,7 @@ import { buildSkeletons, type SkeletonInput } from "./skeleton";
  *   [--portal <dominio>]... [--patterns-dir <dir>] [--sin-plantilla]
  *
  * Convierte cada .eml de una carpeta en un esqueleto HTML sin datos personales (<n>.skeleton.html)
- * y un resumen.md, para escribir parsers mirando la estructura (R8-1). Lo corre Mauro: los agentes
+ * y un resumen.md, para escribir parsers mirando la estructura (R8-1). Lo corre el dueño del repo: los agentes
  * no leen los .eml reales. Falla cerrado: sin patrones de privacidad no escribe nada (código 2);
  * un .eml cuya salida coincide con algún patrón no se escribe y se informa por número (código 1).
  * Nunca imprime nombres de archivo ni texto de los emails.
@@ -42,7 +46,13 @@ function parseArgs(argv: string[]): {
 } {
   const positional: string[] = [];
   const portals: string[] = [];
-  let patternsDir = join(ROOT, "fixtures-private");
+  let patternsDir: string;
+  try {
+    // <JSO_PRIVATE_DIR>/fixtures-private si la variable está; si no, <raíz>/fixtures-private
+    patternsDir = defaultPatternsDir(ROOT);
+  } catch (err) {
+    return fail(err instanceof Error ? err.message : "JSO_PRIVATE_DIR inválida", 2);
+  }
   let keepTemplate = true;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;

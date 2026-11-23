@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadFixture } from "./fixtures";
 
 /** JS-065 · SEED_FIXTURES=example ignora fixtures-private/. Se simula con un directorio temporal. */
@@ -20,6 +20,11 @@ beforeAll(() => {
     join(root, "packages/db/seeds/criteria.example.json"),
     JSON.stringify({ from: "ejemplo" }),
   );
+});
+
+beforeEach(() => {
+  // Que un JSO_PRIVATE_DIR del entorno de quien corre los tests no cambie lo que se prueba acá.
+  vi.stubEnv("JSO_PRIVATE_DIR", "");
 });
 
 afterEach(() => {
@@ -49,6 +54,42 @@ describe("loadFixture", () => {
     const fx = loadFixture<{ from: string }>("profile", root);
     expect(fx.source).toBe("example");
     expect(fx.data.from).toBe("ejemplo");
+  });
+
+  it("con JSO_PRIVATE_DIR toma el privado de esa carpeta y no del repo", () => {
+    const externa = mkdtempSync(join(tmpdir(), "privado-fx-"));
+    try {
+      mkdirSync(join(externa, "fixtures-private"));
+      writeFileSync(
+        join(externa, "fixtures-private/profile.json"),
+        JSON.stringify({ from: "externo" }),
+      );
+      vi.stubEnv("SEED_FIXTURES", "");
+      vi.stubEnv("JSO_PRIVATE_DIR", externa);
+      const fx = loadFixture<{ from: string }>("profile", root);
+      expect(fx.source).toBe("private");
+      expect(fx.data.from).toBe("externo");
+    } finally {
+      rmSync(externa, { recursive: true, force: true });
+    }
+  });
+
+  it("con JSO_PRIVATE_DIR y sin el archivo ahí usa el de ejemplo, no el del repo", () => {
+    const externa = mkdtempSync(join(tmpdir(), "privado-fx-"));
+    try {
+      vi.stubEnv("SEED_FIXTURES", "");
+      vi.stubEnv("JSO_PRIVATE_DIR", externa);
+      const fx = loadFixture<{ from: string }>("profile", root);
+      expect(fx.source).toBe("example");
+    } finally {
+      rmSync(externa, { recursive: true, force: true });
+    }
+  });
+
+  it("con JSO_PRIVATE_DIR relativa falla cerrado", () => {
+    vi.stubEnv("SEED_FIXTURES", "");
+    vi.stubEnv("JSO_PRIVATE_DIR", "../otra");
+    expect(() => loadFixture("profile", root)).toThrow(/JSO_PRIVATE_DIR/);
   });
 
   it("con un valor inválido tira un error claro", () => {

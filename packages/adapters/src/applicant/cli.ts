@@ -2,6 +2,7 @@ import {
   confirmRemoteTarget,
   createDb,
   describeDatabaseUrl,
+  fixturesPrivateDir,
   loadLocalEnv,
   requireDatabaseUrl,
   schema as s,
@@ -43,7 +44,8 @@ function report(r: ApplicantSyncResult): void {
 
 async function main(): Promise<void> {
   loadLocalEnv();
-  const privatePath = resolve(ROOT, "fixtures-private/applicant.json");
+  // <JSO_PRIVATE_DIR>/fixtures-private si la variable está; si no, <raíz>/fixtures-private
+  const privatePath = resolve(fixturesPrivateDir(process.env, ROOT), "applicant.json");
   const path = arg("--file")
     ? resolve(process.env.INIT_CWD ?? process.cwd(), arg("--file")!)
     : existsSync(privatePath)

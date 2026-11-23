@@ -139,7 +139,8 @@ describe("tope de correo crudo por persona", () => {
     expect(row?.error).toBe(STORAGE_FULL_REASON);
     expect(row?.rawRef).toBe("none:");
     expect(await blobCount()).toBe(before);
-    expect(await rejectedCount()).toBe(rejectedBefore + 1);
+    // La fila se guardó y sus ofertas entraron: no es un rechazo
+    expect(await rejectedCount()).toBe(rejectedBefore);
     // Las ofertas no apuntan a un crudo que no existe
     const sources = await conn.db
       .select({ rawRef: s.jobSources.rawRef })

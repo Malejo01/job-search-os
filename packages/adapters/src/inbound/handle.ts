@@ -241,6 +241,42 @@ export function bucketOfOutcome(
     : "expected";
 }
 
+/**
+ * Antes de pedir el cuerpo: un From de portal cuyo contenido ya salió ilegible cuenta contra el cupo de no
+ * esperados mientras ese cupo esté lleno. Es lo único que se sabe sin leer el cuerpo: así el trabajo de
+ * pedirlo y guardarlo no se repite. Se responde como cualquier rechazo por cupo (429): el remitente lo
+ * reintenta cuando la ventana se libera. Una consulta de conteo y, solo con el cupo lleno, otra por el
+ * índice (user_id, received_at).
+ */
+async function unreadableSenderOverQuota(
+  db: Db,
+  userId: string,
+  from: string,
+  now: Date,
+  deps: Pick<InboundDeps, "hourlyLimit" | "dailyLimit">,
+): Promise<QuotaCheck | null> {
+  const counts = await countBucket(db, userId, "unexpected", now);
+  if (
+    counts.hour < (deps.hourlyLimit ?? 100) &&
+    counts.day < (deps.dailyLimit ?? USER_DAILY_EMAIL_LIMIT)
+  ) {
+    return null;
+  }
+  const [row] = await db
+    .select({ id: s.inboundEmails.id })
+    .from(s.inboundEmails)
+    .where(
+      and(
+        eq(s.inboundEmails.userId, userId),
+        eq(s.inboundEmails.fromAddress, from.slice(0, MAX_STORED_HEADER_CHARS)),
+        gte(s.inboundEmails.receivedAt, new Date(now.getTime() - 24 * 60 * 60 * 1000)),
+        inUnexpectedBucket(),
+      ),
+    )
+    .limit(1);
+  return row ? { limited: true, bucket: "unexpected", ...counts, jobDomains: [] } : null;
+}
+
 /** Intentos de la última hora y del último día en un cupo, por el índice (user_id, received_at). */
 async function countBucket(
   db: Db,
@@ -275,12 +311,14 @@ async function rejectOverQuota(
   quota: QuotaCheck,
   now: Date,
   log: Pick<Logger, "warn">,
+  /** Un reintento que retoma una provisional abandonada ya fue contado (o se perdió con la falla): no suma. */
+  count = true,
 ): Promise<InboundOutcome> {
   log.warn(
     { user_id: userId, bucket: quota.bucket, count: quota.hour, day_count: quota.day },
     "inbound: rate limit por usuario",
   );
-  await countRejection(db, userId, now);
+  if (count) await countRejection(db, userId, now);
   return { kind: "rate_limited", userId };
 }
 
@@ -584,14 +622,18 @@ export async function processInboundEvent(
     // Con el cupo agotado no se pide el cuerpo a Resend: alcanza con el remitente y el destinatario.
     // Una provisional abandonada ya está contada: retomarla no vuelve a pasar por el cupo.
     const quota = await checkUserQuota(deps.db, destination, event.data.from, now, deps);
-    if (quota.limited && !dup) {
-      return rejectOverQuota(
+    const log = deps.logger.child({ email_id: event.data.email_id });
+    if (quota.limited && !dup) return rejectOverQuota(deps.db, destination, quota, now, log);
+    // Un From de portal que ya dejó ilegibles con el cupo de no esperados lleno tampoco pide el cuerpo
+    if (!dup && quota.bucket === "expected") {
+      const unreadable = await unreadableSenderOverQuota(
         deps.db,
         destination,
-        quota,
+        event.data.from,
         now,
-        deps.logger.child({ email_id: event.data.email_id }),
+        deps,
       );
+      if (unreadable) return rejectOverQuota(deps.db, destination, unreadable, now, log);
     }
   }
   return handleInboundEmail(event, await fetchContent(), rawBody, deps);
@@ -831,7 +873,7 @@ export async function handleInboundEmail(
         { user_id: userId, used_bytes: usedBytes, bytes: emailBytes, max_bytes: maxBytes },
         "inbound: tope de almacenamiento de correo, no se guarda el crudo",
       );
-      await countRejection(db, userId, now);
+      // La fila se guarda con su motivo y las ofertas entran: no es un rechazo, no suma al contador
     }
 
     // JS-119: se clasifica antes del chequeo de remitente. Los códigos y reseteos (de cualquier
@@ -1045,6 +1087,7 @@ export async function handleInboundEmail(
           { limited: true, bucket: "unexpected", ...counts, jobDomains },
           now,
           log,
+          !existing,
         );
       }
     }
