@@ -65,6 +65,7 @@ export * from "./cv-diagnosis";
 export * from "./cv-keywords";
 export * from "./cv-ats";
 export * from "./cv-for-offer";
+export * from "./cv-offer-download";
 export * from "./alerts/portal-guide";
 export * from "./alerts/few-offers";
 export * from "./alerts/nudge-copy";

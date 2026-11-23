@@ -63,7 +63,7 @@ const clip = (s: string): string =>
 const isWordChar = (c: string | undefined): boolean => c !== undefined && /[\p{L}\p{N}]/u.test(c);
 
 /** ¿`term` (ya plegado) aparece en `text` (ya plegado) como palabra entera? Sin regex: costo lineal. */
-function hasWord(text: string, term: string): boolean {
+export function cvHasWord(text: string, term: string): boolean {
   if (term.length === 0) return false;
   let from = 0;
   for (;;) {
@@ -108,7 +108,7 @@ export function cvForOffer(input: CvForOfferInput): Result<CvForOffer, CvForOffe
   if (entries.length === 0 && cvSkillsFolded.every((s) => s === "")) return err("sin_cv");
 
   const ranked = entries.map((e, index) => {
-    const hits = terms.filter((t) => t.forms.some((f) => hasWord(e.folded, f)));
+    const hits = terms.filter((t) => t.forms.some((f) => cvHasWord(e.folded, f)));
     return {
       index,
       hits,

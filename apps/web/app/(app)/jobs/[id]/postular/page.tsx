@@ -185,14 +185,30 @@ export default async function PostularPage({ params }: { params: Promise<{ id: s
             )}
           </div>
         )}
-        {coachOn ? (
-          <Link
-            href={`/cv/coach?oferta=${data.id}`}
-            data-testid="afinar-cv"
-            className={`${buttonClasses({ size: "sm", variant: "secondary" })} mt-3 w-fit`}
-          >
-            Afinar mi CV para esta oferta
-          </Link>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {cvSource ? (
+            <a
+              href={`/jobs/${data.id}/postular/descargar`}
+              data-testid="descargar-cv-oferta"
+              className={`${buttonClasses({ size: "sm" })} w-fit`}
+            >
+              Descargar mi CV para esta oferta (.docx)
+            </a>
+          ) : null}
+          {coachOn ? (
+            <Link
+              href={`/cv/coach?oferta=${data.id}`}
+              data-testid="afinar-cv"
+              className={`${buttonClasses({ size: "sm", variant: "secondary" })} w-fit`}
+            >
+              Afinar mi CV para esta oferta
+            </Link>
+          ) : null}
+        </div>
+        {cvSource ? (
+          <p className="mt-1 text-xs text-fg-subtle">
+            Es tu CV confirmado con las viñetas reordenadas según la oferta. No reescribimos nada.
+          </p>
         ) : null}
       </section>
 
