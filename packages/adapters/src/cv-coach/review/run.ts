@@ -20,6 +20,7 @@ import type { Logger } from "../../logger";
 import {
   CV_REVIEW_TASK,
   releaseCvCoachReservation,
+  coachLimitsFromEnv as coachLimits,
   reserveCvCoachStep,
   type CvCoachReject,
 } from "../reserve";
@@ -152,6 +153,7 @@ export async function runCvReview(
       now,
       daySince: profileAgentWindows(now).daySince,
       dailyCapUsd: profileAgentDailyCapUsd(env),
+      limits: coachLimits(env),
     });
     if (!reservation.ok) return fail("capped", reservation.reject);
     reservationId = reservation.reservationId;

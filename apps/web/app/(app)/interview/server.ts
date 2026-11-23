@@ -5,7 +5,7 @@ import {
   loadInterviewSession,
   type InterviewDeps,
 } from "@job-search-os/adapters";
-import { INTERVIEW_MAX_SIMULATIONS_PER_DAY } from "@job-search-os/pipeline";
+import { interviewMaxSimulationsPerDay } from "@job-search-os/pipeline";
 import { and, desc, notInArray, eq } from "drizzle-orm";
 import { withUser } from "@/lib/db";
 import { serviceLlm } from "@/lib/llm-service";
@@ -30,6 +30,8 @@ export type InterviewStartData = {
   suggestedCareer: string;
   /** Simulaciones que todavía puede empezar en las próximas 24 horas. */
   left: number;
+  /** Tope de simulaciones por día (`INTERVIEW_MAX_SIMULATIONS_PER_DAY`). */
+  max: number;
 };
 
 export async function loadStartData(userId: string, now = new Date()): Promise<InterviewStartData> {
@@ -48,12 +50,14 @@ export async function loadStartData(userId: string, now = new Date()): Promise<I
       .where(eq(s.profiles.userId, userId))
       .limit(1);
     const firstRole = profile?.targetRoles?.[0];
+    const max = interviewMaxSimulationsPerDay(process.env);
     const inDay = sessions.filter((x) => x.createdAt.getTime() >= now.getTime() - DAY_MS).length;
     return {
       sessions,
       offers,
       suggestedCareer: firstRole ? (ROLE_LABELS[firstRole]?.label ?? "") : "",
-      left: Math.max(0, INTERVIEW_MAX_SIMULATIONS_PER_DAY - inDay),
+      left: Math.max(0, max - inDay),
+      max,
     };
   });
 }

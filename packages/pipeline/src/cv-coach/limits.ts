@@ -7,10 +7,20 @@
  * Los topes por persona y día y el global son los del agente de perfil (compartidos): el coach los pasa por
  * `profileAgentCapReason`. Acá van los propios de la charla del coach.
  */
+import { readCap, type CapEnv } from "../cap-env";
 import { PROFILE_AGENT_READ_RESERVE_USD } from "../profile-agent/limits";
 
-/** Gasto real máximo de una charla del coach: lectura, diagnóstico, turnos y redacción (D5). */
+/**
+ * Gasto real máximo de una charla del coach: lectura, diagnóstico, turnos y redacción (D5). Default;
+ * operable con `CV_COACH_MAX_FLOW_COST_USD`.
+ */
 export const CV_COACH_MAX_FLOW_COST_USD = 0.3;
+
+export function cvCoachMaxFlowCostUsd(env: CapEnv): number {
+  return readCap(env, "CV_COACH_MAX_FLOW_COST_USD", CV_COACH_MAX_FLOW_COST_USD, {
+    kind: "decimal",
+  });
+}
 /** Llamadas a `cv_coach_turn` por charla (D5). */
 export const CV_COACH_MAX_TURNS = 15;
 /** Llamadas a `cv_review` por charla: una y un reintento si falla. */
@@ -46,6 +56,8 @@ export interface CvCoachCapInput {
   flowCostUsd: number;
   /** ¿Ya se redactó el CV en esta charla? Si sí, no hay que reservarlo. */
   written: boolean;
+  /** Tope de gasto de la charla (`cvCoachMaxFlowCostUsd`); ausente = `CV_COACH_MAX_FLOW_COST_USD`. */
+  maxFlowCostUsd?: number;
 }
 
 /**
@@ -60,7 +72,7 @@ export function cvCoachCapReason(i: CvCoachCapInput): CvCoachCap | null {
   if (!(i.flowCostUsd >= 0)) return "charla";
   const writeReserve = i.step === "write" || i.written ? 0 : CV_COACH_RESERVE_USD.write;
   const needed = i.flowCostUsd + CV_COACH_RESERVE_USD[i.step] + writeReserve;
-  if (!(needed <= CV_COACH_MAX_FLOW_COST_USD)) return "charla";
+  if (!(needed <= (i.maxFlowCostUsd ?? CV_COACH_MAX_FLOW_COST_USD))) return "charla";
   return null;
 }
 

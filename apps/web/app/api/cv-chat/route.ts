@@ -22,6 +22,7 @@ import {
   cvChatEffectiveTurns,
   cvChatMonthTurnsReason,
   cvChatDailyCapUsd,
+  cvChatLimitsFromEnv,
   cvChatStartCapReason,
   cvChatHistory,
   cvChecklistProgress,
@@ -243,6 +244,7 @@ export async function POST(request: Request): Promise<Response> {
     conn = createDb(requireDatabaseUrl({ purpose: "service" }), { max: 1 });
     const db: Db = conn.db;
     const windows = cvChatWindows(new Date(now));
+    const chatLimits = cvChatLimitsFromEnv(process.env);
     const plan = await getUserPlan(userId, new Date(now));
     // S-1: sin locks que crucen transacciones (no son seguros detrás del pooler). Una transacción corta
     // con lock por persona mide los topes contando las reservas vigentes y anota la suya; la llamada al
@@ -258,6 +260,8 @@ export async function POST(request: Request): Promise<Response> {
           userInterviewSpendUsd: m.userInterviewUsd,
           dailySpendUsd: m.dailySpendUsd,
           dailyCapUsd: cvChatDailyCapUsd(process.env),
+          maxCostUsd: chatLimits.maxCostUsd,
+          userDailyCapUsd: chatLimits.userDailyCapUsd,
         }) ??
         extra?.(m) ??
         null;
@@ -293,7 +297,7 @@ export async function POST(request: Request): Promise<Response> {
           decideCap(
             0,
             (m) =>
-              cvChatStartCapReason(m.startsToday) ??
+              cvChatStartCapReason(m.startsToday, chatLimits.maxStartsPerDay) ??
               cvChatMonthTurnsReason(m.interviewTurnsThisMonth),
           ),
         );

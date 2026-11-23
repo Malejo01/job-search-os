@@ -16,6 +16,7 @@ const PAGES = [
   "/settings/textos",
   "/settings/metricas",
   "/settings/salud",
+  "/settings/costos",
   "/settings/apertura",
   "/settings/feedback",
 ];

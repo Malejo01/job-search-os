@@ -14,6 +14,7 @@ import {
   cvChatBetaCvPerMonth,
   cvChatWindows,
   profileAgentDailyCapUsd,
+  profileAgentLimitsFromEnv,
   profileAgentWriteReject,
   type ProfileAgentWriteReject,
 } from "@job-search-os/pipeline";
@@ -75,6 +76,7 @@ export async function reserveProfileAgentWrite(
   p: ProfileAgentWriteSlotParams,
 ): Promise<CvReservation<ProfileAgentWriteReject>> {
   const { monthSince, daySince } = cvChatWindows(p.now);
+  const limits = profileAgentLimitsFromEnv(p.env);
   // El tope por persona y día se mide DENTRO del lock (R11-2, `m.agentUserSpendUsd`): antes se medía
   // justo antes y dos pedidos de charlas distintas podían pasar los dos
   return reserveCvChatStep<ProfileAgentWriteReject>(db, {
@@ -96,6 +98,8 @@ export async function reserveProfileAgentWrite(
         writeInFlight: m.writeInFlight,
         cvThisMonth: m.cvThisMonth,
         cvPerMonth: cvChatBetaCvPerMonth(p.planCvPerMonth),
+        maxFlowCostUsd: limits.maxFlowCostUsd,
+        userDailyCapUsd: limits.userDailyCapUsd,
       }),
   });
 }

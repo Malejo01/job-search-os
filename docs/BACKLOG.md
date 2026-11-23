@@ -2038,3 +2038,25 @@ Informe de la tanda: [`docs/beta/informe-r22.md`](beta/informe-r22.md). Pasos ma
 
 ### R22 · Cierre de la tanda
 `estado:` en rama (23/11) · `ronda/r22-cierre`
+
+## Bloque 39 · Tanda R21 «Costos a la vista» (23/11)
+
+Informe de la tanda: [`docs/beta/informe-r21.md`](beta/informe-r21.md). Pasos manuales: [`docs/beta/pasos-manuales-r21.md`](beta/pasos-manuales-r21.md). Se escribió sobre `origin/main` (8e3ebab) y se volvió a aplicar sobre `main` con la R19, la S5, la R20 y la R22 (`ronda/r21-sobre-main`); ningún PR mergeado por agentes. Sin migraciones. RLS 0055 y 0056 sin aplicar. USD 0.
+
+### Tablero de costos (`/settings/costos`, admin)
+- **R21-01** · Gasto de IA por día, tarea y modelo, fallas, respaldos y proyección del mes · `estado:` en rama, RLS 0055 (23/11) · `ronda/r21-01-tablero-gasto`
+- **R21-02** · Costo por unidad: oferta, simulación, charla, CV y persona (p50 y p90) · `estado:` en rama (23/11) · `ronda/r21-02-costo-por-unidad`
+- **R21-03** · Calculadora de margen por plan · `estado:` en rama (23/11) · `ronda/r21-03-calculadora-margen`
+
+### Topes y avisos
+- **R21-04** · Inventario de topes en `docs/beta/costos.md`; 15 topes fijos pasan a variables con el mismo valor · `estado:` en rama (23/11) · `ronda/r21-04-topes-ordenados`
+- **R21-05** · Aviso de gasto fuera de lo normal en `/settings/salud` · `estado:` en rama, RLS 0056 (23/11) · `ronda/r21-05-anomalia-gasto`
+
+### Pendientes que salen de la tanda
+- `llm_calls` no marca cuándo respondió el modelo de respaldo: el tablero lo infiere con el ruteo de hoy. Una columna lo haría exacto (migración).
+- La lista de tareas que no son llamadas a un modelo está repetida en las RLS 0055 y 0056 y en `spend.ts`.
+- Sumar a `.env.example` las 15 variables nuevas de topes (el equipo no puede editarlo).
+- Correr los e2e 109 y 170 con `ADMIN_EMAILS` y el usuario del seed.
+
+### R21 · Cierre de la tanda
+`estado:` en rama (23/11) · `ronda/r21-cierre`

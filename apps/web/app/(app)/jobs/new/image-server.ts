@@ -3,6 +3,7 @@ import {
   createLogger,
   EXTRACT_IMAGE_TASK,
   extractJobFromImage,
+  imageLimitsFromEnv,
   safeDbError,
   spendCapReason,
   type ExtractImageOutcome,
@@ -47,6 +48,7 @@ export async function extractJobImageForUser(
               onlyReached: true,
             }),
           capReason: () => spendCapReason(tx, { userId }),
+          limits: imageLimitsFromEnv(process.env),
           lock: {
             acquire: async () => {
               const rows = (await tx.execute(

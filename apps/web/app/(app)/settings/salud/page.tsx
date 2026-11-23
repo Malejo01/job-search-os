@@ -1,4 +1,9 @@
-import { betaHealth, inboundConfigWarnings, type HealthLevel } from "@job-search-os/pipeline";
+import {
+  betaHealth,
+  formatUsd,
+  inboundConfigWarnings,
+  type HealthLevel,
+} from "@job-search-os/pipeline";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -7,6 +12,7 @@ import { getAssistantMetrics } from "@/lib/assistant-metrics";
 import { getBetaHealth } from "@/lib/beta-health";
 import { loginSecretMissingInProduction } from "@/lib/login-credentials";
 import { requireUserId } from "@/lib/session";
+import { getSpendAnomalies } from "@/lib/spend-anomalies";
 
 export const metadata: Metadata = { title: "Salud de la beta", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -112,6 +118,54 @@ async function AssistantBlock({ userId }: { userId: string }) {
 }
 
 /**
+ * Anomalías de gasto (R21-05): una tarea cuyo gasto de las últimas 24 h pasa 3 veces su promedio diario
+ * de los 7 días anteriores (con un gasto mínimo de USD 0,10). Solo tarea y números, sin personas.
+ */
+async function SpendAnomalyBlock({ userId }: { userId: string }) {
+  const result = await getSpendAnomalies(userId);
+  const anomalies = result.ok ? result.anomalies : [];
+  return (
+    <section
+      data-testid="salud-anomalias-gasto"
+      data-anomalies={result.ok ? anomalies.length : "sin_datos"}
+      aria-labelledby="anomalias-gasto"
+      className="flex flex-col gap-1 rounded-card bg-surface p-4"
+    >
+      <h2 id="anomalias-gasto" className="text-sm font-semibold text-fg">
+        Gasto de IA fuera de lo normal
+      </h2>
+      {!result.ok ? (
+        <p role="status" className="text-xs text-fg-muted">
+          No se pudo leer el gasto por tarea.
+        </p>
+      ) : anomalies.length === 0 ? (
+        <p className="text-base font-bold text-fg">Sin anomalías</p>
+      ) : (
+        <ul role="status" className="m-0 flex list-disc flex-col gap-1 pl-5 text-xs text-warning">
+          {anomalies.map((a) => (
+            <li key={a.task}>
+              <code>{a.task}</code>: {formatUsd(a.usd24h, 3)} en 24 h;{" "}
+              {a.noHistory
+                ? "sin gasto en los 7 días anteriores"
+                : `promedio diario de 7 días ${formatUsd(a.avg7dUsd, 3)}, ${ONE_DECIMAL.format(a.times ?? 0)} veces`}
+              .
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="text-xs text-fg-muted">
+        Avisa si en 24 horas una tarea gasta más de 3 veces su promedio diario de los 7 días
+        anteriores y al menos USD 0,10. El detalle por día, tarea y modelo está en{" "}
+        <Link href="/settings/costos" className="font-semibold text-link underline">
+          Costos de IA
+        </Link>
+        .
+      </p>
+    </section>
+  );
+}
+
+/**
  * Configuración del correo entrante: modos mal escritos o `enforce` sin servidor de autenticación. Se
  * calcula con las variables de entorno, sin consultar la base. Nunca muestra el valor de la variable.
  */
@@ -140,7 +194,7 @@ function InboundConfigBlock({ warnings }: { warnings: string[] }) {
 }
 
 /**
- * Salud diaria de la beta (C8-11): la pantalla que Mauro mira cada mañana. Solo para quien administra
+ * Salud diaria de la beta (C8-11): la pantalla que se mira cada mañana. Solo para quien administra
  * la beta (para el resto, 404). Conteos agregados, sin datos de nadie; se actualizan cada 5 minutos.
  * Los umbrales salen de docs/beta/capacidad.md.
  */
@@ -236,6 +290,7 @@ export default async function SaludPage() {
           por umbral y por día (UTC). El gasto de 24 horas contra el tope está en «IA» más arriba.
         </p>
       </section>
+      <SpendAnomalyBlock userId={userId} />
       <InboundConfigBlock warnings={inboundConfigWarnings(process.env)} />
       <AssistantBlock userId={userId} />
       <p className="text-sm">
