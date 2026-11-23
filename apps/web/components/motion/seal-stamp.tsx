@@ -1,10 +1,17 @@
 "use client";
 
-import { domAnimation, LazyMotion, m, useAnimationControls, useReducedMotion } from "framer-motion";
-import { useLayoutEffect, type ReactNode } from "react";
+import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { firstTimeSeen, markSeen } from "./seen-once";
 
 const KEY = "jso-sellos-vistos";
+
+function prefersReducedMotion(): boolean {
+  try {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Momento de marca (a), C9-14 / decisión 13: el sello se estampa (entra grande y girado, rebota y
@@ -26,35 +33,32 @@ export function SealStamp({
   evaluated: boolean;
   children: ReactNode;
 }) {
-  const reduce = useReducedMotion();
-  const controls = useAnimationControls();
+  const ref = useRef<HTMLSpanElement>(null);
   // Antes de pintar: si se va a estampar, arranca invisible (sin parpadeo del sello quieto)
   useLayoutEffect(() => {
     if (!evaluated) return;
-    if (reduce) {
+    if (prefersReducedMotion()) {
       markSeen(KEY, jobId);
       return;
     }
     if (!firstTimeSeen(KEY, jobId)) return;
-    controls.set({ scale: 1.9, rotate: -28, opacity: 0 });
-    void controls.start({
-      scale: 1,
-      rotate: 0,
-      opacity: 1,
-      transition: { type: "spring", stiffness: 520, damping: 16, mass: 0.9 },
-    });
-  }, [controls, evaluated, jobId, reduce]);
-  // R-1: `m` + `domAnimation` en vez de `motion` entero: menos JS en /jobs y /hoy
+    // R24-04b: WAAPI en vez de Framer. Aproxima el resorte (rigidez 520, amortiguación 16): entra
+    // grande y girado, se pasa un poco de largo y se asienta.
+    ref.current?.setAttribute("data-estampado", "");
+    ref.current?.animate?.(
+      [
+        { transform: "scale(1.9) rotate(-28deg)", opacity: 0 },
+        { transform: "scale(0.88) rotate(5deg)", opacity: 1, offset: 0.35 },
+        { transform: "scale(1.06) rotate(-2deg)", offset: 0.6 },
+        { transform: "scale(0.98) rotate(0.5deg)", offset: 0.8 },
+        { transform: "scale(1) rotate(0deg)", opacity: 1 },
+      ],
+      { duration: 560, easing: "ease-out", fill: "backwards" },
+    );
+  }, [evaluated, jobId]);
   return (
-    <LazyMotion features={domAnimation} strict>
-      <m.span
-        initial={false}
-        animate={controls}
-        data-sello-estampa=""
-        className="inline-flex shrink-0"
-      >
-        {children}
-      </m.span>
-    </LazyMotion>
+    <span ref={ref} data-sello-estampa="" className="inline-flex shrink-0">
+      {children}
+    </span>
   );
 }
