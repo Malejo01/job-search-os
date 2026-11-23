@@ -22,19 +22,19 @@ describe("planAccess: en qué estado está el acceso (C3-1)", () => {
     }
   });
 
-  it("un plan pago con más de 3 días queda «activo» y cuenta los días que faltan", () => {
+  it("un plan pago con más de 7 días queda «activo» y cuenta los días que faltan", () => {
     const a = planAccess({ plan: "lista", planUntil: days(20), planSource: "pago", now: NOW });
     expect(a).toMatchObject({ status: "activo", plan: "lista", daysLeft: 20, becado: false });
     expect(a.until).toEqual(days(20));
   });
 
-  it("avisa a partir de 3 días: «por_vencer» incluye el límite", () => {
-    expect(EXPIRY_WARNING_DAYS).toBe(3);
+  it("avisa a partir de 7 días: «por_vencer» incluye el límite", () => {
+    expect(EXPIRY_WARNING_DAYS).toBe(7);
     const at = (n: number) =>
       planAccess({ plan: "lista", planUntil: days(n), planSource: "pago", now: NOW });
-    expect(at(4).status).toBe("activo");
-    expect(at(3).status).toBe("por_vencer");
-    expect(at(3).daysLeft).toBe(3);
+    expect(at(8).status).toBe("activo");
+    expect(at(7).status).toBe("por_vencer");
+    expect(at(7).daysLeft).toBe(7);
     expect(at(1).status).toBe("por_vencer");
   });
 
