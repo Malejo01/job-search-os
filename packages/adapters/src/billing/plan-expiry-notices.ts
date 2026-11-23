@@ -3,6 +3,7 @@ import {
   buildPlanNoticeEmail,
   EXPIRY_WARNING_DAYS,
   isPlanKey,
+  noticeStage,
   parseContactEmail,
   paymentOffer,
   planNoticeDailyCap,
@@ -149,6 +150,7 @@ export async function runPlanExpiryNotices(deps: {
         settingsUrl,
         contactEmail: contact,
         becado: candidate.planSource === "beca",
+        stage: noticeStage(candidate.planUntil as Date, now)?.stage,
       });
       await send(
         { to: candidate.email, subject: email.subject, text: email.text, html: email.html, from },
@@ -180,7 +182,7 @@ export async function runPlanExpiryNotices(deps: {
 }
 
 /** Margen del filtro grueso de la consulta: un día más que la ventana del aviso. */
-const LOAD_WINDOW_DAYS = EXPIRY_WARNING_DAYS + 1;
+const LOAD_WINDOW_DAYS = EXPIRY_WARNING_DAYS + 2;
 const LOAD_LIMIT = 500;
 const DAY_MS = 86_400_000;
 

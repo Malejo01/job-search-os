@@ -2017,3 +2017,24 @@ Informe de la tanda: [`docs/beta/informe-r20.md`](beta/informe-r20.md). Pasos ma
 
 ### R20 · Cierre de la tanda
 `estado:` en rama (22/11) · `ronda/r20-cierre-v2`
+
+## Bloque 38 · Tanda R22 «Operación de la beta» (23/11)
+
+Informe de la tanda: [`docs/beta/informe-r22.md`](beta/informe-r22.md). Pasos manuales: [`docs/beta/pasos-manuales-r22.md`](beta/pasos-manuales-r22.md). Todas las ramas forman una cadena desde `origin/main` (8e3ebab), separada de la R19, la S5 y la R20; ningún PR mergeado por agentes. Migraciones 0076 y 0077 y RLS 0053, 0054 y 0057 sin aplicar.
+
+### Pagos y planes
+- **R22-01** · «Ya pagué» en «Tu plan», con tope de 3 avisos pendientes · `estado:` en rama, migración 0076 y RLS 0053 (23/11) · `ronda/r22-01-ya-pague`
+- **R22-02** · Cola de altas, búsqueda, filtros, renovar en un clic e historial del plan · `estado:` en rama, migración 0077 y RLS 0054 (23/11) · `ronda/r22-02-cola-de-altas`
+- **R22-03** · Recordatorios de vencimiento a 7 días, 1 día y el día, y plan vencido en Hoy · `estado:` en rama (23/11) · `ronda/r22-03-recordatorios-vencimiento`
+
+### Tableros de admin
+- **R22-04** · Uso por carrera y por semana en Métricas · `estado:` en rama, índices en la 0076 y RLS 0057 (23/11) · `ronda/r22-04-uso-por-carrera`
+- **R22-05** · Checklist de apertura (`/settings/apertura`) · `estado:` en rama (23/11) · `ronda/r22-05-checklist-apertura`
+
+### Pendientes que salen de la tanda
+- Banner de vencimiento a ras del borde en `/hoy` (exige tocar el layout).
+- Marca de aprobado en `textos-rediseno.ts`, para que el checklist no dependa de una lista manual.
+- Correr los e2e 157, 160, 161, 164 y 165 con las variables puestas.
+
+### R22 · Cierre de la tanda
+`estado:` en rama (23/11) · `ronda/r22-cierre`

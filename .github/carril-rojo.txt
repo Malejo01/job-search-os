@@ -66,6 +66,9 @@ apps/web/app/(app)/settings/metricas/pool-coverage-panel.tsx
 apps/web/lib/cv-tailor/actions.ts
 apps/web/lib/cv-tailor/server.ts
 packages/pipeline/src/cv-tailor/flag.ts
+apps/web/lib/apertura.ts
+apps/web/lib/usage-by-career.ts
+packages/pipeline/src/apertura-checklist.ts
 apps/web/lib/user-plan.ts
 apps/web/lib/llm-service.ts
 apps/web/lib/setup.ts

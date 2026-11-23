@@ -6,7 +6,7 @@
  * para el vencimiento en curso: al renovar, `plan_until` se corre y el siguiente aviso vuelve a
  * corresponder. Vencer nunca borra nada (C3-1): el texto lo dice, y es lo que muestra Ajustes.
  */
-import { EXPIRY_WARNING_DAYS, planAccess } from "./plan-access";
+import { planAccess } from "./plan-access";
 import { brandedEmailHtml, textToEmailHtml } from "./email-layout";
 import { PRODUCT_NAME } from "./product";
 
@@ -23,10 +23,32 @@ export type PlanNoticeCandidate = {
   planNotifiedAt: Date | null;
 };
 
+/** Etapas del aviso: días de Argentina que faltan para el vencimiento (0 = el día en que vence). */
+export const NOTICE_STAGES = [7, 1, 0] as const;
+export type NoticeStage = (typeof NOTICE_STAGES)[number];
+
 /**
- * ¿Corresponde avisarle ahora? Sí si tiene un plan pago vigente que vence en `EXPIRY_WARNING_DAYS` días
- * o menos y todavía no se le avisó de este vencimiento. Un aviso es de este vencimiento si se mandó desde
- * que se abrió la ventana (`plan_until` menos 3 días); uno anterior es de un vencimiento viejo.
+ * En qué etapa de aviso está un vencimiento ahora, o null si todavía no toca (faltan más de 7 días de
+ * Argentina) o ya venció. Cada etapa empieza en la medianoche de Argentina de 7 días, de 1 día y del propio
+ * día del vencimiento; `since` es ese instante. Con una sola marca (`plan_notified_at`) alcanza: se avisa
+ * si la última marca es anterior al comienzo de la etapa en curso, así cada etapa sale una vez aunque el
+ * cron corra dos veces, y si una corrida se pierde la siguiente manda la etapa vigente (no las atrasadas).
+ */
+export function noticeStage(until: Date, now: Date): { stage: NoticeStage; since: Date } | null {
+  if (now.getTime() >= until.getTime()) return null;
+  // Medianoche de Argentina del día en que vence
+  const dayStart = Math.floor((until.getTime() - AR_OFFSET_MS) / DAY_MS) * DAY_MS + AR_OFFSET_MS;
+  for (const stage of [0, 1, 7] as const) {
+    const since = dayStart - stage * DAY_MS;
+    if (now.getTime() >= since) return { stage, since: new Date(since) };
+  }
+  return null;
+}
+
+/**
+ * ¿Corresponde avisarle ahora? Sí si tiene un plan pago vigente en una etapa de aviso (7 días, 1 día o el
+ * día del vencimiento) y todavía no se le avisó de esa etapa. Una marca anterior al comienzo de la etapa
+ * es de la etapa anterior (o de un vencimiento viejo, si renovó).
  */
 export function isPlanNoticeDue(c: PlanNoticeCandidate, now: Date): boolean {
   const access = planAccess({
@@ -35,10 +57,11 @@ export function isPlanNoticeDue(c: PlanNoticeCandidate, now: Date): boolean {
     planSource: c.planSource,
     now,
   });
-  if (access.status !== "por_vencer" || !c.planUntil) return false;
+  if ((access.status !== "por_vencer" && access.status !== "activo") || !c.planUntil) return false;
+  const stage = noticeStage(c.planUntil, now);
+  if (!stage) return false;
   if (!c.planNotifiedAt) return true;
-  const windowStart = c.planUntil.getTime() - EXPIRY_WARNING_DAYS * DAY_MS;
-  return c.planNotifiedAt.getTime() < windowStart;
+  return c.planNotifiedAt.getTime() < stage.since.getTime();
 }
 
 /**
@@ -112,6 +135,8 @@ export type PlanNoticeEmailInput = {
   contactEmail: string | null;
   /** El acceso viene de la beca (primer mes gratis). */
   becado: boolean;
+  /** Etapa del aviso (7 días, 1 día o el día del vencimiento). Sin dato, la de 7 días. */
+  stage?: NoticeStage;
 };
 
 function firstName(displayName: string): string {
@@ -133,14 +158,16 @@ export function buildPlanNoticeEmail(input: PlanNoticeEmailInput): {
   const date = formatNoticeDate(input.until);
   const name = firstName(input.displayName);
   const what = input.becado ? "Tu mes de beca" : "Tu acceso a la Beta";
+  const stage = input.stage ?? 7;
+  const when = stage === 0 ? "vence hoy" : stage === 1 ? "vence mañana" : `vence el ${date}`;
   const subject = input.becado
-    ? `Tu mes de beca en ${PRODUCT_NAME} vence el ${date}`
-    : `Tu acceso a la Beta de ${PRODUCT_NAME} vence el ${date}`;
+    ? `Tu mes de beca en ${PRODUCT_NAME} ${when}`
+    : `Tu acceso a la Beta de ${PRODUCT_NAME} ${when}`;
 
   const lines: string[] = [];
   lines.push(name ? `Hola ${name}:` : "Hola,");
   lines.push("");
-  lines.push(`${what} de ${PRODUCT_NAME} vence el ${date}.`);
+  lines.push(`${what} de ${PRODUCT_NAME} ${when}${stage === 7 ? "" : ` (${date})`}.`);
   lines.push("");
   if (input.paymentUrl) {
     lines.push("Si querés seguir con el plan completo, pagá el mes con Mercado Pago:");
@@ -167,7 +194,9 @@ export function buildPlanNoticeEmail(input: PlanNoticeEmailInput): {
   lines.push("");
   lines.push(`Tu plan, en cualquier momento: ${input.settingsUrl}`);
   lines.push("");
-  lines.push("Este aviso te llega una sola vez por vencimiento.");
+  lines.push(
+    "Te avisamos 7 días antes, 1 día antes y el día del vencimiento; cada aviso llega una sola vez.",
+  );
   lines.push(PRODUCT_NAME);
   const text = lines.join("\n");
   // En el HTML el nombre ya va en el encabezado y el pie: el cuerpo termina en el aviso

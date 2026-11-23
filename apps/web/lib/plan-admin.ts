@@ -37,7 +37,9 @@ async function guarded<T>(run: () => Promise<T>): Promise<T> {
       if (
         typeof message === "string" &&
         (message.includes("admin_plan: no autorizado") ||
-          message.includes("admin_plan_override: no autorizado"))
+          message.includes("admin_plan_override: no autorizado") ||
+          message.includes("admin_payment_notice: no autorizado") ||
+          message.includes("admin_plan_events: no autorizado"))
       ) {
         throw new PlanAdminNotEnabledInDbError();
       }
@@ -176,6 +178,154 @@ export async function setPlanOverride(
     ),
   )) as unknown as { ok: boolean }[];
   return row?.ok === true;
+}
+
+export type PendingNotice = {
+  id: string;
+  email: string;
+  plan: string;
+  operationNumber: string | null;
+  createdAt: Date;
+};
+
+/** Avisos «Ya pagué» pendientes, los más viejos primero (R22-02). Solo admin; tope de 100 en la base. */
+export async function listPendingNotices(userId: string): Promise<PendingNotice[]> {
+  await assertAdmin(userId);
+  const rows = (await guarded(() =>
+    withUser(userId, (tx) => tx.execute(sql`select * from public.admin_payment_notice_list(100)`)),
+  )) as unknown as {
+    id: string;
+    email: string;
+    plan: string;
+    operation_number: string | null;
+    created_at: Date | string;
+  }[];
+  return rows.map((r) => ({
+    id: r.id,
+    email: r.email,
+    plan: r.plan,
+    operationNumber: r.operation_number,
+    createdAt: new Date(r.created_at),
+  }));
+}
+
+export type NoticeResolution = "ya_resuelto" | "no_existe" | "plan_viejo" | "motivo_invalido";
+
+export type ActivateNoticeResult =
+  | { ok: true; email: string; until: Date; activated: boolean }
+  | { ok: false; reason: NoticeResolution };
+
+/**
+ * Activa un aviso pendiente: 30 días desde el último de ahora, la apertura o el vencimiento actual (misma
+ * cuenta que `grantBetaPlan`), como pago. La base lo hace en una transacción con el aviso bloqueado: un doble
+ * clic o dos admins a la vez activan una sola vez y el segundo recibe `ya_resuelto`.
+ */
+export async function activatePaymentNotice(
+  userId: string,
+  noticeId: string,
+  now: Date = new Date(),
+): Promise<ActivateNoticeResult> {
+  await assertAdmin(userId);
+  const notice = (await listPendingNotices(userId)).find((n) => n.id === noticeId);
+  if (!notice) return { ok: false, reason: "ya_resuelto" };
+  const [current] = (await guarded(() =>
+    withUser(userId, (tx) => tx.execute(sql`select * from public.admin_plan_get(${notice.email})`)),
+  )) as unknown as PlanRowRaw[];
+  if (!current) return { ok: false, reason: "no_existe" };
+  if (current.plan !== "gratis" && current.plan !== BETA_PLAN) {
+    return { ok: false, reason: "plan_viejo" };
+  }
+  const until = grantPeriod({
+    now,
+    currentUntil: current.plan === BETA_PLAN ? toDate(current.plan_until) : null,
+    days: betaPeriodDays(BETA_PLAN),
+  });
+  const [res] = (await guarded(() =>
+    withUser(userId, (tx) =>
+      tx.execute(
+        sql`select public.admin_payment_notice_activate(${noticeId}::uuid, ${until.toISOString()}::timestamptz) as r`,
+      ),
+    ),
+  )) as unknown as { r: string }[];
+  if (res?.r !== "ok") {
+    const reason = res?.r === "plan_viejo" || res?.r === "no_existe" ? res.r : "ya_resuelto";
+    return { ok: false, reason };
+  }
+  return {
+    ok: true,
+    email: notice.email,
+    until,
+    activated: isPlanActivation({ plan: current.plan, planUntil: toDate(current.plan_until) }, now),
+  };
+}
+
+/** Rechaza un aviso pendiente con un motivo corto (ya validado por el pipeline). */
+export async function rejectPaymentNotice(
+  userId: string,
+  noticeId: string,
+  reason: string,
+): Promise<{ ok: true } | { ok: false; reason: NoticeResolution }> {
+  await assertAdmin(userId);
+  const [res] = (await guarded(() =>
+    withUser(userId, (tx) =>
+      tx.execute(sql`select public.admin_payment_notice_reject(${noticeId}::uuid, ${reason}) as r`),
+    ),
+  )) as unknown as { r: string }[];
+  if (res?.r === "ok") return { ok: true };
+  const r = res?.r;
+  return { ok: false, reason: r === "no_existe" || r === "motivo_invalido" ? r : "ya_resuelto" };
+}
+
+export type PlanEventAction = "activar" | "renovar" | "quitar" | "rechazar_aviso" | "marca";
+
+/**
+ * Anota un cambio del plan en el historial (R22-02). Es un registro de apoyo: si falla (por ejemplo, la
+ * migración todavía no está aplicada) no corta el cambio que ya se hizo; se devuelve `false`.
+ */
+export async function recordPlanEvent(
+  userId: string,
+  email: string,
+  action: PlanEventAction,
+  source: PlanSource | null = null,
+): Promise<boolean> {
+  try {
+    await withUser(userId, (tx) =>
+      tx.execute(
+        sql`select public.admin_plan_event_add(${normalizeEmail(email)}, ${action}, ${source}::text)`,
+      ),
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export type PlanEventRow = {
+  email: string;
+  action: PlanEventAction;
+  source: PlanSource | null;
+  createdAt: Date;
+};
+
+/** Últimos cambios del plan, los más nuevos primero (tope de 50 en la base). */
+export async function listPlanEvents(userId: string, limit = 20): Promise<PlanEventRow[]> {
+  await assertAdmin(userId);
+  const rows = (await guarded(() =>
+    withUser(userId, (tx) =>
+      tx.execute(sql`select * from public.admin_plan_event_list(${limit}::integer)`),
+    ),
+  )) as unknown as {
+    email: string;
+    action: PlanEventAction;
+    source: string | null;
+    created_at: Date | string;
+  }[];
+  return rows.map((r) => ({
+    email: r.email,
+    action: r.action,
+    source: isPlanSource(r.source) ? r.source : null,
+    createdAt: new Date(r.created_at),
+  }));
 }
 
 /** Pasa a la persona al plan gratis (sin borrar nada). Devuelve false si no existe o no terminó el onboarding. */

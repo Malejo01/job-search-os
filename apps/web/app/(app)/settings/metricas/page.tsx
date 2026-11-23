@@ -27,9 +27,11 @@ import {
 } from "@/lib/beta-metrics";
 import { getPoolCoverage } from "@/lib/pool-coverage";
 import { requireUserId } from "@/lib/session";
+import { getUsageByCareer } from "@/lib/usage-by-career";
 import { buttonClasses } from "@/components/ui";
 import { AccesoFunnelPanel } from "./acceso-funnel-panel";
 import { PoolCoveragePanel, PoolMailboxPanel } from "./pool-coverage-panel";
+import { UsageByCareerPanel } from "./usage-by-career-panel";
 
 export const metadata = { title: "Métricas de la beta" };
 export const dynamic = "force-dynamic";
@@ -74,6 +76,7 @@ export default async function MetricasPage() {
   const reveal = await getCareerReveal(userId);
   const accesoFunnel = await getAccesoFunnel(userId);
   const poolCoverage = await getPoolCoverage(userId);
+  const usageByCareer = await getUsageByCareer(userId);
   const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(betaMetricsCsv(metrics))}`;
 
   return (
@@ -93,6 +96,7 @@ export default async function MetricasPage() {
       <HiddenCareers reveal={reveal} />
       <PoolCoveragePanel result={poolCoverage} />
       {poolCoverage.ok ? <PoolMailboxPanel userId={userId} /> : null}
+      <UsageByCareerPanel result={usageByCareer} />
       <BetaFeedbackList feedback={feedback} />
       <a
         href={csvHref}
