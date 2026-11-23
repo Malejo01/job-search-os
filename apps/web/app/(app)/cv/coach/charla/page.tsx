@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { CvCoachChat } from "@/components/cv-coach/chat";
 import { cvCoachAllowedFor } from "@/lib/cv-coach/access";
 import { requireActiveUserId } from "@/lib/session";
+import { voiceServerAllowedFor } from "@/lib/voice/server";
 
 export const metadata = { title: "Mejoremos tu CV" };
 export const dynamic = "force-dynamic";
@@ -15,6 +16,7 @@ export const maxDuration = 60;
 export default async function CvCoachChatPage() {
   const userId = await requireActiveUserId();
   if (!(await cvCoachAllowedFor(userId))) notFound();
+  const serverTranscribe = await voiceServerAllowedFor(userId);
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-5">
       <h1 className="text-title font-bold">Mejoremos tu CV</h1>
@@ -23,7 +25,7 @@ export default async function CvCoachChatPage() {
         cortar cuando quieras con «Ya está, armalo». Nada cambia en tu perfil hasta que confirmes
         cada tarjeta.
       </p>
-      <CvCoachChat />
+      <CvCoachChat serverTranscribe={serverTranscribe} />
     </div>
   );
 }

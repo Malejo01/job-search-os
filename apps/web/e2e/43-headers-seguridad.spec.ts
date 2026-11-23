@@ -4,7 +4,7 @@ import { login } from "./helpers";
 // Headers de seguridad globales (ronda 64). La CSP es solo frame-ancestors.
 const COMMON = {
   "x-content-type-options": "nosniff",
-  "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+  "permissions-policy": "camera=(), microphone=(self), geolocation=(), payment=(), usb=()",
   "x-frame-options": "DENY",
   "content-security-policy": "frame-ancestors 'none'",
 };

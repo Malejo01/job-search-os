@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { cvChatAllowed } from "@/lib/cv-chat-server";
 import { requireActiveUserId } from "@/lib/session";
+import { voiceServerAllowedFor } from "@/lib/voice/server";
 import { CvChat } from "./chat";
 
 export const metadata = { title: "Armá tu CV con IA" };
@@ -14,10 +15,11 @@ export const dynamic = "force-dynamic";
 export default async function ArmarCvPage() {
   const userId = await requireActiveUserId();
   if (!(await cvChatAllowed(userId))) notFound();
+  const serverTranscribe = await voiceServerAllowedFor(userId);
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-5">
       <h1 className="text-title font-bold">Armá tu CV con IA</h1>
-      <CvChat />
+      <CvChat serverTranscribe={serverTranscribe} />
     </div>
   );
 }

@@ -10,12 +10,22 @@ import {
 } from "./helpers";
 
 /**
- * Flujo 152 (R17-09): el botón «Dictar» del chat del coach de CV.
- * - sin `SpeechRecognition` ni `webkitSpeechRecognition`, el botón no aparece y el campo sigue andando;
- * - con un reconocimiento simulado, aparece, el texto cae en el campo para editarlo y el audio no sale.
+ * Flujo 152 (R17-09, R25-05): el botón de voz del chat del coach de CV.
+ * - sin `SpeechRecognition` ni `webkitSpeechRecognition`, graba (con el servidor en `testers`) o muestra un
+ *   mensaje en lugar del botón, y el campo sigue andando;
+ * - con un reconocimiento simulado, el texto en vivo queda en la vista previa y cae en el campo al tocar «Listo».
  * Se llega al chat con el ticket de la lectura del agente de perfil (modelo de demo, sin gasto), como en el 147.
  */
 test.describe.configure({ mode: "serial" });
+
+// R25-05: `VoiceInput` pide el micrófono antes de dictar; Chromium lo da falso y sin cartel
+test.use({
+  launchOptions: {
+    args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"],
+  },
+  permissions: ["microphone"],
+});
+const SERVER_MODE_ON = process.env.E2E_VOICE_SERVER_MODE === "testers";
 
 const CV_TEXT = [
   "Persona Ficticia",
@@ -91,7 +101,9 @@ test.describe("Flujo 152: dictar", () => {
     await removeSecondUser();
   });
 
-  test("sin soporte del navegador el botón no aparece", async ({ page }) => {
+  test("sin soporte del navegador no hay dictado en vivo y el campo sigue andando", async ({
+    page,
+  }) => {
     test.setTimeout(120_000);
     await page.addInitScript(() => {
       Object.defineProperty(window, "SpeechRecognition", { value: undefined, configurable: true });
@@ -101,8 +113,13 @@ test.describe("Flujo 152: dictar", () => {
       });
     });
     await openChat(page);
-    await expect(page.getByTestId("dictar")).toHaveCount(0);
-    await expect(page.getByTestId("dictar-boton")).toHaveCount(0);
+    // Sin dictado propio el navegador graba; si el servidor no transcribe, un mensaje en lugar del botón
+    if (SERVER_MODE_ON) {
+      await expect(page.getByTestId("voice-boton")).toBeVisible();
+    } else {
+      await expect(page.getByTestId("voice-boton")).toHaveCount(0);
+      await expect(page.getByTestId("voice-no-disponible")).toBeVisible();
+    }
     // El campo de texto sigue andando
     await page.getByTestId("coach-answer").fill("Respuesta escrita a mano");
     await expect(page.getByTestId("coach-send")).toBeEnabled();
@@ -135,20 +152,27 @@ test.describe("Flujo 152: dictar", () => {
       Object.defineProperty(window, "SpeechRecognition", { value: Fake, configurable: true });
     });
     await openChat(page);
-    const button = page.getByTestId("dictar-boton");
+    const button = page.getByTestId("voice-boton");
     await expect(button).toBeVisible();
     await expect(button).toHaveAttribute("aria-pressed", "false");
-    await expect(page.getByTestId("dictar")).toContainText(/el navegador puede mandar el audio/i);
+    await expect(page.getByTestId("voice-input")).toContainText(
+      /el navegador puede mandar el audio/i,
+    );
     await page.getByTestId("coach-answer").fill("Con los tableros");
     await button.click();
     await expect(button).toHaveAttribute("aria-pressed", "true");
-    await expect(page.getByTestId("coach-answer")).toHaveValue(
-      "Con los tableros Cerraba las ventas antes",
-    );
+    // El texto en vivo queda en la vista previa; recién al tocar «Listo» cae en el campo
+    await expect(page.getByTestId("voice-vista-previa")).toContainText("Cerraba las ventas antes");
+    await expect(page.getByTestId("coach-answer")).toHaveValue("Con los tableros");
     expect(await page.evaluate(() => (window as unknown as { __lang: string }).__lang)).toBe(
       "es-AR",
     );
-    await button.click();
+    await page.getByTestId("voice-listo").click();
+    await expect(page.getByTestId("coach-answer")).toHaveValue(
+      "Con los tableros Cerraba las ventas antes",
+    );
     await expect(button).toHaveAttribute("aria-pressed", "false");
+    // Nunca se envía solo: la charla no recibió la respuesta
+    await expect(page.getByTestId("coach-line-me")).toHaveCount(0);
   });
 });

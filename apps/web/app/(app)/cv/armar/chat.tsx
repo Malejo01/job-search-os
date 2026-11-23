@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  CV_CHAT_MAX_INPUT_CHARS,
   cvConflictOptions,
   cvProgressShown,
   type CvChatState,
@@ -10,6 +11,8 @@ import {
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { CvPreview } from "@/components/cv-preview";
+import { joinDictated } from "@/components/dictar-engine";
+import { VoiceInput } from "@/components/voice-input-lazy";
 import { Alert, buttonClasses, cardClasses, inputClasses } from "@/components/ui";
 
 /**
@@ -67,7 +70,7 @@ const csv = (s: string, max: number): string[] =>
     .filter((l) => l !== "")
     .slice(0, max);
 
-export function CvChat() {
+export function CvChat({ serverTranscribe }: { serverTranscribe: boolean }) {
   const [phase, setPhase] = useState<Phase>("intro");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -276,6 +279,13 @@ export function CvChat() {
             disabled={busy}
             className={TEXTAREA}
           />
+          <VoiceInput
+            serverTranscribe={serverTranscribe}
+            onText={(spoken) =>
+              setDraft((prev) => joinDictated(prev, spoken).slice(0, CV_CHAT_MAX_INPUT_CHARS))
+            }
+            disabled={busy}
+          />
           <div className="flex flex-wrap gap-3">
             <button type="submit" disabled={busy} className={PRIMARY}>
               Enviar
@@ -319,7 +329,7 @@ export function CvChat() {
         <p className="text-sm text-fg-muted">
           Corregí lo que haga falta. Si algo está vacío, queda vacío: no lo completo yo.
         </p>
-        <ReviewEditor state={state} onChange={setState} />
+        <ReviewEditor state={state} onChange={setState} serverTranscribe={serverTranscribe} />
         {alert}
         <div className="flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-1 text-sm font-medium text-fg">
@@ -412,25 +422,40 @@ function DutiesField({
   n,
   duties,
   onChange,
+  serverTranscribe,
 }: {
   n: number;
   duties: string[];
   onChange: (duties: string[]) => void;
+  serverTranscribe: boolean;
 }) {
   const [text, setText] = useState(duties.join("\n"));
+  const update = (next: string) => {
+    setText(next);
+    onChange(lines(next, 4).map((l) => l.slice(0, 220)));
+  };
   return (
-    <label className="flex flex-col gap-1 text-sm text-fg">
-      Qué hacías {n} (una por línea)
-      <textarea
-        rows={3}
-        value={text}
-        onChange={(e) => {
-          setText(e.target.value);
-          onChange(lines(e.target.value, 4).map((l) => l.slice(0, 220)));
+    <div className="flex flex-col gap-1">
+      <label className="flex flex-col gap-1 text-sm text-fg">
+        Qué hacías {n} (una por línea)
+        <textarea
+          rows={3}
+          value={text}
+          onChange={(e) => update(e.target.value)}
+          className={TEXTAREA}
+        />
+      </label>
+      {/* Una tarea por línea: lo dictado entra como línea nueva, no pegado con espacio */}
+      <VoiceInput
+        serverTranscribe={serverTranscribe}
+        label={`Dictar tareas ${n}`}
+        onText={(spoken) => {
+          const said = spoken.trim();
+          if (said === "") return;
+          update(text.trim() === "" ? said : `${text.replace(/\s+$/, "")}\n${said}`);
         }}
-        className={TEXTAREA}
       />
-    </label>
+    </div>
   );
 }
 
@@ -461,9 +486,11 @@ function SkillsField({
 function ReviewEditor({
   state,
   onChange,
+  serverTranscribe,
 }: {
   state: CvChatState;
   onChange: (s: CvChatState) => void;
+  serverTranscribe: boolean;
 }) {
   // Al quitar un trabajo se vuelven a montar los campos con texto propio (tareas), para no mezclarlos
   const [version, setVersion] = useState(0);
@@ -517,6 +544,7 @@ function ReviewEditor({
               n={i + 1}
               duties={w.duties}
               onChange={(duties) => setWork(i, { duties })}
+              serverTranscribe={serverTranscribe}
             />
             <label className="flex flex-col gap-1 text-sm text-fg">
               Logro {i + 1}
