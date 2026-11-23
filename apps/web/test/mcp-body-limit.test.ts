@@ -69,6 +69,13 @@ describe("tope de cuerpo de /api/mcp", () => {
     expect(handlerSeen).toHaveLength(0);
   });
 
+  it("el 413 dice cuál es el máximo y cómo achicar el pedido", async () => {
+    const res = await POST(post("x".repeat(MAX + 10)));
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toContain("256 KB");
+    expect(body.error).toContain("menos respuestas");
+  });
+
   it("2 MB hostiles se rechazan en menos de 100 ms", async () => {
     const hostile = post("x".repeat(2 * 1024 * 1024));
     const t0 = performance.now();

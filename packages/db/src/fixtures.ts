@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { fixturesPrivateDir } from "./private-dir";
 
 /**
  * Datos del usuario: privados si existen, de ejemplo si no. El repo versiona un dataset de
@@ -30,7 +31,8 @@ export function loadFixture<T>(name: FixtureName, root: string = ROOT): LoadedFi
   if (mode && mode !== "example") {
     throw new Error(`SEED_FIXTURES inválido: "${mode}". El único valor aceptado es "example".`);
   }
-  const privatePath = resolve(root, "fixtures-private", `${name}.json`);
+  // JSO_PRIVATE_DIR (si está) saca los datos privados del árbol del repo; si no, root/fixtures-private.
+  const privatePath = resolve(fixturesPrivateDir(process.env, root), `${name}.json`);
   const path =
     mode !== "example" && existsSync(privatePath) ? privatePath : resolve(root, PUBLIC_PATHS[name]);
   return {

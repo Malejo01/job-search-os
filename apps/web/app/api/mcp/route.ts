@@ -376,7 +376,11 @@ const json = (status: number, body: unknown, headers: Record<string, string> = {
 async function guarded(original: Request): Promise<Response> {
   // Tope de cuerpo antes de autenticar y de que el handler lo lea: 413 sin leer de más
   const limited = await limitedRequest(original, MAX_MCP_BODY_BYTES);
-  if (!limited.ok) return json(413, { error: "pedido demasiado grande" });
+  if (!limited.ok) {
+    return json(413, {
+      error: `pedido demasiado grande: el máximo es ${MAX_MCP_BODY_BYTES / 1024} KB; mandá menos respuestas por llamada`,
+    });
+  }
   const req = limited.request;
   const auth = await authenticateMcpRequest(req);
   if (!auth.ok) {
