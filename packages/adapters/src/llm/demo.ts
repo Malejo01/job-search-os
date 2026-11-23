@@ -1,5 +1,6 @@
 import { err, ok } from "@job-search-os/pipeline";
 import { demoCvInterview, demoCvWrite } from "./demo-cv";
+import { demoCvTailor } from "./demo-cv-tailor";
 import { demoInterviewFeedback, demoInterviewQuestions } from "./demo-interview";
 import type { CallSink, GenerateContext, LlmClient } from "./types";
 
@@ -14,6 +15,7 @@ const DEMO_TASKS = [
   "extract_cv_profile",
   "cv_review",
   "cv_coach_turn",
+  "cv_tailor",
 ];
 
 /**
@@ -289,14 +291,16 @@ export function createDemoLlm(options: { calls?: CallSink } = {}): LlmClient {
                         ? [demoCvCoachTurn()]
                         : task === "draft_application_answers"
                           ? [demoDrafts(vars)]
-                          : (() => {
-                              const typed = demoEvaluation(vars);
-                              const legacy = {
-                                ...typed,
-                                gaps: (typed.gaps as { skill: string }[]).map((g) => g.skill),
-                              };
-                              return [typed, legacy];
-                            })();
+                          : task === "cv_tailor"
+                            ? [demoCvTailor(vars)]
+                            : (() => {
+                                const typed = demoEvaluation(vars);
+                                const legacy = {
+                                  ...typed,
+                                  gaps: (typed.gaps as { skill: string }[]).map((g) => g.skill),
+                                };
+                                return [typed, legacy];
+                              })();
       const parsed = candidates.map((o) => schema.safeParse(o)).find((p) => p.success);
       if (!parsed?.success) {
         return err({

@@ -78,6 +78,7 @@ export * from "./cv-chat";
 export * from "./interview";
 export * from "./profile-agent";
 export * from "./cv-coach";
+export * from "./cv-tailor";
 // Demo guiada (ronda 74): línea en el medio a propósito, el #102 toca las puntas de este archivo.
 export * from "./demo";
 export { assignPoolDaily, type PoolDailyOptions, type PoolDailyResult } from "./pool/daily";
