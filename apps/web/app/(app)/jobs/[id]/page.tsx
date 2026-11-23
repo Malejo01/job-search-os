@@ -727,7 +727,7 @@ export default async function JobDetailPage({
                   href={safeHttpUrl(src.url) ?? undefined}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="truncate text-link underline"
+                  className="inline-block max-w-full truncate py-3.5 text-link underline sm:py-0"
                 >
                   {src.url}
                 </a>
