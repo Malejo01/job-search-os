@@ -2088,3 +2088,25 @@ Informe de la tanda: [`docs/beta/informe-r23.md`](beta/informe-r23.md). Pasos ma
 
 ### R23 · Cierre de la tanda
 `estado:` en rama (23/11) · `ronda/r23-cierre`
+
+## Bloque 41 · Tanda R24 «Revisión completa y capturas» (23/11)
+
+Informe de la tanda: [`docs/beta/informe-r24.md`](beta/informe-r24.md). Pasos manuales: [`docs/beta/pasos-manuales-r24.md`](beta/pasos-manuales-r24.md). Cadena sobre `ronda/r23-cierre`; ningún PR mergeado por agentes. Sin migraciones, RLS ni variables. USD 0.
+
+### Revisión
+- **R24-01** · Galería de capturas a 390 y 1280 px, claro y oscuro (e2e 200) · `estado:` en rama (23/11) · `ronda/r24-01-galeria`
+- **R24-02** · Los e2e de la R23 corren sin el usuario del seed; Interview de punta a punta (201) · `estado:` en rama (23/11) · `ronda/r24-02-e2e-flujos-nuevos`
+- **R24-03** · Accesibilidad medida en serio (e2e 210) y objetivos de 44 px en el celular · `estado:` en rama (23/11) · `ronda/r24-03-axe-galeria`
+- **R24-05** · Puntajes con coma, «puntaje» en vez de «score», decisiones de texto para Ani · `estado:` en rama (23/11) · `ronda/r24-05-revision-textos`
+
+### Rendimiento
+- **R24-04** · `/hoy` 144 → 113 kB; la versión adaptada del CV carga aparte · `estado:` en rama (23/11) · `ronda/r24-04-rendimiento`
+- **R24-04b** · `/applications` 153 → 108, `/jobs` 172 → 141, `/jobs/[id]` 177 → 146, `/jobs/[id]/postular` 112 → 107 kB · `estado:` en rama (23/11) · `ronda/r24-04b-rendimiento-jobs`
+
+### Pendientes que salen de la tanda
+- Fichas de prueba solo para e2e (`ACADEMY_DIR`), para probar Academy y los «?» con una ficha aprobada.
+- Bajar `/cv/coach*` (174–177 kB) y `/onboarding` (160 kB).
+- Correr 115, 116 y 38 en el CI (usuario del seed).
+
+### R24 · Cierre de la tanda
+`estado:` en rama (23/11) · `ronda/r24-cierre`

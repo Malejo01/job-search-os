@@ -49,12 +49,16 @@ export function ReviewNav({
   }, [router, prevHref, nextHref]);
 
   const btn =
-    "rounded-control border border-line-strong px-2.5 py-1 text-xs text-fg-muted hover:border-fg-subtle";
-  const off = "rounded-control border border-line px-2.5 py-1 text-xs text-fg-subtle";
+    "inline-flex min-h-11 items-center rounded-control border border-line-strong px-2.5 py-1 text-xs text-fg-muted hover:border-fg-subtle";
+  const off =
+    "inline-flex min-h-11 items-center rounded-control border border-line px-2.5 py-1 text-xs text-fg-subtle";
 
   return (
     <nav aria-label="Revisión de ofertas" className="flex items-center justify-between gap-2">
-      <Link href={backHref} className="text-xs text-fg-subtle hover:underline">
+      <Link
+        href={backHref}
+        className="inline-flex min-h-11 items-center text-xs text-fg-subtle hover:underline"
+      >
         ← Ofertas
       </Link>
       <div className="flex items-center gap-1.5">

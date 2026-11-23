@@ -8,14 +8,14 @@ import { createEvaluation, createJob, deleteJob, login } from "./helpers";
  * Datos inventados.
  */
 /**
- * Estilo inline que deja Framer en la caja del sello: vacío si nunca se animó. Con la estampa,
- * Framer escribe `transform` (y al terminar queda en su lugar, `none`).
+ * Marca que deja `SealStamp` en la caja del sello cuando la estampa (R24-04b: ya no es Framer, es
+ * WAAPI y no deja estilo inline): vacía si nunca se animó.
  */
 const inlineTransform = (page: Page) =>
   page
     .locator("[data-sello-estampa]")
     .first()
-    .evaluate((el) => (el as HTMLElement).style.transform);
+    .evaluate((el) => (el.hasAttribute("data-estampado") ? "estampado" : ""));
 
 const seen = (page: Page) =>
   page.evaluate(() => {
@@ -78,7 +78,7 @@ test.describe("Flujo 115: movimiento", () => {
     await page.goto(`/jobs/${jobId}`);
     await expect(page.getByRole("img", { name: "puntaje 9" })).toBeVisible();
     await expect.poll(() => seen(page)).toContain(jobId);
-    // Se animó (Framer dejó su estilo) y terminó en su lugar
+    // Se animó (quedó la marca) y terminó en su lugar
     await expect.poll(() => inlineTransform(page)).not.toBe("");
     await expect
       .poll(() =>

@@ -19,6 +19,7 @@ import {
   listStaleEvaluated,
   type ApplicationView,
 } from "@/lib/applications";
+import { formatDecimal, formatScoreNumber } from "@/lib/labels";
 import { requireUserId } from "@/lib/session";
 import { changeStatusAction, correctStatusAction } from "../jobs/[id]/actions";
 import { closeApplicationAction, snoozeFollowUpAction } from "./followup-actions";
@@ -298,7 +299,7 @@ function Calibration({
             <Link href={`/jobs/${r.jobId}`} className="underline">
               {titleOf.get(r.jobId) ?? r.jobId.slice(0, 8)}
             </Link>{" "}
-            ({r.score ?? "?"})
+            ({r.score === null ? "?" : formatScoreNumber(r.score)})
           </span>
         ))}
       </li>
@@ -307,7 +308,7 @@ function Calibration({
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm">
-        Respuesta positiva (entrevista u oferta) con score ≥ 7:{" "}
+        Respuesta positiva (entrevista u oferta) con puntaje ≥ 7:{" "}
         <strong>{pct(report.highScore.rate)}</strong>{" "}
         <span className="text-xs text-fg-subtle">
           ({report.highScore.positive} de {report.highScore.applied} postulaciones)
@@ -316,14 +317,14 @@ function Calibration({
       {/* Con teclado se puede desplazar a 360 px (axe: scrollable-region-focusable, C-4) */}
       <div
         role="region"
-        aria-label="Calibración por score"
+        aria-label="Calibración por puntaje"
         tabIndex={0}
         className="overflow-x-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
       >
         <table className="w-full text-xs">
           <thead className="text-left text-fg-subtle">
             <tr>
-              <th className="py-1 pr-3">Score</th>
+              <th className="py-1 pr-3">Puntaje</th>
               <th className="py-1 pr-3">Evaluadas</th>
               <th className="py-1 pr-3">Postuladas</th>
               <th className="py-1 pr-3">Entrevista/oferta</th>
@@ -363,14 +364,15 @@ function Calibration({
       </div>
       {report.humanVsModel ? (
         <p className="text-xs text-fg-subtle">
-          Modelo vs tu score en la UI: MAE {report.humanVsModel.mae.toFixed(2)} sobre{" "}
-          {report.humanVsModel.n} evaluaciones, sesgo {report.humanVsModel.bias >= 0 ? "+" : ""}
-          {report.humanVsModel.bias.toFixed(2)} (positivo = el modelo puntúa de más).
+          Modelo vs tu puntaje en la UI: MAE {formatDecimal(report.humanVsModel.mae, 2)} sobre{" "}
+          {report.humanVsModel.n} evaluaciones, sesgo{" "}
+          {formatDecimal(report.humanVsModel.bias, 2, { signed: true })} (positivo = el modelo
+          puntúa de más).
         </p>
       ) : (
         <p className="text-xs text-fg-subtle">
-          Cargá tu score en el detalle de las ofertas evaluadas para comparar modelo vs humano fuera
-          del golden.
+          Cargá tu puntaje en el detalle de las ofertas evaluadas para comparar modelo vs humano
+          fuera del golden.
         </p>
       )}
       {report.surprises.lowScorePositive.length ||
@@ -378,14 +380,14 @@ function Calibration({
       report.surprises.highScoreNoAnswer.length ? (
         <ul className="flex flex-col gap-1 text-xs text-fg-muted">
           {surprise(
-            "Score bajo con respuesta positiva (el evaluador subestimó)",
+            "Puntaje bajo con respuesta positiva (el evaluador subestimó)",
             report.surprises.lowScorePositive,
           )}
           {surprise(
             "Rechazo automático por ubicación en una oferta que parecía compatible (revisar el aviso o la regla)",
             report.surprises.autoLocationRejectWithOk,
           )}
-          {surprise("Score ≥ 7 sin respuesta", report.surprises.highScoreNoAnswer)}
+          {surprise("Puntaje ≥ 7 sin respuesta", report.surprises.highScoreNoAnswer)}
         </ul>
       ) : null}
     </div>

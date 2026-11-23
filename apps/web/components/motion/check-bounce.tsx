@@ -1,10 +1,17 @@
 "use client";
 
-import { domAnimation, LazyMotion, m, useAnimationControls, useReducedMotion } from "framer-motion";
-import { useLayoutEffect, type ReactNode } from "react";
+import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { firstTimeSeen, markSeen } from "./seen-once";
 
 const KEY = "jso-pasos-hechos";
+
+function prefersReducedMotion(): boolean {
+  try {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch {
+    return false;
+  }
+}
 
 /** ¿Había registro de pasos al cargar la página? Se calcula una sola vez por carga. */
 let hadRecord: boolean | null = null;
@@ -31,11 +38,10 @@ export function CheckBounce({
   done: boolean;
   children: ReactNode;
 }) {
-  const reduce = useReducedMotion();
-  const controls = useAnimationControls();
+  const ref = useRef<HTMLSpanElement>(null);
   useLayoutEffect(() => {
     if (!done) return;
-    if (reduce) {
+    if (prefersReducedMotion()) {
       markSeen(KEY, id);
       return;
     }
@@ -47,18 +53,19 @@ export function CheckBounce({
       return;
     }
     if (!firstTimeSeen(KEY, id)) return;
-    controls.set({ scale: 0.3 });
-    void controls.start({
-      scale: [0.3, 1.18, 1],
-      transition: { duration: 0.42, times: [0, 0.6, 1], ease: "easeOut" },
-    });
-  }, [controls, done, id, reduce]);
-  // R-1: `m` + `domAnimation` en vez de `motion` entero: menos JS en /jobs y /hoy
+    // R24-04: Web Animations API en vez de Framer, que entraba a /hoy solo por este rebote (~35 kB).
+    ref.current?.animate?.(
+      [
+        { transform: "scale(0.3)" },
+        { transform: "scale(1.18)", offset: 0.6 },
+        { transform: "scale(1)" },
+      ],
+      { duration: 420, easing: "ease-out" },
+    );
+  }, [done, id]);
   return (
-    <LazyMotion features={domAnimation} strict>
-      <m.span initial={false} animate={controls} className="inline-flex">
-        {children}
-      </m.span>
-    </LazyMotion>
+    <span ref={ref} className="inline-flex">
+      {children}
+    </span>
   );
 }

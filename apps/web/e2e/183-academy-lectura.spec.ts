@@ -1,16 +1,19 @@
 import { expect, test } from "@playwright/test";
 import { axeSummary } from "./axe-helpers";
-import { login } from "./helpers";
+import { ensureSecondUser, loginAsSecondUser, removeSecondUser } from "./helpers";
 
 /**
  * Flujo 183 (R23-03): Academy, lectura cómoda. Mientras ninguna ficha esté aprobada (la aprobación es de
  * Ani), `/academy` muestra el vacío y el detalle da 404: el spec comprueba eso y que `?desde=` no
  * rompe ni deja ver borradores. Si ya hay fichas aprobadas, prueba además el buscador y el pie de
- * relacionadas. Con el usuario del seed; no depende de ADMIN_EMAILS.
+ * relacionadas. Con la persona B (ficticia, la crea y la borra el propio spec): corre en local y en el CI.
  */
 test.describe("Flujo 183: Academy, lectura cómoda (R23-03)", () => {
+  test.beforeAll(ensureSecondUser);
+  test.afterAll(removeSecondUser);
+
   test("lista: vacío o buscador, sin violaciones de axe", async ({ page }) => {
-    await login(page);
+    await loginAsSecondUser(page);
     await page.goto("/academy");
     await expect(page.getByRole("heading", { level: 1, name: "Academy" })).toBeVisible();
 
@@ -33,7 +36,7 @@ test.describe("Flujo 183: Academy, lectura cómoda (R23-03)", () => {
   test("detalle: una ficha en borrador da 404 aunque venga con ?desde=interview", async ({
     page,
   }) => {
-    await login(page);
+    await loginAsSecondUser(page);
     const res = await page.goto("/academy/metodo-star?desde=interview");
     const aprobada = (await page.getByTestId("academy-lectura").count()) > 0;
     if (aprobada) {
@@ -44,8 +47,12 @@ test.describe("Flujo 183: Academy, lectura cómoda (R23-03)", () => {
     }
   });
 
-  test("un origen que no está en la lista no cambia nada", async ({ page }) => {
-    await login(page);
+  test("una ficha que no existe da 404 y un origen fuera de la lista no cambia nada", async ({
+    page,
+  }) => {
+    await loginAsSecondUser(page);
+    const res = await page.goto("/academy/esta-ficha-no-existe");
+    expect(res?.status()).toBe(404);
     await page.goto("/academy?desde=https://example.com");
     await expect(page.getByRole("heading", { level: 1, name: "Academy" })).toBeVisible();
   });
