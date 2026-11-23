@@ -5,6 +5,8 @@ import { isUuid } from "@/lib/ids";
 import { requireUserId } from "@/lib/session";
 import { cvForOffer } from "@job-search-os/pipeline";
 import { cvCoachAllowedFor } from "@/lib/cv-coach/access";
+import { cvTailorAllowedFor } from "@/lib/cv-tailor/server";
+import { PostularTailor } from "./postular-tailor";
 import { loadCvSource } from "@/lib/cv-source";
 import { getPostularData } from "./data";
 import { httpsUrl, postularChecklist } from "./postular-view";
@@ -34,7 +36,10 @@ export default async function PostularPage({ params }: { params: Promise<{ id: s
         history: cvSource.history,
       })
     : null;
-  const coachOn = await cvCoachAllowedFor(userId);
+  const [coachOn, tailorOn] = await Promise.all([
+    cvCoachAllowedFor(userId),
+    cvTailorAllowedFor(userId),
+  ]);
 
   const url = httpsUrl(data.url);
   const checklist = postularChecklist({
@@ -211,6 +216,8 @@ export default async function PostularPage({ params }: { params: Promise<{ id: s
           </p>
         ) : null}
       </section>
+
+      {tailorOn ? <PostularTailor jobId={data.id} /> : null}
 
       <section
         aria-labelledby="postular-checklist"

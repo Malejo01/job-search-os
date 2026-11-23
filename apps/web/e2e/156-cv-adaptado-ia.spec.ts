@@ -174,6 +174,33 @@ test("si el modelo inventa un dato se descarta y sigue la versión sin IA", asyn
   await expect(page.getByText("50 personas")).toHaveCount(0);
 });
 
+test("la versión adaptada se descarga como .docx y no hay descarga antes de pedirla", async ({
+  page,
+}) => {
+  await loginAsSecondUser(page);
+  await page.goto(`/jobs/${normalJobId}/postular`);
+  await expect(page.getByTestId("descargar-cv-adaptado")).toHaveCount(0);
+  await page.getByTestId("cv-tailor-button").click();
+  await expect(page.getByTestId("cv-tailor-result")).toBeVisible();
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByTestId("descargar-cv-adaptado").click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(/^CV-[A-Za-z0-9-]+\.docx$/);
+});
+
+test("un POST con una propuesta basura cae a la versión sin IA", async ({ page }) => {
+  await loginAsSecondUser(page);
+  const res = await page.request.post(`/jobs/${normalJobId}/postular/descargar`, {
+    form: {
+      proposal: '{"entries":[{"ref":"x","bullets":["Dato inventado"]}],"skills":[],"changes":[]}',
+    },
+  });
+  expect(res.status()).toBe(200);
+  expect(res.headers()["content-type"]).toContain("wordprocessingml.document");
+  expect((await res.body()).subarray(0, 2).toString("latin1")).toBe("PK");
+});
+
 test("el cuarto pedido del día se frena con un mensaje claro", async ({ page }) => {
   await loginAsSecondUser(page);
   await page.goto(`/jobs/${normalJobId}/postular`);
