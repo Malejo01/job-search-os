@@ -1,5 +1,6 @@
 import { jobTransparency, type TransparencyInput } from "@job-search-os/pipeline";
 import { ContextHelp } from "@/components/context-help";
+import { AYUDAS_ACADEMY } from "@/lib/textos-rediseno";
 import { transparencyView } from "./transparency-view";
 
 /**
@@ -19,7 +20,11 @@ export function TransparencyBlock({ input }: { input: TransparencyInput }) {
           <h2 id="transparencia-titulo" className="font-semibold">
             Transparencia del aviso
           </h2>
-          <ContextHelp slug="transparencia-del-aviso" term="transparencia del aviso" />
+          <ContextHelp
+            slug={AYUDAS_ACADEMY.transparencia.slug}
+            term={AYUDAS_ACADEMY.transparencia.term}
+            desde="avisos"
+          />
         </div>
         <p className="text-fg" data-testid="transparencia-puntaje">
           <span className="font-semibold">{view.scoreText}/10</span> · {view.word}

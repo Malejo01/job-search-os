@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { ActionTracker } from "@/components/action-tracker";
 import { AssistantMascot } from "@/components/assistant-mascot";
 import { FeedbackButton } from "@/components/feedback-button";
+import { PrimerUso } from "@/components/primer-uso";
 import { MobileTabBar } from "./mobile-tabbar";
 import { countFollowUps } from "@/lib/applications";
 import { canUseAssistant } from "@/lib/assistant";
@@ -115,6 +116,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           anulan su padding (`p-0!`). Las pestañas ya están sumadas en el padding de este contenedor. */}
       {canAssist ? <div aria-hidden="true" className="h-[3.75rem] shrink-0 sm:hidden" /> : null}
       <ActionTracker />
+      {/* R23-05: recorrido de lo nuevo, una sola vez por persona */}
+      <PrimerUso userId={userId} />
       {/* Dos botones separados: el chip de soporte abajo a la izquierda y la mascota del asistente
           abajo a la derecha (R4-15); los dos por encima de las pestañas del celular */}
       <FeedbackButton />

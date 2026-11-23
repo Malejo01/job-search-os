@@ -3,9 +3,36 @@ import {
   INTERVIEW_MAX_SIMULATIONS_PER_DAY,
   decideInterviewStart,
   interviewAverage,
+  interviewNextSlotAt,
   interviewProgress,
   interviewScoreLevel,
 } from "./limits";
+
+describe("interviewNextSlotAt", () => {
+  const h = 60 * 60 * 1000;
+  const t0 = new Date("2026-11-23T10:00:00Z");
+  const at = (hours: number) => new Date(t0.getTime() + hours * h);
+
+  it("con cupo disponible no hay espera", () => {
+    expect(interviewNextSlotAt([at(0)], 2)).toBeNull();
+    expect(interviewNextSlotAt([], 2)).toBeNull();
+  });
+
+  it("sin cupo, vuelve 24 horas después de la simulación más vieja que hay que dejar vencer", () => {
+    expect(interviewNextSlotAt([at(1), at(0)], 2)).toEqual(at(24));
+  });
+
+  it("con más empezadas que el tope espera a que venzan las suficientes", () => {
+    // Tres empezadas y tope 2: tienen que vencer dos; la segunda más vieja marca el momento
+    expect(interviewNextSlotAt([at(0), at(2), at(5)], 2)).toEqual(at(26));
+  });
+
+  it("no modifica lo que recibe", () => {
+    const input = [at(3), at(1)];
+    interviewNextSlotAt(input, 2);
+    expect(input).toEqual([at(3), at(1)]);
+  });
+});
 
 describe("decideInterviewStart", () => {
   it("deja empezar con menos de dos simulaciones en el día", () => {

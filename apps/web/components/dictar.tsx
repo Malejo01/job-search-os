@@ -91,6 +91,24 @@ export function Dictar({ value, onChange, disabled, maxLength, lang, className }
       >
         {listening ? "Dejar de dictar" : "Dictar"}
       </button>
+      {/* R23-06: «escuchando» con un punto que pulsa. R23-09: el pulso es CSS (sin Framer, que sumaba
+          bundle a Interview); con movimiento reducido el punto queda quieto. El texto va siempre */}
+      <p
+        role="status"
+        data-testid="dictar-escuchando"
+        className="flex min-h-5 items-center gap-2 text-xs text-fg"
+      >
+        {listening ? (
+          <>
+            <span
+              aria-hidden="true"
+              data-testid="dictar-punto"
+              className="inline-block size-2.5 animate-pulse rounded-full bg-danger motion-reduce:animate-none"
+            />
+            Escuchando…
+          </>
+        ) : null}
+      </p>
       <p id={noteId} className="text-xs text-fg-subtle">
         {DICTAR_PRIVACY_NOTE}
       </p>

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { EstadoMarca } from "@/components/estado-marca";
 import { buttonClasses } from "@/components/ui";
+import { ESTADOS_TEXTOS } from "@/lib/textos-rediseno";
 import { isUuid } from "@/lib/ids";
 import { requireUserId } from "@/lib/session";
 import { cvForOffer } from "@job-search-os/pipeline";
@@ -136,11 +138,26 @@ export default async function PostularPage({ params }: { params: Promise<{ id: s
           Tu CV frente a esta oferta
         </h2>
         {forOffer === null || !forOffer.ok ? (
-          <p data-testid="cv-oferta-vacio" className="mt-1 text-fg-muted">
+          <EstadoMarca
+            tipo="sin-datos"
+            variant="inline"
+            data-testid="cv-oferta-vacio"
+            className="mt-2"
+            action={
+              forOffer && forOffer.error === "sin_requisitos" ? null : (
+                <Link
+                  href="/cv"
+                  className={`${buttonClasses({ size: "sm", variant: "secondary" })} mt-1 w-fit`}
+                >
+                  {ESTADOS_TEXTOS.postularSinCv.action}
+                </Link>
+              )
+            }
+          >
             {forOffer && forOffer.error === "sin_requisitos"
               ? "No pudimos leer qué skills pide este aviso, así que no hay nada para cruzar con tu CV."
               : "Todavía no tenés un CV confirmado para cruzar con esta oferta. Armalo en la sección CV y volvé."}
-          </p>
+          </EstadoMarca>
         ) : (
           <div className="mt-2 flex flex-col gap-3">
             <div>

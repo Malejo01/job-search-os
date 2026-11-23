@@ -9,6 +9,7 @@ import Link from "next/link";
 import { ContextHelp } from "@/components/context-help";
 import { Badge, buttonClasses, cardClasses } from "@/components/ui";
 import {
+  AYUDAS_ACADEMY,
   CV_DIAGNOSIS_TITLE,
   CV_LEVEL_WORDS,
   CV_NOT_ENOUGH_DATA_LABEL,
@@ -63,7 +64,7 @@ export function CvItemsDiagnosis({
         <h2 id="cv-diagnostico" className="text-base font-bold text-fg">
           {CV_DIAGNOSIS_TITLE}
         </h2>
-        <ContextHelp slug="filtro-ats" term="filtro ATS" />
+        <ContextHelp slug={AYUDAS_ACADEMY.ats.slug} term={AYUDAS_ACADEMY.ats.term} desde="cv" />
       </div>
       <ul className="flex flex-col gap-4">
         {items.map((item) => (
@@ -72,7 +73,18 @@ export function CvItemsDiagnosis({
               <span className="flex items-center gap-1 text-sm font-semibold text-fg">
                 {LABELS[item.id]}
                 {item.id === "keywords" ? (
-                  <ContextHelp slug="palabras-clave" term="palabras clave" />
+                  <ContextHelp
+                    slug={AYUDAS_ACADEMY.palabrasClave.slug}
+                    term={AYUDAS_ACADEMY.palabrasClave.term}
+                    desde="cv"
+                  />
+                ) : null}
+                {item.id === "achievements" ? (
+                  <ContextHelp
+                    slug={AYUDAS_ACADEMY.logros.slug}
+                    term={AYUDAS_ACADEMY.logros.term}
+                    desde="cv"
+                  />
                 ) : null}
               </span>
               {item.status === "scored" ? (

@@ -27,6 +27,21 @@ export function decideInterviewStart(
   return { ok: true, left: maxPerDay - startedLast24h };
 }
 
+/**
+ * Cuándo se libera un cupo: `startedAt` son los inicios de las simulaciones de las últimas 24 horas (borradas
+ * incluidas). Sin cupo, vuelve 24 horas después del inicio que tiene que vencer para quedar por debajo del tope;
+ * con cupo, `null`. Pura: no lee la hora actual.
+ */
+export function interviewNextSlotAt(
+  startedAt: readonly Date[],
+  maxPerDay: number = INTERVIEW_MAX_SIMULATIONS_PER_DAY,
+): Date | null {
+  if (startedAt.length < maxPerDay) return null;
+  const sorted = [...startedAt].sort((a, b) => a.getTime() - b.getTime());
+  const mustExpire = sorted[sorted.length - maxPerDay];
+  return mustExpire ? new Date(mustExpire.getTime() + 24 * 60 * 60 * 1000) : null;
+}
+
 /** «Pregunta N de 5»: `answered` es la cantidad de respuestas ya evaluadas. */
 export function interviewProgress(answered: number): {
   current: number;

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { loadApprovedFicha, type AcademyFicha } from "../lib/academy";
+import type { AcademyOrigen } from "../lib/academy-lectura";
 import { renderLegalBlocks } from "../lib/legal";
 
 /**
@@ -10,10 +11,13 @@ import { renderLegalBlocks } from "../lib/legal";
 export function ContextHelpPanel({
   ficha,
   term,
+  desde,
 }: {
   ficha: Pick<AcademyFicha, "slug" | "titulo" | "estado" | "blocks">;
   /** Lo que se explica, para el nombre accesible: «Qué es: palabras clave». */
   term: string;
+  /** Pantalla de origen (R23-03): sale en el enlace como `?desde=`. */
+  desde?: AcademyOrigen;
 }) {
   if (ficha.estado !== "aprobada") return null;
   return (
@@ -35,7 +39,7 @@ export function ContextHelpPanel({
         <p className="font-bold">{ficha.titulo}</p>
         {renderLegalBlocks(ficha.blocks)}
         <Link
-          href={`/academy/${ficha.slug}`}
+          href={desde ? `/academy/${ficha.slug}?desde=${desde}` : `/academy/${ficha.slug}`}
           className="mt-3 inline-flex min-h-11 items-center text-link underline underline-offset-2"
         >
           Ver en Academy
@@ -46,8 +50,16 @@ export function ContextHelpPanel({
 }
 
 /** «?» junto a un término: abre la ficha de Academy `slug`. Sin ficha aprobada, no aparece. */
-export function ContextHelp({ slug, term }: { slug: string; term: string }) {
+export function ContextHelp({
+  slug,
+  term,
+  desde,
+}: {
+  slug: string;
+  term: string;
+  desde?: AcademyOrigen;
+}) {
   const ficha = loadApprovedFicha(slug);
   if (!ficha) return null;
-  return <ContextHelpPanel ficha={ficha} term={term} />;
+  return <ContextHelpPanel ficha={ficha} term={term} desde={desde} />;
 }

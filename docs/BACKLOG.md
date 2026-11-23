@@ -2060,3 +2060,31 @@ Informe de la tanda: [`docs/beta/informe-r21.md`](beta/informe-r21.md). Pasos ma
 
 ### R21 · Cierre de la tanda
 `estado:` en rama (23/11) · `ronda/r21-cierre`
+
+## Bloque 40 · Tanda R23 «Nivel excelente» (23/11)
+
+Informe de la tanda: [`docs/beta/informe-r23.md`](beta/informe-r23.md). Pasos manuales: [`docs/beta/pasos-manuales-r23.md`](beta/pasos-manuales-r23.md). Cadena sobre `ronda/r21-cierre` (R21 sobre `main`); ningún PR mergeado por agentes. Sin migraciones ni RLS (la 0058 y la 0059 quedaron sin usar). USD 0.
+
+### Interview
+- **R23-01** · Informe al terminar, imprimible · `estado:` en rama (23/11) · `ronda/r23-01-informe-interview`
+- **R23-02** · Evolución de los puntajes, borrar una simulación (sin liberar el cupo) y «?» de STAR · `estado:` en rama (23/11) · `ronda/r23-02-progreso-interview`
+- **R23-08** · Skeleton al enviar, vacíos con la marca, 404 propio y cuándo vuelve el cupo · `estado:` en rama (23/11) · `ronda/r23-08-interview-pulido`
+
+### Academy y ayudas
+- **R23-03** · Buscador, relacionadas, «Te puede servir» y tiempo de lectura · `estado:` en rama (23/11) · `ronda/r23-03-academy-lectura`
+- **R23-04** · «?» en todo término técnico; ficha «Logros medibles» en borrador · `estado:` en rama (23/11) · `ronda/r23-04-ayudas-completas`
+
+### Experiencia
+- **R23-05** · Recorrido de primer uso · `estado:` en rama (23/11) · `ronda/r23-05-primer-uso`, `ronda/r23-10-marca-primer-uso`
+- **R23-06** · Detalle del sello que crece, barras y «Escuchando…» · `estado:` en rama (23/11) · `ronda/r23-06-microinteracciones`
+- **R23-07** · Vacíos y errores con la marca, error de pantalla dentro del layout · `estado:` en rama (23/11) · `ronda/r23-07-vacios-y-errores`
+- **R23-09** · Interview y Academy vuelven al presupuesto de First Load · `estado:` en rama (23/11) · `ronda/r23-09-presupuesto-first-load`
+
+### Pendientes que salen de la tanda
+- Aprobación de Ani: fichas (los «?» y el buscador de Academy no se ven hasta entonces) y textos nuevos.
+- Guardar el primer uso en la cuenta en vez del navegador (migración).
+- Revisar la política de privacidad por el borrado de simulaciones.
+- Correr los e2e 183, 184, 185 y 187 con el usuario del seed.
+
+### R23 · Cierre de la tanda
+`estado:` en rama (23/11) · `ronda/r23-cierre`
