@@ -61,6 +61,8 @@
 /apps/web/lib/profile-agent/access.ts @Malejo01
 /apps/web/lib/academy-access.ts @Malejo01
 /apps/web/app/(app)/interview/server.ts @Malejo01
+/apps/web/lib/apertura.ts @Malejo01
+/apps/web/lib/usage-by-career.ts @Malejo01
 /apps/web/lib/user-plan.ts @Malejo01
 /apps/web/lib/llm-service.ts @Malejo01
 /apps/web/lib/setup.ts @Malejo01
