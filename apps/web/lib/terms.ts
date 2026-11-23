@@ -13,7 +13,7 @@ export const TERMS_VERSION = "2026-11-22";
  * cada vez que se sube `TERMS_VERSION`. 2026-11-22: Anthropic pasa a ser el proveedor principal de IA y se
  * suman el simulador de entrevistas y el dictado por voz.
  */
-export const TERMS_CHANGE_SUMMARY = `Actualizamos la política de privacidad de ${BRAND.name}: Anthropic (Claude) pasa a ser el proveedor principal de IA y Google queda de respaldo, y sumamos el simulador de entrevistas y el dictado por voz. Los términos siguen igual.`;
+export const TERMS_CHANGE_SUMMARY = `Actualizamos la política de privacidad de ${BRAND.name}: Anthropic (Claude) pasa a ser el proveedor principal de IA y Google queda de respaldo, y sumamos el simulador de entrevistas y el dictado por voz (en algunos navegadores, Google pasa tu voz a texto y el audio no se guarda). Los términos siguen igual.`;
 
 /** Casilla de /register: llega como "on" desde un checkbox HTML; cualquier otra cosa es "no aceptó". */
 const acceptedSchema = z.literal("on");
