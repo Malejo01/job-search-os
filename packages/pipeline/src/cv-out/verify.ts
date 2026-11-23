@@ -32,7 +32,11 @@ export interface CvVerified {
 }
 
 const URL_RE = /(?:https?:\/\/|www\.)\S+/gi;
-const EMAIL_RE = /[^\s@]+@[^\s@]+\.[^\s@]+/g;
+// El `(?<![^\s@])` hace que solo se pruebe el arranque de cada tramo de usuario: sin él, un texto largo sin
+// arroba se recorre desde cada letra (tiempo cuadrático). El resultado es el mismo: el primer arranque del
+// tramo es el que ya empataba.
+const EMAIL_SRC = "(?<![^\\s@])[^\\s@]+@[^\\s@]+\\.[^\\s@]+";
+const EMAIL_RE = new RegExp(EMAIL_SRC, "g");
 // Control, invisibles y marcas bidi (construido con RegExp para no escribir los caracteres en el fuente).
 const CONTROL_RE = new RegExp(
   // eslint-disable-next-line no-control-regex
@@ -51,7 +55,7 @@ const DOMAIN_RE = new RegExp(DOMAIN_SRC, "gu");
 export function hasLinkOrEmail(text: string): boolean {
   return (
     /(?:https?:\/\/|www\.)\S+/i.test(text) ||
-    /[^\s@]+@[^\s@]+\.[^\s@]+/.test(text) ||
+    new RegExp(EMAIL_SRC).test(text) ||
     new RegExp(DOMAIN_SRC, "u").test(text)
   );
 }
