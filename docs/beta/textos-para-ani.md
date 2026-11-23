@@ -23,6 +23,22 @@ Todo lo que tester A tiene que leer antes del 26/11, en un lugar. **En la app:**
 | Emails | Bienvenida al activar el plan (C8-7) y aviso de vencimiento | Tono, y si la bienvenida tiene que nombrar el precio (hoy no lo hace) |
 | Invitación | Mensaje con precio, 30 días y link de pago (C7-12) | El texto del pago y el de becados: los armó la nube, falta el OK de tester A |
 
+## Revisión de textos de la R24 (R24-05, 23/11)
+
+Lo que era código ya está arreglado (puntajes con coma, «score» → «puntaje» en Postulaciones; ver `ops/rondas/r24-tanda/R24-05/informe.md`). Lo que sigue es decisión de tester A. La columna «Captura» la completa qa con el archivo de `ops/capturas/r24/`.
+
+| Pantalla | Archivo:línea | Texto actual | Propuesta | Por qué | Captura |
+| --- | --- | --- | --- | --- | --- |
+| Postulaciones, «Cómo viene la calibración» | `apps/web/app/(app)/applications/page.tsx:367-375` | «Modelo vs tu puntaje en la UI: MAE 0,42 sobre 8 evaluaciones, sesgo +0,10 (positivo = el modelo puntúa de más)» y «…comparar modelo vs humano fuera del golden» | «Tu puntaje y el de la IA difieren, en promedio, 0,4 puntos (la IA puntúa de más si el signo es +).» y sacar «golden» | «MAE», «sesgo», «UI» y «golden» son jerga interna; el resto de la pantalla habla en llano | postulaciones |
+| Academy, ficha «Primer empleo sin experiencia» | `apps/web/content/academy/primer-empleo-sin-experiencia.md:19` | «Sé paciente con el proceso» | «Tené paciencia con el proceso» | «Sé paciente» es el imperativo de tuteo; el resto de la ficha usa voseo («Aprendé», «pedí») | academy-ficha |
+| `/mercado` (metadata y buscadores) | `apps/web/app/(public)/mercado/page.tsx:16` | «…y datos curiosos del pool.» | «…y datos curiosos de las ofertas que juntamos.» | «Pool» es inglés suelto en un texto que se ve en Google | mercado |
+| Cómo está hecho | `apps/web/app/(public)/como-esta-hecho/page.tsx:33` y `:58` | «Cada cambio de prompt se mide contra él…» y «Next.js (App Router), TypeScript estricto…» | Dejar como está (la página es técnica a propósito) o agregar una línea en llano arriba | Es la única página pública con términos de programación; decidir si el público es técnico | como-esta-hecho |
+| Menú y títulos | `apps/web/app/(app)/sections.ts:10` y `apps/web/app/(app)/jobs/page.tsx:43` | «Match» | «Ofertas» o «Mis ofertas» (o dejar «Match» como nombre de marca) | Es el único rótulo de navegación en inglés; lo usan e2e 47 y 113 (hay que actualizarlos si cambia) | menu |
+| Interview, inicio | `apps/web/app/(app)/interview/page.tsx:31` | «Practicá una entrevista: son 5 preguntas y, por cada respuesta, te mostramos qué tan…» | Mismo texto, movido a `textos-interview.ts` | Texto de pantalla escrito dentro del componente; Ani lo tiene que poder editar en un solo lugar | interview-inicio |
+| Interview, informe | `apps/web/app/(app)/interview/[id]/report.tsx:96` | «Tu mejor respuesta y la que más puede mejorar» | Mismo texto, movido a `textos-interview.ts` | Ídem | interview-informe |
+| Interview, progreso | `apps/web/app/(app)/interview/progress-table.tsx:43` y `:54` | «Con una simulación más vas a ver cómo cambian tus puntajes.» y «Promedio de cada criterio en tus simulaciones terminadas…» | Mismos textos, movidos a `textos-interview.ts` | Ídem (no se movieron: no es trivial y otro ticket de la tanda toca Interview) | interview-progreso |
+| Armá tu CV con IA | `apps/web/app/(app)/cv/armar/chat.tsx:192-195` | «…armo un CV legible por ATS… No te asegura pasar ningún filtro: es un CV claro y fiel a lo que contás.» | Revisar el tono: la aclaración es correcta y no promete nada | Es el único lugar de la app que nombra «ATS» en un texto visible fuera de Academy y del glosario | cv-armar |
+
 ## Lo que ya está decidido (no hace falta volver a mirarlo)
 
 - La marca es **AfinIAJobs** (logo, colores y tipografías en `/settings/marca`).

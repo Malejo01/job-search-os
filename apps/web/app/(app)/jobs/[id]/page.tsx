@@ -35,6 +35,8 @@ import {
   formatScore,
   LOCATION_CLASSES,
   LOCATION_LABELS,
+  formatDecimal,
+  formatScoreNumber,
   MODALITY_LABELS,
   OUTCOME_LABELS,
   riskLabel,
@@ -499,7 +501,7 @@ export default async function JobDetailPage({
                       : COMPANY_TYPE_LABEL.desconocido}
                   </dd>
                   <dt>Puntaje de la IA</dt>
-                  <dd>{ev.scoreModel ?? ev.score}</dd>
+                  <dd>{formatScoreNumber(ev.scoreModel ?? ev.score)}</dd>
                   <dt>Ajustes</dt>
                   <dd>
                     {ev.adjustments.length ? (
@@ -513,7 +515,7 @@ export default async function JobDetailPage({
                     )}
                   </dd>
                   <dt>Puntaje final</dt>
-                  <dd>{ev.score}</dd>
+                  <dd>{formatScoreNumber(ev.score)}</dd>
                   <dt>Fecha de la evaluación</dt>
                   <dd>
                     {formatDate(ev.createdAt)}
@@ -578,8 +580,8 @@ export default async function JobDetailPage({
               </div>
               {ev.humanScore !== null ? (
                 <p className="text-xs text-fg-subtle">
-                  guardado: {ev.humanScore} · diferencia con la evaluación{" "}
-                  {(ev.humanScore - ev.score).toFixed(1)}
+                  guardado: {formatScoreNumber(ev.humanScore)} · diferencia con la evaluación{" "}
+                  {formatDecimal(ev.humanScore - ev.score, 1)}
                 </p>
               ) : null}
             </form>

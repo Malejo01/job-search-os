@@ -196,6 +196,12 @@ export function formatScoreNumber(score: number): string {
   return score.toFixed(score % 1 ? 1 : 0).replace(".", ",");
 }
 
+/** Número con coma decimal y una cantidad fija de decimales (R24-05). `signed` agrega «+» a los positivos. */
+export function formatDecimal(n: number, digits: number, opts?: { signed?: boolean }): string {
+  const text = n.toFixed(digits).replace(".", ",");
+  return opts?.signed && n >= 0 ? `+${text}` : text;
+}
+
 /** Textos de la «estimación previa» (antes «pre-score»): una línea visible, no solo un title. */
 export const PRE_SCORE_EXPLAIN =
   "Estimación previa: la calculamos con reglas, sin IA, mirando tus conocimientos, los riesgos y el salario. Todavía no es la evaluación.";
