@@ -1958,6 +1958,30 @@ Informe de la tanda: [`docs/beta/informe-r17.md`](beta/informe-r17.md). Pasos ma
 ### R17 · Cierre de la tanda
 `estado:` en rama (22/11) · `ronda/r17-cierre`
 
+## Bloque 35 · Tanda R19 «Ofertas del pool para todas las carreras» (22/11)
+
+Informe de la tanda: [`docs/beta/informe-r19.md`](beta/informe-r19.md). Pasos manuales: [`docs/beta/pasos-manuales-r19.md`](beta/pasos-manuales-r19.md). Todas las ramas forman una cadena desde `origin/main` (8e3ebab, con la S4 y la R17); ningún PR mergeado por agentes. Sin migraciones. USD 0.
+
+### Pool desde alertas de Computrabajo
+- **R19-01** · Lector de alertas de Computrabajo, apagado (`POOL_COMPUTRABAJO_READER`), con «vía Computrabajo» (ADR-043) · `estado:` en rama (22/11) · `ronda/r19-01-lector-computrabajo`
+- **R19-02** · `pnpm pool:reprocess` · `estado:` en rama (22/11) · `ronda/r19-02-reprocesar-cola`
+- **R19-05** · Filtro de Gmail por carrera y guía para amigos · `estado:` en rama (22/11) · `ronda/r19-05-filtros-gmail`
+
+### Admin
+- **R19-03** · Aviso de vencimiento en `/settings/salud` · `estado:` en rama (22/11) · `ronda/r19-03-vencimiento-salud`
+- **R19-04** · Casillas del pool por carrera y estado del lector · `estado:` en rama; fecha por carrera, no por casilla (sin destinatario guardado) (22/11) · `ronda/r19-04-cobertura-pool`
+
+### Celular
+- **R19-06** · El asistente no tapa contenido · `estado:` en rama (22/11) · `ronda/r19-06-asistente-celular`
+
+### Pendientes que salen de la tanda
+- Validar el lector con el primer email real y recién ahí prenderlo.
+- «vía <fuente>» para las fuentes `other` (Jooble y Careerjet).
+- Borrar `apps/web/app/(app)/assistant-button.tsx`, que no se usa.
+
+### R19 · Cierre de la tanda
+`estado:` en rama (22/11) · `ronda/r19-cierre`
+
 ## Bloque 36 · Tanda S5 «Seguridad corta» (22/11)
 
 Informe de la tanda: [`docs/beta/informe-s5.md`](beta/informe-s5.md). Pasos manuales: [`docs/beta/pasos-manuales-s5.md`](beta/pasos-manuales-s5.md). Cadena desde `origin/main` (8e3ebab), independiente de la R19; ningún PR mergeado por agentes. Sin migraciones. USD 0.

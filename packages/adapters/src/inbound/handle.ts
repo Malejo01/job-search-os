@@ -35,6 +35,7 @@ import {
 } from "./parsers";
 import { linkedinParser } from "./linkedin";
 import { clampReason } from "./motivo";
+import { readPoolAlertEmail } from "./pool-computrabajo";
 import {
   isPoolAlertSender,
   POOL_MANUAL_QUEUE_REASON,
@@ -43,6 +44,7 @@ import {
   POOL_QUEUE_MAX_PER_DAY,
   POOL_QUEUE_MAX_PER_HOUR,
   POOL_RAW_MAX_BYTES,
+  POOL_READER_FAILED_PREFIX,
   readPoolInboundConfig,
   type PoolInboundConfig,
 } from "./pool-mailbox";
@@ -87,6 +89,7 @@ export type InboundDeps = {
 export type InboundOutcome =
   | { kind: "duplicate"; inboundId: string }
   | { kind: "pool_queued"; inboundId: string; career: string }
+  | { kind: "pool_read"; inboundId: string; career: string; jobsExtracted: number }
   | { kind: "unknown_recipient"; recipientsCount: number }
   | { kind: "rate_limited"; userId: string }
   | {
@@ -768,6 +771,42 @@ export async function handleInboundEmail(
           })
         : full,
     });
+    // R19-01 (ADR-043): con el lector prendido, un email de estructura conocida carga sus avisos al pool.
+    // Apagado, o ante cualquier falla de lectura, el email queda en la cola manual como siempre.
+    let queueError = oversize ? POOL_OVERSIZE_REASON : POOL_MANUAL_QUEUE_REASON;
+    let jobsRead = 0;
+    let readOk = false;
+    let resolved = false;
+    if (pool.computrabajoReader && !oversize && content?.html) {
+      const read = await readPoolAlertEmail({
+        db,
+        logger: log,
+        career: mailbox.career,
+        now,
+        email: {
+          from: event.data.from,
+          to: recipients,
+          subject: event.data.subject ?? null,
+          html: content.html,
+          text: content.text,
+          receivedAt: now,
+        },
+      });
+      // El esqueleto (conteos y huella, sin texto ni links) va al log para comparar el primer email real
+      log.info(
+        { career: mailbox.career, reader_ok: read.ok, skeleton: read.skeleton },
+        "inbound: esqueleto del email del pool",
+      );
+      if (read.ok) {
+        jobsRead = read.jobsExtracted;
+        readOk = true;
+        // Sin avisos con error el email queda resuelto; con alguno, queda en la cola con el motivo
+        if (read.errors) queueError = `${read.errors} avisos con error al cargar al pool`;
+        else resolved = true;
+      } else {
+        queueError = `${POOL_READER_FAILED_PREFIX} (${POOL_PARSER}): ${clampReason(read.reason)}. Cola manual`;
+      }
+    }
     const [row] = await db
       .insert(s.inboundEmails)
       .values({
@@ -777,13 +816,26 @@ export async function handleInboundEmail(
         subject: event.data.subject ? maskDigits(event.data.subject) : null,
         rawRef,
         parser: POOL_PARSER,
-        jobsExtracted: 0,
-        error: oversize ? POOL_OVERSIZE_REASON : POOL_MANUAL_QUEUE_REASON,
+        jobsExtracted: jobsRead,
+        error: resolved ? null : queueError,
+        seenAt: resolved ? now : null,
         receivedAt: now,
       })
       .onConflictDoNothing({ target: s.inboundEmails.emailId })
       .returning({ id: s.inboundEmails.id });
     if (!row) return duplicateAfterRace(db, event.data.email_id, log);
+    if (readOk) {
+      log.info(
+        { career: mailbox.career, jobs_extracted: jobsRead, resolved },
+        "inbound: casilla del pool leída",
+      );
+      return {
+        kind: "pool_read",
+        inboundId: row.id,
+        career: mailbox.career,
+        jobsExtracted: jobsRead,
+      };
+    }
     log.info({ career: mailbox.career, oversize }, "inbound: casilla del pool a la cola manual");
     return { kind: "pool_queued", inboundId: row.id, career: mailbox.career };
   }

@@ -43,6 +43,7 @@
     "pool:explain": "pnpm --filter @job-search-os/adapters pool:explain",
     "pool:backfill-language": "pnpm --filter @job-search-os/adapters pool:backfill-language",
     "pool:rehint": "pnpm --filter @job-search-os/adapters pool:rehint",
+    "pool:reprocess": "pnpm --filter @job-search-os/adapters pool:reprocess",
     "admin:invite": "pnpm --filter @job-search-os/adapters admin:invite",
     "admin:test-users": "pnpm --filter @job-search-os/adapters admin:test-users",
     "inbound:replay": "pnpm --filter @job-search-os/adapters inbound:replay",
