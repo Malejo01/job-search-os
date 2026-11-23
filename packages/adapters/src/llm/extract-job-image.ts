@@ -1,6 +1,7 @@
 import {
   ImageModelOutputSchema,
   parseImageExtraction,
+  readCap,
   validateImageBytes,
   type ImageOffer,
 } from "@job-search-os/pipeline";
@@ -49,7 +50,22 @@ export type ExtractImageDeps = {
    */
   lock: { acquire: () => Promise<boolean>; release: () => Promise<void> };
   now?: () => Date;
+  /** Topes operables (`imageLimitsFromEnv`); ausentes = `IMAGE_DAILY_LIMIT` e `IMAGE_ATTEMPTS_DAILY_LIMIT`. */
+  limits?: { daily?: number; attempts?: number };
 };
+
+/** `IMAGE_DAILY_LIMIT` e `IMAGE_ATTEMPTS_DAILY_LIMIT` (enteros positivos; inválido = el default). */
+export function imageLimitsFromEnv(env: Record<string, string | undefined>): {
+  daily: number;
+  attempts: number;
+} {
+  return {
+    daily: readCap(env, "IMAGE_DAILY_LIMIT", IMAGE_DAILY_LIMIT, { kind: "int" }),
+    attempts: readCap(env, "IMAGE_ATTEMPTS_DAILY_LIMIT", IMAGE_ATTEMPTS_DAILY_LIMIT, {
+      kind: "int",
+    }),
+  };
+}
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -89,9 +105,13 @@ async function readLocked(
   const now = (deps.now ?? (() => new Date()))();
   const since = new Date(now.getTime() - DAY_MS);
   const used = await deps.countSince(since);
-  if (used >= IMAGE_DAILY_LIMIT) return { ok: false, code: "limite_imagenes" };
+  if (used >= (deps.limits?.daily ?? IMAGE_DAILY_LIMIT)) {
+    return { ok: false, code: "limite_imagenes" };
+  }
   const attempts = await deps.countAttemptsSince(since);
-  if (attempts >= IMAGE_ATTEMPTS_DAILY_LIMIT) return { ok: false, code: "limite_imagenes" };
+  if (attempts >= (deps.limits?.attempts ?? IMAGE_ATTEMPTS_DAILY_LIMIT)) {
+    return { ok: false, code: "limite_imagenes" };
+  }
 
   const cap = await deps.capReason();
   if (cap) return { ok: false, code: cap === "user" ? "tope_user" : "tope_global" };

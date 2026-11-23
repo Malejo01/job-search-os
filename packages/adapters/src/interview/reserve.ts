@@ -1,5 +1,5 @@
 import { schema as s, type Db } from "@job-search-os/db";
-import { decideInterviewStart } from "@job-search-os/pipeline";
+import { decideInterviewStart, interviewMaxSimulationsPerDay } from "@job-search-os/pipeline";
 import { and, eq, gte, like } from "drizzle-orm";
 import { LLM_RESERVE_TASK } from "../llm/spend";
 import {
@@ -48,9 +48,16 @@ export type InterviewStartReservation =
  */
 export async function reserveInterviewStart(
   db: Db,
-  input: { userId: string; sessionId: string; now?: () => Date } & InterviewCaps,
+  input: {
+    userId: string;
+    sessionId: string;
+    now?: () => Date;
+    /** Entorno de donde sale `INTERVIEW_MAX_SIMULATIONS_PER_DAY`; ausente = `process.env`. */
+    env?: Record<string, string | undefined>;
+  } & InterviewCaps,
 ): Promise<InterviewStartReservation> {
-  const { userId, sessionId, ...rest } = input;
+  const { userId, sessionId, env, ...rest } = input;
+  const maxPerDay = interviewMaxSimulationsPerDay(env ?? process.env);
   const r = await reserveSpendWithGate<"daily_limit">(
     db,
     {
@@ -83,7 +90,7 @@ export async function reserveInterviewStart(
         ...live.map((row) => (row.label ?? "").slice(INTERVIEW_START_LABEL_PREFIX.length)),
       ]);
       started.delete("");
-      const decision = decideInterviewStart(started.size);
+      const decision = decideInterviewStart(started.size, maxPerDay);
       return decision.ok ? null : "daily_limit";
     },
   );

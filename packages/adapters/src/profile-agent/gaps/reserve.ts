@@ -4,6 +4,7 @@ import {
   cvChatStartCapReason,
   profileAgentCapReason,
   type ProfileAgentCap,
+  type ProfileAgentLimits,
 } from "@job-search-os/pipeline";
 import { and, eq, gte, sql } from "drizzle-orm";
 import {
@@ -98,17 +99,23 @@ export async function measureGaps(
 /** Por qué no se hace el paso: un tope del agente o el de charlas nuevas por día (5, el del chat de CV). */
 export type GapReject = ProfileAgentCap | "inicios";
 
+/** Topes operables (`profileAgentLimitsFromEnv`, `cvChatLimitsFromEnv`); ausentes = los defaults. */
+export type GapLimits = Partial<ProfileAgentLimits> & { maxStartsPerDay?: number };
+
 /** Decisión pura sobre las medidas. Los topes de USD valen para todos: no recibe ninguna exención. */
 export function decideGapStep(
   step: "turn" | "check" | "start",
   m: GapMeasures,
   dailyCapUsd: number,
+  limits: GapLimits = {},
 ): GapReject | null {
   if (step === "start") {
-    const starts = cvChatStartCapReason(m.startsToday);
+    const starts = cvChatStartCapReason(m.startsToday, limits.maxStartsPerDay);
     if (starts !== null) return starts;
   }
   return profileAgentCapReason({
+    maxFlowCostUsd: limits.maxFlowCostUsd,
+    userDailyCapUsd: limits.userDailyCapUsd,
     // en la etapa de huecos solo rigen turnos, charla, persona y global; la lectura no se mide acá
     stage: "gaps",
     exempt: false,
@@ -143,6 +150,7 @@ export async function reserveGapStep(
     now: Date;
     daySince: Date;
     dailyCapUsd: number;
+    limits?: GapLimits;
   },
 ): Promise<GapReservation> {
   return db.transaction(async (tx) => {
@@ -150,7 +158,7 @@ export async function reserveGapStep(
       sql`select pg_advisory_xact_lock(hashtextextended(${input.userId}, ${CV_RESERVE_LOCK_NAMESPACE}))`,
     );
     const measures = await measureGaps(tx, input);
-    const reject = decideGapStep(input.step, measures, input.dailyCapUsd);
+    const reject = decideGapStep(input.step, measures, input.dailyCapUsd, input.limits);
     if (reject !== null) return { ok: false as const, reject, measures };
     if (input.step === "check") return { ok: true as const, reservationId: null, measures };
     const base = {

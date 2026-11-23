@@ -60,6 +60,7 @@ export {
   extractJobFromImage,
   IMAGE_ATTEMPTS_DAILY_LIMIT,
   IMAGE_DAILY_LIMIT,
+  imageLimitsFromEnv,
   type ExtractImageDeps,
   type ExtractImageFailure,
   type ExtractImageOutcome,
