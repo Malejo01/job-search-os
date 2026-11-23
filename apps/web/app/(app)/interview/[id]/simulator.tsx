@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState, useTransition } from "react";
+import { useId, useRef, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import {
   INTERVIEW_ANSWER_MAX_CHARS,
@@ -29,7 +29,13 @@ export type AnswerView = {
 const TOTAL = 5;
 
 /** Los tres puntajes de una respuesta con su palabra. El número y la palabra siempre van juntos. */
-function Scores({ item }: { item: Pick<AnswerView, "clarity" | "relevance" | "star"> }) {
+function Scores({
+  item,
+  starHelp,
+}: {
+  item: Pick<AnswerView, "clarity" | "relevance" | "star">;
+  starHelp?: ReactNode;
+}) {
   return (
     <dl className="grid gap-3 sm:grid-cols-3">
       {CRITERIA.map(({ key, label }) => {
@@ -37,7 +43,10 @@ function Scores({ item }: { item: Pick<AnswerView, "clarity" | "relevance" | "st
         const level: InterviewScoreLevel = interviewScoreLevel(value);
         return (
           <div key={key} className="rounded-control bg-surface-muted p-3">
-            <dt className="text-[13px] font-extrabold text-fg-muted">{label}</dt>
+            <dt className="flex items-center text-[13px] font-extrabold text-fg-muted">
+              {label}
+              {key === "star" ? starHelp : null}
+            </dt>
             <dd className="mt-1 flex items-baseline gap-2">
               <span className="text-2xl font-extrabold text-fg">{value}</span>
               <span className="text-sm font-semibold text-fg-muted">
@@ -51,10 +60,10 @@ function Scores({ item }: { item: Pick<AnswerView, "clarity" | "relevance" | "st
   );
 }
 
-function FeedbackCard({ item }: { item: AnswerView }) {
+function FeedbackCard({ item, starHelp }: { item: AnswerView; starHelp?: ReactNode }) {
   return (
     <div className="flex flex-col gap-4" data-testid="interview-feedback">
-      <Scores item={item} />
+      <Scores item={item} starHelp={starHelp} />
       <div>
         <h2 className="text-[13px] font-extrabold text-fg-muted">Un consejo</h2>
         <p className="mt-1 text-base text-fg" data-testid="interview-tip">
@@ -82,12 +91,15 @@ export function Simulator({
   questions,
   initialAnswers,
   source,
+  starHelp,
 }: {
   sessionId: string;
   title: string;
   questions: string[];
   initialAnswers: AnswerView[];
   source: RetrySource;
+  /** «?» del método STAR: Server Component armado en la página y pasado como elemento. */
+  starHelp?: ReactNode;
 }) {
   const uid = useId();
   const [answers, setAnswers] = useState<AnswerView[]>(initialAnswers);
@@ -158,7 +170,9 @@ export function Simulator({
             </p>
           ) : null}
         </section>
-        {report ? <InterviewReportView report={report} questions={questions} /> : null}
+        {report ? (
+          <InterviewReportView report={report} questions={questions} starHelp={starHelp} />
+        ) : null}
         <div className="no-print flex flex-wrap items-start gap-3">
           <RetryButton source={source} />
           <PrintButton label="Imprimir o guardar como PDF" />
@@ -180,7 +194,7 @@ export function Simulator({
                 Pregunta {a.position + 1} de {TOTAL}
               </p>
               <p className="text-base font-bold text-fg">{questions[a.position]}</p>
-              <Scores item={a} />
+              <Scores item={a} starHelp={starHelp} />
               <p className="text-base text-fg">
                 <span className="font-bold">Consejo: </span>
                 {a.tip}
@@ -236,7 +250,7 @@ export function Simulator({
                 {INTERVIEW_ANSWER_MAX_CHARS} caracteres.
               </Alert>
             ) : null}
-            <FeedbackCard item={last} />
+            <FeedbackCard item={last} starHelp={starHelp} />
             <Button
               type="button"
               size="md"

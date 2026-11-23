@@ -27,6 +27,12 @@ export const REPORT_PATTERNS = {
   star: "Varias respuestas no contaron la historia completa: situación, tarea, acción y resultado.",
 } as const;
 
+export const DELETE_ERRORS: Record<string, string> = {
+  unauthorized: "Tu sesión venció. Volvé a entrar para borrar la simulación.",
+  bad_request: "No entendimos el pedido. Recargá la página e intentá de nuevo.",
+  server: "No pudimos borrar la simulación. Probá de nuevo en un rato.",
+};
+
 export const scoreWord = (level: InterviewScoreLevel): string => INTERVIEW_SCORE_WORDS[level];
 
 export const START_ERRORS: Record<string, string> = {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, useTransition } from "react";
+import { useId, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, Button, Card, inputClasses, labelClasses } from "@/components/ui";
 import { startInterviewAction } from "./actions";
@@ -16,10 +16,13 @@ export function StartForm({
   offers,
   suggestedCareer,
   left,
+  seniorityHelp,
 }: {
   offers: { id: string; title: string; company: string }[];
   suggestedCareer: string;
   left: number;
+  /** «?» de seniority: es un Server Component, así que llega armado desde la página. */
+  seniorityHelp?: ReactNode;
 }) {
   const router = useRouter();
   const uid = useId();
@@ -114,9 +117,12 @@ export function StartForm({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor={`${uid}-seniority`} className={labelClasses()}>
-                Nivel
-              </label>
+              <div className="flex items-center gap-1">
+                <label htmlFor={`${uid}-seniority`} className={labelClasses()}>
+                  Nivel
+                </label>
+                {seniorityHelp}
+              </div>
               <select
                 id={`${uid}-seniority`}
                 value={seniority}

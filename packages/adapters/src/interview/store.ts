@@ -71,6 +71,54 @@ export async function listInterviewSessions(
     .limit(limit);
 }
 
+/**
+ * Promedio de cada criterio de las simulaciones terminadas de la persona (las más recientes primero), para la
+ * evolución en el tiempo. Una simulación terminada tiene sus cinco respuestas.
+ */
+export async function listInterviewScores(
+  db: Db,
+  userId: string,
+  limit = 10,
+): Promise<{ id: string; at: number; clarity: number; relevance: number; star: number }[]> {
+  const rows = await db
+    .select({
+      id: s.interviewSessions.id,
+      createdAt: s.interviewSessions.createdAt,
+      clarity: sql<number>`avg(${s.interviewAnswers.clarity})::float8`,
+      relevance: sql<number>`avg(${s.interviewAnswers.relevance})::float8`,
+      star: sql<number>`avg(${s.interviewAnswers.star})::float8`,
+    })
+    .from(s.interviewSessions)
+    .innerJoin(s.interviewAnswers, eq(s.interviewAnswers.sessionId, s.interviewSessions.id))
+    .where(and(eq(s.interviewSessions.userId, userId), eq(s.interviewSessions.status, "terminada")))
+    .groupBy(s.interviewSessions.id, s.interviewSessions.createdAt)
+    .orderBy(desc(s.interviewSessions.createdAt))
+    .limit(limit);
+  return rows.map((r) => ({
+    id: r.id,
+    at: r.createdAt.getTime(),
+    clarity: Number(r.clarity),
+    relevance: Number(r.relevance),
+    star: Number(r.star),
+  }));
+}
+
+/**
+ * Borra una simulación de la persona. Las respuestas caen por la cascada de la clave foránea. Devuelve
+ * `false` si no existe o no es suya (con RLS, una ajena ni siquiera se ve): no distingue las dos cosas.
+ */
+export async function deleteInterviewSession(
+  db: Db,
+  userId: string,
+  sessionId: string,
+): Promise<boolean> {
+  const deleted = await db
+    .delete(s.interviewSessions)
+    .where(and(eq(s.interviewSessions.id, sessionId), eq(s.interviewSessions.userId, userId)))
+    .returning({ id: s.interviewSessions.id });
+  return deleted.length > 0;
+}
+
 /** La oferta de la persona sobre la que se practica; null si no existe o no es suya. */
 export async function loadInterviewJob(
   db: Db,

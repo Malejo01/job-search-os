@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
+import { ContextHelp } from "@/components/context-help";
 import { textLinkClasses } from "@/components/ui";
+import { AYUDAS_ACADEMY } from "@/lib/textos-rediseno";
 import { requireActiveUserId } from "@/lib/session";
 import { loadSession } from "../server";
 import type { RetrySource } from "./retry-button";
@@ -59,6 +61,13 @@ export default async function InterviewSessionPage({
         questions={loaded.session.questions}
         initialAnswers={answers}
         source={source}
+        starHelp={
+          <ContextHelp
+            slug={AYUDAS_ACADEMY.star.slug}
+            term={AYUDAS_ACADEMY.star.term}
+            desde="interview"
+          />
+        }
       />
     </div>
   );

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { InterviewReport } from "@job-search-os/pipeline";
 import { Card } from "@/components/ui";
 import { CRITERIA, REPORT_PATTERNS, formatAverage, scoreWord } from "../copy";
@@ -56,9 +57,11 @@ function PickCard({
 export function InterviewReportView({
   report,
   questions,
+  starHelp,
 }: {
   report: InterviewReport;
   questions: string[];
+  starHelp?: ReactNode;
 }) {
   return (
     <div className="interview-report flex flex-col gap-4" data-testid="interview-report">
@@ -71,7 +74,10 @@ export function InterviewReportView({
         <dl className="grid gap-3 sm:grid-cols-3" data-testid="interview-report-averages">
           {CRITERIA.map(({ key, label }) => (
             <div key={key} className="print-card rounded-control bg-surface-muted p-3">
-              <dt className="text-[13px] font-extrabold text-fg-muted">{label}</dt>
+              <dt className="flex items-center text-[13px] font-extrabold text-fg-muted">
+                {label}
+                {key === "star" ? starHelp : null}
+              </dt>
               <dd className="mt-1 flex items-baseline gap-2">
                 <span className="text-2xl font-extrabold text-fg">
                   {formatAverage(report.averages[key].value)}
