@@ -3,6 +3,7 @@ import {
   PROFILE_AGENT_READ_RESERVE_USD,
   profileAgentCapReason,
   type ProfileAgentCap,
+  type ProfileAgentLimits,
 } from "@job-search-os/pipeline";
 import { and, eq, gte, sql } from "drizzle-orm";
 import {
@@ -124,6 +125,8 @@ export async function reserveProfileRead(
     exempt: boolean;
     readsPerMonth: number;
     dailyCapUsd: number;
+    /** Topes operables del agente (`profileAgentLimitsFromEnv`); ausente = los defaults. */
+    limits?: ProfileAgentLimits;
   },
 ): Promise<ProfileReadReservation> {
   return db.transaction(async (tx) => {
@@ -144,6 +147,7 @@ export async function reserveProfileRead(
       userSpendTodayUsd: measures.userSpendTodayUsd,
       dailySpendUsd: measures.dailySpendUsd,
       dailyCapUsd: input.dailyCapUsd,
+      ...input.limits,
     });
     if (cap !== null) return { ok: false as const, reject: cap, measures };
     const [row] = await tx

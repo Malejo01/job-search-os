@@ -33,6 +33,9 @@ export interface ProfileAgentWriteCapInput {
   /** Charlas con redacción de esta persona en la ventana mensual. */
   cvThisMonth: number;
   cvPerMonth: number;
+  /** Topes operables (`profileAgentLimitsFromEnv`); ausentes = los defaults. */
+  maxFlowCostUsd?: number;
+  userDailyCapUsd?: number;
 }
 
 export function profileAgentWriteReject(
@@ -50,6 +53,8 @@ export function profileAgentWriteReject(
     userSpendTodayUsd: i.userSpendTodayUsd,
     dailySpendUsd: i.dailySpendUsd,
     dailyCapUsd: i.dailyCapUsd,
+    ...(i.maxFlowCostUsd !== undefined ? { maxFlowCostUsd: i.maxFlowCostUsd } : {}),
+    ...(i.userDailyCapUsd !== undefined ? { userDailyCapUsd: i.userDailyCapUsd } : {}),
   });
   if (cap) return cap;
   // Una redacción lograda no se repite; una que falló se puede reintentar UNA vez (R11-2), sin pisar otra en curso

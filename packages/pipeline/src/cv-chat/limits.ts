@@ -2,17 +2,41 @@
  * Topes y gate del chat de CV (C-25). Puro: el llamador mide (llm_calls, conteo por plan) y pasa los números;
  * acá solo se decide. Todo falla cerrado: un número ausente, negativo o no finito cuenta como tope alcanzado.
  */
+import { readCap, type CapEnv } from "../cap-env";
 import { CV_CHAT_BETA_LIMITS } from "../plans";
 import { CV_CHAT_MAX_TURNS } from "./state";
 
+/** Gasto máximo de una charla (default). Operable con `CV_CHAT_MAX_COST_USD`. */
 export const CV_CHAT_MAX_COST_USD = 0.15;
 export const CV_CHAT_DEFAULT_DAILY_CAP_USD = 1;
 /** Ventana del tope mensual: mismos 30 días móviles que el resto de los topes por `llm_calls`. */
 export const CV_CHAT_MONTH_DAYS = 30;
 
-/** Por persona y día: gasto de entrevistas (sin `write`, que ya cuenta en el cupo mensual) y charlas nuevas. */
+/**
+ * Por persona y día: gasto de entrevistas (sin `write`, que ya cuenta en el cupo mensual) y charlas nuevas
+ * (defaults). Operables con `CV_CHAT_USER_DAILY_CAP_USD` y `CV_CHAT_MAX_STARTS_PER_DAY`.
+ */
 export const CV_CHAT_USER_DAILY_CAP_USD = 0.3;
 export const CV_CHAT_MAX_STARTS_PER_DAY = 5;
+
+export interface CvChatLimits {
+  maxCostUsd: number;
+  userDailyCapUsd: number;
+  maxStartsPerDay: number;
+}
+
+/** Topes operables del chat de CV desde el entorno; una variable inválida vale el default. */
+export function cvChatLimitsFromEnv(env: CapEnv): CvChatLimits {
+  return {
+    maxCostUsd: readCap(env, "CV_CHAT_MAX_COST_USD", CV_CHAT_MAX_COST_USD, { kind: "decimal" }),
+    userDailyCapUsd: readCap(env, "CV_CHAT_USER_DAILY_CAP_USD", CV_CHAT_USER_DAILY_CAP_USD, {
+      kind: "decimal",
+    }),
+    maxStartsPerDay: readCap(env, "CV_CHAT_MAX_STARTS_PER_DAY", CV_CHAT_MAX_STARTS_PER_DAY, {
+      kind: "int",
+    }),
+  };
+}
 /**
  * Máximo que se reserva antes de llamar al modelo (la reserva se borra al terminar el paso). Es el tope del
  * paso, no el promedio: el prompt más largo que acepta la ruta, el primario agotando `max_tokens` y, si
@@ -41,6 +65,10 @@ export interface CvChatCapInput {
   /** Gasto global de la tarea en las últimas 24 h. */
   dailySpendUsd: number;
   dailyCapUsd: number;
+  /** Tope de gasto de la charla; ausente = `CV_CHAT_MAX_COST_USD`. */
+  maxCostUsd?: number;
+  /** Tope persona-día; ausente = `CV_CHAT_USER_DAILY_CAP_USD`. */
+  userDailyCapUsd?: number;
 }
 
 /** Primer tope alcanzado, o `null`. Orden: mes, turnos, conversación, persona-día, global. */
@@ -48,8 +76,10 @@ export function cvChatCapReason(i: CvChatCapInput): CvChatCap | null {
   // `!(a < b)` y no `a >= b`: con NaN o undefined el resultado es «alcanzado»
   if (!(i.cvThisMonth < i.cvPerMonth)) return "mes";
   if (!(i.turns < CV_CHAT_MAX_TURNS)) return "turnos";
-  if (!(i.conversationCostUsd < CV_CHAT_MAX_COST_USD)) return "conversacion";
-  if (!(i.userInterviewSpendUsd < CV_CHAT_USER_DAILY_CAP_USD)) return "usuario";
+  if (!(i.conversationCostUsd < (i.maxCostUsd ?? CV_CHAT_MAX_COST_USD))) return "conversacion";
+  if (!(i.userInterviewSpendUsd < (i.userDailyCapUsd ?? CV_CHAT_USER_DAILY_CAP_USD))) {
+    return "usuario";
+  }
   if (!(i.dailySpendUsd < i.dailyCapUsd) || !(i.dailyCapUsd > 0)) return "global";
   return null;
 }
@@ -84,8 +114,11 @@ export function cvChatMonthTurnsReason(
 }
 
 /** Charlas nuevas por persona y día (no hay llamada al modelo que las cuente: se registra una fila `cv_start`). */
-export function cvChatStartCapReason(startsToday: number): "inicios" | null {
-  return startsToday < CV_CHAT_MAX_STARTS_PER_DAY ? null : "inicios";
+export function cvChatStartCapReason(
+  startsToday: number,
+  maxStartsPerDay: number = CV_CHAT_MAX_STARTS_PER_DAY,
+): "inicios" | null {
+  return startsToday < maxStartsPerDay ? null : "inicios";
 }
 
 export interface CvChatCapNotice {

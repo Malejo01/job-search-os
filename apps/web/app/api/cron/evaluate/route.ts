@@ -15,6 +15,7 @@ import {
   safeDbError,
   spentLast24hUsd,
 } from "@job-search-os/adapters";
+import { readCap } from "@job-search-os/pipeline";
 import { NextResponse } from "next/server";
 import { serviceLlm } from "@/lib/llm-service";
 
@@ -22,13 +23,16 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-/** Mensajes de la cola que procesa cada corrida (cada 6 h). Subió de 20 a 50 con el pool (ronda 37). */
-const EVALUATE_LIMIT = 50;
+/**
+ * Mensajes de la cola que procesa cada corrida (cada 6 h). Subió de 20 a 50 con el pool (ronda 37).
+ * Default; operable con `EVALUATE_CRON_LIMIT` (entero positivo; inválido = 50).
+ */
+const EVALUATE_LIMIT_DEFAULT = 50;
 
 /**
  * Worker de evaluación: lo dispara .github/workflows/cron.yml cada 6 hs, después de la ingesta
  * (docs/DEPLOY.md).
- * Procesa hasta EVALUATE_LIMIT mensajes de la cola evaluate_job. Protegido por CRON_SECRET.
+ * Procesa hasta EVALUATE_CRON_LIMIT mensajes de la cola evaluate_job. Protegido por CRON_SECRET.
  */
 export async function GET(request: Request): Promise<NextResponse> {
   if (
@@ -50,7 +54,12 @@ export async function GET(request: Request): Promise<NextResponse> {
       const llm = serviceLlm(db, logger);
       summary = await runEvaluateWorker(
         { db, llm, queue: createPgQueue(db), logger },
-        { limit: EVALUATE_LIMIT, budgetMs: EVALUATE_BUDGET_MS },
+        {
+          limit: readCap(process.env, "EVALUATE_CRON_LIMIT", EVALUATE_LIMIT_DEFAULT, {
+            kind: "int",
+          }),
+          budgetMs: EVALUATE_BUDGET_MS,
+        },
       );
     } catch (error) {
       logger.error({ err: safeDbError(error) }, "cron evaluate falló");

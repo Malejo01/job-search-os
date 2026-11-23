@@ -3,6 +3,7 @@
  * números; acá solo se decide. Todo falla cerrado: un número ausente, negativo o no finito cuenta como tope
  * alcanzado. Los mensajes son fijos, con links a las pantallas manuales: nunca texto del modelo.
  */
+import { readCap, type CapEnv } from "../cap-env";
 
 /** Cupo de lecturas de CV por persona y por mes (decisión 5 del dueño del proyecto, 13/11): 3 gratis, 10 pago. */
 export const PROFILE_AGENT_READS_PER_MONTH = { free: 3, paid: 10 } as const;
@@ -27,6 +28,39 @@ export const PROFILE_AGENT_MAX_FLOW_COST_USD = 0.3;
 /** Gasto real por persona y día, de todas sus charlas. */
 export const PROFILE_AGENT_USER_DAILY_CAP_USD = 0.5;
 export const PROFILE_AGENT_DEFAULT_DAILY_CAP_USD = 1;
+
+export interface ProfileAgentLimits {
+  maxReadsPerDay: number;
+  maxFlowCostUsd: number;
+  userDailyCapUsd: number;
+}
+
+/**
+ * Topes operables del agente de perfil desde el entorno (`CV_PROFILE_AGENT_MAX_READS_PER_DAY`,
+ * `CV_PROFILE_AGENT_MAX_FLOW_COST_USD`, `CV_PROFILE_AGENT_USER_DAILY_CAP_USD`). Inválido = el default.
+ */
+export function profileAgentLimitsFromEnv(env: CapEnv): ProfileAgentLimits {
+  return {
+    maxReadsPerDay: readCap(
+      env,
+      "CV_PROFILE_AGENT_MAX_READS_PER_DAY",
+      PROFILE_AGENT_MAX_READS_PER_DAY,
+      { kind: "int" },
+    ),
+    maxFlowCostUsd: readCap(
+      env,
+      "CV_PROFILE_AGENT_MAX_FLOW_COST_USD",
+      PROFILE_AGENT_MAX_FLOW_COST_USD,
+      { kind: "decimal" },
+    ),
+    userDailyCapUsd: readCap(
+      env,
+      "CV_PROFILE_AGENT_USER_DAILY_CAP_USD",
+      PROFILE_AGENT_USER_DAILY_CAP_USD,
+      { kind: "decimal" },
+    ),
+  };
+}
 
 /**
  * Gasto de una fila de `llm_calls` para los topes de USD (por charla, por persona, por día y global).
@@ -82,6 +116,10 @@ export interface ProfileAgentCapInput {
   /** Gasto global del agente en las últimas 24 h. */
   dailySpendUsd: number;
   dailyCapUsd: number;
+  /** Topes operables (`profileAgentLimitsFromEnv`); ausentes = los defaults. */
+  maxReadsPerDay?: number;
+  maxFlowCostUsd?: number;
+  userDailyCapUsd?: number;
 }
 
 /** Primer tope alcanzado, o `null`. Orden: lecturas, turnos, charla, persona-día, global. */
@@ -89,11 +127,20 @@ export function profileAgentCapReason(i: ProfileAgentCapInput): ProfileAgentCap 
   // `!(a < b)` y no `a >= b`: con NaN o undefined el resultado es «alcanzado»
   if (i.stage === "read" && !i.exempt) {
     if (!(i.readsThisMonth < i.readsPerMonth)) return "lecturas_mes";
-    if (!(i.readsToday < PROFILE_AGENT_MAX_READS_PER_DAY)) return "lecturas_dia";
+    if (!(i.readsToday < (i.maxReadsPerDay ?? PROFILE_AGENT_MAX_READS_PER_DAY))) {
+      return "lecturas_dia";
+    }
   }
   if (i.stage === "gaps" && !(i.gapTurns < PROFILE_AGENT_MAX_GAP_TURNS)) return "turnos";
-  if (i.stage !== "read" && !(i.flowCostUsd < PROFILE_AGENT_MAX_FLOW_COST_USD)) return "charla";
-  if (!(i.userSpendTodayUsd < PROFILE_AGENT_USER_DAILY_CAP_USD)) return "usuario";
+  if (
+    i.stage !== "read" &&
+    !(i.flowCostUsd < (i.maxFlowCostUsd ?? PROFILE_AGENT_MAX_FLOW_COST_USD))
+  ) {
+    return "charla";
+  }
+  if (!(i.userSpendTodayUsd < (i.userDailyCapUsd ?? PROFILE_AGENT_USER_DAILY_CAP_USD))) {
+    return "usuario";
+  }
   if (!(i.dailySpendUsd < i.dailyCapUsd) || !(i.dailyCapUsd > 0)) return "global";
   return null;
 }

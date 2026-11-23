@@ -3,7 +3,9 @@ import {
   CV_CHAT_TURN_RESERVE_USD,
   CV_COACH_RESERVE_USD,
   cvCoachCapReason,
+  cvCoachMaxFlowCostUsd,
   profileAgentCapReason,
+  profileAgentLimitsFromEnv,
   type CvCoachCap,
   type ProfileAgentCap,
 } from "@job-search-os/pipeline";
@@ -112,13 +114,26 @@ export async function measureCvCoach(
 /** Por qué no se hace el paso: un tope propio del coach o uno compartido del agente de perfil. */
 export type CvCoachReject = CvCoachCap | ProfileAgentCap;
 
+/** Topes operables del coach y del agente de perfil (compartidos); ausentes = los defaults. */
+export type CvCoachLimits = { maxFlowCostUsd?: number; userDailyCapUsd?: number };
+
+/** `CV_COACH_MAX_FLOW_COST_USD` y `CV_PROFILE_AGENT_USER_DAILY_CAP_USD`; inválido = el default. */
+export function coachLimitsFromEnv(env: Record<string, string | undefined>): CvCoachLimits {
+  return {
+    maxFlowCostUsd: cvCoachMaxFlowCostUsd(env),
+    userDailyCapUsd: profileAgentLimitsFromEnv(env).userDailyCapUsd,
+  };
+}
+
 /** Decisión pura sobre las medidas. Primero los topes del coach; después persona-día y global. */
 export function decideCvCoachStep(
   step: CvCoachReserveStep,
   m: CvCoachMeasures,
   dailyCapUsd: number,
+  limits: CvCoachLimits = {},
 ): CvCoachReject | null {
   const own = cvCoachCapReason({
+    maxFlowCostUsd: limits.maxFlowCostUsd,
     step,
     turns: m.turns,
     reviews: m.reviews,
@@ -128,6 +143,9 @@ export function decideCvCoachStep(
   if (own !== null) return own;
   return profileAgentCapReason({
     // solo rigen la charla, persona-día y global: la lectura y los turnos de huecos no se miden acá
+    userDailyCapUsd: limits.userDailyCapUsd,
+    // el tope de la charla del coach rige también el check compartido: si no, el de 0,30 del agente lo pisaría
+    maxFlowCostUsd: limits.maxFlowCostUsd,
     stage: "gaps",
     exempt: false,
     readsThisMonth: 0,
@@ -159,6 +177,7 @@ export async function reserveCvCoachStep(
     now: Date;
     daySince: Date;
     dailyCapUsd: number;
+    limits?: CvCoachLimits;
   },
 ): Promise<CvCoachReservation> {
   return db.transaction(async (tx) => {
@@ -166,7 +185,7 @@ export async function reserveCvCoachStep(
       sql`select pg_advisory_xact_lock(hashtextextended(${input.userId}, ${CV_RESERVE_LOCK_NAMESPACE}))`,
     );
     const measures = await measureCvCoach(tx, input);
-    const reject = decideCvCoachStep(input.step, measures, input.dailyCapUsd);
+    const reject = decideCvCoachStep(input.step, measures, input.dailyCapUsd, input.limits);
     if (reject !== null) return { ok: false as const, reject, measures };
     const [row] = await tx
       .insert(s.llmCalls)

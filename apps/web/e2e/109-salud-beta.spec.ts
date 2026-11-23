@@ -63,6 +63,11 @@ test.describe("Flujo 109: salud diaria de la beta (C8-11)", () => {
     // Conteos sin datos de nadie: la fila de portales nunca trae un asunto ni un email
     await expect(page.getByTestId("salud-portales")).not.toContainText("@");
     await expect(page.getByTestId("salud-evaluaciones")).toContainText(/Ninguna|fallidas/);
+    // R21-05: el aviso de gasto fuera de lo normal está, dice su estado y no trae datos de personas
+    const anomalias = page.getByTestId("salud-anomalias-gasto");
+    await expect(anomalias).toBeVisible();
+    await expect(anomalias).toHaveAttribute("data-anomalies", /^(\d+|sin_datos)$/);
+    await expect(anomalias).not.toContainText("@");
   });
 
   for (const tema of ["claro", "oscuro"] as const) {
